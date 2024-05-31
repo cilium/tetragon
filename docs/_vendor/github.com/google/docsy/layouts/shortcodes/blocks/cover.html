@@ -9,8 +9,12 @@
 {{ $height := .Get "height" | default "max" -}}
 
 {{ with $promo_image -}}
-{{ $promo_image_big := (.Fill (printf "1920x1080 %s" $image_anchor)) -}}
-{{ $promo_image_small := (.Fill (printf "960x540 %s" $image_anchor)) -}}
+{{ $promo_image_big := . -}}
+{{ $promo_image_small := . -}}
+{{ if ne $promo_image.MediaType.SubType "svg" -}}
+  {{ $promo_image_big = .Fill (printf "1920x1080 %s" $image_anchor) -}}
+  {{ $promo_image_small = .Fill (printf "960x540 %s" $image_anchor) -}}
+{{ end -}}
 <link rel="preload" as="image" href="{{ $promo_image_small.RelPermalink }}" media="(max-width: 1200px)">
 <link rel="preload" as="image" href="{{ $promo_image_big.RelPermalink }}" media="(min-width: 1200px)">
 <style>

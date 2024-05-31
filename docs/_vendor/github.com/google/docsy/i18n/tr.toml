@@ -1,5 +1,3 @@
-
-
 # UI strings. Buttons and similar.
 
 [ui_pager_prev]
@@ -18,13 +16,16 @@ other = "Bu sitede arayın…"
 [ui_in]
 other = "içinde"
 
+# Used in sentences such as "All Tags"
+[ui_all]
+other = "tüm"
+
 # Footer text
 [footer_all_rights_reserved]
-other = "Bütün haklar saklıdır"
+other = "Tüm Hakları Saklıdır"
 
 [footer_privacy_policy]
 other = "Gizlilik Politikası"
-
 
 # Post (blog, articles etc.)
 [post_byline_by]
@@ -35,6 +36,8 @@ other = "Oluşturuldu"
 other = "Son düzenleme"
 [post_edit_this]
 other = "Bu sayfayı düzenle"
+[post_view_this]
+other = "Sayfa kaynağını görüntüle"
 [post_create_child_page]
 other = "Çocuk sayfası oluştur"
 [post_create_issue]
@@ -46,7 +49,7 @@ other = "Gönderiler in"
 [post_reading_time]
 other = "minute read"
 [post_less_than_a_minute_read]
-other = "less than a minute"
+other = "1 dakikadan az"
 
 # Print support
 [print_printable_section]
@@ -60,18 +63,28 @@ other = "Bütün bölümü yazıdırın"
 
 # Community
 [community_join]
-other = "Join the {{ .Site.Title }} community"
+other = "{{ .Site.Title }} topluluğuna katılın"
 [community_introduce]
-other = "{{ .Site.Title }} is an open source project that anyone in the community can use, improve, and enjoy. We'd love you to join us! Here's a few ways to find out what's happening and get involved."
+other = "{{ .Site.Title }} topluluktaki herkesin kullanabileceği, geliştirebileceği ve keyfini çıkarabileceği açık kaynaklı bir projedir. Bize katılmanızı çok isteriz! İşte neler olduğunu öğrenmenin ve dahil olmanın birkaç yolu."
 [community_learn]
-other = "Learn and Connect"
+other = "Öğrenin ve Bağlanın"
 [community_using]
-other = "Using or want to use {{ .Site.Title }}? Find out more here:"
+other = "{{ .Site.Title }} kullanıyor veya kullanmak mı istiyorsunuz? Daha fazlasını burada bulabilirsiniz:"
 [community_develop]
-other = "Develop and Contribute"
+other = "Geliştirin ve Katkıda Bulunun"
 [community_contribute]
 other = "If you want to get more involved by contributing to {{ .Site.Title }}, join us here:"
 [community_how_to]
 other = "You can find out how to contribute to {{ .Site.Title }} in our"
 [community_guideline]
-other = "Contribution Guidelines"
+other = "Katkı Yönergeleri"
+
+# Feedback
+[feedback_title]
+other = "Geribildirim"
+[feedback_question]
+other = "Bu sayfa yararlı oldu mu?"
+[feedback_positive]
+other = "Evet"
+[feedback_negative]
+other = "Hayır"

@@ -25,8 +25,8 @@
     width: 100%;
     font-size: 1rem;
     font-weight: 700;
-    color: $primary;
-    border-bottom: 1px $primary solid;
+    color: var(--bs-primary-text-emphasis);
+    border-bottom: 1px solid var(--bs-tertiary-color);
     margin-bottom: 1em;
     padding-bottom: 0.375rem;
     margin-top: 1em;
@@ -105,14 +105,14 @@
   margin-left: 0.6em;
   text-align: center;
   border-radius: 1em;
-  background-color: $white;
+  background-color: var(--bs-body-bg);
 }
 
 .taxonomy-term {
-  background: $gray-200;
+  background: var(--bs-secondary-bg);
   border-width: 0;
   border-radius: 0 3px 3px 0;
-  color: $gray-600;
+  color: var(--bs-body-color);
   display: inline-block;
   font-size: 1em;
   line-height: 1.5em;
@@ -127,11 +127,11 @@
   clip-path: polygon(100% 0, 100% 100%, 0.8em 100%, 0 50%, 0.8em 0);
 
   &:hover {
-    background-color: $primary;
-    color: $white;
+    background-color: var(--bs-primary-bg-subtle);
+    color: var(--bs-body-color-dark);
 
     .taxonomy-count {
-      color: $dark !important;
+      color: var(--bs-body-color-dark);
     }
   }
 

@@ -79,3 +79,13 @@ other = "Si deseas involucrarte más contribuyendo a {{ .Site.Title }}, únete a
 other = "Puedes averiguar cómo contribuir a {{ .Site.Title }} en nuestras"
 [community_guideline]
 other = "Guias de Contribución"
+
+# Feedback
+[feedback_title]
+other = "Comentarios"
+[feedback_question]
+other = "¿Fue útil esta página?"
+[feedback_positive]
+other = "Si"
+[feedback_negative]
+other = "No"

@@ -14,7 +14,7 @@
 
 <div class="td-card card border me-4">
 {{ with $.Get "header" -}}
-    <div class="card-header{{- cond $code " bg-white" "" -}}">
+    <div class="card-header{{- cond $code " code" "" -}}">
       {{ . | markdownify }}
     </div>
 {{ end -}}
@@ -25,7 +25,7 @@
       </h5>
     {{ end -}}
     {{ with $.Get "subtitle" -}}
-      <h6 class="card-title ms-2 text-muted">
+      <h6 class="card-title ms-2 text-body-secondary">
         {{ . | markdownify -}}
       </h6>
     {{ end -}}

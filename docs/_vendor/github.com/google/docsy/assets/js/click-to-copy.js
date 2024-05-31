@@ -19,7 +19,6 @@ for (let index = 0; index < codeListings.length; index++) {
     'fas',
     'fa-copy',
     'btn',
-    'btn-dark',
     'btn-sm',
     'td-click-to-copy'
   );

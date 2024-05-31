@@ -1,0 +1,67 @@
+{{ $version := .Site.Params.mermaid.version | default "latest" -}}
+
+{{ $cdnurl := printf "https://cdn.jsdelivr.net/npm/mermaid@%s/dist/mermaid.esm.min.mjs" $version -}}
+{{ with resources.GetRemote $cdnurl -}}
+  {{ with .Err -}}
+    {{ errorf "Could not retrieve mermaid script from CDN. Reason: %s." . -}}
+  {{ end -}}
+{{ else -}}
+  {{ errorf "Invalid Mermaid version %s, could not retrieve this version from CDN." $version -}}
+{{ end -}}
+
+<script type="module" async>
+  import mermaid from "{{ $cdnurl }}";
+
+  (function ($) {
+    if ($('.mermaid').length == 0) {
+      mermaid.initialize({ startOnLoad: false });
+      return;
+    }
+
+    var params = {{ with .Site.Params.mermaid }}{{ . | jsonify | safeJS }}{{ else }}{}{{- end }};
+
+    // Site params are stored with lowercase keys; lookup correct casing
+    // from Mermaid default config.
+    var norm = function (defaultConfig, params) {
+      var result = {};
+      for (const key in defaultConfig) {
+        const keyLower = key.toLowerCase();
+        if (defaultConfig.hasOwnProperty(key) && params.hasOwnProperty(keyLower)) {
+          if (typeof defaultConfig[key] === "object") {
+            result[key] = norm(defaultConfig[key], params[keyLower]);
+          } else {
+            result[key] = params[keyLower];
+          }
+        }
+      }
+      return result;
+    };
+
+    var settings = norm(mermaid.mermaidAPI.defaultConfig, params);
+    settings.startOnLoad = true;
+    if ($('html[data-bs-theme="dark"]').length) {
+      settings.theme = 'dark';
+    }
+    mermaid.initialize(settings);
+
+    // Handle light/dark mode theme changes
+    const lightDarkModeThemeChangeHandler = function (mutationsList, observer) {
+      for (const mutation of mutationsList) {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'data-bs-theme') {
+          // Mermaid doesn't currently support reinitialization, see
+          // https://github.com/mermaid-js/mermaid/issues/1945. Until then,
+          // just reload the page.
+          location.reload();
+        }
+      }
+    };
+
+    const observer = new MutationObserver(lightDarkModeThemeChangeHandler);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-bs-theme']
+    });
+    // observer.disconnect();
+
+  })(jQuery);
+</script>

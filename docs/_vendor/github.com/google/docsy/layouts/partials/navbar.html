@@ -4,8 +4,8 @@
 -}}
 {{ $baseURL := urls.Parse $.Site.Params.Baseurl -}}
 
-<nav class="td-navbar navbar-dark js-navbar-scroll
-            {{- if $cover }} td-navbar-cover {{- end }}">
+<nav class="td-navbar js-navbar-scroll
+            {{- if $cover }} td-navbar-cover {{- end }}" data-bs-theme="dark">
 <div class="container-fluid flex-column flex-md-row">
   <a class="navbar-brand" href="{{ .Site.Home.RelPermalink }}">
     {{- /**/ -}}
@@ -55,6 +55,11 @@
       {{ if (gt (len .Site.Home.Translations) 0) -}}
       <li class="nav-item dropdown d-none d-lg-block">
         {{ partial "navbar-lang-selector.html" . -}}
+      </li>
+      {{ end -}}
+      {{ if .Site.Params.ui.showLightDarkModeMenu -}}
+      <li class="td-light-dark-menu nav-item dropdown">
+        {{ partial "theme-toggler" . }}
       </li>
       {{ end -}}
     </ul>

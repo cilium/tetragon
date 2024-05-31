@@ -19,12 +19,12 @@ $dark: #403f4c !default;  // TODO: consider using BS value
 
 $code-color: shade-color($secondary, 40%) !default;
 
-// UI element colors
+:root,
+[data-bs-theme="light"] {
+  --td-pre-bg: var(--bs-tertiary-bg);
+}
 
-$border-color: $gray-300 !default;
-$td-sidebar-tree-root-color: $primary !default;
-$td-sidebar-bg-color: rgba($primary, 0.03) !default;
-$td-sidebar-border-color: $border-color !default;
+// UI element colors
 
 // Background colors for the sections on home page etc. It is a paint by number
 // system, starting at 0, where the number is taken from the shortcode's ordinal
@@ -35,7 +35,6 @@ $td-box-colors: $dark, $primary, $secondary, $info, $white, $gray-600, $success,
   $warning, $dark, $danger, $primary, $secondary, $info !default;
 
 $link-color: $blue-500 !default;
-$link-decoration: none !default;
 $link-shade-percentage: 30% !default;
 
 // Fonts
@@ -82,11 +81,6 @@ $td-block-space-bottom-base: 4 * $spacer !default;
 
 $pagination-color: $gray-600 !default; // TODO: consider using BS default
 $pagination-disabled-color: $gray-300 !default; // TODO: consider using BS default
-
-// Navbar
-
-$navbar-dark-color: rgba($white, 0.75) !default;      // TODO: consider moving into UG SCSS
-$navbar-dark-hover-color: rgba($white, 0.5) !default; // TODO: consider moving into UG SCSS
 
 // Footer
 

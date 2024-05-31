@@ -116,3 +116,21 @@
 @each $color, $value in $grays {
   @include box-variant(".td-box", $color, $value);
 }
+
+// Single dark-mode compatibility override for white boxes:
+@include color-mode(dark) {
+  .td-box--white {
+    color: var(--bs-body-color);
+    background-color: var(--bs-body-bg);
+    p > a, span > a {
+      color: var(--bs-link-color);
+      &:focus,
+      &:hover {
+        color: rgba(var(--bs-link-color-rgb), var(--bs-link-opacity, 1));
+      }
+    }
+    .td-arrow-down::before {
+      border-color: var(--bs-body-bg) transparent transparent transparent;
+    }
+  }
+}

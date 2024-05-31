@@ -8,7 +8,7 @@
 <figure class="{{ $class }}" style="width: {{ $image.Width }}px">
 <img src="{{ $image.RelPermalink }}" alt="Featured Image for {{ $p.Title }}" width="{{ $image.Width }}" height="{{ $image.Height }}">
 {{ with $image.Params.byline }}
- <figcaption class="mt-2 mt-md-0"><small class="text-muted">{{ . | html }}</small></figcaption>
+ <figcaption class="mt-2 mt-md-0"><small class="text-body-secondary">{{ . | html }}</small></figcaption>
 {{ end }}
 </figure>
 {{ end }}

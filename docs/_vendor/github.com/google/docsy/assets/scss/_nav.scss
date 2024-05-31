@@ -57,7 +57,7 @@
   // For .td-search__input styling, see _search.scss
 
   .dropdown {
-    min-width: 100px;
+    min-width: 50px;
   }
 
   @include media-breakpoint-up(md) {
@@ -89,6 +89,22 @@
     .navbar-nav {
       padding-bottom: 2rem;
       overflow-x: auto;
+    }
+  }
+
+  .td-light-dark-menu {
+    .bi {
+      // Adapted from: https://github.com/twbs/bootstrap/blob/main/site/layouts/_default/examples.html
+      width: 1em;
+      height: 1em;
+      vertical-align: -.125em;
+      fill: currentcolor;
+    }
+
+    &.dropdown {
+      @include media-breakpoint-down(lg) {
+        position: unset;
+      }
     }
   }
 }
@@ -180,7 +196,7 @@ nav.foldable-nav {
     padding-left: 0.4em;
     padding-right: 0.4em;
     font-size: 1em;
-    color: $gray-900;
+    color: var(--bs-secondary-color);
     transition: all 0.5s;
     &:hover {
       transform: rotate(90deg);
@@ -188,7 +204,7 @@ nav.foldable-nav {
   }
 
   .ul-1 .with-child > input:checked ~ label:before {
-    color: $primary;
+    color: var(--bs-secondary-color);
     transform: rotate(90deg);
     transition: transform 0.5s;
   }
@@ -201,12 +217,12 @@ nav.foldable-nav {
 @media (hover: hover) and (pointer: fine) {
   nav.foldable-nav {
     .ul-1 .with-child > label:hover:before {
-      color: $primary;
+      color: var(--bs-link-color);
       transition: color 0.3s;
     }
 
     .ul-1 .with-child > input:checked ~ label:hover:before {
-      color: $primary;
+      color: var(--bs-link-color);
       transition: color 0.3s;
     }
   }

@@ -1,0 +1,10 @@
+[data-bs-theme="light"] {
+  @import 'td/chroma/light';
+}
+
+[data-bs-theme="dark"] {
+  @import 'td/chroma/dark';
+  .chroma {
+    background-color: var(--td-pre-bg);
+  }
+}
