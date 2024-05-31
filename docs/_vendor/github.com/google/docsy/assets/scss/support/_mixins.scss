@@ -1,5 +1,20 @@
 // Mixins
 
+@mixin link-decoration($base: none, $focus_or_hover: initial) {
+  a {
+    text-decoration: $base;
+
+    &:focus,
+    &:hover {
+      text-decoration: $focus_or_hover;
+    }
+  }
+
+  .btn-link {
+    text-decoration: $base;
+  }
+}
+
 @mixin link-variant($parent, $color, $hover-color, $underline: false) {
   #{$parent} {
     color: $color;

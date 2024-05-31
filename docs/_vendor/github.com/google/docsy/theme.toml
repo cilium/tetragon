@@ -3,6 +3,7 @@ license = "Apache 2.0"
 licenselink = "https://github.com/google/docsy/blob/main/LICENSE"
 description = "A Hugo theme for technical documentation sites"
 homepage = "https://docsy.dev"
+demosite = "https://example.docsy.dev/"
 tags = ["documentation", "multilingual", "customizable", "responsive", "docs"]
 features = []
 min_version = "0.110.0"

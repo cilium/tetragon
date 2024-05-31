@@ -12,16 +12,16 @@
     }
     margin-top: 0rem;
     margin-bottom: 1.5rem;
-    border-left: 1px solid rgba(0, 0, 0, 0.125);
-    border-right: 1px solid rgba(0, 0, 0, 0.125);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+    border-left: $nav-tabs-border-width solid $nav-tabs-border-color;
+    border-right: $nav-tabs-border-width solid $nav-tabs-border-color;
+    border-bottom: $nav-tabs-border-width solid $nav-tabs-border-color;
   }
 }
 
 .tab-body {
   font-weight: $font-weight-medium;
-  background: $gray-100;
-  color: inherit;
+  background: var(--td-pre-bg);
+  color: var(--bs-body-color);
   border-radius: 0;
   padding: 1.5rem;
 

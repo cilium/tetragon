@@ -2,7 +2,9 @@
 // Right side toc
 //
 .td-sidebar-toc {
-  border-left: 1px solid $border-color;
+  @include link-decoration;
+
+  border-left: 1px solid var(--bs-border-color);
 
   @supports (position: sticky) {
     position: sticky;
@@ -15,10 +17,8 @@
   padding-top: 0.75rem;
   padding-bottom: 1.5rem;
   vertical-align: top;
-}
 
-.td-page-meta {
-  a {
+  .td-page-meta a {
     display: block;
     font-weight: $font-weight-medium;
   }
@@ -46,11 +46,11 @@
     }
 
     a {
-      color: $gray-600;
+      color: var(--bs-secondary-color);
 
+      &:focus,
       &:hover {
-        color: $blue;
-        text-decoration: none;
+        color: initial;
       }
     }
   }

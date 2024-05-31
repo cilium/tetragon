@@ -47,8 +47,8 @@
   blockquote {
     padding: 0 0 0 1rem;
     margin-bottom: $spacer;
-    color: $gray-600;
-    border-left: 6px solid $secondary;
+    color: var(--bs-secondary-color);
+    border-left: 6px solid var(--bs-primary);
   }
 
   ul li,
@@ -92,5 +92,29 @@
 
   @include media-breakpoint-up(sm) {
     font-size: 3rem;
+  }
+}
+
+.td-heading-self-link {
+  &:before {
+    content: '#';
+  }
+
+  font-size: 90%;
+  padding-left: 0.25em;
+  text-decoration: none;
+  visibility: hidden;
+
+  // Always visible on touch devices and small screens
+  @media (hover: none) and (pointer: coarse),
+  (max-width: map-get($grid-breakpoints, sm)) {
+    visibility: visible;
+  }
+
+}
+
+@for $i from 1 through 6 {
+  h#{$i}:hover > .td-heading-self-link {
+    visibility: visible;
   }
 }

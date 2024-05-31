@@ -27,7 +27,7 @@
     // Styling adjustments for the navbar
     @at-root {
       .td-navbar & {
-        color: $navbar-dark-color;
+        color: inherit;
       }
     }
   }
@@ -44,17 +44,17 @@
     &.form-control:focus {
       border-color: tint-color($primary, 95%);
       box-shadow: 0 0 0 2px tint-color($primary, 40%);
-      color: inherit;
+      color: var(--bs-body-color);
     }
 
     // Styling adjustments for the navbar
     @at-root {
       .td-navbar & {
         border: none;
-        color: $navbar-dark-color;
+        color: inherit;
 
         @include placeholder {
-          color: $navbar-dark-color;
+          color: inherit;
         }
       }
     }

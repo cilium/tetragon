@@ -145,7 +145,7 @@
           const $entry = $('<div>').addClass('mt-4');
 
           $entry.append(
-            $('<small>').addClass('d-block text-muted').text(r.ref)
+            $('<small>').addClass('d-block text-body-secondary').text(r.ref)
           );
 
           $entry.append(
