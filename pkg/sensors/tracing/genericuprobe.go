@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"path"
-	"sync/atomic"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/api/ops"
@@ -490,7 +489,5 @@ func (k *observerUprobeSensor) PolicyHandler(
 		return nil, fmt.Errorf("uprobe sensor does not implement policy filtering")
 	}
 
-	name := fmt.Sprintf("gup-sensor-%d", atomic.AddUint64(&sensorCounter, 1))
-	policyName := p.TpName()
-	return createGenericUprobeSensor(name, spec, policyName)
+	return createGenericUprobeSensor("generic_uprobe", spec, p.TpName())
 }

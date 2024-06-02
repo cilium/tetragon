@@ -47,8 +47,6 @@ var (
 	genericTracepointTable = tracepointTable{}
 
 	tracepointLog logrus.FieldLogger
-
-	sensorCounter uint64
 )
 
 type observerTracepointSensor struct {
