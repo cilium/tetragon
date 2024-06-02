@@ -294,7 +294,7 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 			label,
 			pinPath,
 			"enforcer").
-			SetLoaderData(name)
+			SetLoaderData(policyName)
 
 		progs = append(progs, load)
 	case OverrideMethodFmodRet:
@@ -307,7 +307,7 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 				"fmod_ret/security_task_prctl",
 				pinPath,
 				"enforcer").
-				SetLoaderData(name)
+				SetLoaderData(policyName)
 			progs = append(progs, load)
 		}
 	default:
@@ -317,11 +317,11 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 	enforcerDataMap := enforcerMap(progs...)
 	maps = append(maps, enforcerDataMap)
 
-	if ok := kp.enforcerAdd(name, kh); !ok {
-		return nil, fmt.Errorf("failed to add enforcer: '%s'", name)
+	if ok := kp.enforcerAdd(policyName, kh); !ok {
+		return nil, fmt.Errorf("failed to add enforcer: '%s'", policyName)
 	}
 
-	logger.GetLogger().Infof("Added enforcer sensor '%s'", name)
+	logger.GetLogger().Infof("Added enforcer sensor '%s'", policyName)
 
 	return &sensors.Sensor{
 		Name:   "__enforcer__",
@@ -329,10 +329,10 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 		Maps:   maps,
 		Policy: policyName,
 		PostUnloadHook: func() error {
-			if ok := kp.enforcerDel(name); !ok {
-				logger.GetLogger().Infof("Failed to clean up enforcer sensor '%s'", name)
+			if ok := kp.enforcerDel(policyName); !ok {
+				logger.GetLogger().Infof("Failed to clean up enforcer sensor '%s'", policyName)
 			} else {
-				logger.GetLogger().Infof("Cleaned up enforcer sensor '%s'", name)
+				logger.GetLogger().Infof("Cleaned up enforcer sensor '%s'", policyName)
 			}
 			return nil
 		},
