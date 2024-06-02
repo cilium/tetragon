@@ -8,7 +8,6 @@ import (
 	"path"
 	"strings"
 	"sync"
-	"sync/atomic"
 
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -95,8 +94,7 @@ func (kp *enforcerPolicy) PolicyHandler(
 		}
 	}
 	if len(spec.Enforcers) > 0 {
-		name := fmt.Sprintf("enforcer-sensor-%d", atomic.AddUint64(&sensorCounter, 1))
-		return kp.createEnforcerSensor(spec.Enforcers, spec.Lists, spec.Options, name, policy.TpName())
+		return kp.createEnforcerSensor(spec.Enforcers, spec.Lists, spec.Options, policy.TpName())
 	}
 
 	return nil, nil
@@ -185,7 +183,6 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 	enforcers []v1alpha1.EnforcerSpec,
 	lists []v1alpha1.ListSpec,
 	opts []v1alpha1.OptionSpec,
-	name string,
 	policyName string,
 ) (*sensors.Sensor, error) {
 

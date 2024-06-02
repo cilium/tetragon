@@ -6,7 +6,6 @@ package tracing
 import (
 	"errors"
 	"fmt"
-	"sync/atomic"
 
 	"github.com/cilium/tetragon/pkg/eventhandler"
 	"github.com/cilium/tetragon/pkg/policyfilter"
@@ -44,7 +43,7 @@ func (h policyHandler) PolicyHandler(
 
 	handler := eventhandler.GetCustomEventhandler(policy)
 	if len(spec.KProbes) > 0 {
-		name := fmt.Sprintf("gkp-sensor-%d", atomic.AddUint64(&sensorCounter, 1))
+		name := "generic_kprobe"
 		err := preValidateKprobes(name, spec.KProbes, spec.Lists)
 		if err != nil {
 			return nil, fmt.Errorf("validation failed: %w", err)
@@ -52,12 +51,10 @@ func (h policyHandler) PolicyHandler(
 		return createGenericKprobeSensor(spec, name, policyID, policyName, handler)
 	}
 	if len(spec.Tracepoints) > 0 {
-		name := fmt.Sprintf("gtp-sensor-%d", atomic.AddUint64(&sensorCounter, 1))
-		return createGenericTracepointSensor(spec, name, policyID, policyName, handler)
+		return createGenericTracepointSensor(spec, "generic_tracepoint", policyID, policyName, handler)
 	}
 	if len(spec.LsmHooks) > 0 {
-		name := fmt.Sprintf("glsm-sensor-%d", atomic.AddUint64(&sensorCounter, 1))
-		return createGenericLsmSensor(spec, name, policyID, policyName)
+		return createGenericLsmSensor(spec, "generic_lsm", policyID, policyName)
 	}
 	return nil, nil
 }
