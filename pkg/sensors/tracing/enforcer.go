@@ -276,7 +276,6 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 		return nil, err
 	}
 
-	pinPath := sensors.PathJoin(name, "enforcer_kprobe")
 	switch overrideMethod {
 	case OverrideMethodReturn:
 		useMulti := !specOpts.DisableKprobeMulti && !option.Config.DisableKprobeMulti && bpf.HasKprobeMulti()
@@ -292,7 +291,7 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 			path.Join(option.Config.HubbleLib, prog),
 			attach,
 			label,
-			pinPath,
+			"kprobe",
 			"enforcer").
 			SetLoaderData(policyName)
 
@@ -305,7 +304,7 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 				path.Join(option.Config.HubbleLib, "bpf_fmodret_enforcer.o"),
 				syscallSym,
 				"fmod_ret/security_task_prctl",
-				pinPath,
+				fmt.Sprintf("fmod_ret_%s", syscallSym),
 				"enforcer").
 				SetLoaderData(policyName)
 			progs = append(progs, load)
