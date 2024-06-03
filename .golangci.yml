@@ -4,7 +4,8 @@ run:
   timeout: 10m
 
 output:
-  format: tab
+  formats:
+    - format: tab
   unique-by-line: false
   sort-results: true
 
