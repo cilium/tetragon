@@ -45,7 +45,7 @@ jobs:
           cache: false
 
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@d6238b002a20823d52840fda27e2d4891c5952dc # v4.0.1
+        uses: golangci/golangci-lint-action@a4f60bb28d35aeee14e6880718e0c85ff1882e64 # v6.0.1
         with:
           # renovate: datasource=docker depName=docker.io/golangci/golangci-lint
           version: v1.59.0
