@@ -12,7 +12,7 @@ output:
 linters:
   disable-all: true
   enable:
-    - goerr113
+    - err113
     - goheader
     - goimports
     - govet
@@ -41,7 +41,7 @@ issues:
   max-same-issues: 0
   exclude-rules:
     # Disallows any kind of `fmt.Errorf("%s is too high", bar)`, too opinionated.
-    - linters: [goerr113]
+    - linters: [err113]
       text: "do not define dynamic errors, use wrapped static errors instead"
     # Most exported consts are self-descriptive.
     - linters: [revive]
