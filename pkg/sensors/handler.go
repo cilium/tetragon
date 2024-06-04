@@ -43,7 +43,7 @@ func (h *handler) allocPolicyID() uint64 {
 }
 
 // revive:disable:exported
-func SensorsFromPolicy(tp tracingpolicy.TracingPolicy, filterID policyfilter.PolicyID) ([]*Sensor, error) {
+func SensorsFromPolicy(tp tracingpolicy.TracingPolicy, filterID policyfilter.PolicyID) ([]SensorIface, error) {
 	return sensorsFromPolicyHandlers(tp, filterID)
 }
 
@@ -133,7 +133,8 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 		col.state = LoadErrorState
 		return err
 	}
-	col.sensors = sensors
+	col.sensors = make([]SensorIface, 0, len(sensors))
+	col.sensors = append(col.sensors, sensors...)
 	col.state = LoadingState
 
 	// unlock so that policyLister can access the collections (read-only) while we are loading.
@@ -244,7 +245,7 @@ func (h *handler) addSensor(op *sensorAdd) error {
 		return fmt.Errorf("sensor %s already exists", ck)
 	}
 	collections[ck] = &collection{
-		sensors: []*Sensor{op.sensor},
+		sensors: []SensorIface{op.sensor},
 		name:    op.name,
 	}
 	return nil
@@ -322,8 +323,8 @@ func (h *handler) listSensors(op *sensorList) error {
 		colInfo := col.info()
 		for _, s := range col.sensors {
 			ret = append(ret, SensorStatus{
-				Name:       s.Name,
-				Enabled:    s.Loaded,
+				Name:       s.GetName(),
+				Enabled:    s.IsLoaded(),
 				Collection: colInfo,
 			})
 		}
@@ -332,10 +333,9 @@ func (h *handler) listSensors(op *sensorList) error {
 	return nil
 }
 
-func sensorsFromPolicyHandlers(tp tracingpolicy.TracingPolicy, filterID policyfilter.PolicyID) ([]*Sensor, error) {
-	var sensors []*Sensor
+func sensorsFromPolicyHandlers(tp tracingpolicy.TracingPolicy, filterID policyfilter.PolicyID) ([]SensorIface, error) {
+	var sensors []SensorIface
 	for n, s := range registeredPolicyHandlers {
-		var sensor *Sensor
 		sensor, err := s.PolicyHandler(tp, filterID)
 		if err != nil {
 			return nil, fmt.Errorf("policy handler '%s' failed loading policy '%s': %w", n, tp.TpName(), err)

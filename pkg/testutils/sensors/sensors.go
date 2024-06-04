@@ -13,7 +13,11 @@ import (
 )
 
 // LoadSensor is a helper for loading a sensor in tests
-func LoadSensor(t *testing.T, sensor *sensors.Sensor) {
+func LoadSensor(t *testing.T, sensori sensors.SensorIface) {
+	sensor, ok := sensori.(*sensors.Sensor)
+	if !ok {
+		t.Fatalf("Cannot call LoadSensor on type %T", sensori)
+	}
 
 	if err := sensor.FindPrograms(); err != nil {
 		t.Fatalf("ObserverFindProgs error: %s", err)

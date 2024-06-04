@@ -4314,22 +4314,24 @@ spec:
       type: "size_t"
 `
 
-	var sens []*sensors.Sensor
 	var err error
-
 	readConfigHook := []byte(readHook)
 	err = os.WriteFile(testConfigFile, readConfigHook, 0644)
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
-	sens, err = observertesthelper.GetDefaultSensorsWithFile(t, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	sens, err := observertesthelper.GetDefaultSensorsWithFile(t, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
 
 	tus.CheckSensorLoad(sens, sensorMaps, sensorProgs, t)
 
-	sensors.UnloadSensors(sens)
+	sensi := make([]sensors.SensorIface, 0, len(sens))
+	for _, s := range sens {
+		sensi = append(sensi, s)
+	}
+	sensors.UnloadSensors(sensi)
 }
 
 func TestFakeSyscallError(t *testing.T) {

@@ -112,7 +112,7 @@ func hasLoaderEvents() bool {
 	return bpf.HasBuildId() && kernels.MinKernelVersion("5.19.0")
 }
 
-func (k *loaderSensor) PolicyHandler(p tracingpolicy.TracingPolicy, fid policyfilter.PolicyID) (*sensors.Sensor, error) {
+func (k *loaderSensor) PolicyHandler(p tracingpolicy.TracingPolicy, fid policyfilter.PolicyID) (sensors.SensorIface, error) {
 	spec := p.TpSpec()
 	// NB: no loader section is the spec, so nothing to do
 	if !spec.Loader {

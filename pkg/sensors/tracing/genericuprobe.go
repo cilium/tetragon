@@ -481,7 +481,7 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 func (k *observerUprobeSensor) PolicyHandler(
 	p tracingpolicy.TracingPolicy,
 	fid policyfilter.PolicyID,
-) (*sensors.Sensor, error) {
+) (sensors.SensorIface, error) {
 	spec := p.TpSpec()
 
 	if len(spec.UProbes) == 0 {

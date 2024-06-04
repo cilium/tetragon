@@ -344,7 +344,7 @@ func GetDefaultSensorsWithFile(tb testing.TB, file, lib string, opts ...TestOpti
 		}
 	}
 
-	var sens []*sensors.Sensor
+	var sens []sensors.SensorIface
 
 	if tp != nil {
 		sens, err = sensors.SensorsFromPolicy(tp, policyfilter.NoFilterID)
@@ -360,7 +360,13 @@ func GetDefaultSensorsWithFile(tb testing.TB, file, lib string, opts ...TestOpti
 	}
 
 	sens = append(sens, base)
-	return sens, nil
+	ret := make([]*sensors.Sensor, 0, len(sens))
+	for _, si := range sens {
+		if s, ok := si.(*sensors.Sensor); ok {
+			ret = append(ret, s)
+		}
+	}
+	return ret, nil
 }
 
 func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, opts *testExporterOptions, oo *testObserverOptions) error {
@@ -458,7 +464,7 @@ func loadObserver(tb testing.TB, ctx context.Context, base *sensors.Sensor,
 	return nil
 }
 
-func loadSensors(tb testing.TB, base *sensors.Sensor, sens []*sensors.Sensor) error {
+func loadSensors(tb testing.TB, base sensors.SensorIface, sens []sensors.SensorIface) error {
 	if err := base.Load(option.Config.BpfDir); err != nil {
 		tb.Fatalf("Load base error: %s\n", err)
 	}

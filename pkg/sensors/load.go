@@ -374,7 +374,7 @@ func unloadProgram(prog *program.Program) {
 	log.Info("BPF prog was unloaded")
 }
 
-func UnloadSensors(sens []*Sensor) {
+func UnloadSensors(sens []SensorIface) {
 	for i := range sens {
 		if err := sens[i].Unload(); err != nil {
 			logger.GetLogger().Warnf("Failed to unload sensor: %s", err)
