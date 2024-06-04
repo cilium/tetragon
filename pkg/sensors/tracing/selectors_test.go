@@ -57,7 +57,7 @@ func loadGenericSensorTest(t *testing.T, spec *v1alpha1.TracingPolicySpec) *sens
 	tus.LoadSensor(t, base.GetInitialSensor())
 	tus.LoadSensor(t, testsensor.GetTestSensor())
 	tus.LoadSensor(t, tpSensor)
-	return tpSensor
+	return tpSensor.(*sensors.Sensor)
 }
 
 // lseekTestOps retruns a function to perform test lseek operations using the

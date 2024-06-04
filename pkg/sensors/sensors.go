@@ -58,6 +58,23 @@ type Sensor struct {
 	DestroyHook SensorHook
 }
 
+// SensorIface is an interface for sensors.Sensor that allows implementing sensors for testing.
+type SensorIface interface {
+	GetName() string
+	IsLoaded() bool
+	Load(bpfDir string) error
+	Unload() error
+	Destroy()
+}
+
+func (s *Sensor) GetName() string {
+	return s.Name
+}
+
+func (s *Sensor) IsLoaded() bool {
+	return s.Loaded
+}
+
 // SensorHook is the function signature for an optional function
 // that can be called during sensor unloading and removing.
 type SensorHook func() error
@@ -84,7 +101,7 @@ type policyHandler interface {
 	// PolicyHandler returns a Sensor for a given policy
 	// sensors that support policyfilter can use the filterID to implement filtering.
 	// sensors that do not support policyfilter need to return an error if filterID != policyfilter.NoFilterID
-	PolicyHandler(policy tracingpolicy.TracingPolicy, filterID policyfilter.PolicyID) (*Sensor, error)
+	PolicyHandler(policy tracingpolicy.TracingPolicy, filterID policyfilter.PolicyID) (SensorIface, error)
 }
 
 type probeLoader interface {
@@ -132,11 +149,20 @@ type LoadProbeArgs struct {
 	Version, Verbose int
 }
 
-func GetMergedSensorFromParserPolicy(tp tracingpolicy.TracingPolicy) (*Sensor, error) {
+func GetMergedSensorFromParserPolicy(tp tracingpolicy.TracingPolicy) (SensorIface, error) {
 	// NB: use a filter id of 0, so no filtering will happen
-	sensors, err := SensorsFromPolicy(tp, policyfilter.NoFilterID)
+	sis, err := SensorsFromPolicy(tp, policyfilter.NoFilterID)
 	if err != nil {
 		return nil, err
 	}
+	sensors := make([]*Sensor, 0, len(sis))
+	for _, si := range sis {
+		s, ok := si.(*Sensor)
+		if !ok {
+			return nil, fmt.Errorf("cannot merge sensor of type %T", si)
+		}
+		sensors = append(sensors, s)
+	}
+
 	return SensorCombine(tp.TpName(), sensors...), nil
 }

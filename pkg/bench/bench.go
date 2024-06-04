@@ -138,7 +138,7 @@ func runTetragon(ctx context.Context, configFile string, args *Arguments, summar
 	}
 
 	<-ctx.Done()
-	sensors.UnloadSensors([]*sensors.Sensor{benchSensors, baseSensors})
+	sensors.UnloadSensors([]sensors.SensorIface{benchSensors, baseSensors})
 }
 
 func sigHandler(ctx context.Context, cancel context.CancelFunc) {

@@ -60,7 +60,7 @@ func (ck *collectionKey) String() string {
 // This can either be creating from a tracing policy, or by loading sensors indepenently for sensors
 // that are not loaded via a tracing policy (e.g., base sensor) and testing.
 type collection struct {
-	sensors []*Sensor
+	sensors []SensorIface
 	name    string
 	err     error
 	// fields below are only set for tracing policies
@@ -97,13 +97,13 @@ func (c *collection) load(bpfDir string) error {
 
 	var err error
 	for _, sensor := range c.sensors {
-		if sensor.Loaded {
+		if sensor.IsLoaded() {
 			// NB: For now, we don't treat a sensor already loaded as an error
 			// because that would complicate things.
 			continue
 		}
 		if err = sensor.Load(bpfDir); err != nil {
-			err = fmt.Errorf("sensor %s from collection %s failed to load: %s", sensor.Name, c.name, err)
+			err = fmt.Errorf("sensor %s from collection %s failed to load: %s", sensor.GetName(), c.name, err)
 			break
 		}
 	}
@@ -111,7 +111,7 @@ func (c *collection) load(bpfDir string) error {
 	// if there was an error, try to unload all the sensors
 	if err != nil {
 		// NB: we could try to unload sensors going back from the one that failed, but since
-		// unload() checks s.Loaded, is easier to just to use unload().
+		// unload() checks s.IsLoaded, is easier to just to use unload().
 		if unloadErr := c.unload(); unloadErr != nil {
 			err = multierr.Append(err, fmt.Errorf("unloading after loading failure failed: %w", unloadErr))
 		}
@@ -124,7 +124,7 @@ func (c *collection) load(bpfDir string) error {
 func (c *collection) unload() error {
 	var err error
 	for _, s := range c.sensors {
-		if !s.Loaded {
+		if !s.IsLoaded() {
 			continue
 		}
 		unloadErr := s.Unload()
@@ -173,7 +173,7 @@ func (cm *collectionMap) listPolicies() []*tetragon.TracingPolicyStatus {
 		}
 
 		for _, sens := range col.sensors {
-			pol.Sensors = append(pol.Sensors, sens.Name)
+			pol.Sensors = append(pol.Sensors, sens.GetName())
 		}
 
 		ret = append(ret, &pol)

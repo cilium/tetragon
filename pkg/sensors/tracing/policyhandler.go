@@ -23,7 +23,7 @@ func init() {
 func (h policyHandler) PolicyHandler(
 	policy tracingpolicy.TracingPolicy,
 	policyID policyfilter.PolicyID,
-) (*sensors.Sensor, error) {
+) (sensors.SensorIface, error) {
 
 	policyName := policy.TpName()
 	spec := policy.TpSpec()

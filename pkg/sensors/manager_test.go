@@ -21,11 +21,11 @@ import (
 )
 
 type dummyHandler struct {
-	s *Sensor
+	s SensorIface
 	e error
 }
 
-func (d *dummyHandler) PolicyHandler(_ tracingpolicy.TracingPolicy, _ policyfilter.PolicyID) (*Sensor, error) {
+func (d *dummyHandler) PolicyHandler(_ tracingpolicy.TracingPolicy, _ policyfilter.PolicyID) (SensorIface, error) {
 	return d.s, d.e
 }
 
