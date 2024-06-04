@@ -8,6 +8,7 @@ description: "Additional resources to learn about Tetragon"
 
 | Title | Authors | Conference | Date |
 | ----- | ------- | ---------- | ---- |
+| [eBPF-based, Kubernetes-native: observability & security with Tetragon](https://www.youtube.com/watch?v=xqKp6GfMuic)                                                     | Anna Kapuścińska    | TechSpot                                         | 2024 |
 | [Past, Present, Future of Tetragon- First Production Use Cases, Lessons Learnt, Where Are We Heading? ](https://youtu.be/2BIe4VmSYyQ)                        | John Fastabend & Natália Réka Ivánkó | KubeCon EU                                        | 2023 |
 | [eBPF and Kubernetes — Better Together! Observability and Security with Tetragon](https://youtu.be/oU7dPKoVfm4)                                              | Anna Kapuścińska & James Laverack    | Kubernetes Community Days UK                      | 2023 |
 | [The Next Log4jshell?! Preparing for CVEs with eBPF!](https://youtu.be/u8HKg5pENj4)                                                                          | John Fastabend & Natália Réka Ivánkó | KubeCon EU                                        | 2023 |
@@ -37,5 +38,12 @@ description: "Additional resources to learn about Tetragon"
 
 ### Hands-on lab
 
-[Security Observability with eBPF and Tetragon](https://isovalent.com/labs/) - Natália Réka Ivánkó, Roland Wolters, Raphaël Pinson
+[Getting Started with Tetragon](https://isovalent.com/labs/tetragon-getting-started/) - Natália Réka Ivánkó, Roland Wolters, Raphaël Pinson
 
+[Exploring Tetragon - A Security Observability Tool for Kubernetes, Docker, and Linux](https://labs.iximiuz.com/tutorials/introduction-to-tetragon) - Ivan Velichko
+
+### Video Tutorials
+
+[eBPF for Runtime Enforcement | Tetragon Introduction and Overview](https://www.youtube.com/watch?v=MObLmvBeu00) - Rawkode Academy
+
+[Restrict Access to Secure Files with Tetragon | eBPF Runtime Enforcement](https://www.youtube.com/watch?v=SiQm6N3ucyc) - Rawkode Academy
