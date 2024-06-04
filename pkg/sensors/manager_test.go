@@ -7,9 +7,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors/program"
@@ -303,4 +305,117 @@ func TestPolicyLoadErrorOverride(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, l.Policies, 1)
 	assert.Equal(t, EnabledState.ToTetragonState(), l.Policies[0].State)
+}
+
+func TestPolicyListingWhileLoadUnload(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	polName := "test-policy"
+	testSensor := makeTestDelayedSensor(t)
+
+	mgr, err := StartSensorManager("", nil)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if err := mgr.StopSensorManager(ctx); err != nil {
+			panic("failed to stop sensor manager")
+		}
+	})
+
+	checkPolicy := func(t *testing.T, statuses []*tetragon.TracingPolicyStatus, state tetragon.TracingPolicyState) {
+		require.Equal(t, 1, len(statuses))
+		pol := statuses[0]
+		require.Equal(t, pol.Name, polName)
+		require.Equal(t, pol.State, state)
+	}
+
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	go func() {
+		// wait until at least one policy shows up, verify that it's in loading state and
+		// unblock the loading of the policy
+		for {
+			l, err := mgr.ListTracingPolicies(ctx)
+			require.NoError(t, err)
+			if len(l.Policies) > 0 {
+				checkPolicy(t, l.Policies, tetragon.TracingPolicyState_TP_STATE_LOADING)
+				testSensor.unblock(t)
+				break
+			}
+			time.Sleep(1 * time.Millisecond)
+		}
+		wg.Done()
+	}()
+
+	t.Log("adding policy")
+	policy := v1alpha1.TracingPolicy{}
+	policy.ObjectMeta.Name = polName
+	err = mgr.AddTracingPolicy(ctx, &policy)
+	require.NoError(t, err)
+	wg.Wait()
+
+	// check that policy is now enabled
+	l, err := mgr.ListTracingPolicies(ctx)
+	require.NoError(t, err)
+	checkPolicy(t, l.Policies, tetragon.TracingPolicyState_TP_STATE_ENABLED)
+
+	wg.Add(1)
+	go func() {
+		// wait until at least one policy shows up, verify that it's in unloading state and
+		// unblock the unloading of the policy
+		for {
+			l, err := mgr.ListTracingPolicies(ctx)
+			require.NoError(t, err)
+			require.Equal(t, len(l.Policies), 1)
+			if l.Policies[0].State == tetragon.TracingPolicyState_TP_STATE_UNLOADING {
+				testSensor.unblock(t)
+				break
+			}
+			time.Sleep(1 * time.Millisecond)
+		}
+		wg.Done()
+	}()
+
+	t.Log("disabling policy")
+	err = mgr.DisableTracingPolicy(ctx, polName, "")
+	require.NoError(t, err)
+	wg.Wait()
+
+	// check that policy is now disabled
+	l, err = mgr.ListTracingPolicies(ctx)
+	require.NoError(t, err)
+	checkPolicy(t, l.Policies, tetragon.TracingPolicyState_TP_STATE_DISABLED)
+
+	wg.Add(1)
+	go func() {
+		for {
+			l, err := mgr.ListTracingPolicies(ctx)
+			require.NoError(t, err)
+			require.Equal(t, len(l.Policies), 1, "policies:", l.Policies)
+			if l.Policies[0].State == tetragon.TracingPolicyState_TP_STATE_LOADING {
+				testSensor.unblock(t)
+				break
+			}
+			time.Sleep(1000 * time.Millisecond)
+		}
+		wg.Done()
+	}()
+
+	t.Log("re-enabling policy")
+	err = mgr.EnableTracingPolicy(ctx, polName, "")
+	require.NoError(t, err)
+	wg.Wait()
+
+	// check that policy is now diabled
+	l, err = mgr.ListTracingPolicies(ctx)
+	require.NoError(t, err)
+	checkPolicy(t, l.Policies, tetragon.TracingPolicyState_TP_STATE_ENABLED)
+
+	t.Log("deleting policy")
+	err = mgr.DeleteTracingPolicy(ctx, polName, "")
+	require.NoError(t, err)
+	l, err = mgr.ListTracingPolicies(ctx)
+	require.NoError(t, err)
+	require.Equal(t, 0, len(l.Policies))
 }
