@@ -501,7 +501,7 @@ matches. They are defined under `matchActions` and currently, the following
 - [NoPost action](#nopost-action)
 - [TrackSock action](#tracksock-action)
 - [UntrackSock action](#untracksock-action)
-- [Notify Killer action](#notify-killer-action)
+- [Notify Enforcer action](#notify-enforcer-action)
 
 {{< note >}}
 `Sigkill`, `Override`, `FollowFD`, `UnfollowFD`, `CopyFD`, `Post`,
@@ -1118,35 +1118,35 @@ broken.
 
 Socket tracking is only available on kernel >=5.3.
 
-### Notify Killer action
+### Notify Enforcer action
 
-The `NotifyKiller` action notifies the killer program to kill or override a syscall.
+The `NotifyEnforcer` action notifies the enforcer program to kill or override a syscall.
 
 It's meant to be used on systems with kernel that lacks multi kprobe feature, that
-allows to attach many kprobes quickly). To workaround that the killer sensor uses
+allows to attach many kprobes quickly). To workaround that the enforcer sensor uses
 the raw syscall tracepoint and attaches simple program to syscalls that we need to
 kill or override.
 
-The specs needs to have `killer` program definition, that instructs tetragon to load
-the `killer` program and attach it to specified syscalls.
+The specs needs to have `enforcer` program definition, that instructs tetragon to load
+the `enforcer` program and attach it to specified syscalls.
 
 ```yaml
 spec:
-  killers:
+  enforcers:
   - calls:
     - "list:dups"
 ```
 
 The syscalls expects list of syscalls or `list:XXX` pointer to list.
 
-Note that currently only single killer definition is allowed.
+Note that currently only single enforcer definition is allowed.
 
 
-The `NotifyKiller` action takes 2 arguments.
+The `NotifyEnforcer` action takes 2 arguments.
 
 ```yaml
 matchActions:
-- action: "NotifyKiller"
+- action: "NotifyEnforcer"
   argError: -1
   argSig: 9
 ```
@@ -1164,7 +1164,7 @@ spec:
     values:
     - "sys_dup"
     - "sys_dup2"
-  killers:
+  enforcers:
   - calls:
     - "list:dups"
   tracepoints:
@@ -1184,11 +1184,11 @@ spec:
         values:
         - "/usr/bin/bash"
       matchActions:
-      - action: "NotifyKiller"
+      - action: "NotifyEnforcer"
         argSig: 9
 ```
 
-Note as mentioned above the `NotifyKiller` with killer program is meant to be used only on kernel versions
+Note as mentioned above the `NotifyEnforcer` with enforcer program is meant to be used only on kernel versions
 with no support for fast attach of multiple kprobes (`kprobe_multi` link).
 
 With `kprobe_multi` link support the above example can be easily replaced with:
