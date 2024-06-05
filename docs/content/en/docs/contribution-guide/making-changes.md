@@ -75,7 +75,7 @@ these files (`pkg/k8s/`), you need to run code generation:
 
 ```shell
 make crds
-make -C install/kubernetes tetragon/crds-yaml
+make -C install/kubernetes tetragon/templates/crds
 ```
 
 ## Making changes to Helm chart
