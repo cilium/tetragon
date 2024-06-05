@@ -48,6 +48,11 @@ func matchPathsToMatchArgsSelectors(matchPaths []v1alpha1.MatchPathsSelector, ar
 }
 
 func ToTracingPolicy(rspolicy v1alpha1.RuntimeSecurityPolicy) (*RuntimeSecurityTracingPolicy, error) {
+	err := validateRuntimeSecurityPolicy(rspolicy)
+	if err != nil {
+		return nil, fmt.Errorf("invalid RuntimeSecurityPolicy: %w", err)
+	}
+
 	tp := v1alpha1.TracingPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      rspolicy.Name,

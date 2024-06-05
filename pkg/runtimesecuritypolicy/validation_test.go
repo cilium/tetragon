@@ -388,3 +388,76 @@ func TestValidateCRD(t *testing.T) {
 		})
 	}
 }
+
+func Test_validateRuntimeSecurityPolicy(t *testing.T) {
+	tests := []struct {
+		name    string
+		policy  v1alpha1.RuntimeSecurityPolicy
+		wantErr bool
+	}{
+		{
+			name:    "validPolicy",
+			wantErr: false,
+			policy: v1alpha1.RuntimeSecurityPolicy{
+				ObjectMeta: v1.ObjectMeta{
+					Name: "valid-name",
+				},
+				Spec: v1alpha1.RuntimeSecurityPolicySpec{
+					Selectors: &v1alpha1.RuntimeSecurityPolicySelector{
+						ExecutableSelector: &v1alpha1.ExecutableSelector{
+							MatchPaths: []v1alpha1.MatchPathsSelector{
+								{
+									Pattern:  "Full",
+									Operator: "In",
+									Values:   []string{"/usr/bin/who", "/usr/bin/ps"},
+								},
+							},
+						},
+					},
+					Rules: []v1alpha1.RuntimeSecurityPolicyRule{
+						{
+							Type: "Execution",
+							ExecutionConfig: &v1alpha1.RuleExecutionConfig{
+								Action: "Audit",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:    "noExecutionConfig",
+			wantErr: true,
+			policy: v1alpha1.RuntimeSecurityPolicy{
+				ObjectMeta: v1.ObjectMeta{
+					Name: "valid-name",
+				},
+				Spec: v1alpha1.RuntimeSecurityPolicySpec{
+					Selectors: &v1alpha1.RuntimeSecurityPolicySelector{
+						ExecutableSelector: &v1alpha1.ExecutableSelector{
+							MatchPaths: []v1alpha1.MatchPathsSelector{
+								{
+									Pattern:  "Full",
+									Operator: "In",
+									Values:   []string{"/usr/bin/who", "/usr/bin/ps"},
+								},
+							},
+						},
+					},
+					Rules: []v1alpha1.RuntimeSecurityPolicyRule{
+						{
+							Type: "Execution",
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := validateRuntimeSecurityPolicy(tt.policy); (err != nil) != tt.wantErr {
+				t.Errorf("validateRuntimeSecurityPolicy error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

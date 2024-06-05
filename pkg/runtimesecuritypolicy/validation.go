@@ -6,6 +6,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/client"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/selectors"
 	ext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apischema "k8s.io/apiextensions-apiserver/pkg/apiserver/schema"
@@ -177,4 +178,34 @@ func ApplyCRDDefault(rawPolicy []byte) ([]byte, unstructured.Unstructured, error
 	}
 
 	return rawPolicyWithDefault, policyUnstr, nil
+}
+
+// validateRuntimeSecurityPolicy validates the policy and should run after the
+// CRD validation step, it is assuming that the CRD validation step is already
+// enforced.
+func validateRuntimeSecurityPolicy(policy v1alpha1.RuntimeSecurityPolicy) error {
+	// The CRD validation steps verify that oneOf [executionConfig] is set
+	// because we can't use CEL (yet) to capture that executionConfig should be
+	// set if and only if Type is "Execution"
+	for _, rule := range policy.Spec.Rules {
+		switch rule.Type {
+		case "Execution":
+			if rule.ExecutionConfig == nil {
+				return fmt.Errorf("rule type is Execution and ExecutionConfig is nil")
+			}
+		}
+	}
+
+	if sel := policy.Spec.Selectors; sel != nil && sel.ExecutableSelector != nil {
+		for i, mp := range sel.ExecutableSelector.MatchPaths {
+			for j, value := range mp.Values {
+				err := selectors.ArgStringValueMaxLength(value)
+				if err != nil {
+					return fmt.Errorf("invalid executable selector value matchPaths[%d].value[%d]: %w", i, j, err)
+				}
+			}
+		}
+	}
+
+	return nil
 }
