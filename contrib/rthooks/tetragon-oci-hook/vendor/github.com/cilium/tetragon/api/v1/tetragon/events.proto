@@ -26,6 +26,7 @@ enum EventType {
     PROCESS_LOADER = 11;
     PROCESS_UPROBE = 12;
     PROCESS_THROTTLE = 27;
+    PROCESS_RUNTIME_SECURITY = 28;
 
     TEST = 40000;
     RATE_LIMIT_INFO = 40001;
@@ -165,6 +166,50 @@ message ProcessThrottle {
     string cgroup = 2;
 }
 
+message RuntimeSecurityPolicy {
+    // Name of the RuntimeSecurityPolicy associated with that event.
+    string name = 1;
+    // Namespace of the RuntimeSecurityPolicy associated with that event.
+    string namespace = 2;
+}
+
+enum RuntimeSecurityRuleType {
+    RUNTIME_SECURITY_TYPE_UNSPECIFIED = 0;
+    RUNTIME_SECURITY_TYPE_EXECUTION = 1;
+}
+
+enum RuntimeSecurityRuleAction {
+    RUNTIME_SECURITY_ACTION_UNSPECIFIED = 0;
+    RUNTIME_SECURITY_ACTION_AUDIT = 1;
+    RUNTIME_SECURITY_ACTION_BLOCK = 2;
+}
+
+message RuntimeSecurityExecution {
+    // Path of the binary that triggered the execution rule.
+    string path = 1;
+}
+
+message RuntimeSecurityRule {
+    // Type of the rule that triggered this event.
+    RuntimeSecurityRuleType type = 1;
+    // Action of the rule that triggered this event.
+    RuntimeSecurityRuleAction action = 2;
+    // Execution is set if the rule type is Execution and provide details
+    // specific to execution.
+    RuntimeSecurityExecution execution = 3;
+}
+
+message ProcessRuntimeSecurity {
+    // Process that triggered the exec.
+    Process process = 1;
+    // Immediate parent of the process.
+    Process parent = 2;
+    // RuntimeSecurityPolicy associated with that event.
+    RuntimeSecurityPolicy policy = 3;
+    // Rule is the rule that triggered that event from the RuntimeSecurityPolicy.
+    RuntimeSecurityRule rule = 4;
+}
+
 message GetEventsResponse {
     // The type-specific fields of an event.
     //
@@ -184,6 +229,7 @@ message GetEventsResponse {
         ProcessLoader process_loader = 11;
         ProcessUprobe process_uprobe = 12;
         ProcessThrottle process_throttle = 27;
+        ProcessRuntimeSecurity process_runtime_security = 28;
 
         Test test = 40000;
         RateLimitInfo rate_limit_info = 40001;

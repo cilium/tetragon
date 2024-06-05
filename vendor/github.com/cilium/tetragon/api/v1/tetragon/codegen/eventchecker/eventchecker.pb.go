@@ -282,6 +282,8 @@ func CheckerFromEvent(event Event) (EventChecker, error) {
 		return NewRateLimitInfoChecker("").FromRateLimitInfo(ev), nil
 	case *tetragon.ProcessThrottle:
 		return NewProcessThrottleChecker("").FromProcessThrottle(ev), nil
+	case *tetragon.ProcessRuntimeSecurity:
+		return NewProcessRuntimeSecurityChecker("").FromProcessRuntimeSecurity(ev), nil
 
 	default:
 		return nil, fmt.Errorf("Unhandled event type %T", event)
@@ -344,6 +346,8 @@ func EventFromResponse(response *tetragon.GetEventsResponse) (Event, error) {
 		return ev.RateLimitInfo, nil
 	case *tetragon.GetEventsResponse_ProcessThrottle:
 		return ev.ProcessThrottle, nil
+	case *tetragon.GetEventsResponse_ProcessRuntimeSecurity:
+		return ev.ProcessRuntimeSecurity, nil
 
 	default:
 		return nil, fmt.Errorf("Unknown event type %T", response.Event)
@@ -2047,6 +2051,126 @@ func (checker *ProcessThrottleChecker) FromProcessThrottle(event *tetragon.Proce
 	}
 	checker.Type = NewThrottleTypeChecker(event.Type)
 	checker.Cgroup = stringmatcher.Full(event.Cgroup)
+	return checker
+}
+
+// ProcessRuntimeSecurityChecker implements a checker struct to check a ProcessRuntimeSecurity event
+type ProcessRuntimeSecurityChecker struct {
+	CheckerName string                        `json:"checkerName"`
+	Process     *ProcessChecker               `json:"process,omitempty"`
+	Parent      *ProcessChecker               `json:"parent,omitempty"`
+	Policy      *RuntimeSecurityPolicyChecker `json:"policy,omitempty"`
+	Rule        *RuntimeSecurityRuleChecker   `json:"rule,omitempty"`
+}
+
+// CheckEvent checks a single event and implements the EventChecker interface
+func (checker *ProcessRuntimeSecurityChecker) CheckEvent(event Event) error {
+	if ev, ok := event.(*tetragon.ProcessRuntimeSecurity); ok {
+		return checker.Check(ev)
+	}
+	return fmt.Errorf("%s: %T is not a ProcessRuntimeSecurity event", CheckerLogPrefix(checker), event)
+}
+
+// CheckResponse checks a single gRPC response and implements the EventChecker interface
+func (checker *ProcessRuntimeSecurityChecker) CheckResponse(response *tetragon.GetEventsResponse) error {
+	event, err := EventFromResponse(response)
+	if err != nil {
+		return err
+	}
+	return checker.CheckEvent(event)
+}
+
+// NewProcessRuntimeSecurityChecker creates a new ProcessRuntimeSecurityChecker
+func NewProcessRuntimeSecurityChecker(name string) *ProcessRuntimeSecurityChecker {
+	return &ProcessRuntimeSecurityChecker{CheckerName: name}
+}
+
+// Get the name associated with the checker
+func (checker *ProcessRuntimeSecurityChecker) GetCheckerName() string {
+	return checker.CheckerName
+}
+
+// Get the type of the checker as a string
+func (checker *ProcessRuntimeSecurityChecker) GetCheckerType() string {
+	return "ProcessRuntimeSecurityChecker"
+}
+
+// Check checks a ProcessRuntimeSecurity event
+func (checker *ProcessRuntimeSecurityChecker) Check(event *tetragon.ProcessRuntimeSecurity) error {
+	if event == nil {
+		return fmt.Errorf("%s: ProcessRuntimeSecurity event is nil", CheckerLogPrefix(checker))
+	}
+
+	fieldChecks := func() error {
+		if checker.Process != nil {
+			if err := checker.Process.Check(event.Process); err != nil {
+				return fmt.Errorf("Process check failed: %w", err)
+			}
+		}
+		if checker.Parent != nil {
+			if err := checker.Parent.Check(event.Parent); err != nil {
+				return fmt.Errorf("Parent check failed: %w", err)
+			}
+		}
+		if checker.Policy != nil {
+			if err := checker.Policy.Check(event.Policy); err != nil {
+				return fmt.Errorf("Policy check failed: %w", err)
+			}
+		}
+		if checker.Rule != nil {
+			if err := checker.Rule.Check(event.Rule); err != nil {
+				return fmt.Errorf("Rule check failed: %w", err)
+			}
+		}
+		return nil
+	}
+	if err := fieldChecks(); err != nil {
+		return fmt.Errorf("%s: %w", CheckerLogPrefix(checker), err)
+	}
+	return nil
+}
+
+// WithProcess adds a Process check to the ProcessRuntimeSecurityChecker
+func (checker *ProcessRuntimeSecurityChecker) WithProcess(check *ProcessChecker) *ProcessRuntimeSecurityChecker {
+	checker.Process = check
+	return checker
+}
+
+// WithParent adds a Parent check to the ProcessRuntimeSecurityChecker
+func (checker *ProcessRuntimeSecurityChecker) WithParent(check *ProcessChecker) *ProcessRuntimeSecurityChecker {
+	checker.Parent = check
+	return checker
+}
+
+// WithPolicy adds a Policy check to the ProcessRuntimeSecurityChecker
+func (checker *ProcessRuntimeSecurityChecker) WithPolicy(check *RuntimeSecurityPolicyChecker) *ProcessRuntimeSecurityChecker {
+	checker.Policy = check
+	return checker
+}
+
+// WithRule adds a Rule check to the ProcessRuntimeSecurityChecker
+func (checker *ProcessRuntimeSecurityChecker) WithRule(check *RuntimeSecurityRuleChecker) *ProcessRuntimeSecurityChecker {
+	checker.Rule = check
+	return checker
+}
+
+//FromProcessRuntimeSecurity populates the ProcessRuntimeSecurityChecker using data from a ProcessRuntimeSecurity event
+func (checker *ProcessRuntimeSecurityChecker) FromProcessRuntimeSecurity(event *tetragon.ProcessRuntimeSecurity) *ProcessRuntimeSecurityChecker {
+	if event == nil {
+		return checker
+	}
+	if event.Process != nil {
+		checker.Process = NewProcessChecker().FromProcess(event.Process)
+	}
+	if event.Parent != nil {
+		checker.Parent = NewProcessChecker().FromProcess(event.Parent)
+	}
+	if event.Policy != nil {
+		checker.Policy = NewRuntimeSecurityPolicyChecker().FromRuntimeSecurityPolicy(event.Policy)
+	}
+	if event.Rule != nil {
+		checker.Rule = NewRuntimeSecurityRuleChecker().FromRuntimeSecurityRule(event.Rule)
+	}
 	return checker
 }
 
@@ -6308,6 +6432,199 @@ func (checker *StackTraceEntryChecker) FromStackTraceEntry(event *tetragon.Stack
 	return checker
 }
 
+// RuntimeSecurityPolicyChecker implements a checker struct to check a RuntimeSecurityPolicy field
+type RuntimeSecurityPolicyChecker struct {
+	Name      *stringmatcher.StringMatcher `json:"name,omitempty"`
+	Namespace *stringmatcher.StringMatcher `json:"namespace,omitempty"`
+}
+
+// NewRuntimeSecurityPolicyChecker creates a new RuntimeSecurityPolicyChecker
+func NewRuntimeSecurityPolicyChecker() *RuntimeSecurityPolicyChecker {
+	return &RuntimeSecurityPolicyChecker{}
+}
+
+// Get the type of the checker as a string
+func (checker *RuntimeSecurityPolicyChecker) GetCheckerType() string {
+	return "RuntimeSecurityPolicyChecker"
+}
+
+// Check checks a RuntimeSecurityPolicy field
+func (checker *RuntimeSecurityPolicyChecker) Check(event *tetragon.RuntimeSecurityPolicy) error {
+	if event == nil {
+		return fmt.Errorf("%s: RuntimeSecurityPolicy field is nil", CheckerLogPrefix(checker))
+	}
+
+	fieldChecks := func() error {
+		if checker.Name != nil {
+			if err := checker.Name.Match(event.Name); err != nil {
+				return fmt.Errorf("Name check failed: %w", err)
+			}
+		}
+		if checker.Namespace != nil {
+			if err := checker.Namespace.Match(event.Namespace); err != nil {
+				return fmt.Errorf("Namespace check failed: %w", err)
+			}
+		}
+		return nil
+	}
+	if err := fieldChecks(); err != nil {
+		return fmt.Errorf("%s: %w", CheckerLogPrefix(checker), err)
+	}
+	return nil
+}
+
+// WithName adds a Name check to the RuntimeSecurityPolicyChecker
+func (checker *RuntimeSecurityPolicyChecker) WithName(check *stringmatcher.StringMatcher) *RuntimeSecurityPolicyChecker {
+	checker.Name = check
+	return checker
+}
+
+// WithNamespace adds a Namespace check to the RuntimeSecurityPolicyChecker
+func (checker *RuntimeSecurityPolicyChecker) WithNamespace(check *stringmatcher.StringMatcher) *RuntimeSecurityPolicyChecker {
+	checker.Namespace = check
+	return checker
+}
+
+//FromRuntimeSecurityPolicy populates the RuntimeSecurityPolicyChecker using data from a RuntimeSecurityPolicy field
+func (checker *RuntimeSecurityPolicyChecker) FromRuntimeSecurityPolicy(event *tetragon.RuntimeSecurityPolicy) *RuntimeSecurityPolicyChecker {
+	if event == nil {
+		return checker
+	}
+	checker.Name = stringmatcher.Full(event.Name)
+	checker.Namespace = stringmatcher.Full(event.Namespace)
+	return checker
+}
+
+// RuntimeSecurityExecutionChecker implements a checker struct to check a RuntimeSecurityExecution field
+type RuntimeSecurityExecutionChecker struct {
+	Path *stringmatcher.StringMatcher `json:"path,omitempty"`
+}
+
+// NewRuntimeSecurityExecutionChecker creates a new RuntimeSecurityExecutionChecker
+func NewRuntimeSecurityExecutionChecker() *RuntimeSecurityExecutionChecker {
+	return &RuntimeSecurityExecutionChecker{}
+}
+
+// Get the type of the checker as a string
+func (checker *RuntimeSecurityExecutionChecker) GetCheckerType() string {
+	return "RuntimeSecurityExecutionChecker"
+}
+
+// Check checks a RuntimeSecurityExecution field
+func (checker *RuntimeSecurityExecutionChecker) Check(event *tetragon.RuntimeSecurityExecution) error {
+	if event == nil {
+		return fmt.Errorf("%s: RuntimeSecurityExecution field is nil", CheckerLogPrefix(checker))
+	}
+
+	fieldChecks := func() error {
+		if checker.Path != nil {
+			if err := checker.Path.Match(event.Path); err != nil {
+				return fmt.Errorf("Path check failed: %w", err)
+			}
+		}
+		return nil
+	}
+	if err := fieldChecks(); err != nil {
+		return fmt.Errorf("%s: %w", CheckerLogPrefix(checker), err)
+	}
+	return nil
+}
+
+// WithPath adds a Path check to the RuntimeSecurityExecutionChecker
+func (checker *RuntimeSecurityExecutionChecker) WithPath(check *stringmatcher.StringMatcher) *RuntimeSecurityExecutionChecker {
+	checker.Path = check
+	return checker
+}
+
+//FromRuntimeSecurityExecution populates the RuntimeSecurityExecutionChecker using data from a RuntimeSecurityExecution field
+func (checker *RuntimeSecurityExecutionChecker) FromRuntimeSecurityExecution(event *tetragon.RuntimeSecurityExecution) *RuntimeSecurityExecutionChecker {
+	if event == nil {
+		return checker
+	}
+	checker.Path = stringmatcher.Full(event.Path)
+	return checker
+}
+
+// RuntimeSecurityRuleChecker implements a checker struct to check a RuntimeSecurityRule field
+type RuntimeSecurityRuleChecker struct {
+	Type      *RuntimeSecurityRuleTypeChecker   `json:"type,omitempty"`
+	Action    *RuntimeSecurityRuleActionChecker `json:"action,omitempty"`
+	Execution *RuntimeSecurityExecutionChecker  `json:"execution,omitempty"`
+}
+
+// NewRuntimeSecurityRuleChecker creates a new RuntimeSecurityRuleChecker
+func NewRuntimeSecurityRuleChecker() *RuntimeSecurityRuleChecker {
+	return &RuntimeSecurityRuleChecker{}
+}
+
+// Get the type of the checker as a string
+func (checker *RuntimeSecurityRuleChecker) GetCheckerType() string {
+	return "RuntimeSecurityRuleChecker"
+}
+
+// Check checks a RuntimeSecurityRule field
+func (checker *RuntimeSecurityRuleChecker) Check(event *tetragon.RuntimeSecurityRule) error {
+	if event == nil {
+		return fmt.Errorf("%s: RuntimeSecurityRule field is nil", CheckerLogPrefix(checker))
+	}
+
+	fieldChecks := func() error {
+		if checker.Type != nil {
+			if err := checker.Type.Check(&event.Type); err != nil {
+				return fmt.Errorf("Type check failed: %w", err)
+			}
+		}
+		if checker.Action != nil {
+			if err := checker.Action.Check(&event.Action); err != nil {
+				return fmt.Errorf("Action check failed: %w", err)
+			}
+		}
+		if checker.Execution != nil {
+			if err := checker.Execution.Check(event.Execution); err != nil {
+				return fmt.Errorf("Execution check failed: %w", err)
+			}
+		}
+		return nil
+	}
+	if err := fieldChecks(); err != nil {
+		return fmt.Errorf("%s: %w", CheckerLogPrefix(checker), err)
+	}
+	return nil
+}
+
+// WithType adds a Type check to the RuntimeSecurityRuleChecker
+func (checker *RuntimeSecurityRuleChecker) WithType(check tetragon.RuntimeSecurityRuleType) *RuntimeSecurityRuleChecker {
+	wrappedCheck := RuntimeSecurityRuleTypeChecker(check)
+	checker.Type = &wrappedCheck
+	return checker
+}
+
+// WithAction adds a Action check to the RuntimeSecurityRuleChecker
+func (checker *RuntimeSecurityRuleChecker) WithAction(check tetragon.RuntimeSecurityRuleAction) *RuntimeSecurityRuleChecker {
+	wrappedCheck := RuntimeSecurityRuleActionChecker(check)
+	checker.Action = &wrappedCheck
+	return checker
+}
+
+// WithExecution adds a Execution check to the RuntimeSecurityRuleChecker
+func (checker *RuntimeSecurityRuleChecker) WithExecution(check *RuntimeSecurityExecutionChecker) *RuntimeSecurityRuleChecker {
+	checker.Execution = check
+	return checker
+}
+
+//FromRuntimeSecurityRule populates the RuntimeSecurityRuleChecker using data from a RuntimeSecurityRule field
+func (checker *RuntimeSecurityRuleChecker) FromRuntimeSecurityRule(event *tetragon.RuntimeSecurityRule) *RuntimeSecurityRuleChecker {
+	if event == nil {
+		return checker
+	}
+	checker.Type = NewRuntimeSecurityRuleTypeChecker(event.Type)
+	checker.Action = NewRuntimeSecurityRuleActionChecker(event.Action)
+	if event.Execution != nil {
+		checker.Execution = NewRuntimeSecurityExecutionChecker().FromRuntimeSecurityExecution(event.Execution)
+	}
+	return checker
+}
+
 // CapabilitiesTypeChecker checks a tetragon.CapabilitiesType
 type CapabilitiesTypeChecker tetragon.CapabilitiesType
 
@@ -6616,6 +6933,110 @@ func (enum *ThrottleTypeChecker) Check(val *tetragon.ThrottleType) error {
 	}
 	if *enum != ThrottleTypeChecker(*val) {
 		return fmt.Errorf("ThrottleTypeChecker: ThrottleType has value %s which does not match expected value %s", (*val), tetragon.ThrottleType(*enum))
+	}
+	return nil
+}
+
+// RuntimeSecurityRuleTypeChecker checks a tetragon.RuntimeSecurityRuleType
+type RuntimeSecurityRuleTypeChecker tetragon.RuntimeSecurityRuleType
+
+// MarshalJSON implements json.Marshaler interface
+func (enum RuntimeSecurityRuleTypeChecker) MarshalJSON() ([]byte, error) {
+	if name, ok := tetragon.RuntimeSecurityRuleType_name[int32(enum)]; ok {
+		name = strings.TrimPrefix(name, "RUNTIME_SECURITY_TYPE_")
+		return json.Marshal(name)
+	}
+
+	return nil, fmt.Errorf("Unknown RuntimeSecurityRuleType %d", enum)
+}
+
+// UnmarshalJSON implements json.Unmarshaler interface
+func (enum *RuntimeSecurityRuleTypeChecker) UnmarshalJSON(b []byte) error {
+	var str string
+	if err := yaml.UnmarshalStrict(b, &str); err != nil {
+		return err
+	}
+
+	// Convert to uppercase if not already
+	str = strings.ToUpper(str)
+
+	// Look up the value from the enum values map
+	if n, ok := tetragon.RuntimeSecurityRuleType_value[str]; ok {
+		*enum = RuntimeSecurityRuleTypeChecker(n)
+	} else if n, ok := tetragon.RuntimeSecurityRuleType_value["RUNTIME_SECURITY_TYPE_"+str]; ok {
+		*enum = RuntimeSecurityRuleTypeChecker(n)
+	} else {
+		return fmt.Errorf("Unknown RuntimeSecurityRuleType %s", str)
+	}
+
+	return nil
+}
+
+// NewRuntimeSecurityRuleTypeChecker creates a new RuntimeSecurityRuleTypeChecker
+func NewRuntimeSecurityRuleTypeChecker(val tetragon.RuntimeSecurityRuleType) *RuntimeSecurityRuleTypeChecker {
+	enum := RuntimeSecurityRuleTypeChecker(val)
+	return &enum
+}
+
+// Check checks a RuntimeSecurityRuleType against the checker
+func (enum *RuntimeSecurityRuleTypeChecker) Check(val *tetragon.RuntimeSecurityRuleType) error {
+	if val == nil {
+		return fmt.Errorf("RuntimeSecurityRuleTypeChecker: RuntimeSecurityRuleType is nil and does not match expected value %s", tetragon.RuntimeSecurityRuleType(*enum))
+	}
+	if *enum != RuntimeSecurityRuleTypeChecker(*val) {
+		return fmt.Errorf("RuntimeSecurityRuleTypeChecker: RuntimeSecurityRuleType has value %s which does not match expected value %s", (*val), tetragon.RuntimeSecurityRuleType(*enum))
+	}
+	return nil
+}
+
+// RuntimeSecurityRuleActionChecker checks a tetragon.RuntimeSecurityRuleAction
+type RuntimeSecurityRuleActionChecker tetragon.RuntimeSecurityRuleAction
+
+// MarshalJSON implements json.Marshaler interface
+func (enum RuntimeSecurityRuleActionChecker) MarshalJSON() ([]byte, error) {
+	if name, ok := tetragon.RuntimeSecurityRuleAction_name[int32(enum)]; ok {
+		name = strings.TrimPrefix(name, "RUNTIME_SECURITY_ACTION_")
+		return json.Marshal(name)
+	}
+
+	return nil, fmt.Errorf("Unknown RuntimeSecurityRuleAction %d", enum)
+}
+
+// UnmarshalJSON implements json.Unmarshaler interface
+func (enum *RuntimeSecurityRuleActionChecker) UnmarshalJSON(b []byte) error {
+	var str string
+	if err := yaml.UnmarshalStrict(b, &str); err != nil {
+		return err
+	}
+
+	// Convert to uppercase if not already
+	str = strings.ToUpper(str)
+
+	// Look up the value from the enum values map
+	if n, ok := tetragon.RuntimeSecurityRuleAction_value[str]; ok {
+		*enum = RuntimeSecurityRuleActionChecker(n)
+	} else if n, ok := tetragon.RuntimeSecurityRuleAction_value["RUNTIME_SECURITY_ACTION_"+str]; ok {
+		*enum = RuntimeSecurityRuleActionChecker(n)
+	} else {
+		return fmt.Errorf("Unknown RuntimeSecurityRuleAction %s", str)
+	}
+
+	return nil
+}
+
+// NewRuntimeSecurityRuleActionChecker creates a new RuntimeSecurityRuleActionChecker
+func NewRuntimeSecurityRuleActionChecker(val tetragon.RuntimeSecurityRuleAction) *RuntimeSecurityRuleActionChecker {
+	enum := RuntimeSecurityRuleActionChecker(val)
+	return &enum
+}
+
+// Check checks a RuntimeSecurityRuleAction against the checker
+func (enum *RuntimeSecurityRuleActionChecker) Check(val *tetragon.RuntimeSecurityRuleAction) error {
+	if val == nil {
+		return fmt.Errorf("RuntimeSecurityRuleActionChecker: RuntimeSecurityRuleAction is nil and does not match expected value %s", tetragon.RuntimeSecurityRuleAction(*enum))
+	}
+	if *enum != RuntimeSecurityRuleActionChecker(*val) {
+		return fmt.Errorf("RuntimeSecurityRuleActionChecker: RuntimeSecurityRuleAction has value %s which does not match expected value %s", (*val), tetragon.RuntimeSecurityRuleAction(*enum))
 	}
 	return nil
 }

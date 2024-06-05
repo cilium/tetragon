@@ -140,15 +140,16 @@ func (conf *EventCheckerConf) WriteYamlFile(file string) error {
 }
 
 type eventCheckerHelper struct {
-	ProcessExec       *eventchecker.ProcessExecChecker       `json:"exec,omitempty"`
-	ProcessExit       *eventchecker.ProcessExitChecker       `json:"exit,omitempty"`
-	ProcessKprobe     *eventchecker.ProcessKprobeChecker     `json:"kprobe,omitempty"`
-	ProcessTracepoint *eventchecker.ProcessTracepointChecker `json:"tracepoint,omitempty"`
-	ProcessUprobe     *eventchecker.ProcessUprobeChecker     `json:"uprobe,omitempty"`
-	Test              *eventchecker.TestChecker              `json:"test,omitempty"`
-	ProcessLoader     *eventchecker.ProcessLoaderChecker     `json:"loader,omitempty"`
-	RateLimitInfo     *eventchecker.RateLimitInfoChecker     `json:"rateLimitInfo,omitempty"`
-	ProcessThrottle   *eventchecker.ProcessThrottleChecker   `json:"throttle,omitempty"`
+	ProcessExec            *eventchecker.ProcessExecChecker            `json:"exec,omitempty"`
+	ProcessExit            *eventchecker.ProcessExitChecker            `json:"exit,omitempty"`
+	ProcessKprobe          *eventchecker.ProcessKprobeChecker          `json:"kprobe,omitempty"`
+	ProcessTracepoint      *eventchecker.ProcessTracepointChecker      `json:"tracepoint,omitempty"`
+	ProcessUprobe          *eventchecker.ProcessUprobeChecker          `json:"uprobe,omitempty"`
+	Test                   *eventchecker.TestChecker                   `json:"test,omitempty"`
+	ProcessLoader          *eventchecker.ProcessLoaderChecker          `json:"loader,omitempty"`
+	RateLimitInfo          *eventchecker.RateLimitInfoChecker          `json:"rateLimitInfo,omitempty"`
+	ProcessThrottle        *eventchecker.ProcessThrottleChecker        `json:"throttle,omitempty"`
+	ProcessRuntimeSecurity *eventchecker.ProcessRuntimeSecurityChecker `json:"runtimeSecurity,omitempty"`
 }
 
 // EventChecker is a wrapper around the EventChecker interface to help unmarshaling
@@ -217,6 +218,12 @@ func (checker *EventChecker) UnmarshalJSON(b []byte) error {
 		}
 		eventChecker = helper.ProcessThrottle
 	}
+	if helper.ProcessRuntimeSecurity != nil {
+		if eventChecker != nil {
+			return fmt.Errorf("EventChecker: cannot define more than one checker, got %T but already had %T", helper.ProcessRuntimeSecurity, eventChecker)
+		}
+		eventChecker = helper.ProcessRuntimeSecurity
+	}
 	checker.EventChecker = eventChecker
 	return nil
 }
@@ -243,6 +250,8 @@ func (checker EventChecker) MarshalJSON() ([]byte, error) {
 		helper.RateLimitInfo = c
 	case *eventchecker.ProcessThrottleChecker:
 		helper.ProcessThrottle = c
+	case *eventchecker.ProcessRuntimeSecurityChecker:
+		helper.ProcessRuntimeSecurity = c
 	default:
 		return nil, fmt.Errorf("EventChecker: unknown checker type %T", c)
 	}

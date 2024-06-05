@@ -795,11 +795,23 @@ Capability set to filter over. NOTE: you may specify only ONE set here.
 | process_loader | [ProcessLoader](#tetragon-ProcessLoader) |  |  |
 | process_uprobe | [ProcessUprobe](#tetragon-ProcessUprobe) |  |  |
 | process_throttle | [ProcessThrottle](#tetragon-ProcessThrottle) |  |  |
+| process_runtime_security | [ProcessRuntimeSecurity](#tetragon-ProcessRuntimeSecurity) |  |  |
 | test | [Test](#tetragon-Test) |  |  |
 | rate_limit_info | [RateLimitInfo](#tetragon-RateLimitInfo) |  |  |
 | node_name | [string](#string) |  | Name of the node where this event was observed. |
 | time | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | Timestamp at which this event was observed. For an aggregated response, this field to set to the timestamp at which the event was observed for the first time in a given aggregation time window. |
 | aggregation_info | [AggregationInfo](#tetragon-AggregationInfo) |  | aggregation_info contains information about aggregation results. This field is set only for aggregated responses. |
+
+<a name="tetragon-ProcessRuntimeSecurity"></a>
+
+### ProcessRuntimeSecurity
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| process | [Process](#tetragon-Process) |  | Process that triggered the exec. |
+| parent | [Process](#tetragon-Process) |  | Immediate parent of the process. |
+| policy | [RuntimeSecurityPolicy](#tetragon-RuntimeSecurityPolicy) |  | RuntimeSecurityPolicy associated with that event. |
+| rule | [RuntimeSecurityRule](#tetragon-RuntimeSecurityRule) |  | Rule is the rule that triggered that event from the RuntimeSecurityPolicy. |
 
 <a name="tetragon-ProcessThrottle"></a>
 
@@ -828,6 +840,33 @@ Capability set to filter over. NOTE: you may specify only ONE set here.
 | redact | [string](#string) | repeated | RE2 regular expressions to use for redaction. Strings inside capture groups are redacted. |
 | binary_regex | [string](#string) | repeated | RE2 regular expression to match binary name. If supplied, redactions will only be applied to matching processes. |
 
+<a name="tetragon-RuntimeSecurityExecution"></a>
+
+### RuntimeSecurityExecution
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| path | [string](#string) |  | Path of the binary that triggered the execution rule. |
+
+<a name="tetragon-RuntimeSecurityPolicy"></a>
+
+### RuntimeSecurityPolicy
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| name | [string](#string) |  | Name of the RuntimeSecurityPolicy associated with that event. |
+| namespace | [string](#string) |  | Namespace of the RuntimeSecurityPolicy associated with that event. |
+
+<a name="tetragon-RuntimeSecurityRule"></a>
+
+### RuntimeSecurityRule
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| type | [RuntimeSecurityRuleType](#tetragon-RuntimeSecurityRuleType) |  | Type of the rule that triggered this event. |
+| action | [RuntimeSecurityRuleAction](#tetragon-RuntimeSecurityRuleAction) |  | Action of the rule that triggered this event. |
+| execution | [RuntimeSecurityExecution](#tetragon-RuntimeSecurityExecution) |  | Execution is set if the rule type is Execution and provide details specific to execution. |
+
 <a name="tetragon-EventType"></a>
 
 ### EventType
@@ -846,6 +885,7 @@ GetEventsResponse event oneof.
 | PROCESS_LOADER | 11 |  |
 | PROCESS_UPROBE | 12 |  |
 | PROCESS_THROTTLE | 27 |  |
+| PROCESS_RUNTIME_SECURITY | 28 |  |
 | TEST | 40000 |  |
 | RATE_LIMIT_INFO | 40001 |  |
 
@@ -858,6 +898,25 @@ Determines the behavior of a field filter
 | ---- | ------ | ----------- |
 | INCLUDE | 0 |  |
 | EXCLUDE | 1 |  |
+
+<a name="tetragon-RuntimeSecurityRuleAction"></a>
+
+### RuntimeSecurityRuleAction
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| RUNTIME_SECURITY_ACTION_UNSPECIFIED | 0 |  |
+| RUNTIME_SECURITY_ACTION_AUDIT | 1 |  |
+| RUNTIME_SECURITY_ACTION_BLOCK | 2 |  |
+
+<a name="tetragon-RuntimeSecurityRuleType"></a>
+
+### RuntimeSecurityRuleType
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| RUNTIME_SECURITY_TYPE_UNSPECIFIED | 0 |  |
+| RUNTIME_SECURITY_TYPE_EXECUTION | 1 |  |
 
 <a name="tetragon-ThrottleType"></a>
 
