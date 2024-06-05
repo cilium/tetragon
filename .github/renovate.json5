@@ -295,7 +295,7 @@
       ]
     },
     {
-      // update go version until next minor for stable branches
+      // update go patch for 1.21 for stable branches
       "enabled": true,
       "matchPackageNames": [
         "go",
@@ -304,6 +304,17 @@
       "allowedVersions": "/^1\\.21\\.[0-9]+-?(alpine)?$/",
       "matchBaseBranches": [
         "v1.0",
+      ]
+    },
+    {
+      // update go patch for 1.22 for stable branches
+      "enabled": true,
+      "matchPackageNames": [
+        "go",
+        "docker.io/library/golang"
+      ],
+      "allowedVersions": "/^1\\.22\\.[0-9]+-?(alpine)?$/",
+      "matchBaseBranches": [
         "v1.1",
       ]
     },
