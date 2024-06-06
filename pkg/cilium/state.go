@@ -14,7 +14,6 @@ import (
 	"github.com/cilium/tetragon/pkg/oldhubble/cilium/client"
 	"github.com/cilium/tetragon/pkg/oldhubble/fqdncache"
 	"github.com/cilium/tetragon/pkg/oldhubble/ipcache"
-	"github.com/cilium/tetragon/pkg/oldhubble/servicecache"
 )
 
 var (
@@ -43,7 +42,6 @@ func InitCiliumState(ctx context.Context, enableCiliumAPI bool) (*cilium.State, 
 			v1.NewEndpoints(),
 			ipcache.New(),
 			fqdncache.New(),
-			servicecache.New(),
 			logger.GetLogger().WithField("subsystem", "cilium"))
 		go ciliumState.Start()
 		go HandleMonitorSocket(ctx, ciliumState)
@@ -57,7 +55,6 @@ func GetFakeCiliumState() *cilium.State {
 		v1.NewEndpoints(),
 		ipcache.New(),
 		fqdncache.New(),
-		servicecache.New(),
 		logger.GetLogger().WithField("subsystem", "cilium"))
 }
 

@@ -6,7 +6,6 @@ package getters
 import (
 	"net"
 
-	pb "github.com/cilium/cilium/api/v1/flow"
 	v1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
 	"github.com/cilium/tetragon/pkg/oldhubble/ipcache"
 
@@ -36,9 +35,4 @@ type IdentityGetter interface {
 type IPGetter interface {
 	// GetIPIdentity fetches information known about a remote IP.
 	GetIPIdentity(ip net.IP) (identity ipcache.IPIdentity, ok bool)
-}
-
-// ServiceGetter fetches service metadata.
-type ServiceGetter interface {
-	GetServiceByAddr(ip net.IP, port uint16) (service pb.Service, ok bool)
 }

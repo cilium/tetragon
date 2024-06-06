@@ -9,7 +9,6 @@ import (
 	v1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
 	"github.com/cilium/tetragon/pkg/oldhubble/cilium/client"
 	"github.com/cilium/tetragon/pkg/oldhubble/ipcache"
-	"github.com/cilium/tetragon/pkg/oldhubble/servicecache"
 	"github.com/sirupsen/logrus"
 )
 
@@ -30,9 +29,6 @@ type State struct {
 	// ipcache is a mirror of Cilium's IPCache
 	ipcache *ipcache.IPCache
 
-	// serviceCache is a cache that contains information about services.
-	serviceCache *servicecache.ServiceCache
-
 	// logRecord is a channel used to exchange L7 DNS requests seens from the
 	// monitor
 	logRecord chan monitor.LogRecordNotify
@@ -48,14 +44,13 @@ func NewCiliumState(
 	endpoints v1.EndpointsHandler,
 	ipCache *ipcache.IPCache,
 	fqdnCache FqdnCache,
-	serviceCache *servicecache.ServiceCache,
 	logger *logrus.Entry,
 ) *State {
 	return &State{
-		ciliumClient: ciliumClient,
-		endpoints:    endpoints,
-		ipcache:      ipCache,
-		fqdnCache:    fqdnCache, serviceCache: serviceCache,
+		ciliumClient:   ciliumClient,
+		endpoints:      endpoints,
+		ipcache:        ipCache,
+		fqdnCache:      fqdnCache,
 		logRecord:      make(chan monitor.LogRecordNotify, 100),
 		endpointEvents: make(chan monitorAPI.AgentNotify, 100),
 		log:            logger,
@@ -80,17 +75,6 @@ func (s *State) Start() {
 // calling this method.
 func (s *State) StartMirroringIPCache(ipCacheEvents <-chan monitorAPI.AgentNotify) {
 	go s.syncIPCache(ipCacheEvents)
-}
-
-// StartMirroringServiceCache initially caches service information from Cilium
-// and then starts to mirror service information based on events that are sent
-// to the serviceEvents channel. Only messages of type
-// `AgentNotifyServiceUpserted` and `AgentNotifyServiceDeleted` should be sent
-// to this channel.  This function assumes that the caller is already connected
-// to Cilium Monitor, i.e. no Service notification must be lost after calling
-// this method.
-func (s *State) StartMirroringServiceCache(serviceEvents <-chan monitorAPI.AgentNotify) {
-	go s.syncServiceCache(serviceEvents)
 }
 
 // GetLogRecordNotifyChannel returns the event channel to receive
@@ -124,9 +108,4 @@ func (s *State) GetFQDNCache() FqdnCache {
 // GetIPCache returns ipcache.
 func (s *State) GetIPCache() *ipcache.IPCache {
 	return s.ipcache
-}
-
-// GetServiceCache returns serviceCache.
-func (s *State) GetServiceCache() *servicecache.ServiceCache {
-	return s.serviceCache
 }

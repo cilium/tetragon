@@ -20,7 +20,6 @@ type Client interface {
 	GetIdentity(id uint64) (*models.Identity, error)
 	GetFqdnCache() ([]*models.DNSLookup, error)
 	GetIPCache() ([]*models.IPListEntry, error)
-	GetServiceCache() ([]*models.Service, error)
 }
 
 // Cilium is an abstraction to communicate with the cilium-agent.
@@ -82,15 +81,6 @@ func (c *Cilium) GetIPCache() ([]*models.IPListEntry, error) {
 		return nil, err
 	}
 	return ips.Payload, nil
-}
-
-// GetServiceCache retrieves the contents of the Cilium service cache.
-func (c *Cilium) GetServiceCache() ([]*models.Service, error) {
-	svcs, err := c.Client.Service.GetService(nil)
-	if err != nil {
-		return nil, err
-	}
-	return svcs.Payload, nil
 }
 
 // IsIPCacheNotFoundErr is true if the IPCache fetch error was a 404
