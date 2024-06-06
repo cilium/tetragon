@@ -8,11 +8,11 @@ import (
 	"sort"
 
 	"github.com/cilium/cilium/api/v1/models"
+	"github.com/cilium/cilium/pkg/hubble/k8s"
 	"github.com/cilium/cilium/pkg/identity"
 	monitorAPI "github.com/cilium/cilium/pkg/monitor/api"
 
 	v1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
-	"github.com/cilium/tetragon/pkg/oldhubble/k8s"
 )
 
 // ParseEndpointFromModel parses all elements from modelEP into a Endpoint.

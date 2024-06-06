@@ -7,10 +7,9 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"strings"
 
-	pb "github.com/cilium/cilium/api/v1/flow"
-	v1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
+	flowpb "github.com/cilium/cilium/api/v1/flow"
+	v1 "github.com/cilium/cilium/pkg/hubble/api/v1"
 )
 
 func sourceFQDN(ev *v1.Event) []string {
@@ -21,38 +20,10 @@ func destinationFQDN(ev *v1.Event) []string {
 	return ev.GetFlow().GetDestinationNames()
 }
 
-var (
-	fqdnFilterAllowedChars  = "[-a-zA-Z0-9_.]*"
-	fqdnFilterIsValidFilter = regexp.MustCompile("^[-a-zA-Z0-9_.*]+$")
-)
-
-func parseFQDNFilter(pattern string) (*regexp.Regexp, error) {
-	pattern = strings.ToLower(pattern)
-	pattern = strings.TrimSpace(pattern)
-	pattern = strings.TrimSuffix(pattern, ".")
-
-	if !fqdnFilterIsValidFilter.MatchString(pattern) {
-		return nil, fmt.Errorf(`only alphanumeric ASCII characters, the hyphen "-", "." and "*" are allowed: %s`,
-			pattern)
-	}
-
-	// "." becomes a literal .
-	pattern = strings.Replace(pattern, ".", "[.]", -1)
-
-	// "*" becomes a zero or more of the allowed characters
-	pattern = strings.Replace(pattern, "*", fqdnFilterAllowedChars, -1)
-
-	return regexp.Compile("^" + pattern + "$")
-}
-
 func filterByFQDNs(fqdnPatterns []string, getFQDNs func(*v1.Event) []string) (FilterFunc, error) {
-	matchPatterns := make([]*regexp.Regexp, 0, len(fqdnPatterns))
-	for _, pattern := range fqdnPatterns {
-		re, err := parseFQDNFilter(pattern)
-		if err != nil {
-			return nil, fmt.Errorf("invalid FQDN in filter: %s", err)
-		}
-		matchPatterns = append(matchPatterns, re)
+	fqdnRegexp, err := compileFQDNPattern(fqdnPatterns)
+	if err != nil {
+		return nil, err
 	}
 
 	return func(ev *v1.Event) bool {
@@ -62,10 +33,8 @@ func filterByFQDNs(fqdnPatterns []string, getFQDNs func(*v1.Event) []string) (Fi
 		}
 
 		for _, name := range names {
-			for _, re := range matchPatterns {
-				if re.MatchString(name) {
-					return true
-				}
+			if fqdnRegexp.MatchString(name) {
+				return true
 			}
 		}
 
@@ -77,11 +46,11 @@ func filterByFQDNs(fqdnPatterns []string, getFQDNs func(*v1.Event) []string) (Fi
 // The filter function returns true if and only if the DNS query field matches any of
 // the regular expressions.
 func filterByDNSQueries(queryPatterns []string) (FilterFunc, error) {
-	var queries []*regexp.Regexp
+	queries := make([]*regexp.Regexp, 0, len(queryPatterns))
 	for _, pattern := range queryPatterns {
 		query, err := regexp.Compile(pattern)
 		if err != nil {
-			return nil, fmt.Errorf("failed to compile regexp: %v", err)
+			return nil, fmt.Errorf("failed to compile regexp: %w", err)
 		}
 		queries = append(queries, query)
 	}
@@ -103,7 +72,7 @@ func filterByDNSQueries(queryPatterns []string) (FilterFunc, error) {
 type FQDNFilter struct{}
 
 // OnBuildFilter builds a FQDN filter
-func (f *FQDNFilter) OnBuildFilter(_ context.Context, ff *pb.FlowFilter) ([]FilterFunc, error) {
+func (f *FQDNFilter) OnBuildFilter(ctx context.Context, ff *flowpb.FlowFilter) ([]FilterFunc, error) {
 	var fs []FilterFunc
 
 	if ff.GetSourceFqdn() != nil {
@@ -125,7 +94,7 @@ func (f *FQDNFilter) OnBuildFilter(_ context.Context, ff *pb.FlowFilter) ([]Filt
 	if ff.GetDnsQuery() != nil {
 		dnsFilters, err := filterByDNSQueries(ff.GetDnsQuery())
 		if err != nil {
-			return nil, fmt.Errorf("invalid DNS query filter: %v", err)
+			return nil, fmt.Errorf("invalid DNS query filter: %w", err)
 		}
 		fs = append(fs, dnsFilters)
 	}

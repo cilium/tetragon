@@ -99,6 +99,8 @@ github.com/cilium/cilium/pkg/hive/cell
 github.com/cilium/cilium/pkg/hive/internal
 github.com/cilium/cilium/pkg/hive/metrics
 github.com/cilium/cilium/pkg/hubble/api/v1
+github.com/cilium/cilium/pkg/hubble/filters
+github.com/cilium/cilium/pkg/hubble/k8s
 github.com/cilium/cilium/pkg/hubble/parser/getters
 github.com/cilium/cilium/pkg/iana
 github.com/cilium/cilium/pkg/identity
@@ -449,7 +451,6 @@ github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/protoc-gen-gogo/descriptor
 github.com/gogo/protobuf/sortkeys
-github.com/gogo/protobuf/types
 # github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 ## explicit
 github.com/golang/groupcache/lru

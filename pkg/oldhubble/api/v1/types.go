@@ -7,9 +7,7 @@ import (
 	"net"
 	"sync"
 
-	pb "github.com/cilium/cilium/api/v1/flow"
 	"github.com/cilium/cilium/pkg/identity"
-	"github.com/gogo/protobuf/types"
 )
 
 // Endpoint is the representation of an endpoint running in the Cilium agent
@@ -47,26 +45,6 @@ func (e *Endpoint) GetK8sNamespace() string {
 // GetLabels returns the labels of the endpoint.
 func (e *Endpoint) GetLabels() []string {
 	return e.Labels
-}
-
-// Event represents a single event observed and stored by Hubble
-type Event struct {
-	// Timestamp when event was observed in Hubble
-	Timestamp *types.Timestamp
-	// Event contains the actual event
-	Event interface{}
-}
-
-// GetFlow returns the decoded flow, or nil if there is no event
-func (ev *Event) GetFlow() Flow {
-	if ev == nil || ev.Event == nil {
-		// returns typed nil so getter methods still work
-		return (*pb.Flow)(nil)
-	}
-	if f, ok := ev.Event.(Flow); ok {
-		return f
-	}
-	return nil
 }
 
 // Endpoints is a slice of endpoints and their cached dns queries protected by a mutex.
