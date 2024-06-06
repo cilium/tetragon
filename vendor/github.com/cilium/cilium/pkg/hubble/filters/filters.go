@@ -6,8 +6,8 @@ package filters
 import (
 	"context"
 
-	pb "github.com/cilium/cilium/api/v1/flow"
-	v1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
+	flowpb "github.com/cilium/cilium/api/v1/flow"
+	v1 "github.com/cilium/cilium/pkg/hubble/api/v1"
 )
 
 // FilterFunc is the function will be used to filter the given data.
@@ -65,14 +65,14 @@ func (fs FilterFuncs) MatchNone(ev *v1.Event) bool {
 
 // OnBuildFilter is invoked while building a flow filter
 type OnBuildFilter interface {
-	OnBuildFilter(context.Context, *pb.FlowFilter) ([]FilterFunc, error)
+	OnBuildFilter(context.Context, *flowpb.FlowFilter) ([]FilterFunc, error)
 }
 
 // OnBuildFilterFunc implements OnBuildFilter for a single function
-type OnBuildFilterFunc func(context.Context, *pb.FlowFilter) ([]FilterFunc, error)
+type OnBuildFilterFunc func(context.Context, *flowpb.FlowFilter) ([]FilterFunc, error)
 
 // OnBuildFilter is invoked while building a flow filter
-func (f OnBuildFilterFunc) OnBuildFilter(ctx context.Context, flow *pb.FlowFilter) ([]FilterFunc, error) {
+func (f OnBuildFilterFunc) OnBuildFilter(ctx context.Context, flow *flowpb.FlowFilter) ([]FilterFunc, error) {
 	return f(ctx, flow)
 }
 
@@ -80,7 +80,7 @@ func (f OnBuildFilterFunc) OnBuildFilter(ctx context.Context, flow *pb.FlowFilte
 //   - the FilterFunc to be used to filter packets based on the requested
 //     FlowFilter;
 //   - an error in case something went wrong.
-func BuildFilter(ctx context.Context, ff *pb.FlowFilter, auxFilters []OnBuildFilter) (FilterFuncs, error) {
+func BuildFilter(ctx context.Context, ff *flowpb.FlowFilter, auxFilters []OnBuildFilter) (FilterFuncs, error) {
 	var fs []FilterFunc
 
 	for _, f := range auxFilters {
@@ -101,7 +101,7 @@ func BuildFilter(ctx context.Context, ff *pb.FlowFilter, auxFilters []OnBuildFil
 //   - the FilterFunc to be used to filter packets based on the requested
 //     FlowFilter;
 //   - an error in case something went wrong.
-func BuildFilterList(ctx context.Context, ff []*pb.FlowFilter, auxFilters []OnBuildFilter) (FilterFuncs, error) {
+func BuildFilterList(ctx context.Context, ff []*flowpb.FlowFilter, auxFilters []OnBuildFilter) (FilterFuncs, error) {
 	filterList := make([]FilterFunc, 0, len(ff))
 
 	for _, flowFilter := range ff {
@@ -124,6 +124,7 @@ func BuildFilterList(ctx context.Context, ff []*pb.FlowFilter, auxFilters []OnBu
 
 // DefaultFilters is the list of default filters
 var DefaultFilters = []OnBuildFilter{
+	&UUIDFilter{},
 	&EventTypeFilter{},
 	&VerdictFilter{},
 	&ReplyFilter{},
@@ -131,9 +132,15 @@ var DefaultFilters = []OnBuildFilter{
 	&ProtocolFilter{},
 	&IPFilter{},
 	&PodFilter{},
+	&WorkloadFilter{},
 	&ServiceFilter{},
 	&FQDNFilter{},
 	&LabelsFilter{},
 	&PortFilter{},
 	&HTTPFilter{},
+	&TCPFilter{},
+	&NodeNameFilter{},
+	&IPVersionFilter{},
+	&TraceIDFilter{},
+	&TrafficDirectionFilter{},
 }

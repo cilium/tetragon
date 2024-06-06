@@ -8,11 +8,10 @@ import (
 	"fmt"
 	"regexp"
 
+	flowpb "github.com/cilium/cilium/api/v1/flow"
+	v1 "github.com/cilium/cilium/pkg/hubble/api/v1"
+	k8sLabels "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/labels"
 	ciliumLabels "github.com/cilium/cilium/pkg/labels"
-	k8sLabels "k8s.io/apimachinery/pkg/labels"
-
-	pb "github.com/cilium/cilium/api/v1/flow"
-	v1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
 )
 
 func sourceLabels(ev *v1.Event) k8sLabels.Labels {
@@ -45,7 +44,9 @@ func parseSelector(selector string) (k8sLabels.Selector, error) {
 	return k8sLabels.Parse(translated)
 }
 
-func filterByLabelSelectors(labelSelectors []string, getLabels func(*v1.Event) k8sLabels.Labels) (FilterFunc, error) {
+// FilterByLabelSelectors returns a FilterFunc. The FilterFunc returns true if and only if any of the
+// specified selectors select the event. The caller specifies how to extract labels from the event.
+func FilterByLabelSelectors(labelSelectors []string, getLabels func(*v1.Event) k8sLabels.Labels) (FilterFunc, error) {
 	selectors := make([]k8sLabels.Selector, 0, len(labelSelectors))
 	for _, selector := range labelSelectors {
 		s, err := parseSelector(selector)
@@ -70,21 +71,21 @@ func filterByLabelSelectors(labelSelectors []string, getLabels func(*v1.Event) k
 type LabelsFilter struct{}
 
 // OnBuildFilter builds a labels filter
-func (l *LabelsFilter) OnBuildFilter(_ context.Context, ff *pb.FlowFilter) ([]FilterFunc, error) {
+func (l *LabelsFilter) OnBuildFilter(ctx context.Context, ff *flowpb.FlowFilter) ([]FilterFunc, error) {
 	var fs []FilterFunc
 
 	if ff.GetSourceLabel() != nil {
-		slf, err := filterByLabelSelectors(ff.GetSourceLabel(), sourceLabels)
+		slf, err := FilterByLabelSelectors(ff.GetSourceLabel(), sourceLabels)
 		if err != nil {
-			return nil, fmt.Errorf("invalid source label filter: %v", err)
+			return nil, fmt.Errorf("invalid source label filter: %w", err)
 		}
 		fs = append(fs, slf)
 	}
 
 	if ff.GetDestinationLabel() != nil {
-		dlf, err := filterByLabelSelectors(ff.GetDestinationLabel(), destinationLabels)
+		dlf, err := FilterByLabelSelectors(ff.GetDestinationLabel(), destinationLabels)
 		if err != nil {
-			return nil, fmt.Errorf("invalid destination label filter: %v", err)
+			return nil, fmt.Errorf("invalid destination label filter: %w", err)
 		}
 		fs = append(fs, dlf)
 	}

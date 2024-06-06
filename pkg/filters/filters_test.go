@@ -8,8 +8,8 @@ import (
 	"os"
 	"testing"
 
+	v1 "github.com/cilium/cilium/pkg/hubble/api/v1"
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	v1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"

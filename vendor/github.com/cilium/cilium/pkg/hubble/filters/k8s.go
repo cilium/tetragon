@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"strings"
 
-	pb "github.com/cilium/cilium/api/v1/flow"
-	v1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
-	"github.com/cilium/tetragon/pkg/oldhubble/k8s"
+	flowpb "github.com/cilium/cilium/api/v1/flow"
+	v1 "github.com/cilium/cilium/pkg/hubble/api/v1"
+	"github.com/cilium/cilium/pkg/hubble/k8s"
 )
 
 func sourcePod(ev *v1.Event) (ns, pod string) {
@@ -37,10 +37,10 @@ func filterByNamespacedName(names []string, getName func(*v1.Event) (ns, name st
 	type nameFilter struct{ ns, prefix string }
 	nameFilters := make([]nameFilter, 0, len(names))
 	for _, name := range names {
-		ns, prefix := k8s.ParseNamespaceName(name)
-		if ns == "" && prefix == "" {
-			return nil, fmt.Errorf("invalid filter, must be [namespace/][<name>], got %q", name)
+		if name == "" {
+			return nil, fmt.Errorf("invalid filter, name must not be empty")
 		}
+		ns, prefix := k8s.ParseNamespaceName(name)
 		nameFilters = append(nameFilters, nameFilter{ns, prefix})
 	}
 
@@ -51,7 +51,7 @@ func filterByNamespacedName(names []string, getName func(*v1.Event) (ns, name st
 		}
 
 		for _, f := range nameFilters {
-			if (f.prefix == "" || strings.HasPrefix(eventName, f.prefix)) && f.ns == eventNs {
+			if (f.prefix == "" || strings.HasPrefix(eventName, f.prefix)) && (f.ns == "" || f.ns == eventNs) {
 				return true
 			}
 		}
@@ -64,7 +64,7 @@ func filterByNamespacedName(names []string, getName func(*v1.Event) (ns, name st
 type PodFilter struct{}
 
 // OnBuildFilter builds a Kubernetes pod name filter
-func (p *PodFilter) OnBuildFilter(_ context.Context, ff *pb.FlowFilter) ([]FilterFunc, error) {
+func (p *PodFilter) OnBuildFilter(ctx context.Context, ff *flowpb.FlowFilter) ([]FilterFunc, error) {
 	var fs []FilterFunc
 
 	if ff.GetSourcePod() != nil {
@@ -90,13 +90,13 @@ func (p *PodFilter) OnBuildFilter(_ context.Context, ff *pb.FlowFilter) ([]Filte
 type ServiceFilter struct{}
 
 // OnBuildFilter builds a Kubernetes service name filter
-func (s *ServiceFilter) OnBuildFilter(_ context.Context, ff *pb.FlowFilter) ([]FilterFunc, error) {
+func (s *ServiceFilter) OnBuildFilter(ctx context.Context, ff *flowpb.FlowFilter) ([]FilterFunc, error) {
 	var fs []FilterFunc
 
 	if ff.GetSourceService() != nil {
 		ssf, err := filterByNamespacedName(ff.GetSourceService(), sourceService)
 		if err != nil {
-			return nil, fmt.Errorf("invalid source service filter: %v", err)
+			return nil, fmt.Errorf("invalid source service filter: %w", err)
 		}
 		fs = append(fs, ssf)
 	}
@@ -104,7 +104,7 @@ func (s *ServiceFilter) OnBuildFilter(_ context.Context, ff *pb.FlowFilter) ([]F
 	if ff.GetDestinationService() != nil {
 		dsf, err := filterByNamespacedName(ff.GetDestinationService(), destinationService)
 		if err != nil {
-			return nil, fmt.Errorf("invalid destination service filter: %v", err)
+			return nil, fmt.Errorf("invalid destination service filter: %w", err)
 		}
 		fs = append(fs, dsf)
 	}

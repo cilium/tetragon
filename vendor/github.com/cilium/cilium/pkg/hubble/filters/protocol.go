@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"strings"
 
-	pb "github.com/cilium/cilium/api/v1/flow"
-	v1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
+	flowpb "github.com/cilium/cilium/api/v1/flow"
+	v1 "github.com/cilium/cilium/pkg/hubble/api/v1"
 )
 
 func filterByProtocol(protocols []string) (FilterFunc, error) {
@@ -17,7 +17,7 @@ func filterByProtocol(protocols []string) (FilterFunc, error) {
 	for _, p := range protocols {
 		proto := strings.ToLower(p)
 		switch proto {
-		case "icmp", "icmpv4", "icmpv6", "tcp", "udp":
+		case "icmp", "icmpv4", "icmpv6", "tcp", "udp", "sctp":
 			l4Protocols = append(l4Protocols, proto)
 		case "dns", "http", "kafka":
 			l7Protocols = append(l7Protocols, proto)
@@ -50,6 +50,10 @@ func filterByProtocol(protocols []string) (FilterFunc, error) {
 				if l4.GetUDP() != nil {
 					return true
 				}
+			case "sctp":
+				if l4.GetSCTP() != nil {
+					return true
+				}
 			}
 		}
 
@@ -79,13 +83,13 @@ func filterByProtocol(protocols []string) (FilterFunc, error) {
 type ProtocolFilter struct{}
 
 // OnBuildFilter builds a L4 protocol filter
-func (p *ProtocolFilter) OnBuildFilter(_ context.Context, ff *pb.FlowFilter) ([]FilterFunc, error) {
+func (p *ProtocolFilter) OnBuildFilter(ctx context.Context, ff *flowpb.FlowFilter) ([]FilterFunc, error) {
 	var fs []FilterFunc
 
 	if ff.GetProtocol() != nil {
 		pf, err := filterByProtocol(ff.GetProtocol())
 		if err != nil {
-			return nil, fmt.Errorf("invalid protocol filter: %v", err)
+			return nil, fmt.Errorf("invalid protocol filter: %w", err)
 		}
 		fs = append(fs, pf)
 	}

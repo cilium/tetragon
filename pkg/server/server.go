@@ -9,6 +9,8 @@ import (
 	"io"
 	"sync"
 
+	v1 "github.com/cilium/cilium/pkg/hubble/api/v1"
+	hubbleFilters "github.com/cilium/cilium/pkg/hubble/filters"
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/aggregator"
 	"github.com/cilium/tetragon/pkg/fieldfilters"
@@ -16,8 +18,6 @@ import (
 	"github.com/cilium/tetragon/pkg/health"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/eventmetrics"
-	v1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
-	hubbleFilters "github.com/cilium/tetragon/pkg/oldhubble/filters"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"

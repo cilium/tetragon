@@ -6,10 +6,10 @@ package filters
 import (
 	"context"
 
+	v1 "github.com/cilium/cilium/pkg/hubble/api/v1"
+	hubbleFilters "github.com/cilium/cilium/pkg/hubble/filters"
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/logger"
-	v1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
-	hubbleFilters "github.com/cilium/tetragon/pkg/oldhubble/filters"
 )
 
 // We could use an LRU here but we really don't want to evict old entries and risk failing
