@@ -67,8 +67,6 @@ func consumeMonitorEvents(ctx context.Context, conn net.Conn, ciliumState *ciliu
 	dnsAdd := ciliumState.GetLogRecordNotifyChannel()
 	ipCacheEvents := make(chan monitorAPI.AgentNotify, 100)
 	ciliumState.StartMirroringIPCache(ipCacheEvents)
-	serviceEvents := make(chan monitorAPI.AgentNotify, 100)
-	ciliumState.StartMirroringServiceCache(serviceEvents)
 	for {
 		if err := pl.DecodeBinary(dec); err != nil {
 			return err
@@ -90,9 +88,6 @@ func consumeMonitorEvents(ctx context.Context, conn net.Conn, ciliumState *ciliu
 			case monitorAPI.AgentNotifyIPCacheUpserted,
 				monitorAPI.AgentNotifyIPCacheDeleted:
 				ipCacheEvents <- an
-			case monitorAPI.AgentNotifyServiceUpserted,
-				monitorAPI.AgentNotifyServiceDeleted:
-				serviceEvents <- an
 			}
 		case monitorAPI.MessageTypeAccessLog:
 			// TODO re-think the way this is being done. We are dissecting/
