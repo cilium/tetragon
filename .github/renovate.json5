@@ -213,15 +213,21 @@
       }
     },
     {
-      // main branch is using the new toolchain directive
+      // Grouping go packages updates together
       "groupName": "Go",
       "matchPackageNames": [
         "go",
         "docker.io/library/golang"
       ],
+    },
+    {
+      // main branch is using the new toolchain directive
+      "matchPackageNames": [
+        "go",
+        "docker.io/library/golang"
+      ],
       "matchBaseBranches": [
-        "v1.0",
-        "v1.1",
+        "main",
       ],
       // postUpgradeTasks is only for when the Go module directives are bumped
       "postUpgradeTasks": {
@@ -235,7 +241,6 @@
     },
     {
       // stable branches are using the go directive
-      "groupName": "Go",
       "matchPackageNames": [
         "go",
         "docker.io/library/golang"
