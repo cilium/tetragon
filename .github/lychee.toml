@@ -9,5 +9,10 @@ exclude = [
   # the virtualbox website sends 500 regularly
   'virtualbox.org',
   # this is for the documentation contributor guide
-  '^http://localhost:1313/docs$'
+  '^http://localhost:1313/docs$',
+  # this is a form POST link in the index.html
+  '^https://formspree.io/f/xbjnwnjb$',
+  # this a parsing error from index.html, it uses the {{< latest-version >}}
+  # shortcode which is not detected
+  '^https://github.com/cilium/tetragon/releases/download/$',
 ]
