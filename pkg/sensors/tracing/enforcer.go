@@ -50,9 +50,9 @@ func init() {
 	sensors.RegisterPolicyHandlerAtInit("enforcer", gEnforcerPolicy)
 }
 
-func enforcerMap(policyName string, load *program.Program) *program.Map {
-	return program.MapBuilderPin(enforcerDataMapName,
-		fmt.Sprintf("%s_%s", enforcerDataMapName, policyName), load)
+func enforcerMap(policyName string, load ...*program.Program) *program.Map {
+	return program.MapBuilderPinManyProgs(enforcerDataMapName,
+		fmt.Sprintf("%s_%s", enforcerDataMapName, policyName), load...)
 }
 
 func (kp *enforcerPolicy) enforcerGet(name string) (*enforcerHandler, bool) {
@@ -315,7 +315,7 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 		return nil, fmt.Errorf("unexpected override method: %d", overrideMethod)
 	}
 
-	enforcerDataMap := enforcerMap(policyName, load)
+	enforcerDataMap := enforcerMap(policyName, progs...)
 	maps = append(maps, enforcerDataMap)
 
 	if ok := kp.enforcerAdd(name, kh); !ok {

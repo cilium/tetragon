@@ -134,6 +134,60 @@ func TestEnforcerOverride(t *testing.T) {
 	})
 }
 
+func TestEnforcerOverrideManySyscalls(t *testing.T) {
+	testEnforcerCheckSkip(t)
+
+	test := testutils.RepoRootPath("contrib/tester-progs/getcpu")
+	builder := func() *EnforcerSpecBuilder {
+		return NewEnforcerSpecBuilder("enforcer-override").
+			WithSyscallList("sys_getcpu", "sys_sethostname").
+			WithMatchBinaries(test).
+			WithOverrideValue(-17) // EEXIST
+	}
+
+	tpChecker := ec.NewProcessTracepointChecker("").
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithSizeArg(unix.SYS_GETCPU),
+			)).
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYENFORCER)
+
+	checker := ec.NewUnorderedEventChecker(tpChecker)
+
+	checkerFunc := func(_ error, rc int) {
+		if rc != int(syscall.EEXIST) {
+			t.Fatalf("Wrong exit code %d expected %d", rc, int(syscall.EEXIST))
+		}
+	}
+
+	t.Run("override_helper", func(t *testing.T) {
+		if !bpf.HasOverrideHelper() {
+			t.Skip("override_helper not supported")
+		}
+
+		t.Run("multi kprobe", func(t *testing.T) {
+			if !bpf.HasKprobeMulti() {
+				t.Skip("no multi-kprobe support")
+			}
+			yaml := builder().WithOverrideReturn().WithMultiKprobe().MustYAML()
+			testEnforcer(t, yaml, test, "", checker, checkerFunc)
+		})
+
+		t.Run("kprobe (no multi)", func(t *testing.T) {
+			yaml := builder().WithOverrideReturn().WithoutMultiKprobe().MustYAML()
+			testEnforcer(t, yaml, test, "", checker, checkerFunc)
+		})
+	})
+	t.Run("fmod_ret", func(t *testing.T) {
+		if !bpf.HasModifyReturn() {
+			t.Skip("fmod_ret not supported")
+		}
+		yaml := builder().WithFmodRet().MustYAML()
+		testEnforcer(t, yaml, test, "", checker, checkerFunc)
+	})
+}
+
 func TestEnforcerSignal(t *testing.T) {
 	testEnforcerCheckSkip(t)
 

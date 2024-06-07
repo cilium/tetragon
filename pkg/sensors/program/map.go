@@ -26,6 +26,13 @@ func MapBuilder(name string, ld *Program) *Map {
 	return &Map{name, name, ld, Idle(), nil}
 }
 
+func MapBuilderPinManyProgs(name, pin string, lds ...*Program) *Map {
+	for _, ld := range lds {
+		ld.PinMap[name] = pin
+	}
+	return &Map{name, pin, lds[0], Idle(), nil}
+}
+
 func MapBuilderPin(name, pin string, ld *Program) *Map {
 	ld.PinMap[name] = pin
 	return &Map{name, pin, ld, Idle(), nil}
