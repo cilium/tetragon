@@ -256,9 +256,9 @@ func clusterReadiness(cluster *models.RemoteCluster) string {
 	return "ready"
 }
 
-func numReadyClusters(clustermesh *models.ClusterMeshStatus) int {
+func NumReadyClusters(clusters []*models.RemoteCluster) int {
 	numReady := 0
-	for _, cluster := range clustermesh.Clusters {
+	for _, cluster := range clusters {
 		if cluster.Ready {
 			numReady++
 		}
@@ -425,34 +425,14 @@ func FormatStatusResponse(w io.Writer, sr *models.StatusResponse, sd StatusDetai
 
 	if sr.ClusterMesh != nil {
 		fmt.Fprintf(w, "ClusterMesh:\t%d/%d clusters ready, %d global-services\n",
-			numReadyClusters(sr.ClusterMesh), len(sr.ClusterMesh.Clusters), sr.ClusterMesh.NumGlobalServices)
+			NumReadyClusters(sr.ClusterMesh.Clusters), len(sr.ClusterMesh.Clusters), sr.ClusterMesh.NumGlobalServices)
 
-		for _, cluster := range sr.ClusterMesh.Clusters {
-			if sd.AllClusters || !cluster.Ready {
-				fmt.Fprintf(w, "   %s: %s, %d nodes, %d endpoints, %d identities, %d services, %d failures (last: %s)\n",
-					cluster.Name, clusterReadiness(cluster), cluster.NumNodes,
-					cluster.NumEndpoints, cluster.NumIdentities, cluster.NumSharedServices,
-					cluster.NumFailures, timeSince(time.Time(cluster.LastFailure)))
-				fmt.Fprintf(w, "   └  %s\n", cluster.Status)
-
-				fmt.Fprint(w, "   └  remote configuration: ")
-				if cluster.Config != nil {
-					fmt.Fprintf(w, "expected=%t, retrieved=%t", cluster.Config.Required, cluster.Config.Retrieved)
-					if cluster.Config.Retrieved {
-						fmt.Fprintf(w, ", cluster-id=%d, kvstoremesh=%t, sync-canaries=%t",
-							cluster.Config.ClusterID, cluster.Config.Kvstoremesh, cluster.Config.SyncCanaries)
-					}
-				} else {
-					fmt.Fprint(w, "expected=unknown, retrieved=unknown")
-				}
-				fmt.Fprint(w, "\n")
-
-				if cluster.Synced != nil {
-					fmt.Fprintf(w, "   └  synchronization status: nodes=%v, endpoints=%v, identities=%v, services=%v\n",
-						cluster.Synced.Nodes, cluster.Synced.Endpoints, cluster.Synced.Identities, cluster.Synced.Services)
-				}
-			}
+		verbosity := RemoteClustersStatusNotReadyOnly
+		if sd.AllClusters {
+			verbosity = RemoteClustersStatusVerbose
 		}
+
+		FormatStatusResponseRemoteClusters(w, sr.ClusterMesh.Clusters, verbosity)
 	}
 
 	if sr.IPV4BigTCP != nil {
@@ -792,5 +772,51 @@ func FormatStatusResponse(w io.Writer, sr *models.StatusResponse, sd StatusDetai
 		}
 
 		fmt.Fprintf(w, "Encryption:\t%s\t%s\n", sr.Encryption.Mode, strings.Join(fields, ", "))
+	}
+}
+
+// RemoteClustersStatusVerbosity specifies the verbosity when formatting the remote clusters status information.
+type RemoteClustersStatusVerbosity uint
+
+const (
+	// RemoteClustersStatusVerbose outputs all remote clusters information.
+	RemoteClustersStatusVerbose RemoteClustersStatusVerbosity = iota
+	// RemoteClustersStatusBrief outputs a one-line summary only for ready clusters.
+	RemoteClustersStatusBrief
+	// RemoteClustersStatusNotReadyOnly outputs the remote clusters information for non-ready clusters only.
+	RemoteClustersStatusNotReadyOnly
+)
+
+func FormatStatusResponseRemoteClusters(w io.Writer, clusters []*models.RemoteCluster, verbosity RemoteClustersStatusVerbosity) {
+	for _, cluster := range clusters {
+		if verbosity != RemoteClustersStatusNotReadyOnly || !cluster.Ready {
+			fmt.Fprintf(w, "   %s: %s, %d nodes, %d endpoints, %d identities, %d services, %d failures (last: %s)\n",
+				cluster.Name, clusterReadiness(cluster), cluster.NumNodes,
+				cluster.NumEndpoints, cluster.NumIdentities, cluster.NumSharedServices,
+				cluster.NumFailures, timeSince(time.Time(cluster.LastFailure)))
+
+			if verbosity == RemoteClustersStatusBrief && cluster.Ready {
+				continue
+			}
+
+			fmt.Fprintf(w, "   └  %s\n", cluster.Status)
+
+			fmt.Fprint(w, "   └  remote configuration: ")
+			if cluster.Config != nil {
+				fmt.Fprintf(w, "expected=%t, retrieved=%t", cluster.Config.Required, cluster.Config.Retrieved)
+				if cluster.Config.Retrieved {
+					fmt.Fprintf(w, ", cluster-id=%d, kvstoremesh=%t, sync-canaries=%t",
+						cluster.Config.ClusterID, cluster.Config.Kvstoremesh, cluster.Config.SyncCanaries)
+				}
+			} else {
+				fmt.Fprint(w, "expected=unknown, retrieved=unknown")
+			}
+			fmt.Fprint(w, "\n")
+
+			if cluster.Synced != nil {
+				fmt.Fprintf(w, "   └  synchronization status: nodes=%v, endpoints=%v, identities=%v, services=%v\n",
+					cluster.Synced.Nodes, cluster.Synced.Endpoints, cluster.Synced.Identities, cluster.Synced.Services)
+			}
+		}
 	}
 }
