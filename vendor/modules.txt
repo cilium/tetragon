@@ -33,7 +33,7 @@ github.com/bombsimon/logrusr/v4
 # github.com/cespare/xxhash/v2 v2.2.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
-# github.com/cilium/cilium v1.15.5
+# github.com/cilium/cilium v1.15.6
 ## explicit; go 1.21.0
 github.com/cilium/cilium/api/v1/client
 github.com/cilium/cilium/api/v1/client/bgp
@@ -794,7 +794,7 @@ github.com/tklauser/go-sysconf
 # github.com/tklauser/numcpus v0.6.0
 ## explicit; go 1.13
 github.com/tklauser/numcpus
-# github.com/vishvananda/netlink v1.2.1-beta.2.0.20231127184239-0ced8385386a
+# github.com/vishvananda/netlink v1.2.1-beta.2.0.20240524165444-4d4ba1473f21
 ## explicit; go 1.12
 github.com/vishvananda/netlink
 github.com/vishvananda/netlink/nl

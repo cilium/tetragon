@@ -240,6 +240,10 @@ const (
 	// be necessary on key rotations.
 	EnableIPsecKeyWatcher = true
 
+	// Enable caching for XfrmState for IPSec. Significantly reduces CPU usage
+	// in large clusters.
+	EnableIPSecXfrmStateCaching = false
+
 	// EncryptNode enables encrypting traffic from host networking applications
 	// which are not part of Cilium manged pods.
 	EncryptNode = false
@@ -554,6 +558,9 @@ const (
 	// identity in a numeric identity. Values > 255 will decrease the number of
 	// allocatable identities.
 	MaxConnectedClusters = 255
+
+	// EnableEnvoyConfig is the default value for option.EnableEnvoyConfig
+	EnableEnvoyConfig = false
 )
 
 var (
