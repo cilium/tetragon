@@ -12,7 +12,7 @@ REPO_ROOT := $(shell git rev-parse --show-toplevel)
 TETRAGON_CHART := tetragon
 CRDS := $(REPO_ROOT)/pkg/k8s/apis/cilium.io/client/crds/v1alpha1
 
-HELM ?= docker run --rm -v ./$(TETRAGON_CHART):/apps $(HELM_IMAGE)
+HELM ?= docker run --rm -v $(CURDIR)/$(TETRAGON_CHART):/apps $(HELM_IMAGE)
 
 .PHONY: all
 all: deps $(TETRAGON_CHART)/crds-yaml lint docs
@@ -28,7 +28,7 @@ lint:
 
 .PHONY: docs
 docs:
-	docker run --rm -v ./$(TETRAGON_CHART):/helm-docs -u $$(id -u) $(HELMDOCS_IMAGE)
+	docker run --rm -v $(CURDIR)/$(TETRAGON_CHART):/helm-docs -u $$(id -u) $(HELMDOCS_IMAGE)
 	./export-doc.sh $(REPO_ROOT)/docs/content/en/docs/reference/helm-chart.md
 
 # NB: Helm has an "official" way to install CRDs which requires simply putting
