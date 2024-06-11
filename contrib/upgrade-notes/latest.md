@@ -5,22 +5,22 @@ Depending on your setup, changes listed here might require a manual intervention
 
 * TBD
 
-#### Agent Options
+### Agent Options
 
 * TBD
 
-#### Helm Values
+### Helm Values
 
 * TBD
 
-#### TracingPolicy (k8s CRD)
+### TracingPolicy (k8s CRD)
 
 * TBD
 
-#### Events (protobuf API)
+### Events (protobuf API)
 
 * TBD
 
-#### Metrics
+### Metrics
 
 * TBD
