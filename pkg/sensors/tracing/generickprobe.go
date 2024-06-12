@@ -57,6 +57,8 @@ const (
 	CharBufErrorPageFault   = -2
 	CharBufErrorTooLarge    = -3
 	CharBufSavedForRetprobe = -4
+
+	stackTraceMapMaxEntries = 32768 // this value could be fine tuned
 )
 
 func kprobeCharBufErrorToString(e int32) string {
@@ -89,6 +91,8 @@ type pendingEventKey struct {
 }
 
 type genericKprobeData struct {
+	// stackTraceMap reference is needed when retrieving stack traces from
+	// userspace when receiving events containing stacktrace IDs
 	stackTraceMap *program.Map
 }
 
@@ -128,6 +132,11 @@ type genericKprobe struct {
 	// unique for each kprobeEntry when we use single kprobes and it's
 	// ont global instance when we use kprobe multi
 	data *genericKprobeData
+
+	// Does this kprobe is using stacktraces? Note that as specified in the
+	// above data field comment, the map is global for multikprobe and unique
+	// for each kprobe when using single kprobes.
+	hasStackTrace bool
 
 	customHandler eventhandler.Handler
 }
@@ -262,6 +271,7 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 	var maps []*program.Map
 
 	data := &genericKprobeData{}
+	oneKprobeHasStackTrace := false
 
 	for _, id := range multiIDs {
 		gk, err := genericKprobeTableGet(id)
@@ -271,6 +281,7 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 		if gk.loadArgs.retprobe {
 			multiRetIDs = append(multiRetIDs, id)
 		}
+		oneKprobeHasStackTrace = oneKprobeHasStackTrace || gk.hasStackTrace
 		gk.data = data
 	}
 
@@ -322,7 +333,11 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 	maps = append(maps, matchBinariesPaths)
 
 	stackTraceMap := program.MapBuilderPin("stack_trace_map", sensors.PathJoin(pinPath, "stack_trace_map"), load)
+	if oneKprobeHasStackTrace {
+		stackTraceMap.SetMaxEntries(stackTraceMapMaxEntries)
+	}
 	maps = append(maps, stackTraceMap)
+	data.stackTraceMap = stackTraceMap
 
 	if kernels.EnableLargeProgs() {
 		socktrack := program.MapBuilderPin("socktrack_map", sensors.PathJoin(sensorPath, "socktrack_map"), load)
@@ -334,8 +349,6 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 
 	filterMap.SetMaxEntries(len(multiIDs))
 	configMap.SetMaxEntries(len(multiIDs))
-
-	data.stackTraceMap = stackTraceMap
 
 	if len(multiRetIDs) != 0 {
 		loadret := program.Builder(
@@ -752,6 +765,13 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 		config.Syscall = 0
 	}
 
+	hasStackTrace := false
+	for _, selector := range f.Selectors {
+		for _, matchAction := range selector.MatchActions {
+			hasStackTrace = matchAction.KernelStackTrace || matchAction.UserStackTrace
+		}
+	}
+
 	// create a new entry on the table, and pass its id to BPF-side
 	// so that we can do the matching at event-generation time
 	kprobeEntry := genericKprobe{
@@ -770,6 +790,7 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 		customHandler:     in.customHandler,
 		message:           msgField,
 		tags:              tagsField,
+		hasStackTrace:     hasStackTrace,
 	}
 
 	// Parse Filters into kernel filter logic
@@ -862,9 +883,16 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 	}
 	maps = append(maps, matchBinariesPaths)
 
+	// loading the stack trace map in any case so that it does not end up as an
+	// anonymous map (as it's always used by the BPF prog) and is clearly linked
+	// to tetragon
 	stackTraceMap := program.MapBuilderPin("stack_trace_map", sensors.PathJoin(pinPath, "stack_trace_map"), load)
+	if kprobeEntry.hasStackTrace {
+		// to reduce memory footprint however, the stack map is created with a
+		// max entry of 1, we need to expand that at loading.
+		stackTraceMap.SetMaxEntries(stackTraceMapMaxEntries)
+	}
 	maps = append(maps, stackTraceMap)
-
 	kprobeEntry.data.stackTraceMap = stackTraceMap
 
 	if kernels.EnableLargeProgs() {
