@@ -1986,7 +1986,7 @@ update_pid_tid_from_sock(struct msg_generic_kprobe *e, __u64 sockaddr)
 #define PERF_MAX_STACK_DEPTH 127
 struct {
 	__uint(type, BPF_MAP_TYPE_STACK_TRACE);
-	__uint(max_entries, 32768);
+	__uint(max_entries, 1); // Agent is resizing this if the feature is needed during kprobe load
 	__uint(key_size, sizeof(__u32));
 	__uint(value_size, sizeof(__u64) * PERF_MAX_STACK_DEPTH);
 } stack_trace_map SEC(".maps");
