@@ -65,6 +65,8 @@ const (
 	CharBufErrorPageFault   = -2
 	CharBufErrorTooLarge    = -3
 	CharBufSavedForRetprobe = -4
+
+	stackTraceMapMaxEntries = 32768 // this value could be fine tuned
 )
 
 func kprobeCharBufErrorToString(e int32) string {
@@ -132,6 +134,9 @@ type genericKprobe struct {
 	// reference to a stack trace map, must be closed when unloading the kprobe,
 	// this is done in the sensor PostUnloadHook
 	stackTraceMapRef *ebpf.Map
+
+	// is there stacktrace defined in the kprobe
+	hasStackTrace bool
 
 	customHandler eventhandler.Handler
 }
@@ -211,6 +216,16 @@ func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.
 	var progs []*program.Program
 	var maps []*program.Map
 
+	oneKprobeHasStackTrace := false
+	for _, id := range multiIDs {
+		gk, err := genericKprobeTableGet(id)
+		if err != nil {
+			logger.GetLogger().WithField("id", id).WithError(err).Warn("createMultiKprobeSensor: failed to retrieve generic kprobe from table, stacktrace could malfunction")
+			continue
+		}
+		oneKprobeHasStackTrace = oneKprobeHasStackTrace || gk.hasStackTrace
+	}
+
 	loadProgName := "bpf_multi_kprobe_v53.o"
 	loadProgRetName := "bpf_multi_retkprobe_v53.o"
 	if kernels.EnableV61Progs() {
@@ -285,6 +300,9 @@ func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.
 	maps = append(maps, selNamesMap)
 
 	stackTraceMap := program.MapBuilderPin("stack_trace_map", sensors.PathJoin(pinPath, "stack_trace_map"), load)
+	if oneKprobeHasStackTrace {
+		stackTraceMap.SetMaxEntries(stackTraceMapMaxEntries)
+	}
 	maps = append(maps, stackTraceMap)
 
 	if kernels.EnableLargeProgs() {
@@ -787,6 +805,7 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn, selMaps
 		policyName:        in.policyName,
 		hasOverride:       selectors.HasOverride(f),
 		customHandler:     in.customHandler,
+		hasStackTrace:     selectorsHaveStackTrace(f.Selectors),
 	}
 
 	// Parse Filters into kernel filter logic
@@ -915,7 +934,15 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn, selMaps
 	selNamesMap := program.MapBuilderPin("sel_names_map", sensors.PathJoin(pinPath, "sel_names_map"), load)
 	out.maps = append(out.maps, selNamesMap)
 
+	// loading the stack trace map in any case so that it does not end up as an
+	// anonymous map (as it's always used by the BPF prog) and is clearly linked
+	// to tetragon
 	stackTraceMap := program.MapBuilderPin("stack_trace_map", sensors.PathJoin(pinPath, "stack_trace_map"), load)
+	if kprobeEntry.hasStackTrace {
+		// to reduce memory footprint however, the stack map is created with a
+		// max entry of 1, we need to expand that at loading.
+		stackTraceMap.SetMaxEntries(stackTraceMapMaxEntries)
+	}
 	out.maps = append(out.maps, stackTraceMap)
 
 	if kernels.EnableLargeProgs() {
@@ -1815,4 +1842,15 @@ func retprobeMerge(prev pendingEvent, curr pendingEvent) (*tracing.MsgGenericKpr
 
 func (k *observerKprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 	return loadGenericKprobeSensor(args.BPFDir, args.MapDir, args.Load, args.Verbose)
+}
+
+func selectorsHaveStackTrace(selectors []v1alpha1.KProbeSelector) bool {
+	for _, selector := range selectors {
+		for _, matchAction := range selector.MatchActions {
+			if matchAction.StackTrace {
+				return true
+			}
+		}
+	}
+	return false
 }
