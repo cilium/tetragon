@@ -22,3 +22,4 @@ enforcer-tester-32
 drop-privileges
 change-capabilities
 direct-write-tester
+user-stacktrace
