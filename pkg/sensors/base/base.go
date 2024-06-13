@@ -15,6 +15,10 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
 
+const (
+	cgroupRateMaxEntries = 32768 // this value could be fine tuned
+)
+
 var (
 	Execve = program.Builder(
 		ExecObj(),
@@ -73,7 +77,10 @@ var (
 	StatsMap           = program.MapBuilder("tg_stats_map", Execve)
 
 	/* Cgroup rate data, attached to execve sensor */
-	CgroupRateMap        = program.MapBuilder("cgroup_rate_map", Execve)
+	CgroupRateMapExec    = program.MapBuilder("cgroup_rate_map", Execve)
+	CgroupRateMapExit    = program.MapBuilder("cgroup_rate_map", Exit)
+	CgroupRateMapFork    = program.MapBuilder("cgroup_rate_map", Fork)
+	CgroupRateMapCgroup  = program.MapBuilder("cgroup_rate_map", CgroupRmdir)
 	CgroupRateOptionsMap = program.MapBuilder("cgroup_rate_options_map", Execve)
 
 	sensor = sensors.Sensor{
@@ -144,7 +151,7 @@ func GetDefaultMaps(cgroupRate bool) []*program.Map {
 		StatsMap,
 	}
 	if cgroupRate {
-		maps = append(maps, CgroupRateMap, CgroupRateOptionsMap)
+		maps = append(maps, CgroupRateMapExec, CgroupRateOptionsMap)
 	}
 	return maps
 
@@ -179,4 +186,15 @@ func ExecObj() string {
 		return "bpf_execve_event_v53.o"
 	}
 	return "bpf_execve_event.o"
+}
+
+func ConfigCgroupRate(opts *option.CgroupRate) {
+	if opts.Events == 0 || opts.Interval == 0 {
+		return
+	}
+
+	CgroupRateMapExec.SetMaxEntries(cgroupRateMaxEntries)
+	CgroupRateMapExit.SetMaxEntries(cgroupRateMaxEntries)
+	CgroupRateMapFork.SetMaxEntries(cgroupRateMaxEntries)
+	CgroupRateMapCgroup.SetMaxEntries(cgroupRateMaxEntries)
 }
