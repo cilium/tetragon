@@ -461,7 +461,7 @@ var syscallNames32 = map[int]string{
 	i386.SYS_SETGROUPS:                    "sys_setgroups",
 	i386.SYS_SELECT:                       "sys_select",
 	i386.SYS_SYMLINK:                      "sys_symlink",
-	i386.SYS_OLDLSTAT:                     "sys_oldstat",
+	i386.SYS_OLDLSTAT:                     "sys_oldlstat",
 	i386.SYS_READLINK:                     "sys_readlink",
 	i386.SYS_USELIB:                       "sys_uselib",
 	i386.SYS_SWAPON:                       "sys_swapon",
