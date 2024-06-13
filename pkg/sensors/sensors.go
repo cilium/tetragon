@@ -5,6 +5,7 @@ package sensors
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/cilium/tetragon/pkg/logger"
@@ -61,6 +62,10 @@ type Sensor struct {
 	// when removing the sensor, sensor cannot be loaded again after this hook
 	// being triggered and must be recreated.
 	DestroyHook SensorHook
+}
+
+func sanitize(name string) string {
+	return strings.ReplaceAll(name, "/", "_")
 }
 
 // SensorIface is an interface for sensors.Sensor that allows implementing sensors for testing.
