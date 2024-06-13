@@ -1792,6 +1792,8 @@ do_action_signal(int signal)
  */
 #define KEY_BYTES_PER_ARG 40
 
+#ifdef __LARGE_BPF_PROG
+
 struct ratelimit_key {
 	__u64 func_id;
 	__u64 retprobe_id;
@@ -1829,7 +1831,6 @@ struct {
 	__type(value, __u8[sizeof(struct ratelimit_key) + 128]);
 } ratelimit_ro_heap SEC(".maps");
 
-#ifdef __LARGE_BPF_PROG
 static inline __attribute__((always_inline)) bool
 rate_limit(__u64 ratelimit_interval, struct msg_generic_kprobe *e)
 {
