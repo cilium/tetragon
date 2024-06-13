@@ -310,6 +310,11 @@ func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.
 		maps = append(maps, socktrack)
 	}
 
+	if kernels.EnableLargeProgs() {
+		ratelimitMap := program.MapBuilderPin("ratelimit_map", sensors.PathJoin(sensorPath, "ratelimit_map"), load)
+		maps = append(maps, ratelimitMap)
+	}
+
 	filterMap.SetMaxEntries(len(multiIDs))
 	configMap.SetMaxEntries(len(multiIDs))
 
@@ -948,6 +953,11 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn, selMaps
 	if kernels.EnableLargeProgs() {
 		socktrack := program.MapBuilderPin("socktrack_map", sensors.PathJoin(in.sensorPath, "socktrack_map"), load)
 		out.maps = append(out.maps, socktrack)
+	}
+
+	if kernels.EnableLargeProgs() {
+		ratelimitMap := program.MapBuilderPin("ratelimit_map", sensors.PathJoin(in.sensorPath, "ratelimit_map"), load)
+		out.maps = append(out.maps, ratelimitMap)
 	}
 
 	if setRetprobe {
