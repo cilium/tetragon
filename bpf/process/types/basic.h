@@ -2035,7 +2035,7 @@ struct ratelimit_value {
 
 struct {
 	__uint(type, BPF_MAP_TYPE_LRU_HASH);
-	__uint(max_entries, 32768);
+	__uint(max_entries, 1); // Agent is resizing this if the feature is needed during kprobe load
 	__type(key, struct ratelimit_key);
 	__type(value, struct ratelimit_value);
 } ratelimit_map SEC(".maps");
