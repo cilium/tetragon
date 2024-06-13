@@ -65,7 +65,7 @@ func LoadConfig(bpfDir string, sens []*Sensor) error {
 func (s *Sensor) setupProgsPinPath(bpfDir string) {
 	for _, p := range s.Progs {
 		// setup sensor based program pin path
-		p.PinPath = filepath.Join(s.Policy, s.Name, p.PinName)
+		p.PinPath = filepath.Join(sanitize(s.Policy), s.Name, p.PinName)
 		// and make the path
 		os.MkdirAll(filepath.Join(bpfDir, p.PinPath), os.ModeDir)
 	}
@@ -219,15 +219,16 @@ func (s *Sensor) FindPrograms() error {
 }
 
 func (s *Sensor) setMapPinPath(m *program.Map) {
+	policy := sanitize(s.Policy)
 	switch m.Type {
 	case program.MapTypeGlobal:
 		m.PinPath = filepath.Join(m.Name)
 	case program.MapTypePolicy:
-		m.PinPath = filepath.Join(s.Policy, m.Name)
+		m.PinPath = filepath.Join(policy, m.Name)
 	case program.MapTypeSensor:
-		m.PinPath = filepath.Join(s.Policy, s.Name, m.Name)
+		m.PinPath = filepath.Join(policy, s.Name, m.Name)
 	case program.MapTypeProgram:
-		m.PinPath = filepath.Join(s.Policy, s.Name, m.Prog.PinName, m.Name)
+		m.PinPath = filepath.Join(policy, s.Name, m.Prog.PinName, m.Name)
 	}
 }
 
