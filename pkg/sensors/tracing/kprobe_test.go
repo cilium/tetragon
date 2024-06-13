@@ -19,6 +19,7 @@ import (
 	"sync"
 	"syscall"
 	"testing"
+	"time"
 	"unsafe"
 
 	"github.com/cilium/ebpf"
@@ -5366,6 +5367,125 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
+}
+
+func testKprobeRateLimit(t *testing.T, rateLimit bool) {
+	hook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "datagram"
+spec:
+  kprobes:
+  - call: "ip_send_skb"
+    syscall: false
+    args:
+    - index: 1
+      type: "skb"
+      label: "datagram"
+    selectors:
+    - matchArgs:
+      - index: 1
+        operator: "DAddr"
+        values:
+        - "127.0.0.1"
+      - index: 1
+        operator: "DPort"
+        values:
+        - "9468"
+      - index: 1
+        operator: "Protocol"
+        values:
+        - "IPPROTO_UDP"
+`
+
+	if rateLimit {
+		hook += `
+      matchActions:
+      - action: Post
+        rateLimit: "5"
+`
+	}
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	createCrdFile(t, hook)
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	server := "nc.openbsd"
+	cmdServer := exec.Command(server, "-unvlp", "9468", "-s", "127.0.0.1")
+	assert.NoError(t, cmdServer.Start())
+	time.Sleep(1 * time.Second)
+
+	// Generate 5 datagrams
+	socket, err := net.Dial("udp", "127.0.0.1:9468")
+	if err != nil {
+		fmt.Printf("ERROR dialing socket\n")
+		panic(err)
+	}
+
+	for i := 0; i < 5; i++ {
+		_, err := socket.Write([]byte("data"))
+		if err != nil {
+			fmt.Printf("ERROR writing to socket\n")
+			panic(err)
+		}
+	}
+
+	kpChecker := ec.NewProcessKprobeChecker("datagram-checker").
+		WithFunctionName(sm.Full("ip_send_skb")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithLabel(sm.Full("datagram")).
+					WithSkbArg(ec.NewKprobeSkbChecker().
+						WithDaddr(sm.Full("127.0.0.1")).
+						WithDport(9468).
+						WithProtocol(sm.Full("IPPROTO_UDP")),
+					),
+			))
+
+	var checkerSuccess *ec.UnorderedEventChecker
+	var checkerFailure *ec.UnorderedEventChecker
+	if rateLimit {
+		// Rate limit. We should have 1. We shouldn't have 2 (or more)
+		checkerSuccess = ec.NewUnorderedEventChecker(kpChecker)
+		checkerFailure = ec.NewUnorderedEventChecker(kpChecker, kpChecker)
+	} else {
+		// No rate limit. We should have 5. We shouldn't have 6.
+		checkerSuccess = ec.NewUnorderedEventChecker(kpChecker, kpChecker, kpChecker, kpChecker, kpChecker)
+		checkerFailure = ec.NewUnorderedEventChecker(kpChecker, kpChecker, kpChecker, kpChecker, kpChecker, kpChecker)
+	}
+	cmdServer.Process.Kill()
+
+	err = jsonchecker.JsonTestCheck(t, checkerSuccess)
+	assert.NoError(t, err)
+	err = jsonchecker.JsonTestCheckExpect(t, checkerFailure, true)
+	assert.NoError(t, err)
+}
+
+func TestKprobeNoRateLimit(t *testing.T) {
+	if !kernels.EnableLargeProgs() {
+		t.Skip("Test requires kernel 5.4")
+	}
+
+	testKprobeRateLimit(t, false)
+}
+
+func TestKprobeRateLimit(t *testing.T) {
+	if !kernels.EnableLargeProgs() {
+		t.Skip("Test requires kernel 5.4")
+	}
+
+	testKprobeRateLimit(t, true)
 }
 
 func TestKprobeListSyscallDupsRange(t *testing.T) {
