@@ -344,6 +344,11 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 		maps = append(maps, socktrack)
 	}
 
+	if kernels.EnableLargeProgs() {
+		ratelimitMap := program.MapBuilderPin("ratelimit_map", sensors.PathJoin(sensorPath, "ratelimit_map"), load)
+		maps = append(maps, ratelimitMap)
+	}
+
 	enforcerDataMap := enforcerMap(policyName, load)
 	maps = append(maps, enforcerDataMap)
 
@@ -898,6 +903,11 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 	if kernels.EnableLargeProgs() {
 		socktrack := program.MapBuilderPin("socktrack_map", sensors.PathJoin(sensorPath, "socktrack_map"), load)
 		maps = append(maps, socktrack)
+	}
+
+	if kernels.EnableLargeProgs() {
+		ratelimitMap := program.MapBuilderPin("ratelimit_map", sensors.PathJoin(sensorPath, "ratelimit_map"), load)
+		maps = append(maps, ratelimitMap)
 	}
 
 	enforcerDataMap := enforcerMap(kprobeEntry.policyName, load)
