@@ -66,7 +66,10 @@ const (
 	CharBufErrorTooLarge    = -3
 	CharBufSavedForRetprobe = -4
 
-	stackTraceMapMaxEntries = 32768 // this value could be fine tuned
+	// The following values could be fine tuned if either those feature use too
+	// much kernel memory when enabled.
+	stackTraceMapMaxEntries = 32768
+	ratelimitMapMaxEntries  = 32768
 )
 
 func kprobeCharBufErrorToString(e int32) string {
@@ -137,6 +140,9 @@ type genericKprobe struct {
 
 	// is there stacktrace defined in the kprobe
 	hasStackTrace bool
+
+	// is there ratelimit defined in the kprobe
+	hasRatelimit bool
 
 	customHandler eventhandler.Handler
 }
@@ -217,13 +223,15 @@ func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.
 	var maps []*program.Map
 
 	oneKprobeHasStackTrace := false
+	oneKprobeHasRatelimit := false
 	for _, id := range multiIDs {
 		gk, err := genericKprobeTableGet(id)
 		if err != nil {
-			logger.GetLogger().WithField("id", id).WithError(err).Warn("createMultiKprobeSensor: failed to retrieve generic kprobe from table, stacktrace could malfunction")
+			logger.GetLogger().WithField("id", id).WithError(err).Warn("createMultiKprobeSensor: failed to retrieve generic kprobe from table, stacktrace or ratelimit could malfunction")
 			continue
 		}
 		oneKprobeHasStackTrace = oneKprobeHasStackTrace || gk.hasStackTrace
+		oneKprobeHasRatelimit = oneKprobeHasRatelimit || gk.hasRatelimit
 	}
 
 	loadProgName := "bpf_multi_kprobe_v53.o"
@@ -312,6 +320,9 @@ func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.
 
 	if kernels.EnableLargeProgs() {
 		ratelimitMap := program.MapBuilderPin("ratelimit_map", sensors.PathJoin(sensorPath, "ratelimit_map"), load)
+		if oneKprobeHasRatelimit {
+			ratelimitMap.SetMaxEntries(ratelimitMapMaxEntries)
+		}
 		maps = append(maps, ratelimitMap)
 	}
 
@@ -811,6 +822,7 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn, selMaps
 		hasOverride:       selectors.HasOverride(f),
 		customHandler:     in.customHandler,
 		hasStackTrace:     selectorsHaveStackTrace(f.Selectors),
+		hasRatelimit:      selectorsHaveRateLimit(f.Selectors),
 	}
 
 	// Parse Filters into kernel filter logic
@@ -957,6 +969,11 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn, selMaps
 
 	if kernels.EnableLargeProgs() {
 		ratelimitMap := program.MapBuilderPin("ratelimit_map", sensors.PathJoin(in.sensorPath, "ratelimit_map"), load)
+		if kprobeEntry.hasRatelimit {
+			// similarly as for stacktrace, we expand the max size only if
+			// needed to reduce the memory footprint when unused
+			ratelimitMap.SetMaxEntries(ratelimitMapMaxEntries)
+		}
 		out.maps = append(out.maps, ratelimitMap)
 	}
 
@@ -1858,6 +1875,17 @@ func selectorsHaveStackTrace(selectors []v1alpha1.KProbeSelector) bool {
 	for _, selector := range selectors {
 		for _, matchAction := range selector.MatchActions {
 			if matchAction.StackTrace {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func selectorsHaveRateLimit(selectors []v1alpha1.KProbeSelector) bool {
+	for _, selector := range selectors {
+		for _, matchAction := range selector.MatchActions {
+			if len(matchAction.RateLimit) > 0 {
 				return true
 			}
 		}
