@@ -447,6 +447,8 @@ func tetragonExecute() error {
 
 	obs.LogPinnedBpf(observerDir)
 
+	base.ConfigCgroupRate(&option.Config.CgroupRate)
+
 	// load base sensor
 	initialSensor := base.GetInitialSensor()
 	if err := initialSensor.Load(observerDir); err != nil {
@@ -456,7 +458,7 @@ func tetragonExecute() error {
 		initialSensor.Unload()
 	}()
 
-	cgrouprate.NewCgroupRate(ctx, pm, base.CgroupRateMap, &option.Config.CgroupRate)
+	cgrouprate.NewCgroupRate(ctx, pm, base.CgroupRateMapExec, &option.Config.CgroupRate)
 	cgrouprate.Config(base.CgroupRateOptionsMap)
 
 	// now that the base sensor was loaded, we can start the sensor manager

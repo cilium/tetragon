@@ -27,7 +27,7 @@ struct cgroup_rate_options {
 
 struct {
 	__uint(type, BPF_MAP_TYPE_PERCPU_HASH);
-	__uint(max_entries, 32768);
+	__uint(max_entries, 1); /* will be resize by agent when needed */
 	__type(key, struct cgroup_rate_key);
 	__type(value, struct cgroup_rate_value);
 } cgroup_rate_map SEC(".maps");
