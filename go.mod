@@ -5,7 +5,7 @@ go 1.22.2
 
 require (
 	github.com/bombsimon/logrusr/v4 v4.1.0
-	github.com/cilium/cilium v1.15.4
+	github.com/cilium/cilium v1.15.6
 	github.com/cilium/ebpf v0.15.0
 	github.com/cilium/little-vm-helper v0.0.17
 	github.com/cilium/lumberjack/v2 v2.3.0
@@ -39,7 +39,7 @@ require (
 	github.com/spf13/viper v1.18.2
 	github.com/sryoya/protorand v0.0.0-20240429201223-e7440656b2a4
 	github.com/stretchr/testify v1.9.0
-	github.com/vishvananda/netlink v1.2.1-beta.2.0.20231127184239-0ced8385386a
+	github.com/vishvananda/netlink v1.2.1-beta.2.0.20240524165444-4d4ba1473f21
 	go.uber.org/atomic v1.11.0
 	go.uber.org/multierr v1.11.0
 	golang.org/x/sync v0.7.0
@@ -71,7 +71,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
-	github.com/cilium/dns v1.1.51-0.20231120140355-729345173dc3 // indirect
+	github.com/cilium/dns v1.1.51-0.20240416134107-d47d0dd702a1 // indirect
 	github.com/cilium/proxy v0.0.0-20231031145409-f19708f3d018 // indirect
 	github.com/cncf/xds/go v0.0.0-20231128003011-0fa0005c9caa // indirect
 	github.com/containerd/log v0.1.0 // indirect

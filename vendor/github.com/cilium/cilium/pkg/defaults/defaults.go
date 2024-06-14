@@ -240,6 +240,10 @@ const (
 	// be necessary on key rotations.
 	EnableIPsecKeyWatcher = true
 
+	// Enable caching for XfrmState for IPSec. Significantly reduces CPU usage
+	// in large clusters.
+	EnableIPSecXfrmStateCaching = false
+
 	// EncryptNode enables encrypting traffic from host networking applications
 	// which are not part of Cilium manged pods.
 	EncryptNode = false
@@ -507,11 +511,9 @@ const (
 	// InstallNoConntrackRules instructs Cilium to install Iptables rules to skip netfilter connection tracking on all pod traffic.
 	InstallNoConntrackIptRules = false
 
-	// WireguardSubnetV4 is a default WireGuard tunnel subnet
-	WireguardSubnetV4 = "172.16.43.0/24"
-
-	// WireguardSubnetV6 is a default WireGuard tunnel subnet
-	WireguardSubnetV6 = "fdc9:281f:04d7:9ee9::1/64"
+	// ContainerIPLocalReservedPortsAuto instructs the Cilium CNI plugin to reserve
+	// an auto-generated list of ports in the container network namespace
+	ContainerIPLocalReservedPortsAuto = "auto"
 
 	// ExternalClusterIP enables cluster external access to ClusterIP services.
 	// Defaults to false to retain prior behaviour of not routing external packets to ClusterIPs.
@@ -556,6 +558,9 @@ const (
 	// identity in a numeric identity. Values > 255 will decrease the number of
 	// allocatable identities.
 	MaxConnectedClusters = 255
+
+	// EnableEnvoyConfig is the default value for option.EnableEnvoyConfig
+	EnableEnvoyConfig = false
 )
 
 var (

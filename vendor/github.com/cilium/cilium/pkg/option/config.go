@@ -14,6 +14,7 @@ import (
 	"net/netip"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"sort"
 	"strconv"
@@ -388,6 +389,10 @@ const (
 	// to skip netfilter connection tracking on all pod traffic.
 	InstallNoConntrackIptRules = "install-no-conntrack-iptables-rules"
 
+	// ContainerIPLocalReservedPorts instructs the Cilium CNI plugin to reserve
+	// the provided comma-separated list of ports in the container network namespace
+	ContainerIPLocalReservedPorts = "container-ip-local-reserved-ports"
+
 	// IPv6NodeAddr is the IPv6 address of node
 	IPv6NodeAddr = "ipv6-node"
 
@@ -731,6 +736,10 @@ const (
 	// Enable watcher for IPsec key. If disabled, a restart of the agent will
 	// be necessary on key rotations.
 	EnableIPsecKeyWatcher = "enable-ipsec-key-watcher"
+
+	// Enable caching for XfrmState for IPSec. Significantly reduces CPU usage
+	// in large clusters.
+	EnableIPSecXfrmStateCaching = "enable-ipsec-xfrm-state-caching"
 
 	// IPSecKeyFileName is the name of the option for ipsec key file
 	IPSecKeyFileName = "ipsec-key-file"
@@ -1247,6 +1256,12 @@ const (
 	// is considered timed out
 	ProxyConnectTimeout = "proxy-connect-timeout"
 
+	// ProxyXffNumTrustedHopsIngress specifies the number of trusted hops regarding the x-forwarded-for and related HTTP headers for the ingress L7 policy enforcement Envoy listeners.
+	ProxyXffNumTrustedHopsIngress = "proxy-xff-num-trusted-hops-ingress"
+
+	// ProxyXffNumTrustedHopsEgress specifies the number of trusted hops regarding the x-forwarded-for and related HTTP headers for the egress L7 policy enforcement Envoy listeners.
+	ProxyXffNumTrustedHopsEgress = "proxy-xff-num-trusted-hops-egress"
+
 	// ProxyGID specifies the group ID that has access to unix domain sockets opened by Cilium
 	// agent for proxy configuration and access logging.
 	ProxyGID = "proxy-gid"
@@ -1613,6 +1628,12 @@ type DaemonConfig struct {
 	// connection attempt to have timed out.
 	ProxyConnectTimeout int
 
+	// ProxyXffNumTrustedHopsIngress defines the number of trusted hops regarding the x-forwarded-for and related HTTP headers for the ingress L7 policy enforcement Envoy listeners.
+	ProxyXffNumTrustedHopsIngress uint32
+
+	// ProxyXffNumTrustedHopsEgress defines the number of trusted hops regarding the x-forwarded-for and related HTTP headers for the egress L7 policy enforcement Envoy listeners.
+	ProxyXffNumTrustedHopsEgress uint32
+
 	// ProxyGID specifies the group ID that has access to unix domain sockets opened by Cilium
 	// agent for proxy configuration and access logging.
 	ProxyGID int
@@ -1690,6 +1711,9 @@ type DaemonConfig struct {
 	// Enable watcher for IPsec key. If disabled, a restart of the agent will
 	// be necessary on key rotations.
 	EnableIPsecKeyWatcher bool
+
+	// EnableIPSecXfrmStateCaching enables IPSec XfrmState caching.
+	EnableIPSecXfrmStateCaching bool
 
 	// EnableWireguard enables Wireguard encryption
 	EnableWireguard bool
@@ -1905,7 +1929,7 @@ type DaemonConfig struct {
 
 	// KVstoreMaxConsecutiveQuorumErrors is the maximum number of acceptable
 	// kvstore consecutive quorum errors before the agent assumes permanent failure
-	KVstoreMaxConsecutiveQuorumErrors int
+	KVstoreMaxConsecutiveQuorumErrors uint
 
 	// KVstorePeriodicSync is the time interval in which periodic
 	// synchronization with the kvstore occurs
@@ -2319,6 +2343,10 @@ type DaemonConfig struct {
 	// InstallNoConntrackIptRules instructs Cilium to install Iptables rules to skip netfilter connection tracking on all pod traffic.
 	InstallNoConntrackIptRules bool
 
+	// ContainerIPLocalReservedPorts instructs the Cilium CNI plugin to reserve
+	// the provided comma-separated list of ports in the container network namespace
+	ContainerIPLocalReservedPorts string
+
 	// EnableCustomCalls enables tail call hooks for user-defined custom
 	// eBPF programs, typically used to collect custom per-endpoint
 	// metrics.
@@ -2478,6 +2506,7 @@ var (
 		EnableK8sNetworkPolicy: defaults.EnableK8sNetworkPolicy,
 		PolicyCIDRMatchMode:    defaults.PolicyCIDRMatchMode,
 		MaxConnectedClusters:   defaults.MaxConnectedClusters,
+		EnableEnvoyConfig:      defaults.EnableEnvoyConfig,
 	}
 )
 
@@ -2795,15 +2824,27 @@ func (c *DaemonConfig) validateHubbleRedact() error {
 	return nil
 }
 
+func (c *DaemonConfig) validateContainerIPLocalReservedPorts() error {
+	if c.ContainerIPLocalReservedPorts == "" || c.ContainerIPLocalReservedPorts == defaults.ContainerIPLocalReservedPortsAuto {
+		return nil
+	}
+
+	if regexp.MustCompile(`^(\d+(-\d+)?)(,\d+(-\d+)?)*$`).MatchString(c.ContainerIPLocalReservedPorts) {
+		return nil
+	}
+
+	return fmt.Errorf("Invalid comma separated list of of ranges for %s option", ContainerIPLocalReservedPorts)
+}
+
 // Validate validates the daemon configuration
 func (c *DaemonConfig) Validate(vp *viper.Viper) error {
 	if err := c.validateIPv6ClusterAllocCIDR(); err != nil {
-		return fmt.Errorf("unable to parse CIDR value '%s' of option --%s: %s",
+		return fmt.Errorf("unable to parse CIDR value '%s' of option --%s: %w",
 			c.IPv6ClusterAllocCIDR, IPv6ClusterAllocCIDRName, err)
 	}
 
 	if err := c.validateIPv6NAT46x64CIDR(); err != nil {
-		return fmt.Errorf("unable to parse internal CIDR value '%s': %s",
+		return fmt.Errorf("unable to parse internal CIDR value '%s': %w",
 			c.IPv6NAT46x64CIDR, err)
 	}
 
@@ -2892,6 +2933,10 @@ func (c *DaemonConfig) Validate(vp *viper.Viper) error {
 		return err
 	}
 
+	if err := c.validateContainerIPLocalReservedPorts(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -2901,7 +2946,7 @@ func ReadDirConfig(dirName string) (map[string]interface{}, error) {
 	m := map[string]interface{}{}
 	files, err := os.ReadDir(dirName)
 	if err != nil && !os.IsNotExist(err) {
-		return nil, fmt.Errorf("unable to read configuration directory: %s", err)
+		return nil, fmt.Errorf("unable to read configuration directory: %w", err)
 	}
 	for _, f := range files {
 		if f.IsDir() {
@@ -2942,7 +2987,7 @@ func ReadDirConfig(dirName string) (map[string]interface{}, error) {
 func MergeConfig(vp *viper.Viper, m map[string]interface{}) error {
 	err := vp.MergeConfigMap(m)
 	if err != nil {
-		return fmt.Errorf("unable to read merge directory configuration: %s", err)
+		return fmt.Errorf("unable to read merge directory configuration: %w", err)
 	}
 	return nil
 }
@@ -2974,7 +3019,7 @@ func (c *DaemonConfig) parseExcludedLocalAddresses(s []string) error {
 	for _, ipString := range s {
 		_, ipnet, err := net.ParseCIDR(ipString)
 		if err != nil {
-			return fmt.Errorf("unable to parse excluded local address %s: %s", ipString, err)
+			return fmt.Errorf("unable to parse excluded local address %s: %w", ipString, err)
 		}
 
 		c.ExcludeLocalAddresses = append(c.ExcludeLocalAddresses, ipnet)
@@ -3093,7 +3138,7 @@ func (c *DaemonConfig) Populate(vp *viper.Viper) {
 	c.KVstoreKeepAliveInterval = c.KVstoreLeaseTTL / defaults.KVstoreKeepAliveIntervalFactor
 	c.KVstorePeriodicSync = vp.GetDuration(KVstorePeriodicSync)
 	c.KVstoreConnectivityTimeout = vp.GetDuration(KVstoreConnectivityTimeout)
-	c.KVstoreMaxConsecutiveQuorumErrors = vp.GetInt(KVstoreMaxConsecutiveQuorumErrorsName)
+	c.KVstoreMaxConsecutiveQuorumErrors = vp.GetUint(KVstoreMaxConsecutiveQuorumErrorsName)
 	c.IPAllocationTimeout = vp.GetDuration(IPAllocationTimeout)
 	c.LabelPrefixFile = vp.GetString(LabelPrefixFile)
 	c.Labels = vp.GetStringSlice(Labels)
@@ -3116,12 +3161,15 @@ func (c *DaemonConfig) Populate(vp *viper.Viper) {
 	c.IPSecKeyFile = vp.GetString(IPSecKeyFileName)
 	c.IPsecKeyRotationDuration = vp.GetDuration(IPsecKeyRotationDuration)
 	c.EnableIPsecKeyWatcher = vp.GetBool(EnableIPsecKeyWatcher)
+	c.EnableIPSecXfrmStateCaching = vp.GetBool(EnableIPSecXfrmStateCaching)
 	c.MonitorAggregation = vp.GetString(MonitorAggregationName)
 	c.MonitorAggregationInterval = vp.GetDuration(MonitorAggregationInterval)
 	c.MTU = vp.GetInt(MTUName)
 	c.PreAllocateMaps = vp.GetBool(PreAllocateMapsName)
 	c.ProcFs = vp.GetString(ProcFs)
 	c.ProxyConnectTimeout = vp.GetInt(ProxyConnectTimeout)
+	c.ProxyXffNumTrustedHopsIngress = vp.GetUint32(ProxyXffNumTrustedHopsIngress)
+	c.ProxyXffNumTrustedHopsEgress = vp.GetUint32(ProxyXffNumTrustedHopsEgress)
 	c.ProxyGID = vp.GetInt(ProxyGID)
 	c.ProxyPrometheusPort = vp.GetInt(ProxyPrometheusPort)
 	c.ProxyMaxRequestsPerConnection = vp.GetInt(ProxyMaxRequestsPerConnection)
@@ -3152,6 +3200,7 @@ func (c *DaemonConfig) Populate(vp *viper.Viper) {
 	c.LoadBalancerRSSv4CIDR = vp.GetString(LoadBalancerRSSv4CIDR)
 	c.LoadBalancerRSSv6CIDR = vp.GetString(LoadBalancerRSSv6CIDR)
 	c.InstallNoConntrackIptRules = vp.GetBool(InstallNoConntrackIptRules)
+	c.ContainerIPLocalReservedPorts = vp.GetString(ContainerIPLocalReservedPorts)
 	c.EnableCustomCalls = vp.GetBool(EnableCustomCallsName)
 	c.BGPAnnounceLBIP = vp.GetBool(BGPAnnounceLBIP)
 	c.BGPAnnouncePodCIDR = vp.GetBool(BGPAnnouncePodCIDR)
@@ -3468,7 +3517,7 @@ func (c *DaemonConfig) Populate(vp *viper.Viper) {
 		dec := json.NewDecoder(strings.NewReader(enc))
 		var result flowpb.FlowFilter
 		if err := dec.Decode(&result); err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				break
 			}
 			log.Fatalf("failed to decode hubble-export-allowlist '%v': %s", enc, err)
@@ -3480,7 +3529,7 @@ func (c *DaemonConfig) Populate(vp *viper.Viper) {
 		dec := json.NewDecoder(strings.NewReader(enc))
 		var result flowpb.FlowFilter
 		if err := dec.Decode(&result); err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				break
 			}
 			log.Fatalf("failed to decode hubble-export-denylist '%v': %s", enc, err)
@@ -3614,11 +3663,11 @@ func (c *DaemonConfig) populateNodePortRange(vp *viper.Viper) error {
 
 		c.NodePortMin, err = strconv.Atoi(nodePortRange[0])
 		if err != nil {
-			return fmt.Errorf("Unable to parse min port value for NodePort range: %s", err.Error())
+			return fmt.Errorf("Unable to parse min port value for NodePort range: %w", err)
 		}
 		c.NodePortMax, err = strconv.Atoi(nodePortRange[1])
 		if err != nil {
-			return fmt.Errorf("Unable to parse max port value for NodePort range: %s", err.Error())
+			return fmt.Errorf("Unable to parse max port value for NodePort range: %w", err)
 		}
 		if c.NodePortMax <= c.NodePortMin {
 			return errors.New("NodePort range min port must be smaller than max port")
@@ -4315,7 +4364,7 @@ func parseBPFMapEventConfigs(confs BPFEventBufferConfigs, confMap map[string]str
 	for name, confStr := range confMap {
 		conf, err := ParseEventBufferTupleString(confStr)
 		if err != nil {
-			return fmt.Errorf("unable to parse %s: %s", BPFMapEventBuffers, err)
+			return fmt.Errorf("unable to parse %s: %w", BPFMapEventBuffers, err)
 		}
 		confs[name] = conf
 	}
