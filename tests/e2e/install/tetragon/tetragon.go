@@ -87,6 +87,49 @@ func processOpts(opts ...Option) *flags.HelmOptions {
 	return &defaultOpts
 }
 
+func Uninstall(opts ...Option) env.Func {
+	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
+		o := processOpts(opts...)
+		klog.InfoS("Uninstalling Tetragon...", "opts", o)
+
+		manager := helm.New(cfg.KubeconfigFile())
+
+		klog.InfoS("Uninstalling Tetragon...", "namespace", o.Namespace, "daemonset", o.DaemonSetName)
+
+		helmOpts := []helm.Option{
+			helm.WithName(o.DaemonSetName),
+			helm.WithNamespace(o.Namespace),
+			helm.WithWait(),
+		}
+
+		if err := manager.RunUninstall(helmOpts...); err != nil {
+			return ctx, fmt.Errorf("failed to uninstall via helm chart: %w", err)
+		}
+
+		if o.Wait {
+			client, err := cfg.NewClient()
+			if err != nil {
+				return ctx, err
+			}
+			r := client.Resources(o.Namespace)
+
+			ds := v1.DaemonSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      o.DaemonSetName,
+					Namespace: o.Namespace,
+				},
+			}
+
+			// Wait for Tetragon daemon set to be ready
+			klog.Info("Waiting for Tetragon DaemonSet to be removed...")
+			wait.For(conditions.New(r).ResourceDeleted(&ds))
+			klog.Info("Tetragon DaemonSet is removed!")
+		}
+
+		return context.WithValue(ctx, state.InstallOpts, o), nil
+	}
+}
+
 func Install(opts ...Option) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 		o := processOpts(opts...)
@@ -169,6 +212,8 @@ func Install(opts ...Option) env.Func {
 		}
 
 		helmArgs.WriteString(" --install")
+
+		klog.InfoS("Installing Tetragon...", "namespace", o.Namespace, "daemonset", o.DaemonSetName)
 
 		helmOpts := []helm.Option{
 			helm.WithName(o.DaemonSetName),
