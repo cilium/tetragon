@@ -1777,7 +1777,7 @@ struct fdinstall_value {
 
 struct {
 	__uint(type, BPF_MAP_TYPE_LRU_HASH);
-	__uint(max_entries, 32000);
+	__uint(max_entries, 1); // will be resized by agent when needed
 	__type(key, struct fdinstall_key);
 	__type(value, struct fdinstall_value);
 } fdinstall_map SEC(".maps");
