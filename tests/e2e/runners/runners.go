@@ -38,6 +38,7 @@ type Runner struct {
 	setupCluster        SetupClusterFunc
 	installCilium       env.Func
 	installTetragon     env.Func
+	uninstallTetragon   env.Func
 	tetragonPortForward PortForwardFunc
 	hasCalledInit       bool
 	keepExportFiles     bool
@@ -65,6 +66,7 @@ var DefaultRunner = Runner{
 		"tetragon.exportAllowList":    "",
 		"tetragon.enablePolicyFilter": "true",
 	})),
+	uninstallTetragon: tetragon.Uninstall(tetragon.WithHelmOptions(map[string]string{})),
 	tetragonPortForward: func(testenv env.Environment) env.Func {
 		return helpers.PortForwardTetragonPods(testenv)
 	},
@@ -203,6 +205,10 @@ func (r *Runner) Init() *Runner {
 
 	if r.tetragonPortForward != nil {
 		r.Setup(r.tetragonPortForward(r.Environment))
+	}
+
+	if r.uninstallTetragon != nil {
+		r.Finish(r.uninstallTetragon)
 	}
 
 	return r
