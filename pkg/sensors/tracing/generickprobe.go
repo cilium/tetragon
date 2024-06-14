@@ -646,6 +646,10 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 		return idtable.UninitializedEntryID, err
 	}
 
+	if f == nil {
+		return errFn(errors.New("error adding kprobe, the kprobe spec is nil"))
+	}
+
 	config := &api.EventConfig{}
 	config.PolicyID = uint32(in.policyID)
 	if len(f.ReturnArgAction) > 0 {
