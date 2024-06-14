@@ -400,6 +400,9 @@ func createGenericTracepointSensor(
 		progs = append(progs, prog0)
 
 		fdinstall := program.MapBuilderPin("fdinstall_map", sensors.PathJoin(pinPath, "fdinstall_map"), prog0)
+		if selectorsHaveFDInstall(tp.Spec.Selectors) {
+			fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
+		}
 		maps = append(maps, fdinstall)
 
 		tailCalls := program.MapBuilderPin("tp_calls", sensors.PathJoin(pinPath, "tp_calls"), prog0)
