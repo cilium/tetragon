@@ -319,6 +319,10 @@ func createGenericTracepoint(
 	policyName string,
 	customHandler eventhandler.Handler,
 ) (*genericTracepoint, error) {
+	if conf == nil {
+		return nil, errors.New("failed creating generic tracepoint, conf is nil")
+	}
+
 	tp := tracepoint.Tracepoint{
 		Subsys: conf.Subsystem,
 		Event:  conf.Event,

@@ -655,6 +655,10 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn, selMaps
 
 	loadProgName, loadProgRetName := kernels.GenericKprobeObjs()
 
+	if f == nil {
+		return nil, errors.New("error ading kprobe, the kprobe spec is nil")
+	}
+
 	config := &api.EventConfig{}
 	config.PolicyID = uint32(in.policyID)
 	if len(f.ReturnArgAction) > 0 {
