@@ -785,13 +785,6 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 		config.Syscall = 0
 	}
 
-	hasStackTrace := false
-	for _, selector := range f.Selectors {
-		for _, matchAction := range selector.MatchActions {
-			hasStackTrace = matchAction.KernelStackTrace || matchAction.UserStackTrace
-		}
-	}
-
 	// create a new entry on the table, and pass its id to BPF-side
 	// so that we can do the matching at event-generation time
 	kprobeEntry := genericKprobe{
@@ -810,7 +803,7 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 		customHandler:     in.customHandler,
 		message:           msgField,
 		tags:              tagsField,
-		hasStackTrace:     hasStackTrace,
+		hasStackTrace:     selectorsHaveStackTrace(f.Selectors),
 		hasRatelimit:      selectorsHaveRateLimit(f.Selectors),
 	}
 
@@ -1310,6 +1303,17 @@ func selectorsHaveRateLimit(selectors []v1alpha1.KProbeSelector) bool {
 	for _, selector := range selectors {
 		for _, matchAction := range selector.MatchActions {
 			if len(matchAction.RateLimit) > 0 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func selectorsHaveStackTrace(selectors []v1alpha1.KProbeSelector) bool {
+	for _, selector := range selectors {
+		for _, matchAction := range selector.MatchActions {
+			if matchAction.KernelStackTrace || matchAction.UserStackTrace {
 				return true
 			}
 		}
