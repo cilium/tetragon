@@ -321,12 +321,10 @@ func etcdClientDebugLevel() zapcore.Level {
 
 // Hint tries to improve the error message displayed to te user.
 func Hint(err error) error {
-	switch err {
-	case context.DeadlineExceeded:
+	if errors.Is(err, context.DeadlineExceeded) {
 		return fmt.Errorf("etcd client timeout exceeded")
-	default:
-		return err
 	}
+	return err
 }
 
 type etcdClient struct {
@@ -994,7 +992,7 @@ func (e *etcdClient) determineEndpointStatus(ctx context.Context, endpointAddres
 func (e *etcdClient) statusChecker() {
 	ctx := context.Background()
 
-	consecutiveQuorumErrors := 0
+	var consecutiveQuorumErrors uint
 
 	statusTimer, statusTimerDone := inctimer.New()
 	defer statusTimerDone()
@@ -1039,7 +1037,7 @@ func (e *etcdClient) statusChecker() {
 
 		switch {
 		case consecutiveQuorumErrors > option.Config.KVstoreMaxConsecutiveQuorumErrors:
-			e.latestErrorStatus = fmt.Errorf("quorum check failed %d times in a row: %s",
+			e.latestErrorStatus = fmt.Errorf("quorum check failed %d times in a row: %w",
 				consecutiveQuorumErrors, quorumError)
 			e.latestStatusSnapshot = e.latestErrorStatus.Error()
 		case len(endpoints) > 0 && ok == 0:
