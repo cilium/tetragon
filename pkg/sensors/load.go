@@ -231,11 +231,11 @@ func (s *Sensor) loadMaps(bpfDir string) error {
 			return fmt.Errorf("map '%s' not found from '%s'", m.Name, m.Prog.Name)
 		}
 
-		if max, ok := m.Prog.MaxEntriesMap[mapSpec.Name]; ok {
+		if max, ok := m.GetMaxEntries(); ok {
 			mapSpec.MaxEntries = max
 		}
 
-		if innerMax, ok := m.Prog.MaxEntriesInnerMap[mapSpec.Name]; ok {
+		if innerMax, ok := m.GetMaxInnerEntries(); ok {
 			if innerMs := mapSpec.InnerMap; innerMs != nil {
 				mapSpec.InnerMap.MaxEntries = innerMax
 			}

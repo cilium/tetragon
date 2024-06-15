@@ -746,11 +746,16 @@ func doLoadProgram(
 	}
 
 	for _, ms := range spec.Maps {
-		if max, ok := load.MaxEntriesMap[ms.Name]; ok {
+		m, ok := load.PinMap[ms.Name]
+		if !ok {
+			continue
+		}
+
+		if max, ok := m.GetMaxEntries(); ok {
 			ms.MaxEntries = max
 		}
 
-		if innerMax, ok := load.MaxEntriesInnerMap[ms.Name]; ok {
+		if innerMax, ok := m.GetMaxInnerEntries(); ok {
 			if ms.InnerMap == nil {
 				return nil, fmt.Errorf("no inner map for %s", ms.Name)
 			}
