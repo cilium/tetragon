@@ -29,26 +29,33 @@ type Map struct {
 	InnerEntries MaxEntries
 }
 
-func mapBuilder(name, pin string, ld *Program) *Map {
-	m := &Map{name, pin, ld, Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}}
-	ld.PinMap[name] = m
-	return m
-}
-
-func MapBuilder(name string, ld *Program) *Map {
-	return mapBuilder(name, name, ld)
-}
-
-func MapBuilderPinManyProgs(name, pin string, lds ...*Program) *Map {
-	m := mapBuilder(name, pin, lds[0])
-	for _, ld := range lds[1:] {
+// Map holds pointer to Program object as a source of its ebpf object
+// file. We assume all the programs sharing the map have same map
+// definition, so it's ok to use the first program if there's more.
+//
+//	m.prog -> lds[0]
+//
+// Every program has PinMap map that links map name woth the map object,
+// so the loader has all program's map object available.
+//
+//	p.PinMap["map1"] = &map1
+//	p.PinMap["map2"] = &map2
+//	...
+//	p.PinMap["mapX"] = &mapX
+func mapBuilder(name, pin string, lds ...*Program) *Map {
+	m := &Map{name, pin, lds[0], Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}}
+	for _, ld := range lds {
 		ld.PinMap[name] = m
 	}
 	return m
 }
 
-func MapBuilderPin(name, pin string, ld *Program) *Map {
-	return mapBuilder(name, pin, ld)
+func MapBuilder(name string, lds ...*Program) *Map {
+	return mapBuilder(name, name, lds...)
+}
+
+func MapBuilderPin(name, pin string, lds ...*Program) *Map {
+	return mapBuilder(name, pin, lds...)
 }
 
 func (m *Map) Unload() error {

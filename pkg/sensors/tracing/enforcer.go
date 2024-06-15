@@ -51,7 +51,7 @@ func init() {
 }
 
 func enforcerMap(policyName string, load ...*program.Program) *program.Map {
-	return program.MapBuilderPinManyProgs(enforcerDataMapName,
+	return program.MapBuilderPin(enforcerDataMapName,
 		fmt.Sprintf("%s_%s", enforcerDataMapName, policyName), load...)
 }
 
