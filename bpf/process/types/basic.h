@@ -2108,7 +2108,7 @@ struct {
 	__uint(value_size, sizeof(__u64) * PERF_MAX_STACK_DEPTH);
 } stack_trace_map SEC(".maps");
 
-#if defined GENERIC_TRACEPOINT || defined GENERIC_KPROBE
+#if defined GENERIC_TRACEPOINT || defined GENERIC_KPROBE || defined GENERIC_LSM
 FUNC_INLINE void do_action_notify_enforcer(int error, int signal)
 {
 	do_enforcer_action(error, signal);

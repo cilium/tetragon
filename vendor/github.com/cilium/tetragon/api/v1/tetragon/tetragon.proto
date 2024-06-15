@@ -532,6 +532,23 @@ message ProcessUprobe {
     repeated string tags = 8;
 }
 
+message ProcessLsm {
+    Process process = 1;
+    Process parent = 2;
+    // LSM hook name.
+    string function_name = 3;
+    // Name of the policy that created that LSM hook.
+    string policy_name = 5;
+    // Short message of the Tracing Policy to inform users what is going on.
+    string message = 6;
+    // Arguments definition of the observed LSM hook.
+    repeated KprobeArgument args = 7;
+    // Action performed when the LSM hook matched.
+    KprobeAction action = 8;
+    // Tags of the Tracing Policy to categorize the event.
+    repeated string tags = 9;
+}
+
 message KernelModule {
 	// Kernel module name
 	string name = 1;

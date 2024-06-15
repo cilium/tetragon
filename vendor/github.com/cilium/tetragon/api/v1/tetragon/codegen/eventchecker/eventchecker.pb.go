@@ -274,6 +274,8 @@ func CheckerFromEvent(event Event) (EventChecker, error) {
 		return NewProcessTracepointChecker("").FromProcessTracepoint(ev), nil
 	case *tetragon.ProcessUprobe:
 		return NewProcessUprobeChecker("").FromProcessUprobe(ev), nil
+	case *tetragon.ProcessLsm:
+		return NewProcessLsmChecker("").FromProcessLsm(ev), nil
 	case *tetragon.Test:
 		return NewTestChecker("").FromTest(ev), nil
 	case *tetragon.ProcessLoader:
@@ -336,6 +338,8 @@ func EventFromResponse(response *tetragon.GetEventsResponse) (Event, error) {
 		return ev.ProcessTracepoint, nil
 	case *tetragon.GetEventsResponse_ProcessUprobe:
 		return ev.ProcessUprobe, nil
+	case *tetragon.GetEventsResponse_ProcessLsm:
+		return ev.ProcessLsm, nil
 	case *tetragon.GetEventsResponse_Test:
 		return ev.Test, nil
 	case *tetragon.GetEventsResponse_ProcessLoader:
@@ -1648,6 +1652,197 @@ func (checker *ProcessUprobeChecker) FromProcessUprobe(event *tetragon.ProcessUp
 			WithValues(checks...)
 		checker.Args = lm
 	}
+	{
+		var checks []*stringmatcher.StringMatcher
+		for _, check := range event.Tags {
+			var convertedCheck *stringmatcher.StringMatcher
+			convertedCheck = stringmatcher.Full(check)
+			checks = append(checks, convertedCheck)
+		}
+		lm := NewStringListMatcher().WithOperator(listmatcher.Ordered).
+			WithValues(checks...)
+		checker.Tags = lm
+	}
+	return checker
+}
+
+// ProcessLsmChecker implements a checker struct to check a ProcessLsm event
+type ProcessLsmChecker struct {
+	CheckerName  string                       `json:"checkerName"`
+	Process      *ProcessChecker              `json:"process,omitempty"`
+	Parent       *ProcessChecker              `json:"parent,omitempty"`
+	FunctionName *stringmatcher.StringMatcher `json:"functionName,omitempty"`
+	PolicyName   *stringmatcher.StringMatcher `json:"policyName,omitempty"`
+	Message      *stringmatcher.StringMatcher `json:"message,omitempty"`
+	Args         *KprobeArgumentListMatcher   `json:"args,omitempty"`
+	Action       *KprobeActionChecker         `json:"action,omitempty"`
+	Tags         *StringListMatcher           `json:"tags,omitempty"`
+}
+
+// CheckEvent checks a single event and implements the EventChecker interface
+func (checker *ProcessLsmChecker) CheckEvent(event Event) error {
+	if ev, ok := event.(*tetragon.ProcessLsm); ok {
+		return checker.Check(ev)
+	}
+	return fmt.Errorf("%s: %T is not a ProcessLsm event", CheckerLogPrefix(checker), event)
+}
+
+// CheckResponse checks a single gRPC response and implements the EventChecker interface
+func (checker *ProcessLsmChecker) CheckResponse(response *tetragon.GetEventsResponse) error {
+	event, err := EventFromResponse(response)
+	if err != nil {
+		return err
+	}
+	return checker.CheckEvent(event)
+}
+
+// NewProcessLsmChecker creates a new ProcessLsmChecker
+func NewProcessLsmChecker(name string) *ProcessLsmChecker {
+	return &ProcessLsmChecker{CheckerName: name}
+}
+
+// Get the name associated with the checker
+func (checker *ProcessLsmChecker) GetCheckerName() string {
+	return checker.CheckerName
+}
+
+// Get the type of the checker as a string
+func (checker *ProcessLsmChecker) GetCheckerType() string {
+	return "ProcessLsmChecker"
+}
+
+// Check checks a ProcessLsm event
+func (checker *ProcessLsmChecker) Check(event *tetragon.ProcessLsm) error {
+	if event == nil {
+		return fmt.Errorf("%s: ProcessLsm event is nil", CheckerLogPrefix(checker))
+	}
+
+	fieldChecks := func() error {
+		if checker.Process != nil {
+			if err := checker.Process.Check(event.Process); err != nil {
+				return fmt.Errorf("Process check failed: %w", err)
+			}
+		}
+		if checker.Parent != nil {
+			if err := checker.Parent.Check(event.Parent); err != nil {
+				return fmt.Errorf("Parent check failed: %w", err)
+			}
+		}
+		if checker.FunctionName != nil {
+			if err := checker.FunctionName.Match(event.FunctionName); err != nil {
+				return fmt.Errorf("FunctionName check failed: %w", err)
+			}
+		}
+		if checker.PolicyName != nil {
+			if err := checker.PolicyName.Match(event.PolicyName); err != nil {
+				return fmt.Errorf("PolicyName check failed: %w", err)
+			}
+		}
+		if checker.Message != nil {
+			if err := checker.Message.Match(event.Message); err != nil {
+				return fmt.Errorf("Message check failed: %w", err)
+			}
+		}
+		if checker.Args != nil {
+			if err := checker.Args.Check(event.Args); err != nil {
+				return fmt.Errorf("Args check failed: %w", err)
+			}
+		}
+		if checker.Action != nil {
+			if err := checker.Action.Check(&event.Action); err != nil {
+				return fmt.Errorf("Action check failed: %w", err)
+			}
+		}
+		if checker.Tags != nil {
+			if err := checker.Tags.Check(event.Tags); err != nil {
+				return fmt.Errorf("Tags check failed: %w", err)
+			}
+		}
+		return nil
+	}
+	if err := fieldChecks(); err != nil {
+		return fmt.Errorf("%s: %w", CheckerLogPrefix(checker), err)
+	}
+	return nil
+}
+
+// WithProcess adds a Process check to the ProcessLsmChecker
+func (checker *ProcessLsmChecker) WithProcess(check *ProcessChecker) *ProcessLsmChecker {
+	checker.Process = check
+	return checker
+}
+
+// WithParent adds a Parent check to the ProcessLsmChecker
+func (checker *ProcessLsmChecker) WithParent(check *ProcessChecker) *ProcessLsmChecker {
+	checker.Parent = check
+	return checker
+}
+
+// WithFunctionName adds a FunctionName check to the ProcessLsmChecker
+func (checker *ProcessLsmChecker) WithFunctionName(check *stringmatcher.StringMatcher) *ProcessLsmChecker {
+	checker.FunctionName = check
+	return checker
+}
+
+// WithPolicyName adds a PolicyName check to the ProcessLsmChecker
+func (checker *ProcessLsmChecker) WithPolicyName(check *stringmatcher.StringMatcher) *ProcessLsmChecker {
+	checker.PolicyName = check
+	return checker
+}
+
+// WithMessage adds a Message check to the ProcessLsmChecker
+func (checker *ProcessLsmChecker) WithMessage(check *stringmatcher.StringMatcher) *ProcessLsmChecker {
+	checker.Message = check
+	return checker
+}
+
+// WithArgs adds a Args check to the ProcessLsmChecker
+func (checker *ProcessLsmChecker) WithArgs(check *KprobeArgumentListMatcher) *ProcessLsmChecker {
+	checker.Args = check
+	return checker
+}
+
+// WithAction adds a Action check to the ProcessLsmChecker
+func (checker *ProcessLsmChecker) WithAction(check tetragon.KprobeAction) *ProcessLsmChecker {
+	wrappedCheck := KprobeActionChecker(check)
+	checker.Action = &wrappedCheck
+	return checker
+}
+
+// WithTags adds a Tags check to the ProcessLsmChecker
+func (checker *ProcessLsmChecker) WithTags(check *StringListMatcher) *ProcessLsmChecker {
+	checker.Tags = check
+	return checker
+}
+
+//FromProcessLsm populates the ProcessLsmChecker using data from a ProcessLsm event
+func (checker *ProcessLsmChecker) FromProcessLsm(event *tetragon.ProcessLsm) *ProcessLsmChecker {
+	if event == nil {
+		return checker
+	}
+	if event.Process != nil {
+		checker.Process = NewProcessChecker().FromProcess(event.Process)
+	}
+	if event.Parent != nil {
+		checker.Parent = NewProcessChecker().FromProcess(event.Parent)
+	}
+	checker.FunctionName = stringmatcher.Full(event.FunctionName)
+	checker.PolicyName = stringmatcher.Full(event.PolicyName)
+	checker.Message = stringmatcher.Full(event.Message)
+	{
+		var checks []*KprobeArgumentChecker
+		for _, check := range event.Args {
+			var convertedCheck *KprobeArgumentChecker
+			if check != nil {
+				convertedCheck = NewKprobeArgumentChecker().FromKprobeArgument(check)
+			}
+			checks = append(checks, convertedCheck)
+		}
+		lm := NewKprobeArgumentListMatcher().WithOperator(listmatcher.Ordered).
+			WithValues(checks...)
+		checker.Args = lm
+	}
+	checker.Action = NewKprobeActionChecker(event.Action)
 	{
 		var checks []*stringmatcher.StringMatcher
 		for _, check := range event.Tags {

@@ -78,6 +78,11 @@ for obj in "$TETRAGONDIR"/*.o; do
 		continue
 	fi
 
+	# Skip if LSM BPF is not enabled
+	if [[ "$B" == bpf_generic_lsm* && $(cat /boot/config-$(uname -r) | grep CONFIG_BPF_LSM) != "CONFIG_BPF_LSM=y" ]]; then
+		continue
+	fi
+
 	echo -e -n "Verifying $BLUEUNDER$obj$NOCOLOR... "
 	OUT="/tmp/tetragon-verify-$B"
 
@@ -85,7 +90,20 @@ for obj in "$TETRAGONDIR"/*.o; do
 	[ "$DEBUG" -eq 1 ] && FLAGS="-d"
 	bpftool help 2>&1 | grep -q -- "--legacy" && FLAGS="$FLAGS --legacy"
 
-	bpftool $FLAGS prog loadall "$obj" "$PINDIR" &> "$OUT"
+	# Rename sections to pass verifier
+	if [[ "$B" == bpf_generic_lsm* ]]; then
+		llvm-objcopy --rename-section lsm/generic_lsm=lsm/file_open \
+			--rename-section lsm/0=lsm/file_open \
+			--rename-section lsm/1=lsm/file_open \
+			--rename-section lsm/2=lsm/file_open \
+			--rename-section lsm/3=lsm/file_open \
+			--rename-section lsm/4=lsm/file_open \
+			--rename-section lsm/5=lsm/file_open \
+			"$obj" "${obj}.fixup"
+		obj="${obj}.fixup"
+	fi
+
+	sudo bpftool $FLAGS prog loadall "$obj" "$PINDIR" &> "$OUT"
 	if [ $? -ne 0 ]; then
 		echo -e "${RED}Failed!${NOCOLOR}"
 		awk '/^func/ { in_func=1 } /^;/ { if (in_func) { print $0; print "..."; exit } }' < "$OUT"

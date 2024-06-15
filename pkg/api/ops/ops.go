@@ -23,6 +23,7 @@ const (
 	MSG_OP_GENERIC_KPROBE     = 13
 	MSG_OP_GENERIC_TRACEPOINT = 14
 	MSG_OP_GENERIC_UPROBE     = 15
+	MSG_OP_GENERIC_LSM        = 16
 
 	// MSG_OP_CLONE notifies user-space that a clone() event has occurred.
 	MSG_OP_CLONE = 23
