@@ -77,10 +77,7 @@ var (
 	StatsMap           = program.MapBuilder("tg_stats_map", Execve)
 
 	/* Cgroup rate data, attached to execve sensor */
-	CgroupRateMapExec    = program.MapBuilder("cgroup_rate_map", Execve)
-	CgroupRateMapExit    = program.MapBuilder("cgroup_rate_map", Exit)
-	CgroupRateMapFork    = program.MapBuilder("cgroup_rate_map", Fork)
-	CgroupRateMapCgroup  = program.MapBuilder("cgroup_rate_map", CgroupRmdir)
+	CgroupRateMap        = program.MapBuilder("cgroup_rate_map", Execve, Exit, Fork, CgroupRmdir)
 	CgroupRateOptionsMap = program.MapBuilder("cgroup_rate_options_map", Execve)
 
 	sensor = sensors.Sensor{
@@ -151,7 +148,7 @@ func GetDefaultMaps(cgroupRate bool) []*program.Map {
 		StatsMap,
 	}
 	if cgroupRate {
-		maps = append(maps, CgroupRateMapExec, CgroupRateOptionsMap)
+		maps = append(maps, CgroupRateMap, CgroupRateOptionsMap)
 	}
 	return maps
 
@@ -193,8 +190,5 @@ func ConfigCgroupRate(opts *option.CgroupRate) {
 		return
 	}
 
-	CgroupRateMapExec.SetMaxEntries(cgroupRateMaxEntries)
-	CgroupRateMapExit.SetMaxEntries(cgroupRateMaxEntries)
-	CgroupRateMapFork.SetMaxEntries(cgroupRateMaxEntries)
-	CgroupRateMapCgroup.SetMaxEntries(cgroupRateMaxEntries)
+	CgroupRateMap.SetMaxEntries(cgroupRateMaxEntries)
 }
