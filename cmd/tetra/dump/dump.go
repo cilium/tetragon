@@ -128,3 +128,28 @@ func PolicyfilterState(fname string) {
 		fmt.Printf("%d: %s\n", polId, strings.Join(ids, ","))
 	}
 }
+
+func NamespaceState(fname string) error {
+	m, err := ebpf.LoadPinnedMap(fname, &ebpf.LoadPinOptions{
+		ReadOnly: true,
+	})
+	if err != nil {
+		logger.GetLogger().WithError(err).WithField("file", fname).Warn("Could not open process tree map")
+		return err
+	}
+
+	defer m.Close()
+
+	var (
+		key uint64
+		val uint64
+	)
+
+	fmt.Printf("cgroupId: stableId\n")
+	iter := m.Iterate()
+	for iter.Next(&key, &val) {
+		fmt.Printf("%d: %d\n", key, val)
+	}
+
+	return nil
+}
