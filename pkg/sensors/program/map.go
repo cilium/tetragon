@@ -13,17 +13,24 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type MaxEntries struct {
+	Val uint32
+	Set bool
+}
+
 // Map represents BPF maps.
 type Map struct {
-	Name      string
-	PinName   string
-	Prog      *Program
-	PinState  State
-	MapHandle *ebpf.Map
+	Name         string
+	PinName      string
+	Prog         *Program
+	PinState     State
+	MapHandle    *ebpf.Map
+	Entries      MaxEntries
+	InnerEntries MaxEntries
 }
 
 func mapBuilder(name, pin string, ld *Program) *Map {
-	m := &Map{name, pin, ld, Idle(), nil}
+	m := &Map{name, pin, ld, Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}}
 	ld.PinMap[name] = m
 	return m
 }
@@ -185,9 +192,17 @@ func LoadOrCreatePinnedMap(pinPath string, mapSpec *ebpf.MapSpec) (*ebpf.Map, er
 }
 
 func (m *Map) SetMaxEntries(max int) {
-	m.Prog.MaxEntriesMap[m.Name] = uint32(max)
+	m.Entries = MaxEntries{uint32(max), true}
 }
 
 func (m *Map) SetInnerMaxEntries(max int) {
-	m.Prog.MaxEntriesInnerMap[m.Name] = uint32(max)
+	m.InnerEntries = MaxEntries{uint32(max), true}
+}
+
+func (m *Map) GetMaxEntries() (uint32, bool) {
+	return m.Entries.Val, m.Entries.Set
+}
+
+func (m *Map) GetMaxInnerEntries() (uint32, bool) {
+	return m.InnerEntries.Val, m.InnerEntries.Set
 }
