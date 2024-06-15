@@ -22,20 +22,26 @@ type Map struct {
 	MapHandle *ebpf.Map
 }
 
+func mapBuilder(name, pin string, ld *Program) *Map {
+	m := &Map{name, pin, ld, Idle(), nil}
+	ld.PinMap[name] = m
+	return m
+}
+
 func MapBuilder(name string, ld *Program) *Map {
-	return &Map{name, name, ld, Idle(), nil}
+	return mapBuilder(name, name, ld)
 }
 
 func MapBuilderPinManyProgs(name, pin string, lds ...*Program) *Map {
-	for _, ld := range lds {
-		ld.PinMap[name] = pin
+	m := mapBuilder(name, pin, lds[0])
+	for _, ld := range lds[1:] {
+		ld.PinMap[name] = m
 	}
-	return &Map{name, pin, lds[0], Idle(), nil}
+	return m
 }
 
 func MapBuilderPin(name, pin string, ld *Program) *Map {
-	ld.PinMap[name] = pin
-	return &Map{name, pin, ld, Idle(), nil}
+	return mapBuilder(name, pin, ld)
 }
 
 func (m *Map) Unload() error {

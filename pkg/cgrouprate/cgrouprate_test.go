@@ -225,7 +225,8 @@ func TestProcessCgroup(t *testing.T) {
 		MaxEntries: 32768,
 	}
 
-	hash := program.MapBuilder("hash", nil)
+	load := program.Builder("", "", "", "", "")
+	hash := program.MapBuilder("hash", load)
 	err := hash.New(spec)
 	if err != nil {
 		t.Fatal(err)

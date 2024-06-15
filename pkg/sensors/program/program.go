@@ -27,7 +27,7 @@ func Builder(
 		LoaderData:         struct{}{},
 		MapLoad:            nil,
 		unloader:           nil,
-		PinMap:             make(map[string]string),
+		PinMap:             make(map[string]*Map),
 		MaxEntriesMap:      make(map[string]uint32),
 		MaxEntriesInnerMap: make(map[string]uint32),
 	}
@@ -105,7 +105,7 @@ type Program struct {
 	unloader         unloader.Unloader
 	unloaderOverride unloader.Unloader
 
-	PinMap map[string]string
+	PinMap map[string]*Map
 
 	// available when program.KeepCollection is true
 	LC *LoadedCollection
