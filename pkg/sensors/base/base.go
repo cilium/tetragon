@@ -7,11 +7,11 @@ import (
 	"log"
 	"sync"
 
-	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/ksyms"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/exec/config"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
 
@@ -21,7 +21,7 @@ const (
 
 var (
 	Execve = program.Builder(
-		ExecObj(),
+		config.ExecObj(),
 		"sched/sched_process_exec",
 		"tracepoint/sys_execve",
 		"event_execve",
@@ -171,18 +171,6 @@ func GetInitialSensorTest() *sensors.Sensor {
 		sensorTest.Maps = GetDefaultMaps(true)
 	})
 	return &sensorTest
-}
-
-// ExecObj returns the exec object based on the kernel version
-func ExecObj() string {
-	if kernels.EnableV61Progs() {
-		return "bpf_execve_event_v61.o"
-	} else if kernels.MinKernelVersion("5.11") {
-		return "bpf_execve_event_v511.o"
-	} else if kernels.EnableLargeProgs() {
-		return "bpf_execve_event_v53.o"
-	}
-	return "bpf_execve_event.o"
 }
 
 func ConfigCgroupRate(opts *option.CgroupRate) {
