@@ -13,6 +13,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/base"
+	"github.com/cilium/tetragon/pkg/sensors/exec/config"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/sirupsen/logrus"
 )
@@ -42,7 +43,7 @@ var (
 
 // confmapSpec returns the spec for the configuration map
 func confmapSpec() (*ebpf.MapSpec, error) {
-	objName := base.ExecObj()
+	objName := config.ExecObj()
 	objPath := path.Join(option.Config.HubbleLib, objName)
 	spec, err := ebpf.LoadCollectionSpec(objPath)
 	if err != nil {
