@@ -221,13 +221,13 @@ func (s *Sensor) FindPrograms() error {
 func (s *Sensor) setMapPinPath(m *program.Map) {
 	switch m.Type {
 	case program.MapTypeGlobal:
-		m.PinPath = filepath.Join(m.PinName)
+		m.PinPath = filepath.Join(m.Name)
 	case program.MapTypePolicy:
-		m.PinPath = filepath.Join(s.Policy, m.PinName)
+		m.PinPath = filepath.Join(s.Policy, m.Name)
 	case program.MapTypeSensor:
-		m.PinPath = filepath.Join(s.Policy, s.Name, m.PinName)
+		m.PinPath = filepath.Join(s.Policy, s.Name, m.Name)
 	case program.MapTypeProgram:
-		m.PinPath = filepath.Join(s.Policy, s.Name, m.Prog.PinName, m.PinName)
+		m.PinPath = filepath.Join(s.Policy, s.Name, m.Prog.PinName, m.Name)
 	}
 }
 
