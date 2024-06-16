@@ -209,6 +209,10 @@ func (s *Sensor) FindPrograms() error {
 	return nil
 }
 
+func (s *Sensor) setMapPinPath(m *program.Map) {
+	m.PinPath = m.PinName
+}
+
 // loadMaps loads all the BPF maps in the sensor.
 func (s *Sensor) loadMaps(bpfDir string) error {
 	l := logger.GetLogger()
@@ -222,7 +226,8 @@ func (s *Sensor) loadMaps(bpfDir string) error {
 			continue
 		}
 
-		pinPath := filepath.Join(bpfDir, m.PinName)
+		s.setMapPinPath(m)
+		pinPath := filepath.Join(bpfDir, m.PinPath)
 
 		spec, err := ebpf.LoadCollectionSpec(m.Prog.Name)
 		if err != nil {
