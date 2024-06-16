@@ -23,6 +23,7 @@ type MaxEntries struct {
 type Map struct {
 	Name         string
 	PinName      string
+	PinPath      string
 	Prog         *Program
 	PinState     State
 	MapHandle    *ebpf.Map
@@ -44,7 +45,7 @@ type Map struct {
 //	...
 //	p.PinMap["mapX"] = &mapX
 func mapBuilder(name, pin string, lds ...*Program) *Map {
-	m := &Map{name, pin, lds[0], Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}}
+	m := &Map{name, pin, "", lds[0], Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}}
 	for _, ld := range lds {
 		ld.PinMap[name] = m
 	}
