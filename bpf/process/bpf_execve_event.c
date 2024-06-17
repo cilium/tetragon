@@ -214,7 +214,6 @@ event_execve(struct trace_event_raw_sched_process_exec *ctx)
 	p->ktime = ktime_get_ns();
 	p->size = offsetof(struct msg_process, args);
 	p->auid = get_auid();
-	p->uid = get_current_uid_gid();
 	read_execve_shared_info(ctx, p, pid);
 
 	p->size += read_path(ctx, event, filename);
@@ -228,6 +227,13 @@ event_execve(struct trace_event_raw_sched_process_exec *ctx)
 	BPF_CORE_READ_INTO(&event->kube.net_ns, task, nsproxy, net_ns, ns.inum);
 
 	get_current_subj_creds(&event->creds, task);
+	/**
+	 * Instead of showing the task owner, we want to display the effective
+	 * uid that is used to calculate the privileges of current task when
+	 * acting upon other objects. This allows to be compatible with the 'ps'
+	 * tool that reports snapshot of current processes.
+	 */
+	p->uid = event->creds.euid;
 	get_namespaces(&event->ns, task);
 	p->flags |= __event_get_cgroup_info(task, &event->kube);
 
