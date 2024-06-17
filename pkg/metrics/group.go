@@ -1,0 +1,171 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright Authors of Tetragon
+
+package metrics
+
+import (
+	"errors"
+
+	"github.com/prometheus/client_golang/prometheus"
+)
+
+// CollectorWithInit extends prometheus.Collector with methods for metrics
+// initialization and checking constraints.
+type CollectorWithInit interface {
+	prometheus.Collector
+	IsConstrained() bool
+	Init()
+	InitForDocs()
+}
+
+// Group extends prometheus.Registerer with methods for metrics
+// initialization and checking constraints. It also includes
+// prometheus.Collector, because MetricsGroups are intended to be registered in
+// a root prometheus.Registry.
+type Group interface {
+	prometheus.Collector
+	prometheus.Registerer
+	RegisterWithInit(CollectorWithInit) error
+	MustRegisterWithInit(CollectorWithInit)
+	ExtendInit(func())
+	ExtendInitForDocs(func())
+	IsConstrained() bool
+	Init()
+	InitForDocs()
+}
+
+// metricsGroup wraps prometheus.Registry and implements Group
+type metricsGroup struct {
+	registry *prometheus.Registry
+	// If constrained is true, group will only accept metrics with constrained
+	// cardinality - but this is checked only for metrics registered with
+	// (Must)RegisterWithInit.
+	constrained     bool
+	initFunc        func()
+	initForDocsFunc func()
+}
+
+// NewMetricsGroup creates a new Group.
+func NewMetricsGroup(constrained bool) Group {
+	return &metricsGroup{
+		registry:        prometheus.NewPedanticRegistry(),
+		constrained:     constrained,
+		initFunc:        func() {},
+		initForDocsFunc: func() {},
+	}
+}
+
+// Describe implements Group (prometheus.Collector).
+func (r *metricsGroup) Describe(ch chan<- *prometheus.Desc) {
+	r.registry.Describe(ch)
+}
+
+// Collect implements Group (prometheus.Collector).
+func (r *metricsGroup) Collect(ch chan<- prometheus.Metric) {
+	r.registry.Collect(ch)
+}
+
+// Register implements Group (prometheus.Registerer).
+func (r *metricsGroup) Register(c prometheus.Collector) error {
+	return r.registry.Register(c)
+}
+
+// MustRegister implements Group (prometheus.Registerer).
+func (r *metricsGroup) MustRegister(cs ...prometheus.Collector) {
+	r.registry.MustRegister(cs...)
+}
+
+// Unregister implements Group (prometheus.Registerer).
+func (r *metricsGroup) Unregister(c prometheus.Collector) bool {
+	return r.registry.Unregister(c)
+}
+
+// IsConstrained implements Group.
+func (r *metricsGroup) IsConstrained() bool {
+	return r.constrained
+}
+
+// RegisterWithInit implements Group. It wraps Register method and
+// additionally:
+//   - checks constraints - attempt to register an unconstrained collector in
+//     a constrained group results in an error
+//   - extends Init and InitForDocs methods with initialization of the
+//     registered collector
+func (r *metricsGroup) RegisterWithInit(c CollectorWithInit) error {
+	// check constraints
+	if r.IsConstrained() && !c.IsConstrained() {
+		return errors.New("can't register unconstrained metrics in a constrained group")
+	}
+
+	// register
+	err := r.Register(c)
+	if err != nil {
+		return err
+	}
+
+	// extend init
+	r.ExtendInit(c.Init)
+	r.ExtendInitForDocs(c.InitForDocs)
+	return nil
+}
+
+// MustRegisterWithInit implements Group.
+func (r *metricsGroup) MustRegisterWithInit(c CollectorWithInit) {
+	err := r.RegisterWithInit(c)
+	if err != nil {
+		panic(err)
+	}
+}
+
+// Init implements Group.
+func (r *metricsGroup) Init() {
+	if r.initFunc != nil {
+		r.initFunc()
+	}
+}
+
+// InitForDocs implements Group.
+func (r *metricsGroup) InitForDocs() {
+	if r.initForDocsFunc != nil {
+		r.initForDocsFunc()
+	}
+}
+
+// ExtendInit extends the metricsGroup Init and InitForDocs methods.
+//
+// For metrics implementing CollectorWithInit, initialization function should
+// be passed when defining the metric, so this method shouldn't be called
+// explicitly. However, when adding existing metrics (not implementing
+// CollectorWithInit) into a metrics group, it's helpful to extend the group's
+// initialization function separately.
+func (r *metricsGroup) ExtendInit(init func()) {
+	if init != nil {
+		if r.initFunc == nil {
+			r.initFunc = init
+		} else {
+			oldInit := r.initFunc
+			r.initFunc = func() {
+				oldInit()
+				init()
+			}
+		}
+	}
+	r.ExtendInitForDocs(init)
+}
+
+// ExtendInit extends the metricsGroup InitForDocs method.
+//
+// See ExtendInit for usage notes.
+func (r *metricsGroup) ExtendInitForDocs(init func()) {
+	if init != nil {
+		if r.initForDocsFunc == nil {
+			r.initForDocsFunc = init
+		} else {
+			oldInit := r.initForDocsFunc
+			r.initForDocsFunc = func() {
+				oldInit()
+				init()
+			}
+		}
+	}
+}
