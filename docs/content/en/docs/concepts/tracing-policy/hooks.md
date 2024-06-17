@@ -372,7 +372,7 @@ and the process' PID and TGID; and to use that mapping when it sees the socket i
 `sock` argument in another hook to replace the PID and TGID of the context with the
 process that actually owns the socket. This can be done by adding a `returnArgAction`
 to the call. Available actions are `TrackSock` and `UntrackSock`.
-See [`TrackSock`](#tracksock-action) and [`UntrackSock`](#untracksock-action).
+See [`TrackSock`](/docs/concepts/tracing-policy/selectors/#tracksock-action) and [`UntrackSock`](/docs/concepts/tracing-policy/selectors/#untracksock-action).
 
 ```yaml
 - call: "sk_alloc"
