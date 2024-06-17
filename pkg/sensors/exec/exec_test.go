@@ -1148,10 +1148,10 @@ func TestExecProcessCredentialsSetgidChanges(t *testing.T) {
 	setgidNonRootCreds := ec.NewProcessCredentialsChecker().
 		WithUid(0).WithEuid(uint32(gid)).WithSuid(uint32(gid)).WithFsuid(uint32(gid)).
 		WithGid(0).WithEgid(uint32(gid)).WithSgid(uint32(gid)).WithFsgid(uint32(gid))
-	procExecSetgidNoRootChecker := ec.NewProcessChecker().WithUid(uint32(0)).
+	procExecSetgidNoRootChecker := ec.NewProcessChecker().WithUid(uint32(gid)).
 		WithBinary(sm.Full(testSuid)).WithProcessCredentials(setgidNonRootCreds).WithBinaryProperties(bpSetgidNoRoot)
 	execSetgidNoRootChecker := ec.NewProcessExecChecker("exec").WithProcess(procExecSetgidNoRootChecker)
-	procExitSetgidNoRootChecker := ec.NewProcessChecker().WithUid(uint32(0)).
+	procExitSetgidNoRootChecker := ec.NewProcessChecker().WithUid(uint32(gid)).
 		WithBinary(sm.Full(testSuid)).WithProcessCredentials(setgidNonRootCreds).WithBinaryProperties(nil)
 	exitSetgidNoRootChecker := ec.NewProcessExitChecker("exit").WithProcess(procExitSetgidNoRootChecker)
 
@@ -1222,10 +1222,10 @@ func TestExecProcessCredentialsSetuidChanges(t *testing.T) {
 	setuidNonRootCreds := ec.NewProcessCredentialsChecker().
 		WithUid(0).WithEuid(uint32(gid)).WithSuid(uint32(gid)).WithFsuid(uint32(gid)).
 		WithGid(0).WithEgid(uint32(gid)).WithSgid(uint32(gid)).WithFsgid(uint32(gid))
-	procExecSetuidNoRootChecker := ec.NewProcessChecker().WithUid(uint32(0)).
+	procExecSetuidNoRootChecker := ec.NewProcessChecker().WithUid(uint32(gid)).
 		WithBinary(sm.Full(testSuid)).WithProcessCredentials(setuidNonRootCreds).WithBinaryProperties(bpSetuidNoRoot)
 	execSetuidNoRootChecker := ec.NewProcessExecChecker("exec").WithProcess(procExecSetuidNoRootChecker)
-	procExitSetuidNoRootChecker := ec.NewProcessChecker().WithUid(uint32(0)).
+	procExitSetuidNoRootChecker := ec.NewProcessChecker().WithUid(uint32(gid)).
 		WithBinary(sm.Full(testSuid)).WithProcessCredentials(setuidNonRootCreds).WithBinaryProperties(nil)
 	exitSetuidNoRootChecker := ec.NewProcessExitChecker("exit").WithProcess(procExitSetuidNoRootChecker)
 
@@ -1240,10 +1240,10 @@ func TestExecProcessCredentialsSetuidChanges(t *testing.T) {
 	setuidRootCreds := ec.NewProcessCredentialsChecker().
 		WithUid(uint32(gid)).WithEuid(0).WithSuid(0).WithFsuid(0).
 		WithGid(uint32(gid)).WithEgid(uint32(gid)).WithSgid(uint32(gid)).WithFsgid(uint32(gid))
-	procExecSetuidRootChecker := ec.NewProcessChecker().WithUid(uint32(gid)).
+	procExecSetuidRootChecker := ec.NewProcessChecker().WithUid(uint32(0)).
 		WithBinary(sm.Full(testSu)).WithProcessCredentials(setuidRootCreds).WithBinaryProperties(bpSetuidRoot)
 	execSetuidRootChecker := ec.NewProcessExecChecker("exec").WithProcess(procExecSetuidRootChecker)
-	procExitSetuidRootChecker := ec.NewProcessChecker().WithUid(uint32(gid)).
+	procExitSetuidRootChecker := ec.NewProcessChecker().WithUid(uint32(0)).
 		WithBinary(sm.Full(testSu)).WithProcessCredentials(setuidRootCreds).WithBinaryProperties(nil)
 	exitSetuidRootChecker := ec.NewProcessExitChecker("exit").WithProcess(procExitSetuidRootChecker)
 
