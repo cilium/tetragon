@@ -396,7 +396,7 @@ and programs can identify bugs and malicious or unexpected BPF activity.
 ### Example jq Filter
 
 ```shell
-jq 'select(.process_kprobe != null) | select(.process_kprobe.function_name | test("bpf_check")) | "\(.time) \(.process_kprobe.process.binary) \(.process_kprobe.process.arguments) programType:\(.process_kprobe.args[0].bpf_attr_arg.ProgType) programInsn:\(.process_kprobe.args[0].bpf_attr_arg.InsnCnt)"
+jq 'select(.process_kprobe != null) | select(.process_kprobe.function_name | test("bpf_check")) | "\(.time) \(.process_kprobe.process.binary) \(.process_kprobe.process.arguments) programType:\(.process_kprobe.args[0].bpf_attr_arg.ProgType) programInsn:\(.process_kprobe.args[0].bpf_attr_arg.InsnCnt)"'
 ```
 
 ### Example Output
@@ -422,7 +422,7 @@ Understanding exactly what kernel modules are running in the cluster is crucial 
 ### Example jq Filter
 
 ```shell
- jq 'select(.process_kprobe != null) | select(.process_kprobe.function_name | test("security_kernel_module_request"))  | "\(.time) \(.process_kprobe.process.binary) \(.process_kprobe.process.arguments) module:\(.process_kprobe.args[0].string_arg)"'
+jq 'select(.process_kprobe != null) | select(.process_kprobe.function_name | test("security_kernel_module_request"))  | "\(.time) \(.process_kprobe.process.binary) \(.process_kprobe.process.arguments) module:\(.process_kprobe.args[0].string_arg)"'
 ```
 
 ### Example Output
@@ -445,11 +445,10 @@ Understanding the exact versions of shared libraries that binaries load and use 
 
 [library.yaml](https://raw.githubusercontent.com/cilium/tetragon/main/examples/policylibrary/library.yaml)
 
-
 ### Example jq Filter
 
 ```shell
-jq 'select(.process_loader != null) | "\(.time) \(.process_loader.process.pod.namespace) \(.process_loader.process.binary) \(.process_loader.process.arguments) \(.process_loader.path)"
+jq 'select(.process_loader != null) | "\(.time) \(.process_loader.process.pod.namespace) \(.process_loader.process.binary) \(.process_loader.process.arguments) \(.process_loader.path)"'
 ```
 
 ### Example Output
@@ -462,7 +461,7 @@ jq 'select(.process_loader != null) | "\(.time) \(.process_loader.process.pod.na
 
 ### Description
 
-Monitor sessions to SSHd 
+Monitor sessions to SSHd
 
 ### Use Case
 
@@ -475,10 +474,11 @@ It is best practice to audit remote connections into a shell server.
 ### Example jq Filter
 
 ```shell
- jq 'select(.process_kprobe != null) | select(.process_kprobe.function_name | test("tcp_close")) |  "\(.time) \(.process_kprobe.process.binary) \(.process_kprobe.process.arguments) \(.process_kprobe.args[0].sock_arg.family) \(.process_kprobe.args[0].sock_arg.type)  \(.process_kprobe.args[0].sock_arg.protocol) \(.process_kprobe.args[0].sock_arg.saddr):\(.process_kprobe.args[0].sock_arg.sport)"'
+jq 'select(.process_kprobe != null) | select(.process_kprobe.function_name | test("tcp_close")) |  "\(.time) \(.process_kprobe.process.binary) \(.process_kprobe.process.arguments) \(.process_kprobe.args[0].sock_arg.family) \(.process_kprobe.args[0].sock_arg.type)  \(.process_kprobe.args[0].sock_arg.protocol) \(.process_kprobe.args[0].sock_arg.saddr):\(.process_kprobe.args[0].sock_arg.sport)"'
 ```
 
 ### Example Output
+
 ```shell
 "2023-11-01T04:51:20.109146920Z /usr/sbin/sshd default/xwing AF_INET SOCK_STREAM IPPROTO_TCP 127.0.0.1:22"
 ```
@@ -499,6 +499,7 @@ into any unexpected or malicious reverse shells.
 ```shell
 PODCIDR=`kubectl get nodes -o jsonpath='{.items[*].spec.podCIDR}'`
 ```
+
 {{< tabpane lang=shell >}}
 
 {{< tab GKE >}}
@@ -517,8 +518,8 @@ SERVICECIDR=$(kubectl describe pod -n kube-system kube-apiserver-kind-control-pl
 
 ### Example jq Filter
 
-```shell-sessoin
- jq 'select(.process_kprobe != null) | select(.process_kprobe.function_name | test("tcp_connect")) | "\(.time) \(.process_kprobe.process.binary) \(.process_kprobe.process.arguments) \(.process_kprobe.args[0].sock_arg.saddr):\(.process_kprobe.args[0].sock_arg.sport) -> \(.process_kprobe.args[0].sock_arg.daddr):\(.process_kprobe.args[0].sock_arg.dport)"'
+```shell
+jq 'select(.process_kprobe != null) | select(.process_kprobe.function_name | test("tcp_connect")) | "\(.time) \(.process_kprobe.process.binary) \(.process_kprobe.process.arguments) \(.process_kprobe.args[0].sock_arg.saddr):\(.process_kprobe.args[0].sock_arg.sport) -> \(.process_kprobe.args[0].sock_arg.daddr):\(.process_kprobe.args[0].sock_arg.dport)"'
 ```
 
 ### Example Output
