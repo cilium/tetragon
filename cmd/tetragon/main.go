@@ -28,7 +28,6 @@ import (
 	"github.com/cilium/tetragon/pkg/bugtool"
 	"github.com/cilium/tetragon/pkg/cgrouprate"
 	"github.com/cilium/tetragon/pkg/checkprocfs"
-	"github.com/cilium/tetragon/pkg/cilium"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/encoder"
 	"github.com/cilium/tetragon/pkg/exporter"
@@ -386,10 +385,6 @@ func tetragonExecute() error {
 		k8sWatcher = watcher.NewFakeK8sWatcher(nil)
 	}
 	k8sWatcher.Start()
-	_, err = cilium.InitCiliumState(ctx, option.Config.EnableCilium)
-	if err != nil {
-		return err
-	}
 
 	if err := process.InitCache(k8sWatcher, option.Config.ProcessCacheSize); err != nil {
 		return err

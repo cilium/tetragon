@@ -4,12 +4,10 @@
 package process
 
 import (
-	"context"
 	"testing"
 	"time"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/pkg/cilium"
 	"github.com/cilium/tetragon/pkg/watcher"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/proto"
@@ -49,8 +47,6 @@ func TestK8sWatcher_GetPodInfo(t *testing.T) {
 			},
 		},
 	}
-	_, err := cilium.InitCiliumState(context.Background(), false)
-	assert.NoError(t, err)
 
 	k8sClient := fake.NewSimpleClientset(&pod)
 	watcher := watcher.NewK8sWatcher(k8sClient, time.Hour)

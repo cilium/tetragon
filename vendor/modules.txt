@@ -62,8 +62,6 @@ github.com/cilium/cilium/pkg/azure/types
 github.com/cilium/cilium/pkg/backoff
 github.com/cilium/cilium/pkg/bpf
 github.com/cilium/cilium/pkg/byteorder
-github.com/cilium/cilium/pkg/cgroups
-github.com/cilium/cilium/pkg/cgroups/manager
 github.com/cilium/cilium/pkg/cidr
 github.com/cilium/cilium/pkg/client
 github.com/cilium/cilium/pkg/clustermesh/types
@@ -101,7 +99,6 @@ github.com/cilium/cilium/pkg/hive/metrics
 github.com/cilium/cilium/pkg/hubble/api/v1
 github.com/cilium/cilium/pkg/hubble/filters
 github.com/cilium/cilium/pkg/hubble/k8s
-github.com/cilium/cilium/pkg/hubble/parser/getters
 github.com/cilium/cilium/pkg/iana
 github.com/cilium/cilium/pkg/identity
 github.com/cilium/cilium/pkg/identity/cache
@@ -113,9 +110,7 @@ github.com/cilium/cilium/pkg/inctimer
 github.com/cilium/cilium/pkg/ip
 github.com/cilium/cilium/pkg/ipam/option
 github.com/cilium/cilium/pkg/ipam/types
-github.com/cilium/cilium/pkg/ipcache
 github.com/cilium/cilium/pkg/ipcache/types
-github.com/cilium/cilium/pkg/k8s
 github.com/cilium/cilium/pkg/k8s/apis/cilium.io
 github.com/cilium/cilium/pkg/k8s/apis/cilium.io/utils
 github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2
@@ -132,7 +127,6 @@ github.com/cilium/cilium/pkg/k8s/constants
 github.com/cilium/cilium/pkg/k8s/identitybackend
 github.com/cilium/cilium/pkg/k8s/informer
 github.com/cilium/cilium/pkg/k8s/metrics
-github.com/cilium/cilium/pkg/k8s/resource
 github.com/cilium/cilium/pkg/k8s/slim/k8s/api/core/v1
 github.com/cilium/cilium/pkg/k8s/slim/k8s/api/discovery/v1
 github.com/cilium/cilium/pkg/k8s/slim/k8s/api/discovery/v1beta1
@@ -158,10 +152,8 @@ github.com/cilium/cilium/pkg/k8s/slim/k8s/client/clientset/versioned/typed/disco
 github.com/cilium/cilium/pkg/k8s/slim/k8s/client/clientset/versioned/typed/discovery/v1beta1/fake
 github.com/cilium/cilium/pkg/k8s/slim/k8s/client/clientset/versioned/typed/networking/v1
 github.com/cilium/cilium/pkg/k8s/slim/k8s/client/clientset/versioned/typed/networking/v1/fake
-github.com/cilium/cilium/pkg/k8s/types
 github.com/cilium/cilium/pkg/k8s/utils
 github.com/cilium/cilium/pkg/k8s/version
-github.com/cilium/cilium/pkg/k8s/watchers/resources
 github.com/cilium/cilium/pkg/kvstore
 github.com/cilium/cilium/pkg/kvstore/allocator
 github.com/cilium/cilium/pkg/kvstore/store
@@ -177,10 +169,8 @@ github.com/cilium/cilium/pkg/maps/lxcmap
 github.com/cilium/cilium/pkg/metrics
 github.com/cilium/cilium/pkg/metrics/metric
 github.com/cilium/cilium/pkg/metrics/metric/collections
-github.com/cilium/cilium/pkg/monitor
 github.com/cilium/cilium/pkg/monitor/api
 github.com/cilium/cilium/pkg/monitor/notifications
-github.com/cilium/cilium/pkg/monitor/payload
 github.com/cilium/cilium/pkg/mountinfo
 github.com/cilium/cilium/pkg/node
 github.com/cilium/cilium/pkg/node/addressing
@@ -196,7 +186,6 @@ github.com/cilium/cilium/pkg/rate
 github.com/cilium/cilium/pkg/rate/metrics
 github.com/cilium/cilium/pkg/safeio
 github.com/cilium/cilium/pkg/safetime
-github.com/cilium/cilium/pkg/service/store
 github.com/cilium/cilium/pkg/slices
 github.com/cilium/cilium/pkg/source
 github.com/cilium/cilium/pkg/spanstat
@@ -209,9 +198,6 @@ github.com/cilium/cilium/pkg/u8proto
 github.com/cilium/cilium/pkg/version
 github.com/cilium/cilium/pkg/versioncheck
 github.com/cilium/cilium/pkg/wireguard/types
-# github.com/cilium/dns v1.1.51-0.20240416134107-d47d0dd702a1
-## explicit; go 1.18
-github.com/cilium/dns
 # github.com/cilium/ebpf v0.15.0
 ## explicit; go 1.21.0
 github.com/cilium/ebpf
@@ -913,19 +899,14 @@ golang.org/x/mod/module
 golang.org/x/mod/semver
 # golang.org/x/net v0.24.0
 ## explicit; go 1.18
-golang.org/x/net/bpf
 golang.org/x/net/html
 golang.org/x/net/html/atom
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2
 golang.org/x/net/http2/hpack
 golang.org/x/net/idna
-golang.org/x/net/internal/iana
-golang.org/x/net/internal/socket
 golang.org/x/net/internal/socks
 golang.org/x/net/internal/timeseries
-golang.org/x/net/ipv4
-golang.org/x/net/ipv6
 golang.org/x/net/proxy
 golang.org/x/net/trace
 # golang.org/x/oauth2 v0.18.0

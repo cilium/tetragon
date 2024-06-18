@@ -21,7 +21,6 @@ import (
 	"github.com/cilium/tetragon/pkg/api/readyapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
-	"github.com/cilium/tetragon/pkg/cilium"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/exporter"
 	"github.com/cilium/tetragon/pkg/grpc"
@@ -207,11 +206,6 @@ func startBenchmarkExporter(ctx context.Context, obs *observer.Observer, summary
 
 	processCacheSize := 32768
 	dataCacheSize := 1024
-	enableCiliumAPI := false
-
-	if _, err := cilium.InitCiliumState(ctx, enableCiliumAPI); err != nil {
-		return err
-	}
 
 	watcher := watcher.NewFakeK8sWatcher(nil)
 	if err := process.InitCache(watcher, processCacheSize); err != nil {

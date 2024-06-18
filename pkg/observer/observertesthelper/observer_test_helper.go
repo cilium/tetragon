@@ -23,8 +23,6 @@ import (
 	"github.com/cilium/tetragon/pkg/encoder"
 	"github.com/cilium/tetragon/pkg/metricsconfig"
 	"github.com/cilium/tetragon/pkg/observer"
-	hubbleV1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
-	hubbleCilium "github.com/cilium/tetragon/pkg/oldhubble/cilium"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/sirupsen/logrus"
@@ -33,7 +31,6 @@ import (
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/bugtool"
-	"github.com/cilium/tetragon/pkg/cilium"
 	"github.com/cilium/tetragon/pkg/exporter"
 	tetragonGrpc "github.com/cilium/tetragon/pkg/grpc"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -65,10 +62,9 @@ type testObserverOptions struct {
 }
 
 type testExporterOptions struct {
-	watcher     watcher.K8sResourceWatcher
-	ciliumState *hubbleCilium.State
-	allowList   []*tetragon.Filter
-	denyList    []*tetragon.Filter
+	watcher   watcher.K8sResourceWatcher
+	allowList []*tetragon.Filter
+	denyList  []*tetragon.Filter
 }
 
 type TestOptions struct {
@@ -108,12 +104,6 @@ func WithConfig(config string) TestOption {
 func withK8sWatcher(w watcher.K8sResourceWatcher) TestOption {
 	return func(o *TestOptions) {
 		o.exporter.watcher = w
-	}
-}
-
-func withCiliumState(s *hubbleCilium.State) TestOption {
-	return func(o *TestOptions) {
-		o.exporter.ciliumState = s
 	}
 }
 
@@ -163,17 +153,6 @@ func saveInitInfo(o *TestOptions, exportFile string) error {
 	return bugtool.SaveInitInfo(&info)
 }
 
-// Create a fake Cilium state to avoid the events getting delayed due to missing pod info
-func createFakeCiliumState(testPod, testNamespace string) *hubbleCilium.State {
-	s := cilium.GetFakeCiliumState()
-	s.GetEndpointsHandler().UpdateEndpoint(&hubbleV1.Endpoint{
-		ID:           1234,
-		PodName:      testPod,
-		PodNamespace: testNamespace,
-	})
-	return s
-}
-
 // Create a fake K8s watcher to avoid delayed event due to missing pod info
 func createFakeWatcher(testPod, testNamespace string) *fakeK8sWatcher {
 	return &fakeK8sWatcher{
@@ -183,7 +162,6 @@ func createFakeWatcher(testPod, testNamespace string) *fakeK8sWatcher {
 }
 
 func newDefaultTestOptions(opts ...TestOption) *TestOptions {
-	ciliumState, _ := cilium.InitCiliumState(context.Background(), false)
 	// default values
 	options := &TestOptions{
 		observer: testObserverOptions{
@@ -192,10 +170,9 @@ func newDefaultTestOptions(opts ...TestOption) *TestOptions {
 			lib:    "",
 		},
 		exporter: testExporterOptions{
-			watcher:     watcher.NewFakeK8sWatcher(nil),
-			ciliumState: ciliumState,
-			allowList:   []*tetragon.Filter{},
-			denyList:    []*tetragon.Filter{},
+			watcher:   watcher.NewFakeK8sWatcher(nil),
+			allowList: []*tetragon.Filter{},
+			denyList:  []*tetragon.Filter{},
 		},
 	}
 	// apply user options
@@ -287,10 +264,8 @@ func GetDefaultObserverWithWatchers(tb testing.TB, ctx context.Context, base *se
 	)
 
 	w := createFakeWatcher(testPod, testNamespace)
-	s := createFakeCiliumState(testPod, testNamespace)
 
 	opts = append(opts, withK8sWatcher(w))
-	opts = append(opts, withCiliumState(s))
 	return getDefaultObserver(tb, ctx, base, opts...)
 }
 
@@ -417,7 +392,6 @@ func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, op
 	// report nil or a pre-defined value. So no cache needed.
 	option.Config.EnableProcessNs = true
 	option.Config.EnableProcessCred = true
-	option.Config.EnableCilium = false
 	processManager, err := tetragonGrpc.NewProcessManager(ctx, &cancelWg, sensorManager, hookRunner)
 	if err != nil {
 		return err
