@@ -13,13 +13,11 @@ import (
 
 	"github.com/cilium/tetragon/pkg/fieldfilters"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
-	hubble "github.com/cilium/tetragon/pkg/oldhubble/cilium"
 	"github.com/sirupsen/logrus"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api"
 	tetragonAPI "github.com/cilium/tetragon/pkg/api/processapi"
-	"github.com/cilium/tetragon/pkg/cilium"
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
@@ -56,10 +54,9 @@ type ProcessInternal struct {
 }
 
 var (
-	nodeName    string
-	procCache   *Cache
-	ciliumState *hubble.State
-	k8s         watcher.K8sResourceWatcher
+	nodeName  string
+	procCache *Cache
+	k8s       watcher.K8sResourceWatcher
 )
 
 var (
@@ -74,10 +71,6 @@ func InitCache(w watcher.K8sResourceWatcher, size int) error {
 	}
 
 	nodeName = node.GetNodeNameForExport()
-	ciliumState = cilium.GetCiliumState()
-	if ciliumState == nil {
-		return fmt.Errorf("ciliumState must be initialized before process cache")
-	}
 	k8s = w
 	procCache, err = NewCache(size)
 	if err != nil {
