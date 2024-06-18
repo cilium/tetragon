@@ -10,13 +10,14 @@ assignees: ''
 
 - [ ] Check that there are no [release blockers].
 
-- [ ] Set `RELEASE` environment variable. For example, if you are releasing `v0.8.1`:
+- [ ] Set `RELEASE` and `BRANCH` environment variables. For example, if you are releasing `v1.1.2`:
 
-      export RELEASE=v0.8.1
+      export BRANCH=v1.1
+      export RELEASE=v1.1.2
 
 - [ ] Open a pull request to update the Helm chart and docs:
 
-      git checkout -b pr/prepare-$RELEASE
+      git checkout -b pr/prepare-$RELEASE $BRANCH
 
       # update Helm chart
       ./contrib/update-helm-chart.sh $RELEASE
