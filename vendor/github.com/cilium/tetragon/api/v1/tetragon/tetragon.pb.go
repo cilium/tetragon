@@ -885,21 +885,21 @@ type ProcessCredentials struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// The real user ID
+	// The real user ID of the process' owner.
 	Uid *wrapperspb.UInt32Value `protobuf:"bytes,1,opt,name=uid,proto3" json:"uid,omitempty"`
-	// The real group ID
+	// The real group ID of the process' owner.
 	Gid *wrapperspb.UInt32Value `protobuf:"bytes,2,opt,name=gid,proto3" json:"gid,omitempty"`
-	// The effective user ID
+	// The effective user ID used for permission checks.
 	Euid *wrapperspb.UInt32Value `protobuf:"bytes,3,opt,name=euid,proto3" json:"euid,omitempty"`
-	// The effective group ID
+	// The effective group ID used for permission checks.
 	Egid *wrapperspb.UInt32Value `protobuf:"bytes,4,opt,name=egid,proto3" json:"egid,omitempty"`
-	// The saved user ID
+	// The saved user ID.
 	Suid *wrapperspb.UInt32Value `protobuf:"bytes,5,opt,name=suid,proto3" json:"suid,omitempty"`
-	// The saved group ID
+	// The saved group ID.
 	Sgid *wrapperspb.UInt32Value `protobuf:"bytes,6,opt,name=sgid,proto3" json:"sgid,omitempty"`
-	// the filesystem user ID
+	// the filesystem user ID used for filesystem access checks. Usually equals the euid.
 	Fsuid *wrapperspb.UInt32Value `protobuf:"bytes,7,opt,name=fsuid,proto3" json:"fsuid,omitempty"`
-	// The filesystem group ID
+	// The filesystem group ID used for filesystem access checks. Usually equals the egid.
 	Fsgid *wrapperspb.UInt32Value `protobuf:"bytes,8,opt,name=fsgid,proto3" json:"fsgid,omitempty"`
 	// Secure management flags
 	Securebits []SecureBitsType `protobuf:"varint,9,rep,packed,name=securebits,proto3,enum=tetragon.SecureBitsType" json:"securebits,omitempty"`
@@ -1271,7 +1271,9 @@ type Process struct {
 	ExecId string `protobuf:"bytes,1,opt,name=exec_id,json=execId,proto3" json:"exec_id,omitempty"`
 	// Process identifier from host PID namespace.
 	Pid *wrapperspb.UInt32Value `protobuf:"bytes,2,opt,name=pid,proto3" json:"pid,omitempty"`
-	// User identifier associated with the process.
+	// The effective User identifier used for permission checks. This field maps to the
+	// 'ProcessCredentials.euid' field. Run with the `--enable-process-cred` flag to
+	// enable 'ProcessCredentials' and get all the User and Group identifiers.
 	Uid *wrapperspb.UInt32Value `protobuf:"bytes,3,opt,name=uid,proto3" json:"uid,omitempty"`
 	// Current working directory of the process.
 	Cwd string `protobuf:"bytes,4,opt,name=cwd,proto3" json:"cwd,omitempty"`
@@ -1355,7 +1357,8 @@ type Process struct {
 	Ns *Namespaces `protobuf:"bytes,15,opt,name=ns,proto3" json:"ns,omitempty"`
 	// Thread ID, note that for the thread group leader, tid is equal to pid.
 	Tid *wrapperspb.UInt32Value `protobuf:"bytes,16,opt,name=tid,proto3" json:"tid,omitempty"`
-	// Process credentials
+	// Process credentials, disabled by default, can be enabled by the
+	// `--enable-process-cred` flag.
 	ProcessCredentials *ProcessCredentials `protobuf:"bytes,17,opt,name=process_credentials,json=processCredentials,proto3" json:"process_credentials,omitempty"`
 	// Executed binary properties. This field is only available on ProcessExec events.
 	BinaryProperties *BinaryProperties `protobuf:"bytes,18,opt,name=binary_properties,json=binaryProperties,proto3" json:"binary_properties,omitempty"`
