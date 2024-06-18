@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
@@ -160,4 +161,99 @@ func TestPolicyMapPath(t *testing.T) {
 	assert.Equal(t, filepath.Join(bpf.MapPrefixPath(), m1.PinPath), program.PolicyMapPath(bpf.MapPrefixPath(), "policy", "m1"))
 
 	s.Unload()
+}
+
+func getMaxEntries(t *testing.T, path string) uint32 {
+	m, err := ebpf.LoadPinnedMap(path, nil)
+	if err != nil {
+		t.Fatalf("failed to load map from '%s': %s\n", path, err)
+	}
+
+	info, err := m.Info()
+	if err != nil {
+		t.Fatalf("failed to get map info: %s\n", err)
+	}
+
+	return info.MaxEntries
+}
+
+func TestMaxEntriesSingle(t *testing.T) {
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+	option.Config.Verbosity = 5
+
+	p1 := program.Builder(
+		"bpf_map_test_p1.o",
+		"wake_up_new_task",
+		"kprobe/wake_up_new_task",
+		"p1",
+		"kprobe",
+	)
+
+	m1 := program.MapBuilderPolicy("m1", p1)
+	m1.SetMaxEntries(111)
+
+	s := &sensors.Sensor{
+		Name:   "sensor",
+		Progs:  []*program.Program{p1},
+		Maps:   []*program.Map{m1},
+		Policy: "policy",
+	}
+
+	s.Load(bpf.MapPrefixPath())
+	defer s.Unload()
+
+	path := program.PolicyMapPath(bpf.MapPrefixPath(), "policy", "m1")
+	assert.Equal(t, uint32(111), getMaxEntries(t, path))
+}
+
+func TestMaxEntriesMulti(t *testing.T) {
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+	option.Config.Verbosity = 5
+
+	p1 := program.Builder(
+		"bpf_map_test_p1.o",
+		"wake_up_new_task",
+		"kprobe/wake_up_new_task",
+		"p1",
+		"kprobe",
+	)
+
+	p2 := program.Builder(
+		"bpf_map_test_p2.o",
+		"wake_up_new_task",
+		"kprobe/wake_up_new_task",
+		"p2",
+		"kprobe",
+	)
+
+	m1 := program.MapBuilderPolicy("m1", p1, p2)
+	m2 := program.MapBuilderSensor("m2", p2, p1)
+	m1.SetMaxEntries(111)
+	m2.SetMaxEntries(222)
+
+	s := &sensors.Sensor{
+		Name:   "sensor",
+		Progs:  []*program.Program{p1, p2},
+		Maps:   []*program.Map{m1, m2},
+		Policy: "policy",
+	}
+
+	s.Load(bpf.MapPrefixPath())
+	defer s.Unload()
+
+	path1 := filepath.Join(bpf.MapPrefixPath(), m1.PinPath)
+	assert.Equal(t, uint32(111), getMaxEntries(t, path1))
+
+	path2 := filepath.Join(bpf.MapPrefixPath(), m2.PinPath)
+	assert.Equal(t, uint32(222), getMaxEntries(t, path2))
+}
+
+func TestMaxEntriesInnerSingle(t *testing.T) {
+	// TODO, we need to check BTF for inner map max entries
+	t.Skip()
+}
+
+func TestMaxEntriesInnerMulti(t *testing.T) {
+	// TODO, we need to check BTF for inner map max entries
+	t.Skip()
 }
