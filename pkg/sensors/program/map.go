@@ -1,6 +1,53 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
+// We allow to define several types of maps:
+//
+//    MapTypeGlobal MapType = iota
+//    MapTypePolicy
+//    MapTypeSensor
+//    MapTypeProgram
+//
+//  Each type defines the maps position in the sysfs hierarchy:
+//
+//    MapTypeGlobal:     /sys/fs/bpf/tetragon/map
+//    MapTypePolicy:     /sys/fs/bpf/tetragon/policy/map
+//    MapTypeSensor:     /sys/fs/bpf/tetragon/policy/sensor/map
+//    MapTypeProgram:    /sys/fs/bpf/tetragon/policy/sensor/program/map
+//
+//  Each type has appropriate helper defined, which sets map's
+//  path to specific level of sysfs hierarchy:
+//
+//    MapTypeGlobal:     MapBuilder
+//    MapTypePolicy:     MapBuilderPolicy
+//    MapTypeSensor:     MapBuilderSensor
+//    MapTypeProgram:    MapBuilderProgram
+//
+//  It's possible to share map between more programs like:
+//
+//     m := MapBuilderSensor("map", prog1, prog2, prog3)
+//
+//  All prog1-3 programs will attach to m1 through:
+//
+//    /sys/fs/bpf/tetragon/policy/sensor/map
+//
+//  The idea is to share map on higher level which denotes to scope
+//  of the map, like:
+//
+//     /sys/fs/bpf/tetragon/map
+//      - map is global shared with all policies/sensors/programs
+//
+//     /sys/fs/bpf/tetragon/policy/map
+//      - map is local for policy, shared by all its sensors/programs
+//
+//     /sys/fs/bpf/tetragon/policy/sensors/map
+//      - map is local for sensor, shared by all its programs
+//
+//     /sys/fs/bpf/tetragon/policy/sensors/program/map
+//      - map is local for program, not shared at all
+//
+//  NOTE Please do not share MapTypeProgram maps, it brings confusion.
+
 package program
 
 import (
