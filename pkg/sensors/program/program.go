@@ -3,6 +3,31 @@
 
 package program
 
+// Program sysfs hierarchy
+//
+// Each program is part of policy and sensor and defines PinName
+// which determine its path in sysfs hierarchy, like:
+//
+//   /sys/fs/bpf/tetragon/policy/sensor/program/prog
+//
+// which broken down means:
+//
+//   /sys/fs/bpf/tetragon
+//     - bpf (map) directory
+//
+//   policy/sensor
+//     - defined by sensor.Policy/sensor.Name
+//
+//   program
+//     - defined by program.PinName
+//
+//   prog
+//     - fixed file name (prog_override for override program)
+//
+//  The program.PinPath field hods following portion of the path:
+//     policy/sensor/program
+//  and is initialized when the sensor is loaded.
+
 import (
 	"fmt"
 
