@@ -30,7 +30,8 @@ PROCESS = bpf_execve_event.o bpf_execve_event_v53.o bpf_fork.o bpf_exit.o bpf_ge
 	  bpf_generic_lsm_v61.o \
 	  bpf_loader.o \
 	  bpf_cgroup.o \
-	  bpf_enforcer.o bpf_multi_enforcer.o bpf_fmodret_enforcer.o
+	  bpf_enforcer.o bpf_multi_enforcer.o bpf_fmodret_enforcer.o \
+	  bpf_map_test_p1.o bpf_map_test_p2.o
 
 CGROUP = bpf_cgroup_mkdir.o bpf_cgroup_rmdir.o bpf_cgroup_release.o
 BPFTEST = bpf_lseek.o
