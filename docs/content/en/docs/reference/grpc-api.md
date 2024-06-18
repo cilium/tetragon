@@ -459,7 +459,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | ----- | ---- | ----- | ----------- |
 | exec_id | [string](#string) |  | Exec ID uniquely identifies the process over time across all the nodes in the cluster. |
 | pid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | Process identifier from host PID namespace. |
-| uid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | User identifier associated with the process. |
+| uid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | The effective User identifier used for permission checks. This field maps to the &#39;ProcessCredentials.euid&#39; field. Run with the `--enable-process-cred` flag to enable &#39;ProcessCredentials&#39; and get all the User and Group identifiers. |
 | cwd | [string](#string) |  | Current working directory of the process. |
 | binary | [string](#string) |  | Absolute path of the executed binary. |
 | arguments | [string](#string) |  | Arguments passed to the binary at execution. |
@@ -473,7 +473,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | cap | [Capabilities](#tetragon-Capabilities) |  | Set of capabilities that define the permissions the process can execute with. |
 | ns | [Namespaces](#tetragon-Namespaces) |  | Linux namespaces of the process, disabled by default, can be enabled by the `--enable-process-ns` flag. |
 | tid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | Thread ID, note that for the thread group leader, tid is equal to pid. |
-| process_credentials | [ProcessCredentials](#tetragon-ProcessCredentials) |  | Process credentials |
+| process_credentials | [ProcessCredentials](#tetragon-ProcessCredentials) |  | Process credentials, disabled by default, can be enabled by the `--enable-process-cred` flag. |
 | binary_properties | [BinaryProperties](#tetragon-BinaryProperties) |  | Executed binary properties. This field is only available on ProcessExec events. |
 | user | [UserRecord](#tetragon-UserRecord) |  | UserRecord contains user information about the event.
 
@@ -485,14 +485,14 @@ UserRecord is only supported when i) Tetragon is running as a systemd service or
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| uid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | The real user ID |
-| gid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | The real group ID |
-| euid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | The effective user ID |
-| egid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | The effective group ID |
-| suid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | The saved user ID |
-| sgid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | The saved group ID |
-| fsuid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | the filesystem user ID |
-| fsgid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | The filesystem group ID |
+| uid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | The real user ID of the process&#39; owner. |
+| gid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | The real group ID of the process&#39; owner. |
+| euid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | The effective user ID used for permission checks. |
+| egid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | The effective group ID used for permission checks. |
+| suid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | The saved user ID. |
+| sgid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | The saved group ID. |
+| fsuid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | the filesystem user ID used for filesystem access checks. Usually equals the euid. |
+| fsgid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | The filesystem group ID used for filesystem access checks. Usually equals the egid. |
 | securebits | [SecureBitsType](#tetragon-SecureBitsType) | repeated | Secure management flags |
 | caps | [Capabilities](#tetragon-Capabilities) |  | Set of capabilities that define the permissions the process can execute with. |
 | user_ns | [UserNamespace](#tetragon-UserNamespace) |  | User namespace where the UIDs, GIDs and capabilities are relative to. |
