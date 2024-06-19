@@ -387,6 +387,8 @@ func createGenericTracepointSensor(
 		progName = "bpf_generic_tracepoint_v53.o"
 	}
 
+	has := hasMaps{}
+
 	maps := []*program.Map{}
 	progs := make([]*program.Program, 0, len(tracepoints))
 	for _, tp := range tracepoints {
@@ -406,11 +408,13 @@ func createGenericTracepointSensor(
 			return nil, fmt.Errorf("failed to initialize tracepoint kernel selectors: %w", err)
 		}
 
+		has.fdInstall = selectorsHaveFDInstall(tp.Spec.Selectors)
+
 		prog0.LoaderData = tp.tableIdx
 		progs = append(progs, prog0)
 
 		fdinstall := program.MapBuilderPin("fdinstall_map", sensors.PathJoin(pinPath, "fdinstall_map"), prog0)
-		if selectorsHaveFDInstall(tp.Spec.Selectors) {
+		if has.fdInstall {
 			fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
 		}
 		maps = append(maps, fdinstall)
