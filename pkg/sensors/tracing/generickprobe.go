@@ -353,7 +353,7 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 	}
 
 	if kernels.EnableLargeProgs() {
-		ratelimitMap := program.MapBuilderPin("ratelimit_map", sensors.PathJoin(sensorPath, "ratelimit_map"), load)
+		ratelimitMap := program.MapBuilderPin("ratelimit_map", sensors.PathJoin(pinPath, "ratelimit_map"), load)
 		if oneKprobeHasRatelimit {
 			ratelimitMap.SetMaxEntries(ratelimitMapMaxEntries)
 		}
@@ -918,7 +918,7 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 	}
 
 	if kernels.EnableLargeProgs() {
-		ratelimitMap := program.MapBuilderPin("ratelimit_map", sensors.PathJoin(sensorPath, "ratelimit_map"), load)
+		ratelimitMap := program.MapBuilderPin("ratelimit_map", sensors.PathJoin(pinPath, "ratelimit_map"), load)
 		if kprobeEntry.hasRatelimit {
 			// similarly as for stacktrace, we expand the max size only if
 			// needed to reduce the memory footprint when unused
