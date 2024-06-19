@@ -78,7 +78,7 @@ func msgToExecveAccountUnix(m *exec.MsgExecveEventUnix) {
 			if ns.Mnt.IsHost && ns.User.IsHost {
 				// use Golang user.LookupId() as we want to only parse /etc/passwd for now
 				if userInfo, err := user.LookupId(strconv.FormatUint(uint64(m.Unix.Process.UID), 10)); err == nil {
-					m.Unix.Process.User.Name = userInfo.Name
+					m.Unix.Process.User.Name = userInfo.Username
 				}
 			}
 		}
