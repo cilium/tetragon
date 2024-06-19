@@ -58,7 +58,7 @@ func (cache *UsersDBCache) LookupUser(uid uint32) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return userInfo.Name, nil
+		return userInfo.Username, nil
 	}
 
 	name, err := cache.lookupUser(uid)
@@ -67,7 +67,7 @@ func (cache *UsersDBCache) LookupUser(uid uint32) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		name = userInfo.Name
+		name = userInfo.Username
 		cache.addUser(uid, name)
 	}
 	return name, nil
