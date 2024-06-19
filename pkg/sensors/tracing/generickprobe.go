@@ -272,14 +272,12 @@ func filterMaps(load *program.Program, pinPath string, kprobeEntry *genericKprob
 	return maps
 }
 
-func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.EntryID, enableFDInstall bool) ([]*program.Program, []*program.Map, error) {
+func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.EntryID, has hasMaps) ([]*program.Program, []*program.Map, error) {
 	var multiRetIDs []idtable.EntryID
 	var progs []*program.Program
 	var maps []*program.Map
 
 	data := &genericKprobeData{}
-	oneKprobeHasStackTrace := false
-	oneKprobeHasRatelimit := false
 
 	for _, id := range multiIDs {
 		gk, err := genericKprobeTableGet(id)
@@ -289,9 +287,10 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 		if gk.loadArgs.retprobe {
 			multiRetIDs = append(multiRetIDs, id)
 		}
-		oneKprobeHasStackTrace = oneKprobeHasStackTrace || gk.hasStackTrace
-		oneKprobeHasRatelimit = oneKprobeHasRatelimit || gk.hasRatelimit
 		gk.data = data
+
+		has.stackTrace = has.stackTrace || gk.hasStackTrace
+		has.rateLimit = has.rateLimit || gk.hasRatelimit
 	}
 
 	loadProgName := "bpf_multi_kprobe_v53.o"
@@ -316,7 +315,7 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 	progs = append(progs, load)
 
 	fdinstall := program.MapBuilderPin("fdinstall_map", sensors.PathJoin(sensorPath, "fdinstall_map"), load)
-	if enableFDInstall {
+	if has.fdInstall {
 		fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
 	}
 	maps = append(maps, fdinstall)
@@ -345,7 +344,7 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 	maps = append(maps, matchBinariesPaths)
 
 	stackTraceMap := program.MapBuilderPin("stack_trace_map", sensors.PathJoin(pinPath, "stack_trace_map"), load)
-	if oneKprobeHasStackTrace {
+	if has.stackTrace {
 		stackTraceMap.SetMaxEntries(stackTraceMapMaxEntries)
 	}
 	maps = append(maps, stackTraceMap)
@@ -358,7 +357,7 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 
 	if kernels.EnableLargeProgs() {
 		ratelimitMap := program.MapBuilderPin("ratelimit_map", sensors.PathJoin(pinPath, "ratelimit_map"), load)
-		if oneKprobeHasRatelimit {
+		if has.rateLimit {
 			ratelimitMap.SetMaxEntries(ratelimitMapMaxEntries)
 		}
 		maps = append(maps, ratelimitMap)
@@ -396,7 +395,7 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 		maps = append(maps, callHeap)
 
 		fdinstall := program.MapBuilderPin("fdinstall_map", sensors.PathJoin(sensorPath, "fdinstall_map"), loadret)
-		if enableFDInstall {
+		if has.fdInstall {
 			fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
 		}
 		maps = append(maps, fdinstall)
@@ -552,6 +551,23 @@ func getKprobeSymbols(symbol string, syscall bool, lists []v1alpha1.ListSpec) ([
 	return []string{symbol}, syscall, nil
 }
 
+type hasMaps struct {
+	stackTrace bool
+	rateLimit  bool
+	fdInstall  bool
+}
+
+func hasMapsSetup(spec *v1alpha1.TracingPolicySpec) hasMaps {
+	has := hasMaps{}
+	for _, kprobe := range spec.KProbes {
+		if selectorsHaveFDInstall(kprobe.Selectors) {
+			has.fdInstall = true
+			break
+		}
+	}
+	return has
+}
+
 func createGenericKprobeSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
@@ -585,16 +601,6 @@ func createGenericKprobeSensor(
 		selMaps = &selectors.KernelSelectorMaps{}
 	}
 
-	// detect at the policy level if one kprobe uses the fdinstall feature since
-	// the map is shared amongst all kprobes
-	oneKprobeHasFDInstall := false
-	for _, kprobe := range kprobes {
-		if selectorsHaveFDInstall(kprobe.Selectors) {
-			oneKprobeHasFDInstall = true
-			break
-		}
-	}
-
 	in := addKprobeIn{
 		useMulti:      useMulti,
 		sensorPath:    name,
@@ -603,6 +609,8 @@ func createGenericKprobeSensor(
 		customHandler: customHandler,
 		selMaps:       selMaps,
 	}
+
+	has := hasMapsSetup(spec)
 
 	for i := range kprobes {
 		syms, syscall, err := getKprobeSymbols(kprobes[i].Call, kprobes[i].Syscall, lists)
@@ -623,9 +631,9 @@ func createGenericKprobeSensor(
 	}
 
 	if useMulti {
-		progs, maps, err = createMultiKprobeSensor(in.sensorPath, in.policyName, ids, oneKprobeHasFDInstall)
+		progs, maps, err = createMultiKprobeSensor(in.sensorPath, in.policyName, ids, has)
 	} else {
-		progs, maps, err = createSingleKprobeSensor(in.sensorPath, ids, oneKprobeHasFDInstall)
+		progs, maps, err = createSingleKprobeSensor(in.sensorPath, ids, has)
 	}
 
 	if err != nil {
@@ -862,7 +870,7 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 }
 
 func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
-	progs []*program.Program, maps []*program.Map, enableFDInstall bool) ([]*program.Program, []*program.Map) {
+	progs []*program.Program, maps []*program.Map, has hasMaps) ([]*program.Program, []*program.Map) {
 
 	loadProgName, loadProgRetName := kernels.GenericKprobeObjs()
 	isSecurityFunc := strings.HasPrefix(kprobeEntry.funcName, "security_")
@@ -884,7 +892,7 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 	progs = append(progs, load)
 
 	fdinstall := program.MapBuilderPin("fdinstall_map", sensors.PathJoin(sensorPath, "fdinstall_map"), load)
-	if enableFDInstall {
+	if has.fdInstall {
 		fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
 	}
 	maps = append(maps, fdinstall)
@@ -921,7 +929,7 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 	// anonymous map (as it's always used by the BPF prog) and is clearly linked
 	// to tetragon
 	stackTraceMap := program.MapBuilderPin("stack_trace_map", sensors.PathJoin(pinPath, "stack_trace_map"), load)
-	if kprobeEntry.hasStackTrace {
+	if has.stackTrace {
 		// to reduce memory footprint however, the stack map is created with a
 		// max entry of 1, we need to expand that at loading.
 		stackTraceMap.SetMaxEntries(stackTraceMapMaxEntries)
@@ -936,7 +944,7 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 
 	if kernels.EnableLargeProgs() {
 		ratelimitMap := program.MapBuilderPin("ratelimit_map", sensors.PathJoin(pinPath, "ratelimit_map"), load)
-		if kprobeEntry.hasRatelimit {
+		if has.rateLimit {
 			// similarly as for stacktrace, we expand the max size only if
 			// needed to reduce the memory footprint when unused
 			ratelimitMap.SetMaxEntries(ratelimitMapMaxEntries)
@@ -978,7 +986,7 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 		maps = append(maps, callHeap)
 
 		fdinstall := program.MapBuilderPin("fdinstall_map", sensors.PathJoin(sensorPath, "fdinstall_map"), loadret)
-		if enableFDInstall {
+		if has.fdInstall {
 			fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
 		}
 		maps = append(maps, fdinstall)
@@ -994,7 +1002,7 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 	return progs, maps
 }
 
-func createSingleKprobeSensor(sensorPath string, ids []idtable.EntryID, enableFDInstall bool) ([]*program.Program, []*program.Map, error) {
+func createSingleKprobeSensor(sensorPath string, ids []idtable.EntryID, has hasMaps) ([]*program.Program, []*program.Map, error) {
 	var progs []*program.Program
 	var maps []*program.Map
 
@@ -1004,7 +1012,12 @@ func createSingleKprobeSensor(sensorPath string, ids []idtable.EntryID, enableFD
 			return nil, nil, err
 		}
 		gk.data = &genericKprobeData{}
-		progs, maps = createKprobeSensorFromEntry(gk, sensorPath, progs, maps, enableFDInstall)
+
+		// setup per kprobe map config
+		has.stackTrace = gk.hasStackTrace
+		has.rateLimit = gk.hasRatelimit
+
+		progs, maps = createKprobeSensorFromEntry(gk, sensorPath, progs, maps, has)
 	}
 
 	return progs, maps, nil
