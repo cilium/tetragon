@@ -37,6 +37,8 @@ import (
 	bc "github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
+	"github.com/cilium/tetragon/pkg/metrics/consts"
+	"github.com/cilium/tetragon/pkg/metricsconfig"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/option"
@@ -47,6 +49,8 @@ import (
 	"github.com/cilium/tetragon/pkg/testutils/perfring"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -6807,4 +6811,69 @@ spec:
 	checker := ec.NewUnorderedEventChecker(kpCheckers1, kpCheckers2)
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
+}
+
+func TestMissedProgStatsKprobeMulti(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	// we need kernel support to count the prog's missed count added in:
+	// f915fcb38553 ("bpf: Count stats for kprobe_multi programs")
+	// which was added in v6.7, adding also the kprobe-multi check
+	// just to be sure we have that
+	if !kernels.MinKernelVersion("6.7") || !bpf.HasKprobeMulti() {
+		t.Skip("Test requires kprobe multi and kernel version 6.7")
+	}
+
+	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
+
+	tracingPolicy := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "syswritefollowfdpsswd"
+spec:
+  kprobes:
+  - call: "sys_read"
+    syscall: true
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "` + testNop + `"
+      matchActions:
+      - action: Signal
+        argSig: 10
+  - call: "group_send_sig_info"
+    syscall: false
+`
+
+	createCrdFile(t, tracingPolicy)
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	if err := exec.Command(testNop).Run(); err != nil {
+		fmt.Printf("Failed to execute test binary: %s\n", err)
+	}
+
+	expected := strings.NewReader(` # HELP tetragon_missed_prog_probes_total The total number of Tetragon probe missed by program.
+# TYPE tetragon_missed_prog_probes_total counter
+tetragon_missed_prog_probes_total{attach="acct_process",policy="__base__"} 0
+tetragon_missed_prog_probes_total{attach="kprobe_multi (2 functions)",policy="syswritefollowfdpsswd"} 1
+tetragon_missed_prog_probes_total{attach="sched/sched_process_exec",policy="__base__"} 0
+tetragon_missed_prog_probes_total{attach="security_bprm_committing_creds",policy="__base__"} 0
+tetragon_missed_prog_probes_total{attach="wake_up_new_task",policy="__base__"} 0
+`)
+
+	assert.NoError(t, testutil.GatherAndCompare(metricsconfig.GetRegistry(), expected,
+		prometheus.BuildFQName(consts.MetricsNamespace, "", "missed_prog_probes_total")))
+
 }
