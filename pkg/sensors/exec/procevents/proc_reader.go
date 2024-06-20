@@ -29,6 +29,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
+	"github.com/cilium/tetragon/pkg/sensors/exec/userinfo"
 )
 
 const (
@@ -278,6 +279,8 @@ func pushExecveEvents(p procs) {
 		m.Unix.Msg.Common.Ktime = p.ktime
 		m.Unix.Process.Filename = filename
 		m.Unix.Process.Args = args
+
+		userinfo.MsgToExecveAccountUnix(&m)
 
 		observer.AllListeners(&m)
 	}
