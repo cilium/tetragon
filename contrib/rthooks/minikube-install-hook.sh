@@ -80,14 +80,8 @@ fi
 minikube cp $LOCALHOOK $HOOKNAME
 minikube ssh -- sudo chmod +x $HOOKNAME
 
-if [ "$install_hook" == "1" ]; then
-    echo "Only supposed to install hook, bailing out"
-    exit 0
-fi
-
-kubeletcmd=$(minikube ssh -- 'sudo tr \\0 " "  < /proc/"$(pgrep kubelet)"/cmdline')
-if [[ "$kubeletcmd" =~ "containerd.sock" ]]; then
-	echo "Found containerd runtime"
+install_containerd() {
+	echo "Installing containerd OCI hook"
 	mapfile -d '' JQCMD <<-EOF
 	. += { "hooks": {
 		"createRuntime": [{"path": "$HOOKNAME", "args": ["$BASEHOOKNAME", "createRuntime"] }],
@@ -98,20 +92,48 @@ if [[ "$kubeletcmd" =~ "containerd.sock" ]]; then
         minikube ssh ctr oci spec | jq "$JQCMD" > $xdir/base-spec.json
         minikube cp $xdir/base-spec.json /etc/containerd/base-spec.json
         minikube ssh cat /etc/containerd/config.toml > $xdir/config.old.toml
-        go run $SCRIPTPATH/patch-containerd-conf.go --config-file $xdir/config.old.toml --output $xdir/config.toml
+        $SETUPBIN patch-containerd-conf add-oci-hook --config-file $xdir/config.old.toml --output $xdir/config.toml
+	diff -u $xdir/config.old.toml $xdir/config.toml
         minikube cp $xdir/config.toml /etc/containerd/config.toml
         minikube ssh sudo systemctl restart containerd
+}
 
+install_crio() {
+	echo "Installing CRIO OCI hook"
+	$SETUPBIN print-config --interface=oci-hooks --binary=$HOOKNAME > $xdir/hook.json
+        minikube cp $xdir/hook.json /usr/share/containers/oci/hooks.d/teragon-oci-hook.json
+}
+
+if [ "$install_hook" == "1" ]; then
+    echo "Only supposed to install hook, bailing out"
+    exit 0
+fi
+
+crictlcmd=$(minikube ssh -- 'sudo crictl version | sed -ne "s/RuntimeName:[[:space:]]\+\(.*\)/\1/p"')
+if [[ "$crictlcmd" =~ "containerd" ]]; then
+	install_containerd
+	exit 0
+fi
+if [[ "$crictlcmd" =~ "crio.sock" ]]; then
+	install_crio
+	exit 0
+fi
+
+kubeletcmd=$(minikube ssh -- 'sudo tr \\0 " "  < /proc/"$(pgrep kubelet)"/cmdline')
+if [[ "$kubeletcmd" =~ "containerd.sock" ]]; then
+	install_containerd
         exit 0
 fi
 
 if [[ "$kubeletcmd" =~ "crio.sock" ]]; then
-	$SETUPBIN print-config --interface=oci-hooks --binary=$HOOKNAME > $xdir/hook.json
-        minikube cp $xdir/hook.json /usr/share/containers/oci/hooks.d/teragon-oci-hook.json
+	install_crio
 	exit 0
 fi
 
+
 set +x
 echo "Unknown runtime, bailing out"
+echo "crictlcmd: $crictlcmd"
 echo "kubeletcmd: $kubeletcmd"
 exit 1
+
