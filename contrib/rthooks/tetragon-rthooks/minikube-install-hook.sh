@@ -8,7 +8,7 @@ SCRIPTPATH=$(dirname "$0")
 HOOKNAME=/opt/tetragon/tetragon-oci-hook
 HOOKDIR=$(dirname $HOOKNAME)
 BASEHOOKNAME=$(basename $HOOKNAME)
-LOCALHOOK="$SCRIPTPATH/$BASEHOOKNAME/$BASEHOOKNAME"
+LOCALHOOK="$SCRIPTPATH/$BASEHOOKNAME"
 
 usage() {
         echo "Usage: $0 [-l|--log] [-d|--debug] [-k|--keep-tmpdir]"
