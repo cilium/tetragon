@@ -1,6 +1,3 @@
-# dario.cat/mergo v1.0.0
-## explicit; go 1.13
-dario.cat/mergo
 # github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1
 ## explicit; go 1.16
 github.com/Azure/go-ansiterm
@@ -272,27 +269,6 @@ github.com/containerd/cgroups
 github.com/containerd/cgroups/stats/v1
 github.com/containerd/cgroups/v2
 github.com/containerd/cgroups/v2/stats
-# github.com/containerd/containerd v1.7.19
-## explicit; go 1.21
-github.com/containerd/containerd/events
-github.com/containerd/containerd/events/exchange
-github.com/containerd/containerd/filters
-github.com/containerd/containerd/identifiers
-github.com/containerd/containerd/namespaces
-github.com/containerd/containerd/plugin
-github.com/containerd/containerd/services/server/config
-# github.com/containerd/errdefs v0.1.0
-## explicit; go 1.20
-github.com/containerd/errdefs
-# github.com/containerd/log v0.1.0
-## explicit; go 1.20
-github.com/containerd/log
-# github.com/containerd/ttrpc v1.2.5
-## explicit; go 1.19
-github.com/containerd/ttrpc
-# github.com/containerd/typeurl/v2 v2.1.1
-## explicit; go 1.13
-github.com/containerd/typeurl/v2
 # github.com/coreos/go-semver v0.3.1
 ## explicit; go 1.8
 github.com/coreos/go-semver/semver
@@ -303,6 +279,9 @@ github.com/coreos/go-systemd/v22/journal
 # github.com/cpuguy83/go-md2man/v2 v2.0.4
 ## explicit; go 1.11
 github.com/cpuguy83/go-md2man/v2/md2man
+# github.com/cyphar/filepath-securejoin v0.2.4
+## explicit; go 1.13
+github.com/cyphar/filepath-securejoin
 # github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 ## explicit
 github.com/davecgh/go-spew/spew
@@ -342,9 +321,6 @@ github.com/docker/docker/pkg/jsonmessage
 github.com/docker/go-connections/nat
 github.com/docker/go-connections/sockets
 github.com/docker/go-connections/tlsconfig
-# github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c
-## explicit
-github.com/docker/go-events
 # github.com/docker/go-units v0.5.0
 ## explicit
 github.com/docker/go-units
@@ -620,6 +596,9 @@ github.com/mitchellh/mapstructure
 ## explicit; go 1.13
 github.com/moby/spdystream
 github.com/moby/spdystream/spdy
+# github.com/moby/sys/mountinfo v0.6.2
+## explicit; go 1.16
+github.com/moby/sys/mountinfo
 # github.com/moby/term v0.5.0
 ## explicit; go 1.18
 github.com/moby/term
@@ -649,6 +628,21 @@ github.com/opencontainers/go-digest
 ## explicit; go 1.18
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
+# github.com/opencontainers/runc v1.1.13
+## explicit; go 1.18
+github.com/opencontainers/runc/libcontainer/cgroups
+github.com/opencontainers/runc/libcontainer/cgroups/devices
+github.com/opencontainers/runc/libcontainer/cgroups/ebpf
+github.com/opencontainers/runc/libcontainer/cgroups/ebpf/devicefilter
+github.com/opencontainers/runc/libcontainer/cgroups/fs
+github.com/opencontainers/runc/libcontainer/cgroups/fs2
+github.com/opencontainers/runc/libcontainer/cgroups/fscommon
+github.com/opencontainers/runc/libcontainer/cgroups/systemd
+github.com/opencontainers/runc/libcontainer/configs
+github.com/opencontainers/runc/libcontainer/devices
+github.com/opencontainers/runc/libcontainer/user
+github.com/opencontainers/runc/libcontainer/userns
+github.com/opencontainers/runc/libcontainer/utils
 # github.com/opencontainers/runtime-spec v1.2.0
 ## explicit
 github.com/opencontainers/runtime-spec/specs-go
@@ -657,9 +651,6 @@ github.com/opencontainers/runtime-spec/specs-go
 github.com/opentracing/opentracing-go
 github.com/opentracing/opentracing-go/ext
 github.com/opentracing/opentracing-go/log
-# github.com/pelletier/go-toml v1.9.5
-## explicit; go 1.12
-github.com/pelletier/go-toml
 # github.com/pelletier/go-toml/v2 v2.2.2
 ## explicit; go 1.16
 github.com/pelletier/go-toml/v2

@@ -188,9 +188,10 @@ func (c *PrintConfig) Run(log *slog.Logger) error {
 }
 
 type CLI struct {
-	Install     Install     `cmd:"" help:"Install hook"`
-	Uninstall   Uninstall   `cmd:"" help:"Uninstall hook"`
-	PrintConfig PrintConfig `cmd:"" help:"Print config"`
+	Install             Install             `cmd:"" help:"Install hook"`
+	Uninstall           Uninstall           `cmd:"" help:"Uninstall hook"`
+	PrintConfig         PrintConfig         `cmd:"" help:"Print config"`
+	PatchContainerdConf patchContainerdConf `cmd:"patch containerd configuration"`
 
 	LogLevel string `name:"log-level" default:"info" help:"log level"`
 }
