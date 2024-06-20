@@ -18,12 +18,10 @@ import (
 	exec "github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
-	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
-	"github.com/cilium/tetragon/pkg/reader/namespace"
-	"github.com/cilium/tetragon/pkg/reader/userdb"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
+	"github.com/cilium/tetragon/pkg/sensors/exec/userinfo"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/strutils"
 	"github.com/sirupsen/logrus"
@@ -70,18 +68,6 @@ func msgToExecveKubeUnix(m *processapi.MsgExecveEvent, exec_id string, filename 
 	}
 
 	return kube
-}
-
-func msgToExecveAccountUnix(m *exec.MsgExecveEventUnix) {
-	if option.Config.UsernameMetadata == int(option.USERNAME_METADATA_UNIX) {
-		if ns, err := namespace.GetMsgNamespaces(m.Unix.Msg.Namespaces); err == nil {
-			if ns.Mnt.IsHost && ns.User.IsHost {
-				if username, err := userdb.UsersCache.LookupUser(m.Unix.Process.UID); err == nil {
-					m.Unix.Process.User.Name = username
-				}
-			}
-		}
-	}
 }
 
 func execParse(reader *bytes.Reader) (processapi.MsgProcess, bool, error) {
@@ -203,7 +189,7 @@ func handleExecve(r *bytes.Reader) ([]observer.Event, error) {
 		msgUnix.Unix.Process = nopMsgProcess()
 	}
 	if err == nil && !empty {
-		msgToExecveAccountUnix(msgUnix)
+		userinfo.MsgToExecveAccountUnix(msgUnix)
 	}
 	msgUnix.Unix.Kube = msgToExecveKubeUnix(&m, process.GetExecID(&msgUnix.Unix.Process), msgUnix.Unix.Process.Filename)
 	return []observer.Event{msgUnix}, nil
