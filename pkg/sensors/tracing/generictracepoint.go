@@ -360,13 +360,14 @@ func createGenericTracepoint(
 
 // createGenericTracepointSensor will create a sensor that can be loaded based on a generic tracepoint configuration
 func createGenericTracepointSensor(
+	spec *v1alpha1.TracingPolicySpec,
 	name string,
-	confs []v1alpha1.TracepointSpec,
 	policyID policyfilter.PolicyID,
 	policyName string,
-	lists []v1alpha1.ListSpec,
 	customHandler eventhandler.Handler,
 ) (*sensors.Sensor, error) {
+	confs := spec.Tracepoints
+	lists := spec.Lists
 
 	tracepoints := make([]*genericTracepoint, 0, len(confs))
 	for i := range confs {

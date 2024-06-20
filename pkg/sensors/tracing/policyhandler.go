@@ -42,7 +42,7 @@ func (h policyHandler) PolicyHandler(
 	}
 	if len(spec.Tracepoints) > 0 {
 		name := fmt.Sprintf("gtp-sensor-%d", atomic.AddUint64(&sensorCounter, 1))
-		return createGenericTracepointSensor(name, spec.Tracepoints, policyID, policyName, spec.Lists, handler)
+		return createGenericTracepointSensor(spec, name, policyID, policyName, handler)
 	}
 	return nil, nil
 }
