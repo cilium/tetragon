@@ -316,6 +316,8 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 	}
 
 	enforcerDataMap := enforcerMap(policyName, progs...)
+	enforcerDataMap.SetMaxEntries(enforcerMapMaxEntries)
+
 	maps = append(maps, enforcerDataMap)
 
 	if ok := kp.enforcerAdd(name, kh); !ok {

@@ -63,6 +63,7 @@ const (
 	stackTraceMapMaxEntries = 32768
 	ratelimitMapMaxEntries  = 32768
 	fdInstallMapMaxEntries  = 32000
+	enforcerMapMaxEntries   = 32768
 )
 
 func kprobeCharBufErrorToString(e int32) string {
@@ -364,6 +365,9 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 	}
 
 	enforcerDataMap := enforcerMap(policyName, load)
+	if has.enforcer {
+		enforcerDataMap.SetMaxEntries(enforcerMapMaxEntries)
+	}
 	maps = append(maps, enforcerDataMap)
 
 	filterMap.SetMaxEntries(len(multiIDs))
@@ -555,13 +559,17 @@ type hasMaps struct {
 	stackTrace bool
 	rateLimit  bool
 	fdInstall  bool
+	enforcer   bool
 }
 
 func hasMapsSetup(spec *v1alpha1.TracingPolicySpec) hasMaps {
 	has := hasMaps{}
 	for _, kprobe := range spec.KProbes {
-		if selectorsHaveFDInstall(kprobe.Selectors) {
-			has.fdInstall = true
+		has.fdInstall = has.fdInstall || selectorsHaveFDInstall(kprobe.Selectors)
+		has.enforcer = has.enforcer || len(spec.Enforcers) != 0
+
+		// check for early break
+		if has.fdInstall && has.enforcer {
 			break
 		}
 	}
@@ -953,6 +961,9 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 	}
 
 	enforcerDataMap := enforcerMap(kprobeEntry.policyName, load)
+	if has.enforcer {
+		enforcerDataMap.SetMaxEntries(enforcerMapMaxEntries)
+	}
 	maps = append(maps, enforcerDataMap)
 
 	if kprobeEntry.loadArgs.retprobe {
