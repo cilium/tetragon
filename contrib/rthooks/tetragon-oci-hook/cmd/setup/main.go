@@ -6,6 +6,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"path"
 	"path/filepath"
@@ -14,7 +15,6 @@ import (
 	"github.com/alecthomas/kong"
 	ociHooks "github.com/containers/common/pkg/hooks/1.0.0"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -55,7 +55,7 @@ func ociHooksConfig(binFname string, binArgs ...string) *ociHooks.Hook {
 	}
 }
 
-func (i *Install) ociHooksInstall(log *logrus.Logger) {
+func (i *Install) ociHooksInstall(log *slog.Logger) {
 
 	_, binBaseName := path.Split(i.LocalBinary)
 	binFname := filepath.Join(i.HostInstallDir, binBaseName)
@@ -64,35 +64,36 @@ func (i *Install) ociHooksInstall(log *logrus.Logger) {
 	hook := ociHooksConfig(binFname, "--log-fname", logFname, "--fail-allow-namespaces", i.OciHooks.FailAllowNamespaces)
 	data, err := json.MarshalIndent(hook, "", "   ")
 	if err != nil {
-		log.WithError(err).Fatal("failed to unmarshall hook info")
+		log.Error("failed to unmarshall hook info", "error", err)
+		os.Exit(1)
 	}
 
 	confDst := filepath.Join(i.OciHooks.LocalDir, fmt.Sprintf("%s.json", binBaseName))
 	if err := os.WriteFile(confDst, data, 0755); err != nil {
-		log.WithField("conf-dst", confDst).WithError(err).Fatal("writing file failed")
+		log.Error("writing file failed", "conf-dst", confDst)
+		os.Exit(1)
 	}
 
-	log.WithFields(logrus.Fields{
-		"conf-dst-path": confDst,
-	}).Info("written conf")
+	log.Info("written conf", "conf-dst-path", confDst)
 }
 
-func (i *Install) Run(log *logrus.Logger) error {
+func (i *Install) Run(log *slog.Logger) error {
 	i.copyBinary(log)
 	switch i.Interface {
 	case "oci-hooks":
 		i.ociHooksInstall(log)
 	default:
-		log.WithField("interface", i.Interface).Fatal("unknown interface")
+		log.Error("unknown interface", "interface", i.Interface)
+		os.Exit(1)
 	}
 	return nil
 }
 
-func (i *Install) copyBinary(log *logrus.Logger) {
+func (i *Install) copyBinary(log *slog.Logger) {
 
 	data, err := os.ReadFile(i.LocalBinary)
 	if err != nil {
-		log.WithField("bin-src-path", i.LocalBinary).WithError(err).Fatal("reading hook source failed")
+		log.Error("reading hook source failed", "bin-src-path", i.LocalBinary, "error", err)
 	}
 	_, base := path.Split(i.LocalBinary)
 
@@ -100,20 +101,20 @@ func (i *Install) copyBinary(log *logrus.Logger) {
 	tmpBase := fmt.Sprintf("%s-%s", base, time.Now().Format("20060102.150405000000"))
 	tmpFname := filepath.Join(i.LocalInstallDir, tmpBase)
 	if err = os.WriteFile(tmpFname, data, 0755); err != nil {
-		log.WithField("bin-tmp-path", tmpFname).WithError(err).Fatal("failed to write binary")
+		log.Error("failed to write binary", "bin-tmp-path", tmpFname, "error", err)
+		os.Exit(1)
 	}
 
 	binDst := filepath.Join(i.LocalInstallDir, base)
 	if err := os.Rename(tmpFname, binDst); err != nil {
-		log.WithFields(logrus.Fields{
-			"bin-tmp-path": tmpFname,
-			"bin-dst-path": binDst,
-		}).WithError(err).Fatal("failed to rename tmp binary to dst")
+		log.Error("failed to rename tmp binary to dst",
+			"bin-tmp-path", tmpFname,
+			"bin-dst-path", binDst,
+		)
+		os.Exit(1)
 	}
 
-	log.WithFields(logrus.Fields{
-		"hook-dst-path": binDst,
-	}).Info("written binary")
+	log.Info("written binary", "hook-dst-path", binDst)
 }
 
 type Uninstall struct {
@@ -126,30 +127,33 @@ type Uninstall struct {
 	} `embed:"" prefix:"oci-hooks."`
 }
 
-func (u *Uninstall) removeBinary(log *logrus.Logger) {
+func (u *Uninstall) removeBinary(log *slog.Logger) {
 	binDst := filepath.Join(u.LocalInstallDir, u.BinaryName)
 	if err := os.Remove(binDst); err != nil {
-		log.WithField("bin-dst-path", binDst).WithError(err).Warn("failed to remove binary")
+		log.Warn("failed to remove binary", "bin-dst-path", binDst, "error", err)
 	} else {
-		log.WithField("bin-dst-path", binDst).WithError(err).Info("binary removed")
+		log.Info("binary removed", "bin-dst-path", binDst)
 	}
 }
 
-func (u *Uninstall) ociHooksUninstall(log *logrus.Logger) {
+func (u *Uninstall) ociHooksUninstall(log *slog.Logger) {
 	confDst := filepath.Join(u.OciHooks.LocalDir, fmt.Sprintf("%s.json", u.BinaryName))
 	if err := os.Remove(confDst); err != nil {
-		log.WithField("conf-dst-path", confDst).WithError(err).Warn("failed to remove conf")
+		log.Warn("failed to remove conf",
+			"conf-dst-path", confDst,
+			"error", err)
 	} else {
-		log.WithField("conf-dst-path", confDst).WithError(err).Info("conf removed")
+		log.Info("removed conf", "conf-dst-path", confDst)
 	}
 }
 
-func (u *Uninstall) Run(log *logrus.Logger) error {
+func (u *Uninstall) Run(log *slog.Logger) error {
 	switch u.Interface {
 	case "oci-hooks":
 		u.ociHooksUninstall(log)
 	default:
-		log.WithField("interface", u.Interface).Fatal("unknown interface")
+		log.Error("unknown interface", "interface", u.Interface)
+		os.Exit(1)
 	}
 	u.removeBinary(log)
 	return nil
@@ -161,17 +165,19 @@ type PrintConfig struct {
 	Interface string `default:"oci-hooks" enum:"oci-hooks" help:"Hooks interface (${enum})"`
 }
 
-func (c *PrintConfig) Run(log *logrus.Logger) error {
+func (c *PrintConfig) Run(log *slog.Logger) error {
 	switch c.Interface {
 	case "oci-hooks":
 		hook := ociHooksConfig(c.Binary, c.Args...)
 		data, err := json.MarshalIndent(hook, "", "   ")
 		if err != nil {
-			log.WithError(err).Fatal("failed to unmarshall hook info")
+			log.Error("failed to unmarshall hook info", "error", err)
+			os.Exit(1)
 		}
 		_, err = os.Stdout.Write(data)
 		if err != nil {
-			log.WithError(err).Fatal("writing to stdout failed")
+			log.Error("failed to write to stdout", "error", err)
+			os.Exit(1)
 		}
 		fmt.Println("")
 		return nil
@@ -185,15 +191,25 @@ type CLI struct {
 	Install     Install     `cmd:"" help:"Install hook"`
 	Uninstall   Uninstall   `cmd:"" help:"Uninstall hook"`
 	PrintConfig PrintConfig `cmd:"" help:"Print config"`
+
+	LogLevel string `name:"log-level" default:"info" help:"log level"`
 }
 
 func main() {
 
-	log := logrus.New()
-
 	var conf CLI
 	ctx := kong.Parse(&conf)
 
-	err := ctx.Run(log)
+	var logLevel slog.Level
+	if err := logLevel.UnmarshalText([]byte(conf.LogLevel)); err != nil {
+		slog.Error("failed to parse log l evel", "level", conf.LogLevel, "error", err)
+		os.Exit(1)
+	}
+
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: logLevel,
+	}))
+
+	err := ctx.Run(logger)
 	ctx.FatalIfErrorf(err)
 }
