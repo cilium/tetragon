@@ -189,7 +189,14 @@ func handleExecve(r *bytes.Reader) ([]observer.Event, error) {
 		msgUnix.Unix.Process = nopMsgProcess()
 	}
 	if err == nil && !empty {
-		userinfo.MsgToExecveAccountUnix(msgUnix)
+		err = userinfo.MsgToExecveAccountUnix(msgUnix)
+		if err != nil {
+			logger.GetLogger().WithFields(logrus.Fields{
+				"process.pid":    msgUnix.Unix.Process.PID,
+				"process.binary": msgUnix.Unix.Process.Filename,
+				"process.uid":    msgUnix.Unix.Process.UID,
+			}).WithError(err).Trace("Resolving process uid to username record failed")
+		}
 	}
 	msgUnix.Unix.Kube = msgToExecveKubeUnix(&m, process.GetExecID(&msgUnix.Unix.Process), msgUnix.Unix.Process.Filename)
 	return []observer.Event{msgUnix}, nil

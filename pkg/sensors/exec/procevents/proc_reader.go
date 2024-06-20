@@ -30,6 +30,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
 	"github.com/cilium/tetragon/pkg/sensors/exec/userinfo"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -280,7 +281,14 @@ func pushExecveEvents(p procs) {
 		m.Unix.Process.Filename = filename
 		m.Unix.Process.Args = args
 
-		userinfo.MsgToExecveAccountUnix(&m)
+		err := userinfo.MsgToExecveAccountUnix(&m)
+		if err != nil {
+			logger.GetLogger().WithFields(logrus.Fields{
+				"process.pid":    p.pid,
+				"process.binary": filename,
+				"process.uid":    m.Unix.Process.UID,
+			}).WithError(err).Trace("Resolving process uid to username record failed")
+		}
 
 		observer.AllListeners(&m)
 	}
