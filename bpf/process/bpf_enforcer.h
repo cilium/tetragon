@@ -14,7 +14,7 @@ struct enforcer_data {
 
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
-	__uint(max_entries, 32768);
+	__uint(max_entries, 1);
 	__type(key, __u64);
 	__type(value, struct enforcer_data);
 } enforcer_data SEC(".maps");

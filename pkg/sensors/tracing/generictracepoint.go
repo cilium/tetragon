@@ -387,7 +387,9 @@ func createGenericTracepointSensor(
 		progName = "bpf_generic_tracepoint_v53.o"
 	}
 
-	has := hasMaps{}
+	has := hasMaps{
+		enforcer: len(spec.Enforcers) != 0,
+	}
 
 	maps := []*program.Map{}
 	progs := make([]*program.Program, 0, len(tracepoints))
@@ -495,6 +497,9 @@ func createGenericTracepointSensor(
 		maps = append(maps, matchBinariesPaths)
 
 		enforcerDataMap := enforcerMap(policyName, prog0)
+		if has.enforcer {
+			enforcerDataMap.SetMaxEntries(enforcerMapMaxEntries)
+		}
 		maps = append(maps, enforcerDataMap)
 
 		selMatchBinariesMap := program.MapBuilderPin("tg_mb_sel_opts", sensors.PathJoin(pinPath, "tg_mb_sel_opts"), prog0)
