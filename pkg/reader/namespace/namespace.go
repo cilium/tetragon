@@ -157,6 +157,19 @@ func GetCurrentNamespace() *tetragon.Namespaces {
 	return retVal
 }
 
+func IsMsgNsInHostMntUser(ns *processapi.MsgNamespaces) (bool, error) {
+	hostNs, err := InitHostNamespace()
+	if err != nil {
+		return false, err
+	}
+
+	if ns.MntInum == hostNs.Mnt.Inum && ns.UserInum == hostNs.User.Inum {
+		return true, nil
+	}
+
+	return false, nil
+}
+
 func GetMsgNamespaces(ns processapi.MsgNamespaces) (*tetragon.Namespaces, error) {
 	hostNs, err := InitHostNamespace()
 	if err != nil {
