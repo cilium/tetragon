@@ -28,16 +28,23 @@ const (
 	HandlerError
 	// An event finalizer on Process failed
 	EventFinalizeProcessInfoFailed
+	// Failed to resolve Process uid to username
+	ProcessMetadataUsernameFailed
+	// The username resolution was skipped since the process is not in host
+	// namespaces.
+	ProcessMetadataUsernameIgnoredNotInHost
 )
 
 var errorTypeLabelValues = map[ErrorType]string{
-	ProcessCacheMissOnGet:          "process_cache_miss_on_get",
-	ProcessCacheEvicted:            "process_cache_evicted",
-	ProcessCacheMissOnRemove:       "process_cache_miss_on_remove",
-	ProcessPidTidMismatch:          "process_pid_tid_mismatch",
-	EventMissingProcessInfo:        "event_missing_process_info",
-	HandlerError:                   "handler_error",
-	EventFinalizeProcessInfoFailed: "event_finalize_process_info_failed",
+	ProcessCacheMissOnGet:                   "process_cache_miss_on_get",
+	ProcessCacheEvicted:                     "process_cache_evicted",
+	ProcessCacheMissOnRemove:                "process_cache_miss_on_remove",
+	ProcessPidTidMismatch:                   "process_pid_tid_mismatch",
+	EventMissingProcessInfo:                 "event_missing_process_info",
+	HandlerError:                            "handler_error",
+	EventFinalizeProcessInfoFailed:          "event_finalize_process_info_failed",
+	ProcessMetadataUsernameFailed:           "process_metadata_username_failed",
+	ProcessMetadataUsernameIgnoredNotInHost: "process_metadata_username_ignored_not_in_host_namespaces",
 }
 
 func (e ErrorType) String() string {
