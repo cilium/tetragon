@@ -31,12 +31,12 @@ func (s *disabled) DelPolicy(polID PolicyID) error {
 	return fmt.Errorf("policyfilter is disabled")
 }
 
-func (s *disabled) AddPodContainer(podID PodID, namespace string, podLabels labels.Labels,
+func (s *disabled) AddPodContainer(podID PodID, namespace, workload, kind string, podLabels labels.Labels,
 	containerID string, cgID CgroupID, containerName string) error {
 	return nil
 }
 
-func (s *disabled) UpdatePod(podID PodID, namespace string, podLabels labels.Labels,
+func (s *disabled) UpdatePod(podID PodID, namespace, workload, kind string, podLabels labels.Labels,
 	containerIDs []string, containerNames []string) error {
 	return nil
 }
@@ -54,4 +54,8 @@ func (s *disabled) RegisterPodHandlers(podInformer cache.SharedIndexInformer) {
 
 func (s *disabled) Close() error {
 	return nil
+}
+
+func (s *disabled) GetNsId(stateID StateID) (*NSID, bool) {
+	return nil, false
 }
