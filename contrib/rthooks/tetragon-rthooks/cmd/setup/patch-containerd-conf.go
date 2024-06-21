@@ -117,12 +117,33 @@ func addOciHook(log *slog.Logger, cnf *addOCIHookCmd) ([]addLine, error) {
 	return p.lines, nil
 }
 
+func usesCR(f *os.File) bool {
+	rd := bufio.NewReader(f)
+	defer f.Seek(0, os.SEEK_SET)
+
+	l, err := rd.ReadSlice('\n')
+	if err != nil {
+		return false
+	}
+
+	ll := len(l)
+	if ll > 2 && l[ll-1] == '\n' && l[ll-2] == '\r' {
+		return true
+	}
+
+	return false
+}
+
 func applyChanges(fnameIn, fnameOut string, changes []addLine) error {
 	fIn, err := os.Open(fnameIn)
 	if err != nil {
 		return err
 	}
 	defer fIn.Close()
+	cr := "\n"
+	if usesCR(fIn) {
+		cr = "\r\n"
+	}
 
 	fOut, err := os.Create(fnameOut)
 	if err != nil {
@@ -137,11 +158,11 @@ func applyChanges(fnameIn, fnameOut string, changes []addLine) error {
 	for inSc.Scan() {
 		inLine++
 		out.WriteString(inSc.Text())
-		out.WriteString("\r\n")
+		out.WriteString(cr)
 		for i := range changes {
 			ch := &changes[i]
 			if ch.pos.Line == inLine {
-				line := fmt.Sprintf("%s%s\n", strings.Repeat(" ", ch.pos.Col-1), ch.line)
+				line := fmt.Sprintf("%s%s%s", strings.Repeat(" ", ch.pos.Col-1), ch.line, cr)
 				out.WriteString(line)
 			}
 		}
