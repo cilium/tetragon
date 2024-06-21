@@ -196,11 +196,13 @@ func ReadAndSetFlags() error {
 
 	Config.TracingPolicy = viper.GetString(KeyTracingPolicy)
 
-	switch viper.GetString(KeyUsernameMetadata) {
+	switch o := viper.GetString(KeyUsernameMetadata); o {
 	case "unix":
 		Config.UsernameMetadata = int(USERNAME_METADATA_UNIX)
-	default:
+	case "disabled":
 		Config.UsernameMetadata = int(USERNAME_METADATA_DISABLED)
+	default:
+		return fmt.Errorf("unknown option for %s: %q", KeyUsernameMetadata, o)
 	}
 
 	// manually handle the deprecation of --expose-kernel-addresses
