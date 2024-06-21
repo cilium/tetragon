@@ -12,6 +12,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/policyfiltermetrics"
 	"github.com/cilium/tetragon/pkg/policyfilter"
+	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/rthooks"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -93,6 +94,9 @@ func createContainerHook(_ context.Context, arg *rthooks.CreateContainerArg) err
 	}
 
 	namespace := pod.ObjectMeta.Namespace
+	workloadMeta, workloadKind := process.GetWorkloadMetaFromPod(pod)
+	workload := workloadMeta.Name
+	kind := workloadKind.Kind
 
 	containerName := arg.Req.ContainerName
 	if containerName == "" {
@@ -103,12 +107,14 @@ func createContainerHook(_ context.Context, arg *rthooks.CreateContainerArg) err
 	log.WithFields(logrus.Fields{
 		"pod-id":         podID,
 		"namespace":      namespace,
+		"workload":       workload,
+		"workload-kind":  kind,
 		"container-id":   containerID,
 		"cgroup-id":      cgID,
 		"container-name": containerName,
 	}).Trace("policyfilter: add pod container")
 	cgid := policyfilter.CgroupID(cgID)
-	err = pfState.AddPodContainer(policyfilter.PodID(podID), namespace, pod.Labels, containerID, cgid, containerName)
+	err = pfState.AddPodContainer(policyfilter.PodID(podID), namespace, workload, kind, pod.Labels, containerID, cgid, containerName)
 	policyfiltermetrics.OpInc(policyfiltermetrics.RTHooksSubsys, policyfiltermetrics.AddContainerOperation, policyfilter.ErrorLabel(err))
 
 	if err != nil {

@@ -98,18 +98,22 @@ type State interface {
 	// AddPodContainer informs policyfilter about a new container and its cgroup id in a pod.
 	// The pod might or might not have been encountered before.
 	// This method is intended to update policyfilter state from container hooks
-	AddPodContainer(podID PodID, namespace string, podLabels labels.Labels,
+	AddPodContainer(podID PodID, namespace, workload, kind string, podLabels labels.Labels,
 		containerID string, cgID CgroupID, containerName string) error
 
 	// UpdatePod updates the pod state for a pod, where containerIDs contains all the container ids for the given pod.
 	// This method is intended to be used from k8s watchers (where no cgroup information is available)
-	UpdatePod(podID PodID, namespace string, podLabels labels.Labels,
+	UpdatePod(podID PodID, namespace, workload, kind string, podLabels labels.Labels,
 		containerIDs []string, containerNames []string) error
 
 	// DelPodContainer informs policyfilter that a container was deleted from a pod
 	DelPodContainer(podID PodID, containerID string) error
 	// DelPod informs policyfilter that a pod has been deleted
 	DelPod(podID PodID) error
+
+	// Report opaque cgroup ID to nsId mapping. This method is intended to allow inspecting
+	// and reporting the state of the system to subsystems and tooling.
+	GetNsId(stateID StateID) (*NSID, bool)
 
 	// RegisterPodHandlers can be used to register appropriate pod handlers to a pod informer
 	// that for keeping the policy filter state up-to-date.

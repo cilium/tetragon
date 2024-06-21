@@ -11,6 +11,8 @@
 #include "bpf_helpers.h"
 #include "bpf_rate.h"
 
+#include "policy_filter.h"
+
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 
 struct {
