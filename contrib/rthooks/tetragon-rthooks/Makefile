@@ -19,7 +19,7 @@ tetragon-oci-hook-setup: FORCE
 	CGO_ENABLED=0 $(GO) build -o $@ ./cmd/setup
 
 tetragon-oci-hook: FORCE
-	CGO_ENABLED=0 $(GO) build -o $@ ./cmd/hook
+	CGO_ENABLED=0 $(GO) build -o $@ ./cmd/oci-hook
 
 .PHONY: vendor
 vendor:
