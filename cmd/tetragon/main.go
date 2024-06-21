@@ -804,7 +804,7 @@ func execute() error {
 			}
 
 			if err := option.ReadAndSetFlags(); err != nil {
-				log.WithError(err).Fatal("Failed to start gops")
+				log.WithError(err).Fatal("Failed to parse command line flags")
 			}
 			if err := startGopsServer(); err != nil {
 				log.WithError(err).Fatal("Failed to start gops")
