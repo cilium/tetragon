@@ -19,7 +19,7 @@ type addLine struct {
 	line string
 }
 
-type parseState struct {
+type addOciHookState struct {
 	cnf *addOciHookCmd
 	// poor man's patch
 	lines []addLine
@@ -27,7 +27,7 @@ type parseState struct {
 }
 
 // parseRuntime parses a runtime section
-func (st *parseState) parseRuntime(t *toml.Tree) error {
+func (st *addOciHookState) parseRuntime(t *toml.Tree) error {
 	ty := t.Get("runtime_type")
 	if ty != "io.containerd.runc.v2" {
 		return nil
@@ -47,7 +47,7 @@ func (st *parseState) parseRuntime(t *toml.Tree) error {
 }
 
 // parseCri parses the "io.containerd.grpc.v1.cri" section of containerd config
-func (st *parseState) parseCri(t *toml.Tree) error {
+func (st *addOciHookState) parseCri(t *toml.Tree) error {
 	pos := t.Position()
 	st.log.Info("parsing cri plugin information",
 		"line", pos.Line,
@@ -90,8 +90,8 @@ func (st *parseState) parseCri(t *toml.Tree) error {
 	return nil
 }
 
-// parseConfig parses a containerd configuration file and returns a set of lines to add
-func parseConfig(log *slog.Logger, cnf *addOciHookCmd) ([]addLine, error) {
+// addOciHook parses a containerd configuration file and returns a set of lines to add
+func addOciHook(log *slog.Logger, cnf *addOciHookCmd) ([]addLine, error) {
 	srvConfig := srvconf.Config{}
 	file, err := toml.LoadFile(cnf.ContainerdConf)
 	if err != nil {
@@ -101,7 +101,7 @@ func parseConfig(log *slog.Logger, cnf *addOciHookCmd) ([]addLine, error) {
 		return nil, err
 	}
 
-	p := parseState{
+	p := addOciHookState{
 		cnf: cnf,
 		log: log,
 	}
@@ -151,7 +151,7 @@ func applyChanges(fnameIn, fnameOut string, changes []addLine) error {
 }
 
 func (c *addOciHookCmd) Run(log *slog.Logger) error {
-	changes, err := parseConfig(log, c)
+	changes, err := addOciHook(log, c)
 	if err != nil {
 		return err
 	}
