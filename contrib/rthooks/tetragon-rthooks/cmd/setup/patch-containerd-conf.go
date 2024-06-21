@@ -14,9 +14,16 @@ import (
 	"github.com/pelletier/go-toml"
 )
 
+// NB(kkourt): this started as a simple hack, but grew larger than expected. I think a better
+// solution would be to modify the config object and just marshall it instead of just doing text
+// replacements. TBD.
+
+const appendAtEndLine = -10
+
 type addLine struct {
-	pos  toml.Position
-	line string
+	pos         toml.Position
+	line        string
+	replaceLine bool
 }
 
 type addOCIHookState struct {
@@ -157,14 +164,36 @@ func applyChanges(fnameIn, fnameOut string, changes []addLine) error {
 	defer out.Flush()
 	for inSc.Scan() {
 		inLine++
-		out.WriteString(inSc.Text())
-		out.WriteString(cr)
+		lines := []string{}
+		replaceLine := false
 		for i := range changes {
 			ch := &changes[i]
 			if ch.pos.Line == inLine {
-				line := fmt.Sprintf("%s%s%s", strings.Repeat(" ", ch.pos.Col-1), ch.line, cr)
-				out.WriteString(line)
+				line := strings.Repeat(" ", ch.pos.Col-1) + ch.line + cr
+				lines = append(lines, line)
+				if ch.replaceLine {
+					replaceLine = true
+				}
 			}
+		}
+		if !replaceLine {
+			out.WriteString(inSc.Text())
+			out.WriteString(cr)
+		}
+		for _, line := range lines {
+			out.WriteString(line)
+		}
+	}
+
+	for i := range changes {
+		ch := &changes[i]
+		if ch.pos.Line == appendAtEndLine {
+			indent := ""
+			if ch.pos.Col > 0 {
+				indent = strings.Repeat(" ", ch.pos.Col-1)
+			}
+			line := indent + ch.line + cr
+			out.WriteString(line)
 		}
 	}
 
@@ -202,10 +231,121 @@ func (c *addOCIHookCmd) Run(log *slog.Logger) error {
 
 type patchContainerdConf struct {
 	AddOciHook addOCIHookCmd `cmd:"" help:"add OCI hook to containerd configuration"`
+	EnableNRI  enableNRICmd  `cmd:"" help:"add NRI section to containerd configuration"`
 }
 
 type addOCIHookCmd struct {
 	ContainerdConf  string `name:"config-file" default:"/etc/containerd/config.toml" help:"containerd configuration file location (input) (${default}))"`
 	BaseRuntimeSpec string `name:"runtime-spec" default:"/etc/containerd/base-spec.json" help:"base runtime spec file location (${default})"`
 	Output          string `name:"output" help:"output file (if empty, a temporary file will be created)"`
+}
+
+type enableNRICmd struct {
+	ContainerdConf string `name:"config-file" default:"/etc/containerd/config.toml" help:"containerd configuration file location (input) (${default}))"`
+	Output         string `name:"output" help:"output file (if empty, a temporary file will be created)"`
+}
+
+func (c *enableNRICmd) Run(log *slog.Logger) error {
+	changes, err := enableNRI(log, c)
+	if err != nil {
+		return err
+	}
+
+	if len(changes) == 0 {
+		log.Info("nothing to do")
+		return nil
+	}
+
+	outFname := c.Output
+	if outFname == "" {
+		f, err := os.CreateTemp("", "containerd.*.toml")
+		if err != nil {
+			return err
+		}
+		outFname = f.Name()
+		f.Close()
+	}
+
+	err = applyChanges(c.ContainerdConf, outFname, changes)
+	if err != nil {
+		return err
+	}
+	log.Info("written output", "filename", outFname)
+	return nil
+}
+
+func parseNRI(t *toml.Tree) ([]addLine, error) {
+	ty := t.Get("disable")
+	disable := ty.(bool)
+	if disable {
+		return []addLine{{
+			pos:         t.GetPosition("disable"),
+			line:        "disable = false",
+			replaceLine: true,
+		}}, nil
+	}
+	return nil, nil
+}
+
+// enableNRI parses a containerd configuration file and returns a set of lines to add
+func enableNRI(log *slog.Logger, cnf *enableNRICmd) ([]addLine, error) {
+	srvConfig := srvconf.Config{}
+	file, err := toml.LoadFile(cnf.ContainerdConf)
+	if err != nil {
+		return nil, err
+	}
+	if err := file.Unmarshal(&srvConfig); err != nil {
+		return nil, err
+	}
+
+	for name, plugin := range srvConfig.Plugins {
+		if name == "io.containerd.nri.v1.nri" {
+			return parseNRI(&plugin)
+		}
+	}
+
+	// no NRI section was found, let's add one
+
+	// first find the last position of all plugins
+	pos := toml.Position{appendAtEndLine, 0}
+	elemPos := toml.Position{appendAtEndLine, 3}
+	for _, v := range srvConfig.Plugins {
+		pPos := v.Position()
+		if pos.Line < pPos.Line {
+			pos = pPos
+			lastLine := -1
+			elemCol := pPos.Col + 3 // by default, indent by 3
+			// find the last line for this plugin by iterating all of its elements
+			for _, k := range v.Keys() {
+				kPos := v.GetPosition(k)
+				if kPos.Line > lastLine {
+					lastLine = kPos.Line
+					elemCol = kPos.Col
+				}
+			}
+			pos.Line = lastLine
+			elemPos = pos
+			elemPos.Col = elemCol
+		}
+	}
+
+	lines := []addLine{}
+	if pos.Line == appendAtEndLine {
+		lines = append(lines, addLine{pos: pos, line: `[plugins]`})
+		pos.Col = 3
+		elemPos.Col = 5
+	}
+
+	lines = append(lines,
+		addLine{pos: pos, line: `[plugins."io.containerd.nri.v1.nri"]`},
+		addLine{pos: elemPos, line: `disable = false`},
+		addLine{pos: elemPos, line: `disable_connections = false`},
+		addLine{pos: elemPos, line: `plugin_config_path = "/etc/nri/conf.d"`},
+		addLine{pos: elemPos, line: `plugin_path = "/opt/nri/plugins"`},
+		addLine{pos: elemPos, line: `plugin_registration_timeout = "5s"`},
+		addLine{pos: elemPos, line: `plugin_request_timeout = "2s"`},
+		addLine{pos: elemPos, line: `socket_path = "/var/run/nri/nri.sock"`},
+	)
+
+	return lines, nil
 }
