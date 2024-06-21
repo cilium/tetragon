@@ -188,7 +188,7 @@ tetragon-operator:
 	$(GO_BUILD) -o $@ ./operator
 
 tetragon-oci-hook:
-	$(GO_BUILD_HOOK) -o $@ ./cmd/hook
+	$(GO_BUILD_HOOK) -o $@ ./cmd/oci-hook
 
 tetragon-oci-hook-setup:
 	$(GO_BUILD_HOOK) -o $@ ./cmd/setup
