@@ -1007,13 +1007,13 @@ func TestExecProcessCredentialsSuid(t *testing.T) {
 		WithBinary(sm.Full(testBin)).WithProcessCredentials(gidCreds).WithBinaryProperties(nil)
 	procExecSuidChecker := ec.NewProcessChecker().WithUid(uint32(0)).
 		WithBinary(sm.Full(testSuid)).WithProcessCredentials(suidCreds1).WithBinaryProperties(binaryProperties1)
-	procExecSuid2Checker := ec.NewProcessChecker().WithUid(uint32(0)).
+	procExecSuid2Checker := ec.NewProcessChecker().WithUid(uint32(gid)).
 		WithBinary(sm.Full(testSuid)).WithProcessCredentials(suidCreds2).WithBinaryProperties(binaryProperties2)
 
 	procExitSuid1Checker := ec.NewProcessChecker().WithUid(uint32(0)).
 		WithBinary(sm.Full(testSuid)).WithProcessCredentials(suidCreds1).WithBinaryProperties(nil)
 
-	procExitSuid2Checker := ec.NewProcessChecker().WithUid(uint32(0)).
+	procExitSuid2Checker := ec.NewProcessChecker().WithUid(uint32(gid)).
 		WithBinary(sm.Full(testSuid)).WithProcessCredentials(suidCreds2).WithBinaryProperties(nil)
 
 	execNormalChecker := ec.NewProcessExecChecker("exec").WithProcess(procExecNormalChecker)

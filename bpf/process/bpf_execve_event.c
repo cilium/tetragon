@@ -204,7 +204,6 @@ event_execve(struct sched_execve_args *ctx)
 	p->ktime = ktime_get_ns();
 	p->size = offsetof(struct msg_process, args);
 	p->auid = get_auid();
-	p->uid = get_current_uid_gid();
 
 	p->size += read_path(ctx, event, filename);
 	p->size += read_args(ctx, event);
@@ -221,6 +220,13 @@ event_execve(struct sched_execve_args *ctx)
 	// At this time objective and subjective creds are same
 	get_current_subj_caps(&event->caps, task);
 	get_current_subj_creds_uids(&event->creds, task);
+	/**
+	 * Instead of showing the task owner, we want to display the effective
+	 * uid that is used to calculate the privileges of current task when
+	 * acting upon other objects. This allows to be compatible with the 'ps'
+	 * tool that reports snapshot of current processes.
+	 */
+	p->uid = event->creds.euid;
 	get_namespaces(&event->ns, task);
 	__event_get_cgroup_info(task, event);
 
