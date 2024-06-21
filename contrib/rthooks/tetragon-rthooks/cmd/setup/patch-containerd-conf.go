@@ -19,15 +19,15 @@ type addLine struct {
 	line string
 }
 
-type parseState struct {
-	cnf *addOciHookCmd
+type addOCIHookState struct {
+	cnf *addOCIHookCmd
 	// poor man's patch
 	lines []addLine
 	log   *slog.Logger
 }
 
 // parseRuntime parses a runtime section
-func (st *parseState) parseRuntime(t *toml.Tree) error {
+func (st *addOCIHookState) parseRuntime(t *toml.Tree) error {
 	ty := t.Get("runtime_type")
 	if ty != "io.containerd.runc.v2" {
 		return nil
@@ -47,7 +47,7 @@ func (st *parseState) parseRuntime(t *toml.Tree) error {
 }
 
 // parseCri parses the "io.containerd.grpc.v1.cri" section of containerd config
-func (st *parseState) parseCri(t *toml.Tree) error {
+func (st *addOCIHookState) parseCri(t *toml.Tree) error {
 	pos := t.Position()
 	st.log.Info("parsing cri plugin information",
 		"line", pos.Line,
@@ -90,8 +90,8 @@ func (st *parseState) parseCri(t *toml.Tree) error {
 	return nil
 }
 
-// parseConfig parses a containerd configuration file and returns a set of lines to add
-func parseConfig(log *slog.Logger, cnf *addOciHookCmd) ([]addLine, error) {
+// addOciHook parses a containerd configuration file and returns a set of lines to add
+func addOciHook(log *slog.Logger, cnf *addOCIHookCmd) ([]addLine, error) {
 	srvConfig := srvconf.Config{}
 	file, err := toml.LoadFile(cnf.ContainerdConf)
 	if err != nil {
@@ -101,7 +101,7 @@ func parseConfig(log *slog.Logger, cnf *addOciHookCmd) ([]addLine, error) {
 		return nil, err
 	}
 
-	p := parseState{
+	p := addOCIHookState{
 		cnf: cnf,
 		log: log,
 	}
@@ -150,8 +150,8 @@ func applyChanges(fnameIn, fnameOut string, changes []addLine) error {
 	return nil
 }
 
-func (c *addOciHookCmd) Run(log *slog.Logger) error {
-	changes, err := parseConfig(log, c)
+func (c *addOCIHookCmd) Run(log *slog.Logger) error {
+	changes, err := addOciHook(log, c)
 	if err != nil {
 		return err
 	}
@@ -180,10 +180,10 @@ func (c *addOciHookCmd) Run(log *slog.Logger) error {
 }
 
 type patchContainerdConf struct {
-	AddOciHook addOciHookCmd `cmd:"" help:"add OCI hook to containerd configuration"`
+	AddOciHook addOCIHookCmd `cmd:"" help:"add OCI hook to containerd configuration"`
 }
 
-type addOciHookCmd struct {
+type addOCIHookCmd struct {
 	ContainerdConf  string `name:"config-file" default:"/etc/containerd/config.toml" help:"containerd configuration file location (input) (${default}))"`
 	BaseRuntimeSpec string `name:"runtime-spec" default:"/etc/containerd/base-spec.json" help:"base runtime spec file location (${default})"`
 	Output          string `name:"output" help:"output file (if empty, a temporary file will be created)"`
