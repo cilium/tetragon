@@ -105,6 +105,8 @@ const (
 	KeyHealthTimeInterval  = "health-server-interval"
 
 	KeyBpfDir = "bpf-dir"
+
+	KeyKeepSensorsOnExit = "keep-sensors-on-exit"
 )
 
 type UsernameMetadaCode int
@@ -222,6 +224,8 @@ func ReadAndSetFlags() error {
 	Config.HealthServerInterval = viper.GetInt(KeyHealthTimeInterval)
 
 	Config.BpfDir = viper.GetString(KeyBpfDir)
+
+	Config.KeepSensorsOnExit = viper.GetBool(KeyKeepSensorsOnExit)
 	return nil
 }
 
@@ -378,4 +382,6 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Int(KeyHealthTimeInterval, 10, "Health server interval in seconds")
 
 	flags.String(KeyBpfDir, defaults.DefaultMapPrefix, "Set tetragon bpf directory (default 'tetragon')")
+
+	flags.Bool(KeyKeepSensorsOnExit, false, "Do not unload sensors on exit")
 }

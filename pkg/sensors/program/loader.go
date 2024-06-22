@@ -60,7 +60,7 @@ func linkPinPath(bpfDir string, load *Program, extra ...string) string {
 
 func linkPin(lnk link.Link, bpfDir string, load *Program, extra ...string) error {
 	// pinned link is not configured
-	if !load.PinLink {
+	if !option.Config.KeepSensorsOnExit && !load.PinLink {
 		return nil
 	}
 	// pinned link is not supported
