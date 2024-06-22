@@ -10,6 +10,7 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/link"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/vishvananda/netlink"
 	"go.uber.org/multierr"
 	"golang.org/x/sys/unix"
@@ -57,7 +58,10 @@ type PinUnloader struct {
 
 func (pu PinUnloader) Unload() error {
 	defer pu.Prog.Close()
-	return pu.Prog.Unpin()
+	if !option.Config.KeepSensorsOnExit {
+		return pu.Prog.Unpin()
+	}
+	return nil
 }
 
 // PinUnloader unpins and closes a BPF program.

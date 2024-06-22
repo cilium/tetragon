@@ -94,6 +94,8 @@ type config struct {
 
 	HealthServerAddress  string
 	HealthServerInterval int
+
+	KeepSensorsOnExit bool
 }
 
 var (
