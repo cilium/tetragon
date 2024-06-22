@@ -134,6 +134,9 @@ options:
       usage: help for tetragon
     - name: k8s-kubeconfig-path
       usage: Absolute path of the kubernetes kubeconfig file
+    - name: keep-sensors-on-exit
+      default_value: "false"
+      usage: Do not unload sensors on exit
     - name: kernel
       usage: Kernel version
     - name: kmods

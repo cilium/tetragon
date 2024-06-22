@@ -220,6 +220,10 @@ func tetragonExecute() error {
 		log.Info("Force loading smallprograms")
 	}
 
+	if option.Config.KeepSensorsOnExit {
+		log.Info("Not unloading sensors on exit")
+	}
+
 	if viper.IsSet(option.KeyNetnsDir) {
 		defaults.NetnsDir = viper.GetString(option.KeyNetnsDir)
 	}
