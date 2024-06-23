@@ -27,10 +27,10 @@ var (
 		Help:        "The total number of Tetragon events",
 		ConstLabels: nil,
 	}, []string{"type"})
-	MissedEvents = metrics.NewBPFCounter(prometheus.NewDesc(
-		prometheus.BuildFQName(consts.MetricsNamespace, "", "missed_events_total"),
+	MissedEvents = metrics.MustNewCustomCounter(metrics.NewOpts(
+		consts.MetricsNamespace, "", "missed_events_total",
 		"The total number of Tetragon events per type that are failed to sent from the kernel.",
-		[]string{"msg_op"}, nil,
+		nil, []metrics.ConstrainedLabel{metrics.OpCodeLabel}, nil,
 	))
 	FlagCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
