@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/cilium/tetragon/pkg/api/ops"
+	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -28,10 +29,12 @@ var (
 	}, []string{"op"})
 )
 
-func InitMetrics(registry *prometheus.Registry) {
-	registry.MustRegister(MsgOpsCount)
-	registry.MustRegister(LatencyStats)
+func RegisterMetrics(group metrics.Group) {
+	group.MustRegister(MsgOpsCount)
+	group.MustRegister(LatencyStats)
+}
 
+func InitMetrics() {
 	// Initialize all metrics
 	for opcode := range ops.OpCodeStrings {
 		if opcode != ops.MsgOpUndef && opcode != ops.MsgOpTest {
@@ -39,10 +42,6 @@ func InitMetrics(registry *prometheus.Registry) {
 			LatencyStats.WithLabelValues(fmt.Sprint(int32(opcode)))
 		}
 	}
-
-	// NOTES:
-	// * op, msg_op, opcode - standardize on a label (+ add human-readable label)
-	// * Rename handling_latency to handler_latency_microseconds?
 }
 
 // Get a new handle on a msgOpsCount metric for an OpCode

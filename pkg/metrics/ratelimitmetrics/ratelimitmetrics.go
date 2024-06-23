@@ -4,6 +4,7 @@
 package ratelimitmetrics
 
 import (
+	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -17,6 +18,6 @@ var (
 	})
 )
 
-func InitMetrics(registry *prometheus.Registry) {
-	registry.MustRegister(RateLimitDropped)
+func RegisterMetrics(group metrics.Group) {
+	group.MustRegister(RateLimitDropped)
 }

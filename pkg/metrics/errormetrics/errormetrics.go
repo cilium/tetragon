@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/cilium/tetragon/pkg/api/ops"
+	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -84,10 +85,12 @@ var (
 	}, []string{"opcode", "error_type"})
 )
 
-func InitMetrics(registry *prometheus.Registry) {
-	registry.MustRegister(ErrorTotal)
-	registry.MustRegister(HandlerErrors)
+func RegisterMetrics(group metrics.Group) {
+	group.MustRegister(ErrorTotal)
+	group.MustRegister(HandlerErrors)
+}
 
+func InitMetrics() {
 	// Initialize metrics with labels
 	for er := range errorTypeLabelValues {
 		GetErrorTotal(er).Add(0)
@@ -100,13 +103,6 @@ func InitMetrics(registry *prometheus.Registry) {
 	// NB: We initialize only ops.MsgOpUndef here, but unknown_opcode can occur for any opcode
 	// that is not explicitly handled.
 	GetHandlerErrors(ops.MsgOpUndef, HandlePerfUnknownOp).Add(0)
-
-	// NOTES:
-	// * op, msg_op, opcode - standardize on a label (+ add human-readable label)
-	// * error, error_type, type - standardize on a label
-	// * Delete errors_total{type="handler_error"} - it duplicates handler_errors_total
-	// * Consider further splitting errors_total
-	// * Rename handler_errors_total to event_handler_errors_total?
 }
 
 // Get a new handle on an ErrorTotal metric for an ErrorType

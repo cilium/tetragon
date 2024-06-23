@@ -4,6 +4,7 @@
 package tracing
 
 import (
+	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -17,16 +18,15 @@ var (
 	}, []string{"count"})
 )
 
-func InitMetrics(registry *prometheus.Registry) {
-	registry.MustRegister(LoaderStats)
+func RegisterMetrics(group metrics.Group) {
+	group.MustRegister(LoaderStats)
+}
 
+func InitMetrics() {
 	// Initialize metrics with labels
 	for _, ty := range LoaderTypeStrings {
 		LoaderStats.WithLabelValues(ty).Add(0)
 	}
-
-	// NOTES:
-	// * Rename process_loader_stats metric (to e.g. process_loader_events_total) and count label (to e.g. event)?
 }
 
 type LoaderType int

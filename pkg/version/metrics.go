@@ -31,7 +31,7 @@ func (b *buildInfoCollector) Collect(ch chan<- prometheus.Metric) {
 	ch <- b.self
 }
 
-func newBuildInfoCollector() prometheus.Collector {
+func NewBuildInfoCollector() prometheus.Collector {
 	buildInfo := ReadBuildInfo()
 	c := &buildInfoCollector{
 		prometheus.MustNewConstMetric(
@@ -51,8 +51,4 @@ func newBuildInfoCollector() prometheus.Collector {
 	}
 	c.init(c.self)
 	return c
-}
-
-func InitMetrics(registry *prometheus.Registry) {
-	registry.MustRegister(newBuildInfoCollector())
 }
