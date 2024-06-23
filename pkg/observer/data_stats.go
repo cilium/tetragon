@@ -4,6 +4,7 @@
 package observer
 
 import (
+	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -42,20 +43,23 @@ var (
 	}, []string{"op"})
 )
 
-func InitMetrics(registry *prometheus.Registry) {
-	registry.MustRegister(DataEventStats)
-	registry.MustRegister(DataEventSizeHist)
+func RegisterMetrics(group metrics.Group) {
+	group.MustRegister(DataEventStats)
+	group.MustRegister(DataEventSizeHist)
+}
 
+// TODO:
+//  1. Define metrics using functions from pkg/metrics
+//  2. Move initialization code to metrics definitions if needed or remove it
+//     if not needed
+//  3. Use label values defined as metrics.ConstrainedLabel
+func InitMetrics() {
 	// Initialize metrics with labels
 	for _, ev := range DataEventTypeStrings {
 		DataEventStats.WithLabelValues(ev).Add(0)
 	}
 	DataEventSizeHist.WithLabelValues(DataEventOpOk.String())
 	DataEventSizeHist.WithLabelValues(DataEventOpBad.String())
-
-	// NOTES:
-	// * Don't confuse op in data_event_size with ops.OpCode
-	// * Don't confuse event in data_events_total with tetragon.EventType
 }
 
 type DataEventType int
