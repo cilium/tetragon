@@ -9,6 +9,7 @@ package bpf
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 	"sync"
 	"unsafe"
 
@@ -32,6 +33,7 @@ var (
 	buildid             Feature
 	modifyReturn        Feature
 	modifyReturnSyscall Feature
+	linkPin             Feature
 )
 
 func HasOverrideHelper() bool {
@@ -218,8 +220,49 @@ func HasProgramLargeSize() bool {
 	return features.HaveLargeInstructions() == nil
 }
 
+func detectLinkPin() (bool, error) {
+	prog, err := ebpf.NewProgram(&ebpf.ProgramSpec{
+		Name: "probe_bpf_kprobe",
+		Type: ebpf.Kprobe,
+		Instructions: asm.Instructions{
+			asm.Mov.Imm(asm.R0, 0),
+			asm.Return(),
+		},
+		License: "MIT",
+	})
+	if err != nil {
+		return false, err
+	}
+	defer prog.Close()
+
+	lnk, err := link.Kprobe("vprintk", prog, nil)
+	if err != nil {
+		return false, err
+	}
+	defer lnk.Close()
+
+	if err := lnk.Pin(filepath.Join(GetMapRoot(), "test-link")); err != nil {
+		return false, err
+	}
+	lnk.Unpin()
+	return true, nil
+}
+
+func HasLinkPin() bool {
+	linkPin.init.Do(func() {
+		var err error
+
+		linkPin.detected, err = detectLinkPin()
+		if err != nil {
+			logger.GetLogger().WithError(err).Error("detect link pin")
+		}
+	})
+	return linkPin.detected
+}
+
 func LogFeatures() string {
-	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, uprobe_multi %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t",
+	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, uprobe_multi %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t, link_pin: %t",
 		HasOverrideHelper(), HasBuildId(), HasKprobeMulti(), HasUprobeMulti(),
-		HasModifyReturn(), HasModifyReturnSyscall(), HasSignalHelper(), HasProgramLargeSize())
+		HasModifyReturn(), HasModifyReturnSyscall(), HasSignalHelper(), HasProgramLargeSize(),
+		HasLinkPin())
 }
