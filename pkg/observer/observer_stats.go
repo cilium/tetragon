@@ -9,6 +9,7 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/mapmetrics"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
@@ -16,20 +17,19 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// bpfCollector implements prometheus.Collector. It collects metrics directly from BPF maps.
-type bpfCollector struct{}
-
-func NewBPFCollector() prometheus.Collector {
-	return &bpfCollector{}
+func NewBPFCollector() metrics.CollectorWithInit {
+	return metrics.NewCustomCollector(
+		metrics.CustomMetrics{
+			mapmetrics.MapSize,
+			mapmetrics.MapCapacity,
+			mapmetrics.MapErrors,
+		},
+		collect,
+		collectForDocs,
+	)
 }
 
-func (c *bpfCollector) Describe(ch chan<- *prometheus.Desc) {
-	ch <- mapmetrics.MapSize.Desc()
-	ch <- mapmetrics.MapCapacity.Desc()
-	ch <- mapmetrics.MapErrors.Desc()
-}
-
-func (c *bpfCollector) Collect(ch chan<- prometheus.Metric) {
+func collect(ch chan<- prometheus.Metric) {
 	statsSuffix := "_stats"
 	// Depending on the sensors that are loaded and the dependencies between them,
 	// sensors.AllMaps may have the same map name multiple times. This can cause in
@@ -113,43 +113,10 @@ func updateMapErrors(ch chan<- prometheus.Metric, mapLinkStats *ebpf.Map, name s
 	)
 }
 
-// bpfZeroCollector implements prometheus.Collector. It collects "zero" metrics.
-// It's intended to be used when BPF metrics are not collected, but we still want
-// Prometheus metrics to be exposed.
-type bpfZeroCollector struct {
-	bpfCollector
-}
-
-func NewBPFZeroCollector() prometheus.Collector {
-	return &bpfZeroCollector{
-		bpfCollector: bpfCollector{},
-	}
-}
-
-func (c *bpfZeroCollector) Describe(ch chan<- *prometheus.Desc) {
-	c.bpfCollector.Describe(ch)
-}
-
-func (c *bpfZeroCollector) Collect(ch chan<- prometheus.Metric) {
-	// This list should contain all monitored maps.
-	// These are not maps from which metrics are read in the "real" collector -
-	// the metrics are stored in separate maps suffixed with "_stats".
-	monitoredMaps := []string{
-		"execve_map",
-		"tg_execve_joined_info_map",
-	}
-	for _, m := range monitoredMaps {
-		ch <- mapmetrics.MapSize.MustMetric(
-			0,
-			m,
-		)
-		ch <- mapmetrics.MapCapacity.MustMetric(
-			0,
-			m,
-		)
-		ch <- mapmetrics.MapErrors.MustMetric(
-			0,
-			m,
-		)
+func collectForDocs(ch chan<- prometheus.Metric) {
+	for _, m := range mapmetrics.MapLabel.Values {
+		ch <- mapmetrics.MapSize.MustMetric(0, m)
+		ch <- mapmetrics.MapCapacity.MustMetric(0, m)
+		ch <- mapmetrics.MapErrors.MustMetric(0, m)
 	}
 }
