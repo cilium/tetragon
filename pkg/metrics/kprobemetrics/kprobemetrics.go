@@ -4,6 +4,7 @@
 package kprobemetrics
 
 import (
+	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -45,18 +46,13 @@ var (
 	})
 )
 
-func InitMetrics(registry *prometheus.Registry) {
-	registry.MustRegister(MergeErrors)
-	registry.MustRegister(MergeOkTotal)
-	registry.MustRegister(MergePushed)
-
-	// NOTES:
-	// * Consider merging ok and errors into one with status label
+func RegisterMetrics(group metrics.Group) {
+	group.MustRegister(MergeErrors)
+	group.MustRegister(MergeOkTotal)
+	group.MustRegister(MergePushed)
 }
 
-func InitMetricsForDocs(registry *prometheus.Registry) {
-	InitMetrics(registry)
-
+func InitMetricsForDocs() {
 	// Initialize metrics with example labels
 	for _, curr := range mergeErrorTypeLabelValues {
 		for _, prev := range mergeErrorTypeLabelValues {

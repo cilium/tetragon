@@ -4,6 +4,7 @@
 package policyfiltermetrics
 
 import (
+	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -80,9 +81,11 @@ var (
 	})
 )
 
-func InitMetrics(registry *prometheus.Registry) {
-	registry.MustRegister(PolicyFilterOpMetrics, PolicyFilterHookContainerNameMissingMetrics)
+func RegisterMetrics(group metrics.Group) {
+	group.MustRegister(PolicyFilterOpMetrics, PolicyFilterHookContainerNameMissingMetrics)
+}
 
+func InitMetrics() {
 	// Initialize metrics with labels
 	for _, subsys := range subsysLabelValues {
 		for _, op := range operationLabelValues {
@@ -93,10 +96,6 @@ func InitMetrics(registry *prometheus.Registry) {
 			}
 		}
 	}
-
-	// NOTES:
-	// * Don't confuse op in policyfilter_metrics_total with ops.OpCode
-	// * Rename policyfilter_metrics_total to get rid of _metrics?
 }
 
 func OpInc(subsys Subsys, op Operation, err string) {

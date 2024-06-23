@@ -5,6 +5,7 @@ package eventcachemetrics
 
 import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -79,14 +80,16 @@ var (
 	}, []string{"event_type"})
 )
 
-func InitMetrics(registry *prometheus.Registry) {
-	registry.MustRegister(processInfoErrors)
-	registry.MustRegister(podInfoErrors)
-	registry.MustRegister(EventCacheCount)
-	registry.MustRegister(eventCacheErrorsTotal)
-	registry.MustRegister(eventCacheRetriesTotal)
-	registry.MustRegister(parentInfoErrors)
+func RegisterMetrics(group metrics.Group) {
+	group.MustRegister(processInfoErrors)
+	group.MustRegister(podInfoErrors)
+	group.MustRegister(EventCacheCount)
+	group.MustRegister(eventCacheErrorsTotal)
+	group.MustRegister(eventCacheRetriesTotal)
+	group.MustRegister(parentInfoErrors)
+}
 
+func InitMetrics() {
 	// Initialize metrics with labels
 	for en := range cacheEntryTypeLabelValues {
 		EventCacheRetries(en).Add(0)
@@ -101,11 +104,6 @@ func InitMetrics(registry *prometheus.Registry) {
 			}
 		}
 	}
-
-	// NOTES:
-	// * error, error_type, type - standardize on a label
-	// * event, event_type, type - standardize on a label
-	// * Consider merging event cache errors metrics into one with error, event, entry labels
 }
 
 // Get a new handle on a processInfoErrors metric for an eventType

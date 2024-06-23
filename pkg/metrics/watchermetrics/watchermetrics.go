@@ -4,6 +4,7 @@
 package watchermetrics
 
 import (
+	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -45,16 +46,15 @@ var (
 	}, []string{"watcher"})
 )
 
-func InitMetrics(registry *prometheus.Registry) {
-	registry.MustRegister(WatcherErrors)
-	registry.MustRegister(WatcherEvents)
+func RegisterMetrics(group metrics.Group) {
+	group.MustRegister(WatcherErrors)
+	group.MustRegister(WatcherEvents)
+}
 
+func InitMetrics() {
 	// Initialize metrics with labels
 	GetWatcherEvents(K8sWatcher).Add(0)
 	GetWatcherErrors(K8sWatcher, FailedToGetPodError).Add(0)
-
-	// NOTES:
-	// * error, error_type, type - standardize on a label
 }
 
 // Get a new handle on an WatcherEvents metric for a watcher type
