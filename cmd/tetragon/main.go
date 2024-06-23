@@ -208,8 +208,6 @@ func tetragonExecute() error {
 	}
 	defer pidfile.Delete()
 
-	log.Info("BPF detected features: ", bpf.LogFeatures())
-
 	if option.Config.ForceLargeProgs && option.Config.ForceSmallProgs {
 		log.Fatalf("Can't specify --force-small-progs and --force-large-progs together")
 	}
@@ -244,6 +242,9 @@ func tetragonExecute() error {
 	bpf.CheckOrMountFS("")
 	bpf.CheckOrMountDebugFS()
 	bpf.CheckOrMountCgroup2()
+
+	// we need file system mounts setup above before we detect features
+	log.Info("BPF detected features: ", bpf.LogFeatures())
 
 	if option.Config.PprofAddr != "" {
 		go func() {
