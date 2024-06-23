@@ -40,7 +40,7 @@ tetragon_tracingpolicy_loaded{state="load_error"} %d
 	observer.SetSensorManager(manager)
 	t.Cleanup(observer.ResetSensorManager)
 
-	collector := newPolicyStateCollector()
+	collector := NewPolicyStateCollector()
 	reg.Register(collector)
 
 	err := manager.AddTracingPolicy(context.TODO(), &tracingpolicy.GenericTracingPolicy{
