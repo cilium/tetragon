@@ -3,7 +3,12 @@
 
 package metrics
 
-import "github.com/prometheus/client_golang/prometheus"
+import (
+	"fmt"
+
+	"github.com/cilium/tetragon/pkg/api/ops"
+	"github.com/prometheus/client_golang/prometheus"
+)
 
 // ConstrainedLabel represents a label with constrained cardinality.
 // Values is a list of all possible values of the label.
@@ -37,4 +42,24 @@ func promContainsLabel(labels prometheus.ConstrainedLabels, label string) bool {
 		}
 	}
 	return false
+}
+
+// TODO: Standardize labels used by different metrics: op, msg_op, opcode.
+// Also, add a human-readable counterpart.
+var OpCodeLabel = ConstrainedLabel{
+	Name: "msg_op",
+	// These are numbers, not human-readable names.
+	Values: getOpcodes(),
+}
+
+func getOpcodes() []string {
+	result := make([]string, len(ops.OpCodeStrings)-2)
+	i := 0
+	for opcode := range ops.OpCodeStrings {
+		if opcode != ops.MsgOpUndef && opcode != ops.MsgOpTest {
+			result[i] = fmt.Sprint(int32(opcode))
+			i++
+		}
+	}
+	return result
 }
