@@ -4,6 +4,7 @@
 package ringbufmetrics
 
 import (
+	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -29,8 +30,8 @@ var (
 	})
 )
 
-func InitMetrics(registry *prometheus.Registry) {
-	registry.MustRegister(PerfEventReceived)
-	registry.MustRegister(PerfEventLost)
-	registry.MustRegister(PerfEventErrors)
+func RegisterMetrics(group metrics.Group) {
+	group.MustRegister(PerfEventReceived)
+	group.MustRegister(PerfEventLost)
+	group.MustRegister(PerfEventErrors)
 }

@@ -4,6 +4,7 @@
 package process
 
 import (
+	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -45,7 +46,7 @@ func NewCacheCollector() prometheus.Collector {
 	}
 }
 
-func InitMetrics(registry *prometheus.Registry) {
-	registry.MustRegister(ProcessCacheTotal)
-	registry.MustRegister(NewCacheCollector())
+func RegisterMetrics(group metrics.Group) {
+	group.MustRegister(ProcessCacheTotal)
+	group.MustRegister(NewCacheCollector())
 }

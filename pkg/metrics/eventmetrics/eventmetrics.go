@@ -53,19 +53,22 @@ var (
 	}, []string{"policy", "hook"})
 )
 
-func InitHealthMetrics(registry *prometheus.Registry) {
-	registry.MustRegister(FlagCount)
-	registry.MustRegister(NotifyOverflowedEvents)
-	// custom collectors are registered independently
+func RegisterHealthMetrics(group metrics.Group) {
+	group.MustRegister(FlagCount)
+	group.MustRegister(NotifyOverflowedEvents)
+	group.MustRegister(NewBPFCollector())
+}
 
+// TODO:
+//  1. Define metrics using functions from pkg/metrics
+//  2. Move initialization code to metrics definitions if needed or remove it
+//     if not needed
+//  3. Use label values defined as metrics.ConstrainedLabel
+func InitHealthMetrics() {
 	// Initialize metrics with labels
 	for _, v := range exec.FlagStrings {
 		FlagCount.WithLabelValues(v).Add(0)
 	}
-
-	// NOTES:
-	// * op, msg_op, opcode - standardize on a label (+ add human-readable label)
-	// * event, event_type, type - standardize on a label
 }
 
 func InitEventsMetrics(registry *prometheus.Registry) {
