@@ -330,7 +330,8 @@ func main() {
 		err, annotations := createContainerHook(log)
 		if err != nil {
 			if shouldFail := checkFail(log, failTestProg, annotations); shouldFail != nil {
-				log.Warn("failing container", "error", shouldFail)
+				log.Warn("failing container", "should-fail", shouldFail, "error", err)
+				fmt.Fprintf(os.Stderr, "failing container: %v. Check logs (%s) for additional info", err, cliConf.LogFname)
 				os.Exit(1)
 			}
 		}
