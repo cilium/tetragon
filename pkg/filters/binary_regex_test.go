@@ -152,3 +152,52 @@ func TestBinaryRegexFilterInvalidEvent(t *testing.T) {
 		Event: &tetragon.GetEventsResponse_ProcessExec{ProcessExec: &tetragon.ProcessExec{Process: nil}},
 	}}))
 }
+
+func TestParentBinaryRegexFilter(t *testing.T) {
+	f := []*tetragon.Filter{{ParentBinaryRegex: []string{"bash", "zsh"}}}
+	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&ParentBinaryRegexFilter{}})
+	assert.NoError(t, err)
+	ev := v1.Event{
+		Event: &tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessExec{
+				ProcessExec: &tetragon.ProcessExec{
+					Process: &tetragon.Process{Binary: "/sbin/iptables"},
+				},
+			},
+		},
+	}
+	assert.False(t, fl.MatchOne(&ev))
+	ev = v1.Event{
+		Event: &tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessExec{
+				ProcessExec: &tetragon.ProcessExec{
+					Parent:  &tetragon.Process{Binary: "/bin/foo"},
+					Process: &tetragon.Process{Binary: "/sbin/iptables"},
+				},
+			},
+		},
+	}
+	assert.False(t, fl.MatchOne(&ev))
+	ev = v1.Event{
+		Event: &tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessExec{
+				ProcessExec: &tetragon.ProcessExec{
+					Parent:  &tetragon.Process{Binary: "/bin/bash"},
+					Process: &tetragon.Process{Binary: "/sbin/iptables"},
+				},
+			},
+		},
+	}
+	assert.True(t, fl.MatchOne(&ev))
+	ev = v1.Event{
+		Event: &tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessExec{
+				ProcessExec: &tetragon.ProcessExec{
+					Parent:  &tetragon.Process{Binary: "/bin/zsh"},
+					Process: &tetragon.Process{Binary: "/sbin/iptables"},
+				},
+			},
+		},
+	}
+	assert.True(t, fl.MatchOne(&ev))
+}

@@ -56,6 +56,8 @@ message Filter {
     repeated string policy_names = 10;
 	// Filter events by Linux process capability
 	CapFilter capabilities = 11;
+    // Filter parent process' binary using RE2 regular expression syntax.
+    repeated string parent_binary_regex = 12;
 }
 
 // Filter over a set of Linux process capabilities. See `message Capabilities`

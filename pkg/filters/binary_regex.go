@@ -13,7 +13,7 @@ import (
 	hubbleFilters "github.com/cilium/tetragon/pkg/oldhubble/filters"
 )
 
-func filterByBinaryRegex(binaryPatterns []string) (hubbleFilters.FilterFunc, error) {
+func filterByBinaryRegex(binaryPatterns []string, parent bool) (hubbleFilters.FilterFunc, error) {
 	var binaries []*regexp.Regexp
 	for _, pattern := range binaryPatterns {
 		query, err := regexp.Compile(pattern)
@@ -23,7 +23,13 @@ func filterByBinaryRegex(binaryPatterns []string) (hubbleFilters.FilterFunc, err
 		binaries = append(binaries, query)
 	}
 	return func(ev *v1.Event) bool {
-		process := GetProcess(ev)
+		var process *tetragon.Process
+		if parent {
+			process = GetParent(ev)
+
+		} else {
+			process = GetProcess(ev)
+		}
 		if process == nil {
 			return false
 		}
@@ -41,11 +47,25 @@ type BinaryRegexFilter struct{}
 func (f *BinaryRegexFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]hubbleFilters.FilterFunc, error) {
 	var fs []hubbleFilters.FilterFunc
 	if ff.BinaryRegex != nil {
-		dnsFilters, err := filterByBinaryRegex(ff.BinaryRegex)
+		filters, err := filterByBinaryRegex(ff.BinaryRegex, false)
 		if err != nil {
 			return nil, err
 		}
-		fs = append(fs, dnsFilters)
+		fs = append(fs, filters)
+	}
+	return fs, nil
+}
+
+type ParentBinaryRegexFilter struct{}
+
+func (f *ParentBinaryRegexFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]hubbleFilters.FilterFunc, error) {
+	var fs []hubbleFilters.FilterFunc
+	if ff.ParentBinaryRegex != nil {
+		filters, err := filterByBinaryRegex(ff.ParentBinaryRegex, true)
+		if err != nil {
+			return nil, err
+		}
+		fs = append(fs, filters)
 	}
 	return fs, nil
 }
