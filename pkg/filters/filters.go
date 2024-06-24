@@ -84,6 +84,7 @@ func BuildFilterList(ctx context.Context, ff []*tetragon.Filter, filterFuncs []O
 // Filters is the list of default filters
 var Filters = []OnBuildFilter{
 	&BinaryRegexFilter{},
+	&ParentBinaryRegexFilter{},
 	&HealthCheckFilter{},
 	&NamespaceFilter{},
 	&PidFilter{},
