@@ -16,6 +16,7 @@ usage() {
         echo "   -d|--debug:        configure hook to log debug info"
         echo "   -k|--keep-tmpdir:  do not delete the temporary directory"
         echo "   -i|--install-hook: only install hook, do not mess with runtime conf"
+        echo "      --nri:          install nri hook (only for containerd)"
 }
 
 declare -A conf=()
@@ -36,6 +37,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     -i|--install-hook)
       install_hook=1
+      shift
+      ;;
+    --nri)
+      nri=1
       shift
       ;;
     -h|--help)
@@ -63,8 +68,8 @@ fi
 
 set -x
 
-make -C ${SCRIPTPATH}/tetragon-oci-hook
-SETUPBIN=${SCRIPTPATH}/tetragon-oci-hook/tetragon-oci-hook-setup
+make -C ${SCRIPTPATH}/
+SETUPBIN=${SCRIPTPATH}/tetragon-oci-hook-setup
 
 
 minikube ssh -- sudo mkdir -p $HOOKDIR
@@ -80,34 +85,44 @@ fi
 minikube cp $LOCALHOOK $HOOKNAME
 minikube ssh -- sudo chmod +x $HOOKNAME
 
+if [ "$install_hook" == "1" ]; then
+    echo "Only supposed to install hook, bailing out"
+    exit 0
+fi
+
 install_containerd() {
-	echo "Installing containerd OCI hook"
-	mapfile -d '' JQCMD <<-EOF
-	. += { "hooks": {
-		"createRuntime": [{"path": "$HOOKNAME", "args": ["$BASEHOOKNAME", "createRuntime"] }],
-		"createContainer": [{"path": "$HOOKNAME", "args": ["$BASEHOOKNAME", "createContainer"] }],
-	}}
-	EOF
+    if [ "$nri" == "1" ]; then
+        echo "Enabling containerd NRI hook"
+        minikube ssh cat /etc/containerd/config.toml > $xdir/config.old.toml
+        $SETUPBIN patch-containerd-conf enable-nri --config-file $xdir/config.old.toml --output $xdir/config.toml
+        diff -u $xdir/config.old.toml $xdir/config.toml || true
+        minikube cp $xdir/config.toml /etc/containerd/config.toml
+        minikube ssh sudo systemctl restart containerd
+    else
+        echo "Installing containerd OCI hook"
+        mapfile -d '' JQCMD <<-EOF
+        . += { "hooks": {
+            "createRuntime": [{"path": "$HOOKNAME", "args": ["$BASEHOOKNAME", "createRuntime"] }],
+            "createContainer": [{"path": "$HOOKNAME", "args": ["$BASEHOOKNAME", "createContainer"] }],
+        }}
+        EOF
 
         minikube ssh ctr oci spec | jq "$JQCMD" > $xdir/base-spec.json
         minikube cp $xdir/base-spec.json /etc/containerd/base-spec.json
         minikube ssh cat /etc/containerd/config.toml > $xdir/config.old.toml
         $SETUPBIN patch-containerd-conf add-oci-hook --config-file $xdir/config.old.toml --output $xdir/config.toml
-	diff -u $xdir/config.old.toml $xdir/config.toml
+        diff -u $xdir/config.old.toml $xdir/config.toml || true
         minikube cp $xdir/config.toml /etc/containerd/config.toml
         minikube ssh sudo systemctl restart containerd
+    fi
 }
 
 install_crio() {
-	echo "Installing CRIO OCI hook"
-	$SETUPBIN print-config --interface=oci-hooks --binary=$HOOKNAME > $xdir/hook.json
+        echo "Installing CRIO OCI hook"
+        $SETUPBIN print-config --interface=oci-hooks --binary=$HOOKNAME > $xdir/hook.json
         minikube cp $xdir/hook.json /usr/share/containers/oci/hooks.d/teragon-oci-hook.json
 }
 
-if [ "$install_hook" == "1" ]; then
-    echo "Only supposed to install hook, bailing out"
-    exit 0
-fi
 
 crictlcmd=$(minikube ssh -- 'sudo crictl version | sed -ne "s/RuntimeName:[[:space:]]\+\(.*\)/\1/p"')
 if [[ "$crictlcmd" =~ "containerd" ]]; then
