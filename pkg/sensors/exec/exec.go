@@ -7,8 +7,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"os/user"
-	"strconv"
 	"unsafe"
 
 	"github.com/cilium/tetragon/pkg/api"
@@ -22,6 +20,7 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
+	"github.com/cilium/tetragon/pkg/reader/userdb"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 	"github.com/cilium/tetragon/pkg/sensors/program"
@@ -76,9 +75,8 @@ func msgToExecveAccountUnix(m *exec.MsgExecveEventUnix) {
 	if option.Config.UsernameMetadata == int(option.USERNAME_METADATA_UNIX) {
 		if ns, err := namespace.GetMsgNamespaces(m.Unix.Msg.Namespaces); err == nil {
 			if ns.Mnt.IsHost && ns.User.IsHost {
-				// use Golang user.LookupId() as we want to only parse /etc/passwd for now
-				if userInfo, err := user.LookupId(strconv.FormatUint(uint64(m.Unix.Process.UID), 10)); err == nil {
-					m.Unix.Process.User.Name = userInfo.Username
+				if username, err := userdb.UsersCache.LookupUser(m.Unix.Process.UID); err == nil {
+					m.Unix.Process.User.Name = username
 				}
 			}
 		}
