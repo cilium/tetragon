@@ -242,6 +242,7 @@ func tetragonExecute() error {
 	bpf.CheckOrMountFS("")
 	bpf.CheckOrMountDebugFS()
 	bpf.CheckOrMountCgroup2()
+	bpf.SetMapPrefix(option.Config.BpfDir)
 
 	// we need file system mounts setup above before we detect features
 	log.Info("BPF detected features: ", bpf.LogFeatures())

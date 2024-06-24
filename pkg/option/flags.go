@@ -103,6 +103,8 @@ const (
 
 	KeyHealthServerAddress = "health-server-address"
 	KeyHealthTimeInterval  = "health-server-interval"
+
+	KeyBpfDir = "bpf-dir"
 )
 
 type UsernameMetadaCode int
@@ -218,6 +220,8 @@ func ReadAndSetFlags() error {
 	Config.CgroupRate = ParseCgroupRate(viper.GetString(KeyCgroupRate))
 	Config.HealthServerAddress = viper.GetString(KeyHealthServerAddress)
 	Config.HealthServerInterval = viper.GetInt(KeyHealthTimeInterval)
+
+	Config.BpfDir = viper.GetString(KeyBpfDir)
 	return nil
 }
 
@@ -372,4 +376,6 @@ func AddFlags(flags *pflag.FlagSet) {
 
 	flags.String(KeyHealthServerAddress, ":6789", "Health server address (e.g. ':6789')(use '' to disabled it)")
 	flags.Int(KeyHealthTimeInterval, 10, "Health server interval in seconds")
+
+	flags.String(KeyBpfDir, defaults.DefaultMapPrefix, "Set tetragon bpf directory (default 'tetragon')")
 }
