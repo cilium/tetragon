@@ -3,7 +3,7 @@
 
 GO ?= go
 
-all: tetragon-oci-hook tetragon-oci-hook-setup
+all: tetragon-oci-hook tetragon-oci-hook-setup tetragon-nri-hook
 
 images: setup-image setup-image-debug
 
@@ -20,6 +20,9 @@ tetragon-oci-hook-setup: FORCE
 
 tetragon-oci-hook: FORCE
 	CGO_ENABLED=0 $(GO) build -o $@ ./cmd/oci-hook
+
+tetragon-nri-hook: FORCE
+	CGO_ENABLED=0 $(GO) build -o $@ ./cmd/nri-hook
 
 .PHONY: vendor
 vendor:

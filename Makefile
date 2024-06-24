@@ -190,6 +190,9 @@ tetragon-operator:
 tetragon-oci-hook:
 	$(GO_BUILD_HOOK) -o $@ ./cmd/oci-hook
 
+tetragon-nri-hook:
+	$(GO_BUILD_HOOK) -o $@ ./cmd/nri-hook
+
 tetragon-oci-hook-setup:
 	$(GO_BUILD_HOOK) -o $@ ./cmd/setup
 
