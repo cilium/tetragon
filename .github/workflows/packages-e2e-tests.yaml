@@ -49,7 +49,10 @@ jobs:
 
       - name: Generate Tetragon Tarball
         id: tetragon-tarball
-        run: make tarball
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+          make tarball
 
       - name: Copy bpf.yaml tracing policy to /etc/tetragon/tetragon.tp.d/
         run: |
