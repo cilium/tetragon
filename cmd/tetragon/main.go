@@ -157,6 +157,34 @@ func stopProfile() {
 	}
 }
 
+func getOldBpfDir(path string) (string, error) {
+	if _, err := os.Stat(path); err != nil {
+		return "", nil
+	}
+	old := path + "_old"
+	// remove the 'xxx_old' leftover if neded
+	if _, err := os.Stat(old); err == nil {
+		os.RemoveAll(old)
+		log.Info("Found bpf leftover instance, removing: %s", old)
+	}
+	if err := os.Rename(path, old); err != nil {
+		return "", err
+	}
+	log.Infof("Found bpf instance: %s, moved to: %s", path, old)
+	return old, nil
+}
+
+func deleteOldBpfDir(path string) {
+	if path == "" {
+		return
+	}
+	if err := os.RemoveAll(path); err != nil {
+		log.Errorf("Failed to remove old bpf instance '%s': %s\n", path, err)
+		return
+	}
+	log.Infof("Removed bpf instance: %s", path)
+}
+
 func tetragonExecute() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -247,6 +275,11 @@ func tetragonExecute() error {
 	bpf.CheckOrMountDebugFS()
 	bpf.CheckOrMountCgroup2()
 	bpf.SetMapPrefix(option.Config.BpfDir)
+
+	oldBpfDir, err := getOldBpfDir(bpf.MapPrefixPath())
+	if err != nil {
+		return fmt.Errorf("Failed to move old tetragon base directory: %w", err)
+	}
 
 	// we need file system mounts setup above before we detect features
 	log.Info("BPF detected features: ", bpf.LogFeatures())
@@ -482,6 +515,8 @@ func tetragonExecute() error {
 			return err
 		}
 	}
+
+	deleteOldBpfDir(oldBpfDir)
 
 	// k8s should have metrics, so periodically log only in a non k8s
 	if !option.Config.EnableK8s {
