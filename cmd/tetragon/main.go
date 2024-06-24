@@ -39,7 +39,7 @@ import (
 	"github.com/cilium/tetragon/pkg/health"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics"
-	"github.com/cilium/tetragon/pkg/metrics/metricsconfig"
+	"github.com/cilium/tetragon/pkg/metricsconfig"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/pidfile"
@@ -357,8 +357,8 @@ func tetragonExecute() error {
 	}
 
 	if option.Config.MetricsServer != "" {
-		go metrics.EnableMetrics(option.Config.MetricsServer)
-		metricsconfig.InitAllMetrics(metrics.GetRegistry())
+		go metricsconfig.EnableMetrics(option.Config.MetricsServer)
+		metricsconfig.InitAllMetrics(metricsconfig.GetRegistry())
 		go metrics.StartPodDeleteHandler()
 		// Handler must be registered before the watcher is started
 		metrics.RegisterPodDeleteHandler()

@@ -10,7 +10,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
 
-	"github.com/cilium/tetragon/pkg/metrics/metricsconfig"
+	"github.com/cilium/tetragon/pkg/metricsconfig"
 )
 
 func New() *cobra.Command {
