@@ -21,8 +21,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/cgrouprate"
 	"github.com/cilium/tetragon/pkg/encoder"
-	"github.com/cilium/tetragon/pkg/metrics"
-	"github.com/cilium/tetragon/pkg/metrics/metricsconfig"
+	"github.com/cilium/tetragon/pkg/metricsconfig"
 	"github.com/cilium/tetragon/pkg/observer"
 	hubbleV1 "github.com/cilium/tetragon/pkg/oldhubble/api/v1"
 	hubbleCilium "github.com/cilium/tetragon/pkg/oldhubble/cilium"
@@ -265,8 +264,8 @@ func getDefaultObserver(tb testing.TB, ctx context.Context, initialSensor *senso
 	// at some point in the future. I just don't see a better way that doesn't involve
 	// a lot of code changes in a lot of a files.
 	if !metricsEnabled {
-		go metrics.EnableMetrics(metricsAddr)
-		metricsconfig.InitAllMetrics(metrics.GetRegistry())
+		go metricsconfig.EnableMetrics(metricsAddr)
+		metricsconfig.InitAllMetrics(metricsconfig.GetRegistry())
 		metricsEnabled = true
 	}
 

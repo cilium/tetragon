@@ -17,7 +17,7 @@ import (
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/eventmetrics"
-	"github.com/cilium/tetragon/pkg/metrics/metricsconfig"
+	"github.com/cilium/tetragon/pkg/metricsconfig"
 )
 
 var sampleMsgGenericTracepointUnix = tracing.MsgGenericTracepointUnix{
@@ -25,7 +25,7 @@ var sampleMsgGenericTracepointUnix = tracing.MsgGenericTracepointUnix{
 }
 
 func TestPodDelete(t *testing.T) {
-	reg := metrics.GetRegistry()
+	reg := metricsconfig.GetRegistry()
 	metricsconfig.InitAllMetrics(reg)
 
 	// Process four events, each one with different combination of pod/namespace.
