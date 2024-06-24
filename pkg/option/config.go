@@ -34,6 +34,8 @@ type config struct {
 
 	GopsAddr string
 
+	// On start used to store bpf prefix for --bpf-dir option,
+	// then it's updated to cary the whole path
 	BpfDir string
 
 	LogOpts map[string]string

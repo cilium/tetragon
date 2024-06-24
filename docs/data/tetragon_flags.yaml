@@ -3,6 +3,9 @@ synopsis: |
     Tetragon - eBPF-based Security Observability and Runtime Enforcement
 usage: tetragon [flags]
 options:
+    - name: bpf-dir
+      default_value: tetragon
+      usage: Set tetragon bpf directory (default 'tetragon')
     - name: bpf-lib
       default_value: /var/lib/tetragon/
       usage: Location of Tetragon libs (btf and bpf files)
