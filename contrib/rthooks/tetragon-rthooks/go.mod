@@ -10,6 +10,7 @@ require (
 	github.com/cilium/lumberjack/v2 v2.3.0
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/containerd/containerd v1.7.17
+	github.com/containerd/nri v0.6.1
 	github.com/containers/common v0.59.1
 	github.com/google/cel-go v0.20.1
 	github.com/opencontainers/runc v1.1.13
@@ -47,6 +48,7 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240415180920-8c6c420018be // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	k8s.io/cri-api v0.27.1 // indirect
 )
 
 replace github.com/cilium/tetragon/api => ../../../api

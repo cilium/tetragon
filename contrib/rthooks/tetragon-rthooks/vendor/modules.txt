@@ -39,6 +39,13 @@ github.com/containerd/containerd/services/server/config
 # github.com/containerd/log v0.1.0
 ## explicit; go 1.20
 github.com/containerd/log
+# github.com/containerd/nri v0.6.1
+## explicit; go 1.19
+github.com/containerd/nri/pkg/api
+github.com/containerd/nri/pkg/log
+github.com/containerd/nri/pkg/net
+github.com/containerd/nri/pkg/net/multiplex
+github.com/containerd/nri/pkg/stub
 # github.com/containerd/ttrpc v1.2.4
 ## explicit; go 1.19
 github.com/containerd/ttrpc
@@ -68,7 +75,10 @@ github.com/docker/go-events
 github.com/godbus/dbus/v5
 # github.com/gogo/protobuf v1.3.2
 ## explicit; go 1.15
+github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/proto
+github.com/gogo/protobuf/protoc-gen-gogo/descriptor
+github.com/gogo/protobuf/sortkeys
 # github.com/google/cel-go v0.20.1
 ## explicit; go 1.18
 github.com/google/cel-go/cel
@@ -264,4 +274,7 @@ google.golang.org/protobuf/types/known/wrapperspb
 # gopkg.in/yaml.v3 v3.0.1
 ## explicit
 gopkg.in/yaml.v3
+# k8s.io/cri-api v0.27.1
+## explicit; go 1.20
+k8s.io/cri-api/pkg/apis/runtime/v1
 # github.com/cilium/tetragon/api => ../../../api
