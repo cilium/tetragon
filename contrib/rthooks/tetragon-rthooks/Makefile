@@ -3,17 +3,11 @@
 
 GO ?= go
 
-all: tetragon-oci-hook tetragon-oci-hook-setup tetragon-nri-hook
+progs = tetragon-oci-hook \
+	tetragon-oci-hook-setup \
+	tetragon-nri-hook
 
-images: setup-image setup-image-debug
-
-.PHONY: setup-image
-setup-image:
-	docker build . -f dockerfiles/setup -t quay.io/isovalent/tetragon-oci-hook-setup:latest
-
-.PHONY: setup-image-debug
-setup-image-debug:
-	docker build . -f dockerfiles/setup --build-arg BASE_IMAGE=ubuntu -t quay.io/isovalent/tetragon-oci-hook-setup:debug-latest
+all: $(progs)
 
 tetragon-oci-hook-setup: FORCE
 	CGO_ENABLED=0 $(GO) build -o $@ ./cmd/setup
@@ -23,6 +17,9 @@ tetragon-oci-hook: FORCE
 
 tetragon-nri-hook: FORCE
 	CGO_ENABLED=0 $(GO) build -o $@ ./cmd/nri-hook
+
+clean:
+	rm -f $(progs)
 
 .PHONY: vendor
 vendor:
