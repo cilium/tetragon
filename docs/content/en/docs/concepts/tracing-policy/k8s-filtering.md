@@ -1,12 +1,8 @@
 ---
-title: "K8s Policy Filtering"
+title: "Kubernetes Identity Aware Policies"
 weight: 4
 description: "Tetragon in-kernel filtering based on Kubernetes namespaces, pod labels, and container fields"
 ---
-
-{{< caution >}}
-This is currently a beta feature.
-{{< /caution >}}
 
 ## Motivation
 
