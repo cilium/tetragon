@@ -22,7 +22,7 @@ github.com/cilium/ebpf/link
 # github.com/cilium/lumberjack/v2 v2.3.0
 ## explicit; go 1.13
 github.com/cilium/lumberjack/v2
-# github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000 => ../../../api
+# github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000 => ../../api
 ## explicit; go 1.22.1
 github.com/cilium/tetragon/api/v1/tetragon
 # github.com/containerd/containerd v1.7.17
@@ -277,4 +277,4 @@ gopkg.in/yaml.v3
 # k8s.io/cri-api v0.27.1
 ## explicit; go 1.20
 k8s.io/cri-api/pkg/apis/runtime/v1
-# github.com/cilium/tetragon/api => ../../../api
+# github.com/cilium/tetragon/api => ../../api

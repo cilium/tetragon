@@ -51,4 +51,4 @@ require (
 	k8s.io/cri-api v0.27.1 // indirect
 )
 
-replace github.com/cilium/tetragon/api => ../../../api
+replace github.com/cilium/tetragon/api => ../../api

@@ -76,8 +76,8 @@ RUN mkdir /var/lib/tetragon/ && \
     apk add --no-cache --update bash
 COPY --from=tetragon-builder /go/src/github.com/cilium/tetragon/tetragon /usr/bin/
 COPY --from=tetragon-builder /go/src/github.com/cilium/tetragon/tetra /usr/bin/
-COPY --from=tetragon-builder /go/src/github.com/cilium/tetragon/contrib/rthooks/tetragon-rthooks/tetragon-oci-hook /usr/bin/
-COPY --from=tetragon-builder /go/src/github.com/cilium/tetragon/contrib/rthooks/tetragon-rthooks/tetragon-oci-hook-setup /usr/bin/
+COPY --from=tetragon-builder /go/src/github.com/cilium/tetragon/contrib/tetragon-rthooks/tetragon-oci-hook /usr/bin/
+COPY --from=tetragon-builder /go/src/github.com/cilium/tetragon/contrib/tetragon-rthooks/tetragon-oci-hook-setup /usr/bin/
 COPY --from=gops /gops/gops /usr/bin/
 COPY --from=bpf-builder /go/src/github.com/cilium/tetragon/bpf/objs/*.o /var/lib/tetragon/
 ENTRYPOINT ["/usr/bin/tetragon"]
