@@ -38,35 +38,35 @@ const (
 )
 
 var actionTypeTable = map[string]uint32{
-	"post":           ActionTypePost,
-	"followfd":       ActionTypeFollowFd,
-	"unfollowfd":     ActionTypeUnfollowFd,
-	"sigkill":        ActionTypeSigKill,
-	"override":       ActionTypeOverride,
-	"copyfd":         ActionTypeCopyFd,
-	"geturl":         ActionTypeGetUrl,
-	"dnslookup":      ActionTypeDnsLookup,
-	"nopost":         ActionTypeNoPost,
-	"signal":         ActionTypeSignal,
-	"tracksock":      ActionTypeTrackSock,
-	"untracksock":    ActionTypeUntrackSock,
-	"notifyenforcer": ActionTypeNotifyEnforcer,
+	"Post":           ActionTypePost,
+	"FollowFD":       ActionTypeFollowFd,
+	"UnfollowFD":     ActionTypeUnfollowFd,
+	"Sigkill":        ActionTypeSigKill,
+	"Override":       ActionTypeOverride,
+	"CopyFD":         ActionTypeCopyFd,
+	"GetUrl":         ActionTypeGetUrl,
+	"DnsLookup":      ActionTypeDnsLookup,
+	"NoPost":         ActionTypeNoPost,
+	"Signal":         ActionTypeSignal,
+	"TrackSock":      ActionTypeTrackSock,
+	"UntrackSock":    ActionTypeUntrackSock,
+	"NotifyEnforcer": ActionTypeNotifyEnforcer,
 }
 
 var actionTypeStringTable = map[uint32]string{
-	ActionTypePost:           "post",
-	ActionTypeFollowFd:       "followfd",
-	ActionTypeUnfollowFd:     "unfollowfd",
-	ActionTypeSigKill:        "sigkill",
-	ActionTypeOverride:       "override",
-	ActionTypeCopyFd:         "copyfd",
-	ActionTypeGetUrl:         "geturl",
-	ActionTypeDnsLookup:      "dnslookup",
-	ActionTypeNoPost:         "nopost",
-	ActionTypeSignal:         "signal",
-	ActionTypeTrackSock:      "tracksock",
-	ActionTypeUntrackSock:    "untracksock",
-	ActionTypeNotifyEnforcer: "notifyenforcer",
+	ActionTypePost:           "Post",
+	ActionTypeFollowFd:       "FollowFD",
+	ActionTypeUnfollowFd:     "UnfollowFD",
+	ActionTypeSigKill:        "Sigkill",
+	ActionTypeOverride:       "Override",
+	ActionTypeCopyFd:         "CopyFD",
+	ActionTypeGetUrl:         "GetUrl",
+	ActionTypeDnsLookup:      "DnsLookup",
+	ActionTypeNoPost:         "NoPost",
+	ActionTypeSignal:         "Signal",
+	ActionTypeTrackSock:      "TrackSock",
+	ActionTypeUntrackSock:    "UntrackSock",
+	ActionTypeNotifyEnforcer: "NotifyEnforcer",
 }
 
 const (
@@ -108,7 +108,7 @@ func MatchActionSigKill(spec interface{}) bool {
 
 	for _, s := range sels {
 		for _, act := range s.MatchActions {
-			if strings.ToLower(act.Action) == actionTypeStringTable[ActionTypeSigKill] {
+			if act.Action == actionTypeStringTable[ActionTypeSigKill] {
 				return true
 			}
 		}
@@ -342,7 +342,7 @@ func ParseMatchPids(k *KernelSelectorState, matchPids []v1alpha1.PIDSelector) er
 }
 
 func ActionTypeFromString(action string) int32 {
-	act, ok := actionTypeTable[strings.ToLower(action)]
+	act, ok := actionTypeTable[action]
 	if !ok {
 		return ActionTypeInvalid
 	}
@@ -894,7 +894,7 @@ func parseRateLimit(str string, scopeStr string) (uint32, uint32, error) {
 }
 
 func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, actionArgTable *idtable.Table) error {
-	act, ok := actionTypeTable[strings.ToLower(action.Action)]
+	act, ok := actionTypeTable[action.Action]
 	if !ok {
 		return fmt.Errorf("parseMatchAction: ActionType %s unknown", action.Action)
 	}
@@ -1343,7 +1343,7 @@ func InitKernelReturnSelectorState(selectors []v1alpha1.KProbeSelector, returnAr
 func HasOverride(spec *v1alpha1.KProbeSpec) bool {
 	for _, s := range spec.Selectors {
 		for _, action := range s.MatchActions {
-			act := actionTypeTable[strings.ToLower(action.Action)]
+			act := actionTypeTable[action.Action]
 			if act == ActionTypeOverride {
 				return true
 			}
