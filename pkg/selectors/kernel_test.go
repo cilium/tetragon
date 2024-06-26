@@ -380,6 +380,46 @@ func TestParseMatchPid(t *testing.T) {
 	}
 }
 
+func TestParseMatchLoginuids(t *testing.T) {
+	loginuids1 := &v1alpha1.LoginUidSelector{Operator: "Equal", Values: []uint32{1, 2, 3}}
+	k := &KernelSelectorState{data: KernelSelectorData{off: 0}}
+	d := &k.data
+	expected1 := []byte{
+		0x03, 0x00, 0x00, 0x00, // op == Equal
+		0x03, 0x00, 0x00, 0x00, // length == 0x3
+		0x01, 0x00, 0x00, 0x00, // Values[0] == 1
+		0x02, 0x00, 0x00, 0x00, // Values[1] == 2
+		0x03, 0x00, 0x00, 0x00, // Values[2] == 3
+	}
+	if err := ParseMatchLoginuid(k, loginuids1); err != nil || bytes.Equal(expected1, d.e[0:d.off]) == false {
+		t.Errorf("ParseMatchLoginuids: error %v expected %v bytes %v parsing %v\n", err, expected1, d.e[0:d.off], loginuids1)
+	}
+
+	nextloginuids := d.off
+	loginuids2 := &v1alpha1.LoginUidSelector{Operator: "NotEqual", Values: []uint32{1, 2, 3, 4}}
+	expected2 := []byte{
+		0x04, 0x00, 0x00, 0x00, // op == NotEqual
+		0x04, 0x00, 0x00, 0x00, // length == 0x4
+		0x01, 0x00, 0x00, 0x00, // Values[0] == 1
+		0x02, 0x00, 0x00, 0x00, // Values[1] == 2
+		0x03, 0x00, 0x00, 0x00, // Values[2] == 3
+		0x04, 0x00, 0x00, 0x00, // Values[2] == 3
+	}
+	if err := ParseMatchLoginuid(k, loginuids2); err != nil || bytes.Equal(expected2, d.e[nextloginuids:d.off]) == false {
+		t.Errorf("ParseMatchLoginuids: error %v expected %v bytes %v parsing %v\n", err, expected2, d.e[nextloginuids:d.off], loginuids2)
+	}
+
+	length := []byte{48, 0x00, 0x00, 0x00}
+	expected3 := append(length, expected1[:]...)
+	expected3 = append(expected3, expected2[:]...)
+	loginuids3 := []v1alpha1.LoginUidSelector{*loginuids1, *loginuids2}
+	ks := &KernelSelectorState{data: KernelSelectorData{off: 0}}
+	d = &ks.data
+	if err := ParseMatchLoginuids(ks, loginuids3); err != nil || bytes.Equal(expected3, d.e[0:d.off]) == false {
+		t.Errorf("ParseMatchLoginuids: error %v expected %v bytes %v parsing %v\n", err, expected3, d.e[0:d.off], loginuids3)
+	}
+}
+
 func TestParseMatchNamespaces(t *testing.T) {
 	ns1 := &v1alpha1.NamespaceSelector{Namespace: "Pid", Operator: "In", Values: []string{"1", "2", "3"}}
 	k := &KernelSelectorState{data: KernelSelectorData{off: 0}}
@@ -561,8 +601,8 @@ func TestMultipleSelectorsExample(t *testing.T) {
 	// value               absolute offset    explanation
 	expU32Push(2)                 // off: 0       number of selectors
 	expU32Push(8)                 // off: 4       relative ofset of 1st selector (4 + 8 = 12)
-	expU32Push(100)               // off: 8       relative ofset of 2nd selector (8 + 124 = 132)
-	expU32Push(96)                // off: 12      selector1: length (76 + 12 = 96)
+	expU32Push(104)               // off: 8       relative ofset of 2nd selector (8 + 124 = 132)
+	expU32Push(100)               // off: 12      selector1: length (76 + 12 = 96)
 	expU32Push(24)                // off: 16      selector1: MatchPIDs: len
 	expU32Push(SelectorOpNotIn)   // off: 20      selector1: MatchPIDs[0]: op
 	expU32Push(0)                 // off: 24      selector1: MatchPIDs[0]: flags
@@ -573,6 +613,7 @@ func TestMultipleSelectorsExample(t *testing.T) {
 	expU32Push(4)                 // off: 44      selector1: MatchCapabilities: len
 	expU32Push(4)                 // off: 48      selector1: MatchNamespaceChanges: len
 	expU32Push(4)                 // off: 52      selector1: MatchCapabilityChanges: len
+	expU32Push(4)                 // off: 56      selector1: MatchLoginuids: len
 	expU32Push(48)                // off: 80      selector1: matchArgs: len
 	expU32Push(24)                // off: 84      selector1: matchArgs[0]: offset
 	expU32Push(0)                 // off: 88      selector1: matchArgs[1]: offset
@@ -586,7 +627,7 @@ func TestMultipleSelectorsExample(t *testing.T) {
 	expU32Push(10)                // off: 120     selector1: matchArgs: arg0: val0: 10
 	expU32Push(20)                // off: 124     selector1: matchArgs: arg0: val1: 20
 	expU32Push(4)                 // off: 128     selector1: matchActions: length
-	expU32Push(96)                // off: 132     selector2: length
+	expU32Push(100)               // off: 132     selector2: length
 	// ... everything else should be the same as selector1 ...
 
 	if bytes.Equal(expected[:expectedLen], b[:expectedLen]) == false {
@@ -603,11 +644,11 @@ func TestInitKernelSelectors(t *testing.T) {
 	}
 
 	expected_selsize_small := []byte{
-		0x14, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + capabilities  + 4
+		0x44, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + capabilities  + 4
 	}
 
 	expected_selsize_large := []byte{
-		0x48, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + namespacesChanges + capabilities + capabilityChanges + 4
+		0x78, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + namespacesChanges + capabilities + capabilityChanges + 4
 	}
 
 	expected_filters := []byte{
@@ -688,6 +729,26 @@ func TestInitKernelSelectors(t *testing.T) {
 		0x05, 0x00, 0x00, 0x00, // op == In
 		0x00, 0x00, 0x00, 0x00, // IsNamespaceCapability = false
 		0x00, 0x20, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, // Values (uint64)
+	}
+
+	expected_loginuid := []byte{
+		// loginuid header
+		48, 0x00, 0x00, 0x00, // size = sizeof(loginuids1) + sizeof(loginuids2) + 4 + 4
+
+		//loginuids1 size = 20
+		0x03, 0x00, 0x00, 0x00, // op == Equal
+		0x03, 0x00, 0x00, 0x00, // length == 0x3
+		0x01, 0x00, 0x00, 0x00, // Values[0] == 1
+		0x02, 0x00, 0x00, 0x00, // Values[1] == 2
+		0x03, 0x00, 0x00, 0x00, // Values[2] == 3
+
+		//loginuids2 size = 24
+		0x04, 0x00, 0x00, 0x00, // op == NotEqual
+		0x04, 0x00, 0x00, 0x00, // length == 0x4
+		0x01, 0x00, 0x00, 0x00, // Values[0] == 1
+		0x02, 0x00, 0x00, 0x00, // Values[1] == 2
+		0x03, 0x00, 0x00, 0x00, // Values[2] == 3
+		0x04, 0x00, 0x00, 0x00, // Values[2] == 3
 	}
 
 	expected_last_large := []byte{
@@ -779,11 +840,13 @@ func TestInitKernelSelectors(t *testing.T) {
 		expected = append(expected, expected_selsize_large...)
 		expected = append(expected, expected_filters...)
 		expected = append(expected, expected_changes...)
+		expected = append(expected, expected_loginuid...)
 		expected = append(expected, expected_last_large...)
 	} else {
 		expected = append(expected, expected_selsize_small...)
 		expected = append(expected, expected_filters...)
 		expected = append(expected, expected_changes_empty...)
+		expected = append(expected, expected_loginuid...)
 		expected = append(expected, expected_last_small...)
 	}
 
@@ -806,6 +869,9 @@ func TestInitKernelSelectors(t *testing.T) {
 		cc := &v1alpha1.CapabilitiesSelector{Type: "Effective", Operator: "In", IsNamespaceCapability: false, Values: []string{"CAP_SYS_ADMIN", "CAP_NET_RAW"}}
 		matchCapabilityChanges = append(matchCapabilityChanges, *cc)
 	}
+	loginuids1 := &v1alpha1.LoginUidSelector{Operator: "Equal", Values: []uint32{1, 2, 3}}
+	loginuids2 := &v1alpha1.LoginUidSelector{Operator: "NotEqual", Values: []uint32{1, 2, 3, 4}}
+	matchLoginuids := []v1alpha1.LoginUidSelector{*loginuids1, *loginuids2}
 	var matchArgs []v1alpha1.ArgSelector
 	if kernels.EnableLargeProgs() {
 		arg1 := &v1alpha1.ArgSelector{Index: 1, Operator: "Equal", Values: []string{"foobar"}}
@@ -828,6 +894,7 @@ func TestInitKernelSelectors(t *testing.T) {
 			MatchCapabilities:      matchCapabilities,
 			MatchNamespaceChanges:  matchNamespaceChanges,
 			MatchCapabilityChanges: matchCapabilityChanges,
+			MatchLoginUids:         matchLoginuids,
 			MatchArgs:              matchArgs,
 			MatchActions:           matchActions,
 		},

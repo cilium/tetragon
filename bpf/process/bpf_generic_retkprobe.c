@@ -157,12 +157,9 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 
 	if (enter) {
 		e->current.pid = enter->key.pid;
+		e->current.auid = enter->key.auid;
 		e->current.ktime = enter->key.ktime;
 	}
-	e->current.pad[0] = 0;
-	e->current.pad[1] = 0;
-	e->current.pad[2] = 0;
-	e->current.pad[3] = 0;
 
 	e->func_id = config->func_id;
 	e->common.size = size;

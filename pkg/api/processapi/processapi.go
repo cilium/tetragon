@@ -64,7 +64,7 @@ type MsgExec struct {
 
 type MsgExecveKey struct {
 	Pid   uint32 `align:"pid"`
-	Pad   uint32 `align:"pad"`
+	Auid  uint32 `align:"auid"`
 	Ktime uint64 `align:"ktime"`
 }
 
