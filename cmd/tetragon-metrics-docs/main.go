@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
-package metrics
+package main
 
 import (
 	"log/slog"
+	"os"
 
 	"github.com/isovalent/metricstool/pkg/metricsmd"
 	"github.com/prometheus/client_golang/prometheus"
@@ -12,6 +13,12 @@ import (
 
 	"github.com/cilium/tetragon/pkg/metricsconfig"
 )
+
+func main() {
+	if err := New().Execute(); err != nil {
+		os.Exit(1)
+	}
+}
 
 func New() *cobra.Command {
 	targets := map[string]string{
