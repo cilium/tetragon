@@ -73,7 +73,7 @@ func (s *Sensor) Load(bpfDir string) error {
 	}
 
 	// Add the loaded programs and maps to All* so they can be unloaded on shutdown.
-	AllPrograms = append(AllPrograms, s.Progs...)
+	progsAdd(s.Progs)
 	AllMaps = append(AllMaps, s.Maps...)
 
 	logger.GetLogger().WithField("metadata", cachedbtf.GetCachedBTFFile()).Info("BTF file: using metadata file")
@@ -149,6 +149,7 @@ func (s *Sensor) Unload() error {
 		}
 	}
 
+	progsCleanup()
 	return nil
 }
 

@@ -132,13 +132,11 @@ func (p *Poller) Wait(events []unix.EpollEvent, deadline time.Time) (int, error)
 		timeout := int(-1)
 		if !deadline.IsZero() {
 			msec := time.Until(deadline).Milliseconds()
-			if msec < 0 {
-				// Deadline is in the past.
-				msec = 0
-			} else if msec > math.MaxInt {
-				// Deadline is too far in the future.
-				msec = math.MaxInt
-			}
+			// Deadline is in the past, don't block.
+			msec = max(msec, 0)
+			// Deadline is too far in the future.
+			msec = min(msec, math.MaxInt)
+
 			timeout = int(msec)
 		}
 
@@ -213,7 +211,7 @@ func (efd *eventFd) close() error {
 
 func (efd *eventFd) add(n uint64) error {
 	var buf [8]byte
-	internal.NativeEndian.PutUint64(buf[:], 1)
+	internal.NativeEndian.PutUint64(buf[:], n)
 	_, err := efd.file.Write(buf[:])
 	return err
 }
