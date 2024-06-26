@@ -6,7 +6,6 @@ package main
 import (
 	"github.com/cilium/tetragon/cmd/tetra/bugtool"
 	"github.com/cilium/tetragon/cmd/tetra/dump"
-	"github.com/cilium/tetragon/cmd/tetra/metrics"
 	"github.com/cilium/tetragon/cmd/tetra/policyfilter"
 	"github.com/cilium/tetragon/cmd/tetra/probe"
 	"github.com/cilium/tetragon/cmd/tetra/tracingpolicy"
@@ -20,5 +19,4 @@ func addCommands(rootCmd *cobra.Command) {
 	rootCmd.AddCommand(dump.New())
 	rootCmd.AddCommand(policyfilter.New())
 	rootCmd.AddCommand(probe.New())
-	rootCmd.AddCommand(metrics.New())
 }

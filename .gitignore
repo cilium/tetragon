@@ -7,6 +7,7 @@ lib/*
 /tetra
 /tetragon-oci-hook
 /tetragon-oci-hook-setup
+/tetragon-metrics-docs
 /parsertest
 /checkerpc
 observer.test
