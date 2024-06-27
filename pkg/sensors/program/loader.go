@@ -196,7 +196,8 @@ func KprobeOpen(load *Program) OpenFunc {
 	}
 }
 
-func kprobeAttach(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec, symbol string) (unloader.Unloader, error) {
+func kprobeAttach(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec,
+	symbol string, bpfDir string, extra ...string) (unloader.Unloader, error) {
 	var linkFn func() (link.Link, error)
 
 	if load.RetProbe {
@@ -208,6 +209,11 @@ func kprobeAttach(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec, sym
 	lnk, err := linkFn()
 	if err != nil {
 		return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
+	}
+	err = linkPin(lnk, bpfDir, load, extra...)
+	if err != nil {
+		lnk.Close()
+		return nil, err
 	}
 	return &unloader.RelinkUnloader{
 		UnloadProg: unloader.PinUnloader{Prog: prog}.Unload,
@@ -241,7 +247,7 @@ func kprobeAttachOverride(load *Program, bpfDir string,
 		return fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
 	}
 
-	load.unloaderOverride, err = kprobeAttach(load, prog, spec, load.Attach)
+	load.unloaderOverride, err = kprobeAttach(load, prog, spec, load.Attach, bpfDir)
 	if err != nil {
 		logger.GetLogger().Warnf("Failed to attach override program: %w", err)
 	}
@@ -310,7 +316,7 @@ func KprobeAttach(load *Program, bpfDir string) AttachFunc {
 			}
 		}
 
-		return kprobeAttach(load, prog, spec, load.Attach)
+		return kprobeAttach(load, prog, spec, load.Attach, bpfDir)
 	}
 }
 
@@ -556,7 +562,7 @@ func LoadKprobeProgram(bpfDir string, load *Program, verbose int) error {
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
-func KprobeAttachMany(load *Program, syms []string) AttachFunc {
+func KprobeAttachMany(load *Program, syms []string, bpfDir string) AttachFunc {
 	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 
@@ -567,7 +573,7 @@ func KprobeAttachMany(load *Program, syms []string) AttachFunc {
 		}
 
 		for idx := range syms {
-			un, err := kprobeAttach(load, prog, spec, syms[idx])
+			un, err := kprobeAttach(load, prog, spec, syms[idx], bpfDir, fmt.Sprintf("%d_%s", idx, syms[idx]))
 			if err != nil {
 				return nil, err
 			}
@@ -580,7 +586,7 @@ func KprobeAttachMany(load *Program, syms []string) AttachFunc {
 
 func LoadKprobeProgramAttachMany(bpfDir string, load *Program, syms []string, verbose int) error {
 	opts := &LoadOpts{
-		Attach: KprobeAttachMany(load, syms),
+		Attach: KprobeAttachMany(load, syms, bpfDir),
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
