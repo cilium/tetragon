@@ -14,19 +14,20 @@ import (
 	"github.com/cilium/tetragon/pkg/metricsconfig"
 )
 
-func main() {
-	if err := New().Execute(); err != nil {
-		os.Exit(1)
-	}
-}
+type initMetricsFunc func(string, *prometheus.Registry, *slog.Logger) error
 
-func New() *cobra.Command {
+func main() {
 	targets := map[string]string{
 		"health":    "Tetragon Health",
 		"resources": "Tetragon Resources",
 		"events":    "Tetragon Events",
 	}
+	if err := New(targets, initMetrics).Execute(); err != nil {
+		os.Exit(1)
+	}
+}
 
+func New(targets map[string]string, init initMetricsFunc) *cobra.Command {
 	overrides := []metricsmd.LabelOverrides{
 		// Theses metrics takes VCS info into account supplied at build
 		// time, which changes every build, so override those.
@@ -65,7 +66,7 @@ func New() *cobra.Command {
 	config := &metricsmd.Config{
 		Targets:        targets,
 		LabelOverrides: overrides,
-		InitMetrics:    initMetrics,
+		InitMetrics:    init,
 		HeadingLevel:   1,
 	}
 
