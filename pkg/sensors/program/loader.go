@@ -290,6 +290,12 @@ func fmodretAttachOverride(load *Program, bpfDir string,
 		return fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
 	}
 
+	err = linkPin(lnk, bpfDir, load)
+	if err != nil {
+		lnk.Close()
+		return err
+	}
+
 	load.unloaderOverride = &unloader.RelinkUnloader{
 		UnloadProg: unloader.PinUnloader{Prog: prog}.Unload,
 		IsLinked:   true,
