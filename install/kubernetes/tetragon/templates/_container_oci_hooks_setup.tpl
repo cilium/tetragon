@@ -10,8 +10,8 @@
     - --interface={{ .Values.tetragon.ociHookSetup.interface }}
     - --local-install-dir={{  include "container.tetragonOCIHookSetup.installPath" . }}
     - --host-install-dir={{ .Values.tetragon.ociHookSetup.installDir }}
+    - --fail-allow-namespaces={{ if .Values.tetragon.ociHookSetup.failAllowNamespaces }}{{ printf "%s,%s" .Release.Namespace .Values.tetragon.ociHookSetup.failAllowNamespaces }}{{ else }}{{ .Release.Namespace }}{{ end }}
     - --oci-hooks.local-dir={{ include "container.tetragonOCIHookSetup.hooksPath" . }}
-    - --oci-hooks.fail-allow-namespaces={{ if .Values.tetragon.ociHookSetup.failAllowNamespaces }}{{ printf "%s,%s" .Release.Namespace .Values.tetragon.ociHookSetup.failAllowNamespaces }}{{ else }}{{ .Release.Namespace }}{{ end }}
   volumeMounts:
     {{- with .Values.tetragon.ociHookSetup.extraVolumeMounts }}
       {{- toYaml . | nindent 4 }}
