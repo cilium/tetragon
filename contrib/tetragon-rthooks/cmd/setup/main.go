@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/signal"
 	"path"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"github.com/alecthomas/kong"
@@ -27,6 +29,7 @@ type Install struct {
 	LocalInstallDir     string `required help:"Installation dir (in the container)."`
 	HostInstallDir      string `required help:"Installation dir (in the host). Used for the binary and the hook logfile."`
 	FailAllowNamespaces string `help:"Comma-separated list of namespaces to allow Pod creation for, in case tetragon-oci-hook fails to reach Tetragon agent."`
+	Daemonize           bool   `help:"Daemonize install command. If a termination signal is send, the process will remove the files it installed before exiting"`
 
 	OciHooks struct {
 		LocalDir string `default:"/hostHooks" help:"oci-hooks drop-in directory (inside the container)"`
@@ -78,6 +81,12 @@ func (i *Install) ociHooksInstall(log *slog.Logger) {
 }
 
 func (i *Install) Run(log *slog.Logger) error {
+	var sigChan chan os.Signal
+	if i.Daemonize {
+		sigChan = make(chan os.Signal, 1)
+		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	}
+
 	i.copyBinary(log)
 	switch i.Interface {
 	case "oci-hooks":
@@ -86,6 +95,20 @@ func (i *Install) Run(log *slog.Logger) error {
 		log.Error("unknown interface", "interface", i.Interface)
 		os.Exit(1)
 	}
+
+	if i.Daemonize {
+		<-sigChan
+		u := Uninstall{
+			Interface:       i.Interface,
+			BinaryName:      path.Base(i.LocalBinary),
+			LocalInstallDir: i.LocalInstallDir,
+		}
+		u.OciHooks.LocalDir = i.OciHooks.LocalDir
+		if err := u.Run(log); err != nil {
+			log.Error("uninstall failed", "err", err)
+		}
+	}
+
 	return nil
 }
 
