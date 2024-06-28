@@ -59,11 +59,13 @@
 // directly from a BPF map). It contains a list of metrics, collect function
 // and an optional separate collect function for generating docs.
 //
-// `GranularCustomMetric[L FilteredLabels]` interface represents a custom
-// metric (e.g. read directly form a BPF map). Similarly like "regular" metrics
-// tracked by prometheus library, it supports constraining cardinality and
-// adding configurable labels via type parameter.
+// `GranularCustomMetric[L FilteredLabels]` interface and granularCustomCounter
+// struct (and analogous Gauge) implementing it represent a metric that's not
+// stored and updated using prometheus library, but collected independently,
+// e.g. directly from a BPF map. Similarly like "regular" metrics, it supports
+// constraining cardinality and adding configurable labels via type parameter.
 //
-// `CustomMetric` interface is a convenience wrapper around
+// `CustomMetric` interface and customCounter struct (and analogous Gauge)
+// implementing it are convenience wrappers around
 // `GranularCustomMetric[NilLabels]`.
 package metrics

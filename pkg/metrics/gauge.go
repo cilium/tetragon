@@ -221,6 +221,7 @@ func (m *Gauge) WithLabelValues(lvs ...string) prometheus.Gauge {
 	return m.GranularGauge.WithLabelValues(nil, lvs...)
 }
 
+// granularCustomGauge implements GranularCustomMetric.
 type granularCustomGauge[L FilteredLabels] struct {
 	desc        *prometheus.Desc
 	constrained bool
@@ -267,6 +268,7 @@ func (m *granularCustomGauge[L]) IsConstrained() bool {
 	return m.constrained
 }
 
+// customGauge implements CustomMetric.
 type customGauge struct {
 	*granularCustomGauge[NilLabels]
 }

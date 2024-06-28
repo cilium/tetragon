@@ -238,6 +238,7 @@ func (m *Counter) WithLabelValues(lvs ...string) prometheus.Counter {
 	return m.GranularCounter.WithLabelValues(nil, lvs...)
 }
 
+// granularCustomCounter implements GranularCustomMetric.
 type granularCustomCounter[L FilteredLabels] struct {
 	desc        *prometheus.Desc
 	constrained bool
@@ -284,6 +285,7 @@ func (m *granularCustomCounter[L]) IsConstrained() bool {
 	return m.constrained
 }
 
+// customCounter implements CustomMetric.
 type customCounter struct {
 	*granularCustomCounter[NilLabels]
 }
