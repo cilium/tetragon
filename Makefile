@@ -304,6 +304,11 @@ image-operator:
 	$(QUIET)@echo "Push like this when ready:"
 	$(QUIET)@echo "${CONTAINER_ENGINE} push cilium/tetragon-operator:$(DOCKER_IMAGE_TAG)"
 
+image-rthooks:
+	$(CONTAINER_ENGINE) build -f Dockerfile.rthooks -t "cilium/tetragon-rthooks:${DOCKER_IMAGE_TAG}" --platform=linux/${TARGET_ARCH} .
+	$(QUIET)@echo "Push like this when ready:"
+	$(QUIET)@echo "${CONTAINER_ENGINE} push cilium/tetragon-rthooks:$(DOCKER_IMAGE_TAG)"
+
 image-test: image-clang
 	$(CONTAINER_ENGINE) build -f Dockerfile.test -t "cilium/tetragon-test:${DOCKER_IMAGE_TAG}" .
 	$(QUIET)@echo "Push like this when ready:"
