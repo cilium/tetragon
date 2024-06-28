@@ -22,14 +22,14 @@ const (
 )
 
 type Install struct {
-	Interface       string `default:"oci-hooks" enum:"oci-hooks" help:"Hooks interface (${enum})"`
-	LocalBinary     string `default:"/usr/bin/tetragon-oci-hook" help:"Source binary path (in the container)"`
-	LocalInstallDir string `required help:"Installation dir (in the container)."`
-	HostInstallDir  string `required help:"Installation dir (in the host). Used for the binary and the hook logfile."`
+	Interface           string `default:"oci-hooks" enum:"oci-hooks" help:"Hooks interface (${enum})"`
+	LocalBinary         string `default:"/usr/bin/tetragon-oci-hook" help:"Source binary path (in the container)"`
+	LocalInstallDir     string `required help:"Installation dir (in the container)."`
+	HostInstallDir      string `required help:"Installation dir (in the host). Used for the binary and the hook logfile."`
+	FailAllowNamespaces string `help:"Comma-separated list of namespaces to allow Pod creation for, in case tetragon-oci-hook fails to reach Tetragon agent."`
 
 	OciHooks struct {
-		LocalDir            string `default:"/hostHooks" help:"oci-hooks drop-in directory (inside the container)"`
-		FailAllowNamespaces string `help:"Comma-separated list of namespaces to allow Pod creation for, in case tetragon-oci-hook fails to reach Tetragon agent."`
+		LocalDir string `default:"/hostHooks" help:"oci-hooks drop-in directory (inside the container)"`
 	} `embed:"" prefix:"oci-hooks."`
 }
 
@@ -61,7 +61,7 @@ func (i *Install) ociHooksInstall(log *slog.Logger) {
 	binFname := filepath.Join(i.HostInstallDir, binBaseName)
 
 	logFname := filepath.Join(i.HostInstallDir, logBaseName)
-	hook := ociHooksConfig(binFname, "--log-fname", logFname, "--fail-allow-namespaces", i.OciHooks.FailAllowNamespaces)
+	hook := ociHooksConfig(binFname, "--log-fname", logFname, "--fail-allow-namespaces", i.FailAllowNamespaces)
 	data, err := json.MarshalIndent(hook, "", "   ")
 	if err != nil {
 		log.Error("failed to unmarshall hook info", "error", err)
