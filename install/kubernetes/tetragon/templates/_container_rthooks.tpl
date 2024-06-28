@@ -11,9 +11,19 @@
     - --interface={{ .Values.rthooks.interface }}
     - --local-install-dir={{  include "container.tetragonOCIHookSetup.installPath" . }}
     - --host-install-dir={{ .Values.rthooks.installDir }}
-    - --fail-allow-namespaces={{ if .Values.rthooks.failAllowNamespaces }}{{ printf "%s,%s" .Release.Namespace .Values.rthooks.failAllowNamespaces }}{{ else }}{{ .Release.Namespace }}{{ end }}
     - --oci-hooks.local-dir={{ include "container.tetragonOCIHookSetup.hooksPath" . }}
     - --daemonize
+    - hook-args
+    - --fail-allow-namespaces
+    - {{ if .Values.rthooks.failAllowNamespaces }}{{ printf "%s,%s" .Release.Namespace .Values.rthooks.failAllowNamespaces }}{{ else }}{{ .Release.Namespace }}{{ end }}
+   {{- range $key, $value := .Values.rthooks.extraHookArgs }}
+   {{- if eq nil $value }}
+    - {{ $key }}
+    - {{ $value }}
+   {{- else }}
+    - {{ $key }}
+  {{- end }}
+  {{- end }}
   volumeMounts:
     {{- with .Values.rthooks.extraVolumeMounts }}
       {{- toYaml . | nindent 4 }}

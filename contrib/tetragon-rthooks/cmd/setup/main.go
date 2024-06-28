@@ -24,16 +24,19 @@ const (
 )
 
 type Install struct {
-	Interface           string `default:"oci-hooks" enum:"oci-hooks" help:"Hooks interface (${enum})"`
-	LocalBinary         string `default:"/usr/bin/tetragon-oci-hook" help:"Source binary path (in the container)"`
-	LocalInstallDir     string `required help:"Installation dir (in the container)."`
-	HostInstallDir      string `required help:"Installation dir (in the host). Used for the binary and the hook logfile."`
-	FailAllowNamespaces string `help:"Comma-separated list of namespaces to allow Pod creation for, in case tetragon-oci-hook fails to reach Tetragon agent."`
-	Daemonize           bool   `help:"Daemonize install command. If a termination signal is send, the process will remove the files it installed before exiting"`
+	Interface       string `default:"oci-hooks" enum:"oci-hooks" help:"Hooks interface (${enum})"`
+	LocalBinary     string `default:"/usr/bin/tetragon-oci-hook" help:"Source binary path (in the container)"`
+	LocalInstallDir string `required help:"Installation dir (in the container)."`
+	HostInstallDir  string `required help:"Installation dir (in the host). Used for the binary and the hook logfile."`
+	Daemonize       bool   `help:"Daemonize install command. If a termination signal is send, the process will remove the files it installed before exiting"`
 
 	OciHooks struct {
 		LocalDir string `default:"/hostHooks" help:"oci-hooks drop-in directory (inside the container)"`
 	} `embed:"" prefix:"oci-hooks."`
+
+	HookArgs struct {
+		Args []string `arg:"" optional:""`
+	} `cmd:"" passthrough:"" help:"Arguments to pass to tetragon-oci-hook."`
 }
 
 func ociHooksConfig(binFname string, binArgs ...string) *ociHooks.Hook {
@@ -64,7 +67,9 @@ func (i *Install) ociHooksInstall(log *slog.Logger) {
 	binFname := filepath.Join(i.HostInstallDir, binBaseName)
 
 	logFname := filepath.Join(i.HostInstallDir, logBaseName)
-	hook := ociHooksConfig(binFname, "--log-fname", logFname, "--fail-allow-namespaces", i.FailAllowNamespaces)
+	args := []string{"--log-fname", logFname}
+	args = append(args, i.HookArgs.Args...)
+	hook := ociHooksConfig(binFname, args...)
 	data, err := json.MarshalIndent(hook, "", "   ")
 	if err != nil {
 		log.Error("failed to unmarshall hook info", "error", err)
