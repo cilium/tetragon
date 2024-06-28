@@ -51,8 +51,8 @@ func initForDocs[L FilteredLabels](
 
 	// first FilteredLabels
 	current := lvs
-	if ex, ok := any(dummy).(FilteredLabelsWithExamples); ok {
-		for i, val := range ex.ExampleValues() {
+	if ex, ok := any(dummy).(FilteredLabelsExample); ok {
+		for i, val := range ex.Example().Values() {
 			current[i] = val
 			initMetric(lvs...)
 		}

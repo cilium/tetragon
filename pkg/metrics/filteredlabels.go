@@ -12,11 +12,8 @@ type FilteredLabels interface {
 	Values() []string
 }
 
-// FilteredLabelsWithExamples extends FilteredLabels with a method returning
-// example label values, intended to be used when generating documentation.
-type FilteredLabelsWithExamples interface {
-	FilteredLabels
-	ExampleValues() []string
+type FilteredLabelsExample interface {
+	Example() FilteredLabels
 }
 
 type NilLabels struct{}
@@ -25,7 +22,7 @@ func (l NilLabels) Keys() []string { return []string{} }
 
 func (l NilLabels) Values() []string { return []string{} }
 
-func (l NilLabels) ExampleValues() []string { return []string{} }
+func (l NilLabels) Example() FilteredLabels { return l }
 
 type ProcessLabels struct {
 	Namespace string
@@ -51,6 +48,10 @@ func (l ProcessLabels) Values() []string {
 	return []string{l.Namespace, l.Workload, l.Pod, l.Binary}
 }
 
-func (l ProcessLabels) ExampleValues() []string {
-	return []string{consts.ExampleNamespace, consts.ExampleWorkload, consts.ExamplePod, consts.ExampleBinary}
+func (l ProcessLabels) Example() FilteredLabels {
+	l.Namespace = consts.ExampleNamespace
+	l.Workload = consts.ExampleWorkload
+	l.Pod = consts.ExamplePod
+	l.Binary = consts.ExampleBinary
+	return l
 }
