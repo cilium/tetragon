@@ -47,9 +47,10 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | podLabelsOverride | object | `{}` |  |
 | podSecurityContext | object | `{}` |  |
 | priorityClassName | string | `""` | Tetragon agent settings |
-| rthooks | object | `{"annotations":{},"enabled":false,"extraLabels":{},"extraVolumeMounts":[],"failAllowNamespaces":"","image":{"override":null,"repository":"quay.io/cilium/tetragon-rthooks","tag":"v0.1"},"installDir":"/opt/tetragon","interface":"","ociHooks":{"hooksPath":"/usr/share/containers/oci/hooks.d"},"podAnnotations":{},"priorityClassName":"","resources":{},"securityContext":{"privileged":true}}` | Method for installing Tetagon rthooks (tetragon-rthooks) daemonset The tetragon-rthooks daemonset is responsible for installing run-time hooks on the host. TODO: add documentation link |
+| rthooks | object | `{"annotations":{},"enabled":false,"extraHookArgs":{},"extraLabels":{},"extraVolumeMounts":[],"failAllowNamespaces":"","image":{"override":null,"repository":"quay.io/cilium/tetragon-rthooks","tag":"v0.1"},"installDir":"/opt/tetragon","interface":"","ociHooks":{"hooksPath":"/usr/share/containers/oci/hooks.d"},"podAnnotations":{},"priorityClassName":"","resources":{},"securityContext":{"privileged":true}}` | Method for installing Tetagon rthooks (tetragon-rthooks) daemonset The tetragon-rthooks daemonset is responsible for installing run-time hooks on the host. TODO: add documentation link |
 | rthooks.annotations | object | `{}` | Annotations for the Tetragon rthooks daemonset |
 | rthooks.enabled | bool | `false` | Enable the Tetragon rthooks daemonset |
+| rthooks.extraHookArgs | object | `{}` | extra args to pass to tetragon-oci-hook |
 | rthooks.extraLabels | object | `{}` | Extra labels for the Tetrargon rthooks daemonset |
 | rthooks.extraVolumeMounts | list | `[]` | Extra volume mounts to add to the oci-hook-setup init container |
 | rthooks.failAllowNamespaces | string | `""` | Comma-separated list of namespaces to allow Pod creation for, in case tetragon-oci-hook fails to reach Tetragon agent. The namespace Tetragon is deployed in is always added as an exception and must not be added again. |
