@@ -380,6 +380,8 @@ rthooks:
   extraVolumeMounts: []
   # -- resources for the the oci-hook-setup init container
   resources: {}
+  # -- extra args to pass to tetragon-oci-hook
+  extraHookArgs: {}
   # -- configuration for "oci-hooks" interface
   ociHooks:
     # directory to install .json file for running the hook

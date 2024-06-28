@@ -315,6 +315,8 @@ func main() {
 			"default", logLevel)
 	}
 
+	log.Debug("starting", "conf", fmt.Sprintf("%+v", cliConf))
+
 	failTestProg, err := failTestProg()
 	if err != nil {
 		log.Warn("error in creating fail test prog, bailing out", "errro", err)

@@ -16,6 +16,14 @@
     - hook-args
     - --fail-allow-namespaces
     - {{ if .Values.rthooks.failAllowNamespaces }}{{ printf "%s,%s" .Release.Namespace .Values.rthooks.failAllowNamespaces }}{{ else }}{{ .Release.Namespace }}{{ end }}
+   {{- range $key, $value := .Values.rthooks.extraHookArgs }}
+   {{- if $value }}
+    - {{ $key }}
+    - {{ $value }}
+   {{- else }}
+    - {{ $key }}
+  {{- end }}
+  {{- end }}
   volumeMounts:
     {{- with .Values.rthooks.extraVolumeMounts }}
       {{- toYaml . | nindent 4 }}
