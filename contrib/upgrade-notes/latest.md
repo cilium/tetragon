@@ -28,6 +28,8 @@ tetragon:
 ```
 * Deprecated `tetragon.skipCRDCreation` Helm value is removed. Use `crds.installMethod=none` instead.
 
+* `tetragon.ociHookSetup` Helm value is deprecated. Use `tetragon.rthooks` instead.
+
 #### TracingPolicy (k8s CRD)
 
 * TBD

@@ -205,6 +205,7 @@ tetragon:
   # does not run on the host.
   hostProcPath: "/proc"
   # -- Configure tetragon's init container for setting up tetragon-oci-hook on the host
+  # NOTE: This is deprecated, please use .rthooks
   ociHookSetup:
     # -- enable  init container to setup tetragon-oci-hook
     enabled: false
@@ -339,3 +340,52 @@ crds:
   # default doesn't perform CRD downgrades. These can be configured in tetragonOperator section.
   # The "helm" method always installs all CRDs for the chart version.
   installMethod: "operator"
+
+# -- Method for installing Tetagon rthooks (tetragon-rthooks) daemonset
+# The tetragon-rthooks daemonset is responsible for installing run-time hooks on the host.
+# TODO: add documentation link
+rthooks:
+  # -- Enable the Tetragon rthooks daemonset
+  enabled: false
+  # -- Method to use for installing  rthooks. Values:
+  #
+  #    "oci-hooks":
+  #       Add an apppriate file to "/usr/share/containers/oci/hooks.d". Use this with CRI-O.
+  #       See https://github.com/containers/common/blob/main/pkg/hooks/docs/oci-hooks.5.md
+  #       for more details.
+  #       Specific configuration for this interface can be found under "OciHooks".
+  #
+  #    "nri-hook":
+  #      Install the hook via NRI. Use this with containerd. Requires NRI being enabled.
+  #      see: https://github.com/containerd/containerd/blob/main/docs/NRI.md.
+  #
+  interface: ""
+  # -- Annotations for the Tetragon rthooks daemonset
+  annotations: {}
+  # -- Extra labels for the Tetrargon rthooks daemonset
+  extraLabels: {}
+  # -- Pod annotations for the Tetrargon rthooks pod
+  podAnnotations: {}
+  # -- priorityClassName for the Tetrargon rthooks pod
+  priorityClassName: ""
+  # -- security context for the Tetrargon rthooks pod
+  securityContext:
+    privileged: true
+  # -- installDir is the host location where the tetragon-oci-hook binary will be installed
+  installDir: "/opt/tetragon"
+  # -- Comma-separated list of namespaces to allow Pod creation for, in case tetragon-oci-hook fails to reach Tetragon agent.
+  # The namespace Tetragon is deployed in is always added as an exception and must not be added again.
+  failAllowNamespaces: ""
+  # -- Extra volume mounts to add to the oci-hook-setup init container
+  extraVolumeMounts: []
+  # -- resources for the the oci-hook-setup init container
+  resources: {}
+  # -- configuration for "oci-hooks" interface
+  ociHooks:
+    # directory to install .json file for running the hook
+    hooksPath: "/usr/share/containers/oci/hooks.d"
+  # -- image for the Tetragon rthooks pod
+  image:
+    override: ~
+    repository: quay.io/cilium/tetragon-rthooks
+    tag: v0.1
