@@ -5,6 +5,7 @@ package sensors
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policyfilter"
@@ -36,6 +37,8 @@ var (
 type Sensor struct {
 	// Name is a human-readbale description.
 	Name string
+	// Policy name the sensor is part of.
+	Policy string
 	// Progs are all the BPF programs that exist on the filesystem.
 	Progs []*program.Program
 	// Maps are all the BPF Maps that the progs use.
@@ -56,6 +59,10 @@ type Sensor struct {
 	// when removing the sensor, sensor cannot be loaded again after this hook
 	// being triggered and must be recreated.
 	DestroyHook SensorHook
+}
+
+func sanitize(name string) string {
+	return strings.ReplaceAll(name, "/", "_")
 }
 
 // SensorIface is an interface for sensors.Sensor that allows implementing sensors for testing.
@@ -79,21 +86,22 @@ func (s *Sensor) IsLoaded() bool {
 // that can be called during sensor unloading and removing.
 type SensorHook func() error
 
-func SensorCombine(name string, sensors ...*Sensor) *Sensor {
+func SensorCombine(policy, name string, sensors ...*Sensor) *Sensor {
 	progs := []*program.Program{}
 	maps := []*program.Map{}
 	for _, s := range sensors {
 		progs = append(progs, s.Progs...)
 		maps = append(maps, s.Maps...)
 	}
-	return SensorBuilder(name, progs, maps)
+	return SensorBuilder(policy, name, progs, maps)
 }
 
-func SensorBuilder(name string, p []*program.Program, m []*program.Map) *Sensor {
+func SensorBuilder(policy, name string, p []*program.Program, m []*program.Map) *Sensor {
 	return &Sensor{
-		Name:  name,
-		Progs: p,
-		Maps:  m,
+		Name:   name,
+		Progs:  p,
+		Maps:   m,
+		Policy: policy,
 	}
 }
 
@@ -164,5 +172,5 @@ func GetMergedSensorFromParserPolicy(tp tracingpolicy.TracingPolicy) (SensorIfac
 		sensors = append(sensors, s)
 	}
 
-	return SensorCombine(tp.TpName(), sensors...), nil
+	return SensorCombine(tp.TpName(), tp.TpName(), sensors...), nil
 }

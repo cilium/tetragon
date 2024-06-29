@@ -8,7 +8,6 @@ import (
 	"path"
 	"strings"
 	"sync"
-	"sync/atomic"
 
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -50,9 +49,8 @@ func init() {
 	sensors.RegisterPolicyHandlerAtInit("enforcer", gEnforcerPolicy)
 }
 
-func enforcerMap(policyName string, load ...*program.Program) *program.Map {
-	return program.MapBuilderPin(enforcerDataMapName,
-		fmt.Sprintf("%s_%s", enforcerDataMapName, policyName), load...)
+func enforcerMap(load ...*program.Program) *program.Map {
+	return program.MapBuilderPolicy(enforcerDataMapName, load...)
 }
 
 func (kp *enforcerPolicy) enforcerGet(name string) (*enforcerHandler, bool) {
@@ -96,8 +94,7 @@ func (kp *enforcerPolicy) PolicyHandler(
 		}
 	}
 	if len(spec.Enforcers) > 0 {
-		name := fmt.Sprintf("enforcer-sensor-%d", atomic.AddUint64(&sensorCounter, 1))
-		return kp.createEnforcerSensor(spec.Enforcers, spec.Lists, spec.Options, name, policy.TpName())
+		return kp.createEnforcerSensor(spec.Enforcers, spec.Lists, spec.Options, policy.TpName())
 	}
 
 	return nil, nil
@@ -186,7 +183,6 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 	enforcers []v1alpha1.EnforcerSpec,
 	lists []v1alpha1.ListSpec,
 	opts []v1alpha1.OptionSpec,
-	name string,
 	policyName string,
 ) (*sensors.Sensor, error) {
 
@@ -277,7 +273,6 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 		return nil, err
 	}
 
-	pinPath := sensors.PathJoin(name, "enforcer_kprobe")
 	switch overrideMethod {
 	case OverrideMethodReturn:
 		useMulti := !specOpts.DisableKprobeMulti && !option.Config.DisableKprobeMulti && bpf.HasKprobeMulti()
@@ -293,9 +288,9 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 			path.Join(option.Config.HubbleLib, prog),
 			attach,
 			label,
-			pinPath,
+			"kprobe",
 			"enforcer").
-			SetLoaderData(name)
+			SetLoaderData(policyName)
 
 		progs = append(progs, load)
 	case OverrideMethodFmodRet:
@@ -306,33 +301,34 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 				path.Join(option.Config.HubbleLib, "bpf_fmodret_enforcer.o"),
 				syscallSym,
 				"fmod_ret/security_task_prctl",
-				pinPath,
+				fmt.Sprintf("fmod_ret_%s", syscallSym),
 				"enforcer").
-				SetLoaderData(name)
+				SetLoaderData(policyName)
 			progs = append(progs, load)
 		}
 	default:
 		return nil, fmt.Errorf("unexpected override method: %d", overrideMethod)
 	}
 
-	enforcerDataMap := enforcerMap(policyName, progs...)
+	enforcerDataMap := enforcerMap(progs...)
 	maps = append(maps, enforcerDataMap)
 
-	if ok := kp.enforcerAdd(name, kh); !ok {
-		return nil, fmt.Errorf("failed to add enforcer: '%s'", name)
+	if ok := kp.enforcerAdd(policyName, kh); !ok {
+		return nil, fmt.Errorf("failed to add enforcer: '%s'", policyName)
 	}
 
-	logger.GetLogger().Infof("Added enforcer sensor '%s'", name)
+	logger.GetLogger().Infof("Added enforcer sensor '%s'", policyName)
 
 	return &sensors.Sensor{
-		Name:  "__enforcer__",
-		Progs: progs,
-		Maps:  maps,
+		Name:   "__enforcer__",
+		Progs:  progs,
+		Maps:   maps,
+		Policy: policyName,
 		PostUnloadHook: func() error {
-			if ok := kp.enforcerDel(name); !ok {
-				logger.GetLogger().Infof("Failed to clean up enforcer sensor '%s'", name)
+			if ok := kp.enforcerDel(policyName); !ok {
+				logger.GetLogger().Infof("Failed to clean up enforcer sensor '%s'", policyName)
 			} else {
-				logger.GetLogger().Infof("Cleaned up enforcer sensor '%s'", name)
+				logger.GetLogger().Infof("Cleaned up enforcer sensor '%s'", policyName)
 			}
 			return nil
 		},

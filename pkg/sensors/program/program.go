@@ -18,7 +18,8 @@ func Builder(
 		Name:       objFile,
 		Attach:     attach,
 		Label:      label,
-		PinPath:    pinFile,
+		PinPath:    "",
+		PinName:    pinFile,
 		RetProbe:   false,
 		ErrorFatal: true,
 		Override:   false,
@@ -38,7 +39,7 @@ func GetProgramInfo(l *Program) (program, label, prog string) {
 type MapLoad struct {
 	Index uint32
 	Name  string
-	Load  func(m *ebpf.Map, index uint32) error
+	Load  func(m *ebpf.Map, pinPathPrefix string, index uint32) error
 }
 
 type MultiKprobeAttachData struct {
@@ -73,6 +74,8 @@ type Program struct {
 	// PinPath is the pinned path to this program. Note this is a relative path
 	// based on the BPF directory FGS is running under.
 	PinPath string
+	// PinName
+	PinName string
 
 	// RetProbe indicates whether a kprobe is a kretprobe.
 	RetProbe bool

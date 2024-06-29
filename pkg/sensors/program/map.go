@@ -1,6 +1,53 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
+// We allow to define several types of maps:
+//
+//    MapTypeGlobal MapType = iota
+//    MapTypePolicy
+//    MapTypeSensor
+//    MapTypeProgram
+//
+//  Each type defines the maps position in the sysfs hierarchy:
+//
+//    MapTypeGlobal:     /sys/fs/bpf/tetragon/map
+//    MapTypePolicy:     /sys/fs/bpf/tetragon/policy/map
+//    MapTypeSensor:     /sys/fs/bpf/tetragon/policy/sensor/map
+//    MapTypeProgram:    /sys/fs/bpf/tetragon/policy/sensor/program/map
+//
+//  Each type has appropriate helper defined, which sets map's
+//  path to specific level of sysfs hierarchy:
+//
+//    MapTypeGlobal:     MapBuilder
+//    MapTypePolicy:     MapBuilderPolicy
+//    MapTypeSensor:     MapBuilderSensor
+//    MapTypeProgram:    MapBuilderProgram
+//
+//  It's possible to share map between more programs like:
+//
+//     m := MapBuilderSensor("map", prog1, prog2, prog3)
+//
+//  All prog1-3 programs will attach to m1 through:
+//
+//    /sys/fs/bpf/tetragon/policy/sensor/map
+//
+//  The idea is to share map on higher level which denotes to scope
+//  of the map, like:
+//
+//     /sys/fs/bpf/tetragon/map
+//      - map is global shared with all policies/sensors/programs
+//
+//     /sys/fs/bpf/tetragon/policy/map
+//      - map is local for policy, shared by all its sensors/programs
+//
+//     /sys/fs/bpf/tetragon/policy/sensors/map
+//      - map is local for sensor, shared by all its programs
+//
+//     /sys/fs/bpf/tetragon/policy/sensors/program/map
+//      - map is local for program, not shared at all
+//
+//  NOTE Please do not share MapTypeProgram maps, it brings confusion.
+
 package program
 
 import (
@@ -18,15 +65,25 @@ type MaxEntries struct {
 	Set bool
 }
 
+type MapType int
+
+const (
+	MapTypeGlobal MapType = iota
+	MapTypePolicy
+	MapTypeSensor
+	MapTypeProgram
+)
+
 // Map represents BPF maps.
 type Map struct {
 	Name         string
-	PinName      string
+	PinPath      string
 	Prog         *Program
 	PinState     State
 	MapHandle    *ebpf.Map
 	Entries      MaxEntries
 	InnerEntries MaxEntries
+	Type         MapType
 }
 
 // Map holds pointer to Program object as a source of its ebpf object
@@ -42,8 +99,8 @@ type Map struct {
 //	p.PinMap["map2"] = &map2
 //	...
 //	p.PinMap["mapX"] = &mapX
-func mapBuilder(name, pin string, lds ...*Program) *Map {
-	m := &Map{name, pin, lds[0], Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}}
+func mapBuilder(name string, ty MapType, lds ...*Program) *Map {
+	m := &Map{name, "", lds[0], Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}, ty}
 	for _, ld := range lds {
 		ld.PinMap[name] = m
 	}
@@ -51,15 +108,31 @@ func mapBuilder(name, pin string, lds ...*Program) *Map {
 }
 
 func MapBuilder(name string, lds ...*Program) *Map {
-	return mapBuilder(name, name, lds...)
+	return mapBuilder(name, MapTypeGlobal, lds...)
 }
 
-func MapBuilderPin(name, pin string, lds ...*Program) *Map {
-	return mapBuilder(name, pin, lds...)
+func MapBuilderProgram(name string, lds ...*Program) *Map {
+	return mapBuilder(name, MapTypeProgram, lds...)
+}
+
+func MapBuilderSensor(name string, lds ...*Program) *Map {
+	return mapBuilder(name, MapTypeSensor, lds...)
+}
+
+func MapBuilderPolicy(name string, lds ...*Program) *Map {
+	return mapBuilder(name, MapTypePolicy, lds...)
+}
+
+func MapBuilderType(name string, ty MapType, lds ...*Program) *Map {
+	return mapBuilder(name, ty, lds...)
+}
+
+func PolicyMapPath(mapDir, policy, name string) string {
+	return filepath.Join(mapDir, policy, name)
 }
 
 func (m *Map) Unload() error {
-	log := logger.GetLogger().WithField("map", m.Name).WithField("pin", m.PinName)
+	log := logger.GetLogger().WithField("map", m.Name).WithField("pin", m.Name)
 	if !m.PinState.IsLoaded() {
 		log.WithField("count", m.PinState.count).Debug("Refusing to unload map as it is not loaded")
 		return nil
