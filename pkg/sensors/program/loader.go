@@ -13,6 +13,7 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/btf"
 	"github.com/cilium/ebpf/link"
+	"github.com/cilium/tetragon/pkg/bpf"
 	cachedbtf "github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
@@ -41,6 +42,39 @@ type LoadOpts struct {
 
 	TcMap    string
 	TcPrefix string
+}
+
+func linkPinPath(bpfDir string, load *Program, extra ...string) string {
+	pinPath := filepath.Join(bpfDir, load.PinPath)
+	if load.Override {
+		pinPath = pinPath + "_override"
+	}
+	if load.RetProbe {
+		pinPath = pinPath + "_return"
+	}
+	if len(extra) != 0 {
+		pinPath = pinPath + "_" + strings.Join(extra, "_")
+	}
+	return pinPath + "_link"
+}
+
+func linkPin(lnk link.Link, bpfDir string, load *Program, extra ...string) error {
+	// pinned link is not configured
+	if !load.PinLink {
+		return nil
+	}
+	// pinned link is not supported
+	if !bpf.HasLinkPin() {
+		return nil
+	}
+
+	pinPath := linkPinPath(bpfDir, load, extra...)
+
+	err := lnk.Pin(pinPath)
+	if err != nil {
+		return fmt.Errorf("pinning link '%s' failed: %w", pinPath, err)
+	}
+	return nil
 }
 
 func RawAttach(targetFD int) AttachFunc {
