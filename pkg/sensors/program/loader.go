@@ -109,7 +109,7 @@ func RawAttachWithFlags(targetFD int, flags uint32) AttachFunc {
 	}
 }
 
-func TracepointAttach(load *Program) AttachFunc {
+func TracepointAttach(load *Program, bpfDir string) AttachFunc {
 	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 
@@ -120,6 +120,11 @@ func TracepointAttach(load *Program) AttachFunc {
 		tpLink, err := link.Tracepoint(parts[0], parts[1], prog, nil)
 		if err != nil {
 			return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
+		}
+		err = linkPin(tpLink, bpfDir, load)
+		if err != nil {
+			tpLink.Close()
+			return nil, err
 		}
 		return &unloader.RelinkUnloader{
 			UnloadProg: unloader.PinUnloader{Prog: prog}.Unload,
@@ -520,7 +525,7 @@ func LoadTracepointProgram(bpfDir string, load *Program, verbose int) error {
 		}
 	}
 	opts := &LoadOpts{
-		Attach:   TracepointAttach(load),
+		Attach:   TracepointAttach(load, bpfDir),
 		TcMap:    tc.name,
 		TcPrefix: tc.prefix,
 	}
