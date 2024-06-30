@@ -25,6 +25,7 @@ const (
 	ActionTrackSock    = 10
 	ActionUntrackSock  = 11
 	ActionNotifyKiller = 12
+	ActionLsmBlock     = 13
 )
 
 const (

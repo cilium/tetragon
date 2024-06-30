@@ -50,6 +50,14 @@ struct {
 	__type(value, struct event_config);
 } config_map SEC(".maps");
 
+// TODO: Consider to use BPF_MAP_TYPE_BLOOM_FILTER
+struct {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(max_entries, 32768);
+	__type(key, __u64);
+	__type(value, bool);
+} lsm_block_map SEC(".maps");
+
 #ifdef __LARGE_BPF_PROG
 struct {
 	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
@@ -66,6 +74,7 @@ static struct generic_maps maps = {
 	.heap = (struct bpf_map_def *)&process_call_heap,
 	.calls = (struct bpf_map_def *)&lsm_calls,
 	.filter = (struct bpf_map_def *)&filter_map,
+	.lsm_block = (struct bpf_map_def *)&lsm_block_map,
 };
 
 FUNC_INLINE int
@@ -172,5 +181,15 @@ generic_lsm_actions(void *ctx)
 __attribute__((section("lsm/5"), used)) int
 generic_lsm_output(void *ctx)
 {
-	return generic_output(ctx, (struct bpf_map_def *)&process_call_heap, MSG_OP_GENERIC_LSM);
+	__u64 id = get_current_pid_tgid();
+	bool *block;
+
+	generic_output(ctx, (struct bpf_map_def *)&process_call_heap, MSG_OP_GENERIC_LSM);
+
+	block = map_lookup_elem(&lsm_block_map, &id);
+	if (!block)
+		return 0;
+
+	map_delete_elem(&lsm_block_map, &id);
+	return -1;
 }

@@ -35,6 +35,7 @@ const (
 	ActionTypeTrackSock      = 10
 	ActionTypeUntrackSock    = 11
 	ActionTypeNotifyEnforcer = 12
+	ActionTypeLsmBlock       = 13
 )
 
 var actionTypeTable = map[string]uint32{
@@ -51,6 +52,7 @@ var actionTypeTable = map[string]uint32{
 	"tracksock":      ActionTypeTrackSock,
 	"untracksock":    ActionTypeUntrackSock,
 	"notifyenforcer": ActionTypeNotifyEnforcer,
+	"lsmblock":       ActionTypeLsmBlock,
 }
 
 var actionTypeStringTable = map[uint32]string{
@@ -67,6 +69,7 @@ var actionTypeStringTable = map[uint32]string{
 	ActionTypeTrackSock:      "tracksock",
 	ActionTypeUntrackSock:    "untracksock",
 	ActionTypeNotifyEnforcer: "notifyenforcer",
+	ActionTypeLsmBlock:       "lsmblock",
 }
 
 const (
@@ -952,6 +955,8 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 		}
 		WriteSelectorUint32(&k.data, userStackTrace)
 	case ActionTypeNoPost:
+		// no arguments
+	case ActionTypeLsmBlock:
 		// no arguments
 	case ActionTypeSigKill:
 		// no arguments
