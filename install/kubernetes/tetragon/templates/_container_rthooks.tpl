@@ -14,6 +14,7 @@
     - --oci-hooks.local-dir={{ include "container.tetragonOCIHookSetup.hooksPath" . }}
     - --daemonize
     - hook-args
+    - --grpc-address={{ .Values.tetragon.grpc.address }}
     - --fail-allow-namespaces
     - {{ if .Values.rthooks.failAllowNamespaces }}{{ printf "%s,%s" .Release.Namespace .Values.rthooks.failAllowNamespaces }}{{ else }}{{ .Release.Namespace }}{{ end }}
    {{- range $key, $value := .Values.rthooks.extraHookArgs }}
