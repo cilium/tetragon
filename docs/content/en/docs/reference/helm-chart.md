@@ -73,6 +73,7 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | tetragon.argsOverride | list | `[]` |  |
 | tetragon.btf | string | `""` |  |
 | tetragon.commandOverride | list | `[]` |  |
+| tetragon.debug | bool | `false` | If you want to run Tetragon in debug mode change this value to true |
 | tetragon.enableK8sAPI | bool | `true` |  |
 | tetragon.enableMsgHandlingLatency | bool | `false` | Enable latency monitoring in message handling |
 | tetragon.enablePolicyFilter | bool | `true` | Enable policy filter. This is required for K8s namespace and pod-label filtering. |
