@@ -12,6 +12,7 @@
     - --host-install-dir={{ .Values.tetragon.ociHookSetup.installDir }}
     - --oci-hooks.local-dir={{ include "container.tetragonOCIHookSetup.hooksPath" . }}
     - hook-args
+    - --grpc-address={{ .Values.tetragon.grpc.address }}
     - --fail-allow-namespaces
     - {{ if .Values.rthooks.failAllowNamespaces }}{{ printf "%s,%s" .Release.Namespace .Values.rthooks.failAllowNamespaces }}{{ else }}{{ .Release.Namespace }}{{ end }}
   volumeMounts:
