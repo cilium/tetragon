@@ -4842,6 +4842,56 @@ func (checker *KprobeCredChecker) FromKprobeCred(event *tetragon.KprobeCred) *Kp
 	return checker
 }
 
+// KprobeDentryChecker implements a checker struct to check a KprobeDentry field
+type KprobeDentryChecker struct {
+	Name *stringmatcher.StringMatcher `json:"name,omitempty"`
+}
+
+// NewKprobeDentryChecker creates a new KprobeDentryChecker
+func NewKprobeDentryChecker() *KprobeDentryChecker {
+	return &KprobeDentryChecker{}
+}
+
+// Get the type of the checker as a string
+func (checker *KprobeDentryChecker) GetCheckerType() string {
+	return "KprobeDentryChecker"
+}
+
+// Check checks a KprobeDentry field
+func (checker *KprobeDentryChecker) Check(event *tetragon.KprobeDentry) error {
+	if event == nil {
+		return fmt.Errorf("%s: KprobeDentry field is nil", CheckerLogPrefix(checker))
+	}
+
+	fieldChecks := func() error {
+		if checker.Name != nil {
+			if err := checker.Name.Match(event.Name); err != nil {
+				return fmt.Errorf("Name check failed: %w", err)
+			}
+		}
+		return nil
+	}
+	if err := fieldChecks(); err != nil {
+		return fmt.Errorf("%s: %w", CheckerLogPrefix(checker), err)
+	}
+	return nil
+}
+
+// WithName adds a Name check to the KprobeDentryChecker
+func (checker *KprobeDentryChecker) WithName(check *stringmatcher.StringMatcher) *KprobeDentryChecker {
+	checker.Name = check
+	return checker
+}
+
+//FromKprobeDentry populates the KprobeDentryChecker using data from a KprobeDentry field
+func (checker *KprobeDentryChecker) FromKprobeDentry(event *tetragon.KprobeDentry) *KprobeDentryChecker {
+	if event == nil {
+		return checker
+	}
+	checker.Name = stringmatcher.Full(event.Name)
+	return checker
+}
+
 // KprobeLinuxBinprmChecker implements a checker struct to check a KprobeLinuxBinprm field
 type KprobeLinuxBinprmChecker struct {
 	Path       *stringmatcher.StringMatcher `json:"path,omitempty"`
@@ -5409,6 +5459,7 @@ type KprobeArgumentChecker struct {
 	CapEffectiveArg       *stringmatcher.StringMatcher `json:"capEffectiveArg,omitempty"`
 	LinuxBinprmArg        *KprobeLinuxBinprmChecker    `json:"linuxBinprmArg,omitempty"`
 	NetDevArg             *KprobeNetDevChecker         `json:"netDevArg,omitempty"`
+	DentryArg             *KprobeDentryChecker         `json:"dentryArg,omitempty"`
 	Label                 *stringmatcher.StringMatcher `json:"label,omitempty"`
 }
 
@@ -5689,6 +5740,16 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 				return fmt.Errorf("KprobeArgumentChecker: NetDevArg check failed: %T is not a NetDevArg", event)
 			}
 		}
+		if checker.DentryArg != nil {
+			switch event := event.Arg.(type) {
+			case *tetragon.KprobeArgument_DentryArg:
+				if err := checker.DentryArg.Check(event.DentryArg); err != nil {
+					return fmt.Errorf("DentryArg check failed: %w", err)
+				}
+			default:
+				return fmt.Errorf("KprobeArgumentChecker: DentryArg check failed: %T is not a DentryArg", event)
+			}
+		}
 		if checker.Label != nil {
 			if err := checker.Label.Match(event.Label); err != nil {
 				return fmt.Errorf("Label check failed: %w", err)
@@ -5858,6 +5919,12 @@ func (checker *KprobeArgumentChecker) WithNetDevArg(check *KprobeNetDevChecker) 
 	return checker
 }
 
+// WithDentryArg adds a DentryArg check to the KprobeArgumentChecker
+func (checker *KprobeArgumentChecker) WithDentryArg(check *KprobeDentryChecker) *KprobeArgumentChecker {
+	checker.DentryArg = check
+	return checker
+}
+
 // WithLabel adds a Label check to the KprobeArgumentChecker
 func (checker *KprobeArgumentChecker) WithLabel(check *stringmatcher.StringMatcher) *KprobeArgumentChecker {
 	checker.Label = check
@@ -6015,6 +6082,12 @@ func (checker *KprobeArgumentChecker) FromKprobeArgument(event *tetragon.KprobeA
 	case *tetragon.KprobeArgument_NetDevArg:
 		if event.NetDevArg != nil {
 			checker.NetDevArg = NewKprobeNetDevChecker().FromKprobeNetDev(event.NetDevArg)
+		}
+	}
+	switch event := event.Arg.(type) {
+	case *tetragon.KprobeArgument_DentryArg:
+		if event.DentryArg != nil {
+			checker.DentryArg = NewKprobeDentryChecker().FromKprobeDentry(event.DentryArg)
 		}
 	}
 	checker.Label = stringmatcher.Full(event.Label)
