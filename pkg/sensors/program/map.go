@@ -10,6 +10,7 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/sirupsen/logrus"
 )
 
@@ -70,7 +71,9 @@ func (m *Map) Unload() error {
 	}
 	log.Info("map was unloaded")
 	if m.MapHandle != nil {
-		m.MapHandle.Unpin()
+		if !option.Config.KeepSensorsOnExit {
+			m.MapHandle.Unpin()
+		}
 		err := m.MapHandle.Close()
 		m.MapHandle = nil
 		return err

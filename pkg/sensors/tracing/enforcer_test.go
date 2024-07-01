@@ -10,6 +10,7 @@ import (
 	"sync"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
@@ -24,6 +25,7 @@ import (
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/policyfilter"
+	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
@@ -674,4 +676,84 @@ spec:
 	if err == nil || err.Error() != "exit status 22" {
 		t.Fatalf("Wrong error '%v' expected 'exit status 22'", err)
 	}
+}
+
+func testEnforcerPersistent(t *testing.T, builder func() *EnforcerSpecBuilder, expected, test string) {
+	testEnforcerCheckSkip(t)
+
+	if !bpf.HasLinkPin() {
+		t.Skip("skipping persistent enforcer test, link pin is not available")
+	}
+
+	run := func(idx int, exp string) {
+		cmd := exec.Command(test, "0xfffe")
+		err := cmd.Run()
+
+		if err == nil || err.Error() != exp {
+			t.Fatalf("run %d: Wrong error '%v' expected '%s'", idx, err, exp)
+		}
+	}
+
+	yaml := builder().WithoutMultiKprobe().MustYAML()
+	configHook := []byte(yaml)
+	err := os.WriteFile(testConfigFile, configHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	option.Config.KeepSensorsOnExit = true
+	defer func() { option.Config.KeepSensorsOnExit = false }()
+
+	sens, err := observertesthelper.GetDefaultSensorsWithFile(t, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+
+	// first run - sensors are loaded, we should get kill/override
+	run(1, expected)
+
+	sensi := make([]sensors.SensorIface, 0, len(sens))
+	for _, s := range sens {
+		sensi = append(sensi, s)
+	}
+	sensors.UnloadSensors(sensi)
+
+	// second run - sensors are unloaded, but pins stay, we should get kill/override
+	run(2, expected)
+
+	// ... and finally get rid of pinned progs/maps/links
+	os.RemoveAll(bpf.MapPrefixPath())
+
+	// bpf pinned links removal is asynchronous, we need to wait to be sure it's gone
+	time.Sleep(2 * time.Second)
+
+	// third run - sensors are unloaded, map dir is removed, we should get no enforcement
+	run(3, "exit status 22")
+}
+
+func TestEnforcerPersistentOverride(t *testing.T) {
+	test := testutils.RepoRootPath("contrib/tester-progs/enforcer-tester")
+
+	builder := func() *EnforcerSpecBuilder {
+		return NewEnforcerSpecBuilder("enforcer-signal").
+			WithSyscallList("sys_prctl").
+			WithMatchBinaries(test).
+			WithOverrideValue(-17) // EEXIST
+	}
+
+	testEnforcerPersistent(t, builder, "exit status 17", test)
+}
+
+func TestEnforcerPersistentKill(t *testing.T) {
+
+	test := testutils.RepoRootPath("contrib/tester-progs/enforcer-tester")
+
+	builder := func() *EnforcerSpecBuilder {
+		return NewEnforcerSpecBuilder("enforcer-signal").
+			WithSyscallList("sys_prctl").
+			WithMatchBinaries(test).
+			WithKill(9) // SigKill
+	}
+
+	testEnforcerPersistent(t, builder, "signal: killed", test)
 }

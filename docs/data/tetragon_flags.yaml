@@ -3,6 +3,9 @@ synopsis: |
     Tetragon - eBPF-based Security Observability and Runtime Enforcement
 usage: tetragon [flags]
 options:
+    - name: bpf-dir
+      default_value: tetragon
+      usage: Set tetragon bpf directory (default 'tetragon')
     - name: bpf-lib
       default_value: /var/lib/tetragon/
       usage: Location of Tetragon libs (btf and bpf files)
@@ -131,6 +134,9 @@ options:
       usage: help for tetragon
     - name: k8s-kubeconfig-path
       usage: Absolute path of the kubernetes kubeconfig file
+    - name: keep-sensors-on-exit
+      default_value: "false"
+      usage: Do not unload sensors on exit
     - name: kernel
       usage: Kernel version
     - name: kmods
