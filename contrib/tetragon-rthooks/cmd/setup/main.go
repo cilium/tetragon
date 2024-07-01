@@ -62,7 +62,16 @@ func ociHooksConfig(binFname string, binArgs ...string) *ociHooks.Hook {
 }
 
 func (i *Install) ociHooksInstall(log *slog.Logger) {
+	var sigChan chan os.Signal
+	if i.Daemonize {
+		sigChan = make(chan os.Signal, 1)
+		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	}
 
+	// copy the binary to the host
+	i.copyBinary(log)
+
+	// add .json file to oci hooks dir
 	_, binBaseName := path.Split(i.LocalBinary)
 	binFname := filepath.Join(i.HostInstallDir, binBaseName)
 
@@ -83,24 +92,8 @@ func (i *Install) ociHooksInstall(log *slog.Logger) {
 	}
 
 	log.Info("written conf", "conf-dst-path", confDst)
-}
 
-func (i *Install) Run(log *slog.Logger) error {
-	var sigChan chan os.Signal
-	if i.Daemonize {
-		sigChan = make(chan os.Signal, 1)
-		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	}
-
-	i.copyBinary(log)
-	switch i.Interface {
-	case "oci-hooks":
-		i.ociHooksInstall(log)
-	default:
-		log.Error("unknown interface", "interface", i.Interface)
-		os.Exit(1)
-	}
-
+	// if --daemonize is set, wait until we receive a signal, and then uninstall hook.
 	if i.Daemonize {
 		<-sigChan
 		u := Uninstall{
@@ -113,6 +106,19 @@ func (i *Install) Run(log *slog.Logger) error {
 			log.Error("uninstall failed", "err", err)
 		}
 	}
+}
+
+func (i *Install) Run(log *slog.Logger) error {
+
+	i.copyBinary(log)
+	switch i.Interface {
+	case "oci-hooks":
+		i.ociHooksInstall(log)
+		return nil
+	}
+
+	log.Error("unknown interface", "interface", i.Interface)
+	os.Exit(1)
 
 	return nil
 }
