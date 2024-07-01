@@ -65,8 +65,8 @@ github.com/google/cel-go/parser/gen
 # github.com/moby/sys/mountinfo v0.7.1
 ## explicit; go 1.16
 github.com/moby/sys/mountinfo
-# github.com/opencontainers/runc v1.1.12
-## explicit; go 1.17
+# github.com/opencontainers/runc v1.1.13
+## explicit; go 1.18
 github.com/opencontainers/runc/libcontainer/cgroups
 github.com/opencontainers/runc/libcontainer/cgroups/devices
 github.com/opencontainers/runc/libcontainer/cgroups/ebpf
