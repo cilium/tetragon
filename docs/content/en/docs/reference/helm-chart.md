@@ -91,7 +91,7 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | tetragon.fieldFilters | string | `""` |  |
 | tetragon.gops.address | string | `"localhost"` | The address at which to expose gops. |
 | tetragon.gops.port | int | `8118` | The port at which to expose gops. |
-| tetragon.grpc.address | string | `"localhost:54321"` | The address at which to expose gRPC. Examples: localhost:54321, unix:///var/run/tetragon/tetragon.sock |
+| tetragon.grpc.address | string | `"localhost:54321"` | The address at which to expose gRPC. Examples: localhost:54321, unix:///var/run/cilum/tetragon/tetragon.sock |
 | tetragon.grpc.enabled | bool | `true` | Whether to enable exposing Tetragon gRPC. |
 | tetragon.healthGrpc.enabled | bool | `true` | Whether to enable health gRPC server. |
 | tetragon.healthGrpc.interval | int | `10` | The interval at which to check the health of the agent. |
