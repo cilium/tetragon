@@ -57,8 +57,9 @@ const (
 type DeploymentCode int
 
 type deploymentEnv struct {
-	id  DeploymentCode
-	str string
+	id       DeploymentCode
+	str      string
+	endsWith string
 }
 
 const (
@@ -101,7 +102,9 @@ var (
 		{id: DEPLOY_CONTAINER, str: "docker"},
 		{id: DEPLOY_CONTAINER, str: "podman"},
 		{id: DEPLOY_CONTAINER, str: "libpod"},
-		{id: DEPLOY_SD_SERVICE, str: "system.slice"},
+		// If Tetragon is running as a systemd service, its
+		// cgroup path will end with .service
+		{id: DEPLOY_SD_SERVICE, endsWith: ".service"},
 		{id: DEPLOY_SD_USER, str: "user.slice"},
 	}
 
@@ -291,7 +294,10 @@ func setDeploymentMode(cgroupPath string) error {
 
 	// Last go through the deployments
 	for _, d := range deployments {
-		if strings.Contains(cgroupPath, d.str) {
+		if d.str != "" && strings.Contains(cgroupPath, d.str) {
+			deploymentMode = d.id
+			return nil
+		} else if d.endsWith != "" && strings.HasSuffix(cgroupPath, d.endsWith) {
 			deploymentMode = d.id
 			return nil
 		}
