@@ -1,7 +1,7 @@
 ---
 title: "Runtime Hooks"
 weight: 3
-description: "Documentation for Tetragon runtime hooks"
+description: "Tetragon Runtime Hooks"
 ---
 
 Applying
@@ -54,6 +54,6 @@ adds the `tetragon-oci-hook` to the container spec.
 
 Containerd can be configured to use a custom container spec that includes `tetragon-oci-hook`.
 
-## Examples
+## Configuration
 
-Examples for all the above using minikube can be found in the `minikube-install-hook.sh` script.
+See [Configure Runtime Hooks]({{< ref "/docs/installation/runtime-hooks.md" >}}).
