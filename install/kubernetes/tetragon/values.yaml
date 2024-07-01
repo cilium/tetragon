@@ -71,6 +71,8 @@ tetragon:
   # Tetragon puts processes in an LRU cache. The cache is used to find ancestors
   # for subsequently exec'ed processes.
   processCacheSize: 65536
+  # -- If you want to run Tetragon in debug mode change this value to true
+  debug: false
   # JSON export filename. Set it to an empty string to disable JSON export altogether.
   exportFilename: tetragon.log
   # JSON export file permissions as a string. Set it to "600" to restrict access to owner.

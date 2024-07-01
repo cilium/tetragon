@@ -10,6 +10,7 @@ data:
   btf: {{ .Values.tetragon.btf }}
 {{- end }}
   procfs: /procRoot
+  debug: {{ .Values.tetragon.debug | quote }}
   enable-process-cred: {{ .Values.tetragon.enableProcessCred | quote }}
   enable-process-ns: {{ .Values.tetragon.enableProcessNs | quote }}
   process-cache-size: {{ .Values.tetragon.processCacheSize | quote }}
