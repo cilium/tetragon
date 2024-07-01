@@ -24,7 +24,7 @@ const (
 )
 
 type Install struct {
-	Interface       string `default:"oci-hooks" enum:"oci-hooks" help:"Hooks interface (${enum})"`
+	Interface       string `default:"oci-hooks" enum:"oci-hooks,nri-hook" help:"Hooks interface (${enum})"`
 	LocalBinary     string `default:"/usr/bin/tetragon-oci-hook" help:"Source binary path (in the container)"`
 	LocalInstallDir string `required help:"Installation dir (in the container)."`
 	HostInstallDir  string `required help:"Installation dir (in the host). Used for the binary and the hook logfile."`
@@ -33,6 +33,11 @@ type Install struct {
 	OciHooks struct {
 		LocalDir string `default:"/hostHooks" help:"oci-hooks drop-in directory (inside the container)"`
 	} `embed:"" prefix:"oci-hooks."`
+
+	NriHook struct {
+		Index string `name:"index" default:"01" help:"NRI index number"`
+		Name  string `name:"name" default:"tetragon" help:"NRI plugin name"`
+	} `embed:"" prefix:"nri-hook."`
 
 	HookArgs struct {
 		Args []string `arg:"" optional:""`
@@ -114,6 +119,9 @@ func (i *Install) Run(log *slog.Logger) error {
 	switch i.Interface {
 	case "oci-hooks":
 		i.ociHooksInstall(log)
+		return nil
+	case "nri-hook":
+		i.nriHookStart(log)
 		return nil
 	}
 
