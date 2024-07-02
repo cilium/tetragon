@@ -27,7 +27,7 @@ func main() {
 func initMetrics(target string, reg *prometheus.Registry, _ *slog.Logger) error {
 	switch target {
 	case "health":
-		metricsconfig.InitHealthMetricsForDocs(reg)
+		metricsconfig.EnableHealthMetrics(reg).InitForDocs()
 	case "resources":
 		metricsconfig.InitResourcesMetricsForDocs(reg)
 	case "events":

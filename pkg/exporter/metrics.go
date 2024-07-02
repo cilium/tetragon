@@ -6,6 +6,7 @@ package exporter
 import (
 	"io"
 
+	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -30,10 +31,10 @@ var (
 	})
 )
 
-func InitMetrics(registry *prometheus.Registry) {
-	registry.MustRegister(eventsExportedTotal)
-	registry.MustRegister(eventsExportedBytesTotal)
-	registry.MustRegister(eventsExportTimestamp)
+func RegisterMetrics(group metrics.Group) {
+	group.MustRegister(eventsExportedTotal)
+	group.MustRegister(eventsExportedBytesTotal)
+	group.MustRegister(eventsExportTimestamp)
 }
 
 func newExportedBytesCounterWriter(w io.Writer, c prometheus.Counter) io.Writer {

@@ -4,6 +4,7 @@
 package cgroupratemetrics
 
 import (
+	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -41,8 +42,8 @@ var (
 	}, []string{"type"})
 )
 
-func InitMetrics(registry *prometheus.Registry) {
-	registry.MustRegister(CgroupRateTotal)
+func RegisterMetrics(group metrics.Group) {
+	group.MustRegister(CgroupRateTotal)
 }
 
 // Get a new handle on an ErrorTotal metric for an ErrorType
