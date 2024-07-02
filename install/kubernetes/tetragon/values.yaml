@@ -30,8 +30,6 @@ serviceLabelsOverride: {}
 dnsPolicy: Default
 # -- exportDirectory specifies directory to put Tetragon JSON export files.
 exportDirectory: "/var/run/cilium/tetragon"
-# -- exportFileRotationInterval specifies file creation interval for hubble-export-s3.
-exportFileCreationInterval: "120s"
 # -- Configures whether Tetragon pods run on the host network.
 #
 # IMPORTANT: Tetragon must be on the host network for the process visibility to
