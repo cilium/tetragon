@@ -12,10 +12,10 @@ Helm chart for Tetragon
 | crds.installMethod | string | `"operator"` | Method for installing CRDs. Supported values are: "operator", "helm" and "none". The "operator" method allows for fine-grained control over which CRDs are installed and by default doesn't perform CRD downgrades. These can be configured in tetragonOperator section. The "helm" method always installs all CRDs for the chart version. |
 | daemonSetAnnotations | object | `{}` |  |
 | daemonSetLabelsOverride | object | `{}` |  |
-| dnsPolicy | string | `"Default"` | Set DNS policy for tetragon pods.  https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy |
+| dnsPolicy | string | `"Default"` | DNS policy for Tetragon pods.  https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy |
 | enabled | bool | `true` |  |
-| export | object | `{"filenames":["tetragon.log"],"mode":"stdout","resources":{},"securityContext":{},"stdout":{"argsOverride":[],"commandOverride":[],"enabledArgs":true,"enabledCommand":true,"extraEnv":[],"extraVolumeMounts":[],"image":{"override":null,"repository":"quay.io/cilium/hubble-export-stdout","tag":"v1.0.4"}}}` | Tetragon event settings |
-| exportDirectory | string | `"/var/run/cilium/tetragon"` | exportDirectory specifies directory to put Tetragon JSON export files. |
+| export | object | `{"filenames":["tetragon.log"],"mode":"stdout","resources":{},"securityContext":{},"stdout":{"argsOverride":[],"commandOverride":[],"enabledArgs":true,"enabledCommand":true,"extraEnv":[],"extraVolumeMounts":[],"image":{"override":null,"repository":"quay.io/cilium/hubble-export-stdout","tag":"v1.0.4"}}}` | Tetragon events export settings |
+| exportDirectory | string | `"/var/run/cilium/tetragon"` | Directory to put Tetragon JSON export files. |
 | extraConfigmapMounts | list | `[]` |  |
 | extraHostPathMounts | list | `[]` |  |
 | extraVolumes | list | `[]` |  |
@@ -59,8 +59,8 @@ Helm chart for Tetragon
 | tetragon.enableMsgHandlingLatency | bool | `false` | Enable latency monitoring in message handling |
 | tetragon.enablePolicyFilter | bool | `true` | Enable policy filter. This is required for K8s namespace and pod-label filtering. |
 | tetragon.enablePolicyFilterDebug | bool | `false` | Enable policy filter debug messages. |
-| tetragon.enableProcessCred | bool | `false` | enableProcessCred enables Capabilities visibility in exec and kprobe events. |
-| tetragon.enableProcessNs | bool | `false` | enableProcessNs enables Namespaces visibility in exec and kprobe events. |
+| tetragon.enableProcessCred | bool | `false` | Enable Capabilities visibility in exec and kprobe events. |
+| tetragon.enableProcessNs | bool | `false` | Enable Namespaces visibility in exec and kprobe events. |
 | tetragon.enabled | bool | `true` |  |
 | tetragon.exportAllowList | string | `"{\"event_set\":[\"PROCESS_EXEC\", \"PROCESS_EXIT\", \"PROCESS_KPROBE\", \"PROCESS_UPROBE\", \"PROCESS_TRACEPOINT\"]}"` | Allowlist for JSON export. For example, to export only process_connect events from the default namespace:  exportAllowList: |   {"namespace":["default"],"event_set":["PROCESS_EXEC"]} |
 | tetragon.exportDenyList | string | `"{\"health_check\":true}\n{\"namespace\":[\"\", \"cilium\", \"kube-system\"]}"` | Denylist for JSON export. For example, to exclude exec events that look similar to Kubernetes health checks and all the events from kube-system namespace and the host:  exportDenyList: |   {"health_check":true}   {"namespace":["kube-system",""]}  |
