@@ -1792,6 +1792,8 @@ do_action_signal(int signal)
  */
 #define KEY_BYTES_PER_ARG 40
 
+#ifdef __LARGE_BPF_PROG
+
 struct ratelimit_key {
 	__u64 func_id;
 	__u64 retprobe_id;
@@ -1806,7 +1808,7 @@ struct ratelimit_value {
 
 struct {
 	__uint(type, BPF_MAP_TYPE_LRU_HASH);
-	__uint(max_entries, 32768);
+	__uint(max_entries, 1); // Agent is resizing this if the feature is needed during kprobe load
 	__type(key, struct ratelimit_key);
 	__type(value, struct ratelimit_value);
 } ratelimit_map SEC(".maps");
@@ -1829,7 +1831,6 @@ struct {
 	__type(value, __u8[sizeof(struct ratelimit_key) + 128]);
 } ratelimit_ro_heap SEC(".maps");
 
-#ifdef __LARGE_BPF_PROG
 static inline __attribute__((always_inline)) bool
 rate_limit(__u64 ratelimit_interval, struct msg_generic_kprobe *e)
 {
