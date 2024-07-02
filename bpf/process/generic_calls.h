@@ -172,6 +172,17 @@ generic_process_event_and_setup(struct pt_regs *ctx,
 		retprobe_map_set(e->func_id, e->retprobe_id, e->common.ktime, 1);
 #endif
 
+#ifdef GENERIC_LSM
+	struct bpf_raw_tracepoint_args *raw_args = (struct bpf_raw_tracepoint_args *)ctx;
+
+	e->a0 = BPF_CORE_READ(raw_args, args[0]);
+	e->a1 = BPF_CORE_READ(raw_args, args[1]);
+	e->a2 = BPF_CORE_READ(raw_args, args[2]);
+	e->a3 = BPF_CORE_READ(raw_args, args[3]);
+	e->a4 = BPF_CORE_READ(raw_args, args[4]);
+	generic_process_init(e, MSG_OP_GENERIC_LSM, config);
+#endif
+
 #ifdef GENERIC_UPROBE
 	/* no arguments for uprobes for now */
 	e->a0 = PT_REGS_PARM1_CORE(ctx);

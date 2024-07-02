@@ -196,7 +196,7 @@ type ArgSelector struct {
 }
 
 type ActionSelector struct {
-	// +kubebuilder:validation:Enum=Post;FollowFD;UnfollowFD;Sigkill;CopyFD;Override;GetUrl;DnsLookup;NoPost;Signal;TrackSock;UntrackSock;NotifyEnforcer
+	// +kubebuilder:validation:Enum=Post;FollowFD;UnfollowFD;Sigkill;CopyFD;Override;GetUrl;DnsLookup;NoPost;Signal;TrackSock;UntrackSock;NotifyEnforcer;LsmBlock
 	// Action to execute.
 	Action string `json:"action"`
 	// +kubebuilder:validation:Optional
@@ -278,6 +278,26 @@ type UProbeSpec struct {
 	// +kubebuilder:validation:Optional
 	// A list of function arguments to include in the trace output.
 	Args []KProbeArg `json:"args,omitempty"`
+	// +kubebuilder:validation:optional
+	// +kubebuilder:validation:MaxItems=16
+	// Tags to categorize the event, will be include in the event output.
+	// Maximum of 16 Tags are supported.
+	Tags []string `json:"tags,omitempty"`
+}
+
+type LsmHookSpec struct {
+	// Name of the function to apply the kprobe spec to.
+	Hook string `json:"hook"`
+	// +kubebuilder:validation:Optional
+	// A short message of 256 characters max that will be included
+	// in the event output to inform users what is going on.
+	Message string `json:"message"`
+	// +kubebuilder:validation:Optional
+	// A list of function arguments to include in the trace output.
+	Args []KProbeArg `json:"args,omitempty"`
+	// +kubebuilder:validation:Optional
+	// Selectors to apply before producing trace output. Selectors are ORed.
+	Selectors []KProbeSelector `json:"selectors,omitempty"`
 	// +kubebuilder:validation:optional
 	// +kubebuilder:validation:MaxItems=16
 	// Tags to categorize the event, will be include in the event output.

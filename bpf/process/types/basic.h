@@ -108,6 +108,7 @@ enum {
 	ACTION_TRACKSOCK = 10,
 	ACTION_UNTRACKSOCK = 11,
 	ACTION_NOTIFY_KILLER = 12,
+	ACTION_LSM_BLOCK = 13,
 };
 
 enum {
@@ -128,6 +129,7 @@ struct generic_maps {
 	struct bpf_map_def *config;
 	struct bpf_map_def *filter;
 	struct bpf_map_def *override;
+	struct bpf_map_def *lsm_block;
 };
 
 struct selector_action {
@@ -2108,7 +2110,7 @@ struct {
 	__uint(value_size, sizeof(__u64) * PERF_MAX_STACK_DEPTH);
 } stack_trace_map SEC(".maps");
 
-#if defined GENERIC_TRACEPOINT || defined GENERIC_KPROBE
+#if defined GENERIC_TRACEPOINT || defined GENERIC_KPROBE || defined GENERIC_LSM
 FUNC_INLINE void do_action_notify_enforcer(int error, int signal)
 {
 	do_enforcer_action(error, signal);
@@ -2122,6 +2124,7 @@ do_action(void *ctx, __u32 i, struct selector_action *actions,
 	  struct generic_maps *maps, bool *post)
 {
 	struct bpf_map_def *override_tasks = maps->override;
+	struct bpf_map_def *lsm_block = maps->lsm_block;
 	int signal __maybe_unused = FGS_SIGKILL;
 	int action = actions->act[i];
 	struct msg_generic_kprobe *e;
@@ -2131,6 +2134,7 @@ do_action(void *ctx, __u32 i, struct selector_action *actions,
 	int socki;
 	int err = 0;
 	int zero = 0;
+	bool block = true;
 	__u64 id;
 
 	e = map_lookup_elem(maps->heap, &zero);
@@ -2218,6 +2222,13 @@ do_action(void *ctx, __u32 i, struct selector_action *actions,
 		error = actions->act[++i];
 		signal = actions->act[++i];
 		do_action_notify_enforcer(error, signal);
+		break;
+	case ACTION_LSM_BLOCK:
+		if (!lsm_block)
+			break;
+
+		id = get_current_pid_tgid();
+		map_update_elem(lsm_block, &id, &block, BPF_ANY);
 		break;
 	default:
 		break;
