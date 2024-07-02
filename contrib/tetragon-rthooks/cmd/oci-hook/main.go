@@ -173,7 +173,8 @@ func createContainerHook(log *slog.Logger) (error, map[string]string) {
 	}
 
 	if configName == "" {
-		return fmt.Errorf("failed to find spec file. Tried the following dirs: %v", configPaths), nil
+		log.Error("fail to find spec file", "paths", configPaths, "cwd", rootDir)
+		return fmt.Errorf("failed to find spec file"), nil
 	}
 
 	// We use the config.json file to get the cgroup path. An alternative option is to use
