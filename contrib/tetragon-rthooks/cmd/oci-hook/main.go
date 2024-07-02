@@ -344,6 +344,13 @@ func main() {
 		}
 	case "poststop":
 		// do nothing
+	case "server-version":
+		ver, err := serverVersion(log)
+		if err != nil {
+			log.Warn("failed to get server version", "error", err)
+			os.Exit(1)
+		}
+		log.Info("server-version", "version", ver)
 	default:
 		log.Warn("hook called with unknown hook",
 			"hook", cliConf.HookName,
@@ -367,4 +374,25 @@ func getBinaryDir() string {
 	}
 
 	return path.Dir(p)
+}
+
+func serverVersion(log *slog.Logger) (string, error) {
+	req := &tetragon.GetVersionRequest{}
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+
+	connCtx, connCancel := context.WithTimeout(ctx, cliConf.GrpcTimeout)
+	defer connCancel()
+	conn, err := grpc.DialContext(connCtx, cliConf.AgentAddr, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	if err != nil {
+		return "", fmt.Errorf("connecting to agent (%s) failed: %s", err, cliConf.AgentAddr)
+	}
+	defer conn.Close()
+
+	client := tetragon.NewFineGuidanceSensorsClient(conn)
+	res, err := client.GetVersion(ctx, req)
+	if err != nil {
+		return "", err
+	}
+	return res.Version, nil
 }
