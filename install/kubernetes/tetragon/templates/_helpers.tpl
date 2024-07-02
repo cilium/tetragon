@@ -89,3 +89,17 @@ ServiceAccounts
 {{- define "container.tetragonOCIHookSetup.hooksPath" -}}
 {{- print "/hostHooks" -}}
 {{- end }}
+
+{{/*
+Runtime-hooks
+*/}}
+
+{{- define "rthooksInterface" -}}
+{{ $iface := .Values.rthooks.interface }}
+{{- if (eq $iface "oci-hooks") -}}
+	oci-hooks
+{{- else if (eq $iface "nri-hook") -}}
+	nri-hook
+{{- else -}}
+{{- end -}}
+{{- end }}

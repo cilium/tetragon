@@ -384,8 +384,12 @@ rthooks:
   extraHookArgs: {}
   # -- configuration for "oci-hooks" interface
   ociHooks:
-    # directory to install .json file for running the hook
+    # -- directory to install .json file for running the hook
     hooksPath: "/usr/share/containers/oci/hooks.d"
+  # -- configuration for the "nri-hook" interface
+  nriHook:
+    # -- path to NRI socket
+    nriSocket: "/var/run/nri/nri.sock"
   # -- image for the Tetragon rthooks pod
   image:
     override: ~
