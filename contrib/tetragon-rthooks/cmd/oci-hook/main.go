@@ -173,7 +173,8 @@ func createContainerHook(log *slog.Logger) (error, map[string]string) {
 	}
 
 	if configName == "" {
-		return fmt.Errorf("failed to find spec file. Tried the following dirs: %v", configPaths), nil
+		log.Error("fail to find spec file", "paths", configPaths, "cwd", rootDir)
+		return errors.New("failed to find spec file"), nil
 	}
 
 	// We use the config.json file to get the cgroup path. An alternative option is to use
@@ -188,7 +189,7 @@ func createContainerHook(log *slog.Logger) (error, map[string]string) {
 
 	// if have no information whatsover, do not contact the agent
 	if cgroupPath == "" && rootDir == "" {
-		return fmt.Errorf("unable to determine either RootDir or cgroupPath, bailing out"), nil
+		return errors.New("unable to determine either RootDir or cgroupPath, bailing out"), nil
 	}
 
 	containerName := containerNameFromAnnotations(spec.Annotations)
