@@ -3,45 +3,59 @@
 
 package metrics
 
-import "github.com/prometheus/client_golang/prometheus"
+import (
+	"github.com/prometheus/client_golang/prometheus"
+)
 
-// BPFMetric represents a metric read directly from a BPF map.
-// It's intended to be used in custom collectors. The interface doesn't provide
-// any validation, so it's up to the collector implementer to guarantee the
-// metrics consistency.
+// The interface in this file provides a bridge between the new metrics library
+// and the existing code defining metrics. It's considered deprecated - use the
+// custom metric interface instead.
+
 type BPFMetric interface {
 	Desc() *prometheus.Desc
 	MustMetric(value float64, labelValues ...string) prometheus.Metric
 }
 
 type bpfCounter struct {
-	desc *prometheus.Desc
+	*granularCustomCounter[NilLabels]
 }
 
+// DEPRECATED: Use NewCustomCounter instead.
 func NewBPFCounter(desc *prometheus.Desc) BPFMetric {
-	return &bpfCounter{desc: desc}
+	return &bpfCounter{
+		&granularCustomCounter[NilLabels]{
+			desc:        desc,
+			constrained: false,
+		},
+	}
 }
 
-func (c *bpfCounter) Desc() *prometheus.Desc {
-	return c.desc
+func (m *bpfCounter) Desc() *prometheus.Desc {
+	return m.granularCustomCounter.Desc()
 }
 
-func (c *bpfCounter) MustMetric(value float64, labelValues ...string) prometheus.Metric {
-	return prometheus.MustNewConstMetric(c.desc, prometheus.CounterValue, value, labelValues...)
+func (m *bpfCounter) MustMetric(value float64, labelValues ...string) prometheus.Metric {
+	return m.granularCustomCounter.MustMetric(value, &NilLabels{}, labelValues...)
 }
 
 type bpfGauge struct {
-	desc *prometheus.Desc
+	*granularCustomGauge[NilLabels]
 }
 
+// DEPRECATED: Use NewCustomGauge instead.
 func NewBPFGauge(desc *prometheus.Desc) BPFMetric {
-	return &bpfGauge{desc: desc}
+	return &bpfGauge{
+		&granularCustomGauge[NilLabels]{
+			desc:        desc,
+			constrained: false,
+		},
+	}
 }
 
-func (g *bpfGauge) Desc() *prometheus.Desc {
-	return g.desc
+func (m *bpfGauge) Desc() *prometheus.Desc {
+	return m.granularCustomGauge.Desc()
 }
 
-func (g *bpfGauge) MustMetric(value float64, labelValues ...string) prometheus.Metric {
-	return prometheus.MustNewConstMetric(g.desc, prometheus.GaugeValue, value, labelValues...)
+func (m *bpfGauge) MustMetric(value float64, labelValues ...string) prometheus.Metric {
+	return m.granularCustomGauge.MustMetric(value, &NilLabels{}, labelValues...)
 }
