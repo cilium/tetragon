@@ -6028,7 +6028,7 @@ func TestLinuxBinprmExtractPath(t *testing.T) {
 						{
 							MatchArgs: []v1alpha1.ArgSelector{
 								{
-									Operator: "In",
+									Operator: "Equal",
 									Index:    0,
 									Values:   []string{"/usr/bin/id"},
 								},
@@ -6043,24 +6043,36 @@ func TestLinuxBinprmExtractPath(t *testing.T) {
 	err := sm.Manager.AddTracingPolicy(ctx, &bprmTracingPolicy)
 	assert.NoError(t, err)
 
-	command := exec.Command("/usr/bin/id")
+	targetCommand := exec.Command("/usr/bin/id")
+	filteredCommand := exec.Command("/usr/bin/uname")
 
 	ops := func() {
-		err = command.Start()
+		err = targetCommand.Start()
 		assert.NoError(t, err)
-		defer command.Process.Kill()
+		err = filteredCommand.Start()
+		assert.NoError(t, err)
+		defer targetCommand.Process.Kill()
+		defer filteredCommand.Process.Kill()
 	}
 
 	events := perfring.RunTestEvents(t, ctx, ops)
 
+	wantedEventExist := false
 	for _, ev := range events {
 		if kprobe, ok := ev.(*tracing.MsgGenericKprobeUnix); ok {
-			if int(kprobe.Msg.ProcessKey.Pid) == command.Process.Pid && kprobe.FuncName == "security_bprm_check" {
-				return
+			if int(kprobe.Msg.ProcessKey.Pid) == targetCommand.Process.Pid {
+				wantedEventExist = true
+				continue
+			}
+			if int(kprobe.Msg.ProcessKey.Pid) == filteredCommand.Process.Pid {
+				t.Error("kprobe event triggered by /usr/bin/uname should be filtered by the matchArgs selector")
+				break
 			}
 		}
 	}
-	t.Error("bprm error")
+	if !wantedEventExist {
+		t.Error("kprobe event triggered by /usr/bin/id should be present, unfiltered by the matchArgs selector")
+	}
 }
 
 // Test module loading/unloading on Ubuntu
