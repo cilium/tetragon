@@ -158,7 +158,8 @@ func createContainerHook(log *slog.Logger) (error, map[string]string) {
 	}
 
 	configPaths := []string{
-		"../config.json",          // containerd
+		"config.json",             // containerd (createRuntime)
+		"../config.json",          // containerd (createContainer)
 		"../userdata/config.json", // cri-o
 	}
 
