@@ -62,7 +62,8 @@ tetragon:
   debug: false
   # -- JSON export filename. Set it to an empty string to disable JSON export altogether.
   exportFilename: tetragon.log
-  # -- JSON export file permissions as a string. Set it to "600" to restrict access to owner.
+  # -- JSON export file permissions as a string. Typically it's either "600" (to restrict access to
+  # owner) or "640"/"644" (to allow read access by logs collector or another agent).
   exportFilePerm: "600"
   # -- Size in megabytes at which to rotate JSON export files.
   exportFileMaxSizeMB: 10
