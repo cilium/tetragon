@@ -60,8 +60,16 @@ spec:
         hostPath:
           path: {{ quote .Values.rthooks.installDir }}
           type: DirectoryOrCreate
+{{- if (eq .Values.rthooks.interface "oci-hooks") }}
       - name: oci-hooks-path
         hostPath:
           path: {{ quote .Values.rthooks.ociHooks.hooksPath }}
           type: Directory
+{{- end }}
+{{- if (eq .Values.rthooks.interface "nri-hook") }}
+      - name: nri-socket-path
+        hostPath:
+          path: {{ quote .Values.rthooks.nriHook.nriSocket }}
+          type: Socket
+{{- end }}
 {{- end }}
