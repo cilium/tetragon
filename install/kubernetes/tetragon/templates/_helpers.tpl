@@ -7,6 +7,9 @@ Create chart name and version as used by the chart label.
 {{- define "tetragon-operator.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
+{{- define "tetragon-rthooks.chart" -}}
+{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+{{- end }}
 
 {{/*
 Common labels
@@ -27,6 +30,14 @@ app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
+{{- define "tetragon-rthooks.labels" -}}
+helm.sh/chart: {{ include "tetragon-rthooks.chart" . }}
+{{ include "tetragon-rthooks.selectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
 
 {{/*
 Selector labels
@@ -37,6 +48,10 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 {{- define "tetragon-operator.selectorLabels" -}}
 app.kubernetes.io/name: "tetragon-operator"
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+{{- define "tetragon-rthooks.selectorLabels" -}}
+app.kubernetes.io/name: "tetragon-rthooks"
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
@@ -73,4 +88,18 @@ ServiceAccounts
 
 {{- define "container.tetragonOCIHookSetup.hooksPath" -}}
 {{- print "/hostHooks" -}}
+{{- end }}
+
+{{/*
+Runtime-hooks
+*/}}
+
+{{- define "rthooksInterface" -}}
+{{ $iface := .Values.rthooks.interface }}
+{{- if (eq $iface "oci-hooks") -}}
+	oci-hooks
+{{- else if (eq $iface "nri-hook") -}}
+	nri-hook
+{{- else -}}
+{{- end -}}
 {{- end }}

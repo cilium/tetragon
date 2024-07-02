@@ -84,7 +84,7 @@ ifdef EXTRA_GO_BUILD_FLAGS
 endif
 
 GO_BUILD = CGO_ENABLED=0 GOARCH=$(GOARCH) $(GO) build $(GO_BUILD_FLAGS)
-GO_BUILD_HOOK = CGO_ENABLED=0 GOARCH=$(GOARCH) $(GO) -C contrib/rthooks/tetragon-oci-hook build $(GO_BUILD_FLAGS)
+GO_BUILD_HOOK = CGO_ENABLED=0 GOARCH=$(GOARCH) $(GO) -C contrib/tetragon-rthooks build $(GO_BUILD_FLAGS)
 
 .PHONY: all
 all: tetragon-bpf tetragon tetra generate-flags test-compile tester-progs protoc-gen-go-tetragon tetragon-bench
@@ -188,7 +188,10 @@ tetragon-operator:
 	$(GO_BUILD) -o $@ ./operator
 
 tetragon-oci-hook:
-	$(GO_BUILD_HOOK) -o $@ ./cmd/hook
+	$(GO_BUILD_HOOK) -o $@ ./cmd/oci-hook
+
+tetragon-nri-hook:
+	$(GO_BUILD_HOOK) -o $@ ./cmd/nri-hook
 
 tetragon-oci-hook-setup:
 	$(GO_BUILD_HOOK) -o $@ ./cmd/setup
@@ -211,7 +214,7 @@ install:
 vendor:
 	$(MAKE) -C ./api vendor
 	$(MAKE) -C ./pkg/k8s vendor
-	$(MAKE) -C ./contrib/rthooks/tetragon-oci-hook vendor
+	$(MAKE) -C ./contrib/tetragon-rthooks vendor
 	$(GO) mod tidy
 	$(GO) mod vendor
 	$(GO) mod verify
@@ -300,6 +303,11 @@ image-operator:
 	$(CONTAINER_ENGINE) build -f Dockerfile.operator -t "cilium/tetragon-operator:${DOCKER_IMAGE_TAG}" --platform=linux/${TARGET_ARCH} .
 	$(QUIET)@echo "Push like this when ready:"
 	$(QUIET)@echo "${CONTAINER_ENGINE} push cilium/tetragon-operator:$(DOCKER_IMAGE_TAG)"
+
+image-rthooks:
+	$(CONTAINER_ENGINE) build -f Dockerfile.rthooks -t "cilium/tetragon-rthooks:${DOCKER_IMAGE_TAG}" --platform=linux/${TARGET_ARCH} .
+	$(QUIET)@echo "Push like this when ready:"
+	$(QUIET)@echo "${CONTAINER_ENGINE} push cilium/tetragon-rthooks:$(DOCKER_IMAGE_TAG)"
 
 image-test: image-clang
 	$(CONTAINER_ENGINE) build -f Dockerfile.test -t "cilium/tetragon-test:${DOCKER_IMAGE_TAG}" .
