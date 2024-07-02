@@ -125,6 +125,23 @@ message GetVersionResponse{
 	string version = 1;
 }
 
+message GetLogLevelRequest{}
+message GetLogLevelResponse{
+	string level = 1;
+}
+
+message SetLogLevelRequest{
+	string level = 1;
+}
+message SetLogLevelResponse{
+	string level = 1;
+}
+
+message ResetLogLevelRequest{}
+message ResetLogLevelResponse{
+	string level = 1;
+}
+
 service FineGuidanceSensors {
     rpc GetEvents(GetEventsRequest) returns (stream GetEventsResponse) {}
     rpc GetHealth(GetHealthStatusRequest) returns (GetHealthStatusResponse) {}
@@ -153,4 +170,8 @@ service FineGuidanceSensors {
     rpc GetVersion(GetVersionRequest) returns (GetVersionResponse) {}
 
     rpc RuntimeHook(RuntimeHookRequest) returns (RuntimeHookResponse) {}
+
+    rpc GetLogLevel(GetLogLevelRequest) returns (GetLogLevelResponse) {}
+    rpc SetLogLevel(SetLogLevelRequest) returns (SetLogLevelResponse) {}
+    rpc ResetLogLevel(ResetLogLevelRequest) returns (ResetLogLevelResponse) {}
 }

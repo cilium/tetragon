@@ -22,7 +22,8 @@ const (
 	KeyServerAddress = "server-address" // string
 	KeyTimeout       = "timeout"        // duration
 	KeyRetries       = "retries"        // int
-	KeyNamespace     = "namespace"      //string
+	KeyNamespace     = "namespace"      // string
+	KeyLogLevel      = "loglevel"       // string
 )
 
 const (
