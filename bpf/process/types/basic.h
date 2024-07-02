@@ -1686,6 +1686,9 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 			args += 4;
 		case file_ty:
 		case path_ty:
+#ifdef __LARGE_BPF_PROG
+		case linux_binprm_type:
+#endif
 			pass &= filter_file_buf(filter, (struct string_buf *)args);
 			break;
 		case string_type:
