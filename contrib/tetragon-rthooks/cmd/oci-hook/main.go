@@ -327,8 +327,11 @@ func main() {
 
 	switch cliConf.HookName {
 	case "createContainer":
+		// do nothing
+		log.Info("nothing to do", "hook", "createContainer")
+	case "createRuntime":
 		log = log.With(
-			"hook", "create-container",
+			"hook", "createRuntime",
 			"start-time", getTime(),
 		)
 		err, annotations := createContainerHook(log)
@@ -339,8 +342,6 @@ func main() {
 				os.Exit(1)
 			}
 		}
-	case "createRuntime":
-		// do nothing
 	case "poststop":
 		// do nothing
 	default:

@@ -45,14 +45,6 @@ func (p *plugin) CreateContainer(
 				Timeout: nil,
 			},
 		},
-		CreateContainer: []*api.Hook{
-			&api.Hook{
-				Path:    binFname,
-				Args:    getArgs("createContainer"),
-				Env:     nil,
-				Timeout: nil,
-			},
-		},
 	}
 	adjust.AddHooks(&hooks)
 	p.log.Info("Added tetragon-oci-hook to container", "name", container.Name, "id", container.Id)
