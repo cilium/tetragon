@@ -5989,6 +5989,9 @@ spec:
 }
 
 func TestLinuxBinprmExtractPath(t *testing.T) {
+	if !kernels.EnableLargeProgs() {
+		t.Skip("Older kernels do not support matchArgs with linux_binprm")
+	}
 	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
