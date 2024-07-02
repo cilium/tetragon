@@ -8,7 +8,7 @@
   command: 
     - tetragon-oci-hook-setup
     - install
-    - --interface={{ .Values.rthooks.interface }}
+    - --interface={{ include "rthooksInterface" .  | required "rtooks.interface needs to be correctly defined" }}
     - --local-install-dir={{  include "container.tetragonOCIHookSetup.installPath" . }}
     - --host-install-dir={{ .Values.rthooks.installDir }}
     - --oci-hooks.local-dir={{ include "container.tetragonOCIHookSetup.hooksPath" . }}
@@ -29,10 +29,16 @@
     {{- with .Values.rthooks.extraVolumeMounts }}
       {{- toYaml . | nindent 4 }}
     {{- end }}
-    - name: oci-hooks-path
-      mountPath: {{  include "container.tetragonOCIHookSetup.hooksPath" . }}
     - name: oci-hook-install-path
       mountPath: {{  include "container.tetragonOCIHookSetup.installPath" . }}
+{{- if (eq .Values.rthooks.interface "oci-hooks") }}
+    - name: oci-hooks-path
+      mountPath: {{  include "container.tetragonOCIHookSetup.hooksPath" . }}
+{{- end }}
+{{- if (eq .Values.rthooks.interface "nri-hook") }}
+    - name: nri-socket-path
+      mountPath: {{ .Values.rthooks.nriHook.nriSocket }}
+{{- end }}
 {{- with .Values.rthooks.resources }}
   resources: {}
     {{- toYaml . | nindent 4 }}
