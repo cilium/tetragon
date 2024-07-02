@@ -24,11 +24,11 @@ daemonSetLabelsOverride: {}
 selectorLabelsOverride: {}
 podLabelsOverride: {}
 serviceLabelsOverride: {}
-# -- Set DNS policy for tetragon pods.
+# -- DNS policy for Tetragon pods.
 #
 # https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy
 dnsPolicy: Default
-# -- exportDirectory specifies directory to put Tetragon JSON export files.
+# -- Directory to put Tetragon JSON export files.
 exportDirectory: "/var/run/cilium/tetragon"
 # -- Configures whether Tetragon pods run on the host network.
 #
@@ -138,9 +138,9 @@ tetragon:
   redactionFilters: ""
   # -- Access Kubernetes API to associate Tetragon events with Kubernetes pods.
   enableK8sAPI: true
-  # -- enableProcessCred enables Capabilities visibility in exec and kprobe events.
+  # -- Enable Capabilities visibility in exec and kprobe events.
   enableProcessCred: false
-  # -- enableProcessNs enables Namespaces visibility in exec and kprobe events.
+  # -- Enable Namespaces visibility in exec and kprobe events.
   enableProcessNs: false
   # -- Set --btf option to explicitly specify an absolute path to a btf file. For advanced users only.
   btf: ""
@@ -286,7 +286,7 @@ tetragonOperator:
       labelsOverride: {}
       # -- Interval at which metrics should be scraped. If not specified, Prometheus' global scrape interval is used.
       scrapeInterval: "10s"
-# -- Tetragon event settings
+# -- Tetragon events export settings
 export:
   # "stdout". "" to disable.
   mode: "stdout"
