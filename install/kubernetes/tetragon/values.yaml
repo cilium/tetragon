@@ -1,7 +1,7 @@
-# -- Global settings
+# Global settings
 enabled: true
 imagePullSecrets: []
-# -- Tetragon agent settings
+# Tetragon agent settings
 priorityClassName: ""
 imagePullPolicy: IfNotPresent
 serviceAccount:
@@ -24,7 +24,7 @@ daemonSetLabelsOverride: {}
 selectorLabelsOverride: {}
 podLabelsOverride: {}
 serviceLabelsOverride: {}
-# Set DNS policy for tetragon pods.
+# -- Set DNS policy for tetragon pods.
 #
 # Recommended DNS policy for tetragon pod depends on whether the export container
 # needs to resolve external DNS names (e.g. an S3 URL) or internal ones (e.g. a Kubernetes
@@ -37,16 +37,14 @@ serviceLabelsOverride: {}
 #
 # https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy
 dnsPolicy: Default
-# exportDirectory specifies directory to put Tetragon JSON export files.
+# -- exportDirectory specifies directory to put Tetragon JSON export files.
 exportDirectory: "/var/run/cilium/tetragon"
-# exportFileRotationInterval specifies file creation interval for hubble-export-s3.
+# -- exportFileRotationInterval specifies file creation interval for hubble-export-s3.
 exportFileCreationInterval: "120s"
-#
-# Configures whether Tetragon pods run on the host network.
+# -- Configures whether Tetragon pods run on the host network.
 #
 # IMPORTANT: Tetragon must be on the host network for the process visibility to
 # function properly.
-#
 hostNetwork: true
 tetragon:
   enabled: true
@@ -68,31 +66,31 @@ tetragon:
   #  grpc:
   #    port: 54321
 
-  # Tetragon puts processes in an LRU cache. The cache is used to find ancestors
+  # -- Tetragon puts processes in an LRU cache. The cache is used to find ancestors
   # for subsequently exec'ed processes.
   processCacheSize: 65536
   # -- If you want to run Tetragon in debug mode change this value to true
   debug: false
-  # JSON export filename. Set it to an empty string to disable JSON export altogether.
+  # -- JSON export filename. Set it to an empty string to disable JSON export altogether.
   exportFilename: tetragon.log
-  # JSON export file permissions as a string. Set it to "600" to restrict access to owner.
+  # -- JSON export file permissions as a string. Set it to "600" to restrict access to owner.
   exportFilePerm: "600"
-  # Size in megabytes at which to rotate JSON export files.
+  # -- Size in megabytes at which to rotate JSON export files.
   exportFileMaxSizeMB: 10
-  # Number of rotated files to retain.
+  # -- Number of rotated files to retain.
   exportFileMaxBackups: 5
-  # Compress rotated JSON export files.
+  # -- Compress rotated JSON export files.
   exportFileCompress: false
-  # Rate-limit event export (events per minute), Set to -1 to export all events.
+  # -- Rate-limit event export (events per minute), Set to -1 to export all events.
   exportRateLimit: -1
-  # Allowlist for JSON export. For example, to export only process_connect events from
+  # -- Allowlist for JSON export. For example, to export only process_connect events from
   # the default namespace:
   #
   # exportAllowList: |
   #   {"namespace":["default"],"event_set":["PROCESS_EXEC"]}
   exportAllowList: |-
     {"event_set":["PROCESS_EXEC", "PROCESS_EXIT", "PROCESS_KPROBE", "PROCESS_UPROBE", "PROCESS_TRACEPOINT"]}
-  # Denylist for JSON export. For example, to exclude exec events that look similar to
+  # -- Denylist for JSON export. For example, to exclude exec events that look similar to
   # Kubernetes health checks and all the events from kube-system namespace and the host:
   #
   # exportDenyList: |
@@ -102,7 +100,7 @@ tetragon:
   exportDenyList: |-
     {"health_check":true}
     {"namespace":["", "cilium", "kube-system"]}
-  # Filters to include or exclude fields from Tetragon events. Without any filters, all
+  # -- Filters to include or exclude fields from Tetragon events. Without any filters, all
   # fields are included by default. The presence of at least one inclusion filter implies
   # default-exclude (i.e. any fields that don't match an inclusion filter will be
   # excluded). Field paths are expressed using dot notation like "a.b.c" and multiple
@@ -117,7 +115,7 @@ tetragon:
   #   {"event_set": ["PROCESS_KPROBE"], "fields": "process", "action": "INCLUDE"}
   #
   fieldFilters: ""
-  # Filters to redact secrets from the args fields in Tetragon events. To perform
+  # -- Filters to redact secrets from the args fields in Tetragon events. To perform
   # redactions, redaction filters define RE2 regular expressions in the `redact`
   # field. Any capture groups in these RE2 regular expressions are redacted and
   # replaced with "*****".
@@ -149,17 +147,17 @@ tetragon:
   # With both of the above redaction filters in place, we are now redacting all
   # password arguments.
   redactionFilters: ""
-  # Access Kubernetes API to associate Tetragon events with Kubernetes pods.
+  # -- Access Kubernetes API to associate Tetragon events with Kubernetes pods.
   enableK8sAPI: true
-  # enableProcessCred enables Capabilities visibility in exec and kprobe events.
+  # -- enableProcessCred enables Capabilities visibility in exec and kprobe events.
   enableProcessCred: false
-  # enableProcessNs enables Namespaces visibility in exec and kprobe events.
+  # -- enableProcessNs enables Namespaces visibility in exec and kprobe events.
   enableProcessNs: false
-  # Set --btf option to explicitly specify an absolute path to a btf file. For advanced users only.
+  # -- Set --btf option to explicitly specify an absolute path to a btf file. For advanced users only.
   btf: ""
-  # Override the command. For advanced users only.
+  # -- Override the command. For advanced users only.
   commandOverride: []
-  # Override the arguments. For advanced users only.
+  # -- Override the arguments. For advanced users only.
   argsOverride: []
   prometheus:
     # -- Whether to enable exposing Tetragon metrics.
@@ -225,7 +223,7 @@ tetragon:
     extraVolumeMounts: []
     # -- resources for the the oci-hook-setup init container
     resources: {}
-# -- Tetragon Operator settings
+# Tetragon Operator settings
 tetragonOperator:
   # -- Enables the Tetragon Operator.
   enabled: true
