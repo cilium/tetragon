@@ -46,7 +46,7 @@ type Install struct {
 
 func ociHooksConfig(binFname string, binArgs ...string) *ociHooks.Hook {
 	yes := true
-	args := []string{binFname, "createContainer"}
+	args := []string{binFname, "createRuntime"}
 	args = append(args, binArgs...)
 	return &ociHooks.Hook{
 		Version: "1.0.0",
