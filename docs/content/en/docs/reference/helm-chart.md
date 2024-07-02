@@ -34,7 +34,6 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | enabled | bool | `true` |  |
 | export | object | `{"filenames":["tetragon.log"],"mode":"stdout","resources":{},"securityContext":{},"stdout":{"argsOverride":[],"commandOverride":[],"enabledArgs":true,"enabledCommand":true,"extraEnv":[],"extraVolumeMounts":[],"image":{"override":null,"repository":"quay.io/cilium/hubble-export-stdout","tag":"v1.0.4"}}}` | Tetragon event settings |
 | exportDirectory | string | `"/var/run/cilium/tetragon"` | exportDirectory specifies directory to put Tetragon JSON export files. |
-| exportFileCreationInterval | string | `"120s"` | exportFileRotationInterval specifies file creation interval for hubble-export-s3. |
 | extraConfigmapMounts | list | `[]` |  |
 | extraHostPathMounts | list | `[]` |  |
 | extraVolumes | list | `[]` |  |
