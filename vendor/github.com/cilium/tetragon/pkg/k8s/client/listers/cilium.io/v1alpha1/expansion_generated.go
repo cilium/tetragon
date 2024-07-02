@@ -13,6 +13,10 @@ type PodInfoListerExpansion interface{}
 // PodInfoNamespaceLister.
 type PodInfoNamespaceListerExpansion interface{}
 
+// RuntimeSecurityPolicyListerExpansion allows custom methods to be added to
+// RuntimeSecurityPolicyLister.
+type RuntimeSecurityPolicyListerExpansion interface{}
+
 // TracingPolicyListerExpansion allows custom methods to be added to
 // TracingPolicyLister.
 type TracingPolicyListerExpansion interface{}

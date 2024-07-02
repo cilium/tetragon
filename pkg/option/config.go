@@ -45,11 +45,12 @@ type config struct {
 	ProcessCacheSize int
 	DataCacheSize    int
 
-	MetricsServer      string
-	MetricsLabelFilter metrics.LabelFilter
-	ServerAddress      string
-	TracingPolicy      string
-	TracingPolicyDir   string
+	MetricsServer         string
+	MetricsLabelFilter    metrics.LabelFilter
+	ServerAddress         string
+	TracingPolicy         string
+	TracingPolicyDir      string
+	RuntimeSecurityPolicy string
 
 	ExportFilename             string
 	ExportFileMaxSizeMB        int
@@ -81,8 +82,9 @@ type config struct {
 
 	KMods []string
 
-	EnablePodInfo          bool
-	EnableTracingPolicyCRD bool
+	EnablePodInfo                  bool
+	EnableTracingPolicyCRD         bool
+	EnableRuntimeSecurityPolicyCRD bool
 
 	ExposeStackAddresses bool
 

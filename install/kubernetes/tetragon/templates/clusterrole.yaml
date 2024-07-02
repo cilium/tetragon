@@ -21,6 +21,7 @@ rules:
       - podinfo
       - tracingpolicies
       - tracingpoliciesnamespaced
+      - runtimesecuritypolicies
     verbs:
       - get
       - list

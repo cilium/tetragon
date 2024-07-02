@@ -16,6 +16,7 @@ import (
 type CiliumV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	PodInfoGetter
+	RuntimeSecurityPoliciesGetter
 	TracingPoliciesGetter
 	TracingPoliciesNamespacedGetter
 }
@@ -27,6 +28,10 @@ type CiliumV1alpha1Client struct {
 
 func (c *CiliumV1alpha1Client) PodInfo(namespace string) PodInfoInterface {
 	return newPodInfo(c, namespace)
+}
+
+func (c *CiliumV1alpha1Client) RuntimeSecurityPolicies() RuntimeSecurityPolicyInterface {
+	return newRuntimeSecurityPolicies(c)
 }
 
 func (c *CiliumV1alpha1Client) TracingPolicies() TracingPolicyInterface {

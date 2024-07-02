@@ -36,14 +36,15 @@ const (
 	KeyK8sKubeConfigPath      = "k8s-kubeconfig-path"
 	KeyEnableProcessAncestors = "enable-process-ancestors"
 
-	KeyMetricsServer      = "metrics-server"
-	KeyMetricsLabelFilter = "metrics-label-filter"
-	KeyServerAddress      = "server-address"
-	KeyGopsAddr           = "gops-address"
-	KeyEnableProcessCred  = "enable-process-cred"
-	KeyEnableProcessNs    = "enable-process-ns"
-	KeyTracingPolicy      = "tracing-policy"
-	KeyTracingPolicyDir   = "tracing-policy-dir"
+	KeyMetricsServer         = "metrics-server"
+	KeyMetricsLabelFilter    = "metrics-label-filter"
+	KeyServerAddress         = "server-address"
+	KeyGopsAddr              = "gops-address"
+	KeyEnableProcessCred     = "enable-process-cred"
+	KeyEnableProcessNs       = "enable-process-ns"
+	KeyTracingPolicy         = "tracing-policy"
+	KeyTracingPolicyDir      = "tracing-policy-dir"
+	KeyRuntimeSecurityPolicy = "runtime-security-policy"
 
 	KeyCpuProfile = "cpuprofile"
 	KeyMemProfile = "memprofile"
@@ -89,8 +90,9 @@ const (
 
 	KeyKmods = "kmods"
 
-	KeyEnablePodInfo          = "enable-pod-info"
-	KeyEnableTracingPolicyCRD = "enable-tracing-policy-crd"
+	KeyEnablePodInfo                  = "enable-pod-info"
+	KeyEnableTracingPolicyCRD         = "enable-tracing-policy-crd"
+	KeyEnableRuntimeSecurityPolicyCRD = "enable-runtime-security-policy-crd"
 
 	KeyExposeStackAddresses  = "expose-stack-addresses"
 	KeyExposeKernelAddresses = "expose-kernel-addresses"
@@ -193,8 +195,10 @@ func ReadAndSetFlags() error {
 
 	Config.EnablePodInfo = viper.GetBool(KeyEnablePodInfo)
 	Config.EnableTracingPolicyCRD = viper.GetBool(KeyEnableTracingPolicyCRD)
+	Config.EnableRuntimeSecurityPolicyCRD = viper.GetBool(KeyEnableRuntimeSecurityPolicyCRD)
 
 	Config.TracingPolicy = viper.GetString(KeyTracingPolicy)
+	Config.RuntimeSecurityPolicy = viper.GetString(KeyRuntimeSecurityPolicy)
 
 	switch o := viper.GetString(KeyUsernameMetadata); o {
 	case "unix":
@@ -303,6 +307,8 @@ func AddFlags(flags *pflag.FlagSet) {
 
 	flags.String(KeyTracingPolicyDir, defaults.DefaultTpDir, "Directory from where to load Tracing Policies")
 
+	flags.String(KeyRuntimeSecurityPolicy, "", "Runtime security policy file to load at startup")
+
 	// Options for debugging/development, not visible to users
 	flags.String(KeyCpuProfile, "", "Store CPU profile into provided file")
 	flags.MarkHidden(KeyCpuProfile)
@@ -359,6 +365,7 @@ func AddFlags(flags *pflag.FlagSet) {
 
 	flags.Bool(KeyEnablePodInfo, false, "Enable PodInfo custom resource")
 	flags.Bool(KeyEnableTracingPolicyCRD, true, "Enable TracingPolicy and TracingPolicyNamespaced custom resources")
+	flags.Bool(KeyEnableRuntimeSecurityPolicyCRD, true, "Enable RuntimeSecurityPolicy custom resources")
 
 	flags.Bool(KeyExposeKernelAddresses, false, "Expose real kernel addresses in events stack traces")
 	flags.Bool(KeyExposeStackAddresses, false, "Expose real linear addresses in events stack traces")

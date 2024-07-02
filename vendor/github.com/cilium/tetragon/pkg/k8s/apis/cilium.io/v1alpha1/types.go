@@ -68,7 +68,7 @@ type KProbeArg struct {
 	// +kubebuilder:validation:Minimum=0
 	// Specifies the position of the corresponding size argument for this argument.
 	// This field is used only for char_buf and char_iovec types.
-	SizeArgIndex uint32 `json:"sizeArgIndex"`
+	SizeArgIndex uint32 `json:"sizeArgIndex,omitempty"`
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=false
 	// This field is used only for char_buf and char_iovec types. It indicates
@@ -76,17 +76,17 @@ type KProbeArg struct {
 	// symbol is triggered) because it might not be populated when the kprobe
 	// is triggered at the entrance of the function. For example, a buffer
 	// supplied to read(2) won't have content until kretprobe is triggered.
-	ReturnCopy bool `json:"returnCopy"`
+	ReturnCopy bool `json:"returnCopy,omitempty"`
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=false
 	// Read maximum possible data (currently 327360). This field is only used
 	// for char_buff data. When this value is false (default), the bpf program
 	// will fetch at most 4096 bytes. In later kernels (>=5.4) tetragon
 	// supports fetching up to 327360 bytes if this flag is turned on
-	MaxData bool `json:"maxData"`
+	MaxData bool `json:"maxData,omitempty"`
 	// +kubebuilder:validation:Optional
 	// Label to output in the JSON
-	Label string `json:"label"`
+	Label string `json:"label,omitempty"`
 }
 
 type BinarySelector struct {
@@ -201,30 +201,30 @@ type ActionSelector struct {
 	Action string `json:"action"`
 	// +kubebuilder:validation:Optional
 	// An arg index for the fd for fdInstall action
-	ArgFd uint32 `json:"argFd"`
+	ArgFd uint32 `json:"argFd,omitempty"`
 	// +kubebuilder:validation:Optional
 	// An arg index for the filename for fdInstall action
-	ArgName uint32 `json:"argName"`
+	ArgName uint32 `json:"argName,omitempty"`
 	// +kubebuilder:validation:Optional
 	// A URL for the getUrl action
-	ArgUrl string `json:"argUrl"`
+	ArgUrl string `json:"argUrl,omitempty"`
 	// +kubebuilder:validation:Optional
 	// A FQDN to lookup for the dnsLookup action
-	ArgFqdn string `json:"argFqdn"`
+	ArgFqdn string `json:"argFqdn,omitempty"`
 	// +kubebuilder:validation:Optional
 	// error value for override action
-	ArgError int32 `json:"argError"`
+	ArgError int32 `json:"argError,omitempty"`
 	// +kubebuilder:validation:Optional
 	// A signal number for signal action
-	ArgSig uint32 `json:"argSig"`
+	ArgSig uint32 `json:"argSig,omitempty"`
 	// +kubebuilder:validation:Optional
 	// An arg index for the sock for trackSock and untrackSock actions
-	ArgSock uint32 `json:"argSock"`
+	ArgSock uint32 `json:"argSock,omitempty"`
 	// +kubebuilder:validation:Optional
 	// A time period within which repeated messages will not be posted. Can be
 	// specified in seconds (default or with 's' suffix), minutes ('m' suffix)
 	// or hours ('h' suffix). Only valid with the post action.
-	RateLimit string `json:"rateLimit"`
+	RateLimit string `json:"rateLimit,omitempty"`
 	// +kubebuilder:validation:Optional
 	// The scope of the provided rate limit argument. Can be "thread" (default),
 	// "process" (all threads for the same process), or "global". If "thread" is
@@ -232,13 +232,13 @@ type ActionSelector struct {
 	// then rate limiting applies per process; if "global" is selected then rate
 	// limiting applies regardless of which process or thread caused the action.
 	// Only valid with the post action and with a rateLimit specified.
-	RateLimitScope string `json:"rateLimitScope"`
+	RateLimitScope string `json:"rateLimitScope,omitempty"`
 	// +kubebuilder:validation:Optional
 	// Enable kernel stack trace export. Only valid with the post action.
-	KernelStackTrace bool `json:"kernelStackTrace"`
+	KernelStackTrace bool `json:"kernelStackTrace,omitempty"`
 	// +kubebuilder:validation:Optional
 	// Enable user stack trace export. Only valid with the post action.
-	UserStackTrace bool `json:"userStackTrace"`
+	UserStackTrace bool `json:"userStackTrace,omitempty"`
 }
 
 type TracepointSpec struct {

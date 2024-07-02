@@ -13,6 +13,8 @@ import (
 type Interface interface {
 	// PodInfo returns a PodInfoInformer.
 	PodInfo() PodInfoInformer
+	// RuntimeSecurityPolicies returns a RuntimeSecurityPolicyInformer.
+	RuntimeSecurityPolicies() RuntimeSecurityPolicyInformer
 	// TracingPolicies returns a TracingPolicyInformer.
 	TracingPolicies() TracingPolicyInformer
 	// TracingPoliciesNamespaced returns a TracingPolicyNamespacedInformer.
@@ -33,6 +35,11 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // PodInfo returns a PodInfoInformer.
 func (v *version) PodInfo() PodInfoInformer {
 	return &podInfoInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// RuntimeSecurityPolicies returns a RuntimeSecurityPolicyInformer.
+func (v *version) RuntimeSecurityPolicies() RuntimeSecurityPolicyInformer {
+	return &runtimeSecurityPolicyInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // TracingPolicies returns a TracingPolicyInformer.
