@@ -91,6 +91,15 @@ level is controlled by the log-level option at startup:
 * Enable debug level with `--log-level=debug`
 * Enable trace level with `--log-level=trace`
 
+### Change log level on Kubernetes
+
+{{< warning >}}
+The Tetragon DaemonSet will be restarted automatically after changing the debug Helm value!
+{{< /warning >}}
+
+It is possible to change the log level of the Tetragon (DaemonSet) instances by
+setting `tetragon.debug` to `true`.
+
 ### Change log level dynamically
 
 It is possible to change the log level dynamically by sending the corresponding
