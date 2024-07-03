@@ -139,9 +139,6 @@ options:
       usage: Do not unload sensors on exit
     - name: kernel
       usage: Kernel version
-    - name: kmods
-      default_value: '[]'
-      usage: List of kernel modules to load symbols from
     - name: log-format
       default_value: text
       usage: Set log format

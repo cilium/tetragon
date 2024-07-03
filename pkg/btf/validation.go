@@ -13,6 +13,7 @@ import (
 	"github.com/cilium/ebpf/btf"
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/ksyms"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/syscallinfo"
 )
@@ -46,8 +47,24 @@ func (e *ValidationFailed) Error() string {
 func ValidateKprobeSpec(bspec *btf.Spec, call string, kspec *v1alpha1.KProbeSpec) error {
 	var fn *btf.Func
 
+	// get kernel symbols
+	ks, err := ksyms.KernelSymbols()
+	if err != nil {
+		return fmt.Errorf("validateKprobeSpec: ksyms.KernelSymbols: %w", err)
+	}
+
+	// check if this functio name is part of a kernel module
+	if kmod, err := ks.GetKmod(call); err == nil {
+		// get the spec from the kernel module and continue the validation with that
+		kmodSpec, err := btf.LoadKernelModuleSpec(kmod)
+		if err != nil {
+			return fmt.Errorf("validateKprobeSpec: btf.LoadKernelModuleSpec: %w", err)
+		}
+		bspec = kmodSpec
+	}
+
 	origCall := call
-	err := bspec.TypeByName(call, &fn)
+	err = bspec.TypeByName(call, &fn)
 	if err != nil && kspec.Syscall {
 		// Try with system call prefix
 		call, err = arch.AddSyscallPrefix(call)

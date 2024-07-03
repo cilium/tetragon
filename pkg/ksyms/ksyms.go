@@ -36,6 +36,7 @@ type ksym struct {
 	addr uint64
 	name string
 	ty   string
+	kmod string
 }
 
 // Ksyms is a structure for kernel symbols
@@ -101,6 +102,11 @@ func NewKsyms(procfs string) (*Ksyms, error) {
 		if sym.isFunction() && sym.addr == 0 {
 			err = fmt.Errorf("function %s reported at address 0. Insuffcient permissions?", sym.name)
 			break
+		}
+
+		// check if this symbol is part of a kmod
+		if sym.isFunction() && len(fields) >= 4 {
+			sym.kmod = string(strings.Trim(fields[3], "[]"))
 		}
 
 		if !needsSort && len(ksyms.table) > 0 {
@@ -201,4 +207,15 @@ func (k *Ksyms) IsAvailable(name string) bool {
 		}
 	}
 	return false
+}
+
+func (k *Ksyms) GetKmod(name string) (string, error) {
+	// This linear search is slow. But this only happens during the validation
+	// of kprobe-based tracing polies. TODO: optimise if needed
+	for _, s := range k.table {
+		if s.name == name && s.kmod != "" {
+			return s.kmod, nil
+		}
+	}
+	return "", fmt.Errorf("symbol %s not found in kallsyms or is not part of a module", name)
 }

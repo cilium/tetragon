@@ -87,8 +87,6 @@ const (
 
 	KeyEnableMsgHandlingLatency = "enable-msg-handling-latency"
 
-	KeyKmods = "kmods"
-
 	KeyEnablePodInfo          = "enable-pod-info"
 	KeyEnableTracingPolicyCRD = "enable-tracing-policy-crd"
 
@@ -192,8 +190,6 @@ func ReadAndSetFlags() error {
 	Config.EnablePidSetFilter = viper.GetBool(KeyEnablePidSetFilter)
 
 	Config.TracingPolicyDir = viper.GetString(KeyTracingPolicyDir)
-
-	Config.KMods = viper.GetStringSlice(KeyKmods)
 
 	Config.EnablePodInfo = viper.GetBool(KeyEnablePodInfo)
 	Config.EnableTracingPolicyCRD = viper.GetBool(KeyEnableTracingPolicyCRD)
@@ -360,8 +356,6 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Bool(KeyEnablePidSetFilter, false, "Enable pidSet export filters. Not recommended for production use")
 
 	flags.Bool(KeyEnableMsgHandlingLatency, false, "Enable metrics for message handling latency")
-
-	flags.StringSlice(KeyKmods, []string{}, "List of kernel modules to load symbols from")
 
 	flags.String(KeyRBQueueSize, "65535", "Set size of channel between ring buffer and sensor go routines (default 65k, allows K/M/G suffix)")
 

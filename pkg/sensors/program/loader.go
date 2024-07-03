@@ -16,7 +16,6 @@ import (
 	"github.com/cilium/tetragon/pkg/bpf"
 	cachedbtf "github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
 	"golang.org/x/sys/unix"
 )
@@ -775,18 +774,12 @@ func doLoadProgram(
 	verbose int,
 ) (*LoadedCollection, error) {
 	var btfSpec *btf.Spec
-	if btfFilePath := cachedbtf.GetCachedBTFFile(); btfFilePath != "/sys/kernel/btf/vmlinux" || len(option.Config.KMods) > 0 {
+	if btfFilePath := cachedbtf.GetCachedBTFFile(); btfFilePath != "/sys/kernel/btf/vmlinux" {
 		// Non-standard path to BTF, open it and provide it as 'KernelTypes'.
 		var err error
 		btfSpec, err = btf.LoadSpec(btfFilePath)
 		if err != nil {
 			return nil, fmt.Errorf("opening BTF file '%s' failed: %w", btfFilePath, err)
-		}
-		if len(option.Config.KMods) > 0 {
-			btfSpec, err = cachedbtf.AddModulesToSpec(btfSpec, option.Config.KMods)
-			if err != nil {
-				return nil, fmt.Errorf("adding modules to spec failed: %w", err)
-			}
 		}
 	}
 
@@ -877,6 +870,9 @@ func doLoadProgram(
 		// as that makes the loading very slow.
 		opts.Programs.LogLevel = 1
 		opts.Programs.LogSize = verifierLogBufferSize
+		if load.KernelTypes != nil {
+			opts.Programs.KernelTypes = load.KernelTypes
+		}
 		// If we hit ENOSPC that means that our log size is not big enough,
 		// so keep trying again with log size * 2 until we succeed or the kernel
 		// complains.
