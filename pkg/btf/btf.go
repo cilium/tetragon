@@ -4,12 +4,9 @@
 package btf
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"path"
-	"path/filepath"
-	"strings"
 
 	"github.com/cilium/ebpf/btf"
 	"github.com/cilium/tetragon/pkg/defaults"
@@ -88,57 +85,6 @@ func observerFindBTF(lib, btf string) (string, error) {
 
 func NewBTF() (*btf.Spec, error) {
 	return btf.LoadSpec(btfFile)
-}
-
-func AddModulesToSpec(spec *btf.Spec, kmods []string) (*btf.Spec, error) {
-	allTypes := []btf.Type{}
-	modulePaths := []string{}
-
-	iter := spec.Iterate()
-	for iter.Next() {
-		allTypes = append(allTypes, iter.Type)
-	}
-
-	for _, module := range kmods {
-		path := filepath.Join("/sys/kernel/btf", module)
-		f, err := os.Open(path)
-		if err != nil {
-			logger.GetLogger().WithField("path", path).Warn("btf: Path does not exist")
-			continue
-		}
-		defer f.Close()
-
-		modulePaths = append(modulePaths, path)
-
-		modSpec, err := btf.LoadSplitSpecFromReader(f, spec)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load %s btf: %w", module, err)
-		}
-
-		iter := modSpec.Iterate()
-		for iter.Next() {
-			allTypes = append(allTypes, iter.Type)
-		}
-	}
-
-	logger.GetLogger().WithField("modules", strings.Join(modulePaths, " ")).Info("btf: Loaded symbols from modules")
-
-	b, err := btf.NewBuilder(allTypes)
-	if err != nil {
-		return nil, fmt.Errorf("failed to call btf.NewBuilder: %w", err)
-	}
-
-	raw, err := b.Marshal(nil, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to call b.Marshal: %w", err)
-	}
-
-	spec, err = btf.LoadSpecFromReader(bytes.NewReader(raw))
-	if err != nil {
-		return nil, fmt.Errorf("failed to call btf.LoadSpecFromReader: %w", err)
-	}
-
-	return spec, nil
 }
 
 func InitCachedBTF(lib, btf string) error {

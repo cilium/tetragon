@@ -427,13 +427,6 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec, lists []v1al
 		return err
 	}
 
-	if len(option.Config.KMods) > 0 {
-		btfobj, err = btf.AddModulesToSpec(btfobj, option.Config.KMods)
-		if err != nil {
-			return fmt.Errorf("adding modules to spec failed: %w", err)
-		}
-	}
-
 	// validate lists first
 	err = preValidateLists(lists)
 	if err != nil {

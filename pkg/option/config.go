@@ -79,8 +79,6 @@ type config struct {
 
 	EnableMsgHandlingLatency bool
 
-	KMods []string
-
 	EnablePodInfo          bool
 	EnableTracingPolicyCRD bool
 

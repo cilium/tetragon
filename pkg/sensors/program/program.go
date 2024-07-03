@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/cilium/ebpf"
+	"github.com/cilium/ebpf/btf"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
 )
 
@@ -109,6 +110,9 @@ type Program struct {
 	LC *LoadedCollection
 
 	RewriteConstants map[string]interface{}
+
+	// Type information used for CO-RE relocations.
+	KernelTypes *btf.Spec
 }
 
 func (p *Program) SetRetProbe(ret bool) *Program {
