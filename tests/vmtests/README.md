@@ -21,7 +21,7 @@ make: Leaving directory '/home/kkourt/src/tetragon/tests/vmtests'
 
 Download rootfs images and kernels in `tests/vmtests/test-data`
 ```
-$ ./tests/vmtests/fetch-data.sh 4.19 5.4 bpf-next
+$ ./tests/vmtests/fetch-data.sh 4.19-main 5.4-main bpf-next-main
 ...
 $ ls tests/vmtests/test-data/images tests/vmtests/test-data/kernels
 tests/vmtests/test-data/images:
