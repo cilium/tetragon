@@ -36,7 +36,11 @@ tetragon:
 
 #### Events (protobuf API)
 
-* TBD
+* Sensor managing methods have been deprecated:
+  * `ListSensors`
+  * `EnableSensor`
+  * `DisableSensor`
+  * `RemoveSensor`
 
 #### Metrics
 
