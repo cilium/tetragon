@@ -128,7 +128,7 @@ Output should be something like:
 
 Install the new configuration file and restart containerd
 ```shell
-cp /tmp/new-config.toml /etc/containerd/config.toml
+minikube cp /tmp/new-config.toml /etc/containerd/config.toml
 ssh sudo systemctl restart containerd
 ```
 
