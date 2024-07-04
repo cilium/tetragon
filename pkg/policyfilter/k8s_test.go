@@ -114,16 +114,16 @@ func (ts *testState) eventHandler(m *state) cache.ResourceEventHandler {
 	h := m.getPodEventHandlers()
 	return cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			ts.cbAdds.Add(1)
 			h.OnAdd(obj, false)
+			ts.cbAdds.Add(1)
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
-			ts.cbUpds.Add(1)
 			h.OnUpdate(oldObj, newObj)
+			ts.cbUpds.Add(1)
 		},
 		DeleteFunc: func(obj interface{}) {
-			ts.cbDels.Add(1)
 			h.OnDelete(obj)
+			ts.cbDels.Add(1)
 		},
 	}
 }
