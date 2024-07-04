@@ -131,14 +131,22 @@ service FineGuidanceSensors {
 
     rpc AddTracingPolicy(AddTracingPolicyRequest) returns (AddTracingPolicyResponse) {}
     rpc DeleteTracingPolicy(DeleteTracingPolicyRequest) returns (DeleteTracingPolicyResponse) {}
-    rpc RemoveSensor(RemoveSensorRequest) returns (RemoveSensorResponse) {}
     rpc ListTracingPolicies(ListTracingPoliciesRequest) returns (ListTracingPoliciesResponse) {}
     rpc EnableTracingPolicy(EnableTracingPolicyRequest) returns (EnableTracingPolicyResponse) {}
     rpc DisableTracingPolicy(DisableTracingPolicyRequest) returns (DisableTracingPolicyResponse) {}
 
-    rpc ListSensors(ListSensorsRequest) returns (ListSensorsResponse) {}
-    rpc EnableSensor(EnableSensorRequest) returns (EnableSensorResponse) {}
-    rpc DisableSensor(DisableSensorRequest) returns (DisableSensorResponse) {}
+    rpc ListSensors(ListSensorsRequest) returns (ListSensorsResponse) {
+        option deprecated = true;
+    }
+    rpc EnableSensor(EnableSensorRequest) returns (EnableSensorResponse) {
+        option deprecated = true;
+    }
+    rpc DisableSensor(DisableSensorRequest) returns (DisableSensorResponse) {
+        option deprecated = true;
+    }
+    rpc RemoveSensor(RemoveSensorRequest) returns (RemoveSensorResponse) {
+        option deprecated = true;
+    }
 
     rpc GetStackTraceTree(GetStackTraceTreeRequest) returns (GetStackTraceTreeResponse) {}
 
