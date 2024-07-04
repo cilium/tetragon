@@ -531,7 +531,7 @@ func (m *state) addCgroupIDs(cinfo []containerInfo, pod *podInfo) error {
 			}
 			continue
 		}
-		logger.GetLogger().WithField("cgrp", c).WithField("pod", pod).WithField("id", nsmap.id).Warn("update cgroupid map")
+		logger.GetLogger().WithField("cgrp", c).WithField("pod", pod).WithField("id", nsmap.id).Debug("update cgroupid map")
 
 		// If this is a new namespace we create a new map entry and bind it to a stable id.
 		if err := nsmap.cgroupIdMap.Update(&c.cgID, nsmap.id, ebpf.UpdateAny); err != nil {
