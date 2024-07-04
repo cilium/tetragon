@@ -79,16 +79,16 @@ func hookRequest(req *tetragon.RuntimeHookRequest) error {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	connCtx, connCancel := context.WithTimeout(ctx, cliConf.GrpcTimeout)
-	defer connCancel()
-	conn, err := grpc.DialContext(connCtx, cliConf.AgentAddr, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	conn, err := grpc.NewClient(cliConf.AgentAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return fmt.Errorf("connecting to agent (%s) failed: %s", err, cliConf.AgentAddr)
 	}
 	defer conn.Close()
 
+	connCtx, connCancel := context.WithTimeout(ctx, cliConf.GrpcTimeout)
+	defer connCancel()
 	client := tetragon.NewFineGuidanceSensorsClient(conn)
-	_, err = client.RuntimeHook(ctx, req)
+	_, err = client.RuntimeHook(connCtx, req)
 	if err != nil {
 		return err
 	}
@@ -381,16 +381,16 @@ func serverVersion(log *slog.Logger) (string, error) {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	connCtx, connCancel := context.WithTimeout(ctx, cliConf.GrpcTimeout)
-	defer connCancel()
-	conn, err := grpc.DialContext(connCtx, cliConf.AgentAddr, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	conn, err := grpc.NewClient(cliConf.AgentAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return "", fmt.Errorf("connecting to agent (%s) failed: %s", err, cliConf.AgentAddr)
 	}
 	defer conn.Close()
 
+	connCtx, connCancel := context.WithTimeout(ctx, cliConf.GrpcTimeout)
+	defer connCancel()
 	client := tetragon.NewFineGuidanceSensorsClient(conn)
-	res, err := client.GetVersion(ctx, req)
+	res, err := client.GetVersion(connCtx, req)
 	if err != nil {
 		return "", err
 	}
