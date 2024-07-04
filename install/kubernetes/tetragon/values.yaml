@@ -343,7 +343,7 @@ crds:
 
 # -- Method for installing Tetagon rthooks (tetragon-rthooks) daemonset
 # The tetragon-rthooks daemonset is responsible for installing run-time hooks on the host.
-# TODO: add documentation link
+# See: https://tetragon.io/docs/concepts/runtime-hooks
 rthooks:
   # -- Enable the Tetragon rthooks daemonset
   enabled: false
