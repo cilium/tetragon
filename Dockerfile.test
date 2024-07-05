@@ -11,7 +11,7 @@ RUN apt-get install -y linux-libc-dev
 COPY . ./
 RUN make tetragon-bpf && pwd
 
-FROM docker.io/library/golang:1.21.11@sha256:33b6225d39781f05dbc69212d840629dfbff1b4991af9d58cd6f4355a1b97326
+FROM docker.io/library/golang:1.21.12@sha256:488f80a0e519d211d6e4f6c0abdfef7cab08e749003a2993f66904bb28965886
 RUN apt-get update
 RUN apt-get install -y linux-libc-dev rpm2cpio cpio git flex bison autoconf libelf-dev bc netcat-traditional
 WORKDIR /go/src/github.com/cilium/tetragon
