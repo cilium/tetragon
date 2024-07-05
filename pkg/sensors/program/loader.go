@@ -739,6 +739,12 @@ func doLoadProgram(
 		return nil, fmt.Errorf("loading collection spec failed: %w", err)
 	}
 
+	if load.RewriteConstants != nil {
+		if err := spec.RewriteConstants(load.RewriteConstants); err != nil {
+			return nil, fmt.Errorf("rewritting constants in spec failed: %w", err)
+		}
+	}
+
 	if loadOpts.Open != nil {
 		if err := loadOpts.Open(spec); err != nil {
 			return nil, fmt.Errorf("open spec function failed: %w", err)
