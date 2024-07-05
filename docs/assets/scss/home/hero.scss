@@ -33,18 +33,29 @@
 
   &__label {
     display: inline-flex;
+    flex-wrap: wrap;
     align-items: center;
     margin-top: 54px;
     padding: 5px 10px;
     font-size: 14px;
     line-height: 1.375;
-    color: #58595E;
+    color: #58595e;
     background: #fff;
     box-shadow: 0 3px 6px rgba(0, 102, 102, 0.12);
     border-radius: 6px;
 
+    & > span {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+
+      &:not(:last-child) {
+      padding-right: 4px;
+      }
+    }
+
     img {
-      margin: 0 6px 0 -4px;
+      margin: 0 3px;
     }
 
     @media (max-width: $desktop) {
@@ -58,12 +69,12 @@
     }
 
     @media (max-width: $mobile) {
+      justify-content: center;
       margin-top: 18px;
       padding: 5px;
 
       img {
         max-width: 20px;
-        margin: 0 2px 0 -2px;
       }
     }
   }
