@@ -7,6 +7,8 @@ package v1alpha1
 
 type PodInfoExpansion interface{}
 
+type RuntimeSecurityPolicyExpansion interface{}
+
 type TracingPolicyExpansion interface{}
 
 type TracingPolicyNamespacedExpansion interface{}

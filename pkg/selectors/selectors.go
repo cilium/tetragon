@@ -338,6 +338,25 @@ func stringPaddedLen(s int) int {
 	return StringMapSize7a - 2
 }
 
+// ArgStringValueMaxLength return the max length that can be used in a matchArgs
+// with a string type depending on the kernel version
+func ArgStringValueMaxLength(str string) error {
+	s := len([]byte(str))
+	if kernels.MinKernelVersion("5.11") {
+		if s > MaxStringMapsSize-2 {
+			return fmt.Errorf("string is too long: length (%d) > maximum limit (%d)", s, MaxStringMapsSize-2)
+		}
+	} else if kernels.MinKernelVersion("5.4") {
+		if s > StringMapSize7a-2 {
+			return fmt.Errorf("string is too long: length (%d) > maximum limit (%d)", s, StringMapSize7a-2)
+		}
+	}
+	if s > stringMapSize5-1 {
+		return fmt.Errorf("string is too long: length (%d) > maximum limit (%d)", s, stringMapSize5-1)
+	}
+	return nil
+}
+
 func ArgStringSelectorValue(v string, removeNul bool) ([MaxStringMapsSize]byte, int, error) {
 	if removeNul {
 		// Remove any trailing nul characters ("\0" or 0x00)
@@ -346,21 +365,12 @@ func ArgStringSelectorValue(v string, removeNul bool) ([MaxStringMapsSize]byte, 
 		}
 	}
 	ret := [MaxStringMapsSize]byte{}
+	err := ArgStringValueMaxLength(v)
+	if err != nil {
+		return ret, 0, err
+	}
 	b := []byte(v)
 	s := len(b)
-	if kernels.MinKernelVersion("5.11") {
-		if s > MaxStringMapsSize-2 {
-			return ret, 0, fmt.Errorf("string is too long")
-		}
-	} else if kernels.MinKernelVersion("5.4") {
-		if s > StringMapSize7a-2 {
-			return ret, 0, fmt.Errorf("string is too long")
-		}
-	} else {
-		if s > stringMapSize5-1 {
-			return ret, 0, fmt.Errorf("string is too long")
-		}
-	}
 	if s == 0 {
 		return ret, 0, fmt.Errorf("string is empty")
 	}

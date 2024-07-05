@@ -19,6 +19,10 @@ func (c *FakeCiliumV1alpha1) PodInfo(namespace string) v1alpha1.PodInfoInterface
 	return &FakePodInfo{c, namespace}
 }
 
+func (c *FakeCiliumV1alpha1) RuntimeSecurityPolicies() v1alpha1.RuntimeSecurityPolicyInterface {
+	return &FakeRuntimeSecurityPolicies{c}
+}
+
 func (c *FakeCiliumV1alpha1) TracingPolicies() v1alpha1.TracingPolicyInterface {
 	return &FakeTracingPolicies{c}
 }
