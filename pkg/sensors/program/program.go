@@ -107,6 +107,8 @@ type Program struct {
 
 	// available when program.KeepCollection is true
 	LC *LoadedCollection
+
+	RewriteConstants map[string]interface{}
 }
 
 func (p *Program) SetRetProbe(ret bool) *Program {
