@@ -72,6 +72,8 @@ func New() *cobra.Command {
 }
 
 func listSensors(ctx context.Context, client tetragon.FineGuidanceSensorsClient) {
+	// ignore deprecation warnings
+	//nolint:staticcheck
 	sensors, err := client.ListSensors(ctx, &tetragon.ListSensorsRequest{})
 	if err != nil {
 		fmt.Printf("error: %s\n", err)
@@ -93,6 +95,8 @@ func listSensors(ctx context.Context, client tetragon.FineGuidanceSensorsClient)
 }
 
 func removeSensor(ctx context.Context, client tetragon.FineGuidanceSensorsClient, sensor string) {
+	// ignore deprecation warnings
+	//nolint:staticcheck
 	_, err := client.RemoveSensor(ctx, &tetragon.RemoveSensorRequest{
 		Name: sensor,
 	})
@@ -102,6 +106,8 @@ func removeSensor(ctx context.Context, client tetragon.FineGuidanceSensorsClient
 }
 
 func enableSensor(ctx context.Context, client tetragon.FineGuidanceSensorsClient, sensor string) {
+	// ignore deprecation warnings
+	//nolint:staticcheck
 	_, err := client.EnableSensor(ctx, &tetragon.EnableSensorRequest{Name: sensor})
 	if err == nil {
 		fmt.Printf("sensor %s enabled\n", sensor)
@@ -111,6 +117,8 @@ func enableSensor(ctx context.Context, client tetragon.FineGuidanceSensorsClient
 }
 
 func disableSensor(ctx context.Context, client tetragon.FineGuidanceSensorsClient, sensor string) {
+	// ignore deprecation warnings
+	//nolint:staticcheck
 	_, err := client.DisableSensor(ctx, &tetragon.DisableSensorRequest{Name: sensor})
 	if err == nil {
 		fmt.Printf("sensor %s disabled\n", sensor)
