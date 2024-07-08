@@ -364,8 +364,8 @@ func createMultiKprobeSensor(policyName string, multiIDs []idtable.EntryID, has 
 	enforcerDataMap := enforcerMap(load)
 	if has.enforcer {
 		enforcerDataMap.SetMaxEntries(enforcerMapMaxEntries)
+		maps = append(maps, enforcerDataMap)
 	}
-	maps = append(maps, enforcerDataMap)
 
 	filterMap.SetMaxEntries(len(multiIDs))
 	configMap.SetMaxEntries(len(multiIDs))
@@ -960,8 +960,8 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe,
 	enforcerDataMap := enforcerMap(load)
 	if has.enforcer {
 		enforcerDataMap.SetMaxEntries(enforcerMapMaxEntries)
+		maps = append(maps, enforcerDataMap)
 	}
-	maps = append(maps, enforcerDataMap)
 
 	overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
 	if has.override {
