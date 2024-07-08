@@ -6,7 +6,7 @@ HELM_IMAGE=docker.io/alpine/helm:3.15.2@sha256:61185768b41810085cb57a9bc8de9003b
 # renovate: datasource=docker
 KUBECONFORM_IMAGE=ghcr.io/yannh/kubeconform:v0.6.6-alpine@sha256:47141997365b1f6aa914b2e801cb9772b94c2696c279e2046a4517d5bfd8a09a
 # renovate: datasource=docker
-HELMDOCS_IMAGE=docker.io/jnorwood/helm-docs:v1.13.1@sha256:717bd8f770bd1d25ccf79c876f1420e105832f2d6bbde12170405f58f540cb2d
+HELMDOCS_IMAGE=docker.io/jnorwood/helm-docs:v1.14.1@sha256:fda0e0f3638d0c29d3e88d1519bef45371b248b11cb2f24e2d5b0c64dd292db9
 
 REPO_ROOT := $(shell git rev-parse --show-toplevel)
 TETRAGON_CHART := tetragon
