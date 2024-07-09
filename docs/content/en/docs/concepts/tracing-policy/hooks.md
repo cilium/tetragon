@@ -212,6 +212,73 @@ spec:
 This example shows how to use uprobes to hook into the readline function
 running in all the bash shells.
 
+## LSM BPF
+
+LSM BPF programs allow runtime instrumentation of the LSM hooks by privileged
+users to implement system-wide MAC (Mandatory Access Control) and Audit policies
+using eBPF.
+
+List of LSM hooks which can be instrumented can be found in `security/security.c`.
+
+To verify if BPF LSM is available use the following command:
+
+```shell
+cat /boot/config-$(uname -r) | grep BPF_LSM
+```
+
+The output should be similar to this if BPF LSM is supported:
+
+```
+CONFIG_BPF_LSM=y
+```
+
+Then, if provided above conditions are met, use this command to check if BPF LSM is enabled:
+
+```shell
+cat /sys/kernel/security/lsm
+```
+
+The output might look like this:
+
+```
+bpf,lockdown,integrity,apparmor
+```
+
+If the output includes the `bpf`, than BPF LSM is enabled. Otherwise, you can modify `/etc/default/grub`:
+
+```
+GRUB_CMDLINE_LINUX="lsm=lockdown,integrity,apparmor,bpf"
+```
+
+Then, update the grub configuration and restart the system.
+
+The provided example of LSM BPF `TracingPolicy` monitors  access to files
+`/etc/passwd` and `/etc/shadow` with `/usr/bin/cat` executable.
+
+```yaml
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "lsm-file-open"
+spec:
+  lsmhooks:
+  - hook: "file_open"
+    args:
+      - index: 0
+        type: "file"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "/usr/bin/cat"
+      matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "/etc/passwd"
+        - "/etc/shadow"
+```
+
 ## Arguments
 
 Kprobes, uprobes and tracepoints all share a needed arguments fields called `args`. It is a list of

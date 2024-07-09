@@ -80,7 +80,7 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | tetragon.enableProcessCred | bool | `false` | Enable Capabilities visibility in exec and kprobe events. |
 | tetragon.enableProcessNs | bool | `false` | Enable Namespaces visibility in exec and kprobe events. |
 | tetragon.enabled | bool | `true` |  |
-| tetragon.exportAllowList | string | `"{\"event_set\":[\"PROCESS_EXEC\", \"PROCESS_EXIT\", \"PROCESS_KPROBE\", \"PROCESS_UPROBE\", \"PROCESS_TRACEPOINT\"]}"` | Allowlist for JSON export. For example, to export only process_connect events from the default namespace:  exportAllowList: |   {"namespace":["default"],"event_set":["PROCESS_EXEC"]} |
+| tetragon.exportAllowList | string | `"{\"event_set\":[\"PROCESS_EXEC\", \"PROCESS_EXIT\", \"PROCESS_KPROBE\", \"PROCESS_UPROBE\", \"PROCESS_TRACEPOINT\", \"PROCESS_LSM\"]}"` | Allowlist for JSON export. For example, to export only process_connect events from the default namespace:  exportAllowList: |   {"namespace":["default"],"event_set":["PROCESS_EXEC"]} |
 | tetragon.exportDenyList | string | `"{\"health_check\":true}\n{\"namespace\":[\"\", \"cilium\", \"kube-system\"]}"` | Denylist for JSON export. For example, to exclude exec events that look similar to Kubernetes health checks and all the events from kube-system namespace and the host:  exportDenyList: |   {"health_check":true}   {"namespace":["kube-system",""]}  |
 | tetragon.exportFileCompress | bool | `false` | Compress rotated JSON export files. |
 | tetragon.exportFileMaxBackups | int | `5` | Number of rotated files to retain. |
