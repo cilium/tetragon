@@ -50,6 +50,9 @@ func TestLoadUprobeSensor(t *testing.T) {
 
 		// generic_uprobe_output
 		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{6}},
+
+		// generic_uprobe_event
+		tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
 	}
 
 	if kernels.EnableLargeProgs() {

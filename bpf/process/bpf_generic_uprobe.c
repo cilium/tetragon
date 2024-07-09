@@ -56,49 +56,6 @@ static struct generic_maps maps = {
 	.filter = (struct bpf_map_def *)&filter_map,
 };
 
-FUNC_INLINE int
-generic_uprobe_start_process_filter(void *ctx)
-{
-	struct msg_generic_kprobe *msg;
-	struct event_config *config;
-	struct task_struct *task;
-	int i, zero = 0;
-
-	msg = map_lookup_elem(&process_call_heap, &zero);
-	if (!msg)
-		return 0;
-	/* Initialize selector index to 0 */
-	msg->sel.curr = 0;
-#pragma unroll
-	for (i = 0; i < MAX_CONFIGURED_SELECTORS; i++)
-		msg->sel.active[i] = 0;
-	/* Initialize accept field to reject */
-	msg->sel.pass = false;
-	msg->tailcall_index_process = 0;
-	msg->tailcall_index_selector = 0;
-	task = (struct task_struct *)get_current_task();
-	/* Initialize namespaces to apply filters on them */
-	get_namespaces(&msg->ns, task);
-	/* Initialize capabilities to apply filters on them */
-	get_current_subj_caps(&msg->caps, task);
-#ifdef __NS_CHANGES_FILTER
-	msg->sel.match_ns = 0;
-#endif
-#ifdef __CAP_CHANGES_FILTER
-	msg->sel.match_cap = 0;
-#endif
-	msg->idx = get_index(ctx);
-	// setup index and function id
-	config = map_lookup_elem(&config_map, &msg->idx);
-	if (!config)
-		return 0;
-	msg->func_id = config->func_id;
-	msg->retprobe_id = 0;
-	/* Tail call into filters. */
-	tail_call(ctx, &uprobe_calls, TAIL_CALL_FILTER);
-	return 0;
-}
-
 #ifdef __MULTI_KPROBE
 #define MAIN "uprobe.multi/generic_uprobe"
 #else
@@ -108,7 +65,7 @@ generic_uprobe_start_process_filter(void *ctx)
 __attribute__((section((MAIN)), used)) int
 generic_uprobe_event(struct pt_regs *ctx)
 {
-	return generic_uprobe_start_process_filter(ctx);
+	return generic_start_process_filter(ctx, &maps, (struct bpf_map_def *)&config_map);
 }
 
 __attribute__((section("uprobe/0"), used)) int
