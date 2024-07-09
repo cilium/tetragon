@@ -1,0 +1,25 @@
+
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "lsm"
+spec:
+  lsmhooks:
+  - hook: "bprm_check_security"
+    args:
+      - index: 0
+        type: "linux_binprm"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "/usr/bin/zsh"
+        - "/usr/bin/bash"
+      matchArgs:
+        - index: 0
+          operator: "Postfix"
+          values:
+            - "contrib/tester-progs/nop"
+      matchActions:
+      - action: Override
+        argError: -1
