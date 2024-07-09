@@ -119,6 +119,7 @@ var (
 		"raw_tp":         program.LoadRawTracepointProgram,
 		"cgrp_socket":    cgroup.LoadCgroupProgram,
 		"kprobe":         program.LoadKprobeProgram,
+		"lsm":            program.LoadLSMProgram,
 	}
 )
 
