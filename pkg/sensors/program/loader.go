@@ -32,17 +32,11 @@ type LoadOpts struct {
 }
 
 func linkPinPath(bpfDir string, load *Program, extra ...string) string {
-	pinPath := filepath.Join(bpfDir, load.PinPath)
-	if load.Override {
-		pinPath = pinPath + "_override"
-	}
-	if load.RetProbe {
-		pinPath = pinPath + "_return"
-	}
+	pinPath := filepath.Join(bpfDir, load.PinPath, "link")
 	if len(extra) != 0 {
 		pinPath = pinPath + "_" + strings.Join(extra, "_")
 	}
-	return pinPath + "_link"
+	return pinPath
 }
 
 func linkPin(lnk link.Link, bpfDir string, load *Program, extra ...string) error {
@@ -235,7 +229,7 @@ func kprobeAttachOverride(load *Program, bpfDir string,
 		return fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
 	}
 
-	load.unloaderOverride, err = kprobeAttach(load, prog, spec, load.Attach, bpfDir)
+	load.unloaderOverride, err = kprobeAttach(load, prog, spec, load.Attach, bpfDir, "override")
 	if err != nil {
 		logger.GetLogger().Warnf("Failed to attach override program: %w", err)
 	}
