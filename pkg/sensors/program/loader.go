@@ -433,9 +433,23 @@ func TracingAttach() AttachFunc {
 	}
 }
 
+func LSMOpen(load *Program) OpenFunc {
+	return func(coll *ebpf.CollectionSpec) error {
+		for _, prog := range coll.Programs {
+			if prog.AttachType == ebpf.AttachLSMMac {
+				prog.AttachTo = load.Attach
+			} else {
+				return fmt.Errorf("Only AttachLSMMac is supported for generic_lsm programs")
+			}
+		}
+		return nil
+	}
+}
+
 func LSMAttach() AttachFunc {
 	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
+
 		linkFn := func() (link.Link, error) {
 			return link.AttachLSM(link.LSMOptions{
 				Program: prog,
@@ -679,8 +693,18 @@ func LoadTracingProgram(bpfDir string, load *Program, verbose int) error {
 }
 
 func LoadLSMProgram(bpfDir string, load *Program, verbose int) error {
+	var tc tailCall
+	for mName, mPath := range load.PinMap {
+		if mName == "lsm_calls" {
+			tc = tailCall{mPath.PinName, "lsm"}
+			break
+		}
+	}
 	opts := &LoadOpts{
-		Attach: LSMAttach(),
+		Attach:   LSMAttach(),
+		Open:     LSMOpen(load),
+		TcMap:    tc.name,
+		TcPrefix: tc.prefix,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
