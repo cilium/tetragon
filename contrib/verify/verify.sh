@@ -78,6 +78,11 @@ for obj in "$TETRAGONDIR"/*.o; do
 		continue
 	fi
 
+	# Generic LSM BPF needs more complex userspace logic to load, so ignore it
+	if [[ "$B" == bpf_generic_lsm* ]]; then
+		continue
+	fi
+
 	echo -e -n "Verifying $BLUEUNDER$obj$NOCOLOR... "
 	OUT="/tmp/tetragon-verify-$B"
 
