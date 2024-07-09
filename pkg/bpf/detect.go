@@ -9,7 +9,9 @@ package bpf
 import (
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"unsafe"
 
@@ -34,6 +36,7 @@ var (
 	modifyReturn        Feature
 	modifyReturnSyscall Feature
 	linkPin             Feature
+	lsm                 Feature
 )
 
 func HasOverrideHelper() bool {
@@ -220,6 +223,54 @@ func HasProgramLargeSize() bool {
 	return features.HaveLargeInstructions() == nil
 }
 
+func detectLSM() bool {
+	if features.HaveProgramType(ebpf.LSM) != nil {
+		return false
+	}
+	b, err := os.ReadFile("/sys/kernel/security/lsm")
+	if err != nil {
+		logger.GetLogger().WithError(err).Error("failed to read /sys/kernel/security/lsm")
+		return false
+	}
+	if strings.Contains(string(b), "bpf") {
+		prog, err := ebpf.NewProgram(&ebpf.ProgramSpec{
+			Name: "probe_lsm_file_open",
+			Type: ebpf.LSM,
+			Instructions: asm.Instructions{
+				asm.Mov.Imm(asm.R0, 0),
+				asm.Return(),
+			},
+			AttachTo:   "file_open",
+			AttachType: ebpf.AttachLSMMac,
+			License:    "Dual BSD/GPL",
+		})
+		if err != nil {
+			logger.GetLogger().WithError(err).Error("failed to load lsm probe")
+			return false
+		}
+		defer prog.Close()
+
+		link, err := link.AttachLSM(link.LSMOptions{
+			Program: prog,
+		})
+		if err != nil {
+			logger.GetLogger().WithError(err).Error("failed to attach lsm probe")
+			return false
+		}
+		link.Close()
+		return true
+	}
+
+	return false
+}
+
+func HasLSMPrograms() bool {
+	lsm.init.Do(func() {
+		lsm.detected = detectLSM()
+	})
+	return lsm.detected
+}
+
 func detectLinkPin() (bool, error) {
 	prog, err := ebpf.NewProgram(&ebpf.ProgramSpec{
 		Name: "probe_bpf_kprobe",
@@ -261,8 +312,8 @@ func HasLinkPin() bool {
 }
 
 func LogFeatures() string {
-	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, uprobe_multi %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t, link_pin: %t",
+	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, uprobe_multi %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t, link_pin: %t, lsm: %t",
 		HasOverrideHelper(), HasBuildId(), HasKprobeMulti(), HasUprobeMulti(),
 		HasModifyReturn(), HasModifyReturnSyscall(), HasSignalHelper(), HasProgramLargeSize(),
-		HasLinkPin())
+		HasLinkPin(), HasLSMPrograms())
 }
