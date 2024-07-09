@@ -7,10 +7,12 @@ import (
 	"context"
 	"os"
 	"os/exec"
+	"strconv"
 	"sync"
 	"testing"
 
 	"github.com/cilium/ebpf"
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
@@ -158,6 +160,78 @@ spec:
 	if err := testCmd.Run(); err != nil {
 		t.Fatalf("failed to run %s: %s", testCmd, err)
 	}
+
+	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(lsmChecker))
+	assert.NoError(t, err)
+}
+
+func TestLSMOverrideAction(t *testing.T) {
+	if !bpf.HasLSMPrograms() || !kernels.EnableLargeProgs() {
+		t.Skip()
+	}
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	testBin := testutils.RepoRootPath("contrib/tester-progs/nop")
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+
+	configHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "lsm"
+spec:
+  lsmhooks:
+  - hook: "bprm_check_security"
+    args:
+      - index: 0
+        type: "linux_binprm"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        isNamespacePID: false
+        values:
+        - ` + pidStr + `
+      matchArgs:
+        - index: 0
+          operator: "Postfix"
+          values:
+          - "` + testBin + `"
+      matchActions:
+      - action: Override
+        argError: -1
+`
+
+	configHookRaw := []byte(configHook)
+	err := os.WriteFile(testConfigFile, configHookRaw, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+	lsmChecker := ec.NewProcessLsmChecker("lsm-file-checker").
+		WithFunctionName(sm.Suffix("bprm_check_security")).
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Suffix(tus.Conf().SelfBinary))).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithLinuxBinprmArg(ec.NewKprobeLinuxBinprmChecker().WithPath(sm.Full(testBin))))).
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_OVERRIDE)
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	testCmd := exec.Command(testBin)
+
+	testCmd.Run()
+
+	assert.Equal(t, -1, testCmd.ProcessState.ExitCode(), "Exit code should be -1")
 
 	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(lsmChecker))
 	assert.NoError(t, err)
