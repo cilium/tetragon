@@ -73,6 +73,7 @@ struct {
 static struct generic_maps maps = {
 	.heap = (struct bpf_map_def *)&process_call_heap,
 	.calls = (struct bpf_map_def *)&kprobe_calls,
+	.config = (struct bpf_map_def *)&config_map,
 	.filter = (struct bpf_map_def *)&filter_map,
 	.override = (struct bpf_map_def *)&override_tasks,
 };
@@ -111,7 +112,7 @@ static struct generic_maps maps = {
 __attribute__((section((MAIN)), used)) int
 generic_kprobe_event(struct pt_regs *ctx)
 {
-	return generic_start_process_filter(ctx, &maps, (struct bpf_map_def *)&config_map);
+	return generic_start_process_filter(ctx, &maps);
 }
 
 __attribute__((section("kprobe/0"), used)) int

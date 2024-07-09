@@ -15,6 +15,7 @@ PROCESS = bpf_execve_event.o bpf_execve_event_v53.o bpf_fork.o bpf_exit.o bpf_ge
 	  bpf_multi_kprobe_v53.o bpf_multi_retkprobe_v53.o \
 	  bpf_generic_tracepoint.o bpf_generic_tracepoint_v53.o \
 	  bpf_generic_uprobe.o bpf_generic_uprobe_v53.o \
+	  bpf_generic_lsm.o bpf_generic_lsm_v511.o \
 	  bpf_execve_event_v61.o \
 	  bpf_generic_kprobe_v61.o bpf_generic_retkprobe_v61.o \
 	  bpf_generic_tracepoint_v61.o \
@@ -26,6 +27,7 @@ PROCESS = bpf_execve_event.o bpf_execve_event_v53.o bpf_fork.o bpf_exit.o bpf_ge
 	  bpf_generic_tracepoint_v511.o \
 	  bpf_multi_kprobe_v511.o bpf_multi_retkprobe_v511.o \
 	  bpf_generic_uprobe_v511.o \
+	  bpf_generic_lsm_v61.o \
 	  bpf_loader.o \
 	  bpf_cgroup.o \
 	  bpf_enforcer.o bpf_multi_enforcer.o bpf_fmodret_enforcer.o
@@ -69,6 +71,7 @@ deps/bpf_multi_retkprobe_$$(VAR).d: process/bpf_generic_retkprobe.c
 deps/bpf_generic_tracepoint_$$(VAR).d: process/bpf_generic_tracepoint.c
 deps/bpf_generic_uprobe_$$(VAR).d: process/bpf_generic_uprobe.c
 deps/bpf_multi_uprobe_$$(VAR).d: process/bpf_generic_uprobe.c
+deps/bpf_generic_lsm_$$(VAR).d: process/bpf_generic_lsm.c
 endef
 
 # Generic build targets for each sub-dir
@@ -145,6 +148,12 @@ objs/%_v511.ll:
 
 $(DEPSDIR)%_v511.d:
 	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__LARGE_MAP_KEYS -MM -MP -MT $(patsubst $(DEPSDIR)%.d, $(OBJSDIR)%.ll, $@)   $< > $@
+
+objs/bpf_generic_lsm.ll: process/bpf_generic_lsm.c
+	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -c $< -o $@
+
+$(DEPSDIR)/bpf_generic_lsm.d:
+	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -MM -MP -MT $(patsubst $(DEPSDIR)bpf_generic_lsm.d, $(OBJSDIR)bpf_generic_lsm.ll, $@)   $< > $@
 
 # BPFTESTDIR
 objs/%.ll: $(BPFTESTDIR)%.c
