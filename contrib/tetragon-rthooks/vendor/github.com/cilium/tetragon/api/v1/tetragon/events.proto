@@ -25,6 +25,7 @@ enum EventType {
     PROCESS_TRACEPOINT = 10;
     PROCESS_LOADER = 11;
     PROCESS_UPROBE = 12;
+    PROCESS_LSM = 13;
     PROCESS_THROTTLE = 27;
 
     TEST = 40000;
@@ -185,6 +186,7 @@ message GetEventsResponse {
         ProcessTracepoint process_tracepoint = 10;
         ProcessLoader process_loader = 11;
         ProcessUprobe process_uprobe = 12;
+        ProcessLsm process_lsm = 13;
         ProcessThrottle process_throttle = 27;
 
         Test test = 40000;
