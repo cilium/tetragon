@@ -13,7 +13,7 @@
 #define MAX_TOTAL 9000
 
 FUNC_INLINE int
-generic_start_process_filter(void *ctx, struct generic_maps *maps, struct bpf_map_def *config_map)
+generic_start_process_filter(void *ctx, struct generic_maps *maps)
 {
 	struct msg_generic_kprobe *msg;
 	struct event_config *config;
@@ -26,7 +26,7 @@ generic_start_process_filter(void *ctx, struct generic_maps *maps, struct bpf_ma
 
 	/* setup index, check policy filter, and setup function id */
 	msg->idx = get_index(ctx);
-	config = map_lookup_elem(config_map, &msg->idx);
+	config = map_lookup_elem(maps->config, &msg->idx);
 	if (!config)
 		return 0;
 	if (!policy_filter_check(config->policy_id))
@@ -220,6 +220,17 @@ generic_process_event_and_setup(struct pt_regs *ctx,
 	ty = config->argreturn;
 	if (ty > 0)
 		retprobe_map_set(e->func_id, e->retprobe_id, e->common.ktime, 1);
+#endif
+
+#ifdef GENERIC_LSM
+	struct bpf_raw_tracepoint_args *raw_args = (struct bpf_raw_tracepoint_args *)ctx;
+
+	e->a0 = BPF_CORE_READ(raw_args, args[0]);
+	e->a1 = BPF_CORE_READ(raw_args, args[1]);
+	e->a2 = BPF_CORE_READ(raw_args, args[2]);
+	e->a3 = BPF_CORE_READ(raw_args, args[3]);
+	e->a4 = BPF_CORE_READ(raw_args, args[4]);
+	generic_process_init(e, MSG_OP_GENERIC_LSM, config);
 #endif
 
 #ifdef GENERIC_UPROBE
