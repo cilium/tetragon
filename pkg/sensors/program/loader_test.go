@@ -16,20 +16,21 @@ func TestLoaderLinkPinPath(t *testing.T) {
 	var load *Program
 	var pin string
 
+	// standard link
 	load = Builder("", "", "", "event", "")
+	load.PinPath = "test/generic_kprobe/__x64_sys_linkat"
 	pin = linkPinPath(bpfDir, load)
-	assert.Equal(t, filepath.Join(bpfDir, "event_link"), pin)
+	assert.Equal(t, filepath.Join(bpfDir, "test/generic_kprobe/__x64_sys_linkat", "link"), pin)
 
+	// override link
 	load = Builder("", "", "", "event", "")
-	load.Override = true
-	pin = linkPinPath(bpfDir, load)
-	assert.Equal(t, filepath.Join(bpfDir, "event_override_link"), pin)
+	load.PinPath = "test/generic_kprobe/__x64_sys_linkat"
+	pin = linkPinPath(bpfDir, load, "override")
+	assert.Equal(t, filepath.Join(bpfDir, "test/generic_kprobe/__x64_sys_linkat", "link_override"), pin)
 
-	load = Builder("", "", "", "event", "").SetRetProbe(true)
-	pin = linkPinPath(bpfDir, load)
-	assert.Equal(t, filepath.Join(bpfDir, "event_return_link"), pin)
-
+	// many-kprobe link
 	load = Builder("", "", "", "event", "")
+	load.PinPath = "test/generic_kprobe/__x64_sys_linkat"
 	pin = linkPinPath(bpfDir, load, "1_sys_exit")
-	assert.Equal(t, filepath.Join(bpfDir, "event_1_sys_exit_link"), pin)
+	assert.Equal(t, filepath.Join(bpfDir, "test/generic_kprobe/__x64_sys_linkat", "link_1_sys_exit"), pin)
 }
