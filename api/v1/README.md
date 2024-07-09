@@ -45,6 +45,7 @@
     - [ProcessExit](#tetragon-ProcessExit)
     - [ProcessKprobe](#tetragon-ProcessKprobe)
     - [ProcessLoader](#tetragon-ProcessLoader)
+    - [ProcessLsm](#tetragon-ProcessLsm)
     - [ProcessTracepoint](#tetragon-ProcessTracepoint)
     - [ProcessUprobe](#tetragon-ProcessUprobe)
     - [RuntimeHookRequest](#tetragon-RuntimeHookRequest)
@@ -924,6 +925,28 @@ loader sensor event triggered for loaded binary/library
 
 
 
+<a name="tetragon-ProcessLsm"></a>
+
+### ProcessLsm
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| process | [Process](#tetragon-Process) |  |  |
+| parent | [Process](#tetragon-Process) |  |  |
+| function_name | [string](#string) |  | LSM hook name. |
+| policy_name | [string](#string) |  | Name of the policy that created that LSM hook. |
+| message | [string](#string) |  | Short message of the Tracing Policy to inform users what is going on. |
+| args | [KprobeArgument](#tetragon-KprobeArgument) | repeated | Arguments definition of the observed LSM hook. |
+| action | [KprobeAction](#tetragon-KprobeAction) |  | Action performed when the LSM hook matched. |
+| tags | [string](#string) | repeated | Tags of the Tracing Policy to categorize the event. |
+
+
+
+
+
+
 <a name="tetragon-ProcessTracepoint"></a>
 
 ### ProcessTracepoint
@@ -1293,6 +1316,7 @@ Capability set to filter over. NOTE: you may specify only ONE set here.
 | process_tracepoint | [ProcessTracepoint](#tetragon-ProcessTracepoint) |  | ProcessTracepoint contains information about the pre-defined tracepoint and the process that invoked them. |
 | process_loader | [ProcessLoader](#tetragon-ProcessLoader) |  |  |
 | process_uprobe | [ProcessUprobe](#tetragon-ProcessUprobe) |  |  |
+| process_lsm | [ProcessLsm](#tetragon-ProcessLsm) |  |  |
 | process_throttle | [ProcessThrottle](#tetragon-ProcessThrottle) |  |  |
 | test | [Test](#tetragon-Test) |  |  |
 | rate_limit_info | [RateLimitInfo](#tetragon-RateLimitInfo) |  |  |
@@ -1372,6 +1396,7 @@ GetEventsResponse event oneof.
 | PROCESS_TRACEPOINT | 10 |  |
 | PROCESS_LOADER | 11 |  |
 | PROCESS_UPROBE | 12 |  |
+| PROCESS_LSM | 13 |  |
 | PROCESS_THROTTLE | 27 |  |
 | TEST | 40000 |  |
 | RATE_LIMIT_INFO | 40001 |  |

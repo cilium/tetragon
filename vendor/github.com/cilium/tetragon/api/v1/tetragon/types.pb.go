@@ -131,6 +131,26 @@ func (event *ProcessUprobe) SetParent(p *Process) {
 
 // Encapsulate implements the Event interface.
 // Returns the event wrapped by its GetEventsResponse_* type.
+func (event *ProcessLsm) Encapsulate() IsGetEventsResponse_Event {
+	return &GetEventsResponse_ProcessLsm{
+		ProcessLsm: event,
+	}
+}
+
+// SetProcess implements the ProcessEvent interface.
+// Sets the Process field of an event.
+func (event *ProcessLsm) SetProcess(p *Process) {
+	event.Process = p
+}
+
+// SetParent implements the ParentEvent interface.
+// Sets the Parent field of an event.
+func (event *ProcessLsm) SetParent(p *Process) {
+	event.Parent = p
+}
+
+// Encapsulate implements the Event interface.
+// Returns the event wrapped by its GetEventsResponse_* type.
 func (event *Test) Encapsulate() IsGetEventsResponse_Event {
 	return &GetEventsResponse_Test{
 		Test: event,
@@ -184,6 +204,8 @@ func UnwrapGetEventsResponse(response *GetEventsResponse) interface{} {
 		return ev.ProcessTracepoint
 	case *GetEventsResponse_ProcessUprobe:
 		return ev.ProcessUprobe
+	case *GetEventsResponse_ProcessLsm:
+		return ev.ProcessLsm
 	case *GetEventsResponse_Test:
 		return ev.Test
 	case *GetEventsResponse_ProcessLoader:
