@@ -85,6 +85,9 @@ type TracingPolicySpec struct {
 	// +kubebuilder:validation:Optional
 	// A list of uprobe specs.
 	UProbes []UProbeSpec `json:"uprobes,omitempty"`
+	// +kubebuilder:validation:Optional
+	// A list of uprobe specs.
+	LsmHooks []LsmHookSpec `json:"lsmhooks,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// PodSelector selects pods that this policy applies to

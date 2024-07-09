@@ -815,6 +815,117 @@ func (msg *MsgGenericUprobeUnix) Cast(o interface{}) notify.Message {
 	return &t
 }
 
+type MsgGenericLsmUnix struct {
+	Msg        *tracingapi.MsgGenericKprobe
+	Hook       string
+	Args       []tracingapi.MsgGenericKprobeArg
+	PolicyName string
+	Message    string
+	Tags       []string
+}
+
+func (msg *MsgGenericLsmUnix) Notify() bool {
+	return true
+}
+
+func (msg *MsgGenericLsmUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
+	return eventcache.HandleGenericInternal(ev, msg.Msg.ProcessKey.Pid, &msg.Msg.Tid, timestamp)
+}
+
+func (msg *MsgGenericLsmUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
+	return eventcache.HandleGenericEvent(internal, ev, &msg.Msg.Tid)
+}
+
+func (msg *MsgGenericLsmUnix) HandleMessage() *tetragon.GetEventsResponse {
+	k := GetProcessLsm(msg)
+	if k == nil {
+		return nil
+	}
+	return &tetragon.GetEventsResponse{
+		Event:    &tetragon.GetEventsResponse_ProcessLsm{ProcessLsm: k},
+		NodeName: nodeName,
+		Time:     ktime.ToProto(msg.Msg.Common.Ktime),
+	}
+}
+
+func (msg *MsgGenericLsmUnix) Cast(o interface{}) notify.Message {
+	t := o.(MsgGenericLsmUnix)
+	return &t
+}
+
+func (msg *MsgGenericLsmUnix) PolicyInfo() tracingpolicy.PolicyInfo {
+	return tracingpolicy.PolicyInfo{
+		Name: msg.PolicyName,
+		Hook: fmt.Sprintf("lsm:%s", msg.Hook),
+	}
+}
+
+func GetProcessLsm(event *MsgGenericLsmUnix) *tetragon.ProcessLsm {
+	var tetragonParent, tetragonProcess *tetragon.Process
+	var tetragonArgs []*tetragon.KprobeArgument
+
+	proc, parent := process.GetParentProcessInternal(event.Msg.ProcessKey.Pid, event.Msg.ProcessKey.Ktime)
+	if proc == nil {
+		tetragonProcess = &tetragon.Process{
+			Pid:       &wrapperspb.UInt32Value{Value: event.Msg.ProcessKey.Pid},
+			StartTime: ktime.ToProto(event.Msg.ProcessKey.Ktime),
+		}
+	} else {
+		tetragonProcess = proc.UnsafeGetProcess()
+		if err := proc.AnnotateProcess(option.Config.EnableProcessCred, option.Config.EnableProcessNs); err != nil {
+			logger.GetLogger().WithError(err).WithField("processId", tetragonProcess.Pid).Debugf("Failed to annotate process with capabilities and namespaces info")
+		}
+	}
+	if parent != nil {
+		tetragonParent = parent.UnsafeGetProcess()
+	}
+
+	for _, arg := range event.Args {
+		a := getKprobeArgument(arg)
+		tetragonArgs = append(tetragonArgs, a)
+	}
+
+	tetragonEvent := &tetragon.ProcessLsm{
+		Process:      tetragonProcess,
+		Parent:       tetragonParent,
+		FunctionName: event.Hook,
+		Args:         tetragonArgs,
+		Action:       kprobeAction(event.Msg.ActionId),
+		PolicyName:   event.PolicyName,
+		Message:      event.Message,
+		Tags:         event.Tags,
+	}
+
+	if tetragonProcess.Pid == nil {
+		eventcachemetrics.EventCacheError(eventcachemetrics.NilProcessPid, notify.EventType(tetragonEvent)).Inc()
+		return nil
+	}
+
+	if ec := eventcache.Get(); ec != nil &&
+		(ec.Needed(tetragonProcess) ||
+			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent))) {
+		ec.Add(nil, tetragonEvent, event.Msg.Common.Ktime, event.Msg.ProcessKey.Ktime, event)
+		return nil
+	}
+
+	if proc != nil {
+		// At kprobes we report the per thread fields, so take a copy
+		// of the thread leader from the cache then update the corresponding
+		// per thread fields.
+		//
+		// The cost to get this is relatively high because it requires a
+		// deep copy of all the fields of the thread leader from the cache in
+		// order to safely modify them, to not corrupt gRPC streams.
+		tetragonEvent.Process = proc.GetProcessCopy()
+		process.UpdateEventProcessTid(tetragonEvent.Process, &event.Msg.Tid)
+	}
+	if parent != nil {
+		tetragonEvent.Parent = tetragonParent
+	}
+
+	return tetragonEvent
+}
+
 type MsgProcessThrottleUnix struct {
 	Type   tetragon.ThrottleType
 	Cgroup string

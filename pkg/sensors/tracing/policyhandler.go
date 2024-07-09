@@ -44,5 +44,9 @@ func (h policyHandler) PolicyHandler(
 		name := fmt.Sprintf("gtp-sensor-%d", atomic.AddUint64(&sensorCounter, 1))
 		return createGenericTracepointSensor(spec, name, policyID, policyName, handler)
 	}
+	if len(spec.LsmHooks) > 0 {
+		name := fmt.Sprintf("glsm-sensor-%d", atomic.AddUint64(&sensorCounter, 1))
+		return createGenericLsmSensor(spec, name, policyID, policyName)
+	}
 	return nil, nil
 }
