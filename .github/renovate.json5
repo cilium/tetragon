@@ -183,11 +183,11 @@
       ],
     },
     {
-      "groupName": "all oci hook go dependencies main",
-      "groupSlug": "all-oci-hook-go-deps-main",
+      "groupName": "all rthook go dependencies main",
+      "groupSlug": "all-rthook-go-deps-main",
       "matchFileNames": [
-        "contrib/rthooks/tetragon-oci-hook/go.mod",
-        "contrib/rthooks/tetragon-oci-hook/go.sum",
+        "contrib/tetragon-rthooks/go.mod",
+        "contrib/tetragon-rthooks/go.mod",
       ],
       "matchUpdateTypes": [
         "patch",
@@ -359,7 +359,7 @@
         "go.mod",
         "api/go.mod",
         "pkg/k8s/go.mod",
-        "contrib/rthooks/tetragon-oci-hook/go.mod",
+        "contrib/tetragon-rthooks/go.mod",
       ],
       "matchPackageNames": [
         "go"
