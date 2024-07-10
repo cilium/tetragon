@@ -16,26 +16,25 @@ access, and (ii) how you can filter at the kernel level for only specific events
 There are different ways applications can access and modify files, and for this tracing policy we
 focus in three different types.
 
-The first is read and write accesses, which the most common way that files are accessed by
-applications.  Applications can perform this type of accesses with a variety of different system
+The first is read and write accesses, which is the most common way that applications access files.  Applications can perform this type of accesses with a variety of different system
 calls:  `read` and `write`, optimized system calls such as `copy_file_range` and `sendfile`, as well
 as asynchronous I/O system call families such as the ones provided by `aio` and `io_uring`. Instead
 of monitoring every system call, we opt to hook into the `security_file_permission` hook, which is a
 common execution point for all the above system calls.
 
 Applications can also access files by mapping them directly into their virtual address space. Since
-it is difficult to caught the accesses themselves in this case, our policy will instead monitor the
+it is difficult to catch the accesses themselves in this case, our policy will instead monitor the
 point when the files are mapped into the application's virtual memory. To do so, we use the
 `security_mmap_file` hook.
 
 Lastly, there is a family of system calls (e.g,. `truncate`) that allow to indirectly modify the
-contents of the file by changing its size. To catch these types of accesses we will hook into
+contents of the file by changing its size. To catch these types of access we will hook into
 `security_path_truncate`.
 
 ## Filtering
 
-Using the hooks above, you can monitor all accesses in the system. This will create a large number
-of events,  however, and it is frequently the case that you are only interested in a specific subset
+Using the hooks above, you can monitor all accesses in the system. However, this will create a large number
+of events, and it is frequently the case that you are only interested in a specific subset
 those events. It is possible to filter the events after their generation, but this induces
 unnecessary overhead. Tetragon, using BPF, allows filtering these events directly in the kernel.
 
@@ -68,7 +67,7 @@ filter events based on the prefix of a filename.
 
 ## Examples
 
-In this example, we monitor if a process inside a Kubernetes workload performs an read or write in
+In this example, we monitor if a process inside a Kubernetes workload performs a read or write in
 the `/etc/` directory. The policy may be extended with additional directories or specific files if
 needed.
 
@@ -110,7 +109,7 @@ If you observe, the output in the second terminal should be:
 💥 exit    default/file-access /bin/vi /etc/passwd 0
 ```
 
-Note, that read and writes are only generated for `/etc/` files based on BPF in-kernel filtering
+Note that read and writes are only generated for `/etc/` files based on BPF in-kernel filtering
 specified in the policy. The default CRD additionally filters events associated with the pod init
 process to filter init noise from pod start.
 
@@ -237,5 +236,5 @@ can be found in our examples folder.
 ##  Limitations
 
 Note that this policy has certain limitations because it matches on the filename that the
-application uses to accesses. If an application accesses the same file via a hard link or a
+application uses to access. If an application accesses the same file via a hard link or a
 different bind mount, no event will be generated.
