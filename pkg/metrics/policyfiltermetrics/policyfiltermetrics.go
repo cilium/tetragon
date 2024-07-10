@@ -4,6 +4,8 @@
 package policyfiltermetrics
 
 import (
+	"golang.org/x/exp/maps"
+
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/prometheus/client_golang/prometheus"
@@ -64,15 +66,29 @@ func (s OperationErr) String() string {
 }
 
 var (
-	PolicyFilterOpMetrics = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace:   consts.MetricsNamespace,
-		Name:        "policyfilter_metrics_total",
-		Help:        "Policy filter metrics. For internal use only.",
-		ConstLabels: nil,
-	}, []string{"subsys", "op", "error"})
+	subsysLabel = metrics.ConstrainedLabel{
+		Name:   "subsys",
+		Values: maps.Values(subsysLabelValues),
+	}
+
+	opLabel = metrics.ConstrainedLabel{
+		Name:   "op",
+		Values: maps.Values(operationLabelValues),
+	}
+
+	errorLabel = metrics.ConstrainedLabel{
+		Name:   "error",
+		Values: maps.Values(operationErrLabels),
+	}
 )
 
 var (
+	PolicyFilterOpMetrics = metrics.MustNewCounter(metrics.NewOpts(
+		consts.MetricsNamespace, "", "policyfilter_metrics_total",
+		"Policy filter metrics. For internal use only.",
+		nil, []metrics.ConstrainedLabel{subsysLabel, opLabel, errorLabel}, nil,
+	), nil)
+
 	PolicyFilterHookContainerNameMissingMetrics = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "policyfilter_hook_container_name_missing_total",
@@ -83,24 +99,6 @@ var (
 
 func RegisterMetrics(group metrics.Group) {
 	group.MustRegister(PolicyFilterOpMetrics, PolicyFilterHookContainerNameMissingMetrics)
-}
-
-// TODO:
-//  1. Define metrics using functions from pkg/metrics
-//  2. Move initialization code to metrics definitions if needed or remove it
-//     if not needed
-//  3. Use label values defined as metrics.ConstrainedLabel
-func InitMetrics() {
-	// Initialize metrics with labels
-	for _, subsys := range subsysLabelValues {
-		for _, op := range operationLabelValues {
-			for _, err := range operationErrLabels {
-				PolicyFilterOpMetrics.WithLabelValues(
-					subsys, op, err,
-				).Add(0)
-			}
-		}
-	}
 }
 
 func OpInc(subsys Subsys, op Operation, err string) {
