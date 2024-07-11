@@ -1,6 +1,8 @@
 # Copyright Authors of Tetragon
 # SPDX-License-Identifier: Apache-2.0
 
+include Makefile.defs
+
 GO ?= go
 INSTALL = $(QUIET)install
 BINDIR ?= /usr/local/bin
@@ -95,64 +97,17 @@ all: tetragon-bpf tetragon tetra generate-flags test-compile tester-progs protoc
 -include Makefile.cli
 
 .PHONY: help
-help:
-	@echo 'Targets:'
-	@echo '    Installation:'
-	@echo '        install           - install tetragon agent and tetra as standalone binaries'
-	@echo '    Compilation:'
-	@echo '        tetragon          - compile the Tetragon agent'
-	@echo '        tetragon-operator - compile the Tetragon operator'
-	@echo '        tetra             - compile the Tetragon gRPC client'
-	@echo '        tetragon-bpf      - compile bpf programs (use LOCAL_CLANG=0 to compile in a Docker build env)'
-	@echo '        test-compile      - compile unit tests'
-	@echo '        tester-progs      - compile helper programs for unit testing'
-	@echo '        compile-commands  - generate a compile_commands.json with bear for bpf programs'
-	@echo '        cli-release       - compile tetra CLI release binaries'
-	@echo '    Container images:'
-	@echo '        image             - build the Tetragon agent container image'
-	@echo '        image-operator    - build the Tetragon operator container image'
-	@echo '    Packages:'
-	@echo '        tarball           - build Tetragon compressed tarball'
-	@echo '        tarball-release   - build Tetragon release tarball'
-	@echo '    Generated files:'
-	@echo '        protogen          - generate code based on .proto files'
-	@echo '        crds              - generate kubebuilder files'
-	@echo '        generate-flags    - generate Tetragon daemon flags for documentation'
-	@echo '    Linting and chores:'
-	@echo '        vendor            - tidy and vendor Go modules'
-	@echo '        clang-format      - run code formatter on BPF code'
-	@echo '        go-format         - run code formatter on Go code'
-	@echo '        format            - convenience alias for clang-format and go-format'
-	@echo '        lint-metrics-md   - check if metrics documentation is up to date'
-	@echo '    Documentation:'
-	@echo '        docs              - preview documentation website'
-	@echo '        metrics-docs      - generate metrics reference documentation page'
-	@echo 'End-to-end tests: '
-	@echo '    e2e-test                                        - run e2e tests'
-	@echo '    e2e-test E2E_BUILD_IMAGES=0                     - run e2e tests without (re-)building images'
-	@echo '    e2e-test E2E_TESTS=./tests/e2e/tests/skeleton   - run a specific e2e test'
-	@echo 'Options:'
-	@echo '    TARGET_ARCH            - target architecture to build for (e.g. amd64 or arm64)'
-	@echo '    BPF_TARGET_ARCH        - target architecture for BPF progs, set by TARGET_ARCH'
-	@echo '    GO_ARCH                - target architecture for Go progs, set by TARGET_ARCH'
-	@echo '    DEBUG                  - enable NOOPT and NOSTRIP'
-	@echo '    NOOPT                  - disable optimization in Go build, set by DEBUG'
-	@echo '    NOSTRIP                - disable binary stripping in Go build, set by DEBUG'
-	@echo '    LOCAL_CLANG            - use the local clang install for BPF compilation'
-	@echo '    JOBS                   - number of jobs to run for BPF compilation (default to nproc)'
-	@echo '    EXTRA_GO_BUILD_LDFLAGS - extra flags to pass to the Go linker'
-	@echo '    EXTRA_GO_BUILD_FLAGS   - extra flags to pass to the Go builder'
-	@echo '    EXTRA_GO_BUILD_FLAGS   - extra flags to pass to the Go builder'
+help:  ## Display this help, based on https://www.thapaliya.com/en/writings/well-documented-makefiles/
+	$(call print_help_from_comments)
 
-# Generate compile-commands.json using bear
 .PHONY: compile-commands
-compile-commands:
+compile-commands: ## Generate a compile_commands.json with bear for bpf programs.
 	$(MAKE) -C ./bpf clean
 	bear -- $(MAKE) -C ./bpf
 
 .PHONY: tetragon-bpf
 ifeq (1,$(LOCAL_CLANG))
-tetragon-bpf: tetragon-bpf-local
+tetragon-bpf: tetragon-bpf-local ## Compile bpf programs (use LOCAL_CLANG=0 to compile in a Docker build env).
 else
 tetragon-bpf: tetragon-bpf-container
 endif
@@ -176,15 +131,15 @@ verify: tetragon-bpf
 	sudo contrib/verify/verify.sh bpf/objs
 
 .PHONY: generate-flags
-generate-flags: tetragon
+generate-flags: tetragon ## Generate Tetragon daemon flags for documentation.
 	echo "$$(./tetragon --generate-docs)" > docs/data/tetragon_flags.yaml
 
 .PHONY: tetragon
-tetragon:
+tetragon: ## Compile the Tetragon agent.
 	$(GO_BUILD) ./cmd/tetragon/
 
 .PHONY: tetra
-tetra:
+tetra: ## Compile the Tetragon gRPC client.
 	$(GO_BUILD) ./cmd/tetra/
 
 .PHONY: tetragon-bench
@@ -192,7 +147,7 @@ tetragon-bench:
 	$(GO_BUILD) ./cmd/tetragon-bench/
 
 .PHONY: tetragon-operator
-tetragon-operator:
+tetragon-operator: ## Compile the Tetragon operator.
 	$(GO_BUILD) -o $@ ./operator
 
 .PHONY: tetragon-oci-hook
@@ -216,13 +171,13 @@ ksyms:
 	$(GO) build ./cmd/ksyms/
 
 .PHONY: install
-install:
+install: ## Install tetragon agent and tetra as standalone binaries.
 	groupadd -f hubble
 	$(INSTALL) -m 0755 -d $(DESTDIR)$(BINDIR)
 	$(INSTALL) -m 0755 ./tetragon $(DESTDIR)$(BINDIR)
 
 .PHONY: vendor
-vendor:
+vendor: ## Tidy and vendor Go modules.
 	$(MAKE) -C ./api vendor
 	$(MAKE) -C ./pkg/k8s vendor
 	$(MAKE) -C ./contrib/tetragon-rthooks vendor
@@ -266,7 +221,6 @@ E2E_TESTS ?= ./tests/e2e/tests/...
 ls-e2e-test:
 	@$(GO) list -f '{{if or .TestGoFiles .XTestGoFiles}}{{.ImportPath}}{{end}}' $(E2E_TESTS)
 
-# Run an e2e-test
 .PHONY: e2e-test
 ifneq ($(E2E_BUILD_IMAGES), 0)
 e2e-test: image image-operator
@@ -277,7 +231,7 @@ endif
 
 TEST_COMPILE ?= ./...
 .PHONY: test-compile
-test-compile:
+test-compile: ## Compile unit tests.
 	mkdir -p go-tests
 	for pkg in $$($(GO) list "$(TEST_COMPILE)"); do \
 		localpkg=$$(echo $$pkg | sed -e 's:github.com/cilium/tetragon/::'); \
@@ -306,13 +260,13 @@ lint:
 	golint -set_exit_status $$(go list ./...)
 
 .PHONY: image
-image:
+image: ## Build the Tetragon agent container image.
 	$(CONTAINER_ENGINE) build -t "cilium/tetragon:${DOCKER_IMAGE_TAG}" --target release --build-arg TETRAGON_VERSION=$(VERSION) --platform=linux/${TARGET_ARCH} .
 	$(QUIET)@echo "Push like this when ready:"
 	$(QUIET)@echo "${CONTAINER_ENGINE} push cilium/tetragon:$(DOCKER_IMAGE_TAG)"
 
 .PHONY: image-operator
-image-operator:
+image-operator: ## Build the Tetragon operator container image.
 	$(CONTAINER_ENGINE) build -f Dockerfile.operator -t "cilium/tetragon-operator:${DOCKER_IMAGE_TAG}" --platform=linux/${TARGET_ARCH} .
 	$(QUIET)@echo "Push like this when ready:"
 	$(QUIET)@echo "${CONTAINER_ENGINE} push cilium/tetragon-operator:$(DOCKER_IMAGE_TAG)"
@@ -343,7 +297,7 @@ images: image image-operator
 # Then it uses docker save to dump the layer and use it to
 # contruct the tarball.
 # Requires 'jq' to be installed
-tarball: tarball-clean image
+tarball: tarball-clean image ## Build Tetragon compressed tarball.
 	$(CONTAINER_ENGINE) build --build-arg TETRAGON_VERSION=$(VERSION) --build-arg TARGET_ARCH=$(TARGET_ARCH) -f Dockerfile.tarball -t "cilium/tetragon-tarball:${DOCKER_IMAGE_TAG}" --platform=linux/${TARGET_ARCH} .
 	$(QUIET)mkdir -p $(BUILD_PKG_DIR)
 	$(CONTAINER_ENGINE) save cilium/tetragon-tarball:$(DOCKER_IMAGE_TAG) -o $(BUILD_PKG_DIR)/tetragon-$(VERSION)-$(TARGET_ARCH).tmp.tar
@@ -360,7 +314,7 @@ tarball: tarball-clean image
 	@echo "Tetragon tarball is ready: $(BUILD_PKG_DIR)/linux-tarball/tetragon-$(VERSION)-$(TARGET_ARCH).tar.gz"
 
 .PHONY: tarball-release
-tarball-release: tarball
+tarball-release: tarball ## Build Tetragon release tarball.
 	mkdir -p release/
 	mv $(BUILD_PKG_DIR)/linux-tarball/tetragon-$(VERSION)-$(TARGET_ARCH).tar.gz release/
 	(cd release && sha256sum tetragon-$(VERSION)-$(TARGET_ARCH).tar.gz > tetragon-$(VERSION)-$(TARGET_ARCH).tar.gz.sha256sum)
@@ -375,7 +329,7 @@ fetch-testdata:
 
 .PHONY: generate crds
 generate: | crds
-crds:
+crds: ## Generate kubebuilder files.
 	# Need to call vendor twice here, once before and once after generate, the reason
 	# being we need to grab changes first plus pull in whatever gets generated here.
 	$(MAKE) vendor
@@ -384,7 +338,7 @@ crds:
 
 .PHONY: codegen protogen
 codegen: | protogen
-protogen: protoc-gen-go-tetragon
+protogen: protoc-gen-go-tetragon ## Generate code based on .proto files.
 	# Need to call vendor twice here, once before and once after codegen the reason
 	# being we need to grab changes first plus pull in whatever gets generated here.
 	$(MAKE) vendor
@@ -418,7 +372,7 @@ copy-golangci-lint:
 
 .PHONY: clang-format
 ifeq (1,$(LOCAL_CLANG_FORMAT))
-clang-format:
+clang-format: ## Run code formatter on BPF code.
 	find bpf $(FORMAT_FIND_FLAGS) | xargs -n 1000 clang-format -i -style=file
 else
 clang-format:
@@ -428,10 +382,10 @@ clang-format:
 endif
 
 .PHONY: go-format
-go-format:
+go-format: ## Run code formatter on Go code.
 	find . -name '*.go' -not -path '**/vendor/*' -not -path './pkg/k8s/vendor/*' -not -path './api/v1/tetragon/*' | xargs goimports -w
 
-.PHONY: format
+.PHONY: format ## Convenience alias for clang-format and go-format.
 format: go-format clang-format
 
 # generate cscope for bpf files
@@ -441,7 +395,7 @@ cscope:
 	cscope -b -q -k
 
 .PHONY: tester-progs
-tester-progs:
+tester-progs: ## Compile helper programs for unit testing.
 	$(MAKE) -C $(TESTER_PROGS_DIR)
 
 .PHONY: version
@@ -449,7 +403,7 @@ version:
 	@echo $(VERSION)
 
 .PHONY: docs
-docs:
+docs: ## Preview documentation website.
 	$(MAKE) -C docs
 
 .PHONY: kind
@@ -470,7 +424,7 @@ tetragon-metrics-docs:
 	$(GO_BUILD) ./cmd/tetragon-metrics-docs/
 
 .PHONY: metrics-docs
-metrics-docs: tetragon-metrics-docs
+metrics-docs: tetragon-metrics-docs ## Generate metrics reference documentation page.
 	echo '---' > $(METRICS_DOCS_PATH)
 	echo 'title: "Metrics"' >> $(METRICS_DOCS_PATH)
 	echo 'description: >' >> $(METRICS_DOCS_PATH)
@@ -485,7 +439,7 @@ metrics-docs: tetragon-metrics-docs
 	$(CONTAINER_ENGINE) run --rm -v $(PWD):$(PWD) -w $(PWD) $(GO_IMAGE) ./tetragon-metrics-docs events >> $(METRICS_DOCS_PATH)
 
 .PHONY: lint-metrics-md
-lint-metrics-md: metrics-docs
+lint-metrics-md: metrics-docs ## Check if metrics documentation is up to date.
 	@if [ -n "$$(git status --porcelain $(METRICS_DOCS_PATH))" ]; then \
 		echo "metrics doc out of sync; please run 'make metrics-docs'" > /dev/stderr; \
 		false; \
