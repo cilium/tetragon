@@ -92,7 +92,6 @@ GO_BUILD_HOOK = CGO_ENABLED=0 GOARCH=$(GOARCH) $(GO) -C contrib/tetragon-rthooks
 .PHONY: all
 all: tetragon-bpf tetragon tetra generate-flags test-compile tester-progs protoc-gen-go-tetragon tetragon-bench
 
--include Makefile.docker
 -include Makefile.cli
 
 .PHONY: help
