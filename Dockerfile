@@ -10,7 +10,7 @@
 # https://www.docker.com/blog/faster-multi-platform-builds-dockerfile-cross-compilation-guide/
 
 # First builder (cross-)compile the BPF programs
-FROM --platform=$BUILDPLATFORM quay.io/cilium/clang:aeaada5cf60efe8d0e772d032fe3cc2bc613739c@sha256:b440ae7b3591a80ffef8120b2ac99e802bbd31dee10f5f15a48566832ae0866f as bpf-builder
+FROM --platform=$BUILDPLATFORM quay.io/cilium/clang:aeaada5cf60efe8d0e772d032fe3cc2bc613739c@sha256:b440ae7b3591a80ffef8120b2ac99e802bbd31dee10f5f15a48566832ae0866f AS bpf-builder
 WORKDIR /go/src/github.com/cilium/tetragon
 RUN apt-get update && apt-get install -y linux-libc-dev
 COPY . ./
@@ -18,14 +18,14 @@ ARG TARGETARCH
 RUN make tetragon-bpf LOCAL_CLANG=1 TARGET_ARCH=$TARGETARCH
 
 # Second builder (cross-)compile tetragon and tetra
-FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.22.5@sha256:fcae9e0e7313c6467a7c6632ebb5e5fab99bd39bd5eb6ee34a211353e647827a as tetragon-builder
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.22.5@sha256:fcae9e0e7313c6467a7c6632ebb5e5fab99bd39bd5eb6ee34a211353e647827a AS tetragon-builder
 WORKDIR /go/src/github.com/cilium/tetragon
 ARG TETRAGON_VERSION TARGETARCH
 COPY . .
 RUN make VERSION=$TETRAGON_VERSION TARGET_ARCH=$TARGETARCH tetragon tetra tetragon-oci-hook tetragon-oci-hook-setup
 
 # Third builder (cross-)compile a stripped gops
-FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.22.5-alpine@sha256:8c9183f715b0b4eca05b8b3dbf59766aaedb41ec07477b132ee2891ac0110a07 as gops
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.22.5-alpine@sha256:8c9183f715b0b4eca05b8b3dbf59766aaedb41ec07477b132ee2891ac0110a07 AS gops
 ARG TARGETARCH
 RUN apk add --no-cache git \
 # renovate: datasource=github-releases depName=google/gops
@@ -36,7 +36,7 @@ RUN apk add --no-cache git \
 # This builder (cross-)compile a stripped static version of bpftool.
 # This step was kept because the downloaded version includes LLVM libs with the
 # disassembler that makes the static binary grow from ~2Mo to ~30Mo.
-FROM --platform=$BUILDPLATFORM quay.io/cilium/clang:aeaada5cf60efe8d0e772d032fe3cc2bc613739c@sha256:b440ae7b3591a80ffef8120b2ac99e802bbd31dee10f5f15a48566832ae0866f as bpftool-builder
+FROM --platform=$BUILDPLATFORM quay.io/cilium/clang:aeaada5cf60efe8d0e772d032fe3cc2bc613739c@sha256:b440ae7b3591a80ffef8120b2ac99e802bbd31dee10f5f15a48566832ae0866f AS bpftool-builder
 WORKDIR /bpftool
 ARG TARGETARCH BUILDARCH
 RUN if [ $BUILDARCH != $TARGETARCH ]; \
@@ -54,21 +54,21 @@ RUN if [ $BUILDARCH != $TARGETARCH ]; \
     then apt-get install -y curl git llvm gcc pkg-config zlib1g-dev libelf-dev libelf-dev:arm64 libcap-dev:arm64 crossbuild-essential-$TARGETARCH; \
     else apt-get install -y curl git llvm gcc pkg-config zlib1g-dev libelf-dev libcap-dev; fi
 # v7.3.0
-ENV BPFTOOL_REV "687e7f06f2ee104ed6515ec3a9816af77bfa7a17"
+ENV BPFTOOL_REV="687e7f06f2ee104ed6515ec3a9816af77bfa7a17"
 RUN git clone https://github.com/libbpf/bpftool.git . && git checkout ${BPFTOOL_REV} && git submodule update --init --recursive
 RUN if [ $BUILDARCH != $TARGETARCH ]; \
     then make -C src EXTRA_CFLAGS=--static CC=aarch64-linux-gnu-gcc -j $(nproc) && aarch64-linux-gnu-strip src/bpftool; \
     else make -C src EXTRA_CFLAGS=--static -j $(nproc) && strip src/bpftool; fi
 
 # This stage downloads a stripped static version of bpftool with LLVM disassembler
-FROM --platform=$BUILDPLATFORM quay.io/cilium/alpine-curl@sha256:408430f548a8390089b9b83020148b0ef80b0be1beb41a98a8bfe036709c196e as bpftool-downloader
+FROM --platform=$BUILDPLATFORM quay.io/cilium/alpine-curl@sha256:408430f548a8390089b9b83020148b0ef80b0be1beb41a98a8bfe036709c196e AS bpftool-downloader
 ARG TARGETARCH
 ARG BPFTOOL_TAG=v7.2.0-snapshot.0
 RUN curl -L https://github.com/libbpf/bpftool/releases/download/${BPFTOOL_TAG}/bpftool-${BPFTOOL_TAG}-${TARGETARCH}.tar.gz | tar xz && chmod +x bpftool
 
 # Almost final step runs on target platform (might need emulation) and
 # retrieves (cross-)compiled binaries from builders
-FROM docker.io/library/alpine:3.20.1@sha256:b89d9c93e9ed3597455c90a0b88a8bbb5cb7188438f70953fede212a0c4394e0 as base-build
+FROM docker.io/library/alpine:3.20.1@sha256:b89d9c93e9ed3597455c90a0b88a8bbb5cb7188438f70953fede212a0c4394e0 AS base-build
 RUN apk add iproute2
 RUN mkdir /var/lib/tetragon/ && \
     mkdir -p /etc/tetragon/tetragon.conf.d/ && \
@@ -85,7 +85,7 @@ ENTRYPOINT ["/usr/bin/tetragon"]
 # This target only builds with the `--target release` option and reduces the
 # size of the final image with a static build of bpftool without the LLVM
 # disassembler
-FROM base-build as release
+FROM base-build AS release
 COPY --from=bpftool-builder bpftool/src/bpftool /usr/bin/bpftool
 
 FROM base-build

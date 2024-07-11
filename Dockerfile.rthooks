@@ -6,7 +6,7 @@ ARG BASE_IMAGE=docker.io/library/alpine:3.20.1@sha256:b89d9c93e9ed3597455c90a0b8
 # BUILDPLATFORM is an automatic platform ARG enabled by Docker BuildKit.
 # Represents the plataform where the build is happening, do not mix with
 # TARGETARCH
-FROM --platform=${BUILDPLATFORM} ${GOLANG_IMAGE} as builder
+FROM --platform=${BUILDPLATFORM} ${GOLANG_IMAGE} AS builder
 # TARGETOS is an automatic platform ARG enabled by Docker BuildKit.
 ARG TARGETOS
 # TARGETARCH is an automatic platform ARG enabled by Docker BuildKit.
@@ -21,7 +21,7 @@ RUN --mount=type=bind,readwrite,target=/go/src/github.com/cilium/tetragon \
     && mv ./contrib/tetragon-rthooks/tetragon-oci-hook-setup /out/${TARGETOS}/${TARGETARCH}/usr/bin \
     && mv ./contrib/tetragon-rthooks/tetragon-nri-hook       /out/${TARGETOS}/${TARGETARCH}/usr/bin
 
-FROM ${BASE_IMAGE} as image
+FROM ${BASE_IMAGE} AS image
 # TARGETOS is an automatic platform ARG enabled by Docker BuildKit.
 ARG TARGETOS
 # TARGETARCH is an automatic platform ARG enabled by Docker BuildKit.
