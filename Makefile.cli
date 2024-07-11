@@ -9,6 +9,7 @@ TARGET=tetra
 RELEASE_UID ?= $(shell id -u)
 RELEASE_GID ?= $(shell id -g)
 
+.PHONY: cli-release
 cli-release:
 	docker run \
 		--rm \
@@ -18,6 +19,7 @@ cli-release:
 		        /usr/bin/setpriv --reuid=$(RELEASE_UID) --regid=$(RELEASE_GID) --clear-groups \
 			make GOCACHE=/tmp/cache cli-local-release VERSION=${VERSION}"
 
+.PHONY: cli-local-release
 cli-local-release: cli-clean
 	set -o errexit; \
 	for OS in darwin linux windows; do \
@@ -45,7 +47,6 @@ cli-local-release: cli-clean
 		rm -r release/$$OS; \
 	done; \
 
+.PHONY: cli-clean
 cli-clean:
 	rm -rf ./release
-
-.PHONY: cli-release cli-local-release

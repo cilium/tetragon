@@ -151,16 +151,18 @@ compile-commands:
 	$(MAKE) -C ./bpf clean
 	bear -- $(MAKE) -C ./bpf
 
-.PHONY: tetragon-bpf tetragon-bpf-local tetragon-bpf-container
+.PHONY: tetragon-bpf
 ifeq (1,$(LOCAL_CLANG))
 tetragon-bpf: tetragon-bpf-local
 else
 tetragon-bpf: tetragon-bpf-container
 endif
 
+.PHONY: tetragon-bpf-local
 tetragon-bpf-local:
 	$(MAKE) -C ./bpf BPF_TARGET_ARCH=$(BPF_TARGET_ARCH) -j$(JOBS) $(__BPF_DEBUG_FLAGS)
 
+.PHONY: tetragon-bpf-container
 tetragon-bpf-container:
 	$(CONTAINER_ENGINE) rm tetragon-clang || true
 	$(CONTAINER_ENGINE) run -v $(CURDIR):/tetragon:Z -u $$(id -u) -e BPF_TARGET_ARCH=$(BPF_TARGET_ARCH) --name tetragon-clang $(CLANG_IMAGE) make -C /tetragon/bpf -j$(JOBS) $(__BPF_DEBUG_FLAGS)
@@ -174,28 +176,35 @@ bpf-test:
 verify: tetragon-bpf
 	sudo contrib/verify/verify.sh bpf/objs
 
-.PHONY: generate-flags tetragon tetra tetragon-operator tetragon-bench
+.PHONY: generate-flags
 generate-flags: tetragon
 	echo "$$(./tetragon --generate-docs)" > docs/data/tetragon_flags.yaml
 
+.PHONY: tetragon
 tetragon:
 	$(GO_BUILD) ./cmd/tetragon/
 
+.PHONY: tetra
 tetra:
 	$(GO_BUILD) ./cmd/tetra/
 
+.PHONY: tetragon-bench
 tetragon-bench:
 	$(GO_BUILD) ./cmd/tetragon-bench/
 
+.PHONY: tetragon-operator
 tetragon-operator:
 	$(GO_BUILD) -o $@ ./operator
 
+.PHONY: tetragon-oci-hook
 tetragon-oci-hook:
 	$(GO_BUILD_HOOK) -o $@ ./cmd/oci-hook
 
+.PHONY: tetragon-nri-hook
 tetragon-nri-hook:
 	$(GO_BUILD_HOOK) -o $@ ./cmd/nri-hook
 
+.PHONY: tetragon-oci-hook-setup
 tetragon-oci-hook-setup:
 	$(GO_BUILD_HOOK) -o $@ ./cmd/setup
 
@@ -281,12 +290,13 @@ test-compile:
 		echo -c ./$$localpkg -o go-tests/$$localtestfile; \
 	done | GOMAXPROCS=1 xargs -P $(JOBS) -L 1 $(GO) test -gcflags=$(GO_BUILD_GCFLAGS)
 
-.PHONY: check-copyright update-copyright
+.PHONY: check-copyright
 check-copyright:
 	for dir in $(COPYRIGHT_DIRS); do \
 		contrib/copyright-headers check $$dir; \
 	done
 
+.PHONY: update-copyright
 update-copyright:
 	for dir in $(COPYRIGHT_DIRS); do \
 		contrib/copyright-headers update $$dir; \
@@ -296,22 +306,25 @@ update-copyright:
 lint:
 	golint -set_exit_status $$(go list ./...)
 
-.PHONY: image image-operator image-test
+.PHONY: image
 image:
 	$(CONTAINER_ENGINE) build -t "cilium/tetragon:${DOCKER_IMAGE_TAG}" --target release --build-arg TETRAGON_VERSION=$(VERSION) --platform=linux/${TARGET_ARCH} .
 	$(QUIET)@echo "Push like this when ready:"
 	$(QUIET)@echo "${CONTAINER_ENGINE} push cilium/tetragon:$(DOCKER_IMAGE_TAG)"
 
+.PHONY: image-operator
 image-operator:
 	$(CONTAINER_ENGINE) build -f Dockerfile.operator -t "cilium/tetragon-operator:${DOCKER_IMAGE_TAG}" --platform=linux/${TARGET_ARCH} .
 	$(QUIET)@echo "Push like this when ready:"
 	$(QUIET)@echo "${CONTAINER_ENGINE} push cilium/tetragon-operator:$(DOCKER_IMAGE_TAG)"
 
+.PHONY: image-rthooks
 image-rthooks:
 	$(CONTAINER_ENGINE) build -f Dockerfile.rthooks -t "cilium/tetragon-rthooks:${DOCKER_IMAGE_TAG}" --platform=linux/${TARGET_ARCH} .
 	$(QUIET)@echo "Push like this when ready:"
 	$(QUIET)@echo "${CONTAINER_ENGINE} push cilium/tetragon-rthooks:$(DOCKER_IMAGE_TAG)"
 
+.PHONY: image-test
 image-test: image-clang
 	$(CONTAINER_ENGINE) build -f Dockerfile.test -t "cilium/tetragon-test:${DOCKER_IMAGE_TAG}" .
 	$(QUIET)@echo "Push like this when ready:"
@@ -326,7 +339,7 @@ image-clang:
 .PHONY: images
 images: image image-operator
 
-.PHONY: tarball tarball-release tarball-clean
+.PHONY: tarball
 # Share same build environment as docker image
 # Then it uses docker save to dump the layer and use it to
 # contruct the tarball.
@@ -347,18 +360,21 @@ tarball: tarball-clean image
 	gzip -6 $(BUILD_PKG_DIR)/linux-tarball/tetragon-$(VERSION)-$(TARGET_ARCH).tar
 	@echo "Tetragon tarball is ready: $(BUILD_PKG_DIR)/linux-tarball/tetragon-$(VERSION)-$(TARGET_ARCH).tar.gz"
 
+.PHONY: tarball-release
 tarball-release: tarball
 	mkdir -p release/
 	mv $(BUILD_PKG_DIR)/linux-tarball/tetragon-$(VERSION)-$(TARGET_ARCH).tar.gz release/
 	(cd release && sha256sum tetragon-$(VERSION)-$(TARGET_ARCH).tar.gz > tetragon-$(VERSION)-$(TARGET_ARCH).tar.gz.sha256sum)
 
+.PHONY: tarball-clean
 tarball-clean:
 	rm -fr $(BUILD_PKG_DIR)
 
+.PHONY: fetch-testdata
 fetch-testdata:
 	wget -nc -P testdata/btf 'https://github.com/cilium/tetragon-testdata/raw/main/btf/vmlinux-5.4.104+'
 
-.PHONY: generate crds protogen codegen protoc-gen-go-tetragon
+.PHONY: generate crds
 generate: | crds
 crds:
 	# Need to call vendor twice here, once before and once after generate, the reason
@@ -367,6 +383,7 @@ crds:
 	$(MAKE) -C pkg/k8s/
 	$(MAKE) vendor
 
+.PHONY: codegen protogen
 codegen: | protogen
 protogen: protoc-gen-go-tetragon
 	# Need to call vendor twice here, once before and once after codegen the reason
@@ -375,6 +392,7 @@ protogen: protoc-gen-go-tetragon
 	$(MAKE) -C api
 	$(MAKE) vendor
 
+.PHONY: protoc-gen-go-tetragon
 protoc-gen-go-tetragon:
 	$(GO_BUILD) -o bin/$@ ./tools/protoc-gen-go-tetragon/
 
@@ -418,14 +436,14 @@ go-format:
 format: go-format clang-format
 
 # generate cscope for bpf files
+.PHONY: cscope
 cscope:
 	find bpf -name "*.[chxsS]" -print > cscope.files
 	cscope -b -q -k
-.PHONY: cscope
 
+.PHONY: tester-progs
 tester-progs:
 	$(MAKE) -C $(TESTER_PROGS_DIR)
-.PHONY: tester-progs
 
 .PHONY: version
 version:
