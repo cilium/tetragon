@@ -105,11 +105,6 @@ generic_process_init(struct msg_generic_kprobe *e, u8 op, struct event_config *c
 	e->common.size = 0;
 	e->common.ktime = ktime_get_ns();
 
-	e->current.pad[0] = 0;
-	e->current.pad[1] = 0;
-	e->current.pad[2] = 0;
-	e->current.pad[3] = 0;
-
 	e->action = 0;
 
 	/**

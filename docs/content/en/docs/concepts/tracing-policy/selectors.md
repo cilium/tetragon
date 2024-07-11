@@ -19,6 +19,7 @@ A `TracingPolicy` can contain from 0 to 5 selectors. A selector is composed of
 - [`matchCapabilityChanges`](#capability-changes-filter): filter on Linux capabilities changes.
 - [`matchActions`](#actions-filter): apply an action on selector matching.
 - [`matchReturnActions`](#return-actions-filter): apply an action on return selector matching.
+- [`matchLoginUids`](#auid-filter): filter on audit ID.
 
 ## Arguments filter
 
@@ -1586,3 +1587,26 @@ exist.
 Return actions filters are a list of actions that execute when an return selector
 matches. They are defined under `matchReturnActions` and currently support all
 the [Actions filter](#actions-filter) `action` types.
+
+## Auid filter
+
+Auids filters can be specified under the `matchLoginUids` field and provide filtering
+based on the value of audit id of the process. For example, the following
+`matchLoginUids` filter tells the BPF code that observe only hooks for which the
+audit id is not equal to `-1`:
+
+```yaml
+- matchLoginUids:
+  - operator: "NotEqual"
+    values:
+    - 4294967295
+```
+
+The available operators for `matchLoginUids` are:
+- `Equal`
+- `NotEqual`
+- `GreaterThan`
+- `LessThan`
+
+In a selector, the `matchLoginUids` filter supports defining up to four operators,
+which are logically `AND` together.

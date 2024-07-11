@@ -341,6 +341,41 @@ func ParseMatchPids(k *KernelSelectorState, matchPids []v1alpha1.PIDSelector) er
 	return nil
 }
 
+func loginuidSelectorValue(loginuid *v1alpha1.LoginUidSelector) ([]byte, uint32) {
+	b := make([]byte, len(loginuid.Values)*4)
+
+	for i, v := range loginuid.Values {
+		off := i * 4
+		binary.LittleEndian.PutUint32(b[off:], v)
+	}
+	return b, uint32(len(b))
+}
+
+func ParseMatchLoginuid(k *KernelSelectorState, loginuid *v1alpha1.LoginUidSelector) error {
+	op, err := SelectorOp(loginuid.Operator)
+	if err != nil {
+		return fmt.Errorf("matchloginuid error: %w", err)
+	}
+	WriteSelectorUint32(&k.data, op)
+
+	value, size := loginuidSelectorValue(loginuid)
+	WriteSelectorUint32(&k.data, size/4)
+	WriteSelectorByteArray(&k.data, value, size)
+	return nil
+}
+
+func ParseMatchLoginuids(k *KernelSelectorState, matchLoginuids []v1alpha1.LoginUidSelector) error {
+	loff := AdvanceSelectorLength(&k.data)
+
+	for _, p := range matchLoginuids {
+		if err := ParseMatchLoginuid(k, &p); err != nil {
+			return err
+		}
+	}
+	WriteSelectorLength(&k.data, loff)
+	return nil
+}
+
 func ActionTypeFromString(action string) int32 {
 	act, ok := actionTypeTable[strings.ToLower(action)]
 	if !ok {
@@ -1236,6 +1271,7 @@ func ParseMatchBinaries(k *KernelSelectorState, binarys []v1alpha1.BinarySelecto
 //	[matchCapabilities]
 //	[matchNamespaceChanges]
 //	[matchCapabilityChanges]
+//	[matchLoginuids]
 //	[matchArgs]
 //	[matchActions]
 //
@@ -1244,6 +1280,7 @@ func ParseMatchBinaries(k *KernelSelectorState, binarys []v1alpha1.BinarySelecto
 // matchCapabilities := [length][CAx][CAy]...[CAn]
 // matchNamespaceChanges := [length][NCx][NCy]...[NCn]
 // matchCapabilityChanges := [length][CAx][CAy]...[CAn]
+// matchLoginuids := [length] [LoginUid1][LoginUid2]...[LoginUidn]
 // matchArgs := [length][ARGx][ARGy]...[ARGn]
 // PIDn := [op][flags][nValues][v1]...[vn]
 // Argn := [index][op][valueGen]
@@ -1308,6 +1345,9 @@ func InitKernelSelectorState(selectors []v1alpha1.KProbeSelector, args []v1alpha
 		}
 		if err := ParseMatchCapabilityChanges(k, selectors.MatchCapabilityChanges); err != nil {
 			return fmt.Errorf("parseMatchCapabilityChanges error: %w", err)
+		}
+		if err := ParseMatchLoginuids(k, selectors.MatchLoginUids); err != nil {
+			return fmt.Errorf("parseMatchLoginuids error: %w", err)
 		}
 		if err := ParseMatchBinaries(k, selectors.MatchBinaries, selIdx); err != nil {
 			return fmt.Errorf("parseMatchBinaries error: %w", err)
