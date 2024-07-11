@@ -1,6 +1,6 @@
-FROM cilium/tetragon:latest as tetragon-release
+FROM cilium/tetragon:latest AS tetragon-release
 
-FROM scratch as linux-tarball-1
+FROM scratch AS linux-tarball-1
 
 # Copy install script
 COPY install/linux-tarball/install.sh /
@@ -27,7 +27,7 @@ COPY --from=tetragon-release /usr/bin/gops /usr/local/lib/tetragon/
 COPY --from=tetragon-release /var/lib/tetragon /usr/local/lib/tetragon/bpf
 
 # We need one layer
-FROM scratch as linux-tarball-2
+FROM scratch AS linux-tarball-2
 
 ARG TETRAGON_VERSION
 ARG TARGET_ARCH
