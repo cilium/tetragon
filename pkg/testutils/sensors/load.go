@@ -74,7 +74,7 @@ func findProgram(cache []*prog, name string, typ ebpf.ProgramType, match ProgMat
 	return p
 }
 
-func mergeSensorMaps(t *testing.T, maps1, maps2 []SensorMap, progs1, progs2 []SensorProg) ([]SensorMap, []SensorProg) {
+func mergeSensorMaps(_ *testing.T, maps1, maps2 []SensorMap, progs1, progs2 []SensorProg) ([]SensorMap, []SensorProg) {
 	// we take maps1,progs1 and merge in maps2,progs2
 	mapsReturn := maps1
 	progsReturn := progs1
@@ -84,16 +84,20 @@ func mergeSensorMaps(t *testing.T, maps1, maps2 []SensorMap, progs1, progs2 []Se
 
 	// merge in progs2
 	for _, p2 := range progs2 {
+		skip := false
 		// do maps share the same program
-		for _, p := range progsReturn {
+		for i, p := range progsReturn {
 			if p.Name == p2.Name && p.Type == p2.Type {
-				t.Fatalf("merge fail: program '%s' in both maps", p.Name)
+				skip = true
+				idxList = append(idxList, uint(i))
+				break
 			}
 		}
-
-		progsReturn = append(progsReturn, p2)
-		idxList = append(idxList, idx)
-		idx++
+		if !skip {
+			idxList = append(idxList, idx)
+			progsReturn = append(progsReturn, p2)
+			idx++
+		}
 	}
 
 	// merge in maps2
