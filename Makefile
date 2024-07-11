@@ -1,3 +1,6 @@
+# Copyright Authors of Tetragon
+# SPDX-License-Identifier: Apache-2.0
+
 GO ?= go
 INSTALL = $(QUIET)install
 BINDIR ?= /usr/local/bin
