@@ -7,7 +7,7 @@ toolchain go1.22.3
 
 require (
 	github.com/bombsimon/logrusr/v4 v4.1.0
-	github.com/cilium/cilium v1.15.6
+	github.com/cilium/cilium v1.15.7
 	github.com/cilium/ebpf v0.15.1-0.20240703142256-12aca1027ee8
 	github.com/cilium/little-vm-helper v0.0.18
 	github.com/cilium/lumberjack/v2 v2.3.0
