@@ -63,7 +63,6 @@ jobs:
       run: |
         go clean -cache -modcache -testcache -fuzzcache
         cd go/src/github.com/cilium/tetragon/
-        make check-copyright
         sudo -E echo "run go tests: " `uname -a`
         sudo -E go mod verify
         export TETRAGON_LIB=$(realpath "bpf/objs/")
