@@ -135,7 +135,7 @@ tetragon-bpf-container:
 	$(CONTAINER_ENGINE) rm tetragon-clang
 
 .PHONY: tetragon-bench
-tetragon-bench:
+tetragon-bench: ## Compile tetragon-bench tool.
 	$(GO_BUILD) ./cmd/tetragon-bench/
 
 .PHONY: tetragon-oci-hook
@@ -198,7 +198,7 @@ image-clang:
 	$(QUIET)@echo "${CONTAINER_ENGINE} push cilium/clang:$(DOCKER_IMAGE_TAG)"
 
 .PHONY: images
-images: image image-operator
+images: image image-operator ## Convenience alias for image and image-operator.
 
 ##@ Packages
 
@@ -245,7 +245,7 @@ GOLANGCILINT_WANT_VERSION := $(subst @sha256,,$(patsubst v%,%,$(word 2,$(subst :
 GOLANGCILINT_VERSION = $(shell golangci-lint version 2>/dev/null)
 .PHONY: check
 ifneq (,$(findstring $(GOLANGCILINT_WANT_VERSION),$(GOLANGCILINT_VERSION)))
-check:
+check: ## Run Go linters.
 	golangci-lint run
 else
 check:
@@ -261,7 +261,7 @@ copy-golangci-lint:
 	docker rm ${xid}
 
 .PHONY: test
-test: tester-progs tetragon-bpf
+test: tester-progs tetragon-bpf ## Run Go tests.
 	$(GO) test -exec "$(SUDO)" -p 1 -parallel 1 $(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -timeout $(GO_TEST_TIMEOUT) -failfast -cover ./pkg/... ./cmd/... ./operator/... ${EXTRA_TESTFLAGS}
 
 .PHONY: tester-progs
@@ -269,19 +269,19 @@ tester-progs: ## Compile helper programs for unit testing.
 	$(MAKE) -C $(TESTER_PROGS_DIR)
 
 .PHONY: bpf-test
-bpf-test:
+bpf-test: ## Run BPF tests.
 	$(MAKE) -C ./bpf run-test
 
 .PHONY: verify
-verify: tetragon-bpf
+verify: tetragon-bpf ## Verify BPF programs.
 	sudo contrib/verify/verify.sh bpf/objs
 
 .PHONY: alignchecker
-alignchecker:
+alignchecker: ## Run alignchecker.
 	$(GO) test -c ./pkg/alignchecker -o alignchecker
 
 .PHONY: bench
-bench:
+bench: ## Run Go benchmarks.
 	$(GO) test -exec "$(SUDO)" -p 1 -parallel 1 -run ^$$ $(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -timeout $(GO_TEST_TIMEOUT) -failfast -cover ./pkg/... ./cmd/... ./operator/... -bench=. ${EXTRA_TESTFLAGS}
 
 TEST_COMPILE ?= ./...
@@ -336,22 +336,21 @@ endif
 
 ##@ Development
 
-# generate cscope for bpf files
 .PHONY: cscope
-cscope:
+cscope: ## Generate cscope for bpf files.
 	find bpf -name "*.[chxsS]" -print > cscope.files
 	cscope -b -q -k
 
 .PHONY: kind
-kind:
+kind: ## Create a kind cluster for Tetragon development.
 	./contrib/localdev/bootstrap-kind-cluster.sh
 
 .PHONY: kind-install-tetragon
-kind-install-tetragon:
+kind-install-tetragon: ## Install local version of Tetragon in the kind cluster.
 	./contrib/localdev/install-tetragon.sh --image cilium/tetragon:latest --operator cilium/tetragon-operator:latest
 
 .PHONY: kind-setup
-kind-setup: images kind kind-install-tetragon
+kind-setup: images kind kind-install-tetragon ## Create a kind cluster and install local version of Tetragon.
 
 ##@ Chores and generated files
 
@@ -471,5 +470,5 @@ docs: ## Preview documentation website.
 	$(MAKE) -C docs
 
 .PHONY: version
-version:
+version: ## Print Tetragon version.
 	@echo $(VERSION)
