@@ -15,8 +15,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/moby/term"
@@ -41,7 +41,7 @@ func PullImage(ctx context.Context, conf PullConf) error {
 	}
 	defer cli.Close()
 
-	remotePullReader, err := cli.ImagePull(ctx, conf.Image, types.ImagePullOptions{})
+	remotePullReader, err := cli.ImagePull(ctx, conf.Image, image.PullOptions{})
 	if err != nil {
 		return fmt.Errorf("cannot pull image %s: %w", conf.Image, err)
 	}
@@ -74,7 +74,7 @@ func ExtractImage(ctx context.Context, conf PullConf) (*ExtractResult, error) {
 		return nil, fmt.Errorf("cannot create container from %s: %w", conf.Image, err)
 	}
 	defer func() {
-		err := cli.ContainerRemove(ctx, resp.ID, types.ContainerRemoveOptions{
+		err := cli.ContainerRemove(ctx, resp.ID, container.RemoveOptions{
 			Force: true,
 		})
 		if err != nil {
