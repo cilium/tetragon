@@ -27,9 +27,6 @@ jobs:
           - name: tetragon-operator
             dockerfile: ./Dockerfile.operator
 
-          - name: tetragon-rthooks
-            dockerfile: ./Dockerfile.rthooks
-
     steps:
       # https://github.com/docker/setup-qemu-action
       - name: Set up QEMU
