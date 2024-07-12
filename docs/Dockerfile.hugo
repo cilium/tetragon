@@ -3,6 +3,86 @@ ARG HUGO_VERSION=0.111.3
 ARG TARGETARCH
 WORKDIR tmp
 RUN curl -L https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-${TARGETARCH}.tar.gz | tar xz
+ARG KUBERNETES_VERSION=1.28.8
+RUN curl -L https://github.com/kubernetes/kubernetes/archive/refs/tags/v${KUBERNETES_VERSION}.tar.gz | tar xz && \
+  mv kubernetes-${KUBERNETES_VERSION} kubernetes
+ARG OPENAPI_GENERATOR_VERSION=7.4.0
+RUN curl -L https://github.com/OpenAPITools/openapi-generator/archive/refs/tags/v${OPENAPI_GENERATOR_VERSION}.tar.gz | tar xz && \
+  mv openapi-generator-${OPENAPI_GENERATOR_VERSION} openapi-generator
+
+FROM debian:bookworm AS openapi-spec
+# obtain Tetragon CRDs (see pkg/k8s/Makefile re their generation)
+COPY /pkg/k8s/apis/cilium.io/client/crds/v1alpha1/* /crd/
+# start necessary components of Kubernetes cluster (etcd, kube-apiserver);
+# install Tetragon CRDs;
+# obtain OpenAPI spec for Tetragon from Kubernetes API
+RUN apt-get update -y && \
+  apt-get install -y curl git golang iproute2 jq make rsync && \
+  apt-get clean
+COPY --from=downloader /tmp/kubernetes /kubernetes/
+RUN \
+  test -s /crd/cilium.io_podinfo.yaml && \
+  test -s /crd/cilium.io_tracingpolicies.yaml && \
+  test -s /crd/cilium.io_tracingpoliciesnamespaced.yaml
+WORKDIR /kubernetes
+ARG ETCD_PORT=2382
+ARG API_SECURE_PORT=6444
+ARG KUBECTL_PROXY_PORT=8889
+RUN \
+  hack/install-etcd.sh && \
+  export PATH=/kubernetes/third_party/etcd:$PATH && \
+  export ENABLE_DAEMON=true && \
+  export START_MODE=nokubelet,nokubeproxy && \
+  hack/local-up-cluster.sh && \
+  \
+  export PATH=$PWD/_output/local/go/bin:$PATH && \
+  export KUBECONFIG=/var/run/kubernetes/admin.kubeconfig && \
+  for f in $(ls /crd/*.yaml); do \
+    if ! kubectl create -f $f; then exit 1; fi; \
+  done && \
+  \
+  cert=/var/run/kubernetes/client-admin.crt && \
+  key=/var/run/kubernetes/client-admin.key && \
+  curl -kL --cert $cert --key $key \
+    "https://localhost:$API_SECURE_PORT/openapi/v3" -o /tmp/paths.json && \
+  path=$(cat /tmp/paths.json | \
+    jq -r '.paths."apis/cilium.io/v1alpha1".serverRelativeURL') && \
+  test -n "$path" && \
+  curl --fail-with-body -kL --cert $cert --key $key \
+    "https://localhost:${API_SECURE_PORT}$path" -o /openapi.json
+# check that OpenAPI spec has been obtained
+RUN test -s /openapi.json
+
+FROM debian:bookworm AS openapi-documentation
+# compile openapi-generator
+RUN apt-get update -y && \
+  apt-get install -y default-jdk-headless maven vim && \
+  apt-get clean
+COPY --from=downloader /tmp/openapi-generator /openapi-generator/
+WORKDIR /openapi-generator
+RUN mvn clean install
+# run openapi-generator with OpenAPI spec as input
+COPY --from=openapi-spec /openapi.json /openapi.json
+RUN java -jar /openapi-generator/modules/openapi-generator-cli/target/openapi-generator-cli.jar \
+  generate -g html -i /openapi.json -o /
+# rename generated HTML page, do some post-processing, and add Hugo front matter
+RUN \
+  test -s /index.html && \
+  mv /index.html /tracing-policy-api.html && \
+  sed '\|^ *<title>Kubernetes CRD Swagger</title> *$|d' \
+    -i /tracing-policy-api.html&& \
+  sed '\|^ *<h1>Kubernetes CRD Swagger</h1> *$|,\|^ *<h2>Access</h2> *$|d;' \
+    -i /tracing-policy-api.html
+RUN ex /tracing-policy-api.html <<EOF
+1 insert
+---
+title: Tracing Policy API
+description: This reference is generated from an OpenAPI specification.
+weight: 5
+---
+.
+exit
+EOF
 
 # Hugo extended is dynamically linked
 FROM golang:1.20.2@sha256:1724dc3128e2e63f0bc3e055fe4fa478d67f6da4bd95c0e69690f6435f658804
@@ -13,10 +93,15 @@ RUN mkdir -p /var/hugo && \
     chown -R hugo /var/hugo && \
     runuser -u hugo -- git config --global --add safe.directory /src
 COPY --from=downloader /tmp/hugo /usr/local/bin/hugo
+COPY --chown=hugo:hugo /docs/ /src/docs/
+RUN test -d /src/docs/content
+RUN test -s /src/docs/hugo.toml
+# add OpenAPI documentation, also with Hugo front matter
+COPY --from=openapi-documentation --chown=hugo:hugo /tracing-policy-api.html \
+  /src/docs/content/en/docs/reference/
 WORKDIR /src
 
 USER hugo:hugo
 EXPOSE 1313
 ENTRYPOINT ["/usr/local/bin/hugo"]
 CMD ["--help"]
-
