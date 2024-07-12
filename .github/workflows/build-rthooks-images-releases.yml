@@ -1,0 +1,166 @@
+name: rthooks Image CI Releases
+
+on:
+  push:
+    tags:
+      - rthooks/v*
+    paths-ignore:
+      - 'docs/**'
+
+permissions:
+  # To be able to access the repository with `actions/checkout` and upload release artifacts
+  contents: write
+  # Required to generate OIDC tokens for `sigstore/cosign-installer` authentication
+  id-token: write
+
+jobs:
+  build-and-push:
+    environment: release
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        include:
+          - name: tetragon-rthooks
+            dockerfile: ./Dockerfile.rthooks
+
+    steps:
+      # https://github.com/docker/setup-qemu-action
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@68827325e0b33c7199eb31dd4e31fbe9023e06e3 # v3.0.0
+        with:
+          platforms: arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@d70bba72b1f3fd22344832f00baa16ece964efeb # v3.3.0
+
+      - name: Login to quay.io
+        uses: docker/login-action@0d4c9c5ea7693da7b068278f7b52bda2a190a446 # v3.2.0
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME_RELEASE_USERNAME }}
+          password: ${{ secrets.QUAY_PASSWORD_RELEASE_PASSWORD }}
+
+      - name: Getting image tag
+        id: tag
+        run: |
+          echo "tag=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
+
+      - name: Checkout Source Code
+        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Release Build ${{ matrix.name }}
+        uses: docker/build-push-action@2cdde995de11925a030ce8070c3d77a52ffcf1c0 # v5.3.0
+        id: docker_build_release
+        with:
+          provenance: false
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: ${{ startsWith(steps.tag.outputs.tag, 'v') }}
+          platforms: linux/amd64,linux/arm64
+          target: release
+          tags: |
+            quay.io/${{ github.repository_owner }}/${{ matrix.name }}:${{ steps.tag.outputs.tag }}
+            quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci:${{ github.sha }}
+
+      - name: Install Cosign
+        if: ${{ startsWith(steps.tag.outputs.tag, 'v') }}
+        uses: sigstore/cosign-installer@11086d25041f77fe8fe7b9ea4e48e3b9192b8f19 # v3.1.2
+
+      - name: Sign Container Image
+        if: ${{ startsWith(steps.tag.outputs.tag, 'v') }}
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: |
+          cosign sign -y quay.io/${{ github.repository_owner }}/${{ matrix.name }}@${{ steps.docker_build_release.outputs.digest }}
+          cosign sign -y quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci@${{ steps.docker_build_release.outputs.digest }}
+
+      - name: Install Go
+        uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
+        with:
+          # renovate: datasource=golang-version depName=go
+          go-version: '1.22.5'
+
+      - name: Install Bom
+        if: ${{ startsWith(steps.tag.outputs.tag, 'v') }}
+        shell: bash
+        env:
+          # renovate: datasource=github-releases depName=kubernetes-sigs/bom
+          BOM_VERSION: v0.6.0
+        run: |
+          go install sigs.k8s.io/bom/cmd/bom@${{ env.BOM_VERSION }}
+
+      - name: Generate SBOM
+        if: ${{ startsWith(steps.tag.outputs.tag, 'v') }}
+        shell: bash
+        # To-Do: Format SBOM output to JSON after a new version of cosign is released after v1.13.1. Ref: https://github.com/sigstore/cosign/pull/2479
+        run: |
+          bom generate -o sbom_${{ matrix.name }}_${{ steps.tag.outputs.tag }}.spdx \
+          --dirs= . \
+          --image=quay.io/${{ github.repository_owner }}/${{ matrix.name }}:${{ steps.tag.outputs.tag }}
+
+      - name: Attach SBOM to container image
+        if: ${{ startsWith(steps.tag.outputs.tag, 'v') }}
+        run: |
+          cosign attach sbom --sbom sbom_${{ matrix.name }}_${{ steps.tag.outputs.tag }}.spdx quay.io/${{ github.repository_owner }}/${{ matrix.name }}@${{ steps.docker_build_release.outputs.digest }}
+          cosign attach sbom --sbom sbom_${{ matrix.name }}_${{ steps.tag.outputs.tag }}.spdx quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci@${{ steps.docker_build_release.outputs.digest }}
+
+      - name: Sign SBOM Image
+        if: ${{ startsWith(steps.tag.outputs.tag, 'v') }}
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: |
+          docker_build_release_digest="${{ steps.docker_build_release.outputs.digest }}"
+          image_name="quay.io/${{ github.repository_owner }}/${{ matrix.name }}:${docker_build_release_digest/:/-}.sbom"
+          docker_build_release_sbom_digest="sha256:$(docker buildx imagetools inspect --raw ${image_name} | sha256sum | head -c 64)"
+          cosign sign -y "quay.io/${{ github.repository_owner }}/${{ matrix.name }}@${docker_build_release_sbom_digest}"
+
+          image_name="quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci:${docker_build_release_digest/:/-}.sbom"
+          docker_build_release_sbom_digest="sha256:$(docker buildx imagetools inspect --raw ${image_name} | sha256sum | head -c 64)"
+          cosign sign -y "quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci@${docker_build_release_sbom_digest}"
+
+      - name: Image Release Digest
+        shell: bash
+        run: |
+          mkdir -p image-digest/
+          job_name=${{ matrix.name }}
+          job_name_capital=${job_name^^}
+          job_name_underscored=${job_name_capital//-/_}
+          echo "${job_name_underscored}_DIGEST := \"${{ steps.docker_build_release.outputs.digest }}\"" > image-digest/makefile-digest.txt
+
+          echo "### ${{ matrix.name }}" > image-digest/${{ matrix.name }}.txt
+          echo "" >> image-digest/${{ matrix.name }}.txt
+          echo "\`quay.io/${{ github.repository_owner }}/${{ matrix.name }}:${{ steps.tag.outputs.tag }}@${{ steps.docker_build_release.outputs.digest }}\`" >> image-digest/${{ matrix.name }}.txt
+          echo "" >> image-digest/${{ matrix.name }}.txt
+
+      # Upload artifact digests
+      - name: Upload artifact digests
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        with:
+          name: image-digest ${{ matrix.name }}
+          path: image-digest
+          retention-days: 1
+
+  image-digests:
+    if: ${{ github.repository == 'cilium/tetragon' }}
+    name: Display Digests
+    runs-on: ubuntu-22.04
+    needs: build-and-push
+    steps:
+      - name: Downloading Image Digests
+        shell: bash
+        run: |
+          mkdir -p image-digest/
+
+      - name: Download digests of all images built
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+        with:
+          path: image-digest/
+
+      - name: Image Digests Output
+        shell: bash
+        run: |
+          cd image-digest/
+          find -type f | sort | xargs -d '\n' cat
