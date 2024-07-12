@@ -15,7 +15,7 @@ SUDO ?= sudo
 GO_TEST_TIMEOUT ?= 20m
 E2E_TEST_TIMEOUT ?= 20m
 BUILD_PKG_DIR ?= $(shell pwd)/build/$(TARGET_ARCH)
-VERSION ?= $(shell git describe --tags --always --exclude 'api/*')
+VERSION ?= $(shell git describe --tags --always --exclude '*/*')
 
 # Do a parallel build with multiple jobs, based on the number of CPUs online
 # in this system: 'make -j8' on a 8-CPU system, etc.
