@@ -399,18 +399,6 @@ go-format: ## Run code formatter on Go code.
 .PHONY: format
 format: go-format clang-format ## Convenience alias for clang-format and go-format.
 
-.PHONY: update-copyright
-update-copyright:
-	for dir in $(COPYRIGHT_DIRS); do \
-		contrib/copyright-headers update $$dir; \
-	done
-
-.PHONY: check-copyright
-check-copyright:
-	for dir in $(COPYRIGHT_DIRS); do \
-		contrib/copyright-headers check $$dir; \
-	done
-
 .PHONY: generate-flags
 generate-flags: tetragon ## Generate Tetragon daemon flags for documentation.
 	echo "$$(./tetragon --generate-docs)" > docs/data/tetragon_flags.yaml
