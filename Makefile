@@ -323,6 +323,9 @@ E2E_TESTS ?= ./tests/e2e/tests/...
 ls-e2e-test:
 	@$(GO) list -f '{{if or .TestGoFiles .XTestGoFiles}}{{.ImportPath}}{{end}}' $(E2E_TESTS)
 
+## e2e-test: ## run e2e tests
+## e2e-test E2E_BUILD_IMAGES=0: ## run e2e tests without (re-)building images
+## e2e-test E2E_TESTS=./tests/e2e/tests/skeleton: ## run a specific e2e test
 .PHONY: e2e-test
 ifneq ($(E2E_BUILD_IMAGES), 0)
 e2e-test: image image-operator
