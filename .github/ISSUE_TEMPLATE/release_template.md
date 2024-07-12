@@ -41,7 +41,7 @@ assignees: ''
       git pull origin main
       git tag -a $RELEASE -m "$RELEASE release" -s
       git tag -a api/$RELEASE -m "api/$RELEASE release" -s
-      git push origin $RELEASE
+      git push origin $RELEASE api/$RELEASE
 
 - If you are releasing a major or minor version (`X.Y.0`):
 
