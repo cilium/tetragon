@@ -170,32 +170,32 @@ install: ## Install tetragon agent and tetra as standalone binaries.
 .PHONY: image
 image: ## Build the Tetragon agent container image.
 	$(CONTAINER_ENGINE) build -t "cilium/tetragon:${DOCKER_IMAGE_TAG}" --target release --build-arg TETRAGON_VERSION=$(VERSION) --platform=linux/${TARGET_ARCH} .
-	$(QUIET)@echo "Push like this when ready:"
-	$(QUIET)@echo "${CONTAINER_ENGINE} push cilium/tetragon:$(DOCKER_IMAGE_TAG)"
+	@echo "Push like this when ready:"
+	@echo "${CONTAINER_ENGINE} push cilium/tetragon:$(DOCKER_IMAGE_TAG)"
 
 .PHONY: image-operator
 image-operator: ## Build the Tetragon operator container image.
 	$(CONTAINER_ENGINE) build -f Dockerfile.operator -t "cilium/tetragon-operator:${DOCKER_IMAGE_TAG}" --platform=linux/${TARGET_ARCH} .
-	$(QUIET)@echo "Push like this when ready:"
-	$(QUIET)@echo "${CONTAINER_ENGINE} push cilium/tetragon-operator:$(DOCKER_IMAGE_TAG)"
+	@echo "Push like this when ready:"
+	@echo "${CONTAINER_ENGINE} push cilium/tetragon-operator:$(DOCKER_IMAGE_TAG)"
 
 .PHONY: image-rthooks
 image-rthooks:
 	$(CONTAINER_ENGINE) build -f Dockerfile.rthooks -t "cilium/tetragon-rthooks:${DOCKER_IMAGE_TAG}" --platform=linux/${TARGET_ARCH} .
-	$(QUIET)@echo "Push like this when ready:"
-	$(QUIET)@echo "${CONTAINER_ENGINE} push cilium/tetragon-rthooks:$(DOCKER_IMAGE_TAG)"
+	@echo "Push like this when ready:"
+	@echo "${CONTAINER_ENGINE} push cilium/tetragon-rthooks:$(DOCKER_IMAGE_TAG)"
 
 .PHONY: image-test
 image-test: image-clang
 	$(CONTAINER_ENGINE) build -f Dockerfile.test -t "cilium/tetragon-test:${DOCKER_IMAGE_TAG}" .
-	$(QUIET)@echo "Push like this when ready:"
-	$(QUIET)@echo "${CONTAINER_ENGINE} push cilium/tetragon-test:$(DOCKER_IMAGE_TAG)"
+	@echo "Push like this when ready:"
+	@echo "${CONTAINER_ENGINE} push cilium/tetragon-test:$(DOCKER_IMAGE_TAG)"
 
 .PHONY: image-clang
 image-clang:
 	$(CONTAINER_ENGINE) build -f Dockerfile.clang --build-arg VERSION=1:15.0.7-0ubuntu0.22.04.2 -t "cilium/clang:${DOCKER_IMAGE_TAG}" .
-	$(QUIET)@echo "Push like this when ready:"
-	$(QUIET)@echo "${CONTAINER_ENGINE} push cilium/clang:$(DOCKER_IMAGE_TAG)"
+	@echo "Push like this when ready:"
+	@echo "${CONTAINER_ENGINE} push cilium/clang:$(DOCKER_IMAGE_TAG)"
 
 .PHONY: images
 images: image image-operator ## Convenience alias for image and image-operator.
