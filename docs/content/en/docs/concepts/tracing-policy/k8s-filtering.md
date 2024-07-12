@@ -10,10 +10,10 @@ Tetragon is configured via [TracingPolicies]({{< ref "/docs/concepts/tracing-pol
 speaking, TracingPolicies define _what_ situations Tetragon should react to and _how_. The _what_
 can be, for example, specific system calls with specific argument values. The _how_ defines what
 action the Tetragon agent should perform when the specified situation occurs. The most common action
-is generating an event, but there are others (e.g., returning an error without executing the function,
+is generating an event, but there are others (e.g., returning an error without executing the function 
 or killing the corresponding process).
 
-Here we discuss how to apply tracing policies only on a subset of pods running on the system via
+Here, we discuss how to apply tracing policies only on a subset of pods running on the system via
 the followings mechanisms:
 - namespaced policies
 - pod-label filters
@@ -59,7 +59,7 @@ First, let us start minikube, build and load images, and install Tetragon and OC
 
 ```shell
 minikube start --container-runtime=containerd
-./contrib/rthooks/minikube-containerd-install-hook.sh
+./contrib/tetragon-rthooks/minikube-containerd-install-hook.sh
 make image image-operator
 minikube image load --daemon=true cilium/tetragon:latest cilium/tetragon-operator:latest
 minikube ssh -- sudo mount bpffs -t bpf /sys/fs/bpf
@@ -70,9 +70,14 @@ helm install --namespace kube-system \
 	tetragon ./install/kubernetes/tetragon
 ```
 
-Once the tetragon pod is up and running, we can get its name.
+Once the tetragon pod is up and running, we can get its name and store it in a variable for convenience.
 ```shell
 tetragon_pod=$(kubectl -n kube-system get pods -l app.kubernetes.io/name=tetragon -o custom-columns=NAME:.metadata.name --no-headers)
+```
+
+Once the tetragon operator pod is up and running, we can also get its name and store it in a variable for convenience.
+```shell
+tetragon_operator=$(kubectl -n kube-system get pods -l app.kubernetes.io/name=tetragon-operator -o custom-columns=NAME:.metadata.name --no-headers)
 ```
 
 Next, we check the tetragon-operator logs and tetragon agent logs to ensure
@@ -82,7 +87,7 @@ First, we check if the operator installed the TracingPolicyNamespaced CRD.
 
 
 ```shell
-kubectl -n kube-system logs -c tetragon-operator $tetragon_pod
+kubectl -n kube-system logs -c tetragon-operator $tetragon_operator
 ```
 
 The expected output is:
@@ -94,7 +99,7 @@ level=info msg="CRD (CustomResourceDefinition) is installed and up-to-date" name
 level=info msg="Initialization complete" subsys=tetragon-operator
 ```
 
-Next, we check that policyfilter (the low level mechanism that implements the desired functionality) is indeed enabled.
+Next, we check that policyfilter (the low-level mechanism that implements the desired functionality) is indeed enabled.
 
 ```shell
 kubectl -n kube-system logs -c tetragon $tetragon_pod
@@ -123,8 +128,8 @@ If you don't see a command prompt, try pressing enter.
 >>>
 ```
 
-There is no policy installed so attempting to do the lseek operation will just
-return an error. So using the python shell we can execute an lseek and see the
+There is no policy installed, so attempting to do the lseek operation will just
+return an error. Using the python shell, we can execute an lseek and see the
 returned error.
 ```
 >>> import os
@@ -160,7 +165,7 @@ spec:
 EOF
 ```
 
-The above tracing policy will kill the process that performs an lseek system call with a file
+The above tracing policy will kill the process that performs a lseek system call with a file
 descriptor of `-1`. Note that we use a `SigKill` action only for illustration purposes because it's
 easier to observe its effects.
 
@@ -272,7 +277,7 @@ cat << EOF | kubectl apply -f -
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
-  name: "lseek-podfilter"
+  name: "lseek-containerfilter"
 spec:
   containerSelector:
     matchExpressions:
