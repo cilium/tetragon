@@ -453,6 +453,18 @@ lint-metrics-md: metrics-docs ## Check if metrics documentation is up to date.
 .PHONY: help
 help: ## Display this help, based on https://www.thapaliya.com/en/writings/well-documented-makefiles/
 	$(call print_help_from_comments)
+	@printf "\n\033[1m%s\033[0m\n" Options
+	$(call print_help_option,TARGET_ARCH,target architecture to build for (e.g. amd64 or arm64))
+	$(call print_help_option,BPF_TARGET_ARCH,target architecture for BPF progs (set by TARGET_ARCH))
+	$(call print_help_option,GO_ARCH,target architecture for Go progs (set by TARGET_ARCH))
+	$(call print_help_option,DEBUG,enable NOOPT and NOSTRIP)
+	$(call print_help_option,NOOPT,disable optimization in Go build (set by DEBUG))
+	$(call print_help_option,NOSTRIP,disable binary stripping in Go build (set by DEBUG))
+	$(call print_help_option,LOCAL_CLANG,use the local clang install for BPF compilation)
+	$(call print_help_option,JOBS,number of jobs to run for BPF compilation (default to nproc))
+	$(call print_help_option,EXTRA_GO_BUILD_LDFLAGS,extra flags to pass to the Go linker)
+	$(call print_help_option,EXTRA_GO_BUILD_FLAGS,extra flags to pass to the Go builder)
+	$(call print_help_option,EXTRA_TESTFLAGS,extra flags to pass to the test binary)
 
 .PHONY: docs
 docs: ## Preview documentation website.
