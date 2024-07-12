@@ -16,6 +16,7 @@ import (
 	"github.com/cilium/tetragon/pkg/bpf"
 	cachedbtf "github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
 	"golang.org/x/sys/unix"
 )
