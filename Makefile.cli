@@ -9,6 +9,8 @@ TARGET=tetra
 RELEASE_UID ?= $(shell id -u)
 RELEASE_GID ?= $(shell id -g)
 
+##@ CLI
+
 .PHONY: cli-release
 cli-release: ## Compile tetra CLI release binaries.
 	docker run \

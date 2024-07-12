@@ -96,14 +96,26 @@ all: tetragon-bpf tetragon tetra generate-flags test-compile tester-progs protoc
 
 -include Makefile.cli
 
-.PHONY: help
-help:  ## Display this help, based on https://www.thapaliya.com/en/writings/well-documented-makefiles/
-	$(call print_help_from_comments)
-
-.PHONY: compile-commands
-compile-commands: ## Generate a compile_commands.json with bear for bpf programs.
+.PHONY: clean
+clean: cli-clean tarball-clean
 	$(MAKE) -C ./bpf clean
-	bear -- $(MAKE) -C ./bpf
+	rm -f go-tests/*.test ./ksyms ./tetragon ./tetragon-operator ./tetra ./alignchecker
+	rm -f contrib/sigkill-tester/sigkill-tester contrib/namespace-tester/test_ns contrib/capabilities-tester/test_caps
+	$(MAKE) -C $(TESTER_PROGS_DIR) clean
+
+##@ Build and install
+
+.PHONY: tetragon
+tetragon: ## Compile the Tetragon agent.
+	$(GO_BUILD) ./cmd/tetragon/
+
+.PHONY: tetragon-operator
+tetragon-operator: ## Compile the Tetragon operator.
+	$(GO_BUILD) -o $@ ./operator
+
+.PHONY: tetra
+tetra: ## Compile the Tetragon gRPC client.
+	$(GO_BUILD) ./cmd/tetra/
 
 .PHONY: tetragon-bpf
 ifeq (1,$(LOCAL_CLANG))
@@ -122,33 +134,9 @@ tetragon-bpf-container:
 	$(CONTAINER_ENGINE) run -v $(CURDIR):/tetragon:Z -u $$(id -u) -e BPF_TARGET_ARCH=$(BPF_TARGET_ARCH) --name tetragon-clang $(CLANG_IMAGE) make -C /tetragon/bpf -j$(JOBS) $(__BPF_DEBUG_FLAGS)
 	$(CONTAINER_ENGINE) rm tetragon-clang
 
-.PHONY: bpf-test
-bpf-test:
-	$(MAKE) -C ./bpf run-test
-
-.PHONY: verify
-verify: tetragon-bpf
-	sudo contrib/verify/verify.sh bpf/objs
-
-.PHONY: generate-flags
-generate-flags: tetragon ## Generate Tetragon daemon flags for documentation.
-	echo "$$(./tetragon --generate-docs)" > docs/data/tetragon_flags.yaml
-
-.PHONY: tetragon
-tetragon: ## Compile the Tetragon agent.
-	$(GO_BUILD) ./cmd/tetragon/
-
-.PHONY: tetra
-tetra: ## Compile the Tetragon gRPC client.
-	$(GO_BUILD) ./cmd/tetra/
-
 .PHONY: tetragon-bench
 tetragon-bench:
 	$(GO_BUILD) ./cmd/tetragon-bench/
-
-.PHONY: tetragon-operator
-tetragon-operator: ## Compile the Tetragon operator.
-	$(GO_BUILD) -o $@ ./operator
 
 .PHONY: tetragon-oci-hook
 tetragon-oci-hook:
@@ -162,13 +150,14 @@ tetragon-nri-hook:
 tetragon-oci-hook-setup:
 	$(GO_BUILD_HOOK) -o $@ ./cmd/setup
 
-.PHONY: alignchecker
-alignchecker:
-	$(GO) test -c ./pkg/alignchecker -o alignchecker
-
 .PHONY: ksyms
 ksyms:
 	$(GO) build ./cmd/ksyms/
+
+.PHONY: compile-commands
+compile-commands: ## Generate a compile_commands.json with bear for bpf programs.
+	$(MAKE) -C ./bpf clean
+	bear -- $(MAKE) -C ./
 
 .PHONY: install
 install: ## Install tetragon agent and tetra as standalone binaries.
@@ -176,88 +165,7 @@ install: ## Install tetragon agent and tetra as standalone binaries.
 	$(INSTALL) -m 0755 -d $(DESTDIR)$(BINDIR)
 	$(INSTALL) -m 0755 ./tetragon $(DESTDIR)$(BINDIR)
 
-.PHONY: vendor
-vendor: ## Tidy and vendor Go modules.
-	$(MAKE) -C ./api vendor
-	$(MAKE) -C ./pkg/k8s vendor
-	$(MAKE) -C ./contrib/tetragon-rthooks vendor
-	$(GO) mod tidy
-	$(GO) mod vendor
-	$(GO) mod verify
-
-.PHONY: clean
-clean: cli-clean tarball-clean
-	$(MAKE) -C ./bpf clean
-	rm -f go-tests/*.test ./ksyms ./tetragon ./tetragon-operator ./tetra ./alignchecker
-	rm -f contrib/sigkill-tester/sigkill-tester contrib/namespace-tester/test_ns contrib/capabilities-tester/test_caps
-	$(MAKE) -C $(TESTER_PROGS_DIR) clean
-
-.PHONY: test
-test: tester-progs tetragon-bpf
-	$(GO) test -exec "$(SUDO)" -p 1 -parallel 1 $(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -timeout $(GO_TEST_TIMEOUT) -failfast -cover ./pkg/... ./cmd/... ./operator/... ${EXTRA_TESTFLAGS}
-
-.PHONY: bench
-bench:
-	$(GO) test -exec "$(SUDO)" -p 1 -parallel 1 -run ^$$ $(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -timeout $(GO_TEST_TIMEOUT) -failfast -cover ./pkg/... ./cmd/... ./operator/... -bench=. ${EXTRA_TESTFLAGS}
-
-# Agent image to use for end-to-end tests
-E2E_AGENT ?= "cilium/tetragon:$(DOCKER_IMAGE_TAG)"
-# Operator image to use for end-to-end tests
-E2E_OPERATOR ?= "cilium/tetragon-operator:$(DOCKER_IMAGE_TAG)"
-# BTF file to use in the E2E test. Set to nothing to use system BTF.
-E2E_BTF ?= ""
-# Actual flags to use for BTF file in e2e test. Use E2E_BTF instead.
-ifneq ($(E2E_BTF), "")
-	E2E_BTF_FLAGS ?= "-tetragon.btf=$(shell readlink -f $(E2E_BTF))"
-else
-	E2E_BTF_FLAGS = ""
-endif
-# Build image and operator images locally before running test. Set to 0 to disable.
-E2E_BUILD_IMAGES ?= 1
-E2E_TESTS ?= ./tests/e2e/tests/...
-
-# List e2e-test packages that can run in parallel
-.PHONY: ls-e2e-test
-ls-e2e-test:
-	@$(GO) list -f '{{if or .TestGoFiles .XTestGoFiles}}{{.ImportPath}}{{end}}' $(E2E_TESTS)
-
-.PHONY: e2e-test
-ifneq ($(E2E_BUILD_IMAGES), 0)
-e2e-test: image image-operator
-else
-e2e-test:
-endif
-	$(GO) list $(E2E_TESTS) | xargs -Ipkg $(GO) test $(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -timeout $(E2E_TEST_TIMEOUT) -failfast -cover pkg ${EXTRA_TESTFLAGS} -fail-fast -tetragon.helm.set tetragon.image.override="$(E2E_AGENT)" -tetragon.helm.set tetragonOperator.image.override="$(E2E_OPERATOR)" -tetragon.helm.url="" -tetragon.helm.chart="$(realpath ./install/kubernetes/tetragon)" $(E2E_BTF_FLAGS)
-
-TEST_COMPILE ?= ./...
-.PHONY: test-compile
-test-compile: ## Compile unit tests.
-	mkdir -p go-tests
-	for pkg in $$($(GO) list "$(TEST_COMPILE)"); do \
-		localpkg=$$(echo $$pkg | sed -e 's:github.com/cilium/tetragon/::'); \
-		localtestfile=$$(echo $$localpkg | sed -e 's:/:.:g'); \
-		numtests=$$(ls -l ./$$localpkg/*_test.go 2> /dev/null | wc -l); \
-		if [ $$numtests -le 0 ]; then \
-			continue; \
-		fi; \
-		echo -c ./$$localpkg -o go-tests/$$localtestfile; \
-	done | GOMAXPROCS=1 xargs -P $(JOBS) -L 1 $(GO) test -gcflags=$(GO_BUILD_GCFLAGS)
-
-.PHONY: check-copyright
-check-copyright:
-	for dir in $(COPYRIGHT_DIRS); do \
-		contrib/copyright-headers check $$dir; \
-	done
-
-.PHONY: update-copyright
-update-copyright:
-	for dir in $(COPYRIGHT_DIRS); do \
-		contrib/copyright-headers update $$dir; \
-	done
-
-.PHONY: lint
-lint:
-	golint -set_exit_status $$(go list ./...)
+##@ Container images
 
 .PHONY: image
 image: ## Build the Tetragon agent container image.
@@ -292,6 +200,8 @@ image-clang:
 .PHONY: images
 images: image image-operator
 
+##@ Packages
+
 .PHONY: tarball
 # Share same build environment as docker image
 # Then it uses docker save to dump the layer and use it to
@@ -323,31 +233,11 @@ tarball-release: tarball ## Build Tetragon release tarball.
 tarball-clean:
 	rm -fr $(BUILD_PKG_DIR)
 
-.PHONY: fetch-testdata
-fetch-testdata:
-	wget -nc -P testdata/btf 'https://github.com/cilium/tetragon-testdata/raw/main/btf/vmlinux-5.4.104+'
+##@ Test
 
-.PHONY: generate crds
-generate: | crds
-crds: ## Generate kubebuilder files.
-	# Need to call vendor twice here, once before and once after generate, the reason
-	# being we need to grab changes first plus pull in whatever gets generated here.
-	$(MAKE) vendor
-	$(MAKE) -C pkg/k8s/
-	$(MAKE) vendor
-
-.PHONY: codegen protogen
-codegen: | protogen
-protogen: protoc-gen-go-tetragon ## Generate code based on .proto files.
-	# Need to call vendor twice here, once before and once after codegen the reason
-	# being we need to grab changes first plus pull in whatever gets generated here.
-	$(MAKE) vendor
-	$(MAKE) -C api
-	$(MAKE) vendor
-
-.PHONY: protoc-gen-go-tetragon
-protoc-gen-go-tetragon:
-	$(GO_BUILD) -o bin/$@ ./tools/protoc-gen-go-tetragon/
+.PHONY: lint
+lint:
+	golint -set_exit_status $$(go list ./...)
 
 # renovate: datasource=docker
 GOLANGCILINT_IMAGE=docker.io/golangci/golangci-lint:v1.59.1@sha256:b5f8712114561f1e2fbe74d04ed07ddfd992768705033a6251f3c7b848eac38e
@@ -370,6 +260,129 @@ copy-golangci-lint:
 	docker cp ${xid}:/usr/bin/golangci-lint bin/golangci-lint
 	docker rm ${xid}
 
+.PHONY: test
+test: tester-progs tetragon-bpf
+	$(GO) test -exec "$(SUDO)" -p 1 -parallel 1 $(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -timeout $(GO_TEST_TIMEOUT) -failfast -cover ./pkg/... ./cmd/... ./operator/... ${EXTRA_TESTFLAGS}
+
+.PHONY: tester-progs
+tester-progs: ## Compile helper programs for unit testing.
+	$(MAKE) -C $(TESTER_PROGS_DIR)
+
+.PHONY: bpf-test
+bpf-test:
+	$(MAKE) -C ./bpf run-test
+
+.PHONY: verify
+verify: tetragon-bpf
+	sudo contrib/verify/verify.sh bpf/objs
+
+.PHONY: alignchecker
+alignchecker:
+	$(GO) test -c ./pkg/alignchecker -o alignchecker
+
+.PHONY: bench
+bench:
+	$(GO) test -exec "$(SUDO)" -p 1 -parallel 1 -run ^$$ $(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -timeout $(GO_TEST_TIMEOUT) -failfast -cover ./pkg/... ./cmd/... ./operator/... -bench=. ${EXTRA_TESTFLAGS}
+
+TEST_COMPILE ?= ./...
+.PHONY: test-compile
+test-compile: ## Compile unit tests.
+	mkdir -p go-tests
+	for pkg in $$($(GO) list "$(TEST_COMPILE)"); do \
+		localpkg=$$(echo $$pkg | sed -e 's:github.com/cilium/tetragon/::'); \
+		localtestfile=$$(echo $$localpkg | sed -e 's:/:.:g'); \
+		numtests=$$(ls -l ./$$localpkg/*_test.go 2> /dev/null | wc -l); \
+		if [ $$numtests -le 0 ]; then \
+			continue; \
+		fi; \
+		echo -c ./$$localpkg -o go-tests/$$localtestfile; \
+	done | GOMAXPROCS=1 xargs -P $(JOBS) -L 1 $(GO) test -gcflags=$(GO_BUILD_GCFLAGS)
+
+.PHONY: fetch-testdata
+fetch-testdata:
+	wget -nc -P testdata/btf 'https://github.com/cilium/tetragon-testdata/raw/main/btf/vmlinux-5.4.104+'
+
+# Agent image to use for end-to-end tests
+E2E_AGENT ?= "cilium/tetragon:$(DOCKER_IMAGE_TAG)"
+# Operator image to use for end-to-end tests
+E2E_OPERATOR ?= "cilium/tetragon-operator:$(DOCKER_IMAGE_TAG)"
+# BTF file to use in the E2E test. Set to nothing to use system BTF.
+E2E_BTF ?= ""
+# Actual flags to use for BTF file in e2e test. Use E2E_BTF instead.
+ifneq ($(E2E_BTF), "")
+	E2E_BTF_FLAGS ?= "-tetragon.btf=$(shell readlink -f $(E2E_BTF))"
+else
+	E2E_BTF_FLAGS = ""
+endif
+# Build image and operator images locally before running test. Set to 0 to disable.
+E2E_BUILD_IMAGES ?= 1
+E2E_TESTS ?= ./tests/e2e/tests/...
+
+# List e2e-test packages that can run in parallel
+.PHONY: ls-e2e-test
+ls-e2e-test:
+	@$(GO) list -f '{{if or .TestGoFiles .XTestGoFiles}}{{.ImportPath}}{{end}}' $(E2E_TESTS)
+
+.PHONY: e2e-test
+ifneq ($(E2E_BUILD_IMAGES), 0)
+e2e-test: image image-operator
+else
+e2e-test:
+endif
+	$(GO) list $(E2E_TESTS) | xargs -Ipkg $(GO) test $(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -timeout $(E2E_TEST_TIMEOUT) -failfast -cover pkg ${EXTRA_TESTFLAGS} -fail-fast -tetragon.helm.set tetragon.image.override="$(E2E_AGENT)" -tetragon.helm.set tetragonOperator.image.override="$(E2E_OPERATOR)" -tetragon.helm.url="" -tetragon.helm.chart="$(realpath ./install/kubernetes/tetragon)" $(E2E_BTF_FLAGS)
+
+##@ Development
+
+# generate cscope for bpf files
+.PHONY: cscope
+cscope:
+	find bpf -name "*.[chxsS]" -print > cscope.files
+	cscope -b -q -k
+
+.PHONY: kind
+kind:
+	./contrib/localdev/bootstrap-kind-cluster.sh
+
+.PHONY: kind-install-tetragon
+kind-install-tetragon:
+	./contrib/localdev/install-tetragon.sh --image cilium/tetragon:latest --operator cilium/tetragon-operator:latest
+
+.PHONY: kind-setup
+kind-setup: images kind kind-install-tetragon
+
+##@ Chores and generated files
+
+.PHONY: codegen protogen
+codegen: | protogen
+protogen: protoc-gen-go-tetragon ## Generate code based on .proto files.
+	# Need to call vendor twice here, once before and once after codegen the reason
+	# being we need to grab changes first plus pull in whatever gets generated here.
+	$(MAKE) vendor
+	$(MAKE) -C api
+	$(MAKE) vendor
+
+.PHONY: protoc-gen-go-tetragon
+protoc-gen-go-tetragon:
+	$(GO_BUILD) -o bin/$@ ./tools/protoc-gen-go-tetragon/
+
+.PHONY: generate crds
+generate: | crds
+crds: ## Generate kubebuilder files.
+	# Need to call vendor twice here, once before and once after generate, the reason
+	# being we need to grab changes first plus pull in whatever gets generated here.
+	$(MAKE) vendor
+	$(MAKE) -C pkg/k8s/
+	$(MAKE) vendor
+
+.PHONY: vendor
+vendor: ## Tidy and vendor Go modules.
+	$(MAKE) -C ./api vendor
+	$(MAKE) -C ./pkg/k8s vendor
+	$(MAKE) -C ./contrib/tetragon-rthooks vendor
+	$(GO) mod tidy
+	$(GO) mod vendor
+	$(GO) mod verify
+
 .PHONY: clang-format
 ifeq (1,$(LOCAL_CLANG_FORMAT))
 clang-format: ## Run code formatter on BPF code.
@@ -385,37 +398,24 @@ endif
 go-format: ## Run code formatter on Go code.
 	find . -name '*.go' -not -path '**/vendor/*' -not -path './pkg/k8s/vendor/*' -not -path './api/v1/tetragon/*' | xargs goimports -w
 
-.PHONY: format ## Convenience alias for clang-format and go-format.
-format: go-format clang-format
+.PHONY: format
+format: go-format clang-format ## Convenience alias for clang-format and go-format.
 
-# generate cscope for bpf files
-.PHONY: cscope
-cscope:
-	find bpf -name "*.[chxsS]" -print > cscope.files
-	cscope -b -q -k
+.PHONY: update-copyright
+update-copyright:
+	for dir in $(COPYRIGHT_DIRS); do \
+		contrib/copyright-headers update $$dir; \
+	done
 
-.PHONY: tester-progs
-tester-progs: ## Compile helper programs for unit testing.
-	$(MAKE) -C $(TESTER_PROGS_DIR)
+.PHONY: check-copyright
+check-copyright:
+	for dir in $(COPYRIGHT_DIRS); do \
+		contrib/copyright-headers check $$dir; \
+	done
 
-.PHONY: version
-version:
-	@echo $(VERSION)
-
-.PHONY: docs
-docs: ## Preview documentation website.
-	$(MAKE) -C docs
-
-.PHONY: kind
-kind:
-	./contrib/localdev/bootstrap-kind-cluster.sh
-
-.PHONY: kind-install-tetragon
-kind-install-tetragon:
-	./contrib/localdev/install-tetragon.sh --image cilium/tetragon:latest --operator cilium/tetragon-operator:latest
-
-.PHONY: kind-setup
-kind-setup: images kind kind-install-tetragon
+.PHONY: generate-flags
+generate-flags: tetragon ## Generate Tetragon daemon flags for documentation.
+	echo "$$(./tetragon --generate-docs)" > docs/data/tetragon_flags.yaml
 
 METRICS_DOCS_PATH := docs/content/en/docs/reference/metrics.md
 
@@ -444,3 +444,17 @@ lint-metrics-md: metrics-docs ## Check if metrics documentation is up to date.
 		echo "metrics doc out of sync; please run 'make metrics-docs'" > /dev/stderr; \
 		false; \
 	fi
+
+##@ Documentation
+
+.PHONY: help
+help: ## Display this help, based on https://www.thapaliya.com/en/writings/well-documented-makefiles/
+	$(call print_help_from_comments)
+
+.PHONY: docs
+docs: ## Preview documentation website.
+	$(MAKE) -C docs
+
+.PHONY: version
+version:
+	@echo $(VERSION)
