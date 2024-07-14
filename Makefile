@@ -362,6 +362,10 @@ endif
 .PHONY: kind-setup
 kind-setup: kind kind-install-tetragon ## Create a kind cluster and install local version of Tetragon.
 
+.PHONY: kind-down
+kind-down: ## Delete a kind cluster for Tetragon development.
+	./contrib/kind/delete-kind-cluster.sh
+
 ##@ Chores and generated files
 
 .PHONY: codegen protogen
