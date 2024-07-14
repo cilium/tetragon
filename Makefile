@@ -342,16 +342,22 @@ kind: ## Create a kind cluster for Tetragon development.
 	./contrib/kind/bootstrap-kind-cluster.sh
 
 KIND_BUILD_IMAGES ?= 1
+VALUES ?= 
 
 ## kind-install-tetragon: ## Install Tetragon in a kind cluster.
 ## kind-install-tetragon KIND_BUILD_IMAGES=0: ## Install Tetragon in a kind cluster without (re-)building images.
+## kind-install-tetragon VALUES=values.yaml: ## Install Tetragon in a kind cluster using additional Helm values.
 .PHONY: kind-install-tetragon
 ifneq ($(KIND_BUILD_IMAGES), 0)
 kind-install-tetragon: images
 else
 kind-install-tetragon:
 endif
+ifneq ($(VALUES),)
+	./contrib/kind/install-tetragon.sh -v $(VALUES)
+else
 	./contrib/kind/install-tetragon.sh
+endif
 
 .PHONY: kind-setup
 kind-setup: kind kind-install-tetragon ## Create a kind cluster and install local version of Tetragon.
