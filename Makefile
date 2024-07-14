@@ -341,12 +341,20 @@ cscope: ## Generate cscope for bpf files.
 kind: ## Create a kind cluster for Tetragon development.
 	./contrib/kind/bootstrap-kind-cluster.sh
 
+KIND_BUILD_IMAGES ?= 1
+
+## kind-install-tetragon: ## Install Tetragon in a kind cluster.
+## kind-install-tetragon KIND_BUILD_IMAGES=0: ## Install Tetragon in a kind cluster without (re-)building images.
 .PHONY: kind-install-tetragon
-kind-install-tetragon: ## Install local version of Tetragon in the kind cluster.
+ifneq ($(KIND_BUILD_IMAGES), 0)
+kind-install-tetragon: images
+else
+kind-install-tetragon:
+endif
 	./contrib/kind/install-tetragon.sh
 
 .PHONY: kind-setup
-kind-setup: images kind kind-install-tetragon ## Create a kind cluster and install local version of Tetragon.
+kind-setup: kind kind-install-tetragon ## Create a kind cluster and install local version of Tetragon.
 
 ##@ Chores and generated files
 
