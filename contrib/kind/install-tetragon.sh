@@ -9,7 +9,7 @@ set -eu
 
 PROJECT_ROOT="$(git rev-parse --show-toplevel)"
 cd "$PROJECT_ROOT"
-source contrib/localdev/conf
+source contrib/kind/conf
 
 if ! command -v helm &>/dev/null; then
     error "helm is not in \$PATH! Bailing out!"
