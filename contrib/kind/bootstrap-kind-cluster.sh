@@ -9,7 +9,7 @@ set -eu
 
 PROJECT_ROOT="$(git rev-parse --show-toplevel)"
 cd "$PROJECT_ROOT"
-source contrib/localdev/conf
+source contrib/kind/conf
 
 if ! command -v kind &>/dev/null; then
     error "kind is not in \$PATH! Bailing out!"
@@ -40,7 +40,7 @@ done
 bootstrap_cluster() {
     if ! kind get clusters | grep "$CLUSTER_NAME" &>/dev/null; then
         echo "Creating a new cluster \"$CLUSTER_NAME\"..." 1>&2
-        kind create cluster --name "$CLUSTER_NAME" --config ./contrib/localdev/kind-config.yaml --wait=2m
+        kind create cluster --name "$CLUSTER_NAME" --config ./contrib/kind/kind-config.yaml --wait=2m
     else
         if [ "$FORCE" != 1 ]; then
             echo "Cluster already exists... Exiting... (Re-run with -f to force.)" 1>&2
@@ -48,7 +48,7 @@ bootstrap_cluster() {
         else
             echo "Recreating cluster..." 1>&2
             kind delete cluster --name "$CLUSTER_NAME"
-            kind create cluster --name "$CLUSTER_NAME" --config ./contrib/localdev/kind-config.yaml --wait=5m
+            kind create cluster --name "$CLUSTER_NAME" --config ./contrib/kind/kind-config.yaml --wait=5m
         fi
     fi
 

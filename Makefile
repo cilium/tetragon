@@ -339,11 +339,11 @@ cscope: ## Generate cscope for bpf files.
 
 .PHONY: kind
 kind: ## Create a kind cluster for Tetragon development.
-	./contrib/localdev/bootstrap-kind-cluster.sh
+	./contrib/kind/bootstrap-kind-cluster.sh
 
 .PHONY: kind-install-tetragon
 kind-install-tetragon: ## Install local version of Tetragon in the kind cluster.
-	./contrib/localdev/install-tetragon.sh --image cilium/tetragon:latest --operator cilium/tetragon-operator:latest
+	./contrib/kind/install-tetragon.sh --image cilium/tetragon:latest --operator cilium/tetragon-operator:latest
 
 .PHONY: kind-setup
 kind-setup: images kind kind-install-tetragon ## Create a kind cluster and install local version of Tetragon.
