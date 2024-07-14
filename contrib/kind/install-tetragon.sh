@@ -26,7 +26,7 @@ usage() {
     echo "    -i,--image     <IMAGE:TAG> override image for agent" 1>&2
     echo "    -o, --operator <IMAGE:TAG> override image for operator" 1>&2
     echo "    -v, --values   <PATH>      additional values file for helm install" 1>&2
-    echo "    -n,--namespace <NAME>      override namespace (default kube-system)" 1>&2
+    echo "    -n,--namespace <NAME>      override namespace (default tetragon)" 1>&2
     echo "       --cluster               override cluster name" 1>&2
 }
 
@@ -34,7 +34,7 @@ FORCE=0
 IMAGE=""
 OPERATOR=""
 VALUES=""
-NAMESPACE="kube-system"
+NAMESPACE="tetragon"
 
 while [ $# -ge 1 ]; do
 	if [ "$1" == "--force" ] || [ "$1" == "-f" ]; then

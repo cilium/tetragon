@@ -112,7 +112,7 @@ make kind-setup
 
 Verify that Tetragon is installed by running:
 ```shell
-kubectl get pods -n kube-system
+kubectl get pods -n tetragon
 ```
 
 ## Local Development in Vagrant Box
