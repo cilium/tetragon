@@ -26,6 +26,7 @@ usage() {
     echo "    -i,--image     <IMAGE:TAG> override image for agent" 1>&2
     echo "    -o, --operator <IMAGE:TAG> override image for operator" 1>&2
     echo "    -v, --values   <PATH>      additional values file for helm install" 1>&2
+    echo "    -n,--namespace <NAME>      override namespace (default kube-system)" 1>&2
     echo "       --cluster               override cluster name" 1>&2
 }
 
@@ -33,6 +34,7 @@ FORCE=0
 IMAGE=""
 OPERATOR=""
 VALUES=""
+NAMESPACE="kube-system"
 
 while [ $# -ge 1 ]; do
 	if [ "$1" == "--force" ] || [ "$1" == "-f" ]; then
@@ -46,6 +48,9 @@ while [ $# -ge 1 ]; do
 		shift 2
     elif [ "$1" == "--values" ] || [ "$1" == "-v" ]; then
         VALUES=$2
+		shift 2
+    elif [ "$1" == "--namespace" ] || [ "$1" == "-n" ]; then
+        NAMESPACE=$2
 		shift 2
     elif [ "$1" == "--cluster" ]; then
         CLUSTER_NAME="$2"
@@ -68,11 +73,14 @@ set -e
 
 # Uninstall if desired
 if [ "$FORCE" == 1 ]; then
-    helm uninstall -n kube-system tetragon || true
+    helm uninstall -n "$NAMESPACE" tetragon || true
 fi
 
+# Create namespace if needed
+kubectl create namespace "$NAMESPACE" &>/dev/null || true
+
 # Set helm options
-declare -a helm_opts=("--namespace" "kube-system")
+declare -a helm_opts=("--namespace" "$NAMESPACE")
 if [ -n "$IMAGE" ]; then
     helm_opts+=("--set" "tetragon.image.override=$IMAGE")
     if [ "$IS_KIND" == 1 ]; then
@@ -99,4 +107,4 @@ echo "Installing Tetragon in cluster..." 1>&2
 helm upgrade --install "${helm_opts[@]}"
 
 echo "Waiting for Tetragon deployment..." 1>&2
-kubectl rollout status -n kube-system ds/tetragon -w --timeout 5m
+kubectl rollout status -n "$NAMESPACE" ds/tetragon -w --timeout 5m
