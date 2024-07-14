@@ -1,0 +1,7 @@
+tetragon:
+  image:
+    override: cilium/tetragon:latest
+  hostProcPath: /procHost # configured in kind-config.yaml
+tetragonOperator:
+  image:
+    override: cilium/tetragon-operator:latest

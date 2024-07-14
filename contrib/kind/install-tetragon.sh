@@ -23,16 +23,14 @@ usage() {
 	echo "usage: install-tetragon.sh [OPTIONS]" 1>&2
 	echo "OPTIONS:" 1>&2
     echo "    -f,--force                 force a helm uninstall before installing" 1>&2
-    echo "    -i,--image     <IMAGE:TAG> override image for agent" 1>&2
-    echo "    -o, --operator <IMAGE:TAG> override image for operator" 1>&2
-    echo "    -v, --values   <PATH>      additional values file for helm install" 1>&2
+    echo "    -v,--values    <PATH>      additional values file for helm install" 1>&2
     echo "    -n,--namespace <NAME>      override namespace (default tetragon)" 1>&2
     echo "       --cluster               override cluster name" 1>&2
 }
 
+BASE_VALUES="${TETRAGON_KIND_BASE_VALUES:-contrib/kind/values.yaml}"
+
 FORCE=0
-IMAGE="cilium/tetragon:latest"
-OPERATOR="cilium/tetragon-operator:latest"
 VALUES=""
 NAMESPACE="tetragon"
 
@@ -40,12 +38,6 @@ while [ $# -ge 1 ]; do
 	if [ "$1" == "--force" ] || [ "$1" == "-f" ]; then
         FORCE=1
 		shift 1
-    elif [ "$1" == "--image" ] || [ "$1" == "-i" ]; then
-        IMAGE=$2
-		shift 2
-    elif [ "$1" == "--operator" ] || [ "$1" == "-o" ]; then
-        OPERATOR=$2
-		shift 2
     elif [ "$1" == "--values" ] || [ "$1" == "-v" ]; then
         VALUES=$2
 		shift 2
@@ -79,29 +71,20 @@ fi
 # Create namespace if needed
 kubectl create namespace "$NAMESPACE" &>/dev/null || true
 
+# Load images into kind
+if [ "$IS_KIND" == 1 ]; then
+    image=$(yq '.tetragon.image.override' "$BASE_VALUES")
+    image_operator=$(yq '.tetragonOperator.image.override' "$BASE_VALUES")
+    kind load docker-image "$image" --name "$CLUSTER_NAME"
+    kind load docker-image "$image_operator" --name "$CLUSTER_NAME"
+fi
+
 # Set helm options
-declare -a helm_opts=("--namespace" "$NAMESPACE")
-if [ -n "$IMAGE" ]; then
-    helm_opts+=("--set" "tetragon.image.override=$IMAGE")
-    if [ "$IS_KIND" == 1 ]; then
-        kind load docker-image "$IMAGE" --name "$CLUSTER_NAME"
-    fi
-fi
-if [ -n "$OPERATOR" ]; then
-    helm_opts+=("--set" "tetragonOperator.image.override=$OPERATOR")
-    if [ "$IS_KIND" == 1 ]; then
-        kind load docker-image "$OPERATOR" --name "$CLUSTER_NAME"
-    fi
-fi
+declare -a helm_opts=("--namespace" "$NAMESPACE" "--values" "$BASE_VALUES")
 if [ -n "$VALUES" ]; then
     helm_opts+=("--values" "$VALUES")
 fi
 helm_opts+=("tetragon" "./install/kubernetes/tetragon")
-
-if [ "$IS_KIND" == 1 ]; then
-	# NB: configured in kind-config.yaml
-	helm_opts+=("--set" "tetragon.hostProcPath=/procHost")
-fi
 
 echo "Installing Tetragon in cluster..." 1>&2
 helm upgrade --install "${helm_opts[@]}"
