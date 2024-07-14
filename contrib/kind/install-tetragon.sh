@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/usr/bin/env bash
 
 error() {
     echo "$@" 1>&2
@@ -53,16 +53,6 @@ while [ $# -ge 1 ]; do
 	fi
 done
 
-# Detect if we are running in kind
-set +e
-kubectl config current-context | grep -q '^kind' &>/dev/null
-if [ $? == 0 ]; then
-    IS_KIND=1
-else
-    IS_KIND=0
-fi
-set -e
-
 # Uninstall if desired
 if [ "$FORCE" == 1 ]; then
     helm uninstall -n "$NAMESPACE" tetragon || true
@@ -71,23 +61,33 @@ fi
 # Create namespace if needed
 kubectl create namespace "$NAMESPACE" &>/dev/null || true
 
-# Load images into kind
-if [ "$IS_KIND" == 1 ]; then
+# Detect if we're running in kind and load images if so
+set +e
+kubectl config current-context | grep -q '^kind' &>/dev/null
+if [ $? == 0 ]; then
+    if ! command -v yq &>/dev/null; then
+        error "yq is not in \$PATH! Bailing out!"
+    fi
+    if ! command -v kind &>/dev/null; then
+        error "kind is not in \$PATH! Bailing out!"
+    fi
     image=$(yq '.tetragon.image.override' "$BASE_VALUES")
     image_operator=$(yq '.tetragonOperator.image.override' "$BASE_VALUES")
     kind load docker-image "$image" --name "$CLUSTER_NAME"
     kind load docker-image "$image_operator" --name "$CLUSTER_NAME"
 fi
+set -e
 
 # Set helm options
-declare -a helm_opts=("--namespace" "$NAMESPACE" "--values" "$BASE_VALUES")
+declare -a extra_opts=()
 if [ -n "$VALUES" ]; then
-    helm_opts+=("--values" "$VALUES")
+    extra_opts+=("-f" "$VALUES")
 fi
-helm_opts+=("tetragon" "./install/kubernetes/tetragon")
 
 echo "Installing Tetragon in cluster..." 1>&2
-helm upgrade --install "${helm_opts[@]}"
+helm upgrade --install tetragon install/kubernetes/tetragon \
+  -n "$NAMESPACE" \
+  -f "$BASE_VALUES" "${extra_opts[@]}"
 
 echo "Waiting for Tetragon deployment..." 1>&2
 kubectl rollout status -n "$NAMESPACE" ds/tetragon -w --timeout 5m
