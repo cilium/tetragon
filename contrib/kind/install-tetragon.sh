@@ -31,8 +31,8 @@ usage() {
 }
 
 FORCE=0
-IMAGE=""
-OPERATOR=""
+IMAGE="cilium/tetragon:latest"
+OPERATOR="cilium/tetragon-operator:latest"
 VALUES=""
 NAMESPACE="tetragon"
 
