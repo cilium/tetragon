@@ -5,62 +5,24 @@ package common
 
 import (
 	"context"
-	"encoding/json"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
-
-type daemonInfo struct {
-	ServerAddr string `json:"server_address"`
-}
-
-func readActiveServerAddress(fname string) (string, error) {
-	f, err := os.Open(fname)
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-
-	var info daemonInfo
-	if err := json.NewDecoder(f).Decode(&info); err != nil {
-		return "", err
-	}
-
-	return info.ServerAddr, nil
-}
 
 func connect(ctx context.Context) (*grpc.ClientConn, string, error) {
 	connCtx, connCancel := context.WithTimeout(ctx, Timeout)
 	defer connCancel()
 
-	// resolve ServerAdress: if flag set by user, use it, otherwise try to read
-	// it from tetragon-info.json, if it doesn't exist, just use default value
-	if ServerAddress == "" {
-		var err error
-		ServerAddress, err = readActiveServerAddress(defaults.InitInfoFile)
-		// if address could not be found in tetragon-info.json file, use default
-		if err != nil {
-			ServerAddress = defaultServerAddress
-			logger.GetLogger().WithField("ServerAddress", ServerAddress).Debug("connect to server using default value")
-		} else {
-			logger.GetLogger().WithFields(logrus.Fields{
-				"InitInfoFile":  defaults.InitInfoFile,
-				"ServerAddress": ServerAddress,
-			}).Debug("connect to server using address in info file")
-		}
-	}
+	address := ResolveServerAddress()
 
-	conn, err := grpc.DialContext(connCtx, ServerAddress, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
-	return conn, ServerAddress, err
+	conn, err := grpc.DialContext(connCtx, address, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	return conn, address, err
 }
 
 func CliRunErr(fn func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient), fnErr func(err error)) {
