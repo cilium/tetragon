@@ -5,6 +5,7 @@ package common
 
 import (
 	"context"
+	"fmt"
 	"os/signal"
 	"syscall"
 	"time"
@@ -61,7 +62,7 @@ func CliRun(fn func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient)
 	CliRunErr(fn, func(_ error) {})
 }
 
-type ConnectedClient struct {
+type ClientWithContext struct {
 	Client tetragon.FineGuidanceSensorsClient
 	Ctx    context.Context
 	conn   *grpc.ClientConn
@@ -69,39 +70,31 @@ type ConnectedClient struct {
 }
 
 // Close cleanup resources, it closes the connection and cancel the context
-func (c ConnectedClient) Close() {
+func (c ClientWithContext) Close() {
 	c.conn.Close()
 	c.cancel()
 }
 
-// NewConnectedClient return a connected client to a tetragon server, caller
-// must call Close() on the client. On failure to connect, this function calls
-// Fatal() thus stopping execution.
-func NewConnectedClient() ConnectedClient {
-	c := ConnectedClient{}
-	c.Ctx, c.cancel = signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+// NewClientWithDefaultContext return a client to a tetragon server accompanied
+// with an initialized context that can be used for the RPC call, caller must
+// call Close() on the client.
+func NewClientWithDefaultContext() (*ClientWithContext, error) {
+	c := &ClientWithContext{}
 
-	var serverAddr string
+	var timeout context.Context
+	timeout, c.cancel = context.WithTimeout(context.Background(), Timeout)
+	// we don't need the cancelFunc here as calling cancel on timeout, the
+	// parent, will cancel its children.
+	c.Ctx, _ = signal.NotifyContext(timeout, syscall.SIGINT, syscall.SIGTERM)
+
+	address := ResolveServerAddress()
+
 	var err error
-
-	backoff := time.Second
-	attempts := 0
-	for {
-		c.conn, serverAddr, err = connect(c.Ctx)
-		if err != nil {
-			if attempts < Retries {
-				// Exponential backoff
-				attempts++
-				logger.GetLogger().WithField("server-address", serverAddr).WithField("attempts", attempts).WithError(err).Error("Connection attempt failed, retrying...")
-				time.Sleep(backoff)
-				backoff *= 2
-				continue
-			}
-			logger.GetLogger().WithField("server-address", serverAddr).WithField("attempts", attempts).WithError(err).Fatal("Failed to connect to server")
-		}
-		break
+	c.conn, err = grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create gRPC client with address %s: %w", address, err)
 	}
-
 	c.Client = tetragon.NewFineGuidanceSensorsClient(c.conn)
-	return c
+
+	return c, nil
 }
