@@ -41,7 +41,7 @@ az aks get-credentials --resource-group "${AZURE_RESOURCE_GROUP}" --name "${NAME
 {{% /tab %}}
 {{% tab EKS %}}
 
-The following commands create a Kubernetes cluster with `eksctl` using [Amazon Elastic
+The following commands create a single node Kubernetes cluster with `eksctl` using [Amazon Elastic
 Kubernetes Service](https://aws.amazon.com/eks/). See [eksctl installation](https://github.com/eksctl-io/eksctl#installation)
 for instructions on how to install `eksctl` and prepare your account.
 
@@ -54,7 +54,7 @@ eksctl create cluster --name "${NAME}"
 {{% tab "Kind" %}}
 
 Tetragon's correct operation depends on access to the host `/proc` filesystem. The following steps
-configure kind and Tetragon accordingly when using a Linux system.
+configure kind and Tetragon accordingly when using a Linux system. The following commands create a single node Kubernetes cluster using `kind` that is properly configured for Tetragon.
 
 ```shell
 cat <<EOF > kind-config.yaml
@@ -72,6 +72,11 @@ EXTRA_HELM_FLAGS=(--set tetragon.hostProcPath=/procHost) # flags for helm instal
 {{% /tab %}}
 
 {{< /tabpane >}}
+
+The commands in this Getting Started guide assume you use a single-node
+Kubernetes cluster. If you use a cluster with multiple nodes, be aware that
+some of the commands shown need to be modified. We call out these changes where
+they are necessary.
 
 ### Deploy Tetragon
 
