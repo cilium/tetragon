@@ -16,13 +16,46 @@ can then observe all executions in the system.
 
 The following command can be used to observe exec events.
 
-{{< tabpane lang=shell >}}
-{{< tab Kubernetes >}}
+{{< tabpane text=true >}}
+{{% tab Kubernetes %}}
+
+For a single node Kubernetes cluster, you can target the Tetragon DaemonSet with a `kubectl exec` command:
+
+```shell
 kubectl exec -ti -n kube-system ds/tetragon -c tetragon -- tetra getevents -o compact --pods xwing
-{{< /tab >}}
-{{< tab Docker >}}
+```
+
+In a cluster with multiple nodes, you will first need to find the node where
+the workload is running. For example, when using Cilium's [demo application](https://docs.cilium.io/en/stable/gettingstarted/demo/),
+this command will show on which node the "xwing" Pod is running.
+
+```shell
+kubectl get pod xwing -o jsonpath='{.spec.nodeName}'
+```
+
+You would then find the Tetragon Pod on the same node; this command returns a
+list of Tetragon Pods and the name of the Kubernetes node on which they are
+running.
+
+```shell
+kubectl -n kube-system get pods -o custom-columns=NAME:.metadata.name,NODE:.spec.nodeName | grep <name-of-node-with-workload>
+```
+
+Once you have the identified the matching Pod, then target it with a `kubectl
+exec` to run the `tetra getevents` command.
+
+```shell
+kubectl exec -ti -n kube-system po/<pod-name> -c tetragon -- tetra getevents -o compact --pods xwing
+```
+
+{{% /tab %}}
+{{% tab Docker %}}
+
+```shell
 docker exec tetragon-container tetra getevents -o compact
-{{< /tab >}}
+```
+
+{{% /tab %}}
 {{< /tabpane >}}
 
 This will print a compact form of the exec logs. For an example we do the following
@@ -47,9 +80,10 @@ following output.
 💥 exit    default/xwing /usr/bin/curl https://ebpf.io/applications/#tetragon 60
 ```
 
-The compact exec event contains the event type, the pod name, the binary and the args. The exit event will include the return code, in the case of curl `60` above.
+The compact exec event contains the event type, the pod name, the binary and the
+args. The exit event will include the return code, in the case of curl `60` above.
 
-For the complete exec event in JSON format remove the compact option.
+For the complete exec event in JSON format remove the `-o compact` option.
 
 {{< tabpane lang=shel-session >}}
 {{< tab Kubernetes >}}
@@ -60,7 +94,7 @@ docker exec tetragon-container tetra getevents
 {{< /tab >}}
 {{< /tabpane >}}
 
-This will include a lot more details related the binary and event. A full example of the above curl is hown here,
+This will include a lot more details related to the binary and event. A full example of the above curl is shown here.
 In a Kubernetes environment this will include the Kubernetes metadata include the Pod, Container, Namespaces, and
 Labels among other useful metadata.
 
