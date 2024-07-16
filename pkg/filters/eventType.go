@@ -5,6 +5,7 @@ package filters
 
 import (
 	"context"
+	"strings"
 
 	v1 "github.com/cilium/cilium/pkg/hubble/api/v1"
 	hubbleFilters "github.com/cilium/cilium/pkg/hubble/filters"
@@ -24,7 +25,7 @@ func filterByEventType(types []tetragon.EventType) hubbleFilters.FilterFunc {
 					return true
 				}
 
-				eventProtoNum = tetragon.EventType(eventDesc.Number())
+				eventProtoNum = tetragon.EventType(tetragon.EventType_value[strings.ToUpper(eventDesc.TextName())])
 				return false
 			})
 
