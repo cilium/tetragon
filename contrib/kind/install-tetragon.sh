@@ -29,6 +29,7 @@ usage() {
 }
 
 BASE_VALUES="${TETRAGON_KIND_BASE_VALUES:-contrib/kind/values.yaml}"
+HELM_CHART="${TETRAGON_KIND_HELM_CHART:-install/kubernetes/tetragon}"
 
 FORCE=0
 VALUES=""
@@ -85,7 +86,7 @@ if [ -n "$VALUES" ]; then
 fi
 
 echo "Installing Tetragon in cluster..." 1>&2
-helm upgrade --install tetragon install/kubernetes/tetragon \
+helm upgrade --install tetragon "$HELM_CHART" \
   -n "$NAMESPACE" \
   -f "$BASE_VALUES" "${extra_opts[@]}"
 
