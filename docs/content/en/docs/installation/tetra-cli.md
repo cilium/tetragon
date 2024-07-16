@@ -70,14 +70,14 @@ sudo mv tetra /usr/local/bin
 {{< /tab >}}
 
 {{< tab header="Windows amd64" >}}
-curl -L https://github.com/cilium/tetragon/releases/latest/download/tetra-windows-amd64.tar.gz
-tar -xz tetra-windows-amd64.tar.gz
+curl -LO https://github.com/cilium/tetragon/releases/latest/download/tetra-windows-amd64.tar.gz
+tar -xzf tetra-windows-amd64.tar.gz
 # move the binary in a directory in your PATH
 {{< /tab >}}
 
 {{< tab header="Windows arm64" >}}
-curl -L https://github.com/cilium/tetragon/releases/latest/download/tetra-windows-arm64.tar.gz
-tar -xz tetra-windows-arm64.tar.gz
+curl -LO https://github.com/cilium/tetragon/releases/latest/download/tetra-windows-arm64.tar.gz
+tar -xzf tetra-windows-arm64.tar.gz
 # move the binary in a directory in your PATH
 {{< /tab >}}
 {{< /tabpane >}}
