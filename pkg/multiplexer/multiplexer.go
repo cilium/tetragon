@@ -12,6 +12,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/logger"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/proto"
 	"k8s.io/klog/v2"
@@ -77,14 +78,25 @@ func (cm *ClientMultiplexer) Connect(ctx context.Context, connTimeout time.Durat
 		go func(addr string) {
 			defer wg.Done()
 
-			conn, err := grpc.DialContext(
-				connCtx,
-				addr,
-				grpc.WithTransportCredentials(insecure.NewCredentials()),
-			)
+			conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 
 			if err != nil {
 				queue <- connResult{nil, fmt.Errorf("%s: %w", addr, err)}
+				return
+			}
+
+			// Deprecation of grpc.DialContext made us switch to grpc.NewClient
+			// which does not perform any I/O, the following statement should
+			// maintain the previous "connect" behavior by waiting for client
+			// connection.
+			state := conn.GetState()
+			if state == connectivity.Idle {
+				conn.Connect()
+			}
+			// if connectivity was already ready, jump to the end, otherwise
+			// wait for the connection to change
+			if state != connectivity.Ready && !conn.WaitForStateChange(connCtx, state) {
+				queue <- connResult{nil, fmt.Errorf("%s: %w", addr, connCtx.Err())}
 				return
 			}
 
