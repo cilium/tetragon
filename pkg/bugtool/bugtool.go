@@ -24,13 +24,12 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	gopssignal "github.com/google/gops/signal"
 	"go.uber.org/multierr"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
@@ -585,22 +584,14 @@ func (s *bugtoolInfo) dumpPolicyFilterMap(tarWriter *tar.Writer) error {
 }
 
 func (s *bugtoolInfo) addGrpcInfo(tarWriter *tar.Writer) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	conn, err := grpc.DialContext(
-		ctx,
-		s.info.ServerAddr,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
-	)
+	c, err := common.NewClient(context.Background(), s.info.ServerAddr, 5*time.Second)
 	if err != nil {
-		s.multiLog.Warnf("failed to connect to %s: %v", s.info.ServerAddr, err)
+		s.multiLog.Warnf("failed to create gRPC client to %s: %v", s.info.ServerAddr, err)
 		return
 	}
-	defer conn.Close()
-	client := tetragon.NewFineGuidanceSensorsClient(conn)
+	defer c.Close()
 
-	res, err := client.ListTracingPolicies(ctx, &tetragon.ListTracingPoliciesRequest{})
+	res, err := c.Client.ListTracingPolicies(c.Ctx, &tetragon.ListTracingPoliciesRequest{})
 	if err != nil || res == nil {
 		s.multiLog.Warnf("failed to list tracing policies: %v", err)
 		return
