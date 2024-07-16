@@ -27,7 +27,7 @@ func New() *cobra.Command {
 		Short: "add a new sensor based on a tracing policy",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c, err := common.NewClientWithDefaultContext()
+			c, err := common.NewClientWithDefaultContextAndAddress()
 			if err != nil {
 				return fmt.Errorf("failed create gRPC client: %w", err)
 			}
@@ -56,7 +56,7 @@ func New() *cobra.Command {
 		Short: "delete a tracing policy",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c, err := common.NewClientWithDefaultContext()
+			c, err := common.NewClientWithDefaultContextAndAddress()
 			if err != nil {
 				return fmt.Errorf("failed create gRPC client: %w", err)
 			}
@@ -82,7 +82,7 @@ func New() *cobra.Command {
 		Long:  "Enable a disabled tracing policy. Use disable to re-disable the tracing policy.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c, err := common.NewClientWithDefaultContext()
+			c, err := common.NewClientWithDefaultContextAndAddress()
 			if err != nil {
 				return fmt.Errorf("failed create gRPC client: %w", err)
 			}
@@ -108,7 +108,7 @@ func New() *cobra.Command {
 		Long:  "Disable an enabled tracing policy. Use enable to re-enable the tracing policy.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c, err := common.NewClientWithDefaultContext()
+			c, err := common.NewClientWithDefaultContextAndAddress()
 			if err != nil {
 				return fmt.Errorf("failed create gRPC client: %w", err)
 			}
@@ -142,7 +142,7 @@ func New() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			c, err := common.NewClientWithDefaultContext()
+			c, err := common.NewClientWithDefaultContextAndAddress()
 			if err != nil {
 				return fmt.Errorf("failed create gRPC client: %w", err)
 			}

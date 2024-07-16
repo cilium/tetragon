@@ -11,10 +11,8 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/tests/e2e/state"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 // WaitForTracingPolicy checks that a tracing policy exists in all tetragon pods.
@@ -29,20 +27,14 @@ func WaitForTracingPolicy(ctx context.Context, policyName string) error {
 		addr := fmt.Sprintf("127.0.0.1:%d", grpcPort)
 		// NB(kkourt): maybe it would make sense to cache the grpc connections in the
 		// context, but we keep things simple for now.
-		connCtx, connCancel := context.WithTimeout(ctx, 2*time.Second)
-		defer connCancel()
-		conn, err := grpc.DialContext(
-			connCtx, addr,
-			grpc.WithTransportCredentials(insecure.NewCredentials()),
-			grpc.WithBlock())
+		c, err := common.NewClient(ctx, addr, 2*time.Second)
 		if err != nil {
-			return fmt.Errorf("failed to connect to tetragon (%s) grpc forwarded port (%d): %w", podName, grpcPort, err)
+			return fmt.Errorf("failed to create gRPC client to pod (%s) at forwared port (%d): %w", podName, grpcPort, err)
 		}
-		defer conn.Close()
-		client := tetragon.NewFineGuidanceSensorsClient(conn)
+		defer c.Close()
 
 		for i := 0; i < maxTries; i++ {
-			err = ensureTracingPolicy(ctx, policyName, client)
+			err = ensureTracingPolicy(c.Ctx, policyName, c.Client)
 			if err == nil {
 				break
 			}
