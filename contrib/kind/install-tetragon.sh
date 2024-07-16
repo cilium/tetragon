@@ -7,9 +7,9 @@ error() {
 
 set -eu
 
-PROJECT_ROOT="$(git rev-parse --show-toplevel)"
-cd "$PROJECT_ROOT"
-source contrib/kind/conf
+SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+PROJECT_ROOT="$SCRIPT_DIR/../.."
+source "$PROJECT_ROOT/contrib/kind/conf"
 
 if ! command -v helm &>/dev/null; then
     error "helm is not in \$PATH! Bailing out!"
@@ -28,8 +28,8 @@ usage() {
     echo "       --cluster               override cluster name" 1>&2
 }
 
-BASE_VALUES="${TETRAGON_KIND_BASE_VALUES:-contrib/kind/values.yaml}"
-HELM_CHART="${TETRAGON_KIND_HELM_CHART:-install/kubernetes/tetragon}"
+BASE_VALUES="${TETRAGON_KIND_BASE_VALUES:-"$PROJECT_ROOT/contrib/kind/values.yaml"}"
+HELM_CHART="${TETRAGON_KIND_HELM_CHART:-"$PROJECT_ROOT/install/kubernetes/tetragon"}"
 
 FORCE=0
 VALUES=""
