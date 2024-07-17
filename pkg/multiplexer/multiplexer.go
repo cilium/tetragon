@@ -13,6 +13,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/protobuf/proto"
 	"k8s.io/klog/v2"
 )
 
@@ -156,6 +157,20 @@ func (cm *ClientMultiplexer) GetEvents(ctx context.Context, allowList, denyList 
 				default:
 				}
 				res, err := stream.Recv()
+				// We've occasionally been running into errors in e2e tests about invalid
+				// wire format messages and message size mismatches in protobuf. According
+				// to https://github.com/golang/protobuf/issues/1609, this is generally
+				// related to concurrency issues such as modifying a message during
+				// marshalling. Add a Clone() call before sending the event over the
+				// channel to mitigate this issue.
+				//
+				// Although this isn't great for performance, this is fine to do
+				// here as a quick workaround since we're only using this code
+				// for testing purposes anyway. In other words, this will never
+				// make it to a production environment.
+				if err != nil {
+					res = proto.Clone(res).(*tetragon.GetEventsResponse)
+				}
 				c <- GetEventsResult{res, err}
 			}
 		}(stream)
