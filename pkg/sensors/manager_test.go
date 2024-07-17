@@ -44,7 +44,7 @@ func TestAddPolicy(t *testing.T) {
 	assert.NoError(t, err)
 	t.Cleanup(func() {
 		if err := mgr.StopSensorManager(ctx); err != nil {
-			panic("failed to stop sensor manager")
+			t.Fatal("failed to stop sensor manager")
 		}
 	})
 	policy.ObjectMeta.Name = "test-policy"
@@ -72,7 +72,7 @@ func TestAddPolicies(t *testing.T) {
 	assert.NoError(t, err)
 	t.Cleanup(func() {
 		if err := mgr.StopSensorManager(ctx); err != nil {
-			panic("failed to stop sensor manager")
+			t.Fatal("failed to stop sensor manager")
 		}
 	})
 	policy.ObjectMeta.Name = "test-policy"
@@ -103,7 +103,7 @@ func TestAddPolicySpecError(t *testing.T) {
 	assert.NoError(t, err)
 	t.Cleanup(func() {
 		if err := mgr.StopSensorManager(ctx); err != nil {
-			panic("failed to stop sensor manager")
+			t.Fatal("failed to stop sensor manager")
 		}
 	})
 	policy.ObjectMeta.Name = "test-policy"
@@ -135,7 +135,7 @@ func TestAddPolicyLoadError(t *testing.T) {
 	assert.NoError(t, err)
 	t.Cleanup(func() {
 		if err := mgr.StopSensorManager(ctx); err != nil {
-			panic("failed to stop sensor manager")
+			t.Fatal("failed to stop sensor manager")
 		}
 	})
 	policy.ObjectMeta.Name = "test-policy"
@@ -211,7 +211,7 @@ func TestPolicyStates(t *testing.T) {
 		require.NoError(t, err)
 		t.Cleanup(func() {
 			if err := mgr.StopSensorManager(ctx); err != nil {
-				panic("failed to stop sensor manager")
+				t.Fatal("failed to stop sensor manager")
 			}
 		})
 		policy.ObjectMeta.Name = "test-policy"
@@ -236,7 +236,7 @@ func TestPolicyStates(t *testing.T) {
 		require.NoError(t, err)
 		t.Cleanup(func() {
 			if err := mgr.StopSensorManager(ctx); err != nil {
-				panic("failed to stop sensor manager")
+				t.Fatal("failed to stop sensor manager")
 			}
 		})
 		policy.ObjectMeta.Name = "test-policy"
@@ -276,7 +276,7 @@ func TestPolicyLoadErrorOverride(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		if err := mgr.StopSensorManager(ctx); err != nil {
-			panic("failed to stop sensor manager")
+			t.Fatal("failed to stop sensor manager")
 		}
 	})
 	policy.ObjectMeta.Name = "test-policy"

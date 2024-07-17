@@ -5843,14 +5843,14 @@ spec:
 	socket, err := net.Dial("udp", "127.0.0.1:9468")
 	if err != nil {
 		fmt.Printf("ERROR dialing socket\n")
-		panic(err)
+		t.Fatal(err)
 	}
 
 	for i := 0; i < 5; i++ {
 		_, err := socket.Write([]byte("data"))
 		if err != nil {
 			fmt.Printf("ERROR writing to socket\n")
-			panic(err)
+			t.Fatal(err)
 		}
 	}
 
