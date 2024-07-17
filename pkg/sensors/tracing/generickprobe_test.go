@@ -127,7 +127,7 @@ func Test_Kprobe_DisableEnablePolicy(t *testing.T) {
 	assert.NoError(t, err)
 	t.Cleanup(func() {
 		if err := mgr.StopSensorManager(ctx); err != nil {
-			panic("failed to stop sensor manager")
+			t.Fatal("failed to stop sensor manager")
 		}
 	})
 
