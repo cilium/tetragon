@@ -25,7 +25,6 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 {
 	struct execve_map_value *curr, *parent;
 	struct msg_clone_event msg;
-	struct msg_capabilities caps;
 	u64 msg_size = sizeof(struct msg_clone_event);
 	struct msg_k8s kube;
 	u32 tgid = 0;
@@ -65,10 +64,12 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 	 * before the execve hook point if they changed or not.
 	 * This needs to be converted later to credentials.
 	 */
-	get_current_subj_caps(&caps, task);
-	curr->caps.permitted = caps.permitted;
-	curr->caps.effective = caps.effective;
-	curr->caps.inheritable = caps.inheritable;
+	get_current_subj_caps(&curr->caps, task);
+
+	/* Store the thread leader namespaces so we can check later
+	 * before the execve hook point if they changed or not.
+	 */
+	get_namespaces(&curr->ns, task);
 
 	/* Setup the msg_clone_event and sent to the user. */
 	msg.common.op = MSG_OP_CLONE;
