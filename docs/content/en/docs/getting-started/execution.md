@@ -4,38 +4,50 @@ weight: 3
 description: "Execution traces with Tetragon"
 ---
 
-At the core of Tetragon is the tracking of all executions in a kubernetes cluster,
-virtual machines, and baremetal systems. This creates the foundation that allows
+At the core of Tetragon is the tracking of all executions in a Kubernetes cluster,
+virtual machines, and bare metal systems. This creates the foundation that allows
 Tetragon to attribute all system behavior back to a specific binary and its
 associated metadata (container, Pod, Node, and cluster).
 
-## Observe Tetragon Execution Events
+## Observe Tetragon execution events
 
-Tetragon exposes the execution trace over JSON logs and GRPC stream. The user
+Tetragon exposes the execution events over JSON logs and GRPC stream. The user
 can then observe all executions in the system.
 
-The following command can be used to observe exec events.
+Use the following instructions to observe execution events. These instructions
+assume you have deployed the Cilium [demo application](https://docs.cilium.io/en/stable/gettingstarted/demo/)
+in your environment.
 
 {{< tabpane text=true >}}
-{{% tab Kubernetes %}}
+{{% tab "Kubernetes (single node)" %}}
 
-For a single node Kubernetes cluster, you can target the Tetragon DaemonSet with a `kubectl exec` command:
+For a single node Kubernetes cluster, you can target the Tetragon DaemonSet with
+a `kubectl exec` command:
 
 ```shell
 kubectl exec -ti -n kube-system ds/tetragon -c tetragon -- tetra getevents -o compact --pods xwing
 ```
 
+This command runs `tetra getevents -o compact --pods xwing` in the single Pod
+that is a member of the Tetragon DaemonSet. Because there is only a single node
+in the cluster, it is guaranteed that the "xwing" Pod will also be running on
+the same node and that Tetragon will be able to capture and report execution
+events.
+
+{{% /tab %}}
+{{% tab "Kubernetes (multiple nodes)" %}}
+
 In a cluster with multiple nodes, you will first need to find the node where
-the workload is running. For example, when using Cilium's [demo application](https://docs.cilium.io/en/stable/gettingstarted/demo/),
-this command will show on which node the "xwing" Pod is running.
+the workload is running. This command shows the node where the "xwing" Pod is
+running.
 
 ```shell
 kubectl get pod xwing -o jsonpath='{.spec.nodeName}'
 ```
 
-You would then find the Tetragon Pod on the same node; this command returns a
-list of Tetragon Pods and the name of the Kubernetes node on which they are
-running.
+Next, you will need to find the Tetragon Pod on the same node. This command
+returns a list of Tetragon Pods and the name of the Kubernetes node on which
+they are running.
 
 ```shell
 kubectl -n kube-system get pods -o custom-columns=NAME:.metadata.name,NODE:.spec.nodeName | grep <name-of-node-with-workload>
@@ -45,34 +57,42 @@ Once you have the identified the matching Pod, then target it with a `kubectl
 exec` to run the `tetra getevents` command.
 
 ```shell
-kubectl exec -ti -n kube-system po/<pod-name> -c tetragon -- tetra getevents -o compact --pods xwing
+kubectl exec -ti -n kube-system po/<tetragon-pod-name> -c tetragon -- tetra getevents -o compact --pods xwing
 ```
+
+Because the Tetragon Pod where you are running `tetra getevents` in on the same
+Pod as the "xwing" Pod, the command will return the execution events captured by
+Tetragon.
 
 {{% /tab %}}
 {{% tab Docker %}}
 
 ```shell
-docker exec tetragon-container tetra getevents -o compact
+docker exec tetragon tetra getevents -o compact
 ```
 
 {{% /tab %}}
 {{< /tabpane >}}
 
-This will print a compact form of the exec logs. For an example we do the following
-with the demo application.
-
+The `tetra get-events -o compact` command returns a compact form of the execution
+events. To trigger an execution event, you will run a `curl` command inside the
+"xwing" Pod/container.
 
 {{< tabpane lang=shell >}}
-{{< tab Kubernetes >}}
+{{< tab "Kubernetes (single node)" >}}
+kubectl exec -ti xwing -- bash -c 'curl https://ebpf.io/applications/#tetragon'
+{{< /tab >}}
+{{< tab "Kubernetes (multiple nodes)" >}}
 kubectl exec -ti xwing -- bash -c 'curl https://ebpf.io/applications/#tetragon'
 {{< /tab >}}
 {{< tab Docker >}}
-curl https://ebpf.io/applications/#tetragon
+docker exec -ti starwars-xwing-1 curl https://ebpf.io/applications/#tetragon
 {{< /tab >}}
 {{< /tabpane >}}
 
 The CLI will print a compact form of the event to the terminal similar to the
-following output.
+following output. The example output below is from Kubernetes; the Docker output
+is very similar.
 
 ```
 🚀 process default/xwing /bin/bash -c "curl https://ebpf.io/applications/#tetragon"
@@ -80,25 +100,32 @@ following output.
 💥 exit    default/xwing /usr/bin/curl https://ebpf.io/applications/#tetragon 60
 ```
 
-The compact exec event contains the event type, the pod name, the binary and the
-args. The exit event will include the return code, in the case of curl `60` above.
+The compact execution event contains the event type, the pod name, the binary
+and the args. The exit event will include the return code; in the case of the
+`curl` command above, the return code was 60.
 
-For the complete exec event in JSON format remove the `-o compact` option.
+For the complete execution event in JSON format remove the `-o compact` option
+from the `tetra getevents` command.
 
 {{< tabpane lang=shel-session >}}
-{{< tab Kubernetes >}}
+{{< tab "Kubernetes (single node)" >}}
 kubectl exec -ti -n kube-system ds/tetragon -c tetragon -- tetra getevents --pods xwing
 {{< /tab >}}
+{{< tab "Kubernetes (multiple nodes)" >}}
+kubectl exec -ti -n kube-system po/<tetragon-pod-name> -c tetragon -- tetra getevents --pods xwing
+{{< /tab >}}
 {{< tab Docker >}}
-docker exec tetragon-container tetra getevents
+docker exec -ti tetragon tetra getevents
 {{< /tab >}}
 {{< /tabpane >}}
 
-This will include a lot more details related to the binary and event. A full example of the above curl is shown here.
-In a Kubernetes environment this will include the Kubernetes metadata include the Pod, Container, Namespaces, and
-Labels among other useful metadata.
+The complete execution event includes a lot more details related to the binary
+and event. See below for a full example of the execution event generated by the
+`curl` command used above. In a Kubernetes environment this will include the
+Kubernetes metadata include the Pod, Container, Namespaces, and Labels, among
+other useful metadata.
 
-<details><summary>Process execution event</summary>
+<details><summary>Full output of a process execution event</summary>
 <p>
 
 ```json
@@ -176,7 +203,6 @@ Labels among other useful metadata.
   "node_name": "gke-john-632-default-pool-7041cac0-9s95",
   "time": "2023-10-06T22:03:57.700326678Z"
 }
-
 ```
 </p>
 </details>
@@ -185,5 +211,5 @@ Labels among other useful metadata.
 
 Execution events are the most basic event Tetragon can produce. To see how to
 use tracing policies to enable file monitoring see the
-[File Access Monitoring]({{< ref "/docs/getting-started/file-events" >}}) quickstart.
-To see a network policy check the [Networking Monitoring]({{< ref "/docs/getting-started/network" >}}) quickstart.
+[File Access Monitoring]({{< ref "/docs/getting-started/file-events" >}}) section of the Getting Started guide.
+To see a network policy check the [Networking Monitoring]({{< ref "/docs/getting-started/network" >}}) section.
