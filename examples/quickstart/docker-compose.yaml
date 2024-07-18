@@ -1,0 +1,24 @@
+name: starwars
+networks:
+  galaxyfaraway:
+services:
+  deathstar:
+    hostname: deathstar
+    image: quay.io/cilium/starwars:v2.1
+    networks:
+      - galaxyfaraway
+    ports:
+      - 8080:80
+    restart: always
+  tiefighter:
+    hostname: tiefighter
+    image: quay.io/cilium/json-mock:v1.3.8
+    networks:
+      - galaxyfaraway
+    restart: always
+  xwing:
+    hostname: xwing
+    image: quay.io/cilium/json-mock:v1.3.8
+    networks:
+      - galaxyfaraway
+    restart: always

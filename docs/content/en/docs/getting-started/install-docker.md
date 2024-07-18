@@ -23,15 +23,39 @@ The easiest way to start experimenting with Tetragon is to run it via Docker
 using the released container images.
 
 ```shell
-docker run --name tetragon-container --rm --pull always \
+docker run -d --name tetragon --rm --pull always \
     --pid=host --cgroupns=host --privileged             \
     -v /sys/kernel/btf/vmlinux:/var/lib/tetragon/btf    \
-    quay.io/cilium/tetragon-ci:latest
+    quay.io/cilium/tetragon:latest
 ```
 
-This will start Tetragon in a privileged container. Priviliges are required
-to load and attach BPF programs. See Installation section for more details.
+This will start Tetragon in a privileged container running in the background.
+Running Tetragon as a privileged container is required to load and attach BPF
+programs. See the [Installation and Configuration]({{< ref "/docs/installation" >}})
+section for more details.
 
-## What's Next
+## Run demo application
+
+To explore Tetragon it is helpful to have a sample workload. You can use Cilium’s
+demo application with [this Docker Compose file](https://github.com/cilium/tetragon/blob/main/examples/quickstart/docker-compose.yaml),
+but any workload would work equally well:
+
+```shell
+curl -LO https://github.com/cilium/tetragon/raw/main/examples/quickstart/docker-compose.yaml
+docker compose -f docker-compose.yaml up -d
+```
+
+You can use `docker container ls` to verify that the containers are up and
+running. It might take a short amount of time for the container images to
+download.
+
+```shell
+CONTAINER ID   IMAGE                             COMMAND                  CREATED          STATUS          PORTS                                   NAMES
+cace79752d94   quay.io/cilium/json-mock:v1.3.8   "bash /run.sh"           34 seconds ago   Up 33 seconds                                           starwars-xwing-1
+4f8422b43b5b   quay.io/cilium/json-mock:v1.3.8   "bash /run.sh"           34 seconds ago   Up 33 seconds                                           starwars-tiefighter-1
+7b60618ca8bd   quay.io/cilium/starwars:v2.1      "/starwars-docker --…"   34 seconds ago   Up 33 seconds   0.0.0.0:8080->80/tcp, :::8080->80/tcp   starwars-deathstar-1
+```
+
+## What's next
 
 Check for [execution events]({{< ref "/docs/getting-started/execution" >}}).
