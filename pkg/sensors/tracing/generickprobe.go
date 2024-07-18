@@ -64,6 +64,7 @@ const (
 	ratelimitMapMaxEntries  = 32768
 	fdInstallMapMaxEntries  = 32000
 	enforcerMapMaxEntries   = 32768
+	overrideMapMaxEntries   = 32768
 )
 
 func kprobeCharBufErrorToString(e int32) string {
@@ -292,6 +293,7 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 
 		has.stackTrace = has.stackTrace || gk.hasStackTrace
 		has.rateLimit = has.rateLimit || gk.hasRatelimit
+		has.override = has.override || gk.hasOverride
 	}
 
 	loadProgName := "bpf_multi_kprobe_v53.o"
@@ -372,6 +374,12 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 
 	filterMap.SetMaxEntries(len(multiIDs))
 	configMap.SetMaxEntries(len(multiIDs))
+
+	overrideTasksMap := program.MapBuilderPin("override_tasks", sensors.PathJoin(pinPath, "override_tasks"), load)
+	if has.override {
+		overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
+	}
+	maps = append(maps, overrideTasksMap)
 
 	if len(multiRetIDs) != 0 {
 		loadret := program.Builder(
@@ -553,6 +561,7 @@ type hasMaps struct {
 	rateLimit  bool
 	fdInstall  bool
 	enforcer   bool
+	override   bool
 }
 
 // hasMapsSetup setups the has maps for the per policy maps. The per kprobe maps
@@ -961,6 +970,12 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 	}
 	maps = append(maps, enforcerDataMap)
 
+	overrideTasksMap := program.MapBuilderPin("override_tasks", sensors.PathJoin(pinPath, "override_tasks"), load)
+	if has.override {
+		overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
+	}
+	maps = append(maps, overrideTasksMap)
+
 	if kprobeEntry.loadArgs.retprobe {
 		pinRetProg := sensors.PathJoin(pinPath, fmt.Sprintf("%s_ret_prog", kprobeEntry.funcName))
 		loadret := program.Builder(
@@ -1022,6 +1037,7 @@ func createSingleKprobeSensor(sensorPath string, ids []idtable.EntryID, has hasM
 		// setup per kprobe map config
 		has.stackTrace = gk.hasStackTrace
 		has.rateLimit = gk.hasRatelimit
+		has.override = gk.hasOverride
 
 		progs, maps = createKprobeSensorFromEntry(gk, sensorPath, progs, maps, has)
 	}
