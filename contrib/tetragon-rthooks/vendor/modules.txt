@@ -25,7 +25,7 @@ github.com/cilium/lumberjack/v2
 # github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000 => ../../api
 ## explicit; go 1.22.1
 github.com/cilium/tetragon/api/v1/tetragon
-# github.com/containerd/containerd v1.7.19
+# github.com/containerd/containerd v1.7.20
 ## explicit; go 1.21
 github.com/containerd/containerd/events
 github.com/containerd/containerd/events/exchange
@@ -53,7 +53,7 @@ github.com/containerd/ttrpc
 # github.com/containerd/typeurl/v2 v2.1.1
 ## explicit; go 1.13
 github.com/containerd/typeurl/v2
-# github.com/containers/common v0.59.1
+# github.com/containers/common v0.59.2
 ## explicit; go 1.21
 github.com/containers/common/pkg/hooks/1.0.0
 # github.com/containers/storage v1.54.0
