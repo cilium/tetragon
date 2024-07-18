@@ -34,7 +34,7 @@ struct {
 
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
-	__uint(max_entries, 32768);
+	__uint(max_entries, 1); // will be resized by agent when needed
 	__type(key, __u64);
 	__type(value, __s32);
 } override_tasks SEC(".maps");
