@@ -19,6 +19,7 @@ import (
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/reader/caps"
+	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/stretchr/testify/assert"
@@ -92,12 +93,14 @@ spec:
 	cti.AssertPidsTids(t)
 
 	myCaps := ec.NewCapabilitiesChecker().FromCapabilities(caps.GetCurrentCapabilities())
+	myNs := ec.NewNamespacesChecker().FromNamespaces(namespace.GetCurrentNamespace())
 
 	parentCheck := ec.NewProcessChecker().
 		WithBinary(sm.Suffix("threads-tester")).
 		WithPid(cti.ParentPid).
 		WithTid(cti.ParentTid).
-		WithCap(myCaps)
+		WithCap(myCaps).
+		WithNs(myNs)
 
 	execCheck := ec.NewProcessExecChecker("").
 		WithProcess(parentCheck)
@@ -109,7 +112,8 @@ spec:
 		WithBinary(sm.Suffix("threads-tester")).
 		WithPid(cti.Child1Pid).
 		WithTid(cti.Child1Tid).
-		WithCap(myCaps)
+		WithCap(myCaps).
+		WithNs(myNs)
 
 	child1KpChecker := ec.NewProcessKprobeChecker("").
 		WithProcess(child1Checker).WithParent(parentCheck)
@@ -118,7 +122,8 @@ spec:
 		WithBinary(sm.Suffix("threads-tester")).
 		WithPid(cti.Thread1Pid).
 		WithTid(cti.Thread1Tid).
-		WithCap(myCaps)
+		WithCap(myCaps).
+		WithNs(myNs)
 
 	thread1KpChecker := ec.NewProcessKprobeChecker("").
 		WithProcess(thread1Checker).WithParent(parentCheck)
