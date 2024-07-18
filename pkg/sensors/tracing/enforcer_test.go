@@ -294,6 +294,22 @@ func testSecurity(t *testing.T, tracingPolicy, tempFile string) {
 	}
 }
 
+func enforcerSecurityTempFile(t *testing.T) string {
+	// We can't use t.TempDir as it writes into /tmp by default.
+	// The direct-write-tester.c program opens and writes using the O_DIRECT
+	// flag that is unsupported and return EINVAL on tmpfs, while it works on a
+	// disk based fs. Recently, the base image used by vmtests started to switch
+	// /tmp from the disk to tmpfs which made that test fail.
+	tempFile, err := os.CreateTemp("/var/tmp", "tetragon-testfile-*")
+	if err != nil {
+		t.Fatalf("failed to create temporary file for tester prog: %s", err)
+	}
+	t.Cleanup(func() {
+		os.Remove(tempFile.Name())
+	})
+	return tempFile.Name()
+}
+
 // Testing the ability to kill the process before it executes the syscall,
 // in this case direct pwrite syscall.
 // Standard Sigkill action kills executed from sys_pwrite probe kills the
@@ -323,7 +339,7 @@ func TestEnforcerSecuritySigKill(t *testing.T) {
 		t.Skip("Older kernels do not support matchArgs for more than one arguments")
 	}
 
-	tempFile := t.TempDir() + "/test"
+	tempFile := enforcerSecurityTempFile(t)
 
 	tracingPolicy := `
 apiVersion: cilium.io/v1alpha1
@@ -410,7 +426,7 @@ func TestEnforcerSecurityNotifyEnforcer(t *testing.T) {
 		t.Skip("Older kernels do not support matchArgs for more than one arguments")
 	}
 
-	tempFile := t.TempDir() + "/test"
+	tempFile := enforcerSecurityTempFile(t)
 
 	tracingPolicy := `
 apiVersion: cilium.io/v1alpha1
