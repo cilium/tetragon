@@ -8,6 +8,7 @@
 
 #include "bpf_cgroup.h"
 #include "bpf_cred.h"
+#include "bpf_tracing.h"
 #include "cgroup/cgtracker.h"
 
 #define ENAMETOOLONG 36 /* File name too long */
@@ -362,6 +363,40 @@ d_path_local(const struct path *path, int *buflen, int *error)
 		*buflen = MAX_BUF_LEN - *buflen;
 
 	return buffer;
+}
+
+FUNC_INLINE char *path_from_dentry(struct dentry *dentry, char *buf, int *buflen)
+{
+	if (d_unlinked(dentry)) {
+		int error = prepend(&buf, buflen, " (deleted)", 10);
+
+		if (error) // will never happen as prepend will never return a value != 0
+			return NULL;
+	}
+
+	// Construct struct path element with task->nsproxy->mnt_ns->root
+	struct task_struct *task;
+	struct nsproxy *ns;
+	struct mnt_namespace *mnt_ns;
+	struct vfsmount *root;
+
+	task = (struct task_struct *)get_current_task();
+	probe_read(&ns, sizeof(ns), _(&task->nsproxy));
+	probe_read(&mnt_ns, sizeof(mnt_ns), _(&ns->mnt_ns));
+	probe_read(&root, sizeof(root), _(&mnt_ns->root));
+
+	struct path target = {
+		.mnt = root,
+		.dentry = dentry
+	};
+
+	int flags;
+
+	buf = d_path_local(&target, buflen, &flags);
+	if (!buf)
+		return NULL;
+
+	return buf;
 }
 
 FUNC_INLINE __u32
