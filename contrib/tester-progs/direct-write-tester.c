@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
 // Copyright Authors of Tetragon
 
+#define _GNU_SOURCE
 #include <fcntl.h>
 #include <sys/syscall.h>
 #include <unistd.h>
@@ -10,7 +11,6 @@
 #include <stdio.h>
 
 #define BLOCKSIZE 4096
-#define O_DIRECT  00040000
 
 int main(int argc, char **argv)
 {
