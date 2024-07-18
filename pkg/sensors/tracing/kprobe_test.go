@@ -4329,45 +4329,45 @@ spec:
 func TestLoadKprobeSensor(t *testing.T) {
 	var sensorProgs = []tus.SensorProg{
 		// kprobe
-		0: tus.SensorProg{Name: "generic_kprobe_event", Type: ebpf.Kprobe},
-		1: tus.SensorProg{Name: "generic_kprobe_setup_event", Type: ebpf.Kprobe},
-		2: tus.SensorProg{Name: "generic_kprobe_process_event", Type: ebpf.Kprobe},
-		3: tus.SensorProg{Name: "generic_kprobe_filter_arg", Type: ebpf.Kprobe},
-		4: tus.SensorProg{Name: "generic_kprobe_process_filter", Type: ebpf.Kprobe},
-		5: tus.SensorProg{Name: "generic_kprobe_actions", Type: ebpf.Kprobe},
-		6: tus.SensorProg{Name: "generic_kprobe_output", Type: ebpf.Kprobe},
+		0: {Name: "generic_kprobe_event", Type: ebpf.Kprobe},
+		1: {Name: "generic_kprobe_setup_event", Type: ebpf.Kprobe},
+		2: {Name: "generic_kprobe_process_event", Type: ebpf.Kprobe},
+		3: {Name: "generic_kprobe_filter_arg", Type: ebpf.Kprobe},
+		4: {Name: "generic_kprobe_process_filter", Type: ebpf.Kprobe},
+		5: {Name: "generic_kprobe_actions", Type: ebpf.Kprobe},
+		6: {Name: "generic_kprobe_output", Type: ebpf.Kprobe},
 		// retkprobe
-		7:  tus.SensorProg{Name: "generic_retkprobe_event", Type: ebpf.Kprobe},
-		8:  tus.SensorProg{Name: "generic_retkprobe_filter_arg", Type: ebpf.Kprobe},
-		9:  tus.SensorProg{Name: "generic_retkprobe_actions", Type: ebpf.Kprobe},
-		10: tus.SensorProg{Name: "generic_retkprobe_output", Type: ebpf.Kprobe},
+		7:  {Name: "generic_retkprobe_event", Type: ebpf.Kprobe},
+		8:  {Name: "generic_retkprobe_filter_arg", Type: ebpf.Kprobe},
+		9:  {Name: "generic_retkprobe_actions", Type: ebpf.Kprobe},
+		10: {Name: "generic_retkprobe_output", Type: ebpf.Kprobe},
 	}
 
 	var sensorMaps = []tus.SensorMap{
 		// all kprobe programs
-		tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
+		{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
 
 		// all but generic_kprobe_output
-		tus.SensorMap{Name: "kprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5}},
+		{Name: "kprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5}},
 
 		// generic_retkprobe_event
-		tus.SensorMap{Name: "retkprobe_calls", Progs: []uint{7, 8, 9}},
+		{Name: "retkprobe_calls", Progs: []uint{7, 8, 9}},
 
 		// generic_kprobe_process_filter,generic_kprobe_filter_arg,
 		// generic_kprobe_actions,generic_kprobe_output
-		tus.SensorMap{Name: "filter_map", Progs: []uint{3, 4, 5}},
+		{Name: "filter_map", Progs: []uint{3, 4, 5}},
 
 		// generic_kprobe_actions
-		tus.SensorMap{Name: "override_tasks", Progs: []uint{5}},
+		{Name: "override_tasks", Progs: []uint{5}},
 
 		// all kprobe but generic_kprobe_process_filter,generic_retkprobe_event
-		tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2}},
+		{Name: "config_map", Progs: []uint{0, 1, 2}},
 
 		// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
-		tus.SensorMap{Name: "fdinstall_map", Progs: []uint{1, 2, 5, 7, 9}},
+		{Name: "fdinstall_map", Progs: []uint{1, 2, 5, 7, 9}},
 
 		// generic_kprobe_event
-		tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
+		{Name: "tg_conf_map", Progs: []uint{0}},
 	}
 
 	if kernels.EnableLargeProgs() {
@@ -6078,6 +6078,81 @@ spec:
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
+}
+
+func TestDentryExtractPath(t *testing.T) {
+
+	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	if err := observer.InitDataCache(1024); err != nil {
+		t.Fatalf("observertesthelper.InitDataCache: %s", err)
+	}
+
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+	tus.LoadSensor(t, base.GetInitialSensor())
+	tus.LoadSensor(t, testsensor.GetTestSensor())
+	sm := tus.GetTestSensorManager(ctx, t)
+
+	testSymlink := testutils.RepoRootPath("contrib/tester-progs/symlink-tester")
+	dentryTracingPolicy := tracingpolicy.GenericTracingPolicy{
+		Metadata: v1.ObjectMeta{
+			Name: "dentry-extract-path",
+		},
+		Spec: v1alpha1.TracingPolicySpec{
+			Options: []v1alpha1.OptionSpec{
+				{
+					Name:  "disable-kprobe-multi",
+					Value: "1",
+				},
+			},
+			KProbes: []v1alpha1.KProbeSpec{
+				{
+					Call:    "security_inode_follow_link",
+					Syscall: false,
+					Return:  false,
+					Args: []v1alpha1.KProbeArg{
+						{
+							Index: 0,
+							Type:  "dentry",
+						},
+					},
+					Selectors: []v1alpha1.KProbeSelector{
+						{
+							MatchBinaries: []v1alpha1.BinarySelector{
+								{
+									Operator: "In",
+									Values:   []string{testSymlink},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	err := sm.Manager.AddTracingPolicy(ctx, &dentryTracingPolicy)
+	assert.NoError(t, err)
+
+	command := exec.Command(testSymlink)
+
+	ops := func() {
+		err = command.Start()
+		assert.NoError(t, err)
+	}
+
+	events := perfring.RunTestEvents(t, ctx, ops)
+
+	for _, ev := range events {
+		if kprobe, ok := ev.(*tracing.MsgGenericKprobeUnix); ok {
+			if int(kprobe.Msg.ProcessKey.Pid) == command.Process.Pid && kprobe.FuncName == "security_inode_follow_link" {
+				return
+			}
+		}
+	}
+	t.Error("dentry error")
 }
 
 func TestLinuxBinprmExtractPath(t *testing.T) {
