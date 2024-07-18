@@ -370,6 +370,10 @@ message KprobeCred {
     repeated CapabilitiesType inheritable = 3;
 }
 
+message KprobeDentry {
+    string name = 1;
+}
+
 message KprobeLinuxBinprm {
     string path = 1;
     string flags = 2;
@@ -444,6 +448,8 @@ message KprobeArgument {
 	KprobeNetDev net_dev_arg = 27;
 	BpfCmd bpf_cmd_arg = 28;
 	SyscallId syscall_id = 29;
+	KprobeDentry dentry_arg = 30;
+
     }
     string label = 18;
 }

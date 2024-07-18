@@ -57,6 +57,8 @@ const (
 
 	GenericNetDev = 39
 
+	GenericDentryType = 40
+
 	GenericNopType     = -1
 	GenericInvalidType = -2
 )
@@ -113,6 +115,7 @@ var GenericStringToType = map[string]int{
 	"linux_binprm":    GenericLinuxBinprmType,
 	"data_loc":        GenericDataLoc,
 	"net_device":      GenericNetDev,
+	"dentry":          GenericDentryType,
 }
 
 var GenericTypeToStringTable = map[int]string{
@@ -155,6 +158,7 @@ var GenericTypeToStringTable = map[int]string{
 	GenericLinuxBinprmType: "linux_binprm",
 	GenericDataLoc:         "data_loc",
 	GenericNetDev:          "net_device",
+	GenericDentryType:      "dentry",
 	GenericInvalidType:     "",
 }
 
