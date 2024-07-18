@@ -365,6 +365,10 @@ message KprobeCred {
     repeated CapabilitiesType inheritable = 3;
 }
 
+message KprobeDentry {
+    string name = 1;
+}
+
 message KprobeLinuxBinprm {
     string path = 1;
     string flags = 2;
@@ -432,6 +436,8 @@ message KprobeArgument {
 	string cap_effective_arg = 25; // Capabilities that are actually used in hexadecimal format.
 	KprobeLinuxBinprm linux_binprm_arg = 26;
 	KprobeNetDev net_dev_arg = 27;
+	KprobeDentry dentry_arg = 28;
+
     }
     string label = 18;
 }
