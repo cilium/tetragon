@@ -71,6 +71,7 @@ const (
 	stackTraceMapMaxEntries = 32768
 	ratelimitMapMaxEntries  = 32768
 	fdInstallMapMaxEntries  = 32000
+	overrideMapMaxEntries   = 32768
 )
 
 func kprobeCharBufErrorToString(e int32) string {
@@ -225,6 +226,7 @@ func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.
 
 	oneKprobeHasStackTrace := false
 	oneKprobeHasRatelimit := false
+	oneKprobeHasOverride := false
 	for _, id := range multiIDs {
 		gk, err := genericKprobeTableGet(id)
 		if err != nil {
@@ -233,6 +235,7 @@ func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.
 		}
 		oneKprobeHasStackTrace = oneKprobeHasStackTrace || gk.hasStackTrace
 		oneKprobeHasRatelimit = oneKprobeHasRatelimit || gk.hasRatelimit
+		oneKprobeHasOverride = oneKprobeHasOverride || gk.hasOverride
 	}
 
 	loadProgName := "bpf_multi_kprobe_v53.o"
@@ -332,6 +335,12 @@ func createMultiKprobeSensor(sensorPath string, multiIDs, multiRetIDs []idtable.
 
 	filterMap.SetMaxEntries(len(multiIDs))
 	configMap.SetMaxEntries(len(multiIDs))
+
+	overrideTasksMap := program.MapBuilderPin("override_tasks", sensors.PathJoin(pinPath, "override_tasks"), load)
+	if oneKprobeHasOverride {
+		overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
+	}
+	maps = append(maps, overrideTasksMap)
 
 	if len(multiRetIDs) != 0 {
 		loadret := program.Builder(
@@ -1000,6 +1009,12 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn, selMaps
 		}
 		out.maps = append(out.maps, ratelimitMap)
 	}
+
+	overrideTasksMap := program.MapBuilderPin("override_tasks", sensors.PathJoin(pinPath, "override_tasks"), load)
+	if kprobeEntry.hasOverride {
+		overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
+	}
+	out.maps = append(out.maps, overrideTasksMap)
 
 	if setRetprobe {
 		pinRetProg := sensors.PathJoin(pinPath, fmt.Sprintf("%s_ret_prog", kprobeEntry.funcName))
