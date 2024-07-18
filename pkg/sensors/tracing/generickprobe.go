@@ -555,6 +555,8 @@ type hasMaps struct {
 	enforcer   bool
 }
 
+// hasMapsSetup setups the has maps for the per policy maps. The per kprobe maps
+// are setup later in createSingleKprobeSensor or createMultiKprobeSensor.
 func hasMapsSetup(spec *v1alpha1.TracingPolicySpec) hasMaps {
 	has := hasMaps{}
 	for _, kprobe := range spec.KProbes {
