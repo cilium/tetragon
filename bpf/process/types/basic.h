@@ -1636,7 +1636,13 @@ FUNC_INLINE int match_binaries(__u32 selidx)
 			if (!postfix_key)
 				return 0;
 			postfix_key->prefixlen = postfix_len * 8; // prefixlen is in bits
-			file_copy_reverse(postfix_key->data, postfix_len, (__u8 *)current->bin.path, current->bin.path_length - postfix_len);
+			if (!current->bin.reversed) {
+				file_copy_reverse((__u8 *)current->bin.end_r, postfix_len, (__u8 *)current->bin.path, current->bin.path_length - postfix_len);
+				current->bin.reversed = true;
+			}
+			ret = probe_read(postfix_key->data, postfix_len & (STRING_POSTFIX_MAX_LENGTH - 1), current->bin.end_r);
+			if (ret < 0)
+				return 0;
 			found_key = map_lookup_elem(path_map, postfix_key);
 			break;
 #endif /* __LARGE_BPF_PROG */
