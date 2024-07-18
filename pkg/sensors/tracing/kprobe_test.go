@@ -5842,15 +5842,13 @@ spec:
 	// Generate 5 datagrams
 	socket, err := net.Dial("udp", "127.0.0.1:9468")
 	if err != nil {
-		fmt.Printf("ERROR dialing socket\n")
-		t.Fatal(err)
+		t.Fatalf("failed dialing socket: %s", err)
 	}
 
 	for i := 0; i < 5; i++ {
 		_, err := socket.Write([]byte("data"))
 		if err != nil {
-			fmt.Printf("ERROR writing to socket\n")
-			t.Fatal(err)
+			t.Fatalf("failed writing to socket: %s", err)
 		}
 	}
 
