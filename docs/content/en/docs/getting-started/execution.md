@@ -37,32 +37,27 @@ events.
 {{% /tab %}}
 {{% tab "Kubernetes (multiple nodes)" %}}
 
-In a cluster with multiple nodes, you will first need to find the node where
-the workload is running. This command shows the node where the "xwing" Pod is
-running.
+In a cluster with multiple nodes, you will need to ensure that the Tetragon Pod
+you use is located on the same node as the "xwing" Pod, so that it can capture
+the execution events.
+
+You can use this command to get the name of the Tetragon Pod that is on the same
+Kubernetes node as the "xwing" Pod:
 
 ```shell
-kubectl get pod xwing -o jsonpath='{.spec.nodeName}'
-```
-
-Next, you will need to find the Tetragon Pod on the same node. This command
-returns a list of Tetragon Pods and the name of the Kubernetes node on which
-they are running.
-
-```shell
-kubectl -n kube-system get pods -o custom-columns=NAME:.metadata.name,NODE:.spec.nodeName | grep <name-of-node-with-workload>
+POD=$(kubectl -n kubesystem get pods -l 'app.kubernetes.io/name=tetragon' -o name --field-selector spec.nodeName=$(kubectl get pod xwing -o jsonpath='{.spec.nodeName}'))
 ```
 
 Once you have the identified the matching Pod, then target it with a `kubectl
 exec` to run the `tetra getevents` command.
 
 ```shell
-kubectl exec -ti -n kube-system po/<tetragon-pod-name> -c tetragon -- tetra getevents -o compact --pods xwing
+kubectl exec -ti -n kube-system $POD -c tetragon -- tetra getevents -o compact --pods xwing
 ```
 
 Because the Tetragon Pod where you are running `tetra getevents` in on the same
-Pod as the "xwing" Pod, the command will return the execution events captured by
-Tetragon.
+node as the "xwing" Pod, the command will return the execution events captured
+by Tetragon.
 
 {{% /tab %}}
 {{% tab Docker %}}
