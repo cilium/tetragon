@@ -31,6 +31,7 @@ import (
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/option"
 	proc "github.com/cilium/tetragon/pkg/process"
+	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
@@ -257,9 +258,14 @@ func TestEventExecve(t *testing.T) {
 
 	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
 
+	myCaps := ec.NewCapabilitiesChecker().FromCapabilities(caps.GetCurrentCapabilities())
+	myNs := ec.NewNamespacesChecker().FromNamespaces(namespace.GetCurrentNamespace())
+
 	procChecker := ec.NewProcessChecker().
 		WithBinary(sm.Full(testNop)).
-		WithArguments(sm.Full("arg1 arg2 arg3"))
+		WithArguments(sm.Full("arg1 arg2 arg3")).
+		WithCap(myCaps).
+		WithNs(myNs)
 
 	execChecker := ec.NewProcessExecChecker("").WithProcess(procChecker)
 	checker := ec.NewUnorderedEventChecker(execChecker)
@@ -873,6 +879,9 @@ func TestExecProcessCredentials(t *testing.T) {
 
 	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
 
+	myCaps := ec.NewCapabilitiesChecker().FromCapabilities(caps.GetCurrentCapabilities())
+	myNs := ec.NewNamespacesChecker().FromNamespaces(namespace.GetCurrentNamespace())
+
 	if err := exec.Command(testNop).Run(); err != nil {
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
@@ -895,10 +904,14 @@ func TestExecProcessCredentials(t *testing.T) {
 		WithGid(0).WithEgid(gid).WithSgid(gid).WithFsgid(gid)
 
 	procExecChecker := ec.NewProcessChecker().
-		WithBinary(sm.Full(testNop)).WithProcessCredentials(creds).WithBinaryProperties(nil)
+		WithBinary(sm.Full(testNop)).WithProcessCredentials(creds).WithBinaryProperties(nil).
+		WithCap(myCaps).
+		WithNs(myNs)
 
 	procGidExecChecker := ec.NewProcessChecker().
-		WithBinary(sm.Full(testNop)).WithProcessCredentials(gidCreds).WithBinaryProperties(nil)
+		WithBinary(sm.Full(testNop)).WithProcessCredentials(gidCreds).WithBinaryProperties(nil).
+		WithCap(myCaps).
+		WithNs(myNs)
 
 	execChecker := ec.NewProcessExecChecker("exec").WithProcess(procExecChecker)
 	execGidChecker := ec.NewProcessExecChecker("exec").WithProcess(procGidExecChecker)
