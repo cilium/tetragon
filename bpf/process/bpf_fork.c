@@ -47,6 +47,17 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 		curr->binary = parent->binary;
 		curr->pkey = parent->key;
 
+		/* Store the thread leader capabilities so we can check later
+		 * before the execve hook point if they changed or not.
+		 * This needs to be converted later to credentials.
+		 */
+		get_current_subj_caps(&curr->caps, task);
+
+		/* Store the thread leader namespaces so we can check later
+		 * before the execve hook point if they changed or not.
+		 */
+		get_namespaces(&curr->ns, task);
+
 		u64 size = sizeof(struct msg_clone_event);
 		struct msg_clone_event msg = {
 			.common.op = MSG_OP_CLONE,
