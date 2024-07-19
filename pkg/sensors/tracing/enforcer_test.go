@@ -296,7 +296,7 @@ func testSecurity(t *testing.T, tracingPolicy, tempFile string) {
 	}
 }
 
-func enforcerSecurityTempFile(t *testing.T) string {
+func directWriteTempFile(t *testing.T) string {
 	// We can't use t.TempDir as it writes into /tmp by default.
 	// The direct-write-tester.c program opens and writes using the O_DIRECT
 	// flag that is unsupported and return EINVAL on tmpfs, while it works on a
@@ -341,7 +341,7 @@ func TestEnforcerSecuritySigKill(t *testing.T) {
 		t.Skip("Older kernels do not support matchArgs for more than one arguments")
 	}
 
-	tempFile := enforcerSecurityTempFile(t)
+	tempFile := directWriteTempFile(t)
 
 	tracingPolicy := `
 apiVersion: cilium.io/v1alpha1
@@ -428,7 +428,7 @@ func TestEnforcerSecurityNotifyEnforcer(t *testing.T) {
 		t.Skip("Older kernels do not support matchArgs for more than one arguments")
 	}
 
-	tempFile := enforcerSecurityTempFile(t)
+	tempFile := directWriteTempFile(t)
 
 	tracingPolicy := `
 apiVersion: cilium.io/v1alpha1
