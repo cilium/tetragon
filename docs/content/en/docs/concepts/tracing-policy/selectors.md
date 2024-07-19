@@ -158,9 +158,17 @@ calls and kernel functions that are coming from `cat` or `tail`.
     - "/usr/bin/tail"
 ```
 
-Currently, only the `In` operator type is supported and the `values` field has
-to be a map of `strings`. The default behaviour is `followForks: true`, so all
-the child processes are followed. The current limitation is 4 values.
+The available operators for `matchBinaries` are:
+- `In`
+- `NotIn`
+- `Prefix`
+- `NotPrefix`
+- `Postfix`
+- `NotPostfix`
+
+The `values` field has to be a map of `strings`. The default behaviour
+is `followForks: true`, so all the child processes are followed.
+The current limitation is 4 values.
 
 **Further examples**
 
