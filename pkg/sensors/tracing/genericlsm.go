@@ -48,11 +48,10 @@ var (
 )
 
 type genericLsm struct {
-	tableId       idtable.EntryID
-	pinPathPrefix string
-	config        *api.EventConfig
-	hook          string
-	selectors     *selectors.KernelSelectorState
+	tableId   idtable.EntryID
+	config    *api.EventConfig
+	hook      string
+	selectors *selectors.KernelSelectorState
 	// policyName is the name of the policy that this uprobe belongs to
 	policyName string
 	// message field of the Tracing Policy
@@ -272,8 +271,6 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 	genericLsmTable.AddEntry(&lsmEntry)
 	config.FuncId = uint32(lsmEntry.tableId.ID)
 
-	lsmEntry.pinPathPrefix = sensors.PathJoin(in.sensorPath, fmt.Sprintf("glsm-%d", lsmEntry.tableId.ID))
-
 	logger.GetLogger().
 		WithField("hook", lsmEntry.hook).
 		Infof("Added lsm Hook")
@@ -355,14 +352,11 @@ func createLsmSensorFromEntry(lsmEntry *genericLsm,
 		loadProgName = "bpf_generic_lsm_v511.o"
 	}
 
-	pinPath := lsmEntry.pinPathPrefix
-	pinProg := sensors.PathJoin(pinPath, fmt.Sprintf("%s_prog", lsmEntry.hook))
-
 	load := program.Builder(
 		path.Join(option.Config.HubbleLib, loadProgName),
 		lsmEntry.hook,
 		"lsm/generic_lsm",
-		pinProg,
+		lsmEntry.hook,
 		"generic_lsm").
 		SetLoaderData(lsmEntry.tableId)
 	progs = append(progs, load)
