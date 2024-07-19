@@ -78,6 +78,7 @@ func TestMaxEntries(t *testing.T) {
 			{"enforcer_data", 1},
 			{"stack_trace_map", 1},
 			{"ratelimit_map", 1},
+			{"override_tasks", 1},
 		}, `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -96,6 +97,7 @@ spec:
 			{"enforcer_data", 1},
 			{"stack_trace_map", 1},
 			{"ratelimit_map", 1},
+			{"override_tasks", 1},
 		}, `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -129,6 +131,7 @@ spec:
 			{"enforcer_data", 1},
 			{"stack_trace_map", stackTraceMapMaxEntries},
 			{"ratelimit_map", 1},
+			{"override_tasks", 1},
 		}, `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -152,6 +155,7 @@ spec:
 			{"enforcer_data", 1},
 			{"stack_trace_map", 1},
 			{"ratelimit_map", ratelimitMapMaxEntries},
+			{"override_tasks", 1},
 		}, `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -189,6 +193,7 @@ spec:
 			{"enforcer_data", enforcerMapMaxEntries},
 			{"stack_trace_map", 1},
 			{"ratelimit_map", 1},
+			{"override_tasks", 1},
 		}, `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -223,6 +228,41 @@ spec:
       - action: "NotifyEnforcer"
         argError: -1
         argSig: 9
+`)
+	})
+
+	t.Run("override_tasks", func(t *testing.T) {
+		if !bpf.HasOverrideHelper() {
+			t.Skip("skipping test, neither bpf_override_return nor fmod_ret for syscalls is available")
+		}
+
+		run(t, []testMap{
+			{"fdinstall_map", 1},
+			{"enforcer_data", 1},
+			{"stack_trace_map", 1},
+			{"ratelimit_map", 1},
+			{"override_tasks", overrideMapMaxEntries},
+		}, `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "override-example"
+spec:
+  kprobes:
+  - call: "sys_symlinkat"
+    syscall: true
+    args:
+    - index: 0
+      type: "string"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "/etc/passwd"
+      matchActions:
+      - action: Override
+        argError: -1
 `)
 	})
 }
