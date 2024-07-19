@@ -3867,7 +3867,7 @@ func matchBinariesTest(t *testing.T, operator string, values []string, kpChecker
 	assert.NoError(t, err)
 }
 
-const skipMatchBinariesPrefix = "kernels without large progs do not support matchBinaries Prefix/NotPrefix"
+const skipMatchBinaries = "kernels without large progs do not support matchBinaries Prefix/NotPrefix/Postfix/NotPostfix"
 
 func TestKprobeMatchBinaries(t *testing.T) {
 	t.Run("In", func(t *testing.T) {
@@ -3878,15 +3878,27 @@ func TestKprobeMatchBinaries(t *testing.T) {
 	})
 	t.Run("Prefix", func(t *testing.T) {
 		if !kernels.EnableLargeProgs() {
-			t.Skip(skipMatchBinariesPrefix)
+			t.Skip(skipMatchBinaries)
 		}
 		matchBinariesTest(t, "Prefix", []string{"/usr/bin/t"}, createBinariesChecker("/usr/bin/tail", "/etc/passwd"))
 	})
 	t.Run("NotPrefix", func(t *testing.T) {
 		if !kernels.EnableLargeProgs() {
-			t.Skip(skipMatchBinariesPrefix)
+			t.Skip(skipMatchBinaries)
 		}
 		matchBinariesTest(t, "NotPrefix", []string{"/usr/bin/t"}, createBinariesChecker("/usr/bin/head", "/etc/passwd"))
+	})
+	t.Run("Postfix", func(t *testing.T) {
+		if !kernels.EnableLargeProgs() {
+			t.Skip(skipMatchBinaries)
+		}
+		matchBinariesTest(t, "Postfix", []string{"bin/tail"}, createBinariesChecker("/usr/bin/tail", "/etc/passwd"))
+	})
+	t.Run("NotPostfix", func(t *testing.T) {
+		if !kernels.EnableLargeProgs() {
+			t.Skip(skipMatchBinaries)
+		}
+		matchBinariesTest(t, "NotPostfix", []string{"bin/tail"}, createBinariesChecker("/usr/bin/head", "/etc/passwd"))
 	})
 }
 
@@ -4024,9 +4036,15 @@ func TestKprobeMatchBinariesPerfring(t *testing.T) {
 	})
 	t.Run("Prefix", func(t *testing.T) {
 		if !kernels.EnableLargeProgs() {
-			t.Skip(skipMatchBinariesPrefix)
+			t.Skip(skipMatchBinaries)
 		}
 		matchBinariesPerfringTest(t, "Prefix", []string{"/usr/bin/t"})
+	})
+	t.Run("Postfix", func(t *testing.T) {
+		if !kernels.EnableLargeProgs() {
+			t.Skip(skipMatchBinaries)
+		}
+		matchBinariesPerfringTest(t, "Postfix", []string{"tail"})
 	})
 }
 
@@ -4106,7 +4124,7 @@ func TestKprobeMatchBinariesEarlyExec(t *testing.T) {
 // of its machinery.
 func TestKprobeMatchBinariesPrefixMatchArgs(t *testing.T) {
 	if !kernels.EnableLargeProgs() {
-		t.Skip(skipMatchBinariesPrefix)
+		t.Skip(skipMatchBinaries)
 	}
 
 	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
