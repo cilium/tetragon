@@ -23,3 +23,14 @@ ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF ."
 
 [build.environment]
 HUGO_VERSION = "0.126.2"
+
+# Hugo has "enableRobotsTXT" to false on the development environment. Here
+# making sure that even the "main" deployment on Netlify (so far available at
+# "https://tetragon.netlify.app/"), includes noindex, nofollow. Only the
+# deployment on GitHub pages should build with the production environment and
+# enable robots.txt.
+[[header]]
+for = "/"
+[headers.values]
+X-Robots-Tag = "noindex, nofollow"
+
