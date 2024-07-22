@@ -189,7 +189,7 @@ func handleExecve(r *bytes.Reader) ([]observer.Event, error) {
 		msgUnix.Unix.Process = nopMsgProcess()
 	}
 	if err == nil && !empty {
-		err = userinfo.MsgToExecveAccountUnix(msgUnix)
+		err = userinfo.MsgToExecveAccountUnix(msgUnix.Unix)
 		if err != nil {
 			logger.GetLogger().WithFields(logrus.Fields{
 				"process.pid":    msgUnix.Unix.Process.PID,

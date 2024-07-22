@@ -281,7 +281,7 @@ func pushExecveEvents(p procs) {
 		m.Unix.Process.Filename = filename
 		m.Unix.Process.Args = args
 
-		err := userinfo.MsgToExecveAccountUnix(&m)
+		err := userinfo.MsgToExecveAccountUnix(m.Unix)
 		if err != nil {
 			logger.GetLogger().WithFields(logrus.Fields{
 				"process.pid":    p.pid,
