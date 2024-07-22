@@ -39,6 +39,8 @@ jobs:
           sed -i "s#/cilium/tetragon/raw/main#/$REPO/raw/$BRANCH#g" $PATCH_FILE
           sed -i "s#/cilium/tetragon/main#/$REPO/$BRANCH#g" $PATCH_FILE
 
+          cat $PATCH_FILE
+
       - name: Serve the Hugo website
         working-directory: docs
         run: hugo server &
