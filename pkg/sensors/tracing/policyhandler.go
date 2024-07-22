@@ -27,8 +27,19 @@ func (h policyHandler) PolicyHandler(
 
 	policyName := policy.TpName()
 	spec := policy.TpSpec()
-	if len(spec.KProbes) > 0 && len(spec.Tracepoints) > 0 {
-		return nil, errors.New("tracing policies with both kprobes and tracepoints are not currently supported")
+
+	sections := 0
+	if len(spec.KProbes) > 0 {
+		sections++
+	}
+	if len(spec.Tracepoints) > 0 {
+		sections++
+	}
+	if len(spec.LsmHooks) > 0 {
+		sections++
+	}
+	if sections > 1 {
+		return nil, errors.New("tracing policies with multiple sections of kprobes, tracepoints, or lsm hooks are currently not supported")
 	}
 
 	handler := eventhandler.GetCustomEventhandler(policy)
