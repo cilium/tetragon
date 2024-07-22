@@ -1,6 +1,11 @@
+{{/* There are two protections to avoid to ship analytics in development env,
+analytics HTML scripts are included only on production build and we use
+goatcounter.no_onload if the URL is not tetragon.io */}}
+{{ if hugo.IsProduction }}
 <script>
     if (window.location.host !== 'tetragon.io')
         window.goatcounter = {no_onload: true}
 </script>
 <script data-goatcounter="https://tetragon.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
+{{ end }}
