@@ -7,7 +7,7 @@
 [build]
 base = "/docs"
 publish = "public"
-command = "npm ci && hugo"
+command = "npm ci && hugo --environment development"
 # The ignore command is used by Netlify deploy bot to filter if the PR should
 # be previewed or not, and generally if the website should be built or not.
 #
