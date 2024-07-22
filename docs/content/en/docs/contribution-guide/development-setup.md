@@ -13,6 +13,7 @@ For local development, you will likely want to build and run bare-metal Tetragon
 - A Go toolchain with the [version specified in the main `go.mod`](https://github.com/cilium/tetragon/blob/main/go.mod#L4);
 - GNU make;
 - A running Docker service (you can use Podman as well);
+- The [docker-buildx-plugin](https://github.com/docker/buildx?tab=readme-ov-file#linux-packages) (you may already have this);
 - For building tests, `libcap` and `libelf` (in Debian systems, e.g., install
   `libelf-dev` and `libcap-dev`).
 
