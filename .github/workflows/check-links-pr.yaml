@@ -36,6 +36,7 @@ jobs:
 
           sed -i "s#/cilium/tetragon/tree/main#/$REPO/tree/$BRANCH#g" $PATCH_FILE
           sed -i "s#/cilium/tetragon/blob/main#/$REPO/blob/$BRANCH#g" $PATCH_FILE
+          sed -i "s#/cilium/tetragon/raw/main#/$REPO/raw/$BRANCH#g" $PATCH_FILE
           sed -i "s#/cilium/tetragon/main#/$REPO/$BRANCH#g" $PATCH_FILE
 
       - name: Serve the Hugo website
