@@ -23,3 +23,9 @@ ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF ."
 
 [build.environment]
 HUGO_VERSION = "0.126.2"
+
+[[header]]
+for = "/"
+[headers.values]
+X-Robots-Tag = "none"
+
