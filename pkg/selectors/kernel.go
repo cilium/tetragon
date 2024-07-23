@@ -16,6 +16,7 @@ import (
 	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/pkg/mbset"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/reader/network"
 )
@@ -1181,6 +1182,16 @@ func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx
 	// prepare the selector options
 	sel := MatchBinariesSelectorOptions{}
 	sel.Op = op
+	sel.MBSetID = mbset.InvalidID
+	if b.FollowChildren {
+		if op != SelectorOpIn {
+			return fmt.Errorf("matchBinary: followChildren not yet implemented for operation '%s'", b.Operator)
+		}
+		sel.MBSetID, err = mbset.AllocID()
+		if err != nil {
+			return fmt.Errorf("matchBinary followChildren: failed to allocate ID: %w", err)
+		}
+	}
 
 	switch op {
 	case SelectorOpIn, SelectorOpNotIn:

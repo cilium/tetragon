@@ -96,6 +96,8 @@ type KernelSelectorMaps struct {
 type MatchBinariesSelectorOptions struct {
 	Op    uint32
 	MapID uint32
+	// matchBinaries set for the selector
+	MBSetID uint32
 }
 
 type KernelSelectorData struct {

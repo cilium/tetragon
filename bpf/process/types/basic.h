@@ -1520,6 +1520,7 @@ FUNC_INLINE size_t type_to_min_size(int type, int argm)
 struct match_binaries_sel_opts {
 	__u32 op;
 	__u32 map_id;
+	__u32 mbset_id;
 };
 
 // This map is used by the matchBinaries selectors to retrieve their options
