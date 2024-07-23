@@ -543,17 +543,10 @@ func MultiKprobeAttach(load *Program, bpfDir string) AttachFunc {
 }
 
 func LoadTracepointProgram(bpfDir string, load *Program, verbose int) error {
-	var tc tailCall
-	for mName, m := range load.PinMap {
-		if mName == "tp_calls" || mName == "execve_calls" {
-			tc = tailCall{m, "tracepoint"}
-			break
-		}
-	}
 	opts := &LoadOpts{
 		Attach:   TracepointAttach(load, bpfDir),
-		TcMap:    tc.m,
-		TcPrefix: tc.prefix,
+		TcMap:    load.TcMap,
+		TcPrefix: load.TcPrefix,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }

@@ -91,7 +91,11 @@ var (
 	sensorTestInit sync.Once
 )
 
-func setupExitProgram() {
+func setupPrograms() {
+	// execve program tail calls details
+	Execve.SetTailCall("tracepoint", ExecveTailCallsMap)
+
+	// exit program function
 	ks, err := ksyms.KernelSymbols()
 	if err == nil {
 		has_acct_process := ks.IsAvailable("acct_process")
@@ -157,7 +161,7 @@ func GetDefaultMaps(cgroupRate bool) []*program.Map {
 // GetInitialSensor returns the base sensor
 func GetInitialSensor() *sensors.Sensor {
 	sensorInit.Do(func() {
-		setupExitProgram()
+		setupPrograms()
 		sensor.Progs = GetDefaultPrograms(option.CgroupRateEnabled())
 		sensor.Maps = GetDefaultMaps(option.CgroupRateEnabled())
 	})
@@ -166,7 +170,7 @@ func GetInitialSensor() *sensors.Sensor {
 
 func GetInitialSensorTest() *sensors.Sensor {
 	sensorTestInit.Do(func() {
-		setupExitProgram()
+		setupPrograms()
 		sensorTest.Progs = GetDefaultPrograms(true)
 		sensorTest.Maps = GetDefaultMaps(true)
 	})
