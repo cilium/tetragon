@@ -1530,8 +1530,6 @@ struct {
 	__type(value, struct match_binaries_sel_opts);
 } tg_mb_sel_opts SEC(".maps");
 
-#define MATCH_BINARIES_PATH_MAX_LENGTH 256
-
 struct {
 	__uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
 	__uint(max_entries, MAX_SELECTORS); // only one matchBinaries per selector

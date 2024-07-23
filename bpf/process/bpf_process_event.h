@@ -11,7 +11,8 @@
 
 #define ENAMETOOLONG 36 /* File name too long */
 
-#define MAX_BUF_LEN 256
+#define MATCH_BINARIES_PATH_MAX_LENGTH 256
+#define MAX_BUF_LEN		       256
 
 struct buffer_heap_map_value {
 	// Buffer is twice the needed size because of the verifier. In prepend_name
