@@ -195,7 +195,7 @@ github.com/cilium/cilium/pkg/u8proto
 github.com/cilium/cilium/pkg/version
 github.com/cilium/cilium/pkg/versioncheck
 github.com/cilium/cilium/pkg/wireguard/types
-# github.com/cilium/ebpf v0.15.1-0.20240723115216-b689d288f907
+# github.com/cilium/ebpf v0.15.1-0.20240723161354-061e86d8f5e9
 ## explicit; go 1.21
 github.com/cilium/ebpf
 github.com/cilium/ebpf/asm
