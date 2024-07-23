@@ -3886,6 +3886,48 @@ func TestKprobeMatchBinaries(t *testing.T) {
 	})
 }
 
+func TestKprobeMatchBinariesPrefixLargePath(t *testing.T) {
+	if !kernels.EnableLargeProgs() {
+		t.Skip()
+	}
+	repoBinPath := testutils.RepoRootPath("contrib/tester-progs/nop")
+	tmpDir := t.TempDir()
+
+	tmpDirLarge := tmpDir + "/" + strings.Repeat("a", 250)
+	err := os.Mkdir(tmpDirLarge, 0755)
+	assert.NoError(t, err)
+
+	tmpBinaryPath := tmpDirLarge + "/nop"
+
+	err = exec.Command("cp", repoBinPath, tmpBinaryPath).Run()
+	assert.NoError(t, err)
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	createCrdFile(t, getMatchBinariesCrd("Prefix", []string{tmpDir}))
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	if err := exec.Command(tmpBinaryPath).Run(); err != nil {
+		t.Fatalf("failed to run nop: %s", err)
+	}
+
+	checker := ec.NewUnorderedEventChecker(ec.NewProcessKprobeChecker("").
+		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(tmpBinaryPath))).
+		WithFunctionName(sm.Full("fd_install")))
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
 // matchBinariesPerfringTest checks that the matchBinaries do correctly
 // filter the events i.e. it checks that no other events appear.
 func matchBinariesPerfringTest(t *testing.T, operator string, values []string) {
