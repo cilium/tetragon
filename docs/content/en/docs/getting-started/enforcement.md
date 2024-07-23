@@ -1,53 +1,56 @@
 ---
 title: "Policy Enforcement"
 weight: 6
-description: "Policy Enforcement"
+description: "Enforcing restrictions with Tetragon"
 ---
 
-This adds a network and file policy enforcement on top of execution, file tracing
-and networking policy already deployed in the quick start.  In this use case we use
-a namespace filter to limit the scope of the enforcement policy to just the `default`
-namespace we installed the demo application in from the
-[Quick Kubernetes Install]({{< ref "docs/getting-started/install-k8s" >}}).
+Tetragon's tracing policies support monitoring kernel functions to report
+events, such as file access events or network connection events, as well as enforcing restrictions on those same kernel functions. Using in-kernel
+filtering in Tetragon provides a key performance improvement by limiting events
+from kernel to user space. In-kernel filtering
+also enables Tetragon to enforce policy restrictions at the kernel level. For
+example, by issuing a `SIGKILL` to a process when a policy violation is
+detected, the process will not continue to run. If the policy enforcement is
+triggered through a syscall this means the application will not return from the
+syscall and will be terminated.
 
-This highlights two important concepts of Tetragon. First in kernel filtering
-provides a key performance improvement by limiting events from kernel to user
-space. But, also allows for enforcing policies in the kernel. By issueing a
-`SIGKILL` to the process at this point the application will be stopped from
-continuing to run. If the operation is triggered through a syscall this means
-the application will not return from the syscall and will be terminated.
+In this section, you will add network and file policy enforcement on top of the
+Tetragon functionality (execution, file tracing, and network tracing policy)
+you've already deployed in this Getting Started guide. Specifically, you will:
 
-Second, by including kubernetes filters, such as namespace and labels we can
-segment a policy to apply to targeted namespaces and pods. This is critical
-for effective policy segmentation.
+* Apply a policy that restricts network traffic egressing a Kubernetes cluster
+* Apply a block write and read operations to sensitive files
 
-For implementation details see the [Enforcement]({{< ref "/docs/concepts/enforcement" >}})
+For specific implementation details refer to the [Enforcement]({{< ref "/docs/concepts/enforcement" >}})
 concept section.
 
-## Kubernetes Enforcement
+## Restricting network traffic on Kubernetes
 
-The following section is layed out with the following:
-- A guide to promote the network observation policy that observer all network
-  traffic egressing the cluster to enforce this policy.
-- A guide to promote the file access monitoring policy to block write and read
-  operations to sensitive files.
+In this use case you will use a Tetragon tracing policy to block TCP connections
+outside the Kubernetes cluster where Tetragon is running. The Tetragon policy is
+namespaced, limiting the scope of the enforcement policy to just the "default"
+namespace where you installed the demo application in the
+[Quick Kubernetes Install]({{< ref "docs/getting-started/install-k8s" >}}) section.
 
-### Block TCP Connect outside Cluster
+The policy you will use is very similar to the policy you used in the
+[Network Monitoring]({{< ref "docs/getting-started/network" >}}) section, but
+with enforcement enabled. Although this policy does not use them, Tetragon
+tracing policies support including Kubernetes filters, such as namespaces and
+labels, so you can limit a policy to targeted namespaces and Pods. This is
+critical for effective policy segmentation.
 
-First we will deploy the [Network Monitoring]({{< ref "docs/getting-started/network" >}})
-policy with enforcement on. For this case the policy is written to only apply
-against the `empire` namespace. This limits the scope of the policy for the
-getting started guide.
-
-Ensure we have the proper Pod CIDRs
+First, ensure you have the proper Pod CIDR captured for use later:
 
 ```shell
 export PODCIDR=`kubectl get nodes -o jsonpath='{.items[*].spec.podCIDR}'`
 ```
 
- and Service CIDRs configured.
+You will also need to capture the service CIDR for use in customizing the policy.
+When working with managed Kubernetes offerings (AKS, EKS, or GKE) you will need
+the environment variables used when you created the cluster.
 
 {{< tabpane lang=shell >}}
+
 {{< tab GKE >}}
 export SERVICECIDR=$(gcloud container clusters describe ${NAME} --zone ${ZONE} | awk '/servicesIpv4CidrBlock/ { print $2; }')
 {{< /tab >}}
@@ -55,40 +58,63 @@ export SERVICECIDR=$(gcloud container clusters describe ${NAME} --zone ${ZONE} |
 {{< tab Kind >}}
 export SERVICECIDR=$(kubectl describe pod -n kube-system kube-apiserver-kind-control-plane | awk -F= '/--service-cluster-ip-range/ {print $2; }')
 {{< /tab >}}
+
+{{< tab EKS >}}
+export SERVICECIDR=$(aws eks describe-cluster --name ${NAME} | jq -r '.cluster.kubernetesNetworkConfig.serviceIpv4Cidr')
+{{< /tab >}}
+
+{{< tab AKS >}}
+export SERVICECIDR=$(az aks show --name ${NAME} --resource-group ${AZURE_RESOURCE_GROUP} | jq -r '.networkProfile.serviceCidr)
+{{< /tab >}}
 {{< /tabpane >}}
 
-Then we can apply the egress cluster enforcement policy
+When you have captured the Pod CIDR and Service CIDR, then you can customize and
+apply the enforcement policy. (If you installed the demo application in a different
+namespace than the default namespace, adjust the `kubectl apply` command
+accordingly.)
 
 ```shell
 wget https://raw.githubusercontent.com/cilium/tetragon/main/examples/quickstart/network_egress_cluster_enforce.yaml
 envsubst < network_egress_cluster_enforce.yaml | kubectl apply -n default -f -
 ```
 
-With the enforcement policy applied we can attach tetra to observe events again:
+With the enforcement policy applied, run the `tetra getevents` command to observe
+events.
 
-```shell
+{{< tabpane lang=shell >}}
+{{< tab "Kubernetes (single node)" >}}
 kubectl exec -ti -n kube-system ds/tetragon -c tetragon -- tetra getevents -o compact --pods xwing
-```
+{{< /tab >}}
+{{< tab "Kubernetes (multiple nodes)" >}}
+POD=$(kubectl -n kubesystem get pods -l 'app.kubernetes.io/name=tetragon' -o name --field-selector spec.nodeName=$(kubectl get pod xwing -o jsonpath='{.spec.nodeName}'))
+kubectl exec -ti -n kube-system $POD -c tetragon -- tetra getevents -o compact --pods xwing
+{{< /tab >}}
+{{< /tabpane >}}
 
-And once again execute a curl command in the xwing:
+To generate an event that Tetragon will report, use `curl` to connect to a
+site outside the Kubernetes cluster:
 
 ```shell
 kubectl exec -ti xwing -- bash -c 'curl https://ebpf.io/applications/#tetragon'
 ```
 
-The command returns an error code because the egress TCP connects are blocked shown here.
+The command returns an error code because the egress TCP connects are blocked.
+The `tetra` CLI will print the `curl` and annotate that the process that was issued
+a `SIGKILL`.
+
 ```
 command terminated with exit code 137
 ```
 
-Connect inside the cluster will work as expected,
+Making network connections to destinations inside the cluster will work as expected:
 
 ```shell
 kubectl exec -ti xwing -- bash -c 'curl -s -XPOST deathstar.default.svc.cluster.local/v1/request-landing'
 ```
 
-The Tetra CLI will print the curl and annotate that the process that was issued
-a Sigkill. The successful internal connect is filtered and will not be shown.
+The successful internal connection is filtered and will not be shown. The
+`tetra getevents` output from the two `curl` commands should look something like
+this:
 
 ```
 🚀 process default/xwing /bin/bash -c "curl https://ebpf.io/applications/#tetragon"
@@ -99,49 +125,62 @@ a Sigkill. The successful internal connect is filtered and will not be shown.
 🚀 process default/xwing /usr/bin/curl -s -XPOST deathstar.default.svc.cluster.local/v1/request-landing
 ```
 
-### Enforce File Access Monitoring
+### Enforce file access restrictions
 
 The following extends the example from [File Access Monitoring]({{< ref "docs/getting-started/file-events" >}})
 with enforcement to ensure sensitive files are not read. The policy used is the
-[`file_monitoring_enforce.yaml`](https://github.com/cilium/tetragon/blob/main/examples/quickstart/file_monitoring_enforce.yaml)
-it can be reviewed and extended as needed. The only difference between the
+[`file_monitoring_enforce.yaml`](https://github.com/cilium/tetragon/blob/main/examples/quickstart/file_monitoring_enforce.yaml),
+which you can review and extend as needed. The only difference between the
 observation policy and the enforce policy is the addition of an action block
-to sigkill the application and return an error on the op.
+to `SIGKILL` the application and return an error on the operation.
 
 To apply the policy:
 
 {{< tabpane lang=shell >}}
 
-{{< tab Kubernetes >}}
+{{< tab "Kubernetes (single node)" >}}
+kubectl delete -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/quickstart/file_monitoring.yaml
+kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/quickstart/file_monitoring_enforce.yaml
+{{< /tab >}}
+{{< tab "Kubernetes (multiple nodes)" >}}
 kubectl delete -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/quickstart/file_monitoring.yaml
 kubectl apply -f https://raw.githubusercontent.com/cilium/tetragon/main/examples/quickstart/file_monitoring_enforce.yaml
 {{< /tab >}}
 {{< tab Docker >}}
 wget https://raw.githubusercontent.com/cilium/tetragon/main/examples/quickstart/file_monitoring_enforce.yaml
-docker stop tetragon-container
-docker run --name tetragon-container --rm --pull always \
+docker stop tetragon
+docker run --name tetragon --rm --pull always \
   --pid=host --cgroupns=host --privileged               \
   -v ${PWD}/file_monitoring_enforce.yaml:/etc/tetragon/tetragon.tp.d/file_monitoring_enforce.yaml \
   -v /sys/kernel/btf/vmlinux:/var/lib/tetragon/btf      \
-  quay.io/cilium/tetragon-ci:latest
+  quay.io/cilium/tetragon:latest
 {{< /tab >}}
 {{< /tabpane >}}
 
-With the file applied we can attach tetra to observe events again,
+With the policy applied, you can run `tetra getevents` to have Tetragon start
+outputting events to the terminal.
 
 {{< tabpane lang=shell >}}
-{{< tab Kubernetes >}}
+{{< tab "Kubernetes (single node)" >}}
 kubectl exec -ti -n kube-system ds/tetragon -c tetragon -- tetra getevents -o compact --pods xwing
 {{< /tab >}}
+{{< tab "Kubernetes (multiple nodes)" >}}
+POD=$(kubectl -n kubesystem get pods -l 'app.kubernetes.io/name=tetragon' -o name --field-selector spec.nodeName=$(kubectl get pod xwing -o jsonpath='{.spec.nodeName}'))
+kubectl exec -ti -n kube-system $POD -c tetragon -- tetra getevents -o compact --pods xwing
+{{< /tab >}}
 {{< tab Docker >}}
-docker exec tetragon-container tetra getevents -o compact
+docker exec -ti tetragon tetra getevents -o compact
 {{< /tab >}}
 {{< /tabpane >}}
 
-Then reading a sensitive file,
+Next, attempt to read a sensitive file (one of the files included in the defined
+policy):
 
 {{< tabpane lang=shell >}}
-{{< tab Kubernetes >}}
+{{< tab "Kubernetes (single node)" >}}
+kubectl exec -ti xwing -- bash -c 'cat /etc/shadow'
+{{< /tab >}}
+{{< tab "Kubernetes (multiple nodes)" >}}
 kubectl exec -ti xwing -- bash -c 'cat /etc/shadow'
 {{< /tab >}}
 {{< tab Docker >}}
@@ -149,7 +188,9 @@ cat /etc/shadow
 {{< /tab >}}
 {{< /tabpane >}}
 
-The command will fail with an error code because this is one of our sensitive files,
+Because the file is included in the policy, the command will fail with an error
+code.
+
 ```shell
 kubectl exec -ti xwing -- bash -c 'cat /etc/shadow'
 ```
@@ -160,7 +201,8 @@ The output should be similar to:
 command terminated with exit code 137
 ```
 
-This will generate a read event (Docker events will omit Kubernetes metadata),
+This will generate a read event (Docker events will not contain the Kubernetes
+metadata shown here).
 
 ```
 🚀 process default/xwing /bin/bash -c "cat /etc/shadow"
@@ -171,8 +213,8 @@ This will generate a read event (Docker events will omit Kubernetes metadata),
 💥 exit    default/xwing /bin/cat /etc/shadow SIGKILL
 ```
 
-Writes and reads to files not part of the enforced file policy will not be
-impacted.
+Attempts to read or write to files that are not part of the enforced file policy
+are not impacted.
 
 ```
 🚀 process default/xwing /bin/bash -c "echo foo >> bar; cat bar"
@@ -183,7 +225,7 @@ impacted.
 
 ## What's next
 
-The completes the quick start guides. At this point we should be able to
+The completes the Getting Started guide. At this point you should be able to
 observe execution traces in a Kubernetes cluster and extend the base deployment
 of Tetragon with policies to observe and enforce different aspects of a
 Kubernetes system.
@@ -191,6 +233,9 @@ Kubernetes system.
 The rest of the docs provide further documentation about installation and
 using policies. Some useful links:
 
-To explore details of writing and implementing policies the [Concepts]({{< ref "/docs/concepts" >}}) is a good jumping off point.
-For installation into production environments we recommend reviewing [Advanced Installations]({{< ref "docs/installation" >}}).
-Finally the [Use Cases]({{< ref "docs/use-cases" >}}) section covers different uses and deployment concerns related to Tetragon.
+* To explore details of writing and implementing policies the [Concepts]({{< ref "/docs/concepts" >}})
+is a good jumping off point.
+* For installation into production environments we recommend reviewing
+[Advanced Installations]({{< ref "docs/installation" >}}).
+* Finally the [Use Cases]({{< ref "docs/use-cases" >}}) section covers different
+uses and deployment concerns related to Tetragon.
