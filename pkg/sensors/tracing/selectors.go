@@ -10,6 +10,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/pkg/mbset"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
@@ -405,6 +406,7 @@ func populateMatchBinariesPathsMaps(
 	outerMap *ebpf.Map,
 ) error {
 	maxEntriesFromAllSelector := k.MatchBinariesPathsMaxEntries()
+	matchBinaries := k.MatchBinaries()
 	for selectorID, paths := range k.MatchBinariesPaths() {
 		maxEntries := len(paths)
 		// Versions before 5.9 do not allow inner maps to have different sizes.
@@ -440,6 +442,12 @@ func populateMatchBinariesPathsMaps(
 			return fmt.Errorf("failed to insert %s: %w", innerName, err)
 		}
 
+		mbSelector := matchBinaries[selectorID]
+		if mbSelector.MBSetID != mbset.InvalidID {
+			if err := mbset.UpdateMap(mbSelector.MBSetID, paths); err != nil {
+				return fmt.Errorf("updating mbset map failed: %w", err)
+			}
+		}
 	}
 	return nil
 }
