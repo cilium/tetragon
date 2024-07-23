@@ -1316,8 +1316,8 @@ Capability set to filter over. NOTE: you may specify only ONE set here.
 | process_tracepoint | [ProcessTracepoint](#tetragon-ProcessTracepoint) |  | ProcessTracepoint contains information about the pre-defined tracepoint and the process that invoked them. |
 | process_loader | [ProcessLoader](#tetragon-ProcessLoader) |  |  |
 | process_uprobe | [ProcessUprobe](#tetragon-ProcessUprobe) |  |  |
-| process_lsm | [ProcessLsm](#tetragon-ProcessLsm) |  |  |
 | process_throttle | [ProcessThrottle](#tetragon-ProcessThrottle) |  |  |
+| process_lsm | [ProcessLsm](#tetragon-ProcessLsm) |  |  |
 | test | [Test](#tetragon-Test) |  |  |
 | rate_limit_info | [RateLimitInfo](#tetragon-RateLimitInfo) |  |  |
 | node_name | [string](#string) |  | Name of the node where this event was observed. |
@@ -1394,10 +1394,10 @@ GetEventsResponse event oneof.
 | PROCESS_EXIT | 5 |  |
 | PROCESS_KPROBE | 9 |  |
 | PROCESS_TRACEPOINT | 10 |  |
-| PROCESS_LOADER | 11 |  |
-| PROCESS_UPROBE | 12 |  |
-| PROCESS_LSM | 13 |  |
+| PROCESS_LOADER | 18 |  |
+| PROCESS_UPROBE | 20 |  |
 | PROCESS_THROTTLE | 27 |  |
+| PROCESS_LSM | 5000 | newly added events start here |
 | TEST | 40000 |  |
 | RATE_LIMIT_INFO | 40001 |  |
 
