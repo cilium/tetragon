@@ -141,6 +141,7 @@ type MsgCapabilities struct {
 type Binary struct {
 	PathLength int64
 	Path       [BINARY_PATH_MAX_LEN]byte
+	MBSet      uint64
 }
 
 type MsgNamespaces struct {

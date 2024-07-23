@@ -305,6 +305,8 @@ struct msg_execve_event {
 #endif
 }; // All fields aligned so no 'packed' attribute.
 
+typedef __u64 mbset_t;
+
 // This structure stores the binary path that was recorded on execve.
 // Technically PATH_MAX is 4096 but we limit the length we store since we have
 // limits on the length of the string to compare:
@@ -318,6 +320,8 @@ struct binary {
 	__s64 path_length;
 	// BINARY_PATH_MAX_LEN first bytes of the path
 	char path[BINARY_PATH_MAX_LEN];
+	// matchBinary bitset for binary
+	mbset_t mb_bitset;
 }; // All fields aligned so no 'packed' attribute
 
 // The execve_map_value is tracked by the TGID of the thread group
