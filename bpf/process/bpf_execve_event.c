@@ -270,6 +270,9 @@ execve_send(void *ctx)
 {
 	struct msg_execve_event *event;
 	struct execve_map_value *curr;
+#ifdef __LARGE_BPF_PROG
+	struct execve_heap *heap;
+#endif
 	struct msg_process *p;
 	__u32 zero = 0;
 	uint64_t size;
@@ -329,10 +332,19 @@ execve_send(void *ctx)
 		memset(&curr->bin, 0, sizeof(curr->bin));
 #ifdef __LARGE_BPF_PROG
 		// read from proc exe stored at execve time
-		if (event->exe.len <= BINARY_PATH_MAX_LEN) {
+		if (event->exe.len <= BINARY_PATH_MAX_LEN && !event->exe.error) {
 			curr->bin.path_length = probe_read(curr->bin.path, event->exe.len, event->exe.off);
 			if (curr->bin.path_length == 0)
 				curr->bin.path_length = event->exe.len;
+		} else {
+			heap = map_lookup_elem(&execve_heap, &zero);
+			if (heap) {
+				curr->bin.path_length = probe_read_str(curr->bin.path, BINARY_PATH_MAX_LEN, &heap->maxpath);
+				if (curr->bin.path_length > 1) {
+					// don't include the NULL byte in the length
+					curr->bin.path_length--;
+				}
+			}
 		}
 #else
 		// reuse p->args first string that contains the filename, this can't be
