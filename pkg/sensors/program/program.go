@@ -116,6 +116,10 @@ type Program struct {
 
 	// Type information used for CO-RE relocations.
 	KernelTypes *btf.Spec
+
+	// Tail call prefix/map
+	TcPrefix string
+	TcMap    *Map
 }
 
 func (p *Program) SetRetProbe(ret bool) *Program {
@@ -130,6 +134,12 @@ func (p *Program) SetLoaderData(d interface{}) *Program {
 
 func (p *Program) SetAttachData(d interface{}) *Program {
 	p.AttachData = d
+	return p
+}
+
+func (p *Program) SetTailCall(prefix string, m *Map) *Program {
+	p.TcPrefix = prefix
+	p.TcMap = m
 	return p
 }
 
