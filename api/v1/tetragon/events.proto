@@ -17,16 +17,17 @@ import "google/protobuf/field_mask.proto";
 // NOTE: EventType constants must be in sync with the numbers used in the
 // GetEventsResponse event oneof.
 enum EventType {
-	UNDEF = 0;
-
+    UNDEF = 0;
     PROCESS_EXEC = 1;
     PROCESS_EXIT = 5;
     PROCESS_KPROBE = 9;
     PROCESS_TRACEPOINT = 10;
-    PROCESS_LOADER = 11;
-    PROCESS_UPROBE = 12;
-    PROCESS_LSM = 13;
+    PROCESS_LOADER = 18;
+    PROCESS_UPROBE = 20;
     PROCESS_THROTTLE = 27;
+
+    // newly added events start here
+    PROCESS_LSM = 5000;
 
     TEST = 40000;
     RATE_LIMIT_INFO = 40001;
@@ -184,10 +185,11 @@ message GetEventsResponse {
         // ProcessTracepoint contains information about the pre-defined
         // tracepoint and the process that invoked them.
         ProcessTracepoint process_tracepoint = 10;
-        ProcessLoader process_loader = 11;
-        ProcessUprobe process_uprobe = 12;
-        ProcessLsm process_lsm = 13;
+        ProcessLoader process_loader = 18;
+        ProcessUprobe process_uprobe = 20;
         ProcessThrottle process_throttle = 27;
+
+        ProcessLsm process_lsm = 5000;
 
         Test test = 40000;
         RateLimitInfo rate_limit_info = 40001;
