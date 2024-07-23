@@ -1578,6 +1578,14 @@ FUNC_INLINE int match_binaries(__u32 selidx)
 
 		switch (selector_options->op) {
 		case op_filter_in:
+			/* Check if we match the selector's bit in ->mb_bitset, which means that the
+			 * process matches a matchBinaries section with a followChidren:true
+			 * attribute either because the binary matches or because the binary of a
+			 * parent matched.
+			 */
+			if (current->bin.mb_bitset & (1UL << selector_options->mbset_id))
+				return 1;
+			fallthrough;
 		case op_filter_notin:
 			path_map = map_lookup_elem(&tg_mb_paths, &selidx);
 			if (!path_map)
