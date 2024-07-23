@@ -3890,6 +3890,55 @@ func TestKprobeMatchBinaries(t *testing.T) {
 	})
 }
 
+func TestKprobeMatchBinariesPrefixLargePath(t *testing.T) {
+	if !kernels.EnableLargeProgs() {
+		t.Skip()
+	}
+
+	// create a large temporary directory path
+	tmpDir := t.TempDir()
+	targetBinLargePath := tmpDir
+	// add (255 + 1) * 15 = 3840 chars to the path
+	// max is 4096 and we want to leave some space for the tmpdir + others
+	for range 15 {
+		targetBinLargePath += "/" + strings.Repeat("a", unix.NAME_MAX)
+	}
+	err := os.MkdirAll(targetBinLargePath, 0755)
+	require.NoError(t, err)
+
+	// copy the binary into it
+	targetBinLargePath += "/true"
+	fileExec, err := exec.LookPath("true")
+	require.NoError(t, err)
+	err = exec.Command("cp", fileExec, targetBinLargePath).Run()
+	require.NoError(t, err)
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	createCrdFile(t, getMatchBinariesCrd("Prefix", []string{tmpDir}))
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	if err := exec.Command(targetBinLargePath).Run(); err != nil {
+		t.Fatalf("failed to run true: %s", err)
+	}
+
+	checker := ec.NewUnorderedEventChecker(ec.NewProcessKprobeChecker("").
+		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(targetBinLargePath))).
+		WithFunctionName(sm.Full("fd_install")))
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
 // matchBinariesPerfringTest checks that the matchBinaries do correctly
 // filter the events i.e. it checks that no other events appear.
 func matchBinariesPerfringTest(t *testing.T, operator string, values []string) {
