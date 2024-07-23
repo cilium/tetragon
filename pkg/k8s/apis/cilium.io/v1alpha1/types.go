@@ -95,6 +95,8 @@ type BinarySelector struct {
 	Operator string `json:"operator"`
 	// Value to compare the argument against.
 	Values []string `json:"values"`
+	// In addition to binaries, match children processes of specified binaries.
+	FollowChildren bool `json:"followChildren"`
 }
 
 // KProbeSelector selects function calls for kprobe based on PIDs and function arguments. The
