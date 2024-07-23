@@ -444,6 +444,10 @@ spec:
                             description: A list of binary exec name filters.
                             items:
                               properties:
+                                followChildren:
+                                  description: In addition to binaries, match children
+                                    processes of specified binaries.
+                                  type: boolean
                                 operator:
                                   description: Filter operation.
                                   enum:
@@ -458,6 +462,7 @@ spec:
                                     type: string
                                   type: array
                               required:
+                              - followChildren
                               - operator
                               - values
                               type: object
@@ -1048,6 +1053,10 @@ spec:
                             description: A list of binary exec name filters.
                             items:
                               properties:
+                                followChildren:
+                                  description: In addition to binaries, match children
+                                    processes of specified binaries.
+                                  type: boolean
                                 operator:
                                   description: Filter operation.
                                   enum:
@@ -1062,6 +1071,7 @@ spec:
                                     type: string
                                   type: array
                               required:
+                              - followChildren
                               - operator
                               - values
                               type: object
@@ -1683,6 +1693,10 @@ spec:
                             description: A list of binary exec name filters.
                             items:
                               properties:
+                                followChildren:
+                                  description: In addition to binaries, match children
+                                    processes of specified binaries.
+                                  type: boolean
                                 operator:
                                   description: Filter operation.
                                   enum:
@@ -1697,6 +1711,7 @@ spec:
                                     type: string
                                   type: array
                               required:
+                              - followChildren
                               - operator
                               - values
                               type: object
@@ -2255,6 +2270,10 @@ spec:
                             description: A list of binary exec name filters.
                             items:
                               properties:
+                                followChildren:
+                                  description: In addition to binaries, match children
+                                    processes of specified binaries.
+                                  type: boolean
                                 operator:
                                   description: Filter operation.
                                   enum:
@@ -2269,6 +2288,7 @@ spec:
                                     type: string
                                   type: array
                               required:
+                              - followChildren
                               - operator
                               - values
                               type: object
