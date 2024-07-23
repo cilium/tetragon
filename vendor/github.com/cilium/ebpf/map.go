@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -28,6 +29,10 @@ var (
 	ErrIterationAborted = errors.New("iteration aborted")
 	ErrMapIncompatible  = errors.New("map spec is incompatible with existing map")
 	errMapNoBTFValue    = errors.New("map spec does not contain a BTF Value")
+
+	// pre-allocating these errors here since they may get called in hot code paths
+	// and cause unnecessary memory allocations
+	errMapLookupKeyNotExist = fmt.Errorf("lookup: %w", sysErrKeyNotExist)
 )
 
 // MapOptions control loading a map into the kernel.
@@ -96,11 +101,20 @@ func (ms *MapSpec) Copy() *MapSpec {
 	}
 
 	cpy := *ms
+	cpy.Contents = slices.Clone(cpy.Contents)
+	cpy.Key = btf.Copy(cpy.Key)
+	cpy.Value = btf.Copy(cpy.Value)
 
-	cpy.Contents = make([]MapKV, len(ms.Contents))
-	copy(cpy.Contents, ms.Contents)
+	if cpy.InnerMap == ms {
+		cpy.InnerMap = &cpy
+	} else {
+		cpy.InnerMap = ms.InnerMap.Copy()
+	}
 
-	cpy.InnerMap = ms.InnerMap.Copy()
+	if cpy.Extra != nil {
+		extra := *cpy.Extra
+		cpy.Extra = &extra
+	}
 
 	return &cpy
 }
@@ -695,6 +709,9 @@ func (m *Map) lookup(key interface{}, valueOut sys.Pointer, flags MapLookupFlags
 	}
 
 	if err = sys.MapLookupElem(&attr); err != nil {
+		if errors.Is(err, unix.ENOENT) {
+			return errMapLookupKeyNotExist
+		}
 		return fmt.Errorf("lookup: %w", wrapMapError(err))
 	}
 	return nil

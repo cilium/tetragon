@@ -18,11 +18,6 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
-	"golang.org/x/sys/unix"
-)
-
-var (
-	verifierLogBufferSize = 10 * 1024 * 1024 // 10MB
 )
 
 // AttachFunc is the type for the various attachment functions. The function is
@@ -890,44 +885,28 @@ func doLoadProgram(
 	opts.MapReplacements = pinnedMaps
 
 	coll, err := ebpf.NewCollectionWithOptions(spec, opts)
+	if err != nil && load.KernelTypes != nil {
+		opts.Programs.KernelTypes = load.KernelTypes
+		coll, err = ebpf.NewCollectionWithOptions(spec, opts)
+	}
 	if err != nil {
-		// Retry again with logging to capture the verifier log. We don't log by default
-		// as that makes the loading very slow.
-		opts.Programs.LogLevel = 1
-		opts.Programs.LogSize = verifierLogBufferSize
-		if load.KernelTypes != nil {
-			opts.Programs.KernelTypes = load.KernelTypes
-		}
-		// If we hit ENOSPC that means that our log size is not big enough,
-		// so keep trying again with log size * 2 until we succeed or the kernel
-		// complains.
-		for {
-			coll, err = ebpf.NewCollectionWithOptions(spec, opts)
-			if errors.Is(err, unix.ENOSPC) {
-				opts.Programs.LogSize = opts.Programs.LogSize * 2
-				continue
-			}
-			break
-		}
-		if err != nil {
-			// Log the error directly using the logger so that the verifier log
-			// gets properly pretty-printed.
-			if verbose != 0 {
-				logger.GetLogger().Infof("Opening collection failed, dumping verifier log.")
-				var ve *ebpf.VerifierError
-				if errors.As(err, &ve) {
-					// Print a truncated version if we have verbose=1, otherwise dump the
-					// full log.
-					if verbose < 2 {
-						fmt.Println(slimVerifierError(fmt.Sprintf("%+v", ve)))
-					} else {
-						fmt.Printf("%+v\n", ve)
-					}
+		// Log the error directly using the logger so that the verifier log
+		// gets properly pretty-printed.
+		if verbose != 0 {
+			logger.GetLogger().Infof("Opening collection failed, dumping verifier log.")
+			var ve *ebpf.VerifierError
+			if errors.As(err, &ve) {
+				// Print a truncated version if we have verbose=1, otherwise dump the
+				// full log.
+				if verbose < 2 {
+					fmt.Println(slimVerifierError(fmt.Sprintf("%+v", ve)))
+				} else {
+					fmt.Printf("%+v\n", ve)
 				}
 			}
-
-			return nil, fmt.Errorf("opening collection '%s' failed: %w", load.Name, err)
 		}
+
+		return nil, fmt.Errorf("opening collection '%s' failed: %w", load.Name, err)
 	}
 	defer coll.Close()
 
