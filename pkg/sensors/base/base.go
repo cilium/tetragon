@@ -9,6 +9,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/ksyms"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/mbset"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/exec/config"
@@ -80,6 +81,8 @@ var (
 	CgroupRateMap        = program.MapBuilder("cgroup_rate_map", Execve, Exit, Fork, CgroupRmdir)
 	CgroupRateOptionsMap = program.MapBuilder("cgroup_rate_options_map", Execve)
 
+	MatchBinariesSetMap = program.MapBuilder(mbset.MapName, Execve)
+
 	sensor = sensors.Sensor{
 		Name: "__base__",
 	}
@@ -150,6 +153,7 @@ func GetDefaultMaps(cgroupRate bool) []*program.Map {
 		TCPMonMap,
 		TetragonConfMap,
 		StatsMap,
+		MatchBinariesSetMap,
 	}
 	if cgroupRate {
 		maps = append(maps, CgroupRateMap, CgroupRateOptionsMap)
