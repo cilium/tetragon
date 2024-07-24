@@ -384,4 +384,4 @@ rthooks:
   image:
     override: ~
     repository: quay.io/cilium/tetragon-rthooks
-    tag: v0.1
+    tag: v0.2
