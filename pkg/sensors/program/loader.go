@@ -559,18 +559,11 @@ func LoadRawTracepointProgram(bpfDir string, load *Program, verbose int) error {
 }
 
 func LoadKprobeProgram(bpfDir string, load *Program, verbose int) error {
-	var tc tailCall
-	for mName, m := range load.PinMap {
-		if mName == "kprobe_calls" || mName == "retkprobe_calls" {
-			tc = tailCall{m, "kprobe"}
-			break
-		}
-	}
 	opts := &LoadOpts{
 		Attach:   KprobeAttach(load, bpfDir),
 		Open:     KprobeOpen(load),
-		TcMap:    tc.m,
-		TcPrefix: tc.prefix,
+		TcMap:    load.TcMap,
+		TcPrefix: load.TcPrefix,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
@@ -621,18 +614,11 @@ func LoadUprobeProgram(bpfDir string, load *Program, verbose int) error {
 }
 
 func LoadMultiKprobeProgram(bpfDir string, load *Program, verbose int) error {
-	var tc tailCall
-	for mName, m := range load.PinMap {
-		if mName == "kprobe_calls" || mName == "retkprobe_calls" {
-			tc = tailCall{m, "kprobe"}
-			break
-		}
-	}
 	opts := &LoadOpts{
 		Attach:   MultiKprobeAttach(load, bpfDir),
 		Open:     KprobeOpen(load),
-		TcMap:    tc.m,
-		TcPrefix: tc.prefix,
+		TcMap:    load.TcMap,
+		TcPrefix: load.TcPrefix,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
