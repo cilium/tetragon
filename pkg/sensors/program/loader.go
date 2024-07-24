@@ -598,17 +598,10 @@ func LoadKprobeProgramAttachMany(bpfDir string, load *Program, syms []string, ve
 }
 
 func LoadUprobeProgram(bpfDir string, load *Program, verbose int) error {
-	var tc tailCall
-	for mName, m := range load.PinMap {
-		if mName == "uprobe_calls" {
-			tc = tailCall{m, "uprobe"}
-			break
-		}
-	}
 	opts := &LoadOpts{
 		Attach:   UprobeAttach(load),
-		TcMap:    tc.m,
-		TcPrefix: tc.prefix,
+		TcMap:    load.TcMap,
+		TcPrefix: load.TcPrefix,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
@@ -691,17 +684,10 @@ func LoadLSMProgramSimple(bpfDir string, load *Program, verbose int) error {
 }
 
 func LoadMultiUprobeProgram(bpfDir string, load *Program, verbose int) error {
-	var tc tailCall
-	for mName, m := range load.PinMap {
-		if mName == "uprobe_calls" {
-			tc = tailCall{m, "uprobe"}
-			break
-		}
-	}
 	opts := &LoadOpts{
 		Attach:   MultiUprobeAttach(load),
-		TcMap:    tc.m,
-		TcPrefix: tc.prefix,
+		TcMap:    load.TcMap,
+		TcPrefix: load.TcPrefix,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
