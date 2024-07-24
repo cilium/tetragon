@@ -94,11 +94,12 @@ level is controlled by the log-level option at startup:
 ### Change log level on Kubernetes
 
 {{< warning >}}
-The Tetragon DaemonSet will be restarted automatically after changing the debug Helm value!
+The Pods of the Tetragon DaemonSet will be restarted automatically after
+changing the debug Helm value.
 {{< /warning >}}
 
-It is possible to change the log level of the Tetragon (DaemonSet) instances by
-setting `tetragon.debug` to `true`.
+It is possible to change the log level of Tetragon's DaemonSet Pods by setting
+`tetragon.debug` to `true`.
 
 ### Change log level dynamically
 
