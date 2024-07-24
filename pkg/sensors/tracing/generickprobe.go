@@ -329,6 +329,8 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 	tailCalls := program.MapBuilderPin("kprobe_calls", sensors.PathJoin(pinPath, "kp_calls"), load)
 	maps = append(maps, tailCalls)
 
+	load.SetTailCall("kprobe", tailCalls)
+
 	filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), load)
 	maps = append(maps, filterMap)
 
@@ -417,6 +419,8 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 
 		tailCalls := program.MapBuilderPin("retkprobe_calls", sensors.PathJoin(pinPath, "retprobe-kp_calls"), loadret)
 		maps = append(maps, tailCalls)
+
+		loadret.SetTailCall("kprobe", tailCalls)
 
 		retConfigMap.SetMaxEntries(len(multiRetIDs))
 		retFilterMap.SetMaxEntries(len(multiRetIDs))
@@ -915,6 +919,8 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 	tailCalls := program.MapBuilderPin("kprobe_calls", sensors.PathJoin(pinPath, "kp_calls"), load)
 	maps = append(maps, tailCalls)
 
+	load.SetTailCall("kprobe", tailCalls)
+
 	filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), load)
 	maps = append(maps, filterMap)
 
@@ -996,6 +1002,8 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 
 		tailCalls := program.MapBuilderPin("retkprobe_calls", sensors.PathJoin(pinPath, "retprobe-kp_calls"), loadret)
 		maps = append(maps, tailCalls)
+
+		loadret.SetTailCall("kprobe", tailCalls)
 
 		filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "retkprobe_filter_map"), loadret)
 		maps = append(maps, filterMap)
