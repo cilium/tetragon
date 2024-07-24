@@ -29,9 +29,6 @@ type OpenFunc func(*ebpf.CollectionSpec) error
 type LoadOpts struct {
 	Attach AttachFunc
 	Open   OpenFunc
-
-	TcMap    *Map
-	TcPrefix string
 }
 
 func linkPinPath(bpfDir string, load *Program, extra ...string) string {
@@ -539,9 +536,7 @@ func MultiKprobeAttach(load *Program, bpfDir string) AttachFunc {
 
 func LoadTracepointProgram(bpfDir string, load *Program, verbose int) error {
 	opts := &LoadOpts{
-		Attach:   TracepointAttach(load, bpfDir),
-		TcMap:    load.TcMap,
-		TcPrefix: load.TcPrefix,
+		Attach: TracepointAttach(load, bpfDir),
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
@@ -555,10 +550,8 @@ func LoadRawTracepointProgram(bpfDir string, load *Program, verbose int) error {
 
 func LoadKprobeProgram(bpfDir string, load *Program, verbose int) error {
 	opts := &LoadOpts{
-		Attach:   KprobeAttach(load, bpfDir),
-		Open:     KprobeOpen(load),
-		TcMap:    load.TcMap,
-		TcPrefix: load.TcPrefix,
+		Attach: KprobeAttach(load, bpfDir),
+		Open:   KprobeOpen(load),
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
@@ -594,19 +587,15 @@ func LoadKprobeProgramAttachMany(bpfDir string, load *Program, syms []string, ve
 
 func LoadUprobeProgram(bpfDir string, load *Program, verbose int) error {
 	opts := &LoadOpts{
-		Attach:   UprobeAttach(load),
-		TcMap:    load.TcMap,
-		TcPrefix: load.TcPrefix,
+		Attach: UprobeAttach(load),
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
 func LoadMultiKprobeProgram(bpfDir string, load *Program, verbose int) error {
 	opts := &LoadOpts{
-		Attach:   MultiKprobeAttach(load, bpfDir),
-		Open:     KprobeOpen(load),
-		TcMap:    load.TcMap,
-		TcPrefix: load.TcPrefix,
+		Attach: MultiKprobeAttach(load, bpfDir),
+		Open:   KprobeOpen(load),
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
@@ -656,10 +645,8 @@ func LoadTracingProgram(bpfDir string, load *Program, verbose int) error {
 
 func LoadLSMProgram(bpfDir string, load *Program, verbose int) error {
 	opts := &LoadOpts{
-		Attach:   LSMAttach(),
-		Open:     LSMOpen(load),
-		TcMap:    load.TcMap,
-		TcPrefix: load.TcPrefix,
+		Attach: LSMAttach(),
+		Open:   LSMOpen(load),
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
@@ -673,9 +660,7 @@ func LoadLSMProgramSimple(bpfDir string, load *Program, verbose int) error {
 
 func LoadMultiUprobeProgram(bpfDir string, load *Program, verbose int) error {
 	opts := &LoadOpts{
-		Attach:   MultiUprobeAttach(load),
-		TcMap:    load.TcMap,
-		TcPrefix: load.TcPrefix,
+		Attach: MultiUprobeAttach(load),
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
@@ -715,7 +700,7 @@ func slimVerifierError(errStr string) string {
 	return errStr[:headEnd] + "\n...\n" + errStr[tailStart:]
 }
 
-func installTailCalls(bpfDir string, spec *ebpf.CollectionSpec, coll *ebpf.Collection, loadOpts *LoadOpts) error {
+func installTailCalls(bpfDir string, spec *ebpf.CollectionSpec, coll *ebpf.Collection, load *Program) error {
 	// FIXME(JM): This should be replaced by using the cilium/ebpf prog array initialization.
 
 	secToProgName := make(map[string]string)
@@ -744,8 +729,8 @@ func installTailCalls(bpfDir string, spec *ebpf.CollectionSpec, coll *ebpf.Colle
 		return nil
 	}
 
-	if loadOpts.TcMap != nil {
-		if err := install(loadOpts.TcMap.PinName, loadOpts.TcPrefix); err != nil {
+	if load.TcMap != nil {
+		if err := install(load.TcMap.PinName, load.TcPrefix); err != nil {
 			return err
 		}
 	}
@@ -876,7 +861,7 @@ func doLoadProgram(
 	}
 	defer coll.Close()
 
-	err = installTailCalls(bpfDir, spec, coll, loadOpts)
+	err = installTailCalls(bpfDir, spec, coll, load)
 	if err != nil {
 		return nil, fmt.Errorf("installing tail calls failed: %s", err)
 	}
