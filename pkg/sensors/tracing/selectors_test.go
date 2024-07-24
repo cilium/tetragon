@@ -46,6 +46,10 @@ func loadGenericSensorTest(t *testing.T, spec *v1alpha1.TracingPolicySpec) *sens
 		Metadata: v1.ObjectMeta{Name: "name"},
 		Spec:     *spec,
 	}
+
+	tus.LoadSensor(t, base.GetInitialSensor())
+	tus.LoadSensor(t, testsensor.GetTestSensor())
+
 	ret, err := sensors.SensorsFromPolicy(tp, policyfilter.NoFilterID)
 	if err != nil {
 		t.Fatalf("GetSensorsFromParserPolicy failed: %v", err)
@@ -54,8 +58,6 @@ func loadGenericSensorTest(t *testing.T, spec *v1alpha1.TracingPolicySpec) *sens
 	}
 	tpSensor := ret[0]
 	option.Config.HubbleLib = tus.Conf().TetragonLib
-	tus.LoadSensor(t, base.GetInitialSensor())
-	tus.LoadSensor(t, testsensor.GetTestSensor())
 	tus.LoadSensor(t, tpSensor)
 	return tpSensor.(*sensors.Sensor)
 }
