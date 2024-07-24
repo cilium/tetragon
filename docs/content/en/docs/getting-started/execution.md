@@ -107,7 +107,7 @@ from the `tetra getevents` command.
 kubectl exec -ti -n kube-system ds/tetragon -c tetragon -- tetra getevents --pods xwing
 {{< /tab >}}
 {{< tab "Kubernetes (multiple nodes)" >}}
-kubectl exec -ti -n kube-system po/<tetragon-pod-name> -c tetragon -- tetra getevents --pods xwing
+kubectl exec -ti -n kube-system $POD -c tetragon -- tetra getevents --pods xwing
 {{< /tab >}}
 {{< tab Docker >}}
 docker exec -ti tetragon tetra getevents
