@@ -72,8 +72,8 @@ if [ $? == 0 ]; then
     if ! command -v kind &>/dev/null; then
         error "kind is not in \$PATH! Bailing out!"
     fi
-    image=$(yq '.tetragon.image.override' "$BASE_VALUES")
-    image_operator=$(yq '.tetragonOperator.image.override' "$BASE_VALUES")
+    image=$(yq -r '.tetragon.image.override' "$BASE_VALUES")
+    image_operator=$(yq -r '.tetragonOperator.image.override' "$BASE_VALUES")
     kind load docker-image "$image" --name "$CLUSTER_NAME"
     kind load docker-image "$image_operator" --name "$CLUSTER_NAME"
 fi
