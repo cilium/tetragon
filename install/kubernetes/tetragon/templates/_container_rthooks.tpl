@@ -5,7 +5,7 @@
   image: "{{ if .Values.rthooks.image.override }}{{ .Values.rthooks.image.override }}{{ else }}{{ .Values.rthooks.image.repository }}:{{ .Values.rthooks.image.tag }}{{ end }}"
   terminationMessagePolicy: FallbackToLogsOnError
   imagePullPolicy: {{ .Values.imagePullPolicy }}
-  command: 
+  command:
     - tetragon-oci-hook-setup
     - install
     - --interface={{ include "rthooksInterface" .  | required "rtooks.interface needs to be correctly defined" }}

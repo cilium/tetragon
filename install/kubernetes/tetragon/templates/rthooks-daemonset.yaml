@@ -6,7 +6,7 @@ metadata:
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
-  labels: 
+  labels:
     {{- include "tetragon-rthooks.labels" . | nindent 4 }}
     {{- with .Values.rthooks.extraLabels }}
     {{- toYaml . | nindent 4 }}
