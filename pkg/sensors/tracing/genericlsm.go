@@ -372,6 +372,8 @@ func createLsmSensorFromEntry(lsmEntry *genericLsm,
 	tailCalls := program.MapBuilderPin("lsm_calls", sensors.PathJoin(pinPath, "lsm_calls"), load)
 	maps = append(maps, tailCalls)
 
+	load.SetTailCall("lsm", tailCalls)
+
 	filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), load)
 	maps = append(maps, filterMap)
 
