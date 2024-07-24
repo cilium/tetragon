@@ -421,6 +421,8 @@ func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID) ([]*
 
 	maps = append(maps, configMap, tailCalls, filterMap)
 
+	load.SetTailCall("uprobe", tailCalls)
+
 	filterMap.SetMaxEntries(len(multiIDs))
 	configMap.SetMaxEntries(len(multiIDs))
 	return progs, maps, nil
@@ -475,6 +477,7 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 	filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), load)
 	selMatchBinariesMap := program.MapBuilderPin("tg_mb_sel_opts", sensors.PathJoin(pinPath, "tg_mb_sel_opts"), load)
 	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap)
+	load.SetTailCall("uprobe", tailCalls)
 	return progs, maps
 }
 
