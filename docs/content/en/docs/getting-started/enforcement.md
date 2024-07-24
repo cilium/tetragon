@@ -57,7 +57,12 @@ export SERVICECIDR=$(kubectl describe pod -n kube-system kube-apiserver-kind-con
 {{< /tab >}}
 {{< /tabpane >}}
 
-Then we can apply the egress cluster enforcement policy
+If you have previously applied the network policy in the last section, first remove it:
+```shell
+envsubst < network_egress_cluster.yaml | kubectl delete -f -
+```
+
+Then we can apply the egress cluster enforcement policy:
 
 ```shell
 wget https://raw.githubusercontent.com/cilium/tetragon/main/examples/quickstart/network_egress_cluster_enforce.yaml
