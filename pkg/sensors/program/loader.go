@@ -26,11 +26,6 @@ type AttachFunc func(*ebpf.Collection, *ebpf.CollectionSpec, *ebpf.Program, *ebp
 
 type OpenFunc func(*ebpf.CollectionSpec) error
 
-type tailCall struct {
-	m      *Map
-	prefix string
-}
-
 type LoadOpts struct {
 	Attach AttachFunc
 	Open   OpenFunc
@@ -660,18 +655,11 @@ func LoadTracingProgram(bpfDir string, load *Program, verbose int) error {
 }
 
 func LoadLSMProgram(bpfDir string, load *Program, verbose int) error {
-	var tc tailCall
-	for mName, m := range load.PinMap {
-		if mName == "lsm_calls" {
-			tc = tailCall{m, "lsm"}
-			break
-		}
-	}
 	opts := &LoadOpts{
 		Attach:   LSMAttach(),
 		Open:     LSMOpen(load),
-		TcMap:    tc.m,
-		TcPrefix: tc.prefix,
+		TcMap:    load.TcMap,
+		TcPrefix: load.TcPrefix,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
