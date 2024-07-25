@@ -190,6 +190,7 @@ spec:
                             - linux_binprm
                             - data_loc
                             - net_device
+                            - dentry
                             type: string
                         required:
                         - index
@@ -288,6 +289,7 @@ spec:
                           - linux_binprm
                           - data_loc
                           - net_device
+                          - dentry
                           type: string
                       required:
                       - index
@@ -887,6 +889,7 @@ spec:
                             - linux_binprm
                             - data_loc
                             - net_device
+                            - dentry
                             type: string
                         required:
                         - index
@@ -1522,6 +1525,7 @@ spec:
                             - linux_binprm
                             - data_loc
                             - net_device
+                            - dentry
                             type: string
                         required:
                         - index
@@ -2094,6 +2098,7 @@ spec:
                             - linux_binprm
                             - data_loc
                             - net_device
+                            - dentry
                             type: string
                         required:
                         - index

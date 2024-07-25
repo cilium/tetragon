@@ -251,6 +251,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | cap_effective_arg | [string](#string) |  | Capabilities that are actually used in hexadecimal format. |
 | linux_binprm_arg | [KprobeLinuxBinprm](#tetragon-KprobeLinuxBinprm) |  |  |
 | net_dev_arg | [KprobeNetDev](#tetragon-KprobeNetDev) |  |  |
+| dentry_arg | [KprobeDentry](#tetragon-KprobeDentry) |  |  |
 | label | [string](#string) |  |  |
 
 <a name="tetragon-KprobeBpfAttr"></a>
@@ -293,6 +294,14 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | permitted | [CapabilitiesType](#tetragon-CapabilitiesType) | repeated |  |
 | effective | [CapabilitiesType](#tetragon-CapabilitiesType) | repeated |  |
 | inheritable | [CapabilitiesType](#tetragon-CapabilitiesType) | repeated |  |
+
+<a name="tetragon-KprobeDentry"></a>
+
+### KprobeDentry
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| name | [string](#string) |  |  |
 
 <a name="tetragon-KprobeFile"></a>
 
