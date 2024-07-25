@@ -23,7 +23,8 @@ PROGS = sigkill-tester \
 	getcpu \
 	direct-write-tester \
 	change-capabilities \
-	user-stacktrace
+	user-stacktrace \
+	symlink-tester
 
 # For now enforcer-tester is compiled to 32-bit only on x86_64 as we want
 # to test 32-bit binaries and system calls compatibility layer.
