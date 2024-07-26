@@ -4281,7 +4281,7 @@ func TestLoadKprobeSensor(t *testing.T) {
 		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 5, 6, 7, 9}})
 
 		// generic_kprobe_process_event*,generic_kprobe_output,generic_retkprobe_output
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tcpmon_map", Progs: []uint{1, 2, 6, 10}})
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tcpmon_map", Progs: []uint{0, 1, 2, 6, 10}})
 
 		// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
 		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "socktrack_map", Progs: []uint{1, 2, 5, 7, 9}})
@@ -4290,7 +4290,7 @@ func TestLoadKprobeSensor(t *testing.T) {
 		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 7}})
 
 		// generic_kprobe_output,generic_retkprobe_output
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tcpmon_map", Progs: []uint{6, 10}})
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tcpmon_map", Progs: []uint{0, 6, 10}})
 	}
 
 	readHook := `

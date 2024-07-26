@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	cgroupRateMaxEntries = 32768 // this value could be fine tuned
+	CgroupRateMaxEntries = 32768 // this value could be fine tuned
 )
 
 var (
@@ -79,6 +79,8 @@ var (
 	/* Cgroup rate data, attached to execve sensor */
 	CgroupRateMap        = program.MapBuilder("cgroup_rate_map", Execve, Exit, Fork, CgroupRmdir)
 	CgroupRateOptionsMap = program.MapBuilder("cgroup_rate_options_map", Execve)
+
+	HasCgroupRate bool
 
 	sensor = sensors.Sensor{
 		Name: "__base__",
@@ -178,5 +180,6 @@ func ConfigCgroupRate(opts *option.CgroupRate) {
 		return
 	}
 
-	CgroupRateMap.SetMaxEntries(cgroupRateMaxEntries)
+	HasCgroupRate = true
+	CgroupRateMap.SetMaxEntries(CgroupRateMaxEntries)
 }

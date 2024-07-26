@@ -15,6 +15,7 @@
 #include "generic_calls.h"
 #include "pfilter.h"
 #include "policy_filter.h"
+#include "bpf_rate.h"
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 
@@ -112,6 +113,16 @@ static struct generic_maps maps = {
 __attribute__((section((MAIN)), used)) int
 generic_kprobe_event(struct pt_regs *ctx)
 {
+	__u64 ktime = ktime_get_ns();
+	struct task_struct *task;
+	struct msg_k8s kube;
+
+	task = (struct task_struct *)get_current_task();
+	__event_get_cgroup_info(task, &kube);
+
+	if (!cgroup_rate(ctx, &kube, ktime))
+		return 0;
+
 	return generic_start_process_filter(ctx, &maps);
 }
 
