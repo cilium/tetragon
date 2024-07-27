@@ -222,19 +222,22 @@ func tetragonExecute() error {
 	proc.LogCurrentSecurityContext()
 
 	// When an instance terminates or restarts it may cleanup bpf programs,
-	// having a check here to see if another instance is already running, can
-	// help debug errors.
+	// having a check here to see if another instance is already running.
 	pid, err := pidfile.Create()
 	if err != nil {
-		// Log error but do not fail
-		log.WithError(err).WithField("pid", pid).Warn("Tetragon pid file creation failed")
-	} else {
-		log.WithFields(logrus.Fields{
-			"pid":     pid,
-			"pidfile": defaults.DefaultPidFile,
-		}).Info("Tetragon pid file creation succeeded")
+		// pidfile.Create returns error if creation of pid file failed with error
+		// other than pidfile.ErrPidFileAccess and pidfile.ErrPidIsNotAlive.
+		// In most cases this will mean that another instance of Tetragon is up
+		// and running and may interfere on eBPF programs and/or maps and lead
+		// to unpredictable behavior.
+		return fmt.Errorf("failed to create pid file '%s', another Tetragon instance seems to be up and running: %w", defaults.DefaultPidFile, err)
 	}
 	defer pidfile.Delete()
+
+	log.WithFields(logrus.Fields{
+		"pid":     pid,
+		"pidfile": defaults.DefaultPidFile,
+	}).Info("Tetragon pid file creation succeeded")
 
 	if option.Config.ForceLargeProgs && option.Config.ForceSmallProgs {
 		log.Fatalf("Can't specify --force-small-progs and --force-large-progs together")
