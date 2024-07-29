@@ -133,7 +133,7 @@ docker run -d --name tetragon --rm --pull always \
   --pid=host --cgroupns=host --privileged               \
   -v ${PWD}/network_egress_cluster_subst.yaml:/etc/tetragon/tetragon.tp.d/network_egress_cluster_subst.yaml \
   -v /sys/kernel/btf/vmlinux:/var/lib/tetragon/btf      \
-  quay.io/cilium/tetragon:latest
+  quay.io/cilium/tetragon:{{< latest-version >}}
 ```
 
 Once Tetragon is running, use `docker exec` to run the `tetra getevents` command

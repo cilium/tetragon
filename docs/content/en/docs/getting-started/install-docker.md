@@ -26,7 +26,7 @@ using the released container images.
 docker run -d --name tetragon --rm --pull always \
     --pid=host --cgroupns=host --privileged             \
     -v /sys/kernel/btf/vmlinux:/var/lib/tetragon/btf    \
-    quay.io/cilium/tetragon:latest
+    quay.io/cilium/tetragon:{{< latest-version >}}
 ```
 
 This will start Tetragon in a privileged container running in the background.

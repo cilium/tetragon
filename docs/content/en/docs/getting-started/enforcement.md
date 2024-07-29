@@ -153,7 +153,7 @@ docker run --name tetragon --rm --pull always \
   --pid=host --cgroupns=host --privileged               \
   -v ${PWD}/file_monitoring_enforce.yaml:/etc/tetragon/tetragon.tp.d/file_monitoring_enforce.yaml \
   -v /sys/kernel/btf/vmlinux:/var/lib/tetragon/btf      \
-  quay.io/cilium/tetragon:latest
+  quay.io/cilium/tetragon:{{< latest-version >}}
 {{< /tab >}}
 {{< /tabpane >}}
 
