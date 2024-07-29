@@ -414,6 +414,7 @@ func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, op
 	})
 
 	cgrouprate.NewCgroupRate(ctx, processManager, base.CgroupRateMap, &option.Config.CgroupRate)
+	base.ConfigCgroupRate(&option.Config.CgroupRate)
 	return nil
 }
 
