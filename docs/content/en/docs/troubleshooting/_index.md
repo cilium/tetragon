@@ -103,24 +103,27 @@ It is possible to change the log level of Tetragon's DaemonSet Pods by setting
 
 ### Change log level dynamically
 
-It is possible to change the log level dynamically by sending the corresponding
-signal to tetragon process.
+It is possible to change the log level dynamically by using the `tetra loglevel`
+sub-command. `tetra` needs access to Tetragon's gRPC server endpoint which can
+be configured via `--server-address`.
 
-* Change log level to debug level by sending the `SIGRTMIN+20` signal to tetragon pid:
+{{< warning >}}
+Keep in mind that Tetragon's gRPC server is (by default) only exposed on
+`localhost`. Also, it's important to understand that this only changes the log
+level of the single Tetragon instance targeted with `--server-address` and not
+all Tetragon instances when it's, for example, running as DaemonSet in a
+Kubernetes environment.
+{{< /warning >}}
 
-  ```shell
-  sudo kill -s SIGRTMIN+20 $(pidof tetragon)
-  ```
-
-* Change log level to trace level by sending the `SIGRTMIN+21` signal to tetragon pid:
-
-  ```shell
-  sudo kill -s SIGRTMIN+21 $(pidof tetragon)
-  ```
-
-* To Restore the original log level send the `SIGRTMIN+22` signal to tetragon pid:
+* Get the current log level:
 
   ```shell
-  sudo kill -s SIGRTMIN+22 $(pidof tetragon)
+  tetra loglevel get
   ```
 
+* Dynamically change the log level. Allowed values are
+`[trace|debug|info|warning|error|fatal|panic]`:
+
+  ```shell
+  tetra loglevel set debug
+  ```
