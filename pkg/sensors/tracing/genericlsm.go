@@ -97,7 +97,7 @@ func (k *observerLsmSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 		}
 		args.Load.MapLoad = append(args.Load.MapLoad, config)
 
-		if err := program.LoadLSMProgram(args.BPFDir, args.Load, args.Verbose); err == nil {
+		if err := program.LoadLSMProgramGeneric(args.BPFDir, args.Load, args.Verbose); err == nil {
 			logger.GetLogger().Infof("Loaded generic LSM program: %s -> %s", args.Load.Name, args.Load.Attach)
 		} else {
 			return err

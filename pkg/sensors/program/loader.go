@@ -688,6 +688,13 @@ func LoadTracingProgram(bpfDir string, load *Program, verbose int) error {
 }
 
 func LoadLSMProgram(bpfDir string, load *Program, verbose int) error {
+	opts := &LoadOpts{
+		Attach: LSMAttach(),
+	}
+	return loadProgram(bpfDir, load, opts, verbose)
+}
+
+func LoadLSMProgramGeneric(bpfDir string, load *Program, verbose int) error {
 	var tc tailCall
 	for mName, mPath := range load.PinMap {
 		if mName == "lsm_calls" {
