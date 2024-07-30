@@ -27,7 +27,7 @@ func WaitForTracingPolicy(ctx context.Context, policyName string) error {
 		addr := fmt.Sprintf("127.0.0.1:%d", grpcPort)
 		// NB(kkourt): maybe it would make sense to cache the grpc connections in the
 		// context, but we keep things simple for now.
-		c, err := common.NewClient(ctx, addr, 2*time.Second)
+		c, err := common.NewClient(ctx, addr, 10*time.Second)
 		if err != nil {
 			return fmt.Errorf("failed to create gRPC client to pod (%s) at forwared port (%d): %w", podName, grpcPort, err)
 		}
