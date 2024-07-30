@@ -59,3 +59,7 @@ func (s *disabled) Close() error {
 func (s *disabled) GetNsId(stateID StateID) (*NSID, bool) {
 	return nil, false
 }
+
+func (s *disabled) GetIdNs(id NSID) (StateID, bool) {
+	return StateID(0), false
+}

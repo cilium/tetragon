@@ -945,3 +945,10 @@ func (m *state) GetNsId(stateID StateID) (*NSID, bool) {
 	}
 	return nil, false
 }
+
+func (m *state) GetIdNs(id NSID) (StateID, bool) {
+	if stateID, ok := m.nsMap.nsNameMap.Get(id); ok {
+		return stateID, ok
+	}
+	return StateID(0), false
+}
