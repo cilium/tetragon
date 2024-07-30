@@ -115,6 +115,8 @@ type State interface {
 	// and reporting the state of the system to subsystems and tooling.
 	GetNsId(stateID StateID) (*NSID, bool)
 
+	GetIdNs(id NSID) (StateID, bool)
+
 	// RegisterPodHandlers can be used to register appropriate pod handlers to a pod informer
 	// that for keeping the policy filter state up-to-date.
 	RegisterPodHandlers(podInformer cache.SharedIndexInformer)
