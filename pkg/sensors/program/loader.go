@@ -704,6 +704,13 @@ func LoadLSMProgram(bpfDir string, load *Program, verbose int) error {
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
+func LoadLSMProgramSimple(bpfDir string, load *Program, verbose int) error {
+	opts := &LoadOpts{
+		Attach: LSMAttach(),
+	}
+	return loadProgram(bpfDir, load, opts, verbose)
+}
+
 func LoadMultiUprobeProgram(bpfDir string, load *Program, verbose int) error {
 	tc := tailCall{fmt.Sprintf("%s-up_calls", load.PinPath), "uprobe"}
 	opts := &LoadOpts{
