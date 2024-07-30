@@ -4281,7 +4281,7 @@ func TestLoadKprobeSensor(t *testing.T) {
 		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 5, 6, 7, 9}})
 
 		// generic_kprobe_process_event*,generic_kprobe_output,generic_retkprobe_output
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tcpmon_map", Progs: []uint{1, 2, 6, 10}})
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tcpmon_map", Progs: []uint{0, 1, 2, 6, 10}})
 
 		// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
 		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "socktrack_map", Progs: []uint{1, 2, 5, 7, 9}})
@@ -4290,7 +4290,7 @@ func TestLoadKprobeSensor(t *testing.T) {
 		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 7}})
 
 		// generic_kprobe_output,generic_retkprobe_output
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tcpmon_map", Progs: []uint{6, 10}})
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tcpmon_map", Progs: []uint{0, 6, 10}})
 	}
 
 	readHook := `
@@ -6807,4 +6807,72 @@ spec:
 	checker := ec.NewUnorderedEventChecker(kpCheckers1, kpCheckers2)
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
+}
+
+func testKprobeThrottle(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	tracingPolicy := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "privileges-raise"
+  annotations:
+    description: "Detects privileges change operations"
+spec:
+  kprobes:
+  - call: "sys_prctl"
+    syscall: true
+    args:
+    - index: 0
+      type: "int"
+`
+
+	createCrdFile(t, tracingPolicy)
+
+	throttleStartChecker := ec.NewProcessThrottleChecker("THROTTLE").
+		WithType(tetragon.ThrottleType_THROTTLE_START)
+
+	throttleStopChecker := ec.NewProcessThrottleChecker("THROTTLE").
+		WithType(tetragon.ThrottleType_THROTTLE_STOP)
+
+	checker := ec.NewUnorderedEventChecker(throttleStartChecker, throttleStopChecker)
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	option.Config.CgroupRate = option.ParseCgroupRate("10,2s")
+	t.Cleanup(func() {
+		option.Config.CgroupRate = option.CgroupRate{}
+	})
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	// create the load 40 fork/exec per sec for 4 seconds
+	// to get THROTTLE START
+	for cnt := 0; cnt < 2000; cnt++ {
+		unix.Prctl(99999, 99999, 99999, 99999, 99999)
+		time.Sleep(time.Millisecond)
+	}
+
+	// and calm down to get THROTTLE STOP
+	time.Sleep(8 * time.Second)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestKprobeThrottle1(t *testing.T) {
+	testKprobeThrottle(t)
+}
+
+// Run throttle twice to test the CgroupRate setup code
+func TestKprobeThrottle2(t *testing.T) {
+	testKprobeThrottle(t)
 }

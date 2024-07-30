@@ -33,6 +33,7 @@ import (
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/sirupsen/logrus"
@@ -380,6 +381,14 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 		overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
 	}
 	maps = append(maps, overrideTasksMap)
+
+	if base.HasCgroupRate {
+		cgroupRateMap := program.MapBuilder("cgroup_rate_map", load)
+		cgroupRateOptionsMap := program.MapBuilder("cgroup_rate_options_map", load)
+
+		cgroupRateMap.SetMaxEntries(base.CgroupRateMaxEntries)
+		maps = append(maps, cgroupRateMap, cgroupRateOptionsMap)
+	}
 
 	if len(multiRetIDs) != 0 {
 		loadret := program.Builder(
@@ -975,6 +984,14 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 		overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
 	}
 	maps = append(maps, overrideTasksMap)
+
+	if base.HasCgroupRate {
+		cgroupRateMap := program.MapBuilder("cgroup_rate_map", load)
+		cgroupRateOptionsMap := program.MapBuilder("cgroup_rate_options_map", load)
+
+		cgroupRateMap.SetMaxEntries(base.CgroupRateMaxEntries)
+		maps = append(maps, cgroupRateMap, cgroupRateOptionsMap)
+	}
 
 	if kprobeEntry.loadArgs.retprobe {
 		pinRetProg := sensors.PathJoin(pinPath, fmt.Sprintf("%s_ret_prog", kprobeEntry.funcName))

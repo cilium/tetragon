@@ -41,7 +41,9 @@ import (
 )
 
 const (
-	aliveCnt = 5
+	aliveCnt            = 5
+	cleanupInterval     = time.Minute
+	cleanupInactiveTime = time.Minute
 )
 
 var (
@@ -62,6 +64,7 @@ type CgroupRate struct {
 	opts     *option.CgroupRate
 	hash     *program.Map
 	cgroups  map[uint64]string
+	cleanup  time.Duration
 }
 
 func newCgroupRate(
@@ -165,6 +168,42 @@ func (r *CgroupRate) processCgroups() {
 
 	for _, id := range remove {
 		delete(r.cgroups, id)
+	}
+
+	r.cleanupCgroups(last)
+}
+
+func (r *CgroupRate) cleanupCgroups(curr time.Duration) {
+	if r.cleanup == 0 {
+		r.cleanup = curr
+		return
+	}
+	// Run the cleanup once per cleanupInterval time
+	if curr-r.cleanup < cleanupInterval {
+		return
+	}
+	r.cleanup = curr
+
+	hash := r.hash.MapHandle
+	key := processapi.CgroupRateKey{}
+	values := make([]processapi.CgroupRateValue, bpf.GetNumPossibleCPUs())
+
+	entries := hash.Iterate()
+	for entries.Next(&key, &values) {
+		remove := true
+		// Remove values that are inactive for longer than cleanupInactiveTime time
+		for _, val := range values {
+			if time.Duration(val.Time)+cleanupInactiveTime > curr {
+				remove = false
+			}
+		}
+		if remove {
+			if err := hash.Delete(key); err != nil {
+				cgroupratemetrics.CgroupRateTotalInc(cgroupratemetrics.DeleteFail)
+			} else {
+				cgroupratemetrics.CgroupRateTotalInc(cgroupratemetrics.Delete)
+			}
+		}
 	}
 }
 

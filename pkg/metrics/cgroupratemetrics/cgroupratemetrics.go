@@ -16,8 +16,10 @@ const (
 	ThrottleStop
 	LookupFail
 	UpdateFail
+	DeleteFail
 	Check
 	Process
+	Delete
 )
 
 var totalLabelValues = map[CgroupRateType]string{
@@ -25,8 +27,10 @@ var totalLabelValues = map[CgroupRateType]string{
 	ThrottleStop:  "throttle_stop",
 	LookupFail:    "lookup_fail",
 	UpdateFail:    "update_fail",
+	DeleteFail:    "delete_fail",
 	Check:         "check",
 	Process:       "process",
+	Delete:        "delete",
 }
 
 func (e CgroupRateType) String() string {

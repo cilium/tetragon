@@ -249,6 +249,7 @@ func (s *Sensor) loadMaps(bpfDir string) error {
 			"sensor": s.Name,
 			"map":    m.Name,
 			"path":   pinPath,
+			"max":    m.Entries,
 		}).Info("tetragon, map loaded.")
 	}
 
