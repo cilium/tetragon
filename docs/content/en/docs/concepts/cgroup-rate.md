@@ -1,6 +1,6 @@
 ---
-title: "Cgroup rate throtling"
-weight: 2
+title: "Event throttling"
+weight: 5
 description: "Monitor and throttle cgroup events rate"
 ---
 
@@ -21,14 +21,17 @@ The throttle action generates following events:
 - `THROTTLE` start event is sent when the group rate limit is crossed
 - `THROTTLE` stop event is sent when the cgroup rate is again below the limit stable for 5 seconds
 
-**NOTE** The threshold for given cgroup is monitored *per CPU*.
+{{< note >}}
+The threshold for given cgroup is monitored *per CPU*.
 When the events are spread around on multiple CPUs we will throttle
 them per CPU only if they cross the threshold on that CPU.
+{{< /note >}}
 
-**NOTE** At the moment we monitor and limit base sensor events:
+{{< note >}}
+At the moment we monitor and limit base sensor events:
   - `PROCESS_EXEC`
   - `PROCESS_EXIT`
-
+{{< /note >}}
 
 ## Setup
 
@@ -63,95 +66,107 @@ The throttle events contains fields as follows.
 
 - `THROTTLE_START`
 
-```json
-{
-  "process_throttle": {
-    "type": "THROTTLE_START",
-    "cgroup": "session-429.scope"
-  },
-  "node_name": "ubuntu-22",
-  "time": "2024-07-26T13:07:43.178407128Z"
-}
-```
+  ```json
+  {
+    "process_throttle": {
+      "type": "THROTTLE_START",
+      "cgroup": "session-429.scope"
+    },
+    "node_name": "ubuntu-22",
+    "time": "2024-07-26T13:07:43.178407128Z"
+  }
+  ```
 
 - `THROTTLE_STOP`
 
-```json
-  "process_throttle": {
-    "type": "THROTTLE_STOP",
-    "cgroup": "session-429.scope"
-  },
-  "node_name": "ubuntu-22",
-  "time": "2024-07-26T13:07:55.501718877Z"
-```
+  ```json
+  {
+    "process_throttle": {
+      "type": "THROTTLE_STOP",
+      "cgroup": "session-429.scope"
+    },
+    "node_name": "ubuntu-22",
+    "time": "2024-07-26T13:07:55.501718877Z"
+  }
+  ```
 
 
 ## Example
 
 This example shows how to generate throttle events when cgroup rate monitoring is enabled.
 
+1. Start tetragon with cgroup rate monitoring 10 events per second.
 
-- Start tetragon with cgroup rate monitoring 10 events per second, the successfull configuration will show in tetragon log
+   ```shell
+   tetragon --bpf-lib ./bpf/objs/ --cgroup-rate=10,1s
+   ```
 
-```
-# tetragon --bpf-lib ./bpf/objs/ --cgroup-rate=10,1s
-...
-time="2024-07-26T13:33:19Z" level=info msg="Cgroup rate started (10/1s)"
-...
-```
+   The successful configuration will show in tetragon log.
 
-- Spawn more than 10 events per second
+   ```
+   ...
+   time="2024-07-26T13:33:19Z" level=info msg="Cgroup rate started (10/1s)"
+   ...
+   ```
 
-```
-$ while :; do sleep 0.001s; done
-```
+1. Spawn more than 10 events per second.
 
-- Monitor events shows throttling
+   ```shell
+   while :; do sleep 0.001s; done
+   ```
+
+1. Monitor events shows throttling.
 
 
-```
-$ tetra getevents -o compact
-🚀 process ubuntu-22 /usr/bin/sleep 0.001s
-💥 exit    ubuntu-22 /usr/bin/sleep 0.001s 0
-🚀 process ubuntu-22 /usr/bin/sleep 0.001s
-💥 exit    ubuntu-22 /usr/bin/sleep 0.001s 0
-🚀 process ubuntu-22 /usr/bin/sleep 0.001s
-💥 exit    ubuntu-22 /usr/bin/sleep 0.001s 0
-🚀 process ubuntu-22 /usr/bin/sleep 0.001s
-💥 exit    ubuntu-22 /usr/bin/sleep 0.001s 0
-🚀 process ubuntu-22 /usr/bin/sleep 0.001s
-💥 exit    ubuntu-22 /usr/bin/sleep 0.001s 0
-🚀 process ubuntu-22 /usr/bin/sleep 0.001s
-💥 exit    ubuntu-22 /usr/bin/sleep 0.001s 0
-🚀 process ubuntu-22 /usr/bin/sleep 0.001s
-🧬 throttle START session-429.scope
-🚀 process ubuntu-22 /usr/bin/sleep 0.001s
-💥 exit    ubuntu-22 /usr/bin/sleep 0.001s 0
-🚀 process ubuntu-22 /usr/bin/sleep 0.001s
-💥 exit    ubuntu-22 /usr/bin/sleep 0.001s 0
-🚀 process ubuntu-22 /usr/bin/sleep 0.001s
-💥 exit    ubuntu-22 /usr/bin/sleep 0.001s 0
-🚀 process ubuntu-22 /usr/bin/sleep 0.001s
-💥 exit    ubuntu-22 /usr/bin/sleep 0.001s 0
-🚀 process ubuntu-22 /usr/bin/sleep 0.001s
-🚀 process ubuntu-22 /usr/bin/sleep 0.001s
-💥 exit    ubuntu-22 /usr/bin/sleep 0.001s 0
-🚀 process ubuntu-22 /usr/bin/sleep 0.001s
-💥 exit    ubuntu-22 /usr/bin/sleep 0.001s 0
-🚀 process ubuntu-22 /usr/bin/sleep 0.001s
-💥 exit    ubuntu-22 /usr/bin/sleep 0.001s 0
-🚀 process ubuntu-22 /usr/bin/sleep 0.001s
+   ```shell
+   tetra getevents -o compact
+   ```
 
-🧬 throttle STOP  session-429.scope
-```
+   The output should be similar to:
 
-When you stop the while loop from thr other terminal you will get above `throttle STOP` event after 5 seconds.
+   ```
+   🚀 process ubuntu-22 /usr/bin/sleep 0.001s
+   💥 exit    ubuntu-22 /usr/bin/sleep 0.001s 0
+   🚀 process ubuntu-22 /usr/bin/sleep 0.001s
+   💥 exit    ubuntu-22 /usr/bin/sleep 0.001s 0
+   🚀 process ubuntu-22 /usr/bin/sleep 0.001s
+   💥 exit    ubuntu-22 /usr/bin/sleep 0.001s 0
+   🚀 process ubuntu-22 /usr/bin/sleep 0.001s
+   💥 exit    ubuntu-22 /usr/bin/sleep 0.001s 0
+   🚀 process ubuntu-22 /usr/bin/sleep 0.001s
+   💥 exit    ubuntu-22 /usr/bin/sleep 0.001s 0
+   🚀 process ubuntu-22 /usr/bin/sleep 0.001s
+   💥 exit    ubuntu-22 /usr/bin/sleep 0.001s 0
+   🚀 process ubuntu-22 /usr/bin/sleep 0.001s
+   🧬 throttle START session-429.scope
+   🚀 process ubuntu-22 /usr/bin/sleep 0.001s
+   💥 exit    ubuntu-22 /usr/bin/sleep 0.001s 0
+   🚀 process ubuntu-22 /usr/bin/sleep 0.001s
+   💥 exit    ubuntu-22 /usr/bin/sleep 0.001s 0
+   🚀 process ubuntu-22 /usr/bin/sleep 0.001s
+   💥 exit    ubuntu-22 /usr/bin/sleep 0.001s 0
+   🚀 process ubuntu-22 /usr/bin/sleep 0.001s
+   💥 exit    ubuntu-22 /usr/bin/sleep 0.001s 0
+   🚀 process ubuntu-22 /usr/bin/sleep 0.001s
+   🚀 process ubuntu-22 /usr/bin/sleep 0.001s
+   💥 exit    ubuntu-22 /usr/bin/sleep 0.001s 0
+   🚀 process ubuntu-22 /usr/bin/sleep 0.001s
+   💥 exit    ubuntu-22 /usr/bin/sleep 0.001s 0
+   🚀 process ubuntu-22 /usr/bin/sleep 0.001s
+   💥 exit    ubuntu-22 /usr/bin/sleep 0.001s 0
+   🚀 process ubuntu-22 /usr/bin/sleep 0.001s
+
+   🧬 throttle STOP  session-429.scope
+   ```
+
+   When you stop the while loop from the other terminal you will get above
+   `throttle STOP` event after 5 seconds.
 
 
 ##  Limitations
 
 - The cgroup rate is monitored per CPU
-
-- At the moment we monitor and limit base sensor and kprobe events:
+- At the moment we only monitor and limit base sensor and kprobe events:
   - `PROCESS_EXEC`
   - `PROCESS_EXIT`
+

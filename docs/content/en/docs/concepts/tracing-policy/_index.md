@@ -1,6 +1,6 @@
 ---
 title: "Tracing Policy"
-weight: 3
+weight: 2
 description: "Documentation for the TracingPolicy custom resource"
 ---
 
