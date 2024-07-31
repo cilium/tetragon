@@ -7,9 +7,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policyfilter"
@@ -47,6 +49,9 @@ func StartSensorManager(
 	if err != nil {
 		return nil, err
 	}
+
+	// Initialize collections snapshot directory
+	os.MkdirAll(defaults.DefaultColDir, 0700)
 
 	// NB: pass handler.collections as a policy lister so that the manager can list policies
 	// without having to go via the manager goroutine.
@@ -106,6 +111,7 @@ func startSensorManager(
 			op_.sensorOpDone(err)
 		}
 	}()
+	os.RemoveAll(defaults.DefaultColDir)
 	return &m, nil
 }
 

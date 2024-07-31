@@ -45,6 +45,9 @@ const (
 
 	// Pid file where to write tetragon main PID
 	DefaultPidFile = DefaultRunDir + "tetragon.pid"
+
+	// Collections snapshot directory
+	DefaultColDir = DefaultRunDir + "collections"
 )
 
 var (
