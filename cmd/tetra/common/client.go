@@ -72,15 +72,23 @@ func CliRun(fn func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient)
 
 type ClientWithContext struct {
 	Client tetragon.FineGuidanceSensorsClient
-	Ctx    context.Context
-	conn   *grpc.ClientConn
-	cancel context.CancelFunc
+	// Ctx is a combination of the signal context and the timeout context
+	Ctx context.Context
+	// SignalCtx is only the signal context, you might want to use that context
+	// when the command should never timeout (like a stream command)
+	SignalCtx context.Context
+	conn      *grpc.ClientConn
+	// The signal context is the parent of the timeout context, so cancelling
+	// signal will cancel its child, timeout
+	signalCancel  context.CancelFunc
+	timeoutCancel context.CancelFunc
 }
 
 // Close cleanup resources, it closes the connection and cancel the context
 func (c ClientWithContext) Close() {
 	c.conn.Close()
-	c.cancel()
+	c.signalCancel()
+	c.timeoutCancel() // this should be a nop
 }
 
 // NewClientWithDefaultContextAndAddress returns a client to a tetragon
@@ -94,11 +102,8 @@ func NewClientWithDefaultContextAndAddress() (*ClientWithContext, error) {
 func NewClient(ctx context.Context, address string, timeout time.Duration) (*ClientWithContext, error) {
 	c := &ClientWithContext{}
 
-	var timeoutContext context.Context
-	timeoutContext, c.cancel = context.WithTimeout(ctx, timeout)
-	// we don't need the cancelFunc here as calling cancel on timeout, the
-	// parent, will cancel its children.
-	c.Ctx, _ = signal.NotifyContext(timeoutContext, syscall.SIGINT, syscall.SIGTERM)
+	c.SignalCtx, c.signalCancel = signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+	c.Ctx, c.timeoutCancel = context.WithTimeout(c.SignalCtx, timeout)
 
 	var err error
 	c.conn, err = grpc.NewClient(address,
