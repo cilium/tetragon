@@ -5,3 +5,5 @@
 {{- define "tetragon.volumemounts.extra" -}}{{- end }}
 
 {{- define "initcontainers.extra" -}}{{- end }}
+
+{{- define "containers.extra" -}}{{- end }}
