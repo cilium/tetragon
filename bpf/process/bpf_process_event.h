@@ -12,14 +12,14 @@
 #define ENAMETOOLONG 36 /* File name too long */
 
 #define MATCH_BINARIES_PATH_MAX_LENGTH 256
-#define MAX_BUF_LEN		       256
+#define MAX_BUF_LEN		       4096
 
 struct buffer_heap_map_value {
-	// Buffer is twice the needed size because of the verifier. In prepend_name
-	// unit tests, the verifier figures out that 255 is enough and that the
-	// buffer_offset will not overflow, but in the real use-case it looks like
-	// it's forgetting about that.
-	unsigned char buf[MAX_BUF_LEN * 2];
+	// Buffer need a bit more space here  because of the verifier. In
+	// prepend_name unit tests, the verifier figures out that MAX_BUF_LEN is
+	// enough and that the buffer_offset will not overflow, but in the real
+	// use-case it looks like it's forgetting about that.
+	unsigned char buf[MAX_BUF_LEN + 256];
 };
 
 struct {
@@ -119,15 +119,13 @@ prepend_name(char *buf, char **bufptr, int *buflen, const char *name, u32 namele
 
 	*buflen -= (namelen + write_slash);
 
-	// This will not happen as buffer_offset cannot be above 256 and namelen is
-	// bound to 255. Needed to make the verifier happy in older kernels.
 	if (namelen + write_slash > buffer_offset)
 		return -ENAMETOOLONG;
 
 	buffer_offset -= (namelen + write_slash);
 
 	// This will never happen. buffer_offset is the diff of the initial buffer pointer
-	// with the current buffer pointer. This will be at max 256 bytes (similar to the initial
+	// with the current buffer pointer. This will be at max 4096 bytes (similar to the initial
 	// size).
 	// Needed to bound that for probe_read call.
 	if (buffer_offset >= MAX_BUF_LEN)
