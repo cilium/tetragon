@@ -13,7 +13,7 @@
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 
-#define TEST_MAX_BUF_LEN 256
+#define TEST_MAX_BUF_LEN 4096
 #define NAME_MAX	 255
 
 struct test_prepend_name_state_map_value {
