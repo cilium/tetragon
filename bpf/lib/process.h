@@ -273,12 +273,7 @@ struct msg_k8s {
 #define BINARY_PATH_MAX_LEN 256
 
 struct heap_exe {
-	// because of verifier limitations, this has to be 2 * 256 bytes while 256
-	// should be theoretically sufficient, and actually is, in unit tests.
-	char buf[BINARY_PATH_MAX_LEN * 2];
-	// offset points to the start of the path in the above buffer. Use offset to
-	// read the path in the buffer since it's written from the end.
-	char *off;
+	char buf[BINARY_PATH_MAX_LEN];
 	__u32 len;
 	__u32 error;
 }; // All fields aligned so no 'packed' attribute.

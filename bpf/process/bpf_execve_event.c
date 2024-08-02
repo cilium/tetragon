@@ -180,11 +180,22 @@ read_exe(struct task_struct *task, struct heap_exe *exe)
 	struct file *file = BPF_CORE_READ(task, mm, exe_file);
 	struct path *path = __builtin_preserve_access_index(&file->f_path);
 
-	exe->len = BINARY_PATH_MAX_LEN;
-	exe->off = (char *)&exe->buf;
-	exe->off = __d_path_local(path, exe->off, (int *)&exe->len, (int *)&exe->error);
-	if (exe->len > 0)
-		exe->len = BINARY_PATH_MAX_LEN - exe->len;
+	// we need to walk the complete 4096 len dentry in order to have an accurate
+	// matching on the prefix operators, even if we only keep a subset of that
+	char *buffer;
+
+	buffer = d_path_local(path, (int *)&exe->len, (int *)&exe->error);
+	if (!buffer)
+		return 0;
+
+	// buffer used by d_path_local can contain up to MAX_BUF_LEN i.e. 4096 we
+	// only keep the first 255 chars for our needs (we sacrifice one char to the
+	// verifier for the > 0 check)
+	if (exe->len > 255)
+		exe->len = 255;
+	asm volatile("%[len] &= 0xff;\n"
+		     : [len] "+r"(exe->len));
+	probe_read(exe->buf, exe->len, buffer);
 
 	return exe->len;
 }
@@ -364,7 +375,7 @@ execve_send(void *ctx)
 #ifdef __LARGE_BPF_PROG
 		// read from proc exe stored at execve time
 		if (event->exe.len <= BINARY_PATH_MAX_LEN) {
-			curr->bin.path_length = probe_read(curr->bin.path, event->exe.len, event->exe.off);
+			curr->bin.path_length = probe_read(curr->bin.path, event->exe.len, event->exe.buf);
 			if (curr->bin.path_length == 0)
 				curr->bin.path_length = event->exe.len;
 		}
