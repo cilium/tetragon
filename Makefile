@@ -264,8 +264,10 @@ test: tester-progs tetragon-bpf ## Run Go tests.
 tester-progs: ## Compile helper programs for unit testing.
 	$(MAKE) -C $(TESTER_PROGS_DIR)
 
+## bpf-test: ## run BPF tests.
+## bpf-test BPFGOTESTFLAGS="-v": ## run BPF tests with verbose.
 .PHONY: bpf-test
-bpf-test: ## Run BPF tests.
+bpf-test:
 	$(MAKE) -C ./bpf run-test
 
 .PHONY: verify
