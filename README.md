@@ -61,7 +61,7 @@ See further resources:
 
 ## Join the community
 
-Join the Tetragon [💬 Slack channel](https://cilium.herokuapp.com/) and the
+Join the Tetragon [💬 Slack channel](https://slack.cilium.io) and the
 [📅 Community Call](https://isogo.to/tetragon-meeting-notes) to chat with
 developers, maintainers, and other users. This is a good first stop to ask
 questions and share your experiences.
