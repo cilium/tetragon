@@ -13,4 +13,8 @@
 #define FUNC_INLINE static inline __attribute__((always_inline))
 #endif
 
+#ifndef fallthrough
+#define fallthrough __attribute__((fallthrough))
+#endif
+
 #endif /* __BPF_COMPILER_H__ */
