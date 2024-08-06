@@ -132,11 +132,14 @@ func getCgroupPath(spec *specs.Spec) (string, error) {
 
 func containerNameFromAnnotations(annotations map[string]string) string {
 	// containerd
+	// ref: https://github.com/containerd/containerd/blob/7f707b5e7970105723257d483394454049eabe47/internal/cri/annotations/annotations.go#L75-L76
+	//      https://github.com/containerd/containerd/blob/7f707b5e7970105723257d483394454049eabe47/internal/cri/nri/nri_api_linux.go#L721-L723
 	if val, ok := annotations["io.kubernetes.cri.container-name"]; ok {
 		return val
 	}
 
 	// crio
+	// ref: https://github.com/cri-o/cri-o/blob/cd3a03c9f7852227f8171e7698535610e41e2e29/server/nri-api.go#L597-L599
 	if val, ok := annotations["io.kubernetes.container.name"]; ok {
 		return val
 	}
