@@ -10,19 +10,18 @@
 // RuntimeHookRequest is issued.
 //
 // Specifically:
-//  - sensors can register their callbacks at init() using RegisterCallbacksAtInit
-//    which registers in these hooks in globalRunner.
-//  - after init(), GlobalRunner() can be used to retrieve this runner and pass
-//    it to the gRPC server code so that it can execute these callbacks when a
-//    RuntimeHookRequest is issued.
-//  - some of these hooks need access to pkg/watcher, so before passing the
-//    runner to gRPC server, we add the watcher as well. Hooks can access the
-//    watcher via the argument passed in the executed callback.
-//  - all callbacks are executed, i.e., if a callback returns an error execution of callbacks does
-//    not stop
-//  - if any callback fails with an error, the gRPC server will return an error to the client (see
-//    pkg/server/server.go)
-
+//   - sensors can register their callbacks at init() using RegisterCallbacksAtInit
+//     which registers in these hooks in globalRunner.
+//   - after init(), GlobalRunner() can be used to retrieve this runner and pass
+//     it to the gRPC server code so that it can execute these callbacks when a
+//     RuntimeHookRequest is issued.
+//   - some of these hooks need access to pkg/watcher, so before passing the
+//     runner to gRPC server, we add the watcher as well. Hooks can access the
+//     watcher via the argument passed in the executed callback.
+//   - all callbacks are executed, i.e., if a callback returns an error execution of callbacks does
+//     not stop
+//   - if any callback fails with an error, the gRPC server will return an error to the client (see
+//     pkg/server/server.go)
 package rthooks
 
 import (
