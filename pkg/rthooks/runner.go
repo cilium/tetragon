@@ -17,7 +17,7 @@ type Runner struct {
 	watcher   watcher.K8sResourceWatcher
 }
 
-// runHooks executes all registered callbacks
+// RunHooks executes all registered callbacks
 func (r *Runner) RunHooks(ctx context.Context, req *v1.RuntimeHookRequest) error {
 	if createReq := req.GetCreateContainer(); createReq != nil {
 		var ret error
