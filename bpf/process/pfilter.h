@@ -587,8 +587,8 @@ generic_process_filter(struct bpf_map_def *heap, struct bpf_map_def *fmap)
 		pass = selector_process_filter(f, curr, enter, msg);
 		if (pass) {
 			/* Verify lost that msg is not null here so recheck */
-			asm volatile("%[curr] &= 0x1f;\n" ::[curr] "r+"(curr)
-				     :);
+			asm volatile("%[curr] &= 0x1f;\n"
+				     : [curr] "+r"(curr));
 			sel->active[curr] = true;
 			sel->active[SELECTORS_ACTIVE] = true;
 			sel->pass |= true;
