@@ -132,8 +132,8 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 	 * 0x1000 should be maximum argument length, so masking
 	 * with 0x1fff is safe and verifier will be happy.
 	 */
-	asm volatile("%[size] &= 0x1fff;\n" ::[size] "+r"(size)
-		     :);
+	asm volatile("%[size] &= 0x1fff;\n"
+		     : [size] "+r"(size));
 
 	switch (do_copy) {
 	case char_buf:

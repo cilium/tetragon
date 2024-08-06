@@ -94,8 +94,8 @@ generic_process_event(void *ctx, struct bpf_map_def *heap_map,
 		int am;
 
 		am = (&config->arg0m)[index];
-		asm volatile("%[am] &= 0xffff;\n" ::[am] "+r"(am)
-			     :);
+		asm volatile("%[am] &= 0xffff;\n"
+			     : [am] "+r"(am));
 
 		errv = read_call_arg(ctx, e, index, ty, total, a, am, data_heap);
 		if (errv > 0)
