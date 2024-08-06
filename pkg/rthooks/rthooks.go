@@ -20,6 +20,8 @@
 //    watcher via the argument passed in the executed callback.
 //  - all callbacks are executed, i.e., if a callback returns an error execution of callbacks does
 //    not stop
+//  - if any callback fails with an error, the gRPC server will return an error to the client (see
+//    pkg/server/server.go)
 
 package rthooks
 
