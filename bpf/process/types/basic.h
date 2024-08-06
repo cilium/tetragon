@@ -261,8 +261,9 @@ return_stack_error(char *args, int orig, int err)
 	asm volatile("%[orig] &= 0xfff;\n"
 		     "r1 = *(u64 *)%[args];\n"
 		     "r1 += %[orig];\n"
-		     "*(u32 *)(r1 + 0) = %[err];\n" ::[orig] "r+"(orig),
-		     [args] "m+"(args), [err] "r+"(err)
+		     "*(u32 *)(r1 + 0) = %[err];\n"
+		     : [orig] "+r"(orig), [args] "+m"(args), [err] "+r"(err)
+		     :
 		     : "r1");
 	return sizeof(int);
 }
