@@ -84,9 +84,7 @@ __do_str(void *ctx, struct msg_data *msg, unsigned long arg, bool *done)
 	asm volatile("%[max] &= 0x7fff;\n"
 		     "if %[max] < 32736 goto +1\n;"
 		     "%[max] = 32736;\n"
-		     :
-		     : [max] "+r"(max)
-		     :);
+		     : [max] "+r"(max));
 
 	ret = probe_read_str(&msg->arg[0], max, (char *)arg);
 	if (ret < 0)
@@ -101,9 +99,7 @@ __do_str(void *ctx, struct msg_data *msg, unsigned long arg, bool *done)
 	size = ret + offsetof(struct msg_data, arg);
 	/* Code movement from clang forces us to inline bounds checks here */
 	asm volatile("%[size] &= 0x7fff;\n"
-		     :
-		     : [size] "+r"(size)
-		     :);
+		     : [size] "+r"(size));
 	msg->common.size = size;
 	perf_event_output_metric(ctx, MSG_OP_DATA, &tcpmon_map, BPF_F_CURRENT_CPU, msg, size);
 	return ret;

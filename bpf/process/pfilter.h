@@ -135,8 +135,8 @@ process_filter_pid(struct selector_filter *sf, __u32 *f,
 	else {
 		__u64 o = (__u64)off;
 		o = o / 4;
-		asm volatile("%[o] &= 0x3ff;\n" ::[o] "+r"(o)
-			     :);
+		asm volatile("%[o] &= 0x3ff;\n"
+			     : [o] "+r"(o));
 		sel = f[o];
 	}
 	return __process_filter_pid(sf->ty, sf->flags, sel, pid, enter);
@@ -157,8 +157,8 @@ process_filter_namespace(struct selector_filter *sf, __u32 *f,
 	else {
 		__u64 o = (__u64)off;
 		o = o / 4;
-		asm volatile("%[o] &= 0x3ff;\n" ::[o] "+r"(o)
-			     :);
+		asm volatile("%[o] &= 0x3ff;\n"
+			     : [o] "+r"(o));
 		sel = f[o];
 	}
 
