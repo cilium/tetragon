@@ -22,6 +22,8 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/cilium/tetragon/pkg/version"
+
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
 
@@ -374,7 +376,11 @@ func (s *Server) RuntimeHook(ctx context.Context, req *tetragon.RuntimeHookReque
 	logger.GetLogger().WithField("request", req).Debug("Received a RuntimeHook request")
 	err := s.hookRunner.RunHooks(ctx, req)
 	if err != nil {
-		logger.GetLogger().WithField("request", req).WithError(err).Warn("Server RuntimeHook failed")
+		id := uuid.New()
+		logger.GetLogger().WithFields(logrus.Fields{
+			"logid": id,
+		}).WithError(err).Warn("server runtime hook failed")
+		return nil, fmt.Errorf("server runtime hook failed. Check agent logs with logid=%s for details", id)
 	}
 	return &tetragon.RuntimeHookResponse{}, nil
 }
