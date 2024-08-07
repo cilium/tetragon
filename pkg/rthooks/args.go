@@ -11,6 +11,10 @@ import (
 	"github.com/cilium/tetragon/pkg/watcher"
 )
 
+const (
+	uidStringLen = len("00000000-0000-0000-0000-000000000000")
+)
+
 type CreateContainerArg struct {
 	Req     *v1.CreateContainer
 	Watcher watcher.K8sResourceWatcher
@@ -36,4 +40,18 @@ func (arg *CreateContainerArg) CgroupID() (uint64, error) {
 	}
 
 	return cgID, nil
+}
+
+func podIDFromCgroupPath(p string) string {
+	podPath := filepath.Dir(p)
+	podIDstr := filepath.Base(podPath)
+	if len(podIDstr) > uidStringLen {
+		// remove pod prefix
+		podIDstr = podIDstr[len(podIDstr)-uidStringLen:]
+	}
+	return podIDstr
+}
+
+func (arg *CreateContainerArg) PodID() (string, error) {
+	return podIDFromCgroupPath(arg.Req.CgroupsPath), nil
 }
