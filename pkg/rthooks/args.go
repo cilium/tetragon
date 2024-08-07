@@ -53,5 +53,8 @@ func podIDFromCgroupPath(p string) string {
 }
 
 func (arg *CreateContainerArg) PodID() (string, error) {
+	if arg.Req.PodUID != "" {
+		return arg.Req.PodUID, nil
+	}
 	return podIDFromCgroupPath(arg.Req.CgroupsPath), nil
 }
