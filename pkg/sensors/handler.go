@@ -5,10 +5,16 @@ package sensors
 
 import (
 	"fmt"
+	"path/filepath"
 
 	slimv1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
+	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
+)
+
+const (
+	colRunPath = defaults.DefaultRunDir + "collections"
 )
 
 type handler struct {
@@ -142,13 +148,14 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 	err = col.load(h.bpfDir)
 	h.collections.mu.Lock()
 
-	if err != nil {
+	if err == nil {
+		col.state = EnabledState
+	} else {
 		col.err = err
 		col.state = LoadErrorState
-		return err
 	}
-	col.state = EnabledState
-	return nil
+	col.snapshot(filepath.Join(colRunPath, op.ck.namespace), col.name)
+	return err
 }
 
 func (h *handler) deleteTracingPolicy(op *tracingPolicyDelete) error {
@@ -172,6 +179,8 @@ func (h *handler) deleteTracingPolicy(op *tracingPolicyDelete) error {
 		return fmt.Errorf("failed to remove from policyfilter: %w", err)
 	}
 
+	snapShotPath := filepath.Join(colRunPath, op.ck.namespace, col.name)
+	col.deleteSnapshot(snapShotPath)
 	return nil
 }
 
