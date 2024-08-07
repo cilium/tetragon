@@ -51,7 +51,7 @@ declare -A logJqExpr=(
 	[podNamespace]='.["req-podNamespace"]'
 )
 
-kubectl wait --timeout=5m -n $ns --for=condition=ready pod $pod_name
+kubectl wait -n $ns --for=condition=ready pod $pod_name || (kubectl describe pod/$pod_name && false)
 
 pod=$(mktemp --tmpdir pod-XXXX)
 kubectl -n $ns get pods/$pod_name -o json > $pod
