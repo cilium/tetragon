@@ -5,11 +5,11 @@ set -o pipefail
 set -e
 
 SCRIPTPATH=$(dirname "$0")
-
+RTHOOKSPATH=$(realpath $SCRIPTPATH/..)
 HOOKNAME=/opt/tetragon/tetragon-oci-hook
 HOOKDIR=$(dirname $HOOKNAME)
 BASEHOOKNAME=$(basename $HOOKNAME)
-LOCALHOOK="$SCRIPTPATH/$BASEHOOKNAME"
+LOCALHOOK="$RTHOOKSPATH/$BASEHOOKNAME"
 
 usage() {
 	echo "Usage: $0 [-l|--log] [-d|--debug] [-k|--keep-tmpdir]"
@@ -69,8 +69,8 @@ fi
 
 set -x
 
-make -C ${SCRIPTPATH}/
-SETUPBIN=${SCRIPTPATH}/tetragon-oci-hook-setup
+make -C ${RTHOOKSPATH}/
+SETUPBIN=${RTHOOKSPATH}/tetragon-oci-hook-setup
 
 
 minikube ssh -- sudo mkdir -p $HOOKDIR
