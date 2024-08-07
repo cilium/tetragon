@@ -140,12 +140,20 @@ This is intented to be used by OCI hooks (but not limited to them) and correspon
 CreateContainer hook:
 https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontainer-hooks.
 
+The containerName, containerID, podName, podUID, and podNamespace fields are retrieved from the
+annotations as a convenience, and may be left empty if the corresponding annotations are not
+found.
+
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | cgroupsPath | [string](#string) |  | cgroupsPath is the cgroups path for the container. The path is expected to be relative to the cgroups mountpoint. See: https://github.com/opencontainers/runtime-spec/blob/58ec43f9fc39e0db229b653ae98295bfde74aeab/specs-go/config.go#L174 |
 | rootDir | [string](#string) |  | rootDir is the absolute path of the root directory of the container. See: https://github.com/opencontainers/runtime-spec/blob/main/specs-go/config.go#L174 |
 | annotations | [CreateContainer.AnnotationsEntry](#tetragon-CreateContainer-AnnotationsEntry) | repeated | annotations are the run-time annotations for the container see https://github.com/opencontainers/runtime-spec/blob/main/config.md#annotations |
 | containerName | [string](#string) |  | containerName is the name of the container |
+| containerID | [string](#string) |  | containerID is the id of the container |
+| podName | [string](#string) |  | podName is the pod name |
+| podUID | [string](#string) |  | podUID is the pod uid |
+| podNamespace | [string](#string) |  | podNamespace is the namespace of the pod |
 
 <a name="tetragon-CreateContainer-AnnotationsEntry"></a>
 
