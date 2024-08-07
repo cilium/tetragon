@@ -23,9 +23,16 @@ const (
 type CreateContainerArg struct {
 	Req     *v1.CreateContainer
 	Watcher watcher.K8sResourceWatcher
+
+	// cached values
+	cgroupID *uint64
+	pod      *corev1.Pod
 }
 
 func (arg *CreateContainerArg) CgroupID() (uint64, error) {
+	if p := arg.cgroupID; p != nil {
+		return *p, nil
+	}
 
 	// retrieve the cgroup id from the host cgroup path.
 	//
@@ -44,6 +51,7 @@ func (arg *CreateContainerArg) CgroupID() (uint64, error) {
 		return 0, err
 	}
 
+	arg.cgroupID = &cgID
 	return cgID, nil
 }
 
@@ -81,6 +89,10 @@ func (arg *CreateContainerArg) ContainerID() (string, error) {
 }
 
 func (arg *CreateContainerArg) Pod() (*corev1.Pod, error) {
+	if arg.pod != nil {
+		return arg.pod, nil
+	}
+
 	var pod *corev1.Pod
 	var err error
 
@@ -100,6 +112,8 @@ func (arg *CreateContainerArg) Pod() (*corev1.Pod, error) {
 
 	if err != nil {
 		err = fmt.Errorf("failed to fetch pod info after %d retries: %w", nretries, err)
+	} else {
+		arg.pod = pod
 	}
 
 	return pod, err
