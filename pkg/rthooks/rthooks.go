@@ -26,9 +26,6 @@ package rthooks
 
 import (
 	"context"
-
-	v1 "github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/pkg/watcher"
 )
 
 var (
@@ -52,11 +49,6 @@ func GlobalRunner() *Runner {
 	ret := globalRunner
 	globalRunner = nil
 	return ret
-}
-
-type CreateContainerArg struct {
-	Req     *v1.CreateContainer
-	Watcher watcher.K8sResourceWatcher
 }
 
 type Callbacks struct {
