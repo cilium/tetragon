@@ -27,10 +27,6 @@ func init() {
 	})
 }
 
-const (
-	uidStringLen = len("00000000-0000-0000-0000-000000000000")
-)
-
 func createContainerHook(_ context.Context, arg *rthooks.CreateContainerArg) error {
 	var err error
 
@@ -51,14 +47,14 @@ func createContainerHook(_ context.Context, arg *rthooks.CreateContainerArg) err
 		return err
 	}
 
+	podIDstr, err := arg.PodID()
+	if err != nil {
+		log.WithError(err).Warn("failed to retrieve pod id, aborting hook")
+		return err
+	}
+
 	cgPath := arg.Req.CgroupsPath
 	containerID := filepath.Base(cgPath)
-	podPath := filepath.Dir(cgPath)
-	podIDstr := filepath.Base(podPath)
-	if len(podIDstr) > uidStringLen {
-		// remove pod prefix
-		podIDstr = podIDstr[len(podIDstr)-uidStringLen:]
-	}
 	podID, err := uuid.Parse(podIDstr)
 	if err != nil {
 		log.WithError(err).WithField("uuid", podIDstr).WithField("cgroup-path", cgPath).Warn("failed to parse uuid, aborting hook")
