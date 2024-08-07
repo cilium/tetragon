@@ -1,0 +1,29 @@
+# vim:set noet ci pi ts=4 sw=4 ft=bash
+
+detect_runtime() {
+	crictlcmd=$(minikube ssh -- 'sudo crictl version | sed -ne "s/RuntimeName:[[:space:]]\+\(.*\)/\1/p"')
+	if [[ "$crictlcmd" =~ "containerd" ]]; then
+		echo "containerd"
+		return 0
+	fi
+	if [[ "$crictlcmd" =~ "cri-o" ]]; then
+		echo "crio"
+		return 0
+	fi
+
+	kubeletcmd=$(minikube ssh -- 'sudo tr \\0 " "  < /proc/"$(pgrep kubelet)"/cmdline')
+	if [[ "$kubeletcmd" =~ "containerd.sock" ]]; then
+		echo "containerd"
+		return 0
+	fi
+
+	if [[ "$kubeletcmd" =~ "crio.sock" ]]; then
+		echo "crio"
+		return 0
+	fi
+
+	echo 1>&2 "Unknown runtime, bailing out"
+	echo 1>&2 "crictlcmd output: $crictlcmd"
+	echo 1>&2 "kubeletcmd output: $kubeletcmd"
+	exit 1
+}

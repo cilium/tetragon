@@ -11,6 +11,8 @@ HOOKDIR=$(dirname $HOOKNAME)
 BASEHOOKNAME=$(basename $HOOKNAME)
 LOCALHOOK="$RTHOOKSPATH/$BASEHOOKNAME"
 
+source ${SCRIPTPATH}/helpers
+
 usage() {
 	echo "Usage: $0 [-l|--log] [-d|--debug] [-k|--keep-tmpdir]"
 	echo "   -l|--log:          configure hook to just log and not attempt to contact the agent"
@@ -60,6 +62,8 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+runtime=$(detect_runtime)
 
 xdir=$(mktemp -d /tmp/minikube-tetragon-oci-hook-XXXXXX)
 echo "temporary directory: $xdir"
@@ -125,31 +129,16 @@ install_crio() {
 	minikube cp $xdir/hook.json /usr/share/containers/oci/hooks.d/teragon-oci-hook.json
 }
 
-crictlcmd=$(minikube ssh -- 'sudo crictl version | sed -ne "s/RuntimeName:[[:space:]]\+\(.*\)/\1/p"')
-if [[ "$crictlcmd" =~ "containerd" ]]; then
+
+case $runtime in
+  containerd)
 	install_containerd
-	exit 0
-fi
-if [[ "$crictlcmd" =~ "crio.sock" ]]; then
+	;;
+  crio)
 	install_crio
-	exit 0
-fi
-
-kubeletcmd=$(minikube ssh -- 'sudo tr \\0 " "  < /proc/"$(pgrep kubelet)"/cmdline')
-if [[ "$kubeletcmd" =~ "containerd.sock" ]]; then
-	install_containerd
-	exit 0
-fi
-
-if [[ "$kubeletcmd" =~ "crio.sock" ]]; then
-	install_crio
-	exit 0
-fi
-
-
-set +x
-echo "Unknown runtime, bailing out"
-echo "crictlcmd: $crictlcmd"
-echo "kubeletcmd: $kubeletcmd"
-exit 1
-
+	;;
+  *)
+    echo "Unknown runtime"
+    exit 1
+    ;;
+esac
