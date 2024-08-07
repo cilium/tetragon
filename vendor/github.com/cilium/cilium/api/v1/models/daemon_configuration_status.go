@@ -50,6 +50,9 @@ type DaemonConfigurationStatus struct {
 	// Configured compatibility mode for --egress-multi-home-ip-rule-compat
 	EgressMultiHomeIPRuleCompat bool `json:"egress-multi-home-ip-rule-compat,omitempty"`
 
+	// Enable route MTU for pod netns when CNI chaining is used
+	EnableRouteMTUForCNIChaining bool `json:"enableRouteMTUForCNIChaining,omitempty"`
+
 	// Immutable configuration (read-only)
 	Immutable ConfigurationMap `json:"immutable,omitempty"`
 
@@ -294,6 +297,11 @@ func (m *DaemonConfigurationStatus) ContextValidate(ctx context.Context, formats
 func (m *DaemonConfigurationStatus) contextValidateAddressing(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Addressing != nil {
+
+		if swag.IsZero(m.Addressing) { // not required
+			return nil
+		}
+
 		if err := m.Addressing.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("addressing")
@@ -309,6 +317,10 @@ func (m *DaemonConfigurationStatus) contextValidateAddressing(ctx context.Contex
 
 func (m *DaemonConfigurationStatus) contextValidateDatapathMode(ctx context.Context, formats strfmt.Registry) error {
 
+	if swag.IsZero(m.DatapathMode) { // not required
+		return nil
+	}
+
 	if err := m.DatapathMode.ContextValidate(ctx, formats); err != nil {
 		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("datapathMode")
@@ -322,6 +334,10 @@ func (m *DaemonConfigurationStatus) contextValidateDatapathMode(ctx context.Cont
 }
 
 func (m *DaemonConfigurationStatus) contextValidateImmutable(ctx context.Context, formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Immutable) { // not required
+		return nil
+	}
 
 	if err := m.Immutable.ContextValidate(ctx, formats); err != nil {
 		if ve, ok := err.(*errors.Validation); ok {
@@ -338,6 +354,11 @@ func (m *DaemonConfigurationStatus) contextValidateImmutable(ctx context.Context
 func (m *DaemonConfigurationStatus) contextValidateKvstoreConfiguration(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.KvstoreConfiguration != nil {
+
+		if swag.IsZero(m.KvstoreConfiguration) { // not required
+			return nil
+		}
+
 		if err := m.KvstoreConfiguration.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("kvstoreConfiguration")
@@ -354,6 +375,11 @@ func (m *DaemonConfigurationStatus) contextValidateKvstoreConfiguration(ctx cont
 func (m *DaemonConfigurationStatus) contextValidateMasqueradeProtocols(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.MasqueradeProtocols != nil {
+
+		if swag.IsZero(m.MasqueradeProtocols) { // not required
+			return nil
+		}
+
 		if err := m.MasqueradeProtocols.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("masqueradeProtocols")
@@ -370,6 +396,11 @@ func (m *DaemonConfigurationStatus) contextValidateMasqueradeProtocols(ctx conte
 func (m *DaemonConfigurationStatus) contextValidateNodeMonitor(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.NodeMonitor != nil {
+
+		if swag.IsZero(m.NodeMonitor) { // not required
+			return nil
+		}
+
 		if err := m.NodeMonitor.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("nodeMonitor")
@@ -386,6 +417,11 @@ func (m *DaemonConfigurationStatus) contextValidateNodeMonitor(ctx context.Conte
 func (m *DaemonConfigurationStatus) contextValidateRealized(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Realized != nil {
+
+		if swag.IsZero(m.Realized) { // not required
+			return nil
+		}
+
 		if err := m.Realized.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("realized")

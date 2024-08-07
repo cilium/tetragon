@@ -109,6 +109,27 @@ func (c *multiNamespaceCache) GetInformer(ctx context.Context, obj client.Object
 	return &multiNamespaceInformer{namespaceToInformer: namespaceToInformer}, nil
 }
 
+func (c *multiNamespaceCache) RemoveInformer(ctx context.Context, obj client.Object) error {
+	// If the object is clusterscoped, get the informer from clusterCache,
+	// if not use the namespaced caches.
+	isNamespaced, err := apiutil.IsObjectNamespaced(obj, c.Scheme, c.RESTMapper)
+	if err != nil {
+		return err
+	}
+	if !isNamespaced {
+		return c.clusterCache.RemoveInformer(ctx, obj)
+	}
+
+	for _, cache := range c.namespaceToCache {
+		err := cache.RemoveInformer(ctx, obj)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (c *multiNamespaceCache) GetInformerForKind(ctx context.Context, gvk schema.GroupVersionKind, opts ...InformerGetOption) (Informer, error) {
 	// If the object is cluster scoped, get the informer from clusterCache,
 	// if not use the namespaced caches.
@@ -142,12 +163,13 @@ func (c *multiNamespaceCache) GetInformerForKind(ctx context.Context, gvk schema
 }
 
 func (c *multiNamespaceCache) Start(ctx context.Context) error {
+	errs := make(chan error)
 	// start global cache
 	if c.clusterCache != nil {
 		go func() {
 			err := c.clusterCache.Start(ctx)
 			if err != nil {
-				log.Error(err, "cluster scoped cache failed to start")
+				errs <- fmt.Errorf("failed to start cluster-scoped cache: %w", err)
 			}
 		}()
 	}
@@ -156,13 +178,16 @@ func (c *multiNamespaceCache) Start(ctx context.Context) error {
 	for ns, cache := range c.namespaceToCache {
 		go func(ns string, cache Cache) {
 			if err := cache.Start(ctx); err != nil {
-				log.Error(err, "multi-namespace cache failed to start namespaced informer", "namespace", ns)
+				errs <- fmt.Errorf("failed to start cache for namespace %s: %w", ns, err)
 			}
 		}(ns, cache)
 	}
-
-	<-ctx.Done()
-	return nil
+	select {
+	case <-ctx.Done():
+		return nil
+	case err := <-errs:
+		return err
+	}
 }
 
 func (c *multiNamespaceCache) WaitForCacheSync(ctx context.Context) bool {
@@ -386,6 +411,16 @@ func (i *multiNamespaceInformer) AddIndexers(indexers toolscache.Indexers) error
 func (i *multiNamespaceInformer) HasSynced() bool {
 	for _, informer := range i.namespaceToInformer {
 		if !informer.HasSynced() {
+			return false
+		}
+	}
+	return true
+}
+
+// IsStopped checks if each namespaced informer has stopped, returns false if any are still running.
+func (i *multiNamespaceInformer) IsStopped() bool {
+	for _, informer := range i.namespaceToInformer {
+		if stopped := informer.IsStopped(); !stopped {
 			return false
 		}
 	}
