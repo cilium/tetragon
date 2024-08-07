@@ -4,12 +4,16 @@
 package rthooks
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
+	"time"
 
 	v1 "github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/watcher"
+
+	corev1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -74,4 +78,29 @@ func (arg *CreateContainerArg) ContainerID() (string, error) {
 		return arg.Req.ContainerID, nil
 	}
 	return containerIDFromCgroupPath(arg.Req.CgroupsPath), nil
+}
+
+func (arg *CreateContainerArg) Pod() (*corev1.Pod, error) {
+	var pod *corev1.Pod
+	var err error
+
+	podId, err := arg.PodID()
+	if err != nil {
+		return nil, err
+	}
+
+	nretries := 5
+	for i := 0; i < nretries; i++ {
+		pod, err = arg.Watcher.FindPod(podId)
+		if err == nil {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	if err != nil {
+		err = fmt.Errorf("failed to fetch pod info after %d retries: %w", nretries, err)
+	}
+
+	return pod, err
 }
