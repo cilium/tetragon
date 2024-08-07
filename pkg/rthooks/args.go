@@ -5,6 +5,7 @@ package rthooks
 
 import (
 	"path/filepath"
+	"strings"
 
 	v1 "github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/cgroups"
@@ -59,7 +60,15 @@ func (arg *CreateContainerArg) PodID() (string, error) {
 	return podIDFromCgroupPath(arg.Req.CgroupsPath), nil
 }
 
+func containerIDFromCgroupPath(p string) string {
+	containerID := filepath.Base(p)
+	// crio has cgroups paths such as crio-<ID> and crio-conmon-<ID>. Strip those prefixes.
+	if idx := strings.LastIndex(containerID, "-"); idx != -1 {
+		containerID = containerID[idx+1:]
+	}
+	return containerID
+}
+
 func (arg *CreateContainerArg) ContainerID() (string, error) {
-	cgPath := arg.Req.CgroupsPath
-	return filepath.Base(cgPath), nil
+	return containerIDFromCgroupPath(arg.Req.CgroupsPath), nil
 }
