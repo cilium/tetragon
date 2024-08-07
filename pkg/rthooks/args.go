@@ -58,3 +58,8 @@ func (arg *CreateContainerArg) PodID() (string, error) {
 	}
 	return podIDFromCgroupPath(arg.Req.CgroupsPath), nil
 }
+
+func (arg *CreateContainerArg) ContainerID() (string, error) {
+	cgPath := arg.Req.CgroupsPath
+	return filepath.Base(cgPath), nil
+}

@@ -5,7 +5,6 @@ package rthooks
 
 import (
 	"context"
-	"path/filepath"
 	"time"
 
 	"github.com/cilium/tetragon/pkg/logger"
@@ -54,10 +53,15 @@ func createContainerHook(_ context.Context, arg *rthooks.CreateContainerArg) err
 	}
 
 	cgPath := arg.Req.CgroupsPath
-	containerID := filepath.Base(cgPath)
 	podID, err := uuid.Parse(podIDstr)
 	if err != nil {
 		log.WithError(err).WithField("uuid", podIDstr).WithField("cgroup-path", cgPath).Warn("failed to parse uuid, aborting hook")
+		return err
+	}
+
+	containerID, err := arg.ContainerID()
+	if err != nil {
+		log.WithError(err).Warn("failed to retrieve container id, aborting hook")
 		return err
 	}
 
