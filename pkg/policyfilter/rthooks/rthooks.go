@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/policyfiltermetrics"
 	"github.com/cilium/tetragon/pkg/policyfilter"
@@ -46,24 +45,13 @@ func createContainerHook(_ context.Context, arg *rthooks.CreateContainerArg) err
 		return err
 	}
 
-	// retrieve the cgroup id from the host cgroup path.
-	//
-	// NB(kkourt): A better solution might be to hook into cgroup creation routines and create a
-	// mapping between directory and cgroup id that we maintain in user-space. Then, we can find
-	// the id using this mapping.
-	cgPath := arg.Req.CgroupsPath
-	cgRoot, err := cgroups.HostCgroupRoot()
+	cgID, err := arg.CgroupID()
 	if err != nil {
-		log.WithError(err).Warn("failed to retrieve host cgroup root, aborting hook")
-		return err
-	}
-	path := filepath.Join(cgRoot, cgPath)
-	cgID, err := cgroups.GetCgroupIdFromPath(path)
-	if err != nil {
-		log.WithError(err).WithField("path", path).WithField("cgroup-id", cgID).Warn("retrieving cgroup id failed, aborting hook")
+		log.WithError(err).Warn("failed to retrieve cgroup id, aborting hook")
 		return err
 	}
 
+	cgPath := arg.Req.CgroupsPath
 	containerID := filepath.Base(cgPath)
 	podPath := filepath.Dir(cgPath)
 	podIDstr := filepath.Base(podPath)
