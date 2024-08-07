@@ -70,5 +70,8 @@ func containerIDFromCgroupPath(p string) string {
 }
 
 func (arg *CreateContainerArg) ContainerID() (string, error) {
+	if arg.Req.ContainerID != "" {
+		return arg.Req.ContainerID, nil
+	}
 	return containerIDFromCgroupPath(arg.Req.CgroupsPath), nil
 }
