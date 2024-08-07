@@ -1,8 +1,8 @@
-FROM docker.io/library/ubuntu:22.04@sha256:0bced47fffa3361afa981854fcabcd4577cd43cebbb808cea2b1f33a3dd7f508
+FROM docker.io/library/ubuntu:24.04@sha256:2e863c44b718727c860746568e1d54afd13b2fa71b160f5cd9058fc436217b30
 
 RUN apt-get -y update
-RUN apt-get -y install clang-format-14
-RUN ln -s /bin/clang-format-14 /bin/clang-format
+RUN apt-get -y install clang-format-18
+RUN ln -s /bin/clang-format-18 /bin/clang-format
 
 USER 1000
 WORKDIR /tetragon
