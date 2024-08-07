@@ -5,7 +5,6 @@ package rthooks
 
 import (
 	"context"
-	"time"
 
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/policyfiltermetrics"
@@ -14,8 +13,6 @@ import (
 	"github.com/cilium/tetragon/pkg/rthooks"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
-
-	corev1 "k8s.io/api/core/v1"
 )
 
 // policy filter run-time hook
@@ -66,17 +63,8 @@ func createContainerHook(_ context.Context, arg *rthooks.CreateContainerArg) err
 	}
 
 	// Because we are still creating the container, its status is not available at the k8s API.
-	// Instead, we use the PodID.
-	var pod *corev1.Pod
-	nretries := 5
-	for i := 0; i < nretries; i++ {
-		pod, err = arg.Watcher.FindPod(podIDstr)
-		if err == nil {
-			break
-		}
-		log.Infof("failed to get pod info from watcher (%T): will retry (%d/%d).", arg.Watcher, i+1, nretries)
-		time.Sleep(10 * time.Millisecond)
-	}
+	// Instead, we retrieve the pod
+	pod, err := arg.Pod()
 	if err != nil {
 		log.WithError(err).Warn("failed to get pod info, aborting hook.")
 		return err
