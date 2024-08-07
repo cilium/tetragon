@@ -42,7 +42,8 @@ func createContainerHook(_ context.Context, arg *rthooks.CreateContainerArg) err
 
 	pfState, err := policyfilter.GetState()
 	if err != nil {
-		log.WithError(err).Warn("failed to retreieve policyfilter state, aborting hook")
+		log.WithError(err).Warn("failed to retrieve policyfilter state, aborting hook")
+		return err
 	}
 
 	// retrieve the cgroup id from the host cgroup path.
