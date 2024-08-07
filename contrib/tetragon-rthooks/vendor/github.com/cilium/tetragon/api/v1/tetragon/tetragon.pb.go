@@ -1363,11 +1363,8 @@ type Process struct {
 	// Executed binary properties. This field is only available on ProcessExec events.
 	BinaryProperties *BinaryProperties `protobuf:"bytes,18,opt,name=binary_properties,json=binaryProperties,proto3" json:"binary_properties,omitempty"`
 	// UserRecord contains user information about the event.
-	//
-	// UserRecord is only supported when i) Tetragon is running as a systemd service or directly on the host, and
-	//
-	//	ii) when  `--username-metadata` is set to "unix". In this case, the information is retrieved from
-	//
+	// It is only supported when i) Tetragon is running as a systemd service or directly on the host, and
+	// ii) when the flag `--username-metadata` is set to "unix". In this case, the information is retrieved from
 	// the traditional user database `/etc/passwd` and no name services lookups are performed.
 	// The resolution will only be attempted for processes in the host namespace.
 	// Note that this resolution happens in user-space, which means that mapping might have changed
