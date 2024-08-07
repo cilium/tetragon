@@ -374,7 +374,7 @@ FUNC_INLINE long copy_path(char *args, const struct path *arg)
 		"r2 = *(u16 *)%[mode];\n"
 		"*(u16 *)(r1 + 4) = r2;\n"
 		:
-		: [pid] "m"(args), [flags] "m"(flags), [offset] "+m"(size), [mode] "m"(i_mode)
+		: [pid] "m"(args), [flags] "m"(flags), [offset] "m"(size), [mode] "m"(i_mode)
 		: "r0", "r1", "r2", "r7", "memory"
 		: a);
 a:
