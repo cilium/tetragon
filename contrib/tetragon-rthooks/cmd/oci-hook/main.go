@@ -147,6 +147,70 @@ func containerNameFromAnnotations(annotations map[string]string) string {
 	return ""
 }
 
+func containerIDFromAnnotations(annotations map[string]string) string {
+	// crio
+	// ref: https://github.com/cri-o/cri-o/blob/cd3a03c9f7852227f8171e7698535610e41e2e29/server/nri-api.go#L586-L591
+	//      https://github.com/cri-o/cri-o/blob/5fcc64c8d159e89c040928e4b0032f359a1c864e/pkg/annotations/internal.go#L8
+	if val, ok := annotations["io.kubernetes.cri-o.ContainerID"]; ok {
+		return val
+	}
+
+	// NB: containerd does not have the container id in the annotations
+	return ""
+}
+
+func podNameFromAnnotations(annotations map[string]string) string {
+	// containerd
+	// ref: https://github.com/containerd/containerd/blob/7f707b5e7970105723257d483394454049eabe47/internal/cri/annotations/annotations.go#L72-L73
+	if val, ok := annotations["io.kubernetes.cri.sandbox-name"]; ok {
+		return val
+	}
+
+	// crio
+	// ref: https://github.com/cri-o/cri-o/blob/cd3a03c9f7852227f8171e7698535610e41e2e29/vendor/k8s.io/kubelet/pkg/types/labels.go#L21
+	//      (not sure how the label ends up in annotations though)
+	if val, ok := annotations["io.kubernetes.pod.name"]; ok {
+		return val
+	}
+
+	return ""
+}
+
+func podUIDFromAnnotations(annotations map[string]string) string {
+	// containerd
+	// ref: https://github.com/containerd/containerd/blob/7f707b5e7970105723257d483394454049eabe47/internal/cri/annotations/annotations.go#L67-L70
+	if val, ok := annotations["io.kubernetes.cri.sandbox-uid"]; ok {
+		return val
+	}
+
+	// crio
+	// ref: https://github.com/cri-o/cri-o/blob/cd3a03c9f7852227f8171e7698535610e41e2e29/vendor/k8s.io/kubelet/pkg/types/labels.go#L23
+	//      (not sure how the label ends up in annotations though)
+	if val, ok := annotations["io.kubernetes.pod.uid"]; ok {
+		return val
+	}
+
+	return ""
+
+}
+
+func podNamespaceFromAnnotations(annotations map[string]string) string {
+	// containerd
+	// ref: https://github.com/containerd/containerd/blob/7f707b5e7970105723257d483394454049eabe47/internal/cri/annotations/annotations.go#L64-L65
+	if val, ok := annotations["io.kubernetes.cri.sandbox-namespace"]; ok {
+		return val
+	}
+
+	// crio
+	// ref: https://github.com/cri-o/cri-o/blob/cd3a03c9f7852227f8171e7698535610e41e2e29/vendor/k8s.io/kubelet/pkg/types/labels.go#L22
+	//      (not sure how the label ends up in annotations though)
+	if val, ok := annotations["io.kubernetes.pod.namespace"]; ok {
+		return val
+	}
+
+	return ""
+}
+
 // NB: the second argument is only used in case of an error, so disable revive's complains
 // revive:disable:error-return
 func createContainerHook(log *slog.Logger) (error, map[string]string) {
@@ -195,23 +259,31 @@ func createContainerHook(log *slog.Logger) (error, map[string]string) {
 		return errors.New("unable to determine either RootDir or cgroupPath, bailing out"), nil
 	}
 
-	containerName := containerNameFromAnnotations(spec.Annotations)
+	createContainer := &tetragon.CreateContainer{
+		CgroupsPath:   cgroupPath,
+		RootDir:       rootDir,
+		ContainerName: containerNameFromAnnotations(spec.Annotations),
+		ContainerID:   containerIDFromAnnotations(spec.Annotations),
+		PodName:       podNameFromAnnotations(spec.Annotations),
+		PodUID:        podUIDFromAnnotations(spec.Annotations),
+		PodNamespace:  podNamespaceFromAnnotations(spec.Annotations),
+		Annotations:   spec.Annotations,
+	}
 
 	req := &tetragon.RuntimeHookRequest{
 		Event: &tetragon.RuntimeHookRequest_CreateContainer{
-			CreateContainer: &tetragon.CreateContainer{
-				CgroupsPath:   cgroupPath,
-				RootDir:       rootDir,
-				Annotations:   spec.Annotations,
-				ContainerName: containerName,
-			},
+			CreateContainer: createContainer,
 		},
 	}
 
 	log = log.With(
 		"req-cgroups", cgroupPath,
 		"req-rootdir", rootDir,
-		"req-containerName", containerName,
+		"req-containerName", createContainer.ContainerName,
+		"req-containerID", createContainer.ContainerID,
+		"req-podName", createContainer.PodName,
+		"req-podUID", createContainer.PodUID,
+		"req-podNamespace", createContainer.PodNamespace,
 	)
 	if log.Enabled(context.TODO(), slog.LevelDebug) {
 		// NB: only add annotations in debug level since they are too noisy
