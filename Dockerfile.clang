@@ -1,8 +1,8 @@
-FROM docker.io/library/ubuntu:22.04@sha256:0bced47fffa3361afa981854fcabcd4577cd43cebbb808cea2b1f33a3dd7f508
+FROM docker.io/library/ubuntu:24.04@sha256:2e863c44b718727c860746568e1d54afd13b2fa71b160f5cd9058fc436217b30
 RUN apt-get update && apt-get install -y --no-install-recommends  \
-    clang-15 libclang-common-15-dev libclang-cpp15    	          \
-    libllvm15 llvm-15-linker-tools libclang1-15                   \
-    llvm-15 llvm-15-runtime llvm-15-linker-tools make             \
+    clang-18 libclang-common-18-dev libclang-cpp18    	          \
+    libllvm18 llvm-18-linker-tools libclang1-18                   \
+    llvm-18 llvm-18-runtime llvm-18-linker-tools make             \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
-RUN ln -vsnf /usr/lib/llvm-15/bin/clang /usr/bin/clang
-RUN ln -vsnf /usr/lib/llvm-15/bin/llc /usr/bin/llc
+RUN ln -vsnf /usr/lib/llvm-18/bin/clang /usr/bin/clang
+RUN ln -vsnf /usr/lib/llvm-18/bin/llc /usr/bin/llc
