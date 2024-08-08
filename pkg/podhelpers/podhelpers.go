@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
-package policyfilter
+package podhelpers
 
 import (
 	"strings"
@@ -32,7 +32,7 @@ func containerIDFromContainerStatus(c *v1.ContainerStatus) string {
 	return ret
 }
 
-func podContainersIDs(pod *v1.Pod) []string {
+func PodContainersIDs(pod *v1.Pod) []string {
 	ret := make([]string, 0)
 	podForAllContainers(pod, func(c *v1.ContainerStatus) {
 		id := containerIDFromContainerStatus(c)
@@ -41,7 +41,7 @@ func podContainersIDs(pod *v1.Pod) []string {
 	return ret
 }
 
-func podContainersNames(pod *v1.Pod) []string {
+func PodContainersNames(pod *v1.Pod) []string {
 	ret := make([]string, 0)
 	podForAllContainers(pod, func(c *v1.ContainerStatus) {
 		ret = append(ret, c.Name)

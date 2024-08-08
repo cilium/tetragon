@@ -13,6 +13,7 @@ import (
 	"github.com/cilium/tetragon/pkg/labels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/policyfiltermetrics"
+	"github.com/cilium/tetragon/pkg/podhelpers"
 	"github.com/cilium/tetragon/pkg/podhooks"
 	"github.com/cilium/tetragon/pkg/process"
 
@@ -298,8 +299,8 @@ func newState(
 //revive:enable:unexported-return
 
 func (m *state) updatePodHandler(pod *v1.Pod) error {
-	containerIDs := podContainersIDs(pod)
-	containerNames := podContainersNames(pod)
+	containerIDs := podhelpers.PodContainersIDs(pod)
+	containerNames := podhelpers.PodContainersNames(pod)
 	podID, err := uuid.Parse(string(pod.UID))
 	if err != nil {
 		m.log.WithError(err).WithField("pod-id", pod.UID).Warn("policyfilter, pod handler: failed to parse pod id")
