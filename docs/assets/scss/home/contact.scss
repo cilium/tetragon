@@ -265,13 +265,18 @@
             display: block;
             content: "";
             top: 7px;
-            left: 4px;
+            left: 5px;
             position: absolute;
             width: 12px;
             height: 10px;
             opacity: 0;
             background: no-repeat center center url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='10' fill='none' viewBox='0 0 12 10'%3E%3Cpath stroke='%23415559' stroke-width='2.4' d='M1 4.818 4.125 8 11 1'/%3E%3C/svg%3E");
             background-size: contain;
+
+            @media (max-width: $desktop) {
+              top: 4px;
+              left: 3px;
+            }
           }
         }
 
