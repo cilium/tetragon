@@ -14,7 +14,6 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/encoder"
-	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -116,23 +115,23 @@ func getRequest(includeFields, excludeFields []string, filter *tetragon.Filter) 
 	}
 }
 
-func getEvents(ctx context.Context, client tetragon.FineGuidanceSensorsClient) {
+func getEvents(ctx context.Context, client tetragon.FineGuidanceSensorsClient) error {
 	request := getRequest(Options.IncludeFields, Options.ExcludeFields, GetFilter())
 	stream, err := client.GetEvents(ctx, request)
 	if err != nil {
-		logger.GetLogger().WithError(err).Fatal("Failed to call GetEvents")
+		return fmt.Errorf("failed to call GetEvents: %w", err)
 	}
 	eventEncoder := GetEncoder(os.Stdout, encoder.ColorMode(Options.Color), Options.Timestamps, Options.Output == "compact", Options.TTYEncode, Options.StackTraces)
 	for {
 		res, err := stream.Recv()
 		if err != nil {
 			if !errors.Is(err, context.Canceled) && status.Code(err) != codes.Canceled && !errors.Is(err, io.EOF) {
-				logger.GetLogger().WithError(err).Fatal("Failed to receive events")
+				return fmt.Errorf("failed to receive events: %w", err)
 			}
-			return
+			return nil
 		}
 		if err = eventEncoder.Encode(res); err != nil {
-			logger.GetLogger().WithError(err).WithField("event", res).Debug("Failed to encode event")
+			return fmt.Errorf("failed to encode event %#v: %w", res, err)
 		}
 	}
 }
@@ -181,15 +180,19 @@ redirection of events to the stdin. Examples:
 
 			return nil
 		},
-		Run: func(_ *cobra.Command, _ []string) {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			fi, _ := os.Stdin.Stat()
 			if fi.Mode()&os.ModeNamedPipe != 0 {
 				// read events from stdin
-				getEvents(context.Background(), newIOReaderClient(os.Stdin, common.Debug))
-				return
+				return getEvents(context.Background(), newIOReaderClient(os.Stdin, common.Debug))
 			}
 			// connect to server
-			common.CliRun(getEvents)
+			c, err := common.NewClientWithDefaultContextAndAddress()
+			if err != nil {
+				return fmt.Errorf("failed create gRPC client: %w", err)
+			}
+			defer c.Close()
+			return getEvents(c.SignalCtx, c.Client)
 		},
 	}
 
