@@ -72,7 +72,7 @@ var (
 	}
 
 	operationLabel = metrics.ConstrainedLabel{
-		Name:   "op",
+		Name:   "operation",
 		Values: maps.Values(operationLabelValues),
 	}
 
@@ -84,8 +84,8 @@ var (
 
 var (
 	PolicyFilterOpMetrics = metrics.MustNewCounter(metrics.NewOpts(
-		consts.MetricsNamespace, "", "policyfilter_metrics_total",
-		"Policy filter metrics. For internal use only.",
+		consts.MetricsNamespace, "", "policyfilter_operations_total",
+		"Number of policy filter operations.",
 		nil, []metrics.ConstrainedLabel{subsysLabel, operationLabel, errorLabel}, nil,
 	), nil)
 
