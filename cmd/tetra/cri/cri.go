@@ -36,6 +36,7 @@ func New() *cobra.Command {
 
 	ret.AddCommand(
 		versionCmd(flagVals),
+		cgroupPathCmd(flagVals),
 	)
 
 	flags := ret.PersistentFlags()
@@ -72,6 +73,29 @@ func versionCmd(flagVals *criFlags) *cobra.Command {
 				}
 				fmt.Println(string(b))
 			}
+			return nil
+		},
+	}
+	return ret
+}
+
+func cgroupPathCmd(flagVals *criFlags) *cobra.Command {
+	ret := &cobra.Command{
+		Use:   "cgroup_path",
+		Short: "retrieve cgroup path for container",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			ctx := context.Background()
+			client, err := cri.NewClient(ctx, flagVals.endpoint)
+			if err != nil {
+				return err
+			}
+
+			ret, err := cri.CgroupPath(ctx, client, args[0])
+			if err != nil {
+				return err
+			}
+			fmt.Println(ret)
 			return nil
 		},
 	}
