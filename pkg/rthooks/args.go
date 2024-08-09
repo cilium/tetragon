@@ -46,7 +46,7 @@ func (arg *CreateContainerArg) CgroupID() (uint64, error) {
 	}
 
 	path := filepath.Join(cgRoot, cgPath)
-	cgID, err := cgroups.GetCgroupIdFromPath(path)
+	cgID, err := cgroups.GetCgroupIDFromSubCgroup(path)
 	if err != nil {
 		return 0, err
 	}
