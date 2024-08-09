@@ -93,9 +93,37 @@ func (arg *CreateContainerArg) Pod() (*corev1.Pod, error) {
 		return arg.pod, nil
 	}
 
-	pod, err := arg.findPod()
+	var pod *corev1.Pod
+	var err error
+	if h, ok := arg.Req.Annotations["kubernetes.io/config.hash"]; ok {
+		// NB: this is a static pod, so we need to find its mirror in the API server
+		pod, err = arg.findMirrorPod(h)
+	} else {
+		pod, err = arg.findPod()
+	}
+
 	if err == nil {
 		arg.pod = pod
+	}
+
+	return pod, err
+}
+
+func (arg *CreateContainerArg) findMirrorPod(hash string) (*corev1.Pod, error) {
+	var pod *corev1.Pod
+	var err error
+
+	nretries := 5
+	for i := 0; i < nretries; i++ {
+		pod, err = arg.Watcher.FindMirrorPod(hash)
+		if err == nil {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	if err != nil {
+		err = fmt.Errorf("failed to fetch pod info after %d retries: %w", nretries, err)
 	}
 
 	return pod, err
