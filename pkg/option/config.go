@@ -97,6 +97,9 @@ type config struct {
 
 	EnableCRI   bool
 	CRIEndpoint string
+
+	EnableCgIDmap      bool
+	EnableCgIDmapDebug bool
 }
 
 var (
