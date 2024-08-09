@@ -45,6 +45,8 @@ type K8sResourceWatcher interface {
 
 	// Find a pod given the podID
 	FindPod(podID string) (*corev1.Pod, error)
+	// Find a mirror pod for a static pod
+	FindMirrorPod(hash string) (*corev1.Pod, error)
 }
 
 // K8sWatcher maintains a local cache of k8s resources.
@@ -211,6 +213,28 @@ func (watcher *K8sWatcher) FindContainer(containerID string) (*corev1.Pod, *core
 		return findContainer(containerID, podInformer.GetStore().List())
 	}
 	return findContainer(containerID, objs)
+}
+
+// FindMirrorPod finds the mirror pod of a static pod based on the hash
+// see: https://kubernetes.io/docs/reference/labels-annotations-taints/#kubernetes-io-config-hash,
+// https://kubernetes.io/docs/reference/labels-annotations-taints/#kubernetes-io-config-mirror,
+// https://kubernetes.io/docs/tasks/configure-pod-container/static-pod/
+func (watcher *K8sWatcher) FindMirrorPod(hash string) (*corev1.Pod, error) {
+	podInformer := watcher.GetInformer(podInformerName)
+	if podInformer == nil {
+		return nil, fmt.Errorf("pod informer not initialized")
+	}
+	pods := podInformer.GetStore().List()
+	for i := range pods {
+		if pod, ok := pods[i].(*corev1.Pod); ok {
+			if ha, ok := pod.Annotations["kubernetes.io/config.mirror"]; ok {
+				if hash == ha {
+					return pod, nil
+				}
+			}
+		}
+	}
+	return nil, fmt.Errorf("static pod (hash=%s) not found", hash)
 }
 
 func (watcher *K8sWatcher) FindPod(podID string) (*corev1.Pod, error) {
