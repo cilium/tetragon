@@ -506,6 +506,10 @@ type fakeK8sWatcher struct {
 	fakePod, fakeNamespace string
 }
 
+func (f *fakeK8sWatcher) FindMirrorPod(_ string) (*corev1.Pod, error) {
+	return nil, fmt.Errorf("fakeK8sWatcher does not support Mirror pods")
+}
+
 func (f *fakeK8sWatcher) FindPod(podID string) (*corev1.Pod, error) {
 	if podID == "" {
 		return nil, fmt.Errorf("empty podID")
