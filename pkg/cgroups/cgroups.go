@@ -10,6 +10,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -762,4 +763,62 @@ func HostCgroupRoot() (string, error) {
 		fmt.Errorf("failed to set path %s as cgroup root %w", path2, err2),
 	)
 	return "", fmt.Errorf("failed to set cgroup root: %w", err)
+}
+
+// CgroupIDFromPID returns the cgroup id for a given pid.
+func CgroupIDFromPID(pid uint32) (uint64, error) {
+	cgroupFile := fmt.Sprintf("%s/%d/cgroup", option.Config.ProcFS, pid)
+	data, err := os.ReadFile(cgroupFile)
+	if err != nil {
+		return 0, err
+	}
+
+	pathPrefix := fmt.Sprintf("%s/1/root/sys/fs/cgroup", option.Config.ProcFS)
+
+	// pathFunc returns (true, path) if it found the proper cgroup path, or (false, "") if it
+	// did not. There are two versions of this function, one for cgroup v1 and one for cgroup
+	// v2.
+	var pathFunc func(line string) (bool, string)
+
+	switch GetCgroupMode() {
+	case CGROUP_UNDEF:
+		return 0, fmt.Errorf("cgroup mode undefined")
+	case CGROUP_UNIFIED:
+		pathFunc = func(line string) (bool, string) {
+			v2Prefix := "0::"
+			if !strings.HasPrefix(line, v2Prefix) {
+				return false, ""
+			}
+			return true, fmt.Sprintf("%s/%s", pathPrefix, line[len(v2Prefix):])
+		}
+	case CGROUP_LEGACY, CGROUP_HYBRID:
+		pathFunc = func(line string) (bool, string) {
+			// TODO: test the cgroup v1 implementation
+			v1Prefix := fmt.Sprintf("%d:%s:", GetCgrpSubsystemIdx(), GetCgrpControllerName())
+			if !strings.HasPrefix(line, v1Prefix) {
+				return false, ""
+			}
+			return true, fmt.Sprintf("%s/%s/%s", pathPrefix, GetCgrpControllerName(), line[len(v1Prefix):])
+		}
+	}
+
+	lines := strings.Split(string(data), "\n")
+	var path string
+	for _, line := range lines {
+		var ok bool
+		if ok, path = pathFunc(line); ok {
+			break
+		}
+	}
+
+	if len(path) == 0 {
+		return 0, errors.New("failed to find proper cgroup")
+	}
+
+	cgID, err := GetCgroupIdFromPath(path)
+	if err != nil {
+		return 0, err
+	}
+
+	return cgID, nil
 }
