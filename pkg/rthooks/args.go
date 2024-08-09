@@ -93,6 +93,15 @@ func (arg *CreateContainerArg) Pod() (*corev1.Pod, error) {
 		return arg.pod, nil
 	}
 
+	pod, err := arg.findPod()
+	if err == nil {
+		arg.pod = pod
+	}
+
+	return pod, err
+}
+
+func (arg *CreateContainerArg) findPod() (*corev1.Pod, error) {
 	var pod *corev1.Pod
 	var err error
 
@@ -112,8 +121,6 @@ func (arg *CreateContainerArg) Pod() (*corev1.Pod, error) {
 
 	if err != nil {
 		err = fmt.Errorf("failed to fetch pod info after %d retries: %w", nretries, err)
-	} else {
-		arg.pod = pod
 	}
 
 	return pod, err
