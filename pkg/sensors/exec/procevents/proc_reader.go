@@ -19,6 +19,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
@@ -240,6 +241,15 @@ func pushExecveEvents(p procs) {
 			m.Unix.Kube.Docker, err = procsDockerId(p.pid)
 			if err != nil {
 				logger.GetLogger().WithError(err).Warn("Procfs execve event pods/ identifier error")
+			}
+			if m.Unix.Kube.Docker != "" {
+				if cgid, err := cgroups.CgroupIDFromPID(p.pid); err == nil {
+					m.Unix.Msg.Kube.Cgrpid = cgid
+				} else if option.Config.EnableCgIDmap {
+					// only warn if cgidmap is enabled since this is where this
+					// value is used
+					logger.GetLogger().WithError(err).WithField("pid", p.pid).Warn("failed to find cgroup id for pid")
+				}
 			}
 		}
 

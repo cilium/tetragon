@@ -7,20 +7,23 @@ import (
 	"context"
 
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/rthooks"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
 
 func init() {
-	if enabled {
-		rthooks.RegisterCallbacksAtInit(rthooks.Callbacks{
-			CreateContainer: createContainerHook,
-		})
-	}
+	rthooks.RegisterCallbacksAtInit(rthooks.Callbacks{
+		CreateContainer: createContainerHook,
+	})
 }
 
 func createContainerHook(_ context.Context, arg *rthooks.CreateContainerArg) error {
+	if !option.Config.EnableCgIDmap {
+		return nil
+	}
+
 	log := logger.GetLogger().WithFields(logrus.Fields{
 		"rthook":  true,
 		"cgidmap": true,
