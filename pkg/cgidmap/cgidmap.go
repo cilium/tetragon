@@ -8,10 +8,10 @@
 package cgidmap
 
 import (
-	"strings"
 	"sync"
 
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/option"
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -78,17 +78,27 @@ type cgidm struct {
 
 	log logrus.FieldLogger
 	*logger.DebugLogger
+
+	criResolver *criResolver
 }
 
 func newMap() (*cgidm, error) {
 	log := logger.GetLogger().WithField("cgidmap", true)
-	return &cgidm{
+
+	m := &cgidm{
 		entries:     make([]entry, 0, 1024),
 		cgMap:       make(map[CgroupID]int),
 		contMap:     make(map[ContainerID]int),
 		log:         log,
 		DebugLogger: logger.NewDebugLogger(log, debug),
-	}, nil
+	}
+
+	var criResolver *criResolver
+	if option.Config.EnableCRI {
+		criResolver = newCriResolver(m)
+	}
+	m.criResolver = criResolver
+	return m, nil
 }
 
 // addEntryAllocID allocates space for a new entry, adds it, and returns its id
@@ -221,13 +231,15 @@ func (m *cgidm) Update(podID PodID, contIDs []ContainerID) {
 		return
 	}
 
-	// unmappedIDs are container ids for which we do not have cgroup ids
-	// TODO: query the CRI
-	unmappedIDs := make([]ContainerID, 0, len(tmp))
+	// schedule unmapped ids to be resolved by the CRI resolver
+	unmappedIDs := make([]unmappedID, 0, len(tmp))
 	for id := range tmp {
-		unmappedIDs = append(unmappedIDs, id)
+		unmappedIDs = append(unmappedIDs, unmappedID{
+			podID:  podID,
+			contID: id,
+		})
 	}
-	m.log.WithField("unmapped", strings.Join(unmappedIDs, ",")).Warn("unmapped container ids")
+	m.criResolver.enqeue(unmappedIDs)
 }
 
 // Global state
