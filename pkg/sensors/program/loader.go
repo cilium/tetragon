@@ -32,17 +32,11 @@ type LoadOpts struct {
 }
 
 func linkPinPath(bpfDir string, load *Program, extra ...string) string {
-	pinPath := filepath.Join(bpfDir, load.PinPath)
-	if load.Override {
-		pinPath = pinPath + "_override"
-	}
-	if load.RetProbe {
-		pinPath = pinPath + "_return"
-	}
+	pinPath := filepath.Join(bpfDir, load.PinPath, "link")
 	if len(extra) != 0 {
 		pinPath = pinPath + "_" + strings.Join(extra, "_")
 	}
-	return pinPath + "_link"
+	return pinPath
 }
 
 func linkPin(lnk link.Link, bpfDir string, load *Program, extra ...string) error {
@@ -229,13 +223,13 @@ func kprobeAttachOverride(load *Program, bpfDir string,
 		return fmt.Errorf("failed to clone generic_kprobe_override program: %w", err)
 	}
 
-	pinPath := filepath.Join(bpfDir, fmt.Sprint(load.PinPath, "-override"))
+	pinPath := filepath.Join(bpfDir, load.PinPath, "prog_override")
 
 	if err := prog.Pin(pinPath); err != nil {
 		return fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
 	}
 
-	load.unloaderOverride, err = kprobeAttach(load, prog, spec, load.Attach, bpfDir)
+	load.unloaderOverride, err = kprobeAttach(load, prog, spec, load.Attach, bpfDir, "override")
 	if err != nil {
 		logger.GetLogger().Warnf("Failed to attach override program: %w", err)
 	}
@@ -732,7 +726,7 @@ func installTailCalls(bpfDir string, spec *ebpf.CollectionSpec, coll *ebpf.Colle
 	}
 
 	if load.TcMap != nil {
-		if err := install(load.TcMap.PinName, load.TcPrefix); err != nil {
+		if err := install(load.TcMap.PinPath, load.TcPrefix); err != nil {
 			return err
 		}
 	}
@@ -817,7 +811,7 @@ func doLoadProgram(
 		var err error
 		var mapPath string
 		if pm, ok := load.PinMap[name]; ok {
-			mapPath = filepath.Join(bpfDir, pm.PinName)
+			mapPath = filepath.Join(bpfDir, pm.PinPath)
 		} else {
 			mapPath = filepath.Join(bpfDir, name)
 		}
@@ -869,8 +863,12 @@ func doLoadProgram(
 	}
 
 	for _, mapLoad := range load.MapLoad {
+		pinPath := ""
+		if pm, ok := load.PinMap[mapLoad.Name]; ok {
+			pinPath = pm.PinPath
+		}
 		if m, ok := coll.Maps[mapLoad.Name]; ok {
-			if err := mapLoad.Load(m, mapLoad.Index); err != nil {
+			if err := mapLoad.Load(m, pinPath, mapLoad.Index); err != nil {
 				return nil, err
 			}
 		} else {
@@ -883,7 +881,7 @@ func doLoadProgram(
 		return nil, fmt.Errorf("program for section '%s' not found", load.Label)
 	}
 
-	pinPath := filepath.Join(bpfDir, load.PinPath)
+	pinPath := filepath.Join(bpfDir, load.PinPath, "prog")
 
 	if _, err := os.Stat(pinPath); err == nil {
 		logger.GetLogger().Debugf("Pin file '%s' already exists, repinning", load.PinPath)

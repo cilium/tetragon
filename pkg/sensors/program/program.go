@@ -3,6 +3,31 @@
 
 package program
 
+// Program sysfs hierarchy
+//
+// Each program is part of policy and sensor and defines PinName
+// which determine its path in sysfs hierarchy, like:
+//
+//   /sys/fs/bpf/tetragon/policy/sensor/program/prog
+//
+// which broken down means:
+//
+//   /sys/fs/bpf/tetragon
+//     - bpf (map) directory
+//
+//   policy/sensor
+//     - defined by sensor.Policy/sensor.Name
+//
+//   program
+//     - defined by program.PinName
+//
+//   prog
+//     - fixed file name (prog_override for override program)
+//
+//  The program.PinPath field hods following portion of the path:
+//     policy/sensor/program
+//  and is initialized when the sensor is loaded.
+
 import (
 	"fmt"
 
@@ -13,14 +38,15 @@ import (
 )
 
 func Builder(
-	objFile, attach, label, pinFile string,
+	objFile, attach, label, pinName string,
 	ty string,
 ) *Program {
 	return &Program{
 		Name:       objFile,
 		Attach:     attach,
 		Label:      label,
-		PinPath:    pinFile,
+		PinPath:    "",
+		PinName:    pinName,
 		RetProbe:   false,
 		ErrorFatal: true,
 		Override:   false,
@@ -43,7 +69,7 @@ func GetProgramInfo(l *Program) (program, label, prog string) {
 type MapLoad struct {
 	Index uint32
 	Name  string
-	Load  func(m *ebpf.Map, index uint32) error
+	Load  func(m *ebpf.Map, pinPathPrefix string, index uint32) error
 }
 
 type MultiKprobeAttachData struct {
@@ -78,6 +104,8 @@ type Program struct {
 	// PinPath is the pinned path to this program. Note this is a relative path
 	// based on the BPF directory FGS is running under.
 	PinPath string
+	// PinName
+	PinName string
 
 	// RetProbe indicates whether a kprobe is a kretprobe.
 	RetProbe bool

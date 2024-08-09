@@ -62,6 +62,15 @@ func LoadConfig(bpfDir string, sens []*Sensor) error {
 	return nil
 }
 
+func (s *Sensor) setupProgsPinPath(bpfDir string) {
+	for _, p := range s.Progs {
+		// setup sensor based program pin path
+		p.PinPath = filepath.Join(sanitize(s.Policy), s.Name, p.PinName)
+		// and make the path
+		os.MkdirAll(filepath.Join(bpfDir, p.PinPath), os.ModeDir)
+	}
+}
+
 // Load loads the sensor, by loading all the BPF programs and maps.
 func (s *Sensor) Load(bpfDir string) error {
 	if s == nil {
@@ -77,7 +86,7 @@ func (s *Sensor) Load(bpfDir string) error {
 		return fmt.Errorf("tetragon, aborting minimum requirements not met: %w", err)
 	}
 
-	os.Mkdir(bpfDir, os.ModeDir)
+	s.setupProgsPinPath(bpfDir)
 
 	l := logger.GetLogger()
 
@@ -209,6 +218,20 @@ func (s *Sensor) FindPrograms() error {
 	return nil
 }
 
+func (s *Sensor) setMapPinPath(m *program.Map) {
+	policy := sanitize(s.Policy)
+	switch m.Type {
+	case program.MapTypeGlobal:
+		m.PinPath = filepath.Join(m.Name)
+	case program.MapTypePolicy:
+		m.PinPath = filepath.Join(policy, m.Name)
+	case program.MapTypeSensor:
+		m.PinPath = filepath.Join(policy, s.Name, m.Name)
+	case program.MapTypeProgram:
+		m.PinPath = filepath.Join(policy, s.Name, m.Prog.PinName, m.Name)
+	}
+}
+
 // loadMaps loads all the BPF maps in the sensor.
 func (s *Sensor) loadMaps(bpfDir string) error {
 	l := logger.GetLogger()
@@ -222,7 +245,8 @@ func (s *Sensor) loadMaps(bpfDir string) error {
 			continue
 		}
 
-		pinPath := filepath.Join(bpfDir, m.PinName)
+		s.setMapPinPath(m)
+		pinPath := filepath.Join(bpfDir, m.PinPath)
 
 		spec, err := ebpf.LoadCollectionSpec(m.Prog.Name)
 		if err != nil {

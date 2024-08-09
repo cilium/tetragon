@@ -16,103 +16,103 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
 
-func selectorsMaploads(ks *selectors.KernelSelectorState, pinPathPrefix string, index uint32) []*program.MapLoad {
+func selectorsMaploads(ks *selectors.KernelSelectorState, index uint32) []*program.MapLoad {
 	selBuff := ks.Buffer()
 	maps := []*program.MapLoad{
 		{
 			Index: index,
 			Name:  "filter_map",
-			Load: func(m *ebpf.Map, index uint32) error {
+			Load: func(m *ebpf.Map, _ string, index uint32) error {
 				return m.Update(index, selBuff[:], ebpf.UpdateAny)
 			},
 		}, {
 			Index: 0,
 			Name:  "argfilter_maps",
-			Load: func(outerMap *ebpf.Map, _ uint32) error {
+			Load: func(outerMap *ebpf.Map, pinPathPrefix string, _ uint32) error {
 				return populateArgFilterMaps(ks, pinPathPrefix, outerMap)
 			},
 		}, {
 			Index: 0,
 			Name:  "addr4lpm_maps",
-			Load: func(outerMap *ebpf.Map, _ uint32) error {
+			Load: func(outerMap *ebpf.Map, pinPathPrefix string, _ uint32) error {
 				return populateAddr4FilterMaps(ks, pinPathPrefix, outerMap)
 			},
 		}, {
 			Index: 0,
 			Name:  "addr6lpm_maps",
-			Load: func(outerMap *ebpf.Map, _ uint32) error {
+			Load: func(outerMap *ebpf.Map, pinPathPrefix string, _ uint32) error {
 				return populateAddr6FilterMaps(ks, pinPathPrefix, outerMap)
 			},
 		}, {
 			Index: 0,
 			Name:  "tg_mb_sel_opts",
-			Load: func(outerMap *ebpf.Map, _ uint32) error {
+			Load: func(outerMap *ebpf.Map, _ string, _ uint32) error {
 				return populateMatchBinariesMaps(ks, outerMap)
 			},
 		}, {
 			Index: 0,
 			Name:  "tg_mb_paths",
-			Load: func(outerMap *ebpf.Map, _ uint32) error {
+			Load: func(outerMap *ebpf.Map, pinPathPrefix string, _ uint32) error {
 				return populateMatchBinariesPathsMaps(ks, pinPathPrefix, outerMap)
 			},
 		}, {
 			Index: 0,
 			Name:  "string_prefix_maps",
-			Load: func(outerMap *ebpf.Map, _ uint32) error {
+			Load: func(outerMap *ebpf.Map, pinPathPrefix string, _ uint32) error {
 				return populateStringPrefixFilterMaps(ks, pinPathPrefix, outerMap)
 			},
 		}, {
 			Index: 0,
 			Name:  "string_postfix_maps",
-			Load: func(outerMap *ebpf.Map, _ uint32) error {
+			Load: func(outerMap *ebpf.Map, pinPathPrefix string, _ uint32) error {
 				return populateStringPostfixFilterMaps(ks, pinPathPrefix, outerMap)
 			},
 		}, {
 			Index: 0,
 			Name:  "string_maps_0",
-			Load: func(outerMap *ebpf.Map, _ uint32) error {
+			Load: func(outerMap *ebpf.Map, pinPathPrefix string, _ uint32) error {
 				return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 0)
 			},
 		}, {
 			Index: 0,
 			Name:  "string_maps_1",
-			Load: func(outerMap *ebpf.Map, _ uint32) error {
+			Load: func(outerMap *ebpf.Map, pinPathPrefix string, _ uint32) error {
 				return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 1)
 			},
 		}, {
 			Index: 0,
 			Name:  "string_maps_2",
-			Load: func(outerMap *ebpf.Map, _ uint32) error {
+			Load: func(outerMap *ebpf.Map, pinPathPrefix string, _ uint32) error {
 				return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 2)
 			},
 		}, {
 			Index: 0,
 			Name:  "string_maps_3",
-			Load: func(outerMap *ebpf.Map, _ uint32) error {
+			Load: func(outerMap *ebpf.Map, pinPathPrefix string, _ uint32) error {
 				return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 3)
 			},
 		}, {
 			Index: 0,
 			Name:  "string_maps_4",
-			Load: func(outerMap *ebpf.Map, _ uint32) error {
+			Load: func(outerMap *ebpf.Map, pinPathPrefix string, _ uint32) error {
 				return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 4)
 			},
 		}, {
 			Index: 0,
 			Name:  "string_maps_5",
-			Load: func(outerMap *ebpf.Map, _ uint32) error {
+			Load: func(outerMap *ebpf.Map, pinPathPrefix string, _ uint32) error {
 				return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 5)
 			},
 		}, {
 			Index: 0,
 			Name:  "string_maps_6",
-			Load: func(outerMap *ebpf.Map, _ uint32) error {
+			Load: func(outerMap *ebpf.Map, pinPathPrefix string, _ uint32) error {
 				return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 6)
 			},
 		}, {
 			Index: 0,
 			Name:  "string_maps_7",
-			Load: func(outerMap *ebpf.Map, _ uint32) error {
+			Load: func(outerMap *ebpf.Map, pinPathPrefix string, _ uint32) error {
 				return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 7)
 			},
 		},
@@ -122,19 +122,19 @@ func selectorsMaploads(ks *selectors.KernelSelectorState, pinPathPrefix string, 
 			{
 				Index: 0,
 				Name:  "string_maps_8",
-				Load: func(outerMap *ebpf.Map, _ uint32) error {
+				Load: func(outerMap *ebpf.Map, pinPathPrefix string, _ uint32) error {
 					return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 8)
 				},
 			}, {
 				Index: 0,
 				Name:  "string_maps_9",
-				Load: func(outerMap *ebpf.Map, _ uint32) error {
+				Load: func(outerMap *ebpf.Map, pinPathPrefix string, _ uint32) error {
 					return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 9)
 				},
 			}, {
 				Index: 0,
 				Name:  "string_maps_10",
-				Load: func(outerMap *ebpf.Map, _ uint32) error {
+				Load: func(outerMap *ebpf.Map, pinPathPrefix string, _ uint32) error {
 					return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 10)
 				},
 			},

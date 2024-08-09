@@ -48,11 +48,10 @@ var (
 )
 
 type genericLsm struct {
-	tableId       idtable.EntryID
-	pinPathPrefix string
-	config        *api.EventConfig
-	hook          string
-	selectors     *selectors.KernelSelectorState
+	tableId   idtable.EntryID
+	config    *api.EventConfig
+	hook      string
+	selectors *selectors.KernelSelectorState
 	// policyName is the name of the policy that this uprobe belongs to
 	policyName string
 	// message field of the Tracing Policy
@@ -85,13 +84,13 @@ func (k *observerLsmSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 		if err != nil {
 			return err
 		}
-		args.Load.MapLoad = append(args.Load.MapLoad, selectorsMaploads(gl.selectors, gl.pinPathPrefix, 0)...)
+		args.Load.MapLoad = append(args.Load.MapLoad, selectorsMaploads(gl.selectors, 0)...)
 		var configData bytes.Buffer
 		binary.Write(&configData, binary.LittleEndian, gl.config)
 		config := &program.MapLoad{
 			Index: 0,
 			Name:  "config_map",
-			Load: func(m *ebpf.Map, index uint32) error {
+			Load: func(m *ebpf.Map, _ string, index uint32) error {
 				return m.Update(index, configData.Bytes()[:], ebpf.UpdateAny)
 			},
 		}
@@ -272,8 +271,6 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 	genericLsmTable.AddEntry(&lsmEntry)
 	config.FuncId = uint32(lsmEntry.tableId.ID)
 
-	lsmEntry.pinPathPrefix = sensors.PathJoin(in.sensorPath, fmt.Sprintf("glsm-%d", lsmEntry.tableId.ID))
-
 	logger.GetLogger().
 		WithField("hook", lsmEntry.hook).
 		Infof("Added lsm Hook")
@@ -341,6 +338,7 @@ func createGenericLsmSensor(
 			}
 			return errs
 		},
+		Policy: policyName,
 	}, nil
 }
 
@@ -354,38 +352,35 @@ func createLsmSensorFromEntry(lsmEntry *genericLsm,
 		loadProgName = "bpf_generic_lsm_v511.o"
 	}
 
-	pinPath := lsmEntry.pinPathPrefix
-	pinProg := sensors.PathJoin(pinPath, fmt.Sprintf("%s_prog", lsmEntry.hook))
-
 	load := program.Builder(
 		path.Join(option.Config.HubbleLib, loadProgName),
 		lsmEntry.hook,
 		"lsm/generic_lsm",
-		pinProg,
+		lsmEntry.hook,
 		"generic_lsm").
 		SetLoaderData(lsmEntry.tableId)
 	progs = append(progs, load)
 
-	configMap := program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "config_map"), load)
+	configMap := program.MapBuilderProgram("config_map", load)
 	maps = append(maps, configMap)
 
-	tailCalls := program.MapBuilderPin("lsm_calls", sensors.PathJoin(pinPath, "lsm_calls"), load)
+	tailCalls := program.MapBuilderProgram("lsm_calls", load)
 	maps = append(maps, tailCalls)
 
 	load.SetTailCall("lsm", tailCalls)
 
-	filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), load)
+	filterMap := program.MapBuilderProgram("filter_map", load)
 	maps = append(maps, filterMap)
 
-	maps = append(maps, filterMapsForLsm(load, pinPath, lsmEntry)...)
+	maps = append(maps, filterMapsForLsm(load, lsmEntry)...)
 
-	callHeap := program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), load)
+	callHeap := program.MapBuilderProgram("process_call_heap", load)
 	maps = append(maps, callHeap)
 
-	selMatchBinariesMap := program.MapBuilderPin("tg_mb_sel_opts", sensors.PathJoin(pinPath, "tg_mb_sel_opts"), load)
+	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
 	maps = append(maps, selMatchBinariesMap)
 
-	matchBinariesPaths := program.MapBuilderPin("tg_mb_paths", sensors.PathJoin(pinPath, "tg_mb_paths"), load)
+	matchBinariesPaths := program.MapBuilderProgram("tg_mb_paths", load)
 	if !kernels.MinKernelVersion("5.9") {
 		// Versions before 5.9 do not allow inner maps to have different sizes.
 		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
@@ -398,10 +393,10 @@ func createLsmSensorFromEntry(lsmEntry *genericLsm,
 	return progs, maps
 }
 
-func filterMapsForLsm(load *program.Program, pinPath string, lsmEntry *genericLsm) []*program.Map {
+func filterMapsForLsm(load *program.Program, lsmEntry *genericLsm) []*program.Map {
 	var maps []*program.Map
 
-	argFilterMaps := program.MapBuilderPin("argfilter_maps", sensors.PathJoin(pinPath, "argfilter_maps"), load)
+	argFilterMaps := program.MapBuilderProgram("argfilter_maps", load)
 	if !kernels.MinKernelVersion("5.9") {
 		// Versions before 5.9 do not allow inner maps to have different sizes.
 		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
@@ -410,7 +405,7 @@ func filterMapsForLsm(load *program.Program, pinPath string, lsmEntry *genericLs
 	}
 	maps = append(maps, argFilterMaps)
 
-	addr4FilterMaps := program.MapBuilderPin("addr4lpm_maps", sensors.PathJoin(pinPath, "addr4lpm_maps"), load)
+	addr4FilterMaps := program.MapBuilderProgram("addr4lpm_maps", load)
 	if !kernels.MinKernelVersion("5.9") {
 		// Versions before 5.9 do not allow inner maps to have different sizes.
 		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
@@ -419,7 +414,7 @@ func filterMapsForLsm(load *program.Program, pinPath string, lsmEntry *genericLs
 	}
 	maps = append(maps, addr4FilterMaps)
 
-	addr6FilterMaps := program.MapBuilderPin("addr6lpm_maps", sensors.PathJoin(pinPath, "addr6lpm_maps"), load)
+	addr6FilterMaps := program.MapBuilderProgram("addr6lpm_maps", load)
 	if !kernels.MinKernelVersion("5.9") {
 		// Versions before 5.9 do not allow inner maps to have different sizes.
 		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
@@ -435,8 +430,7 @@ func filterMapsForLsm(load *program.Program, pinPath string, lsmEntry *genericLs
 	}
 
 	for string_map_index := 0; string_map_index < numSubMaps; string_map_index++ {
-		stringFilterMap[string_map_index] = program.MapBuilderPin(fmt.Sprintf("string_maps_%d", string_map_index),
-			sensors.PathJoin(pinPath, fmt.Sprintf("string_maps_%d", string_map_index)), load)
+		stringFilterMap[string_map_index] = program.MapBuilderProgram(fmt.Sprintf("string_maps_%d", string_map_index), load)
 		if !kernels.MinKernelVersion("5.9") {
 			// Versions before 5.9 do not allow inner maps to have different sizes.
 			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
@@ -446,7 +440,7 @@ func filterMapsForLsm(load *program.Program, pinPath string, lsmEntry *genericLs
 		maps = append(maps, stringFilterMap[string_map_index])
 	}
 
-	stringPrefixFilterMaps := program.MapBuilderPin("string_prefix_maps", sensors.PathJoin(pinPath, "string_prefix_maps"), load)
+	stringPrefixFilterMaps := program.MapBuilderProgram("string_prefix_maps", load)
 	if !kernels.MinKernelVersion("5.9") {
 		// Versions before 5.9 do not allow inner maps to have different sizes.
 		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
@@ -455,7 +449,7 @@ func filterMapsForLsm(load *program.Program, pinPath string, lsmEntry *genericLs
 	}
 	maps = append(maps, stringPrefixFilterMaps)
 
-	stringPostfixFilterMaps := program.MapBuilderPin("string_postfix_maps", sensors.PathJoin(pinPath, "string_postfix_maps"), load)
+	stringPostfixFilterMaps := program.MapBuilderProgram("string_postfix_maps", load)
 	if !kernels.MinKernelVersion("5.9") {
 		// Versions before 5.9 do not allow inner maps to have different sizes.
 		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
