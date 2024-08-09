@@ -215,14 +215,14 @@ The total number of events dropped because listener buffer was full
 
 The total number of operations when the container name was missing in the OCI hook
 
-### `tetragon_policyfilter_metrics_total`
+### `tetragon_policyfilter_operations_total`
 
-Policy filter metrics. For internal use only.
+Number of policy filter operations.
 
 | label | values |
 | ----- | ------ |
 | `error` | `generic-error, pod-namespace-conflict` |
-| `op   ` | `add, add-container, delete, update` |
+| `operation` | `add, add-container, delete, update` |
 | `subsys` | `pod-handlers, rthooks` |
 
 ### `tetragon_process_cache_capacity`
