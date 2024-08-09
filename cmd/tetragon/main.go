@@ -50,7 +50,6 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/server"
-	"github.com/cilium/tetragon/pkg/tgsyscall"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/cilium/tetragon/pkg/unixlisten"
 	"github.com/cilium/tetragon/pkg/version"
@@ -190,8 +189,7 @@ func tetragonExecute() error {
 	defer cancel()
 
 	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, tgsyscall.SIGRTMIN_20,
-		tgsyscall.SIGRTMIN_21, tgsyscall.SIGRTMIN_22)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	// Logging should always be bootstrapped first. Do not add any code above this!
 	if err := logger.SetupLogging(option.Config.LogOpts, option.Config.Debug); err != nil {
@@ -335,38 +333,12 @@ func tetragonExecute() error {
 		obs.PrintStats()
 	}()
 
-	defaultLevel := logger.GetLogLevel()
 	go func() {
-		for {
-			s := <-sigs
-			switch s {
-			case syscall.SIGINT, syscall.SIGTERM:
-				// if we receive a signal, call cancel so that contexts are finalized, which will
-				// leads to normally return from tetragonExecute().
-				log.Infof("Received signal %s, shutting down...", s)
-				cancel()
-				return
-			case tgsyscall.SIGRTMIN_20: // SIGRTMIN+20
-				currentLevel := logger.GetLogLevel()
-				if currentLevel == logrus.DebugLevel {
-					log.Infof("Received signal SIGRTMIN+20: LogLevel is already '%s'", currentLevel)
-				} else {
-					logger.SetLogLevel(logrus.DebugLevel)
-					log.Infof("Received signal SIGRTMIN+20: switching from LogLevel '%s' to '%s'", currentLevel, logger.GetLogLevel())
-				}
-			case tgsyscall.SIGRTMIN_21: // SIGRTMIN+21
-				currentLevel := logger.GetLogLevel()
-				if currentLevel == logrus.TraceLevel {
-					log.Infof("Received signal SIGRTMIN+21: LogLevel is already '%s'", currentLevel)
-				} else {
-					logger.SetLogLevel(logrus.TraceLevel)
-					log.Infof("Received signal SIGRTMIN+21: switching from LogLevel '%s' to '%s'", currentLevel, logger.GetLogLevel())
-				}
-			case tgsyscall.SIGRTMIN_22: // SIGRTMIN+22
-				logger.SetLogLevel(defaultLevel)
-				log.Infof("Received signal SIGRTMIN+22: resetting original LogLevel '%s'", logger.GetLogLevel())
-			}
-		}
+		s := <-sigs
+		// if we receive a signal, call cancel so that contexts are finalized, which will
+		// leads to normally return from tetragonExecute().
+		log.Infof("Received signal %s, shutting down...", s)
+		cancel()
 	}()
 
 	// start sensor manager, and have it wait on sensorMgWait until we load

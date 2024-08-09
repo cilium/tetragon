@@ -378,3 +378,30 @@ func (s *Server) RuntimeHook(ctx context.Context, req *tetragon.RuntimeHookReque
 	}
 	return &tetragon.RuntimeHookResponse{}, nil
 }
+
+func (s *Server) GetLogLevel(_ context.Context, req *tetragon.GetLogLevelRequest) (*tetragon.GetLogLevelResponse, error) {
+	logger.GetLogger().WithField("request", req).Debugf("Client requested current log level: %s", logger.GetLogLevel().String())
+	return &tetragon.GetLogLevelResponse{Level: logger.GetLogLevel().String()}, nil
+}
+
+func (s *Server) SetLogLevel(_ context.Context, req *tetragon.SetLogLevelRequest) (*tetragon.SetLogLevelResponse, error) {
+	currentLogLevel := logger.GetLogLevel()
+	changedLogLevel, err := logrus.ParseLevel(req.GetLevel())
+	if err != nil {
+		return nil, fmt.Errorf("invalid log level: %s", req.GetLevel())
+	}
+	logger.SetLogLevel(changedLogLevel)
+	logger.GetLogger().WithField("request", req).Warnf("Log level changed from %s to %s", currentLogLevel, changedLogLevel.String())
+	return &tetragon.SetLogLevelResponse{Level: changedLogLevel.String()}, nil
+}
+
+func (s *Server) ResetLogLevel(_ context.Context, req *tetragon.ResetLogLevelRequest) (*tetragon.ResetLogLevelResponse, error) {
+	initialLogLevelStr := option.Config.LogOpts[logger.LevelOpt]
+	initialLogLevel, err := logrus.ParseLevel(initialLogLevelStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid default log level: %s", initialLogLevelStr)
+	}
+	logger.SetLogLevel(initialLogLevel)
+	logger.GetLogger().WithField("request", req).Infof("Log level reset to initial level: %s", initialLogLevel.String())
+	return &tetragon.ResetLogLevelResponse{Level: logger.GetLogLevel().String()}, nil
+}

@@ -14,8 +14,8 @@ import (
 type LogFormat string
 
 const (
-	levelOpt  = "level"
-	formatOpt = "format"
+	LevelOpt  = "level"
+	FormatOpt = "format"
 
 	logFormatText LogFormat = "text"
 	logFormatJSON LogFormat = "json"
@@ -58,7 +58,7 @@ func getFormatter(format LogFormat) (logrus.Formatter, error) {
 }
 
 func (o LogOptions) getLogLevel() (level logrus.Level) {
-	l, ok := o[levelOpt]
+	l, ok := o[LevelOpt]
 	if !ok {
 		return defaultLogLevel
 	}
@@ -72,7 +72,7 @@ func (o LogOptions) getLogLevel() (level logrus.Level) {
 }
 
 func (o LogOptions) getLogFormat() LogFormat {
-	format, ok := o[formatOpt]
+	format, ok := o[FormatOpt]
 	if !ok {
 		return defaultLogFormat
 	}
@@ -112,7 +112,7 @@ func PopulateLogOpts(o LogOptions, level string, format string) {
 		if err != nil {
 			logrus.WithError(fmt.Errorf("incorrect log level '%s'", level)).Warning("Ignoring user-configured log level")
 		} else {
-			o[levelOpt] = level
+			o[LevelOpt] = level
 		}
 	}
 
@@ -120,7 +120,7 @@ func PopulateLogOpts(o LogOptions, level string, format string) {
 		format = strings.ToLower(format)
 		switch LogFormat(format) {
 		case logFormatText, logFormatJSON:
-			o[formatOpt] = format
+			o[FormatOpt] = format
 		default:
 			logrus.WithError(fmt.Errorf("incorrect log format '%s', expected 'text' or 'json'", format)).Warning("Ignoring user-configured log format")
 		}

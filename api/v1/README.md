@@ -96,6 +96,8 @@
     - [EnableSensorResponse](#tetragon-EnableSensorResponse)
     - [EnableTracingPolicyRequest](#tetragon-EnableTracingPolicyRequest)
     - [EnableTracingPolicyResponse](#tetragon-EnableTracingPolicyResponse)
+    - [GetLogLevelRequest](#tetragon-GetLogLevelRequest)
+    - [GetLogLevelResponse](#tetragon-GetLogLevelResponse)
     - [GetStackTraceTreeRequest](#tetragon-GetStackTraceTreeRequest)
     - [GetStackTraceTreeResponse](#tetragon-GetStackTraceTreeResponse)
     - [GetVersionRequest](#tetragon-GetVersionRequest)
@@ -106,7 +108,11 @@
     - [ListTracingPoliciesResponse](#tetragon-ListTracingPoliciesResponse)
     - [RemoveSensorRequest](#tetragon-RemoveSensorRequest)
     - [RemoveSensorResponse](#tetragon-RemoveSensorResponse)
+    - [ResetLogLevelRequest](#tetragon-ResetLogLevelRequest)
+    - [ResetLogLevelResponse](#tetragon-ResetLogLevelResponse)
     - [SensorStatus](#tetragon-SensorStatus)
+    - [SetLogLevelRequest](#tetragon-SetLogLevelRequest)
+    - [SetLogLevelResponse](#tetragon-SetLogLevelResponse)
     - [TracingPolicyStatus](#tetragon-TracingPolicyStatus)
   
     - [TracingPolicyState](#tetragon-TracingPolicyState)
@@ -1674,6 +1680,31 @@ Determines the behavior of a field filter
 
 
 
+<a name="tetragon-GetLogLevelRequest"></a>
+
+### GetLogLevelRequest
+
+
+
+
+
+
+
+<a name="tetragon-GetLogLevelResponse"></a>
+
+### GetLogLevelResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| level | [string](#string) |  |  |
+
+
+
+
+
+
 <a name="tetragon-GetStackTraceTreeRequest"></a>
 
 ### GetStackTraceTreeRequest
@@ -1804,6 +1835,31 @@ Determines the behavior of a field filter
 
 
 
+<a name="tetragon-ResetLogLevelRequest"></a>
+
+### ResetLogLevelRequest
+
+
+
+
+
+
+
+<a name="tetragon-ResetLogLevelResponse"></a>
+
+### ResetLogLevelResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| level | [string](#string) |  |  |
+
+
+
+
+
+
 <a name="tetragon-SensorStatus"></a>
 
 ### SensorStatus
@@ -1815,6 +1871,36 @@ Determines the behavior of a field filter
 | name | [string](#string) |  | name is the name of the sensor |
 | enabled | [bool](#bool) |  | enabled marks whether the sensor is enabled |
 | collection | [string](#string) |  | collection is the collection the sensor belongs to (typically a tracing policy) |
+
+
+
+
+
+
+<a name="tetragon-SetLogLevelRequest"></a>
+
+### SetLogLevelRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| level | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="tetragon-SetLogLevelResponse"></a>
+
+### SetLogLevelResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| level | [string](#string) |  |  |
 
 
 
@@ -1888,6 +1974,9 @@ Determines the behavior of a field filter
 | GetStackTraceTree | [GetStackTraceTreeRequest](#tetragon-GetStackTraceTreeRequest) | [GetStackTraceTreeResponse](#tetragon-GetStackTraceTreeResponse) |  |
 | GetVersion | [GetVersionRequest](#tetragon-GetVersionRequest) | [GetVersionResponse](#tetragon-GetVersionResponse) |  |
 | RuntimeHook | [RuntimeHookRequest](#tetragon-RuntimeHookRequest) | [RuntimeHookResponse](#tetragon-RuntimeHookResponse) |  |
+| GetLogLevel | [GetLogLevelRequest](#tetragon-GetLogLevelRequest) | [GetLogLevelResponse](#tetragon-GetLogLevelResponse) |  |
+| SetLogLevel | [SetLogLevelRequest](#tetragon-SetLogLevelRequest) | [SetLogLevelResponse](#tetragon-SetLogLevelResponse) |  |
+| ResetLogLevel | [ResetLogLevelRequest](#tetragon-ResetLogLevelRequest) | [ResetLogLevelResponse](#tetragon-ResetLogLevelResponse) |  |
 
  
 
