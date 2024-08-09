@@ -81,7 +81,7 @@ func criResolve(m Map, id unmappedID) error {
 	}
 
 	path := filepath.Join(cgRoot, cgPath)
-	cgID, err := cgroups.GetCgroupIdFromPath(path)
+	cgID, err := cgroups.GetCgroupIdFromCgroupPath(path)
 	if err != nil {
 		return err
 	}
