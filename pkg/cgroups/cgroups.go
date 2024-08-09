@@ -822,3 +822,45 @@ func CgroupIDFromPID(pid uint32) (uint64, error) {
 
 	return cgID, nil
 }
+
+// GetCgroupIDFromSubCgroup deals with some idiosyncrancies of container runtimes
+//
+// Typically, the container processes run in the cgroup path specified in the OCI spec under
+// cgroupsPath. crun, however, is an exception because it uses another directory (called subgroup)
+// under the cgroupsPath:
+// https://github.com/containers/crun/blob/main/crun.1.md#runocisystemdsubgroupsubgroup.
+//
+// This function deals with this by checking for a child directory. If it finds one (and only one)
+// it uses the cgroup id from the child.
+func GetCgroupIDFromSubCgroup(p string) (uint64, error) {
+
+	getSingleDirChild := func() string {
+		var ret string
+		dentries, err := os.ReadDir(p)
+		if err != nil {
+			return ""
+		}
+		for _, dentry := range dentries {
+			if !dentry.IsDir() {
+				continue
+			}
+
+			if ret == "" {
+				ret = dentry.Name()
+			} else {
+				// NB: there are more than one directories :( nothing reasonable we
+				// can do at this point bail out
+				return ""
+			}
+		}
+
+		return ret
+	}
+
+	child := getSingleDirChild()
+	if child != "" {
+		p = filepath.Join(p, child)
+	}
+
+	return GetCgroupIdFromPath(p)
+}
