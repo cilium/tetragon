@@ -105,6 +105,12 @@ const (
 	KeyBpfDir = "bpf-dir"
 
 	KeyKeepSensorsOnExit = "keep-sensors-on-exit"
+
+	KeyEnableCRI   = "enable-cri"
+	KeyCRIEndpoint = "cri-endpoint"
+
+	KeyEnableCgIDmap      = "enable-cgidmap"
+	KeyEnableCgIDmapDebug = "enable-cgidmap-debug"
 )
 
 type UsernameMetadaCode int
@@ -222,6 +228,12 @@ func ReadAndSetFlags() error {
 	Config.BpfDir = viper.GetString(KeyBpfDir)
 
 	Config.KeepSensorsOnExit = viper.GetBool(KeyKeepSensorsOnExit)
+
+	Config.EnableCRI = viper.GetBool(KeyEnableCRI)
+	Config.CRIEndpoint = viper.GetString(KeyCRIEndpoint)
+
+	Config.EnableCgIDmap = viper.GetBool(KeyEnableCgIDmap)
+	Config.EnableCgIDmapDebug = viper.GetBool(KeyEnableCgIDmapDebug)
 	return nil
 }
 
@@ -378,4 +390,10 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.String(KeyBpfDir, defaults.DefaultMapPrefix, "Set tetragon bpf directory (default 'tetragon')")
 
 	flags.Bool(KeyKeepSensorsOnExit, false, "Do not unload sensors on exit")
+
+	flags.Bool(KeyEnableCRI, false, "enable CRI client for tetragon")
+	flags.String(KeyCRIEndpoint, "", "CRI endpoint")
+
+	flags.Bool(KeyEnableCgIDmap, false, "enable pod resolution via cgroup ids")
+	flags.Bool(KeyEnableCgIDmapDebug, false, "enable cgidmap debugging info")
 }

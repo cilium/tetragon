@@ -4,6 +4,7 @@
 package watcher
 
 import (
+	"errors"
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
@@ -30,6 +31,9 @@ func NewFakeK8sWatcherWithPodsAndServices(pods []interface{}, services []interfa
 // FindContainer implements K8sResourceWatcher.FindContainer
 func (watcher *FakeK8sWatcher) FindContainer(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool) {
 	return findContainer(containerID, watcher.pods)
+}
+func (watcher *FakeK8sWatcher) FindMirrorPod(_ string) (*corev1.Pod, error) {
+	return nil, errors.New("fake watcher does not implement FindMirrorPod")
 }
 
 func (watcher *FakeK8sWatcher) FindPod(podID string) (*corev1.Pod, error) {

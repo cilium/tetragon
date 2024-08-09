@@ -18,6 +18,8 @@ options:
       usage: Configuration directory that contains a file for each option
     - name: cpuprofile
       usage: Store CPU profile into provided file
+    - name: cri-endpoint
+      usage: CRI endpoint
     - name: data-cache-size
       default_value: "1024"
       usage: Size of the data events cache
@@ -28,6 +30,15 @@ options:
     - name: disable-kprobe-multi
       default_value: "false"
       usage: Allow to disable kprobe multi interface
+    - name: enable-cgidmap
+      default_value: "false"
+      usage: enable pod resolution via cgroup ids
+    - name: enable-cgidmap-debug
+      default_value: "false"
+      usage: enable cgidmap debugging info
+    - name: enable-cri
+      default_value: "false"
+      usage: enable CRI client for tetragon
     - name: enable-export-aggregation
       default_value: "false"
       usage: Enable JSON export aggregation

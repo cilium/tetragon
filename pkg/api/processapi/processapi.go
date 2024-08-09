@@ -89,6 +89,7 @@ type MsgK8s struct {
 
 type MsgK8sUnix struct {
 	Docker string
+	Cgrpid uint64
 }
 
 type MsgGenericCred struct {

@@ -640,6 +640,10 @@ message RuntimeHookResponse {}
 // This is intented to be used by OCI hooks (but not limited to them) and corresponds to the
 // CreateContainer hook:
 // https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontainer-hooks.
+//
+// The containerName, containerID, podName, podUID, and podNamespace fields are retrieved from the
+// annotations as a convenience, and may be left empty if the corresponding annotations are not
+// found.
 message CreateContainer {
     // cgroupsPath is the cgroups path for the container. The path is expected to be relative to the
     // cgroups mountpoint. See: https://github.com/opencontainers/runtime-spec/blob/58ec43f9fc39e0db229b653ae98295bfde74aeab/specs-go/config.go#L174
@@ -652,6 +656,14 @@ message CreateContainer {
     map<string, string> annotations = 3;
     // containerName is the name of the container
     string containerName = 4;
+    // containerID is the id of the container
+    string containerID = 5;
+    // podName is the pod name
+    string podName = 6;
+    // podUID is the pod uid
+    string podUID = 7;
+    // podNamespace is the namespace of the pod
+    string podNamespace = 8;
 }
 
 message StackTraceEntry {

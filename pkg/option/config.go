@@ -94,6 +94,12 @@ type config struct {
 	HealthServerInterval int
 
 	KeepSensorsOnExit bool
+
+	EnableCRI   bool
+	CRIEndpoint string
+
+	EnableCgIDmap      bool
+	EnableCgIDmapDebug bool
 }
 
 var (

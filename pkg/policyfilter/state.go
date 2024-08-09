@@ -13,6 +13,8 @@ import (
 	"github.com/cilium/tetragon/pkg/labels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/policyfiltermetrics"
+	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/podhelpers"
 	"github.com/cilium/tetragon/pkg/podhooks"
 	"github.com/cilium/tetragon/pkg/process"
 
@@ -245,6 +247,7 @@ func (pol *policy) matchingContainersCgroupIDs(containers []containerInfo) []Cgr
 // State holds the necessary state for policyfilter
 type state struct {
 	log logrus.FieldLogger
+	*logger.DebugLogger
 
 	// mutex serializes access to the internal structures, as well as operations.
 	mu       sync.Mutex
@@ -278,8 +281,9 @@ func newState(
 ) (*state, error) {
 	var err error
 	ret := &state{
-		log:        log,
-		cgidFinder: cgidFinder,
+		log:         log,
+		cgidFinder:  cgidFinder,
+		DebugLogger: logger.NewDebugLogger(log, option.Config.EnablePolicyFilterDebug),
 	}
 
 	ret.pfMap, err = newPfMap()
@@ -298,8 +302,8 @@ func newState(
 //revive:enable:unexported-return
 
 func (m *state) updatePodHandler(pod *v1.Pod) error {
-	containerIDs := podContainersIDs(pod)
-	containerNames := podContainersNames(pod)
+	containerIDs := podhelpers.PodContainersIDs(pod)
+	containerNames := podhelpers.PodContainersNames(pod)
 	podID, err := uuid.Parse(string(pod.UID))
 	if err != nil {
 		m.log.WithError(err).WithField("pod-id", pod.UID).Warn("policyfilter, pod handler: failed to parse pod id")
@@ -580,7 +584,7 @@ func (m *state) addPodContainers(pod *podInfo, containerIDs []string,
 		containerName := containerNames[i]
 
 		if m.containerExists(pod, contID, cgIDptr) {
-			m.debugLogWithCallers(4).WithFields(logrus.Fields{
+			m.DebugLogWithCallers(4).WithFields(logrus.Fields{
 				"pod-id":       pod.id,
 				"namespace":    pod.namespace,
 				"container-id": contID,
@@ -606,7 +610,7 @@ func (m *state) addPodContainers(pod *podInfo, containerIDs []string,
 	}
 
 	if len(cinfo) == 0 {
-		m.debugLogWithCallers(4).WithFields(logrus.Fields{
+		m.DebugLogWithCallers(4).WithFields(logrus.Fields{
 			"pod-id":        pod.id,
 			"namespace":     pod.namespace,
 			"container-ids": containerIDs,
@@ -616,7 +620,7 @@ func (m *state) addPodContainers(pod *podInfo, containerIDs []string,
 
 	// update containers
 	pod.containers = append(pod.containers, cinfo...)
-	m.debugLogWithCallers(4).WithFields(logrus.Fields{
+	m.DebugLogWithCallers(4).WithFields(logrus.Fields{
 		"pod-id":          pod.id,
 		"namespace":       pod.namespace,
 		"containers-info": cinfo,
@@ -680,7 +684,7 @@ func (m *state) AddPodContainer(podID PodID, namespace, workload, kind string, p
 	pod := m.findPod(podID)
 	if pod == nil {
 		pod = m.addNewPod(podID, namespace, workload, kind, podLabels)
-		m.debugLogWithCallers(4).WithFields(logrus.Fields{
+		m.DebugLogWithCallers(4).WithFields(logrus.Fields{
 			"pod-id":         podID,
 			"namespace":      namespace,
 			"workload":       workload,
@@ -880,7 +884,7 @@ func (m *state) UpdatePod(podID PodID, namespace, workload, kind string, podLabe
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	dlog := m.debugLogWithCallers(4).WithFields(logrus.Fields{
+	dlog := m.DebugLogWithCallers(4).WithFields(logrus.Fields{
 		"pod-id":          podID,
 		"namespace":       namespace,
 		"container-ids":   containerIDs,
@@ -902,7 +906,7 @@ func (m *state) UpdatePod(podID PodID, namespace, workload, kind string, podLabe
 	// and update state accordingly
 	if pod.labels.Cmp(podLabels) {
 		polDiff := m.policiesDiff(pod, podLabels)
-		m.debugLogWithCallers(1).WithFields(logrus.Fields{
+		m.DebugLogWithCallers(1).WithFields(logrus.Fields{
 			"pod-id":         pod.id,
 			"pod-old-labels": pod.labels,
 			"pod-new-labels": podLabels,

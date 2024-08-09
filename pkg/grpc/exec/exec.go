@@ -189,7 +189,8 @@ func (msg *MsgExecveEventUnix) Retry(internal *process.ProcessInternal, ev notif
 	nspid := msg.Unix.Process.NSPID
 
 	if option.Config.EnableK8s && containerId != "" {
-		podInfo = process.GetPodInfo(containerId, filename, args, nspid)
+		cgroupID := msg.Unix.Kube.Cgrpid
+		podInfo = process.GetPodInfo(cgroupID, containerId, filename, args, nspid)
 		if podInfo == nil {
 			eventcachemetrics.EventCacheRetries(eventcachemetrics.PodInfo).Inc()
 			return eventcache.ErrFailedToGetPodInfo
