@@ -11,6 +11,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/cilium/tetragon/pkg/cgidmap"
 	"github.com/cilium/tetragon/pkg/fieldfilters"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/sirupsen/logrus"
@@ -51,6 +52,7 @@ type ProcessInternal struct {
 	// garbage collector metadata
 	color  int // Writes should happen only inside gc select channel
 	refcnt uint32
+	cgID   uint64
 }
 
 var (
@@ -274,7 +276,8 @@ func initProcessInternalExec(
 	}
 	creds := &event.Msg.Creds
 	execID := GetExecID(&process)
-	protoPod := GetPodInfo(containerID, process.Filename, args, process.NSPID)
+	cgID := event.Kube.Cgrpid
+	protoPod := GetPodInfo(cgID, containerID, process.Filename, args, process.NSPID)
 	apiCaps := caps.GetMsgCapabilities(event.Msg.Creds.Cap)
 	binary := path.GetBinaryAbsolutePath(process.Filename, cwd)
 	apiNs, err := namespace.GetMsgNamespaces(event.Msg.Namespaces)
@@ -380,6 +383,7 @@ func initProcessInternalExec(
 		apiBinaryProp: apiBinaryProp,
 		namespaces:    apiNs,
 		refcnt:        1,
+		cgID:          event.Kube.Cgrpid,
 	}
 }
 
@@ -427,7 +431,7 @@ func initProcessInternalClone(event *tetragonAPI.MsgCloneEvent,
 		pi.process.Pod.Container.Pid = &wrapperspb.UInt32Value{Value: event.NSPID}
 	}
 	if option.Config.EnableK8s && pi.process.Docker != "" && pi.process.Pod == nil {
-		if podInfo := GetPodInfo(pi.process.Docker, pi.process.Binary, pi.process.Arguments, event.NSPID); podInfo != nil {
+		if podInfo := GetPodInfo(pi.cgID, pi.process.Docker, pi.process.Binary, pi.process.Arguments, event.NSPID); podInfo != nil {
 			pi.AddPodInfo(podInfo)
 		}
 	}
@@ -437,8 +441,21 @@ func initProcessInternalClone(event *tetragonAPI.MsgCloneEvent,
 
 // GetPodInfo constructs and returns the Kubernetes Pod information associated with
 // the Container ID and the PID inside this container.
-func GetPodInfo(cid, bin, args string, nspid uint32) *tetragon.Pod {
-	return getPodInfo(k8s, cid, bin, args, nspid)
+func GetPodInfo(cgID uint64, containerID, bin, args string, nspid uint32) *tetragon.Pod {
+	if option.Config.EnableCgIDmap {
+		cgIDmap, err := cgidmap.GlobalMap()
+		if err != nil {
+			logger.GetLogger().WithError(err).Warn("failed to get cgIdMap")
+			return nil
+		}
+		contID, ok := cgIDmap.Get(cgID)
+		if !ok {
+			return nil
+		}
+		containerID = contID
+	}
+
+	return getPodInfo(k8s, containerID, bin, args, nspid)
 }
 
 func GetParentProcessInternal(pid uint32, ktime uint64) (*ProcessInternal, *ProcessInternal) {

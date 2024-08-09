@@ -108,6 +108,9 @@ const (
 
 	KeyEnableCRI   = "enable-cri"
 	KeyCRIEndpoint = "cri-endpoint"
+
+	KeyEnableCgIDmap      = "enable-cgidmap"
+	KeyEnableCgIDmapDebug = "enable-cgidmap-debug"
 )
 
 type UsernameMetadaCode int
@@ -228,6 +231,9 @@ func ReadAndSetFlags() error {
 
 	Config.EnableCRI = viper.GetBool(KeyEnableCRI)
 	Config.CRIEndpoint = viper.GetString(KeyCRIEndpoint)
+
+	Config.EnableCgIDmap = viper.GetBool(KeyEnableCgIDmap)
+	Config.EnableCgIDmapDebug = viper.GetBool(KeyEnableCgIDmapDebug)
 	return nil
 }
 
@@ -387,4 +393,7 @@ func AddFlags(flags *pflag.FlagSet) {
 
 	flags.Bool(KeyEnableCRI, false, "enable CRI client for tetragon")
 	flags.String(KeyCRIEndpoint, "", "CRI endpoint")
+
+	flags.Bool(KeyEnableCgIDmap, false, "enable pod resolution via cgroup ids")
+	flags.Bool(KeyEnableCgIDmapDebug, false, "enable cgidmap debugging info")
 }

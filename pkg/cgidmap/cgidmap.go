@@ -8,6 +8,7 @@
 package cgidmap
 
 import (
+	"errors"
 	"sync"
 
 	"github.com/cilium/tetragon/pkg/logger"
@@ -15,12 +16,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
-)
-
-var (
-	// TODO: turn these into config options
-	enabled = true
-	debug   = true
 )
 
 // convinience types to make APIs more readable
@@ -90,7 +85,7 @@ func newMap() (*cgidm, error) {
 		cgMap:       make(map[CgroupID]int),
 		contMap:     make(map[ContainerID]int),
 		log:         log,
-		DebugLogger: logger.NewDebugLogger(log, debug),
+		DebugLogger: logger.NewDebugLogger(log, option.Config.EnableCgIDmapDebug),
 	}
 
 	var criResolver *criResolver
@@ -253,8 +248,18 @@ var (
 // GetState returns the global map
 func GlobalMap() (Map, error) {
 	setGlMap.Do(func() {
+		if !option.Config.EnableCgIDmap {
+			glMap = nil
+			glError = errors.New("cgidmap disabled")
+			return
+		}
+
 		glMap, glError = newMap()
-		glMap.log.Info("cgidmap initialized (err=%v)", glError)
+		if glError != nil {
+			glMap.log.Info("cgidmap initialized")
+		} else {
+			glMap.log.WithError(glError).Warn("cgidmap initialization failed")
+		}
 	})
 	return glMap, glError
 }
