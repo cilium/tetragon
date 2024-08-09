@@ -10,6 +10,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -762,4 +763,43 @@ func HostCgroupRoot() (string, error) {
 		fmt.Errorf("failed to set path %s as cgroup root %w", path2, err2),
 	)
 	return "", fmt.Errorf("failed to set cgroup root: %w", err)
+}
+
+// CgroupIDFromPID returns the cgroup id for a given pid.
+func CgroupIDFromPID(pid uint32) (uint64, error) {
+	cgroupFile := fmt.Sprintf("%s/%d/cgroup", option.Config.ProcFS, pid)
+	data, err := os.ReadFile(cgroupFile)
+	if err != nil {
+		return 0, err
+	}
+
+	pathPrefix := fmt.Sprintf("%s/1/root/sys/fs/cgroup", option.Config.ProcFS)
+
+	var path string
+	v2Prefix := "0::"
+	v1Prefix := fmt.Sprintf("%d:%s:", GetCgrpSubsystemIdx(), GetCgrpControllerName())
+
+	lines := strings.Split(string(data), "\n")
+	for _, line := range lines {
+		if strings.HasPrefix(line, v2Prefix) {
+			path = fmt.Sprintf("%s/%s", pathPrefix, line[len(v2Prefix):])
+			break
+		}
+		// TODO: test cgroup v1 implementation
+		if strings.HasPrefix(line, v1Prefix) {
+			path = fmt.Sprintf("%s/%s/%s", pathPrefix, GetCgrpControllerName(), line[len(v2Prefix):])
+			break
+		}
+	}
+
+	if len(path) == 0 {
+		return 0, errors.New("failed to find proper cgroup")
+	}
+
+	cgID, err := GetCgroupIdFromPath(path)
+	if err != nil {
+		return 0, err
+	}
+
+	return cgID, nil
 }
