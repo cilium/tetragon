@@ -73,7 +73,6 @@ func registerHealthMetrics(group metrics.Group) {
 	group.ExtendInit(opcodemetrics.InitMetrics)
 	// policy filter metrics
 	policyfiltermetrics.RegisterMetrics(group)
-	group.ExtendInit(policyfiltermetrics.InitMetrics)
 	// process metrics
 	process.RegisterMetrics(group)
 	// ringbuf metrics
