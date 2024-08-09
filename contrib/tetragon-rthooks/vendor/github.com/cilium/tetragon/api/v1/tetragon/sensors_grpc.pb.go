@@ -36,9 +36,8 @@ const (
 	FineGuidanceSensors_GetStackTraceTree_FullMethodName    = "/tetragon.FineGuidanceSensors/GetStackTraceTree"
 	FineGuidanceSensors_GetVersion_FullMethodName           = "/tetragon.FineGuidanceSensors/GetVersion"
 	FineGuidanceSensors_RuntimeHook_FullMethodName          = "/tetragon.FineGuidanceSensors/RuntimeHook"
-	FineGuidanceSensors_GetLogLevel_FullMethodName          = "/tetragon.FineGuidanceSensors/GetLogLevel"
-	FineGuidanceSensors_SetLogLevel_FullMethodName          = "/tetragon.FineGuidanceSensors/SetLogLevel"
-	FineGuidanceSensors_ResetLogLevel_FullMethodName        = "/tetragon.FineGuidanceSensors/ResetLogLevel"
+	FineGuidanceSensors_GetDebug_FullMethodName             = "/tetragon.FineGuidanceSensors/GetDebug"
+	FineGuidanceSensors_SetDebug_FullMethodName             = "/tetragon.FineGuidanceSensors/SetDebug"
 )
 
 // FineGuidanceSensorsClient is the client API for FineGuidanceSensors service.
@@ -63,9 +62,8 @@ type FineGuidanceSensorsClient interface {
 	GetStackTraceTree(ctx context.Context, in *GetStackTraceTreeRequest, opts ...grpc.CallOption) (*GetStackTraceTreeResponse, error)
 	GetVersion(ctx context.Context, in *GetVersionRequest, opts ...grpc.CallOption) (*GetVersionResponse, error)
 	RuntimeHook(ctx context.Context, in *RuntimeHookRequest, opts ...grpc.CallOption) (*RuntimeHookResponse, error)
-	GetLogLevel(ctx context.Context, in *GetLogLevelRequest, opts ...grpc.CallOption) (*GetLogLevelResponse, error)
-	SetLogLevel(ctx context.Context, in *SetLogLevelRequest, opts ...grpc.CallOption) (*SetLogLevelResponse, error)
-	ResetLogLevel(ctx context.Context, in *ResetLogLevelRequest, opts ...grpc.CallOption) (*ResetLogLevelResponse, error)
+	GetDebug(ctx context.Context, in *GetDebugRequest, opts ...grpc.CallOption) (*GetDebugResponse, error)
+	SetDebug(ctx context.Context, in *SetDebugRequest, opts ...grpc.CallOption) (*SetDebugResponse, error)
 }
 
 type fineGuidanceSensorsClient struct {
@@ -229,27 +227,18 @@ func (c *fineGuidanceSensorsClient) RuntimeHook(ctx context.Context, in *Runtime
 	return out, nil
 }
 
-func (c *fineGuidanceSensorsClient) GetLogLevel(ctx context.Context, in *GetLogLevelRequest, opts ...grpc.CallOption) (*GetLogLevelResponse, error) {
-	out := new(GetLogLevelResponse)
-	err := c.cc.Invoke(ctx, FineGuidanceSensors_GetLogLevel_FullMethodName, in, out, opts...)
+func (c *fineGuidanceSensorsClient) GetDebug(ctx context.Context, in *GetDebugRequest, opts ...grpc.CallOption) (*GetDebugResponse, error) {
+	out := new(GetDebugResponse)
+	err := c.cc.Invoke(ctx, FineGuidanceSensors_GetDebug_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *fineGuidanceSensorsClient) SetLogLevel(ctx context.Context, in *SetLogLevelRequest, opts ...grpc.CallOption) (*SetLogLevelResponse, error) {
-	out := new(SetLogLevelResponse)
-	err := c.cc.Invoke(ctx, FineGuidanceSensors_SetLogLevel_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *fineGuidanceSensorsClient) ResetLogLevel(ctx context.Context, in *ResetLogLevelRequest, opts ...grpc.CallOption) (*ResetLogLevelResponse, error) {
-	out := new(ResetLogLevelResponse)
-	err := c.cc.Invoke(ctx, FineGuidanceSensors_ResetLogLevel_FullMethodName, in, out, opts...)
+func (c *fineGuidanceSensorsClient) SetDebug(ctx context.Context, in *SetDebugRequest, opts ...grpc.CallOption) (*SetDebugResponse, error) {
+	out := new(SetDebugResponse)
+	err := c.cc.Invoke(ctx, FineGuidanceSensors_SetDebug_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -278,9 +267,8 @@ type FineGuidanceSensorsServer interface {
 	GetStackTraceTree(context.Context, *GetStackTraceTreeRequest) (*GetStackTraceTreeResponse, error)
 	GetVersion(context.Context, *GetVersionRequest) (*GetVersionResponse, error)
 	RuntimeHook(context.Context, *RuntimeHookRequest) (*RuntimeHookResponse, error)
-	GetLogLevel(context.Context, *GetLogLevelRequest) (*GetLogLevelResponse, error)
-	SetLogLevel(context.Context, *SetLogLevelRequest) (*SetLogLevelResponse, error)
-	ResetLogLevel(context.Context, *ResetLogLevelRequest) (*ResetLogLevelResponse, error)
+	GetDebug(context.Context, *GetDebugRequest) (*GetDebugResponse, error)
+	SetDebug(context.Context, *SetDebugRequest) (*SetDebugResponse, error)
 }
 
 // UnimplementedFineGuidanceSensorsServer should be embedded to have forward compatible implementations.
@@ -329,14 +317,11 @@ func (UnimplementedFineGuidanceSensorsServer) GetVersion(context.Context, *GetVe
 func (UnimplementedFineGuidanceSensorsServer) RuntimeHook(context.Context, *RuntimeHookRequest) (*RuntimeHookResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RuntimeHook not implemented")
 }
-func (UnimplementedFineGuidanceSensorsServer) GetLogLevel(context.Context, *GetLogLevelRequest) (*GetLogLevelResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetLogLevel not implemented")
+func (UnimplementedFineGuidanceSensorsServer) GetDebug(context.Context, *GetDebugRequest) (*GetDebugResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetDebug not implemented")
 }
-func (UnimplementedFineGuidanceSensorsServer) SetLogLevel(context.Context, *SetLogLevelRequest) (*SetLogLevelResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetLogLevel not implemented")
-}
-func (UnimplementedFineGuidanceSensorsServer) ResetLogLevel(context.Context, *ResetLogLevelRequest) (*ResetLogLevelResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ResetLogLevel not implemented")
+func (UnimplementedFineGuidanceSensorsServer) SetDebug(context.Context, *SetDebugRequest) (*SetDebugResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetDebug not implemented")
 }
 
 // UnsafeFineGuidanceSensorsServer may be embedded to opt out of forward compatibility for this service.
@@ -605,56 +590,38 @@ func _FineGuidanceSensors_RuntimeHook_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
-func _FineGuidanceSensors_GetLogLevel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetLogLevelRequest)
+func _FineGuidanceSensors_GetDebug_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetDebugRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(FineGuidanceSensorsServer).GetLogLevel(ctx, in)
+		return srv.(FineGuidanceSensorsServer).GetDebug(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: FineGuidanceSensors_GetLogLevel_FullMethodName,
+		FullMethod: FineGuidanceSensors_GetDebug_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FineGuidanceSensorsServer).GetLogLevel(ctx, req.(*GetLogLevelRequest))
+		return srv.(FineGuidanceSensorsServer).GetDebug(ctx, req.(*GetDebugRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _FineGuidanceSensors_SetLogLevel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetLogLevelRequest)
+func _FineGuidanceSensors_SetDebug_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetDebugRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(FineGuidanceSensorsServer).SetLogLevel(ctx, in)
+		return srv.(FineGuidanceSensorsServer).SetDebug(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: FineGuidanceSensors_SetLogLevel_FullMethodName,
+		FullMethod: FineGuidanceSensors_SetDebug_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FineGuidanceSensorsServer).SetLogLevel(ctx, req.(*SetLogLevelRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _FineGuidanceSensors_ResetLogLevel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ResetLogLevelRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(FineGuidanceSensorsServer).ResetLogLevel(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: FineGuidanceSensors_ResetLogLevel_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FineGuidanceSensorsServer).ResetLogLevel(ctx, req.(*ResetLogLevelRequest))
+		return srv.(FineGuidanceSensorsServer).SetDebug(ctx, req.(*SetDebugRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -719,16 +686,12 @@ var FineGuidanceSensors_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _FineGuidanceSensors_RuntimeHook_Handler,
 		},
 		{
-			MethodName: "GetLogLevel",
-			Handler:    _FineGuidanceSensors_GetLogLevel_Handler,
+			MethodName: "GetDebug",
+			Handler:    _FineGuidanceSensors_GetDebug_Handler,
 		},
 		{
-			MethodName: "SetLogLevel",
-			Handler:    _FineGuidanceSensors_SetLogLevel_Handler,
-		},
-		{
-			MethodName: "ResetLogLevel",
-			Handler:    _FineGuidanceSensors_ResetLogLevel_Handler,
+			MethodName: "SetDebug",
+			Handler:    _FineGuidanceSensors_SetDebug_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

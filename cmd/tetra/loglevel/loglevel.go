@@ -30,11 +30,13 @@ func New() *cobra.Command {
 			}
 			defer c.Close()
 
-			currentLoglevel, err := c.Client.GetLogLevel(c.Ctx, &tetragon.GetLogLevelRequest{})
+			currentLoglevel, err := c.Client.GetDebug(c.Ctx, &tetragon.GetDebugRequest{
+				Flag: tetragon.ConfigFlag_CONFIG_FLAG_LOG_LEVEL,
+			})
 			if err != nil {
 				return fmt.Errorf("failed to get current Tetragon log level: %w", err)
 			}
-			cmd.Printf("Current log level: %s\n", currentLoglevel.GetLevel())
+			cmd.Printf("Current log level: %s\n", logrus.Level(currentLoglevel.GetLevel()))
 
 			return nil
 		},
@@ -55,7 +57,7 @@ func New() *cobra.Command {
 				return fmt.Errorf("usage: tetra loglevel set [trace|debug|info|warning|error|fatal|panic]")
 			}
 			levelStr := args[0]
-			_, err := logrus.ParseLevel(levelStr)
+			levelParsed, err := logrus.ParseLevel(levelStr)
 			if err != nil {
 				return fmt.Errorf("invalid log level: %s", levelStr)
 			}
@@ -66,33 +68,14 @@ func New() *cobra.Command {
 			}
 			defer c.Close()
 
-			currentLogLevel, err := c.Client.SetLogLevel(c.Ctx, &tetragon.SetLogLevelRequest{
-				Level: levelStr,
+			currentLogLevel, err := c.Client.SetDebug(c.Ctx, &tetragon.SetDebugRequest{
+				Flag:  tetragon.ConfigFlag_CONFIG_FLAG_LOG_LEVEL,
+				Level: tetragon.LogLevel(levelParsed),
 			})
 			if err != nil {
 				return fmt.Errorf("failed to set log level: %w", err)
 			}
-			cmd.Printf("Log level set to: %s\n", currentLogLevel.GetLevel())
-
-			return nil
-		},
-	}
-
-	resetCmd := &cobra.Command{
-		Use:   "reset",
-		Short: "Reset the log level to the value Tetragon was started with",
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			c, err := common.NewClientWithDefaultContextAndAddress()
-			if err != nil {
-				return fmt.Errorf("failed create gRPC client: %w", err)
-			}
-			defer c.Close()
-
-			currentLogLevel, err := c.Client.ResetLogLevel(c.Ctx, &tetragon.ResetLogLevelRequest{})
-			if err != nil {
-				return fmt.Errorf("failed to reset log level: %w", err)
-			}
-			cmd.Printf("Reset log level to: %s\n", currentLogLevel.GetLevel())
+			cmd.Printf("Log level set to: %s\n", logrus.Level(currentLogLevel.GetLevel()))
 
 			return nil
 		},
@@ -102,7 +85,6 @@ func New() *cobra.Command {
 	cmd.AddCommand(
 		getCmd,
 		setCmd,
-		resetCmd,
 	)
 
 	return cmd
