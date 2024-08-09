@@ -133,14 +133,10 @@ func (i *ioReaderClient) RuntimeHook(_ context.Context, _ *tetragon.RuntimeHookR
 	panic("stub")
 }
 
-func (i *ioReaderClient) GetLogLevel(_ context.Context, _ *tetragon.GetLogLevelRequest, _ ...grpc.CallOption) (*tetragon.GetLogLevelResponse, error) {
+func (i *ioReaderClient) GetDebug(_ context.Context, _ *tetragon.GetDebugRequest, _ ...grpc.CallOption) (*tetragon.GetDebugResponse, error) {
 	panic("stub")
 }
 
-func (i *ioReaderClient) SetLogLevel(_ context.Context, _ *tetragon.SetLogLevelRequest, _ ...grpc.CallOption) (*tetragon.SetLogLevelResponse, error) {
-	panic("stub")
-}
-
-func (i *ioReaderClient) ResetLogLevel(_ context.Context, _ *tetragon.ResetLogLevelRequest, _ ...grpc.CallOption) (*tetragon.ResetLogLevelResponse, error) {
+func (i *ioReaderClient) SetDebug(_ context.Context, _ *tetragon.SetDebugRequest, _ ...grpc.CallOption) (*tetragon.SetDebugResponse, error) {
 	panic("stub")
 }

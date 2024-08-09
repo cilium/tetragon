@@ -1005,17 +1005,22 @@ Determines the behavior of a field filter
 
 ### EnableTracingPolicyResponse
 
-<a name="tetragon-GetLogLevelRequest"></a>
+<a name="tetragon-GetDebugRequest"></a>
 
-### GetLogLevelRequest
-
-<a name="tetragon-GetLogLevelResponse"></a>
-
-### GetLogLevelResponse
+### GetDebugRequest
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| level | [string](#string) |  |  |
+| flag | [ConfigFlag](#tetragon-ConfigFlag) |  |  |
+
+<a name="tetragon-GetDebugResponse"></a>
+
+### GetDebugResponse
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| flag | [ConfigFlag](#tetragon-ConfigFlag) |  |  |
+| level | [LogLevel](#tetragon-LogLevel) |  |  |
 
 <a name="tetragon-GetStackTraceTreeRequest"></a>
 
@@ -1081,18 +1086,6 @@ Determines the behavior of a field filter
 
 ### RemoveSensorResponse
 
-<a name="tetragon-ResetLogLevelRequest"></a>
-
-### ResetLogLevelRequest
-
-<a name="tetragon-ResetLogLevelResponse"></a>
-
-### ResetLogLevelResponse
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| level | [string](#string) |  |  |
-
 <a name="tetragon-SensorStatus"></a>
 
 ### SensorStatus
@@ -1103,21 +1096,23 @@ Determines the behavior of a field filter
 | enabled | [bool](#bool) |  | enabled marks whether the sensor is enabled |
 | collection | [string](#string) |  | collection is the collection the sensor belongs to (typically a tracing policy) |
 
-<a name="tetragon-SetLogLevelRequest"></a>
+<a name="tetragon-SetDebugRequest"></a>
 
-### SetLogLevelRequest
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| level | [string](#string) |  |  |
-
-<a name="tetragon-SetLogLevelResponse"></a>
-
-### SetLogLevelResponse
+### SetDebugRequest
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| level | [string](#string) |  |  |
+| flag | [ConfigFlag](#tetragon-ConfigFlag) |  |  |
+| level | [LogLevel](#tetragon-LogLevel) |  |  |
+
+<a name="tetragon-SetDebugResponse"></a>
+
+### SetDebugResponse
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| flag | [ConfigFlag](#tetragon-ConfigFlag) |  |  |
+| level | [LogLevel](#tetragon-LogLevel) |  |  |
 
 <a name="tetragon-TracingPolicyStatus"></a>
 
@@ -1134,6 +1129,29 @@ Determines the behavior of a field filter
 | filter_id | [uint64](#uint64) |  | filter ID of the policy used for k8s filtering |
 | error | [string](#string) |  | potential error of the policy |
 | state | [TracingPolicyState](#tetragon-TracingPolicyState) |  | current state of the tracing policy |
+
+<a name="tetragon-ConfigFlag"></a>
+
+### ConfigFlag
+For now, we only want to support debug-related config flags to be configurable.
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| CONFIG_FLAG_LOG_LEVEL | 0 |  |
+
+<a name="tetragon-LogLevel"></a>
+
+### LogLevel
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| LOG_LEVEL_PANIC | 0 |  |
+| LOG_LEVEL_FATAL | 1 |  |
+| LOG_LEVEL_ERROR | 2 |  |
+| LOG_LEVEL_WARN | 3 |  |
+| LOG_LEVEL_INFO | 4 |  |
+| LOG_LEVEL_DEBUG | 5 |  |
+| LOG_LEVEL_TRACE | 6 |  |
 
 <a name="tetragon-TracingPolicyState"></a>
 
@@ -1169,9 +1187,8 @@ Determines the behavior of a field filter
 | GetStackTraceTree | [GetStackTraceTreeRequest](#tetragon-GetStackTraceTreeRequest) | [GetStackTraceTreeResponse](#tetragon-GetStackTraceTreeResponse) |  |
 | GetVersion | [GetVersionRequest](#tetragon-GetVersionRequest) | [GetVersionResponse](#tetragon-GetVersionResponse) |  |
 | RuntimeHook | [RuntimeHookRequest](#tetragon-RuntimeHookRequest) | [RuntimeHookResponse](#tetragon-RuntimeHookResponse) |  |
-| GetLogLevel | [GetLogLevelRequest](#tetragon-GetLogLevelRequest) | [GetLogLevelResponse](#tetragon-GetLogLevelResponse) |  |
-| SetLogLevel | [SetLogLevelRequest](#tetragon-SetLogLevelRequest) | [SetLogLevelResponse](#tetragon-SetLogLevelResponse) |  |
-| ResetLogLevel | [ResetLogLevelRequest](#tetragon-ResetLogLevelRequest) | [ResetLogLevelResponse](#tetragon-ResetLogLevelResponse) |  |
+| GetDebug | [GetDebugRequest](#tetragon-GetDebugRequest) | [GetDebugResponse](#tetragon-GetDebugResponse) |  |
+| SetDebug | [SetDebugRequest](#tetragon-SetDebugRequest) | [SetDebugResponse](#tetragon-SetDebugResponse) |  |
 
 ## Scalar Value Types
 
