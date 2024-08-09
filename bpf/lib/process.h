@@ -274,6 +274,7 @@ struct msg_k8s {
 
 struct heap_exe {
 	char buf[BINARY_PATH_MAX_LEN];
+	char end[BINARY_PATH_MAX_LEN];
 	__u32 len;
 	__u32 error;
 }; // All fields aligned so no 'packed' attribute.
@@ -313,8 +314,15 @@ struct binary {
 	// but can contain negative value in case of copy error.
 	// While s16 would be sufficient, 64 bits are handy for alignment.
 	__s64 path_length;
+	// if end_r contains reversed path postfix
+	__u8 reversed;
+	__u8 pad[7];
 	// BINARY_PATH_MAX_LEN first bytes of the path
 	char path[BINARY_PATH_MAX_LEN];
+	// BINARY_PATH_MAX_LEN last bytes of the path
+	char end[BINARY_PATH_MAX_LEN];
+	// BINARY_PATH_MAX_LEN reversed last bytes of the path
+	char end_r[BINARY_PATH_MAX_LEN];
 	// matchBinary bitset for binary
 	mbset_t mb_bitset;
 }; // All fields aligned so no 'packed' attribute

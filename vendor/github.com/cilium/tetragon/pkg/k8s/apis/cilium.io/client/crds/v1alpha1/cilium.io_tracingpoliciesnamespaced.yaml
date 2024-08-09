@@ -455,6 +455,8 @@ spec:
                                   - NotIn
                                   - Prefix
                                   - NotPrefix
+                                  - Postfix
+                                  - NotPostfix
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1064,6 +1066,8 @@ spec:
                                   - NotIn
                                   - Prefix
                                   - NotPrefix
+                                  - Postfix
+                                  - NotPostfix
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1704,6 +1708,8 @@ spec:
                                   - NotIn
                                   - Prefix
                                   - NotPrefix
+                                  - Postfix
+                                  - NotPostfix
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2281,6 +2287,8 @@ spec:
                                   - NotIn
                                   - Prefix
                                   - NotPrefix
+                                  - Postfix
+                                  - NotPostfix
                                   type: string
                                 values:
                                   description: Value to compare the argument against.

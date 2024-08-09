@@ -140,7 +140,11 @@ type MsgCapabilities struct {
 
 type Binary struct {
 	PathLength int64
+	Reversed   uint8
+	Pad        [7]uint8
 	Path       [BINARY_PATH_MAX_LEN]byte
+	End        [BINARY_PATH_MAX_LEN]byte
+	End_r      [BINARY_PATH_MAX_LEN]byte
 	MBSet      uint64
 }
 

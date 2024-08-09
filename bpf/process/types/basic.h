@@ -855,6 +855,21 @@ FUNC_INLINE void copy_reverse(__u8 *dest, uint len, __u8 *src, uint offset)
 	}
 }
 
+#ifdef __LARGE_BPF_PROG
+FUNC_INLINE void file_copy_reverse(__u8 *dest, uint len, __u8 *src, uint offset)
+{
+	uint i;
+
+	len &= STRING_POSTFIX_MAX_MASK;
+#pragma unroll
+	for (i = 0; i < (STRING_POSTFIX_MAX_MATCH_LENGTH - 1); i++) {
+		dest[i & STRING_POSTFIX_MAX_MASK] = src[(len + offset - 1 - i) & (BINARY_PATH_MAX_LEN - 1)];
+		if (len + offset == (i + 1))
+			return;
+	}
+}
+#endif
+
 FUNC_LOCAL long
 filter_char_buf_postfix(struct selector_arg_filter *filter, char *arg_str, uint arg_len)
 {
@@ -1554,6 +1569,9 @@ FUNC_INLINE int match_binaries(__u32 selidx)
 	__u8 *found_key;
 #ifdef __LARGE_BPF_PROG
 	struct string_prefix_lpm_trie prefix_key;
+	struct string_postfix_lpm_trie *postfix_key;
+	uint postfix_len = 0;
+	int zero = 0;
 	long ret;
 #endif /* __LARGE_BPF_PROG */
 
@@ -1606,6 +1624,27 @@ FUNC_INLINE int match_binaries(__u32 selidx)
 			if (ret < 0)
 				return 0;
 			found_key = map_lookup_elem(path_map, &prefix_key);
+			break;
+		case op_filter_str_postfix:
+		case op_filter_str_notpostfix:
+			postfix_len = current->bin.path_length;
+			path_map = map_lookup_elem(&string_postfix_maps, &selector_options->map_id);
+			if (!path_map || !postfix_len)
+				return 0;
+			if (postfix_len >= STRING_POSTFIX_MAX_MATCH_LENGTH)
+				postfix_len = STRING_POSTFIX_MAX_MATCH_LENGTH - 1;
+			postfix_key = (struct string_postfix_lpm_trie *)map_lookup_elem(&string_postfix_maps_heap, &zero);
+			if (!postfix_key)
+				return 0;
+			postfix_key->prefixlen = postfix_len * 8; // prefixlen is in bits
+			if (!current->bin.reversed) {
+				file_copy_reverse((__u8 *)current->bin.end_r, postfix_len, (__u8 *)current->bin.path, current->bin.path_length - postfix_len);
+				current->bin.reversed = true;
+			}
+			ret = probe_read(postfix_key->data, postfix_len & (STRING_POSTFIX_MAX_LENGTH - 1), current->bin.end_r);
+			if (ret < 0)
+				return 0;
+			found_key = map_lookup_elem(path_map, postfix_key);
 			break;
 #endif /* __LARGE_BPF_PROG */
 		default:

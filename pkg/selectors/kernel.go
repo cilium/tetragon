@@ -712,7 +712,7 @@ func writePrefixStrings(k *KernelSelectorState, values []string) error {
 	return nil
 }
 
-func writePostfixStrings(k *KernelSelectorState, values []string, ty uint32) error {
+func writePostfix(k *KernelSelectorState, values []string, ty uint32, selector string) (uint32, error) {
 	mid, m := k.newStringPostfixMap()
 	for _, v := range values {
 		var value []byte
@@ -725,7 +725,7 @@ func writePostfixStrings(k *KernelSelectorState, values []string, ty uint32) err
 		// Due to the constraints of the reverse copy in BPF, we will not be able to match a postfix
 		// longer than 127 characters, so throw an error if the user specified one.
 		if size >= StringPostfixMaxLength {
-			return fmt.Errorf("MatchArgs value %s invalid: string is longer than %d characters", v, StringPostfixMaxLength-1)
+			return 0, fmt.Errorf("%s value %s invalid: string is longer than %d characters", selector, v, StringPostfixMaxLength-1)
 		}
 		val := KernelLPMTrieStringPostfix{prefixLen: size * 8} // postfix is in bits, but size is in bytes
 		// Copy postfix in reverse order, so that it can be used in LPM map
@@ -734,7 +734,18 @@ func writePostfixStrings(k *KernelSelectorState, values []string, ty uint32) err
 		}
 		m[val] = struct{}{}
 	}
-	// write the map id into the selector
+	return mid, nil
+}
+
+func writePostfixBinaries(k *KernelSelectorState, values []string) (uint32, error) {
+	return writePostfix(k, values, gt.GenericCharBuffer, "MatchBinaries")
+}
+
+func writePostfixStrings(k *KernelSelectorState, values []string, ty uint32) error {
+	mid, err := writePostfix(k, values, ty, "MatchArgs")
+	if err != nil {
+		return err
+	}
 	WriteSelectorUint32(&k.data, mid)
 	return nil
 }
@@ -1209,8 +1220,16 @@ func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx
 		if err != nil {
 			return fmt.Errorf("failed to write the prefix operator for the matchBinaries selector: %w", err)
 		}
+	case SelectorOpPostfix, SelectorOpNotPostfix:
+		if !kernels.EnableLargeProgs() {
+			return fmt.Errorf("matchBinary error: \"Postfix\" and \"NotPostfix\" operators need large BPF progs (kernel>5.3)")
+		}
+		sel.MapID, err = writePostfixBinaries(k, b.Values)
+		if err != nil {
+			return fmt.Errorf("failed to write the prefix operator for the matchBinaries selector: %w", err)
+		}
 	default:
-		return fmt.Errorf("matchBinary error: Only \"In\", \"NotIn\", \"Prefix\" and \"NotPrefix\" operators are supported")
+		return fmt.Errorf("matchBinary error: Only \"In\", \"NotIn\", \"Prefix\", \"NotPrefix\", \"Postfix\" and \"NotPostfix\" operators are supported")
 	}
 
 	k.AddMatchBinaries(selIdx, sel)
