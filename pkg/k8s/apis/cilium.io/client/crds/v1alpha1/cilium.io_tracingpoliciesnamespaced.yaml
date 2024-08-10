@@ -445,6 +445,7 @@ spec:
                             items:
                               properties:
                                 followChildren:
+                                  default: false
                                   description: In addition to binaries, match children
                                     processes of specified binaries.
                                   type: boolean
@@ -462,7 +463,6 @@ spec:
                                     type: string
                                   type: array
                               required:
-                              - followChildren
                               - operator
                               - values
                               type: object
@@ -1054,6 +1054,7 @@ spec:
                             items:
                               properties:
                                 followChildren:
+                                  default: false
                                   description: In addition to binaries, match children
                                     processes of specified binaries.
                                   type: boolean
@@ -1071,7 +1072,6 @@ spec:
                                     type: string
                                   type: array
                               required:
-                              - followChildren
                               - operator
                               - values
                               type: object
@@ -1694,6 +1694,7 @@ spec:
                             items:
                               properties:
                                 followChildren:
+                                  default: false
                                   description: In addition to binaries, match children
                                     processes of specified binaries.
                                   type: boolean
@@ -1711,7 +1712,6 @@ spec:
                                     type: string
                                   type: array
                               required:
-                              - followChildren
                               - operator
                               - values
                               type: object
@@ -2271,6 +2271,7 @@ spec:
                             items:
                               properties:
                                 followChildren:
+                                  default: false
                                   description: In addition to binaries, match children
                                     processes of specified binaries.
                                   type: boolean
@@ -2288,7 +2289,6 @@ spec:
                                     type: string
                                   type: array
                               required:
-                              - followChildren
                               - operator
                               - values
                               type: object

@@ -96,6 +96,8 @@ type BinarySelector struct {
 	// Value to compare the argument against.
 	Values []string `json:"values"`
 	// In addition to binaries, match children processes of specified binaries.
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=false
 	FollowChildren bool `json:"followChildren"`
 }
 
