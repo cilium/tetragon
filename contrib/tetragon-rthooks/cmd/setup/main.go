@@ -73,9 +73,6 @@ func (i *Install) ociHooksInstall(log *slog.Logger) {
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	}
 
-	// copy the binary to the host
-	i.copyBinary(log)
-
 	// add .json file to oci hooks dir
 	_, binBaseName := path.Split(i.LocalBinary)
 	binFname := filepath.Join(i.HostInstallDir, binBaseName)
@@ -115,6 +112,7 @@ func (i *Install) ociHooksInstall(log *slog.Logger) {
 
 func (i *Install) Run(log *slog.Logger) error {
 
+	// copy the binary to the host
 	i.copyBinary(log)
 	switch i.Interface {
 	case "oci-hooks":
