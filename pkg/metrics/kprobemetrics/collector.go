@@ -73,8 +73,8 @@ type missedKey struct {
 func collect(ch chan<- prometheus.Metric) {
 	allPrograms := sensors.AllPrograms()
 
-	mapProg := make(map[*missedKey]uint64)
-	mapLink := make(map[*missedKey]uint64)
+	mapProg := make(map[missedKey]uint64)
+	mapLink := make(map[missedKey]uint64)
 
 	// Group all the metrics together so we avoid of duplicate
 	// metric values due to missing policy name.
@@ -88,7 +88,7 @@ func collect(ch chan<- prometheus.Metric) {
 			continue
 		}
 
-		key := &missedKey{load.Policy, load.Attach}
+		key := missedKey{load.Policy, load.Attach}
 
 		if okLink {
 			mapLink[key] = mapLink[key] + valLink
