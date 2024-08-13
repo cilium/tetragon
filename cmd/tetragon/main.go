@@ -158,6 +158,10 @@ func stopProfile() {
 }
 
 func getOldBpfDir(path string) (string, error) {
+	// sysfs directory will be removed, so we don't care
+	if option.Config.ReleasePinned {
+		return "", nil
+	}
 	if _, err := os.Stat(path); err != nil {
 		return "", nil
 	}
@@ -279,6 +283,13 @@ func tetragonExecute() error {
 	bpf.CheckOrMountCgroup2()
 	bpf.SetMapPrefix(option.Config.BpfDir)
 
+	// We try to detect previous instance, which might be there for legitimate reasons
+	// (--keep-sensors-on-exit) and rename to 'tetragon_old'.
+	// Then we do the 'best' effort to keep running sensors as long as possible and remove
+	// 'tetragon_old' directory when tetragon is started and its policy is loaded.
+	// If there's --release-pinned-bpf option enabled, we need to remove previous sysfs
+	// instance right away (see check for option.Config.ReleasePinned below), so we don't
+	// bother renaming in that case.
 	oldBpfDir, err := getOldBpfDir(bpf.MapPrefixPath())
 	if err != nil {
 		return fmt.Errorf("Failed to move old tetragon base directory: %w", err)
