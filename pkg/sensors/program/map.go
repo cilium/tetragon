@@ -153,6 +153,21 @@ func (m *Map) LoadOrCreatePinnedMap(pinPath string, mapSpec *ebpf.MapSpec) error
 	return nil
 }
 
+func (m *Map) CloneAndPin(bpfDir string, handle *ebpf.Map) error {
+	var err error
+
+	m.MapHandle, err = handle.Clone()
+	if err != nil {
+		return fmt.Errorf("failed to clone map '%s': %w", m.Name, err)
+	}
+	pinPath := filepath.Join(bpfDir, m.PinName)
+	if err = m.MapHandle.Pin(pinPath); err != nil {
+		return fmt.Errorf("failed to pin to %s: %w", pinPath, err)
+	}
+	m.PinState.RefInc()
+	return nil
+}
+
 func isValidSubdir(d string) bool {
 	dir := filepath.Base(d)
 	return dir != "." && dir != ".."

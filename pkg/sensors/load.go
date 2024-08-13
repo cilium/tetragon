@@ -7,10 +7,8 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
 
-	"github.com/cilium/ebpf"
 	cachedbtf "github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -93,10 +91,6 @@ func (s *Sensor) Load(bpfDir string) error {
 		return fmt.Errorf("tetragon, aborting could not find BPF programs: %w", err)
 	}
 
-	if err := s.loadMaps(bpfDir); err != nil {
-		return fmt.Errorf("tetragon, aborting could not load sensor BPF maps: %w", err)
-	}
-
 	for _, p := range s.Progs {
 		if p.LoadState.IsLoaded() {
 			l.WithField("prog", p.Name).Info("BPF prog is already loaded, incrementing reference count")
@@ -136,9 +130,11 @@ func (s *Sensor) Unload() error {
 		unloadProgram(p)
 	}
 
-	for _, m := range s.Maps {
-		if err := m.Unload(); err != nil {
-			logger.GetLogger().WithError(err).WithField("map", s.Name).Warn("Failed to unload map")
+	for _, p := range s.Progs {
+		for name, m := range p.PinMap {
+			if err := m.Unload(); err != nil {
+				logger.GetLogger().WithError(err).WithField("map", name).Warn("Failed to unload map")
+			}
 		}
 	}
 
@@ -206,55 +202,6 @@ func (s *Sensor) FindPrograms() error {
 			return err
 		}
 	}
-	return nil
-}
-
-// loadMaps loads all the BPF maps in the sensor.
-func (s *Sensor) loadMaps(bpfDir string) error {
-	l := logger.GetLogger()
-	for _, m := range s.Maps {
-		if m.PinState.IsLoaded() {
-			l.WithFields(logrus.Fields{
-				"sensor": s.Name,
-				"map":    m.Name,
-			}).Info("map is already loaded, incrementing reference count")
-			m.PinState.RefInc()
-			continue
-		}
-
-		pinPath := filepath.Join(bpfDir, m.PinName)
-
-		spec, err := ebpf.LoadCollectionSpec(m.Prog.Name)
-		if err != nil {
-			return fmt.Errorf("failed to open collection '%s': %w", m.Prog.Name, err)
-		}
-		mapSpec, ok := spec.Maps[m.Name]
-		if !ok {
-			return fmt.Errorf("map '%s' not found from '%s'", m.Name, m.Prog.Name)
-		}
-
-		if max, ok := m.GetMaxEntries(); ok {
-			mapSpec.MaxEntries = max
-		}
-
-		if innerMax, ok := m.GetMaxInnerEntries(); ok {
-			if innerMs := mapSpec.InnerMap; innerMs != nil {
-				mapSpec.InnerMap.MaxEntries = innerMax
-			}
-		}
-
-		if err := m.LoadOrCreatePinnedMap(pinPath, mapSpec); err != nil {
-			return fmt.Errorf("failed to load map '%s' for sensor '%s': %w", m.Name, s.Name, err)
-		}
-
-		l.WithFields(logrus.Fields{
-			"sensor": s.Name,
-			"map":    m.Name,
-			"path":   pinPath,
-			"max":    m.Entries,
-		}).Info("tetragon, map loaded.")
-	}
-
 	return nil
 }
 

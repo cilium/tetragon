@@ -64,26 +64,26 @@ var (
 	).SetPolicy(basePolicy)
 
 	/* Event Ring map */
-	TCPMonMap = program.MapBuilder("tcpmon_map", Execve)
+	TCPMonMap = program.MapBuilder("tcpmon_map", Execve, Exit, Fork)
 	/* Networking and Process Monitoring maps */
-	ExecveMap          = program.MapBuilder("execve_map", Execve)
+	ExecveMap          = program.MapBuilder("execve_map", Execve, Exit, Fork, ExecveBprmCommit)
 	ExecveTailCallsMap = program.MapBuilderPin("execve_calls", "execve_calls", Execve)
 
-	ExecveJoinMap = program.MapBuilder("tg_execve_joined_info_map", ExecveBprmCommit)
+	ExecveJoinMap = program.MapBuilder("tg_execve_joined_info_map", Execve, Exit, Fork, ExecveBprmCommit)
 
 	/* Tetragon runtime configuration */
-	TetragonConfMap = program.MapBuilder("tg_conf_map", Execve)
+	TetragonConfMap = program.MapBuilder("tg_conf_map", Execve, Exit, Fork)
 
 	/* Internal statistics for debugging */
-	ExecveStats        = program.MapBuilder("execve_map_stats", Execve)
-	ExecveJoinMapStats = program.MapBuilder("tg_execve_joined_info_map_stats", ExecveBprmCommit)
-	StatsMap           = program.MapBuilder("tg_stats_map", Execve)
+	ExecveStats        = program.MapBuilder("execve_map_stats", Execve, Exit, Fork)
+	ExecveJoinMapStats = program.MapBuilder("tg_execve_joined_info_map_stats", Execve, Exit, Fork, ExecveBprmCommit)
+	StatsMap           = program.MapBuilder("tg_stats_map", Execve, Exit, Fork)
 
 	/* Cgroup rate data, attached to execve sensor */
 	CgroupRateMap        = program.MapBuilder("cgroup_rate_map", Execve, Exit, Fork, CgroupRmdir)
-	CgroupRateOptionsMap = program.MapBuilder("cgroup_rate_options_map", Execve)
+	CgroupRateOptionsMap = program.MapBuilder("cgroup_rate_options_map", Execve, Exit, Fork)
 
-	MatchBinariesSetMap = program.MapBuilder(mbset.MapName, Execve)
+	MatchBinariesSetMap = program.MapBuilder(mbset.MapName, Execve, Exit, Fork)
 
 	sensor = sensors.Sensor{
 		Name: basePolicy,
