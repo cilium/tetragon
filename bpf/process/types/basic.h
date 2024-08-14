@@ -827,10 +827,7 @@ filter_char_buf_prefix(struct selector_arg_filter *filter, char *arg_str, uint a
 	return !!pass;
 }
 
-// Define a mask for the maximum path length on Linux.
-#define PATH_MASK (4096 - 1)
-
-FUNC_INLINE void copy_reverse(__u8 *dest, uint len, __u8 *src, uint offset)
+FUNC_INLINE void __copy_reverse(__u8 *dest, uint len, __u8 *src, uint offset, uint mask)
 {
 	uint i;
 
@@ -849,10 +846,23 @@ FUNC_INLINE void copy_reverse(__u8 *dest, uint len, __u8 *src, uint offset)
 	// Alternative (prettier) fixes resulted in a confused verifier
 	// unfortunately.
 	for (i = 0; i < (STRING_POSTFIX_MAX_MATCH_LENGTH - 1); i++) {
-		dest[i & STRING_POSTFIX_MAX_MASK] = src[(len + offset - 1 - i) & PATH_MASK];
+		dest[i & STRING_POSTFIX_MAX_MASK] = src[(len + offset - 1 - i) & mask];
 		if (len + offset == (i + 1))
 			return;
 	}
+}
+
+// Define a mask for the maximum path length on Linux.
+#define PATH_MASK (4096 - 1)
+
+FUNC_INLINE void copy_reverse(__u8 *dest, uint len, __u8 *src, uint offset)
+{
+	__copy_reverse(dest, len, src, offset, PATH_MASK);
+}
+
+FUNC_INLINE void file_copy_reverse(__u8 *dest, uint len, __u8 *src, uint offset)
+{
+	__copy_reverse(dest, len, src, offset, STRING_POSTFIX_MAX_LENGTH - 1);
 }
 
 FUNC_LOCAL long
@@ -1554,7 +1564,10 @@ FUNC_INLINE int match_binaries(__u32 selidx)
 	__u8 *found_key;
 #ifdef __LARGE_BPF_PROG
 	struct string_prefix_lpm_trie prefix_key;
-	long ret;
+	struct string_postfix_lpm_trie *postfix_key;
+	__u64 postfix_len = STRING_POSTFIX_MAX_MATCH_LENGTH - 1;
+
+	int zero = 0;
 #endif /* __LARGE_BPF_PROG */
 
 	struct match_binaries_sel_opts *selector_options;
@@ -1602,10 +1615,29 @@ FUNC_INLINE int match_binaries(__u32 selidx)
 			// prepare the key on the stack to perform lookup in the LPM_TRIE
 			memset(&prefix_key, 0, sizeof(prefix_key));
 			prefix_key.prefixlen = current->bin.path_length * 8; // prefixlen is in bits
-			ret = probe_read(prefix_key.data, current->bin.path_length & (STRING_PREFIX_MAX_LENGTH - 1), current->bin.path);
-			if (ret < 0)
+			if (probe_read(prefix_key.data, current->bin.path_length & (STRING_PREFIX_MAX_LENGTH - 1), current->bin.path) < 0)
 				return 0;
 			found_key = map_lookup_elem(path_map, &prefix_key);
+			break;
+		case op_filter_str_postfix:
+		case op_filter_str_notpostfix:
+			path_map = map_lookup_elem(&string_postfix_maps, &selector_options->map_id);
+			if (!path_map)
+				return 0;
+			if (current->bin.path_length < STRING_POSTFIX_MAX_MATCH_LENGTH)
+				postfix_len = current->bin.path_length;
+			postfix_key = (struct string_postfix_lpm_trie *)map_lookup_elem(&string_postfix_maps_heap, &zero);
+			if (!postfix_key)
+				return 0;
+			postfix_key->prefixlen = postfix_len * 8; // prefixlen is in bits
+			if (!current->bin.reversed) {
+				file_copy_reverse((__u8 *)current->bin.end_r, postfix_len, (__u8 *)current->bin.end, current->bin.path_length - postfix_len);
+				current->bin.reversed = true;
+			}
+			if (postfix_len < STRING_POSTFIX_MAX_MATCH_LENGTH)
+				if (probe_read(postfix_key->data, postfix_len, current->bin.end_r) < 0)
+					return 0;
+			found_key = map_lookup_elem(path_map, postfix_key);
 			break;
 #endif /* __LARGE_BPF_PROG */
 		default:

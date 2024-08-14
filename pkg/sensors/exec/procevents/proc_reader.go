@@ -350,7 +350,7 @@ func writeExecveMap(procs []procs) {
 		v.Namespaces.CgroupInum = p.cgroup_ns
 		v.Namespaces.UserInum = p.user_ns
 		pathLength := copy(v.Binary.Path[:], p.exe)
-		v.Binary.PathLength = int64(pathLength)
+		v.Binary.PathLength = int32(pathLength)
 
 		err := m.Put(k, v)
 		if err != nil {
