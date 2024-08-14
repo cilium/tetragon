@@ -56,7 +56,7 @@ func getOpcodes() []string {
 	result := make([]string, len(ops.OpCodeStrings)-2)
 	i := 0
 	for opcode := range ops.OpCodeStrings {
-		if opcode != ops.MsgOpUndef && opcode != ops.MsgOpTest {
+		if opcode != ops.MSG_OP_UNDEF && opcode != ops.MSG_OP_TEST {
 			result[i] = fmt.Sprint(int32(opcode))
 			i++
 		}

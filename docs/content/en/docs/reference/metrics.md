@@ -139,7 +139,7 @@ The total number of event handler errors. For internal use only.
 | label | values |
 | ----- | ------ |
 | `error_type` | `event_handler_failed, unknown_opcode` |
-| `opcode` | `0, 11, 13, 14, 15, 23, 24, 25, 26, 5, 7` |
+| `opcode` | `0, 13, 14, 15, 16, 23, 24, 25, 26, 27, 5, 7` |
 
 ### `tetragon_handling_latency`
 
@@ -147,7 +147,7 @@ The latency of handling messages in us.
 
 | label | values |
 | ----- | ------ |
-| `op   ` | `11, 13, 14, 15, 23, 24, 25, 26, 5, 7` |
+| `op   ` | `13, 14, 15, 16, 23, 24, 25, 26, 27, 5, 7` |
 
 ### `tetragon_map_capacity`
 
@@ -179,7 +179,7 @@ The total number of Tetragon events per type that are failed to sent from the ke
 
 | label | values |
 | ----- | ------ |
-| `msg_op` | `11, 13, 14, 15, 23, 24, 25, 26, 5, 7` |
+| `msg_op` | `13, 14, 15, 16, 23, 24, 25, 26, 27, 5, 7` |
 
 ### `tetragon_missed_link_probes_total`
 
@@ -205,7 +205,7 @@ The total number of times we encounter a given message opcode. For internal use 
 
 | label | values |
 | ----- | ------ |
-| `msg_op` | `11, 13, 14, 15, 23, 24, 25, 26, 5, 7` |
+| `msg_op` | `13, 14, 15, 16, 23, 24, 25, 26, 27, 5, 7` |
 
 ### `tetragon_notify_overflowed_events_total`
 

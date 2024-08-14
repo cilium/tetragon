@@ -9,6 +9,10 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 )
 
+type OpCode int
+
+// OpCodes must be in sync with msg_ops enum in bpf/lib/msg_types.h
+// and should have a human-readable representation in OpCodeStrings.
 const (
 	MSG_OP_UNDEF = 0
 	// MSG_OP_EXECVE event indicates a process was created. The 'PID'
@@ -26,14 +30,10 @@ const (
 	MSG_OP_GENERIC_LSM        = 16
 
 	// MSG_OP_CLONE notifies user-space that a clone() event has occurred.
-	MSG_OP_CLONE = 23
-
-	MSG_OP_DATA = 24
-
-	MSG_OP_CGROUP = 25
-
-	MSG_OP_LOADER = 26
-
+	MSG_OP_CLONE    = 23
+	MSG_OP_DATA     = 24
+	MSG_OP_CGROUP   = 25
+	MSG_OP_LOADER   = 26
 	MSG_OP_THROTTLE = 27
 
 	// just for testing
@@ -65,36 +65,20 @@ const (
 	_CGROUP_STATE_MAX   CgroupState = 4
 )
 
-type OpCode int
-
-const (
-	MsgOpUndef              = iota
-	MsgOpExecve             = 5
-	MsgOpExit               = 7
-	MsgOpKfreeSkb           = 11
-	MsgOpGenericKprobe      = 13
-	MsgOpGeneric_Tracepoint = 14
-	MsgOpGenericUprobe      = 15
-	MsgOpClone              = 23
-	MsgOpData               = 24
-	MsgOpCgroup             = 25
-	MsgOpLoader             = 26
-	MsgOpTest               = 254
-)
-
 var OpCodeStrings = map[OpCode]string{
-	MsgOpUndef:              "Undef",
-	MsgOpExecve:             "Execve",
-	MsgOpExit:               "Exit",
-	MsgOpKfreeSkb:           "KfreeSkb",
-	MsgOpGenericKprobe:      "GenericKprobe",
-	MsgOpGeneric_Tracepoint: "GenericTracepoint",
-	MsgOpGenericUprobe:      "GenericUprobe",
-	MsgOpClone:              "Clone",
-	MsgOpData:               "Data",
-	MsgOpCgroup:             "Cgroup",
-	MsgOpLoader:             "Loader",
-	MsgOpTest:               "Test",
+	MSG_OP_UNDEF:              "Undef",
+	MSG_OP_EXECVE:             "Execve",
+	MSG_OP_EXIT:               "Exit",
+	MSG_OP_GENERIC_KPROBE:     "GenericKprobe",
+	MSG_OP_GENERIC_TRACEPOINT: "GenericTracepoint",
+	MSG_OP_GENERIC_UPROBE:     "GenericUprobe",
+	MSG_OP_GENERIC_LSM:        "GenericLSM",
+	MSG_OP_CLONE:              "Clone",
+	MSG_OP_DATA:               "Data",
+	MSG_OP_CGROUP:             "Cgroup",
+	MSG_OP_LOADER:             "Loader",
+	MSG_OP_THROTTLE:           "Throttle",
+	MSG_OP_TEST:               "Test",
 }
 
 func (op OpCode) String() string {
