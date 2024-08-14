@@ -281,6 +281,13 @@ process_filter_capability_change(__u32 ty, __u32 op, __u32 ns, __u64 val,
 		return PFILTER_REJECT;
 
 	icaps = init->caps.c[ty];
+
+	// When compiling bpf_generic_kprobe_v53.o with clang-18 and loading it on
+	// 5.4.278, the verifier complains than ty could be negative while in this
+	// context it's just the capability set type (effective, inheritable, or
+	// permitted), let's blindly remind the verifier it's a u32.
+	asm volatile("%[ty] &= 0xffffffff;\n"
+		     : [ty] "+r"(ty));
 	ccaps = c->c[ty];
 
 	/* we have a change in the capabilities that we care */
