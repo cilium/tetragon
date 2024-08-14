@@ -1,4 +1,4 @@
-FROM docker.io/library/ubuntu:22.04@sha256:0bced47fffa3361afa981854fcabcd4577cd43cebbb808cea2b1f33a3dd7f508
+FROM --platform=$BUILDPLATFORM docker.io/library/ubuntu:22.04@sha256:0bced47fffa3361afa981854fcabcd4577cd43cebbb808cea2b1f33a3dd7f508
 RUN apt-get update && apt-get install -y --no-install-recommends  \
     clang-15 libclang-common-15-dev libclang-cpp15    	          \
     libllvm15 llvm-15-linker-tools libclang1-15                   \
