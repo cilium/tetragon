@@ -37,7 +37,7 @@ func RegisterMetrics(group metrics.Group) {
 func InitMetrics() {
 	// Initialize all metrics
 	for opcode := range ops.OpCodeStrings {
-		if opcode != ops.MsgOpUndef && opcode != ops.MsgOpTest {
+		if opcode != ops.MSG_OP_UNDEF && opcode != ops.MSG_OP_TEST {
 			GetOpTotal(opcode).Add(0)
 			LatencyStats.WithLabelValues(fmt.Sprint(int32(opcode)))
 		}

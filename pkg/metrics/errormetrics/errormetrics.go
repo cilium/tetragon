@@ -96,13 +96,13 @@ func InitMetrics() {
 		GetErrorTotal(er).Add(0)
 	}
 	for opcode := range ops.OpCodeStrings {
-		if opcode != ops.MsgOpUndef && opcode != ops.MsgOpTest {
+		if opcode != ops.MSG_OP_UNDEF && opcode != ops.MSG_OP_TEST {
 			GetHandlerErrors(opcode, HandlePerfHandlerError).Add(0)
 		}
 	}
-	// NB: We initialize only ops.MsgOpUndef here, but unknown_opcode can occur for any opcode
+	// NB: We initialize only ops.MSG_OP_UNDEF here, but unknown_opcode can occur for any opcode
 	// that is not explicitly handled.
-	GetHandlerErrors(ops.MsgOpUndef, HandlePerfUnknownOp).Add(0)
+	GetHandlerErrors(ops.MSG_OP_UNDEF, HandlePerfUnknownOp).Add(0)
 }
 
 // Get a new handle on an ErrorTotal metric for an ErrorType
