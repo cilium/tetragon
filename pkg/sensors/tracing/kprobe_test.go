@@ -3867,7 +3867,7 @@ func matchBinariesTest(t *testing.T, operator string, values []string, kpChecker
 	assert.NoError(t, err)
 }
 
-const skipMatchBinariesPrefix = "kernels without large progs do not support matchBinaries Prefix/NotPrefix"
+const skipMatchBinaries = "kernels without large progs do not support matchBinaries Prefix/NotPrefix/Postfix/NotPostfix"
 
 func TestKprobeMatchBinaries(t *testing.T) {
 	t.Run("In", func(t *testing.T) {
@@ -3878,19 +3878,59 @@ func TestKprobeMatchBinaries(t *testing.T) {
 	})
 	t.Run("Prefix", func(t *testing.T) {
 		if !kernels.EnableLargeProgs() {
-			t.Skip(skipMatchBinariesPrefix)
+			t.Skip(skipMatchBinaries)
 		}
 		matchBinariesTest(t, "Prefix", []string{"/usr/bin/t"}, createBinariesChecker("/usr/bin/tail", "/etc/passwd"))
 	})
 	t.Run("NotPrefix", func(t *testing.T) {
 		if !kernels.EnableLargeProgs() {
-			t.Skip(skipMatchBinariesPrefix)
+			t.Skip(skipMatchBinaries)
 		}
 		matchBinariesTest(t, "NotPrefix", []string{"/usr/bin/t"}, createBinariesChecker("/usr/bin/head", "/etc/passwd"))
 	})
+	t.Run("Postfix", func(t *testing.T) {
+		if !kernels.EnableLargeProgs() {
+			t.Skip(skipMatchBinaries)
+		}
+		matchBinariesTest(t, "Postfix", []string{"bin/tail"}, createBinariesChecker("/usr/bin/tail", "/etc/passwd"))
+	})
+	t.Run("NotPostfix", func(t *testing.T) {
+		if !kernels.EnableLargeProgs() {
+			t.Skip(skipMatchBinaries)
+		}
+		matchBinariesTest(t, "NotPostfix", []string{"bin/tail"}, createBinariesChecker("/usr/bin/head", "/etc/passwd"))
+	})
 }
 
-func TestKprobeMatchBinariesPrefixLargePath(t *testing.T) {
+func matchBinariesLargePathTest(t *testing.T, operator string, values []string, binary string) {
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	createCrdFile(t, getMatchBinariesCrd(operator, values))
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	if err := exec.Command(binary).Run(); err != nil {
+		t.Fatalf("failed to run true: %s", err)
+	}
+
+	checker := ec.NewUnorderedEventChecker(ec.NewProcessKprobeChecker("").
+		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(binary))).
+		WithFunctionName(sm.Full("fd_install")))
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+
+}
+func TestKprobeMatchBinariesLargePath(t *testing.T) {
 	if !kernels.EnableLargeProgs() {
 		t.Skip()
 	}
@@ -3913,30 +3953,12 @@ func TestKprobeMatchBinariesPrefixLargePath(t *testing.T) {
 	err = exec.Command("cp", fileExec, targetBinLargePath).Run()
 	require.NoError(t, err)
 
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	createCrdFile(t, getMatchBinariesCrd("Prefix", []string{tmpDir}))
-
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
-	if err := exec.Command(targetBinLargePath).Run(); err != nil {
-		t.Fatalf("failed to run true: %s", err)
-	}
-
-	checker := ec.NewUnorderedEventChecker(ec.NewProcessKprobeChecker("").
-		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(targetBinLargePath))).
-		WithFunctionName(sm.Full("fd_install")))
-	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	t.Run("Prefix", func(t *testing.T) {
+		matchBinariesLargePathTest(t, "Prefix", []string{tmpDir}, targetBinLargePath)
+	})
+	t.Run("Postfix", func(t *testing.T) {
+		matchBinariesLargePathTest(t, "Postfix", []string{"/true"}, targetBinLargePath)
+	})
 }
 
 // matchBinariesPerfringTest checks that the matchBinaries do correctly
@@ -4024,9 +4046,15 @@ func TestKprobeMatchBinariesPerfring(t *testing.T) {
 	})
 	t.Run("Prefix", func(t *testing.T) {
 		if !kernels.EnableLargeProgs() {
-			t.Skip(skipMatchBinariesPrefix)
+			t.Skip(skipMatchBinaries)
 		}
 		matchBinariesPerfringTest(t, "Prefix", []string{"/usr/bin/t"})
+	})
+	t.Run("Postfix", func(t *testing.T) {
+		if !kernels.EnableLargeProgs() {
+			t.Skip(skipMatchBinaries)
+		}
+		matchBinariesPerfringTest(t, "Postfix", []string{"tail"})
 	})
 }
 
@@ -4106,7 +4134,7 @@ func TestKprobeMatchBinariesEarlyExec(t *testing.T) {
 // of its machinery.
 func TestKprobeMatchBinariesPrefixMatchArgs(t *testing.T) {
 	if !kernels.EnableLargeProgs() {
-		t.Skip(skipMatchBinariesPrefix)
+		t.Skip(skipMatchBinaries)
 	}
 
 	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
