@@ -179,6 +179,8 @@ read_exe(struct task_struct *task, struct heap_exe *exe)
 {
 	struct file *file = BPF_CORE_READ(task, mm, exe_file);
 	struct path *path = __builtin_preserve_access_index(&file->f_path);
+	__u64 offset = 0;
+	__u64 revlen = STRING_POSTFIX_MAX_LENGTH - 1;
 
 	// we need to walk the complete 4096 len dentry in order to have an accurate
 	// matching on the prefix operators, even if we only keep a subset of that
@@ -188,14 +190,20 @@ read_exe(struct task_struct *task, struct heap_exe *exe)
 	if (!buffer)
 		return 0;
 
+	if (exe->len > STRING_POSTFIX_MAX_LENGTH - 1)
+		offset = exe->len - (STRING_POSTFIX_MAX_LENGTH - 1);
+	else
+		revlen = exe->len;
 	// buffer used by d_path_local can contain up to MAX_BUF_LEN i.e. 4096 we
 	// only keep the first 255 chars for our needs (we sacrifice one char to the
 	// verifier for the > 0 check)
-	if (exe->len > 255)
-		exe->len = 255;
+	if (exe->len > BINARY_PATH_MAX_LEN - 1)
+		exe->len = BINARY_PATH_MAX_LEN - 1;
 	asm volatile("%[len] &= 0xff;\n"
 		     : [len] "+r"(exe->len));
 	probe_read(exe->buf, exe->len, buffer);
+	if (revlen < STRING_POSTFIX_MAX_LENGTH)
+		probe_read(exe->end, revlen, (char *)(buffer + offset));
 
 	return exe->len;
 }
@@ -378,6 +386,11 @@ execve_send(void *ctx)
 			curr->bin.path_length = probe_read(curr->bin.path, event->exe.len, event->exe.buf);
 			if (curr->bin.path_length == 0)
 				curr->bin.path_length = event->exe.len;
+			__u64 revlen = event->exe.len;
+
+			if (event->exe.len > STRING_POSTFIX_MAX_LENGTH - 1)
+				revlen = STRING_POSTFIX_MAX_LENGTH - 1;
+			probe_read(curr->bin.end, revlen, event->exe.end);
 		}
 #else
 		// reuse p->args first string that contains the filename, this can't be

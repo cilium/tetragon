@@ -7,6 +7,7 @@
 #include "bpf_event.h"
 #include "bpf_helpers.h"
 #include "bpf_cred.h"
+#include "../process/string_maps.h"
 
 /* Applying 'packed' attribute to structs causes clang to write to the
  * members byte-by-byte, as offsets may not be aligned. This is bad for
@@ -274,6 +275,7 @@ struct msg_k8s {
 
 struct heap_exe {
 	char buf[BINARY_PATH_MAX_LEN];
+	char end[STRING_POSTFIX_MAX_LENGTH];
 	__u32 len;
 	__u32 error;
 }; // All fields aligned so no 'packed' attribute.
@@ -311,10 +313,16 @@ typedef __u64 mbset_t;
 struct binary {
 	// length of the path stored in path, this should be < BINARY_PATH_MAX_LEN
 	// but can contain negative value in case of copy error.
-	// While s16 would be sufficient, 64 bits are handy for alignment.
-	__s64 path_length;
+	// While s16 would be sufficient, 32 bits are handy for alignment.
+	__s32 path_length;
+	// if end_r contains reversed path postfix
+	__u32 reversed;
 	// BINARY_PATH_MAX_LEN first bytes of the path
 	char path[BINARY_PATH_MAX_LEN];
+	// STRING_POSTFIX_MAX_LENGTH last bytes of the path
+	char end[STRING_POSTFIX_MAX_LENGTH];
+	// STRING_POSTFIX_MAX_LENGTH reversed last bytes of the path
+	char end_r[STRING_POSTFIX_MAX_LENGTH];
 	// matchBinary bitset for binary
 	mbset_t mb_bitset;
 }; // All fields aligned so no 'packed' attribute
