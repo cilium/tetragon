@@ -43,13 +43,9 @@ SpaceBeforeRangeBasedForLoopColon: true
 SpaceInEmptyParentheses: false
 SpacesBeforeTrailingComments: 1
 SpacesInAngles: false
-SpacesInAngles: false
 SpacesInContainerLiterals: false
 SpacesInCStyleCastParentheses: false
 SpacesInParentheses: false
-SpacesInParentheses: false
-SpacesInParentheses: false
-SpacesInSquareBrackets: false
 SpacesInSquareBrackets: false
 TabWidth: 8
 UseTab: Always
