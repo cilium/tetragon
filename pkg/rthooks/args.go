@@ -110,46 +110,37 @@ func (arg *CreateContainerArg) Pod() (*corev1.Pod, error) {
 }
 
 func (arg *CreateContainerArg) findMirrorPod(hash string) (*corev1.Pod, error) {
-	var pod *corev1.Pod
-	var err error
+	return retry(5, 10*time.Millisecond, func() (*corev1.Pod, error) {
+		return arg.Watcher.FindMirrorPod(hash)
+	})
 
-	nretries := 5
-	for i := 0; i < nretries; i++ {
-		pod, err = arg.Watcher.FindMirrorPod(hash)
-		if err == nil {
-			break
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
-
-	if err != nil {
-		err = fmt.Errorf("failed to fetch pod info after %d retries: %w", nretries, err)
-	}
-
-	return pod, err
 }
 
 func (arg *CreateContainerArg) findPod() (*corev1.Pod, error) {
-	var pod *corev1.Pod
 	var err error
-
-	podId, err := arg.PodID()
+	podID, err := arg.PodID()
 	if err != nil {
 		return nil, err
 	}
 
-	nretries := 5
-	for i := 0; i < nretries; i++ {
-		pod, err = arg.Watcher.FindPod(podId)
+	return retry(5, 10*time.Millisecond, func() (*corev1.Pod, error) {
+		return arg.Watcher.FindPod(podID)
+	})
+}
+
+func retry[R any](nretries int, timeout time.Duration, fn func() (R, error)) (R, error) {
+	var err error
+	var ret R
+	for i := 0; ; i++ {
+		ret, err = fn()
 		if err == nil {
-			break
+			return ret, nil
 		}
-		time.Sleep(10 * time.Millisecond)
-	}
 
-	if err != nil {
-		err = fmt.Errorf("failed to fetch pod info after %d retries: %w", nretries, err)
-	}
+		if i >= nretries {
+			return ret, fmt.Errorf("failed to fetch pod info after %d retries: %w", nretries, err)
+		}
 
-	return pod, err
+		time.Sleep(timeout)
+	}
 }
