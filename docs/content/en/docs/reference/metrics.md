@@ -400,6 +400,10 @@ Number of bytes obtained from system for stack allocator.
 
 Number of bytes obtained from system.
 
+### `go_sched_latencies_seconds`
+
+Distribution of the time goroutines have spent in the scheduler in a runnable state before actually running. Bucket counts increase monotonically.
+
 ### `go_threads`
 
 Number of OS threads created.
