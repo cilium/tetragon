@@ -4,6 +4,8 @@
 package metricsconfig
 
 import (
+	"regexp"
+
 	"github.com/cilium/tetragon/pkg/metrics/eventmetrics"
 	"github.com/cilium/tetragon/pkg/metrics/syscallmetrics"
 	"github.com/prometheus/client_golang/prometheus"
@@ -12,7 +14,10 @@ import (
 
 func initResourcesMetrics(registry *prometheus.Registry) {
 	// register common third-party collectors
-	registry.MustRegister(collectors.NewGoCollector())
+	registry.MustRegister(collectors.NewGoCollector(
+		collectors.WithGoCollectorRuntimeMetrics(
+			collectors.GoRuntimeMetricsRule{Matcher: regexp.MustCompile(`^/sched/latencies:seconds`)},
+		)))
 	registry.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 }
 
