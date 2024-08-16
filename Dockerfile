@@ -40,14 +40,26 @@ FROM --platform=$BUILDPLATFORM quay.io/cilium/clang:b97f5b3d5c38da62fb009f21a53c
 WORKDIR /bpftool
 ARG TARGETARCH BUILDARCH
 RUN if [ $BUILDARCH != $TARGETARCH ]; \
-    then apt-get update && echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy main restricted universe multiverse\n\
-deb [arch=amd64] http://security.ubuntu.com/ubuntu jammy-updates main restricted universe multiverse\n\
-deb [arch=amd64] http://security.ubuntu.com/ubuntu jammy-security main restricted universe multiverse\n\
-deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy-backports main restricted universe multiverse\n\
-deb [arch=arm64] http://ports.ubuntu.com/ jammy main restricted universe multiverse\n\
-deb [arch=arm64] http://ports.ubuntu.com/ jammy-updates main restricted universe multiverse\n\
-deb [arch=arm64] http://ports.ubuntu.com/ jammy-security main restricted universe multiverse\n\
-deb [arch=arm64] http://ports.ubuntu.com/ jammy-backports main restricted universe multiverse" > /etc/apt/sources.list \
+    then apt-get update && echo "Types: deb\n\
+URIs: http://archive.ubuntu.com/ubuntu/\n\
+Suites: noble noble-updates noble-backports\n\
+Components: main universe restricted multiverse\n\
+Architectures: amd64\n\
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n\
+\n\
+Types: deb\n\
+URIs: http://archive.ubuntu.com/ubuntu/\n\
+Suites: noble-security\n\
+Components: main universe restricted multiverse\n\
+Architectures: amd64\n\
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n\
+\n\
+Types: deb\n\
+URIs: http://ports.ubuntu.com/\n\
+Suites: noble noble-updates noble-backports noble-security\n\
+Components: main universe restricted multiverse\n\
+Architectures: arm64\n\
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg" > /etc/apt/sources.list.d/ubuntu.sources \
     && dpkg --add-architecture arm64; fi
 RUN apt-get update
 RUN if [ $BUILDARCH != $TARGETARCH ]; \
