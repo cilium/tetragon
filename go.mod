@@ -48,14 +48,14 @@ require (
 	google.golang.org/protobuf v1.34.2
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.31.0
-	k8s.io/apiextensions-apiserver v0.30.2
+	k8s.io/apiextensions-apiserver v0.31.0
 	k8s.io/apimachinery v0.31.0
 	k8s.io/client-go v0.31.0
-	k8s.io/code-generator v0.30.2
+	k8s.io/code-generator v0.31.0
 	k8s.io/cri-api v0.31.0
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kube-openapi v0.0.0-20240430033511-f0e62f92d13f
-	sigs.k8s.io/controller-runtime v0.18.4
+	sigs.k8s.io/controller-runtime v0.19.0
 	sigs.k8s.io/controller-tools v0.15.0
 	sigs.k8s.io/e2e-framework v0.2.0
 	sigs.k8s.io/yaml v1.4.0
@@ -77,7 +77,6 @@ require (
 	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/emicklei/go-restful/v3 v3.12.0 // indirect
-	github.com/evanphx/json-patch v5.9.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.9.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
