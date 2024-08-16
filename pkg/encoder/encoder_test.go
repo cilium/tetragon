@@ -14,6 +14,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/api/v1/tetragon/codegen/helpers"
 	"github.com/sryoya/protorand"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -533,5 +534,53 @@ func FuzzProtojsonCompatibility(f *testing.F) {
 
 		assert.True(t, proto.Equal(msgJson, msgProtojson))
 		assert.True(t, proto.Equal(msg, msgProtojson))
+	})
+}
+
+func FuzzCompactEncoder(f *testing.F) {
+	for _, n := range []int64{
+		1337,
+		78776406,
+		56343416,
+		68876713,
+		51156281,
+		45544244,
+		4011756,
+	} {
+		for _, cm := range []uint8{0, 1, 2} {
+			for _, ts := range []bool{true, false} {
+				for _, st := range []bool{true, false} {
+					f.Add(n, cm, ts, st)
+				}
+			}
+		}
+	}
+	f.Fuzz(func(t *testing.T, seed int64, colorMode uint8, timestamps bool, stackTraces bool) {
+		var cm ColorMode
+		switch colorMode % 3 {
+		case 0:
+			cm = "never"
+		case 1:
+			cm = "always"
+		case 2:
+			cm = "auto"
+		default:
+			panic("unreachable")
+		}
+
+		pr := protorand.New()
+		pr.Seed(seed)
+		ev := &tetragon.GetEventsResponse{}
+		msg, err := pr.Gen(ev)
+		require.NoError(t, err)
+
+		if helpers.ResponseGetProcess(msg.(*tetragon.GetEventsResponse)) == nil {
+			t.Skipf("Empty process")
+		}
+
+		var buf1 bytes.Buffer
+		compactEncoder := NewCompactEncoder(&buf1, cm, timestamps, stackTraces)
+		err = compactEncoder.Encode(msg)
+		require.NoError(t, err)
 	})
 }
