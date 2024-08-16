@@ -1,0 +1,5 @@
+go test fuzz v1
+int64(56343394)
+byte('\x11')
+bool(true)
+bool(false)

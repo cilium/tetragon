@@ -1,0 +1,5 @@
+go test fuzz v1
+int64(1260)
+byte('3')
+bool(true)
+bool(true)
