@@ -226,6 +226,10 @@ func HumanStackTrace(response *tetragon.GetEventsResponse, colorer *Colorer) str
 
 func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (string, error) {
 	switch response.Event.(type) {
+	case *tetragon.GetEventsResponse_Test:
+		// This shouldn't normally be reachable since Tetragon won't generate Test
+		// events outside of specific unit tests.
+		return "TEST EVENT", nil
 	case *tetragon.GetEventsResponse_ProcessExec:
 		exec := response.GetProcessExec()
 		if exec.Process == nil {
