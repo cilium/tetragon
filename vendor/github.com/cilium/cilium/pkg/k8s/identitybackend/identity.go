@@ -16,6 +16,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/cilium/cilium/pkg/allocator"
+	cacheKey "github.com/cilium/cilium/pkg/identity/key"
 	"github.com/cilium/cilium/pkg/idpool"
 	k8sConst "github.com/cilium/cilium/pkg/k8s/apis/cilium.io"
 	v2 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2"
@@ -88,7 +89,8 @@ func sanitizeK8sLabels(old map[string]string) (selected, skipped map[string]stri
 // AllocateID will create an identity CRD, thus creating the identity for this
 // key-> ID mapping.
 // Note: the lock field is not supported with the k8s CRD allocator.
-func (c *crdBackend) AllocateID(ctx context.Context, id idpool.ID, key allocator.AllocatorKey) error {
+// Returns an allocator key with the cilium identity stored in it.
+func (c *crdBackend) AllocateID(ctx context.Context, id idpool.ID, key allocator.AllocatorKey) (allocator.AllocatorKey, error) {
 	selectedLabels, skippedLabels := sanitizeK8sLabels(key.GetAsMap())
 	log.WithField(logfields.Labels, skippedLabels).Info("Skipped non-kubernetes labels when labelling ciliumidentity. All labels will still be used in identity determination")
 
@@ -100,11 +102,14 @@ func (c *crdBackend) AllocateID(ctx context.Context, id idpool.ID, key allocator
 		SecurityLabels: key.GetAsMap(),
 	}
 
-	_, err := c.Client.CiliumV2().CiliumIdentities().Create(ctx, identity, metav1.CreateOptions{})
-	return err
+	ci, err := c.Client.CiliumV2().CiliumIdentities().Create(ctx, identity, metav1.CreateOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return key.PutValue(cacheKey.MetadataKeyBackendKey, ci), nil
 }
 
-func (c *crdBackend) AllocateIDIfLocked(ctx context.Context, id idpool.ID, key allocator.AllocatorKey, lock kvstore.KVLocker) error {
+func (c *crdBackend) AllocateIDIfLocked(ctx context.Context, id idpool.ID, key allocator.AllocatorKey, lock kvstore.KVLocker) (allocator.AllocatorKey, error) {
 	return c.AllocateID(ctx, id, key)
 }
 
@@ -136,13 +141,18 @@ func (c *crdBackend) AcquireReference(ctx context.Context, id idpool.ID, key all
 		return err
 	}
 	if !exists {
-		return fmt.Errorf("identity (id:%q,key:%q) does not exist", id, key)
+		// fall back to the key stored in the allocator key. If it's not present
+		// then return the error.
+		ci, ok = key.Value(cacheKey.MetadataKeyBackendKey).(*v2.CiliumIdentity)
+		if !ok {
+			return fmt.Errorf("identity (id:%q,key:%q) does not exist", id, key)
+		}
 	}
-	ci = ci.DeepCopy()
 
 	ts, ok = ci.Annotations[HeartBeatAnnotation]
 	if ok {
 		log.WithField(logfields.Identity, ci).Infof("Identity marked for deletion (at %s); attempting to unmark it", ts)
+		ci = ci.DeepCopy()
 		delete(ci.Annotations, HeartBeatAnnotation)
 		_, err = c.Client.CiliumV2().CiliumIdentities().Update(ctx, ci, metav1.UpdateOptions{})
 		if err != nil {
@@ -183,9 +193,10 @@ func (c *crdBackend) UpdateKey(ctx context.Context, id idpool.ID, key allocator.
 
 	if reliablyMissing {
 		// Recreate a missing master key
-		if err = c.AllocateID(ctx, id, key); err != nil {
-			return fmt.Errorf("Unable recreate missing CRD identity %q->%q: %s", key, id, err)
+		if _, err = c.AllocateID(ctx, id, key); err != nil {
+			return fmt.Errorf("Unable recreate missing CRD identity %q->%q: %w", key, id, err)
 		}
+
 		return nil
 	}
 
@@ -267,7 +278,7 @@ func (c *crdBackend) Get(ctx context.Context, key allocator.AllocatorKey) (idpoo
 
 	id, err := strconv.ParseUint(identity.Name, 10, 64)
 	if err != nil {
-		return idpool.NoID, fmt.Errorf("unable to parse value '%s': %s", identity.Name, err)
+		return idpool.NoID, fmt.Errorf("unable to parse value '%s': %w", identity.Name, err)
 	}
 
 	return idpool.ID(id), nil
@@ -300,7 +311,7 @@ func (c *crdBackend) getById(ctx context.Context, id idpool.ID) (idty *v2.Cilium
 
 	identity, ok := obj.(*v2.CiliumIdentity)
 	if !ok {
-		return nil, false, fmt.Errorf("invalid object")
+		return nil, false, fmt.Errorf("invalid object %T", obj)
 	}
 	return identity, true, nil
 }

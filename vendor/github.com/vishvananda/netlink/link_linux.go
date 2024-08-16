@@ -497,6 +497,58 @@ func (h *Handle) LinkSetAlias(link Link, name string) error {
 	return err
 }
 
+// LinkAddAltName adds a new alternative name for the link device.
+// Equivalent to: `ip link property add $link altname $name`
+func LinkAddAltName(link Link, name string) error {
+	return pkgHandle.LinkAddAltName(link, name)
+}
+
+// LinkAddAltName adds a new alternative name for the link device.
+// Equivalent to: `ip link property add $link altname $name`
+func (h *Handle) LinkAddAltName(link Link, name string) error {
+	base := link.Attrs()
+	h.ensureIndex(base)
+	req := h.newNetlinkRequest(unix.RTM_NEWLINKPROP, unix.NLM_F_ACK)
+
+	msg := nl.NewIfInfomsg(unix.AF_UNSPEC)
+	msg.Index = int32(base.Index)
+	req.AddData(msg)
+
+	data := nl.NewRtAttr(unix.IFLA_PROP_LIST|unix.NLA_F_NESTED, nil)
+	data.AddRtAttr(unix.IFLA_ALT_IFNAME, []byte(name))
+
+	req.AddData(data)
+
+	_, err := req.Execute(unix.NETLINK_ROUTE, 0)
+	return err
+}
+
+// LinkDelAltName delete an alternative name for the link device.
+// Equivalent to: `ip link property del $link altname $name`
+func LinkDelAltName(link Link, name string) error {
+	return pkgHandle.LinkDelAltName(link, name)
+}
+
+// LinkDelAltName delete an alternative name for the link device.
+// Equivalent to: `ip link property del $link altname $name`
+func (h *Handle) LinkDelAltName(link Link, name string) error {
+	base := link.Attrs()
+	h.ensureIndex(base)
+	req := h.newNetlinkRequest(unix.RTM_DELLINKPROP, unix.NLM_F_ACK)
+
+	msg := nl.NewIfInfomsg(unix.AF_UNSPEC)
+	msg.Index = int32(base.Index)
+	req.AddData(msg)
+
+	data := nl.NewRtAttr(unix.IFLA_PROP_LIST|unix.NLA_F_NESTED, nil)
+	data.AddRtAttr(unix.IFLA_ALT_IFNAME, []byte(name))
+
+	req.AddData(data)
+
+	_, err := req.Execute(unix.NETLINK_ROUTE, 0)
+	return err
+}
+
 // LinkSetHardwareAddr sets the hardware address of the link device.
 // Equivalent to: `ip link set $link address $hwaddr`
 func LinkSetHardwareAddr(link Link, hwaddr net.HardwareAddr) error {
@@ -606,6 +658,43 @@ func (h *Handle) LinkSetVfVlanQos(link Link, vf, vlan, qos int) error {
 		Qos:  uint32(qos),
 	}
 	info.AddRtAttr(nl.IFLA_VF_VLAN, vfmsg.Serialize())
+	req.AddData(data)
+
+	_, err := req.Execute(unix.NETLINK_ROUTE, 0)
+	return err
+}
+
+// LinkSetVfVlanQosProto sets the vlan, qos and protocol of a vf for the link.
+// Equivalent to: `ip link set $link vf $vf vlan $vlan qos $qos proto $proto`
+func LinkSetVfVlanQosProto(link Link, vf, vlan, qos, proto int) error {
+	return pkgHandle.LinkSetVfVlanQosProto(link, vf, vlan, qos, proto)
+}
+
+// LinkSetVfVlanQosProto sets the vlan, qos and protocol of a vf for the link.
+// Equivalent to: `ip link set $link vf $vf vlan $vlan qos $qos proto $proto`
+func (h *Handle) LinkSetVfVlanQosProto(link Link, vf, vlan, qos, proto int) error {
+	base := link.Attrs()
+	h.ensureIndex(base)
+	req := h.newNetlinkRequest(unix.RTM_SETLINK, unix.NLM_F_ACK)
+
+	msg := nl.NewIfInfomsg(unix.AF_UNSPEC)
+	msg.Index = int32(base.Index)
+	req.AddData(msg)
+
+	data := nl.NewRtAttr(unix.IFLA_VFINFO_LIST, nil)
+	vfInfo := data.AddRtAttr(nl.IFLA_VF_INFO, nil)
+	vfVlanList := vfInfo.AddRtAttr(nl.IFLA_VF_VLAN_LIST, nil)
+
+	vfmsg := nl.VfVlanInfo{
+		VfVlan: nl.VfVlan{
+			Vf:   uint32(vf),
+			Vlan: uint32(vlan),
+			Qos:  uint32(qos),
+		},
+		VlanProto: (uint16(proto)>>8)&0xFF | (uint16(proto)&0xFF)<<8,
+	}
+
+	vfVlanList.AddRtAttr(nl.IFLA_VF_VLAN_INFO, vfmsg.Serialize())
 	req.AddData(data)
 
 	_, err := req.Execute(unix.NETLINK_ROUTE, 0)
@@ -959,28 +1048,28 @@ func LinkSetXdpFdWithFlags(link Link, fd, flags int) error {
 // LinkSetGSOMaxSegs sets the GSO maximum segment count of the link device.
 // Equivalent to: `ip link set $link gso_max_segs $maxSegs`
 func LinkSetGSOMaxSegs(link Link, maxSegs int) error {
-       return pkgHandle.LinkSetGSOMaxSegs(link, maxSegs)
+	return pkgHandle.LinkSetGSOMaxSegs(link, maxSegs)
 }
 
 // LinkSetGSOMaxSegs sets the GSO maximum segment count of the link device.
 // Equivalent to: `ip link set $link gso_max_segs $maxSegs`
 func (h *Handle) LinkSetGSOMaxSegs(link Link, maxSize int) error {
-       base := link.Attrs()
-       h.ensureIndex(base)
-       req := h.newNetlinkRequest(unix.RTM_SETLINK, unix.NLM_F_ACK)
+	base := link.Attrs()
+	h.ensureIndex(base)
+	req := h.newNetlinkRequest(unix.RTM_SETLINK, unix.NLM_F_ACK)
 
-       msg := nl.NewIfInfomsg(unix.AF_UNSPEC)
-       msg.Index = int32(base.Index)
-       req.AddData(msg)
+	msg := nl.NewIfInfomsg(unix.AF_UNSPEC)
+	msg.Index = int32(base.Index)
+	req.AddData(msg)
 
-       b := make([]byte, 4)
-       native.PutUint32(b, uint32(maxSize))
+	b := make([]byte, 4)
+	native.PutUint32(b, uint32(maxSize))
 
-       data := nl.NewRtAttr(unix.IFLA_GSO_MAX_SEGS, b)
-       req.AddData(data)
+	data := nl.NewRtAttr(unix.IFLA_GSO_MAX_SEGS, b)
+	req.AddData(data)
 
-       _, err := req.Execute(unix.NETLINK_ROUTE, 0)
-       return err
+	_, err := req.Execute(unix.NETLINK_ROUTE, 0)
+	return err
 }
 
 // LinkSetGSOMaxSize sets the IPv6 GSO maximum size of the link device.
@@ -1597,6 +1686,10 @@ func (h *Handle) linkModify(link Link, flags int) error {
 		if link.VlanProtocol != VLAN_PROTOCOL_UNKNOWN {
 			data.AddRtAttr(nl.IFLA_VLAN_PROTOCOL, htons(uint16(link.VlanProtocol)))
 		}
+	case *Netkit:
+		if err := addNetkitAttrs(link, linkInfo, flags); err != nil {
+			return err
+		}
 	case *Veth:
 		data := linkInfo.AddRtAttr(nl.IFLA_INFO_DATA, nil)
 		peer := data.AddRtAttr(nl.VETH_INFO_PEER, nil)
@@ -1729,6 +1822,13 @@ func (h *Handle) linkByNameDump(name string) (Link, error) {
 		if link.Attrs().Name == name {
 			return link, nil
 		}
+
+		// support finding interfaces also via altnames
+		for _, altName := range link.Attrs().AltNames {
+			if altName == name {
+				return link, nil
+			}
+		}
 	}
 	return nil, LinkNotFoundError{fmt.Errorf("Link %s not found", name)}
 }
@@ -1767,6 +1867,9 @@ func (h *Handle) LinkByName(name string) (Link, error) {
 	req.AddData(attr)
 
 	nameData := nl.NewRtAttr(unix.IFLA_IFNAME, nl.ZeroTerminated(name))
+	if len(name) > 15 {
+		nameData = nl.NewRtAttr(unix.IFLA_ALT_IFNAME, nl.ZeroTerminated(name))
+	}
 	req.AddData(nameData)
 
 	link, err := execGetLink(req)
@@ -1910,6 +2013,8 @@ func LinkDeserialize(hdr *unix.NlMsghdr, m []byte) (Link, error) {
 						link = &Bridge{}
 					case "vlan":
 						link = &Vlan{}
+					case "netkit":
+						link = &Netkit{}
 					case "veth":
 						link = &Veth{}
 					case "wireguard":
@@ -1967,6 +2072,8 @@ func LinkDeserialize(hdr *unix.NlMsghdr, m []byte) (Link, error) {
 						return nil, err
 					}
 					switch linkType {
+					case "netkit":
+						parseNetkitData(link, data)
 					case "vlan":
 						parseVlanData(link, data)
 					case "vxlan":
@@ -2091,6 +2198,18 @@ func LinkDeserialize(hdr *unix.NlMsghdr, m []byte) (Link, error) {
 				protinfo := parseProtinfo(attrs)
 				base.Protinfo = &protinfo
 			}
+		case unix.IFLA_PROP_LIST | unix.NLA_F_NESTED:
+			attrs, err := nl.ParseRouteAttr(attr.Value[:])
+			if err != nil {
+				return nil, err
+			}
+
+			base.AltNames = []string{}
+			for _, attr := range attrs {
+				if attr.Attr.Type == unix.IFLA_ALT_IFNAME {
+					base.AltNames = append(base.AltNames, nl.BytesToString(attr.Value))
+				}
+			}
 		case unix.IFLA_OPERSTATE:
 			base.OperState = LinkOperState(uint8(attr.Value[0]))
 		case unix.IFLA_PHYS_SWITCH_ID:
@@ -2127,6 +2246,13 @@ func LinkDeserialize(hdr *unix.NlMsghdr, m []byte) (Link, error) {
 			base.NumRxQueues = int(native.Uint32(attr.Value[0:4]))
 		case unix.IFLA_GROUP:
 			base.Group = native.Uint32(attr.Value[0:4])
+		case unix.IFLA_PERM_ADDRESS:
+			for _, b := range attr.Value {
+				if b != 0 {
+					base.PermHWAddr = attr.Value[:]
+					break
+				}
+			}
 		}
 	}
 
@@ -2239,21 +2365,24 @@ type LinkUpdate struct {
 // LinkSubscribe takes a chan down which notifications will be sent
 // when links change.  Close the 'done' chan to stop subscription.
 func LinkSubscribe(ch chan<- LinkUpdate, done <-chan struct{}) error {
-	return linkSubscribeAt(netns.None(), netns.None(), ch, done, nil, false)
+	return linkSubscribeAt(netns.None(), netns.None(), ch, done, nil, false, 0, nil, false)
 }
 
 // LinkSubscribeAt works like LinkSubscribe plus it allows the caller
 // to choose the network namespace in which to subscribe (ns).
 func LinkSubscribeAt(ns netns.NsHandle, ch chan<- LinkUpdate, done <-chan struct{}) error {
-	return linkSubscribeAt(ns, netns.None(), ch, done, nil, false)
+	return linkSubscribeAt(ns, netns.None(), ch, done, nil, false, 0, nil, false)
 }
 
 // LinkSubscribeOptions contains a set of options to use with
 // LinkSubscribeWithOptions.
 type LinkSubscribeOptions struct {
-	Namespace     *netns.NsHandle
-	ErrorCallback func(error)
-	ListExisting  bool
+	Namespace              *netns.NsHandle
+	ErrorCallback          func(error)
+	ListExisting           bool
+	ReceiveBufferSize      int
+	ReceiveBufferForceSize bool
+	ReceiveTimeout         *unix.Timeval
 }
 
 // LinkSubscribeWithOptions work like LinkSubscribe but enable to
@@ -2264,13 +2393,26 @@ func LinkSubscribeWithOptions(ch chan<- LinkUpdate, done <-chan struct{}, option
 		none := netns.None()
 		options.Namespace = &none
 	}
-	return linkSubscribeAt(*options.Namespace, netns.None(), ch, done, options.ErrorCallback, options.ListExisting)
+	return linkSubscribeAt(*options.Namespace, netns.None(), ch, done, options.ErrorCallback, options.ListExisting,
+		options.ReceiveBufferSize, options.ReceiveTimeout, options.ReceiveBufferForceSize)
 }
 
-func linkSubscribeAt(newNs, curNs netns.NsHandle, ch chan<- LinkUpdate, done <-chan struct{}, cberr func(error), listExisting bool) error {
+func linkSubscribeAt(newNs, curNs netns.NsHandle, ch chan<- LinkUpdate, done <-chan struct{}, cberr func(error), listExisting bool,
+	rcvbuf int, rcvTimeout *unix.Timeval, rcvbufForce bool) error {
 	s, err := nl.SubscribeAt(newNs, curNs, unix.NETLINK_ROUTE, unix.RTNLGRP_LINK)
 	if err != nil {
 		return err
+	}
+	if rcvTimeout != nil {
+		if err := s.SetReceiveTimeout(rcvTimeout); err != nil {
+			return err
+		}
+	}
+	if rcvbuf != 0 {
+		err = s.SetReceiveBufferSize(rcvbuf, rcvbufForce)
+		if err != nil {
+			return err
+		}
 	}
 	if done != nil {
 		go func() {
@@ -2408,6 +2550,14 @@ func (h *Handle) LinkSetBrProxyArpWiFi(link Link, mode bool) error {
 	return h.setProtinfoAttr(link, mode, nl.IFLA_BRPORT_PROXYARP_WIFI)
 }
 
+func LinkSetBrNeighSuppress(link Link, mode bool) error {
+	return pkgHandle.LinkSetBrNeighSuppress(link, mode)
+}
+
+func (h *Handle) LinkSetBrNeighSuppress(link Link, mode bool) error {
+	return h.setProtinfoAttr(link, mode, nl.IFLA_BRPORT_NEIGH_SUPPRESS)
+}
+
 func (h *Handle) setProtinfoAttr(link Link, mode bool, attr int) error {
 	base := link.Attrs()
 	h.ensureIndex(base)
@@ -2481,6 +2631,80 @@ func (h *Handle) LinkSetGroup(link Link, group int) error {
 
 	_, err := req.Execute(unix.NETLINK_ROUTE, 0)
 	return err
+}
+
+func addNetkitAttrs(nk *Netkit, linkInfo *nl.RtAttr, flag int) error {
+	if nk.peerLinkAttrs.HardwareAddr != nil || nk.HardwareAddr != nil {
+		return fmt.Errorf("netkit doesn't support setting Ethernet")
+	}
+
+	data := linkInfo.AddRtAttr(nl.IFLA_INFO_DATA, nil)
+	// Kernel will return error if trying to change the mode of an existing netkit device
+	data.AddRtAttr(nl.IFLA_NETKIT_MODE, nl.Uint32Attr(uint32(nk.Mode)))
+	data.AddRtAttr(nl.IFLA_NETKIT_POLICY, nl.Uint32Attr(uint32(nk.Policy)))
+	data.AddRtAttr(nl.IFLA_NETKIT_PEER_POLICY, nl.Uint32Attr(uint32(nk.PeerPolicy)))
+
+	if (flag & unix.NLM_F_EXCL) == 0 {
+		// Modifying peer link attributes will not take effect
+		return nil
+	}
+
+	peer := data.AddRtAttr(nl.IFLA_NETKIT_PEER_INFO, nil)
+	msg := nl.NewIfInfomsg(unix.AF_UNSPEC)
+	if nk.peerLinkAttrs.Flags&net.FlagUp != 0 {
+		msg.Change = unix.IFF_UP
+		msg.Flags = unix.IFF_UP
+	}
+	if nk.peerLinkAttrs.Index != 0 {
+		msg.Index = int32(nk.peerLinkAttrs.Index)
+	}
+	peer.AddChild(msg)
+	if nk.peerLinkAttrs.Name != "" {
+		peer.AddRtAttr(unix.IFLA_IFNAME, nl.ZeroTerminated(nk.peerLinkAttrs.Name))
+	}
+	if nk.peerLinkAttrs.MTU > 0 {
+		peer.AddRtAttr(unix.IFLA_MTU, nl.Uint32Attr(uint32(nk.peerLinkAttrs.MTU)))
+	}
+	if nk.peerLinkAttrs.GSOMaxSegs > 0 {
+		peer.AddRtAttr(unix.IFLA_GSO_MAX_SEGS, nl.Uint32Attr(nk.peerLinkAttrs.GSOMaxSegs))
+	}
+	if nk.peerLinkAttrs.GSOMaxSize > 0 {
+		peer.AddRtAttr(unix.IFLA_GSO_MAX_SIZE, nl.Uint32Attr(nk.peerLinkAttrs.GSOMaxSize))
+	}
+	if nk.peerLinkAttrs.GSOIPv4MaxSize > 0 {
+		peer.AddRtAttr(unix.IFLA_GSO_IPV4_MAX_SIZE, nl.Uint32Attr(nk.peerLinkAttrs.GSOIPv4MaxSize))
+	}
+	if nk.peerLinkAttrs.GROIPv4MaxSize > 0 {
+		peer.AddRtAttr(unix.IFLA_GRO_IPV4_MAX_SIZE, nl.Uint32Attr(nk.peerLinkAttrs.GROIPv4MaxSize))
+	}
+	if nk.peerLinkAttrs.Namespace != nil {
+		switch ns := nk.peerLinkAttrs.Namespace.(type) {
+		case NsPid:
+			peer.AddRtAttr(unix.IFLA_NET_NS_PID, nl.Uint32Attr(uint32(ns)))
+		case NsFd:
+			peer.AddRtAttr(unix.IFLA_NET_NS_FD, nl.Uint32Attr(uint32(ns)))
+		}
+	}
+	return nil
+}
+
+func parseNetkitData(link Link, data []syscall.NetlinkRouteAttr) {
+	netkit := link.(*Netkit)
+	for _, datum := range data {
+		switch datum.Attr.Type {
+		case nl.IFLA_NETKIT_PRIMARY:
+			isPrimary := datum.Value[0:1][0]
+			if isPrimary != 0 {
+				netkit.isPrimary = true
+			}
+		case nl.IFLA_NETKIT_MODE:
+			netkit.Mode = NetkitMode(native.Uint32(datum.Value[0:4]))
+		case nl.IFLA_NETKIT_POLICY:
+			netkit.Policy = NetkitPolicy(native.Uint32(datum.Value[0:4]))
+		case nl.IFLA_NETKIT_PEER_POLICY:
+			netkit.PeerPolicy = NetkitPolicy(native.Uint32(datum.Value[0:4]))
+		}
+	}
 }
 
 func parseVlanData(link Link, data []syscall.NetlinkRouteAttr) {
@@ -2777,6 +3001,10 @@ func linkFlags(rawFlags uint32) net.Flags {
 func addGeneveAttrs(geneve *Geneve, linkInfo *nl.RtAttr) {
 	data := linkInfo.AddRtAttr(nl.IFLA_INFO_DATA, nil)
 
+	if geneve.InnerProtoInherit {
+		data.AddRtAttr(nl.IFLA_GENEVE_INNER_PROTO_INHERIT, []byte{})
+	}
+
 	if geneve.FlowBased {
 		geneve.ID = 0
 		data.AddRtAttr(nl.IFLA_GENEVE_COLLECT_METADATA, []byte{})
@@ -2805,6 +3033,8 @@ func addGeneveAttrs(geneve *Geneve, linkInfo *nl.RtAttr) {
 	if geneve.Tos != 0 {
 		data.AddRtAttr(nl.IFLA_GENEVE_TOS, nl.Uint8Attr(geneve.Tos))
 	}
+
+	data.AddRtAttr(nl.IFLA_GENEVE_DF, nl.Uint8Attr(uint8(geneve.Df)))
 }
 
 func parseGeneveData(link Link, data []syscall.NetlinkRouteAttr) {
@@ -2823,6 +3053,8 @@ func parseGeneveData(link Link, data []syscall.NetlinkRouteAttr) {
 			geneve.Tos = uint8(datum.Value[0])
 		case nl.IFLA_GENEVE_COLLECT_METADATA:
 			geneve.FlowBased = true
+		case nl.IFLA_GENEVE_INNER_PROTO_INHERIT:
+			geneve.InnerProtoInherit = true
 		}
 	}
 }
@@ -3371,12 +3603,17 @@ func parseVfInfoList(data []syscall.NetlinkRouteAttr) ([]VfInfo, error) {
 		if err != nil {
 			return nil, err
 		}
-		vfs = append(vfs, parseVfInfo(vfAttrs, i))
+
+		vf, err := parseVfInfo(vfAttrs, i)
+		if err != nil {
+			return nil, err
+		}
+		vfs = append(vfs, vf)
 	}
 	return vfs, nil
 }
 
-func parseVfInfo(data []syscall.NetlinkRouteAttr, id int) VfInfo {
+func parseVfInfo(data []syscall.NetlinkRouteAttr, id int) (VfInfo, error) {
 	vf := VfInfo{ID: id}
 	for _, element := range data {
 		switch element.Attr.Type {
@@ -3387,6 +3624,12 @@ func parseVfInfo(data []syscall.NetlinkRouteAttr, id int) VfInfo {
 			vl := nl.DeserializeVfVlan(element.Value[:])
 			vf.Vlan = int(vl.Vlan)
 			vf.Qos = int(vl.Qos)
+		case nl.IFLA_VF_VLAN_LIST:
+			vfVlanInfoList, err := nl.DeserializeVfVlanList(element.Value[:])
+			if err != nil {
+				return vf, err
+			}
+			vf.VlanProto = int(vfVlanInfoList[0].VlanProto)
 		case nl.IFLA_VF_TX_RATE:
 			txr := nl.DeserializeVfTxRate(element.Value[:])
 			vf.TxRate = int(txr.Rate)
@@ -3420,7 +3663,7 @@ func parseVfInfo(data []syscall.NetlinkRouteAttr, id int) VfInfo {
 			vf.Trust = result.Setting
 		}
 	}
-	return vf
+	return vf, nil
 }
 
 func addXfrmiAttrs(xfrmi *Xfrmi, linkInfo *nl.RtAttr) {

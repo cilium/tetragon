@@ -34,6 +34,8 @@ const (
 	PodCIDRSelectorName = "PodCIDR"
 	// CiliumLoadBalancerIPPoolSelectorName defines the name for a selector matching CiliumLoadBalancerIPPool resources.
 	CiliumLoadBalancerIPPoolSelectorName = "CiliumLoadBalancerIPPool"
+	// CiliumPodIPPoolSelectorName defines the name for a selector matching CiliumPodIPPool resources.
+	CiliumPodIPPoolSelectorName = CPIPKindDefinition
 )
 
 // +genclient
@@ -138,8 +140,10 @@ type CiliumBGPPathAttributes struct {
 	//   Only affects routes of cluster scope / Kubernetes IPAM CIDRs, not Multi-Pool IPAM CIDRs.
 	// - For "CiliumLoadBalancerIPPool" the Selector matches CiliumLoadBalancerIPPool custom resources
 	//   (path attributes apply to routes announced for selected CiliumLoadBalancerIPPools).
+	// - For "CiliumPodIPPool" the Selector matches CiliumPodIPPool custom resources
+	//   (path attributes apply to routes announced for allocated CIDRs of selected CiliumPodIPPools).
 	//
-	// +kubebuilder:validation:Enum=PodCIDR;CiliumLoadBalancerIPPool
+	// +kubebuilder:validation:Enum=PodCIDR;CiliumLoadBalancerIPPool;CiliumPodIPPool
 	// +kubebuilder:validation:Required
 	SelectorType string `json:"selectorType"`
 
@@ -168,16 +172,6 @@ type CiliumBGPPathAttributes struct {
 	LocalPreference *int64 `json:"localPreference,omitempty"`
 }
 
-// CiliumBGPFamily represents a AFI/SAFI address family pair.
-type CiliumBGPFamily struct {
-	// +kubebuilder:validation:Enum=ipv4;ipv6;l2vpn;ls;opaque
-	// +kubebuilder:validation:Required
-	Afi string `json:"afi"`
-	// +kubebuilder:validation:Enum=unicast;multicast;mpls_label;encapsulation;vpls;evpn;ls;sr_policy;mup;mpls_vpn;mpls_vpn_multicast;route_target_constraints;flowspec_unicast;flowspec_vpn;key_value
-	// +kubebuilder:validation:Required
-	Safi string `json:"safi"`
-}
-
 // CiliumBGPNeighbor is a neighboring peer for use in a
 // CiliumBGPVirtualRouter configuration.
 type CiliumBGPNeighbor struct {
@@ -203,6 +197,10 @@ type CiliumBGPNeighbor struct {
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:Maximum=4294967295
 	PeerASN int64 `json:"peerASN"`
+	// AuthSecretRef is the name of the secret to use to fetch a TCP
+	// authentication password for this peer.
+	// +kubebuilder:validation:Optional
+	AuthSecretRef *string `json:"authSecretRef,omitempty"`
 	// EBGPMultihopTTL controls the multi-hop feature for eBGP peers.
 	// Its value defines the Time To Live (TTL) value used in BGP packets sent to the neighbor.
 	// The value 1 implies that eBGP multi-hop feature is disabled (only a single hop is allowed).

@@ -79,6 +79,10 @@ func (h *Handle) LinkSetVfVlanQos(link Link, vf, vlan, qos int) error {
 	return ErrNotImplemented
 }
 
+func (h *Handle) LinkSetVfVlanQosProto(link Link, vf, vlan, qos, proto int) error {
+	return ErrNotImplemented
+}
+
 func (h *Handle) LinkSetVfTxRate(link Link, vf, rate int) error {
 	return ErrNotImplemented
 }
@@ -256,6 +260,10 @@ func (h *Handle) RouteAdd(route *Route) error {
 }
 
 func (h *Handle) RouteAppend(route *Route) error {
+	return ErrNotImplemented
+}
+
+func (h *Handle) RouteChange(route *Route) error {
 	return ErrNotImplemented
 }
 

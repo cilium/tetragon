@@ -5,9 +5,10 @@ package stream
 
 import (
 	"context"
-	"time"
 
 	"golang.org/x/time/rate"
+
+	"github.com/cilium/cilium/pkg/time"
 )
 
 //
@@ -215,7 +216,13 @@ func Debounce[T any](src Observable[T], duration time.Duration) Observable[T] {
 						complete(err)
 						return
 
-					case item := <-items:
+					case item, ok := <-items:
+						if !ok {
+							items = nil
+							latest = nil
+							continue
+						}
+
 						if timerElapsed {
 							next(item)
 							timerElapsed = false

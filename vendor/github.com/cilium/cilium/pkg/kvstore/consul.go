@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"time"
 
 	consulAPI "github.com/hashicorp/consul/api"
 	"github.com/sirupsen/logrus"
@@ -23,6 +22,7 @@ import (
 	"github.com/cilium/cilium/pkg/logging/logfields"
 	"github.com/cilium/cilium/pkg/option"
 	"github.com/cilium/cilium/pkg/spanstat"
+	"github.com/cilium/cilium/pkg/time"
 )
 
 const (
@@ -121,7 +121,7 @@ func (c *consulModule) getConfig() map[string]string {
 
 func (c *consulModule) newClient(ctx context.Context, opts *ExtraOptions) (BackendOperations, chan error) {
 	log.WithFields(logrus.Fields{
-		logfields.URL: "https://cilium.herokuapp.com/",
+		logfields.URL: "https://slack.cilium.io",
 	}).Warning("Support for Consul as a kvstore backend has been deprecated due to lack of maintainers. If you are interested in helping to maintain Consul support in Cilium, please reach out on GitHub or the official Cilium slack")
 
 	errChan := make(chan error, 1)
@@ -150,12 +150,12 @@ func (c *consulModule) connectConsulClient(ctx context.Context, opts *ExtraOptio
 		if configPathOptSet && configPathOpt.value != "" {
 			b, err := os.ReadFile(configPathOpt.value)
 			if err != nil {
-				return nil, fmt.Errorf("unable to read consul tls configuration file %s: %s", configPathOpt.value, err)
+				return nil, fmt.Errorf("unable to read consul tls configuration file %s: %w", configPathOpt.value, err)
 			}
 			yc := consulAPI.TLSConfig{}
 			err = yaml.Unmarshal(b, &yc)
 			if err != nil {
-				return nil, fmt.Errorf("invalid consul tls configuration in %s: %s", configPathOpt.value, err)
+				return nil, fmt.Errorf("invalid consul tls configuration in %s: %w", configPathOpt.value, err)
 			}
 			c.config.TLSConfig = yc
 		}
@@ -229,7 +229,7 @@ func newConsulClient(ctx context.Context, config *consulAPI.Config, opts *ExtraO
 	wo := &consulAPI.WriteOptions{}
 	lease, _, err := c.Session().Create(entry, wo.WithContext(ctx))
 	if err != nil {
-		return nil, fmt.Errorf("unable to create default lease: %s", err)
+		return nil, fmt.Errorf("unable to create default lease: %w", err)
 	}
 
 	client := &consulClient{
@@ -295,7 +295,7 @@ func (c *consulClient) LockPath(ctx context.Context, path string) (KVLocker, err
 
 		select {
 		case <-ctx.Done():
-			return nil, fmt.Errorf("lock cancelled via context: %s", ctx.Err())
+			return nil, fmt.Errorf("lock cancelled via context: %w", ctx.Err())
 		default:
 		}
 	}
@@ -327,7 +327,7 @@ func (c *consulClient) Watch(ctx context.Context, w *Watcher) {
 		pairs, q, err := c.KV().List(w.Prefix, qo)
 		if err != nil {
 			sleepTime = 5 * time.Second
-			Trace("List of Watch failed", err, logrus.Fields{fieldPrefix: w.Prefix, fieldWatcher: w.Name})
+			Trace("List of Watch failed", err, logrus.Fields{fieldPrefix: w.Prefix})
 		}
 
 		if q != nil {
@@ -651,7 +651,7 @@ func (c *consulClient) createOnly(ctx context.Context, key string, value []byte,
 	success, _, err := c.KV().CAS(k, opts.WithContext(ctx))
 	increaseMetric(key, metricSet, "CreateOnly", duration.EndError(err).Total(), err)
 	if err != nil {
-		return false, fmt.Errorf("unable to compare-and-swap: %s", err)
+		return false, fmt.Errorf("unable to compare-and-swap: %w", err)
 	}
 	return success, nil
 }
@@ -666,7 +666,7 @@ func (c *consulClient) createIfExists(ctx context.Context, condKey, key string, 
 
 	l, err := LockPath(ctx, c, condKey)
 	if err != nil {
-		return fmt.Errorf("unable to lock condKey for CreateIfExists: %s", err)
+		return fmt.Errorf("unable to lock condKey for CreateIfExists: %w", err)
 	}
 
 	defer l.Unlock(context.Background())
@@ -761,10 +761,10 @@ func (c *consulClient) Decode(in string) (out []byte, err error) {
 }
 
 // ListAndWatch implements the BackendOperations.ListAndWatch using consul
-func (c *consulClient) ListAndWatch(ctx context.Context, name, prefix string, chanSize int) *Watcher {
-	w := newWatcher(name, prefix, chanSize)
+func (c *consulClient) ListAndWatch(ctx context.Context, prefix string, chanSize int) *Watcher {
+	w := newWatcher(prefix, chanSize)
 
-	log.WithField(fieldWatcher, w).Debug("Starting watcher...")
+	log.WithField(fieldPrefix, prefix).Debug("Starting watcher...")
 
 	go c.Watch(ctx, w)
 

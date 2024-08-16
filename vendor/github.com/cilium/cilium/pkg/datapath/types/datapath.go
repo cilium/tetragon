@@ -32,4 +32,12 @@ type Datapath interface {
 	LBMap() LBMap
 
 	Procfs() string
+
+	BandwidthManager() BandwidthManager
+}
+
+type BandwidthManager interface {
+	BBREnabled() bool
+	DeleteEndpointBandwidthLimit(epID uint16) error
+	Enabled() bool
 }

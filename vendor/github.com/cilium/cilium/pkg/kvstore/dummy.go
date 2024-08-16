@@ -6,9 +6,9 @@ package kvstore
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/cilium/cilium/pkg/inctimer"
+	"github.com/cilium/cilium/pkg/time"
 )
 
 // SetupDummy sets up kvstore for tests. A lock mechanism it used to prevent
@@ -54,6 +54,10 @@ func SetupDummyWithConfigOpts(tb testing.TB, dummyBackend string, opts map[strin
 
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
+
+	if err := <-Client().Connected(ctx); err != nil {
+		tb.Fatalf("Failed waiting for kvstore connection to be established: %v", err)
+	}
 
 	timer, done := inctimer.New()
 	defer done()

@@ -71,9 +71,18 @@ const (
 	// ordinal index.
 	StatefulSetPodIndexLabel = "apps.kubernetes.io/pod-index"
 
+	// IndexedJobCompletionIndexLabel is the label name which, in-tree, is used
+	// to automatically label Pods that are owned by Indexed Jobs with their
+	// completion index.
+	IndexedJobCompletionIndexLabel = "batch.kubernetes.io/job-completion-index"
+
 	// CtrlPrefixPolicyStatus is the prefix used for the controllers set up
 	// to sync the CNP with kube-apiserver.
 	CtrlPrefixPolicyStatus = "sync-cnp-policy-status"
+
+	// BatchJobControllerUID is one of the labels that is available on a Job
+	// https://kubernetes.io/docs/concepts/workloads/controllers/job/#job-labels
+	BatchJobControllerUID = "batch.kubernetes.io/controller-uid"
 
 	// CiliumIdentityAnnotationDeprecated is the previous annotation key used to map to an endpoint's security identity.
 	CiliumIdentityAnnotationDeprecated = "cilium-identity"

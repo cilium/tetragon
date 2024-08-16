@@ -12,16 +12,16 @@ package metrics
 
 import (
 	"context"
-	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/sirupsen/logrus"
 
 	"github.com/cilium/cilium/api/v1/models"
-	"github.com/cilium/cilium/pkg/datapath/linux/probes"
 	"github.com/cilium/cilium/pkg/metrics/metric"
 	"github.com/cilium/cilium/pkg/promise"
+	"github.com/cilium/cilium/pkg/source"
+	"github.com/cilium/cilium/pkg/time"
 	"github.com/cilium/cilium/pkg/version"
 )
 
@@ -97,11 +97,24 @@ const (
 
 	// Labels
 
+	// LabelValueFalse is the string value for true metric label values.
+	LabelValueTrue = "true"
+
+	// LabelValueFalse is the string value for false metric label values.
+	LabelValueFalse = "false"
+
 	// LabelValueOutcomeSuccess is used as a successful outcome of an operation
 	LabelValueOutcomeSuccess = "success"
 
 	// LabelValueOutcomeFail is used as an unsuccessful outcome of an operation
 	LabelValueOutcomeFail = "fail"
+
+	// LabelValueOutcomeFailure is used as an unsuccessful outcome of an operation.
+	// NOTE: This should only be used for existing metrics, new metrics should use LabelValueOutcomeFail.
+	LabelValueOutcomeFailure = "failure"
+
+	// LabelDropReason is used to describe reason for dropping a packets/bytes
+	LabelDropReason = "reason"
 
 	// LabelEventSourceAPI marks event-related metrics that come from the API
 	LabelEventSourceAPI = "api"
@@ -142,6 +155,8 @@ const (
 
 	// LabelPolicySource is the label used to see the enforcement status
 	LabelPolicySource = "source"
+
+	LabelSource = "source"
 
 	// LabelScope is the label used to defined multiples scopes in the same
 	// metric. For example, one counter may measure a metric over the scope of
@@ -186,6 +201,8 @@ const (
 	// LabelMapName is the label for the BPF map name
 	LabelMapName = "map_name"
 
+	LabelMapGroup = "map_group"
+
 	// LabelVersion is the label for the version number
 	LabelVersion = "version"
 
@@ -220,6 +237,12 @@ const (
 	LabelLocationRemoteIntraCluster = "remote_intra_cluster"
 	LabelLocationRemoteInterCluster = "remote_inter_cluster"
 
+	// Rule label is a label for a L7 rule name.
+	LabelL7Rule = "rule"
+
+	// LabelL7ProxyType is the label for denoting a L7 proxy type.
+	LabelL7ProxyType = "proxy_type"
+
 	// LabelType is the label for type in general (e.g. endpoint, node)
 	LabelType         = "type"
 	LabelPeerEndpoint = "endpoint"
@@ -234,6 +257,9 @@ const (
 )
 
 var (
+	// LabelValuesBool is metric label value set for boolean type.
+	LabelValuesBool = metric.NewValues(LabelValueTrue, LabelValueFalse)
+
 	// Namespace is used to scope metrics from cilium. It is prepended to metric
 	// names and separated with a '_'
 	Namespace = CiliumAgentNamespace
@@ -253,11 +279,11 @@ var (
 
 	// NodeConnectivityStatus is the connectivity status between local node to
 	// other node intra or inter cluster.
-	NodeConnectivityStatus = NoOpGaugeVec
+	NodeConnectivityStatus = NoOpGaugeDeletableVec
 
 	// NodeConnectivityLatency is the connectivity latency between local node to
 	// other node intra or inter cluster.
-	NodeConnectivityLatency = NoOpGaugeVec
+	NodeConnectivityLatency = NoOpGaugeDeletableVec
 
 	// Endpoint
 
@@ -298,11 +324,6 @@ var (
 	// PolicyRevision is the current policy revision number for this agent
 	PolicyRevision = NoOpGauge
 
-	// PolicyImportErrorsTotal is a count of failed policy imports.
-	// This metric was deprecated in Cilium 1.14 and is to be removed in 1.15.
-	// It is replaced by PolicyChangeTotal metric.
-	PolicyImportErrorsTotal = NoOpCounter
-
 	// PolicyChangeTotal is a count of policy changes by outcome ("success" or
 	// "failure")
 	PolicyChangeTotal = NoOpCounterVec
@@ -334,11 +355,9 @@ var (
 
 	// Events
 
-	// EventTS*is the time in seconds since epoch that we last received an
-	// event that we will handle
-	// source is one of k8s, docker or apia
-
-	// EventTS is the timestamp of k8s resource events.
+	// EventTS is the time in seconds since epoch that we last received an
+	// event that was handled by Cilium. This metric tracks the source of the
+	// event which can be one of K8s or Cilium's API.
 	EventTS = NoOpGaugeVec
 
 	// EventLagK8s is the lag calculation for k8s Pod events.
@@ -361,22 +380,6 @@ var (
 	ProxyDatapathUpdateTimeout = NoOpCounter
 
 	// L3-L4 statistics
-
-	// DropCount is the total drop requests,
-	// tagged by drop reason and direction(ingress/egress)
-	DropCount = NoOpCounterVec
-
-	// DropBytes is the total dropped bytes,
-	// tagged by drop reason and direction(ingress/egress)
-	DropBytes = NoOpCounterVec
-
-	// ForwardCount is the total forwarded packets,
-	// tagged by ingress/egress direction
-	ForwardCount = NoOpCounterVec
-
-	// ForwardBytes is the total forwarded bytes,
-	// tagged by ingress/egress direction
-	ForwardBytes = NoOpCounterVec
 
 	// Datapath statistics
 
@@ -514,6 +517,9 @@ var (
 	// bpf map.
 	BPFMapOps = NoOpCounterVec
 
+	// BPFMapCapacity is the max capacity of bpf maps, labelled by map group classification.
+	BPFMapCapacity = NoOpGaugeVec
+
 	// TriggerPolicyUpdateTotal is the metric to count total number of
 	// policy update triggers
 	TriggerPolicyUpdateTotal = NoOpCounterVec
@@ -635,8 +641,8 @@ var (
 type LegacyMetrics struct {
 	BootstrapTimes                   metric.Vec[metric.Observer]
 	APIInteractions                  metric.Vec[metric.Observer]
-	NodeConnectivityStatus           metric.Vec[metric.Gauge]
-	NodeConnectivityLatency          metric.Vec[metric.Gauge]
+	NodeConnectivityStatus           metric.DeletableVec[metric.Gauge]
+	NodeConnectivityLatency          metric.DeletableVec[metric.Gauge]
 	Endpoint                         metric.GaugeFunc
 	EndpointMaxIfindex               metric.Gauge
 	EndpointRegenerationTotal        metric.Vec[metric.Counter]
@@ -647,7 +653,6 @@ type LegacyMetrics struct {
 	PolicyRegenerationCount          metric.Counter
 	PolicyRegenerationTimeStats      metric.Vec[metric.Observer]
 	PolicyRevision                   metric.Gauge
-	PolicyImportErrorsTotal          metric.Counter
 	PolicyChangeTotal                metric.Vec[metric.Counter]
 	PolicyEndpointStatus             metric.Vec[metric.Gauge]
 	PolicyImplementationDelay        metric.Vec[metric.Observer]
@@ -660,10 +665,6 @@ type LegacyMetrics struct {
 	ProxyPolicyL7Total               metric.Vec[metric.Counter]
 	ProxyUpstreamTime                metric.Vec[metric.Observer]
 	ProxyDatapathUpdateTimeout       metric.Counter
-	DropCount                        metric.Vec[metric.Counter]
-	DropBytes                        metric.Vec[metric.Counter]
-	ForwardCount                     metric.Vec[metric.Counter]
-	ForwardBytes                     metric.Vec[metric.Counter]
 	ConntrackGCRuns                  metric.Vec[metric.Counter]
 	ConntrackGCKeyFallbacks          metric.Vec[metric.Counter]
 	ConntrackGCSize                  metric.Vec[metric.Gauge]
@@ -697,6 +698,7 @@ type LegacyMetrics struct {
 	IPCacheEventsTotal               metric.Vec[metric.Counter]
 	BPFSyscallDuration               metric.Vec[metric.Observer]
 	BPFMapOps                        metric.Vec[metric.Counter]
+	BPFMapCapacity                   metric.Vec[metric.Gauge]
 	TriggerPolicyUpdateTotal         metric.Vec[metric.Counter]
 	TriggerPolicyUpdateFolds         metric.Gauge
 	TriggerPolicyUpdateCallDuration  metric.Vec[metric.Observer]
@@ -736,13 +738,18 @@ func NewLegacyMetrics() *LegacyMetrics {
 			Help:      "Duration of processed API calls labeled by path, method and return code.",
 		}, []string{LabelPath, LabelMethod, LabelAPIReturnCode}),
 
-		EndpointRegenerationTotal: metric.NewCounterVec(metric.CounterOpts{
+		EndpointRegenerationTotal: metric.NewCounterVecWithLabels(metric.CounterOpts{
 			ConfigName: Namespace + "_endpoint_regenerations_total",
 
 			Namespace: Namespace,
 			Name:      "endpoint_regenerations_total",
 			Help:      "Count of all endpoint regenerations that have completed, tagged by outcome",
-		}, []string{"outcome"}),
+		}, metric.Labels{
+			{
+				Name:   LabelOutcome,
+				Values: metric.NewValues(LabelValueOutcomeSuccess, LabelValueOutcomeFailure),
+			},
+		}),
 
 		EndpointStateCount: metric.NewGaugeVec(metric.GaugeOpts{
 			ConfigName: Namespace + "_endpoint_state",
@@ -789,20 +796,18 @@ func NewLegacyMetrics() *LegacyMetrics {
 			Help:       "Highest policy revision number in the agent",
 		}),
 
-		PolicyImportErrorsTotal: metric.NewCounter(metric.CounterOpts{
-			ConfigName: Namespace + "_policy_import_errors_total",
-			Namespace:  Namespace,
-			Name:       "policy_import_errors_total",
-			Help:       "Number of times a policy import has failed",
-		}),
-
-		PolicyChangeTotal: metric.NewCounterVec(metric.CounterOpts{
+		PolicyChangeTotal: metric.NewCounterVecWithLabels(metric.CounterOpts{
 			ConfigName: Namespace + "_policy_change_total",
 
 			Namespace: Namespace,
 			Name:      "policy_change_total",
 			Help:      "Number of policy changes by outcome",
-		}, []string{"outcome"}),
+		}, metric.Labels{
+			{
+				Name:   LabelOutcome,
+				Values: metric.NewValues(LabelValueOutcomeSuccess, LabelValueOutcomeFailure),
+			},
+		}),
 
 		PolicyEndpointStatus: metric.NewGaugeVec(metric.GaugeOpts{
 			ConfigName: Namespace + "_policy_endpoint_enforcement_status",
@@ -812,13 +817,18 @@ func NewLegacyMetrics() *LegacyMetrics {
 			Help:      "Number of endpoints labeled by policy enforcement status",
 		}, []string{LabelPolicyEnforcement}),
 
-		PolicyImplementationDelay: metric.NewHistogramVec(metric.HistogramOpts{
+		PolicyImplementationDelay: metric.NewHistogramVecWithLabels(metric.HistogramOpts{
 			ConfigName: Namespace + "_policy_implementation_delay",
 
 			Namespace: Namespace,
 			Name:      "policy_implementation_delay",
 			Help:      "Time between a policy change and it being fully deployed into the datapath",
-		}, []string{LabelPolicySource}),
+		}, metric.Labels{
+			{
+				Name:   LabelPolicySource,
+				Values: metric.NewValues(string(source.Kubernetes), string(source.CustomResource), string(source.LocalAPI)),
+			},
+		}),
 
 		CIDRGroupsReferenced: metric.NewGauge(metric.GaugeOpts{
 			ConfigName: Namespace + "cidrgroups_referenced",
@@ -849,7 +859,7 @@ func NewLegacyMetrics() *LegacyMetrics {
 			ConfigName: Namespace + "_event_ts",
 			Namespace:  Namespace,
 			Name:       "event_ts",
-			Help:       "Last timestamp when we received an event",
+			Help:       "Last timestamp when Cilium received an event from a control plane source, per resource and per action",
 		}, []string{LabelEventSource, LabelScope, LabelAction}),
 
 		EventLagK8s: metric.NewGauge(metric.GaugeOpts{
@@ -869,12 +879,21 @@ func NewLegacyMetrics() *LegacyMetrics {
 			Help:      "Number of redirects installed for endpoints, labeled by protocol",
 		}, []string{LabelProtocolL7}),
 
-		ProxyPolicyL7Total: metric.NewCounterVec(metric.CounterOpts{
+		ProxyPolicyL7Total: metric.NewCounterVecWithLabels(metric.CounterOpts{
 			ConfigName: Namespace + "_policy_l7_total",
 			Namespace:  Namespace,
 			Name:       "policy_l7_total",
 			Help:       "Number of total proxy requests handled",
-		}, []string{"rule", "proxy_type"}),
+		}, metric.Labels{
+			{
+				Name:   LabelL7Rule,
+				Values: metric.NewValues("received", "forwarded", "denied", "parse_errors"),
+			},
+			{
+				Name:   LabelL7ProxyType,
+				Values: metric.NewValues("fqdn", "envoy"),
+			},
+		}),
 
 		ProxyUpstreamTime: metric.NewHistogramVec(metric.HistogramOpts{
 			ConfigName: Namespace + "_proxy_upstream_reply_seconds",
@@ -891,38 +910,6 @@ func NewLegacyMetrics() *LegacyMetrics {
 			Name:      "proxy_datapath_update_timeout_total",
 			Help:      "Number of total datapath update timeouts due to FQDN IP updates",
 		}),
-
-		DropCount: metric.NewCounterVec(metric.CounterOpts{
-			ConfigName: Namespace + "_drop_count_total",
-			Namespace:  Namespace,
-			Name:       "drop_count_total",
-			Help:       "Total dropped packets, tagged by drop reason and ingress/egress direction",
-		},
-			[]string{"reason", LabelDirection}),
-
-		DropBytes: metric.NewCounterVec(metric.CounterOpts{
-			ConfigName: Namespace + "_drop_bytes_total",
-			Namespace:  Namespace,
-			Name:       "drop_bytes_total",
-			Help:       "Total dropped bytes, tagged by drop reason and ingress/egress direction",
-		},
-			[]string{"reason", LabelDirection}),
-
-		ForwardCount: metric.NewCounterVec(metric.CounterOpts{
-			ConfigName: Namespace + "_forward_count_total",
-			Namespace:  Namespace,
-			Name:       "forward_count_total",
-			Help:       "Total forwarded packets, tagged by ingress/egress direction",
-		},
-			[]string{LabelDirection}),
-
-		ForwardBytes: metric.NewCounterVec(metric.CounterOpts{
-			ConfigName: Namespace + "_forward_bytes_total",
-			Namespace:  Namespace,
-			Name:       "forward_bytes_total",
-			Help:       "Total forwarded bytes, tagged by ingress/egress direction",
-		},
-			[]string{LabelDirection}),
 
 		ConntrackGCRuns: metric.NewCounterVec(metric.CounterOpts{
 			ConfigName: Namespace + "_" + SubsystemDatapath + "_conntrack_gc_runs_total",
@@ -994,12 +981,7 @@ func NewLegacyMetrics() *LegacyMetrics {
 			Help:       "Number of services events labeled by action type",
 		}, []string{LabelAction}),
 
-		ErrorsWarnings: metric.NewCounterVec(metric.CounterOpts{
-			ConfigName: Namespace + "_errors_warnings_total",
-			Namespace:  Namespace,
-			Name:       "errors_warnings_total",
-			Help:       "Number of total errors in cilium-agent instances",
-		}, []string{"level", "subsystem"}),
+		ErrorsWarnings: newErrorsWarningsMetric(),
 
 		ControllerRuns: metric.NewCounterVec(metric.CounterOpts{
 			ConfigName: Namespace + "_controllers_runs_total",
@@ -1194,6 +1176,14 @@ func NewLegacyMetrics() *LegacyMetrics {
 			Help:       "Total operations on map, tagged by map name",
 		}, []string{LabelMapName, LabelOperation, LabelOutcome}),
 
+		BPFMapCapacity: metric.NewGaugeVec(metric.GaugeOpts{
+			ConfigName: Namespace + "_" + SubsystemBPF + "_map_capacity",
+			Namespace:  Namespace,
+			Subsystem:  SubsystemBPF,
+			Name:       "map_capacity",
+			Help:       "Capacity of map, tagged by map group. All maps with a capacity of 65536 are grouped under 'default'",
+		}, []string{LabelMapGroup}),
+
 		TriggerPolicyUpdateTotal: metric.NewCounterVec(metric.CounterOpts{
 			ConfigName: Namespace + "_" + SubsystemTriggers + "_policy_update_total",
 			Namespace:  Namespace,
@@ -1280,7 +1270,7 @@ func NewLegacyMetrics() *LegacyMetrics {
 			Subsystem:  SubsystemAPILimiter,
 			Name:       "processed_requests_total",
 			Help:       "Total number of API requests processed",
-		}, []string{"api_call", LabelOutcome}),
+		}, []string{"api_call", LabelOutcome, LabelAPIReturnCode}),
 
 		EndpointPropagationDelay: metric.NewHistogramVec(metric.HistogramOpts{
 			ConfigName: Namespace + "_endpoint_propagation_delay_seconds",
@@ -1332,23 +1322,16 @@ func NewLegacyMetrics() *LegacyMetrics {
 
 	ifindexOpts := metric.GaugeOpts{
 		ConfigName: Namespace + "_endpoint_max_ifindex",
-		Disabled:   true,
+		Disabled:   !enableIfIndexMetric(),
 		Namespace:  Namespace,
 		Name:       "endpoint_max_ifindex",
 		Help:       "Maximum interface index observed for existing endpoints",
-	}
-	// On kernels which do not provide ifindex via the FIB, Cilium needs
-	// to store it in the CT map, with a field limit of max(uint16).
-	// The EndpointMaxIfindex metric can be used to determine if that
-	// limit is approaching. However, it should only be enabled by
-	// default if we observe that the FIB is not providing the ifindex.
-	if probes.HaveFibIfindex() != nil {
-		ifindexOpts.Disabled = false
 	}
 	lm.EndpointMaxIfindex = metric.NewGauge(ifindexOpts)
 
 	v := version.GetCiliumVersion()
 	lm.VersionMetric.WithLabelValues(v.Version, v.Revision, v.Arch)
+	lm.BPFMapCapacity.WithLabelValues("default").Set(DefaultMapCapacity)
 
 	BootstrapTimes = lm.BootstrapTimes
 	APIInteractions = lm.APIInteractions
@@ -1364,7 +1347,6 @@ func NewLegacyMetrics() *LegacyMetrics {
 	PolicyRegenerationCount = lm.PolicyRegenerationCount
 	PolicyRegenerationTimeStats = lm.PolicyRegenerationTimeStats
 	PolicyRevision = lm.PolicyRevision
-	PolicyImportErrorsTotal = lm.PolicyImportErrorsTotal
 	PolicyChangeTotal = lm.PolicyChangeTotal
 	PolicyEndpointStatus = lm.PolicyEndpointStatus
 	PolicyImplementationDelay = lm.PolicyImplementationDelay
@@ -1377,10 +1359,6 @@ func NewLegacyMetrics() *LegacyMetrics {
 	ProxyPolicyL7Total = lm.ProxyPolicyL7Total
 	ProxyUpstreamTime = lm.ProxyUpstreamTime
 	ProxyDatapathUpdateTimeout = lm.ProxyDatapathUpdateTimeout
-	DropCount = lm.DropCount
-	DropBytes = lm.DropBytes
-	ForwardCount = lm.ForwardCount
-	ForwardBytes = lm.ForwardBytes
 	ConntrackGCRuns = lm.ConntrackGCRuns
 	ConntrackGCKeyFallbacks = lm.ConntrackGCKeyFallbacks
 	ConntrackGCSize = lm.ConntrackGCSize
@@ -1414,6 +1392,7 @@ func NewLegacyMetrics() *LegacyMetrics {
 	IPCacheEventsTotal = lm.IPCacheEventsTotal
 	BPFSyscallDuration = lm.BPFSyscallDuration
 	BPFMapOps = lm.BPFMapOps
+	BPFMapCapacity = lm.BPFMapCapacity
 	TriggerPolicyUpdateTotal = lm.TriggerPolicyUpdateTotal
 	TriggerPolicyUpdateFolds = lm.TriggerPolicyUpdateFolds
 	TriggerPolicyUpdateCallDuration = lm.TriggerPolicyUpdateCallDuration
@@ -1427,6 +1406,20 @@ func NewLegacyMetrics() *LegacyMetrics {
 	APILimiterProcessedRequests = lm.APILimiterProcessedRequests
 
 	return lm
+}
+
+// InitOperatorMetrics is used to init legacy metrics necessary during operator init.
+func InitOperatorMetrics() {
+	ErrorsWarnings = newErrorsWarningsMetric()
+}
+
+func newErrorsWarningsMetric() metric.Vec[metric.Counter] {
+	return metric.NewCounterVec(metric.CounterOpts{
+		ConfigName: Namespace + "_errors_warnings_total",
+		Namespace:  Namespace,
+		Name:       "errors_warnings_total",
+		Help:       "Number of total errors in cilium-agent instances",
+	}, []string{"level", "subsystem"})
 }
 
 // GaugeWithThreshold is a prometheus gauge that registers itself with
@@ -1494,11 +1487,13 @@ func Reinitialize() {
 
 // Register registers a collector
 func Register(c prometheus.Collector) error {
+	var err error
+
 	withRegistry(func(reg *Registry) {
-		reg.Register(c)
+		err = reg.Register(c)
 	})
 
-	return nil
+	return err
 }
 
 // RegisterList registers a list of collectors. If registration of one
@@ -1588,9 +1583,30 @@ func Error2Outcome(err error) string {
 	return LabelValueOutcomeSuccess
 }
 
+// LabelOutcome2Code converts a label outcome to a code
+func LabelOutcome2Code(outcome string) int {
+	if outcome == LabelValueOutcomeSuccess {
+		return 200
+	}
+	return 500
+}
+
 func BoolToFloat64(v bool) float64 {
 	if v {
 		return 1
 	}
 	return 0
+}
+
+// In general, most bpf maps are allocated to occupy a 16-bit key size.
+// To reduce the number of metrics that need to be emitted for map capacity,
+// we assume a default map size of 2^16 entries for all maps, which can be
+// assumed unless specified otherwise.
+const DefaultMapCapacity = 65536
+
+func UpdateMapCapacity(groupName string, capacity uint32) {
+	if capacity == 0 || capacity == DefaultMapCapacity {
+		return
+	}
+	BPFMapCapacity.WithLabelValues(groupName).Set(float64(capacity))
 }

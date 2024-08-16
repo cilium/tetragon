@@ -7,8 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net"
-	"net/netip"
 	"path"
 
 	"github.com/sirupsen/logrus"
@@ -118,23 +116,14 @@ type IdentityAllocator interface {
 	// GetIdentities returns a copy of the current cache of identities.
 	GetIdentities() IdentitiesModel
 
-	// AllocateCIDRsForIPs attempts to allocate identities for a list of
-	// CIDRs. If any allocation fails, all allocations are rolled back and
-	// the error is returned. When an identity is freshly allocated for a
-	// CIDR, it is added to the ipcache if 'newlyAllocatedIdentities' is
-	// 'nil', otherwise the newly allocated identities are placed in
-	// 'newlyAllocatedIdentities' and it is the caller's responsibility to
-	// upsert them into ipcache by calling UpsertGeneratedIdentities().
-	//
-	// Upon success, the caller must also arrange for the resulting identities to
-	// be released via a subsequent call to ReleaseCIDRIdentitiesByID().
-	//
-	// The implementation for this function currently lives in pkg/ipcache.
-	AllocateCIDRsForIPs(ips []net.IP, newlyAllocatedIdentities map[netip.Prefix]*identity.Identity) ([]*identity.Identity, error)
+	// WithholdLocalIdentities holds a set of numeric identities out of the local
+	// allocation pool(s). Once withheld, a numeric identity can only be used
+	// when explicitly requested via AllocateIdentity(..., oldNID).
+	WithholdLocalIdentities(nids []identity.NumericIdentity)
 
-	// ReleaseCIDRIdentitiesByID() is a wrapper for ReleaseSlice() that
-	// also handles ipcache entries.
-	ReleaseCIDRIdentitiesByID(context.Context, []identity.NumericIdentity)
+	// UnwithholdLocalIdentities removes numeric identities from the withheld set,
+	// freeing them for general allocation.
+	UnwithholdLocalIdentities(nids []identity.NumericIdentity)
 }
 
 // InitIdentityAllocator creates the global identity allocator. Only the first
@@ -157,8 +146,8 @@ func (m *CachingIdentityAllocator) InitIdentityAllocator(client clientset.Interf
 
 	log.Info("Initializing identity allocator")
 
-	minID := idpool.ID(identity.MinimalAllocationIdentity)
-	maxID := idpool.ID(identity.MaximumAllocationIdentity)
+	minID := idpool.ID(identity.GetMinimalAllocationIdentity())
+	maxID := idpool.ID(identity.GetMaximumAllocationIdentity())
 
 	log.WithFields(map[string]interface{}{
 		"min":        minID,
@@ -211,7 +200,7 @@ func (m *CachingIdentityAllocator) InitIdentityAllocator(client clientset.Interf
 			allocator.WithMax(maxID), allocator.WithMin(minID),
 			allocator.WithEvents(events),
 			allocator.WithMasterKeyProtection(),
-			allocator.WithPrefixMask(idpool.ID(option.Config.ClusterID<<identity.ClusterIDShift)))
+			allocator.WithPrefixMask(idpool.ID(option.Config.ClusterID<<identity.GetClusterIDShift())))
 		if err != nil {
 			log.WithError(err).Fatalf("Unable to initialize Identity Allocator with backend %s", option.Config.IdentityAllocationMode)
 		}
@@ -294,7 +283,7 @@ func (m *CachingIdentityAllocator) WaitForInitialGlobalIdentities(ctx context.Co
 	select {
 	case <-m.globalIdentityAllocatorInitialized:
 	case <-ctx.Done():
-		return fmt.Errorf("initial global identity sync was cancelled: %s", ctx.Err())
+		return fmt.Errorf("initial global identity sync was cancelled: %w", ctx.Err())
 	}
 
 	return m.IdentityAllocator.WaitForInitialSync(ctx)
@@ -358,9 +347,9 @@ func (m *CachingIdentityAllocator) AllocateIdentity(ctx context.Context, lbls la
 	// then allocate with the appropriate local allocator and return.
 	switch identity.ScopeForLabels(lbls) {
 	case identity.IdentityScopeLocal:
-		return m.localIdentities.lookupOrCreate(lbls, oldNID)
+		return m.localIdentities.lookupOrCreate(lbls, oldNID, notifyOwner)
 	case identity.IdentityScopeRemoteNode:
-		return m.localNodeIdentities.lookupOrCreate(lbls, oldNID)
+		return m.localNodeIdentities.lookupOrCreate(lbls, oldNID, notifyOwner)
 	}
 
 	// This will block until the kvstore can be accessed and all identities
@@ -394,6 +383,25 @@ func (m *CachingIdentityAllocator) AllocateIdentity(ctx context.Context, lbls la
 	return identity.NewIdentity(identity.NumericIdentity(idp), lbls), isNew, nil
 }
 
+func (m *CachingIdentityAllocator) WithholdLocalIdentities(nids []identity.NumericIdentity) {
+	log.WithField(logfields.Identity, nids).Debug("Withholding numeric identities for later restoration")
+
+	// The allocators will return any identities that are not in-scope.
+	nids = m.localIdentities.withhold(nids)
+	nids = m.localNodeIdentities.withhold(nids)
+	if len(nids) > 0 {
+		log.WithField(logfields.Identity, nids).Error("Attempt to restore invalid numeric identities.")
+	}
+}
+
+func (m *CachingIdentityAllocator) UnwithholdLocalIdentities(nids []identity.NumericIdentity) {
+	log.WithField(logfields.Identity, nids).Debug("Unwithholding numeric identities")
+
+	// The allocators will ignore any identities that are not in-scope.
+	m.localIdentities.unwithhold(nids)
+	m.localNodeIdentities.unwithhold(nids)
+}
+
 // Release is the reverse operation of AllocateIdentity() and releases the
 // identity again. This function may result in kvstore operations.
 // After the last user has released the ID, the returned lastUse value is true.
@@ -425,9 +433,9 @@ func (m *CachingIdentityAllocator) Release(ctx context.Context, id *identity.Ide
 
 	switch identity.ScopeForLabels(id.Labels) {
 	case identity.IdentityScopeLocal:
-		return m.localIdentities.release(id), nil
+		return m.localIdentities.release(id, notifyOwner), nil
 	case identity.IdentityScopeRemoteNode:
-		return m.localNodeIdentities.release(id), nil
+		return m.localNodeIdentities.release(id, notifyOwner), nil
 	}
 
 	// This will block until the kvstore can be accessed and all identities
@@ -485,13 +493,13 @@ func (m *CachingIdentityAllocator) WatchRemoteIdentities(remoteName string, back
 
 	remoteAllocatorBackend, err := kvstoreallocator.NewKVStoreBackend(prefix, m.owner.GetNodeSuffix(), &key.GlobalIdentity{}, backend)
 	if err != nil {
-		return nil, fmt.Errorf("error setting up remote allocator backend: %s", err)
+		return nil, fmt.Errorf("error setting up remote allocator backend: %w", err)
 	}
 
 	remoteAlloc, err := allocator.NewAllocator(&key.GlobalIdentity{}, remoteAllocatorBackend,
 		allocator.WithEvents(m.IdentityAllocator.GetEvents()), allocator.WithoutGC(), allocator.WithoutAutostart())
 	if err != nil {
-		return nil, fmt.Errorf("unable to initialize remote Identity Allocator: %s", err)
+		return nil, fmt.Errorf("unable to initialize remote Identity Allocator: %w", err)
 	}
 
 	return m.IdentityAllocator.NewRemoteCache(remoteName, remoteAlloc), nil

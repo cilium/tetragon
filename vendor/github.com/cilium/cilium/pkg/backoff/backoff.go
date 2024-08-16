@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -15,6 +14,7 @@ import (
 	"github.com/cilium/cilium/pkg/logging"
 	"github.com/cilium/cilium/pkg/logging/logfields"
 	"github.com/cilium/cilium/pkg/rand"
+	"github.com/cilium/cilium/pkg/time"
 )
 
 var (
@@ -166,7 +166,7 @@ func (b *Exponential) Wait(ctx context.Context) error {
 
 	select {
 	case <-ctx.Done():
-		return fmt.Errorf("exponential backoff cancelled via context: %s", ctx.Err())
+		return fmt.Errorf("exponential backoff cancelled via context: %w", ctx.Err())
 	case <-time.After(t):
 	}
 

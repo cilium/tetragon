@@ -5,7 +5,6 @@ package k8s
 
 import (
 	"regexp"
-	"strings"
 
 	"github.com/sirupsen/logrus"
 
@@ -15,6 +14,11 @@ import (
 	"github.com/cilium/cilium/pkg/logging/logfields"
 	"github.com/cilium/cilium/pkg/option"
 )
+
+// UseOriginalSourceAddressLabel is the k8s label that can be added to a
+// `CiliumEnvoyConfig`. This way the Cilium BPF Metadata listener filter is configured
+// to use the original source address when extracting the metadata for a request.
+const UseOriginalSourceAddressLabel = "cilium.io/use-original-source-address"
 
 const (
 	// AnnotationIstioSidecarStatus is the annotation added by Istio into a pod
@@ -36,12 +40,10 @@ const (
 	DefaultSidecarIstioProxyImageRegexp = "cilium/istio_proxy"
 )
 
-var (
-	// SidecarIstioProxyImageRegexp is the regular expression matching
-	// compatible Istio sidecar istio-proxy container image names.
-	// This is set by the "sidecar-istio-proxy-image" configuration flag.
-	SidecarIstioProxyImageRegexp = regexp.MustCompile(DefaultSidecarIstioProxyImageRegexp)
-)
+// SidecarIstioProxyImageRegexp is the regular expression matching
+// compatible Istio sidecar istio-proxy container image names.
+// This is set by the "sidecar-istio-proxy-image" configuration flag.
+var SidecarIstioProxyImageRegexp = regexp.MustCompile(DefaultSidecarIstioProxyImageRegexp)
 
 // isInjectedWithIstioSidecarProxy returns whether the given pod has been
 // injected by Istio with a sidecar proxy that is compatible with Cilium.
@@ -95,35 +97,21 @@ func GetPodMetadata(k8sNs *slim_corev1.Namespace, pod *slim_corev1.Pod) (contain
 
 	objMetaCpy := pod.ObjectMeta.DeepCopy()
 	annotations := objMetaCpy.Annotations
-	k8sLabels := filterPodLabels(objMetaCpy.Labels)
+	labels := k8sUtils.SanitizePodLabels(objMetaCpy.Labels, k8sNs, pod.Spec.ServiceAccountName, option.Config.ClusterName)
 
 	// If the pod has been injected with an Istio sidecar proxy compatible with
 	// Cilium, add a label to notify that.
 	// If the pod already contains that label to explicitly enable or disable
 	// the sidecar proxy mode, keep it as is.
 	if val, ok := objMetaCpy.Labels[k8sConst.PolicyLabelIstioSidecarProxy]; ok {
-		k8sLabels[k8sConst.PolicyLabelIstioSidecarProxy] = val
+		labels[k8sConst.PolicyLabelIstioSidecarProxy] = val
 	} else if isInjectedWithIstioSidecarProxy(scopedLog, pod) {
-		k8sLabels[k8sConst.PolicyLabelIstioSidecarProxy] = "true"
+		labels[k8sConst.PolicyLabelIstioSidecarProxy] = "true"
 	}
 
 	for _, containers := range pod.Spec.Containers {
 		containerPorts = append(containerPorts, containers.Ports...)
 	}
 
-	labels := k8sUtils.SanitizePodLabels(k8sLabels, k8sNs, pod.Spec.ServiceAccountName, option.Config.ClusterName)
-
 	return containerPorts, labels, annotations, nil
-}
-
-// filterPodLabels returns a copy of the given labels map, without the labels owned by Cilium.
-func filterPodLabels(labels map[string]string) map[string]string {
-	res := map[string]string{}
-	for k, v := range labels {
-		if strings.HasPrefix(k, k8sConst.LabelPrefix) {
-			continue
-		}
-		res[k] = v
-	}
-	return res
 }

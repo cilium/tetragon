@@ -128,6 +128,8 @@ const (
 	TraceReasonCtRelated
 	TraceReasonCtReopened
 	TraceReasonUnknown
+	TraceReasonSRv6Encap
+	TraceReasonSRv6Decap
 )
 
 var traceReasons = map[uint8]string{
@@ -137,6 +139,8 @@ var traceReasons = map[uint8]string{
 	TraceReasonCtRelated:     "related",
 	TraceReasonCtReopened:    "reopened",
 	TraceReasonUnknown:       "unknown",
+	TraceReasonSRv6Encap:     "srv6-encap",
+	TraceReasonSRv6Decap:     "srv6-decap",
 }
 
 func connState(reason uint8) string {
@@ -148,11 +152,29 @@ func connState(reason uint8) string {
 }
 
 func TraceReasonIsKnown(reason uint8) bool {
-	switch reason {
+	switch reason & ^TraceReasonEncryptMask {
 	case TraceReasonUnknown:
 		return false
 	default:
 		return true
+	}
+}
+
+func TraceReasonIsEncap(reason uint8) bool {
+	switch reason & ^TraceReasonEncryptMask {
+	case TraceReasonSRv6Encap:
+		return true
+	default:
+		return false
+	}
+}
+
+func TraceReasonIsDecap(reason uint8) bool {
+	switch reason & ^TraceReasonEncryptMask {
+	case TraceReasonSRv6Decap:
+		return true
+	default:
+		return false
 	}
 }
 

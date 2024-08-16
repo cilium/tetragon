@@ -52,6 +52,10 @@ func LinkSetVfVlanQos(link Link, vf, vlan, qos int) error {
 	return ErrNotImplemented
 }
 
+func LinkSetVfVlanQosProto(link Link, vf, vlan, qos, proto int) error {
+	return ErrNotImplemented
+}
+
 func LinkSetVfTxRate(link Link, vf, rate int) error {
 	return ErrNotImplemented
 }
@@ -200,6 +204,10 @@ func RouteAppend(route *Route) error {
 	return ErrNotImplemented
 }
 
+func RouteChange(route *Route) error {
+	return ErrNotImplemented
+}
+
 func RouteDel(route *Route) error {
 	return ErrNotImplemented
 }
@@ -273,5 +281,9 @@ func NeighDeserialize(m []byte) (*Neigh, error) {
 }
 
 func SocketGet(local, remote net.Addr) (*Socket, error) {
+	return nil, ErrNotImplemented
+}
+
+func SocketDestroy(local, remote net.Addr) (*Socket, error) {
 	return nil, ErrNotImplemented
 }

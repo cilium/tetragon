@@ -9,7 +9,6 @@ import (
 	"math"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -19,6 +18,7 @@ import (
 	"github.com/cilium/cilium/pkg/lock"
 	"github.com/cilium/cilium/pkg/logging"
 	"github.com/cilium/cilium/pkg/logging/logfields"
+	"github.com/cilium/cilium/pkg/time"
 )
 
 var log = logging.DefaultLogger.WithField(logfields.LogSubsys, "rate")
@@ -82,6 +82,8 @@ const (
 	outcomeParallelMaxWait outcome = "fail-parallel-wait"
 	outcomeLimitMaxWait    outcome = "fail-limit-wait"
 	outcomeReqCancelled    outcome = "request-cancelled"
+	outcomeErrorCode       int     = 429
+	outcomeSuccessCode     int     = 200
 )
 
 // APILimiter is an extension to x/time/rate.Limiter specifically for Cilium
@@ -436,7 +438,7 @@ func (l *APILimiter) adjustedParallelRequests() int {
 	return int(l.adjustmentLimit(newParallelRequests, float64(l.params.ParallelRequests)))
 }
 
-func (l *APILimiter) requestFinished(r *limitedRequest, err error) {
+func (l *APILimiter) requestFinished(r *limitedRequest, err error, code int) {
 	if r.finished {
 		return
 	}
@@ -518,6 +520,7 @@ func (l *APILimiter) requestFinished(r *limitedRequest, err error) {
 		AdjustmentFactor:            l.adjustmentFactor,
 		Error:                       err,
 		Outcome:                     string(r.outcome),
+		ReturnCode:                  code,
 	}
 
 	if l.limiter != nil {
@@ -547,7 +550,7 @@ func calcMeanDuration(durations []time.Duration) float64 {
 // WaitDuration() concurrently.
 type LimitedRequest interface {
 	Done()
-	Error(err error)
+	Error(err error, code int)
 	WaitDuration() time.Duration
 }
 
@@ -569,12 +572,12 @@ func (l *limitedRequest) WaitDuration() time.Duration {
 
 // Done must be called when the API request has been successfully processed
 func (l *limitedRequest) Done() {
-	l.limiter.requestFinished(l, nil)
+	l.limiter.requestFinished(l, nil, outcomeSuccessCode)
 }
 
 // Error must be called when the API request resulted in an error
-func (l *limitedRequest) Error(err error) {
-	l.limiter.requestFinished(l, err)
+func (l *limitedRequest) Error(err error, code int) {
+	l.limiter.requestFinished(l, err, code)
 }
 
 // Wait blocks until the next API call is allowed to be processed. If the
@@ -584,7 +587,7 @@ func (l *limitedRequest) Error(err error) {
 func (l *APILimiter) Wait(ctx context.Context) (LimitedRequest, error) {
 	req, err := l.wait(ctx)
 	if err != nil {
-		l.requestFinished(req, err)
+		l.requestFinished(req, err, outcomeErrorCode)
 		return nil, err
 	}
 	return req, nil
@@ -813,6 +816,7 @@ type MetricsValues struct {
 	CurrentRequestsInFlight     int
 	AdjustmentFactor            float64
 	Error                       error
+	ReturnCode                  int
 }
 
 // MetricsObserver is the interface that must be implemented to extract metrics
@@ -867,7 +871,7 @@ type dummyRequest struct{}
 
 func (d dummyRequest) WaitDuration() time.Duration { return 0 }
 func (d dummyRequest) Done()                       {}
-func (d dummyRequest) Error(err error)             {}
+func (d dummyRequest) Error(err error, code int)   {}
 
 // Wait invokes Wait() on the APILimiter with the given name. If the limiter
 // does not exist, a dummy limiter is used which will not impose any
@@ -886,7 +890,7 @@ func (s *APILimiterSet) Wait(ctx context.Context, name string) (LimitedRequest, 
 func parsePositiveInt(value string) (int, error) {
 	switch i64, err := strconv.ParseInt(value, 10, 64); {
 	case err != nil:
-		return 0, fmt.Errorf("unable to parse positive integer %q: %v", value, err)
+		return 0, fmt.Errorf("unable to parse positive integer %q: %w", value, err)
 	case i64 < 0:
 		return 0, fmt.Errorf("unable to parse positive integer %q: negative value", value)
 	case i64 > math.MaxInt:

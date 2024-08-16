@@ -476,9 +476,9 @@ type entryCallback func(key Key, value *MapStateEntry) bool
 
 // ChangeState allows caller to revert changes made by (multiple) toMapState call(s)
 type ChangeState struct {
-	Adds    Keys     // Added or modified keys, if not nil
-	Deletes Keys     // deleted keys, if not nil
-	Old     MapState // Old values of all modified or deleted keys, if not nil
+	Adds    Keys                  // Added or modified keys, if not nil
+	Deletes Keys                  // deleted keys, if not nil
+	Old     map[Key]MapStateEntry // Old values of all modified or deleted keys, if not nil
 }
 
 // toMapState converts a single filter into a MapState entries added to 'p.PolicyMapState'.
@@ -487,7 +487,7 @@ type ChangeState struct {
 // AuthType, and L7 redirection (e.g., for visibility purposes), the mapstate entries are added to
 // 'p.PolicyMapState' using denyPreferredInsertWithChanges().
 // Keys and old values of any added or deleted entries are added to 'changes'.
-// The implementation of 'identities' is also in a locked state.
+// SelectorCache is also in read-locked state during this call.
 func (l4Filter *L4Filter) toMapState(p *EndpointPolicy, features policyFeatures, entryCb entryCallback, changes ChangeState) {
 	port := uint16(l4Filter.Port)
 	proto := uint8(l4Filter.U8Proto)
@@ -552,7 +552,7 @@ func (l4Filter *L4Filter) toMapState(p *EndpointPolicy, features policyFeatures,
 		if cs.IsWildcard() {
 			keyToAdd.Identity = 0
 			if entryCb(keyToAdd, &entry) {
-				p.PolicyMapState.denyPreferredInsertWithChanges(keyToAdd, entry, p.SelectorCache, features, changes)
+				p.policyMapState.denyPreferredInsertWithChanges(keyToAdd, entry, p.SelectorCache, features, changes)
 
 				if port == 0 {
 					// Allow-all
@@ -582,18 +582,18 @@ func (l4Filter *L4Filter) toMapState(p *EndpointPolicy, features policyFeatures,
 		for _, id := range idents {
 			keyToAdd.Identity = id.Uint32()
 			if entryCb(keyToAdd, &entry) {
-				p.PolicyMapState.denyPreferredInsertWithChanges(keyToAdd, entry, p.SelectorCache, features, changes)
+				p.policyMapState.denyPreferredInsertWithChanges(keyToAdd, entry, p.SelectorCache, features, changes)
 				// If Cilium is in dual-stack mode then the "World" identity
 				// needs to be split into two identities to represent World
 				// IPv6 and IPv4 traffic distinctly from one another.
 				if id == identity.ReservedIdentityWorld && option.Config.IsDualStack() {
 					keyToAdd.Identity = identity.ReservedIdentityWorldIPv4.Uint32()
 					if entryCb(keyToAdd, &entry) {
-						p.PolicyMapState.denyPreferredInsertWithChanges(keyToAdd, entry, p.SelectorCache, features, changes)
+						p.policyMapState.denyPreferredInsertWithChanges(keyToAdd, entry, p.SelectorCache, features, changes)
 					}
 					keyToAdd.Identity = identity.ReservedIdentityWorldIPv6.Uint32()
 					if entryCb(keyToAdd, &entry) {
-						p.PolicyMapState.denyPreferredInsertWithChanges(keyToAdd, entry, p.SelectorCache, features, changes)
+						p.policyMapState.denyPreferredInsertWithChanges(keyToAdd, entry, p.SelectorCache, features, changes)
 					}
 				}
 			}
@@ -607,9 +607,9 @@ func (l4Filter *L4Filter) toMapState(p *EndpointPolicy, features policyFeatures,
 //
 // The caller is responsible for making sure the same identity is not
 // present in both 'added' and 'deleted'.
-func (l4 *L4Filter) IdentitySelectionUpdated(selector CachedSelector, added, deleted []identity.NumericIdentity) {
+func (l4 *L4Filter) IdentitySelectionUpdated(cs CachedSelector, added, deleted []identity.NumericIdentity) {
 	log.WithFields(logrus.Fields{
-		logfields.EndpointSelector: selector,
+		logfields.EndpointSelector: cs,
 		logfields.AddedPolicyID:    added,
 		logfields.DeletedPolicyID:  deleted,
 	}).Debug("identities selected by L4Filter updated")
@@ -617,7 +617,7 @@ func (l4 *L4Filter) IdentitySelectionUpdated(selector CachedSelector, added, del
 	// Skip updates on wildcard selectors, as datapath and L7
 	// proxies do not need enumeration of all ids for L3 wildcard.
 	// This mirrors the per-selector logic in ToMapState().
-	if selector.IsWildcard() {
+	if cs.IsWildcard() {
 		return
 	}
 
@@ -627,40 +627,32 @@ func (l4 *L4Filter) IdentitySelectionUpdated(selector CachedSelector, added, del
 	// that we could not push updates on an unstable policy.
 	l4Policy := l4.policy.Load()
 	if l4Policy != nil {
-		direction := trafficdirection.Egress
-		if l4.Ingress {
-			direction = trafficdirection.Ingress
-		}
-		perSelectorPolicy := l4.PerSelectorPolicies[selector]
-		isRedirect := perSelectorPolicy.IsRedirect()
-		hasAuth, authType := perSelectorPolicy.GetAuthType()
-		isDeny := perSelectorPolicy != nil && perSelectorPolicy.IsDeny
-		l4Policy.AccumulateMapChanges(selector, added, deleted, l4, direction, isRedirect, isDeny, hasAuth, authType)
+		l4Policy.AccumulateMapChanges(l4, cs, added, deleted)
 	}
 }
 
-func (l4 *L4Filter) cacheIdentitySelector(sel api.EndpointSelector, selectorCache *SelectorCache) CachedSelector {
-	cs, added := selectorCache.AddIdentitySelector(l4, sel)
+func (l4 *L4Filter) cacheIdentitySelector(sel api.EndpointSelector, lbls labels.LabelArray, selectorCache *SelectorCache) CachedSelector {
+	cs, added := selectorCache.AddIdentitySelector(l4, lbls, sel)
 	if added {
 		l4.PerSelectorPolicies[cs] = nil // no per-selector policy (yet)
 	}
 	return cs
 }
 
-func (l4 *L4Filter) cacheIdentitySelectors(selectors api.EndpointSelectorSlice, selectorCache *SelectorCache) {
+func (l4 *L4Filter) cacheIdentitySelectors(selectors api.EndpointSelectorSlice, lbls labels.LabelArray, selectorCache *SelectorCache) {
 	for _, sel := range selectors {
-		l4.cacheIdentitySelector(sel, selectorCache)
+		l4.cacheIdentitySelector(sel, lbls, selectorCache)
 	}
 }
 
-func (l4 *L4Filter) cacheFQDNSelectors(selectors api.FQDNSelectorSlice, selectorCache *SelectorCache) {
+func (l4 *L4Filter) cacheFQDNSelectors(selectors api.FQDNSelectorSlice, lbls labels.LabelArray, selectorCache *SelectorCache) {
 	for _, fqdnSel := range selectors {
-		l4.cacheFQDNSelector(fqdnSel, selectorCache)
+		l4.cacheFQDNSelector(fqdnSel, lbls, selectorCache)
 	}
 }
 
-func (l4 *L4Filter) cacheFQDNSelector(sel api.FQDNSelector, selectorCache *SelectorCache) CachedSelector {
-	cs, added := selectorCache.AddFQDNSelector(l4, sel)
+func (l4 *L4Filter) cacheFQDNSelector(sel api.FQDNSelector, lbls labels.LabelArray, selectorCache *SelectorCache) CachedSelector {
+	cs, added := selectorCache.AddFQDNSelector(l4, lbls, sel)
 	if added {
 		l4.PerSelectorPolicies[cs] = nil // no per-selector policy (yet)
 	}
@@ -754,10 +746,10 @@ func createL4Filter(policyCtx PolicyContext, peerEndpoints api.EndpointSelectorS
 	}
 
 	if peerEndpoints.SelectsAllEndpoints() {
-		l4.wildcard = l4.cacheIdentitySelector(api.WildcardEndpointSelector, selectorCache)
+		l4.wildcard = l4.cacheIdentitySelector(api.WildcardEndpointSelector, ruleLabels, selectorCache)
 	} else {
-		l4.cacheIdentitySelectors(peerEndpoints, selectorCache)
-		l4.cacheFQDNSelectors(fqdns, selectorCache)
+		l4.cacheIdentitySelectors(peerEndpoints, ruleLabels, selectorCache)
+		l4.cacheFQDNSelectors(fqdns, ruleLabels, selectorCache)
 	}
 
 	var terminatingTLS *TLSContext
@@ -826,7 +818,7 @@ func createL4Filter(policyCtx PolicyContext, peerEndpoints api.EndpointSelectorS
 				ns = ""
 			default:
 			}
-			l4.Listener = api.ResourceQualifiedName(ns, resource.Name, pr.Listener.Name, api.ForceNamespace)
+			l4.Listener, _ = api.ResourceQualifiedName(ns, resource.Name, pr.Listener.Name, api.ForceNamespace)
 			forceRedirect = true
 		}
 	}
@@ -925,7 +917,7 @@ func createL4IngressFilter(policyCtx PolicyContext, fromEndpoints api.EndpointSe
 			if l7.IsRedirect() && cs.Selects(identity.ReservedIdentityHost) {
 				for _, name := range hostWildcardL7 {
 					selector := api.ReservedEndpointSelectors[name]
-					filter.cacheIdentitySelector(selector, policyCtx.GetSelectorCache())
+					filter.cacheIdentitySelector(selector, ruleLabels, policyCtx.GetSelectorCache())
 				}
 			}
 		}
@@ -995,7 +987,8 @@ func (l4 *L4Filter) matchesLabels(labels labels.LabelArray) (bool, bool) {
 	var selected bool
 	for sel, rule := range l4.PerSelectorPolicies {
 		// slow, but OK for tracing
-		if idSel, ok := sel.(*labelIdentitySelector); ok && idSel.xxxMatches(labels) {
+		idSel := sel.(*identitySelector)
+		if lis, ok := idSel.source.(*labelIdentitySelector); ok && lis.xxxMatches(labels) {
 			isDeny := rule != nil && rule.IsDeny
 			selected = true
 			if isDeny {
@@ -1252,30 +1245,61 @@ func (l4 *L4Policy) removeUser(user *EndpointPolicy) {
 //
 // The caller is responsible for making sure the same identity is not
 // present in both 'adds' and 'deletes'.
-func (l4 *L4Policy) AccumulateMapChanges(cs CachedSelector, adds, deletes []identity.NumericIdentity, l4Filter *L4Filter,
-	direction trafficdirection.TrafficDirection, redirect, isDeny bool, hasAuth HasAuthType, authType AuthType) {
-	port := uint16(l4Filter.Port)
-	proto := uint8(l4Filter.U8Proto)
-	derivedFrom := l4Filter.RuleOrigin[cs]
+func (l4Policy *L4Policy) AccumulateMapChanges(l4 *L4Filter, cs CachedSelector, adds, deletes []identity.NumericIdentity) {
+	port := uint16(l4.Port)
+	proto := uint8(l4.U8Proto)
+	derivedFrom := l4.RuleOrigin[cs]
+
+	direction := trafficdirection.Egress
+	if l4.Ingress {
+		direction = trafficdirection.Ingress
+	}
+	perSelectorPolicy := l4.PerSelectorPolicies[cs]
+	redirect := perSelectorPolicy.IsRedirect()
+	hasAuth, authType := perSelectorPolicy.GetAuthType()
+	isDeny := perSelectorPolicy != nil && perSelectorPolicy.IsDeny
 
 	// Must take a copy of 'users' as GetNamedPort() will lock the Endpoint below and
 	// the Endpoint lock may not be taken while 'l4.mutex' is held.
-	l4.mutex.RLock()
-	users := make(map[*EndpointPolicy]struct{}, len(l4.users))
-	for user := range l4.users {
+	l4Policy.mutex.RLock()
+	users := make(map[*EndpointPolicy]struct{}, len(l4Policy.users))
+	for user := range l4Policy.users {
 		users[user] = struct{}{}
 	}
-	l4.mutex.RUnlock()
+	l4Policy.mutex.RUnlock()
 
 	for epPolicy := range users {
+		// Skip if endpoint has no policy maps
+		if !epPolicy.PolicyOwner.HasBPFPolicyMap() {
+			continue
+		}
 		// resolve named port
-		if port == 0 && l4Filter.PortName != "" {
-			port = epPolicy.PolicyOwner.GetNamedPort(direction == trafficdirection.Ingress, l4Filter.PortName, proto)
+		if port == 0 && l4.PortName != "" {
+			port = epPolicy.PolicyOwner.GetNamedPort(l4.Ingress, l4.PortName, proto)
 			if port == 0 {
 				continue
 			}
 		}
-		epPolicy.policyMapChanges.AccumulateMapChanges(cs, adds, deletes, port, proto, direction, redirect, isDeny, hasAuth, authType, derivedFrom)
+		key := Key{DestPort: port, Nexthdr: proto, TrafficDirection: direction.Uint8()}
+		value := NewMapStateEntry(cs, derivedFrom, redirect, isDeny, hasAuth, authType)
+
+		if option.Config.Debug {
+			authString := "default"
+			if hasAuth {
+				authString = authType.String()
+			}
+			log.WithFields(logrus.Fields{
+				logfields.EndpointSelector: cs,
+				logfields.AddedPolicyID:    adds,
+				logfields.DeletedPolicyID:  deletes,
+				logfields.Port:             port,
+				logfields.Protocol:         proto,
+				logfields.TrafficDirection: direction,
+				logfields.IsRedirect:       redirect,
+				logfields.AuthType:         authString,
+			}).Debug("AccumulateMapChanges")
+		}
+		epPolicy.policyMapChanges.AccumulateMapChanges(cs, adds, deletes, key, value)
 	}
 }
 
@@ -1376,5 +1400,6 @@ type ProxyPolicy interface {
 	GetL7Parser() L7ParserType
 	GetIngress() bool
 	GetPort() uint16
+	GetProtocol() uint8
 	GetListener() string
 }

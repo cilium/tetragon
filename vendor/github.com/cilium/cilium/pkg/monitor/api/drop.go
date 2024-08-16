@@ -93,6 +93,12 @@ var errors = map[uint8]string{
 	195: "Traffic is unencrypted",
 	196: "TTL exceeded",
 	197: "No node ID found",
+	198: "Rate limited",
+	199: "IGMP handled",
+	200: "IGMP subscribed",
+	201: "Multicast handled",
+	202: "Host datapath not ready",
+	203: "Endpoint policy program not available",
 }
 
 func extendedReason(reason uint8, extError int8) string {

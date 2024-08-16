@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/spf13/pflag"
 
@@ -18,6 +17,7 @@ import (
 	"github.com/cilium/cilium/pkg/logging/logfields"
 	"github.com/cilium/cilium/pkg/option"
 	"github.com/cilium/cilium/pkg/promise"
+	"github.com/cilium/cilium/pkg/time"
 )
 
 // Cell returns a cell which provides a promise for the global kvstore client.
@@ -30,13 +30,14 @@ var Cell = func(defaultBackend string) cell.Cell {
 		"KVStore Client",
 
 		cell.Config(config{
-			KVStore:                    defaultBackend,
-			KVStoreConnectivityTimeout: defaults.KVstoreConnectivityTimeout,
-			KVStoreLeaseTTL:            defaults.KVstoreLeaseTTL,
-			KVStorePeriodicSync:        defaults.KVstorePeriodicSync,
+			KVStore:                           defaultBackend,
+			KVStoreConnectivityTimeout:        defaults.KVstoreConnectivityTimeout,
+			KVStoreLeaseTTL:                   defaults.KVstoreLeaseTTL,
+			KVStorePeriodicSync:               defaults.KVstorePeriodicSync,
+			KVstoreMaxConsecutiveQuorumErrors: defaults.KVstoreMaxConsecutiveQuorumErrors,
 		}),
 
-		cell.Provide(func(lc hive.Lifecycle, shutdowner hive.Shutdowner, cfg config, opts *ExtraOptions) promise.Promise[BackendOperations] {
+		cell.Provide(func(lc cell.Lifecycle, shutdowner hive.Shutdowner, cfg config, opts *ExtraOptions) promise.Promise[BackendOperations] {
 			resolver, promise := promise.New[BackendOperations]()
 			if cfg.KVStore == "" {
 				log.Info("Skipping connection to kvstore, as not configured")
@@ -50,12 +51,13 @@ var Cell = func(defaultBackend string) cell.Cell {
 			option.Config.KVstoreConnectivityTimeout = cfg.KVStoreConnectivityTimeout
 			option.Config.KVstoreLeaseTTL = cfg.KVStoreLeaseTTL
 			option.Config.KVstorePeriodicSync = cfg.KVStorePeriodicSync
+			option.Config.KVstoreMaxConsecutiveQuorumErrors = cfg.KVstoreMaxConsecutiveQuorumErrors
 
 			ctx, cancel := context.WithCancel(context.Background())
 			var wg sync.WaitGroup
 
-			lc.Append(hive.Hook{
-				OnStart: func(hive.HookContext) error {
+			lc.Append(cell.Hook{
+				OnStart: func(cell.HookContext) error {
 					wg.Add(1)
 					go func() {
 						defer wg.Done()
@@ -76,7 +78,7 @@ var Cell = func(defaultBackend string) cell.Cell {
 					}()
 					return nil
 				},
-				OnStop: func(hive.HookContext) error {
+				OnStop: func(cell.HookContext) error {
 					cancel()
 					wg.Wait()
 
@@ -94,11 +96,12 @@ var Cell = func(defaultBackend string) cell.Cell {
 }
 
 type config struct {
-	KVStore                    string
-	KVStoreOpt                 map[string]string
-	KVStoreConnectivityTimeout time.Duration
-	KVStoreLeaseTTL            time.Duration
-	KVStorePeriodicSync        time.Duration
+	KVStore                           string
+	KVStoreOpt                        map[string]string
+	KVStoreConnectivityTimeout        time.Duration
+	KVStoreLeaseTTL                   time.Duration
+	KVStorePeriodicSync               time.Duration
+	KVstoreMaxConsecutiveQuorumErrors uint
 }
 
 func (def config) Flags(flags *pflag.FlagSet) {
@@ -116,6 +119,9 @@ func (def config) Flags(flags *pflag.FlagSet) {
 
 	flags.Duration(option.KVstorePeriodicSync, def.KVStorePeriodicSync,
 		"Periodic KVstore synchronization interval")
+
+	flags.Uint(option.KVstoreMaxConsecutiveQuorumErrorsName, def.KVstoreMaxConsecutiveQuorumErrors,
+		"Max acceptable kvstore consecutive quorum errors before recreating the etcd connection")
 }
 
 // GlobalUserMgmtClientPromiseCell provides a promise returning the global kvstore client to perform users
@@ -124,13 +130,13 @@ var GlobalUserMgmtClientPromiseCell = cell.Module(
 	"global-kvstore-users-client",
 	"Global KVStore Users Management Client Promise",
 
-	cell.Provide(func(lc hive.Lifecycle, backendPromise promise.Promise[BackendOperations]) promise.Promise[BackendOperationsUserMgmt] {
+	cell.Provide(func(lc cell.Lifecycle, backendPromise promise.Promise[BackendOperations]) promise.Promise[BackendOperationsUserMgmt] {
 		resolver, promise := promise.New[BackendOperationsUserMgmt]()
 		ctx, cancel := context.WithCancel(context.Background())
 		var wg sync.WaitGroup
 
-		lc.Append(hive.Hook{
-			OnStart: func(hive.HookContext) error {
+		lc.Append(cell.Hook{
+			OnStart: func(cell.HookContext) error {
 				wg.Add(1)
 				go func() {
 					backend, err := backendPromise.Await(ctx)
@@ -143,7 +149,7 @@ var GlobalUserMgmtClientPromiseCell = cell.Module(
 				}()
 				return nil
 			},
-			OnStop: func(hive.HookContext) error {
+			OnStop: func(cell.HookContext) error {
 				cancel()
 				wg.Wait()
 				return nil

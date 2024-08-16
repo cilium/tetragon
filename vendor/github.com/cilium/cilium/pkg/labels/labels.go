@@ -7,7 +7,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"net"
+	"net/netip"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -114,6 +115,9 @@ const (
 	// LabelSourceContainer is a label imported from the container runtime
 	LabelSourceContainer = "container"
 
+	// LabelSourceCNI is a label imported from the CNI plugin
+	LabelSourceCNI = "cni"
+
 	// LabelSourceReserved is the label source for reserved types.
 	LabelSourceReserved = "reserved"
 
@@ -143,26 +147,24 @@ type Labels map[string]Label
 
 // GetPrintableModel turns the Labels into a sorted list of strings
 // representing the labels, with CIDRs deduplicated (ie, only provide the most
-// specific CIDR).
+// specific CIDRs).
 func (l Labels) GetPrintableModel() (res []string) {
-	cidr := ""
-	prefixLength := 0
+	// Aggregate list of "leaf" CIDRs
+	leafCIDRs := leafCIDRList[*Label]{}
 	for _, v := range l {
+		// If this is a CIDR label, filter out non-leaf CIDRs for human consumption
 		if v.Source == LabelSourceCIDR {
-			vStr := strings.Replace(v.String(), "-", ":", -1)
-			prefix := strings.Replace(v.Key, "-", ":", -1)
-			_, ipnet, _ := net.ParseCIDR(prefix)
-			ones, _ := ipnet.Mask.Size()
-			if ones > prefixLength {
-				cidr = vStr
-				prefixLength = ones
-			}
-			continue
+			v := v
+			prefixStr := strings.Replace(v.Key, "-", ":", -1)
+			prefix, _ := netip.ParsePrefix(prefixStr)
+			leafCIDRs.insert(prefix, &v)
+		} else {
+			// not a CIDR label, no magic needed
+			res = append(res, v.String())
 		}
-		res = append(res, v.String())
 	}
-	if cidr != "" {
-		res = append(res, cidr)
+	for _, val := range leafCIDRs {
+		res = append(res, strings.Replace(val.String(), "-", ":", -1))
 	}
 
 	sort.Strings(res)
@@ -172,20 +174,6 @@ func (l Labels) GetPrintableModel() (res []string) {
 // String returns the map of labels as human readable string
 func (l Labels) String() string {
 	return strings.Join(l.GetPrintableModel(), ",")
-}
-
-// AppendPrefixInKey appends the given prefix to all the Key's of the map and the
-// respective Labels' Key.
-func (l Labels) AppendPrefixInKey(prefix string) Labels {
-	newLabels := Labels{}
-	for k, v := range l {
-		newLabels[prefix+k] = Label{
-			Key:    prefix + v.Key,
-			Value:  v.Value,
-			Source: v.Source,
-		}
-	}
-	return newLabels
 }
 
 // Equals returns true if the two Labels contain the same set of labels.
@@ -305,7 +293,7 @@ func (l *Label) UnmarshalJSON(data []byte) error {
 		var aux string
 
 		if err := json.Unmarshal(data, &aux); err != nil {
-			return fmt.Errorf("decode of Label as string failed: %+v", err)
+			return fmt.Errorf("decode of Label as string failed: %w", err)
 		}
 
 		if aux == "" {
@@ -409,6 +397,15 @@ func NewLabelsFromModel(base []string) Labels {
 	return lbls
 }
 
+// FromSlice creates labels from a slice of labels.
+func FromSlice(labels []Label) Labels {
+	lbls := make(Labels, len(labels))
+	for _, lbl := range labels {
+		lbls[lbl.Key] = lbl
+	}
+	return lbls
+}
+
 // NewLabelsFromSortedList returns labels based on the output of SortedList()
 func NewLabelsFromSortedList(list string) Labels {
 	return NewLabelsFromModel(strings.Split(list, ";"))
@@ -427,7 +424,7 @@ func NewSelectLabelArrayFromModel(base []string) LabelArray {
 
 // NewFrom creates a new Labels from the given labels by creating a copy.
 func NewFrom(l Labels) Labels {
-	nl := NewLabelsFromModel(nil)
+	nl := make(Labels, len(l))
 	nl.MergeLabels(l)
 	return nl
 }
@@ -512,7 +509,7 @@ func (l Labels) SortedList() []byte {
 	for k := range l {
 		keys = append(keys, k)
 	}
-	sort.Strings(keys)
+	slices.Sort(keys)
 
 	// Labels can have arbitrary size. However, when many CIDR identities are in
 	// the system, for example due to a FQDN policy matching S3, CIDR labels

@@ -28,6 +28,7 @@ const (
 	FormatOpt = "format"
 
 	LogFormatText          LogFormat = "text"
+	LogFormatTextTimestamp LogFormat = "text-ts"
 	LogFormatJSON          LogFormat = "json"
 	LogFormatJSONTimestamp LogFormat = "json-ts"
 
@@ -35,13 +36,20 @@ const (
 	// we want to use (possible values: text or json)
 	DefaultLogFormat LogFormat = LogFormatText
 
+	// DefaultLogFormatTimestamp is the string representation of the default logrus.Formatter
+	// including timestamps.
+	// We don't use this for general runtime logs since kubernetes log capture handles those.
+	// This is only used for applications such as CNI which is written to disk so we have no
+	// way to correlate with other logs.
+	DefaultLogFormatTimestamp LogFormat = LogFormatTextTimestamp
+
 	// DefaultLogLevel is the default log level we want to use for our logrus.Formatter
 	DefaultLogLevel logrus.Level = logrus.InfoLevel
 )
 
 // DefaultLogger is the base logrus logger. It is different from the logrus
 // default to avoid external dependencies from writing out unexpectedly
-var DefaultLogger = InitializeDefaultLogger()
+var DefaultLogger = initializeDefaultLogger()
 
 func initializeKLog() {
 	log := DefaultLogger.WithField(logfields.LogSubsys, "klog")
@@ -73,10 +81,11 @@ func initializeKLog() {
 // LogOptions maps configuration key-value pairs related to logging.
 type LogOptions map[string]string
 
-// InitializeDefaultLogger returns a logrus Logger with a custom text formatter.
-func InitializeDefaultLogger() (logger *logrus.Logger) {
+// initializeDefaultLogger returns a logrus Logger with the default logging
+// settings.
+func initializeDefaultLogger() (logger *logrus.Logger) {
 	logger = logrus.New()
-	logger.SetFormatter(GetFormatter(DefaultLogFormat))
+	logger.SetFormatter(GetFormatter(DefaultLogFormatTimestamp))
 	logger.SetLevel(DefaultLogLevel)
 	return
 }
@@ -103,16 +112,16 @@ func (o LogOptions) GetLogLevel() (level logrus.Level) {
 func (o LogOptions) GetLogFormat() LogFormat {
 	formatOpt, ok := o[FormatOpt]
 	if !ok {
-		return DefaultLogFormat
+		return DefaultLogFormatTimestamp
 	}
 
 	formatOpt = strings.ToLower(formatOpt)
-	re := regexp.MustCompile(`^(text|json|json-ts)$`)
+	re := regexp.MustCompile(`^(text|text-ts|json|json-ts)$`)
 	if !re.MatchString(formatOpt) {
 		logrus.WithError(
-			fmt.Errorf("incorrect log format configured '%s', expected 'text', 'json' or 'json-ts'", formatOpt),
+			fmt.Errorf("incorrect log format configured '%s', expected 'text', 'text-ts', 'json' or 'json-ts'", formatOpt),
 		).Warning("Ignoring user-configured log format")
-		return DefaultLogFormat
+		return DefaultLogFormatTimestamp
 	}
 
 	return LogFormat(formatOpt)
@@ -140,7 +149,7 @@ func SetLogFormat(logFormat LogFormat) {
 
 // SetDefaultLogFormat updates the DefaultLogger with the DefaultLogFormat
 func SetDefaultLogFormat() {
-	DefaultLogger.SetFormatter(GetFormatter(DefaultLogFormat))
+	DefaultLogger.SetFormatter(GetFormatter(DefaultLogFormatTimestamp))
 }
 
 // AddHooks adds additional logrus hook to default logger
@@ -199,6 +208,11 @@ func GetFormatter(format LogFormat) logrus.Formatter {
 	case LogFormatText:
 		return &logrus.TextFormatter{
 			DisableTimestamp: true,
+			DisableColors:    true,
+		}
+	case LogFormatTextTimestamp:
+		return &logrus.TextFormatter{
+			DisableTimestamp: false,
 			DisableColors:    true,
 		}
 	case LogFormatJSON:

@@ -6,6 +6,8 @@ package cell
 import (
 	"fmt"
 	"regexp"
+	"slices"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"go.uber.org/dig"
@@ -24,6 +26,22 @@ import (
 func Module(id, title string, cells ...Cell) Cell {
 	validateIDAndTitle(id, title)
 	return &module{id, title, cells}
+}
+
+// ModuleID is the module identifier. Provided in the module's scope.
+type ModuleID string
+
+// FullModuleID is the fully qualified module identifier, e.g. the
+// concat of nested module ids, e.g. "agent.controlplane.endpoint-manager".
+// Provided in the module's scope.
+type FullModuleID []string
+
+func (f FullModuleID) String() string {
+	return strings.Join(f, ".")
+}
+
+func (f FullModuleID) append(m ModuleID) FullModuleID {
+	return append(slices.Clone(f), string(m))
 }
 
 var (
@@ -56,16 +74,69 @@ func (m *module) logger(log logrus.FieldLogger) logrus.FieldLogger {
 	return log.WithField(logfields.LogSubsys, m.id)
 }
 
-func (m *module) moduleScopedStatusReporter(p Health) HealthReporter {
-	return p.forModule(m.id)
+func (m *module) moduleID() ModuleID {
+	return ModuleID(m.id)
+}
+
+func (m *module) fullModuleID(parent FullModuleID) FullModuleID {
+	return parent.append(m.moduleID())
+}
+
+type reporterHooks struct {
+	rootScope *scope
+}
+
+func (r *reporterHooks) Start(ctx HookContext) error {
+	r.rootScope.start()
+	return nil
+}
+
+func (r *reporterHooks) Stop(ctx HookContext) error {
+	flushAndClose(r.rootScope, "Hive shutting down")
+	return nil
+}
+
+func createStructedScope(id FullModuleID, p Health, lc Lifecycle) Scope {
+	rs := rootScope(id, p.forModule(id))
+	lc.Append(&reporterHooks{rootScope: rs})
+	return rs
+}
+
+func (m *module) lifecycle(lc Lifecycle, fullID FullModuleID) Lifecycle {
+	switch lc := lc.(type) {
+	case *DefaultLifecycle:
+		return &augmentedLifecycle{
+			lc,
+			fullID,
+		}
+	case *augmentedLifecycle:
+		return &augmentedLifecycle{
+			lc.DefaultLifecycle,
+			fullID,
+		}
+	default:
+		return lc
+	}
 }
 
 func (m *module) Apply(c container) error {
 	scope := c.Scope(m.id)
 
+	// Provide ModuleID and FullModuleID in the module's scope.
+	if err := scope.Provide(m.moduleID); err != nil {
+		return err
+	}
+	if err := scope.Decorate(m.fullModuleID); err != nil {
+		return err
+	}
+
 	// Provide module scoped status reporter, used for reporting module level
 	// health status.
-	if err := scope.Provide(m.moduleScopedStatusReporter, dig.Export(false)); err != nil {
+	if err := scope.Provide(createStructedScope, dig.Export(false)); err != nil {
+		return err
+	}
+
+	if err := scope.Decorate(m.lifecycle); err != nil {
 		return err
 	}
 

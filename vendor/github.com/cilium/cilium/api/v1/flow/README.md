@@ -110,7 +110,7 @@
 <a name="flow-CiliumEventType"></a>
 
 ### CiliumEventType
-CiliumEventType from which the flow originated
+CiliumEventType from which the flow originated.
 
 
 | Field | Type | Label | Description |
@@ -126,8 +126,7 @@ CiliumEventType from which the flow originated
 <a name="flow-DNS"></a>
 
 ### DNS
-DNS flow. This is basically directly mapped from Cilium&#39;s LogRecordDNS:
-    https://github.com/cilium/cilium/blob/04f3889d627774f79e56d14ddbc165b3169e2d01/pkg/proxy/accesslog/record.go#L264
+DNS flow. This is basically directly mapped from Cilium&#39;s [LogRecordDNS](https://github.com/cilium/cilium/blob/04f3889d627774f79e56d14ddbc165b3169e2d01/pkg/proxy/accesslog/record.go#L264):
 
 
 | Field | Type | Label | Description |
@@ -243,7 +242,7 @@ DNS flow. This is basically directly mapped from Cilium&#39;s LogRecordDNS:
 <a name="flow-EventTypeFilter"></a>
 
 ### EventTypeFilter
-EventTypeFilter is a filter describing a particular event type
+EventTypeFilter is a filter describing a particular event type.
 
 
 | Field | Type | Label | Description |
@@ -317,7 +316,7 @@ multiple fields are set, then all fields must match for the filter to match.
 | ----- | ---- | ----- | ----------- |
 | uuid | [string](#string) | repeated | uuid filters by a list of flow uuids. |
 | source_ip | [string](#string) | repeated | source_ip filters by a list of source ips. Each of the source ips can be specified as an exact match (e.g. &#34;1.1.1.1&#34;) or as a CIDR range (e.g. &#34;1.1.1.0/24&#34;). |
-| source_pod | [string](#string) | repeated | source_pod filters by a list of source pod name prefixes, optionally within a given namespace (e.g. &#34;xwing&#34;, &#34;kube-system/coredns-&#34;). The pod name can be omitted to only filter by namespace (e.g. &#34;kube-system/&#34;) |
+| source_pod | [string](#string) | repeated | source_pod filters by a list of source pod name prefixes, optionally within a given namespace (e.g. &#34;xwing&#34;, &#34;kube-system/coredns-&#34;). The pod name can be omitted to only filter by namespace (e.g. &#34;kube-system/&#34;) or the namespace can be omitted to filter for pods in any namespace (e.g. &#34;/xwing&#34;) |
 | source_fqdn | [string](#string) | repeated | source_fqdn filters by a list of source fully qualified domain names |
 | source_label | [string](#string) | repeated | source_labels filters on a list of source label selectors. Selectors support the full Kubernetes label selector syntax. |
 | source_service | [string](#string) | repeated | source_service filters on a list of source service names. This field supports the same syntax as the source_pod field. |
@@ -342,6 +341,7 @@ multiple fields are set, then all fields must match for the filter to match.
 | http_method | [string](#string) | repeated | GET, POST, PUT, etc. methods. This type of field is well suited for an enum but every single existing place is using a string already. |
 | http_path | [string](#string) | repeated | http_path is a list of regular expressions to filter on the HTTP path. |
 | http_url | [string](#string) | repeated | http_url is a list of regular expressions to filter on the HTTP URL. |
+| http_header | [HTTPHeader](#flow-HTTPHeader) | repeated | http_header is a list of key:value pairs to filter on the HTTP headers. |
 | tcp_flags | [TCPFlags](#flow-TCPFlags) | repeated | tcp_flags filters flows based on TCP header flags |
 | node_name | [string](#string) | repeated | node_name is a list of patterns to filter on the node name, e.g. &#34;k8s*&#34;, &#34;test-cluster/*.domain.com&#34;, &#34;cluster-name/&#34; etc. |
 | ip_version | [IPVersion](#flow-IPVersion) | repeated | filter based on IP version (ipv4 or ipv6) |
@@ -355,8 +355,7 @@ multiple fields are set, then all fields must match for the filter to match.
 <a name="flow-HTTP"></a>
 
 ### HTTP
-L7 information for HTTP flows. It corresponds to Cilium&#39;s accesslog.LogRecordHTTP type.
-  https://github.com/cilium/cilium/blob/728c79e427438ab6f8d9375b62fccd6fed4ace3a/pkg/proxy/accesslog/record.go#L206
+L7 information for HTTP flows. It corresponds to Cilium&#39;s [accesslog.LogRecordHTTP](https://github.com/cilium/cilium/blob/728c79e427438ab6f8d9375b62fccd6fed4ace3a/pkg/proxy/accesslog/record.go#L206) type.
 
 
 | Field | Type | Label | Description |
@@ -463,8 +462,7 @@ L7 information for HTTP flows. It corresponds to Cilium&#39;s accesslog.LogRecor
 <a name="flow-Kafka"></a>
 
 ### Kafka
-L7 information for Kafka flows. It corresponds to Cilium&#39;s accesslog.LogRecordKafka type.
-  https://github.com/cilium/cilium/blob/728c79e427438ab6f8d9375b62fccd6fed4ace3a/pkg/proxy/accesslog/record.go#L229
+L7 information for Kafka flows. It corresponds to Cilium&#39;s [accesslog.LogRecordKafka](https://github.com/cilium/cilium/blob/728c79e427438ab6f8d9375b62fccd6fed4ace3a/pkg/proxy/accesslog/record.go#L229) type.
 
 
 | Field | Type | Label | Description |
@@ -502,8 +500,7 @@ L7 information for Kafka flows. It corresponds to Cilium&#39;s accesslog.LogReco
 <a name="flow-Layer7"></a>
 
 ### Layer7
-Message for L7 flow, which roughly corresponds to Cilium&#39;s accesslog LogRecord:
-  https://github.com/cilium/cilium/blob/728c79e427438ab6f8d9375b62fccd6fed4ace3a/pkg/proxy/accesslog/record.go#L141
+Message for L7 flow, which roughly corresponds to Cilium&#39;s accesslog [LogRecord](https://github.com/cilium/cilium/blob/728c79e427438ab6f8d9375b62fccd6fed4ace3a/pkg/proxy/accesslog/record.go#L141):
 
 
 | Field | Type | Label | Description |
@@ -732,10 +729,9 @@ that happened before the events were captured by Hubble.
 <a name="flow-TraceContext"></a>
 
 ### TraceContext
-TraceContext contains trace context propagation data, ie information about a
+TraceContext contains trace context propagation data, i.e. information about a
 distributed trace.
-For more information about trace context, check the W3C Trace Context
-specification: https://www.w3.org/TR/trace-context/
+For more information about trace context, check the [W3C Trace Context specification](https://www.w3.org/TR/trace-context/).
 
 
 | Field | Type | Label | Description |
@@ -800,7 +796,7 @@ TraceParent identifies the incoming request in a tracing system.
 
 ### AgentEventType
 AgentEventType is the type of agent event. These values are shared with type
-AgentNotification in pkg/monitor/api/types.go
+AgentNotification in pkg/monitor/api/types.go.
 
 | Name | Number | Description |
 | ---- | ------ | ----------- |
@@ -822,7 +818,7 @@ AgentNotification in pkg/monitor/api/types.go
 <a name="flow-AuthType"></a>
 
 ### AuthType
-These types correspond to definitions in pkg/policy/l4.go
+These types correspond to definitions in pkg/policy/l4.go.
 
 | Name | Number | Description |
 | ---- | ------ | ----------- |
@@ -1005,6 +1001,12 @@ here.
 | UNENCRYPTED_TRAFFIC | 195 |  |
 | TTL_EXCEEDED | 196 |  |
 | NO_NODE_ID | 197 |  |
+| DROP_RATE_LIMITED | 198 |  |
+| IGMP_HANDLED | 199 |  |
+| IGMP_SUBSCRIBED | 200 |  |
+| MULTICAST_HANDLED | 201 |  |
+| DROP_HOST_NOT_READY | 202 | A BPF program wants to tail call into bpf_host, but the host datapath hasn&#39;t been loaded yet. |
+| DROP_EP_NOT_READY | 203 | A BPF program wants to tail call some endpoint&#39;s policy program in the POLICY_CALL_MAP, but the program is not available. |
 
 
 
@@ -1051,8 +1053,7 @@ EventType are constants are based on the ones from &lt;linux/perf_event.h&gt;.
 <a name="flow-L7FlowType"></a>
 
 ### L7FlowType
-This enum corresponds to Cilium&#39;s L7 accesslog FlowType:
-  https://github.com/cilium/cilium/blob/728c79e427438ab6f8d9375b62fccd6fed4ace3a/pkg/proxy/accesslog/record.go#L26
+This enum corresponds to Cilium&#39;s L7 accesslog [FlowType](https://github.com/cilium/cilium/blob/728c79e427438ab6f8d9375b62fccd6fed4ace3a/pkg/proxy/accesslog/record.go#L26):
 
 | Name | Number | Description |
 | ---- | ------ | ----------- |
