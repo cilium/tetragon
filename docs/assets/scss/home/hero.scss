@@ -26,6 +26,7 @@
     }
 
     @media (max-width: $mobile) {
+      padding-top: 2rem !important;
       padding-left: 16px !important;
       padding-right: 16px !important;
     }
@@ -36,7 +37,7 @@
     flex-wrap: wrap;
     align-items: center;
     margin-top: 54px;
-    padding: 5px 10px;
+    padding: 6px 16px;
     font-size: 14px;
     line-height: 1.375;
     color: #58595e;
@@ -48,14 +49,14 @@
       display: flex;
       flex-wrap: wrap;
       align-items: center;
+    }
 
-      &:not(:last-child) {
-      padding-right: 4px;
-      }
+    span:not(:last-child) {
+      padding-right: 3px;
     }
 
     img {
-      margin: 0 3px;
+      margin-right: 3px;
     }
 
     @media (max-width: $desktop) {
@@ -70,8 +71,8 @@
 
     @media (max-width: $mobile) {
       justify-content: center;
-      margin-top: 18px;
-      padding: 5px;
+      max-width: 270px;
+      margin-top: 0;
 
       img {
         max-width: 20px;

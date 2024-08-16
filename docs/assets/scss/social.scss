@@ -41,6 +41,7 @@
     }
 
     @media (max-width: $tablet) {
+      flex-wrap: wrap;
       gap: 20px;
       margin-top: 32px;
     }
@@ -58,7 +59,7 @@
     border-radius: 4px;
 
     @media (max-width: $tablet) {
-      width: 224px;
+      width: 346px;
     }
 
     @media (max-width: $mobile) {
@@ -87,6 +88,9 @@
   }
 
   &__item-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
     @media (max-width: $mobile) {
       display: flex;
       flex-direction: column;
@@ -145,7 +149,7 @@
 
   &__item-description {
     margin-top: 5px;
-    margin-bottom: 0;
+    margin-bottom: auto;
     line-height: 1.5;
     color: #7E8490;
 
@@ -196,6 +200,16 @@
 
     &:after {
       background: #70a0ff;
+      filter: blur(14px);
+    }
+  }
+
+  &__item--dark-blue {
+    background-color: #F1F8FE;
+    border-color: #CFE7FC;
+
+    &:after {
+      background: #70B2FF;
       filter: blur(14px);
     }
   }
