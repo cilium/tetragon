@@ -1,0 +1,5 @@
+go test fuzz v1
+int64(56343604)
+byte('\u0096')
+bool(false)
+bool(false)

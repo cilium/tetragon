@@ -1,0 +1,5 @@
+go test fuzz v1
+int64(78776435)
+byte('\x05')
+bool(true)
+bool(true)
