@@ -7,10 +7,12 @@ on:
     paths:
     - 'install/kubernetes/**'
     - 'pkg/k8s/apis/cilium.io/client/crds/v1alpha1/*.yaml'
+    - '.github/workflows/lint-helm.yaml'
   pull_request:
     paths:
     - 'install/kubernetes/**'
     - 'pkg/k8s/apis/cilium.io/client/crds/v1alpha1/*.yaml'
+    - '.github/workflows/lint-helm.yaml'
 
 jobs:
   generated-files:
