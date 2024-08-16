@@ -35,7 +35,7 @@ func New() *cobra.Command {
 }
 
 func execveMapCmd() *cobra.Command {
-	mapFname := filepath.Join(defaults.DefaultMapRoot, defaults.DefaultMapPrefix, base.ExecveMap.Name)
+	mapFname := filepath.Join(defaults.DefaultMapRoot, defaults.DefaultMapPrefix, base.GetExecveMap().Name)
 	ret := &cobra.Command{
 		Use:   "execve",
 		Short: "dump execve map",

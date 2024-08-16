@@ -484,8 +484,8 @@ func tetragonExecute() error {
 		initialSensor.Unload()
 	}()
 
-	cgrouprate.NewCgroupRate(ctx, pm, base.CgroupRateMap, &option.Config.CgroupRate)
-	cgrouprate.Config(base.CgroupRateOptionsMap)
+	cgrouprate.NewCgroupRate(ctx, pm, base.GetCgroupRateMap(), &option.Config.CgroupRate)
+	cgrouprate.Config(base.GetCgroupRateOptionsMap())
 
 	// now that the base sensor was loaded, we can start the sensor manager
 	close(sensorMgWait)

@@ -224,7 +224,7 @@ func getDefaultObserver(tb testing.TB, ctx context.Context, initialSensor *senso
 		return nil, err
 	}
 
-	cgrouprate.Config(base.CgroupRateOptionsMap)
+	cgrouprate.Config(base.GetCgroupRateOptionsMap())
 
 	exportFname, err := testutils.GetExportFilename(tb)
 	if err != nil {
@@ -413,7 +413,7 @@ func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, op
 		obs.RemoveListener(processManager)
 	})
 
-	cgrouprate.NewCgroupRate(ctx, processManager, base.CgroupRateMap, &option.Config.CgroupRate)
+	cgrouprate.NewCgroupRate(ctx, processManager, base.GetCgroupRateMap(), &option.Config.CgroupRate)
 	return nil
 }
 
