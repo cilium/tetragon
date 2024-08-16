@@ -501,7 +501,7 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 		return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, lsm.FunctionName), caps), nil
 	}
 
-	return "", ErrUnknownEventType
+	return "", fmt.Errorf("%w: %s", ErrUnknownEventType, response.EventType())
 }
 
 func rawSyscallEnter(tp *tetragon.ProcessTracepoint) string {
