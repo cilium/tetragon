@@ -26,11 +26,11 @@ import (
 var logOnce sync.Once
 
 func init() {
-	runtime.ErrorHandlers = []func(error){k8sErrorHandler}
+	runtime.ErrorHandlers = []runtime.ErrorHandler{k8sErrorHandler}
 }
 
 // k8sErrorHandler logs errors from k8s API to the tetragon logger for consistent log format.
-func k8sErrorHandler(e error) {
+func k8sErrorHandler(_ context.Context, e error, _ string, _ ...interface{}) {
 	if e == nil {
 		return
 	}
