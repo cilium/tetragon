@@ -1,3 +1,9 @@
+.td-home header {
+  position: sticky;
+  top: 0;
+  z-index: 32;
+}
+
 .td-navbar {
   height: 64px;
   padding: 20px 0;
@@ -5,6 +11,7 @@
   border-bottom: 1px solid #E5E7E7;
 
   .td-home & {
+    position: static;
     font-family: "Manrope", sans-serif;
     background-color: #f7fdfd;
     border-bottom-color: #f7fdfd;
