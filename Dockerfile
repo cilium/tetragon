@@ -56,6 +56,8 @@ RUN if [ $BUILDARCH != $TARGETARCH ]; \
 # v7.3.0
 ENV BPFTOOL_REV="687e7f06f2ee104ed6515ec3a9816af77bfa7a17"
 RUN git clone https://github.com/libbpf/bpftool.git . && git checkout ${BPFTOOL_REV} && git submodule update --init --recursive
+# From Ubuntu 24.04 builder image, libzstd must be added at the end of LIBS and LIBS_BOOTSTRAP to compile statically
+RUN sed -i 's/\(LIBS = $(LIBBPF) -lelf -lz\)/\1 -lzstd/; s/\(LIBS_BOOTSTRAP = $(LIBBPF_BOOTSTRAP) -lelf -lz\)/\1 -lzstd/' src/Makefile
 RUN if [ $BUILDARCH != $TARGETARCH ]; \
     then make -C src EXTRA_CFLAGS=--static CC=aarch64-linux-gnu-gcc -j $(nproc) && aarch64-linux-gnu-strip src/bpftool; \
     else make -C src EXTRA_CFLAGS=--static -j $(nproc) && strip src/bpftool; fi
