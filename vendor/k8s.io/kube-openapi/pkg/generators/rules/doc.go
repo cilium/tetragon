@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2018 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,9 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/*
-Package ratelimiter defines rate limiters used by Controllers to limit how frequently requests may be queued.
-
-Typical rate limiters that can be used are implemented in client-go's workqueue package.
-*/
-package ratelimiter
+// Package rules contains API rules that are enforced in OpenAPI spec generation
+// as part of the machinery. Files under this package implement APIRule interface
+// which evaluates Go type and produces list of API rule violations.
+//
+// Implementations of APIRule should be added to API linter under openAPIGen code-
+// generator to get integrated in the generation process.
+package rules
