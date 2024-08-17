@@ -4001,7 +4001,11 @@ func matchBinariesPerfringTest(t *testing.T, operator string, values []string) {
 	}
 
 	err := sm.Manager.AddTracingPolicy(ctx, &matchBinariesTracingPolicy)
-	assert.NoError(t, err)
+	if assert.NoError(t, err) {
+		t.Cleanup(func() {
+			sm.Manager.DeleteTracingPolicy(ctx, "match-binaries", "")
+		})
+	}
 
 	var tailPID, headPID int
 	ops := func() {
@@ -4112,7 +4116,11 @@ func TestKprobeMatchBinariesEarlyExec(t *testing.T) {
 	}
 
 	err = sm.Manager.AddTracingPolicy(ctx, &matchBinariesTracingPolicy)
-	assert.NoError(t, err)
+	if assert.NoError(t, err) {
+		t.Cleanup(func() {
+			sm.Manager.DeleteTracingPolicy(ctx, "match-binaries", "")
+		})
+	}
 
 	ops := func() {
 		file.WriteString("trigger!")
@@ -4188,7 +4196,11 @@ func TestKprobeMatchBinariesPrefixMatchArgs(t *testing.T) {
 	}
 
 	err := sm.Manager.AddTracingPolicy(ctx, &matchBinariesTracingPolicy)
-	assert.NoError(t, err)
+	if assert.NoError(t, err) {
+		t.Cleanup(func() {
+			sm.Manager.DeleteTracingPolicy(ctx, "match-binaries", "")
+		})
+	}
 
 	var tailEtcPID, tailProcPID, headPID int
 	ops := func() {
@@ -6123,7 +6135,11 @@ func TestLinuxBinprmExtractPath(t *testing.T) {
 	}
 
 	err := sm.Manager.AddTracingPolicy(ctx, &bprmTracingPolicy)
-	assert.NoError(t, err)
+	if assert.NoError(t, err) {
+		t.Cleanup(func() {
+			sm.Manager.DeleteTracingPolicy(ctx, "bprm-extract-path", "")
+		})
+	}
 
 	targetCommand := exec.Command("/usr/bin/id")
 	filteredCommand := exec.Command("/usr/bin/uname")
