@@ -283,7 +283,7 @@ func observerLoadInstance(bpfDir string, load *program.Program) error {
 	l.WithFields(logrus.Fields{
 		"prog":         load.Name,
 		"kern_version": version,
-	}).Debug("observerLoadInstance", load.Name, version)
+	}).Debugf("observerLoadInstance %s %d", load.Name, version)
 	if load.Type == "tracepoint" {
 		err = loadInstance(bpfDir, load, version, option.Config.Verbosity)
 		if err != nil {
