@@ -15,12 +15,20 @@
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 
+int execve_rate(void *ctx);
+int execve_send(void *ctx);
+
 struct {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
 	__uint(max_entries, 2);
 	__uint(key_size, sizeof(__u32));
-	__uint(value_size, sizeof(__u32));
-} execve_calls SEC(".maps");
+	__array(values, int(void *));
+} execve_calls SEC(".maps") = {
+	.values = {
+		[0] = (void *)&execve_rate,
+		[1] = (void *)&execve_send,
+	},
+};
 
 #include "data_event.h"
 
@@ -271,7 +279,7 @@ event_execve(struct trace_event_raw_sched_process_exec *ctx)
 	return 0;
 }
 
-__attribute__((section("tracepoint/0"), used)) int
+__attribute__((section("tracepoint"), used)) int
 execve_rate(void *ctx)
 {
 	struct msg_execve_event *msg;
@@ -316,7 +324,7 @@ void update_mb_bitset(struct binary *bin)
  * is to update the pid execve_map entry to reflect the new execve event that
  * has already been collected, then send it to the perf buffer.
  */
-__attribute__((section("tracepoint/1"), used)) int
+__attribute__((section("tracepoint"), used)) int
 execve_send(void *ctx)
 {
 	struct msg_execve_event *event;
