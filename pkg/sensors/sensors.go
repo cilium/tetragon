@@ -41,8 +41,6 @@ type Sensor struct {
 	Name string
 	// Progs are all the BPF programs that exist on the filesystem.
 	Progs []*program.Program
-	// Maps are all the BPF Maps that the progs use.
-	Maps []*program.Map
 	// Loaded indicates whether the sensor has been Loaded.
 	Loaded bool
 	// Destroyed indicates whether the sensor had been destroyed.
@@ -84,19 +82,16 @@ type SensorHook func() error
 
 func SensorCombine(name string, sensors ...*Sensor) *Sensor {
 	progs := []*program.Program{}
-	maps := []*program.Map{}
 	for _, s := range sensors {
 		progs = append(progs, s.Progs...)
-		maps = append(maps, s.Maps...)
 	}
-	return SensorBuilder(name, progs, maps)
+	return SensorBuilder(name, progs)
 }
 
-func SensorBuilder(name string, p []*program.Program, m []*program.Map) *Sensor {
+func SensorBuilder(name string, p []*program.Program) *Sensor {
 	return &Sensor{
 		Name:  name,
 		Progs: p,
-		Maps:  m,
 	}
 }
 

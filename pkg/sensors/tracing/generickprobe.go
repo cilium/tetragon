@@ -198,8 +198,7 @@ func getProgramSelector(load *program.Program, kprobeEntry *genericKprobe) *sele
 	return nil
 }
 
-func filterMaps(load *program.Program, pinPath string, kprobeEntry *genericKprobe) []*program.Map {
-	var maps []*program.Map
+func filterMaps(load *program.Program, pinPath string, kprobeEntry *genericKprobe) {
 
 	/*
 	 * If we got passed genericKprobe != nil we can make selector map fixes
@@ -215,7 +214,6 @@ func filterMaps(load *program.Program, pinPath string, kprobeEntry *genericKprob
 		maxEntries := state.ValueMapsMaxEntries()
 		argFilterMaps.SetInnerMaxEntries(maxEntries)
 	}
-	maps = append(maps, argFilterMaps)
 
 	addr4FilterMaps := program.MapBuilderPin("addr4lpm_maps", sensors.PathJoin(pinPath, "addr4lpm_maps"), load)
 	if state != nil && !kernels.MinKernelVersion("5.9") {
@@ -224,7 +222,6 @@ func filterMaps(load *program.Program, pinPath string, kprobeEntry *genericKprob
 		maxEntries := state.Addr4MapsMaxEntries()
 		addr4FilterMaps.SetInnerMaxEntries(maxEntries)
 	}
-	maps = append(maps, addr4FilterMaps)
 
 	addr6FilterMaps := program.MapBuilderPin("addr6lpm_maps", sensors.PathJoin(pinPath, "addr6lpm_maps"), load)
 	if state != nil && !kernels.MinKernelVersion("5.9") {
@@ -233,7 +230,6 @@ func filterMaps(load *program.Program, pinPath string, kprobeEntry *genericKprob
 		maxEntries := state.Addr6MapsMaxEntries()
 		addr6FilterMaps.SetInnerMaxEntries(maxEntries)
 	}
-	maps = append(maps, addr6FilterMaps)
 
 	var stringFilterMap [selectors.StringMapsNumSubMaps]*program.Map
 	numSubMaps := selectors.StringMapsNumSubMaps
@@ -250,7 +246,6 @@ func filterMaps(load *program.Program, pinPath string, kprobeEntry *genericKprob
 			maxEntries := state.StringMapsMaxEntries(string_map_index)
 			stringFilterMap[string_map_index].SetInnerMaxEntries(maxEntries)
 		}
-		maps = append(maps, stringFilterMap[string_map_index])
 	}
 
 	stringPrefixFilterMaps := program.MapBuilderPin("string_prefix_maps", sensors.PathJoin(pinPath, "string_prefix_maps"), load)
@@ -260,7 +255,6 @@ func filterMaps(load *program.Program, pinPath string, kprobeEntry *genericKprob
 		maxEntries := state.StringPrefixMapsMaxEntries()
 		stringPrefixFilterMaps.SetInnerMaxEntries(maxEntries)
 	}
-	maps = append(maps, stringPrefixFilterMaps)
 
 	stringPostfixFilterMaps := program.MapBuilderPin("string_postfix_maps", sensors.PathJoin(pinPath, "string_postfix_maps"), load)
 	if state != nil && !kernels.MinKernelVersion("5.9") {
@@ -269,22 +263,18 @@ func filterMaps(load *program.Program, pinPath string, kprobeEntry *genericKprob
 		maxEntries := state.StringPostfixMapsMaxEntries()
 		stringPostfixFilterMaps.SetInnerMaxEntries(maxEntries)
 	}
-	maps = append(maps, stringPostfixFilterMaps)
-
-	return maps
 }
 
-func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.EntryID, has hasMaps) ([]*program.Program, []*program.Map, error) {
+func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.EntryID, has hasMaps) ([]*program.Program, error) {
 	var multiRetIDs []idtable.EntryID
 	var progs []*program.Program
-	var maps []*program.Map
 
 	data := &genericKprobeData{}
 
 	for _, id := range multiIDs {
 		gk, err := genericKprobeTableGet(id)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		if gk.loadArgs.retprobe {
 			multiRetIDs = append(multiRetIDs, id)
@@ -322,43 +312,27 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 	if has.fdInstall {
 		fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
 	}
-	maps = append(maps, fdinstall)
 
 	configMap := program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "config_map"), load)
-	maps = append(maps, configMap)
-
 	tailCalls := program.MapBuilderPin("kprobe_calls", sensors.PathJoin(pinPath, "kp_calls"), load)
-	maps = append(maps, tailCalls)
-
 	load.SetTailCall("kprobe", tailCalls)
 
 	filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), load)
-	maps = append(maps, filterMap)
+	filterMaps(load, pinPath, nil)
 
-	maps = append(maps, filterMaps(load, pinPath, nil)...)
-
-	retProbe := program.MapBuilderPin("retprobe_map", sensors.PathJoin(pinPath, "retprobe_map"), load)
-	maps = append(maps, retProbe)
-
-	callHeap := program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), load)
-	maps = append(maps, callHeap)
-
-	selMatchBinariesMap := program.MapBuilderPin("tg_mb_sel_opts", sensors.PathJoin(pinPath, "tg_mb_sel_opts"), load)
-	maps = append(maps, selMatchBinariesMap)
-
-	matchBinariesPaths := program.MapBuilderPin("tg_mb_paths", sensors.PathJoin(pinPath, "tg_mb_paths"), load)
-	maps = append(maps, matchBinariesPaths)
+	program.MapBuilderPin("retprobe_map", sensors.PathJoin(pinPath, "retprobe_map"), load)
+	program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), load)
+	program.MapBuilderPin("tg_mb_sel_opts", sensors.PathJoin(pinPath, "tg_mb_sel_opts"), load)
+	program.MapBuilderPin("tg_mb_paths", sensors.PathJoin(pinPath, "tg_mb_paths"), load)
 
 	stackTraceMap := program.MapBuilderPin("stack_trace_map", sensors.PathJoin(pinPath, "stack_trace_map"), load)
 	if has.stackTrace {
 		stackTraceMap.SetMaxEntries(stackTraceMapMaxEntries)
 	}
-	maps = append(maps, stackTraceMap)
 	data.stackTraceMap = stackTraceMap
 
 	if kernels.EnableLargeProgs() {
-		socktrack := program.MapBuilderPin("socktrack_map", sensors.PathJoin(sensorPath, "socktrack_map"), load)
-		maps = append(maps, socktrack)
+		program.MapBuilderPin("socktrack_map", sensors.PathJoin(sensorPath, "socktrack_map"), load)
 	}
 
 	if kernels.EnableLargeProgs() {
@@ -366,14 +340,12 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 		if has.rateLimit {
 			ratelimitMap.SetMaxEntries(ratelimitMapMaxEntries)
 		}
-		maps = append(maps, ratelimitMap)
 	}
 
 	enforcerDataMap := enforcerMap(policyName, load)
 	if has.enforcer {
 		enforcerDataMap.SetMaxEntries(enforcerMapMaxEntries)
 	}
-	maps = append(maps, enforcerDataMap)
 
 	filterMap.SetMaxEntries(len(multiIDs))
 	configMap.SetMaxEntries(len(multiIDs))
@@ -382,7 +354,6 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 	if has.override {
 		overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
 	}
-	maps = append(maps, overrideTasksMap)
 
 	if len(multiRetIDs) != 0 {
 		loadret := program.Builder(
@@ -396,39 +367,27 @@ func createMultiKprobeSensor(sensorPath, policyName string, multiIDs []idtable.E
 			SetPolicy(policyName)
 		progs = append(progs, loadret)
 
-		retProbe := program.MapBuilderPin("retprobe_map", sensors.PathJoin(pinPath, "retprobe_map"), loadret)
-		maps = append(maps, retProbe)
-
+		program.MapBuilderPin("retprobe_map", sensors.PathJoin(pinPath, "retprobe_map"), loadret)
 		retConfigMap := program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "retprobe_config_map"), loadret)
-		maps = append(maps, retConfigMap)
-
 		retFilterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "retprobe_filter_map"), loadret)
-		maps = append(maps, retFilterMap)
 
-		maps = append(maps, filterMaps(loadret, pinPath, nil)...)
+		filterMaps(loadret, pinPath, nil)
 
-		callHeap := program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), loadret)
-		maps = append(maps, callHeap)
-
+		program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), loadret)
 		fdinstall := program.MapBuilderPin("fdinstall_map", sensors.PathJoin(sensorPath, "fdinstall_map"), loadret)
 		if has.fdInstall {
 			fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
 		}
-		maps = append(maps, fdinstall)
 
-		socktrack := program.MapBuilderPin("socktrack_map", sensors.PathJoin(sensorPath, "socktrack_map"), loadret)
-		maps = append(maps, socktrack)
-
+		program.MapBuilderPin("socktrack_map", sensors.PathJoin(sensorPath, "socktrack_map"), loadret)
 		tailCalls := program.MapBuilderPin("retkprobe_calls", sensors.PathJoin(pinPath, "retprobe-kp_calls"), loadret)
-		maps = append(maps, tailCalls)
-
 		loadret.SetTailCall("kprobe", tailCalls)
 
 		retConfigMap.SetMaxEntries(len(multiRetIDs))
 		retFilterMap.SetMaxEntries(len(multiRetIDs))
 	}
 
-	return progs, maps, nil
+	return progs, nil
 }
 
 // preValidateKprobes pre-validates the semantics and BTF information of a Kprobe spec
@@ -594,7 +553,6 @@ func createGenericKprobeSensor(
 	customHandler eventhandler.Handler,
 ) (*sensors.Sensor, error) {
 	var progs []*program.Program
-	var maps []*program.Map
 	var ids []idtable.EntryID
 	var useMulti bool
 	var selMaps *selectors.KernelSelectorMaps
@@ -649,9 +607,9 @@ func createGenericKprobeSensor(
 	}
 
 	if useMulti {
-		progs, maps, err = createMultiKprobeSensor(in.sensorPath, in.policyName, ids, has)
+		progs, err = createMultiKprobeSensor(in.sensorPath, in.policyName, ids, has)
 	} else {
-		progs, maps, err = createSingleKprobeSensor(in.sensorPath, ids, has)
+		progs, err = createSingleKprobeSensor(in.sensorPath, ids, has)
 	}
 
 	if err != nil {
@@ -661,7 +619,6 @@ func createGenericKprobeSensor(
 	return &sensors.Sensor{
 		Name:  name,
 		Progs: progs,
-		Maps:  maps,
 		DestroyHook: func() error {
 			var errs error
 			for _, id := range ids {
@@ -888,7 +845,7 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 }
 
 func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
-	progs []*program.Program, maps []*program.Map, has hasMaps) ([]*program.Program, []*program.Map) {
+	progs []*program.Program, has hasMaps) []*program.Program {
 
 	loadProgName, loadProgRetName := kernels.GenericKprobeObjs()
 	isSecurityFunc := strings.HasPrefix(kprobeEntry.funcName, "security_")
@@ -914,29 +871,17 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 	if has.fdInstall {
 		fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
 	}
-	maps = append(maps, fdinstall)
 
-	configMap := program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "config_map"), load)
-	maps = append(maps, configMap)
-
+	program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "config_map"), load)
 	tailCalls := program.MapBuilderPin("kprobe_calls", sensors.PathJoin(pinPath, "kp_calls"), load)
-	maps = append(maps, tailCalls)
-
 	load.SetTailCall("kprobe", tailCalls)
 
-	filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), load)
-	maps = append(maps, filterMap)
+	program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), load)
+	filterMaps(load, pinPath, kprobeEntry)
 
-	maps = append(maps, filterMaps(load, pinPath, kprobeEntry)...)
-
-	retProbe := program.MapBuilderPin("retprobe_map", sensors.PathJoin(pinPath, "retprobe_map"), load)
-	maps = append(maps, retProbe)
-
-	callHeap := program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), load)
-	maps = append(maps, callHeap)
-
-	selMatchBinariesMap := program.MapBuilderPin("tg_mb_sel_opts", sensors.PathJoin(pinPath, "tg_mb_sel_opts"), load)
-	maps = append(maps, selMatchBinariesMap)
+	program.MapBuilderPin("retprobe_map", sensors.PathJoin(pinPath, "retprobe_map"), load)
+	program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), load)
+	program.MapBuilderPin("tg_mb_sel_opts", sensors.PathJoin(pinPath, "tg_mb_sel_opts"), load)
 
 	matchBinariesPaths := program.MapBuilderPin("tg_mb_paths", sensors.PathJoin(pinPath, "tg_mb_paths"), load)
 	if !kernels.MinKernelVersion("5.9") {
@@ -944,7 +889,6 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
 		matchBinariesPaths.SetInnerMaxEntries(kprobeEntry.loadArgs.selectors.entry.MatchBinariesPathsMaxEntries())
 	}
-	maps = append(maps, matchBinariesPaths)
 
 	// loading the stack trace map in any case so that it does not end up as an
 	// anonymous map (as it's always used by the BPF prog) and is clearly linked
@@ -955,12 +899,10 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 		// max entry of 1, we need to expand that at loading.
 		stackTraceMap.SetMaxEntries(stackTraceMapMaxEntries)
 	}
-	maps = append(maps, stackTraceMap)
 	kprobeEntry.data.stackTraceMap = stackTraceMap
 
 	if kernels.EnableLargeProgs() {
-		socktrack := program.MapBuilderPin("socktrack_map", sensors.PathJoin(sensorPath, "socktrack_map"), load)
-		maps = append(maps, socktrack)
+		program.MapBuilderPin("socktrack_map", sensors.PathJoin(sensorPath, "socktrack_map"), load)
 	}
 
 	if kernels.EnableLargeProgs() {
@@ -970,20 +912,17 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 			// needed to reduce the memory footprint when unused
 			ratelimitMap.SetMaxEntries(ratelimitMapMaxEntries)
 		}
-		maps = append(maps, ratelimitMap)
 	}
 
 	enforcerDataMap := enforcerMap(kprobeEntry.policyName, load)
 	if has.enforcer {
 		enforcerDataMap.SetMaxEntries(enforcerMapMaxEntries)
 	}
-	maps = append(maps, enforcerDataMap)
 
 	overrideTasksMap := program.MapBuilderPin("override_tasks", sensors.PathJoin(pinPath, "override_tasks"), load)
 	if has.override {
 		overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
 	}
-	maps = append(maps, overrideTasksMap)
 
 	if kprobeEntry.loadArgs.retprobe {
 		pinRetProg := sensors.PathJoin(pinPath, fmt.Sprintf("%s_ret_prog", kprobeEntry.funcName))
@@ -998,51 +937,39 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe, sensorPath string,
 			SetPolicy(kprobeEntry.policyName)
 		progs = append(progs, loadret)
 
-		retProbe := program.MapBuilderPin("retprobe_map", sensors.PathJoin(pinPath, "retprobe_map"), loadret)
-		maps = append(maps, retProbe)
-
-		retConfigMap := program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "retprobe_config_map"), loadret)
-		maps = append(maps, retConfigMap)
-
+		program.MapBuilderPin("retprobe_map", sensors.PathJoin(pinPath, "retprobe_map"), loadret)
+		program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "retprobe_config_map"), loadret)
 		tailCalls := program.MapBuilderPin("retkprobe_calls", sensors.PathJoin(pinPath, "retprobe-kp_calls"), loadret)
-		maps = append(maps, tailCalls)
-
 		loadret.SetTailCall("kprobe", tailCalls)
 
-		filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "retkprobe_filter_map"), loadret)
-		maps = append(maps, filterMap)
-
-		maps = append(maps, filterMaps(loadret, pinPath, kprobeEntry)...)
+		program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "retkprobe_filter_map"), loadret)
+		filterMaps(loadret, pinPath, kprobeEntry)
 
 		// add maps with non-default paths (pins) to the retprobe
-		callHeap := program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), loadret)
-		maps = append(maps, callHeap)
+		program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), loadret)
 
 		fdinstall := program.MapBuilderPin("fdinstall_map", sensors.PathJoin(sensorPath, "fdinstall_map"), loadret)
 		if has.fdInstall {
 			fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
 		}
-		maps = append(maps, fdinstall)
 
 		if kernels.EnableLargeProgs() {
-			socktrack := program.MapBuilderPin("socktrack_map", sensors.PathJoin(sensorPath, "socktrack_map"), loadret)
-			maps = append(maps, socktrack)
+			program.MapBuilderPin("socktrack_map", sensors.PathJoin(sensorPath, "socktrack_map"), loadret)
 		}
 	}
 
 	logger.GetLogger().WithField("override", kprobeEntry.hasOverride).
 		Infof("Added generic kprobe sensor: %s -> %s", load.Name, load.Attach)
-	return progs, maps
+	return progs
 }
 
-func createSingleKprobeSensor(sensorPath string, ids []idtable.EntryID, has hasMaps) ([]*program.Program, []*program.Map, error) {
+func createSingleKprobeSensor(sensorPath string, ids []idtable.EntryID, has hasMaps) ([]*program.Program, error) {
 	var progs []*program.Program
-	var maps []*program.Map
 
 	for _, id := range ids {
 		gk, err := genericKprobeTableGet(id)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		gk.data = &genericKprobeData{}
 
@@ -1051,10 +978,10 @@ func createSingleKprobeSensor(sensorPath string, ids []idtable.EntryID, has hasM
 		has.rateLimit = gk.hasRatelimit
 		has.override = gk.hasOverride
 
-		progs, maps = createKprobeSensorFromEntry(gk, sensorPath, progs, maps, has)
+		progs = createKprobeSensorFromEntry(gk, sensorPath, progs, has)
 	}
 
-	return progs, maps, nil
+	return progs, nil
 }
 
 func getMapLoad(load *program.Program, kprobeEntry *genericKprobe, index uint32) []*program.MapLoad {

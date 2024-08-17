@@ -169,7 +169,6 @@ func GetInitialSensor() *sensors.Sensor {
 	sensorInit.Do(func() {
 		setupPrograms()
 		sensor.Progs = GetDefaultPrograms(option.CgroupRateEnabled())
-		sensor.Maps = GetDefaultMaps(option.CgroupRateEnabled())
 	})
 	return &sensor
 }
@@ -178,7 +177,6 @@ func GetInitialSensorTest() *sensors.Sensor {
 	sensorTestInit.Do(func() {
 		setupPrograms()
 		sensorTest.Progs = GetDefaultPrograms(true)
-		sensorTest.Maps = GetDefaultMaps(true)
 	})
 	return &sensorTest
 }

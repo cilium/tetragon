@@ -288,7 +288,6 @@ func createGenericLsmSensor(
 	policyName string,
 ) (*sensors.Sensor, error) {
 	var progs []*program.Program
-	var maps []*program.Map
 	var ids []idtable.EntryID
 	var selMaps *selectors.KernelSelectorMaps
 	var err error
@@ -320,7 +319,7 @@ func createGenericLsmSensor(
 		if err != nil {
 			return nil, err
 		}
-		progs, maps = createLsmSensorFromEntry(gl, progs, maps)
+		progs = createLsmSensorFromEntry(gl, progs)
 	}
 
 	if err != nil {
@@ -330,7 +329,6 @@ func createGenericLsmSensor(
 	return &sensors.Sensor{
 		Name:  name,
 		Progs: progs,
-		Maps:  maps,
 		DestroyHook: func() error {
 			var errs error
 			for _, id := range ids {
@@ -345,7 +343,7 @@ func createGenericLsmSensor(
 }
 
 func createLsmSensorFromEntry(lsmEntry *genericLsm,
-	progs []*program.Program, maps []*program.Map) ([]*program.Program, []*program.Map) {
+	progs []*program.Program) []*program.Program {
 
 	loadProgName := "bpf_generic_lsm.o"
 	if kernels.EnableV61Progs() {
@@ -366,24 +364,16 @@ func createLsmSensorFromEntry(lsmEntry *genericLsm,
 		SetLoaderData(lsmEntry.tableId)
 	progs = append(progs, load)
 
-	configMap := program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "config_map"), load)
-	maps = append(maps, configMap)
+	program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "config_map"), load)
 
 	tailCalls := program.MapBuilderPin("lsm_calls", sensors.PathJoin(pinPath, "lsm_calls"), load)
-	maps = append(maps, tailCalls)
-
 	load.SetTailCall("lsm", tailCalls)
 
-	filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), load)
-	maps = append(maps, filterMap)
+	filterMapsForLsm(load, pinPath, lsmEntry)
 
-	maps = append(maps, filterMapsForLsm(load, pinPath, lsmEntry)...)
-
-	callHeap := program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), load)
-	maps = append(maps, callHeap)
-
-	selMatchBinariesMap := program.MapBuilderPin("tg_mb_sel_opts", sensors.PathJoin(pinPath, "tg_mb_sel_opts"), load)
-	maps = append(maps, selMatchBinariesMap)
+	program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), load)
+	program.MapBuilderPin("process_call_heap", sensors.PathJoin(pinPath, "process_call_heap"), load)
+	program.MapBuilderPin("tg_mb_sel_opts", sensors.PathJoin(pinPath, "tg_mb_sel_opts"), load)
 
 	matchBinariesPaths := program.MapBuilderPin("tg_mb_paths", sensors.PathJoin(pinPath, "tg_mb_paths"), load)
 	if !kernels.MinKernelVersion("5.9") {
@@ -391,16 +381,13 @@ func createLsmSensorFromEntry(lsmEntry *genericLsm,
 		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
 		matchBinariesPaths.SetInnerMaxEntries(lsmEntry.selectors.MatchBinariesPathsMaxEntries())
 	}
-	maps = append(maps, matchBinariesPaths)
 
 	logger.GetLogger().
 		Infof("Added generic lsm sensor: %s -> %s", load.Name, load.Attach)
-	return progs, maps
+	return progs
 }
 
-func filterMapsForLsm(load *program.Program, pinPath string, lsmEntry *genericLsm) []*program.Map {
-	var maps []*program.Map
-
+func filterMapsForLsm(load *program.Program, pinPath string, lsmEntry *genericLsm) {
 	argFilterMaps := program.MapBuilderPin("argfilter_maps", sensors.PathJoin(pinPath, "argfilter_maps"), load)
 	if !kernels.MinKernelVersion("5.9") {
 		// Versions before 5.9 do not allow inner maps to have different sizes.
@@ -408,7 +395,6 @@ func filterMapsForLsm(load *program.Program, pinPath string, lsmEntry *genericLs
 		maxEntries := lsmEntry.selectors.ValueMapsMaxEntries()
 		argFilterMaps.SetInnerMaxEntries(maxEntries)
 	}
-	maps = append(maps, argFilterMaps)
 
 	addr4FilterMaps := program.MapBuilderPin("addr4lpm_maps", sensors.PathJoin(pinPath, "addr4lpm_maps"), load)
 	if !kernels.MinKernelVersion("5.9") {
@@ -417,7 +403,6 @@ func filterMapsForLsm(load *program.Program, pinPath string, lsmEntry *genericLs
 		maxEntries := lsmEntry.selectors.Addr4MapsMaxEntries()
 		addr4FilterMaps.SetInnerMaxEntries(maxEntries)
 	}
-	maps = append(maps, addr4FilterMaps)
 
 	addr6FilterMaps := program.MapBuilderPin("addr6lpm_maps", sensors.PathJoin(pinPath, "addr6lpm_maps"), load)
 	if !kernels.MinKernelVersion("5.9") {
@@ -426,7 +411,6 @@ func filterMapsForLsm(load *program.Program, pinPath string, lsmEntry *genericLs
 		maxEntries := lsmEntry.selectors.Addr6MapsMaxEntries()
 		addr6FilterMaps.SetInnerMaxEntries(maxEntries)
 	}
-	maps = append(maps, addr6FilterMaps)
 
 	var stringFilterMap [selectors.StringMapsNumSubMaps]*program.Map
 	numSubMaps := selectors.StringMapsNumSubMaps
@@ -443,7 +427,6 @@ func filterMapsForLsm(load *program.Program, pinPath string, lsmEntry *genericLs
 			maxEntries := lsmEntry.selectors.StringMapsMaxEntries(string_map_index)
 			stringFilterMap[string_map_index].SetInnerMaxEntries(maxEntries)
 		}
-		maps = append(maps, stringFilterMap[string_map_index])
 	}
 
 	stringPrefixFilterMaps := program.MapBuilderPin("string_prefix_maps", sensors.PathJoin(pinPath, "string_prefix_maps"), load)
@@ -453,7 +436,6 @@ func filterMapsForLsm(load *program.Program, pinPath string, lsmEntry *genericLs
 		maxEntries := lsmEntry.selectors.StringPrefixMapsMaxEntries()
 		stringPrefixFilterMaps.SetInnerMaxEntries(maxEntries)
 	}
-	maps = append(maps, stringPrefixFilterMaps)
 
 	stringPostfixFilterMaps := program.MapBuilderPin("string_postfix_maps", sensors.PathJoin(pinPath, "string_postfix_maps"), load)
 	if !kernels.MinKernelVersion("5.9") {
@@ -462,7 +444,4 @@ func filterMapsForLsm(load *program.Program, pinPath string, lsmEntry *genericLs
 		maxEntries := lsmEntry.selectors.StringPostfixMapsMaxEntries()
 		stringPostfixFilterMaps.SetInnerMaxEntries(maxEntries)
 	}
-	maps = append(maps, stringPostfixFilterMaps)
-
-	return maps
 }

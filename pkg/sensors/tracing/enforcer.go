@@ -248,7 +248,6 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 	// register enforcer sensor
 	var load *program.Program
 	var progs []*program.Program
-	var maps []*program.Map
 	specOpts, err := getSpecOptions(opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get spec options: %s", err)
@@ -318,8 +317,6 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 	enforcerDataMap := enforcerMap(policyName, progs...)
 	enforcerDataMap.SetMaxEntries(enforcerMapMaxEntries)
 
-	maps = append(maps, enforcerDataMap)
-
 	if ok := kp.enforcerAdd(name, kh); !ok {
 		return nil, fmt.Errorf("failed to add enforcer: '%s'", name)
 	}
@@ -329,7 +326,6 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 	return &sensors.Sensor{
 		Name:  "__enforcer__",
 		Progs: progs,
-		Maps:  maps,
 		PostUnloadHook: func() error {
 			if ok := kp.enforcerDel(name); !ok {
 				logger.GetLogger().Infof("Failed to clean up enforcer sensor '%s'", name)

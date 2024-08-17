@@ -251,7 +251,6 @@ func createGenericUprobeSensor(
 	policyName string,
 ) (*sensors.Sensor, error) {
 	var progs []*program.Program
-	var maps []*program.Map
 	var ids []idtable.EntryID
 	var err error
 
@@ -278,9 +277,9 @@ func createGenericUprobeSensor(
 	}
 
 	if in.useMulti {
-		progs, maps, err = createMultiUprobeSensor(name, ids)
+		progs, err = createMultiUprobeSensor(name, ids)
 	} else {
-		progs, maps, err = createSingleUprobeSensor(ids)
+		progs, err = createSingleUprobeSensor(ids)
 	}
 
 	if err != nil {
@@ -290,7 +289,6 @@ func createGenericUprobeSensor(
 	return &sensors.Sensor{
 		Name:  name,
 		Progs: progs,
-		Maps:  maps,
 	}, nil
 }
 
@@ -397,9 +395,8 @@ func multiUprobePinPath(sensorPath string) string {
 	return sensors.PathJoin(sensorPath, "multi_kprobe")
 }
 
-func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID) ([]*program.Program, []*program.Map, error) {
+func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID) ([]*program.Program, error) {
 	var progs []*program.Program
-	var maps []*program.Map
 
 	loadProgName := "bpf_multi_uprobe_v61.o"
 
@@ -419,32 +416,29 @@ func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID) ([]*
 	tailCalls := program.MapBuilderPin("uprobe_calls", sensors.PathJoin(pinPath, "up_calls"), load)
 	filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), load)
 
-	maps = append(maps, configMap, tailCalls, filterMap)
-
 	load.SetTailCall("uprobe", tailCalls)
 
 	filterMap.SetMaxEntries(len(multiIDs))
 	configMap.SetMaxEntries(len(multiIDs))
-	return progs, maps, nil
+	return progs, nil
 }
 
-func createSingleUprobeSensor(ids []idtable.EntryID) ([]*program.Program, []*program.Map, error) {
+func createSingleUprobeSensor(ids []idtable.EntryID) ([]*program.Program, error) {
 	var progs []*program.Program
-	var maps []*program.Map
 
 	for _, id := range ids {
 		uprobeEntry, err := genericUprobeTableGet(id)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
-		progs, maps = createUprobeSensorFromEntry(uprobeEntry, progs, maps)
+		progs = createUprobeSensorFromEntry(uprobeEntry, progs)
 	}
 
-	return progs, maps, nil
+	return progs, nil
 }
 
 func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
-	progs []*program.Program, maps []*program.Map) ([]*program.Program, []*program.Map) {
+	progs []*program.Program) []*program.Program {
 
 	loadProgName := "bpf_generic_uprobe.o"
 	if kernels.EnableV61Progs() {
@@ -472,13 +466,13 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 
 	progs = append(progs, load)
 
-	configMap := program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "config_map"), load)
+	program.MapBuilderPin("config_map", sensors.PathJoin(pinPath, "config_map"), load)
+	program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), load)
+	program.MapBuilderPin("tg_mb_sel_opts", sensors.PathJoin(pinPath, "tg_mb_sel_opts"), load)
+
 	tailCalls := program.MapBuilderPin("uprobe_calls", sensors.PathJoin(pinPath, "up_calls"), load)
-	filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), load)
-	selMatchBinariesMap := program.MapBuilderPin("tg_mb_sel_opts", sensors.PathJoin(pinPath, "tg_mb_sel_opts"), load)
-	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap)
 	load.SetTailCall("uprobe", tailCalls)
-	return progs, maps
+	return progs
 }
 
 func (k *observerUprobeSensor) PolicyHandler(

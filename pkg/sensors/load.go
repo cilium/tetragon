@@ -107,7 +107,6 @@ func (s *Sensor) Load(bpfDir string) error {
 
 	// Add the *loaded* programs and maps, so they can be unloaded later
 	progsAdd(s.Progs)
-	AllMaps = append(AllMaps, s.Maps...)
 
 	l.WithField("sensor", s.Name).Infof("Loaded BPF maps and events for sensor successfully")
 	s.Loaded = true
@@ -196,10 +195,10 @@ func (s *Sensor) FindPrograms() error {
 		if err := s.findProgram(p); err != nil {
 			return err
 		}
-	}
-	for _, m := range s.Maps {
-		if err := s.findProgram(m.Prog); err != nil {
-			return err
+		for _, m := range p.PinMap {
+			if err := s.findProgram(m.Prog); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -207,16 +206,13 @@ func (s *Sensor) FindPrograms() error {
 
 func mergeSensors(sensors []*Sensor) *Sensor {
 	var progs []*program.Program
-	var maps []*program.Map
 
 	for _, s := range sensors {
 		progs = append(progs, s.Progs...)
-		maps = append(maps, s.Maps...)
 	}
 	return &Sensor{
 		Name:  "__main__",
 		Progs: progs,
-		Maps:  maps,
 	}
 }
 
