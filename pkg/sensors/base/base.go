@@ -97,9 +97,6 @@ var (
 )
 
 func setupPrograms() {
-	// execve program tail calls details
-	Execve.SetTailCall("tracepoint", ExecveTailCallsMap)
-
 	// exit program function
 	ks, err := ksyms.KernelSymbols()
 	if err == nil {
