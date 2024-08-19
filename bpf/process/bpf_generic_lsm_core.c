@@ -26,12 +26,26 @@ struct {
 	__type(value, struct msg_generic_kprobe);
 } process_call_heap SEC(".maps");
 
+int generic_lsm_setup_event(void *ctx);
+int generic_lsm_process_event(void *ctx);
+int generic_lsm_process_filter(void *ctx);
+int generic_lsm_filter_arg(void *ctx);
+int generic_lsm_actions(void *ctx);
+
 struct {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
 	__uint(max_entries, 13);
 	__uint(key_size, sizeof(__u32));
-	__uint(value_size, sizeof(__u32));
-} lsm_calls SEC(".maps");
+	__array(values, int(void *));
+} lsm_calls SEC(".maps") = {
+	.values = {
+		[0] = (void *)&generic_lsm_setup_event,
+		[1] = (void *)&generic_lsm_process_event,
+		[2] = (void *)&generic_lsm_process_filter,
+		[3] = (void *)&generic_lsm_filter_arg,
+		[4] = (void *)&generic_lsm_actions,
+	},
+};
 
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
@@ -87,7 +101,7 @@ generic_lsm_event(struct pt_regs *ctx)
 	return generic_start_process_filter(ctx, &maps);
 }
 
-__attribute__((section("lsm/0"), used)) int
+__attribute__((section("lsm"), used)) int
 generic_lsm_setup_event(void *ctx)
 {
 	return generic_process_event_and_setup(
@@ -97,7 +111,7 @@ generic_lsm_setup_event(void *ctx)
 		(struct bpf_map_def *)data_heap_ptr);
 }
 
-__attribute__((section("lsm/1"), used)) int
+__attribute__((section("lsm"), used)) int
 generic_lsm_process_event(void *ctx)
 {
 	return generic_process_event(ctx,
@@ -107,7 +121,7 @@ generic_lsm_process_event(void *ctx)
 				     (struct bpf_map_def *)data_heap_ptr);
 }
 
-__attribute__((section("lsm/2"), used)) int
+__attribute__((section("lsm"), used)) int
 generic_lsm_process_filter(void *ctx)
 {
 	int ret;
@@ -121,7 +135,7 @@ generic_lsm_process_filter(void *ctx)
 	return PFILTER_REJECT;
 }
 
-__attribute__((section("lsm/3"), used)) int
+__attribute__((section("lsm"), used)) int
 generic_lsm_filter_arg(void *ctx)
 {
 	return filter_read_arg(ctx, (struct bpf_map_def *)&process_call_heap,
@@ -131,7 +145,7 @@ generic_lsm_filter_arg(void *ctx)
 			       true);
 }
 
-__attribute__((section("lsm/4"), used)) int
+__attribute__((section("lsm"), used)) int
 generic_lsm_actions(void *ctx)
 {
 	bool postit = generic_actions(ctx, &maps);
