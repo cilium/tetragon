@@ -6,13 +6,13 @@ package watcher
 import (
 	"errors"
 	"fmt"
-	"os"
 	"reflect"
 	"strings"
 	"time"
 
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/podhooks"
+	"github.com/cilium/tetragon/pkg/reader/node"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -121,7 +121,7 @@ func containerIndexFunc(obj interface{}) ([]string, error) {
 
 // NewK8sWatcher returns a pointer to an initialized K8sWatcher struct.
 func NewK8sWatcher(k8sClient kubernetes.Interface, stateSyncIntervalSec time.Duration) *K8sWatcher {
-	nodeName := os.Getenv("NODE_NAME")
+	nodeName := node.GetNodeNameForExport()
 	if nodeName == "" {
 		logger.GetLogger().Warn("env var NODE_NAME not specified, K8s watcher will not work as expected")
 	}
@@ -134,7 +134,7 @@ func NewK8sWatcher(k8sClient kubernetes.Interface, stateSyncIntervalSec time.Dur
 	k8sInformerFactory := informers.NewSharedInformerFactoryWithOptions(k8sClient, stateSyncIntervalSec,
 		informers.WithTweakListOptions(func(options *metav1.ListOptions) {
 			// Watch local pods only.
-			options.FieldSelector = "spec.nodeName=" + os.Getenv("NODE_NAME")
+			options.FieldSelector = "spec.nodeName=" + nodeName
 		}))
 	podInformer := k8sInformerFactory.Core().V1().Pods().Informer()
 	k8sWatcher.AddInformers(k8sInformerFactory, &InternalInformer{
