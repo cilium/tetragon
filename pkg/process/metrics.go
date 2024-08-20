@@ -8,7 +8,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-var ProcessCacheTotal = prometheus.NewGauge(prometheus.GaugeOpts{
+var processCacheTotal = prometheus.NewGauge(prometheus.GaugeOpts{
 	Namespace:   consts.MetricsNamespace,
 	Name:        "process_cache_size",
 	Help:        "The size of the process cache",
@@ -46,6 +46,6 @@ func NewCacheCollector() prometheus.Collector {
 }
 
 func InitMetrics(registry *prometheus.Registry) {
-	registry.MustRegister(ProcessCacheTotal)
+	registry.MustRegister(processCacheTotal)
 	registry.MustRegister(NewCacheCollector())
 }
