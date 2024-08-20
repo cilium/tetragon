@@ -196,7 +196,7 @@ options:
     - name: server-address
       default_value: localhost:54321
       usage: |
-        gRPC server address (e.g. 'localhost:54321' or 'unix:///var/run/tetragon/tetragon.sock'
+        gRPC server address (e.g. 'localhost:54321' or 'unix:///var/run/tetragon/tetragon.sock'). An empty address disables the gRPC server
     - name: tracing-policy
       usage: Tracing policy file to load at startup
     - name: tracing-policy-dir
