@@ -121,8 +121,9 @@ func (pc *Cache) refInc(p *ProcessInternal) {
 	atomic.AddUint32(&p.refcnt, 1)
 }
 
-func (pc *Cache) Purge() {
+func (pc *Cache) purge() {
 	pc.stopChan <- true
+	processCacheTotal.Set(0)
 }
 
 func NewCache(
@@ -159,12 +160,17 @@ func (pc *Cache) get(processID string) (*ProcessInternal, error) {
 // clone or execve events
 func (pc *Cache) add(process *ProcessInternal) bool {
 	evicted := pc.cache.Add(process.process.ExecId, process)
+	if !evicted {
+		processCacheTotal.Inc()
+	}
 	return evicted
 }
 
 func (pc *Cache) remove(process *tetragon.Process) bool {
 	present := pc.cache.Remove(process.ExecId)
-	if !present {
+	if present {
+		processCacheTotal.Dec()
+	} else {
 		errormetrics.ErrorTotalInc(errormetrics.ProcessCacheMissOnRemove)
 	}
 	return present
