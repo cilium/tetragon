@@ -12,19 +12,20 @@ KUBECONFORM_VERSION := v0.6.7
 PYTHON := python3
 PIPENV := pipenv
 K8S_VERSION := master
+HELM_VALUES_OVERRIDE := "helm_lint_values_override.yaml"
 
 REPO_ROOT := $(shell git rev-parse --show-toplevel)
 TETRAGON_CHART := tetragon
 CRDS := $(REPO_ROOT)/pkg/k8s/apis/cilium.io/client/crds/v1alpha1
 JSON_SCHEMAS := $(REPO_ROOT)/install/kubernetes/schemas
 
-HELM ?= docker run --rm -v $(CURDIR)/$(TETRAGON_CHART):/apps $(HELM_IMAGE)
+HELM ?= docker run --rm -v $(CURDIR)/$(TETRAGON_CHART):/apps -v $(CURDIR)/$(HELM_VALUES_OVERRIDE):/$(HELM_VALUES_OVERRIDE) $(HELM_IMAGE)
 
 .PHONY: all
 all: deps $(TETRAGON_CHART)/crds-yaml lint docs openapi2jsonschema.py generate-jsonschemas kubeconform
 
 .PHONY: deps
-deps: 
+deps:
 	$(HELM) dependency update .
 
 .PHONY: lint
@@ -66,9 +67,8 @@ kubeconform:
 	@echo "## Testing Helm chart: \"$(TETRAGON_CHART)\""
 	$(HELM) template $(TETRAGON_CHART) . \
 	-f values.yaml \
-	--set crds.installMethod=helm \
-	--set tracingPolicies.default.enabled=true |\
-		docker run --rm -i -v $(JSON_SCHEMAS):/schemas $(KUBECONFORM_IMAGE) \
+	-f /$(HELM_VALUES_OVERRIDE) \
+	| docker run --rm -i -v $(JSON_SCHEMAS):/schemas $(KUBECONFORM_IMAGE) \
 		-summary \
 		-verbose \
 		-schema-location default \
