@@ -281,14 +281,13 @@ tetragonOperator:
   tracingPolicy:
     # -- Enables the TracingPolicy and TracingPolicyNamespaced CRD creation.
     enabled: true
-  # -- Enables the Tetragon Operator metrics.
   prometheus:
+    # -- Enables the Tetragon Operator metrics.
     enabled: true
     # -- The address at which to expose Tetragon Operator metrics. Set it to "" to expose on all available interfaces.
     address: ""
     # -- The port at which to expose metrics.
     port: 2113
-    # -- The labels to include with supporting metrics.
     serviceMonitor:
       # -- Whether to create a 'ServiceMonitor' resource targeting the tetragonOperator pods.
       enabled: false
