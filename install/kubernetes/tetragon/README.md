@@ -119,10 +119,9 @@ Helm chart for Tetragon
 | tetragonOperator.podInfo.enabled | bool | `false` | Enables the PodInfo CRD and the controller that reconciles PodInfo custom resources. |
 | tetragonOperator.podSecurityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}` | securityContext for the Tetragon Operator Deployment Pod container. |
 | tetragonOperator.priorityClassName | string | `""` | priorityClassName for the Tetragon Operator Deployment Pods. |
-| tetragonOperator.prometheus | object | `{"address":"","enabled":true,"port":2113,"serviceMonitor":{"enabled":false,"extraLabels":{},"labelsOverride":{},"scrapeInterval":"10s"}}` | Enables the Tetragon Operator metrics. |
 | tetragonOperator.prometheus.address | string | `""` | The address at which to expose Tetragon Operator metrics. Set it to "" to expose on all available interfaces. |
+| tetragonOperator.prometheus.enabled | bool | `true` | Enables the Tetragon Operator metrics. |
 | tetragonOperator.prometheus.port | int | `2113` | The port at which to expose metrics. |
-| tetragonOperator.prometheus.serviceMonitor | object | `{"enabled":false,"extraLabels":{},"labelsOverride":{},"scrapeInterval":"10s"}` | The labels to include with supporting metrics. |
 | tetragonOperator.prometheus.serviceMonitor.enabled | bool | `false` | Whether to create a 'ServiceMonitor' resource targeting the tetragonOperator pods. |
 | tetragonOperator.prometheus.serviceMonitor.extraLabels | object | `{}` | Extra labels to be added on the Tetragon Operator ServiceMonitor. |
 | tetragonOperator.prometheus.serviceMonitor.labelsOverride | object | `{}` | The set of labels to place on the 'ServiceMonitor' resource. |
