@@ -165,6 +165,8 @@ tetragon:
       enabled: false
       # -- The set of labels to place on the 'ServiceMonitor' resource.
       labelsOverride: {}
+      # -- Extra labels to be added on the Tetragon ServiceMonitor.
+      extraLabels: {}
       # -- Interval at which metrics should be scraped. If not specified, Prometheus' global scrape interval is used.
       scrapeInterval: "10s"
   grpc:
@@ -292,6 +294,8 @@ tetragonOperator:
       enabled: false
       # -- The set of labels to place on the 'ServiceMonitor' resource.
       labelsOverride: {}
+      # -- Extra labels to be added on the Tetragon Operator ServiceMonitor.
+      extraLabels: {}
       # -- Interval at which metrics should be scraped. If not specified, Prometheus' global scrape interval is used.
       scrapeInterval: "10s"
 # -- Tetragon events export settings
