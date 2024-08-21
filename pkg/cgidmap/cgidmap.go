@@ -255,7 +255,7 @@ func GlobalMap() (Map, error) {
 		}
 
 		glMap, glError = newMap()
-		if glError != nil {
+		if glError == nil {
 			glMap.log.Info("cgidmap initialized")
 		} else {
 			glMap.log.WithError(glError).Warn("cgidmap initialization failed")
