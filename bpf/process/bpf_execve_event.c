@@ -15,6 +15,7 @@
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 
+#ifndef OVERRIDE_TAILCALL
 int execve_rate(void *ctx);
 int execve_send(void *ctx);
 
@@ -29,6 +30,7 @@ struct {
 		[1] = (void *)&execve_send,
 	},
 };
+#endif
 
 #include "data_event.h"
 
