@@ -37,6 +37,6 @@ spec:
       {{- with .Values.serviceLabelsOverride}}
       {{- toYaml . | nindent 6 }}
       {{- else }}
-      {{- include "tetragon.labels" . | nindent 6 }}
+      {{- include "tetragon.selectorLabels" . | nindent 6 }}
       {{- end }}
 {{- end }}

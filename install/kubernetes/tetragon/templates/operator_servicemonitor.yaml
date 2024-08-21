@@ -29,5 +29,5 @@ spec:
       - {{ .Release.Namespace }}
   selector:
     matchLabels:
-      {{- include "tetragon-operator.labels" . | nindent 6 }}
+      {{- include "tetragon-operator.selectorLabels" . | nindent 6 }}
 {{- end }}
