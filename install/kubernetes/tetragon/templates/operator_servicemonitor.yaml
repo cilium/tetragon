@@ -8,6 +8,9 @@ metadata:
     {{- else }}
     {{- include "tetragon-operator.labels" . | nindent 4 }}
     {{- end }}
+    {{- with .Values.tetragonOperator.prometheus.serviceMonitor.extraLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
   name: {{ .Release.Name }}-operator
   namespace: {{ .Release.Namespace }}
 spec:

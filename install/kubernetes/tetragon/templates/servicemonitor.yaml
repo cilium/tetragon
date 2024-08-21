@@ -9,6 +9,9 @@ metadata:
     {{- else }}
     {{- include "tetragon.labels" . | nindent 4 }}
     {{- end }}
+    {{- with .Values.tetragon.prometheus.serviceMonitor.extraLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
   name: {{ .Release.Name }}
   namespace: {{ .Release.Namespace }}
 spec:
