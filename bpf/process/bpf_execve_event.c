@@ -13,10 +13,11 @@
 
 #include "policy_filter.h"
 
+char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
+
+#ifndef OVERRIDE_TAILCALL
 int execve_rate(void *ctx);
 int execve_send(void *ctx);
-
-char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 
 struct {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
@@ -29,6 +30,7 @@ struct {
 		[1] = (void *)&execve_send,
 	},
 };
+#endif
 
 #include "data_event.h"
 
