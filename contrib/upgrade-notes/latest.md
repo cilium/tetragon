@@ -47,3 +47,9 @@ tetragon:
 * `tetragon_policyfilter_metrics_total` metric is renamed to `tetragon_policyfilter_operations_total`, and its `op`
   label is renamed to `operation`.
 * `tetragon_missed_events_total` metric is renamed to `tetragon_bpf_missed_events_total`.
+* Metrics related to ring buffer and events queue are renamed:
+  * `tetragon_ringbuf_perf_event_errors_total` -> `tetragon_observer_ringbuf_errors_total`
+  * `tetragon_ringbuf_perf_event_received_total` -> `tetragon_observer_ringbuf_events_received_total`
+  * `tetragon_ringbuf_perf_event_lost_total` -> `tetragon_observer_ringbuf_events_lost_total`
+  * `tetragon_ringbuf_queue_received_total` -> `tetragon_observer_ringbuf_queue_events_received_total`
+  * `tetragon_ringbuf_queue_lost_total` -> `tetragon_observer_ringbuf_queue_events_lost_total`
