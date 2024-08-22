@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/pkg/metrics/kprobemetrics"
-	"github.com/cilium/tetragon/pkg/metrics/ringbufmetrics"
+	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/fatih/color"
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
@@ -76,9 +76,9 @@ func (s *Summary) PrettyPrint() {
 
 	if !s.Args.Baseline {
 		fmt.Printf("Ring buffer:        received=%d, lost=%d, errors=%d\n",
-			getCounterValue(ringbufmetrics.PerfEventReceived),
-			getCounterValue(ringbufmetrics.PerfEventLost),
-			getCounterValue(ringbufmetrics.PerfEventErrors))
+			getCounterValue(observer.RingbufReceived),
+			getCounterValue(observer.RingbufLost),
+			getCounterValue(observer.RingbufErrors))
 
 		mergePushed := getCounterValue(kprobemetrics.MergePushed)
 		mergeOkTotal := getCounterValue(kprobemetrics.MergeOkTotal)
@@ -146,9 +146,9 @@ func (s *Summary) CSVPrint(path, name string) error {
 
 	if !s.Args.Baseline {
 		records = [][]string{
-			{"Received", fmt.Sprintf("%d", getCounterValue(ringbufmetrics.PerfEventReceived))},
-			{"Lost", fmt.Sprintf("%d", getCounterValue(ringbufmetrics.PerfEventLost))},
-			{"Errors", fmt.Sprintf("%d", getCounterValue(ringbufmetrics.PerfEventErrors))},
+			{"Received", fmt.Sprintf("%d", getCounterValue(observer.RingbufReceived))},
+			{"Lost", fmt.Sprintf("%d", getCounterValue(observer.RingbufLost))},
+			{"Errors", fmt.Sprintf("%d", getCounterValue(observer.RingbufErrors))},
 		}
 		w.WriteAll(records)
 	}
