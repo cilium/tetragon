@@ -38,7 +38,7 @@ func TestFork(t *testing.T) {
 	defer testPipes.Close()
 
 	t.Logf("starting observer")
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
