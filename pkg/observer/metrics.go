@@ -16,32 +16,32 @@ var (
 	RingbufReceived = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "ringbuf_perf_event_received_total",
-		Help:        "The total number of Tetragon ringbuf perf events received.",
+		Help:        "Number of perf events Tetragon ring buffer received.",
 		ConstLabels: nil,
 	})
 	RingbufLost = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "ringbuf_perf_event_lost_total",
-		Help:        "The total number of Tetragon ringbuf perf events lost.",
+		Help:        "Number of perf events Tetragon ring buffer lost.",
 		ConstLabels: nil,
 	})
 	RingbufErrors = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "ringbuf_perf_event_errors_total",
-		Help:        "The total number of errors when reading the Tetragon ringbuf.",
+		Help:        "Number of errors when reading Tetragon ring buffer.",
 		ConstLabels: nil,
 	})
 
 	queueReceived = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "ringbuf_queue_received_total",
-		Help:        "The total number of Tetragon events ring buffer queue received.",
+		Help:        "Number of perf events Tetragon ring buffer events queue received.",
 		ConstLabels: nil,
 	})
 	queueLost = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "ringbuf_queue_lost_total",
-		Help:        "The total number of Tetragon events ring buffer queue lost.",
+		Help:        "Number of perf events Tetragon ring buffer events queue lost.",
 		ConstLabels: nil,
 	})
 )
