@@ -248,23 +248,23 @@ The total number of rate limit Tetragon drops
 
 ### `tetragon_ringbuf_perf_event_errors_total`
 
-The total number of errors when reading the Tetragon ringbuf.
+Number of errors when reading Tetragon ring buffer.
 
 ### `tetragon_ringbuf_perf_event_lost_total`
 
-The total number of Tetragon ringbuf perf events lost.
+Number of perf events Tetragon ring buffer lost.
 
 ### `tetragon_ringbuf_perf_event_received_total`
 
-The total number of Tetragon ringbuf perf events received.
+Number of perf events Tetragon ring buffer received.
 
 ### `tetragon_ringbuf_queue_lost_total`
 
-The total number of Tetragon events ring buffer queue lost.
+Number of perf events Tetragon ring buffer events queue lost.
 
 ### `tetragon_ringbuf_queue_received_total`
 
-The total number of Tetragon events ring buffer queue received.
+Number of perf events Tetragon ring buffer events queue received.
 
 ### `tetragon_tracingpolicy_loaded`
 
