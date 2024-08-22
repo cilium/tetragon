@@ -212,6 +212,26 @@ The total number of times we encounter a given message opcode. For internal use 
 
 The total number of events dropped because listener buffer was full
 
+### `tetragon_observer_ringbuf_errors_total`
+
+Number of errors when reading Tetragon ring buffer.
+
+### `tetragon_observer_ringbuf_events_lost_total`
+
+Number of perf events Tetragon ring buffer lost.
+
+### `tetragon_observer_ringbuf_events_received_total`
+
+Number of perf events Tetragon ring buffer received.
+
+### `tetragon_observer_ringbuf_queue_events_lost_total`
+
+Number of perf events Tetragon ring buffer events queue lost.
+
+### `tetragon_observer_ringbuf_queue_events_received_total`
+
+Number of perf events Tetragon ring buffer events queue received.
+
 ### `tetragon_policyfilter_hook_container_name_missing_total`
 
 The total number of operations when the container name was missing in the OCI hook
@@ -245,26 +265,6 @@ Process Loader event statistics. For internal use only.
 ### `tetragon_ratelimit_dropped_total`
 
 The total number of rate limit Tetragon drops
-
-### `tetragon_ringbuf_perf_event_errors_total`
-
-Number of errors when reading Tetragon ring buffer.
-
-### `tetragon_ringbuf_perf_event_lost_total`
-
-Number of perf events Tetragon ring buffer lost.
-
-### `tetragon_ringbuf_perf_event_received_total`
-
-Number of perf events Tetragon ring buffer received.
-
-### `tetragon_ringbuf_queue_lost_total`
-
-Number of perf events Tetragon ring buffer events queue lost.
-
-### `tetragon_ringbuf_queue_received_total`
-
-Number of perf events Tetragon ring buffer events queue received.
 
 ### `tetragon_tracingpolicy_loaded`
 
