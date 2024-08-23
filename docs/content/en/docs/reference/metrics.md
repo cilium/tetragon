@@ -179,6 +179,7 @@ The total number of Tetragon events per type that are failed to sent from the ke
 
 | label | values |
 | ----- | ------ |
+| `error` | `EBUSY, ENOSPC, unknown` |
 | `msg_op` | `13, 14, 15, 16, 23, 24, 25, 26, 27, 5, 7` |
 
 ### `tetragon_missed_link_probes_total`

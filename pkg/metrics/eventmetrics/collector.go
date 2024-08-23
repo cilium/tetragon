@@ -39,20 +39,26 @@ func collect(ch chan<- prometheus.Metric) {
 
 	sum := processapi.KernelStats{}
 	for _, val := range allCpuValue {
-		for i, data := range val.SentFailed {
-			sum.SentFailed[i] += data
+		for opcode, errors := range val.SentFailed {
+			for er, count := range errors {
+				sum.SentFailed[opcode][er] += count
+			}
 		}
 	}
 
-	for i, data := range sum.SentFailed {
-		if data > 0 {
-			ch <- MissedEvents.MustMetric(float64(data), strconv.Itoa(i))
+	for opcode, errors := range sum.SentFailed {
+		for er, count := range errors {
+			if count > 0 {
+				ch <- MissedEvents.MustMetric(float64(count), strconv.Itoa(opcode), perfEventErrors[er])
+			}
 		}
 	}
 }
 
 func collectForDocs(ch chan<- prometheus.Metric) {
 	for _, opcode := range metrics.OpCodeLabel.Values {
-		ch <- MissedEvents.MustMetric(0, opcode)
+		for _, er := range perfEventErrorLabel.Values {
+			ch <- MissedEvents.MustMetric(0, opcode, er)
+		}
 	}
 }
