@@ -1,7 +1,5 @@
 {{- define "container.tetragon-rthooks" -}}
 - name: tetragon-rthooks
-  securityContext:
-    {{- toYaml .Values.rthooks.securityContext | nindent 4 }}
   image: "{{ if .Values.rthooks.image.override }}{{ .Values.rthooks.image.override }}{{ else }}{{ .Values.rthooks.image.repository }}:{{ .Values.rthooks.image.tag }}{{ end }}"
   terminationMessagePolicy: FallbackToLogsOnError
   imagePullPolicy: {{ .Values.imagePullPolicy }}
