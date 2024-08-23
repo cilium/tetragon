@@ -4,6 +4,8 @@
 package eventmetrics
 
 import (
+	"golang.org/x/exp/maps"
+
 	v1 "github.com/cilium/cilium/pkg/hubble/api/v1"
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/api/v1/tetragon/codegen/helpers"
@@ -21,6 +23,18 @@ import (
 )
 
 var (
+	perfEventErrors = map[int]string{
+		processapi.SentFailedUnknown: "unknown",
+		processapi.SentFailedEbusy:   "EBUSY",
+		processapi.SentFailedEnospc:  "ENOSPC",
+	}
+	perfEventErrorLabel = metrics.ConstrainedLabel{
+		Name:   "error",
+		Values: maps.Values(perfEventErrors),
+	}
+)
+
+var (
 	EventsProcessed = metrics.MustNewGranularCounter[metrics.ProcessLabels](prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "events_total",
@@ -30,7 +44,7 @@ var (
 	MissedEvents = metrics.MustNewCustomCounter(metrics.NewOpts(
 		consts.MetricsNamespace, "", "missed_events_total",
 		"The total number of Tetragon events per type that are failed to sent from the kernel.",
-		nil, []metrics.ConstrainedLabel{metrics.OpCodeLabel}, nil,
+		nil, []metrics.ConstrainedLabel{metrics.OpCodeLabel, perfEventErrorLabel}, nil,
 	))
 	FlagCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,

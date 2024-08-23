@@ -49,6 +49,13 @@ const (
 	STRING_POSTFIX_MAX_LENGTH = 128
 )
 
+const (
+	SentFailedUnknown = iota
+	SentFailedEbusy
+	SentFailedEnospc
+	SentFailedMax
+)
+
 type MsgExec struct {
 	Size       uint32
 	PID        uint32
@@ -235,7 +242,7 @@ type MsgThrottleEvent struct {
 }
 
 type KernelStats struct {
-	SentFailed [256]uint64 `align:"sent_failed"`
+	SentFailed [256][SentFailedMax]uint64 `align:"sent_failed"`
 }
 
 type CgroupRateKey struct {
