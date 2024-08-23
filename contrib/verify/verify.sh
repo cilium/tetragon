@@ -8,6 +8,7 @@ shopt -s nullglob
 RED="\033[31m"
 BLUEUNDER="\033[34;4m"
 GREEN="\033[32m"
+YELLOW="\033[33m"
 NOCOLOR="\033[0m"
 TETRAGONDIR=/var/lib/tetragon
 DEBUG=0
@@ -81,6 +82,14 @@ for obj in "$TETRAGONDIR"/*.o; do
 	# Generic LSM BPF needs more complex userspace logic to load, so ignore it
 	if [[ "$B" == bpf_generic_lsm* ]]; then
 		continue
+	fi
+
+	# Check if bpf_override_return is available
+	if [[ "$B" == bpf_generic_kprobe* || "$B" == bpf_enforcer* ]]; then
+		if ! bpftool feature probe | grep -q "bpf_override_return"; then
+			echo -e "${YELLOW}bpf_override_return not available, skipping $B ...${NOCOLOR}\n"
+			continue
+		fi
 	fi
 
 	echo -e -n "Verifying $BLUEUNDER$obj$NOCOLOR... "
