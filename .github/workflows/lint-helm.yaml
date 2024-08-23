@@ -37,29 +37,6 @@ jobs:
             echo "Vendored openapi2jsonschema.py script is out of date."
             echo "Please run 'make -C install/kubernetes openapi2jsonschema.py' and submit your changes."; exit 1
           fi
-      - name: Setup Python
-        id: setup-python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-      - name: Install pipenv
-        id: install-pipenv
-        shell: bash
-        run: |
-          python -m pip install --upgrade --no-cache-dir pip
-          python -m pip install --no-cache-dir pipenv
-      - name: Cache Pipfile
-        id: cache-pipfile
-        uses: actions/cache@v4
-        with:
-          path: ~/.local/share/virtualenvs
-          key: ${{ runner.os }}-python-${{ steps.setup-python.outputs.python-version }}-pipenv-${{ hashFiles('Pipfile.lock') }}
-      - name: Sync Pipfile
-        id: sync-pipfile
-        shell: bash
-        working-directory: install/kubernetes
-        run: |
-          pipenv sync --dev --python ${{ env.PYTHON_VERSION }}
       - name: Check if vendored CRD JSON schemas are up to date
         run: |
           make -C install/kubernetes generate-jsonschemas

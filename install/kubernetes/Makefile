@@ -9,17 +9,19 @@ KUBECONFORM_IMAGE=ghcr.io/yannh/kubeconform:v0.6.7-alpine@sha256:824e0c248809e4b
 HELMDOCS_IMAGE=docker.io/jnorwood/helm-docs:v1.14.2@sha256:7e562b49ab6b1dbc50c3da8f2dd6ffa8a5c6bba327b1c6335cc15ce29267979c
 # renovate: datasource=github-releases depName=yannh/kubeconform
 KUBECONFORM_VERSION := v0.6.7
-PYTHON := python3
-PIPENV := pipenv
+# renovate: datasource=docker
+PYTHON_IMAGE := docker.io/python:3.12-slim-bookworm
 K8S_VERSION := master
 HELM_VALUES_OVERRIDE := "helm_lint_values_override.yaml"
 
 REPO_ROOT := $(shell git rev-parse --show-toplevel)
 TETRAGON_CHART := tetragon
-CRDS := $(REPO_ROOT)/pkg/k8s/apis/cilium.io/client/crds/v1alpha1
+CRDS_RELATIVE_DIR := pkg/k8s/apis/cilium.io/client/crds/v1alpha1
+CRDS := $(REPO_ROOT)/$(CRDS_RELATIVE_DIR)
 JSON_SCHEMAS := $(REPO_ROOT)/install/kubernetes/schemas
 
 HELM ?= docker run --rm -v $(CURDIR)/$(TETRAGON_CHART):/apps -v $(CURDIR)/$(HELM_VALUES_OVERRIDE):/$(HELM_VALUES_OVERRIDE) $(HELM_IMAGE)
+PYTHON ?= docker run --rm -v $(REPO_ROOT):/code --workdir=/code/install/kubernetes -e FILENAME_FORMAT='{kind}-{fullgroup}' $(PYTHON_IMAGE)
 
 .PHONY: all
 all: deps $(TETRAGON_CHART)/crds-yaml lint docs openapi2jsonschema.py generate-jsonschemas kubeconform
@@ -53,14 +55,12 @@ openapi2jsonschema.py:
 	curl -sSfLO https://raw.githubusercontent.com/yannh/kubeconform/$(KUBECONFORM_VERSION)/scripts/$@
 
 # To validate (using openapi2jsonschema.py) default Ruleset policies included in the Helm chart, we need to pass the
-# JSON schema of the TracingPolicy CRD. This target generates such schema. It requires pipenv to be pre-installed.
+# JSON schema of the TracingPolicy CRD. This target generates such schema.
 .PHONY: generate-jsonschemas
 generate-jsonschemas: $(CRDS)
 	mkdir -p $(JSON_SCHEMAS)/
-	pipenv install
-	FILENAME_FORMAT='{kind}-{fullgroup}' $(PIPENV) run $(PYTHON) openapi2jsonschema.py $(CRDS)/*
+	$(PYTHON) /bin/bash -c "pip install pyyaml && python /code/install/kubernetes/openapi2jsonschema.py /code/$(CRDS_RELATIVE_DIR)/*"
 	mv $(REPO_ROOT)/install/kubernetes/*-cilium.io.json $(JSON_SCHEMAS)/
-	pipenv --rm
 
 .PHONY: kubeconform
 kubeconform:
