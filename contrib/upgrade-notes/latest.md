@@ -46,3 +46,4 @@ tetragon:
 
 * `tetragon_policyfilter_metrics_total` metric is renamed to `tetragon_policyfilter_operations_total`, and its `op`
   label is renamed to `operation`.
+* `tetragon_missed_events_total` metric is renamed to `tetragon_bpf_missed_events_total`.

@@ -42,8 +42,8 @@ var (
 		ConstLabels: nil,
 	}, []string{"type"})
 	MissedEvents = metrics.MustNewCustomCounter(metrics.NewOpts(
-		consts.MetricsNamespace, "", "missed_events_total",
-		"The total number of Tetragon events per type that are failed to sent from the kernel.",
+		consts.MetricsNamespace, "bpf", "missed_events_total",
+		"Number of Tetragon perf events that are failed to be sent from the kernel.",
 		nil, []metrics.ConstrainedLabel{metrics.OpCodeLabel, perfEventErrorLabel}, nil,
 	))
 	FlagCount = prometheus.NewCounterVec(prometheus.CounterOpts{
