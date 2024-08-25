@@ -55,6 +55,11 @@ struct msg_generic_kprobe {
 	__u32 tailcall_index_process; // recursion index for generic_process_event
 	__u32 tailcall_index_selector; // recursion index for filter_read_arg
 	int pass;
+	union {
+		struct {
+			bool post; // true if event needs to be posted
+		} lsm;
+	};
 };
 
 FUNC_INLINE size_t generic_kprobe_common_size(void)

@@ -345,17 +345,29 @@ func createGenericLsmSensor(
 func createLsmSensorFromEntry(lsmEntry *genericLsm,
 	progs []*program.Program, maps []*program.Map) ([]*program.Program, []*program.Map) {
 
-	loadProgName := "bpf_generic_lsm.o"
+	loadProgCoreName := "bpf_generic_lsm_core.o"
+	loadProgOutputName := "bpf_generic_lsm_output.o"
 	if kernels.EnableV61Progs() {
-		loadProgName = "bpf_generic_lsm_v61.o"
+		loadProgCoreName = "bpf_generic_lsm_core_v61.o"
+		loadProgOutputName = "bpf_generic_lsm_output_v61.o"
 	} else if kernels.MinKernelVersion("5.11") {
-		loadProgName = "bpf_generic_lsm_v511.o"
+		loadProgCoreName = "bpf_generic_lsm_core_v511.o"
+		loadProgOutputName = "bpf_generic_lsm_output_v511.o"
 	}
 
-	load := program.Builder(
-		path.Join(option.Config.HubbleLib, loadProgName),
+	loadOutput := program.Builder(
+		path.Join(option.Config.HubbleLib, loadProgOutputName),
 		lsmEntry.hook,
-		"lsm/generic_lsm",
+		"lsm/generic_lsm_output",
+		lsmEntry.hook,
+		"generic_lsm").
+		SetLoaderData(lsmEntry.tableId)
+	progs = append(progs, loadOutput)
+
+	load := program.Builder(
+		path.Join(option.Config.HubbleLib, loadProgCoreName),
+		lsmEntry.hook,
+		"lsm/generic_lsm_core",
 		lsmEntry.hook,
 		"generic_lsm").
 		SetLoaderData(lsmEntry.tableId)
@@ -376,6 +388,8 @@ func createLsmSensorFromEntry(lsmEntry *genericLsm,
 
 	callHeap := program.MapBuilderProgram("process_call_heap", load)
 	maps = append(maps, callHeap)
+	callHeapOutput := program.MapBuilderProgram("process_call_heap", loadOutput)
+	maps = append(maps, callHeapOutput)
 
 	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
 	maps = append(maps, selMatchBinariesMap)
@@ -387,6 +401,11 @@ func createLsmSensorFromEntry(lsmEntry *genericLsm,
 		matchBinariesPaths.SetInnerMaxEntries(lsmEntry.selectors.MatchBinariesPathsMaxEntries())
 	}
 	maps = append(maps, matchBinariesPaths)
+
+	overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
+	maps = append(maps, overrideTasksMap)
+	overrideTasksMapOutput := program.MapBuilderProgram("override_tasks", loadOutput)
+	maps = append(maps, overrideTasksMapOutput)
 
 	logger.GetLogger().
 		Infof("Added generic lsm sensor: %s -> %s", load.Name, load.Attach)

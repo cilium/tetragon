@@ -55,6 +55,8 @@ generic_start_process_filter(void *ctx, struct generic_maps *maps)
 	msg->sel.match_cap = 0;
 #endif
 
+	msg->lsm.post = false;
+
 	/* Tail call into filters. */
 	tail_call(ctx, maps->calls, TAIL_CALL_FILTER);
 	return 0;

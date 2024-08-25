@@ -9,6 +9,9 @@
 #include "compiler.h"
 #include "bpf_event.h"
 #include "bpf_task.h"
+#ifdef __LARGE_MAP_KEYS
+#include "bpf_lsm_ima.h"
+#endif
 #include "retprobe_map.h"
 #include "types/operations.h"
 #include "types/basic.h"
@@ -89,7 +92,7 @@ FUNC_INLINE int try_override(void *ctx)
 	return (long)*error;
 }
 
-#define MAIN "lsm/generic_lsm"
+#define MAIN "lsm/generic_lsm_core"
 
 __attribute__((section((MAIN)), used)) int
 generic_lsm_event(struct pt_regs *ctx)
@@ -144,16 +147,32 @@ generic_lsm_filter_arg(void *ctx)
 __attribute__((section("lsm/4"), used)) int
 generic_lsm_actions(void *ctx)
 {
-	generic_actions(ctx, &maps);
+	bool postit = generic_actions(ctx, &maps);
+
+	struct msg_generic_kprobe *e;
+	int zero = 0;
+
+	e = map_lookup_elem(&process_call_heap, &zero);
+	if (!e)
+		return 0;
+
+	e->lsm.post = postit;
+#ifdef __LARGE_MAP_KEYS
+	// Set dummy hash entry for ima program
+	if (e && e->common.flags & MSG_COMMON_FLAG_IMA_HASH && e->lsm.post) {
+		struct ima_hash hash;
+
+		__u64 pid_tgid = get_current_pid_tgid();
+
+		memset(&hash, 0, sizeof(struct ima_hash));
+		hash.state = 1;
+		map_update_elem(&ima_hash_map, &pid_tgid, &hash, BPF_ANY);
+	}
+#endif
 
 	// If NoPost action is set, check for Override action here
-	return try_override(ctx);
-}
+	if (!e->lsm.post)
+		return try_override(ctx);
 
-__attribute__((section("lsm/5"), used)) int
-generic_lsm_output(void *ctx)
-{
-	generic_output(ctx, (struct bpf_map_def *)&process_call_heap, MSG_OP_GENERIC_LSM);
-
-	return try_override(ctx);
+	return 0;
 }
