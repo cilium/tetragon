@@ -7,6 +7,7 @@
 #define MSG_COMMON_FLAG_RETURN		  BIT(0)
 #define MSG_COMMON_FLAG_KERNEL_STACKTRACE BIT(1)
 #define MSG_COMMON_FLAG_USER_STACKTRACE	  BIT(2)
+#define MSG_COMMON_FLAG_IMA_HASH	  BIT(3)
 
 /* Msg Layout */
 struct msg_common {

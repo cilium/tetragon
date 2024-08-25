@@ -269,6 +269,10 @@ static void BPF_FUNC(dynptr_data, const struct bpf_dynptr *ptr, uint32_t offset,
 
 static long BPF_FUNC(sock_ops_cb_flags_set, struct bpf_sock_ops *bpf_sock, int argval);
 
+/* LSM */
+static long BPF_FUNC(ima_file_hash, struct file *file, void *dst, uint32_t size);
+static long BPF_FUNC(ima_inode_hash, struct inode *inode, void *dst, uint32_t size);
+
 /** LLVM built-ins, mem*() routines work for constant size */
 
 #ifndef lock_xadd

@@ -2219,6 +2219,12 @@ do_action(void *ctx, __u32 i, struct selector_action *actions,
 			e->common.flags |= MSG_COMMON_FLAG_USER_STACKTRACE;
 			e->user_stack_id = get_stackid(ctx, &stack_trace_map, BPF_F_USER_STACK);
 		}
+#ifdef __LARGE_MAP_KEYS
+		__u32 ima_hash = actions->act[++i];
+
+		if (ima_hash)
+			e->common.flags |= MSG_COMMON_FLAG_IMA_HASH;
+#endif
 		break;
 	}
 
