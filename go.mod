@@ -52,7 +52,7 @@ require (
 	k8s.io/apimachinery v0.29.8
 	k8s.io/client-go v0.29.8
 	k8s.io/code-generator v0.29.8
-	k8s.io/cri-api v0.30.3
+	k8s.io/cri-api v0.30.4
 	k8s.io/klog/v2 v2.120.1
 	k8s.io/kube-openapi v0.0.0-20240430033511-f0e62f92d13f
 	sigs.k8s.io/controller-runtime v0.16.6
