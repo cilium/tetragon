@@ -18,7 +18,7 @@ import (
 var (
 	metricsWithPod      []*prometheus.MetricVec
 	metricsWithPodMutex sync.RWMutex
-	podQueue            workqueue.DelayingInterface
+	podQueue            workqueue.TypedDelayingInterface[any]
 	podQueueOnce        sync.Once
 	deleteDelay         = 1 * time.Minute
 )
@@ -58,9 +58,9 @@ func RegisterPodDeleteHandler() {
 	})
 }
 
-func GetPodQueue() workqueue.DelayingInterface {
+func GetPodQueue() workqueue.TypedDelayingInterface[any] {
 	podQueueOnce.Do(func() {
-		podQueue = workqueue.NewDelayingQueue()
+		podQueue = workqueue.TypedNewDelayingQueue[any]()
 	})
 	return podQueue
 }
