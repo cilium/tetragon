@@ -36,8 +36,8 @@ require (
 	github.com/spf13/viper v1.19.0
 	github.com/sryoya/protorand v0.0.0-20240429201223-e7440656b2a4
 	github.com/stretchr/testify v1.9.0
-	github.com/tidwall/gjson v1.17.0
-	github.com/vishvananda/netlink v1.2.1-beta.2.0.20240524165444-4d4ba1473f21
+	github.com/tidwall/gjson v1.17.3
+	github.com/vishvananda/netlink v1.2.1
 	go.uber.org/atomic v1.11.0
 	go.uber.org/multierr v1.11.0
 	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948
