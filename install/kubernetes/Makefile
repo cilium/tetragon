@@ -2,7 +2,7 @@
 # Copyright Authors of Tetragon
 
 # renovate: datasource=docker
-HELM_IMAGE=docker.io/alpine/helm:3.15.3@sha256:ba0dcbbcf31f780bd8cdeeabc44bc6939df695a725c90dbb25762ada2f6e3df0
+HELM_IMAGE=docker.io/alpine/helm:3.15.4@sha256:105741fa6621ed9a3ea944066de78bb27d4b9bb93a56ce8e7cb4d621e1e4bbf2
 # renovate: datasource=docker
 KUBECONFORM_IMAGE=ghcr.io/yannh/kubeconform:v0.6.7-alpine@sha256:824e0c248809e4b2da2a768b16b107cf17ada88a89ec6aa6050e566ba93ebbc6
 # renovate: datasource=docker
