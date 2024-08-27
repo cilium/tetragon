@@ -45,9 +45,10 @@ const (
 	KeyTracingPolicy      = "tracing-policy"
 	KeyTracingPolicyDir   = "tracing-policy-dir"
 
-	KeyCpuProfile = "cpuprofile"
-	KeyMemProfile = "memprofile"
-	KeyPprofAddr  = "pprof-addr"
+	KeyCpuProfile          = "cpuprofile"
+	KeyMemProfile          = "memprofile"
+	KeyPprofAddr           = "pprof-address"
+	KeyDeprecatedPprofAddr = "pprof-addr"
 
 	KeyExportFilename             = "export-filename"
 	KeyExportFileMaxSizeMB        = "export-file-max-size-mb"
@@ -184,6 +185,7 @@ func ReadAndSetFlags() error {
 
 	Config.CpuProfile = viper.GetString(KeyCpuProfile)
 	Config.MemProfile = viper.GetString(KeyMemProfile)
+	Config.PprofAddr = viper.GetString(KeyDeprecatedPprofAddr)
 	Config.PprofAddr = viper.GetString(KeyPprofAddr)
 
 	Config.EventQueueSize = viper.GetUint(KeyEventQueueSize)
@@ -326,8 +328,9 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.String(KeyMemProfile, "", "Store MEM profile into provided file")
 	flags.MarkHidden(KeyMemProfile)
 
-	flags.String(KeyPprofAddr, "", "Profile via pprof http")
-	flags.MarkHidden(KeyPprofAddr)
+	flags.String(KeyPprofAddr, "", "Serves runtime profile data via HTTP (e.g. 'localhost:6060'). Disabled by default")
+	flags.String(KeyDeprecatedPprofAddr, "", "")
+	flags.MarkDeprecated(KeyDeprecatedPprofAddr, "please use --pprof-address")
 
 	// JSON export aggregation options.
 	flags.Bool(KeyEnableExportAggregation, false, "Enable JSON export aggregation")
