@@ -67,4 +67,7 @@ data:
 {{- end }}
   enable-pod-info: {{ .Values.tetragonOperator.podInfo.enabled | quote }}
   enable-tracing-policy-crd: {{ .Values.tetragonOperator.tracingPolicy.enabled | quote }}
+{{- if .Values.tetragon.pprof.enabled }}
+  pprof-address: {{ .Values.tetragon.pprof.address }}:{{ .Values.tetragon.pprof.port }}
+{{- end }}
   {{- include "configmap.extra" . | nindent 2 }}

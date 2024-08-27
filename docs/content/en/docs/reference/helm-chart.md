@@ -111,6 +111,9 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | tetragon.ociHookSetup.interface | string | `"oci-hooks"` | interface specifices how the hook is  configured. There is only one avaialble value for now: "oci-hooks" (https://github.com/containers/common/blob/main/pkg/hooks/docs/oci-hooks.5.md). |
 | tetragon.ociHookSetup.resources | object | `{}` | resources for the the oci-hook-setup init container |
 | tetragon.ociHookSetup.securityContext | object | `{"privileged":true}` | Security context for oci-hook-setup init container |
+| tetragon.pprof.address | string | `"localhost"` | The address at which to expose pprof. |
+| tetragon.pprof.enabled | bool | `false` | Whether to enable exposing pprof server. |
+| tetragon.pprof.port | int | `6060` | The port at which to expose pprof. |
 | tetragon.processCacheSize | int | `65536` | Tetragon puts processes in an LRU cache. The cache is used to find ancestors for subsequently exec'ed processes. |
 | tetragon.prometheus.address | string | `""` | The address at which to expose metrics. Set it to "" to expose on all available interfaces. |
 | tetragon.prometheus.enabled | bool | `true` | Whether to enable exposing Tetragon metrics. |
