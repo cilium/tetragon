@@ -15,6 +15,9 @@ on:
     - '.github/workflows/lint-helm.yaml'
   workflow_call:
 
+permissions:
+  pull-requests: write
+
 env:
   MIN_K8S_VERSION: "1.23.0"
   # renovate: datasource=python-version
@@ -51,6 +54,7 @@ jobs:
 
       # Validate Helm chart
       - name: Generate Helm chart
+        id: generate_helm_chart
         run: |
           make -C install/kubernetes
       - name: Validate generated files
@@ -63,6 +67,7 @@ jobs:
 
       # (Re-)run Kubeconform checks explicitly once again to catch specific errors in that regard (to get the STDOUT/STDERR)
       - name: Run Kubeconform with minimum supported K8s version
+        if: success() || steps.generate_helm_chart.outcome == 'failure'
         id: kubeconform_min_k8s_version
         uses: mathiasvr/command-output@v2.0.0
         with:
@@ -70,6 +75,7 @@ jobs:
           run: |
             make -C install/kubernetes kubeconform K8S_VERSION=${{ env.MIN_K8S_VERSION }}
       - name: Run Kubeconform with latest K8s version
+        if: success() || steps.generate_helm_chart.outcome == 'failure'
         id: kubeconform_latest_k8s_version
         uses: mathiasvr/command-output@v2.0.0
         with:
@@ -79,7 +85,7 @@ jobs:
 
       # Post Kubeconform issues as comment on the GH PR, if there are any
       - name: Comment Kubeconform Output
-        if: failure() && (steps.kubeconform_min_k8s_version.outcome != 'success' || steps.kubeconform_latest_k8s_version.outcome != 'success')
+        if: failure() && (steps.kubeconform_min_k8s_version.outcome == 'failure' || steps.kubeconform_latest_k8s_version.outcome == 'failure')
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           hide_and_recreate: true
