@@ -1,5 +1,16 @@
 // Copyright The OpenTelemetry Authors
-// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package otelhttp // import "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
@@ -11,14 +22,15 @@ import (
 	"sync/atomic"
 	"time"
 
+	"go.opentelemetry.io/otel/metric"
+
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp/internal/semconvutil"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
-	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
 	"go.opentelemetry.io/otel/trace"
+
+	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
 )
 
 // Transport implements the http.RoundTripper interface and wraps
@@ -136,10 +148,8 @@ func (t *Transport) RoundTrip(r *http.Request) (*http.Response, error) {
 		ctx = httptrace.WithClientTrace(ctx, t.clientTrace(ctx))
 	}
 
-	labeler, found := LabelerFromContext(ctx)
-	if !found {
-		ctx = ContextWithLabeler(ctx, labeler)
-	}
+	labeler := &Labeler{}
+	ctx = injectLabeler(ctx, labeler)
 
 	r = r.Clone(ctx) // According to RoundTripper spec, we shouldn't modify the origin request.
 
@@ -171,12 +181,11 @@ func (t *Transport) RoundTrip(r *http.Request) (*http.Response, error) {
 	if res.StatusCode > 0 {
 		metricAttrs = append(metricAttrs, semconv.HTTPStatusCode(res.StatusCode))
 	}
-	o := metric.WithAttributeSet(attribute.NewSet(metricAttrs...))
-	addOpts := []metric.AddOption{o} // Allocate vararg slice once.
-	t.requestBytesCounter.Add(ctx, bw.read.Load(), addOpts...)
+	o := metric.WithAttributes(metricAttrs...)
+	t.requestBytesCounter.Add(ctx, bw.read.Load(), o)
 	// For handling response bytes we leverage a callback when the client reads the http response
 	readRecordFunc := func(n int64) {
-		t.responseBytesCounter.Add(ctx, n, addOpts...)
+		t.responseBytesCounter.Add(ctx, n, o)
 	}
 
 	// traces

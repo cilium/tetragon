@@ -44,24 +44,22 @@ var replicasetsKind = v1beta2.SchemeGroupVersion.WithKind("ReplicaSet")
 
 // Get takes name of the replicaSet, and returns the corresponding replicaSet object, and an error if there is any.
 func (c *FakeReplicaSets) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta2.ReplicaSet, err error) {
-	emptyResult := &v1beta2.ReplicaSet{}
 	obj, err := c.Fake.
-		Invokes(testing.NewGetActionWithOptions(replicasetsResource, c.ns, name, options), emptyResult)
+		Invokes(testing.NewGetAction(replicasetsResource, c.ns, name), &v1beta2.ReplicaSet{})
 
 	if obj == nil {
-		return emptyResult, err
+		return nil, err
 	}
 	return obj.(*v1beta2.ReplicaSet), err
 }
 
 // List takes label and field selectors, and returns the list of ReplicaSets that match those selectors.
 func (c *FakeReplicaSets) List(ctx context.Context, opts v1.ListOptions) (result *v1beta2.ReplicaSetList, err error) {
-	emptyResult := &v1beta2.ReplicaSetList{}
 	obj, err := c.Fake.
-		Invokes(testing.NewListActionWithOptions(replicasetsResource, replicasetsKind, c.ns, opts), emptyResult)
+		Invokes(testing.NewListAction(replicasetsResource, replicasetsKind, c.ns, opts), &v1beta2.ReplicaSetList{})
 
 	if obj == nil {
-		return emptyResult, err
+		return nil, err
 	}
 
 	label, _, _ := testing.ExtractFromListOptions(opts)
@@ -80,43 +78,40 @@ func (c *FakeReplicaSets) List(ctx context.Context, opts v1.ListOptions) (result
 // Watch returns a watch.Interface that watches the requested replicaSets.
 func (c *FakeReplicaSets) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(testing.NewWatchActionWithOptions(replicasetsResource, c.ns, opts))
+		InvokesWatch(testing.NewWatchAction(replicasetsResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a replicaSet and creates it.  Returns the server's representation of the replicaSet, and an error, if there is any.
 func (c *FakeReplicaSets) Create(ctx context.Context, replicaSet *v1beta2.ReplicaSet, opts v1.CreateOptions) (result *v1beta2.ReplicaSet, err error) {
-	emptyResult := &v1beta2.ReplicaSet{}
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateActionWithOptions(replicasetsResource, c.ns, replicaSet, opts), emptyResult)
+		Invokes(testing.NewCreateAction(replicasetsResource, c.ns, replicaSet), &v1beta2.ReplicaSet{})
 
 	if obj == nil {
-		return emptyResult, err
+		return nil, err
 	}
 	return obj.(*v1beta2.ReplicaSet), err
 }
 
 // Update takes the representation of a replicaSet and updates it. Returns the server's representation of the replicaSet, and an error, if there is any.
 func (c *FakeReplicaSets) Update(ctx context.Context, replicaSet *v1beta2.ReplicaSet, opts v1.UpdateOptions) (result *v1beta2.ReplicaSet, err error) {
-	emptyResult := &v1beta2.ReplicaSet{}
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateActionWithOptions(replicasetsResource, c.ns, replicaSet, opts), emptyResult)
+		Invokes(testing.NewUpdateAction(replicasetsResource, c.ns, replicaSet), &v1beta2.ReplicaSet{})
 
 	if obj == nil {
-		return emptyResult, err
+		return nil, err
 	}
 	return obj.(*v1beta2.ReplicaSet), err
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeReplicaSets) UpdateStatus(ctx context.Context, replicaSet *v1beta2.ReplicaSet, opts v1.UpdateOptions) (result *v1beta2.ReplicaSet, err error) {
-	emptyResult := &v1beta2.ReplicaSet{}
+func (c *FakeReplicaSets) UpdateStatus(ctx context.Context, replicaSet *v1beta2.ReplicaSet, opts v1.UpdateOptions) (*v1beta2.ReplicaSet, error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceActionWithOptions(replicasetsResource, "status", c.ns, replicaSet, opts), emptyResult)
+		Invokes(testing.NewUpdateSubresourceAction(replicasetsResource, "status", c.ns, replicaSet), &v1beta2.ReplicaSet{})
 
 	if obj == nil {
-		return emptyResult, err
+		return nil, err
 	}
 	return obj.(*v1beta2.ReplicaSet), err
 }
@@ -131,7 +126,7 @@ func (c *FakeReplicaSets) Delete(ctx context.Context, name string, opts v1.Delet
 
 // DeleteCollection deletes a collection of objects.
 func (c *FakeReplicaSets) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
-	action := testing.NewDeleteCollectionActionWithOptions(replicasetsResource, c.ns, opts, listOpts)
+	action := testing.NewDeleteCollectionAction(replicasetsResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1beta2.ReplicaSetList{})
 	return err
@@ -139,12 +134,11 @@ func (c *FakeReplicaSets) DeleteCollection(ctx context.Context, opts v1.DeleteOp
 
 // Patch applies the patch and returns the patched replicaSet.
 func (c *FakeReplicaSets) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta2.ReplicaSet, err error) {
-	emptyResult := &v1beta2.ReplicaSet{}
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceActionWithOptions(replicasetsResource, c.ns, name, pt, data, opts, subresources...), emptyResult)
+		Invokes(testing.NewPatchSubresourceAction(replicasetsResource, c.ns, name, pt, data, subresources...), &v1beta2.ReplicaSet{})
 
 	if obj == nil {
-		return emptyResult, err
+		return nil, err
 	}
 	return obj.(*v1beta2.ReplicaSet), err
 }
@@ -162,12 +156,11 @@ func (c *FakeReplicaSets) Apply(ctx context.Context, replicaSet *appsv1beta2.Rep
 	if name == nil {
 		return nil, fmt.Errorf("replicaSet.Name must be provided to Apply")
 	}
-	emptyResult := &v1beta2.ReplicaSet{}
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceActionWithOptions(replicasetsResource, c.ns, *name, types.ApplyPatchType, data, opts.ToPatchOptions()), emptyResult)
+		Invokes(testing.NewPatchSubresourceAction(replicasetsResource, c.ns, *name, types.ApplyPatchType, data), &v1beta2.ReplicaSet{})
 
 	if obj == nil {
-		return emptyResult, err
+		return nil, err
 	}
 	return obj.(*v1beta2.ReplicaSet), err
 }
@@ -186,12 +179,11 @@ func (c *FakeReplicaSets) ApplyStatus(ctx context.Context, replicaSet *appsv1bet
 	if name == nil {
 		return nil, fmt.Errorf("replicaSet.Name must be provided to Apply")
 	}
-	emptyResult := &v1beta2.ReplicaSet{}
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceActionWithOptions(replicasetsResource, c.ns, *name, types.ApplyPatchType, data, opts.ToPatchOptions(), "status"), emptyResult)
+		Invokes(testing.NewPatchSubresourceAction(replicasetsResource, c.ns, *name, types.ApplyPatchType, data, "status"), &v1beta2.ReplicaSet{})
 
 	if obj == nil {
-		return emptyResult, err
+		return nil, err
 	}
 	return obj.(*v1beta2.ReplicaSet), err
 }

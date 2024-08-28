@@ -47,10 +47,6 @@ var _ Gates = &envVarFeatureGates{}
 //
 // Please note that environmental variables can only be set to the boolean value.
 // Incorrect values will be ignored and logged.
-//
-// Features can also be set directly via the Set method.
-// In that case, these features take precedence over
-// features set via environmental variables.
 func newEnvVarFeatureGates(features map[Feature]FeatureSpec) *envVarFeatureGates {
 	known := map[Feature]FeatureSpec{}
 	for name, spec := range features {
@@ -61,8 +57,7 @@ func newEnvVarFeatureGates(features map[Feature]FeatureSpec) *envVarFeatureGates
 		callSiteName: naming.GetNameFromCallsite(internalPackages...),
 		known:        known,
 	}
-	fg.enabledViaEnvVar.Store(map[Feature]bool{})
-	fg.enabledViaSetMethod = map[Feature]bool{}
+	fg.enabled.Store(map[Feature]bool{})
 
 	return fg
 }
@@ -79,34 +74,17 @@ type envVarFeatureGates struct {
 	// known holds known feature gates
 	known map[Feature]FeatureSpec
 
-	// enabledViaEnvVar holds a map[Feature]bool
+	// enabled holds a map[Feature]bool
 	// with values explicitly set via env var
-	enabledViaEnvVar atomic.Value
-
-	// lockEnabledViaSetMethod protects enabledViaSetMethod
-	lockEnabledViaSetMethod sync.RWMutex
-
-	// enabledViaSetMethod holds values explicitly set
-	// via Set method, features stored in this map take
-	// precedence over features stored in enabledViaEnvVar
-	enabledViaSetMethod map[Feature]bool
+	enabled atomic.Value
 
 	// readEnvVars holds the boolean value which
 	// indicates whether readEnvVarsOnce has been called.
 	readEnvVars atomic.Bool
 }
 
-// Enabled returns true if the key is enabled. If the key is not known, this call will panic.
+// Enabled returns true if the key is enabled.  If the key is not known, this call will panic.
 func (f *envVarFeatureGates) Enabled(key Feature) bool {
-	if v, ok := f.wasFeatureEnabledViaSetMethod(key); ok {
-		// ensue that the state of all known features
-		// is loaded from environment variables
-		// on the first call to Enabled method.
-		if !f.hasAlreadyReadEnvVar() {
-			_ = f.getEnabledMapFromEnvVar()
-		}
-		return v
-	}
 	if v, ok := f.getEnabledMapFromEnvVar()[key]; ok {
 		return v
 	}
@@ -114,26 +92,6 @@ func (f *envVarFeatureGates) Enabled(key Feature) bool {
 		return v.Default
 	}
 	panic(fmt.Errorf("feature %q is not registered in FeatureGates %q", key, f.callSiteName))
-}
-
-// Set sets the given feature to the given value.
-//
-// Features set via this method take precedence over
-// the features set via environment variables.
-func (f *envVarFeatureGates) Set(featureName Feature, featureValue bool) error {
-	feature, ok := f.known[featureName]
-	if !ok {
-		return fmt.Errorf("feature %q is not registered in FeatureGates %q", featureName, f.callSiteName)
-	}
-	if feature.LockToDefault && feature.Default != featureValue {
-		return fmt.Errorf("cannot set feature gate %q to %v, feature is locked to %v", featureName, featureValue, feature.Default)
-	}
-
-	f.lockEnabledViaSetMethod.Lock()
-	defer f.lockEnabledViaSetMethod.Unlock()
-	f.enabledViaSetMethod[featureName] = featureValue
-
-	return nil
 }
 
 // getEnabledMapFromEnvVar will fill the enabled map on the first call.
@@ -161,7 +119,7 @@ func (f *envVarFeatureGates) getEnabledMapFromEnvVar() map[Feature]bool {
 				featureGatesState[feature] = boolVal
 			}
 		}
-		f.enabledViaEnvVar.Store(featureGatesState)
+		f.enabled.Store(featureGatesState)
 		f.readEnvVars.Store(true)
 
 		for feature, featureSpec := range f.known {
@@ -172,15 +130,7 @@ func (f *envVarFeatureGates) getEnabledMapFromEnvVar() map[Feature]bool {
 			klog.V(1).InfoS("Feature gate default state", "feature", feature, "enabled", featureSpec.Default)
 		}
 	})
-	return f.enabledViaEnvVar.Load().(map[Feature]bool)
-}
-
-func (f *envVarFeatureGates) wasFeatureEnabledViaSetMethod(key Feature) (bool, bool) {
-	f.lockEnabledViaSetMethod.RLock()
-	defer f.lockEnabledViaSetMethod.RUnlock()
-
-	value, found := f.enabledViaSetMethod[key]
-	return value, found
+	return f.enabled.Load().(map[Feature]bool)
 }
 
 func (f *envVarFeatureGates) hasAlreadyReadEnvVar() bool {

@@ -44,24 +44,22 @@ var leasesKind = v1beta1.SchemeGroupVersion.WithKind("Lease")
 
 // Get takes name of the lease, and returns the corresponding lease object, and an error if there is any.
 func (c *FakeLeases) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.Lease, err error) {
-	emptyResult := &v1beta1.Lease{}
 	obj, err := c.Fake.
-		Invokes(testing.NewGetActionWithOptions(leasesResource, c.ns, name, options), emptyResult)
+		Invokes(testing.NewGetAction(leasesResource, c.ns, name), &v1beta1.Lease{})
 
 	if obj == nil {
-		return emptyResult, err
+		return nil, err
 	}
 	return obj.(*v1beta1.Lease), err
 }
 
 // List takes label and field selectors, and returns the list of Leases that match those selectors.
 func (c *FakeLeases) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.LeaseList, err error) {
-	emptyResult := &v1beta1.LeaseList{}
 	obj, err := c.Fake.
-		Invokes(testing.NewListActionWithOptions(leasesResource, leasesKind, c.ns, opts), emptyResult)
+		Invokes(testing.NewListAction(leasesResource, leasesKind, c.ns, opts), &v1beta1.LeaseList{})
 
 	if obj == nil {
-		return emptyResult, err
+		return nil, err
 	}
 
 	label, _, _ := testing.ExtractFromListOptions(opts)
@@ -80,30 +78,28 @@ func (c *FakeLeases) List(ctx context.Context, opts v1.ListOptions) (result *v1b
 // Watch returns a watch.Interface that watches the requested leases.
 func (c *FakeLeases) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(testing.NewWatchActionWithOptions(leasesResource, c.ns, opts))
+		InvokesWatch(testing.NewWatchAction(leasesResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a lease and creates it.  Returns the server's representation of the lease, and an error, if there is any.
 func (c *FakeLeases) Create(ctx context.Context, lease *v1beta1.Lease, opts v1.CreateOptions) (result *v1beta1.Lease, err error) {
-	emptyResult := &v1beta1.Lease{}
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateActionWithOptions(leasesResource, c.ns, lease, opts), emptyResult)
+		Invokes(testing.NewCreateAction(leasesResource, c.ns, lease), &v1beta1.Lease{})
 
 	if obj == nil {
-		return emptyResult, err
+		return nil, err
 	}
 	return obj.(*v1beta1.Lease), err
 }
 
 // Update takes the representation of a lease and updates it. Returns the server's representation of the lease, and an error, if there is any.
 func (c *FakeLeases) Update(ctx context.Context, lease *v1beta1.Lease, opts v1.UpdateOptions) (result *v1beta1.Lease, err error) {
-	emptyResult := &v1beta1.Lease{}
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateActionWithOptions(leasesResource, c.ns, lease, opts), emptyResult)
+		Invokes(testing.NewUpdateAction(leasesResource, c.ns, lease), &v1beta1.Lease{})
 
 	if obj == nil {
-		return emptyResult, err
+		return nil, err
 	}
 	return obj.(*v1beta1.Lease), err
 }
@@ -118,7 +114,7 @@ func (c *FakeLeases) Delete(ctx context.Context, name string, opts v1.DeleteOpti
 
 // DeleteCollection deletes a collection of objects.
 func (c *FakeLeases) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
-	action := testing.NewDeleteCollectionActionWithOptions(leasesResource, c.ns, opts, listOpts)
+	action := testing.NewDeleteCollectionAction(leasesResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1beta1.LeaseList{})
 	return err
@@ -126,12 +122,11 @@ func (c *FakeLeases) DeleteCollection(ctx context.Context, opts v1.DeleteOptions
 
 // Patch applies the patch and returns the patched lease.
 func (c *FakeLeases) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.Lease, err error) {
-	emptyResult := &v1beta1.Lease{}
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceActionWithOptions(leasesResource, c.ns, name, pt, data, opts, subresources...), emptyResult)
+		Invokes(testing.NewPatchSubresourceAction(leasesResource, c.ns, name, pt, data, subresources...), &v1beta1.Lease{})
 
 	if obj == nil {
-		return emptyResult, err
+		return nil, err
 	}
 	return obj.(*v1beta1.Lease), err
 }
@@ -149,12 +144,11 @@ func (c *FakeLeases) Apply(ctx context.Context, lease *coordinationv1beta1.Lease
 	if name == nil {
 		return nil, fmt.Errorf("lease.Name must be provided to Apply")
 	}
-	emptyResult := &v1beta1.Lease{}
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceActionWithOptions(leasesResource, c.ns, *name, types.ApplyPatchType, data, opts.ToPatchOptions()), emptyResult)
+		Invokes(testing.NewPatchSubresourceAction(leasesResource, c.ns, *name, types.ApplyPatchType, data), &v1beta1.Lease{})
 
 	if obj == nil {
-		return emptyResult, err
+		return nil, err
 	}
 	return obj.(*v1beta1.Lease), err
 }

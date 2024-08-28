@@ -43,22 +43,20 @@ var validatingadmissionpolicybindingsKind = v1.SchemeGroupVersion.WithKind("Vali
 
 // Get takes name of the validatingAdmissionPolicyBinding, and returns the corresponding validatingAdmissionPolicyBinding object, and an error if there is any.
 func (c *FakeValidatingAdmissionPolicyBindings) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.ValidatingAdmissionPolicyBinding, err error) {
-	emptyResult := &v1.ValidatingAdmissionPolicyBinding{}
 	obj, err := c.Fake.
-		Invokes(testing.NewRootGetActionWithOptions(validatingadmissionpolicybindingsResource, name, options), emptyResult)
+		Invokes(testing.NewRootGetAction(validatingadmissionpolicybindingsResource, name), &v1.ValidatingAdmissionPolicyBinding{})
 	if obj == nil {
-		return emptyResult, err
+		return nil, err
 	}
 	return obj.(*v1.ValidatingAdmissionPolicyBinding), err
 }
 
 // List takes label and field selectors, and returns the list of ValidatingAdmissionPolicyBindings that match those selectors.
 func (c *FakeValidatingAdmissionPolicyBindings) List(ctx context.Context, opts metav1.ListOptions) (result *v1.ValidatingAdmissionPolicyBindingList, err error) {
-	emptyResult := &v1.ValidatingAdmissionPolicyBindingList{}
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListActionWithOptions(validatingadmissionpolicybindingsResource, validatingadmissionpolicybindingsKind, opts), emptyResult)
+		Invokes(testing.NewRootListAction(validatingadmissionpolicybindingsResource, validatingadmissionpolicybindingsKind, opts), &v1.ValidatingAdmissionPolicyBindingList{})
 	if obj == nil {
-		return emptyResult, err
+		return nil, err
 	}
 
 	label, _, _ := testing.ExtractFromListOptions(opts)
@@ -77,27 +75,25 @@ func (c *FakeValidatingAdmissionPolicyBindings) List(ctx context.Context, opts m
 // Watch returns a watch.Interface that watches the requested validatingAdmissionPolicyBindings.
 func (c *FakeValidatingAdmissionPolicyBindings) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(testing.NewRootWatchActionWithOptions(validatingadmissionpolicybindingsResource, opts))
+		InvokesWatch(testing.NewRootWatchAction(validatingadmissionpolicybindingsResource, opts))
 }
 
 // Create takes the representation of a validatingAdmissionPolicyBinding and creates it.  Returns the server's representation of the validatingAdmissionPolicyBinding, and an error, if there is any.
 func (c *FakeValidatingAdmissionPolicyBindings) Create(ctx context.Context, validatingAdmissionPolicyBinding *v1.ValidatingAdmissionPolicyBinding, opts metav1.CreateOptions) (result *v1.ValidatingAdmissionPolicyBinding, err error) {
-	emptyResult := &v1.ValidatingAdmissionPolicyBinding{}
 	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateActionWithOptions(validatingadmissionpolicybindingsResource, validatingAdmissionPolicyBinding, opts), emptyResult)
+		Invokes(testing.NewRootCreateAction(validatingadmissionpolicybindingsResource, validatingAdmissionPolicyBinding), &v1.ValidatingAdmissionPolicyBinding{})
 	if obj == nil {
-		return emptyResult, err
+		return nil, err
 	}
 	return obj.(*v1.ValidatingAdmissionPolicyBinding), err
 }
 
 // Update takes the representation of a validatingAdmissionPolicyBinding and updates it. Returns the server's representation of the validatingAdmissionPolicyBinding, and an error, if there is any.
 func (c *FakeValidatingAdmissionPolicyBindings) Update(ctx context.Context, validatingAdmissionPolicyBinding *v1.ValidatingAdmissionPolicyBinding, opts metav1.UpdateOptions) (result *v1.ValidatingAdmissionPolicyBinding, err error) {
-	emptyResult := &v1.ValidatingAdmissionPolicyBinding{}
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateActionWithOptions(validatingadmissionpolicybindingsResource, validatingAdmissionPolicyBinding, opts), emptyResult)
+		Invokes(testing.NewRootUpdateAction(validatingadmissionpolicybindingsResource, validatingAdmissionPolicyBinding), &v1.ValidatingAdmissionPolicyBinding{})
 	if obj == nil {
-		return emptyResult, err
+		return nil, err
 	}
 	return obj.(*v1.ValidatingAdmissionPolicyBinding), err
 }
@@ -111,7 +107,7 @@ func (c *FakeValidatingAdmissionPolicyBindings) Delete(ctx context.Context, name
 
 // DeleteCollection deletes a collection of objects.
 func (c *FakeValidatingAdmissionPolicyBindings) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionActionWithOptions(validatingadmissionpolicybindingsResource, opts, listOpts)
+	action := testing.NewRootDeleteCollectionAction(validatingadmissionpolicybindingsResource, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1.ValidatingAdmissionPolicyBindingList{})
 	return err
@@ -119,11 +115,10 @@ func (c *FakeValidatingAdmissionPolicyBindings) DeleteCollection(ctx context.Con
 
 // Patch applies the patch and returns the patched validatingAdmissionPolicyBinding.
 func (c *FakeValidatingAdmissionPolicyBindings) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ValidatingAdmissionPolicyBinding, err error) {
-	emptyResult := &v1.ValidatingAdmissionPolicyBinding{}
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceActionWithOptions(validatingadmissionpolicybindingsResource, name, pt, data, opts, subresources...), emptyResult)
+		Invokes(testing.NewRootPatchSubresourceAction(validatingadmissionpolicybindingsResource, name, pt, data, subresources...), &v1.ValidatingAdmissionPolicyBinding{})
 	if obj == nil {
-		return emptyResult, err
+		return nil, err
 	}
 	return obj.(*v1.ValidatingAdmissionPolicyBinding), err
 }
@@ -141,11 +136,10 @@ func (c *FakeValidatingAdmissionPolicyBindings) Apply(ctx context.Context, valid
 	if name == nil {
 		return nil, fmt.Errorf("validatingAdmissionPolicyBinding.Name must be provided to Apply")
 	}
-	emptyResult := &v1.ValidatingAdmissionPolicyBinding{}
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceActionWithOptions(validatingadmissionpolicybindingsResource, *name, types.ApplyPatchType, data, opts.ToPatchOptions()), emptyResult)
+		Invokes(testing.NewRootPatchSubresourceAction(validatingadmissionpolicybindingsResource, *name, types.ApplyPatchType, data), &v1.ValidatingAdmissionPolicyBinding{})
 	if obj == nil {
-		return emptyResult, err
+		return nil, err
 	}
 	return obj.(*v1.ValidatingAdmissionPolicyBinding), err
 }

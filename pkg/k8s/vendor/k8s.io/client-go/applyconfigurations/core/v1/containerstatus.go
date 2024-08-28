@@ -22,26 +22,24 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-// ContainerStatusApplyConfiguration represents a declarative configuration of the ContainerStatus type for use
+// ContainerStatusApplyConfiguration represents an declarative configuration of the ContainerStatus type for use
 // with apply.
 type ContainerStatusApplyConfiguration struct {
-	Name                     *string                                 `json:"name,omitempty"`
-	State                    *ContainerStateApplyConfiguration       `json:"state,omitempty"`
-	LastTerminationState     *ContainerStateApplyConfiguration       `json:"lastState,omitempty"`
-	Ready                    *bool                                   `json:"ready,omitempty"`
-	RestartCount             *int32                                  `json:"restartCount,omitempty"`
-	Image                    *string                                 `json:"image,omitempty"`
-	ImageID                  *string                                 `json:"imageID,omitempty"`
-	ContainerID              *string                                 `json:"containerID,omitempty"`
-	Started                  *bool                                   `json:"started,omitempty"`
-	AllocatedResources       *corev1.ResourceList                    `json:"allocatedResources,omitempty"`
-	Resources                *ResourceRequirementsApplyConfiguration `json:"resources,omitempty"`
-	VolumeMounts             []VolumeMountStatusApplyConfiguration   `json:"volumeMounts,omitempty"`
-	User                     *ContainerUserApplyConfiguration        `json:"user,omitempty"`
-	AllocatedResourcesStatus []ResourceStatusApplyConfiguration      `json:"allocatedResourcesStatus,omitempty"`
+	Name                 *string                                 `json:"name,omitempty"`
+	State                *ContainerStateApplyConfiguration       `json:"state,omitempty"`
+	LastTerminationState *ContainerStateApplyConfiguration       `json:"lastState,omitempty"`
+	Ready                *bool                                   `json:"ready,omitempty"`
+	RestartCount         *int32                                  `json:"restartCount,omitempty"`
+	Image                *string                                 `json:"image,omitempty"`
+	ImageID              *string                                 `json:"imageID,omitempty"`
+	ContainerID          *string                                 `json:"containerID,omitempty"`
+	Started              *bool                                   `json:"started,omitempty"`
+	AllocatedResources   *corev1.ResourceList                    `json:"allocatedResources,omitempty"`
+	Resources            *ResourceRequirementsApplyConfiguration `json:"resources,omitempty"`
+	VolumeMounts         []VolumeMountStatusApplyConfiguration   `json:"volumeMounts,omitempty"`
 }
 
-// ContainerStatusApplyConfiguration constructs a declarative configuration of the ContainerStatus type for use with
+// ContainerStatusApplyConfiguration constructs an declarative configuration of the ContainerStatus type for use with
 // apply.
 func ContainerStatus() *ContainerStatusApplyConfiguration {
 	return &ContainerStatusApplyConfiguration{}
@@ -144,27 +142,6 @@ func (b *ContainerStatusApplyConfiguration) WithVolumeMounts(values ...*VolumeMo
 			panic("nil value passed to WithVolumeMounts")
 		}
 		b.VolumeMounts = append(b.VolumeMounts, *values[i])
-	}
-	return b
-}
-
-// WithUser sets the User field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the User field is set to the value of the last call.
-func (b *ContainerStatusApplyConfiguration) WithUser(value *ContainerUserApplyConfiguration) *ContainerStatusApplyConfiguration {
-	b.User = value
-	return b
-}
-
-// WithAllocatedResourcesStatus adds the given value to the AllocatedResourcesStatus field in the declarative configuration
-// and returns the receiver, so that objects can be build by chaining "With" function invocations.
-// If called multiple times, values provided by each call will be appended to the AllocatedResourcesStatus field.
-func (b *ContainerStatusApplyConfiguration) WithAllocatedResourcesStatus(values ...*ResourceStatusApplyConfiguration) *ContainerStatusApplyConfiguration {
-	for i := range values {
-		if values[i] == nil {
-			panic("nil value passed to WithAllocatedResourcesStatus")
-		}
-		b.AllocatedResourcesStatus = append(b.AllocatedResourcesStatus, *values[i])
 	}
 	return b
 }
