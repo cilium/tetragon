@@ -44,24 +44,22 @@ var poddisruptionbudgetsKind = v1.SchemeGroupVersion.WithKind("PodDisruptionBudg
 
 // Get takes name of the podDisruptionBudget, and returns the corresponding podDisruptionBudget object, and an error if there is any.
 func (c *FakePodDisruptionBudgets) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.PodDisruptionBudget, err error) {
-	emptyResult := &v1.PodDisruptionBudget{}
 	obj, err := c.Fake.
-		Invokes(testing.NewGetActionWithOptions(poddisruptionbudgetsResource, c.ns, name, options), emptyResult)
+		Invokes(testing.NewGetAction(poddisruptionbudgetsResource, c.ns, name), &v1.PodDisruptionBudget{})
 
 	if obj == nil {
-		return emptyResult, err
+		return nil, err
 	}
 	return obj.(*v1.PodDisruptionBudget), err
 }
 
 // List takes label and field selectors, and returns the list of PodDisruptionBudgets that match those selectors.
 func (c *FakePodDisruptionBudgets) List(ctx context.Context, opts metav1.ListOptions) (result *v1.PodDisruptionBudgetList, err error) {
-	emptyResult := &v1.PodDisruptionBudgetList{}
 	obj, err := c.Fake.
-		Invokes(testing.NewListActionWithOptions(poddisruptionbudgetsResource, poddisruptionbudgetsKind, c.ns, opts), emptyResult)
+		Invokes(testing.NewListAction(poddisruptionbudgetsResource, poddisruptionbudgetsKind, c.ns, opts), &v1.PodDisruptionBudgetList{})
 
 	if obj == nil {
-		return emptyResult, err
+		return nil, err
 	}
 
 	label, _, _ := testing.ExtractFromListOptions(opts)
@@ -80,43 +78,40 @@ func (c *FakePodDisruptionBudgets) List(ctx context.Context, opts metav1.ListOpt
 // Watch returns a watch.Interface that watches the requested podDisruptionBudgets.
 func (c *FakePodDisruptionBudgets) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(testing.NewWatchActionWithOptions(poddisruptionbudgetsResource, c.ns, opts))
+		InvokesWatch(testing.NewWatchAction(poddisruptionbudgetsResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a podDisruptionBudget and creates it.  Returns the server's representation of the podDisruptionBudget, and an error, if there is any.
 func (c *FakePodDisruptionBudgets) Create(ctx context.Context, podDisruptionBudget *v1.PodDisruptionBudget, opts metav1.CreateOptions) (result *v1.PodDisruptionBudget, err error) {
-	emptyResult := &v1.PodDisruptionBudget{}
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateActionWithOptions(poddisruptionbudgetsResource, c.ns, podDisruptionBudget, opts), emptyResult)
+		Invokes(testing.NewCreateAction(poddisruptionbudgetsResource, c.ns, podDisruptionBudget), &v1.PodDisruptionBudget{})
 
 	if obj == nil {
-		return emptyResult, err
+		return nil, err
 	}
 	return obj.(*v1.PodDisruptionBudget), err
 }
 
 // Update takes the representation of a podDisruptionBudget and updates it. Returns the server's representation of the podDisruptionBudget, and an error, if there is any.
 func (c *FakePodDisruptionBudgets) Update(ctx context.Context, podDisruptionBudget *v1.PodDisruptionBudget, opts metav1.UpdateOptions) (result *v1.PodDisruptionBudget, err error) {
-	emptyResult := &v1.PodDisruptionBudget{}
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateActionWithOptions(poddisruptionbudgetsResource, c.ns, podDisruptionBudget, opts), emptyResult)
+		Invokes(testing.NewUpdateAction(poddisruptionbudgetsResource, c.ns, podDisruptionBudget), &v1.PodDisruptionBudget{})
 
 	if obj == nil {
-		return emptyResult, err
+		return nil, err
 	}
 	return obj.(*v1.PodDisruptionBudget), err
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakePodDisruptionBudgets) UpdateStatus(ctx context.Context, podDisruptionBudget *v1.PodDisruptionBudget, opts metav1.UpdateOptions) (result *v1.PodDisruptionBudget, err error) {
-	emptyResult := &v1.PodDisruptionBudget{}
+func (c *FakePodDisruptionBudgets) UpdateStatus(ctx context.Context, podDisruptionBudget *v1.PodDisruptionBudget, opts metav1.UpdateOptions) (*v1.PodDisruptionBudget, error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceActionWithOptions(poddisruptionbudgetsResource, "status", c.ns, podDisruptionBudget, opts), emptyResult)
+		Invokes(testing.NewUpdateSubresourceAction(poddisruptionbudgetsResource, "status", c.ns, podDisruptionBudget), &v1.PodDisruptionBudget{})
 
 	if obj == nil {
-		return emptyResult, err
+		return nil, err
 	}
 	return obj.(*v1.PodDisruptionBudget), err
 }
@@ -131,7 +126,7 @@ func (c *FakePodDisruptionBudgets) Delete(ctx context.Context, name string, opts
 
 // DeleteCollection deletes a collection of objects.
 func (c *FakePodDisruptionBudgets) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
-	action := testing.NewDeleteCollectionActionWithOptions(poddisruptionbudgetsResource, c.ns, opts, listOpts)
+	action := testing.NewDeleteCollectionAction(poddisruptionbudgetsResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1.PodDisruptionBudgetList{})
 	return err
@@ -139,12 +134,11 @@ func (c *FakePodDisruptionBudgets) DeleteCollection(ctx context.Context, opts me
 
 // Patch applies the patch and returns the patched podDisruptionBudget.
 func (c *FakePodDisruptionBudgets) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.PodDisruptionBudget, err error) {
-	emptyResult := &v1.PodDisruptionBudget{}
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceActionWithOptions(poddisruptionbudgetsResource, c.ns, name, pt, data, opts, subresources...), emptyResult)
+		Invokes(testing.NewPatchSubresourceAction(poddisruptionbudgetsResource, c.ns, name, pt, data, subresources...), &v1.PodDisruptionBudget{})
 
 	if obj == nil {
-		return emptyResult, err
+		return nil, err
 	}
 	return obj.(*v1.PodDisruptionBudget), err
 }
@@ -162,12 +156,11 @@ func (c *FakePodDisruptionBudgets) Apply(ctx context.Context, podDisruptionBudge
 	if name == nil {
 		return nil, fmt.Errorf("podDisruptionBudget.Name must be provided to Apply")
 	}
-	emptyResult := &v1.PodDisruptionBudget{}
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceActionWithOptions(poddisruptionbudgetsResource, c.ns, *name, types.ApplyPatchType, data, opts.ToPatchOptions()), emptyResult)
+		Invokes(testing.NewPatchSubresourceAction(poddisruptionbudgetsResource, c.ns, *name, types.ApplyPatchType, data), &v1.PodDisruptionBudget{})
 
 	if obj == nil {
-		return emptyResult, err
+		return nil, err
 	}
 	return obj.(*v1.PodDisruptionBudget), err
 }
@@ -186,12 +179,11 @@ func (c *FakePodDisruptionBudgets) ApplyStatus(ctx context.Context, podDisruptio
 	if name == nil {
 		return nil, fmt.Errorf("podDisruptionBudget.Name must be provided to Apply")
 	}
-	emptyResult := &v1.PodDisruptionBudget{}
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceActionWithOptions(poddisruptionbudgetsResource, c.ns, *name, types.ApplyPatchType, data, opts.ToPatchOptions(), "status"), emptyResult)
+		Invokes(testing.NewPatchSubresourceAction(poddisruptionbudgetsResource, c.ns, *name, types.ApplyPatchType, data, "status"), &v1.PodDisruptionBudget{})
 
 	if obj == nil {
-		return emptyResult, err
+		return nil, err
 	}
 	return obj.(*v1.PodDisruptionBudget), err
 }

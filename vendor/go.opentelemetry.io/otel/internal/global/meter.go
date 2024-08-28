@@ -65,7 +65,6 @@ func (p *meterProvider) Meter(name string, opts ...metric.MeterOption) metric.Me
 	key := il{
 		name:    name,
 		version: c.InstrumentationVersion(),
-		schema:  c.SchemaURL(),
 	}
 
 	if p.meters == nil {

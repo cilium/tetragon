@@ -19,15 +19,14 @@ package resourcelock
 import (
 	"context"
 	"fmt"
+	clientset "k8s.io/client-go/kubernetes"
+	restclient "k8s.io/client-go/rest"
 	"time"
 
-	v1 "k8s.io/api/coordination/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	clientset "k8s.io/client-go/kubernetes"
 	coordinationv1 "k8s.io/client-go/kubernetes/typed/coordination/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	restclient "k8s.io/client-go/rest"
 )
 
 const (
@@ -115,13 +114,11 @@ type LeaderElectionRecord struct {
 	// attempt to acquire leases with empty identities and will wait for the full lease
 	// interval to expire before attempting to reacquire. This value is set to empty when
 	// a client voluntarily steps down.
-	HolderIdentity       string                      `json:"holderIdentity"`
-	LeaseDurationSeconds int                         `json:"leaseDurationSeconds"`
-	AcquireTime          metav1.Time                 `json:"acquireTime"`
-	RenewTime            metav1.Time                 `json:"renewTime"`
-	LeaderTransitions    int                         `json:"leaderTransitions"`
-	Strategy             v1.CoordinatedLeaseStrategy `json:"strategy"`
-	PreferredHolder      string                      `json:"preferredHolder"`
+	HolderIdentity       string      `json:"holderIdentity"`
+	LeaseDurationSeconds int         `json:"leaseDurationSeconds"`
+	AcquireTime          metav1.Time `json:"acquireTime"`
+	RenewTime            metav1.Time `json:"renewTime"`
+	LeaderTransitions    int         `json:"leaderTransitions"`
 }
 
 // EventRecorder records a change in the ResourceLock.
