@@ -62,9 +62,6 @@ func (s *Structural) Pattern() string {
 }
 
 func (s *Structural) Items() common.Schema {
-	if s.Structural.Items == nil {
-		return nil
-	}
 	return &Structural{Structural: s.Structural.Items}
 }
 
@@ -282,18 +279,11 @@ func nestedValueValidationToStructural(nvv *schema.NestedValueValidation) *Struc
 		newProperties[k] = *nestedValueValidationToStructural(&v).Structural
 	}
 
-	var newAdditionalProperties *schema.StructuralOrBool
-	if nvv.AdditionalProperties != nil {
-		newAdditionalProperties = &schema.StructuralOrBool{Structural: nestedValueValidationToStructural(nvv.AdditionalProperties).Structural}
-	}
-
 	return &Structural{
 		Structural: &schema.Structural{
-			Items:                newItems,
-			Properties:           newProperties,
-			AdditionalProperties: newAdditionalProperties,
-			ValueValidation:      &nvv.ValueValidation,
-			ValidationExtensions: nvv.ValidationExtensions,
+			Items:           newItems,
+			Properties:      newProperties,
+			ValueValidation: &nvv.ValueValidation,
 		},
 	}
 }

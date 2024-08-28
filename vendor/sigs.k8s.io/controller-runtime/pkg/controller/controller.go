@@ -27,21 +27,13 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/internal/controller"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/ratelimiter"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // Options are the arguments for creating a new Controller.
-type Options = TypedOptions[reconcile.Request]
-
-// TypedOptions are the arguments for creating a new Controller.
-type TypedOptions[request comparable] struct {
-	// SkipNameValidation allows skipping the name validation that ensures that every controller name is unique.
-	// Unique controller names are important to get unique metrics and logs for a controller.
-	// Defaults to the Controller.SkipNameValidation setting from the Manager if unset.
-	// Defaults to false if Controller.SkipNameValidation setting from the Manager is also unset.
-	SkipNameValidation *bool
-
+type Options struct {
 	// MaxConcurrentReconciles is the maximum number of concurrent Reconciles which can be run. Defaults to 1.
 	MaxConcurrentReconciles int
 
@@ -51,7 +43,6 @@ type TypedOptions[request comparable] struct {
 
 	// RecoverPanic indicates whether the panic caused by reconcile should be recovered.
 	// Defaults to the Controller.RecoverPanic setting from the Manager if unset.
-	// Defaults to true if Controller.RecoverPanic setting from the Manager is also unset.
 	RecoverPanic *bool
 
 	// NeedLeaderElection indicates whether the controller needs to use leader election.
@@ -59,12 +50,12 @@ type TypedOptions[request comparable] struct {
 	NeedLeaderElection *bool
 
 	// Reconciler reconciles an object
-	Reconciler reconcile.TypedReconciler[request]
+	Reconciler reconcile.Reconciler
 
 	// RateLimiter is used to limit how frequently requests may be queued.
 	// Defaults to MaxOfRateLimiter which has both overall and per-item rate limiting.
 	// The overall is a token bucket and the per-item is exponential.
-	RateLimiter workqueue.TypedRateLimiter[request]
+	RateLimiter ratelimiter.RateLimiter
 
 	// NewQueue constructs the queue for this controller once the controller is ready to start.
 	// With NewQueue a custom queue implementation can be used, e.g. a priority queue to prioritize with which
@@ -76,26 +67,23 @@ type TypedOptions[request comparable] struct {
 	//
 	// NOTE: LOW LEVEL PRIMITIVE!
 	// Only use a custom NewQueue if you know what you are doing.
-	NewQueue func(controllerName string, rateLimiter workqueue.TypedRateLimiter[request]) workqueue.TypedRateLimitingInterface[request]
+	NewQueue func(controllerName string, rateLimiter ratelimiter.RateLimiter) workqueue.RateLimitingInterface
 
 	// LogConstructor is used to construct a logger used for this controller and passed
 	// to each reconciliation via the context field.
-	LogConstructor func(request *request) logr.Logger
+	LogConstructor func(request *reconcile.Request) logr.Logger
 }
 
 // Controller implements a Kubernetes API.  A Controller manages a work queue fed reconcile.Requests
 // from source.Sources.  Work is performed through the reconcile.Reconciler for each enqueued item.
 // Work typically is reads and writes Kubernetes objects to make the system state match the state specified
 // in the object Spec.
-type Controller = TypedController[reconcile.Request]
-
-// TypedController implements an API.
-type TypedController[request comparable] interface {
+type Controller interface {
 	// Reconciler is called to reconcile an object by Namespace/Name
-	reconcile.TypedReconciler[request]
+	reconcile.Reconciler
 
 	// Watch watches the provided Source.
-	Watch(src source.TypedSource[request]) error
+	Watch(src source.Source) error
 
 	// Start starts the controller.  Start blocks until the context is closed or a
 	// controller has an error starting.
@@ -107,17 +95,8 @@ type TypedController[request comparable] interface {
 
 // New returns a new Controller registered with the Manager.  The Manager will ensure that shared Caches have
 // been synced before the Controller is Started.
-//
-// The name must be unique as it is used to identify the controller in metrics and logs.
 func New(name string, mgr manager.Manager, options Options) (Controller, error) {
-	return NewTyped(name, mgr, options)
-}
-
-// NewTyped returns a new typed controller registered with the Manager,
-//
-// The name must be unique as it is used to identify the controller in metrics and logs.
-func NewTyped[request comparable](name string, mgr manager.Manager, options TypedOptions[request]) (TypedController[request], error) {
-	c, err := NewTypedUnmanaged(name, mgr, options)
+	c, err := NewUnmanaged(name, mgr, options)
 	if err != nil {
 		return nil, err
 	}
@@ -128,16 +107,7 @@ func NewTyped[request comparable](name string, mgr manager.Manager, options Type
 
 // NewUnmanaged returns a new controller without adding it to the manager. The
 // caller is responsible for starting the returned controller.
-//
-// The name must be unique as it is used to identify the controller in metrics and logs.
 func NewUnmanaged(name string, mgr manager.Manager, options Options) (Controller, error) {
-	return NewTypedUnmanaged(name, mgr, options)
-}
-
-// NewTypedUnmanaged returns a new typed controller without adding it to the manager.
-//
-// The name must be unique as it is used to identify the controller in metrics and logs.
-func NewTypedUnmanaged[request comparable](name string, mgr manager.Manager, options TypedOptions[request]) (TypedController[request], error) {
 	if options.Reconciler == nil {
 		return nil, fmt.Errorf("must specify Reconciler")
 	}
@@ -146,23 +116,13 @@ func NewTypedUnmanaged[request comparable](name string, mgr manager.Manager, opt
 		return nil, fmt.Errorf("must specify Name for Controller")
 	}
 
-	if options.SkipNameValidation == nil {
-		options.SkipNameValidation = mgr.GetControllerOptions().SkipNameValidation
-	}
-
-	if options.SkipNameValidation == nil || !*options.SkipNameValidation {
-		if err := checkName(name); err != nil {
-			return nil, err
-		}
-	}
-
 	if options.LogConstructor == nil {
 		log := mgr.GetLogger().WithValues(
 			"controller", name,
 		)
-		options.LogConstructor = func(in *request) logr.Logger {
+		options.LogConstructor = func(req *reconcile.Request) logr.Logger {
 			log := log
-			if req, ok := any(in).(*reconcile.Request); ok && req != nil {
+			if req != nil {
 				log = log.WithValues(
 					"object", klog.KRef(req.Namespace, req.Name),
 					"namespace", req.Namespace, "name", req.Name,
@@ -189,12 +149,12 @@ func NewTypedUnmanaged[request comparable](name string, mgr manager.Manager, opt
 	}
 
 	if options.RateLimiter == nil {
-		options.RateLimiter = workqueue.DefaultTypedControllerRateLimiter[request]()
+		options.RateLimiter = workqueue.DefaultControllerRateLimiter()
 	}
 
 	if options.NewQueue == nil {
-		options.NewQueue = func(controllerName string, rateLimiter workqueue.TypedRateLimiter[request]) workqueue.TypedRateLimitingInterface[request] {
-			return workqueue.NewTypedRateLimitingQueueWithConfig(rateLimiter, workqueue.TypedRateLimitingQueueConfig[request]{
+		options.NewQueue = func(controllerName string, rateLimiter ratelimiter.RateLimiter) workqueue.RateLimitingInterface {
+			return workqueue.NewRateLimitingQueueWithConfig(rateLimiter, workqueue.RateLimitingQueueConfig{
 				Name: controllerName,
 			})
 		}
@@ -209,7 +169,7 @@ func NewTypedUnmanaged[request comparable](name string, mgr manager.Manager, opt
 	}
 
 	// Create controller with dependencies set
-	return &controller.Controller[request]{
+	return &controller.Controller{
 		Do:                      options.Reconciler,
 		RateLimiter:             options.RateLimiter,
 		NewQueue:                options.NewQueue,
