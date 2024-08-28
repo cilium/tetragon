@@ -33,12 +33,8 @@ import (
 var log = logf.RuntimeLog.WithName("source").WithName("EventHandler")
 
 // NewEventHandler creates a new EventHandler.
-func NewEventHandler[object client.Object, request comparable](
-	ctx context.Context,
-	queue workqueue.TypedRateLimitingInterface[request],
-	handler handler.TypedEventHandler[object, request],
-	predicates []predicate.TypedPredicate[object]) *EventHandler[object, request] {
-	return &EventHandler[object, request]{
+func NewEventHandler[T client.Object](ctx context.Context, queue workqueue.RateLimitingInterface, handler handler.TypedEventHandler[T], predicates []predicate.TypedPredicate[T]) *EventHandler[T] {
+	return &EventHandler[T]{
 		ctx:        ctx,
 		handler:    handler,
 		queue:      queue,
@@ -47,19 +43,19 @@ func NewEventHandler[object client.Object, request comparable](
 }
 
 // EventHandler adapts a handler.EventHandler interface to a cache.ResourceEventHandler interface.
-type EventHandler[object client.Object, request comparable] struct {
+type EventHandler[T client.Object] struct {
 	// ctx stores the context that created the event handler
 	// that is used to propagate cancellation signals to each handler function.
 	ctx context.Context
 
-	handler    handler.TypedEventHandler[object, request]
-	queue      workqueue.TypedRateLimitingInterface[request]
-	predicates []predicate.TypedPredicate[object]
+	handler    handler.TypedEventHandler[T]
+	queue      workqueue.RateLimitingInterface
+	predicates []predicate.TypedPredicate[T]
 }
 
 // HandlerFuncs converts EventHandler to a ResourceEventHandlerFuncs
 // TODO: switch to ResourceEventHandlerDetailedFuncs with client-go 1.27
-func (e *EventHandler[object, request]) HandlerFuncs() cache.ResourceEventHandlerFuncs {
+func (e *EventHandler[T]) HandlerFuncs() cache.ResourceEventHandlerFuncs {
 	return cache.ResourceEventHandlerFuncs{
 		AddFunc:    e.OnAdd,
 		UpdateFunc: e.OnUpdate,
@@ -68,11 +64,11 @@ func (e *EventHandler[object, request]) HandlerFuncs() cache.ResourceEventHandle
 }
 
 // OnAdd creates CreateEvent and calls Create on EventHandler.
-func (e *EventHandler[object, request]) OnAdd(obj interface{}) {
-	c := event.TypedCreateEvent[object]{}
+func (e *EventHandler[T]) OnAdd(obj interface{}) {
+	c := event.TypedCreateEvent[T]{}
 
 	// Pull Object out of the object
-	if o, ok := obj.(object); ok {
+	if o, ok := obj.(T); ok {
 		c.Object = o
 	} else {
 		log.Error(nil, "OnAdd missing Object",
@@ -93,10 +89,10 @@ func (e *EventHandler[object, request]) OnAdd(obj interface{}) {
 }
 
 // OnUpdate creates UpdateEvent and calls Update on EventHandler.
-func (e *EventHandler[object, request]) OnUpdate(oldObj, newObj interface{}) {
-	u := event.TypedUpdateEvent[object]{}
+func (e *EventHandler[T]) OnUpdate(oldObj, newObj interface{}) {
+	u := event.TypedUpdateEvent[T]{}
 
-	if o, ok := oldObj.(object); ok {
+	if o, ok := oldObj.(T); ok {
 		u.ObjectOld = o
 	} else {
 		log.Error(nil, "OnUpdate missing ObjectOld",
@@ -105,7 +101,7 @@ func (e *EventHandler[object, request]) OnUpdate(oldObj, newObj interface{}) {
 	}
 
 	// Pull Object out of the object
-	if o, ok := newObj.(object); ok {
+	if o, ok := newObj.(T); ok {
 		u.ObjectNew = o
 	} else {
 		log.Error(nil, "OnUpdate missing ObjectNew",
@@ -126,8 +122,8 @@ func (e *EventHandler[object, request]) OnUpdate(oldObj, newObj interface{}) {
 }
 
 // OnDelete creates DeleteEvent and calls Delete on EventHandler.
-func (e *EventHandler[object, request]) OnDelete(obj interface{}) {
-	d := event.TypedDeleteEvent[object]{}
+func (e *EventHandler[T]) OnDelete(obj interface{}) {
+	d := event.TypedDeleteEvent[T]{}
 
 	// Deal with tombstone events by pulling the object out.  Tombstone events wrap the object in a
 	// DeleteFinalStateUnknown struct, so the object needs to be pulled out.
@@ -153,7 +149,7 @@ func (e *EventHandler[object, request]) OnDelete(obj interface{}) {
 	}
 
 	// Pull Object out of the object
-	if o, ok := obj.(object); ok {
+	if o, ok := obj.(T); ok {
 		d.Object = o
 	} else {
 		log.Error(nil, "OnDelete missing Object",

@@ -23,8 +23,5 @@
 # Tools binaries.
 hack/tools/bin
 
-# Release artifacts
-tools/setup-envtest/out
-
 junit-report.xml
 /artifacts

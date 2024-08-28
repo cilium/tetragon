@@ -88,7 +88,7 @@ func TargetForGroup(gv clientgentypes.GroupVersion, typeList []*types.Type, clie
 	}
 }
 
-func TargetForClientset(args *args.Args, clientsetDir, clientsetPkg string, applyConfigurationPkg string, groupGoNames map[clientgentypes.GroupVersion]string, boilerplate []byte) generator.Target {
+func TargetForClientset(args *args.Args, clientsetDir, clientsetPkg string, groupGoNames map[clientgentypes.GroupVersion]string, boilerplate []byte) generator.Target {
 	return &generator.SimpleTarget{
 		// TODO: we'll generate fake clientset for different release in the future.
 		// Package name and path are hard coded for now.
@@ -108,12 +108,11 @@ func TargetForClientset(args *args.Args, clientsetDir, clientsetPkg string, appl
 					GoGenerator: generator.GoGenerator{
 						OutputFilename: "clientset_generated.go",
 					},
-					groups:                    args.Groups,
-					groupGoNames:              groupGoNames,
-					fakeClientsetPackage:      clientsetPkg,
-					imports:                   generator.NewImportTracker(),
-					realClientsetPackage:      clientsetPkg,
-					applyConfigurationPackage: applyConfigurationPkg,
+					groups:               args.Groups,
+					groupGoNames:         groupGoNames,
+					fakeClientsetPackage: clientsetPkg,
+					imports:              generator.NewImportTracker(),
+					realClientsetPackage: clientsetPkg,
 				},
 				&scheme.GenScheme{
 					GoGenerator: generator.GoGenerator{
