@@ -26,7 +26,6 @@ type FlattenOpts struct {
 	Verbose         bool // enable some reporting on possible name conflicts detected
 	RemoveUnused    bool // When true, remove unused parameters, responses and definitions after expansion/flattening
 	ContinueOnError bool // Continue when spec expansion issues are found
-	KeepNames       bool // Do not attempt to jsonify names from references when flattening
 
 	/* Extra keys */
 	_ struct{} // require keys

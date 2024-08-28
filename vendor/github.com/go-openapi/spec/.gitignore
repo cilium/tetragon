@@ -1,1 +1,2 @@
-*.out
+secrets.yml
+coverage.out

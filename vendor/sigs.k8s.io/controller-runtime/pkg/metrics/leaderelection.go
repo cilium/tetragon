@@ -14,11 +14,6 @@ var (
 		Name: "leader_election_master_status",
 		Help: "Gauge of if the reporting system is master of the relevant lease, 0 indicates backup, 1 indicates master. 'name' is the string used to identify the lease. Please make sure to group by name.",
 	}, []string{"name"})
-
-	leaderSlowpathCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "leader_election_slowpath_total",
-		Help: "Total number of slow path exercised in renewing leader leases. 'name' is the string used to identify the lease. Please make sure to group by name.",
-	}, []string{"name"})
 )
 
 func init() {
@@ -28,20 +23,18 @@ func init() {
 
 type leaderelectionMetricsProvider struct{}
 
-func (leaderelectionMetricsProvider) NewLeaderMetric() leaderelection.LeaderMetric {
-	return leaderElectionPrometheusAdapter{}
+func (leaderelectionMetricsProvider) NewLeaderMetric() leaderelection.SwitchMetric {
+	return &switchAdapter{gauge: leaderGauge}
 }
 
-type leaderElectionPrometheusAdapter struct{}
-
-func (s leaderElectionPrometheusAdapter) On(name string) {
-	leaderGauge.WithLabelValues(name).Set(1.0)
+type switchAdapter struct {
+	gauge *prometheus.GaugeVec
 }
 
-func (s leaderElectionPrometheusAdapter) Off(name string) {
-	leaderGauge.WithLabelValues(name).Set(0.0)
+func (s *switchAdapter) On(name string) {
+	s.gauge.WithLabelValues(name).Set(1.0)
 }
 
-func (leaderElectionPrometheusAdapter) SlowpathExercised(name string) {
-	leaderSlowpathCounter.WithLabelValues(name).Inc()
+func (s *switchAdapter) Off(name string) {
+	s.gauge.WithLabelValues(name).Set(0.0)
 }

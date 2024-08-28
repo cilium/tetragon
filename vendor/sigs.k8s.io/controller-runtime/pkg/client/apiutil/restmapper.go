@@ -167,10 +167,8 @@ func (m *mapper) addKnownGroupAndReload(groupName string, versions ...string) er
 		if err != nil {
 			return err
 		}
-		if apiGroup != nil {
-			for _, version := range apiGroup.Versions {
-				versions = append(versions, version.Version)
-			}
+		for _, version := range apiGroup.Versions {
+			versions = append(versions, version.Version)
 		}
 	}
 
@@ -224,12 +222,7 @@ func (m *mapper) addKnownGroupAndReload(groupName string, versions ...string) er
 	m.knownGroups[groupName] = groupResources
 
 	// Finally, update the group with received information and regenerate the mapper.
-	updatedGroupResources := make([]*restmapper.APIGroupResources, 0, len(m.knownGroups))
-	for _, agr := range m.knownGroups {
-		updatedGroupResources = append(updatedGroupResources, agr)
-	}
-
-	m.mapper = restmapper.NewDiscoveryRESTMapper(updatedGroupResources)
+	m.refreshMapper()
 	return nil
 }
 
@@ -262,12 +255,17 @@ func (m *mapper) findAPIGroupByName(groupName string) (*metav1.APIGroup, error) 
 	m.mu.Unlock()
 
 	// Looking in the cache again.
-	m.mu.RLock()
-	defer m.mu.RUnlock()
+	{
+		m.mu.RLock()
+		group, ok := m.apiGroups[groupName]
+		m.mu.RUnlock()
+		if ok {
+			return group, nil
+		}
+	}
 
-	// Don't return an error here if the API group is not present.
-	// The reloaded RESTMapper will take care of returning a NoMatchError.
-	return m.apiGroups[groupName], nil
+	// If there is still nothing, return an error.
+	return nil, fmt.Errorf("failed to find API group %q", groupName)
 }
 
 // fetchGroupVersionResourcesLocked fetches the resources for the specified group and its versions.
@@ -283,14 +281,24 @@ func (m *mapper) fetchGroupVersionResourcesLocked(groupName string, versions ...
 		if apierrors.IsNotFound(err) {
 			// If the version is not found, we remove the group from the cache
 			// so it gets refreshed on the next call.
+			cacheInvalidated := false
 			if m.isAPIGroupCached(groupVersion) {
 				delete(m.apiGroups, groupName)
+				cacheInvalidated = true
 			}
 			if m.isGroupVersionCached(groupVersion) {
 				delete(m.knownGroups, groupName)
+				cacheInvalidated = true
 			}
-			continue
-		} else if err != nil {
+			// It's important to refresh the mapper after invalidating the cache, since returning an error
+			// aborts the call and leaves the underlying mapper unchanged. If not refreshed, the next call
+			// will still return a match for the NotFound version.
+			if cacheInvalidated {
+				m.refreshMapper()
+			}
+		}
+
+		if err != nil {
 			failedGroups[groupVersion] = err
 		}
 
@@ -332,4 +340,12 @@ func (m *mapper) isAPIGroupCached(gv schema.GroupVersion) bool {
 	}
 
 	return false
+}
+
+func (m *mapper) refreshMapper() {
+	updatedGroupResources := make([]*restmapper.APIGroupResources, 0, len(m.knownGroups))
+	for _, agr := range m.knownGroups {
+		updatedGroupResources = append(updatedGroupResources, agr)
+	}
+	m.mapper = restmapper.NewDiscoveryRESTMapper(updatedGroupResources)
 }

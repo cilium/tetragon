@@ -1,7 +1,6 @@
 package replace
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
@@ -41,8 +40,6 @@ func RewriteSchemaToRef(sp *spec.Swagger, key string, ref spec.Ref) error {
 		if refable.Schema != nil {
 			refable.Schema = &spec.Schema{SchemaProps: spec.SchemaProps{Ref: ref}}
 		}
-	case map[string]interface{}: // this happens e.g. if a schema points to an extension unmarshaled as map[string]interface{}
-		return rewriteParentRef(sp, key, ref)
 	default:
 		return fmt.Errorf("no schema with ref found at %s for %T", key, value)
 	}
@@ -122,9 +119,6 @@ func rewriteParentRef(sp *spec.Swagger, key string, ref spec.Ref) error {
 
 	case spec.SchemaProperties:
 		container[entry] = spec.Schema{SchemaProps: spec.SchemaProps{Ref: ref}}
-
-	case *interface{}:
-		*container = spec.Schema{SchemaProps: spec.SchemaProps{Ref: ref}}
 
 	// NOTE: can't have case *spec.SchemaOrBool = parent in this case is *Schema
 
@@ -324,8 +318,8 @@ type DeepestRefResult struct {
 }
 
 // DeepestRef finds the first definition ref, from a cascade of nested refs which are not definitions.
-//   - if no definition is found, returns the deepest ref.
-//   - pointers to external files are expanded
+//  - if no definition is found, returns the deepest ref.
+//  - pointers to external files are expanded
 //
 // NOTE: all external $ref's are assumed to be already expanded at this stage.
 func DeepestRef(sp *spec.Swagger, opts *spec.ExpandOptions, ref spec.Ref) (*DeepestRefResult, error) {
@@ -391,9 +385,8 @@ DOWNREF:
 			err := asSchema.UnmarshalJSON(asJSON)
 			if err != nil {
 				return nil,
-					fmt.Errorf("invalid type for resolved JSON pointer %s. Expected a schema a, got: %T (%v)",
-						currentRef.String(), value, err,
-					)
+					fmt.Errorf("invalid type for resolved JSON pointer %s. Expected a schema a, got: %T",
+						currentRef.String(), value)
 			}
 			warnings = append(warnings, fmt.Sprintf("found $ref %q (response) interpreted as schema", currentRef.String()))
 
@@ -409,9 +402,8 @@ DOWNREF:
 			var asSchema spec.Schema
 			if err := asSchema.UnmarshalJSON(asJSON); err != nil {
 				return nil,
-					fmt.Errorf("invalid type for resolved JSON pointer %s. Expected a schema a, got: %T (%v)",
-						currentRef.String(), value, err,
-					)
+					fmt.Errorf("invalid type for resolved JSON pointer %s. Expected a schema a, got: %T",
+						currentRef.String(), value)
 			}
 
 			warnings = append(warnings, fmt.Sprintf("found $ref %q (parameter) interpreted as schema", currentRef.String()))
@@ -422,25 +414,9 @@ DOWNREF:
 			currentRef = asSchema.Ref
 
 		default:
-			// fallback: attempts to resolve the pointer as a schema
-			if refable == nil {
-				break DOWNREF
-			}
-
-			asJSON, _ := json.Marshal(refable)
-			var asSchema spec.Schema
-			if err := asSchema.UnmarshalJSON(asJSON); err != nil {
-				return nil,
-					fmt.Errorf("unhandled type to resolve JSON pointer %s. Expected a Schema, got: %T (%v)",
-						currentRef.String(), value, err,
-					)
-			}
-			warnings = append(warnings, fmt.Sprintf("found $ref %q (%T) interpreted as schema", currentRef.String(), refable))
-
-			if asSchema.Ref.String() == "" {
-				break DOWNREF
-			}
-			currentRef = asSchema.Ref
+			return nil,
+				fmt.Errorf("unhandled type to resolve JSON pointer %s. Expected a Schema, got: %T",
+					currentRef.String(), value)
 		}
 	}
 

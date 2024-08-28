@@ -17,7 +17,6 @@ limitations under the License.
 package predicate
 
 import (
-	"maps"
 	"reflect"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,51 +29,45 @@ import (
 var log = logf.RuntimeLog.WithName("predicate").WithName("eventFilters")
 
 // Predicate filters events before enqueuing the keys.
-type Predicate = TypedPredicate[client.Object]
-
-// TypedPredicate filters events before enqueuing the keys.
-type TypedPredicate[T any] interface {
+type Predicate interface {
 	// Create returns true if the Create event should be processed
-	Create(event.TypedCreateEvent[T]) bool
+	Create(event.CreateEvent) bool
 
 	// Delete returns true if the Delete event should be processed
-	Delete(event.TypedDeleteEvent[T]) bool
+	Delete(event.DeleteEvent) bool
 
 	// Update returns true if the Update event should be processed
-	Update(event.TypedUpdateEvent[T]) bool
+	Update(event.UpdateEvent) bool
 
 	// Generic returns true if the Generic event should be processed
-	Generic(event.TypedGenericEvent[T]) bool
+	Generic(event.GenericEvent) bool
 }
 
 var _ Predicate = Funcs{}
 var _ Predicate = ResourceVersionChangedPredicate{}
 var _ Predicate = GenerationChangedPredicate{}
 var _ Predicate = AnnotationChangedPredicate{}
-var _ Predicate = or[client.Object]{}
-var _ Predicate = and[client.Object]{}
-var _ Predicate = not[client.Object]{}
+var _ Predicate = or{}
+var _ Predicate = and{}
+var _ Predicate = not{}
 
 // Funcs is a function that implements Predicate.
-type Funcs = TypedFuncs[client.Object]
-
-// TypedFuncs is a function that implements TypedPredicate.
-type TypedFuncs[T any] struct {
+type Funcs struct {
 	// Create returns true if the Create event should be processed
-	CreateFunc func(event.TypedCreateEvent[T]) bool
+	CreateFunc func(event.CreateEvent) bool
 
 	// Delete returns true if the Delete event should be processed
-	DeleteFunc func(event.TypedDeleteEvent[T]) bool
+	DeleteFunc func(event.DeleteEvent) bool
 
 	// Update returns true if the Update event should be processed
-	UpdateFunc func(event.TypedUpdateEvent[T]) bool
+	UpdateFunc func(event.UpdateEvent) bool
 
 	// Generic returns true if the Generic event should be processed
-	GenericFunc func(event.TypedGenericEvent[T]) bool
+	GenericFunc func(event.GenericEvent) bool
 }
 
 // Create implements Predicate.
-func (p TypedFuncs[T]) Create(e event.TypedCreateEvent[T]) bool {
+func (p Funcs) Create(e event.CreateEvent) bool {
 	if p.CreateFunc != nil {
 		return p.CreateFunc(e)
 	}
@@ -82,7 +75,7 @@ func (p TypedFuncs[T]) Create(e event.TypedCreateEvent[T]) bool {
 }
 
 // Delete implements Predicate.
-func (p TypedFuncs[T]) Delete(e event.TypedDeleteEvent[T]) bool {
+func (p Funcs) Delete(e event.DeleteEvent) bool {
 	if p.DeleteFunc != nil {
 		return p.DeleteFunc(e)
 	}
@@ -90,7 +83,7 @@ func (p TypedFuncs[T]) Delete(e event.TypedDeleteEvent[T]) bool {
 }
 
 // Update implements Predicate.
-func (p TypedFuncs[T]) Update(e event.TypedUpdateEvent[T]) bool {
+func (p Funcs) Update(e event.UpdateEvent) bool {
 	if p.UpdateFunc != nil {
 		return p.UpdateFunc(e)
 	}
@@ -98,7 +91,7 @@ func (p TypedFuncs[T]) Update(e event.TypedUpdateEvent[T]) bool {
 }
 
 // Generic implements Predicate.
-func (p TypedFuncs[T]) Generic(e event.TypedGenericEvent[T]) bool {
+func (p Funcs) Generic(e event.GenericEvent) bool {
 	if p.GenericFunc != nil {
 		return p.GenericFunc(e)
 	}
@@ -120,26 +113,6 @@ func NewPredicateFuncs(filter func(object client.Object) bool) Funcs {
 			return filter(e.Object)
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
-			return filter(e.Object)
-		},
-	}
-}
-
-// NewTypedPredicateFuncs returns a predicate funcs that applies the given filter function
-// on CREATE, UPDATE, DELETE and GENERIC events. For UPDATE events, the filter is applied
-// to the new object.
-func NewTypedPredicateFuncs[T any](filter func(object T) bool) TypedFuncs[T] {
-	return TypedFuncs[T]{
-		CreateFunc: func(e event.TypedCreateEvent[T]) bool {
-			return filter(e.Object)
-		},
-		UpdateFunc: func(e event.TypedUpdateEvent[T]) bool {
-			return filter(e.ObjectNew)
-		},
-		DeleteFunc: func(e event.TypedDeleteEvent[T]) bool {
-			return filter(e.Object)
-		},
-		GenericFunc: func(e event.TypedGenericEvent[T]) bool {
 			return filter(e.Object)
 		},
 	}
@@ -180,35 +153,17 @@ func (ResourceVersionChangedPredicate) Update(e event.UpdateEvent) bool {
 //
 // * With this predicate, any update events with writes only to the status field will not be reconciled.
 // So in the event that the status block is overwritten or wiped by someone else the controller will not self-correct to restore the correct status.
-type GenerationChangedPredicate = TypedGenerationChangedPredicate[client.Object]
-
-// TypedGenerationChangedPredicate implements a default update predicate function on Generation change.
-//
-// This predicate will skip update events that have no change in the object's metadata.generation field.
-// The metadata.generation field of an object is incremented by the API server when writes are made to the spec field of an object.
-// This allows a controller to ignore update events where the spec is unchanged, and only the metadata and/or status fields are changed.
-//
-// For CustomResource objects the Generation is only incremented when the status subresource is enabled.
-//
-// Caveats:
-//
-// * The assumption that the Generation is incremented only on writing to the spec does not hold for all APIs.
-// E.g For Deployment objects the Generation is also incremented on writes to the metadata.annotations field.
-// For object types other than CustomResources be sure to verify which fields will trigger a Generation increment when they are written to.
-//
-// * With this predicate, any update events with writes only to the status field will not be reconciled.
-// So in the event that the status block is overwritten or wiped by someone else the controller will not self-correct to restore the correct status.
-type TypedGenerationChangedPredicate[T metav1.Object] struct {
-	TypedFuncs[T]
+type GenerationChangedPredicate struct {
+	Funcs
 }
 
 // Update implements default UpdateEvent filter for validating generation change.
-func (TypedGenerationChangedPredicate[T]) Update(e event.TypedUpdateEvent[T]) bool {
-	if isNil(e.ObjectOld) {
+func (GenerationChangedPredicate) Update(e event.UpdateEvent) bool {
+	if e.ObjectOld == nil {
 		log.Error(nil, "Update event has no old object to update", "event", e)
 		return false
 	}
-	if isNil(e.ObjectNew) {
+	if e.ObjectNew == nil {
 		log.Error(nil, "Update event has no new object for update", "event", e)
 		return false
 	}
@@ -228,25 +183,22 @@ func (TypedGenerationChangedPredicate[T]) Update(e event.TypedUpdateEvent[T]) bo
 //
 // This is mostly useful for controllers that needs to trigger both when the resource's generation is incremented
 // (i.e., when the resource' .spec changes), or an annotation changes (e.g., for a staging/alpha API).
-type AnnotationChangedPredicate = TypedAnnotationChangedPredicate[client.Object]
-
-// TypedAnnotationChangedPredicate implements a default update predicate function on annotation change.
-type TypedAnnotationChangedPredicate[T metav1.Object] struct {
-	TypedFuncs[T]
+type AnnotationChangedPredicate struct {
+	Funcs
 }
 
 // Update implements default UpdateEvent filter for validating annotation change.
-func (TypedAnnotationChangedPredicate[T]) Update(e event.TypedUpdateEvent[T]) bool {
-	if isNil(e.ObjectOld) {
+func (AnnotationChangedPredicate) Update(e event.UpdateEvent) bool {
+	if e.ObjectOld == nil {
 		log.Error(nil, "Update event has no old object to update", "event", e)
 		return false
 	}
-	if isNil(e.ObjectNew) {
+	if e.ObjectNew == nil {
 		log.Error(nil, "Update event has no new object for update", "event", e)
 		return false
 	}
 
-	return !maps.Equal(e.ObjectNew.GetAnnotations(), e.ObjectOld.GetAnnotations())
+	return !reflect.DeepEqual(e.ObjectNew.GetAnnotations(), e.ObjectOld.GetAnnotations())
 }
 
 // LabelChangedPredicate implements a default update predicate function on label change.
@@ -262,37 +214,34 @@ func (TypedAnnotationChangedPredicate[T]) Update(e event.TypedUpdateEvent[T]) bo
 //
 // This will be helpful when object's labels is carrying some extra specification information beyond object's spec,
 // and the controller will be triggered if any valid spec change (not only in spec, but also in labels) happens.
-type LabelChangedPredicate = TypedLabelChangedPredicate[client.Object]
-
-// TypedLabelChangedPredicate implements a default update predicate function on label change.
-type TypedLabelChangedPredicate[T metav1.Object] struct {
-	TypedFuncs[T]
+type LabelChangedPredicate struct {
+	Funcs
 }
 
 // Update implements default UpdateEvent filter for checking label change.
-func (TypedLabelChangedPredicate[T]) Update(e event.TypedUpdateEvent[T]) bool {
-	if isNil(e.ObjectOld) {
+func (LabelChangedPredicate) Update(e event.UpdateEvent) bool {
+	if e.ObjectOld == nil {
 		log.Error(nil, "Update event has no old object to update", "event", e)
 		return false
 	}
-	if isNil(e.ObjectNew) {
+	if e.ObjectNew == nil {
 		log.Error(nil, "Update event has no new object for update", "event", e)
 		return false
 	}
 
-	return !maps.Equal(e.ObjectNew.GetLabels(), e.ObjectOld.GetLabels())
+	return !reflect.DeepEqual(e.ObjectNew.GetLabels(), e.ObjectOld.GetLabels())
 }
 
 // And returns a composite predicate that implements a logical AND of the predicates passed to it.
-func And[T any](predicates ...TypedPredicate[T]) TypedPredicate[T] {
-	return and[T]{predicates}
+func And(predicates ...Predicate) Predicate {
+	return and{predicates}
 }
 
-type and[T any] struct {
-	predicates []TypedPredicate[T]
+type and struct {
+	predicates []Predicate
 }
 
-func (a and[T]) Create(e event.TypedCreateEvent[T]) bool {
+func (a and) Create(e event.CreateEvent) bool {
 	for _, p := range a.predicates {
 		if !p.Create(e) {
 			return false
@@ -301,7 +250,7 @@ func (a and[T]) Create(e event.TypedCreateEvent[T]) bool {
 	return true
 }
 
-func (a and[T]) Update(e event.TypedUpdateEvent[T]) bool {
+func (a and) Update(e event.UpdateEvent) bool {
 	for _, p := range a.predicates {
 		if !p.Update(e) {
 			return false
@@ -310,7 +259,7 @@ func (a and[T]) Update(e event.TypedUpdateEvent[T]) bool {
 	return true
 }
 
-func (a and[T]) Delete(e event.TypedDeleteEvent[T]) bool {
+func (a and) Delete(e event.DeleteEvent) bool {
 	for _, p := range a.predicates {
 		if !p.Delete(e) {
 			return false
@@ -319,7 +268,7 @@ func (a and[T]) Delete(e event.TypedDeleteEvent[T]) bool {
 	return true
 }
 
-func (a and[T]) Generic(e event.TypedGenericEvent[T]) bool {
+func (a and) Generic(e event.GenericEvent) bool {
 	for _, p := range a.predicates {
 		if !p.Generic(e) {
 			return false
@@ -329,15 +278,15 @@ func (a and[T]) Generic(e event.TypedGenericEvent[T]) bool {
 }
 
 // Or returns a composite predicate that implements a logical OR of the predicates passed to it.
-func Or[T any](predicates ...TypedPredicate[T]) TypedPredicate[T] {
-	return or[T]{predicates}
+func Or(predicates ...Predicate) Predicate {
+	return or{predicates}
 }
 
-type or[T any] struct {
-	predicates []TypedPredicate[T]
+type or struct {
+	predicates []Predicate
 }
 
-func (o or[T]) Create(e event.TypedCreateEvent[T]) bool {
+func (o or) Create(e event.CreateEvent) bool {
 	for _, p := range o.predicates {
 		if p.Create(e) {
 			return true
@@ -346,7 +295,7 @@ func (o or[T]) Create(e event.TypedCreateEvent[T]) bool {
 	return false
 }
 
-func (o or[T]) Update(e event.TypedUpdateEvent[T]) bool {
+func (o or) Update(e event.UpdateEvent) bool {
 	for _, p := range o.predicates {
 		if p.Update(e) {
 			return true
@@ -355,7 +304,7 @@ func (o or[T]) Update(e event.TypedUpdateEvent[T]) bool {
 	return false
 }
 
-func (o or[T]) Delete(e event.TypedDeleteEvent[T]) bool {
+func (o or) Delete(e event.DeleteEvent) bool {
 	for _, p := range o.predicates {
 		if p.Delete(e) {
 			return true
@@ -364,7 +313,7 @@ func (o or[T]) Delete(e event.TypedDeleteEvent[T]) bool {
 	return false
 }
 
-func (o or[T]) Generic(e event.TypedGenericEvent[T]) bool {
+func (o or) Generic(e event.GenericEvent) bool {
 	for _, p := range o.predicates {
 		if p.Generic(e) {
 			return true
@@ -374,27 +323,27 @@ func (o or[T]) Generic(e event.TypedGenericEvent[T]) bool {
 }
 
 // Not returns a predicate that implements a logical NOT of the predicate passed to it.
-func Not[T any](predicate TypedPredicate[T]) TypedPredicate[T] {
-	return not[T]{predicate}
+func Not(predicate Predicate) Predicate {
+	return not{predicate}
 }
 
-type not[T any] struct {
-	predicate TypedPredicate[T]
+type not struct {
+	predicate Predicate
 }
 
-func (n not[T]) Create(e event.TypedCreateEvent[T]) bool {
+func (n not) Create(e event.CreateEvent) bool {
 	return !n.predicate.Create(e)
 }
 
-func (n not[T]) Update(e event.TypedUpdateEvent[T]) bool {
+func (n not) Update(e event.UpdateEvent) bool {
 	return !n.predicate.Update(e)
 }
 
-func (n not[T]) Delete(e event.TypedDeleteEvent[T]) bool {
+func (n not) Delete(e event.DeleteEvent) bool {
 	return !n.predicate.Delete(e)
 }
 
-func (n not[T]) Generic(e event.TypedGenericEvent[T]) bool {
+func (n not) Generic(e event.GenericEvent) bool {
 	return !n.predicate.Generic(e)
 }
 
@@ -408,16 +357,4 @@ func LabelSelectorPredicate(s metav1.LabelSelector) (Predicate, error) {
 	return NewPredicateFuncs(func(o client.Object) bool {
 		return selector.Matches(labels.Set(o.GetLabels()))
 	}), nil
-}
-
-func isNil(arg any) bool {
-	if v := reflect.ValueOf(arg); !v.IsValid() || ((v.Kind() == reflect.Ptr ||
-		v.Kind() == reflect.Interface ||
-		v.Kind() == reflect.Slice ||
-		v.Kind() == reflect.Map ||
-		v.Kind() == reflect.Chan ||
-		v.Kind() == reflect.Func) && v.IsNil()) {
-		return true
-	}
-	return false
 }

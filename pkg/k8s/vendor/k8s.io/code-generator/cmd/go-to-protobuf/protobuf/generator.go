@@ -25,18 +25,16 @@ import (
 	"strconv"
 	"strings"
 
-	"k8s.io/gengo/v2"
-	"k8s.io/gengo/v2/generator"
-	"k8s.io/gengo/v2/namer"
-	"k8s.io/gengo/v2/types"
 	"k8s.io/klog/v2"
+
+	"k8s.io/gengo/generator"
+	"k8s.io/gengo/namer"
+	"k8s.io/gengo/types"
 )
 
 // genProtoIDL produces a .proto IDL.
 type genProtoIDL struct {
-	// This base type is close enough to what we need, if we redefine some
-	// methods.
-	generator.GoGenerator
+	generator.DefaultGen
 	localPackage   types.Name
 	localGoPackage types.Name
 	imports        namer.ImportTracker
@@ -65,11 +63,8 @@ func (g *genProtoIDL) PackageVars(c *generator.Context) []string {
 		fmt.Sprintf("option go_package = %q;", g.localGoPackage.Package),
 	}
 }
-
-func (g *genProtoIDL) Filename() string { return g.OutputFilename + ".proto" }
-
+func (g *genProtoIDL) Filename() string { return g.OptionalName + ".proto" }
 func (g *genProtoIDL) FileType() string { return "protoidl" }
-
 func (g *genProtoIDL) Namers(c *generator.Context) namer.NameSystems {
 	return namer.NameSystems{
 		// The local namer returns the correct protobuf name for a proto type
@@ -80,7 +75,7 @@ func (g *genProtoIDL) Namers(c *generator.Context) namer.NameSystems {
 
 // Filter ignores types that are identified as not exportable.
 func (g *genProtoIDL) Filter(c *generator.Context, t *types.Type) bool {
-	tagVals := gengo.ExtractCommentTags("+", t.CommentLines)["protobuf"]
+	tagVals := types.ExtractCommentTags("+", t.CommentLines)["protobuf"]
 	if tagVals != nil {
 		if tagVals[0] == "false" {
 			// Type specified "false".
@@ -229,8 +224,9 @@ func (p protobufLocator) GoTypeForName(name types.Name) *types.Type {
 
 // ProtoTypeFor locates a Protobuf type for the provided Go type (if possible).
 func (p protobufLocator) ProtoTypeFor(t *types.Type) (*types.Type, error) {
+	switch {
 	// we've already converted the type, or it's a map
-	if t.Kind == types.Protobuf || t.Kind == types.Map {
+	case t.Kind == types.Protobuf || t.Kind == types.Map:
 		p.tracker.AddType(t)
 		return t, nil
 	}
@@ -308,7 +304,7 @@ func (b bodyGen) doStruct(sw *generator.SnippetWriter) error {
 	var alias *types.Type
 	var fields []protoField
 	options := []string{}
-	allOptions := gengo.ExtractCommentTags("+", b.t.CommentLines)
+	allOptions := types.ExtractCommentTags("+", b.t.CommentLines)
 	for k, v := range allOptions {
 		switch {
 		case strings.HasPrefix(k, "protobuf.options."):
@@ -558,11 +554,11 @@ func protobufTagToField(tag string, field *protoField, m types.Member, t *types.
 	// protobuf:"bytes,3,opt,name=Id,customtype=github.com/gogo/protobuf/test.Uuid"
 	parts := strings.Split(tag, ",")
 	if len(parts) < 3 {
-		return fmt.Errorf("member %q of %q malformed 'protobuf' tag, not enough segments", m.Name, t.Name)
+		return fmt.Errorf("member %q of %q malformed 'protobuf' tag, not enough segments\n", m.Name, t.Name)
 	}
 	protoTag, err := strconv.Atoi(parts[1])
 	if err != nil {
-		return fmt.Errorf("member %q of %q malformed 'protobuf' tag, field ID is %q which is not an integer: %w", m.Name, t.Name, parts[1], err)
+		return fmt.Errorf("member %q of %q malformed 'protobuf' tag, field ID is %q which is not an integer: %v\n", m.Name, t.Name, parts[1], err)
 	}
 	field.Tag = protoTag
 
@@ -583,7 +579,7 @@ func protobufTagToField(tag string, field *protoField, m types.Member, t *types.
 			name = types.Name{
 				Name:    parts[0][last+1:],
 				Package: prefix,
-				Path:    strings.ReplaceAll(prefix, ".", "/"),
+				Path:    strings.Replace(prefix, ".", "/", -1),
 			}
 		} else {
 			name = types.Name{
@@ -602,7 +598,7 @@ func protobufTagToField(tag string, field *protoField, m types.Member, t *types.
 	for i, extra := range parts[3:] {
 		parts := strings.SplitN(extra, "=", 2)
 		if len(parts) != 2 {
-			return fmt.Errorf("member %q of %q malformed 'protobuf' tag, tag %d should be key=value, got %q", m.Name, t.Name, i+4, extra)
+			return fmt.Errorf("member %q of %q malformed 'protobuf' tag, tag %d should be key=value, got %q\n", m.Name, t.Name, i+4, extra)
 		}
 		switch parts[0] {
 		case "name":

@@ -22,8 +22,6 @@ import (
 	"strings"
 
 	"golang.org/x/tools/go/types/objectpath"
-	"golang.org/x/tools/internal/aliases"
-	"golang.org/x/tools/internal/typesinternal"
 )
 
 type intReader struct {
@@ -80,20 +78,6 @@ const (
 	typeParamType
 	instanceType
 	unionType
-	aliasType
-)
-
-// Object tags
-const (
-	varTag          = 'V'
-	funcTag         = 'F'
-	genericFuncTag  = 'G'
-	constTag        = 'C'
-	aliasTag        = 'A'
-	genericAliasTag = 'B'
-	typeParamTag    = 'P'
-	typeTag         = 'T'
-	genericTypeTag  = 'U'
 )
 
 // IImportData imports a package from the serialized package data
@@ -210,7 +194,6 @@ func iimportCommon(fset *token.FileSet, getPackages GetPackagesFunc, data []byte
 	p := iimporter{
 		version: int(version),
 		ipath:   path,
-		aliases: aliases.Enabled(),
 		shallow: shallow,
 		reportf: reportf,
 
@@ -241,7 +224,6 @@ func iimportCommon(fset *token.FileSet, getPackages GetPackagesFunc, data []byte
 
 	// Gather the relevant packages from the manifest.
 	items := make([]GetPackagesItem, r.uint64())
-	uniquePkgPaths := make(map[string]bool)
 	for i := range items {
 		pkgPathOff := r.uint64()
 		pkgPath := p.stringAt(pkgPathOff)
@@ -266,12 +248,6 @@ func iimportCommon(fset *token.FileSet, getPackages GetPackagesFunc, data []byte
 		}
 
 		items[i].nameIndex = nameIndex
-
-		uniquePkgPaths[pkgPath] = true
-	}
-	// Debugging #63822; hypothesis: there are duplicate PkgPaths.
-	if len(uniquePkgPaths) != len(items) {
-		reportf("found duplicate PkgPaths while reading export data manifest: %v", items)
 	}
 
 	// Request packages all at once from the client,
@@ -339,7 +315,7 @@ func iimportCommon(fset *token.FileSet, getPackages GetPackagesFunc, data []byte
 	}
 
 	// SetConstraint can't be called if the constraint type is not yet complete.
-	// When type params are created in the typeParamTag case of (*importReader).obj(),
+	// When type params are created in the 'P' case of (*importReader).obj(),
 	// the associated constraint type may not be complete due to recursion.
 	// Therefore, we defer calling SetConstraint there, and call it here instead
 	// after all types are complete.
@@ -370,7 +346,6 @@ type iimporter struct {
 	version int
 	ipath   string
 
-	aliases bool
 	shallow bool
 	reportf ReportFunc // if non-nil, used to report bugs
 
@@ -540,7 +515,7 @@ func canReuse(def *types.Named, rhs types.Type) bool {
 	if def == nil {
 		return true
 	}
-	iface, _ := aliases.Unalias(rhs).(*types.Interface)
+	iface, _ := rhs.(*types.Interface)
 	if iface == nil {
 		return true
 	}
@@ -562,29 +537,25 @@ func (r *importReader) obj(name string) {
 	pos := r.pos()
 
 	switch tag {
-	case aliasTag:
+	case 'A':
 		typ := r.typ()
-		// TODO(adonovan): support generic aliases:
-		// if tag == genericAliasTag {
-		// 	tparams := r.tparamList()
-		// 	alias.SetTypeParams(tparams)
-		// }
-		r.declare(aliases.NewAlias(r.p.aliases, pos, r.currPkg, name, typ))
 
-	case constTag:
+		r.declare(types.NewTypeName(pos, r.currPkg, name, typ))
+
+	case 'C':
 		typ, val := r.value()
 
 		r.declare(types.NewConst(pos, r.currPkg, name, typ, val))
 
-	case funcTag, genericFuncTag:
+	case 'F', 'G':
 		var tparams []*types.TypeParam
-		if tag == genericFuncTag {
+		if tag == 'G' {
 			tparams = r.tparamList()
 		}
 		sig := r.signature(nil, nil, tparams)
 		r.declare(types.NewFunc(pos, r.currPkg, name, sig))
 
-	case typeTag, genericTypeTag:
+	case 'T', 'U':
 		// Types can be recursive. We need to setup a stub
 		// declaration before recursing.
 		obj := types.NewTypeName(pos, r.currPkg, name, nil)
@@ -592,7 +563,7 @@ func (r *importReader) obj(name string) {
 		// Declare obj before calling r.tparamList, so the new type name is recognized
 		// if used in the constraint of one of its own typeparams (see #48280).
 		r.declare(obj)
-		if tag == genericTypeTag {
+		if tag == 'U' {
 			tparams := r.tparamList()
 			named.SetTypeParams(tparams)
 		}
@@ -609,13 +580,14 @@ func (r *importReader) obj(name string) {
 				// If the receiver has any targs, set those as the
 				// rparams of the method (since those are the
 				// typeparams being used in the method sig/body).
-				_, recvNamed := typesinternal.ReceiverNamed(recv)
-				targs := recvNamed.TypeArgs()
+				base := baseType(recv.Type())
+				assert(base != nil)
+				targs := base.TypeArgs()
 				var rparams []*types.TypeParam
 				if targs.Len() > 0 {
 					rparams = make([]*types.TypeParam, targs.Len())
 					for i := range rparams {
-						rparams[i] = aliases.Unalias(targs.At(i)).(*types.TypeParam)
+						rparams[i] = targs.At(i).(*types.TypeParam)
 					}
 				}
 				msig := r.signature(recv, rparams, nil)
@@ -624,7 +596,7 @@ func (r *importReader) obj(name string) {
 			}
 		}
 
-	case typeParamTag:
+	case 'P':
 		// We need to "declare" a typeparam in order to have a name that
 		// can be referenced recursively (if needed) in the type param's
 		// bound.
@@ -645,7 +617,7 @@ func (r *importReader) obj(name string) {
 		}
 		constraint := r.typ()
 		if implicit {
-			iface, _ := aliases.Unalias(constraint).(*types.Interface)
+			iface, _ := constraint.(*types.Interface)
 			if iface == nil {
 				errorf("non-interface constraint marked implicit")
 			}
@@ -657,7 +629,7 @@ func (r *importReader) obj(name string) {
 		// completely set up all types in ImportData.
 		r.p.later = append(r.p.later, setConstraintArgs{t: t, constraint: constraint})
 
-	case varTag:
+	case 'V':
 		typ := r.typ()
 
 		r.declare(types.NewVar(pos, r.currPkg, name, typ))
@@ -852,7 +824,7 @@ func (r *importReader) typ() types.Type {
 }
 
 func isInterface(t types.Type) bool {
-	_, ok := aliases.Unalias(t).(*types.Interface)
+	_, ok := t.(*types.Interface)
 	return ok
 }
 
@@ -874,7 +846,7 @@ func (r *importReader) doType(base *types.Named) (res types.Type) {
 		errorf("unexpected kind tag in %q: %v", r.p.ipath, k)
 		return nil
 
-	case aliasType, definedType:
+	case definedType:
 		pkg, name := r.qualifiedIdent()
 		r.p.doDecl(pkg, name)
 		return pkg.Scope().Lookup(name).(*types.TypeName).Type()
@@ -1051,7 +1023,7 @@ func (r *importReader) tparamList() []*types.TypeParam {
 	for i := range xs {
 		// Note: the standard library importer is tolerant of nil types here,
 		// though would panic in SetTypeParams.
-		xs[i] = aliases.Unalias(r.typ()).(*types.TypeParam)
+		xs[i] = r.typ().(*types.TypeParam)
 	}
 	return xs
 }
@@ -1097,4 +1069,14 @@ func (r *importReader) byte() byte {
 		errorf("declReader.ReadByte: %v", err)
 	}
 	return x
+}
+
+func baseType(typ types.Type) *types.Named {
+	// pointer receivers are never types.Named types
+	if p, _ := typ.(*types.Pointer); p != nil {
+		typ = p.Elem()
+	}
+	// receiver base types are always (possibly generic) types.Named types
+	n, _ := typ.(*types.Named)
+	return n
 }

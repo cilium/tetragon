@@ -43,7 +43,6 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/clock"
 	"k8s.io/utils/pointer"
-	"k8s.io/utils/ptr"
 	"k8s.io/utils/trace"
 )
 
@@ -108,9 +107,7 @@ type Reflector struct {
 	// might result in an increased memory consumption of the APIServer.
 	//
 	// See https://github.com/kubernetes/enhancements/tree/master/keps/sig-api-machinery/3157-watch-list#design-details
-	//
-	// TODO(#115478): Consider making reflector.UseWatchList a private field. Since we implemented "api streaming" on the etcd storage layer it should work.
-	UseWatchList *bool
+	UseWatchList bool
 }
 
 // ResourceVersionUpdater is an interface that allows store implementation to
@@ -240,12 +237,8 @@ func NewReflectorWithOptions(lw ListerWatcher, expectedType interface{}, store S
 		r.expectedGVK = getExpectedGVKFromObject(expectedType)
 	}
 
-	// don't overwrite UseWatchList if already set
-	// because the higher layers (e.g. storage/cacher) disabled it on purpose
-	if r.UseWatchList == nil {
-		if s := os.Getenv("ENABLE_CLIENT_GO_WATCH_LIST_ALPHA"); len(s) > 0 {
-			r.UseWatchList = ptr.To(true)
-		}
+	if s := os.Getenv("ENABLE_CLIENT_GO_WATCH_LIST_ALPHA"); len(s) > 0 {
+		r.UseWatchList = true
 	}
 
 	return r
@@ -332,10 +325,9 @@ func (r *Reflector) ListAndWatch(stopCh <-chan struct{}) error {
 	klog.V(3).Infof("Listing and watching %v from %s", r.typeDescription, r.name)
 	var err error
 	var w watch.Interface
-	useWatchList := ptr.Deref(r.UseWatchList, false)
-	fallbackToList := !useWatchList
+	fallbackToList := !r.UseWatchList
 
-	if useWatchList {
+	if r.UseWatchList {
 		w, err = r.watchList(stopCh)
 		if w == nil && err == nil {
 			// stopCh was closed

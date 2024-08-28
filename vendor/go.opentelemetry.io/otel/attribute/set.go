@@ -1,14 +1,24 @@
 // Copyright The OpenTelemetry Authors
-// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package attribute // import "go.opentelemetry.io/otel/attribute"
 
 import (
-	"cmp"
 	"encoding/json"
 	"reflect"
-	"slices"
 	"sort"
+	"sync"
 )
 
 type (
@@ -16,33 +26,23 @@ type (
 	// immutable set of attributes, with an internal cache for storing
 	// attribute encodings.
 	//
-	// This type will remain comparable for backwards compatibility. The
-	// equivalence of Sets across versions is not guaranteed to be stable.
-	// Prior versions may find two Sets to be equal or not when compared
-	// directly (i.e. ==), but subsequent versions may not. Users should use
-	// the Equals method to ensure stable equivalence checking.
-	//
-	// Users should also use the Distinct returned from Equivalent as a map key
-	// instead of a Set directly. In addition to that type providing guarantees
-	// on stable equivalence, it may also provide performance improvements.
+	// This type supports the Equivalent method of comparison using values of
+	// type Distinct.
 	Set struct {
 		equivalent Distinct
 	}
 
-	// Distinct is a unique identifier of a Set.
-	//
-	// Distinct is designed to be ensures equivalence stability: comparisons
-	// will return the save value across versions. For this reason, Distinct
-	// should always be used as a map key instead of a Set.
+	// Distinct wraps a variable-size array of KeyValue, constructed with keys
+	// in sorted order. This can be used as a map key or for equality checking
+	// between Sets.
 	Distinct struct {
 		iface interface{}
 	}
 
-	// Sortable implements sort.Interface, used for sorting KeyValue.
-	//
-	// Deprecated: This type is no longer used. It was added as a performance
-	// optimization for Go < 1.21 that is no longer needed (Go < 1.21 is no
-	// longer supported by the module).
+	// Sortable implements sort.Interface, used for sorting KeyValue. This is
+	// an exported type to support a memory optimization. A pointer to one of
+	// these is needed for the call to sort.Stable(), which the caller may
+	// provide in order to avoid an allocation. See NewSetWithSortable().
 	Sortable []KeyValue
 )
 
@@ -55,6 +55,12 @@ var (
 		equivalent: Distinct{
 			iface: [0]KeyValue{},
 		},
+	}
+
+	// sortables is a pool of Sortables used to create Sets with a user does
+	// not provide one.
+	sortables = sync.Pool{
+		New: func() interface{} { return new(Sortable) },
 	}
 )
 
@@ -181,7 +187,13 @@ func empty() Set {
 // Except for empty sets, this method adds an additional allocation compared
 // with calls that include a Sortable.
 func NewSet(kvs ...KeyValue) Set {
-	s, _ := NewSetWithFiltered(kvs, nil)
+	// Check for empty set.
+	if len(kvs) == 0 {
+		return empty()
+	}
+	srt := sortables.Get().(*Sortable)
+	s, _ := NewSetWithSortableFiltered(kvs, srt, nil)
+	sortables.Put(srt)
 	return s
 }
 
@@ -189,10 +201,12 @@ func NewSet(kvs ...KeyValue) Set {
 // NewSetWithSortableFiltered for more details.
 //
 // This call includes a Sortable option as a memory optimization.
-//
-// Deprecated: Use [NewSet] instead.
-func NewSetWithSortable(kvs []KeyValue, _ *Sortable) Set {
-	s, _ := NewSetWithFiltered(kvs, nil)
+func NewSetWithSortable(kvs []KeyValue, tmp *Sortable) Set {
+	// Check for empty set.
+	if len(kvs) == 0 {
+		return empty()
+	}
+	s, _ := NewSetWithSortableFiltered(kvs, tmp, nil)
 	return s
 }
 
@@ -206,37 +220,10 @@ func NewSetWithFiltered(kvs []KeyValue, filter Filter) (Set, []KeyValue) {
 	if len(kvs) == 0 {
 		return empty(), nil
 	}
-
-	// Stable sort so the following de-duplication can implement
-	// last-value-wins semantics.
-	slices.SortStableFunc(kvs, func(a, b KeyValue) int {
-		return cmp.Compare(a.Key, b.Key)
-	})
-
-	position := len(kvs) - 1
-	offset := position - 1
-
-	// The requirements stated above require that the stable
-	// result be placed in the end of the input slice, while
-	// overwritten values are swapped to the beginning.
-	//
-	// De-duplicate with last-value-wins semantics.  Preserve
-	// duplicate values at the beginning of the input slice.
-	for ; offset >= 0; offset-- {
-		if kvs[offset].Key == kvs[position].Key {
-			continue
-		}
-		position--
-		kvs[offset], kvs[position] = kvs[position], kvs[offset]
-	}
-	kvs = kvs[position:]
-
-	if filter != nil {
-		if div := filteredToFront(kvs, filter); div != 0 {
-			return Set{equivalent: computeDistinct(kvs[div:])}, kvs[:div]
-		}
-	}
-	return Set{equivalent: computeDistinct(kvs)}, nil
+	srt := sortables.Get().(*Sortable)
+	s, filtered := NewSetWithSortableFiltered(kvs, srt, filter)
+	sortables.Put(srt)
+	return s, filtered
 }
 
 // NewSetWithSortableFiltered returns a new Set.
@@ -262,10 +249,44 @@ func NewSetWithFiltered(kvs []KeyValue, filter Filter) (Set, []KeyValue) {
 //
 // The second []KeyValue return value is a list of attributes that were
 // excluded by the Filter (if non-nil).
-//
-// Deprecated: Use [NewSetWithFiltered] instead.
-func NewSetWithSortableFiltered(kvs []KeyValue, _ *Sortable, filter Filter) (Set, []KeyValue) {
-	return NewSetWithFiltered(kvs, filter)
+func NewSetWithSortableFiltered(kvs []KeyValue, tmp *Sortable, filter Filter) (Set, []KeyValue) {
+	// Check for empty set.
+	if len(kvs) == 0 {
+		return empty(), nil
+	}
+
+	*tmp = kvs
+
+	// Stable sort so the following de-duplication can implement
+	// last-value-wins semantics.
+	sort.Stable(tmp)
+
+	*tmp = nil
+
+	position := len(kvs) - 1
+	offset := position - 1
+
+	// The requirements stated above require that the stable
+	// result be placed in the end of the input slice, while
+	// overwritten values are swapped to the beginning.
+	//
+	// De-duplicate with last-value-wins semantics.  Preserve
+	// duplicate values at the beginning of the input slice.
+	for ; offset >= 0; offset-- {
+		if kvs[offset].Key == kvs[position].Key {
+			continue
+		}
+		position--
+		kvs[offset], kvs[position] = kvs[position], kvs[offset]
+	}
+	kvs = kvs[position:]
+
+	if filter != nil {
+		if div := filteredToFront(kvs, filter); div != 0 {
+			return Set{equivalent: computeDistinct(kvs[div:])}, kvs[:div]
+		}
+	}
+	return Set{equivalent: computeDistinct(kvs)}, nil
 }
 
 // filteredToFront filters slice in-place using keep function. All KeyValues that need to

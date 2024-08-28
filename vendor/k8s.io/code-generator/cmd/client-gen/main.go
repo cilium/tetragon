@@ -23,44 +23,40 @@ import (
 	"github.com/spf13/pflag"
 	"k8s.io/klog/v2"
 
-	"k8s.io/code-generator/cmd/client-gen/args"
+	generatorargs "k8s.io/code-generator/cmd/client-gen/args"
 	"k8s.io/code-generator/cmd/client-gen/generators"
 	"k8s.io/code-generator/pkg/util"
-	"k8s.io/gengo/v2"
-	"k8s.io/gengo/v2/generator"
 )
 
 func main() {
 	klog.InitFlags(nil)
-	args := args.New()
+	genericArgs, customArgs := generatorargs.NewDefaults()
 
-	args.AddFlags(pflag.CommandLine, "k8s.io/kubernetes/pkg/apis") // TODO: move this input path out of client-gen
+	// Override defaults.
+	// TODO: move this out of client-gen
+	genericArgs.OutputPackagePath = "k8s.io/kubernetes/pkg/client/clientset_generated/"
+
+	genericArgs.AddFlags(pflag.CommandLine)
+	customArgs.AddFlags(pflag.CommandLine, "k8s.io/kubernetes/pkg/apis") // TODO: move this input path out of client-gen
 	flag.Set("logtostderr", "true")
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
 
 	// add group version package as input dirs for gengo
-	inputPkgs := []string{}
-	for _, pkg := range args.Groups {
+	for _, pkg := range customArgs.Groups {
 		for _, v := range pkg.Versions {
-			inputPkgs = append(inputPkgs, v.Package)
+			genericArgs.InputDirs = append(genericArgs.InputDirs, v.Package)
 		}
 	}
 
-	if err := args.Validate(); err != nil {
+	if err := generatorargs.Validate(genericArgs); err != nil {
 		klog.Fatalf("Error: %v", err)
 	}
 
-	myTargets := func(context *generator.Context) []generator.Target {
-		return generators.GetTargets(context, args)
-	}
-
-	if err := gengo.Execute(
-		generators.NameSystems(util.PluralExceptionListToMapOrDie(args.PluralExceptions)),
+	if err := genericArgs.Execute(
+		generators.NameSystems(util.PluralExceptionListToMapOrDie(customArgs.PluralExceptions)),
 		generators.DefaultNameSystem(),
-		myTargets,
-		gengo.StdBuildTag,
-		inputPkgs,
+		generators.Packages,
 	); err != nil {
 		klog.Fatalf("Error: %v", err)
 	}

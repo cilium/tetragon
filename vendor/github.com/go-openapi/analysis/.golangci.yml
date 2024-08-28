@@ -4,58 +4,53 @@ linters-settings:
   golint:
     min-confidence: 0
   gocyclo:
-    min-complexity: 45
+    min-complexity: 40
+  gocognit:
+    min-complexity: 40
   maligned:
     suggest-new: true
   dupl:
-    threshold: 200
+    threshold: 150
   goconst:
     min-len: 2
-    min-occurrences: 3
+    min-occurrences: 4
 
 linters:
   enable-all: true
   disable:
     - maligned
-    - unparam
     - lll
-    - gochecknoinits
     - gochecknoglobals
-    - funlen
+    - gochecknoinits
+    # scopelint is useful, but also reports false positives
+    # that unfortunately can't be disabled. So we disable the
+    # linter rather than changing code that works.
+    # see: https://github.com/kyoh86/scopelint/issues/4
+    - scopelint
     - godox
     - gocognit
-    - whitespace
+    #- whitespace
     - wsl
-    - wrapcheck
+    - funlen
     - testpackage
-    - nlreturn
+    - wrapcheck
+    #- nlreturn
     - gomnd
-    - exhaustivestruct
     - goerr113
-    - errorlint
-    - nestif
-    - godot
+    - exhaustivestruct
+    #- errorlint
+    #- nestif
     - gofumpt
+    - godot
+    - gci
+    - dogsled
     - paralleltest
     - tparallel
     - thelper
     - ifshort
-    - exhaustruct
-    - varnamelen
-    - gci
-    - depguard
-    - errchkjson
-    - inamedparam
-    - nonamedreturns
-    - musttag
-    - ireturn
-    - forcetypeassert
+    - forbidigo
     - cyclop
-    # deprecated linters
-    - deadcode
-    - interfacer
-    - scopelint
-    - varcheck
-    - structcheck
-    - golint
+    - varnamelen
+    - exhaustruct
+    - nonamedreturns
     - nosnakecase

@@ -12,19 +12,9 @@ import (
 	"go/types"
 )
 
-// FileVersion returns a language version (<=1.21) derived from runtime.Version()
-// or an unknown future version.
-func FileVersion(info *types.Info, file *ast.File) string {
-	// In x/tools built with Go <= 1.21, we do not have Info.FileVersions
-	// available. We use a go version derived from the toolchain used to
-	// compile the tool by default.
-	// This will be <= go1.21. We take this as the maximum version that
-	// this tool can support.
-	//
-	// There are no features currently in x/tools that need to tell fine grained
-	// differences for versions <1.22.
-	return toolchain
-}
+// FileVersions always reports the a file's Go version as the
+// zero version at this Go version.
+func FileVersions(info *types.Info, file *ast.File) string { return "" }
 
-// InitFileVersions is a noop when compiled with this Go version.
+// InitFileVersions is a noop at this Go version.
 func InitFileVersions(*types.Info) {}

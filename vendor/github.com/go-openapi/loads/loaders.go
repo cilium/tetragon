@@ -21,7 +21,7 @@ var (
 func init() {
 	jsonLoader := &loader{
 		DocLoaderWithMatch: DocLoaderWithMatch{
-			Match: func(_ string) bool {
+			Match: func(pth string) bool {
 				return true
 			},
 			Fn: JSONDoc,
@@ -86,7 +86,7 @@ func (l *loader) Load(path string) (json.RawMessage, error) {
 		return nil, erp
 	}
 
-	lastErr := errors.New("no loader matched") // default error if no match was found
+	var lastErr error = errors.New("no loader matched") // default error if no match was found
 	for ldr := l; ldr != nil; ldr = ldr.Next {
 		if ldr.Match != nil && !ldr.Match(path) {
 			continue
@@ -118,8 +118,9 @@ func JSONDoc(path string) (json.RawMessage, error) {
 // This sets the configuration at the package level.
 //
 // NOTE:
-//   - this updates the default loader used by github.com/go-openapi/spec
-//   - since this sets package level globals, you shouln't call this concurrently
+//  * this updates the default loader used by github.com/go-openapi/spec
+//  * since this sets package level globals, you shouln't call this concurrently
+//
 func AddLoader(predicate DocMatcher, load DocLoader) {
 	loaders = loaders.WithHead(&loader{
 		DocLoaderWithMatch: DocLoaderWithMatch{

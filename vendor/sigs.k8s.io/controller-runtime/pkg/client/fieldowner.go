@@ -30,28 +30,28 @@ import (
 // will be overridden.
 func WithFieldOwner(c Client, fieldOwner string) Client {
 	return &clientWithFieldManager{
-		owner:  fieldOwner,
-		c:      c,
-		Reader: c,
+		manager: fieldOwner,
+		c:       c,
+		Reader:  c,
 	}
 }
 
 type clientWithFieldManager struct {
-	owner string
-	c     Client
+	manager string
+	c       Client
 	Reader
 }
 
 func (f *clientWithFieldManager) Create(ctx context.Context, obj Object, opts ...CreateOption) error {
-	return f.c.Create(ctx, obj, append([]CreateOption{FieldOwner(f.owner)}, opts...)...)
+	return f.c.Create(ctx, obj, append([]CreateOption{FieldOwner(f.manager)}, opts...)...)
 }
 
 func (f *clientWithFieldManager) Update(ctx context.Context, obj Object, opts ...UpdateOption) error {
-	return f.c.Update(ctx, obj, append([]UpdateOption{FieldOwner(f.owner)}, opts...)...)
+	return f.c.Update(ctx, obj, append([]UpdateOption{FieldOwner(f.manager)}, opts...)...)
 }
 
 func (f *clientWithFieldManager) Patch(ctx context.Context, obj Object, patch Patch, opts ...PatchOption) error {
-	return f.c.Patch(ctx, obj, patch, append([]PatchOption{FieldOwner(f.owner)}, opts...)...)
+	return f.c.Patch(ctx, obj, patch, append([]PatchOption{FieldOwner(f.manager)}, opts...)...)
 }
 
 func (f *clientWithFieldManager) Delete(ctx context.Context, obj Object, opts ...DeleteOption) error {
@@ -73,7 +73,7 @@ func (f *clientWithFieldManager) IsObjectNamespaced(obj runtime.Object) (bool, e
 
 func (f *clientWithFieldManager) Status() StatusWriter {
 	return &subresourceClientWithFieldOwner{
-		owner:             f.owner,
+		owner:             f.manager,
 		subresourceWriter: f.c.Status(),
 	}
 }
@@ -81,7 +81,7 @@ func (f *clientWithFieldManager) Status() StatusWriter {
 func (f *clientWithFieldManager) SubResource(subresource string) SubResourceClient {
 	c := f.c.SubResource(subresource)
 	return &subresourceClientWithFieldOwner{
-		owner:             f.owner,
+		owner:             f.manager,
 		subresourceWriter: c,
 		SubResourceReader: c,
 	}

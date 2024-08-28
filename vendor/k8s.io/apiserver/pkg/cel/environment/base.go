@@ -43,12 +43,10 @@ import (
 // desirable because it means that CEL expressions are portable across a wider range
 // of Kubernetes versions.
 func DefaultCompatibilityVersion() *version.Version {
-	return version.MajorMinor(1, 29)
+	return version.MajorMinor(1, 28)
 }
 
-var baseOpts = append(baseOptsWithoutStrictCost, StrictCostOpt)
-
-var baseOptsWithoutStrictCost = []VersionedOptions{
+var baseOpts = []VersionedOptions{
 	{
 		// CEL epoch was actually 1.23, but we artificially set it to 1.0 because these
 		// options should always be present.
@@ -125,21 +123,6 @@ var baseOptsWithoutStrictCost = []VersionedOptions{
 			ext.Sets(),
 		},
 	},
-	{
-		IntroducedVersion: version.MajorMinor(1, 30),
-		EnvOptions: []cel.EnvOption{
-			library.IP(),
-			library.CIDR(),
-		},
-	},
-}
-
-var StrictCostOpt = VersionedOptions{
-	// This is to configure the cost calculation for extended libraries
-	IntroducedVersion: version.MajorMinor(1, 0),
-	ProgramOptions: []cel.ProgramOption{
-		cel.CostTracking(&library.CostEstimator{}),
-	},
 }
 
 // MustBaseEnvSet returns the common CEL base environments for Kubernetes for Version, or panics
@@ -151,8 +134,7 @@ var StrictCostOpt = VersionedOptions{
 // The returned environment contains no CEL variable definitions or custom type declarations and
 // should be extended to construct environments with the appropriate variable definitions,
 // type declarations and any other needed configuration.
-// strictCost is used to determine whether to enforce strict cost calculation for CEL expressions.
-func MustBaseEnvSet(ver *version.Version, strictCost bool) *EnvSet {
+func MustBaseEnvSet(ver *version.Version) *EnvSet {
 	if ver == nil {
 		panic("version must be non-nil")
 	}
@@ -160,33 +142,19 @@ func MustBaseEnvSet(ver *version.Version, strictCost bool) *EnvSet {
 		panic(fmt.Sprintf("version must contain an major and minor component, but got: %s", ver.String()))
 	}
 	key := strconv.FormatUint(uint64(ver.Major()), 10) + "." + strconv.FormatUint(uint64(ver.Minor()), 10)
-	var entry interface{}
-	if strictCost {
-		if entry, ok := baseEnvs.Load(key); ok {
-			return entry.(*EnvSet)
-		}
-		entry, _, _ = baseEnvsSingleflight.Do(key, func() (interface{}, error) {
-			entry := mustNewEnvSet(ver, baseOpts)
-			baseEnvs.Store(key, entry)
-			return entry, nil
-		})
-	} else {
-		if entry, ok := baseEnvsWithOption.Load(key); ok {
-			return entry.(*EnvSet)
-		}
-		entry, _, _ = baseEnvsWithOptionSingleflight.Do(key, func() (interface{}, error) {
-			entry := mustNewEnvSet(ver, baseOptsWithoutStrictCost)
-			baseEnvsWithOption.Store(key, entry)
-			return entry, nil
-		})
+	if entry, ok := baseEnvs.Load(key); ok {
+		return entry.(*EnvSet)
 	}
 
+	entry, _, _ := baseEnvsSingleflight.Do(key, func() (interface{}, error) {
+		entry := mustNewEnvSet(ver, baseOpts)
+		baseEnvs.Store(key, entry)
+		return entry, nil
+	})
 	return entry.(*EnvSet)
 }
 
 var (
-	baseEnvs                       = sync.Map{}
-	baseEnvsWithOption             = sync.Map{}
-	baseEnvsSingleflight           = &singleflight.Group{}
-	baseEnvsWithOptionSingleflight = &singleflight.Group{}
+	baseEnvs             = sync.Map{}
+	baseEnvsSingleflight = &singleflight.Group{}
 )
