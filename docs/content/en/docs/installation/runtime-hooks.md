@@ -129,7 +129,7 @@ Output should be something like:
 Install the new configuration file and restart containerd
 ```shell
 minikube cp /tmp/new-config.toml /etc/containerd/config.toml
-ssh sudo systemctl restart containerd
+minikube ssh sudo systemctl restart containerd
 ```
 
 ### Install Tetragon
