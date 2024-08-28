@@ -17,9 +17,8 @@ limitations under the License.
 package namer
 
 import (
-	"k8s.io/gengo/v2"
-	"k8s.io/gengo/v2/namer"
-	"k8s.io/gengo/v2/types"
+	"k8s.io/gengo/namer"
+	"k8s.io/gengo/types"
 )
 
 // TagOverrideNamer is a namer which pulls names from a given tag, if specified,
@@ -50,7 +49,7 @@ func NewTagOverrideNamer(tagName string, fallback namer.Namer) namer.Namer {
 // extractTag gets the comment-tags for the key.  If the tag did not exist, it
 // returns the empty string.
 func extractTag(key string, lines []string) string {
-	val, present := gengo.ExtractCommentTags("+", lines)[key]
+	val, present := types.ExtractCommentTags("+", lines)[key]
 	if !present || len(val) < 1 {
 		return ""
 	}

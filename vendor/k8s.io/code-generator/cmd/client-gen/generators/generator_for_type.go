@@ -19,22 +19,23 @@ package generators
 import (
 	"io"
 	"path"
+	"path/filepath"
 	"strings"
 
-	"k8s.io/gengo/v2/generator"
-	"k8s.io/gengo/v2/namer"
-	"k8s.io/gengo/v2/types"
+	"k8s.io/gengo/generator"
+	"k8s.io/gengo/namer"
+	"k8s.io/gengo/types"
 
 	"k8s.io/code-generator/cmd/client-gen/generators/util"
 )
 
 // genClientForType produces a file for each top-level type.
 type genClientForType struct {
-	generator.GoGenerator
-	outputPackage             string // must be a Go import-path
+	generator.DefaultGen
+	outputPackage             string
 	inputPackage              string
-	clientsetPackage          string // must be a Go import-path
-	applyConfigurationPackage string // must be a Go import-path
+	clientsetPackage          string
+	applyConfigurationPackage string
 	group                     string
 	version                   string
 	groupGoName               string
@@ -80,7 +81,7 @@ func (g *genClientForType) GenerateType(c *generator.Context, t *types.Type, w i
 	defaultVerbTemplates := buildDefaultVerbTemplates(generateApply)
 	subresourceDefaultVerbTemplates := buildSubresourceDefaultVerbTemplates(generateApply)
 	sw := generator.NewSnippetWriter(w, c, "$", "$")
-	pkg := path.Base(t.Name.Package)
+	pkg := filepath.Base(t.Name.Package)
 	tags, err := util.ParseClientGenTags(append(t.SecondClosestCommentLines, t.CommentLines...))
 	if err != nil {
 		return err
@@ -119,12 +120,8 @@ func (g *genClientForType) GenerateType(c *generator.Context, t *types.Type, w i
 		}
 		var updatedVerbtemplate string
 		if _, exists := subresourceDefaultVerbTemplates[e.VerbType]; e.IsSubresource() && exists {
-			//nolint:staticcheck
-			// TODO: convert this to use golang.org/x/text/cases
 			updatedVerbtemplate = e.VerbName + "(" + strings.TrimPrefix(subresourceDefaultVerbTemplates[e.VerbType], strings.Title(e.VerbType)+"(")
 		} else {
-			//nolint:staticcheck
-			// TODO: convert this to use golang.org/x/text/cases
 			updatedVerbtemplate = e.VerbName + "(" + strings.TrimPrefix(defaultVerbTemplates[e.VerbType], strings.Title(e.VerbType)+"(")
 		}
 		extendedMethod := extendedInterfaceMethod{
@@ -170,7 +167,7 @@ func (g *genClientForType) GenerateType(c *generator.Context, t *types.Type, w i
 		"ApplyPatchType":       c.Universe.Type(types.Name{Package: "k8s.io/apimachinery/pkg/types", Name: "ApplyPatchType"}),
 		"watchInterface":       c.Universe.Type(types.Name{Package: "k8s.io/apimachinery/pkg/watch", Name: "Interface"}),
 		"RESTClientInterface":  c.Universe.Type(types.Name{Package: "k8s.io/client-go/rest", Name: "Interface"}),
-		"schemeParameterCodec": c.Universe.Variable(types.Name{Package: path.Join(g.clientsetPackage, "scheme"), Name: "ParameterCodec"}),
+		"schemeParameterCodec": c.Universe.Variable(types.Name{Package: filepath.Join(g.clientsetPackage, "scheme"), Name: "ParameterCodec"}),
 		"jsonMarshal":          c.Universe.Type(types.Name{Package: "encoding/json", Name: "Marshal"}),
 	}
 
@@ -348,9 +345,7 @@ func (g *genClientForType) GenerateType(c *generator.Context, t *types.Type, w i
 // TODO: Make the verbs in templates parametrized so the strings.Replace() is
 // not needed.
 func adjustTemplate(name, verbType, template string) string {
-	//nolint:staticcheck
-	// TODO: convert this to use golang.org/x/text/cases
-	return strings.ReplaceAll(template, " "+strings.Title(verbType), " "+name)
+	return strings.Replace(template, " "+strings.Title(verbType), " "+name, -1)
 }
 
 func generateInterface(defaultVerbTemplates map[string]string, tags util.Tags) string {

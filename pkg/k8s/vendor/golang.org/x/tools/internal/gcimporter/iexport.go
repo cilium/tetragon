@@ -23,7 +23,6 @@ import (
 	"strings"
 
 	"golang.org/x/tools/go/types/objectpath"
-	"golang.org/x/tools/internal/aliases"
 	"golang.org/x/tools/internal/tokeninternal"
 )
 
@@ -464,7 +463,7 @@ func (p *iexporter) doDecl(obj types.Object) {
 
 	switch obj := obj.(type) {
 	case *types.Var:
-		w.tag(varTag)
+		w.tag('V')
 		w.pos(obj.Pos())
 		w.typ(obj.Type(), obj.Pkg())
 
@@ -482,9 +481,9 @@ func (p *iexporter) doDecl(obj types.Object) {
 
 		// Function.
 		if sig.TypeParams().Len() == 0 {
-			w.tag(funcTag)
+			w.tag('F')
 		} else {
-			w.tag(genericFuncTag)
+			w.tag('G')
 		}
 		w.pos(obj.Pos())
 		// The tparam list of the function type is the declaration of the type
@@ -500,20 +499,20 @@ func (p *iexporter) doDecl(obj types.Object) {
 		w.signature(sig)
 
 	case *types.Const:
-		w.tag(constTag)
+		w.tag('C')
 		w.pos(obj.Pos())
 		w.value(obj.Type(), obj.Val())
 
 	case *types.TypeName:
 		t := obj.Type()
 
-		if tparam, ok := aliases.Unalias(t).(*types.TypeParam); ok {
-			w.tag(typeParamTag)
+		if tparam, ok := t.(*types.TypeParam); ok {
+			w.tag('P')
 			w.pos(obj.Pos())
 			constraint := tparam.Constraint()
 			if p.version >= iexportVersionGo1_18 {
 				implicit := false
-				if iface, _ := aliases.Unalias(constraint).(*types.Interface); iface != nil {
+				if iface, _ := constraint.(*types.Interface); iface != nil {
 					implicit = iface.IsImplicit()
 				}
 				w.bool(implicit)
@@ -523,13 +522,8 @@ func (p *iexporter) doDecl(obj types.Object) {
 		}
 
 		if obj.IsAlias() {
-			w.tag(aliasTag)
+			w.tag('A')
 			w.pos(obj.Pos())
-			if alias, ok := t.(*aliases.Alias); ok {
-				// Preserve materialized aliases,
-				// even of non-exported types.
-				t = aliases.Rhs(alias)
-			}
 			w.typ(t, obj.Pkg())
 			break
 		}
@@ -541,9 +535,9 @@ func (p *iexporter) doDecl(obj types.Object) {
 		}
 
 		if named.TypeParams().Len() == 0 {
-			w.tag(typeTag)
+			w.tag('T')
 		} else {
-			w.tag(genericTypeTag)
+			w.tag('U')
 		}
 		w.pos(obj.Pos())
 
@@ -553,7 +547,7 @@ func (p *iexporter) doDecl(obj types.Object) {
 			w.tparamList(obj.Name(), named.TypeParams(), obj.Pkg())
 		}
 
-		underlying := named.Underlying()
+		underlying := obj.Type().Underlying()
 		w.typ(underlying, obj.Pkg())
 
 		if types.IsInterface(t) {
@@ -744,11 +738,6 @@ func (w *exportWriter) doTyp(t types.Type, pkg *types.Package) {
 		}()
 	}
 	switch t := t.(type) {
-	case *aliases.Alias:
-		// TODO(adonovan): support parameterized aliases, following *types.Named.
-		w.startType(aliasType)
-		w.qualifiedType(t.Obj())
-
 	case *types.Named:
 		if targs := t.TypeArgs(); targs.Len() > 0 {
 			w.startType(instanceType)
@@ -854,7 +843,7 @@ func (w *exportWriter) doTyp(t types.Type, pkg *types.Package) {
 		for i := 0; i < n; i++ {
 			ft := t.EmbeddedType(i)
 			tPkg := pkg
-			if named, _ := aliases.Unalias(ft).(*types.Named); named != nil {
+			if named, _ := ft.(*types.Named); named != nil {
 				w.pos(named.Obj().Pos())
 			} else {
 				w.pos(token.NoPos)

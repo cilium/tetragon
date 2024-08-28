@@ -75,18 +75,6 @@ type ListMeta struct {
 	RemainingItemCount *int64 `json:"remainingItemCount,omitempty" protobuf:"bytes,4,opt,name=remainingItemCount"`
 }
 
-// Field path constants that are specific to the internal API
-// representation.
-const (
-	ObjectNameField = "metadata.name"
-)
-
-// These are internal finalizer values for Kubernetes-like APIs, must be qualified name unless defined here
-const (
-	FinalizerOrphanDependents = "orphan"
-	FinalizerDeleteDependents = "foregroundDeletion"
-)
-
 // ObjectMeta is metadata that all persisted resources must have, which includes all objects
 // users must create.
 type ObjectMeta struct {
@@ -196,8 +184,6 @@ type ObjectMeta struct {
 	// +optional
 	// +patchMergeKey=uid
 	// +patchStrategy=merge
-	// +listType=map
-	// +listMapKey=uid
 	OwnerReferences []OwnerReference `json:"ownerReferences,omitempty" patchStrategy:"merge" patchMergeKey:"uid" protobuf:"bytes,13,rep,name=ownerReferences"`
 }
 
@@ -235,25 +221,6 @@ type OwnerReference struct {
 	Controller *bool `json:"controller,omitempty" protobuf:"varint,6,opt,name=controller"`
 }
 
-const (
-	// FieldValidationIgnore ignores unknown/duplicate fields
-	FieldValidationIgnore = "Ignore"
-	// FieldValidationWarn responds with a warning, but successfully serve the request
-	FieldValidationWarn = "Warn"
-	// FieldValidationStrict fails the request on unknown/duplicate fields
-	FieldValidationStrict = "Strict"
-)
-
-// TODO: remove me when watch is refactored
-func LabelSelectorQueryParam(version string) string {
-	return "labelSelector"
-}
-
-// TODO: remove me when watch is refactored
-func FieldSelectorQueryParam(version string) string {
-	return "fieldSelector"
-}
-
 // Note:
 // There are two different styles of label selectors used in versioned types:
 // an older style which is represented as just a string in versioned types, and a
@@ -273,7 +240,6 @@ type LabelSelector struct {
 	MatchLabels map[string]MatchLabelsValue `json:"matchLabels,omitempty" protobuf:"bytes,1,rep,name=matchLabels"`
 	// matchExpressions is a list of label selector requirements. The requirements are ANDed.
 	// +kubebuilder:validation:Optional
-	// +listType=atomic
 	MatchExpressions []LabelSelectorRequirement `json:"matchExpressions,omitempty" protobuf:"bytes,2,rep,name=matchExpressions"`
 }
 
@@ -297,8 +263,8 @@ type LabelSelectorRequirement struct {
 	// the values array must be non-empty. If the operator is Exists or DoesNotExist,
 	// the values array must be empty. This array is replaced during a strategic
 	// merge patch.
+	//
 	// +kubebuilder:validation:Optional
-	// +listType=atomic
 	Values []string `json:"values,omitempty" protobuf:"bytes,3,rep,name=values"`
 }
 

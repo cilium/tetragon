@@ -16,7 +16,6 @@ package swag
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"path/filepath"
 	"reflect"
@@ -51,7 +50,7 @@ func BytesToYAMLDoc(data []byte) (interface{}, error) {
 		return nil, err
 	}
 	if document.Kind != yaml.DocumentNode || len(document.Content) != 1 || document.Content[0].Kind != yaml.MappingNode {
-		return nil, errors.New("only YAML documents that are objects are supported")
+		return nil, fmt.Errorf("only YAML documents that are objects are supported")
 	}
 	return &document, nil
 }

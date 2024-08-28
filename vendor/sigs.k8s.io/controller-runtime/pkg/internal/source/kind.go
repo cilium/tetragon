@@ -4,14 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"reflect"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/workqueue"
-
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -19,40 +17,34 @@ import (
 )
 
 // Kind is used to provide a source of events originating inside the cluster from Watches (e.g. Pod Create).
-type Kind[T client.Object] struct {
+type Kind struct {
 	// Type is the type of object to watch.  e.g. &v1.Pod{}
-	Type T
+	Type client.Object
 
 	// Cache used to watch APIs
 	Cache cache.Cache
 
-	Handler handler.TypedEventHandler[T]
-
-	Predicates []predicate.TypedPredicate[T]
-
-	// startedErr may contain an error if one was encountered during startup. If its closed and does not
+	// started may contain an error if one was encountered during startup. If its closed and does not
 	// contain an error, startup and syncing finished.
-	startedErr  chan error
+	started     chan error
 	startCancel func()
 }
 
 // Start is internal and should be called only by the Controller to register an EventHandler with the Informer
 // to enqueue reconcile.Requests.
-func (ks *Kind[T]) Start(ctx context.Context, queue workqueue.RateLimitingInterface) error {
-	if isNil(ks.Type) {
+func (ks *Kind) Start(ctx context.Context, handler handler.EventHandler, queue workqueue.RateLimitingInterface,
+	prct ...predicate.Predicate) error {
+	if ks.Type == nil {
 		return fmt.Errorf("must create Kind with a non-nil object")
 	}
-	if isNil(ks.Cache) {
+	if ks.Cache == nil {
 		return fmt.Errorf("must create Kind with a non-nil cache")
-	}
-	if isNil(ks.Handler) {
-		return errors.New("must create Kind with non-nil handler")
 	}
 
 	// cache.GetInformer will block until its context is cancelled if the cache was already started and it can not
 	// sync that informer (most commonly due to RBAC issues).
 	ctx, ks.startCancel = context.WithCancel(ctx)
-	ks.startedErr = make(chan error)
+	ks.started = make(chan error)
 	go func() {
 		var (
 			i       cache.Informer
@@ -80,30 +72,30 @@ func (ks *Kind[T]) Start(ctx context.Context, queue workqueue.RateLimitingInterf
 			return true, nil
 		}); err != nil {
 			if lastErr != nil {
-				ks.startedErr <- fmt.Errorf("failed to get informer from cache: %w", lastErr)
+				ks.started <- fmt.Errorf("failed to get informer from cache: %w", lastErr)
 				return
 			}
-			ks.startedErr <- err
+			ks.started <- err
 			return
 		}
 
-		_, err := i.AddEventHandler(NewEventHandler(ctx, queue, ks.Handler, ks.Predicates).HandlerFuncs())
+		_, err := i.AddEventHandler(NewEventHandler(ctx, queue, handler, prct).HandlerFuncs())
 		if err != nil {
-			ks.startedErr <- err
+			ks.started <- err
 			return
 		}
 		if !ks.Cache.WaitForCacheSync(ctx) {
 			// Would be great to return something more informative here
-			ks.startedErr <- errors.New("cache did not sync")
+			ks.started <- errors.New("cache did not sync")
 		}
-		close(ks.startedErr)
+		close(ks.started)
 	}()
 
 	return nil
 }
 
-func (ks *Kind[T]) String() string {
-	if !isNil(ks.Type) {
+func (ks *Kind) String() string {
+	if ks.Type != nil {
 		return fmt.Sprintf("kind source: %T", ks.Type)
 	}
 	return "kind source: unknown type"
@@ -111,9 +103,9 @@ func (ks *Kind[T]) String() string {
 
 // WaitForSync implements SyncingSource to allow controllers to wait with starting
 // workers until the cache is synced.
-func (ks *Kind[T]) WaitForSync(ctx context.Context) error {
+func (ks *Kind) WaitForSync(ctx context.Context) error {
 	select {
-	case err := <-ks.startedErr:
+	case err := <-ks.started:
 		return err
 	case <-ctx.Done():
 		ks.startCancel()
@@ -122,16 +114,4 @@ func (ks *Kind[T]) WaitForSync(ctx context.Context) error {
 		}
 		return fmt.Errorf("timed out waiting for cache to be synced for Kind %T", ks.Type)
 	}
-}
-
-func isNil(arg any) bool {
-	if v := reflect.ValueOf(arg); !v.IsValid() || ((v.Kind() == reflect.Ptr ||
-		v.Kind() == reflect.Interface ||
-		v.Kind() == reflect.Slice ||
-		v.Kind() == reflect.Map ||
-		v.Kind() == reflect.Chan ||
-		v.Kind() == reflect.Func) && v.IsNil()) {
-		return true
-	}
-	return false
 }

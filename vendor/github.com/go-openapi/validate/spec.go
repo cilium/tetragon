@@ -15,8 +15,6 @@
 package validate
 
 import (
-	"bytes"
-	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -28,7 +26,6 @@ import (
 	"github.com/go-openapi/loads"
 	"github.com/go-openapi/spec"
 	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
 )
 
 // Spec validates an OpenAPI 2.0 specification document.
@@ -55,38 +52,25 @@ func Spec(doc *loads.Document, formats strfmt.Registry) error {
 
 // SpecValidator validates a swagger 2.0 spec
 type SpecValidator struct {
-	schema        *spec.Schema // swagger 2.0 schema
-	spec          *loads.Document
-	analyzer      *analysis.Spec
-	expanded      *loads.Document
-	KnownFormats  strfmt.Registry
-	Options       Opts // validation options
-	schemaOptions *SchemaValidatorOptions
+	schema       *spec.Schema // swagger 2.0 schema
+	spec         *loads.Document
+	analyzer     *analysis.Spec
+	expanded     *loads.Document
+	KnownFormats strfmt.Registry
+	Options      Opts // validation options
 }
 
 // NewSpecValidator creates a new swagger spec validator instance
 func NewSpecValidator(schema *spec.Schema, formats strfmt.Registry) *SpecValidator {
-	// schema options that apply to all called validators
-	schemaOptions := new(SchemaValidatorOptions)
-	for _, o := range []Option{
-		SwaggerSchema(true),
-		WithRecycleValidators(true),
-		// withRecycleResults(true),
-	} {
-		o(schemaOptions)
-	}
-
 	return &SpecValidator{
-		schema:        schema,
-		KnownFormats:  formats,
-		Options:       defaultOpts,
-		schemaOptions: schemaOptions,
+		schema:       schema,
+		KnownFormats: formats,
+		Options:      defaultOpts,
 	}
 }
 
 // Validate validates the swagger spec
 func (s *SpecValidator) Validate(data interface{}) (*Result, *Result) {
-	s.schemaOptions.skipSchemataResult = s.Options.SkipSchemataResult
 	var sd *loads.Document
 	errs, warnings := new(Result), new(Result)
 
@@ -100,8 +84,11 @@ func (s *SpecValidator) Validate(data interface{}) (*Result, *Result) {
 	s.spec = sd
 	s.analyzer = analysis.New(sd.Spec())
 
-	// Raw spec unmarshalling errors
+	// Swagger schema validator
+	schv := NewSchemaValidator(s.schema, nil, "", s.KnownFormats, SwaggerSchema(true))
 	var obj interface{}
+
+	// Raw spec unmarshalling errors
 	if err := json.Unmarshal(sd.Raw(), &obj); err != nil {
 		// NOTE: under normal conditions, the *load.Document has been already unmarshalled
 		// So this one is just a paranoid check on the behavior of the spec package
@@ -115,8 +102,6 @@ func (s *SpecValidator) Validate(data interface{}) (*Result, *Result) {
 		warnings.AddErrors(errs.Warnings...)
 	}()
 
-	// Swagger schema validator
-	schv := newSchemaValidator(s.schema, nil, "", s.KnownFormats, s.schemaOptions)
 	errs.Merge(schv.Validate(obj)) // error -
 	// There may be a point in continuing to try and determine more accurate errors
 	if !s.Options.ContinueOnErrors && errs.HasErrors() {
@@ -144,13 +129,13 @@ func (s *SpecValidator) Validate(data interface{}) (*Result, *Result) {
 	}
 
 	// Values provided as default MUST validate their schema
-	df := &defaultValidator{SpecValidator: s, schemaOptions: s.schemaOptions}
+	df := &defaultValidator{SpecValidator: s}
 	errs.Merge(df.Validate())
 
 	// Values provided as examples MUST validate their schema
 	// Value provided as examples in a response without schema generate a warning
 	// Known limitations: examples in responses for mime type not application/json are ignored (warning)
-	ex := &exampleValidator{SpecValidator: s, schemaOptions: s.schemaOptions}
+	ex := &exampleValidator{SpecValidator: s}
 	errs.Merge(ex.Validate())
 
 	errs.Merge(s.validateNonEmptyPathParamNames())
@@ -162,27 +147,22 @@ func (s *SpecValidator) Validate(data interface{}) (*Result, *Result) {
 }
 
 func (s *SpecValidator) validateNonEmptyPathParamNames() *Result {
-	res := pools.poolOfResults.BorrowResult()
+	res := new(Result)
 	if s.spec.Spec().Paths == nil {
 		// There is no Paths object: error
 		res.AddErrors(noValidPathMsg())
-
-		return res
-	}
-
-	if s.spec.Spec().Paths.Paths == nil {
-		// Paths may be empty: warning
-		res.AddWarnings(noValidPathMsg())
-
-		return res
-	}
-
-	for k := range s.spec.Spec().Paths.Paths {
-		if strings.Contains(k, "{}") {
-			res.AddErrors(emptyPathParameterMsg(k))
+	} else {
+		if s.spec.Spec().Paths.Paths == nil {
+			// Paths may be empty: warning
+			res.AddWarnings(noValidPathMsg())
+		} else {
+			for k := range s.spec.Spec().Paths.Paths {
+				if strings.Contains(k, "{}") {
+					res.AddErrors(emptyPathParameterMsg(k))
+				}
+			}
 		}
 	}
-
 	return res
 }
 
@@ -196,7 +176,7 @@ func (s *SpecValidator) validateDuplicateOperationIDs() *Result {
 		// fallback on possible incomplete picture because of previous errors
 		analyzer = s.analyzer
 	}
-	res := pools.poolOfResults.BorrowResult()
+	res := new(Result)
 	known := make(map[string]int)
 	for _, v := range analyzer.OperationIDs() {
 		if v != "" {
@@ -218,7 +198,7 @@ type dupProp struct {
 
 func (s *SpecValidator) validateDuplicatePropertyNames() *Result {
 	// definition can't declare a property that's already defined by one of its ancestors
-	res := pools.poolOfResults.BorrowResult()
+	res := new(Result)
 	for k, sch := range s.spec.Spec().Definitions {
 		if len(sch.AllOf) == 0 {
 			continue
@@ -267,7 +247,7 @@ func (s *SpecValidator) validateSchemaPropertyNames(nm string, sch spec.Schema, 
 
 	schn := nm
 	schc := &sch
-	res := pools.poolOfResults.BorrowResult()
+	res := new(Result)
 
 	for schc.Ref.String() != "" {
 		// gather property names
@@ -304,7 +284,7 @@ func (s *SpecValidator) validateSchemaPropertyNames(nm string, sch spec.Schema, 
 }
 
 func (s *SpecValidator) validateCircularAncestry(nm string, sch spec.Schema, knowns map[string]struct{}) ([]string, *Result) {
-	res := pools.poolOfResults.BorrowResult()
+	res := new(Result)
 
 	if sch.Ref.String() == "" && len(sch.AllOf) == 0 { // Safeguard. We should not be able to actually get there
 		return nil, res
@@ -354,7 +334,7 @@ func (s *SpecValidator) validateCircularAncestry(nm string, sch spec.Schema, kno
 
 func (s *SpecValidator) validateItems() *Result {
 	// validate parameter, items, schema and response objects for presence of item if type is array
-	res := pools.poolOfResults.BorrowResult()
+	res := new(Result)
 
 	for method, pi := range s.analyzer.Operations() {
 		for path, op := range pi {
@@ -413,7 +393,7 @@ func (s *SpecValidator) validateItems() *Result {
 
 // Verifies constraints on array type
 func (s *SpecValidator) validateSchemaItems(schema spec.Schema, prefix, opID string) *Result {
-	res := pools.poolOfResults.BorrowResult()
+	res := new(Result)
 	if !schema.Type.Contains(arrayType) {
 		return res
 	}
@@ -437,7 +417,7 @@ func (s *SpecValidator) validateSchemaItems(schema spec.Schema, prefix, opID str
 func (s *SpecValidator) validatePathParamPresence(path string, fromPath, fromOperation []string) *Result {
 	// Each defined operation path parameters must correspond to a named element in the API's path pattern.
 	// (For example, you cannot have a path parameter named id for the following path /pets/{petId} but you must have a path parameter named petId.)
-	res := pools.poolOfResults.BorrowResult()
+	res := new(Result)
 	for _, l := range fromPath {
 		var matched bool
 		for _, r := range fromOperation {
@@ -475,6 +455,7 @@ func (s *SpecValidator) validateReferenced() *Result {
 	return &res
 }
 
+// nolint: dupl
 func (s *SpecValidator) validateReferencedParameters() *Result {
 	// Each referenceable definition should have references.
 	params := s.spec.Spec().Parameters
@@ -493,13 +474,14 @@ func (s *SpecValidator) validateReferencedParameters() *Result {
 	if len(expected) == 0 {
 		return nil
 	}
-	result := pools.poolOfResults.BorrowResult()
+	result := new(Result)
 	for k := range expected {
 		result.AddWarnings(unusedParamMsg(k))
 	}
 	return result
 }
 
+// nolint: dupl
 func (s *SpecValidator) validateReferencedResponses() *Result {
 	// Each referenceable definition should have references.
 	responses := s.spec.Spec().Responses
@@ -518,13 +500,14 @@ func (s *SpecValidator) validateReferencedResponses() *Result {
 	if len(expected) == 0 {
 		return nil
 	}
-	result := pools.poolOfResults.BorrowResult()
+	result := new(Result)
 	for k := range expected {
 		result.AddWarnings(unusedResponseMsg(k))
 	}
 	return result
 }
 
+// nolint: dupl
 func (s *SpecValidator) validateReferencedDefinitions() *Result {
 	// Each referenceable definition must have references.
 	defs := s.spec.Spec().Definitions
@@ -553,7 +536,7 @@ func (s *SpecValidator) validateReferencedDefinitions() *Result {
 
 func (s *SpecValidator) validateRequiredDefinitions() *Result {
 	// Each property listed in the required array must be defined in the properties of the model
-	res := pools.poolOfResults.BorrowResult()
+	res := new(Result)
 
 DEFINITIONS:
 	for d, schema := range s.spec.Spec().Definitions {
@@ -572,7 +555,7 @@ DEFINITIONS:
 
 func (s *SpecValidator) validateRequiredProperties(path, in string, v *spec.Schema) *Result {
 	// Takes care of recursive property definitions, which may be nested in additionalProperties schemas
-	res := pools.poolOfResults.BorrowResult()
+	res := new(Result)
 	propertyMatch := false
 	patternMatch := false
 	additionalPropertiesMatch := false
@@ -638,7 +621,7 @@ func (s *SpecValidator) validateParameters() *Result {
 	// - parameters with pattern property must specify valid patterns
 	// - $ref in parameters must resolve
 	// - path param must be required
-	res := pools.poolOfResults.BorrowResult()
+	res := new(Result)
 	rexGarbledPathSegment := mustCompileRegexp(`.*[{}\s]+.*`)
 	for method, pi := range s.expandedAnalyzer().Operations() {
 		methodPaths := make(map[string]map[string]string)
@@ -677,23 +660,7 @@ func (s *SpecValidator) validateParameters() *Result {
 			// TODO: should be done after param expansion
 			res.Merge(s.checkUniqueParams(path, method, op))
 
-			// pick the root schema from the swagger specification which describes a parameter
-			origSchema, ok := s.schema.Definitions["parameter"]
-			if !ok {
-				panic("unexpected swagger schema: missing #/definitions/parameter")
-			}
-			// clone it once to avoid expanding a global schema (e.g. swagger spec)
-			paramSchema, err := deepCloneSchema(origSchema)
-			if err != nil {
-				panic(fmt.Errorf("can't clone schema: %v", err))
-			}
-
 			for _, pr := range paramHelp.safeExpandedParamsFor(path, method, op.ID, res, s) {
-				// An expanded parameter must validate the Parameter schema (an unexpanded $ref always passes high-level schema validation)
-				schv := newSchemaValidator(&paramSchema, s.schema, fmt.Sprintf("%s.%s.parameters.%s", path, method, pr.Name), s.KnownFormats, s.schemaOptions)
-				obj := swag.ToDynamicJSON(pr)
-				res.Merge(schv.Validate(obj))
-
 				// Validate pattern regexp for parameters with a Pattern property
 				if _, err := compileRegexp(pr.Pattern); err != nil {
 					res.AddErrors(invalidPatternInParamMsg(op.ID, pr.Name, pr.Pattern))
@@ -775,7 +742,7 @@ func (s *SpecValidator) validateParameters() *Result {
 
 func (s *SpecValidator) validateReferencesValid() *Result {
 	// each reference must point to a valid object
-	res := pools.poolOfResults.BorrowResult()
+	res := new(Result)
 	for _, r := range s.analyzer.AllRefs() {
 		if !r.IsValidURI(s.spec.SpecFilePath()) { // Safeguard - spec should always yield a valid URI
 			res.AddErrors(invalidRefMsg(r.String()))
@@ -801,7 +768,7 @@ func (s *SpecValidator) checkUniqueParams(path, method string, op *spec.Operatio
 	// However, there are some issues with such a factorization:
 	// - analysis does not seem to fully expand params
 	// - param keys may be altered by x-go-name
-	res := pools.poolOfResults.BorrowResult()
+	res := new(Result)
 	pnames := make(map[string]struct{})
 
 	if op.Parameters != nil { // Safeguard
@@ -835,18 +802,4 @@ func (s *SpecValidator) expandedAnalyzer() *analysis.Spec {
 		return s.expanded.Analyzer
 	}
 	return s.analyzer
-}
-
-func deepCloneSchema(src spec.Schema) (spec.Schema, error) {
-	var b bytes.Buffer
-	if err := gob.NewEncoder(&b).Encode(src); err != nil {
-		return spec.Schema{}, err
-	}
-
-	var dst spec.Schema
-	if err := gob.NewDecoder(&b).Decode(&dst); err != nil {
-		return spec.Schema{}, err
-	}
-
-	return dst, nil
 }

@@ -45,37 +45,31 @@ import (
 	"flag"
 
 	"github.com/spf13/pflag"
-	"k8s.io/code-generator/cmd/defaulter-gen/args"
-	"k8s.io/code-generator/cmd/defaulter-gen/generators"
-	"k8s.io/gengo/v2"
-	"k8s.io/gengo/v2/generator"
+	"k8s.io/gengo/examples/defaulter-gen/generators"
 	"k8s.io/klog/v2"
+
+	generatorargs "k8s.io/code-generator/cmd/defaulter-gen/args"
 )
 
 func main() {
 	klog.InitFlags(nil)
-	args := args.New()
+	genericArgs, customArgs := generatorargs.NewDefaults()
 
-	args.AddFlags(pflag.CommandLine)
+	genericArgs.AddFlags(pflag.CommandLine)
+	customArgs.AddFlags(pflag.CommandLine)
 	flag.Set("logtostderr", "true")
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
 
-	if err := args.Validate(); err != nil {
+	if err := generatorargs.Validate(genericArgs); err != nil {
 		klog.Fatalf("Error: %v", err)
 	}
 
-	myTargets := func(context *generator.Context) []generator.Target {
-		return generators.GetTargets(context, args)
-	}
-
 	// Run it.
-	if err := gengo.Execute(
+	if err := genericArgs.Execute(
 		generators.NameSystems(),
 		generators.DefaultNameSystem(),
-		myTargets,
-		gengo.StdBuildTag,
-		pflag.Args(),
+		generators.Packages,
 	); err != nil {
 		klog.Fatalf("Error: %v", err)
 	}

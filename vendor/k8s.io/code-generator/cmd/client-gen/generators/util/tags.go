@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"strings"
 
-	"k8s.io/gengo/v2"
+	"k8s.io/gengo/types"
 )
 
 var supportedTags = []string{
@@ -192,7 +192,7 @@ func MustParseClientGenTags(lines []string) Tags {
 // tags are provided.
 func ParseClientGenTags(lines []string) (Tags, error) {
 	ret := Tags{}
-	values := gengo.ExtractCommentTags("+", lines)
+	values := types.ExtractCommentTags("+", lines)
 	var value []string
 	value, ret.GenerateClient = values["genclient"]
 	// Check the old format and error when used to avoid generating client when //+genclient=false

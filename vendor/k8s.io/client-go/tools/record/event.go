@@ -198,29 +198,16 @@ func NewBroadcaster(opts ...BroadcasterOption) EventBroadcaster {
 	ctx := c.Context
 	if ctx == nil {
 		ctx = context.Background()
-	}
-	// The are two scenarios where it makes no sense to wait for context cancelation:
-	// - The context was nil.
-	// - The context was context.Background() to begin with.
-	//
-	// Both cases get checked here.
-	haveCtxCancelation := ctx.Done() == nil
-
-	eventBroadcaster.cancelationCtx, eventBroadcaster.cancel = context.WithCancel(ctx)
-
-	if haveCtxCancelation {
+	} else {
 		// Calling Shutdown is not required when a context was provided:
 		// when the context is canceled, this goroutine will shut down
 		// the broadcaster.
-		//
-		// If Shutdown is called first, then this goroutine will
-		// also stop.
 		go func() {
-			<-eventBroadcaster.cancelationCtx.Done()
+			<-ctx.Done()
 			eventBroadcaster.Broadcaster.Shutdown()
 		}()
 	}
-
+	eventBroadcaster.cancelationCtx, eventBroadcaster.cancel = context.WithCancel(ctx)
 	return eventBroadcaster
 }
 

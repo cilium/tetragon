@@ -43,9 +43,6 @@ type BackendAddress struct {
 
 	// Backend weight
 	Weight *uint16 `json:"weight,omitempty"`
-
-	// Optional name of the zone in which this backend runs
-	Zone string `json:"zone,omitempty"`
 }
 
 // Validate validates this backend address

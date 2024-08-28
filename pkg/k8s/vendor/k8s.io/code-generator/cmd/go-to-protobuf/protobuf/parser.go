@@ -111,7 +111,8 @@ func RewriteGeneratedGogoProtobufFile(name string, extractFn ExtractFunc, option
 // TODO: move into upstream gogo-protobuf once https://github.com/gogo/protobuf/issues/181
 // has agreement
 func rewriteOptionalMethods(decl ast.Decl, isOptional OptionalFunc) {
-	if t, ok := decl.(*ast.FuncDecl); ok {
+	switch t := decl.(type) {
+	case *ast.FuncDecl:
 		ident, ptr, ok := receiver(t)
 		if !ok {
 			return
@@ -149,7 +150,8 @@ type optionalAssignmentVisitor struct {
 // Visit walks the provided node, transforming field initializations of the form
 // m.Field = &OptionalType{} -> m.Field = OptionalType{}
 func (v optionalAssignmentVisitor) Visit(n ast.Node) ast.Visitor {
-	if t, ok := n.(*ast.AssignStmt); ok {
+	switch t := n.(type) {
+	case *ast.AssignStmt:
 		if len(t.Lhs) == 1 && len(t.Rhs) == 1 {
 			if !isFieldSelector(t.Lhs[0], "m", "") {
 				return nil
@@ -193,11 +195,13 @@ func (v *optionalItemsVisitor) Visit(n ast.Node) ast.Visitor {
 					t.Lhs[0] = &ast.StarExpr{X: &ast.Ident{Name: "m"}}
 				}
 			}
-			if rhs, ok := t.Rhs[0].(*ast.CallExpr); ok {
+			switch rhs := t.Rhs[0].(type) {
+			case *ast.CallExpr:
 				if ident, ok := rhs.Fun.(*ast.Ident); ok && ident.Name == "append" {
 					ast.Walk(v, rhs)
 					if len(rhs.Args) > 0 {
-						if arg, ok := rhs.Args[0].(*ast.Ident); ok {
+						switch arg := rhs.Args[0].(type) {
+						case *ast.Ident:
 							if arg.Name == "m" {
 								rhs.Args[0] = &ast.StarExpr{X: &ast.Ident{Name: "m"}}
 							}
@@ -208,7 +212,8 @@ func (v *optionalItemsVisitor) Visit(n ast.Node) ast.Visitor {
 			}
 		}
 	case *ast.IfStmt:
-		if cond, ok := t.Cond.(*ast.BinaryExpr); ok {
+		switch cond := t.Cond.(type) {
+		case *ast.BinaryExpr:
 			if cond.Op == token.EQL {
 				if isFieldSelector(cond.X, "m", "Items") && isIdent(cond.Y, "nil") {
 					cond.X = &ast.StarExpr{X: &ast.Ident{Name: "m"}}
@@ -220,7 +225,8 @@ func (v *optionalItemsVisitor) Visit(n ast.Node) ast.Visitor {
 			// if err := m[len(m.Items)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
 			// 	return err
 			// }
-			if s, ok := t.Init.(*ast.AssignStmt); ok {
+			switch s := t.Init.(type) {
+			case *ast.AssignStmt:
 				if call, ok := s.Rhs[0].(*ast.CallExpr); ok {
 					if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
 						if x, ok := sel.X.(*ast.IndexExpr); ok {
@@ -296,13 +302,15 @@ func receiver(f *ast.FuncDecl) (ident *ast.Ident, pointer bool, ok bool) {
 // dropExistingTypeDeclarations removes any type declaration for which extractFn returns true. The function
 // returns true if the entire declaration should be dropped.
 func dropExistingTypeDeclarations(decl ast.Decl, extractFn ExtractFunc) bool {
-	if t, ok := decl.(*ast.GenDecl); ok {
+	switch t := decl.(type) {
+	case *ast.GenDecl:
 		if t.Tok != token.TYPE {
 			return false
 		}
 		specs := []ast.Spec{}
 		for _, s := range t.Specs {
-			if spec, ok := s.(*ast.TypeSpec); ok {
+			switch spec := s.(type) {
+			case *ast.TypeSpec:
 				if extractFn(spec) {
 					continue
 				}
@@ -321,13 +329,15 @@ func dropExistingTypeDeclarations(decl ast.Decl, extractFn ExtractFunc) bool {
 // to prevent generation from being able to define side-effects.  The function returns true
 // if the entire declaration should be dropped.
 func dropEmptyImportDeclarations(decl ast.Decl) bool {
-	if t, ok := decl.(*ast.GenDecl); ok {
+	switch t := decl.(type) {
+	case *ast.GenDecl:
 		if t.Tok != token.IMPORT {
 			return false
 		}
 		specs := []ast.Spec{}
 		for _, s := range t.Specs {
-			if spec, ok := s.(*ast.ImportSpec); ok {
+			switch spec := s.(type) {
+			case *ast.ImportSpec:
 				if spec.Name != nil && spec.Name.Name == "_" {
 					continue
 				}

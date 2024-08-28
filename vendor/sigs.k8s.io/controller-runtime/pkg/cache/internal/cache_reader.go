@@ -23,7 +23,6 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -36,7 +35,7 @@ import (
 // CacheReader is a client.Reader.
 var _ client.Reader = &CacheReader{}
 
-// CacheReader wraps a cache.Index to implement the client.Reader interface for a single type.
+// CacheReader wraps a cache.Index to implement the client.CacheReader interface for a single type.
 type CacheReader struct {
 	// indexer is the underlying indexer wrapped by this cache.
 	indexer cache.Indexer
@@ -118,14 +117,16 @@ func (c *CacheReader) List(_ context.Context, out client.ObjectList, opts ...cli
 
 	switch {
 	case listOpts.FieldSelector != nil:
-		requiresExact := selector.RequiresExactMatch(listOpts.FieldSelector)
+		// TODO(directxman12): support more complicated field selectors by
+		// combining multiple indices, GetIndexers, etc
+		field, val, requiresExact := selector.RequiresExactMatch(listOpts.FieldSelector)
 		if !requiresExact {
 			return fmt.Errorf("non-exact field matches are not supported by the cache")
 		}
 		// list all objects by the field selector. If this is namespaced and we have one, ask for the
 		// namespaced index key. Otherwise, ask for the non-namespaced variant by using the fake "all namespaces"
 		// namespace.
-		objs, err = byIndexes(c.indexer, listOpts.FieldSelector.Requirements(), listOpts.Namespace)
+		objs, err = c.indexer.ByIndex(FieldIndexName(field), KeyToNamespacedKey(listOpts.Namespace, val))
 	case listOpts.Namespace != "":
 		objs, err = c.indexer.ByIndex(cache.NamespaceIndex, listOpts.Namespace)
 	default:
@@ -175,54 +176,6 @@ func (c *CacheReader) List(_ context.Context, out client.ObjectList, opts ...cli
 		runtimeObjs = append(runtimeObjs, outObj)
 	}
 	return apimeta.SetList(out, runtimeObjs)
-}
-
-func byIndexes(indexer cache.Indexer, requires fields.Requirements, namespace string) ([]interface{}, error) {
-	var (
-		err  error
-		objs []interface{}
-		vals []string
-	)
-	indexers := indexer.GetIndexers()
-	for idx, req := range requires {
-		indexName := FieldIndexName(req.Field)
-		indexedValue := KeyToNamespacedKey(namespace, req.Value)
-		if idx == 0 {
-			// we use first require to get snapshot data
-			// TODO(halfcrazy): use complicated index when client-go provides byIndexes
-			// https://github.com/kubernetes/kubernetes/issues/109329
-			objs, err = indexer.ByIndex(indexName, indexedValue)
-			if err != nil {
-				return nil, err
-			}
-			if len(objs) == 0 {
-				return nil, nil
-			}
-			continue
-		}
-		fn, exist := indexers[indexName]
-		if !exist {
-			return nil, fmt.Errorf("index with name %s does not exist", indexName)
-		}
-		filteredObjects := make([]interface{}, 0, len(objs))
-		for _, obj := range objs {
-			vals, err = fn(obj)
-			if err != nil {
-				return nil, err
-			}
-			for _, val := range vals {
-				if val == indexedValue {
-					filteredObjects = append(filteredObjects, obj)
-					break
-				}
-			}
-		}
-		if len(filteredObjects) == 0 {
-			return nil, nil
-		}
-		objs = filteredObjects
-	}
-	return objs, nil
 }
 
 // objectKeyToStorageKey converts an object key to store key.

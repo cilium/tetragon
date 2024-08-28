@@ -38,8 +38,8 @@ type Document struct {
 	specFilePath string
 	origSpec     *spec.Swagger
 	schema       *spec.Schema
-	pathLoader   *loader
 	raw          json.RawMessage
+	pathLoader   *loader
 }
 
 // JSONSpec loads a spec from a json document
@@ -49,14 +49,7 @@ func JSONSpec(path string, options ...LoaderOption) (*Document, error) {
 		return nil, err
 	}
 	// convert to json
-	doc, err := Analyzed(data, "", options...)
-	if err != nil {
-		return nil, err
-	}
-
-	doc.specFilePath = path
-
-	return doc, nil
+	return Analyzed(data, "", options...)
 }
 
 // Embedded returns a Document based on embedded specs. No analysis is required
@@ -78,6 +71,7 @@ func Embedded(orig, flat json.RawMessage, options ...LoaderOption) (*Document, e
 
 // Spec loads a new spec document from a local or remote path
 func Spec(path string, options ...LoaderOption) (*Document, error) {
+
 	ldr := loaderFromOptions(options)
 
 	b, err := ldr.Load(path)
@@ -90,10 +84,12 @@ func Spec(path string, options ...LoaderOption) (*Document, error) {
 		return nil, err
 	}
 
-	document.specFilePath = path
-	document.pathLoader = ldr
+	if document != nil {
+		document.specFilePath = path
+		document.pathLoader = ldr
+	}
 
-	return document, nil
+	return document, err
 }
 
 // Analyzed creates a new analyzed spec document for a root json.RawMessage.
@@ -121,7 +117,7 @@ func Analyzed(data json.RawMessage, version string, options ...LoaderOption) (*D
 	}
 
 	d := &Document{
-		Analyzer:   analysis.New(swspec), // NOTE: at this moment, analysis does not follow $refs to documents outside the root doc
+		Analyzer:   analysis.New(swspec),
 		schema:     spec.MustLoadSwagger20Schema(),
 		spec:       swspec,
 		raw:        raw,
@@ -156,8 +152,9 @@ func trimData(in json.RawMessage) (json.RawMessage, error) {
 	return d, nil
 }
 
-// Expanded expands the $ref fields in the spec document and returns a new spec document
+// Expanded expands the ref fields in the spec document and returns a new spec document
 func (d *Document) Expanded(options ...*spec.ExpandOptions) (*Document, error) {
+
 	swspec := new(spec.Swagger)
 	if err := json.Unmarshal(d.raw, swspec); err != nil {
 		return nil, err
@@ -166,9 +163,6 @@ func (d *Document) Expanded(options ...*spec.ExpandOptions) (*Document, error) {
 	var expandOptions *spec.ExpandOptions
 	if len(options) > 0 {
 		expandOptions = options[0]
-		if expandOptions.RelativeBase == "" {
-			expandOptions.RelativeBase = d.specFilePath
-		}
 	} else {
 		expandOptions = &spec.ExpandOptions{
 			RelativeBase: d.specFilePath,
@@ -200,7 +194,7 @@ func (d *Document) Expanded(options ...*spec.ExpandOptions) (*Document, error) {
 	return dd, nil
 }
 
-// BasePath the base path for the API specified by this spec
+// BasePath the base path for this spec
 func (d *Document) BasePath() string {
 	return d.spec.BasePath
 }
@@ -248,11 +242,8 @@ func (d *Document) ResetDefinitions() *Document {
 
 // Pristine creates a new pristine document instance based on the input data
 func (d *Document) Pristine() *Document {
-	raw, _ := json.Marshal(d.Spec())
-	dd, _ := Analyzed(raw, d.Version())
+	dd, _ := Analyzed(d.Raw(), d.Version())
 	dd.pathLoader = d.pathLoader
-	dd.specFilePath = d.specFilePath
-
 	return dd
 }
 

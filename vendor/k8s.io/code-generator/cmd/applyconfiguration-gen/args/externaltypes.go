@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"strings"
 
-	"k8s.io/gengo/v2/types"
+	"k8s.io/gengo/types"
 )
 
 type externalApplyConfigurationValue struct {
