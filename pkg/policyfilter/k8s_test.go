@@ -44,11 +44,11 @@ import (
 
 type tlog struct {
 	*testing.T
-	Log *logrus.Logger
+	Logger *logrus.Logger
 }
 
 func (tl tlog) Write(p []byte) (n int, err error) {
-	tl.Logf((string)(p))
+	tl.Log(string(p))
 	return len(p), nil
 }
 
@@ -706,7 +706,7 @@ func TestK8s(t *testing.T) {
 
 	// NB: using testutils.CaptureLog causes import cycle
 	log := logger.GetLogger().(*logrus.Logger)
-	lc := &tlog{T: t, Log: log}
+	lc := &tlog{T: t, Logger: log}
 	log.SetOutput(lc)
 
 	oldEnablePolicyFilterValue := option.Config.EnablePolicyFilter

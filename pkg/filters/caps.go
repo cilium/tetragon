@@ -26,22 +26,22 @@ func filterSingleCapSet(caps []tetragon.CapabilitiesType, filters *tetragon.CapF
 	capset := mapset.NewSet[tetragon.CapabilitiesType]()
 	capset.Append(caps...)
 
-	if filters.Any != nil && len(filters.Any) > 0 {
+	if len(filters.Any) > 0 {
 		filterset.Append(filters.Any...)
 		return capset.ContainsAny(filterset.ToSlice()...)
 	}
 
-	if filters.All != nil && len(filters.All) > 0 {
+	if len(filters.All) > 0 {
 		filterset.Append(filters.All...)
 		return capset.Intersect(filterset).Equal(filterset)
 	}
 
-	if filters.Exactly != nil && len(filters.Exactly) > 0 {
+	if len(filters.Exactly) > 0 {
 		filterset.Append(filters.Exactly...)
 		return capset.Equal(filterset)
 	}
 
-	if filters.None != nil && len(filters.None) > 0 {
+	if len(filters.None) > 0 {
 		filterset.Append(filters.None...)
 		return capset.Intersect(filterset).IsEmpty()
 	}

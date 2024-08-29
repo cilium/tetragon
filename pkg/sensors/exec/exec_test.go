@@ -364,7 +364,7 @@ func TestEventExecveLongPath(t *testing.T) {
 	}
 
 	fmt.Printf("Path size: %d\n", len(testBin))
-	fmt.Printf("Test dir: " + testDir + "\n")
+	fmt.Printf("Test dir: %s\n", testDir)
 
 	// create directory
 	if err := os.MkdirAll(testDir, 0755); err != nil {
@@ -493,7 +493,7 @@ func TestEventExecveLongPathLongArgs(t *testing.T) {
 	}
 
 	fmt.Printf("Path size: %d\n", len(testBin))
-	fmt.Printf("Test dir: " + testDir + "\n")
+	fmt.Printf("Test dir: %s\n", testDir)
 
 	// create directory
 	if err := os.MkdirAll(testDir, 0755); err != nil {
