@@ -88,15 +88,17 @@ type CompactEncoder struct {
 	Colorer     *Colorer
 	Timestamps  bool
 	StackTraces bool
+	ImaHash     bool
 }
 
 // NewCompactEncoder initializes and returns a pointer to CompactEncoder.
-func NewCompactEncoder(w io.Writer, colorMode ColorMode, timestamps bool, stackTraces bool) *CompactEncoder {
+func NewCompactEncoder(w io.Writer, colorMode ColorMode, timestamps bool, stackTraces bool, imaHash bool) *CompactEncoder {
 	return &CompactEncoder{
 		Writer:      w,
 		Colorer:     NewColorer(colorMode),
 		Timestamps:  timestamps,
 		StackTraces: stackTraces,
+		ImaHash:     imaHash,
 	}
 }
 
@@ -120,6 +122,12 @@ func (p *CompactEncoder) Encode(v interface{}) error {
 	// print stack trace if available
 	if p.StackTraces {
 		st := HumanStackTrace(event, p.Colorer)
+		fmt.Fprint(p.Writer, st)
+	}
+
+	// print ima hash if available
+	if p.ImaHash {
+		st := HumanIMAHash(event, p.Colorer)
 		fmt.Fprint(p.Writer, st)
 	}
 
@@ -218,6 +226,44 @@ func HumanStackTrace(response *tetragon.GetEventsResponse, colorer *Colorer) str
 					colorer.Blue.Fprintf(out, " %s", st.Symbol)
 				}
 				colorer.Yellow.Fprintf(out, " (%s+0x%x)\n", st.Module, st.Offset)
+			}
+		}
+	}
+	return out.String()
+}
+func HumanIMAHash(response *tetragon.GetEventsResponse, colorer *Colorer) string {
+	out := new(strings.Builder)
+	if ev, ok := response.Event.(*tetragon.GetEventsResponse_ProcessLsm); ok {
+		if ev.ProcessLsm.ImaHash != "" {
+			var path string
+			switch ev.ProcessLsm.FunctionName {
+			case "bprm_check_security":
+				fallthrough
+			case "bprm_committed_creds":
+				fallthrough
+			case "bprm_committing_creds":
+				fallthrough
+			case "bprm_creds_for_exec":
+				fallthrough
+			case "bprm_creds_from_file":
+				path = ev.ProcessLsm.Args[0].GetLinuxBinprmArg().Path
+			case "file_ioctl":
+				fallthrough
+			case "file_lock":
+				fallthrough
+			case "file_open":
+				fallthrough
+			case "file_post_open":
+				fallthrough
+			case "file_receive":
+				fallthrough
+			case "mmap_file":
+				path = ev.ProcessLsm.Args[0].GetFileArg().Path
+			default:
+			}
+			if path != "" {
+				colorer.Green.Fprintf(out, "   %s", path)
+				colorer.Blue.Fprintf(out, " %s\n", ev.ProcessLsm.ImaHash)
 			}
 		}
 	}

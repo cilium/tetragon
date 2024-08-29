@@ -36,18 +36,19 @@ type Opts struct {
 	Timestamps    bool
 	TTYEncode     string
 	StackTraces   bool
+	ImaHash       bool
 	PolicyNames   []string
 }
 
 var Options Opts
 
 // GetEncoder returns an encoder for an event stream based on configuration options.
-var GetEncoder = func(w io.Writer, colorMode encoder.ColorMode, timestamps bool, compact bool, tty string, stackTraces bool) encoder.EventEncoder {
+var GetEncoder = func(w io.Writer, colorMode encoder.ColorMode, timestamps bool, compact bool, tty string, stackTraces bool, imaHash bool) encoder.EventEncoder {
 	if tty != "" {
 		return encoder.NewTtyEncoder(w, tty)
 	}
 	if compact {
-		return encoder.NewCompactEncoder(w, colorMode, timestamps, stackTraces)
+		return encoder.NewCompactEncoder(w, colorMode, timestamps, stackTraces, imaHash)
 	}
 	return encoder.NewProtojsonEncoder(w)
 }
@@ -121,7 +122,7 @@ func getEvents(ctx context.Context, client tetragon.FineGuidanceSensorsClient) e
 	if err != nil {
 		return fmt.Errorf("failed to call GetEvents: %w", err)
 	}
-	eventEncoder := GetEncoder(os.Stdout, encoder.ColorMode(Options.Color), Options.Timestamps, Options.Output == "compact", Options.TTYEncode, Options.StackTraces)
+	eventEncoder := GetEncoder(os.Stdout, encoder.ColorMode(Options.Color), Options.Timestamps, Options.Output == "compact", Options.TTYEncode, Options.StackTraces, Options.ImaHash)
 	for {
 		res, err := stream.Recv()
 		if err != nil {
@@ -219,6 +220,7 @@ redirection of events to the stdin. Examples:
 	flags.BoolVar(&Options.Timestamps, "timestamps", false, "Include timestamps in compact output")
 	flags.StringVarP(&Options.TTYEncode, "tty-encode", "t", "", "Encode terminal data by file path (all other events will be ignored)")
 	flags.BoolVar(&Options.StackTraces, "stack-traces", true, "Include stack traces in compact output")
+	flags.BoolVar(&Options.ImaHash, "ima-hash", true, "Include ima hashes in compact output")
 	flags.StringSliceVar(&Options.PolicyNames, "policy-names", nil, "Get events by tracing policy names")
 	return &cmd
 }
