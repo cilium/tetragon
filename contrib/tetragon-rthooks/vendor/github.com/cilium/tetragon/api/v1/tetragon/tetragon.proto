@@ -548,6 +548,8 @@ message ProcessLsm {
     KprobeAction action = 8;
     // Tags of the Tracing Policy to categorize the event.
     repeated string tags = 9;
+    // IMA file hash. Format algorithm:value.
+    string ima_hash = 11;
 }
 
 message KernelModule {

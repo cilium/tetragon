@@ -243,6 +243,10 @@ type ActionSelector struct {
 	// +kubebuilder:validation:Optional
 	// Enable user stack trace export. Only valid with the post action.
 	UserStackTrace bool `json:"userStackTrace"`
+	// +kubebuilder:validation:Optional
+	// Enable collection of file hashes from integrity subsystem.
+	// Only valid with the post action.
+	ImaHash bool `json:"imaHash"`
 }
 
 type TracepointSpec struct {

@@ -13,6 +13,7 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/api/ops"
+	processapi "github.com/cilium/tetragon/pkg/api/processapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
@@ -52,7 +53,7 @@ type genericLsm struct {
 	config    *api.EventConfig
 	hook      string
 	selectors *selectors.KernelSelectorState
-	// policyName is the name of the policy that this uprobe belongs to
+	// policyName is the name of the policy that this lsm hook belongs to
 	policyName string
 	// message field of the Tracing Policy
 	message string
@@ -60,6 +61,8 @@ type genericLsm struct {
 	argPrinters []argPrinter
 	// tags field of the Tracing Policy
 	tags []string
+	// is IMA hash collector program needed to load
+	imaProgLoad bool
 }
 
 func (g *genericLsm) SetID(id idtable.EntryID) {
@@ -139,6 +142,32 @@ func handleGenericLsm(r *bytes.Reader) ([]observer.Event, error) {
 			continue
 		}
 		unix.Args = append(unix.Args, arg)
+	}
+
+	// Get file hashes calculated using IMA
+	if m.Common.Flags&processapi.MSG_COMMON_FLAG_IMA_HASH != 0 {
+		var state int8
+		err := binary.Read(r, binary.LittleEndian, &state)
+		if err != nil {
+			logger.GetLogger().WithError(err).Warnf("Failed to read IMA hash state")
+			return nil, fmt.Errorf("Failed to read IMA hash state")
+		}
+		if state != 2 {
+			logger.GetLogger().WithError(err).Warnf("LSM bpf program chain is violated")
+			return nil, fmt.Errorf("LSM bpf program chain is violated")
+		}
+		var algo int8
+		err = binary.Read(r, binary.LittleEndian, &algo)
+		if err != nil {
+			logger.GetLogger().WithError(err).Warnf("Failed to read IMA hash algorithm")
+			return nil, fmt.Errorf("Failed to read IMA hash algorithm")
+		}
+		unix.ImaHash.Algo = int32(algo)
+		err = binary.Read(r, binary.LittleEndian, &unix.ImaHash.Hash)
+		if err != nil {
+			logger.GetLogger().WithError(err).Warnf("Failed to read IMA hash value")
+			return nil, fmt.Errorf("Failed to read IMA hash value")
+		}
 	}
 
 	return []observer.Event{unix}, err
@@ -260,6 +289,16 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 		policyName:  in.policyName,
 		message:     msgField,
 		tags:        tagsField,
+		imaProgLoad: false,
+	}
+
+	for _, sel := range f.Selectors {
+		for _, action := range sel.MatchActions {
+			if action.ImaHash {
+				lsmEntry.imaProgLoad = true
+				break
+			}
+		}
 	}
 
 	// Parse Filters into kernel filter logic
@@ -342,6 +381,44 @@ func createGenericLsmSensor(
 	}, nil
 }
 
+func imaProgName(lsmEntry *genericLsm) (string, string) {
+	pType := ""
+	pName := ""
+
+	switch lsmEntry.hook {
+	case "bprm_check_security":
+		fallthrough
+	case "bprm_committed_creds":
+		fallthrough
+	case "bprm_committing_creds":
+		fallthrough
+	case "bprm_creds_for_exec":
+		fallthrough
+	case "bprm_creds_from_file":
+		pType = "bprm"
+	case "file_ioctl":
+		fallthrough
+	case "file_lock":
+		fallthrough
+	case "file_open":
+		fallthrough
+	case "file_post_open":
+		fallthrough
+	case "file_receive":
+		fallthrough
+	case "mmap_file":
+		pType = "file"
+	default:
+		return "", ""
+	}
+	if kernels.EnableV61Progs() {
+		pName = "bpf_generic_lsm_ima_" + pType + "_v61.o"
+	} else if kernels.MinKernelVersion("5.11") {
+		pName = "bpf_generic_lsm_ima_" + pType + "_v511.o"
+	}
+	return pName, pType
+}
+
 func createLsmSensorFromEntry(lsmEntry *genericLsm,
 	progs []*program.Program, maps []*program.Map) ([]*program.Program, []*program.Map) {
 
@@ -355,6 +432,11 @@ func createLsmSensorFromEntry(lsmEntry *genericLsm,
 		loadProgOutputName = "bpf_generic_lsm_output_v511.o"
 	}
 
+	/* We need to load LSM programs in the following order:
+	   1. bpf_generic_lsm_output
+	   2. bpf_generic_lsm_ima_* (optional if imaHash flag for Post action is set.)
+	   3. bpf_generic_lsm_core
+	*/
 	loadOutput := program.Builder(
 		path.Join(option.Config.HubbleLib, loadProgOutputName),
 		lsmEntry.hook,
@@ -371,6 +453,32 @@ func createLsmSensorFromEntry(lsmEntry *genericLsm,
 		lsmEntry.hook,
 		"generic_lsm").
 		SetLoaderData(lsmEntry.tableId)
+
+	// Load ima program for hash calculating
+	if lsmEntry.imaProgLoad {
+		loadProgImaName, loadProgImaType := imaProgName(lsmEntry)
+
+		if loadProgImaName != "" {
+			loadIma := program.Builder(
+				path.Join(option.Config.HubbleLib, loadProgImaName),
+				lsmEntry.hook,
+				"lsm.s/generic_lsm_ima_"+loadProgImaType,
+				lsmEntry.hook,
+				"generic_lsm").
+				SetLoaderData(lsmEntry.tableId)
+			progs = append(progs, loadIma)
+			imaHashMap := program.MapBuilderProgram("ima_hash_map", loadIma)
+			maps = append(maps, imaHashMap)
+			imaHashMapOutput := program.MapBuilderProgram("ima_hash_map", loadOutput)
+			maps = append(maps, imaHashMapOutput)
+			imaHashMapCore := program.MapBuilderProgram("ima_hash_map", load)
+			maps = append(maps, imaHashMapCore)
+		} else {
+			logger.GetLogger().
+				Warnf("IMA hash calculation is not supported for this hook: %s", lsmEntry.hook)
+		}
+	}
+
 	progs = append(progs, load)
 
 	configMap := program.MapBuilderProgram("config_map", load)
