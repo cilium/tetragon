@@ -228,7 +228,7 @@ func ValidateCRDSpec(policy K8sTracingPolicyObject) (*validate.Result, error) {
 
 	v, ok := validatorState.validators[policy.GetGroupVersionKind()]
 	if !ok {
-		return nil, fmt.Errorf("could not find validator for: " + policy.GetGroupVersionKind().String())
+		return nil, fmt.Errorf("could not find validator for: %s", policy.GetGroupVersionKind().String())
 	}
 
 	return v.Validate(policy), nil
