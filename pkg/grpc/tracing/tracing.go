@@ -4,6 +4,7 @@
 package tracing
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"github.com/cilium/tetragon/pkg/reader/kernel"
@@ -823,6 +824,11 @@ func (msg *MsgGenericUprobeUnix) Cast(o interface{}) notify.Message {
 	return &t
 }
 
+type MsgImaHash struct {
+	Algo int32     `align:"algo"`
+	Hash [64]uint8 `align:"hash"`
+}
+
 type MsgGenericLsmUnix struct {
 	Msg        *tracingapi.MsgGenericKprobe
 	Hook       string
@@ -830,6 +836,7 @@ type MsgGenericLsmUnix struct {
 	PolicyName string
 	Message    string
 	Tags       []string
+	ImaHash    MsgImaHash
 }
 
 func (msg *MsgGenericLsmUnix) Notify() bool {
@@ -902,6 +909,24 @@ func GetProcessLsm(event *MsgGenericLsmUnix) *tetragon.ProcessLsm {
 		PolicyName:   event.PolicyName,
 		Message:      event.Message,
 		Tags:         event.Tags,
+	}
+
+	switch event.ImaHash.Algo {
+	case 1: // MD5
+		tetragonEvent.ImaHash = fmt.Sprintf("md5:%s", hex.EncodeToString(event.ImaHash.Hash[:16]))
+	case 2: // SHA1
+		tetragonEvent.ImaHash = fmt.Sprintf("sha1:%s", hex.EncodeToString(event.ImaHash.Hash[:20]))
+	case 4: // SHA256
+		tetragonEvent.ImaHash = fmt.Sprintf("sha256:%s", hex.EncodeToString(event.ImaHash.Hash[:32]))
+	case 6: // SHA512
+		tetragonEvent.ImaHash = fmt.Sprintf("sha512:%s", hex.EncodeToString(event.ImaHash.Hash[:]))
+	case 13: // WP512
+		tetragonEvent.ImaHash = fmt.Sprintf("wp512:%s", hex.EncodeToString(event.ImaHash.Hash[:]))
+	case 17: // SM3
+		tetragonEvent.ImaHash = fmt.Sprintf("sm3:%s", hex.EncodeToString(event.ImaHash.Hash[:32]))
+
+	default:
+		logger.GetLogger().Debugf("bpf_ima_inode_hash/bpf_ima_file_hash returned code: %d", event.ImaHash.Algo)
 	}
 
 	if tetragonProcess.Pid == nil {

@@ -618,6 +618,7 @@ loader sensor event triggered for loaded binary/library
 | args | [KprobeArgument](#tetragon-KprobeArgument) | repeated | Arguments definition of the observed LSM hook. |
 | action | [KprobeAction](#tetragon-KprobeAction) |  | Action performed when the LSM hook matched. |
 | tags | [string](#string) | repeated | Tags of the Tracing Policy to categorize the event. |
+| ima_hash | [string](#string) |  | IMA file hash. Format algorithm:value. |
 
 <a name="tetragon-ProcessTracepoint"></a>
 

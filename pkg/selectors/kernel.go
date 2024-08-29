@@ -963,6 +963,11 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 			userStackTrace = 1
 		}
 		WriteSelectorUint32(&k.data, userStackTrace)
+		imaHash := uint32(0)
+		if action.ImaHash {
+			imaHash = 1
+		}
+		WriteSelectorUint32(&k.data, imaHash)
 	case ActionTypeNoPost:
 		// no arguments
 	case ActionTypeSigKill:
