@@ -44,7 +44,7 @@ Hence, enabling the hook requires adding an appropriate file to this directory.
 ## Containerd (with NRI)
 
 Recent versions of containerd support [NRI](https://github.com/containerd/nri): NRI support was
-added in [1.17](https://github.com/containerd/containerd/releases/tag/v1.7.0) and will be enabled by
+added in [1.7](https://github.com/containerd/containerd/releases/tag/v1.7.0) and will be enabled by
 default starting with
 [2.0](https://github.com/containerd/containerd/blob/main/docs/NRI.md#disabling-nri-support-in-containerd).
 To use `tetragon-oci-hook` with NRI, there is a simple NRI plugin (called `tetragon-nri-hook`) that
