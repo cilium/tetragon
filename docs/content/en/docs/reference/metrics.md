@@ -15,7 +15,7 @@ Number of Tetragon perf events that are failed to be sent from the kernel.
 
 | label | values |
 | ----- | ------ |
-| `error` | `EBUSY, ENOSPC, unknown` |
+| `error` | `E2BIG, EBUSY, EINVAL, ENOENT, ENOSPC, unknown` |
 | `msg_op` | `13, 14, 15, 16, 23, 24, 25, 26, 27, 5, 7` |
 
 ### `tetragon_build_info`

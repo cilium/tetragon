@@ -25,7 +25,10 @@ import (
 var (
 	perfEventErrors = map[int]string{
 		processapi.SentFailedUnknown: "unknown",
+		processapi.SentFailedEnoent:  "ENOENT",
+		processapi.SentFailedE2big:   "E2BIG",
 		processapi.SentFailedEbusy:   "EBUSY",
+		processapi.SentFailedEinval:  "EINVAL",
 		processapi.SentFailedEnospc:  "ENOSPC",
 	}
 	perfEventErrorLabel = metrics.ConstrainedLabel{

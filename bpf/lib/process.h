@@ -565,9 +565,12 @@ _Static_assert(sizeof(struct execve_map_value) % 8 == 0,
 	       "struct execve_map_value should have size multiple of 8 bytes");
 
 #define SENT_FAILED_UNKNOWN 0 // unknown error
-#define SENT_FAILED_EBUSY   1 // EBUSY
-#define SENT_FAILED_ENOSPC  2 // ENOSPC
-#define SENT_FAILED_MAX	    3
+#define SENT_FAILED_ENOENT  1 // ENOENT
+#define SENT_FAILED_E2BIG   2 // E2BIG
+#define SENT_FAILED_EBUSY   3 // EBUSY
+#define SENT_FAILED_EINVAL  4 // EINVAL
+#define SENT_FAILED_ENOSPC  5 // ENOSPC
+#define SENT_FAILED_MAX	    6
 
 struct kernel_stats {
 	__u64 sent_failed[256][SENT_FAILED_MAX];
@@ -591,8 +594,14 @@ perf_event_output_metric(void *ctx, u8 msg_op, void *map, u64 flags, void *data,
 	if (err < 0) {
 		valp = map_lookup_elem(&tg_stats_map, &zero);
 		if (valp) {
-			if (err == -16) // EBUSY
+			if (err == -2) // ENOENT
+				__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_ENOENT], 1);
+			else if (err == -7) // E2BIG
+				__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_E2BIG], 1);
+			else if (err == -16) // EBUSY
 				__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_EBUSY], 1);
+			else if (err == -22) // EINVAL
+				__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_EINVAL], 1);
 			else if (err == -28) // ENOSPC
 				__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_ENOSPC], 1);
 			else
