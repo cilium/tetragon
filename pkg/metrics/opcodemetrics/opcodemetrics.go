@@ -13,13 +13,6 @@ import (
 )
 
 var (
-	MsgOpsCount = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace:   consts.MetricsNamespace,
-		Name:        "msg_op_total",
-		Help:        "The total number of times we encounter a given message opcode. For internal use only.",
-		ConstLabels: nil,
-	}, []string{"msg_op"})
-
 	LatencyStats = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "handling_latency",
@@ -30,7 +23,6 @@ var (
 )
 
 func RegisterMetrics(group metrics.Group) {
-	group.MustRegister(MsgOpsCount)
 	group.MustRegister(LatencyStats)
 }
 
@@ -38,18 +30,7 @@ func InitMetrics() {
 	// Initialize all metrics
 	for opcode := range ops.OpCodeStrings {
 		if opcode != ops.MSG_OP_UNDEF && opcode != ops.MSG_OP_TEST {
-			GetOpTotal(opcode).Add(0)
 			LatencyStats.WithLabelValues(fmt.Sprint(int32(opcode)))
 		}
 	}
-}
-
-// Get a new handle on a msgOpsCount metric for an OpCode
-func GetOpTotal(opcode ops.OpCode) prometheus.Counter {
-	return MsgOpsCount.WithLabelValues(fmt.Sprint(int32(opcode)))
-}
-
-// Increment an msgOpsCount for an OpCode
-func OpTotalInc(opcode ops.OpCode) {
-	GetOpTotal(opcode).Inc()
 }

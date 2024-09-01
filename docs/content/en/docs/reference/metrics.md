@@ -200,14 +200,6 @@ The total number of Tetragon probe missed by program.
 | `attach` | `sys_panic` |
 | `policy` | `monitor_panic` |
 
-### `tetragon_msg_op_total`
-
-The total number of times we encounter a given message opcode. For internal use only.
-
-| label | values |
-| ----- | ------ |
-| `msg_op` | `13, 14, 15, 16, 23, 24, 25, 26, 27, 5, 7` |
-
 ### `tetragon_notify_overflowed_events_total`
 
 The total number of events dropped because listener buffer was full
