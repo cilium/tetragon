@@ -15,7 +15,6 @@ import (
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
-	"github.com/cilium/tetragon/pkg/metrics/eventcachemetrics"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
 	readerexec "github.com/cilium/tetragon/pkg/reader/exec"
@@ -70,7 +69,7 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 	}
 
 	if tetragonProcess.Pid == nil {
-		eventcachemetrics.EventCacheError(eventcachemetrics.NilProcessPid, notify.EventType(tetragonEvent)).Inc()
+		eventcache.EventCacheError(eventcache.NilProcessPid, notify.EventType(tetragonEvent)).Inc()
 		return nil
 	}
 
@@ -192,7 +191,7 @@ func (msg *MsgExecveEventUnix) Retry(internal *process.ProcessInternal, ev notif
 		cgroupID := msg.Unix.Kube.Cgrpid
 		podInfo = process.GetPodInfo(cgroupID, containerId, filename, args, nspid)
 		if podInfo == nil {
-			eventcachemetrics.EventCacheRetries(eventcachemetrics.PodInfo).Inc()
+			eventcache.EventCacheRetries(eventcache.PodInfo).Inc()
 			return eventcache.ErrFailedToGetPodInfo
 		}
 	}
@@ -381,7 +380,7 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 	}
 
 	if tetragonProcess.Pid == nil {
-		eventcachemetrics.EventCacheError(eventcachemetrics.NilProcessPid, notify.EventType(tetragonEvent)).Inc()
+		eventcache.EventCacheError(eventcache.NilProcessPid, notify.EventType(tetragonEvent)).Inc()
 		return nil
 	}
 
@@ -421,7 +420,7 @@ func (msg *MsgExitEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*
 			msg.RefCntDone[ParentRefCnt] = true
 		}
 	} else {
-		eventcachemetrics.EventCacheRetries(eventcachemetrics.ParentInfo).Inc()
+		eventcache.EventCacheRetries(eventcache.ParentInfo).Inc()
 		err = eventcache.ErrFailedToGetParentInfo
 	}
 
@@ -433,7 +432,7 @@ func (msg *MsgExitEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*
 			msg.RefCntDone[ProcessRefCnt] = true
 		}
 	} else {
-		eventcachemetrics.EventCacheRetries(eventcachemetrics.ProcessInfo).Inc()
+		eventcache.EventCacheRetries(eventcache.ProcessInfo).Inc()
 		err = eventcache.ErrFailedToGetProcessInfo
 	}
 
@@ -487,7 +486,7 @@ func (msg *MsgProcessCleanupEventUnix) RetryInternal(_ notify.Event, timestamp u
 			msg.RefCntDone[ParentRefCnt] = true
 		}
 	} else {
-		eventcachemetrics.EventCacheRetries(eventcachemetrics.ParentInfo).Inc()
+		eventcache.EventCacheRetries(eventcache.ParentInfo).Inc()
 		err = eventcache.ErrFailedToGetParentInfo
 	}
 
@@ -497,7 +496,7 @@ func (msg *MsgProcessCleanupEventUnix) RetryInternal(_ notify.Event, timestamp u
 			msg.RefCntDone[ProcessRefCnt] = true
 		}
 	} else {
-		eventcachemetrics.EventCacheRetries(eventcachemetrics.ProcessInfo).Inc()
+		eventcache.EventCacheRetries(eventcache.ProcessInfo).Inc()
 		err = eventcache.ErrFailedToGetProcessInfo
 	}
 
