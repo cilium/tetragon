@@ -250,6 +250,10 @@ Number of policy filter operations.
 
 The capacity of the process cache. Expected to be constant.
 
+### `tetragon_process_cache_evictions_total`
+
+Number of process cache LRU evictions.
+
 ### `tetragon_process_cache_size`
 
 The size of the process cache

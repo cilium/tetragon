@@ -133,6 +133,7 @@ func NewCache(
 		processCacheSize,
 		func(_ string, _ *ProcessInternal) {
 			errormetrics.ErrorTotalInc(errormetrics.ProcessCacheEvicted)
+			processCacheEvictions.Inc()
 		},
 	)
 	if err != nil {
