@@ -21,6 +21,11 @@ var (
 		"The capacity of the process cache. Expected to be constant.",
 		nil, nil, nil,
 	))
+	processCacheEvictions = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: consts.MetricsNamespace,
+		Name:      "process_cache_evictions_total",
+		Help:      "Number of process cache LRU evictions.",
+	})
 )
 
 func newCacheCollector() prometheus.Collector {
@@ -38,6 +43,9 @@ func newCacheCollector() prometheus.Collector {
 }
 
 func RegisterMetrics(group metrics.Group) {
-	group.MustRegister(processCacheTotal)
+	group.MustRegister(
+		processCacheTotal,
+		processCacheEvictions,
+	)
 	group.MustRegister(newCacheCollector())
 }
