@@ -51,7 +51,10 @@ const (
 
 const (
 	SentFailedUnknown = iota
+	SentFailedEnoent
+	SentFailedE2big
 	SentFailedEbusy
+	SentFailedEinval
 	SentFailedEnospc
 	SentFailedMax
 )
