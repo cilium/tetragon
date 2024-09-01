@@ -10,6 +10,13 @@ import (
 )
 
 var (
+	operationLabel = metrics.ConstrainedLabel{
+		Name:   "operation",
+		Values: []string{"get", "remove"},
+	}
+)
+
+var (
 	processCacheTotal = prometheus.NewGauge(prometheus.GaugeOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "process_cache_size",
@@ -26,6 +33,11 @@ var (
 		Name:      "process_cache_evictions_total",
 		Help:      "Number of process cache LRU evictions.",
 	})
+	processCacheMisses = metrics.MustNewCounter(metrics.NewOpts(
+		consts.MetricsNamespace, "", "process_cache_misses_total",
+		"Number of process cache misses.",
+		nil, []metrics.ConstrainedLabel{operationLabel}, nil,
+	), nil)
 )
 
 func newCacheCollector() prometheus.Collector {
@@ -46,6 +58,7 @@ func RegisterMetrics(group metrics.Group) {
 	group.MustRegister(
 		processCacheTotal,
 		processCacheEvictions,
+		processCacheMisses,
 	)
 	group.MustRegister(newCacheCollector())
 }

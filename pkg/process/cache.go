@@ -152,6 +152,7 @@ func (pc *Cache) get(processID string) (*ProcessInternal, error) {
 	if !ok {
 		logger.GetLogger().WithField("id in event", processID).Debug("process not found in cache")
 		errormetrics.ErrorTotalInc(errormetrics.ProcessCacheMissOnGet)
+		processCacheMisses.WithLabelValues("get").Inc()
 		return nil, fmt.Errorf("invalid entry for process ID: %s", processID)
 	}
 	return process, nil
@@ -173,6 +174,7 @@ func (pc *Cache) remove(process *tetragon.Process) bool {
 		processCacheTotal.Dec()
 	} else {
 		errormetrics.ErrorTotalInc(errormetrics.ProcessCacheMissOnRemove)
+		processCacheMisses.WithLabelValues("remove").Inc()
 	}
 	return present
 }

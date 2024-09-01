@@ -254,6 +254,14 @@ The capacity of the process cache. Expected to be constant.
 
 Number of process cache LRU evictions.
 
+### `tetragon_process_cache_misses_total`
+
+Number of process cache misses.
+
+| label | values |
+| ----- | ------ |
+| `operation` | `get, remove` |
+
 ### `tetragon_process_cache_size`
 
 The size of the process cache
