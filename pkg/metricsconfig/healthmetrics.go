@@ -12,7 +12,6 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/cgroupratemetrics"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
-	"github.com/cilium/tetragon/pkg/metrics/eventcachemetrics"
 	"github.com/cilium/tetragon/pkg/metrics/eventmetrics"
 	"github.com/cilium/tetragon/pkg/metrics/kprobemetrics"
 	"github.com/cilium/tetragon/pkg/metrics/opcodemetrics"
@@ -58,9 +57,9 @@ func registerHealthMetrics(group metrics.Group) {
 	errormetrics.RegisterMetrics(group)
 	group.ExtendInit(errormetrics.InitMetrics)
 	// event cache metrics
-	eventcachemetrics.RegisterMetrics(group)
+	eventcache.RegisterMetrics(group)
 	group.MustRegister(eventcache.NewCacheCollector())
-	group.ExtendInit(eventcachemetrics.InitMetrics)
+	group.ExtendInit(eventcache.InitMetrics)
 	// event metrics
 	eventmetrics.RegisterHealthMetrics(group)
 	group.ExtendInit(eventmetrics.InitHealthMetrics)

@@ -9,7 +9,6 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/ktime"
-	"github.com/cilium/tetragon/pkg/metrics/eventcachemetrics"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/node"
@@ -69,7 +68,7 @@ func HandleGenericInternal(ev notify.Event, pid uint32, tid *uint32, timestamp u
 	if parent != nil {
 		ev.SetParent(parent.UnsafeGetProcess())
 	} else {
-		eventcachemetrics.EventCacheRetries(eventcachemetrics.ParentInfo).Inc()
+		EventCacheRetries(ParentInfo).Inc()
 		err = ErrFailedToGetParentInfo
 	}
 
@@ -85,7 +84,7 @@ func HandleGenericInternal(ev notify.Event, pid uint32, tid *uint32, timestamp u
 		process.UpdateEventProcessTid(proc, tid)
 		ev.SetProcess(proc)
 	} else {
-		eventcachemetrics.EventCacheRetries(eventcachemetrics.ProcessInfo).Inc()
+		EventCacheRetries(ProcessInfo).Inc()
 		err = ErrFailedToGetProcessInfo
 	}
 
@@ -102,7 +101,7 @@ func HandleGenericInternal(ev notify.Event, pid uint32, tid *uint32, timestamp u
 func HandleGenericEvent(internal *process.ProcessInternal, ev notify.Event, tid *uint32) error {
 	p := internal.UnsafeGetProcess()
 	if option.Config.EnableK8s && p.Pod == nil {
-		eventcachemetrics.EventCacheRetries(eventcachemetrics.PodInfo).Inc()
+		EventCacheRetries(PodInfo).Inc()
 		return ErrFailedToGetPodInfo
 	}
 
@@ -141,11 +140,11 @@ func (ec *Cache) handleEvents() {
 				continue
 			}
 			if errors.Is(err, ErrFailedToGetParentInfo) {
-				eventcachemetrics.ParentInfoError(notify.EventType(event.event)).Inc()
+				ParentInfoError(notify.EventType(event.event)).Inc()
 			} else if errors.Is(err, ErrFailedToGetProcessInfo) {
-				eventcachemetrics.ProcessInfoError(notify.EventType(event.event)).Inc()
+				ProcessInfoError(notify.EventType(event.event)).Inc()
 			} else if errors.Is(err, ErrFailedToGetPodInfo) {
-				eventcachemetrics.PodInfoError(notify.EventType(event.event)).Inc()
+				PodInfoError(notify.EventType(event.event)).Inc()
 			}
 		}
 
@@ -176,7 +175,7 @@ func (ec *Cache) loop() {
 			ec.handleEvents()
 
 		case event := <-ec.objsChan:
-			eventcachemetrics.EventCacheCount.Inc()
+			EventCacheCount.Inc()
 			ec.cache = append(ec.cache, event)
 
 		case <-ec.done:
