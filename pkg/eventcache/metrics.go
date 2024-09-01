@@ -78,36 +78,25 @@ var (
 		Help:        "The total of times we failed to fetch cached parent info for a given event type.",
 		ConstLabels: nil,
 	}, []string{"event_type"})
+	cacheSize = metrics.MustNewCustomGauge(metrics.NewOpts(
+		consts.MetricsNamespace, "", "event_cache_entries",
+		"The number of entries in the event cache.",
+		nil, nil, nil,
+	))
 )
 
-type cacheSizeMetric struct {
-	desc *prometheus.Desc
-}
-
-func (m *cacheSizeMetric) Describe(ch chan<- *prometheus.Desc) {
-	ch <- m.desc
-}
-
-func (m *cacheSizeMetric) Collect(ch chan<- prometheus.Metric) {
-	size := 0
-	if cache != nil {
-		size = cache.len()
-	}
-	ch <- prometheus.MustNewConstMetric(
-		m.desc,
-		prometheus.GaugeValue,
-		float64(size),
+func newCacheCollector() prometheus.Collector {
+	return metrics.NewCustomCollector(
+		metrics.CustomMetrics{cacheSize},
+		func(ch chan<- prometheus.Metric) {
+			size := 0
+			if cache != nil {
+				size = cache.len()
+			}
+			ch <- cacheSize.MustMetric(float64(size))
+		},
+		nil,
 	)
-}
-
-func NewCacheCollector() prometheus.Collector {
-	return &cacheSizeMetric{
-		prometheus.NewDesc(
-			prometheus.BuildFQName(consts.MetricsNamespace, "", "event_cache_entries"),
-			"The number of entries in the event cache.",
-			nil, nil,
-		),
-	}
 }
 
 func RegisterMetrics(group metrics.Group) {
@@ -117,6 +106,7 @@ func RegisterMetrics(group metrics.Group) {
 	group.MustRegister(eventCacheErrorsTotal)
 	group.MustRegister(eventCacheRetriesTotal)
 	group.MustRegister(parentInfoErrors)
+	group.MustRegister(newCacheCollector())
 }
 
 func InitMetrics() {
