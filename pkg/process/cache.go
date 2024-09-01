@@ -10,7 +10,6 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	lru "github.com/hashicorp/golang-lru/v2"
 )
 
@@ -132,7 +131,6 @@ func NewCache(
 	lruCache, err := lru.NewWithEvict(
 		processCacheSize,
 		func(_ string, _ *ProcessInternal) {
-			errormetrics.ErrorTotalInc(errormetrics.ProcessCacheEvicted)
 			processCacheEvictions.Inc()
 		},
 	)
@@ -151,7 +149,6 @@ func (pc *Cache) get(processID string) (*ProcessInternal, error) {
 	process, ok := pc.cache.Get(processID)
 	if !ok {
 		logger.GetLogger().WithField("id in event", processID).Debug("process not found in cache")
-		errormetrics.ErrorTotalInc(errormetrics.ProcessCacheMissOnGet)
 		processCacheMisses.WithLabelValues("get").Inc()
 		return nil, fmt.Errorf("invalid entry for process ID: %s", processID)
 	}
@@ -173,7 +170,6 @@ func (pc *Cache) remove(process *tetragon.Process) bool {
 	if present {
 		processCacheTotal.Dec()
 	} else {
-		errormetrics.ErrorTotalInc(errormetrics.ProcessCacheMissOnRemove)
 		processCacheMisses.WithLabelValues("remove").Inc()
 	}
 	return present
