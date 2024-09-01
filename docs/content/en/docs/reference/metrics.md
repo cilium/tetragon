@@ -51,7 +51,7 @@ The total number of Tetragon errors. For internal use only.
 
 | label | values |
 | ----- | ------ |
-| `type ` | `event_finalize_process_info_failed, event_missing_process_info, handler_error, process_cache_evicted, process_cache_miss_on_get, process_cache_miss_on_remove, process_metadata_username_failed, process_metadata_username_ignored_not_in_host_namespaces, process_pid_tid_mismatch` |
+| `type ` | `event_finalize_process_info_failed, event_missing_process_info, handler_error, process_metadata_username_failed, process_metadata_username_ignored_not_in_host_namespaces, process_pid_tid_mismatch` |
 
 ### `tetragon_event_cache_accesses_total`
 

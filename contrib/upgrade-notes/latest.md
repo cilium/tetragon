@@ -53,3 +53,6 @@ tetragon:
   * `tetragon_ringbuf_perf_event_lost_total` -> `tetragon_observer_ringbuf_events_lost_total`
   * `tetragon_ringbuf_queue_received_total` -> `tetragon_observer_ringbuf_queue_events_received_total`
   * `tetragon_ringbuf_queue_lost_total` -> `tetragon_observer_ringbuf_queue_events_lost_total`
+* `tetragon_errors_total{type="process_cache_evicted"}` metric is replaced by `tetragon_process_cache_evicted_total`.
+* `tetragon_errors_total{type=~"process_cache_miss_on_get|process_cache_miss_on_remove"}` metrics are replaced by
+  `tetragon_process_cache_misses_total{operation=~"get|remove"}`.
