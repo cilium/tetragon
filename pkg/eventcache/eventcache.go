@@ -68,7 +68,7 @@ func HandleGenericInternal(ev notify.Event, pid uint32, tid *uint32, timestamp u
 	if parent != nil {
 		ev.SetParent(parent.UnsafeGetProcess())
 	} else {
-		EventCacheRetries(ParentInfo).Inc()
+		CacheRetries(ParentInfo).Inc()
 		err = ErrFailedToGetParentInfo
 	}
 
@@ -84,7 +84,7 @@ func HandleGenericInternal(ev notify.Event, pid uint32, tid *uint32, timestamp u
 		process.UpdateEventProcessTid(proc, tid)
 		ev.SetProcess(proc)
 	} else {
-		EventCacheRetries(ProcessInfo).Inc()
+		CacheRetries(ProcessInfo).Inc()
 		err = ErrFailedToGetProcessInfo
 	}
 
@@ -101,7 +101,7 @@ func HandleGenericInternal(ev notify.Event, pid uint32, tid *uint32, timestamp u
 func HandleGenericEvent(internal *process.ProcessInternal, ev notify.Event, tid *uint32) error {
 	p := internal.UnsafeGetProcess()
 	if option.Config.EnableK8s && p.Pod == nil {
-		EventCacheRetries(PodInfo).Inc()
+		CacheRetries(PodInfo).Inc()
 		return ErrFailedToGetPodInfo
 	}
 
