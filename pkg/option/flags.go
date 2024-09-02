@@ -186,7 +186,9 @@ func ReadAndSetFlags() error {
 	Config.CpuProfile = viper.GetString(KeyCpuProfile)
 	Config.MemProfile = viper.GetString(KeyMemProfile)
 	Config.PprofAddr = viper.GetString(KeyDeprecatedPprofAddr)
-	Config.PprofAddr = viper.GetString(KeyPprofAddr)
+	if viper.IsSet(KeyPprofAddr) {
+		Config.PprofAddr = viper.GetString(KeyPprofAddr)
+	}
 
 	Config.EventQueueSize = viper.GetUint(KeyEventQueueSize)
 
