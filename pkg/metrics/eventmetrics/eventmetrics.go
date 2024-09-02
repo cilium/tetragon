@@ -14,7 +14,6 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
-	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/metrics/syscallmetrics"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/exec"
@@ -119,7 +118,6 @@ func GetProcessInfo(process *tetragon.Process) (binary, pod, workload, namespace
 			pod = process.Pod.Name
 		}
 	} else {
-		errormetrics.ErrorTotalInc(errormetrics.EventMissingProcessInfo)
 		missingProcessInfo.Inc()
 	}
 	return binary, pod, workload, namespace
