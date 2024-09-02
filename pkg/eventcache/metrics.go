@@ -56,12 +56,6 @@ var (
 )
 
 var (
-	EventCacheCount = prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace:   consts.MetricsNamespace,
-		Name:        "event_cache_accesses_total",
-		Help:        "The total number of Tetragon event cache accesses. For internal use only.",
-		ConstLabels: nil,
-	})
 	eventCacheErrorsTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "event_cache_errors_total",
@@ -78,6 +72,13 @@ var (
 		"The number of entries in the event cache.",
 		nil, nil, nil,
 	))
+	cacheInserts = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace:   consts.MetricsNamespace,
+		Subsystem:   subsystem,
+		Name:        "inserts_total",
+		Help:        "Number of inserts to the event cache.",
+		ConstLabels: nil,
+	})
 	failedFetches = metrics.MustNewCounter(metrics.NewOpts(
 		consts.MetricsNamespace, subsystem, "fetch_failures_total",
 		"Number of failed fetches from the event cache. These won't be retried as they already exceeded the limit.",
@@ -100,11 +101,11 @@ func newCacheCollector() prometheus.Collector {
 }
 
 func RegisterMetrics(group metrics.Group) {
-	group.MustRegister(EventCacheCount)
 	group.MustRegister(eventCacheErrorsTotal)
 	group.MustRegister(eventCacheRetriesTotal)
 	group.MustRegister(
 		newCacheCollector(),
+		cacheInserts,
 		failedFetches,
 	)
 }

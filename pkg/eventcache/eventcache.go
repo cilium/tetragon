@@ -176,7 +176,7 @@ func (ec *Cache) loop() {
 			ec.handleEvents()
 
 		case event := <-ec.objsChan:
-			EventCacheCount.Inc()
+			cacheInserts.Inc()
 			ec.cache = append(ec.cache, event)
 
 		case <-ec.done:
