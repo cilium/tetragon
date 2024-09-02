@@ -53,3 +53,5 @@ tetragon:
   * `tetragon_ringbuf_perf_event_lost_total` -> `tetragon_observer_ringbuf_events_lost_total`
   * `tetragon_ringbuf_queue_received_total` -> `tetragon_observer_ringbuf_queue_events_received_total`
   * `tetragon_ringbuf_queue_lost_total` -> `tetragon_observer_ringbuf_queue_events_lost_total`
+* `tetragon_msg_op_total` metric is removed. `tetragon_observer_ringbuf_queue_events_received_total` or
+  `tetragon_events_total` can be used as a replacement, depending on the use case.

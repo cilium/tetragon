@@ -122,7 +122,6 @@ func (k *Observer) receiveEvent(data []byte) {
 	}
 
 	op, events, err := HandlePerfData(data)
-	opcodemetrics.OpTotalInc(ops.OpCode(op))
 	if err != nil {
 		// Increment error metrics
 		errormetrics.ErrorTotalInc(errormetrics.HandlerError)
