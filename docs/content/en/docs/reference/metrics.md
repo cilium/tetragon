@@ -99,6 +99,10 @@ Total number of events exported
 
 Timestamp of the most recent event to be exported
 
+### `tetragon_events_missing_process_info_total`
+
+Number of events missing process info.
+
 ### `tetragon_flags_total`
 
 The total number of Tetragon flags. For internal use only.
