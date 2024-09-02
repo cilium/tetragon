@@ -25,12 +25,28 @@ struct {
 	__type(value, struct msg_generic_kprobe);
 } process_call_heap SEC(".maps");
 
+int generic_kprobe_setup_event(void *ctx);
+int generic_kprobe_process_event(void *ctx);
+int generic_kprobe_process_filter(void *ctx);
+int generic_kprobe_filter_arg(void *ctx);
+int generic_kprobe_actions(void *ctx);
+int generic_kprobe_output(void *ctx);
+
 struct {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
 	__uint(max_entries, 13);
 	__uint(key_size, sizeof(__u32));
-	__uint(value_size, sizeof(__u32));
-} kprobe_calls SEC(".maps");
+	__array(values, int(void *));
+} kprobe_calls SEC(".maps") = {
+	.values = {
+		[0] = (void *)&generic_kprobe_setup_event,
+		[1] = (void *)&generic_kprobe_process_event,
+		[2] = (void *)&generic_kprobe_process_filter,
+		[3] = (void *)&generic_kprobe_filter_arg,
+		[4] = (void *)&generic_kprobe_actions,
+		[5] = (void *)&generic_kprobe_output,
+	},
+};
 
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
@@ -115,7 +131,7 @@ generic_kprobe_event(struct pt_regs *ctx)
 	return generic_start_process_filter(ctx, &maps);
 }
 
-__attribute__((section("kprobe/0"), used)) int
+__attribute__((section("kprobe"), used)) int
 generic_kprobe_setup_event(void *ctx)
 {
 	return generic_process_event_and_setup(
@@ -125,7 +141,7 @@ generic_kprobe_setup_event(void *ctx)
 		(struct bpf_map_def *)data_heap_ptr);
 }
 
-__attribute__((section("kprobe/1"), used)) int
+__attribute__((section("kprobe"), used)) int
 generic_kprobe_process_event(void *ctx)
 {
 	return generic_process_event(ctx,
@@ -135,7 +151,7 @@ generic_kprobe_process_event(void *ctx)
 				     (struct bpf_map_def *)data_heap_ptr);
 }
 
-__attribute__((section("kprobe/2"), used)) int
+__attribute__((section("kprobe"), used)) int
 generic_kprobe_process_filter(void *ctx)
 {
 	int ret;
@@ -152,7 +168,7 @@ generic_kprobe_process_filter(void *ctx)
 	return PFILTER_REJECT;
 }
 
-__attribute__((section("kprobe/3"), used)) int
+__attribute__((section("kprobe"), used)) int
 generic_kprobe_filter_arg(void *ctx)
 {
 	return filter_read_arg(ctx, (struct bpf_map_def *)&process_call_heap,
@@ -162,13 +178,13 @@ generic_kprobe_filter_arg(void *ctx)
 			       true);
 }
 
-__attribute__((section("kprobe/4"), used)) int
+__attribute__((section("kprobe"), used)) int
 generic_kprobe_actions(void *ctx)
 {
 	return generic_actions(ctx, &maps);
 }
 
-__attribute__((section("kprobe/5"), used)) int
+__attribute__((section("kprobe"), used)) int
 generic_kprobe_output(void *ctx)
 {
 	return generic_output(ctx, (struct bpf_map_def *)&process_call_heap, MSG_OP_GENERIC_KPROBE);

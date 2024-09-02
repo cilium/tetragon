@@ -66,8 +66,7 @@ var (
 	_ Type = (*Var)(nil)
 	_ Type = (*Datasec)(nil)
 	_ Type = (*Float)(nil)
-	_ Type = (*declTag)(nil)
-	_ Type = (*typeTag)(nil)
+	_ Type = (*TypeTag)(nil)
 	_ Type = (*cycle)(nil)
 )
 
@@ -169,6 +168,7 @@ type Struct struct {
 	// The size of the struct including padding, in bytes
 	Size    uint32
 	Members []Member
+	Tags    []string
 }
 
 func (s *Struct) Format(fs fmt.State, verb rune) {
@@ -195,6 +195,7 @@ type Union struct {
 	// The size of the union including padding, in bytes.
 	Size    uint32
 	Members []Member
+	Tags    []string
 }
 
 func (u *Union) Format(fs fmt.State, verb rune) {
@@ -247,6 +248,7 @@ type Member struct {
 	Type         Type
 	Offset       Bits
 	BitfieldSize Bits
+	Tags         []string
 }
 
 // Enum lists possible values.
@@ -334,6 +336,7 @@ func (f *Fwd) matches(typ Type) bool {
 type Typedef struct {
 	Name string
 	Type Type
+	Tags []string
 }
 
 func (td *Typedef) Format(fs fmt.State, verb rune) {
@@ -403,6 +406,7 @@ type Func struct {
 	Name    string
 	Type    Type
 	Linkage FuncLinkage
+	Tags    []string
 }
 
 func FuncMetadata(ins *asm.Instruction) *Func {
@@ -449,6 +453,7 @@ func (fp *FuncProto) copy() Type {
 type FuncParam struct {
 	Name string
 	Type Type
+	Tags []string
 }
 
 // Var is a global variable.
@@ -456,6 +461,7 @@ type Var struct {
 	Name    string
 	Type    Type
 	Linkage VarLinkage
+	Tags    []string
 }
 
 func (v *Var) Format(fs fmt.State, verb rune) {
@@ -522,8 +528,8 @@ func (f *Float) copy() Type {
 
 // declTag associates metadata with a declaration.
 type declTag struct {
-	Type  Type
 	Value string
+	Type  Type
 	// The index this tag refers to in the target type. For composite types,
 	// a value of -1 indicates that the tag refers to the whole type. Otherwise
 	// it indicates which member or argument the tag applies to.
@@ -540,19 +546,19 @@ func (dt *declTag) copy() Type {
 	return &cpy
 }
 
-// typeTag associates metadata with a type.
-type typeTag struct {
+// TypeTag associates metadata with a type.
+type TypeTag struct {
 	Type  Type
 	Value string
 }
 
-func (tt *typeTag) Format(fs fmt.State, verb rune) {
+func (tt *TypeTag) Format(fs fmt.State, verb rune) {
 	formatType(fs, verb, tt, "type=", tt.Type, "value=", tt.Value)
 }
 
-func (tt *typeTag) TypeName() string { return "" }
-func (tt *typeTag) qualify() Type    { return tt.Type }
-func (tt *typeTag) copy() Type {
+func (tt *TypeTag) TypeName() string { return "" }
+func (tt *TypeTag) qualify() Type    { return tt.Type }
+func (tt *TypeTag) copy() Type {
 	cpy := *tt
 	return &cpy
 }
@@ -591,7 +597,7 @@ var (
 	_ qualifier = (*Const)(nil)
 	_ qualifier = (*Restrict)(nil)
 	_ qualifier = (*Volatile)(nil)
-	_ qualifier = (*typeTag)(nil)
+	_ qualifier = (*TypeTag)(nil)
 )
 
 var errUnsizedType = errors.New("type is unsized")
@@ -918,7 +924,7 @@ func readAndInflateTypes(r io.Reader, bo binary.ByteOrder, typeLen uint32, rawSt
 			if err != nil {
 				return nil, fmt.Errorf("struct %s (id %d): %w", name, id, err)
 			}
-			typ = &Struct{name, header.Size(), members}
+			typ = &Struct{name, header.Size(), members, nil}
 
 		case kindUnion:
 			vlen := header.Vlen()
@@ -935,7 +941,7 @@ func readAndInflateTypes(r io.Reader, bo binary.ByteOrder, typeLen uint32, rawSt
 			if err != nil {
 				return nil, fmt.Errorf("union %s (id %d): %w", name, id, err)
 			}
-			typ = &Union{name, header.Size(), members}
+			typ = &Union{name, header.Size(), members, nil}
 
 		case kindEnum:
 			vlen := header.Vlen()
@@ -968,7 +974,7 @@ func readAndInflateTypes(r io.Reader, bo binary.ByteOrder, typeLen uint32, rawSt
 			typ = &Fwd{name, header.FwdKind()}
 
 		case kindTypedef:
-			typedef := &Typedef{name, nil}
+			typedef := &Typedef{name, nil, nil}
 			fixup(header.Type(), &typedef.Type)
 			typ = typedef
 
@@ -988,7 +994,7 @@ func readAndInflateTypes(r io.Reader, bo binary.ByteOrder, typeLen uint32, rawSt
 			typ = restrict
 
 		case kindFunc:
-			fn := &Func{name, nil, header.Linkage()}
+			fn := &Func{name, nil, header.Linkage(), nil}
 			fixup(header.Type(), &fn.Type)
 			typ = fn
 
@@ -1030,7 +1036,7 @@ func readAndInflateTypes(r io.Reader, bo binary.ByteOrder, typeLen uint32, rawSt
 				return nil, fmt.Errorf("can't read btfVariable, id: %d: %w", id, err)
 			}
 
-			v := &Var{name, nil, VarLinkage(bVariable.Linkage)}
+			v := &Var{name, nil, VarLinkage(bVariable.Linkage), nil}
 			fixup(header.Type(), &v.Type)
 			typ = v
 
@@ -1074,14 +1080,14 @@ func readAndInflateTypes(r io.Reader, bo binary.ByteOrder, typeLen uint32, rawSt
 				return nil, fmt.Errorf("type id %d: index exceeds int", id)
 			}
 
-			dt := &declTag{nil, name, int(int32(btfIndex))}
+			dt := &declTag{name, nil, int(int32(btfIndex))}
 			fixup(header.Type(), &dt.Type)
-			typ = dt
+			typ = &Void{}
 
 			declTags = append(declTags, dt)
 
 		case kindTypeTag:
-			tt := &typeTag{nil, name}
+			tt := &TypeTag{nil, name}
 			fixup(header.Type(), &tt.Type)
 			typ = tt
 
@@ -1142,15 +1148,41 @@ func readAndInflateTypes(r io.Reader, bo binary.ByteOrder, typeLen uint32, rawSt
 
 	for _, dt := range declTags {
 		switch t := dt.Type.(type) {
-		case *Var, *Typedef:
+		case *Var:
 			if dt.Index != -1 {
-				return nil, fmt.Errorf("type %s: index %d is not -1", dt, dt.Index)
+				return nil, fmt.Errorf("type %s: component idx %d is not -1", dt, dt.Index)
 			}
+			t.Tags = append(t.Tags, dt.Value)
+
+		case *Typedef:
+			if dt.Index != -1 {
+				return nil, fmt.Errorf("type %s: component idx %d is not -1", dt, dt.Index)
+			}
+			t.Tags = append(t.Tags, dt.Value)
 
 		case composite:
-			if dt.Index >= len(t.members()) {
-				return nil, fmt.Errorf("type %s: index %d exceeds members of %s", dt, dt.Index, t)
+			if dt.Index >= 0 {
+				members := t.members()
+				if dt.Index >= len(members) {
+					return nil, fmt.Errorf("type %s: component idx %d exceeds members of %s", dt, dt.Index, t)
+				}
+
+				members[dt.Index].Tags = append(members[dt.Index].Tags, dt.Value)
+				continue
 			}
+
+			if dt.Index == -1 {
+				switch t2 := t.(type) {
+				case *Struct:
+					t2.Tags = append(t2.Tags, dt.Value)
+				case *Union:
+					t2.Tags = append(t2.Tags, dt.Value)
+				}
+
+				continue
+			}
+
+			return nil, fmt.Errorf("type %s: decl tag for type %s has invalid component idx", dt, t)
 
 		case *Func:
 			fp, ok := t.Type.(*FuncProto)
@@ -1158,9 +1190,21 @@ func readAndInflateTypes(r io.Reader, bo binary.ByteOrder, typeLen uint32, rawSt
 				return nil, fmt.Errorf("type %s: %s is not a FuncProto", dt, t.Type)
 			}
 
-			if dt.Index >= len(fp.Params) {
-				return nil, fmt.Errorf("type %s: index %d exceeds params of %s", dt, dt.Index, t)
+			if dt.Index >= 0 {
+				if dt.Index >= len(fp.Params) {
+					return nil, fmt.Errorf("type %s: component idx %d exceeds params of %s", dt, dt.Index, t)
+				}
+
+				fp.Params[dt.Index].Tags = append(fp.Params[dt.Index].Tags, dt.Value)
+				continue
 			}
+
+			if dt.Index == -1 {
+				t.Tags = append(t.Tags, dt.Value)
+				continue
+			}
+
+			return nil, fmt.Errorf("type %s: decl tag for type %s has invalid component idx", dt, t)
 
 		default:
 			return nil, fmt.Errorf("type %s: decl tag for type %s is not supported", dt, t)

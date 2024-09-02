@@ -17,12 +17,26 @@
 #include "pfilter.h"
 #include "policy_filter.h"
 
+int generic_tracepoint_process_event(void *ctx);
+int generic_tracepoint_filter(void *ctx);
+int generic_tracepoint_arg(void *ctx);
+int generic_tracepoint_actions(void *ctx);
+int generic_tracepoint_output(void *ctx);
+
 struct {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
 	__uint(max_entries, 13);
 	__uint(key_size, sizeof(__u32));
-	__uint(value_size, sizeof(__u32));
-} tp_calls SEC(".maps");
+	__array(values, int(void *));
+} tp_calls SEC(".maps") = {
+	.values = {
+		[1] = (void *)&generic_tracepoint_process_event,
+		[2] = (void *)&generic_tracepoint_filter,
+		[3] = (void *)&generic_tracepoint_arg,
+		[4] = (void *)&generic_tracepoint_actions,
+		[5] = (void *)&generic_tracepoint_output,
+	},
+};
 
 struct {
 	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
@@ -230,7 +244,7 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 	return 0;
 }
 
-__attribute__((section("tracepoint/1"), used)) int
+__attribute__((section("tracepoint"), used)) int
 generic_tracepoint_process_event(void *ctx)
 {
 	return generic_process_event(ctx, (struct bpf_map_def *)&tp_heap,
@@ -238,7 +252,7 @@ generic_tracepoint_process_event(void *ctx)
 				     (struct bpf_map_def *)&config_map, 0);
 }
 
-__attribute__((section("tracepoint/2"), used)) int
+__attribute__((section("tracepoint"), used)) int
 generic_tracepoint_filter(void *ctx)
 {
 	int ret;
@@ -255,7 +269,7 @@ generic_tracepoint_filter(void *ctx)
 	return PFILTER_REJECT;
 }
 
-__attribute__((section("tracepoint/3"), used)) int
+__attribute__((section("tracepoint"), used)) int
 generic_tracepoint_arg(void *ctx)
 {
 	return filter_read_arg(ctx, (struct bpf_map_def *)&tp_heap,
@@ -265,13 +279,13 @@ generic_tracepoint_arg(void *ctx)
 			       true);
 }
 
-__attribute__((section("tracepoint/4"), used)) int
+__attribute__((section("tracepoint"), used)) int
 generic_tracepoint_actions(void *ctx)
 {
 	return generic_actions(ctx, &maps);
 }
 
-__attribute__((section("tracepoint/5"), used)) int
+__attribute__((section("tracepoint"), used)) int
 generic_tracepoint_output(void *ctx)
 {
 	return generic_output(ctx, (struct bpf_map_def *)&tp_heap, MSG_OP_GENERIC_TRACEPOINT);

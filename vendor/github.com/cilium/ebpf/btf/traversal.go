@@ -41,7 +41,7 @@ func children(typ Type, yield func(child *Type) bool) bool {
 	// do its work. This avoids allocating intermediate slices from walk() on
 	// the heap.
 	switch v := typ.(type) {
-	case *Void, *Int, *Enum, *Fwd, *Float:
+	case *Void, *Int, *Enum, *Fwd, *Float, *declTag:
 		// No children to traverse.
 	case *Pointer:
 		if !yield(&v.Target) {
@@ -59,10 +59,34 @@ func children(typ Type, yield func(child *Type) bool) bool {
 			if !yield(&v.Members[i].Type) {
 				return false
 			}
+			for _, t := range v.Members[i].Tags {
+				var tag Type = &declTag{t, v, i}
+				if !yield(&tag) {
+					return false
+				}
+			}
+		}
+		for _, t := range v.Tags {
+			var tag Type = &declTag{t, v, -1}
+			if !yield(&tag) {
+				return false
+			}
 		}
 	case *Union:
 		for i := range v.Members {
 			if !yield(&v.Members[i].Type) {
+				return false
+			}
+			for _, t := range v.Members[i].Tags {
+				var tag Type = &declTag{t, v, i}
+				if !yield(&tag) {
+					return false
+				}
+			}
+		}
+		for _, t := range v.Tags {
+			var tag Type = &declTag{t, v, -1}
+			if !yield(&tag) {
 				return false
 			}
 		}
@@ -86,6 +110,22 @@ func children(typ Type, yield func(child *Type) bool) bool {
 		if !yield(&v.Type) {
 			return false
 		}
+		for _, t := range v.Tags {
+			var tag Type = &declTag{t, v, -1}
+			if !yield(&tag) {
+				return false
+			}
+		}
+		if fp, ok := v.Type.(*FuncProto); ok {
+			for i, param := range fp.Params {
+				for _, t := range param.Tags {
+					var tag Type = &declTag{t, v, i}
+					if !yield(&tag) {
+						return false
+					}
+				}
+			}
+		}
 	case *FuncProto:
 		if !yield(&v.Return) {
 			return false
@@ -99,17 +139,19 @@ func children(typ Type, yield func(child *Type) bool) bool {
 		if !yield(&v.Type) {
 			return false
 		}
+		for _, t := range v.Tags {
+			var tag Type = &declTag{t, v, -1}
+			if !yield(&tag) {
+				return false
+			}
+		}
 	case *Datasec:
 		for i := range v.Vars {
 			if !yield(&v.Vars[i].Type) {
 				return false
 			}
 		}
-	case *declTag:
-		if !yield(&v.Type) {
-			return false
-		}
-	case *typeTag:
+	case *TypeTag:
 		if !yield(&v.Type) {
 			return false
 		}

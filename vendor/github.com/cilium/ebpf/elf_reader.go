@@ -16,7 +16,6 @@ import (
 	"github.com/cilium/ebpf/btf"
 	"github.com/cilium/ebpf/internal"
 	"github.com/cilium/ebpf/internal/sys"
-	"github.com/cilium/ebpf/internal/unix"
 )
 
 type kconfigMetaKey struct{}
@@ -71,7 +70,7 @@ func LoadCollectionSpecFromReader(rd io.ReaderAt) (*CollectionSpec, error) {
 
 	// Checks if the ELF file is for BPF data.
 	// Old LLVM versions set e_machine to EM_NONE.
-	if f.File.Machine != unix.EM_NONE && f.File.Machine != elf.EM_BPF {
+	if f.File.Machine != elf.EM_NONE && f.File.Machine != elf.EM_BPF {
 		return nil, fmt.Errorf("unexpected machine type for BPF ELF: %s", f.File.Machine)
 	}
 
@@ -101,7 +100,7 @@ func LoadCollectionSpecFromReader(rd io.ReaderAt) (*CollectionSpec, error) {
 			sections[idx] = newElfSection(sec, mapSection)
 		case sec.Name == ".maps":
 			sections[idx] = newElfSection(sec, btfMapSection)
-		case sec.Name == ".bss" || sec.Name == ".data" || strings.HasPrefix(sec.Name, ".rodata"):
+		case sec.Name == ".bss" || strings.HasPrefix(sec.Name, ".data") || strings.HasPrefix(sec.Name, ".rodata"):
 			sections[idx] = newElfSection(sec, dataSection)
 		case sec.Type == elf.SHT_REL:
 			// Store relocations under the section index of the target
@@ -1139,7 +1138,7 @@ func (ec *elfCode) loadDataSections() error {
 		}
 
 		if strings.HasPrefix(sec.Name, ".rodata") {
-			mapSpec.Flags = unix.BPF_F_RDONLY_PROG
+			mapSpec.Flags = sys.BPF_F_RDONLY_PROG
 			mapSpec.Freeze = true
 		}
 
@@ -1175,7 +1174,7 @@ func (ec *elfCode) loadKconfigSection() error {
 		KeySize:    uint32(4),
 		ValueSize:  ds.Size,
 		MaxEntries: 1,
-		Flags:      unix.BPF_F_RDONLY_PROG,
+		Flags:      sys.BPF_F_RDONLY_PROG,
 		Freeze:     true,
 		Key:        &btf.Int{Size: 4},
 		Value:      ds,
@@ -1266,10 +1265,10 @@ func getProgType(sectionName string) (ProgramType, AttachType, uint32, string) {
 
 		var flags uint32
 		if t.flags&_SEC_SLEEPABLE > 0 {
-			flags |= unix.BPF_F_SLEEPABLE
+			flags |= sys.BPF_F_SLEEPABLE
 		}
 		if t.flags&_SEC_XDP_FRAGS > 0 {
-			flags |= unix.BPF_F_XDP_HAS_FRAGS
+			flags |= sys.BPF_F_XDP_HAS_FRAGS
 		}
 		if t.flags&_SEC_EXP_ATTACH_OPT > 0 {
 			if programType == XDP {

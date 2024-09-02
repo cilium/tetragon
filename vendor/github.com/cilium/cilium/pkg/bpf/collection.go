@@ -259,44 +259,10 @@ func LoadCollection(spec *ebpf.CollectionSpec, opts ebpf.CollectionOptions) (*eb
 		return nil, fmt.Errorf("inlining global data: %w", err)
 	}
 
-	// Set initial size of verifier log buffer.
-	//
-	// Up until kernel 5.1, the maximum log size is (2^24)-1. In 5.2, this was
-	// increased to (2^30)-1 by 7a9f5c65abcc ("bpf: increase verifier log limit").
-	//
-	// The default value of (2^22)-1 was chosen to be large enough to fit the log
-	// of most Cilium programs, while falling just within the 5.1 maximum size in
-	// one of the steps of the multiplication loop below. Without the -1, it would
-	// overshoot the cap to 2^24, making e.g. verifier tests unable to load the
-	// program if the previous size (2^22) was too small to fit the log.
-	if opts.Programs.LogSize == 0 {
-		opts.Programs.LogSize = 4_194_303
-	}
-
-	attempt := 1
 	for {
 		coll, err := ebpf.NewCollectionWithOptions(spec, opts)
 		if err == nil {
 			return coll, nil
-		}
-
-		// Bump LogSize and retry if there's a truncated VerifierError.
-		var ve *ebpf.VerifierError
-		if errors.As(err, &ve) && ve.Truncated {
-			if attempt >= 5 {
-				return nil, fmt.Errorf("%d-byte truncated verifier log after %d attempts: %w", opts.Programs.LogSize, attempt, err)
-			}
-
-			// Retry with non-zero log level to avoid retrying with log disabled.
-			if opts.Programs.LogLevel == 0 {
-				opts.Programs.LogLevel = ebpf.LogLevelBranch
-			}
-
-			opts.Programs.LogSize *= 4
-
-			attempt++
-
-			continue
 		}
 
 		// Not a truncated VerifierError.

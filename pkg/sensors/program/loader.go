@@ -32,17 +32,11 @@ type LoadOpts struct {
 }
 
 func linkPinPath(bpfDir string, load *Program, extra ...string) string {
-	pinPath := filepath.Join(bpfDir, load.PinPath)
-	if load.Override {
-		pinPath = pinPath + "_override"
-	}
-	if load.RetProbe {
-		pinPath = pinPath + "_return"
-	}
+	pinPath := filepath.Join(bpfDir, load.PinPath, "link")
 	if len(extra) != 0 {
 		pinPath = pinPath + "_" + strings.Join(extra, "_")
 	}
-	return pinPath + "_link"
+	return pinPath
 }
 
 func linkPin(lnk link.Link, bpfDir string, load *Program, extra ...string) error {
@@ -229,13 +223,13 @@ func kprobeAttachOverride(load *Program, bpfDir string,
 		return fmt.Errorf("failed to clone generic_kprobe_override program: %w", err)
 	}
 
-	pinPath := filepath.Join(bpfDir, fmt.Sprint(load.PinPath, "-override"))
+	pinPath := filepath.Join(bpfDir, load.PinPath, "prog_override")
 
 	if err := prog.Pin(pinPath); err != nil {
 		return fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
 	}
 
-	load.unloaderOverride, err = kprobeAttach(load, prog, spec, load.Attach, bpfDir)
+	load.unloaderOverride, err = kprobeAttach(load, prog, spec, load.Attach, bpfDir, "override")
 	if err != nil {
 		logger.GetLogger().Warnf("Failed to attach override program: %w", err)
 	}
@@ -702,44 +696,6 @@ func slimVerifierError(errStr string) string {
 	return errStr[:headEnd] + "\n...\n" + errStr[tailStart:]
 }
 
-func installTailCalls(bpfDir string, spec *ebpf.CollectionSpec, coll *ebpf.Collection, load *Program) error {
-	// FIXME(JM): This should be replaced by using the cilium/ebpf prog array initialization.
-
-	secToProgName := make(map[string]string)
-	for name, prog := range spec.Programs {
-		secToProgName[prog.SectionName] = name
-	}
-
-	install := func(pinPath string, secPrefix string) error {
-		tailCallsMap, err := ebpf.LoadPinnedMap(filepath.Join(bpfDir, pinPath), nil)
-		if err != nil {
-			return nil
-		}
-		defer tailCallsMap.Close()
-
-		for i := 0; i < 13; i++ {
-			secName := fmt.Sprintf("%s/%d", secPrefix, i)
-			if progName, ok := secToProgName[secName]; ok {
-				if prog, ok := coll.Programs[progName]; ok {
-					err := tailCallsMap.Update(uint32(i), uint32(prog.FD()), ebpf.UpdateAny)
-					if err != nil {
-						return fmt.Errorf("update of tail-call map '%s' failed: %w", pinPath, err)
-					}
-				}
-			}
-		}
-		return nil
-	}
-
-	if load.TcMap != nil {
-		if err := install(load.TcMap.PinName, load.TcPrefix); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func doLoadProgram(
 	bpfDir string,
 	load *Program,
@@ -817,7 +773,7 @@ func doLoadProgram(
 		var err error
 		var mapPath string
 		if pm, ok := load.PinMap[name]; ok {
-			mapPath = filepath.Join(bpfDir, pm.PinName)
+			mapPath = filepath.Join(bpfDir, pm.PinPath)
 		} else {
 			mapPath = filepath.Join(bpfDir, name)
 		}
@@ -863,14 +819,13 @@ func doLoadProgram(
 	}
 	defer coll.Close()
 
-	err = installTailCalls(bpfDir, spec, coll, load)
-	if err != nil {
-		return nil, fmt.Errorf("installing tail calls failed: %s", err)
-	}
-
 	for _, mapLoad := range load.MapLoad {
+		pinPath := ""
+		if pm, ok := load.PinMap[mapLoad.Name]; ok {
+			pinPath = pm.PinPath
+		}
 		if m, ok := coll.Maps[mapLoad.Name]; ok {
-			if err := mapLoad.Load(m, mapLoad.Index); err != nil {
+			if err := mapLoad.Load(m, pinPath, mapLoad.Index); err != nil {
 				return nil, err
 			}
 		} else {
@@ -883,7 +838,7 @@ func doLoadProgram(
 		return nil, fmt.Errorf("program for section '%s' not found", load.Label)
 	}
 
-	pinPath := filepath.Join(bpfDir, load.PinPath)
+	pinPath := filepath.Join(bpfDir, load.PinPath, "prog")
 
 	if _, err := os.Stat(pinPath); err == nil {
 		logger.GetLogger().Debugf("Pin file '%s' already exists, repinning", load.PinPath)

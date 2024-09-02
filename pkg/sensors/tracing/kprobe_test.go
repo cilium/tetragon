@@ -4001,7 +4001,11 @@ func matchBinariesPerfringTest(t *testing.T, operator string, values []string) {
 	}
 
 	err := sm.Manager.AddTracingPolicy(ctx, &matchBinariesTracingPolicy)
-	assert.NoError(t, err)
+	if assert.NoError(t, err) {
+		t.Cleanup(func() {
+			sm.Manager.DeleteTracingPolicy(ctx, "match-binaries", "")
+		})
+	}
 
 	var tailPID, headPID int
 	ops := func() {
@@ -4112,7 +4116,11 @@ func TestKprobeMatchBinariesEarlyExec(t *testing.T) {
 	}
 
 	err = sm.Manager.AddTracingPolicy(ctx, &matchBinariesTracingPolicy)
-	assert.NoError(t, err)
+	if assert.NoError(t, err) {
+		t.Cleanup(func() {
+			sm.Manager.DeleteTracingPolicy(ctx, "match-binaries", "")
+		})
+	}
 
 	ops := func() {
 		file.WriteString("trigger!")
@@ -4188,7 +4196,11 @@ func TestKprobeMatchBinariesPrefixMatchArgs(t *testing.T) {
 	}
 
 	err := sm.Manager.AddTracingPolicy(ctx, &matchBinariesTracingPolicy)
-	assert.NoError(t, err)
+	if assert.NoError(t, err) {
+		t.Cleanup(func() {
+			sm.Manager.DeleteTracingPolicy(ctx, "match-binaries", "")
+		})
+	}
 
 	var tailEtcPID, tailProcPID, headPID int
 	ops := func() {
@@ -6123,7 +6135,11 @@ func TestLinuxBinprmExtractPath(t *testing.T) {
 	}
 
 	err := sm.Manager.AddTracingPolicy(ctx, &bprmTracingPolicy)
-	assert.NoError(t, err)
+	if assert.NoError(t, err) {
+		t.Cleanup(func() {
+			sm.Manager.DeleteTracingPolicy(ctx, "bprm-extract-path", "")
+		})
+	}
 
 	targetCommand := exec.Command("/usr/bin/id")
 	filteredCommand := exec.Command("/usr/bin/uname")
@@ -6159,7 +6175,7 @@ func TestLinuxBinprmExtractPath(t *testing.T) {
 
 // Test module loading/unloading on Ubuntu
 func TestTraceKernelModule(t *testing.T) {
-	_, err := ftrace.ReadAvailFuncs("find_module_sections")
+	_, err := ftrace.ReadAvailFuncs("^find_module_sections$")
 	if err != nil {
 		t.Skip("Skipping test: could not find find_module_sections")
 	}
@@ -6592,7 +6608,7 @@ func trigger(t *testing.T) {
 }
 
 func TestKprobeArgs(t *testing.T) {
-	_, err := ftrace.ReadAvailFuncs("bpf_fentry_test1")
+	_, err := ftrace.ReadAvailFuncs("^bpf_fentry_test1$")
 	if err != nil {
 		t.Skip("Skipping test: could not find bpf_fentry_test1")
 	}

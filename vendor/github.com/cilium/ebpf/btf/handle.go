@@ -56,6 +56,7 @@ func NewHandleFromRawBTF(btf []byte) (*Handle, error) {
 		logBuf []byte
 		err    error
 	)
+
 	for {
 		var fd *sys.FD
 		fd, err = sys.BtfLoad(attr)
