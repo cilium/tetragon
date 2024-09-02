@@ -594,18 +594,20 @@ perf_event_output_metric(void *ctx, u8 msg_op, void *map, u64 flags, void *data,
 	if (err < 0) {
 		valp = map_lookup_elem(&tg_stats_map, &zero);
 		if (valp) {
-			if (err == -2) // ENOENT
+			switch (err) {
+			case -2: // ENOENT
 				__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_ENOENT], 1);
-			else if (err == -7) // E2BIG
+			case -7: // E2BIG
 				__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_E2BIG], 1);
-			else if (err == -16) // EBUSY
+			case -16: // EBUSY
 				__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_EBUSY], 1);
-			else if (err == -22) // EINVAL
+			case -22: // EINVAL
 				__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_EINVAL], 1);
-			else if (err == -28) // ENOSPC
+			case -28: // ENOSPC
 				__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_ENOSPC], 1);
-			else
+			default:
 				__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_UNKNOWN], 1);
+			}
 		}
 	}
 }
