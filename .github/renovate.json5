@@ -10,13 +10,14 @@
   "requireConfig": "ignored",
   "allowedPostUpgradeCommands": [
     "^/tmp/install-buildx$", 
-    "^make codegen$", 
-    "^make generate$", 
+    "^make protogen$",
+    "^make crds$",
     "^make vendor$",
     "^make -C install/kubernetes$",
     "^go mod vendor$",
     "^install-tool golang \\$\\(grep -oP '\\^go \\\\K\\.\\+' go\\.mod\\)$",
-    "^install-tool golang \\$\\(grep -oP '\\^toolchain go\\\\K\\.\\+' go\\.mod\\)$"
+    "^install-tool golang \\$\\(grep -oP '\\^toolchain go\\\\K\\.\\+' go\\.mod\\)$",
+    "^make metrics-docs$",
   ],
   // repository configuration
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
@@ -207,7 +208,7 @@
         "gomodUpdateImportPaths",
       ],
       postUpgradeTasks: {
-        "commands": ["/tmp/install-buildx", "make codegen", "make generate"],
+        "commands": ["/tmp/install-buildx", "make protogen", "make crds", "make metrics-docs"],
         "fileFilters": ["**/**"],
         "executionMode": "branch"
       }
