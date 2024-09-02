@@ -4,10 +4,16 @@
 package eventcache
 
 import (
+	"golang.org/x/exp/maps"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/prometheus/client_golang/prometheus"
+)
+
+const (
+	subsystem = "event_cache"
 )
 
 type CacheEntryType int
@@ -41,6 +47,13 @@ var cacheErrorLabelValues = map[CacheError]string{
 func (e CacheError) String() string {
 	return cacheErrorLabelValues[e]
 }
+
+var (
+	entryTypeLabel = metrics.ConstrainedLabel{
+		Name:   "entry_type",
+		Values: maps.Values(cacheEntryTypeLabelValues),
+	}
+)
 
 var (
 	processInfoErrors = prometheus.NewCounterVec(prometheus.CounterOpts{
@@ -83,6 +96,11 @@ var (
 		"The number of entries in the event cache.",
 		nil, nil, nil,
 	))
+	failedFetches = metrics.MustNewCounter(metrics.NewOpts(
+		consts.MetricsNamespace, subsystem, "fetch_failures_total",
+		"Number of failed fetches from the event cache. These won't be retried as they already exceeded the limit.",
+		nil, []metrics.ConstrainedLabel{metrics.EventTypeLabel, entryTypeLabel}, nil,
+	), nil)
 )
 
 func newCacheCollector() prometheus.Collector {
@@ -106,7 +124,10 @@ func RegisterMetrics(group metrics.Group) {
 	group.MustRegister(eventCacheErrorsTotal)
 	group.MustRegister(eventCacheRetriesTotal)
 	group.MustRegister(parentInfoErrors)
-	group.MustRegister(newCacheCollector())
+	group.MustRegister(
+		newCacheCollector(),
+		failedFetches,
+	)
 }
 
 func InitMetrics() {
