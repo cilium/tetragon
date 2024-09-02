@@ -21,5 +21,7 @@ spec:
           values:
             - "contrib/tester-progs/nop"
       matchActions:
-      - action: Override
-        argError: -1
+        - action: Override
+          argError: -1
+        - action: Post
+          imaHash: true
