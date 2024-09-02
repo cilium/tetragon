@@ -58,7 +58,6 @@ func registerHealthMetrics(group metrics.Group) {
 	group.ExtendInit(errormetrics.InitMetrics)
 	// event cache metrics
 	eventcache.RegisterMetrics(group)
-	group.ExtendInit(eventcache.InitMetrics)
 	// event metrics
 	eventmetrics.RegisterHealthMetrics(group)
 	group.ExtendInit(eventmetrics.InitHealthMetrics)

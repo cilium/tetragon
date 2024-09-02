@@ -53,15 +53,18 @@ var (
 		Name:   "entry_type",
 		Values: maps.Values(cacheEntryTypeLabelValues),
 	}
+	errorLabel = metrics.ConstrainedLabel{
+		Name:   "error",
+		Values: maps.Values(cacheErrorLabelValues),
+	}
 )
 
 var (
-	eventCacheErrorsTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace:   consts.MetricsNamespace,
-		Name:        "event_cache_errors_total",
-		Help:        "The total of errors encountered while fetching process exec information from the cache.",
-		ConstLabels: nil,
-	}, []string{"error", "event_type"})
+	cacheErrors = metrics.MustNewCounter(metrics.NewOpts(
+		consts.MetricsNamespace, subsystem, "errors_total",
+		"The total of errors encountered while fetching process exec information from the cache.",
+		nil, []metrics.ConstrainedLabel{errorLabel, metrics.EventTypeLabel}, nil,
+	), nil)
 	cacheSize = metrics.MustNewCustomGauge(metrics.NewOpts(
 		consts.MetricsNamespace, "", "event_cache_entries",
 		"The number of entries in the event cache.",
@@ -101,29 +104,18 @@ func newCacheCollector() prometheus.Collector {
 }
 
 func RegisterMetrics(group metrics.Group) {
-	group.MustRegister(eventCacheErrorsTotal)
 	group.MustRegister(
 		newCacheCollector(),
+		cacheErrors,
 		cacheInserts,
 		cacheRetries,
 		failedFetches,
 	)
 }
 
-func InitMetrics() {
-	// Initialize metrics with labels
-	for ev := range tetragon.EventType_name {
-		if tetragon.EventType(ev) != tetragon.EventType_UNDEF && tetragon.EventType(ev) != tetragon.EventType_TEST {
-			for er := range cacheErrorLabelValues {
-				EventCacheError(er, tetragon.EventType(ev)).Add(0)
-			}
-		}
-	}
-}
-
 // Get a new handle on an eventCacheErrorsTotal metric for an error
-func EventCacheError(er CacheError, eventType tetragon.EventType) prometheus.Counter {
-	return eventCacheErrorsTotal.WithLabelValues(er.String(), eventType.String())
+func CacheErrors(er CacheError, eventType tetragon.EventType) prometheus.Counter {
+	return cacheErrors.WithLabelValues(er.String(), eventType.String())
 }
 
 // Get a new handle on an eventCacheRetriesTotal metric for an entryType
