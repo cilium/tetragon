@@ -62,3 +62,4 @@ tetragon:
 * `tetragon_event_cache_retries_total` metric is renamed to `tetragon_event_cache_fetch_retries_total`.
 * `tetragon_errors_total{type="event_missing_process_info"}` metric is replaced by
   `tetragon_events_missing_process_info_total`.
+* `tetragon_errors_total{type="handler_error"}` metric is removed. Use `tetragon_handler_errors_total` instead.

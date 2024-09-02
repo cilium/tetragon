@@ -17,8 +17,6 @@ type ErrorType int
 const (
 	// Tid and Pid mismatch that could affect BPF and user space caching logic
 	ProcessPidTidMismatch ErrorType = iota
-	// An error occurred in an event handler.
-	HandlerError
 	// An event finalizer on Process failed
 	EventFinalizeProcessInfoFailed
 	// Failed to resolve Process uid to username
@@ -30,7 +28,6 @@ const (
 
 var errorTypeLabelValues = map[ErrorType]string{
 	ProcessPidTidMismatch:                   "process_pid_tid_mismatch",
-	HandlerError:                            "handler_error",
 	EventFinalizeProcessInfoFailed:          "event_finalize_process_info_failed",
 	ProcessMetadataUsernameFailed:           "process_metadata_username_failed",
 	ProcessMetadataUsernameIgnoredNotInHost: "process_metadata_username_ignored_not_in_host_namespaces",
