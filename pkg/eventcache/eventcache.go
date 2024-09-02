@@ -139,12 +139,16 @@ func (ec *Cache) handleEvents() {
 				tmp = append(tmp, event)
 				continue
 			}
+			eventType := notify.EventType(event.event).String()
 			if errors.Is(err, ErrFailedToGetParentInfo) {
 				ParentInfoError(notify.EventType(event.event)).Inc()
+				failedFetches.WithLabelValues(eventType, ParentInfo.String()).Inc()
 			} else if errors.Is(err, ErrFailedToGetProcessInfo) {
 				ProcessInfoError(notify.EventType(event.event)).Inc()
+				failedFetches.WithLabelValues(eventType, ProcessInfo.String()).Inc()
 			} else if errors.Is(err, ErrFailedToGetPodInfo) {
 				PodInfoError(notify.EventType(event.event)).Inc()
+				failedFetches.WithLabelValues(eventType, PodInfo.String()).Inc()
 			}
 		}
 
