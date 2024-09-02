@@ -53,10 +53,6 @@ The total number of Tetragon errors. For internal use only.
 | ----- | ------ |
 | `type ` | `event_finalize_process_info_failed, event_missing_process_info, handler_error, process_metadata_username_failed, process_metadata_username_ignored_not_in_host_namespaces, process_pid_tid_mismatch` |
 
-### `tetragon_event_cache_accesses_total`
-
-The total number of Tetragon event cache accesses. For internal use only.
-
 ### `tetragon_event_cache_entries`
 
 The number of entries in the event cache.
@@ -70,11 +66,7 @@ The total of errors encountered while fetching process exec information from the
 | `error` | `nil_process_pid` |
 | `event_type` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_LSM, PROCESS_THROTTLE, PROCESS_TRACEPOINT, PROCESS_UPROBE, RATE_LIMIT_INFO` |
 
-<<<<<<< HEAD
-### `tetragon_event_cache_fetches_failed_total`
-=======
 ### `tetragon_event_cache_fetch_failures_total`
->>>>>>> 44e636c8d (oops)
 
 Number of failed fetches from the event cache. These won't be retried as they already exceeded the limit.
 
@@ -83,45 +75,10 @@ Number of failed fetches from the event cache. These won't be retried as they al
 | `entry_type` | `parent_info, pod_info, process_info` |
 | `event_type` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_LSM, PROCESS_THROTTLE, PROCESS_TRACEPOINT, PROCESS_UPROBE, RATE_LIMIT_INFO` |
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-### `tetragon_event_cache_parent_info_errors_total`
-=======
-### `tetragon_event_cache_fetch_retries_total`
-
-Number of retries when fetching info from the event cache.
-
-| label | values |
-| ----- | ------ |
-| `entry_type` | `parent_info, pod_info, process_info` |
-
 ### `tetragon_event_cache_inserts_total`
->>>>>>> 44e636c8d (oops)
 
-The total of times we failed to fetch cached parent info for a given event type.
+Number of inserts to the event cache.
 
-| label | values |
-| ----- | ------ |
-| `event_type` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_LSM, PROCESS_THROTTLE, PROCESS_TRACEPOINT, PROCESS_UPROBE, RATE_LIMIT_INFO` |
-
-### `tetragon_event_cache_pod_info_errors_total`
-
-The total of times we failed to fetch cached pod info for a given event type.
-
-| label | values |
-| ----- | ------ |
-| `event_type` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_LSM, PROCESS_THROTTLE, PROCESS_TRACEPOINT, PROCESS_UPROBE, RATE_LIMIT_INFO` |
-
-### `tetragon_event_cache_process_info_errors_total`
-
-The total of times we failed to fetch cached process info for a given event type.
-
-| label | values |
-| ----- | ------ |
-| `event_type` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_LSM, PROCESS_THROTTLE, PROCESS_TRACEPOINT, PROCESS_UPROBE, RATE_LIMIT_INFO` |
-
-=======
->>>>>>> 1616e1be2 (eventcache: Remove tetragon_event_cache_<entry_type>_errors_total metrics)
 ### `tetragon_event_cache_retries_total`
 
 The total number of retries for event caching per entry type.
