@@ -56,3 +56,5 @@ tetragon:
 * `tetragon_errors_total{type="process_cache_evicted"}` metric is replaced by `tetragon_process_cache_evicted_total`.
 * `tetragon_errors_total{type=~"process_cache_miss_on_get|process_cache_miss_on_remove"}` metrics are replaced by
   `tetragon_process_cache_misses_total{operation=~"get|remove"}`.
+* `tetragon_event_cache_<entry_type>_errors_total` metrics are replaced by
+  `tetragon_event_cache_fetch_failures_total{entry_type="<entry_type>"}`.

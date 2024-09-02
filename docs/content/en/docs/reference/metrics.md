@@ -84,6 +84,7 @@ Number of failed fetches from the event cache. These won't be retried as they al
 | `event_type` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_LSM, PROCESS_THROTTLE, PROCESS_TRACEPOINT, PROCESS_UPROBE, RATE_LIMIT_INFO` |
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 ### `tetragon_event_cache_parent_info_errors_total`
 =======
 ### `tetragon_event_cache_fetch_retries_total`
@@ -119,6 +120,8 @@ The total of times we failed to fetch cached process info for a given event type
 | ----- | ------ |
 | `event_type` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_LSM, PROCESS_THROTTLE, PROCESS_TRACEPOINT, PROCESS_UPROBE, RATE_LIMIT_INFO` |
 
+=======
+>>>>>>> 1616e1be2 (eventcache: Remove tetragon_event_cache_<entry_type>_errors_total metrics)
 ### `tetragon_event_cache_retries_total`
 
 The total number of retries for event caching per entry type.
