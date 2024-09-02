@@ -68,12 +68,21 @@ var (
 		Help:        "Policy events calls observed.",
 		ConstLabels: nil,
 	}, []string{"policy", "hook"})
+
+	missingProcessInfo = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: consts.MetricsNamespace,
+		Name:      "events_missing_process_info_total",
+		Help:      "Number of events missing process info.",
+	})
 )
 
 func RegisterHealthMetrics(group metrics.Group) {
-	group.MustRegister(FlagCount)
-	group.MustRegister(NotifyOverflowedEvents)
-	group.MustRegister(NewBPFCollector())
+	group.MustRegister(
+		FlagCount,
+		NotifyOverflowedEvents,
+		NewBPFCollector(),
+		missingProcessInfo,
+	)
 }
 
 func InitHealthMetrics() {
@@ -111,6 +120,7 @@ func GetProcessInfo(process *tetragon.Process) (binary, pod, workload, namespace
 		}
 	} else {
 		errormetrics.ErrorTotalInc(errormetrics.EventMissingProcessInfo)
+		missingProcessInfo.Inc()
 	}
 	return binary, pod, workload, namespace
 }
