@@ -5,6 +5,9 @@ package tracing
 
 import (
 	"context"
+	"crypto/sha1"
+	"crypto/sha256"
+	"encoding/hex"
 	"os"
 	"os/exec"
 	"strconv"
@@ -235,4 +238,87 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(lsmChecker))
 	assert.NoError(t, err)
+}
+
+func TestLSMIMAHash(t *testing.T) {
+	if !bpf.HasLSMPrograms() || !kernels.EnableLargeProgs() || !kernels.MinKernelVersion("6.0") {
+		t.Skip()
+	}
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	testBin := testutils.RepoRootPath("contrib/tester-progs/nop")
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+
+	configHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "lsm"
+spec:
+  lsmhooks:
+  - hook: "bprm_check_security"
+    args:
+      - index: 0
+        type: "linux_binprm"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        isNamespacePID: false
+        values:
+        - ` + pidStr + `
+      matchActions:
+      - action: Post
+        imaHash: true
+`
+
+	configHookRaw := []byte(configHook)
+	err := os.WriteFile(testConfigFile, configHookRaw, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+	hasherSha256 := sha256.New()
+	hasherSha1 := sha1.New()
+	s, err := os.ReadFile(testBin)
+	if err != nil {
+		t.Fatalf("ReadFile(%s): err %s", testBin, err)
+	}
+	hasherSha256.Write(s)
+	hasherSha1.Write(s)
+	lsmCheckerSha256 := ec.NewProcessLsmChecker("lsm-ima-checker").
+		WithFunctionName(sm.Suffix("bprm_check_security")).
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Suffix(tus.Conf().SelfBinary))).
+		WithImaHash(sm.Full("sha256:" + hex.EncodeToString(hasherSha256.Sum(nil))))
+	lsmCheckerSha1 := ec.NewProcessLsmChecker("lsm-ima-checker").
+		WithFunctionName(sm.Suffix("bprm_check_security")).
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Suffix(tus.Conf().SelfBinary))).
+		WithImaHash(sm.Full("sha1:" + hex.EncodeToString(hasherSha1.Sum(nil))))
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	testCmd := exec.Command(testBin)
+
+	if err := testCmd.Run(); err != nil {
+		t.Fatalf("failed to run %s: %s", testCmd, err)
+	}
+
+	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(lsmCheckerSha256))
+	err2 := jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(lsmCheckerSha1))
+	checkFunc := func() bool {
+		if err != nil && err2 != nil {
+			return false
+		}
+		return true
+	}
+	assert.Condition(t, checkFunc)
 }
