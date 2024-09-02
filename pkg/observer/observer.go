@@ -124,8 +124,6 @@ func (k *Observer) receiveEvent(data []byte) {
 	op, events, err := HandlePerfData(data)
 	opcodemetrics.OpTotalInc(ops.OpCode(op))
 	if err != nil {
-		// Increment error metrics
-		errormetrics.ErrorTotalInc(errormetrics.HandlerError)
 		errormetrics.HandlerErrorsInc(ops.OpCode(op), err.kind)
 		switch err.kind {
 		case errormetrics.HandlePerfUnknownOp:
