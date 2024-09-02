@@ -191,7 +191,7 @@ func (msg *MsgExecveEventUnix) Retry(internal *process.ProcessInternal, ev notif
 		cgroupID := msg.Unix.Kube.Cgrpid
 		podInfo = process.GetPodInfo(cgroupID, containerId, filename, args, nspid)
 		if podInfo == nil {
-			eventcache.EventCacheRetries(eventcache.PodInfo).Inc()
+			eventcache.CacheRetries(eventcache.PodInfo).Inc()
 			return eventcache.ErrFailedToGetPodInfo
 		}
 	}
@@ -420,7 +420,7 @@ func (msg *MsgExitEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*
 			msg.RefCntDone[ParentRefCnt] = true
 		}
 	} else {
-		eventcache.EventCacheRetries(eventcache.ParentInfo).Inc()
+		eventcache.CacheRetries(eventcache.ParentInfo).Inc()
 		err = eventcache.ErrFailedToGetParentInfo
 	}
 
@@ -432,7 +432,7 @@ func (msg *MsgExitEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*
 			msg.RefCntDone[ProcessRefCnt] = true
 		}
 	} else {
-		eventcache.EventCacheRetries(eventcache.ProcessInfo).Inc()
+		eventcache.CacheRetries(eventcache.ProcessInfo).Inc()
 		err = eventcache.ErrFailedToGetProcessInfo
 	}
 
@@ -486,7 +486,7 @@ func (msg *MsgProcessCleanupEventUnix) RetryInternal(_ notify.Event, timestamp u
 			msg.RefCntDone[ParentRefCnt] = true
 		}
 	} else {
-		eventcache.EventCacheRetries(eventcache.ParentInfo).Inc()
+		eventcache.CacheRetries(eventcache.ParentInfo).Inc()
 		err = eventcache.ErrFailedToGetParentInfo
 	}
 
@@ -496,7 +496,7 @@ func (msg *MsgProcessCleanupEventUnix) RetryInternal(_ notify.Event, timestamp u
 			msg.RefCntDone[ProcessRefCnt] = true
 		}
 	} else {
-		eventcache.EventCacheRetries(eventcache.ProcessInfo).Inc()
+		eventcache.CacheRetries(eventcache.ProcessInfo).Inc()
 		err = eventcache.ErrFailedToGetProcessInfo
 	}
 

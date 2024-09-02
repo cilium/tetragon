@@ -75,17 +75,17 @@ Number of failed fetches from the event cache. These won't be retried as they al
 | `entry_type` | `parent_info, pod_info, process_info` |
 | `event_type` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_LSM, PROCESS_THROTTLE, PROCESS_TRACEPOINT, PROCESS_UPROBE, RATE_LIMIT_INFO` |
 
-### `tetragon_event_cache_inserts_total`
+### `tetragon_event_cache_fetch_retries_total`
 
-Number of inserts to the event cache.
-
-### `tetragon_event_cache_retries_total`
-
-The total number of retries for event caching per entry type.
+Number of retries when fetching info from the event cache.
 
 | label | values |
 | ----- | ------ |
 | `entry_type` | `parent_info, pod_info, process_info` |
+
+### `tetragon_event_cache_inserts_total`
+
+Number of inserts to the event cache.
 
 ### `tetragon_events_exported_bytes_total`
 

@@ -62,11 +62,6 @@ var (
 		Help:        "The total of errors encountered while fetching process exec information from the cache.",
 		ConstLabels: nil,
 	}, []string{"error", "event_type"})
-	eventCacheRetriesTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: consts.MetricsNamespace,
-		Name:      "event_cache_retries_total",
-		Help:      "The total number of retries for event caching per entry type.",
-	}, []string{"entry_type"})
 	cacheSize = metrics.MustNewCustomGauge(metrics.NewOpts(
 		consts.MetricsNamespace, "", "event_cache_entries",
 		"The number of entries in the event cache.",
@@ -79,6 +74,11 @@ var (
 		Help:        "Number of inserts to the event cache.",
 		ConstLabels: nil,
 	})
+	cacheRetries = metrics.MustNewCounter(metrics.NewOpts(
+		consts.MetricsNamespace, subsystem, "fetch_retries_total",
+		"Number of retries when fetching info from the event cache.",
+		nil, []metrics.ConstrainedLabel{entryTypeLabel}, nil,
+	), nil)
 	failedFetches = metrics.MustNewCounter(metrics.NewOpts(
 		consts.MetricsNamespace, subsystem, "fetch_failures_total",
 		"Number of failed fetches from the event cache. These won't be retried as they already exceeded the limit.",
@@ -102,19 +102,16 @@ func newCacheCollector() prometheus.Collector {
 
 func RegisterMetrics(group metrics.Group) {
 	group.MustRegister(eventCacheErrorsTotal)
-	group.MustRegister(eventCacheRetriesTotal)
 	group.MustRegister(
 		newCacheCollector(),
 		cacheInserts,
+		cacheRetries,
 		failedFetches,
 	)
 }
 
 func InitMetrics() {
 	// Initialize metrics with labels
-	for en := range cacheEntryTypeLabelValues {
-		EventCacheRetries(en).Add(0)
-	}
 	for ev := range tetragon.EventType_name {
 		if tetragon.EventType(ev) != tetragon.EventType_UNDEF && tetragon.EventType(ev) != tetragon.EventType_TEST {
 			for er := range cacheErrorLabelValues {
@@ -130,6 +127,6 @@ func EventCacheError(er CacheError, eventType tetragon.EventType) prometheus.Cou
 }
 
 // Get a new handle on an eventCacheRetriesTotal metric for an entryType
-func EventCacheRetries(entryType CacheEntryType) prometheus.Counter {
-	return eventCacheRetriesTotal.WithLabelValues(entryType.String())
+func CacheRetries(entryType CacheEntryType) prometheus.Counter {
+	return cacheRetries.WithLabelValues(entryType.String())
 }
