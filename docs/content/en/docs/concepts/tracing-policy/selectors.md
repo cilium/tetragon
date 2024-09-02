@@ -170,6 +170,25 @@ The `values` field has to be a map of `strings`. The default behaviour
 is `followForks: true`, so all the child processes are followed.
 The current limitation is 4 values.
 
+### Follow children
+
+the `matchBinaries` filter can be configured to also apply to children of matching processes. To do
+this, set `followChildren` to `true`. For example:
+
+```yaml
+- matchBinaries:
+  - operator: "In"
+    values:
+    - "/usr/sbin/sshd"
+    followChildren: true
+```
+
+There are a number of limitations when using followChildren:
+- Children created before the policy was installed will not be matched
+- The number of `matchBinaries` sections with `followChildren: true` cannot exceed 64.
+- Operators other than `In` are not supported.
+
+
 **Further examples**
 
 One example can be to monitor all the `sys_write` system calls which are
