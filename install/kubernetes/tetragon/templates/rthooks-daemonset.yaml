@@ -37,6 +37,9 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- with .Values.rthooks.serviceAccount.name }}
+      serviceAccountName: {{ . }}
+      {{- end }}
       {{- with .Values.rthooks.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}
