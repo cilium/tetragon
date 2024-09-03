@@ -597,14 +597,19 @@ perf_event_output_metric(void *ctx, u8 msg_op, void *map, u64 flags, void *data,
 			switch (err) {
 			case -2: // ENOENT
 				__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_ENOENT], 1);
+				break;
 			case -7: // E2BIG
 				__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_E2BIG], 1);
+				break;
 			case -16: // EBUSY
 				__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_EBUSY], 1);
+				break;
 			case -22: // EINVAL
 				__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_EINVAL], 1);
+				break;
 			case -28: // ENOSPC
 				__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_ENOSPC], 1);
+				break;
 			default:
 				__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_UNKNOWN], 1);
 			}
