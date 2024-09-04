@@ -91,6 +91,8 @@ func newMap() (*cgidm, error) {
 	var criResolver *criResolver
 	if option.Config.EnableCRI {
 		criResolver = newCriResolver(m)
+	} else {
+		logger.GetLogger().Warn("cgidmap is enabled but cri is not. This means that pod association will not work for existing pods. You can enable cri using --enable-cri")
 	}
 	m.criResolver = criResolver
 	return m, nil
@@ -234,7 +236,9 @@ func (m *cgidm) Update(podID PodID, contIDs []ContainerID) {
 			contID: id,
 		})
 	}
-	m.criResolver.enqeue(unmappedIDs)
+	if m.criResolver != nil {
+		m.criResolver.enqeue(unmappedIDs)
+	}
 }
 
 // Global state
