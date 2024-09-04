@@ -4,6 +4,8 @@
 package cgidmap
 
 import (
+	"errors"
+
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/podhelpers"
 	"github.com/cilium/tetragon/pkg/podhooks"
@@ -26,7 +28,10 @@ func registerPodCallbacks(podInformer cache.SharedIndexInformer) {
 
 	m, err := GlobalMap()
 	if err != nil {
-		logger.GetLogger().WithError(err).Warn("failed to retrieve cgidmap, not registering rthook")
+		// if cgidmap is disabled, an error is expected so do not omit a warning
+		if !errors.Is(err, cgidDisabled) {
+			logger.GetLogger().WithError(err).Warn("failed to retrieve cgidmap, not registering podhook")
+		}
 		return
 	}
 
