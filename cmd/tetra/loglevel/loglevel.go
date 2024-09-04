@@ -69,8 +69,10 @@ func New() *cobra.Command {
 			defer c.Close()
 
 			currentLogLevel, err := c.Client.SetDebug(c.Ctx, &tetragon.SetDebugRequest{
-				Flag:  tetragon.ConfigFlag_CONFIG_FLAG_LOG_LEVEL,
-				Level: tetragon.LogLevel(levelParsed),
+				Flag: tetragon.ConfigFlag_CONFIG_FLAG_LOG_LEVEL,
+				Arg: &tetragon.SetDebugRequest_Level{
+					Level: tetragon.LogLevel(levelParsed),
+				},
 			})
 			if err != nil {
 				return fmt.Errorf("failed to set log level: %w", err)

@@ -145,16 +145,22 @@ message GetDebugRequest{
 }
 message GetDebugResponse{
 	ConfigFlag flag = 1;
-	LogLevel level = 2;
+	oneof arg {
+		LogLevel level = 2;
+	}
 }
 
 message SetDebugRequest{
 	ConfigFlag flag = 1;
-	LogLevel level = 2;
+	oneof arg {
+		LogLevel level = 2;
+	}
 }
 message SetDebugResponse{
 	ConfigFlag flag = 1;
-	LogLevel level = 2;
+	oneof arg {
+		LogLevel level = 2;
+	}
 }
 
 service FineGuidanceSensors {
