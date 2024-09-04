@@ -14,6 +14,13 @@ const (
 )
 
 var (
+	operationLabel = metrics.ConstrainedLabel{
+		Name:   "operation",
+		Values: []string{"get", "remove"},
+	}
+)
+
+var (
 	// TODO: These metrics are also stored as Observer struct fields. We could
 	// collect them only once: https://github.com/cilium/tetragon/issues/2834
 
@@ -53,7 +60,46 @@ var (
 		Help:        "Number of perf events Tetragon ring buffer events queue lost.",
 		ConstLabels: nil,
 	})
+
+	dataCacheTotal = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace:   consts.MetricsNamespace,
+		Name:        "data_cache_size",
+		Help:        "The size of the data cache",
+		ConstLabels: nil,
+	})
+	dataCacheCapacity = metrics.MustNewCustomGauge(metrics.NewOpts(
+		consts.MetricsNamespace, "", "data_cache_capacity",
+		"The capacity of the data cache.",
+		nil, nil, nil,
+	))
+	dataCacheEvictions = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: consts.MetricsNamespace,
+		Name:      "data_cache_evictions_total",
+		Help:      "Number of data cache LRU evictions.",
+	})
+	dataCacheMisses = metrics.MustNewCounter(metrics.NewOpts(
+		consts.MetricsNamespace, "",
+		"data_cache_misses_total",
+		"Number of data cache misses.",
+		nil,
+		[]metrics.ConstrainedLabel{operationLabel},
+		nil,
+	), nil)
 )
+
+func newCacheCollector() prometheus.Collector {
+	return metrics.NewCustomCollector(
+		metrics.CustomMetrics{dataCacheCapacity},
+		func(ch chan<- prometheus.Metric) {
+			capacity := 0
+			if dataCache != nil {
+				capacity = dataCache.size
+			}
+			ch <- dataCacheCapacity.MustMetric(float64(capacity))
+		},
+		nil,
+	)
+}
 
 func RegisterHealthMetrics(group metrics.Group) {
 	group.MustRegister(RingbufReceived)
@@ -61,4 +107,9 @@ func RegisterHealthMetrics(group metrics.Group) {
 	group.MustRegister(RingbufErrors)
 	group.MustRegister(queueReceived)
 	group.MustRegister(queueLost)
+	group.MustRegister(
+		dataCacheTotal,
+		dataCacheEvictions,
+		dataCacheMisses,
+		newCacheCollector())
 }

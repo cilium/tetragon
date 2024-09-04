@@ -29,6 +29,26 @@ Build information about tetragon
 | `modified` | `false` |
 | `time ` | `2022-05-13T15:54:45Z` |
 
+### `tetragon_data_cache_capacity`
+
+The capacity of the data cache.
+
+### `tetragon_data_cache_evictions_total`
+
+Number of data cache LRU evictions.
+
+### `tetragon_data_cache_misses_total`
+
+Number of data cache misses.
+
+| label | values |
+| ----- | ------ |
+| `operation` | `get, remove` |
+
+### `tetragon_data_cache_size`
+
+The size of the data cache
+
 ### `tetragon_data_event_size`
 
 The size of received data events.
