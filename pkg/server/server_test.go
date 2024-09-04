@@ -28,8 +28,8 @@ func TestGetDebug(t *testing.T) {
 		t.Errorf("Expected flag in response to be %d, but got %d", tetragon.ConfigFlag_CONFIG_FLAG_LOG_LEVEL, resp.Flag)
 	}
 	expectedLogLevel := logger.GetLogLevel()
-	if resp.Level != tetragon.LogLevel(expectedLogLevel) {
-		t.Errorf("Expected log level in response to be %s, but got %s", expectedLogLevel.String(), resp.Level.String())
+	if resp.GetLevel() != tetragon.LogLevel(expectedLogLevel) {
+		t.Errorf("Expected log level in response to be %s, but got %s", expectedLogLevel.String(), resp.GetLevel().String())
 	}
 
 	// Test unknown flag
@@ -45,7 +45,12 @@ func TestGetDebug(t *testing.T) {
 
 func TestSetDebug(t *testing.T) {
 	srv := &Server{}
-	req := &tetragon.SetDebugRequest{Flag: tetragon.ConfigFlag_CONFIG_FLAG_LOG_LEVEL, Level: tetragon.LogLevel(logrus.InfoLevel)}
+	req := &tetragon.SetDebugRequest{
+		Flag: tetragon.ConfigFlag_CONFIG_FLAG_LOG_LEVEL,
+		Arg: &tetragon.SetDebugRequest_Level{
+			Level: tetragon.LogLevel(logrus.InfoLevel),
+		},
+	}
 	resp, err := srv.SetDebug(context.Background(), req)
 	if err != nil {
 		t.Errorf("Expected SetDebug to succeed, got error %v", err)
@@ -54,8 +59,8 @@ func TestSetDebug(t *testing.T) {
 		t.Errorf("Expected flag in response to be %d, but got %d", tetragon.ConfigFlag_CONFIG_FLAG_LOG_LEVEL, resp.Flag)
 	}
 	expectedLogLevel := logrus.InfoLevel
-	if resp.Level != tetragon.LogLevel(expectedLogLevel) {
-		t.Errorf("Expected log level in response to be %s, but got %s", expectedLogLevel.String(), resp.Level.String())
+	if resp.GetLevel() != tetragon.LogLevel(expectedLogLevel) {
+		t.Errorf("Expected log level in response to be %s, but got %s", expectedLogLevel.String(), resp.GetLevel().String())
 	}
 
 	// Test unknown flag
@@ -70,7 +75,12 @@ func TestSetDebug(t *testing.T) {
 
 	// Test changing log level
 	prevLogLevel := logger.GetLogLevel()
-	req = &tetragon.SetDebugRequest{Flag: tetragon.ConfigFlag_CONFIG_FLAG_LOG_LEVEL, Level: tetragon.LogLevel(logrus.DebugLevel)}
+	req = &tetragon.SetDebugRequest{
+		Flag: tetragon.ConfigFlag_CONFIG_FLAG_LOG_LEVEL,
+		Arg: &tetragon.SetDebugRequest_Level{
+			Level: tetragon.LogLevel(logrus.DebugLevel),
+		},
+	}
 	_, err = srv.SetDebug(context.Background(), req)
 	if err != nil {
 		t.Errorf("Expected SetDebug to succeed, got error %v", err)
