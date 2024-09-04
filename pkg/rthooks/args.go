@@ -58,6 +58,7 @@ func (arg *CreateContainerArg) CgroupID() (uint64, error) {
 func podIDFromCgroupPath(p string) string {
 	podPath := filepath.Dir(p)
 	podIDstr := filepath.Base(podPath)
+	podIDstr = strings.TrimSuffix(podIDstr, ".slice")
 	if len(podIDstr) > uidStringLen {
 		// remove pod prefix
 		podIDstr = podIDstr[len(podIDstr)-uidStringLen:]
@@ -78,6 +79,7 @@ func containerIDFromCgroupPath(p string) string {
 	if idx := strings.LastIndex(containerID, "-"); idx != -1 {
 		containerID = containerID[idx+1:]
 	}
+	containerID = strings.TrimSuffix(containerID, ".scope")
 	return containerID
 }
 
