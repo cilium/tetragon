@@ -8,7 +8,6 @@
 package cgidmap
 
 import (
-	"errors"
 	"sync"
 
 	"github.com/cilium/tetragon/pkg/logger"
@@ -249,12 +248,20 @@ var (
 	setGlMap sync.Once
 )
 
+type cgidDisabledTy struct{}
+
+var cgidDisabled = &cgidDisabledTy{}
+
+func (e *cgidDisabledTy) Error() string {
+	return "cgidmap disabled"
+}
+
 // GetState returns the global map
 func GlobalMap() (Map, error) {
 	setGlMap.Do(func() {
 		if !option.Config.EnableCgIDmap {
 			glMap = nil
-			glError = errors.New("cgidmap disabled")
+			glError = cgidDisabled
 			return
 		}
 
