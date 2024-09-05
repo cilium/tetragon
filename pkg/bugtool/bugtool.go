@@ -185,7 +185,7 @@ func (s *bugtoolInfo) tarAddFile(tarWriter *tar.Writer, fnameSrc string, fnameDs
 
 	_, err = io.Copy(tarWriter, fileSrc)
 	if err != nil {
-		s.multiLog.WithField("fnameSrc", fnameSrc).Warn("error copying data from source file")
+		s.multiLog.WithError(err).WithField("fnameSrc", fnameSrc).Warn("error copying data from source file")
 		return err
 	}
 
