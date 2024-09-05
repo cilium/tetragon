@@ -249,6 +249,7 @@
       "matchBaseBranches": [
         "v1.0",
         "v1.1",
+        "v1.2",
       ],
       // postUpgradeTasks is only for when the Go module directives are bumped
       "postUpgradeTasks": {
@@ -316,6 +317,7 @@
       "matchBaseBranches": [
         "v1.0",
         "v1.1",
+        "v1.2",
       ]
     },
     {
@@ -325,6 +327,7 @@
       "matchBaseBranches": [
         "v1.0",
         "v1.1",
+        "v1.2",
       ]
     },
     {
@@ -349,6 +352,7 @@
       "allowedVersions": "/^1\\.22\\.[0-9]+-?(alpine)?$/",
       "matchBaseBranches": [
         "v1.1",
+        "v1.2",
       ]
     },
     // ignore deps section
