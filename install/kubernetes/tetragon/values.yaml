@@ -40,7 +40,7 @@ tetragon:
   image:
     override: ~
     repository: quay.io/cilium/tetragon
-    tag: v1.1.2
+    tag: v1.2.0
   resources: {}
   extraArgs: {}
   extraEnv: []
@@ -268,7 +268,7 @@ tetragonOperator:
   image:
     override: ~
     repository: quay.io/cilium/tetragon-operator
-    tag: v1.1.2
+    tag: v1.2.0
     pullPolicy: IfNotPresent
   # -- Extra volumes for the Tetragon Operator Deployment.
   extraVolumes: []
@@ -340,7 +340,6 @@ crds:
   # default doesn't perform CRD downgrades. These can be configured in tetragonOperator section.
   # The "helm" method always installs all CRDs for the chart version.
   installMethod: "operator"
-
 # -- Method for installing Tetagon rthooks (tetragon-rthooks) daemonset
 # The tetragon-rthooks daemonset is responsible for installing run-time hooks on the host.
 # See: https://tetragon.io/docs/concepts/runtime-hooks
