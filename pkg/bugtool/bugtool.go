@@ -258,6 +258,7 @@ func doBugtool(info *InitInfo, outFname string) error {
 	si.addGopsInfo(tarWriter)
 	si.dumpPolicyFilterMap(tarWriter)
 	si.addGrpcInfo(tarWriter)
+	si.addPmapOut(tarWriter)
 	return nil
 }
 
@@ -606,4 +607,15 @@ func (s *bugtoolInfo) addGrpcInfo(tarWriter *tar.Writer) {
 	}
 
 	s.multiLog.Infof("dumped tracing policies in %s", fname)
+}
+
+func (s bugtoolInfo) addPmapOut(tarWriter *tar.Writer) error {
+	pmap, err := exec.LookPath("pmap")
+	if err != nil {
+		s.multiLog.WithError(err).Warn("Failed to locate pmap. Please install it.")
+		return fmt.Errorf("failed to locate pmap: %w", err)
+	}
+
+	s.execCmd(tarWriter, "pmap.out", pmap, "-x", fmt.Sprintf("%d", s.info.PID))
+	return nil
 }
