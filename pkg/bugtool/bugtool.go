@@ -46,6 +46,7 @@ type InitInfo struct {
 	MapDir      string `json:"map_dir"`
 	BpfToolPath string `json:"bpftool_path"`
 	GopsPath    string `json:"gops_path"`
+	PID         int    `json:"pid"`
 }
 
 // LoadInitInfo returns the InitInfo by reading the info file from its default location

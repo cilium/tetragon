@@ -132,6 +132,7 @@ func saveInitInfo() error {
 		ServerAddr:  option.Config.ServerAddress,
 		GopsAddr:    option.Config.GopsAddr,
 		MapDir:      bpf.MapPrefixPath(),
+		PID:         os.Getpid(),
 	}
 	return bugtool.SaveInitInfo(&info)
 }
