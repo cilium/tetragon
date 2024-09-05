@@ -5,61 +5,22 @@ Depending on your setup, changes listed here might require a manual intervention
 
 * TBD
 
-#### Agent Options
+### Agent Options
 
 * TBD
 
-#### Helm Values
-
-* Tetragon container now uses the gRPC liveness probe by default. To continue using "tetra status" for liveness probe,
-specify `tetragon.livenessProbe` Helm value. For example:
-```yaml
-tetragon:
-  livenessProbe:
-     timeoutSeconds: 60
-     exec:
-       command:
-       - tetra
-       - status
-       - --server-address
-       - "54321"
-       - --retries
-       - "5"
-```
-* Deprecated `tetragon.skipCRDCreation` Helm value is removed. Use `crds.installMethod=none` instead.
-
-* `tetragon.ociHookSetup` Helm value is deprecated. Use `tetragon.rthooks` instead.
-
-#### TracingPolicy (k8s CRD)
+### Helm Values
 
 * TBD
 
-#### Events (protobuf API)
+### TracingPolicy (k8s CRD)
 
-* Sensor managing methods have been deprecated:
-  * `ListSensors`
-  * `EnableSensor`
-  * `DisableSensor`
-  * `RemoveSensor`
+* TBD
 
-#### Metrics
+### Events (protobuf API)
 
-* `tetragon_policyfilter_metrics_total` metric is renamed to `tetragon_policyfilter_operations_total`, and its `op`
-  label is renamed to `operation`.
-* `tetragon_missed_events_total` metric is renamed to `tetragon_bpf_missed_events_total`.
-* Metrics related to ring buffer and events queue are renamed:
-  * `tetragon_ringbuf_perf_event_errors_total` -> `tetragon_observer_ringbuf_errors_total`
-  * `tetragon_ringbuf_perf_event_received_total` -> `tetragon_observer_ringbuf_events_received_total`
-  * `tetragon_ringbuf_perf_event_lost_total` -> `tetragon_observer_ringbuf_events_lost_total`
-  * `tetragon_ringbuf_queue_received_total` -> `tetragon_observer_ringbuf_queue_events_received_total`
-  * `tetragon_ringbuf_queue_lost_total` -> `tetragon_observer_ringbuf_queue_events_lost_total`
-* `tetragon_errors_total{type="process_cache_evicted"}` metric is replaced by `tetragon_process_cache_evicted_total`.
-* `tetragon_errors_total{type=~"process_cache_miss_on_get|process_cache_miss_on_remove"}` metrics are replaced by
-  `tetragon_process_cache_misses_total{operation=~"get|remove"}`.
-* `tetragon_event_cache_<entry_type>_errors_total` metrics are replaced by
-  `tetragon_event_cache_fetch_failures_total{entry_type="<entry_type>"}`.
-* `tetragon_event_cache_accesses_total` metric is renamed to `tetragon_event_cache_inserts_total`.
-* `tetragon_event_cache_retries_total` metric is renamed to `tetragon_event_cache_fetch_retries_total`.
-* `tetragon_errors_total{type="event_missing_process_info"}` metric is replaced by
-  `tetragon_events_missing_process_info_total`.
-* `tetragon_errors_total{type="handler_error"}` metric is removed. Use `tetragon_handler_errors_total` instead.
+* TBD
+
+### Metrics
+
+* TBD
