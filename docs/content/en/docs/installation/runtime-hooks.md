@@ -5,7 +5,7 @@ weight: 3
 description: "Configure Runtime Hooks"
 ---
 
-See [Tetragon Rutime Hooks]({{< ref "/docs/concepts/runtime-hooks" >}}), for an introduction to
+See [Tetragon Runtime Hooks]({{< ref "/docs/concepts/runtime-hooks" >}}), for an introduction to
 the topic.
 
 We use `minikube` as the example platform because it supports both `cri-o` and `containerd`. Also,
