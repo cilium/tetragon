@@ -105,7 +105,7 @@ type TracingPolicySpec struct {
 	Lists []ListSpec `json:"lists,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	// A killer spec.
+	// A enforcer spec.
 	Enforcers []EnforcerSpec `json:"enforcers,omitempty"`
 
 	// +kubebuilder:validation:Optional

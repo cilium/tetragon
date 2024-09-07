@@ -68,7 +68,7 @@
           "additionalProperties": false
         },
         "enforcers": {
-          "description": "A killer spec.",
+          "description": "A enforcer spec.",
           "items": {
             "properties": {
               "calls": {

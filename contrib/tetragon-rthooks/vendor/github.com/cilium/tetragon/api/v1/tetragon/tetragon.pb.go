@@ -55,7 +55,7 @@ const (
 	KprobeAction_KPROBE_ACTION_TRACKSOCK KprobeAction = 11
 	// UntrackSock action un-tracks socket.
 	KprobeAction_KPROBE_ACTION_UNTRACKSOCK KprobeAction = 12
-	// NotifyEnforcer action notifies killer sensor.
+	// NotifyEnforcer action notifies enforcer sensor.
 	KprobeAction_KPROBE_ACTION_NOTIFYENFORCER KprobeAction = 13
 )
 

@@ -92,7 +92,7 @@ spec:
                     type: object
                 type: object
               enforcers:
-                description: A killer spec.
+                description: A enforcer spec.
                 items:
                   properties:
                     calls:
