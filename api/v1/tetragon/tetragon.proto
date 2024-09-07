@@ -463,7 +463,7 @@ enum KprobeAction {
 	KPROBE_ACTION_TRACKSOCK   = 11;
     // UntrackSock action un-tracks socket.
 	KPROBE_ACTION_UNTRACKSOCK = 12;
-    // NotifyEnforcer action notifies killer sensor.
+    // NotifyEnforcer action notifies enforcer sensor.
 	KPROBE_ACTION_NOTIFYENFORCER = 13;
 }
 

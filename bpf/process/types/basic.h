@@ -107,7 +107,7 @@ enum {
 	ACTION_SIGNAL = 9,
 	ACTION_TRACKSOCK = 10,
 	ACTION_UNTRACKSOCK = 11,
-	ACTION_NOTIFY_KILLER = 12,
+	ACTION_NOTIFY_ENFORCER = 12,
 };
 
 enum {
@@ -2257,7 +2257,7 @@ do_action(void *ctx, __u32 i, struct selector_action *actions,
 		socki = actions->act[++i];
 		err = tracksock(e, socki, action == ACTION_TRACKSOCK);
 		break;
-	case ACTION_NOTIFY_KILLER:
+	case ACTION_NOTIFY_ENFORCER:
 		error = actions->act[++i];
 		signal = actions->act[++i];
 		do_action_notify_enforcer(error, signal);
