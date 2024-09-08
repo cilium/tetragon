@@ -103,6 +103,10 @@ Timestamp of the most recent event to be exported
 
 Number of events missing process info.
 
+### `tetragon_export_ratelimit_events_dropped_total`
+
+Number of events dropped on export due to rate limiting
+
 ### `tetragon_flags_total`
 
 The total number of Tetragon flags. For internal use only.
@@ -262,10 +266,6 @@ Process Loader event statistics. For internal use only.
 | label | values |
 | ----- | ------ |
 | `count` | `LoaderReceived, LoaderResolvedImm, LoaderResolvedRetry` |
-
-### `tetragon_ratelimit_dropped_total`
-
-The total number of rate limit Tetragon drops
 
 ### `tetragon_tracingpolicy_loaded`
 

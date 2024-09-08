@@ -23,4 +23,4 @@ Depending on your setup, changes listed here might require a manual intervention
 
 ### Metrics
 
-* TBD
+* `tetragon_ratelimit_dropped_total` metric is renamed to `tetragon_export_ratelimit_events_dropped_total`
