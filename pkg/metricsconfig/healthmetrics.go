@@ -17,7 +17,6 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics/opcodemetrics"
 	"github.com/cilium/tetragon/pkg/metrics/policyfiltermetrics"
 	"github.com/cilium/tetragon/pkg/metrics/policystatemetrics"
-	"github.com/cilium/tetragon/pkg/metrics/ratelimitmetrics"
 	"github.com/cilium/tetragon/pkg/metrics/watchermetrics"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/process"
@@ -81,8 +80,6 @@ func registerHealthMetrics(group metrics.Group) {
 	// tracing metrics
 	tracing.RegisterMetrics(group)
 	group.ExtendInit(tracing.InitMetrics)
-	// rate limit metrics
-	ratelimitmetrics.RegisterMetrics(group)
 	// exporter metrics
 	exporter.RegisterMetrics(group)
 	// cgrup rate metrics
