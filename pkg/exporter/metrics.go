@@ -32,8 +32,8 @@ var (
 
 	rateLimitDropped = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
-		Name:        "ratelimit_dropped_total",
-		Help:        "The total number of rate limit Tetragon drops",
+		Name:        "export_ratelimit_events_dropped_total",
+		Help:        "Number of events dropped on export due to rate limiting",
 		ConstLabels: nil,
 	})
 )
