@@ -56,6 +56,7 @@ func (e *Exporter) Start() error {
 func (e *Exporter) Send(event *tetragon.GetEventsResponse) error {
 	if e.rateLimiter != nil && !e.rateLimiter.Allow() {
 		e.rateLimiter.Drop()
+		rateLimitDropped.Inc()
 		return nil
 	}
 

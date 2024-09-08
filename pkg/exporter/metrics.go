@@ -29,12 +29,22 @@ var (
 		Name:      "events_last_exported_timestamp",
 		Help:      "Timestamp of the most recent event to be exported",
 	})
+
+	rateLimitDropped = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace:   consts.MetricsNamespace,
+		Name:        "ratelimit_dropped_total",
+		Help:        "The total number of rate limit Tetragon drops",
+		ConstLabels: nil,
+	})
 )
 
 func RegisterMetrics(group metrics.Group) {
-	group.MustRegister(eventsExportedTotal)
-	group.MustRegister(eventsExportedBytesTotal)
-	group.MustRegister(eventsExportTimestamp)
+	group.MustRegister(
+		eventsExportedTotal,
+		eventsExportedBytesTotal,
+		eventsExportTimestamp,
+		rateLimitDropped,
+	)
 }
 
 func newExportedBytesCounterWriter(w io.Writer, c prometheus.Counter) io.Writer {
