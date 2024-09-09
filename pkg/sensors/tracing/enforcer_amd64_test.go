@@ -23,7 +23,7 @@ func TestEnforcerOverride32(t *testing.T) {
 
 	test := testutils.RepoRootPath("contrib/tester-progs/enforcer-tester-32")
 	yaml := NewEnforcerSpecBuilder("enforcer-override").
-		WithSyscallList("__ia32_sys_prctl").
+		WithSyscallList("i386/sys_prctl").
 		WithMatchBinaries(test).
 		WithOverrideValue(-17). // EEXIST
 		MustYAML()
@@ -52,7 +52,7 @@ func TestEnforcerSignal32(t *testing.T) {
 
 	test := testutils.RepoRootPath("contrib/tester-progs/enforcer-tester-32")
 	yaml := NewEnforcerSpecBuilder("enforcer-signal").
-		WithSyscallList("__ia32_sys_prctl").
+		WithSyscallList("i386/sys_prctl").
 		WithMatchBinaries(test).
 		WithOverrideValue(-17). // EEXIST
 		WithKill(9).            // SigKill
@@ -84,7 +84,7 @@ func TestEnforcerOverrideBothBits(t *testing.T) {
 	test64 := testutils.RepoRootPath("contrib/tester-progs/enforcer-tester")
 
 	yaml := NewEnforcerSpecBuilder("enforcer-override").
-		WithSyscallList("__ia32_sys_prctl", "sys_prctl").
+		WithSyscallList("i386/sys_prctl", "sys_prctl").
 		WithMatchBinaries(test32, test64).
 		WithOverrideValue(-17). // EEXIST
 		MustYAML()

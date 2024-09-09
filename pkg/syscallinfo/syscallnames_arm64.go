@@ -7,6 +7,8 @@
 package syscallinfo
 
 import (
+	"fmt"
+
 	"golang.org/x/sys/unix"
 )
 
@@ -318,4 +320,29 @@ var syscallNames = map[int]string{
 	// unix.SYS_SET_MEMPOLICY_HOME_NODE: "sys_set_mempolicy_home_node",
 }
 
-var syscallNames32 = map[int]string{}
+var syscallIDs = func() map[string]int {
+	ret := make(map[string]int, len(syscallNames))
+	for k, v := range syscallNames {
+		ret[v] = k
+	}
+	return ret
+}()
+
+func syscallID(name, abi string) (int, error) {
+	var ids map[string]int
+
+	switch abi {
+	case "", "arm64":
+		ids = syscallIDs
+	case "arm32":
+		return -1, fmt.Errorf("%s  not yet supported", abi)
+	default:
+		return -1, fmt.Errorf("unknown abi: %s", abi)
+	}
+
+	k := fmt.Sprintf("sys_%s", name)
+	if id, ok := ids[k]; ok {
+		return id, nil
+	}
+	return -1, fmt.Errorf("syscall %s for abi %s was not found", name, abi)
+}
