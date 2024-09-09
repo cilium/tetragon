@@ -24,7 +24,7 @@ HELM ?= docker run --rm -v $(CURDIR)/$(TETRAGON_CHART):/apps -v $(CURDIR)/$(HELM
 PYTHON ?= docker run --rm -v $(REPO_ROOT):/code --workdir=/code/install/kubernetes -e FILENAME_FORMAT='{kind}-{fullgroup}' $(PYTHON_IMAGE)
 
 .PHONY: all
-all: $(TETRAGON_CHART)/crds-yaml lint docs openapi2jsonschema.py generate-jsonschemas kubeconform
+all: $(TETRAGON_CHART)/crds-yaml lint docs generate-jsonschemas kubeconform
 
 .PHONY: lint
 lint:
