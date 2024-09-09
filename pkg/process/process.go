@@ -142,6 +142,10 @@ func (pi *ProcessInternal) UnsafeGetProcess() *tetragon.Process {
 	return pi.process
 }
 
+func (pi *ProcessInternal) GetCgID() uint64 {
+	return pi.cgID
+}
+
 // UpdateExecOutsideCache() checks if we must augment the ProcessExec.Process
 // with more fields without propagating again those fields into the process
 // cache. This means that those added fields will only show up for the
@@ -502,7 +506,7 @@ func AddExecEvent(event *tetragonAPI.MsgExecveEventUnix) *ProcessInternal {
 }
 
 // AddCloneEvent adds a new process into the cache from a CloneEvent
-func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) error {
+func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) (*ProcessInternal, error) {
 	parentExecId := GetProcessID(event.Parent.Pid, event.Parent.Ktime)
 	parent, err := Get(parentExecId)
 	if err != nil {
@@ -511,17 +515,17 @@ func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) error {
 			"event.parent.pid":     event.Parent.Pid,
 			"event.parent.exec_id": parentExecId,
 		}).WithError(err).Debug("CloneEvent: parent process not found in cache")
-		return err
+		return nil, err
 	}
 
 	proc, err := initProcessInternalClone(event, parent, parentExecId)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	parent.RefInc("parent")
 	procCache.add(proc)
-	return nil
+	return proc, nil
 }
 
 func Get(execId string) (*ProcessInternal, error) {
