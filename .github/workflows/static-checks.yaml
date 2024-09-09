@@ -48,7 +48,7 @@ jobs:
         uses: golangci/golangci-lint-action@a4f60bb28d35aeee14e6880718e0c85ff1882e64 # v6.0.1
         with:
           # renovate: datasource=docker depName=docker.io/golangci/golangci-lint
-          version: v1.60.3
+          version: v1.61.0
           args: --config=.golangci.yml --verbose
 
   format:
