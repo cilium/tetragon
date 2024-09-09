@@ -198,47 +198,48 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 	)
 
 	kh := &enforcerHandler{}
-
-	// get all the syscalls
-	for idx := range enforcer.Calls {
-		sym := enforcer.Calls[idx]
-		if strings.HasPrefix(sym, "list:") {
-			listName := sym[len("list:"):]
-
-			list := getList(listName, lists)
+	for _, call := range enforcer.Calls {
+		var symsToAdd []string
+		if isL, list := isList(call, lists); isL {
 			if list == nil {
-				return nil, fmt.Errorf("Error list '%s' not found", listName)
+				return nil, fmt.Errorf("Error list '%s' not found", call)
 			}
-
-			kh.syscallsSyms = append(kh.syscallsSyms, list.Values...)
-			continue
-		}
-
-		kh.syscallsSyms = append(kh.syscallsSyms, sym)
-	}
-
-	var err error
-
-	// fix syscalls
-	for idx, sym := range kh.syscallsSyms {
-		isPrefix := arch.HasSyscallPrefix(sym)
-		isSyscall := strings.HasPrefix(sym, "sys_")
-		isSecurity := strings.HasPrefix(sym, "security_")
-
-		if !isSyscall && !isSecurity && !isPrefix {
-			return nil, fmt.Errorf("enforcer sensor requires either syscall or security_ functions")
-		}
-
-		if isSyscall {
-			sym, err = arch.AddSyscallPrefix(sym)
-			if err != nil {
-				return nil, err
+			switch list.Type {
+			case "syscalls":
+				syms, err := getSyscallListSymbols(list)
+				if err != nil {
+					return nil, err
+				}
+				hasSyscall = true
+				// we know that this is a list of syscalls, so no need to check them
+				kh.syscallsSyms = append(kh.syscallsSyms, syms...)
+				continue
+			default:
+				// for everything else, we just append the symbols
+				symsToAdd = list.Values
 			}
-			kh.syscallsSyms[idx] = sym
+		} else {
+			symsToAdd = []string{call}
 		}
 
-		hasSyscall = hasSyscall || isSyscall || isPrefix
-		hasSecurity = hasSecurity || isSecurity
+		// check and add the rest of the symbols
+		for _, sym := range symsToAdd {
+			if arch.HasSyscallPrefix(sym) {
+				hasSyscall = true
+			} else if strings.HasPrefix(sym, "sys_") {
+				hasSyscall = true
+				var err error
+				sym, err = arch.AddSyscallPrefix(sym)
+				if err != nil {
+					return nil, err
+				}
+			} else if strings.HasPrefix(sym, "security_") {
+				hasSecurity = true
+			} else {
+				return nil, fmt.Errorf("enforcer sensor requires either syscall or security_ functions and symbol '%s' appears to be neither", sym)
+			}
+			kh.syscallsSyms = append(kh.syscallsSyms, sym)
+		}
 	}
 
 	// register enforcer sensor

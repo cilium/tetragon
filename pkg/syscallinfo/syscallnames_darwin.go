@@ -6,6 +6,8 @@
 package syscallinfo
 
 import (
+	"errors"
+
 	"golang.org/x/sys/unix"
 )
 
@@ -375,3 +377,7 @@ var syscallNames = map[int]string{
 }
 
 var syscallNames32 = map[int]string{}
+
+func syscallID(n string, abi string) (int, error) {
+	return -1, errors.New("syscall ID not supported in darwin")
+}

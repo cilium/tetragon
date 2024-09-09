@@ -7,22 +7,26 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/ftrace"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
-	"github.com/cilium/tetragon/pkg/syscallinfo"
 )
 
-func getList(name string, lists []v1alpha1.ListSpec) *v1alpha1.ListSpec {
+// isList checks if a value specifies a list, and if so it returns it (or nil if list does not exist)
+func isList(val string, lists []v1alpha1.ListSpec) (bool, *v1alpha1.ListSpec) {
+	name, found := strings.CutPrefix(val, "list:")
+	if !found {
+		return false, nil
+	}
 	for idx := range lists {
 		list := &lists[idx]
 		if list.Name == name {
-			return list
+			return true, list
 		}
 	}
-	return nil
+	return true, nil
+
 }
 
 const (
@@ -58,22 +62,6 @@ func isSyscallListType(typ string) bool {
 func validateList(list *v1alpha1.ListSpec) (err error) {
 	if listTypeFromString(list.Type) == ListTypeInvalid {
 		return fmt.Errorf("Invalid list type: %s", list.Type)
-	}
-
-	// Add prefix to syscalls list
-	if listTypeFromString(list.Type) == ListTypeSyscalls {
-		for idx := range list.Values {
-			// keep symbols with '__' prefix
-			if strings.HasPrefix(list.Values[idx], "__") {
-				continue
-			}
-			symbol, err := arch.AddSyscallPrefix(list.Values[idx])
-			if err != nil {
-				return err
-			}
-			list.Values[idx] = symbol
-		}
-		return nil
 	}
 
 	// Generate syscalls list
@@ -144,29 +132,41 @@ func (lr *listReader) Read(name string, ty uint32) ([]uint32, error) {
 		return []uint32{}, fmt.Errorf("Error list '%s' argument type is not syscall64", name)
 	}
 
-	var (
-		res []uint32
-		id  int
-	)
-
-	for idx := range list.Values {
-		sc, is32 := arch.CutSyscallPrefix(list.Values[idx])
-		sc = strings.TrimPrefix(sc, "sys_")
-
-		if is32 {
-			id = syscallinfo.GetSyscallID32(sc)
-		} else {
-			id = syscallinfo.GetSyscallID(sc)
-		}
-
-		if id == -1 {
-			return []uint32{}, fmt.Errorf("failed list '%s' cannot translate syscall '%s'", name, sc)
-		}
-		if is32 {
-			id |= Is32Bit
+	var res []uint32
+	for _, val := range list.Values {
+		id, err := SyscallVal(val).ID()
+		if err != nil {
+			return nil, err
 		}
 		res = append(res, uint32(id))
 	}
 
 	return res, nil
+}
+
+func getSyscallListSymbols(list *v1alpha1.ListSpec) ([]string, error) {
+	if list.Type != "syscalls" {
+		return nil, fmt.Errorf("unexpected error: getSyscallListSymbols was passed a non-syscall list")
+	}
+
+	// syscalls list values requires special interpretation
+	ret := make([]string, 0, len(list.Values))
+	for _, val := range list.Values {
+		symbol, err := SyscallVal(val).Symbol()
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse list element (%s) of syscall list %s: %w", val, list.Name, err)
+		}
+		ret = append(ret, symbol)
+	}
+
+	return ret, nil
+}
+
+func getListSymbols(list *v1alpha1.ListSpec) ([]string, error) {
+	switch list.Type {
+	case "syscalls":
+		return getSyscallListSymbols(list)
+	default:
+		return list.Values, nil
+	}
 }

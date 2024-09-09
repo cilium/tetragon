@@ -35,22 +35,6 @@ func init() {
 	}
 }
 
-var syscallIDs = func() map[string]int {
-	ret := make(map[string]int, len(syscallNames))
-	for k, v := range syscallNames {
-		ret[v] = k
-	}
-	return ret
-}()
-
-var syscallIDs32 = func() map[string]int {
-	ret := make(map[string]int, len(syscallNames32))
-	for k, v := range syscallNames32 {
-		ret[v] = k
-	}
-	return ret
-}()
-
 func SyscallsNames() []string {
 	ret := make([]string, 0, len(syscallNames))
 
@@ -60,24 +44,11 @@ func SyscallsNames() []string {
 	return ret
 }
 
-// GetSyscallID returns the id of a syscall based on its name
+// SyscallID returns the id of a syscall based on its name and an ABI
+// ABI may be empty, in which case the default ABI is used (e.g., x64 for x86_64)
 // returns -1, if no system call was found
-func GetSyscallID(sysName string) int {
-	k := fmt.Sprintf("sys_%s", sysName)
-	if id, ok := syscallIDs[k]; ok {
-		return id
-	}
-	return -1
-}
-
-// GetSyscallID returns the id of a syscall based on its name
-// returns -1, if no system call was found
-func GetSyscallID32(sysName string) int {
-	k := fmt.Sprintf("sys_%s", sysName)
-	if id, ok := syscallIDs32[k]; ok {
-		return id
-	}
-	return -1
+func SyscallID(sysName string, abi string) (int, error) {
+	return syscallID(sysName, abi)
 }
 
 // GetSyscallName returns the name of a syscall based on its i d

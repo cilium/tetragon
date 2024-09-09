@@ -525,8 +525,8 @@ spec:
 
 Syscalls specified with `sys_` prefix are translated to their 64 bit equivalent function names.
 
-It's possible to specify 32 bit syscall by using its full function name that
-includes specific architecture native prefix (like `__ia32_` for `x86`):
+It's possible to specify a syscall for an alternative ABI by using the ABI name as a prefix.
+For example:
 
 ```yaml
 spec:
@@ -535,7 +535,7 @@ spec:
     type: "syscalls"
     values:
     - "sys_dup"
-    - "__ia32_sys_dup"
+    - "i386/sys_dup"
     name: "another"
     - "sys_open"
     - "sys_close"
@@ -665,7 +665,7 @@ spec:
     type: "syscalls"
     values:
     - "sys_dup"
-    - "__ia32_sys_dup"
+    - "i386/sys_dup"
   tracepoints:
   - subsystem: "raw_syscalls"
     event: "sys_enter"

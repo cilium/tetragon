@@ -442,28 +442,33 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec, lists []v1al
 	for i := range kprobes {
 		f := &kprobes[i]
 
-		var list *v1alpha1.ListSpec
+		var calls []string
 
 		// the f.Call is either defined as list:NAME
 		// or specifies directly the function
-		if strings.HasPrefix(f.Call, "list:") {
-			listName := f.Call[len("list:"):]
-
-			list = getList(listName, lists)
+		if isL, list := isList(f.Call, lists); isL {
 			if list == nil {
-				return fmt.Errorf("Error list '%s' not found", listName)
+				return fmt.Errorf("Error list '%s' not found", f.Call)
 			}
-		} else if f.Syscall {
-			// modifying f.Call directly since BTF validation
-			// later will use v1alpha1.KProbeSpec object
-			prefixedName, err := arch.AddSyscallPrefix(f.Call)
+			var err error
+			calls, err = getListSymbols(list)
 			if err != nil {
-				logger.GetLogger().WithFields(logrus.Fields{
-					"sensor": name,
-				}).WithError(err).Warn("Kprobe spec pre-validation of syscall prefix failed")
-			} else {
-				f.Call = prefixedName
+				return fmt.Errorf("failed to get symbols from list '%s': %w", f.Call, err)
 			}
+		} else {
+			if f.Syscall {
+				// modifying f.Call directly since BTF validation
+				// later will use v1alpha1.KProbeSpec object
+				prefixedName, err := arch.AddSyscallPrefix(f.Call)
+				if err != nil {
+					logger.GetLogger().WithFields(logrus.Fields{
+						"sensor": name,
+					}).WithError(err).Warn("Kprobe spec pre-validation of syscall prefix failed")
+				} else {
+					f.Call = prefixedName
+				}
+			}
+			calls = []string{f.Call}
 		}
 
 		for sid, selector := range f.Selectors {
@@ -473,14 +478,6 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec, lists []v1al
 				}
 			}
 		}
-
-		// get the call possible values, either from f.Call or the list
-		calls := func() []string {
-			if list != nil {
-				return list.Values
-			}
-			return []string{f.Call}
-		}()
 
 		if selectors.HasOverride(f) {
 			if !bpf.HasOverrideHelper() {
@@ -541,15 +538,15 @@ type addKprobeIn struct {
 }
 
 func getKprobeSymbols(symbol string, syscall bool, lists []v1alpha1.ListSpec) ([]string, bool, error) {
-	if strings.HasPrefix(symbol, "list:") {
-		name := symbol[len("list:"):]
-		for idx := range lists {
-			list := lists[idx]
-			if list.Name == name {
-				return list.Values, isSyscallListType(list.Type), nil
-			}
+	if isL, list := isList(symbol, lists); isL {
+		if list == nil {
+			return nil, false, fmt.Errorf("list '%s' not found", symbol)
 		}
-		return []string{""}, false, fmt.Errorf("list '%s' not found", name)
+		symbols, err := getListSymbols(list)
+		if err != nil {
+			return nil, true, fmt.Errorf("failed to get kprobe symbols from syscall list: %w", err)
+		}
+		return symbols, isSyscallListType(list.Type), nil
 	}
 	return []string{symbol}, syscall, nil
 }

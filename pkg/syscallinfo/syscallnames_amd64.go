@@ -7,6 +7,8 @@
 package syscallinfo
 
 import (
+	"fmt"
+
 	"github.com/cilium/tetragon/pkg/syscallinfo/i386"
 	"golang.org/x/sys/unix"
 )
@@ -376,7 +378,7 @@ var syscallNames = map[int]string{
 	// unix.SYS_SET_MEMPOLICY_HOME_NODE: "sys_set_mempolicy_home_node",
 }
 
-var syscallNames32 = map[int]string{
+var syscallNamesi386 = map[int]string{
 	i386.SYS_RESTART_SYSCALL:              "sys_restart_syscall",
 	i386.SYS_EXIT:                         "sys_exit",
 	i386.SYS_FORK:                         "sys_fork",
@@ -819,4 +821,39 @@ var syscallNames32 = map[int]string{
 	i386.SYS_SET_MEMPOLICY_HOME_NODE:      "sys_set_mempolicy_home_node",
 	i386.SYS_CACHESTAT:                    "sys_cachestat",
 	i386.SYS_FCHMODAT2:                    "sys_fchmodat2",
+}
+
+var syscallIDs = func() map[string]int {
+	ret := make(map[string]int, len(syscallNames))
+	for k, v := range syscallNames {
+		ret[v] = k
+	}
+	return ret
+}()
+
+var syscallIDs_i386 = func() map[string]int {
+	ret := make(map[string]int, len(syscallNamesi386))
+	for k, v := range syscallNamesi386 {
+		ret[v] = k
+	}
+	return ret
+}()
+
+func syscallID(name, abi string) (int, error) {
+	var ids map[string]int
+
+	switch abi {
+	case "", "x64":
+		ids = syscallIDs
+	case "i386":
+		ids = syscallIDs_i386
+	default:
+		return -1, fmt.Errorf("unknown abi: %s", abi)
+	}
+
+	k := fmt.Sprintf("sys_%s", name)
+	if id, ok := ids[k]; ok {
+		return id, nil
+	}
+	return -1, fmt.Errorf("syscall %s for abi %s was not found", name, abi)
 }
