@@ -300,17 +300,32 @@ func (msg *MsgCloneEventUnix) Notify() bool {
 }
 
 func (msg *MsgCloneEventUnix) RetryInternal(_ notify.Event, _ uint64) (*process.ProcessInternal, error) {
-	return nil, process.AddCloneEvent(&msg.MsgCloneEvent)
+	return process.AddCloneEvent(&msg.MsgCloneEvent)
 }
 
-func (msg *MsgCloneEventUnix) Retry(_ *process.ProcessInternal, _ notify.Event) error {
+func (msg *MsgCloneEventUnix) Retry(internal *process.ProcessInternal, _ notify.Event) error {
+	proc := internal.UnsafeGetProcess()
+	if option.Config.EnableK8s && proc.Docker != "" && proc.Pod == nil {
+		podInfo := process.GetPodInfo(proc.Docker, proc.Binary, proc.Arguments, msg.NSPID)
+		if podInfo == nil {
+			eventcachemetrics.EventCacheRetries(eventcachemetrics.PodInfo).Inc()
+			return eventcache.ErrFailedToGetPodInfo
+		}
+		internal.AddPodInfo(podInfo)
+	}
 	return nil
 }
 
 func (msg *MsgCloneEventUnix) HandleMessage() *tetragon.GetEventsResponse {
-	if err := process.AddCloneEvent(&msg.MsgCloneEvent); err != nil {
-		ec := eventcache.Get()
+	ec := eventcache.Get()
+	if internal, err := process.AddCloneEvent(&msg.MsgCloneEvent); err == nil {
+		if ec != nil && ec.Needed(internal.UnsafeGetProcess()) {
+			// adding to the cache due to missing pod info
+			ec.Add(internal, nil, msg.MsgCloneEvent.Common.Ktime, msg.MsgCloneEvent.Ktime, msg)
+		}
+	} else {
 		if ec != nil {
+			// adding to the cache due to missing parent
 			ec.Add(nil, nil, msg.MsgCloneEvent.Common.Ktime, msg.MsgCloneEvent.Ktime, msg)
 		}
 	}
