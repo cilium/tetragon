@@ -66,7 +66,6 @@ func GetTestSensor() *sensors.Sensor {
 		sensors.PathJoin(sensorName, "test_lseek_prog"),
 		"tracepoint",
 	)}
-	maps := []*program.Map{}
-	sensor := &sensors.Sensor{Name: sensorName, Progs: progs, Maps: maps}
+	sensor := &sensors.Sensor{Name: sensorName, Progs: progs}
 	return sensor
 }

@@ -104,7 +104,6 @@ func GetLoaderSensor() *sensors.Sensor {
 	return &sensors.Sensor{
 		Name:  "__loader__",
 		Progs: []*program.Program{loader},
-		Maps:  []*program.Map{idsMap},
 	}
 }
 
@@ -177,10 +176,10 @@ func createLoaderEvents() error {
 
 func (k *loaderSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 	if loaderEnabled {
-		if err := createLoaderEvents(); err != nil {
+		if err := program.LoadKprobeProgram(args.BPFDir, args.Load, args.Verbose); err != nil {
 			return err
 		}
-		return program.LoadKprobeProgram(args.BPFDir, args.Load, args.Verbose)
+		return createLoaderEvents()
 	}
 	return nil
 }

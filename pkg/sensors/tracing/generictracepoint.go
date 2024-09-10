@@ -391,7 +391,6 @@ func createGenericTracepointSensor(
 		enforcer: len(spec.Enforcers) != 0,
 	}
 
-	maps := []*program.Map{}
 	progs := make([]*program.Program, 0, len(tracepoints))
 	for _, tp := range tracepoints {
 		pinPath := tp.pinPathPrefix
@@ -419,16 +418,12 @@ func createGenericTracepointSensor(
 		if has.fdInstall {
 			fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
 		}
-		maps = append(maps, fdinstall)
-
-		tailCalls := program.MapBuilderPin("tp_calls", sensors.PathJoin(pinPath, "tp_calls"), prog0)
-		maps = append(maps, tailCalls)
 
 		// tracepoint tail calls details
+		tailCalls := program.MapBuilderPin("tp_calls", sensors.PathJoin(pinPath, "tp_calls"), prog0)
 		prog0.SetTailCall("tracepoint", tailCalls)
 
-		filterMap := program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), prog0)
-		maps = append(maps, filterMap)
+		program.MapBuilderPin("filter_map", sensors.PathJoin(pinPath, "filter_map"), prog0)
 
 		argFilterMaps := program.MapBuilderPin("argfilter_maps", sensors.PathJoin(pinPath, "argfilter_maps"), prog0)
 		if !kernels.MinKernelVersion("5.9") {
@@ -437,7 +432,6 @@ func createGenericTracepointSensor(
 			maxEntries := tp.selectors.ValueMapsMaxEntries()
 			argFilterMaps.SetInnerMaxEntries(maxEntries)
 		}
-		maps = append(maps, argFilterMaps)
 
 		addr4FilterMaps := program.MapBuilderPin("addr4lpm_maps", sensors.PathJoin(pinPath, "addr4lpm_maps"), prog0)
 		if !kernels.MinKernelVersion("5.9") {
@@ -446,7 +440,6 @@ func createGenericTracepointSensor(
 			maxEntries := tp.selectors.Addr4MapsMaxEntries()
 			addr4FilterMaps.SetInnerMaxEntries(maxEntries)
 		}
-		maps = append(maps, addr4FilterMaps)
 
 		addr6FilterMaps := program.MapBuilderPin("addr6lpm_maps", sensors.PathJoin(pinPath, "addr6lpm_maps"), prog0)
 		if !kernels.MinKernelVersion("5.9") {
@@ -455,7 +448,6 @@ func createGenericTracepointSensor(
 			maxEntries := tp.selectors.Addr6MapsMaxEntries()
 			addr6FilterMaps.SetInnerMaxEntries(maxEntries)
 		}
-		maps = append(maps, addr6FilterMaps)
 
 		numSubMaps := selectors.StringMapsNumSubMaps
 		if !kernels.MinKernelVersion("5.11") {
@@ -470,7 +462,6 @@ func createGenericTracepointSensor(
 				maxEntries := tp.selectors.StringMapsMaxEntries(string_map_index)
 				stringFilterMap.SetInnerMaxEntries(maxEntries)
 			}
-			maps = append(maps, stringFilterMap)
 		}
 
 		stringPrefixFilterMaps := program.MapBuilderPin("string_prefix_maps", sensors.PathJoin(pinPath, "string_prefix_maps"), prog0)
@@ -480,7 +471,6 @@ func createGenericTracepointSensor(
 			maxEntries := tp.selectors.StringPrefixMapsMaxEntries()
 			stringPrefixFilterMaps.SetInnerMaxEntries(maxEntries)
 		}
-		maps = append(maps, stringPrefixFilterMaps)
 
 		stringPostfixFilterMaps := program.MapBuilderPin("string_postfix_maps", sensors.PathJoin(pinPath, "string_postfix_maps"), prog0)
 		if !kernels.MinKernelVersion("5.9") {
@@ -489,7 +479,6 @@ func createGenericTracepointSensor(
 			maxEntries := tp.selectors.StringPostfixMapsMaxEntries()
 			stringPostfixFilterMaps.SetInnerMaxEntries(maxEntries)
 		}
-		maps = append(maps, stringPostfixFilterMaps)
 
 		matchBinariesPaths := program.MapBuilderPin("tg_mb_paths", sensors.PathJoin(pinPath, "tg_mb_paths"), prog0)
 		if !kernels.MinKernelVersion("5.9") {
@@ -497,22 +486,18 @@ func createGenericTracepointSensor(
 			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
 			matchBinariesPaths.SetInnerMaxEntries(tp.selectors.MatchBinariesPathsMaxEntries())
 		}
-		maps = append(maps, matchBinariesPaths)
 
 		enforcerDataMap := enforcerMap(policyName, prog0)
 		if has.enforcer {
 			enforcerDataMap.SetMaxEntries(enforcerMapMaxEntries)
 		}
-		maps = append(maps, enforcerDataMap)
 
-		selMatchBinariesMap := program.MapBuilderPin("tg_mb_sel_opts", sensors.PathJoin(pinPath, "tg_mb_sel_opts"), prog0)
-		maps = append(maps, selMatchBinariesMap)
+		program.MapBuilderPin("tg_mb_sel_opts", sensors.PathJoin(pinPath, "tg_mb_sel_opts"), prog0)
 	}
 
 	return &sensors.Sensor{
 		Name:  name,
 		Progs: progs,
-		Maps:  maps,
 	}, nil
 }
 

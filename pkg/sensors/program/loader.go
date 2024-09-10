@@ -863,6 +863,26 @@ func doLoadProgram(
 	}
 	defer coll.Close()
 
+	// Pin all requested maps
+	for name, m := range coll.Maps {
+		// Is the map refferenced by program
+		if _, ok := refMaps[name]; !ok {
+			continue
+		}
+		// Is the map already pinned
+		if _, ok := pinnedMaps[name]; ok {
+			continue
+		}
+		// Do we want the map to be pinned?
+		pm, ok := load.PinMap[name]
+		if !ok {
+			continue
+		}
+		if err := pm.CloneAndPin(bpfDir, m); err != nil {
+			return nil, fmt.Errorf("map pinning failed: %s", err)
+		}
+	}
+
 	err = installTailCalls(bpfDir, spec, coll, load)
 	if err != nil {
 		return nil, fmt.Errorf("installing tail calls failed: %s", err)

@@ -50,18 +50,10 @@ func getCgroupPrograms() []*program.Program {
 	return progs
 }
 
-func getCgroupMaps() []*program.Map {
-	maps := []*program.Map{
-		GetCgroupsTrackingMap(),
-	}
-	return maps
-}
-
 // GetCgroupSensor returns the Cgroups base sensor
 func GetCgroupSensor() *sensors.Sensor {
 	return &sensors.Sensor{
 		Name:  "test-sensor-cgroups",
 		Progs: getCgroupPrograms(),
-		Maps:  getCgroupMaps(),
 	}
 }
