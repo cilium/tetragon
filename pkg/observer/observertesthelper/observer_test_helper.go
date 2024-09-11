@@ -424,6 +424,9 @@ func loadObserver(tb testing.TB, ctx context.Context, base *sensors.Sensor,
 	if err := base.Load(option.Config.BpfDir); err != nil {
 		tb.Fatalf("Load base error: %s\n", err)
 	}
+	tb.Cleanup(func() {
+		base.Unload()
+	})
 
 	if tp != nil {
 		if err := observer.GetSensorManager().AddTracingPolicy(ctx, tp); err != nil {
@@ -433,7 +436,6 @@ func loadObserver(tb testing.TB, ctx context.Context, base *sensors.Sensor,
 
 	tb.Cleanup(func() {
 		observer.RemoveSensors(ctx)
-		base.Unload()
 	})
 	return nil
 }
