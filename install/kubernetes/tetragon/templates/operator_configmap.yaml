@@ -8,7 +8,7 @@ metadata:
   {{- include "tetragon-operator.labels" . | nindent 4 }}
 data:
   {{- if eq .Values.crds.installMethod "operator" }}
-  skip-crd-creation: {{ .Values.tetragonOperator.skipCRDCreation | quote }}
+  skip-crd-creation: "false"
   {{- else }}
   skip-crd-creation: "true"
   {{- end }}
