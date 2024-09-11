@@ -18,14 +18,14 @@ ARG TARGETARCH
 RUN make tetragon-bpf LOCAL_CLANG=1 TARGET_ARCH=$TARGETARCH
 
 # Second builder (cross-)compile tetragon and tetra
-FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.22.7@sha256:192683db8982323952988c7b86c098ee7ecc6cbeb202bf7c113ff9be5358367c AS tetragon-builder
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.23.1@sha256:2fe82a3f3e006b4f2a316c6a21f62b66e1330ae211d039bb8d1128e12ed57bf1 AS tetragon-builder
 WORKDIR /go/src/github.com/cilium/tetragon
 ARG TETRAGON_VERSION TARGETARCH
 COPY . .
 RUN make VERSION=$TETRAGON_VERSION TARGET_ARCH=$TARGETARCH tetragon tetra tetragon-oci-hook tetragon-oci-hook-setup
 
 # Third builder (cross-)compile a stripped gops
-FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.22.7-alpine@sha256:f5d8e5b932b14ef0d7c760fb3a98949351aa063a6900130beabb705100077188 AS gops
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.23.1-alpine@sha256:ac67716dd016429be8d4c2c53a248d7bcdf06d34127d3dc451bda6aa5a87bc06 AS gops
 ARG TARGETARCH
 RUN apk add --no-cache git \
 # renovate: datasource=github-releases depName=google/gops
