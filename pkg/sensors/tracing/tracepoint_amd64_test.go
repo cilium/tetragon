@@ -62,7 +62,7 @@ func TestTracepointListSyscallDups(t *testing.T) {
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
-  name: "sys-write"
+  name: "sys-dups"
 spec:
   lists:
   - name: "test"
