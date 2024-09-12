@@ -43,10 +43,21 @@ func testEnforcerCheckSkip(t *testing.T) {
 	}
 }
 
+type cmdChecker struct {
+	cmd     string
+	checkFn func(t *testing.T, err error, rc int)
+}
+
+func newCmdChecker(cmd string, checkFn func(t *testing.T, err error, rc int)) cmdChecker {
+	return cmdChecker{
+		cmd:     cmd,
+		checkFn: checkFn,
+	}
+}
+
 func testEnforcer(t *testing.T, configHook string,
-	test string, test2 string,
 	checker *eventchecker.UnorderedEventChecker,
-	checkerFunc func(err error, rc int)) {
+	cmds ...cmdChecker) {
 
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
@@ -66,16 +77,10 @@ func testEnforcer(t *testing.T, configHook string,
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
-	cmd := exec.Command(test)
-	err = cmd.Run()
-
-	checkerFunc(err, cmd.ProcessState.ExitCode())
-
-	if test2 != "" {
-		cmd := exec.Command(test2)
+	for _, cc := range cmds {
+		cmd := exec.Command(cc.cmd)
 		err = cmd.Run()
-
-		checkerFunc(err, cmd.ProcessState.ExitCode())
+		cc.checkFn(t, err, cmd.ProcessState.ExitCode())
 	}
 
 	err = jsonchecker.JsonTestCheck(t, checker)
@@ -103,7 +108,7 @@ func TestEnforcerOverride(t *testing.T) {
 
 	checker := ec.NewUnorderedEventChecker(tpChecker)
 
-	checkerFunc := func(_ error, rc int) {
+	checkerFunc := func(t *testing.T, _ error, rc int) {
 		if rc != int(syscall.EEXIST) {
 			t.Fatalf("Wrong exit code %d expected %d", rc, int(syscall.EEXIST))
 		}
@@ -119,12 +124,12 @@ func TestEnforcerOverride(t *testing.T) {
 				t.Skip("no multi-kprobe support")
 			}
 			yaml := builder().WithOverrideReturn().WithMultiKprobe().MustYAML()
-			testEnforcer(t, yaml, test, "", checker, checkerFunc)
+			testEnforcer(t, yaml, checker, newCmdChecker(test, checkerFunc))
 		})
 
 		t.Run("kprobe (no multi)", func(t *testing.T) {
 			yaml := builder().WithOverrideReturn().WithoutMultiKprobe().MustYAML()
-			testEnforcer(t, yaml, test, "", checker, checkerFunc)
+			testEnforcer(t, yaml, checker, newCmdChecker(test, checkerFunc))
 		})
 	})
 	t.Run("fmod_ret", func(t *testing.T) {
@@ -132,7 +137,7 @@ func TestEnforcerOverride(t *testing.T) {
 			t.Skip("fmod_ret not supported")
 		}
 		yaml := builder().WithFmodRet().MustYAML()
-		testEnforcer(t, yaml, test, "", checker, checkerFunc)
+		testEnforcer(t, yaml, checker, newCmdChecker(test, checkerFunc))
 	})
 }
 
@@ -157,7 +162,7 @@ func TestEnforcerOverrideManySyscalls(t *testing.T) {
 
 	checker := ec.NewUnorderedEventChecker(tpChecker)
 
-	checkerFunc := func(_ error, rc int) {
+	checkerFunc := func(t *testing.T, _ error, rc int) {
 		if rc != int(syscall.EEXIST) {
 			t.Fatalf("Wrong exit code %d expected %d", rc, int(syscall.EEXIST))
 		}
@@ -173,12 +178,12 @@ func TestEnforcerOverrideManySyscalls(t *testing.T) {
 				t.Skip("no multi-kprobe support")
 			}
 			yaml := builder().WithOverrideReturn().WithMultiKprobe().MustYAML()
-			testEnforcer(t, yaml, test, "", checker, checkerFunc)
+			testEnforcer(t, yaml, checker, newCmdChecker(test, checkerFunc))
 		})
 
 		t.Run("kprobe (no multi)", func(t *testing.T) {
 			yaml := builder().WithOverrideReturn().WithoutMultiKprobe().MustYAML()
-			testEnforcer(t, yaml, test, "", checker, checkerFunc)
+			testEnforcer(t, yaml, checker, newCmdChecker(test, checkerFunc))
 		})
 	})
 	t.Run("fmod_ret", func(t *testing.T) {
@@ -186,7 +191,7 @@ func TestEnforcerOverrideManySyscalls(t *testing.T) {
 			t.Skip("fmod_ret not supported")
 		}
 		yaml := builder().WithFmodRet().MustYAML()
-		testEnforcer(t, yaml, test, "", checker, checkerFunc)
+		testEnforcer(t, yaml, checker, newCmdChecker(test, checkerFunc))
 	})
 }
 
@@ -205,7 +210,7 @@ func TestEnforcerSignal(t *testing.T) {
 
 	checker := ec.NewUnorderedEventChecker(tpChecker)
 
-	checkerFunc := func(err error, _ int) {
+	checkerFunc := func(t *testing.T, err error, _ int) {
 		if err == nil || err.Error() != "signal: killed" {
 			t.Fatalf("Wrong error '%v' expected 'killed'", err)
 		}
@@ -228,12 +233,12 @@ func TestEnforcerSignal(t *testing.T) {
 		}
 
 		yaml := builder().WithMultiKprobe().MustYAML()
-		testEnforcer(t, yaml, test, "", checker, checkerFunc)
+		testEnforcer(t, yaml, checker, newCmdChecker(test, checkerFunc))
 	})
 
 	t.Run("kprobe (no multi)", func(t *testing.T) {
 		yaml := builder().WithoutMultiKprobe().MustYAML()
-		testEnforcer(t, yaml, test, "", checker, checkerFunc)
+		testEnforcer(t, yaml, checker, newCmdChecker(test, checkerFunc))
 	})
 
 }

@@ -38,13 +38,13 @@ func TestEnforcerOverride32(t *testing.T) {
 
 	checker := ec.NewUnorderedEventChecker(tpChecker)
 
-	checkerFunc := func(_ error, rc int) {
+	checkerFunc := func(t *testing.T, _ error, rc int) {
 		if rc != int(syscall.EEXIST) {
 			t.Fatalf("Wrong exit code %d expected %d", rc, int(syscall.EEXIST))
 		}
 	}
 
-	testEnforcer(t, yaml, test, "", checker, checkerFunc)
+	testEnforcer(t, yaml, checker, newCmdChecker(test, checkerFunc))
 }
 
 func TestEnforcerSignal32(t *testing.T) {
@@ -68,13 +68,13 @@ func TestEnforcerSignal32(t *testing.T) {
 
 	checker := ec.NewUnorderedEventChecker(tpChecker)
 
-	checkerFunc := func(err error, _ int) {
+	checkerFunc := func(t *testing.T, err error, _ int) {
 		if err == nil || err.Error() != "signal: killed" {
 			t.Fatalf("Wrong error '%v' expected 'killed'", err)
 		}
 	}
 
-	testEnforcer(t, yaml, test, "", checker, checkerFunc)
+	testEnforcer(t, yaml, checker, newCmdChecker(test, checkerFunc))
 }
 
 func TestEnforcerOverrideBothBits(t *testing.T) {
@@ -107,11 +107,11 @@ func TestEnforcerOverrideBothBits(t *testing.T) {
 
 	checker := ec.NewUnorderedEventChecker(tpChecker32, tpChecker64)
 
-	checkerFunc := func(_ error, rc int) {
+	checkerFunc := func(t *testing.T, _ error, rc int) {
 		if rc != int(syscall.EEXIST) {
 			t.Fatalf("Wrong exit code %d expected %d", rc, int(syscall.EEXIST))
 		}
 	}
 
-	testEnforcer(t, yaml, test64, test32, checker, checkerFunc)
+	testEnforcer(t, yaml, checker, newCmdChecker(test64, checkerFunc), newCmdChecker(test32, checkerFunc))
 }
