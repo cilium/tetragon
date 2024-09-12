@@ -1,11 +1,11 @@
 {
   "properties": {
     "apiVersion": {
-      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+      "description": "APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
       "type": "string"
     },
     "kind": {
-      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+      "description": "Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
       "type": "string"
     },
     "metadata": {
@@ -15,19 +15,19 @@
       "description": "Tracing policy specification.",
       "properties": {
         "containerSelector": {
-          "description": "ContainerSelector selects containers that this policy applies to. A map of container fields will be constructed in the same way as a map of labels. The name of the field represents the label \"key\", and the value of the field - label \"value\". Currently, only the \"name\" field is supported.",
+          "description": "ContainerSelector selects containers that this policy applies to.\nA map of container fields will be constructed in the same way as a map of labels.\nThe name of the field represents the label \"key\", and the value of the field - label \"value\".\nCurrently, only the \"name\" field is supported.",
           "properties": {
             "matchExpressions": {
               "description": "matchExpressions is a list of label selector requirements. The requirements are ANDed.",
               "items": {
-                "description": "A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.",
+                "description": "A label selector requirement is a selector that contains values, a key, and an operator that\nrelates the key and values.",
                 "properties": {
                   "key": {
                     "description": "key is the label key that the selector applies to.",
                     "type": "string"
                   },
                   "operator": {
-                    "description": "operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.",
+                    "description": "operator represents a key's relationship to a set of values.\nValid operators are In, NotIn, Exists and DoesNotExist.",
                     "enum": [
                       "In",
                       "NotIn",
@@ -37,11 +37,12 @@
                     "type": "string"
                   },
                   "values": {
-                    "description": "values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.",
+                    "description": "values is an array of string values. If the operator is In or NotIn,\nthe values array must be non-empty. If the operator is Exists or DoesNotExist,\nthe values array must be empty. This array is replaced during a strategic\nmerge patch.",
                     "items": {
                       "type": "string"
                     },
-                    "type": "array"
+                    "type": "array",
+                    "x-kubernetes-list-type": "atomic"
                   }
                 },
                 "required": [
@@ -51,7 +52,8 @@
                 "type": "object",
                 "additionalProperties": false
               },
-              "type": "array"
+              "type": "array",
+              "x-kubernetes-list-type": "atomic"
             },
             "matchLabels": {
               "additionalProperties": {
@@ -60,11 +62,12 @@
                 "pattern": "^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$",
                 "type": "string"
               },
-              "description": "matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is \"key\", the operator is \"In\", and the values array contains only \"value\". The requirements are ANDed.",
+              "description": "matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels\nmap is equivalent to an element of matchExpressions, whose key field is \"key\", the\noperator is \"In\", and the values array contains only \"value\". The requirements are ANDed.",
               "type": "object"
             }
           },
           "type": "object",
+          "x-kubernetes-map-type": "atomic",
           "additionalProperties": false
         },
         "enforcers": {
@@ -107,16 +110,16 @@
                     },
                     "maxData": {
                       "default": false,
-                      "description": "Read maximum possible data (currently 327360). This field is only used for char_buff data. When this value is false (default), the bpf program will fetch at most 4096 bytes. In later kernels (>=5.4) tetragon supports fetching up to 327360 bytes if this flag is turned on",
+                      "description": "Read maximum possible data (currently 327360). This field is only used\nfor char_buff data. When this value is false (default), the bpf program\nwill fetch at most 4096 bytes. In later kernels (>=5.4) tetragon\nsupports fetching up to 327360 bytes if this flag is turned on",
                       "type": "boolean"
                     },
                     "returnCopy": {
                       "default": false,
-                      "description": "This field is used only for char_buf and char_iovec types. It indicates that this argument should be read later (when the kretprobe for the symbol is triggered) because it might not be populated when the kprobe is triggered at the entrance of the function. For example, a buffer supplied to read(2) won't have content until kretprobe is triggered.",
+                      "description": "This field is used only for char_buf and char_iovec types. It indicates\nthat this argument should be read later (when the kretprobe for the\nsymbol is triggered) because it might not be populated when the kprobe\nis triggered at the entrance of the function. For example, a buffer\nsupplied to read(2) won't have content until kretprobe is triggered.",
                       "type": "boolean"
                     },
                     "sizeArgIndex": {
-                      "description": "Specifies the position of the corresponding size argument for this argument. This field is used only for char_buf and char_iovec types.",
+                      "description": "Specifies the position of the corresponding size argument for this argument.\nThis field is used only for char_buf and char_iovec types.",
                       "format": "int32",
                       "minimum": 0,
                       "type": "integer"
@@ -183,7 +186,7 @@
                 "type": "string"
               },
               "message": {
-                "description": "A short message of 256 characters max that will be included in the event output to inform users what is going on.",
+                "description": "A short message of 256 characters max that will be included\nin the event output to inform users what is going on.",
                 "type": "string"
               },
               "return": {
@@ -206,16 +209,16 @@
                   },
                   "maxData": {
                     "default": false,
-                    "description": "Read maximum possible data (currently 327360). This field is only used for char_buff data. When this value is false (default), the bpf program will fetch at most 4096 bytes. In later kernels (>=5.4) tetragon supports fetching up to 327360 bytes if this flag is turned on",
+                    "description": "Read maximum possible data (currently 327360). This field is only used\nfor char_buff data. When this value is false (default), the bpf program\nwill fetch at most 4096 bytes. In later kernels (>=5.4) tetragon\nsupports fetching up to 327360 bytes if this flag is turned on",
                     "type": "boolean"
                   },
                   "returnCopy": {
                     "default": false,
-                    "description": "This field is used only for char_buf and char_iovec types. It indicates that this argument should be read later (when the kretprobe for the symbol is triggered) because it might not be populated when the kprobe is triggered at the entrance of the function. For example, a buffer supplied to read(2) won't have content until kretprobe is triggered.",
+                    "description": "This field is used only for char_buf and char_iovec types. It indicates\nthat this argument should be read later (when the kretprobe for the\nsymbol is triggered) because it might not be populated when the kprobe\nis triggered at the entrance of the function. For example, a buffer\nsupplied to read(2) won't have content until kretprobe is triggered.",
                     "type": "boolean"
                   },
                   "sizeArgIndex": {
-                    "description": "Specifies the position of the corresponding size argument for this argument. This field is used only for char_buf and char_iovec types.",
+                    "description": "Specifies the position of the corresponding size argument for this argument.\nThis field is used only for char_buf and char_iovec types.",
                     "format": "int32",
                     "minimum": 0,
                     "type": "integer"
@@ -276,13 +279,13 @@
                 "additionalProperties": false
               },
               "returnArgAction": {
-                "description": "An action to perform on the return argument. Available actions are: Post;TrackSock;UntrackSock",
+                "description": "An action to perform on the return argument.\nAvailable actions are: Post;TrackSock;UntrackSock",
                 "type": "string"
               },
               "selectors": {
                 "description": "Selectors to apply before producing trace output. Selectors are ORed.",
                 "items": {
-                  "description": "KProbeSelector selects function calls for kprobe based on PIDs and function arguments. The results of MatchPIDs and MatchArgs are ANDed.",
+                  "description": "KProbeSelector selects function calls for kprobe based on PIDs and function arguments. The\nresults of MatchPIDs and MatchArgs are ANDed.",
                   "properties": {
                     "matchActions": {
                       "description": "A list of actions to execute when this selector matches",
@@ -345,11 +348,11 @@
                             "type": "boolean"
                           },
                           "rateLimit": {
-                            "description": "A time period within which repeated messages will not be posted. Can be specified in seconds (default or with 's' suffix), minutes ('m' suffix) or hours ('h' suffix). Only valid with the post action.",
+                            "description": "A time period within which repeated messages will not be posted. Can be\nspecified in seconds (default or with 's' suffix), minutes ('m' suffix)\nor hours ('h' suffix). Only valid with the post action.",
                             "type": "string"
                           },
                           "rateLimitScope": {
-                            "description": "The scope of the provided rate limit argument. Can be \"thread\" (default), \"process\" (all threads for the same process), or \"global\". If \"thread\" is selected then rate limiting applies per thread; if \"process\" is selected then rate limiting applies per process; if \"global\" is selected then rate limiting applies regardless of which process or thread caused the action. Only valid with the post action and with a rateLimit specified.",
+                            "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
                             "type": "string"
                           },
                           "userStackTrace": {
@@ -728,11 +731,11 @@
                             "type": "boolean"
                           },
                           "rateLimit": {
-                            "description": "A time period within which repeated messages will not be posted. Can be specified in seconds (default or with 's' suffix), minutes ('m' suffix) or hours ('h' suffix). Only valid with the post action.",
+                            "description": "A time period within which repeated messages will not be posted. Can be\nspecified in seconds (default or with 's' suffix), minutes ('m' suffix)\nor hours ('h' suffix). Only valid with the post action.",
                             "type": "string"
                           },
                           "rateLimitScope": {
-                            "description": "The scope of the provided rate limit argument. Can be \"thread\" (default), \"process\" (all threads for the same process), or \"global\". If \"thread\" is selected then rate limiting applies per thread; if \"process\" is selected then rate limiting applies per process; if \"global\" is selected then rate limiting applies regardless of which process or thread caused the action. Only valid with the post action and with a rateLimit specified.",
+                            "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
                             "type": "string"
                           },
                           "userStackTrace": {
@@ -821,7 +824,7 @@
                 "type": "boolean"
               },
               "tags": {
-                "description": "Tags to categorize the event, will be include in the event output. Maximum of 16 Tags are supported.",
+                "description": "Tags to categorize the event, will be include in the event output.\nMaximum of 16 Tags are supported.",
                 "items": {
                   "type": "string"
                 },
@@ -902,16 +905,16 @@
                     },
                     "maxData": {
                       "default": false,
-                      "description": "Read maximum possible data (currently 327360). This field is only used for char_buff data. When this value is false (default), the bpf program will fetch at most 4096 bytes. In later kernels (>=5.4) tetragon supports fetching up to 327360 bytes if this flag is turned on",
+                      "description": "Read maximum possible data (currently 327360). This field is only used\nfor char_buff data. When this value is false (default), the bpf program\nwill fetch at most 4096 bytes. In later kernels (>=5.4) tetragon\nsupports fetching up to 327360 bytes if this flag is turned on",
                       "type": "boolean"
                     },
                     "returnCopy": {
                       "default": false,
-                      "description": "This field is used only for char_buf and char_iovec types. It indicates that this argument should be read later (when the kretprobe for the symbol is triggered) because it might not be populated when the kprobe is triggered at the entrance of the function. For example, a buffer supplied to read(2) won't have content until kretprobe is triggered.",
+                      "description": "This field is used only for char_buf and char_iovec types. It indicates\nthat this argument should be read later (when the kretprobe for the\nsymbol is triggered) because it might not be populated when the kprobe\nis triggered at the entrance of the function. For example, a buffer\nsupplied to read(2) won't have content until kretprobe is triggered.",
                       "type": "boolean"
                     },
                     "sizeArgIndex": {
-                      "description": "Specifies the position of the corresponding size argument for this argument. This field is used only for char_buf and char_iovec types.",
+                      "description": "Specifies the position of the corresponding size argument for this argument.\nThis field is used only for char_buf and char_iovec types.",
                       "format": "int32",
                       "minimum": 0,
                       "type": "integer"
@@ -978,13 +981,13 @@
                 "type": "string"
               },
               "message": {
-                "description": "A short message of 256 characters max that will be included in the event output to inform users what is going on.",
+                "description": "A short message of 256 characters max that will be included\nin the event output to inform users what is going on.",
                 "type": "string"
               },
               "selectors": {
                 "description": "Selectors to apply before producing trace output. Selectors are ORed.",
                 "items": {
-                  "description": "KProbeSelector selects function calls for kprobe based on PIDs and function arguments. The results of MatchPIDs and MatchArgs are ANDed.",
+                  "description": "KProbeSelector selects function calls for kprobe based on PIDs and function arguments. The\nresults of MatchPIDs and MatchArgs are ANDed.",
                   "properties": {
                     "matchActions": {
                       "description": "A list of actions to execute when this selector matches",
@@ -1047,11 +1050,11 @@
                             "type": "boolean"
                           },
                           "rateLimit": {
-                            "description": "A time period within which repeated messages will not be posted. Can be specified in seconds (default or with 's' suffix), minutes ('m' suffix) or hours ('h' suffix). Only valid with the post action.",
+                            "description": "A time period within which repeated messages will not be posted. Can be\nspecified in seconds (default or with 's' suffix), minutes ('m' suffix)\nor hours ('h' suffix). Only valid with the post action.",
                             "type": "string"
                           },
                           "rateLimitScope": {
-                            "description": "The scope of the provided rate limit argument. Can be \"thread\" (default), \"process\" (all threads for the same process), or \"global\". If \"thread\" is selected then rate limiting applies per thread; if \"process\" is selected then rate limiting applies per process; if \"global\" is selected then rate limiting applies regardless of which process or thread caused the action. Only valid with the post action and with a rateLimit specified.",
+                            "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
                             "type": "string"
                           },
                           "userStackTrace": {
@@ -1430,11 +1433,11 @@
                             "type": "boolean"
                           },
                           "rateLimit": {
-                            "description": "A time period within which repeated messages will not be posted. Can be specified in seconds (default or with 's' suffix), minutes ('m' suffix) or hours ('h' suffix). Only valid with the post action.",
+                            "description": "A time period within which repeated messages will not be posted. Can be\nspecified in seconds (default or with 's' suffix), minutes ('m' suffix)\nor hours ('h' suffix). Only valid with the post action.",
                             "type": "string"
                           },
                           "rateLimitScope": {
-                            "description": "The scope of the provided rate limit argument. Can be \"thread\" (default), \"process\" (all threads for the same process), or \"global\". If \"thread\" is selected then rate limiting applies per thread; if \"process\" is selected then rate limiting applies per process; if \"global\" is selected then rate limiting applies regardless of which process or thread caused the action. Only valid with the post action and with a rateLimit specified.",
+                            "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
                             "type": "string"
                           },
                           "userStackTrace": {
@@ -1518,7 +1521,7 @@
                 "type": "array"
               },
               "tags": {
-                "description": "Tags to categorize the event, will be include in the event output. Maximum of 16 Tags are supported.",
+                "description": "Tags to categorize the event, will be include in the event output.\nMaximum of 16 Tags are supported.",
                 "items": {
                   "type": "string"
                 },
@@ -1561,14 +1564,14 @@
             "matchExpressions": {
               "description": "matchExpressions is a list of label selector requirements. The requirements are ANDed.",
               "items": {
-                "description": "A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.",
+                "description": "A label selector requirement is a selector that contains values, a key, and an operator that\nrelates the key and values.",
                 "properties": {
                   "key": {
                     "description": "key is the label key that the selector applies to.",
                     "type": "string"
                   },
                   "operator": {
-                    "description": "operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.",
+                    "description": "operator represents a key's relationship to a set of values.\nValid operators are In, NotIn, Exists and DoesNotExist.",
                     "enum": [
                       "In",
                       "NotIn",
@@ -1578,11 +1581,12 @@
                     "type": "string"
                   },
                   "values": {
-                    "description": "values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.",
+                    "description": "values is an array of string values. If the operator is In or NotIn,\nthe values array must be non-empty. If the operator is Exists or DoesNotExist,\nthe values array must be empty. This array is replaced during a strategic\nmerge patch.",
                     "items": {
                       "type": "string"
                     },
-                    "type": "array"
+                    "type": "array",
+                    "x-kubernetes-list-type": "atomic"
                   }
                 },
                 "required": [
@@ -1592,7 +1596,8 @@
                 "type": "object",
                 "additionalProperties": false
               },
-              "type": "array"
+              "type": "array",
+              "x-kubernetes-list-type": "atomic"
             },
             "matchLabels": {
               "additionalProperties": {
@@ -1601,11 +1606,12 @@
                 "pattern": "^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$",
                 "type": "string"
               },
-              "description": "matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is \"key\", the operator is \"In\", and the values array contains only \"value\". The requirements are ANDed.",
+              "description": "matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels\nmap is equivalent to an element of matchExpressions, whose key field is \"key\", the\noperator is \"In\", and the values array contains only \"value\". The requirements are ANDed.",
               "type": "object"
             }
           },
           "type": "object",
+          "x-kubernetes-map-type": "atomic",
           "additionalProperties": false
         },
         "tracepoints": {
@@ -1628,16 +1634,16 @@
                     },
                     "maxData": {
                       "default": false,
-                      "description": "Read maximum possible data (currently 327360). This field is only used for char_buff data. When this value is false (default), the bpf program will fetch at most 4096 bytes. In later kernels (>=5.4) tetragon supports fetching up to 327360 bytes if this flag is turned on",
+                      "description": "Read maximum possible data (currently 327360). This field is only used\nfor char_buff data. When this value is false (default), the bpf program\nwill fetch at most 4096 bytes. In later kernels (>=5.4) tetragon\nsupports fetching up to 327360 bytes if this flag is turned on",
                       "type": "boolean"
                     },
                     "returnCopy": {
                       "default": false,
-                      "description": "This field is used only for char_buf and char_iovec types. It indicates that this argument should be read later (when the kretprobe for the symbol is triggered) because it might not be populated when the kprobe is triggered at the entrance of the function. For example, a buffer supplied to read(2) won't have content until kretprobe is triggered.",
+                      "description": "This field is used only for char_buf and char_iovec types. It indicates\nthat this argument should be read later (when the kretprobe for the\nsymbol is triggered) because it might not be populated when the kprobe\nis triggered at the entrance of the function. For example, a buffer\nsupplied to read(2) won't have content until kretprobe is triggered.",
                       "type": "boolean"
                     },
                     "sizeArgIndex": {
-                      "description": "Specifies the position of the corresponding size argument for this argument. This field is used only for char_buf and char_iovec types.",
+                      "description": "Specifies the position of the corresponding size argument for this argument.\nThis field is used only for char_buf and char_iovec types.",
                       "format": "int32",
                       "minimum": 0,
                       "type": "integer"
@@ -1704,13 +1710,13 @@
                 "type": "string"
               },
               "message": {
-                "description": "A short message of 256 characters max that will be included in the event output to inform users what is going on.",
+                "description": "A short message of 256 characters max that will be included\nin the event output to inform users what is going on.",
                 "type": "string"
               },
               "selectors": {
                 "description": "Selectors to apply before producing trace output. Selectors are ORed.",
                 "items": {
-                  "description": "KProbeSelector selects function calls for kprobe based on PIDs and function arguments. The results of MatchPIDs and MatchArgs are ANDed.",
+                  "description": "KProbeSelector selects function calls for kprobe based on PIDs and function arguments. The\nresults of MatchPIDs and MatchArgs are ANDed.",
                   "properties": {
                     "matchActions": {
                       "description": "A list of actions to execute when this selector matches",
@@ -1773,11 +1779,11 @@
                             "type": "boolean"
                           },
                           "rateLimit": {
-                            "description": "A time period within which repeated messages will not be posted. Can be specified in seconds (default or with 's' suffix), minutes ('m' suffix) or hours ('h' suffix). Only valid with the post action.",
+                            "description": "A time period within which repeated messages will not be posted. Can be\nspecified in seconds (default or with 's' suffix), minutes ('m' suffix)\nor hours ('h' suffix). Only valid with the post action.",
                             "type": "string"
                           },
                           "rateLimitScope": {
-                            "description": "The scope of the provided rate limit argument. Can be \"thread\" (default), \"process\" (all threads for the same process), or \"global\". If \"thread\" is selected then rate limiting applies per thread; if \"process\" is selected then rate limiting applies per process; if \"global\" is selected then rate limiting applies regardless of which process or thread caused the action. Only valid with the post action and with a rateLimit specified.",
+                            "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
                             "type": "string"
                           },
                           "userStackTrace": {
@@ -2156,11 +2162,11 @@
                             "type": "boolean"
                           },
                           "rateLimit": {
-                            "description": "A time period within which repeated messages will not be posted. Can be specified in seconds (default or with 's' suffix), minutes ('m' suffix) or hours ('h' suffix). Only valid with the post action.",
+                            "description": "A time period within which repeated messages will not be posted. Can be\nspecified in seconds (default or with 's' suffix), minutes ('m' suffix)\nor hours ('h' suffix). Only valid with the post action.",
                             "type": "string"
                           },
                           "rateLimitScope": {
-                            "description": "The scope of the provided rate limit argument. Can be \"thread\" (default), \"process\" (all threads for the same process), or \"global\". If \"thread\" is selected then rate limiting applies per thread; if \"process\" is selected then rate limiting applies per process; if \"global\" is selected then rate limiting applies regardless of which process or thread caused the action. Only valid with the post action and with a rateLimit specified.",
+                            "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
                             "type": "string"
                           },
                           "userStackTrace": {
@@ -2248,7 +2254,7 @@
                 "type": "string"
               },
               "tags": {
-                "description": "Tags to categorize the event, will be include in the event output. Maximum of 16 Tags are supported.",
+                "description": "Tags to categorize the event, will be include in the event output.\nMaximum of 16 Tags are supported.",
                 "items": {
                   "type": "string"
                 },
@@ -2285,16 +2291,16 @@
                     },
                     "maxData": {
                       "default": false,
-                      "description": "Read maximum possible data (currently 327360). This field is only used for char_buff data. When this value is false (default), the bpf program will fetch at most 4096 bytes. In later kernels (>=5.4) tetragon supports fetching up to 327360 bytes if this flag is turned on",
+                      "description": "Read maximum possible data (currently 327360). This field is only used\nfor char_buff data. When this value is false (default), the bpf program\nwill fetch at most 4096 bytes. In later kernels (>=5.4) tetragon\nsupports fetching up to 327360 bytes if this flag is turned on",
                       "type": "boolean"
                     },
                     "returnCopy": {
                       "default": false,
-                      "description": "This field is used only for char_buf and char_iovec types. It indicates that this argument should be read later (when the kretprobe for the symbol is triggered) because it might not be populated when the kprobe is triggered at the entrance of the function. For example, a buffer supplied to read(2) won't have content until kretprobe is triggered.",
+                      "description": "This field is used only for char_buf and char_iovec types. It indicates\nthat this argument should be read later (when the kretprobe for the\nsymbol is triggered) because it might not be populated when the kprobe\nis triggered at the entrance of the function. For example, a buffer\nsupplied to read(2) won't have content until kretprobe is triggered.",
                       "type": "boolean"
                     },
                     "sizeArgIndex": {
-                      "description": "Specifies the position of the corresponding size argument for this argument. This field is used only for char_buf and char_iovec types.",
+                      "description": "Specifies the position of the corresponding size argument for this argument.\nThis field is used only for char_buf and char_iovec types.",
                       "format": "int32",
                       "minimum": 0,
                       "type": "integer"
@@ -2357,7 +2363,7 @@
                 "type": "array"
               },
               "message": {
-                "description": "A short message of 256 characters max that will be included in the event output to inform users what is going on.",
+                "description": "A short message of 256 characters max that will be included\nin the event output to inform users what is going on.",
                 "type": "string"
               },
               "path": {
@@ -2367,7 +2373,7 @@
               "selectors": {
                 "description": "Selectors to apply before producing trace output. Selectors are ORed.",
                 "items": {
-                  "description": "KProbeSelector selects function calls for kprobe based on PIDs and function arguments. The results of MatchPIDs and MatchArgs are ANDed.",
+                  "description": "KProbeSelector selects function calls for kprobe based on PIDs and function arguments. The\nresults of MatchPIDs and MatchArgs are ANDed.",
                   "properties": {
                     "matchActions": {
                       "description": "A list of actions to execute when this selector matches",
@@ -2430,11 +2436,11 @@
                             "type": "boolean"
                           },
                           "rateLimit": {
-                            "description": "A time period within which repeated messages will not be posted. Can be specified in seconds (default or with 's' suffix), minutes ('m' suffix) or hours ('h' suffix). Only valid with the post action.",
+                            "description": "A time period within which repeated messages will not be posted. Can be\nspecified in seconds (default or with 's' suffix), minutes ('m' suffix)\nor hours ('h' suffix). Only valid with the post action.",
                             "type": "string"
                           },
                           "rateLimitScope": {
-                            "description": "The scope of the provided rate limit argument. Can be \"thread\" (default), \"process\" (all threads for the same process), or \"global\". If \"thread\" is selected then rate limiting applies per thread; if \"process\" is selected then rate limiting applies per process; if \"global\" is selected then rate limiting applies regardless of which process or thread caused the action. Only valid with the post action and with a rateLimit specified.",
+                            "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
                             "type": "string"
                           },
                           "userStackTrace": {
@@ -2813,11 +2819,11 @@
                             "type": "boolean"
                           },
                           "rateLimit": {
-                            "description": "A time period within which repeated messages will not be posted. Can be specified in seconds (default or with 's' suffix), minutes ('m' suffix) or hours ('h' suffix). Only valid with the post action.",
+                            "description": "A time period within which repeated messages will not be posted. Can be\nspecified in seconds (default or with 's' suffix), minutes ('m' suffix)\nor hours ('h' suffix). Only valid with the post action.",
                             "type": "string"
                           },
                           "rateLimitScope": {
-                            "description": "The scope of the provided rate limit argument. Can be \"thread\" (default), \"process\" (all threads for the same process), or \"global\". If \"thread\" is selected then rate limiting applies per thread; if \"process\" is selected then rate limiting applies per process; if \"global\" is selected then rate limiting applies regardless of which process or thread caused the action. Only valid with the post action and with a rateLimit specified.",
+                            "description": "The scope of the provided rate limit argument. Can be \"thread\" (default),\n\"process\" (all threads for the same process), or \"global\". If \"thread\" is\nselected then rate limiting applies per thread; if \"process\" is selected\nthen rate limiting applies per process; if \"global\" is selected then rate\nlimiting applies regardless of which process or thread caused the action.\nOnly valid with the post action and with a rateLimit specified.",
                             "type": "string"
                           },
                           "userStackTrace": {
@@ -2908,7 +2914,7 @@
                 "type": "array"
               },
               "tags": {
-                "description": "Tags to categorize the event, will be include in the event output. Maximum of 16 Tags are supported.",
+                "description": "Tags to categorize the event, will be include in the event output.\nMaximum of 16 Tags are supported.",
                 "items": {
                   "type": "string"
                 },
