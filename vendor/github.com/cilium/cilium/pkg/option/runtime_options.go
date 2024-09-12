@@ -15,6 +15,7 @@ const (
 	TraceSockNotify      = "TraceSockNotification"
 	PolicyVerdictNotify  = "PolicyVerdictNotification"
 	PolicyAuditMode      = "PolicyAuditMode"
+	PolicyAccounting     = "PolicyAccounting"
 	MonitorAggregation   = "MonitorAggregationLevel"
 	SourceIPVerification = "SourceIPVerification"
 	AlwaysEnforce        = "always"
@@ -33,6 +34,7 @@ var (
 		Define:      "CONNTRACK_LOCAL",
 		Description: "Use endpoint dedicated tracking table instead of global one",
 		Requires:    nil,
+		Deprecated:  true,
 	}
 
 	specDebug = Option{
@@ -58,6 +60,11 @@ var (
 	specTraceNotify = Option{
 		Define:      "TRACE_NOTIFY",
 		Description: "Enable trace notifications",
+	}
+
+	specPolicyAccounting = Option{
+		Define:      "POLICY_ACCOUNTING",
+		Description: "Enable policy accounting ",
 	}
 
 	specPolicyVerdictNotify = Option{

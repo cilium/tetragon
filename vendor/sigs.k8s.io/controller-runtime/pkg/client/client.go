@@ -50,26 +50,8 @@ type Options struct {
 	// Cache, if provided, is used to read objects from the cache.
 	Cache *CacheOptions
 
-	// WarningHandler is used to configure the warning handler responsible for
-	// surfacing and handling warnings messages sent by the API server.
-	WarningHandler WarningHandlerOptions
-
 	// DryRun instructs the client to only perform dry run requests.
 	DryRun *bool
-}
-
-// WarningHandlerOptions are options for configuring a
-// warning handler for the client which is responsible
-// for surfacing API Server warnings.
-type WarningHandlerOptions struct {
-	// SuppressWarnings decides if the warnings from the
-	// API server are suppressed or surfaced in the client.
-	SuppressWarnings bool
-	// AllowDuplicateLogs does not deduplicate the to-be
-	// logged surfaced warnings messages. See
-	// log.WarningHandlerOptions for considerations
-	// regarding deduplication
-	AllowDuplicateLogs bool
 }
 
 // CacheOptions are options for creating a cache-backed client.
@@ -90,11 +72,24 @@ type CacheOptions struct {
 type NewClientFunc func(config *rest.Config, options Options) (Client, error)
 
 // New returns a new Client using the provided config and Options.
-// The returned client reads *and* writes directly from the server
-// (it doesn't use object caches).  It understands how to work with
-// normal types (both custom resources and aggregated/built-in resources),
-// as well as unstructured types.
 //
+// By default, the client surfaces warnings returned by the server. To
+// suppress warnings, set config.WarningHandler = rest.NoWarnings{}. To
+// define custom behavior, implement the rest.WarningHandler interface.
+// See [sigs.k8s.io/controller-runtime/pkg/log.KubeAPIWarningLogger] for
+// an example.
+//
+// The client's read behavior is determined by Options.Cache.
+// If either Options.Cache or Options.Cache.Reader is nil,
+// the client reads directly from the API server.
+// If both Options.Cache and Options.Cache.Reader are non-nil,
+// the client reads from a local cache. However, specific
+// resources can still be configured to bypass the cache based
+// on Options.Cache.Unstructured and Options.Cache.DisableFor.
+// Write operations are always performed directly on the API server.
+//
+// The client understands how to work with normal types (both custom resources
+// and aggregated/built-in resources), as well as unstructured types.
 // In the case of normal types, the scheme will be used to look up the
 // corresponding group, version, and kind for the given type.  In the
 // case of unstructured types, the group, version, and kind will be extracted
@@ -117,17 +112,12 @@ func newClient(config *rest.Config, options Options) (*client, error) {
 		config.UserAgent = rest.DefaultKubernetesUserAgent()
 	}
 
-	if !options.WarningHandler.SuppressWarnings {
-		// surface warnings
-		logger := log.Log.WithName("KubeAPIWarningLogger")
-		// Set a WarningHandler, the default WarningHandler
-		// is log.KubeAPIWarningLogger with deduplication enabled.
-		// See log.KubeAPIWarningLoggerOptions for considerations
-		// regarding deduplication.
+	if config.WarningHandler == nil {
+		// By default, we de-duplicate and surface warnings.
 		config.WarningHandler = log.NewKubeAPIWarningLogger(
-			logger,
+			log.Log.WithName("KubeAPIWarningLogger"),
 			log.KubeAPIWarningLoggerOptions{
-				Deduplicate: !options.WarningHandler.AllowDuplicateLogs,
+				Deduplicate: true,
 			},
 		)
 	}
@@ -210,7 +200,8 @@ func newClient(config *rest.Config, options Options) (*client, error) {
 
 var _ Client = &client{}
 
-// client is a client.Client that reads and writes directly from/to an API server.
+// client is a client.Client configured to either read from a local cache or directly from the API server.
+// Write operations are always performed directly on the API server.
 // It lazily initializes new clients at the time they are used.
 type client struct {
 	typedClient        typedClient
@@ -515,8 +506,8 @@ func (co *SubResourceCreateOptions) ApplyOptions(opts []SubResourceCreateOption)
 	return co
 }
 
-// ApplyToSubresourceCreate applies the the configuration on the given create options.
-func (co *SubResourceCreateOptions) ApplyToSubresourceCreate(o *SubResourceCreateOptions) {
+// ApplyToSubResourceCreate applies the the configuration on the given create options.
+func (co *SubResourceCreateOptions) ApplyToSubResourceCreate(o *SubResourceCreateOptions) {
 	co.CreateOptions.ApplyToCreate(&co.CreateOptions)
 }
 
