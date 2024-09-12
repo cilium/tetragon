@@ -37,12 +37,18 @@ type BackendAddress struct {
 	// on related annotation of global service. Applicable for active state only.
 	Preferred bool `json:"preferred,omitempty"`
 
+	// Layer 4 protocol (TCP, UDP, etc)
+	Protocol string `json:"protocol,omitempty"`
+
 	// State of the backend for load-balancing service traffic
 	// Enum: [active terminating quarantined maintenance]
 	State string `json:"state,omitempty"`
 
 	// Backend weight
 	Weight *uint16 `json:"weight,omitempty"`
+
+	// Optional name of the zone in which this backend runs
+	Zone string `json:"zone,omitempty"`
 }
 
 // Validate validates this backend address

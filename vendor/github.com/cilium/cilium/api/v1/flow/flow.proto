@@ -42,6 +42,8 @@ message Flow {
 
     // NodeName is the name of the node from which this Flow was captured.
     string node_name = 11;
+    // node labels in `foo=bar` format.
+    repeated string node_labels = 37;
 
     reserved 12; // removed, do not use
 
@@ -77,6 +79,8 @@ message Flow {
 
     // Only applicable to cilium trace notifications, blank for other types.
     TraceObservationPoint trace_observation_point = 24;
+    // Cilium datapath trace reason info.
+    TraceReason trace_reason = 36;
 
     // only applicable to Verdict = DROPPED.
     DropReason drop_reason_desc = 25;
@@ -125,6 +129,11 @@ message Flow {
     repeated Policy egress_allowed_by = 21001;
     // The CiliumNetworkPolicies allowing the ingress of the flow.
     repeated Policy ingress_allowed_by = 21002;
+
+    // The CiliumNetworkPolicies denying the egress of the flow.
+    repeated Policy egress_denied_by = 21004;
+    // The CiliumNetworkPolicies denying the ingress of the flow.
+    repeated Policy ingress_denied_by = 21005;
 }
 
 enum FlowType {
@@ -183,6 +192,18 @@ enum TraceObservationPoint {
     TO_NETWORK = 11;
 }
 
+enum TraceReason {
+    TRACE_REASON_UNKNOWN = 0;
+    NEW = 1;
+    ESTABLISHED = 2;
+    REPLY = 3;
+    RELATED = 4;
+    REOPENED = 5 [deprecated=true];
+    SRV6_ENCAP = 6;
+    SRV6_DECAP = 7;
+    ENCRYPT_OVERLAY = 8;
+}
+
 message Layer4 {
     oneof protocol {
         TCP TCP = 1;
@@ -233,6 +254,7 @@ message TraceParent {
 message Endpoint {
     uint32 ID = 1;
     uint32 identity = 2;
+    string cluster_name = 7;
     string namespace = 3;
     // labels in `foo=bar` format.
     repeated string labels = 4;
@@ -253,6 +275,9 @@ message TCP {
 
 message IP {
     string source = 1;
+    // source_xlated is the post translation source IP when the flow was SNATed
+    // (and in that case source is the the original source IP).
+    string source_xlated = 5;
     string destination = 2;
     IPVersion ipVersion = 3;
     // This field indicates whether the TraceReasonEncryptMask is set or not.
@@ -335,15 +360,15 @@ enum DropReason {
     // non-drop reasons
     DROP_REASON_UNKNOWN = 0;
     // drop reasons
-    INVALID_SOURCE_MAC = 130;
-    INVALID_DESTINATION_MAC = 131;
+    INVALID_SOURCE_MAC = 130 [deprecated = true];
+    INVALID_DESTINATION_MAC = 131 [deprecated = true];
     INVALID_SOURCE_IP = 132;
     POLICY_DENIED = 133;
     INVALID_PACKET_DROPPED = 134;
     CT_TRUNCATED_OR_INVALID_HEADER = 135;
     CT_MISSING_TCP_ACK_FLAG = 136;
     CT_UNKNOWN_L4_PROTOCOL = 137;
-    CT_CANNOT_CREATE_ENTRY_FROM_PACKET = 138;
+    CT_CANNOT_CREATE_ENTRY_FROM_PACKET = 138 [deprecated = true];
     UNSUPPORTED_L3_PROTOCOL = 139;
     MISSED_TAIL_CALL = 140;
     ERROR_WRITING_TO_PACKET = 141;
@@ -353,11 +378,11 @@ enum DropReason {
     UNKNOWN_ICMPV6_CODE = 145;
     UNKNOWN_ICMPV6_TYPE = 146;
     ERROR_RETRIEVING_TUNNEL_KEY = 147;
-    ERROR_RETRIEVING_TUNNEL_OPTIONS = 148;
-    INVALID_GENEVE_OPTION = 149;
+    ERROR_RETRIEVING_TUNNEL_OPTIONS = 148 [deprecated = true];
+    INVALID_GENEVE_OPTION = 149 [deprecated = true];
     UNKNOWN_L3_TARGET_ADDRESS = 150;
     STALE_OR_UNROUTABLE_IP = 151;
-    NO_MATCHING_LOCAL_CONTAINER_FOUND = 152;
+    NO_MATCHING_LOCAL_CONTAINER_FOUND = 152 [deprecated = true];
     ERROR_WHILE_CORRECTING_L3_CHECKSUM = 153;
     ERROR_WHILE_CORRECTING_L4_CHECKSUM = 154;
     CT_MAP_INSERTION_FAILED = 155;
@@ -390,7 +415,7 @@ enum DropReason {
     INVALID_VNI = 183;
     INVALID_TC_BUFFER = 184;
     NO_SID = 185;
-    MISSING_SRV6_STATE = 186;
+    MISSING_SRV6_STATE = 186 [deprecated = true];
     NAT46 = 187;
     NAT64 = 188;
     AUTH_REQUIRED = 189;
@@ -409,9 +434,12 @@ enum DropReason {
     // A BPF program wants to tail call into bpf_host, but the host datapath
     // hasn't been loaded yet.
     DROP_HOST_NOT_READY = 202;
-    // A BPF program wants to tail call some endpoint's policy program in the
-    // POLICY_CALL_MAP, but the program is not available.
+    // A BPF program wants to tail call some endpoint's policy program in
+    // cilium_call_policy, but the program is not available.
     DROP_EP_NOT_READY = 203;
+    // An Egress Gateway node matched a packet against an Egress Gateway policy
+    // that didn't select a valid Egress IP.
+    DROP_NO_EGRESS_IP = 204;
 }
 
 enum TrafficDirection {
@@ -439,6 +467,7 @@ message Policy {
 	string namespace = 2;
 	repeated string labels = 3;
 	uint64 revision = 4;
+	string kind = 5;
 }
 
 // EventTypeFilter is a filter describing a particular event type.
@@ -477,6 +506,10 @@ message FlowFilter {
     // specified as an exact match (e.g. "1.1.1.1") or as a CIDR range (e.g.
     // "1.1.1.0/24").
     repeated string source_ip = 1;
+    // source_ip_xlated filters by a list IPs. Each of the IPs can be specified
+    // as an exact match (e.g. "1.1.1.1") or as a CIDR range (e.g.
+    // "1.1.1.0/24").
+    repeated string source_ip_xlated = 34;
     // source_pod filters by a list of source pod name prefixes, optionally
     // within a given namespace (e.g. "xwing", "kube-system/coredns-").
     // The pod name can be omitted to only filter by namespace
@@ -512,9 +545,12 @@ message FlowFilter {
     // traffic_direction filters flow by direction of the connection, e.g.
     // ingress or egress.
     repeated TrafficDirection traffic_direction = 30;
-
     // only return Flows that were classified with a particular verdict.
     repeated Verdict verdict = 5;
+    // only applicable to Verdict = DROPPED (e.g. "POLICY_DENIED", "UNSUPPORTED_L3_PROTOCOL")
+    repeated DropReason drop_reason_desc = 33;
+    // interface is the network interface on which this flow was observed.
+    repeated NetworkInterface interface = 35;
     // event_type is the list of event types to filter on
     repeated EventTypeFilter event_type = 6;
     // http_status_code is a list of string prefixes (e.g. "4+", "404", "5+")
@@ -553,12 +589,33 @@ message FlowFilter {
     // node_name is a list of patterns to filter on the node name, e.g. "k8s*",
     // "test-cluster/*.domain.com", "cluster-name/" etc.
     repeated string node_name = 24;
+    // node_labels filters on a list of node label selectors. Selectors support
+    // the full Kubernetes label selector syntax.
+    repeated string node_labels = 36;
 
     // filter based on IP version (ipv4 or ipv6)
     repeated IPVersion ip_version = 25;
 
     // trace_id filters flows by trace ID
     repeated string trace_id = 28;
+
+    // Experimental contains filters that are not stable yet. Support for
+    // experimental features is always optional and subject to change.
+    message Experimental {
+      // cel_expression takes a common expression language (CEL) expression
+      // returning a boolean to determine if the filter matched or not.
+      // You can use the `_flow` variable to access fields on the flow using
+      // the flow.Flow protobuf field names.
+      // See https://github.com/google/cel-spec/blob/v0.14.0/doc/intro.md#introduction
+      // for more details on CEL and accessing the protobuf fields in CEL.
+      // Using CEL has performance cost compared to other filters, so prefer
+      // using non-CEL filters when possible, and try to specify CEL filters
+      // last in the list of FlowFilters.
+      repeated string cel_expression = 1;
+    }
+    // experimental contains filters that are not stable yet. Support for
+    // experimental features is always optional and subject to change.
+    Experimental experimental = 999;
 }
 
 // EventType are constants are based on the ones from <linux/perf_event.h>.
@@ -599,7 +656,7 @@ message HTTPHeader {
     string value = 2;
 }
 
-// L7 information for HTTP flows. It corresponds to Cilium's [accesslog.LogRecordHTTP](https://github.com/cilium/cilium/blob/728c79e427438ab6f8d9375b62fccd6fed4ace3a/pkg/proxy/accesslog/record.go#L206) type. 
+// L7 information for HTTP flows. It corresponds to Cilium's [accesslog.LogRecordHTTP](https://github.com/cilium/cilium/blob/728c79e427438ab6f8d9375b62fccd6fed4ace3a/pkg/proxy/accesslog/record.go#L206) type.
 message HTTP {
     uint32 code = 1;
     string method = 2;

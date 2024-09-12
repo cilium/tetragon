@@ -1,5 +1,5 @@
 # github.com/cilium/tetragon v0.0.0-00010101000000-000000000000 => ../
-## explicit; go 1.22.1
+## explicit; go 1.23.0
 github.com/cilium/tetragon/pkg/matchers/bytesmatcher
 github.com/cilium/tetragon/pkg/matchers/listmatcher
 github.com/cilium/tetragon/pkg/matchers/stringmatcher
@@ -34,7 +34,7 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# google.golang.org/genproto/googleapis/rpc v0.0.0-20240814211410-ddb44dafa142
+# google.golang.org/genproto/googleapis/rpc v0.0.0-20240820151423-278611b39280
 ## explicit; go 1.21
 google.golang.org/genproto/googleapis/rpc/status
 # google.golang.org/grpc v1.67.0

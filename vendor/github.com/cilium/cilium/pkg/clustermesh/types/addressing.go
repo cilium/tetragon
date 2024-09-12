@@ -4,6 +4,8 @@
 package types
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"net"
 	"net/netip"
@@ -13,7 +15,6 @@ import (
 	"go4.org/netipx"
 
 	"github.com/cilium/cilium/pkg/cidr"
-	ippkg "github.com/cilium/cilium/pkg/ip"
 )
 
 //
@@ -41,6 +42,55 @@ type AddrCluster struct {
 }
 
 const AddrClusterLen = 20
+
+var (
+	errUnmarshalBadAddress   = errors.New("AddrCluster.UnmarshalJSON: bad address")
+	errMarshalInvalidAddress = errors.New("AddrCluster.MarshalJSON: invalid address")
+
+	jsonZeroAddress = []byte("\"\"")
+)
+
+// MarshalJSON marshals the address as a string in the form
+// <addr>@<clusterID>, e.g. "1.2.3.4@1"
+func (a *AddrCluster) MarshalJSON() ([]byte, error) {
+	if !a.addr.IsValid() {
+		if a.clusterID != 0 {
+			return nil, errMarshalInvalidAddress
+		}
+
+		// AddrCluster{} is the zero value. Preserve this across the
+		// marshalling by returning an empty string.
+		return jsonZeroAddress, nil
+	}
+
+	var b bytes.Buffer
+	b.WriteByte('"')
+	b.WriteString(a.String())
+	b.WriteByte('"')
+	return b.Bytes(), nil
+}
+
+func (a *AddrCluster) UnmarshalJSON(data []byte) error {
+	if bytes.Equal(data, jsonZeroAddress) {
+		return nil
+	}
+
+	if len(data) <= 2 || data[0] != '"' || data[len(data)-1] != '"' {
+		return errUnmarshalBadAddress
+	}
+
+	// Drop the parens
+	data = data[1 : len(data)-1]
+
+	a2, err := ParseAddrCluster(string(data))
+	if err != nil {
+		return err
+	}
+	a.addr = a2.addr
+	a.clusterID = a2.clusterID
+
+	return nil
+}
 
 // ParseAddrCluster parses s as an IP + ClusterID and returns AddrCluster.
 // The string s can be a bare IP string (any IP address format allowed in
@@ -96,10 +146,10 @@ func MustParseAddrCluster(s string) AddrCluster {
 	return addrCluster
 }
 
-// AddrClusterFromIP parses the given net.IP using ip.AddrFromIP and returns
+// AddrClusterFromIP parses the given net.IP using netipx.FromStdIP and returns
 // AddrCluster with ClusterID = 0.
 func AddrClusterFromIP(ip net.IP) (AddrCluster, bool) {
-	addr, ok := ippkg.AddrFromIP(ip)
+	addr, ok := netipx.FromStdIP(ip)
 	if !ok {
 		return AddrCluster{}, false
 	}
@@ -313,7 +363,7 @@ func PrefixClusterFromCIDR(c *cidr.CIDR, opts ...PrefixClusterOpts) PrefixCluste
 		return PrefixCluster{}
 	}
 
-	addr, ok := ippkg.AddrFromIP(c.IP)
+	addr, ok := netipx.FromStdIP(c.IP)
 	if !ok {
 		return PrefixCluster{}
 	}

@@ -1,9 +1,9 @@
 module github.com/cilium/tetragon/contrib/rthooks/tetragon-oci-hook
 
 // renovate: datasource=golang-version depName=go
-go 1.22.1
+go 1.23.0
 
-toolchain go1.22.3
+toolchain go1.23.1
 
 require (
 	github.com/alecthomas/kong v1.2.1
@@ -46,7 +46,7 @@ require (
 	golang.org/x/sys v0.25.0 // indirect
 	golang.org/x/text v0.18.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240814211410-ddb44dafa142 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240814211410-ddb44dafa142 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240820151423-278611b39280 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/cri-api v0.27.1 // indirect
