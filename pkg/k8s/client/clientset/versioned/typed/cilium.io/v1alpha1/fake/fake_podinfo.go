@@ -28,22 +28,24 @@ var podinfoKind = v1alpha1.SchemeGroupVersion.WithKind("PodInfo")
 
 // Get takes name of the podInfo, and returns the corresponding podInfo object, and an error if there is any.
 func (c *FakePodInfo) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.PodInfo, err error) {
+	emptyResult := &v1alpha1.PodInfo{}
 	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(podinfoResource, c.ns, name), &v1alpha1.PodInfo{})
+		Invokes(testing.NewGetActionWithOptions(podinfoResource, c.ns, name, options), emptyResult)
 
 	if obj == nil {
-		return nil, err
+		return emptyResult, err
 	}
 	return obj.(*v1alpha1.PodInfo), err
 }
 
 // List takes label and field selectors, and returns the list of PodInfo that match those selectors.
 func (c *FakePodInfo) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.PodInfoList, err error) {
+	emptyResult := &v1alpha1.PodInfoList{}
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(podinfoResource, podinfoKind, c.ns, opts), &v1alpha1.PodInfoList{})
+		Invokes(testing.NewListActionWithOptions(podinfoResource, podinfoKind, c.ns, opts), emptyResult)
 
 	if obj == nil {
-		return nil, err
+		return emptyResult, err
 	}
 
 	label, _, _ := testing.ExtractFromListOptions(opts)
@@ -62,40 +64,43 @@ func (c *FakePodInfo) List(ctx context.Context, opts v1.ListOptions) (result *v1
 // Watch returns a watch.Interface that watches the requested podInfo.
 func (c *FakePodInfo) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(testing.NewWatchAction(podinfoResource, c.ns, opts))
+		InvokesWatch(testing.NewWatchActionWithOptions(podinfoResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a podInfo and creates it.  Returns the server's representation of the podInfo, and an error, if there is any.
 func (c *FakePodInfo) Create(ctx context.Context, podInfo *v1alpha1.PodInfo, opts v1.CreateOptions) (result *v1alpha1.PodInfo, err error) {
+	emptyResult := &v1alpha1.PodInfo{}
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(podinfoResource, c.ns, podInfo), &v1alpha1.PodInfo{})
+		Invokes(testing.NewCreateActionWithOptions(podinfoResource, c.ns, podInfo, opts), emptyResult)
 
 	if obj == nil {
-		return nil, err
+		return emptyResult, err
 	}
 	return obj.(*v1alpha1.PodInfo), err
 }
 
 // Update takes the representation of a podInfo and updates it. Returns the server's representation of the podInfo, and an error, if there is any.
 func (c *FakePodInfo) Update(ctx context.Context, podInfo *v1alpha1.PodInfo, opts v1.UpdateOptions) (result *v1alpha1.PodInfo, err error) {
+	emptyResult := &v1alpha1.PodInfo{}
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(podinfoResource, c.ns, podInfo), &v1alpha1.PodInfo{})
+		Invokes(testing.NewUpdateActionWithOptions(podinfoResource, c.ns, podInfo, opts), emptyResult)
 
 	if obj == nil {
-		return nil, err
+		return emptyResult, err
 	}
 	return obj.(*v1alpha1.PodInfo), err
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakePodInfo) UpdateStatus(ctx context.Context, podInfo *v1alpha1.PodInfo, opts v1.UpdateOptions) (*v1alpha1.PodInfo, error) {
+func (c *FakePodInfo) UpdateStatus(ctx context.Context, podInfo *v1alpha1.PodInfo, opts v1.UpdateOptions) (result *v1alpha1.PodInfo, err error) {
+	emptyResult := &v1alpha1.PodInfo{}
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceAction(podinfoResource, "status", c.ns, podInfo), &v1alpha1.PodInfo{})
+		Invokes(testing.NewUpdateSubresourceActionWithOptions(podinfoResource, "status", c.ns, podInfo, opts), emptyResult)
 
 	if obj == nil {
-		return nil, err
+		return emptyResult, err
 	}
 	return obj.(*v1alpha1.PodInfo), err
 }
@@ -110,7 +115,7 @@ func (c *FakePodInfo) Delete(ctx context.Context, name string, opts v1.DeleteOpt
 
 // DeleteCollection deletes a collection of objects.
 func (c *FakePodInfo) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(podinfoResource, c.ns, listOpts)
+	action := testing.NewDeleteCollectionActionWithOptions(podinfoResource, c.ns, opts, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.PodInfoList{})
 	return err
@@ -118,11 +123,12 @@ func (c *FakePodInfo) DeleteCollection(ctx context.Context, opts v1.DeleteOption
 
 // Patch applies the patch and returns the patched podInfo.
 func (c *FakePodInfo) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.PodInfo, err error) {
+	emptyResult := &v1alpha1.PodInfo{}
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(podinfoResource, c.ns, name, pt, data, subresources...), &v1alpha1.PodInfo{})
+		Invokes(testing.NewPatchSubresourceActionWithOptions(podinfoResource, c.ns, name, pt, data, opts, subresources...), emptyResult)
 
 	if obj == nil {
-		return nil, err
+		return emptyResult, err
 	}
 	return obj.(*v1alpha1.PodInfo), err
 }

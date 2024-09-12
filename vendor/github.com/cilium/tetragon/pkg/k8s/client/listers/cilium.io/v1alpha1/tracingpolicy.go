@@ -7,8 +7,8 @@ package v1alpha1
 
 import (
 	v1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/listers"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -26,30 +26,10 @@ type TracingPolicyLister interface {
 
 // tracingPolicyLister implements the TracingPolicyLister interface.
 type tracingPolicyLister struct {
-	indexer cache.Indexer
+	listers.ResourceIndexer[*v1alpha1.TracingPolicy]
 }
 
 // NewTracingPolicyLister returns a new TracingPolicyLister.
 func NewTracingPolicyLister(indexer cache.Indexer) TracingPolicyLister {
-	return &tracingPolicyLister{indexer: indexer}
-}
-
-// List lists all TracingPolicies in the indexer.
-func (s *tracingPolicyLister) List(selector labels.Selector) (ret []*v1alpha1.TracingPolicy, err error) {
-	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.TracingPolicy))
-	})
-	return ret, err
-}
-
-// Get retrieves the TracingPolicy from the index for a given name.
-func (s *tracingPolicyLister) Get(name string) (*v1alpha1.TracingPolicy, error) {
-	obj, exists, err := s.indexer.GetByKey(name)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, errors.NewNotFound(v1alpha1.Resource("tracingpolicy"), name)
-	}
-	return obj.(*v1alpha1.TracingPolicy), nil
+	return &tracingPolicyLister{listers.New[*v1alpha1.TracingPolicy](indexer, v1alpha1.Resource("tracingpolicy"))}
 }

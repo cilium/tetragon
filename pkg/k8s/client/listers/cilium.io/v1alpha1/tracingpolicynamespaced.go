@@ -7,8 +7,8 @@ package v1alpha1
 
 import (
 	v1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/listers"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -25,25 +25,17 @@ type TracingPolicyNamespacedLister interface {
 
 // tracingPolicyNamespacedLister implements the TracingPolicyNamespacedLister interface.
 type tracingPolicyNamespacedLister struct {
-	indexer cache.Indexer
+	listers.ResourceIndexer[*v1alpha1.TracingPolicyNamespaced]
 }
 
 // NewTracingPolicyNamespacedLister returns a new TracingPolicyNamespacedLister.
 func NewTracingPolicyNamespacedLister(indexer cache.Indexer) TracingPolicyNamespacedLister {
-	return &tracingPolicyNamespacedLister{indexer: indexer}
-}
-
-// List lists all TracingPoliciesNamespaced in the indexer.
-func (s *tracingPolicyNamespacedLister) List(selector labels.Selector) (ret []*v1alpha1.TracingPolicyNamespaced, err error) {
-	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.TracingPolicyNamespaced))
-	})
-	return ret, err
+	return &tracingPolicyNamespacedLister{listers.New[*v1alpha1.TracingPolicyNamespaced](indexer, v1alpha1.Resource("tracingpolicynamespaced"))}
 }
 
 // TracingPoliciesNamespaced returns an object that can list and get TracingPoliciesNamespaced.
 func (s *tracingPolicyNamespacedLister) TracingPoliciesNamespaced(namespace string) TracingPolicyNamespacedNamespaceLister {
-	return tracingPolicyNamespacedNamespaceLister{indexer: s.indexer, namespace: namespace}
+	return tracingPolicyNamespacedNamespaceLister{listers.NewNamespaced[*v1alpha1.TracingPolicyNamespaced](s.ResourceIndexer, namespace)}
 }
 
 // TracingPolicyNamespacedNamespaceLister helps list and get TracingPoliciesNamespaced.
@@ -61,26 +53,5 @@ type TracingPolicyNamespacedNamespaceLister interface {
 // tracingPolicyNamespacedNamespaceLister implements the TracingPolicyNamespacedNamespaceLister
 // interface.
 type tracingPolicyNamespacedNamespaceLister struct {
-	indexer   cache.Indexer
-	namespace string
-}
-
-// List lists all TracingPoliciesNamespaced in the indexer for a given namespace.
-func (s tracingPolicyNamespacedNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.TracingPolicyNamespaced, err error) {
-	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.TracingPolicyNamespaced))
-	})
-	return ret, err
-}
-
-// Get retrieves the TracingPolicyNamespaced from the indexer for a given namespace and name.
-func (s tracingPolicyNamespacedNamespaceLister) Get(name string) (*v1alpha1.TracingPolicyNamespaced, error) {
-	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, errors.NewNotFound(v1alpha1.Resource("tracingpolicynamespaced"), name)
-	}
-	return obj.(*v1alpha1.TracingPolicyNamespaced), nil
+	listers.ResourceIndexer[*v1alpha1.TracingPolicyNamespaced]
 }

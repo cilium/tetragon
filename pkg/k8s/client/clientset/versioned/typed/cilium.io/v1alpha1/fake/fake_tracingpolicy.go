@@ -27,20 +27,22 @@ var tracingpoliciesKind = v1alpha1.SchemeGroupVersion.WithKind("TracingPolicy")
 
 // Get takes name of the tracingPolicy, and returns the corresponding tracingPolicy object, and an error if there is any.
 func (c *FakeTracingPolicies) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.TracingPolicy, err error) {
+	emptyResult := &v1alpha1.TracingPolicy{}
 	obj, err := c.Fake.
-		Invokes(testing.NewRootGetAction(tracingpoliciesResource, name), &v1alpha1.TracingPolicy{})
+		Invokes(testing.NewRootGetActionWithOptions(tracingpoliciesResource, name, options), emptyResult)
 	if obj == nil {
-		return nil, err
+		return emptyResult, err
 	}
 	return obj.(*v1alpha1.TracingPolicy), err
 }
 
 // List takes label and field selectors, and returns the list of TracingPolicies that match those selectors.
 func (c *FakeTracingPolicies) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.TracingPolicyList, err error) {
+	emptyResult := &v1alpha1.TracingPolicyList{}
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(tracingpoliciesResource, tracingpoliciesKind, opts), &v1alpha1.TracingPolicyList{})
+		Invokes(testing.NewRootListActionWithOptions(tracingpoliciesResource, tracingpoliciesKind, opts), emptyResult)
 	if obj == nil {
-		return nil, err
+		return emptyResult, err
 	}
 
 	label, _, _ := testing.ExtractFromListOptions(opts)
@@ -59,25 +61,27 @@ func (c *FakeTracingPolicies) List(ctx context.Context, opts v1.ListOptions) (re
 // Watch returns a watch.Interface that watches the requested tracingPolicies.
 func (c *FakeTracingPolicies) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(testing.NewRootWatchAction(tracingpoliciesResource, opts))
+		InvokesWatch(testing.NewRootWatchActionWithOptions(tracingpoliciesResource, opts))
 }
 
 // Create takes the representation of a tracingPolicy and creates it.  Returns the server's representation of the tracingPolicy, and an error, if there is any.
 func (c *FakeTracingPolicies) Create(ctx context.Context, tracingPolicy *v1alpha1.TracingPolicy, opts v1.CreateOptions) (result *v1alpha1.TracingPolicy, err error) {
+	emptyResult := &v1alpha1.TracingPolicy{}
 	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateAction(tracingpoliciesResource, tracingPolicy), &v1alpha1.TracingPolicy{})
+		Invokes(testing.NewRootCreateActionWithOptions(tracingpoliciesResource, tracingPolicy, opts), emptyResult)
 	if obj == nil {
-		return nil, err
+		return emptyResult, err
 	}
 	return obj.(*v1alpha1.TracingPolicy), err
 }
 
 // Update takes the representation of a tracingPolicy and updates it. Returns the server's representation of the tracingPolicy, and an error, if there is any.
 func (c *FakeTracingPolicies) Update(ctx context.Context, tracingPolicy *v1alpha1.TracingPolicy, opts v1.UpdateOptions) (result *v1alpha1.TracingPolicy, err error) {
+	emptyResult := &v1alpha1.TracingPolicy{}
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateAction(tracingpoliciesResource, tracingPolicy), &v1alpha1.TracingPolicy{})
+		Invokes(testing.NewRootUpdateActionWithOptions(tracingpoliciesResource, tracingPolicy, opts), emptyResult)
 	if obj == nil {
-		return nil, err
+		return emptyResult, err
 	}
 	return obj.(*v1alpha1.TracingPolicy), err
 }
@@ -91,7 +95,7 @@ func (c *FakeTracingPolicies) Delete(ctx context.Context, name string, opts v1.D
 
 // DeleteCollection deletes a collection of objects.
 func (c *FakeTracingPolicies) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(tracingpoliciesResource, listOpts)
+	action := testing.NewRootDeleteCollectionActionWithOptions(tracingpoliciesResource, opts, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.TracingPolicyList{})
 	return err
@@ -99,10 +103,11 @@ func (c *FakeTracingPolicies) DeleteCollection(ctx context.Context, opts v1.Dele
 
 // Patch applies the patch and returns the patched tracingPolicy.
 func (c *FakeTracingPolicies) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.TracingPolicy, err error) {
+	emptyResult := &v1alpha1.TracingPolicy{}
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(tracingpoliciesResource, name, pt, data, subresources...), &v1alpha1.TracingPolicy{})
+		Invokes(testing.NewRootPatchSubresourceActionWithOptions(tracingpoliciesResource, name, pt, data, opts, subresources...), emptyResult)
 	if obj == nil {
-		return nil, err
+		return emptyResult, err
 	}
 	return obj.(*v1alpha1.TracingPolicy), err
 }
