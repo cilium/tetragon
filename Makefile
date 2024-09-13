@@ -380,6 +380,7 @@ protogen: protoc-gen-go-tetragon ## Generate code based on .proto files.
 	$(GO) mod tidy
 	$(GO) mod vendor
 	$(GO) mod verify
+	$(MAKE) -C contrib/tetragon-rthooks vendor
 
 .PHONY: protoc-gen-go-tetragon
 protoc-gen-go-tetragon:
