@@ -198,7 +198,7 @@ func (pc *Cache) len() int {
 func (pc *Cache) dump(opts *tetragon.DumpProcessCacheReqArgs) []*tetragon.ProcessInternal {
 	var processes []*tetragon.ProcessInternal
 	for _, v := range pc.cache.Values() {
-		if opts.SkipZeroRefCnt && v.refcnt == 0 {
+		if opts.SkipZeroRefcnt && v.refcnt == 0 {
 			continue
 		}
 		processes = append(processes, &tetragon.ProcessInternal{
