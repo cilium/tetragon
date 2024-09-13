@@ -47,6 +47,8 @@ linters:
     - varcheck    # deprecated since v1.49.0
     - depguard    # nothing to guard against yet
     - tagalign    # hurts readability of kong tags
+    - mnd
+    - perfsprint
 
 linters-settings:
   govet:
@@ -76,6 +78,7 @@ issues:
     - 'bad syntax for struct tag key'
     - 'bad syntax for struct tag pair'
     - 'result .* \(error\) is always nil'
+    - 'Error return value of `fmt.Fprintln` is not checked'
 
   exclude-rules:
     # Don't warn on unused parameters.
@@ -87,3 +90,7 @@ issues:
     # Duplicate words are okay in tests.
     - linters: [dupword]
       path: _test\.go
+
+    - linters: [maintidx]
+      path: context\.go
+      text: 'Function name: trace'
