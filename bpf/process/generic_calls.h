@@ -121,9 +121,8 @@ generic_process_event(void *ctx, struct bpf_map_def *heap_map,
 	return 0;
 }
 
+#if defined(__TARGET_ARCH_x86)
 #define TS_COMPAT 0x0002
-
-#ifdef __TARGET_ARCH_x86
 FUNC_INLINE void
 generic_setup_32bit_syscall(struct msg_generic_kprobe *e, u8 op)
 {
@@ -136,6 +135,24 @@ generic_setup_32bit_syscall(struct msg_generic_kprobe *e, u8 op)
 		info = (struct thread_info *)get_current_task();
 		probe_read(&status, sizeof(status), _(&info->status));
 		e->sel.is32BitSyscall = status & TS_COMPAT;
+	default:
+		break;
+	}
+}
+#elif defined(__TARGET_ARCH_arm64)
+#define TIF_32BIT 22
+FUNC_INLINE void
+generic_setup_32bit_syscall(struct msg_generic_kprobe *e, u8 op)
+{
+	struct thread_info *info;
+	unsigned long flags;
+
+	switch (op) {
+	case MSG_OP_GENERIC_TRACEPOINT:
+	case MSG_OP_GENERIC_KPROBE:
+		info = (struct thread_info *)get_current_task();
+		probe_read(&flags, sizeof(flags), _(&info->flags));
+		e->sel.is32BitSyscall = flags & (1 << TIF_32BIT);
 	default:
 		break;
 	}

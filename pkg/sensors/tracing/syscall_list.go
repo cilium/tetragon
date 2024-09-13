@@ -29,9 +29,9 @@ func (v SyscallVal) ID() (int, error) {
 	sc = strings.TrimPrefix(sc, "sys_")
 	id, err := syscallinfo.SyscallID(sc, abi)
 	if err != nil {
-		return -1, fmt.Errorf("failed list '%s' cannot translate syscall '%s': %w", v, sc, err)
+		return -1, fmt.Errorf("failed list '%s' cannot translate syscall '%s' to id: %w", v, sc, err)
 	}
-	if abi == "i386" {
+	if abi == "i386" || abi == "arm32" {
 		id |= Is32Bit
 	}
 	return id, nil
@@ -51,6 +51,10 @@ func (v SyscallVal) Symbol() (string, error) {
 		prefix = "__arm64_"
 	case "i386":
 		prefix = "__ia32_"
+	case "arm32":
+		// NB: arm32 syscall implementations typically use the same function as the arm64
+		// syscalls.
+		prefix = "__arm64_"
 	default:
 		return "", fmt.Errorf("unexpected error, unknown ABI: '%s'", abi)
 	}
@@ -70,7 +74,7 @@ func validateABI(xarg, abi string) error {
 	switch xarg {
 	case "":
 		// no arch
-		if abi != "x64" && abi != "i386" && abi != "arm64" {
+		if abi != "x64" && abi != "i386" && abi != "arm64" && abi != "arm32" {
 			return fmt.Errorf("invalid ABI: %s", abi)
 		}
 	case "amd64":
@@ -82,7 +86,7 @@ func validateABI(xarg, abi string) error {
 			return fmt.Errorf("invalid ABI (%s) for arch (%s)", abi, xarg)
 		}
 	case "arm64":
-		if abi != "arm64" {
+		if abi != "arm64" && abi != "arm32" {
 			return fmt.Errorf("invalid ABI (%s) for arch (%s)", abi, xarg)
 		}
 	}
