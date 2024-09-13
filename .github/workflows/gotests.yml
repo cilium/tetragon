@@ -28,12 +28,6 @@ jobs:
         # renovate: datasource=golang-version depName=go
         go-version: '1.22.7'
 
-    - name: Install dependencies x86
-      run: |
-        sudo apt-get update
-        sudo apt-get -y install libc6-dev-i386
-      if: ${{ matrix.os == 'ubuntu-20.04' }}
-
     - name: Install dependencies
       run: |
         sudo apt-get update
@@ -45,6 +39,17 @@ jobs:
         echo `which clang`
         echo `which llc`
         echo `clang --version`
+
+
+    - name: Install dependencies x86
+      run: |
+        sudo apt-get -y install libc6-dev-i386
+      if: ${{ matrix.os == 'ubuntu-20.04' }}
+
+    - name: Install dependencies ARM
+      run: |
+        sudo apt-get -y install gcc-arm-linux-gnueabihf
+      if: ${{ matrix.os == 'actuated-arm64-4cpu-8gb' }}
 
     - name: Install bpftool
       uses: mtardy/setup-bpftool@adeab4f9332cc28db56064a93911860d0775665b # v1.0.3
