@@ -15,7 +15,7 @@ require (
 	github.com/google/cel-go v0.21.0
 	github.com/opencontainers/runc v1.1.14
 	github.com/opencontainers/runtime-spec v1.2.0
-	github.com/pelletier/go-toml v1.9.5
+	github.com/pelletier/go-toml/v2 v2.2.3
 	github.com/stretchr/testify v1.9.0
 	google.golang.org/grpc v1.66.2
 )
