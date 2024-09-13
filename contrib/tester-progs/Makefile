@@ -19,17 +19,13 @@ PROGS = sigkill-tester \
 	bench-reader \
 	threads-exit \
 	enforcer-tester \
+	enforcer-tester-32 \
 	drop-privileges \
 	getcpu \
 	direct-write-tester \
 	change-capabilities \
 	user-stacktrace
 
-# For now enforcer-tester is compiled to 32-bit only on x86_64 as we want
-# to test 32-bit binaries and system calls compatibility layer.
-ifeq ($(shell uname -m),x86_64)
-	PROGS += enforcer-tester-32
-endif
 
 all: $(PROGS)
 
@@ -78,10 +74,16 @@ uprobe-test-1: uprobe-test.c libuprobe.so
 uprobe-test-2: uprobe-test-1
 	cp uprobe-test-1 uprobe-test-2
 
-# -m32 is an x86_64 flag.
-# NB(kkourt) we compile this as static to avoid the need for ia32 libs in VMs
+# NB: compile the 32 bit version of enforcer-tester statically so that we don't
+# need additional libraries in the VMs
 enforcer-tester-32: enforcer-tester.c
+ifeq ($(shell uname -m),x86_64)
 	$(GCC) -Wall -m32 -static $< -o $@
+else ifeq ($(shell uname -m),aarch64)
+	arm-linux-gnueabihf-gcc -Wall -static $< -o $@
+else
+	$(error unsupported arch)
+endif
 
 lseek-pipe: FORCE
 	go build -o lseek-pipe ./go/lseek-pipe
