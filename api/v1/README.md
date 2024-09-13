@@ -1649,7 +1649,7 @@ Determines the behavior of a field filter
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| skipZeroRefCnt | [bool](#bool) |  |  |
+| skip_zero_refcnt | [bool](#bool) |  |  |
 
 
 
@@ -1871,7 +1871,7 @@ Determines the behavior of a field filter
 | process | [Process](#tetragon-Process) |  |  |
 | color | [string](#string) |  |  |
 | refcnt | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
-| refcntOps | [ProcessInternal.RefcntOpsEntry](#tetragon-ProcessInternal-RefcntOpsEntry) | repeated | refcntOps is a map of operations to refcnt change keys can be: - &#34;process&#43;&#43;&#34;: process increased refcnt (i.e. this process starts) - &#34;process--&#34;: process decreased refcnt (i.e. this process exits) - &#34;parent&#43;&#43;&#34;: parent increased refcnt (i.e. a process starts that has this process as a parent) - &#34;parent--&#34;: parent decreased refcnt (i.e. a process exits that has this process as a parent) |
+| refcnt_ops | [ProcessInternal.RefcntOpsEntry](#tetragon-ProcessInternal-RefcntOpsEntry) | repeated | refcnt_ops is a map of operations to refcnt change keys can be: - &#34;process&#43;&#43;&#34;: process increased refcnt (i.e. this process starts) - &#34;process--&#34;: process decreased refcnt (i.e. this process exits) - &#34;parent&#43;&#43;&#34;: parent increased refcnt (i.e. a process starts that has this process as a parent) - &#34;parent--&#34;: parent decreased refcnt (i.e. a process exits that has this process as a parent) |
 
 
 

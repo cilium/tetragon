@@ -144,20 +144,20 @@ enum LogLevel {
 }
 
 message DumpProcessCacheReqArgs {
-	bool skipZeroRefCnt = 1;
+	bool skip_zero_refcnt = 1;
 }
 
 message ProcessInternal {
 	Process process = 1;
 	string color = 2;
 	google.protobuf.UInt32Value refcnt = 3;
-	// refcntOps is a map of operations to refcnt change
+	// refcnt_ops is a map of operations to refcnt change
 	// keys can be:
 	// - "process++": process increased refcnt (i.e. this process starts)
 	// - "process--": process decreased refcnt (i.e. this process exits)
 	// - "parent++": parent increased refcnt (i.e. a process starts that has this process as a parent)
 	// - "parent--": parent decreased refcnt (i.e. a process exits that has this process as a parent)
-	map<string, int32> refcntOps = 4;
+	map<string, int32> refcnt_ops = 4;
 }
 
 message DumpProcessCacheResArgs {
