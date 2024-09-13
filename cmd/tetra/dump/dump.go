@@ -4,7 +4,6 @@
 package dump
 
 import (
-	"context"
 	"fmt"
 	"path/filepath"
 	"strconv"
@@ -107,39 +106,45 @@ func dumpExecveMap(fname string) {
 
 func dumpProcessCache() *cobra.Command {
 	skipZeroRefcnt := false
+
 	ret := &cobra.Command{
 		Use: "processcache",
 		// this is for legacy compatibility reason
 		Aliases: []string{"processCache"},
 		Short:   "dump process cache",
 		Args:    cobra.ExactArgs(0),
-		Run: func(_ *cobra.Command, _ []string) {
-			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
-				req := tetragon.GetDebugRequest{
-					Flag: tetragon.ConfigFlag_CONFIG_FLAG_DUMP_PROCESS_CACHE,
-					Arg: &tetragon.GetDebugRequest_Dump{
-						Dump: &tetragon.DumpProcessCacheReqArgs{
-							SkipZeroRefcnt: skipZeroRefcnt,
-						},
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			c, err := common.NewClientWithDefaultContextAndAddress()
+			if err != nil {
+				return fmt.Errorf("failed to create a gRPC client: %w", err)
+			}
+
+			req := tetragon.GetDebugRequest{
+				Flag: tetragon.ConfigFlag_CONFIG_FLAG_DUMP_PROCESS_CACHE,
+				Arg: &tetragon.GetDebugRequest_Dump{
+					Dump: &tetragon.DumpProcessCacheReqArgs{
+						SkipZeroRefcnt: skipZeroRefcnt,
 					},
-				}
-				res, err := cli.GetDebug(ctx, &req)
-				if err != nil {
-					logger.GetLogger().WithError(err).Error("failed to get debug info")
-					return
-				}
-				if res.Flag == tetragon.ConfigFlag_CONFIG_FLAG_DUMP_PROCESS_CACHE {
-					for _, p := range res.GetProcesses().Processes {
-						if s, err := p.MarshalJSON(); err == nil {
-							fmt.Println(string(s))
-						} else {
-							logger.GetLogger().WithError(err).WithField("process", p).Error("failed to marshal process")
-						}
-					}
+				},
+			}
+			res, err := c.Client.GetDebug(c.Ctx, &req)
+			if err != nil {
+				return fmt.Errorf("failed to get process dump debug info: %w", err)
+			}
+
+			if res.Flag != tetragon.ConfigFlag_CONFIG_FLAG_DUMP_PROCESS_CACHE {
+				return fmt.Errorf("unexpected response flag: %s", res.Flag)
+			}
+
+			for _, p := range res.GetProcesses().Processes {
+				if s, err := p.MarshalJSON(); err == nil {
+					cmd.Println(string(s))
 				} else {
-					logger.GetLogger().WithField("flag", res.Flag).Error("unexpected response flag")
+					logger.GetLogger().WithError(err).WithField("process", p).Error("failed to marshal process")
 				}
-			})
+			}
+
+			return nil
 		},
 	}
 
