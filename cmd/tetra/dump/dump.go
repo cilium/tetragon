@@ -106,18 +106,20 @@ func dumpExecveMap(fname string) {
 }
 
 func dumpProcessCache() *cobra.Command {
-	skipZeroRefCnt := false
+	skipZeroRefcnt := false
 	ret := &cobra.Command{
-		Use:   "processCache",
-		Short: "dump process cache",
-		Args:  cobra.ExactArgs(0),
+		Use: "processcache",
+		// this is for legacy compatibility reason
+		Aliases: []string{"processCache"},
+		Short:   "dump process cache",
+		Args:    cobra.ExactArgs(0),
 		Run: func(_ *cobra.Command, _ []string) {
 			common.CliRun(func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
 				req := tetragon.GetDebugRequest{
 					Flag: tetragon.ConfigFlag_CONFIG_FLAG_DUMP_PROCESS_CACHE,
 					Arg: &tetragon.GetDebugRequest_Dump{
 						Dump: &tetragon.DumpProcessCacheReqArgs{
-							SkipZeroRefCnt: skipZeroRefCnt,
+							SkipZeroRefcnt: skipZeroRefcnt,
 						},
 					},
 				}
@@ -142,7 +144,7 @@ func dumpProcessCache() *cobra.Command {
 	}
 
 	flags := ret.Flags()
-	flags.BoolVar(&skipZeroRefCnt, "skip-zero-refcnt", skipZeroRefCnt, "skip entries with zero refcnt")
+	flags.BoolVar(&skipZeroRefcnt, "skip-zero-refcnt", skipZeroRefcnt, "skip entries with zero refcnt")
 
 	return ret
 }
