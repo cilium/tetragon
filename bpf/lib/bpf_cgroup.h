@@ -108,7 +108,7 @@ FUNC_INLINE const char *__get_cgroup_kn_name(const struct kernfs_node *kn)
 	const char *name = NULL;
 
 	if (kn)
-		probe_read(&name, sizeof(name), _(&kn->name));
+		probe_read_kernel(&name, sizeof(name), _(&kn->name));
 
 	return name;
 }
@@ -137,7 +137,7 @@ FUNC_INLINE __u64 __get_cgroup_kn_id(const struct kernfs_node *kn)
 		if (BPF_CORE_READ_INTO(&id, old_kn, id.id) != 0)
 			return 0;
 	} else {
-		probe_read(&id, sizeof(id), _(&kn->id));
+		probe_read_kernel(&id, sizeof(id), _(&kn->id));
 	}
 
 	return id;
@@ -154,7 +154,7 @@ FUNC_INLINE struct kernfs_node *__get_cgroup_kn(const struct cgroup *cgrp)
 	struct kernfs_node *kn = NULL;
 
 	if (cgrp)
-		probe_read(&kn, sizeof(cgrp->kn), _(&cgrp->kn));
+		probe_read_kernel(&kn, sizeof(cgrp->kn), _(&cgrp->kn));
 
 	return kn;
 }
@@ -183,7 +183,7 @@ FUNC_INLINE __u32 get_cgroup_hierarchy_id(const struct cgroup *cgrp)
  * @cgrp: target cgroup
  *
  * Returns a pointer to the cgroup node name on success that can
- * be read with probe_read(). NULL on failures.
+ * be read with probe_read_kernel(). NULL on failures.
  */
 FUNC_INLINE const char *get_cgroup_name(const struct cgroup *cgrp)
 {
@@ -208,7 +208,7 @@ FUNC_INLINE __u32 get_cgroup_level(const struct cgroup *cgrp)
 {
 	__u32 level = 0;
 
-	probe_read(&level, sizeof(level), _(&cgrp->level));
+	probe_read_kernel(&level, sizeof(level), _(&cgrp->level));
 	return level;
 }
 
@@ -257,7 +257,7 @@ get_task_cgroup(struct task_struct *task, __u32 subsys_idx, __u32 *error_flags)
 	struct css_set *cgroups;
 	struct cgroup *cgrp = NULL;
 
-	probe_read(&cgroups, sizeof(cgroups), _(&task->cgroups));
+	probe_read_kernel(&cgroups, sizeof(cgroups), _(&task->cgroups));
 	if (unlikely(!cgroups)) {
 		*error_flags |= EVENT_ERROR_CGROUPS;
 		return cgrp;
@@ -290,13 +290,13 @@ get_task_cgroup(struct task_struct *task, __u32 subsys_idx, __u32 *error_flags)
 	 * support as much as workload as possible. It also reduces errors
 	 * in a significant way.
 	 */
-	probe_read(&subsys, sizeof(subsys), _(&cgroups->subsys[subsys_idx]));
+	probe_read_kernel(&subsys, sizeof(subsys), _(&cgroups->subsys[subsys_idx]));
 	if (unlikely(!subsys)) {
 		*error_flags |= EVENT_ERROR_CGROUP_SUBSYS;
 		return cgrp;
 	}
 
-	probe_read(&cgrp, sizeof(cgrp), _(&subsys->cgroup));
+	probe_read_kernel(&cgrp, sizeof(cgrp), _(&subsys->cgroup));
 	if (!cgrp)
 		*error_flags |= EVENT_ERROR_CGROUP_SUBSYSCGRP;
 
