@@ -1,29 +1,40 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
-//go:build amd64 && linux
-// +build amd64,linux
-
 package tracing
 
 import (
+	"runtime"
 	"syscall"
 	"testing"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/pkg/syscallinfo/i386"
-	"github.com/cilium/tetragon/pkg/testutils"
-
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
+	"github.com/cilium/tetragon/pkg/syscallinfo/arm32"
+	"github.com/cilium/tetragon/pkg/syscallinfo/i386"
+	"github.com/cilium/tetragon/pkg/testutils"
 )
 
 func TestEnforcerOverride32(t *testing.T) {
 	testEnforcerCheckSkip(t)
 
+	prctlID := uint64(0)
+	var syscallVal string
+	switch a := runtime.GOARCH; a {
+	case "amd64":
+		syscallVal = "i386/sys_prctl"
+		prctlID = i386.SYS_PRCTL
+	case "arm64":
+		syscallVal = "arm32/sys_prctl"
+		prctlID = arm32.SYS_PRCTL
+	default:
+		t.Fatalf("Unknown arch: %s", a)
+	}
+
 	test := testutils.RepoRootPath("contrib/tester-progs/enforcer-tester-32")
 	yaml := NewEnforcerSpecBuilder("enforcer-override").
-		WithSyscallList("i386/sys_prctl").
+		WithSyscallList(syscallVal).
 		WithMatchBinaries(test).
 		WithOverrideValue(-17). // EEXIST
 		MustYAML()
@@ -32,27 +43,39 @@ func TestEnforcerOverride32(t *testing.T) {
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
-				ec.NewKprobeArgumentChecker().WithSizeArg(i386.SYS_PRCTL),
+				ec.NewKprobeArgumentChecker().WithSizeArg(prctlID),
 			)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYENFORCER)
 
 	checker := ec.NewUnorderedEventChecker(tpChecker)
 
-	checkerFunc := func(t *testing.T, _ error, rc int) {
+	checkerFuncErr := func(t *testing.T, _ error, rc int) {
 		if rc != int(syscall.EEXIST) {
 			t.Fatalf("Wrong exit code %d expected %d", rc, int(syscall.EEXIST))
 		}
 	}
-
-	testEnforcer(t, yaml, checker, newCmdChecker(test, checkerFunc))
+	testEnforcer(t, yaml, checker, newCmdChecker(test, checkerFuncErr))
 }
 
 func TestEnforcerSignal32(t *testing.T) {
 	testEnforcerCheckSkip(t)
 
+	prctlID := uint64(0)
+	var syscallVal string
+	switch a := runtime.GOARCH; a {
+	case "amd64":
+		syscallVal = "i386/sys_prctl"
+		prctlID = i386.SYS_PRCTL
+	case "arm64":
+		syscallVal = "arm32/sys_prctl"
+		prctlID = arm32.SYS_PRCTL
+	default:
+		t.Fatalf("Unknown arch: %s", a)
+	}
+
 	test := testutils.RepoRootPath("contrib/tester-progs/enforcer-tester-32")
 	yaml := NewEnforcerSpecBuilder("enforcer-signal").
-		WithSyscallList("i386/sys_prctl").
+		WithSyscallList(syscallVal).
 		WithMatchBinaries(test).
 		WithOverrideValue(-17). // EEXIST
 		WithKill(9).            // SigKill
@@ -62,7 +85,7 @@ func TestEnforcerSignal32(t *testing.T) {
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
-				ec.NewKprobeArgumentChecker().WithSizeArg(i386.SYS_PRCTL),
+				ec.NewKprobeArgumentChecker().WithSizeArg(prctlID),
 			)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYENFORCER)
 
@@ -80,11 +103,24 @@ func TestEnforcerSignal32(t *testing.T) {
 func TestEnforcerOverrideBothBits(t *testing.T) {
 	testEnforcerCheckSkip(t)
 
+	prctlID := uint64(0)
+	var syscallVal string
+	switch a := runtime.GOARCH; a {
+	case "amd64":
+		syscallVal = "i386/sys_prctl"
+		prctlID = i386.SYS_PRCTL
+	case "arm64":
+		syscallVal = "arm32/sys_prctl"
+		prctlID = arm32.SYS_PRCTL
+	default:
+		t.Fatalf("Unknown arch: %s", a)
+	}
+
 	test32 := testutils.RepoRootPath("contrib/tester-progs/enforcer-tester-32")
 	test64 := testutils.RepoRootPath("contrib/tester-progs/enforcer-tester")
 
 	yaml := NewEnforcerSpecBuilder("enforcer-override").
-		WithSyscallList("i386/sys_prctl", "sys_prctl").
+		WithSyscallList(syscallVal, "sys_prctl").
 		WithMatchBinaries(test32, test64).
 		WithOverrideValue(-17). // EEXIST
 		MustYAML()
@@ -93,7 +129,7 @@ func TestEnforcerOverrideBothBits(t *testing.T) {
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
-				ec.NewKprobeArgumentChecker().WithSizeArg(i386.SYS_PRCTL),
+				ec.NewKprobeArgumentChecker().WithSizeArg(prctlID),
 			)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYENFORCER)
 
