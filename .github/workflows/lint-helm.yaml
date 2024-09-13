@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Get source
-      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       # Check / install dependencies
       - name: Check if vendored openapi2jsonschema.py script is up to date
@@ -50,7 +50,7 @@ jobs:
             echo "Please run 'make -C install/kubernetes generate-jsonschemas' and submit your changes."; exit 1
           fi
       - name: Install Helm CLI # Required for the Helm chart templating
-        uses: azure/setup-helm@v4.2.0
+        uses: azure/setup-helm@fe7b79cd5ee1e45176fcad797de68ecaf3ca4814 # v4.2.0
 
       # Validate Helm chart
       - name: Generate Helm chart
@@ -69,7 +69,7 @@ jobs:
       - name: Run Kubeconform with minimum supported K8s version
         if: success() || steps.generate_helm_chart.outcome == 'failure'
         id: kubeconform_min_k8s_version
-        uses: mathiasvr/command-output@v2.0.0
+        uses: mathiasvr/command-output@34408ea3d0528273faff3d9e201761ae96106cd0 # v2.0.0
         with:
           shell: bash
           run: |
@@ -77,7 +77,7 @@ jobs:
       - name: Run Kubeconform with latest K8s version
         if: success() || steps.generate_helm_chart.outcome == 'failure'
         id: kubeconform_latest_k8s_version
-        uses: mathiasvr/command-output@v2.0.0
+        uses: mathiasvr/command-output@34408ea3d0528273faff3d9e201761ae96106cd0 # v2.0.0
         with:
           shell: bash
           run: |
@@ -86,7 +86,7 @@ jobs:
       # Post Kubeconform issues as comment on the GH PR, if there are any
       - name: Comment Kubeconform Output
         if: failure() && (steps.kubeconform_min_k8s_version.outcome == 'failure' || steps.kubeconform_latest_k8s_version.outcome == 'failure')
-        uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@331f8f5b4215f0445d3c07b4967662a32a2d3e31 # v2
         with:
           hide_and_recreate: true
           skip_unchanged: true
