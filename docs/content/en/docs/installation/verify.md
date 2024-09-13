@@ -11,7 +11,7 @@ Learn how to verify Tetragon container images signatures.
 
 ### Prerequisites
 
-You will need to [install cosign](https://docs.sigstore.dev/system_config/installation/).
+You will need to [install cosign](https://docs.sigstore.dev/cosign/system_config/installation/).
 
 ### Verify Signed Container Images
 
@@ -26,7 +26,7 @@ cosign verify --certificate-github-workflow-repository cilium/tetragon --certifi
 {{< note >}}
 If you are using cosign < v2.0.0, you must set `COSIGN_EXPERIMENTAL=1`
 environment variable to allow verification of images signed in KEYLESS mode.
-To learn more about keyless signing, please refer to [Sigstore documentation](https://docs.sigstore.dev/signing/overview/).
+To learn more about keyless signing, please refer to [Sigstore documentation](https://docs.sigstore.dev/cosign/signing/overview/).
 {{< /note >}}
 
 ## Verify the SBOM signature
