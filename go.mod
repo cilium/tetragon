@@ -13,7 +13,7 @@ require (
 	github.com/cilium/lumberjack/v2 v2.3.0
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/cilium/tetragon/pkg/k8s v0.0.0-00010101000000-000000000000
-	github.com/containerd/cgroups v1.1.0
+	github.com/containerd/cgroups/v3 v3.0.3
 	github.com/deckarep/golang-set/v2 v2.6.0
 	github.com/fatih/color v1.17.0
 	github.com/google/go-cmp v0.6.0
