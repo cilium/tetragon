@@ -267,6 +267,8 @@ static long BPF_FUNC(dynptr_read, void *dst, uint32_t len, const struct bpf_dynp
 static long BPF_FUNC(dynptr_write, const struct bpf_dynptr *dst, uint32_t offset, void *src, uint32_t len, uint64_t flags);
 static void BPF_FUNC(dynptr_data, const struct bpf_dynptr *ptr, uint32_t offset, uint32_t len);
 
+static long BPF_FUNC(sock_ops_cb_flags_set, struct bpf_sock_ops *bpf_sock, int argval);
+
 /** LLVM built-ins, mem*() routines work for constant size */
 
 #ifndef lock_xadd
