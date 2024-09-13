@@ -18,6 +18,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
 	"github.com/spf13/cobra"
+	"google.golang.org/grpc"
 )
 
 func New() *cobra.Command {
@@ -106,6 +107,7 @@ func dumpExecveMap(fname string) {
 
 func dumpProcessCache() *cobra.Command {
 	skipZeroRefcnt := false
+	var maxCallRecvMsgSize int
 
 	ret := &cobra.Command{
 		Use: "processcache",
@@ -127,7 +129,7 @@ func dumpProcessCache() *cobra.Command {
 					},
 				},
 			}
-			res, err := c.Client.GetDebug(c.Ctx, &req)
+			res, err := c.Client.GetDebug(c.Ctx, &req, grpc.MaxCallRecvMsgSize(maxCallRecvMsgSize))
 			if err != nil {
 				return fmt.Errorf("failed to get process dump debug info: %w", err)
 			}
@@ -150,6 +152,7 @@ func dumpProcessCache() *cobra.Command {
 
 	flags := ret.Flags()
 	flags.BoolVar(&skipZeroRefcnt, "skip-zero-refcnt", skipZeroRefcnt, "skip entries with zero refcnt")
+	flags.IntVar(&maxCallRecvMsgSize, "max-recv-size", 4194304, "The maximum message size in bytes the client can receive. Default is gRPC 4MB default.")
 
 	return ret
 }
