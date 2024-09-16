@@ -222,6 +222,10 @@ tetragon:
     extraVolumeMounts: []
     # -- resources for the the oci-hook-setup init container
     resources: {}
+  # -- Configure the number of retries in tetragon's event cache.
+  eventCacheRetries: 15
+  # -- Configure the delay (in seconds) between retires in tetragon's event cache.
+  eventCacheRetryDelay: 2
 # Tetragon Operator settings
 tetragonOperator:
   # -- Enables the Tetragon Operator.

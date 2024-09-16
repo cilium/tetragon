@@ -67,4 +67,6 @@ data:
 {{- if .Values.tetragon.pprof.enabled }}
   pprof-address: {{ .Values.tetragon.pprof.address }}:{{ .Values.tetragon.pprof.port }}
 {{- end }}
+  event-cache-retries: {{ .Values.tetragon.eventCacheRetries | quote }}
+  event-cache-retry-delay: {{ .Values.tetragon.eventCacheRetryDelay | quote }}
   {{- include "configmap.extra" . | nindent 2 }}
