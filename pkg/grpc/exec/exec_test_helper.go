@@ -415,7 +415,7 @@ func GrpcExecOutOfOrder[EXEC notify.Message, EXIT notify.Message](t *testing.T) 
 		AllEvents = append(AllEvents, e)
 	}
 
-	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * CacheTimerMs)) // wait for cache to do it's work
+	time.Sleep(time.Millisecond * time.Duration((option.Config.EventCacheNumRetries+4)*CacheTimerMs)) // wait for cache to do it's work
 	CheckExecEvents(t, AllEvents, parentPid, currentPid)
 }
 
@@ -474,7 +474,7 @@ func GrpcExecMisingParent[EXEC notify.Message, EXIT notify.Message](t *testing.T
 		AllEvents = append(AllEvents, e)
 	}
 
-	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * CacheTimerMs)) // wait for cache to do it's work
+	time.Sleep(time.Millisecond * time.Duration((option.Config.EventCacheNumRetries+4)*CacheTimerMs)) // wait for cache to do it's work
 
 	assert.Equal(t, len(AllEvents), 1)
 	execEv := AllEvents[0].GetProcessExec()
@@ -503,7 +503,7 @@ func GrpcMissingExec[EXEC notify.Message, EXIT notify.Message](t *testing.T) {
 		AllEvents = append(AllEvents, e)
 	}
 
-	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * CacheTimerMs)) // wait for cache to do it's work
+	time.Sleep(time.Millisecond * time.Duration((option.Config.EventCacheNumRetries+4)*CacheTimerMs)) // wait for cache to do it's work
 
 	assert.Equal(t, len(AllEvents), 1)
 	ev := AllEvents[0]
@@ -659,7 +659,7 @@ func GrpcExecCloneOutOfOrder[EXEC notify.Message, CLONE notify.Message, EXIT not
 		AllEvents = append(AllEvents, e)
 	}
 
-	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * CacheTimerMs)) // wait for cache to do it's work
+	time.Sleep(time.Millisecond * time.Duration((option.Config.EventCacheNumRetries+4)*CacheTimerMs)) // wait for cache to do it's work
 
 	CheckCloneEvents(t, AllEvents, currentPid, clonePid)
 }
@@ -793,8 +793,8 @@ func GrpcExecPodInfoInOrder[EXEC notify.Message, EXIT notify.Message](t *testing
 		AllEvents = append(AllEvents, e)
 	}
 
-	fakeWatcher.AddPod(dummyPod)                                                  // setup some dummy pod to return
-	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * CacheTimerMs)) // wait for cache to do it's work
+	fakeWatcher.AddPod(dummyPod)                                                                      // setup some dummy pod to return
+	time.Sleep(time.Millisecond * time.Duration((option.Config.EventCacheNumRetries+4)*CacheTimerMs)) // wait for cache to do it's work
 	CheckPodEvents(t, AllEvents)
 }
 
@@ -838,7 +838,7 @@ func GrpcExecPodInfoOutOfOrder[EXEC notify.Message, EXIT notify.Message](t *test
 	}
 
 	fakeWatcher.AddPod(dummyPod)
-	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * CacheTimerMs)) // wait for cache to do it's work
+	time.Sleep(time.Millisecond * time.Duration((option.Config.EventCacheNumRetries+4)*CacheTimerMs)) // wait for cache to do it's work
 	CheckPodEvents(t, AllEvents)
 }
 
@@ -886,7 +886,7 @@ func GrpcExecPodInfoInOrderAfter[EXEC notify.Message, EXIT notify.Message](t *te
 		AllEvents = append(AllEvents, e)
 	}
 
-	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * CacheTimerMs)) // wait for cache to do it's work
+	time.Sleep(time.Millisecond * time.Duration((option.Config.EventCacheNumRetries+4)*CacheTimerMs)) // wait for cache to do it's work
 	CheckPodEvents(t, AllEvents)
 }
 
@@ -933,7 +933,7 @@ func GrpcExecPodInfoOutOfOrderAfter[EXEC notify.Message, EXIT notify.Message](t 
 		AllEvents = append(AllEvents, e)
 	}
 
-	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * CacheTimerMs)) // wait for cache to do it's work
+	time.Sleep(time.Millisecond * time.Duration((option.Config.EventCacheNumRetries+4)*CacheTimerMs)) // wait for cache to do it's work
 	CheckPodEvents(t, AllEvents)
 }
 
@@ -983,7 +983,7 @@ func GrpcExecPodInfoDelayedOutOfOrder[EXEC notify.Message, EXIT notify.Message](
 
 	fakeWatcher.AddPod(dummyPod) // setup some dummy pod to return
 
-	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * CacheTimerMs)) // wait for cache to do it's work
+	time.Sleep(time.Millisecond * time.Duration((option.Config.EventCacheNumRetries+4)*CacheTimerMs)) // wait for cache to do it's work
 
 	CheckPodEvents(t, AllEvents)
 }
@@ -1032,7 +1032,7 @@ func GrpcExecPodInfoDelayedInOrder[EXEC notify.Message, EXIT notify.Message](t *
 
 	fakeWatcher.AddPod(dummyPod) // setup some dummy pod to return
 
-	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * CacheTimerMs)) // wait for cache to do it's work
+	time.Sleep(time.Millisecond * time.Duration((option.Config.EventCacheNumRetries+4)*CacheTimerMs)) // wait for cache to do it's work
 
 	CheckPodEvents(t, AllEvents)
 }
@@ -1079,7 +1079,7 @@ func GrpcDelayedExecK8sOutOfOrder[EXEC notify.Message, EXIT notify.Message](t *t
 		AllEvents = append(AllEvents, e)
 	}
 
-	time.Sleep(time.Millisecond * ((eventcache.CacheStrikes + 4) * CacheTimerMs)) // wait for cache to do it's work
+	time.Sleep(time.Millisecond * time.Duration((option.Config.EventCacheNumRetries+4)*CacheTimerMs)) // wait for cache to do it's work
 
 	CheckPodEvents(t, AllEvents)
 }

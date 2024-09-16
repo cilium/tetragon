@@ -76,6 +76,12 @@ options:
       default_value: "true"
       usage: |
         Enable TracingPolicy and TracingPolicyNamespaced custom resources
+    - name: event-cache-retries
+      default_value: "15"
+      usage: Number of retries for event cache
+    - name: event-cache-retry-delay
+      default_value: "2"
+      usage: Delay in seconds between event cache retries
     - name: event-queue-size
       default_value: "10000"
       usage: Set the size of the internal event queue.
