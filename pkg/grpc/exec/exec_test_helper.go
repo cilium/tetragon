@@ -27,7 +27,7 @@ import (
 )
 
 const (
-	CacheTimerMs = 100
+	CacheTimerMs = 1
 )
 
 var (
