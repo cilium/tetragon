@@ -9,6 +9,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/ktime"
+	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/node"
@@ -21,13 +22,6 @@ const (
 	NO_EV_CACHE = iota
 	// Cache retries was triggered in order to complete event information
 	FROM_EV_CACHE
-)
-
-const (
-	// garbage collection retries
-	CacheStrikes = 15
-	// garbage collection run interval
-	EventRetryTimer = time.Second * 2
 )
 
 var (
@@ -135,7 +129,7 @@ func (ec *Cache) handleEvents() {
 		}
 		if err != nil {
 			event.color++
-			if event.color < CacheStrikes {
+			if event.color < option.Config.EventCacheNumRetries {
 				tmp = append(tmp, event)
 				continue
 			}
@@ -169,9 +163,9 @@ func (ec *Cache) loop() {
 	for {
 		select {
 		case <-ticker.C:
-			/* Every 'EventRetryTimer' walk the slice of events pending pod info. If
-			 * an event hasn't completed its podInfo after two iterations send the
-			 * event anyways.
+			/* Every 'option.Config.EventCacheRetryDelay' seconds walk the slice of events
+			 * pending pod info. If an event hasn't completed its podInfo after two iterations
+			 * send the event anyways.
 			 */
 			ec.handleEvents()
 
@@ -228,6 +222,8 @@ func NewWithTimer(s *server.Server, dur time.Duration) *Cache {
 		cache.done <- true
 	}
 
+	logger.GetLogger().WithField("retries", option.Config.EventCacheNumRetries).WithField("delay", dur).Info("Creating new EventCache")
+
 	cache = &Cache{
 		objsChan: make(chan CacheObj),
 		done:     make(chan bool),
@@ -241,7 +237,7 @@ func NewWithTimer(s *server.Server, dur time.Duration) *Cache {
 }
 
 func New(s *server.Server) *Cache {
-	return NewWithTimer(s, EventRetryTimer)
+	return NewWithTimer(s, time.Second*time.Duration(option.Config.EventCacheRetryDelay))
 }
 
 func Get() *Cache {

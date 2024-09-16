@@ -45,6 +45,10 @@ const (
 
 	// Pid file where to write tetragon main PID
 	DefaultPidFile = DefaultRunDir + "tetragon.pid"
+
+	// defaults for the event cache
+	DefaultEventCacheNumRetries = 15
+	DefaultEventCacheRetryDelay = 2
 )
 
 var (

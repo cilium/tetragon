@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/spf13/viper"
@@ -100,6 +101,9 @@ type config struct {
 
 	EnableCgIDmap      bool
 	EnableCgIDmapDebug bool
+
+	EventCacheNumRetries int
+	EventCacheRetryDelay int
 }
 
 var (
@@ -117,6 +121,11 @@ var (
 
 		// Enable all metrics labels by default
 		MetricsLabelFilter: DefaultLabelFilter(),
+
+		// set default valus for the event cache
+		// mainly used in the case of testing
+		EventCacheNumRetries: defaults.DefaultEventCacheNumRetries,
+		EventCacheRetryDelay: defaults.DefaultEventCacheRetryDelay,
 	}
 )
 

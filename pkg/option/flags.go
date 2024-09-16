@@ -112,6 +112,9 @@ const (
 
 	KeyEnableCgIDmap      = "enable-cgidmap"
 	KeyEnableCgIDmapDebug = "enable-cgidmap-debug"
+
+	KeyEventCacheRetries    = "event-cache-retries"
+	KeyEventCacheRetryDelay = "event-cache-retry-delay"
 )
 
 type UsernameMetadaCode int
@@ -238,6 +241,10 @@ func ReadAndSetFlags() error {
 
 	Config.EnableCgIDmap = viper.GetBool(KeyEnableCgIDmap)
 	Config.EnableCgIDmapDebug = viper.GetBool(KeyEnableCgIDmapDebug)
+
+	Config.EventCacheNumRetries = viper.GetInt(KeyEventCacheRetries)
+	Config.EventCacheRetryDelay = viper.GetInt(KeyEventCacheRetryDelay)
+
 	return nil
 }
 
@@ -401,4 +408,7 @@ func AddFlags(flags *pflag.FlagSet) {
 
 	flags.Bool(KeyEnableCgIDmap, false, "enable pod resolution via cgroup ids")
 	flags.Bool(KeyEnableCgIDmapDebug, false, "enable cgidmap debugging info")
+
+	flags.Int(KeyEventCacheRetries, defaults.DefaultEventCacheNumRetries, "Number of retries for event cache")
+	flags.Int(KeyEventCacheRetryDelay, defaults.DefaultEventCacheRetryDelay, "Delay in seconds between event cache retries")
 }
