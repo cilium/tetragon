@@ -372,3 +372,118 @@ func TestKprobeSelectors(t *testing.T) {
 	}
 
 }
+
+func TestValidateActionSelectors(t *testing.T) {
+	testCases := []struct {
+		name             string
+		disableOverrides bool
+		disableSignals   bool
+		wantErr          bool
+		selectors        []v1alpha1.KProbeSelector
+	}{
+		{
+			name: "SignalActionEnabled",
+			selectors: []v1alpha1.KProbeSelector{
+				{MatchActions: []v1alpha1.ActionSelector{{Action: "Post"}, {Action: "Signal"}}},
+			},
+			wantErr: false,
+		},
+		{
+			name: "SignalActionDisabled",
+			selectors: []v1alpha1.KProbeSelector{
+				{MatchActions: []v1alpha1.ActionSelector{{Action: "Post"}}},
+				{MatchActions: []v1alpha1.ActionSelector{{Action: "Post"}, {Action: "Signal"}}},
+			},
+			disableSignals: true,
+			wantErr:        true,
+		},
+		{
+			name: "SigkillActionEnabled",
+			selectors: []v1alpha1.KProbeSelector{
+				{MatchActions: []v1alpha1.ActionSelector{{Action: "Post"}, {Action: "Sigkill"}}},
+			},
+			wantErr: false,
+		},
+		{
+			name: "SigkillActionDisabled",
+			selectors: []v1alpha1.KProbeSelector{
+				{MatchActions: []v1alpha1.ActionSelector{{Action: "Post"}}},
+				{MatchActions: []v1alpha1.ActionSelector{{Action: "Post"}, {Action: "Sigkill"}}},
+			},
+			disableSignals: true,
+			wantErr:        true,
+		},
+		{
+			name: "OverrideActionEnabled",
+			selectors: []v1alpha1.KProbeSelector{
+				{MatchActions: []v1alpha1.ActionSelector{{Action: "Post"}, {Action: "Override"}}},
+			},
+			wantErr: false,
+		},
+		{
+			name: "OverrideActionDisabled",
+			selectors: []v1alpha1.KProbeSelector{
+				{MatchActions: []v1alpha1.ActionSelector{{Action: "Post"}}},
+				{MatchActions: []v1alpha1.ActionSelector{{Action: "Post"}, {Action: "Override"}}},
+			},
+			disableOverrides: true,
+			wantErr:          true,
+		},
+		{
+			name: "NotifyEnforcerOverrideAction",
+			selectors: []v1alpha1.KProbeSelector{
+				{MatchActions: []v1alpha1.ActionSelector{{Action: "Post"}}},
+				{MatchActions: []v1alpha1.ActionSelector{{Action: "Post"}, {Action: "NotifyEnforcer", ArgError: -1}}},
+			},
+			wantErr: false,
+		},
+		{
+			name: "NotifyEnforcerOverrideActionDisabled",
+			selectors: []v1alpha1.KProbeSelector{
+				{MatchActions: []v1alpha1.ActionSelector{{Action: "Post"}}},
+				{MatchActions: []v1alpha1.ActionSelector{{Action: "Post"}, {Action: "NotifyEnforcer", ArgError: -1}}},
+			},
+			disableOverrides: true,
+			wantErr:          true,
+		},
+		{
+			name: "NotifyEnforcerSignalAction",
+			selectors: []v1alpha1.KProbeSelector{
+				{MatchActions: []v1alpha1.ActionSelector{{Action: "Post"}}},
+				{MatchActions: []v1alpha1.ActionSelector{{Action: "Post"}, {Action: "NotifyEnforcer", ArgSig: 9}}},
+			},
+			wantErr: false,
+		},
+		{
+			name: "NotifyEnforcerSignalActionDisabled",
+			selectors: []v1alpha1.KProbeSelector{
+				{MatchActions: []v1alpha1.ActionSelector{{Action: "Post"}}},
+				{MatchActions: []v1alpha1.ActionSelector{{Action: "Post"}, {Action: "NotifyEnforcer", ArgSig: 9}}},
+			},
+			disableSignals: true,
+			wantErr:        true,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			oldDisableOverrideActions := option.Config.DisableOverrideActions
+			option.Config.DisableOverrideActions = testCase.disableOverrides
+			t.Cleanup(func() {
+				option.Config.DisableOverrideActions = oldDisableOverrideActions
+			})
+			oldDisableSignalActions := option.Config.DisableSignalActions
+			option.Config.DisableSignalActions = testCase.disableSignals
+			t.Cleanup(func() {
+				option.Config.DisableSignalActions = oldDisableSignalActions
+			})
+			err := validateActionSelectors(testCase.selectors)
+			if err != nil && !testCase.wantErr {
+				t.Errorf("unexpected error: %v", err)
+			}
+			if err == nil && testCase.wantErr {
+				t.Errorf("expected error, got nil")
+			}
+		})
+	}
+}

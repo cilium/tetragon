@@ -20,6 +20,9 @@ security check functions allow to change their return value in this manner. Deta
 can configure tracing policies to override the return value can be found in the [Override
 action]({{< ref "/docs/concepts/tracing-policy/selectors#override-action" >}}) documentation.
 
+This behaviour can be disabled at the daemon level by setting the `--disable-override-actions` flag
+which may be desirable to prevent privilage escalation via the gRPC API.
+
 ## Signals
 
 Another type of enforcement is signals. For example, users can write a TracingPolicy (details can be
@@ -33,3 +36,6 @@ However, it does ensure that the process is terminated synchronously (and any th
 stopped). In some cases it may be sufficient to ensure the process is stopped and the process does
 not handle the return of the call. To ensure the operation is not completed, though, the `Signal`
 action should be combined with the `Override` action.
+
+This behaviour can be disabled at the daemon level by setting the `--disable-signal-actions` flag
+which may be desirable to prevent privilage escalation via the gRPC API.

@@ -32,6 +32,9 @@ type config struct {
 
 	DisableKprobeMulti bool
 
+	DisableOverrideActions bool
+	DisableSignalActions   bool
+
 	GopsAddr string
 
 	// On start used to store bpf prefix for --bpf-dir option,

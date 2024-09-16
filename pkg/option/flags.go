@@ -73,6 +73,9 @@ const (
 	KeyDisableKprobeMulti = "disable-kprobe-multi"
 	KeyDisableUprobeMulti = "disable-uprobe-multi"
 
+	KeyDisableSignalActions   = "disable-signal-actions"
+	KeyDisableOverrideActions = "disable-override-actions"
+
 	KeyRBSize      = "rb-size"
 	KeyRBSizeTotal = "rb-size-total"
 	KeyRBQueueSize = "rb-queue-size"
@@ -145,6 +148,9 @@ func ReadAndSetFlags() error {
 	Config.K8sKubeConfigPath = viper.GetString(KeyK8sKubeConfigPath)
 
 	Config.DisableKprobeMulti = viper.GetBool(KeyDisableKprobeMulti)
+
+	Config.DisableSignalActions = viper.GetBool(KeyDisableSignalActions)
+	Config.DisableOverrideActions = viper.GetBool(KeyDisableOverrideActions)
 
 	var err error
 
@@ -354,6 +360,10 @@ func AddFlags(flags *pflag.FlagSet) {
 
 	// Allow to disable kprobe multi interface
 	flags.Bool(KeyDisableKprobeMulti, false, "Allow to disable kprobe multi interface")
+
+	// Allow to disable override and signall selectors
+	flags.Bool(KeyDisableOverrideActions, false, "Allow to disable override action selectors")
+	flags.Bool(KeyDisableSignalActions, false, "Allow to disable sigkill and signal selectors")
 
 	// Allow to specify perf ring buffer size
 	flags.String(KeyRBSizeTotal, "0", "Set perf ring buffer size in total for all cpus (default 65k per cpu, allows K/M/G suffix)")

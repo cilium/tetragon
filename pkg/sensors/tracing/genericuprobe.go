@@ -493,6 +493,12 @@ func (k *observerUprobeSensor) PolicyHandler(
 		return nil, fmt.Errorf("uprobe sensor does not implement policy filtering")
 	}
 
+	for _, probe := range spec.UProbes {
+		if err := validateActionSelectors(probe.Selectors); err != nil {
+			return nil, fmt.Errorf("validation failed: %w", err)
+		}
+	}
+
 	name := fmt.Sprintf("gup-sensor-%d", atomic.AddUint64(&sensorCounter, 1))
 	policyName := p.TpName()
 	return createGenericUprobeSensor(name, spec, policyName)

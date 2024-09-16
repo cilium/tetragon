@@ -19,6 +19,7 @@ import (
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
@@ -550,4 +551,148 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
+}
+
+func TestUprobeOverrideDisabled(t *testing.T) {
+
+	// override on when override actions are disabled
+
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "/bin/bash"
+    symbols:
+    - "main"
+    selectors:
+    - matchActions:
+      - action: Override
+        argError: -1
+`
+
+	oldDisableOverrideActions := option.Config.DisableOverrideActions
+	option.Config.DisableOverrideActions = true
+	t.Cleanup(func() {
+		option.Config.DisableOverrideActions = oldDisableOverrideActions
+	})
+	err := checkCrd(t, crd)
+	assert.Error(t, err)
+}
+
+func TestUprobeSignalDisabled(t *testing.T) {
+
+	// signal when signal actions are disabled
+
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "/bin/bash"
+    symbols:
+    - "main"
+    selectors:
+    - matchActions:
+      - action: Signal
+        argSig: 9
+`
+
+	oldDisableSignalActions := option.Config.DisableSignalActions
+	option.Config.DisableSignalActions = true
+	t.Cleanup(func() {
+		option.Config.DisableSignalActions = oldDisableSignalActions
+	})
+	err := checkCrd(t, crd)
+	assert.Error(t, err)
+}
+
+func TestUprobeSigkillDisabled(t *testing.T) {
+
+	// sigkill when signal actions are disabled
+
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "/bin/bash"
+    symbols:
+    - "main"
+    selectors:
+    - matchActions:
+      - action: Sigkill
+`
+
+	oldDisableSignalActions := option.Config.DisableSignalActions
+	option.Config.DisableSignalActions = true
+	t.Cleanup(func() {
+		option.Config.DisableSignalActions = oldDisableSignalActions
+	})
+	err := checkCrd(t, crd)
+	assert.Error(t, err)
+}
+
+func TestUprobeNotifyEnforcerSignalDisabled(t *testing.T) {
+
+	// signal via notify enforcer when signal actions are disabled
+
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "/bin/bash"
+    symbols:
+    - "main"
+    selectors:
+    - matchActions:
+      - action: NotifyEnforcer
+        argSig: 9
+`
+
+	oldDisableSignalActions := option.Config.DisableSignalActions
+	option.Config.DisableSignalActions = true
+	t.Cleanup(func() {
+		option.Config.DisableSignalActions = oldDisableSignalActions
+	})
+	err := checkCrd(t, crd)
+	assert.Error(t, err)
+}
+
+func TestUprobeNotifyEnforcerOverrideDisabled(t *testing.T) {
+
+	// override via notify enforcer when overide actions are disabled
+
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "/bin/bash"
+    symbols:
+    - "main"
+    selectors:
+    - matchActions:
+      - action: NotifyEnforcer
+        argError: -1
+`
+
+	oldDisableOverrideActions := option.Config.DisableOverrideActions
+	option.Config.DisableOverrideActions = true
+	t.Cleanup(func() {
+		option.Config.DisableOverrideActions = oldDisableOverrideActions
+	})
+	err := checkCrd(t, crd)
+	assert.Error(t, err)
 }

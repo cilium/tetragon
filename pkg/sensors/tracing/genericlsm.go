@@ -145,6 +145,9 @@ func handleGenericLsm(r *bytes.Reader) ([]observer.Event, error) {
 }
 
 func isValidLsmSelectors(selectors []v1alpha1.KProbeSelector) error {
+	if err := validateActionSelectors(selectors); err != nil {
+		return fmt.Errorf("validation failed: %w", err)
+	}
 	for _, s := range selectors {
 		if len(s.MatchReturnArgs) > 0 {
 			return fmt.Errorf("MatchReturnArgs selector is not supported")

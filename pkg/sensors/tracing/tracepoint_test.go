@@ -28,6 +28,7 @@ import (
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	smatcher "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/sensors"
@@ -868,4 +869,193 @@ spec:
 	}
 
 	testListSyscallsDupsRange(t, checker, configHook)
+}
+
+func TestTracepointOverrideDisabled(t *testing.T) {
+
+	// override on when override actions are disabled
+
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "sys-write"
+spec:
+  lists:
+  - name: "test"
+    type: "syscalls"
+    values:
+    - "sys_dup"
+  tracepoints:
+  - subsystem: "raw_syscalls"
+    event: "sys_enter"
+    args:
+    - index: 4
+      type: "syscall64"
+    - index: 5
+      type: "uint64"
+    selectors:
+    - matchActions:
+      - action: Override
+        argError: -1
+`
+
+	oldDisableOverrideActions := option.Config.DisableOverrideActions
+	option.Config.DisableOverrideActions = true
+	t.Cleanup(func() {
+		option.Config.DisableOverrideActions = oldDisableOverrideActions
+	})
+	err := checkCrd(t, crd)
+	assert.Error(t, err)
+}
+
+func TestTracepointSignalDisabled(t *testing.T) {
+
+	// signal when signal actions are disabled
+
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "sys-write"
+spec:
+  lists:
+  - name: "test"
+    type: "syscalls"
+    values:
+    - "sys_dup"
+  tracepoints:
+  - subsystem: "raw_syscalls"
+    event: "sys_enter"
+    args:
+    - index: 4
+      type: "syscall64"
+    - index: 5
+      type: "uint64"
+    selectors:
+    - matchActions:
+      - action: Signal
+        argSig: 9
+`
+
+	oldDisableSignalActions := option.Config.DisableSignalActions
+	option.Config.DisableSignalActions = true
+	t.Cleanup(func() {
+		option.Config.DisableSignalActions = oldDisableSignalActions
+	})
+	err := checkCrd(t, crd)
+	assert.Error(t, err)
+}
+
+func TestTracepointSigkillDisabled(t *testing.T) {
+
+	// sigkill when signal actions are disabled
+
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "sys-write"
+spec:
+  lists:
+  - name: "test"
+    type: "syscalls"
+    values:
+    - "sys_dup"
+  tracepoints:
+  - subsystem: "raw_syscalls"
+    event: "sys_enter"
+    args:
+    - index: 4
+      type: "syscall64"
+    - index: 5
+      type: "uint64"
+    selectors:
+    - matchActions:
+      - action: Sigkill
+`
+
+	oldDisableSignalActions := option.Config.DisableSignalActions
+	option.Config.DisableSignalActions = true
+	t.Cleanup(func() {
+		option.Config.DisableSignalActions = oldDisableSignalActions
+	})
+	err := checkCrd(t, crd)
+	assert.Error(t, err)
+}
+
+func TestTracepointNotifyEnforcerSignalDisabled(t *testing.T) {
+
+	// signal via notify enforcer when signal actions are disabled
+
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "sys-write"
+spec:
+  lists:
+  - name: "test"
+    type: "syscalls"
+    values:
+    - "sys_dup"
+  tracepoints:
+  - subsystem: "raw_syscalls"
+    event: "sys_enter"
+    args:
+    - index: 4
+      type: "syscall64"
+    - index: 5
+      type: "uint64"
+    selectors:
+    - matchActions:
+      - action: NotifyEnforcer
+        argSig: 9
+`
+
+	oldDisableSignalActions := option.Config.DisableSignalActions
+	option.Config.DisableSignalActions = true
+	t.Cleanup(func() {
+		option.Config.DisableSignalActions = oldDisableSignalActions
+	})
+	err := checkCrd(t, crd)
+	assert.Error(t, err)
+}
+
+func TestTracepointNotifyEnforcerOverrideDisabled(t *testing.T) {
+
+	// override via notify enforcer when overide actions are disabled
+
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "sys-write"
+spec:
+  lists:
+  - name: "test"
+    type: "syscalls"
+    values:
+    - "sys_dup"
+  tracepoints:
+  - subsystem: "raw_syscalls"
+    event: "sys_enter"
+    args:
+    - index: 4
+      type: "syscall64"
+    - index: 5
+      type: "uint64"
+    selectors:
+    - matchActions:
+      - action: NotifyEnforcer
+        argError: -1
+`
+
+	oldDisableOverrideActions := option.Config.DisableOverrideActions
+	option.Config.DisableOverrideActions = true
+	t.Cleanup(func() {
+		option.Config.DisableOverrideActions = oldDisableOverrideActions
+	})
+	err := checkCrd(t, crd)
+	assert.Error(t, err)
 }

@@ -442,6 +442,10 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec, lists []v1al
 	for i := range kprobes {
 		f := &kprobes[i]
 
+		if err := validateActionSelectors(f.Selectors); err != nil {
+			return fmt.Errorf("validation failed: %w", err)
+		}
+
 		var list *v1alpha1.ListSpec
 
 		// the f.Call is either defined as list:NAME

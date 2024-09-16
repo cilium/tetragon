@@ -5,12 +5,15 @@ package tracing
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/mbset"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
@@ -569,5 +572,39 @@ func populateStringPostfixFilterMap(
 		return fmt.Errorf("failed to insert %s: %w", innerName, err)
 	}
 
+	return nil
+}
+
+func validateActionSelectors(probes []v1alpha1.KProbeSelector) error {
+	for _, p := range probes {
+		selectors := p.MatchActions[:]
+		if p.MatchReturnActions != nil {
+			selectors = append(selectors, p.MatchReturnActions...)
+		}
+		for _, selector := range selectors {
+			switch strings.ToLower(selector.Action) {
+			case "sigkill":
+				if option.Config.DisableSignalActions {
+					return fmt.Errorf("sigkill actions are disabled")
+				}
+			case "signal":
+				if option.Config.DisableSignalActions {
+					return fmt.Errorf("signal actions are disabled")
+				}
+			case "override":
+				if option.Config.DisableOverrideActions {
+					return fmt.Errorf("override actions are disabled")
+				}
+			case "notifyenforcer":
+				if selector.ArgSig != 0 && option.Config.DisableSignalActions {
+					return fmt.Errorf("signal actions are disabled")
+				}
+				if selector.ArgError != 0 && option.Config.DisableOverrideActions {
+					return fmt.Errorf("override actions are disabled")
+				}
+			default:
+			}
+		}
+	}
 	return nil
 }

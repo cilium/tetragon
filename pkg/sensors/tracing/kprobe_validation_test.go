@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/stretchr/testify/assert"
@@ -201,6 +202,147 @@ spec:
         argError: -1
 `
 
+	err := checkCrd(t, crd)
+	assert.Error(t, err)
+}
+
+func TestKprobeValidationOverrideDisabled(t *testing.T) {
+
+	// override on when override actions are disabled
+
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "list-syscalls"
+spec:
+  kprobes:
+  - call: "sys_symlinkat"
+    selectors:
+    - matchActions:
+      - action: Override
+        argError: -1
+`
+
+	oldDisableOverrideActions := option.Config.DisableOverrideActions
+	option.Config.DisableOverrideActions = true
+	t.Cleanup(func() {
+		option.Config.DisableOverrideActions = oldDisableOverrideActions
+	})
+	err := checkCrd(t, crd)
+	assert.Error(t, err)
+}
+
+func TestKprobeValidationSignalDisabled(t *testing.T) {
+
+	// signal when signal actions are disabled
+
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "list-syscalls"
+spec:
+  kprobes:
+  - call: "sys_symlinkat"
+    selectors:
+    - matchActions:
+      - action: Signal
+        argSig: 9
+`
+
+	oldDisableSignalActions := option.Config.DisableSignalActions
+	option.Config.DisableSignalActions = true
+	t.Cleanup(func() {
+		option.Config.DisableSignalActions = oldDisableSignalActions
+	})
+	err := checkCrd(t, crd)
+	assert.Error(t, err)
+}
+
+func TestKprobeValidationSigkillDisabled(t *testing.T) {
+
+	// sigkill when signal actions are disabled
+
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "list-syscalls"
+spec:
+  kprobes:
+  - call: "sys_symlinkat"
+    selectors:
+    - matchActions:
+      - action: Sigkill
+        argSig: 9
+`
+
+	oldDisableSignalActions := option.Config.DisableSignalActions
+	option.Config.DisableSignalActions = true
+	t.Cleanup(func() {
+		option.Config.DisableSignalActions = oldDisableSignalActions
+	})
+	err := checkCrd(t, crd)
+	assert.Error(t, err)
+}
+
+func TestKprobeValidationNotifyEnforcerSignalDisabled(t *testing.T) {
+
+	// signal via notify enforcer when signal actions are disabled
+
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "list-syscalls"
+spec:
+  enforcers:
+  - calls:
+    - "sys_symlinkat"
+  kprobes:
+  - call: "sys_symlinkat"
+    selectors:
+    - matchActions:
+      - action: NotifyEnforcer
+        argSig: 9
+`
+
+	oldDisableSignalActions := option.Config.DisableSignalActions
+	option.Config.DisableSignalActions = true
+	t.Cleanup(func() {
+		option.Config.DisableSignalActions = oldDisableSignalActions
+	})
+	err := checkCrd(t, crd)
+	assert.Error(t, err)
+}
+
+func TestKprobeValidationNotifyEnforcerOverrideDisabled(t *testing.T) {
+
+	// override via notify enforcer when overide actions are disabled
+
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "list-syscalls"
+spec:
+  enforcers:
+  - calls:
+    - "sys_symlinkat"
+  kprobes:
+  - call: "sys_symlinkat"
+    selectors:
+    - matchActions:
+      - action: NotifyEnforcer
+        argError: -1
+`
+
+	oldDisableOverrideActions := option.Config.DisableOverrideActions
+	option.Config.DisableOverrideActions = true
+	t.Cleanup(func() {
+		option.Config.DisableOverrideActions = oldDisableOverrideActions
+	})
 	err := checkCrd(t, crd)
 	assert.Error(t, err)
 }

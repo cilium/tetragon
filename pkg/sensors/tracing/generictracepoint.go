@@ -371,6 +371,9 @@ func createGenericTracepointSensor(
 
 	tracepoints := make([]*genericTracepoint, 0, len(confs))
 	for i := range confs {
+		if err := validateActionSelectors(confs[i].Selectors); err != nil {
+			return nil, fmt.Errorf("validation failed: %w", err)
+		}
 		tp, err := createGenericTracepoint(name, &confs[i], policyID, policyName, customHandler)
 		if err != nil {
 			return nil, err

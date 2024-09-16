@@ -20,6 +20,7 @@ import (
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
@@ -235,4 +236,153 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(lsmChecker))
 	assert.NoError(t, err)
+}
+
+func TestLSMOverrideDisabled(t *testing.T) {
+
+	// override on when override actions are disabled
+
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "lsm"
+spec:
+  lsmhooks:
+  - hook: "bprm_check_security"
+    args:
+      - index: 0
+        type: "linux_binprm"
+    selectors:
+    - matchActions:
+      - action: Override
+        argError: -1
+`
+
+	oldDisableOverrideActions := option.Config.DisableOverrideActions
+	option.Config.DisableOverrideActions = true
+	t.Cleanup(func() {
+		option.Config.DisableOverrideActions = oldDisableOverrideActions
+	})
+	err := checkCrd(t, crd)
+	assert.Error(t, err)
+}
+
+func TestLSMSignalDisabled(t *testing.T) {
+
+	// signal when signal actions are disabled
+
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "lsm"
+spec:
+  lsmhooks:
+  - hook: "bprm_check_security"
+    args:
+      - index: 0
+        type: "linux_binprm"
+    selectors:
+    - matchActions:
+      - action: Signal
+        argSig: 9
+`
+
+	oldDisableSignalActions := option.Config.DisableSignalActions
+	option.Config.DisableSignalActions = true
+	t.Cleanup(func() {
+		option.Config.DisableSignalActions = oldDisableSignalActions
+	})
+	err := checkCrd(t, crd)
+	assert.Error(t, err)
+}
+
+func TestLSMSigkillDisabled(t *testing.T) {
+
+	// sigkill when signal actions are disabled
+
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "lsm"
+spec:
+  lsmhooks:
+  - hook: "bprm_check_security"
+    args:
+      - index: 0
+        type: "linux_binprm"
+    selectors:
+    - matchActions:
+      - action: Sigkill
+`
+
+	oldDisableSignalActions := option.Config.DisableSignalActions
+	option.Config.DisableSignalActions = true
+	t.Cleanup(func() {
+		option.Config.DisableSignalActions = oldDisableSignalActions
+	})
+	err := checkCrd(t, crd)
+	assert.Error(t, err)
+}
+
+func TestLSMNotifyEnforcerSignalDisabled(t *testing.T) {
+
+	// signal via notify enforcer when signal actions are disabled
+
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "lsm"
+spec:
+  lsmhooks:
+  - hook: "bprm_check_security"
+    args:
+      - index: 0
+        type: "linux_binprm"
+    selectors:
+    - matchActions:
+      - action: NotifyEnforcer
+        argSig: 9
+`
+
+	oldDisableSignalActions := option.Config.DisableSignalActions
+	option.Config.DisableSignalActions = true
+	t.Cleanup(func() {
+		option.Config.DisableSignalActions = oldDisableSignalActions
+	})
+	err := checkCrd(t, crd)
+	assert.Error(t, err)
+}
+
+func TestLSMNotifyEnforcerOverrideDisabled(t *testing.T) {
+
+	// override via notify enforcer when overide actions are disabled
+
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "lsm"
+spec:
+  lsmhooks:
+  - hook: "bprm_check_security"
+    args:
+      - index: 0
+        type: "linux_binprm"
+    selectors:
+    - matchActions:
+      - action: NotifyEnforcer
+        argError: -1
+`
+
+	oldDisableOverrideActions := option.Config.DisableOverrideActions
+	option.Config.DisableOverrideActions = true
+	t.Cleanup(func() {
+		option.Config.DisableOverrideActions = oldDisableOverrideActions
+	})
+	err := checkCrd(t, crd)
+	assert.Error(t, err)
 }
