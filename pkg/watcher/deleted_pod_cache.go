@@ -5,6 +5,7 @@ package watcher
 
 import (
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/metrics/watchermetrics"
 	lru "github.com/hashicorp/golang-lru/v2"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -81,5 +82,6 @@ func (c *deletedPodCache) findContainer(containerID string) (*corev1.Pod, *corev
 		return nil, nil, false
 	}
 
+	watchermetrics.GetWatcherDeletedPodCacheHits().Inc()
 	return v.pod, v.contStatus, true
 }
