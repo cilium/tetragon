@@ -225,7 +225,7 @@ func (watcher *K8sWatcher) FindContainer(containerID string) (*corev1.Pod, *core
 	// If we can't find any pod indexed then fall back to the entire pod list.
 	// If we find more than 1 pods indexed also fall back to the entire pod list.
 	if len(objs) != 1 {
-		return findContainer(containerID, podInformer.GetStore().List())
+		objs = podInformer.GetStore().List()
 	}
 	return findContainer(containerID, objs)
 }
