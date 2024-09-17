@@ -275,6 +275,10 @@ The number of loaded tracing policy by state.
 | ----- | ------ |
 | `state` | `disabled, enabled, error, load_error` |
 
+### `tetragon_watcher_delete_pod_cache_hits`
+
+The total hits for pod information in the deleted pod cache.
+
 ### `tetragon_watcher_errors_total`
 
 The total number of errors for a given watcher type.
