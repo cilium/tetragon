@@ -74,6 +74,19 @@ func podIndexFunc(obj interface{}) ([]string, error) {
 	return nil, fmt.Errorf("podIndexFunc: %w - found %T", errNoPod, obj)
 }
 
+func containerIDKey(contID string) (string, error) {
+	parts := strings.Split(contID, "//")
+	if len(parts) != 2 {
+		return "", fmt.Errorf("unexpected containerID format, expecting 'docker://<name>', got %q", contID)
+	}
+	cid := parts[1]
+	if len(cid) > containerIDLen {
+		cid = cid[:containerIDLen]
+	}
+	return cid, nil
+
+}
+
 // containerIndexFunc index pod by container IDs.
 func containerIndexFunc(obj interface{}) ([]string, error) {
 	var containerIDs []string
@@ -84,13 +97,9 @@ func containerIndexFunc(obj interface{}) ([]string, error) {
 			// be patient.
 			return nil
 		}
-		parts := strings.Split(fullContainerID, "//")
-		if len(parts) != 2 {
-			return fmt.Errorf("unexpected containerID format, expecting 'docker://<name>', got %q", fullContainerID)
-		}
-		cid := parts[1]
-		if len(cid) > containerIDLen {
-			cid = cid[:containerIDLen]
+		cid, err := containerIDKey(fullContainerID)
+		if err != nil {
+			return err
 		}
 		containerIDs = append(containerIDs, cid)
 		return nil
