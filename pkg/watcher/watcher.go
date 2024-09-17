@@ -51,8 +51,9 @@ type K8sResourceWatcher interface {
 
 // K8sWatcher maintains a local cache of k8s resources.
 type K8sWatcher struct {
-	informers map[string]cache.SharedIndexInformer
-	startFunc func()
+	informers       map[string]cache.SharedIndexInformer
+	startFunc       func()
+	deletedPodCache *deletedPodCache
 }
 
 type InternalSharedInformerFactory interface {
@@ -133,9 +134,16 @@ func containerIndexFunc(obj interface{}) ([]string, error) {
 func newK8sWatcher(
 	informerFactory informers.SharedInformerFactory,
 ) (*K8sWatcher, error) {
+
+	deletedPodCache, err := newDeletedPodCache()
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize deleted pod cache: %w", err)
+	}
+
 	k8sWatcher := &K8sWatcher{
-		informers: make(map[string]cache.SharedIndexInformer),
-		startFunc: func() {},
+		informers:       make(map[string]cache.SharedIndexInformer),
+		startFunc:       func() {},
+		deletedPodCache: deletedPodCache,
 	}
 
 	podInformer := informerFactory.Core().V1().Pods().Informer()
@@ -147,6 +155,7 @@ func newK8sWatcher(
 			podIdx:       podIndexFunc,
 		},
 	})
+	podInformer.AddEventHandler(k8sWatcher.deletedPodCache.eventHandler())
 	podhooks.InstallHooks(podInformer)
 
 	return k8sWatcher, nil
@@ -227,7 +236,12 @@ func (watcher *K8sWatcher) FindContainer(containerID string) (*corev1.Pod, *core
 	if len(objs) != 1 {
 		objs = podInformer.GetStore().List()
 	}
-	return findContainer(containerID, objs)
+	pod, cont, found := findContainer(containerID, objs)
+	if found {
+		return pod, cont, found
+	}
+
+	return watcher.deletedPodCache.findContainer(indexedContainerID)
 }
 
 // FindMirrorPod finds the mirror pod of a static pod based on the hash
