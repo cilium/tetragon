@@ -411,7 +411,10 @@ func tetragonExecute() error {
 		}
 
 		k8sClient := kubernetes.NewForConfigOrDie(config)
-		k8sWatcher = watcher.NewK8sWatcher(k8sClient, 60*time.Second)
+		k8sWatcher, err = watcher.NewK8sWatcher(k8sClient, 60*time.Second)
+		if err != nil {
+			return err
+		}
 	} else {
 		log.Info("Disabling Kubernetes API")
 		k8sWatcher = watcher.NewFakeK8sWatcher(nil)

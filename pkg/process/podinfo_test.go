@@ -10,6 +10,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/watcher"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	v1 "k8s.io/api/core/v1"
@@ -49,7 +50,8 @@ func TestK8sWatcher_GetPodInfo(t *testing.T) {
 	}
 
 	k8sClient := fake.NewSimpleClientset(&pod)
-	watcher := watcher.NewK8sWatcher(k8sClient, time.Hour)
+	watcher, err := watcher.NewK8sWatcher(k8sClient, time.Hour)
+	require.NoError(t, err)
 	watcher.Start()
 	pid := uint32(1)
 	podInfo := getPodInfo(watcher, "abcd1234", "curl", "cilium.io", 1)

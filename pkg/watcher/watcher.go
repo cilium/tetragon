@@ -121,25 +121,16 @@ func containerIndexFunc(obj interface{}) ([]string, error) {
 	return nil, fmt.Errorf("%w - found %T", errNoPod, obj)
 }
 
-// NewK8sWatcher returns a pointer to an initialized K8sWatcher struct.
-func NewK8sWatcher(k8sClient kubernetes.Interface, stateSyncIntervalSec time.Duration) *K8sWatcher {
-	nodeName := node.GetNodeNameForExport()
-	if nodeName == "" {
-		logger.GetLogger().Warn("env var NODE_NAME not specified, K8s watcher will not work as expected")
-	}
-
+func newK8sWatcher(
+	informerFactory informers.SharedInformerFactory,
+) (*K8sWatcher, error) {
 	k8sWatcher := &K8sWatcher{
 		informers: make(map[string]cache.SharedIndexInformer),
 		startFunc: func() {},
 	}
 
-	k8sInformerFactory := informers.NewSharedInformerFactoryWithOptions(k8sClient, stateSyncIntervalSec,
-		informers.WithTweakListOptions(func(options *metav1.ListOptions) {
-			// Watch local pods only.
-			options.FieldSelector = "spec.nodeName=" + nodeName
-		}))
-	podInformer := k8sInformerFactory.Core().V1().Pods().Informer()
-	k8sWatcher.AddInformers(k8sInformerFactory, &InternalInformer{
+	podInformer := informerFactory.Core().V1().Pods().Informer()
+	k8sWatcher.AddInformers(informerFactory, &InternalInformer{
 		Name:     podInformerName,
 		Informer: podInformer,
 		Indexers: map[string]cache.IndexFunc{
@@ -147,10 +138,25 @@ func NewK8sWatcher(k8sClient kubernetes.Interface, stateSyncIntervalSec time.Dur
 			podIdx:       podIndexFunc,
 		},
 	})
-
 	podhooks.InstallHooks(podInformer)
 
-	return k8sWatcher
+	return k8sWatcher, nil
+}
+
+// NewK8sWatcher returns a pointer to an initialized K8sWatcher struct.
+func NewK8sWatcher(k8sClient kubernetes.Interface, stateSyncIntervalSec time.Duration) (*K8sWatcher, error) {
+	nodeName := node.GetNodeNameForExport()
+	if nodeName == "" {
+		logger.GetLogger().Warn("env var NODE_NAME not specified, K8s watcher will not work as expected")
+	}
+
+	informerFactory := informers.NewSharedInformerFactoryWithOptions(k8sClient, stateSyncIntervalSec,
+		informers.WithTweakListOptions(func(options *metav1.ListOptions) {
+			// Watch local pods only.
+			options.FieldSelector = "spec.nodeName=" + nodeName
+		}))
+
+	return newK8sWatcher(informerFactory)
 }
 
 func (watcher *K8sWatcher) AddInformers(factory InternalSharedInformerFactory, infs ...*InternalInformer) {
