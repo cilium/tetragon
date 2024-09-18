@@ -372,8 +372,7 @@ rthooks:
   # -- priorityClassName for the Tetrargon rthooks pod
   priorityClassName: ""
   # -- security context for the Tetrargon rthooks pod
-  podSecurityContext:
-    privileged: true
+  podSecurityContext: {}
   # -- installDir is the host location where the tetragon-oci-hook binary will be installed
   installDir: "/opt/tetragon"
   # -- Comma-separated list of namespaces to allow Pod creation for, in case tetragon-oci-hook fails to reach Tetragon agent.
