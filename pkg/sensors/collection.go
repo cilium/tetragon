@@ -4,12 +4,16 @@
 package sensors
 
 import (
+	"bufio"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"go.uber.org/multierr"
+	"sigs.k8s.io/yaml"
 )
 
 type TracingPolicyState int
@@ -142,6 +146,54 @@ func (c *collection) destroy() {
 	for _, s := range c.sensors {
 		s.Destroy()
 	}
+}
+
+// Snapshot the collection state on disk
+func (c *collection) snapshot(path string, filename string) error {
+	os.MkdirAll(path, 0700)
+	f, err := os.CreateTemp(path, "col-temp-*")
+	if err != nil {
+		return err
+	}
+	name := f.Name()
+	defer os.Remove(name)
+	w := bufio.NewWriter(f)
+	if c.tracingpolicy != nil {
+		_, err = w.WriteString(fmt.Sprintf("name=%s\n", c.name))
+		if err == nil {
+			_, err = w.WriteString(fmt.Sprintf("id=%d\n", c.tracingpolicyID))
+		}
+		if err == nil {
+			_, err = w.WriteString(fmt.Sprintf("state=%s\n", c.state.ToTetragonState()))
+		}
+		if err == nil {
+			_, err = w.WriteString(fmt.Sprintf("err=%v\n", c.err))
+		}
+		if err == nil {
+			spec, err := yaml.Marshal(c.tracingpolicy.TpSpec())
+			if err == nil {
+				_, err = w.WriteString(fmt.Sprintf("TracingPolicy=%s\n", string(spec)))
+			}
+		}
+	}
+	if err != nil {
+		return err
+	}
+	w.Flush()
+	err = f.Close()
+	if err != nil {
+		return err
+	}
+
+	err = os.Chmod(name, 0600)
+	if err == nil {
+		err = os.Rename(name, filepath.Join(path, filename))
+	}
+	return err
+}
+
+func (c *collection) deleteSnapshot(path string) error {
+	return os.Remove(path)
 }
 
 func (cm *collectionMap) listPolicies() []*tetragon.TracingPolicyStatus {
