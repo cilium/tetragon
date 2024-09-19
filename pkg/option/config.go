@@ -27,10 +27,11 @@ type config struct {
 	ForceLargeProgs bool
 	ClusterName     string
 
-	EnableProcessNs   bool
-	EnableProcessCred bool
-	EnableK8s         bool
-	K8sKubeConfigPath string
+	EnableProcessNs        bool
+	EnableProcessCred      bool
+	EnableK8s              bool
+	K8sKubeConfigPath      string
+	EnableProcessAncestors bool
 
 	DisableKprobeMulti bool
 

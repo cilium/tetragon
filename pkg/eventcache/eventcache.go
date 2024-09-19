@@ -45,9 +45,10 @@ type Cache struct {
 }
 
 var (
-	ErrFailedToGetPodInfo     = errors.New("failed to get pod info from event cache")
-	ErrFailedToGetProcessInfo = errors.New("failed to get process info from event cache")
-	ErrFailedToGetParentInfo  = errors.New("failed to get parent info from event cache")
+	ErrFailedToGetPodInfo        = errors.New("failed to get pod info from event cache")
+	ErrFailedToGetProcessInfo    = errors.New("failed to get process info from event cache")
+	ErrFailedToGetParentInfo     = errors.New("failed to get parent info from event cache")
+	ErrFailedToGetAncestorsInfo  = errors.New("failed to get ancestors info from event cache")
 )
 
 // Generic internal lookup happens when events are received out of order and
@@ -56,6 +57,19 @@ var (
 func HandleGenericInternal(ev notify.Event, pid uint32, tid *uint32, timestamp uint64) (*process.ProcessInternal, error) {
 	internal, parent := process.GetParentProcessInternal(pid, timestamp)
 	var err error
+
+	if option.Config.EnableProcessAncestors && parent != nil && parent.UnsafeGetProcess().Pid.Value > 2 {
+		if ancestors := process.GetAncestorProcessesInternal(parent.UnsafeGetProcess().ExecId); ancestors != nil {
+			var tetragonAncestors []*tetragon.Process
+			for _, ancestor := range ancestors {
+				tetragonAncestors = append(tetragonAncestors, ancestor.UnsafeGetProcess())
+			}
+			ev.SetAncestors(tetragonAncestors)
+		} else {
+			CacheRetries(AncestorsInfo).Inc()
+			err = ErrFailedToGetAncestorsInfo
+		}
+	}
 
 	if parent != nil {
 		ev.SetParent(parent.UnsafeGetProcess())
@@ -136,6 +150,8 @@ func (ec *Cache) handleEvents() {
 				failedFetches.WithLabelValues(eventType, ParentInfo.String()).Inc()
 			} else if errors.Is(err, ErrFailedToGetProcessInfo) {
 				failedFetches.WithLabelValues(eventType, ProcessInfo.String()).Inc()
+			} else if errors.Is(err, ErrFailedToGetAncestorsInfo) {
+				failedFetches.WithLabelValues(eventType, AncestorsInfo.String()).Inc()
 			} else if errors.Is(err, ErrFailedToGetPodInfo) {
 				failedFetches.WithLabelValues(eventType, PodInfo.String()).Inc()
 			}

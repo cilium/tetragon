@@ -41,6 +41,7 @@ func (msg *MsgExecveEventUnix) getCleanupEvent() *MsgProcessCleanupEventUnix {
 // GetProcessExec returns Exec protobuf message for a given process, including the ancestor list.
 func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessExec {
 	var tetragonParent *tetragon.Process
+	var tetragonAncestors []*tetragon.Process
 
 	proc := process.AddExecEvent(event.Unix)
 	tetragonProcess := proc.UnsafeGetProcess()
@@ -53,14 +54,23 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 		tetragonParent = parent.UnsafeGetProcess()
 	}
 
+	// Set the ancestors only if --enable-process-ancestors flag is set.
+	if option.Config.EnableProcessAncestors && parent != nil && tetragonParent.Pid.Value > 2 {
+		for _, ancestor := range process.GetAncestorProcessesInternal(tetragonParent.ExecId) {
+			tetragonAncestors = append(tetragonAncestors, ancestor.UnsafeGetProcess())
+		}
+	}
+
 	// Set the cap field only if --enable-process-cred flag is set.
 	if err := proc.AnnotateProcess(option.Config.EnableProcessCred, option.Config.EnableProcessNs); err != nil {
-		logger.GetLogger().WithError(err).WithField("processId", processId).WithField("parentId", parentId).Debugf("Failed to annotate process with capabilities and namespaces info")
+		logger.GetLogger().WithError(err).WithField("processId", processId).WithField("parentId", parentId).
+			  Debugf("Failed to annotate process with capabilities and namespaces info")
 	}
 
 	tetragonEvent := &tetragon.ProcessExec{
-		Process: tetragonProcess,
-		Parent:  tetragonParent,
+		Process:   tetragonProcess,
+		Parent:    tetragonParent,
+		Ancestors: tetragonAncestors,
 	}
 
 	if tetragonProcess.Pid == nil {
@@ -70,7 +80,9 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 
 	if useCache {
 		if ec := eventcache.Get(); ec != nil &&
-			(ec.Needed(tetragonEvent.Process) || (tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonEvent.Parent))) {
+			(ec.Needed(tetragonProcess) ||
+				(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent)) ||
+				(option.Config.EnableProcessAncestors && tetragonParent.Pid.Value > 2 && tetragonAncestors == nil)) {
 			ec.Add(proc, tetragonEvent, event.Unix.Msg.Common.Ktime, event.Unix.Process.Ktime, event)
 			return nil
 		}
@@ -174,12 +186,12 @@ func (msg *MsgExecveEventUnix) RetryInternal(_ notify.Event, _ uint64) (*process
 func (msg *MsgExecveEventUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
 	var podInfo *tetragon.Pod
 
-	proc := ev.GetProcess()
-	parent := ev.GetParent()
+	tetragonProcess := ev.GetProcess()
+	tetragonParent := ev.GetParent()
 
-	containerId := proc.Docker
-	filename := proc.Binary
-	args := proc.Arguments
+	containerId := tetragonProcess.Docker
+	filename := tetragonProcess.Binary
+	args := tetragonProcess.Arguments
 	nspid := msg.Unix.Process.NSPID
 
 	if option.Config.EnableK8s && containerId != "" {
@@ -199,14 +211,36 @@ func (msg *MsgExecveEventUnix) Retry(internal *process.ProcessInternal, ev notif
 
 	// Check we have a parent with exception for pid 1, note we do this last because we want
 	// to ensure the podInfo and process are set before returning any errors.
-	if proc.Pid.Value > 1 && parent == nil {
-		parentId := proc.ParentExecId
+	if tetragonProcess.Pid.Value > 1 && tetragonParent == nil {
+		parentId := tetragonProcess.ParentExecId
 		parent, err := process.Get(parentId)
-		if parent == nil {
+		if parent != nil {
+			tetragonParent = parent.UnsafeGetProcess()
+			parent.RefInc("parent")
+			ev.SetParent(tetragonParent)
+		} else {
+			eventcache.CacheRetries(eventcache.ParentInfo).Inc()
 			return err
 		}
-		parent.RefInc("parent")
-		ev.SetParent(parent.UnsafeGetProcess())
+	}
+
+	// Check we have ancestors with exception for pid 1 and 2, note we pass tetragonParent.ExecId
+	// to GetAncestorProcessesInternal function instead of tetragonProcess.ExecId because function
+	// GetAncestorProcessesInternal returns all ancestors of the given process, including the
+	// immediate parent, so to get ancestors beyond immediate parent we need to pass immediate
+	// parent to GetAncestorProcessesInternal.
+	if option.Config.EnableProcessAncestors && ev.GetAncestors() == nil &&
+			tetragonParent != nil && tetragonParent.Pid.Value > 2 {
+		if ancestors := process.GetAncestorProcessesInternal(tetragonParent.ExecId); ancestors != nil {
+			var tetragonAncestors []*tetragon.Process
+			for _, ancestor := range ancestors {
+				tetragonAncestors = append(tetragonAncestors, ancestor.UnsafeGetProcess())
+			}
+			ev.SetAncestors(tetragonAncestors)
+		} else {
+			eventcache.CacheRetries(eventcache.AncestorsInfo).Inc()
+			return eventcache.ErrFailedToGetAncestorsInfo
+		}
 	}
 
 	// As of now pod information has been added, finalize the process event with extra fields
@@ -215,9 +249,9 @@ func (msg *MsgExecveEventUnix) Retry(internal *process.ProcessInternal, ev notif
 		errormetrics.ErrorTotalInc(errormetrics.EventFinalizeProcessInfoFailed)
 		logger.GetLogger().WithFields(logrus.Fields{
 			"event.name":            "Execve",
-			"event.process.pid":     proc.Pid.GetValue(),
+			"event.process.pid":     tetragonProcess.Pid.GetValue(),
 			"event.process.binary":  filename,
-			"event.process.exec_id": proc.GetExecId(),
+			"event.process.exec_id": tetragonProcess.GetExecId(),
 			"event.event_cache":     "yes",
 		}).Debugf("ExecveEvent: failed to finalize process exec event")
 		// For ProcessExec event we do not fail let's return what we have even if it's not complete
@@ -334,6 +368,7 @@ func (msg *MsgCloneEventUnix) Cast(o interface{}) notify.Message {
 // GetProcessExit returns Exit protobuf message for a given process.
 func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 	var tetragonProcess, tetragonParent *tetragon.Process
+	var tetragonAncestors []*tetragon.Process
 
 	proc, parent := process.GetParentProcessInternal(event.ProcessKey.Pid, event.ProcessKey.Ktime)
 	if proc != nil {
@@ -346,6 +381,13 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 	}
 	if parent != nil {
 		tetragonParent = parent.UnsafeGetProcess()
+	}
+
+	// Set the ancestors only if --enable-process-ancestors flag is set.
+	if option.Config.EnableProcessAncestors && parent != nil && tetragonParent.Pid.Value > 2 {
+		for _, ancestor := range process.GetAncestorProcessesInternal(tetragonParent.ExecId) {
+			tetragonAncestors = append(tetragonAncestors, ancestor.UnsafeGetProcess())
+		}
 	}
 
 	code := event.Info.Code >> 8
@@ -386,11 +428,12 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 	}
 
 	tetragonEvent := &tetragon.ProcessExit{
-		Process: tetragonProcess,
-		Parent:  tetragonParent,
-		Signal:  signal,
-		Status:  code,
-		Time:    ktime.ToProto(event.Common.Ktime),
+		Process:   tetragonProcess,
+		Parent:    tetragonParent,
+		Ancestors: tetragonAncestors,
+		Signal:    signal,
+		Status:    code,
+		Time:      ktime.ToProto(event.Common.Ktime),
 	}
 
 	if tetragonProcess.Pid == nil {
@@ -398,10 +441,10 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 		return nil
 	}
 
-	ec := eventcache.Get()
-	if ec != nil &&
+	if ec := eventcache.Get(); ec != nil &&
 		(ec.Needed(tetragonProcess) ||
-			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent))) {
+			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent)) ||
+			(option.Config.EnableProcessAncestors && tetragonParent.Pid.Value > 2 && tetragonAncestors == nil)) {
 		ec.Add(nil, tetragonEvent, event.Common.Ktime, event.ProcessKey.Ktime, event)
 		return nil
 	}
@@ -426,6 +469,20 @@ func (msg *MsgExitEventUnix) Notify() bool {
 func (msg *MsgExitEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
 	internal, parent := process.GetParentProcessInternal(msg.ProcessKey.Pid, timestamp)
 	var err error
+
+	if option.Config.EnableProcessAncestors && ev.GetAncestors() == nil &&
+			parent != nil && parent.UnsafeGetProcess().Pid.Value > 2 {
+		if ancestors := process.GetAncestorProcessesInternal(parent.UnsafeGetProcess().ExecId); ancestors != nil {
+			var tetragonAncestors []*tetragon.Process
+			for _, ancestor := range ancestors {
+				tetragonAncestors = append(tetragonAncestors, ancestor.UnsafeGetProcess())
+			}
+			ev.SetAncestors(tetragonAncestors)
+		} else {
+			eventcache.CacheRetries(eventcache.AncestorsInfo).Inc()
+			err = eventcache.ErrFailedToGetAncestorsInfo
+		}
+	}
 
 	if parent != nil {
 		ev.SetParent(parent.UnsafeGetProcess())
