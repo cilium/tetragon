@@ -75,6 +75,8 @@ message Filter {
     // for processes injected into a container via docker exec, kubectl exec, or
     // similar mechanisms.
     google.protobuf.BoolValue in_init_tree = 16;
+    // Filter ancestor processes' binaries using RE2 regular expression syntax.
+    repeated string ancestor_binary_regex = 17;
 }
 
 // Filter over a set of Linux process capabilities. See `message Capabilities`
