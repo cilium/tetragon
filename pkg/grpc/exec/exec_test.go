@@ -69,3 +69,11 @@ func TestGrpcExecPodInfoDelayedInOrder(t *testing.T) {
 func TestGrpcDelayedExecK8sOutOfOrder(t *testing.T) {
 	GrpcDelayedExecK8sOutOfOrder[*MsgExecveEventUnix, *MsgExitEventUnix](t)
 }
+
+func TestGrpcExecAncestorsInOrder(t *testing.T) {
+	GrpcExecAncestorsInOrder[*MsgExecveEventUnix, *MsgCloneEventUnix, *MsgExitEventUnix](t)
+}
+
+func TestGrpcExecAncestorsOutOfOrder(t *testing.T) {
+	GrpcExecAncestorsOutOfOrder[*MsgExecveEventUnix, *MsgCloneEventUnix, *MsgExitEventUnix](t)
+}
