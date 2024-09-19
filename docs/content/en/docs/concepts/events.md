@@ -162,6 +162,7 @@ flags, or environment variables.
 | `policy_names` | Filter events by tracing policy names. |
 | `capabilities` | Filter events by Linux process capability. |
 | `parent_binary_regex` | Filter process events by a list of regular expressions of parent process binary names (e.g. `"^/home/kubernetes/bin/kubelet$"`). You can find the full syntax [here](https://github.com/google/re2/wiki/Syntax). | 
+| `ancestor_binary_regex` | Filter process events by a list of regular expressions of ancestor processes' binary names (e.g. `"^/home/kubernetes/bin/kubelet$"`). You can find the full syntax [here](https://github.com/google/re2/wiki/Syntax). | 
 
 #### Field Filtering 
 
