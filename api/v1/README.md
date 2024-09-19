@@ -956,6 +956,7 @@ found.
 | ----- | ---- | ----- | ----------- |
 | process | [Process](#tetragon-Process) |  | Process that triggered the exit. |
 | parent | [Process](#tetragon-Process) |  | Immediate parent of the process. |
+| ancestors | [Process](#tetragon-Process) | repeated | Ancestors of the process beyond the immediate parent. |
 | signal | [string](#string) |  | Signal that the process received when it exited, for example SIGKILL or SIGTERM (list all signal names with `kill -l`). If there is no signal handler implemented for a specific process, we report the exit status code that can be found in the status field. |
 | status | [uint32](#uint32) |  | Status code on process exit. For example, the status code can indicate if an error was encountered or the program exited successfully. |
 | time | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | Date and time of the event. |
@@ -975,6 +976,7 @@ found.
 | ----- | ---- | ----- | ----------- |
 | process | [Process](#tetragon-Process) |  | Process that triggered the kprobe. |
 | parent | [Process](#tetragon-Process) |  | Immediate parent of the process. |
+| ancestors | [Process](#tetragon-Process) | repeated | Ancestors of the process beyond the immediate parent. |
 | function_name | [string](#string) |  | Symbol on which the kprobe was attached. |
 | args | [KprobeArgument](#tetragon-KprobeArgument) | repeated | Arguments definition of the observed kprobe. |
 | return | [KprobeArgument](#tetragon-KprobeArgument) |  | Return value definition of the observed kprobe. |
@@ -1018,6 +1020,7 @@ loader sensor event triggered for loaded binary/library
 | ----- | ---- | ----- | ----------- |
 | process | [Process](#tetragon-Process) |  |  |
 | parent | [Process](#tetragon-Process) |  |  |
+| ancestors | [Process](#tetragon-Process) | repeated | Ancestors of the process beyond the immediate parent. |
 | function_name | [string](#string) |  | LSM hook name. |
 | policy_name | [string](#string) |  | Name of the policy that created that LSM hook. |
 | message | [string](#string) |  | Short message of the Tracing Policy to inform users what is going on. |
@@ -1041,6 +1044,7 @@ loader sensor event triggered for loaded binary/library
 | ----- | ---- | ----- | ----------- |
 | process | [Process](#tetragon-Process) |  | Process that triggered the tracepoint. |
 | parent | [Process](#tetragon-Process) |  | Immediate parent of the process. |
+| ancestors | [Process](#tetragon-Process) | repeated | Ancestors of the process beyond the immediate parent. |
 | subsys | [string](#string) |  | Subsystem of the tracepoint. |
 | event | [string](#string) |  | Event of the subsystem. |
 | args | [KprobeArgument](#tetragon-KprobeArgument) | repeated | Arguments definition of the observed tracepoint. TODO: once we implement all we want, rename KprobeArgument to GenericArgument |
@@ -1064,6 +1068,7 @@ loader sensor event triggered for loaded binary/library
 | ----- | ---- | ----- | ----------- |
 | process | [Process](#tetragon-Process) |  |  |
 | parent | [Process](#tetragon-Process) |  |  |
+| ancestors | [Process](#tetragon-Process) | repeated | Ancestors of the process beyond the immediate parent. |
 | path | [string](#string) |  |  |
 | symbol | [string](#string) |  |  |
 | policy_name | [string](#string) |  | Name of the policy that created that uprobe. |
@@ -1362,6 +1367,7 @@ Capability set to filter over. NOTE: you may specify only ONE set here.
 | policy_names | [string](#string) | repeated | Filter events by tracing policy names |
 | capabilities | [CapFilter](#tetragon-CapFilter) |  | Filter events by Linux process capability |
 | parent_binary_regex | [string](#string) | repeated | Filter parent process&#39; binary using RE2 regular expression syntax. |
+| ancestor_binary_regex | [string](#string) | repeated | Filter ancestor processes&#39; binary using RE2 regular expression syntax. |
 
 
 
