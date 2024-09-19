@@ -72,6 +72,10 @@ options:
     - name: enable-policy-filter-debug
       default_value: "false"
       usage: Enable policy filter debug messages
+    - name: enable-process-ancestors
+      default_value: "false"
+      usage: |
+        Include ancestors in process_exec, process_exit, process_uprobe, process_kprobe, process_lsm, process_tracepoint events
     - name: enable-process-cred
       default_value: "false"
       usage: Enable process_cred events
