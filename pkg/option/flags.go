@@ -37,14 +37,15 @@ const (
 	KeyEnableK8sAPI      = "enable-k8s-api"
 	KeyK8sKubeConfigPath = "k8s-kubeconfig-path"
 
-	KeyMetricsServer      = "metrics-server"
-	KeyMetricsLabelFilter = "metrics-label-filter"
-	KeyServerAddress      = "server-address"
-	KeyGopsAddr           = "gops-address"
-	KeyEnableProcessCred  = "enable-process-cred"
-	KeyEnableProcessNs    = "enable-process-ns"
-	KeyTracingPolicy      = "tracing-policy"
-	KeyTracingPolicyDir   = "tracing-policy-dir"
+	KeyMetricsServer          = "metrics-server"
+	KeyMetricsLabelFilter     = "metrics-label-filter"
+	KeyServerAddress          = "server-address"
+	KeyGopsAddr               = "gops-address"
+	KeyEnableProcessAncestors = "enable-process-ancestors"
+	KeyEnableProcessCred      = "enable-process-cred"
+	KeyEnableProcessNs        = "enable-process-ns"
+	KeyTracingPolicy          = "tracing-policy"
+	KeyTracingPolicyDir       = "tracing-policy-dir"
 
 	KeyCpuProfile = "cpuprofile"
 	KeyMemProfile = "memprofile"
@@ -146,6 +147,7 @@ func ReadAndSetFlags() error {
 	Config.Debug = viper.GetBool(KeyDebug)
 	Config.ClusterName = viper.GetString(KeyClusterName)
 
+	Config.EnableProcessAncestors = viper.GetBool(KeyEnableProcessAncestors)
 	Config.EnableProcessCred = viper.GetBool(KeyEnableProcessCred)
 	Config.EnableProcessNs = viper.GetBool(KeyEnableProcessNs)
 	Config.EnableK8s = viper.GetBool(KeyEnableK8sAPI)
@@ -329,6 +331,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.String(KeyMetricsLabelFilter, "namespace,workload,pod,binary", "Comma-separated list of enabled metrics labels. Unknown labels will be ignored.")
 	flags.String(KeyServerAddress, "localhost:54321", "gRPC server address (e.g. 'localhost:54321' or 'unix:///var/run/tetragon/tetragon.sock'). An empty address disables the gRPC server")
 	flags.String(KeyGopsAddr, "", "gops server address (e.g. 'localhost:8118'). Disabled by default")
+	flags.Bool(KeyEnableProcessAncestors, false, "Include ancestors in process_exec, process_exit, process_uprobe, process_kprobe, process_lsm, process_tracepoint events")
 	flags.Bool(KeyEnableProcessCred, false, "Enable process_cred events")
 	flags.Bool(KeyEnableProcessNs, false, "Enable namespace information in process_exec and process_kprobe events")
 	flags.Uint(KeyEventQueueSize, 10000, "Set the size of the internal event queue.")
