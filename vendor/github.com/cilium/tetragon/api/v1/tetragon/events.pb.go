@@ -246,6 +246,8 @@ type Filter struct {
 	// for processes injected into a container via docker exec, kubectl exec, or
 	// similar mechanisms.
 	InInitTree *wrapperspb.BoolValue `protobuf:"bytes,16,opt,name=in_init_tree,json=inInitTree,proto3" json:"in_init_tree,omitempty"`
+	// Filter ancestor processes' binaries using RE2 regular expression syntax.
+	AncestorBinaryRegex []string `protobuf:"bytes,17,rep,name=ancestor_binary_regex,json=ancestorBinaryRegex,proto3" json:"ancestor_binary_regex,omitempty"`
 }
 
 func (x *Filter) Reset() {
@@ -388,6 +390,13 @@ func (x *Filter) GetContainerId() []string {
 func (x *Filter) GetInInitTree() *wrapperspb.BoolValue {
 	if x != nil {
 		return x.InInitTree
+	}
+	return nil
+}
+
+func (x *Filter) GetAncestorBinaryRegex() []string {
+	if x != nil {
+		return x.AncestorBinaryRegex
 	}
 	return nil
 }

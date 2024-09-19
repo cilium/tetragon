@@ -577,6 +577,7 @@ type ProcessExitChecker struct {
 	Signal      *stringmatcher.StringMatcher       `json:"signal,omitempty"`
 	Status      *uint32                            `json:"status,omitempty"`
 	Time        *timestampmatcher.TimestampMatcher `json:"time,omitempty"`
+	Ancestors   *ProcessListMatcher                `json:"ancestors,omitempty"`
 }
 
 // CheckEvent checks a single event and implements the EventChecker interface
@@ -643,6 +644,11 @@ func (checker *ProcessExitChecker) Check(event *tetragon.ProcessExit) error {
 				return fmt.Errorf("Time check failed: %w", err)
 			}
 		}
+		if checker.Ancestors != nil {
+			if err := checker.Ancestors.Check(event.Ancestors); err != nil {
+				return fmt.Errorf("Ancestors check failed: %w", err)
+			}
+		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -681,6 +687,12 @@ func (checker *ProcessExitChecker) WithTime(check *timestampmatcher.TimestampMat
 	return checker
 }
 
+// WithAncestors adds a Ancestors check to the ProcessExitChecker
+func (checker *ProcessExitChecker) WithAncestors(check *ProcessListMatcher) *ProcessExitChecker {
+	checker.Ancestors = check
+	return checker
+}
+
 //FromProcessExit populates the ProcessExitChecker using data from a ProcessExit event
 func (checker *ProcessExitChecker) FromProcessExit(event *tetragon.ProcessExit) *ProcessExitChecker {
 	if event == nil {
@@ -699,6 +711,19 @@ func (checker *ProcessExitChecker) FromProcessExit(event *tetragon.ProcessExit) 
 	}
 	// NB: We don't want to match timestamps for now
 	checker.Time = nil
+	{
+		var checks []*ProcessChecker
+		for _, check := range event.Ancestors {
+			var convertedCheck *ProcessChecker
+			if check != nil {
+				convertedCheck = NewProcessChecker().FromProcess(check)
+			}
+			checks = append(checks, convertedCheck)
+		}
+		lm := NewProcessListMatcher().WithOperator(listmatcher.Ordered).
+			WithValues(checks...)
+		checker.Ancestors = lm
+	}
 	return checker
 }
 
@@ -717,6 +742,7 @@ type ProcessKprobeChecker struct {
 	Message          *stringmatcher.StringMatcher `json:"message,omitempty"`
 	Tags             *StringListMatcher           `json:"tags,omitempty"`
 	UserStackTrace   *StackTraceEntryListMatcher  `json:"userStackTrace,omitempty"`
+	Ancestors        *ProcessListMatcher          `json:"ancestors,omitempty"`
 }
 
 // CheckEvent checks a single event and implements the EventChecker interface
@@ -818,6 +844,11 @@ func (checker *ProcessKprobeChecker) Check(event *tetragon.ProcessKprobe) error 
 				return fmt.Errorf("UserStackTrace check failed: %w", err)
 			}
 		}
+		if checker.Ancestors != nil {
+			if err := checker.Ancestors.Check(event.Ancestors); err != nil {
+				return fmt.Errorf("Ancestors check failed: %w", err)
+			}
+		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -900,6 +931,12 @@ func (checker *ProcessKprobeChecker) WithUserStackTrace(check *StackTraceEntryLi
 	return checker
 }
 
+// WithAncestors adds a Ancestors check to the ProcessKprobeChecker
+func (checker *ProcessKprobeChecker) WithAncestors(check *ProcessListMatcher) *ProcessKprobeChecker {
+	checker.Ancestors = check
+	return checker
+}
+
 //FromProcessKprobe populates the ProcessKprobeChecker using data from a ProcessKprobe event
 func (checker *ProcessKprobeChecker) FromProcessKprobe(event *tetragon.ProcessKprobe) *ProcessKprobeChecker {
 	if event == nil {
@@ -968,6 +1005,19 @@ func (checker *ProcessKprobeChecker) FromProcessKprobe(event *tetragon.ProcessKp
 		lm := NewStackTraceEntryListMatcher().WithOperator(listmatcher.Ordered).
 			WithValues(checks...)
 		checker.UserStackTrace = lm
+	}
+	{
+		var checks []*ProcessChecker
+		for _, check := range event.Ancestors {
+			var convertedCheck *ProcessChecker
+			if check != nil {
+				convertedCheck = NewProcessChecker().FromProcess(check)
+			}
+			checks = append(checks, convertedCheck)
+		}
+		lm := NewProcessListMatcher().WithOperator(listmatcher.Ordered).
+			WithValues(checks...)
+		checker.Ancestors = lm
 	}
 	return checker
 }
@@ -1284,6 +1334,7 @@ type ProcessTracepointChecker struct {
 	Action      *KprobeActionChecker         `json:"action,omitempty"`
 	Message     *stringmatcher.StringMatcher `json:"message,omitempty"`
 	Tags        *StringListMatcher           `json:"tags,omitempty"`
+	Ancestors   *ProcessListMatcher          `json:"ancestors,omitempty"`
 }
 
 // CheckEvent checks a single event and implements the EventChecker interface
@@ -1370,6 +1421,11 @@ func (checker *ProcessTracepointChecker) Check(event *tetragon.ProcessTracepoint
 				return fmt.Errorf("Tags check failed: %w", err)
 			}
 		}
+		if checker.Ancestors != nil {
+			if err := checker.Ancestors.Check(event.Ancestors); err != nil {
+				return fmt.Errorf("Ancestors check failed: %w", err)
+			}
+		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -1433,6 +1489,12 @@ func (checker *ProcessTracepointChecker) WithTags(check *StringListMatcher) *Pro
 	return checker
 }
 
+// WithAncestors adds a Ancestors check to the ProcessTracepointChecker
+func (checker *ProcessTracepointChecker) WithAncestors(check *ProcessListMatcher) *ProcessTracepointChecker {
+	checker.Ancestors = check
+	return checker
+}
+
 //FromProcessTracepoint populates the ProcessTracepointChecker using data from a ProcessTracepoint event
 func (checker *ProcessTracepointChecker) FromProcessTracepoint(event *tetragon.ProcessTracepoint) *ProcessTracepointChecker {
 	if event == nil {
@@ -1473,6 +1535,19 @@ func (checker *ProcessTracepointChecker) FromProcessTracepoint(event *tetragon.P
 			WithValues(checks...)
 		checker.Tags = lm
 	}
+	{
+		var checks []*ProcessChecker
+		for _, check := range event.Ancestors {
+			var convertedCheck *ProcessChecker
+			if check != nil {
+				convertedCheck = NewProcessChecker().FromProcess(check)
+			}
+			checks = append(checks, convertedCheck)
+		}
+		lm := NewProcessListMatcher().WithOperator(listmatcher.Ordered).
+			WithValues(checks...)
+		checker.Ancestors = lm
+	}
 	return checker
 }
 
@@ -1487,6 +1562,7 @@ type ProcessUprobeChecker struct {
 	Message     *stringmatcher.StringMatcher `json:"message,omitempty"`
 	Args        *KprobeArgumentListMatcher   `json:"args,omitempty"`
 	Tags        *StringListMatcher           `json:"tags,omitempty"`
+	Ancestors   *ProcessListMatcher          `json:"ancestors,omitempty"`
 }
 
 // CheckEvent checks a single event and implements the EventChecker interface
@@ -1568,6 +1644,11 @@ func (checker *ProcessUprobeChecker) Check(event *tetragon.ProcessUprobe) error 
 				return fmt.Errorf("Tags check failed: %w", err)
 			}
 		}
+		if checker.Ancestors != nil {
+			if err := checker.Ancestors.Check(event.Ancestors); err != nil {
+				return fmt.Errorf("Ancestors check failed: %w", err)
+			}
+		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -1624,6 +1705,12 @@ func (checker *ProcessUprobeChecker) WithTags(check *StringListMatcher) *Process
 	return checker
 }
 
+// WithAncestors adds a Ancestors check to the ProcessUprobeChecker
+func (checker *ProcessUprobeChecker) WithAncestors(check *ProcessListMatcher) *ProcessUprobeChecker {
+	checker.Ancestors = check
+	return checker
+}
+
 //FromProcessUprobe populates the ProcessUprobeChecker using data from a ProcessUprobe event
 func (checker *ProcessUprobeChecker) FromProcessUprobe(event *tetragon.ProcessUprobe) *ProcessUprobeChecker {
 	if event == nil {
@@ -1663,6 +1750,19 @@ func (checker *ProcessUprobeChecker) FromProcessUprobe(event *tetragon.ProcessUp
 			WithValues(checks...)
 		checker.Tags = lm
 	}
+	{
+		var checks []*ProcessChecker
+		for _, check := range event.Ancestors {
+			var convertedCheck *ProcessChecker
+			if check != nil {
+				convertedCheck = NewProcessChecker().FromProcess(check)
+			}
+			checks = append(checks, convertedCheck)
+		}
+		lm := NewProcessListMatcher().WithOperator(listmatcher.Ordered).
+			WithValues(checks...)
+		checker.Ancestors = lm
+	}
 	return checker
 }
 
@@ -1677,6 +1777,7 @@ type ProcessLsmChecker struct {
 	Args         *KprobeArgumentListMatcher   `json:"args,omitempty"`
 	Action       *KprobeActionChecker         `json:"action,omitempty"`
 	Tags         *StringListMatcher           `json:"tags,omitempty"`
+	Ancestors    *ProcessListMatcher          `json:"ancestors,omitempty"`
 	ImaHash      *stringmatcher.StringMatcher `json:"imaHash,omitempty"`
 }
 
@@ -1759,6 +1860,11 @@ func (checker *ProcessLsmChecker) Check(event *tetragon.ProcessLsm) error {
 				return fmt.Errorf("Tags check failed: %w", err)
 			}
 		}
+		if checker.Ancestors != nil {
+			if err := checker.Ancestors.Check(event.Ancestors); err != nil {
+				return fmt.Errorf("Ancestors check failed: %w", err)
+			}
+		}
 		if checker.ImaHash != nil {
 			if err := checker.ImaHash.Match(event.ImaHash); err != nil {
 				return fmt.Errorf("ImaHash check failed: %w", err)
@@ -1821,6 +1927,12 @@ func (checker *ProcessLsmChecker) WithTags(check *StringListMatcher) *ProcessLsm
 	return checker
 }
 
+// WithAncestors adds a Ancestors check to the ProcessLsmChecker
+func (checker *ProcessLsmChecker) WithAncestors(check *ProcessListMatcher) *ProcessLsmChecker {
+	checker.Ancestors = check
+	return checker
+}
+
 // WithImaHash adds a ImaHash check to the ProcessLsmChecker
 func (checker *ProcessLsmChecker) WithImaHash(check *stringmatcher.StringMatcher) *ProcessLsmChecker {
 	checker.ImaHash = check
@@ -1865,6 +1977,19 @@ func (checker *ProcessLsmChecker) FromProcessLsm(event *tetragon.ProcessLsm) *Pr
 		lm := NewStringListMatcher().WithOperator(listmatcher.Ordered).
 			WithValues(checks...)
 		checker.Tags = lm
+	}
+	{
+		var checks []*ProcessChecker
+		for _, check := range event.Ancestors {
+			var convertedCheck *ProcessChecker
+			if check != nil {
+				convertedCheck = NewProcessChecker().FromProcess(check)
+			}
+			checks = append(checks, convertedCheck)
+		}
+		lm := NewProcessListMatcher().WithOperator(listmatcher.Ordered).
+			WithValues(checks...)
+		checker.Ancestors = lm
 	}
 	checker.ImaHash = stringmatcher.Full(event.ImaHash)
 	return checker
