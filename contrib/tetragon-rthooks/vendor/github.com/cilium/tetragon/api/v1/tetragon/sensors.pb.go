@@ -1435,6 +1435,8 @@ type ProcessInternal struct {
 	// - "process--": process decreased refcnt (i.e. this process exits)
 	// - "parent++": parent increased refcnt (i.e. a process starts that has this process as a parent)
 	// - "parent--": parent decreased refcnt (i.e. a process exits that has this process as a parent)
+	// - "ancestor++": ancestor increased refcnt (i.e. a process starts that has this process as an ancestor)
+	// - "ancestor--": ancestor decreased refcnt (i.e. a process exits that has this process as an ancestor)
 	RefcntOps map[string]int32 `protobuf:"bytes,4,rep,name=refcnt_ops,json=refcntOps,proto3" json:"refcnt_ops,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
 }
 
