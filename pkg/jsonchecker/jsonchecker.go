@@ -20,7 +20,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
+var (
 	Retries    = 13
 	RetryDelay = 3 * time.Second
 )
