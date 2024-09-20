@@ -9,6 +9,7 @@ import "google/protobuf/wrappers.proto";
 package tetragon;
 
 import "tetragon/capabilities.proto";
+import "tetragon/bpf.proto";
 
 message Image {
     // Identifier of the container image composed of the registry path and the
@@ -431,6 +432,7 @@ message KprobeArgument {
 	string cap_effective_arg = 25; // Capabilities that are actually used in hexadecimal format.
 	KprobeLinuxBinprm linux_binprm_arg = 26;
 	KprobeNetDev net_dev_arg = 27;
+	BpfCmd bpf_cmd_arg = 28;
     }
     string label = 18;
 }

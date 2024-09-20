@@ -5604,6 +5604,7 @@ type KprobeArgumentChecker struct {
 	CapEffectiveArg       *stringmatcher.StringMatcher `json:"capEffectiveArg,omitempty"`
 	LinuxBinprmArg        *KprobeLinuxBinprmChecker    `json:"linuxBinprmArg,omitempty"`
 	NetDevArg             *KprobeNetDevChecker         `json:"netDevArg,omitempty"`
+	BpfCmdArg             *BpfCmdChecker               `json:"bpfCmdArg,omitempty"`
 	Label                 *stringmatcher.StringMatcher `json:"label,omitempty"`
 }
 
@@ -5884,6 +5885,16 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 				return fmt.Errorf("KprobeArgumentChecker: NetDevArg check failed: %T is not a NetDevArg", event)
 			}
 		}
+		if checker.BpfCmdArg != nil {
+			switch event := event.Arg.(type) {
+			case *tetragon.KprobeArgument_BpfCmdArg:
+				if err := checker.BpfCmdArg.Check(&event.BpfCmdArg); err != nil {
+					return fmt.Errorf("BpfCmdArg check failed: %w", err)
+				}
+			default:
+				return fmt.Errorf("KprobeArgumentChecker: BpfCmdArg check failed: %T is not a BpfCmdArg", event)
+			}
+		}
 		if checker.Label != nil {
 			if err := checker.Label.Match(event.Label); err != nil {
 				return fmt.Errorf("Label check failed: %w", err)
@@ -6053,6 +6064,13 @@ func (checker *KprobeArgumentChecker) WithNetDevArg(check *KprobeNetDevChecker) 
 	return checker
 }
 
+// WithBpfCmdArg adds a BpfCmdArg check to the KprobeArgumentChecker
+func (checker *KprobeArgumentChecker) WithBpfCmdArg(check tetragon.BpfCmd) *KprobeArgumentChecker {
+	wrappedCheck := BpfCmdChecker(check)
+	checker.BpfCmdArg = &wrappedCheck
+	return checker
+}
+
 // WithLabel adds a Label check to the KprobeArgumentChecker
 func (checker *KprobeArgumentChecker) WithLabel(check *stringmatcher.StringMatcher) *KprobeArgumentChecker {
 	checker.Label = check
@@ -6211,6 +6229,10 @@ func (checker *KprobeArgumentChecker) FromKprobeArgument(event *tetragon.KprobeA
 		if event.NetDevArg != nil {
 			checker.NetDevArg = NewKprobeNetDevChecker().FromKprobeNetDev(event.NetDevArg)
 		}
+	}
+	switch event := event.Arg.(type) {
+	case *tetragon.KprobeArgument_BpfCmdArg:
+		checker.BpfCmdArg = NewBpfCmdChecker(event.BpfCmdArg)
 	}
 	checker.Label = stringmatcher.Full(event.Label)
 	return checker
@@ -6655,6 +6677,58 @@ func (enum *ProcessPrivilegesChangedChecker) Check(val *tetragon.ProcessPrivileg
 	}
 	if *enum != ProcessPrivilegesChangedChecker(*val) {
 		return fmt.Errorf("ProcessPrivilegesChangedChecker: ProcessPrivilegesChanged has value %s which does not match expected value %s", (*val), tetragon.ProcessPrivilegesChanged(*enum))
+	}
+	return nil
+}
+
+// BpfCmdChecker checks a tetragon.BpfCmd
+type BpfCmdChecker tetragon.BpfCmd
+
+// MarshalJSON implements json.Marshaler interface
+func (enum BpfCmdChecker) MarshalJSON() ([]byte, error) {
+	if name, ok := tetragon.BpfCmd_name[int32(enum)]; ok {
+		name = strings.TrimPrefix(name, "BPF_")
+		return json.Marshal(name)
+	}
+
+	return nil, fmt.Errorf("Unknown BpfCmd %d", enum)
+}
+
+// UnmarshalJSON implements json.Unmarshaler interface
+func (enum *BpfCmdChecker) UnmarshalJSON(b []byte) error {
+	var str string
+	if err := yaml.UnmarshalStrict(b, &str); err != nil {
+		return err
+	}
+
+	// Convert to uppercase if not already
+	str = strings.ToUpper(str)
+
+	// Look up the value from the enum values map
+	if n, ok := tetragon.BpfCmd_value[str]; ok {
+		*enum = BpfCmdChecker(n)
+	} else if n, ok := tetragon.BpfCmd_value["BPF_"+str]; ok {
+		*enum = BpfCmdChecker(n)
+	} else {
+		return fmt.Errorf("Unknown BpfCmd %s", str)
+	}
+
+	return nil
+}
+
+// NewBpfCmdChecker creates a new BpfCmdChecker
+func NewBpfCmdChecker(val tetragon.BpfCmd) *BpfCmdChecker {
+	enum := BpfCmdChecker(val)
+	return &enum
+}
+
+// Check checks a BpfCmd against the checker
+func (enum *BpfCmdChecker) Check(val *tetragon.BpfCmd) error {
+	if val == nil {
+		return fmt.Errorf("BpfCmdChecker: BpfCmd is nil and does not match expected value %s", tetragon.BpfCmd(*enum))
+	}
+	if *enum != BpfCmdChecker(*val) {
+		return fmt.Errorf("BpfCmdChecker: BpfCmd has value %s which does not match expected value %s", (*val), tetragon.BpfCmd(*enum))
 	}
 	return nil
 }
