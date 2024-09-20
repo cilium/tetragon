@@ -190,6 +190,7 @@ spec:
                             - linux_binprm
                             - data_loc
                             - net_device
+                            - bpf_cmd
                             type: string
                         required:
                         - index
@@ -288,6 +289,7 @@ spec:
                           - linux_binprm
                           - data_loc
                           - net_device
+                          - bpf_cmd
                           type: string
                       required:
                       - index
@@ -894,6 +896,7 @@ spec:
                             - linux_binprm
                             - data_loc
                             - net_device
+                            - bpf_cmd
                             type: string
                         required:
                         - index
@@ -1536,6 +1539,7 @@ spec:
                             - linux_binprm
                             - data_loc
                             - net_device
+                            - bpf_cmd
                             type: string
                         required:
                         - index
@@ -2115,6 +2119,7 @@ spec:
                             - linux_binprm
                             - data_loc
                             - net_device
+                            - bpf_cmd
                             type: string
                         required:
                         - index
