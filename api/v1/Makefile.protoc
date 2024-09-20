@@ -2,6 +2,7 @@ PROTOC ?= protoc
 
 TETRAGON_PROTO_SOURCES := \
 	./tetragon/capabilities.proto \
+	./tetragon/bpf.proto \
 	./tetragon/tetragon.proto \
 	./tetragon/events.proto \
 	./tetragon/stack.proto \
@@ -31,18 +32,21 @@ protobuf:
 	--doc_opt=markdown,README.md \
 	--go_out=paths=source_relative:. \
 	--go_opt=Mtetragon/capabilities.proto="github.com/cilium/tetragon/api/v1/tetragon" \
+	--go_opt=Mtetragon/bpf.proto="github.com/cilium/tetragon/api/v1/tetragon" \
 	--go_opt=Mtetragon/tetragon.proto="github.com/cilium/tetragon/api/v1/tetragon" \
 	--go_opt=Mtetragon/events.proto="github.com/cilium/tetragon/api/v1/tetragon" \
 	--go_opt=Mtetragon/stack.proto="github.com/cilium/tetragon/api/v1/tetragon" \
 	--go_opt=Mtetragon/sensors.proto="github.com/cilium/tetragon/api/v1/tetragon" \
 	--go-grpc_out=require_unimplemented_servers=false,paths=source_relative:. \
 	--go-grpc_opt=Mtetragon/capabilities.proto="github.com/cilium/tetragon/api/v1/tetragon" \
+	--go-grpc_opt=Mtetragon/bpf.proto="github.com/cilium/tetragon/api/v1/tetragon" \
 	--go-grpc_opt=Mtetragon/tetragon.proto="github.com/cilium/tetragon/api/v1/tetragon" \
 	--go-grpc_opt=Mtetragon/events.proto="github.com/cilium/tetragon/api/v1/tetragon" \
 	--go-grpc_opt=Mtetragon/stack.proto="github.com/cilium/tetragon/api/v1/tetragon" \
 	--go-grpc_opt=Mtetragon/sensors.proto="github.com/cilium/tetragon/api/v1/tetragon" \
 	--go-json_out=orig_name=true,paths=source_relative:. \
 	--go-json_opt=Mtetragon/capabilities.proto="github.com/cilium/tetragon/api/v1/tetragon" \
+	--go-json_opt=Mtetragon/bpf.proto="github.com/cilium/tetragon/api/v1/tetragon" \
 	--go-json_opt=Mtetragon/tetragon.proto="github.com/cilium/tetragon/api/v1/tetragon" \
 	--go-json_opt=Mtetragon/events.proto="github.com/cilium/tetragon/api/v1/tetragon" \
 	--go-json_opt=Mtetragon/stack.proto="github.com/cilium/tetragon/api/v1/tetragon" \
@@ -55,6 +59,7 @@ codegen:
 	$(PROTOC) $(TETRAGON_PROTOC_PLUGINS) -I $(TETRAGON_PROTO_PATH) \
 	--go-tetragon_out=orig_name=true,paths=source_relative:. \
 	--go-tetragon_opt=Mtetragon/capabilities.proto="github.com/cilium/tetragon/api/v1/tetragon" \
+	--go-tetragon_opt=Mtetragon/bpf.proto="github.com/cilium/tetragon/api/v1/tetragon" \
 	--go-tetragon_opt=Mtetragon/tetragon.proto="github.com/cilium/tetragon/api/v1/tetragon" \
 	--go-tetragon_opt=Mtetragon/events.proto="github.com/cilium/tetragon/api/v1/tetragon" \
 	--go-tetragon_opt=Mtetragon/stack.proto="github.com/cilium/tetragon/api/v1/tetragon" \
