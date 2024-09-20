@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/cilium/ebpf"
+	"github.com/cilium/ebpf/btf"
 	cachedbtf "github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -114,6 +115,9 @@ func (s *Sensor) Load(bpfDir string) error {
 	// Add the *loaded* programs and maps, so they can be unloaded later
 	progsAdd(s.Progs)
 	AllMaps = append(AllMaps, s.Maps...)
+
+	// cleanup the BTF once we have loaded all sensor's program
+	btf.FlushKernelSpec()
 
 	l.WithField("sensor", s.Name).Infof("Loaded BPF maps and events for sensor successfully")
 	s.Loaded = true

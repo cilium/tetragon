@@ -913,6 +913,11 @@ func doLoadProgram(
 
 	load.Prog = prog
 
+	// in KernelTypes, we use a non-standard BTF which is possibly annotated with symbols
+	// from kernel modules. At this point we don't need that anymore, so we can release
+	// the memory from it.
+	load.KernelTypes = nil
+
 	// Copy the loaded collection before it's destroyed
 	if KeepCollection {
 		return copyLoadedCollection(coll)
