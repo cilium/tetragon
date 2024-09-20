@@ -422,6 +422,10 @@ func HasMissedStatsKprobeMulti() bool {
 }
 
 func LogFeatures() string {
+	// once we have detected all features, flush the BTF spec
+	// we cache all values so calling again a Has* function will
+	// not load the BTF again
+	defer ebtf.FlushKernelSpec()
 	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, uprobe_multi %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t, link_pin: %t, lsm: %t, missed_stats_kprobe_multi: %t, missed_stats_kprobe: %t",
 		HasOverrideHelper(), HasBuildId(), HasKprobeMulti(), HasUprobeMulti(),
 		HasModifyReturn(), HasModifyReturnSyscall(), HasSignalHelper(), HasProgramLargeSize(),
