@@ -236,6 +236,10 @@ func (s *Sensor) setMapPinPath(m *program.Map) {
 func (s *Sensor) loadMaps(bpfDir string) error {
 	l := logger.GetLogger()
 	for _, m := range s.Maps {
+		// Even if the map already exists we need to setup proper PinPath
+		// so the loader can have access to the map location.
+		s.setMapPinPath(m)
+
 		if m.PinState.IsLoaded() {
 			l.WithFields(logrus.Fields{
 				"sensor": s.Name,
@@ -244,9 +248,6 @@ func (s *Sensor) loadMaps(bpfDir string) error {
 			m.PinState.RefInc()
 			continue
 		}
-
-		s.setMapPinPath(m)
-		pinPath := filepath.Join(bpfDir, m.PinPath)
 
 		spec, err := ebpf.LoadCollectionSpec(m.Prog.Name)
 		if err != nil {
@@ -266,6 +267,8 @@ func (s *Sensor) loadMaps(bpfDir string) error {
 				mapSpec.InnerMap.MaxEntries = innerMax
 			}
 		}
+
+		pinPath := filepath.Join(bpfDir, m.PinPath)
 
 		if err := m.LoadOrCreatePinnedMap(pinPath, mapSpec); err != nil {
 			return fmt.Errorf("failed to load map '%s' for sensor '%s': %w", m.Name, s.Name, err)
