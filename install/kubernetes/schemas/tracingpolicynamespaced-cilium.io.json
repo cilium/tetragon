@@ -163,7 +163,8 @@
                         "cap_effective",
                         "linux_binprm",
                         "data_loc",
-                        "net_device"
+                        "net_device",
+                        "bpf_cmd"
                       ],
                       "type": "string"
                     }
@@ -261,7 +262,8 @@
                       "cap_effective",
                       "linux_binprm",
                       "data_loc",
-                      "net_device"
+                      "net_device",
+                      "bpf_cmd"
                     ],
                     "type": "string"
                   }
@@ -956,7 +958,8 @@
                         "cap_effective",
                         "linux_binprm",
                         "data_loc",
-                        "net_device"
+                        "net_device",
+                        "bpf_cmd"
                       ],
                       "type": "string"
                     }
@@ -1681,7 +1684,8 @@
                         "cap_effective",
                         "linux_binprm",
                         "data_loc",
-                        "net_device"
+                        "net_device",
+                        "bpf_cmd"
                       ],
                       "type": "string"
                     }
@@ -2337,7 +2341,8 @@
                         "cap_effective",
                         "linux_binprm",
                         "data_loc",
-                        "net_device"
+                        "net_device",
+                        "bpf_cmd"
                       ],
                       "type": "string"
                     }
