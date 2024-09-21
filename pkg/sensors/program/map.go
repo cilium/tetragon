@@ -133,7 +133,7 @@ func PolicyMapPath(mapDir, policy, name string) string {
 }
 
 func (m *Map) Unload() error {
-	log := logger.GetLogger().WithField("map", m.Name).WithField("pin", m.Name)
+	log := logger.GetLogger().WithField("map", m.Name).WithField("pin", m.PinPath)
 	if !m.PinState.IsLoaded() {
 		log.WithField("count", m.PinState.count).Debug("Refusing to unload map as it is not loaded")
 		return nil
