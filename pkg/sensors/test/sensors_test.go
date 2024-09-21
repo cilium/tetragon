@@ -135,6 +135,68 @@ func TestMapBuildersMulti(t *testing.T) {
 	test(m1, m2, "policy/sensor/m1", "policy/m2")
 }
 
+func TestMapMultipleSensors(t *testing.T) {
+	// We load 2 sensors sharing same maps and expecting following
+	//hierarchy under /sys/fs/bpf/testSensorTest:
+	//
+	// ./m1                               # global m1 map
+	// ./policy
+	// ./policy/sensor2
+	// ./policy/sensor2/p2
+	// ./policy/sensor2/p2/prog
+	// ./policy/m2                        # policy m2 map
+	// ./policy/sensor1
+	// ./policy/sensor1/p1
+	// ./policy/sensor1/p1/prog
+
+	p1 := program.Builder(
+		"bpf_map_test_p1.o",
+		"wake_up_new_task",
+		"kprobe/wake_up_new_task",
+		"p1",
+		"kprobe",
+	)
+
+	p2 := program.Builder(
+		"bpf_map_test_p2.o",
+		"wake_up_new_task",
+		"kprobe/wake_up_new_task",
+		"p2",
+		"kprobe",
+	)
+
+	m11 := program.MapBuilder("m1", p1, p2)
+	m12 := program.MapBuilderPolicy("m2", p1, p2)
+
+	s1 := &sensors.Sensor{
+		Name:   "sensor1",
+		Progs:  []*program.Program{p1},
+		Maps:   []*program.Map{m11, m12},
+		Policy: "policy",
+	}
+
+	m21 := program.MapBuilder("m1", p1, p2)
+	m22 := program.MapBuilderPolicy("m2", p1, p2)
+
+	s2 := &sensors.Sensor{
+		Name:   "sensor2",
+		Progs:  []*program.Program{p2},
+		Maps:   []*program.Map{m21, m22},
+		Policy: "policy",
+	}
+
+	s1.Load(bpf.MapPrefixPath())
+	defer s1.Unload()
+
+	s2.Load(bpf.MapPrefixPath())
+	defer s2.Unload()
+
+	assert.Equal(t, m11.PinPath, "m1")
+	assert.Equal(t, m12.PinPath, "policy/m2")
+	assert.Equal(t, m11.PinPath, m21.PinPath)
+	assert.Equal(t, m12.PinPath, m22.PinPath)
+}
+
 func TestPolicyMapPath(t *testing.T) {
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 	option.Config.Verbosity = 5
