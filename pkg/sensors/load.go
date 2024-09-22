@@ -240,10 +240,6 @@ func (s *Sensor) setMapPinPath(m *program.Map) {
 func (s *Sensor) loadMaps(bpfDir string) error {
 	l := logger.GetLogger()
 	for _, m := range s.Maps {
-		// Even if the map already exists we need to setup proper PinPath
-		// so the loader can have access to the map location.
-		s.setMapPinPath(m)
-
 		if m.PinState.IsLoaded() {
 			l.WithFields(logrus.Fields{
 				"sensor": s.Name,
@@ -262,17 +258,41 @@ func (s *Sensor) loadMaps(bpfDir string) error {
 			return fmt.Errorf("map '%s' not found from '%s'", m.Name, m.Prog.Name)
 		}
 
-		if max, ok := m.GetMaxEntries(); ok {
-			mapSpec.MaxEntries = max
-		}
-
-		if innerMax, ok := m.GetMaxInnerEntries(); ok {
-			if innerMs := mapSpec.InnerMap; innerMs != nil {
-				mapSpec.InnerMap.MaxEntries = innerMax
-			}
-		}
-
+		s.setMapPinPath(m)
 		pinPath := filepath.Join(bpfDir, m.PinPath)
+
+		if m.IsOwner() {
+			// If map is the owner we set configured max entries
+			// directly to map spec.
+			if max, ok := m.GetMaxEntries(); ok {
+				mapSpec.MaxEntries = max
+			}
+
+			if innerMax, ok := m.GetMaxInnerEntries(); ok {
+				if innerMs := mapSpec.InnerMap; innerMs != nil {
+					mapSpec.InnerMap.MaxEntries = innerMax
+				}
+			}
+		} else {
+			// If map is NOT the owner we follow the max entries
+			// of the pinned map and update the spec with that.
+			max, err := program.GetMaxEntriesPinnedMap(pinPath)
+			if err != nil {
+				return err
+			}
+			mapSpec.MaxEntries = max
+
+			// 'm' is not the owner but for some reason requires max
+			// entries setup, make sure it matches the pinned map.
+			if max, ok := m.GetMaxEntries(); ok {
+				if mapSpec.MaxEntries != max {
+					return fmt.Errorf("failed to load map '%s' max entries mismatch: %d %d",
+						m.Name, mapSpec.MaxEntries, max)
+				}
+			}
+
+			m.SetMaxEntries(int(max))
+		}
 
 		if err := m.LoadOrCreatePinnedMap(pinPath, mapSpec); err != nil {
 			return fmt.Errorf("failed to load map '%s' for sensor '%s': %w", m.Name, s.Name, err)

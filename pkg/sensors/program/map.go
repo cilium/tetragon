@@ -230,7 +230,7 @@ func (m *Map) LoadOrCreatePinnedMap(pinPath string, mapSpec *ebpf.MapSpec) error
 		m.MapHandle.Close()
 	}
 
-	mh, err := LoadOrCreatePinnedMap(pinPath, mapSpec)
+	mh, err := LoadOrCreatePinnedMap(pinPath, mapSpec, m.IsOwner())
 	if err != nil {
 		return err
 	}
@@ -245,11 +245,12 @@ func isValidSubdir(d string) bool {
 	return dir != "." && dir != ".."
 }
 
-func LoadOrCreatePinnedMap(pinPath string, mapSpec *ebpf.MapSpec) (*ebpf.Map, error) {
+func LoadOrCreatePinnedMap(pinPath string, mapSpec *ebpf.MapSpec, create bool) (*ebpf.Map, error) {
+	var err error
 	// Try to open the pinPath and if it exist use the previously
 	// pinned map otherwise pin the map and next user will find
 	// it here.
-	if _, err := os.Stat(pinPath); err == nil {
+	if _, err = os.Stat(pinPath); err == nil {
 		m, err := ebpf.LoadPinnedMap(pinPath, nil)
 		if err != nil {
 			return nil, fmt.Errorf("loading pinned map from path '%s' failed: %w", pinPath, err)
@@ -258,14 +259,27 @@ func LoadOrCreatePinnedMap(pinPath string, mapSpec *ebpf.MapSpec) (*ebpf.Map, er
 			logger.GetLogger().WithError(err).WithFields(logrus.Fields{
 				"path":     pinPath,
 				"map-name": mapSpec.Name,
-			}).Warn("tetragon, incompatible map found: will delete and recreate")
+			}).Warn("incompatible map found")
 			m.Close()
-			os.Remove(pinPath)
-		} else {
-			return m, nil
+			// If we are creating the map, let's ignore the compatibility error,
+			// remove the pin and create the map with our spec.
+			if create {
+				logger.GetLogger().WithField("map", mapSpec.Name).
+					Warn("will delete and recreate")
+				os.Remove(pinPath)
+				return createPinnedMap(pinPath, mapSpec)
+			}
+			return nil, fmt.Errorf("incompatible map '%s'", pinPath)
 		}
+		return m, nil
 	}
+	if create {
+		return createPinnedMap(pinPath, mapSpec)
+	}
+	return nil, err
+}
 
+func createPinnedMap(pinPath string, mapSpec *ebpf.MapSpec) (*ebpf.Map, error) {
 	// check if PinName has directory portion and create it,
 	// filepath.Dir returns '.' for filename without dir portion
 	if dir := filepath.Dir(pinPath); isValidSubdir(dir) {
@@ -286,6 +300,15 @@ func LoadOrCreatePinnedMap(pinPath string, mapSpec *ebpf.MapSpec) (*ebpf.Map, er
 	}
 
 	return m, nil
+}
+
+func GetMaxEntriesPinnedMap(pinPath string) (uint32, error) {
+	m, err := ebpf.LoadPinnedMap(pinPath, nil)
+	if err != nil {
+		return 0, fmt.Errorf("loading pinned map from path '%s' failed: %w", pinPath, err)
+	}
+	defer m.Close()
+	return m.MaxEntries(), nil
 }
 
 func (m *Map) SetMaxEntries(max int) {
