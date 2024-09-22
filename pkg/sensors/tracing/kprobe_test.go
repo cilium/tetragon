@@ -6970,3 +6970,67 @@ tetragon_missed_prog_probes_total{attach="wake_up_new_task",policy="__base__"} 0
 		prometheus.BuildFQName(consts.MetricsNamespace, "", "missed_prog_probes_total")))
 
 }
+
+func TestKprobeBpfCmd(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	hook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+ name: "bpf-cmd"
+spec:
+ kprobes:
+ - call: "security_bpf"
+   syscall: false
+   args:
+   - index: 0
+     type: "bpf_cmd"
+`
+	createCrdFile(t, hook)
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	time.Sleep(1 * time.Second)
+	err = loadTestCrd()
+	if err != nil {
+		t.Fatalf("Loading test CRD failed: %s", err)
+	}
+
+	mapCreate := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full("security_bpf")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithBpfCmdArg(tetragon.BpfCmd_BPF_MAP_CREATE),
+			),
+		)
+
+	progLoad := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full("security_bpf")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithBpfCmdArg(tetragon.BpfCmd_BPF_PROG_LOAD),
+			),
+		)
+
+	btfLoad := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full("security_bpf")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithBpfCmdArg(tetragon.BpfCmd_BPF_BTF_LOAD),
+			),
+		)
+
+	checker := ec.NewUnorderedEventChecker(mapCreate, progLoad, btfLoad)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
