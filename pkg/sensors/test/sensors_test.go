@@ -197,6 +197,187 @@ func TestMapMultipleSensors(t *testing.T) {
 	assert.Equal(t, m12.PinPath, m22.PinPath)
 }
 
+func TestMapUser(t *testing.T) {
+	p1 := program.Builder(
+		"bpf_map_test_p1.o",
+		"wake_up_new_task",
+		"kprobe/wake_up_new_task",
+		"p1",
+		"kprobe",
+	)
+	p2 := program.Builder(
+		"bpf_map_test_p2.o",
+		"wake_up_new_task",
+		"kprobe/wake_up_new_task",
+		"p2",
+		"kprobe",
+	)
+	p3 := program.Builder(
+		"bpf_map_test_p3.o",
+		"wake_up_new_task",
+		"kprobe/wake_up_new_task",
+		"p3",
+		"kprobe",
+	)
+	opts := program.MapOpts{
+		Type:  program.MapTypeGlobal,
+		Owner: false,
+	}
+
+	var err error
+
+	// Create sensor with user map (via MapUser builder) and make sure
+	// it's properly loaded
+	t.Run("ok_opts", func(t *testing.T) {
+		m1 := program.MapBuilder("m1", p1)
+		m2 := program.MapBuilder("m2", p2)
+
+		s1 := &sensors.Sensor{
+			Name:   "sensor1",
+			Progs:  []*program.Program{p1},
+			Maps:   []*program.Map{m1, m2},
+			Policy: "policy",
+		}
+
+		// user map
+		m1User := program.MapUser("m1", p2)
+
+		s2 := &sensors.Sensor{
+			Name:   "sensor2",
+			Progs:  []*program.Program{p2},
+			Maps:   []*program.Map{m1User},
+			Policy: "policy",
+		}
+
+		err = s1.Load(bpf.MapPrefixPath())
+		defer s1.Unload()
+		assert.NoError(t, err)
+
+		err = s2.Load(bpf.MapPrefixPath())
+		defer s2.Unload()
+		assert.NoError(t, err)
+	})
+
+	// Create sensor with user map (via opts) and make sure it's
+	// properly loaded
+	t.Run("ok_builder", func(t *testing.T) {
+		m1 := program.MapBuilder("m1", p1)
+		m2 := program.MapBuilder("m2", p2)
+
+		s1 := &sensors.Sensor{
+			Name:   "sensor1",
+			Progs:  []*program.Program{p1},
+			Maps:   []*program.Map{m1, m2},
+			Policy: "policy",
+		}
+
+		// user map
+		m1User := program.MapBuilderOpts("m1", opts, p2)
+
+		s2 := &sensors.Sensor{
+			Name:   "sensor2",
+			Progs:  []*program.Program{p2},
+			Maps:   []*program.Map{m1User},
+			Policy: "policy",
+		}
+
+		err = s1.Load(bpf.MapPrefixPath())
+		defer s1.Unload()
+		assert.NoError(t, err)
+
+		err = s2.Load(bpf.MapPrefixPath())
+		defer s2.Unload()
+		assert.NoError(t, err)
+	})
+
+	// Create sensor with user map with wrong name (no existing pinned
+	// map file) and make sure the sensor fails to load
+	t.Run("fail_name", func(t *testing.T) {
+		m1 := program.MapBuilder("m1", p1, p2)
+
+		// user map with wrong name
+		m2 := program.MapBuilderOpts("non-existing", opts, p1, p2)
+
+		s1 := &sensors.Sensor{
+			Name:   "sensor1",
+			Progs:  []*program.Program{p1},
+			Maps:   []*program.Map{m1, m2},
+			Policy: "policy",
+		}
+
+		err = s1.Load(bpf.MapPrefixPath())
+		assert.Error(t, err)
+		if err == nil {
+			defer s1.Unload()
+		}
+	})
+
+	// Create sensor with user map with different max entries setup
+	// from real owner map and make sure the sensor fails to load
+	t.Run("fail_max", func(t *testing.T) {
+		m1 := program.MapBuilder("m1", p1)
+		m1.SetMaxEntries(10)
+
+		s1 := &sensors.Sensor{
+			Name:   "sensor1",
+			Progs:  []*program.Program{p1},
+			Maps:   []*program.Map{m1},
+			Policy: "policy",
+		}
+
+		// user map with extra max setup
+		m1User := program.MapBuilderOpts("m1", opts, p2)
+		m1User.SetMaxEntries(100)
+
+		s2 := &sensors.Sensor{
+			Name:   "sensor2",
+			Progs:  []*program.Program{p2},
+			Maps:   []*program.Map{m1User},
+			Policy: "policy",
+		}
+
+		err = s1.Load(bpf.MapPrefixPath())
+		defer s1.Unload()
+		assert.NoError(t, err)
+
+		err = s2.Load(bpf.MapPrefixPath())
+		defer s2.Unload()
+		assert.Error(t, err)
+	})
+
+	// Create sensor with user map with different spec from real owner
+	// map and make sure the sensor fails to load
+	t.Run("fail_spec", func(t *testing.T) {
+		m1 := program.MapBuilder("m1", p1)
+
+		s1 := &sensors.Sensor{
+			Name:   "sensor1",
+			Progs:  []*program.Program{p1},
+			Maps:   []*program.Map{m1},
+			Policy: "policy",
+		}
+
+		// The bpf_map_test_p3 has map with same name and different
+		// value type, so we should fail to load it.
+		m1User := program.MapBuilderOpts("m1", opts, p3)
+
+		s3 := &sensors.Sensor{
+			Name:   "sensor3",
+			Progs:  []*program.Program{p3},
+			Maps:   []*program.Map{m1User},
+			Policy: "policy",
+		}
+
+		err = s1.Load(bpf.MapPrefixPath())
+		defer s1.Unload()
+		assert.NoError(t, err)
+
+		err = s3.Load(bpf.MapPrefixPath())
+		defer s3.Unload()
+		assert.Error(t, err)
+	})
+}
+
 func TestPolicyMapPath(t *testing.T) {
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 	option.Config.Verbosity = 5
