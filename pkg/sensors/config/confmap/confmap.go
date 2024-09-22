@@ -164,7 +164,7 @@ func UpdateConfMap(mapDir string, v *TetragonConfValue) error {
 		return err
 	}
 
-	m, err := program.LoadOrCreatePinnedMap(mapPath, mapSpec)
+	m, err := program.LoadOrCreatePinnedMap(mapPath, mapSpec, configMap.IsOwner())
 	if err != nil {
 		return err
 	}
