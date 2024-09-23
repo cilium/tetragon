@@ -284,10 +284,22 @@ func GetDefaultObserverWithFile(tb testing.TB, ctx context.Context, file, lib st
 	return GetDefaultObserverWithWatchers(tb, ctx, b, opts...)
 }
 
+func GetDefaultSensorsWithBase(tb testing.TB, b *sensors.Sensor, file, lib string, opts ...TestOption) ([]*sensors.Sensor, error) {
+	opts = append(opts, WithConfig(file))
+	opts = append(opts, WithLib(lib))
+
+	return getDefaultSensors(tb, b, opts...)
+}
+
 func GetDefaultSensorsWithFile(tb testing.TB, file, lib string, opts ...TestOption) ([]*sensors.Sensor, error) {
 	opts = append(opts, WithConfig(file))
 	opts = append(opts, WithLib(lib))
 
+	b := base.GetInitialSensor()
+	return getDefaultSensors(tb, b, opts...)
+}
+
+func getDefaultSensors(tb testing.TB, initialSensor *sensors.Sensor, opts ...TestOption) ([]*sensors.Sensor, error) {
 	option.Config.BpfDir = bpf.MapPrefixPath()
 
 	testutils.CaptureLog(tb, logger.GetLogger().(*logrus.Logger))
@@ -327,13 +339,11 @@ func GetDefaultSensorsWithFile(tb testing.TB, file, lib string, opts ...TestOpti
 		}
 	}
 
-	base := base.GetInitialSensor()
-
-	if err = loadSensors(tb, base, sens); err != nil {
+	if err = loadSensors(tb, initialSensor, sens); err != nil {
 		return nil, err
 	}
 
-	sens = append(sens, base)
+	sens = append(sens, initialSensor)
 	ret := make([]*sensors.Sensor, 0, len(sens))
 	for _, si := range sens {
 		if s, ok := si.(*sensors.Sensor); ok {
