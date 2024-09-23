@@ -1268,14 +1268,18 @@ FUNC_INLINE bool is_signed_type(int type)
 
 // filter on values provided in the selector itself
 FUNC_LOCAL long
-filter_64ty_selector_val(struct selector_arg_filter *filter, char *args)
+filter_64ty_selector_val(struct selector_arg_filter *filter, char *args, bool set32bit)
 {
 	__u64 *v = (__u64 *)&filter->value;
 	int i, j = 0;
+	__u64 b32 = 0;
+
+	if (set32bit)
+		b32 |= IS_32BIT;
 
 #pragma unroll
 	for (i = 0; i < MAX_MATCH_VALUES; i++) {
-		__u64 w = v[i];
+		__u64 w = v[i], uarg = b32;
 		bool res;
 
 		switch (filter->op) {
@@ -1285,7 +1289,8 @@ filter_64ty_selector_val(struct selector_arg_filter *filter, char *args)
 				if (*(s64 *)args < (s64)w)
 					return 1;
 			} else {
-				if (*(u64 *)args < w)
+				uarg |= *(u64 *)args;
+				if (uarg < w)
 					return 1;
 			}
 			break;
@@ -1294,14 +1299,16 @@ filter_64ty_selector_val(struct selector_arg_filter *filter, char *args)
 				if (*(s64 *)args > (s64)w)
 					return 1;
 			} else {
-				if (*(u64 *)args > w)
+				uarg |= *(u64 *)args;
+				if (uarg > w)
 					return 1;
 			}
 			break;
 #endif // __LARGE_BPF_PROG
 		case op_filter_eq:
 		case op_filter_neq:
-			res = (*(u64 *)args == w);
+			uarg |= *(u64 *)args;
+			res = (uarg == w);
 
 			if (filter->op == op_filter_eq && res)
 				return 1;
@@ -1309,7 +1316,8 @@ filter_64ty_selector_val(struct selector_arg_filter *filter, char *args)
 				return 1;
 			break;
 		case op_filter_mask:
-			if (*(u64 *)args & w)
+			uarg |= *(u64 *)args;
+			if (uarg & w)
 				return 1;
 		default:
 			break;
@@ -1358,7 +1366,7 @@ filter_64ty(struct selector_arg_filter *filter, char *args, bool set32bit)
 	case op_filter_eq:
 	case op_filter_neq:
 	case op_filter_mask:
-		return filter_64ty_selector_val(filter, args);
+		return filter_64ty_selector_val(filter, args, set32bit);
 	case op_filter_inmap:
 	case op_filter_notinmap:
 		return filter_64ty_map(filter, args, set32bit);
