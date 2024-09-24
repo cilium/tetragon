@@ -47,6 +47,17 @@
 //      - map is local for program, not shared at all
 //
 //  NOTE Please do not share MapTypeProgram maps, it brings confusion.
+//
+//  Each map declares the ownership of the map. The map can be either
+//  owner of the map (via MapBuilder* helpers) or as an user (MapUser*
+//  helpers.
+//
+//  Map owner object owns the pinned map and when loading it sets (and
+//  potentially overwrite) the map's spec and its max entries value.
+//
+//  Map user object object is just using the pinned map and follows its
+//  setup and will fail if the pinned map differs in spec or configured
+//  max entries value.
 
 package program
 
@@ -136,6 +147,22 @@ func MapBuilderType(name string, ty MapType, lds ...*Program) *Map {
 
 func MapBuilderOpts(name string, opts MapOpts, lds ...*Program) *Map {
 	return mapBuilder(name, opts.Type, opts.Owner, lds...)
+}
+
+func MapUser(name string, lds ...*Program) *Map {
+	return mapBuilder(name, MapTypeGlobal, false, lds...)
+}
+
+func MapUserProgram(name string, lds ...*Program) *Map {
+	return mapBuilder(name, MapTypeProgram, false, lds...)
+}
+
+func MapUserSensor(name string, lds ...*Program) *Map {
+	return mapBuilder(name, MapTypeSensor, false, lds...)
+}
+
+func MapUserPolicy(name string, lds ...*Program) *Map {
+	return mapBuilder(name, MapTypePolicy, false, lds...)
 }
 
 func PolicyMapPath(mapDir, policy, name string) string {
