@@ -1052,6 +1052,124 @@ Compact output will display missing addresses as `0x0`, see the above note on
 `--expose-stack-addresses` for more info.
 {{< /note >}}
 
+#### File hash collection with IMA
+
+`Post` takes the `imaHash` parameter, when turned to `true` (by default to
+`false`) it adds file hashes in LSM events calculated by Linux integrity subsystem.
+The following list of LSM hooks is supported:
+
+- bprm_check_security
+- bprm_committed_creds
+- bprm_committing_creds
+- bprm_creds_from_file
+- file_ioctl
+- file_lock
+- file_open
+- file_post_open
+- file_receive
+- mmap_file
+
+First, you need to be sure that LSB BPF is [enabled](https://tetragon.io/docs/concepts/tracing-policy/hooks/#lsm-bpf).
+
+To verify if IMA-measurement is available use the following command:
+
+```shell
+cat /boot/config-$(uname -r) | grep "CONFIG_IMA\|CONFIG_INTEGRITY"
+```
+
+The output should be similar to this if IMA-measurement is supported:
+
+```
+CONFIG_INTEGRITY=y
+CONFIG_IMA=y
+```
+
+If provided above conditions are met, you can enable IMA-measurement by modifying `/etc/deault/grub`:
+
+```
+GRUB_CMDLINE_LINUX="lsm=integrity,bpf ima_policy=tcb"
+```
+
+Then, update the grub configuration and restart the system.
+
+`ima_policy=` is used to define which files will be measured. `tcb` measures all executables run,
+all mmap'd files for execution (such as shared libraries), all kernel modules loaded,
+and all firmware loaded. Additionally, a files opened for read by root are measured as well.
+`ima_policy=` can be specified multiple times, and the result is the union of the policies.
+To know more about `ima_policy` you can follow this [link](https://ima-doc.readthedocs.io/en/latest/ima-policy.html).
+
+{{< note >}}
+Hash calculation with IMA subsystem and LSM BPF is supported from 5.11 kernel version.
+For kernel versions below 6.1 is recommended to mount filesystems with `iversion`. Mounting with `iversion`
+helps IMA not recalculating hash if file is not changed. From kernel 6.1 `iversion` is by default.
+It is not necessary to enable IMA to calculate hashes with Tetragon if you have kernel 6.1+.
+But hashes will be recalculated no matter if file is not changed. See implementation details of
+`bpf_ima_file_hash` helper.
+{{< /note >}}
+
+The provided example of `TracingPolicy` collects hashes of executed binaries from
+`zsh` and `bash` interpreters:
+
+```yaml
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+spec:
+  lsmhooks:
+  - hook: "bprm_check_security"
+    args:
+      - index: 0
+        type: "linux_binprm"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "/usr/bin/zsh"
+        - "/usr/bin/bash"
+      matchActions:
+        - action: Post
+          imaHash: true
+```
+
+LSM event with file hash can look like this:
+
+```json
+{
+  "process_lsm": {
+    "process": {
+        ...
+    },
+    "parent": {
+        ...
+    },
+    "function_name": "bprm_check_security",
+    "policy_name": "file-integrity-monitoring",
+    "args": [
+      {
+        "linux_binprm_arg": {
+          "path": "/usr/bin/grep",
+          "permission": "-rwxr-xr-x"
+        }
+      }
+    ],
+    "action": "KPROBE_ACTION_POST",
+    "ima_hash": "sha256:73abb4280520053564fd4917286909ba3b054598b32c9cdfaf1d733e0202cc96"
+  },
+}
+```
+
+`ima_hash` field contains information about hashing algorithm and the hash value itself
+separated by ':'.
+
+This output can be enhanced in a more human friendly using the
+`tetra getevents -e PROCESS_LSM -o compact` command.
+
+```
+🔒 LSM     user-nix /usr/bin/zsh bprm_check_security
+   /usr/bin/cat sha256:dd5526c5872cce104a80f4d4e7f787c56ab7686a5b8dedda0ba4e8b36a3c084c
+🔒 LSM     user-nix /usr/bin/zsh bprm_check_security
+   /usr/bin/grep sha256:73abb4280520053564fd4917286909ba3b054598b32c9cdfaf1d733e0202cc96
+```
+
 ### NoPost action
 
 The `NoPost` action can be used to suppress the event to be generated, but at
