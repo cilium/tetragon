@@ -5,11 +5,15 @@ package process
 
 import (
 	"fmt"
+	"path/filepath"
 	"sync/atomic"
 	"time"
 
+	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -196,10 +200,25 @@ func (pc *Cache) len() int {
 }
 
 func (pc *Cache) dump(opts *tetragon.DumpProcessCacheReqArgs) []*tetragon.ProcessInternal {
+	execveMapPath := filepath.Join(defaults.DefaultMapRoot, defaults.DefaultMapPrefix, "execve_map")
+	execveMap, err := ebpf.LoadPinnedMap(execveMapPath, &ebpf.LoadPinOptions{ReadOnly: true})
+	if err != nil {
+		logger.GetLogger().WithError(err).Warn("failed to open execve_map")
+		return []*tetragon.ProcessInternal{}
+	}
+	defer execveMap.Close()
+
 	var processes []*tetragon.ProcessInternal
 	for _, v := range pc.cache.Values() {
 		if opts.SkipZeroRefcnt && v.refcnt == 0 {
 			continue
+		}
+		if opts.ExcludeExecveMapProcesses {
+			var val execvemap.ExecveValue
+			if err := execveMap.Lookup(&execvemap.ExecveKey{Pid: v.process.Pid.Value}, &val); err == nil {
+				// pid exists in the execve_map, so skip this process
+				continue
+			}
 		}
 		processes = append(processes, &tetragon.ProcessInternal{
 			Process:   v.process,

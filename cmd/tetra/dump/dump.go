@@ -107,6 +107,7 @@ func dumpExecveMap(fname string) {
 
 func dumpProcessCache() *cobra.Command {
 	skipZeroRefcnt := false
+	excludeExecveMapProcesses := false
 	var maxCallRecvMsgSize int
 
 	ret := &cobra.Command{
@@ -125,7 +126,8 @@ func dumpProcessCache() *cobra.Command {
 				Flag: tetragon.ConfigFlag_CONFIG_FLAG_DUMP_PROCESS_CACHE,
 				Arg: &tetragon.GetDebugRequest_Dump{
 					Dump: &tetragon.DumpProcessCacheReqArgs{
-						SkipZeroRefcnt: skipZeroRefcnt,
+						SkipZeroRefcnt:            skipZeroRefcnt,
+						ExcludeExecveMapProcesses: excludeExecveMapProcesses,
 					},
 				},
 			}
@@ -152,6 +154,7 @@ func dumpProcessCache() *cobra.Command {
 
 	flags := ret.Flags()
 	flags.BoolVar(&skipZeroRefcnt, "skip-zero-refcnt", skipZeroRefcnt, "skip entries with zero refcnt")
+	flags.BoolVar(&excludeExecveMapProcesses, "exclude-execve-map-processes", excludeExecveMapProcesses, "exclude processes that also exist in the execve_map")
 	flags.IntVar(&maxCallRecvMsgSize, "max-recv-size", 4194304, "The maximum message size in bytes the client can receive. Default is gRPC 4MB default.")
 
 	return ret
