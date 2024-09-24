@@ -145,6 +145,7 @@ enum LogLevel {
 
 message DumpProcessCacheReqArgs {
 	bool skip_zero_refcnt = 1;
+	bool exclude_execve_map_processes = 2;
 }
 
 message ProcessInternal {
