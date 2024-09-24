@@ -75,6 +75,11 @@ const (
 	MapTypeProgram
 )
 
+type MapOpts struct {
+	Type  MapType
+	Owner bool
+}
+
 // Map represents BPF maps.
 type Map struct {
 	Name         string
@@ -85,6 +90,7 @@ type Map struct {
 	Entries      MaxEntries
 	InnerEntries MaxEntries
 	Type         MapType
+	Owner        bool
 }
 
 // Map holds pointer to Program object as a source of its ebpf object
@@ -100,8 +106,8 @@ type Map struct {
 //	p.PinMap["map2"] = &map2
 //	...
 //	p.PinMap["mapX"] = &mapX
-func mapBuilder(name string, ty MapType, lds ...*Program) *Map {
-	m := &Map{name, "", lds[0], Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}, ty}
+func mapBuilder(name string, ty MapType, owner bool, lds ...*Program) *Map {
+	m := &Map{name, "", lds[0], Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}, ty, owner}
 	for _, ld := range lds {
 		ld.PinMap[name] = m
 	}
@@ -109,27 +115,35 @@ func mapBuilder(name string, ty MapType, lds ...*Program) *Map {
 }
 
 func MapBuilder(name string, lds ...*Program) *Map {
-	return mapBuilder(name, MapTypeGlobal, lds...)
+	return mapBuilder(name, MapTypeGlobal, true, lds...)
 }
 
 func MapBuilderProgram(name string, lds ...*Program) *Map {
-	return mapBuilder(name, MapTypeProgram, lds...)
+	return mapBuilder(name, MapTypeProgram, true, lds...)
 }
 
 func MapBuilderSensor(name string, lds ...*Program) *Map {
-	return mapBuilder(name, MapTypeSensor, lds...)
+	return mapBuilder(name, MapTypeSensor, true, lds...)
 }
 
 func MapBuilderPolicy(name string, lds ...*Program) *Map {
-	return mapBuilder(name, MapTypePolicy, lds...)
+	return mapBuilder(name, MapTypePolicy, true, lds...)
 }
 
 func MapBuilderType(name string, ty MapType, lds ...*Program) *Map {
-	return mapBuilder(name, ty, lds...)
+	return mapBuilder(name, ty, true, lds...)
+}
+
+func MapBuilderOpts(name string, opts MapOpts, lds ...*Program) *Map {
+	return mapBuilder(name, opts.Type, opts.Owner, lds...)
 }
 
 func PolicyMapPath(mapDir, policy, name string) string {
 	return filepath.Join(mapDir, policy, name)
+}
+
+func (m *Map) IsOwner() bool {
+	return m.Owner
 }
 
 func (m *Map) Unload() error {
