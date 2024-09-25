@@ -3,6 +3,8 @@
 
 package defaults
 
+import "time"
+
 const (
 	// DefaultMapRoot is the default path where BPFFS should be mounted
 	DefaultMapRoot = "/sys/fs/bpf"
@@ -49,6 +51,9 @@ const (
 	// defaults for the event cache
 	DefaultEventCacheNumRetries = 15
 	DefaultEventCacheRetryDelay = 2
+
+	// defaults for process cache
+	DefaultProcessCacheStaleInterval = time.Duration(60 * time.Minute)
 )
 
 var (

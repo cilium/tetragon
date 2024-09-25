@@ -275,6 +275,10 @@ Number of process cache misses.
 | ----- | ------ |
 | `operation` | `get, remove` |
 
+### `tetragon_process_cache_removed_stale_total`
+
+Number of process cache stale entries removed.
+
 ### `tetragon_process_cache_size`
 
 The size of the process cache

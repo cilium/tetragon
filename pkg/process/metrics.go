@@ -38,6 +38,11 @@ var (
 		"Number of process cache misses.",
 		nil, []metrics.ConstrainedLabel{operationLabel}, nil,
 	), nil)
+	processCacheRemovedStale = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: consts.MetricsNamespace,
+		Name:      "process_cache_removed_stale_total",
+		Help:      "Number of process cache stale entries removed.",
+	})
 )
 
 func newCacheCollector() prometheus.Collector {
@@ -59,6 +64,7 @@ func RegisterMetrics(group metrics.Group) {
 		processCacheTotal,
 		processCacheEvictions,
 		processCacheMisses,
+		processCacheRemovedStale,
 	)
 	group.MustRegister(newCacheCollector())
 }

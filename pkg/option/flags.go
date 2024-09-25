@@ -115,6 +115,8 @@ const (
 
 	KeyEventCacheRetries    = "event-cache-retries"
 	KeyEventCacheRetryDelay = "event-cache-retry-delay"
+
+	KeyProcessCacheStaleInterval = "process-cache-stale-interval"
 )
 
 type UsernameMetadaCode int
@@ -244,6 +246,8 @@ func ReadAndSetFlags() error {
 
 	Config.EventCacheNumRetries = viper.GetInt(KeyEventCacheRetries)
 	Config.EventCacheRetryDelay = viper.GetInt(KeyEventCacheRetryDelay)
+
+	Config.ProcessCacheStaleInterval = viper.GetDuration(KeyProcessCacheStaleInterval)
 
 	return nil
 }
@@ -411,4 +415,6 @@ func AddFlags(flags *pflag.FlagSet) {
 
 	flags.Int(KeyEventCacheRetries, defaults.DefaultEventCacheNumRetries, "Number of retries for event cache")
 	flags.Int(KeyEventCacheRetryDelay, defaults.DefaultEventCacheRetryDelay, "Delay in seconds between event cache retries")
+
+	flags.Duration(KeyProcessCacheStaleInterval, defaults.DefaultProcessCacheStaleInterval, "Interval between stale process cache checks")
 }

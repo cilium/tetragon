@@ -104,6 +104,8 @@ type config struct {
 
 	EventCacheNumRetries int
 	EventCacheRetryDelay int
+
+	ProcessCacheStaleInterval time.Duration
 }
 
 var (
@@ -122,10 +124,13 @@ var (
 		// Enable all metrics labels by default
 		MetricsLabelFilter: DefaultLabelFilter(),
 
-		// set default valus for the event cache
+		// set default values for the event cache
 		// mainly used in the case of testing
 		EventCacheNumRetries: defaults.DefaultEventCacheNumRetries,
 		EventCacheRetryDelay: defaults.DefaultEventCacheRetryDelay,
+
+		// set default values for the process cache
+		ProcessCacheStaleInterval: defaults.DefaultProcessCacheStaleInterval,
 	}
 )
 
