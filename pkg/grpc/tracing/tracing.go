@@ -13,6 +13,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/eventcache"
+	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/ksyms"
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -66,12 +67,20 @@ func kprobeAction(act uint64) tetragon.KprobeAction {
 	}
 }
 
+func getKprobeArgInt(arg api.MsgGenericKprobeArgInt, a *tetragon.KprobeArgument) {
+	if arg.UserSpaceType == gt.GenericUserBpfCmdType {
+		a.Arg = &tetragon.KprobeArgument_BpfCmdArg{BpfCmdArg: tetragon.BpfCmd(arg.Value)}
+	} else {
+		a.Arg = &tetragon.KprobeArgument_IntArg{IntArg: arg.Value}
+	}
+	a.Label = arg.Label
+}
+
 func getKprobeArgument(arg tracingapi.MsgGenericKprobeArg) *tetragon.KprobeArgument {
 	a := &tetragon.KprobeArgument{}
 	switch e := arg.(type) {
 	case api.MsgGenericKprobeArgInt:
-		a.Arg = &tetragon.KprobeArgument_IntArg{IntArg: e.Value}
-		a.Label = e.Label
+		getKprobeArgInt(e, a)
 	case api.MsgGenericKprobeArgUInt:
 		a.Arg = &tetragon.KprobeArgument_UintArg{UintArg: e.Value}
 		a.Label = e.Label
