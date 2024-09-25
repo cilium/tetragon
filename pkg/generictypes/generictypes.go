@@ -61,6 +61,11 @@ const (
 	GenericInvalidType = -2
 )
 
+// Userspace pretty printer types.
+const (
+	GenericUserBpfCmdType = 1
+)
+
 var GenericStringToType = map[string]int{
 	"string":          GenericStringType,
 	"int":             GenericIntType,
@@ -153,12 +158,48 @@ var GenericTypeToStringTable = map[int]string{
 	GenericInvalidType:     "",
 }
 
+var GenericUserStringToType = map[string]int{
+	"bpf_cmd": GenericUserBpfCmdType,
+}
+
+var GenericUserToKernel = map[int]int{
+	GenericUserBpfCmdType: GenericIntType,
+}
+
+var GenericUserTypeToStringTable = map[int]string{
+	GenericUserBpfCmdType: "bpf_cmd",
+	GenericInvalidType:    "",
+}
+
+func GenericUserTypeFromString(arg string) int {
+	ty, ok := GenericUserStringToType[arg]
+	if !ok {
+		ty = GenericInvalidType
+	}
+	return ty
+}
+
+func GenericUserToKernelType(arg int) int {
+	ty, ok := GenericUserToKernel[arg]
+	if !ok {
+		ty = GenericInvalidType
+	}
+	return ty
+}
+
 func GenericTypeFromString(arg string) int {
 	ty, ok := GenericStringToType[arg]
 	if !ok {
 		ty = GenericInvalidType
 	}
 	return ty
+}
+
+// GenericUserTypeToString() converts the passed argument type
+// to its string representation.
+// Returns empty string on non valid types.
+func GenericUserTypeToString(ty int) string {
+	return GenericUserTypeToStringTable[ty]
 }
 
 func GenericTypeToString(ty int) (string, error) {

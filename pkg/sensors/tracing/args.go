@@ -23,10 +23,11 @@ import (
 )
 
 type argPrinter struct {
-	ty      int
-	index   int
-	maxData bool
-	label   string
+	ty       int
+	userType int
+	index    int
+	maxData  bool
+	label    string
 }
 
 const (
@@ -82,9 +83,15 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		var output int32
 		var arg api.MsgGenericKprobeArgInt
 
+		if a.userType != gt.GenericInvalidType {
+			arg.UserSpaceType = int32(a.userType)
+		}
+
 		err := binary.Read(r, binary.LittleEndian, &output)
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("Int type error")
+			logger.GetLogger().
+				WithField("arg.usertype", gt.GenericUserTypeToString(a.userType)).
+				WithError(err).Warnf("Int type error")
 		}
 
 		arg.Index = uint64(a.index)

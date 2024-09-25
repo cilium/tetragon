@@ -724,10 +724,21 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 
 	// Parse Arguments
 	for j, a := range f.Args {
-		argType := gt.GenericTypeFromString(a.Type)
+		// First try userspace types
+		var argType int
+		userArgType := gt.GenericUserTypeFromString(a.Type)
+
+		if userArgType != gt.GenericInvalidType {
+			// This is a userspace type, map it to kernel type
+			argType = gt.GenericUserToKernelType(userArgType)
+		} else {
+			argType = gt.GenericTypeFromString(a.Type)
+		}
+
 		if argType == gt.GenericInvalidType {
 			return errFn(fmt.Errorf("Arg(%d) type '%s' unsupported", j, a.Type))
 		}
+
 		if a.MaxData {
 			if argType != gt.GenericCharBuffer {
 				logger.GetLogger().Warnf("maxData flag is ignored (supported for char_buf type)")
@@ -751,7 +762,7 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 		config.ArgM[a.Index] = uint32(argMValue)
 
 		argsBTFSet[a.Index] = true
-		argP := argPrinter{index: j, ty: argType, maxData: a.MaxData, label: a.Label}
+		argP := argPrinter{index: j, ty: argType, userType: userArgType, maxData: a.MaxData, label: a.Label}
 		argSigPrinters = append(argSigPrinters, argP)
 	}
 
