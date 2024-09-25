@@ -120,9 +120,10 @@ func (m MsgGenericKprobeArgBytes) IsReturnArg() bool {
 }
 
 type MsgGenericKprobeArgInt struct {
-	Index uint64
-	Value int32
-	Label string
+	Index         uint64
+	Value         int32
+	UserSpaceType int32
+	Label         string
 }
 
 func (m MsgGenericKprobeArgInt) GetIndex() uint64 {
