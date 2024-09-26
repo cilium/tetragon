@@ -139,6 +139,10 @@ func (pc *Cache) cleanStaleEntries() {
 	}
 	for _, d := range deleteProcesses {
 		processCacheRemovedStale.Inc()
+		parent, err := pc.get(d.process.ParentExecId)
+		if err == nil {
+			parent.RefDec("parent")
+		}
 		pc.remove(d.process)
 	}
 }
@@ -151,6 +155,10 @@ func processAndChildrenHaveExited(p *ProcessInternal) bool {
 
 func processOrChildExit(reason string) bool {
 	return reason == "process--" || reason == "parent--"
+}
+
+func processOrChildExec(reason string) bool {
+	return reason == "process++" || reason == "parent++"
 }
 
 func (pc *Cache) deletePending(process *ProcessInternal) {
@@ -170,6 +178,14 @@ func (pc *Cache) refDec(p *ProcessInternal, reason string) {
 	ref := atomic.AddUint32(&p.refcnt, ^uint32(0))
 	if ref == 0 {
 		pc.deletePending(p)
+		// If the process has a custom refcnt then we need to reduce the parent's
+		// refcnt now we're finally deleting the process.
+		if p.HasCustomRefCnt() {
+			parent, err := pc.get(p.process.ParentExecId)
+			if err == nil {
+				parent.RefDec("parent")
+			}
+		}
 	}
 }
 
@@ -177,6 +193,10 @@ func (pc *Cache) refInc(p *ProcessInternal, reason string) {
 	p.refcntOpsLock.Lock()
 	// count number of times refcnt is increamented for a specific reason (i.e. process, parent, etc.)
 	p.refcntOps[reason]++
+	// Check if this is a custom refcnt. If so, set the flag.
+	if !processOrChildExec(reason) {
+		p.customRefcnt = true
+	}
 	p.refcntOpsLock.Unlock()
 	atomic.AddUint32(&p.refcnt, 1)
 }
