@@ -419,7 +419,7 @@ type ListOptions struct {
 	LabelSelector labels.Selector
 	// FieldSelector filters results by a particular field.  In order
 	// to use this with cache-based implementations, restrict usage to
-	// a single field-value pair that's been added to the indexers.
+	// exact match field-value pair that's been added to the indexers.
 	FieldSelector fields.Selector
 
 	// Namespace represents the namespace to list for, or empty for
