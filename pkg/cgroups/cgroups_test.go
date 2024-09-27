@@ -212,6 +212,12 @@ func TestDetectCgroupMode(t *testing.T) {
 	assert.NotEqual(t, CGROUP_UNDEF, mode)
 	assert.NotEqual(t, CGROUP_UNDEF, cgroupMode)
 	assert.NotEmpty(t, cgroupFSPath)
+
+	cgroup, err := NewCGroups()
+	assert.NoError(t, err)
+	assert.NotEmpty(t, cgroup.Path())
+	assert.NotZero(t, cgroup.Mode())
+	assert.NotZero(t, cgroup.FSMagic())
 }
 
 // Test cgroup FS magic detection. This will run DetectCgroupFSMagic()
@@ -237,10 +243,14 @@ func TestDetectCgroupFSMagic(t *testing.T) {
 		t.Errorf("Test failed to get Cgroup filesystem %s type", cgroupFSPath)
 	}
 
-	assert.NotEqual(t, uint64(CGROUP_UNDEF), GetCgroupFSMagic())
 	assert.NotEmpty(t, CgroupFsMagicStr(fs))
-	assert.NotEmpty(t, GetCgroupFSPath())
-	assert.Equal(t, true, filepath.IsAbs(GetCgroupFSPath()))
+
+	cgroup, err := NewCGroups()
+	assert.NoError(t, err)
+	assert.NotZero(t, cgroup.Mode())
+	assert.NotEqual(t, uint64(CGROUP_UNDEF), cgroup.FSMagic())
+	assert.NotEmpty(t, cgroup.Path())
+	assert.Equal(t, true, filepath.IsAbs(cgroup.Path()))
 }
 
 // Test discovery of compiled-in Cgroups controllers
@@ -283,6 +293,21 @@ func TestDiscoverSubSysIdsDefault(t *testing.T) {
 	}
 
 	assert.Equalf(t, true, fixed, "TestDiscoverSubSysIdsDefault() could not detect and fix compiled Cgroup controllers")
+
+	cgroup, err := NewCGroups()
+	assert.NoError(t, err)
+	controllers, err := cgroup.Controllers()
+	assert.NoError(t, err)
+	count := 0
+	for _, controller := range controllers {
+		if controller.Active {
+			count++
+		}
+	}
+
+	assert.NotZero(t, count)
+
+	cgroup.LogState()
 }
 
 func TestGetCgroupIdFromPath(t *testing.T) {
@@ -304,4 +329,29 @@ func TestGetCgroupIdFromPath(t *testing.T) {
 
 	// Log data useful to inspect different hierarchies
 	t.Logf("\ncgroup.Path=%s cgroup.ID=%d\n", path, id)
+}
+
+func TestPidCgroupEnv(t *testing.T) {
+	cgroup, err := NewCGroups()
+	assert.NoError(t, err)
+
+	pid := os.Getpid()
+	err = cgroup.DetectPidCgroupEnv(uint32(pid))
+	assert.NoError(t, err)
+
+	path, err := cgroup.GetPidCgroupPath()
+	assert.NoError(t, err)
+	assert.NotEmpty(t, path)
+
+	_, err = cgroup.GetPidHierarchyId()
+	assert.NoError(t, err)
+
+	_, err = cgroup.GetPidControllerIdx()
+	assert.NoError(t, err)
+
+	name, err := cgroup.GetPidControllerName()
+	assert.NoError(t, err)
+	assert.NotEmpty(t, name)
+
+	cgroup.LogState()
 }
