@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/cilium/tetragon/cmd/tetra/dump"
+	"github.com/cilium/tetragon/cmd/tetra/debug"
 	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -41,7 +41,7 @@ func dumpDebugCmd() *cobra.Command {
 		Short: "dump cgroup ID to namespace state",
 		Args:  cobra.ExactArgs(0),
 		Run: func(_ *cobra.Command, _ []string) {
-			dump.NamespaceState(mapFname)
+			debug.NamespaceState(mapFname)
 		},
 	}
 
@@ -77,7 +77,7 @@ func dumpCmd() *cobra.Command {
 		Short: "dump policyfilter state",
 		Args:  cobra.ExactArgs(0),
 		Run: func(_ *cobra.Command, _ []string) {
-			dump.PolicyfilterState(mapFname)
+			debug.PolicyfilterState(mapFname)
 		},
 	}
 

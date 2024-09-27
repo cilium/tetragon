@@ -14,5 +14,6 @@ func New() *cobra.Command {
 		Hidden: true,
 	}
 	cmd.AddCommand(NewMapCmd())
+	cmd.AddCommand(NewDumpCommand())
 	return &cmd
 }
