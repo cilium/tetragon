@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
-package dump
+package debug
 
 import (
 	"fmt"
@@ -21,11 +21,18 @@ import (
 	"google.golang.org/grpc"
 )
 
-func New() *cobra.Command {
+// NewDumpAlias return a hidden alias of the dump subcommand, dump used to be a
+// top level commands and was moved under debug, this avoids a breaking change.
+func NewDumpAlias() *cobra.Command {
+	legacyDump := NewDumpCommand()
+	legacyDump.Hidden = true
+	return legacyDump
+}
+
+func NewDumpCommand() *cobra.Command {
 	ret := &cobra.Command{
 		Use:          "dump",
-		Short:        "dump information",
-		Hidden:       true,
+		Short:        "Dump information from tetragon maps and caches",
 		SilenceUsage: true,
 	}
 
