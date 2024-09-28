@@ -273,6 +273,8 @@ static long BPF_FUNC(sock_ops_cb_flags_set, struct bpf_sock_ops *bpf_sock, int a
 static long BPF_FUNC(ima_file_hash, struct file *file, void *dst, uint32_t size);
 static long BPF_FUNC(ima_inode_hash, struct inode *inode, void *dst, uint32_t size);
 
+static int BPF_FUNC(seq_write, struct seq_file *m, const void *data, uint32_t len);
+
 /** LLVM built-ins, mem*() routines work for constant size */
 
 #ifndef lock_xadd

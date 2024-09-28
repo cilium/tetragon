@@ -33383,6 +33383,15 @@ struct bpf_iter_seq_task_file_info {
 	u32 fd;
 };
 
+struct bpf_iter__bpf_prog {
+	union {
+		struct bpf_iter_meta *meta;
+	};
+	union {
+		struct bpf_prog *prog;
+	};
+};
+
 struct bpf_iter__task_file {
 	union {
 		struct bpf_iter_meta *meta;
