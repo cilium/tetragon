@@ -4,6 +4,7 @@
 package debug
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -17,8 +18,128 @@ import (
 
 const tetragonBPFFS = "/sys/fs/bpf/tetragon"
 
+type DiffMap struct {
+	ID         int    `json:"id,omitempty"`
+	Name       string `json:"name,omitempty"`
+	Type       string `json:"type,omitempty"`
+	KeySize    int    `json:"key_size,omitempty"`
+	ValueSize  int    `json:"value_size,omitempty"`
+	MaxEntries int    `json:"max_entries,omitempty"`
+	Memlock    int    `json:"memlock,omitempty"`
+}
+
+type AggregatedMap struct {
+	Name           string  `json:"name,omitempty"`
+	Type           string  `json:"type,omitempty"`
+	KeySize        int     `json:"key_size,omitempty"`
+	ValueSize      int     `json:"value_size,omitempty"`
+	MaxEntries     int     `json:"max_entries,omitempty"`
+	Count          int     `json:"count,omitempty"`
+	TotalMemlock   int     `json:"total_memlock,omitempty"`
+	PercentOfTotal float64 `json:"percent_of_total,omitempty"`
+}
+
+type mapCommandOutput struct {
+	TotalByteMemlock struct {
+		AllMaps         int `json:"all_maps,omitempty"`
+		PinnedProgsMaps int `json:"pinned_progs_maps,omitempty"`
+		PinnedMaps      int `json:"pinned_maps,omitempty"`
+	} `json:"total_byte_memlock,omitempty"`
+
+	MapsStats struct {
+		PinnedProgsMaps int `json:"pinned_progs_maps,omitempty"`
+		PinnedMaps      int `json:"pinned_maps,omitempty"`
+		Inter           int `json:"inter,omitempty"`
+		Exter           int `json:"exter,omitempty"`
+		Union           int `json:"union,omitempty"`
+		Diff            int `json:"diff,omitempty"`
+	} `json:"maps_stats,omitempty"`
+
+	DiffMaps []DiffMap `json:"diff_maps,omitempty"`
+
+	AggregatedMaps []AggregatedMap `json:"aggregated_maps,omitempty"`
+}
+
+func (out mapCommandOutput) printJSON(cmd cobra.Command) error {
+	jsonOut, err := json.Marshal(out)
+	if err != nil {
+		return fmt.Errorf("failed to marshal output to JSON: %w", err)
+	}
+	cmd.Println(string(jsonOut))
+	return nil
+}
+
+func (out mapCommandOutput) printTables(cmd cobra.Command, lines int) {
+	w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 3, ' ', 0)
+	fmt.Fprintln(w, "AllMaps\tPinnedProgsMaps\tPinnedMaps")
+	fmt.Fprintf(w, "%d\t%d\t%d\n",
+		out.TotalByteMemlock.AllMaps,
+		out.TotalByteMemlock.PinnedProgsMaps,
+		out.TotalByteMemlock.PinnedMaps,
+	)
+	w.Flush()
+	cmd.Println()
+
+	w = tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 3, ' ', 0)
+	fmt.Fprintln(w, "PinnedProgsMaps\tPinnedMaps\tInter\tExter\tUnion\tDiff")
+	fmt.Fprintf(w, "%d\t%d\t%d\t%d\t%d\t%d\n",
+		out.MapsStats.PinnedProgsMaps,
+		out.MapsStats.PinnedMaps,
+		out.MapsStats.Inter,
+		out.MapsStats.Exter,
+		out.MapsStats.Union,
+		out.MapsStats.Diff,
+	)
+	w.Flush()
+	cmd.Println()
+
+	if len(out.DiffMaps) != 0 {
+		w = tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 3, ' ', 0)
+		fmt.Fprintln(w, "ID\tName\tType\tKeySize\tValueSize\tMaxEntries\tMemlock")
+		for _, d := range out.DiffMaps {
+			fmt.Fprintf(w, "%d\t%s\t%s\t%d\t%d\t%d\t%d\n",
+				d.ID,
+				d.Name,
+				d.Type,
+				d.KeySize,
+				d.ValueSize,
+				d.MaxEntries,
+				d.Memlock,
+			)
+		}
+		w.Flush()
+	} else {
+		cmd.Println("Empty diff table")
+	}
+	cmd.Println()
+
+	if len(out.AggregatedMaps) != 0 {
+		w = tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 3, ' ', 0)
+		fmt.Fprintln(w, "Name\tType\tKeySize\tValueSize\tMaxEntries\tCount\tTotalMemlock\tPercentOfTotal")
+		for i, d := range out.AggregatedMaps {
+			if lines != 0 && i+1 > lines {
+				break
+			}
+			fmt.Fprintf(w, "%s\t%s\t%d\t%d\t%d\t%d\t%d\t%0.1f%%\n",
+				d.Name,
+				d.Type,
+				d.KeySize,
+				d.ValueSize,
+				d.MaxEntries,
+				d.Count,
+				d.TotalMemlock,
+				d.PercentOfTotal,
+			)
+		}
+		w.Flush()
+	} else {
+		cmd.Println("Empty BPF memory consumption table")
+	}
+}
+
 func NewMapCmd() *cobra.Command {
 	var lines int
+	var output string
 
 	cmd := cobra.Command{
 		Use:     "maps",
@@ -51,6 +172,10 @@ adjust the number of item in the table.
 
 [^1]: https://lore.kernel.org/all/20230305124615.12358-1-laoar.shao@gmail.com/`, tetragonBPFFS),
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			if output != "tab" && output != "json" {
+				return fmt.Errorf("invalid output format %q, please use one of tab or json", output)
+			}
+
 			// check that the bpffs exists and we have permissions
 			_, err := os.Stat(tetragonBPFFS)
 			if err != nil {
@@ -71,17 +196,14 @@ adjust the number of item in the table.
 				return fmt.Errorf("failed to retrieve pinned maps: %w", err)
 			}
 
-			// print BPF maps memory usage
-			allMapsMem := bugtool.TotalByteMemlock(allMaps)
-			pinnedProgsMapsMem := bugtool.TotalByteMemlock(pinnedProgsMaps)
-			pinnedMapsMem := bugtool.TotalByteMemlock(pinnedMaps)
-			w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 3, ' ', 0)
-			fmt.Fprintln(w, "AllMaps\tPinnedProgsMaps\tPinnedMaps")
-			fmt.Fprintf(w, "%d\t%d\t%d\n", allMapsMem, pinnedProgsMapsMem, pinnedMapsMem)
-			w.Flush()
-			cmd.Println()
+			var out mapCommandOutput
 
-			// print details on map distribution
+			// BPF maps memory usage
+			out.TotalByteMemlock.AllMaps = bugtool.TotalByteMemlock(allMaps)
+			out.TotalByteMemlock.PinnedProgsMaps = bugtool.TotalByteMemlock(pinnedProgsMaps)
+			out.TotalByteMemlock.PinnedMaps = bugtool.TotalByteMemlock(pinnedMaps)
+
+			// details on map distribution
 			pinnedProgsMapsSet := map[int]bugtool.ExtendedMapInfo{}
 			for _, info := range pinnedProgsMaps {
 				id, ok := info.ID()
@@ -100,96 +222,90 @@ adjust the number of item in the table.
 				pinnedMapsSet[int(id)] = info
 			}
 
-			w = tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 3, ' ', 0)
-			fmt.Fprintln(w, "PinnedProgsMaps\tPinnedMaps\tInter\tExter\tUnion\tDiff")
 			diff := diff(pinnedMapsSet, pinnedProgsMapsSet)
 			union := union(pinnedMapsSet, pinnedProgsMapsSet)
-			fmt.Fprintf(w, "%d\t%d\t%d\t%d\t%d\t%d\n",
-				len(pinnedProgsMapsSet),
-				len(pinnedMapsSet),
-				len(inter(pinnedMapsSet, pinnedProgsMapsSet)),
-				len(exter(pinnedMapsSet, pinnedProgsMapsSet)),
-				len(union),
-				len(diff),
-			)
-			w.Flush()
-			cmd.Println()
 
-			// print details on the diff
-			if len(diff) != 0 {
-				w = tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 3, ' ', 0)
-				fmt.Fprintln(w, "ID\tName\tType\tKeySize\tValueSize\tMaxEntries\tMemlock")
-				for _, d := range diff {
-					id, ok := d.ID()
-					if !ok {
-						return errors.New("failed retrieving map ID, need >= 4.13, kernel is too old")
-					}
-					fmt.Fprintf(w, "%d\t%s\t%s\t%d\t%d\t%d\t%d\n",
-						id,
-						d.Name,
-						d.Type,
-						d.KeySize,
-						d.ValueSize,
-						d.MaxEntries,
-						d.Memlock,
-					)
-				}
-				w.Flush()
-			} else {
-				cmd.Println("Empty diff table")
-			}
-			cmd.Println()
+			out.MapsStats.PinnedProgsMaps = len(pinnedProgsMapsSet)
+			out.MapsStats.PinnedMaps = len(pinnedMaps)
+			out.MapsStats.Inter = len(inter(pinnedMapsSet, pinnedProgsMapsSet))
+			out.MapsStats.Exter = len(exter(pinnedMapsSet, pinnedProgsMapsSet))
+			out.MapsStats.Union = len(union)
+			out.MapsStats.Diff = len(diff)
 
-			if len(union) != 0 {
-				w = tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 3, ' ', 0)
-				fmt.Fprintln(w, "Name\tType\tKeySize\tValueSize\tMaxEntries\tCount\tTotalMemlock\tPercentOfTotal")
-				aggregatedMapsSet := map[string]struct {
-					bugtool.ExtendedMapInfo
-					number int
-				}{}
-				var total int
-				for _, m := range union {
-					total += m.Memlock
-					if e, exist := aggregatedMapsSet[m.Name]; exist {
-						e.Memlock += m.Memlock
-						e.number++
-						aggregatedMapsSet[m.Name] = e
-					} else {
-						aggregatedMapsSet[m.Name] = struct {
-							bugtool.ExtendedMapInfo
-							number int
-						}{m, 1}
-					}
+			// details on diff maps
+			for _, d := range diff {
+				id, ok := d.ID()
+				if !ok {
+					return errors.New("failed retrieving map ID, need >= 4.13, kernel is too old")
 				}
-				aggregatedMaps := maps.Values(aggregatedMapsSet)
-				sort.Slice(aggregatedMaps, func(i, j int) bool {
-					return aggregatedMaps[i].Memlock > aggregatedMaps[j].Memlock
+				out.DiffMaps = append(out.DiffMaps, DiffMap{
+					ID:         int(id),
+					Name:       d.Name,
+					Type:       d.Type.String(),
+					KeySize:    int(d.KeySize),
+					ValueSize:  int(d.ValueSize),
+					MaxEntries: int(d.MaxEntries),
+					Memlock:    d.Memlock,
 				})
-				for i, d := range aggregatedMaps {
-					if lines != 0 && i+1 > lines {
-						break
-					}
-					fmt.Fprintf(w, "%s\t%s\t%d\t%d\t%d\t%d\t%d\t%0.1f%%\n",
-						d.Name,
-						d.Type,
-						d.KeySize,
-						d.ValueSize,
-						d.MaxEntries,
-						d.number,
-						d.Memlock,
-						float64(d.Memlock)/float64(total)*100,
-					)
-				}
-				w.Flush()
-			} else {
-				cmd.Println("Empty BPF memory consumption table")
 			}
+
+			// aggregates maps total memory use
+			aggregatedMapsSet := map[string]struct {
+				bugtool.ExtendedMapInfo
+				count int
+			}{}
+			var total int
+			for _, m := range union {
+				total += m.Memlock
+				if e, exist := aggregatedMapsSet[m.Name]; exist {
+					e.Memlock += m.Memlock
+					e.count++
+					aggregatedMapsSet[m.Name] = e
+				} else {
+					aggregatedMapsSet[m.Name] = struct {
+						bugtool.ExtendedMapInfo
+						count int
+					}{m, 1}
+				}
+			}
+			aggregatedMaps := maps.Values(aggregatedMapsSet)
+			sort.Slice(aggregatedMaps, func(i, j int) bool {
+				return aggregatedMaps[i].Memlock > aggregatedMaps[j].Memlock
+			})
+
+			for _, m := range aggregatedMaps {
+				out.AggregatedMaps = append(out.AggregatedMaps, AggregatedMap{
+					Name:           m.Name,
+					Type:           m.Type.String(),
+					KeySize:        int(m.KeySize),
+					ValueSize:      int(m.ValueSize),
+					MaxEntries:     int(m.MaxEntries),
+					Count:          m.count,
+					TotalMemlock:   m.Memlock,
+					PercentOfTotal: float64(m.Memlock) / float64(total) * 100,
+				})
+			}
+
+			switch output {
+			case "tab":
+				out.printTables(*cmd, lines)
+			case "json":
+				err := out.printJSON(*cmd)
+				if err != nil {
+					return err
+				}
+			default:
+				// this should be caught earlier
+				return fmt.Errorf("invalid output format %q, please use one of tab or json", output)
+			}
+
 			return nil
 		},
 	}
 
 	flags := cmd.Flags()
-	flags.IntVarP(&lines, "lines", "n", 10, "Number of lines for the top BPF map memory consumers. Use 0 to print all lines.")
+	flags.IntVarP(&lines, "lines", "n", 10, "Number of lines for the top BPF map memory consumers.\nUse 0 to print all lines. Only valid with tab output.")
+	flags.StringVarP(&output, "output", "o", "tab", "Output format. One of tab or json.")
 
 	return &cmd
 }
