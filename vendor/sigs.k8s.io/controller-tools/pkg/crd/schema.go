@@ -247,26 +247,14 @@ func localNamedToSchema(ctx *schemaContext, ident *ast.Ident) *apiext.JSONSchema
 		if err != nil {
 			ctx.pkg.AddError(loader.ErrFromNode(err, ident))
 		}
-
-		// Check for type aliasing. If the type is not an alias, then handle it
-		// as a basic type.
-		if basicInfo.Name() == ident.Name {
-			return &apiext.JSONSchemaProps{
-				Type:   typ,
-				Format: fmt,
-			}
-		}
-
-		// Type alias to a basic type.
-		ctx.requestSchema("", ident.Name)
-		link := TypeRefLink("", ident.Name)
 		return &apiext.JSONSchemaProps{
-			Ref: &link,
+			Type:   typ,
+			Format: fmt,
 		}
 	}
 	// NB(directxman12): if there are dot imports, this might be an external reference,
 	// so use typechecking info to get the actual object
-	typeNameInfo := typeInfo.(*types.Named).Obj()
+	typeNameInfo := typeInfo.(interface{ Obj() *types.TypeName }).Obj()
 	pkg := typeNameInfo.Pkg()
 	pkgPath := loader.NonVendorPath(pkg.Path())
 	if pkg == ctx.pkg.Types {
@@ -410,11 +398,6 @@ func structToSchema(ctx *schemaContext, structType *ast.StructType) *apiext.JSON
 		fieldName := jsonOpts[0]
 		inline = inline || fieldName == "" // anonymous fields are inline fields in YAML/JSON
 
-		fieldMarkedOptional := (field.Markers.Get("kubebuilder:validation:Optional") != nil || field.Markers.Get("optional") != nil)
-		fieldMarkedRequired := (field.Markers.Get("kubebuilder:validation:Required") != nil)
-		fieldMarkedOneOf := (field.Markers.Get("kubebuilder:validation:OneOf") != nil)
-		fieldMarkedAnyOf := (field.Markers.Get("kubebuilder:validation:AnyOf") != nil)
-
 		// if no default required mode is set, default to required
 		defaultMode := "required"
 		if ctx.PackageMarkers.Get("kubebuilder:validation:Optional") != nil {
@@ -435,17 +418,14 @@ func structToSchema(ctx *schemaContext, structType *ast.StructType) *apiext.JSON
 
 		// if this package isn't set to optional default...
 		case defaultMode == "required":
-			// ...everything that's not inline, not omitempty, not part of a oneOf/anyOf group, and not explicitly optional is required
-			if !inline && !omitEmpty && !fieldMarkedOneOf && !fieldMarkedAnyOf && !fieldMarkedOptional {
+			// ...everything that's not inline / omitempty is required
+			if !inline && !omitEmpty {
 				props.Required = append(props.Required, fieldName)
 			}
 
 		// if this package isn't set to required default...
 		case defaultMode == "optional":
-			// ...everything that's part of a oneOf/anyOf group, or not explicitly required is optional
-			if !fieldMarkedOneOf && !fieldMarkedAnyOf && fieldMarkedRequired {
-				props.Required = append(props.Required, fieldName)
-			}
+			// implicitly optional
 		}
 
 		var propSchema *apiext.JSONSchemaProps
@@ -453,20 +433,6 @@ func structToSchema(ctx *schemaContext, structType *ast.StructType) *apiext.JSON
 			propSchema = &apiext.JSONSchemaProps{}
 		} else {
 			propSchema = typeToSchema(ctx.ForInfo(&markers.TypeInfo{}), field.RawField.Type)
-		}
-		// process oneOf groups
-		if fieldMarkedOneOf {
-			props.OneOf = append(props.OneOf, apiext.JSONSchemaProps{
-				Properties: map[string]apiext.JSONSchemaProps{fieldName: {}},
-				Required:   []string{fieldName},
-			})
-		}
-		// process anyOf groups
-		if fieldMarkedAnyOf {
-			props.AnyOf = append(props.AnyOf, apiext.JSONSchemaProps{
-				Properties: map[string]apiext.JSONSchemaProps{fieldName: {}},
-				Required:   []string{fieldName},
-			})
 		}
 		propSchema.Description = field.Doc
 
