@@ -63,13 +63,43 @@ func LoadConfig(bpfDir string, sens []*Sensor) error {
 	return nil
 }
 
-func (s *Sensor) setupProgsPinPath(bpfDir string) {
+func (s *Sensor) createDirs(bpfDir string) {
 	for _, p := range s.Progs {
 		// setup sensor based program pin path
 		p.PinPath = filepath.Join(sanitize(s.Policy), s.Name, p.PinName)
 		// and make the path
-		os.MkdirAll(filepath.Join(bpfDir, p.PinPath), os.ModeDir)
+		if err := os.MkdirAll(filepath.Join(bpfDir, p.PinPath), os.ModeDir); err != nil {
+			logger.GetLogger().WithError(err).
+				WithField("prog", p.PinName).
+				WithField("dir", p.PinPath).
+				Warn("Failed to create program dir")
+		}
 	}
+	s.BpfDir = bpfDir
+}
+
+func (s *Sensor) removeDirs() {
+	// Remove all the program dirs
+	for _, p := range s.Progs {
+		if err := os.Remove(filepath.Join(s.BpfDir, p.PinPath)); err != nil {
+			logger.GetLogger().WithError(err).
+				WithField("prog", p.PinName).
+				WithField("dir", p.PinPath).
+				Warn("Failed to remove program dir")
+		}
+	}
+	// Remove sensor dir
+	if err := os.Remove(filepath.Join(s.BpfDir, sanitize(s.Policy), s.Name)); err != nil {
+		logger.GetLogger().WithError(err).
+			WithField("sensor", s.Name).
+			WithField("dir", filepath.Join(sanitize(s.Policy), s.Name)).
+			Warn("Failed to remove sensor dir")
+	}
+
+	// For policy dir the last one switches off the light.. there still
+	// might be other sensors in the policy, so the last sensors removed
+	// will succeed in removal policy dir.
+	os.Remove(filepath.Join(s.BpfDir, sanitize(s.Policy)))
 }
 
 // Load loads the sensor, by loading all the BPF programs and maps.
@@ -87,7 +117,7 @@ func (s *Sensor) Load(bpfDir string) error {
 		return fmt.Errorf("tetragon, aborting minimum requirements not met: %w", err)
 	}
 
-	s.setupProgsPinPath(bpfDir)
+	s.createDirs(bpfDir)
 
 	l := logger.GetLogger()
 
@@ -154,6 +184,8 @@ func (s *Sensor) Unload() error {
 			logger.GetLogger().WithError(err).WithField("map", s.Name).Warn("Failed to unload map")
 		}
 	}
+
+	s.removeDirs()
 
 	s.Loaded = false
 

@@ -42,6 +42,8 @@ type Sensor struct {
 	Name string
 	// Policy name the sensor is part of.
 	Policy string
+	// When loaded this contains bpffs root directory
+	BpfDir string
 	// Progs are all the BPF programs that exist on the filesystem.
 	Progs []*program.Program
 	// Maps are all the BPF Maps that the progs use.
