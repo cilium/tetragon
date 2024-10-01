@@ -11,6 +11,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"syscall"
@@ -319,4 +320,208 @@ func isBPFObject(object string, fd int) (bool, error) {
 		return false, fmt.Errorf("failed to readlink the fd (%d): %w", fd, err)
 	}
 	return readlink == fmt.Sprintf("anon_inode:bpf-%s", object), nil
+}
+
+const TetragonBPFFS = "/sys/fs/bpf/tetragon"
+
+type DiffMap struct {
+	ID         int    `json:"id,omitempty"`
+	Name       string `json:"name,omitempty"`
+	Type       string `json:"type,omitempty"`
+	KeySize    int    `json:"key_size,omitempty"`
+	ValueSize  int    `json:"value_size,omitempty"`
+	MaxEntries int    `json:"max_entries,omitempty"`
+	Memlock    int    `json:"memlock,omitempty"`
+}
+
+type AggregatedMap struct {
+	Name           string  `json:"name,omitempty"`
+	Type           string  `json:"type,omitempty"`
+	KeySize        int     `json:"key_size,omitempty"`
+	ValueSize      int     `json:"value_size,omitempty"`
+	MaxEntries     int     `json:"max_entries,omitempty"`
+	Count          int     `json:"count,omitempty"`
+	TotalMemlock   int     `json:"total_memlock,omitempty"`
+	PercentOfTotal float64 `json:"percent_of_total,omitempty"`
+}
+
+type MapsChecksOutput struct {
+	TotalByteMemlock struct {
+		AllMaps         int `json:"all_maps,omitempty"`
+		PinnedProgsMaps int `json:"pinned_progs_maps,omitempty"`
+		PinnedMaps      int `json:"pinned_maps,omitempty"`
+	} `json:"total_byte_memlock,omitempty"`
+
+	MapsStats struct {
+		PinnedProgsMaps int `json:"pinned_progs_maps,omitempty"`
+		PinnedMaps      int `json:"pinned_maps,omitempty"`
+		Inter           int `json:"inter,omitempty"`
+		Exter           int `json:"exter,omitempty"`
+		Union           int `json:"union,omitempty"`
+		Diff            int `json:"diff,omitempty"`
+	} `json:"maps_stats,omitempty"`
+
+	DiffMaps []DiffMap `json:"diff_maps,omitempty"`
+
+	AggregatedMaps []AggregatedMap `json:"aggregated_maps,omitempty"`
+}
+
+func RunMapsChecks() (*MapsChecksOutput, error) {
+	// check that the bpffs exists and we have permissions
+	_, err := os.Stat(TetragonBPFFS)
+	if err != nil {
+		return nil, fmt.Errorf("make sure tetragon is running and you have enough permissions: %w", err)
+	}
+
+	// retrieve map infos
+	allMaps, err := FindAllMaps()
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve all maps: %w", err)
+	}
+	pinnedProgsMaps, err := FindMapsUsedByPinnedProgs(TetragonBPFFS)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve maps used by pinned progs: %w", err)
+	}
+	pinnedMaps, err := FindPinnedMaps(TetragonBPFFS)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve pinned maps: %w", err)
+	}
+
+	var out MapsChecksOutput
+
+	// BPF maps memory usage
+	out.TotalByteMemlock.AllMaps = TotalByteMemlock(allMaps)
+	out.TotalByteMemlock.PinnedProgsMaps = TotalByteMemlock(pinnedProgsMaps)
+	out.TotalByteMemlock.PinnedMaps = TotalByteMemlock(pinnedMaps)
+
+	// details on map distribution
+	pinnedProgsMapsSet := map[int]ExtendedMapInfo{}
+	for _, info := range pinnedProgsMaps {
+		id, ok := info.ID()
+		if !ok {
+			return nil, errors.New("failed retrieving progs ID, need >= 4.13, kernel is too old")
+		}
+		pinnedProgsMapsSet[int(id)] = info
+	}
+
+	pinnedMapsSet := map[int]ExtendedMapInfo{}
+	for _, info := range pinnedMaps {
+		id, ok := info.ID()
+		if !ok {
+			return nil, errors.New("failed retrieving map ID, need >= 4.13, kernel is too old")
+		}
+		pinnedMapsSet[int(id)] = info
+	}
+
+	diff := diff(pinnedMapsSet, pinnedProgsMapsSet)
+	union := union(pinnedMapsSet, pinnedProgsMapsSet)
+
+	out.MapsStats.PinnedProgsMaps = len(pinnedProgsMapsSet)
+	out.MapsStats.PinnedMaps = len(pinnedMaps)
+	out.MapsStats.Inter = len(inter(pinnedMapsSet, pinnedProgsMapsSet))
+	out.MapsStats.Exter = len(exter(pinnedMapsSet, pinnedProgsMapsSet))
+	out.MapsStats.Union = len(union)
+	out.MapsStats.Diff = len(diff)
+
+	// details on diff maps
+	for _, d := range diff {
+		id, ok := d.ID()
+		if !ok {
+			return nil, errors.New("failed retrieving map ID, need >= 4.13, kernel is too old")
+		}
+		out.DiffMaps = append(out.DiffMaps, DiffMap{
+			ID:         int(id),
+			Name:       d.Name,
+			Type:       d.Type.String(),
+			KeySize:    int(d.KeySize),
+			ValueSize:  int(d.ValueSize),
+			MaxEntries: int(d.MaxEntries),
+			Memlock:    d.Memlock,
+		})
+	}
+
+	// aggregates maps total memory use
+	aggregatedMapsSet := map[string]struct {
+		ExtendedMapInfo
+		count int
+	}{}
+	var total int
+	for _, m := range union {
+		total += m.Memlock
+		if e, exist := aggregatedMapsSet[m.Name]; exist {
+			e.Memlock += m.Memlock
+			e.count++
+			aggregatedMapsSet[m.Name] = e
+		} else {
+			aggregatedMapsSet[m.Name] = struct {
+				ExtendedMapInfo
+				count int
+			}{m, 1}
+		}
+	}
+	aggregatedMaps := maps.Values(aggregatedMapsSet)
+	sort.Slice(aggregatedMaps, func(i, j int) bool {
+		return aggregatedMaps[i].Memlock > aggregatedMaps[j].Memlock
+	})
+
+	for _, m := range aggregatedMaps {
+		out.AggregatedMaps = append(out.AggregatedMaps, AggregatedMap{
+			Name:           m.Name,
+			Type:           m.Type.String(),
+			KeySize:        int(m.KeySize),
+			ValueSize:      int(m.ValueSize),
+			MaxEntries:     int(m.MaxEntries),
+			Count:          m.count,
+			TotalMemlock:   m.Memlock,
+			PercentOfTotal: float64(m.Memlock) / float64(total) * 100,
+		})
+	}
+
+	return &out, nil
+}
+
+func inter[T any](m1, m2 map[int]T) map[int]T {
+	ret := map[int]T{}
+	for i := range m1 {
+		if _, exists := m2[i]; exists {
+			ret[i] = m1[i]
+		}
+	}
+	return ret
+}
+
+func diff[T any](m1, m2 map[int]T) map[int]T {
+	ret := map[int]T{}
+	for i := range m1 {
+		if _, exists := m2[i]; !exists {
+			ret[i] = m1[i]
+		}
+	}
+	return ret
+}
+
+func exter[T any](m1, m2 map[int]T) map[int]T {
+	ret := map[int]T{}
+	for i := range m1 {
+		if _, exists := m2[i]; !exists {
+			ret[i] = m1[i]
+		}
+	}
+	for i := range m2 {
+		if _, exists := m1[i]; !exists {
+			ret[i] = m2[i]
+		}
+	}
+	return ret
+}
+
+func union[T any](m1, m2 map[int]T) map[int]T {
+	ret := map[int]T{}
+	for i := range m1 {
+		ret[i] = m1[i]
+	}
+	for i := range m2 {
+		ret[i] = m2[i]
+	}
+	return ret
 }
