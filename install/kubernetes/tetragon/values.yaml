@@ -175,6 +175,8 @@ tetragon:
     # -- The address at which to expose gRPC. Examples: localhost:54321, unix:///var/run/cilum/tetragon/tetragon.sock
     address: "localhost:54321"
   gops:
+    # -- Whether to enable exposing gops server.
+    enabled: true
     # -- The address at which to expose gops.
     address: "localhost"
     # -- The port at which to expose gops.

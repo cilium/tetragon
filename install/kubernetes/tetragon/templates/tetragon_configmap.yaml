@@ -52,7 +52,9 @@ data:
 {{- else }}
   health-server-address: ""
 {{- end }}
+{{- if .Values.tetragon.gops.enabled }}
   gops-address: {{ .Values.tetragon.gops.address }}:{{ .Values.tetragon.gops.port }}
+{{- end }}
 {{- if .Values.tetragon.enablePolicyFilter }}
   enable-policy-filter: "true"
 {{- end }}
