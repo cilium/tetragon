@@ -261,6 +261,7 @@ func doBugtool(info *InitInfo, outFname string) error {
 	si.addGrpcInfo(tarWriter)
 	si.addPmapOut(tarWriter)
 	si.addMemCgroupStats(tarWriter)
+	si.addBPFMapsStats(tarWriter)
 	return nil
 }
 
@@ -753,5 +754,22 @@ func (s bugtoolInfo) addMemCgroupStats(tarWriter *tar.Writer) error {
 		readAndWrite(cgroupPath, "memory.stat")
 	}
 
+	return nil
+}
+
+func (s bugtoolInfo) addBPFMapsStats(tarWriter *tar.Writer) error {
+	out, err := RunMapsChecks()
+	if err != nil {
+		s.multiLog.WithError(err).Warn("failed to run BPF maps checks")
+		return fmt.Errorf("failed to run BPF maps checks: %w", err)
+	}
+
+	const file = "debugmaps.json"
+	err = s.tarAddJson(tarWriter, file, out)
+	if err != nil {
+		s.multiLog.WithError(err).Warn("failed to add the BPF maps checks to the tar archive")
+		return err
+	}
+	s.multiLog.WithField("file", file).Info("BPF maps checks added")
 	return nil
 }
