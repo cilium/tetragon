@@ -590,11 +590,20 @@ const (
 	// BPFEventsTraceEnabled controls whether the Cilium datapath exposes "trace" events to Cilium monitor and Hubble.
 	BPFEventsTraceEnabled = true
 
+	// BPFConntrackAccountingEnabled controls whether CT accounting for packets and bytes is enabled
+	BPFConntrackAccountingEnabled = false
+
 	// EnableEnvoyConfig is the default value for option.EnableEnvoyConfig
 	EnableEnvoyConfig = false
 
 	// NetNsPath is the default path to the mounted network namespaces directory
 	NetNsPath = "/var/run/cilium/netns"
+
+	// EnableIternalTrafficPolicy is the default value for option.EnableInternalTrafficPolicy
+	EnableInternalTrafficPolicy = true
+
+	// EnableNonDefaultDenyPolicies allows policies to define whether they are operating in default-deny mode
+	EnableNonDefaultDenyPolicies = true
 )
 
 var (

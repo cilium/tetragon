@@ -4,10 +4,8 @@
 package slices
 
 import (
+	"cmp"
 	"slices"
-	"sort"
-
-	"golang.org/x/exp/constraints"
 )
 
 // Unique deduplicates the elements in the input slice, preserving their ordering and
@@ -46,6 +44,7 @@ func Unique[S ~[]T, T comparable](s S) S {
 		}
 	}
 
+	clear(s[last:]) // zero out obsolete elements for GC
 	return s[:last]
 }
 
@@ -69,20 +68,19 @@ func UniqueFunc[S ~[]T, T any, K comparable](s S, key func(i int) K) S {
 		last++
 	}
 
+	clear(s[last:]) // zero out obsolete elements for GC
 	return s[:last]
 }
 
 // SortedUnique sorts and dedup the input slice in place.
 // It uses the < operator to compare the elements in the slice and thus requires
 // the elements to satisfies contraints.Ordered.
-func SortedUnique[S ~[]T, T constraints.Ordered](s S) S {
+func SortedUnique[S ~[]T, T cmp.Ordered](s S) S {
 	if len(s) < 2 {
 		return s
 	}
 
-	sort.Slice(s, func(i, j int) bool {
-		return s[i] < s[j]
-	})
+	slices.Sort(s)
 	return slices.Compact(s)
 }
 
@@ -93,14 +91,14 @@ func SortedUnique[S ~[]T, T constraints.Ordered](s S) S {
 // - when the user wants to customize how elements are compared (e.g: user wants to enforce reverse ordering)
 func SortedUniqueFunc[S ~[]T, T any](
 	s S,
-	less func(i, j int) bool,
+	less func(a, b T) int,
 	eq func(a, b T) bool,
 ) S {
 	if len(s) < 2 {
 		return s
 	}
 
-	sort.Slice(s, less)
+	slices.SortFunc(s, less)
 	return slices.CompactFunc(s, eq)
 }
 

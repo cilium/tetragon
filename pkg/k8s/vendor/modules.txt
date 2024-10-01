@@ -1,7 +1,7 @@
 # github.com/blang/semver/v4 v4.0.0
 ## explicit; go 1.14
 github.com/blang/semver/v4
-# github.com/cilium/cilium v1.17.0-pre.0.0.20240909094238-cdf10116cea7
+# github.com/cilium/cilium v1.17.0-pre.1
 ## explicit; go 1.23.0
 github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/labels
 github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1
@@ -133,7 +133,7 @@ golang.org/x/net/http/httpguts
 golang.org/x/net/http2
 golang.org/x/net/http2/hpack
 golang.org/x/net/idna
-# golang.org/x/oauth2 v0.21.0
+# golang.org/x/oauth2 v0.22.0
 ## explicit; go 1.18
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
@@ -558,7 +558,7 @@ k8s.io/kube-openapi/pkg/spec3
 k8s.io/kube-openapi/pkg/util/proto
 k8s.io/kube-openapi/pkg/util/sets
 k8s.io/kube-openapi/pkg/validation/spec
-# k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
+# k8s.io/utils v0.0.0-20240921022957-49e7df575cb6
 ## explicit; go 1.18
 k8s.io/utils/buffer
 k8s.io/utils/clock

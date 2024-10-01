@@ -17,7 +17,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode"
@@ -263,9 +263,6 @@ const (
 	// Alias to DSR dispatch method
 	LoadBalancerDSRDispatch = "bpf-lb-dsr-dispatch"
 
-	// Alias to DSR L4 translation method
-	LoadBalancerDSRL4Xlate = "bpf-lb-dsr-l4-xlate"
-
 	// Alias to DSR/IPIP IPv4 source CIDR
 	LoadBalancerRSSv4CIDR = "bpf-lb-rss-ipv4-src-cidr"
 
@@ -343,9 +340,6 @@ const (
 
 	// LogOpt sets log driver options for cilium
 	LogOpt = "log-opt"
-
-	// Logstash enables logstash integration
-	Logstash = "logstash"
 
 	// EnableIPv4Masquerade masquerades IPv4 packets from endpoints leaving the host.
 	EnableIPv4Masquerade = "enable-ipv4-masquerade"
@@ -1261,6 +1255,15 @@ const (
 
 	// BPFEventsTraceEnabled defines the TraceNotification setting for any endpoint
 	BPFEventsTraceEnabled = "bpf-events-trace-enabled"
+
+	// BPFConntrackAccountingEnabled controls whether CT accounting for packets and bytes is enabled
+	BPFConntrackAccountingEnabled = "bpf-conntrack-accounting-enabled"
+
+	// EnableInternalTrafficPolicy enables handling routing for services with internalTrafficPolicy configured
+	EnableInternalTrafficPolicy = "enable-internal-traffic-policy"
+
+	// EnableNonDefaultDenyPolicies allows policies to define whether they are operating in default-deny mode
+	EnableNonDefaultDenyPolicies = "enable-non-default-deny-policies"
 )
 
 // Default string arguments
@@ -1329,6 +1332,10 @@ const (
 	// NodePortModeHybrid is a dual mode of the above, that is, DSR for TCP and SNAT for UDP
 	NodePortModeHybrid = "hybrid"
 
+	// NodePortModeAnnotation is a dual mode of dsr and snat, specified through the
+	// service.cilium.io/dispatch annotation on the K8s service object
+	NodePortModeAnnotation = "annotation"
+
 	// NodePortAlgRandom is for randomly selecting a backend
 	NodePortAlgRandom = "random"
 
@@ -1343,12 +1350,6 @@ const (
 
 	// DSR dispatch mode to encapsulate to Geneve
 	DSRDispatchGeneve = "geneve"
-
-	// DSR L4 translation to frontend port
-	DSRL4XlateFrontend = "frontend"
-
-	// DSR L4 translation to backend port
-	DSRL4XlateBackend = "backend"
 
 	// NodePortAccelerationDisabled means we do not accelerate NodePort via XDP
 	NodePortAccelerationDisabled = XDPModeDisabled
@@ -1411,7 +1412,7 @@ func BindEnvWithLegacyEnvFallback(vp *viper.Viper, optName, legacyEnvName string
 // LogRegisteredOptions logs all options that where bound to viper.
 func LogRegisteredOptions(vp *viper.Viper, entry *logrus.Entry) {
 	keys := vp.AllKeys()
-	sort.Strings(keys)
+	slices.Sort(keys)
 	for _, k := range keys {
 		ss := vp.GetStringSlice(k)
 		if len(ss) == 0 {
@@ -1757,7 +1758,6 @@ type DaemonConfig struct {
 	Labels                        []string
 	LogDriver                     []string
 	LogOpt                        map[string]string
-	Logstash                      bool
 	LogSystemLoadConfig           bool
 
 	// Masquerade specifies whether or not to masquerade packets from endpoints
@@ -1990,11 +1990,6 @@ type DaemonConfig struct {
 	// LoadBalancerDSRDispatch indicates the method for pushing packets to
 	// backends under DSR ("opt" or "ipip")
 	LoadBalancerDSRDispatch string
-
-	// LoadBalancerDSRL4Xlate indicates the method for L4 DNAT translation
-	// under IPIP dispatch, that is, whether the inner packet will be
-	// translated to the frontend or backend port.
-	LoadBalancerDSRL4Xlate string
 
 	// LoadBalancerRSSv4CIDR defines the outer source IPv4 prefix for DSR/IPIP
 	LoadBalancerRSSv4CIDR string
@@ -2448,6 +2443,9 @@ type DaemonConfig struct {
 	// BPFEventsTraceEnabled  controls whether the Cilium datapath exposes "trace" events to Cilium monitor and Hubble.
 	BPFEventsTraceEnabled bool
 
+	// BPFConntrackAccountingEnabled controls whether CT accounting for packets and bytes is enabled.
+	BPFConntrackAccountingEnabled bool
+
 	// IPAMCiliumNodeUpdateRate is the maximum rate at which the CiliumNode custom
 	// resource is updated.
 	IPAMCiliumNodeUpdateRate time.Duration
@@ -2484,6 +2482,12 @@ type DaemonConfig struct {
 	// EnableSocketLBPodConnectionTermination enables the termination of connections from pods
 	// to deleted service backends when socket-LB is enabled
 	EnableSocketLBPodConnectionTermination bool
+
+	// EnableInternalTrafficPolicy enables handling routing for services with internalTrafficPolicy configured
+	EnableInternalTrafficPolicy bool
+
+	// EnableNonDefaultDenyPolicies allows policies to define whether they are operating in default-deny mode
+	EnableNonDefaultDenyPolicies bool
 }
 
 var (
@@ -2537,7 +2541,11 @@ var (
 		BPFEventsDropEnabled:          defaults.BPFEventsDropEnabled,
 		BPFEventsPolicyVerdictEnabled: defaults.BPFEventsPolicyVerdictEnabled,
 		BPFEventsTraceEnabled:         defaults.BPFEventsTraceEnabled,
+		BPFConntrackAccountingEnabled: defaults.BPFConntrackAccountingEnabled,
 		EnableEnvoyConfig:             defaults.EnableEnvoyConfig,
+		EnableInternalTrafficPolicy:   defaults.EnableInternalTrafficPolicy,
+
+		EnableNonDefaultDenyPolicies: defaults.EnableNonDefaultDenyPolicies,
 	}
 )
 
@@ -2758,7 +2766,8 @@ func (c *DaemonConfig) DirectRoutingDeviceRequired() bool {
 
 func (c *DaemonConfig) LoadBalancerUsesDSR() bool {
 	return c.NodePortMode == NodePortModeDSR ||
-		c.NodePortMode == NodePortModeHybrid
+		c.NodePortMode == NodePortModeHybrid ||
+		c.NodePortMode == NodePortModeAnnotation
 }
 
 func (c *DaemonConfig) validateIPv6ClusterAllocCIDR() error {
@@ -3103,7 +3112,6 @@ func (c *DaemonConfig) Populate(vp *viper.Viper) {
 	c.LibDir = vp.GetString(LibDir)
 	c.LogDriver = vp.GetStringSlice(LogDriver)
 	c.LogSystemLoadConfig = vp.GetBool(LogSystemLoadConfigName)
-	c.Logstash = vp.GetBool(Logstash)
 	c.LoopbackIPv4 = vp.GetString(LoopbackIPv4)
 	c.LocalRouterIPv4 = vp.GetString(LocalRouterIPv4)
 	c.LocalRouterIPv6 = vp.GetString(LocalRouterIPv6)
@@ -3143,7 +3151,6 @@ func (c *DaemonConfig) Populate(vp *viper.Viper) {
 	c.FragmentsMapEntries = vp.GetInt(FragmentsMapEntriesName)
 	c.CRDWaitTimeout = vp.GetDuration(CRDWaitTimeout)
 	c.LoadBalancerDSRDispatch = vp.GetString(LoadBalancerDSRDispatch)
-	c.LoadBalancerDSRL4Xlate = vp.GetString(LoadBalancerDSRL4Xlate)
 	c.LoadBalancerRSSv4CIDR = vp.GetString(LoadBalancerRSSv4CIDR)
 	c.LoadBalancerRSSv6CIDR = vp.GetString(LoadBalancerRSSv6CIDR)
 	c.InstallNoConntrackIptRules = vp.GetBool(InstallNoConntrackIptRules)
@@ -3166,6 +3173,7 @@ func (c *DaemonConfig) Populate(vp *viper.Viper) {
 	c.BPFEventsDropEnabled = vp.GetBool(BPFEventsDropEnabled)
 	c.BPFEventsPolicyVerdictEnabled = vp.GetBool(BPFEventsPolicyVerdictEnabled)
 	c.BPFEventsTraceEnabled = vp.GetBool(BPFEventsTraceEnabled)
+	c.BPFConntrackAccountingEnabled = vp.GetBool(BPFConntrackAccountingEnabled)
 	c.EnableIPSecEncryptedOverlay = vp.GetBool(EnableIPSecEncryptedOverlay)
 
 	c.ServiceNoBackendResponse = vp.GetString(ServiceNoBackendResponse)
@@ -3593,6 +3601,8 @@ func (c *DaemonConfig) Populate(vp *viper.Viper) {
 	}
 
 	c.LoadBalancerProtocolDifferentiation = vp.GetBool(LoadBalancerProtocolDifferentiation)
+
+	c.EnableInternalTrafficPolicy = vp.GetBool(EnableInternalTrafficPolicy)
 }
 
 func (c *DaemonConfig) populateLoadBalancerSettings(vp *viper.Viper) {
@@ -4303,7 +4313,7 @@ func InitConfig(cmd *cobra.Command, programName, configName string, vp *viper.Vi
 			log.WithField(logfields.Path, vp.ConfigFileUsed()).
 				Info("Using config from file")
 		} else if Config.ConfigFile != "" {
-			log.WithField(logfields.Path, Config.ConfigFile).
+			log.WithField(logfields.Path, Config.ConfigFile).WithError(err).
 				Fatal("Error reading config file")
 		} else {
 			log.WithError(err).Debug("Skipped reading configuration file")
