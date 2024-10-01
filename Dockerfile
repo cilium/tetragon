@@ -80,6 +80,14 @@ ARG TARGETARCH
 ARG BPFTOOL_TAG=v7.2.0-snapshot.0
 RUN curl -L https://github.com/libbpf/bpftool/releases/download/${BPFTOOL_TAG}/bpftool-${BPFTOOL_TAG}-${TARGETARCH}.tar.gz | tar xz && chmod +x bpftool
 
+# Get bash-completion manifests and generate tetra CLI bash
+# autocompletions (we don't want all bash-completions in the base-build)
+FROM docker.io/library/alpine:3.20.3@sha256:beefdbd8a1da6d2915566fde36db9db0b524eb737fc57cd1367effd16dc0d06d AS cli-autocomplete
+COPY --from=tetragon-builder /go/src/github.com/cilium/tetragon/tetra /usr/bin/
+RUN apk add --no-cache bash-completion && \
+    tetra completion bash > /etc/bash_completion.d/tetra && \
+    chmod a+r /etc/bash_completion.d/tetra
+
 # Almost final step runs on target platform (might need emulation) and
 # retrieves (cross-)compiled binaries from builders
 FROM docker.io/library/alpine:3.20.3@sha256:beefdbd8a1da6d2915566fde36db9db0b524eb737fc57cd1367effd16dc0d06d AS base-build
@@ -94,6 +102,11 @@ COPY --from=tetragon-builder /go/src/github.com/cilium/tetragon/contrib/tetragon
 COPY --from=tetragon-builder /go/src/github.com/cilium/tetragon/contrib/tetragon-rthooks/tetragon-oci-hook-setup /usr/bin/
 COPY --from=gops /gops/gops /usr/bin/
 COPY --from=bpf-builder /go/src/github.com/cilium/tetragon/bpf/objs/*.o /var/lib/tetragon/
+COPY --from=cli-autocomplete /etc/bash/bash_completion.sh /etc/bash/bash_completion.sh
+COPY --from=cli-autocomplete /etc/bash_completion.d/000_bash_completion_compat.bash /etc/bash_completion.d/000_bash_completion_compat.bash
+COPY --from=cli-autocomplete /etc/bash_completion.d/tetra /etc/bash_completion.d/tetra
+COPY --from=cli-autocomplete /usr/share/bash-completion/bash_completion /usr/share/bash-completion/bash_completion
+COPY --from=cli-autocomplete /usr/share/bash-completion/completions/ip /usr/share/bash-completion/completions/ip
 ENTRYPOINT ["/usr/bin/tetragon"]
 
 # This target only builds with the `--target release` option and reduces the
