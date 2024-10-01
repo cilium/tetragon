@@ -17,7 +17,7 @@ require (
 	github.com/opencontainers/runtime-spec v1.2.0
 	github.com/pelletier/go-toml v1.9.5
 	github.com/stretchr/testify v1.9.0
-	google.golang.org/grpc v1.67.0
+	google.golang.org/grpc v1.67.1
 )
 
 require (
