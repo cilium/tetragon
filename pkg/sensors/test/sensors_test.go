@@ -4,6 +4,7 @@
 package test
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -499,4 +500,133 @@ func TestMaxEntriesInnerSingle(t *testing.T) {
 func TestMaxEntriesInnerMulti(t *testing.T) {
 	// TODO, we need to check BTF for inner map max entries
 	t.Skip()
+}
+
+func TestCleanup(t *testing.T) {
+	p1 := program.Builder(
+		"bpf_map_test_p1.o",
+		"wake_up_new_task",
+		"kprobe/wake_up_new_task",
+		"p1",
+		"kprobe",
+	)
+	p2 := program.Builder(
+		"bpf_map_test_p2.o",
+		"wake_up_new_task",
+		"kprobe/wake_up_new_task",
+		"p2",
+		"kprobe",
+	)
+	p3 := program.Builder(
+		"bpf_map_test_p3.o",
+		"wake_up_new_task",
+		"kprobe/wake_up_new_task",
+		"p3",
+		"badtype",
+	)
+
+	var err error
+
+	verifyRemoved := func(files ...string) {
+		for _, f := range files {
+			_, err := os.Stat(filepath.Join(bpf.MapPrefixPath(), f))
+			t.Logf("checking path: '%s'\n", f)
+			assert.Error(t, err)
+		}
+	}
+
+	t.Run("single_ok", func(t *testing.T) {
+		m1 := program.MapBuilder("m1", p1)
+		m2 := program.MapBuilder("m2", p2)
+
+		s1 := &sensors.Sensor{
+			Name:   "sensor1",
+			Progs:  []*program.Program{p1},
+			Maps:   []*program.Map{m1, m2},
+			Policy: "policy",
+		}
+
+		err = s1.Load(bpf.MapPrefixPath())
+		assert.NoError(t, err)
+
+		s1.Unload()
+		verifyRemoved("m1", "m2", "policy")
+	})
+
+	t.Run("multi_ok", func(t *testing.T) {
+		m1 := program.MapBuilder("m1", p1)
+		m2 := program.MapBuilder("m2", p2)
+
+		s1 := &sensors.Sensor{
+			Name:   "sensor1",
+			Progs:  []*program.Program{p1},
+			Maps:   []*program.Map{m1, m2},
+			Policy: "policy",
+		}
+
+		s2 := &sensors.Sensor{
+			Name:   "sensor2",
+			Progs:  []*program.Program{p2},
+			Maps:   []*program.Map{m1, m2},
+			Policy: "policy",
+		}
+
+		err = s1.Load(bpf.MapPrefixPath())
+		assert.NoError(t, err)
+		err = s2.Load(bpf.MapPrefixPath())
+		assert.NoError(t, err)
+
+		s1.Unload()
+		verifyRemoved("policy/sensor1")
+
+		s2.Unload()
+		verifyRemoved("m1", "m2", "policy")
+	})
+
+	t.Run("map_fail", func(t *testing.T) {
+		m1 := program.MapBuilder("m1", p1, p2)
+		// map with wrong name
+		m2 := program.MapBuilder("non-existing", p1, p2)
+
+		s1 := &sensors.Sensor{
+			Name:   "sensor1",
+			Progs:  []*program.Program{p1},
+			Maps:   []*program.Map{m1, m2},
+			Policy: "policy",
+		}
+
+		err = s1.Load(bpf.MapPrefixPath())
+		assert.Error(t, err)
+		if err == nil {
+			defer s1.Unload()
+		}
+
+		verifyRemoved("m1", "m2", "policy")
+	})
+
+	t.Run("prog_fail", func(t *testing.T) {
+		m1 := program.MapBuilder("m1", p1, p3)
+		s1 := &sensors.Sensor{
+			Name:   "sensor1",
+			Progs:  []*program.Program{p1},
+			Maps:   []*program.Map{m1},
+			Policy: "policy",
+		}
+
+		s3 := &sensors.Sensor{
+			Name:   "sensor3",
+			Progs:  []*program.Program{p3},
+			Maps:   []*program.Map{m1},
+			Policy: "policy",
+		}
+
+		err = s1.Load(bpf.MapPrefixPath())
+		assert.NoError(t, err)
+
+		err = s3.Load(bpf.MapPrefixPath())
+		assert.Error(t, err)
+
+		s1.Unload()
+		verifyRemoved("m1", "policy")
+	})
 }
