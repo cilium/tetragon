@@ -117,9 +117,20 @@ func (s *Sensor) Load(bpfDir string) (err error) {
 		return fmt.Errorf("tetragon, aborting minimum requirements not met: %w", err)
 	}
 
+	var (
+		loadedMaps  []*program.Map
+		loadedProgs []*program.Program
+	)
+
 	s.createDirs(bpfDir)
 	defer func() {
 		if err != nil {
+			for _, m := range loadedMaps {
+				m.Unload()
+			}
+			for _, p := range loadedProgs {
+				unloadProgram(p)
+			}
 			s.removeDirs()
 		}
 	}()
@@ -142,6 +153,7 @@ func (s *Sensor) Load(bpfDir string) (err error) {
 		if err = s.loadMap(bpfDir, m); err != nil {
 			return fmt.Errorf("tetragon, aborting could not load sensor BPF maps: %w", err)
 		}
+		loadedMaps = append(loadedMaps, m)
 	}
 
 	for _, p := range s.Progs {
@@ -155,6 +167,7 @@ func (s *Sensor) Load(bpfDir string) (err error) {
 			return err
 		}
 		p.LoadState.RefInc()
+		loadedProgs = append(loadedProgs, p)
 		l.WithField("prog", p.Name).WithField("label", p.Label).Debugf("BPF prog was loaded")
 	}
 
