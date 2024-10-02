@@ -13,7 +13,6 @@ on:
     - 'install/kubernetes/**'
     - 'pkg/k8s/apis/cilium.io/client/crds/v1alpha1/*.yaml'
     - '.github/workflows/lint-helm.yaml'
-  workflow_call:
 
 permissions:
   pull-requests: write
@@ -27,47 +26,33 @@ jobs:
   generated-files:
     runs-on: ubuntu-latest
     steps:
-      # Get source
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - name: Checkout source code
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      # Check / install dependencies
-      - name: Check if vendored openapi2jsonschema.py script is up to date
+      # Build Tetragon Helm chart
+      - name: Check if Tetragon Helm chart is up to date
+        run: |
+          make -C install/kubernetes
+          test -z "$(git status --porcelain)"
+          if [ $? != 0 ]; then
+            git status --porcelain
+            echo "The Tetragon Helm chart is outdated."
+            echo "Please run 'make -C install/kubernetes' and submit your changes."; exit 1
+          fi
+
+      # Validate Tetragon Helm chart
+      - name: Check if openapi2jsonschema.py is up-to-date
+        id: validate_openapi2jsonschema_script
         run: |
           make -C install/kubernetes openapi2jsonschema.py
           test -z "$(git status --porcelain)"
           if [ $? != 0 ]; then
             git status --porcelain
-            echo "Vendored openapi2jsonschema.py script is out of date."
+            echo "openapi2jsonschema.py seems to be outdated."
             echo "Please run 'make -C install/kubernetes openapi2jsonschema.py' and submit your changes."; exit 1
           fi
-      - name: Check if vendored CRD JSON schemas are up to date
-        run: |
-          make -C install/kubernetes generate-jsonschemas
-          test -z "$(git status --porcelain)"
-          if [ $? != 0 ]; then
-            git status --porcelain
-            echo "Vendored CRD JSON schemas are out of date."
-            echo "Please run 'make -C install/kubernetes generate-jsonschemas' and submit your changes."; exit 1
-          fi
-      - name: Install Helm CLI # Required for the Helm chart templating
-        uses: azure/setup-helm@fe7b79cd5ee1e45176fcad797de68ecaf3ca4814 # v4.2.0
-
-      # Validate Helm chart
-      - name: Generate Helm chart
-        id: generate_helm_chart
-        run: |
-          make -C install/kubernetes
-      - name: Validate generated files
-        run: |
-          test -z "$(git status --porcelain)"
-          if [ $? != 0 ]; then
-            git status --porcelain
-            echo "Please run 'make -C install/kubernetes' and submit your changes."; exit 1
-          fi
-
-      # (Re-)run Kubeconform checks explicitly once again to catch specific errors in that regard (to get the STDOUT/STDERR)
       - name: Run Kubeconform with minimum supported K8s version
-        if: success() || steps.generate_helm_chart.outcome == 'failure'
+        if: success() || steps.validate_openapi2jsonschema_script.outcome == 'failure'
         id: kubeconform_min_k8s_version
         uses: mathiasvr/command-output@34408ea3d0528273faff3d9e201761ae96106cd0 # v2.0.0
         with:
@@ -75,7 +60,7 @@ jobs:
           run: |
             make -C install/kubernetes kubeconform K8S_VERSION=${{ env.MIN_K8S_VERSION }}
       - name: Run Kubeconform with latest K8s version
-        if: success() || steps.generate_helm_chart.outcome == 'failure'
+        if: success() || steps.validate_openapi2jsonschema_script.outcome == 'failure'
         id: kubeconform_latest_k8s_version
         uses: mathiasvr/command-output@34408ea3d0528273faff3d9e201761ae96106cd0 # v2.0.0
         with:
