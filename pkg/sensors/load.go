@@ -138,8 +138,10 @@ func (s *Sensor) Load(bpfDir string) (err error) {
 		return fmt.Errorf("tetragon, aborting could not find BPF programs: %w", err)
 	}
 
-	if err = s.loadMaps(bpfDir); err != nil {
-		return fmt.Errorf("tetragon, aborting could not load sensor BPF maps: %w", err)
+	for _, m := range s.Maps {
+		if err = s.loadMap(bpfDir, m); err != nil {
+			return fmt.Errorf("tetragon, aborting could not load sensor BPF maps: %w", err)
+		}
 	}
 
 	for _, p := range s.Progs {
@@ -273,75 +275,73 @@ func (s *Sensor) setMapPinPath(m *program.Map) {
 	}
 }
 
-// loadMaps loads all the BPF maps in the sensor.
-func (s *Sensor) loadMaps(bpfDir string) error {
+// loadMap loads BPF map in the sensor.
+func (s *Sensor) loadMap(bpfDir string, m *program.Map) error {
 	l := logger.GetLogger()
-	for _, m := range s.Maps {
-		if m.PinState.IsLoaded() {
-			l.WithFields(logrus.Fields{
-				"sensor": s.Name,
-				"map":    m.Name,
-			}).Info("map is already loaded, incrementing reference count")
-			m.PinState.RefInc()
-			continue
-		}
-
-		spec, err := ebpf.LoadCollectionSpec(m.Prog.Name)
-		if err != nil {
-			return fmt.Errorf("failed to open collection '%s': %w", m.Prog.Name, err)
-		}
-		mapSpec, ok := spec.Maps[m.Name]
-		if !ok {
-			return fmt.Errorf("map '%s' not found from '%s'", m.Name, m.Prog.Name)
-		}
-
-		s.setMapPinPath(m)
-		pinPath := filepath.Join(bpfDir, m.PinPath)
-
-		if m.IsOwner() {
-			// If map is the owner we set configured max entries
-			// directly to map spec.
-			if max, ok := m.GetMaxEntries(); ok {
-				mapSpec.MaxEntries = max
-			}
-
-			if innerMax, ok := m.GetMaxInnerEntries(); ok {
-				if innerMs := mapSpec.InnerMap; innerMs != nil {
-					mapSpec.InnerMap.MaxEntries = innerMax
-				}
-			}
-		} else {
-			// If map is NOT the owner we follow the max entries
-			// of the pinned map and update the spec with that.
-			max, err := program.GetMaxEntriesPinnedMap(pinPath)
-			if err != nil {
-				return err
-			}
-			mapSpec.MaxEntries = max
-
-			// 'm' is not the owner but for some reason requires max
-			// entries setup, make sure it matches the pinned map.
-			if max, ok := m.GetMaxEntries(); ok {
-				if mapSpec.MaxEntries != max {
-					return fmt.Errorf("failed to load map '%s' max entries mismatch: %d %d",
-						m.Name, mapSpec.MaxEntries, max)
-				}
-			}
-
-			m.SetMaxEntries(int(max))
-		}
-
-		if err := m.LoadOrCreatePinnedMap(pinPath, mapSpec); err != nil {
-			return fmt.Errorf("failed to load map '%s' for sensor '%s': %w", m.Name, s.Name, err)
-		}
-
+	if m.PinState.IsLoaded() {
 		l.WithFields(logrus.Fields{
 			"sensor": s.Name,
 			"map":    m.Name,
-			"path":   pinPath,
-			"max":    m.Entries,
-		}).Info("tetragon, map loaded.")
+		}).Info("map is already loaded, incrementing reference count")
+		m.PinState.RefInc()
+		return nil
 	}
+
+	spec, err := ebpf.LoadCollectionSpec(m.Prog.Name)
+	if err != nil {
+		return fmt.Errorf("failed to open collection '%s': %w", m.Prog.Name, err)
+	}
+	mapSpec, ok := spec.Maps[m.Name]
+	if !ok {
+		return fmt.Errorf("map '%s' not found from '%s'", m.Name, m.Prog.Name)
+	}
+
+	s.setMapPinPath(m)
+	pinPath := filepath.Join(bpfDir, m.PinPath)
+
+	if m.IsOwner() {
+		// If map is the owner we set configured max entries
+		// directly to map spec.
+		if max, ok := m.GetMaxEntries(); ok {
+			mapSpec.MaxEntries = max
+		}
+
+		if innerMax, ok := m.GetMaxInnerEntries(); ok {
+			if innerMs := mapSpec.InnerMap; innerMs != nil {
+				mapSpec.InnerMap.MaxEntries = innerMax
+			}
+		}
+	} else {
+		// If map is NOT the owner we follow the max entries
+		// of the pinned map and update the spec with that.
+		max, err := program.GetMaxEntriesPinnedMap(pinPath)
+		if err != nil {
+			return err
+		}
+		mapSpec.MaxEntries = max
+
+		// 'm' is not the owner but for some reason requires max
+		// entries setup, make sure it matches the pinned map.
+		if max, ok := m.GetMaxEntries(); ok {
+			if mapSpec.MaxEntries != max {
+				return fmt.Errorf("failed to load map '%s' max entries mismatch: %d %d",
+					m.Name, mapSpec.MaxEntries, max)
+			}
+		}
+
+		m.SetMaxEntries(int(max))
+	}
+
+	if err := m.LoadOrCreatePinnedMap(pinPath, mapSpec); err != nil {
+		return fmt.Errorf("failed to load map '%s' for sensor '%s': %w", m.Name, s.Name, err)
+	}
+
+	l.WithFields(logrus.Fields{
+		"sensor": s.Name,
+		"map":    m.Name,
+		"path":   pinPath,
+		"max":    m.Entries,
+	}).Info("tetragon, map loaded.")
 
 	return nil
 }
