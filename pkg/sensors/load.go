@@ -103,7 +103,7 @@ func (s *Sensor) removeDirs() {
 }
 
 // Load loads the sensor, by loading all the BPF programs and maps.
-func (s *Sensor) Load(bpfDir string) error {
+func (s *Sensor) Load(bpfDir string) (err error) {
 	if s == nil {
 		return nil
 	}
@@ -113,11 +113,16 @@ func (s *Sensor) Load(bpfDir string) error {
 	}
 
 	logger.GetLogger().WithField("metadata", cachedbtf.GetCachedBTFFile()).Info("BTF file: using metadata file")
-	if _, err := observerMinReqs(); err != nil {
+	if _, err = observerMinReqs(); err != nil {
 		return fmt.Errorf("tetragon, aborting minimum requirements not met: %w", err)
 	}
 
 	s.createDirs(bpfDir)
+	defer func() {
+		if err != nil {
+			s.removeDirs()
+		}
+	}()
 
 	l := logger.GetLogger()
 
@@ -129,11 +134,11 @@ func (s *Sensor) Load(bpfDir string) error {
 	_, verStr, _ := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
 	l.Infof("Loading kernel version %s", verStr)
 
-	if err := s.FindPrograms(); err != nil {
+	if err = s.FindPrograms(); err != nil {
 		return fmt.Errorf("tetragon, aborting could not find BPF programs: %w", err)
 	}
 
-	if err := s.loadMaps(bpfDir); err != nil {
+	if err = s.loadMaps(bpfDir); err != nil {
 		return fmt.Errorf("tetragon, aborting could not load sensor BPF maps: %w", err)
 	}
 
@@ -144,7 +149,7 @@ func (s *Sensor) Load(bpfDir string) error {
 			continue
 		}
 
-		if err := observerLoadInstance(bpfDir, p); err != nil {
+		if err = observerLoadInstance(bpfDir, p); err != nil {
 			return err
 		}
 		p.LoadState.RefInc()
