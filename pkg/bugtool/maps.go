@@ -366,9 +366,9 @@ type MapsChecksOutput struct {
 	AggregatedMaps []AggregatedMap `json:"aggregated_maps,omitempty"`
 }
 
-func RunMapsChecks() (*MapsChecksOutput, error) {
+func RunMapsChecks(path string) (*MapsChecksOutput, error) {
 	// check that the bpffs exists and we have permissions
-	_, err := os.Stat(TetragonBPFFS)
+	_, err := os.Stat(path)
 	if err != nil {
 		return nil, fmt.Errorf("make sure tetragon is running and you have enough permissions: %w", err)
 	}
@@ -378,11 +378,11 @@ func RunMapsChecks() (*MapsChecksOutput, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve all maps: %w", err)
 	}
-	pinnedProgsMaps, err := FindMapsUsedByPinnedProgs(TetragonBPFFS)
+	pinnedProgsMaps, err := FindMapsUsedByPinnedProgs(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve maps used by pinned progs: %w", err)
 	}
-	pinnedMaps, err := FindPinnedMaps(TetragonBPFFS)
+	pinnedMaps, err := FindPinnedMaps(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve pinned maps: %w", err)
 	}

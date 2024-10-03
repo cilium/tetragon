@@ -15,6 +15,7 @@ import (
 func NewMapCmd() *cobra.Command {
 	var lines int
 	var output string
+	var path string
 
 	cmd := cobra.Command{
 		Use:     "maps",
@@ -51,7 +52,7 @@ adjust the number of item in the table.
 				return fmt.Errorf("invalid output format %q, please use one of tab or json", output)
 			}
 
-			out, err := bugtool.RunMapsChecks()
+			out, err := bugtool.RunMapsChecks(path)
 			if err != nil {
 				return err
 			}
@@ -141,6 +142,7 @@ adjust the number of item in the table.
 	flags := cmd.Flags()
 	flags.IntVarP(&lines, "lines", "n", 10, "Number of lines for the top BPF map memory consumers.\nUse 0 to print all lines. Only valid with tab output.")
 	flags.StringVarP(&output, "output", "o", "tab", "Output format. One of tab or json.")
+	flags.StringVar(&path, "path", bugtool.TetragonBPFFS, "Path of the BPF filesystem.")
 
 	return &cmd
 }
