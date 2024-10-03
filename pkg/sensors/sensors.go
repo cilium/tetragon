@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors/program"
@@ -77,6 +78,9 @@ type SensorIface interface {
 	Load(bpfDir string) error
 	Unload() error
 	Destroy()
+	// TotalMemlock is the total amount of memlock bytes for BPF maps used by
+	// the sensor's programs.
+	TotalMemlock() int
 }
 
 func (s *Sensor) GetName() string {
@@ -85,6 +89,23 @@ func (s *Sensor) GetName() string {
 
 func (s *Sensor) IsLoaded() bool {
 	return s.Loaded
+}
+
+func (s Sensor) TotalMemlock() int {
+	uniqueMap := map[int]bpf.ExtendedMapInfo{}
+	for _, p := range s.Progs {
+		for id, info := range p.LoadedMapsInfo {
+			// we could first check that it exist then write but all maps with
+			// same ID on the kernel should share the same info
+			uniqueMap[id] = info
+		}
+	}
+
+	var total int
+	for _, info := range uniqueMap {
+		total += info.Memlock
+	}
+	return total
 }
 
 // SensorHook is the function signature for an optional function

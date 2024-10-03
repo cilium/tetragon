@@ -174,6 +174,7 @@ func (cm *collectionMap) listPolicies() []*tetragon.TracingPolicyStatus {
 
 		for _, sens := range col.sensors {
 			pol.Sensors = append(pol.Sensors, sens.GetName())
+			pol.KernelMemoryBytes += uint64(sens.TotalMemlock())
 		}
 
 		ret = append(ret, &pol)
