@@ -67,6 +67,8 @@ message TracingPolicyStatus {
 	string error = 8;
 	// current state of the tracing policy
 	TracingPolicyState state = 9;
+	// the amount of kernel memory in bytes used by policy's sensors non-shared BPF maps (memlock)
+	uint64 kernel_memory_bytes = 10;
 }
 
 message ListTracingPoliciesResponse {
