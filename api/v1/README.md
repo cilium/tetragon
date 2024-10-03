@@ -2072,6 +2072,7 @@ Determines the behavior of a field filter
 | filter_id | [uint64](#uint64) |  | filter ID of the policy used for k8s filtering |
 | error | [string](#string) |  | potential error of the policy |
 | state | [TracingPolicyState](#tetragon-TracingPolicyState) |  | current state of the tracing policy |
+| kernel_memory_bytes | [uint64](#uint64) |  | the amount of kernel memory in bytes used by policy&#39;s sensors non-shared BPF maps (memlock) |
 
 
 
