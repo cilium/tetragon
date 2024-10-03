@@ -268,7 +268,8 @@ generic_tracepoint_arg(void *ctx)
 __attribute__((section("tracepoint/4"), used)) int
 generic_tracepoint_actions(void *ctx)
 {
-	return generic_actions(ctx, &maps);
+	generic_actions(ctx, &maps);
+	return 0;
 }
 
 __attribute__((section("tracepoint/5"), used)) int

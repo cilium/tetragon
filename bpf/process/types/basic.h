@@ -2377,7 +2377,7 @@ generic_actions(void *ctx, struct generic_maps *maps)
 	postit = do_actions(ctx, actions, maps);
 	if (postit)
 		tail_call(ctx, maps->calls, TAIL_CALL_SEND);
-	return 0;
+	return postit;
 }
 
 FUNC_INLINE long
