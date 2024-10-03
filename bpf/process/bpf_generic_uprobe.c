@@ -117,7 +117,8 @@ generic_uprobe_filter_arg(void *ctx)
 __attribute__((section("uprobe/4"), used)) int
 generic_uprobe_actions(void *ctx)
 {
-	return generic_actions(ctx, &maps);
+	generic_actions(ctx, &maps);
+	return 0;
 }
 
 __attribute__((section("uprobe/5"), used)) int

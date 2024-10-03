@@ -184,7 +184,8 @@ BPF_KRETPROBE(generic_retkprobe_filter_arg)
 __attribute__((section("kprobe/4"), used)) int
 BPF_KRETPROBE(generic_retkprobe_actions)
 {
-	return generic_actions(ctx, &maps);
+	generic_actions(ctx, &maps);
+	return 0;
 }
 
 __attribute__((section("kprobe/5"), used)) int
