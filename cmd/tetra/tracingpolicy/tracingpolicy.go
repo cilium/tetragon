@@ -163,7 +163,7 @@ func New() *cobra.Command {
 			case "text":
 				// tabwriter config imitates kubectl default output, i.e. 3 spaces padding
 				w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 3, ' ', 0)
-				fmt.Fprintln(w, "ID\tNAME\tSTATE\tFILTERID\tNAMESPACE\tSENSORS")
+				fmt.Fprintln(w, "ID\tNAME\tSTATE\tFILTERID\tNAMESPACE\tSENSORS\tKERNELMEMORY")
 
 				for _, pol := range res.Policies {
 					namespace := pol.Namespace
@@ -197,13 +197,14 @@ func New() *cobra.Command {
 						}
 					}
 
-					fmt.Fprintf(w, "%d\t%s\t%s\t%d\t%s\t%s\t\n",
+					fmt.Fprintf(w, "%d\t%s\t%s\t%d\t%s\t%s\t%d\t\n",
 						pol.Id,
 						pol.Name,
 						strings.TrimPrefix(strings.ToLower(pol.State.String()), "tp_state_"),
 						pol.FilterId,
 						namespace,
 						sensors,
+						pol.KernelMemoryBytes,
 					)
 				}
 				w.Flush()
