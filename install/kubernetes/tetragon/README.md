@@ -57,6 +57,7 @@ Helm chart for Tetragon
 | tetragon.commandOverride | list | `[]` | Override the command. For advanced users only. |
 | tetragon.debug | bool | `false` | If you want to run Tetragon in debug mode change this value to true |
 | tetragon.enableK8sAPI | bool | `true` | Access Kubernetes API to associate Tetragon events with Kubernetes pods. |
+| tetragon.enableKeepSensorsOnExit | bool | `false` | Persistent enforcement to allow the enforcement policy to continue running even when its Tetragon process is gone. |
 | tetragon.enableMsgHandlingLatency | bool | `false` | Enable latency monitoring in message handling |
 | tetragon.enablePolicyFilter | bool | `true` | Enable policy filter. This is required for K8s namespace and pod-label filtering. |
 | tetragon.enablePolicyFilterDebug | bool | `false` | Enable policy filter debug messages. |

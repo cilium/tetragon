@@ -228,6 +228,8 @@ tetragon:
   eventCacheRetries: 15
   # -- Configure the delay (in seconds) between retires in tetragon's event cache.
   eventCacheRetryDelay: 2
+  # -- Persistent enforcement to allow the enforcement policy to continue running even when its Tetragon process is gone.
+  enableKeepSensorsOnExit: false
 # Tetragon Operator settings
 tetragonOperator:
   # -- Enables the Tetragon Operator.
