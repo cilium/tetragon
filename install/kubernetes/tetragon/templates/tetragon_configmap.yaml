@@ -72,3 +72,7 @@ data:
   event-cache-retries: {{ .Values.tetragon.eventCacheRetries | quote }}
   event-cache-retry-delay: {{ .Values.tetragon.eventCacheRetryDelay | quote }}
   {{- include "configmap.extra" . | nindent 2 }}
+{{- if .Values.tetragon.enableKeepSensorsOnExit }}
+  keep-sensors-on-exit: "true"
+  release-pinned-bpf: "false"
+{{- end }}
