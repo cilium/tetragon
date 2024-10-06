@@ -291,7 +291,8 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 			label,
 			"kprobe",
 			"enforcer").
-			SetLoaderData(policyName)
+			SetLoaderData(policyName).
+			SetPolicy(policyName)
 
 		progs = append(progs, load)
 	case OverrideMethodFmodRet:
@@ -304,7 +305,8 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 				"fmod_ret/security_task_prctl",
 				fmt.Sprintf("fmod_ret_%s", syscallSym),
 				"enforcer").
-				SetLoaderData(policyName)
+				SetLoaderData(policyName).
+				SetPolicy(policyName)
 			progs = append(progs, load)
 		}
 	default:

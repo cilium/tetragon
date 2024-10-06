@@ -443,7 +443,8 @@ func createLsmSensorFromEntry(lsmEntry *genericLsm,
 		"lsm/generic_lsm_output",
 		lsmEntry.hook,
 		"generic_lsm").
-		SetLoaderData(lsmEntry.tableId)
+		SetLoaderData(lsmEntry.tableId).
+		SetPolicy(lsmEntry.policyName)
 	progs = append(progs, loadOutput)
 
 	load := program.Builder(
@@ -452,7 +453,8 @@ func createLsmSensorFromEntry(lsmEntry *genericLsm,
 		"lsm/generic_lsm_core",
 		lsmEntry.hook,
 		"generic_lsm").
-		SetLoaderData(lsmEntry.tableId)
+		SetLoaderData(lsmEntry.tableId).
+		SetPolicy(lsmEntry.policyName)
 
 	// Load ima program for hash calculating
 	if lsmEntry.imaProgLoad {
@@ -465,7 +467,8 @@ func createLsmSensorFromEntry(lsmEntry *genericLsm,
 				"lsm.s/generic_lsm_ima_"+loadProgImaType,
 				lsmEntry.hook,
 				"generic_lsm").
-				SetLoaderData(lsmEntry.tableId)
+				SetLoaderData(lsmEntry.tableId).
+				SetPolicy(lsmEntry.policyName)
 			progs = append(progs, loadIma)
 			imaHashMap := program.MapBuilderProgram("ima_hash_map", loadIma)
 			maps = append(maps, imaHashMap)
