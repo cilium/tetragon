@@ -400,7 +400,7 @@ func createGenericTracepointSensor(
 			"tracepoint/generic_tracepoint",
 			pinProg,
 			"generic_tracepoint",
-		)
+		).SetPolicy(policyName)
 
 		err := tp.InitKernelSelectors(lists)
 		if err != nil {
