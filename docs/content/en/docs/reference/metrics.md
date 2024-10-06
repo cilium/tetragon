@@ -256,6 +256,28 @@ Number of perf events Tetragon ring buffer events queue lost.
 
 Number of perf events Tetragon ring buffer events queue received.
 
+### `tetragon_overhead_program_runs_total`
+
+The total number of times BPF program was executed.
+
+| label | values |
+| ----- | ------ |
+| `attach` | `sys_open` |
+| `policy` | `enforce` |
+| `policy_namespace` | `   ns` |
+| `sensor` | `generic_kprobe` |
+
+### `tetragon_overhead_program_seconds_total`
+
+The total time of BPF program running.
+
+| label | values |
+| ----- | ------ |
+| `attach` | `sys_open` |
+| `policy` | `enforce` |
+| `policy_namespace` | `   ns` |
+| `sensor` | `generic_kprobe` |
+
 ### `tetragon_policyfilter_hook_container_name_missing_total`
 
 The total number of operations when the container name was missing in the OCI hook
