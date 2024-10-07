@@ -109,14 +109,14 @@ $(DEPSDIR)bpf_enforcer.d: process/bpf_enforcer.c
 objs/bpf_multi_enforcer.ll: process/bpf_enforcer.c
 	$(CLANG) $(CLANG_FLAGS) -D__BPF_OVERRIDE_RETURN -D__MULTI_KPROBE -c $< -o $@
 
-$(DEPSDIR)/bpf_multi_enforcer.d: process/bpf_enforcer.c
+$(DEPSDIR)bpf_multi_enforcer.d: process/bpf_enforcer.c
 	$(CLANG) $(CLANG_FLAGS) -D__BPF_OVERRIDE_RETURN -D__MULTI_KPROBE -MM -MP -MT $(patsubst $(DEPSDIR)%.d, $(OBJSDIR)%.ll, $@) $< > $@
 
 ## bpf_fmodret_enforcer no bpf_override_return: we need fmod_ret
 objs/bpf_fmodret_enforcer.ll: process/bpf_enforcer.c
 	$(CLANG) $(CLANG_FLAGS) -c $< -o $@
 
-$(DEPSDIR)/bpf_fmodret_enforcer.d: process/bpf_enforcer.c
+$(DEPSDIR)bpf_fmodret_enforcer.d: process/bpf_enforcer.c
 	$(CLANG) $(CLANG_FLAGS) -MM -MP -MT $(patsubst $(DEPSDIR)%.d, $(OBJSDIR)%.ll, $@) $< > $@
 
 # PROCESSDIR
