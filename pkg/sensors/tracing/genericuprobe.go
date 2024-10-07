@@ -407,7 +407,7 @@ func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID) ([]*
 
 	load := program.Builder(
 		path.Join(option.Config.HubbleLib, loadProgName),
-		fmt.Sprintf("%d functions", len(multiIDs)),
+		fmt.Sprintf("uprobe_multi (%d functions)", len(multiIDs)),
 		"uprobe.multi/generic_uprobe",
 		pinPath,
 		"generic_uprobe").
@@ -460,7 +460,7 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 
 	load := program.Builder(
 		path.Join(option.Config.HubbleLib, loadProgName),
-		"",
+		fmt.Sprintf("%s %s", uprobeEntry.path, uprobeEntry.symbol),
 		"uprobe/generic_uprobe",
 		fmt.Sprintf("%d-%s", uprobeEntry.tableId.ID, uprobeEntry.symbol),
 		"generic_uprobe").
