@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"text/tabwriter"
 
+	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/bugtool"
 	"github.com/spf13/cobra"
 )
@@ -61,10 +62,10 @@ adjust the number of item in the table.
 			case "tab":
 				w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 3, ' ', 0)
 				fmt.Fprintln(w, "AllMaps\tPinnedProgsMaps\tPinnedMaps")
-				fmt.Fprintf(w, "%d\t%d\t%d\n",
-					out.TotalMemlockBytes.AllMaps,
-					out.TotalMemlockBytes.PinnedProgsMaps,
-					out.TotalMemlockBytes.PinnedMaps,
+				fmt.Fprintf(w, "%s\t%s\t%s\n",
+					common.HumanizeByteCount(out.TotalMemlockBytes.AllMaps),
+					common.HumanizeByteCount(out.TotalMemlockBytes.PinnedProgsMaps),
+					common.HumanizeByteCount(out.TotalMemlockBytes.PinnedMaps),
 				)
 				w.Flush()
 				cmd.Println()
@@ -86,14 +87,14 @@ adjust the number of item in the table.
 					w = tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 3, ' ', 0)
 					fmt.Fprintln(w, "ID\tName\tType\tKeySize\tValueSize\tMaxEntries\tMemlock")
 					for _, d := range out.DiffMaps {
-						fmt.Fprintf(w, "%d\t%s\t%s\t%d\t%d\t%d\t%d\n",
+						fmt.Fprintf(w, "%d\t%s\t%s\t%d\t%d\t%d\t%s\n",
 							d.ID,
 							d.Name,
 							d.Type,
 							d.KeySize,
 							d.ValueSize,
 							d.MaxEntries,
-							d.MemlockBytes,
+							common.HumanizeByteCount(d.MemlockBytes),
 						)
 					}
 					w.Flush()
@@ -109,14 +110,14 @@ adjust the number of item in the table.
 						if lines != 0 && i+1 > lines {
 							break
 						}
-						fmt.Fprintf(w, "%s\t%s\t%d\t%d\t%d\t%d\t%d\t%0.1f%%\n",
+						fmt.Fprintf(w, "%s\t%s\t%d\t%d\t%d\t%d\t%s\t%0.1f%%\n",
 							d.Name,
 							d.Type,
 							d.KeySize,
 							d.ValueSize,
 							d.MaxEntries,
 							d.Count,
-							d.TotalMemlockBytes,
+							common.HumanizeByteCount(d.TotalMemlockBytes),
 							d.PercentOfTotal,
 						)
 					}
