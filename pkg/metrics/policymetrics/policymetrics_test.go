@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
-package policystatemetrics
+package policymetrics
 
 import (
 	"context"
@@ -40,7 +40,7 @@ tetragon_tracingpolicy_loaded{state="load_error"} %d
 	observer.SetSensorManager(manager)
 	t.Cleanup(observer.ResetSensorManager)
 
-	collector := NewPolicyStateCollector()
+	collector := NewPolicyCollector()
 	reg.Register(collector)
 
 	err := manager.AddTracingPolicy(context.TODO(), &tracingpolicy.GenericTracingPolicy{
