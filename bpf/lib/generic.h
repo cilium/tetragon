@@ -31,7 +31,6 @@ struct msg_selector_data {
 #ifdef __CAP_CHANGES_FILTER
 	__u64 match_cap;
 #endif
-	bool is32BitSyscall;
 };
 
 struct msg_generic_kprobe {

@@ -123,46 +123,6 @@ generic_process_event(void *ctx, struct bpf_map_def *heap_map,
 	return 0;
 }
 
-#if defined(__TARGET_ARCH_x86)
-#define TS_COMPAT 0x0002
-FUNC_INLINE void
-generic_setup_32bit_syscall(struct msg_generic_kprobe *e, u8 op)
-{
-	struct thread_info *info;
-	__u32 status;
-
-	switch (op) {
-	case MSG_OP_GENERIC_TRACEPOINT:
-	case MSG_OP_GENERIC_KPROBE:
-		info = (struct thread_info *)get_current_task();
-		probe_read(&status, sizeof(status), _(&info->status));
-		e->sel.is32BitSyscall = status & TS_COMPAT;
-	default:
-		break;
-	}
-}
-#elif defined(__TARGET_ARCH_arm64)
-#define TIF_32BIT 22
-FUNC_INLINE void
-generic_setup_32bit_syscall(struct msg_generic_kprobe *e, u8 op)
-{
-	struct thread_info *info;
-	unsigned long flags;
-
-	switch (op) {
-	case MSG_OP_GENERIC_TRACEPOINT:
-	case MSG_OP_GENERIC_KPROBE:
-		info = (struct thread_info *)get_current_task();
-		probe_read(&flags, sizeof(flags), _(&info->flags));
-		e->sel.is32BitSyscall = flags & (1 << TIF_32BIT);
-	default:
-		break;
-	}
-}
-#else
-#define generic_setup_32bit_syscall(e, op)
-#endif
-
 FUNC_INLINE void
 generic_process_init(struct msg_generic_kprobe *e, u8 op, struct event_config *config)
 {
@@ -186,9 +146,6 @@ generic_process_init(struct msg_generic_kprobe *e, u8 op, struct event_config *c
 	 *  At kprobes, tracpoints etc we report the calling thread ID to user space.
 	 */
 	e->tid = (__u32)get_current_pid_tgid();
-
-	/* Get 32-bit syscall emulation bit value. */
-	generic_setup_32bit_syscall(e, op);
 }
 
 FUNC_INLINE int
