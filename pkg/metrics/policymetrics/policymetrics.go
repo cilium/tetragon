@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
-package policystatemetrics
+package policymetrics
 
 import (
 	"context"
@@ -34,7 +34,7 @@ var policyState = metrics.MustNewCustomGauge(metrics.NewOpts(
 
 // This metric collector converts the output of ListTracingPolicies into a few
 // gauges metrics on collection. Thus, it needs a sensor manager to query.
-func NewPolicyStateCollector() metrics.CollectorWithInit {
+func NewPolicyCollector() metrics.CollectorWithInit {
 	return metrics.NewCustomCollector(
 		metrics.CustomMetrics{
 			policyState,
