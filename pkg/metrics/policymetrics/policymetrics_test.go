@@ -21,7 +21,10 @@ import (
 
 func Test_policyStatusCollector_Collect(t *testing.T) {
 	expectedMetrics := func(disabled, enabled, err, load_error int) io.Reader {
-		return strings.NewReader(fmt.Sprintf(`# HELP tetragon_tracingpolicy_loaded The number of loaded tracing policy by state.
+		return strings.NewReader(fmt.Sprintf(`# HELP tetragon_tracingpolicy_kernel_memory_bytes The amount of kernel memory in bytes used by policy's sensors non-shared BPF maps (memlock).
+# TYPE tetragon_tracingpolicy_kernel_memory_bytes gauge
+tetragon_tracingpolicy_kernel_memory_bytes{policy="pizza"} 0
+# HELP tetragon_tracingpolicy_loaded The number of loaded tracing policy by state.
 # TYPE tetragon_tracingpolicy_loaded gauge
 tetragon_tracingpolicy_loaded{state="disabled"} %d
 tetragon_tracingpolicy_loaded{state="enabled"} %d
