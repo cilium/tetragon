@@ -65,6 +65,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -102,6 +103,43 @@ type Map struct {
 	InnerEntries MaxEntries
 	Type         MapType
 	Owner        bool
+}
+
+// globalMaps keeps a record of all global maps to exclude them from per policy
+// memory map accounting.
+var globalMaps = struct {
+	maps map[string]bool
+	mu   sync.RWMutex
+}{
+	make(map[string]bool),
+	sync.RWMutex{},
+}
+
+func IsGlobalMap(name string) bool {
+	if len(name) > 15 {
+		name = name[:15]
+	}
+	globalMaps.mu.RLock()
+	defer globalMaps.mu.RUnlock()
+	return globalMaps.maps[name]
+}
+
+func AddGlobalMap(name string) {
+	if len(name) > 15 {
+		name = name[:15]
+	}
+	globalMaps.mu.Lock()
+	defer globalMaps.mu.Unlock()
+	globalMaps.maps[name] = true
+}
+
+func DeleteGlobMap(name string) {
+	if len(name) > 15 {
+		name = name[:15]
+	}
+	globalMaps.mu.Lock()
+	defer globalMaps.mu.Unlock()
+	delete(globalMaps.maps, name)
 }
 
 // Map holds pointer to Program object as a source of its ebpf object
@@ -187,6 +225,9 @@ func (m *Map) Unload() error {
 	if m.MapHandle != nil {
 		if !option.Config.KeepSensorsOnExit {
 			m.MapHandle.Unpin()
+			if m.Type == MapTypeGlobal {
+				DeleteGlobMap(m.Name)
+			}
 		}
 		err := m.MapHandle.Close()
 		m.MapHandle = nil
@@ -264,6 +305,9 @@ func (m *Map) LoadOrCreatePinnedMap(pinPath string, mapSpec *ebpf.MapSpec) error
 
 	m.MapHandle = mh
 	m.PinState.RefInc()
+	if m.Type == MapTypeGlobal {
+		AddGlobalMap(m.Name)
+	}
 	return nil
 }
 

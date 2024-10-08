@@ -103,8 +103,15 @@ func (s Sensor) TotalMemlock() int {
 
 	var total int
 	for _, info := range uniqueMap {
+		// we are using info.Name that is truncated to 15 chars to exclude
+		// global maps, a more resilient implementation could use ID but this
+		// should be enough.
+		if program.IsGlobalMap(info.Name) {
+			continue
+		}
 		total += info.Memlock
 	}
+
 	return total
 }
 
