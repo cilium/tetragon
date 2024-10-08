@@ -62,9 +62,9 @@ adjust the number of item in the table.
 				w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 3, ' ', 0)
 				fmt.Fprintln(w, "AllMaps\tPinnedProgsMaps\tPinnedMaps")
 				fmt.Fprintf(w, "%d\t%d\t%d\n",
-					out.TotalByteMemlock.AllMaps,
-					out.TotalByteMemlock.PinnedProgsMaps,
-					out.TotalByteMemlock.PinnedMaps,
+					out.TotalMemlockBytes.AllMaps,
+					out.TotalMemlockBytes.PinnedProgsMaps,
+					out.TotalMemlockBytes.PinnedMaps,
 				)
 				w.Flush()
 				cmd.Println()
@@ -93,7 +93,7 @@ adjust the number of item in the table.
 							d.KeySize,
 							d.ValueSize,
 							d.MaxEntries,
-							d.Memlock,
+							d.MemlockBytes,
 						)
 					}
 					w.Flush()
@@ -116,7 +116,7 @@ adjust the number of item in the table.
 							d.ValueSize,
 							d.MaxEntries,
 							d.Count,
-							d.TotalMemlock,
+							d.TotalMemlockBytes,
 							d.PercentOfTotal,
 						)
 					}

@@ -25,8 +25,8 @@ type ExtendedMapInfo struct {
 	Memlock int
 }
 
-// TotalByteMemlock iterates over the extend map info and sums the memlock field.
-func TotalByteMemlock(infos []ExtendedMapInfo) int {
+// TotalMemlockBytes iterates over the extend map info and sums the memlock field.
+func TotalMemlockBytes(infos []ExtendedMapInfo) int {
 	var sum int
 	for _, info := range infos {
 		sum += info.Memlock
@@ -325,32 +325,32 @@ func isBPFObject(object string, fd int) (bool, error) {
 const TetragonBPFFS = "/sys/fs/bpf/tetragon"
 
 type DiffMap struct {
-	ID         int    `json:"id,omitempty"`
-	Name       string `json:"name,omitempty"`
-	Type       string `json:"type,omitempty"`
-	KeySize    int    `json:"key_size,omitempty"`
-	ValueSize  int    `json:"value_size,omitempty"`
-	MaxEntries int    `json:"max_entries,omitempty"`
-	Memlock    int    `json:"memlock,omitempty"`
+	ID           int    `json:"id,omitempty"`
+	Name         string `json:"name,omitempty"`
+	Type         string `json:"type,omitempty"`
+	KeySize      int    `json:"key_size,omitempty"`
+	ValueSize    int    `json:"value_size,omitempty"`
+	MaxEntries   int    `json:"max_entries,omitempty"`
+	MemlockBytes int    `json:"memlock_bytes,omitempty"`
 }
 
 type AggregatedMap struct {
-	Name           string  `json:"name,omitempty"`
-	Type           string  `json:"type,omitempty"`
-	KeySize        int     `json:"key_size,omitempty"`
-	ValueSize      int     `json:"value_size,omitempty"`
-	MaxEntries     int     `json:"max_entries,omitempty"`
-	Count          int     `json:"count,omitempty"`
-	TotalMemlock   int     `json:"total_memlock,omitempty"`
-	PercentOfTotal float64 `json:"percent_of_total,omitempty"`
+	Name              string  `json:"name,omitempty"`
+	Type              string  `json:"type,omitempty"`
+	KeySize           int     `json:"key_size,omitempty"`
+	ValueSize         int     `json:"value_size,omitempty"`
+	MaxEntries        int     `json:"max_entries,omitempty"`
+	Count             int     `json:"count,omitempty"`
+	TotalMemlockBytes int     `json:"total_memlock_bytes,omitempty"`
+	PercentOfTotal    float64 `json:"percent_of_total,omitempty"`
 }
 
 type MapsChecksOutput struct {
-	TotalByteMemlock struct {
+	TotalMemlockBytes struct {
 		AllMaps         int `json:"all_maps,omitempty"`
 		PinnedProgsMaps int `json:"pinned_progs_maps,omitempty"`
 		PinnedMaps      int `json:"pinned_maps,omitempty"`
-	} `json:"total_byte_memlock,omitempty"`
+	} `json:"total_memlock_bytes,omitempty"`
 
 	MapsStats struct {
 		PinnedProgsMaps int `json:"pinned_progs_maps,omitempty"`
@@ -390,9 +390,9 @@ func RunMapsChecks(path string) (*MapsChecksOutput, error) {
 	var out MapsChecksOutput
 
 	// BPF maps memory usage
-	out.TotalByteMemlock.AllMaps = TotalByteMemlock(allMaps)
-	out.TotalByteMemlock.PinnedProgsMaps = TotalByteMemlock(pinnedProgsMaps)
-	out.TotalByteMemlock.PinnedMaps = TotalByteMemlock(pinnedMaps)
+	out.TotalMemlockBytes.AllMaps = TotalMemlockBytes(allMaps)
+	out.TotalMemlockBytes.PinnedProgsMaps = TotalMemlockBytes(pinnedProgsMaps)
+	out.TotalMemlockBytes.PinnedMaps = TotalMemlockBytes(pinnedMaps)
 
 	// details on map distribution
 	pinnedProgsMapsSet := map[int]ExtendedMapInfo{}
@@ -430,13 +430,13 @@ func RunMapsChecks(path string) (*MapsChecksOutput, error) {
 			return nil, errors.New("failed retrieving map ID, need >= 4.13, kernel is too old")
 		}
 		out.DiffMaps = append(out.DiffMaps, DiffMap{
-			ID:         int(id),
-			Name:       d.Name,
-			Type:       d.Type.String(),
-			KeySize:    int(d.KeySize),
-			ValueSize:  int(d.ValueSize),
-			MaxEntries: int(d.MaxEntries),
-			Memlock:    d.Memlock,
+			ID:           int(id),
+			Name:         d.Name,
+			Type:         d.Type.String(),
+			KeySize:      int(d.KeySize),
+			ValueSize:    int(d.ValueSize),
+			MaxEntries:   int(d.MaxEntries),
+			MemlockBytes: d.Memlock,
 		})
 	}
 
@@ -466,14 +466,14 @@ func RunMapsChecks(path string) (*MapsChecksOutput, error) {
 
 	for _, m := range aggregatedMaps {
 		out.AggregatedMaps = append(out.AggregatedMaps, AggregatedMap{
-			Name:           m.Name,
-			Type:           m.Type.String(),
-			KeySize:        int(m.KeySize),
-			ValueSize:      int(m.ValueSize),
-			MaxEntries:     int(m.MaxEntries),
-			Count:          m.count,
-			TotalMemlock:   m.Memlock,
-			PercentOfTotal: float64(m.Memlock) / float64(total) * 100,
+			Name:              m.Name,
+			Type:              m.Type.String(),
+			KeySize:           int(m.KeySize),
+			ValueSize:         int(m.ValueSize),
+			MaxEntries:        int(m.MaxEntries),
+			Count:             m.count,
+			TotalMemlockBytes: m.Memlock,
+			PercentOfTotal:    float64(m.Memlock) / float64(total) * 100,
 		})
 	}
 
