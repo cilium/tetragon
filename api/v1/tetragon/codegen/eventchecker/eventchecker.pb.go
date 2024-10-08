@@ -5589,6 +5589,72 @@ func (checker *KprobeBpfMapChecker) FromKprobeBpfMap(event *tetragon.KprobeBpfMa
 	return checker
 }
 
+// SyscallIdChecker implements a checker struct to check a SyscallId field
+type SyscallIdChecker struct {
+	Id  *uint32                      `json:"id,omitempty"`
+	Abi *stringmatcher.StringMatcher `json:"abi,omitempty"`
+}
+
+// NewSyscallIdChecker creates a new SyscallIdChecker
+func NewSyscallIdChecker() *SyscallIdChecker {
+	return &SyscallIdChecker{}
+}
+
+// Get the type of the checker as a string
+func (checker *SyscallIdChecker) GetCheckerType() string {
+	return "SyscallIdChecker"
+}
+
+// Check checks a SyscallId field
+func (checker *SyscallIdChecker) Check(event *tetragon.SyscallId) error {
+	if event == nil {
+		return fmt.Errorf("%s: SyscallId field is nil", CheckerLogPrefix(checker))
+	}
+
+	fieldChecks := func() error {
+		if checker.Id != nil {
+			if *checker.Id != event.Id {
+				return fmt.Errorf("Id has value %d which does not match expected value %d", event.Id, *checker.Id)
+			}
+		}
+		if checker.Abi != nil {
+			if err := checker.Abi.Match(event.Abi); err != nil {
+				return fmt.Errorf("Abi check failed: %w", err)
+			}
+		}
+		return nil
+	}
+	if err := fieldChecks(); err != nil {
+		return fmt.Errorf("%s: %w", CheckerLogPrefix(checker), err)
+	}
+	return nil
+}
+
+// WithId adds a Id check to the SyscallIdChecker
+func (checker *SyscallIdChecker) WithId(check uint32) *SyscallIdChecker {
+	checker.Id = &check
+	return checker
+}
+
+// WithAbi adds a Abi check to the SyscallIdChecker
+func (checker *SyscallIdChecker) WithAbi(check *stringmatcher.StringMatcher) *SyscallIdChecker {
+	checker.Abi = check
+	return checker
+}
+
+//FromSyscallId populates the SyscallIdChecker using data from a SyscallId field
+func (checker *SyscallIdChecker) FromSyscallId(event *tetragon.SyscallId) *SyscallIdChecker {
+	if event == nil {
+		return checker
+	}
+	{
+		val := event.Id
+		checker.Id = &val
+	}
+	checker.Abi = stringmatcher.Full(event.Abi)
+	return checker
+}
+
 // KprobeArgumentChecker implements a checker struct to check a KprobeArgument field
 type KprobeArgumentChecker struct {
 	StringArg             *stringmatcher.StringMatcher `json:"stringArg,omitempty"`
@@ -5618,6 +5684,7 @@ type KprobeArgumentChecker struct {
 	LinuxBinprmArg        *KprobeLinuxBinprmChecker    `json:"linuxBinprmArg,omitempty"`
 	NetDevArg             *KprobeNetDevChecker         `json:"netDevArg,omitempty"`
 	BpfCmdArg             *BpfCmdChecker               `json:"bpfCmdArg,omitempty"`
+	SyscallId             *SyscallIdChecker            `json:"syscallId,omitempty"`
 	Label                 *stringmatcher.StringMatcher `json:"label,omitempty"`
 }
 
@@ -5908,6 +5975,16 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 				return fmt.Errorf("KprobeArgumentChecker: BpfCmdArg check failed: %T is not a BpfCmdArg", event)
 			}
 		}
+		if checker.SyscallId != nil {
+			switch event := event.Arg.(type) {
+			case *tetragon.KprobeArgument_SyscallId:
+				if err := checker.SyscallId.Check(event.SyscallId); err != nil {
+					return fmt.Errorf("SyscallId check failed: %w", err)
+				}
+			default:
+				return fmt.Errorf("KprobeArgumentChecker: SyscallId check failed: %T is not a SyscallId", event)
+			}
+		}
 		if checker.Label != nil {
 			if err := checker.Label.Match(event.Label); err != nil {
 				return fmt.Errorf("Label check failed: %w", err)
@@ -6084,6 +6161,12 @@ func (checker *KprobeArgumentChecker) WithBpfCmdArg(check tetragon.BpfCmd) *Kpro
 	return checker
 }
 
+// WithSyscallId adds a SyscallId check to the KprobeArgumentChecker
+func (checker *KprobeArgumentChecker) WithSyscallId(check *SyscallIdChecker) *KprobeArgumentChecker {
+	checker.SyscallId = check
+	return checker
+}
+
 // WithLabel adds a Label check to the KprobeArgumentChecker
 func (checker *KprobeArgumentChecker) WithLabel(check *stringmatcher.StringMatcher) *KprobeArgumentChecker {
 	checker.Label = check
@@ -6246,6 +6329,12 @@ func (checker *KprobeArgumentChecker) FromKprobeArgument(event *tetragon.KprobeA
 	switch event := event.Arg.(type) {
 	case *tetragon.KprobeArgument_BpfCmdArg:
 		checker.BpfCmdArg = NewBpfCmdChecker(event.BpfCmdArg)
+	}
+	switch event := event.Arg.(type) {
+	case *tetragon.KprobeArgument_SyscallId:
+		if event.SyscallId != nil {
+			checker.SyscallId = NewSyscallIdChecker().FromSyscallId(event.SyscallId)
+		}
 	}
 	checker.Label = stringmatcher.Full(event.Label)
 	return checker
