@@ -22,6 +22,7 @@
 #include "common.h"
 #include "process/data_event.h"
 #include "process/bpf_enforcer.h"
+#include "../syscall64.h"
 
 /* Type IDs form API with user space generickprobe.go */
 enum {
@@ -147,8 +148,6 @@ struct selector_arg_filters {
 	__u32 arglen;
 	__u32 argoff[5];
 } __attribute__((packed));
-
-#define IS_32BIT 0x80000000
 
 struct event_config {
 	__u32 func_id;
@@ -1268,18 +1267,14 @@ FUNC_INLINE bool is_signed_type(int type)
 
 // filter on values provided in the selector itself
 FUNC_LOCAL long
-filter_64ty_selector_val(struct selector_arg_filter *filter, char *args, bool set32bit)
+filter_64ty_selector_val(struct selector_arg_filter *filter, char *args)
 {
 	__u64 *v = (__u64 *)&filter->value;
 	int i, j = 0;
-	__u64 b32 = 0;
-
-	if (set32bit)
-		b32 |= IS_32BIT;
 
 #pragma unroll
 	for (i = 0; i < MAX_MATCH_VALUES; i++) {
-		__u64 w = v[i], uarg = b32;
+		__u64 w = v[i];
 		bool res;
 
 		switch (filter->op) {
@@ -1289,8 +1284,7 @@ filter_64ty_selector_val(struct selector_arg_filter *filter, char *args, bool se
 				if (*(s64 *)args < (s64)w)
 					return 1;
 			} else {
-				uarg |= *(u64 *)args;
-				if (uarg < w)
+				if (*(u64 *)args < w)
 					return 1;
 			}
 			break;
@@ -1299,25 +1293,21 @@ filter_64ty_selector_val(struct selector_arg_filter *filter, char *args, bool se
 				if (*(s64 *)args > (s64)w)
 					return 1;
 			} else {
-				uarg |= *(u64 *)args;
-				if (uarg > w)
+				if (*(u64 *)args < w)
 					return 1;
 			}
 			break;
 #endif // __LARGE_BPF_PROG
 		case op_filter_eq:
 		case op_filter_neq:
-			uarg |= *(u64 *)args;
-			res = (uarg == w);
-
+			res = (*(u64 *)args == w);
 			if (filter->op == op_filter_eq && res)
 				return 1;
 			if (filter->op == op_filter_neq && !res)
 				return 1;
 			break;
 		case op_filter_mask:
-			uarg |= *(u64 *)args;
-			if (uarg & w)
+			if (*(u64 *)args & w)
 				return 1;
 		default:
 			break;
@@ -1332,7 +1322,7 @@ filter_64ty_selector_val(struct selector_arg_filter *filter, char *args, bool se
 // use the selector value to determine a hash map, and do a lookup to determine whether the argument
 // is in the defined set.
 FUNC_LOCAL long
-filter_64ty_map(struct selector_arg_filter *filter, char *args, bool set32bit)
+filter_64ty_map(struct selector_arg_filter *filter, char *args)
 {
 	void *argmap;
 	__u32 map_idx = filter->value;
@@ -1342,10 +1332,6 @@ filter_64ty_map(struct selector_arg_filter *filter, char *args, bool set32bit)
 		return 0;
 
 	__u64 arg = *((__u64 *)args);
-
-	if (set32bit)
-		arg |= IS_32BIT;
-
 	__u8 *pass = map_lookup_elem(argmap, &arg);
 
 	switch (filter->op) {
@@ -1358,7 +1344,7 @@ filter_64ty_map(struct selector_arg_filter *filter, char *args, bool set32bit)
 }
 
 FUNC_LOCAL long
-filter_64ty(struct selector_arg_filter *filter, char *args, bool set32bit)
+filter_64ty(struct selector_arg_filter *filter, char *args)
 {
 	switch (filter->op) {
 	case op_filter_lt:
@@ -1366,10 +1352,10 @@ filter_64ty(struct selector_arg_filter *filter, char *args, bool set32bit)
 	case op_filter_eq:
 	case op_filter_neq:
 	case op_filter_mask:
-		return filter_64ty_selector_val(filter, args, set32bit);
+		return filter_64ty_selector_val(filter, args);
 	case op_filter_inmap:
 	case op_filter_notinmap:
-		return filter_64ty_map(filter, args, set32bit);
+		return filter_64ty_map(filter, args);
 	}
 
 	return 0;
@@ -1705,8 +1691,6 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 	for (i = 0; i < 5; i++)
 #endif
 	{
-		bool set32bit = false;
-
 		argsoff = filters->argoff[i];
 		asm volatile("%[argsoff] &= 0x3ff;\n"
 			     : [argsoff] "+r"(argsoff));
@@ -1752,14 +1736,13 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 			pass &= filter_char_buf(filter, args, 8);
 			break;
 		case syscall64_type:
-			set32bit = e->sel.is32BitSyscall;
 		case s64_ty:
 		case u64_ty:
 		case kernel_cap_ty:
 		case cap_inh_ty:
 		case cap_prm_ty:
 		case cap_eff_ty:
-			pass &= filter_64ty(filter, args, set32bit);
+			pass &= filter_64ty(filter, args);
 			break;
 		case size_type:
 		case int_type:
