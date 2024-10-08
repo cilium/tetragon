@@ -404,6 +404,11 @@ message KprobeBpfMap {
     string  MapName = 5;
 }
 
+message SyscallId {
+	uint32 id = 1;
+	string abi = 2;
+}
+
 message KprobeArgument {
     oneof arg {
 	string    string_arg = 1;
@@ -433,6 +438,7 @@ message KprobeArgument {
 	KprobeLinuxBinprm linux_binprm_arg = 26;
 	KprobeNetDev net_dev_arg = 27;
 	BpfCmd bpf_cmd_arg = 28;
+	SyscallId syscall_id = 29;
     }
     string label = 18;
 }
