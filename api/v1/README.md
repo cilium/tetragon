@@ -54,6 +54,7 @@
     - [RuntimeHookRequest](#tetragon-RuntimeHookRequest)
     - [RuntimeHookResponse](#tetragon-RuntimeHookResponse)
     - [StackTraceEntry](#tetragon-StackTraceEntry)
+    - [SyscallId](#tetragon-SyscallId)
     - [Test](#tetragon-Test)
     - [UserNamespace](#tetragon-UserNamespace)
     - [UserRecord](#tetragon-UserRecord)
@@ -547,6 +548,7 @@ found.
 | linux_binprm_arg | [KprobeLinuxBinprm](#tetragon-KprobeLinuxBinprm) |  |  |
 | net_dev_arg | [KprobeNetDev](#tetragon-KprobeNetDev) |  |  |
 | bpf_cmd_arg | [BpfCmd](#tetragon-BpfCmd) |  |  |
+| syscall_id | [SyscallId](#tetragon-SyscallId) |  |  |
 | label | [string](#string) |  |  |
 
 
@@ -1113,6 +1115,22 @@ RuntimeHookRequest synchronously propagates information to the agent about run-t
 | offset | [uint64](#uint64) |  | offset is the offset into the native instructions for the function. |
 | symbol | [string](#string) |  | symbol is the symbol name of the function. |
 | module | [string](#string) |  | module path for user space addresses. |
+
+
+
+
+
+
+<a name="tetragon-SyscallId"></a>
+
+### SyscallId
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| id | [uint32](#uint32) |  |  |
+| abi | [string](#string) |  |  |
 
 
 
