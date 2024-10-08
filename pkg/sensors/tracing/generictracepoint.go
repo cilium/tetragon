@@ -701,7 +701,7 @@ func handleMsgGenericTracepoint(
 		}
 
 		switch out.genericTypeId {
-		case gt.GenericU64Type, gt.GenericSyscall64:
+		case gt.GenericU64Type:
 			var val uint64
 			err := binary.Read(r, binary.LittleEndian, &val)
 			if err != nil {
@@ -825,6 +825,16 @@ func handleMsgGenericTracepoint(
 			arg.Dport = uint32(sock.Tuple.Dport)
 			arg.Sockaddr = sock.Sockaddr
 			unix.Args = append(unix.Args, arg)
+
+		case gt.GenericSyscall64:
+			var val uint64
+			err := binary.Read(r, binary.LittleEndian, &val)
+			if err != nil {
+				logger.GetLogger().WithError(err).Warnf("Size type error sizeof %d", m.Common.Size)
+			}
+			// NB: clear Is32Bit to mantain previous behaviour
+			val = val & (^uint64(Is32Bit))
+			unix.Args = append(unix.Args, val)
 
 		default:
 			logger.GetLogger().Warnf("handleGenericTracepoint: ignoring:  %+v", out)
