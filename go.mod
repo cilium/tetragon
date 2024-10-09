@@ -6,6 +6,7 @@ go 1.23.0
 toolchain go1.23.1
 
 require (
+	github.com/alecthomas/kong v1.2.1
 	github.com/bombsimon/logrusr/v4 v4.1.0
 	github.com/cilium/cilium v1.17.0-pre.1
 	github.com/cilium/ebpf v0.16.0
