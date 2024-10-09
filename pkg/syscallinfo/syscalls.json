@@ -41,10 +41,38 @@
          "Type": "int"
       }
    ],
+   "acct": [
+      {
+         "Name": "name",
+         "Type": "const char *"
+      }
+   ],
+   "add_key": [
+      {
+         "Name": "_type",
+         "Type": "const char *"
+      },
+      {
+         "Name": "_description",
+         "Type": "const char *"
+      },
+      {
+         "Name": "_payload",
+         "Type": "const void *"
+      },
+      {
+         "Name": "plen",
+         "Type": "size_t"
+      },
+      {
+         "Name": "ringid",
+         "Type": "key_serial_t"
+      }
+   ],
    "adjtimex": [
       {
          "Name": "txc_p",
-         "Type": "struct __kernel_timex *"
+         "Type": "struct timex *"
       }
    ],
    "alarm": [
@@ -157,6 +185,20 @@
          "Type": "gid_t"
       }
    ],
+   "chown16": [
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "user",
+         "Type": "old_uid_t"
+      },
+      {
+         "Name": "group",
+         "Type": "old_gid_t"
+      }
+   ],
    "chroot": [
       {
          "Name": "filename",
@@ -170,7 +212,7 @@
       },
       {
          "Name": "utx",
-         "Type": "struct __kernel_timex *"
+         "Type": "struct timex *"
       }
    ],
    "clock_getres": [
@@ -180,7 +222,7 @@
       },
       {
          "Name": "tp",
-         "Type": "struct __kernel_timespec *"
+         "Type": "struct timespec *"
       }
    ],
    "clock_gettime": [
@@ -190,7 +232,7 @@
       },
       {
          "Name": "tp",
-         "Type": "struct __kernel_timespec *"
+         "Type": "struct timespec *"
       }
    ],
    "clock_nanosleep": [
@@ -204,11 +246,11 @@
       },
       {
          "Name": "rqtp",
-         "Type": "const struct __kernel_timespec *"
+         "Type": "const struct timespec *"
       },
       {
          "Name": "rmtp",
-         "Type": "struct __kernel_timespec *"
+         "Type": "struct timespec *"
       }
    ],
    "clock_settime": [
@@ -218,7 +260,7 @@
       },
       {
          "Name": "tp",
-         "Type": "const struct __kernel_timespec *"
+         "Type": "const struct timespec *"
       }
    ],
    "clone": [
@@ -663,6 +705,20 @@
          "Type": "gid_t"
       }
    ],
+   "fchown16": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "user",
+         "Type": "old_uid_t"
+      },
+      {
+         "Name": "group",
+         "Type": "old_gid_t"
+      }
+   ],
    "fchownat": [
       {
          "Name": "dfd",
@@ -918,7 +974,7 @@
       },
       {
          "Name": "utime",
-         "Type": "struct __kernel_timespec *"
+         "Type": "struct timespec *"
       },
       {
          "Name": "uaddr2",
@@ -940,7 +996,29 @@
       },
       {
          "Name": "utimes",
-         "Type": "struct __kernel_old_timeval *"
+         "Type": "struct timeval *"
+      }
+   ],
+   "get_mempolicy": [
+      {
+         "Name": "policy",
+         "Type": "int *"
+      },
+      {
+         "Name": "nmask",
+         "Type": "unsigned long *"
+      },
+      {
+         "Name": "maxnode",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "addr",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned long"
       }
    ],
    "get_robust_list": [
@@ -955,6 +1033,12 @@
       {
          "Name": "len_ptr",
          "Type": "size_t *"
+      }
+   ],
+   "get_thread_area": [
+      {
+         "Name": "u_info",
+         "Type": "struct user_desc *"
       }
    ],
    "getcpu": [
@@ -1019,6 +1103,16 @@
          "Type": "gid_t *"
       }
    ],
+   "getgroups16": [
+      {
+         "Name": "gidsetsize",
+         "Type": "int"
+      },
+      {
+         "Name": "grouplist",
+         "Type": "old_gid_t *"
+      }
+   ],
    "gethostname": [
       {
          "Name": "name",
@@ -1036,7 +1130,7 @@
       },
       {
          "Name": "value",
-         "Type": "struct __kernel_old_itimerval *"
+         "Type": "struct itimerval *"
       }
    ],
    "getpeername": [
@@ -1097,6 +1191,20 @@
          "Type": "gid_t *"
       }
    ],
+   "getresgid16": [
+      {
+         "Name": "rgidp",
+         "Type": "old_gid_t *"
+      },
+      {
+         "Name": "egidp",
+         "Type": "old_gid_t *"
+      },
+      {
+         "Name": "sgidp",
+         "Type": "old_gid_t *"
+      }
+   ],
    "getresuid": [
       {
          "Name": "ruidp",
@@ -1109,6 +1217,20 @@
       {
          "Name": "suidp",
          "Type": "uid_t *"
+      }
+   ],
+   "getresuid16": [
+      {
+         "Name": "ruidp",
+         "Type": "old_uid_t *"
+      },
+      {
+         "Name": "euidp",
+         "Type": "old_uid_t *"
+      },
+      {
+         "Name": "suidp",
+         "Type": "old_uid_t *"
       }
    ],
    "getrlimit": [
@@ -1176,7 +1298,7 @@
    "gettimeofday": [
       {
          "Name": "tv",
-         "Type": "struct __kernel_old_timeval *"
+         "Type": "struct timeval *"
       },
       {
          "Name": "tz",
@@ -1284,7 +1406,7 @@
       },
       {
          "Name": "timeout",
-         "Type": "struct __kernel_timespec *"
+         "Type": "struct timespec *"
       }
    ],
    "io_pgetevents": [
@@ -1306,7 +1428,7 @@
       },
       {
          "Name": "timeout",
-         "Type": "struct __kernel_timespec *"
+         "Type": "struct timespec *"
       },
       {
          "Name": "usig",
@@ -1449,6 +1571,46 @@
          "Type": "int"
       }
    ],
+   "kexec_load": [
+      {
+         "Name": "entry",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "nr_segments",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "segments",
+         "Type": "struct kexec_segment *"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned long"
+      }
+   ],
+   "keyctl": [
+      {
+         "Name": "option",
+         "Type": "int"
+      },
+      {
+         "Name": "arg2",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "arg3",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "arg4",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "arg5",
+         "Type": "unsigned long"
+      }
+   ],
    "kill": [
       {
          "Name": "pid",
@@ -1471,6 +1633,20 @@
       {
          "Name": "group",
          "Type": "gid_t"
+      }
+   ],
+   "lchown16": [
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "user",
+         "Type": "old_uid_t"
+      },
+      {
+         "Name": "group",
+         "Type": "old_gid_t"
       }
    ],
    "lgetxattr": [
@@ -1561,6 +1737,28 @@
          "Type": "size_t"
       }
    ],
+   "llseek": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "offset_high",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "offset_low",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "result",
+         "Type": "loff_t *"
+      },
+      {
+         "Name": "whence",
+         "Type": "unsigned int"
+      }
+   ],
    "lookup_dcookie": [
       {
          "Name": "cookie64",
@@ -1645,6 +1843,32 @@
          "Type": "int"
       }
    ],
+   "mbind": [
+      {
+         "Name": "start",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "len",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "mode",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "nmask",
+         "Type": "const unsigned long *"
+      },
+      {
+         "Name": "maxnode",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      }
+   ],
    "membarrier": [
       {
          "Name": "cmd",
@@ -1667,6 +1891,24 @@
       {
          "Name": "flags",
          "Type": "unsigned int"
+      }
+   ],
+   "migrate_pages": [
+      {
+         "Name": "pid",
+         "Type": "pid_t"
+      },
+      {
+         "Name": "maxnode",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "old_nodes",
+         "Type": "const unsigned long *"
+      },
+      {
+         "Name": "new_nodes",
+         "Type": "const unsigned long *"
       }
    ],
    "mincore": [
@@ -1879,6 +2121,32 @@
          "Type": "unsigned int"
       }
    ],
+   "move_pages": [
+      {
+         "Name": "pid",
+         "Type": "pid_t"
+      },
+      {
+         "Name": "nr_pages",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "pages",
+         "Type": "const void * *"
+      },
+      {
+         "Name": "nodes",
+         "Type": "const int *"
+      },
+      {
+         "Name": "status",
+         "Type": "int *"
+      },
+      {
+         "Name": "flags",
+         "Type": "int"
+      }
+   ],
    "mprotect": [
       {
          "Name": "start",
@@ -1954,7 +2222,7 @@
       },
       {
          "Name": "u_abs_timeout",
-         "Type": "const struct __kernel_timespec *"
+         "Type": "const struct timespec *"
       }
    ],
    "mq_timedsend": [
@@ -1976,7 +2244,7 @@
       },
       {
          "Name": "u_abs_timeout",
-         "Type": "const struct __kernel_timespec *"
+         "Type": "const struct timespec *"
       }
    ],
    "mq_unlink": [
@@ -2130,11 +2398,11 @@
    "nanosleep": [
       {
          "Name": "rqtp",
-         "Type": "struct __kernel_timespec *"
+         "Type": "struct timespec *"
       },
       {
          "Name": "rmtp",
-         "Type": "struct __kernel_timespec *"
+         "Type": "struct timespec *"
       }
    ],
    "newfstat": [
@@ -2407,6 +2675,40 @@
          "Type": "const char *"
       }
    ],
+   "pkey_alloc": [
+      {
+         "Name": "flags",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "init_val",
+         "Type": "unsigned long"
+      }
+   ],
+   "pkey_free": [
+      {
+         "Name": "pkey",
+         "Type": "int"
+      }
+   ],
+   "pkey_mprotect": [
+      {
+         "Name": "start",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "len",
+         "Type": "size_t"
+      },
+      {
+         "Name": "prot",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "pkey",
+         "Type": "int"
+      }
+   ],
    "poll": [
       {
          "Name": "ufds",
@@ -2432,7 +2734,7 @@
       },
       {
          "Name": "tsp",
-         "Type": "struct __kernel_timespec *"
+         "Type": "struct timespec *"
       },
       {
          "Name": "sigmask",
@@ -2571,6 +2873,58 @@
          "Type": "unsigned int"
       }
    ],
+   "process_vm_readv": [
+      {
+         "Name": "pid",
+         "Type": "pid_t"
+      },
+      {
+         "Name": "lvec",
+         "Type": "const struct iovec *"
+      },
+      {
+         "Name": "liovcnt",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "rvec",
+         "Type": "const struct iovec *"
+      },
+      {
+         "Name": "riovcnt",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned long"
+      }
+   ],
+   "process_vm_writev": [
+      {
+         "Name": "pid",
+         "Type": "pid_t"
+      },
+      {
+         "Name": "lvec",
+         "Type": "const struct iovec *"
+      },
+      {
+         "Name": "liovcnt",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "rvec",
+         "Type": "const struct iovec *"
+      },
+      {
+         "Name": "riovcnt",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned long"
+      }
+   ],
    "pselect6": [
       {
          "Name": "n",
@@ -2590,7 +2944,7 @@
       },
       {
          "Name": "tsp",
-         "Type": "struct __kernel_timespec *"
+         "Type": "struct timespec *"
       },
       {
          "Name": "sig",
@@ -2679,6 +3033,24 @@
       {
          "Name": "flags",
          "Type": "rwf_t"
+      }
+   ],
+   "quotactl": [
+      {
+         "Name": "cmd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "special",
+         "Type": "const char *"
+      },
+      {
+         "Name": "id",
+         "Type": "qid_t"
+      },
+      {
+         "Name": "addr",
+         "Type": "void *"
       }
    ],
    "read": [
@@ -2836,7 +3208,7 @@
       },
       {
          "Name": "timeout",
-         "Type": "struct __kernel_timespec *"
+         "Type": "struct timespec *"
       }
    ],
    "recvmsg": [
@@ -2933,6 +3305,24 @@
       {
          "Name": "flags",
          "Type": "unsigned int"
+      }
+   ],
+   "request_key": [
+      {
+         "Name": "_type",
+         "Type": "const char *"
+      },
+      {
+         "Name": "_description",
+         "Type": "const char *"
+      },
+      {
+         "Name": "_callout_info",
+         "Type": "const char *"
+      },
+      {
+         "Name": "destringid",
+         "Type": "key_serial_t"
       }
    ],
    "rmdir": [
@@ -3040,7 +3430,7 @@
       },
       {
          "Name": "uts",
-         "Type": "const struct __kernel_timespec *"
+         "Type": "const struct timespec *"
       },
       {
          "Name": "sigsetsize",
@@ -3132,7 +3522,7 @@
       },
       {
          "Name": "interval",
-         "Type": "struct __kernel_timespec *"
+         "Type": "struct timespec *"
       }
    ],
    "sched_setaffinity": [
@@ -3220,7 +3610,7 @@
       },
       {
          "Name": "tvp",
-         "Type": "struct __kernel_old_timeval *"
+         "Type": "struct timeval *"
       }
    ],
    "semctl": [
@@ -3284,7 +3674,7 @@
       },
       {
          "Name": "timeout",
-         "Type": "const struct __kernel_timespec *"
+         "Type": "const struct timespec *"
       }
    ],
    "send": [
@@ -3399,6 +3789,20 @@
          "Type": "int"
       }
    ],
+   "set_mempolicy": [
+      {
+         "Name": "mode",
+         "Type": "int"
+      },
+      {
+         "Name": "nmask",
+         "Type": "const unsigned long *"
+      },
+      {
+         "Name": "maxnode",
+         "Type": "unsigned long"
+      }
+   ],
    "set_robust_list": [
       {
          "Name": "head",
@@ -3407,6 +3811,12 @@
       {
          "Name": "len",
          "Type": "size_t"
+      }
+   ],
+   "set_thread_area": [
+      {
+         "Name": "u_info",
+         "Type": "struct user_desc *"
       }
    ],
    "set_tid_address": [
@@ -3431,16 +3841,34 @@
          "Type": "gid_t"
       }
    ],
+   "setfsgid16": [
+      {
+         "Name": "gid",
+         "Type": "old_gid_t"
+      }
+   ],
    "setfsuid": [
       {
          "Name": "uid",
          "Type": "uid_t"
       }
    ],
+   "setfsuid16": [
+      {
+         "Name": "uid",
+         "Type": "old_uid_t"
+      }
+   ],
    "setgid": [
       {
          "Name": "gid",
          "Type": "gid_t"
+      }
+   ],
+   "setgid16": [
+      {
+         "Name": "gid",
+         "Type": "old_gid_t"
       }
    ],
    "setgroups": [
@@ -3451,6 +3879,16 @@
       {
          "Name": "grouplist",
          "Type": "gid_t *"
+      }
+   ],
+   "setgroups16": [
+      {
+         "Name": "gidsetsize",
+         "Type": "int"
+      },
+      {
+         "Name": "grouplist",
+         "Type": "old_gid_t *"
       }
    ],
    "sethostname": [
@@ -3470,11 +3908,11 @@
       },
       {
          "Name": "value",
-         "Type": "struct __kernel_old_itimerval *"
+         "Type": "struct itimerval *"
       },
       {
          "Name": "ovalue",
-         "Type": "struct __kernel_old_itimerval *"
+         "Type": "struct itimerval *"
       }
    ],
    "setns": [
@@ -3521,6 +3959,16 @@
          "Type": "gid_t"
       }
    ],
+   "setregid16": [
+      {
+         "Name": "rgid",
+         "Type": "old_gid_t"
+      },
+      {
+         "Name": "egid",
+         "Type": "old_gid_t"
+      }
+   ],
    "setresgid": [
       {
          "Name": "rgid",
@@ -3533,6 +3981,20 @@
       {
          "Name": "sgid",
          "Type": "gid_t"
+      }
+   ],
+   "setresgid16": [
+      {
+         "Name": "rgid",
+         "Type": "old_gid_t"
+      },
+      {
+         "Name": "egid",
+         "Type": "old_gid_t"
+      },
+      {
+         "Name": "sgid",
+         "Type": "old_gid_t"
       }
    ],
    "setresuid": [
@@ -3549,6 +4011,20 @@
          "Type": "uid_t"
       }
    ],
+   "setresuid16": [
+      {
+         "Name": "ruid",
+         "Type": "old_uid_t"
+      },
+      {
+         "Name": "euid",
+         "Type": "old_uid_t"
+      },
+      {
+         "Name": "suid",
+         "Type": "old_uid_t"
+      }
+   ],
    "setreuid": [
       {
          "Name": "ruid",
@@ -3557,6 +4033,16 @@
       {
          "Name": "euid",
          "Type": "uid_t"
+      }
+   ],
+   "setreuid16": [
+      {
+         "Name": "ruid",
+         "Type": "old_uid_t"
+      },
+      {
+         "Name": "euid",
+         "Type": "old_uid_t"
       }
    ],
    "setrlimit": [
@@ -3594,7 +4080,7 @@
    "settimeofday": [
       {
          "Name": "tv",
-         "Type": "struct __kernel_old_timeval *"
+         "Type": "struct timeval *"
       },
       {
          "Name": "tz",
@@ -3605,6 +4091,12 @@
       {
          "Name": "uid",
          "Type": "uid_t"
+      }
+   ],
+   "setuid16": [
+      {
+         "Name": "uid",
+         "Type": "old_uid_t"
       }
    ],
    "setxattr": [
@@ -3759,6 +4251,20 @@
          "Type": "old_sigset_t *"
       }
    ],
+   "sigsuspend": [
+      {
+         "Name": "unused1",
+         "Type": "int"
+      },
+      {
+         "Name": "unused2",
+         "Type": "int"
+      },
+      {
+         "Name": "mask",
+         "Type": "old_sigset_t"
+      }
+   ],
    "socket": [
       {
          "Name": "family",
@@ -3892,7 +4398,7 @@
    "stime": [
       {
          "Name": "tptr",
-         "Type": "__kernel_old_time_t *"
+         "Type": "time_t *"
       }
    ],
    "swapoff": [
@@ -3977,6 +4483,12 @@
          "Type": "int"
       }
    ],
+   "sysctl": [
+      {
+         "Name": "args",
+         "Type": "struct __sysctl_args *"
+      }
+   ],
    "sysfs": [
       {
          "Name": "option",
@@ -4046,7 +4558,7 @@
    "time": [
       {
          "Name": "tloc",
-         "Type": "__kernel_old_time_t *"
+         "Type": "time_t *"
       }
    ],
    "timer_create": [
@@ -4082,7 +4594,7 @@
       },
       {
          "Name": "setting",
-         "Type": "struct __kernel_itimerspec *"
+         "Type": "struct itimerspec *"
       }
    ],
    "timer_settime": [
@@ -4096,11 +4608,11 @@
       },
       {
          "Name": "new_setting",
-         "Type": "const struct __kernel_itimerspec *"
+         "Type": "const struct itimerspec *"
       },
       {
          "Name": "old_setting",
-         "Type": "struct __kernel_itimerspec *"
+         "Type": "struct itimerspec *"
       }
    ],
    "timerfd_create": [
@@ -4120,7 +4632,7 @@
       },
       {
          "Name": "otmr",
-         "Type": "struct __kernel_itimerspec *"
+         "Type": "struct itimerspec *"
       }
    ],
    "timerfd_settime": [
@@ -4134,11 +4646,11 @@
       },
       {
          "Name": "utmr",
-         "Type": "const struct __kernel_itimerspec *"
+         "Type": "const struct itimerspec *"
       },
       {
          "Name": "otmr",
-         "Type": "struct __kernel_itimerspec *"
+         "Type": "struct itimerspec *"
       }
    ],
    "times": [
@@ -4215,6 +4727,12 @@
          "Type": "unsigned long"
       }
    ],
+   "uselib": [
+      {
+         "Name": "library",
+         "Type": "const char *"
+      }
+   ],
    "ustat": [
       {
          "Name": "dev",
@@ -4246,7 +4764,7 @@
       },
       {
          "Name": "utimes",
-         "Type": "struct __kernel_timespec *"
+         "Type": "struct timespec *"
       },
       {
          "Name": "flags",
@@ -4260,7 +4778,7 @@
       },
       {
          "Name": "utimes",
-         "Type": "struct __kernel_old_timeval *"
+         "Type": "struct timeval *"
       }
    ],
    "vmsplice": [
