@@ -36,6 +36,10 @@ options:
     - name: enable-cgidmap-debug
       default_value: "false"
       usage: enable cgidmap debugging info
+    - name: enable-compatibility-syscall64-size-type
+      default_value: "false"
+      usage: |
+        syscall64 type will produce output of type size (compatibility flag, will be removed in v1.4)
     - name: enable-cri
       default_value: "false"
       usage: enable CRI client for tetragon

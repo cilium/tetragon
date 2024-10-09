@@ -27,10 +27,12 @@ import (
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
+	"github.com/cilium/tetragon/pkg/syscallinfo"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/unix"
 )
 
@@ -102,7 +104,7 @@ func TestEnforcerOverride(t *testing.T) {
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
-				ec.NewKprobeArgumentChecker().WithSizeArg(unix.SYS_GETCPU),
+				ec.NewKprobeArgumentChecker().WithSyscallId(mkSysIDChecker(t, unix.SYS_GETCPU)),
 			)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYENFORCER)
 
@@ -156,7 +158,7 @@ func TestEnforcerOverrideManySyscalls(t *testing.T) {
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
-				ec.NewKprobeArgumentChecker().WithSizeArg(unix.SYS_GETCPU),
+				ec.NewKprobeArgumentChecker().WithSyscallId(mkSysIDChecker(t, unix.SYS_GETCPU)),
 			)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYENFORCER)
 
@@ -195,6 +197,12 @@ func TestEnforcerOverrideManySyscalls(t *testing.T) {
 	})
 }
 
+func mkSysIDChecker(t *testing.T, id uint64) *ec.SyscallIdChecker {
+	abi, err := syscallinfo.DefaultABI()
+	require.NoError(t, err)
+	return ec.NewSyscallIdChecker().WithId(uint32(id)).WithAbi(sm.Full(abi))
+}
+
 func TestEnforcerSignal(t *testing.T) {
 	testEnforcerCheckSkip(t)
 
@@ -204,7 +212,7 @@ func TestEnforcerSignal(t *testing.T) {
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
-				ec.NewKprobeArgumentChecker().WithSizeArg(syscall.SYS_PRCTL),
+				ec.NewKprobeArgumentChecker().WithSyscallId(mkSysIDChecker(t, syscall.SYS_PRCTL)),
 			)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYENFORCER)
 
