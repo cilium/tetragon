@@ -74,5 +74,13 @@ func rawSyscallName(tp *tetragon.ProcessTracepoint) string {
 	if sysID == -1 {
 		return ""
 	}
-	return syscallinfo.GetSyscallName(int(sysID))
+	abi, err := syscallinfo.DefaultABI()
+	if err != nil {
+		return ""
+	}
+	name, err := syscallinfo.GetSyscallName(abi, int(sysID))
+	if err != nil {
+		return ""
+	}
+	return name
 }
