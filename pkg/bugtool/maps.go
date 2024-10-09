@@ -87,7 +87,10 @@ func FindAllMaps() ([]bpf.ExtendedMapInfo, error) {
 // specified as argument.
 func FindPinnedMaps(path string) ([]bpf.ExtendedMapInfo, error) {
 	var infos []bpf.ExtendedMapInfo
-	err := filepath.WalkDir(path, func(path string, d fs.DirEntry, _ error) error {
+	err := filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
 		if d.IsDir() {
 			return nil // skip directories
 		}
@@ -149,7 +152,10 @@ func mapIDsFromProgs(prog *ebpf.Program) ([]int, error) {
 func mapIDsFromPinnedProgs(path string) ([]int, error) {
 	mapSet := map[int]bool{}
 	progArrays := []*ebpf.Map{}
-	err := filepath.WalkDir(path, func(path string, d fs.DirEntry, _ error) error {
+	err := filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
 		if d.IsDir() {
 			return nil // skip directories
 		}
