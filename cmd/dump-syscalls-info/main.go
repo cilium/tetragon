@@ -18,11 +18,13 @@ import (
 )
 
 type cli struct {
-	SyscallsInfo SyscallsInfo `cmd:"info" name:"info" help:"dump syscalls info"`
+	SyscallsInfo SyscallsInfoCmd `cmd:"" name:"info" help:"dump syscalls info"`
 }
 
-type SyscallsInfo struct {
-	VmLinux string `name:"vmlinux"`
+type SyscallsInfoCmd struct {
+	VmLinux  string `name:"vmlinux"`
+	JsonFile string `name:"jsonfile" help:"json file to update (or create)"`
+	DryRun   bool
 }
 
 type SyscallArg struct {
@@ -133,16 +135,147 @@ func dumpSyscalls(fname string) (map[string][]SyscallArg, error) {
 	return info, nil
 }
 
-func (c *SyscallsInfo) Run() error {
+func updateArgs(l *slog.Logger, oldArgs []SyscallArg, newArgs []SyscallArg) []SyscallArg {
+	compatibleTypes := map[string]string{
+		"__kernel_old_time_t *":              "time_t *",
+		"struct __kernel_old_timeval *":      "struct timeval *",
+		"struct __kernel_timespec *":         "struct timespec *",
+		"const struct __kernel_timespec *":   "const struct timespec *",
+		"struct __kernel_itimerspec *":       "struct itimerspec *",
+		"struct __kernel_old_itimerval *":    "struct itimerval *",
+		"const struct __kernel_itimerspec *": "const struct itimerspec *",
+		"struct __kernel_timex *":            "struct timex *",
+	}
+	isCompat := func(ty1, ty2 string) bool {
+		v, ok := compatibleTypes[ty1]
+		return ok && v == ty2
+	}
+
+	nArgs := len(oldArgs)
+	if len(newArgs) > len(oldArgs) {
+		nArgs = len(newArgs)
+	}
+	args := make([]SyscallArg, 0, nArgs)
+	for i := range nArgs {
+		li := l.With("i", i)
+		if i >= len(oldArgs) {
+			li.Info("argument does not exist in old, keeping new",
+				"new", newArgs[i])
+			args = append(args, newArgs[i])
+			continue
+		} else if i >= len(newArgs) {
+			li.Info("argument does not exist in new, keeping old",
+				"old", oldArgs[i])
+			args = append(args, oldArgs[i])
+			continue
+		} else if oldArgs[i] == newArgs[i] {
+			args = append(args, oldArgs[i])
+			continue
+		}
+
+		// arguments differ
+		li = li.With("old", oldArgs[i], "new", newArgs[i])
+		oldTy := oldArgs[i].Type
+		newTy := newArgs[i].Type
+		if newTy != oldTy {
+			switch {
+			case isCompat(newTy, oldTy):
+				li.Info("new type is compatible to old, keeping old")
+				args = append(args, oldArgs[i])
+			case isCompat(oldTy, newTy):
+				li.Info("old type is compatible to old, keeping new")
+				args = append(args, newArgs[i])
+			default:
+				li.Warn("¯\\_(ツ)_/¯, keeping old")
+				args = append(args, oldArgs[i])
+			}
+		} else {
+			li.Info("arg names differ, keeping old")
+			args = append(args, oldArgs[i])
+		}
+	}
+
+	return args
+}
+
+func updateInfo(
+	oldInfo map[string][]SyscallArg,
+	newInfo map[string][]SyscallArg,
+) map[string][]SyscallArg {
+	type valTy struct {
+		inOld bool
+		inNew bool
+	}
+	allSyscalls := make(map[string]*valTy)
+	for k := range oldInfo {
+		allSyscalls[k] = &valTy{inOld: true}
+	}
+	for k := range newInfo {
+		if v := allSyscalls[k]; v == nil {
+			allSyscalls[k] = &valTy{inNew: true}
+		} else {
+			v.inNew = true
+		}
+	}
+
+	ret := make(map[string][]SyscallArg)
+	for k, v := range allSyscalls {
+		sl := slog.With("syscall", k)
+		if v.inOld && v.inNew {
+			ret[k] = updateArgs(sl, oldInfo[k], newInfo[k])
+		} else if v.inOld {
+			ret[k] = oldInfo[k]
+		} else if v.inNew {
+			sl.Info("new syscall")
+			ret[k] = newInfo[k]
+		} else {
+			panic("!?!?")
+		}
+	}
+	return ret
+}
+
+func (c *SyscallsInfoCmd) Run() error {
 	info, err := dumpSyscalls(c.VmLinux)
 	if err != nil {
 		return err
 	}
+
+	outF := os.Stdout
+	if c.JsonFile != "" {
+		var oldInfo map[string][]SyscallArg
+		f, err := os.Open(c.JsonFile)
+		if err != nil {
+			return err
+		}
+		data, err := io.ReadAll(f)
+		if err != nil {
+			return err
+		}
+		err = json.Unmarshal(data, &oldInfo)
+		if err != nil {
+			return err
+		}
+		info = updateInfo(oldInfo, info)
+		// NB: If we returned an error, the program will terminate so it's not a big deal to
+		// leak a file until we exit.
+		f.Close()
+	}
+
+	if c.JsonFile != "" && !c.DryRun {
+		outF, err = os.Create(c.JsonFile)
+		if err != nil {
+			return err
+		}
+		defer outF.Close()
+	}
+
 	b, err := json.MarshalIndent(info, "", "   ")
 	if err != nil {
 		return err
 	}
-	os.Stdout.Write(b)
+	outF.Write(b)
+
 	return nil
 }
 
