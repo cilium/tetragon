@@ -8,13 +8,13 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/cilium/tetragon/pkg/syscallinfo"
 	"github.com/stretchr/testify/require"
 )
 
 func defABI(t *testing.T) string {
-	abi, err := defaultABI()
-	assert.Nil(t, err)
+	abi, err := syscallinfo.DefaultABI()
+	require.Nil(t, err)
 	return abi
 }
 
