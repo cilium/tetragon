@@ -11,6 +11,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
+	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/syscallinfo/arm32"
 	"github.com/cilium/tetragon/pkg/syscallinfo/i386"
 	"github.com/cilium/tetragon/pkg/testutils"
@@ -21,13 +22,16 @@ func TestEnforcerOverride32(t *testing.T) {
 
 	prctlID := uint64(0)
 	var syscallVal string
+	sysIDChecker := ec.NewSyscallIdChecker()
 	switch a := runtime.GOARCH; a {
 	case "amd64":
 		syscallVal = "i386/sys_prctl"
 		prctlID = i386.SYS_PRCTL
+		sysIDChecker = sysIDChecker.WithId(uint32(prctlID)).WithAbi(sm.Full("i386"))
 	case "arm64":
 		syscallVal = "arm32/sys_prctl"
 		prctlID = arm32.SYS_PRCTL
+		sysIDChecker = sysIDChecker.WithId(uint32(prctlID)).WithAbi(sm.Full("arm32"))
 	default:
 		t.Fatalf("Unknown arch: %s", a)
 	}
@@ -43,7 +47,7 @@ func TestEnforcerOverride32(t *testing.T) {
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
-				ec.NewKprobeArgumentChecker().WithSizeArg(prctlID),
+				ec.NewKprobeArgumentChecker().WithSyscallId(sysIDChecker),
 			)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYENFORCER)
 
@@ -62,13 +66,16 @@ func TestEnforcerSignal32(t *testing.T) {
 
 	prctlID := uint64(0)
 	var syscallVal string
+	sysIDChecker := ec.NewSyscallIdChecker()
 	switch a := runtime.GOARCH; a {
 	case "amd64":
 		syscallVal = "i386/sys_prctl"
 		prctlID = i386.SYS_PRCTL
+		sysIDChecker = sysIDChecker.WithId(uint32(prctlID)).WithAbi(sm.Full("i386"))
 	case "arm64":
 		syscallVal = "arm32/sys_prctl"
 		prctlID = arm32.SYS_PRCTL
+		sysIDChecker = sysIDChecker.WithId(uint32(prctlID)).WithAbi(sm.Full("arm32"))
 	default:
 		t.Fatalf("Unknown arch: %s", a)
 	}
@@ -85,7 +92,7 @@ func TestEnforcerSignal32(t *testing.T) {
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
-				ec.NewKprobeArgumentChecker().WithSizeArg(prctlID),
+				ec.NewKprobeArgumentChecker().WithSyscallId(sysIDChecker),
 			)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYENFORCER)
 
@@ -105,13 +112,16 @@ func TestEnforcerOverrideBothBits(t *testing.T) {
 
 	prctlID := uint64(0)
 	var syscallVal string
+	sysIDChecker32 := ec.NewSyscallIdChecker()
 	switch a := runtime.GOARCH; a {
 	case "amd64":
 		syscallVal = "i386/sys_prctl"
 		prctlID = i386.SYS_PRCTL
+		sysIDChecker32 = sysIDChecker32.WithId(uint32(prctlID)).WithAbi(sm.Full("i386"))
 	case "arm64":
 		syscallVal = "arm32/sys_prctl"
 		prctlID = arm32.SYS_PRCTL
+		sysIDChecker32 = sysIDChecker32.WithId(uint32(prctlID)).WithAbi(sm.Full("arm32"))
 	default:
 		t.Fatalf("Unknown arch: %s", a)
 	}
@@ -129,7 +139,7 @@ func TestEnforcerOverrideBothBits(t *testing.T) {
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
-				ec.NewKprobeArgumentChecker().WithSizeArg(prctlID),
+				ec.NewKprobeArgumentChecker().WithSyscallId(sysIDChecker32),
 			)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYENFORCER)
 
@@ -137,7 +147,7 @@ func TestEnforcerOverrideBothBits(t *testing.T) {
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
-				ec.NewKprobeArgumentChecker().WithSizeArg(syscall.SYS_PRCTL),
+				ec.NewKprobeArgumentChecker().WithSyscallId(mkSysIDChecker(t, syscall.SYS_PRCTL)),
 			)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYENFORCER)
 

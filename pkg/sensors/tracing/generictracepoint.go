@@ -832,9 +832,14 @@ func handleMsgGenericTracepoint(
 			if err != nil {
 				logger.GetLogger().WithError(err).Warnf("Size type error sizeof %d", m.Common.Size)
 			}
-			// NB: clear Is32Bit to mantain previous behaviour
-			val = val & (^uint64(Is32Bit))
-			unix.Args = append(unix.Args, val)
+			if option.Config.CompatibilitySyscall64SizeType {
+				// NB: clear Is32Bit to mantain previous behaviour
+				val = val & (^uint64(Is32Bit))
+				unix.Args = append(unix.Args, val)
+			} else {
+				val := parseSyscall64Value(val)
+				unix.Args = append(unix.Args, val)
+			}
 
 		default:
 			logger.GetLogger().Warnf("handleGenericTracepoint: ignoring:  %+v", out)

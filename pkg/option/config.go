@@ -104,6 +104,8 @@ type config struct {
 
 	EventCacheNumRetries int
 	EventCacheRetryDelay int
+
+	CompatibilitySyscall64SizeType bool
 }
 
 var (

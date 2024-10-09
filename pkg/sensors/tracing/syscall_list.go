@@ -5,8 +5,10 @@ package tracing
 
 import (
 	"fmt"
+	"runtime"
 	"strings"
 
+	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/syscallinfo"
 )
@@ -91,6 +93,36 @@ func validateABI(xarg, abi string) error {
 	}
 
 	return nil
+}
+
+// returns abi, syscall id
+func parseSyscall64Value(val uint64) tracingapi.MsgGenericSyscallID {
+	abi32 := false
+	if val&Is32Bit != 0 {
+		abi32 = true
+		val = val & (^uint64(Is32Bit))
+	}
+
+	abi := "unknown"
+	switch a := runtime.GOARCH; a {
+	case "amd64":
+		if abi32 {
+			abi = "i386"
+		} else {
+			abi = "x64"
+		}
+	case "arm64":
+		if abi32 {
+			abi = "arm32"
+		} else {
+			abi = "arm64"
+		}
+	}
+
+	return tracingapi.MsgGenericSyscallID{
+		ID:  uint32(val),
+		ABI: abi,
+	}
 }
 
 func parseSyscallValue(value SyscallVal) (abi string, name string, err error) {
