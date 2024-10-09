@@ -246,6 +246,11 @@ type MsgGenericKprobeArgSkb struct {
 	Label       string
 }
 
+type MsgGenericSyscallID struct {
+	ID  uint32
+	ABI string
+}
+
 func (m MsgGenericKprobeArgSkb) GetIndex() uint64 {
 	return m.Index
 }

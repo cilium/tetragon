@@ -524,6 +524,14 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 				SockArg: &sk,
 			}})
 
+		case tracingapi.MsgGenericSyscallID:
+			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_SyscallId{
+				SyscallId: &tetragon.SyscallId{
+					Id:  v.ID,
+					Abi: v.ABI,
+				},
+			}})
+
 		default:
 			logger.GetLogger().Warnf("handleGenericTracepointMessage: unhandled value: %+v (%T)", arg, arg)
 		}

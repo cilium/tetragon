@@ -860,7 +860,7 @@ spec:
 			WithArgs(ec.NewKprobeArgumentListMatcher().
 				WithOperator(lc.Ordered).
 				WithValues(
-					ec.NewKprobeArgumentChecker().WithSizeArg(syscall.SYS_DUP),
+					ec.NewKprobeArgumentChecker().WithSyscallId(mkSysIDChecker(t, unix.SYS_DUP)),
 					ec.NewKprobeArgumentChecker().WithSizeArg(uint64(i)),
 				))
 
