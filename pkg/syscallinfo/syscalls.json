@@ -75,6 +75,12 @@
          "Type": "struct timex *"
       }
    ],
+   "adjtimex_time32": [
+      {
+         "Name": "utp",
+         "Type": "struct old_timex32 *"
+      }
+   ],
    "alarm": [
       {
          "Name": "seconds",
@@ -215,6 +221,16 @@
          "Type": "struct timex *"
       }
    ],
+   "clock_adjtime32": [
+      {
+         "Name": "which_clock",
+         "Type": "clockid_t"
+      },
+      {
+         "Name": "utp",
+         "Type": "struct old_timex32 *"
+      }
+   ],
    "clock_getres": [
       {
          "Name": "which_clock",
@@ -225,6 +241,16 @@
          "Type": "struct timespec *"
       }
    ],
+   "clock_getres_time32": [
+      {
+         "Name": "which_clock",
+         "Type": "clockid_t"
+      },
+      {
+         "Name": "tp",
+         "Type": "struct old_timespec32 *"
+      }
+   ],
    "clock_gettime": [
       {
          "Name": "which_clock",
@@ -233,6 +259,16 @@
       {
          "Name": "tp",
          "Type": "struct timespec *"
+      }
+   ],
+   "clock_gettime32": [
+      {
+         "Name": "which_clock",
+         "Type": "clockid_t"
+      },
+      {
+         "Name": "tp",
+         "Type": "struct old_timespec32 *"
       }
    ],
    "clock_nanosleep": [
@@ -253,6 +289,24 @@
          "Type": "struct timespec *"
       }
    ],
+   "clock_nanosleep_time32": [
+      {
+         "Name": "which_clock",
+         "Type": "clockid_t"
+      },
+      {
+         "Name": "flags",
+         "Type": "int"
+      },
+      {
+         "Name": "rqtp",
+         "Type": "struct old_timespec32 *"
+      },
+      {
+         "Name": "rmtp",
+         "Type": "struct old_timespec32 *"
+      }
+   ],
    "clock_settime": [
       {
          "Name": "which_clock",
@@ -261,6 +315,16 @@
       {
          "Name": "tp",
          "Type": "const struct timespec *"
+      }
+   ],
+   "clock_settime32": [
+      {
+         "Name": "which_clock",
+         "Type": "clockid_t"
+      },
+      {
+         "Name": "tp",
+         "Type": "struct old_timespec32 *"
       }
    ],
    "clone": [
@@ -985,6 +1049,32 @@
          "Type": "u32"
       }
    ],
+   "futex_time32": [
+      {
+         "Name": "uaddr",
+         "Type": "u32 *"
+      },
+      {
+         "Name": "op",
+         "Type": "int"
+      },
+      {
+         "Name": "val",
+         "Type": "u32"
+      },
+      {
+         "Name": "utime",
+         "Type": "struct old_timespec32 *"
+      },
+      {
+         "Name": "uaddr2",
+         "Type": "u32 *"
+      },
+      {
+         "Name": "val3",
+         "Type": "u32"
+      }
+   ],
    "futimesat": [
       {
          "Name": "dfd",
@@ -997,6 +1087,20 @@
       {
          "Name": "utimes",
          "Type": "struct timeval *"
+      }
+   ],
+   "futimesat_time32": [
+      {
+         "Name": "dfd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "t",
+         "Type": "struct old_timeval32 *"
       }
    ],
    "get_mempolicy": [
@@ -1407,6 +1511,28 @@
       {
          "Name": "timeout",
          "Type": "struct timespec *"
+      }
+   ],
+   "io_getevents_time32": [
+      {
+         "Name": "ctx_id",
+         "Type": "__u32"
+      },
+      {
+         "Name": "min_nr",
+         "Type": "__s32"
+      },
+      {
+         "Name": "nr",
+         "Type": "__s32"
+      },
+      {
+         "Name": "events",
+         "Type": "struct io_event *"
+      },
+      {
+         "Name": "timeout",
+         "Type": "struct old_timespec32 *"
       }
    ],
    "io_pgetevents": [
@@ -2225,6 +2351,28 @@
          "Type": "const struct timespec *"
       }
    ],
+   "mq_timedreceive_time32": [
+      {
+         "Name": "mqdes",
+         "Type": "mqd_t"
+      },
+      {
+         "Name": "u_msg_ptr",
+         "Type": "char *"
+      },
+      {
+         "Name": "msg_len",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "u_msg_prio",
+         "Type": "unsigned int *"
+      },
+      {
+         "Name": "u_abs_timeout",
+         "Type": "const struct old_timespec32 *"
+      }
+   ],
    "mq_timedsend": [
       {
          "Name": "mqdes",
@@ -2245,6 +2393,28 @@
       {
          "Name": "u_abs_timeout",
          "Type": "const struct timespec *"
+      }
+   ],
+   "mq_timedsend_time32": [
+      {
+         "Name": "mqdes",
+         "Type": "mqd_t"
+      },
+      {
+         "Name": "u_msg_ptr",
+         "Type": "const char *"
+      },
+      {
+         "Name": "msg_len",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "msg_prio",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "u_abs_timeout",
+         "Type": "const struct old_timespec32 *"
       }
    ],
    "mq_unlink": [
@@ -2403,6 +2573,16 @@
       {
          "Name": "rmtp",
          "Type": "struct timespec *"
+      }
+   ],
+   "nanosleep_time32": [
+      {
+         "Name": "rqtp",
+         "Type": "struct old_timespec32 *"
+      },
+      {
+         "Name": "rmtp",
+         "Type": "struct old_timespec32 *"
       }
    ],
    "newfstat": [
@@ -3211,6 +3391,28 @@
          "Type": "struct timespec *"
       }
    ],
+   "recvmmsg_time32": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "mmsg",
+         "Type": "struct mmsghdr *"
+      },
+      {
+         "Name": "vlen",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "timeout",
+         "Type": "struct old_timespec32 *"
+      }
+   ],
    "recvmsg": [
       {
          "Name": "fd",
@@ -3437,6 +3639,24 @@
          "Type": "size_t"
       }
    ],
+   "rt_sigtimedwait_time32": [
+      {
+         "Name": "uthese",
+         "Type": "const sigset_t *"
+      },
+      {
+         "Name": "uinfo",
+         "Type": "siginfo_t *"
+      },
+      {
+         "Name": "uts",
+         "Type": "const struct old_timespec32 *"
+      },
+      {
+         "Name": "sigsetsize",
+         "Type": "size_t"
+      }
+   ],
    "rt_tgsigqueueinfo": [
       {
          "Name": "tgid",
@@ -3523,6 +3743,16 @@
       {
          "Name": "interval",
          "Type": "struct timespec *"
+      }
+   ],
+   "sched_rr_get_interval_time32": [
+      {
+         "Name": "pid",
+         "Type": "pid_t"
+      },
+      {
+         "Name": "interval",
+         "Type": "struct old_timespec32 *"
       }
    ],
    "sched_setaffinity": [
@@ -3675,6 +3905,24 @@
       {
          "Name": "timeout",
          "Type": "const struct timespec *"
+      }
+   ],
+   "semtimedop_time32": [
+      {
+         "Name": "semid",
+         "Type": "int"
+      },
+      {
+         "Name": "tsems",
+         "Type": "struct sembuf *"
+      },
+      {
+         "Name": "nsops",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "timeout",
+         "Type": "const struct old_timespec32 *"
       }
    ],
    "send": [
@@ -4401,6 +4649,12 @@
          "Type": "time_t *"
       }
    ],
+   "stime32": [
+      {
+         "Name": "tptr",
+         "Type": "old_time32_t *"
+      }
+   ],
    "swapoff": [
       {
          "Name": "specialfile",
@@ -4561,6 +4815,12 @@
          "Type": "time_t *"
       }
    ],
+   "time32": [
+      {
+         "Name": "tloc",
+         "Type": "old_time32_t *"
+      }
+   ],
    "timer_create": [
       {
          "Name": "which_clock",
@@ -4597,6 +4857,16 @@
          "Type": "struct itimerspec *"
       }
    ],
+   "timer_gettime32": [
+      {
+         "Name": "timer_id",
+         "Type": "timer_t"
+      },
+      {
+         "Name": "setting",
+         "Type": "struct old_itimerspec32 *"
+      }
+   ],
    "timer_settime": [
       {
          "Name": "timer_id",
@@ -4613,6 +4883,24 @@
       {
          "Name": "old_setting",
          "Type": "struct itimerspec *"
+      }
+   ],
+   "timer_settime32": [
+      {
+         "Name": "timer_id",
+         "Type": "timer_t"
+      },
+      {
+         "Name": "flags",
+         "Type": "int"
+      },
+      {
+         "Name": "new",
+         "Type": "struct old_itimerspec32 *"
+      },
+      {
+         "Name": "old",
+         "Type": "struct old_itimerspec32 *"
       }
    ],
    "timerfd_create": [
@@ -4635,6 +4923,16 @@
          "Type": "struct itimerspec *"
       }
    ],
+   "timerfd_gettime32": [
+      {
+         "Name": "ufd",
+         "Type": "int"
+      },
+      {
+         "Name": "otmr",
+         "Type": "struct old_itimerspec32 *"
+      }
+   ],
    "timerfd_settime": [
       {
          "Name": "ufd",
@@ -4651,6 +4949,24 @@
       {
          "Name": "otmr",
          "Type": "struct itimerspec *"
+      }
+   ],
+   "timerfd_settime32": [
+      {
+         "Name": "ufd",
+         "Type": "int"
+      },
+      {
+         "Name": "flags",
+         "Type": "int"
+      },
+      {
+         "Name": "utmr",
+         "Type": "const struct old_itimerspec32 *"
+      },
+      {
+         "Name": "otmr",
+         "Type": "struct old_itimerspec32 *"
       }
    ],
    "times": [
@@ -4753,6 +5069,16 @@
          "Type": "struct utimbuf *"
       }
    ],
+   "utime32": [
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "t",
+         "Type": "struct old_utimbuf32 *"
+      }
+   ],
    "utimensat": [
       {
          "Name": "dfd",
@@ -4771,6 +5097,24 @@
          "Type": "int"
       }
    ],
+   "utimensat_time32": [
+      {
+         "Name": "dfd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "t",
+         "Type": "struct old_timespec32 *"
+      },
+      {
+         "Name": "flags",
+         "Type": "int"
+      }
+   ],
    "utimes": [
       {
          "Name": "filename",
@@ -4779,6 +5123,16 @@
       {
          "Name": "utimes",
          "Type": "struct timeval *"
+      }
+   ],
+   "utimes_time32": [
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "t",
+         "Type": "struct old_timeval32 *"
       }
    ],
    "vmsplice": [
