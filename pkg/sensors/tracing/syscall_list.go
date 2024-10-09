@@ -5,7 +5,6 @@ package tracing
 
 import (
 	"fmt"
-	"runtime"
 	"strings"
 
 	"github.com/cilium/tetragon/pkg/arch"
@@ -94,18 +93,6 @@ func validateABI(xarg, abi string) error {
 	return nil
 }
 
-func defaultABI() (string, error) {
-	switch a := runtime.GOARCH; a {
-	case "amd64":
-		return "x64", nil
-	case "arm64":
-		return "arm64", nil
-	default:
-		return "", fmt.Errorf("unsupported arch: %s", a)
-	}
-
-}
-
 func parseSyscallValue(value SyscallVal) (abi string, name string, err error) {
 	val := string(value)
 	arr := strings.Split(string(val), "/")
@@ -117,7 +104,7 @@ func parseSyscallValue(value SyscallVal) (abi string, name string, err error) {
 		xarch, name = arch.CutSyscallPrefix(val)
 		switch xarch {
 		case "":
-			abi, err = defaultABI()
+			abi, err = syscallinfo.DefaultABI()
 		case "amd64":
 			abi = "x64"
 		case "i386":

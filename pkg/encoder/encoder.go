@@ -564,13 +564,19 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 
 func rawSyscallEnter(tp *tetragon.ProcessTracepoint) string {
 	sysID := int64(-1)
+	abi, err := syscallinfo.DefaultABI()
+	if err != nil {
+		return "unknown"
+	}
+	// we assume that the syscall id is in the first argument
 	if len(tp.Args) > 0 && tp.Args[0] != nil {
 		if x, ok := tp.Args[0].GetArg().(*tetragon.KprobeArgument_LongArg); ok {
 			sysID = x.LongArg
 		}
 	}
+
 	sysName := "unknown"
-	if name := syscallinfo.GetSyscallName(int(sysID)); name != "" {
+	if name, _ := syscallinfo.GetSyscallName(abi, int(sysID)); name != "" {
 		sysName = name
 		sysArgs, ok := syscallinfo.GetSyscallArgs(sysName)
 		if ok {
