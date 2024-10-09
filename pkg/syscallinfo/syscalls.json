@@ -141,6 +141,24 @@
          "Type": "unsigned long"
       }
    ],
+   "cachestat": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "cstat_range",
+         "Type": "struct cachestat_range *"
+      },
+      {
+         "Name": "cstat",
+         "Type": "struct cachestat *"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      }
+   ],
    "capget": [
       {
          "Name": "header",
@@ -525,6 +543,32 @@
          "Type": "size_t"
       }
    ],
+   "epoll_pwait2": [
+      {
+         "Name": "epfd",
+         "Type": "int"
+      },
+      {
+         "Name": "events",
+         "Type": "struct epoll_event *"
+      },
+      {
+         "Name": "maxevents",
+         "Type": "int"
+      },
+      {
+         "Name": "timeout",
+         "Type": "const struct __kernel_timespec *"
+      },
+      {
+         "Name": "sigmask",
+         "Type": "const sigset_t *"
+      },
+      {
+         "Name": "sigsetsize",
+         "Type": "size_t"
+      }
+   ],
    "epoll_wait": [
       {
          "Name": "epfd",
@@ -753,6 +797,24 @@
       {
          "Name": "mode",
          "Type": "umode_t"
+      }
+   ],
+   "fchmodat2": [
+      {
+         "Name": "dfd",
+         "Type": "int"
+      },
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "mode",
+         "Type": "umode_t"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
       }
    ],
    "fchown": [
@@ -1073,6 +1135,28 @@
       {
          "Name": "val3",
          "Type": "u32"
+      }
+   ],
+   "futex_waitv": [
+      {
+         "Name": "waiters",
+         "Type": "struct futex_waitv *"
+      },
+      {
+         "Name": "nr_futexes",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "timeout",
+         "Type": "struct __kernel_timespec *"
+      },
+      {
+         "Name": "clockid",
+         "Type": "clockid_t"
       }
    ],
    "futimesat": [
@@ -1427,6 +1511,196 @@
          "Type": "size_t"
       }
    ],
+   "ia32_fadvise64": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "offset_lo",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "offset_hi",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "len",
+         "Type": "size_t"
+      },
+      {
+         "Name": "advice",
+         "Type": "int"
+      }
+   ],
+   "ia32_fadvise64_64": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "offset_low",
+         "Type": "__u32"
+      },
+      {
+         "Name": "offset_high",
+         "Type": "__u32"
+      },
+      {
+         "Name": "len_low",
+         "Type": "__u32"
+      },
+      {
+         "Name": "len_high",
+         "Type": "__u32"
+      },
+      {
+         "Name": "advice",
+         "Type": "int"
+      }
+   ],
+   "ia32_fallocate": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "mode",
+         "Type": "int"
+      },
+      {
+         "Name": "offset_lo",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "offset_hi",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "len_lo",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "len_hi",
+         "Type": "unsigned int"
+      }
+   ],
+   "ia32_ftruncate64": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "offset_low",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "offset_high",
+         "Type": "unsigned long"
+      }
+   ],
+   "ia32_pread64": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "ubuf",
+         "Type": "char *"
+      },
+      {
+         "Name": "count",
+         "Type": "u32"
+      },
+      {
+         "Name": "poslo",
+         "Type": "u32"
+      },
+      {
+         "Name": "poshi",
+         "Type": "u32"
+      }
+   ],
+   "ia32_pwrite64": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "ubuf",
+         "Type": "const char *"
+      },
+      {
+         "Name": "count",
+         "Type": "u32"
+      },
+      {
+         "Name": "poslo",
+         "Type": "u32"
+      },
+      {
+         "Name": "poshi",
+         "Type": "u32"
+      }
+   ],
+   "ia32_readahead": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "off_lo",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "off_hi",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "count",
+         "Type": "size_t"
+      }
+   ],
+   "ia32_sync_file_range": [
+      {
+         "Name": "fd",
+         "Type": "int"
+      },
+      {
+         "Name": "off_low",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "off_hi",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "n_low",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "n_hi",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "flags",
+         "Type": "int"
+      }
+   ],
+   "ia32_truncate64": [
+      {
+         "Name": "filename",
+         "Type": "const char *"
+      },
+      {
+         "Name": "offset_low",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "offset_high",
+         "Type": "unsigned long"
+      }
+   ],
    "init_module": [
       {
          "Name": "umod",
@@ -1695,6 +1969,28 @@
       {
          "Name": "ioprio",
          "Type": "int"
+      }
+   ],
+   "kcmp": [
+      {
+         "Name": "pid1",
+         "Type": "pid_t"
+      },
+      {
+         "Name": "pid2",
+         "Type": "pid_t"
+      },
+      {
+         "Name": "type",
+         "Type": "int"
+      },
+      {
+         "Name": "idx1",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "idx2",
+         "Type": "unsigned long"
       }
    ],
    "kexec_load": [
@@ -2019,6 +2315,12 @@
          "Type": "unsigned int"
       }
    ],
+   "memfd_secret": [
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      }
+   ],
    "migrate_pages": [
       {
          "Name": "pid",
@@ -2223,6 +2525,28 @@
       {
          "Name": "data",
          "Type": "void *"
+      }
+   ],
+   "mount_setattr": [
+      {
+         "Name": "dfd",
+         "Type": "int"
+      },
+      {
+         "Name": "path",
+         "Type": "const char *"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "uattr",
+         "Type": "struct mount_attr *"
+      },
+      {
+         "Name": "usize",
+         "Type": "size_t"
       }
    ],
    "move_mount": [
@@ -3053,6 +3377,16 @@
          "Type": "unsigned int"
       }
    ],
+   "process_mrelease": [
+      {
+         "Name": "pidfd",
+         "Type": "int"
+      },
+      {
+         "Name": "flags",
+         "Type": "unsigned int"
+      }
+   ],
    "process_vm_readv": [
       {
          "Name": "pid",
@@ -3223,6 +3557,24 @@
       {
          "Name": "special",
          "Type": "const char *"
+      },
+      {
+         "Name": "id",
+         "Type": "qid_t"
+      },
+      {
+         "Name": "addr",
+         "Type": "void *"
+      }
+   ],
+   "quotactl_fd": [
+      {
+         "Name": "fd",
+         "Type": "unsigned int"
+      },
+      {
+         "Name": "cmd",
+         "Type": "unsigned int"
       },
       {
          "Name": "id",
@@ -4048,6 +4400,24 @@
       },
       {
          "Name": "maxnode",
+         "Type": "unsigned long"
+      }
+   ],
+   "set_mempolicy_home_node": [
+      {
+         "Name": "start",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "len",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "home_node",
+         "Type": "unsigned long"
+      },
+      {
+         "Name": "flags",
          "Type": "unsigned long"
       }
    ],
