@@ -115,6 +115,8 @@ const (
 
 	KeyEventCacheRetries    = "event-cache-retries"
 	KeyEventCacheRetryDelay = "event-cache-retry-delay"
+
+	KeyCompatibilitySyscall64SizeType = "enable-compatibility-syscall64-size-type"
 )
 
 type UsernameMetadaCode int
@@ -244,6 +246,8 @@ func ReadAndSetFlags() error {
 
 	Config.EventCacheNumRetries = viper.GetInt(KeyEventCacheRetries)
 	Config.EventCacheRetryDelay = viper.GetInt(KeyEventCacheRetryDelay)
+
+	Config.CompatibilitySyscall64SizeType = viper.GetBool(KeyCompatibilitySyscall64SizeType)
 
 	return nil
 }
@@ -411,4 +415,6 @@ func AddFlags(flags *pflag.FlagSet) {
 
 	flags.Int(KeyEventCacheRetries, defaults.DefaultEventCacheNumRetries, "Number of retries for event cache")
 	flags.Int(KeyEventCacheRetryDelay, defaults.DefaultEventCacheRetryDelay, "Delay in seconds between event cache retries")
+
+	flags.Bool(KeyCompatibilitySyscall64SizeType, false, "syscall64 type will produce output of type size (compatibility flag, will be removed in v1.4)")
 }

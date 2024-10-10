@@ -89,7 +89,10 @@ lseek-pipe: FORCE
 	go build -o lseek-pipe ./go/lseek-pipe
 
 getcpu: FORCE
-	go build -o getcpu ./go/getcpu
+	go build -o $@ ./go/getcpu
+
+getcpu-i386: FORCE
+	GOARCH=386 go build -o $@ ./go/getcpu
 
 user-stacktrace: FORCE
 	go build -o user-stacktrace ./go/user-stacktrace

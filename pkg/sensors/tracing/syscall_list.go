@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/syscallinfo"
 )
@@ -94,16 +95,34 @@ func validateABI(xarg, abi string) error {
 	return nil
 }
 
-func defaultABI() (string, error) {
-	switch a := runtime.GOARCH; a {
-	case "amd64":
-		return "x64", nil
-	case "arm64":
-		return "arm64", nil
-	default:
-		return "", fmt.Errorf("unsupported arch: %s", a)
+// returns abi, syscall id
+func parseSyscall64Value(val uint64) tracingapi.MsgGenericSyscallID {
+	abi32 := false
+	if val&Is32Bit != 0 {
+		abi32 = true
+		val = val & (^uint64(Is32Bit))
 	}
 
+	abi := "unknown"
+	switch a := runtime.GOARCH; a {
+	case "amd64":
+		if abi32 {
+			abi = "i386"
+		} else {
+			abi = "x64"
+		}
+	case "arm64":
+		if abi32 {
+			abi = "arm32"
+		} else {
+			abi = "arm64"
+		}
+	}
+
+	return tracingapi.MsgGenericSyscallID{
+		ID:  uint32(val),
+		ABI: abi,
+	}
 }
 
 func parseSyscallValue(value SyscallVal) (abi string, name string, err error) {
@@ -117,7 +136,7 @@ func parseSyscallValue(value SyscallVal) (abi string, name string, err error) {
 		xarch, name = arch.CutSyscallPrefix(val)
 		switch xarch {
 		case "":
-			abi, err = defaultABI()
+			abi, err = syscallinfo.DefaultABI()
 		case "amd64":
 			abi = "x64"
 		case "i386":

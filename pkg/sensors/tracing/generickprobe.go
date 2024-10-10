@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"path"
+	"slices"
 	"strings"
 
 	"github.com/cilium/ebpf"
@@ -423,6 +424,14 @@ func createMultiKprobeSensor(policyName string, multiIDs []idtable.EntryID, has 
 	return progs, maps, nil
 }
 
+func validateKprobeType(ty string) error {
+	invalidArgTypes := []string{"auto", "syscall64"}
+	if slices.Contains(invalidArgTypes, ty) {
+		return fmt.Errorf("type '%s' is invalid for kprobes", ty)
+	}
+	return nil
+}
+
 // preValidateKprobes pre-validates the semantics and BTF information of a Kprobe spec
 //
 // Pre validate the kprobe semantics and BTF information in order to separate
@@ -519,8 +528,8 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec, lists []v1al
 		}
 
 		for idxArg, arg := range f.Args {
-			if arg.Type == "auto" {
-				return fmt.Errorf("spec.kprobes[%d].args[%d].type default 'auto' is invalid for a kprobe", i, idxArg)
+			if err := validateKprobeType(arg.Type); err != nil {
+				return fmt.Errorf("spec.kprobes[%d].args[%d].type: %w", i, idxArg, err)
 			}
 		}
 	}

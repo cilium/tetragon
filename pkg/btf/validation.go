@@ -434,7 +434,15 @@ func AvailableSyscalls() ([]string, error) {
 	}
 
 	ret := []string{}
-	for key, value := range syscallinfo.SyscallsNames() {
+	abi, err := syscallinfo.DefaultABI()
+	if err != nil {
+		return nil, err
+	}
+	names, err := syscallinfo.SyscallsNames(abi)
+	if err != nil {
+		return nil, err
+	}
+	for key, value := range names {
 		if value == "" {
 			return nil, fmt.Errorf("syscall name for %q is empty", key)
 		}
@@ -473,13 +481,16 @@ func GetSyscallsList() ([]string, error) {
 
 	var list []string
 
-	for key, value := range syscallinfo.SyscallsNames() {
+	abi, err := syscallinfo.DefaultABI()
+	if err != nil {
+		return nil, err
+	}
+	names, err := syscallinfo.SyscallsNames(abi)
+	if err != nil {
+		return nil, err
+	}
+	for _, value := range names {
 		var fn *btf.Func
-
-		if value == "" {
-			return nil, fmt.Errorf("syscall name for %q is empty", key)
-		}
-
 		sym, err := arch.AddSyscallPrefix(value)
 		if err != nil {
 			return []string{}, err

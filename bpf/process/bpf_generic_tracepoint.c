@@ -16,6 +16,7 @@
 #include "generic_calls.h"
 #include "pfilter.h"
 #include "policy_filter.h"
+#include "syscall64.h"
 
 struct {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
@@ -74,8 +75,9 @@ FUNC_INLINE unsigned long get_ctx_ul(void *src, int type)
 	case s64_ty:
 	case u64_ty: {
 		u64 ret;
-
 		probe_read(&ret, sizeof(u64), src);
+		if (type == syscall64_type)
+			ret = syscall64_set_32bit(ret);
 		return ret;
 	}
 
