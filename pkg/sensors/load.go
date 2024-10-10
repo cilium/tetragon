@@ -63,10 +63,17 @@ func LoadConfig(bpfDir string, sens []*Sensor) error {
 	return nil
 }
 
+func (s *Sensor) policyDir() string {
+	if s.Namespace == "" {
+		return sanitize(s.Policy)
+	}
+	return fmt.Sprintf("%s:%s", s.Namespace, sanitize(s.Policy))
+}
+
 func (s *Sensor) createDirs(bpfDir string) {
 	for _, p := range s.Progs {
 		// setup sensor based program pin path
-		p.PinPath = filepath.Join(sanitize(s.Policy), s.Name, p.PinName)
+		p.PinPath = filepath.Join(s.policyDir(), s.Name, p.PinName)
 		// and make the path
 		if err := os.MkdirAll(filepath.Join(bpfDir, p.PinPath), os.ModeDir); err != nil {
 			logger.GetLogger().WithError(err).
