@@ -758,7 +758,7 @@ func (s bugtoolInfo) addMemCgroupStats(tarWriter *tar.Writer) error {
 }
 
 func (s bugtoolInfo) addBPFMapsStats(tarWriter *tar.Writer) error {
-	out, err := RunMapsChecks()
+	out, err := RunMapsChecks(TetragonBPFFS)
 	if err != nil {
 		s.multiLog.WithError(err).Warn("failed to run BPF maps checks")
 		return fmt.Errorf("failed to run BPF maps checks: %w", err)

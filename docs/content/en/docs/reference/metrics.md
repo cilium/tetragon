@@ -287,6 +287,14 @@ Process Loader event statistics. For internal use only.
 | ----- | ------ |
 | `count` | `LoaderReceived, LoaderResolvedImm, LoaderResolvedRetry` |
 
+### `tetragon_tracingpolicy_kernel_memory_bytes`
+
+The amount of kernel memory in bytes used by policy's sensors non-shared BPF maps (memlock).
+
+| label | values |
+| ----- | ------ |
+| `policy` | `example-policy` |
+
 ### `tetragon_tracingpolicy_loaded`
 
 The number of loaded tracing policy by state.

@@ -4,29 +4,21 @@
 package bugtool
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
-	"strconv"
-	"strings"
 	"syscall"
 
 	"github.com/cilium/ebpf"
+	"github.com/cilium/tetragon/pkg/bpf"
 	"golang.org/x/exp/maps"
 )
 
-type ExtendedMapInfo struct {
-	ebpf.MapInfo
-	Memlock int
-}
-
-// TotalByteMemlock iterates over the extend map info and sums the memlock field.
-func TotalByteMemlock(infos []ExtendedMapInfo) int {
+// TotalMemlockBytes iterates over the extend map info and sums the memlock field.
+func TotalMemlockBytes(infos []bpf.ExtendedMapInfo) int {
 	var sum int
 	for _, info := range infos {
 		sum += info.Memlock
@@ -37,14 +29,14 @@ func TotalByteMemlock(infos []ExtendedMapInfo) int {
 // FindMapsUsedByPinnedProgs returns all info of maps used by the prog pinned
 // under the path specified as argument. It also retrieve all the maps
 // referenced in progs referenced in program array maps (tail calls).
-func FindMapsUsedByPinnedProgs(path string) ([]ExtendedMapInfo, error) {
+func FindMapsUsedByPinnedProgs(path string) ([]bpf.ExtendedMapInfo, error) {
 	mapIDs, err := mapIDsFromPinnedProgs(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed retrieving map IDs: %w", err)
 	}
-	mapInfos := []ExtendedMapInfo{}
+	mapInfos := []bpf.ExtendedMapInfo{}
 	for _, mapID := range mapIDs {
-		memlockInfo, err := memlockInfoFromMapID(mapID)
+		memlockInfo, err := bpf.ExtendedInfoFromMapID(mapID)
 		if err != nil {
 			return nil, fmt.Errorf("failed retrieving map memlock from ID: %w", err)
 		}
@@ -55,10 +47,10 @@ func FindMapsUsedByPinnedProgs(path string) ([]ExtendedMapInfo, error) {
 
 // FindAllMaps iterates over all maps loaded on the host using MapGetNextID and
 // parses fdinfo to look for memlock.
-func FindAllMaps() ([]ExtendedMapInfo, error) {
+func FindAllMaps() ([]bpf.ExtendedMapInfo, error) {
 	var mapID ebpf.MapID
 	var err error
-	mapInfos := []ExtendedMapInfo{}
+	mapInfos := []bpf.ExtendedMapInfo{}
 
 	for {
 		mapID, err = ebpf.MapGetNextID(mapID)
@@ -79,12 +71,12 @@ func FindAllMaps() ([]ExtendedMapInfo, error) {
 			return nil, fmt.Errorf("failed to retrieve map info: %w", err)
 		}
 
-		memlock, err := parseMemlockFromFDInfo(m.FD())
+		memlock, err := bpf.ParseMemlockFromFDInfo(m.FD())
 		if err != nil {
 			return nil, fmt.Errorf("failed parsing fdinfo to retrieve memlock: %w", err)
 		}
 
-		mapInfos = append(mapInfos, ExtendedMapInfo{
+		mapInfos = append(mapInfos, bpf.ExtendedMapInfo{
 			MapInfo: *info,
 			Memlock: memlock,
 		})
@@ -93,9 +85,12 @@ func FindAllMaps() ([]ExtendedMapInfo, error) {
 
 // FindPinnedMaps returns all info of maps pinned under the path
 // specified as argument.
-func FindPinnedMaps(path string) ([]ExtendedMapInfo, error) {
-	var infos []ExtendedMapInfo
-	err := filepath.WalkDir(path, func(path string, d fs.DirEntry, _ error) error {
+func FindPinnedMaps(path string) ([]bpf.ExtendedMapInfo, error) {
+	var infos []bpf.ExtendedMapInfo
+	err := filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
 		if d.IsDir() {
 			return nil // skip directories
 		}
@@ -116,20 +111,11 @@ func FindPinnedMaps(path string) ([]ExtendedMapInfo, error) {
 			return nil // skip non map
 		}
 
-		info, err := m.Info()
+		xInfo, err := bpf.ExtendedInfoFromMap(m)
 		if err != nil {
-			return fmt.Errorf("failed to retrieve map info: %w", err)
+			return fmt.Errorf("failed to retrieve extended info from map %v: %w", m, err)
 		}
-
-		memlock, err := parseMemlockFromFDInfo(m.FD())
-		if err != nil {
-			return fmt.Errorf("failed to parse memlock from fd (%d) info: %w", m.FD(), err)
-		}
-
-		infos = append(infos, ExtendedMapInfo{
-			MapInfo: *info,
-			Memlock: memlock,
-		})
+		infos = append(infos, xInfo)
 		return nil
 	})
 	if err != nil {
@@ -166,7 +152,10 @@ func mapIDsFromProgs(prog *ebpf.Program) ([]int, error) {
 func mapIDsFromPinnedProgs(path string) ([]int, error) {
 	mapSet := map[int]bool{}
 	progArrays := []*ebpf.Map{}
-	err := filepath.WalkDir(path, func(path string, d fs.DirEntry, _ error) error {
+	err := filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
 		if d.IsDir() {
 			return nil // skip directories
 		}
@@ -257,55 +246,6 @@ func mapIDsFromPinnedProgs(path string) ([]int, error) {
 	return maps.Keys(mapSet), nil
 }
 
-func memlockInfoFromMapID(id int) (ExtendedMapInfo, error) {
-	m, err := ebpf.NewMapFromID(ebpf.MapID(id))
-	if err != nil {
-		return ExtendedMapInfo{}, fmt.Errorf("failed creating a map FD from ID: %w", err)
-	}
-	defer m.Close()
-	memlock, err := parseMemlockFromFDInfo(m.FD())
-	if err != nil {
-		return ExtendedMapInfo{}, fmt.Errorf("failed parsing fdinfo for memlock: %w", err)
-	}
-	info, err := m.Info()
-	if err != nil {
-		return ExtendedMapInfo{}, fmt.Errorf("failed retrieving info from map: %w", err)
-	}
-
-	return ExtendedMapInfo{
-		MapInfo: *info,
-		Memlock: memlock,
-	}, nil
-}
-
-func parseMemlockFromFDInfo(fd int) (int, error) {
-	path := fmt.Sprintf("/proc/self/fdinfo/%d", fd)
-	file, err := os.Open(path)
-	if err != nil {
-		return 0, fmt.Errorf("failed to open file %q: %w", path, err)
-	}
-	defer file.Close()
-	return parseMemlockFromFDInfoReader(file)
-}
-
-func parseMemlockFromFDInfoReader(r io.Reader) (int, error) {
-	scanner := bufio.NewScanner(r)
-	for scanner.Scan() {
-		fields := strings.Fields(scanner.Text())
-		if len(fields) > 1 && fields[0] == "memlock:" {
-			memlock, err := strconv.Atoi(fields[1])
-			if err != nil {
-				return 0, fmt.Errorf("failed converting memlock to int: %w", err)
-			}
-			return memlock, nil
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		return 0, fmt.Errorf("failed to scan: %w", err)
-	}
-	return 0, fmt.Errorf("didn't find memlock field")
-}
-
 func isProg(fd int) (bool, error) {
 	return isBPFObject("prog", fd)
 }
@@ -325,32 +265,32 @@ func isBPFObject(object string, fd int) (bool, error) {
 const TetragonBPFFS = "/sys/fs/bpf/tetragon"
 
 type DiffMap struct {
-	ID         int    `json:"id,omitempty"`
-	Name       string `json:"name,omitempty"`
-	Type       string `json:"type,omitempty"`
-	KeySize    int    `json:"key_size,omitempty"`
-	ValueSize  int    `json:"value_size,omitempty"`
-	MaxEntries int    `json:"max_entries,omitempty"`
-	Memlock    int    `json:"memlock,omitempty"`
+	ID           int    `json:"id,omitempty"`
+	Name         string `json:"name,omitempty"`
+	Type         string `json:"type,omitempty"`
+	KeySize      int    `json:"key_size,omitempty"`
+	ValueSize    int    `json:"value_size,omitempty"`
+	MaxEntries   int    `json:"max_entries,omitempty"`
+	MemlockBytes int    `json:"memlock_bytes,omitempty"`
 }
 
 type AggregatedMap struct {
-	Name           string  `json:"name,omitempty"`
-	Type           string  `json:"type,omitempty"`
-	KeySize        int     `json:"key_size,omitempty"`
-	ValueSize      int     `json:"value_size,omitempty"`
-	MaxEntries     int     `json:"max_entries,omitempty"`
-	Count          int     `json:"count,omitempty"`
-	TotalMemlock   int     `json:"total_memlock,omitempty"`
-	PercentOfTotal float64 `json:"percent_of_total,omitempty"`
+	Name              string  `json:"name,omitempty"`
+	Type              string  `json:"type,omitempty"`
+	KeySize           int     `json:"key_size,omitempty"`
+	ValueSize         int     `json:"value_size,omitempty"`
+	MaxEntries        int     `json:"max_entries,omitempty"`
+	Count             int     `json:"count,omitempty"`
+	TotalMemlockBytes int     `json:"total_memlock_bytes,omitempty"`
+	PercentOfTotal    float64 `json:"percent_of_total,omitempty"`
 }
 
 type MapsChecksOutput struct {
-	TotalByteMemlock struct {
+	TotalMemlockBytes struct {
 		AllMaps         int `json:"all_maps,omitempty"`
 		PinnedProgsMaps int `json:"pinned_progs_maps,omitempty"`
 		PinnedMaps      int `json:"pinned_maps,omitempty"`
-	} `json:"total_byte_memlock,omitempty"`
+	} `json:"total_memlock_bytes,omitempty"`
 
 	MapsStats struct {
 		PinnedProgsMaps int `json:"pinned_progs_maps,omitempty"`
@@ -366,9 +306,9 @@ type MapsChecksOutput struct {
 	AggregatedMaps []AggregatedMap `json:"aggregated_maps,omitempty"`
 }
 
-func RunMapsChecks() (*MapsChecksOutput, error) {
+func RunMapsChecks(path string) (*MapsChecksOutput, error) {
 	// check that the bpffs exists and we have permissions
-	_, err := os.Stat(TetragonBPFFS)
+	_, err := os.Stat(path)
 	if err != nil {
 		return nil, fmt.Errorf("make sure tetragon is running and you have enough permissions: %w", err)
 	}
@@ -378,11 +318,11 @@ func RunMapsChecks() (*MapsChecksOutput, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve all maps: %w", err)
 	}
-	pinnedProgsMaps, err := FindMapsUsedByPinnedProgs(TetragonBPFFS)
+	pinnedProgsMaps, err := FindMapsUsedByPinnedProgs(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve maps used by pinned progs: %w", err)
 	}
-	pinnedMaps, err := FindPinnedMaps(TetragonBPFFS)
+	pinnedMaps, err := FindPinnedMaps(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve pinned maps: %w", err)
 	}
@@ -390,12 +330,12 @@ func RunMapsChecks() (*MapsChecksOutput, error) {
 	var out MapsChecksOutput
 
 	// BPF maps memory usage
-	out.TotalByteMemlock.AllMaps = TotalByteMemlock(allMaps)
-	out.TotalByteMemlock.PinnedProgsMaps = TotalByteMemlock(pinnedProgsMaps)
-	out.TotalByteMemlock.PinnedMaps = TotalByteMemlock(pinnedMaps)
+	out.TotalMemlockBytes.AllMaps = TotalMemlockBytes(allMaps)
+	out.TotalMemlockBytes.PinnedProgsMaps = TotalMemlockBytes(pinnedProgsMaps)
+	out.TotalMemlockBytes.PinnedMaps = TotalMemlockBytes(pinnedMaps)
 
 	// details on map distribution
-	pinnedProgsMapsSet := map[int]ExtendedMapInfo{}
+	pinnedProgsMapsSet := map[int]bpf.ExtendedMapInfo{}
 	for _, info := range pinnedProgsMaps {
 		id, ok := info.ID()
 		if !ok {
@@ -404,7 +344,7 @@ func RunMapsChecks() (*MapsChecksOutput, error) {
 		pinnedProgsMapsSet[int(id)] = info
 	}
 
-	pinnedMapsSet := map[int]ExtendedMapInfo{}
+	pinnedMapsSet := map[int]bpf.ExtendedMapInfo{}
 	for _, info := range pinnedMaps {
 		id, ok := info.ID()
 		if !ok {
@@ -430,19 +370,19 @@ func RunMapsChecks() (*MapsChecksOutput, error) {
 			return nil, errors.New("failed retrieving map ID, need >= 4.13, kernel is too old")
 		}
 		out.DiffMaps = append(out.DiffMaps, DiffMap{
-			ID:         int(id),
-			Name:       d.Name,
-			Type:       d.Type.String(),
-			KeySize:    int(d.KeySize),
-			ValueSize:  int(d.ValueSize),
-			MaxEntries: int(d.MaxEntries),
-			Memlock:    d.Memlock,
+			ID:           int(id),
+			Name:         d.Name,
+			Type:         d.Type.String(),
+			KeySize:      int(d.KeySize),
+			ValueSize:    int(d.ValueSize),
+			MaxEntries:   int(d.MaxEntries),
+			MemlockBytes: d.Memlock,
 		})
 	}
 
 	// aggregates maps total memory use
 	aggregatedMapsSet := map[string]struct {
-		ExtendedMapInfo
+		bpf.ExtendedMapInfo
 		count int
 	}{}
 	var total int
@@ -454,7 +394,7 @@ func RunMapsChecks() (*MapsChecksOutput, error) {
 			aggregatedMapsSet[m.Name] = e
 		} else {
 			aggregatedMapsSet[m.Name] = struct {
-				ExtendedMapInfo
+				bpf.ExtendedMapInfo
 				count int
 			}{m, 1}
 		}
@@ -466,14 +406,14 @@ func RunMapsChecks() (*MapsChecksOutput, error) {
 
 	for _, m := range aggregatedMaps {
 		out.AggregatedMaps = append(out.AggregatedMaps, AggregatedMap{
-			Name:           m.Name,
-			Type:           m.Type.String(),
-			KeySize:        int(m.KeySize),
-			ValueSize:      int(m.ValueSize),
-			MaxEntries:     int(m.MaxEntries),
-			Count:          m.count,
-			TotalMemlock:   m.Memlock,
-			PercentOfTotal: float64(m.Memlock) / float64(total) * 100,
+			Name:              m.Name,
+			Type:              m.Type.String(),
+			KeySize:           int(m.KeySize),
+			ValueSize:         int(m.ValueSize),
+			MaxEntries:        int(m.MaxEntries),
+			Count:             m.count,
+			TotalMemlockBytes: m.Memlock,
+			PercentOfTotal:    float64(m.Memlock) / float64(total) * 100,
 		})
 	}
 

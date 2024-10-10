@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors/program"
@@ -418,4 +419,43 @@ func TestPolicyListingWhileLoadUnload(t *testing.T) {
 	l, err = mgr.ListTracingPolicies(ctx)
 	require.NoError(t, err)
 	require.Equal(t, 0, len(l.Policies))
+}
+
+func TestPolicyKernelMemoryBytes(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	RegisterPolicyHandlerAtInit("loaded-map", &dummyHandler{s: &Sensor{Name: "dummy-sensor",
+		Progs: []*program.Program{{
+			Name:           "bpf-program-that-does-not-exist",
+			LoadedMapsInfo: map[int]bpf.ExtendedMapInfo{0: {Memlock: 110}, 1: {Memlock: 120}},
+		}, {
+			Name:           "bpf-program-that-does-not-exist-2",
+			LoadedMapsInfo: map[int]bpf.ExtendedMapInfo{2: {Memlock: 130}, 3: {Memlock: 140}},
+		}, {
+			Name:           "bpf-program-that-does-not-exist-3",
+			LoadedMapsInfo: map[int]bpf.ExtendedMapInfo{2: {Memlock: 130}}, // this will overwrite map ID 2
+		}},
+	}})
+	t.Cleanup(func() {
+		delete(registeredPolicyHandlers, "loaded-map")
+	})
+
+	policy := v1alpha1.TracingPolicy{}
+	mgr, err := StartSensorManager("", nil)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if err := mgr.StopSensorManager(ctx); err != nil {
+			t.Fatal("failed to stop sensor manager")
+		}
+	})
+	policy.ObjectMeta.Name = "test-policy"
+	addError := mgr.AddTracingPolicy(ctx, &policy)
+	// this will fail to load because the programs do not exist
+	require.Error(t, addError)
+
+	l, err := mgr.ListTracingPolicies(ctx)
+	require.NoError(t, err)
+	require.Len(t, l.Policies, 1)
+	assert.Equal(t, uint64(500), l.Policies[0].KernelMemoryBytes)
 }

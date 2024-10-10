@@ -31,6 +31,10 @@ type TestDelayedSensor struct {
 	ch     chan struct{}
 }
 
+func (tds TestDelayedSensor) TotalMemlock() int {
+	return 0
+}
+
 func (tds *TestDelayedSensor) GetName() string {
 	return tds.name
 }

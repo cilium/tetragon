@@ -4,53 +4,52 @@
 package bugtool
 
 import (
-	"io"
-	"strings"
+	"os"
 	"testing"
+
+	"github.com/cilium/tetragon/pkg/sensors/base"
+	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
+	"github.com/stretchr/testify/assert"
+
+	// needed to register the probe type execve for the base sensor
+	_ "github.com/cilium/tetragon/pkg/sensors/exec"
 )
 
-var mapFDinfo = strings.NewReader(`pos:    0
-flags:  02000002
-mnt_id: 16
-ino:    65
-map_type:       6
-key_size:       4
-value_size:     12288
-max_entries:    1
-map_flags:      0x0
-map_extra:      0x0
-memlock:        74056`)
-
-func Benchmark_parseMemlockFromFDInfoReader(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		parseMemlockFromFDInfoReader(mapFDinfo)
-	}
+func TestMain(m *testing.M) {
+	ec := tus.TestSensorsRun(m, "SensorBugtool")
+	os.Exit(ec)
 }
 
-func Test_parseMemlockFromFDInfoReader(t *testing.T) {
-	tests := []struct {
-		name    string
-		args    io.Reader
-		want    int
-		wantErr bool
-	}{
-		{
-			name:    "mapfdinfo",
-			args:    mapFDinfo,
-			want:    74056,
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := parseMemlockFromFDInfoReader(tt.args)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("parseMemlockFromFDInfoReader() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("parseMemlockFromFDInfoReader() = %v, want %v", got, tt.want)
-			}
-		})
-	}
+func TestFindMaps(t *testing.T) {
+	t.Run("NoSuchFile", func(t *testing.T) {
+		const path = "/sys/fs/bpf/nosuchfile"
+		_, err := FindPinnedMaps(path)
+		assert.Error(t, err)
+		_, err = FindMapsUsedByPinnedProgs(path)
+		assert.Error(t, err)
+	})
+
+	t.Run("BaseSensorMemlock", func(t *testing.T) {
+		tus.LoadSensor(t, base.GetInitialSensor())
+
+		const path = "/sys/fs/bpf/testSensorBugtool"
+		pinnedMaps, err := FindPinnedMaps(path)
+		assert.NoError(t, err)
+		if assert.NotEmpty(t, pinnedMaps) {
+			assert.NotZero(t, pinnedMaps[0].Memlock)
+		}
+
+		mapsUsedByProgs, err := FindMapsUsedByPinnedProgs(path)
+		assert.NoError(t, err)
+		if assert.NotEmpty(t, mapsUsedByProgs) {
+			assert.NotZero(t, mapsUsedByProgs[0].Memlock)
+		}
+
+		allMaps, err := FindAllMaps()
+		assert.NoError(t, err)
+		if assert.NotEmpty(t, allMaps) {
+			assert.NotZero(t, allMaps[0].Memlock)
+		}
+	})
+
 }

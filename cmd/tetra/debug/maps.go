@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"text/tabwriter"
 
+	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/bugtool"
 	"github.com/spf13/cobra"
 )
@@ -15,6 +16,7 @@ import (
 func NewMapCmd() *cobra.Command {
 	var lines int
 	var output string
+	var path string
 
 	cmd := cobra.Command{
 		Use:     "maps",
@@ -51,7 +53,7 @@ adjust the number of item in the table.
 				return fmt.Errorf("invalid output format %q, please use one of tab or json", output)
 			}
 
-			out, err := bugtool.RunMapsChecks()
+			out, err := bugtool.RunMapsChecks(path)
 			if err != nil {
 				return err
 			}
@@ -60,10 +62,10 @@ adjust the number of item in the table.
 			case "tab":
 				w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 3, ' ', 0)
 				fmt.Fprintln(w, "AllMaps\tPinnedProgsMaps\tPinnedMaps")
-				fmt.Fprintf(w, "%d\t%d\t%d\n",
-					out.TotalByteMemlock.AllMaps,
-					out.TotalByteMemlock.PinnedProgsMaps,
-					out.TotalByteMemlock.PinnedMaps,
+				fmt.Fprintf(w, "%s\t%s\t%s\n",
+					common.HumanizeByteCount(out.TotalMemlockBytes.AllMaps),
+					common.HumanizeByteCount(out.TotalMemlockBytes.PinnedProgsMaps),
+					common.HumanizeByteCount(out.TotalMemlockBytes.PinnedMaps),
 				)
 				w.Flush()
 				cmd.Println()
@@ -85,14 +87,14 @@ adjust the number of item in the table.
 					w = tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 3, ' ', 0)
 					fmt.Fprintln(w, "ID\tName\tType\tKeySize\tValueSize\tMaxEntries\tMemlock")
 					for _, d := range out.DiffMaps {
-						fmt.Fprintf(w, "%d\t%s\t%s\t%d\t%d\t%d\t%d\n",
+						fmt.Fprintf(w, "%d\t%s\t%s\t%d\t%d\t%d\t%s\n",
 							d.ID,
 							d.Name,
 							d.Type,
 							d.KeySize,
 							d.ValueSize,
 							d.MaxEntries,
-							d.Memlock,
+							common.HumanizeByteCount(d.MemlockBytes),
 						)
 					}
 					w.Flush()
@@ -108,14 +110,14 @@ adjust the number of item in the table.
 						if lines != 0 && i+1 > lines {
 							break
 						}
-						fmt.Fprintf(w, "%s\t%s\t%d\t%d\t%d\t%d\t%d\t%0.1f%%\n",
+						fmt.Fprintf(w, "%s\t%s\t%d\t%d\t%d\t%d\t%s\t%0.1f%%\n",
 							d.Name,
 							d.Type,
 							d.KeySize,
 							d.ValueSize,
 							d.MaxEntries,
 							d.Count,
-							d.TotalMemlock,
+							common.HumanizeByteCount(d.TotalMemlockBytes),
 							d.PercentOfTotal,
 						)
 					}
@@ -141,6 +143,7 @@ adjust the number of item in the table.
 	flags := cmd.Flags()
 	flags.IntVarP(&lines, "lines", "n", 10, "Number of lines for the top BPF map memory consumers.\nUse 0 to print all lines. Only valid with tab output.")
 	flags.StringVarP(&output, "output", "o", "tab", "Output format. One of tab or json.")
+	flags.StringVar(&path, "path", bugtool.TetragonBPFFS, "Path of the BPF filesystem.")
 
 	return &cmd
 }

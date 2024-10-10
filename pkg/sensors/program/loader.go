@@ -857,6 +857,55 @@ func doLoadProgram(
 	}
 	defer coll.Close()
 
+	// This is for accounting of the BPF map memlock usage. At first I thought I
+	// could just read the coll.Maps but those contain (a lot of) unused maps in
+	// the ELF file (e.g. tg_cgrps_tracking_map) that are loaded initially but
+	// not used or referenced anywhere so GCed as soon as we close the reference
+	// on the collection.
+	//
+	// The way we found is to browse which maps are used from the returned
+	// programs in the collection. Since for those programs we keep a reference
+	// anyway, they can't be garbage collected.
+	collMaps := map[ebpf.MapID]*ebpf.Map{}
+	// we need a mapping by ID
+	for _, m := range coll.Maps {
+		info, err := m.Info()
+		if err != nil {
+			logger.GetLogger().WithError(err).WithField("map", m.String()).Warn("failed to retrieve BPF map info")
+			break
+		}
+		id, available := info.ID()
+		if !available {
+			logger.GetLogger().WithField("map", m.String()).Warn("failed to retrieve BPF map ID, you might be running <4.13")
+			break
+		}
+		collMaps[id] = m
+	}
+	load.LoadedMapsInfo = map[int]bpf.ExtendedMapInfo{}
+	for _, p := range coll.Programs {
+		i, err := p.Info()
+		if err != nil {
+			logger.GetLogger().WithError(err).WithField("program", p.String()).Warn("failed to retrieve BPF program info, you might be running <4.10")
+			break
+		}
+		ids, available := i.MapIDs()
+		if !available {
+			logger.GetLogger().WithField("program", p.String()).Warn("failed to retrieve BPF program map IDs, you might be running <4.15")
+			break
+		}
+		for _, id := range ids {
+			if _, exist := load.LoadedMapsInfo[int(id)]; exist {
+				continue
+			}
+			xInfo, err := bpf.ExtendedInfoFromMap(collMaps[id])
+			if err != nil {
+				logger.GetLogger().WithError(err).WithField("mapID", id).Warn("failed to retrieve extended map info")
+				break
+			}
+			load.LoadedMapsInfo[int(id)] = xInfo
+		}
+	}
+
 	err = installTailCalls(bpfDir, spec, coll, load)
 	if err != nil {
 		return nil, fmt.Errorf("installing tail calls failed: %s", err)

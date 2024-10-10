@@ -34,6 +34,7 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/btf"
 	"github.com/cilium/ebpf/link"
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
 )
 
@@ -133,6 +134,7 @@ type Program struct {
 	// AttachData represents specific data for attaching probe
 	AttachData interface{}
 
+	// Functions to call after loading maps to populate them
 	MapLoad []*MapLoad
 
 	// unloader for the program. nil if not loaded.
@@ -158,6 +160,10 @@ type Program struct {
 
 	// policy name the program belongs to
 	Policy string
+
+	// Information of all maps used and loaded by this program by map ID. This
+	// is populated after load and used for map memlock accounting.
+	LoadedMapsInfo map[int]bpf.ExtendedMapInfo
 }
 
 func (p *Program) SetRetProbe(ret bool) *Program {
