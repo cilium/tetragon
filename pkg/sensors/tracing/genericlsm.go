@@ -322,6 +322,7 @@ func createGenericLsmSensor(
 	name string,
 	policyID policyfilter.PolicyID,
 	policyName string,
+	namespace string,
 ) (*sensors.Sensor, error) {
 	var progs []*program.Program
 	var maps []*program.Map
@@ -377,7 +378,8 @@ func createGenericLsmSensor(
 			}
 			return errs
 		},
-		Policy: policyName,
+		Policy:    policyName,
+		Namespace: namespace,
 	}, nil
 }
 

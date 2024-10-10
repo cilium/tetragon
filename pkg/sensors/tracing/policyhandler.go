@@ -27,6 +27,11 @@ func (h policyHandler) PolicyHandler(
 	policyName := policy.TpName()
 	spec := policy.TpSpec()
 
+	namespace := ""
+	if tpn, ok := policy.(tracingpolicy.TracingPolicyNamespaced); ok {
+		namespace = tpn.TpNamespace()
+	}
+
 	sections := 0
 	if len(spec.KProbes) > 0 {
 		sections++
@@ -48,16 +53,16 @@ func (h policyHandler) PolicyHandler(
 		if err != nil {
 			return nil, fmt.Errorf("validation failed: %w", err)
 		}
-		return createGenericKprobeSensor(spec, name, policyID, policyName, handler)
+		return createGenericKprobeSensor(spec, name, policyID, policyName, namespace, handler)
 	}
 	if len(spec.Tracepoints) > 0 {
-		return createGenericTracepointSensor(spec, "generic_tracepoint", policyID, policyName, handler)
+		return createGenericTracepointSensor(spec, "generic_tracepoint", policyID, policyName, namespace, handler)
 	}
 	if len(spec.LsmHooks) > 0 {
-		return createGenericLsmSensor(spec, "generic_lsm", policyID, policyName)
+		return createGenericLsmSensor(spec, "generic_lsm", policyID, policyName, namespace)
 	}
 	if len(spec.UProbes) > 0 {
-		return createGenericUprobeSensor(spec, "generic_lsm", policyName)
+		return createGenericUprobeSensor(spec, "generic_lsm", policyName, namespace)
 	}
 	return nil, nil
 }

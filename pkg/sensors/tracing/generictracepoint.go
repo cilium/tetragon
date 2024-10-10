@@ -362,6 +362,7 @@ func createGenericTracepointSensor(
 	name string,
 	policyID policyfilter.PolicyID,
 	policyName string,
+	namespace string,
 	customHandler eventhandler.Handler,
 ) (*sensors.Sensor, error) {
 	confs := spec.Tracepoints
@@ -506,10 +507,11 @@ func createGenericTracepointSensor(
 	}
 
 	return &sensors.Sensor{
-		Name:   name,
-		Progs:  progs,
-		Maps:   maps,
-		Policy: policyName,
+		Name:      name,
+		Progs:     progs,
+		Maps:      maps,
+		Policy:    policyName,
+		Namespace: namespace,
 	}, nil
 }
 
