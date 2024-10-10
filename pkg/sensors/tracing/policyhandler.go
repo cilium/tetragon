@@ -56,5 +56,8 @@ func (h policyHandler) PolicyHandler(
 	if len(spec.LsmHooks) > 0 {
 		return createGenericLsmSensor(spec, "generic_lsm", policyID, policyName)
 	}
+	if len(spec.UProbes) > 0 {
+		return createGenericUprobeSensor(spec, "generic_lsm", policyName)
+	}
 	return nil, nil
 }
