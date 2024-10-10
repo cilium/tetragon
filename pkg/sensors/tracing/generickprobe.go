@@ -589,6 +589,7 @@ func createGenericKprobeSensor(
 	name string,
 	policyID policyfilter.PolicyID,
 	policyName string,
+	namespace string,
 	customHandler eventhandler.Handler,
 ) (*sensors.Sensor, error) {
 	var progs []*program.Program
@@ -657,10 +658,11 @@ func createGenericKprobeSensor(
 	}
 
 	return &sensors.Sensor{
-		Name:   name,
-		Progs:  progs,
-		Maps:   maps,
-		Policy: policyName,
+		Name:      name,
+		Progs:     progs,
+		Maps:      maps,
+		Policy:    policyName,
+		Namespace: namespace,
 		DestroyHook: func() error {
 			var errs error
 			for _, id := range ids {

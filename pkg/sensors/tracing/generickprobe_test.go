@@ -81,7 +81,7 @@ func Test_SensorDestroyHook(t *testing.T) {
 	// insertion in the table in AddKprobe, but this is done by the caller to
 	// have just DestroyHook that regroups all the potential multiple kprobes
 	// contained in one sensor.
-	sensor, err := createGenericKprobeSensor(spec, "test_sensor", 0, "test_policy", nil)
+	sensor, err := createGenericKprobeSensor(spec, "test_sensor", 0, "test_policy", "", nil)
 	if err != nil {
 		t.Errorf("createGenericKprobeSensor err expected: nil, got: %s", err)
 	}

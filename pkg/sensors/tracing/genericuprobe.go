@@ -245,6 +245,7 @@ func createGenericUprobeSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
 	policyName string,
+	namespace string,
 ) (*sensors.Sensor, error) {
 	var progs []*program.Program
 	var maps []*program.Map
@@ -284,10 +285,11 @@ func createGenericUprobeSensor(
 	}
 
 	return &sensors.Sensor{
-		Name:   name,
-		Progs:  progs,
-		Maps:   maps,
-		Policy: policyName,
+		Name:      name,
+		Progs:     progs,
+		Maps:      maps,
+		Policy:    policyName,
+		Namespace: namespace,
 	}, nil
 }
 
