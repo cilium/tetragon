@@ -40,6 +40,8 @@ var (
 type Sensor struct {
 	// Name is a human-readbale description.
 	Name string
+	// Policy namespace the sensor is part of.
+	Namespace string
 	// Policy name the sensor is part of.
 	Policy string
 	// When loaded this contains bpffs root directory
