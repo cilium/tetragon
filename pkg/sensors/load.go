@@ -63,10 +63,17 @@ func LoadConfig(bpfDir string, sens []*Sensor) error {
 	return nil
 }
 
+func (s *Sensor) policyDir() string {
+	if s.Namespace == "" {
+		return sanitize(s.Policy)
+	}
+	return fmt.Sprintf("%s:%s", s.Namespace, sanitize(s.Policy))
+}
+
 func (s *Sensor) createDirs(bpfDir string) {
 	for _, p := range s.Progs {
 		// setup sensor based program pin path
-		p.PinPath = filepath.Join(sanitize(s.Policy), s.Name, p.PinName)
+		p.PinPath = filepath.Join(s.policyDir(), s.Name, p.PinName)
 		// and make the path
 		if err := os.MkdirAll(filepath.Join(bpfDir, p.PinPath), os.ModeDir); err != nil {
 			logger.GetLogger().WithError(err).
@@ -89,17 +96,17 @@ func (s *Sensor) removeDirs() {
 		}
 	}
 	// Remove sensor dir
-	if err := os.Remove(filepath.Join(s.BpfDir, sanitize(s.Policy), s.Name)); err != nil {
+	if err := os.Remove(filepath.Join(s.BpfDir, s.policyDir(), s.Name)); err != nil {
 		logger.GetLogger().WithError(err).
 			WithField("sensor", s.Name).
-			WithField("dir", filepath.Join(sanitize(s.Policy), s.Name)).
+			WithField("dir", filepath.Join(s.policyDir(), s.Name)).
 			Warn("Failed to remove sensor dir")
 	}
 
 	// For policy dir the last one switches off the light.. there still
 	// might be other sensors in the policy, so the last sensors removed
 	// will succeed in removal policy dir.
-	os.Remove(filepath.Join(s.BpfDir, sanitize(s.Policy)))
+	os.Remove(filepath.Join(s.BpfDir, s.policyDir()))
 }
 
 // Load loads the sensor, by loading all the BPF programs and maps.
@@ -275,7 +282,7 @@ func (s *Sensor) FindPrograms() error {
 }
 
 func (s *Sensor) setMapPinPath(m *program.Map) {
-	policy := sanitize(s.Policy)
+	policy := s.policyDir()
 	switch m.Type {
 	case program.MapTypeGlobal:
 		m.PinPath = filepath.Join(m.Name)
