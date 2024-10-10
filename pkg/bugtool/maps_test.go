@@ -4,12 +4,23 @@
 package bugtool
 
 import (
+	"os"
 	"testing"
 
+	"github.com/cilium/tetragon/pkg/sensors/base"
+	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/stretchr/testify/assert"
+
+	// needed to register the probe type execve for the base sensor
+	_ "github.com/cilium/tetragon/pkg/sensors/exec"
 )
 
-func TestFindPinnedMaps(t *testing.T) {
+func TestMain(m *testing.M) {
+	ec := tus.TestSensorsRun(m, "SensorBugtool")
+	os.Exit(ec)
+}
+
+func TestFindMaps(t *testing.T) {
 	t.Run("NoSuchFile", func(t *testing.T) {
 		const path = "/sys/fs/bpf/nosuchfile"
 		_, err := FindPinnedMaps(path)
@@ -17,4 +28,28 @@ func TestFindPinnedMaps(t *testing.T) {
 		_, err = FindMapsUsedByPinnedProgs(path)
 		assert.Error(t, err)
 	})
+
+	t.Run("BaseSensorMemlock", func(t *testing.T) {
+		tus.LoadSensor(t, base.GetInitialSensor())
+
+		const path = "/sys/fs/bpf/testSensorBugtool"
+		pinnedMaps, err := FindPinnedMaps(path)
+		assert.NoError(t, err)
+		if assert.NotEmpty(t, pinnedMaps) {
+			assert.NotZero(t, pinnedMaps[0].Memlock)
+		}
+
+		mapsUsedByProgs, err := FindMapsUsedByPinnedProgs(path)
+		assert.NoError(t, err)
+		if assert.NotEmpty(t, mapsUsedByProgs) {
+			assert.NotZero(t, mapsUsedByProgs[0].Memlock)
+		}
+
+		allMaps, err := FindAllMaps()
+		assert.NoError(t, err)
+		if assert.NotEmpty(t, allMaps) {
+			assert.NotZero(t, allMaps[0].Memlock)
+		}
+	})
+
 }
