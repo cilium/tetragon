@@ -277,7 +277,7 @@ func createGenericUprobeSensor(
 	}
 
 	if in.useMulti {
-		progs, maps, err = createMultiUprobeSensor(name, ids)
+		progs, maps, err = createMultiUprobeSensor(name, ids, policyName)
 	} else {
 		progs, maps, err = createSingleUprobeSensor(ids)
 	}
@@ -397,7 +397,7 @@ func multiUprobePinPath(sensorPath string) string {
 	return sensors.PathJoin(sensorPath, "multi_kprobe")
 }
 
-func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID) ([]*program.Program, []*program.Map, error) {
+func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID, policyName string) ([]*program.Program, []*program.Map, error) {
 	var progs []*program.Program
 	var maps []*program.Map
 
@@ -407,11 +407,12 @@ func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID) ([]*
 
 	load := program.Builder(
 		path.Join(option.Config.HubbleLib, loadProgName),
-		fmt.Sprintf("%d functions", len(multiIDs)),
+		fmt.Sprintf("uprobe_multi (%d functions)", len(multiIDs)),
 		"uprobe.multi/generic_uprobe",
 		pinPath,
 		"generic_uprobe").
-		SetLoaderData(multiIDs)
+		SetLoaderData(multiIDs).
+		SetPolicy(policyName)
 
 	progs = append(progs, load)
 
@@ -460,12 +461,13 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 
 	load := program.Builder(
 		path.Join(option.Config.HubbleLib, loadProgName),
-		"",
+		fmt.Sprintf("%s %s", uprobeEntry.path, uprobeEntry.symbol),
 		"uprobe/generic_uprobe",
 		fmt.Sprintf("%d-%s", uprobeEntry.tableId.ID, uprobeEntry.symbol),
 		"generic_uprobe").
 		SetAttachData(attachData).
-		SetLoaderData(uprobeEntry)
+		SetLoaderData(uprobeEntry).
+		SetPolicy(uprobeEntry.policyName)
 
 	progs = append(progs, load)
 
