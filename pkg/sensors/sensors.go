@@ -6,6 +6,7 @@ package sensors
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 
@@ -255,4 +256,19 @@ func progsCleanup() {
 
 func AllPrograms() []*program.Program {
 	return append([]*program.Program{}, allPrograms...)
+}
+
+// sortSensors sort the sensors to enforce orderging constrains
+func sortSensors(sensors []SensorIface) {
+	sort.Slice(sensors, func(i, j int) bool {
+		iName := sensors[i].GetName()
+		if iName == "__enforcer__" {
+			return true
+		}
+		jName := sensors[j].GetName()
+		if jName == "__enforcer__" {
+			return false
+		}
+		return iName < jName
+	})
 }
