@@ -473,6 +473,8 @@ enum KprobeAction {
 	KPROBE_ACTION_UNTRACKSOCK = 12;
     // NotifyEnforcer action notifies enforcer sensor.
 	KPROBE_ACTION_NOTIFYENFORCER = 13;
+    // CleanupEnforcerNotification action cleanups any state left by NotifyEnforcer
+	KPROBE_ACTION_CLEANUPENFORCERNOTIFICATION = 14;
 }
 
 message ProcessKprobe {
