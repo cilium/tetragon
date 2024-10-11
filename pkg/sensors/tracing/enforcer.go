@@ -13,6 +13,7 @@ import (
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/metrics/enforcermetrics"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors"
@@ -52,13 +53,19 @@ func init() {
 func enforcerMapsUser(load ...*program.Program) []*program.Map {
 	edm := program.MapUserPolicy(enforcerDataMapName, load...)
 	edm.SetMaxEntries(enforcerMapMaxEntries)
-	return []*program.Map{edm}
+	return []*program.Map{
+		edm,
+		program.MapUserPolicy(enforcermetrics.EnforcerMissedMapName, load...),
+	}
 }
 
 func enforcerMaps(load ...*program.Program) []*program.Map {
 	edm := program.MapBuilderPolicy(enforcerDataMapName, load...)
 	edm.SetMaxEntries(enforcerMapMaxEntries)
-	return []*program.Map{edm}
+	return []*program.Map{
+		edm,
+		program.MapBuilderPolicy(enforcermetrics.EnforcerMissedMapName, load...),
+	}
 }
 
 func (kp *enforcerPolicy) enforcerGet(name string) (*enforcerHandler, bool) {

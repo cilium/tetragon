@@ -33,6 +33,9 @@ struct msg_selector_data {
 #endif
 };
 
+/* value to mask an offsset into msg_generic_kprobe->args */
+#define GENERIC_MSG_ARGS_MASK 0x7ff
+
 struct msg_generic_kprobe {
 	struct msg_common common;
 	struct msg_execve_key current;

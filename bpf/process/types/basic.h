@@ -1868,6 +1868,20 @@ installfd(struct msg_generic_kprobe *e, int fd, int name, bool follow)
 	return err;
 }
 
+FUNC_INLINE __u64
+msg_generic_arg_value_u64(struct msg_generic_kprobe *e, unsigned int arg_id, __u64 err_val)
+{
+	__u32 argoff;
+	__u64 *ret;
+
+	if (arg_id > MAX_POSSIBLE_ARGS)
+		return err_val;
+	argoff = e->argsoff[arg_id];
+	argoff &= GENERIC_MSG_ARGS_MASK;
+	ret = (__u64 *)&e->args[argoff];
+	return *ret;
+}
+
 FUNC_INLINE int
 copyfd(struct msg_generic_kprobe *e, int oldfd, int newfd)
 {
@@ -2143,12 +2157,18 @@ struct {
 } stack_trace_map SEC(".maps");
 
 #if defined GENERIC_TRACEPOINT || defined GENERIC_KPROBE
-FUNC_INLINE void do_action_notify_enforcer(int error, int signal)
+FUNC_INLINE void do_action_notify_enforcer(struct msg_generic_kprobe *e,
+					   int error, int signal, int info_arg_id)
 {
-	do_enforcer_action(error, signal);
+	__u64 argv = msg_generic_arg_value_u64(e, info_arg_id, 0);
+	struct enforcer_act_info info = {
+		.func_id = e->func_id,
+		.arg = argv,
+	};
+	do_enforcer_action(error, signal, info);
 }
 #else
-#define do_action_notify_enforcer(error, signal)
+#define do_action_notify_enforcer(e, error, signal, info_arg_id)
 #endif
 
 FUNC_LOCAL __u32
@@ -2163,6 +2183,7 @@ do_action(void *ctx, __u32 i, struct selector_action *actions,
 	int fdi, namei;
 	int newfdi, oldfdi;
 	int socki;
+	int argi __maybe_unused;
 	int err = 0;
 	int zero = 0;
 	__u64 id;
@@ -2257,7 +2278,8 @@ do_action(void *ctx, __u32 i, struct selector_action *actions,
 	case ACTION_NOTIFY_ENFORCER:
 		error = actions->act[++i];
 		signal = actions->act[++i];
-		do_action_notify_enforcer(error, signal);
+		argi = actions->act[++i];
+		do_action_notify_enforcer(e, error, signal, argi);
 		break;
 	default:
 		break;
