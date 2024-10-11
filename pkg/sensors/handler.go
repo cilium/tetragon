@@ -346,5 +346,6 @@ func sensorsFromPolicyHandlers(tp tracingpolicy.TracingPolicy, filterID policyfi
 		sensors = append(sensors, sensor)
 	}
 
+	sortSensors(sensors)
 	return sensors, nil
 }
