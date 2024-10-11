@@ -11,6 +11,7 @@ import (
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/cgroupratemetrics"
+	"github.com/cilium/tetragon/pkg/metrics/enforcermetrics"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/metrics/eventmetrics"
 	"github.com/cilium/tetragon/pkg/metrics/kprobemetrics"
@@ -93,4 +94,6 @@ func registerHealthMetrics(group metrics.Group) {
 	group.MustRegister(grpcmetrics.NewServerMetrics())
 	// missed metris
 	group.MustRegister(kprobemetrics.NewBPFCollector())
+	// enforcer metrics
+	group.MustRegister(enforcermetrics.NewCollector())
 }

@@ -21,6 +21,7 @@ import (
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/metrics/enforcermetrics"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/policyfilter"
@@ -28,6 +29,7 @@ import (
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
+	"github.com/cilium/tetragon/pkg/syscallinfo"
 	"github.com/cilium/tetragon/pkg/tracepoint"
 	"github.com/sirupsen/logrus"
 
@@ -356,6 +358,70 @@ func createGenericTracepoint(
 	return ret, nil
 }
 
+func tpValidateAndAdjustEnforcerAction(
+	sensor *sensors.Sensor,
+	tp *v1alpha1.TracepointSpec,
+	tpID int,
+	policyName string,
+	spec *v1alpha1.TracingPolicySpec) error {
+
+	registeredEnforcerMetrics := false
+	for si := range tp.Selectors {
+		sel := &tp.Selectors[si]
+		for ai := range sel.MatchActions {
+			act := &sel.MatchActions[ai]
+			if act.Action == "NotifyEnforcer" {
+				if len(spec.Enforcers) == 0 {
+					return fmt.Errorf("NotifyEnforcer action specified, but spec contains no enforcers")
+				}
+
+				// EnforcerNotifyActionArgIndex already set, do nothing
+				if act.EnforcerNotifyActionArgIndex != nil {
+					continue
+				}
+
+				switch {
+				case tp.Subsystem == "raw_syscalls" && tp.Event == "sys_enter":
+					for i, arg := range tp.Args {
+						// syscall id
+						if arg.Index == 4 {
+							val := uint32(i)
+							act.EnforcerNotifyActionArgIndex = &val
+						}
+					}
+					defaultABI, _ := syscallinfo.DefaultABI()
+					enforcermetrics.RegisterInfo(policyName, uint32(tpID), func(arg uint32) string {
+						syscallID := parseSyscall64Value(uint64(arg))
+						sysName, _ := syscallinfo.GetSyscallName(syscallID.ABI, int(syscallID.ID))
+						if sysName == "" {
+							sysName = fmt.Sprintf("syscall-%d", syscallID.ID)
+						}
+						if syscallID.ABI != defaultABI {
+							sysName = fmt.Sprintf("%s/%s", syscallID.ABI, sysName)
+						}
+						return sysName
+					})
+					registeredEnforcerMetrics = true
+				default:
+					enforcermetrics.RegisterInfo(policyName, uint32(tpID), func(_ uint32) string {
+						return fmt.Sprintf("%s/%s", tp.Subsystem, tp.Event)
+					})
+
+				}
+			}
+		}
+	}
+
+	if registeredEnforcerMetrics {
+		sensor.AddPostUnloadHook(func() error {
+			enforcermetrics.UnregisterPolicy(policyName)
+			return nil
+		})
+	}
+
+	return nil
+}
+
 // createGenericTracepointSensor will create a sensor that can be loaded based on a generic tracepoint configuration
 func createGenericTracepointSensor(
 	spec *v1alpha1.TracingPolicySpec,
@@ -368,9 +434,20 @@ func createGenericTracepointSensor(
 	confs := spec.Tracepoints
 	lists := spec.Lists
 
+	ret := &sensors.Sensor{
+		Name:      name,
+		Policy:    policyName,
+		Namespace: namespace,
+	}
+
 	tracepoints := make([]*genericTracepoint, 0, len(confs))
 	for i := range confs {
-		tp, err := createGenericTracepoint(name, &confs[i], policyID, policyName, customHandler)
+		tpSpec := &confs[i]
+		err := tpValidateAndAdjustEnforcerAction(ret, tpSpec, i, policyName, spec)
+		if err != nil {
+			return nil, err
+		}
+		tp, err := createGenericTracepoint(name, tpSpec, policyID, policyName, customHandler)
 		if err != nil {
 			return nil, err
 		}
@@ -504,13 +581,9 @@ func createGenericTracepointSensor(
 		maps = append(maps, selMatchBinariesMap)
 	}
 
-	return &sensors.Sensor{
-		Name:      name,
-		Progs:     progs,
-		Maps:      maps,
-		Policy:    policyName,
-		Namespace: namespace,
-	}, nil
+	ret.Progs = progs
+	ret.Maps = maps
+	return ret, nil
 }
 
 func (tp *genericTracepoint) InitKernelSelectors(lists []v1alpha1.ListSpec) error {
