@@ -109,6 +109,7 @@ enum {
 	ACTION_TRACKSOCK = 10,
 	ACTION_UNTRACKSOCK = 11,
 	ACTION_NOTIFY_ENFORCER = 12,
+	ACTION_CLEANUP_ENFORCER_NOTIFICATION = 13,
 };
 
 enum {
@@ -2281,6 +2282,8 @@ do_action(void *ctx, __u32 i, struct selector_action *actions,
 		argi = actions->act[++i];
 		do_action_notify_enforcer(e, error, signal, argi);
 		break;
+	case ACTION_CLEANUP_ENFORCER_NOTIFICATION:
+		do_enforcer_cleanup();
 	default:
 		break;
 	}

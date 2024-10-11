@@ -28,6 +28,7 @@ struct {
 
 enum enforcer_missed_reason {
 	ENFORCER_MISSED_OVERWRITTEN = 1,
+	ENFORCER_MISSED_NOACTION = 2,
 };
 
 struct enforcer_missed_key {
@@ -64,6 +65,21 @@ enforcer_update_missed_notifications(struct enforcer_missed_key *key)
 	counter = map_lookup_elem(&enforcer_missed_notifications, key);
 	if (counter) {
 		__sync_fetch_and_add(counter, one);
+	}
+}
+
+FUNC_INLINE void do_enforcer_cleanup(void)
+{
+	struct enforcer_data *ptr;
+	__u64 id = get_current_pid_tgid();
+
+	ptr = map_lookup_elem(&enforcer_data, &id);
+	if (ptr) {
+		struct enforcer_missed_key missed_key = {
+			.act_info = ptr->act_info,
+			.reason = ENFORCER_MISSED_NOACTION,
+		};
+		enforcer_update_missed_notifications(&missed_key);
 	}
 }
 

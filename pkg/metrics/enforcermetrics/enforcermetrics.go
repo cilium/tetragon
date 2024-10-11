@@ -85,6 +85,8 @@ func (mk *enforcerMissedMapKey) reason() string {
 	switch mk.Reason {
 	case 1:
 		return "overwritten"
+	case 2:
+		return "no_action"
 	default:
 		return "unspecified"
 	}
