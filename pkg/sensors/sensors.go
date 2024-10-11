@@ -4,6 +4,7 @@
 package sensors
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -67,6 +68,20 @@ type Sensor struct {
 	// when removing the sensor, sensor cannot be loaded again after this hook
 	// being triggered and must be recreated.
 	DestroyHook SensorHook
+}
+
+func (s *Sensor) AddPostUnloadHook(hook SensorHook) {
+	if s.PostUnloadHook == nil {
+		s.PostUnloadHook = hook
+		return
+	}
+
+	oldUnloadHook := s.PostUnloadHook
+	s.PostUnloadHook = func() error {
+		err1 := oldUnloadHook()
+		err2 := hook()
+		return errors.Join(err1, err2)
+	}
 }
 
 func sanitize(name string) string {
