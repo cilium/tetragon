@@ -247,6 +247,17 @@ type ActionSelector struct {
 	// Enable collection of file hashes from integrity subsystem.
 	// Only valid with the post action.
 	ImaHash bool `json:"imaHash"`
+
+	// NB: Describing the use of this is complicated. It is only used when a missed enforcer
+	// notification (via the NotifyEnforcer action) is detected. In this case, we increase a
+	// counter that resides in a bpf map to track the missed notification. One of the main uses
+	// of NotifyEnforcer is for raw_syscalls/sys_enter. In this case, if we want to know what
+	// was the syscall for which we missed the notification, we need to use the value of the
+	// first argument. The value here stores the index of the argument we want to use.
+	//
+	// Given the complexity and limited use of this field, we do not expose it to users (at
+	// least for now) and set it internally as needed.
+	EnforcerNotifyActionArgIndex *uint32 `json:"-"`
 }
 
 type TracepointSpec struct {
