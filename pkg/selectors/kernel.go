@@ -976,6 +976,11 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 	case ActionTypeNotifyEnforcer:
 		WriteSelectorInt32(&k.data, action.ArgError)
 		WriteSelectorUint32(&k.data, action.ArgSig)
+		actionArgIndex := ^uint32(1)
+		if action.EnforcerNotifyActionArgIndex != nil {
+			actionArgIndex = *(action.EnforcerNotifyActionArgIndex)
+		}
+		WriteSelectorUint32(&k.data, actionArgIndex)
 	default:
 		return fmt.Errorf("ParseMatchAction: act %d (%s) is missing a handler", act, actionTypeStringTable[act])
 	}
