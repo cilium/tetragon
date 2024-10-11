@@ -496,11 +496,9 @@ func createGenericTracepointSensor(
 		}
 		maps = append(maps, matchBinariesPaths)
 
-		enforcerDataMap := enforcerMap(prog0)
 		if has.enforcer {
-			enforcerDataMap.SetMaxEntries(enforcerMapMaxEntries)
+			maps = append(maps, enforcerMapsUser(prog0)...)
 		}
-		maps = append(maps, enforcerDataMap)
 
 		selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", prog0)
 		maps = append(maps, selMatchBinariesMap)
