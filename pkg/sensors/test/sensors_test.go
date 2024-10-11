@@ -530,8 +530,16 @@ func TestCleanup(t *testing.T) {
 	verifyRemoved := func(files ...string) {
 		for _, f := range files {
 			_, err := os.Stat(filepath.Join(bpf.MapPrefixPath(), f))
-			t.Logf("checking path: '%s'\n", f)
+			t.Logf("Removed checking path: '%s'\n", f)
 			assert.Error(t, err)
+		}
+	}
+
+	verifyExists := func(files ...string) {
+		for _, f := range files {
+			_, err := os.Stat(filepath.Join(bpf.MapPrefixPath(), f))
+			t.Logf("Exists checking path: '%s'\n", f)
+			assert.NoError(t, err)
 		}
 	}
 
@@ -628,5 +636,95 @@ func TestCleanup(t *testing.T) {
 
 		s1.Unload()
 		verifyRemoved("m1", "policy")
+	})
+
+	t.Run("namespace", func(t *testing.T) {
+		m1 := program.MapBuilder("m1", p1)
+		m2 := program.MapBuilder("m2", p2)
+
+		s1 := &sensors.Sensor{
+			Name:      "sensor1",
+			Progs:     []*program.Program{p1},
+			Maps:      []*program.Map{m1, m2},
+			Policy:    "policy",
+			Namespace: "ns1",
+		}
+
+		s2 := &sensors.Sensor{
+			Name:      "sensor2",
+			Progs:     []*program.Program{p2},
+			Maps:      []*program.Map{m1, m2},
+			Policy:    "policy",
+			Namespace: "ns2",
+		}
+
+		err = s1.Load(bpf.MapPrefixPath())
+		assert.NoError(t, err)
+		err = s2.Load(bpf.MapPrefixPath())
+		assert.NoError(t, err)
+
+		s1.Unload()
+		verifyRemoved("ns1:policy")
+		verifyExists("m1", "m2")
+
+		s2.Unload()
+		verifyRemoved("ns2:policy")
+		verifyRemoved("m1", "m2")
+	})
+}
+
+func TestNamespace(t *testing.T) {
+	p1 := program.Builder(
+		"bpf_map_test_p1.o",
+		"wake_up_new_task",
+		"kprobe/wake_up_new_task",
+		"p1",
+		"kprobe",
+	)
+	p2 := program.Builder(
+		"bpf_map_test_p2.o",
+		"wake_up_new_task",
+		"kprobe/wake_up_new_task",
+		"p2",
+		"kprobe",
+	)
+
+	var err error
+
+	// Create sensor with user map (via MapUser builder) and make sure
+	// it's properly loaded
+	t.Run("namespace", func(t *testing.T) {
+		m1 := program.MapBuilder("m1", p1, p2)
+		m2 := program.MapBuilderPolicy("m2", p1, p2)
+
+		s1 := &sensors.Sensor{
+			Name:      "sensor1",
+			Progs:     []*program.Program{p1},
+			Maps:      []*program.Map{m1, m2},
+			Policy:    "policy",
+			Namespace: "ns1",
+		}
+
+		s2 := &sensors.Sensor{
+			Name:      "sensor2",
+			Progs:     []*program.Program{p2},
+			Maps:      []*program.Map{m1, m2},
+			Policy:    "policy",
+			Namespace: "ns2",
+		}
+
+		err = s1.Load(bpf.MapPrefixPath())
+		defer s1.Unload()
+		assert.NoError(t, err)
+
+		err = s2.Load(bpf.MapPrefixPath())
+		defer s2.Unload()
+		assert.NoError(t, err)
+
+		assert.Equal(t, "ns1:policy/sensor1/p1", p1.PinPath)
+		assert.Equal(t, "ns2:policy/sensor2/p2", p2.PinPath)
+		assert.Equal(t, "m1", m1.PinPath)
+		// first loaded sensor 'owns' the map
+		assert.Equal(t, "ns1:policy/m2", m2.PinPath)
 	})
 }
