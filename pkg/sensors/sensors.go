@@ -93,22 +93,27 @@ func (s *Sensor) IsLoaded() bool {
 // that can be called during sensor unloading and removing.
 type SensorHook func() error
 
-func SensorCombine(policy, name string, sensors ...*Sensor) *Sensor {
+func SensorCombine(tp tracingpolicy.TracingPolicy, name string, sensors ...*Sensor) *Sensor {
 	progs := []*program.Program{}
 	maps := []*program.Map{}
 	for _, s := range sensors {
 		progs = append(progs, s.Progs...)
 		maps = append(maps, s.Maps...)
 	}
-	return SensorBuilder(policy, name, progs, maps)
+	return SensorBuilder(tp, name, progs, maps)
 }
 
-func SensorBuilder(policy, name string, p []*program.Program, m []*program.Map) *Sensor {
+func SensorBuilder(tp tracingpolicy.TracingPolicy, name string, p []*program.Program, m []*program.Map) *Sensor {
+	namespace := ""
+	if tpn, ok := tp.(tracingpolicy.TracingPolicyNamespaced); ok {
+		namespace = tpn.TpNamespace()
+	}
 	return &Sensor{
-		Name:   name,
-		Progs:  p,
-		Maps:   m,
-		Policy: policy,
+		Name:      name,
+		Progs:     p,
+		Maps:      m,
+		Policy:    tp.TpName(),
+		Namespace: namespace,
 	}
 }
 
@@ -180,7 +185,7 @@ func GetMergedSensorFromParserPolicy(tp tracingpolicy.TracingPolicy) (SensorIfac
 		sensors = append(sensors, s)
 	}
 
-	return SensorCombine(tp.TpName(), tp.TpName(), sensors...), nil
+	return SensorCombine(tp, tp.TpName(), sensors...), nil
 }
 
 func progsAdd(progs []*program.Program) {
