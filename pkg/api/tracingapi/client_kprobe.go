@@ -12,19 +12,20 @@ const (
 )
 
 const (
-	ActionPost           = 0
-	ActionFollowFd       = 1
-	ActionSigKill        = 2
-	ActionUnfollowFd     = 3
-	ActionOverride       = 4
-	ActionCopyFd         = 5
-	ActionGetUrl         = 6
-	ActionLookupDns      = 7
-	ActionNoPost         = 8
-	ActionSignal         = 9
-	ActionTrackSock      = 10
-	ActionUntrackSock    = 11
-	ActionNotifyEnforcer = 12
+	ActionPost                        = 0
+	ActionFollowFd                    = 1
+	ActionSigKill                     = 2
+	ActionUnfollowFd                  = 3
+	ActionOverride                    = 4
+	ActionCopyFd                      = 5
+	ActionGetUrl                      = 6
+	ActionLookupDns                   = 7
+	ActionNoPost                      = 8
+	ActionSignal                      = 9
+	ActionTrackSock                   = 10
+	ActionUntrackSock                 = 11
+	ActionNotifyEnforcer              = 12
+	ActionCleanupEnforcerNotification = 13
 )
 
 const (

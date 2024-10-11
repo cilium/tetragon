@@ -22,52 +22,54 @@ import (
 )
 
 const (
-	ActionTypeInvalid        = -1
-	ActionTypePost           = 0
-	ActionTypeFollowFd       = 1
-	ActionTypeSigKill        = 2
-	ActionTypeUnfollowFd     = 3
-	ActionTypeOverride       = 4
-	ActionTypeCopyFd         = 5
-	ActionTypeGetUrl         = 6
-	ActionTypeDnsLookup      = 7
-	ActionTypeNoPost         = 8
-	ActionTypeSignal         = 9
-	ActionTypeTrackSock      = 10
-	ActionTypeUntrackSock    = 11
-	ActionTypeNotifyEnforcer = 12
+	ActionTypeInvalid                     = -1
+	ActionTypePost                        = 0
+	ActionTypeFollowFd                    = 1
+	ActionTypeSigKill                     = 2
+	ActionTypeUnfollowFd                  = 3
+	ActionTypeOverride                    = 4
+	ActionTypeCopyFd                      = 5
+	ActionTypeGetUrl                      = 6
+	ActionTypeDnsLookup                   = 7
+	ActionTypeNoPost                      = 8
+	ActionTypeSignal                      = 9
+	ActionTypeTrackSock                   = 10
+	ActionTypeUntrackSock                 = 11
+	ActionTypeNotifyEnforcer              = 12
+	ActionTypeCleanupEnforcerNotification = 13
 )
 
 var actionTypeTable = map[string]uint32{
-	"post":           ActionTypePost,
-	"followfd":       ActionTypeFollowFd,
-	"unfollowfd":     ActionTypeUnfollowFd,
-	"sigkill":        ActionTypeSigKill,
-	"override":       ActionTypeOverride,
-	"copyfd":         ActionTypeCopyFd,
-	"geturl":         ActionTypeGetUrl,
-	"dnslookup":      ActionTypeDnsLookup,
-	"nopost":         ActionTypeNoPost,
-	"signal":         ActionTypeSignal,
-	"tracksock":      ActionTypeTrackSock,
-	"untracksock":    ActionTypeUntrackSock,
-	"notifyenforcer": ActionTypeNotifyEnforcer,
+	"post":                        ActionTypePost,
+	"followfd":                    ActionTypeFollowFd,
+	"unfollowfd":                  ActionTypeUnfollowFd,
+	"sigkill":                     ActionTypeSigKill,
+	"override":                    ActionTypeOverride,
+	"copyfd":                      ActionTypeCopyFd,
+	"geturl":                      ActionTypeGetUrl,
+	"dnslookup":                   ActionTypeDnsLookup,
+	"nopost":                      ActionTypeNoPost,
+	"signal":                      ActionTypeSignal,
+	"tracksock":                   ActionTypeTrackSock,
+	"untracksock":                 ActionTypeUntrackSock,
+	"notifyenforcer":              ActionTypeNotifyEnforcer,
+	"cleanupenforcernotification": ActionTypeCleanupEnforcerNotification,
 }
 
 var actionTypeStringTable = map[uint32]string{
-	ActionTypePost:           "post",
-	ActionTypeFollowFd:       "followfd",
-	ActionTypeUnfollowFd:     "unfollowfd",
-	ActionTypeSigKill:        "sigkill",
-	ActionTypeOverride:       "override",
-	ActionTypeCopyFd:         "copyfd",
-	ActionTypeGetUrl:         "geturl",
-	ActionTypeDnsLookup:      "dnslookup",
-	ActionTypeNoPost:         "nopost",
-	ActionTypeSignal:         "signal",
-	ActionTypeTrackSock:      "tracksock",
-	ActionTypeUntrackSock:    "untracksock",
-	ActionTypeNotifyEnforcer: "notifyenforcer",
+	ActionTypePost:                        "post",
+	ActionTypeFollowFd:                    "followfd",
+	ActionTypeUnfollowFd:                  "unfollowfd",
+	ActionTypeSigKill:                     "sigkill",
+	ActionTypeOverride:                    "override",
+	ActionTypeCopyFd:                      "copyfd",
+	ActionTypeGetUrl:                      "geturl",
+	ActionTypeDnsLookup:                   "dnslookup",
+	ActionTypeNoPost:                      "nopost",
+	ActionTypeSignal:                      "signal",
+	ActionTypeTrackSock:                   "tracksock",
+	ActionTypeUntrackSock:                 "untracksock",
+	ActionTypeCleanupEnforcerNotification: "cleanupenforcernotification",
 }
 
 const (
@@ -981,6 +983,8 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 			actionArgIndex = *(action.EnforcerNotifyActionArgIndex)
 		}
 		WriteSelectorUint32(&k.data, actionArgIndex)
+	case ActionTypeCleanupEnforcerNotification:
+		// no arguments
 	default:
 		return fmt.Errorf("ParseMatchAction: act %d (%s) is missing a handler", act, actionTypeStringTable[act])
 	}
