@@ -65,6 +65,16 @@ The number of data events by type. For internal use only.
 | ----- | ------ |
 | `event` | `Added, Appended, Bad, Matched, NotMatched, Received` |
 
+### `tetragon_enforcer_missed_notifications_total`
+
+The number of missed notifications by the enforcer.
+
+| label | values |
+| ----- | ------ |
+| `info ` | `syscall` |
+| `policy` | `policy-name` |
+| `reason` | `reason` |
+
 ### `tetragon_errors_total`
 
 The total number of Tetragon errors. For internal use only.

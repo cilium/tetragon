@@ -67,7 +67,7 @@ func (st *state) newCollector() metrics.CollectorWithInit {
 			st.missedNotifications,
 		},
 		st.collect,
-		collectForDocs,
+		st.collectForDocs,
 	)
 }
 
@@ -141,5 +141,6 @@ func (st *state) unregisterPolicy(policy string) {
 	delete(st.policies, policy)
 }
 
-func collectForDocs(_ chan<- prometheus.Metric) {
+func (st *state) collectForDocs(ch chan<- prometheus.Metric) {
+	ch <- st.missedNotifications.MustMetric(0, "reason", "policy-name", "syscall")
 }
