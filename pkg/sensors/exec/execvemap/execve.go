@@ -16,6 +16,7 @@ type ExecveValue struct {
 	Parent       processapi.MsgExecveKey    `align:"pkey"`
 	Flags        uint32                     `align:"flags"`
 	Nspid        uint32                     `align:"nspid"`
+	CgrpId       uint64                     `align:"cgrpid"`
 	Namespaces   processapi.MsgNamespaces   `align:"ns"`
 	Capabilities processapi.MsgCapabilities `align:"caps"`
 	Binary       processapi.Binary          `align:"bin"`
