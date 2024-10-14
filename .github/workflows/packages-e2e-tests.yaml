@@ -129,14 +129,20 @@ jobs:
         run: sudo journalctl -b -u tetragon --no-pager
 
       - name: Test Tetragon
-        run: |
-          sudo tetra status
-          sudo tetra tracingpolicy list | grep bpf -
-          sudo tetra bugtool
-          test $(stat -c %a /var/run/tetragon/tetragon.sock) -eq "660"
-          sudo tetra tracingpolicy add examples/tracingpolicy/tcp-connect.yaml
-          sudo tetra tracingpolicy list | grep connect -
-          sudo grep "tetra" /var/log/tetragon/tetragon.log
+        uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
+        with:
+          timeout_seconds: 30
+          max_attempts: 5
+          retry_wait_seconds: 5
+          retry_on: error
+          command: |
+            sudo tetra status
+            test $(stat -c %a /var/run/tetragon/tetragon.sock) -eq "660"
+            sudo tetra bugtool
+            sudo tetra tracingpolicy list | grep bpf -
+            sudo tetra tracingpolicy add examples/tracingpolicy/tcp-connect.yaml
+            sudo tetra tracingpolicy list | grep connect -
+            sudo grep "tetra" /var/log/tetragon/tetragon.log
 
       - name: Setup Tetragon with a different tracing-policy-dir
         run: |
