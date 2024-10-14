@@ -45,7 +45,7 @@ You can use this command to get the name of the Tetragon Pod that is on the same
 Kubernetes node as the "xwing" Pod:
 
 ```shell
-POD=$(kubectl -n kubesystem get pods -l 'app.kubernetes.io/name=tetragon' -o name --field-selector spec.nodeName=$(kubectl get pod xwing -o jsonpath='{.spec.nodeName}'))
+POD=$(kubectl -n kube-system get pods -l 'app.kubernetes.io/name=tetragon' -o name --field-selector spec.nodeName=$(kubectl get pod xwing -o jsonpath='{.spec.nodeName}'))
 ```
 
 Once you have the identified the matching Pod, then target it with a `kubectl
