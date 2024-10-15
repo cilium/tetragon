@@ -9,11 +9,11 @@ require (
 	github.com/alecthomas/kong v1.2.1
 	github.com/cilium/lumberjack/v2 v2.3.0
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
-	github.com/containerd/containerd v1.7.22
+	github.com/containerd/containerd v1.7.23
 	github.com/containerd/nri v0.6.1
 	github.com/containers/common v0.60.4
 	github.com/google/cel-go v0.21.0
-	github.com/opencontainers/runc v1.1.14
+	github.com/opencontainers/runc v1.1.15
 	github.com/opencontainers/runtime-spec v1.2.0
 	github.com/pelletier/go-toml v1.9.5
 	github.com/stretchr/testify v1.9.0
@@ -24,7 +24,7 @@ require (
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
 	github.com/cilium/ebpf v0.12.3 // indirect
-	github.com/containerd/errdefs v0.1.0 // indirect
+	github.com/containerd/errdefs v0.3.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/ttrpc v1.2.5 // indirect
 	github.com/containerd/typeurl/v2 v2.1.1 // indirect
