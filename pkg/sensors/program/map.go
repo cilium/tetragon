@@ -223,7 +223,7 @@ func (m *Map) Unload() error {
 	}
 	log.Info("map was unloaded")
 	if m.MapHandle != nil {
-		if !option.Config.KeepSensorsOnExit {
+		if m.IsOwner() && !option.Config.KeepSensorsOnExit {
 			m.MapHandle.Unpin()
 			if m.Type == MapTypeGlobal {
 				DeleteGlobMap(m.Name)
