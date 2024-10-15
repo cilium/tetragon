@@ -671,6 +671,53 @@ func TestCleanup(t *testing.T) {
 		verifyRemoved("ns2:policy")
 		verifyRemoved("m1", "m2")
 	})
+
+	// Create sensor (s2) with user map and make sure the map (m1)
+	// stays in place (unpinned) after the sensor s2 is unloaded
+	// and s1 unload takes all out.
+	t.Run("user_unload", func(t *testing.T) {
+		m1 := program.MapBuilder("m1", p1)
+		m2 := program.MapBuilder("m2", p2)
+
+		s1 := &sensors.Sensor{
+			Name:   "sensor1",
+			Progs:  []*program.Program{p1},
+			Maps:   []*program.Map{m1, m2},
+			Policy: "policy",
+		}
+
+		// user map
+		m1User := program.MapUser("m1", p2)
+
+		s2 := &sensors.Sensor{
+			Name:   "sensor2",
+			Progs:  []*program.Program{p2},
+			Maps:   []*program.Map{m1User},
+			Policy: "policy",
+		}
+
+		err = s1.Load(bpf.MapPrefixPath())
+		assert.NoError(t, err)
+
+		err = s2.Load(bpf.MapPrefixPath())
+		assert.NoError(t, err)
+
+		err = s2.Unload()
+		assert.NoError(t, err)
+
+		// s1 is still loaded and we just unloaded s2 with m1 being user map,
+		// m1 should be untouched
+		verifyExists("m1")
+
+		// ... but sensor2 should get removed
+		verifyRemoved("policy/sensor2")
+
+		err = s1.Unload()
+		assert.NoError(t, err)
+
+		// s1 unload takes down everything
+		verifyRemoved("policy", "m1", "m2")
+	})
 }
 
 func TestNamespace(t *testing.T) {
