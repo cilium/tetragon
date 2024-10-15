@@ -217,6 +217,10 @@ func (m *Map) Unload() error {
 		log.WithField("count", m.PinState.count).Debug("Refusing to unload map as it is not loaded")
 		return nil
 	}
+	if !m.IsOwner() {
+		log.Debug("Not map owner, not unpinning and closing map yet")
+		return nil
+	}
 	if count := m.PinState.RefDec(); count > 0 {
 		log.WithField("count", count).Debug("Reference exists, not unloading map yet")
 		return nil
