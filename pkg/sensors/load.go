@@ -354,6 +354,10 @@ func (s *Sensor) loadMap(bpfDir string, m *program.Map) error {
 		m.SetMaxEntries(int(max))
 	}
 
+	// Disable content loading at this point, we just care about the map,
+	// the content will be loaded when the whole object gets loaded.
+	mapSpec.Contents = nil
+
 	if err := m.LoadOrCreatePinnedMap(pinPath, mapSpec); err != nil {
 		return fmt.Errorf("failed to load map '%s' for sensor '%s': %w", m.Name, s.Name, err)
 	}
