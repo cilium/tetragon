@@ -492,8 +492,6 @@ func createLsmSensorFromEntry(lsmEntry *genericLsm,
 	tailCalls := program.MapBuilderProgram("lsm_calls", load)
 	maps = append(maps, tailCalls)
 
-	load.SetTailCall("lsm", tailCalls)
-
 	filterMap := program.MapBuilderProgram("filter_map", load)
 	maps = append(maps, filterMap)
 

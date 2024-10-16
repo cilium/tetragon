@@ -422,9 +422,6 @@ func createGenericTracepointSensor(
 		tailCalls := program.MapBuilderProgram("tp_calls", prog0)
 		maps = append(maps, tailCalls)
 
-		// tracepoint tail calls details
-		prog0.SetTailCall("tracepoint", tailCalls)
-
 		filterMap := program.MapBuilderProgram("filter_map", prog0)
 		maps = append(maps, filterMap)
 
