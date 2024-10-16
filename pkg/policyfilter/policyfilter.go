@@ -64,18 +64,6 @@ func TestingEnableAndReset(t *testing.T) {
 
 }
 
-// TestingDisableAndReset disable policy filter for tests (see ResetStateOnlyForTesting)
-func TestingDisableAndReset(t *testing.T) {
-	oldEnablePolicyFilterValue := option.Config.EnablePolicyFilter
-	option.Config.EnablePolicyFilter = true
-	resetStateOnlyForTesting()
-	t.Cleanup(func() {
-		option.Config.EnablePolicyFilter = oldEnablePolicyFilterValue
-		resetStateOnlyForTesting()
-	})
-
-}
-
 // State is the policyfilter state interface
 // It handles two things:
 //   - policies being added and removed
