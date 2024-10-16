@@ -96,7 +96,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-cache search qemu
-        sudo apt-get install -y mmdebstrap libguestfs-tools qemu-utils qemu-system-x86 cpu-checker qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils virtinst virt-manager
+        sudo apt-get install -y mmdebstrap libguestfs-tools qemu-utils qemu-system-x86 cpu-checker qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils virtinst virt-manager isc-dhcp-client
 
     - name: Make kernel accessible
       run: |
