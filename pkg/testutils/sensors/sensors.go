@@ -9,6 +9,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors"
 )
 
@@ -44,21 +45,36 @@ type TestSensorManager struct {
 // unqique directory for maps/etc, and will also register the necessary cleanup functions using
 // t.Cleanup()
 func GetTestSensorManager(ctx context.Context, t *testing.T) *TestSensorManager {
-	if mgr := observer.GetSensorManager(); mgr != nil {
+	pfState, err := policyfilter.GetState()
+	if err != nil {
+		t.Fatalf("failed to initialize policy filter state: %s", err)
+	}
+	return getTestSensorManager(ctx, t, pfState)
+}
+
+func GetTestSensorManagerWithDummyPF(ctx context.Context, t *testing.T) *TestSensorManager {
+	return getTestSensorManager(ctx, t, &dummyPF{})
+}
+
+func getTestSensorManager(ctx context.Context, t *testing.T, pfState policyfilter.State) *TestSensorManager {
+	var mgr *sensors.Manager
+	var err error
+
+	if mgr = observer.GetSensorManager(); mgr != nil {
 		return &TestSensorManager{
 			Manager: mgr,
 		}
 	}
 
 	path := bpf.MapPrefixPath()
-	mgr, err := sensors.StartSensorManager(path, nil)
+	mgr, err = sensors.StartSensorManagerWithPF(path, nil, pfState)
 	if err != nil {
-		t.Fatalf("startSensorController failed: %s", err)
+		t.Fatalf("StartSensorManagerWithPF failed: %s", err)
 	}
 	t.Cleanup(func() {
 		err := mgr.StopSensorManager(ctx)
 		if err != nil {
-			t.Logf("stopSensorController failed: %s\n", err)
+			t.Logf("StopSensorManager failed: %s\n", err)
 		}
 	})
 
