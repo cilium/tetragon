@@ -335,6 +335,7 @@ struct execve_map_value {
 	struct msg_execve_key pkey;
 	__u32 flags;
 	__u32 nspid;
+	__u64 cgrpid;
 	struct msg_ns ns;
 	struct msg_capabilities caps;
 	struct binary bin;
