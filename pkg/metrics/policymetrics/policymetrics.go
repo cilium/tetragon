@@ -35,7 +35,10 @@ var policyState = metrics.MustNewCustomGauge(metrics.NewOpts(
 var policyKernelMemory = metrics.MustNewCustomGauge(metrics.NewOpts(
 	consts.MetricsNamespace, "", "tracingpolicy_kernel_memory_bytes",
 	"The amount of kernel memory in bytes used by policy's sensors non-shared BPF maps (memlock).",
-	nil, nil, []metrics.UnconstrainedLabel{{Name: "policy", ExampleValue: "example-policy"}},
+	nil, nil, []metrics.UnconstrainedLabel{
+		{Name: "policy"},
+		{Name: "policy_namespace"},
+	},
 ))
 
 // This metric collector converts the output of ListTracingPolicies into a few
@@ -70,7 +73,7 @@ func collect(ch chan<- prometheus.Metric) {
 	for _, policy := range list.Policies {
 		state := policy.State
 		counters[state]++
-		ch <- policyKernelMemory.MustMetric(float64(policy.KernelMemoryBytes), policy.Name)
+		ch <- policyKernelMemory.MustMetric(float64(policy.KernelMemoryBytes), policy.Name, policy.Namespace)
 	}
 
 	ch <- policyState.MustMetric(
@@ -95,5 +98,5 @@ func collectForDocs(ch chan<- prometheus.Metric) {
 	for _, state := range stateLabel.Values {
 		ch <- policyState.MustMetric(0, state)
 	}
-	ch <- policyKernelMemory.MustMetric(0, "example-policy")
+	ch <- policyKernelMemory.MustMetric(0, consts.ExamplePolicyLabel, consts.ExampleNamespace)
 }

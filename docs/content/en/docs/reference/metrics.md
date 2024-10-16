@@ -303,7 +303,8 @@ The amount of kernel memory in bytes used by policy's sensors non-shared BPF map
 
 | label | values |
 | ----- | ------ |
-| `policy` | `example-policy` |
+| `policy` | `example-tracingpolicy` |
+| `policy_namespace` | `example-namespace` |
 
 ### `tetragon_tracingpolicy_loaded`
 
