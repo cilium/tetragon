@@ -60,6 +60,9 @@ func (ko *KprobeOptions) cookie() uint64 {
 // platform's syscall prefix (e.g. __x64_) to support attaching to syscalls
 // in a portable fashion.
 //
+// On kernels 6.11 and later, setting a kprobe on a nonexistent symbol using
+// tracefs incorrectly returns [unix.EINVAL] instead of [os.ErrNotExist].
+//
 // The returned Link may implement [PerfEvent].
 func Kprobe(symbol string, prog *ebpf.Program, opts *KprobeOptions) (Link, error) {
 	k, err := kprobe(symbol, prog, opts, false)
@@ -91,7 +94,7 @@ func Kprobe(symbol string, prog *ebpf.Program, opts *KprobeOptions) (Link, error
 // in a portable fashion.
 //
 // On kernels 5.10 and earlier, setting a kretprobe on a nonexistent symbol
-// incorrectly returns unix.EINVAL instead of os.ErrNotExist.
+// incorrectly returns [unix.EINVAL] instead of [os.ErrNotExist].
 //
 // The returned Link may implement [PerfEvent].
 func Kretprobe(symbol string, prog *ebpf.Program, opts *KprobeOptions) (Link, error) {
@@ -177,7 +180,7 @@ func kprobe(symbol string, prog *ebpf.Program, opts *KprobeOptions, ret bool) (*
 	if err == nil {
 		return tp, nil
 	}
-	if err != nil && !errors.Is(err, ErrNotSupported) {
+	if !errors.Is(err, ErrNotSupported) {
 		return nil, fmt.Errorf("creating perf_kprobe PMU (arch-specific fallback for %q): %w", symbol, err)
 	}
 
