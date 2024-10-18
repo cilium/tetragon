@@ -284,7 +284,7 @@ event_execve(struct trace_event_raw_sched_process_exec *ctx)
 }
 
 __attribute__((section("tracepoint"), used)) int
-execve_rate(void *ctx)
+execve_rate(void *ctx __arg_ctx)
 {
 	struct msg_execve_event *msg;
 	__u32 zero = 0;
@@ -329,7 +329,7 @@ void update_mb_bitset(struct binary *bin)
  * has already been collected, then send it to the perf buffer.
  */
 __attribute__((section("tracepoint"), used)) int
-execve_send(void *ctx)
+execve_send(void *ctx __arg_ctx)
 {
 	struct msg_execve_event *event;
 	struct execve_map_value *curr;
