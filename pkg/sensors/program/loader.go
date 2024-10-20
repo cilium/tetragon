@@ -730,6 +730,42 @@ func installTailCalls(bpfDir string, spec *ebpf.CollectionSpec, coll *ebpf.Colle
 	return nil
 }
 
+// MissingConstantsError is returned by [rewriteConstants].
+type MissingConstantsError struct {
+	// The constants missing from .rodata.
+	Constants []string
+}
+
+func (m *MissingConstantsError) Error() string {
+	return fmt.Sprintf("some constants are missing from .rodata: %s", strings.Join(m.Constants, ", "))
+}
+
+func rewriteConstants(spec *ebpf.CollectionSpec, consts map[string]interface{}) error {
+	var missing []string
+
+	for n, c := range consts {
+		v, ok := spec.Variables[n]
+		if !ok {
+			missing = append(missing, n)
+			continue
+		}
+
+		if !v.Constant() {
+			return fmt.Errorf("variable %s is not a constant", n)
+		}
+
+		if err := v.Set(c); err != nil {
+			return fmt.Errorf("rewriting constant %s: %w", n, err)
+		}
+	}
+
+	if len(missing) != 0 {
+		return fmt.Errorf("rewrite constants: %w", &MissingConstantsError{Constants: missing})
+	}
+
+	return nil
+}
+
 func doLoadProgram(
 	bpfDir string,
 	load *Program,
@@ -752,7 +788,7 @@ func doLoadProgram(
 	}
 
 	if load.RewriteConstants != nil {
-		if err := spec.RewriteConstants(load.RewriteConstants); err != nil {
+		if err := rewriteConstants(spec, load.RewriteConstants); err != nil {
 			return nil, fmt.Errorf("rewritting constants in spec failed: %w", err)
 		}
 	}
