@@ -2656,4 +2656,30 @@ do_copy_path:
 	return copy_path(args, path_arg);
 }
 
+#define __STR(x) #x
+
+#define set_if_not_errno_or_zero(x, y)                  \
+	({                                              \
+		asm volatile("if %0 s< -4095 goto +1\n" \
+			     "if %0 s<= 0 goto +1\n"    \
+			     "%0 = " __STR(y) "\n"      \
+			     : "+r"(x));                \
+	})
+
+FUNC_INLINE int try_override(void *ctx, struct bpf_map_def *override_tasks)
+{
+	__u64 id = get_current_pid_tgid();
+	__s32 *error, ret;
+
+	error = map_lookup_elem(override_tasks, &id);
+	if (!error)
+		return 0;
+
+	map_delete_elem(override_tasks, &id);
+	ret = *error;
+	/* Let's make verifier happy and 'force' proper bounds. */
+	set_if_not_errno_or_zero(ret, -1);
+	return ret;
+}
+
 #endif /* __BASIC_H__ */
