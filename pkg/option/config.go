@@ -25,6 +25,7 @@ type config struct {
 	Verbosity       int
 	ForceSmallProgs bool
 	ForceLargeProgs bool
+	ClusterName     string
 
 	EnableProcessNs   bool
 	EnableProcessCred bool

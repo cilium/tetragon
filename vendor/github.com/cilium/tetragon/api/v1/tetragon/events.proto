@@ -204,4 +204,6 @@ message GetEventsResponse {
     // aggregation_info contains information about aggregation results. This field
     // is set only for aggregated responses.
     AggregationInfo aggregation_info = 1002;
+    // Name of the cluster where this event was observed.
+    string cluster_name = 1003;
 }

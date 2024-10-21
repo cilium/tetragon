@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,10 +27,13 @@ func TestGetNodeNameForExport(t *testing.T) {
 func TestSetCommonFields(t *testing.T) {
 	ev := tetragon.GetEventsResponse{}
 	assert.Empty(t, ev.NodeName)
+	assert.Empty(t, ev.ClusterName)
 	nodeName := "my-node-name"
 	assert.NoError(t, os.Setenv("NODE_NAME", nodeName))
 	SetNodeName()
+	option.Config.ClusterName = "my-cluster-name"
 	SetCommonFields(&ev)
 	assert.Equal(t, nodeName, ev.GetNodeName())
+	assert.Equal(t, option.Config.ClusterName, ev.GetClusterName())
 	assert.NoError(t, os.Unsetenv("NODE_NAME"))
 }

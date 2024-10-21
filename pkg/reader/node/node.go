@@ -8,6 +8,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/option"
 )
 
 var (
@@ -47,4 +48,5 @@ func GetNodeNameForExport() string {
 // SetCommonFields set fields that are common in all the events.
 func SetCommonFields(ev *tetragon.GetEventsResponse) {
 	ev.NodeName = nodeName
+	ev.ClusterName = option.Config.ClusterName
 }
