@@ -65,7 +65,6 @@ type ProcessInternal struct {
 }
 
 var (
-	nodeName  string
 	procCache *Cache
 	k8s       watcher.K8sResourceWatcher
 )
@@ -81,7 +80,6 @@ func InitCache(w watcher.K8sResourceWatcher, size int) error {
 		FreeCache()
 	}
 
-	nodeName = node.GetNodeNameForExport()
 	k8s = w
 	procCache, err = NewCache(size)
 	if err != nil {
@@ -261,7 +259,7 @@ func UpdateEventProcessTid(process *tetragon.Process, tid *uint32) {
 }
 
 func GetProcessID(pid uint32, ktime uint64) string {
-	return base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%d:%d", nodeName, ktime, pid)))
+	return base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%d:%d", node.GetNodeNameForExport(), ktime, pid)))
 }
 
 func GetExecID(proc *tetragonAPI.MsgProcess) string {

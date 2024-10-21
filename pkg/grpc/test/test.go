@@ -11,12 +11,7 @@ import (
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/process"
-	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/reader/notify"
-)
-
-var (
-	nodeName = node.GetNodeNameForExport()
 )
 
 type MsgTestEventUnix struct {
@@ -46,8 +41,7 @@ func (msg *MsgTestEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 				Arg2: msg.Msg.Arg2,
 				Arg3: msg.Msg.Arg3,
 			}},
-			NodeName: nodeName,
-			Time:     ktime.ToProto(msg.Msg.Common.Ktime),
+			Time: ktime.ToProto(msg.Msg.Common.Ktime),
 		}
 	default:
 		logger.GetLogger().WithField("message", msg).Warn("HandleTestMessage: Unhandled event")

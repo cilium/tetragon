@@ -16,6 +16,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/encoder"
 	"github.com/cilium/tetragon/pkg/ratelimit"
+	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/rthooks"
 	"github.com/cilium/tetragon/pkg/server"
 	"github.com/stretchr/testify/assert"
@@ -171,6 +172,7 @@ func Test_rateLimitExport(t *testing.T) {
 		}
 		defer os.Unsetenv(hubbleNodeNameEnv)
 	}
+	node.SetNodeName()
 
 	tests := []struct {
 		name              string

@@ -12,7 +12,6 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
-	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/server"
 )
@@ -25,8 +24,7 @@ const (
 )
 
 var (
-	cache    *Cache
-	nodeName string
+	cache *Cache
 )
 
 type CacheObj struct {
@@ -145,9 +143,8 @@ func (ec *Cache) handleEvents() {
 
 		if event.msg.Notify() {
 			processedEvent := &tetragon.GetEventsResponse{
-				Event:    event.event.Encapsulate(),
-				NodeName: nodeName,
-				Time:     ktime.ToProto(event.timestamp),
+				Event: event.event.Encapsulate(),
+				Time:  ktime.ToProto(event.timestamp),
 			}
 
 			ec.notifier.NotifyListener(event.msg, processedEvent)
@@ -231,7 +228,6 @@ func NewWithTimer(n server.Notifier, dur time.Duration) *Cache {
 		notifier: n,
 		dur:      dur,
 	}
-	nodeName = node.GetNodeNameForExport()
 	go cache.loop()
 	return cache
 }
