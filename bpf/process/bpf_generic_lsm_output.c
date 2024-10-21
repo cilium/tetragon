@@ -50,19 +50,6 @@ struct {
 	__type(value, struct event_config);
 } config_map SEC(".maps");
 
-FUNC_INLINE int try_override(void *ctx)
-{
-	__u64 id = get_current_pid_tgid();
-	__s32 *error;
-
-	error = map_lookup_elem(&override_tasks, &id);
-	if (!error)
-		return 0;
-
-	map_delete_elem(&override_tasks, &id);
-	return (long)*error;
-}
-
 __attribute__((section("lsm/generic_lsm_output"), used)) int
 generic_lsm_output(void *ctx)
 {
@@ -89,5 +76,5 @@ generic_lsm_output(void *ctx)
 #endif
 	if (e->lsm.post)
 		generic_output(ctx, (struct bpf_map_def *)&process_call_heap, MSG_OP_GENERIC_LSM);
-	return try_override(ctx);
+	return try_override(ctx, (struct bpf_map_def *)&override_tasks);
 }

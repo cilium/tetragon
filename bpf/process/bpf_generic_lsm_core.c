@@ -79,19 +79,6 @@ static struct generic_maps maps = {
 	.override = (struct bpf_map_def *)&override_tasks,
 };
 
-FUNC_INLINE int try_override(void *ctx)
-{
-	__u64 id = get_current_pid_tgid();
-	__s32 *error;
-
-	error = map_lookup_elem(&override_tasks, &id);
-	if (!error)
-		return 0;
-
-	map_delete_elem(&override_tasks, &id);
-	return (long)*error;
-}
-
 #define MAIN "lsm/generic_lsm_core"
 
 __attribute__((section((MAIN)), used)) int
@@ -172,7 +159,7 @@ generic_lsm_actions(void *ctx)
 
 	// If NoPost action is set, check for Override action here
 	if (!e->lsm.post)
-		return try_override(ctx);
+		return try_override(ctx, (struct bpf_map_def *)&override_tasks);
 
 	return 0;
 }
