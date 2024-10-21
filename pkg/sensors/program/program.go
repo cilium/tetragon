@@ -206,6 +206,7 @@ func (p *Program) Unload() error {
 	}
 	p.unloader = nil
 	p.unloaderOverride = nil
+	p.LoadedMapsInfo = nil
 	return nil
 }
 
