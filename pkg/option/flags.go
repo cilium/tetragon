@@ -28,6 +28,7 @@ const (
 	KeyDataCacheSize    = "data-cache-size"
 	KeyForceSmallProgs  = "force-small-progs"
 	KeyForceLargeProgs  = "force-large-progs"
+	KeyClusterName      = "cluster-name"
 
 	KeyLogLevel  = "log-level"
 	KeyLogFormat = "log-format"
@@ -143,6 +144,7 @@ func ReadAndSetFlags() error {
 	Config.ForceSmallProgs = viper.GetBool(KeyForceSmallProgs)
 	Config.ForceLargeProgs = viper.GetBool(KeyForceLargeProgs)
 	Config.Debug = viper.GetBool(KeyDebug)
+	Config.ClusterName = viper.GetString(KeyClusterName)
 
 	Config.EnableProcessCred = viper.GetBool(KeyEnableProcessCred)
 	Config.EnableProcessNs = viper.GetBool(KeyEnableProcessNs)
@@ -301,6 +303,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.BoolP(KeyDebug, "d", false, "Enable debug messages. Equivalent to '--log-level=debug'")
 	flags.String(KeyHubbleLib, defaults.DefaultTetragonLib, "Location of Tetragon libs (btf and bpf files)")
 	flags.String(KeyBTF, "", "Location of btf")
+	flags.String(KeyClusterName, "", "Name of the cluster where Tetragon is installed")
 
 	flags.String(KeyProcFS, "/proc/", "Location of procfs to consume existing PIDs")
 	flags.String(KeyKernelVersion, "", "Kernel version")

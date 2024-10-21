@@ -137,6 +137,9 @@ tetragon:
   # With both of the above redaction filters in place, we are now redacting all
   # password arguments.
   redactionFilters: ""
+  # -- Name of the cluster where Tetragon is installed. Tetragon uses this value
+  # to set the cluster_name field in GetEventsResponse messages.
+  clusterName: ""
   # -- Access Kubernetes API to associate Tetragon events with Kubernetes pods.
   enableK8sAPI: true
   # -- Enable Capabilities visibility in exec and kprobe events.

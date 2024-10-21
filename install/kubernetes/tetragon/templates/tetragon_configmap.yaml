@@ -6,6 +6,7 @@ metadata:
   labels:
   {{- include "tetragon.labels" . | nindent 4 }}
 data:
+  cluster-name: {{ .Values.tetragon.clusterName | quote }}
 {{- if .Values.tetragon.btf }}
   btf: {{ .Values.tetragon.btf }}
 {{- end }}

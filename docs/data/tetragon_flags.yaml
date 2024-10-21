@@ -14,6 +14,8 @@ options:
     - name: cgroup-rate
       usage: |
         Base sensor events cgroup rate <events,interval> disabled by default ('1000/1s' means rate 1000 events per second
+    - name: cluster-name
+      usage: Name of the cluster where Tetragon is installed
     - name: config-dir
       usage: Configuration directory that contains a file for each option
     - name: cpuprofile
