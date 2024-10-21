@@ -403,6 +403,9 @@ execve_send(void *ctx)
 		}
 #endif
 
+		/* Store again the task cgroup ID */
+		curr->cgrpid = event->kube.cgrpid;
+
 		update_mb_bitset(&curr->bin);
 	}
 
