@@ -53,15 +53,16 @@ func (r *RateLimiter) reportRateLimitInfo(encoder encoder.EventEncoder) {
 		case <-ticker.C:
 			dropped := atomic.SwapUint64(&r.dropped, 0)
 			if dropped > 0 {
-				err := encoder.Encode(&tetragon.GetEventsResponse{
+				ev := tetragon.GetEventsResponse{
 					Event: &tetragon.GetEventsResponse_RateLimitInfo{
 						RateLimitInfo: &tetragon.RateLimitInfo{
 							NumberOfDroppedProcessEvents: dropped,
 						},
 					},
-					NodeName: node.GetNodeNameForExport(),
-					Time:     timestamppb.New(time.Now()),
-				})
+					Time: timestamppb.New(time.Now()),
+				}
+				node.SetCommonFields(&ev)
+				err := encoder.Encode(&ev)
 				if err != nil {
 					logger.GetLogger().
 						WithError(err).

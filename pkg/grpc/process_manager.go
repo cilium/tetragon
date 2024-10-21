@@ -22,8 +22,7 @@ import (
 
 // ProcessManager maintains a cache of processes from tetragon exec events.
 type ProcessManager struct {
-	nodeName string
-	Server   *server.Server
+	Server *server.Server
 	// synchronize access to the listeners map.
 	mux       sync.Mutex
 	listeners map[server.Listener]struct{}
@@ -37,7 +36,6 @@ func NewProcessManager(
 	hookRunner *rthooks.Runner,
 ) (*ProcessManager, error) {
 	pm := &ProcessManager{
-		nodeName:  node.GetNodeNameForExport(),
 		listeners: make(map[server.Listener]struct{}),
 	}
 
@@ -85,6 +83,7 @@ func (pm *ProcessManager) RemoveListener(listener server.Listener) {
 func (pm *ProcessManager) NotifyListener(original interface{}, processed *tetragon.GetEventsResponse) {
 	pm.mux.Lock()
 	defer pm.mux.Unlock()
+	node.SetCommonFields(processed)
 	for l := range pm.listeners {
 		l.Notify(processed)
 	}

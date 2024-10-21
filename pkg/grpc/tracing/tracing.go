@@ -24,15 +24,10 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/bpf"
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/network"
-	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/reader/path"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-)
-
-var (
-	nodeName = node.GetNodeNameForExport()
 )
 
 func kprobeAction(act uint64) tetragon.KprobeAction {
@@ -576,9 +571,8 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 	}
 
 	return &tetragon.GetEventsResponse{
-		Event:    &tetragon.GetEventsResponse_ProcessTracepoint{ProcessTracepoint: tetragonEvent},
-		NodeName: nodeName,
-		Time:     ktime.ToProto(msg.Msg.Common.Ktime),
+		Event: &tetragon.GetEventsResponse_ProcessTracepoint{ProcessTracepoint: tetragonEvent},
+		Time:  ktime.ToProto(msg.Msg.Common.Ktime),
 	}
 }
 
@@ -624,9 +618,8 @@ func (msg *MsgGenericKprobeUnix) HandleMessage() *tetragon.GetEventsResponse {
 		return nil
 	}
 	return &tetragon.GetEventsResponse{
-		Event:    &tetragon.GetEventsResponse_ProcessKprobe{ProcessKprobe: k},
-		NodeName: nodeName,
-		Time:     ktime.ToProto(msg.Msg.Common.Ktime),
+		Event: &tetragon.GetEventsResponse_ProcessKprobe{ProcessKprobe: k},
+		Time:  ktime.ToProto(msg.Msg.Common.Ktime),
 	}
 }
 
@@ -715,8 +708,7 @@ func (msg *MsgProcessLoaderUnix) HandleMessage() *tetragon.GetEventsResponse {
 	}
 	LoaderMetricInc(LoaderResolvedImm)
 	return &tetragon.GetEventsResponse{
-		Event:    &tetragon.GetEventsResponse_ProcessLoader{ProcessLoader: k},
-		NodeName: nodeName,
+		Event: &tetragon.GetEventsResponse_ProcessLoader{ProcessLoader: k},
 	}
 }
 
@@ -823,9 +815,8 @@ func (msg *MsgGenericUprobeUnix) HandleMessage() *tetragon.GetEventsResponse {
 		return nil
 	}
 	return &tetragon.GetEventsResponse{
-		Event:    &tetragon.GetEventsResponse_ProcessUprobe{ProcessUprobe: k},
-		NodeName: nodeName,
-		Time:     ktime.ToProto(msg.Msg.Common.Ktime),
+		Event: &tetragon.GetEventsResponse_ProcessUprobe{ProcessUprobe: k},
+		Time:  ktime.ToProto(msg.Msg.Common.Ktime),
 	}
 }
 
@@ -867,9 +858,8 @@ func (msg *MsgGenericLsmUnix) HandleMessage() *tetragon.GetEventsResponse {
 		return nil
 	}
 	return &tetragon.GetEventsResponse{
-		Event:    &tetragon.GetEventsResponse_ProcessLsm{ProcessLsm: k},
-		NodeName: nodeName,
-		Time:     ktime.ToProto(msg.Msg.Common.Ktime),
+		Event: &tetragon.GetEventsResponse_ProcessLsm{ProcessLsm: k},
+		Time:  ktime.ToProto(msg.Msg.Common.Ktime),
 	}
 }
 
@@ -993,9 +983,8 @@ func (msg *MsgProcessThrottleUnix) HandleMessage() *tetragon.GetEventsResponse {
 		Cgroup: msg.Cgroup,
 	}
 	return &tetragon.GetEventsResponse{
-		Event:    &tetragon.GetEventsResponse_ProcessThrottle{ProcessThrottle: event},
-		NodeName: nodeName,
-		Time:     ktime.ToProto(msg.Ktime),
+		Event: &tetragon.GetEventsResponse_ProcessThrottle{ProcessThrottle: event},
+		Time:  ktime.ToProto(msg.Ktime),
 	}
 }
 
