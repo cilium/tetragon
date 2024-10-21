@@ -44,7 +44,7 @@ func NewProcessManager(
 	pm.Server = server.NewServer(ctx, wg, pm, manager, hookRunner)
 
 	// Exec cache is always needed to ensure events have an associated Process{}
-	eventcache.New(pm.Server)
+	eventcache.New(pm)
 
 	logger.GetLogger().WithFields(logrus.Fields{
 		"enableK8s":         option.Config.EnableK8s,

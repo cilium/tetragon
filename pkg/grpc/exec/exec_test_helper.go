@@ -4,8 +4,6 @@
 package exec
 
 import (
-	"context"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -16,7 +14,6 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/notify"
-	"github.com/cilium/tetragon/pkg/rthooks"
 	"github.com/cilium/tetragon/pkg/server"
 	"github.com/cilium/tetragon/pkg/watcher"
 
@@ -313,23 +310,17 @@ func CreateCloneEvents[CLONE notify.Message, EXIT notify.Message](Pid uint32, Kt
 	return &cloneMsg, &exitMsg
 }
 
-func InitEnv[EXEC notify.Message, EXIT notify.Message](t *testing.T, cancelWg *sync.WaitGroup,
-	watcher watcher.K8sResourceWatcher) (context.CancelFunc, DummyNotifier[EXEC, EXIT]) {
-
-	ctx, cancel := context.WithCancel(context.Background())
-
+func InitEnv[EXEC notify.Message, EXIT notify.Message](t *testing.T, watcher watcher.K8sResourceWatcher) DummyNotifier[EXEC, EXIT] {
 	if err := process.InitCache(watcher, 65536); err != nil {
 		t.Fatalf("failed to call process.InitCache %s", err)
 	}
 
 	dn := NewDummyNotifier[EXEC, EXIT](t)
-	dr := rthooks.DummyHookRunner{}
-	lServer := server.NewServer(ctx, cancelWg, dn, &server.FakeObserver{}, dr)
 
 	// Exec cache is always needed to ensure events have an associated Process{}
-	eventcache.NewWithTimer(lServer, time.Millisecond*CacheTimerMs)
+	eventcache.NewWithTimer(dn, time.Millisecond*CacheTimerMs)
 
-	return cancel, dn
+	return dn
 }
 
 func GetProcessRefcntFromCache(t *testing.T, Pid uint32, Ktime uint64) uint32 {
@@ -422,15 +413,9 @@ func CheckExecEvents(t *testing.T, events []*tetragon.GetEventsResponse, parentP
 }
 
 func GrpcExecOutOfOrder[EXEC notify.Message, EXIT notify.Message](t *testing.T) {
-	var cancelWg sync.WaitGroup
-
 	AllEvents = nil
 	watcher := watcher.NewFakeK8sWatcher(nil)
-	cancel, dn := InitEnv[EXEC, EXIT](t, &cancelWg, watcher)
-	defer func() {
-		cancel()
-		cancelWg.Wait()
-	}()
+	dn := InitEnv[EXEC, EXIT](t, watcher)
 
 	parentPid := atomic.AddUint32(&BasePid, 1)
 	currentPid := atomic.AddUint32(&BasePid, 1)
@@ -458,15 +443,9 @@ func GrpcExecOutOfOrder[EXEC notify.Message, EXIT notify.Message](t *testing.T) 
 }
 
 func GrpcExecInOrder[EXEC notify.Message, EXIT notify.Message](t *testing.T) {
-	var cancelWg sync.WaitGroup
-
 	AllEvents = nil
 	watcher := watcher.NewFakeK8sWatcher(nil)
-	cancel, _ := InitEnv[EXEC, EXIT](t, &cancelWg, watcher)
-	defer func() {
-		cancel()
-		cancelWg.Wait()
-	}()
+	InitEnv[EXEC, EXIT](t, watcher)
 
 	parentPid := atomic.AddUint32(&BasePid, 1)
 	currentPid := atomic.AddUint32(&BasePid, 1)
@@ -493,15 +472,9 @@ func GrpcExecInOrder[EXEC notify.Message, EXIT notify.Message](t *testing.T) {
 }
 
 func GrpcExecMisingParent[EXEC notify.Message, EXIT notify.Message](t *testing.T) {
-	var cancelWg sync.WaitGroup
-
 	AllEvents = nil
 	watcher := watcher.NewFakeK8sWatcher(nil)
-	cancel, dn := InitEnv[EXEC, EXIT](t, &cancelWg, watcher)
-	defer func() {
-		cancel()
-		cancelWg.Wait()
-	}()
+	dn := InitEnv[EXEC, EXIT](t, watcher)
 
 	parentPid := atomic.AddUint32(&BasePid, 1)
 	currentPid := atomic.AddUint32(&BasePid, 1)
@@ -524,15 +497,9 @@ func GrpcExecMisingParent[EXEC notify.Message, EXIT notify.Message](t *testing.T
 }
 
 func GrpcMissingExec[EXEC notify.Message, EXIT notify.Message](t *testing.T) {
-	var cancelWg sync.WaitGroup
-
 	AllEvents = nil
 	watcher := watcher.NewFakeK8sWatcher(nil)
-	cancel, dn := InitEnv[EXEC, EXIT](t, &cancelWg, watcher)
-	defer func() {
-		cancel()
-		cancelWg.Wait()
-	}()
+	dn := InitEnv[EXEC, EXIT](t, watcher)
 
 	parentPid := atomic.AddUint32(&BasePid, 1)
 	currentPid := atomic.AddUint32(&BasePid, 1)
@@ -558,15 +525,9 @@ func GrpcMissingExec[EXEC notify.Message, EXIT notify.Message](t *testing.T) {
 }
 
 func GrpcExecParentOutOfOrder[EXEC notify.Message, EXIT notify.Message](t *testing.T) {
-	var cancelWg sync.WaitGroup
-
 	AllEvents = nil
 	watcher := watcher.NewFakeK8sWatcher(nil)
-	cancel, _ := InitEnv[EXEC, EXIT](t, &cancelWg, watcher)
-	defer func() {
-		cancel()
-		cancelWg.Wait()
-	}()
+	InitEnv[EXEC, EXIT](t, watcher)
 
 	parentPid := atomic.AddUint32(&BasePid, 1)
 	currentPid := atomic.AddUint32(&BasePid, 1)
@@ -625,15 +586,9 @@ func CheckCloneEvents(t *testing.T, events []*tetragon.GetEventsResponse, curren
 }
 
 func GrpcExecCloneInOrder[EXEC notify.Message, CLONE notify.Message, EXIT notify.Message](t *testing.T) {
-	var cancelWg sync.WaitGroup
-
 	AllEvents = nil
 	watcher := watcher.NewFakeK8sWatcher(nil)
-	cancel, _ := InitEnv[EXEC, EXIT](t, &cancelWg, watcher)
-	defer func() {
-		cancel()
-		cancelWg.Wait()
-	}()
+	InitEnv[EXEC, EXIT](t, watcher)
 
 	parentPid := atomic.AddUint32(&BasePid, 1)
 	currentPid := atomic.AddUint32(&BasePid, 1)
@@ -664,15 +619,9 @@ func GrpcExecCloneInOrder[EXEC notify.Message, CLONE notify.Message, EXIT notify
 }
 
 func GrpcExecCloneOutOfOrder[EXEC notify.Message, CLONE notify.Message, EXIT notify.Message](t *testing.T) {
-	var cancelWg sync.WaitGroup
-
 	AllEvents = nil
 	watcher := watcher.NewFakeK8sWatcher(nil)
-	cancel, dn := InitEnv[EXEC, EXIT](t, &cancelWg, watcher)
-	defer func() {
-		cancel()
-		cancelWg.Wait()
-	}()
+	dn := InitEnv[EXEC, EXIT](t, watcher)
 
 	parentPid := atomic.AddUint32(&BasePid, 1)
 	currentPid := atomic.AddUint32(&BasePid, 1)
@@ -705,15 +654,9 @@ func GrpcExecCloneOutOfOrder[EXEC notify.Message, CLONE notify.Message, EXIT not
 }
 
 func GrpcParentInOrder[EXEC notify.Message, EXIT notify.Message](t *testing.T) {
-	var cancelWg sync.WaitGroup
-
 	AllEvents = nil
 	watcher := watcher.NewFakeK8sWatcher(nil)
-	cancel, _ := InitEnv[EXEC, EXIT](t, &cancelWg, watcher)
-	defer func() {
-		cancel()
-		cancelWg.Wait()
-	}()
+	InitEnv[EXEC, EXIT](t, watcher)
 
 	parentPid := atomic.AddUint32(&BasePid, 1)
 	currentPid := atomic.AddUint32(&BasePid, 1)
@@ -801,16 +744,10 @@ func CheckPodEvents(t *testing.T, events []*tetragon.GetEventsResponse) {
 // pod info. At the end both should have correct pod info and the exit
 // event should also have full process info.
 func GrpcExecPodInfoInOrder[EXEC notify.Message, EXIT notify.Message](t *testing.T) {
-	var cancelWg sync.WaitGroup
-
 	AllEvents = nil
 	option.Config.EnableK8s = true // enable Kubernetes
 	fakeWatcher := watcher.NewFakeK8sWatcher(nil)
-	cancel, dn := InitEnv[EXEC, EXIT](t, &cancelWg, fakeWatcher)
-	defer func() {
-		cancel()
-		cancelWg.Wait()
-	}()
+	dn := InitEnv[EXEC, EXIT](t, fakeWatcher)
 
 	parentPid := atomic.AddUint32(&BasePid, 1)
 	currentPid := atomic.AddUint32(&BasePid, 1)
@@ -845,16 +782,10 @@ func GrpcExecPodInfoInOrder[EXEC notify.Message, EXIT notify.Message](t *testing
 // pod info and process info. At the end both should have correct pod info
 // and the exit event should also have full process info.
 func GrpcExecPodInfoOutOfOrder[EXEC notify.Message, EXIT notify.Message](t *testing.T) {
-	var cancelWg sync.WaitGroup
-
 	AllEvents = nil
 	option.Config.EnableK8s = true // enable Kubernetes
 	fakeWatcher := watcher.NewFakeK8sWatcher(nil)
-	cancel, dn := InitEnv[EXEC, EXIT](t, &cancelWg, fakeWatcher)
-	defer func() {
-		cancel()
-		cancelWg.Wait()
-	}()
+	dn := InitEnv[EXEC, EXIT](t, fakeWatcher)
 
 	parentPid := atomic.AddUint32(&BasePid, 1)
 	currentPid := atomic.AddUint32(&BasePid, 1)
@@ -892,16 +823,10 @@ func GrpcExecPodInfoOutOfOrder[EXEC notify.Message, EXIT notify.Message](t *test
 // should have correct pod info and the exit event should also have full
 // process info.
 func GrpcExecPodInfoInOrderAfter[EXEC notify.Message, EXIT notify.Message](t *testing.T) {
-	var cancelWg sync.WaitGroup
-
 	AllEvents = nil
 	option.Config.EnableK8s = true // enable Kubernetes
 	fakeWatcher := watcher.NewFakeK8sWatcher(nil)
-	cancel, dn := InitEnv[EXEC, EXIT](t, &cancelWg, fakeWatcher)
-	defer func() {
-		cancel()
-		cancelWg.Wait()
-	}()
+	dn := InitEnv[EXEC, EXIT](t, fakeWatcher)
 
 	parentPid := atomic.AddUint32(&BasePid, 1)
 	currentPid := atomic.AddUint32(&BasePid, 1)
@@ -940,16 +865,10 @@ func GrpcExecPodInfoInOrderAfter[EXEC notify.Message, EXIT notify.Message](t *te
 // have correct pod info and the exit event should also have full
 // process info.
 func GrpcExecPodInfoOutOfOrderAfter[EXEC notify.Message, EXIT notify.Message](t *testing.T) {
-	var cancelWg sync.WaitGroup
-
 	AllEvents = nil
 	option.Config.EnableK8s = true // enable Kubernetes
 	fakeWatcher := watcher.NewFakeK8sWatcher(nil)
-	cancel, dn := InitEnv[EXEC, EXIT](t, &cancelWg, fakeWatcher)
-	defer func() {
-		cancel()
-		cancelWg.Wait()
-	}()
+	dn := InitEnv[EXEC, EXIT](t, fakeWatcher)
 
 	parentPid := atomic.AddUint32(&BasePid, 1)
 	currentPid := atomic.AddUint32(&BasePid, 1)
@@ -985,16 +904,10 @@ func GrpcExecPodInfoOutOfOrderAfter[EXEC notify.Message, EXIT notify.Message](t 
 // eventcache (missed pod and process info). Once we get the exec info
 // we still have to keep the exit event in the eventcache.
 func GrpcExecPodInfoDelayedOutOfOrder[EXEC notify.Message, EXIT notify.Message](t *testing.T) {
-	var cancelWg sync.WaitGroup
-
 	AllEvents = nil
 	option.Config.EnableK8s = true // enable Kubernetes
 	fakeWatcher := watcher.NewFakeK8sWatcher(nil)
-	cancel, dn := InitEnv[EXEC, EXIT](t, &cancelWg, fakeWatcher)
-	defer func() {
-		cancel()
-		cancelWg.Wait()
-	}()
+	dn := InitEnv[EXEC, EXIT](t, fakeWatcher)
 
 	parentPid := atomic.AddUint32(&BasePid, 1)
 	currentPid := atomic.AddUint32(&BasePid, 1)
@@ -1036,16 +949,10 @@ func GrpcExecPodInfoDelayedOutOfOrder[EXEC notify.Message, EXIT notify.Message](
 // both events we also miss pod info. We get pod info after at least one
 // cache GC round.
 func GrpcExecPodInfoDelayedInOrder[EXEC notify.Message, EXIT notify.Message](t *testing.T) {
-	var cancelWg sync.WaitGroup
-
 	AllEvents = nil
 	option.Config.EnableK8s = true // enable Kubernetes
 	fakeWatcher := watcher.NewFakeK8sWatcher(nil)
-	cancel, dn := InitEnv[EXEC, EXIT](t, &cancelWg, fakeWatcher)
-	defer func() {
-		cancel()
-		cancelWg.Wait()
-	}()
+	dn := InitEnv[EXEC, EXIT](t, fakeWatcher)
 
 	parentPid := atomic.AddUint32(&BasePid, 1)
 	currentPid := atomic.AddUint32(&BasePid, 1)
@@ -1086,16 +993,10 @@ func GrpcExecPodInfoDelayedInOrder[EXEC notify.Message, EXIT notify.Message](t *
 // In this case, we get an exit and an exex event (out-of-order).
 // We get the appopriate pod info after the exit event.
 func GrpcDelayedExecK8sOutOfOrder[EXEC notify.Message, EXIT notify.Message](t *testing.T) {
-	var cancelWg sync.WaitGroup
-
 	AllEvents = nil
 	option.Config.EnableK8s = true // enable Kubernetes
 	fakeWatcher := watcher.NewFakeK8sWatcher(nil)
-	cancel, dn := InitEnv[EXEC, EXIT](t, &cancelWg, fakeWatcher)
-	defer func() {
-		cancel()
-		cancelWg.Wait()
-	}()
+	dn := InitEnv[EXEC, EXIT](t, fakeWatcher)
 
 	parentPid := atomic.AddUint32(&BasePid, 1)
 	currentPid := atomic.AddUint32(&BasePid, 1)

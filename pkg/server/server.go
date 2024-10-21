@@ -32,7 +32,7 @@ type Listener interface {
 	Notify(res *tetragon.GetEventsResponse)
 }
 
-type notifier interface {
+type Notifier interface {
 	AddListener(listener Listener)
 	RemoveListener(listener Listener)
 	NotifyListener(original interface{}, processed *tetragon.GetEventsResponse)
@@ -64,7 +64,7 @@ type hookRunner interface {
 type Server struct {
 	ctx          context.Context
 	ctxCleanupWG *sync.WaitGroup
-	notifier     notifier
+	notifier     Notifier
 	observer     observer
 	hookRunner   hookRunner
 }
@@ -73,7 +73,7 @@ type getEventsListener struct {
 	events chan *tetragon.GetEventsResponse
 }
 
-func NewServer(ctx context.Context, cleanupWg *sync.WaitGroup, notifier notifier, observer observer, hookRunner hookRunner) *Server {
+func NewServer(ctx context.Context, cleanupWg *sync.WaitGroup, notifier Notifier, observer observer, hookRunner hookRunner) *Server {
 	return &Server{
 		ctx:          ctx,
 		ctxCleanupWG: cleanupWg,
@@ -100,10 +100,6 @@ func (l *getEventsListener) Notify(res *tetragon.GetEventsResponse) {
 		// events channel is full: drop the event so that we do not block everything
 		eventmetrics.NotifyOverflowedEvents.Inc()
 	}
-}
-
-func (s *Server) NotifyListeners(original interface{}, processed *tetragon.GetEventsResponse) {
-	s.notifier.NotifyListener(original, processed)
 }
 
 // removeNotifierAndDrain removes the events listener while draining
