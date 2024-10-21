@@ -38,8 +38,8 @@ github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UF
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/cilium/cilium v1.17.0-pre.1 h1:HIJgJ8mtGrz6fgRI6YA/TPAsx2s06rmJTvmVe8RiilA=
 github.com/cilium/cilium v1.17.0-pre.1/go.mod h1:OM+QqlLdnaaQiGA9/OTTeVDBLyZYtwVDIbcTMMAm1gU=
-github.com/cilium/ebpf v0.16.0 h1:+BiEnHL6Z7lXnlGUsXQPPAE7+kenAd4ES8MQ5min0Ok=
-github.com/cilium/ebpf v0.16.0/go.mod h1:L7u2Blt2jMM/vLAVgjxluxtBKlz3/GWjB0dMOEngfwE=
+github.com/cilium/ebpf v0.16.1-0.20241017091859-59f2044b26b5 h1:09rId+70PyTuXqz7E6k5bLxFj7yqYKHfxRAye+i5VAU=
+github.com/cilium/ebpf v0.16.1-0.20241017091859-59f2044b26b5/go.mod h1:g+Zxp5bVKYJy9/njLFYE+mNTcw1P8TnE59/2Qq2Pr3I=
 github.com/cilium/hive v0.0.0-20240926131619-aa37668760f2 h1:xZn7yvMbK1+Au6D/YLKEMdcEsyMt6Qu7CUv+yQHGqv0=
 github.com/cilium/hive v0.0.0-20240926131619-aa37668760f2/go.mod h1:6tW1eCwSq8Wz8IVtpZE0MemoCWSrEOUa8aLKotmBRCo=
 github.com/cilium/little-vm-helper v0.0.19 h1:eJeJM/03MGLrLUXXTBDZo2JoX5cIbm5+9iWjoHgpy/M=

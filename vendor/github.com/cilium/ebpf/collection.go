@@ -11,7 +11,7 @@ import (
 	"github.com/cilium/ebpf/btf"
 	"github.com/cilium/ebpf/internal"
 	"github.com/cilium/ebpf/internal/kconfig"
-	"github.com/cilium/ebpf/internal/sysenc"
+	"github.com/cilium/ebpf/internal/linux"
 )
 
 // CollectionOptions control loading a collection into the kernel.
@@ -38,6 +38,11 @@ type CollectionSpec struct {
 	Maps     map[string]*MapSpec
 	Programs map[string]*ProgramSpec
 
+	// Variables refer to global variables declared in the ELF. They can be read
+	// and modified freely before loading the Collection. Modifying them after
+	// loading has no effect on a running eBPF program.
+	Variables map[string]*VariableSpec
+
 	// Types holds type information about Maps and Programs.
 	// Modifications to Types are currently undefined behaviour.
 	Types *btf.Spec
@@ -56,6 +61,7 @@ func (cs *CollectionSpec) Copy() *CollectionSpec {
 	cpy := CollectionSpec{
 		Maps:      make(map[string]*MapSpec, len(cs.Maps)),
 		Programs:  make(map[string]*ProgramSpec, len(cs.Programs)),
+		Variables: make(map[string]*VariableSpec, len(cs.Variables)),
 		ByteOrder: cs.ByteOrder,
 		Types:     cs.Types.Copy(),
 	}
@@ -66,6 +72,10 @@ func (cs *CollectionSpec) Copy() *CollectionSpec {
 
 	for name, spec := range cs.Programs {
 		cpy.Programs[name] = spec.Copy()
+	}
+
+	for name, spec := range cs.Variables {
+		cpy.Variables[name] = spec.copy(&cpy)
 	}
 
 	return &cpy
@@ -134,65 +144,24 @@ func (m *MissingConstantsError) Error() string {
 // From Linux 5.5 the verifier will use constants to eliminate dead code.
 //
 // Returns an error wrapping [MissingConstantsError] if a constant doesn't exist.
+//
+// Deprecated: Use [CollectionSpec.Variables] to interact with constants instead.
+// RewriteConstants is now a wrapper around the VariableSpec API.
 func (cs *CollectionSpec) RewriteConstants(consts map[string]interface{}) error {
-	replaced := make(map[string]bool)
-
-	for name, spec := range cs.Maps {
-		if !strings.HasPrefix(name, ".rodata") {
-			continue
-		}
-
-		b, ds, err := spec.dataSection()
-		if errors.Is(err, errMapNoBTFValue) {
-			// Data sections without a BTF Datasec are valid, but don't support
-			// constant replacements.
-			continue
-		}
-		if err != nil {
-			return fmt.Errorf("map %s: %w", name, err)
-		}
-
-		// MapSpec.Copy() performs a shallow copy. Fully copy the byte slice
-		// to avoid any changes affecting other copies of the MapSpec.
-		cpy := make([]byte, len(b))
-		copy(cpy, b)
-
-		for _, v := range ds.Vars {
-			vname := v.Type.TypeName()
-			replacement, ok := consts[vname]
-			if !ok {
-				continue
-			}
-
-			if _, ok := v.Type.(*btf.Var); !ok {
-				return fmt.Errorf("section %s: unexpected type %T for variable %s", name, v.Type, vname)
-			}
-
-			if replaced[vname] {
-				return fmt.Errorf("section %s: duplicate variable %s", name, vname)
-			}
-
-			if int(v.Offset+v.Size) > len(cpy) {
-				return fmt.Errorf("section %s: offset %d(+%d) for variable %s is out of bounds", name, v.Offset, v.Size, vname)
-			}
-
-			b, err := sysenc.Marshal(replacement, int(v.Size))
-			if err != nil {
-				return fmt.Errorf("marshaling constant replacement %s: %w", vname, err)
-			}
-
-			b.CopyTo(cpy[v.Offset : v.Offset+v.Size])
-
-			replaced[vname] = true
-		}
-
-		spec.Contents[0] = MapKV{Key: uint32(0), Value: cpy}
-	}
-
 	var missing []string
-	for c := range consts {
-		if !replaced[c] {
-			missing = append(missing, c)
+	for n, c := range consts {
+		v, ok := cs.Variables[n]
+		if !ok {
+			missing = append(missing, n)
+			continue
+		}
+
+		if !v.Constant() {
+			return fmt.Errorf("variable %s is not a constant", n)
+		}
+
+		if err := v.Set(c); err != nil {
+			return fmt.Errorf("rewriting constant %s: %w", n, err)
 		}
 	}
 
@@ -210,25 +179,23 @@ func (cs *CollectionSpec) RewriteConstants(consts map[string]interface{}) error 
 // if this sounds useful.
 //
 // 'to' must be a pointer to a struct. A field of the
-// struct is updated with values from Programs or Maps if it
-// has an `ebpf` tag and its type is *ProgramSpec or *MapSpec.
+// struct is updated with values from Programs, Maps or Variables if it
+// has an `ebpf` tag and its type is *ProgramSpec, *MapSpec or *VariableSpec.
 // The tag's value specifies the name of the program or map as
 // found in the CollectionSpec.
 //
 //	struct {
-//	    Foo     *ebpf.ProgramSpec `ebpf:"xdp_foo"`
-//	    Bar     *ebpf.MapSpec     `ebpf:"bar_map"`
+//	    Foo     *ebpf.ProgramSpec  `ebpf:"xdp_foo"`
+//	    Bar     *ebpf.MapSpec      `ebpf:"bar_map"`
+//	    Var     *ebpf.VariableSpec `ebpf:"some_var"`
 //	    Ignored int
 //	}
 //
 // Returns an error if any of the eBPF objects can't be found, or
-// if the same MapSpec or ProgramSpec is assigned multiple times.
+// if the same Spec is assigned multiple times.
 func (cs *CollectionSpec) Assign(to interface{}) error {
-	// Assign() only supports assigning ProgramSpecs and MapSpecs,
-	// so doesn't load any resources into the kernel.
 	getValue := func(typ reflect.Type, name string) (interface{}, error) {
 		switch typ {
-
 		case reflect.TypeOf((*ProgramSpec)(nil)):
 			if p := cs.Programs[name]; p != nil {
 				return p, nil
@@ -240,6 +207,12 @@ func (cs *CollectionSpec) Assign(to interface{}) error {
 				return m, nil
 			}
 			return nil, fmt.Errorf("missing map %q", name)
+
+		case reflect.TypeOf((*VariableSpec)(nil)):
+			if v := cs.Variables[name]; v != nil {
+				return v, nil
+			}
+			return nil, fmt.Errorf("missing variable %q", name)
 
 		default:
 			return nil, fmt.Errorf("unsupported type %s", typ)
@@ -619,7 +592,7 @@ func resolveKconfig(m *MapSpec) error {
 				return fmt.Errorf("variable %s must be a 32 bits integer, got %s", n, v.Type)
 			}
 
-			kv, err := internal.KernelVersion()
+			kv, err := linux.KernelVersion()
 			if err != nil {
 				return fmt.Errorf("getting kernel version: %w", err)
 			}
@@ -651,7 +624,7 @@ func resolveKconfig(m *MapSpec) error {
 
 	// We only parse kconfig file if a CONFIG_* variable was found.
 	if len(configs) > 0 {
-		f, err := kconfig.Find()
+		f, err := linux.FindKConfig()
 		if err != nil {
 			return fmt.Errorf("cannot find a kconfig file: %w", err)
 		}
