@@ -16,6 +16,7 @@ import (
 	"github.com/cilium/ebpf/btf"
 	"github.com/cilium/ebpf/internal"
 	"github.com/cilium/ebpf/internal/kallsyms"
+	"github.com/cilium/ebpf/internal/linux"
 	"github.com/cilium/ebpf/internal/sys"
 	"github.com/cilium/ebpf/internal/sysenc"
 	"github.com/cilium/ebpf/internal/unix"
@@ -46,10 +47,6 @@ const (
 	outputPad = 256 + 2
 )
 
-// Deprecated: the correct log size is now detected automatically and this
-// constant is unused.
-const DefaultVerifierLogSize = 64 * 1024
-
 // minVerifierLogSize is the default number of bytes allocated for the
 // verifier log.
 const minVerifierLogSize = 64 * 1024
@@ -72,10 +69,6 @@ type ProgramOptions struct {
 	// will always allocate an output buffer, but will result in only a single
 	// attempt at loading the program.
 	LogLevel LogLevel
-
-	// Deprecated: the correct log buffer size is determined automatically
-	// and this field is ignored.
-	LogSize int
 
 	// Disables the verifier log completely, regardless of other options.
 	LogDisabled bool
@@ -180,7 +173,7 @@ func (ps *ProgramSpec) KernelModule() (string, error) {
 		}
 		fallthrough
 	case Kprobe:
-		return kallsyms.KernelModule(ps.AttachTo)
+		return kallsyms.SymbolModule(ps.AttachTo)
 	}
 }
 
@@ -261,7 +254,7 @@ func newProgramWithOptions(spec *ProgramSpec, opts ProgramOptions) (*Program, er
 	// Overwrite Kprobe program version if set to zero or the magic version constant.
 	kv := spec.KernelVersion
 	if spec.Type == Kprobe && (kv == 0 || kv == internal.MagicKernelVersion) {
-		v, err := internal.KernelVersion()
+		v, err := linux.KernelVersion()
 		if err != nil {
 			return nil, fmt.Errorf("detecting kernel version: %w", err)
 		}
@@ -343,6 +336,10 @@ func newProgramWithOptions(spec *ProgramSpec, opts ProgramOptions) (*Program, er
 		return nil, fmt.Errorf("resolve .kconfig: %w", err)
 	}
 	defer kconfig.Close()
+
+	if err := resolveKsymReferences(insns); err != nil {
+		return nil, fmt.Errorf("resolve .ksyms: %w", err)
+	}
 
 	if err := fixupAndValidate(insns); err != nil {
 		return nil, err
@@ -598,7 +595,7 @@ func (p *Program) Clone() (*Program, error) {
 // This requires bpffs to be mounted above fileName.
 // See https://docs.cilium.io/en/stable/network/kubernetes/configuration/#mounting-bpffs-with-systemd
 func (p *Program) Pin(fileName string) error {
-	if err := internal.Pin(p.pinnedPath, fileName, p.fd); err != nil {
+	if err := sys.Pin(p.pinnedPath, fileName, p.fd); err != nil {
 		return err
 	}
 	p.pinnedPath = fileName
@@ -611,7 +608,7 @@ func (p *Program) Pin(fileName string) error {
 //
 // Unpinning an unpinned Program returns nil.
 func (p *Program) Unpin() error {
-	if err := internal.Unpin(p.pinnedPath); err != nil {
+	if err := sys.Unpin(p.pinnedPath); err != nil {
 		return err
 	}
 	p.pinnedPath = ""
@@ -699,6 +696,10 @@ func (p *Program) Test(in []byte) (uint32, []byte, error) {
 //
 // Note: the same restrictions from Test apply.
 func (p *Program) Run(opts *RunOptions) (uint32, error) {
+	if opts == nil {
+		opts = &RunOptions{}
+	}
+
 	ret, _, err := p.run(opts)
 	if err != nil {
 		return ret, fmt.Errorf("run program: %w", err)
