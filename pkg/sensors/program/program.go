@@ -206,6 +206,11 @@ func (p *Program) Unload() error {
 	}
 	p.unloader = nil
 	p.unloaderOverride = nil
+	// The above unloader can succeed while not removing a pin to the program
+	// because of option.Config.KeepSensorsOnExit, and thus the maps remain.
+	if !p.Prog.IsPinned() {
+		p.LoadedMapsInfo = nil
+	}
 	return nil
 }
 
