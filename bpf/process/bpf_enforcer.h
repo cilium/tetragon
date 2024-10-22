@@ -80,6 +80,7 @@ FUNC_INLINE void do_enforcer_cleanup(void)
 			.reason = ENFORCER_MISSED_NOACTION,
 		};
 		enforcer_update_missed_notifications(&missed_key);
+		map_delete_elem(&enforcer_data, &id);
 	}
 }
 
