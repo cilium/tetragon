@@ -33,7 +33,7 @@ github.com/bombsimon/logrusr/v4
 # github.com/cespare/xxhash/v2 v2.2.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
-# github.com/cilium/cilium v1.15.8
+# github.com/cilium/cilium v1.15.10
 ## explicit; go 1.21.0
 github.com/cilium/cilium/api/v1/client
 github.com/cilium/cilium/api/v1/client/bgp

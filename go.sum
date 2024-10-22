@@ -51,8 +51,8 @@ github.com/cespare/xxhash/v2 v2.2.0 h1:DC2CZ1Ep5Y4k3ZQ899DldepgrayRUGE6BBZ/cd9Cj
 github.com/cespare/xxhash/v2 v2.2.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/cilium/checkmate v1.0.3 h1:CQC5eOmlAZeEjPrVZY3ZwEBH64lHlx9mXYdUehEwI5w=
 github.com/cilium/checkmate v1.0.3/go.mod h1:KiBTasf39/F2hf2yAmHw21YFl3hcEyP4Yk6filxc12A=
-github.com/cilium/cilium v1.15.8 h1:D5OTWI1hasi9YiIVAE3elUVXkFavON2rNwk1Mry3PZI=
-github.com/cilium/cilium v1.15.8/go.mod h1:c7Pk1BmmZBUdYYxBGc/T4mLOocxmXx6K6idB7Iw012c=
+github.com/cilium/cilium v1.15.10 h1:DeTMoJQm78pgfrpfODSDOq+tWDS9ew0m1+B8SzojB4o=
+github.com/cilium/cilium v1.15.10/go.mod h1:c7Pk1BmmZBUdYYxBGc/T4mLOocxmXx6K6idB7Iw012c=
 github.com/cilium/controller-tools v0.8.0-1 h1:D5xhwSUZZceaKAacHOyfcpUMgLbs2TGeJEijNHlAQlc=
 github.com/cilium/controller-tools v0.8.0-1/go.mod h1:qE2DXhVOiEq5ijmINcFbqi9GZrrUjzB1TuJU0xa6eoY=
 github.com/cilium/dns v1.1.51-0.20240416134107-d47d0dd702a1 h1:IR2iQhLyEVDJ52rPpqYAdRZMwlOSDl1XJqkD5PQJAfs=
