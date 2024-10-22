@@ -56,6 +56,8 @@ jobs:
 
       - name: Getting image tag
         id: tag
+        env:
+          REF_NAME: ${{ github.ref_name }}
         run: |
           if [ ${{ github.event.pull_request.head.sha }} != "" ]; then
             echo "tag=${{ github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
@@ -66,7 +68,7 @@ jobs:
             if [ ${{ github.ref_name }} == "main" ]; then
                   echo "name=latest" | tee -a $GITHUB_OUTPUT
             else
-                  echo "name=${{ github.ref_name }}" | tee -a $GITHUB_OUTPUT
+                  echo "name=$REF_NAME" | tee -a $GITHUB_OUTPUT
             fi
           fi
 
