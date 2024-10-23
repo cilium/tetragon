@@ -40,6 +40,7 @@ func NewBuildInfoCollector() prometheus.Collector {
 				"Build information about tetragon",
 				nil,
 				prometheus.Labels{
+					"version":    Version,
 					"go_version": buildInfo.GoVersion,
 					"commit":     buildInfo.Commit,
 					"time":       buildInfo.Time,

@@ -45,6 +45,10 @@ func New(targets map[string]string, init initMetricsFunc) *cobra.Command {
 					Label:  "time",
 					Values: []string{"2022-05-13T15:54:45Z"},
 				},
+				{
+					Label:  "version",
+					Values: []string{"v1.2.0"},
+				},
 			},
 		},
 	}

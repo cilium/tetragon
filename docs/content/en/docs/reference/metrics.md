@@ -28,6 +28,7 @@ Build information about tetragon
 | `go_version` | `go1.22.0` |
 | `modified` | `false` |
 | `time ` | `2022-05-13T15:54:45Z` |
+| `version` | `v1.2.0` |
 
 ### `tetragon_data_cache_capacity`
 
