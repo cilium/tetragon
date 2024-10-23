@@ -144,6 +144,29 @@ func (c *collection) destroy() {
 	}
 }
 
+func (cm *collectionMap) listOverheads() ([]ProgOverhead, error) {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+
+	overheads := []ProgOverhead{}
+
+	for ck, col := range cm.c {
+		for _, s := range col.sensors {
+			ret, ok := s.Overhead()
+			if !ok {
+				continue
+			}
+			for _, ovh := range ret {
+				ovh.Namespace = ck.namespace
+				ovh.Policy = ck.name
+				overheads = append(overheads, ovh)
+			}
+		}
+	}
+
+	return overheads, nil
+}
+
 func (cm *collectionMap) listPolicies() []*tetragon.TracingPolicyStatus {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
