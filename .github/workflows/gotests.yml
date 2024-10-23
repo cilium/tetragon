@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-20.04, actuated-arm64-4cpu-8gb ]
+        os: [ ubuntu-20.04, ubuntu-22.04-arm64 ]
     steps:
     - name: Checkout code
       uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -49,7 +49,7 @@ jobs:
     - name: Install dependencies ARM
       run: |
         sudo apt-get -y install gcc-arm-linux-gnueabihf
-      if: ${{ matrix.os == 'actuated-arm64-4cpu-8gb' }}
+      if: ${{ matrix.os == 'ubuntu-22.04-arm64' }}
 
     - name: Install bpftool
       uses: mtardy/setup-bpftool@adeab4f9332cc28db56064a93911860d0775665b # v1.0.3
