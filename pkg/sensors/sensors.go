@@ -89,6 +89,15 @@ func sanitize(name string) string {
 	return strings.ReplaceAll(name, "/", "_")
 }
 
+type ProgOverhead struct {
+	Namespace string
+	Policy    string
+	Sensor    string
+	Attach    string
+	RunTime   uint64
+	RunCnt    uint64
+}
+
 // SensorIface is an interface for sensors.Sensor that allows implementing sensors for testing.
 type SensorIface interface {
 	GetName() string
@@ -99,6 +108,31 @@ type SensorIface interface {
 	// TotalMemlock is the total amount of memlock bytes for BPF maps used by
 	// the sensor's programs.
 	TotalMemlock() int
+	Overhead() ([]ProgOverhead, bool)
+}
+
+func (s *Sensor) Overhead() ([]ProgOverhead, bool) {
+	var list []ProgOverhead
+
+	for _, p := range s.Progs {
+		if p.Prog == nil {
+			continue
+		}
+		info, err := p.Prog.Info()
+		if err != nil {
+			continue
+		}
+		runTime, _ := info.Runtime()
+		runCnt, _ := info.RunCount()
+
+		list = append(list, ProgOverhead{
+			Attach:  p.Attach,
+			Sensor:  s.Name,
+			RunTime: uint64(runTime),
+			RunCnt:  runCnt,
+		})
+	}
+	return list, len(list) != 0
 }
 
 func (s *Sensor) GetName() string {

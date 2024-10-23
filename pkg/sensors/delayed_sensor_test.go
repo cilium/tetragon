@@ -31,6 +31,10 @@ type TestDelayedSensor struct {
 	ch     chan struct{}
 }
 
+func (tds TestDelayedSensor) Overhead() ([]ProgOverhead, bool) {
+	return []ProgOverhead{}, false
+}
+
 func (tds TestDelayedSensor) TotalMemlock() int {
 	return 0
 }
