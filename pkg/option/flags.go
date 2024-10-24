@@ -46,10 +46,9 @@ const (
 	KeyTracingPolicy      = "tracing-policy"
 	KeyTracingPolicyDir   = "tracing-policy-dir"
 
-	KeyCpuProfile          = "cpuprofile"
-	KeyMemProfile          = "memprofile"
-	KeyPprofAddr           = "pprof-address"
-	KeyDeprecatedPprofAddr = "pprof-addr"
+	KeyCpuProfile = "cpuprofile"
+	KeyMemProfile = "memprofile"
+	KeyPprofAddr  = "pprof-address"
 
 	KeyExportFilename             = "export-filename"
 	KeyExportFileMaxSizeMB        = "export-file-max-size-mb"
@@ -92,8 +91,7 @@ const (
 	KeyEnablePodInfo          = "enable-pod-info"
 	KeyEnableTracingPolicyCRD = "enable-tracing-policy-crd"
 
-	KeyExposeStackAddresses  = "expose-stack-addresses"
-	KeyExposeKernelAddresses = "expose-kernel-addresses"
+	KeyExposeStackAddresses = "expose-stack-addresses"
 
 	KeyGenerateDocs = "generate-docs"
 
@@ -192,10 +190,7 @@ func ReadAndSetFlags() error {
 
 	Config.CpuProfile = viper.GetString(KeyCpuProfile)
 	Config.MemProfile = viper.GetString(KeyMemProfile)
-	Config.PprofAddr = viper.GetString(KeyDeprecatedPprofAddr)
-	if viper.IsSet(KeyPprofAddr) {
-		Config.PprofAddr = viper.GetString(KeyPprofAddr)
-	}
+	Config.PprofAddr = viper.GetString(KeyPprofAddr)
 
 	Config.EventQueueSize = viper.GetUint(KeyEventQueueSize)
 
@@ -222,15 +217,7 @@ func ReadAndSetFlags() error {
 		return fmt.Errorf("unknown option for %s: %q", KeyUsernameMetadata, o)
 	}
 
-	// manually handle the deprecation of --expose-kernel-addresses
-	if viper.IsSet(KeyExposeKernelAddresses) {
-		log.Warnf("Flag --%s has been deprecated, please use --%s instead", KeyExposeKernelAddresses, KeyExposeStackAddresses)
-		Config.ExposeStackAddresses = viper.GetBool(KeyExposeKernelAddresses)
-	}
-	// if both --expose-kernel-addresses and --expose-stack-addresses are set, the latter takes priority
-	if viper.IsSet(KeyExposeStackAddresses) {
-		Config.ExposeStackAddresses = viper.GetBool(KeyExposeStackAddresses)
-	}
+	Config.ExposeStackAddresses = viper.GetBool(KeyExposeStackAddresses)
 
 	Config.CgroupRate = ParseCgroupRate(viper.GetString(KeyCgroupRate))
 	Config.HealthServerAddress = viper.GetString(KeyHealthServerAddress)
@@ -345,8 +332,6 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.MarkHidden(KeyMemProfile)
 
 	flags.String(KeyPprofAddr, "", "Serves runtime profile data via HTTP (e.g. 'localhost:6060'). Disabled by default")
-	flags.String(KeyDeprecatedPprofAddr, "", "")
-	flags.MarkDeprecated(KeyDeprecatedPprofAddr, "please use --pprof-address")
 
 	// JSON export aggregation options.
 	flags.Bool(KeyEnableExportAggregation, false, "Enable JSON export aggregation")
@@ -393,9 +378,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Bool(KeyEnablePodInfo, false, "Enable PodInfo custom resource")
 	flags.Bool(KeyEnableTracingPolicyCRD, true, "Enable TracingPolicy and TracingPolicyNamespaced custom resources")
 
-	flags.Bool(KeyExposeKernelAddresses, false, "Expose real kernel addresses in events stack traces")
 	flags.Bool(KeyExposeStackAddresses, false, "Expose real linear addresses in events stack traces")
-	flags.MarkHidden(KeyExposeKernelAddresses)
 
 	flags.Bool(KeyGenerateDocs, false, "Generate documentation in YAML format to stdout")
 

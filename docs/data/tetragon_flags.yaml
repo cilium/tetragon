@@ -123,9 +123,6 @@ options:
       default_value: "-1"
       usage: |
         Rate limit (per minute) for event export. Set to -1 to disable
-    - name: expose-kernel-addresses
-      default_value: "false"
-      usage: Expose real kernel addresses in events stack traces
     - name: expose-stack-addresses
       default_value: "false"
       usage: Expose real linear addresses in events stack traces
@@ -179,7 +176,6 @@ options:
     - name: netns-dir
       default_value: /var/run/docker/netns/
       usage: Network namespace dir
-    - name: pprof-addr
     - name: pprof-address
       usage: |
         Serves runtime profile data via HTTP (e.g. 'localhost:6060'). Disabled by default
