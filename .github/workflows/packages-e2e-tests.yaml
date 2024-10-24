@@ -76,7 +76,7 @@ jobs:
             match_arch: x86-64
             cross_compile: no
             upload_path: upload/
-          - os: actuated-arm64-4cpu-8gb
+          - os: ubuntu-22.04-arm64
             arch: arm64
             match_arch: arm64
             cross_compile: yes
