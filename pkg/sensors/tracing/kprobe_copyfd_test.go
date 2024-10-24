@@ -14,6 +14,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/arch"
+	"github.com/cilium/tetragon/pkg/ftrace"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/kernels"
 	bc "github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
@@ -55,7 +56,7 @@ func TestCopyFd(t *testing.T) {
 		// __fd_install. fd_install is inlined and if we hook there we miss
 		// the dup event. For kernels > 5.10 __fd_install is removed.
 		templatePath := "copyfd-fd_install.yaml.tmpl"
-		if kernels.IsKernelVersionLessThan("5.11.0") {
+		if _, err := ftrace.ReadAvailFuncs("^__fd_install$"); err == nil {
 			templatePath = "copyfd-__fd_install.yaml.tmpl"
 		}
 		specName, err := testutils.GetSpecFromTemplate(templatePath, data)
