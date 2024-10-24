@@ -68,9 +68,6 @@ options:
     - name: enable-policy-filter-debug
       default_value: "false"
       usage: Enable policy filter debug messages
-    - name: enable-process-ancestors
-      default_value: "true"
-      usage: Include ancestors in process exec events
     - name: enable-process-cred
       default_value: "false"
       usage: Enable process_cred events
