@@ -16,7 +16,6 @@ debug: false
 disable-kprobe-multi: false
 enable-export-aggregation: false
 enable-k8s-api: false
-enable-process-ancestors: true
 enable-process-cred: false
 enable-process-ns: false
 event-queue-size: 10000
