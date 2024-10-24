@@ -15,61 +15,47 @@ on:
     paths-ignore:
       - 'docs/**'
 
+# Since this workflow can execute on pull_request_target, drop all the
+# permissions of the GITHUB_TOKEN except `contents: read` for access to the repo
+# with the actions/checkout action.
 permissions:
-  # To be able to access the repository with `actions/checkout`
   contents: read
-  # Required to generate OIDC tokens for `sigstore/cosign-installer` authentication
-  id-token: write
 
 jobs:
-  build-and-push-prs:
+  build-and-push:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
         include:
           - name: tetragon
             dockerfile: ./Dockerfile
-
           - name: tetragon-operator
             dockerfile: ./Dockerfile.operator
-
           - name: tetragon-rthooks
             dockerfile: ./Dockerfile.rthooks
+    env:
+      IMAGE: quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci
 
     steps:
-      # https://github.com/docker/setup-qemu-action
       - name: Set up QEMU
         uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
         with:
           platforms: arm64
 
-      # https://github.com/docker/setup-buildx-action
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3.6.1
-
-      - name: Login to quay.io for CI
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
-        with:
-          registry: quay.io
-          username: ${{ secrets.QUAY_USERNAME_CI }}
-          password: ${{ secrets.QUAY_PASSWORD_CI }}
 
       - name: Getting image tag
         id: tag
         env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          SHA: ${{ github.sha }}
+          EVENT_NAME: ${{ github.event_name }}
           REF_NAME: ${{ github.ref_name }}
         run: |
-          if [ ${{ github.event.pull_request.head.sha }} != "" ]; then
-            echo "tag=${{ github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
-          else
-            echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
-          fi
-          if [ ${{ github.event_name }}  ==  "push" ]; then
-            if [ ${{ github.ref_name }} == "main" ]; then
-                  echo "name=latest" | tee -a $GITHUB_OUTPUT
-            else
-                  echo "name=$REF_NAME" | tee -a $GITHUB_OUTPUT
-            fi
+          echo "tag=${HEAD_SHA:-$SHA}" | tee -a $GITHUB_OUTPUT
+          if [ "$EVENT_NAME" == "push" ]; then
+            echo "name=$( [ "$REF_NAME" == "main" ] && echo "latest" || echo "$REF_NAME" )" | tee -a $GITHUB_OUTPUT
           fi
 
       - name: Checkout main branch
@@ -79,9 +65,16 @@ jobs:
           ref: ${{ github.event.repository.default_branch }}
           fetch-depth: 0
 
+      # Install Go after checkout for caching mechanism to work
+      - name: Install Go
+        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        with:
+          # renovate: datasource=golang-version depName=go
+          go-version: '1.23.2'
+
+      # Warning: this must run before checking out the untrusted code
       - name: Get version
-        run: |
-          echo "TETRAGON_VERSION=$(make version)" >> $GITHUB_ENV
+        run: echo "TETRAGON_VERSION=$(make version)" >> $GITHUB_ENV
 
       # Warning: since this is a privileged workflow, subsequent workflow job
       # steps must take care not to execute untrusted code.
@@ -92,22 +85,12 @@ jobs:
           ref: ${{ steps.tag.outputs.tag }}
           fetch-depth: 0
 
-      - name: Install Cosign
-        uses: sigstore/cosign-installer@11086d25041f77fe8fe7b9ea4e48e3b9192b8f19 # v3.1.2
-
-      - name: Install Go
-        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+      - name: Login to quay.io for CI
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
         with:
-          # renovate: datasource=golang-version depName=go
-          go-version: '1.23.2'
-
-      - name: Install Bom
-        shell: bash
-        env:
-          # renovate: datasource=github-releases depName=kubernetes-sigs/bom
-          BOM_VERSION: v0.6.0
-        run: |
-          go install sigs.k8s.io/bom/cmd/bom@${{ env.BOM_VERSION }}
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME_CI }}
+          password: ${{ secrets.QUAY_PASSWORD_CI }}
 
       # main branch pushes
       - name: CI Build (main)
@@ -123,46 +106,19 @@ jobs:
           build-args: |
             TETRAGON_VERSION=${{ env.TETRAGON_VERSION }}
           tags: |
-            quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci:${{ steps.tag.outputs.tag }}
-            quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci:${{ steps.tag.outputs.name }}
-
-      - name: Sign Container Image
-        if: github.event_name == 'push'
-        env:
-          COSIGN_EXPERIMENTAL: "true"
-        run: |
-          cosign sign -y quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci@${{ steps.docker_build_ci_main.outputs.digest }}
-
-      - name: Generate SBOM
-        if: github.event_name == 'push'
-        shell: bash
-        # To-Do: Format SBOM output to JSON after a new version of cosign is released after v1.13.1. Ref: https://github.com/sigstore/cosign/pull/2479
-        run: |
-          bom generate -o sbom_ci_main_${{ matrix.name }}_${{ steps.tag.outputs.tag }}.spdx \
-          --dirs=. \
-          --image=quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci:${{ steps.tag.outputs.tag }}
-
-      - name: Attach SBOM to container images
-        if: github.event_name == 'push'
-        run: |
-          cosign attach sbom --sbom sbom_ci_main_${{ matrix.name }}_${{ steps.tag.outputs.tag }}.spdx quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci@${{ steps.docker_build_ci_main.outputs.digest }}
-
-      - name: Sign SBOM Image
-        if: github.event_name == 'push'
-        env:
-          COSIGN_EXPERIMENTAL: "true"
-        run: |
-          docker_build_ci_main_digest="${{ steps.docker_build_ci_main.outputs.digest }}"
-          image_name="quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci:${docker_build_ci_main_digest/:/-}.sbom"
-          docker_build_ci_main_sbom_digest="sha256:$(docker buildx imagetools inspect --raw ${image_name} | sha256sum | head -c 64)"
-          cosign sign -y "quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci@${docker_build_ci_main_sbom_digest}"
+            ${{ env.IMAGE }}:${{ steps.tag.outputs.tag }}
+            ${{ env.IMAGE }}:${{ steps.tag.outputs.name }}
 
       - name: CI Image Releases digests (main)
         if: github.event_name == 'push'
-        shell: bash
         run: |
-          mkdir -p image-digest/
-          echo "quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci:${{ steps.tag.outputs.tag }}@${{ steps.docker_build_ci_main.outputs.digest }}" >> image-digest/${{ matrix.name }}.txt
+          echo "| Info | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Image** | \`$IMAGE\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Tag** | \`${{ steps.tag.outputs.tag }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **SHA256** | \`${{ steps.docker_build_ci_main.outputs.digest }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Pull by tag** | \`$IMAGE:${{ steps.tag.outputs.tag }}\`|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Pull by digest** | \`$IMAGE@${{ steps.docker_build_ci_main.outputs.digest }}\` |" >> $GITHUB_STEP_SUMMARY
 
       # PR updates
       - name: CI Build (PR)
@@ -178,72 +134,15 @@ jobs:
           build-args: |
             TETRAGON_VERSION=${{ env.TETRAGON_VERSION }}
           tags: |
-            quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci:${{ steps.tag.outputs.tag }}
-
-      - name: Sign Container Image
-        if: github.event_name == 'pull_request_target' || github.event_name == 'pull_request'
-        env:
-          COSIGN_EXPERIMENTAL: "true"
-        run: |
-          cosign sign -y quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci@${{ steps.docker_build_ci_pr.outputs.digest }}
-
-      - name: Generate SBOM
-        if: github.event_name == 'pull_request_target' || github.event_name == 'pull_request'
-        shell: bash
-        # To-Do: Format SBOM output to JSON after a new version of cosign is released after v1.13.1. Ref: https://github.com/sigstore/cosign/pull/2479
-        run: |
-          bom generate --format json -o sbom_ci_pr_${{ matrix.name }}_${{ steps.tag.outputs.tag }}.spdx \
-          --dirs=. \
-          --image=quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci:${{ steps.tag.outputs.tag }}
-
-      - name: Attach SBOM to container images
-        if: github.event_name == 'pull_request_target' || github.event_name == 'pull_request'
-        run: |
-          cosign attach sbom --sbom sbom_ci_pr_${{ matrix.name }}_${{ steps.tag.outputs.tag }}.spdx quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci@${{ steps.docker_build_ci_pr.outputs.digest }}
-
-      - name: Sign SBOM Image
-        if: github.event_name == 'pull_request_target' || github.event_name == 'pull_request'
-        env:
-          COSIGN_EXPERIMENTAL: "true"
-        run: |
-          docker_build_ci_pr_digest="${{ steps.docker_build_ci_pr.outputs.digest }}"
-          image_name="quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci:${docker_build_ci_pr_digest/:/-}.sbom"
-          docker_build_ci_pr_sbom_digest="sha256:$(docker buildx imagetools inspect --raw ${image_name} | sha256sum | head -c 64)"
-          cosign sign -y "quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci@${docker_build_ci_pr_sbom_digest}"
+            ${{ env.IMAGE }}:${{ steps.tag.outputs.tag }}
 
       - name: CI Image Releases digests (PR)
         if: github.event_name == 'pull_request_target' || github.event_name == 'pull_request'
-        shell: bash
         run: |
-          mkdir -p image-digest/
-          echo "quay.io/${{ github.repository_owner }}/${{ matrix.name }}-ci:${{ steps.tag.outputs.tag }}@${{ steps.docker_build_ci_pr.outputs.digest }}" >> image-digest/${{ matrix.name }}.txt
-
-      # Upload artifact digests
-      - name: Upload artifact digests
-        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
-        with:
-          name: image-digest ${{ matrix.name }}
-          path: image-digest
-          retention-days: 1
-
-  image-digests:
-    if: ${{ always() }}
-    name: Display Digests
-    runs-on: ubuntu-22.04
-    needs: [build-and-push-prs]
-    steps:
-      - name: Downloading Image Digests
-        shell: bash
-        run: |
-          mkdir -p image-digest/
-
-      - name: Download digests of all images built
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
-        with:
-          path: image-digest/
-
-      - name: Image Digests Output
-        shell: bash
-        run: |
-          cd image-digest/
-          find -type f | sort | xargs -d '\n' cat
+          echo "| Info | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Image** | \`$IMAGE\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Tag** | \`${{ steps.tag.outputs.tag }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **SHA256** | \`${{ steps.docker_build_ci_pr.outputs.digest }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Pull by tag** | \`$IMAGE:${{ steps.tag.outputs.tag }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Pull by digest** | \`$IMAGE@${{ steps.docker_build_ci_pr.outputs.digest }}\` |" >> $GITHUB_STEP_SUMMARY
