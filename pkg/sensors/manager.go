@@ -267,6 +267,10 @@ func (h *Manager) ListTracingPolicies(_ context.Context) (*tetragon.ListTracingP
 	return ret, nil
 }
 
+func (h *Manager) ListOverheads() ([]ProgOverhead, error) {
+	return h.listOverheads()
+}
+
 func (h *Manager) RemoveSensor(ctx context.Context, sensorName string) error {
 	retc := make(chan error)
 	op := &sensorRemove{
@@ -335,6 +339,7 @@ func (h *Manager) LogSensorsAndProbes(ctx context.Context) {
 // policyLister allows read-only access to the collections map
 type policyLister interface {
 	listPolicies() []*tetragon.TracingPolicyStatus
+	listOverheads() ([]ProgOverhead, error)
 }
 
 // Manager handles dynamic sensor management, such as adding / removing sensors
