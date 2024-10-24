@@ -39,7 +39,7 @@ log-level: info
 metrics-server:
 metrics-label-filter:
 netns-dir: /var/run/docker/netns/
-pprof-addr:
+pprof-address:
 process-cache-size: 65536
 procfs: /proc/
 rb-size: 0
