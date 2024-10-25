@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os/exec"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -20,6 +21,7 @@ import (
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/sys/unix"
 )
 
 func TestExit(t *testing.T) {
@@ -235,6 +237,60 @@ func TestExitCode(t *testing.T) {
 
 		checker.AddChecks(
 			ec.NewProcessExitChecker(fmt.Sprintf("exitCode%d", expectedCode)).WithProcess(testerBinaryCheck).WithStatus(uint32(expectedCode)),
+		)
+	}
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+// TestExitSignal tests whether we properly return the exit signal of the process.
+// see: tester-progs/pause.c for the program we use to test this.
+//
+// The program will:
+//   - Pause until it receives a signal
+//
+// In our test we check whether the observed exit signal equals the real exit signal.
+func TestExitSignal(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("Failed to run observer: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	checker := ec.NewOrderedEventChecker()
+	testExitSignalBinary := testutils.RepoRootPath("contrib/tester-progs/pause")
+
+	for sig := 1; sig <= 15; sig++ {
+		signal := syscall.Signal(sig)
+		expectedSignal := unix.SignalName(signal)
+		cmd := exec.CommandContext(ctx, testExitSignalBinary)
+
+		if err := cmd.Start(); err != nil {
+			t.Fatalf("failed to execute the test binary with signal %q: %s", expectedSignal, err)
+		}
+
+		if err := cmd.Process.Signal(signal); err != nil {
+			t.Fatalf("failed to send signal %q to the test binary: %s", expectedSignal, err)
+		}
+
+		if err := cmd.Wait(); err != nil {
+			if exitErr, ok := err.(*exec.ExitError); ok {
+				if got := exitErr.Sys().(syscall.WaitStatus).Signal(); got != signal {
+					t.Errorf("unexpected: wanted signal %q, execution returned %q", signal, got)
+				}
+			}
+		}
+
+		checker.AddChecks(
+			ec.NewProcessExitChecker(fmt.Sprintf("exitSignal=%s", expectedSignal)).WithSignal(sm.Full(expectedSignal)),
 		)
 	}
 
