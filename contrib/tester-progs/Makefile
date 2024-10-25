@@ -24,7 +24,8 @@ PROGS = sigkill-tester \
 	getcpu \
 	direct-write-tester \
 	change-capabilities \
-	user-stacktrace
+	user-stacktrace \
+	pause
 
 
 all: $(PROGS)
