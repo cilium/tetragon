@@ -10,7 +10,7 @@ require (
 	github.com/cilium/lumberjack/v2 v2.3.0
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/containerd/containerd v1.7.23
-	github.com/containerd/nri v0.6.1
+	github.com/containerd/nri v0.7.0
 	github.com/containers/common v0.60.4
 	github.com/google/cel-go v0.21.0
 	github.com/opencontainers/runc v1.1.15
@@ -26,7 +26,7 @@ require (
 	github.com/cilium/ebpf v0.12.3 // indirect
 	github.com/containerd/errdefs v0.3.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
-	github.com/containerd/ttrpc v1.2.5 // indirect
+	github.com/containerd/ttrpc v1.2.6-0.20240827082320-b5cd6e4b3287 // indirect
 	github.com/containerd/typeurl/v2 v2.1.1 // indirect
 	github.com/containers/storage v1.55.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
