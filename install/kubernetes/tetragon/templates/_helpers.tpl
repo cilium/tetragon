@@ -5,19 +5,23 @@ Common labels
 helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
+app.kubernetes.io/part-of: {{ .Chart.Name }}
 {{- end }}
 
 {{- define "tetragon.labels" -}}
 {{ include "tetragon.selectorLabels" . }}
 {{ include "commonLabels" . }}
+app.kubernetes.io/component: agent
 {{- end }}
 {{- define "tetragon-operator.labels" -}}
 {{ include "tetragon-operator.selectorLabels" . }}
 {{ include "commonLabels" . }}
+app.kubernetes.io/component: operator
 {{- end }}
 {{- define "tetragon-rthooks.labels" -}}
 {{ include "tetragon-rthooks.selectorLabels" . }}
 {{ include "commonLabels" . }}
+app.kubernetes.io/component: rthooks
 {{- end }}
 
 {{/*
