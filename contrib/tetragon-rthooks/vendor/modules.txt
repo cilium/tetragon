@@ -41,14 +41,14 @@ github.com/containerd/errdefs
 # github.com/containerd/log v0.1.0
 ## explicit; go 1.20
 github.com/containerd/log
-# github.com/containerd/nri v0.6.1
-## explicit; go 1.19
+# github.com/containerd/nri v0.7.0
+## explicit; go 1.21
 github.com/containerd/nri/pkg/api
 github.com/containerd/nri/pkg/log
 github.com/containerd/nri/pkg/net
 github.com/containerd/nri/pkg/net/multiplex
 github.com/containerd/nri/pkg/stub
-# github.com/containerd/ttrpc v1.2.5
+# github.com/containerd/ttrpc v1.2.6-0.20240827082320-b5cd6e4b3287
 ## explicit; go 1.19
 github.com/containerd/ttrpc
 # github.com/containerd/typeurl/v2 v2.1.1
