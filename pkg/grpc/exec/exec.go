@@ -351,6 +351,11 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 	code := event.Info.Code >> 8
 	signal := readerexec.Signal(event.Info.Code & 0xFF)
 
+	if event.Info.Code&0x80 != 0 {
+		// Core dumped
+		signal = readerexec.Signal(event.Info.Code & 0x7F)
+	}
+
 	// Per thread tracking rules PID == TID.
 	//
 	// Exit events should have TID==PID at same time we want to correlate
