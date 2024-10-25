@@ -127,5 +127,17 @@ func GetPolicyName(event *v1.Event) string {
 	if !ok {
 		return ""
 	}
-	return helpers.ResponseGetProcessKprobe(response).GetPolicyName()
+
+	switch ev := (response.Event).(type) {
+	case *tetragon.GetEventsResponse_ProcessKprobe:
+		return ev.ProcessKprobe.GetPolicyName()
+	case *tetragon.GetEventsResponse_ProcessTracepoint:
+		return ev.ProcessTracepoint.GetPolicyName()
+	case *tetragon.GetEventsResponse_ProcessUprobe:
+		return ev.ProcessUprobe.GetPolicyName()
+	case *tetragon.GetEventsResponse_ProcessLsm:
+		return ev.ProcessLsm.GetPolicyName()
+	default:
+		return ""
+	}
 }
