@@ -5,7 +5,6 @@ package sensors
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -55,64 +54,10 @@ func StartSensorManagerWithPF(
 		return nil, err
 	}
 
-	// NB: pass handler.collections as a policy lister so that the manager can list policies
-	// without having to go via the manager goroutine.
-	return startSensorManager(handler, handler.collections, waitChan)
-}
-
-func startSensorManager(
-	handler *handler,
-	policyLister policyLister,
-	waitChan chan struct{},
-) (*Manager, error) {
-	c := make(chan sensorOp)
 	m := Manager{
-		sensorCtl:    c,
-		policyLister: policyLister,
+		policyLister: handler.collections,
+		handler:      handler,
 	}
-
-	go func() {
-
-		// wait until start serving requests
-		if waitChan != nil {
-			logger.GetLogger().Infof("sensor controller waiting on channel")
-			<-waitChan
-			logger.GetLogger().Infof("sensor controller starts")
-		}
-
-		done := false
-		for !done {
-			op_ := <-c
-			err := errors.New("BUG in SensorCtl: unset error value") // nolint
-			switch op := op_.(type) {
-			case *tracingPolicyAdd:
-				err = handler.addTracingPolicy(op)
-			case *tracingPolicyDelete:
-				err = handler.deleteTracingPolicy(op)
-			case *tracingPolicyEnable:
-				err = handler.enableTracingPolicy(op)
-			case *tracingPolicyDisable:
-				err = handler.disableTracingPolicy(op)
-			case *sensorAdd:
-				err = handler.addSensor(op)
-			case *sensorRemove:
-				err = handler.removeSensor(op)
-			case *sensorEnable:
-				err = handler.enableSensor(op)
-			case *sensorDisable:
-				err = handler.disableSensor(op)
-			case *sensorList:
-				err = handler.listSensors(op)
-			case *sensorCtlStop:
-				logger.GetLogger().Debugf("stopping sensor controller...")
-				done = true
-				err = nil
-			default:
-				err = fmt.Errorf("unknown sensorOp: %v", op)
-			}
-			op_.sensorOpDone(err)
-		}
-	}()
 	return &m, nil
 }
 
@@ -129,10 +74,7 @@ func (h *Manager) EnableSensor(ctx context.Context, name string) error {
 		retChan: retc,
 	}
 
-	h.sensorCtl <- op
-	err := <-retc
-
-	return err
+	return h.handler.enableSensor(op)
 }
 
 // AddSensor adds a sensor
@@ -145,8 +87,7 @@ func (h *Manager) AddSensor(ctx context.Context, name string, sensor *Sensor) er
 		retChan: retc,
 	}
 
-	h.sensorCtl <- op
-	return <-retc
+	return h.handler.addSensor(op)
 }
 
 // DisableSensor disables a sensor by name
@@ -158,8 +99,7 @@ func (h *Manager) DisableSensor(ctx context.Context, name string) error {
 		retChan: retc,
 	}
 
-	h.sensorCtl <- op
-	return <-retc
+	return h.handler.disableSensor(op)
 }
 
 func (h *Manager) ListSensors(ctx context.Context) (*[]SensorStatus, error) {
@@ -169,12 +109,10 @@ func (h *Manager) ListSensors(ctx context.Context) (*[]SensorStatus, error) {
 		retChan: retc,
 	}
 
-	h.sensorCtl <- op
-	err := <-retc
+	err := h.handler.listSensors(op)
 	if err == nil {
 		return op.result, nil
 	}
-
 	return nil, err
 }
 
@@ -208,10 +146,7 @@ func (h *Manager) AddTracingPolicy(ctx context.Context, tp tracingpolicy.Tracing
 		retChan: retc,
 	}
 
-	h.sensorCtl <- op
-	err := <-retc
-
-	return err
+	return h.handler.addTracingPolicy(op)
 }
 
 // DeleteTracingPolicy deletes a new sensor based on a tracing policy
@@ -224,10 +159,7 @@ func (h *Manager) DeleteTracingPolicy(ctx context.Context, name string, namespac
 		retChan: retc,
 	}
 
-	h.sensorCtl <- op
-	err := <-retc
-
-	return err
+	return h.handler.deleteTracingPolicy(op)
 }
 
 func (h *Manager) EnableTracingPolicy(ctx context.Context, name, namespace string) error {
@@ -239,10 +171,7 @@ func (h *Manager) EnableTracingPolicy(ctx context.Context, name, namespace strin
 		retChan: retc,
 	}
 
-	h.sensorCtl <- op
-	err := <-retc
-
-	return err
+	return h.handler.enableTracingPolicy(op)
 }
 
 func (h *Manager) DisableTracingPolicy(ctx context.Context, name, namespace string) error {
@@ -254,10 +183,7 @@ func (h *Manager) DisableTracingPolicy(ctx context.Context, name, namespace stri
 		retChan: retc,
 	}
 
-	h.sensorCtl <- op
-	err := <-retc
-
-	return err
+	return h.handler.disableTracingPolicy(op)
 }
 
 // ListTracingPolicies returns a list of the active tracing policies
@@ -279,10 +205,7 @@ func (h *Manager) RemoveSensor(ctx context.Context, sensorName string) error {
 		retChan: retc,
 	}
 
-	h.sensorCtl <- op
-	err := <-retc
-
-	return err
+	return h.handler.removeSensor(op)
 }
 
 func (h *Manager) RemoveAllSensors(ctx context.Context) error {
@@ -293,21 +216,11 @@ func (h *Manager) RemoveAllSensors(ctx context.Context) error {
 		retChan: retc,
 	}
 
-	h.sensorCtl <- op
-	err := <-retc
-
-	return err
+	return h.handler.removeSensor(op)
 }
 
 func (h *Manager) StopSensorManager(ctx context.Context) error {
-	retc := make(chan error)
-	op := &sensorCtlStop{
-		ctx:     ctx,
-		retChan: retc,
-	}
-
-	h.sensorCtl <- op
-	return <-retc
+	return nil
 }
 
 func (h *Manager) LogSensorsAndProbes(ctx context.Context) {
@@ -346,7 +259,7 @@ type policyLister interface {
 // at runtime.
 type Manager struct {
 	// channel to communicate with the controller goroutine
-	sensorCtl sensorCtlHandle
+	handler *handler
 	// policyLister is used to list policies without going via the controller goroutine by
 	// directly accessing the collection.
 	policyLister
@@ -359,7 +272,6 @@ type Manager struct {
 // - sensorEnable
 // - sensorDisable
 // - sensorRemove
-// - sensorCtlStop
 
 // tracingPolicyAdd adds a sensor based on a the provided tracing policy
 type tracingPolicyAdd struct {
@@ -385,12 +297,6 @@ type tracingPolicyEnable struct {
 	ctx     context.Context
 	ck      collectionKey
 	retChan chan error
-}
-
-// sensorOp is an interface for the sensor operations.
-// Not strictly needed but allows for better type checking.
-type sensorOp interface {
-	sensorOpDone(error)
 }
 
 // sensorAdd adds a sensor
@@ -429,26 +335,3 @@ type sensorList struct {
 	result  *[]SensorStatus
 	retChan chan error
 }
-
-// sensorCtlStop stops the controller
-type sensorCtlStop struct {
-	ctx     context.Context
-	retChan chan error
-}
-
-type LoadArg struct{}
-type UnloadArg = LoadArg
-
-// trivial sensorOpDone implementations for commands
-func (s *tracingPolicyAdd) sensorOpDone(e error)     { s.retChan <- e }
-func (s *tracingPolicyDelete) sensorOpDone(e error)  { s.retChan <- e }
-func (s *tracingPolicyEnable) sensorOpDone(e error)  { s.retChan <- e }
-func (s *tracingPolicyDisable) sensorOpDone(e error) { s.retChan <- e }
-func (s *sensorAdd) sensorOpDone(e error)            { s.retChan <- e }
-func (s *sensorRemove) sensorOpDone(e error)         { s.retChan <- e }
-func (s *sensorEnable) sensorOpDone(e error)         { s.retChan <- e }
-func (s *sensorDisable) sensorOpDone(e error)        { s.retChan <- e }
-func (s *sensorList) sensorOpDone(e error)           { s.retChan <- e }
-func (s *sensorCtlStop) sensorOpDone(e error)        { s.retChan <- e }
-
-type sensorCtlHandle = chan<- sensorOp
