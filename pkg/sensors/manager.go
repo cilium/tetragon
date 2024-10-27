@@ -67,11 +67,9 @@ func StartSensorManagerWithPF(
 
 // EnableSensor enables a sensor by name
 func (h *Manager) EnableSensor(ctx context.Context, name string) error {
-	retc := make(chan error)
 	op := &sensorEnable{
-		ctx:     ctx,
-		name:    name,
-		retChan: retc,
+		ctx:  ctx,
+		name: name,
 	}
 
 	return h.handler.enableSensor(op)
@@ -79,12 +77,10 @@ func (h *Manager) EnableSensor(ctx context.Context, name string) error {
 
 // AddSensor adds a sensor
 func (h *Manager) AddSensor(ctx context.Context, name string, sensor *Sensor) error {
-	retc := make(chan error)
 	op := &sensorAdd{
-		ctx:     ctx,
-		name:    name,
-		sensor:  sensor,
-		retChan: retc,
+		ctx:    ctx,
+		name:   name,
+		sensor: sensor,
 	}
 
 	return h.handler.addSensor(op)
@@ -92,21 +88,17 @@ func (h *Manager) AddSensor(ctx context.Context, name string, sensor *Sensor) er
 
 // DisableSensor disables a sensor by name
 func (h *Manager) DisableSensor(ctx context.Context, name string) error {
-	retc := make(chan error)
 	op := &sensorDisable{
-		ctx:     ctx,
-		name:    name,
-		retChan: retc,
+		ctx:  ctx,
+		name: name,
 	}
 
 	return h.handler.disableSensor(op)
 }
 
 func (h *Manager) ListSensors(ctx context.Context) (*[]SensorStatus, error) {
-	retc := make(chan error)
 	op := &sensorList{
-		ctx:     ctx,
-		retChan: retc,
+		ctx: ctx,
 	}
 
 	err := h.handler.listSensors(op)
@@ -133,17 +125,15 @@ type TracingPolicy interface {
 // NB: if tp implements tracingpolicy.TracingPolicyNamespaced, it will be
 // treated as a namespaced policy
 func (h *Manager) AddTracingPolicy(ctx context.Context, tp tracingpolicy.TracingPolicy) error {
-	retc := make(chan error)
 	var namespace string
 	if tpNs, ok := tp.(tracingpolicy.TracingPolicyNamespaced); ok {
 		namespace = tpNs.TpNamespace()
 	}
 	ck := collectionKey{tp.TpName(), namespace}
 	op := &tracingPolicyAdd{
-		ctx:     ctx,
-		ck:      ck,
-		tp:      tp,
-		retChan: retc,
+		ctx: ctx,
+		ck:  ck,
+		tp:  tp,
 	}
 
 	return h.handler.addTracingPolicy(op)
@@ -151,12 +141,10 @@ func (h *Manager) AddTracingPolicy(ctx context.Context, tp tracingpolicy.Tracing
 
 // DeleteTracingPolicy deletes a new sensor based on a tracing policy
 func (h *Manager) DeleteTracingPolicy(ctx context.Context, name string, namespace string) error {
-	retc := make(chan error)
 	ck := collectionKey{name, namespace}
 	op := &tracingPolicyDelete{
-		ctx:     ctx,
-		ck:      ck,
-		retChan: retc,
+		ctx: ctx,
+		ck:  ck,
 	}
 
 	return h.handler.deleteTracingPolicy(op)
@@ -164,11 +152,9 @@ func (h *Manager) DeleteTracingPolicy(ctx context.Context, name string, namespac
 
 func (h *Manager) EnableTracingPolicy(ctx context.Context, name, namespace string) error {
 	ck := collectionKey{name, namespace}
-	retc := make(chan error)
 	op := &tracingPolicyEnable{
-		ctx:     ctx,
-		ck:      ck,
-		retChan: retc,
+		ctx: ctx,
+		ck:  ck,
 	}
 
 	return h.handler.enableTracingPolicy(op)
@@ -176,11 +162,9 @@ func (h *Manager) EnableTracingPolicy(ctx context.Context, name, namespace strin
 
 func (h *Manager) DisableTracingPolicy(ctx context.Context, name, namespace string) error {
 	ck := collectionKey{name, namespace}
-	retc := make(chan error)
 	op := &tracingPolicyDisable{
-		ctx:     ctx,
-		ck:      ck,
-		retChan: retc,
+		ctx: ctx,
+		ck:  ck,
 	}
 
 	return h.handler.disableTracingPolicy(op)
@@ -198,22 +182,18 @@ func (h *Manager) ListOverheads() ([]ProgOverhead, error) {
 }
 
 func (h *Manager) RemoveSensor(ctx context.Context, sensorName string) error {
-	retc := make(chan error)
 	op := &sensorRemove{
-		ctx:     ctx,
-		name:    sensorName,
-		retChan: retc,
+		ctx:  ctx,
+		name: sensorName,
 	}
 
 	return h.handler.removeSensor(op)
 }
 
 func (h *Manager) RemoveAllSensors(ctx context.Context) error {
-	retc := make(chan error)
 	op := &sensorRemove{
-		ctx:     ctx,
-		all:     true,
-		retChan: retc,
+		ctx: ctx,
+		all: true,
 	}
 
 	return h.handler.removeSensor(op)
@@ -275,63 +255,54 @@ type Manager struct {
 
 // tracingPolicyAdd adds a sensor based on a the provided tracing policy
 type tracingPolicyAdd struct {
-	ctx     context.Context
-	ck      collectionKey
-	tp      tracingpolicy.TracingPolicy
-	retChan chan error
+	ctx context.Context
+	ck  collectionKey
+	tp  tracingpolicy.TracingPolicy
 }
 
 type tracingPolicyDelete struct {
-	ctx     context.Context
-	ck      collectionKey
-	retChan chan error
+	ctx context.Context
+	ck  collectionKey
 }
 
 type tracingPolicyDisable struct {
-	ctx     context.Context
-	ck      collectionKey
-	retChan chan error
+	ctx context.Context
+	ck  collectionKey
 }
 
 type tracingPolicyEnable struct {
-	ctx     context.Context
-	ck      collectionKey
-	retChan chan error
+	ctx context.Context
+	ck  collectionKey
 }
 
 // sensorAdd adds a sensor
 type sensorAdd struct {
-	ctx     context.Context
-	name    string
-	sensor  *Sensor
-	retChan chan error
+	ctx    context.Context
+	name   string
+	sensor *Sensor
 }
 
 // sensorRemove removes a sensor (for now, used only for tracing policies)
 type sensorRemove struct {
-	ctx     context.Context
-	name    string
-	all     bool
-	retChan chan error
+	ctx  context.Context
+	name string
+	all  bool
 }
 
 // sensorEnable enables a sensor
 type sensorEnable struct {
-	ctx     context.Context
-	name    string
-	retChan chan error
+	ctx  context.Context
+	name string
 }
 
 // sensorDisable disables a sensor
 type sensorDisable struct {
-	ctx     context.Context
-	name    string
-	retChan chan error
+	ctx  context.Context
+	name string
 }
 
 // sensorList returns a list of the active sensors
 type sensorList struct {
-	ctx     context.Context
-	result  *[]SensorStatus
-	retChan chan error
+	ctx    context.Context
+	result *[]SensorStatus
 }
