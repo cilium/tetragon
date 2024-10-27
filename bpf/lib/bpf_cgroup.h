@@ -361,7 +361,7 @@ FUNC_INLINE __u64 tg_get_current_cgroup_id(void)
 	if (conf) {
 		/* Select which cgroup version */
 		cgrpfs_magic = conf->cgrp_fs_magic;
-		subsys_idx = conf->tg_cgrp_subsys_idx;
+		subsys_idx = conf->tg_cgrpv1_subsys_idx;
 	}
 
 	/*

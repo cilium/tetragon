@@ -129,7 +129,7 @@ func logTetragonConfig(t *testing.T, mapDir string) error {
 	}
 
 	t.Logf("Test %s tetragon configuration: cgroup.magic=%s  logLevel=%d  cgroup.hierarchyID=%d  cgroup.subsysIdx=%d  cgroup.trackinglevel=%d  cgroup.ID=%d",
-		t.Name(), cgroups.CgroupFsMagicStr(conf.CgrpFsMagic), conf.LogLevel, conf.TgCgrpHierarchy, conf.TgCgrpSubsysIdx, conf.TgCgrpLevel, conf.TgCgrpId)
+		t.Name(), cgroups.CgroupFsMagicStr(conf.CgrpFsMagic), conf.LogLevel, conf.TgCgrpHierarchy, conf.TgCgrpv1SubsysIdx, conf.TgCgrpLevel, conf.TgCgrpId)
 
 	return nil
 }
@@ -581,7 +581,7 @@ func setupTgRuntimeConf(t *testing.T, trackingCgrpLevel, logLevel, hierarchyId, 
 	}
 
 	if subSysIdx != invalidValue {
-		val.TgCgrpSubsysIdx = subSysIdx
+		val.TgCgrpv1SubsysIdx = subSysIdx
 	}
 
 	mapDir := bpf.MapPrefixPath()
@@ -635,7 +635,7 @@ func TestTgRuntimeConf(t *testing.T) {
 	assert.EqualValues(t, ret, val)
 
 	assert.Equal(t, ret.TgCgrpHierarchy, cgroups.GetCgrpHierarchyID())
-	assert.Equal(t, ret.TgCgrpSubsysIdx, cgroups.GetCgrpSubsystemIdx())
+	assert.Equal(t, ret.TgCgrpv1SubsysIdx, cgroups.GetCgrpv1SubsystemIdx())
 	assert.Equal(t, ret.LogLevel, uint32(logger.GetLogLevel()))
 }
 
@@ -1323,7 +1323,7 @@ func TestCgroupv1ExecK8sHierarchyInHybridMemory(t *testing.T) {
 	testCgroupv1K8sHierarchyInHybrid(t, true, "memory")
 }
 
-// This test will use the piDisableSensorsds cgroup controller if available
+// This test will use the pids cgroup controller if available
 func TestCgroupv1ExecK8sHierarchyInHybridPids(t *testing.T) {
 	testCgroupv1K8sHierarchyInHybrid(t, true, "pids")
 }
