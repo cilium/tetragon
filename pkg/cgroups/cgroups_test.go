@@ -131,7 +131,7 @@ misc	10	1	1
 	err := os.WriteFile(file, []byte(d.data), 0644)
 	require.NoError(t, err)
 
-	err = parseCgroupSubSysIds(file)
+	err = parseCgroupv1SubSysIds(file)
 	require.NoError(t, err)
 	for _, c := range CgroupControllers {
 		if strings.Contains(d.used, c.Name) {
@@ -275,14 +275,14 @@ func TestDiscoverSubSysIdsDefault(t *testing.T) {
 		if controller.Active {
 			fixed = true
 
-			// If those controllers are active let's check their css index
-			if controller.Name == "memory" || controller.Name == "pids" {
+			// If those controllers are active and we are in cgroupv1 let's check their css index
+			if fs == unix.CGROUP_SUPER_MAGIC && (controller.Name == "memory" || controller.Name == "pids") {
 				assert.NotEqualValues(t, 0, controller.Idx, "Cgroup Controller '%s' css index should not be zero", controller.Name)
 			}
 		}
 	}
 
-	assert.Equalf(t, true, fixed, "TestDiscoverSubSysIdsDefault() could not detect and fix compiled Cgroup controllers")
+	assert.Equalf(t, true, fixed, "TestDiscoverSubSysIdsDefault() could not detect active cgroup controllers")
 }
 
 func TestGetCgroupIdFromPath(t *testing.T) {
