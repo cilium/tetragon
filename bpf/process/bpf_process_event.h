@@ -581,7 +581,7 @@ __event_get_cgroup_info(struct task_struct *task, struct msg_k8s *kube)
 		subsys_idx = conf->tg_cgrp_subsys_idx;
 	}
 
-	cgrp = get_task_cgroup(task, subsys_idx, &flags);
+	cgrp = get_task_cgroup(task, cgrpfs_magic, subsys_idx, &flags);
 	if (!cgrp)
 		return 0;
 
