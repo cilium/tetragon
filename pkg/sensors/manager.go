@@ -55,8 +55,7 @@ func StartSensorManagerWithPF(
 	}
 
 	m := Manager{
-		policyLister: handler.collections,
-		handler:      handler,
+		handler: handler,
 	}
 	return &m, nil
 }
@@ -173,12 +172,12 @@ func (h *Manager) DisableTracingPolicy(ctx context.Context, name, namespace stri
 // ListTracingPolicies returns a list of the active tracing policies
 func (h *Manager) ListTracingPolicies(_ context.Context) (*tetragon.ListTracingPoliciesResponse, error) {
 	ret := &tetragon.ListTracingPoliciesResponse{}
-	ret.Policies = h.listPolicies()
+	ret.Policies = h.handler.listPolicies()
 	return ret, nil
 }
 
 func (h *Manager) ListOverheads() ([]ProgOverhead, error) {
-	return h.listOverheads()
+	return h.handler.listOverheads()
 }
 
 func (h *Manager) RemoveSensor(ctx context.Context, sensorName string) error {
@@ -229,20 +228,11 @@ func (h *Manager) LogSensorsAndProbes(ctx context.Context) {
 	log.WithField("types", strings.Join(names, ", ")).Info("Registered probe types")
 }
 
-// policyLister allows read-only access to the collections map
-type policyLister interface {
-	listPolicies() []*tetragon.TracingPolicyStatus
-	listOverheads() ([]ProgOverhead, error)
-}
-
 // Manager handles dynamic sensor management, such as adding / removing sensors
 // at runtime.
 type Manager struct {
 	// channel to communicate with the controller goroutine
 	handler *handler
-	// policyLister is used to list policies without going via the controller goroutine by
-	// directly accessing the collection.
-	policyLister
 }
 
 // There are 6 commands that can be passed to the controller goroutine:
