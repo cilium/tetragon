@@ -578,7 +578,7 @@ __event_get_cgroup_info(struct task_struct *task, struct msg_k8s *kube)
 	if (conf) {
 		/* Select which cgroup version */
 		cgrpfs_magic = conf->cgrp_fs_magic;
-		subsys_idx = conf->tg_cgrp_subsys_idx;
+		subsys_idx = conf->tg_cgrpv1_subsys_idx;
 	}
 
 	cgrp = get_task_cgroup(task, cgrpfs_magic, subsys_idx, &flags);

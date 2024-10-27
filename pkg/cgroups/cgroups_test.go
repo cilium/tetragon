@@ -131,7 +131,7 @@ misc	10	1	1
 	err := os.WriteFile(file, []byte(d.data), 0644)
 	require.NoError(t, err)
 
-	err = parseCgroupSubSysIds(file)
+	err = parseCgroupv1SubSysIds(file)
 	require.NoError(t, err)
 	for _, c := range CgroupControllers {
 		if strings.Contains(d.used, c.Name) {
@@ -142,6 +142,25 @@ misc	10	1	1
 			require.Zero(t, c.Id)
 		}
 	}
+}
+
+func TestCheckCgroupv2Controllers(t *testing.T) {
+	testDir := t.TempDir()
+	empty_controllers := ""
+
+	file := filepath.Join(testDir, "cgroup.controllers")
+	err := os.WriteFile(file, []byte(empty_controllers), 0644)
+	require.NoError(t, err)
+
+	err = checkCgroupv2Controllers(testDir)
+	require.Error(t, err)
+
+	controllers := "cpuset cpu io memory hugetlb pids rdma misc"
+	err = os.WriteFile(file, []byte(controllers), 0644)
+	require.NoError(t, err)
+
+	err = checkCgroupv2Controllers(testDir)
+	require.NoError(t, err)
 }
 
 // Test cgroup mode detection on an invalid directory
@@ -248,7 +267,7 @@ func TestDetectCgroupFSMagic(t *testing.T) {
 // - We properly discover compiled-in cgroup controllers
 // - Their hierarchy IDs
 // - Their css index
-func TestDiscoverSubSysIdsDefault(t *testing.T) {
+func TestDiscoverCgroupv1SubSysIdsDefault(t *testing.T) {
 	fs, err := DetectCgroupFSMagic()
 	assert.NoError(t, err)
 	assert.NotEqual(t, CGROUP_UNDEF, fs)
@@ -263,26 +282,28 @@ func TestDiscoverSubSysIdsDefault(t *testing.T) {
 	if err == nil {
 		accessFs = true
 	}
+
+	/* Let's skip now as we are interested only in Cgroupv1 for asserting controllers index */
+	if cgroupMode == CGROUP_UNIFIED {
+		return
+	}
+
 	for _, controller := range CgroupControllers {
 		if accessFs {
-			if cgroupMode == CGROUP_UNIFIED {
-				assert.EqualValues(t, 0, controller.Id, "Cgroupv2 Controller '%s' hierarchy ID should be O as it is Unified Cgroup", controller.Name)
-			} else {
-				assert.NotEqualValues(t, 0, controller.Id, "Cgroupv1 Controller '%s' hierarchy ID should not be zero", controller.Name)
-			}
+			assert.NotEqualValues(t, 0, controller.Id, "Cgroupv1 Controller '%s' hierarchy ID should not be zero", controller.Name)
 		}
 
 		if controller.Active {
 			fixed = true
 
-			// If those controllers are active let's check their css index
+			// If those controllers are active and we are in cgroupv1 let's check their css index
 			if controller.Name == "memory" || controller.Name == "pids" {
 				assert.NotEqualValues(t, 0, controller.Idx, "Cgroup Controller '%s' css index should not be zero", controller.Name)
 			}
 		}
 	}
 
-	assert.Equalf(t, true, fixed, "TestDiscoverSubSysIdsDefault() could not detect and fix compiled Cgroup controllers")
+	assert.Equalf(t, true, fixed, "TestDiscoverSubSysIdsDefault() could not detect active cgroup controllers")
 }
 
 func TestGetCgroupIdFromPath(t *testing.T) {

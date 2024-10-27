@@ -16,6 +16,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/exec/config"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -27,14 +28,14 @@ type TetragonConfKey struct {
 }
 
 type TetragonConfValue struct {
-	LogLevel        uint32 `align:"loglevel"`           // Tetragon log level
-	PID             uint32 `align:"pid"`                // Tetragon PID for debugging purpose
-	NSPID           uint32 `align:"nspid"`              // Tetragon PID in namespace for debugging purpose
-	TgCgrpHierarchy uint32 `align:"tg_cgrp_hierarchy"`  // Tetragon Cgroup tracking hierarchy ID
-	TgCgrpSubsysIdx uint32 `align:"tg_cgrp_subsys_idx"` // Tracking Cgroup css idx at compile time
-	TgCgrpLevel     uint32 `align:"tg_cgrp_level"`      // Tetragon cgroup level
-	TgCgrpId        uint64 `align:"tg_cgrpid"`          // Tetragon cgroup ID
-	CgrpFsMagic     uint64 `align:"cgrp_fs_magic"`      // Cgroupv1 or cgroupv2
+	LogLevel          uint32 `align:"loglevel"`             // Tetragon log level
+	PID               uint32 `align:"pid"`                  // Tetragon PID for debugging purpose
+	NSPID             uint32 `align:"nspid"`                // Tetragon PID in namespace for debugging purpose
+	TgCgrpHierarchy   uint32 `align:"tg_cgrp_hierarchy"`    // Tetragon Cgroup tracking hierarchy ID
+	TgCgrpv1SubsysIdx uint32 `align:"tg_cgrpv1_subsys_idx"` // Tracking Cgroupv1 css idx at compile time
+	TgCgrpLevel       uint32 `align:"tg_cgrp_level"`        // Tetragon cgroup level
+	TgCgrpId          uint64 `align:"tg_cgrpid"`            // Tetragon cgroup ID
+	CgrpFsMagic       uint64 `align:"cgrp_fs_magic"`        // Cgroupv1 or cgroupv2
 }
 
 var (
@@ -108,11 +109,11 @@ func UpdateTgRuntimeConf(mapDir string, nspid int) error {
 	}
 
 	v := &TetragonConfValue{
-		LogLevel:        uint32(logger.GetLogLevel()),
-		TgCgrpHierarchy: cgroups.GetCgrpHierarchyID(),
-		TgCgrpSubsysIdx: cgroups.GetCgrpSubsystemIdx(),
-		NSPID:           uint32(nspid),
-		CgrpFsMagic:     cgroupFsMagic,
+		LogLevel:          uint32(logger.GetLogLevel()),
+		TgCgrpHierarchy:   cgroups.GetCgrpHierarchyID(),
+		TgCgrpv1SubsysIdx: cgroups.GetCgrpv1SubsystemIdx(),
+		NSPID:             uint32(nspid),
+		CgrpFsMagic:       cgroupFsMagic,
 	}
 
 	if err := UpdateConfMap(mapDir, v); err != nil {
@@ -120,16 +121,27 @@ func UpdateTgRuntimeConf(mapDir string, nspid int) error {
 		return err
 	}
 
-	log.WithFields(logrus.Fields{
-		"confmap-update":                configMapName,
-		"deployment.mode":               mode.String(),
-		"log.level":                     logrus.Level(v.LogLevel).String(),
-		"cgroup.fs.magic":               cgroups.CgroupFsMagicStr(v.CgrpFsMagic),
-		"cgroup.controller.name":        cgroups.GetCgrpControllerName(),
-		"cgroup.controller.hierarchyID": v.TgCgrpHierarchy,
-		"cgroup.controller.index":       v.TgCgrpSubsysIdx,
-		"NSPID":                         nspid,
-	}).Info("Updated TetragonConf map successfully")
+	if v.CgrpFsMagic == unix.CGROUP2_SUPER_MAGIC {
+		log.WithFields(logrus.Fields{
+			"confmap-update":     configMapName,
+			"deployment.mode":    mode.String(),
+			"log.level":          logrus.Level(v.LogLevel).String(),
+			"cgroup.fs.magic":    cgroups.CgroupFsMagicStr(v.CgrpFsMagic),
+			"cgroup.hierarchyID": v.TgCgrpHierarchy,
+			"NSPID":              nspid,
+		}).Info("Updated TetragonConf map successfully")
+	} else {
+		log.WithFields(logrus.Fields{
+			"confmap-update":                configMapName,
+			"deployment.mode":               mode.String(),
+			"log.level":                     logrus.Level(v.LogLevel).String(),
+			"cgroup.fs.magic":               cgroups.CgroupFsMagicStr(v.CgrpFsMagic),
+			"cgroup.controller.name":        cgroups.GetCgrpControllerName(),
+			"cgroup.controller.hierarchyID": v.TgCgrpHierarchy,
+			"cgroup.controller.index":       v.TgCgrpv1SubsysIdx,
+			"NSPID":                         nspid,
+		}).Info("Updated TetragonConf map successfully")
+	}
 
 	return nil
 }
