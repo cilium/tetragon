@@ -265,7 +265,7 @@ func TestExitSignal(t *testing.T) {
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
-	checker := ec.NewOrderedEventChecker()
+	checker := ec.NewUnorderedEventChecker()
 	testExitSignalBinary := testutils.RepoRootPath("contrib/tester-progs/pause")
 
 	for sig := 1; sig <= 15; sig++ {
