@@ -406,8 +406,8 @@ func setCgrpv1SubsystemIdx(controller *CgroupController) {
 }
 
 // GetCgrpHierarchyID() returns the ID of the Cgroup hierarchy
-// that is used to track processes. This is used for Cgroupv1 as for
-// Cgroupv2 we run in the default hierarchy.
+// that is used to track processes. This is used mostly for
+// Cgroupv1 as for Cgroupv2 we run in the default hierarchy.
 func GetCgrpHierarchyID() uint32 {
 	return cgrpHierarchy
 }
@@ -862,7 +862,7 @@ func CgroupIDFromPID(pid uint32) (uint64, error) {
 	case CGROUP_LEGACY, CGROUP_HYBRID:
 		pathFunc = func(line string) (bool, string) {
 			// TODO: test the cgroup v1 implementation
-			v1Prefix := fmt.Sprintf("%d:%s:", GetCgrpv1SubsystemIdx(), GetCgrpControllerName())
+			v1Prefix := fmt.Sprintf("%d:%s:", GetCgrpHierarchyID(), GetCgrpControllerName())
 			if !strings.HasPrefix(line, v1Prefix) {
 				return false, ""
 			}
