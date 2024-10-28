@@ -187,6 +187,12 @@ func GetCgroupIdFromPath(cgroupPath string) (uint64, error) {
 	return fh.Id, nil
 }
 
+// parseCgroupv1SubSysIds() parse cgroupv1 controllers and save their
+// hierarchy IDs and related css indexes.
+// If the 'memory' or 'cpuset' are not detected we fail, as we use them
+// from BPF side to gather cgroup information and we need them to be
+// exported by the kernel since their corresponding index allows us to
+// fetch the cgroup from the corresponding cgroup subsystem state.
 func parseCgroupv1SubSysIds(filePath string) error {
 	var allcontrollers []string
 
@@ -198,7 +204,6 @@ func parseCgroupv1SubSysIds(filePath string) error {
 	defer file.Close()
 
 	fscanner := bufio.NewScanner(file)
-	fixed := false
 	idx := 0
 	fscanner.Scan() // ignore first entry
 	for fscanner.Scan() {
@@ -224,7 +229,6 @@ func parseCgroupv1SubSysIds(filePath string) error {
 					CgroupControllers[i].Id = uint32(id)
 					CgroupControllers[i].Idx = uint32(idx)
 					CgroupControllers[i].Active = true
-					fixed = true
 				} else {
 					logger.GetLogger().WithFields(logrus.Fields{
 						"cgroup.fs":              cgroupFSPath,
@@ -241,17 +245,8 @@ func parseCgroupv1SubSysIds(filePath string) error {
 		"cgroup.controllers": fmt.Sprintf("[%s]", strings.Join(allcontrollers, " ")),
 	}).Debugf("Cgroupv1 available controllers")
 
-	// Could not find 'memory', 'pids' nor 'cpuset' controllers, are they compiled in?
-	if !fixed {
-		err = fmt.Errorf("detect cgroupv1 controllers IDs from '%s' failed", filePath)
-		logger.GetLogger().WithFields(logrus.Fields{
-			"cgroup.fs": cgroupFSPath,
-		}).WithError(err).Warnf("Cgroupv1 controllers 'memory', 'pids' and 'cpuset' are missing")
-		return err
-	}
-
 	for _, controller := range CgroupControllers {
-		// Print again everything that is available or not
+		// Print again everything that is available and if not, fail with error
 		if controller.Active {
 			logger.GetLogger().WithFields(logrus.Fields{
 				"cgroup.fs":                     cgroupFSPath,
@@ -260,9 +255,20 @@ func parseCgroupv1SubSysIds(filePath string) error {
 				"cgroup.controller.index":       controller.Idx,
 			}).Infof("Cgroupv1 supported controller '%s' is active on the system", controller.Name)
 		} else {
+			var err error
 			// Warn with error
-			err = fmt.Errorf("controller '%s' is not active", controller.Name)
-			logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).WithError(err).Warnf("Cgroupv1 supported controller is missing")
+			if controller.Name == "memory" {
+				err = fmt.Errorf("Cgroupv1 controller 'memory' is not active, ensure kernel CONFIG_MEMCG=y and CONFIG_MEMCG_V1=y are set")
+			} else if controller.Name == "cpuset" {
+				err = fmt.Errorf("Cgroupv1 controller 'cpuset' is not active, ensure kernel CONFIG_CPUSETS=y and CONFIG_CPUSETS_V1=y are set")
+			} else {
+				logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).Warnf("Cgroupv1 '%s' supported controller is missing", controller.Name)
+			}
+
+			if err != nil {
+				logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).WithError(err).Warnf("Cgroupv1 '%s' supported controller is missing", controller.Name)
+				return err
+			}
 		}
 	}
 
