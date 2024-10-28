@@ -215,7 +215,7 @@ func parseCgroupv1SubSysIds(filePath string) error {
 				/* We care only for the controllers that we want */
 				if idx >= CGROUP_SUBSYS_COUNT {
 					/* Maybe some cgroups are not upstream? */
-					return fmt.Errorf("Cgroup default subsystem '%s' is indexed at idx=%d higher than CGROUP_SUBSYS_COUNT=%d",
+					return fmt.Errorf("Cgroupv1 default subsystem '%s' is indexed at idx=%d higher than CGROUP_SUBSYS_COUNT=%d",
 						fields[0], idx, CGROUP_SUBSYS_COUNT)
 				}
 
@@ -229,7 +229,7 @@ func parseCgroupv1SubSysIds(filePath string) error {
 					logger.GetLogger().WithFields(logrus.Fields{
 						"cgroup.fs":              cgroupFSPath,
 						"cgroup.controller.name": controller.Name,
-					}).WithError(err).Warnf("parsing controller line from '%s' failed", filePath)
+					}).WithError(err).Warnf("Cgroupv1 parsing controller line from '%s' failed", filePath)
 				}
 			}
 		}
@@ -239,14 +239,14 @@ func parseCgroupv1SubSysIds(filePath string) error {
 	logger.GetLogger().WithFields(logrus.Fields{
 		"cgroup.fs":          cgroupFSPath,
 		"cgroup.controllers": fmt.Sprintf("[%s]", strings.Join(allcontrollers, " ")),
-	}).Debugf("Cgroup available controllers")
+	}).Debugf("Cgroupv1 available controllers")
 
 	// Could not find 'memory', 'pids' nor 'cpuset' controllers, are they compiled in?
 	if !fixed {
-		err = fmt.Errorf("detect cgroup controllers IDs from '%s' failed", filePath)
+		err = fmt.Errorf("detect cgroupv1 controllers IDs from '%s' failed", filePath)
 		logger.GetLogger().WithFields(logrus.Fields{
 			"cgroup.fs": cgroupFSPath,
-		}).WithError(err).Warnf("Cgroup controllers 'memory', 'pids' and 'cpuset' are missing")
+		}).WithError(err).Warnf("Cgroupv1 controllers 'memory', 'pids' and 'cpuset' are missing")
 		return err
 	}
 
@@ -258,11 +258,11 @@ func parseCgroupv1SubSysIds(filePath string) error {
 				"cgroup.controller.name":        controller.Name,
 				"cgroup.controller.hierarchyID": controller.Id,
 				"cgroup.controller.index":       controller.Idx,
-			}).Infof("Supported cgroup controller '%s' is active on the system", controller.Name)
+			}).Infof("Cgroupv1 supported controller '%s' is active on the system", controller.Name)
 		} else {
 			// Warn with error
 			err = fmt.Errorf("controller '%s' is not active", controller.Name)
-			logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).WithError(err).Warnf("Supported cgroup controller '%s' is not active", controller.Name)
+			logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).WithError(err).Warnf("Cgroupv1 supported controller is missing")
 		}
 	}
 
