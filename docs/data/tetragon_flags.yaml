@@ -64,7 +64,7 @@ options:
       usage: Enable PodInfo custom resource
     - name: enable-policy-filter
       default_value: "false"
-      usage: Enable policy filter code (beta)
+      usage: Enable policy filter code
     - name: enable-policy-filter-debug
       default_value: "false"
       usage: Enable policy filter debug messages

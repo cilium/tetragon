@@ -363,7 +363,7 @@ func AddFlags(flags *pflag.FlagSet) {
 
 	// Provide option to enable policy filtering. Because the code is new,
 	// this is set to false by default.
-	flags.Bool(KeyEnablePolicyFilter, false, "Enable policy filter code (beta)")
+	flags.Bool(KeyEnablePolicyFilter, false, "Enable policy filter code")
 	flags.Bool(KeyEnablePolicyFilterDebug, false, "Enable policy filter debug messages")
 
 	// Provide option to enable the pidSet export filters.
