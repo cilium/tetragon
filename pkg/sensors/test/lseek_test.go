@@ -76,7 +76,7 @@ func TestSensorLseekEnable(t *testing.T) {
 
 	sensor := GetTestSensor()
 
-	smanager := tus.GetTestSensorManager(ctx, t)
+	smanager := tus.GetTestSensorManager(t)
 	smanager.AddAndEnableSensor(ctx, t, sensor, sensor.Name)
 
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
