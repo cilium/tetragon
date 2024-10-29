@@ -36,8 +36,8 @@ var policyKernelMemory = metrics.MustNewCustomGauge(metrics.NewOpts(
 	consts.MetricsNamespace, "", "tracingpolicy_kernel_memory_bytes",
 	"The amount of kernel memory in bytes used by policy's sensors non-shared BPF maps (memlock).",
 	nil, nil, []metrics.UnconstrainedLabel{
-		{Name: "policy"},
-		{Name: "policy_namespace"},
+		metrics.LabelPolicy,
+		metrics.LabelPolicyNamespace,
 	},
 ))
 

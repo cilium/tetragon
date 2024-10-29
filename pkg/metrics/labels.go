@@ -11,6 +11,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+var (
+	LabelPolicyNamespace = UnconstrainedLabel{Name: "policy_namespace", ExampleValue: "ns"}
+	LabelPolicy          = UnconstrainedLabel{Name: "policy", ExampleValue: "enforce"}
+)
+
 // ConstrainedLabel represents a label with constrained cardinality.
 // Values is a list of all possible values of the label.
 type ConstrainedLabel struct {
