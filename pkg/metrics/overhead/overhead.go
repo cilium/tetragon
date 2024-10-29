@@ -13,8 +13,8 @@ var (
 		consts.MetricsNamespace, "", "overhead_program_seconds_total",
 		"The total time of BPF program running.",
 		nil, nil, []metrics.UnconstrainedLabel{
-			metrics.UnconstrainedLabel{Name: "policy_namespace", ExampleValue: "ns"},
-			metrics.UnconstrainedLabel{Name: "policy", ExampleValue: "enforce"},
+			metrics.LabelPolicyNamespace,
+			metrics.LabelPolicy,
 			metrics.UnconstrainedLabel{Name: "sensor", ExampleValue: "generic_kprobe"},
 			metrics.UnconstrainedLabel{Name: "attach", ExampleValue: "sys_open"},
 		},
@@ -24,8 +24,8 @@ var (
 		consts.MetricsNamespace, "", "overhead_program_runs_total",
 		"The total number of times BPF program was executed.",
 		nil, nil, []metrics.UnconstrainedLabel{
-			metrics.UnconstrainedLabel{Name: "policy_namespace", ExampleValue: "ns"},
-			metrics.UnconstrainedLabel{Name: "policy", ExampleValue: "enforce"},
+			metrics.LabelPolicyNamespace,
+			metrics.LabelPolicy,
 			metrics.UnconstrainedLabel{Name: "sensor", ExampleValue: "generic_kprobe"},
 			metrics.UnconstrainedLabel{Name: "attach", ExampleValue: "sys_open"},
 		},
