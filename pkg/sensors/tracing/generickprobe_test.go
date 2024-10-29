@@ -146,11 +146,6 @@ func Test_DisableEnablePolicy_Kprobe(t *testing.T) {
 	path := bpf.MapPrefixPath()
 	mgr, err := sensors.StartSensorManager(path)
 	assert.NoError(t, err)
-	t.Cleanup(func() {
-		if err := mgr.StopSensorManager(ctx); err != nil {
-			t.Fatal("failed to stop sensor manager")
-		}
-	})
 
 	t.Run("sensor", func(t *testing.T) {
 		err = mgr.AddTracingPolicy(ctx, &tcpConnectPolicy)
@@ -192,11 +187,6 @@ func Test_DisableEnablePolicy_KernelMemoryBytes(t *testing.T) {
 	path := bpf.MapPrefixPath()
 	mgr, err := sensors.StartSensorManager(path)
 	require.NoError(t, err)
-	t.Cleanup(func() {
-		if err := mgr.StopSensorManager(ctx); err != nil {
-			t.Fatal("failed to stop sensor manager")
-		}
-	})
 
 	err = mgr.AddTracingPolicy(ctx, &tcpConnectPolicy)
 	require.NoError(t, err)

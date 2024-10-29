@@ -192,10 +192,6 @@ func (h *Manager) RemoveAllSensors(ctx context.Context) error {
 	return h.handler.removeSensor(op)
 }
 
-func (h *Manager) StopSensorManager(ctx context.Context) error {
-	return nil
-}
-
 func (h *Manager) LogSensorsAndProbes(ctx context.Context) {
 	log := logger.GetLogger()
 	sensors, err := h.ListSensors(ctx)

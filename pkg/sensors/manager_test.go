@@ -45,11 +45,6 @@ func TestAddPolicy(t *testing.T) {
 	policy := v1alpha1.TracingPolicy{}
 	mgr, err := StartSensorManager("")
 	assert.NoError(t, err)
-	t.Cleanup(func() {
-		if err := mgr.StopSensorManager(ctx); err != nil {
-			t.Fatal("failed to stop sensor manager")
-		}
-	})
 	policy.ObjectMeta.Name = "test-policy"
 	err = mgr.AddTracingPolicy(ctx, &policy)
 	assert.NoError(t, err)
@@ -73,11 +68,6 @@ func TestAddPolicies(t *testing.T) {
 	policy := v1alpha1.TracingPolicy{}
 	mgr, err := StartSensorManager("")
 	assert.NoError(t, err)
-	t.Cleanup(func() {
-		if err := mgr.StopSensorManager(ctx); err != nil {
-			t.Fatal("failed to stop sensor manager")
-		}
-	})
 	policy.ObjectMeta.Name = "test-policy"
 	err = mgr.AddTracingPolicy(ctx, &policy)
 	assert.NoError(t, err)
@@ -104,11 +94,6 @@ func TestAddPolicySpecError(t *testing.T) {
 	policy := v1alpha1.TracingPolicy{}
 	mgr, err := StartSensorManager("")
 	assert.NoError(t, err)
-	t.Cleanup(func() {
-		if err := mgr.StopSensorManager(ctx); err != nil {
-			t.Fatal("failed to stop sensor manager")
-		}
-	})
 	policy.ObjectMeta.Name = "test-policy"
 	err = mgr.AddTracingPolicy(ctx, &policy)
 	assert.NotNil(t, err)
@@ -136,11 +121,6 @@ func TestAddPolicyLoadError(t *testing.T) {
 	policy := v1alpha1.TracingPolicy{}
 	mgr, err := StartSensorManager("")
 	assert.NoError(t, err)
-	t.Cleanup(func() {
-		if err := mgr.StopSensorManager(ctx); err != nil {
-			t.Fatal("failed to stop sensor manager")
-		}
-	})
 	policy.ObjectMeta.Name = "test-policy"
 	addError := mgr.AddTracingPolicy(ctx, &policy)
 	assert.NotNil(t, addError)
@@ -159,7 +139,6 @@ func TestPolicyFilterDisabled(t *testing.T) {
 
 	mgr, err := StartSensorManagerWithPF("", policyfilter.DisabledState())
 	assert.NoError(t, err)
-	defer mgr.StopSensorManager(ctx)
 
 	policy := v1alpha1.TracingPolicy{}
 
@@ -211,11 +190,6 @@ func TestPolicyStates(t *testing.T) {
 		policy := v1alpha1.TracingPolicy{}
 		mgr, err := StartSensorManager("")
 		require.NoError(t, err)
-		t.Cleanup(func() {
-			if err := mgr.StopSensorManager(ctx); err != nil {
-				t.Fatal("failed to stop sensor manager")
-			}
-		})
 		policy.ObjectMeta.Name = "test-policy"
 		addError := mgr.AddTracingPolicy(ctx, &policy)
 		assert.NotNil(t, addError)
@@ -236,11 +210,6 @@ func TestPolicyStates(t *testing.T) {
 		policy := v1alpha1.TracingPolicy{}
 		mgr, err := StartSensorManager("")
 		require.NoError(t, err)
-		t.Cleanup(func() {
-			if err := mgr.StopSensorManager(ctx); err != nil {
-				t.Fatal("failed to stop sensor manager")
-			}
-		})
 		policy.ObjectMeta.Name = "test-policy"
 		err = mgr.AddTracingPolicy(ctx, &policy)
 		assert.NoError(t, err)
@@ -276,11 +245,6 @@ func TestPolicyLoadErrorOverride(t *testing.T) {
 	policy := v1alpha1.TracingPolicy{}
 	mgr, err := StartSensorManager("")
 	require.NoError(t, err)
-	t.Cleanup(func() {
-		if err := mgr.StopSensorManager(ctx); err != nil {
-			t.Fatal("failed to stop sensor manager")
-		}
-	})
 	policy.ObjectMeta.Name = "test-policy"
 	addError := mgr.AddTracingPolicy(ctx, &policy)
 	assert.NotNil(t, addError)
@@ -315,11 +279,6 @@ func TestPolicyListingWhileLoadUnload(t *testing.T) {
 
 	mgr, err := StartSensorManager("")
 	require.NoError(t, err)
-	t.Cleanup(func() {
-		if err := mgr.StopSensorManager(ctx); err != nil {
-			t.Fatal("failed to stop sensor manager")
-		}
-	})
 
 	checkPolicy := func(t *testing.T, statuses []*tetragon.TracingPolicyStatus, state tetragon.TracingPolicyState) {
 		require.Equal(t, 1, len(statuses))
@@ -442,11 +401,6 @@ func TestPolicyKernelMemoryBytes(t *testing.T) {
 	policy := v1alpha1.TracingPolicy{}
 	mgr, err := StartSensorManager("")
 	require.NoError(t, err)
-	t.Cleanup(func() {
-		if err := mgr.StopSensorManager(ctx); err != nil {
-			t.Fatal("failed to stop sensor manager")
-		}
-	})
 	policy.ObjectMeta.Name = "test-policy"
 	addError := mgr.AddTracingPolicy(ctx, &policy)
 	// this will fail to load because the programs do not exist

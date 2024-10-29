@@ -71,12 +71,6 @@ func getTestSensorManager(ctx context.Context, t *testing.T, pfState policyfilte
 	if err != nil {
 		t.Fatalf("StartSensorManagerWithPF failed: %s", err)
 	}
-	t.Cleanup(func() {
-		err := mgr.StopSensorManager(ctx)
-		if err != nil {
-			t.Logf("StopSensorManager failed: %s\n", err)
-		}
-	})
 
 	return &TestSensorManager{
 		Manager: mgr,
