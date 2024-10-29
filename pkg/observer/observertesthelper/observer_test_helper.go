@@ -366,7 +366,6 @@ func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, op
 	// this up and remove/hide the global variable.
 	sensorManager := observer.GetSensorManager()
 	tb.Cleanup(func() {
-		sensorManager.StopSensorManager(ctx)
 		observer.ResetSensorManager()
 	})
 
