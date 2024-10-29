@@ -189,6 +189,18 @@ func deleteOldBpfDir(path string) {
 	log.Infof("Removed bpf instance: %s", path)
 }
 
+func loadInitialSensor(ctx context.Context) error {
+	base.ConfigCgroupRate(&option.Config.CgroupRate)
+
+	mgr := observer.GetSensorManager()
+	initialSensor := base.GetInitialSensor()
+
+	if err := mgr.AddSensor(ctx, initialSensor.Name, initialSensor); err != nil {
+		return err
+	}
+	return mgr.EnableSensor(ctx, initialSensor.Name)
+}
+
 func tetragonExecute() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -359,20 +371,7 @@ func tetragonExecute() error {
 		cancel()
 	}()
 
-	// start sensor manager, and have it wait on sensorMgWait until we load
-	// the base sensor. note that this means that calling methods on the
-	// manager will block so they will have to either be executed in a
-	// goroutine or after we close the sensorMgWait channel to avoid
-	// deadlock.
-	sensorMgWait := make(chan struct{})
-	defer func() {
-		// if we fail before closing the channel, close it so that
-		// the sensor manager routine is unblocked.
-		if sensorMgWait != nil {
-			close(sensorMgWait)
-		}
-	}()
-	if err := obs.InitSensorManager(sensorMgWait); err != nil {
+	if err := obs.InitSensorManager(); err != nil {
 		return err
 	}
 
@@ -447,6 +446,16 @@ func tetragonExecute() error {
 		return err
 	}
 
+	// Load initial sensor before we start the server,
+	// so it's there before we allow to load policies.
+	if err = loadInitialSensor(ctx); err != nil {
+		return err
+	}
+	observer.GetSensorManager().LogSensorsAndProbes(ctx)
+	defer func() {
+		observer.RemoveSensors(ctx)
+	}()
+
 	pm, err := tetragonGrpc.NewProcessManager(
 		ctx,
 		&cleanupWg,
@@ -477,27 +486,8 @@ func tetragonExecute() error {
 
 	obs.LogPinnedBpf(observerDir)
 
-	base.ConfigCgroupRate(&option.Config.CgroupRate)
-
-	// load base sensor
-	initialSensor := base.GetInitialSensor()
-	if err := initialSensor.Load(observerDir); err != nil {
-		return err
-	}
-	defer func() {
-		initialSensor.Unload()
-	}()
-
 	cgrouprate.NewCgroupRate(ctx, pm, base.CgroupRateMap, &option.Config.CgroupRate)
 	cgrouprate.Config(base.CgroupRateOptionsMap)
-
-	// now that the base sensor was loaded, we can start the sensor manager
-	close(sensorMgWait)
-	sensorMgWait = nil
-	observer.GetSensorManager().LogSensorsAndProbes(ctx)
-	defer func() {
-		observer.RemoveSensors(ctx)
-	}()
 
 	err = loadTpFromDir(ctx, option.Config.TracingPolicyDir)
 	if err != nil {

@@ -27,24 +27,18 @@ type SensorStatus struct {
 // The purpose of this goroutine is to serialize loading and unloading of
 // sensors as requested from different goroutines (e.g., different GRPC
 // clients).
-//
-// if waitChan is not nil, the serving of sensor requests will block until
-// something is received. The intention of this is to allow the main function
-// to first load the base sensor before the sensor manager starts loading other sensors.
 func StartSensorManager(
 	bpfDir string,
-	waitChan chan struct{},
 ) (*Manager, error) {
 	pfState, err := policyfilter.GetState()
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize policy filter state: %w", err)
 	}
-	return StartSensorManagerWithPF(bpfDir, waitChan, pfState)
+	return StartSensorManagerWithPF(bpfDir, pfState)
 }
 
 func StartSensorManagerWithPF(
 	bpfDir string,
-	waitChan chan struct{},
 	pfState policyfilter.State,
 ) (*Manager, error) {
 	colMap := newCollectionMap()

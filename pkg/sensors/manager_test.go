@@ -43,7 +43,7 @@ func TestAddPolicy(t *testing.T) {
 	})
 
 	policy := v1alpha1.TracingPolicy{}
-	mgr, err := StartSensorManager("", nil)
+	mgr, err := StartSensorManager("")
 	assert.NoError(t, err)
 	t.Cleanup(func() {
 		if err := mgr.StopSensorManager(ctx); err != nil {
@@ -71,7 +71,7 @@ func TestAddPolicies(t *testing.T) {
 	})
 
 	policy := v1alpha1.TracingPolicy{}
-	mgr, err := StartSensorManager("", nil)
+	mgr, err := StartSensorManager("")
 	assert.NoError(t, err)
 	t.Cleanup(func() {
 		if err := mgr.StopSensorManager(ctx); err != nil {
@@ -102,7 +102,7 @@ func TestAddPolicySpecError(t *testing.T) {
 	})
 
 	policy := v1alpha1.TracingPolicy{}
-	mgr, err := StartSensorManager("", nil)
+	mgr, err := StartSensorManager("")
 	assert.NoError(t, err)
 	t.Cleanup(func() {
 		if err := mgr.StopSensorManager(ctx); err != nil {
@@ -134,7 +134,7 @@ func TestAddPolicyLoadError(t *testing.T) {
 	})
 
 	policy := v1alpha1.TracingPolicy{}
-	mgr, err := StartSensorManager("", nil)
+	mgr, err := StartSensorManager("")
 	assert.NoError(t, err)
 	t.Cleanup(func() {
 		if err := mgr.StopSensorManager(ctx); err != nil {
@@ -157,7 +157,7 @@ func TestPolicyFilterDisabled(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	mgr, err := StartSensorManagerWithPF("", nil, policyfilter.DisabledState())
+	mgr, err := StartSensorManagerWithPF("", policyfilter.DisabledState())
 	assert.NoError(t, err)
 	defer mgr.StopSensorManager(ctx)
 
@@ -209,7 +209,7 @@ func TestPolicyStates(t *testing.T) {
 		})
 
 		policy := v1alpha1.TracingPolicy{}
-		mgr, err := StartSensorManager("", nil)
+		mgr, err := StartSensorManager("")
 		require.NoError(t, err)
 		t.Cleanup(func() {
 			if err := mgr.StopSensorManager(ctx); err != nil {
@@ -234,7 +234,7 @@ func TestPolicyStates(t *testing.T) {
 		})
 
 		policy := v1alpha1.TracingPolicy{}
-		mgr, err := StartSensorManager("", nil)
+		mgr, err := StartSensorManager("")
 		require.NoError(t, err)
 		t.Cleanup(func() {
 			if err := mgr.StopSensorManager(ctx); err != nil {
@@ -274,7 +274,7 @@ func TestPolicyLoadErrorOverride(t *testing.T) {
 	})
 
 	policy := v1alpha1.TracingPolicy{}
-	mgr, err := StartSensorManager("", nil)
+	mgr, err := StartSensorManager("")
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		if err := mgr.StopSensorManager(ctx); err != nil {
@@ -313,7 +313,7 @@ func TestPolicyListingWhileLoadUnload(t *testing.T) {
 	polName := "test-policy"
 	testSensor := makeTestDelayedSensor(t)
 
-	mgr, err := StartSensorManager("", nil)
+	mgr, err := StartSensorManager("")
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		if err := mgr.StopSensorManager(ctx); err != nil {
@@ -440,7 +440,7 @@ func TestPolicyKernelMemoryBytes(t *testing.T) {
 	})
 
 	policy := v1alpha1.TracingPolicy{}
-	mgr, err := StartSensorManager("", nil)
+	mgr, err := StartSensorManager("")
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		if err := mgr.StopSensorManager(ctx); err != nil {
