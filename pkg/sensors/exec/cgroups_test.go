@@ -591,8 +591,8 @@ func setupTgRuntimeConf(t *testing.T, trackingCgrpLevel, logLevel, hierarchyId, 
 	}
 }
 
-func setupObserver(ctx context.Context, t *testing.T) *tus.TestSensorManager {
-	testManager := tus.GetTestSensorManager(ctx, t)
+func setupObserver(t *testing.T) *tus.TestSensorManager {
+	testManager := tus.GetTestSensorManager(t)
 	if err := observer.InitDataCache(1024); err != nil {
 		t.Fatalf("failed to call observer.InitDataCache %s", err)
 	}
@@ -650,7 +650,7 @@ func TestCgroupNoEvents(t *testing.T) {
 
 	tus.LoadSensor(t, base.GetInitialSensor())
 
-	testManager := setupObserver(ctx, t)
+	testManager := setupObserver(t)
 
 	testManager.AddAndEnableSensors(ctx, t, getLoadedSensors())
 
@@ -702,7 +702,7 @@ func TestCgroupEventMkdirRmdir(t *testing.T) {
 
 	tus.LoadSensor(t, base.GetInitialSensor())
 
-	testManager := setupObserver(ctx, t)
+	testManager := setupObserver(t)
 
 	testManager.AddAndEnableSensors(ctx, t, getLoadedSensors())
 	t.Cleanup(func() {
@@ -881,7 +881,7 @@ func testCgroupv2HierarchyInUnified(ctx context.Context, t *testing.T,
 // Test Cgroupv2 tries to emulate k8s hierarchy without exec context
 // Works in systemd unified and hybrid mode according to parameter
 func testCgroupv2K8sHierarchy(ctx context.Context, t *testing.T, mode cgroups.CgroupModeCode, withExec bool) {
-	testManager := setupObserver(ctx, t)
+	testManager := setupObserver(t)
 
 	testManager.AddAndEnableSensors(ctx, t, getLoadedSensors())
 	t.Cleanup(func() {
@@ -1095,7 +1095,7 @@ func testCgroupv1K8sHierarchyInHybrid(t *testing.T, withExec bool, selectedContr
 
 	tus.LoadSensor(t, base.GetInitialSensor())
 
-	testManager := setupObserver(ctx, t)
+	testManager := setupObserver(t)
 
 	testManager.AddAndEnableSensors(ctx, t, getLoadedSensors())
 
