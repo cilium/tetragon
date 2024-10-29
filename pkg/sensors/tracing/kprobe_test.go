@@ -3975,7 +3975,7 @@ func matchBinariesPerfringTest(t *testing.T, operator string, values []string) {
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 	tus.LoadSensor(t, base.GetInitialSensor())
 	tus.LoadSensor(t, testsensor.GetTestSensor())
-	sm := tus.GetTestSensorManager(ctx, t)
+	sm := tus.GetTestSensorManager(t)
 
 	matchBinariesTracingPolicy := tracingpolicy.GenericTracingPolicy{
 		Metadata: v1.ObjectMeta{
@@ -4089,7 +4089,7 @@ func TestKprobeMatchBinariesEarlyExec(t *testing.T) {
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 	tus.LoadSensor(t, base.GetInitialSensor())
 	tus.LoadSensor(t, testsensor.GetTestSensor())
-	sm := tus.GetTestSensorManager(ctx, t)
+	sm := tus.GetTestSensorManager(t)
 
 	matchBinariesTracingPolicy := tracingpolicy.GenericTracingPolicy{
 		Metadata: v1.ObjectMeta{
@@ -4156,7 +4156,7 @@ func TestKprobeMatchBinariesPrefixMatchArgs(t *testing.T) {
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 	tus.LoadSensor(t, base.GetInitialSensor())
 	tus.LoadSensor(t, testsensor.GetTestSensor())
-	sm := tus.GetTestSensorManager(ctx, t)
+	sm := tus.GetTestSensorManager(t)
 
 	matchBinariesTracingPolicy := tracingpolicy.GenericTracingPolicy{
 		Metadata: v1.ObjectMeta{
@@ -6094,7 +6094,7 @@ func TestLinuxBinprmExtractPath(t *testing.T) {
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 	tus.LoadSensor(t, base.GetInitialSensor())
 	tus.LoadSensor(t, testsensor.GetTestSensor())
-	sm := tus.GetTestSensorManager(ctx, t)
+	sm := tus.GetTestSensorManager(t)
 
 	bprmTracingPolicy := tracingpolicy.GenericTracingPolicy{
 		Metadata: v1.ObjectMeta{

@@ -44,19 +44,19 @@ type TestSensorManager struct {
 // Otherwise, it creates a new one. If it creates a new one it will use the test name to create a
 // unqique directory for maps/etc, and will also register the necessary cleanup functions using
 // t.Cleanup()
-func GetTestSensorManager(ctx context.Context, t *testing.T) *TestSensorManager {
+func GetTestSensorManager(t *testing.T) *TestSensorManager {
 	pfState, err := policyfilter.GetState()
 	if err != nil {
 		t.Fatalf("failed to initialize policy filter state: %s", err)
 	}
-	return getTestSensorManager(ctx, t, pfState)
+	return getTestSensorManager(t, pfState)
 }
 
-func GetTestSensorManagerWithDummyPF(ctx context.Context, t *testing.T) *TestSensorManager {
-	return getTestSensorManager(ctx, t, &dummyPF{})
+func GetTestSensorManagerWithDummyPF(t *testing.T) *TestSensorManager {
+	return getTestSensorManager(t, &dummyPF{})
 }
 
-func getTestSensorManager(ctx context.Context, t *testing.T, pfState policyfilter.State) *TestSensorManager {
+func getTestSensorManager(t *testing.T, pfState policyfilter.State) *TestSensorManager {
 	var mgr *sensors.Manager
 	var err error
 

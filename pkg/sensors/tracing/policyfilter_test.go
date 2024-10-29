@@ -116,7 +116,7 @@ func TestNamespacedPolicies(t *testing.T) {
 
 	tus.LoadSensor(t, base.GetInitialSensor())
 	tus.LoadSensor(t, testsensor.GetTestSensor())
-	sm := tus.GetTestSensorManager(ctx, t)
+	sm := tus.GetTestSensorManager(t)
 
 	// First, we create two lseek-pipe commands and add them to a different cgroup. See
 	// contrib/tester-progs/go/lseek-pipe for details of how lseek-pipe wowkrs, but basically it
