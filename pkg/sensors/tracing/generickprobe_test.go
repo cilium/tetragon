@@ -144,7 +144,7 @@ func Test_DisableEnablePolicy_Kprobe(t *testing.T) {
 
 	tus.LoadSensor(t, base.GetInitialSensor())
 	path := bpf.MapPrefixPath()
-	mgr, err := sensors.StartSensorManager(path, nil)
+	mgr, err := sensors.StartSensorManager(path)
 	assert.NoError(t, err)
 	t.Cleanup(func() {
 		if err := mgr.StopSensorManager(ctx); err != nil {
@@ -190,7 +190,7 @@ func Test_DisableEnablePolicy_KernelMemoryBytes(t *testing.T) {
 
 	tus.LoadSensor(t, base.GetInitialSensor())
 	path := bpf.MapPrefixPath()
-	mgr, err := sensors.StartSensorManager(path, nil)
+	mgr, err := sensors.StartSensorManager(path)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		if err := mgr.StopSensorManager(ctx); err != nil {

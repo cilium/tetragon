@@ -341,8 +341,8 @@ func (k *Observer) Start(ctx context.Context) error {
 }
 
 // InitSensorManager starts the sensor controller
-func (k *Observer) InitSensorManager(waitChan chan struct{}) error {
-	mgr, err := sensors.StartSensorManager(option.Config.BpfDir, waitChan)
+func (k *Observer) InitSensorManager() error {
+	mgr, err := sensors.StartSensorManager(option.Config.BpfDir)
 	if err != nil {
 		return err
 	}
