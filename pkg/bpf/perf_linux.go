@@ -12,10 +12,6 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-const (
-	PossibleCPUSysfsPath = "/sys/devices/system/cpu/possible"
-)
-
 type PerfEventConfig struct {
 	NumCpus      int
 	NumPages     int
