@@ -259,6 +259,14 @@ func createContainerHook(log *slog.Logger) (error, map[string]string) {
 		return errors.New("unable to determine either RootDir or cgroupPath, bailing out"), nil
 	}
 
+	// We expect the rootDir to be the root directory of the container.
+	// In "containerd (createContainer)" and "cri-o" we are already in the
+	// container root directory. In "containerd (createRuntime)" we need to
+	// append the rootDir the root path from the spec.
+	if configName == "config.json" {
+		rootDir = path.Join(rootDir, spec.Root.Path)
+	}
+
 	createContainer := &tetragon.CreateContainer{
 		CgroupsPath:   cgroupPath,
 		RootDir:       rootDir,
