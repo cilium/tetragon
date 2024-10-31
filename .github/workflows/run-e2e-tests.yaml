@@ -97,6 +97,8 @@ jobs:
           docker pull ${{ steps.vars.outputs.operatorImage }}
 
     - name: Run e2e Tests
+      env:
+        GHA_OS: ${{matrix.os}}
       run: |
         cd go/src/github.com/cilium/tetragon
 
