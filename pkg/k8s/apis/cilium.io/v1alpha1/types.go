@@ -384,7 +384,7 @@ type WorkloadObjectMeta struct {
 // +genclient
 // +kubebuilder:object:root=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +kubebuilder:resource:singular="podinfo",path="podinfo",scope="Namespaced",shortName={}
+// +kubebuilder:resource:singular="podinfo",path="podinfo",scope="Namespaced",shortName={tgpi}
 
 // PodInfo is the Scheme for the Podinfo API
 type PodInfo struct {

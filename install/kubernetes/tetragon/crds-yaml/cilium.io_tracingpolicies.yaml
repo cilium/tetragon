@@ -11,6 +11,8 @@ spec:
     kind: TracingPolicy
     listKind: TracingPolicyList
     plural: tracingpolicies
+    shortNames:
+    - tgtp
     singular: tracingpolicy
   scope: Cluster
   versions:

@@ -11,6 +11,8 @@ spec:
     kind: TracingPolicyNamespaced
     listKind: TracingPolicyNamespacedList
     plural: tracingpoliciesnamespaced
+    shortNames:
+    - tgtpn
     singular: tracingpolicynamespaced
   scope: Namespaced
   versions:
