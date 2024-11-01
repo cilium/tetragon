@@ -168,7 +168,6 @@ The available operators for `matchBinaries` are:
 
 The `values` field has to be a map of `strings`. The default behaviour
 is `followForks: true`, so all the child processes are followed.
-The current limitation is 4 values.
 
 ### Follow children
 
