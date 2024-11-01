@@ -208,7 +208,11 @@ func BindTo(impl, iface interface{}) Option {
 	})
 }
 
-// BindToProvider allows binding of provider functions.
+// BindToProvider binds an injected value to a provider function.
+//
+// The provider function must have the signature:
+//
+//	func() (interface{}, error)
 //
 // This is useful when the Run() function of different commands require different values that may
 // not all be initialisable from the main() function.
