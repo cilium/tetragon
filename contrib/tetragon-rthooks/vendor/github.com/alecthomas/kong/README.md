@@ -7,6 +7,7 @@
 
 <!-- TOC depthfrom:2 depthto:3 -->
 
+- [Version 1.0.0 Release](#version-100-release)
 - [Introduction](#introduction)
 - [Help](#help)
   - [Help as a user of a Kong application](#help-as-a-user-of-a-kong-application)
@@ -41,6 +42,12 @@
   - [Other options](#other-options)
 
 <!-- /TOC -->
+
+## Version 1.0.0 Release
+
+Kong has been stable for a long time, so it seemed appropriate to cut a 1.0 release.
+
+There is one breaking change, [#436](https://github.com/alecthomas/kong/pull/436), which should effect relatively few users.
 
 ## Introduction
 
@@ -554,7 +561,7 @@ Tags can be in two forms:
 Both can coexist with standard Tag parsing.
 
 | Tag                  | Description                                                                                                                                                                                                                                                                                                                    |
-|----------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `cmd:""`             | If present, struct is a command.                                                                                                                                                                                                                                                                                               |
 | `arg:""`             | If present, field is an argument. Required by default.                                                                                                                                                                                                                                                                         |
 | `env:"X,Y,..."`      | Specify envars to use for default value. The envs are resolved in the declared order. The first value found is used.                                                                                                                                                                                                           |
@@ -741,7 +748,7 @@ The default help output is usually sufficient, but if not there are two solution
 
 ### `Bind(...)` - bind values for callback hooks and Run() methods
 
-See the [section on hooks](#hooks-beforeresolve-beforeapply-afterapply-and-the-bind-option) for details.
+See the [section on hooks](#hooks-beforereset-beforeresolve-beforeapply-afterapply-and-the-bind-option) for details.
 
 ### Other options
 
