@@ -262,6 +262,7 @@ func doBugtool(info *InitInfo, outFname string) error {
 	si.addPmapOut(tarWriter)
 	si.addMemCgroupStats(tarWriter)
 	si.addBPFMapsStats(tarWriter)
+	si.addTracefsTraceFile(tarWriter)
 	return nil
 }
 
@@ -772,4 +773,11 @@ func (s bugtoolInfo) addBPFMapsStats(tarWriter *tar.Writer) error {
 	}
 	s.multiLog.WithField("file", file).Info("BPF maps checks added")
 	return nil
+}
+
+func (s *bugtoolInfo) addTracefsTraceFile(tarWriter *tar.Writer) {
+	err := s.execCmd(tarWriter, "trace", "cat", "/sys/kernel/tracing/trace")
+	if err != nil {
+		s.multiLog.Warnf("failed to get trace file: %v", err)
+	}
 }
