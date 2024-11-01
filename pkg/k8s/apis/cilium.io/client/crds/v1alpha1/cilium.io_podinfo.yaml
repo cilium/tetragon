@@ -11,6 +11,8 @@ spec:
     kind: PodInfo
     listKind: PodInfoList
     plural: podinfo
+    shortNames:
+    - tgpi
     singular: podinfo
   scope: Namespaced
   versions:
