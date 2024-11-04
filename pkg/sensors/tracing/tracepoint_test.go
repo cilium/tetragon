@@ -33,6 +33,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors"
 	testsensor "github.com/cilium/tetragon/pkg/sensors/test"
 	"github.com/cilium/tetragon/pkg/testutils"
+	tuo "github.com/cilium/tetragon/pkg/testutils/observer"
 	"github.com/cilium/tetragon/pkg/testutils/perfring"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/sirupsen/logrus"
@@ -81,7 +82,7 @@ func TestGenericTracepointSimple(t *testing.T) {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
 
-	sm := tus.GetTestSensorManager(t)
+	sm := tuo.GetTestSensorManager(t)
 	// create and add sensor
 	sensor, err := createGenericTracepointSensor(&spec, "GtpLseekTest", policyfilter.NoFilterID, "policyName", "", nil)
 	if err != nil {
@@ -145,7 +146,7 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf v1alpha1.TracepointSpec
 		Lists:       []v1alpha1.ListSpec{},
 	}
 
-	sm := tus.GetTestSensorManager(t)
+	sm := tuo.GetTestSensorManager(t)
 	// create and add sensor
 	sensor, err := createGenericTracepointSensor(&spec, "GtpLseekTest", policyfilter.NoFilterID, "policyName", "", nil)
 	if err != nil {
@@ -541,7 +542,7 @@ func TestTracepointCloneThreads(t *testing.T) {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
 
-	sm := tus.GetTestSensorManager(t)
+	sm := tuo.GetTestSensorManager(t)
 	// create and add sensor
 	sensor, err := createGenericTracepointSensor(&spec, "GtpLseekTest", policyfilter.NoFilterID, "policyName", "", nil)
 	if err != nil {

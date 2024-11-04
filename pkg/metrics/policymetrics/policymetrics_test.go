@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/cilium/tetragon/pkg/observer"
-	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
+	tuo "github.com/cilium/tetragon/pkg/testutils/observer"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
@@ -42,7 +42,7 @@ tetragon_tracingpolicy_loaded{state="load_error"} %d
 	// manager because in the observer tests we only initialize metrics while the observer
 	// changes for every test (see:
 	// https://github.com/cilium/tetragon/blob/22eb995b19207ac0ced2dd83950ec8e8aedd122d/pkg/observer/observertesthelper/observer_test_helper.go#L272-L276)
-	manager := tus.GetTestSensorManagerWithDummyPF(t).Manager
+	manager := tuo.GetTestSensorManagerWithDummyPF(t).Manager
 	observer.SetSensorManager(manager)
 	t.Cleanup(observer.ResetSensorManager)
 

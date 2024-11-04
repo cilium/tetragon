@@ -27,6 +27,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/config/confmap"
 	testsensor "github.com/cilium/tetragon/pkg/sensors/test"
 	"github.com/cilium/tetragon/pkg/testutils"
+	tuo "github.com/cilium/tetragon/pkg/testutils/observer"
 	"github.com/cilium/tetragon/pkg/testutils/perfring"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
@@ -115,7 +116,7 @@ func TestNamespacedPolicies(t *testing.T) {
 
 	tus.LoadInitialSensor(t)
 	tus.LoadSensor(t, testsensor.GetTestSensor())
-	sm := tus.GetTestSensorManager(t)
+	sm := tuo.GetTestSensorManager(t)
 
 	// First, we create two lseek-pipe commands and add them to a different cgroup. See
 	// contrib/tester-progs/go/lseek-pipe for details of how lseek-pipe wowkrs, but basically it

@@ -46,6 +46,7 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/testutils"
+	tuo "github.com/cilium/tetragon/pkg/testutils/observer"
 	"github.com/cilium/tetragon/pkg/testutils/perfring"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
@@ -3975,7 +3976,7 @@ func matchBinariesPerfringTest(t *testing.T, operator string, values []string) {
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 	tus.LoadInitialSensor(t)
 	tus.LoadSensor(t, testsensor.GetTestSensor())
-	sm := tus.GetTestSensorManager(t)
+	sm := tuo.GetTestSensorManager(t)
 
 	matchBinariesTracingPolicy := tracingpolicy.GenericTracingPolicy{
 		Metadata: v1.ObjectMeta{
@@ -4089,7 +4090,7 @@ func TestKprobeMatchBinariesEarlyExec(t *testing.T) {
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 	tus.LoadInitialSensor(t)
 	tus.LoadSensor(t, testsensor.GetTestSensor())
-	sm := tus.GetTestSensorManager(t)
+	sm := tuo.GetTestSensorManager(t)
 
 	matchBinariesTracingPolicy := tracingpolicy.GenericTracingPolicy{
 		Metadata: v1.ObjectMeta{
@@ -4156,7 +4157,7 @@ func TestKprobeMatchBinariesPrefixMatchArgs(t *testing.T) {
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 	tus.LoadInitialSensor(t)
 	tus.LoadSensor(t, testsensor.GetTestSensor())
-	sm := tus.GetTestSensorManager(t)
+	sm := tuo.GetTestSensorManager(t)
 
 	matchBinariesTracingPolicy := tracingpolicy.GenericTracingPolicy{
 		Metadata: v1.ObjectMeta{
@@ -6094,8 +6095,7 @@ func TestLinuxBinprmExtractPath(t *testing.T) {
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 	tus.LoadInitialSensor(t)
 	tus.LoadSensor(t, testsensor.GetTestSensor())
-	sm := tus.GetTestSensorManager(t)
-
+	sm := tuo.GetTestSensorManager(t)
 	bprmTracingPolicy := tracingpolicy.GenericTracingPolicy{
 		Metadata: v1.ObjectMeta{
 			Name: "bprm-extract-path",
