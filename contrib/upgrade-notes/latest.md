@@ -3,7 +3,7 @@
 Read the upgrade notes carefully before upgrading Tetragon.
 Depending on your setup, changes listed here might require a manual intervention.
 
-* TBD
+* Behavior of `export-file-perm` flag (and corresponding Helm value `tetragon.exportFilePerm`) changed. In case the export file exists, but has different permissions than specified in the option, Tetragon will change the file permissions on the next log rotation. In older versions, log rotation preserved permissions of the existing file. Before upgrading check if permissions of the existing export file match the option (600 by default), and set the agent flag or Helm value to the desired value if needed.
 
 ### Agent Options
 
