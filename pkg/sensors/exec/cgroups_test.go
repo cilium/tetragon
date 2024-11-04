@@ -33,6 +33,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 	testsensor "github.com/cilium/tetragon/pkg/sensors/test"
 	"github.com/cilium/tetragon/pkg/testutils"
+	tuo "github.com/cilium/tetragon/pkg/testutils/observer"
 	"github.com/cilium/tetragon/pkg/testutils/perfring"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/sirupsen/logrus"
@@ -591,7 +592,7 @@ func setupTgRuntimeConf(t *testing.T, trackingCgrpLevel, logLevel, hierarchyId, 
 }
 
 func setupObserver(t *testing.T) *tus.TestSensorManager {
-	testManager := tus.GetTestSensorManager(t)
+	testManager := tuo.GetTestSensorManager(t)
 	if err := observer.InitDataCache(1024); err != nil {
 		t.Fatalf("failed to call observer.InitDataCache %s", err)
 	}

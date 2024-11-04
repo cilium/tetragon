@@ -13,6 +13,7 @@ import (
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
+	tuo "github.com/cilium/tetragon/pkg/testutils/observer"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/sys/unix"
@@ -76,7 +77,7 @@ func TestSensorLseekEnable(t *testing.T) {
 
 	sensor := GetTestSensor()
 
-	smanager := tus.GetTestSensorManager(t)
+	smanager := tuo.GetTestSensorManager(t)
 	smanager.AddAndEnableSensor(ctx, t, sensor, sensor.Name)
 
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
