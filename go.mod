@@ -11,7 +11,7 @@ require (
 	github.com/cilium/cilium v1.17.0-pre.2
 	github.com/cilium/ebpf v0.16.0
 	github.com/cilium/little-vm-helper v0.0.19
-	github.com/cilium/lumberjack/v2 v2.3.0
+	github.com/cilium/lumberjack/v2 v2.4.0
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/cilium/tetragon/pkg/k8s v0.0.0-00010101000000-000000000000
 	github.com/containerd/cgroups v1.1.0

@@ -7,7 +7,7 @@ toolchain go1.23.1
 
 require (
 	github.com/alecthomas/kong v1.3.0
-	github.com/cilium/lumberjack/v2 v2.3.0
+	github.com/cilium/lumberjack/v2 v2.4.0
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/containerd/containerd v1.7.23
 	github.com/containerd/nri v0.8.0
