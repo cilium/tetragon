@@ -265,6 +265,7 @@ The total number of times BPF program was executed.
 | `attach` | `sys_open` |
 | `policy` | `enforce` |
 | `policy_namespace` | `   ns` |
+| `section` | `kprobe/sys_open` |
 | `sensor` | `generic_kprobe` |
 
 ### `tetragon_overhead_program_seconds_total`
@@ -276,6 +277,7 @@ The total time of BPF program running.
 | `attach` | `sys_open` |
 | `policy` | `enforce` |
 | `policy_namespace` | `   ns` |
+| `section` | `kprobe/sys_open` |
 | `sensor` | `generic_kprobe` |
 
 ### `tetragon_policyfilter_hook_container_name_missing_total`

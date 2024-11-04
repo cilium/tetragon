@@ -94,6 +94,7 @@ type ProgOverhead struct {
 	Policy    string
 	Sensor    string
 	Attach    string
+	Label     string
 	RunTime   uint64
 	RunCnt    uint64
 }
@@ -127,6 +128,7 @@ func (s *Sensor) Overhead() ([]ProgOverhead, bool) {
 
 		list = append(list, ProgOverhead{
 			Attach:  p.Attach,
+			Label:   p.Label,
 			Sensor:  s.Name,
 			RunTime: uint64(runTime),
 			RunCnt:  runCnt,
