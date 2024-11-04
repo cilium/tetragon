@@ -17,6 +17,7 @@ var (
 			metrics.LabelPolicy,
 			metrics.UnconstrainedLabel{Name: "sensor", ExampleValue: "generic_kprobe"},
 			metrics.UnconstrainedLabel{Name: "attach", ExampleValue: "sys_open"},
+			metrics.UnconstrainedLabel{Name: "section", ExampleValue: "kprobe/sys_open"},
 		},
 	))
 
@@ -28,6 +29,7 @@ var (
 			metrics.LabelPolicy,
 			metrics.UnconstrainedLabel{Name: "sensor", ExampleValue: "generic_kprobe"},
 			metrics.UnconstrainedLabel{Name: "attach", ExampleValue: "sys_open"},
+			metrics.UnconstrainedLabel{Name: "section", ExampleValue: "kprobe/sys_open"},
 		},
 	))
 )

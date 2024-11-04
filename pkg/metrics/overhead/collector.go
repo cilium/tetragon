@@ -35,12 +35,12 @@ func collect(ch chan<- prometheus.Metric) {
 	}
 
 	for _, ovh := range overheads {
-		ch <- time.MustMetric(float64(ovh.RunTime), ovh.Namespace, ovh.Policy, ovh.Sensor, ovh.Attach)
-		ch <- runs.MustMetric(float64(ovh.RunCnt), ovh.Namespace, ovh.Policy, ovh.Sensor, ovh.Attach)
+		ch <- time.MustMetric(float64(ovh.RunTime), ovh.Namespace, ovh.Policy, ovh.Sensor, ovh.Attach, ovh.Label)
+		ch <- runs.MustMetric(float64(ovh.RunCnt), ovh.Namespace, ovh.Policy, ovh.Sensor, ovh.Attach, ovh.Label)
 	}
 }
 
 func collectForDocs(ch chan<- prometheus.Metric) {
-	ch <- time.MustMetric(0, "ns", "enforce", "generic_kprobe", "sys_open")
-	ch <- runs.MustMetric(0, "ns", "enforce", "generic_kprobe", "sys_open")
+	ch <- time.MustMetric(0, "ns", "enforce", "generic_kprobe", "sys_open", "kprobe/sys_open")
+	ch <- runs.MustMetric(0, "ns", "enforce", "generic_kprobe", "sys_open", "kprobe/sys_open")
 }
