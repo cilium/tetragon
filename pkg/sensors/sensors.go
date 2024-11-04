@@ -125,8 +125,13 @@ func (s *Sensor) Overhead() ([]ProgOverhead, bool) {
 		runTime, _ := info.Runtime()
 		runCnt, _ := info.RunCount()
 
+		attach := p.Attach
+		if p.RetProbe {
+			attach = fmt.Sprintf("%s_return", attach)
+		}
+
 		list = append(list, ProgOverhead{
-			Attach:  p.Attach,
+			Attach:  attach,
 			Sensor:  s.Name,
 			RunTime: uint64(runTime),
 			RunCnt:  runCnt,
