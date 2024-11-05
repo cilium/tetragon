@@ -108,8 +108,13 @@ func (kp *enforcerPolicy) PolicyHandler(
 			return nil, err
 		}
 	}
+
 	if len(spec.Enforcers) > 0 {
-		return kp.createEnforcerSensor(spec.Enforcers, spec.Lists, spec.Options, policy.TpName())
+		namespace := ""
+		if tpn, ok := policy.(tracingpolicy.TracingPolicyNamespaced); ok {
+			namespace = tpn.TpNamespace()
+		}
+		return kp.createEnforcerSensor(spec.Enforcers, spec.Lists, spec.Options, policy.TpName(), namespace)
 	}
 
 	return nil, nil
@@ -199,6 +204,7 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 	lists []v1alpha1.ListSpec,
 	opts []v1alpha1.OptionSpec,
 	policyName string,
+	policyNamespace string,
 ) (*sensors.Sensor, error) {
 
 	if len(enforcers) > 1 {
@@ -337,10 +343,11 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 	logger.GetLogger().Infof("Added enforcer sensor '%s'", policyName)
 
 	return &sensors.Sensor{
-		Name:   "__enforcer__",
-		Progs:  progs,
-		Maps:   maps,
-		Policy: policyName,
+		Name:      "__enforcer__",
+		Progs:     progs,
+		Maps:      maps,
+		Policy:    policyName,
+		Namespace: policyNamespace,
 		PostUnloadHook: func() error {
 			if ok := kp.enforcerDel(policyName); !ok {
 				logger.GetLogger().Infof("Failed to clean up enforcer sensor '%s'", policyName)
