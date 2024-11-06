@@ -16,7 +16,6 @@ import (
 	"github.com/cilium/tetragon/pkg/bpf"
 	cachedbtf "github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
 )
 
@@ -40,10 +39,6 @@ func linkPinPath(bpfDir string, load *Program, extra ...string) string {
 }
 
 func linkPin(lnk link.Link, bpfDir string, load *Program, extra ...string) error {
-	// pinned link is not configured
-	if !option.Config.KeepSensorsOnExit {
-		return nil
-	}
 	// pinned link is not supported
 	if !bpf.HasLinkPin() {
 		return nil
