@@ -70,6 +70,9 @@ type LinkUnloader struct {
 }
 
 func (lu LinkUnloader) Unload() error {
+	if !option.Config.KeepSensorsOnExit {
+		lu.Link.Unpin()
+	}
 	return lu.Link.Close()
 }
 
@@ -167,6 +170,9 @@ type RelinkUnloader struct {
 func (u *RelinkUnloader) Unload() error {
 	var ret error
 	if u.IsLinked {
+		if !option.Config.KeepSensorsOnExit {
+			u.Link.Unpin()
+		}
 		if err := u.Link.Close(); err != nil {
 			ret = multierr.Append(ret, err)
 		} else {
@@ -220,6 +226,9 @@ type MultiRelinkUnloader struct {
 func (u *MultiRelinkUnloader) Unload() error {
 	var ret error
 	for _, link := range u.Links {
+		if !option.Config.KeepSensorsOnExit {
+			link.Unpin()
+		}
 		if err := link.Close(); err != nil {
 			ret = multierr.Append(ret, err)
 		}
