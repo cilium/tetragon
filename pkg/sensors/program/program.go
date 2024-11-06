@@ -120,9 +120,6 @@ type Program struct {
 	Override        bool
 	OverrideFmodRet bool
 
-	// Needs attached link to be pinned
-	PinLink bool
-
 	// Type is the type of BPF program. For example, tc, skb, tracepoint,
 	// etc.
 	Type      string
