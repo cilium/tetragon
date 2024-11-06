@@ -40,7 +40,9 @@
     "contrib/tetragon-rthooks/go.sum",
     "*Dockerfile*",
     "docs/hugo.toml",
-    "install/kubernetes/tetragon/values.yaml",
+    "install/kubernetes/*/Chart.yaml",
+    "install/kubernetes/*/Chart.lock",
+    "install/kubernetes/*/values.yaml",
     "**/*Makefile*",
     "contrib/update-helm-chart.sh",
   ],
@@ -277,7 +279,7 @@
         "install/kubernetes/tetragon/values.yaml",
         "install/kubernetes/Makefile",
       ],
-      // lint and generate files for helm chart
+      // Generate files for the Helm chart
       "postUpgradeTasks": {
         "commands": ["make -C install/kubernetes"],
         "fileFilters": ["**/**"],
