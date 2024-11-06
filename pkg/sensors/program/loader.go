@@ -451,7 +451,8 @@ func LSMAttach() AttachFunc {
 }
 
 func multiKprobeAttach(load *Program, prog *ebpf.Program,
-	spec *ebpf.ProgramSpec, opts link.KprobeMultiOptions, bpfDir string) (unloader.Unloader, error) {
+	spec *ebpf.ProgramSpec, opts link.KprobeMultiOptions,
+	bpfDir string, extra ...string) (unloader.Unloader, error) {
 
 	var lnk link.Link
 	var err error
@@ -464,7 +465,7 @@ func multiKprobeAttach(load *Program, prog *ebpf.Program,
 	if err != nil {
 		return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
 	}
-	err = linkPin(lnk, bpfDir, load)
+	err = linkPin(lnk, bpfDir, load, extra...)
 	if err != nil {
 		lnk.Close()
 		return nil, err
@@ -515,7 +516,7 @@ func MultiKprobeAttach(load *Program, bpfDir string) AttachFunc {
 				Symbols: data.Overrides,
 			}
 
-			load.unloaderOverride, err = multiKprobeAttach(load, progOverride, progOverrideSpec, opts, bpfDir)
+			load.unloaderOverride, err = multiKprobeAttach(load, progOverride, progOverrideSpec, opts, bpfDir, "override")
 			if err != nil {
 				logger.GetLogger().Warnf("Failed to attach override program: %w", err)
 			}
