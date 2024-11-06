@@ -72,7 +72,7 @@ func RawAttachWithFlags(targetFD int, flags uint32) AttachFunc {
 			return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
 		}
 		return unloader.ChainUnloader{
-			unloader.PinUnloader{
+			unloader.ProgUnloader{
 				Prog: prog,
 			},
 			&unloader.RawDetachUnloader{
@@ -103,7 +103,7 @@ func TracepointAttach(load *Program, bpfDir string) AttachFunc {
 			return nil, err
 		}
 		return &unloader.RelinkUnloader{
-			UnloadProg: unloader.PinUnloader{Prog: prog}.Unload,
+			UnloadProg: unloader.ProgUnloader{Prog: prog}.Unload,
 			IsLinked:   true,
 			Link:       tpLink,
 			RelinkFn: func() (link.Link, error) {
@@ -132,7 +132,7 @@ func RawTracepointAttach(load *Program) AttachFunc {
 			return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
 		}
 		return unloader.ChainUnloader{
-			unloader.PinUnloader{
+			unloader.ProgUnloader{
 				Prog: prog,
 			},
 			unloader.LinkUnloader{
@@ -193,7 +193,7 @@ func kprobeAttach(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec,
 	}
 	load.Link = lnk
 	return &unloader.RelinkUnloader{
-		UnloadProg: unloader.PinUnloader{Prog: prog}.Unload,
+		UnloadProg: unloader.ProgUnloader{Prog: prog}.Unload,
 		IsLinked:   true,
 		Link:       lnk,
 		RelinkFn:   linkFn,
@@ -274,7 +274,7 @@ func fmodretAttachOverride(load *Program, bpfDir string,
 	}
 
 	load.unloaderOverride = &unloader.RelinkUnloader{
-		UnloadProg: unloader.PinUnloader{Prog: prog}.Unload,
+		UnloadProg: unloader.ProgUnloader{Prog: prog}.Unload,
 		IsLinked:   true,
 		Link:       lnk,
 		RelinkFn:   linkFn,
@@ -325,7 +325,7 @@ func UprobeAttach(load *Program) AttachFunc {
 			return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
 		}
 		return &unloader.RelinkUnloader{
-			UnloadProg: unloader.PinUnloader{Prog: prog}.Unload,
+			UnloadProg: unloader.ProgUnloader{Prog: prog}.Unload,
 			IsLinked:   true,
 			Link:       lnk,
 			RelinkFn:   linkFn,
@@ -367,7 +367,7 @@ func MultiUprobeAttach(load *Program) AttachFunc {
 
 		return &unloader.MultiRelinkUnloader{
 			UnloadProg: unloader.ChainUnloader{
-				unloader.PinUnloader{
+				unloader.ProgUnloader{
 					Prog: prog,
 				},
 			}.Unload,
@@ -382,7 +382,7 @@ func NoAttach() AttachFunc {
 	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
 		prog *ebpf.Program, _ *ebpf.ProgramSpec) (unloader.Unloader, error) {
 		return unloader.ChainUnloader{
-			unloader.PinUnloader{
+			unloader.ProgUnloader{
 				Prog: prog,
 			},
 		}, nil
@@ -402,7 +402,7 @@ func TracingAttach() AttachFunc {
 			return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
 		}
 		return &unloader.RelinkUnloader{
-			UnloadProg: unloader.PinUnloader{Prog: prog}.Unload,
+			UnloadProg: unloader.ProgUnloader{Prog: prog}.Unload,
 			IsLinked:   true,
 			Link:       lnk,
 			RelinkFn:   linkFn,
@@ -437,7 +437,7 @@ func LSMAttach() AttachFunc {
 			return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
 		}
 		return &unloader.RelinkUnloader{
-			UnloadProg: unloader.PinUnloader{Prog: prog}.Unload,
+			UnloadProg: unloader.ProgUnloader{Prog: prog}.Unload,
 			IsLinked:   true,
 			Link:       lnk,
 			RelinkFn:   linkFn,
@@ -467,7 +467,7 @@ func multiKprobeAttach(load *Program, prog *ebpf.Program,
 	}
 	load.Link = lnk
 	return unloader.ChainUnloader{
-		unloader.PinUnloader{
+		unloader.ProgUnloader{
 			Prog: prog,
 		},
 		unloader.LinkUnloader{
@@ -553,7 +553,7 @@ func KprobeAttachMany(load *Program, syms []string, bpfDir string) AttachFunc {
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 
 		unloader := unloader.ChainUnloader{
-			unloader.PinUnloader{
+			unloader.ProgUnloader{
 				Prog: prog,
 			},
 		}
@@ -610,7 +610,7 @@ func LoadFmodRetProgram(bpfDir string, load *Program, progName string, verbose i
 				return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
 			}
 			return &unloader.RelinkUnloader{
-				UnloadProg: unloader.PinUnloader{Prog: prog}.Unload,
+				UnloadProg: unloader.ProgUnloader{Prog: prog}.Unload,
 				IsLinked:   true,
 				Link:       lnk,
 				RelinkFn:   linkFn,
