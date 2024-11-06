@@ -50,19 +50,19 @@ func (cu ChainUnloader) Unload(unpin bool) error {
 	return nil
 }
 
-// PinUnloader unpins and closes a BPF program.
-type PinUnloader struct {
+// ProgUnloader unpins and closes a BPF program.
+type ProgUnloader struct {
 	Prog *ebpf.Program
 }
 
-func (pu PinUnloader) Unload(unpin bool) error {
+func (pu ProgUnloader) Unload(unpin bool) error {
 	if unpin {
 		pu.Prog.Unpin()
 	}
 	return pu.Prog.Close()
 }
 
-// PinUnloader unpins and closes a BPF program.
+// ProgUnloader unpins and closes a BPF program.
 type LinkUnloader struct {
 	Link link.Link
 }
