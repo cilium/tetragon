@@ -675,6 +675,9 @@ spec:
 
 	t.Logf("Unloaded policy 1\n")
 
+	// bpf pinned links removal is asynchronous, we need to wait to be sure it's gone
+	time.Sleep(2 * time.Second)
+
 	// 'enforcer-tester 0xffff' should NOT get killed now
 	cmd = exec.Command(testBin, "0xffff")
 	err = cmd.Run()
@@ -696,6 +699,9 @@ spec:
 	sensor4.Unload()
 
 	t.Logf("Unloaded policy 2\n")
+
+	// bpf pinned links removal is asynchronous, we need to wait to be sure it's gone
+	time.Sleep(2 * time.Second)
 
 	// 'enforcer-tester 0xfffe' should NOT get killed now
 	cmd = exec.Command(testBin, "0xfffe")
