@@ -4,7 +4,8 @@
 package policyfiltermetrics
 
 import (
-	"golang.org/x/exp/maps"
+	"maps"
+	"slices"
 
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
@@ -68,17 +69,17 @@ func (s OperationErr) String() string {
 var (
 	subsysLabel = metrics.ConstrainedLabel{
 		Name:   "subsys",
-		Values: maps.Values(subsysLabelValues),
+		Values: slices.Collect(maps.Values(subsysLabelValues)),
 	}
 
 	operationLabel = metrics.ConstrainedLabel{
 		Name:   "operation",
-		Values: maps.Values(operationLabelValues),
+		Values: slices.Collect(maps.Values(operationLabelValues)),
 	}
 
 	errorLabel = metrics.ConstrainedLabel{
 		Name:   "error",
-		Values: maps.Values(operationErrLabels),
+		Values: slices.Collect(maps.Values(operationErrLabels)),
 	}
 )
 
