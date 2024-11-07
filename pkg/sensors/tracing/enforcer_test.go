@@ -712,6 +712,13 @@ spec:
 	}
 }
 
+// We test following scenario:
+// - load enforcement policy
+// - 1st run of test binary, make sure enforcement policy is triggered
+// - simulate tetragon exit (with KeepSensorsOnExit)
+// - 2nd run of test binary, make sure enforcement policy is triggered
+// - remove bpffs directory
+// - 3rd run of test binary, no enforcement
 func testEnforcerPersistent(t *testing.T, builder func() *EnforcerSpecBuilder, expected, test string) {
 	testEnforcerCheckSkip(t)
 
@@ -719,38 +726,42 @@ func testEnforcerPersistent(t *testing.T, builder func() *EnforcerSpecBuilder, e
 		t.Skip("skipping persistent enforcer test, link pin is not available")
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	option.Config.KeepSensorsOnExit = true
+	defer func() { option.Config.KeepSensorsOnExit = false }()
+
+	tus.LoadInitialSensor(t)
+	path := bpf.MapPrefixPath()
+	mgr, err := sensors.StartSensorManager(path)
+	assert.NoError(t, err)
+
 	run := func(idx int, exp string) {
 		cmd := exec.Command(test, "0xfffe")
 		err := cmd.Run()
 
+		t.Logf("Run %s: %v\n", cmd, err)
 		if err == nil || err.Error() != exp {
 			t.Fatalf("run %d: Wrong error '%v' expected '%s'", idx, err, exp)
 		}
 	}
 
-	yaml := builder().WithoutMultiKprobe().MustYAML()
-	configHook := []byte(yaml)
-	err := os.WriteFile(testConfigFile, configHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	tp, err := builder().WithoutMultiKprobe().Build()
+	assert.NoError(t, err)
 
-	option.Config.KeepSensorsOnExit = true
-	defer func() { option.Config.KeepSensorsOnExit = false }()
-
-	sens, err := observertesthelper.GetDefaultSensorsWithFile(t, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
-	}
+	err = mgr.AddTracingPolicy(ctx, tp)
+	assert.NoError(t, err)
 
 	// first run - sensors are loaded, we should get kill/override
 	run(1, expected)
 
-	sensi := make([]sensors.SensorIface, 0, len(sens))
-	for _, s := range sens {
-		sensi = append(sensi, s)
-	}
-	sensors.UnloadSensors(sensi)
+	// Remove all servers - simulate tetragon exit with KeepSensorsOnExit
+	mgr.RemoveAllSensors(ctx)
+
+	// bpf pinned links removal is asynchronous, we need to wait to be sure it's gone
+	// (if for some reason it's gone)
+	time.Sleep(2 * time.Second)
 
 	// second run - sensors are unloaded, but pins stay, we should get kill/override
 	run(2, expected)
