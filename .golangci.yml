@@ -24,6 +24,7 @@ linters:
     - gosimple
     - makezero
     - dupword
+    - gomodguard
 
 linters-settings:
   goheader:
@@ -35,6 +36,19 @@ linters-settings:
       Copyright Authors of {{ PROJECT }}
   dupword:
     keywords: ["the", "and", "a", "for", "to", "as", "in", "of", "with", "by", "on", "at", "from"]
+  gomodguard:
+    blocked:
+      modules:
+        - golang.org/x/exp/maps:
+            recommendations:
+              - iter
+              - maps
+              - slices
+            reason: "Go 1.23+ supports iterating over maps and slices, see https://go.dev/doc/go1.23#iterators"
+        - golang.org/x/exp/slices:
+            recommendations:
+              - slices
+            reason: "Go 1.21+ provides many common operations for slices using generic functions, see https://go.dev/doc/go1.21#slices"
 
 issues:
   max-issues-per-linter: 0
