@@ -827,6 +827,80 @@ func testEnforcerPersistentNoKeep(t *testing.T, builder func() *EnforcerSpecBuil
 	run(2, "exit status 22")
 }
 
+// We test following scenario:
+// - load enforcement policy
+// - 1st run of test binary, make sure enforcement policy is triggered
+// - disable enforcement policy via sensor manager
+// - 2nd run of test binary, no enforcement
+// - enable enforcement policy via sensor manager
+// - 3rd run of test binary, make sure enforcement policy is triggered
+// - remove enforcement policy via sensor manager
+// - 4th run of test binary, no enforcement
+func testEnforcerPersistentUnload(t *testing.T, builder func() *EnforcerSpecBuilder, expected, test string) {
+	testEnforcerCheckSkip(t)
+
+	if !bpf.HasLinkPin() {
+		t.Skip("skipping persistent enforcer test, link pin is not available")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	option.Config.KeepSensorsOnExit = true
+	defer func() { option.Config.KeepSensorsOnExit = false }()
+
+	tus.LoadInitialSensor(t)
+	path := bpf.MapPrefixPath()
+	mgr, err := sensors.StartSensorManager(path)
+	assert.NoError(t, err)
+
+	run := func(idx int, exp string) {
+		cmd := exec.Command(test, "0xfffe")
+		err := cmd.Run()
+
+		t.Logf("Run %d: '%s' (%v)\n", idx, cmd, err)
+		if err == nil || err.Error() != exp {
+			t.Fatalf("run %d: Wrong error '%v' expected '%s'", idx, err, exp)
+		}
+	}
+
+	tp, err := builder().WithoutMultiKprobe().Build()
+	assert.NoError(t, err)
+
+	err = mgr.AddTracingPolicy(ctx, tp)
+	assert.NoError(t, err)
+
+	// first run - sensors are loaded, we should get kill/override
+	run(1, expected)
+
+	// disable the policy and we should get rid of the enforcement
+	err = mgr.DisableTracingPolicy(ctx, tp.TpName(), "")
+	assert.NoError(t, err)
+
+	// bpf pinned links removal is asynchronous, we need to wait to be sure it's gone
+	time.Sleep(2 * time.Second)
+
+	// second run - sensors are unloaded, map dir is removed, we should get no enforcement
+	run(2, "exit status 22")
+
+	// enable the policy and we should get the enforcement
+	err = mgr.EnableTracingPolicy(ctx, tp.TpName(), "")
+	assert.NoError(t, err)
+
+	// third run - sensors are loaded, we should get kill/override
+	run(3, expected)
+
+	// remove the policy and we should get rid of the enforcement
+	err = mgr.DeleteTracingPolicy(ctx, tp.TpName(), "")
+	assert.NoError(t, err)
+
+	// bpf pinned links removal is asynchronous, we need to wait to be sure it's gone
+	time.Sleep(2 * time.Second)
+
+	// forth run - sensors are unloaded, map dir is removed, we should get no enforcement
+	run(4, "exit status 22")
+}
+
 func TestEnforcerPersistentOverride(t *testing.T) {
 	test := testutils.RepoRootPath("contrib/tester-progs/enforcer-tester")
 
@@ -842,6 +916,9 @@ func TestEnforcerPersistentOverride(t *testing.T) {
 	})
 	t.Run("persistent-override-no-keep", func(t *testing.T) {
 		testEnforcerPersistentNoKeep(t, builder, "exit status 17", test)
+	})
+	t.Run("persistent-override-extra", func(t *testing.T) {
+		testEnforcerPersistentUnload(t, builder, "exit status 17", test)
 	})
 }
 
@@ -861,5 +938,8 @@ func TestEnforcerPersistentKill(t *testing.T) {
 	})
 	t.Run("persistent-kill-no-keep", func(t *testing.T) {
 		testEnforcerPersistentNoKeep(t, builder, "signal: killed", test)
+	})
+	t.Run("persistent-kill-extra", func(t *testing.T) {
+		testEnforcerPersistentUnload(t, builder, "signal: killed", test)
 	})
 }
