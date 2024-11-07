@@ -4,7 +4,8 @@
 package eventcache
 
 import (
-	"golang.org/x/exp/maps"
+	"maps"
+	"slices"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/metrics"
@@ -51,11 +52,11 @@ func (e CacheError) String() string {
 var (
 	entryTypeLabel = metrics.ConstrainedLabel{
 		Name:   "entry_type",
-		Values: maps.Values(cacheEntryTypeLabelValues),
+		Values: slices.Collect(maps.Values(cacheEntryTypeLabelValues)),
 	}
 	errorLabel = metrics.ConstrainedLabel{
 		Name:   "error",
-		Values: maps.Values(cacheErrorLabelValues),
+		Values: slices.Collect(maps.Values(cacheErrorLabelValues)),
 	}
 )
 

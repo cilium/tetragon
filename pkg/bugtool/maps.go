@@ -7,14 +7,16 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"iter"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"syscall"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/bpf"
-	"golang.org/x/exp/maps"
 )
 
 // TotalMemlockBytes iterates over the extend map info and sums the memlock field.
@@ -35,7 +37,7 @@ func FindMapsUsedByPinnedProgs(path string) ([]bpf.ExtendedMapInfo, error) {
 		return nil, fmt.Errorf("failed retrieving map IDs: %w", err)
 	}
 	mapInfos := []bpf.ExtendedMapInfo{}
-	for _, mapID := range mapIDs {
+	for mapID := range mapIDs {
 		memlockInfo, err := bpf.ExtendedInfoFromMapID(mapID)
 		if err != nil {
 			return nil, fmt.Errorf("failed retrieving map memlock from ID: %w", err)
@@ -125,7 +127,7 @@ func FindPinnedMaps(path string) ([]bpf.ExtendedMapInfo, error) {
 }
 
 // mapIDsFromProgs retrieves all map IDs used inside a prog.
-func mapIDsFromProgs(prog *ebpf.Program) ([]int, error) {
+func mapIDsFromProgs(prog *ebpf.Program) (iter.Seq[int], error) {
 	if prog == nil {
 		return nil, fmt.Errorf("prog is nil")
 	}
@@ -149,7 +151,7 @@ func mapIDsFromProgs(prog *ebpf.Program) ([]int, error) {
 // prog pinned under the path. It also retrieves the map IDs used by the prog
 // referenced by program array maps (tail calls). This should only work from
 // kernel 4.15.
-func mapIDsFromPinnedProgs(path string) ([]int, error) {
+func mapIDsFromPinnedProgs(path string) (iter.Seq[int], error) {
 	mapSet := map[int]bool{}
 	progArrays := []*ebpf.Map{}
 	err := filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
@@ -200,7 +202,7 @@ func mapIDsFromPinnedProgs(path string) ([]int, error) {
 		if err != nil {
 			return fmt.Errorf("failed to retrieve map IDs from prog: %w", err)
 		}
-		for _, id := range newIDs {
+		for id := range newIDs {
 			mapSet[id] = true
 		}
 		return nil
@@ -238,7 +240,7 @@ func mapIDsFromPinnedProgs(path string) ([]int, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to retrieve map IDs from prog: %w", err)
 		}
-		for _, id := range newIDs {
+		for id := range newIDs {
 			mapSet[id] = true
 		}
 	}
@@ -399,7 +401,7 @@ func RunMapsChecks(path string) (*MapsChecksOutput, error) {
 			}{m, 1}
 		}
 	}
-	aggregatedMaps := maps.Values(aggregatedMapsSet)
+	aggregatedMaps := slices.Collect(maps.Values(aggregatedMapsSet))
 	sort.Slice(aggregatedMaps, func(i, j int) bool {
 		return aggregatedMaps[i].Memlock > aggregatedMaps[j].Memlock
 	})

@@ -4,7 +4,8 @@
 package eventmetrics
 
 import (
-	"golang.org/x/exp/maps"
+	"maps"
+	"slices"
 
 	v1 "github.com/cilium/cilium/pkg/hubble/api/v1"
 	"github.com/cilium/tetragon/api/v1/tetragon"
@@ -32,7 +33,7 @@ var (
 	}
 	perfEventErrorLabel = metrics.ConstrainedLabel{
 		Name:   "error",
-		Values: maps.Values(perfEventErrors),
+		Values: slices.Collect(maps.Values(perfEventErrors)),
 	}
 )
 
