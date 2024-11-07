@@ -256,7 +256,7 @@ func (e *cgidDisabledTy) Error() string {
 	return "cgidmap disabled"
 }
 
-// GetState returns the global map
+// GlobalMap returns a global reference to the cgidmap
 func GlobalMap() (Map, error) {
 	setGlMap.Do(func() {
 		if !option.Config.EnableCgIDmap {
