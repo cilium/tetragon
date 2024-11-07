@@ -5,6 +5,7 @@ package main
 
 import (
 	"github.com/cilium/tetragon/cmd/tetra/bugtool"
+	"github.com/cilium/tetragon/cmd/tetra/cgtracker"
 	"github.com/cilium/tetragon/cmd/tetra/cri"
 	"github.com/cilium/tetragon/cmd/tetra/debug"
 	"github.com/cilium/tetragon/cmd/tetra/loglevel"
@@ -24,4 +25,5 @@ func addCommands(rootCmd *cobra.Command) {
 	rootCmd.AddCommand(probe.New())
 	rootCmd.AddCommand(loglevel.New())
 	rootCmd.AddCommand(cri.New())
+	rootCmd.AddCommand(cgtracker.New())
 }
