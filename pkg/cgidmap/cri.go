@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/cilium/tetragon/pkg/cgroups"
+	"github.com/cilium/tetragon/pkg/cgtracker"
 	"github.com/cilium/tetragon/pkg/cri"
 	"github.com/cilium/tetragon/pkg/logger"
 )
@@ -90,6 +91,9 @@ func criResolve(m Map, id unmappedID) error {
 		return err
 	}
 
+	if err := cgtracker.AddCgroupTrackerPath(path); err != nil {
+		logger.GetLogger().WithField("cri-resolve", true).WithError(err).Warn("failed to add path to cgroup tracker")
+	}
 	m.Add(id.podID, id.contID, cgID)
 	return nil
 }

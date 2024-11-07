@@ -9,8 +9,10 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/cilium/ebpf"
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/sensors"
@@ -150,4 +152,32 @@ func RegisterCgroupTracker(sensor *sensors.Sensor) (*sensors.Sensor, error) {
 
 func init() {
 	base.RegisterExtensionAtInit("cgroup_tracker", RegisterCgroupTracker)
+}
+
+var (
+	glMap    Map
+	glError  error
+	setGlMap sync.Once
+)
+
+func globalMap() (Map, error) {
+	setGlMap.Do(func() {
+		fname := filepath.Join(bpf.MapPrefixPath(), MapName)
+		glMap, glError = OpenMap(fname)
+		log := logger.GetLogger()
+		if glError == nil {
+			log.Info("cgtracker map initialized")
+		} else {
+			log.WithError(glError).Warn("cgtracker map initialization failed")
+		}
+	})
+	return glMap, glError
+}
+
+func AddCgroupTrackerPath(cgRoot string) error {
+	m, err := globalMap()
+	if err != nil {
+		return err
+	}
+	return m.AddCgroupTrackerPath(cgRoot)
 }

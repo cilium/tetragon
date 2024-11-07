@@ -6,6 +6,7 @@ package cgidmap
 import (
 	"context"
 
+	"github.com/cilium/tetragon/pkg/cgtracker"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/rthooks"
@@ -58,6 +59,12 @@ func createContainerHook(_ context.Context, arg *rthooks.CreateContainerArg) err
 	if err != nil {
 		log.WithError(err).Warn("failed to retrieve cgroup id, aborting hook")
 		return err
+	}
+
+	if cgPath, err := arg.HostCgroupPath(); err != nil {
+		log.WithError(err).Warn("could not retrieve host cgroup path, will not add path to cgroup tracker")
+	} else if err := cgtracker.AddCgroupTrackerPath(cgPath); err != nil {
+		log.WithError(err).Warn("failed to add path to cgroup tracker")
 	}
 
 	m.Add(podID, containerID, cgID)
