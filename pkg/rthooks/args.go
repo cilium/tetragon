@@ -25,8 +25,21 @@ type CreateContainerArg struct {
 	Watcher watcher.K8sResourceWatcher
 
 	// cached values
-	cgroupID *uint64
-	pod      *corev1.Pod
+	cgroupID       *uint64
+	pod            *corev1.Pod
+	hostCgroupPath string
+}
+
+func (arg *CreateContainerArg) HostCgroupPath() (string, error) {
+	if arg.hostCgroupPath == "" {
+		cgPath := arg.Req.CgroupsPath
+		cgRoot, err := cgroups.HostCgroupRoot()
+		if err != nil {
+			return "", err
+		}
+		arg.hostCgroupPath = filepath.Join(cgRoot, cgPath)
+	}
+	return arg.hostCgroupPath, nil
 }
 
 func (arg *CreateContainerArg) CgroupID() (uint64, error) {
@@ -39,13 +52,10 @@ func (arg *CreateContainerArg) CgroupID() (uint64, error) {
 	// NB(kkourt): A better solution might be to hook into cgroup creation routines and create a
 	// mapping between directory and cgroup id that we maintain in user-space. Then, we can find
 	// the id using this mapping.
-	cgPath := arg.Req.CgroupsPath
-	cgRoot, err := cgroups.HostCgroupRoot()
+	path, err := arg.HostCgroupPath()
 	if err != nil {
 		return 0, err
 	}
-
-	path := filepath.Join(cgRoot, cgPath)
 	cgID, err := cgroups.GetCgroupIDFromSubCgroup(path)
 	if err != nil {
 		return 0, err
