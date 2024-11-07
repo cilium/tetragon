@@ -719,7 +719,7 @@ spec:
 // - 2nd run of test binary, make sure enforcement policy is triggered
 // - remove bpffs directory
 // - 3rd run of test binary, no enforcement
-func testEnforcerPersistent(t *testing.T, builder func() *EnforcerSpecBuilder, expected, test string) {
+func testEnforcerPersistentKeep(t *testing.T, builder func() *EnforcerSpecBuilder, expected, test string) {
 	testEnforcerCheckSkip(t)
 
 	if !bpf.HasLinkPin() {
@@ -776,6 +776,57 @@ func testEnforcerPersistent(t *testing.T, builder func() *EnforcerSpecBuilder, e
 	run(3, "exit status 22")
 }
 
+// We test following scenario:
+// - load enforcement policy
+// - 1st run of test binary, make sure enforcement policy is triggered
+// - simulate tetragon exit (normal, WITHOUT KeepSensorsOnExit)
+// - 2nd run of test binary, no enforcement
+func testEnforcerPersistentNoKeep(t *testing.T, builder func() *EnforcerSpecBuilder, expected, test string) {
+	testEnforcerCheckSkip(t)
+
+	if !bpf.HasLinkPin() {
+		t.Skip("skipping persistent enforcer test, link pin is not available")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// option.Config.KeepSensorsOnExit is false
+
+	tus.LoadInitialSensor(t)
+	path := bpf.MapPrefixPath()
+	mgr, err := sensors.StartSensorManager(path)
+	assert.NoError(t, err)
+
+	run := func(idx int, exp string) {
+		cmd := exec.Command(test, "0xfffe")
+		err := cmd.Run()
+
+		t.Logf("Run %s: %v\n", cmd, err)
+		if err == nil || err.Error() != exp {
+			t.Fatalf("run %d: Wrong error '%v' expected '%s'", idx, err, exp)
+		}
+	}
+
+	tp, err := builder().WithoutMultiKprobe().Build()
+	assert.NoError(t, err)
+
+	err = mgr.AddTracingPolicy(ctx, tp)
+	assert.NoError(t, err)
+
+	// first run - sensors are loaded, we should get kill/override
+	run(1, expected)
+
+	// Remove all servers - simulate tetragon exit WITHOUT KeepSensorsOnExit
+	mgr.RemoveAllSensors(ctx)
+
+	// bpf pinned links removal is asynchronous, we need to wait to be sure it's gone
+	time.Sleep(2 * time.Second)
+
+	// second run - sensors are unloaded, we should get no enforcement
+	run(2, "exit status 22")
+}
+
 func TestEnforcerPersistentOverride(t *testing.T) {
 	test := testutils.RepoRootPath("contrib/tester-progs/enforcer-tester")
 
@@ -786,7 +837,12 @@ func TestEnforcerPersistentOverride(t *testing.T) {
 			WithOverrideValue(-17) // EEXIST
 	}
 
-	testEnforcerPersistent(t, builder, "exit status 17", test)
+	t.Run("persistent-override-keep", func(t *testing.T) {
+		testEnforcerPersistentKeep(t, builder, "exit status 17", test)
+	})
+	t.Run("persistent-override-no-keep", func(t *testing.T) {
+		testEnforcerPersistentNoKeep(t, builder, "exit status 17", test)
+	})
 }
 
 func TestEnforcerPersistentKill(t *testing.T) {
@@ -800,5 +856,10 @@ func TestEnforcerPersistentKill(t *testing.T) {
 			WithKill(9) // SigKill
 	}
 
-	testEnforcerPersistent(t, builder, "signal: killed", test)
+	t.Run("persistent-kill-keep", func(t *testing.T) {
+		testEnforcerPersistentKeep(t, builder, "signal: killed", test)
+	})
+	t.Run("persistent-kill-no-keep", func(t *testing.T) {
+		testEnforcerPersistentNoKeep(t, builder, "signal: killed", test)
+	})
 }
