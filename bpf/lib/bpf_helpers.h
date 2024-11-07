@@ -99,4 +99,23 @@ FUNC_INLINE void compiler_barrier(void)
 
 #define SEC(name) __attribute__((section(name), used))
 
+/*
+ * Helper macros to manipulate data structures
+ */
+
+/* offsetof() definition that uses __builtin_offset() might not preserve field
+ * offset CO-RE relocation properly, so force-redefine offsetof() using
+ * old-school approach which works with CO-RE correctly
+ */
+#undef offsetof
+#define offsetof(type, member) ((unsigned long)&((type *)0)->member)
+
+/* redefined container_of() to ensure we use the above offsetof() macro */
+#undef container_of
+#define container_of(ptr, type, member)                      \
+	({                                                   \
+		void *__mptr = (void *)(ptr);                \
+		((type *)(__mptr - offsetof(type, member))); \
+	})
+
 #endif //__BPF_HELPERS_
