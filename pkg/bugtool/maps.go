@@ -96,9 +96,7 @@ func FindPinnedMaps(path string) ([]bpf.ExtendedMapInfo, error) {
 		if d.IsDir() {
 			return nil // skip directories
 		}
-		m, err := ebpf.LoadPinnedMap(path, &ebpf.LoadPinOptions{
-			ReadOnly: true,
-		})
+		m, err := ebpf.LoadPinnedMap(path, nil)
 		if err != nil {
 			return fmt.Errorf("failed to load pinned map %q: %w", path, err)
 		}
@@ -161,9 +159,7 @@ func mapIDsFromPinnedProgs(path string) (iter.Seq[int], error) {
 		if d.IsDir() {
 			return nil // skip directories
 		}
-		prog, err := ebpf.LoadPinnedProgram(path, &ebpf.LoadPinOptions{
-			ReadOnly: true,
-		})
+		prog, err := ebpf.LoadPinnedProgram(path, nil)
 		if err != nil {
 			return fmt.Errorf("failed to load pinned object %q: %w", path, err)
 		}
