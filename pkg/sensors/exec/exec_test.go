@@ -679,7 +679,7 @@ func TestExecPerfring(t *testing.T) {
 	}
 
 	option.Config.HubbleLib = tus.Conf().TetragonLib
-	tus.LoadSensor(t, base.GetInitialSensor())
+	tus.LoadInitialSensor(t)
 	tus.LoadSensor(t, testsensor.GetTestSensor())
 
 	ops := func() {

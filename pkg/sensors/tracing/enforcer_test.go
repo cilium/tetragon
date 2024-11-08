@@ -26,7 +26,6 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors"
-	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/syscallinfo"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
@@ -624,7 +623,7 @@ spec:
 	}
 
 	option.Config.HubbleLib = tus.Conf().TetragonLib
-	tus.LoadSensor(t, base.GetInitialSensor())
+	tus.LoadInitialSensor(t)
 
 	sensor1, err := gEnforcerPolicy.PolicyHandler(policy1, policyfilter.NoFilterID)
 	assert.NoError(t, err)

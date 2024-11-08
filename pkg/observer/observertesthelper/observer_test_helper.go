@@ -40,6 +40,7 @@ import (
 	"github.com/cilium/tetragon/pkg/rthooks"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
+	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/cilium/tetragon/pkg/watcher"
 	"github.com/cilium/tetragon/pkg/watcher/crd"
@@ -437,6 +438,10 @@ func loadObserver(tb testing.TB, ctx context.Context, base *sensors.Sensor,
 		base.Unload()
 	})
 
+	if err := procevents.GetRunningProcs(); err != nil {
+		return err
+	}
+
 	if tp != nil {
 		if err := observer.GetSensorManager().AddTracingPolicy(ctx, tp); err != nil {
 			tb.Fatalf("SensorManager.AddTracingPolicy error: %s\n", err)
@@ -452,6 +457,10 @@ func loadObserver(tb testing.TB, ctx context.Context, base *sensors.Sensor,
 func loadSensors(tb testing.TB, base sensors.SensorIface, sens []sensors.SensorIface) error {
 	if err := base.Load(option.Config.BpfDir); err != nil {
 		tb.Fatalf("Load base error: %s\n", err)
+	}
+
+	if err := procevents.GetRunningProcs(); err != nil {
+		tb.Fatalf("procevents.GetRunningProcs: %s", err)
 	}
 
 	for _, s := range sens {

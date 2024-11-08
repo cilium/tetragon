@@ -48,6 +48,7 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/proc"
 	"github.com/cilium/tetragon/pkg/rthooks"
 	"github.com/cilium/tetragon/pkg/sensors/base"
+	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/server"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
@@ -485,6 +486,10 @@ func tetragonExecute() error {
 	}
 
 	obs.LogPinnedBpf(observerDir)
+
+	if err = procevents.GetRunningProcs(); err != nil {
+		return err
+	}
 
 	cgrouprate.NewCgroupRate(ctx, pm, base.CgroupRateMap, &option.Config.CgroupRate)
 	cgrouprate.Config(base.CgroupRateOptionsMap)

@@ -11,6 +11,8 @@ import (
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/base"
+	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 )
 
 // LoadSensor is a helper for loading a sensor in tests
@@ -31,6 +33,14 @@ func LoadSensor(t *testing.T, sensori sensors.SensorIface) {
 	t.Cleanup(func() {
 		sensor.Unload()
 	})
+}
+
+func LoadInitialSensor(t *testing.T) {
+	LoadSensor(t, base.GetInitialSensor())
+
+	if err := procevents.GetRunningProcs(); err != nil {
+		t.Fatalf("procevents.GetRunningProcs: %s", err)
+	}
 }
 
 // TestSensorManager sensor manager used in tests

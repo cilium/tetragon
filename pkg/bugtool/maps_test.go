@@ -7,7 +7,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/cilium/tetragon/pkg/sensors/base"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/stretchr/testify/assert"
 
@@ -30,7 +29,7 @@ func TestFindMaps(t *testing.T) {
 	})
 
 	t.Run("BaseSensorMemlock", func(t *testing.T) {
-		tus.LoadSensor(t, base.GetInitialSensor())
+		tus.LoadInitialSensor(t)
 
 		const path = "/sys/fs/bpf/testSensorBugtool"
 		pinnedMaps, err := FindPinnedMaps(path)
