@@ -14,7 +14,6 @@ import (
 	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/sensors"
-	"github.com/cilium/tetragon/pkg/sensors/base"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -142,7 +141,7 @@ func Test_DisableEnablePolicy_Kprobe(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	tus.LoadSensor(t, base.GetInitialSensor())
+	tus.LoadInitialSensor(t)
 	path := bpf.MapPrefixPath()
 	mgr, err := sensors.StartSensorManager(path)
 	assert.NoError(t, err)
@@ -183,7 +182,7 @@ func Test_DisableEnablePolicy_KernelMemoryBytes(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	tus.LoadSensor(t, base.GetInitialSensor())
+	tus.LoadInitialSensor(t)
 	path := bpf.MapPrefixPath()
 	mgr, err := sensors.StartSensorManager(path)
 	require.NoError(t, err)

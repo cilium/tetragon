@@ -250,11 +250,7 @@ func handleThrottleEvent(r *bytes.Reader) ([]observer.Event, error) {
 type execProbe struct{}
 
 func (e *execProbe) LoadProbe(args sensors.LoadProbeArgs) error {
-	err := program.LoadTracepointProgram(args.BPFDir, args.Load, args.Verbose)
-	if err == nil {
-		err = procevents.GetRunningProcs()
-	}
-	return err
+	return program.LoadTracepointProgram(args.BPFDir, args.Load, args.Verbose)
 }
 
 func init() {

@@ -18,7 +18,7 @@ import (
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/option"
-	"github.com/cilium/tetragon/pkg/sensors/base"
+	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 	testsensor "github.com/cilium/tetragon/pkg/sensors/test"
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/cilium/tetragon/pkg/testutils/perfring"
@@ -98,7 +98,12 @@ func TestMatchCloneThreadsIDs(t *testing.T) {
 	}
 
 	option.Config.HubbleLib = tus.Conf().TetragonLib
-	tus.LoadSensor(t, base.GetInitialSensor())
+	tus.LoadInitialSensor(t)
+
+	if err := procevents.GetRunningProcs(); err != nil {
+		t.Fatalf("procevents.GetRunningProcs: %s", err)
+	}
+
 	tus.LoadSensor(t, testsensor.GetTestSensor())
 
 	testBinPath := "contrib/tester-progs/threads-tester"
