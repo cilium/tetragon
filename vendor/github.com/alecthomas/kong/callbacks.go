@@ -81,7 +81,7 @@ func callFunction(f reflect.Value, bindings bindings) error {
 		return err
 	}
 	ferr := out[0]
-	if ferrv := reflect.ValueOf(ferr); !ferrv.IsValid() || ferrv.IsNil() {
+	if ferrv := reflect.ValueOf(ferr); !ferrv.IsValid() || ((ferrv.Kind() == reflect.Interface || ferrv.Kind() == reflect.Pointer) && ferrv.IsNil()) {
 		return nil
 	}
 	return ferr.(error) //nolint:forcetypeassert

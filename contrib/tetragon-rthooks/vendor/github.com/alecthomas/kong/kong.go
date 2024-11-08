@@ -249,19 +249,19 @@ func (k *Kong) interpolateValue(value *Value, vars Vars) (err error) {
 		return fmt.Errorf("enum for %s: %s", value.Summary(), err)
 	}
 
-	updatedVars := map[string]string{
-		"default": value.Default,
-		"enum":    value.Enum,
-	}
 	if value.Default, err = interpolate(value.Default, vars, nil); err != nil {
 		return fmt.Errorf("default value for %s: %s", value.Summary(), err)
 	}
 	if value.Enum, err = interpolate(value.Enum, vars, nil); err != nil {
 		return fmt.Errorf("enum value for %s: %s", value.Summary(), err)
 	}
+	updatedVars := map[string]string{
+		"default": value.Default,
+		"enum":    value.Enum,
+	}
 	if value.Flag != nil {
 		for i, env := range value.Flag.Envs {
-			if value.Flag.Envs[i], err = interpolate(env, vars, nil); err != nil {
+			if value.Flag.Envs[i], err = interpolate(env, vars, updatedVars); err != nil {
 				return fmt.Errorf("env value for %s: %s", value.Summary(), err)
 			}
 		}

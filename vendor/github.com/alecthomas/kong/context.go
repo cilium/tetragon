@@ -208,7 +208,7 @@ func (c *Context) Validate() error { //nolint: gocyclo
 			desc = node.Path()
 		}
 		if validate := isValidatable(value); validate != nil {
-			if err := validate.Validate(); err != nil {
+			if err := validate.Validate(c); err != nil {
 				if desc != "" {
 					return fmt.Errorf("%s: %w", desc, err)
 				}
@@ -809,18 +809,22 @@ func (c *Context) RunNode(node *Node, binds ...interface{}) (err error) {
 func (c *Context) Run(binds ...interface{}) (err error) {
 	node := c.Selected()
 	if node == nil {
-		if len(c.Path) > 0 {
-			selected := c.Path[0].Node()
-			if selected.Type == ApplicationNode {
-				method := getMethod(selected.Target, "Run")
-				if method.IsValid() {
-					return c.RunNode(selected, binds...)
-				}
-			}
+		if len(c.Path) == 0 {
+			return fmt.Errorf("no command selected")
 		}
-		return fmt.Errorf("no command selected")
+		selected := c.Path[0].Node()
+		if selected.Type == ApplicationNode {
+			method := getMethod(selected.Target, "Run")
+			if method.IsValid() {
+				node = selected
+			}
+		} else {
+			return fmt.Errorf("no command selected")
+		}
 	}
-	return c.RunNode(node, binds...)
+	runErr := c.RunNode(node, binds...)
+	err = c.Kong.applyHook(c, "AfterRun")
+	return errors.Join(runErr, err)
 }
 
 // PrintUsage to Kong's stdout.
@@ -996,7 +1000,7 @@ func checkEnum(value *Value, target reflect.Value) error {
 			}
 			enums = append(enums, fmt.Sprintf("%q", enum))
 		}
-		return fmt.Errorf("%s must be one of %s but got %q", value.ShortSummary(), strings.Join(enums, ","), target.Interface())
+		return fmt.Errorf("%s must be one of %s but got %q", value.ShortSummary(), strings.Join(enums, ","), fmt.Sprintf("%v", target.Interface()))
 	}
 }
 
@@ -1094,12 +1098,23 @@ func findPotentialCandidates(needle string, haystack []string, format string, ar
 }
 
 type validatable interface{ Validate() error }
+type extendedValidatable interface {
+	Validate(kctx *Context) error
+}
 
-func isValidatable(v reflect.Value) validatable {
+// Proxy a validatable function to the extendedValidatable interface
+type validatableFunc func() error
+
+func (f validatableFunc) Validate(kctx *Context) error { return f() }
+
+func isValidatable(v reflect.Value) extendedValidatable {
 	if !v.IsValid() || (v.Kind() == reflect.Ptr || v.Kind() == reflect.Slice || v.Kind() == reflect.Map) && v.IsNil() {
 		return nil
 	}
 	if validate, ok := v.Interface().(validatable); ok {
+		return validatableFunc(validate.Validate)
+	}
+	if validate, ok := v.Interface().(extendedValidatable); ok {
 		return validate
 	}
 	if v.CanAddr() {
