@@ -29,17 +29,19 @@ type SensorStatus struct {
 // clients).
 func StartSensorManager(
 	bpfDir string,
+	ready bool,
 ) (*Manager, error) {
 	pfState, err := policyfilter.GetState()
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize policy filter state: %w", err)
 	}
-	return StartSensorManagerWithPF(bpfDir, pfState)
+	return StartSensorManagerWithPF(bpfDir, pfState, ready)
 }
 
 func StartSensorManagerWithPF(
 	bpfDir string,
 	pfState policyfilter.State,
+	ready bool,
 ) (*Manager, error) {
 	colMap := newCollectionMap()
 
@@ -50,6 +52,7 @@ func StartSensorManagerWithPF(
 
 	m := Manager{
 		handler: handler,
+		ready:   ready,
 	}
 	return &m, nil
 }
@@ -57,6 +60,10 @@ func StartSensorManagerWithPF(
 /*
  * Sensor operations
  */
+
+func (h *Manager) Ready() {
+	h.ready = true
+}
 
 // EnableSensor enables a sensor by name
 func (h *Manager) EnableSensor(ctx context.Context, name string) error {
@@ -118,6 +125,10 @@ type TracingPolicy interface {
 // NB: if tp implements tracingpolicy.TracingPolicyNamespaced, it will be
 // treated as a namespaced policy
 func (h *Manager) AddTracingPolicy(ctx context.Context, tp tracingpolicy.TracingPolicy) error {
+	if !h.ready {
+		return fmt.Errorf("sensor manager is not ready")
+	}
+
 	var namespace string
 	if tpNs, ok := tp.(tracingpolicy.TracingPolicyNamespaced); ok {
 		namespace = tpNs.TpNamespace()
@@ -223,6 +234,7 @@ func (h *Manager) LogSensorsAndProbes(ctx context.Context) {
 type Manager struct {
 	// channel to communicate with the controller goroutine
 	handler *handler
+	ready   bool
 }
 
 // There are 6 commands that can be passed to the controller goroutine:

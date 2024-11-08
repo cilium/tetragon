@@ -43,7 +43,7 @@ func TestAddPolicy(t *testing.T) {
 	})
 
 	policy := v1alpha1.TracingPolicy{}
-	mgr, err := StartSensorManager("")
+	mgr, err := StartSensorManager("", true)
 	assert.NoError(t, err)
 	policy.ObjectMeta.Name = "test-policy"
 	err = mgr.AddTracingPolicy(ctx, &policy)
@@ -66,7 +66,7 @@ func TestAddPolicies(t *testing.T) {
 	})
 
 	policy := v1alpha1.TracingPolicy{}
-	mgr, err := StartSensorManager("")
+	mgr, err := StartSensorManager("", true)
 	assert.NoError(t, err)
 	policy.ObjectMeta.Name = "test-policy"
 	err = mgr.AddTracingPolicy(ctx, &policy)
@@ -92,7 +92,7 @@ func TestAddPolicySpecError(t *testing.T) {
 	})
 
 	policy := v1alpha1.TracingPolicy{}
-	mgr, err := StartSensorManager("")
+	mgr, err := StartSensorManager("", true)
 	assert.NoError(t, err)
 	policy.ObjectMeta.Name = "test-policy"
 	err = mgr.AddTracingPolicy(ctx, &policy)
@@ -119,7 +119,7 @@ func TestAddPolicyLoadError(t *testing.T) {
 	})
 
 	policy := v1alpha1.TracingPolicy{}
-	mgr, err := StartSensorManager("")
+	mgr, err := StartSensorManager("", true)
 	assert.NoError(t, err)
 	policy.ObjectMeta.Name = "test-policy"
 	addError := mgr.AddTracingPolicy(ctx, &policy)
@@ -137,7 +137,7 @@ func TestPolicyFilterDisabled(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	mgr, err := StartSensorManagerWithPF("", policyfilter.DisabledState())
+	mgr, err := StartSensorManagerWithPF("", policyfilter.DisabledState(), true)
 	assert.NoError(t, err)
 
 	policy := v1alpha1.TracingPolicy{}
@@ -188,7 +188,7 @@ func TestPolicyStates(t *testing.T) {
 		})
 
 		policy := v1alpha1.TracingPolicy{}
-		mgr, err := StartSensorManager("")
+		mgr, err := StartSensorManager("", true)
 		require.NoError(t, err)
 		policy.ObjectMeta.Name = "test-policy"
 		addError := mgr.AddTracingPolicy(ctx, &policy)
@@ -208,7 +208,7 @@ func TestPolicyStates(t *testing.T) {
 		})
 
 		policy := v1alpha1.TracingPolicy{}
-		mgr, err := StartSensorManager("")
+		mgr, err := StartSensorManager("", true)
 		require.NoError(t, err)
 		policy.ObjectMeta.Name = "test-policy"
 		err = mgr.AddTracingPolicy(ctx, &policy)
@@ -243,7 +243,7 @@ func TestPolicyLoadErrorOverride(t *testing.T) {
 	})
 
 	policy := v1alpha1.TracingPolicy{}
-	mgr, err := StartSensorManager("")
+	mgr, err := StartSensorManager("", true)
 	require.NoError(t, err)
 	policy.ObjectMeta.Name = "test-policy"
 	addError := mgr.AddTracingPolicy(ctx, &policy)
@@ -277,7 +277,7 @@ func TestPolicyListingWhileLoadUnload(t *testing.T) {
 	polName := "test-policy"
 	testSensor := makeTestDelayedSensor(t)
 
-	mgr, err := StartSensorManager("")
+	mgr, err := StartSensorManager("", true)
 	require.NoError(t, err)
 
 	checkPolicy := func(t *testing.T, statuses []*tetragon.TracingPolicyStatus, state tetragon.TracingPolicyState) {
@@ -399,7 +399,7 @@ func TestPolicyKernelMemoryBytes(t *testing.T) {
 	})
 
 	policy := v1alpha1.TracingPolicy{}
-	mgr, err := StartSensorManager("")
+	mgr, err := StartSensorManager("", true)
 	require.NoError(t, err)
 	policy.ObjectMeta.Name = "test-policy"
 	addError := mgr.AddTracingPolicy(ctx, &policy)

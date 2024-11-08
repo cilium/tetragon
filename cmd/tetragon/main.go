@@ -371,7 +371,7 @@ func tetragonExecute() error {
 		cancel()
 	}()
 
-	if err := obs.InitSensorManager(); err != nil {
+	if err := obs.InitSensorManager(false); err != nil {
 		return err
 	}
 
@@ -446,16 +446,6 @@ func tetragonExecute() error {
 		return err
 	}
 
-	// Load initial sensor before we start the server,
-	// so it's there before we allow to load policies.
-	if err = loadInitialSensor(ctx); err != nil {
-		return err
-	}
-	observer.GetSensorManager().LogSensorsAndProbes(ctx)
-	defer func() {
-		observer.RemoveSensors(ctx)
-	}()
-
 	pm, err := tetragonGrpc.NewProcessManager(
 		ctx,
 		&cleanupWg,
@@ -486,8 +476,20 @@ func tetragonExecute() error {
 
 	obs.LogPinnedBpf(observerDir)
 
+	// Load initial sensor before we start the server,
+	// so it's there before we allow to load policies.
+	if err = loadInitialSensor(ctx); err != nil {
+		return err
+	}
+	observer.GetSensorManager().LogSensorsAndProbes(ctx)
+	defer func() {
+		observer.RemoveSensors(ctx)
+	}()
+
 	cgrouprate.NewCgroupRate(ctx, pm, base.CgroupRateMap, &option.Config.CgroupRate)
 	cgrouprate.Config(base.CgroupRateOptionsMap)
+
+	observer.GetSensorManager().Ready()
 
 	err = loadTpFromDir(ctx, option.Config.TracingPolicyDir)
 	if err != nil {

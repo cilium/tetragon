@@ -144,7 +144,7 @@ func Test_DisableEnablePolicy_Kprobe(t *testing.T) {
 
 	tus.LoadSensor(t, base.GetInitialSensor())
 	path := bpf.MapPrefixPath()
-	mgr, err := sensors.StartSensorManager(path)
+	mgr, err := sensors.StartSensorManager(path, true)
 	assert.NoError(t, err)
 
 	t.Run("sensor", func(t *testing.T) {
@@ -185,7 +185,7 @@ func Test_DisableEnablePolicy_KernelMemoryBytes(t *testing.T) {
 
 	tus.LoadSensor(t, base.GetInitialSensor())
 	path := bpf.MapPrefixPath()
-	mgr, err := sensors.StartSensorManager(path)
+	mgr, err := sensors.StartSensorManager(path, true)
 	require.NoError(t, err)
 
 	err = mgr.AddTracingPolicy(ctx, &tcpConnectPolicy)

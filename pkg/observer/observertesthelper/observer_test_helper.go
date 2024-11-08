@@ -358,7 +358,7 @@ func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, op
 	processCacheSize := 32768
 	dataCacheSize := 1024
 
-	if err := obs.InitSensorManager(); err != nil {
+	if err := obs.InitSensorManager(true); err != nil {
 		return err
 	}
 
