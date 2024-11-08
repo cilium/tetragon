@@ -61,6 +61,8 @@ message Filter {
 	CapFilter capabilities = 11;
     // Filter parent process' binary using RE2 regular expression syntax.
     repeated string parent_binary_regex = 12;
+    // Filter using CEL expressions.
+    repeated string cel_expression = 13;
 }
 
 // Filter over a set of Linux process capabilities. See `message Capabilities`
