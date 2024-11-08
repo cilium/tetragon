@@ -10,7 +10,6 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/link"
-	"github.com/cilium/tetragon/pkg/option"
 	"github.com/vishvananda/netlink"
 	"go.uber.org/multierr"
 	"golang.org/x/sys/unix"
@@ -19,7 +18,7 @@ import (
 // Unloader describes how to unload a sensor resource, e.g.
 // programs or maps.
 type Unloader interface {
-	Unload() error
+	Unload(unpin bool) error
 }
 
 // chainUnloader is an unloader for multiple resources.
@@ -38,10 +37,10 @@ func (cue chainUnloaderErrors) Error() string {
 	return strings.Join(strs, "; ")
 }
 
-func (cu ChainUnloader) Unload() error {
+func (cu ChainUnloader) Unload(unpin bool) error {
 	var cue chainUnloaderErrors
 	for i := len(cu) - 1; i >= 0; i-- {
-		if err := (cu)[i].Unload(); err != nil {
+		if err := (cu)[i].Unload(unpin); err != nil {
 			cue.errors = append(cue.errors, err)
 		}
 	}
@@ -56,12 +55,11 @@ type PinUnloader struct {
 	Prog *ebpf.Program
 }
 
-func (pu PinUnloader) Unload() error {
-	defer pu.Prog.Close()
-	if !option.Config.KeepSensorsOnExit {
-		return pu.Prog.Unpin()
+func (pu PinUnloader) Unload(unpin bool) error {
+	if unpin {
+		pu.Prog.Unpin()
 	}
-	return nil
+	return pu.Prog.Close()
 }
 
 // PinUnloader unpins and closes a BPF program.
@@ -69,8 +67,8 @@ type LinkUnloader struct {
 	Link link.Link
 }
 
-func (lu LinkUnloader) Unload() error {
-	if !option.Config.KeepSensorsOnExit {
+func (lu LinkUnloader) Unload(unpin bool) error {
+	if unpin {
 		lu.Link.Unpin()
 	}
 	return lu.Link.Close()
@@ -84,7 +82,7 @@ type RawDetachUnloader struct {
 	AttachType ebpf.AttachType
 }
 
-func (rdu *RawDetachUnloader) Unload() error {
+func (rdu *RawDetachUnloader) Unload(_ bool) error {
 	defer rdu.Prog.Close()
 	err := link.RawDetachProgram(link.RawDetachProgramOptions{
 		Target:  rdu.TargetFD,
@@ -107,7 +105,7 @@ type TcAttachment struct {
 	IsIngress bool
 }
 
-func (tu TcUnloader) Unload() error {
+func (tu TcUnloader) Unload(_ bool) error {
 	for _, att := range tu.Attachments {
 		if err := detachTC(att.LinkName, att.IsIngress); err != nil {
 			return err
@@ -158,7 +156,7 @@ func detachTC(linkName string, ingress bool) error {
 // RelinkUnloader is an unloader that allows unlinking/relinking as well.
 type RelinkUnloader struct {
 	// UnloadProg unloads the program
-	UnloadProg func() error
+	UnloadProg func(unpin bool) error
 	// IsLinked is true iff the program is linked
 	IsLinked bool
 	// Link is the link object (valid iff IsLinked)
@@ -167,10 +165,10 @@ type RelinkUnloader struct {
 	RelinkFn func() (link.Link, error)
 }
 
-func (u *RelinkUnloader) Unload() error {
+func (u *RelinkUnloader) Unload(unpin bool) error {
 	var ret error
 	if u.IsLinked {
-		if !option.Config.KeepSensorsOnExit {
+		if unpin {
 			u.Link.Unpin()
 		}
 		if err := u.Link.Close(); err != nil {
@@ -179,7 +177,7 @@ func (u *RelinkUnloader) Unload() error {
 			u.IsLinked = false
 		}
 	}
-	ret = multierr.Append(ret, u.UnloadProg())
+	ret = multierr.Append(ret, u.UnloadProg(unpin))
 	return ret
 }
 
@@ -214,7 +212,7 @@ func (u *RelinkUnloader) Relink() error {
 // MultiRelinkUnloader is an unloader for multiple links that allows unlinking/relinking as well.
 type MultiRelinkUnloader struct {
 	// UnloadProg unloads the program
-	UnloadProg func() error
+	UnloadProg func(unpin bool) error
 	// IsLinked is true iff the program is linked
 	IsLinked bool
 	// Link is the link object (valid iff IsLinked)
@@ -223,17 +221,17 @@ type MultiRelinkUnloader struct {
 	RelinkFn func() ([]link.Link, error)
 }
 
-func (u *MultiRelinkUnloader) Unload() error {
+func (u *MultiRelinkUnloader) Unload(unpin bool) error {
 	var ret error
 	for _, link := range u.Links {
-		if !option.Config.KeepSensorsOnExit {
+		if unpin {
 			link.Unpin()
 		}
 		if err := link.Close(); err != nil {
 			ret = multierr.Append(ret, err)
 		}
 	}
-	ret = multierr.Append(ret, u.UnloadProg())
+	ret = multierr.Append(ret, u.UnloadProg(unpin))
 	return ret
 }
 

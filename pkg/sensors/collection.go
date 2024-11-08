@@ -112,7 +112,7 @@ func (c *collection) load(bpfDir string) error {
 	if err != nil {
 		// NB: we could try to unload sensors going back from the one that failed, but since
 		// unload() checks s.IsLoaded, is easier to just to use unload().
-		if unloadErr := c.unload(); unloadErr != nil {
+		if unloadErr := c.unload(true); unloadErr != nil {
 			err = multierr.Append(err, fmt.Errorf("unloading after loading failure failed: %w", unloadErr))
 		}
 	}
@@ -121,13 +121,13 @@ func (c *collection) load(bpfDir string) error {
 }
 
 // unload will attempt to unload all the sensors in a collection
-func (c *collection) unload() error {
+func (c *collection) unload(unpin bool) error {
 	var err error
 	for _, s := range c.sensors {
 		if !s.IsLoaded() {
 			continue
 		}
-		unloadErr := s.Unload()
+		unloadErr := s.Unload(unpin)
 		err = multierr.Append(err, unloadErr)
 	}
 
@@ -138,8 +138,8 @@ func (c *collection) unload() error {
 }
 
 // destroy will attempt to destroy all the sensors in a collection
-func (c *collection) destroy() {
+func (c *collection) destroy(unpin bool) {
 	for _, s := range c.sensors {
-		s.Destroy()
+		s.Destroy(unpin)
 	}
 }

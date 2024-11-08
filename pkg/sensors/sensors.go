@@ -104,8 +104,8 @@ type SensorIface interface {
 	GetName() string
 	IsLoaded() bool
 	Load(bpfDir string) error
-	Unload() error
-	Destroy()
+	Unload(unpin bool) error
+	Destroy(unpin bool)
 	// TotalMemlock is the total amount of memlock bytes for BPF maps used by
 	// the sensor's programs.
 	TotalMemlock() int

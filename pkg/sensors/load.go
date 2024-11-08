@@ -133,10 +133,10 @@ func (s *Sensor) Load(bpfDir string) (err error) {
 	defer func() {
 		if err != nil {
 			for _, m := range loadedMaps {
-				m.Unload()
+				m.Unload(true)
 			}
 			for _, p := range loadedProgs {
-				unloadProgram(p)
+				unloadProgram(p, true)
 			}
 			s.removeDirs()
 		}
@@ -190,7 +190,7 @@ func (s *Sensor) Load(bpfDir string) (err error) {
 	return nil
 }
 
-func (s *Sensor) Unload() error {
+func (s *Sensor) Unload(unpin bool) error {
 	logger.GetLogger().Infof("Unloading sensor %s", s.Name)
 	if !s.Loaded {
 		return fmt.Errorf("unload of sensor %s failed: sensor not loaded", s.Name)
@@ -203,16 +203,18 @@ func (s *Sensor) Unload() error {
 	}
 
 	for _, p := range s.Progs {
-		unloadProgram(p)
+		unloadProgram(p, unpin)
 	}
 
 	for _, m := range s.Maps {
-		if err := m.Unload(); err != nil {
+		if err := m.Unload(unpin); err != nil {
 			logger.GetLogger().WithError(err).WithField("map", s.Name).Warn("Failed to unload map")
 		}
 	}
 
-	s.removeDirs()
+	if unpin {
+		s.removeDirs()
+	}
 
 	s.Loaded = false
 
@@ -228,8 +230,8 @@ func (s *Sensor) Unload() error {
 
 // Destroy will unload the hook and call DestroyHook, this hook is usually used
 // to clean up resources that were created during creation of the sensor.
-func (s *Sensor) Destroy() {
-	err := s.Unload()
+func (s *Sensor) Destroy(unpin bool) {
+	err := s.Unload(unpin)
 	if err != nil {
 		// do not return on error but just log since Unload can only error on
 		// sensor being already not loaded
@@ -398,7 +400,7 @@ func observerLoadInstance(bpfDir string, load *program.Program) error {
 			l.WithField(
 				"tracepoint", load.Name,
 			).Info("Failed to load, trying to remove and retrying")
-			load.Unload()
+			load.Unload(true)
 			err = loadInstance(bpfDir, load, version, option.Config.Verbosity)
 		}
 		if err != nil {
@@ -411,7 +413,7 @@ func observerLoadInstance(bpfDir string, load *program.Program) error {
 			l.WithField(
 				"raw_tracepoint", load.Name,
 			).Info("Failed to load, trying to remove and retrying")
-			load.Unload()
+			load.Unload(true)
 			err = loadInstance(bpfDir, load, version, option.Config.Verbosity)
 		}
 		if err != nil {
@@ -466,7 +468,7 @@ func observerMinReqs() (bool, error) {
 	return true, nil
 }
 
-func unloadProgram(prog *program.Program) {
+func unloadProgram(prog *program.Program, unpin bool) {
 	log := logger.GetLogger().WithField("label", prog.Label).WithField("pin", prog.PinPath)
 
 	if !prog.LoadState.IsLoaded() {
@@ -478,7 +480,7 @@ func unloadProgram(prog *program.Program) {
 		return
 	}
 
-	if err := prog.Unload(); err != nil {
+	if err := prog.Unload(unpin); err != nil {
 		logger.GetLogger().WithField("name", prog.Name).WithError(err).Warn("Failed to unload program")
 	}
 
@@ -487,7 +489,7 @@ func unloadProgram(prog *program.Program) {
 
 func UnloadSensors(sens []SensorIface) {
 	for i := range sens {
-		if err := sens[i].Unload(); err != nil {
+		if err := sens[i].Unload(true); err != nil {
 			logger.GetLogger().Warnf("Failed to unload sensor: %s", err)
 		}
 	}

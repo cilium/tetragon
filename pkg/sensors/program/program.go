@@ -189,15 +189,15 @@ func (p *Program) SetPolicy(policy string) *Program {
 	return p
 }
 
-func (p *Program) Unload() error {
+func (p *Program) Unload(unpin bool) error {
 	if p.unloader == nil {
 		return nil
 	}
-	if err := p.unloader.Unload(); err != nil {
+	if err := p.unloader.Unload(unpin); err != nil {
 		return fmt.Errorf("Failed to unload: %w", err)
 	}
 	if p.unloaderOverride != nil {
-		if err := p.unloaderOverride.Unload(); err != nil {
+		if err := p.unloaderOverride.Unload(unpin); err != nil {
 			return fmt.Errorf("Failed to unload override: %w", err)
 		}
 	}

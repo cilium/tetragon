@@ -45,10 +45,10 @@ func (h *handler) load(col *collection) error {
 	return col.load(h.bpfDir)
 }
 
-func (h *handler) unload(col *collection) error {
+func (h *handler) unload(col *collection, unpin bool) error {
 	h.muLoad.Lock()
 	defer h.muLoad.Unlock()
-	return col.unload()
+	return col.unload(unpin)
 }
 
 func (h *handler) allocPolicyID() uint64 {
@@ -179,7 +179,7 @@ func (h *handler) deleteTracingPolicy(op *tracingPolicyDelete) error {
 	// that the collection is gone
 	h.collections.mu.Unlock()
 
-	col.destroy()
+	col.destroy(true)
 
 	filterID := policyfilter.PolicyID(col.policyfilterID)
 	err := h.pfState.DelPolicy(filterID)
@@ -206,7 +206,7 @@ func (h *handler) disableTracingPolicy(op *tracingPolicyDisable) error {
 	col.state = UnloadingState
 	// unlock so that policyLister can access the collections (read-only) while we are unloading.
 	h.collections.mu.Unlock()
-	err := h.unload(col)
+	err := h.unload(col, true)
 	h.collections.mu.Lock()
 
 	if err != nil {
@@ -266,12 +266,12 @@ func (h *handler) addSensor(op *sensorAdd) error {
 	return nil
 }
 
-func removeAllSensors(h *handler) {
+func removeAllSensors(h *handler, unpin bool) {
 	h.collections.mu.Lock()
 	defer h.collections.mu.Unlock()
 	collections := h.collections.c
 	for ck, col := range collections {
-		col.destroy()
+		col.destroy(unpin)
 		delete(collections, ck)
 	}
 }
@@ -282,7 +282,7 @@ func (h *handler) removeSensor(op *sensorRemove) error {
 			return fmt.Errorf("removeSensor called with all flag and sensor name %s",
 				op.name)
 		}
-		removeAllSensors(h)
+		removeAllSensors(h, op.unpin)
 		return nil
 	}
 
@@ -296,7 +296,7 @@ func (h *handler) removeSensor(op *sensorRemove) error {
 		return fmt.Errorf("sensor %s does not exist", ck)
 	}
 
-	col.destroy()
+	col.destroy(true)
 	delete(collections, ck)
 	return nil
 }
@@ -324,7 +324,7 @@ func (h *handler) disableSensor(op *sensorDisable) error {
 	if !exists {
 		return fmt.Errorf("sensor %s does not exist", ck)
 	}
-	return h.unload(col)
+	return h.unload(col, true)
 }
 
 func (h *handler) listSensors(op *sensorList) error {

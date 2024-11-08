@@ -435,7 +435,7 @@ func loadObserver(tb testing.TB, ctx context.Context, base *sensors.Sensor,
 		tb.Fatalf("Load base error: %s\n", err)
 	}
 	tb.Cleanup(func() {
-		base.Unload()
+		base.Unload(true)
 	})
 
 	if err := procevents.GetRunningProcs(); err != nil {

@@ -31,7 +31,7 @@ func LoadSensor(t *testing.T, sensori sensors.SensorIface) {
 	}
 
 	t.Cleanup(func() {
-		sensor.Unload()
+		sensor.Unload(true)
 	})
 }
 
