@@ -35,7 +35,7 @@ minikube start --driver=kvm2 --container-runtime=cri-o
 {{% tab "minikube with Containerd" %}}
 
 ```shell
-minikube start --driver=kvm2 --container-runtime=cri-o
+minikube start --driver=kvm2 --container-runtime=containerd
 ```
 
 Tetragon Runtime Hooks use [NRI](https://github.com/containerd/nri). NRI is [enabled by
