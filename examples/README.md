@@ -2,9 +2,12 @@
 
 This folder contains examples of resources YAML and configuration files.
 
-- See [`tracingpolicy`](tracingpolicy) directory for examples on TracingPolicy
-  custom resources. These examples are written manually. Add more examples if
-  you feel like it.
+- The [`policylibrary`](policylibrary) directory contains example policies
+  (TracingPolicy custom resources). These examples are generally well
+  documented, either in the file itself or in Tetragon documentation.
+- See [`tracingpolicy`](tracingpolicy) directory for more policy examples.
+  Files in this directory are valid policies, but they are not curated in terms
+  of suitability for their purpose. Add more examples if you feel like it.
 - See [`configuration`](configuration) directory for an example of
   configuration file for Tetragon and and directory structure.
 
