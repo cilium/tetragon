@@ -663,12 +663,17 @@ func main() {
 ## Validation
 
 Kong does validation on the structure of a command-line, but also supports
-extensible validation. Any node in the tree may implement the following
-interface:
+extensible validation. Any node in the tree may implement either of the following interfaces:
 
 ```go
 type Validatable interface {
     Validate() error
+ }
+```
+
+```go
+type Validatable interface {
+    Validate(kctx *kong.Context) error
  }
 ```
 
