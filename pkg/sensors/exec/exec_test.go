@@ -575,7 +575,7 @@ func TestLoadInitialSensor(t *testing.T) {
 
 	tus.CheckSensorLoad([]*sensors.Sensor{sensor}, sensorMaps, sensorProgs, t)
 
-	sensor.Unload()
+	sensor.Unload(true)
 }
 
 func TestDocker(t *testing.T) {

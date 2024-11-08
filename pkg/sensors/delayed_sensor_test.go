@@ -57,7 +57,7 @@ func (tds *TestDelayedSensor) Load(_ string) error {
 	return nil
 }
 
-func (tds *TestDelayedSensor) Unload() error {
+func (tds *TestDelayedSensor) Unload(_ bool) error {
 	select {
 	case <-tds.ch:
 	case <-time.After(10 * time.Second):
@@ -67,7 +67,7 @@ func (tds *TestDelayedSensor) Unload() error {
 	return nil
 }
 
-func (tds *TestDelayedSensor) Destroy() {
+func (tds *TestDelayedSensor) Destroy(_ bool) {
 	tds.loaded = false
 }
 

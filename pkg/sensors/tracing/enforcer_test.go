@@ -670,8 +670,8 @@ spec:
 	}
 
 	// Unload policy 1 (watch 0xffff)
-	sensor1.Unload()
-	sensor2.Unload()
+	sensor1.Unload(true)
+	sensor2.Unload(true)
 
 	t.Logf("Unloaded policy 1\n")
 
@@ -695,8 +695,8 @@ spec:
 	}
 
 	// Unload policy 2 (watch 0xfffe)
-	sensor3.Unload()
-	sensor4.Unload()
+	sensor3.Unload(true)
+	sensor4.Unload(true)
 
 	t.Logf("Unloaded policy 2\n")
 

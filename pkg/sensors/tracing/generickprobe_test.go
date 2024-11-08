@@ -106,7 +106,7 @@ func Test_SensorDestroyHook(t *testing.T) {
 
 	// Destroy should call the DestroyHook that was set in
 	// createGenericKprobeSensor and do the cleanup
-	sensor.Destroy()
+	sensor.Destroy(true)
 
 	// Table implem detail: the entry still technically exists in the table but
 	// is invalid, thus is not taken into account in the length

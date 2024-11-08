@@ -4273,7 +4273,7 @@ spec:
 	if err != nil {
 		return err
 	}
-	return sens.Unload()
+	return sens.Unload(true)
 }
 
 func TestKprobeBpfAttr(t *testing.T) {

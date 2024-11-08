@@ -69,7 +69,6 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/option"
 	"github.com/sirupsen/logrus"
 )
 
@@ -211,7 +210,7 @@ func (m *Map) IsOwner() bool {
 	return m.Owner
 }
 
-func (m *Map) Unload() error {
+func (m *Map) Unload(unpin bool) error {
 	log := logger.GetLogger().WithField("map", m.Name).WithField("pin", m.PinPath)
 	if !m.PinState.IsLoaded() {
 		log.WithField("count", m.PinState.count).Debug("Refusing to unload map as it is not loaded")
@@ -223,7 +222,7 @@ func (m *Map) Unload() error {
 	}
 	log.Info("map was unloaded")
 	if m.MapHandle != nil {
-		if m.IsOwner() && !option.Config.KeepSensorsOnExit {
+		if m.IsOwner() && unpin {
 			m.MapHandle.Unpin()
 			if m.Type == MapTypeGlobal {
 				DeleteGlobMap(m.Name)

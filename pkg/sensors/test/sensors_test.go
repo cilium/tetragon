@@ -56,7 +56,7 @@ func TestMapBuildersSingle(t *testing.T) {
 
 		assert.Equal(t, getMapPath(m1), m1.PinPath)
 
-		s.Unload()
+		s.Unload(true)
 	}
 
 	test(program.MapBuilder("m1", p1), program.MapTypeGlobal)
@@ -98,7 +98,7 @@ func TestMapBuildersMulti(t *testing.T) {
 		assert.Equal(t, path1, m1.PinPath)
 		assert.Equal(t, path2, m2.PinPath)
 
-		s.Unload()
+		s.Unload(true)
 	}
 
 	var m1 *program.Map
@@ -187,10 +187,10 @@ func TestMapMultipleSensors(t *testing.T) {
 	}
 
 	s1.Load(bpf.MapPrefixPath())
-	defer s1.Unload()
+	defer s1.Unload(true)
 
 	s2.Load(bpf.MapPrefixPath())
-	defer s2.Unload()
+	defer s2.Unload(true)
 
 	assert.Equal(t, m11.PinPath, "m1")
 	assert.Equal(t, m12.PinPath, "policy/m2")
@@ -251,11 +251,11 @@ func TestMapUser(t *testing.T) {
 		}
 
 		err = s1.Load(bpf.MapPrefixPath())
-		defer s1.Unload()
+		defer s1.Unload(true)
 		assert.NoError(t, err)
 
 		err = s2.Load(bpf.MapPrefixPath())
-		defer s2.Unload()
+		defer s2.Unload(true)
 		assert.NoError(t, err)
 	})
 
@@ -283,11 +283,11 @@ func TestMapUser(t *testing.T) {
 		}
 
 		err = s1.Load(bpf.MapPrefixPath())
-		defer s1.Unload()
+		defer s1.Unload(true)
 		assert.NoError(t, err)
 
 		err = s2.Load(bpf.MapPrefixPath())
-		defer s2.Unload()
+		defer s2.Unload(true)
 		assert.NoError(t, err)
 	})
 
@@ -309,7 +309,7 @@ func TestMapUser(t *testing.T) {
 		err = s1.Load(bpf.MapPrefixPath())
 		assert.Error(t, err)
 		if err == nil {
-			defer s1.Unload()
+			defer s1.Unload(true)
 		}
 	})
 
@@ -338,11 +338,11 @@ func TestMapUser(t *testing.T) {
 		}
 
 		err = s1.Load(bpf.MapPrefixPath())
-		defer s1.Unload()
+		defer s1.Unload(true)
 		assert.NoError(t, err)
 
 		err = s2.Load(bpf.MapPrefixPath())
-		defer s2.Unload()
+		defer s2.Unload(true)
 		assert.Error(t, err)
 	})
 
@@ -370,11 +370,11 @@ func TestMapUser(t *testing.T) {
 		}
 
 		err = s1.Load(bpf.MapPrefixPath())
-		defer s1.Unload()
+		defer s1.Unload(true)
 		assert.NoError(t, err)
 
 		err = s3.Load(bpf.MapPrefixPath())
-		defer s3.Unload()
+		defer s3.Unload(true)
 		assert.Error(t, err)
 	})
 }
@@ -404,7 +404,7 @@ func TestPolicyMapPath(t *testing.T) {
 
 	assert.Equal(t, filepath.Join(bpf.MapPrefixPath(), m1.PinPath), program.PolicyMapPath(bpf.MapPrefixPath(), "policy", "m1"))
 
-	s.Unload()
+	s.Unload(true)
 }
 
 func getMaxEntries(t *testing.T, path string) uint32 {
@@ -444,7 +444,7 @@ func TestMaxEntriesSingle(t *testing.T) {
 	}
 
 	s.Load(bpf.MapPrefixPath())
-	defer s.Unload()
+	defer s.Unload(true)
 
 	path := program.PolicyMapPath(bpf.MapPrefixPath(), "policy", "m1")
 	assert.Equal(t, uint32(111), getMaxEntries(t, path))
@@ -483,7 +483,7 @@ func TestMaxEntriesMulti(t *testing.T) {
 	}
 
 	s.Load(bpf.MapPrefixPath())
-	defer s.Unload()
+	defer s.Unload(true)
 
 	path1 := filepath.Join(bpf.MapPrefixPath(), m1.PinPath)
 	assert.Equal(t, uint32(111), getMaxEntries(t, path1))
@@ -557,7 +557,7 @@ func TestCleanup(t *testing.T) {
 		err = s1.Load(bpf.MapPrefixPath())
 		assert.NoError(t, err)
 
-		s1.Unload()
+		s1.Unload(true)
 		verifyRemoved("m1", "m2", "policy")
 	})
 
@@ -584,10 +584,10 @@ func TestCleanup(t *testing.T) {
 		err = s2.Load(bpf.MapPrefixPath())
 		assert.NoError(t, err)
 
-		s1.Unload()
+		s1.Unload(true)
 		verifyRemoved("policy/sensor1")
 
-		s2.Unload()
+		s2.Unload(true)
 		verifyRemoved("m1", "m2", "policy")
 	})
 
@@ -606,7 +606,7 @@ func TestCleanup(t *testing.T) {
 		err = s1.Load(bpf.MapPrefixPath())
 		assert.Error(t, err)
 		if err == nil {
-			defer s1.Unload()
+			defer s1.Unload(true)
 		}
 
 		verifyRemoved("m1", "m2", "policy")
@@ -634,7 +634,7 @@ func TestCleanup(t *testing.T) {
 		err = s3.Load(bpf.MapPrefixPath())
 		assert.Error(t, err)
 
-		s1.Unload()
+		s1.Unload(true)
 		verifyRemoved("m1", "policy")
 	})
 
@@ -663,11 +663,11 @@ func TestCleanup(t *testing.T) {
 		err = s2.Load(bpf.MapPrefixPath())
 		assert.NoError(t, err)
 
-		s1.Unload()
+		s1.Unload(true)
 		verifyRemoved("ns1:policy")
 		verifyExists("m1", "m2")
 
-		s2.Unload()
+		s2.Unload(true)
 		verifyRemoved("ns2:policy")
 		verifyRemoved("m1", "m2")
 	})
@@ -702,7 +702,7 @@ func TestCleanup(t *testing.T) {
 		err = s2.Load(bpf.MapPrefixPath())
 		assert.NoError(t, err)
 
-		err = s2.Unload()
+		err = s2.Unload(true)
 		assert.NoError(t, err)
 
 		// s1 is still loaded and we just unloaded s2 with m1 being user map,
@@ -712,7 +712,7 @@ func TestCleanup(t *testing.T) {
 		// ... but sensor2 should get removed
 		verifyRemoved("policy/sensor2")
 
-		err = s1.Unload()
+		err = s1.Unload(true)
 		assert.NoError(t, err)
 
 		// s1 unload takes down everything
@@ -761,11 +761,11 @@ func TestNamespace(t *testing.T) {
 		}
 
 		err = s1.Load(bpf.MapPrefixPath())
-		defer s1.Unload()
+		defer s1.Unload(true)
 		assert.NoError(t, err)
 
 		err = s2.Load(bpf.MapPrefixPath())
-		defer s2.Unload()
+		defer s2.Unload(true)
 		assert.NoError(t, err)
 
 		assert.Equal(t, "ns1:policy/sensor1/p1", p1.PinPath)
