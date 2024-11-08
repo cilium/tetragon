@@ -348,7 +348,7 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 		Maps:      maps,
 		Policy:    policyName,
 		Namespace: policyNamespace,
-		PostUnloadHook: func() error {
+		DestroyHook: func() error {
 			if ok := kp.enforcerDel(policyName); !ok {
 				logger.GetLogger().Infof("Failed to clean up enforcer sensor '%s'", policyName)
 			} else {
