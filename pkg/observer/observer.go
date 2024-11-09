@@ -331,10 +331,14 @@ func (k *Observer) UpdateRuntimeConf(bpfDir string) error {
 
 // Start starts the observer
 func (k *Observer) Start(ctx context.Context) error {
+	return k.StartReady(ctx, func() {})
+}
+
+func (k *Observer) StartReady(ctx context.Context, ready func()) error {
 	k.PerfConfig = bpf.DefaultPerfEventConfig()
 
 	var err error
-	if err = k.RunEvents(ctx, func() {}); err != nil {
+	if err = k.RunEvents(ctx, ready); err != nil {
 		return fmt.Errorf("tetragon, aborting runtime error: %w", err)
 	}
 	return nil
