@@ -184,6 +184,60 @@ func generateResponseInnerGetParent(g *protogen.GeneratedFile, files []*protogen
 	return nil
 }
 
+func generateResponseTypeMap(g *protogen.GeneratedFile, files []*protogen.File) error {
+	oneofs, err := common.GetEventsResponseOneofs(files)
+	if err != nil {
+		return err
+	}
+
+	doCases := func() string {
+		var ret string
+		for _, oneof := range oneofs {
+			msgGoIdent := common.TetragonApiIdent(g, oneof.TypeName)
+			ret += fmt.Sprintf("\"%s\": &%s{},\n", oneof.FieldName, msgGoIdent)
+		}
+		return ret
+	}
+
+	protoMessage := common.GoIdent(g, "google.golang.org/protobuf/proto", "Message")
+	g.P(`// ResponseTypeMap returns a map from event field names (e.g. "process_exec") to corresponding
+    // protobuf messages (e.g. &tetragon.ProcessExec{}).
+    func ResponseTypeMap() map[string]` + protoMessage + `{
+		return map[string]proto.Message {
+            ` + doCases() + `
+        }
+    }`)
+
+	return nil
+}
+
+func generateProcessEventMap(g *protogen.GeneratedFile, files []*protogen.File) error {
+	oneofs, err := common.GetEventsResponseOneofs(files)
+	if err != nil {
+		return err
+	}
+
+	doCases := func() string {
+		var ret string
+		for _, oneof := range oneofs {
+			msgGoIdent := strings.Split(common.TetragonApiIdent(g, oneof.TypeName), ".")
+			ret += fmt.Sprintf("\"%s\": response.Get%s(),\n", oneof.FieldName, msgGoIdent[len(msgGoIdent)-1])
+		}
+		return ret
+	}
+
+	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
+	g.P(`// ProcessEventMap returns a map from event field names (e.g. "process_exec") to corresponding
+    // protobuf messages in a given tetragon.GetEventsResponse (e.g. response.GetProcessExec()).
+    func ProcessEventMap(response *` + tetragonGER + `) map[string]any {
+		return map[string]any {
+            ` + doCases() + `
+        }
+    }`)
+
+	return nil
+}
+
 // Generate generates boilerplate helpers
 func Generate(gen *protogen.Plugin, files []*protogen.File) error {
 	// Pick arbitrary file to use for prefix of generated files, files[0] here.
@@ -211,6 +265,14 @@ func Generate(gen *protogen.Plugin, files []*protogen.File) error {
 
 	// nolint:revive // ignore "if-return: redundant if just return error" for clarity
 	if err := generateResponseInnerGetParent(g, files); err != nil {
+		return err
+	}
+
+	if err := generateResponseTypeMap(g, files); err != nil {
+		return err
+	}
+
+	if err := generateProcessEventMap(g, files); err != nil {
 		return err
 	}
 
