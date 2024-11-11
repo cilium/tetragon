@@ -1,7 +1,7 @@
 # cel.dev/expr v0.18.0
 ## explicit; go 1.21.1
 cel.dev/expr
-# dario.cat/mergo v1.0.0
+# dario.cat/mergo v1.0.1
 ## explicit; go 1.13
 dario.cat/mergo
 # github.com/alecthomas/kong v1.3.0
@@ -42,14 +42,14 @@ github.com/containerd/nri/pkg/stub
 # github.com/containerd/ttrpc v1.2.6-0.20240827082320-b5cd6e4b3287
 ## explicit; go 1.19
 github.com/containerd/ttrpc
-# github.com/containerd/typeurl/v2 v2.1.1
-## explicit; go 1.13
-github.com/containerd/typeurl/v2
-# github.com/containers/common v0.60.4
-## explicit; go 1.21.0
-github.com/containers/common/pkg/hooks/1.0.0
-# github.com/containers/storage v1.55.0
+# github.com/containerd/typeurl/v2 v2.2.0
 ## explicit; go 1.21
+github.com/containerd/typeurl/v2
+# github.com/containers/common v0.61.0
+## explicit; go 1.22.6
+github.com/containers/common/pkg/hooks/1.0.0
+# github.com/containers/storage v1.56.0
+## explicit; go 1.22.0
 github.com/containers/storage/pkg/fileutils
 # github.com/coreos/go-systemd/v22 v22.5.0
 ## explicit; go 1.12
@@ -109,7 +109,7 @@ github.com/opencontainers/go-digest
 ## explicit; go 1.18
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
-# github.com/opencontainers/runc v1.2.0
+# github.com/opencontainers/runc v1.2.1
 ## explicit; go 1.22
 github.com/opencontainers/runc/libcontainer/cgroups
 github.com/opencontainers/runc/libcontainer/cgroups/fs
@@ -140,8 +140,8 @@ github.com/stoewer/go-strcase
 ## explicit; go 1.17
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
-# golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
-## explicit; go 1.20
+# golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c
+## explicit; go 1.22.0
 golang.org/x/exp/constraints
 golang.org/x/exp/slices
 # golang.org/x/net v0.30.0
@@ -152,11 +152,11 @@ golang.org/x/net/http2/hpack
 golang.org/x/net/idna
 golang.org/x/net/internal/timeseries
 golang.org/x/net/trace
-# golang.org/x/sys v0.26.0
+# golang.org/x/sys v0.27.0
 ## explicit; go 1.18
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/text v0.19.0
+# golang.org/x/text v0.20.0
 ## explicit; go 1.18
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
