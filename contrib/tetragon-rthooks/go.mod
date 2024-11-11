@@ -13,7 +13,7 @@ require (
 	github.com/containerd/nri v0.8.0
 	github.com/containers/common v0.60.4
 	github.com/google/cel-go v0.22.0
-	github.com/opencontainers/runc v1.2.0
+	github.com/opencontainers/runc v1.2.1
 	github.com/opencontainers/runtime-spec v1.2.0
 	github.com/pelletier/go-toml v1.9.5
 	github.com/stretchr/testify v1.9.0
