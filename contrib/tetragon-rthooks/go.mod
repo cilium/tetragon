@@ -9,7 +9,7 @@ require (
 	github.com/alecthomas/kong v1.4.0
 	github.com/cilium/lumberjack/v2 v2.4.0
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
-	github.com/containerd/containerd v1.7.23
+	github.com/containerd/containerd/v2 v2.0.0
 	github.com/containerd/nri v0.8.0
 	github.com/containers/common v0.61.0
 	github.com/google/cel-go v0.22.0
