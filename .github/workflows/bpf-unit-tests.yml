@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'bpf/**'
+      - '.github/workflows/bpf-unit-tests.yml'
   push:
     branches:
       - main
@@ -14,7 +15,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ ubuntu-22.04, actuated-arm64-4cpu-8gb ]
+        os: [ ubuntu-22.04, ubuntu-22.04-arm64 ]
     steps:
     - name: Checkout code
       uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6

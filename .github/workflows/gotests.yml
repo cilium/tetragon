@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-20.04, actuated-arm64-4cpu-8gb ]
+        os: [ ubuntu-20.04, ubuntu-22.04-arm64 ]
     steps:
     - name: Checkout code
       uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
