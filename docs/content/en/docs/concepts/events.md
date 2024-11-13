@@ -157,7 +157,7 @@ flags, or environment variables.
 | `pid` | Filter by process PID. | 
 | `pid_set` | Like `pid` but also includes processes that are descendants of the listed PIDs. | 
 | `pod_regex` | Filter by pod name using a list of regular expressions. You can find the full syntax [here](https://github.com/google/re2/wiki/Syntax). | 
-| `arguments_regex` | Filter by pod name using a list of regular expressions. You can find the full syntax [here](https://github.com/google/re2/wiki/Syntax). | 
+| `arguments_regex` | Filter by process arguments using a list of regular expressions. You can find the full syntax [here](https://github.com/google/re2/wiki/Syntax). | 
 | `labels` | Filter events by pod labels using [Kubernetes label selector syntax](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors) Note that this filter never matches events without the pod field (i.e. host process events). |
 | `policy_names` | Filter events by tracing policy names. |
 | `capabilities` | Filter events by Linux process capability. |
