@@ -120,7 +120,7 @@ service RuntimeService {
     rpc CheckpointContainer(CheckpointContainerRequest) returns (CheckpointContainerResponse) {}
 
     // GetContainerEvents gets container events from the CRI runtime
-    rpc  GetContainerEvents(GetEventsRequest) returns (stream ContainerEventResponse) {}
+    rpc GetContainerEvents(GetEventsRequest) returns (stream ContainerEventResponse) {}
 
     // ListMetricDescriptors gets the descriptors for the metrics that will be returned in ListPodSandboxMetrics.
     // This list should be static at startup: either the client and server restart together when
@@ -131,6 +131,15 @@ service RuntimeService {
 
     // ListPodSandboxMetrics gets pod sandbox metrics from CRI Runtime
     rpc ListPodSandboxMetrics(ListPodSandboxMetricsRequest) returns (ListPodSandboxMetricsResponse) {}
+
+    // RuntimeConfig returns configuration information of the runtime.
+    // A couple of notes:
+    // - The RuntimeConfigRequest object is not to be confused with the contents of UpdateRuntimeConfigRequest.
+    //   The former is for having runtime tell Kubelet what to do, the latter vice versa.
+    // - It is the expectation of the Kubelet that these fields are static for the lifecycle of the Kubelet.
+    //   The Kubelet will not re-request the RuntimeConfiguration after startup, and CRI implementations should
+    //   avoid updating them without a full node reboot.
+    rpc RuntimeConfig(RuntimeConfigRequest) returns (RuntimeConfigResponse) {}
 }
 
 // ImageService defines the public APIs for managing images.
@@ -199,7 +208,7 @@ message PortMapping {
 }
 
 enum MountPropagation {
-    // No mount propagation ("private" in Linux terminology).
+    // No mount propagation ("rprivate" in Linux terminology).
     PROPAGATION_PRIVATE = 0;
     // Mounts get propagated from the host to the container ("rslave" in Linux).
     PROPAGATION_HOST_TO_CONTAINER = 1;
@@ -226,6 +235,24 @@ message Mount {
     repeated IDMapping uidMappings = 6;
     // GidMappings specifies the runtime GID mappings for the mount.
     repeated IDMapping gidMappings = 7;
+    // If set to true, the mount is made recursive read-only.
+    // In this CRI API, recursive_read_only is a plain true/false boolean, although its equivalent
+    // in the Kubernetes core API is a quaternary that can be nil, "Enabled", "IfPossible", or "Disabled".
+    // kubelet translates that quaternary value in the core API into a boolean in this CRI API.
+    // Remarks:
+    // - nil is just treated as false
+    // - when set to true, readonly must be explicitly set to true, and propagation must be PRIVATE (0).
+    // - (readonly == false && recursive_read_only == false) does not make the mount read-only.
+    bool recursive_read_only = 8;
+    // Mount an image reference (image ID, with or without digest), which is a
+    // special use case for image volume mounts. If this field is set, then
+    // host_path should be unset. All OCI mounts are per feature definition
+    // readonly. The kubelet does an PullImage RPC and evaluates the returned
+    // PullImageResponse.image_ref value, which is then set to the
+    // ImageSpec.image field. Runtimes are expected to mount the image as
+    // required.
+    // Introduced in the OCI Volume Source KEP: https://kep.k8s.io/4639
+    ImageSpec image = 9;
 }
 
 // IDMapping describes host to container ID mappings for a pod sandbox.
@@ -303,6 +330,20 @@ message NamespaceOption {
     UserNamespace userns_options = 5;
 }
 
+// SupplementalGroupsPolicy defines how supplemental groups 
+// of the first container processes are calculated.
+enum SupplementalGroupsPolicy {
+    // Merge means that the container's provided SupplementalGroups 
+    // and FsGroup (specified in SecurityContext) will be merged with 
+    // the primary user's groups as defined in the container image
+    // (in /etc/group).
+    Merge = 0;
+    // Strict means that the container's provided SupplementalGroups
+    // and FsGroup (specified in SecurityContext) will be used instead of 
+    // any groups defined in the container image.
+    Strict = 1;
+}
+
 // Int64Value is the wrapper of int64.
 message Int64Value {
     // The value.
@@ -327,13 +368,14 @@ message LinuxSandboxSecurityContext {
     Int64Value run_as_group = 8;
     // If set, the root filesystem of the sandbox is read-only.
     bool readonly_rootfs = 4;
-    // List of groups applied to the first process run in the sandbox, in
-    // addition to the sandbox's primary GID, and group memberships defined
-    // in the container image for the sandbox's primary UID of the container process.
-    // If the list is empty, no additional groups are added to any container.
-    // Note that group memberships defined in the container image for the sandbox's primary UID
-    // of the container process are still effective, even if they are not included in this list.
+    // List of groups applied to the first process run in each container.
+    // supplemental_groups_policy can control how groups will be calculated.
     repeated int64 supplemental_groups = 5;
+    // supplemental_groups_policy defines how supplemental groups of the first 
+    // container processes are calculated.
+    // Valid values are "Merge" and "Strict".
+    // If not specified, "Merge" is used.
+    SupplementalGroupsPolicy supplemental_groups_policy = 11;
     // Indicates whether the sandbox will be asked to run a privileged
     // container. If a privileged container is to be executed within it, this
     // MUST be true.
@@ -770,6 +812,13 @@ message ImageSpec {
     // ImageSpec Annotations can be used to help the runtime target specific
     // images in multi-arch images.
     map<string, string> annotations = 2;
+    // The container image reference specified by the user (e.g. image[:tag] or digest).
+    // Only set if available within the RPC context.
+    string user_specified_image = 18;
+    // Runtime handler to use for pulling the image.
+    // If the runtime handler is unknown, the request should be rejected.
+    // An empty string would select the default runtime handler.
+    string runtime_handler = 19;
 }
 
 message KeyValue {
@@ -880,13 +929,14 @@ message LinuxContainerSecurityContext {
     string run_as_username = 6;
     // If set, the root filesystem of the container is read-only.
     bool readonly_rootfs = 7;
-    // List of groups applied to the first process run in the container, in
-    // addition to the container's primary GID, and group memberships defined
-    // in the container image for the container's primary UID of the container process.
-    // If the list is empty, no additional groups are added to any container.
-    // Note that group memberships defined in the container image for the container's primary UID
-    // of the container process are still effective, even if they are not included in this list.
+    // List of groups applied to the first process run in each container.
+    // supplemental_groups_policy can control how groups will be calculated.
     repeated int64 supplemental_groups = 8;
+    // supplemental_groups_policy defines how supplemental groups of the first 
+    // container processes are calculated.
+    // Valid values are "Merge" and "Strict".
+    // If not specified, "Merge" is used.
+    SupplementalGroupsPolicy supplemental_groups_policy = 17;
     // no_new_privs defines if the flag for no_new_privs should be set on the
     // container.
     bool no_new_privs = 11;
@@ -923,6 +973,15 @@ message LinuxContainerConfig {
     LinuxContainerResources resources = 1;
     // LinuxContainerSecurityContext configuration for the container.
     LinuxContainerSecurityContext security_context = 2;
+}
+
+message LinuxContainerUser {
+    // uid is the primary uid initially attached to the first process in the container
+    int64 uid = 1;
+    // gid is the primary gid initially attached to the first process in the container
+    int64 gid = 2;
+    // supplemental_groups are the supplemental groups initially attached to the first process in the container
+    repeated int64 supplemental_groups = 3;
 }
 
 // WindowsNamespaceOption provides options for Windows namespaces.
@@ -1177,8 +1236,7 @@ message Container {
     ContainerMetadata metadata = 3;
     // Spec of the image.
     ImageSpec image = 4;
-    // Reference to the image in use. For most runtimes, this should be an
-    // image ID.
+    // Digested reference to the image in use.
     string image_ref = 5;
     // State of the container.
     ContainerState state = 6;
@@ -1191,6 +1249,16 @@ message Container {
     // MUST be identical to that of the corresponding ContainerConfig used to
     // instantiate this Container.
     map<string, string> annotations = 9;
+    // Reference to the unique identifier of the image, on the node, as
+    // returned in the image service apis.
+    //
+    // Note: The image_ref above has been historically used by container
+    // runtimes to reference images by digest. The image_ref has been also used
+    // in the kubelet image garbage collection, which does not work with
+    // digests at all. To separate and avoid possible misusage, we now
+    // introduce the image_id field, which should always refer to a unique
+    // image identifier on the node.
+    string image_id = 10;
 }
 
 message ListContainersResponse {
@@ -1223,8 +1291,7 @@ message ContainerStatus {
     int32 exit_code = 7;
     // Spec of the image.
     ImageSpec image = 8;
-    // Reference to the image in use. For most runtimes, this should be an
-    // image ID
+    // Digested reference to the image in use.
     string image_ref = 9;
     // Brief CamelCase string explaining why container is in its current state.
     // Must be set to "OOMKilled" for containers terminated by cgroup-based Out-of-Memory killer.
@@ -1245,6 +1312,16 @@ message ContainerStatus {
     string log_path = 15;
     // Resource limits configuration of the container.
     ContainerResources resources = 16;
+    // Reference to the unique identifier of the image, on the node, as
+    // returned in the image service apis.
+    //
+    // Note: The image_ref above has been historically used by container
+    // runtimes to reference images by digest. To separate and avoid possible
+    // misusage, we now introduce the image_id field, which should always refer
+    // to a unique image identifier on the node.
+    string image_id = 17;
+    // User identities initially attached to the container
+    ContainerUser user = 18;
 }
 
 message ContainerStatusResponse {
@@ -1264,6 +1341,17 @@ message ContainerResources {
     // Resource limits configuration specific to Windows container.
     WindowsContainerResources windows = 2;
 }
+
+message ContainerUser {
+    // User identities initially attached to first process in the Linux container.
+	// Note that the actual running identity can be changed if the process has enough privilege to do so.
+    LinuxContainerUser linux = 1;
+
+    // User identities initially attached to first process in the Windows container
+    // This is just reserved for future use.
+    // WindowsContainerUser windows = 2;
+}
+
 
 message UpdateContainerResourcesRequest {
     // ID of the container to update.
@@ -1512,6 +1600,35 @@ message StatusRequest {
     bool verbose = 1;
 }
 
+// RuntimeHandlerFeatures is a set of features implemented by the runtime handler.
+message RuntimeHandlerFeatures {
+    // recursive_read_only_mounts is set to true if the runtime handler supports
+    // recursive read-only mounts.
+    // For runc-compatible runtimes, availability of this feature can be detected by checking whether
+    // the Linux kernel version is >= 5.12, and,  `runc features | jq .mountOptions` contains "rro".
+    bool recursive_read_only_mounts = 1;
+
+    // user_namespaces is set to true if the runtime handler supports user namespaces as implemented
+    // in Kubernetes. This means support for both, user namespaces and idmap mounts.
+    bool user_namespaces = 2;
+}
+
+message RuntimeHandler {
+    // Name must be unique in StatusResponse.
+    // An empty string denotes the default handler.
+    string name = 1;
+    // Supported features.
+    RuntimeHandlerFeatures features = 2;
+}
+
+// RuntimeFeatures describes the set of features implemented by the CRI implementation.
+// The features contained in the RuntimeFeatures should depend only on the cri implementation
+// independent of runtime handlers.
+message RuntimeFeatures {
+    // supplemental_groups_policy is set to true if the runtime supports SupplementalGroupsPolicy and ContainerUser.
+    bool supplemental_groups_policy = 1;
+}
+
 message StatusResponse {
     // Status of the Runtime.
     RuntimeStatus status = 1;
@@ -1520,6 +1637,11 @@ message StatusResponse {
     // debug, e.g. plugins used by the container runtime.
     // It should only be returned non-empty when Verbose is true.
     map<string, string> info = 2;
+    // Runtime handlers.
+    repeated RuntimeHandler runtime_handlers = 3;
+    // features describes the set of features implemented by the CRI implementation.
+    // This field is supposed to propagate to NodeFeatures in Kubernetes API.
+    RuntimeFeatures features = 4;
 }
 
 message ImageFsInfoRequest {}
@@ -1567,6 +1689,11 @@ message WindowsFilesystemUsage {
 message ImageFsInfoResponse {
     // Information of image filesystem(s).
     repeated FilesystemUsage image_filesystems = 1;
+    // Information of container filesystem(s).
+    // This is an optional field, may be used for example if container and image
+    // storage are separated.
+    // Default will be to return this as empty.
+    repeated FilesystemUsage container_filesystems = 2;
 }
 
 message ContainerStatsRequest{
@@ -1627,6 +1754,8 @@ message ContainerStats {
     MemoryUsage memory = 3;
     // Usage of the writable layer.
     FilesystemUsage writable_layer = 4;
+    // Swap usage gathered from the container.
+    SwapUsage swap = 5;
 }
 
 // WindowsContainerStats provides the resource usage statistics for a container specific for Windows
@@ -1681,16 +1810,27 @@ message MemoryUsage {
     UInt64Value major_page_faults = 7;
 }
 
+message SwapUsage {
+    // Timestamp in nanoseconds at which the information were collected. Must be > 0.
+    int64 timestamp = 1;
+    // Available swap for use. This is defined as the swap limit - swapUsageBytes.
+    UInt64Value swap_available_bytes = 2;
+    // Total memory in use. This includes all memory regardless of when it was accessed.
+    UInt64Value swap_usage_bytes = 3;
+}
+
 // WindowsMemoryUsage provides the memory usage information specific to Windows
 message WindowsMemoryUsage {
     // Timestamp in nanoseconds at which the information were collected. Must be > 0.
     int64 timestamp = 1;
     // The amount of working set memory in bytes.
     UInt64Value working_set_bytes = 2;
-    // Available memory for use. This is defined as the memory limit - workingSetBytes.
+    // Available memory for use. This is defined as the memory limit - commit_memory_bytes.
     UInt64Value available_bytes = 3;
     // Cumulative number of page faults.
     UInt64Value page_faults = 4;
+    // Total commit memory in use. Commit memory is total of physical and virtual memory in use.
+    UInt64Value commit_memory_bytes = 5;
 }
 
 message ReopenContainerLogRequest {
@@ -1801,3 +1941,29 @@ enum MetricType {
     COUNTER = 0;
     GAUGE = 1;
 }
+
+message RuntimeConfigRequest {}
+
+message RuntimeConfigResponse {
+    // Configuration information for Linux-based runtimes. This field contains
+    // global runtime configuration options that are not specific to runtime
+    // handlers.
+    LinuxRuntimeConfiguration linux = 1;
+}
+
+message LinuxRuntimeConfiguration {
+    // Cgroup driver to use
+    // Note: this field should not change for the lifecycle of the Kubelet,
+    // or while there are running containers.
+    // The Kubelet will not re-request this after startup, and will construct the cgroup
+    // hierarchy assuming it is static.
+    // If the runtime wishes to change this value, it must be accompanied by removal of
+    // all pods, and a restart of the Kubelet. The easiest way to do this is with a full node reboot.
+    CgroupDriver cgroup_driver = 1;
+}
+
+enum CgroupDriver {
+    SYSTEMD = 0;
+    CGROUPFS = 1;
+}
+
