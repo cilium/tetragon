@@ -59,7 +59,7 @@ First, let us start minikube, build and load images, and install Tetragon and OC
 
 ```shell
 minikube start --container-runtime=containerd
-./contrib/tetragon-rthooks/minikube-containerd-install-hook.sh
+./contrib/tetragon-rthooks/scripts/minikube-install-hook.sh
 make image image-operator
 minikube image load --daemon=true cilium/tetragon:latest cilium/tetragon-operator:latest
 minikube ssh -- sudo mount bpffs -t bpf /sys/fs/bpf
