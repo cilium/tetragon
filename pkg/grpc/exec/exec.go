@@ -53,6 +53,9 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 		tetragonParent = parent.UnsafeGetProcess()
 	}
 
+	tags := proc.AddDetectionTagsExec()
+	msg := proc.AddDetectionMsgExec()
+
 	// Set the cap field only if --enable-process-cred flag is set.
 	if err := proc.AnnotateProcess(option.Config.EnableProcessCred, option.Config.EnableProcessNs); err != nil {
 		logger.GetLogger().WithError(err).WithField("processId", processId).WithField("parentId", parentId).Debugf("Failed to annotate process with capabilities and namespaces info")
@@ -61,6 +64,8 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 	tetragonEvent := &tetragon.ProcessExec{
 		Process: tetragonProcess,
 		Parent:  tetragonParent,
+		Message: msg,
+		Tags:    tags,
 	}
 
 	if tetragonProcess.Pid == nil {

@@ -19,6 +19,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api"
 	tetragonAPI "github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/detection"
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
@@ -235,6 +236,14 @@ func (pi *ProcessInternal) RefInc(reason string) {
 
 func (pi *ProcessInternal) RefGet() uint32 {
 	return atomic.LoadUint32(&pi.refcnt)
+}
+
+func (pi *ProcessInternal) AddDetectionTagsExec() []string {
+	return detection.AddDetectionTagsExec(pi.apiBinaryProp)
+}
+
+func (pi *ProcessInternal) AddDetectionMsgExec() string {
+	return detection.AddDetectionMsgExec(pi.apiBinaryProp)
 }
 
 // UpdateEventProcessTID Updates the Process.Tid of the event on the fly.
