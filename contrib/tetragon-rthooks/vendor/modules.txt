@@ -16,9 +16,8 @@ github.com/cilium/lumberjack/v2
 # github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000 => ../../api
 ## explicit; go 1.23.0
 github.com/cilium/tetragon/api/v1/tetragon
-# github.com/containerd/containerd v1.7.23
+# github.com/containerd/containerd v1.7.18
 ## explicit; go 1.21
-github.com/containerd/containerd/errdefs
 github.com/containerd/containerd/events
 github.com/containerd/containerd/events/exchange
 github.com/containerd/containerd/filters
@@ -26,7 +25,7 @@ github.com/containerd/containerd/identifiers
 github.com/containerd/containerd/namespaces
 github.com/containerd/containerd/plugin
 github.com/containerd/containerd/services/server/config
-# github.com/containerd/errdefs v0.3.0
+# github.com/containerd/errdefs v1.0.0
 ## explicit; go 1.20
 github.com/containerd/errdefs
 # github.com/containerd/log v0.1.0
@@ -42,7 +41,7 @@ github.com/containerd/nri/pkg/stub
 # github.com/containerd/ttrpc v1.2.6-0.20240827082320-b5cd6e4b3287
 ## explicit; go 1.19
 github.com/containerd/ttrpc
-# github.com/containerd/typeurl/v2 v2.2.0
+# github.com/containerd/typeurl/v2 v2.2.2
 ## explicit; go 1.21
 github.com/containerd/typeurl/v2
 # github.com/containers/common v0.61.0
@@ -94,8 +93,8 @@ github.com/google/cel-go/common/types/traits
 github.com/google/cel-go/interpreter
 github.com/google/cel-go/parser
 github.com/google/cel-go/parser/gen
-# github.com/kr/pretty v0.3.1
-## explicit; go 1.12
+# github.com/kr/text v0.2.0
+## explicit
 # github.com/moby/sys/mountinfo v0.7.2
 ## explicit; go 1.17
 github.com/moby/sys/mountinfo
@@ -128,8 +127,8 @@ github.com/pelletier/go-toml
 # github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
 ## explicit
 github.com/pmezard/go-difflib/difflib
-# github.com/rogpeppe/go-internal v1.11.0
-## explicit; go 1.19
+# github.com/prometheus/procfs v0.15.1
+## explicit; go 1.20
 # github.com/sirupsen/logrus v1.9.3
 ## explicit; go 1.13
 github.com/sirupsen/logrus
@@ -162,7 +161,7 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# google.golang.org/genproto/googleapis/api v0.0.0-20240903143218-8af14fe29dc1
+# google.golang.org/genproto/googleapis/api v0.0.0-20241007155032-5fefd90f89a9
 ## explicit; go 1.21
 google.golang.org/genproto/googleapis/api/expr/v1alpha1
 # google.golang.org/genproto/googleapis/rpc v0.0.0-20241021214115-324edc3d5d38
@@ -273,7 +272,7 @@ google.golang.org/protobuf/types/known/wrapperspb
 # gopkg.in/yaml.v3 v3.0.1
 ## explicit
 gopkg.in/yaml.v3
-# k8s.io/cri-api v0.27.1
-## explicit; go 1.20
+# k8s.io/cri-api v0.31.2
+## explicit; go 1.22.0
 k8s.io/cri-api/pkg/apis/runtime/v1
 # github.com/cilium/tetragon/api => ../../api
