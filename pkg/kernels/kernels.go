@@ -70,6 +70,8 @@ func GetKernelVersion(kernelVersion, procfs string) (int, string, error) {
 
 		if versionSig, err := os.ReadFile(procfs + "/version_signature"); err == nil {
 			versionStrings = strings.Fields(string(versionSig))
+		} else if versionSig, err := os.ReadFile(procfs + "/version"); err == nil {
+			versionStrings = strings.Fields(string(versionSig))
 		}
 
 		if len(versionStrings) > 0 {
