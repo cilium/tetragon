@@ -287,6 +287,10 @@ message ProcessExec {
     Process parent = 2;
     // Ancestors of the process beyond the immediate parent.
     repeated Process ancestors = 3;
+    // Short message to inform users what is going on.
+    string message = 4;
+    // Tags to categorize the event.
+    repeated string tags = 5;
 }
 
 message ProcessExit {
