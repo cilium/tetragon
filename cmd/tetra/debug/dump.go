@@ -181,17 +181,32 @@ func PolicyfilterState(fname string) {
 		return
 	}
 
-	if len(data) == 0 {
+	fmt.Println("--- Direct Map ---")
+
+	if len(data.Direct) == 0 {
 		fmt.Printf("(empty)\n")
-		return
 	}
 
-	for polId, cgIDs := range data {
+	for polId, cgIDs := range data.Direct {
 		ids := make([]string, 0, len(cgIDs))
 		for id := range cgIDs {
 			ids = append(ids, strconv.FormatUint(uint64(id), 10))
 		}
 		fmt.Printf("%d: %s\n", polId, strings.Join(ids, ","))
+	}
+
+	fmt.Println("--- Reverse Map ---")
+
+	if len(data.Reverse) == 0 {
+		fmt.Printf("(empty)\n")
+	}
+
+	for cgIDs, polIds := range data.Reverse {
+		ids := make([]string, 0, len(polIds))
+		for id := range polIds {
+			ids = append(ids, strconv.FormatUint(uint64(id), 10))
+		}
+		fmt.Printf("%d: %s\n", cgIDs, strings.Join(ids, ","))
 	}
 }
 
