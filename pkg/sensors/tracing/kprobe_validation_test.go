@@ -6,6 +6,7 @@ package tracing
 import (
 	"testing"
 
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
@@ -360,4 +361,26 @@ spec:
 
 	_, err = tracingpolicy.FromYAML(crd3)
 	assert.NoError(t, err)
+}
+
+func TestKprobeMultiSymbolInstancesFail(t *testing.T) {
+	if !bpf.HasKprobeMulti() {
+		t.Skip("Test requires kprobe multi")
+	}
+
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "multiple-symbols"
+spec:
+  kprobes:
+  - call: sys_prctl
+    syscall: true
+  - call: sys_prctl
+    syscall: true
+`
+
+	err := checkCrd(t, crd)
+	assert.Error(t, err)
 }
