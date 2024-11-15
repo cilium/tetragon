@@ -109,6 +109,7 @@ type genericKprobe struct {
 	argSigPrinters    []argPrinter
 	argReturnPrinters []argPrinter
 	funcName          string
+	instance          int
 
 	// for kprobes that have a retprobe, we maintain the enter events in
 	// the map, so that we can merge them when the return event is
@@ -626,6 +627,7 @@ func createGenericKprobeSensor(
 	}
 
 	has := hasMapsSetup(spec)
+	dups := make(map[string]int)
 
 	for i := range kprobes {
 		syms, syscall, err := getKprobeSymbols(kprobes[i].Call, kprobes[i].Syscall, lists)
@@ -636,8 +638,15 @@ func createGenericKprobeSensor(
 		// Syscall flag might be changed in list definition
 		kprobes[i].Syscall = syscall
 
-		for idx := range syms {
-			id, err := addKprobe(syms[idx], &kprobes[i], &in)
+		for _, sym := range syms {
+			// Make sure duplicate symbols got non zero instance value
+			instance, ok := dups[sym]
+			if ok {
+				instance = instance + 1
+			}
+			dups[sym] = instance
+
+			id, err := addKprobe(sym, instance, &kprobes[i], &in)
 			if err != nil {
 				return nil, err
 			}
@@ -677,7 +686,7 @@ func createGenericKprobeSensor(
 // addKprobe will, amongst other things, create a generic kprobe entry and add
 // it to the genericKprobeTable. The caller should make sure that this entry is
 // properly removed on kprobe removal.
-func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idtable.EntryID, err error) {
+func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idtable.EntryID, err error) {
 	var argSigPrinters []argPrinter
 	var argReturnPrinters []argPrinter
 	var setRetprobe bool
@@ -715,6 +724,11 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 			return errFn(fmt.Errorf("Error: can't override '%s' function without fmodret support",
 				funcName))
 		}
+	}
+
+	if in.useMulti && instance > 0 {
+		return errFn(fmt.Errorf("Error: can't have multiple instances of same symbol '%s' with kprobe_multi, use --disable-kprobe-multi option",
+			funcName))
 	}
 
 	msgField, err := getPolicyMessage(f.Message)
@@ -849,6 +863,7 @@ func addKprobe(funcName string, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idt
 		argSigPrinters:    argSigPrinters,
 		argReturnPrinters: argReturnPrinters,
 		funcName:          funcName,
+		instance:          instance,
 		pendingEvents:     nil,
 		tableId:           idtable.UninitializedEntryID,
 		policyName:        in.policyName,
@@ -897,11 +912,16 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe,
 	loadProgName, loadProgRetName := kernels.GenericKprobeObjs()
 	isSecurityFunc := strings.HasPrefix(kprobeEntry.funcName, "security_")
 
+	pinProg := kprobeEntry.funcName
+	if kprobeEntry.instance != 0 {
+		pinProg = fmt.Sprintf("%s:%d", kprobeEntry.funcName, kprobeEntry.instance)
+	}
+
 	load := program.Builder(
 		path.Join(option.Config.HubbleLib, loadProgName),
 		kprobeEntry.funcName,
 		"kprobe/generic_kprobe",
-		kprobeEntry.funcName,
+		pinProg,
 		"generic_kprobe").
 		SetLoaderData(kprobeEntry.tableId).
 		SetPolicy(kprobeEntry.policyName)
@@ -986,6 +1006,9 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe,
 
 	if kprobeEntry.loadArgs.retprobe {
 		pinRetProg := sensors.PathJoin(fmt.Sprintf("%s_return", kprobeEntry.funcName))
+		if kprobeEntry.instance != 0 {
+			pinRetProg = sensors.PathJoin(fmt.Sprintf("%s_return:%d", kprobeEntry.funcName, kprobeEntry.instance))
+		}
 		loadret := program.Builder(
 			path.Join(option.Config.HubbleLib, loadProgRetName),
 			kprobeEntry.funcName,
