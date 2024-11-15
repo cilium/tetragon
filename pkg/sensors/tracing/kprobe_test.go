@@ -7034,3 +7034,67 @@ spec:
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
+
+func TestKprobeMultiSymbolInstancesOk(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	hook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "multiple-symbols"
+spec:
+  options:
+    - name: "disable-kprobe-multi"
+      value: "1"
+  kprobes:
+  - call: sys_prctl
+    args:
+    - index: 0
+      type: int64
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: Equal
+        values:
+        - "9999"
+    syscall: true
+    tags: [ "prctl_9999" ]
+  - call: sys_prctl
+    args:
+    - index: 0
+      type: int64
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: Equal
+        values:
+        - "8888"
+    syscall: true
+    tags: [ "prctl_8888" ]
+`
+	createCrdFile(t, hook)
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	syscall.Syscall(syscall.SYS_PRCTL, 8888, 0, 0)
+	syscall.Syscall(syscall.SYS_PRCTL, 9999, 0, 0)
+
+	kp_8888 := ec.NewProcessKprobeChecker("").
+		WithTags(ec.NewStringListMatcher().WithValues(sm.Full("prctl_8888")))
+	kp_9999 := ec.NewProcessKprobeChecker("").
+		WithTags(ec.NewStringListMatcher().WithValues(sm.Full("prctl_9999")))
+
+	checker := ec.NewUnorderedEventChecker(kp_8888, kp_9999)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
