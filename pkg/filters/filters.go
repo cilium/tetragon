@@ -14,6 +14,7 @@ import (
 	hubbleFilters "github.com/cilium/cilium/pkg/hubble/filters"
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/api/v1/tetragon/codegen/helpers"
+	"github.com/sirupsen/logrus"
 )
 
 // ParseFilterList parses a list of process filters in JSON format into protobuf messages.
@@ -98,6 +99,7 @@ var Filters = []OnBuildFilter{
 	&CapsFilter{},
 	&ContainerIDFilter{},
 	&InInitTreeFilter{},
+	NewCELExpressionFilter(logrus.New()),
 }
 
 func GetProcess(event *v1.Event) *tetragon.Process {

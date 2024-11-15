@@ -38,6 +38,7 @@ type Opts struct {
 	StackTraces   bool
 	ImaHash       bool
 	PolicyNames   []string
+	CelExpression []string
 }
 
 var Options Opts
@@ -84,6 +85,9 @@ var GetFilter = func() *tetragon.Filter {
 	}
 	if len(Options.PolicyNames) > 0 {
 		filter.PolicyNames = Options.PolicyNames
+	}
+	if len(Options.CelExpression) > 0 {
+		filter.CelExpression = Options.CelExpression
 	}
 
 	return &filter
@@ -222,5 +226,6 @@ redirection of events to the stdin. Examples:
 	flags.BoolVar(&Options.StackTraces, "stack-traces", true, "Include stack traces in compact output")
 	flags.BoolVar(&Options.ImaHash, "ima-hash", true, "Include ima hashes in compact output")
 	flags.StringSliceVar(&Options.PolicyNames, "policy-names", nil, "Get events by tracing policy names")
+	flags.StringSliceVar(&Options.CelExpression, "cel-expression", nil, "Get events satisfying the CEL expression")
 	return &cmd
 }
