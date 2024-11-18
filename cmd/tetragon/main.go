@@ -422,7 +422,12 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	}
 	k8sWatcher.Start()
 
-	if err := process.InitCache(k8sWatcher, option.Config.ProcessCacheSize); err != nil {
+	pcGCInterval := option.Config.ProcessCacheGCInterval
+	if pcGCInterval <= 0 {
+		pcGCInterval = defaults.DefaultProcessCacheGCInterval
+	}
+
+	if err := process.InitCache(k8sWatcher, option.Config.ProcessCacheSize, pcGCInterval); err != nil {
 		return err
 	}
 

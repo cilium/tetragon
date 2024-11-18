@@ -40,12 +40,7 @@ var colorStr = map[int]string{
 	deleted:       "deleted",
 }
 
-// garbage collection run interval
-const (
-	intervalGC = time.Second * 30
-)
-
-func (pc *Cache) cacheGarbageCollector() {
+func (pc *Cache) cacheGarbageCollector(intervalGC time.Duration) {
 	ticker := time.NewTicker(intervalGC)
 	pc.deleteChan = make(chan *ProcessInternal)
 	pc.stopChan = make(chan bool)
@@ -147,6 +142,7 @@ func (pc *Cache) purge() {
 
 func NewCache(
 	processCacheSize int,
+	GCInterval time.Duration,
 ) (*Cache, error) {
 	lruCache, err := lru.NewWithEvict(
 		processCacheSize,
@@ -161,7 +157,7 @@ func NewCache(
 		cache: lruCache,
 		size:  processCacheSize,
 	}
-	pm.cacheGarbageCollector()
+	pm.cacheGarbageCollector(GCInterval)
 	return pm, nil
 }
 

@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/pkg/cgrouprate"
+	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/encoder"
 	"github.com/cilium/tetragon/pkg/metricsconfig"
 	"github.com/cilium/tetragon/pkg/observer"
@@ -57,9 +58,10 @@ var (
 )
 
 type testObserverOptions struct {
-	crd    bool
-	config string
-	lib    string
+	crd                 bool
+	config              string
+	lib                 string
+	procCacheGCInterval time.Duration
 }
 
 type testExporterOptions struct {
@@ -99,6 +101,12 @@ func WithDenyList(denyList *tetragon.Filter) TestOption {
 func WithConfig(config string) TestOption {
 	return func(o *TestOptions) {
 		o.observer.config = config
+	}
+}
+
+func WithProcCacheGCInterval(GCInterval time.Duration) TestOption {
+	return func(o *TestOptions) {
+		o.observer.procCacheGCInterval = GCInterval
 	}
 }
 
@@ -358,6 +366,7 @@ func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, op
 	watcher := opts.watcher
 	processCacheSize := 32768
 	dataCacheSize := 1024
+	procCacheGCInterval := defaults.DefaultProcessCacheGCInterval
 
 	if err := obs.InitSensorManager(); err != nil {
 		return err
@@ -378,7 +387,11 @@ func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, op
 		return err
 	}
 
-	if err := process.InitCache(watcher, processCacheSize); err != nil {
+	if oo.procCacheGCInterval > 0 {
+		procCacheGCInterval = oo.procCacheGCInterval
+	}
+
+	if err := process.InitCache(watcher, processCacheSize, procCacheGCInterval); err != nil {
 		return err
 	}
 

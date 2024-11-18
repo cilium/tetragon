@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -14,7 +15,7 @@ import (
 
 func TestProcessCache(t *testing.T) {
 	// add a process to the cache.
-	cache, err := NewCache(10)
+	cache, err := NewCache(10, defaults.DefaultProcessCacheGCInterval)
 	require.NoError(t, err)
 	pid := wrapperspb.UInt32Value{Value: 1234}
 	execID := "process1"
