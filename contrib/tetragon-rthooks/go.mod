@@ -7,13 +7,13 @@ toolchain go1.23.1
 
 require (
 	github.com/alecthomas/kong v1.4.0
-	github.com/cilium/lumberjack/v2 v2.4.0
+	github.com/cilium/lumberjack/v2 v2.4.1
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/containerd/containerd v1.7.23
 	github.com/containerd/nri v0.8.0
 	github.com/containers/common v0.61.0
 	github.com/google/cel-go v0.22.0
-	github.com/opencontainers/runc v1.2.1
+	github.com/opencontainers/runc v1.2.2
 	github.com/opencontainers/runtime-spec v1.2.0
 	github.com/pelletier/go-toml v1.9.5
 	github.com/stretchr/testify v1.9.0
