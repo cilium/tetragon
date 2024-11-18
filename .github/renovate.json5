@@ -85,14 +85,14 @@
       "matchPackageNames": [
         "go", // golang version directive upgrade in go.mod
       ],
-      "matchPackagePrefixes": [
-        "docker.io/library/", // official Docker images
-        "github.com/golang/", // Golang official org
-        "golang.org/x/", // Golang official experimental org
-        "google.golang.org/", // Google official repo for api/genproto/grpc/protobuf
-        "github.com/google/", // Google official github org
-        "k8s.io/", // Kubernetes official repo
-        "sigs.k8s.io/", // Kubernetes official SIG repo
+      "matchPackageNames": [
+        "docker.io/library/**", // official Docker images
+        "github.com/golang/**", // Golang official org
+        "golang.org/x/**", // Golang official experimental org
+        "google.golang.org/**", // Google official repo for api/genproto/grpc/protobuf
+        "github.com/google/**", // Google official github org
+        "k8s.io/**", // Kubernetes official repo
+        "sigs.k8s.io/**", // Kubernetes official SIG repo
         "quay.io/lvh-images/kernel-images", // LVH images
       ],
       "matchUpdateTypes": [
@@ -319,7 +319,7 @@
     {
       // no updates into stable branches (apart from security ones)
       "enabled": false,
-      "matchPackagePatterns": ["*"],
+      "matchPackageNames": ["*"],
       "matchBaseBranches": [
         "v1.0",
         "v1.1",
@@ -447,7 +447,7 @@
     },
     {
       "enabled": false,
-      "matchPackagePatterns": [
+      "matchPackageNames": [
         // k8s dependencies will be updated manually along cilium updates
         "k8s\\.io/*",
         "sigs\\.k8s\\.io/*"
