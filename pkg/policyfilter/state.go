@@ -16,7 +16,6 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/podhelpers"
 	"github.com/cilium/tetragon/pkg/podhooks"
-	"github.com/cilium/tetragon/pkg/process"
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -311,7 +310,7 @@ func (m *state) updatePodHandler(pod *v1.Pod) error {
 	}
 
 	namespace := pod.Namespace
-	workloadMeta, kindMeta := process.GetWorkloadMetaFromPod(pod)
+	workloadMeta, kindMeta := podhelpers.GetWorkloadMetaFromPod(pod)
 	workload := workloadMeta.Name
 	kind := kindMeta.Kind
 

@@ -9,7 +9,7 @@ import (
 	"reflect"
 
 	ciliumiov1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
-	"github.com/cilium/tetragon/pkg/process"
+	"github.com/cilium/tetragon/pkg/podhelpers"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -100,7 +100,7 @@ func equal(pod *corev1.Pod, podInfo *ciliumiov1alpha1.PodInfo) bool {
 		Controller:         &controller,
 		BlockOwnerDeletion: &blockOwnerDeletion,
 	}
-	workloadObject, workloadType := process.GetWorkloadMetaFromPod(pod)
+	workloadObject, workloadType := podhelpers.GetWorkloadMetaFromPod(pod)
 	return pod.Name == podInfo.Name &&
 		pod.Namespace == podInfo.Namespace &&
 		pod.Status.PodIP == podInfo.Status.PodIP &&
@@ -129,7 +129,7 @@ func generatePodInfo(pod *corev1.Pod) *ciliumiov1alpha1.PodInfo {
 	for _, podIP := range pod.Status.PodIPs {
 		podIPs = append(podIPs, ciliumiov1alpha1.PodIP{IP: podIP.IP})
 	}
-	workloadObject, workloadType := process.GetWorkloadMetaFromPod(pod)
+	workloadObject, workloadType := podhelpers.GetWorkloadMetaFromPod(pod)
 	controller := true
 	blockOwnerDeletion := true
 	return &ciliumiov1alpha1.PodInfo{
