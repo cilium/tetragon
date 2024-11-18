@@ -234,8 +234,6 @@ func pushExecveEvents(p procs) {
 		m.Unix.Msg.Common.Op = ops.MSG_OP_EXECVE
 		m.Unix.Msg.Common.Size = processapi.MsgUnixSize + p.psize + p.size
 
-		m.Unix.Msg.Kube.NetNS = 0
-		m.Unix.Msg.Kube.Cid = 0
 		m.Unix.Msg.Kube.Cgrpid = 0
 		if p.pid > 0 {
 			m.Unix.Kube.Docker, err = procsDockerId(p.pid)

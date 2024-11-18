@@ -256,8 +256,6 @@ event_execve(struct trace_event_raw_sched_process_exec *ctx)
 	event->common.ktime = p->ktime;
 	event->common.size = offsetof(struct msg_execve_event, process) + p->size;
 
-	BPF_CORE_READ_INTO(&event->kube.net_ns, task, nsproxy, net_ns, ns.inum);
-
 	get_current_subj_creds(&event->creds, task);
 	/**
 	 * Instead of showing the task owner, we want to display the effective

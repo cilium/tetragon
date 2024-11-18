@@ -265,8 +265,6 @@ struct msg_ns {
 }; // All fields aligned so no 'packed' attribute.
 
 struct msg_k8s {
-	__u32 net_ns;
-	__u32 cid;
 	__u64 cgrpid;
 	char docker_id[DOCKER_ID_LENGTH];
 }; // All fields aligned so no 'packed' attribute.
