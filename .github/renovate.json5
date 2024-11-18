@@ -454,7 +454,19 @@
         "minor",
         "digest",
       ],
-    }
+    },
+    {
+      // These major updates are breaking the build and should be done manually
+      // if needed.
+      "enabled": false,
+      "matchPackageNames": [
+        "github.com/containerd/cgroups",
+        "github.com/pelletier/go-toml",
+      ],
+      "matchUpdateTypes": [
+        "major",
+      ],
+    },
   ],
   // Those regexes manage version strings in variousfiles, similar to the
   // examples shown here: https://docs.renovatebot.com/modules/manager/regex/#advanced-capture
