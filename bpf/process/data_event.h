@@ -32,7 +32,10 @@ a:
 		return err;
 
 	msg->common.size = offsetof(struct msg_data, arg) + bytes;
-	perf_event_output_metric(ctx, MSG_OP_DATA, &tcpmon_map, BPF_F_CURRENT_CPU, msg, msg->common.size);
+	err = perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, msg, msg->common.size);
+	if (err < 0)
+		return err;
+
 	return bytes;
 b:
 	return -1;
@@ -42,13 +45,13 @@ FUNC_LOCAL long
 do_bytes(void *ctx, struct msg_data *msg, unsigned long arg, size_t bytes)
 {
 	size_t rd_bytes = 0;
-	int err, i __maybe_unused;
+	int err = 0, i __maybe_unused;
 
 #ifdef __LARGE_BPF_PROG
 	for (i = 0; i < 10; i++) {
 		err = __do_bytes(ctx, msg, arg + rd_bytes, bytes - rd_bytes);
 		if (err < 0)
-			return err;
+			goto error;
 		rd_bytes += err;
 		if (rd_bytes == bytes)
 			return rd_bytes;
@@ -57,7 +60,7 @@ do_bytes(void *ctx, struct msg_data *msg, unsigned long arg, size_t bytes)
 #define BYTES_COPY                                                    \
 	err = __do_bytes(ctx, msg, arg + rd_bytes, bytes - rd_bytes); \
 	if (err < 0)                                                  \
-		return err;                                           \
+		goto error;                                           \
 	rd_bytes += err;                                              \
 	if (rd_bytes == bytes)                                        \
 		return rd_bytes;
@@ -72,6 +75,9 @@ do_bytes(void *ctx, struct msg_data *msg, unsigned long arg, size_t bytes)
 
 	/* leftover */
 	return rd_bytes;
+error:
+	perf_event_output_update_error_metric(MSG_OP_DATA, err);
+	return err;
 }
 
 FUNC_LOCAL long

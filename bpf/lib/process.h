@@ -582,37 +582,43 @@ struct {
 } tg_stats_map SEC(".maps");
 
 FUNC_INLINE void
-perf_event_output_metric(void *ctx, u8 msg_op, void *map, u64 flags, void *data, u64 size)
+perf_event_output_update_error_metric(u8 msg_op, long err)
 {
 	struct kernel_stats *valp;
 	__u32 zero = 0;
+
+	valp = map_lookup_elem(&tg_stats_map, &zero);
+	if (valp) {
+		switch (err) {
+		case -2: // ENOENT
+			__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_ENOENT], 1);
+			break;
+		case -7: // E2BIG
+			__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_E2BIG], 1);
+			break;
+		case -16: // EBUSY
+			__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_EBUSY], 1);
+			break;
+		case -22: // EINVAL
+			__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_EINVAL], 1);
+			break;
+		case -28: // ENOSPC
+			__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_ENOSPC], 1);
+			break;
+		default:
+			__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_UNKNOWN], 1);
+		}
+	}
+}
+
+FUNC_INLINE void
+perf_event_output_metric(void *ctx, u8 msg_op, void *map, u64 flags, void *data, u64 size)
+{
 	long err;
 
 	err = perf_event_output(ctx, map, flags, data, size);
-	if (err < 0) {
-		valp = map_lookup_elem(&tg_stats_map, &zero);
-		if (valp) {
-			switch (err) {
-			case -2: // ENOENT
-				__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_ENOENT], 1);
-				break;
-			case -7: // E2BIG
-				__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_E2BIG], 1);
-				break;
-			case -16: // EBUSY
-				__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_EBUSY], 1);
-				break;
-			case -22: // EINVAL
-				__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_EINVAL], 1);
-				break;
-			case -28: // ENOSPC
-				__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_ENOSPC], 1);
-				break;
-			default:
-				__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_UNKNOWN], 1);
-			}
-		}
-	}
+	if (err < 0)
+		perf_event_output_update_error_metric(msg_op, err);
 }
 
 #endif //_PROCESS__
