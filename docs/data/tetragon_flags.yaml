@@ -176,6 +176,9 @@ options:
     - name: pprof-address
       usage: |
         Serves runtime profile data via HTTP (e.g. 'localhost:6060'). Disabled by default
+    - name: process-cache-gc-interval
+      default_value: 30s
+      usage: Time between checking the process cache for old entries
     - name: process-cache-size
       default_value: "65536"
       usage: Size of the process cache

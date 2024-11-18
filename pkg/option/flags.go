@@ -17,18 +17,19 @@ import (
 )
 
 const (
-	KeyConfigDir        = "config-dir"
-	KeyDebug            = "debug"
-	KeyHubbleLib        = "bpf-lib"
-	KeyBTF              = "btf"
-	KeyProcFS           = "procfs"
-	KeyKernelVersion    = "kernel"
-	KeyVerbosity        = "verbose"
-	KeyProcessCacheSize = "process-cache-size"
-	KeyDataCacheSize    = "data-cache-size"
-	KeyForceSmallProgs  = "force-small-progs"
-	KeyForceLargeProgs  = "force-large-progs"
-	KeyClusterName      = "cluster-name"
+	KeyConfigDir              = "config-dir"
+	KeyDebug                  = "debug"
+	KeyHubbleLib              = "bpf-lib"
+	KeyBTF                    = "btf"
+	KeyProcFS                 = "procfs"
+	KeyKernelVersion          = "kernel"
+	KeyVerbosity              = "verbose"
+	KeyProcessCacheSize       = "process-cache-size"
+	KeyDataCacheSize          = "data-cache-size"
+	KeyProcessCacheGCInterval = "process-cache-gc-interval"
+	KeyForceSmallProgs        = "force-small-progs"
+	KeyForceLargeProgs        = "force-large-progs"
+	KeyClusterName            = "cluster-name"
 
 	KeyLogLevel  = "log-level"
 	KeyLogFormat = "log-format"
@@ -170,6 +171,11 @@ func ReadAndSetFlags() error {
 
 	Config.ProcessCacheSize = viper.GetInt(KeyProcessCacheSize)
 	Config.DataCacheSize = viper.GetInt(KeyDataCacheSize)
+	Config.ProcessCacheGCInterval = viper.GetDuration(KeyProcessCacheGCInterval)
+
+	if Config.ProcessCacheGCInterval <= 0 {
+		return fmt.Errorf("failed to parse process-cache-gc-interval value. Must be >= 0")
+	}
 
 	Config.MetricsServer = viper.GetString(KeyMetricsServer)
 	Config.MetricsLabelFilter = DefaultLabelFilter().WithEnabledLabels(ParseMetricsLabelFilter(viper.GetString(KeyMetricsLabelFilter)))
@@ -296,6 +302,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Int(KeyVerbosity, 0, "set verbosity level for eBPF verifier dumps. Pass 0 for silent, 1 for truncated logs, 2 for a full dump")
 	flags.Int(KeyProcessCacheSize, 65536, "Size of the process cache")
 	flags.Int(KeyDataCacheSize, 1024, "Size of the data events cache")
+	flags.Duration(KeyProcessCacheGCInterval, defaults.DefaultProcessCacheGCInterval, "Time between checking the process cache for old entries")
 	flags.Bool(KeyForceSmallProgs, false, "Force loading small programs, even in kernels with >= 5.3 versions")
 	flags.Bool(KeyForceLargeProgs, false, "Force loading large programs, even in kernels with < 5.3 versions")
 	flags.String(KeyExportFilename, "", "Filename for JSON export. Disabled by default")

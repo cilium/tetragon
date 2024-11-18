@@ -10,6 +10,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	tetragonAPI "github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/eventcache"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
@@ -311,7 +312,7 @@ func CreateCloneEvents[CLONE notify.Message, EXIT notify.Message](Pid uint32, Kt
 }
 
 func InitEnv[EXEC notify.Message, EXIT notify.Message](t *testing.T, watcher watcher.K8sResourceWatcher) DummyNotifier[EXEC, EXIT] {
-	if err := process.InitCache(watcher, 65536); err != nil {
+	if err := process.InitCache(watcher, 65536, defaults.DefaultProcessCacheGCInterval); err != nil {
 		t.Fatalf("failed to call process.InitCache %s", err)
 	}
 

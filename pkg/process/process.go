@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/cilium/tetragon/pkg/cgidmap"
 	"github.com/cilium/tetragon/pkg/fieldfilters"
@@ -73,7 +74,7 @@ var (
 	ErrProcessInfoMissing = errors.New("failed process info missing")
 )
 
-func InitCache(w watcher.K8sResourceWatcher, size int) error {
+func InitCache(w watcher.K8sResourceWatcher, size int, GCInterval time.Duration) error {
 	var err error
 
 	if procCache != nil {
@@ -81,7 +82,7 @@ func InitCache(w watcher.K8sResourceWatcher, size int) error {
 	}
 
 	k8s = w
-	procCache, err = NewCache(size)
+	procCache, err = NewCache(size, GCInterval)
 	if err != nil {
 		k8s = nil
 	}

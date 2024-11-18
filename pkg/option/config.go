@@ -46,8 +46,9 @@ type config struct {
 	RBSizeTotal int
 	RBQueueSize int
 
-	ProcessCacheSize int
-	DataCacheSize    int
+	ProcessCacheSize       int
+	DataCacheSize          int
+	ProcessCacheGCInterval time.Duration
 
 	MetricsServer      string
 	MetricsLabelFilter metrics.LabelFilter
