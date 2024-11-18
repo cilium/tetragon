@@ -197,12 +197,16 @@ func (pc *Cache) len() int {
 
 func (pc *Cache) dump(opts *tetragon.DumpProcessCacheReqArgs) []*tetragon.ProcessInternal {
 	execveMapPath := filepath.Join(defaults.DefaultMapRoot, defaults.DefaultMapPrefix, "execve_map")
-	execveMap, err := ebpf.LoadPinnedMap(execveMapPath, &ebpf.LoadPinOptions{ReadOnly: true})
-	if err != nil {
-		logger.GetLogger().WithError(err).Warn("failed to open execve_map")
-		return []*tetragon.ProcessInternal{}
+	var execveMap *ebpf.Map
+	var err error
+	if opts.ExcludeExecveMapProcesses {
+		execveMap, err = ebpf.LoadPinnedMap(execveMapPath, &ebpf.LoadPinOptions{ReadOnly: true})
+		if err != nil {
+			logger.GetLogger().WithError(err).Warn("failed to open execve_map")
+			return []*tetragon.ProcessInternal{}
+		}
+		defer execveMap.Close()
 	}
-	defer execveMap.Close()
 
 	var processes []*tetragon.ProcessInternal
 	for _, v := range pc.cache.Values() {
