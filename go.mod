@@ -43,8 +43,8 @@ require (
 	go.uber.org/atomic v1.11.0
 	go.uber.org/multierr v1.11.0
 	golang.org/x/sync v0.9.0
-	golang.org/x/sys v0.26.0
-	golang.org/x/time v0.7.0
+	golang.org/x/sys v0.27.0
+	golang.org/x/time v0.8.0
 	google.golang.org/grpc v1.68.0
 	google.golang.org/protobuf v1.35.2
 	gopkg.in/yaml.v3 v3.0.1
