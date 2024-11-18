@@ -84,7 +84,6 @@ func newCgroupRate(
 
 func NewCgroupRate(ctx context.Context,
 	listener observer.Listener,
-	hash *program.Map,
 	opts *option.CgroupRate) {
 
 	if opts.Events == 0 || opts.Interval == 0 {
@@ -96,7 +95,7 @@ func NewCgroupRate(ctx context.Context,
 	handleLock.Lock()
 	defer handleLock.Unlock()
 
-	handle = newCgroupRate(listener, hash, opts)
+	handle = newCgroupRate(listener, cgroupRateMap, opts)
 	go handle.process(ctx)
 }
 
@@ -285,12 +284,12 @@ func Check(kube *processapi.MsgK8s, ktime uint64) {
 	cgroupratemetrics.CgroupRateTotalInc(cgroupratemetrics.Check)
 }
 
-func Config(optsMap *program.Map) {
+func Config() {
 	if handle == nil {
 		return
 	}
 
-	if optsMap.MapHandle == nil {
+	if cgroupRateOptionsMap.MapHandle == nil {
 		handle.log.Warn("failed to update cgroup rate options map")
 		return
 	}
@@ -301,7 +300,7 @@ func Config(optsMap *program.Map) {
 		Interval: handle.opts.Interval,
 	}
 
-	if err := optsMap.MapHandle.Put(key, opts); err != nil {
+	if err := cgroupRateOptionsMap.MapHandle.Put(key, opts); err != nil {
 		cgroupratemetrics.CgroupRateTotalInc(cgroupratemetrics.UpdateFail)
 	}
 }
