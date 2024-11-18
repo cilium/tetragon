@@ -125,8 +125,6 @@ func CreateEvents[EXEC notify.Message, EXIT notify.Message](Pid uint32, Ktime ui
 				Ktime:  0,
 			},
 			Kube: tetragonAPI.MsgK8s{
-				NetNS:  0,
-				Cid:    0,
 				Cgrpid: 0,
 			},
 			Parent: tetragonAPI.MsgExecveKey{
@@ -166,8 +164,6 @@ func CreateEvents[EXEC notify.Message, EXIT notify.Message](Pid uint32, Ktime ui
 				Ktime:  21034975106173,
 			},
 			Kube: tetragonAPI.MsgK8s{
-				NetNS:  4026531992,
-				Cid:    0,
 				Cgrpid: 0,
 			},
 			Parent: tetragonAPI.MsgExecveKey{
@@ -207,8 +203,6 @@ func CreateEvents[EXEC notify.Message, EXIT notify.Message](Pid uint32, Ktime ui
 				Ktime:  21034975106173,
 			},
 			Kube: tetragonAPI.MsgK8s{
-				NetNS:  4026531992,
-				Cid:    0,
 				Cgrpid: 0,
 			},
 			Parent: tetragonAPI.MsgExecveKey{
