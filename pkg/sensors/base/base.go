@@ -84,16 +84,6 @@ var (
 	CgroupRateOptionsMap = program.MapBuilder("cgroup_rate_options_map", Execve)
 
 	MatchBinariesSetMap = program.MapBuilder(mbset.MapName, Execve)
-
-	sensor = sensors.Sensor{
-		Name: basePolicy,
-	}
-	sensorInit sync.Once
-
-	sensorTest = sensors.Sensor{
-		Name: basePolicy,
-	}
-	sensorTestInit sync.Once
 )
 
 func setupPrograms() {
@@ -164,24 +154,21 @@ func GetDefaultMaps(cgroupRate bool) []*program.Map {
 
 }
 
-// GetInitialSensor returns the base sensor
-func GetInitialSensor() *sensors.Sensor {
-	sensorInit.Do(func() {
-		setupPrograms()
-		sensor.Progs = GetDefaultPrograms(option.CgroupRateEnabled())
-		sensor.Maps = GetDefaultMaps(option.CgroupRateEnabled())
-	})
+func initBaseSensor() *sensors.Sensor {
+	sensor := sensors.Sensor{
+		Name: basePolicy,
+	}
+	setupPrograms()
+	sensor.Progs = GetDefaultPrograms(option.CgroupRateEnabled())
+	sensor.Maps = GetDefaultMaps(option.CgroupRateEnabled())
 	return &sensor
 }
 
-func GetInitialSensorTest() *sensors.Sensor {
-	sensorTestInit.Do(func() {
-		setupPrograms()
-		sensorTest.Progs = GetDefaultPrograms(true)
-		sensorTest.Maps = GetDefaultMaps(true)
-	})
-	return &sensorTest
-}
+var (
+	// GetInitialSensor returns the base sensor
+	GetInitialSensor     = sync.OnceValue(initBaseSensor)
+	GetInitialSensorTest = sync.OnceValue(initBaseSensor)
+)
 
 func ConfigCgroupRate(opts *option.CgroupRate) {
 	if opts.Events == 0 || opts.Interval == 0 {
