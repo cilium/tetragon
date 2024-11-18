@@ -10,14 +10,9 @@ import (
 	"github.com/cilium/tetragon/pkg/ksyms"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/mbset"
-	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/exec/config"
 	"github.com/cilium/tetragon/pkg/sensors/program"
-)
-
-const (
-	cgroupRateMaxEntries = 32768 // this value could be fine tuned
 )
 
 var (
@@ -55,14 +50,6 @@ var (
 		"kprobe",
 	).SetPolicy(basePolicy)
 
-	CgroupRmdir = program.Builder(
-		"bpf_cgroup.o",
-		"cgroup/cgroup_rmdir",
-		"raw_tracepoint/cgroup_rmdir",
-		"tg_cgroup_rmdir",
-		"raw_tracepoint",
-	).SetPolicy(basePolicy)
-
 	/* Event Ring map */
 	TCPMonMap = program.MapBuilder("tcpmon_map", Execve)
 	/* Networking and Process Monitoring maps */
@@ -78,10 +65,6 @@ var (
 	ExecveStats        = program.MapBuilder("execve_map_stats", Execve)
 	ExecveJoinMapStats = program.MapBuilder("tg_execve_joined_info_map_stats", ExecveBprmCommit)
 	StatsMap           = program.MapBuilder("tg_stats_map", Execve)
-
-	/* Cgroup rate data, attached to execve sensor */
-	CgroupRateMap        = program.MapBuilder("cgroup_rate_map", Execve, Exit, Fork, CgroupRmdir)
-	CgroupRateOptionsMap = program.MapBuilder("cgroup_rate_options_map", Execve)
 
 	MatchBinariesSetMap = program.MapBuilder(mbset.MapName, Execve)
 )
@@ -122,20 +105,17 @@ func GetTetragonConfMap() *program.Map {
 	return TetragonConfMap
 }
 
-func GetDefaultPrograms(cgroupRate bool) []*program.Program {
+func GetDefaultPrograms() []*program.Program {
 	progs := []*program.Program{
 		Exit,
 		Fork,
 		Execve,
 		ExecveBprmCommit,
 	}
-	if cgroupRate {
-		progs = append(progs, CgroupRmdir)
-	}
 	return progs
 }
 
-func GetDefaultMaps(cgroupRate bool) []*program.Map {
+func GetDefaultMaps() []*program.Map {
 	maps := []*program.Map{
 		ExecveMap,
 		ExecveJoinMap,
@@ -147,9 +127,6 @@ func GetDefaultMaps(cgroupRate bool) []*program.Map {
 		StatsMap,
 		MatchBinariesSetMap,
 	}
-	if cgroupRate {
-		maps = append(maps, CgroupRateMap, CgroupRateOptionsMap)
-	}
 	return maps
 
 }
@@ -159,9 +136,9 @@ func initBaseSensor() *sensors.Sensor {
 		Name: basePolicy,
 	}
 	setupPrograms()
-	sensor.Progs = GetDefaultPrograms(option.CgroupRateEnabled())
-	sensor.Maps = GetDefaultMaps(option.CgroupRateEnabled())
-	return &sensor
+	sensor.Progs = GetDefaultPrograms()
+	sensor.Maps = GetDefaultMaps()
+	return applyExtensions(&sensor)
 }
 
 var (
@@ -169,11 +146,3 @@ var (
 	GetInitialSensor     = sync.OnceValue(initBaseSensor)
 	GetInitialSensorTest = sync.OnceValue(initBaseSensor)
 )
-
-func ConfigCgroupRate(opts *option.CgroupRate) {
-	if opts.Events == 0 || opts.Interval == 0 {
-		return
-	}
-
-	CgroupRateMap.SetMaxEntries(cgroupRateMaxEntries)
-}
