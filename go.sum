@@ -46,8 +46,8 @@ github.com/cilium/hive v0.0.0-20241021113747-bb8f3c0bede4 h1:dTnQNUDijFP+hf7soSZ
 github.com/cilium/hive v0.0.0-20241021113747-bb8f3c0bede4/go.mod h1:pI2GJ1n3SLKIQVFrKF7W6A6gb6BQkZ+3Hp4PAEo5SuI=
 github.com/cilium/little-vm-helper v0.0.19 h1:eJeJM/03MGLrLUXXTBDZo2JoX5cIbm5+9iWjoHgpy/M=
 github.com/cilium/little-vm-helper v0.0.19/go.mod h1:X3HGJKJ3/8vqP06VyajvD0nNDLYnGv96W8jWx4m3I7g=
-github.com/cilium/lumberjack/v2 v2.4.0 h1:toQDgWpB9n2vBod79a5I7ZD/jTAVTrd+IW5ySdYQMmU=
-github.com/cilium/lumberjack/v2 v2.4.0/go.mod h1:yfbtPGmg4i//5oEqzaMxDqSWqgfZFmMoV70Mc2k6v0A=
+github.com/cilium/lumberjack/v2 v2.4.1 h1:tU92KFJmLQ4Uls5vTgok5b5RbfxpawRia7L14y2qDBs=
+github.com/cilium/lumberjack/v2 v2.4.1/go.mod h1:yfbtPGmg4i//5oEqzaMxDqSWqgfZFmMoV70Mc2k6v0A=
 github.com/cilium/proxy v0.0.0-20240909042906-ae435a5bef38 h1:hbRPkcebWy1ZqqcnwiJJCFyzLa+xnXk6G/sM/eAsnrU=
 github.com/cilium/proxy v0.0.0-20240909042906-ae435a5bef38/go.mod h1:5L6S+WQ9v24ibJq38EMHEDljPrdx6PHqTDSHxRCJL2g=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
