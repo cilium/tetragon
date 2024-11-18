@@ -46,8 +46,8 @@ github.com/cilium/hive v0.0.0-20241021113747-bb8f3c0bede4 h1:dTnQNUDijFP+hf7soSZ
 github.com/cilium/hive v0.0.0-20241021113747-bb8f3c0bede4/go.mod h1:pI2GJ1n3SLKIQVFrKF7W6A6gb6BQkZ+3Hp4PAEo5SuI=
 github.com/cilium/little-vm-helper v0.0.19 h1:eJeJM/03MGLrLUXXTBDZo2JoX5cIbm5+9iWjoHgpy/M=
 github.com/cilium/little-vm-helper v0.0.19/go.mod h1:X3HGJKJ3/8vqP06VyajvD0nNDLYnGv96W8jWx4m3I7g=
-github.com/cilium/lumberjack/v2 v2.4.0 h1:toQDgWpB9n2vBod79a5I7ZD/jTAVTrd+IW5ySdYQMmU=
-github.com/cilium/lumberjack/v2 v2.4.0/go.mod h1:yfbtPGmg4i//5oEqzaMxDqSWqgfZFmMoV70Mc2k6v0A=
+github.com/cilium/lumberjack/v2 v2.4.1 h1:tU92KFJmLQ4Uls5vTgok5b5RbfxpawRia7L14y2qDBs=
+github.com/cilium/lumberjack/v2 v2.4.1/go.mod h1:yfbtPGmg4i//5oEqzaMxDqSWqgfZFmMoV70Mc2k6v0A=
 github.com/cilium/proxy v0.0.0-20240909042906-ae435a5bef38 h1:hbRPkcebWy1ZqqcnwiJJCFyzLa+xnXk6G/sM/eAsnrU=
 github.com/cilium/proxy v0.0.0-20240909042906-ae435a5bef38/go.mod h1:5L6S+WQ9v24ibJq38EMHEDljPrdx6PHqTDSHxRCJL2g=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
@@ -613,8 +613,8 @@ sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.30.3 h1:2770sDpzrjjsA
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.30.3/go.mod h1:Ve9uj1L+deCXFrPOk1LpFXqTg7LCFzFso6PA48q/XZw=
 sigs.k8s.io/controller-runtime v0.19.1 h1:Son+Q40+Be3QWb+niBXAg2vFiYWolDjjRfO8hn/cxOk=
 sigs.k8s.io/controller-runtime v0.19.1/go.mod h1:iRmWllt8IlaLjvTTDLhRBXIEtkCK6hwVBJJsYS9Ajf4=
-sigs.k8s.io/controller-tools v0.16.4-0.20240923084800-3b70a40398f4 h1:haAjjin8KL06HAWvDf7+kGq6d7rykR3phGpXjF7Xn7o=
-sigs.k8s.io/controller-tools v0.16.4-0.20240923084800-3b70a40398f4/go.mod h1:Duo4XTq7gaTyV2YRPCFnqg6bihcDjUAGoRPoPZY40i0=
+sigs.k8s.io/controller-tools v0.16.5 h1:5k9FNRqziBPwqr17AMEPPV/En39ZBplLAdOwwQHruP4=
+sigs.k8s.io/controller-tools v0.16.5/go.mod h1:8vztuRVzs8IuuJqKqbXCSlXcw+lkAv/M2sTpg55qjMY=
 sigs.k8s.io/e2e-framework v0.2.0 h1:gD6AWWAHFcHibI69E9TgkNFhh0mVwWtRCHy2RU057jQ=
 sigs.k8s.io/e2e-framework v0.2.0/go.mod h1:E6JXj/V4PIlb95jsn2WrNKG+Shb45xaaI7C0+BH4PL8=
 sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd h1:EDPBXCAspyGV4jQlpZSudPeMmr1bNJefnuqLsRAsHZo=

@@ -88,7 +88,7 @@ github.com/cilium/little-vm-helper/pkg/kernels
 github.com/cilium/little-vm-helper/pkg/logcmd
 github.com/cilium/little-vm-helper/pkg/runner
 github.com/cilium/little-vm-helper/pkg/step
-# github.com/cilium/lumberjack/v2 v2.4.0
+# github.com/cilium/lumberjack/v2 v2.4.1
 ## explicit; go 1.13
 github.com/cilium/lumberjack/v2
 # github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000 => ./api
@@ -1476,7 +1476,7 @@ sigs.k8s.io/controller-runtime/pkg/webhook/admission
 sigs.k8s.io/controller-runtime/pkg/webhook/admission/metrics
 sigs.k8s.io/controller-runtime/pkg/webhook/conversion
 sigs.k8s.io/controller-runtime/pkg/webhook/internal/metrics
-# sigs.k8s.io/controller-tools v0.16.4-0.20240923084800-3b70a40398f4
+# sigs.k8s.io/controller-tools v0.16.5
 ## explicit; go 1.22.0
 sigs.k8s.io/controller-tools/cmd/controller-gen
 sigs.k8s.io/controller-tools/pkg/crd
