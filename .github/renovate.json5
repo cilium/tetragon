@@ -140,6 +140,7 @@
         "go.sum"
       ],
       "matchUpdateTypes": [
+        "minor",
         "patch",
         "digest",
         "pin",
@@ -177,6 +178,7 @@
         "pkg/k8s/go.sum"
       ],
       "matchUpdateTypes": [
+        "minor",
         "patch",
         "digest",
         "pin",
@@ -194,6 +196,7 @@
         "contrib/tetragon-rthooks/go.mod",
       ],
       "matchUpdateTypes": [
+        "minor",
         "patch",
         "digest",
         "pin",
