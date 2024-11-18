@@ -8,6 +8,7 @@ import (
 	"github.com/cilium/tetragon/pkg/filters"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/watchermetrics"
+	"github.com/cilium/tetragon/pkg/podhelpers"
 	"github.com/cilium/tetragon/pkg/watcher"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -62,7 +63,7 @@ func getPodInfo(
 			Value: nspid,
 		}
 	}
-	workloadObject, workloadType := GetWorkloadMetaFromPod(pod)
+	workloadObject, workloadType := podhelpers.GetWorkloadMetaFromPod(pod)
 	watchermetrics.GetWatcherEvents(watchermetrics.K8sWatcher).Inc()
 	return &tetragon.Pod{
 		Namespace:    pod.Namespace,

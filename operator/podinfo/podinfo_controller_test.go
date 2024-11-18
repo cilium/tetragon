@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	ciliumv1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
-	"github.com/cilium/tetragon/pkg/process"
+	"github.com/cilium/tetragon/pkg/podhelpers"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -121,7 +121,7 @@ func TestGeneratePod(t *testing.T) {
 		for _, podIP := range pod.Status.PodIPs {
 			podIPs = append(podIPs, ciliumv1alpha1.PodIP{IP: podIP.IP})
 		}
-		workloadObject, workloadType := process.GetWorkloadMetaFromPod(pod)
+		workloadObject, workloadType := podhelpers.GetWorkloadMetaFromPod(pod)
 		expectedPodInfo := &ciliumv1alpha1.PodInfo{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        pod.Name,

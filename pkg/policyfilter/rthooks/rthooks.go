@@ -8,8 +8,8 @@ import (
 
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/policyfiltermetrics"
+	"github.com/cilium/tetragon/pkg/podhelpers"
 	"github.com/cilium/tetragon/pkg/policyfilter"
-	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/rthooks"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -71,7 +71,7 @@ func createContainerHook(_ context.Context, arg *rthooks.CreateContainerArg) err
 	}
 
 	namespace := pod.ObjectMeta.Namespace
-	workloadMeta, workloadKind := process.GetWorkloadMetaFromPod(pod)
+	workloadMeta, workloadKind := podhelpers.GetWorkloadMetaFromPod(pod)
 	workload := workloadMeta.Name
 	kind := workloadKind.Kind
 
