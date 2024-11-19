@@ -15,6 +15,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      with:
+        fetch-depth: 0   # because we also need the main branch
 
     - name: Install crane
       env:
@@ -26,4 +28,5 @@ jobs:
     - name: Check digests
       env:
         TERM: xterm-color
-      run: ./contrib/digestcheck.sh ${{ github.workspace }}
+        BASE_REF: ${{ github.base_ref }}
+      run: git diff --name-only origin/$BASE_REF | xargs ./contrib/digestcheck.sh
