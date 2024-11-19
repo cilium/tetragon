@@ -627,7 +627,7 @@ func WriteConfigFile(fileName, config string) error {
 }
 
 func GetDefaultObserver(tb testing.TB, ctx context.Context, lib string, opts ...TestOption) (*observer.Observer, error) {
-	b := base.GetInitialSensorTest()
+	b := base.GetInitialSensorTest(tb)
 
 	opts = append(opts, WithLib(lib))
 

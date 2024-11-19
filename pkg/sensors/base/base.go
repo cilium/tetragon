@@ -6,6 +6,7 @@ package base
 import (
 	"log"
 	"sync"
+	"testing"
 
 	"github.com/cilium/tetragon/pkg/ksyms"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -141,8 +142,28 @@ func initBaseSensor() *sensors.Sensor {
 	return applyExtensions(&sensor)
 }
 
+func initBaseSensorFn() func(tb testing.TB) *sensors.Sensor {
+	var (
+		s *sensors.Sensor
+		m sync.Mutex
+	)
+	return func(tb testing.TB) *sensors.Sensor {
+		m.Lock()
+		defer m.Unlock()
+		if s == nil {
+			s = initBaseSensor()
+			tb.Cleanup(func() {
+				tb.Logf("cleanup: unloading base sensor")
+				s.Unload(true)
+				s = nil
+			})
+		}
+		return s
+	}
+}
+
 var (
 	// GetInitialSensor returns the base sensor
 	GetInitialSensor     = sync.OnceValue(initBaseSensor)
-	GetInitialSensorTest = sync.OnceValue(initBaseSensor)
+	GetInitialSensorTest = initBaseSensorFn()
 )
