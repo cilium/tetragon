@@ -209,6 +209,7 @@ type addLsmIn struct {
 func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err error) {
 	var argSigPrinters []argPrinter
 	var argsBTFSet [api.MaxArgsSupported]bool
+	var allBtfArgs [api.EventConfigMaxArgs][api.MaxBtfArgDepth]api.ConfigBtfArg
 
 	errFn := func(err error) (idtable.EntryID, error) {
 		return idtable.UninitializedEntryID, err
@@ -239,6 +240,16 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 		if argType == gt.GenericInvalidType {
 			return errFn(fmt.Errorf("Arg(%d) type '%s' unsupported", j, a.Type))
 		}
+
+		if a.ExtractParam != "" && j < api.EventConfigMaxArgs {
+			allBtfArgs[j] = [api.MaxBtfArgDepth]api.ConfigBtfArg{}
+			lastBtfType, err := buildBtfArg(a, &allBtfArgs[j])
+			if err != nil {
+				return errFn(err)
+			}
+			argType = findTypeFromBtfType(a, lastBtfType)
+		}
+
 		if a.MaxData {
 			if argType != gt.GenericCharBuffer {
 				logger.GetLogger().Warnf("maxData flag is ignored (supported for char_buf type)")
@@ -263,6 +274,7 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 		argSigPrinters = append(argSigPrinters, argP)
 	}
 
+	config.BtfArg = allBtfArgs
 	config.ArgReturn = int32(0)
 	config.ArgReturnCopy = int32(0)
 

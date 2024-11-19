@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
+	_btf "github.com/cilium/ebpf/btf"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/btf"
-
-	_btf "github.com/cilium/ebpf/btf"
+	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 )
 
@@ -31,4 +31,12 @@ func buildBtfArg(arg v1alpha1.KProbeArg, btfArg *[api.MaxBtfArgDepth]api.ConfigB
 		return nil, err
 	}
 	return lastBtfType, nil
+}
+
+func findTypeFromBtfType(arg v1alpha1.KProbeArg, btfType *_btf.Type) int {
+	if arg.OverwriteType != "" {
+		return gt.GenericTypeFromString(arg.OverwriteType)
+	} else {
+		return gt.GenericTypeFromBTF(*btfType)
+	}
 }
