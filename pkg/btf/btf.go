@@ -9,6 +9,7 @@ import (
 	"path"
 
 	"github.com/cilium/ebpf/btf"
+	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
@@ -100,4 +101,40 @@ func InitCachedBTF(lib, btf string) error {
 
 func GetCachedBTFFile() string {
 	return btfFile
+}
+
+func FindNextBTFType(
+	btfArgs *[api.MaxBtfArgDepth]api.ConfigBtfArg,
+	currentType btf.Type,
+	pathToFound *[]string,
+	i int,
+) (*btf.Type, error) {
+	switch t := currentType.(type) {
+	case *btf.Struct:
+		memberWasFound := false
+		for _, member := range t.Members {
+			if member.Name == (*pathToFound)[i] {
+				memberWasFound = true
+				childOff := member.Offset.Bytes()
+				if childOff > 255 {
+					return nil, fmt.Errorf("Unable to reach type %v at offset %d", currentType.TypeName(), childOff)
+				}
+				(*btfArgs)[i].Offset = uint8(childOff)
+				isNotLastChild := i < len(*pathToFound)-1 && i < api.MaxBtfArgDepth
+				if isNotLastChild {
+					return FindNextBTFType(btfArgs, member.Type, pathToFound, i+1)
+				}
+				currentType = member.Type
+			}
+		}
+		if !memberWasFound {
+			return nil, fmt.Errorf("Field '%s' not found in structure '%s'", (*pathToFound)[i], currentType.TypeName())
+		}
+	case *btf.Pointer:
+		(*btfArgs)[i].IsPointer = uint8(1)
+		return FindNextBTFType(btfArgs, t.Target, pathToFound, i)
+	default:
+		return nil, fmt.Errorf("Unexpected type %v in field %s", currentType.TypeName(), (*pathToFound)[i])
+	}
+	return &currentType, nil
 }
