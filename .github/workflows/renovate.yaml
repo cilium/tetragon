@@ -17,6 +17,7 @@ on:
 
 jobs:
   renovate:
+    if: ${{ github.repository == 'cilium/tetragon' || github.event_name != 'schedule' }}
     runs-on: ubuntu-latest
     env:
       buildx_version: 'v0.10.5'
