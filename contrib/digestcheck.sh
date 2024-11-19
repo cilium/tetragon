@@ -6,11 +6,12 @@ usage () {
     echo "might be available in order to improve compatibility."
     echo ""
     echo "Usage:"
-    echo -e "\t$0 (directory)"
+    echo -e "\t$0 (directory or files)"
     echo ""
     echo "Examples:"
     echo -e "\t$0 ."
     echo -e "\t$0 \$(git rev-parse --show-toplevel)"
+    echo -e "\tgit diff --name-only main | xargs $0"
     echo ""
     echo "Return value:"
     echo -e "\tOn overall success, the script returns 0. On error of any image"
@@ -29,7 +30,7 @@ YELLOW=$(tput setaf 3)
 BLUE=$(tput setaf 4)
 NC=$(tput sgr0)
 
-images=$(grep -n -r --include='*[dD]ockerfile*' --exclude='*vendor*' 'FROM' $1 | grep -E '\b\S+@\S+\b')
+images=$(grep -n -r --include='*[dD]ockerfile*' 'FROM' "$@" | grep -E '\b\S+@\S+\b')
 
 exit_code=0
 
