@@ -6,7 +6,9 @@ package main
 import (
 	"context"
 	"os"
+	"sync"
 	"testing"
+	"time"
 
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/defaults"
@@ -27,9 +29,6 @@ func TestMain(m *testing.M) {
 // exec events generated, make sure it's done.
 func TestGeneratedExecEvents(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	ready := func() {
-		cancel()
-	}
 
 	// Minimal config to start tetragon
 	option.Config.ExportRateLimit = -1
@@ -52,8 +51,21 @@ func TestGeneratedExecEvents(t *testing.T) {
 	}
 	option.Config.ExportFilename = fname
 
-	err = tetragonExecuteCtx(ctx, cancel, ready)
-	assert.NoError(t, err)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	ready := func() {
+		wg.Done()
+	}
+
+	// Start tetragon in separate process so we can keep the whole
+	// export/server machinery running until we get expected results.
+	go func() {
+		err = tetragonExecuteCtx(ctx, cancel, ready)
+		assert.NoError(t, err)
+	}()
+
+	// Wait till tetragon's observer is up and running
+	wg.Wait()
 
 	// Make sure exec event with pid 1 was generated
 	checker := ec.NewUnorderedEventChecker(
@@ -61,6 +73,17 @@ func TestGeneratedExecEvents(t *testing.T) {
 			ec.NewProcessChecker().WithPid(1)),
 	)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	// Try it 5 times and make sure exporter is up and processed all data
+	// in case it lags for some reason like slow CI server.
+	cnt := 0
+	for cnt < 5 {
+		if err = jsonchecker.JsonTestCheck(t, checker); err == nil {
+			break
+		}
+		time.Sleep(time.Second)
+		cnt++
+	}
+
+	cancel()
 	assert.NoError(t, err)
 }
