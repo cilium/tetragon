@@ -10,6 +10,7 @@ on:
 
 jobs:
   links-checker:
+    if: ${{ github.repository == 'cilium/tetragon' || github.event_name != 'schedule' }}
     env:
       ISSUE_NAME: 'Documentation: broken links automatic report'
     runs-on: ubuntu-latest
