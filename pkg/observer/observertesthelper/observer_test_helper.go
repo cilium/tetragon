@@ -423,8 +423,7 @@ func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, op
 		obs.RemoveListener(processManager)
 	})
 
-	cgrouprate.NewCgroupRate(ctx, processManager, &option.Config.CgroupRate)
-	return nil
+	return cgrouprate.NewCgroupRate(ctx, processManager, &option.Config.CgroupRate)
 }
 
 func loadObserver(tb testing.TB, ctx context.Context, base *sensors.Sensor,

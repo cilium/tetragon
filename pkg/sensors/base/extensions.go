@@ -27,7 +27,7 @@ func RegisterExtensionAtInit(name string, fn ExtensionFn) {
 	})
 }
 
-func applyExtensions(s *sensors.Sensor) *sensors.Sensor {
+func ApplyExtensions(s *sensors.Sensor) *sensors.Sensor {
 	for _, ext := range extensions {
 		newS, err := ext.fn(s)
 		if err != nil {

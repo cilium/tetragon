@@ -240,8 +240,8 @@ func TestProcessCgroup(t *testing.T) {
 		NewTestCgroupRate(l, hash, &d.opts)
 
 		// setup cgrouprate cgroup
-		handle.cgroups[key.Id] = cgroup
-		assert.NotEqual(t, nil, handle)
+		glSt.handle.cgroups[key.Id] = cgroup
+		assert.NotEqual(t, nil, glSt.handle)
 
 		// store hash values
 		values[0] = d.values[0]
@@ -252,7 +252,7 @@ func TestProcessCgroup(t *testing.T) {
 		}
 
 		t.Logf("Test %d", idx)
-		ret := handle.processCgroup(key.Id, cgroup, d.last)
+		ret := glSt.handle.processCgroup(key.Id, cgroup, d.last)
 
 		assert.Equal(t, d.ret, ret)
 		assert.Equal(t, d.throttle, l.throttle)

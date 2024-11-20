@@ -139,7 +139,7 @@ func initBaseSensor() *sensors.Sensor {
 	setupPrograms()
 	sensor.Progs = GetDefaultPrograms()
 	sensor.Maps = GetDefaultMaps()
-	return applyExtensions(&sensor)
+	return ApplyExtensions(&sensor)
 }
 
 func initBaseSensorFn() func(tb testing.TB) *sensors.Sensor {
