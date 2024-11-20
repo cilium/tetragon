@@ -33,8 +33,9 @@ const (
 	KeyLogLevel  = "log-level"
 	KeyLogFormat = "log-format"
 
-	KeyEnableK8sAPI      = "enable-k8s-api"
-	KeyK8sKubeConfigPath = "k8s-kubeconfig-path"
+	KeyEnableK8sAPI           = "enable-k8s-api"
+	KeyK8sKubeConfigPath      = "k8s-kubeconfig-path"
+	KeyEnableProcessAncestors = "enable-process-ancestors"
 
 	KeyMetricsServer      = "metrics-server"
 	KeyMetricsLabelFilter = "metrics-label-filter"
@@ -170,6 +171,7 @@ func ReadAndSetFlags() error {
 
 	Config.ProcessCacheSize = viper.GetInt(KeyProcessCacheSize)
 	Config.DataCacheSize = viper.GetInt(KeyDataCacheSize)
+	Config.EnableProcessAncestors = viper.GetBool(KeyEnableProcessAncestors)
 
 	Config.MetricsServer = viper.GetString(KeyMetricsServer)
 	Config.MetricsLabelFilter = DefaultLabelFilter().WithEnabledLabels(ParseMetricsLabelFilter(viper.GetString(KeyMetricsLabelFilter)))
@@ -309,6 +311,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.String(KeyLogFormat, "text", "Set log format")
 	flags.Bool(KeyEnableK8sAPI, false, "Access Kubernetes API to associate Tetragon events with Kubernetes pods")
 	flags.String(KeyK8sKubeConfigPath, "", "Absolute path of the kubernetes kubeconfig file")
+	flags.Bool(KeyEnableProcessAncestors, false, "Include ancestors in process_exec, process_exit, process_uprobe, process_kprobe, process_lsm, process_tracepoint events")
 	flags.String(KeyMetricsServer, "", "Metrics server address (e.g. ':2112'). Disabled by default")
 	flags.String(KeyMetricsLabelFilter, "namespace,workload,pod,binary", "Comma-separated list of enabled metrics labels. Unknown labels will be ignored.")
 	flags.String(KeyServerAddress, "localhost:54321", "gRPC server address (e.g. 'localhost:54321' or 'unix:///var/run/tetragon/tetragon.sock'). An empty address disables the gRPC server")

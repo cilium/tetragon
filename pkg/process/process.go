@@ -488,6 +488,29 @@ func GetParentProcessInternal(pid uint32, ktime uint64) (*ProcessInternal, *Proc
 	return process, parent
 }
 
+// GetAncestorProcessesInternal returns all ancestors of the process up to
+// init process (PID 1) or kthreadd (PID 2), including the immediate parent.
+func GetAncestorProcessesInternal(execId string) []*ProcessInternal {
+	var ancestors []*ProcessInternal
+	var process *ProcessInternal
+	var err error
+
+	if process, err = procCache.get(execId); err != nil {
+		return nil
+	}
+
+	// No need to include <kernel> process (PID 0)
+	for process.process.Pid.Value > 2 {
+		if process, err = procCache.get(process.process.ParentExecId); err != nil {
+			logger.GetLogger().WithError(err).WithField("id in event", execId).Debugf("ancestor process not found in cache")
+			return nil
+		}
+		ancestors = append(ancestors, process)
+	}
+
+	return ancestors
+}
+
 // AddExecEvent constructs a new ProcessInternal structure from an Execve event, adds it to the cache, and also returns it
 func AddExecEvent(event *tetragonAPI.MsgExecveEventUnix) *ProcessInternal {
 	var proc *ProcessInternal
