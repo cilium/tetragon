@@ -23,6 +23,7 @@ package cgrouprate
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -36,6 +37,8 @@ import (
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/notify"
+	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/sirupsen/logrus"
 )
@@ -44,12 +47,18 @@ const (
 	aliveCnt            = 5
 	cleanupInterval     = time.Minute
 	cleanupInactiveTime = time.Minute
+	cgRateMaxEntries    = 32768 // this value could be fine tuned
 )
 
-var (
-	handle     *CgroupRate
-	handleLock sync.RWMutex
-)
+type globalState struct {
+	cgRateMap        *program.Map
+	cgRateOptionsMap *program.Map
+
+	handle *CgroupRate
+	mu     sync.RWMutex
+}
+
+var glSt globalState
 
 type cgroupQueue struct {
 	id    uint64
@@ -84,26 +93,30 @@ func newCgroupRate(
 
 func NewCgroupRate(ctx context.Context,
 	listener observer.Listener,
-	opts *option.CgroupRate) {
+	opts *option.CgroupRate) error {
 
 	if opts.Events == 0 || opts.Interval == 0 {
 		logger.GetLogger().Infof("Cgroup rate disabled (%d/%s)",
 			opts.Events, time.Duration(opts.Interval).String())
-		return
+		return nil
 	}
 
-	handleLock.Lock()
-	defer handleLock.Unlock()
+	glSt.mu.Lock()
+	defer glSt.mu.Unlock()
+	if glSt.cgRateMap == nil {
+		return fmt.Errorf("cgrouprate has not been registered to base sensor")
+	}
 
-	handle = newCgroupRate(listener, cgroupRateMap, opts)
-	go handle.process(ctx)
+	glSt.handle = newCgroupRate(listener, glSt.cgRateMap, opts)
+	go glSt.handle.process(ctx)
+	return nil
 }
 
 func NewTestCgroupRate(listener observer.Listener,
 	hash *program.Map,
 	opts *option.CgroupRate) {
 
-	handle = newCgroupRate(listener, hash, opts)
+	glSt.handle = newCgroupRate(listener, hash, opts)
 }
 
 func (r *CgroupRate) notify(msg notify.Message) {
@@ -116,6 +129,11 @@ func (r *CgroupRate) process(ctx context.Context) {
 	ticker := time.NewTicker(time.Second)
 	r.log.Infof("Cgroup rate started (%d/%s)",
 		r.opts.Events, time.Duration(r.opts.Interval).String())
+
+	defer func() {
+		// cleanup
+		glSt.handle = nil
+	}()
 
 	for {
 		select {
@@ -263,14 +281,14 @@ func (r *CgroupRate) processCgroup(id uint64, cgroup string, last uint64) bool {
 // Called from event handlers to kick off the cgroup rate
 // periodical check for event's cgroup.
 func Check(kube *processapi.MsgK8s, ktime uint64) {
-	if handle == nil {
+	if glSt.handle == nil {
 		return
 	}
 
-	handleLock.RLock()
-	defer handleLock.RUnlock()
+	glSt.mu.RLock()
+	defer glSt.mu.RUnlock()
 
-	if handle == nil {
+	if glSt.handle == nil {
 		return
 	}
 
@@ -280,27 +298,76 @@ func Check(kube *processapi.MsgK8s, ktime uint64) {
 		name:  string(kube.Docker[:]),
 	}
 
-	handle.ch <- cq
+	glSt.handle.ch <- cq
 	cgroupratemetrics.CgroupRateTotalInc(cgroupratemetrics.Check)
 }
 
 func Config() {
-	if handle == nil {
+	if glSt.handle == nil {
 		return
 	}
 
-	if cgroupRateOptionsMap.MapHandle == nil {
-		handle.log.Warn("failed to update cgroup rate options map")
+	if glSt.cgRateOptionsMap.MapHandle == nil {
+		glSt.handle.log.Warn("failed to update cgroup rate options map")
 		return
 	}
 
 	key := uint32(0)
 	opts := processapi.CgroupRateOptions{
-		Events:   handle.opts.Events,
-		Interval: handle.opts.Interval,
+		Events:   glSt.handle.opts.Events,
+		Interval: glSt.handle.opts.Interval,
 	}
 
-	if err := cgroupRateOptionsMap.MapHandle.Put(key, opts); err != nil {
+	if err := glSt.cgRateOptionsMap.MapHandle.Put(key, opts); err != nil {
 		cgroupratemetrics.CgroupRateTotalInc(cgroupratemetrics.UpdateFail)
 	}
+}
+
+func RegisterCgroupRate(sensor *sensors.Sensor) (*sensors.Sensor, error) {
+	if !option.CgroupRateEnabled() {
+		return sensor, nil
+	}
+
+	glSt.mu.Lock()
+	defer glSt.mu.Unlock()
+
+	if glSt.handle != nil {
+		return nil, fmt.Errorf("cgrouprate: handle is already set, need to cleanup first")
+	}
+
+	var rateProgs []*program.Program
+	var optsProgs []*program.Program
+	for _, p := range sensor.Progs {
+		if base.IsExecve(p) || base.IsFork(p) || base.IsExit(p) {
+			rateProgs = append(rateProgs, p)
+		}
+		if base.IsExecve(p) {
+			optsProgs = append(optsProgs, p)
+		}
+	}
+
+	if len(optsProgs) == 0 || len(rateProgs) == 0 {
+		return nil, fmt.Errorf("failed to find base programs")
+	}
+
+	cgRmdirProg := program.Builder(
+		"bpf_cgroup.o",
+		"cgroup/cgroup_rmdir",
+		"raw_tracepoint/cgroup_rmdir",
+		"tg_cgroup_rmdir",
+		"raw_tracepoint",
+	).SetPolicy(optsProgs[0].Policy)
+	rateProgs = append(rateProgs, cgRmdirProg)
+
+	glSt.cgRateMap = program.MapBuilder("cgroup_rate_map", rateProgs...)
+	glSt.cgRateMap.SetMaxEntries(cgRateMaxEntries)
+	glSt.cgRateOptionsMap = program.MapBuilder("cgroup_rate_options_map", optsProgs...)
+
+	sensor.Progs = append(sensor.Progs, cgRmdirProg)
+	sensor.Maps = append(sensor.Maps, glSt.cgRateMap, glSt.cgRateOptionsMap)
+	return sensor, nil
+}
+
+func init() {
+	base.RegisterExtensionAtInit("cgroup_rate", RegisterCgroupRate)
 }

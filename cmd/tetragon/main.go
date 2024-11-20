@@ -492,7 +492,9 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		return err
 	}
 
-	cgrouprate.NewCgroupRate(ctx, pm, &option.Config.CgroupRate)
+	if err := cgrouprate.NewCgroupRate(ctx, pm, &option.Config.CgroupRate); err != nil {
+		return err
+	}
 	cgrouprate.Config()
 
 	err = loadTpFromDir(ctx, option.Config.TracingPolicyDir)
