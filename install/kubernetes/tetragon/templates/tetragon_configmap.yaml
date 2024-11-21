@@ -77,3 +77,4 @@ data:
   keep-sensors-on-exit: "true"
   release-pinned-bpf: "false"
 {{- end }}
+  process-cache-gc-interval: {{ .Values.tetragon.processCacheGCInterval | quote }}

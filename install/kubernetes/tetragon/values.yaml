@@ -233,6 +233,8 @@ tetragon:
   eventCacheRetryDelay: 2
   # -- Persistent enforcement to allow the enforcement policy to continue running even when its Tetragon process is gone.
   enableKeepSensorsOnExit: false
+  # -- Configure the interval (suffixed with s for seconds, m for minutes, etc) for the process cache garbage collector.
+  processCacheGCInterval: 30s
 # Tetragon Operator settings
 tetragonOperator:
   # -- Enables the Tetragon Operator.
