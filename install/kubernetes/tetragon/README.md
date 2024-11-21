@@ -102,6 +102,7 @@ Helm chart for Tetragon
 | tetragon.pprof.address | string | `"localhost"` | The address at which to expose pprof. |
 | tetragon.pprof.enabled | bool | `false` | Whether to enable exposing pprof server. |
 | tetragon.pprof.port | int | `6060` | The port at which to expose pprof. |
+| tetragon.processCacheGCInterval | string | `"30s"` | Configure the interval (suffixed with s for seconds, m for minutes, etc) for the process cache garbage collector. |
 | tetragon.processCacheSize | int | `65536` | Tetragon puts processes in an LRU cache. The cache is used to find ancestors for subsequently exec'ed processes. |
 | tetragon.prometheus.address | string | `""` | The address at which to expose metrics. Set it to "" to expose on all available interfaces. |
 | tetragon.prometheus.enabled | bool | `true` | Whether to enable exposing Tetragon metrics. |
