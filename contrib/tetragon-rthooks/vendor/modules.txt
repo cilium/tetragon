@@ -16,7 +16,7 @@ github.com/cilium/lumberjack/v2
 # github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000 => ../../api
 ## explicit; go 1.23.0
 github.com/cilium/tetragon/api/v1/tetragon
-# github.com/containerd/containerd v1.7.23
+# github.com/containerd/containerd v1.7.24
 ## explicit; go 1.21
 github.com/containerd/containerd/errdefs
 github.com/containerd/containerd/events
@@ -72,7 +72,7 @@ github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/protoc-gen-gogo/descriptor
 github.com/gogo/protobuf/sortkeys
-# github.com/google/cel-go v0.22.0
+# github.com/google/cel-go v0.22.1
 ## explicit; go 1.21.1
 github.com/google/cel-go/cel
 github.com/google/cel-go/checker
