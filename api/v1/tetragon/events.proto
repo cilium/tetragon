@@ -63,6 +63,9 @@ message Filter {
     repeated string parent_binary_regex = 12;
     // Filter using CEL expressions.
     repeated string cel_expression = 13;
+    // Filter by process.parent.arguments field using RE2 regular expression syntax:
+    // https://github.com/google/re2/wiki/Syntax
+    repeated string parent_arguments_regex = 14;
 }
 
 // Filter over a set of Linux process capabilities. See `message Capabilities`
