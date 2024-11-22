@@ -17,7 +17,7 @@ require (
 	github.com/containerd/cgroups v1.1.0
 	github.com/deckarep/golang-set/v2 v2.6.0
 	github.com/fatih/color v1.18.0
-	github.com/google/cel-go v0.22.0
+	github.com/google/cel-go v0.22.1
 	github.com/google/go-cmp v0.6.0
 	github.com/google/gops v0.3.28
 	github.com/google/uuid v1.6.0
