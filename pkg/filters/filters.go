@@ -91,6 +91,7 @@ var Filters = []OnBuildFilter{
 	&PidSetFilter{},
 	&EventTypeFilter{},
 	&ArgumentsRegexFilter{},
+	&ParentArgumentsRegexFilter{},
 	&LabelsFilter{},
 	&PodRegexFilter{},
 	&PolicyNamesFilter{},

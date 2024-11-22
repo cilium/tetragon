@@ -39,6 +39,30 @@ func TestArgumentsRegexFilterBasic(t *testing.T) {
 	assert.False(t, fl.MatchOne(&ev))
 }
 
+func TestParentArgumentsRegexFilter(t *testing.T) {
+	f := []*tetragon.Filter{{ParentArgumentsRegex: []string{
+		"^foo$",
+		"^--bar \\d+$",
+	}}}
+	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&ParentArgumentsRegexFilter{}})
+	assert.NoError(t, err)
+	process := tetragon.Process{Arguments: "foo"}
+	ev := v1.Event{
+		Event: &tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessExec{
+				ProcessExec: &tetragon.ProcessExec{
+					Parent: &process,
+				},
+			},
+		},
+	}
+	assert.True(t, fl.MatchOne(&ev))
+	process.Arguments = "--bar 12"
+	assert.True(t, fl.MatchOne(&ev))
+	process.Arguments = "--no-match"
+	assert.False(t, fl.MatchOne(&ev))
+}
+
 func TestArgumentsRegexFilterInvalidRegex(t *testing.T) {
 	f := []*tetragon.Filter{{ArgumentsRegex: []string{"*"}}}
 	_, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&ArgumentsRegexFilter{}})
