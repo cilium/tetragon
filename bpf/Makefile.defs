@@ -31,6 +31,4 @@ ifeq ($(DEBUG),1)
 	__DEBUG_FLAGS = -DTETRAGON_BPF_DEBUG
 endif
 
-CLANG_FLAGS += $(FLAGS) -I $(LIBBPF) -I $(IDIR) -I $(LDIR) -target bpf -emit-llvm -g -D__TARGET_ARCH_$(BPF_TARGET_ARCH) -fdebug-default-version=4 $(__DEBUG_FLAGS)
-LLC_FLAGS   := -march=bpf -mcpu=v2 -mattr=dwarfris
-LLC_FLAGS_ALU32 := -march=bpf -mcpu=v3 -mattr=dwarfris
+CLANG_FLAGS += $(FLAGS) -I $(LIBBPF) -I $(IDIR) -I $(LDIR) -target bpf -mcpu=v2 -g -D__TARGET_ARCH_$(BPF_TARGET_ARCH) -fdebug-default-version=4 $(__DEBUG_FLAGS)

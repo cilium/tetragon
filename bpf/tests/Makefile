@@ -18,11 +18,8 @@ $(OBJS): | $(OBJSDIR)
 $(OBJSDIR):
 	mkdir $(OBJSDIR)
 
-objs/%.ll: %.c
+objs/%.o: %.c
 	$(CLANG) $(CLANG_FLAGS) -I ../ -c $< -o $@
-
-objs/%.o: objs/%.ll
-	$(LLC) $(LLC_FLAGS) -filetype=obj $< -o $@
 
 .PHONY: clean
 clean:
