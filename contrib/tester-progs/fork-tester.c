@@ -2,99 +2,104 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+#include <sys/prctl.h>
 #include <sys/wait.h>
-#include <arpa/inet.h>
-#include <fcntl.h>
+#include <unistd.h>
 #include <signal.h>
+#include <errno.h>
 
-// NB: global pipe for child 2 to notify parent that it has finished.
-int Pipe[2];
+#define TIMEOUT_SECONDS 30
 
-void client_run()
+volatile sig_atomic_t timeout_occurred = 0;
+
+void timeout_handler(int signo)
 {
-	// just print a message
-	printf("child 2 (pid:%d, ppid:%d) starts\n", getpid(), getppid());
-	printf("child 2 done\n");
-	return;
+	if (signo == SIGALRM) {
+		timeout_occurred = 1;
+	}
 }
 
-void child1()
+void child2(pid_t reaper_pid)
+{
+	pid_t initial_ppid = getppid();
+	pid_t pid = getpid();
+
+	printf("child 2 (pid:%d, ppid:%d) starts\n", pid, initial_ppid);
+
+	pid_t new_ppid;
+	for (int i = 0;; i++) {
+		new_ppid = getppid();
+		if (new_ppid == reaper_pid) {
+			break;
+		}
+		if (i == 30) {
+			fprintf(stderr, "giving up on waiting our parent to die\n");
+			exit(EXIT_FAILURE);
+		}
+		sleep(1);
+	}
+	printf("child 2 (pid:%d, ppid:%d) exits\n", pid, new_ppid);
+}
+
+void child1(pid_t ppid)
 {
 	pid_t pid;
 
-	if  ((pid = fork()) == -1) {
+	if ((pid = fork()) == -1) {
 		perror("fork");
 		exit(1);
 	} else if (pid == 0) {
-		for (int i=0; ;i++) {
-			int ppid = getppid();
-			if (ppid == 1) {
-				break;
-			}
-			if (i == 30) {
-				fprintf(stderr, "giving up on waiting our parent to die\n");
-				exit(1);
-			}
-			sleep(1);
-		}
-		client_run();
+		child2(ppid);
 	} else {
-		/* chilid 1 exits, after creating child 2 */
+		/* child 1 exits, after creating child 2 */
 		printf("child 1 (pid:%d) exits\n", getpid());
 		return;
 	}
-
 }
 
-void alarm_handler(int signum)
+void wait_children(void)
 {
-	fprintf(stderr, "got an alarm, bailing out\n");
-	exit(1);
-}
+	signal(SIGALRM, timeout_handler);
+	alarm(TIMEOUT_SECONDS);
 
-int main(int argc, char **argv)
-{
-	pid_t pid;
-
-	signal(SIGALRM, alarm_handler);
-
-	printf("parent: (pid:%d, ppid:%d) starts\n", getpid(), getppid());
-
-	if (pipe2(Pipe, O_DIRECT) == -1) {
-		perror("pipe2");
-		exit(1);
+	while (1) {
+		int status;
+		int pid = wait(&status);
+		if (pid == -1) {
+			if (errno == ECHILD) {
+				printf("parent (pid:%d) no more descendants\n", getpid());
+				break;
+			}
+			if (timeout_occurred) {
+				fprintf(stderr, "parent (pid:%d) timeout\n", getpid());
+				kill(-getpid(), SIGKILL);
+				break;
+			}
+			perror("wait");
+		} else {
+			printf("parent (pid:%d) child (%d) exited with: %d\n", getpid(), pid,
+			       status);
+		}
 	}
+}
 
-	if  ((pid = fork()) == -1) {
+int main(void)
+{
+	pid_t child_pid;
+	pid_t pid = getpid();
+
+	printf("parent (pid:%d, ppid:%d) starts\n", pid, getppid());
+	prctl(PR_SET_CHILD_SUBREAPER, 1);
+
+	if ((child_pid = fork()) == -1) {
 		perror("fork");
-		exit(1);
-	} else if (pid == 0) {
-		child1();
-		/* child */
-		return 0;
+		return EXIT_FAILURE;
+	} else if (child_pid == 0) {
+		child1(pid);
+		return EXIT_SUCCESS;
 	}
 
-	if (close(Pipe[1]) == -1) {
-		perror("close");
-		exit(1);
-	}
+	wait_children();
 
-	/* wait for child1 to exit */
-	int status;
-	pid = wait(&status);
-	printf("parent: (pid:%d) child (%d) exited with: %d\n", getpid(), pid, status);
-
-	/* setup an alarm in case something goes wrong, and wait until the pipe
-	 * is closed. This will happen when all children terminate */
-	alarm(10);
-	char c;
-	int ret = read(Pipe[0], &c, 1);
-	if (ret < 0) {
-		perror("read");
-	}
-
-	return 0;
+	return EXIT_SUCCESS;
 }
