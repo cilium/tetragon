@@ -63,7 +63,13 @@ $(OBJSDIR):
 $(DEPSDIR):
 	mkdir $(DEPSDIR)
 
+CFLAGS_v53  = -D__LARGE_BPF_PROG
+CFLAGS_v511 = -D__LARGE_BPF_PROG -D__LARGE_MAP_KEYS
+CFLAGS_v61  = -D__LARGE_BPF_PROG -D__LARGE_MAP_KEYS -D__V61_BPF_PROG
+
 MTARGET = $(patsubst $(DEPSDIR)%.d,$(OBJSDIR)%.o,$@)
+
+VARIANT_CFLAGS = $$(CFLAGS_$1)
 
 define DEFINE_VARIANT
 VAR := $1
@@ -79,6 +85,21 @@ deps/bpf_generic_lsm_core_$$(VAR).d: process/bpf_generic_lsm_core.c
 deps/bpf_generic_lsm_output_$$(VAR).d: process/bpf_generic_lsm_output.c
 deps/bpf_generic_lsm_ima_bprm_$$(VAR).d: process/bpf_generic_lsm_ima_bprm.c
 deps/bpf_generic_lsm_ima_file_$$(VAR).d: process/bpf_generic_lsm_ima_file.c
+
+$(OBJSDIR)%_$$(VAR).o:
+	$(CLANG) $(CLANG_FLAGS) $(VARIANT_CFLAGS) -c $$< -o $$@
+
+$(DEPSDIR)%_$$(VAR).d:
+	$(CLANG) $(CLANG_FLAGS) $(VARIANT_CFLAGS) -MM -MP -MT $$(MTARGET) $$< > $$@
+
+$(OBJSDIR)bpf_multi_kprobe_$$(VAR).o $(OBJSDIR)bpf_multi_retkprobe_$$(VAR).o:
+	$(CLANG) $(CLANG_FLAGS) $(VARIANT_CFLAGS) -D__MULTI_KPROBE -c $$< -o $$@
+
+ifeq (v61,$$(VAR))
+$(OBJSDIR)bpf_multi_uprobe_$$(VAR).o:
+	$(CLANG) $(CLANG_FLAGS) $(VARIANT_CFLAGS) -D__MULTI_KPROBE -c $$< -o $$@
+endif
+
 endef
 
 # Generic build targets for each sub-dir
@@ -118,39 +139,8 @@ $(DEPSDIR)bpf_fmodret_enforcer.d: process/bpf_enforcer.c
 	$(CLANG) $(CLANG_FLAGS) -MM -MP -MT $(MTARGET) $< > $@
 
 # PROCESSDIR
-objs/bpf_multi_kprobe_v53.o objs/bpf_multi_retkprobe_v53.o:
-	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__MULTI_KPROBE -c $< -o $@
-
-objs/%_v53.o:
-	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -c $< -o $@
-
 $(DEPSDIR)%.d: $(PROCESSDIR)%.c
 	$(CLANG) $(CLANG_FLAGS) -MM -MP -MT $(MTARGET) $< > $@
-
-
-$(DEPSDIR)%_v53.d:
-	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -MM -MP -MT $(MTARGET) $< > $@
-
-objs/bpf_multi_kprobe_v61.o objs/bpf_multi_retkprobe_v61.o:
-	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__LARGE_MAP_KEYS -D__V61_BPF_PROG -D__MULTI_KPROBE -c $< -o $@
-
-objs/bpf_multi_uprobe_v61.o:
-	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__V61_BPF_PROG -D__MULTI_KPROBE -c $< -o $@
-
-objs/%_v61.o:
-	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__LARGE_MAP_KEYS -D__V61_BPF_PROG -c $< -o $@
-
-$(DEPSDIR)%_v61.d:
-	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__LARGE_MAP_KEYS -D__V61_BPF_PROG -MM -MP -MT $(MTARGET) $< > $@
-
-objs/bpf_multi_kprobe_v511.o objs/bpf_multi_retkprobe_v511.o:
-	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__LARGE_MAP_KEYS -D__MULTI_KPROBE -c $< -o $@
-
-objs/%_v511.o:
-	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__LARGE_MAP_KEYS -c $< -o $@
-
-$(DEPSDIR)%_v511.d:
-	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -D__LARGE_MAP_KEYS -MM -MP -MT $(MTARGET) $< > $@
 
 objs/bpf_generic_lsm_core.o:
 	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -c $< -o $@
