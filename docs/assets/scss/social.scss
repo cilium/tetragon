@@ -1,5 +1,9 @@
 .social {
-  margin-top: 112px;
+  margin-top: 128px;
+
+  &--inner {
+    margin-bottom: 128px;
+  }
 
   @media (max-width: $desktop) {
     margin-top: 100px;
@@ -14,6 +18,7 @@
   }
 
   &__title {
+    letter-spacing: -0.88px;
     text-align: center;
 
     @media (max-width: $desktop) {
@@ -30,41 +35,33 @@
   }
 
   &__list {
-    display: flex;
-    justify-content: center;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
     gap: 24px;
     margin-bottom: 0;
     margin-top: 46px;
 
     @media (max-width: $desktop) {
-      gap: 28px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
     }
 
     @media (max-width: $tablet) {
-      flex-wrap: wrap;
+      grid-template-columns: repeat(2, 1fr);
       gap: 20px;
       margin-top: 32px;
     }
 
     @media (max-width: $mobile) {
-      flex-direction: column;
-      gap: 22px;
+      grid-template-columns: repeat(1, 100%);
+      gap: 16px;
     }
   }
 
   &__item {
     position: relative;
-    width: 320px;
     border: 1px solid transparent;
     border-radius: 4px;
-
-    @media (max-width: $tablet) {
-      width: 346px;
-    }
-
-    @media (max-width: $mobile) {
-      width: 100%;
-    }
 
     &:after {
       z-index: -1;
@@ -87,90 +84,53 @@
     }
   }
 
-  &__item-wrapper {
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1;
-    @media (max-width: $mobile) {
-      display: flex;
-      flex-direction: column;
-    }
-  }
-
   &__link {
     display: flex;
     flex-direction: column;
-    height: 100%;
-    padding: 21px 24px;
+    align-items: center;
+    padding: 28px 37px;
+    font-weight: 700;
+    font-size: 22px;
+    line-height: 1.375;
+    text-align: center;
     color: #253737;
-
-    @media (max-width: $tablet) {
-      padding: 22px;
-    }
 
     @media (max-width: $mobile) {
       flex-direction: row;
-      align-items: flex-start;
-      gap: 18px;
-      padding: 17px 19px;
+      gap: 16px;
+      padding: 24px;
+      font-size: 18px;
     }
 
     img {
-      margin-left: -6px;
+      width: 64px;
+      height: auto;
+      margin-bottom: 16px;
+      border-radius: 50%;
+      box-shadow: 0 3px 8px 0 #0000000D, 0 3px 8px 0 #0000001A;
+
+      @media (max-width: $mobile) {
+        width: 36px;
+        margin-bottom: 0;
+      }
+    }
+
+    span {
+      max-width: 148px;
 
       @media (max-width: $tablet) {
-        max-width: 55px;
-        height: auto;
+        max-width: none;
+      }
+
+      @media (max-width: $mobile) {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
     }
 
     &:hover {
       color: #253737;
-    }
-  }
-
-  &__item-title {
-    margin-top: 6px;
-    margin-bottom: 0;
-    font-size: 24px;
-    font-weight: 700;
-    line-height: 33px;
-
-    @media (max-width: $tablet) {
-      margin-top: 10px;
-      font-size: 18px;
-      line-height: 1.375;
-    }
-
-    @media (max-width: $mobile) {
-      margin-top: 0;
-    }
-  }
-
-  &__item-description {
-    margin-top: 5px;
-    margin-bottom: auto;
-    line-height: 1.5;
-    color: #7E8490;
-
-    @media (max-width: $tablet) {
-      margin-bottom: 15px;
-    }
-
-    @media (max-width: $mobile) {
-      margin-bottom: 8px;
-    }
-  }
-
-  .button {
-    margin-top: 8px;
-
-    @media (max-width: $desktop) {
-      margin-top: 13px;
-    }
-
-    @media (max-width: $tablet) {
-      margin-top: auto;
     }
   }
 
