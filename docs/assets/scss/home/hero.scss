@@ -32,6 +32,10 @@
     }
   }
 
+  &--inner .container  {
+    padding-bottom: 56px;
+  }
+
   &__label {
     display: inline-flex;
     flex-wrap: wrap;
@@ -84,6 +88,15 @@
     grid-area: intro;
     padding-right: 4rem;
 
+    .hero--inner & {
+      padding-top: 96px;
+      padding-right: 0;
+
+      @media (max-width: $tablet) {
+        padding-top: 0;
+      }
+    }
+
     .title {
       margin-top: 22px;
       margin-bottom: 0;
@@ -92,6 +105,10 @@
     p {
       margin-top: 1rem;
       color: #2B383B;
+
+      .hero--inner & {
+        max-width: 500px;
+      }
     }
 
     @media (max-width: $desktop) {
@@ -112,6 +129,10 @@
 
       .title {
         max-width: 590px;
+
+        .hero--inner & {
+          max-width: 500px;
+        }
       }
 
       p {
@@ -122,6 +143,16 @@
     @media (max-width: $mobile) {
       .title {
         margin-top: 20px;
+
+        .hero--inner & {
+          max-width: 400px;
+        }
+      }
+
+      p {
+        .hero--inner & {
+          max-width: 360px;
+        }
       }
     }
   }
@@ -152,18 +183,28 @@
       max-width: 100%;
       height: auto;
 
+      .hero--inner & {
+        margin-left: auto;
+        margin-right: 45px;
+        margin-top: 8px;
+      }
+
       @media (max-width: $desktop) {
         max-width: 460px;
+
+        .hero--inner & {
+          margin-right: auto;
+        }
       }
 
       @media (max-width: $tablet) {
         max-width: 368px;
-        margin: 2rem auto;
+        margin: 2rem auto !important;
       }
 
       @media (max-width: $mobile) {
         max-width: 100%;
-        margin: 1.5rem auto 0 auto;
+        margin: 1.5rem auto 0 auto !important;
       }
     }
 

@@ -55,8 +55,13 @@ weight = 1
     url = "/docs/getting-started"
 
 [[menu.main]]
-    name = "GitHub"
+    name = "Enterprise"
     weight = 40
+    url = "/enterprise"
+
+[[menu.main]]
+    name = "GitHub"
+    weight = 50
     url = "https://github.com/cilium/tetragon/"
     pre = "<i class=\"fa-brands fa-github\"></i>"
 
