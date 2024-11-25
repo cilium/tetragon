@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path"
 	"syscall"
+	"testing"
 )
 
 func CopyFile(toPath, fromPath string, perm os.FileMode) error {
@@ -64,4 +66,22 @@ func CopyFileToTmp(fname string) (string, error) {
 	}
 
 	return outf.Name(), nil
+}
+
+// CopyExecToTemp copy an executable to temp and return its temporary value.
+// The intention here is to allow filtering based on binary for well-known executables
+func CopyExecToTemp(t *testing.T, execName string) string {
+	path, err := exec.LookPath(execName)
+	if err != nil {
+		t.Fatalf("failed to find '%s' exec: %v", execName, err)
+	}
+	tmpPath, err := CopyFileToTmp(path)
+	if err != nil {
+		t.Fatalf("failed to copy 'sh' exec: %v", err)
+	}
+	t.Cleanup(func() {
+		os.Remove(tmpPath)
+	})
+
+	return tmpPath
 }
