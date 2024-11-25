@@ -88,14 +88,14 @@ func SetMinKernelVersion() env.Func {
 			versionsInt = append(versionsInt, kernels.KernelStringToNumeric(kVersion))
 		}
 
-		min := int64(math.MaxInt64)
+		minimum := int64(math.MaxInt64)
 		var minStr string
 		for i := range versions {
 			verStr := versions[i]
 			verInt := versionsInt[i]
 
-			if verInt < min {
-				min = verInt
+			if verInt < minimum {
+				minimum = verInt
 				minStr = verStr
 			}
 		}

@@ -773,8 +773,8 @@ func doLoadProgram(
 			continue
 		}
 
-		if max, ok := m.GetMaxEntries(); ok {
-			ms.MaxEntries = max
+		if maximum, ok := m.GetMaxEntries(); ok {
+			ms.MaxEntries = maximum
 		}
 
 		if innerMax, ok := m.GetMaxInnerEntries(); ok {
