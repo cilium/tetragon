@@ -157,6 +157,8 @@ type Binary struct {
 	End        [STRING_POSTFIX_MAX_LENGTH]byte
 	End_r      [STRING_POSTFIX_MAX_LENGTH]byte
 	MBSet      uint64
+	Uid        uint32
+	Gid        uint32
 }
 
 type MsgNamespaces struct {
