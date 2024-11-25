@@ -37,7 +37,7 @@ require (
 	github.com/spf13/pflag v1.0.6-0.20210604193023-d5e0c0615ace
 	github.com/spf13/viper v1.19.0
 	github.com/sryoya/protorand v0.0.0-20240429201223-e7440656b2a4
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	github.com/tidwall/gjson v1.18.0
 	github.com/vishvananda/netlink v1.3.1-0.20241022031324-976bd8de7d81
 	go.uber.org/atomic v1.11.0
