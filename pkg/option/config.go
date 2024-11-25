@@ -103,6 +103,7 @@ type config struct {
 
 	EnableCgIDmap      bool
 	EnableCgIDmapDebug bool
+	EnableCgTrackerID  bool
 
 	EventCacheNumRetries int
 	EventCacheRetryDelay int
