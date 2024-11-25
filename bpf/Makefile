@@ -67,7 +67,18 @@ CFLAGS_v53  = -D__LARGE_BPF_PROG
 CFLAGS_v511 = -D__LARGE_BPF_PROG -D__LARGE_MAP_KEYS
 CFLAGS_v61  = -D__LARGE_BPF_PROG -D__LARGE_MAP_KEYS -D__V61_BPF_PROG
 
+CFLAGS_bpf_enforcer.o           = -D__BPF_OVERRIDE_RETURN
+CFLAGS_bpf_multi_enforcer.o     = -D__BPF_OVERRIDE_RETURN -D__MULTI_KPROBE
+CFLAGS_bpf_generic_lsm_core.o   = -D__LARGE_BPF_PROG
+CFLAGS_bpf_generic_lsm_output.o = -D__LARGE_BPF_PROG
+
 MTARGET = $(patsubst $(DEPSDIR)%.d,$(OBJSDIR)%.o,$@)
+
+rule_d_CFLAGS = $(CFLAGS_$(notdir $(MTARGET)))
+rule_o_CFLAGS = $(CFLAGS_$(notdir $@))
+
+rule_d = $(CLANG) $(CLANG_FLAGS) $(rule_d_CFLAGS) $1 -MM -MP -MT $(MTARGET) $< > $@
+rule_o = $(CLANG) $(CLANG_FLAGS) $(rule_o_CFLAGS) $1 -c $< -o $@
 
 VARIANT_CFLAGS = $$(CFLAGS_$1)
 
@@ -87,81 +98,38 @@ deps/bpf_generic_lsm_ima_bprm_$$(VAR).d: process/bpf_generic_lsm_ima_bprm.c
 deps/bpf_generic_lsm_ima_file_$$(VAR).d: process/bpf_generic_lsm_ima_file.c
 
 $(OBJSDIR)%_$$(VAR).o:
-	$(CLANG) $(CLANG_FLAGS) $(VARIANT_CFLAGS) -c $$< -o $$@
+	$$(call rule_o,$(VARIANT_CFLAGS))
 
 $(DEPSDIR)%_$$(VAR).d:
-	$(CLANG) $(CLANG_FLAGS) $(VARIANT_CFLAGS) -MM -MP -MT $$(MTARGET) $$< > $$@
+	$$(call rule_d,$(VARIANT_CFLAGS))
 
-$(OBJSDIR)bpf_multi_kprobe_$$(VAR).o $(OBJSDIR)bpf_multi_retkprobe_$$(VAR).o:
-	$(CLANG) $(CLANG_FLAGS) $(VARIANT_CFLAGS) -D__MULTI_KPROBE -c $$< -o $$@
-
+CFLAGS_bpf_multi_kprobe_$$(VAR).o    = -D__MULTI_KPROBE
+CFLAGS_bpf_multi_retkprobe_$$(VAR).o = -D__MULTI_KPROBE
 ifeq (v61,$$(VAR))
-$(OBJSDIR)bpf_multi_uprobe_$$(VAR).o:
-	$(CLANG) $(CLANG_FLAGS) $(VARIANT_CFLAGS) -D__MULTI_KPROBE -c $$< -o $$@
+CFLAGS_bpf_multi_uprobe_$$(VAR).o    = -D__MULTI_KPROBE
 endif
 
 endef
-
-# Generic build targets for each sub-dir
 
 $(eval $(call DEFINE_VARIANT,v53))
 $(eval $(call DEFINE_VARIANT,v511))
 $(eval $(call DEFINE_VARIANT,v61))
 
 objs/%.o:
-	$(CLANG) $(CLANG_FLAGS) -c $< -o $@
+	$(rule_o)
 
 $(DEPSDIR)%.d: $(ALIGNCHECKERDIR)%.c
-	$(CLANG) $(CLANG_FLAGS) -MM -MP -MT $(MTARGET) $< > $@
-
-
-# Enforcer programs: bpf_enforcer, bpf_multi_enforcer, bpf_fmodret_enforcer
-
-## bpf_enforcer: __BPF_OVERRIDE_RETURN, but no __MULTI_KPROBE
-objs/bpf_enforcer.o:
-	$(CLANG) $(CLANG_FLAGS) -D__BPF_OVERRIDE_RETURN -c $< -o $@
-
-$(DEPSDIR)bpf_enforcer.d: process/bpf_enforcer.c
-	$(CLANG) $(CLANG_FLAGS) -D__BPF_OVERRIDE_RETURN -MM -MP -MT $(MTARGET) $< > $@
-
-## bpf_multi_enforcer: __BPF_OVERRIDE_RETURN and __MULTI_KPROBE
-objs/bpf_multi_enforcer.o:
-	$(CLANG) $(CLANG_FLAGS) -D__BPF_OVERRIDE_RETURN -D__MULTI_KPROBE -c $< -o $@
-
+	$(rule_d)
 $(DEPSDIR)bpf_multi_enforcer.d: process/bpf_enforcer.c
-	$(CLANG) $(CLANG_FLAGS) -D__BPF_OVERRIDE_RETURN -D__MULTI_KPROBE -MM -MP -MT $(MTARGET) $< > $@
-
-## bpf_fmodret_enforcer no bpf_override_return: we need fmod_ret
-objs/bpf_fmodret_enforcer.o:
-	$(CLANG) $(CLANG_FLAGS) -c $< -o $@
-
+	$(rule_d)
 $(DEPSDIR)bpf_fmodret_enforcer.d: process/bpf_enforcer.c
-	$(CLANG) $(CLANG_FLAGS) -MM -MP -MT $(MTARGET) $< > $@
-
-# PROCESSDIR
+	$(rule_d)
 $(DEPSDIR)%.d: $(PROCESSDIR)%.c
-	$(CLANG) $(CLANG_FLAGS) -MM -MP -MT $(MTARGET) $< > $@
-
-objs/bpf_generic_lsm_core.o:
-	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -c $< -o $@
-
-$(DEPSDIR)/bpf_generic_lsm_core.d:
-	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -MM -MP -MT $(MTARGET)   $< > $@
-
-objs/bpf_generic_lsm_output.o:
-	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -c $< -o $@
-
-$(DEPSDIR)/bpf_generic_lsm_output.d:
-	$(CLANG) $(CLANG_FLAGS) -D__LARGE_BPF_PROG -MM -MP -MT $(MTARGET)   $< > $@
-
-
-# BPFTESTDIR
+	$(rule_d)
 $(DEPSDIR)%.d: $(BPFTESTDIR)%.c
-	$(CLANG) $(CLANG_FLAGS) -MM -MP -MT $(MTARGET) $< > $@
-
-# CGROUPDIR
+	$(rule_d)
 $(DEPSDIR)%.d: $(CGROUPDIR)%.c
-	$(CLANG) $(CLANG_FLAGS) -MM -MP -MT $(MTARGET) $< > $@
+	$(rule_d)
 
 # include dependencies, see https://lists.gnu.org/archive/html/make-w32/2004-03/msg00062.html
 ifeq (,$(filter $(MAKECMDGOALS),clean run-test))
