@@ -25,6 +25,7 @@ PROGS = sigkill-tester \
 	direct-write-tester \
 	change-capabilities \
 	user-stacktrace \
+	test-helper \
 	pause
 
 
@@ -97,6 +98,9 @@ getcpu-i386: FORCE
 
 user-stacktrace: FORCE
 	go build -o user-stacktrace ./go/user-stacktrace
+
+test-helper: FORCE
+	go build -o test-helper ./go/test-helper
 
 .PHONY: clean
 clean:

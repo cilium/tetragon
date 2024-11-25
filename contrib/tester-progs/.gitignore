@@ -24,3 +24,4 @@ change-capabilities
 direct-write-tester
 user-stacktrace
 pause
+/test-helper
