@@ -18,6 +18,7 @@ latest.json
 strange.txt
 compile_commands.json
 /release
+/tetragon-metrics-docs
 
 # project tool artifacts
 .vagrant/
