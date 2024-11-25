@@ -322,10 +322,10 @@ func (s *Sensor) loadMap(bpfDir string, m *program.Map) error {
 	pinPath := filepath.Join(bpfDir, m.PinPath)
 
 	if m.IsOwner() {
-		// If map is the owner we set configured max entries
+		// If map is the owner we set configured maximum entries
 		// directly to map spec.
-		if max, ok := m.GetMaxEntries(); ok {
-			mapSpec.MaxEntries = max
+		if maximum, ok := m.GetMaxEntries(); ok {
+			mapSpec.MaxEntries = maximum
 		}
 
 		if innerMax, ok := m.GetMaxInnerEntries(); ok {
@@ -334,24 +334,24 @@ func (s *Sensor) loadMap(bpfDir string, m *program.Map) error {
 			}
 		}
 	} else {
-		// If map is NOT the owner we follow the max entries
+		// If map is NOT the owner we follow the maximum entries
 		// of the pinned map and update the spec with that.
-		max, err := program.GetMaxEntriesPinnedMap(pinPath)
+		maximum, err := program.GetMaxEntriesPinnedMap(pinPath)
 		if err != nil {
 			return err
 		}
-		mapSpec.MaxEntries = max
+		mapSpec.MaxEntries = maximum
 
-		// 'm' is not the owner but for some reason requires max
+		// 'm' is not the owner but for some reason requires maximum
 		// entries setup, make sure it matches the pinned map.
-		if max, ok := m.GetMaxEntries(); ok {
-			if mapSpec.MaxEntries != max {
+		if maximum, ok := m.GetMaxEntries(); ok {
+			if mapSpec.MaxEntries != maximum {
 				return fmt.Errorf("failed to load map '%s' max entries mismatch: %d %d",
-					m.Name, mapSpec.MaxEntries, max)
+					m.Name, mapSpec.MaxEntries, maximum)
 			}
 		}
 
-		m.SetMaxEntries(int(max))
+		m.SetMaxEntries(int(maximum))
 	}
 
 	// Disable content loading at this point, we just care about the map,

@@ -381,12 +381,12 @@ func GetMaxEntriesPinnedMap(pinPath string) (uint32, error) {
 	return m.MaxEntries(), nil
 }
 
-func (m *Map) SetMaxEntries(max int) {
-	m.Entries = MaxEntries{uint32(max), true}
+func (m *Map) SetMaxEntries(maximum int) {
+	m.Entries = MaxEntries{uint32(maximum), true}
 }
 
-func (m *Map) SetInnerMaxEntries(max int) {
-	m.InnerEntries = MaxEntries{uint32(max), true}
+func (m *Map) SetInnerMaxEntries(maximum int) {
+	m.InnerEntries = MaxEntries{uint32(maximum), true}
 }
 
 func (m *Map) GetMaxEntries() (uint32, bool) {

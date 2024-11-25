@@ -62,8 +62,8 @@ func AreSubset(a uint64, set uint64) bool {
 }
 
 // capToMask() returns the mask of the corresponding u32
-func capToMask(cap int32) uint32 {
-	return uint32(1 << ((cap) & 31))
+func capToMask(capability int32) uint32 {
+	return uint32(1 << ((capability) & 31))
 }
 
 // GetCapsFullSet() Returns up to date (go unix library) full set.
