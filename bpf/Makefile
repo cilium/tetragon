@@ -3,11 +3,6 @@
 
 include ./Makefile.defs
 
-ALIGNCHECKERDIR = alignchecker/
-PROCESSDIR := process/
-CGROUPDIR := cgroup/
-BPFTESTDIR := test/
-
 ALIGNCHECKER = bpf_alignchecker.o
 PROCESS = bpf_execve_event.o bpf_execve_event_v53.o bpf_fork.o bpf_exit.o bpf_generic_kprobe.o \
 	  bpf_execve_bprm_commit_creds.o \
@@ -40,8 +35,12 @@ PROCESS = bpf_execve_event.o bpf_execve_event_v53.o bpf_fork.o bpf_exit.o bpf_ge
 CGROUP = bpf_cgroup_mkdir.o bpf_cgroup_rmdir.o bpf_cgroup_release.o
 BPFTEST = bpf_lseek.o
 
-OBJSDIR       := objs/
-DEPSDIR       := deps/
+OBJSDIR         := objs/
+DEPSDIR         := deps/
+ALIGNCHECKERDIR := alignchecker/
+PROCESSDIR      := process/
+CGROUPDIR       := cgroup/
+BPFTESTDIR      := test/
 
 TLSOBJ        := $(addprefix $(OBJSDIR),$(TLS))
 NOPOBJ        := $(addprefix $(OBJSDIR),$(NOP))
