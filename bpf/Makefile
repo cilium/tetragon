@@ -30,7 +30,15 @@ PROCESS = bpf_execve_event.o bpf_execve_event_v53.o bpf_fork.o bpf_exit.o bpf_ge
 	  bpf_cgroup.o \
 	  bpf_enforcer.o bpf_multi_enforcer.o bpf_fmodret_enforcer.o \
 	  bpf_map_test_p1.o bpf_map_test_p2.o bpf_map_test_p3.o \
-	  bpf_prog_iter.o
+	  bpf_prog_iter.o \
+	  bpf_execve_event_v611.o \
+	  bpf_generic_kprobe_v611.o bpf_generic_retkprobe_v611.o \
+	  bpf_generic_tracepoint_v611.o \
+	  bpf_multi_kprobe_v611.o bpf_multi_retkprobe_v611.o \
+	  bpf_generic_uprobe_v611.o \
+	  bpf_multi_uprobe_v611.o \
+	  bpf_generic_lsm_core_v611.o bpf_generic_lsm_output_v611.o \
+	  bpf_generic_lsm_ima_file_v611.o bpf_generic_lsm_ima_bprm_v611.o
 
 CGROUP = bpf_cgroup_mkdir.o bpf_cgroup_rmdir.o bpf_cgroup_release.o
 BPFTEST = bpf_lseek.o
@@ -68,6 +76,7 @@ MTARGET = $(patsubst $(DEPSDIR)%.d,$(OBJSDIR)%.o,$@)
 CFLAGS_v53  = -D__LARGE_BPF_PROG
 CFLAGS_v511 = -D__LARGE_BPF_PROG -D__LARGE_MAP_KEYS
 CFLAGS_v61  = -D__LARGE_BPF_PROG -D__LARGE_MAP_KEYS -D__V61_BPF_PROG
+CFLAGS_v611 = -D__LARGE_BPF_PROG -D__LARGE_MAP_KEYS -D__V61_BPF_PROG -D__V611_BPF_PROG
 
 CFLAGS_bpf_enforcer.o       = -D__BPF_OVERRIDE_RETURN
 CFLAGS_bpf_multi_enforcer.o = -D__BPF_OVERRIDE_RETURN -D__MULTI_KPROBE
@@ -104,7 +113,7 @@ $(DEPSDIR)%_$$(VAR).d:
 $(OBJSDIR)bpf_multi_kprobe_$$(VAR).o $(OBJSDIR)bpf_multi_retkprobe_$$(VAR).o:
 	$(CLANG) $(CLANG_FLAGS) $(VARIANT_FLAGS) -D__MULTI_KPROBE -c $$< -o $$@
 
-ifeq (v61,$(VAR))
+ifneq ($$(filter v61 v611,$$(VAR)),)
 $(OBJSDIR)bpf_multi_uprobe_$$(VAR).o:
 	$(CLANG) $(CLANG_FLAGS) $(VARIANT_FLAGS) -D__MULTI_KPROBE -c $$< -o $$@
 endif
@@ -116,6 +125,7 @@ endef
 $(eval $(call DEFINE_VARIANT,v53))
 $(eval $(call DEFINE_VARIANT,v511))
 $(eval $(call DEFINE_VARIANT,v61))
+$(eval $(call DEFINE_VARIANT,v611))
 
 objs/%.o:
 	$(rule_o)

@@ -7,7 +7,9 @@ import "github.com/cilium/tetragon/pkg/kernels"
 
 // ExecObj returns the exec object based on the kernel version
 func ExecObj() string {
-	if kernels.EnableV61Progs() {
+	if kernels.EnableV611Progs() {
+		return "bpf_execve_event_v611.o"
+	} else if kernels.EnableV61Progs() {
 		return "bpf_execve_event_v61.o"
 	} else if kernels.MinKernelVersion("5.11") {
 		return "bpf_execve_event_v511.o"

@@ -128,6 +128,14 @@ func MinKernelVersion(kernel string) bool {
 	return minVersion <= runningVersion
 }
 
+func EnableV611Progs() bool {
+	if option.Config.ForceSmallProgs {
+		return false
+	}
+	kernelVer, _, _ := GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
+	return (int64(kernelVer) >= KernelStringToNumeric("6.11.0"))
+}
+
 func EnableV61Progs() bool {
 	if option.Config.ForceSmallProgs {
 		return false
