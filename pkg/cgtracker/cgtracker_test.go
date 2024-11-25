@@ -86,6 +86,13 @@ func loadCgTrackerSensor(t *testing.T) *sensors.Sensor {
 		Maps:  nil,
 	}
 	var err error
+
+	oldVal := option.Config.EnableCgTrackerID
+	option.Config.EnableCgTrackerID = true
+	t.Cleanup(func() {
+		option.Config.EnableCgTrackerID = oldVal
+	})
+
 	s, err = RegisterCgroupTracker(s)
 	require.NoError(t, err)
 	tus.LoadSensor(t, s)

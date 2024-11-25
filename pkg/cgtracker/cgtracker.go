@@ -15,6 +15,7 @@ import (
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
@@ -120,7 +121,9 @@ func (m *Map) AddCgroupTrackerPath(trackerPath string) error {
 
 func RegisterCgroupTracker(sensor *sensors.Sensor) (*sensors.Sensor, error) {
 
-	// TODO: check if cgroup tracker is enabled
+	if !option.Config.EnableCgTrackerID {
+		return sensor, nil
+	}
 
 	basePolicy := ""
 	if len(sensor.Progs) > 0 {

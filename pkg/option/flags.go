@@ -111,6 +111,7 @@ const (
 
 	KeyEnableCgIDmap      = "enable-cgidmap"
 	KeyEnableCgIDmapDebug = "enable-cgidmap-debug"
+	KeyEnableCgTrackerID  = "enable-cgtrackerid"
 
 	KeyEventCacheRetries    = "event-cache-retries"
 	KeyEventCacheRetryDelay = "event-cache-retry-delay"
@@ -237,6 +238,12 @@ func ReadAndSetFlags() error {
 
 	Config.EnableCgIDmap = viper.GetBool(KeyEnableCgIDmap)
 	Config.EnableCgIDmapDebug = viper.GetBool(KeyEnableCgIDmapDebug)
+	if viper.IsSet(KeyEnableCgTrackerID) {
+		Config.EnableCgTrackerID = viper.GetBool(KeyEnableCgTrackerID)
+	} else {
+		// if cgidmap is set, also set cgtrackerid if user left it unset
+		Config.EnableCgTrackerID = Config.EnableCgIDmap
+	}
 
 	Config.EventCacheNumRetries = viper.GetInt(KeyEventCacheRetries)
 	Config.EventCacheRetryDelay = viper.GetInt(KeyEventCacheRetryDelay)
@@ -403,6 +410,7 @@ func AddFlags(flags *pflag.FlagSet) {
 
 	flags.Bool(KeyEnableCgIDmap, false, "enable pod resolution via cgroup ids")
 	flags.Bool(KeyEnableCgIDmapDebug, false, "enable cgidmap debugging info")
+	flags.Bool(KeyEnableCgTrackerID, true, fmt.Sprintf("enable cgroup tracker id (only used if '%s' is set)", KeyEnableCgIDmap))
 
 	flags.Int(KeyEventCacheRetries, defaults.DefaultEventCacheNumRetries, "Number of retries for event cache")
 	flags.Int(KeyEventCacheRetryDelay, defaults.DefaultEventCacheRetryDelay, "Delay in seconds between event cache retries")
