@@ -276,6 +276,8 @@ struct heap_exe {
 	char end[STRING_POSTFIX_MAX_LENGTH];
 	__u32 len;
 	__u32 error;
+	__u32 uid_owner;
+	__u32 gid_owner;
 }; // All fields aligned so no 'packed' attribute.
 
 struct msg_execve_event {
