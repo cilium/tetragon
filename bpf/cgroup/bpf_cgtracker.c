@@ -6,19 +6,13 @@
 #include "bpf_helpers.h"
 #include "bpf_cgroup.h"
 #include "bpf_tracing.h"
+#include "cgtracker.h"
 
 char _license[] __attribute__((section(("license")), used)) = "GPL";
 #ifdef VMLINUX_KERNEL_VERSION
 int _version __attribute__((section(("version")), used)) =
 	VMLINUX_KERNEL_VERSION;
 #endif
-
-struct {
-	__uint(type, BPF_MAP_TYPE_HASH);
-	__uint(max_entries, 1);
-	__type(key, __u64); /* cgroup id */
-	__type(value, __u64); /* tracker cgroup id */
-} tg_cgtracker_map SEC(".maps");
 
 /* new kernel cgroup definition */
 struct cgroup___new {

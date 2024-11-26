@@ -266,6 +266,7 @@ struct msg_ns {
 
 struct msg_k8s {
 	__u64 cgrpid;
+	__u64 cgrp_tracker_id;
 	char docker_id[DOCKER_ID_LENGTH];
 }; // All fields aligned so no 'packed' attribute.
 
