@@ -8,6 +8,7 @@
 
 #include "bpf_cgroup.h"
 #include "bpf_cred.h"
+#include "cgroup/cgtracker.h"
 
 #define ENAMETOOLONG 36 /* File name too long */
 
@@ -587,7 +588,9 @@ __event_get_cgroup_info(struct task_struct *task, struct msg_k8s *kube)
 
 	/* Collect event cgroup ID */
 	kube->cgrpid = __tg_get_current_cgroup_id(cgrp, cgrpfs_magic);
-	if (!kube->cgrpid)
+	if (kube->cgrpid)
+		kube->cgrp_tracker_id = cgrp_get_tracker_id(kube->cgrpid);
+	else
 		flags |= EVENT_ERROR_CGROUP_ID;
 
 	/* Get the cgroup name of this event. */

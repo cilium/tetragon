@@ -94,13 +94,15 @@ type MsgCommon struct {
 }
 
 type MsgK8s struct {
-	Cgrpid uint64
-	Docker [DOCKER_ID_LENGTH]byte
+	Cgrpid        uint64
+	CgrpTrackerID uint64
+	Docker        [DOCKER_ID_LENGTH]byte
 }
 
 type MsgK8sUnix struct {
-	Docker string
-	Cgrpid uint64
+	Docker        string
+	Cgrpid        uint64
+	CgrpTrackerID uint64
 }
 
 type MsgGenericCred struct {

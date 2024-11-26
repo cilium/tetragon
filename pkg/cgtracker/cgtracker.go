@@ -145,7 +145,14 @@ func RegisterCgroupTracker(sensor *sensors.Sensor) (*sensors.Sensor, error) {
 		"raw_tracepoint",
 	).SetPolicy(basePolicy)
 
-	cgTrackerMap := program.MapBuilder(MapName, mkdirProg, releaseProg)
+	trackerProgs := []*program.Program{mkdirProg, releaseProg}
+	for _, p := range sensor.Progs {
+		if base.IsExecve(p) || base.IsFork(p) || base.IsExit(p) {
+			trackerProgs = append(trackerProgs, p)
+		}
+	}
+
+	cgTrackerMap := program.MapBuilder(MapName, trackerProgs...)
 	cgTrackerMap.SetMaxEntries(MapEntries)
 
 	sensor.Progs = append(sensor.Progs, mkdirProg, releaseProg)
