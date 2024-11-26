@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -172,13 +173,23 @@ var (
 
 func globalMap() (Map, error) {
 	setGlMap.Do(func() {
-		fname := filepath.Join(bpf.MapPrefixPath(), MapName)
-		glMap, glError = OpenMap(fname)
+		retries := 0
 		log := logger.GetLogger()
-		if glError == nil {
-			log.Info("cgtracker map initialized")
-		} else {
-			log.WithError(glError).Warn("cgtracker map initialization failed")
+		// NB(kkourt): the map is needed for criResolver that runs in a new goroutine
+		// started by newCriResolver. This goroutine will start before the base sensor which
+		// initialized the map and, as a result, criResolver fails. To address this, add a
+		// number of retries before we start.
+		for {
+			fname := filepath.Join(bpf.MapPrefixPath(), MapName)
+			glMap, glError = OpenMap(fname)
+			if glError == nil {
+				log.Info("cgtracker map initialized")
+				return
+			} else if retries > 5 {
+				log.WithError(glError).WithField("fname", fname).WithField("retries", retries).Warn("cgtracker map initialization failed")
+			}
+			time.Sleep(500 * time.Millisecond)
+			retries++
 		}
 	})
 	return glMap, glError
