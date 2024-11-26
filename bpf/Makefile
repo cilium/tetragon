@@ -4,33 +4,53 @@
 include ./Makefile.defs
 
 ALIGNCHECKER = bpf_alignchecker.o
-PROCESS = bpf_execve_event.o bpf_execve_event_v53.o bpf_fork.o bpf_exit.o bpf_generic_kprobe.o \
-	  bpf_execve_bprm_commit_creds.o \
-	  bpf_generic_kprobe_v53.o bpf_generic_retkprobe.o bpf_generic_retkprobe_v53.o \
-	  bpf_multi_kprobe_v53.o bpf_multi_retkprobe_v53.o \
-	  bpf_generic_tracepoint.o bpf_generic_tracepoint_v53.o \
-	  bpf_generic_uprobe.o bpf_generic_uprobe_v53.o \
-	  bpf_generic_lsm_core.o bpf_generic_lsm_output.o \
-	  bpf_generic_lsm_core_v511.o bpf_generic_lsm_output_v511.o \
-	  bpf_generic_lsm_ima_file_v511.o bpf_generic_lsm_ima_bprm_v511.o \
-	  bpf_execve_event_v61.o \
-	  bpf_generic_kprobe_v61.o bpf_generic_retkprobe_v61.o \
-	  bpf_generic_tracepoint_v61.o \
-	  bpf_multi_kprobe_v61.o bpf_multi_retkprobe_v61.o \
-	  bpf_generic_uprobe_v61.o \
-	  bpf_multi_uprobe_v61.o \
-	  bpf_execve_event_v511.o \
-	  bpf_generic_kprobe_v511.o bpf_generic_retkprobe_v511.o \
-	  bpf_generic_tracepoint_v511.o \
-	  bpf_multi_kprobe_v511.o bpf_multi_retkprobe_v511.o \
-	  bpf_generic_uprobe_v511.o \
-	  bpf_generic_lsm_core_v61.o bpf_generic_lsm_output_v61.o \
-	  bpf_generic_lsm_ima_file_v61.o bpf_generic_lsm_ima_bprm_v61.o \
-	  bpf_loader.o \
+
+# generic sensors
+PROCESS = bpf_loader.o \
 	  bpf_cgroup.o \
 	  bpf_enforcer.o bpf_multi_enforcer.o bpf_fmodret_enforcer.o \
 	  bpf_map_test_p1.o bpf_map_test_p2.o bpf_map_test_p3.o \
 	  bpf_prog_iter.o
+
+# v4.19
+# base sensor
+PROCESS += bpf_execve_event.o bpf_fork.o bpf_exit.o bpf_execve_bprm_commit_creds.o
+# generic probes
+PROCESS += bpf_generic_kprobe.o bpf_generic_retkprobe.o bpf_generic_tracepoint.o \
+	   bpf_generic_uprobe.o
+# lsm
+PROCESS += bpf_generic_lsm_core.o bpf_generic_lsm_output.o
+
+# v5.3
+# base sensor
+PROCESS += bpf_execve_event_v53.o
+# generic probes
+PROCESS += bpf_generic_kprobe_v53.o bpf_generic_retkprobe_v53.o \
+	   bpf_multi_kprobe_v53.o bpf_multi_retkprobe_v53.o \
+	   bpf_generic_tracepoint_v53.o bpf_generic_uprobe_v53.o
+
+# v5.11
+# base sensor
+PROCESS += bpf_execve_event_v511.o
+# generic probes
+PROCESS += bpf_generic_kprobe_v511.o bpf_generic_retkprobe_v511.o \
+	   bpf_multi_kprobe_v511.o bpf_multi_retkprobe_v511.o \
+	   bpf_generic_tracepoint_v511.o bpf_generic_uprobe_v511.o
+# lsm
+PROCESS += bpf_generic_lsm_core_v511.o bpf_generic_lsm_output_v511.o \
+	   bpf_generic_lsm_ima_file_v511.o bpf_generic_lsm_ima_bprm_v511.o
+
+# v6.1
+# base sensor
+PROCESS += bpf_execve_event_v61.o
+# generic probes
+PROCESS += bpf_generic_kprobe_v61.o bpf_generic_retkprobe_v61.o \
+	   bpf_multi_kprobe_v61.o bpf_multi_retkprobe_v61.o \
+	   bpf_generic_tracepoint_v61.o bpf_generic_uprobe_v61.o \
+	   bpf_multi_uprobe_v61.o
+# lsm
+PROCESS += bpf_generic_lsm_core_v61.o bpf_generic_lsm_output_v61.o \
+	   bpf_generic_lsm_ima_file_v61.o bpf_generic_lsm_ima_bprm_v61.o
 
 CGROUP = bpf_cgroup_mkdir.o bpf_cgroup_rmdir.o bpf_cgroup_release.o
 BPFTEST = bpf_lseek.o
