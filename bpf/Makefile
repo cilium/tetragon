@@ -84,23 +84,17 @@ VARIANT_CFLAGS = $$(CFLAGS_$1)
 
 define DEFINE_VARIANT
 VAR := $1
-deps/bpf_execve_event_$$(VAR).d: process/bpf_execve_event.c
-deps/bpf_generic_kprobe_$$(VAR).d: process/bpf_generic_kprobe.c
-deps/bpf_generic_retkprobe_$$(VAR).d: process/bpf_generic_retkprobe.c
 deps/bpf_multi_kprobe_$$(VAR).d: process/bpf_generic_kprobe.c
+	$$(call rule_d,$(VARIANT_CFLAGS))
 deps/bpf_multi_retkprobe_$$(VAR).d: process/bpf_generic_retkprobe.c
-deps/bpf_generic_tracepoint_$$(VAR).d: process/bpf_generic_tracepoint.c
-deps/bpf_generic_uprobe_$$(VAR).d: process/bpf_generic_uprobe.c
+	$$(call rule_d,$(VARIANT_CFLAGS))
 deps/bpf_multi_uprobe_$$(VAR).d: process/bpf_generic_uprobe.c
-deps/bpf_generic_lsm_core_$$(VAR).d: process/bpf_generic_lsm_core.c
-deps/bpf_generic_lsm_output_$$(VAR).d: process/bpf_generic_lsm_output.c
-deps/bpf_generic_lsm_ima_bprm_$$(VAR).d: process/bpf_generic_lsm_ima_bprm.c
-deps/bpf_generic_lsm_ima_file_$$(VAR).d: process/bpf_generic_lsm_ima_file.c
+	$$(call rule_d,$(VARIANT_CFLAGS))
 
 $(OBJSDIR)%_$$(VAR).o:
 	$$(call rule_o,$(VARIANT_CFLAGS))
 
-$(DEPSDIR)%_$$(VAR).d:
+$(DEPSDIR)%_$$(VAR).d: process/%.c
 	$$(call rule_d,$(VARIANT_CFLAGS))
 
 CFLAGS_bpf_multi_kprobe_$$(VAR).o    = -D__MULTI_KPROBE
