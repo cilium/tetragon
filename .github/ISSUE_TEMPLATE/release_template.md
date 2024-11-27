@@ -37,8 +37,8 @@ assignees: ''
 
 - [ ] Once the pull request gets merged, create a tag for the release:
 
-      git checkout main
-      git pull origin main
+      git checkout $BRANCH
+      git pull origin $BRANCH
       git tag -a $RELEASE -m "$RELEASE release" -s
       git tag -a api/$RELEASE -m "api/$RELEASE release" -s
       git push origin $RELEASE api/$RELEASE
