@@ -10,6 +10,8 @@ package cgidmap
 import (
 	"sync"
 
+	"github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/cgtracker"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 
@@ -273,4 +275,29 @@ func GlobalMap() (Map, error) {
 		}
 	})
 	return glMap, glError
+}
+
+func SetContainerID(info *processapi.MsgK8sUnix) {
+	m, err := GlobalMap()
+	if err != nil {
+		logger.GetLogger().WithError(err).Warn("failed to get cgIdMap")
+		return
+	}
+
+	cgID := info.Cgrpid
+	if option.Config.EnableCgTrackerID {
+		if info.CgrpTrackerID == 0 {
+			// tracker id is not set. This can happen, for example, for
+			// processes we get out of /proc. Let's try and resolve it if we can
+			cgTrackerID, err := cgtracker.Lookup(info.Cgrpid)
+			if err != nil {
+				return
+			}
+			info.CgrpTrackerID = cgTrackerID
+		}
+		cgID = info.CgrpTrackerID
+	}
+	if containerID, ok := m.Get(cgID); ok {
+		info.Docker = containerID
+	}
 }

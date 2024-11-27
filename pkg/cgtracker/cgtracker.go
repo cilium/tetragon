@@ -202,3 +202,14 @@ func AddCgroupTrackerPath(cgRoot string) error {
 	}
 	return m.AddCgroupTrackerPath(cgRoot)
 }
+
+func Lookup(cgID uint64) (uint64, error) {
+	m, err := globalMap()
+	if err != nil {
+		return 0, err
+	}
+
+	var ret uint64
+	err = m.Lookup(&cgID, &ret)
+	return ret, err
+}

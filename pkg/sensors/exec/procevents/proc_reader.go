@@ -243,6 +243,7 @@ func pushExecveEvents(p procs) {
 			if m.Unix.Kube.Docker != "" {
 				if cgid, err := cgroups.CgroupIDFromPID(p.pid); err == nil {
 					m.Unix.Msg.Kube.Cgrpid = cgid
+					m.Unix.Kube.Cgrpid = cgid
 				} else if option.Config.EnableCgIDmap {
 					// only warn if cgidmap is enabled since this is where this
 					// value is used
