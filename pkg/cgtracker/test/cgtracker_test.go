@@ -78,7 +78,7 @@ func cgfsMkdirTemp(t *testing.T, cgfsPath string) string {
 	// create tempdir
 	dir, err := os.MkdirTemp(cgfsPath, "cgtracker-test-*")
 	if err != nil {
-		t.Fatalf("failed to create test dir: %s", err)
+		t.Skipf("skipping test, failed to create test dir: %s", err)
 	}
 	t.Cleanup(func() {
 		err := os.RemoveAll(dir)
