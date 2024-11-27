@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"strings"
 	"syscall"
@@ -17,7 +16,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/cgroups"
-	"github.com/cilium/tetragon/pkg/defaults"
+	"github.com/cilium/tetragon/pkg/cgtracker"
 	grpcexec "github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
@@ -36,26 +35,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/unix"
 )
-
-// NB: there is an import cycle that does allow us to use testutils.RepoRootPath
-func repoRootPath() string {
-	_, testFname, _, _ := runtime.Caller(0)
-	return filepath.Join(filepath.Dir(testFname), "..", "..")
-}
-
-func initBpffs() string {
-	bpf.CheckOrMountFS("")
-	bpf.CheckOrMountDebugFS()
-	bpf.ConfigureResourceLimits()
-	dirPath, err := os.MkdirTemp(defaults.DefaultMapRoot, "test-cgtracker-*")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to setup bpf map root: %s\n", err)
-		return ""
-	}
-	dir := filepath.Base(dirPath)
-	bpf.SetMapPrefix(dir)
-	return dirPath
-}
 
 func TestMain(m *testing.M) {
 	ec := tus.TestSensorsRun(m, "cgtracker-test")
@@ -77,7 +56,7 @@ func loadCgTrackerSensor(t *testing.T) *sensors.Sensor {
 		option.Config.EnableCgTrackerID = oldVal
 	})
 
-	s, err = RegisterCgroupTracker(s)
+	s, err = cgtracker.RegisterCgroupTracker(s)
 	require.NoError(t, err)
 	tus.LoadSensor(t, s)
 	return s
@@ -125,8 +104,8 @@ func doMapTest(t *testing.T, cgfsPath string) {
 		}
 	}
 
-	fname := filepath.Join(bpf.MapPrefixPath(), MapName)
-	m, err := OpenMap(fname)
+	fname := filepath.Join(bpf.MapPrefixPath(), cgtracker.MapName)
+	m, err := cgtracker.OpenMap(fname)
 	if err != nil {
 		t.Fatalf("failed to open cgtracker map: %s", err)
 	}
@@ -216,8 +195,8 @@ func doProgTest(t *testing.T, cgfsPath string) {
 
 	loadExecSensorWithCgTracker(t)
 
-	fname := filepath.Join(bpf.MapPrefixPath(), MapName)
-	m, err := OpenMap(fname)
+	fname := filepath.Join(bpf.MapPrefixPath(), cgtracker.MapName)
+	m, err := cgtracker.OpenMap(fname)
 	if err != nil {
 		t.Fatalf("failed to open cgtracker map '%s': %s", fname, err)
 	}
