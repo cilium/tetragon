@@ -537,16 +537,6 @@ __event_get_current_cgroup_name(struct cgroup *cgrp, struct msg_k8s *kube)
 {
 	const char *name;
 
-	/* TODO: check if we have Tetragon cgroup configuration and that the
-	 *     tracking cgroup ID is set. If so then query the bpf map for
-	 *     the corresponding tracking cgroup name.
-	 */
-
-	/* TODO: we gather current cgroup context, switch to tracker see above,
-	 *    and if that fails for any reason or if we don't have the cgroup name
-	 *    of tracker, then we can continue with current context.
-	 */
-
 	name = get_cgroup_name(cgrp);
 	if (name)
 		probe_read_str(kube->docker_id, KN_NAME_LENGTH, name);
