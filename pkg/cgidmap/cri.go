@@ -13,6 +13,7 @@ import (
 	"github.com/cilium/tetragon/pkg/cgtracker"
 	"github.com/cilium/tetragon/pkg/cri"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/option"
 )
 
 // code for resolving missing cgroup ids by quering the CRI
@@ -85,8 +86,15 @@ func criResolve(m Map, id unmappedID) error {
 		return err
 	}
 
+	var getCgroupID func(string) (uint64, error)
+	if option.Config.EnableCgTrackerID {
+		getCgroupID = cgroups.GetCgroupIdFromPath
+	} else {
+		getCgroupID = cgroups.GetCgroupIDFromSubCgroup
+	}
+
 	path := filepath.Join(cgRoot, cgPath)
-	cgID, err := cgroups.GetCgroupIDFromSubCgroup(path)
+	cgID, err := getCgroupID(path)
 	if err != nil {
 		return err
 	}

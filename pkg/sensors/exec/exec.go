@@ -13,11 +13,13 @@ import (
 	"github.com/cilium/tetragon/pkg/api/dataapi"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/cgidmap"
 	"github.com/cilium/tetragon/pkg/cgrouprate"
 	"github.com/cilium/tetragon/pkg/cgroups"
 	exec "github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
@@ -35,11 +37,20 @@ func msgToExecveUnix(m *processapi.MsgExecveEvent) *exec.MsgExecveEventUnix {
 }
 
 func msgToExecveKubeUnix(m *processapi.MsgExecveEvent, exec_id string, filename string) processapi.MsgK8sUnix {
-	kube := processapi.MsgK8sUnix{}
+	kube := processapi.MsgK8sUnix{
+		Cgrpid:        m.Kube.Cgrpid,
+		CgrpTrackerID: m.Kube.CgrpTrackerID,
+	}
+
+	// If cgidmap is enabled, resolve the container id using the cgroup id and the cgroup
+	// tracker id.
+	if option.Config.EnableCgIDmap {
+		cgidmap.SetContainerID(&kube)
+		return kube
+	}
 
 	// The first byte is set to zero if there is no docker ID for this event.
 	if m.Kube.Docker[0] != 0x00 {
-		kube.Cgrpid = m.Kube.Cgrpid
 		// We always get a null terminated buffer from bpf
 		cgroup := cgroups.CgroupNameFromCStr(m.Kube.Docker[:processapi.CGROUP_NAME_LENGTH])
 		docker, _ := procevents.LookupContainerId(cgroup, true, false)

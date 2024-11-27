@@ -183,8 +183,7 @@ func (msg *MsgExecveEventUnix) Retry(internal *process.ProcessInternal, ev notif
 	nspid := msg.Unix.Process.NSPID
 
 	if option.Config.EnableK8s && containerId != "" {
-		cgroupID := msg.Unix.Kube.Cgrpid
-		podInfo = process.GetPodInfo(cgroupID, containerId, filename, args, nspid)
+		podInfo = process.GetPodInfo(containerId, filename, args, nspid)
 		if podInfo == nil {
 			eventcache.CacheRetries(eventcache.PodInfo).Inc()
 			return eventcache.ErrFailedToGetPodInfo
@@ -300,7 +299,7 @@ func (msg *MsgCloneEventUnix) RetryInternal(_ notify.Event, _ uint64) (*process.
 func (msg *MsgCloneEventUnix) Retry(internal *process.ProcessInternal, _ notify.Event) error {
 	proc := internal.UnsafeGetProcess()
 	if option.Config.EnableK8s && proc.Docker != "" && proc.Pod == nil {
-		podInfo := process.GetPodInfo(internal.GetCgID(), proc.Docker, proc.Binary, proc.Arguments, msg.NSPID)
+		podInfo := process.GetPodInfo(proc.Docker, proc.Binary, proc.Arguments, msg.NSPID)
 		if podInfo == nil {
 			eventcache.CacheRetries(eventcache.PodInfo).Inc()
 			return eventcache.ErrFailedToGetPodInfo
