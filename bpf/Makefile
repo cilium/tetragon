@@ -16,6 +16,10 @@
 # following variable:
 #
 #   CFLAGS_<object.o>  (example: CFLAGS_bpf_enforcer.o = -D__BPF_OVERRIDE_RETURN)
+#
+# It's possible to make .ll file for any object, like:
+#
+#  $ make -C bpf objs/bpf_generic_kprobe_v61.ll
 
 .PHONY: all clean
 .SUFFIXES:
@@ -114,13 +118,17 @@ CFLAGS_bpf_generic_lsm_core.o   = -D__LARGE_BPF_PROG
 CFLAGS_bpf_generic_lsm_output.o = -D__LARGE_BPF_PROG
 
 # Rules
-MTARGET = $(patsubst $(DEPSDIR)%.d,$(OBJSDIR)%.o,$@)
+MTARGET_o  = $(patsubst $(DEPSDIR)%.d,$(OBJSDIR)%.o,$@)
+MTARGET_ll = $(patsubst $(DEPSDIR)%.d,$(OBJSDIR)%.ll,$@)
 
-rule_d_CFLAGS = $(CFLAGS_$(notdir $(MTARGET)))
-rule_o_CFLAGS = $(CFLAGS_$(notdir $@))
+rule_d_CFLAGS  = $(CFLAGS_$(notdir $(MTARGET_o)))
+rule_o_CFLAGS  = $(CFLAGS_$(notdir $@))
+rule_ll_CFLAGS = $(CFLAGS_$(notdir $(patsubst %.ll,%.o,$@)))
 
-rule_d = $(CLANG) $(CLANG_FLAGS) $(rule_d_CFLAGS) $1 -MM -MP -MT $(MTARGET) $< > $@
-rule_o = $(CLANG) $(CLANG_FLAGS) $(rule_o_CFLAGS) $1 -c $< -o $@
+rule_d  = $(CLANG) $(CLANG_FLAGS) $(rule_d_CFLAGS) $1 -MM -MP -MT $(MTARGET_o)  $< >  $@ && \
+          $(CLANG) $(CLANG_FLAGS) $(rule_d_CFLAGS) $1 -MM -MP -MT $(MTARGET_ll) $< >> $@
+rule_o  = $(CLANG) $(CLANG_FLAGS) $(rule_o_CFLAGS) $1 -c $< -o $@
+rule_ll = $(CLANG) $(CLANG_FLAGS) $(rule_ll_CFLAGS) -emit-llvm $1 -c $< -o $@
 
 VARIANT_CFLAGS = $$(CFLAGS_$1)
 
@@ -140,6 +148,9 @@ $(DEPSDIR)bpf_multi_uprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_uprobe.c
 # Object build rule for VARIANT objects
 $(OBJSDIR)%_$$(VAR).o:
 	$$(call rule_o,$(VARIANT_CFLAGS))
+
+$(OBJSDIR)%_$$(VAR).ll:
+	$$(call rule_ll,$(VARIANT_CFLAGS))
 
 # Generic dependency files for VARIANT objects
 $(DEPSDIR)%_$$(VAR).d: $(PROCESSDIR)%.c
@@ -161,6 +172,9 @@ $(eval $(call DEFINE_VARIANT,v61))
 # Object build rule for non VARIANT objects
 objs/%.o:
 	$(rule_o)
+
+objs/%.ll:
+	$(rule_ll)
 
 # Generic dependency files
 $(DEPSDIR)%.d: $(ALIGNCHECKERDIR)%.c
