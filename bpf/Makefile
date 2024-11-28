@@ -1,3 +1,22 @@
+# Copyright Authors of Tetragon
+# SPDX-License-Identifier: Apache-2.0
+
+# We build BPF objects in 2 stages:
+# - first we build dependency '.d' files for all object and include them
+#   directly in the Makefile to get all the dependency rules for the object
+# - then we build the all the objects
+#
+# We allow to build objects for specific kernel version (variant) with the
+# kernel version suffix. Each variant can define extra CFLAGS by defining
+# following variable:
+#
+#   CFLAGS_<version>   (example: CFLAGS_v53 := ...)
+#
+# Each object (standard or variant) can define extra CFLAGS by defining
+# following variable:
+#
+#   CFLAGS_<object.o>  (example: CFLAGS_bpf_enforcer.o = -D__BPF_OVERRIDE_RETURN)
+
 .PHONY: all clean
 .SUFFIXES:
 
@@ -83,15 +102,18 @@ $(OBJSDIR):
 $(DEPSDIR):
 	mkdir $(DEPSDIR)
 
+# Define extra CFLAGS for each variant
 CFLAGS_v53  = -D__LARGE_BPF_PROG
 CFLAGS_v511 = -D__LARGE_BPF_PROG -D__LARGE_MAP_KEYS
 CFLAGS_v61  = -D__LARGE_BPF_PROG -D__LARGE_MAP_KEYS -D__V61_BPF_PROG
 
+# Define extra CFLAGS for objects
 CFLAGS_bpf_enforcer.o           = -D__BPF_OVERRIDE_RETURN
 CFLAGS_bpf_multi_enforcer.o     = -D__BPF_OVERRIDE_RETURN -D__MULTI_KPROBE
 CFLAGS_bpf_generic_lsm_core.o   = -D__LARGE_BPF_PROG
 CFLAGS_bpf_generic_lsm_output.o = -D__LARGE_BPF_PROG
 
+# Rules
 MTARGET = $(patsubst $(DEPSDIR)%.d,$(OBJSDIR)%.o,$@)
 
 rule_d_CFLAGS = $(CFLAGS_$(notdir $(MTARGET)))
@@ -102,8 +124,12 @@ rule_o = $(CLANG) $(CLANG_FLAGS) $(rule_o_CFLAGS) $1 -c $< -o $@
 
 VARIANT_CFLAGS = $$(CFLAGS_$1)
 
+# Variant rules
 define DEFINE_VARIANT
 VAR := $1
+
+# We need to define extra rules for multi probes because the object name
+# is different then the source file.
 $(DEPSDIR)bpf_multi_kprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_kprobe.c
 	$$(call rule_d,$(VARIANT_CFLAGS))
 $(DEPSDIR)bpf_multi_retkprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_retkprobe.c
@@ -111,12 +137,15 @@ $(DEPSDIR)bpf_multi_retkprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_retkprobe.c
 $(DEPSDIR)bpf_multi_uprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_uprobe.c
 	$$(call rule_d,$(VARIANT_CFLAGS))
 
+# Object build rule for VARIANT objects
 $(OBJSDIR)%_$$(VAR).o:
 	$$(call rule_o,$(VARIANT_CFLAGS))
 
+# Generic dependency files for VARIANT objects
 $(DEPSDIR)%_$$(VAR).d: $(PROCESSDIR)%.c
 	$$(call rule_d,$(VARIANT_CFLAGS))
 
+# Define extra CFLAGS for variant objects
 CFLAGS_bpf_multi_kprobe_$$(VAR).o    = -D__MULTI_KPROBE
 CFLAGS_bpf_multi_retkprobe_$$(VAR).o = -D__MULTI_KPROBE
 ifeq (v61,$$(VAR))
@@ -129,9 +158,11 @@ $(eval $(call DEFINE_VARIANT,v53))
 $(eval $(call DEFINE_VARIANT,v511))
 $(eval $(call DEFINE_VARIANT,v61))
 
+# Object build rule for non VARIANT objects
 objs/%.o:
 	$(rule_o)
 
+# Generic dependency files
 $(DEPSDIR)%.d: $(ALIGNCHECKERDIR)%.c
 	$(rule_d)
 $(DEPSDIR)bpf_multi_enforcer.d: $(PROCESSDIR)bpf_enforcer.c
