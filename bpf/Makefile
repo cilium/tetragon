@@ -104,17 +104,17 @@ VARIANT_CFLAGS = $$(CFLAGS_$1)
 
 define DEFINE_VARIANT
 VAR := $1
-deps/bpf_multi_kprobe_$$(VAR).d: process/bpf_generic_kprobe.c
+$(DEPSDIR)bpf_multi_kprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_kprobe.c
 	$$(call rule_d,$(VARIANT_CFLAGS))
-deps/bpf_multi_retkprobe_$$(VAR).d: process/bpf_generic_retkprobe.c
+$(DEPSDIR)bpf_multi_retkprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_retkprobe.c
 	$$(call rule_d,$(VARIANT_CFLAGS))
-deps/bpf_multi_uprobe_$$(VAR).d: process/bpf_generic_uprobe.c
+$(DEPSDIR)bpf_multi_uprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_uprobe.c
 	$$(call rule_d,$(VARIANT_CFLAGS))
 
 $(OBJSDIR)%_$$(VAR).o:
 	$$(call rule_o,$(VARIANT_CFLAGS))
 
-$(DEPSDIR)%_$$(VAR).d: process/%.c
+$(DEPSDIR)%_$$(VAR).d: $(PROCESSDIR)%.c
 	$$(call rule_d,$(VARIANT_CFLAGS))
 
 CFLAGS_bpf_multi_kprobe_$$(VAR).o    = -D__MULTI_KPROBE
@@ -134,9 +134,9 @@ objs/%.o:
 
 $(DEPSDIR)%.d: $(ALIGNCHECKERDIR)%.c
 	$(rule_d)
-$(DEPSDIR)bpf_multi_enforcer.d: process/bpf_enforcer.c
+$(DEPSDIR)bpf_multi_enforcer.d: $(PROCESSDIR)bpf_enforcer.c
 	$(rule_d)
-$(DEPSDIR)bpf_fmodret_enforcer.d: process/bpf_enforcer.c
+$(DEPSDIR)bpf_fmodret_enforcer.d: $(PROCESSDIR)bpf_enforcer.c
 	$(rule_d)
 $(DEPSDIR)%.d: $(PROCESSDIR)%.c
 	$(rule_d)
