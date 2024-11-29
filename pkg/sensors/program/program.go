@@ -163,6 +163,10 @@ type Program struct {
 	LoadedMapsInfo map[int]bpf.ExtendedMapInfo
 }
 
+func (p *Program) String() string {
+	return fmt.Sprintf("Program{Name:%s Attach:%s Label:%s PinPath:%s}", p.Name, p.Attach, p.Label, p.PinPath)
+}
+
 func (p *Program) SetRetProbe(ret bool) *Program {
 	p.RetProbe = ret
 	return p
