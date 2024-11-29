@@ -1,7 +1,9 @@
 module github.com/cilium/tetragon/contrib/rthooks/tetragon-oci-hook
 
 // renovate: datasource=golang-version depName=go
-go 1.21.4
+go 1.22.0
+
+toolchain go1.23.2
 
 require (
 	github.com/cilium/lumberjack/v2 v2.3.0

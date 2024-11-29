@@ -1,7 +1,7 @@
 module github.com/cilium/tetragon
 
 // renovate: datasource=golang-version depName=go
-go 1.21.4
+go 1.22.0
 
 require (
 	github.com/bombsimon/logrusr/v4 v4.0.0

@@ -13,7 +13,7 @@ github.com/cilium/ebpf/link
 ## explicit; go 1.13
 github.com/cilium/lumberjack/v2
 # github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000 => ../../../api
-## explicit; go 1.21.4
+## explicit; go 1.22.0
 github.com/cilium/tetragon/api/v1/tetragon
 # github.com/coreos/go-systemd/v22 v22.3.2
 ## explicit; go 1.12
