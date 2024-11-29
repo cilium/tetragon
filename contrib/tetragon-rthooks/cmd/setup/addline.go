@@ -48,6 +48,7 @@ func applyChanges(fnameIn, fnameOut string, changes []addLine) error {
 		for i := range changes {
 			ch := &changes[i]
 			if ch.pos.Line == inLine {
+				// NB: we assume that everything before is indentation
 				line := strings.Repeat(" ", ch.pos.Col-1) + ch.line + cr
 				lines = append(lines, line)
 				if ch.replaceLine {
