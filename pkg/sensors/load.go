@@ -185,7 +185,11 @@ func (s *Sensor) Load(bpfDir string) (err error) {
 	// cleanup the BTF once we have loaded all sensor's program
 	btf.FlushKernelSpec()
 
-	l.WithField("sensor", s.Name).Infof("Loaded BPF maps and events for sensor successfully")
+	l.WithFields(logrus.Fields{
+		"sensor": s.Name,
+		"maps":   loadedMaps,
+		"progs":  loadedProgs,
+	}).Infof("Loaded BPF maps and events for sensor successfully")
 	s.Loaded = true
 	return nil
 }
@@ -202,13 +206,19 @@ func (s *Sensor) Unload(unpin bool) error {
 		}
 	}
 
+	var progs []string
 	for _, p := range s.Progs {
 		unloadProgram(p, unpin)
+		progs = append(progs, p.String())
 	}
 
+	var mapsOk, mapsErr []string
 	for _, m := range s.Maps {
 		if err := m.Unload(unpin); err != nil {
 			logger.GetLogger().WithError(err).WithField("map", s.Name).Warn("Failed to unload map")
+			mapsErr = append(mapsErr, m.String())
+		} else {
+			mapsOk = append(mapsOk, m.String())
 		}
 	}
 
@@ -225,6 +235,11 @@ func (s *Sensor) Unload(unpin bool) error {
 	}
 
 	progsCleanup()
+	logger.GetLogger().WithFields(logrus.Fields{
+		"maps":       mapsOk,
+		"maps-error": mapsErr,
+		"progs":      progs,
+	}).Infof("Sensor unloaded")
 	return nil
 }
 
@@ -367,7 +382,7 @@ func (s *Sensor) loadMap(bpfDir string, m *program.Map) error {
 		"map":    m.Name,
 		"path":   pinPath,
 		"max":    m.Entries,
-	}).Info("tetragon, map loaded.")
+	}).Debug("tetragon, map loaded.")
 
 	return nil
 }
@@ -441,7 +456,7 @@ func loadInstance(bpfDir string, load *program.Program, version, verbose int) er
 		logger.GetLogger().WithField("Program", load.Name).
 			WithField("Type", load.Type).
 			WithField("Attach", load.Attach).
-			Info("Loading BPF program")
+			Debug("Loading BPF program")
 		return loadFn(bpfDir, load, verbose)
 	}
 	// Otherwise, check for a registered probe type. If one exists, use that.
@@ -450,7 +465,7 @@ func loadInstance(bpfDir string, load *program.Program, version, verbose int) er
 		logger.GetLogger().WithField("Program", load.Name).
 			WithField("Type", load.Type).
 			WithField("Attach", load.Attach).
-			Info("Loading registered BPF probe")
+			Debug("Loading registered BPF probe")
 		// Registered probes need extra setup
 		version = kernels.FixKernelVersion(version)
 		return probe.LoadProbe(LoadProbeArgs{
@@ -488,7 +503,7 @@ func unloadProgram(prog *program.Program, unpin bool) {
 		logger.GetLogger().WithField("name", prog.Name).WithError(err).Warn("Failed to unload program")
 	}
 
-	log.Info("BPF prog was unloaded")
+	log.Debug("BPF prog was unloaded")
 }
 
 func UnloadSensors(sens []SensorIface) {
