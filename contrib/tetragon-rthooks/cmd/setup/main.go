@@ -232,6 +232,7 @@ type CLI struct {
 	Uninstall           Uninstall           `cmd:"" help:"Uninstall hook"`
 	PrintConfig         PrintConfig         `cmd:"" help:"Print config"`
 	PatchContainerdConf patchContainerdConf `cmd:"patch containerd configuration"`
+	PatchCrioConf       patchCrioConf       `cmd:"patch crio configuration"`
 
 	LogLevel string `name:"log-level" default:"info" help:"log level"`
 }
