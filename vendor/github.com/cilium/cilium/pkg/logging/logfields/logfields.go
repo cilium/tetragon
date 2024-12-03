@@ -11,6 +11,21 @@ const (
 	// LogSubsys is the field denoting the subsystem when logging
 	LogSubsys = "subsys"
 
+	// Version is a field for a generic version number
+	Version = "version"
+
+	// NewVersion is a field for a new version number
+	NewVersion = "newVersion"
+
+	// OldVersion is a field for a old version number
+	OldVersion = "oldVersion"
+
+	// Stacktrace is a field for a stacktrace
+	Stacktrace = "stacktrace"
+
+	// Changes is a generic field for any relevant changes
+	Changes = "changes"
+
 	// Signal is the field to print os signals on exit etc.
 	Signal = "signal"
 
@@ -32,6 +47,9 @@ const (
 	// EndpointState is the current endpoint state
 	EndpointState = "endpointState"
 
+	// Error is the Go error
+	Error = "error"
+
 	// EventUUID is an event unique identifier
 	EventUUID = "eventID"
 
@@ -52,6 +70,9 @@ const (
 
 	// Labels are any label, they may not be relevant to the security identity.
 	Labels = "labels"
+
+	// Label is a singular label, where relevant
+	Label = "label"
 
 	// SourceFilter is the label or node information source
 	SourceFilter = "sourceFilter"
@@ -75,9 +96,24 @@ const (
 	// OldIdentity is a previously used security identity
 	OldIdentity = "oldIdentity"
 
+	// PolicyKey is a policy map key
+	PolicyKey = "policyKey"
+
+	// PolicyEntry is a policy map value
+	PolicyEntry = "policyEntry"
+
 	// PolicyRevision is the revision of the policy in the repository or of
 	// the object in question
 	PolicyRevision = "policyRevision"
+
+	// PolicyKeysAdded is a set of added policy map keys
+	PolicyKeysAdded = "policyKeysAdded"
+
+	// PolicyKeysDeleted is a set of deleted policy map keys
+	PolicyKeysDeleted = "policyKeysDeleted"
+
+	// PolicyEntriesOld is a set of old policy map keys and values
+	PolicyEntriesOld = "policyEntriesOld"
 
 	// DatapathPolicyRevision is the policy revision currently running in
 	// the datapath
@@ -238,6 +274,12 @@ const (
 	// VethPair is a tuple of Veth that are paired
 	VethPair = "vethPair"
 
+	// Netkit is a netkit object or ID
+	Netkit = "netkit"
+
+	// NetkitPair is a tuple of Netkit that are paired
+	NetkitPair = "netkitPair"
+
 	// NetNSName is a name of a network namespace
 	NetNSName = "netNSName"
 
@@ -290,6 +332,9 @@ const (
 	// ServiceType is the type of the service
 	ServiceType = "svcType"
 
+	// ServiceForwardingMode is the mode of the service (SNAT, DSR)
+	ServiceForwardingMode = "svcForwardingMode"
+
 	// ServiceHealthCheckNodePort is the port on which we serve health checks
 	ServiceHealthCheckNodePort = "svcHealthCheckNodePort"
 
@@ -316,6 +361,9 @@ const (
 
 	// BackendSlot is the backend slot number in a service BPF map
 	BackendSlot = "backendSlot"
+
+	// ProxyName is the name of a proxy (e.g., "Envoy")
+	ProxyName = "proxyName"
 
 	// L7LBProxyPort is the port number of the Envoy listener a L7 LB service redirects traffic to for load balancing.
 	L7LBProxyPort = "l7LBProxyPort"
@@ -356,6 +404,9 @@ const (
 	// Listener is the name of an Envoy Listener defined in CEC or CCEC
 	Listener = "listener"
 
+	// ListenerPriority is the priority of an Envoy Listener defined in CEC or CCEC
+	ListenerPriority = "listenerPriority"
+
 	// BPFMapKey is a key from a BPF map
 	BPFMapKey = "bpfMapKey"
 
@@ -389,6 +440,9 @@ const (
 
 	// Selector is a selector of any sort: endpoint, CIDR, toFQDNs
 	Selector = "Selector"
+
+	// SelectorCacgeVersion is the version of the SelectorCache.
+	SelectorCacheVersion = "selectorCacheVersion"
 
 	// EndpointLabelSelector is a selector for Endpoints by label
 	EndpointLabelSelector = "EndpointLabelSelector"
@@ -644,6 +698,9 @@ const (
 	// CEPUID is the UID of the CiliumEndpoint.
 	CEPUID = "ciliumEndpointUID"
 
+	// CIDName is the name of the CiliumIdentity.
+	CIDName = "ciliumIdentityName"
+
 	// CESName is the name of the CiliumEndpointSlice.
 	CESName = "ciliumEndpointSliceName"
 
@@ -654,7 +711,8 @@ const (
 	WorkQueueBurstLimit = "workQueueBurstLimit"
 
 	// WorkQueueSyncBackoff is the backoff time used by workqueues before an attempt to retry sync with k8s-apiserver.
-	WorkQueueSyncBackOff = "workQueueSyncBackOff"
+	WorkQueueSyncBackOff    = "workQueueSyncBackOff"
+	WorkQueueMaxSyncBackOff = "workQueueMaxSyncBackOff"
 
 	// SourceIP is a source IP
 	SourceIP = "sourceIP"
@@ -740,6 +798,26 @@ const (
 	// State is the state of an individual component (apiserver, kvstore etc)
 	State = "state"
 
+	// EtcdQPSLimit is the QPS limit for an etcd client.
+	EtcdQPSLimit = "etcdQPSLimit"
+
+	// LeaseID identifies a KVStore lease
+	LeaseID = "leaseID"
+
+	// EventType identifies the type of KVStore events
+	EventType = "eventType"
+
+	// Entries specifies the number of KVStore entries
+	Entries = "entries"
+	// Action is the summarized action from a reconciliation.
+	Action = "action"
+
 	// EtcdClusterID is the ID of the etcd cluster
 	EtcdClusterID = "etcdClusterID"
+
+	// NetnsCookie is the Linux kernel netns cookie.
+	NetnsCookie = "netnsCookie"
+
+	// Target identifies a target value
+	Target = "target"
 )
