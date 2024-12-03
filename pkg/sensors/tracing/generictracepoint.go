@@ -15,6 +15,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
+	"github.com/cilium/tetragon/pkg/cgtracker"
 	"github.com/cilium/tetragon/pkg/eventhandler"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/idtable"
@@ -572,6 +573,10 @@ func createGenericTracepointSensor(
 
 		if has.enforcer {
 			maps = append(maps, enforcerMapsUser(prog0)...)
+		}
+
+		if option.Config.EnableCgTrackerID {
+			maps = append(maps, program.MapUser(cgtracker.MapName, prog0))
 		}
 
 		selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", prog0)
