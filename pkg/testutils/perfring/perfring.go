@@ -197,6 +197,25 @@ func RunTestEventReduce[K any, V any](
 	return ret
 }
 
+func RunTestEventReduceCount[K comparable](
+	t *testing.T,
+	ctx context.Context,
+	selfOperations func(),
+	filterFn func(notify.Message) bool,
+	mapFn func(notify.Message) K,
+) map[K]int {
+	return RunTestEventReduce[K, map[K]int](
+		t, ctx, selfOperations, filterFn, mapFn,
+		func(v map[K]int, k K) map[K]int {
+			if v == nil {
+				v = make(map[K]int)
+			}
+			v[k]++
+			return v
+		},
+	)
+}
+
 // similar to RunTest, but uses t.Run()
 func RunSubTest(t *testing.T, ctx context.Context, name string, selfOperations func(t *testing.T), eventFn EventFn) bool {
 	return t.Run(name, func(t *testing.T) {
