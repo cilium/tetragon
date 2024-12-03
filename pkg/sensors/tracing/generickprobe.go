@@ -22,6 +22,7 @@ import (
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
+	"github.com/cilium/tetragon/pkg/cgtracker"
 	"github.com/cilium/tetragon/pkg/eventhandler"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/idtable"
@@ -363,6 +364,10 @@ func createMultiKprobeSensor(policyName string, multiIDs []idtable.EntryID, has 
 
 	if has.enforcer {
 		maps = append(maps, enforcerMapsUser(load)...)
+	}
+
+	if option.Config.EnableCgTrackerID {
+		maps = append(maps, program.MapUser(cgtracker.MapName, load))
 	}
 
 	filterMap.SetMaxEntries(len(multiIDs))
@@ -990,6 +995,10 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe,
 
 	if has.enforcer {
 		maps = append(maps, enforcerMapsUser(load)...)
+	}
+
+	if option.Config.EnableCgTrackerID {
+		maps = append(maps, program.MapUser(cgtracker.MapName, load))
 	}
 
 	overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
