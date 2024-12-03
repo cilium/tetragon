@@ -5,6 +5,7 @@
 #define POLICY_FILTER_MAPS_H__
 
 #include "bpf_tracing.h"
+#include "cgroup/cgtracker.h"
 
 #define POLICY_FILTER_MAX_POLICIES   128
 #define POLICY_FILTER_MAX_NAMESPACES 1024
@@ -35,7 +36,7 @@ struct {
 FUNC_INLINE bool policy_filter_check(u32 policy_id)
 {
 	void *policy_map;
-	__u64 cgroupid;
+	__u64 cgroupid, trackerid;
 
 	if (!policy_id)
 		return true;
@@ -47,6 +48,10 @@ FUNC_INLINE bool policy_filter_check(u32 policy_id)
 	cgroupid = tg_get_current_cgroup_id();
 	if (!cgroupid)
 		return false;
+
+	trackerid = cgrp_get_tracker_id(cgroupid);
+	if (trackerid)
+		cgroupid = trackerid;
 
 	return map_lookup_elem(policy_map, &cgroupid);
 }
