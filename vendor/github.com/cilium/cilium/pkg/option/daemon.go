@@ -16,6 +16,7 @@ var (
 
 	DaemonMutableOptionLibrary = OptionLibrary{
 		ConntrackAccounting:  &specConntrackAccounting,
+		PolicyAccounting:     &specPolicyAccounting,
 		ConntrackLocal:       &specConntrackLocal,
 		Debug:                &specDebug,
 		DebugLB:              &specDebugLB,
@@ -36,6 +37,6 @@ func init() {
 }
 
 // ParseDaemonOption parses a string as daemon option
-func ParseDaemonOption(opt string) (string, OptionSetting, error) {
-	return ParseOption(opt, &DaemonOptionLibrary)
+func ParseDaemonOption(opt string) (string, OptionSetting, bool, error) {
+	return DaemonOptionLibrary.ParseOption(opt)
 }

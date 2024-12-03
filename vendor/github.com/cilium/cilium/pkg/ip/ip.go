@@ -9,9 +9,10 @@ import (
 	"math/big"
 	"net"
 	"net/netip"
+	"slices"
 	"sort"
 
-	"github.com/cilium/cilium/pkg/slices"
+	"go4.org/netipx"
 )
 
 const (
@@ -291,20 +292,27 @@ func PrefixCeil(numIPs int, multiple int) int {
 	return quotient
 }
 
-// PrefixToIps converts the given prefix to an array containing all IPs in the prefix / CIDR block.
-func PrefixToIps(prefixCidr string) ([]string, error) {
+// PrefixToIps converts the given prefix to an array containing IPs in the provided
+// prefix/CIDR block. When maxIPs is set to 0, the returned array will contain all IPs
+// in the given prefix. Otherwise, the returned array of IPs will be limited to the
+// value of maxIPs starting at the first IP in the provided CIDR. For example, when
+// providing 192.168.1.0/28 as a CIDR with 4 maxIPs, 192.168.1.0, 192.168.1.1,
+// 192.168.1.2, 192.168.1.3 will be returned.
+func PrefixToIps(prefixCidr string, maxIPs int) ([]string, error) {
 	var prefixIps []string
 	_, ipNet, err := net.ParseCIDR(prefixCidr)
 	if err != nil {
 		return prefixIps, err
 	}
 	netWithRange := ipNetToRange(*ipNet)
-	for ip := *netWithRange.First; !ip.Equal(*netWithRange.Last); ip = GetNextIP(ip) {
+	// Ensure last IP in the prefix is included
+	for ip := *netWithRange.First; len(prefixIps) < maxIPs || maxIPs == 0; ip = getNextIP(ip) {
 		prefixIps = append(prefixIps, ip.String())
+		if ip.Equal(*netWithRange.Last) {
+			break
+		}
 	}
 
-	// Add the last IP
-	prefixIps = append(prefixIps, netWithRange.Last.String())
 	return prefixIps, nil
 }
 
@@ -361,9 +369,9 @@ func getPreviousIP(ip net.IP) net.IP {
 	return previousIP
 }
 
-// GetNextIP returns the next IP from the given IP address. If the given IP is
+// getNextIP returns the next IP from the given IP address. If the given IP is
 // the last IP of a v4 or v6 range, the same IP is returned.
-func GetNextIP(ip net.IP) net.IP {
+func getNextIP(ip net.IP) net.IP {
 	if ip.Equal(upperIPv4) || ip.Equal(upperIPv6) {
 		return ip
 	}
@@ -588,7 +596,7 @@ func rangeToCIDRs(firstIP, lastIP net.IP) []*net.IPNet {
 	if bytes.Compare(*lastIPSpanning, lastIP) > 0 {
 		// Split on the next IP of the last IP so that the left list of IPs
 		// of the partition include the lastIP.
-		nextFirstRangeIP := GetNextIP(lastIP)
+		nextFirstRangeIP := getNextIP(lastIP)
 		var bitLen int
 		if nextFirstRangeIP.To4() != nil {
 			bitLen = ipv4BitLen
@@ -744,15 +752,8 @@ func PartitionCIDR(targetCIDR net.IPNet, excludeCIDR net.IPNet) ([]*net.IPNet, [
 // netip.Addr.Compare (i.e. IPv4 addresses show up before IPv6).
 // The slice is manipulated in-place destructively; it does not create a new slice.
 func KeepUniqueAddrs(addrs []netip.Addr) []netip.Addr {
-	return slices.SortedUniqueFunc(
-		addrs,
-		func(i, j int) bool {
-			return addrs[i].Compare(addrs[j]) < 0
-		},
-		func(a, b netip.Addr) bool {
-			return a == b
-		},
-	)
+	SortAddrList(addrs)
+	return slices.Compact(addrs)
 }
 
 var privateIPBlocks []*net.IPNet
@@ -838,15 +839,11 @@ func ListContainsIP(ipList []net.IP, ip net.IP) bool {
 
 // SortIPList sorts the provided net.IP slice in place.
 func SortIPList(ipList []net.IP) {
-	sort.Slice(ipList, func(i, j int) bool {
-		return bytes.Compare(ipList[i], ipList[j]) < 0
-	})
+	slices.SortFunc(ipList, func(a, b net.IP) int { return bytes.Compare(a, b) })
 }
 
 func SortAddrList(ipList []netip.Addr) {
-	sort.Slice(ipList, func(i, j int) bool {
-		return ipList[i].Compare(ipList[j]) < 0
-	})
+	slices.SortFunc(ipList, netip.Addr.Compare)
 }
 
 // getSortedIPList returns a new net.IP slice in which the IPs are sorted.
@@ -892,48 +889,13 @@ func GetIPFromListByFamily(ipList []net.IP, v4Family bool) net.IP {
 	return nil
 }
 
-// AddrFromIP converts a net.IP to netip.Addr using netip.AddrFromSlice, but preserves
-// the original address family. It assumes given net.IP is not an IPv4 mapped IPv6
-// address.
-//
-// The problem behind this is that when we convert the IPv4 net.IP address with
-// netip.AddrFromSlice, the address is interpreted as an IPv4 mapped IPv6 address in some
-// cases.
-//
-// For example, when we do netip.AddrFromSlice(net.ParseIP("1.1.1.1")), it is interpreted
-// as an IPv6 address "::ffff:1.1.1.1". This is because 1) net.IP created with
-// net.ParseIP(IPv4 string) holds IPv4 address as an IPv4 mapped IPv6 address internally
-// and 2) netip.AddrFromSlice recognizes address family with length of the slice (4-byte =
-// IPv4 and 16-byte = IPv6).
-//
-// By using AddrFromIP, we can preserve the address family, but since we cannot distinguish
-// IPv4 and IPv4 mapped IPv6 address only from net.IP value (see #37921 on golang/go) we
-// need an assumption that given net.IP is not an IPv4 mapped IPv6 address.
-func AddrFromIP(ip net.IP) (netip.Addr, bool) {
-	addr, ok := netip.AddrFromSlice(ip)
-	if !ok {
-		return addr, ok
-	}
-	return addr.Unmap(), ok
-}
-
-// MustAddrFromIP is the same as AddrFromIP except that it assumes the input is
-// a valid IP address and always returns a valid netip.Addr.
-func MustAddrFromIP(ip net.IP) netip.Addr {
-	addr, ok := AddrFromIP(ip)
-	if !ok {
-		panic("addr is not a valid IP address")
-	}
-	return addr
-}
-
 // MustAddrsFromIPs converts a slice of net.IP to a slice of netip.Addr. It assumes
 // the input slice contains only valid IP addresses and always returns a slice
 // containing valid netip.Addr.
 func MustAddrsFromIPs(ips []net.IP) []netip.Addr {
 	addrs := make([]netip.Addr, 0, len(ips))
 	for _, ip := range ips {
-		addrs = append(addrs, MustAddrFromIP(ip))
+		addrs = append(addrs, netipx.MustFromStdIP(ip))
 	}
 	return addrs
 }
