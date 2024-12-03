@@ -184,9 +184,6 @@ func TestCgTrackerEvents(t *testing.T) {
 func doProgTest(t *testing.T, cgfsPath string) {
 	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
 
-	dir := cgfsMkdirTemp(t, cgfsPath)
-	t.Logf("created cgroup dir '%s'", dir)
-
 	if err := observer.InitDataCache(1024); err != nil {
 		t.Fatalf("observertesthelper.InitDataCache: %s", err)
 	}
@@ -194,49 +191,11 @@ func doProgTest(t *testing.T, cgfsPath string) {
 	require.NoError(t, err)
 
 	loadExecSensorWithCgTracker(t)
+	cgfs := newTestCgroupFS(t, cgfsPath)
 
-	fname := filepath.Join(bpf.MapPrefixPath(), cgtracker.MapName)
-	m, err := cgtracker.OpenMap(fname)
-	if err != nil {
-		t.Fatalf("failed to open cgtracker map '%s': %s", fname, err)
-	}
-	defer m.Close()
-
-	cgPaths := []string{"a", "b", "a/x"}
-	cgIDs := map[string]uint64{}
-	fullPath := map[string]string{}
-	for _, path := range cgPaths {
-		d := filepath.Join(dir, path)
-		if err := os.Mkdir(d, 0700); err != nil {
-			t.Fatalf("failed to create '%s': %s", d, err)
-		}
-		if path == "a" {
-			err = m.AddCgroupTrackerPath(d)
-			require.NoError(t, err)
-		}
-
-		cgID, err := cgroups.GetCgroupIdFromPath(d)
-		require.NoError(t, err)
-		cgIDs[path] = cgID
-		t.Logf("cgid for %s is %d", path, cgID)
-		fullPath[path] = d
-	}
-	t.Cleanup(func() {
-		for _, path := range slices.Backward(cgPaths) {
-			cgPath := filepath.Join(dir, path)
-			i := 0
-			for {
-				if err := os.Remove(cgPath); err == nil {
-					break
-				} else if i == 5 {
-					t.Logf("failed to unlink '%s': %s", cgPath, err)
-					break
-				}
-				time.Sleep(10 * time.Millisecond)
-				i++
-			}
-		}
-	})
+	// create directories, and track path "a"
+	// NB: the sensor is already loaded so "a/x" should end up being tracked as well
+	cgfs.mkdirs(t, []string{"a", "b", "a/x"}, func(p string) bool { return p == "a" })
 
 	// copy command /bin/true to /tmp so that we can effectively filter based on binary
 	tmpTrue := testutils.CopyExecToTemp(t, "true")
@@ -249,8 +208,8 @@ func doProgTest(t *testing.T, cgfsPath string) {
 	}
 
 	tcs := []testCase{
-		{cgPath: "a", expCgID: cgIDs["a"], expCgTrackerID: cgIDs["a"]},
-		{cgPath: "a/x", expCgID: cgIDs["a/x"], expCgTrackerID: cgIDs["a"]},
+		{cgPath: "a", expCgID: cgfs.cgIDs["a"], expCgTrackerID: cgfs.cgIDs["a"]},
+		{cgPath: "a/x", expCgID: cgfs.cgIDs["a/x"], expCgTrackerID: cgfs.cgIDs["a"]},
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
@@ -258,7 +217,7 @@ func doProgTest(t *testing.T, cgfsPath string) {
 
 	for _, tc := range tcs {
 		// add tester to the specified cgroup
-		progTester.AddToCgroup(t, fullPath[tc.cgPath])
+		progTester.AddToCgroup(t, cgfs.fullpath(tc.cgPath))
 
 		// print cgroup to logs
 		out, err := progTester.Command("exec /usr/bin/cat /proc/self/cgroup")
@@ -287,4 +246,78 @@ func doProgTest(t *testing.T, cgfsPath string) {
 	}
 
 	progTester.Stop()
+}
+
+// test helper for creating cgroup directories
+type testCgroupFS struct {
+	dir          string
+	cgTrackerMap cgtracker.Map
+	paths        []string          // paths (in mkdir order, so that we can rmdir them in reverse order)
+	cgIDs        map[string]uint64 // path -> cgid
+}
+
+func newTestCgroupFS(t *testing.T, cgfsPath string) *testCgroupFS {
+	dir := cgfsMkdirTemp(t, cgfsPath)
+	t.Logf("created cgroup dir '%s'", dir)
+
+	mapFname := filepath.Join(bpf.MapPrefixPath(), cgtracker.MapName)
+	m, err := cgtracker.OpenMap(mapFname)
+	if err != nil {
+		t.Fatalf("failed to open cgtracker map '%s': %s", mapFname, err)
+	}
+
+	ret := &testCgroupFS{
+		dir:          dir,
+		cgTrackerMap: m,
+		cgIDs:        make(map[string]uint64),
+	}
+
+	t.Cleanup(func() { ret.cleanup(t) })
+	return ret
+}
+
+func (fs *testCgroupFS) mkdirs(
+	t *testing.T,
+	paths []string,
+	trackPath func(p string) bool,
+) {
+	for _, path := range paths {
+		d := fs.fullpath(path)
+		if err := os.Mkdir(d, 0700); err != nil {
+			t.Fatalf("failed to create '%s': %s", d, err)
+		}
+		if trackPath(path) {
+			err := fs.cgTrackerMap.AddCgroupTrackerPath(d)
+			require.NoError(t, err)
+		}
+		cgID, err := cgroups.GetCgroupIdFromPath(d)
+		require.NoError(t, err)
+		fs.cgIDs[path] = cgID
+		t.Logf("cgid for %s is %d", path, cgID)
+		fs.paths = append(fs.paths, path)
+	}
+}
+
+func (fs *testCgroupFS) fullpath(p string) string {
+	return filepath.Join(fs.dir, p)
+}
+
+func (fs *testCgroupFS) cleanup(t *testing.T) {
+	// remove the created directories
+	for _, path := range slices.Backward(fs.paths) {
+		cgPath := fs.fullpath(path)
+		i := 0
+		for {
+			if err := os.Remove(cgPath); err == nil {
+				break
+			} else if i == 5 {
+				t.Logf("failed to unlink '%s': %s", cgPath, err)
+				break
+			}
+			time.Sleep(10 * time.Millisecond)
+			i++
+		}
+	}
+	// close the bpf map
+	fs.cgTrackerMap.Close()
 }
