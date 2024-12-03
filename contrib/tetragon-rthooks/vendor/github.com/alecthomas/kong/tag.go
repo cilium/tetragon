@@ -9,37 +9,50 @@ import (
 	"unicode/utf8"
 )
 
+// PassthroughMode indicates how parameters are passed through when "passthrough" is set.
+type PassthroughMode int
+
+const (
+	// PassThroughModeNone indicates passthrough mode is disabled.
+	PassThroughModeNone PassthroughMode = iota
+	// PassThroughModeAll indicates that all parameters, including flags, are passed through. It is the default.
+	PassThroughModeAll
+	// PassThroughModePartial will validate flags until the first positional argument is encountered, then pass through all remaining positional arguments.
+	PassThroughModePartial
+)
+
 // Tag represents the parsed state of Kong tags in a struct field tag.
 type Tag struct {
-	Ignored     bool // Field is ignored by Kong. ie. kong:"-"
-	Cmd         bool
-	Arg         bool
-	Required    bool
-	Optional    bool
-	Name        string
-	Help        string
-	Type        string
-	TypeName    string
-	HasDefault  bool
-	Default     string
-	Format      string
-	PlaceHolder string
-	Envs        []string
-	Short       rune
-	Hidden      bool
-	Sep         rune
-	MapSep      rune
-	Enum        string
-	Group       string
-	Xor         []string
-	And         []string
-	Vars        Vars
-	Prefix      string // Optional prefix on anonymous structs. All sub-flags will have this prefix.
-	EnvPrefix   string
-	Embed       bool
-	Aliases     []string
-	Negatable   string
-	Passthrough bool
+	Ignored         bool // Field is ignored by Kong. ie. kong:"-"
+	Cmd             bool
+	Arg             bool
+	Required        bool
+	Optional        bool
+	Name            string
+	Help            string
+	Type            string
+	TypeName        string
+	HasDefault      bool
+	Default         string
+	Format          string
+	PlaceHolder     string
+	Envs            []string
+	Short           rune
+	Hidden          bool
+	Sep             rune
+	MapSep          rune
+	Enum            string
+	Group           string
+	Xor             []string
+	And             []string
+	Vars            Vars
+	Prefix          string // Optional prefix on anonymous structs. All sub-flags will have this prefix.
+	EnvPrefix       string
+	Embed           bool
+	Aliases         []string
+	Negatable       string
+	Passthrough     bool // Deprecated: use PassthroughMode instead.
+	PassthroughMode PassthroughMode
 
 	// Storage for all tag keys for arbitrary lookups.
 	items map[string][]string
@@ -289,6 +302,17 @@ func hydrateTag(t *Tag, typ reflect.Type) error { //nolint: gocyclo
 		return fmt.Errorf("passthrough only makes sense for positional arguments or commands")
 	}
 	t.Passthrough = passthrough
+	if t.Passthrough {
+		passthroughMode := t.Get("passthrough")
+		switch passthroughMode {
+		case "partial":
+			t.PassthroughMode = PassThroughModePartial
+		case "all", "":
+			t.PassthroughMode = PassThroughModeAll
+		default:
+			return fmt.Errorf("invalid passthrough mode %q, must be one of 'partial' or 'all'", passthroughMode)
+		}
+	}
 	return nil
 }
 

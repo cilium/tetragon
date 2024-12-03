@@ -4,7 +4,7 @@ cel.dev/expr
 # dario.cat/mergo v1.0.1
 ## explicit; go 1.13
 dario.cat/mergo
-# github.com/alecthomas/kong v1.4.0
+# github.com/alecthomas/kong v1.5.1
 ## explicit; go 1.20
 github.com/alecthomas/kong
 # github.com/antlr4-go/antlr/v4 v4.13.0
@@ -136,9 +136,10 @@ github.com/sirupsen/logrus
 # github.com/stoewer/go-strcase v1.2.0
 ## explicit; go 1.11
 github.com/stoewer/go-strcase
-# github.com/stretchr/testify v1.9.0
+# github.com/stretchr/testify v1.10.0
 ## explicit; go 1.17
 github.com/stretchr/testify/assert
+github.com/stretchr/testify/assert/yaml
 github.com/stretchr/testify/require
 # golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c
 ## explicit; go 1.22.0

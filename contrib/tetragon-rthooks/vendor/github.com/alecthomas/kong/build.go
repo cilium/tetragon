@@ -281,17 +281,18 @@ func buildField(k *Kong, node *Node, v reflect.Value, ft reflect.StructField, fv
 	}
 
 	value := &Value{
-		Name:         name,
-		Help:         tag.Help,
-		OrigHelp:     tag.Help,
-		HasDefault:   tag.HasDefault,
-		Default:      tag.Default,
-		DefaultValue: reflect.New(fv.Type()).Elem(),
-		Mapper:       mapper,
-		Tag:          tag,
-		Target:       fv,
-		Enum:         tag.Enum,
-		Passthrough:  tag.Passthrough,
+		Name:            name,
+		Help:            tag.Help,
+		OrigHelp:        tag.Help,
+		HasDefault:      tag.HasDefault,
+		Default:         tag.Default,
+		DefaultValue:    reflect.New(fv.Type()).Elem(),
+		Mapper:          mapper,
+		Tag:             tag,
+		Target:          fv,
+		Enum:            tag.Enum,
+		Passthrough:     tag.Passthrough,
+		PassthroughMode: tag.PassthroughMode,
 
 		// Flags are optional by default, and args are required by default.
 		Required: (!tag.Arg && tag.Required) || (tag.Arg && !tag.Optional),
