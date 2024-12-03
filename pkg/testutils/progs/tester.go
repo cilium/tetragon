@@ -11,12 +11,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/cilium/tetragon/pkg/testutils"
 
 	"github.com/stretchr/testify/require"
+	"golang.org/x/sys/unix"
 )
 
 // Tester provides an interface to using tester from tests
@@ -53,6 +55,27 @@ func TestHelperMain() {
 				os.Exit(1)
 			}
 			fmt.Fprintf(os.Stdout, "cmd='%s' returned without an error. Combined output was: %q\n", cmd, out)
+
+		case strings.HasPrefix(cmd, "lseek "):
+			fields := strings.Fields(cmd)
+			fd, err := strconv.ParseInt(fields[1], 10, 32)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "invalid fd: %s", fields[1])
+				os.Exit(1)
+			}
+			off, err := strconv.ParseInt(fields[2], 10, 64)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "invalid off: %s", fields[2])
+				os.Exit(1)
+			}
+			whence, err := strconv.ParseInt(fields[3], 10, 32)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "invalid whence: %s", fields[3])
+				os.Exit(1)
+			}
+
+			o, err := unix.Seek(int(fd), off, int(whence))
+			fmt.Fprintf(os.Stdout, "cmd=%q returned o=%d err=%v\n", cmd, o, err)
 
 		case cmd == "exit":
 			fmt.Fprintf(os.Stderr, "Exiting...\n")
@@ -145,6 +168,15 @@ func (pt *Tester) Ping() error {
 func (pt *Tester) Exec(cmd string) (string, error) {
 	execCmd := fmt.Sprintf("exec %s", cmd)
 	out, err := pt.Command(execCmd)
+	if err != nil {
+		return "", fmt.Errorf("exec failed: %w", err)
+	}
+	return out, nil
+}
+
+func (pt *Tester) Lseek(fd, off, whence int) (string, error) {
+	lseekCmd := fmt.Sprintf("lseek %d %d %d", fd, off, whence)
+	out, err := pt.Command(lseekCmd)
 	if err != nil {
 		return "", fmt.Errorf("exec failed: %w", err)
 	}
