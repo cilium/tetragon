@@ -117,7 +117,7 @@ func New(grammar interface{}, options ...Option) (*Kong, error) {
 
 	// Embed any embedded structs.
 	for _, embed := range k.embedded {
-		tag, err := parseTagString(strings.Join(embed.tags, " ")) //nolint:govet
+		tag, err := parseTagString(strings.Join(embed.tags, " "))
 		if err != nil {
 			return nil, err
 		}

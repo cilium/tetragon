@@ -590,8 +590,12 @@ Both can coexist with standard Tag parsing.
 | `envprefix:"X"`      | Envar prefix for all sub-flags.                                                                                                                                                                                                                                                                                                |
 | `set:"K=V"`          | Set a variable for expansion by child elements. Multiples can occur.                                                                                                                                                                                                                                                           |
 | `embed:""`           | If present, this field's children will be embedded in the parent. Useful for composition.                                                                                                                                                                                                                                      |
-| `passthrough:""`     | If present on a positional argument, it stops flag parsing when encountered, as if `--` was processed before. Useful for external command wrappers, like `exec`. On a command it requires that the command contains only one argument of type `[]string` which is then filled with everything following the command, unparsed. |
+| `passthrough:"<mode>"`[^1] | If present on a positional argument, it stops flag parsing when encountered, as if `--` was processed before. Useful for external command wrappers, like `exec`. On a command it requires that the command contains only one argument of type `[]string` which is then filled with everything following the command, unparsed. |
 | `-`                  | Ignore the field. Useful for adding non-CLI fields to a configuration struct. e.g `` `kong:"-"` ``                                                                                                                                                                                                                             |
+
+[^1]: `<mode>` can be `partial` or `all` (the default). `all` will pass through all arguments including flags, including
+flags. `partial` will validate flags until the first positional argument is encountered, then pass through all remaining
+positional arguments.
 
 ## Plugins
 
