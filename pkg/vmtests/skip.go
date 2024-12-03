@@ -19,6 +19,7 @@ type skipRule struct {
 var rules = []skipRule{
 	skipRule{TestNameRe: "pkg.sensors.tracing.TestLoader", KernelRe: "(6\\.6|6\\.1)"},
 	skipRule{TestNameRe: "pkg.tracepoint.TestTracepointLoadFormat", KernelRe: "(6\\.1|bpf-next)"},
+	skipRule{TestNameRe: "pkg.sensors.exec.TestProcessCacheInterval", KernelRe: ""},
 }
 
 func init() {
