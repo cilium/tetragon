@@ -57,6 +57,10 @@ type Sensor struct {
 	Loaded bool
 	// Destroyed indicates whether the sensor had been destroyed.
 	Destroyed bool
+	// PostLoadHook can optionally contain a pointer to a function to be
+	// called during sensor loading, after the programs and maps being
+	// loaded.
+	PostLoadHook SensorHook
 	// PreUnloadHook can optionally contain a pointer to a function to be
 	// called during sensor unloading, prior to the programs and maps being
 	// unloaded.

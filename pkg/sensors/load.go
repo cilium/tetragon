@@ -182,6 +182,12 @@ func (s *Sensor) Load(bpfDir string) (err error) {
 	progsAdd(s.Progs)
 	AllMaps = append(AllMaps, s.Maps...)
 
+	if s.PostLoadHook != nil {
+		if err := s.PostLoadHook(); err != nil {
+			logger.GetLogger().WithError(err).WithField("sensor", s.Name).Warn("Post load hook failed")
+		}
+	}
+
 	// cleanup the BTF once we have loaded all sensor's program
 	btf.FlushKernelSpec()
 
