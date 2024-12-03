@@ -15,26 +15,36 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/cgtracker"
 	grpcexec "github.com/cilium/tetragon/pkg/grpc/exec"
+	"github.com/cilium/tetragon/pkg/grpc/tracing"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/policyfilter"
+	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/config/confmap"
 	_ "github.com/cilium/tetragon/pkg/sensors/exec" // NB: needed so that the exec sensor can load the execve probe on its init
 	testsensor "github.com/cilium/tetragon/pkg/sensors/test"
+	_ "github.com/cilium/tetragon/pkg/sensors/tracing" // NB: needed so that the exec tracing sensor can load its policy handlers on init
 	"github.com/cilium/tetragon/pkg/testutils"
+	tuo "github.com/cilium/tetragon/pkg/testutils/observer"
 	"github.com/cilium/tetragon/pkg/testutils/perfring"
 	testprogs "github.com/cilium/tetragon/pkg/testutils/progs"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
+	"github.com/cilium/tetragon/pkg/tracingpolicy"
 
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/unix"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestMain(m *testing.M) {
@@ -195,7 +205,6 @@ func doProgTest(t *testing.T, cgfsPath string) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
-
 	for _, tc := range tcs {
 		// add tester to the specified cgroup
 		progTester.AddToCgroup(t, cgfs.fullpath(tc.cgPath))
@@ -227,6 +236,104 @@ func doProgTest(t *testing.T, cgfsPath string) {
 	}
 
 	progTester.Stop()
+}
+
+// TestCgTrackerPolicyFilter checks that cgroup tracking works with policyfilter
+func TestCgTrackerPolicyFilter(t *testing.T) {
+	cgfsPath := "/sys/fs/cgroup"
+	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+
+	if err := observer.InitDataCache(1024); err != nil {
+		t.Fatalf("observertesthelper.InitDataCache: %s", err)
+	}
+	err := confmap.UpdateTgRuntimeConf(bpf.MapPrefixPath(), os.Getpid())
+	require.NoError(t, err)
+
+	policyfilter.TestingEnableAndReset(t)
+	loadExecSensorWithCgTracker(t)
+	sm := tuo.GetTestSensorManager(t)
+	t.Logf("%T\n", sm.Manager)
+
+	namespace := "mynamespace"
+	bogusFD := -42
+	kpPolicy := namespacedLseekPolicy(namespace, bogusFD)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Let's load the kprobe policy
+	err = sm.Manager.AddTracingPolicy(ctx, kpPolicy)
+	require.NoError(t, err)
+
+	cgfs := newTestCgroupFS(t, cgfsPath)
+
+	// create directories, and track path "a"
+	// NB: the sensor is already loaded so "a/x" should end up being tracked as well
+	cgfs.mkdirs(t, []string{"a", "a/x", "b", "b/y"}, func(p string) bool { return p == "a" })
+
+	// add a "container" under cgroup "a" that matches the namespace of the policy we added
+	pfState, err := policyfilter.GetState()
+	require.NoError(t, err)
+	t.Cleanup(func() { pfState.Close() })
+	err = pfState.AddPodContainer(
+		policyfilter.PodID(uuid.New()),
+		namespace, "wl", "kind", nil,
+		"pod-container", policyfilter.CgroupID(cgfs.cgIDs["a"]), "container-name")
+	require.NoError(t, err)
+
+	// NB: make true if you want to see a dump of the policyfilter maps
+	if false {
+		pfMap, err := policyfilter.OpenMap(filepath.Join(bpf.MapPrefixPath(), policyfilter.MapName))
+		require.NoError(t, err)
+		pfData, err := pfMap.Dump()
+		require.NoError(t, err)
+		t.Logf("pfMap:\n%+v\n", pfData)
+	}
+
+	progTester := testprogs.StartTester(t, ctx)
+
+	type testCase struct {
+		cgPath       string // cgroup path
+		expectEvents bool
+	}
+	tcs := []testCase{
+		{cgPath: "a", expectEvents: true},
+		{cgPath: "a/x", expectEvents: true},
+		{cgPath: "b", expectEvents: false},
+		{cgPath: "b/y", expectEvents: false},
+	}
+
+	for _, tc := range tcs {
+		// add tester to the specified cgroup
+		progTester.AddToCgroup(t, cgfs.fullpath(tc.cgPath))
+
+		// print cgroup to logs
+		out, err := progTester.Command("exec /usr/bin/cat /proc/self/cgroup")
+		require.NoError(t, err, out)
+		t.Logf("%s", out)
+
+		// for the test operation, we execute a copy of "true" to generate an exec event
+		ops := func() {
+			if out, err := progTester.Lseek(bogusFD, 0, 0); err != nil {
+				t.Logf("command failed: %s", err)
+			} else {
+				t.Logf("ops out: %s", out)
+			}
+		}
+
+		res := perfring.RunTestEventReduceCount(t, ctx, ops, perfring.FilterTestMessages,
+			func(x notify.Message) int {
+				if kpEvent, ok := x.(*tracing.MsgGenericKprobeUnix); ok {
+					arg, ok := kpEvent.Args[0].(tracingapi.MsgGenericKprobeArgInt)
+					if ok && arg.Value == int32(bogusFD) {
+						return 1
+					}
+				}
+				return 0
+			})
+		assert.Equal(t, tc.expectEvents, res[1] >= 1, fmt.Sprintf("path:%s expectEvents:%t eventsNR:%d\n", tc.cgPath, tc.expectEvents, res[1]))
+	}
+
 }
 
 // test helper for creating cgroup directories
@@ -338,4 +445,34 @@ func (fs *testCgroupFS) cleanup(t *testing.T) {
 	}
 	// close the bpf map
 	fs.cgTrackerMap.Close()
+}
+
+func namespacedLseekPolicy(namespace string, fd int) *tracingpolicy.GenericTracingPolicyNamespaced {
+	return &tracingpolicy.GenericTracingPolicyNamespaced{
+		Metadata: v1.ObjectMeta{
+			Name:      "lseek-test",
+			Namespace: namespace,
+		},
+		Spec: v1alpha1.TracingPolicySpec{
+			KProbes: []v1alpha1.KProbeSpec{{
+				Call:    "sys_lseek",
+				Return:  false,
+				Syscall: true,
+				ReturnArg: &v1alpha1.KProbeArg{
+					Type: "int",
+				},
+				Args: []v1alpha1.KProbeArg{
+					{Index: 0, Type: "int"},
+					{Index: 2, Type: "int"},
+				},
+				Selectors: []v1alpha1.KProbeSelector{
+					{MatchArgs: []v1alpha1.ArgSelector{{
+						Index:    0,
+						Operator: "Equal",
+						Values:   []string{fmt.Sprintf("%d", fd)},
+					}}},
+				},
+			}},
+		},
+	}
 }
