@@ -6,6 +6,7 @@ package cgtracker
 import (
 	"context"
 	"fmt"
+	"iter"
 	"os"
 	"path/filepath"
 	"slices"
@@ -92,72 +93,52 @@ func cgfsMkdirTemp(t *testing.T, cgfsPath string) string {
 func doMapTest(t *testing.T, cgfsPath string) {
 	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
 
-	dir := cgfsMkdirTemp(t, cgfsPath)
-	t.Logf("created cgroup dir '%s'", dir)
+	cgfs := newTestCgroupFS(t, cgfsPath)
 
+	// create cgroup directories
+	dontTrack := func(_ string) bool { return false }
 	cgPaths := []string{"untracked", "untracked/a", "tracked", "tracked/a", "tracked/a/x1", "tracked/a/x2", "tracked/b"}
-	// create a directory inside this tempdir
-	for _, d := range cgPaths {
-		d = filepath.Join(dir, d)
-		if err := os.Mkdir(d, 0700); err != nil {
-			t.Fatalf("failed to create '%s': %s", d, err)
-		}
-	}
+	cgfs.mkdirs(t, cgPaths, dontTrack)
 
-	fname := filepath.Join(bpf.MapPrefixPath(), cgtracker.MapName)
-	m, err := cgtracker.OpenMap(fname)
-	if err != nil {
-		t.Fatalf("failed to open cgtracker map: %s", err)
-	}
-	defer m.Close()
-
-	err = m.AddCgroupTrackerPath(filepath.Join(dir, "tracked"))
+	// add "tracked" directory
+	err := cgfs.cgTrackerMap.AddCgroupTrackerPath(cgfs.fullpath("tracked"))
 	require.NoError(t, err)
-	trackerID, err := cgroups.GetCgroupIdFromPath(filepath.Join(dir, "tracked"))
-	require.NoError(t, err)
+	trackerID := cgfs.cgIDs["tracked"]
 
+	// check that AddCgroupTrackerPath call above added all directories under "tracked"
 	for _, path := range cgPaths {
 		if !strings.HasPrefix(path, "tracked") {
 			continue
 		}
-		cgPath := filepath.Join(dir, path)
-		trackedID, err := cgroups.GetCgroupIdFromPath(cgPath)
-		require.NoError(t, err)
+		trackedID := cgfs.cgIDs[path]
 		var val uint64
-		err = m.Lookup(&trackedID, &val)
+		err = cgfs.cgTrackerMap.Lookup(&trackedID, &val)
 		require.NoError(t, err)
 		require.Equal(t, trackerID, val)
 	}
 
+	// add more directories and check that they are properly tracked
 	cgPaths2 := []string{"untracked/b", "tracked/c", "tracked/a/z", "tracked/c/y"}
-	for _, path := range cgPaths2 {
-		cgPath := filepath.Join(dir, path)
-		if err := os.Mkdir(cgPath, 0700); err != nil {
-			t.Fatalf("failed to create '%s': %s", cgPath, err)
-		}
-		trackedID, err := cgroups.GetCgroupIdFromPath(cgPath)
-		require.NoError(t, err)
+	cgfs.mkdirsCheck(t, cgPaths2, dontTrack, func(t *testing.T, fs *testCgroupFS, p string) {
+		trackedID := fs.cgIDs[p]
 		var val uint64
-		err = m.Lookup(&trackedID, &val)
-		if strings.HasPrefix(path, "tracked") {
-			assert.NoError(t, err, fmt.Sprintf("cgroup (%x) id for %s should exist in the map", trackedID, cgPath))
-			assert.Equal(t, trackerID, val, fmt.Sprintf("tracker ID value should match tracker for key 0x%x (%s)", trackedID, cgPath))
+		err = fs.cgTrackerMap.Lookup(&trackedID, &val)
+		if strings.HasPrefix(p, "tracked") {
+			assert.NoError(t, err, fmt.Sprintf("cgroup (%x) id for %s should exist in the map", trackedID, p))
+			assert.Equal(t, trackerID, val, fmt.Sprintf("tracker ID value should match tracker for key 0x%x (%s)", trackedID, p))
 		} else {
 			assert.Error(t, err)
 		}
-	}
 
-	for _, path := range slices.Backward(slices.Concat(cgPaths, cgPaths2)) {
-		cgPath := filepath.Join(dir, path)
-		if err := os.Remove(cgPath); err != nil {
-			t.Fatalf("failed to unlink '%s': %s", cgPath, err)
-		}
-	}
+	})
+
+	// remove all directories
+	cgfs.rmAllDirs(t)
 
 	// NB(kkourt): We use sleep here because cgtracker hooks into _release() not _rmdir() which
 	// runs under kworker and executed after the rmdirs() are completed.
 	time.Sleep(1 * time.Second)
-	vals, err := m.Dump()
+	vals, err := cgfs.cgTrackerMap.Dump()
 	require.NoError(t, err)
 	assert.Equal(t, vals, map[uint64][]uint64{})
 }
@@ -276,10 +257,11 @@ func newTestCgroupFS(t *testing.T, cgfsPath string) *testCgroupFS {
 	return ret
 }
 
-func (fs *testCgroupFS) mkdirs(
+func (fs *testCgroupFS) mkdirsCheck(
 	t *testing.T,
 	paths []string,
 	trackPath func(p string) bool,
+	checkFn func(t *testing.T, fs *testCgroupFS, p string),
 ) {
 	for _, path := range paths {
 		d := fs.fullpath(path)
@@ -294,8 +276,44 @@ func (fs *testCgroupFS) mkdirs(
 		require.NoError(t, err)
 		fs.cgIDs[path] = cgID
 		t.Logf("cgid for %s is %d", path, cgID)
+		if checkFn != nil {
+			checkFn(t, fs, path)
+		}
 		fs.paths = append(fs.paths, path)
 	}
+}
+
+func (fs *testCgroupFS) rmAllDirs(t *testing.T) {
+	rmPaths := slices.Backward(fs.paths)
+	// NB: not very efficient, but it allows us to test rmdirs
+	fs.rmdirs(t, rmPaths)
+}
+
+func (fs *testCgroupFS) rmdirs(t *testing.T, paths iter.Seq2[int, string]) {
+	for _, path := range paths {
+		i := slices.Index(fs.paths, path)
+		if i == -1 {
+			t.Logf("path '%s' not part of testCgroupFS. calling rmdir anyway", path)
+		}
+
+		cgPath := fs.fullpath(path)
+		if err := os.Remove(cgPath); err != nil {
+			t.Fatalf("failed to unlink '%s': %s", cgPath, err)
+		}
+
+		delete(fs.cgIDs, path)
+		if i != -1 {
+			fs.paths = slices.Delete(fs.paths, i, i+1)
+		}
+	}
+}
+
+func (fs *testCgroupFS) mkdirs(
+	t *testing.T,
+	paths []string,
+	trackPath func(p string) bool,
+) {
+	fs.mkdirsCheck(t, paths, trackPath, nil)
 }
 
 func (fs *testCgroupFS) fullpath(p string) string {
