@@ -31,7 +31,7 @@ export SERVICECIDR=$(gcloud container clusters describe ${NAME} --zone ${ZONE} |
 {{< /tab >}}
 
 {{< tab Kind >}}
-export SERVICECIDR=$(kubectl describe pod -n kube-system kube-apiserver-kind-control-plane | awk -F= '/--service-cluster-ip-range/ {print $2; }')
+export SERVICECIDR=$(kubectl describe pod -n kube-system -l component=kube-apiserver | awk -F= '/--service-cluster-ip-range/ {print $2; }')
 {{< /tab >}}
 
 {{< tab EKS >}}
