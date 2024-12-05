@@ -196,6 +196,13 @@ read_exe(struct task_struct *task, struct heap_exe *exe)
 	// matching on the prefix operators, even if we only keep a subset of that
 	char *buffer;
 
+	// Initialiaze to invalid uid
+	exe->uid_owner = -1;
+	exe->gid_owner = -1;
+
+	BPF_CORE_READ_INTO(&exe->uid_owner, file, f_inode, i_uid.val);
+	BPF_CORE_READ_INTO(&exe->gid_owner, file, f_inode, i_gid.val);
+
 	buffer = d_path_local(path, (int *)&exe->len, (int *)&exe->error);
 	if (!buffer)
 		return 0;
@@ -389,6 +396,8 @@ execve_send(void *ctx __arg_ctx)
 		// path is longer than current, we can have leftovers at the end.
 		memset(&curr->bin, 0, sizeof(curr->bin));
 #ifdef __LARGE_BPF_PROG
+		curr->bin.uid = event->exe.uid_owner;
+		curr->bin.gid = event->exe.gid_owner;
 		// read from proc exe stored at execve time
 		if (event->exe.len <= BINARY_PATH_MAX_LEN) {
 			curr->bin.path_length = probe_read(curr->bin.path, event->exe.len, event->exe.buf);
