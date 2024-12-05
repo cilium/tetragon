@@ -323,8 +323,21 @@ struct binary {
 	// STRING_POSTFIX_MAX_LENGTH reversed last bytes of the path
 	char end_r[STRING_POSTFIX_MAX_LENGTH];
 	// matchBinary bitset for binary
+	// NB: everything after and including ->mb_bitset will not be zeroed on a new exec. See
+	// binary_reset().
 	mbset_t mb_bitset;
 }; // All fields aligned so no 'packed' attribute
+
+FUNC_INLINE void
+binary_reset(struct binary *b)
+{
+	// buffer can be written at clone stage with parent's info, if previous path is longer than
+	// current, we can have leftovers at the end, so zero out bin structure.
+	//
+	// Do not zero the ->mb_bitset however, so that it can be inherited if exec() is called.
+	// This depends on ->mb_bitset being the last part of the struct.
+	memset(b, 0, offsetof(struct binary, mb_bitset));
+}
 
 // The execve_map_value is tracked by the TGID of the thread group
 // the msg_execve_key.pid. The thread IDs are recorded on the
