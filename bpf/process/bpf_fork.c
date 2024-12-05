@@ -71,6 +71,10 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 	 */
 	get_namespaces(&curr->ns, task);
 
+	__event_get_cgroup_info(task, &kube);
+	/* Store the task cgroup ID */
+	curr->cgrpid = kube.cgrpid;
+
 	/* Setup the msg_clone_event and sent to the user. */
 	msg.common.op = MSG_OP_CLONE;
 	msg.common.size = msg_size;
@@ -86,8 +90,6 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 	msg.ktime = curr->key.ktime;
 	msg.nspid = curr->nspid;
 	msg.flags = curr->flags;
-
-	__event_get_cgroup_info(task, &kube);
 
 	if (cgroup_rate(ctx, &kube, msg.ktime)) {
 		perf_event_output_metric(ctx, MSG_OP_CLONE, &tcpmon_map,
