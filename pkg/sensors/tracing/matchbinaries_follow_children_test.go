@@ -64,7 +64,16 @@ func TestMatchBinariesFollowChildren(t *testing.T) {
 			t.Fatalf("failed to run command %s: %v", cmd, err)
 		}
 	}
-
 	perfring.RunTest(t, ctx, ops, eventFn)
-	require.Equal(t, 1, getcpuCnt)
+	require.Equal(t, 1, getcpuCnt, "single exec")
+
+	getcpuCnt = 0
+	ops2 := func() {
+		cmd := exec.Command(tmpShPath, "-c", fmt.Sprintf("exec sh -c %s", getcpuBin))
+		if err := cmd.Run(); err != nil {
+			t.Fatalf("failed to run command %s: %v", cmd, err)
+		}
+	}
+	perfring.RunTest(t, ctx, ops2, eventFn)
+	require.Equal(t, 1, getcpuCnt, "double exec")
 }
