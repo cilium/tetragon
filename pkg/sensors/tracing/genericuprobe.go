@@ -341,6 +341,10 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 			return nil, fmt.Errorf("Error add arg: ArgType %s Index %d out of bounds",
 				a.Type, int(a.Index))
 		}
+
+		if a.ExtractParam != "" || a.OverwriteType != "" {
+			logger.GetLogger().Warnf("Extracting parameters from Uprobes is not supported, ignoring")
+		}
 		argTypes[a.Index] = int32(argType)
 		argMeta[a.Index] = uint32(argMValue)
 		argSet[a.Index] = true
