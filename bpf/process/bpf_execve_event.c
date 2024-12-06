@@ -308,7 +308,7 @@ void update_mb_bitset(struct binary *bin)
 		/* ->mb_bitset is used to track matchBinary matches to children (followChildren), so
 		 * here we propagate the parent value to the child.
 		 */
-		bin->mb_bitset = parent->bin.mb_bitset;
+		bin->mb_bitset |= parent->bin.mb_bitset;
 	}
 
 	/* check the map and see if the binary path matches a binary
@@ -385,9 +385,8 @@ execve_send(void *ctx __arg_ctx)
 			curr->caps.inheritable = event->creds.caps.inheritable;
 		}
 #endif
-		// buffer can be written at clone stage with parent's info, if previous
-		// path is longer than current, we can have leftovers at the end.
-		memset(&curr->bin, 0, sizeof(curr->bin));
+		/* zero out previous paths in ->bin */
+		binary_reset(&curr->bin);
 #ifdef __LARGE_BPF_PROG
 		// read from proc exe stored at execve time
 		if (event->exe.len <= BINARY_PATH_MAX_LEN) {
