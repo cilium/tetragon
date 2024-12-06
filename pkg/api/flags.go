@@ -92,4 +92,8 @@ const (
 	EventDataFilename = 0x800000
 	// EventDataArgs indicates args are received with data event
 	EventDataArgs = 0x1000000
+
+	// EventDataArgs indicates that a clone event's process is in its
+	// container's init process tree.
+	EventInInitTree = 0x2000000
 )

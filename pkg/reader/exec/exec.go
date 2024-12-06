@@ -36,6 +36,7 @@ var FlagStrings = map[uint32]string{
 	api.EventErrorPathComponents:   "errorPathResolutionCwd",
 	api.EventDataFilename:          "dataFilename",
 	api.EventDataArgs:              "dataArgs",
+	api.EventInInitTree:            "inInitTree",
 }
 
 var flagsOrdered = []uint32{
@@ -63,6 +64,7 @@ var flagsOrdered = []uint32{
 	api.EventErrorPathComponents,
 	api.EventDataFilename,
 	api.EventDataArgs,
+	api.EventInInitTree,
 }
 
 func DecodeCommonFlags(flags uint32) []string {

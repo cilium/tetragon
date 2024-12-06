@@ -364,7 +364,7 @@ func initProcessInternalExec(
 		}
 	}
 
-	return &ProcessInternal{
+	pi := &ProcessInternal{
 		process: &tetragon.Process{
 			Pid:          &wrapperspb.UInt32Value{Value: process.PID},
 			Tid:          &wrapperspb.UInt32Value{Value: process.TID},
@@ -389,6 +389,15 @@ func initProcessInternalExec(
 		refcnt:        1,
 		refcntOps:     map[string]int32{"process++": 1},
 	}
+
+	// Set in_init_tree flag
+	if event.Process.Flags&api.EventInInitTree == api.EventInInitTree {
+		pi.process.InInitTree = &wrapperspb.BoolValue{Value: true}
+	} else {
+		pi.process.InInitTree = &wrapperspb.BoolValue{Value: false}
+	}
+
+	return pi
 }
 
 // initProcessInternalClone() initialize and returns ProcessInternal from
@@ -438,6 +447,12 @@ func initProcessInternalClone(event *tetragonAPI.MsgCloneEvent,
 		if podInfo := GetPodInfo(pi.process.Docker, pi.process.Binary, pi.process.Arguments, event.NSPID); podInfo != nil {
 			pi.AddPodInfo(podInfo)
 		}
+	}
+	// Set in_init_tree flag
+	if event.Flags&api.EventInInitTree == api.EventInInitTree {
+		pi.process.InInitTree = &wrapperspb.BoolValue{Value: true}
+	} else {
+		pi.process.InInitTree = &wrapperspb.BoolValue{Value: false}
 	}
 
 	return pi, nil
