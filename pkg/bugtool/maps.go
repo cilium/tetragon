@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"slices"
 	"sort"
+	"strings"
 	"syscall"
 
 	"github.com/cilium/ebpf"
@@ -158,6 +159,9 @@ func mapIDsFromPinnedProgs(path string) (iter.Seq[int], error) {
 		}
 		if d.IsDir() {
 			return nil // skip directories
+		}
+		if strings.HasSuffix(path, "link") {
+			return nil // skip BPF links, they make the syscall fail since cilium/ebpf@78074c59
 		}
 		prog, err := ebpf.LoadPinnedProgram(path, nil)
 		if err != nil {
