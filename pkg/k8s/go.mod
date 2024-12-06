@@ -9,7 +9,7 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cilium/cilium v1.17.0-pre.2
 	github.com/sirupsen/logrus v1.9.3
-	golang.org/x/sync v0.9.0
+	golang.org/x/sync v0.10.0
 	k8s.io/apiextensions-apiserver v0.31.3
 	k8s.io/apimachinery v0.31.3
 	k8s.io/client-go v0.31.3
