@@ -56,7 +56,6 @@ jobs:
         make check-copyright
         sudo -E echo "run go tests: " `uname -a`
         sudo -E go mod verify
-        sudo -E GO111MODULE=off go get -u golang.org/x/lint/golint
         export TETRAGON_LIB=$(realpath "bpf/objs/")
         make test GO_TEST_TIMEOUT=40m
 
