@@ -372,7 +372,13 @@ execve_send(void *ctx __arg_ctx)
 		if (curr->flags & EVENT_COMMON_FLAG_CLONE) {
 			event_set_clone(p);
 		}
-		curr->flags = 0;
+		curr->flags &= ~EVENT_COMMON_FLAG_CLONE;
+		/* Set EVENT_IN_INIT_TREE flag on the process if nspid=1.
+		 */
+		set_in_init_tree(curr, NULL);
+		if (curr->flags & EVENT_IN_INIT_TREE) {
+			event->process.flags |= EVENT_IN_INIT_TREE;
+		}
 #ifdef __NS_CHANGES_FILTER
 		if (init_curr)
 			memcpy(&(curr->ns), &(event->ns),

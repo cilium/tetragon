@@ -71,6 +71,11 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 	 */
 	get_namespaces(&curr->ns, task);
 
+	/* Set EVENT_IN_INIT_TREE flag on the process if its parent is in a
+	 * container's init tree or if it has nspid=1.
+	 */
+	set_in_init_tree(curr, parent);
+
 	/* Setup the msg_clone_event and sent to the user. */
 	msg.common.op = MSG_OP_CLONE;
 	msg.common.size = msg_size;
