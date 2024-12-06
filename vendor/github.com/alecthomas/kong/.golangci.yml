@@ -7,7 +7,6 @@ output:
 linters:
   enable-all: true
   disable:
-    - maligned
     - lll
     - gochecknoglobals
     - wsl
@@ -17,11 +16,8 @@ linters:
     - goprintffuncname
     - paralleltest
     - nlreturn
-    - goerr113
-    - ifshort
     - testpackage
     - wrapcheck
-    - exhaustivestruct
     - forbidigo
     - gci
     - godot
@@ -29,9 +25,6 @@ linters:
     - cyclop
     - errorlint
     - nestif
-    - golint
-    - scopelint
-    - interfacer
     - tagliatelle
     - thelper
     - godox
@@ -41,18 +34,17 @@ linters:
     - exhaustruct
     - nonamedreturns
     - nilnil
-    - nosnakecase # deprecated since v1.48.1
-    - structcheck # deprecated since v1.49.0
-    - deadcode    # deprecated since v1.49.0
-    - varcheck    # deprecated since v1.49.0
     - depguard    # nothing to guard against yet
     - tagalign    # hurts readability of kong tags
     - mnd
     - perfsprint
+    - err113
+    - copyloopvar
+    - intrange
+    - execinquery
 
 linters-settings:
   govet:
-    check-shadowing: true
     # These govet checks are disabled by default, but they're useful.
     enable:
       - niliness
@@ -90,7 +82,3 @@ issues:
     # Duplicate words are okay in tests.
     - linters: [dupword]
       path: _test\.go
-
-    - linters: [maintidx]
-      path: context\.go
-      text: 'Function name: trace'

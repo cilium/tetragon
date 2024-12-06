@@ -6,6 +6,15 @@
 
 The missing `generic` set collection for the Go language.  Until Go has sets built-in...use this.
 
+## Psst
+* Hi there, 👋! Do you use or have interest in the [Zig programming language](https://ziglang.org/) created by Andrew Kelley? If so, the golang-set project has a new sibling project: [ziglang-set](https://github.com/deckarep/ziglang-set)! Come check it out!
+
+## Update 12/3/2024
+* Packaged version: `2.7.0` fixes a long-standing bug with *JSON Unmarshaling*. A large refactor in the interest of performance
+introduced this bug and there was no way around it but to revert the code back to how it was previously. The performance
+difference was likely negligible to begin with. JSON Marshaling and Unmarshaling is now properly supported again without
+needing to do workarounds.
+
 ## Update 3/5/2023
 * Packaged version: `2.2.0` release includes a refactor to minimize pointer indirection, better method documentation standards and a few constructor convenience methods to increase ergonomics when appending items `Append` or creating a new set from an exist `Map`.
 * supports `new generic` syntax

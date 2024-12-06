@@ -347,6 +347,7 @@ func (c *Context) endParsing() {
 	}
 }
 
+//nolint:maintidx
 func (c *Context) trace(node *Node) (err error) { //nolint: gocyclo
 	positional := 0
 	node.Active = true
@@ -424,7 +425,7 @@ func (c *Context) trace(node *Node) (err error) { //nolint: gocyclo
 
 		case FlagToken:
 			if err := c.parseFlag(flags, token.String()); err != nil {
-				if isUnknownFlagError(err) && positional < len(node.Positional) && node.Positional[positional].Passthrough {
+				if isUnknownFlagError(err) && positional < len(node.Positional) && node.Positional[positional].PassthroughMode == PassThroughModeAll {
 					c.scan.Pop()
 					c.scan.PushTyped(token.String(), PositionalArgumentToken)
 				} else {
@@ -434,7 +435,7 @@ func (c *Context) trace(node *Node) (err error) { //nolint: gocyclo
 
 		case ShortFlagToken:
 			if err := c.parseFlag(flags, token.String()); err != nil {
-				if isUnknownFlagError(err) && positional < len(node.Positional) && node.Positional[positional].Passthrough {
+				if isUnknownFlagError(err) && positional < len(node.Positional) && node.Positional[positional].PassthroughMode == PassThroughModeAll {
 					c.scan.Pop()
 					c.scan.PushTyped(token.String(), PositionalArgumentToken)
 				} else {
@@ -758,7 +759,7 @@ func (e *unknownFlagError) Error() string { return e.Cause.Error() }
 // Call an arbitrary function filling arguments with bound values.
 func (c *Context) Call(fn any, binds ...interface{}) (out []interface{}, err error) {
 	fv := reflect.ValueOf(fn)
-	bindings := c.Kong.bindings.clone().add(binds...).add(c).merge(c.bindings) //nolint:govet
+	bindings := c.Kong.bindings.clone().add(binds...).add(c).merge(c.bindings)
 	return callAnyFunction(fv, bindings)
 }
 

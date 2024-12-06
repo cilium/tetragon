@@ -6,16 +6,16 @@ go 1.23.0
 toolchain go1.23.1
 
 require (
-	github.com/alecthomas/kong v1.4.0
+	github.com/alecthomas/kong v1.5.1
 	github.com/bombsimon/logrusr/v4 v4.1.0
 	github.com/cilium/cilium v1.17.0-pre.2
-	github.com/cilium/ebpf v0.16.1-0.20241112095022-ddcaa8c274b4
+	github.com/cilium/ebpf v0.16.1-0.20241205185900-f0eec7efba9d
 	github.com/cilium/little-vm-helper v0.0.19
 	github.com/cilium/lumberjack/v2 v2.4.1
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/cilium/tetragon/pkg/k8s v0.0.0-00010101000000-000000000000
 	github.com/containerd/cgroups v1.1.0
-	github.com/deckarep/golang-set/v2 v2.6.0
+	github.com/deckarep/golang-set/v2 v2.7.0
 	github.com/fatih/color v1.18.0
 	github.com/google/cel-go v0.22.1
 	github.com/google/go-cmp v0.6.0
@@ -43,7 +43,7 @@ require (
 	go.uber.org/atomic v1.11.0
 	go.uber.org/multierr v1.11.0
 	golang.org/x/sync v0.10.0
-	golang.org/x/sys v0.27.0
+	golang.org/x/sys v0.28.0
 	golang.org/x/time v0.8.0
 	google.golang.org/grpc v1.68.1
 	google.golang.org/protobuf v1.35.2
