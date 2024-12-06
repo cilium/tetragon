@@ -1125,9 +1125,14 @@ func (ec *elfCode) loadDataSections() error {
 			continue
 		}
 
-		if sec.references == 0 {
-			// Prune data sections which are not referenced by any
-			// instructions.
+		// If a section has no references, it will be freed as soon as the
+		// Collection closes, so creating and populating it is wasteful. If it has
+		// no symbols, it is likely an ephemeral section used during compilation
+		// that wasn't sanitized by the bpf linker. (like .rodata.str1.1)
+		//
+		// No symbols means no VariableSpecs can be generated from it, making it
+		// pointless to emit a data section for.
+		if sec.references == 0 && len(sec.symbols) == 0 {
 			continue
 		}
 
@@ -1239,7 +1244,9 @@ func (ec *elfCode) loadDataSections() error {
 						return fmt.Errorf("data section %s: variable %s size in datasec (%d) doesn't match ELF symbol size (%d)", sec.Name, name, v.Size, ev.size)
 					}
 
-					ev.t = vt.Type
+					// Decouple the Var in the VariableSpec from the underlying DataSec in
+					// the MapSpec to avoid modifications from affecting map loads later on.
+					ev.t = btf.Copy(vt).(*btf.Var)
 				}
 			}
 		}

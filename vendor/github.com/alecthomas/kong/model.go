@@ -239,23 +239,24 @@ func (n *Node) ClosestGroup() *Group {
 
 // A Value is either a flag or a variable positional argument.
 type Value struct {
-	Flag         *Flag // Nil if positional argument.
-	Name         string
-	Help         string
-	OrigHelp     string // Original help string, without interpolated variables.
-	HasDefault   bool
-	Default      string
-	DefaultValue reflect.Value
-	Enum         string
-	Mapper       Mapper
-	Tag          *Tag
-	Target       reflect.Value
-	Required     bool
-	Set          bool   // Set to true when this value is set through some mechanism.
-	Format       string // Formatting directive, if applicable.
-	Position     int    // Position (for positional arguments).
-	Passthrough  bool   // Set to true to stop flag parsing when encountered.
-	Active       bool   // Denotes the value is part of an active branch in the CLI.
+	Flag            *Flag // Nil if positional argument.
+	Name            string
+	Help            string
+	OrigHelp        string // Original help string, without interpolated variables.
+	HasDefault      bool
+	Default         string
+	DefaultValue    reflect.Value
+	Enum            string
+	Mapper          Mapper
+	Tag             *Tag
+	Target          reflect.Value
+	Required        bool
+	Set             bool            // Set to true when this value is set through some mechanism.
+	Format          string          // Formatting directive, if applicable.
+	Position        int             // Position (for positional arguments).
+	Passthrough     bool            // Deprecated: Use PassthroughMode instead. Set to true to stop flag parsing when encountered.
+	PassthroughMode PassthroughMode //
+	Active          bool            // Denotes the value is part of an active branch in the CLI.
 }
 
 // EnumMap returns a map of the enums in this value.
