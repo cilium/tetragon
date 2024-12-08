@@ -139,11 +139,8 @@ VAR := $1
 # We need to define extra rules for multi probes because the object name
 # is different then the source file.
 $(DEPSDIR)bpf_multi_kprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_kprobe.c
-	$$(call rule_d,$(VARIANT_CFLAGS))
 $(DEPSDIR)bpf_multi_retkprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_retkprobe.c
-	$$(call rule_d,$(VARIANT_CFLAGS))
 $(DEPSDIR)bpf_multi_uprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_uprobe.c
-	$$(call rule_d,$(VARIANT_CFLAGS))
 
 # Object build rule for VARIANT objects
 $(OBJSDIR)%_$$(VAR).o:
@@ -177,17 +174,18 @@ objs/%.ll:
 	$(rule_ll)
 
 # Generic dependency files
-$(DEPSDIR)%.d: $(ALIGNCHECKERDIR)%.c
-	$(rule_d)
 $(DEPSDIR)bpf_multi_enforcer.d: $(PROCESSDIR)bpf_enforcer.c
-	$(rule_d)
 $(DEPSDIR)bpf_fmodret_enforcer.d: $(PROCESSDIR)bpf_enforcer.c
+
+$(DEPSDIR)%.d: $(ALIGNCHECKERDIR)%.c
 	$(rule_d)
 $(DEPSDIR)%.d: $(PROCESSDIR)%.c
 	$(rule_d)
 $(DEPSDIR)%.d: $(BPFTESTDIR)%.c
 	$(rule_d)
 $(DEPSDIR)%.d: $(CGROUPDIR)%.c
+	$(rule_d)
+$(DEPSDIR)%.d:
 	$(rule_d)
 
 # include dependencies, see https://lists.gnu.org/archive/html/make-w32/2004-03/msg00062.html
