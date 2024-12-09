@@ -68,6 +68,8 @@ var (
 	StatsMap           = program.MapBuilder("tg_stats_map", Execve)
 
 	MatchBinariesSetMap = program.MapBuilder(mbset.MapName, Execve)
+
+	ErrMetricsMap = program.MapBuilder("tg_errmetrics_map", Execve)
 )
 
 func setupPrograms() {
@@ -124,6 +126,7 @@ func GetDefaultMaps() []*program.Map {
 		TetragonConfMap,
 		StatsMap,
 		MatchBinariesSetMap,
+		ErrMetricsMap,
 	}
 	return maps
 
