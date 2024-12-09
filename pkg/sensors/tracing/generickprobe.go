@@ -693,6 +693,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 	var setRetprobe bool
 	var argRetprobe *v1alpha1.KProbeArg
 	var argsBTFSet [api.MaxArgsSupported]bool
+	var allBtfArgs [api.EventConfigMaxArgs][api.MaxBtfArgDepth]api.ConfigBtfArg
 
 	errFn := func(err error) (idtable.EntryID, error) {
 		return idtable.UninitializedEntryID, err
@@ -759,6 +760,15 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 			argType = gt.GenericTypeFromString(a.Type)
 		}
 
+		if a.ExtractParam != "" && j < api.EventConfigMaxArgs {
+			allBtfArgs[j] = [api.MaxBtfArgDepth]api.ConfigBtfArg{}
+			lastBtfType, err := buildBtfArg(a, &allBtfArgs[j])
+			if err != nil {
+				return errFn(err)
+			}
+			argType = findTypeFromBtfType(a, lastBtfType)
+		}
+
 		if argType == gt.GenericInvalidType {
 			return errFn(fmt.Errorf("Arg(%d) type '%s' unsupported", j, a.Type))
 		}
@@ -782,6 +792,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 			return errFn(fmt.Errorf("Error add arg: ArgType %s Index %d out of bounds",
 				a.Type, int(a.Index)))
 		}
+		config.BtfArg = allBtfArgs
 		config.Arg[a.Index] = int32(argType)
 		config.ArgM[a.Index] = uint32(argMValue)
 
