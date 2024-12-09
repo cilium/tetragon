@@ -130,4 +130,25 @@ func Test_GetEvents_FilterFields(t *testing.T) {
 			assert.NotEmpty(t, res.GetProcessExec().Parent)
 		}
 	})
+
+	t.Run("FilterCelExpression", func(t *testing.T) {
+		testutils.MockPipedFile(t, testutils.RepoRootPath("testdata/events.json"))
+		cmd := New()
+		cmd.SetArgs([]string{"--cel-expression", "process_exec.process.pod.pod_labels['class'] == 'deathstar'"})
+		output := testutils.RedirectStdoutExecuteCmd(t, cmd)
+		// remove last trailing newline for splitting
+		output = bytes.TrimSpace(output)
+		lines := bytes.Split(output, []byte("\n"))
+		assert.Equal(t, 2, len(lines))
+		for _, line := range lines {
+			var res tetragon.GetEventsResponse
+			err := json.Unmarshal(line, &res)
+			if err != nil {
+				t.Fatal(err)
+			}
+			class, ok := res.GetProcessExec().Process.Pod.PodLabels["class"]
+			assert.True(t, ok, "Class label should be present")
+			assert.Equal(t, class, "deathstar")
+		}
+	})
 }
