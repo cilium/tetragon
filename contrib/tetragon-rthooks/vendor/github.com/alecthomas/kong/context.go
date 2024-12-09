@@ -782,6 +782,19 @@ func (c *Context) RunNode(node *Node, binds ...interface{}) (err error) {
 		methodBinds = methodBinds.clone()
 		for p := node; p != nil; p = p.Parent {
 			methodBinds = methodBinds.add(p.Target.Addr().Interface())
+			// Try value and pointer to value.
+			for _, p := range []reflect.Value{p.Target, p.Target.Addr()} {
+				t := p.Type()
+				for i := 0; i < p.NumMethod(); i++ {
+					methodt := t.Method(i)
+					if strings.HasPrefix(methodt.Name, "Provide") {
+						method := p.Method(i)
+						if err := methodBinds.addProvider(method.Interface()); err != nil {
+							return fmt.Errorf("%s.%s: %w", t.Name(), methodt.Name, err)
+						}
+					}
+				}
+			}
 		}
 		if method.IsValid() {
 			methods = append(methods, targetMethod{node, method, methodBinds})
