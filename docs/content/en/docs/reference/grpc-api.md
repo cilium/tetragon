@@ -602,6 +602,8 @@ found.
 | process | [Process](#tetragon-Process) |  | Process that triggered the exec. |
 | parent | [Process](#tetragon-Process) |  | Immediate parent of the process. |
 | ancestors | [Process](#tetragon-Process) | repeated | Ancestors of the process beyond the immediate parent. |
+| message | [string](#string) |  | Short message to inform users what is going on. |
+| tags | [string](#string) | repeated | Tags to categorize the event. |
 
 <a name="tetragon-ProcessExit"></a>
 
