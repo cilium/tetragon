@@ -25,7 +25,7 @@ COPY . .
 RUN make VERSION=$TETRAGON_VERSION TARGET_ARCH=$TARGETARCH tetragon tetra tetragon-oci-hook tetragon-oci-hook-setup
 
 # Third builder (cross-)compile a stripped gops
-FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.22.10-alpine@sha256:21edeab9ed48e9820f0b447cce6ce1900b3aa90ffce3c8b4de7fae5ac333de0c AS gops
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.22.10-alpine@sha256:58a82e883f0d11f52204d2baa58a62dc565c409105773526340f678c9dc2558f AS gops
 ARG TARGETARCH
 RUN apk add --no-cache git \
 # renovate: datasource=github-releases depName=google/gops
