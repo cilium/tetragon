@@ -4,15 +4,19 @@
 package debug
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"text/tabwriter"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/defaults"
+	"github.com/cilium/tetragon/pkg/errmetrics"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors/base"
@@ -40,6 +44,7 @@ func NewDumpCommand() *cobra.Command {
 		execveMapCmd(),
 		policyfilterCmd(),
 		dumpProcessCache(),
+		bpfErrMetricsCmd(),
 	)
 
 	return ret
@@ -215,6 +220,60 @@ func NamespaceState(fname string) error {
 	iter := m.Iterate()
 	for iter.Next(&key, &val) {
 		fmt.Printf("%d: %d\n", key, val)
+	}
+
+	return nil
+}
+
+func bpfErrMetricsCmd() *cobra.Command {
+
+	mapFname := filepath.Join(defaults.DefaultMapRoot, defaults.DefaultMapPrefix, errmetrics.MapName)
+	var output string
+
+	ret := &cobra.Command{
+		Use:   "errmetrics",
+		Short: "dump BPF error metrics",
+		Args:  cobra.ExactArgs(0),
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return ErrMetrics(mapFname, cmd.OutOrStdout(), output)
+		},
+	}
+
+	flags := ret.Flags()
+	flags.StringVar(&mapFname, "map-fname", mapFname, "policyfilter map filename")
+	flags.StringVarP(&output, "output", "o", "tab", "Output format. One of tab or json.")
+
+	return ret
+}
+
+func ErrMetrics(fname string, out io.Writer, output string) error {
+	m, err := errmetrics.OpenMap(fname)
+	if err != nil {
+		return fmt.Errorf("failed to open errmetrics map: %w", err)
+	}
+	defer m.Close()
+
+	ret, err := m.Dump()
+	if err != nil {
+		return fmt.Errorf("failed to dump errmetrics map: %w", err)
+	}
+
+	switch output {
+	case "json":
+		jsonOut, err := json.Marshal(ret)
+		if err != nil {
+			return fmt.Errorf("failed to marshal output to JSON: %w", err)
+		}
+		out.Write(jsonOut)
+	case "tab":
+		w := tabwriter.NewWriter(out, 0, 0, 3, ' ', 0)
+		fmt.Fprintln(w, "Location\tError\tCount")
+		for _, entry := range ret {
+			fmt.Fprintf(w, "%s\t%s\t%d\n", entry.Location, entry.Error, entry.Count)
+		}
+		w.Flush()
+	default:
+		return fmt.Errorf("unknown output format: %s", output)
 	}
 
 	return nil
