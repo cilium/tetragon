@@ -6,13 +6,13 @@
 package v1alpha1
 
 import (
-	"context"
+	context "context"
 	time "time"
 
-	ciliumiov1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	apisciliumiov1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	versioned "github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned"
 	internalinterfaces "github.com/cilium/tetragon/pkg/k8s/client/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/cilium/tetragon/pkg/k8s/client/listers/cilium.io/v1alpha1"
+	ciliumiov1alpha1 "github.com/cilium/tetragon/pkg/k8s/client/listers/cilium.io/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
@@ -23,7 +23,7 @@ import (
 // TracingPoliciesNamespaced.
 type TracingPolicyNamespacedInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.TracingPolicyNamespacedLister
+	Lister() ciliumiov1alpha1.TracingPolicyNamespacedLister
 }
 
 type tracingPolicyNamespacedInformer struct {
@@ -58,7 +58,7 @@ func NewFilteredTracingPolicyNamespacedInformer(client versioned.Interface, name
 				return client.CiliumV1alpha1().TracingPoliciesNamespaced(namespace).Watch(context.TODO(), options)
 			},
 		},
-		&ciliumiov1alpha1.TracingPolicyNamespaced{},
+		&apisciliumiov1alpha1.TracingPolicyNamespaced{},
 		resyncPeriod,
 		indexers,
 	)
@@ -69,9 +69,9 @@ func (f *tracingPolicyNamespacedInformer) defaultInformer(client versioned.Inter
 }
 
 func (f *tracingPolicyNamespacedInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&ciliumiov1alpha1.TracingPolicyNamespaced{}, f.defaultInformer)
+	return f.factory.InformerFor(&apisciliumiov1alpha1.TracingPolicyNamespaced{}, f.defaultInformer)
 }
 
-func (f *tracingPolicyNamespacedInformer) Lister() v1alpha1.TracingPolicyNamespacedLister {
-	return v1alpha1.NewTracingPolicyNamespacedLister(f.Informer().GetIndexer())
+func (f *tracingPolicyNamespacedInformer) Lister() ciliumiov1alpha1.TracingPolicyNamespacedLister {
+	return ciliumiov1alpha1.NewTracingPolicyNamespacedLister(f.Informer().GetIndexer())
 }
