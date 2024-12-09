@@ -120,15 +120,18 @@ CFLAGS_bpf_generic_lsm_output.o = -D__LARGE_BPF_PROG
 # Rules
 MTARGET_o  = $(patsubst $(DEPSDIR)%.d,$(OBJSDIR)%.o,$@)
 MTARGET_ll = $(patsubst $(DEPSDIR)%.d,$(OBJSDIR)%.ll,$@)
+MTARGET_i = $(patsubst $(DEPSDIR)%.d,$(OBJSDIR)%.i,$@)
 
 rule_d_CFLAGS  = $(CFLAGS_$(notdir $(MTARGET_o)))
 rule_o_CFLAGS  = $(CFLAGS_$(notdir $@))
 rule_ll_CFLAGS = $(CFLAGS_$(notdir $(patsubst %.ll,%.o,$@)))
 
 rule_d  = $(CLANG) $(CLANG_FLAGS) $(rule_d_CFLAGS) $1 -MM -MP -MT $(MTARGET_o)  $< >  $@ && \
-          $(CLANG) $(CLANG_FLAGS) $(rule_d_CFLAGS) $1 -MM -MP -MT $(MTARGET_ll) $< >> $@
+          $(CLANG) $(CLANG_FLAGS) $(rule_d_CFLAGS) $1 -MM -MP -MT $(MTARGET_ll) $< >> $@ && \
+          $(CLANG) $(CLANG_FLAGS) $(rule_d_CFLAGS) $1 -MM -MP -MT $(MTARGET_i) $< >> $@
 rule_o  = $(CLANG) $(CLANG_FLAGS) $(rule_o_CFLAGS) $1 -c $< -o $@
 rule_ll = $(CLANG) $(CLANG_FLAGS) $(rule_ll_CFLAGS) -emit-llvm $1 -c $< -o $@
+rule_i  = $(CLANG) $(CLANG_FLAGS) $(rule_o_CFLAGS) $1 -E $< -o $@
 
 VARIANT_CFLAGS = $$(CFLAGS_$1)
 
@@ -145,6 +148,9 @@ $(DEPSDIR)bpf_multi_uprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_uprobe.c
 # Object build rule for VARIANT objects
 $(OBJSDIR)%_$$(VAR).o:
 	$$(call rule_o,$(VARIANT_CFLAGS))
+
+$(OBJSDIR)%_$$(VAR).i:
+	$$(call rule_i,$(VARIANT_CFLAGS))
 
 $(OBJSDIR)%_$$(VAR).ll:
 	$$(call rule_ll,$(VARIANT_CFLAGS))
@@ -169,6 +175,9 @@ $(eval $(call DEFINE_VARIANT,v61))
 # Object build rule for non VARIANT objects
 objs/%.o:
 	$(rule_o)
+
+objs/%.i:
+	$(rule_i)
 
 objs/%.ll:
 	$(rule_ll)
