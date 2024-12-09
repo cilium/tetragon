@@ -10,6 +10,7 @@
 #include "bpf_process_event.h"
 #include "bpf_helpers.h"
 #include "bpf_rate.h"
+#include "bpf_errmetrics.h"
 
 #include "policy_filter.h"
 
