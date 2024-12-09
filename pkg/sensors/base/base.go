@@ -8,6 +8,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/cilium/tetragon/pkg/errmetrics"
 	"github.com/cilium/tetragon/pkg/ksyms"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/mbset"
@@ -69,7 +70,7 @@ var (
 
 	MatchBinariesSetMap = program.MapBuilder(mbset.MapName, Execve)
 
-	ErrMetricsMap = program.MapBuilder("tg_errmetrics_map", Execve)
+	ErrMetricsMap = program.MapBuilder(errmetrics.MapName, Execve)
 )
 
 func setupPrograms() {

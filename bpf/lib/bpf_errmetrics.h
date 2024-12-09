@@ -5,6 +5,7 @@
 
 #include "compiler.h"
 
+// should match: pkg/errmetrics/map.go:MapKey
 struct errmetrics_key {
 	__u16 error;
 	__u8 file_id;
@@ -29,7 +30,7 @@ struct {
 	__uint(type, BPF_MAP_TYPE_LRU_PERCPU_HASH);
 	__uint(max_entries, 1024);
 	__type(key, struct errmetrics_key);
-	__type(value, __u32);
+	__type(value, __u32); // counter, should match pkg/errmetrics/map.go:MapVal
 } tg_errmetrics_map SEC(".maps");
 
 FUNC_INLINE void
