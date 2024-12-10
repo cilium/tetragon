@@ -216,11 +216,7 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct generic_maps *maps)
 	return generic_process_event(ctx, maps);
 }
 
-FUNC_INLINE int generic_retkprobe(void *ctx, struct bpf_map_def *heap,
-				  struct bpf_map_def *config_map,
-				  struct bpf_map_def *tailcalls,
-				  struct bpf_map_def *data_heap,
-				  unsigned long ret)
+FUNC_INLINE int generic_retkprobe(void *ctx, struct generic_maps *maps, unsigned long ret)
 {
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *e;
@@ -233,13 +229,13 @@ FUNC_INLINE int generic_retkprobe(void *ctx, struct bpf_map_def *heap,
 	long ty_arg, do_copy;
 	__u64 pid_tgid;
 
-	e = map_lookup_elem(heap, &zero);
+	e = map_lookup_elem(maps->heap, &zero);
 	if (!e)
 		return 0;
 
 	e->idx = get_index(ctx);
 
-	config = map_lookup_elem(config_map, &e->idx);
+	config = map_lookup_elem(maps->config, &e->idx);
 	if (!config)
 		return 0;
 
@@ -257,7 +253,7 @@ FUNC_INLINE int generic_retkprobe(void *ctx, struct bpf_map_def *heap,
 	ty_arg = config->argreturn;
 	do_copy = config->argreturncopy;
 	if (ty_arg) {
-		size += read_call_arg(ctx, e, 0, ty_arg, size, ret, 0, (struct bpf_map_def *)data_heap);
+		size += read_call_arg(ctx, e, 0, ty_arg, size, ret, 0, (struct bpf_map_def *)maps->data);
 #ifdef __LARGE_BPF_PROG
 		struct socket_owner owner;
 		switch (config->argreturnaction) {
@@ -283,7 +279,7 @@ FUNC_INLINE int generic_retkprobe(void *ctx, struct bpf_map_def *heap,
 
 	switch (do_copy) {
 	case char_buf:
-		size += __copy_char_buf(ctx, size, info.ptr, ret, false, e, (struct bpf_map_def *)data_heap);
+		size += __copy_char_buf(ctx, size, info.ptr, ret, false, e, (struct bpf_map_def *)maps->data);
 		break;
 	case char_iovec:
 		size += __copy_char_iovec(size, info.ptr, info.cnt, ret, e);
@@ -313,7 +309,7 @@ FUNC_INLINE int generic_retkprobe(void *ctx, struct bpf_map_def *heap,
 	e->func_id = config->func_id;
 	e->common.size = size;
 
-	tail_call(ctx, tailcalls, TAIL_CALL_ARGS);
+	tail_call(ctx, maps->calls, TAIL_CALL_ARGS);
 	return 1;
 }
 #endif /* __GENERIC_CALLS_H__ */

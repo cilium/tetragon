@@ -82,16 +82,14 @@ static struct generic_maps maps = {
 	.heap = (struct bpf_map_def *)&process_call_heap,
 	.calls = (struct bpf_map_def *)&retkprobe_calls,
 	.filter = (struct bpf_map_def *)&filter_map,
+	.config = (struct bpf_map_def *)&config_map,
+	.data = (struct bpf_map_def *)data_heap_ptr,
 };
 
 __attribute__((section((MAIN)), used)) int
 BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 {
-	return generic_retkprobe(ctx, (struct bpf_map_def *)&process_call_heap,
-				 (struct bpf_map_def *)&config_map,
-				 (struct bpf_map_def *)&retkprobe_calls,
-				 (struct bpf_map_def *)data_heap_ptr,
-				  ret);
+	return generic_retkprobe(ctx, &maps, ret);
 }
 
 __attribute__((section("kprobe"), used)) int
