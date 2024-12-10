@@ -1428,6 +1428,7 @@ Capability set to filter over. NOTE: you may specify only ONE set here.
 | parent_binary_regex | [string](#string) | repeated | Filter parent process&#39; binary using RE2 regular expression syntax. |
 | cel_expression | [string](#string) | repeated | Filter using CEL expressions. |
 | parent_arguments_regex | [string](#string) | repeated | Filter by process.parent.arguments field using RE2 regular expression syntax: https://github.com/google/re2/wiki/Syntax |
+| container_id | [string](#string) | repeated | Filter by the container ID in the process.docker field using RE2 regular expression syntax: https://github.com/google/re2/wiki/Syntax |
 
 
 
