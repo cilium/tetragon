@@ -66,6 +66,9 @@ message Filter {
     // Filter by process.parent.arguments field using RE2 regular expression syntax:
     // https://github.com/google/re2/wiki/Syntax
     repeated string parent_arguments_regex = 14;
+    // Filter by the container ID in the process.docker field using RE2 regular expression syntax:
+    // https://github.com/google/re2/wiki/Syntax
+    repeated string container_id = 15;
 }
 
 // Filter over a set of Linux process capabilities. See `message Capabilities`
