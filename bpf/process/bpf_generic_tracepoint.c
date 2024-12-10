@@ -69,6 +69,7 @@ static struct generic_maps maps = {
 	.heap = (struct bpf_map_def *)&tp_heap,
 	.calls = (struct bpf_map_def *)&tp_calls,
 	.filter = (struct bpf_map_def *)&filter_map,
+	.config = (struct bpf_map_def *)&config_map,
 };
 
 struct generic_tracepoint_event_arg {
@@ -250,9 +251,7 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 __attribute__((section("tracepoint"), used)) int
 generic_tracepoint_process_event(void *ctx)
 {
-	return generic_process_event(ctx, (struct bpf_map_def *)&tp_heap,
-				     (struct bpf_map_def *)&tp_calls,
-				     (struct bpf_map_def *)&config_map, 0);
+	return generic_process_event(ctx, &maps);
 }
 
 __attribute__((section("tracepoint"), used)) int

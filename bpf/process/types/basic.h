@@ -130,6 +130,7 @@ struct generic_maps {
 	struct bpf_map_def *config;
 	struct bpf_map_def *filter;
 	struct bpf_map_def *override;
+	struct bpf_map_def *data;
 };
 
 struct selector_action {

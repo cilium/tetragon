@@ -63,9 +63,7 @@ generic_start_process_filter(void *ctx, struct generic_maps *maps)
 }
 
 FUNC_INLINE int
-generic_process_event(void *ctx, struct bpf_map_def *heap_map,
-		      struct bpf_map_def *tailcals, struct bpf_map_def *config_map,
-		      struct bpf_map_def *data_heap)
+generic_process_event(void *ctx, struct generic_maps *maps)
 {
 	struct msg_generic_kprobe *e;
 	struct event_config *config;
@@ -73,11 +71,11 @@ generic_process_event(void *ctx, struct bpf_map_def *heap_map,
 	unsigned long a;
 	long ty, total;
 
-	e = map_lookup_elem(heap_map, &zero);
+	e = map_lookup_elem(maps->heap, &zero);
 	if (!e)
 		return 0;
 
-	config = map_lookup_elem(config_map, &e->idx);
+	config = map_lookup_elem(maps->config, &e->idx);
 	if (!config)
 		return 0;
 
@@ -99,7 +97,7 @@ generic_process_event(void *ctx, struct bpf_map_def *heap_map,
 		asm volatile("%[am] &= 0xffff;\n"
 			     : [am] "+r"(am));
 
-		errv = read_call_arg(ctx, e, index, ty, total, a, am, data_heap);
+		errv = read_call_arg(ctx, e, index, ty, total, a, am, maps->data);
 		if (errv > 0)
 			total += errv;
 		/* Follow filter lookup failed so lets abort the event.
@@ -114,12 +112,12 @@ generic_process_event(void *ctx, struct bpf_map_def *heap_map,
 	/* Continue to process other arguments. */
 	if (index < 4) {
 		e->tailcall_index_process = index + 1;
-		tail_call(ctx, tailcals, TAIL_CALL_PROCESS);
+		tail_call(ctx, maps->calls, TAIL_CALL_PROCESS);
 	}
 
 	/* Last argument, go send.. */
 	e->tailcall_index_process = 0;
-	tail_call(ctx, tailcals, TAIL_CALL_ARGS);
+	tail_call(ctx, maps->calls, TAIL_CALL_ARGS);
 	return 0;
 }
 
@@ -149,11 +147,7 @@ generic_process_init(struct msg_generic_kprobe *e, u8 op, struct event_config *c
 }
 
 FUNC_INLINE int
-generic_process_event_and_setup(struct pt_regs *ctx,
-				struct bpf_map_def *heap_map,
-				struct bpf_map_def *tailcals,
-				struct bpf_map_def *config_map,
-				struct bpf_map_def *data_heap)
+generic_process_event_and_setup(struct pt_regs *ctx, struct generic_maps *maps)
 {
 	struct msg_generic_kprobe *e;
 	struct event_config *config;
@@ -161,11 +155,11 @@ generic_process_event_and_setup(struct pt_regs *ctx,
 	long ty __maybe_unused;
 
 	/* Pid/Ktime Passed through per cpu map in process heap. */
-	e = map_lookup_elem(heap_map, &zero);
+	e = map_lookup_elem(maps->heap, &zero);
 	if (!e)
 		return 0;
 
-	config = map_lookup_elem(config_map, &e->idx);
+	config = map_lookup_elem(maps->config, &e->idx);
 	if (!config)
 		return 0;
 
@@ -219,7 +213,7 @@ generic_process_event_and_setup(struct pt_regs *ctx,
 	generic_process_init(e, MSG_OP_GENERIC_UPROBE, config);
 #endif
 
-	return generic_process_event(ctx, heap_map, tailcals, config_map, data_heap);
+	return generic_process_event(ctx, maps);
 }
 
 FUNC_INLINE int generic_retkprobe(void *ctx, struct bpf_map_def *heap,
