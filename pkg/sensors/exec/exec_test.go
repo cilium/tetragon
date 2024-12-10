@@ -626,6 +626,86 @@ func TestDocker(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestInInitTree(t *testing.T) {
+	if err := exec.Command("docker", "version").Run(); err != nil {
+		t.Skipf("docker not available. skipping test: %s", err)
+	}
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	containerID := observertesthelper.DockerCreate(t, "--name", "in-init-tree-test", "bash", "bash", "-c", "sleep infinity")
+	// Tetragon sends 31 bytes + \0 to user-space. Since it might have an arbitrary prefix,
+	// match only on the first 24 bytes.
+	trimmedContainerID := sm.Prefix(containerID[:24])
+
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithContainerId(containerID[:24]))
+	if err != nil {
+		t.Fatalf("GetDefaultObserver error: %s", err)
+	}
+
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+
+	readyWG.Wait()
+	observertesthelper.DockerStart(t, "in-init-tree-test")
+	time.Sleep(1 * time.Second)
+	observertesthelper.DockerExec(t, "in-init-tree-test", "ls")
+
+	// This is the initial cmd, so inInitTree should be true
+	entrypointChecker := ec.NewProcessChecker().
+		WithBinary(sm.Suffix("/docker-entrypoint.sh")).
+		WithCwd(sm.Full("/")).
+		WithUid(0).
+		WithDocker(trimmedContainerID).
+		WithInInitTree(true)
+
+	// This is forked from the initial cmd, so inInitTree should be true
+	bashChecker := ec.NewProcessChecker().
+		WithBinary(sm.Suffix("/bash")).
+		WithCwd(sm.Full("/")).
+		WithUid(0).
+		WithDocker(trimmedContainerID).
+		WithInInitTree(true)
+
+	// This is forked from the initial cmd, so inInitTree should be true
+	sleepChecker := ec.NewProcessChecker().
+		WithBinary(sm.Suffix("/sleep")).
+		WithArguments(sm.Full("infinity")).
+		WithCwd(sm.Full("/")).
+		WithUid(0).
+		WithDocker(trimmedContainerID).
+		WithInInitTree(true)
+
+	// This is run via docker exec, so inInitTree should be false
+	lsChecker := ec.NewProcessChecker().
+		WithBinary(sm.Suffix("/ls")).
+		WithCwd(sm.Full("/")).
+		WithUid(0).
+		WithDocker(trimmedContainerID).
+		WithInInitTree(false)
+
+	checker := ec.NewUnorderedEventChecker(
+		ec.NewProcessExecChecker("entrypoint").
+			WithProcess(entrypointChecker).
+			WithParent(ec.NewProcessChecker().WithInInitTree(false)),
+		ec.NewProcessExecChecker("bash").
+			WithProcess(bashChecker).
+			WithParent(entrypointChecker),
+		ec.NewProcessExecChecker("sleep").
+			WithProcess(sleepChecker).
+			WithParent(bashChecker),
+		ec.NewProcessExecChecker("ls").
+			WithProcess(lsChecker).
+			WithParent(ec.NewProcessChecker().WithInInitTree(false)),
+	)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
 func TestUpdateStatsMap(t *testing.T) {
 	m, err := ebpf.NewMap(&ebpf.MapSpec{
 		Type:       ebpf.PerCPUArray,
