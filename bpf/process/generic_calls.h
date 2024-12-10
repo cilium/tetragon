@@ -449,4 +449,101 @@ generic_output(void *ctx, u8 op)
 	return 0;
 }
 
+FUNC_INLINE int generic_retkprobe(void *ctx, struct bpf_map_def *calls, unsigned long ret)
+{
+	struct execve_map_value *enter;
+	struct msg_generic_kprobe *e;
+	struct retprobe_info info;
+	struct event_config *config;
+	bool walker = false;
+	int zero = 0;
+	__u32 ppid;
+	long size = 0;
+	long ty_arg, do_copy;
+	__u64 pid_tgid;
+
+	e = map_lookup_elem(&process_call_heap, &zero);
+	if (!e)
+		return 0;
+
+	e->idx = get_index(ctx);
+
+	config = map_lookup_elem(&config_map, &e->idx);
+	if (!config)
+		return 0;
+
+	e->func_id = config->func_id;
+	e->retprobe_id = retprobe_map_get_key(ctx);
+	pid_tgid = get_current_pid_tgid();
+	e->tid = (__u32)pid_tgid;
+
+	if (!retprobe_map_get(e->func_id, e->retprobe_id, &info))
+		return 0;
+
+	*(unsigned long *)e->args = info.ktime_enter;
+	size += sizeof(info.ktime_enter);
+
+	ty_arg = config->argreturn;
+	do_copy = config->argreturncopy;
+	if (ty_arg) {
+		size += read_call_arg(ctx, e, 0, ty_arg, size, ret, 0, data_heap_ptr);
+#ifdef __LARGE_BPF_PROG
+		struct socket_owner owner;
+
+		switch (config->argreturnaction) {
+		case ACTION_TRACKSOCK:
+			owner.pid = e->current.pid;
+			owner.tid = e->tid;
+			owner.ktime = e->current.ktime;
+			map_update_elem(&socktrack_map, &ret, &owner, BPF_ANY);
+			break;
+		case ACTION_UNTRACKSOCK:
+			map_delete_elem(&socktrack_map, &ret);
+			break;
+		}
+#endif
+	}
+
+	/*
+	 * 0x1000 should be maximum argument length, so masking
+	 * with 0x1fff is safe and verifier will be happy.
+	 */
+	asm volatile("%[size] &= 0x1fff;\n"
+		     : [size] "+r"(size));
+
+	switch (do_copy) {
+	case char_buf:
+		size += __copy_char_buf(ctx, size, info.ptr, ret, false, e, data_heap_ptr);
+		break;
+	case char_iovec:
+		size += __copy_char_iovec(size, info.ptr, info.cnt, ret, e);
+	default:
+		break;
+	}
+
+	/* Complete message header and send */
+	enter = event_find_curr(&ppid, &walker);
+
+	e->common.op = MSG_OP_GENERIC_KPROBE;
+	e->common.flags |= MSG_COMMON_FLAG_RETURN;
+	e->common.pad[0] = 0;
+	e->common.pad[1] = 0;
+	e->common.size = size;
+	e->common.ktime = ktime_get_ns();
+
+	if (enter) {
+		e->current.pid = enter->key.pid;
+		e->current.ktime = enter->key.ktime;
+	}
+	e->current.pad[0] = 0;
+	e->current.pad[1] = 0;
+	e->current.pad[2] = 0;
+	e->current.pad[3] = 0;
+
+	e->func_id = config->func_id;
+	e->common.size = size;
+
+	tail_call(ctx, calls, TAIL_CALL_ARGS);
+	return 1;
+}
 #endif /* __GENERIC_CALLS_H__ */
