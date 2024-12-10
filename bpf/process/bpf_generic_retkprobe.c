@@ -97,11 +97,7 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 __attribute__((section("kprobe"), used)) int
 BPF_KRETPROBE(generic_retkprobe_filter_arg)
 {
-	return filter_read_arg(ctx, (struct bpf_map_def *)&process_call_heap,
-			       (struct bpf_map_def *)&filter_map,
-			       (struct bpf_map_def *)&retkprobe_calls,
-			       (struct bpf_map_def *)&config_map,
-			       false);
+	return filter_read_arg(ctx, &maps, false);
 }
 
 __attribute__((section("kprobe"), used)) int

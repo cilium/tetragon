@@ -274,11 +274,7 @@ generic_tracepoint_filter(void *ctx)
 __attribute__((section("tracepoint"), used)) int
 generic_tracepoint_arg(void *ctx)
 {
-	return filter_read_arg(ctx, (struct bpf_map_def *)&tp_heap,
-			       (struct bpf_map_def *)&filter_map,
-			       (struct bpf_map_def *)&tp_calls,
-			       (struct bpf_map_def *)&config_map,
-			       true);
+	return filter_read_arg(ctx, &maps, true);
 }
 
 __attribute__((section("tracepoint"), used)) int

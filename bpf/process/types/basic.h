@@ -2323,23 +2323,21 @@ do_actions(void *ctx, struct selector_action *actions, struct generic_maps *maps
 }
 
 FUNC_INLINE long
-filter_read_arg(void *ctx, struct bpf_map_def *heap,
-		struct bpf_map_def *filter, struct bpf_map_def *tailcalls,
-		struct bpf_map_def *config_map, bool is_entry)
+filter_read_arg(void *ctx, struct generic_maps *maps, bool is_entry)
 {
 	struct msg_generic_kprobe *e;
 	int selidx, pass, zero = 0;
 
-	e = map_lookup_elem(heap, &zero);
+	e = map_lookup_elem(maps->heap, &zero);
 	if (!e)
 		return 0;
 	selidx = e->tailcall_index_selector;
-	pass = filter_args(e, selidx & MAX_SELECTORS_MASK, filter, is_entry);
+	pass = filter_args(e, selidx & MAX_SELECTORS_MASK, maps->filter, is_entry);
 	if (!pass) {
 		selidx++;
 		if (selidx <= MAX_SELECTORS && e->sel.active[selidx & MAX_SELECTORS_MASK]) {
 			e->tailcall_index_selector = selidx;
-			tail_call(ctx, tailcalls, TAIL_CALL_ARGS);
+			tail_call(ctx, maps->calls, TAIL_CALL_ARGS);
 		}
 		// reject if we did not attempt to tailcall, or if tailcall failed.
 		return filter_args_reject(e->func_id);
@@ -2349,10 +2347,10 @@ filter_read_arg(void *ctx, struct bpf_map_def *heap,
 	// otherwise pass==1 indicates using default action.
 	if (pass > 1) {
 		e->pass = pass;
-		tail_call(ctx, tailcalls, TAIL_CALL_ACTIONS);
+		tail_call(ctx, maps->calls, TAIL_CALL_ACTIONS);
 	}
 
-	tail_call(ctx, tailcalls, TAIL_CALL_SEND);
+	tail_call(ctx, maps->calls, TAIL_CALL_SEND);
 	return 0;
 }
 
