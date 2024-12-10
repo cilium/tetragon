@@ -91,6 +91,9 @@ read_args(void *ctx, struct msg_execve_event *event)
 
 	size = p->size & 0x1ff /* 2*MAXARGLENGTH - 1*/;
 	args = (char *)p + size;
+#ifdef __LARGE_BPF_PROG
+	event->exe.arg_start = size;
+#endif
 
 	if (args >= (char *)&event->process + BUFFER)
 		return 0;
@@ -116,6 +119,9 @@ read_args(void *ctx, struct msg_execve_event *event)
 		if (size > 0)
 			p->flags |= EVENT_DATA_ARGS;
 	}
+#ifdef __LARGE_BPF_PROG
+	event->exe.arg_len = size;
+#endif
 	return size;
 }
 
@@ -388,6 +394,8 @@ execve_send(void *ctx __arg_ctx)
 		/* zero out previous paths in ->bin */
 		binary_reset(&curr->bin);
 #ifdef __LARGE_BPF_PROG
+		__u32 nullone, nulltwo, off, len;
+
 		// read from proc exe stored at execve time
 		if (event->exe.len <= BINARY_PATH_MAX_LEN) {
 			curr->bin.path_length = probe_read(curr->bin.path, event->exe.len, event->exe.buf);
@@ -399,6 +407,15 @@ execve_send(void *ctx __arg_ctx)
 				revlen = STRING_POSTFIX_MAX_LENGTH - 1;
 			probe_read(curr->bin.end, revlen, event->exe.end);
 		}
+
+		off = event->exe.arg_start & 0xff;
+		len = event->exe.arg_len & 0xff;
+		probe_read(curr->bin.args, len, (char *)&event->process + off);
+
+		nullone = len + 1;
+		nulltwo = len + 2;
+		curr->bin.args[nullone & 0xff] = 0x00; // null terminate string
+		curr->bin.args[nulltwo & 0xff] = 0x00; // null terminate string
 #else
 		// reuse p->args first string that contains the filename, this can't be
 		// above 256 in size (otherwise the complete will be send via data msg)

@@ -277,6 +277,8 @@ struct heap_exe {
 	char end[STRING_POSTFIX_MAX_LENGTH];
 	__u32 len;
 	__u32 error;
+	__u32 arg_len;
+	__u32 arg_start;
 }; // All fields aligned so no 'packed' attribute.
 
 struct msg_execve_event {
@@ -322,6 +324,8 @@ struct binary {
 	char end[STRING_POSTFIX_MAX_LENGTH];
 	// STRING_POSTFIX_MAX_LENGTH reversed last bytes of the path
 	char end_r[STRING_POSTFIX_MAX_LENGTH];
+	// args for the binary
+	char args[MAXARGLENGTH];
 	// matchBinary bitset for binary
 	// NB: everything after and including ->mb_bitset will not be zeroed on a new exec. See
 	// binary_reset().
