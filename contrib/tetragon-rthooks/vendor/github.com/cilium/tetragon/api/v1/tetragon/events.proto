@@ -69,6 +69,11 @@ message Filter {
     // Filter by the container ID in the process.docker field using RE2 regular expression syntax:
     // https://github.com/google/re2/wiki/Syntax
     repeated string container_id = 15;
+    // Filter containerized processes based on whether they are descendants of
+    // the container's init process. This can be used, for example, to watch
+    // for processes injected into a container via docker exec, kubectl exec, or
+    // similar mechanisms.
+    google.protobuf.BoolValue in_init_tree = 16;
 }
 
 // Filter over a set of Linux process capabilities. See `message Capabilities`
