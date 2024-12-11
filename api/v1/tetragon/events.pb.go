@@ -232,7 +232,8 @@ type Filter struct {
 	Capabilities *CapFilter `protobuf:"bytes,11,opt,name=capabilities,proto3" json:"capabilities,omitempty"`
 	// Filter parent process' binary using RE2 regular expression syntax.
 	ParentBinaryRegex []string `protobuf:"bytes,12,rep,name=parent_binary_regex,json=parentBinaryRegex,proto3" json:"parent_binary_regex,omitempty"`
-	// Filter using CEL expressions.
+	// Filter using CEL expressions. CEL filters support IP and CIDR notiation extensions from the k8s project.
+	// See https://pkg.go.dev/k8s.io/apiserver/pkg/cel/library#IP and https://pkg.go.dev/k8s.io/apiserver/pkg/cel/library#CIDR for details.
 	CelExpression []string `protobuf:"bytes,13,rep,name=cel_expression,json=celExpression,proto3" json:"cel_expression,omitempty"`
 	// Filter by process.parent.arguments field using RE2 regular expression syntax:
 	// https://github.com/google/re2/wiki/Syntax

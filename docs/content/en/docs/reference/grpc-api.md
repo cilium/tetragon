@@ -894,7 +894,7 @@ Capability set to filter over. NOTE: you may specify only ONE set here.
 | policy_names | [string](#string) | repeated | Filter events by tracing policy names |
 | capabilities | [CapFilter](#tetragon-CapFilter) |  | Filter events by Linux process capability |
 | parent_binary_regex | [string](#string) | repeated | Filter parent process&#39; binary using RE2 regular expression syntax. |
-| cel_expression | [string](#string) | repeated | Filter using CEL expressions. |
+| cel_expression | [string](#string) | repeated | Filter using CEL expressions. CEL filters support IP and CIDR notiation extensions from the k8s project. See https://pkg.go.dev/k8s.io/apiserver/pkg/cel/library#IP and https://pkg.go.dev/k8s.io/apiserver/pkg/cel/library#CIDR for details. |
 | parent_arguments_regex | [string](#string) | repeated | Filter by process.parent.arguments field using RE2 regular expression syntax: https://github.com/google/re2/wiki/Syntax |
 | container_id | [string](#string) | repeated | Filter by the container ID in the process.docker field using RE2 regular expression syntax: https://github.com/google/re2/wiki/Syntax |
 | in_init_tree | [google.protobuf.BoolValue](#google-protobuf-BoolValue) |  | Filter containerized processes based on whether they are descendants of the container&#39;s init process. This can be used, for example, to watch for processes injected into a container via docker exec, kubectl exec, or similar mechanisms. |
