@@ -14,6 +14,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon/codegen/helpers"
 	"github.com/google/cel-go/cel"
 	"github.com/sirupsen/logrus"
+	celk8s "k8s.io/apiserver/pkg/cel/library"
 )
 
 // compile will parse and check an expression `expr` against a given
@@ -99,6 +100,9 @@ func NewCELExpressionFilter(log logrus.FieldLogger) *CELExpressionFilter {
 	responseTypeMap := helpers.ResponseTypeMap()
 	options := []cel.EnvOption{
 		cel.Container("tetragon"),
+		// Import IP and CIDR related helpers from k8s CEL library
+		celk8s.IP(),
+		celk8s.CIDR(),
 	}
 	for key, val := range responseTypeMap {
 		name := string(val.ProtoReflect().Descriptor().FullName())
