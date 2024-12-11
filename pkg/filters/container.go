@@ -50,3 +50,25 @@ func (f *ContainerIDFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter
 	}
 	return fs, nil
 }
+
+func filterByInInitTree(inInitTree bool) hubbleFilters.FilterFunc {
+	return func(ev *v1.Event) bool {
+		process := GetProcess(ev)
+		// We want to be safe and assume false if process.InInitTree is missing somehow
+		inInitTreeVal := false
+		if process.InInitTree != nil {
+			inInitTreeVal = process.InInitTree.Value
+		}
+		return inInitTreeVal == inInitTree
+	}
+}
+
+type InInitTreeFilter struct{}
+
+func (f *InInitTreeFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]hubbleFilters.FilterFunc, error) {
+	var fs []hubbleFilters.FilterFunc
+	if ff.InInitTree != nil {
+		fs = append(fs, filterByInInitTree(ff.InInitTree.Value))
+	}
+	return fs, nil
+}
