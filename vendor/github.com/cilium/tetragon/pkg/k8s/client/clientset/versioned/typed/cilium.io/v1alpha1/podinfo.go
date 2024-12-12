@@ -6,9 +6,9 @@
 package v1alpha1
 
 import (
-	"context"
+	context "context"
 
-	v1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	ciliumiov1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	scheme "github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -24,33 +24,34 @@ type PodInfoGetter interface {
 
 // PodInfoInterface has methods to work with PodInfo resources.
 type PodInfoInterface interface {
-	Create(ctx context.Context, podInfo *v1alpha1.PodInfo, opts v1.CreateOptions) (*v1alpha1.PodInfo, error)
-	Update(ctx context.Context, podInfo *v1alpha1.PodInfo, opts v1.UpdateOptions) (*v1alpha1.PodInfo, error)
+	Create(ctx context.Context, podInfo *ciliumiov1alpha1.PodInfo, opts v1.CreateOptions) (*ciliumiov1alpha1.PodInfo, error)
+	Update(ctx context.Context, podInfo *ciliumiov1alpha1.PodInfo, opts v1.UpdateOptions) (*ciliumiov1alpha1.PodInfo, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, podInfo *v1alpha1.PodInfo, opts v1.UpdateOptions) (*v1alpha1.PodInfo, error)
+	UpdateStatus(ctx context.Context, podInfo *ciliumiov1alpha1.PodInfo, opts v1.UpdateOptions) (*ciliumiov1alpha1.PodInfo, error)
 	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
-	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.PodInfo, error)
-	List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.PodInfoList, error)
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*ciliumiov1alpha1.PodInfo, error)
+	List(ctx context.Context, opts v1.ListOptions) (*ciliumiov1alpha1.PodInfoList, error)
 	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.PodInfo, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *ciliumiov1alpha1.PodInfo, err error)
 	PodInfoExpansion
 }
 
 // podInfo implements PodInfoInterface
 type podInfo struct {
-	*gentype.ClientWithList[*v1alpha1.PodInfo, *v1alpha1.PodInfoList]
+	*gentype.ClientWithList[*ciliumiov1alpha1.PodInfo, *ciliumiov1alpha1.PodInfoList]
 }
 
 // newPodInfo returns a PodInfo
 func newPodInfo(c *CiliumV1alpha1Client, namespace string) *podInfo {
 	return &podInfo{
-		gentype.NewClientWithList[*v1alpha1.PodInfo, *v1alpha1.PodInfoList](
+		gentype.NewClientWithList[*ciliumiov1alpha1.PodInfo, *ciliumiov1alpha1.PodInfoList](
 			"podinfo",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			namespace,
-			func() *v1alpha1.PodInfo { return &v1alpha1.PodInfo{} },
-			func() *v1alpha1.PodInfoList { return &v1alpha1.PodInfoList{} }),
+			func() *ciliumiov1alpha1.PodInfo { return &ciliumiov1alpha1.PodInfo{} },
+			func() *ciliumiov1alpha1.PodInfoList { return &ciliumiov1alpha1.PodInfoList{} },
+		),
 	}
 }
