@@ -189,6 +189,10 @@ const (
 	// is considered failed
 	StatusCollectorFailureThreshold = 1 * time.Minute
 
+	// SessionAffinityTimeoutMaxFallback defines the maximum number of seconds
+	// for the session affinity timeout. See also lb{4,6}_affinity_timeout().
+	SessionAffinityTimeoutMaxFallback = 0xffffff
+
 	// EnableIPv4 is the default value for IPv4 enablement
 	EnableIPv4 = true
 
@@ -266,9 +270,6 @@ const (
 	// EnableBPFTProxy is the default value for EnableBPFTProxy
 	EnableBPFTProxy = false
 
-	// EnableXTSocketFallback is the default value for EnableXTSocketFallback
-	EnableXTSocketFallback = true
-
 	// EnableLocalNodeRoute default value for EnableLocalNodeRoute
 	EnableLocalNodeRoute = true
 
@@ -293,6 +294,9 @@ const (
 	// EnableHealthCheckLoadBalancerIP
 	EnableHealthCheckLoadBalancerIP = false
 
+	// HealthCheckICMPFailureThreshold is the default value for HealthCheckICMPFailureThreshold
+	HealthCheckICMPFailureThreshold = 3
+
 	// AlignCheckerName is the BPF object name for the alignchecker.
 	AlignCheckerName = "bpf_alignchecker.o"
 
@@ -305,6 +309,10 @@ const (
 	// KVStoreStaleLockTimeout is the timeout for when a lock is held for
 	// a kvstore path for too long.
 	KVStoreStaleLockTimeout = 30 * time.Second
+
+	// KVstorePodNetworkSupport represents whether to enable the support for
+	// running the Cilium KVstore in pod network.
+	KVstorePodNetworkSupport = false
 
 	// PolicyQueueSize is the default queue size for policy-related events.
 	PolicyQueueSize = 100

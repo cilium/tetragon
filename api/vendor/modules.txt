@@ -17,7 +17,7 @@ github.com/sirupsen/logrus
 ## explicit; go 1.17
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/assert/yaml
-# golang.org/x/net v0.30.0
+# golang.org/x/net v0.31.0
 ## explicit; go 1.18
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2
@@ -29,13 +29,13 @@ golang.org/x/net/trace
 ## explicit; go 1.18
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/text v0.19.0
+# golang.org/x/text v0.20.0
 ## explicit; go 1.18
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# google.golang.org/genproto/googleapis/rpc v0.0.0-20241021214115-324edc3d5d38
+# google.golang.org/genproto/googleapis/rpc v0.0.0-20241118233622-e639e219e697
 ## explicit; go 1.21
 google.golang.org/genproto/googleapis/rpc/status
 # google.golang.org/grpc v1.68.1
