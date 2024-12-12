@@ -6,9 +6,9 @@
 package v1alpha1
 
 import (
-	"context"
+	context "context"
 
-	v1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	ciliumiov1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	scheme "github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -24,31 +24,34 @@ type TracingPoliciesNamespacedGetter interface {
 
 // TracingPolicyNamespacedInterface has methods to work with TracingPolicyNamespaced resources.
 type TracingPolicyNamespacedInterface interface {
-	Create(ctx context.Context, tracingPolicyNamespaced *v1alpha1.TracingPolicyNamespaced, opts v1.CreateOptions) (*v1alpha1.TracingPolicyNamespaced, error)
-	Update(ctx context.Context, tracingPolicyNamespaced *v1alpha1.TracingPolicyNamespaced, opts v1.UpdateOptions) (*v1alpha1.TracingPolicyNamespaced, error)
+	Create(ctx context.Context, tracingPolicyNamespaced *ciliumiov1alpha1.TracingPolicyNamespaced, opts v1.CreateOptions) (*ciliumiov1alpha1.TracingPolicyNamespaced, error)
+	Update(ctx context.Context, tracingPolicyNamespaced *ciliumiov1alpha1.TracingPolicyNamespaced, opts v1.UpdateOptions) (*ciliumiov1alpha1.TracingPolicyNamespaced, error)
 	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
-	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.TracingPolicyNamespaced, error)
-	List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.TracingPolicyNamespacedList, error)
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*ciliumiov1alpha1.TracingPolicyNamespaced, error)
+	List(ctx context.Context, opts v1.ListOptions) (*ciliumiov1alpha1.TracingPolicyNamespacedList, error)
 	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.TracingPolicyNamespaced, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *ciliumiov1alpha1.TracingPolicyNamespaced, err error)
 	TracingPolicyNamespacedExpansion
 }
 
 // tracingPoliciesNamespaced implements TracingPolicyNamespacedInterface
 type tracingPoliciesNamespaced struct {
-	*gentype.ClientWithList[*v1alpha1.TracingPolicyNamespaced, *v1alpha1.TracingPolicyNamespacedList]
+	*gentype.ClientWithList[*ciliumiov1alpha1.TracingPolicyNamespaced, *ciliumiov1alpha1.TracingPolicyNamespacedList]
 }
 
 // newTracingPoliciesNamespaced returns a TracingPoliciesNamespaced
 func newTracingPoliciesNamespaced(c *CiliumV1alpha1Client, namespace string) *tracingPoliciesNamespaced {
 	return &tracingPoliciesNamespaced{
-		gentype.NewClientWithList[*v1alpha1.TracingPolicyNamespaced, *v1alpha1.TracingPolicyNamespacedList](
+		gentype.NewClientWithList[*ciliumiov1alpha1.TracingPolicyNamespaced, *ciliumiov1alpha1.TracingPolicyNamespacedList](
 			"tracingpoliciesnamespaced",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			namespace,
-			func() *v1alpha1.TracingPolicyNamespaced { return &v1alpha1.TracingPolicyNamespaced{} },
-			func() *v1alpha1.TracingPolicyNamespacedList { return &v1alpha1.TracingPolicyNamespacedList{} }),
+			func() *ciliumiov1alpha1.TracingPolicyNamespaced { return &ciliumiov1alpha1.TracingPolicyNamespaced{} },
+			func() *ciliumiov1alpha1.TracingPolicyNamespacedList {
+				return &ciliumiov1alpha1.TracingPolicyNamespacedList{}
+			},
+		),
 	}
 }

@@ -6,13 +6,13 @@
 package v1alpha1
 
 import (
-	"context"
+	context "context"
 	time "time"
 
-	ciliumiov1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	apisciliumiov1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	versioned "github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned"
 	internalinterfaces "github.com/cilium/tetragon/pkg/k8s/client/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/cilium/tetragon/pkg/k8s/client/listers/cilium.io/v1alpha1"
+	ciliumiov1alpha1 "github.com/cilium/tetragon/pkg/k8s/client/listers/cilium.io/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
@@ -23,7 +23,7 @@ import (
 // TracingPolicies.
 type TracingPolicyInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.TracingPolicyLister
+	Lister() ciliumiov1alpha1.TracingPolicyLister
 }
 
 type tracingPolicyInformer struct {
@@ -57,7 +57,7 @@ func NewFilteredTracingPolicyInformer(client versioned.Interface, resyncPeriod t
 				return client.CiliumV1alpha1().TracingPolicies().Watch(context.TODO(), options)
 			},
 		},
-		&ciliumiov1alpha1.TracingPolicy{},
+		&apisciliumiov1alpha1.TracingPolicy{},
 		resyncPeriod,
 		indexers,
 	)
@@ -68,9 +68,9 @@ func (f *tracingPolicyInformer) defaultInformer(client versioned.Interface, resy
 }
 
 func (f *tracingPolicyInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&ciliumiov1alpha1.TracingPolicy{}, f.defaultInformer)
+	return f.factory.InformerFor(&apisciliumiov1alpha1.TracingPolicy{}, f.defaultInformer)
 }
 
-func (f *tracingPolicyInformer) Lister() v1alpha1.TracingPolicyLister {
-	return v1alpha1.NewTracingPolicyLister(f.Informer().GetIndexer())
+func (f *tracingPolicyInformer) Lister() ciliumiov1alpha1.TracingPolicyLister {
+	return ciliumiov1alpha1.NewTracingPolicyLister(f.Informer().GetIndexer())
 }
