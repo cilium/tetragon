@@ -574,6 +574,7 @@ type ProcessExitChecker struct {
 	CheckerName string                             `json:"checkerName"`
 	Process     *ProcessChecker                    `json:"process,omitempty"`
 	Parent      *ProcessChecker                    `json:"parent,omitempty"`
+	Ancestors   *ProcessListMatcher                `json:"ancestors,omitempty"`
 	Signal      *stringmatcher.StringMatcher       `json:"signal,omitempty"`
 	Status      *uint32                            `json:"status,omitempty"`
 	Time        *timestampmatcher.TimestampMatcher `json:"time,omitempty"`
@@ -628,6 +629,11 @@ func (checker *ProcessExitChecker) Check(event *tetragon.ProcessExit) error {
 				return fmt.Errorf("Parent check failed: %w", err)
 			}
 		}
+		if checker.Ancestors != nil {
+			if err := checker.Ancestors.Check(event.Ancestors); err != nil {
+				return fmt.Errorf("Ancestors check failed: %w", err)
+			}
+		}
 		if checker.Signal != nil {
 			if err := checker.Signal.Match(event.Signal); err != nil {
 				return fmt.Errorf("Signal check failed: %w", err)
@@ -663,6 +669,12 @@ func (checker *ProcessExitChecker) WithParent(check *ProcessChecker) *ProcessExi
 	return checker
 }
 
+// WithAncestors adds a Ancestors check to the ProcessExitChecker
+func (checker *ProcessExitChecker) WithAncestors(check *ProcessListMatcher) *ProcessExitChecker {
+	checker.Ancestors = check
+	return checker
+}
+
 // WithSignal adds a Signal check to the ProcessExitChecker
 func (checker *ProcessExitChecker) WithSignal(check *stringmatcher.StringMatcher) *ProcessExitChecker {
 	checker.Signal = check
@@ -692,6 +704,19 @@ func (checker *ProcessExitChecker) FromProcessExit(event *tetragon.ProcessExit) 
 	if event.Parent != nil {
 		checker.Parent = NewProcessChecker().FromProcess(event.Parent)
 	}
+	{
+		var checks []*ProcessChecker
+		for _, check := range event.Ancestors {
+			var convertedCheck *ProcessChecker
+			if check != nil {
+				convertedCheck = NewProcessChecker().FromProcess(check)
+			}
+			checks = append(checks, convertedCheck)
+		}
+		lm := NewProcessListMatcher().WithOperator(listmatcher.Ordered).
+			WithValues(checks...)
+		checker.Ancestors = lm
+	}
 	checker.Signal = stringmatcher.Full(event.Signal)
 	{
 		val := event.Status
@@ -707,6 +732,7 @@ type ProcessKprobeChecker struct {
 	CheckerName      string                       `json:"checkerName"`
 	Process          *ProcessChecker              `json:"process,omitempty"`
 	Parent           *ProcessChecker              `json:"parent,omitempty"`
+	Ancestors        *ProcessListMatcher          `json:"ancestors,omitempty"`
 	FunctionName     *stringmatcher.StringMatcher `json:"functionName,omitempty"`
 	Args             *KprobeArgumentListMatcher   `json:"args,omitempty"`
 	Return           *KprobeArgumentChecker       `json:"return,omitempty"`
@@ -766,6 +792,11 @@ func (checker *ProcessKprobeChecker) Check(event *tetragon.ProcessKprobe) error 
 		if checker.Parent != nil {
 			if err := checker.Parent.Check(event.Parent); err != nil {
 				return fmt.Errorf("Parent check failed: %w", err)
+			}
+		}
+		if checker.Ancestors != nil {
+			if err := checker.Ancestors.Check(event.Ancestors); err != nil {
+				return fmt.Errorf("Ancestors check failed: %w", err)
 			}
 		}
 		if checker.FunctionName != nil {
@@ -835,6 +866,12 @@ func (checker *ProcessKprobeChecker) WithProcess(check *ProcessChecker) *Process
 // WithParent adds a Parent check to the ProcessKprobeChecker
 func (checker *ProcessKprobeChecker) WithParent(check *ProcessChecker) *ProcessKprobeChecker {
 	checker.Parent = check
+	return checker
+}
+
+// WithAncestors adds a Ancestors check to the ProcessKprobeChecker
+func (checker *ProcessKprobeChecker) WithAncestors(check *ProcessListMatcher) *ProcessKprobeChecker {
+	checker.Ancestors = check
 	return checker
 }
 
@@ -910,6 +947,19 @@ func (checker *ProcessKprobeChecker) FromProcessKprobe(event *tetragon.ProcessKp
 	}
 	if event.Parent != nil {
 		checker.Parent = NewProcessChecker().FromProcess(event.Parent)
+	}
+	{
+		var checks []*ProcessChecker
+		for _, check := range event.Ancestors {
+			var convertedCheck *ProcessChecker
+			if check != nil {
+				convertedCheck = NewProcessChecker().FromProcess(check)
+			}
+			checks = append(checks, convertedCheck)
+		}
+		lm := NewProcessListMatcher().WithOperator(listmatcher.Ordered).
+			WithValues(checks...)
+		checker.Ancestors = lm
 	}
 	checker.FunctionName = stringmatcher.Full(event.FunctionName)
 	{
@@ -1277,6 +1327,7 @@ type ProcessTracepointChecker struct {
 	CheckerName string                       `json:"checkerName"`
 	Process     *ProcessChecker              `json:"process,omitempty"`
 	Parent      *ProcessChecker              `json:"parent,omitempty"`
+	Ancestors   *ProcessListMatcher          `json:"ancestors,omitempty"`
 	Subsys      *stringmatcher.StringMatcher `json:"subsys,omitempty"`
 	Event       *stringmatcher.StringMatcher `json:"event,omitempty"`
 	Args        *KprobeArgumentListMatcher   `json:"args,omitempty"`
@@ -1335,6 +1386,11 @@ func (checker *ProcessTracepointChecker) Check(event *tetragon.ProcessTracepoint
 				return fmt.Errorf("Parent check failed: %w", err)
 			}
 		}
+		if checker.Ancestors != nil {
+			if err := checker.Ancestors.Check(event.Ancestors); err != nil {
+				return fmt.Errorf("Ancestors check failed: %w", err)
+			}
+		}
 		if checker.Subsys != nil {
 			if err := checker.Subsys.Match(event.Subsys); err != nil {
 				return fmt.Errorf("Subsys check failed: %w", err)
@@ -1387,6 +1443,12 @@ func (checker *ProcessTracepointChecker) WithProcess(check *ProcessChecker) *Pro
 // WithParent adds a Parent check to the ProcessTracepointChecker
 func (checker *ProcessTracepointChecker) WithParent(check *ProcessChecker) *ProcessTracepointChecker {
 	checker.Parent = check
+	return checker
+}
+
+// WithAncestors adds a Ancestors check to the ProcessTracepointChecker
+func (checker *ProcessTracepointChecker) WithAncestors(check *ProcessListMatcher) *ProcessTracepointChecker {
+	checker.Ancestors = check
 	return checker
 }
 
@@ -1444,6 +1506,19 @@ func (checker *ProcessTracepointChecker) FromProcessTracepoint(event *tetragon.P
 	if event.Parent != nil {
 		checker.Parent = NewProcessChecker().FromProcess(event.Parent)
 	}
+	{
+		var checks []*ProcessChecker
+		for _, check := range event.Ancestors {
+			var convertedCheck *ProcessChecker
+			if check != nil {
+				convertedCheck = NewProcessChecker().FromProcess(check)
+			}
+			checks = append(checks, convertedCheck)
+		}
+		lm := NewProcessListMatcher().WithOperator(listmatcher.Ordered).
+			WithValues(checks...)
+		checker.Ancestors = lm
+	}
 	checker.Subsys = stringmatcher.Full(event.Subsys)
 	checker.Event = stringmatcher.Full(event.Event)
 	{
@@ -1481,6 +1556,7 @@ type ProcessUprobeChecker struct {
 	CheckerName string                       `json:"checkerName"`
 	Process     *ProcessChecker              `json:"process,omitempty"`
 	Parent      *ProcessChecker              `json:"parent,omitempty"`
+	Ancestors   *ProcessListMatcher          `json:"ancestors,omitempty"`
 	Path        *stringmatcher.StringMatcher `json:"path,omitempty"`
 	Symbol      *stringmatcher.StringMatcher `json:"symbol,omitempty"`
 	PolicyName  *stringmatcher.StringMatcher `json:"policyName,omitempty"`
@@ -1538,6 +1614,11 @@ func (checker *ProcessUprobeChecker) Check(event *tetragon.ProcessUprobe) error 
 				return fmt.Errorf("Parent check failed: %w", err)
 			}
 		}
+		if checker.Ancestors != nil {
+			if err := checker.Ancestors.Check(event.Ancestors); err != nil {
+				return fmt.Errorf("Ancestors check failed: %w", err)
+			}
+		}
 		if checker.Path != nil {
 			if err := checker.Path.Match(event.Path); err != nil {
 				return fmt.Errorf("Path check failed: %w", err)
@@ -1588,6 +1669,12 @@ func (checker *ProcessUprobeChecker) WithParent(check *ProcessChecker) *ProcessU
 	return checker
 }
 
+// WithAncestors adds a Ancestors check to the ProcessUprobeChecker
+func (checker *ProcessUprobeChecker) WithAncestors(check *ProcessListMatcher) *ProcessUprobeChecker {
+	checker.Ancestors = check
+	return checker
+}
+
 // WithPath adds a Path check to the ProcessUprobeChecker
 func (checker *ProcessUprobeChecker) WithPath(check *stringmatcher.StringMatcher) *ProcessUprobeChecker {
 	checker.Path = check
@@ -1635,6 +1722,19 @@ func (checker *ProcessUprobeChecker) FromProcessUprobe(event *tetragon.ProcessUp
 	if event.Parent != nil {
 		checker.Parent = NewProcessChecker().FromProcess(event.Parent)
 	}
+	{
+		var checks []*ProcessChecker
+		for _, check := range event.Ancestors {
+			var convertedCheck *ProcessChecker
+			if check != nil {
+				convertedCheck = NewProcessChecker().FromProcess(check)
+			}
+			checks = append(checks, convertedCheck)
+		}
+		lm := NewProcessListMatcher().WithOperator(listmatcher.Ordered).
+			WithValues(checks...)
+		checker.Ancestors = lm
+	}
 	checker.Path = stringmatcher.Full(event.Path)
 	checker.Symbol = stringmatcher.Full(event.Symbol)
 	checker.PolicyName = stringmatcher.Full(event.PolicyName)
@@ -1671,6 +1771,7 @@ type ProcessLsmChecker struct {
 	CheckerName  string                       `json:"checkerName"`
 	Process      *ProcessChecker              `json:"process,omitempty"`
 	Parent       *ProcessChecker              `json:"parent,omitempty"`
+	Ancestors    *ProcessListMatcher          `json:"ancestors,omitempty"`
 	FunctionName *stringmatcher.StringMatcher `json:"functionName,omitempty"`
 	PolicyName   *stringmatcher.StringMatcher `json:"policyName,omitempty"`
 	Message      *stringmatcher.StringMatcher `json:"message,omitempty"`
@@ -1729,6 +1830,11 @@ func (checker *ProcessLsmChecker) Check(event *tetragon.ProcessLsm) error {
 				return fmt.Errorf("Parent check failed: %w", err)
 			}
 		}
+		if checker.Ancestors != nil {
+			if err := checker.Ancestors.Check(event.Ancestors); err != nil {
+				return fmt.Errorf("Ancestors check failed: %w", err)
+			}
+		}
 		if checker.FunctionName != nil {
 			if err := checker.FunctionName.Match(event.FunctionName); err != nil {
 				return fmt.Errorf("FunctionName check failed: %w", err)
@@ -1781,6 +1887,12 @@ func (checker *ProcessLsmChecker) WithProcess(check *ProcessChecker) *ProcessLsm
 // WithParent adds a Parent check to the ProcessLsmChecker
 func (checker *ProcessLsmChecker) WithParent(check *ProcessChecker) *ProcessLsmChecker {
 	checker.Parent = check
+	return checker
+}
+
+// WithAncestors adds a Ancestors check to the ProcessLsmChecker
+func (checker *ProcessLsmChecker) WithAncestors(check *ProcessListMatcher) *ProcessLsmChecker {
+	checker.Ancestors = check
 	return checker
 }
 
@@ -1837,6 +1949,19 @@ func (checker *ProcessLsmChecker) FromProcessLsm(event *tetragon.ProcessLsm) *Pr
 	}
 	if event.Parent != nil {
 		checker.Parent = NewProcessChecker().FromProcess(event.Parent)
+	}
+	{
+		var checks []*ProcessChecker
+		for _, check := range event.Ancestors {
+			var convertedCheck *ProcessChecker
+			if check != nil {
+				convertedCheck = NewProcessChecker().FromProcess(check)
+			}
+			checks = append(checks, convertedCheck)
+		}
+		lm := NewProcessListMatcher().WithOperator(listmatcher.Ordered).
+			WithValues(checks...)
+		checker.Ancestors = lm
 	}
 	checker.FunctionName = stringmatcher.Full(event.FunctionName)
 	checker.PolicyName = stringmatcher.Full(event.PolicyName)

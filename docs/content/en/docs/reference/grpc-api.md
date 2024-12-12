@@ -612,6 +612,7 @@ found.
 | ----- | ---- | ----- | ----------- |
 | process | [Process](#tetragon-Process) |  | Process that triggered the exit. |
 | parent | [Process](#tetragon-Process) |  | Immediate parent of the process. |
+| ancestors | [Process](#tetragon-Process) | repeated | Ancestors of the process beyond the immediate parent. |
 | signal | [string](#string) |  | Signal that the process received when it exited, for example SIGKILL or SIGTERM (list all signal names with `kill -l`). If there is no signal handler implemented for a specific process, we report the exit status code that can be found in the status field. |
 | status | [uint32](#uint32) |  | Status code on process exit. For example, the status code can indicate if an error was encountered or the program exited successfully. |
 | time | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | Date and time of the event. |
@@ -624,6 +625,7 @@ found.
 | ----- | ---- | ----- | ----------- |
 | process | [Process](#tetragon-Process) |  | Process that triggered the kprobe. |
 | parent | [Process](#tetragon-Process) |  | Immediate parent of the process. |
+| ancestors | [Process](#tetragon-Process) | repeated | Ancestors of the process beyond the immediate parent. |
 | function_name | [string](#string) |  | Symbol on which the kprobe was attached. |
 | args | [KprobeArgument](#tetragon-KprobeArgument) | repeated | Arguments definition of the observed kprobe. |
 | return | [KprobeArgument](#tetragon-KprobeArgument) |  | Return value definition of the observed kprobe. |
@@ -654,6 +656,7 @@ loader sensor event triggered for loaded binary/library
 | ----- | ---- | ----- | ----------- |
 | process | [Process](#tetragon-Process) |  |  |
 | parent | [Process](#tetragon-Process) |  |  |
+| ancestors | [Process](#tetragon-Process) | repeated | Ancestors of the process beyond the immediate parent. |
 | function_name | [string](#string) |  | LSM hook name. |
 | policy_name | [string](#string) |  | Name of the policy that created that LSM hook. |
 | message | [string](#string) |  | Short message of the Tracing Policy to inform users what is going on. |
@@ -670,6 +673,7 @@ loader sensor event triggered for loaded binary/library
 | ----- | ---- | ----- | ----------- |
 | process | [Process](#tetragon-Process) |  | Process that triggered the tracepoint. |
 | parent | [Process](#tetragon-Process) |  | Immediate parent of the process. |
+| ancestors | [Process](#tetragon-Process) | repeated | Ancestors of the process beyond the immediate parent. |
 | subsys | [string](#string) |  | Subsystem of the tracepoint. |
 | event | [string](#string) |  | Event of the subsystem. |
 | args | [KprobeArgument](#tetragon-KprobeArgument) | repeated | Arguments definition of the observed tracepoint. TODO: once we implement all we want, rename KprobeArgument to GenericArgument |
@@ -686,6 +690,7 @@ loader sensor event triggered for loaded binary/library
 | ----- | ---- | ----- | ----------- |
 | process | [Process](#tetragon-Process) |  |  |
 | parent | [Process](#tetragon-Process) |  |  |
+| ancestors | [Process](#tetragon-Process) | repeated | Ancestors of the process beyond the immediate parent. |
 | path | [string](#string) |  |  |
 | symbol | [string](#string) |  |  |
 | policy_name | [string](#string) |  | Name of the policy that created that uprobe. |
@@ -898,6 +903,7 @@ Capability set to filter over. NOTE: you may specify only ONE set here.
 | parent_arguments_regex | [string](#string) | repeated | Filter by process.parent.arguments field using RE2 regular expression syntax: https://github.com/google/re2/wiki/Syntax |
 | container_id | [string](#string) | repeated | Filter by the container ID in the process.docker field using RE2 regular expression syntax: https://github.com/google/re2/wiki/Syntax |
 | in_init_tree | [google.protobuf.BoolValue](#google-protobuf-BoolValue) |  | Filter containerized processes based on whether they are descendants of the container&#39;s init process. This can be used, for example, to watch for processes injected into a container via docker exec, kubectl exec, or similar mechanisms. |
+| ancestor_binary_regex | [string](#string) | repeated | Filter ancestor processes&#39; binaries using RE2 regular expression syntax. |
 
 <a name="tetragon-GetEventsRequest"></a>
 

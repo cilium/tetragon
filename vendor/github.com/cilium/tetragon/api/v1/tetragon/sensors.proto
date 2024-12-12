@@ -160,6 +160,8 @@ message ProcessInternal {
 	// - "process--": process decreased refcnt (i.e. this process exits)
 	// - "parent++": parent increased refcnt (i.e. a process starts that has this process as a parent)
 	// - "parent--": parent decreased refcnt (i.e. a process exits that has this process as a parent)
+	// - "ancestor++": ancestor increased refcnt (i.e. a process starts that has this process as an ancestor)
+	// - "ancestor--": ancestor decreased refcnt (i.e. a process exits that has this process as an ancestor)
 	map<string, int32> refcnt_ops = 4;
 }
 

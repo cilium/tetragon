@@ -184,6 +184,64 @@ func generateResponseInnerGetParent(g *protogen.GeneratedFile, files []*protogen
 	return nil
 }
 
+func generateResponseGetAncestors(g *protogen.GeneratedFile) error {
+	tetragonProcess := common.ProcessIdent(g)
+	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
+
+	g.P(`// ResponseGetAncestors returns a GetEventsResponse's ancestors processes if they exists
+    func ResponseGetAncestors(response *` + tetragonGER + `) []*` + tetragonProcess + ` {
+        if response == nil {
+            return nil
+        }
+
+        event := response.Event
+        if event == nil {
+            return nil
+        }
+
+        return ResponseInnerGetAncestors(event)
+	 }`)
+
+	return nil
+}
+
+func generateResponseInnerGetAncestors(g *protogen.GeneratedFile, files []*protogen.File) error {
+	events, err := common.GetEvents(files)
+	if err != nil {
+		return err
+	}
+
+	tetragonProcess := common.ProcessIdent(g)
+
+	doCases := func() string {
+		var ret string
+		for _, msg := range events {
+			if !common.IsAncestorsEvent(msg) {
+				continue
+			}
+
+			goIdent := common.TetragonApiIdent(g, fmt.Sprintf("GetEventsResponse_%s", msg.GoIdent.GoName))
+
+			ret += `case *` + goIdent + `:
+                return ev.` + msg.GoIdent.GoName + `.Ancestors
+            `
+		}
+		return ret
+	}
+
+	ifaceIdent := common.TetragonApiIdent(g, "IsGetEventsResponse_Event")
+
+	g.P(`// ResponseInnerGetAncestors returns a GetEventsResponse inner event's ancestors processes if they exists
+    func ResponseInnerGetAncestors(event ` + ifaceIdent + `) []*` + tetragonProcess + ` {
+        switch ev := event.(type) {
+            ` + doCases() + `
+        }
+        return nil
+	 }`)
+
+	return nil
+}
+
 func generateResponseTypeMap(g *protogen.GeneratedFile, files []*protogen.File) error {
 	oneofs, err := common.GetEventsResponseOneofs(files)
 	if err != nil {
@@ -265,6 +323,15 @@ func Generate(gen *protogen.Plugin, files []*protogen.File) error {
 
 	// nolint:revive // ignore "if-return: redundant if just return error" for clarity
 	if err := generateResponseInnerGetParent(g, files); err != nil {
+		return err
+	}
+
+	if err := generateResponseGetAncestors(g); err != nil {
+		return err
+	}
+
+	// nolint:revive // ignore "if-return: redundant if just return error" for clarity
+	if err := generateResponseInnerGetAncestors(g, files); err != nil {
 		return err
 	}
 
