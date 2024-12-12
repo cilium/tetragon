@@ -15,9 +15,9 @@ var (
 		nil, nil, []metrics.UnconstrainedLabel{
 			metrics.LabelPolicyNamespace,
 			metrics.LabelPolicy,
-			metrics.UnconstrainedLabel{Name: "sensor", ExampleValue: "generic_kprobe"},
-			metrics.UnconstrainedLabel{Name: "attach", ExampleValue: "sys_open"},
-			metrics.UnconstrainedLabel{Name: "section", ExampleValue: "kprobe/sys_open"},
+			{Name: "sensor", ExampleValue: "generic_kprobe"},
+			{Name: "attach", ExampleValue: "sys_open"},
+			{Name: "section", ExampleValue: "kprobe/sys_open"},
 		},
 	))
 
@@ -27,9 +27,9 @@ var (
 		nil, nil, []metrics.UnconstrainedLabel{
 			metrics.LabelPolicyNamespace,
 			metrics.LabelPolicy,
-			metrics.UnconstrainedLabel{Name: "sensor", ExampleValue: "generic_kprobe"},
-			metrics.UnconstrainedLabel{Name: "attach", ExampleValue: "sys_open"},
-			metrics.UnconstrainedLabel{Name: "section", ExampleValue: "kprobe/sys_open"},
+			{Name: "sensor", ExampleValue: "generic_kprobe"},
+			{Name: "attach", ExampleValue: "sys_open"},
+			{Name: "section", ExampleValue: "kprobe/sys_open"},
 		},
 	))
 )

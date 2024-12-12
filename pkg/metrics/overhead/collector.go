@@ -7,6 +7,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -34,9 +35,19 @@ func collect(ch chan<- prometheus.Metric) {
 		return
 	}
 
+	// Aggregate metrics before reporting, to avoid duplicates that would cause
+	// the entire metrics collection job to fail.
+	times := map[sensors.Prog]uint64{}
+	counts := map[sensors.Prog]uint64{}
 	for _, ovh := range overheads {
-		ch <- time.MustMetric(float64(ovh.RunTime), ovh.Namespace, ovh.Policy, ovh.Sensor, ovh.Attach, ovh.Label)
-		ch <- runs.MustMetric(float64(ovh.RunCnt), ovh.Namespace, ovh.Policy, ovh.Sensor, ovh.Attach, ovh.Label)
+		times[ovh.Prog] += ovh.RunTime
+		counts[ovh.Prog] += ovh.RunCnt
+	}
+	for prog, m := range times {
+		ch <- time.MustMetric(float64(m), prog.Namespace, prog.Policy, prog.Sensor, prog.Attach, prog.Label)
+	}
+	for prog, m := range counts {
+		ch <- runs.MustMetric(float64(m), prog.Namespace, prog.Policy, prog.Sensor, prog.Attach, prog.Label)
 	}
 }
 
