@@ -6,10 +6,10 @@
 package v1alpha1
 
 import (
-	v1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/listers"
-	"k8s.io/client-go/tools/cache"
+	ciliumiov1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	labels "k8s.io/apimachinery/pkg/labels"
+	listers "k8s.io/client-go/listers"
+	cache "k8s.io/client-go/tools/cache"
 )
 
 // TracingPolicyNamespacedLister helps list TracingPoliciesNamespaced.
@@ -17,7 +17,7 @@ import (
 type TracingPolicyNamespacedLister interface {
 	// List lists all TracingPoliciesNamespaced in the indexer.
 	// Objects returned here must be treated as read-only.
-	List(selector labels.Selector) (ret []*v1alpha1.TracingPolicyNamespaced, err error)
+	List(selector labels.Selector) (ret []*ciliumiov1alpha1.TracingPolicyNamespaced, err error)
 	// TracingPoliciesNamespaced returns an object that can list and get TracingPoliciesNamespaced.
 	TracingPoliciesNamespaced(namespace string) TracingPolicyNamespacedNamespaceLister
 	TracingPolicyNamespacedListerExpansion
@@ -25,17 +25,17 @@ type TracingPolicyNamespacedLister interface {
 
 // tracingPolicyNamespacedLister implements the TracingPolicyNamespacedLister interface.
 type tracingPolicyNamespacedLister struct {
-	listers.ResourceIndexer[*v1alpha1.TracingPolicyNamespaced]
+	listers.ResourceIndexer[*ciliumiov1alpha1.TracingPolicyNamespaced]
 }
 
 // NewTracingPolicyNamespacedLister returns a new TracingPolicyNamespacedLister.
 func NewTracingPolicyNamespacedLister(indexer cache.Indexer) TracingPolicyNamespacedLister {
-	return &tracingPolicyNamespacedLister{listers.New[*v1alpha1.TracingPolicyNamespaced](indexer, v1alpha1.Resource("tracingpolicynamespaced"))}
+	return &tracingPolicyNamespacedLister{listers.New[*ciliumiov1alpha1.TracingPolicyNamespaced](indexer, ciliumiov1alpha1.Resource("tracingpolicynamespaced"))}
 }
 
 // TracingPoliciesNamespaced returns an object that can list and get TracingPoliciesNamespaced.
 func (s *tracingPolicyNamespacedLister) TracingPoliciesNamespaced(namespace string) TracingPolicyNamespacedNamespaceLister {
-	return tracingPolicyNamespacedNamespaceLister{listers.NewNamespaced[*v1alpha1.TracingPolicyNamespaced](s.ResourceIndexer, namespace)}
+	return tracingPolicyNamespacedNamespaceLister{listers.NewNamespaced[*ciliumiov1alpha1.TracingPolicyNamespaced](s.ResourceIndexer, namespace)}
 }
 
 // TracingPolicyNamespacedNamespaceLister helps list and get TracingPoliciesNamespaced.
@@ -43,15 +43,15 @@ func (s *tracingPolicyNamespacedLister) TracingPoliciesNamespaced(namespace stri
 type TracingPolicyNamespacedNamespaceLister interface {
 	// List lists all TracingPoliciesNamespaced in the indexer for a given namespace.
 	// Objects returned here must be treated as read-only.
-	List(selector labels.Selector) (ret []*v1alpha1.TracingPolicyNamespaced, err error)
+	List(selector labels.Selector) (ret []*ciliumiov1alpha1.TracingPolicyNamespaced, err error)
 	// Get retrieves the TracingPolicyNamespaced from the indexer for a given namespace and name.
 	// Objects returned here must be treated as read-only.
-	Get(name string) (*v1alpha1.TracingPolicyNamespaced, error)
+	Get(name string) (*ciliumiov1alpha1.TracingPolicyNamespaced, error)
 	TracingPolicyNamespacedNamespaceListerExpansion
 }
 
 // tracingPolicyNamespacedNamespaceLister implements the TracingPolicyNamespacedNamespaceLister
 // interface.
 type tracingPolicyNamespacedNamespaceLister struct {
-	listers.ResourceIndexer[*v1alpha1.TracingPolicyNamespaced]
+	listers.ResourceIndexer[*ciliumiov1alpha1.TracingPolicyNamespaced]
 }
