@@ -19,6 +19,7 @@ ROOT_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
 IDIR = $(ROOT_DIR)include/
 LIBBPF = $(ROOT_DIR)libbpf/
 LDIR = $(ROOT_DIR)lib
+TETRAGONDIR = $(ROOT_DIR)tetragon/
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
 FLAGS := -I$(ROOT_DIR) \
@@ -31,4 +32,4 @@ ifeq ($(DEBUG),1)
 	__DEBUG_FLAGS = -DTETRAGON_BPF_DEBUG
 endif
 
-CLANG_FLAGS += $(FLAGS) -I $(LIBBPF) -I $(IDIR) -I $(LDIR) -target bpf -mcpu=v2 -g -D__TARGET_ARCH_$(BPF_TARGET_ARCH) -fdebug-default-version=4 $(__DEBUG_FLAGS)
+CLANG_FLAGS += $(FLAGS) -I $(LIBBPF) -I $(IDIR) -I $(LDIR) -I $(TETRAGONDIR) -target bpf -mcpu=v2 -g -D__TARGET_ARCH_$(BPF_TARGET_ARCH) -fdebug-default-version=4 $(__DEBUG_FLAGS)

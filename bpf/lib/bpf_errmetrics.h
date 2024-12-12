@@ -4,6 +4,7 @@
 #define BPF_ERRMETRICS_H__
 
 #include "compiler.h"
+#include "get_fileid.h"
 
 // should match: pkg/errmetrics/map.go:MapKey
 struct errmetrics_key {
@@ -13,18 +14,6 @@ struct errmetrics_key {
 	__u16 line_nr;
 	__u16 pad2;
 } __attribute__((packed));
-
-FUNC_INLINE __u16
-get_fileid__(const char *const fname)
-{
-#define fileid__(f, id)                  \
-	if (!__builtin_strcmp(f, fname)) \
-		return id;
-#include "fileids.h"
-#undef fileid__
-
-	return 0;
-}
 
 struct {
 	__uint(type, BPF_MAP_TYPE_LRU_PERCPU_HASH);
