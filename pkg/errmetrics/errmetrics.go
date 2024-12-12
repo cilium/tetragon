@@ -22,7 +22,7 @@ type Entry struct {
 //go:embed fileids.json
 var fileIDsJSON []byte
 
-var getFileIDs = sync.OnceValues(func() (map[int]string, error) {
+var GetFileIDs = sync.OnceValues(func() (map[int]string, error) {
 	var entries []Entry
 	if err := json.Unmarshal(fileIDsJSON, &entries); err != nil {
 		return nil, err

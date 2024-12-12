@@ -11,6 +11,8 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+const UnknownFname = "<unknown>"
+
 type Map struct {
 	*ebpf.Map
 }
@@ -49,7 +51,7 @@ func (m Map) Dump() ([]DumpEntry, error) {
 	var val []MapVal
 	var ret []DumpEntry
 
-	fileIDs, err := getFileIDs()
+	fileIDs, err := GetFileIDs()
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +59,7 @@ func (m Map) Dump() ([]DumpEntry, error) {
 	for iter.Next(&key, &val) {
 		fname, ok := fileIDs[int(key.FileID)]
 		if !ok {
-			fname = "<unknown>"
+			fname = UnknownFname
 		}
 		count := 0
 		for _, v := range val {
