@@ -60,7 +60,7 @@ func RegisterPodDeleteHandler() {
 
 func GetPodQueue() workqueue.TypedDelayingInterface[any] {
 	podQueueOnce.Do(func() {
-		podQueue = workqueue.TypedNewDelayingQueue[any]()
+		podQueue = workqueue.NewTypedDelayingQueueWithConfig(workqueue.TypedDelayingQueueConfig[any]{Name: "pod-queue"})
 	})
 	return podQueue
 }
