@@ -6,8 +6,8 @@
 package versioned
 
 import (
-	"fmt"
-	"net/http"
+	fmt "fmt"
+	http "net/http"
 
 	ciliumv1alpha1 "github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned/typed/cilium.io/v1alpha1"
 	discovery "k8s.io/client-go/discovery"

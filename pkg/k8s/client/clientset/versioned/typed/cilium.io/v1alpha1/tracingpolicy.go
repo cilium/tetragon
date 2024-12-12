@@ -6,9 +6,9 @@
 package v1alpha1
 
 import (
-	"context"
+	context "context"
 
-	v1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	ciliumiov1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	scheme "github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -24,31 +24,32 @@ type TracingPoliciesGetter interface {
 
 // TracingPolicyInterface has methods to work with TracingPolicy resources.
 type TracingPolicyInterface interface {
-	Create(ctx context.Context, tracingPolicy *v1alpha1.TracingPolicy, opts v1.CreateOptions) (*v1alpha1.TracingPolicy, error)
-	Update(ctx context.Context, tracingPolicy *v1alpha1.TracingPolicy, opts v1.UpdateOptions) (*v1alpha1.TracingPolicy, error)
+	Create(ctx context.Context, tracingPolicy *ciliumiov1alpha1.TracingPolicy, opts v1.CreateOptions) (*ciliumiov1alpha1.TracingPolicy, error)
+	Update(ctx context.Context, tracingPolicy *ciliumiov1alpha1.TracingPolicy, opts v1.UpdateOptions) (*ciliumiov1alpha1.TracingPolicy, error)
 	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
-	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.TracingPolicy, error)
-	List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.TracingPolicyList, error)
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*ciliumiov1alpha1.TracingPolicy, error)
+	List(ctx context.Context, opts v1.ListOptions) (*ciliumiov1alpha1.TracingPolicyList, error)
 	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.TracingPolicy, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *ciliumiov1alpha1.TracingPolicy, err error)
 	TracingPolicyExpansion
 }
 
 // tracingPolicies implements TracingPolicyInterface
 type tracingPolicies struct {
-	*gentype.ClientWithList[*v1alpha1.TracingPolicy, *v1alpha1.TracingPolicyList]
+	*gentype.ClientWithList[*ciliumiov1alpha1.TracingPolicy, *ciliumiov1alpha1.TracingPolicyList]
 }
 
 // newTracingPolicies returns a TracingPolicies
 func newTracingPolicies(c *CiliumV1alpha1Client) *tracingPolicies {
 	return &tracingPolicies{
-		gentype.NewClientWithList[*v1alpha1.TracingPolicy, *v1alpha1.TracingPolicyList](
+		gentype.NewClientWithList[*ciliumiov1alpha1.TracingPolicy, *ciliumiov1alpha1.TracingPolicyList](
 			"tracingpolicies",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			"",
-			func() *v1alpha1.TracingPolicy { return &v1alpha1.TracingPolicy{} },
-			func() *v1alpha1.TracingPolicyList { return &v1alpha1.TracingPolicyList{} }),
+			func() *ciliumiov1alpha1.TracingPolicy { return &ciliumiov1alpha1.TracingPolicy{} },
+			func() *ciliumiov1alpha1.TracingPolicyList { return &ciliumiov1alpha1.TracingPolicyList{} },
+		),
 	}
 }

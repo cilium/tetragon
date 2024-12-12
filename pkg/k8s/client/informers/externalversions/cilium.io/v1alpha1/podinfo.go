@@ -6,13 +6,13 @@
 package v1alpha1
 
 import (
-	"context"
+	context "context"
 	time "time"
 
-	ciliumiov1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	apisciliumiov1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	versioned "github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned"
 	internalinterfaces "github.com/cilium/tetragon/pkg/k8s/client/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/cilium/tetragon/pkg/k8s/client/listers/cilium.io/v1alpha1"
+	ciliumiov1alpha1 "github.com/cilium/tetragon/pkg/k8s/client/listers/cilium.io/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
@@ -23,7 +23,7 @@ import (
 // PodInfo.
 type PodInfoInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.PodInfoLister
+	Lister() ciliumiov1alpha1.PodInfoLister
 }
 
 type podInfoInformer struct {
@@ -58,7 +58,7 @@ func NewFilteredPodInfoInformer(client versioned.Interface, namespace string, re
 				return client.CiliumV1alpha1().PodInfo(namespace).Watch(context.TODO(), options)
 			},
 		},
-		&ciliumiov1alpha1.PodInfo{},
+		&apisciliumiov1alpha1.PodInfo{},
 		resyncPeriod,
 		indexers,
 	)
@@ -69,9 +69,9 @@ func (f *podInfoInformer) defaultInformer(client versioned.Interface, resyncPeri
 }
 
 func (f *podInfoInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&ciliumiov1alpha1.PodInfo{}, f.defaultInformer)
+	return f.factory.InformerFor(&apisciliumiov1alpha1.PodInfo{}, f.defaultInformer)
 }
 
-func (f *podInfoInformer) Lister() v1alpha1.PodInfoLister {
-	return v1alpha1.NewPodInfoLister(f.Informer().GetIndexer())
+func (f *podInfoInformer) Lister() ciliumiov1alpha1.PodInfoLister {
+	return ciliumiov1alpha1.NewPodInfoLister(f.Informer().GetIndexer())
 }
