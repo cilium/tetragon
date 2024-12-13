@@ -15,6 +15,8 @@ assignees: ''
       export BRANCH=v1.1
       export RELEASE=v1.1.2
 
+      Note: if you are doing a minor release (`X.Y.0`), set BRANCH to `main`.
+
 - [ ] Open a pull request to update the Helm chart and docs:
 
       git checkout -b pr/prepare-$RELEASE $BRANCH
@@ -25,7 +27,7 @@ assignees: ''
       git add install/kubernetes/tetragon/
 
       # update version in docs (Hugo config)
-      sed -i "s/^version =.*/version = \"${RELEASE}\"/" docs/hugo.toml
+      sed -i "s/^version =.*/version = \"${RELEASE}\"/" docs/config/_default/hugo.toml
       git add docs/
 
       # update upgrade notes
