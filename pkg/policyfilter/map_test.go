@@ -19,9 +19,20 @@ func requirePfmEqualTo(t *testing.T, m PfMap, val map[uint64][]uint64) {
 		}
 	}
 
+	checkReverseVals := map[CgroupID]map[PolicyID]struct{}{}
+	for k, ids := range val {
+		for _, id := range ids {
+			if checkReverseVals[CgroupID(id)] == nil {
+				checkReverseVals[CgroupID(id)] = map[PolicyID]struct{}{}
+			}
+			checkReverseVals[CgroupID(id)][PolicyID(k)] = struct{}{}
+		}
+	}
+
 	mapVals, err := m.readAll()
 	require.NoError(t, err)
 	require.EqualValues(t, checkVals, mapVals.Direct)
+	require.EqualValues(t, checkReverseVals, mapVals.Reverse)
 }
 
 // TestPfMapOps tests some simple map operations
