@@ -4,6 +4,7 @@
 package policyfilter
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -17,14 +18,45 @@ import (
 )
 
 const (
-	MapName = "policy_filter_maps"
+	MapName       = "policy_filter_maps"
+	CgroupMapName = "policy_filter_cgroup_maps"
 )
 
 // map operations used by policyfilter.
 
 // PfMap is a simple wrapper for ebpf.Map so that we can write methods for it
 type PfMap struct {
-	*ebpf.Map
+	policyMap *ebpf.Map // policy_filter_maps
+	cgroupMap *ebpf.Map // policy_filter_cgroup_maps
+}
+
+func openMap(spec *ebpf.CollectionSpec, mapName string, innerMaxEntries uint32) (*ebpf.Map, error) {
+	policyMapSpec, ok := spec.Maps[mapName]
+	if !ok {
+		return nil, fmt.Errorf("%s not found in object file", mapName)
+	}
+
+	// bpf-side sets max_entries to 1. Later kernels (5.10) can deal with
+	// inserting a different size of inner-map, but for older kernels, we
+	// fix the spec here.
+	policyMapSpec.InnerMap.MaxEntries = innerMaxEntries
+
+	ret, err := ebpf.NewMap(policyMapSpec)
+	if err != nil {
+		return nil, err
+	}
+
+	mapDir := bpf.MapPrefixPath()
+	pinPath := filepath.Join(mapDir, mapName)
+	os.Remove(pinPath)
+	os.Mkdir(mapDir, os.ModeDir)
+
+	if err := ret.Pin(pinPath); err != nil {
+		ret.Close()
+		return nil, fmt.Errorf("failed to pin policy filter map in %s: %w", pinPath, err)
+	}
+
+	return ret, nil
 }
 
 // newMap returns a new policy filter map.
@@ -36,36 +68,19 @@ func newPfMap() (PfMap, error) {
 	if err != nil {
 		return PfMap{}, fmt.Errorf("loading spec for %s failed: %w", objPath, err)
 	}
-	policyMapSpec, ok := spec.Maps[MapName]
-	if !ok {
-		return PfMap{}, fmt.Errorf("%s not found in %s", MapName, objPath)
+
+	var ret PfMap
+	if ret.policyMap, err = openMap(spec, MapName, polMapSize); err != nil {
+		return PfMap{}, fmt.Errorf("opening map %s failed: %w", MapName, err)
 	}
-
-	// bpf-side sets max_entries to 1. Later kernels (5.10) can deal with
-	// inserting a different size of inner-map, but for older kernels, we
-	// fix the spec here.
-	policyMapSpec.InnerMap.MaxEntries = polMapSize
-
-	ret, err := ebpf.NewMap(policyMapSpec)
-	if err != nil {
-		return PfMap{}, err
+	if ret.cgroupMap, err = openMap(spec, CgroupMapName, polMaxPolicies); err != nil {
+		releaseMap(ret.policyMap)
+		return PfMap{}, fmt.Errorf("opening cgroup map %s failed: %w", MapName, err)
 	}
-
-	mapDir := bpf.MapPrefixPath()
-	pinPath := filepath.Join(mapDir, MapName)
-	os.Remove(pinPath)
-	os.Mkdir(mapDir, os.ModeDir)
-	err = ret.Pin(pinPath)
-	if err != nil {
-		ret.Close()
-		return PfMap{}, fmt.Errorf("failed to pin policy filter map in %s: %w", pinPath, err)
-	}
-
-	return PfMap{ret}, err
+	return ret, nil
 }
 
-// release closes the policy filter bpf map and remove (unpin) the bpffs file
-func (m PfMap) release() error {
+func releaseMap(m *ebpf.Map) error {
 	if err := m.Close(); err != nil {
 		return err
 	}
@@ -73,6 +88,70 @@ func (m PfMap) release() error {
 	// nolint:revive // ignore "if-return: redundant if just return error" for clarity
 	if err := m.Unpin(); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// release closes the policy filter bpf map and remove (unpin) the bpffs file
+func (m PfMap) release() error {
+	return errors.Join(
+		releaseMap(m.policyMap),
+		releaseMap(m.cgroupMap),
+	)
+}
+
+func (m polMap) addPolicyIDs(polID PolicyID, cgIDs []CgroupID) error {
+	for _, cgID := range cgIDs {
+		if err := addPolicyIDMapping(m.cgroupMap, polID, cgID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func addPolicyIDMapping(m *ebpf.Map, polID PolicyID, cgID CgroupID) error {
+	var id uint32
+	err := m.Lookup(cgID, &id)
+	if err == nil { // inner map exists
+		inMap, err := ebpf.NewMapFromID(ebpf.MapID(id))
+		if err != nil {
+			return fmt.Errorf("error opening inner map: %w", err)
+		}
+		defer inMap.Close()
+
+		var zero uint8
+		if err := inMap.Update(polID, zero, ebpf.UpdateAny); err != nil {
+			return fmt.Errorf("error updating inner map: %w", err)
+		}
+
+		return nil
+	}
+
+	// inner map does not exist
+	name := fmt.Sprintf("cgroup_%d_map", cgID)
+	innerSpec := &ebpf.MapSpec{
+		Name:       name,
+		Type:       ebpf.Hash,
+		KeySize:    uint32(unsafe.Sizeof(PolicyID(0))),
+		ValueSize:  uint32(1),
+		MaxEntries: uint32(polMaxPolicies),
+	}
+
+	inner, err := ebpf.NewMap(innerSpec)
+	if err != nil {
+		return fmt.Errorf("failed to create cgroup (id=%d) map: %w", cgID, err)
+	}
+	defer inner.Close()
+
+	var zero uint8
+	if err := inner.Update(polID, zero, ebpf.UpdateAny); err != nil {
+		return fmt.Errorf("error updating inner map: %w", err)
+	}
+
+	if err := m.Update(cgID, uint32(inner.FD()), ebpf.UpdateNoExist); err != nil {
+		inner.Close()
+		return fmt.Errorf("failed to insert inner policy (id=%d) map: %w", polID, err)
 	}
 
 	return nil
@@ -95,25 +174,98 @@ func (m PfMap) newPolicyMap(polID PolicyID, cgIDs []CgroupID) (polMap, error) {
 	}
 
 	// update inner map with ids
-	ret := polMap{inner}
+	ret := polMap{
+		Inner:     inner,
+		cgroupMap: m.cgroupMap,
+	}
 	if err := ret.addCgroupIDs(cgIDs); err != nil {
-		ret.Close()
+		ret.Inner.Close()
 		return polMap{}, fmt.Errorf("failed to update policy (id=%d): %w", polID, err)
 	}
 
 	// update outer map
 	// NB(kkourt): use UpdateNoExist because we expect only a single policy with a given id
-	if err := m.Update(polID, uint32(ret.FD()), ebpf.UpdateNoExist); err != nil {
-		ret.Close()
+	if err := m.policyMap.Update(polID, uint32(ret.Inner.FD()), ebpf.UpdateNoExist); err != nil {
+		ret.Inner.Close()
 		return polMap{}, fmt.Errorf("failed to insert inner policy (id=%d) map: %w", polID, err)
+	}
+
+	// update cgroup map
+	for _, cgID := range cgIDs {
+		if err := addPolicyIDMapping(m.cgroupMap, polID, cgID); err != nil {
+			return polMap{}, fmt.Errorf("failed to update cgroup map: %w", err)
+		}
 	}
 
 	return ret, nil
 }
 
-func (m PfMap) readAll() (map[PolicyID]map[CgroupID]struct{}, error) {
+func getMapSize(m *ebpf.Map) (uint32, error) {
+	var key uint32
+	var val uint8
+	var mapSize uint32
 
-	readInner := func(id uint32) (map[CgroupID]struct{}, error) {
+	inIter := m.Iterate()
+	for inIter.Next(&key, &val) {
+		mapSize++
+	}
+
+	if err := inIter.Err(); err != nil {
+		return 0, fmt.Errorf("error iterating inner map: %w", err)
+	}
+
+	return mapSize, nil
+}
+
+func (m PfMap) deletePolicyIDInCgroupMap(polID PolicyID) error {
+	var key CgroupID
+	var id uint32
+
+	cgIDs := []CgroupID{}
+	iter := m.cgroupMap.Iterate()
+	for iter.Next(&key, &id) {
+		inMap, err := ebpf.NewMapFromID(ebpf.MapID(id))
+		if err != nil {
+			return fmt.Errorf("error opening inner map: %w", err)
+		}
+		defer inMap.Close()
+
+		// We don't know if this exists if this does not exist this
+		// will return an error, but this is fine.
+		inMap.Delete(polID)
+
+		// now we need to check the size of the inner map
+		// if this is 0 we should also remove the outer entry
+		mapSize, err := getMapSize(inMap)
+		if err != nil {
+			return fmt.Errorf("error getting inner map size: %w", err)
+		}
+		if mapSize == 0 {
+			cgIDs = append(cgIDs, key)
+		}
+	}
+
+	if err := iter.Err(); err != nil {
+		return fmt.Errorf("deletePolicyIDInCgroupMap: error iterating cgroup map: %w", err)
+	}
+
+	// delete empty outer maps
+	for _, cgID := range cgIDs {
+		if err := m.cgroupMap.Delete(cgID); err != nil {
+			return fmt.Errorf("error deleting outer map entry: %w", err)
+		}
+	}
+
+	return nil
+}
+
+type PfMapDump struct {
+	Policy map[PolicyID]map[CgroupID]struct{}
+	Cgroup map[CgroupID]map[PolicyID]struct{}
+}
+
+func readAll[K PolicyID | CgroupID, V PolicyID | CgroupID](m *ebpf.Map) (map[K]map[V]struct{}, error) {
+	readInner := func(id uint32) (map[V]struct{}, error) {
 		inMap, err := ebpf.NewMapFromID(ebpf.MapID(id))
 		if err != nil {
 			return nil, fmt.Errorf("error opening inner map: %w", err)
@@ -121,10 +273,10 @@ func (m PfMap) readAll() (map[PolicyID]map[CgroupID]struct{}, error) {
 		defer inMap.Close()
 
 		inIter := inMap.Iterate()
-		var key CgroupID
+		var key V
 		var val uint8
 
-		ret := map[CgroupID]struct{}{}
+		ret := map[V]struct{}{}
 		for inIter.Next(&key, &val) {
 			ret[key] = struct{}{}
 		}
@@ -137,17 +289,17 @@ func (m PfMap) readAll() (map[PolicyID]map[CgroupID]struct{}, error) {
 
 	}
 
-	ret := make(map[PolicyID]map[CgroupID]struct{})
-	var key PolicyID
+	ret := make(map[K]map[V]struct{})
+	var key K
 	var id uint32
 
 	iter := m.Iterate()
 	for iter.Next(&key, &id) {
-		cgids, err := readInner(id)
+		policyids, err := readInner(id)
 		if err != nil {
 			return nil, err
 		}
-		ret[key] = cgids
+		ret[key] = policyids
 	}
 
 	if err := iter.Err(); err != nil {
@@ -157,9 +309,24 @@ func (m PfMap) readAll() (map[PolicyID]map[CgroupID]struct{}, error) {
 	return ret, nil
 }
 
+func (m PfMap) readAll() (PfMapDump, error) {
+	d, err := readAll[PolicyID, CgroupID](m.policyMap)
+	if err != nil {
+		return PfMapDump{}, fmt.Errorf("error reading direct map: %w", err)
+	}
+
+	r, err := readAll[CgroupID, PolicyID](m.cgroupMap)
+	if err != nil {
+		return PfMapDump{}, fmt.Errorf("error reading cgroup map: %w", err)
+	}
+
+	return PfMapDump{Policy: d, Cgroup: r}, nil
+}
+
 // polMap is a simple wrapper for ebpf.Map so that we can write methods for it
 type polMap struct {
-	*ebpf.Map
+	Inner     *ebpf.Map
+	cgroupMap *ebpf.Map
 }
 
 type batchError struct {
@@ -181,7 +348,7 @@ func (e *batchError) Unwrap() error {
 func (m polMap) addCgroupIDs(cgIDs []CgroupID) error {
 	var zero uint8
 	for i, cgID := range cgIDs {
-		if err := m.Update(&cgID, zero, ebpf.UpdateAny); err != nil {
+		if err := m.Inner.Update(&cgID, zero, ebpf.UpdateAny); err != nil {
 			return &batchError{
 				SuccCount: i,
 				err:       fmt.Errorf("failed to update policy map (cgroup id: %d): %w", cgID, err),
@@ -192,15 +359,50 @@ func (m polMap) addCgroupIDs(cgIDs []CgroupID) error {
 	return nil
 }
 
-// addCgroupIDs delete cgroups ids from the policy map
+// delCgroupIDs delete cgroups ids from the policy map
 // todo: use batch operations when supported
-func (m polMap) delCgroupIDs(cgIDs []CgroupID) error {
+func (m polMap) delCgroupIDs(polID PolicyID, cgIDs []CgroupID) error {
+	rmRevCgIDs := []CgroupID{}
 	for i, cgID := range cgIDs {
-		if err := m.Delete(&cgID); err != nil {
+		if err := m.Inner.Delete(&cgID); err != nil {
 			return &batchError{
 				SuccCount: i,
 				err:       fmt.Errorf("failed to delete items from policy map (cgroup id: %d): %w", cgID, err),
 			}
+		}
+		rmRevCgIDs = append(rmRevCgIDs, cgID)
+	}
+
+	// update cgroup map
+	for _, cgID := range rmRevCgIDs {
+		var id uint32
+		if err := m.cgroupMap.Lookup(cgID, &id); err != nil { // inner map does not exists
+			continue
+		}
+
+		inMap, err := ebpf.NewMapFromID(ebpf.MapID(id))
+		if err != nil {
+			return fmt.Errorf("error opening inner map: %w", err)
+		}
+		defer inMap.Close()
+
+		var zero uint8
+		if err := inMap.Lookup(polID, &zero); err != nil {
+			continue
+		}
+
+		// policy exists for that cgrpid so delete that
+		inMap.Delete(polID)
+
+		// get the inner map size
+		sz, err := getMapSize(inMap)
+		if err != nil {
+			return fmt.Errorf("error getting inner map size: %w", err)
+		}
+
+		// we can now delete that outter entry
+		if sz == 0 {
+			m.cgroupMap.Delete(cgID)
 		}
 	}
 
@@ -208,7 +410,12 @@ func (m polMap) delCgroupIDs(cgIDs []CgroupID) error {
 }
 
 func OpenMap(fname string) (PfMap, error) {
-	m, err := ebpf.LoadPinnedMap(fname, &ebpf.LoadPinOptions{
+	base := filepath.Base(fname)
+	if base != MapName {
+		return PfMap{}, fmt.Errorf("unexpected policy filter map name: %s", base)
+	}
+
+	d, err := ebpf.LoadPinnedMap(fname, &ebpf.LoadPinOptions{
 		ReadOnly: true,
 	})
 
@@ -216,17 +423,34 @@ func OpenMap(fname string) (PfMap, error) {
 		return PfMap{}, err
 	}
 
-	return PfMap{m}, err
+	dir := filepath.Dir(fname)
+	cgroupMapPath := filepath.Join(dir, CgroupMapName)
+	r, err := ebpf.LoadPinnedMap(cgroupMapPath, &ebpf.LoadPinOptions{
+		ReadOnly: true,
+	})
+
+	if err != nil {
+		d.Close()
+		return PfMap{}, err
+	}
+
+	return PfMap{policyMap: d, cgroupMap: r}, err
 }
 
-func (m PfMap) Dump() (map[PolicyID]map[CgroupID]struct{}, error) {
+func (m PfMap) Close() {
+	m.policyMap.Close()
+	m.cgroupMap.Close()
+}
+
+func (m PfMap) Dump() (PfMapDump, error) {
 	return m.readAll()
 }
 
 func (m PfMap) AddCgroup(polID PolicyID, cgID CgroupID) error {
+	// direct map update
 	var innerID uint32
 
-	if err := m.Lookup(&polID, &innerID); err != nil {
+	if err := m.policyMap.Lookup(&polID, &innerID); err != nil {
 		return fmt.Errorf("failed to lookup policy id %d: %w", polID, err)
 	}
 
@@ -239,6 +463,11 @@ func (m PfMap) AddCgroup(polID PolicyID, cgID CgroupID) error {
 	val := uint8(0)
 	if err := inMap.Update(&cgID, &val, ebpf.UpdateAny); err != nil {
 		return fmt.Errorf("error updating inner map: %w", err)
+	}
+
+	// cgroup map update
+	if err := addPolicyIDMapping(m.cgroupMap, polID, cgID); err != nil {
+		return fmt.Errorf("error updating cgroup map: %w", err)
 	}
 
 	return nil
