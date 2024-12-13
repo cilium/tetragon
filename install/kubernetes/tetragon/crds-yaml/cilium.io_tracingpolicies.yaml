@@ -123,6 +123,10 @@ spec:
                         trace output.
                       items:
                         properties:
+                          extractParam:
+                            default: ""
+                            description: Extract Specific subargument in structure
+                            type: string
                           index:
                             description: Position of the argument.
                             format: int32
@@ -139,6 +143,11 @@ spec:
                               will fetch at most 4096 bytes. In later kernels (>=5.4) tetragon
                               supports fetching up to 327360 bytes if this flag is turned on
                             type: boolean
+                          overwriteType:
+                            default: ""
+                            description: Overwrite the Type argument. Use it only
+                              with extraParam
+                            type: string
                           returnCopy:
                             default: false
                             description: |-
@@ -221,6 +230,10 @@ spec:
                     returnArg:
                       description: A return argument to include in the trace output.
                       properties:
+                        extractParam:
+                          default: ""
+                          description: Extract Specific subargument in structure
+                          type: string
                         index:
                           description: Position of the argument.
                           format: int32
@@ -237,6 +250,11 @@ spec:
                             will fetch at most 4096 bytes. In later kernels (>=5.4) tetragon
                             supports fetching up to 327360 bytes if this flag is turned on
                           type: boolean
+                        overwriteType:
+                          default: ""
+                          description: Overwrite the Type argument. Use it only with
+                            extraParam
+                          type: string
                         returnCopy:
                           default: false
                           description: |-
@@ -834,6 +852,10 @@ spec:
                         trace output.
                       items:
                         properties:
+                          extractParam:
+                            default: ""
+                            description: Extract Specific subargument in structure
+                            type: string
                           index:
                             description: Position of the argument.
                             format: int32
@@ -850,6 +872,11 @@ spec:
                               will fetch at most 4096 bytes. In later kernels (>=5.4) tetragon
                               supports fetching up to 327360 bytes if this flag is turned on
                             type: boolean
+                          overwriteType:
+                            default: ""
+                            description: Overwrite the Type argument. Use it only
+                              with extraParam
+                            type: string
                           returnCopy:
                             default: false
                             description: |-
@@ -1484,6 +1511,10 @@ spec:
                         trace output.
                       items:
                         properties:
+                          extractParam:
+                            default: ""
+                            description: Extract Specific subargument in structure
+                            type: string
                           index:
                             description: Position of the argument.
                             format: int32
@@ -1500,6 +1531,11 @@ spec:
                               will fetch at most 4096 bytes. In later kernels (>=5.4) tetragon
                               supports fetching up to 327360 bytes if this flag is turned on
                             type: boolean
+                          overwriteType:
+                            default: ""
+                            description: Overwrite the Type argument. Use it only
+                              with extraParam
+                            type: string
                           returnCopy:
                             default: false
                             description: |-
@@ -2069,6 +2105,10 @@ spec:
                         trace output.
                       items:
                         properties:
+                          extractParam:
+                            default: ""
+                            description: Extract Specific subargument in structure
+                            type: string
                           index:
                             description: Position of the argument.
                             format: int32
@@ -2085,6 +2125,11 @@ spec:
                               will fetch at most 4096 bytes. In later kernels (>=5.4) tetragon
                               supports fetching up to 327360 bytes if this flag is turned on
                             type: boolean
+                          overwriteType:
+                            default: ""
+                            description: Overwrite the Type argument. Use it only
+                              with extraParam
+                            type: string
                           returnCopy:
                             default: false
                             description: |-
