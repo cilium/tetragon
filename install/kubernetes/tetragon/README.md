@@ -1,6 +1,6 @@
 # tetragon
 
-![Version: 1.2.0](https://img.shields.io/badge/Version-1.2.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 1.2.0](https://img.shields.io/badge/AppVersion-1.2.0-informational?style=flat-square)
+![Version: 1.3.0](https://img.shields.io/badge/Version-1.3.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 1.3.0](https://img.shields.io/badge/AppVersion-1.3.0-informational?style=flat-square)
 
 Helm chart for Tetragon
 
@@ -90,7 +90,7 @@ Helm chart for Tetragon
 | tetragon.hostProcPath | string | `"/proc"` | Location of the host proc filesystem in the runtime environment. If the runtime runs in the host, the path is /proc. Exceptions to this are environments like kind, where the runtime itself does not run on the host. |
 | tetragon.image.override | string | `nil` |  |
 | tetragon.image.repository | string | `"quay.io/cilium/tetragon"` |  |
-| tetragon.image.tag | string | `"v1.2.1"` |  |
+| tetragon.image.tag | string | `"v1.3.0"` |  |
 | tetragon.livenessProbe | object | `{}` | Overrides the default livenessProbe for the tetragon container. |
 | tetragon.ociHookSetup | object | `{"enabled":false,"extraVolumeMounts":[],"failAllowNamespaces":"","installDir":"/opt/tetragon","interface":"oci-hooks","resources":{},"securityContext":{"privileged":true}}` | Configure tetragon's init container for setting up tetragon-oci-hook on the host NOTE: This is deprecated, please use .rthooks |
 | tetragon.ociHookSetup.enabled | bool | `false` | enable  init container to setup tetragon-oci-hook |
@@ -123,7 +123,7 @@ Helm chart for Tetragon
 | tetragonOperator.extraVolumeMounts | list | `[]` |  |
 | tetragonOperator.extraVolumes | list | `[]` | Extra volumes for the Tetragon Operator Deployment. |
 | tetragonOperator.forceUpdateCRDs | bool | `false` |  |
-| tetragonOperator.image | object | `{"override":null,"pullPolicy":"IfNotPresent","repository":"quay.io/cilium/tetragon-operator","tag":"v1.2.1"}` | tetragon-operator image. |
+| tetragonOperator.image | object | `{"override":null,"pullPolicy":"IfNotPresent","repository":"quay.io/cilium/tetragon-operator","tag":"v1.3.0"}` | tetragon-operator image. |
 | tetragonOperator.nodeSelector | object | `{}` | Steer the Tetragon Operator Deployment Pod placement via nodeSelector, tolerations and affinity rules. |
 | tetragonOperator.podAnnotations | object | `{}` | Annotations for the Tetragon Operator Deployment Pods. |
 | tetragonOperator.podInfo.enabled | bool | `false` | Enables the PodInfo CRD and the controller that reconciles PodInfo custom resources. |
