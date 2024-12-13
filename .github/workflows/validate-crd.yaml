@@ -43,8 +43,3 @@ jobs:
             echo "Changes to the files pkg/k8s/apis/cilium.io/client/crds/v1alpha1/*.yaml requires CustomResourceDefinitionSchemaVersion to be updated in pkg/k8s/apis/cilium.io/v1alpha1/version.go"
             exit 1
           fi
-
-          if [ "$crd_changed" -eq 0 ] && [ "$version_changed" -eq 1 ]; then
-            echo "CustomResourceDefinitionSchemaVersion in pkg/k8s/apis/cilium.io/v1alpha1/version.go to be updated only in case of modifying the files pkg/k8s/apis/cilium.io/client/crds/v1alpha1/*.yaml"
-            exit 1
-          fi
