@@ -19,9 +19,20 @@ func requirePfmEqualTo(t *testing.T, m PfMap, val map[uint64][]uint64) {
 		}
 	}
 
+	checkCgroupVals := map[CgroupID]map[PolicyID]struct{}{}
+	for k, ids := range val {
+		for _, id := range ids {
+			if checkCgroupVals[CgroupID(id)] == nil {
+				checkCgroupVals[CgroupID(id)] = map[PolicyID]struct{}{}
+			}
+			checkCgroupVals[CgroupID(id)][PolicyID(k)] = struct{}{}
+		}
+	}
+
 	mapVals, err := m.readAll()
 	require.NoError(t, err)
 	require.EqualValues(t, checkVals, mapVals.Policy)
+	require.EqualValues(t, checkCgroupVals, mapVals.Cgroup)
 }
 
 // TestPfMapOps tests some simple map operations
