@@ -21,7 +21,7 @@ func requirePfmEqualTo(t *testing.T, m PfMap, val map[uint64][]uint64) {
 
 	mapVals, err := m.readAll()
 	require.NoError(t, err)
-	require.EqualValues(t, checkVals, mapVals)
+	require.EqualValues(t, checkVals, mapVals.Policy)
 }
 
 // TestPfMapOps tests some simple map operations
@@ -42,9 +42,11 @@ func TestPfMapOps(t *testing.T) {
 
 	err = pm1.addCgroupIDs([]CgroupID{30})
 	require.NoError(t, err)
+	err = addPolicyIDMapping(pm1.cgroupMap, polID1, 30)
+	require.NoError(t, err)
 	requirePfmEqualTo(t, pfm, map[uint64][]uint64{100: {10, 20, 30}})
 
-	err = pm1.delCgroupIDs([]CgroupID{20, 10})
+	err = pm1.delCgroupIDs(polID1, []CgroupID{20, 10})
 	require.NoError(t, err)
 	requirePfmEqualTo(t, pfm, map[uint64][]uint64{100: {30}})
 

@@ -74,6 +74,9 @@ const (
 	// should be large enough to accommodate the number of containers
 	// running in a system.
 	polMapSize = 32768
+
+	// same as POLICY_FILTER_MAX_POLICIES in policy_filter.h
+	polMaxPolicies = 128
 )
 
 type PolicyID uint32
@@ -492,14 +495,17 @@ func (m *state) DelPolicy(polID PolicyID) error {
 	defer m.mu.Unlock()
 	policy := m.delPolicy(polID)
 	if policy != nil {
-		policy.polMap.Close()
+		policy.polMap.Inner.Close()
 	} else {
 		m.log.WithField("policy-id", polID).Warn("DelPolicy: policy internal map not found")
 	}
 
-	if err := m.pfMap.Delete(polID); err != nil {
+	if err := m.pfMap.policyMap.Delete(polID); err != nil {
 		m.log.WithField("policy-id", polID).Warn("DelPolicy: failed to remove policy from external map")
 	}
+
+	// update cgroup map
+	m.pfMap.deletePolicyIDInCgroupMap(polID)
 
 	for i := range m.pods {
 		pod := &m.pods[i]
@@ -648,6 +654,14 @@ func (m *state) addPodContainers(pod *podInfo, containerIDs []string,
 				"pod-id":     pod.id,
 				"cgroup-ids": matchingCgIDs,
 			}).Warn("failed to update policy map")
+		} else {
+			if err := pol.polMap.addPolicyIDs(pol.id, matchingCgIDs); err != nil {
+				m.log.WithError(err).WithFields(logrus.Fields{
+					"policy-id":  pol.id,
+					"pod-id":     pod.id,
+					"cgroup-ids": matchingCgIDs,
+				}).Warn("failed to update cgroup map")
+			}
 		}
 	}
 }
@@ -722,7 +736,7 @@ func (m *state) delPodCgroupIDsFromPolicyMaps(pod *podInfo, containers []contain
 		// try to find containers in the pod matching this policy
 		// this way, we only remove containers that are actually present in the policy
 		cgroupIDs := pol.matchingContainersCgroupIDs(containers)
-		if err := pol.polMap.delCgroupIDs(cgroupIDs); err != nil {
+		if err := pol.polMap.delCgroupIDs(pol.id, cgroupIDs); err != nil {
 			// NB: depending on the error, we might want to schedule some retries here
 			m.log.WithError(err).WithFields(logrus.Fields{
 				"policy-id":  pol.id,
@@ -824,12 +838,22 @@ func (m *state) applyPodPolicyDiff(pod *podInfo, polDiff *policiesDiffRes) {
 				"cgroup-ids": cgroupIDs,
 				"reason":     "labels change caused policy to match",
 			}).Warn("failed to update policy map")
+		} else {
+			// update cgroup map if addCgroupIDs succeeds
+			if err := addPol.polMap.addPolicyIDs(addPol.id, cgroupIDs); err != nil {
+				m.log.WithError(err).WithFields(logrus.Fields{
+					"policy-id":  addPol.id,
+					"pod-id":     pod.id,
+					"cgroup-ids": cgroupIDs,
+					"reason":     "labels change caused policy to match",
+				}).Warn("failed to update cgroup map")
+			}
 		}
 	}
 
 	for _, delPol := range polDiff.deletedPolicies {
 		cgroupIDs = delPol.matchingContainersCgroupIDs(pod.containers)
-		if err := delPol.polMap.delCgroupIDs(cgroupIDs); err != nil {
+		if err := delPol.polMap.delCgroupIDs(delPol.id, cgroupIDs); err != nil {
 			m.log.WithError(err).WithFields(logrus.Fields{
 				"policy-id":  delPol.id,
 				"pod-id":     pod.id,

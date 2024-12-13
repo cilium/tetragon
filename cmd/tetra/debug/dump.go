@@ -186,17 +186,32 @@ func PolicyfilterState(fname string) {
 		return
 	}
 
-	if len(data) == 0 {
+	fmt.Println("--- PolicyID to CgroupIDs mapping ---")
+
+	if len(data.Policy) == 0 {
 		fmt.Printf("(empty)\n")
-		return
 	}
 
-	for polId, cgIDs := range data {
+	for polId, cgIDs := range data.Policy {
 		ids := make([]string, 0, len(cgIDs))
 		for id := range cgIDs {
 			ids = append(ids, strconv.FormatUint(uint64(id), 10))
 		}
 		fmt.Printf("%d: %s\n", polId, strings.Join(ids, ","))
+	}
+
+	fmt.Println("--- CgroupID to PolicyIDs mapping ---")
+
+	if len(data.Cgroup) == 0 {
+		fmt.Printf("(empty)\n")
+	}
+
+	for cgIDs, polIds := range data.Cgroup {
+		ids := make([]string, 0, len(polIds))
+		for id := range polIds {
+			ids = append(ids, strconv.FormatUint(uint64(id), 10))
+		}
+		fmt.Printf("%d: %s\n", cgIDs, strings.Join(ids, ","))
 	}
 }
 
