@@ -696,6 +696,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 	var setRetprobe bool
 	var argRetprobe *v1alpha1.KProbeArg
 	var argsBTFSet [api.MaxArgsSupported]bool
+	var allBtfArgs [api.EventConfigMaxArgs][api.MaxBtfArgDepth]api.ConfigBtfArg
 
 	errFn := func(err error) (idtable.EntryID, error) {
 		return idtable.UninitializedEntryID, err
@@ -762,6 +763,18 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 			argType = gt.GenericTypeFromString(a.Type)
 		}
 
+		if a.Resolve != "" && j < api.EventConfigMaxArgs {
+			if !bpf.HasProgramLargeSize() {
+				return errFn(fmt.Errorf("Error: Resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag"))
+			}
+			lastBtfType, btfArg, err := resolveBtfArg(f.Call, a)
+			if err != nil {
+				return errFn(fmt.Errorf("Error on hook %q for index %d : %v", f.Call, a.Index, err))
+			}
+			allBtfArgs[j] = btfArg
+			argType = findTypeFromBtfType(a, lastBtfType)
+		}
+
 		if argType == gt.GenericInvalidType {
 			return errFn(fmt.Errorf("Arg(%d) type '%s' unsupported", j, a.Type))
 		}
@@ -785,6 +798,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 			return errFn(fmt.Errorf("Error add arg: ArgType %s Index %d out of bounds",
 				a.Type, int(a.Index)))
 		}
+		config.BtfArg = allBtfArgs
 		config.Arg[a.Index] = int32(argType)
 		config.ArgM[a.Index] = uint32(argMValue)
 
