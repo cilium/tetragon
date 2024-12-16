@@ -148,6 +148,20 @@ struct selector_arg_filters {
 	__u32 argoff[5];
 } __attribute__((packed));
 
+struct config_btf_arg {
+	__u32 offset;
+	__u16 is_pointer;
+	__u16 is_initialized;
+} __attribute__((packed));
+
+struct extract_arg_data {
+	struct config_btf_arg *btf_config;
+	unsigned long *arg;
+};
+
+#define MAX_BTF_ARG_DEPTH    10
+#define EVENT_CONFIG_MAX_ARG 5
+
 struct event_config {
 	__u32 func_id;
 	__s32 arg0;
@@ -178,6 +192,7 @@ struct event_config {
 	 */
 	__u32 policy_id;
 	__u32 flags;
+	struct config_btf_arg btf_arg[EVENT_CONFIG_MAX_ARG][MAX_BTF_ARG_DEPTH];
 } __attribute__((packed));
 
 #define MAX_ARGS_SIZE	 80
