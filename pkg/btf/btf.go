@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"reflect"
 
 	"github.com/cilium/ebpf/btf"
+	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
@@ -100,4 +102,95 @@ func InitCachedBTF(lib, btf string) error {
 
 func GetCachedBTFFile() string {
 	return btfFile
+}
+
+/*
+FindNextBtfType function recursively search in a btf structure in order to
+found a specific path until it reach the target or fail.
+
+The function also search in embedded anonymous structures or unions to cover as
+much use cases as possible. For instance, mm_struct have 2 fields, anonymous
+struct and another type. But you are still able to look into the anonymous
+struct by specifying a path like "mm.pgd.pgd".
+
+@btfArgs: dest array for storing btf informations to reach the target on the
+bpf side.
+@currentType: The current type being proccessed, starts with root type.
+@pathToFound: The string representation of the path to reach in the structures.
+@i: The current depth, until last element of pathToFound.
+
+Return: The last type found matching the path, or error.
+*/
+func FindNextBtfType(
+	btfArgs *[api.MaxBtfArgDepth]api.ConfigBtfArg,
+	currentType btf.Type,
+	pathToFound []string,
+	i int,
+) (*btf.Type, error) {
+	switch t := currentType.(type) {
+	case *btf.Struct:
+		return processMembers(btfArgs, currentType, t.Members, pathToFound, i)
+	case *btf.Union:
+		return processMembers(btfArgs, currentType, t.Members, pathToFound, i)
+	case *btf.Pointer:
+		(*btfArgs)[i-1].IsPointer = uint16(1)
+		return FindNextBtfType(btfArgs, t.Target, pathToFound, i)
+	case *btf.Typedef:
+		return FindNextBtfType(btfArgs, t.Type, pathToFound, i)
+	default:
+		ty := currentType.TypeName()
+		if len(ty) == 0 {
+			ty = reflect.TypeOf(currentType).String()
+		}
+		return nil, fmt.Errorf("Unexpected type : %s has type %s", pathToFound[i-1], ty)
+	}
+}
+
+func processMembers(
+	btfArgs *[api.MaxBtfArgDepth]api.ConfigBtfArg,
+	currentType btf.Type,
+	members []btf.Member,
+	pathToFound []string,
+	i int,
+) (*btf.Type, error) {
+	var lastError error
+	memberWasFound := false
+	for _, member := range members {
+		if len(member.Name) == 0 { // If anonymous struct, fallthrough
+			(*btfArgs)[i].Offset = member.Offset.Bytes()
+			(*btfArgs)[i].IsInitialized = uint16(1)
+			lastTy, err := FindNextBtfType(btfArgs, member.Type, pathToFound, i)
+			if err != nil {
+				lastError = err
+				continue
+			}
+			return lastTy, nil
+		}
+		if member.Name == pathToFound[i] {
+			memberWasFound = true
+			(*btfArgs)[i].Offset = member.Offset.Bytes()
+			(*btfArgs)[i].IsInitialized = uint16(1)
+			isNotLastChild := i < len(pathToFound)-1 && i < api.MaxBtfArgDepth
+			if isNotLastChild {
+				return FindNextBtfType(btfArgs, member.Type, pathToFound, i+1)
+			}
+			currentType = member.Type
+		}
+	}
+	if !memberWasFound {
+		if lastError != nil {
+			return nil, lastError
+		}
+		return nil, fmt.Errorf(
+			"Attribute '%s' not found in structure '%s' found %v",
+			pathToFound[i],
+			currentType.TypeName(),
+			members,
+		)
+	}
+	if t, ok := currentType.(*btf.Pointer); ok {
+		(*btfArgs)[i].IsPointer = uint16(1)
+		currentType = t.Target
+	}
+	return &currentType, nil
 }
