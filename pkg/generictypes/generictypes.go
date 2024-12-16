@@ -3,7 +3,11 @@
 
 package generictypes
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/cilium/ebpf/btf"
+)
 
 const (
 	GenericIntType    = 1
@@ -190,6 +194,27 @@ func GenericUserToKernelType(arg int) int {
 	ty, ok := GenericUserToKernel[arg]
 	if !ok {
 		ty = GenericInvalidType
+	}
+	return ty
+}
+
+func GenericTypeFromBTF(arg btf.Type) int {
+	ty, ok := GenericStringToType[arg.TypeName()]
+	if !ok {
+		switch t := arg.(type) {
+		case *btf.Restrict:
+			return GenericTypeFromBTF(t.Type)
+		case *btf.Volatile:
+			return GenericTypeFromBTF(t.Type)
+		case *btf.Const:
+			return GenericTypeFromBTF(t.Type)
+		case *btf.Typedef:
+			return GenericTypeFromBTF(t.Type)
+		case *btf.Pointer:
+			return GenericTypeFromBTF(t.Target)
+		default:
+			return GenericInvalidType
+		}
 	}
 	return ty
 }
