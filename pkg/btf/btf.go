@@ -7,8 +7,11 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"reflect"
+	"strings"
 
 	"github.com/cilium/ebpf/btf"
+	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
@@ -100,4 +103,122 @@ func InitCachedBTF(lib, btf string) error {
 
 func GetCachedBTFFile() string {
 	return btfFile
+}
+
+func ResolveNestedTypes(ty btf.Type) btf.Type {
+	switch t := ty.(type) {
+	case *btf.Restrict:
+		return ResolveNestedTypes(t.Type)
+	case *btf.Volatile:
+		return ResolveNestedTypes(t.Type)
+	case *btf.Const:
+		return ResolveNestedTypes(t.Type)
+	case *btf.Typedef:
+		return ResolveNestedTypes(t.Type)
+	}
+	return ty
+}
+
+// ResolveBtfPath function recursively search in a btf structure in order to
+// found a specific path until it reach the target or fail.
+
+// The function also search in embedded anonymous structures or unions to cover as
+// much use cases as possible. For instance, mm_struct have 2 fields, anonymous
+// struct and another type. But you are still able to look into the anonymous
+// struct by specifying a path like "mm.pgd.pgd".
+
+// @btfArgs: dest array for storing btf informations to reach the target on the
+// bpf side.
+// @currentType: The current type being proccessed, starts with root type.
+// @pathToFound: The string representation of the path to reach in the structures.
+// @i: The current depth, until last element of pathToFound.
+
+// Return: The last type found matching the path, or error.
+func ResolveBtfPath(
+	btfArgs *[api.MaxBtfArgDepth]api.ConfigBtfArg,
+	currentType btf.Type,
+	pathToFound []string,
+	i int,
+) (*btf.Type, error) {
+	switch t := currentType.(type) {
+	case *btf.Struct:
+		return processMembers(btfArgs, currentType, t.Members, pathToFound, i)
+	case *btf.Union:
+		return processMembers(btfArgs, currentType, t.Members, pathToFound, i)
+	case *btf.Pointer:
+		if len(pathToFound[i]) == 0 {
+			(*btfArgs)[i].IsPointer = uint16(1)
+			(*btfArgs)[i].IsInitialized = uint16(1)
+			return ResolveBtfPath(btfArgs, ResolveNestedTypes(t.Target), pathToFound, i+1)
+		}
+		(*btfArgs)[i-1].IsPointer = uint16(1)
+		return ResolveBtfPath(btfArgs, ResolveNestedTypes(t.Target), pathToFound, i)
+	default:
+		ty := currentType.TypeName()
+		if len(ty) == 0 {
+			ty = reflect.TypeOf(currentType).String()
+		}
+		currentPath := pathToFound[i]
+		if i > 0 {
+			currentPath = pathToFound[i-1]
+		}
+		return nil, fmt.Errorf("Unexpected type : %q has type %q", currentPath, ty)
+	}
+}
+
+func processMembers(
+	btfArgs *[api.MaxBtfArgDepth]api.ConfigBtfArg,
+	currentType btf.Type,
+	members []btf.Member,
+	pathToFound []string,
+	i int,
+) (*btf.Type, error) {
+	var lastError error
+	memberWasFound := false
+	for _, member := range members {
+		if len(member.Name) == 0 { // If anonymous struct, fallthrough
+			(*btfArgs)[i].Offset = member.Offset.Bytes()
+			(*btfArgs)[i].IsInitialized = uint16(1)
+			lastTy, err := ResolveBtfPath(btfArgs, ResolveNestedTypes(member.Type), pathToFound, i)
+			if err != nil {
+				if lastError != nil {
+					idx := i + 1
+					// If the error raised originates from a depth greater than the current one, we stop the search.
+					if idx < len(pathToFound) && strings.Contains(lastError.Error(), pathToFound[idx]) {
+						break
+					}
+				}
+				lastError = err
+				continue
+			}
+			return lastTy, nil
+		}
+		if member.Name == pathToFound[i] {
+			memberWasFound = true
+			(*btfArgs)[i].Offset = member.Offset.Bytes()
+			(*btfArgs)[i].IsInitialized = uint16(1)
+			isNotLastChild := i < len(pathToFound)-1 && i < api.MaxBtfArgDepth
+			if isNotLastChild {
+				return ResolveBtfPath(btfArgs, ResolveNestedTypes(member.Type), pathToFound, i+1)
+			}
+			currentType = ResolveNestedTypes(member.Type)
+			break
+		}
+	}
+	if !memberWasFound {
+		if lastError != nil {
+			return nil, lastError
+		}
+		return nil, fmt.Errorf(
+			"Attribute %q not found in structure %q found %v",
+			pathToFound[i],
+			currentType.TypeName(),
+			members,
+		)
+	}
+	if t, ok := currentType.(*btf.Pointer); ok {
+		(*btfArgs)[i].IsPointer = uint16(1)
+		currentType = t.Target
+	}
+	return &currentType, nil
 }
