@@ -357,7 +357,11 @@ func argSelectorType(arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) (uint3
 		if arg.Index == s.Index {
 			// TBD: We shouldn't get this far with invalid KProbe args
 			// KProbe args have already been validated
-			return uint32(gt.GenericTypeFromString(s.Type)), nil
+			ty := s.Type
+			if s.ExtractParam != "" && s.OverwriteType != "" {
+				ty = s.OverwriteType
+			}
+			return uint32(gt.GenericTypeFromString(ty)), nil
 		}
 	}
 	return 0, fmt.Errorf("argFilter for unknown index")
