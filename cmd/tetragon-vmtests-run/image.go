@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/cilium/little-vm-helper/pkg/images"
+	"github.com/cilium/little-vm-helper/pkg/step"
 	"github.com/cilium/tetragon/pkg/vmtests"
 	"github.com/sirupsen/logrus"
 )
@@ -199,6 +200,19 @@ func buildNetActions(tmpDir string) ([]images.Action, error) {
 	return ret, nil
 }
 
+type NoNetworkCommand struct{}
+
+func (rc *NoNetworkCommand) ActionOpName() string {
+	return "no-network"
+}
+
+func (rc *NoNetworkCommand) ToSteps(s *images.StepConf) ([]step.Step, error) {
+	return []step.Step{&images.VirtCustomizeStep{
+		StepConf: s,
+		Args:     []string{"--no-network"},
+	}}, nil
+}
+
 func buildTestImage(log *logrus.Logger, rcnf *RunConf) error {
 
 	imagesDir, baseImage := filepath.Split(rcnf.baseFname)
@@ -226,6 +240,7 @@ func buildTestImage(log *logrus.Logger, rcnf *RunConf) error {
 	}
 
 	actions := []images.Action{
+		{Op: &NoNetworkCommand{}},
 		{Op: &images.SetHostnameCommand{Hostname: hostname}},
 		{Op: &images.AppendLineCommand{
 			File: "/etc/sysctl.d/local.conf",
