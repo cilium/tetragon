@@ -11,7 +11,7 @@ import (
 )
 
 func TestState(t *testing.T) {
-	s, err := New()
+	s, err := New(true)
 	if err != nil {
 		t.Skipf("failed to inialize policy filter state: %s", err)
 	}

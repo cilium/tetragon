@@ -200,18 +200,20 @@ func PolicyfilterState(fname string) {
 		fmt.Printf("%d: %s\n", polId, strings.Join(ids, ","))
 	}
 
-	fmt.Println("--- Reverse Map ---")
+	if data.Reverse != nil {
+		fmt.Println("--- Reverse Map ---")
 
-	if len(data.Reverse) == 0 {
-		fmt.Printf("(empty)\n")
-	}
-
-	for cgIDs, polIds := range data.Reverse {
-		ids := make([]string, 0, len(polIds))
-		for id := range polIds {
-			ids = append(ids, strconv.FormatUint(uint64(id), 10))
+		if len(data.Reverse) == 0 {
+			fmt.Printf("(empty)\n")
 		}
-		fmt.Printf("%d: %s\n", cgIDs, strings.Join(ids, ","))
+
+		for cgIDs, polIds := range data.Reverse {
+			ids := make([]string, 0, len(polIds))
+			for id := range polIds {
+				ids = append(ids, strconv.FormatUint(uint64(id), 10))
+			}
+			fmt.Printf("%d: %s\n", cgIDs, strings.Join(ids, ","))
+		}
 	}
 }
 

@@ -59,7 +59,7 @@ func openMap(spec *ebpf.CollectionSpec, mapName string, innerMaxEntries uint32) 
 }
 
 // newMap returns a new policy filter map.
-func newPfMap() (PfMap, error) {
+func newPfMap(enableReverseMap bool) (PfMap, error) {
 	// use the generic kprobe program, to find the policy filter map spec
 	objName, _ := kernels.GenericKprobeObjs()
 	objPath := path.Join(option.Config.HubbleLib, objName)
@@ -72,13 +72,22 @@ func newPfMap() (PfMap, error) {
 	if ret.dir, err = openMap(spec, MapName, polMapSize); err != nil {
 		return PfMap{}, fmt.Errorf("opening map %s failed: %w", MapName, err)
 	}
-	if ret.rev, err = openMap(spec, RevMapName, polMaxPolicies); err != nil {
-		return PfMap{}, fmt.Errorf("opening reverse map %s failed: %w", MapName, err)
+
+	if enableReverseMap {
+		if ret.rev, err = openMap(spec, RevMapName, polMaxPolicies); err != nil {
+			return PfMap{}, fmt.Errorf("opening reverse map %s failed: %w", MapName, err)
+		}
 	}
+
 	return ret, nil
 }
 
 func releaseMap(m *ebpf.Map) error {
+	// this may happen in the case where the reverse map is not enabled
+	if m == nil {
+		return nil
+	}
+
 	if err := m.Close(); err != nil {
 		return err
 	}
@@ -114,6 +123,11 @@ func (m polMap) addCgroupIDsReverse(polID PolicyID, cgIDs []CgroupID) error {
 }
 
 func addReverseMapping(m *ebpf.Map, polID PolicyID, cgID CgroupID) error {
+	// reverse map does not exist, so nothing to do here
+	if m == nil {
+		return nil
+	}
+
 	var id uint32
 	err := m.Lookup(cgID, &id)
 	if err == nil { // inner map exists
@@ -221,6 +235,11 @@ func getMapSize(m *ebpf.Map) (uint32, error) {
 }
 
 func (m PfMap) deletePolicyIdInReverse(polID PolicyID) error {
+	// reverse map does not exist, so nothing to do here
+	if m.rev == nil {
+		return nil
+	}
+
 	var key CgroupID
 	var id uint32
 
@@ -318,9 +337,12 @@ func (m PfMap) readAll() (PfMapDump, error) {
 		return PfMapDump{}, fmt.Errorf("error reading direct map: %w", err)
 	}
 
-	r, err := readAll[CgroupID, PolicyID](m.rev)
-	if err != nil {
-		return PfMapDump{}, fmt.Errorf("error reading reverse map: %w", err)
+	var r map[CgroupID]map[PolicyID]struct{}
+	if m.rev != nil {
+		r, err = readAll[CgroupID, PolicyID](m.rev)
+		if err != nil {
+			return PfMapDump{}, fmt.Errorf("error reading reverse map: %w", err)
+		}
 	}
 
 	return PfMapDump{Direct: d, Reverse: r}, nil
@@ -365,6 +387,11 @@ func (m polMap) addCgroupIDs(cgIDs []CgroupID) error {
 // delCgroupIDs delete cgroups ids from the policy map
 // todo: use batch operations when supported
 func (m polMap) delCgroupIDs(polID PolicyID, cgIDs []CgroupID) error {
+	// reverse map does not exist, so nothing to do here
+	if m.Reverse == nil {
+		return nil
+	}
+
 	rmRevCgIDs := []CgroupID{}
 	for i, cgID := range cgIDs {
 		if err := m.Inner.Delete(&cgID); err != nil {
@@ -428,13 +455,19 @@ func OpenMap(fname string) (PfMap, error) {
 
 	dir := filepath.Dir(fname)
 	reverseMapPath := filepath.Join(dir, RevMapName)
-	r, err := ebpf.LoadPinnedMap(reverseMapPath, &ebpf.LoadPinOptions{
-		ReadOnly: true,
-	})
 
-	if err != nil {
-		d.Close()
-		return PfMap{}, err
+	// check if the reverse map exists
+	// the reverse map may not exist in the case where
+	// enable-policy-filter-reverse-map is false
+	var r *ebpf.Map
+	if _, err := os.Stat(reverseMapPath); err == nil {
+		r, err = ebpf.LoadPinnedMap(reverseMapPath, &ebpf.LoadPinOptions{
+			ReadOnly: true,
+		})
+		if err != nil {
+			d.Close()
+			return PfMap{}, err
+		}
 	}
 
 	return PfMap{dir: d, rev: r}, err
@@ -442,7 +475,9 @@ func OpenMap(fname string) (PfMap, error) {
 
 func (m PfMap) Close() {
 	m.dir.Close()
-	m.rev.Close()
+	if m.rev != nil {
+		m.rev.Close()
+	}
 }
 
 func (m PfMap) Dump() (PfMapDump, error) {
