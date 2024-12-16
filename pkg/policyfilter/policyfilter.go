@@ -25,7 +25,7 @@ func GetState() (State, error) {
 	setGlobalPf.Do(func() {
 		if option.Config.EnablePolicyFilter {
 			logger.GetLogger().Info("Enabling policy filtering")
-			glblState, glblError = New()
+			glblState, glblError = New(option.Config.EnablePolicyFilterCgroupMap)
 		} else {
 			glblState = &disabled{}
 			glblError = nil
@@ -45,7 +45,7 @@ func resetStateOnlyForTesting() {
 	}
 	if option.Config.EnablePolicyFilter {
 		logger.GetLogger().Info("Enabling policy filtering")
-		glblState, glblError = New()
+		glblState, glblError = New(true)
 	} else {
 		glblState = &disabled{}
 		glblError = nil

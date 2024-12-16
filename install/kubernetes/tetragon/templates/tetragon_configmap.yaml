@@ -59,6 +59,9 @@ data:
 {{- if .Values.tetragon.enablePolicyFilter }}
   enable-policy-filter: "true"
 {{- end }}
+{{- if .Values.tetragon.enablePolicyFilterCgroupMap }}
+  enable-policy-filter-cgroup-map: "true"
+{{- end }}
 {{- if .Values.tetragon.enablePolicyFilterDebug }}
   enable-policy-filter-debug: "true"
 {{- end }}

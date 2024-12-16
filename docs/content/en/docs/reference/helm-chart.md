@@ -79,6 +79,7 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | tetragon.enableKeepSensorsOnExit | bool | `false` | Persistent enforcement to allow the enforcement policy to continue running even when its Tetragon process is gone. |
 | tetragon.enableMsgHandlingLatency | bool | `false` | Enable latency monitoring in message handling |
 | tetragon.enablePolicyFilter | bool | `true` | Enable policy filter. This is required for K8s namespace and pod-label filtering. |
+| tetragon.enablePolicyFilterCgroupMap | bool | `false` | Enable policy filter cgroup map. |
 | tetragon.enablePolicyFilterDebug | bool | `false` | Enable policy filter debug messages. |
 | tetragon.enableProcessCred | bool | `false` | Enable Capabilities visibility in exec and kprobe events. |
 | tetragon.enableProcessNs | bool | `false` | Enable Namespaces visibility in exec and kprobe events. |

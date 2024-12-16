@@ -40,7 +40,7 @@ func TestPfMapOps(t *testing.T) {
 	if !bpffsReady {
 		t.Skip("failed to initialize bpffs")
 	}
-	pfm, err := newPfMap()
+	pfm, err := newPfMap(true)
 	require.NoError(t, err)
 	defer pfm.release()
 
