@@ -60,7 +60,7 @@ func openMap(spec *ebpf.CollectionSpec, mapName string, innerMaxEntries uint32) 
 }
 
 // newMap returns a new policy filter map.
-func newPfMap() (PfMap, error) {
+func newPfMap(enableCgroupMap bool) (PfMap, error) {
 	// use the generic kprobe program, to find the policy filter map spec
 	objName, _ := kernels.GenericKprobeObjs()
 	objPath := path.Join(option.Config.HubbleLib, objName)
@@ -73,14 +73,23 @@ func newPfMap() (PfMap, error) {
 	if ret.policyMap, err = openMap(spec, MapName, polMapSize); err != nil {
 		return PfMap{}, fmt.Errorf("opening map %s failed: %w", MapName, err)
 	}
-	if ret.cgroupMap, err = openMap(spec, CgroupMapName, polMaxPolicies); err != nil {
-		releaseMap(ret.policyMap)
-		return PfMap{}, fmt.Errorf("opening cgroup map %s failed: %w", MapName, err)
+
+	if enableCgroupMap {
+		if ret.cgroupMap, err = openMap(spec, CgroupMapName, polMaxPolicies); err != nil {
+			releaseMap(ret.policyMap)
+			return PfMap{}, fmt.Errorf("opening cgroup map %s failed: %w", MapName, err)
+		}
 	}
+
 	return ret, nil
 }
 
 func releaseMap(m *ebpf.Map) error {
+	// this may happen in the case where the cgroup map is not enabled
+	if m == nil {
+		return nil
+	}
+
 	if err := m.Close(); err != nil {
 		return err
 	}
@@ -111,6 +120,11 @@ func (m polMap) addPolicyIDs(polID PolicyID, cgIDs []CgroupID) error {
 }
 
 func addPolicyIDMapping(m *ebpf.Map, polID PolicyID, cgID CgroupID) error {
+	// cgroup map does not exist, so nothing to do here
+	if m == nil {
+		return nil
+	}
+
 	var id uint32
 	err := m.Lookup(cgID, &id)
 	if err == nil { // inner map exists
@@ -218,6 +232,11 @@ func getMapSize(m *ebpf.Map) (uint32, error) {
 }
 
 func (m PfMap) deletePolicyIDInCgroupMap(polID PolicyID) error {
+	// cgroup map does not exist, so nothing to do here
+	if m.cgroupMap == nil {
+		return nil
+	}
+
 	var key CgroupID
 	var id uint32
 
@@ -315,9 +334,12 @@ func (m PfMap) readAll() (PfMapDump, error) {
 		return PfMapDump{}, fmt.Errorf("error reading direct map: %w", err)
 	}
 
-	r, err := readAll[CgroupID, PolicyID](m.cgroupMap)
-	if err != nil {
-		return PfMapDump{}, fmt.Errorf("error reading cgroup map: %w", err)
+	var r map[CgroupID]map[PolicyID]struct{}
+	if m.cgroupMap != nil {
+		r, err = readAll[CgroupID, PolicyID](m.cgroupMap)
+		if err != nil {
+			return PfMapDump{}, fmt.Errorf("error reading cgroup map: %w", err)
+		}
 	}
 
 	return PfMapDump{Policy: d, Cgroup: r}, nil
@@ -362,6 +384,11 @@ func (m polMap) addCgroupIDs(cgIDs []CgroupID) error {
 // delCgroupIDs delete cgroups ids from the policy map
 // todo: use batch operations when supported
 func (m polMap) delCgroupIDs(polID PolicyID, cgIDs []CgroupID) error {
+	// cgroup map does not exist, so nothing to do here
+	if m.cgroupMap == nil {
+		return nil
+	}
+
 	rmRevCgIDs := []CgroupID{}
 	for i, cgID := range cgIDs {
 		if err := m.Inner.Delete(&cgID); err != nil {
@@ -425,13 +452,19 @@ func OpenMap(fname string) (PfMap, error) {
 
 	dir := filepath.Dir(fname)
 	cgroupMapPath := filepath.Join(dir, CgroupMapName)
-	r, err := ebpf.LoadPinnedMap(cgroupMapPath, &ebpf.LoadPinOptions{
-		ReadOnly: true,
-	})
 
-	if err != nil {
-		d.Close()
-		return PfMap{}, err
+	// check if the cgroup map exists
+	// the cgroup map may not exist in the case where
+	// enable-policy-filter-cgroup-map is false
+	var r *ebpf.Map
+	if _, err := os.Stat(cgroupMapPath); err == nil {
+		r, err = ebpf.LoadPinnedMap(cgroupMapPath, &ebpf.LoadPinOptions{
+			ReadOnly: true,
+		})
+		if err != nil {
+			d.Close()
+			return PfMap{}, err
+		}
 	}
 
 	return PfMap{policyMap: d, cgroupMap: r}, err
@@ -439,7 +472,9 @@ func OpenMap(fname string) (PfMap, error) {
 
 func (m PfMap) Close() {
 	m.policyMap.Close()
-	m.cgroupMap.Close()
+	if m.cgroupMap != nil {
+		m.cgroupMap.Close()
+	}
 }
 
 func (m PfMap) Dump() (PfMapDump, error) {

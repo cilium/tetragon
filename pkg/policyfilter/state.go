@@ -269,17 +269,19 @@ type state struct {
 // allocated resources (namely the bpf map).
 //
 //revive:disable:unexported-return
-func New() (*state, error) {
+func New(enableCgroupMap bool) (*state, error) {
 	log := logger.GetLogger().WithField("subsystem", "policy-filter")
 	return newState(
 		log,
 		&cgfsFinder{fsscan.New(), log},
+		enableCgroupMap,
 	)
 }
 
 func newState(
 	log logrus.FieldLogger,
 	cgidFinder cgidFinder,
+	enableCgroupMap bool,
 ) (*state, error) {
 	var err error
 	ret := &state{
@@ -288,7 +290,7 @@ func newState(
 		DebugLogger: logger.NewDebugLogger(log, option.Config.EnablePolicyFilterDebug),
 	}
 
-	ret.pfMap, err = newPfMap()
+	ret.pfMap, err = newPfMap(enableCgroupMap)
 	if err != nil {
 		return nil, err
 	}
