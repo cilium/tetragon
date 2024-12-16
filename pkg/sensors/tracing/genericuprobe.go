@@ -344,6 +344,10 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 			return nil, fmt.Errorf("Error add arg: ArgType %s Index %d out of bounds",
 				a.Type, int(a.Index))
 		}
+
+		if a.Resolve != "" {
+			return nil, fmt.Errorf("Resolving attributes for Uprobes is not supported")
+		}
 		argTypes[a.Index] = int32(argType)
 		argMeta[a.Index] = uint32(argMValue)
 		argSet[a.Index] = true
