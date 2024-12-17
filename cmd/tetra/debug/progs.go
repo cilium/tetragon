@@ -26,6 +26,7 @@ import (
 	"github.com/cilium/ebpf/link"
 	"github.com/spf13/cobra"
 	"golang.org/x/sys/unix"
+	"golang.org/x/term"
 )
 
 type prog struct {
@@ -233,13 +234,31 @@ func round(state map[uint32]*prog) error {
 	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
 	fmt.Fprintln(writer, "Ovh(%)\tId\tCnt\tTime\tName\tPin")
 
-	for _, ovh := range overheads {
-		p := ovh.p
-		fmt.Fprintf(writer, "%6.2f\t%d\t%d\t%d\t%s\t%s\n",
-			ovh.pct, p.id, ovh.cnt, ovh.time, p.name, p.pin)
+	cnt := 0
+	lines := 0
+
+	if !cfg.noclr && !cfg.once {
+		// We have 3 header lines, so terminal smaller than that is too
+		// small to print anything meaningful
+		_, lines, _ = term.GetSize(0)
+		if lines < 4 {
+			return nil
+		}
+		lines = lines - 4
 	}
 
-	fmt.Fprintln(writer)
+	for _, ovh := range overheads {
+		p := ovh.p
+		fmt.Fprintf(writer, "%6.2f\t%d\t%d\t%d\t%s\t%s",
+			ovh.pct, p.id, ovh.cnt, ovh.time, p.name, p.pin)
+
+		if lines != 0 && cnt == lines {
+			break
+		}
+		cnt++
+		fmt.Fprintf(writer, "\n")
+	}
+
 	writer.Flush()
 
 	// Remove stale programs from state map
