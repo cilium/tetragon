@@ -65,6 +65,10 @@ type KProbeArg struct {
 	// Argument type.
 	Type string `json:"type"`
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=""
+	// Resolve the path to a specific attribute
+	Resolve string `json:"resolve"`
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:Minimum=0
 	// Specifies the position of the corresponding size argument for this argument.
 	// This field is used only for char_buf and char_iovec types.
