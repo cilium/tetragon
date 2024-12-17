@@ -65,6 +65,14 @@ type KProbeArg struct {
 	// Argument type.
 	Type string `json:"type"`
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=""
+	// Extract Specific subargument in structure
+	ExtractParam string `json:"extractParam"`
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=""
+	// Overwrite the Type argument. Use it only with extraParam
+	OverwriteType string `json:"overwriteType"`
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:Minimum=0
 	// Specifies the position of the corresponding size argument for this argument.
 	// This field is used only for char_buf and char_iovec types.
