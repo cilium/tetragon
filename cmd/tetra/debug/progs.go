@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strings"
 	"sync"
 	"text/tabwriter"
 	"time"
@@ -330,6 +331,9 @@ func getTetragonProgs(base string) ([]*prog, error) {
 			}
 			if finfo.IsDir() {
 				return nil
+			}
+			if strings.HasSuffix(path, "/link") || strings.HasSuffix(path, "/link_override") {
+				return nil // skip BPF links, they make the syscall fail since cilium/ebpf@78074c59
 			}
 			p, err := ebpf.LoadPinnedProgram(path, nil)
 			if err != nil {
