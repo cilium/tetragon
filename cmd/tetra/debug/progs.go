@@ -93,6 +93,18 @@ func detectBpffs() (string, error) {
 	return "", fmt.Errorf("bpffs mount not found")
 }
 
+func detectLib() (string, error) {
+	paths := []string{"/var/lib/tetragon", "./bpf/objs/"}
+
+	for _, path := range paths {
+		if _, err := os.Stat(filepath.Join(path, "bpf_prog_iter.o")); err != nil {
+			continue
+		}
+		return path, nil
+	}
+	return "", fmt.Errorf("lib directory mount not found")
+}
+
 func NewProgsCmd() *cobra.Command {
 	cmd := cobra.Command{
 		Use:     "progs",
@@ -129,6 +141,12 @@ Examples:
 				}
 			}
 
+			if cfg.lib == "" {
+				if cfg.lib, err = detectLib(); err != nil {
+					log.Fatal(err)
+				}
+			}
+
 			if err = runProgs(ctx); err != nil {
 				log.Fatal(err)
 			}
@@ -137,7 +155,7 @@ Examples:
 
 	flags := cmd.Flags()
 	flags.BoolVar(&cfg.all, "all", false, "Get all programs")
-	flags.StringVar(&cfg.lib, "bpf-lib", "bpf/objs/", "Location of Tetragon libs (btf and bpf files)")
+	flags.StringVar(&cfg.lib, "bpf-lib", "", "Location of Tetragon libs, btf and bpf files (auto detect by default)")
 	flags.StringVar(&cfg.bpffs, "bpf-dir", "", "Location of bpffs tetragon directory (auto detect by default)")
 	flags.IntVar(&cfg.timeout, "timeout", 1, "Interval in seconds (delay in one shot mode)")
 	flags.BoolVar(&cfg.once, "once", false, "Run in one shot mode")
