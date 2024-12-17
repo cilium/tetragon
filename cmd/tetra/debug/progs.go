@@ -17,6 +17,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"syscall"
 	"text/tabwriter"
 	"time"
 
@@ -59,6 +60,39 @@ var (
 	cfg      progsConfig
 )
 
+func detectBpffs() (string, error) {
+	// Try to read /proc/mounts and find bpf mount
+	if lines, err := os.ReadFile("/proc/mounts"); err == nil {
+		for _, line := range strings.Split(string(lines), "\n") {
+			parts := strings.Split(line, " ")
+			if len(parts) == 6 {
+				if parts[2] == "bpf" {
+					return parts[1], nil
+				}
+			}
+		}
+	}
+
+	// .. if failed, check 2 common mount points
+	paths := []string{"/run/cilium/bpffs", "/sys/fs/bpf/"}
+
+	for _, path := range paths {
+		var st syscall.Statfs_t
+
+		if err := syscall.Statfs(path, &st); err != nil {
+			continue
+		}
+		if st.Type != unix.BPF_FS_MAGIC {
+			continue
+		}
+		if _, err := os.Stat(filepath.Join(path, "tetragon")); err != nil {
+			continue
+		}
+		return path, nil
+	}
+	return "", fmt.Errorf("bpffs mount not found")
+}
+
 func NewProgsCmd() *cobra.Command {
 	cmd := cobra.Command{
 		Use:     "progs",
@@ -87,7 +121,15 @@ Examples:
 			// it to nanoseconds, because it will be used like that below
 			cfg.timeout = int(time.Second) * cfg.timeout
 
-			if err := runProgs(ctx); err != nil {
+			var err error
+
+			if cfg.bpffs == "" {
+				if cfg.bpffs, err = detectBpffs(); err != nil {
+					log.Fatal(err)
+				}
+			}
+
+			if err = runProgs(ctx); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -96,7 +138,7 @@ Examples:
 	flags := cmd.Flags()
 	flags.BoolVar(&cfg.all, "all", false, "Get all programs")
 	flags.StringVar(&cfg.lib, "bpf-lib", "bpf/objs/", "Location of Tetragon libs (btf and bpf files)")
-	flags.StringVar(&cfg.bpffs, "bpf-dir", "/sys/fs/bpf/tetragon", "Location of bpffs tetragon directory")
+	flags.StringVar(&cfg.bpffs, "bpf-dir", "", "Location of bpffs tetragon directory (auto detect by default)")
 	flags.IntVar(&cfg.timeout, "timeout", 1, "Interval in seconds (delay in one shot mode)")
 	flags.BoolVar(&cfg.once, "once", false, "Run in one shot mode")
 	flags.BoolVar(&cfg.noclr, "no-clear", false, "Do not clear screen between rounds")
