@@ -36,8 +36,8 @@ github.com/containers/storage v1.56.0/go.mod h1:c6WKowcAlED/DkWGNuL9bvGYqIWCVy7i
 github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09 h1:OoRAFlvDGCUqDLampLQjk0yeeSGdF9zzst/3G9IkBbc=
 github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09/go.mod h1:m2r/smMKsKwgMSAoFKHaa68ImdCSNuKE1MxvQ64xuCQ=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
-github.com/cyphar/filepath-securejoin v0.3.4 h1:VBWugsJh2ZxJmLFSM06/0qzQyiQX2Qs0ViKrUAcqdZ8=
-github.com/cyphar/filepath-securejoin v0.3.4/go.mod h1:8s/MCNJREmFK0H02MF6Ihv1nakJe4L/w3WZLHNkvlYM=
+github.com/cyphar/filepath-securejoin v0.3.5 h1:L81NHjquoQmcPgXcttUS9qTSR/+bXry6pbSINQGpjj4=
+github.com/cyphar/filepath-securejoin v0.3.5/go.mod h1:edhVd3c6OXKjUmSrVa/tGJRS9joFTxlslFCAyaxigkE=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
@@ -87,8 +87,8 @@ github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8
 github.com/opencontainers/go-digest v1.0.0/go.mod h1:0JzlMkj0TRzQZfJkVvzbP0HBR3IKzErnv2BNG4W4MAM=
 github.com/opencontainers/image-spec v1.1.0 h1:8SG7/vwALn54lVB/0yZ/MMwhFrPYtpEHQb2IpWsCzug=
 github.com/opencontainers/image-spec v1.1.0/go.mod h1:W4s4sFTMaBeK1BQLXbG4AdM2szdn85PY75RI83NrTrM=
-github.com/opencontainers/runc v1.2.2 h1:jTg3Vw2A5f0N9PoxFTEwUhvpANGaNPT3689Yfd/zaX0=
-github.com/opencontainers/runc v1.2.2/go.mod h1:/PXzF0h531HTMsYQnmxXkBD7YaGShm/2zcRB79dksUc=
+github.com/opencontainers/runc v1.2.3 h1:fxE7amCzfZflJO2lHXf4y/y8M1BoAqp+FVmG19oYB80=
+github.com/opencontainers/runc v1.2.3/go.mod h1:nSxcWUydXrsBZVYNSkTjoQ/N6rcyTtn+1SD5D4+kRIM=
 github.com/opencontainers/runtime-spec v1.2.0 h1:z97+pHb3uELt/yiAWD691HNHQIF07bE7dzrbT927iTk=
 github.com/opencontainers/runtime-spec v1.2.0/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=
 github.com/pelletier/go-toml v1.9.5 h1:4yBQzkHv+7BHq2PQUZF3Mx0IYxG7LsP222s7Agd3ve8=
@@ -166,8 +166,8 @@ google.golang.org/genproto/googleapis/api v0.0.0-20241015192408-796eee8c2d53 h1:
 google.golang.org/genproto/googleapis/api v0.0.0-20241015192408-796eee8c2d53/go.mod h1:riSXTwQ4+nqmPGtobMFyW5FqVAmIs0St6VPp4Ug7CE4=
 google.golang.org/genproto/googleapis/rpc v0.0.0-20241118233622-e639e219e697 h1:LWZqQOEjDyONlF1H6afSWpAL/znlREo2tHfLoe+8LMA=
 google.golang.org/genproto/googleapis/rpc v0.0.0-20241118233622-e639e219e697/go.mod h1:5uTbfoYQed2U9p3KIj2/Zzm02PYhndfdmML0qC3q3FU=
-google.golang.org/grpc v1.69.0 h1:quSiOM1GJPmPH5XtU+BCoVXcDVJJAzNcoyfC2cCjGkI=
-google.golang.org/grpc v1.69.0/go.mod h1:vyjdE6jLBI76dgpDojsFGNaHlxdjXN9ghpnd2o7JGZ4=
+google.golang.org/grpc v1.69.2 h1:U3S9QEtbXC0bYNvRtcoklF3xGtLViumSYxWykJS+7AU=
+google.golang.org/grpc v1.69.2/go.mod h1:vyjdE6jLBI76dgpDojsFGNaHlxdjXN9ghpnd2o7JGZ4=
 google.golang.org/protobuf v1.35.2 h1:8Ar7bF+apOIoThw1EdZl0p1oWvMqTHmpA2fRTyZO8io=
 google.golang.org/protobuf v1.35.2/go.mod h1:9fA7Ob0pmnwhb644+1+CVWFRbNajQ6iRojtC/QF5bRE=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=

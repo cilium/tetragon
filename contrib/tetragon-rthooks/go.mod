@@ -13,12 +13,12 @@ require (
 	github.com/containerd/nri v0.9.0
 	github.com/containers/common v0.61.0
 	github.com/google/cel-go v0.22.1
-	github.com/opencontainers/runc v1.2.2
+	github.com/opencontainers/runc v1.2.3
 	github.com/opencontainers/runtime-spec v1.2.0
 	github.com/pelletier/go-toml v1.9.5
 	github.com/pelletier/go-toml/v2 v2.2.3
 	github.com/stretchr/testify v1.10.0
-	google.golang.org/grpc v1.69.0
+	google.golang.org/grpc v1.69.2
 )
 
 require (
@@ -32,7 +32,7 @@ require (
 	github.com/containerd/typeurl/v2 v2.2.2 // indirect
 	github.com/containers/storage v1.56.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09 // indirect
-	github.com/cyphar/filepath-securejoin v0.3.4 // indirect
+	github.com/cyphar/filepath-securejoin v0.3.5 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
 	github.com/godbus/dbus/v5 v5.1.1-0.20230522191255-76236955d466 // indirect
