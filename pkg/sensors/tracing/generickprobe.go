@@ -93,6 +93,11 @@ type pendingEventKey struct {
 	ktimeEnter uint64
 }
 
+type multiKprobeLoaderData struct {
+	ids     []idtable.EntryID
+	session bool
+}
+
 type genericKprobeData struct {
 	// stackTraceMap reference is needed when retrieving stack traces from
 	// userspace when receiving events containing stacktrace IDs
@@ -262,6 +267,7 @@ func createMultiKprobeSensor(policyName string, multiIDs []idtable.EntryID, has 
 	var multiRetIDs []idtable.EntryID
 	var progs []*program.Program
 	var maps []*program.Map
+	var load *program.Program
 
 	data := &genericKprobeData{}
 
@@ -290,14 +296,34 @@ func createMultiKprobeSensor(policyName string, multiIDs []idtable.EntryID, has 
 		loadProgRetName = "bpf_multi_retkprobe_v511.o"
 	}
 
-	load := program.Builder(
-		path.Join(option.Config.HubbleLib, loadProgName),
-		fmt.Sprintf("kprobe_multi (%d functions)", len(multiIDs)),
-		"kprobe.multi/generic_kprobe",
-		"multi_kprobe",
-		"generic_kprobe").
-		SetLoaderData(multiIDs).
-		SetPolicy(policyName)
+	useSession := bpf.HasKprobeSession() && !has.override
+
+	if useSession {
+		load = program.Builder(
+			path.Join(option.Config.HubbleLib, "bpf_session_kprobe.o"),
+			fmt.Sprintf("kprobe_session (%d functions)", len(multiIDs)),
+			"kprobe.session/generic_kprobe",
+			"session_kprobe",
+			"generic_kprobe").
+			SetLoaderData(multiKprobeLoaderData{
+				ids:     multiIDs,
+				session: useSession,
+			}).
+			SetPolicy(policyName)
+	} else {
+		load = program.Builder(
+			path.Join(option.Config.HubbleLib, loadProgName),
+			fmt.Sprintf("kprobe_multi (%d functions)", len(multiIDs)),
+			"kprobe.multi/generic_kprobe",
+			"multi_kprobe",
+			"generic_kprobe").
+			SetLoaderData(multiIDs).
+			SetLoaderData(multiKprobeLoaderData{
+				ids: multiIDs,
+			}).
+			SetPolicy(policyName)
+	}
+
 	progs = append(progs, load)
 
 	fdinstall := program.MapBuilderSensor("fdinstall_map", load)
@@ -367,6 +393,12 @@ func createMultiKprobeSensor(policyName string, multiIDs []idtable.EntryID, has 
 	}
 	maps = append(maps, overrideTasksMap)
 
+	if useSession {
+		retTailCalls := program.MapBuilderProgram("retkprobe_calls", load)
+		maps = append(maps, retTailCalls)
+		return progs, maps, nil
+	}
+
 	if len(multiRetIDs) != 0 {
 		loadret := program.Builder(
 			path.Join(option.Config.HubbleLib, loadProgRetName),
@@ -375,7 +407,9 @@ func createMultiKprobeSensor(policyName string, multiIDs []idtable.EntryID, has 
 			"multi_retkprobe",
 			"generic_kprobe").
 			SetRetProbe(true).
-			SetLoaderData(multiRetIDs).
+			SetLoaderData(multiKprobeLoaderData{
+				ids: multiRetIDs,
+			}).
 			SetPolicy(policyName)
 		progs = append(progs, loadret)
 
@@ -1096,10 +1130,10 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Pro
 	return err
 }
 
-func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir string, load *program.Program, verbose int) error {
+func loadMultiKprobeSensor(ids []idtable.EntryID, session bool, bpfDir string, load *program.Program, verbose int) error {
 	bin_buf := make([]bytes.Buffer, len(ids))
 
-	data := &program.MultiKprobeAttachData{}
+	data := &program.MultiKprobeAttachData{Session: session}
 
 	for index, id := range ids {
 		gk, err := genericKprobeTableGet(id)
@@ -1144,8 +1178,8 @@ func loadGenericKprobeSensor(bpfDir string, load *program.Program, verbose int) 
 	if id, ok := load.LoaderData.(idtable.EntryID); ok {
 		return loadSingleKprobeSensor(id, bpfDir, load, verbose)
 	}
-	if ids, ok := load.LoaderData.([]idtable.EntryID); ok {
-		return loadMultiKprobeSensor(ids, bpfDir, load, verbose)
+	if data, ok := load.LoaderData.(multiKprobeLoaderData); ok {
+		return loadMultiKprobeSensor(data.ids, data.session, bpfDir, load, verbose)
 	}
 	return fmt.Errorf("invalid loadData type: expecting idtable.EntryID/[] and got: %T (%v)",
 		load.LoaderData, load.LoaderData)
