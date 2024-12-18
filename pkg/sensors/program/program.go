@@ -77,6 +77,7 @@ type MultiKprobeAttachData struct {
 	Symbols   []string
 	Cookies   []uint64
 	Overrides []string
+	Session   bool
 }
 
 type UprobeAttachData struct {
