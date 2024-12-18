@@ -135,25 +135,41 @@ answer](https://stackoverflow.com/questions/18149546/macos-vagrant-up-failed-dev
 Use [Lima](https://lima-vm.io/) to create a Linux VM if you are using a Mac with
 Apple silicon. For example:
 
+{{< warning >}}
+The following commands create a VM, and make the mount for your home directory
+on the host writable. Tweak `~/.lima/tetragon/lima.yaml` if you prefer to only
+mount Tetragon directory as writable.
+{{< /warning >}}
+
+{{< note >}}
+The following commands install Golang 1.23. You may want to install a newer
+version if it's available in https://launchpad.net/~longsleep/+archive/ubuntu/golang-backports.
+{{< /note >}}
+
+First create a VM using [Lima](https://lima-vm.io/):
+
 ```shell
 brew install lima
 limactl create --mount-writable --tty=false --name=tetragon
 limactl start tetragon
 limactl shell tetragon
+```
+
+Then install needed dependencies inside the VM:
+
+```shell
 sudo add-apt-repository -y ppa:longsleep/golang-backports
 sudo apt update
 sudo apt install -y golang-1.23 libelf-dev libcap-dev make
 export CONTAINER_ENGINE=nerdctl
 export PATH=$PATH:/usr/lib/go-1.23/bin
-make tetragon-bpf tetragon tetra
 ```
 
-> ⚠️ **IMPORTANT**: This creates a VM, and make the mount for your home
-> directory on the host writable. Tweak `~/.lima/tetragon/lima.yaml` if you
-> prefer to only mount Tetragon directory as writable.
+You can now build Tetragon in your VM:
 
-> 💡 **TIP**: This installs Golang 1.23. You may want to install a newer version
-> if it's available in https://launchpad.net/~longsleep/+archive/ubuntu/golang-backports.
+```shell
+make -j3 tetragon-bpf tetragon tetra
+```
 
 ## What's next
 
