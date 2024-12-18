@@ -67,8 +67,8 @@ func TestLSMObjectLoad(t *testing.T) {
 		// shared with base sensor
 		tus.SensorMap{Name: "execve_map", Progs: []uint{4, 5, 6}},
 
-		// generic_lsm_process_event*,generic_lsm_output
-		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{1, 2, 6}},
+		// generic_lsm_output
+		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{6}},
 	}
 
 	configHook := `

@@ -63,7 +63,7 @@ github.com/cilium/cilium/pkg/resiliency
 github.com/cilium/cilium/pkg/time
 github.com/cilium/cilium/pkg/version
 github.com/cilium/cilium/pkg/versioncheck
-# github.com/cilium/ebpf v0.16.1-0.20241205185900-f0eec7efba9d
+# github.com/cilium/ebpf v0.16.1-0.20241205185900-f0eec7efba9d => github.com/olsajiri/ebpf v0.9.1-0.20241210120117-9789f471185f
 ## explicit; go 1.22
 github.com/cilium/ebpf
 github.com/cilium/ebpf/asm
@@ -1531,6 +1531,7 @@ sigs.k8s.io/structured-merge-diff/v4/value
 ## explicit; go 1.12
 sigs.k8s.io/yaml
 sigs.k8s.io/yaml/goyaml.v2
+# github.com/cilium/ebpf => github.com/olsajiri/ebpf v0.9.1-0.20241210120117-9789f471185f
 # github.com/cilium/tetragon/api => ./api
 # github.com/cilium/tetragon/pkg/k8s => ./pkg/k8s
 # go.universe.tf/metallb => github.com/cilium/metallb v0.1.1-0.20220829170633-5d7dfb1129f7

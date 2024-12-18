@@ -40,8 +40,6 @@ github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UF
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/cilium/cilium v1.17.0-pre.3 h1:3wZkE1S6MPY7Sw0yqo8i2f2sENgIGebKjkQ//W+wNmo=
 github.com/cilium/cilium v1.17.0-pre.3/go.mod h1:rsmS3OsYDHg6bGnr9qVeB/qij+j7pi++G1WzoQqjicE=
-github.com/cilium/ebpf v0.16.1-0.20241205185900-f0eec7efba9d h1:f1E6PeQ/j1Xd2ZNlffKOfscx+daNInIUAJObbiU+7aQ=
-github.com/cilium/ebpf v0.16.1-0.20241205185900-f0eec7efba9d/go.mod h1:vay2FaYSmIlv3r8dNACd4mW/OCaZLJKJOo+IHBvCIO8=
 github.com/cilium/hive v0.0.0-20241122120553-e90d0875ae01 h1:eNOjtUsqu2W/nTZlInLAj+zyIg/HIQ1K7norewaxsgM=
 github.com/cilium/hive v0.0.0-20241122120553-e90d0875ae01/go.mod h1:pI2GJ1n3SLKIQVFrKF7W6A6gb6BQkZ+3Hp4PAEo5SuI=
 github.com/cilium/little-vm-helper v0.0.19 h1:eJeJM/03MGLrLUXXTBDZo2JoX5cIbm5+9iWjoHgpy/M=
@@ -297,6 +295,8 @@ github.com/nxadm/tail v1.4.8 h1:nPr65rt6Y5JFSKQO7qToXr7pePgD6Gwiw05lkbyAQTE=
 github.com/nxadm/tail v1.4.8/go.mod h1:+ncqLTQzXmGhMZNUePPaPqPvBxHAIsmXswZKocGu+AU=
 github.com/oklog/ulid v1.3.1 h1:EGfNDEx6MqHz8B3uNV6QAib1UR2Lm97sHi3ocA6ESJ4=
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
+github.com/olsajiri/ebpf v0.9.1-0.20241210120117-9789f471185f h1:ZrailLyeoVe/quIDAfuiwwaGD8u0cMI81Lij69ydZUg=
+github.com/olsajiri/ebpf v0.9.1-0.20241210120117-9789f471185f/go.mod h1:vay2FaYSmIlv3r8dNACd4mW/OCaZLJKJOo+IHBvCIO8=
 github.com/onsi/ginkgo v1.16.5 h1:8xi0RTUf59SOSfEtZMvwTvXYMzG4gV23XVHOZiXNtnE=
 github.com/onsi/ginkgo v1.16.5/go.mod h1:+E8gABHa3K6zRBolWtd+ROzc/U5bkGt0FwiG042wbpU=
 github.com/onsi/ginkgo/v2 v2.21.0 h1:7rg/4f3rB88pb5obDgNZrNHrQ4e6WpjonchcpuBRnZM=
