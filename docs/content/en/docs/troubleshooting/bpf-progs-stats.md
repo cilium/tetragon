@@ -1,10 +1,11 @@
 ---
 title: "BPF programs statistics"
-weight: 5
-description: "Monitor bpf programs statistics"
+weight: 3
+description: "Monitor BPF programs statistics"
+aliases: ["/docs/concepts/performance-stats"]
 ---
 
-This page shows you how to monitor bpf programs statistics.
+This page shows you how to monitor BPF programs statistics.
 
 ## Concept
 
