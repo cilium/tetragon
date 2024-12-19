@@ -10,19 +10,13 @@
 #include "bpf_tracing.h"
 #include "bpf_event.h"
 #include "bpf_task.h"
+#include "generic_maps.h"
 #include "retprobe_map.h"
 #include "types/basic.h"
 
 #define MAX_FILENAME 8096
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
-
-struct {
-	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
-	__uint(max_entries, 1);
-	__type(key, __u32);
-	__type(value, struct msg_generic_kprobe);
-} process_call_heap SEC(".maps");
 
 int generic_retkprobe_filter_arg(struct pt_regs *ctx);
 int generic_retkprobe_actions(struct pt_regs *ctx);
@@ -40,36 +34,6 @@ struct {
 		[5] = (void *)&generic_retkprobe_output,
 	},
 };
-
-struct filter_map_value {
-	unsigned char buf[FILTER_SIZE];
-};
-
-struct {
-	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__uint(max_entries, 1);
-	__type(key, int);
-	__type(value, struct filter_map_value);
-} filter_map SEC(".maps");
-
-struct {
-	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__uint(max_entries, 1);
-	__type(key, __u32);
-	__type(value, struct event_config);
-} config_map SEC(".maps");
-
-#ifdef __LARGE_BPF_PROG
-struct {
-	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
-	__uint(max_entries, 1);
-	__type(key, __u32);
-	__type(value, struct msg_data);
-} data_heap SEC(".maps");
-#define data_heap_ptr &data_heap
-#else
-#define data_heap_ptr 0
-#endif
 
 #ifdef __MULTI_KPROBE
 #define MAIN "kprobe.multi/generic_retkprobe"

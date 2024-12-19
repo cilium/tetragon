@@ -12,26 +12,9 @@
 #include "bpf_lsm_ima.h"
 #include "retprobe_map.h"
 #include "types/basic.h"
+#include "generic_maps.h"
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
-
-struct filter_map_value {
-	unsigned char buf[FILTER_SIZE];
-};
-
-struct {
-	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__uint(max_entries, 1);
-	__type(key, int);
-	__type(value, struct filter_map_value);
-} filter_map SEC(".maps");
-
-struct {
-	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__uint(max_entries, 1);
-	__type(key, __u32);
-	__type(value, struct event_config);
-} config_map SEC(".maps");
 
 __attribute__((section("lsm.s/generic_lsm_ima_bprm"), used)) int
 BPF_PROG(ima_bprm, struct linux_binprm *bprm)
