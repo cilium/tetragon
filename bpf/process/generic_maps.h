@@ -21,13 +21,17 @@ struct {
 } override_tasks SEC(".maps");
 
 #ifdef __LARGE_BPF_PROG
+#if defined(GENERIC_TRACEPOINT) || defined(GENERIC_UPROBE)
+#define data_heap_ptr 0
+#else
 struct {
 	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
 	__uint(max_entries, 1);
 	__type(key, __u32);
 	__type(value, struct msg_data);
 } data_heap SEC(".maps");
-#define data_heap_ptr &data_heap
+#define data_heap_ptr (struct bpf_map_def *)&data_heap
+#endif
 #else
 #define data_heap_ptr 0
 #endif

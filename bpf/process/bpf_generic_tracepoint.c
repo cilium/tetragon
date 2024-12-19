@@ -226,8 +226,7 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 __attribute__((section("tracepoint"), used)) int
 generic_tracepoint_process_event(void *ctx)
 {
-	return generic_process_event(ctx,
-				     (struct bpf_map_def *)&tp_calls, 0);
+	return generic_process_event(ctx, (struct bpf_map_def *)&tp_calls);
 }
 
 __attribute__((section("tracepoint"), used)) int
