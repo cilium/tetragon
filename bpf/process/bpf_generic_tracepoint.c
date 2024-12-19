@@ -13,8 +13,6 @@
 #include "retprobe_map.h"
 #include "types/operations.h"
 #include "types/basic.h"
-#include "generic_calls.h"
-#include "generic_maps.h"
 #include "pfilter.h"
 #include "policy_filter.h"
 #include "syscall64.h"
@@ -39,6 +37,9 @@ struct {
 		[5] = (void *)&generic_tracepoint_output,
 	},
 };
+
+#include "generic_maps.h"
+#include "generic_calls.h"
 
 static struct generic_maps maps = {
 	.heap = (struct bpf_map_def *)&process_call_heap,
@@ -225,7 +226,7 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 __attribute__((section("tracepoint"), used)) int
 generic_tracepoint_process_event(void *ctx)
 {
-	return generic_process_event(ctx, (struct bpf_map_def *)&process_call_heap,
+	return generic_process_event(ctx,
 				     (struct bpf_map_def *)&tp_calls,
 				     (struct bpf_map_def *)&config_map, 0);
 }
