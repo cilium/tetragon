@@ -400,6 +400,61 @@ The `maxData` flag does not work with `returnCopy` flag at the moment, so it's
 usable only for syscalls/functions that do not require return probe to read the
 data.
 
+### Advanced usage
+
+For specific use cases, you may want to extract a specific attribute from the argument.
+For instance you have `struct linux_binprm` as first argument and want to filter parent
+process name, you can do it as following.
+
+```yaml
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "lsm"
+spec:
+  lsmhooks:
+  - hook: "bprm_check_security"
+    args:
+      - index: 0
+        type: "linux_binprm"
+        extractParam: "mm.owner.real_parent.comm"
+        overwriteType: "string"
+    selectors:
+      - matchActions:
+        - action: Post
+```
+
+The above policy will display the parent process name every time the hook is called.
+The `extractParam` field is used to reach a specific data into the `struct
+linux_binprm`. It is important to set `overwriteType` as well to make sure the
+reached data is read correctly (as a string in this case).
+
+{{< caution >}}
+- This feature requires you to know exactly what you are looking for in the attributes
+of the hook parameters. For instance, if you want to have a look on what is
+available inside `struct linux_binprm`, take a look at the
+[Bootlin website](https://elixir.bootlin.com/linux/v6.12.5/source/include/linux/binfmts.h#L18)
+
+- Some structures are dynamic. This means that they may change at runtime. So you need to
+be aware of what you are looking for.
+{{< /caution >}}
+
+Tetragon can also handle some structures such as `struct file` or `struct
+path` and few others. This means you can also extract the whole struct, if it is
+available in the attributes of the parameter, and set the type with the correct type
+like this :
+
+```yaml
+  - index: 0
+    type: "linux_binprm"
+    extractParam: "file"
+    overwriteType: "file"
+# Or
+    # extractParam: "file.f_path"
+    # overwriteType: "path"
+```
+
+
 ## Return values
 
 A `TracingPolicy` spec can specify that the return value should be reported in
