@@ -438,7 +438,7 @@ func TestLoadTracepointSensor(t *testing.T) {
 
 	var sensorMaps = []tus.SensorMap{
 		// all programs
-		tus.SensorMap{Name: "tp_heap", Progs: []uint{0, 1, 2, 3, 4, 5}},
+		tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5}},
 
 		// all but generic_tracepoint_output
 		tus.SensorMap{Name: "tp_calls", Progs: []uint{0, 1, 2, 3, 4}},
