@@ -13,16 +13,10 @@
 #include "types/operations.h"
 #include "types/basic.h"
 #include "generic_calls.h"
+#include "generic_maps.h"
 #include "pfilter.h"
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
-
-struct {
-	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
-	__uint(max_entries, 1);
-	__type(key, __u32);
-	__type(value, struct msg_generic_kprobe);
-} process_call_heap SEC(".maps");
 
 int generic_uprobe_setup_event(void *ctx);
 int generic_uprobe_process_event(void *ctx);
@@ -46,25 +40,6 @@ struct {
 		[5] = (void *)&generic_uprobe_output,
 	},
 };
-
-struct filter_map_value {
-	unsigned char buf[FILTER_SIZE];
-};
-
-/* Arrays of size 1 will be rewritten to direct loads in verifier */
-struct {
-	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__uint(max_entries, 1);
-	__type(key, int);
-	__type(value, struct filter_map_value);
-} filter_map SEC(".maps");
-
-struct {
-	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__uint(max_entries, 1);
-	__type(key, __u32);
-	__type(value, struct event_config);
-} config_map SEC(".maps");
 
 static struct generic_maps maps = {
 	.heap = (struct bpf_map_def *)&process_call_heap,
