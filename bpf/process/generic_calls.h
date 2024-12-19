@@ -216,6 +216,194 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 	return generic_process_event(ctx, tailcals);
 }
 
+FUNC_LOCAL __u32
+do_action(void *ctx, __u32 i, struct selector_action *actions,
+	  struct generic_maps *maps, bool *post)
+{
+	struct bpf_map_def *override_tasks = maps->override;
+	int signal __maybe_unused = FGS_SIGKILL;
+	int action = actions->act[i];
+	struct msg_generic_kprobe *e;
+	__s32 error, *error_p;
+	int fdi, namei;
+	int newfdi, oldfdi;
+	int socki;
+	int argi __maybe_unused;
+	int err = 0;
+	int zero = 0;
+	__u64 id;
+
+	e = map_lookup_elem(maps->heap, &zero);
+	if (!e)
+		return 0;
+
+	switch (action) {
+	case ACTION_NOPOST:
+		*post = false;
+		break;
+	case ACTION_POST: {
+		__u64 ratelimit_interval __maybe_unused = actions->act[++i];
+		__u64 ratelimit_scope __maybe_unused = actions->act[++i];
+#ifdef __LARGE_BPF_PROG
+		if (rate_limit(ratelimit_interval, ratelimit_scope, e))
+			*post = false;
+#endif /* __LARGE_BPF_PROG */
+		__u32 kernel_stack_trace = actions->act[++i];
+
+		if (kernel_stack_trace) {
+			// Stack id 0 is valid so we need a flag.
+			e->common.flags |= MSG_COMMON_FLAG_KERNEL_STACKTRACE;
+			// We could use BPF_F_REUSE_STACKID to override old with new stack if
+			// same stack id. It means that if we have a collision and user space
+			// reads the old one too late, we are reading the wrong stack (the new,
+			// old one was overwritten).
+			//
+			// Here we just signal that there was a collision returning -EEXIST.
+			e->kernel_stack_id = get_stackid(ctx, &stack_trace_map, 0);
+		}
+
+		__u32 user_stack_trace = actions->act[++i];
+
+		if (user_stack_trace) {
+			e->common.flags |= MSG_COMMON_FLAG_USER_STACKTRACE;
+			e->user_stack_id = get_stackid(ctx, &stack_trace_map, BPF_F_USER_STACK);
+		}
+#ifdef __LARGE_MAP_KEYS
+		__u32 ima_hash = actions->act[++i];
+
+		if (ima_hash)
+			e->common.flags |= MSG_COMMON_FLAG_IMA_HASH;
+#endif
+		break;
+	}
+
+	case ACTION_UNFOLLOWFD:
+	case ACTION_FOLLOWFD:
+		fdi = actions->act[++i];
+		namei = actions->act[++i];
+		err = installfd(e, fdi, namei, action == ACTION_FOLLOWFD);
+		break;
+	case ACTION_COPYFD:
+		oldfdi = actions->act[++i];
+		newfdi = actions->act[++i];
+		err = copyfd(e, oldfdi, newfdi);
+		break;
+	case ACTION_SIGNAL:
+		signal = actions->act[++i];
+	case ACTION_SIGKILL:
+		do_action_signal(signal);
+		break;
+	case ACTION_OVERRIDE:
+		error = actions->act[++i];
+		id = get_current_pid_tgid();
+
+		if (!override_tasks)
+			break;
+		/*
+		 * TODO: this should not happen, it means that the override
+		 * program was not executed for some reason, we should do
+		 * warning in here
+		 */
+		error_p = map_lookup_elem(override_tasks, &id);
+		if (error_p)
+			*error_p = error;
+		else
+			map_update_elem(override_tasks, &id, &error, BPF_ANY);
+		break;
+	case ACTION_GETURL:
+	case ACTION_DNSLOOKUP:
+		/* Set the URL or DNS action */
+		e->action_arg_id = actions->act[++i];
+		break;
+	case ACTION_TRACKSOCK:
+	case ACTION_UNTRACKSOCK:
+		socki = actions->act[++i];
+		err = tracksock(e, socki, action == ACTION_TRACKSOCK);
+		break;
+	case ACTION_NOTIFY_ENFORCER:
+		error = actions->act[++i];
+		signal = actions->act[++i];
+		argi = actions->act[++i];
+		do_action_notify_enforcer(e, error, signal, argi);
+		break;
+	case ACTION_CLEANUP_ENFORCER_NOTIFICATION:
+		do_enforcer_cleanup();
+	default:
+		break;
+	}
+	if (!err) {
+		e->action = action;
+		return ++i;
+	}
+	return 0;
+}
+
+FUNC_INLINE bool
+has_action(struct selector_action *actions, __u32 idx)
+{
+	__u32 offset = idx * sizeof(__u32) + sizeof(*actions);
+
+	return offset < actions->actionlen;
+}
+
+/* Currently supporting 2 actions for selector. */
+FUNC_INLINE bool
+do_actions(void *ctx, struct selector_action *actions, struct generic_maps *maps)
+{
+	bool post = true;
+	__u32 l, i = 0;
+
+#ifndef __LARGE_BPF_PROG
+#pragma unroll
+#endif
+	for (l = 0; l < MAX_ACTIONS; l++) {
+		if (!has_action(actions, i))
+			break;
+		i = do_action(ctx, i, actions, maps, &post);
+	}
+
+	return post;
+}
+
+FUNC_INLINE long
+generic_actions(void *ctx, struct generic_maps *maps)
+{
+	struct selector_arg_filters *arg;
+	struct selector_action *actions;
+	struct msg_generic_kprobe *e;
+	int actoff, pass, zero = 0;
+	bool postit;
+	__u8 *f;
+
+	e = map_lookup_elem(maps->heap, &zero);
+	if (!e)
+		return 0;
+
+	pass = e->pass;
+	if (pass <= 1)
+		return 0;
+
+	f = map_lookup_elem(maps->filter, &e->idx);
+	if (!f)
+		return 0;
+
+	asm volatile("%[pass] &= 0x7ff;\n"
+		     : [pass] "+r"(pass)
+		     :);
+	arg = (struct selector_arg_filters *)&f[pass];
+
+	actoff = pass + arg->arglen;
+	asm volatile("%[actoff] &= 0x7ff;\n"
+		     : [actoff] "+r"(actoff)
+		     :);
+	actions = (struct selector_action *)&f[actoff];
+
+	postit = do_actions(ctx, actions, maps);
+	if (postit)
+		tail_call(ctx, maps->calls, TAIL_CALL_SEND);
+	return postit;
+}
+
 FUNC_INLINE long
 generic_output(void *ctx, u8 op)
 {
