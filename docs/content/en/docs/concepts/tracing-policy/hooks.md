@@ -400,6 +400,108 @@ The `maxData` flag does not work with `returnCopy` flag at the moment, so it's
 usable only for syscalls/functions that do not require return probe to read the
 data.
 
+### Attribute resolution
+
+{{< caution >}}
+- For kprobes, available only from kernel version 5.4.
+- For LSM, available only from kernel version 5.7.
+- For uprobes, this functionality is not supported.
+{{< /caution >}}
+
+This functionality allows you to dynamically extract specific attributes from
+kernel structures passed as parameters to Kprobes and LSM hooks.
+For example, when using the `bprm_check_security` LSM hook, you can access and
+display attributes from the parameter `struct linux_binprm *bprm` at index 0.
+This parameter contains many informations you may want to access.
+With the resolve flag, you can easily access fields such as
+`mm.owner.real_parent.comm`, which provides the parent process comm.
+
+#### How it works
+
+The following tracing policy demonstrates how to use the resolve flag to extract the
+parent process's comm during the execution of a binary:
+
+```yaml
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "lsm"
+spec:
+  lsmhooks:
+  - hook: "bprm_check_security"
+    args:
+    - index: 0 # struct linux_binprm *bprm
+      type: "string"
+      resolve: "mm.owner.real_parent.comm"
+    selectors:
+    - matchActions:
+      - action: Post
+```
+- `index` flag : The parameter at index 0 is a pointer to the
+`struct linux_binprm`.
+- `resolve` flag : Using the resolve flag, the policy extracts the
+`mm.owner.real_parent.comm` field, representing the parent process's comm.
+
+{{< caution >}}
+- This feature requires you to read the kernel structure definitions to find what you're
+looking for in the hook parameter attributes. For instance, if you want to have a look
+at what is available inside `struct linux_binprm`, take a look at its definition in
+[include/linux/binfmts.h](https://elixir.bootlin.com/linux/v6.12.5/source/include/linux/binfmts.h#L18)
+- Some structures are dynamic. This means that they may change at runtime.
+{{< /caution >}}
+
+Tetragon can also handle some structures such as `struct file` or `struct
+path` and a few others. This means you can also extract the whole struct, if it is
+available in the attributes of the parameter, and set the type with the correct type
+like this :
+
+```yaml
+...
+  lsmhooks:
+  - hook: "bprm_check_security"
+    args:
+      - index: 0 # struct linux_binprm *bprm
+        type: "file"
+        resolve: "file"
+...
+```
+Or
+```yaml
+...
+  lsmhooks:
+  - hook: "bprm_check_security"
+    args:
+      - index: 0
+        type: "path"
+        resolve: "file.f_path"
+...
+```
+
+The following tracing policy demonstrates how to use the `resolve` flag on nested
+pointers. For exemple, the hook `security_inode_copy_up` (defined in
+[security/security.c](https://elixir.bootlin.com/linux/v6.12.5/source/security/security.c#L2753))
+takes two parameters: `struct dentry *src` and `struct cred **new`. The resolve
+flag allows you to access fields within these nested structures transparently.
+
+```yaml
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "lsm"
+spec:
+  kprobes:
+  - call: "security_inode_copy_up"
+    args:
+    - index: 0 # struct dentry *src
+      type: "int64"
+    - index: 1 # struct cred **new
+      type: "int"
+      resolve: "user.uid.val"
+    selectors:
+    - matchActions:
+      - action: Post
+```
+
 ## Return values
 
 A `TracingPolicy` spec can specify that the return value should be reported in
