@@ -91,18 +91,13 @@ generic_kprobe_event(struct pt_regs *ctx)
 __attribute__((section("kprobe"), used)) int
 generic_kprobe_setup_event(void *ctx)
 {
-	return generic_process_event_and_setup(
-		ctx,
-		(struct bpf_map_def *)&kprobe_calls,
-		(struct bpf_map_def *)data_heap_ptr);
+	return generic_process_event_and_setup(ctx, (struct bpf_map_def *)&kprobe_calls);
 }
 
 __attribute__((section("kprobe"), used)) int
 generic_kprobe_process_event(void *ctx)
 {
-	return generic_process_event(ctx,
-				     (struct bpf_map_def *)&kprobe_calls,
-				     (struct bpf_map_def *)data_heap_ptr);
+	return generic_process_event(ctx, (struct bpf_map_def *)&kprobe_calls);
 }
 
 __attribute__((section("kprobe"), used)) int

@@ -64,16 +64,13 @@ generic_uprobe_event(struct pt_regs *ctx)
 __attribute__((section("uprobe"), used)) int
 generic_uprobe_setup_event(void *ctx)
 {
-	return generic_process_event_and_setup(
-		ctx,
-		(struct bpf_map_def *)&uprobe_calls, 0);
+	return generic_process_event_and_setup(ctx, (struct bpf_map_def *)&uprobe_calls);
 }
 
 __attribute__((section("uprobe"), used)) int
 generic_uprobe_process_event(void *ctx)
 {
-	return generic_process_event(ctx,
-				     (struct bpf_map_def *)&uprobe_calls, 0);
+	return generic_process_event(ctx, (struct bpf_map_def *)&uprobe_calls);
 }
 
 __attribute__((section("uprobe"), used)) int
