@@ -137,7 +137,7 @@ generic_kprobe_actions(void *ctx)
 __attribute__((section("kprobe"), used)) int
 generic_kprobe_output(void *ctx)
 {
-	return generic_output(ctx, (struct bpf_map_def *)&process_call_heap, MSG_OP_GENERIC_KPROBE);
+	return generic_output(ctx, MSG_OP_GENERIC_KPROBE);
 }
 
 __attribute__((section(OVERRIDE), used)) int

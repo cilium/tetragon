@@ -216,4 +216,53 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 	return generic_process_event(ctx, tailcals);
 }
 
+FUNC_INLINE long
+generic_output(void *ctx, u8 op)
+{
+	struct msg_generic_kprobe *e;
+	int zero = 0;
+	size_t total;
+
+	e = map_lookup_elem(&process_call_heap, &zero);
+	if (!e)
+		return 0;
+
+/* We don't need this data in return kprobe event */
+#ifndef GENERIC_KRETPROBE
+#ifdef __NS_CHANGES_FILTER
+	/* update the namespaces if we matched a change on that */
+	if (e->sel.match_ns) {
+		__u32 pid = (get_current_pid_tgid() >> 32);
+		struct task_struct *task =
+			(struct task_struct *)get_current_task();
+		struct execve_map_value *enter = execve_map_get_noinit(
+			pid); // we don't want to init that if it does not exist
+		if (enter)
+			get_namespaces(&enter->ns, task);
+	}
+#endif
+#ifdef __CAP_CHANGES_FILTER
+	/* update the capabilities if we matched a change on that */
+	if (e->sel.match_cap) {
+		__u32 pid = (get_current_pid_tgid() >> 32);
+		struct task_struct *task =
+			(struct task_struct *)get_current_task();
+		struct execve_map_value *enter = execve_map_get_noinit(
+			pid); // we don't want to init that if it does not exist
+		if (enter)
+			get_current_subj_caps(&enter->caps, task);
+	}
+#endif
+#endif // !GENERIC_KRETPROBE
+
+	total = e->common.size + generic_kprobe_common_size();
+	/* Code movement from clang forces us to inline bounds checks here */
+	asm volatile("%[total] &= 0x7fff;\n"
+		     "if %[total] < 9000 goto +1\n;"
+		     "%[total] = 9000;\n"
+		     : [total] "+r"(total));
+	perf_event_output_metric(ctx, op, &tcpmon_map, BPF_F_CURRENT_CPU, e, total);
+	return 0;
+}
+
 #endif /* __GENERIC_CALLS_H__ */
