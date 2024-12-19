@@ -97,7 +97,7 @@ generic_lsm_filter_arg(void *ctx)
 __attribute__((section("lsm"), used)) int
 generic_lsm_actions(void *ctx)
 {
-	bool postit = generic_actions(ctx, &maps);
+	bool postit = generic_actions(ctx, (struct bpf_map_def *)&lsm_calls);
 
 	struct msg_generic_kprobe *e;
 	int zero = 0;
