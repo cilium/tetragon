@@ -70,9 +70,8 @@ Ovh(%)  Id      Cnt     Time    Name            Pin
 ...
 ```
 
-Above commands should run properly on top of the tetragon sources.
-At the moment to run it properly under Kubernetes you need to specify extra
-directory flags:
+The bpffs mount and iterator object path are auto detected by default, but
+it's possible to override them with --bpf-lib and and --bpf-lib options, like:
 
 ```shell
 kubectl exec -ti -n kube-system tetragon-66rk4 -c tetragon -- tetra debug progs --bpf-dir /run/cilium/bpffs/tetragon/ --all --bpf-lib /var/lib/tetragon/
@@ -106,8 +105,8 @@ Aliases:
 
 Flags:
       --all              Get all programs
-      --bpf-dir string   Location of bpffs tetragon directory (default "/sys/fs/bpf/tetragon")
-      --bpf-lib string   Location of Tetragon libs (btf and bpf files) (default "bpf/objs/")
+      --bpf-dir string   Location of bpffs tetragon directory (auto detect by default)
+      --bpf-lib string   Location of Tetragon libs, btf and bpf files (auto detect by default)
   -h, --help             help for progs
       --no-clear         Do not clear screen between rounds
       --once             Run in one shot mode

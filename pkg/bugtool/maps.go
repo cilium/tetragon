@@ -160,7 +160,7 @@ func mapIDsFromPinnedProgs(path string) (iter.Seq[int], error) {
 		if d.IsDir() {
 			return nil // skip directories
 		}
-		if strings.HasSuffix(path, "link") {
+		if strings.HasSuffix(path, "/link") || strings.HasSuffix(path, "/link_override") {
 			return nil // skip BPF links, they make the syscall fail since cilium/ebpf@78074c59
 		}
 		prog, err := ebpf.LoadPinnedProgram(path, nil)

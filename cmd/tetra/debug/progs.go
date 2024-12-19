@@ -15,7 +15,9 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strings"
 	"sync"
+	"syscall"
 	"text/tabwriter"
 	"time"
 
@@ -24,6 +26,7 @@ import (
 	"github.com/cilium/ebpf/link"
 	"github.com/spf13/cobra"
 	"golang.org/x/sys/unix"
+	"golang.org/x/term"
 )
 
 type prog struct {
@@ -58,6 +61,51 @@ var (
 	cfg      progsConfig
 )
 
+func detectBpffs() (string, error) {
+	// Try to read /proc/mounts and find bpf mount
+	if lines, err := os.ReadFile("/proc/mounts"); err == nil {
+		for _, line := range strings.Split(string(lines), "\n") {
+			parts := strings.Split(line, " ")
+			if len(parts) == 6 {
+				if parts[2] == "bpf" {
+					return parts[1], nil
+				}
+			}
+		}
+	}
+
+	// .. if failed, check 2 common mount points
+	paths := []string{"/run/cilium/bpffs", "/sys/fs/bpf/"}
+
+	for _, path := range paths {
+		var st syscall.Statfs_t
+
+		if err := syscall.Statfs(path, &st); err != nil {
+			continue
+		}
+		if st.Type != unix.BPF_FS_MAGIC {
+			continue
+		}
+		if _, err := os.Stat(filepath.Join(path, "tetragon")); err != nil {
+			continue
+		}
+		return path, nil
+	}
+	return "", fmt.Errorf("bpffs mount not found")
+}
+
+func detectLib() (string, error) {
+	paths := []string{"/var/lib/tetragon", "./bpf/objs/"}
+
+	for _, path := range paths {
+		if _, err := os.Stat(filepath.Join(path, "bpf_prog_iter.o")); err != nil {
+			continue
+		}
+		return path, nil
+	}
+	return "", fmt.Errorf("lib directory mount not found")
+}
+
 func NewProgsCmd() *cobra.Command {
 	cmd := cobra.Command{
 		Use:     "progs",
@@ -86,7 +134,21 @@ Examples:
 			// it to nanoseconds, because it will be used like that below
 			cfg.timeout = int(time.Second) * cfg.timeout
 
-			if err := runProgs(ctx); err != nil {
+			var err error
+
+			if cfg.bpffs == "" {
+				if cfg.bpffs, err = detectBpffs(); err != nil {
+					log.Fatal(err)
+				}
+			}
+
+			if cfg.lib == "" {
+				if cfg.lib, err = detectLib(); err != nil {
+					log.Fatal(err)
+				}
+			}
+
+			if err = runProgs(ctx); err != nil {
 				log.Fatal(err)
 			}
 		},
@@ -94,8 +156,8 @@ Examples:
 
 	flags := cmd.Flags()
 	flags.BoolVar(&cfg.all, "all", false, "Get all programs")
-	flags.StringVar(&cfg.lib, "bpf-lib", "bpf/objs/", "Location of Tetragon libs (btf and bpf files)")
-	flags.StringVar(&cfg.bpffs, "bpf-dir", "/sys/fs/bpf/tetragon", "Location of bpffs tetragon directory")
+	flags.StringVar(&cfg.lib, "bpf-lib", "", "Location of Tetragon libs, btf and bpf files (auto detect by default)")
+	flags.StringVar(&cfg.bpffs, "bpf-dir", "", "Location of bpffs tetragon directory (auto detect by default)")
 	flags.IntVar(&cfg.timeout, "timeout", 1, "Interval in seconds (delay in one shot mode)")
 	flags.BoolVar(&cfg.once, "once", false, "Run in one shot mode")
 	flags.BoolVar(&cfg.noclr, "no-clear", false, "Do not clear screen between rounds")
@@ -172,13 +234,31 @@ func round(state map[uint32]*prog) error {
 	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
 	fmt.Fprintln(writer, "Ovh(%)\tId\tCnt\tTime\tName\tPin")
 
-	for _, ovh := range overheads {
-		p := ovh.p
-		fmt.Fprintf(writer, "%6.2f\t%d\t%d\t%d\t%s\t%s\n",
-			ovh.pct, p.id, ovh.cnt, ovh.time, p.name, p.pin)
+	cnt := 0
+	lines := 0
+
+	if !cfg.noclr && !cfg.once {
+		// We have 3 header lines, so terminal smaller than that is too
+		// small to print anything meaningful
+		_, lines, _ = term.GetSize(0)
+		if lines < 4 {
+			return nil
+		}
+		lines = lines - 4
 	}
 
-	fmt.Fprintln(writer)
+	for _, ovh := range overheads {
+		p := ovh.p
+		fmt.Fprintf(writer, "%6.2f\t%d\t%d\t%d\t%s\t%s",
+			ovh.pct, p.id, ovh.cnt, ovh.time, p.name, p.pin)
+
+		if lines != 0 && cnt == lines {
+			break
+		}
+		cnt++
+		fmt.Fprintf(writer, "\n")
+	}
+
 	writer.Flush()
 
 	// Remove stale programs from state map
@@ -330,6 +410,9 @@ func getTetragonProgs(base string) ([]*prog, error) {
 			}
 			if finfo.IsDir() {
 				return nil
+			}
+			if strings.HasSuffix(path, "/link") || strings.HasSuffix(path, "/link_override") {
+				return nil // skip BPF links, they make the syscall fail since cilium/ebpf@78074c59
 			}
 			p, err := ebpf.LoadPinnedProgram(path, nil)
 			if err != nil {
