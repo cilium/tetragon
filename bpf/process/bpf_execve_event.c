@@ -130,7 +130,7 @@ FUNC_INLINE __u32
 read_path(void *ctx, struct msg_execve_event *event, void *filename)
 {
 	struct msg_process *p = &event->process;
-	__u32 size = 0;
+	__s32 size = 0;
 	__u32 flags = 0;
 	char *earg;
 
