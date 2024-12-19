@@ -42,20 +42,12 @@ struct {
 #include "generic_maps.h"
 #include "generic_calls.h"
 
-static struct generic_maps maps = {
-	.heap = (struct bpf_map_def *)&process_call_heap,
-	.calls = (struct bpf_map_def *)&lsm_calls,
-	.config = (struct bpf_map_def *)&config_map,
-	.filter = (struct bpf_map_def *)&filter_map,
-	.override = (struct bpf_map_def *)&override_tasks,
-};
-
 #define MAIN "lsm/generic_lsm_core"
 
 __attribute__((section((MAIN)), used)) int
 generic_lsm_event(struct pt_regs *ctx)
 {
-	return generic_start_process_filter(ctx, &maps);
+	return generic_start_process_filter(ctx, (struct bpf_map_def *)&lsm_calls);
 }
 
 __attribute__((section("lsm"), used)) int

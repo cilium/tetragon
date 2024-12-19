@@ -42,13 +42,6 @@ struct {
 #include "generic_maps.h"
 #include "generic_calls.h"
 
-static struct generic_maps maps = {
-	.heap = (struct bpf_map_def *)&process_call_heap,
-	.calls = (struct bpf_map_def *)&uprobe_calls,
-	.config = (struct bpf_map_def *)&config_map,
-	.filter = (struct bpf_map_def *)&filter_map,
-};
-
 #ifdef __MULTI_KPROBE
 #define MAIN "uprobe.multi/generic_uprobe"
 #else
@@ -58,7 +51,7 @@ static struct generic_maps maps = {
 __attribute__((section((MAIN)), used)) int
 generic_uprobe_event(struct pt_regs *ctx)
 {
-	return generic_start_process_filter(ctx, &maps);
+	return generic_start_process_filter(ctx, (struct bpf_map_def *)&uprobe_calls);
 }
 
 __attribute__((section("uprobe"), used)) int
