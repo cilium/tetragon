@@ -124,14 +124,6 @@ enum {
 	TAIL_CALL_SEND = 5,
 };
 
-struct generic_maps {
-	struct bpf_map_def *heap;
-	struct bpf_map_def *calls;
-	struct bpf_map_def *config;
-	struct bpf_map_def *filter;
-	struct bpf_map_def *override;
-};
-
 struct selector_action {
 	__u32 actionlen;
 	__u32 act[];
