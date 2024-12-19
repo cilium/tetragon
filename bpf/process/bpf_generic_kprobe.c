@@ -12,8 +12,6 @@
 #include "retprobe_map.h"
 #include "types/operations.h"
 #include "types/basic.h"
-#include "generic_calls.h"
-#include "generic_maps.h"
 #include "pfilter.h"
 #include "policy_filter.h"
 
@@ -41,6 +39,9 @@ struct {
 		[5] = (void *)&generic_kprobe_output,
 	},
 };
+
+#include "generic_maps.h"
+#include "generic_calls.h"
 
 static struct generic_maps maps = {
 	.heap = (struct bpf_map_def *)&process_call_heap,
@@ -91,7 +92,7 @@ __attribute__((section("kprobe"), used)) int
 generic_kprobe_setup_event(void *ctx)
 {
 	return generic_process_event_and_setup(
-		ctx, (struct bpf_map_def *)&process_call_heap,
+		ctx,
 		(struct bpf_map_def *)&kprobe_calls,
 		(struct bpf_map_def *)&config_map,
 		(struct bpf_map_def *)data_heap_ptr);
@@ -101,7 +102,6 @@ __attribute__((section("kprobe"), used)) int
 generic_kprobe_process_event(void *ctx)
 {
 	return generic_process_event(ctx,
-				     (struct bpf_map_def *)&process_call_heap,
 				     (struct bpf_map_def *)&kprobe_calls,
 				     (struct bpf_map_def *)&config_map,
 				     (struct bpf_map_def *)data_heap_ptr);
