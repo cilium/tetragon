@@ -14,6 +14,7 @@
 #include "types/operations.h"
 #include "types/basic.h"
 #include "generic_calls.h"
+#include "generic_maps.h"
 #include "pfilter.h"
 #include "policy_filter.h"
 #include "syscall64.h"
@@ -39,34 +40,8 @@ struct {
 	},
 };
 
-struct {
-	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
-	__uint(max_entries, 1);
-	__type(key, __u32);
-	__type(value, struct msg_generic_kprobe);
-} tp_heap SEC(".maps");
-
-struct filter_map_value {
-	unsigned char buf[FILTER_SIZE];
-};
-
-/* Arrays of size 1 will be rewritten to direct loads in verifier */
-struct {
-	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__uint(max_entries, 1);
-	__type(key, int);
-	__type(value, struct filter_map_value);
-} filter_map SEC(".maps");
-
-struct {
-	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__uint(max_entries, 1);
-	__type(key, __u32);
-	__type(value, struct event_config);
-} config_map SEC(".maps");
-
 static struct generic_maps maps = {
-	.heap = (struct bpf_map_def *)&tp_heap,
+	.heap = (struct bpf_map_def *)&process_call_heap,
 	.calls = (struct bpf_map_def *)&tp_calls,
 	.filter = (struct bpf_map_def *)&filter_map,
 };
@@ -165,7 +140,7 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 	struct event_config *config;
 	int zero = 0, i;
 
-	msg = map_lookup_elem(&tp_heap, &zero);
+	msg = map_lookup_elem(&process_call_heap, &zero);
 	if (!msg)
 		return 0;
 
@@ -250,7 +225,7 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 __attribute__((section("tracepoint"), used)) int
 generic_tracepoint_process_event(void *ctx)
 {
-	return generic_process_event(ctx, (struct bpf_map_def *)&tp_heap,
+	return generic_process_event(ctx, (struct bpf_map_def *)&process_call_heap,
 				     (struct bpf_map_def *)&tp_calls,
 				     (struct bpf_map_def *)&config_map, 0);
 }
@@ -260,7 +235,7 @@ generic_tracepoint_filter(void *ctx)
 {
 	int ret;
 
-	ret = generic_process_filter((struct bpf_map_def *)&tp_heap,
+	ret = generic_process_filter((struct bpf_map_def *)&process_call_heap,
 				     (struct bpf_map_def *)&filter_map);
 	if (ret == PFILTER_CONTINUE)
 		tail_call(ctx, &tp_calls, TAIL_CALL_FILTER);
@@ -275,7 +250,7 @@ generic_tracepoint_filter(void *ctx)
 __attribute__((section("tracepoint"), used)) int
 generic_tracepoint_arg(void *ctx)
 {
-	return filter_read_arg(ctx, (struct bpf_map_def *)&tp_heap,
+	return filter_read_arg(ctx, (struct bpf_map_def *)&process_call_heap,
 			       (struct bpf_map_def *)&filter_map,
 			       (struct bpf_map_def *)&tp_calls,
 			       (struct bpf_map_def *)&config_map,
@@ -292,7 +267,7 @@ generic_tracepoint_actions(void *ctx)
 __attribute__((section("tracepoint"), used)) int
 generic_tracepoint_output(void *ctx)
 {
-	return generic_output(ctx, (struct bpf_map_def *)&tp_heap, MSG_OP_GENERIC_TRACEPOINT);
+	return generic_output(ctx, (struct bpf_map_def *)&process_call_heap, MSG_OP_GENERIC_TRACEPOINT);
 }
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
