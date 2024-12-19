@@ -64,7 +64,6 @@ generic_lsm_setup_event(void *ctx)
 	return generic_process_event_and_setup(
 		ctx,
 		(struct bpf_map_def *)&lsm_calls,
-		(struct bpf_map_def *)&config_map,
 		(struct bpf_map_def *)data_heap_ptr);
 }
 
@@ -73,7 +72,6 @@ generic_lsm_process_event(void *ctx)
 {
 	return generic_process_event(ctx,
 				     (struct bpf_map_def *)&lsm_calls,
-				     (struct bpf_map_def *)&config_map,
 				     (struct bpf_map_def *)data_heap_ptr);
 }
 
