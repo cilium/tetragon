@@ -41,12 +41,6 @@ struct {
 #include "generic_maps.h"
 #include "generic_calls.h"
 
-static struct generic_maps maps = {
-	.heap = (struct bpf_map_def *)&process_call_heap,
-	.calls = (struct bpf_map_def *)&tp_calls,
-	.filter = (struct bpf_map_def *)&filter_map,
-};
-
 struct generic_tracepoint_event_arg {
 	/* common header */
 	__u16 common_type;
@@ -259,7 +253,7 @@ generic_tracepoint_arg(void *ctx)
 __attribute__((section("tracepoint"), used)) int
 generic_tracepoint_actions(void *ctx)
 {
-	generic_actions(ctx, &maps);
+	generic_actions(ctx, (struct bpf_map_def *)&tp_calls);
 	return 0;
 }
 
