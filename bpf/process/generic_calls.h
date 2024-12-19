@@ -13,7 +13,7 @@
 #define MAX_TOTAL 9000
 
 FUNC_INLINE int
-generic_start_process_filter(void *ctx, struct generic_maps *maps)
+generic_start_process_filter(void *ctx, struct bpf_map_def *calls)
 {
 	struct msg_generic_kprobe *msg;
 	struct event_config *config;
@@ -58,7 +58,7 @@ generic_start_process_filter(void *ctx, struct generic_maps *maps)
 	msg->lsm.post = false;
 
 	/* Tail call into filters. */
-	tail_call(ctx, maps->calls, TAIL_CALL_FILTER);
+	tail_call(ctx, calls, TAIL_CALL_FILTER);
 	return 0;
 }
 
