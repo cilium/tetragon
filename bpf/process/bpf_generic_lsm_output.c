@@ -16,6 +16,9 @@
 #include "types/basic.h"
 #include "generic_maps.h"
 
+#include "generic_maps.h"
+#include "generic_calls.h"
+
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 
 __attribute__((section("lsm/generic_lsm_output"), used)) int
@@ -43,6 +46,6 @@ generic_lsm_output(void *ctx)
 	}
 #endif
 	if (e->lsm.post)
-		generic_output(ctx, (struct bpf_map_def *)&process_call_heap, MSG_OP_GENERIC_LSM);
+		generic_output(ctx, MSG_OP_GENERIC_LSM);
 	return try_override(ctx, (struct bpf_map_def *)&override_tasks);
 }

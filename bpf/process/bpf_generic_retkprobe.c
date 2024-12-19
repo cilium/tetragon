@@ -10,7 +10,6 @@
 #include "bpf_tracing.h"
 #include "bpf_event.h"
 #include "bpf_task.h"
-#include "generic_maps.h"
 #include "retprobe_map.h"
 #include "types/basic.h"
 
@@ -34,6 +33,9 @@ struct {
 		[5] = (void *)&generic_retkprobe_output,
 	},
 };
+
+#include "generic_maps.h"
+#include "generic_calls.h"
 
 #ifdef __MULTI_KPROBE
 #define MAIN "kprobe.multi/generic_retkprobe"
@@ -165,5 +167,5 @@ BPF_KRETPROBE(generic_retkprobe_actions)
 __attribute__((section("kprobe"), used)) int
 BPF_KRETPROBE(generic_retkprobe_output)
 {
-	return generic_output(ctx, (struct bpf_map_def *)&process_call_heap, MSG_OP_GENERIC_KPROBE);
+	return generic_output(ctx, MSG_OP_GENERIC_KPROBE);
 }
