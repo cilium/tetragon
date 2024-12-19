@@ -14,41 +14,9 @@
 #include "bpf_task.h"
 #include "retprobe_map.h"
 #include "types/basic.h"
+#include "generic_maps.h"
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
-
-struct {
-	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
-	__uint(max_entries, 1);
-	__type(key, __u32);
-	__type(value, struct msg_generic_kprobe);
-} process_call_heap SEC(".maps");
-
-struct {
-	__uint(type, BPF_MAP_TYPE_HASH);
-	__uint(max_entries, 32768);
-	__type(key, __u64);
-	__type(value, __s32);
-} override_tasks SEC(".maps");
-
-struct filter_map_value {
-	unsigned char buf[FILTER_SIZE];
-};
-
-/* Arrays of size 1 will be rewritten to direct loads in verifier */
-struct {
-	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__uint(max_entries, 1);
-	__type(key, int);
-	__type(value, struct filter_map_value);
-} filter_map SEC(".maps");
-
-struct {
-	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__uint(max_entries, 1);
-	__type(key, __u32);
-	__type(value, struct event_config);
-} config_map SEC(".maps");
 
 __attribute__((section("lsm/generic_lsm_output"), used)) int
 generic_lsm_output(void *ctx)
