@@ -12,8 +12,6 @@
 #include "retprobe_map.h"
 #include "types/operations.h"
 #include "types/basic.h"
-#include "generic_calls.h"
-#include "generic_maps.h"
 #include "pfilter.h"
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
@@ -41,6 +39,9 @@ struct {
 	},
 };
 
+#include "generic_maps.h"
+#include "generic_calls.h"
+
 static struct generic_maps maps = {
 	.heap = (struct bpf_map_def *)&process_call_heap,
 	.calls = (struct bpf_map_def *)&uprobe_calls,
@@ -64,7 +65,7 @@ __attribute__((section("uprobe"), used)) int
 generic_uprobe_setup_event(void *ctx)
 {
 	return generic_process_event_and_setup(
-		ctx, (struct bpf_map_def *)&process_call_heap,
+		ctx,
 		(struct bpf_map_def *)&uprobe_calls,
 		(struct bpf_map_def *)&config_map, 0);
 }
@@ -73,7 +74,6 @@ __attribute__((section("uprobe"), used)) int
 generic_uprobe_process_event(void *ctx)
 {
 	return generic_process_event(ctx,
-				     (struct bpf_map_def *)&process_call_heap,
 				     (struct bpf_map_def *)&uprobe_calls,
 				     (struct bpf_map_def *)&config_map, 0);
 }

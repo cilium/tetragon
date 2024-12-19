@@ -20,7 +20,7 @@ generic_start_process_filter(void *ctx, struct generic_maps *maps)
 	struct task_struct *task;
 	int i, zero = 0;
 
-	msg = map_lookup_elem(maps->heap, &zero);
+	msg = map_lookup_elem(&process_call_heap, &zero);
 	if (!msg)
 		return 0;
 
@@ -63,8 +63,7 @@ generic_start_process_filter(void *ctx, struct generic_maps *maps)
 }
 
 FUNC_INLINE int
-generic_process_event(void *ctx, struct bpf_map_def *heap_map,
-		      struct bpf_map_def *tailcals, struct bpf_map_def *config_map,
+generic_process_event(void *ctx, struct bpf_map_def *tailcals, struct bpf_map_def *config_map,
 		      struct bpf_map_def *data_heap)
 {
 	struct msg_generic_kprobe *e;
@@ -73,7 +72,7 @@ generic_process_event(void *ctx, struct bpf_map_def *heap_map,
 	unsigned long a;
 	long ty, total;
 
-	e = map_lookup_elem(heap_map, &zero);
+	e = map_lookup_elem(&process_call_heap, &zero);
 	if (!e)
 		return 0;
 
@@ -150,7 +149,6 @@ generic_process_init(struct msg_generic_kprobe *e, u8 op, struct event_config *c
 
 FUNC_INLINE int
 generic_process_event_and_setup(struct pt_regs *ctx,
-				struct bpf_map_def *heap_map,
 				struct bpf_map_def *tailcals,
 				struct bpf_map_def *config_map,
 				struct bpf_map_def *data_heap)
@@ -161,7 +159,7 @@ generic_process_event_and_setup(struct pt_regs *ctx,
 	long ty __maybe_unused;
 
 	/* Pid/Ktime Passed through per cpu map in process heap. */
-	e = map_lookup_elem(heap_map, &zero);
+	e = map_lookup_elem(&process_call_heap, &zero);
 	if (!e)
 		return 0;
 
@@ -219,7 +217,7 @@ generic_process_event_and_setup(struct pt_regs *ctx,
 	generic_process_init(e, MSG_OP_GENERIC_UPROBE, config);
 #endif
 
-	return generic_process_event(ctx, heap_map, tailcals, config_map, data_heap);
+	return generic_process_event(ctx, tailcals, config_map, data_heap);
 }
 
 #endif /* __GENERIC_CALLS_H__ */
