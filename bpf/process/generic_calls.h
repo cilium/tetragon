@@ -217,10 +217,8 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 }
 
 FUNC_LOCAL __u32
-do_action(void *ctx, __u32 i, struct selector_action *actions,
-	  struct generic_maps *maps, bool *post)
+do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post)
 {
-	struct bpf_map_def *override_tasks = maps->override;
 	int signal __maybe_unused = FGS_SIGKILL;
 	int action = actions->act[i];
 	struct msg_generic_kprobe *e;
@@ -233,7 +231,7 @@ do_action(void *ctx, __u32 i, struct selector_action *actions,
 	int zero = 0;
 	__u64 id;
 
-	e = map_lookup_elem(maps->heap, &zero);
+	e = map_lookup_elem(&process_call_heap, &zero);
 	if (!e)
 		return 0;
 
@@ -297,18 +295,16 @@ do_action(void *ctx, __u32 i, struct selector_action *actions,
 		error = actions->act[++i];
 		id = get_current_pid_tgid();
 
-		if (!override_tasks)
-			break;
 		/*
 		 * TODO: this should not happen, it means that the override
 		 * program was not executed for some reason, we should do
 		 * warning in here
 		 */
-		error_p = map_lookup_elem(override_tasks, &id);
+		error_p = map_lookup_elem(&override_tasks, &id);
 		if (error_p)
 			*error_p = error;
 		else
-			map_update_elem(override_tasks, &id, &error, BPF_ANY);
+			map_update_elem(&override_tasks, &id, &error, BPF_ANY);
 		break;
 	case ACTION_GETURL:
 	case ACTION_DNSLOOKUP:
@@ -348,7 +344,7 @@ has_action(struct selector_action *actions, __u32 idx)
 
 /* Currently supporting 2 actions for selector. */
 FUNC_INLINE bool
-do_actions(void *ctx, struct selector_action *actions, struct generic_maps *maps)
+do_actions(void *ctx, struct selector_action *actions)
 {
 	bool post = true;
 	__u32 l, i = 0;
@@ -359,14 +355,14 @@ do_actions(void *ctx, struct selector_action *actions, struct generic_maps *maps
 	for (l = 0; l < MAX_ACTIONS; l++) {
 		if (!has_action(actions, i))
 			break;
-		i = do_action(ctx, i, actions, maps, &post);
+		i = do_action(ctx, i, actions, &post);
 	}
 
 	return post;
 }
 
 FUNC_INLINE long
-generic_actions(void *ctx, struct generic_maps *maps)
+generic_actions(void *ctx, struct bpf_map_def *calls)
 {
 	struct selector_arg_filters *arg;
 	struct selector_action *actions;
@@ -375,7 +371,7 @@ generic_actions(void *ctx, struct generic_maps *maps)
 	bool postit;
 	__u8 *f;
 
-	e = map_lookup_elem(maps->heap, &zero);
+	e = map_lookup_elem(&process_call_heap, &zero);
 	if (!e)
 		return 0;
 
@@ -383,7 +379,7 @@ generic_actions(void *ctx, struct generic_maps *maps)
 	if (pass <= 1)
 		return 0;
 
-	f = map_lookup_elem(maps->filter, &e->idx);
+	f = map_lookup_elem(&filter_map, &e->idx);
 	if (!f)
 		return 0;
 
@@ -398,9 +394,9 @@ generic_actions(void *ctx, struct generic_maps *maps)
 		     :);
 	actions = (struct selector_action *)&f[actoff];
 
-	postit = do_actions(ctx, actions, maps);
+	postit = do_actions(ctx, actions);
 	if (postit)
-		tail_call(ctx, maps->calls, TAIL_CALL_SEND);
+		tail_call(ctx, calls, TAIL_CALL_SEND);
 	return postit;
 }
 
