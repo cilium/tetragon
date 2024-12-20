@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
@@ -18,8 +19,17 @@ import (
 	lru "github.com/hashicorp/golang-lru/v2"
 )
 
+var (
+	ksymsInstance *Ksyms
+	ksymsOnce     sync.Once
+	ksymsErr      error
+)
+
 func KernelSymbols() (*Ksyms, error) {
-	return NewKsyms(option.Config.ProcFS)
+	ksymsOnce.Do(func() {
+		ksymsInstance, ksymsErr = NewKsyms(option.Config.ProcFS)
+	})
+	return ksymsInstance, ksymsErr
 }
 
 type ksym struct {
