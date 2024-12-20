@@ -10,13 +10,12 @@ import (
 	"iter"
 	"maps"
 	"os"
-	"path/filepath"
 	"slices"
 	"sort"
-	"strings"
 	"syscall"
 
 	"github.com/cilium/ebpf"
+	"github.com/cilium/ebpf/pin"
 	"github.com/cilium/tetragon/pkg/bpf"
 )
 
@@ -90,27 +89,20 @@ func FindAllMaps() ([]bpf.ExtendedMapInfo, error) {
 // specified as argument.
 func FindPinnedMaps(path string) ([]bpf.ExtendedMapInfo, error) {
 	var infos []bpf.ExtendedMapInfo
-	err := filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
+
+	err := pin.WalkDir(path, func(_ string, d fs.DirEntry, obj pin.Pinner, err error) error {
 		if err != nil {
 			return err
 		}
 		if d.IsDir() {
 			return nil // skip directories
 		}
-		m, err := ebpf.LoadPinnedMap(path, nil)
-		if err != nil {
-			return fmt.Errorf("failed to load pinned map %q: %w", path, err)
-		}
-		defer m.Close()
 
-		// check if it's really a map because ebpf.LoadPinnedMap does not return
-		// an error but garbage info on doing this on a prog
-		if ok, err := isMap(m.FD()); err != nil || !ok {
-			if err != nil {
-				return err
-			}
+		m, ok := obj.(*ebpf.Map)
+		if !ok {
 			return nil // skip non map
 		}
+		defer m.Close()
 
 		xInfo, err := bpf.ExtendedInfoFromMap(m)
 		if err != nil {
@@ -153,58 +145,33 @@ func mapIDsFromProgs(prog *ebpf.Program) (iter.Seq[int], error) {
 func mapIDsFromPinnedProgs(path string) (iter.Seq[int], error) {
 	mapSet := map[int]bool{}
 	progArrays := []*ebpf.Map{}
-	err := filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
+	err := pin.WalkDir(path, func(_ string, d fs.DirEntry, obj pin.Pinner, err error) error {
 		if err != nil {
 			return err
 		}
 		if d.IsDir() {
 			return nil // skip directories
 		}
-		if strings.HasSuffix(path, "/link") || strings.HasSuffix(path, "/link_override") {
-			return nil // skip BPF links, they make the syscall fail since cilium/ebpf@78074c59
-		}
-		prog, err := ebpf.LoadPinnedProgram(path, nil)
-		if err != nil {
-			return fmt.Errorf("failed to load pinned object %q: %w", path, err)
-		}
-		defer prog.Close()
 
-		if ok, err := isProg(prog.FD()); err != nil || !ok {
+		switch typedObj := obj.(type) {
+		case *ebpf.Program:
+			newIDs, err := mapIDsFromProgs(typedObj)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to retrieve map IDs from prog: %w", err)
 			}
-
-			// we want to keep a ref to prog array containing tail calls to
-			// search reference to map inside
-			ok, err := isMap(prog.FD())
-			if err != nil {
-				return err
+			typedObj.Close()
+			for id := range newIDs {
+				mapSet[id] = true
 			}
-			if ok {
-				m, err := ebpf.LoadPinnedMap(path, &ebpf.LoadPinOptions{
-					ReadOnly: true,
-				})
-				if err != nil {
-					return fmt.Errorf("failed to load pinned map %q: %w", path, err)
-				}
-				if m.Type() == ebpf.ProgramArray {
-					progArrays = append(progArrays, m)
-					// don't forget to close those files when used later on
-				} else {
-					m.Close()
-				}
+		case *ebpf.Map:
+			if typedObj.Type() == ebpf.ProgramArray {
+				progArrays = append(progArrays, typedObj)
+				// don't forget to close those files when used later on
+			} else {
+				typedObj.Close()
 			}
-
-			return nil // skip the non-prog
 		}
 
-		newIDs, err := mapIDsFromProgs(prog)
-		if err != nil {
-			return fmt.Errorf("failed to retrieve map IDs from prog: %w", err)
-		}
-		for id := range newIDs {
-			mapSet[id] = true
-		}
 		return nil
 	})
 	if err != nil {
@@ -246,22 +213,6 @@ func mapIDsFromPinnedProgs(path string) (iter.Seq[int], error) {
 	}
 
 	return maps.Keys(mapSet), nil
-}
-
-func isProg(fd int) (bool, error) {
-	return isBPFObject("prog", fd)
-}
-
-func isMap(fd int) (bool, error) {
-	return isBPFObject("map", fd)
-}
-
-func isBPFObject(object string, fd int) (bool, error) {
-	readlink, err := os.Readlink(fmt.Sprintf("/proc/self/fd/%d", fd))
-	if err != nil {
-		return false, fmt.Errorf("failed to readlink the fd (%d): %w", fd, err)
-	}
-	return readlink == fmt.Sprintf("anon_inode:bpf-%s", object), nil
 }
 
 const TetragonBPFFS = "/sys/fs/bpf/tetragon"
