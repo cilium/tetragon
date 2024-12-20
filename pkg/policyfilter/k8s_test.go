@@ -739,7 +739,7 @@ func TestK8s(t *testing.T) {
 
 	// testState implements cgFinder
 	ts := newTestState(client)
-	st, err := newState(log, ts)
+	st, err := newState(log, ts, true)
 	if err != nil {
 		t.Skipf("failed to initialize policy filter state: %s", err)
 	}
