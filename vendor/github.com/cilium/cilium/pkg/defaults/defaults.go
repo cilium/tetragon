@@ -119,7 +119,7 @@ const (
 
 	// ToFQDNsMaxIPsPerHost defines the maximum number of IPs to maintain
 	// for each FQDN name in an endpoint's FQDN cache
-	ToFQDNsMaxIPsPerHost = 50
+	ToFQDNsMaxIPsPerHost = 1000
 
 	// ToFQDNsMaxDeferredConnectionDeletes Maximum number of IPs to retain for
 	// expired DNS lookups with still-active connections
@@ -313,9 +313,6 @@ const (
 	// KVstorePodNetworkSupport represents whether to enable the support for
 	// running the Cilium KVstore in pod network.
 	KVstorePodNetworkSupport = false
-
-	// PolicyQueueSize is the default queue size for policy-related events.
-	PolicyQueueSize = 100
 
 	// KVstoreQPS is default rate limit for kv store operations
 	KVstoreQPS = 20
