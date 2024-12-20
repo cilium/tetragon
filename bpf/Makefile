@@ -75,6 +75,9 @@ PROCESS += bpf_generic_kprobe_v61.o bpf_generic_retkprobe_v61.o \
 PROCESS += bpf_generic_lsm_core_v61.o bpf_generic_lsm_output_v61.o \
 	   bpf_generic_lsm_ima_file_v61.o bpf_generic_lsm_ima_bprm_v61.o
 
+# session
+PROCESS += bpf_session_kprobe.o
+
 CGROUP = bpf_cgroup_mkdir.o bpf_cgroup_rmdir.o bpf_cgroup_release.o bpf_cgtracker.o
 BPFTEST = bpf_lseek.o
 
@@ -116,6 +119,7 @@ CFLAGS_bpf_enforcer.o           = -D__BPF_OVERRIDE_RETURN
 CFLAGS_bpf_multi_enforcer.o     = -D__BPF_OVERRIDE_RETURN -D__MULTI_KPROBE
 CFLAGS_bpf_generic_lsm_core.o   = -D__LARGE_BPF_PROG
 CFLAGS_bpf_generic_lsm_output.o = -D__LARGE_BPF_PROG
+CFLAGS_bpf_session_kprobe.o     = -D__LARGE_BPF_PROG -D__LARGE_MAP_KEYS -D__V61_BPF_PROG -D__MULTI_KPROBE
 
 # Rules
 MTARGET_o  = $(patsubst $(DEPSDIR)%.d,$(OBJSDIR)%.o,$@)

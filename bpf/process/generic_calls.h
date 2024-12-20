@@ -33,6 +33,7 @@ generic_start_process_filter(void *ctx, struct bpf_map_def *calls)
 		return 0;
 	msg->func_id = config->func_id;
 	msg->retprobe_id = 0;
+	msg->has_return = config->argreturn != 0;
 
 	/* Initialize selector index to 0 */
 	msg->sel.curr = 0;
