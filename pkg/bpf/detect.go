@@ -32,6 +32,7 @@ type Feature struct {
 }
 
 var (
+	kprobeSession          Feature
 	kprobeMulti            Feature
 	uprobeMulti            Feature
 	buildid                Feature
@@ -79,6 +80,35 @@ func HasKprobeMulti() bool {
 		kprobeMulti.detected = detectKprobeMulti()
 	})
 	return kprobeMulti.detected
+}
+
+func detectKprobeSession() bool {
+	prog, err := ebpf.NewProgram(&ebpf.ProgramSpec{
+		Name: "probe_bpf_kprobe_multi_link",
+		Type: ebpf.Kprobe,
+		Instructions: asm.Instructions{
+			asm.Mov.Imm(asm.R0, 0),
+			asm.Return(),
+		},
+		AttachType: ebpf.AttachTraceKprobeSession,
+		License:    "MIT",
+	})
+	if err != nil {
+		return false
+	}
+	defer prog.Close()
+
+	syms := []string{"vprintk"}
+	opts := link.KprobeMultiOptions{Symbols: syms, Session: true}
+	_, err = link.KprobeMulti(prog, opts)
+	return err == nil
+}
+
+func HasKprobeSession() bool {
+	kprobeSession.init.Do(func() {
+		kprobeSession.detected = detectKprobeSession()
+	})
+	return kprobeSession.detected
 }
 
 func detectUprobeMulti() bool {
@@ -426,8 +456,8 @@ func LogFeatures() string {
 	// we cache all values so calling again a Has* function will
 	// not load the BTF again
 	defer ebtf.FlushKernelSpec()
-	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, uprobe_multi %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t, link_pin: %t, lsm: %t, missed_stats_kprobe_multi: %t, missed_stats_kprobe: %t",
-		HasOverrideHelper(), HasBuildId(), HasKprobeMulti(), HasUprobeMulti(),
+	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, kprobe_session %t, uprobe_multi %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t, link_pin: %t, lsm: %t, missed_stats_kprobe_multi: %t, missed_stats_kprobe: %t",
+		HasOverrideHelper(), HasBuildId(), HasKprobeMulti(), HasKprobeSession(), HasUprobeMulti(),
 		HasModifyReturn(), HasModifyReturnSyscall(), HasSignalHelper(), HasProgramLargeSize(),
 		HasLinkPin(), HasLSMPrograms(), HasMissedStatsKprobeMulti(), HasMissedStatsPerfEvent())
 }
