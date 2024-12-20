@@ -12,6 +12,8 @@ import (
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
+// run
+
 type handler struct {
 	// map of sensor collections: name -> collection
 	collections map[string]collection
