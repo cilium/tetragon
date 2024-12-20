@@ -13,7 +13,6 @@
 #include "retprobe_map.h"
 #include "types/operations.h"
 #include "types/basic.h"
-#include "pfilter.h"
 #include "policy_filter.h"
 #include "syscall64.h"
 
@@ -228,8 +227,7 @@ generic_tracepoint_filter(void *ctx)
 {
 	int ret;
 
-	ret = generic_process_filter((struct bpf_map_def *)&process_call_heap,
-				     (struct bpf_map_def *)&filter_map);
+	ret = generic_process_filter();
 	if (ret == PFILTER_CONTINUE)
 		tail_call(ctx, &tp_calls, TAIL_CALL_FILTER);
 	else if (ret == PFILTER_ACCEPT)
