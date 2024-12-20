@@ -45,9 +45,10 @@ type Cache struct {
 }
 
 var (
-	ErrFailedToGetPodInfo     = errors.New("failed to get pod info from event cache")
-	ErrFailedToGetProcessInfo = errors.New("failed to get process info from event cache")
-	ErrFailedToGetParentInfo  = errors.New("failed to get parent info from event cache")
+	ErrFailedToGetPodInfo       = errors.New("failed to get pod info from event cache")
+	ErrFailedToGetProcessInfo   = errors.New("failed to get process info from event cache")
+	ErrFailedToGetParentInfo    = errors.New("failed to get parent info from event cache")
+	ErrFailedToGetAncestorsInfo = errors.New("failed to get ancestors info from event cache")
 )
 
 // Generic internal lookup happens when events are received out of order and
@@ -56,6 +57,15 @@ var (
 func HandleGenericInternal(ev notify.Event, pid uint32, tid *uint32, timestamp uint64) (*process.ProcessInternal, error) {
 	internal, parent := process.GetParentProcessInternal(pid, timestamp)
 	var err error
+
+	if internal != nil && internal.NeededAncestors() && cache.NeededAncestors(ev.GetAncestors()) {
+		if tetragonAncestors, perr := process.GetAncestorProcesses(internal.UnsafeGetProcess().ParentExecId); perr == nil {
+			ev.SetAncestors(tetragonAncestors)
+		} else {
+			CacheRetries(AncestorsInfo).Inc()
+			err = ErrFailedToGetAncestorsInfo
+		}
+	}
 
 	if parent != nil {
 		ev.SetParent(parent.UnsafeGetProcess())
@@ -136,6 +146,8 @@ func (ec *Cache) handleEvents() {
 				failedFetches.WithLabelValues(eventType, ParentInfo.String()).Inc()
 			} else if errors.Is(err, ErrFailedToGetProcessInfo) {
 				failedFetches.WithLabelValues(eventType, ProcessInfo.String()).Inc()
+			} else if errors.Is(err, ErrFailedToGetAncestorsInfo) {
+				failedFetches.WithLabelValues(eventType, AncestorsInfo.String()).Inc()
 			} else if errors.Is(err, ErrFailedToGetPodInfo) {
 				failedFetches.WithLabelValues(eventType, PodInfo.String()).Inc()
 			}
@@ -202,6 +214,30 @@ func (ec *Cache) Needed(proc *tetragon.Process) bool {
 	}
 	if proc.Binary == "" {
 		return true
+	}
+	return false
+}
+
+func (ec *Cache) NeededAncestors(ancestors []*tetragon.Process) bool {
+	if option.Config.EnableProcessAncestors {
+		if ancestors == nil {
+			return true
+		}
+		if ancestors[len(ancestors)-1].Pid.Value > 2 {
+			return true
+		}
+	}
+	return false
+}
+
+func (ec *Cache) NeededAncestorsInternal(ancestors []*process.ProcessInternal) bool {
+	if option.Config.EnableProcessAncestors {
+		if ancestors == nil {
+			return true
+		}
+		if ancestors[len(ancestors)-1].UnsafeGetProcess().Pid.Value > 2 {
+			return true
+		}
 	}
 	return false
 }
