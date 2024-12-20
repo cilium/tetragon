@@ -78,11 +78,7 @@ generic_lsm_process_filter(void *ctx)
 __attribute__((section("lsm"), used)) int
 generic_lsm_filter_arg(void *ctx)
 {
-	return filter_read_arg(ctx, (struct bpf_map_def *)&process_call_heap,
-			       (struct bpf_map_def *)&filter_map,
-			       (struct bpf_map_def *)&lsm_calls,
-			       (struct bpf_map_def *)&config_map,
-			       true);
+	return generic_filter_arg(ctx, (struct bpf_map_def *)&lsm_calls, true);
 }
 
 __attribute__((section("lsm"), used)) int

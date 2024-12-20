@@ -613,13 +613,12 @@ FUNC_INLINE int generic_process_filter(void)
 	return PFILTER_CURR_NOT_FOUND;
 }
 
-FUNC_INLINE int filter_args(struct msg_generic_kprobe *e, int selidx, void *filter_map,
-			    bool is_entry)
+FUNC_INLINE int filter_args(struct msg_generic_kprobe *e, int selidx, bool is_entry)
 {
 	__u8 *f;
 
 	/* No filters and no selectors so just accepts */
-	f = map_lookup_elem(filter_map, &e->idx);
+	f = map_lookup_elem(&filter_map, &e->idx);
 	if (!f)
 		return 1;
 
@@ -643,18 +642,17 @@ FUNC_INLINE int filter_args(struct msg_generic_kprobe *e, int selidx, void *filt
 	return 0;
 }
 
-FUNC_INLINE long filter_read_arg(void *ctx, struct bpf_map_def *heap,
-				 struct bpf_map_def *filter, struct bpf_map_def *tailcalls,
-				 struct bpf_map_def *config_map, bool is_entry)
+FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
+				    bool is_entry)
 {
 	struct msg_generic_kprobe *e;
 	int selidx, pass, zero = 0;
 
-	e = map_lookup_elem(heap, &zero);
+	e = map_lookup_elem(&process_call_heap, &zero);
 	if (!e)
 		return 0;
 	selidx = e->tailcall_index_selector;
-	pass = filter_args(e, selidx & MAX_SELECTORS_MASK, filter, is_entry);
+	pass = filter_args(e, selidx & MAX_SELECTORS_MASK, is_entry);
 	if (!pass) {
 		selidx++;
 		if (selidx <= MAX_SELECTORS && e->sel.active[selidx & MAX_SELECTORS_MASK]) {
