@@ -612,4 +612,67 @@ FUNC_INLINE int generic_process_filter(void)
 	}
 	return PFILTER_CURR_NOT_FOUND;
 }
+
+FUNC_INLINE int filter_args(struct msg_generic_kprobe *e, int selidx, void *filter_map,
+			    bool is_entry)
+{
+	__u8 *f;
+
+	/* No filters and no selectors so just accepts */
+	f = map_lookup_elem(filter_map, &e->idx);
+	if (!f)
+		return 1;
+
+	/* No selectors, accept by default */
+	if (!e->sel.active[SELECTORS_ACTIVE])
+		return 1;
+
+	/* We ran process filters early as a prefilter to drop unrelated
+	 * events early. Now we need to ensure that active pid sselectors
+	 * have their arg filters run.
+	 */
+	if (selidx > SELECTORS_ACTIVE)
+		return filter_args_reject(e->func_id);
+
+	if (e->sel.active[selidx]) {
+		int pass = selector_arg_offset(f, e, selidx, is_entry);
+
+		if (pass)
+			return pass;
+	}
+	return 0;
+}
+
+FUNC_INLINE long filter_read_arg(void *ctx, struct bpf_map_def *heap,
+				 struct bpf_map_def *filter, struct bpf_map_def *tailcalls,
+				 struct bpf_map_def *config_map, bool is_entry)
+{
+	struct msg_generic_kprobe *e;
+	int selidx, pass, zero = 0;
+
+	e = map_lookup_elem(heap, &zero);
+	if (!e)
+		return 0;
+	selidx = e->tailcall_index_selector;
+	pass = filter_args(e, selidx & MAX_SELECTORS_MASK, filter, is_entry);
+	if (!pass) {
+		selidx++;
+		if (selidx <= MAX_SELECTORS && e->sel.active[selidx & MAX_SELECTORS_MASK]) {
+			e->tailcall_index_selector = selidx;
+			tail_call(ctx, tailcalls, TAIL_CALL_ARGS);
+		}
+		// reject if we did not attempt to tailcall, or if tailcall failed.
+		return filter_args_reject(e->func_id);
+	}
+
+	// If pass >1 then we need to consult the selector actions
+	// otherwise pass==1 indicates using default action.
+	if (pass > 1) {
+		e->pass = pass;
+		tail_call(ctx, tailcalls, TAIL_CALL_ACTIONS);
+	}
+
+	tail_call(ctx, tailcalls, TAIL_CALL_SEND);
+	return 0;
+}
 #endif /* __GENERIC_CALLS_H__ */
