@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"os"
 	"path"
@@ -24,6 +25,7 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/btf"
 	"github.com/cilium/ebpf/link"
+	"github.com/cilium/ebpf/pin"
 	"github.com/spf13/cobra"
 	"golang.org/x/sys/unix"
 	"golang.org/x/term"
@@ -403,26 +405,20 @@ func getTetragonProgs(base string) ([]*prog, error) {
 	var progs []*prog
 
 	// Walk bpffs/tetragon and look for programs
-	err := filepath.Walk(base,
-		func(path string, finfo os.FileInfo, err error) error {
+	err := pin.WalkDir(base,
+		func(path string, finfo fs.DirEntry, obj pin.Pinner, err error) error {
 			if err != nil {
 				return err
 			}
 			if finfo.IsDir() {
 				return nil
 			}
-			if strings.HasSuffix(path, "/link") || strings.HasSuffix(path, "/link_override") {
-				return nil // skip BPF links, they make the syscall fail since cilium/ebpf@78074c59
-			}
-			p, err := ebpf.LoadPinnedProgram(path, nil)
-			if err != nil {
-				return err
-			}
-			defer p.Close()
 
-			if !isProg(p.FD()) {
+			p, ok := obj.(*ebpf.Program)
+			if !ok {
 				return nil
 			}
+			defer p.Close()
 
 			info, err := p.Info()
 			if err != nil {
@@ -440,7 +436,7 @@ func getTetragonProgs(base string) ([]*prog, error) {
 			progs = append(progs, &prog{
 				id:    uint32(id),
 				name:  getName(p, info),
-				pin:   path,
+				pin:   filepath.Join(base, path),
 				cnt:   runCnt,
 				time:  runTime,
 				alive: true,
@@ -448,18 +444,6 @@ func getTetragonProgs(base string) ([]*prog, error) {
 			return nil
 		})
 	return progs, err
-}
-
-func isProg(fd int) bool {
-	return isBPFObject("prog", fd)
-}
-
-func isBPFObject(object string, fd int) bool {
-	readlink, err := os.Readlink(fmt.Sprintf("/proc/self/fd/%d", fd))
-	if err != nil {
-		return false
-	}
-	return readlink == fmt.Sprintf("anon_inode:bpf-%s", object)
 }
 
 func getName(p *ebpf.Program, info *ebpf.ProgramInfo) string {
