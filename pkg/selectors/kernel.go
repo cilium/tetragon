@@ -907,12 +907,12 @@ func parseRateLimit(str string, scopeStr string) (uint32, uint32, error) {
 	return uint32(rateLimit), scope, nil
 }
 
-func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, actionArgTable *idtable.Table) error {
+func ParseMatchAction(data *KernelSelectorData, action *v1alpha1.ActionSelector, actionArgTable *idtable.Table) error {
 	act, ok := actionTypeTable[strings.ToLower(action.Action)]
 	if !ok {
 		return fmt.Errorf("parseMatchAction: ActionType %s unknown", action.Action)
 	}
-	WriteSelectorUint32(&k.data, act)
+	WriteSelectorUint32(data, act)
 
 	rateLimit := uint32(0)
 	rateLimitScope := uint32(0)
@@ -929,13 +929,13 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 
 	switch act {
 	case ActionTypeFollowFd, ActionTypeCopyFd:
-		WriteSelectorUint32(&k.data, action.ArgFd)
-		WriteSelectorUint32(&k.data, action.ArgName)
+		WriteSelectorUint32(data, action.ArgFd)
+		WriteSelectorUint32(data, action.ArgName)
 	case ActionTypeUnfollowFd:
-		WriteSelectorUint32(&k.data, action.ArgFd)
-		WriteSelectorUint32(&k.data, action.ArgName)
+		WriteSelectorUint32(data, action.ArgFd)
+		WriteSelectorUint32(data, action.ArgName)
 	case ActionTypeOverride:
-		WriteSelectorInt32(&k.data, action.ArgError)
+		WriteSelectorInt32(data, action.ArgError)
 	case ActionTypeGetUrl, ActionTypeDnsLookup:
 		actionArg := ActionArgEntry{
 			tableId: idtable.UninitializedEntryID,
@@ -947,42 +947,42 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 			actionArg.arg = action.ArgFqdn
 		}
 		actionArgTable.AddEntry(&actionArg)
-		WriteSelectorUint32(&k.data, uint32(actionArg.tableId.ID))
+		WriteSelectorUint32(data, uint32(actionArg.tableId.ID))
 	case ActionTypeSignal:
-		WriteSelectorUint32(&k.data, action.ArgSig)
+		WriteSelectorUint32(data, action.ArgSig)
 	case ActionTypeTrackSock, ActionTypeUntrackSock:
-		WriteSelectorUint32(&k.data, action.ArgSock)
+		WriteSelectorUint32(data, action.ArgSock)
 	case ActionTypePost:
-		WriteSelectorUint32(&k.data, rateLimit)
-		WriteSelectorUint32(&k.data, rateLimitScope)
+		WriteSelectorUint32(data, rateLimit)
+		WriteSelectorUint32(data, rateLimitScope)
 		kernelStackTrace := uint32(0)
 		if action.KernelStackTrace {
 			kernelStackTrace = 1
 		}
-		WriteSelectorUint32(&k.data, kernelStackTrace)
+		WriteSelectorUint32(data, kernelStackTrace)
 		userStackTrace := uint32(0)
 		if action.UserStackTrace {
 			userStackTrace = 1
 		}
-		WriteSelectorUint32(&k.data, userStackTrace)
+		WriteSelectorUint32(data, userStackTrace)
 		imaHash := uint32(0)
 		if action.ImaHash {
 			imaHash = 1
 		}
-		WriteSelectorUint32(&k.data, imaHash)
+		WriteSelectorUint32(data, imaHash)
 	case ActionTypeNoPost:
 		// no arguments
 	case ActionTypeSigKill:
 		// no arguments
 		// NB: we should deprecate this action and just use ActionTypeSignal with SIGKILL
 	case ActionTypeNotifyEnforcer:
-		WriteSelectorInt32(&k.data, action.ArgError)
-		WriteSelectorUint32(&k.data, action.ArgSig)
+		WriteSelectorInt32(data, action.ArgError)
+		WriteSelectorUint32(data, action.ArgSig)
 		actionArgIndex := ^uint32(1)
 		if action.EnforcerNotifyActionArgIndex != nil {
 			actionArgIndex = *(action.EnforcerNotifyActionArgIndex)
 		}
-		WriteSelectorUint32(&k.data, actionArgIndex)
+		WriteSelectorUint32(data, actionArgIndex)
 	case ActionTypeCleanupEnforcerNotification:
 		// no arguments
 	default:
@@ -991,19 +991,19 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 	return nil
 }
 
-func ParseMatchActions(k *KernelSelectorState, actions []v1alpha1.ActionSelector, actionArgTable *idtable.Table) error {
+func ParseMatchActions(data *KernelSelectorData, actions []v1alpha1.ActionSelector, actionArgTable *idtable.Table) error {
 	if len(actions) > 3 {
 		return fmt.Errorf("only %d actions are support for selector (current number of values is %d)", 3, len(actions))
 	}
-	loff := AdvanceSelectorLength(&k.data)
+	loff := AdvanceSelectorLength(data)
 	for _, a := range actions {
-		if err := ParseMatchAction(k, &a, actionArgTable); err != nil {
+		if err := ParseMatchAction(data, &a, actionArgTable); err != nil {
 			return err
 		}
 	}
 
 	// No action (size value 4) defaults to post action.
-	WriteSelectorLength(&k.data, loff)
+	WriteSelectorLength(data, loff)
 	return nil
 }
 
@@ -1360,7 +1360,7 @@ func (k *KernelSelectorState) InitKernelSelector(selectors []v1alpha1.KProbeSele
 		if err := ParseMatchArgs(k, &k.data, selectors.MatchArgs, args); err != nil {
 			return fmt.Errorf("parseMatchArgs  error: %w", err)
 		}
-		if err := ParseMatchActions(k, selectors.MatchActions, actionArgTable); err != nil {
+		if err := ParseMatchActions(&k.data, selectors.MatchActions, actionArgTable); err != nil {
 			return fmt.Errorf("parseMatchActions error: %w", err)
 		}
 		return nil
@@ -1376,7 +1376,7 @@ func (k *KernelSelectorState) InitKernelReturnSelector(selectors []v1alpha1.KPro
 		if err := ParseMatchArgs(k, &k.data, selector.MatchReturnArgs, []v1alpha1.KProbeArg{*returnArg}); err != nil {
 			return fmt.Errorf("parseMatchArgs  error: %w", err)
 		}
-		if err := ParseMatchActions(k, selector.MatchReturnActions, actionArgTable); err != nil {
+		if err := ParseMatchActions(&k.data, selector.MatchReturnActions, actionArgTable); err != nil {
 			return fmt.Errorf("parseMatchActions error: %w", err)
 		}
 		return nil
