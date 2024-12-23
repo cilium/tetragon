@@ -8,7 +8,6 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/cilium/tetragon/pkg/option"
-	"github.com/cilium/tetragon/pkg/syscallinfo"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -62,25 +61,4 @@ func Handle(event interface{}) {
 		processLabels := option.CreateProcessLabels(namespace, workload, pod, binary)
 		syscallStats.WithLabelValues(processLabels, syscall).Inc()
 	}
-}
-
-func rawSyscallName(tp *tetragon.ProcessTracepoint) string {
-	sysID := int64(-1)
-	if len(tp.Args) > 0 && tp.Args[0] != nil {
-		if x, ok := tp.Args[0].GetArg().(*tetragon.KprobeArgument_LongArg); ok {
-			sysID = x.LongArg
-		}
-	}
-	if sysID == -1 {
-		return ""
-	}
-	abi, err := syscallinfo.DefaultABI()
-	if err != nil {
-		return ""
-	}
-	name, err := syscallinfo.GetSyscallName(abi, int(sysID))
-	if err != nil {
-		return ""
-	}
-	return name
 }

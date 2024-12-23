@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
+//go:build !windows
+
 package tracing
 
 import (
@@ -54,33 +56,6 @@ func init() {
 	}
 	sensors.RegisterProbeType("generic_kprobe", kprobe)
 	observer.RegisterEventHandlerAtInit(ops.MSG_OP_GENERIC_KPROBE, handleGenericKprobe)
-}
-
-const (
-	CharBufErrorENOMEM      = -1
-	CharBufErrorPageFault   = -2
-	CharBufErrorTooLarge    = -3
-	CharBufSavedForRetprobe = -4
-
-	// The following values could be fine tuned if either those feature use too
-	// much kernel memory when enabled.
-	stackTraceMapMaxEntries = 32768
-	ratelimitMapMaxEntries  = 32768
-	fdInstallMapMaxEntries  = 32000
-	enforcerMapMaxEntries   = 32768
-	overrideMapMaxEntries   = 32768
-)
-
-func kprobeCharBufErrorToString(e int32) string {
-	switch e {
-	case CharBufErrorENOMEM:
-		return "CharBufErrorENOMEM"
-	case CharBufErrorTooLarge:
-		return "CharBufErrorBufTooLarge"
-	case CharBufErrorPageFault:
-		return "CharBufErrorPageFault"
-	}
-	return "CharBufErrorUnknown"
 }
 
 type kprobeSelectors struct {

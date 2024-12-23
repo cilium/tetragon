@@ -5,6 +5,8 @@
 // The purpose of this is to allow better pod mapping, by using the cgroup id rather than the cgroup
 // name to associate events and pods.
 
+//go:build !windows
+
 package cgidmap
 
 import (

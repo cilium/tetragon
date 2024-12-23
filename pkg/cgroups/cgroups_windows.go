@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
-//go:build linux
-// +build linux
-
 package cgroups
 
 import (
@@ -19,13 +16,12 @@ import (
 	"sync"
 	"syscall"
 
-	"go.uber.org/multierr"
-	"golang.org/x/sys/unix"
-
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/sirupsen/logrus"
+	"go.uber.org/multierr"
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -145,18 +141,6 @@ func (op DeploymentCode) String() string {
 		DEPLOY_SD_SERVICE: "systemd service",
 		DEPLOY_SD_USER:    "systemd user session",
 	}[op]
-}
-
-// DetectCgroupFSMagic() runs by default DetectCgroupMode()
-// CgroupFsMagicStr() Returns "Cgroupv2" or "Cgroupv1" based on passed magic.
-func CgroupFsMagicStr(magic uint64) string {
-	if magic == unix.CGROUP2_SUPER_MAGIC {
-		return "Cgroupv2"
-	} else if magic == unix.CGROUP_SUPER_MAGIC {
-		return "Cgroupv1"
-	}
-
-	return ""
 }
 
 func GetCgroupFSMagic() uint64 {

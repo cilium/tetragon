@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright Authors of Tetragon
+// Cop
+
+//go:build !windows
 
 package tracing
 

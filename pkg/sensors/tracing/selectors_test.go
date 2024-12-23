@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
+//go:build !windows
+
 package tracing
 
 // NB(kkourt): Function(t *testing.T, ctx context.Context) is the reasonable

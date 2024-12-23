@@ -13,15 +13,15 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/constants"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
-	"golang.org/x/sys/unix"
 )
 
 var (
 	// Set default last capability based on upstream unix go library
-	cap_last_cap = int32(unix.CAP_LAST_CAP)
+	cap_last_cap = int32(constants.CAP_LAST_CAP)
 	lastCapOnce  sync.Once
 )
 
@@ -39,7 +39,7 @@ func GetLastCap() int32 {
 			return
 		}
 		// just silence some CodeQL
-		if val >= 0 && val < unix.CAP_LAST_CAP {
+		if val >= 0 && val < constants.CAP_LAST_CAP {
 			cap_last_cap = int32(val)
 		}
 	})
@@ -47,7 +47,7 @@ func GetLastCap() int32 {
 }
 
 func isCapValid(capInt int32) bool {
-	if capInt >= 0 && capInt <= unix.CAP_LAST_CAP {
+	if capInt >= 0 && capInt <= constants.CAP_LAST_CAP {
 		return true
 	}
 
