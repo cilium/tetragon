@@ -630,8 +630,8 @@ func (tp *genericTracepoint) InitKernelSelectors(lists []v1alpha1.ListSpec) erro
 		}
 	}
 
-	selectors, err := selectors.InitKernelSelectorState(selSelectors, selArgs, &tp.actionArgs, &listReader{lists}, nil)
-	if err != nil {
+	selectors := selectors.NewKernelSelectorState(&listReader{lists}, nil)
+	if err := selectors.InitKernelSelector(selSelectors, selArgs, &tp.actionArgs); err != nil {
 		return err
 	}
 	tp.selectors = selectors
