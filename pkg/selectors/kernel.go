@@ -1299,7 +1299,8 @@ func ParseMatchBinaries(k *KernelSelectorState, binarys []v1alpha1.BinarySelecto
 //
 // For some examples, see kernel_test.go
 func InitKernelSelectors(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KProbeArg, actionArgTable *idtable.Table) ([4096]byte, error) {
-	state, err := InitKernelSelectorState(selectors, args, actionArgTable, nil, nil)
+	state := NewKernelSelectorState(nil, nil)
+	err := state.InitKernelSelector(selectors, args, actionArgTable)
 	if err != nil {
 		return [4096]byte{}, err
 	}
@@ -1307,37 +1308,37 @@ func InitKernelSelectors(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KP
 }
 
 func InitKernelReturnSelectors(selectors []v1alpha1.KProbeSelector, returnArg *v1alpha1.KProbeArg, actionArgTable *idtable.Table) ([4096]byte, error) {
-	state, err := InitKernelReturnSelectorState(selectors, returnArg, actionArgTable, nil, nil)
+	state := NewKernelSelectorState(nil, nil)
+	err := state.InitKernelReturnSelector(selectors, returnArg, actionArgTable)
 	if err != nil {
 		return [4096]byte{}, err
 	}
 	return state.data.e, nil
 }
 
-func createKernelSelectorState(selectors []v1alpha1.KProbeSelector, listReader ValueReader, maps *KernelSelectorMaps,
-	parseSelector func(k *KernelSelectorState, selectors *v1alpha1.KProbeSelector, selIdx int) error) (*KernelSelectorState, error) {
-	state := NewKernelSelectorState(listReader, maps)
+func createKernelSelectorState(data *KernelSelectorData, selectors []v1alpha1.KProbeSelector,
+	parseSelector func(selectors *v1alpha1.KProbeSelector, selIdx int) error) error {
 
-	WriteSelectorUint32(&state.data, uint32(len(selectors)))
+	WriteSelectorUint32(data, uint32(len(selectors)))
 	soff := make([]uint32, len(selectors))
 	for i := range selectors {
-		soff[i] = AdvanceSelectorLength(&state.data)
+		soff[i] = AdvanceSelectorLength(data)
 	}
 	for i, s := range selectors {
-		WriteSelectorLength(&state.data, soff[i])
-		loff := AdvanceSelectorLength(&state.data)
-		if err := parseSelector(state, &s, i); err != nil {
-			return nil, err
+		WriteSelectorLength(data, soff[i])
+		loff := AdvanceSelectorLength(data)
+		if err := parseSelector(&s, i); err != nil {
+			return err
 		}
-		WriteSelectorLength(&state.data, loff)
+		WriteSelectorLength(data, loff)
 	}
-	return state, nil
+	return nil
 }
 
-func InitKernelSelectorState(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KProbeArg,
-	actionArgTable *idtable.Table, listReader ValueReader, maps *KernelSelectorMaps) (*KernelSelectorState, error) {
+func (k *KernelSelectorState) InitKernelSelector(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KProbeArg,
+	actionArgTable *idtable.Table) error {
 
-	parse := func(k *KernelSelectorState, selectors *v1alpha1.KProbeSelector, selIdx int) error {
+	parse := func(selectors *v1alpha1.KProbeSelector, selIdx int) error {
 		if err := ParseMatchPids(k, selectors.MatchPIDs); err != nil {
 			return fmt.Errorf("parseMatchPids error: %w", err)
 		}
@@ -1365,13 +1366,13 @@ func InitKernelSelectorState(selectors []v1alpha1.KProbeSelector, args []v1alpha
 		return nil
 	}
 
-	return createKernelSelectorState(selectors, listReader, maps, parse)
+	return createKernelSelectorState(&k.data, selectors, parse)
 }
 
-func InitKernelReturnSelectorState(selectors []v1alpha1.KProbeSelector, returnArg *v1alpha1.KProbeArg,
-	actionArgTable *idtable.Table, listReader ValueReader, maps *KernelSelectorMaps) (*KernelSelectorState, error) {
+func (k *KernelSelectorState) InitKernelReturnSelector(selectors []v1alpha1.KProbeSelector, returnArg *v1alpha1.KProbeArg,
+	actionArgTable *idtable.Table) error {
 
-	parse := func(k *KernelSelectorState, selector *v1alpha1.KProbeSelector, _ int) error {
+	parse := func(selector *v1alpha1.KProbeSelector, _ int) error {
 		if err := ParseMatchArgs(k, selector.MatchReturnArgs, []v1alpha1.KProbeArg{*returnArg}); err != nil {
 			return fmt.Errorf("parseMatchArgs  error: %w", err)
 		}
@@ -1381,7 +1382,7 @@ func InitKernelReturnSelectorState(selectors []v1alpha1.KProbeSelector, returnAr
 		return nil
 	}
 
-	return createKernelSelectorState(selectors, listReader, maps, parse)
+	return createKernelSelectorState(&k.data, selectors, parse)
 }
 
 func HasOverride(spec *v1alpha1.KProbeSpec) bool {

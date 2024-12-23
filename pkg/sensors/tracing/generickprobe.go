@@ -877,17 +877,18 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 	}
 
 	// Parse Filters into kernel filter logic
-	kprobeEntry.loadArgs.selectors.entry, err = selectors.InitKernelSelectorState(f.Selectors, f.Args, &kprobeEntry.actionArgs, nil, in.selMaps)
-	if err != nil {
+	state := selectors.NewKernelSelectorState(nil, in.selMaps)
+	if err := state.InitKernelSelector(f.Selectors, f.Args, &kprobeEntry.actionArgs); err != nil {
 		return errFn(err)
 	}
+	kprobeEntry.loadArgs.selectors.entry = state
 
 	if f.Return {
-		kprobeEntry.loadArgs.selectors.retrn, err = selectors.InitKernelReturnSelectorState(f.Selectors, f.ReturnArg,
-			&kprobeEntry.actionArgs, nil, in.selMaps)
-		if err != nil {
+		state := selectors.NewKernelSelectorState(nil, in.selMaps)
+		if err := state.InitKernelReturnSelector(f.Selectors, f.ReturnArg, &kprobeEntry.actionArgs); err != nil {
 			return errFn(err)
 		}
+		kprobeEntry.loadArgs.selectors.retrn = state
 	}
 
 	kprobeEntry.pendingEvents, err = lru.New[pendingEventKey, pendingEvent](4096)
