@@ -446,7 +446,7 @@ func writeRangeInMap(v string, ty uint32, op uint32, m *ValueMap) error {
 	return nil
 }
 
-func writeMatchRangesInMap(k *KernelSelectorState, values []string, ty uint32, op uint32) error {
+func writeMatchRangesInMap(k *KernelSelectorState, data *KernelSelectorData, values []string, ty uint32, op uint32) error {
 	mid, m := k.newValueMap()
 	for _, v := range values {
 		err := writeRangeInMap(v, ty, op, &m)
@@ -455,7 +455,7 @@ func writeMatchRangesInMap(k *KernelSelectorState, values []string, ty uint32, o
 		}
 	}
 	// write the map id into the selector
-	WriteSelectorUint32(&k.data, mid)
+	WriteSelectorUint32(data, mid)
 	return nil
 }
 
@@ -483,7 +483,7 @@ func writeListValuesInMap(k *KernelSelectorState, v string, ty uint32, m *ValueM
 	return nil
 }
 
-func writeMatchValuesInMap(k *KernelSelectorState, values []string, ty uint32, op uint32) error {
+func writeMatchValuesInMap(k *KernelSelectorState, data *KernelSelectorData, values []string, ty uint32, op uint32) error {
 	mid, m := k.newValueMap()
 	for _, v := range values {
 		var val [8]byte
@@ -522,11 +522,11 @@ func writeMatchValuesInMap(k *KernelSelectorState, values []string, ty uint32, o
 		m.Data[val] = struct{}{}
 	}
 	// write the map id into the selector
-	WriteSelectorUint32(&k.data, mid)
+	WriteSelectorUint32(data, mid)
 	return nil
 }
 
-func writeMatchAddrsInMap(k *KernelSelectorState, values []string) error {
+func writeMatchAddrsInMap(k *KernelSelectorState, data *KernelSelectorData, values []string) error {
 	m4 := k.createAddr4Map()
 	m6 := k.createAddr6Map()
 	for _, v := range values {
@@ -548,15 +548,15 @@ func writeMatchAddrsInMap(k *KernelSelectorState, values []string) error {
 	// write the map ids into the selector
 	if len(m4) != 0 {
 		m4id := k.insertAddr4Map(m4)
-		WriteSelectorUint32(&k.data, m4id)
+		WriteSelectorUint32(data, m4id)
 	} else {
-		WriteSelectorUint32(&k.data, 0xffffffff)
+		WriteSelectorUint32(data, 0xffffffff)
 	}
 	if len(m6) != 0 {
 		m6id := k.insertAddr6Map(m6)
-		WriteSelectorUint32(&k.data, m6id)
+		WriteSelectorUint32(data, m6id)
 	} else {
-		WriteSelectorUint32(&k.data, 0xffffffff)
+		WriteSelectorUint32(data, 0xffffffff)
 	}
 	return nil
 }
@@ -613,7 +613,7 @@ func parseAddr(v string) ([]byte, uint32, error) {
 	return nil, 0, fmt.Errorf("IP CIDR is not valid: address part does not parse")
 }
 
-func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) error {
+func writeMatchValues(data *KernelSelectorData, values []string, ty, op uint32) error {
 	for _, v := range values {
 		base := getBase(v)
 		switch ty {
@@ -623,25 +623,25 @@ func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) er
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
-			WriteSelectorInt32(&k.data, int32(i))
+			WriteSelectorInt32(data, int32(i))
 		case gt.GenericU32Type:
 			i, err := strconv.ParseUint(v, base, 32)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
-			WriteSelectorUint32(&k.data, uint32(i))
+			WriteSelectorUint32(data, uint32(i))
 		case gt.GenericS64Type, gt.GenericSyscall64:
 			i, err := strconv.ParseInt(v, base, 64)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
-			WriteSelectorInt64(&k.data, int64(i))
+			WriteSelectorInt64(data, int64(i))
 		case gt.GenericU64Type:
 			i, err := strconv.ParseUint(v, base, 64)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
-			WriteSelectorUint64(&k.data, uint64(i))
+			WriteSelectorUint64(data, uint64(i))
 		case gt.GenericSockType, gt.GenericSkbType, gt.GenericNetDev:
 			return fmt.Errorf("MatchArgs type sock, skb and net_device do not support operator %s", selectorOpStringTable[op])
 		case gt.GenericCharIovec:
@@ -651,7 +651,7 @@ func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) er
 	return nil
 }
 
-func writeMatchStrings(k *KernelSelectorState, values []string, ty uint32) error {
+func writeMatchStrings(k *KernelSelectorState, data *KernelSelectorData, values []string, ty uint32) error {
 	maps := k.createStringMaps()
 
 	for _, v := range values {
@@ -680,7 +680,7 @@ func writeMatchStrings(k *KernelSelectorState, values []string, ty uint32) error
 	// write the map ids into the selector
 	mapDetails := k.insertStringMaps(maps)
 	for _, md := range mapDetails {
-		WriteSelectorUint32(&k.data, md)
+		WriteSelectorUint32(data, md)
 	}
 	return nil
 }
@@ -705,12 +705,12 @@ func writePrefixBinaries(k *KernelSelectorState, values []string) (uint32, error
 	return writePrefix(k, values, "MatchBinaries")
 }
 
-func writePrefixStrings(k *KernelSelectorState, values []string) error {
+func writePrefixStrings(k *KernelSelectorState, data *KernelSelectorData, values []string) error {
 	mid, err := writePrefix(k, values, "MatchArgs")
 	if err != nil {
 		return err
 	}
-	WriteSelectorUint32(&k.data, mid)
+	WriteSelectorUint32(data, mid)
 	return nil
 }
 
@@ -743,12 +743,12 @@ func writePostfixBinaries(k *KernelSelectorState, values []string) (uint32, erro
 	return writePostfix(k, values, gt.GenericCharBuffer, "MatchBinaries")
 }
 
-func writePostfixStrings(k *KernelSelectorState, values []string, ty uint32) error {
+func writePostfixStrings(k *KernelSelectorState, data *KernelSelectorData, values []string, ty uint32) error {
 	mid, err := writePostfix(k, values, ty, "MatchArgs")
 	if err != nil {
 		return err
 	}
-	WriteSelectorUint32(&k.data, mid)
+	WriteSelectorUint32(data, mid)
 	return nil
 }
 
@@ -762,8 +762,8 @@ func checkOp(op uint32) error {
 	return nil
 }
 
-func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) error {
-	WriteSelectorUint32(&k.data, arg.Index)
+func ParseMatchArg(k *KernelSelectorState, data *KernelSelectorData, arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) error {
+	WriteSelectorUint32(data, arg.Index)
 
 	op, err := SelectorOp(arg.Operator)
 	if err != nil {
@@ -773,39 +773,39 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 	if err != nil {
 		return fmt.Errorf("matcharg error: %w", err)
 	}
-	WriteSelectorUint32(&k.data, op)
-	moff := AdvanceSelectorLength(&k.data)
+	WriteSelectorUint32(data, op)
+	moff := AdvanceSelectorLength(data)
 	ty, err := argSelectorType(arg, sig)
 	if err != nil {
 		return fmt.Errorf("argSelector error: %w", err)
 	}
-	WriteSelectorUint32(&k.data, ty)
+	WriteSelectorUint32(data, ty)
 	switch op {
 	case SelectorInMap, SelectorNotInMap:
-		err := writeMatchValuesInMap(k, arg.Values, ty, op)
+		err := writeMatchValuesInMap(k, data, arg.Values, ty, op)
 		if err != nil {
 			return fmt.Errorf("writeMatchRangesInMap error: %w", err)
 		}
 	case SelectorOpEQ, SelectorOpNEQ:
 		switch ty {
 		case gt.GenericFdType, gt.GenericFileType, gt.GenericPathType, gt.GenericStringType, gt.GenericCharBuffer, gt.GenericLinuxBinprmType, gt.GenericDataLoc, gt.GenericNetDev:
-			err := writeMatchStrings(k, arg.Values, ty)
+			err := writeMatchStrings(k, data, arg.Values, ty)
 			if err != nil {
 				return fmt.Errorf("writeMatchStrings error: %w", err)
 			}
 		default:
-			err = writeMatchValues(k, arg.Values, ty, op)
+			err = writeMatchValues(data, arg.Values, ty, op)
 			if err != nil {
 				return fmt.Errorf("writeMatchValues error: %w", err)
 			}
 		}
 	case SelectorOpPrefix, SelectorOpNotPrefix:
-		err := writePrefixStrings(k, arg.Values)
+		err := writePrefixStrings(k, data, arg.Values)
 		if err != nil {
 			return fmt.Errorf("writePrefixStrings error: %w", err)
 		}
 	case SelectorOpPostfix, SelectorOpNotPostfix:
-		err := writePostfixStrings(k, arg.Values, ty)
+		err := writePostfixStrings(k, data, arg.Values, ty)
 		if err != nil {
 			return fmt.Errorf("writePostfixStrings error: %w", err)
 		}
@@ -813,7 +813,7 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 		if ty != gt.GenericSockType && ty != gt.GenericSkbType {
 			return fmt.Errorf("sock/skb operators specified for non-sock/skb type")
 		}
-		err := writeMatchRangesInMap(k, arg.Values, gt.GenericU64Type, op) // force type for ports and protocols as ty is sock/skb
+		err := writeMatchRangesInMap(k, data, arg.Values, gt.GenericU64Type, op) // force type for ports and protocols as ty is sock/skb
 		if err != nil {
 			return fmt.Errorf("writeMatchRangesInMap error: %w", err)
 		}
@@ -821,7 +821,7 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 		if ty != gt.GenericSockType && ty != gt.GenericSkbType {
 			return fmt.Errorf("sock/skb operators specified for non-sock/skb type")
 		}
-		err := writeMatchAddrsInMap(k, arg.Values)
+		err := writeMatchAddrsInMap(k, data, arg.Values)
 		if err != nil {
 			return fmt.Errorf("writeMatchAddrsInMap error: %w", err)
 		}
@@ -831,17 +831,17 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 			return fmt.Errorf("sock/skb operators specified for non-sock/skb type")
 		}
 	default:
-		err = writeMatchValues(k, arg.Values, ty, op)
+		err = writeMatchValues(data, arg.Values, ty, op)
 		if err != nil {
 			return fmt.Errorf("writeMatchValues error: %w", err)
 		}
 	}
 
-	WriteSelectorLength(&k.data, moff)
+	WriteSelectorLength(data, moff)
 	return nil
 }
 
-func ParseMatchArgs(k *KernelSelectorState, args []v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) error {
+func ParseMatchArgs(k *KernelSelectorState, data *KernelSelectorData, args []v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) error {
 	max_args := 1
 	if kernels.EnableLargeProgs() {
 		max_args = 5 // we support up 5 argument filters under matchArgs with kernels >= 5.3, otherwise 1 argument
@@ -849,20 +849,20 @@ func ParseMatchArgs(k *KernelSelectorState, args []v1alpha1.ArgSelector, sig []v
 	if len(args) > max_args {
 		return fmt.Errorf("parseMatchArgs: supports up to %d filters (%d provided)", max_args, len(args))
 	}
-	actionOffset := GetCurrentOffset(&k.data)
-	loff := AdvanceSelectorLength(&k.data)
+	actionOffset := GetCurrentOffset(data)
+	loff := AdvanceSelectorLength(data)
 	argOff := make([]uint32, 5)
 	for i := 0; i < 5; i++ {
-		argOff[i] = AdvanceSelectorLength(&k.data)
-		WriteSelectorOffsetUint32(&k.data, argOff[i], 0)
+		argOff[i] = AdvanceSelectorLength(data)
+		WriteSelectorOffsetUint32(data, argOff[i], 0)
 	}
 	for i, a := range args {
-		WriteSelectorOffsetUint32(&k.data, argOff[i], GetCurrentOffset(&k.data)-actionOffset)
-		if err := ParseMatchArg(k, &a, sig); err != nil {
+		WriteSelectorOffsetUint32(data, argOff[i], GetCurrentOffset(data)-actionOffset)
+		if err := ParseMatchArg(k, data, &a, sig); err != nil {
 			return err
 		}
 	}
-	WriteSelectorLength(&k.data, loff)
+	WriteSelectorLength(data, loff)
 	return nil
 }
 
@@ -1357,7 +1357,7 @@ func (k *KernelSelectorState) InitKernelSelector(selectors []v1alpha1.KProbeSele
 		if err := ParseMatchBinaries(k, selectors.MatchBinaries, selIdx); err != nil {
 			return fmt.Errorf("parseMatchBinaries error: %w", err)
 		}
-		if err := ParseMatchArgs(k, selectors.MatchArgs, args); err != nil {
+		if err := ParseMatchArgs(k, &k.data, selectors.MatchArgs, args); err != nil {
 			return fmt.Errorf("parseMatchArgs  error: %w", err)
 		}
 		if err := ParseMatchActions(k, selectors.MatchActions, actionArgTable); err != nil {
@@ -1373,7 +1373,7 @@ func (k *KernelSelectorState) InitKernelReturnSelector(selectors []v1alpha1.KPro
 	actionArgTable *idtable.Table) error {
 
 	parse := func(selector *v1alpha1.KProbeSelector, _ int) error {
-		if err := ParseMatchArgs(k, selector.MatchReturnArgs, []v1alpha1.KProbeArg{*returnArg}); err != nil {
+		if err := ParseMatchArgs(k, &k.data, selector.MatchReturnArgs, []v1alpha1.KProbeArg{*returnArg}); err != nil {
 			return fmt.Errorf("parseMatchArgs  error: %w", err)
 		}
 		if err := ParseMatchActions(k, selector.MatchReturnActions, actionArgTable); err != nil {
