@@ -107,6 +107,7 @@ type KernelSelectorData struct {
 
 type KernelSelectorState struct {
 	data KernelSelectorData
+	retn KernelSelectorData
 
 	// valueMaps are used to populate value maps for InMap and NotInMap operators
 	valueMaps []ValueMap
@@ -166,8 +167,11 @@ func (k *KernelSelectorState) MatchBinariesPathsMaxEntries() int {
 	return maxEntries
 }
 
-func (k *KernelSelectorState) Buffer() [4096]byte {
-	return k.data.e
+func (k *KernelSelectorState) Buffer() [8192]byte {
+	var ret [8192]byte
+	copy(ret[:], k.data.e[:])
+	copy(ret[4096:], k.retn.e[:])
+	return ret
 }
 
 func (k *KernelSelectorState) ValueMaps() []ValueMap {

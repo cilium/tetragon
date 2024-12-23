@@ -1313,7 +1313,7 @@ func InitKernelReturnSelectors(selectors []v1alpha1.KProbeSelector, returnArg *v
 	if err != nil {
 		return [4096]byte{}, err
 	}
-	return state.data.e, nil
+	return state.retn.e, nil
 }
 
 func createKernelSelectorState(data *KernelSelectorData, selectors []v1alpha1.KProbeSelector,
@@ -1373,16 +1373,16 @@ func (k *KernelSelectorState) InitKernelReturnSelector(selectors []v1alpha1.KPro
 	actionArgTable *idtable.Table) error {
 
 	parse := func(selector *v1alpha1.KProbeSelector, _ int) error {
-		if err := ParseMatchArgs(k, &k.data, selector.MatchReturnArgs, []v1alpha1.KProbeArg{*returnArg}); err != nil {
+		if err := ParseMatchArgs(k, &k.retn, selector.MatchReturnArgs, []v1alpha1.KProbeArg{*returnArg}); err != nil {
 			return fmt.Errorf("parseMatchArgs  error: %w", err)
 		}
-		if err := ParseMatchActions(&k.data, selector.MatchReturnActions, actionArgTable); err != nil {
+		if err := ParseMatchActions(&k.retn, selector.MatchReturnActions, actionArgTable); err != nil {
 			return fmt.Errorf("parseMatchActions error: %w", err)
 		}
 		return nil
 	}
 
-	return createKernelSelectorState(&k.data, selectors, parse)
+	return createKernelSelectorState(&k.retn, selectors, parse)
 }
 
 func HasOverride(spec *v1alpha1.KProbeSpec) bool {
