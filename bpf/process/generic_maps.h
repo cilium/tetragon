@@ -4,6 +4,7 @@
 #ifndef __GENERIC_MAPS_H__
 #define __GENERIC_MAPS_H__
 
+#include <include/compiler.h>
 #include "lib/data_msg.h"
 
 struct {
@@ -37,8 +38,15 @@ struct {
 #endif
 
 struct filter_map_value {
-	unsigned char buf[FILTER_SIZE];
+	__u8 entry[FILTER_SIZE];
+	__u8 retrn[FILTER_SIZE];
 };
+
+FUNC_INLINE __u8 *
+filter_map_ptr(struct filter_map_value *fval, bool is_entry)
+{
+	return is_entry ? &fval->entry[0] : &fval->retrn[0];
+}
 
 /* Arrays of size 1 will be rewritten to direct loads in verifier */
 struct {

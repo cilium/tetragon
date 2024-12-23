@@ -81,16 +81,11 @@ func kprobeCharBufErrorToString(e int32) string {
 	return "CharBufErrorUnknown"
 }
 
-type kprobeSelectors struct {
-	entry *selectors.KernelSelectorState
-	retrn *selectors.KernelSelectorState
-}
-
 type kprobeLoadArgs struct {
-	selectors kprobeSelectors
-	retprobe  bool
-	syscall   bool
-	config    *api.EventConfig
+	selector *selectors.KernelSelectorState
+	retprobe bool
+	syscall  bool
+	config   *api.EventConfig
 }
 
 type pendingEventKey struct {
@@ -185,25 +180,18 @@ var (
 	MaxFilterIntArgs = 8
 )
 
-func getProgramSelector(load *program.Program, kprobeEntry *genericKprobe) *selectors.KernelSelectorState {
-	if kprobeEntry != nil {
-		if load.RetProbe {
-			return kprobeEntry.loadArgs.selectors.retrn
-		}
-		return kprobeEntry.loadArgs.selectors.entry
-	}
-	return nil
-}
-
 func filterMaps(load *program.Program, kprobeEntry *genericKprobe) []*program.Map {
 	var maps []*program.Map
+	var state *selectors.KernelSelectorState
 
 	/*
 	 * If we got passed genericKprobe != nil we can make selector map fixes
 	 * related to the kernel version. We pass nil for multi kprobes but as
 	 * they are added in later kernels than 5.9, there's no fixing needed.
 	 */
-	state := getProgramSelector(load, kprobeEntry)
+	if kprobeEntry != nil {
+		state = kprobeEntry.loadArgs.selector
+	}
 
 	argFilterMaps := program.MapBuilderProgram("argfilter_maps", load)
 	if state != nil && !kernels.MinKernelVersion("5.9") {
@@ -881,15 +869,14 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 	if err := state.InitKernelSelector(f.Selectors, f.Args, &kprobeEntry.actionArgs); err != nil {
 		return errFn(err)
 	}
-	kprobeEntry.loadArgs.selectors.entry = state
 
 	if f.Return {
-		state := selectors.NewKernelSelectorState(nil, in.selMaps)
 		if err := state.InitKernelReturnSelector(f.Selectors, f.ReturnArg, &kprobeEntry.actionArgs); err != nil {
 			return errFn(err)
 		}
-		kprobeEntry.loadArgs.selectors.retrn = state
 	}
+
+	kprobeEntry.loadArgs.selector = state
 
 	kprobeEntry.pendingEvents, err = lru.New[pendingEventKey, pendingEvent](4096)
 	if err != nil {
@@ -963,7 +950,7 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe,
 	if !kernels.MinKernelVersion("5.9") {
 		// Versions before 5.9 do not allow inner maps to have different sizes.
 		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-		matchBinariesPaths.SetInnerMaxEntries(kprobeEntry.loadArgs.selectors.entry.MatchBinariesPathsMaxEntries())
+		matchBinariesPaths.SetInnerMaxEntries(kprobeEntry.loadArgs.selector.MatchBinariesPathsMaxEntries())
 	}
 	maps = append(maps, matchBinariesPaths)
 
@@ -1081,21 +1068,13 @@ func createSingleKprobeSensor(ids []idtable.EntryID, has hasMaps) ([]*program.Pr
 	return progs, maps, nil
 }
 
-func getMapLoad(load *program.Program, kprobeEntry *genericKprobe, index uint32) []*program.MapLoad {
-	state := getProgramSelector(load, kprobeEntry)
-	if state == nil {
-		return []*program.MapLoad{}
-	}
-	return selectorsMaploads(state, index)
-}
-
 func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Program, verbose int) error {
 	gk, err := genericKprobeTableGet(id)
 	if err != nil {
 		return err
 	}
 
-	load.MapLoad = append(load.MapLoad, getMapLoad(load, gk, 0)...)
+	load.MapLoad = append(load.MapLoad, selectorsMaploads(gk.loadArgs.selector, 0)...)
 
 	var configData bytes.Buffer
 	binary.Write(&configData, binary.LittleEndian, gk.loadArgs.config)
@@ -1128,7 +1107,7 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir string, load *program.P
 			return err
 		}
 
-		load.MapLoad = append(load.MapLoad, getMapLoad(load, gk, uint32(index))...)
+		load.MapLoad = append(load.MapLoad, selectorsMaploads(gk.loadArgs.selector, uint32(index))...)
 
 		binary.Write(&bin_buf[index], binary.LittleEndian, gk.loadArgs.config)
 		config := &program.MapLoad{

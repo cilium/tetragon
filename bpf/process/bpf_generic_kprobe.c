@@ -116,7 +116,7 @@ generic_kprobe_filter_arg(void *ctx)
 __attribute__((section("kprobe"), used)) int
 generic_kprobe_actions(void *ctx)
 {
-	generic_actions(ctx, (struct bpf_map_def *)&kprobe_calls);
+	generic_actions(ctx, (struct bpf_map_def *)&kprobe_calls, true);
 	return 0;
 }
 

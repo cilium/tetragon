@@ -247,7 +247,7 @@ generic_tracepoint_arg(void *ctx)
 __attribute__((section("tracepoint"), used)) int
 generic_tracepoint_actions(void *ctx)
 {
-	generic_actions(ctx, (struct bpf_map_def *)&tp_calls);
+	generic_actions(ctx, (struct bpf_map_def *)&tp_calls, true);
 	return 0;
 }
 

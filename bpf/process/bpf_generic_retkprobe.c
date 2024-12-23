@@ -58,7 +58,7 @@ BPF_KRETPROBE(generic_retkprobe_filter_arg)
 __attribute__((section("kprobe"), used)) int
 BPF_KRETPROBE(generic_retkprobe_actions)
 {
-	generic_actions(ctx, (struct bpf_map_def *)&retkprobe_calls);
+	generic_actions(ctx, (struct bpf_map_def *)&retkprobe_calls, false);
 	return 0;
 }
 
