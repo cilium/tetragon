@@ -150,7 +150,7 @@ remove the BPF programs.
 
 Once the Tetragon starts, you can monitor events using `tetra`, the tetragon CLI:
 ```shell
-./tetra tetra getevents -o compact
+./tetra getevents -o compact
 ```
 
 Reading the `/tmp/tetragon` file with `cat`:
