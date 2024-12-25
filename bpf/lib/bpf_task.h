@@ -157,7 +157,7 @@ FUNC_INLINE struct execve_map_value *event_find_curr(__u32 *ppid, bool *walked)
 	__u32 pid;
 
 #pragma unroll
-	for (i = 0; i < 4; i++) {
+	for (i = 0; i < 8; i++) {
 		probe_read_kernel(&pid, sizeof(pid), _(&task->tgid));
 		value = execve_map_get_noinit(pid);
 		if (value && value->key.ktime != 0)
