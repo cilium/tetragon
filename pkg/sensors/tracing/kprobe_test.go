@@ -7013,7 +7013,19 @@ spec:
 		fmt.Printf("Failed to execute test binary: %s\n", err)
 	}
 
-	expected := strings.NewReader(` # HELP tetragon_missed_prog_probes_total The total number of Tetragon probe missed by program.
+	var expected *strings.Reader
+
+	if bpf.HasKprobeSession() {
+		expected = strings.NewReader(` # HELP tetragon_missed_prog_probes_total The total number of Tetragon probe missed by program.
+# TYPE tetragon_missed_prog_probes_total counter
+tetragon_missed_prog_probes_total{attach="acct_process",policy="__base__"} 0
+tetragon_missed_prog_probes_total{attach="kprobe_session (2 functions)",policy="syswritefollowfdpsswd"} 2
+tetragon_missed_prog_probes_total{attach="sched/sched_process_exec",policy="__base__"} 0
+tetragon_missed_prog_probes_total{attach="security_bprm_committing_creds",policy="__base__"} 0
+tetragon_missed_prog_probes_total{attach="wake_up_new_task",policy="__base__"} 0
+`)
+	} else {
+		expected = strings.NewReader(` # HELP tetragon_missed_prog_probes_total The total number of Tetragon probe missed by program.
 # TYPE tetragon_missed_prog_probes_total counter
 tetragon_missed_prog_probes_total{attach="acct_process",policy="__base__"} 0
 tetragon_missed_prog_probes_total{attach="kprobe_multi (2 functions)",policy="syswritefollowfdpsswd"} 1
@@ -7021,6 +7033,7 @@ tetragon_missed_prog_probes_total{attach="sched/sched_process_exec",policy="__ba
 tetragon_missed_prog_probes_total{attach="security_bprm_committing_creds",policy="__base__"} 0
 tetragon_missed_prog_probes_total{attach="wake_up_new_task",policy="__base__"} 0
 `)
+	}
 
 	assert.NoError(t, testutil.GatherAndCompare(metricsconfig.GetRegistry(), expected,
 		prometheus.BuildFQName(consts.MetricsNamespace, "", "missed_prog_probes_total")))
