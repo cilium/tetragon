@@ -64,6 +64,11 @@ for obj in "$TETRAGONDIR"/*.o; do
 		continue
 	fi
 
+	# Session kprobe support is still not widely around, skip the object
+	if [[ "$B" == bpf_session_* ]]; then
+		continue
+	fi
+
 	# Skip v6.1 objects check for kernel < 6.1
 	if [[ "$B" == *61.o && $(echo "$KERNEL < 6.1" | bc) == 1 ]]; then
 		continue
