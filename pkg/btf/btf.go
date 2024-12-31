@@ -191,6 +191,8 @@ func processMembers(
 	if t, ok := currentType.(*btf.Pointer); ok {
 		(*btfArgs)[i].IsPointer = uint16(1)
 		currentType = t.Target
+	} else if _, ok := currentType.(*btf.Int); ok {
+		(*btfArgs)[i].IsPointer = uint16(1)
 	}
 	return &currentType, nil
 }
