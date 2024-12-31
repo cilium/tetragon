@@ -259,7 +259,7 @@ event_execve(struct trace_event_raw_sched_process_exec *ctx)
 	 */
 	p->pid = pid >> 32;
 	p->tid = (__u32)pid;
-	p->nspid = get_task_pid_vnr();
+	p->nspid = get_task_pid_vnr_curr();
 	p->ktime = ktime_get_ns();
 	p->size = offsetof(struct msg_process, args);
 	p->auid = get_auid();

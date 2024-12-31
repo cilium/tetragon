@@ -56,7 +56,7 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 	curr->flags = EVENT_COMMON_FLAG_CLONE;
 	curr->key.pid = tgid;
 	curr->key.ktime = ktime_get_ns();
-	curr->nspid = get_task_pid_vnr();
+	curr->nspid = get_task_pid_vnr_by_task(task);
 	memcpy(&curr->bin, &parent->bin, sizeof(curr->bin));
 	curr->pkey = parent->key;
 
