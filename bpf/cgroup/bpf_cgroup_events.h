@@ -41,7 +41,7 @@ send_cgrp_event(struct bpf_raw_tracepoint_args *ctx,
 	}
 	msg->cgrp_op = op;
 	msg->pid = pid;
-	msg->nspid = get_task_pid_vnr();
+	msg->nspid = get_task_pid_vnr_curr();
 	msg->cgrpid = cgrpid;
 	/* It is same as we are not tracking nested cgroups */
 	msg->cgrpid_tracker = cgrpid;
