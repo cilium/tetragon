@@ -33,7 +33,7 @@ github.com/bombsimon/logrusr/v4
 # github.com/cespare/xxhash/v2 v2.3.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
-# github.com/cilium/cilium v1.17.0-pre.3
+# github.com/cilium/cilium v1.17.0-rc.0
 ## explicit; go 1.23.0
 github.com/cilium/cilium/api/v1/flow
 github.com/cilium/cilium/api/v1/models
@@ -41,6 +41,7 @@ github.com/cilium/cilium/pkg/alignchecker
 github.com/cilium/cilium/pkg/cidr
 github.com/cilium/cilium/pkg/clustermesh/types
 github.com/cilium/cilium/pkg/command
+github.com/cilium/cilium/pkg/container/cache
 github.com/cilium/cilium/pkg/datapath/linux/safenetlink
 github.com/cilium/cilium/pkg/defaults
 github.com/cilium/cilium/pkg/hubble/api/v1
@@ -136,7 +137,7 @@ github.com/deckarep/golang-set/v2
 # github.com/distribution/reference v0.6.0
 ## explicit; go 1.20
 github.com/distribution/reference
-# github.com/docker/docker v27.3.1+incompatible
+# github.com/docker/docker v27.4.0+incompatible
 ## explicit
 github.com/docker/docker/api
 github.com/docker/docker/api/types
@@ -306,8 +307,8 @@ github.com/gorilla/websocket
 # github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.1
 ## explicit; go 1.19
 github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus
-# github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.1.0
-## explicit; go 1.19
+# github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.2.0
+## explicit; go 1.21
 github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors
 # github.com/hashicorp/golang-lru/v2 v2.0.7
 ## explicit; go 1.18
@@ -451,7 +452,7 @@ github.com/prometheus/client_golang/prometheus/testutil/promlint/validations
 # github.com/prometheus/client_model v0.6.1
 ## explicit; go 1.19
 github.com/prometheus/client_model/go
-# github.com/prometheus/common v0.60.1
+# github.com/prometheus/common v0.61.0
 ## explicit; go 1.21
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/model
@@ -621,7 +622,7 @@ golang.org/x/net/internal/timeseries
 golang.org/x/net/proxy
 golang.org/x/net/trace
 golang.org/x/net/websocket
-# golang.org/x/oauth2 v0.23.0
+# golang.org/x/oauth2 v0.24.0
 ## explicit; go 1.18
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
@@ -666,7 +667,7 @@ golang.org/x/text/unicode/norm
 # golang.org/x/time v0.8.0
 ## explicit; go 1.18
 golang.org/x/time/rate
-# golang.org/x/tools v0.27.0
+# golang.org/x/tools v0.28.0
 ## explicit; go 1.22.0
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/go/gcexportdata
@@ -683,6 +684,7 @@ golang.org/x/tools/internal/gcimporter
 golang.org/x/tools/internal/gocommand
 golang.org/x/tools/internal/gopathwalk
 golang.org/x/tools/internal/imports
+golang.org/x/tools/internal/modindex
 golang.org/x/tools/internal/packagesinternal
 golang.org/x/tools/internal/pkgbits
 golang.org/x/tools/internal/stdlib
@@ -698,7 +700,7 @@ google.golang.org/genproto/protobuf/field_mask
 # google.golang.org/genproto/googleapis/api v0.0.0-20241104194629-dd2ea8efbc28
 ## explicit; go 1.21
 google.golang.org/genproto/googleapis/api/expr/v1alpha1
-# google.golang.org/genproto/googleapis/rpc v0.0.0-20241118233622-e639e219e697
+# google.golang.org/genproto/googleapis/rpc v0.0.0-20241209162323-e6fa225c2576
 ## explicit; go 1.21
 google.golang.org/genproto/googleapis/rpc/status
 # google.golang.org/grpc v1.69.2
@@ -766,7 +768,7 @@ google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
-# google.golang.org/protobuf v1.36.0
+# google.golang.org/protobuf v1.36.1
 ## explicit; go 1.21
 google.golang.org/protobuf/compiler/protogen
 google.golang.org/protobuf/encoding/protodelim
@@ -1420,7 +1422,7 @@ k8s.io/kube-openapi/pkg/validation/spec
 k8s.io/kube-openapi/pkg/validation/strfmt
 k8s.io/kube-openapi/pkg/validation/strfmt/bson
 k8s.io/kube-openapi/pkg/validation/validate
-# k8s.io/utils v0.0.0-20241104163129-6fe5fd82f078
+# k8s.io/utils v0.0.0-20241210054802-24370beab758
 ## explicit; go 1.18
 k8s.io/utils/buffer
 k8s.io/utils/clock
