@@ -342,15 +342,19 @@ selector_match(__u32 *f, struct selector_filter *sel,
 four:
 	res4 = process_filter(sel, f, enter, &msg->ns, &msg->caps);
 	index = next_pid_value(index, f, ty);
+	sel->index = index;
 three:
 	res3 = process_filter(sel, f, enter, &msg->ns, &msg->caps);
 	index = next_pid_value(index, f, ty);
+	sel->index = index;
 two:
 	res2 = process_filter(sel, f, enter, &msg->ns, &msg->caps);
 	index = next_pid_value(index, f, ty);
+	sel->index = index;
 one:
 	res1 = process_filter(sel, f, enter, &msg->ns, &msg->caps);
 	index = next_pid_value(index, f, ty);
+	sel->index = index;
 
 	if (ty == op_filter_notin)
 		return res1 & res2 & res3 & res4;
