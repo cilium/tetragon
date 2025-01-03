@@ -303,4 +303,9 @@ static int BPF_FUNC(seq_write, struct seq_file *m, const void *data, uint32_t le
 #endif
 #endif
 
+#define __ksym __attribute__((section(".ksyms")))
+
+extern bool bpf_session_is_return(void) __ksym;
+extern __u64 *bpf_session_cookie(void) __ksym;
+
 #endif /* __BPF_API__ */

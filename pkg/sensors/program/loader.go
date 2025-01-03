@@ -509,6 +509,7 @@ func MultiKprobeAttach(load *Program, bpfDir string) AttachFunc {
 
 			opts := link.KprobeMultiOptions{
 				Symbols: data.Overrides,
+				Session: data.Session,
 			}
 
 			load.unloaderOverride, err = multiKprobeAttach(load, progOverride, progOverrideSpec, opts, bpfDir, "override")
@@ -520,6 +521,7 @@ func MultiKprobeAttach(load *Program, bpfDir string) AttachFunc {
 		opts := link.KprobeMultiOptions{
 			Symbols: data.Symbols,
 			Cookies: data.Cookies,
+			Session: data.Session,
 		}
 
 		return multiKprobeAttach(load, prog, spec, opts, bpfDir)
