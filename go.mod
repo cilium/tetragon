@@ -39,7 +39,7 @@ require (
 	github.com/sryoya/protorand v0.0.0-20240429201223-e7440656b2a4
 	github.com/stretchr/testify v1.10.0
 	github.com/tidwall/gjson v1.18.0
-	github.com/vishvananda/netlink v1.3.1-0.20241022031324-976bd8de7d81
+	github.com/vishvananda/netlink v1.3.1-0.20241227191253-26ee0e2abe2d
 	go.uber.org/atomic v1.11.0
 	go.uber.org/multierr v1.11.0
 	golang.org/x/sync v0.10.0
