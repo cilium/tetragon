@@ -77,8 +77,9 @@ type config struct {
 
 	ReleasePinned bool
 
-	EnablePolicyFilter      bool
-	EnablePolicyFilterDebug bool
+	EnablePolicyFilter           bool
+	EnablePolicyFilterReverseMap bool
+	EnablePolicyFilterDebug      bool
 
 	EnablePidSetFilter bool
 

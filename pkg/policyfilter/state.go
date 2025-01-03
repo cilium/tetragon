@@ -74,6 +74,9 @@ const (
 	// should be large enough to accommodate the number of containers
 	// running in a system.
 	polMapSize = 32768
+
+	// same as POLICY_FILTER_MAX_POLICIES in policy_filter.h
+	polMaxPolicies = 128
 )
 
 type PolicyID uint32
@@ -266,17 +269,19 @@ type state struct {
 // allocated resources (namely the bpf map).
 //
 //revive:disable:unexported-return
-func New() (*state, error) {
+func New(enableReverseMap bool) (*state, error) {
 	log := logger.GetLogger().WithField("subsystem", "policy-filter")
 	return newState(
 		log,
 		&cgfsFinder{fsscan.New(), log},
+		enableReverseMap,
 	)
 }
 
 func newState(
 	log logrus.FieldLogger,
 	cgidFinder cgidFinder,
+	enableReverseMap bool,
 ) (*state, error) {
 	var err error
 	ret := &state{
@@ -285,7 +290,7 @@ func newState(
 		DebugLogger: logger.NewDebugLogger(log, option.Config.EnablePolicyFilterDebug),
 	}
 
-	ret.pfMap, err = newPfMap()
+	ret.pfMap, err = newPfMap(enableReverseMap)
 	if err != nil {
 		return nil, err
 	}
@@ -492,14 +497,17 @@ func (m *state) DelPolicy(polID PolicyID) error {
 	defer m.mu.Unlock()
 	policy := m.delPolicy(polID)
 	if policy != nil {
-		policy.polMap.Close()
+		policy.polMap.Inner.Close()
 	} else {
 		m.log.WithField("policy-id", polID).Warn("DelPolicy: policy internal map not found")
 	}
 
-	if err := m.pfMap.Delete(polID); err != nil {
+	if err := m.pfMap.dir.Delete(polID); err != nil {
 		m.log.WithField("policy-id", polID).Warn("DelPolicy: failed to remove policy from external map")
 	}
+
+	// update reverse map
+	m.pfMap.deletePolicyIdInReverse(polID)
 
 	for i := range m.pods {
 		pod := &m.pods[i]
@@ -648,6 +656,14 @@ func (m *state) addPodContainers(pod *podInfo, containerIDs []string,
 				"pod-id":     pod.id,
 				"cgroup-ids": matchingCgIDs,
 			}).Warn("failed to update policy map")
+		} else {
+			if err := pol.polMap.addCgroupIDsReverse(pol.id, matchingCgIDs); err != nil {
+				m.log.WithError(err).WithFields(logrus.Fields{
+					"policy-id":  pol.id,
+					"pod-id":     pod.id,
+					"cgroup-ids": matchingCgIDs,
+				}).Warn("failed to update reverse policy map")
+			}
 		}
 	}
 }
@@ -722,7 +738,7 @@ func (m *state) delPodCgroupIDsFromPolicyMaps(pod *podInfo, containers []contain
 		// try to find containers in the pod matching this policy
 		// this way, we only remove containers that are actually present in the policy
 		cgroupIDs := pol.matchingContainersCgroupIDs(containers)
-		if err := pol.polMap.delCgroupIDs(cgroupIDs); err != nil {
+		if err := pol.polMap.delCgroupIDs(pol.id, cgroupIDs); err != nil {
 			// NB: depending on the error, we might want to schedule some retries here
 			m.log.WithError(err).WithFields(logrus.Fields{
 				"policy-id":  pol.id,
@@ -824,12 +840,22 @@ func (m *state) applyPodPolicyDiff(pod *podInfo, polDiff *policiesDiffRes) {
 				"cgroup-ids": cgroupIDs,
 				"reason":     "labels change caused policy to match",
 			}).Warn("failed to update policy map")
+		} else {
+			// update reverse map if addCgroupIDs succeeds
+			if err := addPol.polMap.addCgroupIDsReverse(addPol.id, cgroupIDs); err != nil {
+				m.log.WithError(err).WithFields(logrus.Fields{
+					"policy-id":  addPol.id,
+					"pod-id":     pod.id,
+					"cgroup-ids": cgroupIDs,
+					"reason":     "labels change caused policy to match",
+				}).Warn("failed to update reverse policy map")
+			}
 		}
 	}
 
 	for _, delPol := range polDiff.deletedPolicies {
 		cgroupIDs = delPol.matchingContainersCgroupIDs(pod.containers)
-		if err := delPol.polMap.delCgroupIDs(cgroupIDs); err != nil {
+		if err := delPol.polMap.delCgroupIDs(delPol.id, cgroupIDs); err != nil {
 			m.log.WithError(err).WithFields(logrus.Fields{
 				"policy-id":  delPol.id,
 				"pod-id":     pod.id,
