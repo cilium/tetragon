@@ -202,8 +202,7 @@ FUNC_INLINE long cwd_read(struct cwd_read_data *data)
 			probe_read(&data->dentry, sizeof(data->dentry),
 				   _(&mnt->mnt_mountpoint));
 			data->mnt = parent;
-			probe_read(&data->vfsmnt, sizeof(data->vfsmnt),
-				   _(&mnt->mnt));
+			data->vfsmnt = &parent->mnt;
 			return 0;
 		}
 		// resolved all path components successfully
