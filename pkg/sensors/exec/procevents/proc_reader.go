@@ -335,6 +335,15 @@ func writeExecveMap(procs []procs) {
 			panic(err)
 		}
 	}
+
+	entries, ok := base.ExecveMap.GetMaxEntries()
+	if !ok {
+		logger.GetLogger().Warnf("Failed to get number of execve_map entries, using default.")
+		entries = base.ExecveMapMaxEntries
+	}
+	logger.GetLogger().Infof("Maximum execve_map entries %d, need to add %d.", entries, len(procs))
+	i := uint32(0)
+
 	for _, p := range procs {
 		k := &execvemap.ExecveKey{Pid: p.pid}
 		v := &execvemap.ExecveValue{}
@@ -365,6 +374,11 @@ func writeExecveMap(procs []procs) {
 		if err != nil {
 			logger.GetLogger().WithField("value", v).WithError(err).Warn("failed to put value in execve_map")
 		}
+
+		i++
+		if i == entries {
+			break
+		}
 	}
 	// In order for kprobe events from kernel ctx to not abort we need the
 	// execve lookup to map to a valid entry. So to simplify the kernel side
@@ -381,7 +395,7 @@ func writeExecveMap(procs []procs) {
 	})
 	m.Close()
 
-	updateExecveMapStats(int64(len(procs)))
+	updateExecveMapStats(int64(entries))
 }
 
 func pushEvents(ps []procs) {
