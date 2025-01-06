@@ -224,6 +224,10 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		log.Fatalf("Can't specify --rb-size and --rb-size-total together")
 	}
 
+	if option.Config.ExecveMapEntries != 0 && len(option.Config.ExecveMapSize) != 0 {
+		log.Fatalf("Can't specify --execve-map-entries and --execve-map-size together")
+	}
+
 	// enable extra programs/maps loading debug output
 	if logger.DefaultLogger.IsLevelEnabled(logrus.DebugLevel) {
 		program.KeepCollection = true

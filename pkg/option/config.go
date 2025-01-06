@@ -110,6 +110,9 @@ type config struct {
 	EventCacheRetryDelay int
 
 	CompatibilitySyscall64SizeType bool
+
+	ExecveMapEntries int
+	ExecveMapSize    string
 }
 
 var (
