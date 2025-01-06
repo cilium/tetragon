@@ -7,14 +7,18 @@ import (
 	"log"
 	"sync"
 	"testing"
+	"unsafe"
 
 	"github.com/cilium/tetragon/pkg/errmetrics"
 	"github.com/cilium/tetragon/pkg/ksyms"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/mbset"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/exec/config"
+	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
 	"github.com/cilium/tetragon/pkg/sensors/program"
+	"github.com/cilium/tetragon/pkg/strutils"
 )
 
 const (
@@ -77,6 +81,16 @@ var (
 	ErrMetricsMap = program.MapBuilder(errmetrics.MapName, Execve)
 )
 
+func parseExecveMapSize(str string) (int, error) {
+	// set entries based on size
+	size, err := strutils.ParseSize(str)
+	if err != nil {
+		return 0, err
+	}
+	val := size / int(unsafe.Sizeof(execvemap.ExecveValue{}))
+	return val, nil
+}
+
 func setupSensor() {
 	// exit program function
 	ks, err := ksyms.KernelSymbols()
@@ -97,7 +111,27 @@ func setupSensor() {
 	}
 	logger.GetLogger().Infof("Exit probe on %s", Exit.Attach)
 
-	ExecveMap.SetMaxEntries(execveMapMaxEntries)
+	// Setup execve_map max entries
+	if option.Config.ExecveMapEntries != 0 && len(option.Config.ExecveMapSize) != 0 {
+		log.Fatal("Both ExecveMapEntries and ExecveMapSize set, confused..")
+	}
+
+	var entries int
+
+	if option.Config.ExecveMapEntries != 0 {
+		entries = option.Config.ExecveMapEntries
+	} else if len(option.Config.ExecveMapSize) != 0 {
+		if entries, err = parseExecveMapSize(option.Config.ExecveMapSize); err != nil {
+			log.Fatal("Failed to parse ExecveMapSize value")
+		}
+	} else {
+		entries = execveMapMaxEntries
+	}
+	ExecveMap.SetMaxEntries(entries)
+
+	logger.GetLogger().
+		WithField("size", strutils.SizeWithSuffix(entries*int(unsafe.Sizeof(execvemap.ExecveValue{})))).
+		Infof("Set execve_map entries %d", entries)
 }
 
 func GetExecveMap() *program.Map {
