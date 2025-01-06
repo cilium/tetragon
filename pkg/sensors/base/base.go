@@ -5,20 +5,27 @@ package base
 
 import (
 	"log"
+	"os"
+	"strconv"
+	"strings"
 	"sync"
 	"testing"
+	"unsafe"
 
 	"github.com/cilium/tetragon/pkg/errmetrics"
 	"github.com/cilium/tetragon/pkg/ksyms"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/mbset"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/exec/config"
+	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
 	"github.com/cilium/tetragon/pkg/sensors/program"
+	"github.com/cilium/tetragon/pkg/strutils"
 )
 
 const (
-	execveMapMaxEntries = 32768
+	ExecveMapMaxEntries = 32768
 )
 
 var (
@@ -77,6 +84,43 @@ var (
 	ErrMetricsMap = program.MapBuilder(errmetrics.MapName, Execve)
 )
 
+func readThreadsMax(path string) (int64, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return 0, err
+	}
+	str := strings.TrimRight(string(data), "\n")
+	return strconv.ParseInt(str, 10, 32)
+}
+
+func GetExecveMapEntries(str string) int {
+	entry := int(unsafe.Sizeof(execvemap.ExecveValue{}))
+
+	if len(str) == 0 {
+		return ExecveMapMaxEntries
+	}
+	// pure number of entries
+	if val, err := strconv.Atoi(str); err == nil {
+		return val
+	}
+	// follow threads-max entries
+	if str == "max" {
+		if val, err := readThreadsMax("/proc/sys/kernel/threads-max"); err == nil {
+			return int(val)
+		}
+		logger.GetLogger().Warn("Failed to read /proc/sys/kernel/threads-max file, falling back to default")
+		return ExecveMapMaxEntries
+	}
+	// set entries based on size
+	size, err := strutils.ParseSize(str)
+	if err != nil {
+		logger.GetLogger().Warn("Failed to parse --execve-map-max value, falling back to default")
+		return ExecveMapMaxEntries
+	}
+	val := size / entry
+	return val
+}
+
 func setupSensor() {
 	// exit program function
 	ks, err := ksyms.KernelSymbols()
@@ -97,7 +141,13 @@ func setupSensor() {
 	}
 	logger.GetLogger().Infof("Exit probe on %s", Exit.Attach)
 
-	ExecveMap.SetMaxEntries(execveMapMaxEntries)
+	entries := GetExecveMapEntries(option.Config.ExecveMapEntries)
+	ExecveMap.SetMaxEntries(entries)
+
+	logger.GetLogger().
+		WithField("size", strutils.SizeWithSuffix(entries*int(unsafe.Sizeof(execvemap.ExecveValue{})))).
+		WithField("config", option.Config.ExecveMapEntries).
+		Infof("Set execve_map entries %d", entries)
 }
 
 func GetExecveMap() *program.Map {
