@@ -61,9 +61,82 @@ weight = 1
 
 [[menu.main]]
     name = "GitHub"
-    weight = 50
+    weight = 60
     url = "https://github.com/cilium/tetragon/"
     pre = "<i class=\"fa-brands fa-github\"></i>"
+
+[[menu.navbar_main]]
+    name = "Documentation"
+    weight = 10
+    url = "/docs"
+
+[[menu.navbar_main]]
+    name = "Community"
+    weight = 20
+    url = "https://cilium.io/get-involved/"
+
+[[menu.navbar_main]]
+    name = "Getting Started"
+    weight = 30
+    url = "/docs/getting-started"
+
+[[menu.navbar_main]]
+    name = "Enterprise"
+    weight = 40
+    url = "/enterprise"
+
+[[menu.navbar_main]]
+    name = "GitHub"
+    weight = 60
+    url = "https://github.com/cilium/tetragon/"
+    pre = "<i class=\"fa-brands fa-github\"></i>"
+
+[[menu.navbar_main]]
+    name = "Use Cases"
+    weight = 50
+    identifier = "use-cases"
+
+[[menu.navbar_main]]
+    name = "Capabilities Monitoring"
+    parent = "use-cases"
+    url = "/use-cases/capabilities-monitoring"
+    weight = 1
+
+[[menu.navbar_main]]
+    name = 'Execution Monitoring'
+    parent = 'use-cases'
+    url = '/use-cases/execution-monitoring'
+    weight = 2
+
+[[menu.navbar_main]]
+    name = 'File Integrity Monitoring'
+    parent = 'use-cases'
+    url = '/use-cases/file-integrity-monitoring'
+    weight = 3
+
+[[menu.navbar_main]]
+    name = 'Kubernetes Identity Aware Policies'
+    parent = 'use-cases'
+    url = '/use-cases/kubernetes-identity-aware-policies'
+    weight = 4
+
+[[menu.navbar_main]]
+    name = 'Network Observability'
+    parent = 'use-cases'
+    url = '/use-cases/network-observability'
+    weight = 5
+
+[[menu.navbar_main]]
+    name = 'Operating System Integrity'
+    parent = 'use-cases'
+    url = '/use-cases/operating-system-integrity'
+    weight = 6
+
+[[menu.navbar_main]]
+    name = 'Privileges Monitoring'
+    parent = 'use-cases'
+    url = '/use-cases/privileges-monitoring'
+    weight = 7
 
 
 #######################################
