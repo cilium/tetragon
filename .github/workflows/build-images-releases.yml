@@ -184,7 +184,7 @@ jobs:
           # We use the native arch build
           - os: ubuntu-22.04
             arch: amd64
-          - os: buildjet-2vcpu-ubuntu-2204-arm
+          - os: ubuntu-22.04-arm64
             arch: arm64
     steps:
       # https://github.com/docker/setup-buildx-action
