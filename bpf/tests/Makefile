@@ -1,6 +1,6 @@
 include ../Makefile.defs
 
-TESTS = prepend_name_test.o
+TESTS = prepend_name_test.o pid_match_test.o
 
 OBJSDIR  := objs/
 OBJS := $(addprefix $(OBJSDIR),$(TESTS))
