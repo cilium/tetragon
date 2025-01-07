@@ -22,16 +22,6 @@
   }
 
   @media screen and (max-width: 991.98px) {
-    .td-navbar-nav-scroll {
-      height: auto;
-    }
-    .navbar-nav {
-      padding-bottom: 0;
-      overflow: hidden;
-    }
-  }
-
-  @media screen and (max-width: 767px) {
     height: auto;
     padding: 8px 0;
 
@@ -44,6 +34,7 @@
         display: flex;
         justify-content: space-evenly;
         column-gap: 12px;
+        padding-bottom: 0;
         overflow-x: auto;
 
         -ms-overflow-style: none;
@@ -53,13 +44,17 @@
           display: none;
         }
       }
+
+      .nav-item {
+        flex-shrink: 0;
+      }
     }
   }
 
   .navbar-brand svg {
     height: 48px;
 
-    @media screen and (max-width: 767px) {
+    @media screen and (max-width: 991.98px) {
       height: 36px;
     }
   }
@@ -91,13 +86,67 @@
 
       &:hover,
       &:focus {
-        color: #5C6D70;
-        border-color: #5C6D70;
+        color: #5c6d70;
+        border-color: #5c6d70;
       }
 
-      @media screen and (max-width: 767px) {
+      @media screen and (max-width: 991.98px) {
         font-size: 14px;
         padding: 14px 2px;
+      }
+    }
+
+    .dropdown {
+      position: relative;
+
+      .dropdown-toggle::after {
+        position: relative;
+        top: 1px;
+      }
+
+      .dropdown-menu {
+        position: absolute;
+        top: 4px !important;
+        min-width: 300px;
+        padding: 4px 16px;
+        background: #fff;
+        border: 1px solid #e0e6f0;
+
+        .td-home & {
+          background-color: #f7fdfd;
+        }
+      }
+
+      .dropdown-item {
+        padding: 12px 0;
+        color: #253737;
+        font-size: 15px;
+        line-height: 100%;
+
+        &:hover,
+        &:focus {
+          color: #5c6d70;
+          background: transparent;
+        }
+      }
+
+      @media (max-width: 991.97px) {
+        position: static;
+
+        .dropdown-menu {
+          left: 50% !important;
+          transform: translate3d(-50%, 98px, 0px) !important;
+          width: calc(100% - 16px);
+          min-width: 0;
+          margin-top: 0;
+          z-index: 1000;
+          max-height: calc(100vh - 100%);
+          overflow-y: auto;
+
+          @media (max-width: 767.98px) {
+            transform: translate3d(-50%, 106px, 0px) !important;
+          }
+        }
       }
     }
   }
