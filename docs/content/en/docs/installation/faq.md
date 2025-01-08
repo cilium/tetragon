@@ -63,6 +63,14 @@ CGROUP_FAVOR_DYNMODS=y  (optional)  >= 6.0
   association issues.
 ```
 
+If the system is still on the old Cgroupv1 interface and the running kernel version
+is >= 6.11 then these kernel config options are required:
+```
+# CGROUPv1 Process tracking on kernels >= 6.11
+CONFIG_MEMCG_V1=y
+CONFIG_CPUSETS_V1=y
+```
+
 At runtime, to probe if your kernel has sufficient features turned on, you can
 run `tetra` with root privileges with the `probe` command:
 
