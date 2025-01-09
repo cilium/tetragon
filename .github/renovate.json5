@@ -470,6 +470,14 @@
         "major",
       ],
     },
+    {
+      // Disable digest updates on Docker images except for the base image of
+      // our build that needs to have all deps updated
+      "enabled": false,
+      "matchManagers": ["dockerfile"],
+      "matchUpdateTypes": ["digest"],
+      "matchPackageNames": ["!docker.io/library/alpine"]
+    },
   ],
   // Those regexes manage version strings in variousfiles, similar to the
   // examples shown here: https://docs.renovatebot.com/modules/manager/regex/#advanced-capture
