@@ -100,7 +100,7 @@ generic_kprobe_process_filter(void *ctx)
 	if (ret == PFILTER_CONTINUE)
 		tail_call(ctx, &kprobe_calls, TAIL_CALL_FILTER);
 	else if (ret == PFILTER_ACCEPT)
-		tail_call(ctx, &kprobe_calls, 0);
+		tail_call(ctx, &kprobe_calls, TAIL_CALL_SETUP);
 	/* If filter does not accept drop it. Ideally we would
 	 * log error codes for later review, TBD.
 	 */

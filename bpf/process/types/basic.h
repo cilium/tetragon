@@ -117,6 +117,7 @@ enum {
 };
 
 enum {
+	TAIL_CALL_SETUP = 0,
 	TAIL_CALL_PROCESS = 1,
 	TAIL_CALL_FILTER = 2,
 	TAIL_CALL_ARGS = 3,
