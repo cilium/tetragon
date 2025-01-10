@@ -63,6 +63,17 @@ generic_start_process_filter(void *ctx, struct bpf_map_def *calls)
 }
 
 FUNC_INLINE int
+extract_arg_depth(u32 i, struct extract_arg_data *data)
+{
+	if (i >= MAX_BTF_ARG_DEPTH || !data->btf_config[i].is_initialized)
+		return 1;
+	*data->arg = *data->arg + data->btf_config[i].offset;
+	if (data->btf_config[i].is_pointer)
+		probe_read((void *)data->arg, sizeof(char *), (void *)*data->arg);
+	return 0;
+}
+
+FUNC_INLINE int
 generic_process_event(void *ctx, struct bpf_map_def *tailcals)
 {
 	struct msg_generic_kprobe *e;
@@ -70,6 +81,9 @@ generic_process_event(void *ctx, struct bpf_map_def *tailcals)
 	int index, zero = 0;
 	unsigned long a;
 	long ty, total;
+#ifdef __LARGE_BPF_PROG
+	struct config_btf_arg *btf_config;
+#endif /* __LARGE_BPF_PROG */
 
 	e = map_lookup_elem(&process_call_heap, &zero);
 	if (!e)
@@ -86,6 +100,25 @@ generic_process_event(void *ctx, struct bpf_map_def *tailcals)
 
 	a = (&e->a0)[index];
 	total = e->common.size;
+
+#ifdef __LARGE_BPF_PROG
+	btf_config = config->btf_arg[index];
+	if (index < EVENT_CONFIG_MAX_ARG && btf_config->is_initialized) {
+		struct extract_arg_data extract_data = {
+			.btf_config = btf_config,
+			.arg = &a,
+		};
+#ifndef __V61_BPF_PROG
+#pragma unroll
+		for (int i = 0; i < MAX_BTF_ARG_DEPTH; ++i) {
+			if (extract_arg_depth(i, &extract_data))
+				break;
+		}
+#else
+		loop(MAX_BTF_ARG_DEPTH, extract_arg_depth, &extract_data, 0);
+#endif /* __V61_BPF_PROG */
+	}
+#endif /* __LARGE_BPF_PROG */
 
 	/* Read out args1-5 */
 	ty = (&config->arg0)[index];
