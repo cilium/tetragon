@@ -250,7 +250,7 @@ func fmodretAttachOverride(load *Program, bpfDir string,
 		return fmt.Errorf("failed to clone generic_fmodret_override program: %w", err)
 	}
 
-	pinPath := filepath.Join(bpfDir, fmt.Sprint(load.PinPath, "-override"))
+	pinPath := filepath.Join(bpfDir, filepath.Join(load.PinPath, "prog_override"))
 
 	if err := prog.Pin(pinPath); err != nil {
 		return fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
@@ -501,7 +501,7 @@ func MultiKprobeAttach(load *Program, bpfDir string) AttachFunc {
 				return nil, fmt.Errorf("failed to clone program '%s': %w", load.Label, err)
 			}
 
-			pinPath := filepath.Join(bpfDir, fmt.Sprint(load.PinPath, "-override"))
+			pinPath := filepath.Join(bpfDir, filepath.Join(load.PinPath, "prog_override"))
 
 			if err := progOverride.Pin(pinPath); err != nil {
 				return nil, fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
