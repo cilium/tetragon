@@ -1543,11 +1543,9 @@ struct {
 		});
 } tg_mb_paths SEC(".maps");
 
-FUNC_INLINE int match_binaries(__u32 selidx)
+FUNC_INLINE int match_binaries(__u32 selidx, struct execve_map_value *current)
 {
-	struct execve_map_value *current;
-	__u32 ppid;
-	bool walker, match = 0;
+	bool match = 0;
 	void *path_map;
 	__u8 *found_key;
 #ifdef __LARGE_BPF_PROG
@@ -1567,12 +1565,6 @@ FUNC_INLINE int match_binaries(__u32 selidx)
 		if (selector_options->op == op_filter_none)
 			return 1; // matchBinaries selector is empty <=> match
 
-		current = event_find_curr(&ppid, &walker);
-		if (!current) {
-			// this should not happen, it means that the process was missed when
-			// scanning /proc for process that started before and after tetragon
-			return 0;
-		}
 		if (current->bin.path_length < 0) {
 			// something wrong happened when copying the filename to execve_map
 			return 0;
