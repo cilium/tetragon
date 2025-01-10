@@ -558,59 +558,57 @@ FUNC_INLINE int generic_retkprobe(void *ctx, struct bpf_map_def *calls, unsigned
 // msg_generic_hdr structure.
 FUNC_INLINE int generic_process_filter(void)
 {
+	int selectors, pass, curr, zero = 0;
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *msg;
 	struct msg_execve_key *current;
 	struct msg_selector_data *sel;
-	int curr, zero = 0;
 	bool walker = 0;
-	__u32 ppid;
+	__u32 ppid, *f;
 
 	msg = map_lookup_elem(&process_call_heap, &zero);
 	if (!msg)
 		return 0;
 
 	enter = event_find_curr(&ppid, &walker);
-	if (enter) {
-		int selectors, pass;
-		__u32 *f = map_lookup_elem(&filter_map, &msg->idx);
+	if (!enter)
+		return PFILTER_CURR_NOT_FOUND;
 
-		if (!f)
-			return PFILTER_ERROR;
+	f = map_lookup_elem(&filter_map, &msg->idx);
+	if (!f)
+		return PFILTER_ERROR;
 
-		sel = &msg->sel;
-		current = &msg->current;
+	sel = &msg->sel;
+	current = &msg->current;
 
-		curr = sel->curr;
-		if (curr > MAX_SELECTORS)
-			return process_filter_done(sel, enter, current);
+	curr = sel->curr;
+	if (curr > MAX_SELECTORS)
+		return process_filter_done(sel, enter, current);
 
-		selectors = f[0];
-		/* If no selectors accept process */
-		if (!selectors) {
-			sel->pass = true;
-			return process_filter_done(sel, enter, current);
-		}
-
-		/* If we get here with reference to uninitialized selector drop */
-		if (selectors <= curr)
-			return process_filter_done(sel, enter, current);
-
-		pass = selector_process_filter(f, curr, enter, msg);
-		if (pass) {
-			/* Verify lost that msg is not null here so recheck */
-			asm volatile("%[curr] &= 0x1f;\n"
-				     : [curr] "+r"(curr));
-			sel->active[curr] = true;
-			sel->active[SELECTORS_ACTIVE] = true;
-			sel->pass |= true;
-		}
-		sel->curr++;
-		if (sel->curr > selectors)
-			return process_filter_done(sel, enter, current);
-		return PFILTER_CONTINUE; /* will iterate to the next selector */
+	selectors = f[0];
+	/* If no selectors accept process */
+	if (!selectors) {
+		sel->pass = true;
+		return process_filter_done(sel, enter, current);
 	}
-	return PFILTER_CURR_NOT_FOUND;
+
+	/* If we get here with reference to uninitialized selector drop */
+	if (selectors <= curr)
+		return process_filter_done(sel, enter, current);
+
+	pass = selector_process_filter(f, curr, enter, msg);
+	if (pass) {
+		/* Verify lost that msg is not null here so recheck */
+		asm volatile("%[curr] &= 0x1f;\n"
+			     : [curr] "+r"(curr));
+		sel->active[curr] = true;
+		sel->active[SELECTORS_ACTIVE] = true;
+		sel->pass |= true;
+	}
+	sel->curr++;
+	if (sel->curr > selectors)
+		return process_filter_done(sel, enter, current);
+	return PFILTER_CONTINUE; /* will iterate to the next selector */
 }
 
 FUNC_INLINE int filter_args(struct msg_generic_kprobe *e, int selidx, bool is_entry)
