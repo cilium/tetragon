@@ -18,13 +18,13 @@ jobs:
       issues: write
     steps:
       - name: Checkout
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0         # Fetch all history for .GitInfo and .Lastmod
 
       - name: Links Checker
         id: lychee
-        uses: lycheeverse/lychee-action@7cd0af4c74a61395d455af97419279d86aafaede # v2.0.2
+        uses: lycheeverse/lychee-action@f796c8b7d468feb9b8c0a46da3fac0af6874d374 # v2.2.0
         with:
           args: --config .github/lychee.toml --base https://tetragon.io docs/content README.md
 
@@ -39,7 +39,7 @@ jobs:
 
       - name: Create or update issue with report
         if: env.lychee_exit_code != 0
-        uses: peter-evans/create-issue-from-file@24452a72d85239eacf1468b0f1982a9f3fec4c94 # v5.0.0
+        uses: peter-evans/create-issue-from-file@e8ef132d6df98ed982188e460ebb3b5d4ef3a9cd # v5.0.1
         with:
           title: ${{ env.ISSUE_NAME }}
           content-filepath: ./lychee/out.md
