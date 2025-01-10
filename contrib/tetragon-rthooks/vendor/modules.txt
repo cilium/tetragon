@@ -4,7 +4,7 @@ cel.dev/expr
 # dario.cat/mergo v1.0.1
 ## explicit; go 1.13
 dario.cat/mergo
-# github.com/alecthomas/kong v1.6.0
+# github.com/alecthomas/kong v1.6.1
 ## explicit; go 1.20
 github.com/alecthomas/kong
 # github.com/antlr4-go/antlr/v4 v4.13.0
@@ -16,7 +16,7 @@ github.com/cilium/lumberjack/v2
 # github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000 => ../../api
 ## explicit; go 1.23.0
 github.com/cilium/tetragon/api/v1/tetragon
-# github.com/containerd/containerd v1.7.24
+# github.com/containerd/containerd v1.7.25
 ## explicit; go 1.21
 github.com/containerd/containerd/errdefs
 github.com/containerd/containerd/events
@@ -26,8 +26,6 @@ github.com/containerd/containerd/identifiers
 github.com/containerd/containerd/namespaces
 github.com/containerd/containerd/plugin
 github.com/containerd/containerd/services/server/config
-# github.com/containerd/containerd/api v1.8.0
-## explicit; go 1.21
 # github.com/containerd/errdefs v1.0.0
 ## explicit; go 1.20
 github.com/containerd/errdefs
@@ -114,7 +112,7 @@ github.com/opencontainers/go-digest
 ## explicit; go 1.18
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
-# github.com/opencontainers/runc v1.2.3
+# github.com/opencontainers/runc v1.2.4
 ## explicit; go 1.22
 github.com/opencontainers/runc/libcontainer/cgroups
 github.com/opencontainers/runc/libcontainer/cgroups/fs
