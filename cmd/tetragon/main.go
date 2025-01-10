@@ -577,17 +577,18 @@ func waitCRDs(config *rest.Config) error {
 }
 
 func loadTpFromDir(ctx context.Context, dir string) error {
-	tpMaxDepth := 1
-	tpFS := os.DirFS(dir)
-
-	if dir == defaults.DefaultTpDir {
-		// If the default directory does not exist then do not fail
-		// Probably tetragon not fully installed, developers testing, etc
-		if _, err := os.Stat(dir); os.IsNotExist(err) {
+	if _, err := os.Stat(dir); err != nil {
+		// Do not fail if the default directory doesn't exist,
+		// it might because of developer setup or incomplete installation
+		if os.IsNotExist(err) && dir == defaults.DefaultTpDir {
 			log.WithField("tracing-policy-dir", dir).Info("Loading Tracing Policies from directory ignored, directory does not exist")
 			return nil
 		}
+		return fmt.Errorf("Failed to access tracing policies dir %s: %w", dir, err)
 	}
+
+	tpMaxDepth := 1
+	tpFS := os.DirFS(dir)
 
 	err := fs.WalkDir(tpFS, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
