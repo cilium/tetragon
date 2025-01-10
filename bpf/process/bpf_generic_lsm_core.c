@@ -71,7 +71,7 @@ generic_lsm_process_filter(void *ctx)
 	if (ret == PFILTER_CONTINUE)
 		tail_call(ctx, &lsm_calls, TAIL_CALL_FILTER);
 	else if (ret == PFILTER_ACCEPT)
-		tail_call(ctx, &lsm_calls, 0);
+		tail_call(ctx, &lsm_calls, TAIL_CALL_SETUP);
 	return PFILTER_REJECT;
 }
 
