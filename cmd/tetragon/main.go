@@ -461,6 +461,7 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	observer.GetSensorManager().LogSensorsAndProbes(ctx)
 	defer func() {
 		observer.RemoveSensors(ctx)
+		os.Remove(observerDir)
 	}()
 
 	pm, err := tetragonGrpc.NewProcessManager(
