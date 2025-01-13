@@ -5,6 +5,7 @@ package test
 
 import (
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
 
@@ -53,6 +54,7 @@ func getCgroupPrograms() []*program.Program {
 func getCgroupMaps() []*program.Map {
 	maps := []*program.Map{
 		GetCgroupsTrackingMap(),
+		program.MapUserFrom(base.ExecveMap),
 	}
 	return maps
 }
