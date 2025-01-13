@@ -42,6 +42,7 @@ import (
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/strutils"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
@@ -67,7 +68,8 @@ var (
 		"loader",
 	)
 
-	idsMap = program.MapBuilder("ids_map", loader)
+	idsMap    = program.MapBuilder("ids_map", loader)
+	execveMap = program.MapUser(base.ExecveMap.Name, loader)
 
 	loaderEnabled bool
 
@@ -104,7 +106,7 @@ func GetLoaderSensor() *sensors.Sensor {
 	return &sensors.Sensor{
 		Name:  "__loader__",
 		Progs: []*program.Program{loader},
-		Maps:  []*program.Map{idsMap},
+		Maps:  []*program.Map{idsMap, execveMap},
 	}
 }
 
