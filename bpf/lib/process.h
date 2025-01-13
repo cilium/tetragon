@@ -366,7 +366,7 @@ struct {
 
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
-	__uint(max_entries, 32768);
+	__uint(max_entries, 1);
 	__type(key, __u32);
 	__type(value, struct execve_map_value);
 } execve_map SEC(".maps");
