@@ -1,7 +1,7 @@
 github.com/blang/semver/v4 v4.0.0 h1:1PFHFE6yCCTv8C1TeyNNarDzntLi7wMI5i/pzqYIsAM=
 github.com/blang/semver/v4 v4.0.0/go.mod h1:IbckMUScFkM3pff0VJDNKRiT6TG/YpiHIM2yvyW5YoQ=
-github.com/cilium/cilium v1.17.0-rc.0 h1:hZOr+6rqHJ06vdjTZ/q1tOln2QxPSUQPdHrqVdqvbrg=
-github.com/cilium/cilium v1.17.0-rc.0/go.mod h1:Z9TPDoKIIUfq8/U6KqGBFLYHPVbEXxHGdV1n4+FAZhw=
+github.com/cilium/cilium v1.17.0-rc.1 h1:jUiwwJ2qyajW2YY8/sOqJSy8enMhClG4FT1Dq6MELTU=
+github.com/cilium/cilium v1.17.0-rc.1/go.mod h1:UAK2rIorqcHHxtkCG33wcQ++jAtDUknXCa42hOvhrR4=
 github.com/cpuguy83/go-md2man/v2 v2.0.4/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
