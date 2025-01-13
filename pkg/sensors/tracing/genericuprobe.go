@@ -24,6 +24,7 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
 
@@ -283,6 +284,8 @@ func createGenericUprobeSensor(
 	if err != nil {
 		return nil, err
 	}
+
+	maps = append(maps, program.MapUserFrom(base.ExecveMap))
 
 	return &sensors.Sensor{
 		Name:      name,

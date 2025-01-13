@@ -35,6 +35,7 @@ import (
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/sirupsen/logrus"
@@ -664,6 +665,8 @@ func createGenericKprobeSensor(
 	if err != nil {
 		return nil, err
 	}
+
+	maps = append(maps, program.MapUserFrom(base.ExecveMap))
 
 	return &sensors.Sensor{
 		Name:      name,

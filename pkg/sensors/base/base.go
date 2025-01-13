@@ -17,6 +17,10 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
 
+const (
+	execveMapMaxEntries = 32768
+)
+
 var (
 	basePolicy = "__base__"
 
@@ -73,7 +77,7 @@ var (
 	ErrMetricsMap = program.MapBuilder(errmetrics.MapName, Execve)
 )
 
-func setupPrograms() {
+func setupSensor() {
 	// exit program function
 	ks, err := ksyms.KernelSymbols()
 	if err == nil {
@@ -92,6 +96,8 @@ func setupPrograms() {
 		}
 	}
 	logger.GetLogger().Infof("Exit probe on %s", Exit.Attach)
+
+	ExecveMap.SetMaxEntries(execveMapMaxEntries)
 }
 
 func GetExecveMap() *program.Map {
@@ -137,7 +143,7 @@ func initBaseSensor() *sensors.Sensor {
 	sensor := sensors.Sensor{
 		Name: basePolicy,
 	}
-	setupPrograms()
+	setupSensor()
 	sensor.Progs = GetDefaultPrograms()
 	sensor.Maps = GetDefaultMaps()
 	return ApplyExtensions(&sensor)
