@@ -8,6 +8,7 @@ description: "Additional resources to learn about Tetragon"
 
 | Title | Authors | Conference | Date |
 | ----- | ------- | ---------- | ---- |
+| [What Agent to Trust with Your K8s: Falco, Tetragon or KubeArmor?](https://www.youtube.com/watch?v=QKE8WMv-6qw)                                                     | Henrik Rexed        | Kubecon NA                                         | 2024 |
 | [eBPF-based, Kubernetes-native: observability & security with Tetragon](https://www.youtube.com/watch?v=xqKp6GfMuic)                                                     | Anna Kapuścińska    | TechSpot                                         | 2024 |
 | [Past, Present, Future of Tetragon- First Production Use Cases, Lessons Learnt, Where Are We Heading? ](https://youtu.be/2BIe4VmSYyQ)                        | John Fastabend & Natália Réka Ivánkó | KubeCon EU                                        | 2023 |
 | [eBPF and Kubernetes — Better Together! Observability and Security with Tetragon](https://youtu.be/oU7dPKoVfm4)                                              | Anna Kapuścińska & James Laverack    | Kubernetes Community Days UK                      | 2023 |
