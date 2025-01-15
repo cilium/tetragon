@@ -1532,7 +1532,7 @@ struct {
 struct {
 	__uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
 	__uint(max_entries, MAX_SELECTORS); // only one matchBinaries per selector
-	__uint(key_size, sizeof(__u32));
+	__type(key, __u32);
 	__array(
 		values, struct {
 			__uint(type, BPF_MAP_TYPE_HASH);
@@ -2114,7 +2114,7 @@ update_pid_tid_from_sock(struct msg_generic_kprobe *e, __u64 sockaddr)
 struct {
 	__uint(type, BPF_MAP_TYPE_STACK_TRACE);
 	__uint(max_entries, 1); // Agent is resizing this if the feature is needed during kprobe load
-	__uint(key_size, sizeof(__u32));
+	__type(key, __u32);
 	__uint(value_size, sizeof(__u64) * PERF_MAX_STACK_DEPTH);
 } stack_trace_map SEC(".maps");
 
