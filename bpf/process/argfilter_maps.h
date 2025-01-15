@@ -9,7 +9,7 @@
 struct {
 	__uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
 	__uint(max_entries, ARGFILTER_MAPS_OUTER_MAX_ENTRIES);
-	__uint(key_size, sizeof(__u32));
+	__type(key, __u32);
 	__array(
 		values, struct {
 			__uint(type, BPF_MAP_TYPE_HASH);
