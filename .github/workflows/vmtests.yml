@@ -69,7 +69,7 @@ jobs:
               # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
               - 'rhel8.9-20240806.173325'
               # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-              - 'bpf-next-20250110.013326'
+              - 'bpf-next-20250114.013243'
               # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
               - '6.6-20241218.004849'
               # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
