@@ -86,6 +86,7 @@ func BuildFilterList(ctx context.Context, ff []*tetragon.Filter, filterFuncs []O
 var Filters = []OnBuildFilter{
 	&BinaryRegexFilter{},
 	&ParentBinaryRegexFilter{},
+	&AncestorBinaryRegexFilter{},
 	&HealthCheckFilter{},
 	&NamespaceFilter{},
 	&PidFilter{},
@@ -122,6 +123,17 @@ func GetParent(event *v1.Event) *tetragon.Process {
 		return nil
 	}
 	return helpers.ResponseGetParent(response)
+}
+
+func GetAncestors(event *v1.Event) []*tetragon.Process {
+	if event == nil {
+		return nil
+	}
+	response, ok := event.Event.(*tetragon.GetEventsResponse)
+	if !ok {
+		return nil
+	}
+	return helpers.ResponseGetAncestors(response)
 }
 
 func GetPolicyName(event *v1.Event) string {
