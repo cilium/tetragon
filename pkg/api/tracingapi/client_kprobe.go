@@ -574,17 +574,25 @@ type KprobeArgs struct {
 	Args4 []byte
 }
 
+type ConfigBtfArg struct {
+	Offset        uint32 `align:"offset"`
+	IsPointer     uint16 `align:"is_pointer"`
+	IsInitialized uint16 `align:"is_initialized"`
+}
+
 const EventConfigMaxArgs = 5
+const MaxBtfArgDepth = 10 // Artificial value for compilation, may be extended
 
 type EventConfig struct {
-	FuncId          uint32                     `align:"func_id"`
-	Arg             [EventConfigMaxArgs]int32  `align:"arg0"`
-	ArgM            [EventConfigMaxArgs]uint32 `align:"arg0m"`
-	ArgTpCtxOff     [EventConfigMaxArgs]uint32 `align:"t_arg0_ctx_off"`
-	Syscall         uint32                     `align:"syscall"`
-	ArgReturnCopy   int32                      `align:"argreturncopy"`
-	ArgReturn       int32                      `align:"argreturn"`
-	ArgReturnAction int32                      `align:"argreturnaction"`
-	PolicyID        uint32                     `align:"policy_id"`
-	Flags           uint32                     `align:"flags"`
+	FuncId          uint32                                           `align:"func_id"`
+	Arg             [EventConfigMaxArgs]int32                        `align:"arg0"`
+	ArgM            [EventConfigMaxArgs]uint32                       `align:"arg0m"`
+	ArgTpCtxOff     [EventConfigMaxArgs]uint32                       `align:"t_arg0_ctx_off"`
+	Syscall         uint32                                           `align:"syscall"`
+	ArgReturnCopy   int32                                            `align:"argreturncopy"`
+	ArgReturn       int32                                            `align:"argreturn"`
+	ArgReturnAction int32                                            `align:"argreturnaction"`
+	PolicyID        uint32                                           `align:"policy_id"`
+	Flags           uint32                                           `align:"flags"`
+	BtfArg          [EventConfigMaxArgs][MaxBtfArgDepth]ConfigBtfArg `align:"btf_arg0"`
 }
