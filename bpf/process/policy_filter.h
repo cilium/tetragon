@@ -14,14 +14,14 @@
 struct {
 	__uint(type, BPF_MAP_TYPE_LRU_HASH);
 	__uint(max_entries, POLICY_FILTER_MAX_NAMESPACES);
-	__uint(key_size, sizeof(u64));
-	__uint(value_size, sizeof(u64));
+	__type(key, u64);
+	__type(value, u64);
 } tg_cgroup_namespace_map SEC(".maps");
 
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH_OF_MAPS);
 	__uint(max_entries, POLICY_FILTER_MAX_POLICIES);
-	__uint(key_size, sizeof(u32)); /* policy id */
+	__type(key, u32); /* policy id */
 	__array(
 		values, struct {
 			__uint(type, BPF_MAP_TYPE_HASH);
@@ -38,7 +38,7 @@ struct {
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH_OF_MAPS);
 	__uint(max_entries, POLICY_FILTER_MAX_CGROUP_IDS);
-	__uint(key_size, sizeof(__u64)); /* cgroup id */
+	__type(key, __u64); /* cgroup id */
 	__array(
 		values, struct {
 			__uint(type, BPF_MAP_TYPE_HASH);

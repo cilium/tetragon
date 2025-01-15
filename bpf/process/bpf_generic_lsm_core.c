@@ -27,7 +27,7 @@ int generic_lsm_actions(void *ctx);
 struct {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
 	__uint(max_entries, 13);
-	__uint(key_size, sizeof(__u32));
+	__type(key, __u32);
 	__array(values, int(void *));
 } lsm_calls SEC(".maps") = {
 	.values = {
