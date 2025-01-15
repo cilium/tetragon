@@ -95,6 +95,8 @@ options:
     - name: event-queue-size
       default_value: "10000"
       usage: Set the size of the internal event queue.
+    - name: execve-map-entries
+      usage: Set entries for execve_map table (default 32768)
     - name: export-aggregation-buffer-size
       default_value: "10000"
       usage: Aggregator channel buffer size

@@ -35,6 +35,7 @@ import (
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/sirupsen/logrus"
@@ -379,6 +380,8 @@ func createMultiKprobeSensor(policyName string, multiIDs []idtable.EntryID, has 
 	}
 	maps = append(maps, overrideTasksMap)
 
+	maps = append(maps, program.MapUser(base.ExecveMap.Name, load))
+
 	if len(multiRetIDs) != 0 {
 		loadret := program.Builder(
 			path.Join(option.Config.HubbleLib, loadProgRetName),
@@ -419,6 +422,8 @@ func createMultiKprobeSensor(policyName string, multiIDs []idtable.EntryID, has 
 
 		retConfigMap.SetMaxEntries(len(multiRetIDs))
 		retFilterMap.SetMaxEntries(len(multiRetIDs))
+
+		maps = append(maps, program.MapUser(base.ExecveMap.Name, loadret))
 	}
 
 	return progs, maps, nil
@@ -1007,6 +1012,8 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe,
 	}
 	maps = append(maps, overrideTasksMap)
 
+	maps = append(maps, program.MapUser(base.ExecveMap.Name, load))
+
 	if kprobeEntry.loadArgs.retprobe {
 		pinRetProg := sensors.PathJoin(fmt.Sprintf("%s_return", kprobeEntry.funcName))
 		if kprobeEntry.instance != 0 {
@@ -1051,6 +1058,7 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe,
 			socktrack := program.MapBuilderSensor("socktrack_map", loadret)
 			maps = append(maps, socktrack)
 		}
+		maps = append(maps, program.MapUser(base.ExecveMap.Name, loadret))
 	}
 
 	logger.GetLogger().WithField("override", kprobeEntry.hasOverride).

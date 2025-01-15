@@ -5,16 +5,27 @@ package base
 
 import (
 	"log"
+	"os"
+	"strconv"
+	"strings"
 	"sync"
 	"testing"
+	"unsafe"
 
 	"github.com/cilium/tetragon/pkg/errmetrics"
 	"github.com/cilium/tetragon/pkg/ksyms"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/mbset"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/exec/config"
+	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
 	"github.com/cilium/tetragon/pkg/sensors/program"
+	"github.com/cilium/tetragon/pkg/strutils"
+)
+
+const (
+	execveMapMaxEntries = 32768
 )
 
 var (
@@ -55,7 +66,7 @@ var (
 	/* Event Ring map */
 	TCPMonMap = program.MapBuilder("tcpmon_map", Execve)
 	/* Networking and Process Monitoring maps */
-	ExecveMap          = program.MapBuilder("execve_map", Execve)
+	ExecveMap          = program.MapBuilder("execve_map", Execve, Exit, Fork, ExecveBprmCommit)
 	ExecveTailCallsMap = program.MapBuilderProgram("execve_calls", Execve)
 
 	ExecveJoinMap = program.MapBuilder("tg_execve_joined_info_map", ExecveBprmCommit)
@@ -73,7 +84,56 @@ var (
 	ErrMetricsMap = program.MapBuilder(errmetrics.MapName, Execve)
 )
 
-func setupPrograms() {
+func readThreadsMax(path string) (int64, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return 0, err
+	}
+	str := strings.TrimRight(string(data), "\n")
+	return strconv.ParseInt(str, 10, 32)
+}
+
+func setupExecveMap() {
+	entry := int(unsafe.Sizeof(execvemap.ExecveValue{}))
+
+	get := func(str string) int {
+		// default value
+		if str == "" {
+			return execveMapMaxEntries
+		}
+		// pure number of entries
+		if val, err := strconv.Atoi(str); err == nil {
+			return val
+		}
+		// follow threads-max entries
+		if str == "max" {
+			if val, err := readThreadsMax("/proc/sys/kernel/threads-max"); err == nil {
+				return int(val)
+			}
+			logger.GetLogger().Warn("Failed to read /proc/sys/kernel/threads-max file, falling back to default")
+			return execveMapMaxEntries
+		}
+		// set entries based on size
+		size, err := strutils.ParseSize(str)
+		if err != nil {
+			logger.GetLogger().Warn("Failed to parse --execve-map-max value, falling back to default")
+			return execveMapMaxEntries
+		}
+		val := size / entry
+		return val
+	}
+
+	entries := get(option.Config.ExecveMapEntries)
+	ExecveMap.SetMaxEntries(entries)
+
+	logger.GetLogger().
+		WithField("size", strutils.SizeWithSuffix(entries*entry)).
+		WithField("config", option.Config.ExecveMapEntries).
+		Infof("Set execve_map entries %d", entries)
+
+}
+
+func setupSensor() {
 	// exit program function
 	ks, err := ksyms.KernelSymbols()
 	if err == nil {
@@ -92,6 +152,8 @@ func setupPrograms() {
 		}
 	}
 	logger.GetLogger().Infof("Exit probe on %s", Exit.Attach)
+
+	setupExecveMap()
 }
 
 func GetExecveMap() *program.Map {
@@ -137,7 +199,7 @@ func initBaseSensor() *sensors.Sensor {
 	sensor := sensors.Sensor{
 		Name: basePolicy,
 	}
-	setupPrograms()
+	setupSensor()
 	sensor.Progs = GetDefaultPrograms()
 	sensor.Maps = GetDefaultMaps()
 	return ApplyExtensions(&sensor)

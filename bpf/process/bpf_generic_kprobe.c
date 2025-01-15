@@ -97,10 +97,13 @@ generic_kprobe_process_filter(void *ctx)
 	int ret;
 
 	ret = generic_process_filter();
-	if (ret == PFILTER_CONTINUE)
+	switch (ret) {
+	case PFILTER_CONTINUE:
 		tail_call(ctx, &kprobe_calls, TAIL_CALL_FILTER);
-	else if (ret == PFILTER_ACCEPT)
-		tail_call(ctx, &kprobe_calls, 0);
+	case PFILTER_CURR_NOT_FOUND:
+	case PFILTER_ACCEPT:
+		tail_call(ctx, &kprobe_calls, TAIL_CALL_SETUP);
+	}
 	/* If filter does not accept drop it. Ideally we would
 	 * log error codes for later review, TBD.
 	 */
