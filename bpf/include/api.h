@@ -235,6 +235,7 @@ static int BPF_FUNC(fib_lookup, void *ctx, struct bpf_fib_lookup *params, uint32
 
 /* Current Process Info */
 static uint64_t BPF_FUNC(get_current_task);
+static uint64_t BPF_FUNC(get_current_task_btf);
 static uint64_t BPF_FUNC(get_current_cgroup_id);
 static uint64_t BPF_FUNC(get_current_ancestor_cgroup_id, int ancestor_level);
 static uint64_t BPF_FUNC(get_current_uid_gid);
