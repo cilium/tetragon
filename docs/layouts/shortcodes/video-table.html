@@ -1,0 +1,29 @@
+<table>
+	<thead>
+		<tr>
+			<th>Title</th>
+			<th>Authors</th>
+			<th>Conference</th>
+			<th>Date</th>
+		</tr>
+	</thead>
+	<tbody>
+		{{ range .Site.Data.videos.videoContent }}
+		<tr>
+			<td>
+				{{ if .youtubeID }}
+				<a href="https://www.youtube.com/watch?v={{ .youtubeID }}" target="_blank" rel="noopener noreferrer">{{
+					.title }}</a>
+				{{ else if .url }}
+				<a href="{{ .url }}" target="_blank" rel="noopener noreferrer">{{ .title }}</a>
+				{{ else }}
+				{{ .title }}
+				{{ end }}
+			</td>
+			<td>{{ .authors }}</td>
+			<td>{{ .conference }}</td>
+			<td>{{ .date }}</td>
+		</tr>
+		{{ end }}
+	</tbody>
+</table>

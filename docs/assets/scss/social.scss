@@ -3,6 +3,14 @@
 
   &--inner {
     margin-bottom: 128px;
+
+    @media (max-width: $mobile) {
+      margin-bottom: 80px;
+    }
+  }
+
+  &--use-case {
+    margin-top: 56px;
   }
 
   @media (max-width: $desktop) {
@@ -31,6 +39,10 @@
 
     @media (max-width: $mobile) {
       font-size: 28px;
+    }
+
+    .social--use-case & {
+      color: #253737;
     }
   }
 
