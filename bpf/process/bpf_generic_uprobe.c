@@ -90,7 +90,7 @@ generic_uprobe_filter_arg(void *ctx)
 __attribute__((section("uprobe"), used)) int
 generic_uprobe_actions(void *ctx)
 {
-	generic_actions(ctx, (struct bpf_map_def *)&uprobe_calls);
+	generic_actions(ctx, (struct bpf_map_def *)&uprobe_calls, true);
 	return 0;
 }
 

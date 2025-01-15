@@ -64,7 +64,7 @@ github.com/cilium/cilium/pkg/resiliency
 github.com/cilium/cilium/pkg/time
 github.com/cilium/cilium/pkg/version
 github.com/cilium/cilium/pkg/versioncheck
-# github.com/cilium/ebpf v0.17.1
+# github.com/cilium/ebpf v0.17.2-0.20250113160858-6d6c5e322573
 ## explicit; go 1.22
 github.com/cilium/ebpf
 github.com/cilium/ebpf/asm

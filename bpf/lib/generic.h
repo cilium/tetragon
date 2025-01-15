@@ -62,6 +62,7 @@ struct msg_generic_kprobe {
 			bool post; // true if event needs to be posted
 		} lsm;
 	};
+	bool has_return; /* true if there's return probe defined */
 };
 
 FUNC_INLINE size_t generic_kprobe_common_size(void)

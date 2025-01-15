@@ -9,7 +9,7 @@ require (
 	github.com/alecthomas/kong v1.6.1
 	github.com/bombsimon/logrusr/v4 v4.1.0
 	github.com/cilium/cilium v1.17.0-rc.1
-	github.com/cilium/ebpf v0.17.1
+	github.com/cilium/ebpf v0.17.2-0.20250113160858-6d6c5e322573
 	github.com/cilium/little-vm-helper v0.0.19
 	github.com/cilium/lumberjack/v2 v2.4.1
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
