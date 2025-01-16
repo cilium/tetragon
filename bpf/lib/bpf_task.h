@@ -7,6 +7,7 @@
 #include "bpf_event.h"
 #include "bpf_helpers.h"
 #include "generic.h"
+#include "vmlinux.h"
 
 /* __d_path_local flags */
 // #define UNRESOLVED_MOUNT_POINTS	   0x01 // (deprecated)
@@ -57,8 +58,9 @@ FUNC_INLINE struct task_struct *get_task_from_pid(__u32 pid)
 	return task;
 }
 
-FUNC_INLINE __u32 get_task_pid_vnr_by_task(struct task_struct *task)
+FUNC_INLINE __u32 get_task_pid_vnr_by_task(struct task_struct *t)
 {
+	struct task_struct___local *task = (struct task_struct___local *)t;
 	int thread_pid_exists;
 	unsigned int level;
 	struct upid upid;
