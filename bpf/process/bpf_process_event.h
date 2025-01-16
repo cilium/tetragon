@@ -30,8 +30,10 @@ struct {
 	__type(value, struct buffer_heap_map_value);
 } buffer_heap_map SEC(".maps");
 
-FUNC_INLINE __u64 __get_auid(struct task_struct *task)
+FUNC_INLINE __u64 __get_auid(struct task_struct *t)
 {
+	struct task_struct___local *task = (struct task_struct___local *)t;
+
 	// u64 to convince compiler to do 64bit loads early kernels do not
 	// support 32bit loads from stack, e.g. r1 = *(u32 *)(r10 -8).
 	__u64 auid = 0;
