@@ -26,9 +26,14 @@ var (
 		"Capacity of a BPF map. Expected to be constant.",
 		nil, []metrics.ConstrainedLabel{MapLabel}, nil,
 	))
-	MapErrors = metrics.MustNewCustomGauge(metrics.NewOpts(
-		consts.MetricsNamespace, "", "map_errors_total",
-		"The number of errors per map.",
+	MapErrorsUpdate = metrics.MustNewCustomGauge(metrics.NewOpts(
+		consts.MetricsNamespace, "", "map_errors_update_total",
+		"The number of failed updates per map.",
+		nil, []metrics.ConstrainedLabel{MapLabel}, nil,
+	))
+	MapErrorsDelete = metrics.MustNewCustomGauge(metrics.NewOpts(
+		consts.MetricsNamespace, "", "map_errors_delete_total",
+		"The number of failed deletes per map.",
 		nil, []metrics.ConstrainedLabel{MapLabel}, nil,
 	))
 )
