@@ -29,10 +29,10 @@ github.com/containerd/ttrpc v1.2.6 h1:zG+Kn5EZ6MUYCS1t2Hmt2J4tMVaLSFEJVOraDQwNPC
 github.com/containerd/ttrpc v1.2.6/go.mod h1:YCXHsb32f+Sq5/72xHubdiJRQY9inL4a4ZQrAbN1q9o=
 github.com/containerd/typeurl/v2 v2.2.2 h1:3jN/k2ysKuPCsln5Qv8bzR9cxal8XjkxPogJfSNO31k=
 github.com/containerd/typeurl/v2 v2.2.2/go.mod h1:95ljDnPfD3bAbDJRugOiShd/DlAAsxGtUBhJxIn7SCk=
-github.com/containers/common v0.61.0 h1:j/84PTqZIKKYy42OEJsZmjZ4g4Kq2ERuC3tqp2yWdh4=
-github.com/containers/common v0.61.0/go.mod h1:NGRISq2vTFPSbhNqj6MLwyes4tWSlCnqbJg7R77B8xc=
-github.com/containers/storage v1.56.0 h1:DZ9KSkj6M2tvj/4bBoaJu3QDHRl35BwsZ4kmLJS97ZI=
-github.com/containers/storage v1.56.0/go.mod h1:c6WKowcAlED/DkWGNuL9bvGYqIWCVy7isRMdCSKWNjk=
+github.com/containers/common v0.61.1 h1:jpk385ZFEx3MAX+sjwOoTZElvpgsGi0YJHuRmrhF/j8=
+github.com/containers/common v0.61.1/go.mod h1:C+TfkhTV+ADp1Hu+BMIAYPvSFix21swYo9PZuCKoSUM=
+github.com/containers/storage v1.56.1 h1:gDZj/S6Zxus4Xx42X6iNB3ODXuh0qoOdH/BABfrvcKo=
+github.com/containers/storage v1.56.1/go.mod h1:c6WKowcAlED/DkWGNuL9bvGYqIWCVy7isRMdCSKWNjk=
 github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09 h1:OoRAFlvDGCUqDLampLQjk0yeeSGdF9zzst/3G9IkBbc=
 github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09/go.mod h1:m2r/smMKsKwgMSAoFKHaa68ImdCSNuKE1MxvQ64xuCQ=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
