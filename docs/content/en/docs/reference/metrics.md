@@ -198,9 +198,17 @@ The total number of in-use entries per map.
 | ----- | ------ |
 | `map  ` | `execve_map, tg_execve_joined_info_map` |
 
-### `tetragon_map_errors_total`
+### `tetragon_map_errors_delete_total`
 
-The number of errors per map.
+The number of failed deletes per map.
+
+| label | values |
+| ----- | ------ |
+| `map  ` | `execve_map, tg_execve_joined_info_map` |
+
+### `tetragon_map_errors_update_total`
+
+The number of failed updates per map.
 
 | label | values |
 | ----- | ------ |
