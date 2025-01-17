@@ -22,7 +22,8 @@ func NewBPFCollector() metrics.CollectorWithInit {
 		metrics.CustomMetrics{
 			mapmetrics.MapSize,
 			mapmetrics.MapCapacity,
-			mapmetrics.MapErrors,
+			mapmetrics.MapErrorsUpdate,
+			mapmetrics.MapErrorsDelete,
 		},
 		collect,
 		collectForDocs,
@@ -72,18 +73,26 @@ func collect(ch chan<- prometheus.Metric) {
 		}
 		defer mapLink.Close()
 
-		updateMapSize(ch, mapLinkStats, name)
 		ch <- mapmetrics.MapCapacity.MustMetric(
 			float64(mapLink.MaxEntries()),
 			name,
 		)
-		updateMapErrors(ch, mapLinkStats, name)
+		update(mapLinkStats, 0, func(sum float64) {
+			ch <- mapmetrics.MapSize.MustMetric(sum, name)
+		})
+		update(mapLinkStats, 1, func(sum float64) {
+			ch <- mapmetrics.MapErrorsUpdate.MustMetric(sum, name)
+		})
+		update(mapLinkStats, 2, func(sum float64) {
+			ch <- mapmetrics.MapErrorsDelete.MustMetric(sum, name)
+		})
 	}
 }
 
-func updateMapSize(ch chan<- prometheus.Metric, mapLinkStats *ebpf.Map, name string) {
+func update(mapLinkStats *ebpf.Map, key int32, update func(sum float64)) {
 	var values []int64
-	if err := mapLinkStats.Lookup(int32(0), &values); err != nil {
+
+	if err := mapLinkStats.Lookup(key, &values); err != nil {
 		return
 	}
 
@@ -91,32 +100,14 @@ func updateMapSize(ch chan<- prometheus.Metric, mapLinkStats *ebpf.Map, name str
 	for _, n := range values {
 		sum += n
 	}
-	ch <- mapmetrics.MapSize.MustMetric(
-		float64(sum),
-		name,
-	)
-}
-
-func updateMapErrors(ch chan<- prometheus.Metric, mapLinkStats *ebpf.Map, name string) {
-	var values []int64
-	if err := mapLinkStats.Lookup(int32(1), &values); err != nil {
-		return
-	}
-
-	sum := int64(0)
-	for _, n := range values {
-		sum += n
-	}
-	ch <- mapmetrics.MapErrors.MustMetric(
-		float64(sum),
-		name,
-	)
+	update(float64(sum))
 }
 
 func collectForDocs(ch chan<- prometheus.Metric) {
 	for _, m := range mapmetrics.MapLabel.Values {
 		ch <- mapmetrics.MapSize.MustMetric(0, m)
 		ch <- mapmetrics.MapCapacity.MustMetric(0, m)
-		ch <- mapmetrics.MapErrors.MustMetric(0, m)
+		ch <- mapmetrics.MapErrorsUpdate.MustMetric(0, m)
+		ch <- mapmetrics.MapErrorsDelete.MustMetric(0, m)
 	}
 }

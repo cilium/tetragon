@@ -23,4 +23,4 @@ Depending on your setup, changes listed here might require a manual intervention
 
 ### Metrics
 
-* TBD
+* `tetragon_map_errors_total` metric is replaced by `map_errors_update_total` and `map_errors_delete_total`.
