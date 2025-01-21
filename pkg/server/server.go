@@ -163,6 +163,7 @@ func (s *Server) GetEventsWG(request *tetragon.GetEventsRequest, server tetragon
 		readyWG.Done()
 	}
 	s.ctxCleanupWG.Add(1)
+	defer s.ctxCleanupWG.Done()
 	for {
 		select {
 		case event := <-l.events:
@@ -199,7 +200,6 @@ func (s *Server) GetEventsWG(request *tetragon.GetEventsRequest, server tetragon
 			} else {
 				// No need to aggregate. Directly send out the response.
 				if err = server.Send(event); err != nil {
-					s.ctxCleanupWG.Done()
 					return err
 				}
 			}
@@ -207,13 +207,11 @@ func (s *Server) GetEventsWG(request *tetragon.GetEventsRequest, server tetragon
 			if closer != nil {
 				closer.Close()
 			}
-			s.ctxCleanupWG.Done()
 			return server.Context().Err()
 		case <-s.ctx.Done():
 			if closer != nil {
 				closer.Close()
 			}
-			s.ctxCleanupWG.Done()
 			return s.ctx.Err()
 		}
 	}
