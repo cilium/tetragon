@@ -57,6 +57,7 @@ generic_start_process_filter(void *ctx, struct bpf_map_def *calls)
 #endif
 
 	msg->lsm.post = false;
+	msg->common.flags = 0;
 
 	/* Tail call into filters. */
 	tail_call(ctx, calls, TAIL_CALL_FILTER);
@@ -169,7 +170,6 @@ generic_process_init(struct msg_generic_kprobe *e, u8 op, struct event_config *c
 {
 	e->common.op = op;
 
-	e->common.flags = 0;
 	e->common.pad[0] = 0;
 	e->common.pad[1] = 0;
 	e->common.size = 0;
@@ -592,7 +592,7 @@ FUNC_INLINE int generic_retkprobe(void *ctx, struct bpf_map_def *calls, unsigned
 	enter = event_find_curr(&ppid, &walker);
 
 	e->common.op = MSG_OP_GENERIC_KPROBE;
-	e->common.flags |= MSG_COMMON_FLAG_RETURN;
+	e->common.flags = MSG_COMMON_FLAG_RETURN;
 	e->common.pad[0] = 0;
 	e->common.pad[1] = 0;
 	e->common.size = size;
