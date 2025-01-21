@@ -408,10 +408,6 @@ func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, op
 		return err
 	}
 
-	// Tracks when its safe to close application when write ops are comnpleted.
-	// We don't currently track work group or contexts correctly in testing infra
-	// its not clear if its even useful considering the test infra doesn't get
-	// signals from users.
 	var cancelWg sync.WaitGroup
 
 	// use an empty hooks runner
@@ -428,6 +424,11 @@ func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, op
 	if err != nil {
 		return err
 	}
+	tb.Cleanup(func() {
+		// wait until the export file is closed. This ensures that ExportFile::Close() is
+		// called before the test terminates.
+		cancelWg.Wait()
+	})
 	outF, err := testutils.CreateExportFile(tb)
 	if err != nil {
 		return err
