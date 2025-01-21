@@ -74,8 +74,7 @@ jobs:
       - name: Verify clang-format on BPF code
         run: |
           set -o pipefail
-          find bpf -name '*.c' -o -name '*.h' -not -path 'bpf/include/vmlinux.h' \
-            -not -path 'bpf/include/api.h' -not -path 'bpf/libbpf/*' | xargs -n 1000 \
+          find bpf -name '*.c' -o -name '*.h' | xargs -n 1000 \
             docker run -v $(realpath .):/tetragon "isovalent/clang-format:latest" --Werror -n -style=file
           if [ $? != 0 ]; then
             echo "clang-format checks failed. Please run 'make format' and submit your changes."; exit 1
