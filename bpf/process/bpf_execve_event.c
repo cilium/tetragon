@@ -181,51 +181,6 @@ read_execve_shared_info(void *ctx, struct msg_process *p, __u64 pid)
 	execve_joined_info_map_clear(pid);
 }
 
-/**
- * read_exe() Reads the path from the backing executable file of the current
- * process.
- *
- * The executable file of a process can change using the prctl() system call
- * and PR_SET_MM_EXE_FILE. Thus, this function should only be used under the
- * execve path since the executable file is locked and usually there is only
- * one remaining thread at its exit path.
- */
-#ifdef __LARGE_BPF_PROG
-FUNC_INLINE __u32
-read_exe(struct task_struct *task, struct heap_exe *exe)
-{
-	struct file *file = BPF_CORE_READ(task, mm, exe_file);
-	struct path *path = __builtin_preserve_access_index(&file->f_path);
-	__u64 offset = 0;
-	__u64 revlen = STRING_POSTFIX_MAX_LENGTH - 1;
-
-	// we need to walk the complete 4096 len dentry in order to have an accurate
-	// matching on the prefix operators, even if we only keep a subset of that
-	char *buffer;
-
-	buffer = d_path_local(path, (int *)&exe->len, (int *)&exe->error);
-	if (!buffer)
-		return 0;
-
-	if (exe->len > STRING_POSTFIX_MAX_LENGTH - 1)
-		offset = exe->len - (STRING_POSTFIX_MAX_LENGTH - 1);
-	else
-		revlen = exe->len;
-	// buffer used by d_path_local can contain up to MAX_BUF_LEN i.e. 4096 we
-	// only keep the first 255 chars for our needs (we sacrifice one char to the
-	// verifier for the > 0 check)
-	if (exe->len > BINARY_PATH_MAX_LEN - 1)
-		exe->len = BINARY_PATH_MAX_LEN - 1;
-	asm volatile("%[len] &= 0xff;\n"
-		     : [len] "+r"(exe->len));
-	probe_read(exe->buf, exe->len, buffer);
-	if (revlen < STRING_POSTFIX_MAX_LENGTH)
-		probe_read(exe->end, revlen, (char *)(buffer + offset));
-
-	return exe->len;
-}
-#endif
-
 __attribute__((section("tracepoint/sys_execve"), used)) int
 event_execve(struct trace_event_raw_sched_process_exec *ctx)
 {
