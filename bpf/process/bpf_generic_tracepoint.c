@@ -226,6 +226,7 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 #ifdef __CAP_CHANGES_FILTER
 	msg->sel.match_cap = 0;
 #endif
+	msg->common.flags = 0;
 	tail_call(ctx, &tp_calls, TAIL_CALL_FILTER);
 	return 0;
 }
