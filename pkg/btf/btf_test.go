@@ -161,3 +161,45 @@ func TestInitCachedBTF(t *testing.T) {
 		assert.EqualValues(t, defaults.DefaultBTFFile, btffile, "GetCachedBTFFile()  -  want:'%s'  - got:'%s'", defaults.DefaultBTFFile, btffile)
 	}
 }
+
+func genericTestFindBtfFuncParamFromHook(t *testing.T, hook string, argIndex int, expectedName string) error {
+	param, err := FindBtfFuncParamFromHook(hook, argIndex)
+	if err != nil {
+		return err
+	}
+
+	assert.NotNil(t, param)
+	assert.Equal(t, expectedName, param.Name)
+
+	return nil
+}
+
+func TestFindBtfFuncParamFromHook(t *testing.T) {
+	// Assert no errors on Kprobe
+	hook := "wake_up_new_task"
+	argIndex := 0
+	expectedName := "p"
+	err := genericTestFindBtfFuncParamFromHook(t, hook, argIndex, expectedName)
+	assert.NoError(t, err)
+
+	// Assert error raises with invalid hook
+	hook = "fake_hook"
+	argIndex = 0
+	expectedName = "p"
+	err = genericTestFindBtfFuncParamFromHook(t, hook, argIndex, expectedName)
+	assert.ErrorContains(t, err, fmt.Sprintf("failed to find BTF type for hook %q", hook))
+
+	// Assert error raises when hook is a valid BTF type but not btf.Func
+	hook = "linux_binprm"
+	argIndex = 0
+	expectedName = "p"
+	err = genericTestFindBtfFuncParamFromHook(t, hook, argIndex, expectedName)
+	assert.ErrorContains(t, err, fmt.Sprintf("failed to find BTF type for hook %q", hook))
+
+	// Assert error raises when argIndex is out of scope
+	hook = "wake_up_new_task"
+	argIndex = 10
+	expectedName = "p"
+	err = genericTestFindBtfFuncParamFromHook(t, hook, argIndex, expectedName)
+	assert.ErrorContains(t, err, fmt.Sprintf("index %d is out of range", argIndex))
+}
