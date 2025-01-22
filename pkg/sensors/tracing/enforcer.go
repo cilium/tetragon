@@ -50,21 +50,21 @@ func init() {
 	sensors.RegisterPolicyHandlerAtInit("enforcer", gEnforcerPolicy)
 }
 
-func enforcerMapsUser(load ...*program.Program) []*program.Map {
-	edm := program.MapUserPolicy(enforcerDataMapName, load...)
+func enforcerMapsUser(load *program.Program) []*program.Map {
+	edm := program.MapUserPolicy(enforcerDataMapName, load)
 	edm.SetMaxEntries(enforcerMapMaxEntries)
 	return []*program.Map{
 		edm,
-		program.MapUserPolicy(enforcermetrics.EnforcerMissedMapName, load...),
+		program.MapUserPolicy(enforcermetrics.EnforcerMissedMapName, load),
 	}
 }
 
-func enforcerMaps(load ...*program.Program) []*program.Map {
-	edm := program.MapBuilderPolicy(enforcerDataMapName, load...)
+func enforcerMaps(load *program.Program) []*program.Map {
+	edm := program.MapBuilderPolicy(enforcerDataMapName, load)
 	edm.SetMaxEntries(enforcerMapMaxEntries)
 	return []*program.Map{
 		edm,
-		program.MapBuilderPolicy(enforcermetrics.EnforcerMissedMapName, load...),
+		program.MapBuilderPolicy(enforcermetrics.EnforcerMissedMapName, load),
 	}
 }
 
@@ -316,6 +316,7 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 			SetPolicy(policyName)
 
 		progs = append(progs, load)
+		maps = append(maps, enforcerMaps(load)...)
 	case OverrideMethodFmodRet:
 		// for fmod_ret, we need one program per syscall
 		logger.GetLogger().Infof("enforcer: using fmod_ret")
@@ -329,12 +330,11 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 				SetLoaderData(policyName).
 				SetPolicy(policyName)
 			progs = append(progs, load)
+			maps = append(maps, enforcerMaps(load)...)
 		}
 	default:
 		return nil, fmt.Errorf("unexpected override method: %d", overrideMethod)
 	}
-
-	maps = append(maps, enforcerMaps(progs...)...)
 
 	if ok := kp.enforcerAdd(policyName, kh); !ok {
 		return nil, fmt.Errorf("failed to add enforcer: '%s'", policyName)
