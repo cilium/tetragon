@@ -291,6 +291,38 @@ func TestMapUser(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
+	// Create sensor with user map (via MapUser builder) and make sure
+	// it's properly loaded
+	t.Run("ok_from", func(t *testing.T) {
+		m1 := program.MapBuilder("m1", p1)
+		m2 := program.MapBuilder("m2", p2)
+
+		s1 := &sensors.Sensor{
+			Name:   "sensor1",
+			Progs:  []*program.Program{p1},
+			Maps:   []*program.Map{m1, m2},
+			Policy: "policy",
+		}
+
+		// user map
+		m1User := program.MapUserFrom(m1)
+
+		s2 := &sensors.Sensor{
+			Name:   "sensor2",
+			Progs:  []*program.Program{p2},
+			Maps:   []*program.Map{m1User},
+			Policy: "policy",
+		}
+
+		err = s1.Load(bpf.MapPrefixPath())
+		defer s1.Unload(true)
+		assert.NoError(t, err)
+
+		err = s2.Load(bpf.MapPrefixPath())
+		defer s2.Unload(true)
+		assert.NoError(t, err)
+	})
+
 	// Create sensor with user map with wrong name (no existing pinned
 	// map file) and make sure the sensor fails to load
 	t.Run("fail_name", func(t *testing.T) {
