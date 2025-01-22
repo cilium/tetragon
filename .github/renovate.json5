@@ -146,9 +146,6 @@
         "pin",
         "pinDigest"
       ],
-      "matchBaseBranches": [
-        "main"
-      ],
     },
     {
       // grouping these together because the number of dependencies is limited
@@ -166,9 +163,6 @@
         "pin",
         "pinDigest"
       ],
-      "matchBaseBranches": [
-        "main"
-      ],
     },
     {
       "groupName": "all k8s pkg go dependencies main",
@@ -184,9 +178,6 @@
         "pin",
         "pinDigest"
       ],
-      "matchBaseBranches": [
-        "main"
-      ],
     },
     {
       "groupName": "all rthook go dependencies main",
@@ -201,9 +192,6 @@
         "digest",
         "pin",
         "pinDigest"
-      ],
-      "matchBaseBranches": [
-        "main"
       ],
     },
     {
