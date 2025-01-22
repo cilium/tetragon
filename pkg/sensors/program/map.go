@@ -190,20 +190,28 @@ func MapBuilderOpts(name string, opts MapOpts, lds ...*Program) *Map {
 	return mapBuilder(name, opts.Type, opts.Owner, lds...)
 }
 
-func MapUser(name string, lds ...*Program) *Map {
-	return mapBuilder(name, MapTypeGlobal, false, lds...)
+func mapUser(name string, ty MapType, prog *Program) *Map {
+	return &Map{name, "", prog, Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}, ty, false}
 }
 
-func MapUserProgram(name string, lds ...*Program) *Map {
-	return mapBuilder(name, MapTypeProgram, false, lds...)
+func MapUser(name string, prog *Program) *Map {
+	return mapUser(name, MapTypeGlobal, prog)
 }
 
-func MapUserSensor(name string, lds ...*Program) *Map {
-	return mapBuilder(name, MapTypeSensor, false, lds...)
+func MapUserProgram(name string, prog *Program) *Map {
+	return mapUser(name, MapTypeProgram, prog)
 }
 
-func MapUserPolicy(name string, lds ...*Program) *Map {
-	return mapBuilder(name, MapTypePolicy, false, lds...)
+func MapUserSensor(name string, prog *Program) *Map {
+	return mapUser(name, MapTypeSensor, prog)
+}
+
+func MapUserPolicy(name string, prog *Program) *Map {
+	return mapUser(name, MapTypePolicy, prog)
+}
+
+func MapUserFrom(m *Map) *Map {
+	return mapUser(m.Name, m.Type, m.Prog)
 }
 
 func PolicyMapPath(mapDir, policy, name string) string {
