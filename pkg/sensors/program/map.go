@@ -159,7 +159,11 @@ func DeleteGlobMap(name string) {
 //	...
 //	p.PinMap["mapX"] = &mapX
 func mapBuilder(name string, ty MapType, owner bool, lds ...*Program) *Map {
-	m := &Map{name, "", lds[0], Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}, ty, owner}
+	var prog *Program
+	if len(lds) != 0 {
+		prog = lds[0]
+	}
+	m := &Map{name, "", prog, Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}, ty, owner}
 	for _, ld := range lds {
 		ld.PinMap[name] = m
 	}
