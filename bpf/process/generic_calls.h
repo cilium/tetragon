@@ -216,20 +216,43 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 	return generic_process_event(ctx, tailcals);
 }
 
+#if defined GENERIC_KPROBE || defined GENERIC_LSM
+FUNC_INLINE void
+do_override_action(__s32 error)
+{
+	__s32 *error_p;
+	__u64 id;
+
+	id = get_current_pid_tgid();
+
+	/*
+	 * TODO: this should not happen, it means that the override
+	 * program was not executed for some reason, we should do
+	 * warning in here
+	 */
+	error_p = map_lookup_elem(&override_tasks, &id);
+	if (error_p)
+		*error_p = error;
+	else
+		map_update_elem(&override_tasks, &id, &error, BPF_ANY);
+}
+#else
+#define do_override_action(error)
+#endif
+
 FUNC_LOCAL __u32
 do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post)
 {
 	int signal __maybe_unused = FGS_SIGKILL;
 	int action = actions->act[i];
 	struct msg_generic_kprobe *e;
-	__s32 error, *error_p;
+	__s32 error __maybe_unused;
 	int fdi, namei;
 	int newfdi, oldfdi;
 	int socki;
 	int argi __maybe_unused;
 	int err = 0;
 	int zero = 0;
-	__u64 id;
 
 	e = map_lookup_elem(&process_call_heap, &zero);
 	if (!e)
@@ -293,18 +316,7 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post)
 		break;
 	case ACTION_OVERRIDE:
 		error = actions->act[++i];
-		id = get_current_pid_tgid();
-
-		/*
-		 * TODO: this should not happen, it means that the override
-		 * program was not executed for some reason, we should do
-		 * warning in here
-		 */
-		error_p = map_lookup_elem(&override_tasks, &id);
-		if (error_p)
-			*error_p = error;
-		else
-			map_update_elem(&override_tasks, &id, &error, BPF_ANY);
+		do_override_action(error);
 		break;
 	case ACTION_GETURL:
 	case ACTION_DNSLOOKUP:
