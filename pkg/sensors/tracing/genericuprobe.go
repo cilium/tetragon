@@ -140,7 +140,7 @@ func loadSingleUprobeSensor(uprobeEntry *genericUprobe, args sensors.LoadProbeAr
 
 	load.MapLoad = append(load.MapLoad, mapLoad...)
 
-	if err := program.LoadUprobeProgram(args.BPFDir, args.Load, args.Verbose); err != nil {
+	if err := program.LoadUprobeProgram(args.BPFDir, args.Load, args.Maps, args.Verbose); err != nil {
 		return err
 	}
 
@@ -198,7 +198,7 @@ func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) er
 
 	load.SetAttachData(data)
 
-	if err := program.LoadMultiUprobeProgram(args.BPFDir, args.Load, args.Verbose); err == nil {
+	if err := program.LoadMultiUprobeProgram(args.BPFDir, args.Load, args.Maps, args.Verbose); err == nil {
 		logger.GetLogger().Infof("Loaded generic uprobe sensor: %s -> %s", load.Name, load.Attach)
 	} else {
 		return err

@@ -170,7 +170,7 @@ func (s *Sensor) Load(bpfDir string) (err error) {
 			continue
 		}
 
-		if err = observerLoadInstance(bpfDir, p); err != nil {
+		if err = observerLoadInstance(bpfDir, p, s.Maps); err != nil {
 			return err
 		}
 		p.LoadState.RefInc()
@@ -408,7 +408,7 @@ func mergeSensors(sensors []*Sensor) *Sensor {
 	}
 }
 
-func observerLoadInstance(bpfDir string, load *program.Program) error {
+func observerLoadInstance(bpfDir string, load *program.Program, maps []*program.Map) error {
 	version, _, err := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
 	if err != nil {
 		return err
@@ -420,33 +420,33 @@ func observerLoadInstance(bpfDir string, load *program.Program) error {
 		"kern_version": version,
 	}).Debugf("observerLoadInstance %s %d", load.Name, version)
 	if load.Type == "tracepoint" {
-		err = loadInstance(bpfDir, load, version, option.Config.Verbosity)
+		err = loadInstance(bpfDir, load, maps, version, option.Config.Verbosity)
 		if err != nil {
 			l.WithField(
 				"tracepoint", load.Name,
 			).Info("Failed to load, trying to remove and retrying")
 			load.Unload(true)
-			err = loadInstance(bpfDir, load, version, option.Config.Verbosity)
+			err = loadInstance(bpfDir, load, maps, version, option.Config.Verbosity)
 		}
 		if err != nil {
 			return fmt.Errorf("failed prog %s kern_version %d LoadTracingProgram: %w",
 				load.Name, version, err)
 		}
 	} else if load.Type == "raw_tracepoint" || load.Type == "raw_tp" {
-		err = loadInstance(bpfDir, load, version, option.Config.Verbosity)
+		err = loadInstance(bpfDir, load, maps, version, option.Config.Verbosity)
 		if err != nil {
 			l.WithField(
 				"raw_tracepoint", load.Name,
 			).Info("Failed to load, trying to remove and retrying")
 			load.Unload(true)
-			err = loadInstance(bpfDir, load, version, option.Config.Verbosity)
+			err = loadInstance(bpfDir, load, maps, version, option.Config.Verbosity)
 		}
 		if err != nil {
 			return fmt.Errorf("failed prog %s kern_version %d LoadRawTracepointProgram: %w",
 				load.Name, version, err)
 		}
 	} else {
-		err = loadInstance(bpfDir, load, version, option.Config.Verbosity)
+		err = loadInstance(bpfDir, load, maps, version, option.Config.Verbosity)
 		if err != nil && load.ErrorFatal {
 			return fmt.Errorf("failed prog %s kern_version %d loadInstance: %w",
 				load.Name, version, err)
@@ -455,7 +455,7 @@ func observerLoadInstance(bpfDir string, load *program.Program) error {
 	return nil
 }
 
-func loadInstance(bpfDir string, load *program.Program, version, verbose int) error {
+func loadInstance(bpfDir string, load *program.Program, maps []*program.Map, version, verbose int) error {
 	// Check if the load.type is a standard program type. If so, use the standard loader.
 	loadFn, ok := standardTypes[load.Type]
 	if ok {
@@ -463,7 +463,7 @@ func loadInstance(bpfDir string, load *program.Program, version, verbose int) er
 			WithField("Type", load.Type).
 			WithField("Attach", load.Attach).
 			Debug("Loading BPF program")
-		return loadFn(bpfDir, load, verbose)
+		return loadFn(bpfDir, load, maps, verbose)
 	}
 	// Otherwise, check for a registered probe type. If one exists, use that.
 	probe, ok := registeredProbeLoad[load.Type]
@@ -479,6 +479,7 @@ func loadInstance(bpfDir string, load *program.Program, version, verbose int) er
 			Load:    load,
 			Version: version,
 			Verbose: verbose,
+			Maps:    maps,
 		})
 	}
 
