@@ -28,6 +28,7 @@ type OpenFunc func(*ebpf.CollectionSpec) error
 type LoadOpts struct {
 	Attach AttachFunc
 	Open   OpenFunc
+	Maps   []*Map
 }
 
 func linkPinPath(bpfDir string, load *Program, extra ...string) string {
@@ -799,8 +800,22 @@ func doLoadProgram(
 		}
 	}
 
+	maps := map[string]*Map{}
+	for _, pm := range loadOpts.Maps {
+		maps[pm.Name] = pm
+	}
+
+	getMap := func(name string) (*Map, bool) {
+		m, ok := load.PinMap[name]
+		if ok {
+			return m, true
+		}
+		m, ok = maps[name]
+		return m, ok
+	}
+
 	for _, ms := range spec.Maps {
-		m, ok := load.PinMap[ms.Name]
+		m, ok := getMap(ms.Name)
 		if !ok {
 			continue
 		}
@@ -842,7 +857,7 @@ func doLoadProgram(
 		var m *ebpf.Map
 		var err error
 		var mapPath string
-		if pm, ok := load.PinMap[name]; ok {
+		if pm, ok := getMap(name); ok {
 			mapPath = filepath.Join(bpfDir, pm.PinPath)
 		} else {
 			mapPath = filepath.Join(bpfDir, name)
@@ -945,7 +960,7 @@ func doLoadProgram(
 
 	for _, mapLoad := range load.MapLoad {
 		pinPath := ""
-		if pm, ok := load.PinMap[mapLoad.Name]; ok {
+		if pm, ok := getMap(mapLoad.Name); ok {
 			pinPath = pm.PinPath
 		}
 		if m, ok := coll.Maps[mapLoad.Name]; ok {
