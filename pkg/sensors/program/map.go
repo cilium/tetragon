@@ -164,6 +164,11 @@ func mapBuilder(name string, ty MapType, owner bool, lds ...*Program) *Map {
 		prog = lds[0]
 	}
 	m := &Map{name, "", prog, Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}, ty, owner}
+
+	if !owner {
+		return m
+	}
+
 	for _, ld := range lds {
 		ld.PinMap[name] = m
 	}
@@ -208,6 +213,10 @@ func MapUserSensor(name string, lds ...*Program) *Map {
 
 func MapUserPolicy(name string, lds ...*Program) *Map {
 	return mapBuilder(name, MapTypePolicy, false, lds...)
+}
+
+func MapUserFrom(m *Map) *Map {
+	return mapBuilder(m.Name, m.Type, false, m.Prog)
 }
 
 func PolicyMapPath(mapDir, policy, name string) string {
