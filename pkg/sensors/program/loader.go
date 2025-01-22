@@ -816,8 +816,47 @@ func doLoadProgram(
 		}
 	}
 
+	// We have following maps available for loading:
+	// - maps attached/pinned to program directly in load.PinMap[name]
+	// - maps passed to loader (all sensor maps)
+	//
+	// We need to resolve maps (find program.Map object) to be able to
+	// complete following operations:
+	//
+	//  (1) before loading:
+	//   - setup maps max entries values
+	//   - resolve all program's referenced maps
+	//
+	//  (2) after loading:
+	//   - load values to maps via load.MapLoad interface
+	//
+	// The resolveMap function is used for (1) and takes map name and
+	// searches for map object in following order:
+	//
+	//   1) load.PinMap[name]
+	//   2) loadOpts.Maps user maps
+	//
+	// For (2) we search only maps that the program owns, which are
+	// placed in load.PinMap.
+
+	userMaps := map[string]*Map{}
+	for _, pm := range loadOpts.Maps {
+		if !pm.IsOwner() {
+			userMaps[pm.Name] = pm
+		}
+	}
+
+	resolveMap := func(name string) (*Map, bool) {
+		m, ok := load.PinMap[name]
+		if ok {
+			return m, true
+		}
+		m, ok = userMaps[name]
+		return m, ok
+	}
+
 	for _, ms := range spec.Maps {
-		m, ok := load.PinMap[ms.Name]
+		m, ok := resolveMap(ms.Name)
 		if !ok {
 			continue
 		}
@@ -859,7 +898,8 @@ func doLoadProgram(
 		var m *ebpf.Map
 		var err error
 		var mapPath string
-		if pm, ok := load.PinMap[name]; ok {
+
+		if pm, ok := resolveMap(name); ok {
 			mapPath = filepath.Join(bpfDir, pm.PinPath)
 		} else {
 			mapPath = filepath.Join(bpfDir, name)
@@ -962,6 +1002,7 @@ func doLoadProgram(
 
 	for _, mapLoad := range load.MapLoad {
 		pinPath := ""
+		// We allow to load only maps that we own.
 		if pm, ok := load.PinMap[mapLoad.Name]; ok {
 			pinPath = pm.PinPath
 		}
