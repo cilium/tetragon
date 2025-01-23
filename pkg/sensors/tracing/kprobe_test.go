@@ -4327,64 +4327,120 @@ spec:
 }
 
 func TestLoadKprobeSensor(t *testing.T) {
-	var sensorProgs = []tus.SensorProg{
-		// kprobe
-		0: tus.SensorProg{Name: "generic_kprobe_event", Type: ebpf.Kprobe},
-		1: tus.SensorProg{Name: "generic_kprobe_setup_event", Type: ebpf.Kprobe},
-		2: tus.SensorProg{Name: "generic_kprobe_process_event", Type: ebpf.Kprobe},
-		3: tus.SensorProg{Name: "generic_kprobe_filter_arg", Type: ebpf.Kprobe},
-		4: tus.SensorProg{Name: "generic_kprobe_process_filter", Type: ebpf.Kprobe},
-		5: tus.SensorProg{Name: "generic_kprobe_actions", Type: ebpf.Kprobe},
-		6: tus.SensorProg{Name: "generic_kprobe_output", Type: ebpf.Kprobe},
-		// retkprobe
-		7:  tus.SensorProg{Name: "generic_retkprobe_event", Type: ebpf.Kprobe},
-		8:  tus.SensorProg{Name: "generic_retkprobe_filter_arg", Type: ebpf.Kprobe},
-		9:  tus.SensorProg{Name: "generic_retkprobe_actions", Type: ebpf.Kprobe},
-		10: tus.SensorProg{Name: "generic_retkprobe_output", Type: ebpf.Kprobe},
-	}
+	var (
+		sensorProgs []tus.SensorProg
+		sensorMaps  []tus.SensorMap
+	)
 
-	var sensorMaps = []tus.SensorMap{
-		// all kprobe programs
-		tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
+	if bpf.HasKprobeSession() {
+		sensorProgs = []tus.SensorProg{
+			0: tus.SensorProg{Name: "generic_kprobe_event", Type: ebpf.Kprobe},
+			1: tus.SensorProg{Name: "generic_kprobe_setup_event", Type: ebpf.Kprobe},
+			2: tus.SensorProg{Name: "generic_kprobe_process_event", Type: ebpf.Kprobe},
+			3: tus.SensorProg{Name: "generic_kprobe_filter_arg", Type: ebpf.Kprobe},
+			4: tus.SensorProg{Name: "generic_kprobe_process_filter", Type: ebpf.Kprobe},
+			5: tus.SensorProg{Name: "generic_kprobe_actions", Type: ebpf.Kprobe},
+			6: tus.SensorProg{Name: "generic_kprobe_output", Type: ebpf.Kprobe},
+			7: tus.SensorProg{Name: "generic_retkprobe_filter_arg", Type: ebpf.Kprobe},
+			8: tus.SensorProg{Name: "generic_retkprobe_actions", Type: ebpf.Kprobe},
+			9: tus.SensorProg{Name: "generic_retkprobe_output", Type: ebpf.Kprobe},
+		}
 
-		// all but generic_kprobe_output
-		tus.SensorMap{Name: "kprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5}},
+		sensorMaps = []tus.SensorMap{
+			// all kprobe programs
+			tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}},
 
-		// generic_retkprobe_event
-		tus.SensorMap{Name: "retkprobe_calls", Progs: []uint{7, 8, 9}},
+			// all but generic_kprobe_output
+			tus.SensorMap{Name: "kprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5}},
 
-		// generic_kprobe_process_filter,generic_kprobe_filter_arg,
-		// generic_kprobe_actions,generic_kprobe_output
-		tus.SensorMap{Name: "filter_map", Progs: []uint{3, 4, 5}},
+			// generic_retkprobe_event
+			tus.SensorMap{Name: "retkprobe_calls", Progs: []uint{0, 7, 8}},
 
-		// generic_kprobe_actions
-		tus.SensorMap{Name: "override_tasks", Progs: []uint{5}},
+			// generic_kprobe_process_filter,generic_kprobe_filter_arg,
+			// generic_kprobe_actions,generic_kprobe_output
+			tus.SensorMap{Name: "filter_map", Progs: []uint{3, 4, 5, 7, 8}},
 
-		// all kprobe but generic_kprobe_process_filter,generic_retkprobe_event
-		tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2}},
+			// generic_kprobe_actions
+			tus.SensorMap{Name: "override_tasks", Progs: []uint{5, 8}},
 
-		// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
-		tus.SensorMap{Name: "fdinstall_map", Progs: []uint{1, 2, 5, 7, 9}},
+			// all kprobe but generic_kprobe_process_filter,generic_retkprobe_event
+			tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2}},
 
-		// generic_kprobe_event
-		tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
-	}
+			// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
+			tus.SensorMap{Name: "fdinstall_map", Progs: []uint{0, 1, 2, 5, 8}},
 
-	if kernels.EnableLargeProgs() {
-		// shared with base sensor
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 5, 6, 7, 9}})
+			// generic_kprobe_event
+			tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
 
-		// generic_kprobe_process_event*,generic_kprobe_output,generic_retkprobe_output
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tcpmon_map", Progs: []uint{1, 2, 6, 10}})
+			// shared with base sensor
+			tus.SensorMap{Name: "execve_map", Progs: []uint{0, 4, 5, 6, 8, 9}},
 
-		// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "socktrack_map", Progs: []uint{1, 2, 5, 7, 9}})
+			// generic_kprobe_process_event*,generic_kprobe_output,generic_retkprobe_output
+			tus.SensorMap{Name: "tcpmon_map", Progs: []uint{1, 2, 6, 9}},
+
+			// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
+			tus.SensorMap{Name: "socktrack_map", Progs: []uint{0, 1, 2, 5, 8}},
+		}
 	} else {
-		// shared with base sensor
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 7}})
+		sensorProgs = []tus.SensorProg{
+			// kprobe
+			0: tus.SensorProg{Name: "generic_kprobe_event", Type: ebpf.Kprobe},
+			1: tus.SensorProg{Name: "generic_kprobe_setup_event", Type: ebpf.Kprobe},
+			2: tus.SensorProg{Name: "generic_kprobe_process_event", Type: ebpf.Kprobe},
+			3: tus.SensorProg{Name: "generic_kprobe_filter_arg", Type: ebpf.Kprobe},
+			4: tus.SensorProg{Name: "generic_kprobe_process_filter", Type: ebpf.Kprobe},
+			5: tus.SensorProg{Name: "generic_kprobe_actions", Type: ebpf.Kprobe},
+			6: tus.SensorProg{Name: "generic_kprobe_output", Type: ebpf.Kprobe},
+			// retkprobe
+			7:  tus.SensorProg{Name: "generic_retkprobe_event", Type: ebpf.Kprobe},
+			8:  tus.SensorProg{Name: "generic_retkprobe_filter_arg", Type: ebpf.Kprobe},
+			9:  tus.SensorProg{Name: "generic_retkprobe_actions", Type: ebpf.Kprobe},
+			10: tus.SensorProg{Name: "generic_retkprobe_output", Type: ebpf.Kprobe},
+		}
 
-		// generic_kprobe_output,generic_retkprobe_output
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tcpmon_map", Progs: []uint{6, 10}})
+		sensorMaps = []tus.SensorMap{
+			// all kprobe programs
+			tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
+
+			// all but generic_kprobe_output
+			tus.SensorMap{Name: "kprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5}},
+
+			// generic_retkprobe_event
+			tus.SensorMap{Name: "retkprobe_calls", Progs: []uint{7, 8, 9}},
+
+			// generic_kprobe_process_filter,generic_kprobe_filter_arg,
+			// generic_kprobe_actions,generic_kprobe_output
+			tus.SensorMap{Name: "filter_map", Progs: []uint{3, 4, 5}},
+
+			// generic_kprobe_actions
+			tus.SensorMap{Name: "override_tasks", Progs: []uint{5}},
+
+			// all kprobe but generic_kprobe_process_filter,generic_retkprobe_event
+			tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2}},
+
+			// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
+			tus.SensorMap{Name: "fdinstall_map", Progs: []uint{1, 2, 5, 7, 9}},
+
+			// generic_kprobe_event
+			tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
+		}
+
+		if kernels.EnableLargeProgs() {
+			// shared with base sensor
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 5, 6, 7, 9}})
+
+			// generic_kprobe_process_event*,generic_kprobe_output,generic_retkprobe_output
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tcpmon_map", Progs: []uint{1, 2, 6, 10}})
+
+			// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "socktrack_map", Progs: []uint{1, 2, 5, 7, 9}})
+		} else {
+			// shared with base sensor
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 7}})
+
+			// generic_kprobe_output,generic_retkprobe_output
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tcpmon_map", Progs: []uint{6, 10}})
+		}
 	}
 
 	readHook := `
@@ -6957,14 +7013,24 @@ spec:
 		fmt.Printf("Failed to execute test binary: %s\n", err)
 	}
 
-	expected := strings.NewReader(` # HELP tetragon_missed_prog_probes_total The total number of Tetragon probe missed by program.
+	s := `  # HELP tetragon_missed_prog_probes_total The total number of Tetragon probe missed by program.
 # TYPE tetragon_missed_prog_probes_total counter
 tetragon_missed_prog_probes_total{attach="acct_process",policy="__base__"} 0
-tetragon_missed_prog_probes_total{attach="kprobe_multi (2 functions)",policy="syswritefollowfdpsswd"} 1
+tetragon_missed_prog_probes_total{attach="%s (2 functions)",policy="syswritefollowfdpsswd"} %d
 tetragon_missed_prog_probes_total{attach="sched/sched_process_exec",policy="__base__"} 0
 tetragon_missed_prog_probes_total{attach="security_bprm_committing_creds",policy="__base__"} 0
 tetragon_missed_prog_probes_total{attach="wake_up_new_task",policy="__base__"} 0
-`)
+`
+
+	// Session programs get accounted missed counts also for return
+	// probe even if it's not executed (plus type name).
+	cnt := 1
+	typ := "kprobe_multi"
+	if bpf.HasKprobeSession() {
+		cnt = 2
+		typ = "kprobe_session"
+	}
+	expected := strings.NewReader(fmt.Sprintf(s, typ, cnt))
 
 	assert.NoError(t, testutil.GatherAndCompare(metricsconfig.GetRegistry(), expected,
 		prometheus.BuildFQName(consts.MetricsNamespace, "", "missed_prog_probes_total")))

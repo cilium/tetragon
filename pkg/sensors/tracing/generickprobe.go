@@ -81,21 +81,21 @@ func kprobeCharBufErrorToString(e int32) string {
 	return "CharBufErrorUnknown"
 }
 
-type kprobeSelectors struct {
-	entry *selectors.KernelSelectorState
-	retrn *selectors.KernelSelectorState
-}
-
 type kprobeLoadArgs struct {
-	selectors kprobeSelectors
-	retprobe  bool
-	syscall   bool
-	config    *api.EventConfig
+	selector *selectors.KernelSelectorState
+	retprobe bool
+	syscall  bool
+	config   *api.EventConfig
 }
 
 type pendingEventKey struct {
 	eventId    uint64
 	ktimeEnter uint64
+}
+
+type multiKprobeLoaderData struct {
+	ids     []idtable.EntryID
+	session bool
 }
 
 type genericKprobeData struct {
@@ -185,25 +185,18 @@ var (
 	MaxFilterIntArgs = 8
 )
 
-func getProgramSelector(load *program.Program, kprobeEntry *genericKprobe) *selectors.KernelSelectorState {
-	if kprobeEntry != nil {
-		if load.RetProbe {
-			return kprobeEntry.loadArgs.selectors.retrn
-		}
-		return kprobeEntry.loadArgs.selectors.entry
-	}
-	return nil
-}
-
 func filterMaps(load *program.Program, kprobeEntry *genericKprobe) []*program.Map {
 	var maps []*program.Map
+	var state *selectors.KernelSelectorState
 
 	/*
 	 * If we got passed genericKprobe != nil we can make selector map fixes
 	 * related to the kernel version. We pass nil for multi kprobes but as
 	 * they are added in later kernels than 5.9, there's no fixing needed.
 	 */
-	state := getProgramSelector(load, kprobeEntry)
+	if kprobeEntry != nil {
+		state = kprobeEntry.loadArgs.selector
+	}
 
 	argFilterMaps := program.MapBuilderProgram("argfilter_maps", load)
 	if state != nil && !kernels.MinKernelVersion("5.9") {
@@ -274,6 +267,7 @@ func createMultiKprobeSensor(policyName string, multiIDs []idtable.EntryID, has 
 	var multiRetIDs []idtable.EntryID
 	var progs []*program.Program
 	var maps []*program.Map
+	var load *program.Program
 
 	data := &genericKprobeData{}
 
@@ -302,14 +296,34 @@ func createMultiKprobeSensor(policyName string, multiIDs []idtable.EntryID, has 
 		loadProgRetName = "bpf_multi_retkprobe_v511.o"
 	}
 
-	load := program.Builder(
-		path.Join(option.Config.HubbleLib, loadProgName),
-		fmt.Sprintf("kprobe_multi (%d functions)", len(multiIDs)),
-		"kprobe.multi/generic_kprobe",
-		"multi_kprobe",
-		"generic_kprobe").
-		SetLoaderData(multiIDs).
-		SetPolicy(policyName)
+	useSession := bpf.HasKprobeSession() && !has.override
+
+	if useSession {
+		load = program.Builder(
+			path.Join(option.Config.HubbleLib, "bpf_session_kprobe.o"),
+			fmt.Sprintf("kprobe_session (%d functions)", len(multiIDs)),
+			"kprobe.session/generic_kprobe",
+			"session_kprobe",
+			"generic_kprobe").
+			SetLoaderData(multiKprobeLoaderData{
+				ids:     multiIDs,
+				session: useSession,
+			}).
+			SetPolicy(policyName)
+	} else {
+		load = program.Builder(
+			path.Join(option.Config.HubbleLib, loadProgName),
+			fmt.Sprintf("kprobe_multi (%d functions)", len(multiIDs)),
+			"kprobe.multi/generic_kprobe",
+			"multi_kprobe",
+			"generic_kprobe").
+			SetLoaderData(multiIDs).
+			SetLoaderData(multiKprobeLoaderData{
+				ids: multiIDs,
+			}).
+			SetPolicy(policyName)
+	}
+
 	progs = append(progs, load)
 
 	fdinstall := program.MapBuilderSensor("fdinstall_map", load)
@@ -379,6 +393,12 @@ func createMultiKprobeSensor(policyName string, multiIDs []idtable.EntryID, has 
 	}
 	maps = append(maps, overrideTasksMap)
 
+	if useSession {
+		retTailCalls := program.MapBuilderProgram("retkprobe_calls", load)
+		maps = append(maps, retTailCalls)
+		return progs, maps, nil
+	}
+
 	if len(multiRetIDs) != 0 {
 		loadret := program.Builder(
 			path.Join(option.Config.HubbleLib, loadProgRetName),
@@ -387,7 +407,9 @@ func createMultiKprobeSensor(policyName string, multiIDs []idtable.EntryID, has 
 			"multi_retkprobe",
 			"generic_kprobe").
 			SetRetProbe(true).
-			SetLoaderData(multiRetIDs).
+			SetLoaderData(multiKprobeLoaderData{
+				ids: multiRetIDs,
+			}).
 			SetPolicy(policyName)
 		progs = append(progs, loadret)
 
@@ -877,18 +899,18 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 	}
 
 	// Parse Filters into kernel filter logic
-	kprobeEntry.loadArgs.selectors.entry, err = selectors.InitKernelSelectorState(f.Selectors, f.Args, &kprobeEntry.actionArgs, nil, in.selMaps)
-	if err != nil {
+	state := selectors.NewKernelSelectorState(nil, in.selMaps)
+	if err := state.InitKernelSelector(f.Selectors, f.Args, &kprobeEntry.actionArgs); err != nil {
 		return errFn(err)
 	}
 
 	if f.Return {
-		kprobeEntry.loadArgs.selectors.retrn, err = selectors.InitKernelReturnSelectorState(f.Selectors, f.ReturnArg,
-			&kprobeEntry.actionArgs, nil, in.selMaps)
-		if err != nil {
+		if err := state.InitKernelReturnSelector(f.Selectors, f.ReturnArg, &kprobeEntry.actionArgs); err != nil {
 			return errFn(err)
 		}
 	}
+
+	kprobeEntry.loadArgs.selector = state
 
 	kprobeEntry.pendingEvents, err = lru.New[pendingEventKey, pendingEvent](4096)
 	if err != nil {
@@ -962,7 +984,7 @@ func createKprobeSensorFromEntry(kprobeEntry *genericKprobe,
 	if !kernels.MinKernelVersion("5.9") {
 		// Versions before 5.9 do not allow inner maps to have different sizes.
 		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-		matchBinariesPaths.SetInnerMaxEntries(kprobeEntry.loadArgs.selectors.entry.MatchBinariesPathsMaxEntries())
+		matchBinariesPaths.SetInnerMaxEntries(kprobeEntry.loadArgs.selector.MatchBinariesPathsMaxEntries())
 	}
 	maps = append(maps, matchBinariesPaths)
 
@@ -1080,21 +1102,13 @@ func createSingleKprobeSensor(ids []idtable.EntryID, has hasMaps) ([]*program.Pr
 	return progs, maps, nil
 }
 
-func getMapLoad(load *program.Program, kprobeEntry *genericKprobe, index uint32) []*program.MapLoad {
-	state := getProgramSelector(load, kprobeEntry)
-	if state == nil {
-		return []*program.MapLoad{}
-	}
-	return selectorsMaploads(state, index)
-}
-
 func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Program, verbose int) error {
 	gk, err := genericKprobeTableGet(id)
 	if err != nil {
 		return err
 	}
 
-	load.MapLoad = append(load.MapLoad, getMapLoad(load, gk, 0)...)
+	load.MapLoad = append(load.MapLoad, selectorsMaploads(gk.loadArgs.selector, 0)...)
 
 	var configData bytes.Buffer
 	binary.Write(&configData, binary.LittleEndian, gk.loadArgs.config)
@@ -1116,10 +1130,10 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Pro
 	return err
 }
 
-func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir string, load *program.Program, verbose int) error {
+func loadMultiKprobeSensor(ids []idtable.EntryID, session bool, bpfDir string, load *program.Program, verbose int) error {
 	bin_buf := make([]bytes.Buffer, len(ids))
 
-	data := &program.MultiKprobeAttachData{}
+	data := &program.MultiKprobeAttachData{Session: session}
 
 	for index, id := range ids {
 		gk, err := genericKprobeTableGet(id)
@@ -1127,7 +1141,7 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir string, load *program.P
 			return err
 		}
 
-		load.MapLoad = append(load.MapLoad, getMapLoad(load, gk, uint32(index))...)
+		load.MapLoad = append(load.MapLoad, selectorsMaploads(gk.loadArgs.selector, uint32(index))...)
 
 		binary.Write(&bin_buf[index], binary.LittleEndian, gk.loadArgs.config)
 		config := &program.MapLoad{
@@ -1164,8 +1178,8 @@ func loadGenericKprobeSensor(bpfDir string, load *program.Program, verbose int) 
 	if id, ok := load.LoaderData.(idtable.EntryID); ok {
 		return loadSingleKprobeSensor(id, bpfDir, load, verbose)
 	}
-	if ids, ok := load.LoaderData.([]idtable.EntryID); ok {
-		return loadMultiKprobeSensor(ids, bpfDir, load, verbose)
+	if data, ok := load.LoaderData.(multiKprobeLoaderData); ok {
+		return loadMultiKprobeSensor(data.ids, data.session, bpfDir, load, verbose)
 	}
 	return fmt.Errorf("invalid loadData type: expecting idtable.EntryID/[] and got: %T (%v)",
 		load.LoaderData, load.LoaderData)

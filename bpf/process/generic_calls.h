@@ -33,6 +33,7 @@ generic_start_process_filter(void *ctx, struct bpf_map_def *calls)
 		return 0;
 	msg->func_id = config->func_id;
 	msg->retprobe_id = 0;
+	msg->has_return = config->argreturn != 0;
 
 	/* Initialize selector index to 0 */
 	msg->sel.curr = 0;
@@ -362,10 +363,11 @@ do_actions(void *ctx, struct selector_action *actions)
 }
 
 FUNC_INLINE long
-generic_actions(void *ctx, struct bpf_map_def *calls)
+generic_actions(void *ctx, struct bpf_map_def *calls, bool is_entry)
 {
 	struct selector_arg_filters *arg;
 	struct selector_action *actions;
+	struct filter_map_value *fval;
 	struct msg_generic_kprobe *e;
 	int actoff, pass, zero = 0;
 	bool postit;
@@ -379,9 +381,11 @@ generic_actions(void *ctx, struct bpf_map_def *calls)
 	if (pass <= 1)
 		return 0;
 
-	f = map_lookup_elem(&filter_map, &e->idx);
-	if (!f)
+	fval = map_lookup_elem(&filter_map, &e->idx);
+	if (!fval)
 		return 0;
+
+	f = filter_map_ptr(fval, is_entry);
 
 	asm volatile("%[pass] &= 0x7ff;\n"
 		     : [pass] "+r"(pass)
@@ -572,12 +576,15 @@ FUNC_INLINE int generic_process_filter(void)
 
 	enter = event_find_curr(&ppid, &walker);
 	if (enter) {
+		struct filter_map_value *fval;
 		int selectors, pass;
-		__u32 *f = map_lookup_elem(&filter_map, &msg->idx);
+		__u32 *f;
 
-		if (!f)
+		fval = map_lookup_elem(&filter_map, &msg->idx);
+		if (!fval)
 			return PFILTER_ERROR;
 
+		f = (__u32 *)filter_map_ptr(fval, true);
 		sel = &msg->sel;
 		current = &msg->current;
 
@@ -615,11 +622,11 @@ FUNC_INLINE int generic_process_filter(void)
 
 FUNC_INLINE int filter_args(struct msg_generic_kprobe *e, int selidx, bool is_entry)
 {
-	__u8 *f;
+	struct filter_map_value *fval;
 
 	/* No filters and no selectors so just accepts */
-	f = map_lookup_elem(&filter_map, &e->idx);
-	if (!f)
+	fval = map_lookup_elem(&filter_map, &e->idx);
+	if (!fval)
 		return 1;
 
 	/* No selectors, accept by default */
@@ -634,6 +641,7 @@ FUNC_INLINE int filter_args(struct msg_generic_kprobe *e, int selidx, bool is_en
 		return filter_args_reject(e->func_id);
 
 	if (e->sel.active[selidx]) {
+		__u8 *f = filter_map_ptr(fval, is_entry);
 		int pass = selector_arg_offset(f, e, selidx, is_entry);
 
 		if (pass)
