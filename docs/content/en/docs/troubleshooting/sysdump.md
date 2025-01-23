@@ -79,22 +79,3 @@ single node using `tetra bugtool`.
    ```bash
    sudo tetra bugtool
    ```
-
-## Enable debug log level
-
-When debugging, it might be useful to change the log level. The default log
-level is controlled by the log-level option at startup:
-
-* Enable debug level with `--log-level=debug`
-* Enable trace level with `--log-level=trace`
-
-### Change log level on Kubernetes
-
-{{< warning >}}
-The Pods of the Tetragon DaemonSet will be restarted automatically after
-changing the debug Helm value.
-{{< /warning >}}
-
-It is possible to change the log level of Tetragon's DaemonSet Pods by setting
-`tetragon.debug` to `true`.
-
