@@ -4,12 +4,10 @@
 package procevents
 
 import (
-	"cmp"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -660,10 +658,6 @@ func listRunningProcs(procPath string) ([]procs, error) {
 	}
 
 	logger.GetLogger().Infof("Read ProcFS %s appended %d/%d entries", option.Config.ProcFS, len(processes), len(procFS))
-
-	slices.SortFunc(processes, func(a, b procs) int {
-		return cmp.Compare(a.pid, b.pid)
-	})
 
 	return processes, nil
 }
