@@ -100,7 +100,7 @@ tetragon:
   # For example, to exclude the "parent" field from all events and include the "process"
   # field in PROCESS_KPROBE events while excluding all others:
   #
-  # fieldFilters: |
+  # fieldFilters: \|
   #   {"fields": "parent", "action": "EXCLUDE"}
   #   {"event_set": ["PROCESS_KPROBE"], "fields": "process", "action": "INCLUDE"}
   #
@@ -108,7 +108,7 @@ tetragon:
   # -- Filters to redact secrets from the args fields in Tetragon events. To perform
   # redactions, redaction filters define RE2 regular expressions in the `redact`
   # field. Any capture groups in these RE2 regular expressions are redacted and
-  # replaced with "*****".
+  # replaced with "\*\*\*\*\*".
   #
   # For more control, you can select which binary or binaries should have their
   # arguments redacted with the `binary_regex` field.
@@ -124,7 +124,7 @@ tetragon:
   # As a concrete example, the following will redact all passwords passed to
   # processes with the "--password" argument:
   #
-  #   {"redact": ["--password(?:\\s+|=)(\\S*)"]}
+  #   {"redact": ["--password(?:\\s+\|=)(\\S*)"]}
   #
   # Now, an event which contains the string "--password=foo" would have that
   # string replaced with "--password=*****".
@@ -132,7 +132,7 @@ tetragon:
   # Suppose we also see some passwords passed via the -p shorthand for a specific binary, foo.
   # We can also redact these as follows:
   #
-  #   {"binary_regex": ["(?:^|/)foo$"], "redact": ["-p(?:\\s+|=)(\\S*)"]}
+  #   {"binary_regex": ["(?:^\|/)foo$"], "redact": ["-p(?:\\s+\|=)(\\S*)"]}
   #
   # With both of the above redaction filters in place, we are now redacting all
   # password arguments.
