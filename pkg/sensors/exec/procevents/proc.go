@@ -5,6 +5,7 @@ package procevents
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -134,6 +135,17 @@ func procsFindDockerId(cgroups string) (string, int) {
 			container, i := LookupContainerId(s, false, false)
 			if container != "" {
 				return container, i
+			}
+		}
+		// In some environments, such as the GitHub Ubuntu CI runner, docker cgroups do not contain the docker keyword but do end with a hex ID in their last component. Fall back to a naive approach here to handle that case.
+		components := strings.Split(s, "/")
+		if len(components) > 0 {
+			id := components[len(components)-1]
+			_, err := hex.DecodeString(id)
+			if err == nil {
+				if len(id) >= 31 {
+					return id[:31], len(strings.Join(components[:len(components)-1], "")) + 1
+				}
 			}
 		}
 	}
