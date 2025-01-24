@@ -86,7 +86,7 @@ events.
 kubectl exec -ti -n kube-system ds/tetragon -c tetragon -- tetra getevents -o compact --pods xwing
 {{< /tab >}}
 {{< tab "Kubernetes (multiple nodes)" >}}
-POD=$(kubectl -n kubesystem get pods -l 'app.kubernetes.io/name=tetragon' -o name --field-selector spec.nodeName=$(kubectl get pod xwing -o jsonpath='{.spec.nodeName}'))
+POD=$(kubectl -n kube-system get pods -l 'app.kubernetes.io/name=tetragon' -o name --field-selector spec.nodeName=$(kubectl get pod xwing -o jsonpath='{.spec.nodeName}'))
 kubectl exec -ti -n kube-system $POD -c tetragon -- tetra getevents -o compact --pods xwing
 {{< /tab >}}
 {{< /tabpane >}}
@@ -165,7 +165,7 @@ outputting events to the terminal.
 kubectl exec -ti -n kube-system ds/tetragon -c tetragon -- tetra getevents -o compact --pods xwing
 {{< /tab >}}
 {{< tab "Kubernetes (multiple nodes)" >}}
-POD=$(kubectl -n kubesystem get pods -l 'app.kubernetes.io/name=tetragon' -o name --field-selector spec.nodeName=$(kubectl get pod xwing -o jsonpath='{.spec.nodeName}'))
+POD=$(kubectl -n kube-system get pods -l 'app.kubernetes.io/name=tetragon' -o name --field-selector spec.nodeName=$(kubectl get pod xwing -o jsonpath='{.spec.nodeName}'))
 kubectl exec -ti -n kube-system $POD -c tetragon -- tetra getevents -o compact --pods xwing
 {{< /tab >}}
 {{< tab Docker >}}
