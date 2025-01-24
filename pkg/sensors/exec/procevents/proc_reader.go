@@ -4,10 +4,12 @@
 package procevents
 
 import (
+	"cmp"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -320,6 +322,41 @@ func updateExecveMapStats(procs int64) {
 	}
 }
 
+func procToKeyValue(p procs, inInitTree map[uint32]struct{}) (*execvemap.ExecveKey, *execvemap.ExecveValue) {
+	k := &execvemap.ExecveKey{Pid: p.pid}
+	v := &execvemap.ExecveValue{}
+
+	v.Parent.Pid = p.ppid
+	v.Parent.Ktime = p.pktime
+	v.Process.Pid = p.pid
+	v.Process.Ktime = p.ktime
+	v.Flags = 0
+	v.Nspid = p.nspid
+	v.Capabilities.Permitted = p.permitted
+	v.Capabilities.Effective = p.effective
+	v.Capabilities.Inheritable = p.inheritable
+	v.Namespaces.UtsInum = p.uts_ns
+	v.Namespaces.IpcInum = p.ipc_ns
+	v.Namespaces.MntInum = p.mnt_ns
+	v.Namespaces.PidInum = p.pid_ns
+	v.Namespaces.PidChildInum = p.pid_for_children_ns
+	v.Namespaces.NetInum = p.net_ns
+	v.Namespaces.TimeInum = p.time_ns
+	v.Namespaces.TimeChildInum = p.time_for_children_ns
+	v.Namespaces.CgroupInum = p.cgroup_ns
+	v.Namespaces.UserInum = p.user_ns
+	pathLength := copy(v.Binary.Path[:], p.exe)
+	v.Binary.PathLength = int32(pathLength)
+
+	_, parentInInitTree := inInitTree[p.ppid]
+	if v.Nspid == 1 || parentInInitTree {
+		v.Flags |= api.EventInInitTree
+		inInitTree[p.pid] = struct{}{}
+	}
+
+	return k, v
+}
+
 func writeExecveMap(procs []procs) {
 	mapDir := bpf.MapPrefixPath()
 
@@ -335,32 +372,9 @@ func writeExecveMap(procs []procs) {
 			panic(err)
 		}
 	}
+	inInitTree := make(map[uint32]struct{})
 	for _, p := range procs {
-		k := &execvemap.ExecveKey{Pid: p.pid}
-		v := &execvemap.ExecveValue{}
-
-		v.Parent.Pid = p.ppid
-		v.Parent.Ktime = p.pktime
-		v.Process.Pid = p.pid
-		v.Process.Ktime = p.ktime
-		v.Flags = 0
-		v.Nspid = p.nspid
-		v.Capabilities.Permitted = p.permitted
-		v.Capabilities.Effective = p.effective
-		v.Capabilities.Inheritable = p.inheritable
-		v.Namespaces.UtsInum = p.uts_ns
-		v.Namespaces.IpcInum = p.ipc_ns
-		v.Namespaces.MntInum = p.mnt_ns
-		v.Namespaces.PidInum = p.pid_ns
-		v.Namespaces.PidChildInum = p.pid_for_children_ns
-		v.Namespaces.NetInum = p.net_ns
-		v.Namespaces.TimeInum = p.time_ns
-		v.Namespaces.TimeChildInum = p.time_for_children_ns
-		v.Namespaces.CgroupInum = p.cgroup_ns
-		v.Namespaces.UserInum = p.user_ns
-		pathLength := copy(v.Binary.Path[:], p.exe)
-		v.Binary.PathLength = int32(pathLength)
-
+		k, v := procToKeyValue(p, inInitTree)
 		err := m.Put(k, v)
 		if err != nil {
 			logger.GetLogger().WithField("value", v).WithError(err).Warn("failed to put value in execve_map")
@@ -646,6 +660,10 @@ func listRunningProcs(procPath string) ([]procs, error) {
 	}
 
 	logger.GetLogger().Infof("Read ProcFS %s appended %d/%d entries", option.Config.ProcFS, len(processes), len(procFS))
+
+	slices.SortFunc(processes, func(a, b procs) int {
+		return cmp.Compare(a.pid, b.pid)
+	})
 
 	return processes, nil
 }
