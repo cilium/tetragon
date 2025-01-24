@@ -32,6 +32,7 @@ import (
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
+	"github.com/cilium/tetragon/pkg/observer/observertesthelper/docker"
 	"github.com/cilium/tetragon/pkg/option"
 	proc "github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/caps"
@@ -597,7 +598,7 @@ func TestDocker(t *testing.T) {
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 
 	readyWG.Wait()
-	serverDockerID := observertesthelper.DockerRun(t, "--name", "fgs-test-server", "--entrypoint", "nc", "quay.io/cilium/alpine-curl:v1.6.0", "-nvlp", "8081", "-s", "0.0.0.0")
+	serverDockerID := docker.Run(t, "--name", "fgs-test-server", "--entrypoint", "nc", "quay.io/cilium/alpine-curl:v1.6.0", "-nvlp", "8081", "-s", "0.0.0.0")
 	time.Sleep(1 * time.Second)
 
 	// Tetragon sends 31 bytes + \0 to user-space. Since it might have an arbitrary prefix,
@@ -637,7 +638,7 @@ func TestInInitTree(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	containerID := observertesthelper.DockerCreate(t, "--name", "in-init-tree-test", "bash", "bash", "-c", "sleep infinity")
+	containerID := docker.Create(t, "--name", "in-init-tree-test", "bash", "bash", "-c", "sleep infinity")
 	// Tetragon sends 31 bytes + \0 to user-space. Since it might have an arbitrary prefix,
 	// match only on the first 24 bytes.
 	trimmedContainerID := sm.Prefix(containerID[:24])
@@ -650,9 +651,9 @@ func TestInInitTree(t *testing.T) {
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 
 	readyWG.Wait()
-	observertesthelper.DockerStart(t, "in-init-tree-test")
+	docker.Start(t, "in-init-tree-test")
 	time.Sleep(1 * time.Second)
-	observertesthelper.DockerExec(t, "in-init-tree-test", "ls")
+	docker.Exec(t, "in-init-tree-test", "ls")
 
 	// This is the initial cmd, so inInitTree should be true
 	entrypointChecker := ec.NewProcessChecker().
