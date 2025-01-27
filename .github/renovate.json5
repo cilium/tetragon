@@ -48,6 +48,7 @@
     "contrib/update-helm-chart.sh",
     "cmd/tetragon-metrics-docs/metricsmd/metricsmd.go",
     "tests/e2e/helpers/cluster.go",
+    "tests/e2e/flags/flags.go",
   ],
   "postUpdateOptions": [
     "gomodTidy"
@@ -543,6 +544,15 @@
       ],
       "matchStrings": [
         "\\/\\/ renovate: datasource=(?<datasource>.*?)\\s+.*\"(?<depName>.*?):(?<currentValue>.*?)\""
+      ]
+    },
+    {
+      "customType": "regex",
+      "fileMatch": [
+        "^tests/e2e/flags/flags.go$"
+      ],
+      "matchStrings": [
+        "\\/\\/ renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s+CiliumVersion:\\s*\"(?<currentValue>.*?)\""
       ]
     },
   ]

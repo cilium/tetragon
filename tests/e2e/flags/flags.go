@@ -26,7 +26,8 @@ var Opts = Flags{
 	},
 	KeepExportData: false,
 	InstallCilium:  true,
-	CiliumVersion:  "v1.15.1",
+	// renovate: datasource=go depName=github.com/cilium/cilium
+	CiliumVersion: "v1.15.1",
 }
 
 func init() {
