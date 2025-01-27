@@ -47,6 +47,7 @@ var (
 
 func init() {
 	flag.StringVar(&clusterName, "cluster-name", "tetragon-ci", "Set the name of the k8s cluster being used")
+	// renovate: datasource=docker
 	flag.StringVar(&clusterImage, "cluster-image", "kindest/node:v1.29.2", "Set the node image for the kind cluster")
 }
 
