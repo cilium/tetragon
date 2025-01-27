@@ -45,6 +45,7 @@
     "install/kubernetes/*/values.yaml",
     "**/*Makefile*",
     "contrib/update-helm-chart.sh",
+    "cmd/tetragon-metrics-docs/metricsmd/metricsmd.go",
   ],
   "postUpdateOptions": [
     "gomodTidy"
@@ -522,6 +523,15 @@
       ],
       "matchStrings": [
         "# renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s+&& git clone --depth 1 --branch (?<currentValue>v\\d+\\.\\d+\\.\\d+)"
+      ]
+    },
+    {
+      "customType": "regex",
+      "fileMatch": [
+        "^cmd/tetragon-metrics-docs/metricsmd/metricsmd.go$"
+      ],
+      "matchStrings": [
+        "\\/\\/ renovate: datasource=(?<datasource>.*?)\\s+Values: \\[]string{\"(?<depName>go)(?<currentValue>.*?)\""
       ]
     }
   ]
