@@ -5,6 +5,7 @@ package process
 
 import (
 	"fmt"
+	"maps"
 	"path/filepath"
 	"sync/atomic"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
 	lru "github.com/hashicorp/golang-lru/v2"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -221,9 +223,9 @@ func (pc *Cache) dump(opts *tetragon.DumpProcessCacheReqArgs) []*tetragon.Proces
 			}
 		}
 		processes = append(processes, &tetragon.ProcessInternal{
-			Process:   v.process,
+			Process:   proto.Clone(v.process).(*tetragon.Process),
 			Refcnt:    &wrapperspb.UInt32Value{Value: v.refcnt},
-			RefcntOps: v.refcntOps,
+			RefcntOps: maps.Clone(v.refcntOps),
 			Color:     colorStr[v.color],
 		})
 	}
