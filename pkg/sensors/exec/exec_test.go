@@ -46,6 +46,8 @@ import (
 	"github.com/cilium/tetragon/pkg/testutils/perfring"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/unix"
@@ -1631,4 +1633,50 @@ func TestThrottle1(t *testing.T) {
 // Run throttle twice to test the CgroupRate setup code
 func TestThrottle2(t *testing.T) {
 	testThrottle(t)
+}
+
+func TestConfigDir(t *testing.T) {
+	var flags pflag.FlagSet
+	configDir := "/tmp/tetragon.configMap"
+	observertesthelper.WriteConfigMap(configDir, "enable-process-cred", "false")
+	observertesthelper.WriteConfigMap(configDir, "enable-process-ns", "false")
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithConfigMap(configDir))
+	if err != nil {
+		t.Fatalf("Failed to run observer: %s", err)
+	}
+
+	option.ReadConfigDir(configDir)
+	option.AddFlags(&flags)
+	viper.BindPFlags(&flags)
+	option.ReadAndSetFlags()
+
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
+
+	myCaps := ec.NewCapabilitiesChecker().FromCapabilities(caps.GetCurrentCapabilities())
+	myNs := ec.NewNamespacesChecker().FromNamespaces(namespace.GetCurrentNamespace())
+	procChecker := ec.NewProcessChecker().
+		WithBinary(sm.Full(testNop)).
+		WithArguments(sm.Full("arg1 arg2 arg3")).
+		WithCap(myCaps).
+		WithNs(myNs)
+
+	execChecker := ec.NewProcessExecChecker("").WithProcess(procChecker)
+	checker := ec.NewUnorderedEventChecker(execChecker)
+
+	if err := exec.Command(testNop, "arg1", "arg2", "arg3").Run(); err != nil {
+		t.Fatalf("Failed to execute test binary: %s\n", err)
+	}
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.Error(t, err)
 }
