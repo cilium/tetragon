@@ -105,7 +105,7 @@ type Map struct {
 }
 
 func (m *Map) String() string {
-	return fmt.Sprintf("Map{Name:%s PinPath:%s}", m.Name, m.PinPath)
+	return fmt.Sprintf("Map{Name:%s PinPath:%s Owner:%t}", m.Name, m.PinPath, m.IsOwner())
 }
 
 // globalMaps keeps a record of all global maps to exclude them from per policy
