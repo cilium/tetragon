@@ -231,3 +231,16 @@ func (pc *Cache) dump(opts *tetragon.DumpProcessCacheReqArgs) []*tetragon.Proces
 	}
 	return processes
 }
+
+func (pc *Cache) getEntries() []*tetragon.ProcessInternal {
+	var processes []*tetragon.ProcessInternal
+	for _, v := range pc.cache.Values() {
+		processes = append(processes, &tetragon.ProcessInternal{
+			Process:   v.process,
+			Refcnt:    &wrapperspb.UInt32Value{Value: v.refcnt},
+			RefcntOps: v.refcntOps,
+			Color:     colorStr[v.color],
+		})
+	}
+	return processes
+}
