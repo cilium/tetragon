@@ -541,3 +541,12 @@ func GetK8s() watcher.K8sResourceWatcher {
 func DumpProcessCache(opts *tetragon.DumpProcessCacheReqArgs) []*tetragon.ProcessInternal {
 	return procCache.dump(opts)
 }
+
+// This function returns the process cache entries (and not the copies
+// of them as opposed to dump function). Thus any changes to the return
+// value results in affecting the process cache entries.
+// This is mainly for tests where we want to check the values of the
+// process cache.
+func GetCacheEntries() []*tetragon.ProcessInternal {
+	return procCache.getEntries()
+}
