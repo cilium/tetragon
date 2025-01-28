@@ -170,6 +170,10 @@ const (
 	// for the connection from proxy to upstream cluster
 	ProxyIdleTimeout = "proxy-idle-timeout-seconds"
 
+	// RestoredProxyPortsAgeLimit specifies the time after which a restored proxy ports file is
+	// considered stale (in minutes)
+	RestoredProxyPortsAgeLimit = "restored-proxy-ports-age-limit"
+
 	// FixedIdentityMapping is the key-value for the fixed identity mapping
 	// which allows to use reserved label for fixed identities
 	FixedIdentityMapping = "fixed-identity-mapping"
@@ -1658,6 +1662,10 @@ type DaemonConfig struct {
 	// ProxyIdleTimeout specifies the idle_timeout setting (in seconds), which applies
 	// for the connection from proxy to upstream cluster
 	ProxyIdleTimeout time.Duration
+
+	// RestoredProxyPortsAgeLimit specifies the time after which a restored proxy ports file is
+	// considered stale (in minutes)
+	RestoredProxyPortsAgeLimit uint
 
 	// EnvoyLogPath specifies where to store the Envoy proxy logs when Envoy
 	// runs in the same container as Cilium.
@@ -3191,6 +3199,7 @@ func (c *DaemonConfig) Populate(vp *viper.Viper) {
 	c.ProxyMaxRequestsPerConnection = vp.GetInt(ProxyMaxRequestsPerConnection)
 	c.ProxyMaxConnectionDuration = time.Duration(vp.GetInt64(ProxyMaxConnectionDuration))
 	c.ProxyIdleTimeout = time.Duration(vp.GetInt64(ProxyIdleTimeout))
+	c.RestoredProxyPortsAgeLimit = vp.GetUint(RestoredProxyPortsAgeLimit)
 	c.RestoreState = vp.GetBool(Restore)
 	c.RouteMetric = vp.GetInt(RouteMetric)
 	c.RunDir = vp.GetString(StateDir)
@@ -3315,11 +3324,6 @@ func (c *DaemonConfig) Populate(vp *viper.Viper) {
 		}
 	}
 
-	if c.EnableIPv4 && ipv4NativeRoutingCIDR == "" && c.EnableAutoDirectRouting {
-		log.Warnf("If %s is enabled, then you are recommended to also configure %s. If %s is not configured, this may lead to pod to pod traffic being masqueraded, "+
-			"which can cause problems with performance, observability and policy", EnableAutoDirectRoutingName, IPv4NativeRoutingCIDR, IPv4NativeRoutingCIDR)
-	}
-
 	ipv6NativeRoutingCIDR := vp.GetString(IPv6NativeRoutingCIDR)
 
 	if ipv6NativeRoutingCIDR != "" {
@@ -3331,11 +3335,6 @@ func (c *DaemonConfig) Populate(vp *viper.Viper) {
 		if len(c.IPv6NativeRoutingCIDR.IP) != net.IPv6len {
 			log.Fatalf("%s must be an IPv6 CIDR", IPv6NativeRoutingCIDR)
 		}
-	}
-
-	if c.EnableIPv6 && ipv6NativeRoutingCIDR == "" && c.EnableAutoDirectRouting {
-		log.Warnf("If %s is enabled, then you are recommended to also configure %s. If %s is not configured, this may lead to pod to pod traffic being masqueraded, "+
-			"which can cause problems with performance, observability and policy", EnableAutoDirectRoutingName, IPv6NativeRoutingCIDR, IPv6NativeRoutingCIDR)
 	}
 
 	if err := c.calculateBPFMapSizes(vp); err != nil {
