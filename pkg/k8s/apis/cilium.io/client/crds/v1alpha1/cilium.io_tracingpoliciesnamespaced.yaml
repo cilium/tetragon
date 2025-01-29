@@ -199,6 +199,7 @@ spec:
                             - data_loc
                             - net_device
                             - bpf_cmd
+                            - dentry
                             type: string
                         required:
                         - index
@@ -297,6 +298,7 @@ spec:
                           - data_loc
                           - net_device
                           - bpf_cmd
+                          - dentry
                           type: string
                       required:
                       - index
@@ -910,6 +912,7 @@ spec:
                             - data_loc
                             - net_device
                             - bpf_cmd
+                            - dentry
                             type: string
                         required:
                         - index
@@ -1560,6 +1563,7 @@ spec:
                             - data_loc
                             - net_device
                             - bpf_cmd
+                            - dentry
                             type: string
                         required:
                         - index
@@ -2145,6 +2149,7 @@ spec:
                             - data_loc
                             - net_device
                             - bpf_cmd
+                            - dentry
                             type: string
                         required:
                         - index
