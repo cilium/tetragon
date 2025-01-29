@@ -37,6 +37,7 @@
     - [KprobePerfEvent](#tetragon-KprobePerfEvent)
     - [KprobeSkb](#tetragon-KprobeSkb)
     - [KprobeSock](#tetragon-KprobeSock)
+    - [KprobeSockaddr](#tetragon-KprobeSockaddr)
     - [KprobeTruncatedBytes](#tetragon-KprobeTruncatedBytes)
     - [KprobeUserNamespace](#tetragon-KprobeUserNamespace)
     - [Namespace](#tetragon-Namespace)
@@ -593,6 +594,7 @@ found.
 | net_dev_arg | [KprobeNetDev](#tetragon-KprobeNetDev) |  |  |
 | bpf_cmd_arg | [BpfCmd](#tetragon-BpfCmd) |  |  |
 | syscall_id | [SyscallId](#tetragon-SyscallId) |  |  |
+| sockaddr_arg | [KprobeSockaddr](#tetragon-KprobeSockaddr) |  |  |
 | label | [string](#string) |  |  |
 
 
@@ -801,6 +803,23 @@ found.
 | dport | [uint32](#uint32) |  |  |
 | cookie | [uint64](#uint64) |  |  |
 | state | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="tetragon-KprobeSockaddr"></a>
+
+### KprobeSockaddr
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| family | [string](#string) |  |  |
+| addr | [string](#string) |  |  |
+| port | [uint32](#uint32) |  |  |
 
 
 

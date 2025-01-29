@@ -247,17 +247,40 @@ type MsgGenericKprobeArgSkb struct {
 	Label       string
 }
 
-type MsgGenericSyscallID struct {
-	ID  uint32
-	ABI string
-}
-
 func (m MsgGenericKprobeArgSkb) GetIndex() uint64 {
 	return m.Index
 }
 
 func (m MsgGenericKprobeArgSkb) IsReturnArg() bool {
 	return m.Index == ReturnArgIndex
+}
+
+type MsgGenericKprobeSockaddr struct {
+	SinFamily uint16
+	SinPort   uint16
+	Pad       uint32
+	SinAddr   [2]uint64
+}
+
+type MsgGenericKprobeArgSockaddr struct {
+	Index     uint64
+	SinFamily uint16
+	SinPort   uint32
+	SinAddr   string
+	Label     string
+}
+
+func (m MsgGenericKprobeArgSockaddr) GetIndex() uint64 {
+	return m.Index
+}
+
+func (m MsgGenericKprobeArgSockaddr) IsReturnArg() bool {
+	return m.Index == ReturnArgIndex
+}
+
+type MsgGenericSyscallID struct {
+	ID  uint32
+	ABI string
 }
 
 type MsgGenericKprobeNetDev struct {

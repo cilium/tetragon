@@ -4669,6 +4669,85 @@ func (checker *KprobeSkbChecker) FromKprobeSkb(event *tetragon.KprobeSkb) *Kprob
 	return checker
 }
 
+// KprobeSockaddrChecker implements a checker struct to check a KprobeSockaddr field
+type KprobeSockaddrChecker struct {
+	Family *stringmatcher.StringMatcher `json:"family,omitempty"`
+	Addr   *stringmatcher.StringMatcher `json:"addr,omitempty"`
+	Port   *uint32                      `json:"port,omitempty"`
+}
+
+// NewKprobeSockaddrChecker creates a new KprobeSockaddrChecker
+func NewKprobeSockaddrChecker() *KprobeSockaddrChecker {
+	return &KprobeSockaddrChecker{}
+}
+
+// Get the type of the checker as a string
+func (checker *KprobeSockaddrChecker) GetCheckerType() string {
+	return "KprobeSockaddrChecker"
+}
+
+// Check checks a KprobeSockaddr field
+func (checker *KprobeSockaddrChecker) Check(event *tetragon.KprobeSockaddr) error {
+	if event == nil {
+		return fmt.Errorf("%s: KprobeSockaddr field is nil", CheckerLogPrefix(checker))
+	}
+
+	fieldChecks := func() error {
+		if checker.Family != nil {
+			if err := checker.Family.Match(event.Family); err != nil {
+				return fmt.Errorf("Family check failed: %w", err)
+			}
+		}
+		if checker.Addr != nil {
+			if err := checker.Addr.Match(event.Addr); err != nil {
+				return fmt.Errorf("Addr check failed: %w", err)
+			}
+		}
+		if checker.Port != nil {
+			if *checker.Port != event.Port {
+				return fmt.Errorf("Port has value %d which does not match expected value %d", event.Port, *checker.Port)
+			}
+		}
+		return nil
+	}
+	if err := fieldChecks(); err != nil {
+		return fmt.Errorf("%s: %w", CheckerLogPrefix(checker), err)
+	}
+	return nil
+}
+
+// WithFamily adds a Family check to the KprobeSockaddrChecker
+func (checker *KprobeSockaddrChecker) WithFamily(check *stringmatcher.StringMatcher) *KprobeSockaddrChecker {
+	checker.Family = check
+	return checker
+}
+
+// WithAddr adds a Addr check to the KprobeSockaddrChecker
+func (checker *KprobeSockaddrChecker) WithAddr(check *stringmatcher.StringMatcher) *KprobeSockaddrChecker {
+	checker.Addr = check
+	return checker
+}
+
+// WithPort adds a Port check to the KprobeSockaddrChecker
+func (checker *KprobeSockaddrChecker) WithPort(check uint32) *KprobeSockaddrChecker {
+	checker.Port = &check
+	return checker
+}
+
+//FromKprobeSockaddr populates the KprobeSockaddrChecker using data from a KprobeSockaddr field
+func (checker *KprobeSockaddrChecker) FromKprobeSockaddr(event *tetragon.KprobeSockaddr) *KprobeSockaddrChecker {
+	if event == nil {
+		return checker
+	}
+	checker.Family = stringmatcher.Full(event.Family)
+	checker.Addr = stringmatcher.Full(event.Addr)
+	{
+		val := event.Port
+		checker.Port = &val
+	}
+	return checker
+}
+
 // KprobeNetDevChecker implements a checker struct to check a KprobeNetDev field
 type KprobeNetDevChecker struct {
 	Name *stringmatcher.StringMatcher `json:"name,omitempty"`
@@ -5704,6 +5783,7 @@ type KprobeArgumentChecker struct {
 	NetDevArg             *KprobeNetDevChecker         `json:"netDevArg,omitempty"`
 	BpfCmdArg             *BpfCmdChecker               `json:"bpfCmdArg,omitempty"`
 	SyscallId             *SyscallIdChecker            `json:"syscallId,omitempty"`
+	SockaddrArg           *KprobeSockaddrChecker       `json:"sockaddrArg,omitempty"`
 	Label                 *stringmatcher.StringMatcher `json:"label,omitempty"`
 }
 
@@ -6004,6 +6084,16 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 				return fmt.Errorf("KprobeArgumentChecker: SyscallId check failed: %T is not a SyscallId", event)
 			}
 		}
+		if checker.SockaddrArg != nil {
+			switch event := event.Arg.(type) {
+			case *tetragon.KprobeArgument_SockaddrArg:
+				if err := checker.SockaddrArg.Check(event.SockaddrArg); err != nil {
+					return fmt.Errorf("SockaddrArg check failed: %w", err)
+				}
+			default:
+				return fmt.Errorf("KprobeArgumentChecker: SockaddrArg check failed: %T is not a SockaddrArg", event)
+			}
+		}
 		if checker.Label != nil {
 			if err := checker.Label.Match(event.Label); err != nil {
 				return fmt.Errorf("Label check failed: %w", err)
@@ -6186,6 +6276,12 @@ func (checker *KprobeArgumentChecker) WithSyscallId(check *SyscallIdChecker) *Kp
 	return checker
 }
 
+// WithSockaddrArg adds a SockaddrArg check to the KprobeArgumentChecker
+func (checker *KprobeArgumentChecker) WithSockaddrArg(check *KprobeSockaddrChecker) *KprobeArgumentChecker {
+	checker.SockaddrArg = check
+	return checker
+}
+
 // WithLabel adds a Label check to the KprobeArgumentChecker
 func (checker *KprobeArgumentChecker) WithLabel(check *stringmatcher.StringMatcher) *KprobeArgumentChecker {
 	checker.Label = check
@@ -6353,6 +6449,12 @@ func (checker *KprobeArgumentChecker) FromKprobeArgument(event *tetragon.KprobeA
 	case *tetragon.KprobeArgument_SyscallId:
 		if event.SyscallId != nil {
 			checker.SyscallId = NewSyscallIdChecker().FromSyscallId(event.SyscallId)
+		}
+	}
+	switch event := event.Arg.(type) {
+	case *tetragon.KprobeArgument_SockaddrArg:
+		if event.SockaddrArg != nil {
+			checker.SockaddrArg = NewKprobeSockaddrChecker().FromKprobeSockaddr(event.SockaddrArg)
 		}
 	}
 	checker.Label = stringmatcher.Full(event.Label)
