@@ -389,7 +389,7 @@ func NoAttach() AttachFunc {
 	}
 }
 
-func TracingAttach() AttachFunc {
+func TracingAttach(load *Program, bpfDir string) AttachFunc {
 	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 		linkFn := func() (link.Link, error) {
@@ -400,6 +400,11 @@ func TracingAttach() AttachFunc {
 		lnk, err := linkFn()
 		if err != nil {
 			return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
+		}
+		err = linkPin(lnk, bpfDir, load)
+		if err != nil {
+			lnk.Close()
+			return nil, err
 		}
 		return &unloader.RelinkUnloader{
 			UnloadProg: unloader.ProgUnloader{Prog: prog}.Unload,
@@ -630,7 +635,7 @@ func LoadFmodRetProgram(bpfDir string, load *Program, progName string, verbose i
 
 func LoadTracingProgram(bpfDir string, load *Program, verbose int) error {
 	opts := &LoadOpts{
-		Attach: TracingAttach(),
+		Attach: TracingAttach(load, bpfDir),
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
