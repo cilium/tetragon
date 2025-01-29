@@ -20,7 +20,7 @@ var (
 	}
 )
 
-func readConfigSettings(defaultConfDir string, defaultConfDropIn string, dropInsDir []string) {
+func ReadConfigSettings(defaultConfDir string, defaultConfDropIn string, dropInsDir []string) {
 	viper.SetEnvPrefix("tetragon")
 	replacer := strings.NewReplacer("-", "_")
 	viper.SetEnvKeyReplacer(replacer)

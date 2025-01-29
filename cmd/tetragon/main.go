@@ -858,7 +858,7 @@ func execute() error {
 	}
 
 	cobra.OnInitialize(func() {
-		readConfigSettings(adminTgConfDir, adminTgConfDropIn, packageTgConfDropIns)
+		ReadConfigSettings(adminTgConfDir, adminTgConfDropIn, packageTgConfDropIns)
 	})
 
 	flags := rootCmd.PersistentFlags()
