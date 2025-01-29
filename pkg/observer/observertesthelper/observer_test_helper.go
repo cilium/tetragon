@@ -677,6 +677,22 @@ func WaitForProcess(process string) error {
 	return fmt.Errorf("process '%s' did not start", process)
 }
 
+func WriteConfigMap(dir, key, value string) error {
+	fileName := filepath.Join(dir, key)
+	if err := os.MkdirAll(filepath.Dir(fileName), 0777); err != nil {
+		return err
+	}
+
+	out, err := os.Create(fileName)
+	if err != nil {
+		return err
+	}
+	if _, err := out.Write([]byte(value)); err != nil {
+		return err
+	}
+	return out.Sync()
+}
+
 func WriteConfigFile(fileName, config string) error {
 	out, err := os.Create(fileName)
 	if err != nil {
