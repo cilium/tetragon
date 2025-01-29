@@ -9,6 +9,7 @@
 #include "bpf_cred.h"
 #include "skb.h"
 #include "sock.h"
+#include "sockaddr.h"
 #include "net_device.h"
 #include "../bpf_process_event.h"
 #include "bpfattr.h"
@@ -80,6 +81,8 @@ enum {
 	data_loc_type = 38,
 
 	net_dev_ty = 39,
+
+	sockaddr_type = 40,
 
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
@@ -419,6 +422,16 @@ FUNC_INLINE long copy_sock(char *args, unsigned long arg)
 	set_event_from_sock(sk_event, sk);
 
 	return sizeof(struct sk_type);
+}
+
+FUNC_INLINE long copy_sockaddr(char *args, unsigned long arg)
+{
+	struct sockaddr_in_type *sockaddr_event = (struct sockaddr_in_type *)args;
+	struct sockaddr *address = (struct sockaddr *)arg;
+
+	set_event_from_sockaddr_in(sockaddr_event, address);
+
+	return sizeof(struct sockaddr_in_type);
 }
 
 FUNC_INLINE long copy_user_ns(char *args, unsigned long arg)
@@ -1016,12 +1029,14 @@ filter_addr_map(struct selector_arg_filter *filter, __u64 *addr, __u16 family)
 FUNC_LOCAL long
 filter_inet(struct selector_arg_filter *filter, char *args)
 {
-	__u64 addr[2] = { 0, 0 };
-	__u32 port = 0;
-	__u32 value = 0;
-	struct sk_type *sk = 0;
-	struct skb_type *skb = 0;
+	struct sockaddr_in_type *address = 0;
 	struct tuple_type *tuple = 0;
+	struct tuple_type t = { 0 };
+	struct skb_type *skb = 0;
+	__u64 addr[2] = { 0, 0 };
+	struct sk_type *sk = 0;
+	__u32 value = 0;
+	__u32 port = 0;
 
 	switch (filter->type) {
 	case sock_type:
@@ -1031,6 +1046,14 @@ filter_inet(struct selector_arg_filter *filter, char *args)
 	case skb_type:
 		skb = (struct skb_type *)args;
 		tuple = &skb->tuple;
+		break;
+	case sockaddr_type:
+		address = (struct sockaddr_in_type *)args;
+		t.family = address->sin_family;
+		t.sport = address->sin_port;
+		t.saddr[0] = address->sin_addr[0];
+		t.saddr[1] = address->sin_addr[1];
+		tuple = &t;
 		break;
 	default:
 		return 0;
@@ -1064,7 +1087,7 @@ filter_inet(struct selector_arg_filter *filter, char *args)
 		value = tuple->family;
 		break;
 	case op_filter_state:
-		if (filter->type == sock_type)
+		if (filter->type == sock_type && sk)
 			value = sk->state;
 		break;
 	default:
@@ -1475,6 +1498,8 @@ FUNC_INLINE size_t type_to_min_size(int type, int argm)
 		return sizeof(struct skb_type);
 	case sock_type:
 		return sizeof(struct sk_type);
+	case sockaddr_type:
+		return sizeof(struct sockaddr_in_type);
 	case cred_type:
 		return sizeof(struct msg_cred);
 	case size_type:
@@ -1738,6 +1763,7 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 			break;
 		case skb_type:
 		case sock_type:
+		case sockaddr_type:
 			pass &= filter_inet(filter, args);
 			break;
 		default:
@@ -2278,6 +2304,9 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 		size = copy_sock(args, arg);
 		// Look up socket in our sock->pid_tgid map
 		update_pid_tid_from_sock(e, arg);
+		break;
+	case sockaddr_type:
+		size = copy_sockaddr(args, arg);
 		break;
 	case cred_type:
 		size = copy_cred(args, arg);

@@ -120,6 +120,13 @@ FUNC_INLINE unsigned long get_ctx_ul(void *src, int type)
 		return (unsigned long)sk;
 	}
 
+	case sockaddr_type: {
+		struct sockaddr *address;
+
+		probe_read(&address, sizeof(struct sockaddr *), src);
+		return (unsigned long)address;
+	}
+
 	default:
 	case nop_ty:
 		return 0;
