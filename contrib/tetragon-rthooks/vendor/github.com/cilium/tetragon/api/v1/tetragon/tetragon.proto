@@ -341,6 +341,12 @@ message KprobeSkb {
     string family = 13;
 }
 
+message KprobeSockaddr {
+    string family = 1;
+    string addr = 2;
+    uint32 port = 3;
+}
+
 message KprobeNetDev {
     string name = 1;
 }
@@ -444,6 +450,7 @@ message KprobeArgument {
 	KprobeNetDev net_dev_arg = 27;
 	BpfCmd bpf_cmd_arg = 28;
 	SyscallId syscall_id = 29;
+    KprobeSockaddr sockaddr_arg = 30;
     }
     string label = 18;
 }
