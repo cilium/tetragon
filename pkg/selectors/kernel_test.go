@@ -224,6 +224,7 @@ func TestParseMatchArg(t *testing.T) {
 		v1alpha1.KProbeArg{Index: 7, Type: "skb", SizeArgIndex: 0, ReturnCopy: false},
 		v1alpha1.KProbeArg{Index: 8, Type: "sock", SizeArgIndex: 0, ReturnCopy: false},
 		v1alpha1.KProbeArg{Index: 9, Type: "sockaddr", SizeArgIndex: 0, ReturnCopy: false},
+		v1alpha1.KProbeArg{Index: 10, Type: "socket", SizeArgIndex: 0, ReturnCopy: false},
 	}
 
 	arg1 := &v1alpha1.ArgSelector{Index: 1, Operator: "Equal", Values: []string{"foobar"}}
@@ -331,6 +332,20 @@ func TestParseMatchArg(t *testing.T) {
 	}
 	if err := ParseMatchArg(k, arg7, sig); err != nil || bytes.Equal(expected7, d.e[nextArg:d.off]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected7, d.e[nextArg:d.off], arg7)
+	}
+
+	nextArg = d.off
+	arg8 := &v1alpha1.ArgSelector{Index: 10, Operator: "SAddr", Values: []string{"127.0.0.1", "::1/128"}}
+	expected8 := []byte{
+		0x0A, 0x00, 0x00, 0x00, // Index == 10
+		13, 0x00, 0x00, 0x00, // operator == saddr
+		16, 0x00, 0x00, 0x00, // length == 16
+		0x29, 0x00, 0x00, 0x00, // value type == socket
+		3, 0x00, 0x00, 0x00, // Addr4LPM mapid = 3
+		2, 0x00, 0x00, 0x00, // Addr6LPM mapid = 2
+	}
+	if err := ParseMatchArg(k, arg8, sig); err != nil || bytes.Equal(expected8, d.e[nextArg:d.off]) == false {
+		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected8, d.e[nextArg:d.off], arg8)
 	}
 
 	if kernels.EnableLargeProgs() { // multiple match args are supported only in kernels >= 5.4
