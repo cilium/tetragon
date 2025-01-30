@@ -1,0 +1,58 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "security-socket-connect"
+spec:
+  kprobes:
+  - call: "security_socket_connect"
+    syscall: false
+    args:
+    - index: 0
+      type: "socket"
+    - index: 1
+      type: "sockaddr"
+    - index: 2
+      type: "int"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Protocol"
+        values:
+        - "IPPROTO_TCP"
+      - index: 1
+        operator: "Family"
+        values:
+        - "AF_INET"
+        - "AF_INET6"
+      - index: 1
+        operator: "SAddr"
+        values:
+        - "192.168.1.1"
+      - index: 1
+        operator: "SPort"
+        values:
+        - 80
+      matchBinaries:
+      - operator: "In"
+        values:
+        - "/usr/bin/curl"
+      matchActions:
+      - action: Post
+    - matchArgs:
+      - index: 0
+        operator: "Protocol"
+        values:
+        - "IPPROTO_TCP"
+      - index: 1
+        operator: "Family"
+        values:
+        - "AF_INET"
+        - "AF_INET6"
+      matchBinaries:
+      - operator: "In"
+        values:
+        - "/usr/bin/curl"
+      matchActions:
+      - action: "Override"
+        argError: 1
+
