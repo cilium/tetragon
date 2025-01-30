@@ -1591,7 +1591,8 @@ The operator `Prefix` checks if the certain argument starts with the defined val
 while the operator `Postfix` compares if the argument matches to the defined value
 as trailing.
 
-The operators relating to ports, addresses and protocol are used with sock or skb
+The operators relating to ports, addresses and protocol are used with sock, skb,
+sockaddr and socket
 types. Port operators can accept a range of ports specified as `min:max` as well
 as lists of individual ports. Address operators can accept IPv4/6 CIDR ranges as well
 as lists of individual addresses.
