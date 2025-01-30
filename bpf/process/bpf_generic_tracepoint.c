@@ -127,6 +127,13 @@ FUNC_INLINE unsigned long get_ctx_ul(void *src, int type)
 		return (unsigned long)address;
 	}
 
+	case socket_type: {
+		struct socket *sock;
+
+		probe_read(&sock, sizeof(struct socket *), src);
+		return (unsigned long)sock;
+	}
+
 	default:
 	case nop_ty:
 		return 0;
