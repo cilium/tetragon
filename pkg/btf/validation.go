@@ -375,6 +375,11 @@ func typesCompatible(specTy string, kernelTy string) bool {
 		case "struct sockaddr *":
 			return true
 		}
+	case "socket":
+		switch kernelTy {
+		case "struct socket *":
+			return true
+		}
 	case "net_device":
 		switch kernelTy {
 		case "struct net_device *":
