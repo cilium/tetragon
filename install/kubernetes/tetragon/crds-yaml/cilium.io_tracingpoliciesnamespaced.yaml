@@ -175,6 +175,7 @@ spec:
                             - skb
                             - sock
                             - sockaddr
+                            - socket
                             - string
                             - fd
                             - file
@@ -274,6 +275,7 @@ spec:
                           - skb
                           - sock
                           - sockaddr
+                          - socket
                           - string
                           - fd
                           - file
@@ -888,6 +890,7 @@ spec:
                             - skb
                             - sock
                             - sockaddr
+                            - socket
                             - string
                             - fd
                             - file
@@ -1539,6 +1542,7 @@ spec:
                             - skb
                             - sock
                             - sockaddr
+                            - socket
                             - string
                             - fd
                             - file
@@ -2125,6 +2129,7 @@ spec:
                             - skb
                             - sock
                             - sockaddr
+                            - socket
                             - string
                             - fd
                             - file
