@@ -241,7 +241,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		arg.SecPathOLen = skb.SecPathOLen
 		arg.Label = a.label
 		return arg
-	case gt.GenericSockType:
+	case gt.GenericSockType, gt.GenericSocketType:
 		var sock api.MsgGenericKprobeSock
 		var arg api.MsgGenericKprobeArgSock
 

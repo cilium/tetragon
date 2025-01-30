@@ -642,8 +642,8 @@ func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) er
 				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
 			WriteSelectorUint64(&k.data, uint64(i))
-		case gt.GenericSockType, gt.GenericSkbType, gt.GenericSockaddrType, gt.GenericNetDev:
-			return fmt.Errorf("MatchArgs type sock, skb, sockaddr and net_device do not support operator %s", selectorOpStringTable[op])
+		case gt.GenericSockType, gt.GenericSkbType, gt.GenericSockaddrType, gt.GenericSocketType, gt.GenericNetDev:
+			return fmt.Errorf("MatchArgs type sock, socket, skb, sockaddr and net_device do not support operator %s", selectorOpStringTable[op])
 		case gt.GenericCharIovec:
 			return fmt.Errorf("MatchArgs values %s unsupported", v)
 		}
@@ -810,19 +810,19 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 			return fmt.Errorf("writePostfixStrings error: %w", err)
 		}
 	case SelectorOpSport, SelectorOpDport, SelectorOpNotSport, SelectorOpNotDport, SelectorOpProtocol, SelectorOpFamily, SelectorOpState:
-		if ty != gt.GenericSockType && ty != gt.GenericSkbType && ty != gt.GenericSockaddrType {
-			return fmt.Errorf("sock/skb/sockaddr operators specified for non-sock/skb/sockaddr type")
+		if ty != gt.GenericSockType && ty != gt.GenericSkbType && ty != gt.GenericSockaddrType && ty != gt.GenericSocketType {
+			return fmt.Errorf("sock/socket/skb/sockaddr operators specified for non-sock/socket/skb/sockaddr type")
 		}
 		if ty == gt.GenericSockaddrType && (op == SelectorOpDport || op == SelectorOpNotDport || op == SelectorOpProtocol || op == SelectorOpState) {
 			return fmt.Errorf("sockaddr only supports [not]saddr, [not]sport[priv], and family")
 		}
-		err := writeMatchRangesInMap(k, arg.Values, gt.GenericU64Type, op) // force type for ports and protocols as ty is sock/skb/sockaddr
+		err := writeMatchRangesInMap(k, arg.Values, gt.GenericU64Type, op) // force type for ports and protocols as ty is sock/socket/skb/sockaddr
 		if err != nil {
 			return fmt.Errorf("writeMatchRangesInMap error: %w", err)
 		}
 	case SelectorOpSaddr, SelectorOpDaddr, SelectorOpNotSaddr, SelectorOpNotDaddr:
-		if ty != gt.GenericSockType && ty != gt.GenericSkbType && ty != gt.GenericSockaddrType {
-			return fmt.Errorf("sock/skb/sockaddr operators specified for non-sock/skb/sockaddr type")
+		if ty != gt.GenericSockType && ty != gt.GenericSkbType && ty != gt.GenericSockaddrType && ty != gt.GenericSocketType {
+			return fmt.Errorf("sock/socket/skb/sockaddr operators specified for non-sock/socket/skb/sockaddr type")
 		}
 		if ty == gt.GenericSockaddrType && (op == SelectorOpDaddr || op == SelectorOpNotDaddr) {
 			return fmt.Errorf("sockaddr only supports [not]saddr, [not]sport[priv], and family")
@@ -833,8 +833,8 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 		}
 	case SelectorOpSportPriv, SelectorOpDportPriv, SelectorOpNotSportPriv, SelectorOpNotDportPriv:
 		// These selectors do not take any values, but we do check that they are only used for sock/skb.
-		if ty != gt.GenericSockType && ty != gt.GenericSkbType && ty != gt.GenericSockaddrType {
-			return fmt.Errorf("sock/skb/sockaddr operators specified for non-sock/skb/sockaddr type")
+		if ty != gt.GenericSockType && ty != gt.GenericSkbType && ty != gt.GenericSockaddrType && ty != gt.GenericSocketType {
+			return fmt.Errorf("sock/socket/skb/sockaddr operators specified for non-sock/socket/skb/sockaddr type")
 		}
 		if ty == gt.GenericSockaddrType && (op == SelectorOpDportPriv || op == SelectorOpNotDportPriv) {
 			return fmt.Errorf("sockaddr only supports [not]saddr, [not]sport[priv], and family")

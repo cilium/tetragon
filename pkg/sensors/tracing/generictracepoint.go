@@ -879,7 +879,7 @@ func handleMsgGenericTracepoint(
 			arg.SecPathLen = skb.SecPathLen
 			arg.SecPathOLen = skb.SecPathOLen
 			unix.Args = append(unix.Args, arg)
-		case gt.GenericSockType:
+		case gt.GenericSockType, gt.GenericSocketType:
 			var sock api.MsgGenericKprobeSock
 			var arg api.MsgGenericKprobeArgSock
 
