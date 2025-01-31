@@ -930,6 +930,14 @@ func (c *coster) computeSize(e ast.Expr) *SizeEstimate {
 	if size, ok := c.computedSizes[e.ID()]; ok {
 		return &size
 	}
+	// Ensure size estimates are computed first as users may choose to override the costs that
+	// CEL would otherwise ascribe to the type.
+	node := astNode{expr: e, path: c.getPath(e), t: c.getType(e)}
+	if size := c.estimator.EstimateSize(node); size != nil {
+		// storing the computed size should reduce calls to EstimateSize()
+		c.computedSizes[e.ID()] = *size
+		return size
+	}
 	if size := computeExprSize(e); size != nil {
 		return size
 	}
@@ -941,12 +949,6 @@ func (c *coster) computeSize(e ast.Expr) *SizeEstimate {
 		if v, ok := c.peekLocalVar(varName); ok && v.size != nil {
 			return v.size
 		}
-	}
-	node := astNode{expr: e, path: c.getPath(e), t: c.getType(e)}
-	if size := c.estimator.EstimateSize(node); size != nil {
-		// storing the computed size should reduce calls to EstimateSize()
-		c.computedSizes[e.ID()] = *size
-		return size
 	}
 	return nil
 }
@@ -1014,8 +1016,7 @@ func computeTypeSize(t *types.Type) *SizeEstimate {
 // in addition to protobuf.Any and protobuf.Value (their size is not knowable at compile time).
 func isScalar(t *types.Type) bool {
 	switch t.Kind() {
-	case types.BoolKind, types.DoubleKind, types.DurationKind, types.IntKind,
-		types.NullTypeKind, types.TimestampKind, types.TypeKind, types.UintKind:
+	case types.BoolKind, types.DoubleKind, types.DurationKind, types.IntKind, types.TimestampKind, types.UintKind:
 		return true
 	case types.OpaqueKind:
 		if t.TypeName() == "optional_type" {
