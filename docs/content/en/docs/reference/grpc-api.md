@@ -349,6 +349,7 @@ found.
 | net_dev_arg | [KprobeNetDev](#tetragon-KprobeNetDev) |  |  |
 | bpf_cmd_arg | [BpfCmd](#tetragon-BpfCmd) |  |  |
 | syscall_id | [SyscallId](#tetragon-SyscallId) |  |  |
+| dentry_arg | [KprobeDentry](#tetragon-KprobeDentry) |  |  |
 | label | [string](#string) |  |  |
 
 <a name="tetragon-KprobeBpfAttr"></a>
@@ -391,6 +392,14 @@ found.
 | permitted | [CapabilitiesType](#tetragon-CapabilitiesType) | repeated |  |
 | effective | [CapabilitiesType](#tetragon-CapabilitiesType) | repeated |  |
 | inheritable | [CapabilitiesType](#tetragon-CapabilitiesType) | repeated |  |
+
+<a name="tetragon-KprobeDentry"></a>
+
+### KprobeDentry
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| name | [string](#string) |  |  |
 
 <a name="tetragon-KprobeFile"></a>
 

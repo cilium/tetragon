@@ -272,6 +272,12 @@ func getKprobeArgument(arg tracingapi.MsgGenericKprobeArg) *tetragon.KprobeArgum
 		}
 		a.Arg = &tetragon.KprobeArgument_LinuxBinprmArg{LinuxBinprmArg: lArg}
 		a.Label = e.Label
+	case api.MsgGenericKprobeArgDentry:
+		lArg := &tetragon.KprobeDentry{
+			Name: e.Value,
+		}
+		a.Arg = &tetragon.KprobeArgument_DentryArg{DentryArg: lArg}
+		a.Label = e.Label
 	default:
 		logger.GetLogger().WithField("arg", e).Warnf("unexpected type: %T", e)
 	}

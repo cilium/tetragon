@@ -81,6 +81,8 @@ enum {
 
 	net_dev_ty = 39,
 
+	dentry_type = 40,
+
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
 	nop_u32_ty = -12,
@@ -212,6 +214,10 @@ struct event_config {
 
 struct msg_linux_binprm {
 	char path[MAX_STRING];
+} __attribute__((packed));
+
+struct msg_dentry {
+	char name[MAX_STRING];
 } __attribute__((packed));
 
 #ifdef __MULTI_KPROBE
@@ -1508,6 +1514,8 @@ FUNC_INLINE size_t type_to_min_size(int type, int argm)
 		return sizeof(struct msg_linux_binprm);
 	case net_dev_ty:
 		return IFNAMSIZ;
+	case dentry_type:
+		return sizeof(struct msg_dentry);
 	// nop or something else we do not process here
 	default:
 		return 0;
@@ -2223,6 +2231,14 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 		path_arg = _(&file->f_path);
 		goto do_copy_path;
 	} break;
+	case dentry_type: {
+		struct dentry *dentry = (struct dentry *)arg;
+		char pathbuf[MAX_STRING];
+		int len = 0;
+		char *path = path_from_dentry(dentry, pathbuf, &len);
+
+		size = copy_strings(args, path, MAX_STRING);
+	}; break;
 #endif
 	case filename_ty: {
 		struct filename *file;

@@ -416,6 +416,20 @@ func (m MsgGenericKprobeArgLinuxBinprm) IsReturnArg() bool {
 	return (m.Index == ReturnArgIndex)
 }
 
+type MsgGenericKprobeArgDentry struct {
+	Index uint64
+	Value string
+	Label string
+}
+
+func (m MsgGenericKprobeArgDentry) GetIndex() uint64 {
+	return m.Index
+}
+
+func (m MsgGenericKprobeArgDentry) IsReturnArg() bool {
+	return (m.Index == ReturnArgIndex)
+}
+
 type MsgGenericUserNamespace struct {
 	Level  int32
 	Uid    uint32
