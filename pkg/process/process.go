@@ -232,6 +232,13 @@ func (pi *ProcessInternal) RefGet() uint32 {
 	return atomic.LoadUint32(&pi.refcnt)
 }
 
+func (pi *ProcessInternal) NeededAncestors() bool {
+	if pi != nil && pi.process.Pid.Value > 2 {
+		return true
+	}
+	return false
+}
+
 // UpdateEventProcessTID Updates the Process.Tid of the event on the fly.
 //
 // From BPF side as we track processes by their TGID we do not cache TIDs,
@@ -479,6 +486,29 @@ func GetParentProcessInternal(pid uint32, ktime uint64) (*ProcessInternal, *Proc
 		return process, nil
 	}
 	return process, parent
+}
+
+// GetAncestorProcessesInternal returns a slice, representing a continuous sequence of ancestors
+// of the process up to init process (PID 1) or kthreadd (PID 2), including the immediate parent.
+func GetAncestorProcessesInternal(execId string) ([]*ProcessInternal, error) {
+	var ancestors []*ProcessInternal
+	var process *ProcessInternal
+	var err error
+
+	if process, err = procCache.get(execId); err != nil {
+		return nil, err
+	}
+
+	// No need to include <kernel> process (PID 0)
+	for process.process.Pid.Value > 2 {
+		if process, err = procCache.get(process.process.ParentExecId); err != nil {
+			logger.GetLogger().WithError(err).WithField("id in event", execId).Debug("ancestor process not found in cache")
+			break
+		}
+		ancestors = append(ancestors, process)
+	}
+
+	return ancestors, err
 }
 
 // AddExecEvent constructs a new ProcessInternal structure from an Execve event, adds it to the cache, and also returns it

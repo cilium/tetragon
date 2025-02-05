@@ -22,13 +22,15 @@ type CacheEntryType int
 const (
 	ProcessInfo CacheEntryType = iota
 	ParentInfo
+	AncestorsInfo
 	PodInfo
 )
 
 var cacheEntryTypeLabelValues = map[CacheEntryType]string{
-	ProcessInfo: "process_info",
-	ParentInfo:  "parent_info",
-	PodInfo:     "pod_info",
+	ProcessInfo:   "process_info",
+	ParentInfo:    "parent_info",
+	AncestorsInfo: "ancestors_info",
+	PodInfo:       "pod_info",
 }
 
 func (t CacheEntryType) String() string {

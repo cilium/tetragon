@@ -45,10 +45,26 @@ type Cache struct {
 }
 
 var (
-	ErrFailedToGetPodInfo     = errors.New("failed to get pod info from event cache")
-	ErrFailedToGetProcessInfo = errors.New("failed to get process info from event cache")
-	ErrFailedToGetParentInfo  = errors.New("failed to get parent info from event cache")
+	ErrFailedToGetPodInfo       = errors.New("failed to get pod info from event cache")
+	ErrFailedToGetProcessInfo   = errors.New("failed to get process info from event cache")
+	ErrFailedToGetParentInfo    = errors.New("failed to get parent info from event cache")
+	ErrFailedToGetAncestorsInfo = errors.New("failed to get ancestors info from event cache")
 )
+
+func enabledAncestors(ev notify.Event) bool {
+	switch ev.(type) {
+	case *tetragon.ProcessKprobe:
+		return option.Config.EnableProcessKprobeAncestors
+	case *tetragon.ProcessTracepoint:
+		return option.Config.EnableProcessTracepointAncestors
+	case *tetragon.ProcessUprobe:
+		return option.Config.EnableProcessUprobeAncestors
+	case *tetragon.ProcessLsm:
+		return option.Config.EnableProcessLsmAncestors
+	default:
+		return false
+	}
+}
 
 // Generic internal lookup happens when events are received out of order and
 // this event was handled before an exec event so it wasn't able to populate
@@ -56,6 +72,31 @@ var (
 func HandleGenericInternal(ev notify.Event, pid uint32, tid *uint32, timestamp uint64) (*process.ProcessInternal, error) {
 	internal, parent := process.GetParentProcessInternal(pid, timestamp)
 	var err error
+
+	if enabledAncestors(ev) && internal.NeededAncestors() {
+		// We do not need to try to recollect all ancestors starting from the immediate parent here,
+		// if we already collected some of them in previous attempts. So, if we already have a number
+		// of ancestors collected, we just need to try to resume the collection process from the last
+		// known ancestor.
+		tetragonAncestors := ev.GetAncestors()
+		var nextExecId string
+
+		if len(tetragonAncestors) == 0 {
+			nextExecId = internal.UnsafeGetProcess().ParentExecId
+		} else {
+			nextExecId = tetragonAncestors[len(tetragonAncestors)-1].ExecId
+		}
+
+		if ancestors, perr := process.GetAncestorProcessesInternal(nextExecId); perr == nil {
+			for _, ancestor := range ancestors {
+				tetragonAncestors = append(tetragonAncestors, ancestor.UnsafeGetProcess())
+			}
+			ev.SetAncestors(tetragonAncestors)
+		} else {
+			CacheRetries(AncestorsInfo).Inc()
+			err = ErrFailedToGetAncestorsInfo
+		}
+	}
 
 	if parent != nil {
 		ev.SetParent(parent.UnsafeGetProcess())
@@ -136,6 +177,8 @@ func (ec *Cache) handleEvents() {
 				failedFetches.WithLabelValues(eventType, ParentInfo.String()).Inc()
 			} else if errors.Is(err, ErrFailedToGetProcessInfo) {
 				failedFetches.WithLabelValues(eventType, ProcessInfo.String()).Inc()
+			} else if errors.Is(err, ErrFailedToGetAncestorsInfo) {
+				failedFetches.WithLabelValues(eventType, AncestorsInfo.String()).Inc()
 			} else if errors.Is(err, ErrFailedToGetPodInfo) {
 				failedFetches.WithLabelValues(eventType, PodInfo.String()).Inc()
 			}
@@ -202,6 +245,18 @@ func (ec *Cache) Needed(proc *tetragon.Process) bool {
 	}
 	if proc.Binary == "" {
 		return true
+	}
+	return false
+}
+
+func (ec *Cache) NeededAncestors(parent *process.ProcessInternal, ancestors []*process.ProcessInternal) bool {
+	if parent.NeededAncestors() {
+		if len(ancestors) == 0 {
+			return true
+		}
+		if ancestors[len(ancestors)-1].UnsafeGetProcess().Pid.Value > 2 {
+			return true
+		}
 	}
 	return false
 }

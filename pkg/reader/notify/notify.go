@@ -19,8 +19,10 @@ type Message interface {
 type Event interface {
 	GetProcess() *tetragon.Process
 	GetParent() *tetragon.Process
+	GetAncestors() []*tetragon.Process
 	SetProcess(*tetragon.Process)
 	SetParent(*tetragon.Process)
+	SetAncestors([]*tetragon.Process)
 	Encapsulate() tetragon.IsGetEventsResponse_Event
 }
 
