@@ -158,7 +158,7 @@ No policy needs to be loaded, standard process execution observability is suffic
 ### Example jq Filter
 
 ```shell
-jq 'select(.process_exec != null) | select(.process_exec.process.binary_properties != null) | select(.process_exec.process.binary_properties.privileges_changed != null) | "\(.time) \(.process_exec.process.pod.namespace) \(.process_exec.process.pod.name) \(.process_exec.process.binary) \(.process_exec.process.arguments) uid=\(.process_exec.process.process_credentials.uid) euid=\(.process_exec.process.process_credentials.euid)  gid=\(.process_exec.process.process_credentials.gid) egid=\(.process_exec.process.process_credentials.egid) caps=\(.process_exec.process.cap) binary_properties=\(.process_exec.process.binary_properties)"''
+jq 'select(.process_exec != null) | select(.process_exec.process.binary_properties != null) | select(.process_exec.process.binary_properties.privileges_changed != null) | "\(.time) \(.process_exec.process.pod.namespace) \(.process_exec.process.pod.name) \(.process_exec.process.binary) \(.process_exec.process.arguments) uid=\(.process_exec.process.process_credentials.uid) euid=\(.process_exec.process.process_credentials.euid)  gid=\(.process_exec.process.process_credentials.gid) egid=\(.process_exec.process.process_credentials.egid) caps=\(.process_exec.process.cap) binary_properties=\(.process_exec.process.binary_properties)"'
 ```
 
 ### Example Output
