@@ -40,6 +40,12 @@ func Generate(gen *protogen.Plugin, files []*protogen.File) error {
         SetParent(p * ` + processIdent + `)
     }`)
 
+	g.P(`// AncestorEvent represents a Tetragon event that has an Ancestor field
+    type AncestorEvent interface {
+        Event
+        SetAncestors(ps []* ` + processIdent + `)
+    }`)
+
 	// Generate impls
 	for _, event := range events {
 		g.P(`// Encapsulate implements the Event interface.
@@ -63,6 +69,14 @@ func Generate(gen *protogen.Plugin, files []*protogen.File) error {
             // Sets the Parent field of an event.
             func (event *` + event.GoIdent.GoName + `) SetParent(p *` + processIdent + `) {
                 event.Parent = p
+            }`)
+		}
+
+		if common.IsAncestorsEvent(event) {
+			g.P(`// SetAncestors implements the AncestorEvent interface.
+            // Sets the Ancestor field of an event.
+            func (event *` + event.GoIdent.GoName + `) SetAncestors(ps []*` + processIdent + `) {
+                event.Ancestors = ps
             }`)
 		}
 	}
