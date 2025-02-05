@@ -8,3 +8,11 @@ endef
 define print_help_option
 	@printf "  \033[35m%-22s\033[0m  %s\n" $(1) '$(2)'
 endef
+
+GO ?= go
+CONTAINER_ENGINE ?= docker
+
+BUF ?= buf
+BUF_BREAKING_AGAINST_BRANCH ?= origin/main
+# renovate: datasource=docker
+BUILDER_IMAGE=quay.io/cilium/cilium-builder:cd04ac813fb4763f840911c88beae99efc4aa457
