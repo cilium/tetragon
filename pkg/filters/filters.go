@@ -14,6 +14,7 @@ import (
 	hubbleFilters "github.com/cilium/cilium/pkg/hubble/filters"
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/api/v1/tetragon/codegen/helpers"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/sirupsen/logrus"
 )
 
@@ -86,6 +87,7 @@ func BuildFilterList(ctx context.Context, ff []*tetragon.Filter, filterFuncs []O
 var Filters = []OnBuildFilter{
 	&BinaryRegexFilter{},
 	&ParentBinaryRegexFilter{},
+	&AncestorBinaryRegexFilter{},
 	&HealthCheckFilter{},
 	&NamespaceFilter{},
 	&PidFilter{},
@@ -124,6 +126,17 @@ func GetParent(event *v1.Event) *tetragon.Process {
 	return helpers.ResponseGetParent(response)
 }
 
+func GetAncestors(event *v1.Event) []*tetragon.Process {
+	if event == nil {
+		return nil
+	}
+	response, ok := event.Event.(*tetragon.GetEventsResponse)
+	if !ok {
+		return nil
+	}
+	return helpers.ResponseGetAncestors(response)
+}
+
 func GetPolicyName(event *v1.Event) string {
 	if event == nil {
 		return ""
@@ -145,4 +158,44 @@ func GetPolicyName(event *v1.Event) string {
 	default:
 		return ""
 	}
+}
+
+var AncestorsEventSet = []tetragon.EventType{
+	tetragon.EventType_PROCESS_EXEC,
+	tetragon.EventType_PROCESS_EXIT,
+	tetragon.EventType_PROCESS_KPROBE,
+	tetragon.EventType_PROCESS_TRACEPOINT,
+	tetragon.EventType_PROCESS_UPROBE,
+	tetragon.EventType_PROCESS_LSM,
+}
+
+func enabledAncestors(eventType tetragon.EventType) bool {
+	switch eventType {
+	case tetragon.EventType_PROCESS_EXEC, tetragon.EventType_PROCESS_EXIT:
+		return option.Config.EnableProcessAncestors
+	case tetragon.EventType_PROCESS_KPROBE:
+		return option.Config.EnableProcessKprobeAncestors
+	case tetragon.EventType_PROCESS_TRACEPOINT:
+		return option.Config.EnableProcessTracepointAncestors
+	case tetragon.EventType_PROCESS_UPROBE:
+		return option.Config.EnableProcessUprobeAncestors
+	case tetragon.EventType_PROCESS_LSM:
+		return option.Config.EnableProcessLsmAncestors
+	default:
+		return false
+	}
+}
+
+func CheckAncestorsEnabled(types []tetragon.EventType) error {
+	if types == nil {
+		types = AncestorsEventSet
+	}
+
+	for _, eventType := range types {
+		if !enabledAncestors(eventType) {
+			return fmt.Errorf("ancestors are not enabled for %s event type, cannot configure ancestor filter", eventType)
+		}
+	}
+
+	return nil
 }
