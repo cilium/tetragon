@@ -75,13 +75,33 @@ options:
     - name: enable-policy-filter-debug
       default_value: "false"
       usage: Enable policy filter debug messages
+    - name: enable-process-ancestors
+      default_value: "false"
+      usage: |
+        Include ancestors in process_exec and process_exit events. Disabled by default. Required by other enable ancestors options for correct reference counting
     - name: enable-process-cred
       default_value: "false"
       usage: Enable process_cred events
+    - name: enable-process-kprobe-ancestors
+      default_value: "false"
+      usage: |
+        Include ancestors in process_kprobe events. Only used if 'enable-process-ancestors' is set to 'true'
+    - name: enable-process-lsm-ancestors
+      default_value: "false"
+      usage: |
+        Include ancestors in process_lsm events. Only used if 'enable-process-ancestors' is set to 'true'
     - name: enable-process-ns
       default_value: "false"
       usage: |
         Enable namespace information in process_exec and process_kprobe events
+    - name: enable-process-tracepoint-ancestors
+      default_value: "false"
+      usage: |
+        Include ancestors in process_tracepoint events. Only used if 'enable-process-ancestors' is set to 'true'
+    - name: enable-process-uprobe-ancestors
+      default_value: "false"
+      usage: |
+        Include ancestors in process_uprobe events. Only used if 'enable-process-ancestors' is set to 'true'
     - name: enable-tracing-policy-crd
       default_value: "true"
       usage: |
