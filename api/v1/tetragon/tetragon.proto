@@ -309,6 +309,8 @@ message ProcessExit {
     uint32  status  = 4;
     // Date and time of the event.
     google.protobuf.Timestamp time = 5;
+    // Ancestors of the process beyond the immediate parent.
+    repeated Process ancestors = 6;
 }
 
 message KprobeSock {
@@ -514,6 +516,8 @@ message ProcessKprobe {
     repeated string tags = 11;
     // User-mode stack trace to the call.
     repeated StackTraceEntry user_stack_trace = 12;
+    // Ancestors of the process beyond the immediate parent.
+    repeated Process ancestors = 13;
 }
 
 message ProcessTracepoint {
@@ -536,6 +540,8 @@ message ProcessTracepoint {
     string message = 9;
     // Tags of the Tracing Policy to categorize the event.
     repeated string tags = 10;
+    // Ancestors of the process beyond the immediate parent.
+    repeated Process ancestors = 11;
 }
 
 message ProcessUprobe {
@@ -551,6 +557,8 @@ message ProcessUprobe {
     repeated KprobeArgument args = 7;
     // Tags of the Tracing Policy to categorize the event.
     repeated string tags = 8;
+    // Ancestors of the process beyond the immediate parent.
+    repeated Process ancestors = 9;
 }
 
 message ProcessLsm {
@@ -568,6 +576,8 @@ message ProcessLsm {
     KprobeAction action = 8;
     // Tags of the Tracing Policy to categorize the event.
     repeated string tags = 9;
+    // Ancestors of the process beyond the immediate parent.
+    repeated Process ancestors = 10;
     // IMA file hash. Format algorithm:value.
     string ima_hash = 11;
 }
