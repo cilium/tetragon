@@ -41,10 +41,17 @@ const (
 	KeyMetricsLabelFilter = "metrics-label-filter"
 	KeyServerAddress      = "server-address"
 	KeyGopsAddr           = "gops-address"
-	KeyEnableProcessCred  = "enable-process-cred"
-	KeyEnableProcessNs    = "enable-process-ns"
-	KeyTracingPolicy      = "tracing-policy"
-	KeyTracingPolicyDir   = "tracing-policy-dir"
+
+	KeyEnableProcessAncestors           = "enable-process-ancestors"
+	KeyEnableProcessKprobeAncestors     = "enable-process-kprobe-ancestors"
+	KeyEnableProcessTracepointAncestors = "enable-process-tracepoint-ancestors"
+	KeyEnableProcessUprobeAncestors     = "enable-process-uprobe-ancestors"
+	KeyEnableProcessLsmAncestors        = "enable-process-lsm-ancestors"
+
+	KeyEnableProcessCred = "enable-process-cred"
+	KeyEnableProcessNs   = "enable-process-ns"
+	KeyTracingPolicy     = "tracing-policy"
+	KeyTracingPolicyDir  = "tracing-policy-dir"
 
 	KeyCpuProfile = "cpuprofile"
 	KeyMemProfile = "memprofile"
@@ -148,6 +155,14 @@ func ReadAndSetFlags() error {
 	Config.ForceLargeProgs = viper.GetBool(KeyForceLargeProgs)
 	Config.Debug = viper.GetBool(KeyDebug)
 	Config.ClusterName = viper.GetString(KeyClusterName)
+
+	Config.EnableProcessAncestors = viper.GetBool(KeyEnableProcessAncestors)
+	if Config.EnableProcessAncestors {
+		Config.EnableProcessKprobeAncestors = viper.GetBool(KeyEnableProcessKprobeAncestors)
+		Config.EnableProcessTracepointAncestors = viper.GetBool(KeyEnableProcessTracepointAncestors)
+		Config.EnableProcessUprobeAncestors = viper.GetBool(KeyEnableProcessUprobeAncestors)
+		Config.EnableProcessLsmAncestors = viper.GetBool(KeyEnableProcessLsmAncestors)
+	}
 
 	Config.EnableProcessCred = viper.GetBool(KeyEnableProcessCred)
 	Config.EnableProcessNs = viper.GetBool(KeyEnableProcessNs)
@@ -337,6 +352,13 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Bool(KeyEnableProcessCred, false, "Enable process_cred events")
 	flags.Bool(KeyEnableProcessNs, false, "Enable namespace information in process_exec and process_kprobe events")
 	flags.Uint(KeyEventQueueSize, 10000, "Set the size of the internal event queue.")
+
+	// Allow to include ancestor processes in events
+	flags.Bool(KeyEnableProcessAncestors, false, "Include ancestors in process_exec and process_exit events. Disabled by default. Required by other enable ancestors options for correct reference counting")
+	flags.Bool(KeyEnableProcessKprobeAncestors, false, fmt.Sprintf("Include ancestors in process_kprobe events. Only used if '%s' is set to 'true'", KeyEnableProcessAncestors))
+	flags.Bool(KeyEnableProcessTracepointAncestors, false, fmt.Sprintf("Include ancestors in process_tracepoint events. Only used if '%s' is set to 'true'", KeyEnableProcessAncestors))
+	flags.Bool(KeyEnableProcessUprobeAncestors, false, fmt.Sprintf("Include ancestors in process_uprobe events. Only used if '%s' is set to 'true'", KeyEnableProcessAncestors))
+	flags.Bool(KeyEnableProcessLsmAncestors, false, fmt.Sprintf("Include ancestors in process_lsm events. Only used if '%s' is set to 'true'", KeyEnableProcessAncestors))
 
 	// Tracing policy file
 	flags.String(KeyTracingPolicy, "", "Tracing policy file to load at startup")
