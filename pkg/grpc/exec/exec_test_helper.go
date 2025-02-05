@@ -305,6 +305,83 @@ func CreateCloneEvents[CLONE notify.Message, EXIT notify.Message](Pid uint32, Kt
 	return &cloneMsg, &exitMsg
 }
 
+func CreateAncestorEvents[EXEC notify.Message, EXIT notify.Message](
+	Filename string,
+	Pid uint32,
+	Ktime uint64,
+	ParentPid uint32,
+	ParentKtime uint64,
+	CleanupKtime uint64,
+	Docker string,
+) (*EXEC, *EXIT) {
+	execEv := tetragonAPI.MsgExecveEventUnix{
+		Msg: &tetragonAPI.MsgExecveEvent{
+			Common: tetragonAPI.MsgCommon{
+				Op:     5,
+				Flags:  0,
+				Pad_v2: [2]uint8{0, 0},
+				Size:   326,
+				Ktime:  Ktime + 1200000,
+			},
+			Kube: tetragonAPI.MsgK8s{
+				Cgrpid: 0,
+			},
+			Parent: tetragonAPI.MsgExecveKey{
+				Pid:   ParentPid,
+				Pad:   0,
+				Ktime: ParentKtime,
+			},
+			ParentFlags: 0,
+			CleanupProcess: tetragonAPI.MsgExecveKey{
+				Pid:   Pid,
+				Pad:   0,
+				Ktime: CleanupKtime,
+			},
+		},
+		Kube: tetragonAPI.MsgK8sUnix{
+			Docker: Docker,
+		},
+		Process: tetragonAPI.MsgProcess{
+			Size:     78,
+			PID:      Pid,
+			NSPID:    0,
+			UID:      1010,
+			AUID:     1010,
+			Flags:    16385,
+			Ktime:    Ktime,
+			Filename: Filename,
+			Args:     "",
+		},
+	}
+
+	var execMsg EXEC
+	execMsg = execMsg.Cast(execEv).(EXEC)
+
+	exitEv := tetragonAPI.MsgExitEvent{
+		Common: tetragonAPI.MsgCommon{
+			Op:     7,
+			Flags:  0,
+			Pad_v2: [2]uint8{0, 0},
+			Size:   40,
+			Ktime:  Ktime + 20000000,
+		},
+		ProcessKey: tetragonAPI.MsgExecveKey{
+			Pid:   Pid,
+			Pad:   0,
+			Ktime: Ktime,
+		},
+		Info: tetragonAPI.MsgExitInfo{
+			Code: 0,
+			Tid:  Pid,
+		},
+	}
+
+	var exitMsg EXIT
+	exitMsg = exitMsg.Cast(exitEv).(EXIT)
+
+	return &execMsg, &exitMsg
+}
+
 func InitEnv[EXEC notify.Message, EXIT notify.Message](t *testing.T, watcher watcher.K8sResourceWatcher) DummyNotifier[EXEC, EXIT] {
 	if err := process.InitCache(watcher, 65536, defaults.DefaultProcessCacheGCInterval); err != nil {
 		t.Fatalf("failed to call process.InitCache %s", err)
@@ -1026,4 +1103,350 @@ func GrpcDelayedExecK8sOutOfOrder[EXEC notify.Message, EXIT notify.Message](t *t
 	dn.WaitNotifier(2) // wait for cache to do it's work
 
 	CheckPodEvents(t, AllEvents)
+}
+
+func GrpcExecAncestorsInOrder[EXEC notify.Message, CLONE notify.Message, EXIT notify.Message](t *testing.T) {
+	option.Config.EnableProcessAncestors = true // enable Ancestors
+	AllEvents = nil
+	watcher := watcher.NewFakeK8sWatcher(nil)
+	dn := InitEnv[EXEC, EXIT](t, watcher)
+
+	rootPid := uint32(1)
+	aPid := uint32(2)
+	bPid := uint32(3)
+	cPid := uint32(4)
+	dPid := uint32(4)
+	ePid := uint32(4)
+
+	rootExecMsg, _, _, _ := CreateEvents[EXEC, EXIT](0, 0, rootPid, 0, "")
+	rootCloneMsg, _ := CreateCloneEvents[CLONE, EXIT](aPid, 21034975089403, rootPid, 0)
+	aExecMsg, _ := CreateAncestorEvents[EXEC, EXIT]("/usr/a", aPid, 21034975089487, rootPid, 0, 21034975089403, "")
+	aCloneMsg, _ := CreateCloneEvents[CLONE, EXIT](bPid, 21034975096374, aPid, 21034975089487)
+	bExecMsg, bExitMsg := CreateAncestorEvents[EXEC, EXIT]("/usr/b", bPid, 21034975097238, aPid, 21034975089487, 21034975096374, "")
+	bCloneMsg, _ := CreateCloneEvents[CLONE, EXIT](cPid, 21034975100084, bPid, 21034975097238)
+	cExecMsg, _ := CreateAncestorEvents[EXEC, EXIT]("/usr/c", cPid, 21034975112851, bPid, 21034975097238, 21034975100084, "")
+	dExecMsg, _ := CreateAncestorEvents[EXEC, EXIT]("/usr/d", dPid, 21034975123672, cPid, 21034975112851, 21034975112851, "")
+	eExecMsg, eExitMsg := CreateAncestorEvents[EXEC, EXIT]("/usr/e", ePid, 21034975145167, dPid, 21034975123672, 21034975123672, "")
+
+	if e := (*rootExecMsg).HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	(*rootCloneMsg).HandleMessage() // does not return anything and not produces any event
+
+	if e := (*aExecMsg).HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	dn.WaitNotifier(2)
+
+	assert.Equal(t, 2, len(AllEvents))
+
+	rootExecEv := AllEvents[0].GetProcessExec()
+	aExecEv := AllEvents[1].GetProcessExec()
+
+	assert.NotNil(t, rootExecEv)
+	assert.NotNil(t, aExecEv)
+
+	assert.Equal(t, uint32(2), GetProcessRefcntFromCache(t, rootPid, 0))           //        /usr/init pid=1 exec_id=1 refCnt=2 [+2 from parent | -1 from CleanupEvent]
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, aPid, 21034975089403)) //        /usr/init pid=2 exec_id=2 refCnt=0 [+1 from clone  | -1 from CleanupEvent]
+	assert.Equal(t, uint32(1), GetProcessRefcntFromCache(t, aPid, 21034975089487)) //exec    /usr/a    pid=2 exec_id=3 refCnt=1 [+1 from exec]
+	assert.Nil(t, rootExecEv.Ancestors)                                            //process with pid=1 should not have any ancestors
+	assert.Nil(t, aExecEv.Ancestors)                                               //process with pid=2 should not have any ancestors
+
+	(*aCloneMsg).HandleMessage() // does not return anything and not produces any event
+
+	if e := (*bExecMsg).HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	dn.WaitNotifier(1)
+
+	assert.Equal(t, 3, len(AllEvents))
+	bExecEv := AllEvents[2].GetProcessExec()
+	assert.NotNil(t, bExecEv)
+
+	assert.Equal(t, uint32(2), GetProcessRefcntFromCache(t, rootPid, 0))           //        /usr/init pid=1 exec_id=1 refCnt=2 []
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, aPid, 21034975089403)) //        /usr/init pid=2 exec_id=2 refCnt=0 []
+	assert.Equal(t, uint32(2), GetProcessRefcntFromCache(t, aPid, 21034975089487)) //        /usr/a    pid=2 exec_id=3 refCnt=2 [+2 from parent | -1 from CleanupEvent]
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, bPid, 21034975096374)) //        /usr/a    pid=3 exec_id=4 refCnt=0 [+1 from clone  | -1 from CleanupEvent]
+	assert.Equal(t, uint32(1), GetProcessRefcntFromCache(t, bPid, 21034975097238)) //exec    /usr/b    pid=3 exec_id=5 refCnt=1 [+1 from exec]
+	assert.Nil(t, bExecEv.Ancestors)
+
+	(*bCloneMsg).HandleMessage() // does not return anything and not produces any event
+
+	if e := (*cExecMsg).HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	dn.WaitNotifier(1)
+
+	assert.Equal(t, 4, len(AllEvents))
+	cExecEv := AllEvents[3].GetProcessExec()
+	assert.NotNil(t, cExecEv)
+
+	assert.Equal(t, uint32(2), GetProcessRefcntFromCache(t, rootPid, 0))           //        /usr/init pid=1 exec_id=1 refCnt=2 []
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, aPid, 21034975089403)) //        /usr/init pid=2 exec_id=2 refCnt=0 []
+	assert.Equal(t, uint32(3), GetProcessRefcntFromCache(t, aPid, 21034975089487)) //        /usr/a    pid=2 exec_id=3 refCnt=3 [+2 from Ancestors | -1 from CleanupEvent]
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, bPid, 21034975096374)) //        /usr/a    pid=3 exec_id=4 refCnt=0 []
+	assert.Equal(t, uint32(2), GetProcessRefcntFromCache(t, bPid, 21034975097238)) //        /usr/b    pid=3 exec_id=5 refCnt=2 [+2 from parent    | -1 from CleanupEvent]
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, cPid, 21034975100084)) //        /usr/b    pid=4 exec_id=6 refCnt=0 [+1 from clone     | -1 from CleanupEvent]
+	assert.Equal(t, uint32(1), GetProcessRefcntFromCache(t, cPid, 21034975112851)) //exec    /usr/c    pid=4 exec_id=7 refCnt=1 [+1 from exec]
+	assert.Equal(t, 1, len(cExecEv.Ancestors))
+	assert.Equal(t, uint32(2), cExecEv.Ancestors[len(cExecEv.Ancestors)-1].Pid.Value)
+
+	if e := (*dExecMsg).HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	dn.WaitNotifier(1)
+
+	assert.Equal(t, 5, len(AllEvents))
+	dExecEv := AllEvents[4].GetProcessExec()
+	assert.NotNil(t, dExecEv)
+
+	assert.Equal(t, uint32(2), GetProcessRefcntFromCache(t, rootPid, 0))           //        /usr/init pid=1 exec_id=1 refCnt=2 []
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, aPid, 21034975089403)) //        /usr/init pid=2 exec_id=2 refCnt=0 []
+	assert.Equal(t, uint32(3), GetProcessRefcntFromCache(t, aPid, 21034975089487)) //        /usr/a    pid=2 exec_id=3 refCnt=3 [+1 from Ancestors | -1 from CleanupEvent]
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, bPid, 21034975096374)) //        /usr/a    pid=3 exec_id=4 refCnt=0 []
+	assert.Equal(t, uint32(2), GetProcessRefcntFromCache(t, bPid, 21034975097238)) //        /usr/b    pid=3 exec_id=5 refCnt=2 [+1 from Ancestors | -1 from CleanupEvent]
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, cPid, 21034975100084)) //        /usr/b    pid=4 exec_id=6 refCnt=0 []
+	assert.Equal(t, uint32(1), GetProcessRefcntFromCache(t, cPid, 21034975112851)) //        /usr/c    pid=4 exec_id=7 refCnt=1 [+1 from parent    | -1 from CleanupEvent]
+	assert.Equal(t, uint32(1), GetProcessRefcntFromCache(t, dPid, 21034975123672)) //exec    /usr/d    pid=4 exec_id=8 refCnt=1 [+1 from exec]
+	assert.Equal(t, 2, len(dExecEv.Ancestors))
+	assert.Equal(t, uint32(2), dExecEv.Ancestors[len(dExecEv.Ancestors)-1].Pid.Value)
+
+	if e := (*eExecMsg).HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	dn.WaitNotifier(1)
+
+	assert.Equal(t, 6, len(AllEvents))
+	eExecEv := AllEvents[5].GetProcessExec()
+	assert.NotNil(t, eExecEv)
+
+	assert.Equal(t, uint32(2), GetProcessRefcntFromCache(t, rootPid, 0))           //        /usr/init pid=1 exec_id=1 refCnt=2 []
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, aPid, 21034975089403)) //        /usr/init pid=2 exec_id=2 refCnt=0 []
+	assert.Equal(t, uint32(3), GetProcessRefcntFromCache(t, aPid, 21034975089487)) //        /usr/a    pid=2 exec_id=3 refCnt=3 [+1 from Ancestors | -1 from CleanupEvent]
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, bPid, 21034975096374)) //        /usr/a    pid=3 exec_id=4 refCnt=0 []
+	assert.Equal(t, uint32(2), GetProcessRefcntFromCache(t, bPid, 21034975097238)) //        /usr/b    pid=3 exec_id=5 refCnt=2 [+1 from Ancestors | -1 from CleanupEvent]
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, cPid, 21034975100084)) //        /usr/b    pid=4 exec_id=6 refCnt=0 []
+	assert.Equal(t, uint32(1), GetProcessRefcntFromCache(t, cPid, 21034975112851)) //        /usr/c    pid=4 exec_id=7 refCnt=1 [+1 from Ancestors | -1 from CleanupEvent]
+	assert.Equal(t, uint32(1), GetProcessRefcntFromCache(t, dPid, 21034975123672)) //        /usr/d    pid=4 exec_id=8 refCnt=1 [+1 from parent    | -1 from CleanupEvent]
+	assert.Equal(t, uint32(1), GetProcessRefcntFromCache(t, ePid, 21034975145167)) //exec    /usr/e    pid=4 exec_id=9 refCnt=1 [+1 from exec]
+	assert.Equal(t, 3, len(eExecEv.Ancestors))
+	assert.Equal(t, uint32(2), eExecEv.Ancestors[len(eExecEv.Ancestors)-1].Pid.Value)
+
+	if e := (*eExitMsg).HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	dn.WaitNotifier(1)
+
+	assert.Equal(t, 7, len(AllEvents))
+	eExitEv := AllEvents[6].GetProcessExit()
+	assert.NotNil(t, eExitEv)
+
+	assert.Equal(t, uint32(2), GetProcessRefcntFromCache(t, rootPid, 0))           //        /usr/init pid=1 exec_id=1 refCnt=2 []
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, aPid, 21034975089403)) //        /usr/init pid=2 exec_id=2 refCnt=0 []
+	assert.Equal(t, uint32(2), GetProcessRefcntFromCache(t, aPid, 21034975089487)) //        /usr/a    pid=2 exec_id=3 refCnt=2 [-1 from Ancestors]
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, bPid, 21034975096374)) //        /usr/a    pid=3 exec_id=4 refCnt=0 []
+	assert.Equal(t, uint32(1), GetProcessRefcntFromCache(t, bPid, 21034975097238)) //        /usr/b    pid=3 exec_id=5 refCnt=1 [-1 from Ancestors]
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, cPid, 21034975100084)) //        /usr/b    pid=4 exec_id=6 refCnt=0 []
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, cPid, 21034975112851)) //        /usr/c    pid=4 exec_id=7 refCnt=0 [-1 from Ancestors]
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, dPid, 21034975123672)) //        /usr/d    pid=4 exec_id=8 refCnt=0 [-1 from parent]
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, ePid, 21034975145167)) //exit    /usr/e    pid=4 exec_id=9 refCnt=0 [-1 from exit]
+	assert.Equal(t, 3, len(eExitEv.Ancestors))
+	assert.Equal(t, uint32(2), eExitEv.Ancestors[len(eExitEv.Ancestors)-1].Pid.Value)
+
+	if e := (*bExitMsg).HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	dn.WaitNotifier(1)
+
+	assert.Equal(t, 8, len(AllEvents))
+	bExitEv := AllEvents[7].GetProcessExit()
+	assert.NotNil(t, bExitEv)
+
+	assert.Equal(t, uint32(2), GetProcessRefcntFromCache(t, rootPid, 0))           //        /usr/init pid=1 exec_id=1 refCnt=2 []
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, aPid, 21034975089403)) //        /usr/init pid=2 exec_id=2 refCnt=0 []
+	assert.Equal(t, uint32(1), GetProcessRefcntFromCache(t, aPid, 21034975089487)) //        /usr/a    pid=2 exec_id=3 refCnt=1 [-1 from parent]
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, bPid, 21034975096374)) //        /usr/a    pid=3 exec_id=4 refCnt=0 []
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, bPid, 21034975097238)) //exit    /usr/b    pid=3 exec_id=5 refCnt=0 [-1 from exit]
+	assert.Nil(t, bExitEv.Ancestors)
+}
+
+func GrpcExecAncestorsOutOfOrder[EXEC notify.Message, CLONE notify.Message, EXIT notify.Message](t *testing.T) {
+	option.Config.EnableProcessAncestors = true // enable Ancestors
+	AllEvents = nil
+	watcher := watcher.NewFakeK8sWatcher(nil)
+	dn := InitEnv[EXEC, EXIT](t, watcher)
+
+	rootPid := uint32(1)
+	aPid := uint32(2)
+	bPid := uint32(3)
+	cPid := uint32(4)
+	dPid := uint32(4)
+	ePid := uint32(4)
+
+	rootExecMsg, _, _, _ := CreateEvents[EXEC, EXIT](0, 0, rootPid, 0, "")
+	rootCloneMsg, _ := CreateCloneEvents[CLONE, EXIT](aPid, 21034975089403, rootPid, 0)
+	aExecMsg, _ := CreateAncestorEvents[EXEC, EXIT]("/usr/a", aPid, 21034975089487, rootPid, 0, 21034975089403, "")
+	aCloneMsg, _ := CreateCloneEvents[CLONE, EXIT](bPid, 21034975096374, aPid, 21034975089487)
+	bExecMsg, bExitMsg := CreateAncestorEvents[EXEC, EXIT]("/usr/b", bPid, 21034975097238, aPid, 21034975089487, 21034975096374, "")
+	bCloneMsg, _ := CreateCloneEvents[CLONE, EXIT](cPid, 21034975100084, bPid, 21034975097238)
+	cExecMsg, _ := CreateAncestorEvents[EXEC, EXIT]("/usr/c", cPid, 21034975112851, bPid, 21034975097238, 21034975100084, "")
+	dExecMsg, _ := CreateAncestorEvents[EXEC, EXIT]("/usr/d", dPid, 21034975123672, cPid, 21034975112851, 21034975112851, "")
+	eExecMsg, eExitMsg := CreateAncestorEvents[EXEC, EXIT]("/usr/e", ePid, 21034975145167, dPid, 21034975123672, 21034975123672, "")
+
+	if e := (*rootExecMsg).HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	(*rootCloneMsg).HandleMessage() // does not return anything and not produces any event
+
+	if e := (*aExecMsg).HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	dn.WaitNotifier(2)
+
+	assert.Equal(t, 2, len(AllEvents))
+
+	rootExecEv := AllEvents[0].GetProcessExec()
+	aExecEv := AllEvents[1].GetProcessExec()
+
+	assert.NotNil(t, rootExecEv)
+	assert.NotNil(t, aExecEv)
+
+	assert.Equal(t, uint32(2), GetProcessRefcntFromCache(t, rootPid, 0))           //        /usr/init pid=1 exec_id=1 refCnt=2 [+2 from parent | -1 from CleanupEvent]
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, aPid, 21034975089403)) //        /usr/init pid=2 exec_id=2 refCnt=0 [+1 from clone  | -1 from CleanupEvent]
+	assert.Equal(t, uint32(1), GetProcessRefcntFromCache(t, aPid, 21034975089487)) //exec    /usr/a    pid=2 exec_id=3 refCnt=1 [+1 from exec]
+	assert.Nil(t, rootExecEv.Ancestors)                                            //process with pid=1 should not have any ancestors
+	assert.Nil(t, aExecEv.Ancestors)                                               //process with pid=2 should not have any ancestors
+
+	(*aCloneMsg).HandleMessage() // does not return anything and not produces any event
+
+	if e := (*bExecMsg).HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	dn.WaitNotifier(1)
+
+	assert.Equal(t, 3, len(AllEvents))
+	bExecEv := AllEvents[2].GetProcessExec()
+	assert.NotNil(t, bExecEv)
+
+	assert.Equal(t, uint32(2), GetProcessRefcntFromCache(t, rootPid, 0))           //        /usr/init pid=1 exec_id=1 refCnt=2 []
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, aPid, 21034975089403)) //        /usr/init pid=2 exec_id=2 refCnt=0 []
+	assert.Equal(t, uint32(2), GetProcessRefcntFromCache(t, aPid, 21034975089487)) //        /usr/a    pid=2 exec_id=3 refCnt=2 [+2 from parent | -1 from CleanupEvent]
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, bPid, 21034975096374)) //        /usr/a    pid=3 exec_id=4 refCnt=0 [+1 from clone  | -1 from CleanupEvent]
+	assert.Equal(t, uint32(1), GetProcessRefcntFromCache(t, bPid, 21034975097238)) //exec    /usr/b    pid=3 exec_id=5 refCnt=1 [+1 from exec]
+	assert.Nil(t, bExecEv.Ancestors)
+
+	(*bCloneMsg).HandleMessage() // does not return anything and not produces any event
+
+	if e := (*cExecMsg).HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	dn.WaitNotifier(1)
+
+	assert.Equal(t, 4, len(AllEvents))
+	cExecEv := AllEvents[3].GetProcessExec()
+	assert.NotNil(t, cExecEv)
+
+	assert.Equal(t, uint32(2), GetProcessRefcntFromCache(t, rootPid, 0))           //        /usr/init pid=1 exec_id=1 refCnt=2 []
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, aPid, 21034975089403)) //        /usr/init pid=2 exec_id=2 refCnt=0 []
+	assert.Equal(t, uint32(3), GetProcessRefcntFromCache(t, aPid, 21034975089487)) //        /usr/a    pid=2 exec_id=3 refCnt=3 [+2 from Ancestors | -1 from CleanupEvent]
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, bPid, 21034975096374)) //        /usr/a    pid=3 exec_id=4 refCnt=0 []
+	assert.Equal(t, uint32(2), GetProcessRefcntFromCache(t, bPid, 21034975097238)) //        /usr/b    pid=3 exec_id=5 refCnt=2 [+2 from parent    | -1 from CleanupEvent]
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, cPid, 21034975100084)) //        /usr/b    pid=4 exec_id=6 refCnt=0 [+1 from clone     | -1 from CleanupEvent]
+	assert.Equal(t, uint32(1), GetProcessRefcntFromCache(t, cPid, 21034975112851)) //exec    /usr/c    pid=4 exec_id=7 refCnt=1 [+1 from exec]
+	assert.Equal(t, 1, len(cExecEv.Ancestors))
+	assert.Equal(t, uint32(2), cExecEv.Ancestors[len(cExecEv.Ancestors)-1].Pid.Value)
+
+	if e := (*bExitMsg).HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	dn.WaitNotifier(1)
+
+	assert.Equal(t, 5, len(AllEvents))
+	bExitEv := AllEvents[4].GetProcessExit()
+	assert.NotNil(t, bExitEv)
+
+	assert.Equal(t, uint32(2), GetProcessRefcntFromCache(t, rootPid, 0))           //        /usr/init pid=1 exec_id=1 refCnt=2 []
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, aPid, 21034975089403)) //        /usr/init pid=2 exec_id=2 refCnt=0 []
+	assert.Equal(t, uint32(2), GetProcessRefcntFromCache(t, aPid, 21034975089487)) //        /usr/a    pid=2 exec_id=3 refCnt=2 [-1 from parent]
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, bPid, 21034975096374)) //        /usr/a    pid=3 exec_id=4 refCnt=0 []
+	assert.Equal(t, uint32(1), GetProcessRefcntFromCache(t, bPid, 21034975097238)) //exit    /usr/b    pid=3 exec_id=5 refCnt=1 [-1 from exit]
+	assert.Nil(t, bExitEv.Ancestors)
+
+	if e := (*dExecMsg).HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	dn.WaitNotifier(1)
+
+	assert.Equal(t, 6, len(AllEvents))
+	dExecEv := AllEvents[5].GetProcessExec()
+	assert.NotNil(t, dExecEv)
+
+	assert.Equal(t, uint32(2), GetProcessRefcntFromCache(t, rootPid, 0))           //        /usr/init pid=1 exec_id=1 refCnt=2 []
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, aPid, 21034975089403)) //        /usr/init pid=2 exec_id=2 refCnt=0 []
+	assert.Equal(t, uint32(2), GetProcessRefcntFromCache(t, aPid, 21034975089487)) //        /usr/a    pid=2 exec_id=3 refCnt=2 [+1 from Ancestors | -1 from CleanupEvent]
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, bPid, 21034975096374)) //        /usr/a    pid=3 exec_id=4 refCnt=0 []
+	assert.Equal(t, uint32(1), GetProcessRefcntFromCache(t, bPid, 21034975097238)) //        /usr/b    pid=3 exec_id=5 refCnt=1 [+1 from Ancestors | -1 from CleanupEvent]
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, cPid, 21034975100084)) //        /usr/b    pid=4 exec_id=6 refCnt=0 []
+	assert.Equal(t, uint32(1), GetProcessRefcntFromCache(t, cPid, 21034975112851)) //        /usr/c    pid=4 exec_id=7 refCnt=1 [+1 from parent    | -1 from CleanupEvent]
+	assert.Equal(t, uint32(1), GetProcessRefcntFromCache(t, dPid, 21034975123672)) //exec    /usr/d    pid=4 exec_id=8 refCnt=1 [+1 from exec]
+	assert.Equal(t, 2, len(dExecEv.Ancestors))
+	assert.Equal(t, uint32(2), dExecEv.Ancestors[len(dExecEv.Ancestors)-1].Pid.Value)
+
+	if e := (*eExecMsg).HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	dn.WaitNotifier(1)
+
+	assert.Equal(t, 7, len(AllEvents))
+	eExecEv := AllEvents[6].GetProcessExec()
+	assert.NotNil(t, eExecEv)
+
+	assert.Equal(t, uint32(2), GetProcessRefcntFromCache(t, rootPid, 0))           //        /usr/init pid=1 exec_id=1 refCnt=2 []
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, aPid, 21034975089403)) //        /usr/init pid=2 exec_id=2 refCnt=0 []
+	assert.Equal(t, uint32(2), GetProcessRefcntFromCache(t, aPid, 21034975089487)) //        /usr/a    pid=2 exec_id=3 refCnt=2 [+1 from Ancestors | -1 from CleanupEvent]
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, bPid, 21034975096374)) //        /usr/a    pid=3 exec_id=4 refCnt=0 []
+	assert.Equal(t, uint32(1), GetProcessRefcntFromCache(t, bPid, 21034975097238)) //        /usr/b    pid=3 exec_id=5 refCnt=1 [+1 from Ancestors | -1 from CleanupEvent]
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, cPid, 21034975100084)) //        /usr/b    pid=4 exec_id=6 refCnt=0 []
+	assert.Equal(t, uint32(1), GetProcessRefcntFromCache(t, cPid, 21034975112851)) //        /usr/c    pid=4 exec_id=7 refCnt=1 [+1 from Ancestors | -1 from CleanupEvent]
+	assert.Equal(t, uint32(1), GetProcessRefcntFromCache(t, dPid, 21034975123672)) //        /usr/d    pid=4 exec_id=8 refCnt=1 [+1 from parent    | -1 from CleanupEvent]
+	assert.Equal(t, uint32(1), GetProcessRefcntFromCache(t, ePid, 21034975145167)) //exec    /usr/e    pid=4 exec_id=9 refCnt=1 [+1 from exec]
+	assert.Equal(t, 3, len(eExecEv.Ancestors))
+	assert.Equal(t, uint32(2), eExecEv.Ancestors[len(eExecEv.Ancestors)-1].Pid.Value)
+
+	if e := (*eExitMsg).HandleMessage(); e != nil {
+		AllEvents = append(AllEvents, e)
+	}
+
+	dn.WaitNotifier(1)
+
+	assert.Equal(t, 8, len(AllEvents))
+	eExitEv := AllEvents[7].GetProcessExit()
+	assert.NotNil(t, eExitEv)
+
+	assert.Equal(t, uint32(2), GetProcessRefcntFromCache(t, rootPid, 0))           //        /usr/init pid=1 exec_id=1 refCnt=1 []
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, aPid, 21034975089403)) //        /usr/init pid=2 exec_id=2 refCnt=0 []
+	assert.Equal(t, uint32(1), GetProcessRefcntFromCache(t, aPid, 21034975089487)) //        /usr/a    pid=2 exec_id=3 refCnt=1 [-1 from Ancestors]
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, bPid, 21034975096374)) //        /usr/a    pid=3 exec_id=4 refCnt=0 []
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, bPid, 21034975097238)) //        /usr/b    pid=3 exec_id=5 refCnt=0 [-1 from Ancestors]
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, cPid, 21034975100084)) //        /usr/b    pid=4 exec_id=6 refCnt=0 []
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, cPid, 21034975112851)) //        /usr/c    pid=4 exec_id=7 refCnt=0 [-1 from Ancestors]
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, dPid, 21034975123672)) //        /usr/d    pid=4 exec_id=8 refCnt=0 [-1 from parent]
+	assert.Equal(t, uint32(0), GetProcessRefcntFromCache(t, ePid, 21034975145167)) //exit    /usr/e    pid=4 exec_id=9 refCnt=0 [-1 from exit]
+	assert.Equal(t, 3, len(eExitEv.Ancestors))
+	assert.Equal(t, uint32(2), eExitEv.Ancestors[len(eExitEv.Ancestors)-1].Pid.Value)
 }
