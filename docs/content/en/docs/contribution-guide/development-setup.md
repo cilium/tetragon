@@ -116,7 +116,29 @@ Verify that Tetragon is installed by running:
 kubectl get pods -n tetragon
 ```
 
-## Local Development in Vagrant Box
+### Running Tetragon via Helm
+
+```shell
+# set your own new version after making local changes
+export DOCKER_IMAGE_TAG=v1.0.0
+
+# build images on that tag
+make images
+
+# Install Tetragon
+helm repo add cilium https://helm.cilium.io
+helm repo update
+helm install tetragon cilium/tetragon -n kube-system \
+  --set tetragon.image.tag=${DOCKER_IMAGE_TAG} \
+  --set tetragonOperator.image.tag=${DOCKER_IMAGE_TAG}
+```
+
+Verify that Tetragon is installed by running:
+```shell
+kubectl get pods -n kube-system
+```
+
+### Local Development in Vagrant Box
 
 If you are on an intel Mac, use Vagrant to create a dev VM:
 
