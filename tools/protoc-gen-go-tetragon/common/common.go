@@ -152,6 +152,11 @@ func IsParentEvent(msg *protogen.Message) bool {
 	return EventFieldCheck(msg, "parent")
 }
 
+// IsAncestorsEvent returns true if the message is a Tetragon event that has an ancestors field
+func IsAncestorsEvent(msg *protogen.Message) bool {
+	return EventFieldCheck(msg, "ancestors")
+}
+
 // StructTag is a convenience helper that formats a struct tag
 func StructTag(tag string) string {
 	return fmt.Sprintf("`%s`", tag)

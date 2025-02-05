@@ -127,6 +127,40 @@ func ResponseInnerGetParent(event tetragon.IsGetEventsResponse_Event) *tetragon.
 	return nil
 }
 
+// ResponseGetAncestors returns a GetEventsResponse's ancestors processes if they exists
+func ResponseGetAncestors(response *tetragon.GetEventsResponse) []*tetragon.Process {
+	if response == nil {
+		return nil
+	}
+
+	event := response.Event
+	if event == nil {
+		return nil
+	}
+
+	return ResponseInnerGetAncestors(event)
+}
+
+// ResponseInnerGetAncestors returns a GetEventsResponse inner event's ancestors processes if they exists
+func ResponseInnerGetAncestors(event tetragon.IsGetEventsResponse_Event) []*tetragon.Process {
+	switch ev := event.(type) {
+	case *tetragon.GetEventsResponse_ProcessExec:
+		return ev.ProcessExec.Ancestors
+	case *tetragon.GetEventsResponse_ProcessExit:
+		return ev.ProcessExit.Ancestors
+	case *tetragon.GetEventsResponse_ProcessKprobe:
+		return ev.ProcessKprobe.Ancestors
+	case *tetragon.GetEventsResponse_ProcessTracepoint:
+		return ev.ProcessTracepoint.Ancestors
+	case *tetragon.GetEventsResponse_ProcessUprobe:
+		return ev.ProcessUprobe.Ancestors
+	case *tetragon.GetEventsResponse_ProcessLsm:
+		return ev.ProcessLsm.Ancestors
+
+	}
+	return nil
+}
+
 // ResponseTypeMap returns a map from event field names (e.g. "process_exec") to corresponding
 // protobuf messages (e.g. &tetragon.ProcessExec{}).
 func ResponseTypeMap() map[string]proto.Message {
