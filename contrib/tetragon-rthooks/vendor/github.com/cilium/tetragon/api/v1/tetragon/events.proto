@@ -5,78 +5,80 @@ syntax = "proto3";
 
 package tetragon;
 
-import "tetragon/tetragon.proto";
-import "tetragon/capabilities.proto";
 import "google/protobuf/duration.proto";
-import "google/protobuf/wrappers.proto";
-import "google/protobuf/timestamp.proto";
 import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+import "tetragon/capabilities.proto";
+import "tetragon/tetragon.proto";
+
+option go_package = "github.com/cilium/tetragon/api/v1/tetragon";
 
 // Represents the type of a Tetragon event.
 //
 // NOTE: EventType constants must be in sync with the numbers used in the
 // GetEventsResponse event oneof.
 enum EventType {
-    reserved 2 to 4, 6 to 8, 13 to 26;
-    UNDEF = 0;
+  reserved 2 to 4, 6 to 8, 13 to 26;
+  UNDEF = 0;
 
-    PROCESS_EXEC = 1;
-    PROCESS_EXIT = 5;
-    PROCESS_KPROBE = 9;
-    PROCESS_TRACEPOINT = 10;
-    PROCESS_LOADER = 11;
-    PROCESS_UPROBE = 12;
-    PROCESS_THROTTLE = 27;
-    PROCESS_LSM = 28;
+  PROCESS_EXEC = 1;
+  PROCESS_EXIT = 5;
+  PROCESS_KPROBE = 9;
+  PROCESS_TRACEPOINT = 10;
+  PROCESS_LOADER = 11;
+  PROCESS_UPROBE = 12;
+  PROCESS_THROTTLE = 27;
+  PROCESS_LSM = 28;
 
-    TEST = 40000;
-    RATE_LIMIT_INFO = 40001;
+  TEST = 40000;
+  RATE_LIMIT_INFO = 40001;
 }
 
 message Filter {
-    repeated string binary_regex = 1;
-    repeated string namespace = 2;
-    google.protobuf.BoolValue health_check = 3;
-    repeated uint32 pid = 4;
-    // Filter by the PID of a process and any of its descendants. Note that this filter is
-    // intended for testing and development purposes only and should not be used in
-    // production. In particular, PID cycling in the OS over longer periods of time may
-    // cause unexpected events to pass this filter.
-    repeated uint32 pid_set = 5;
-    repeated EventType event_set = 6;
-    // Filter by process.pod.name field using RE2 regular expression syntax:
-    // https://github.com/google/re2/wiki/Syntax
-    repeated string pod_regex = 7;
-    // Filter by process.arguments field using RE2 regular expression syntax:
-    // https://github.com/google/re2/wiki/Syntax
-    repeated string arguments_regex = 8;
-    // Filter events by pod labels using Kubernetes label selector syntax:
-    // https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
-    // Note that this filter never matches events without the pod field (i.e.
-    // host process events).
-    repeated string labels = 9;
-    // Filter events by tracing policy names
-    repeated string policy_names = 10;
-	// Filter events by Linux process capability
-	CapFilter capabilities = 11;
-    // Filter parent process' binary using RE2 regular expression syntax.
-    repeated string parent_binary_regex = 12;
-    // Filter using CEL expressions. CEL filters support IP and CIDR notiation extensions from the k8s project.
-    // See https://pkg.go.dev/k8s.io/apiserver/pkg/cel/library#IP and https://pkg.go.dev/k8s.io/apiserver/pkg/cel/library#CIDR for details.
-    repeated string cel_expression = 13;
-    // Filter by process.parent.arguments field using RE2 regular expression syntax:
-    // https://github.com/google/re2/wiki/Syntax
-    repeated string parent_arguments_regex = 14;
-    // Filter by the container ID in the process.docker field using RE2 regular expression syntax:
-    // https://github.com/google/re2/wiki/Syntax
-    repeated string container_id = 15;
-    // Filter containerized processes based on whether they are descendants of
-    // the container's init process. This can be used, for example, to watch
-    // for processes injected into a container via docker exec, kubectl exec, or
-    // similar mechanisms.
-    google.protobuf.BoolValue in_init_tree = 16;
-    // Filter ancestor processes' binaries using RE2 regular expression syntax.
-    repeated string ancestor_binary_regex = 17;
+  repeated string binary_regex = 1;
+  repeated string namespace = 2;
+  google.protobuf.BoolValue health_check = 3;
+  repeated uint32 pid = 4;
+  // Filter by the PID of a process and any of its descendants. Note that this filter is
+  // intended for testing and development purposes only and should not be used in
+  // production. In particular, PID cycling in the OS over longer periods of time may
+  // cause unexpected events to pass this filter.
+  repeated uint32 pid_set = 5;
+  repeated EventType event_set = 6;
+  // Filter by process.pod.name field using RE2 regular expression syntax:
+  // https://github.com/google/re2/wiki/Syntax
+  repeated string pod_regex = 7;
+  // Filter by process.arguments field using RE2 regular expression syntax:
+  // https://github.com/google/re2/wiki/Syntax
+  repeated string arguments_regex = 8;
+  // Filter events by pod labels using Kubernetes label selector syntax:
+  // https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
+  // Note that this filter never matches events without the pod field (i.e.
+  // host process events).
+  repeated string labels = 9;
+  // Filter events by tracing policy names
+  repeated string policy_names = 10;
+  // Filter events by Linux process capability
+  CapFilter capabilities = 11;
+  // Filter parent process' binary using RE2 regular expression syntax.
+  repeated string parent_binary_regex = 12;
+  // Filter using CEL expressions. CEL filters support IP and CIDR notiation extensions from the k8s project.
+  // See https://pkg.go.dev/k8s.io/apiserver/pkg/cel/library#IP and https://pkg.go.dev/k8s.io/apiserver/pkg/cel/library#CIDR for details.
+  repeated string cel_expression = 13;
+  // Filter by process.parent.arguments field using RE2 regular expression syntax:
+  // https://github.com/google/re2/wiki/Syntax
+  repeated string parent_arguments_regex = 14;
+  // Filter by the container ID in the process.docker field using RE2 regular expression syntax:
+  // https://github.com/google/re2/wiki/Syntax
+  repeated string container_id = 15;
+  // Filter containerized processes based on whether they are descendants of
+  // the container's init process. This can be used, for example, to watch
+  // for processes injected into a container via docker exec, kubectl exec, or
+  // similar mechanisms.
+  google.protobuf.BoolValue in_init_tree = 16;
+  // Filter ancestor processes' binaries using RE2 regular expression syntax.
+  repeated string ancestor_binary_regex = 17;
 }
 
 // Filter over a set of Linux process capabilities. See `message Capabilities`
@@ -84,142 +86,142 @@ message Filter {
 // permitted filter matches, but the effective filter does not, the filter will
 // NOT match.
 message CapFilter {
-	// Filter over the set of permitted capabilities.
-	CapFilterSet permitted = 1;
-	// Filter over the set of effective capabilities.
-	CapFilterSet effective = 2;
-	// Filter over the set of inheritable capabilities.
-	CapFilterSet inheritable = 3;
+  // Filter over the set of permitted capabilities.
+  CapFilterSet permitted = 1;
+  // Filter over the set of effective capabilities.
+  CapFilterSet effective = 2;
+  // Filter over the set of inheritable capabilities.
+  CapFilterSet inheritable = 3;
 }
 
 // Capability set to filter over. NOTE: you may specify only ONE set here.
 message CapFilterSet {
-	// Match if the capability set contains any of the capabilities defined in this filter.
-	repeated CapabilitiesType any = 1;
-	// Match if the capability set contains all of the capabilities defined in this filter.
-	repeated CapabilitiesType all = 2;
-	// Match if the capability set exactly matches all of the capabilities defined in this filter.
-	repeated CapabilitiesType exactly = 3;
-	// Match if the capability set contains none of the capabilities defined in this filter.
-	repeated CapabilitiesType none = 4;
+  // Match if the capability set contains any of the capabilities defined in this filter.
+  repeated CapabilitiesType any = 1;
+  // Match if the capability set contains all of the capabilities defined in this filter.
+  repeated CapabilitiesType all = 2;
+  // Match if the capability set exactly matches all of the capabilities defined in this filter.
+  repeated CapabilitiesType exactly = 3;
+  // Match if the capability set contains none of the capabilities defined in this filter.
+  repeated CapabilitiesType none = 4;
 }
 
 message RedactionFilter {
-    // Deprecated, do not use.
-    repeated Filter match = 1 [deprecated=true];
-    // RE2 regular expressions to use for redaction. Strings inside capture groups are redacted.
-    repeated string redact = 2;
-    // RE2 regular expression to match binary name. If supplied, redactions will only be applied to matching processes.
-    repeated string binary_regex = 3;
+  // Deprecated, do not use.
+  repeated Filter match = 1 [deprecated = true];
+  // RE2 regular expressions to use for redaction. Strings inside capture groups are redacted.
+  repeated string redact = 2;
+  // RE2 regular expression to match binary name. If supplied, redactions will only be applied to matching processes.
+  repeated string binary_regex = 3;
 }
 
 // Determines the behavior of a field filter
 enum FieldFilterAction {
-    INCLUDE = 0;
-    EXCLUDE = 1;
+  INCLUDE = 0;
+  EXCLUDE = 1;
 }
 
 message FieldFilter {
-    // Event types to filter or undefined to filter over all event types.
-    repeated EventType event_set = 1;
-    // Fields to include or exclude.
-    google.protobuf.FieldMask fields = 2;
-    // Whether to include or exclude fields.
-    FieldFilterAction action = 3;
-    // Whether or not the event set filter should be inverted.
-    google.protobuf.BoolValue invert_event_set = 4;
+  // Event types to filter or undefined to filter over all event types.
+  repeated EventType event_set = 1;
+  // Fields to include or exclude.
+  google.protobuf.FieldMask fields = 2;
+  // Whether to include or exclude fields.
+  FieldFilterAction action = 3;
+  // Whether or not the event set filter should be inverted.
+  google.protobuf.BoolValue invert_event_set = 4;
 }
 
 message GetEventsRequest {
-    // allow_list specifies a list of filters to apply to only return certain
-    // events. If multiple filters are specified, at least one of them has to
-    // match for an event to be included in the results.
-    repeated Filter allow_list = 1;
-    // deny_list specifies a list of filters to apply to exclude certain events
-    // from the results. If multiple filters are specified, at least one of
-    // them has to match for an event to be excluded.
-    // If both allow_list and deny_list are specified, the results contain the
-    // set difference allow_list - deny_list.
-    repeated Filter deny_list = 2;
-    // aggregation_options configures aggregation options for this request.
-    // If this field is not set, responses will not be aggregated.
-    // Note that currently only process_accept and process_connect events are
-    // aggregated. Other events remain unaggregated.
-    AggregationOptions aggregation_options = 3;
-    // Fields to include or exclude for events in the GetEventsResponse. Omitting this
-    // field implies that all fields will be included. Exclusion always takes precedence
-    // over inclusion in the case of conflicts.
-    repeated FieldFilter field_filters = 4;
+  // allow_list specifies a list of filters to apply to only return certain
+  // events. If multiple filters are specified, at least one of them has to
+  // match for an event to be included in the results.
+  repeated Filter allow_list = 1;
+  // deny_list specifies a list of filters to apply to exclude certain events
+  // from the results. If multiple filters are specified, at least one of
+  // them has to match for an event to be excluded.
+  // If both allow_list and deny_list are specified, the results contain the
+  // set difference allow_list - deny_list.
+  repeated Filter deny_list = 2;
+  // aggregation_options configures aggregation options for this request.
+  // If this field is not set, responses will not be aggregated.
+  // Note that currently only process_accept and process_connect events are
+  // aggregated. Other events remain unaggregated.
+  AggregationOptions aggregation_options = 3;
+  // Fields to include or exclude for events in the GetEventsResponse. Omitting this
+  // field implies that all fields will be included. Exclusion always takes precedence
+  // over inclusion in the case of conflicts.
+  repeated FieldFilter field_filters = 4;
 }
 
 // AggregationOptions defines configuration options for aggregating events.
 message AggregationOptions {
-    // Aggregation window size. Defaults to 15 seconds if this field is not set.
-    google.protobuf.Duration window_size = 1;
-    // Size of the buffer for the aggregator to receive incoming events. If the
-    // buffer becomes full, the aggregator will log a warning and start dropping
-    // incoming events.
-    uint64 channel_buffer_size = 2;
+  // Aggregation window size. Defaults to 15 seconds if this field is not set.
+  google.protobuf.Duration window_size = 1;
+  // Size of the buffer for the aggregator to receive incoming events. If the
+  // buffer becomes full, the aggregator will log a warning and start dropping
+  // incoming events.
+  uint64 channel_buffer_size = 2;
 }
 
 // AggregationInfo contains information about aggregation results.
 message AggregationInfo {
-    // Total count of events in this aggregation time window.
-    uint64 count = 1;
+  // Total count of events in this aggregation time window.
+  uint64 count = 1;
 }
 
 message RateLimitInfo {
-    uint64 number_of_dropped_process_events = 1;
+  uint64 number_of_dropped_process_events = 1;
 }
 
 enum ThrottleType {
-    THROTTLE_UNKNOWN = 0;
-    THROTTLE_START = 1;
-    THROTTLE_STOP = 2;
+  THROTTLE_UNKNOWN = 0;
+  THROTTLE_START = 1;
+  THROTTLE_STOP = 2;
 }
 
 message ProcessThrottle {
-    // Throttle type
-    ThrottleType type = 1;
-    // Cgroup name
-    string cgroup = 2;
+  // Throttle type
+  ThrottleType type = 1;
+  // Cgroup name
+  string cgroup = 2;
 }
 
 message GetEventsResponse {
-    reserved 2 to 4, 6 to 8, 13 to 26;
-    // The type-specific fields of an event.
-    //
-    // NOTE: Numbers must stay in sync with enum EventType.
-    oneof event {
-        // ProcessExec event includes information about the execution of
-        // binaries and other related process metadata.
-        ProcessExec process_exec = 1;
-        // ProcessExit event indicates how and when a process terminates.
-        ProcessExit process_exit = 5;
-        // ProcessKprobe event contains information about the pre-defined
-        // functions and the process that invoked them.
-        ProcessKprobe process_kprobe = 9;
-        // ProcessTracepoint contains information about the pre-defined
-        // tracepoint and the process that invoked them.
-        ProcessTracepoint process_tracepoint = 10;
-        ProcessLoader process_loader = 11;
-        ProcessUprobe process_uprobe = 12;
-        ProcessThrottle process_throttle = 27;
-        ProcessLsm process_lsm = 28;
+  reserved 2 to 4, 6 to 8, 13 to 26;
+  // The type-specific fields of an event.
+  //
+  // NOTE: Numbers must stay in sync with enum EventType.
+  oneof event {
+    // ProcessExec event includes information about the execution of
+    // binaries and other related process metadata.
+    ProcessExec process_exec = 1;
+    // ProcessExit event indicates how and when a process terminates.
+    ProcessExit process_exit = 5;
+    // ProcessKprobe event contains information about the pre-defined
+    // functions and the process that invoked them.
+    ProcessKprobe process_kprobe = 9;
+    // ProcessTracepoint contains information about the pre-defined
+    // tracepoint and the process that invoked them.
+    ProcessTracepoint process_tracepoint = 10;
+    ProcessLoader process_loader = 11;
+    ProcessUprobe process_uprobe = 12;
+    ProcessThrottle process_throttle = 27;
+    ProcessLsm process_lsm = 28;
 
-        Test test = 40000;
-        RateLimitInfo rate_limit_info = 40001;
-    }
-    // Name of the node where this event was observed.
-    string node_name = 1000;
-    // Timestamp at which this event was observed.
-    // For an aggregated response, this field to set to the timestamp at which
-    // the event was observed for the first time in a given aggregation time window.
-    google.protobuf.Timestamp time = 1001;
+    Test test = 40000;
+    RateLimitInfo rate_limit_info = 40001;
+  }
+  // Name of the node where this event was observed.
+  string node_name = 1000;
+  // Timestamp at which this event was observed.
+  // For an aggregated response, this field to set to the timestamp at which
+  // the event was observed for the first time in a given aggregation time window.
+  google.protobuf.Timestamp time = 1001;
 
-    // aggregation_info contains information about aggregation results. This field
-    // is set only for aggregated responses.
-    AggregationInfo aggregation_info = 1002;
-    // Name of the cluster where this event was observed.
-    string cluster_name = 1003;
+  // aggregation_info contains information about aggregation results. This field
+  // is set only for aggregated responses.
+  AggregationInfo aggregation_info = 1002;
+  // Name of the cluster where this event was observed.
+  string cluster_name = 1003;
 }

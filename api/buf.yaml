@@ -1,0 +1,28 @@
+version: v2
+
+modules:
+  - path: v1
+
+lint:
+  use:
+    # See full list here: https://buf.build/docs/lint/rules/
+    # TODO: it's going to take a lot of work to document everything before enabling this.
+    # - COMMENTS
+    - STANDARD
+  enum_zero_value_suffix: UNDEF
+  except:
+    # Too late to do this without breaking.
+    - ENUM_VALUE_PREFIX
+    # Might be too late to do this without breaking.
+    - PACKAGE_VERSION_SUFFIX
+  disallow_comment_ignores: false
+
+breaking:
+  use:
+    - FILE
+    - WIRE_JSON
+  except:
+    - FILE_SAME_GO_PACKAGE
+  # Ignores packages with a last component that's one of the unstable forms
+  # (e.g. foo.bar.v1alpha foo.bar.v1beta)
+  ignore_unstable_packages: true

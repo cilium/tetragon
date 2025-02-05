@@ -3,228 +3,228 @@
 
 syntax = "proto3";
 
-import "google/protobuf/wrappers.proto";
-
 package tetragon;
 
-import "tetragon/tetragon.proto";
-import "tetragon/stack.proto";
+import "google/protobuf/wrappers.proto";
 import "tetragon/events.proto";
+import "tetragon/stack.proto";
+import "tetragon/tetragon.proto";
+
+option go_package = "github.com/cilium/tetragon/api/v1/tetragon";
 
 /**
  * Sensors
  */
 
-message ListSensorsRequest { }
+message ListSensorsRequest {}
 
 message SensorStatus {
-	// name is the name of the sensor
-	string name = 1;
-	// enabled marks whether the sensor is enabled
-	bool enabled = 2;
-	// collection is the collection the sensor belongs to (typically a tracing policy)
-	string collection = 3;
+  // name is the name of the sensor
+  string name = 1;
+  // enabled marks whether the sensor is enabled
+  bool enabled = 2;
+  // collection is the collection the sensor belongs to (typically a tracing policy)
+  string collection = 3;
 }
 message ListSensorsResponse {
-	repeated SensorStatus sensors = 1;
+  repeated SensorStatus sensors = 1;
 }
 
-message ListTracingPoliciesRequest { }
+message ListTracingPoliciesRequest {}
 
 enum TracingPolicyState {
-	// unknown state
-	TP_STATE_UNKNOWN = 0;
-	// loaded and enabled
-	TP_STATE_ENABLED = 1;
-	// loaded but disabled
-	TP_STATE_DISABLED = 2;
-	// failed to load
-	TP_STATE_LOAD_ERROR = 3;
-	// failed during lifetime
-	TP_STATE_ERROR = 4;
-	// in the process of loading
-	TP_STATE_LOADING = 5;
-	// in the process of unloading
-	TP_STATE_UNLOADING = 6;
+  // unknown state
+  TP_STATE_UNKNOWN = 0;
+  // loaded and enabled
+  TP_STATE_ENABLED = 1;
+  // loaded but disabled
+  TP_STATE_DISABLED = 2;
+  // failed to load
+  TP_STATE_LOAD_ERROR = 3;
+  // failed during lifetime
+  TP_STATE_ERROR = 4;
+  // in the process of loading
+  TP_STATE_LOADING = 5;
+  // in the process of unloading
+  TP_STATE_UNLOADING = 6;
 }
 
 message TracingPolicyStatus {
-	// id is the id of the policy
-	uint64 id = 1;
-	// name is the name of the policy
-	string name = 2;
-	// namespace is the namespace of the policy (or empty of the policy is global)
-	string namespace = 3;
-	// info is additional information about the policy
-	string info = 4;
-	// sensors loaded in the scope of this policy
-	repeated string sensors = 5;
-	// indicating if the policy is enabled. Deprecated: use 'state' instead.
-	bool enabled = 6 [deprecated = true];
-	// filter ID of the policy used for k8s filtering
-	uint64 filter_id = 7;
-	// potential error of the policy
-	string error = 8;
-	// current state of the tracing policy
-	TracingPolicyState state = 9;
-	// the amount of kernel memory in bytes used by policy's sensors non-shared BPF maps (memlock)
-	uint64 kernel_memory_bytes = 10;
+  // id is the id of the policy
+  uint64 id = 1;
+  // name is the name of the policy
+  string name = 2;
+  // namespace is the namespace of the policy (or empty of the policy is global)
+  string namespace = 3;
+  // info is additional information about the policy
+  string info = 4;
+  // sensors loaded in the scope of this policy
+  repeated string sensors = 5;
+  // indicating if the policy is enabled. Deprecated: use 'state' instead.
+  bool enabled = 6 [deprecated = true];
+  // filter ID of the policy used for k8s filtering
+  uint64 filter_id = 7;
+  // potential error of the policy
+  string error = 8;
+  // current state of the tracing policy
+  TracingPolicyState state = 9;
+  // the amount of kernel memory in bytes used by policy's sensors non-shared BPF maps (memlock)
+  uint64 kernel_memory_bytes = 10;
 }
 
 message ListTracingPoliciesResponse {
-	repeated TracingPolicyStatus policies = 1;
+  repeated TracingPolicyStatus policies = 1;
 }
 
 message AddTracingPolicyRequest {
-	string yaml = 1;
+  string yaml = 1;
 }
 message AddTracingPolicyResponse {}
 
 message DeleteTracingPolicyRequest {
-	string name = 1;
-	string namespace = 2;
+  string name = 1;
+  string namespace = 2;
 }
 message DeleteTracingPolicyResponse {}
 
 message EnableTracingPolicyRequest {
-	string name = 1;
-	string namespace = 2;
+  string name = 1;
+  string namespace = 2;
 }
 message EnableTracingPolicyResponse {}
 
 message DisableTracingPolicyRequest {
-	string name = 1;
-	string namespace = 2;
+  string name = 1;
+  string namespace = 2;
 }
 message DisableTracingPolicyResponse {}
 
 message RemoveSensorRequest {
-	string name = 1;
+  string name = 1;
 }
 message RemoveSensorResponse {}
 
-
 message EnableSensorRequest {
-	string name = 1;
+  string name = 1;
 }
 
 message EnableSensorResponse {}
 
 message DisableSensorRequest {
-	string name = 1;
+  string name = 1;
 }
 
-message DisableSensorResponse { }
+message DisableSensorResponse {}
 
 message GetStackTraceTreeRequest {
-	string name = 1;
+  string name = 1;
 }
 
 message GetStackTraceTreeResponse {
-	StackTraceNode root = 1;
+  StackTraceNode root = 1;
 }
 
-message GetVersionRequest{}
-message GetVersionResponse{
-	string version = 1;
+message GetVersionRequest {}
+message GetVersionResponse {
+  string version = 1;
 }
 
 // For now, we only want to support debug-related config flags to be configurable.
 enum ConfigFlag {
-	CONFIG_FLAG_LOG_LEVEL = 0;
-	CONFIG_FLAG_DUMP_PROCESS_CACHE = 1;
+  CONFIG_FLAG_LOG_LEVEL = 0;
+  CONFIG_FLAG_DUMP_PROCESS_CACHE = 1;
 }
 
 enum LogLevel {
-	LOG_LEVEL_PANIC = 0;
-	LOG_LEVEL_FATAL = 1;
-	LOG_LEVEL_ERROR = 2;
-	LOG_LEVEL_WARN = 3;
-	LOG_LEVEL_INFO = 4;
-	LOG_LEVEL_DEBUG = 5;
-	LOG_LEVEL_TRACE = 6;
+  LOG_LEVEL_PANIC = 0;
+  LOG_LEVEL_FATAL = 1;
+  LOG_LEVEL_ERROR = 2;
+  LOG_LEVEL_WARN = 3;
+  LOG_LEVEL_INFO = 4;
+  LOG_LEVEL_DEBUG = 5;
+  LOG_LEVEL_TRACE = 6;
 }
 
 message DumpProcessCacheReqArgs {
-	bool skip_zero_refcnt = 1;
-	bool exclude_execve_map_processes = 2;
+  bool skip_zero_refcnt = 1;
+  bool exclude_execve_map_processes = 2;
 }
 
 message ProcessInternal {
-	Process process = 1;
-	string color = 2;
-	google.protobuf.UInt32Value refcnt = 3;
-	// refcnt_ops is a map of operations to refcnt change
-	// keys can be:
-	// - "process++": process increased refcnt (i.e. this process starts)
-	// - "process--": process decreased refcnt (i.e. this process exits)
-	// - "parent++": parent increased refcnt (i.e. a process starts that has this process as a parent)
-	// - "parent--": parent decreased refcnt (i.e. a process exits that has this process as a parent)
-	// - "ancestor++": ancestor increased refcnt (i.e. a process starts that has this process as an ancestor)
-	// - "ancestor--": ancestor decreased refcnt (i.e. a process exits that has this process as an ancestor)
-	map<string, int32> refcnt_ops = 4;
+  Process process = 1;
+  string color = 2;
+  google.protobuf.UInt32Value refcnt = 3;
+  // refcnt_ops is a map of operations to refcnt change
+  // keys can be:
+  // - "process++": process increased refcnt (i.e. this process starts)
+  // - "process--": process decreased refcnt (i.e. this process exits)
+  // - "parent++": parent increased refcnt (i.e. a process starts that has this process as a parent)
+  // - "parent--": parent decreased refcnt (i.e. a process exits that has this process as a parent)
+  // - "ancestor++": ancestor increased refcnt (i.e. a process starts that has this process as an ancestor)
+  // - "ancestor--": ancestor decreased refcnt (i.e. a process exits that has this process as an ancestor)
+  map<string, int32> refcnt_ops = 4;
 }
 
 message DumpProcessCacheResArgs {
-	repeated ProcessInternal processes = 1;
+  repeated ProcessInternal processes = 1;
 }
 
-message GetDebugRequest{
-	ConfigFlag flag = 1;
-	oneof arg {
-		DumpProcessCacheReqArgs dump = 2;
-	}
+message GetDebugRequest {
+  ConfigFlag flag = 1;
+  oneof arg {
+    DumpProcessCacheReqArgs dump = 2;
+  }
 }
-message GetDebugResponse{
-	ConfigFlag flag = 1;
-	oneof arg {
-		LogLevel level = 2;
-		DumpProcessCacheResArgs processes = 3;
-	}
+message GetDebugResponse {
+  ConfigFlag flag = 1;
+  oneof arg {
+    LogLevel level = 2;
+    DumpProcessCacheResArgs processes = 3;
+  }
 }
 
-message SetDebugRequest{
-	ConfigFlag flag = 1;
-	oneof arg {
-		LogLevel level = 2;
-	}
+message SetDebugRequest {
+  ConfigFlag flag = 1;
+  oneof arg {
+    LogLevel level = 2;
+  }
 }
-message SetDebugResponse{
-	ConfigFlag flag = 1;
-	oneof arg {
-		LogLevel level = 2;
-	}
+message SetDebugResponse {
+  ConfigFlag flag = 1;
+  oneof arg {
+    LogLevel level = 2;
+  }
 }
 
 service FineGuidanceSensors {
-    rpc GetEvents(GetEventsRequest) returns (stream GetEventsResponse) {}
-    rpc GetHealth(GetHealthStatusRequest) returns (GetHealthStatusResponse) {}
+  rpc GetEvents(GetEventsRequest) returns (stream GetEventsResponse) {}
+  rpc GetHealth(GetHealthStatusRequest) returns (GetHealthStatusResponse) {}
 
-    rpc AddTracingPolicy(AddTracingPolicyRequest) returns (AddTracingPolicyResponse) {}
-    rpc DeleteTracingPolicy(DeleteTracingPolicyRequest) returns (DeleteTracingPolicyResponse) {}
-    rpc ListTracingPolicies(ListTracingPoliciesRequest) returns (ListTracingPoliciesResponse) {}
-    rpc EnableTracingPolicy(EnableTracingPolicyRequest) returns (EnableTracingPolicyResponse) {}
-    rpc DisableTracingPolicy(DisableTracingPolicyRequest) returns (DisableTracingPolicyResponse) {}
+  rpc AddTracingPolicy(AddTracingPolicyRequest) returns (AddTracingPolicyResponse) {}
+  rpc DeleteTracingPolicy(DeleteTracingPolicyRequest) returns (DeleteTracingPolicyResponse) {}
+  rpc ListTracingPolicies(ListTracingPoliciesRequest) returns (ListTracingPoliciesResponse) {}
+  rpc EnableTracingPolicy(EnableTracingPolicyRequest) returns (EnableTracingPolicyResponse) {}
+  rpc DisableTracingPolicy(DisableTracingPolicyRequest) returns (DisableTracingPolicyResponse) {}
 
-    rpc ListSensors(ListSensorsRequest) returns (ListSensorsResponse) {
-        option deprecated = true;
-    }
-    rpc EnableSensor(EnableSensorRequest) returns (EnableSensorResponse) {
-        option deprecated = true;
-    }
-    rpc DisableSensor(DisableSensorRequest) returns (DisableSensorResponse) {
-        option deprecated = true;
-    }
-    rpc RemoveSensor(RemoveSensorRequest) returns (RemoveSensorResponse) {
-        option deprecated = true;
-    }
+  rpc ListSensors(ListSensorsRequest) returns (ListSensorsResponse) {
+    option deprecated = true;
+  }
+  rpc EnableSensor(EnableSensorRequest) returns (EnableSensorResponse) {
+    option deprecated = true;
+  }
+  rpc DisableSensor(DisableSensorRequest) returns (DisableSensorResponse) {
+    option deprecated = true;
+  }
+  rpc RemoveSensor(RemoveSensorRequest) returns (RemoveSensorResponse) {
+    option deprecated = true;
+  }
 
-    rpc GetStackTraceTree(GetStackTraceTreeRequest) returns (GetStackTraceTreeResponse) {}
+  rpc GetStackTraceTree(GetStackTraceTreeRequest) returns (GetStackTraceTreeResponse) {}
 
-    rpc GetVersion(GetVersionRequest) returns (GetVersionResponse) {}
+  rpc GetVersion(GetVersionRequest) returns (GetVersionResponse) {}
 
-    rpc RuntimeHook(RuntimeHookRequest) returns (RuntimeHookResponse) {}
+  rpc RuntimeHook(RuntimeHookRequest) returns (RuntimeHookResponse) {}
 
-    rpc GetDebug(GetDebugRequest) returns (GetDebugResponse) {}
-    rpc SetDebug(SetDebugRequest) returns (SetDebugResponse) {}
+  rpc GetDebug(GetDebugRequest) returns (GetDebugResponse) {}
+  rpc SetDebug(SetDebugRequest) returns (SetDebugResponse) {}
 }

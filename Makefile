@@ -3,10 +3,8 @@
 
 include Makefile.defs
 
-GO ?= go
 INSTALL = $(QUIET)install
 BINDIR ?= /usr/local/bin
-CONTAINER_ENGINE ?= docker
 DOCKER_IMAGE_TAG ?= latest
 LOCAL_CLANG ?= 0
 LOCAL_CLANG_FORMAT ?= 0

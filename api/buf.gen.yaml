@@ -1,0 +1,16 @@
+version: v2
+plugins:
+  - local: protoc-gen-go
+    out: ./v1
+    opt:
+      - paths=source_relative
+  - local: protoc-gen-go-json
+    out: ./v1
+    opt:
+      - paths=source_relative
+      - orig_name=true
+  - local: protoc-gen-doc
+    out: ./v1
+    opt:
+      - markdown
+      - README.md
