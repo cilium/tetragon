@@ -115,6 +115,32 @@ func LoadBTF() (*btf.Spec, error) {
 	return NewBTF()
 }
 
+func FindBtfFuncParamFromHook(hook string, argIndex int) (*btf.FuncParam, error) {
+	var hookFn *btf.Func
+	spec, err := LoadBTF()
+	if err != nil {
+		return nil, err
+	}
+
+	if err = spec.TypeByName(hook, &hookFn); err != nil {
+		return nil, fmt.Errorf("failed to find BTF type for hook %q: %w", hook, err)
+	}
+
+	btfHookProto, isBtfFuncProto := hookFn.Type.(*btf.FuncProto)
+	if !isBtfFuncProto {
+		return nil, fmt.Errorf("hook %q has no BTF type FuncProto", hook)
+	}
+	paramLen := len(btfHookProto.Params)
+	if argIndex > paramLen-1 {
+		parameter := "parameter"
+		if paramLen > 1 {
+			parameter += "s"
+		}
+		return nil, fmt.Errorf("index %d is out of range. The hook only have %d %q", argIndex, paramLen, parameter)
+	}
+	return &btfHookProto.Params[argIndex], nil
+}
+
 func ResolveNestedTypes(ty btf.Type) btf.Type {
 	switch t := ty.(type) {
 	case *btf.Restrict:
