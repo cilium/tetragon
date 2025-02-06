@@ -105,6 +105,16 @@ func GetCachedBTFFile() string {
 	return btfFile
 }
 
+func LoadBTF() (*btf.Spec, error) {
+	if btfFile != "" {
+		return NewBTF()
+	}
+	if err := InitCachedBTF(defaults.DefaultTetragonLib, ""); err != nil {
+		return nil, err
+	}
+	return NewBTF()
+}
+
 func ResolveNestedTypes(ty btf.Type) btf.Type {
 	switch t := ty.(type) {
 	case *btf.Restrict:
