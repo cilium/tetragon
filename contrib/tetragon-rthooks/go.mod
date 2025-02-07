@@ -12,7 +12,7 @@ require (
 	github.com/containerd/containerd v1.7.25
 	github.com/containerd/nri v0.9.0
 	github.com/containers/common v0.62.0
-	github.com/google/cel-go v0.23.1
+	github.com/google/cel-go v0.23.2
 	github.com/opencontainers/runc v1.2.4
 	github.com/opencontainers/runtime-spec v1.2.0
 	github.com/pelletier/go-toml v1.9.5
