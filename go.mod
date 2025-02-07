@@ -42,7 +42,7 @@ require (
 	github.com/vishvananda/netlink v1.3.1-0.20241227191253-26ee0e2abe2d
 	go.uber.org/atomic v1.11.0
 	go.uber.org/multierr v1.11.0
-	golang.org/x/sync v0.10.0
+	golang.org/x/sync v0.11.0
 	golang.org/x/sys v0.29.0
 	golang.org/x/term v0.28.0
 	golang.org/x/time v0.9.0
