@@ -33,6 +33,8 @@ var (
 	TetragonAppNameVal = "tetragon"
 	TetragonContainer  = "tetragon"
 	TetragonCLI        = "tetra"
+	readCmd            = "cat"
+	writeCmd           = "/usr/bin/echo"
 )
 
 func TestMain(m *testing.M) {
@@ -133,7 +135,7 @@ spec:
     syscall: true
 `
 
-const ubuntuWritePod = `
+var ubuntuWritePod = fmt.Sprintf(`
 apiVersion: v1
 kind: Pod
 metadata:
@@ -144,16 +146,16 @@ metadata:
 spec:
   containers:
   - args:
-    - /usr/bin/echo
+    - %s
     - hello
     image: ubuntu
     name: ubuntu-write
     resources: {}
   dnsPolicy: ClusterFirst
   restartPolicy: Always
-`
+`, writeCmd)
 
-const ubuntuReadPod = `
+var ubuntuReadPod = fmt.Sprintf(`
 apiVersion: v1
 kind: Pod
 metadata:
@@ -164,14 +166,14 @@ metadata:
 spec:
   containers:
   - args:
-    - cat
+    - %s
     - /etc/hostname
     image: ubuntu
     name: ubuntu-read
     resources: {}
   dnsPolicy: ClusterFirst
   restartPolicy: Always
-`
+`, readCmd)
 
 func kprobeChecker() *checker.RPCChecker {
 	return checker.NewRPCChecker(&kprobeCheker{}, "kprobe-checker")
@@ -188,10 +190,10 @@ func (k *kprobeCheker) NextEventCheck(event ec.Event, _ *logrus.Logger) (bool, e
 		return false, errors.New("not a process kprobe")
 	}
 
-	if ev.GetFunctionName() == "__x64_sys_write" && ev.GetProcess().GetBinary() == "/usr/bin/echo" {
+	if ev.GetFunctionName() == "__x64_sys_write" && ev.GetProcess().GetBinary() == writeCmd {
 		k.matches++
 	}
-	if ev.GetFunctionName() == "__x64_sys_read" && ev.GetProcess().GetBinary() == "cat" {
+	if ev.GetFunctionName() == "__x64_sys_read" && ev.GetProcess().GetBinary() == readCmd {
 		k.matches++
 	}
 
