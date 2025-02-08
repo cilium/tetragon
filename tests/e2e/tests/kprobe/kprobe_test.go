@@ -242,7 +242,7 @@ func (k *kprobeCheker) NextEventCheck(event ec.Event, _ *logrus.Logger) (bool, e
 }
 
 func (k *kprobeCheker) FinalCheck(logger *logrus.Logger) error {
-	if k.matches > 0 {
+	if k.matches >= 2 {
 		return nil
 	}
 	return fmt.Errorf("kprobe checker failed, had %d matches", k.matches)
