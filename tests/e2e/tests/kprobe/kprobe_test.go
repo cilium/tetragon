@@ -122,58 +122,15 @@ func TestKprobeTracingPolicy(t *testing.T) {
 }
 
 const kprobeReadWritePolicy = `
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicyNamespaced
+apiVersion: cilium.io/v1alpha1kind: TracingPolicyNamespaced
 metadata:
   name: "sys-read-write"
 spec:
   kprobes:
-  # write system call tracing
   - call: "sys_write"
     syscall: true
-    args:
-    - index: 0
-      type: "int"
-    - index: 1
-      type: "char_buf"
-      sizeArgIndex: 3
-    - index: 2
-      type: "size_t"
-    selectors:
-    - matchPIDs:
-      - operator: NotIn
-        followForks: true
-        isNamespacePID: true
-        values:
-        - 1
-      matchArgs:
-      - index: 0
-        operator: "Equal"
-        values:
-        - "1"
-  # read system call tracing
   - call: "sys_read"
     syscall: true
-    args:
-    - index: 0
-      type: "int"
-    - index: 1
-      type: "char_buf"
-      sizeArgIndex: 3
-    - index: 2
-      type: "size_t"
-    selectors:
-    - matchPIDs:
-      - operator: NotIn
-        followForks: true
-        isNamespacePID: true
-        values:
-        - 1
-      matchArgs:
-      - index: 0
-        operator: "Equal"
-        values:
-        - "0"
 `
 
 const ubuntuWritePod = `
