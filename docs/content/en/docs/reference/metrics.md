@@ -30,6 +30,14 @@ Build information about tetragon
 | `time ` | `2022-05-13T15:54:45Z` |
 | `version` | `v1.2.0` |
 
+### `tetragon_cri_cgidmap_resolutions_errors_total`
+
+number of cgroup id map (cgidmap) CRI resolutions that failed
+
+### `tetragon_cri_cgidmap_resolutions_total`
+
+number of total cgroup id map (cgidmap) CRI resolutions
+
 ### `tetragon_data_cache_capacity`
 
 The capacity of the data cache.
