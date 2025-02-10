@@ -434,7 +434,7 @@
       ],
       "draftPR": true,
       "prBodyNotes": [
-        ":warning: Manual steps need to be performed (explaining why this PR is only a draft). First replace directives must be synchronized with cilium/cilium, see the `go.mod` and `pkg/k8s/go.mod` for more info. Then dependencies ignore in `.github/renovate.json5` for the replace directive must be updated accordingly. Finally, make sure that k8s dependencies were also bumped along Cilium."
+        ":warning: Manual steps need to be performed (explaining why this PR is only a draft). First replace directives must be synchronized with cilium/cilium, see the `go.mod` and `pkg/k8s/go.mod` for more info. Then dependencies ignore in `.github/renovate.json5` for the replace directive must be updated accordingly. Finally, make sure that k8s and cel-go dependencies were also bumped along Cilium."
       ]
     },
     {
@@ -442,7 +442,8 @@
       "matchPackageNames": [
         // k8s dependencies will be updated manually along cilium updates
         "k8s\\.io/*",
-        "sigs\\.k8s\\.io/*"
+        "sigs\\.k8s\\.io/*",
+        "github.com/google/cel-go", // cel-go is a dependency of k8s apiserver
       ],
       "matchUpdateTypes": [
         "major",
