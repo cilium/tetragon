@@ -237,6 +237,16 @@ tetragon:
   enableKeepSensorsOnExit: false
   # -- Configure the interval (suffixed with s for seconds, m for minutes, etc) for the process cache garbage collector.
   processCacheGCInterval: 30s
+  # -- Configure tetragon pod so that it can contact the CRI running on the host
+  cri:
+    enabled: false
+    # -- path of the CRI socket on the host. This will typically be
+    # "/run/containerd/containerd.sock" for containerd or "/var/run/crio/crio.sock"  for crio.
+    socketHostPath: ""
+  # -- Enabling cgidmap instructs the Tetragon agent to use cgroup ids (instead of cgroup names) for
+  # pod association. This feature depends on cri being enabled.
+  cgidmap:
+    enabled: false
 # Tetragon Operator settings
 tetragonOperator:
   # -- Enables the Tetragon Operator.
