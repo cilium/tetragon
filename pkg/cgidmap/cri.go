@@ -13,6 +13,7 @@ import (
 	"github.com/cilium/tetragon/pkg/cgtracker"
 	"github.com/cilium/tetragon/pkg/cri"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/metrics/crimetrics"
 	"github.com/cilium/tetragon/pkg/option"
 )
 
@@ -128,8 +129,10 @@ func newCriResolver(m Map) *criResolver {
 			id := elem.Value.(unmappedID)
 			err := criResolve(m, id)
 			if err != nil {
+				crimetrics.CriResolutionErrorsTotal.WithLabelValues().Inc()
 				logger.GetLogger().WithError(err).Warn("criResolve failed")
 			}
+			crimetrics.CriResolutionsTotal.WithLabelValues().Inc()
 			ret.mu.Lock()
 		}
 
