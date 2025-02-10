@@ -38,6 +38,10 @@
       name: export-logs
     - mountPath: "/procRoot"
       name: host-proc
+{{- if and (.Values.tetragon.cri.enabled) (.Values.tetragon.cri.socketHostPath) }}
+    - mountPath: {{ quote .Values.tetragon.cri.socketHostPath }}
+      name: cri-socket
+{{- end }}
 {{- range .Values.extraHostPathMounts }}
     - name: {{ .name }}
       mountPath: {{ .mountPath }}

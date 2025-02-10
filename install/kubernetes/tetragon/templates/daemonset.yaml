@@ -108,6 +108,12 @@ spec:
           path: {{ quote .Values.tetragon.ociHookSetup.installDir }}
           type: DirectoryOrCreate
 {{- end }}
+{{- if and (.Values.tetragon.cri.enabled) (.Values.tetragon.cri.socketHostPath) }}
+      - name: cri-socket
+        hostPath:
+          path: {{ quote .Values.tetragon.cri.socketHostPath }}
+          type: Socket
+{{- end }}
 {{- end }}
       {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 6 }}
