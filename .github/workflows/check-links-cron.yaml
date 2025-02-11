@@ -24,7 +24,7 @@ jobs:
 
       - name: Links Checker
         id: lychee
-        uses: lycheeverse/lychee-action@7cd0af4c74a61395d455af97419279d86aafaede # v2.0.2
+        uses: lycheeverse/lychee-action@f613c4a64e50d792e0b31ec34bbcbba12263c6a6 # v2.3.0
         with:
           args: --config .github/lychee.toml --base https://tetragon.io docs/content README.md
 
