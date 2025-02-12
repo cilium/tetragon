@@ -13,6 +13,7 @@ spec:
       type: int
       label: "family"
     returnArg:
+      index: 0
       type: "sock"
     returnArgAction: "TrackSock"
     selectors:
