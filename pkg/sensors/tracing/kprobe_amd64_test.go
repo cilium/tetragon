@@ -58,6 +58,7 @@ spec:
     - index: 2
       type: "capability"
     returnArg:
+      index: 0
       type: "int"
     selectors:
     - matchPIDs:

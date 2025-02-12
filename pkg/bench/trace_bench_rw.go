@@ -150,6 +150,7 @@ spec:
     - index: 2
       type: "size_t"
     returnArg:
+      index: 0
       type: "size_t"
     selectors:
     - matchPIDs:
