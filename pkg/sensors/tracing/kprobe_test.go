@@ -565,6 +565,7 @@ spec:
     - index: 2
       type: "size_t"
     returnArg:
+      index: 0
       type: "size_t"
     selectors:
     - matchPIDs:
@@ -1531,6 +1532,7 @@ func testKprobeObjectFilterReturnValueGTHook(pidStr, path string) string {
       - index: 2
         type: "int"
       returnArg:
+        index: 0
         type: int
       selectors:
       - matchPIDs:
@@ -1570,6 +1572,7 @@ func testKprobeObjectFilterReturnValueLTHook(pidStr, path string) string {
       - index: 2
         type: "int"
       returnArg:
+        index: 0
         type: int
       selectors:
       - matchPIDs:
@@ -1861,6 +1864,7 @@ spec:
     - index: 1
       type: "filename"
     returnArg:
+      index: 0
       type: file
     selectors:
     - matchPIDs:
@@ -2396,6 +2400,7 @@ spec:
     - index: 2
       type: "int"
     returnArg:
+      index: 0
       type: "int"
     selectors:
     - matchPIDs:
@@ -2459,6 +2464,7 @@ spec:
     - index: 0
       type: "file"
     returnArg:
+      index: 0
       type: "int"
     selectors:
     - matchPIDs:
@@ -2517,6 +2523,7 @@ spec:
     - index: 2
       type: "int"
     returnArg:
+      index: 0
       type: "int"
     selectors:
     - matchPIDs:
@@ -2637,6 +2644,7 @@ spec:
     - index: 2
       type: "int"
     returnArg:
+      index: 0
       type: "int"
     selectors:
     - matchPIDs:
@@ -2702,6 +2710,7 @@ spec:
     - index: 2
       type: "int"
     returnArg:
+      index: 0
       type: "int"
     selectors:
     - matchPIDs:
@@ -2767,6 +2776,7 @@ spec:
     - index: 2
       type: "int"
     returnArg:
+      index: 0
       type: "int"
     selectors:
     - matchPIDs:
@@ -2910,6 +2920,7 @@ spec:
     - index: 2
       type: "int"
     returnArg:
+      index: 0
       type: "int"
     selectors:
     - matchPIDs:
@@ -2940,6 +2951,7 @@ spec:
     - index: 4
       type: "int"
     returnArg:
+      index: 0
       type: "int"
     selectors:
     - matchPIDs:
@@ -4406,6 +4418,7 @@ spec:
     - index: 2
       type: "size_t"
     returnArg:
+      index: 0
       type: "size_t"
 `
 
