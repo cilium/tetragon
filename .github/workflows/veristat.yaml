@@ -21,6 +21,6 @@ jobs:
         run: make tetragon-bpf
 
       - name: Run veristat
-        uses: mtardy/veristat-action@35c8885118c1b3046f6a5fdedf1cc5670e584cf9 # v1.0.0
+        uses: mtardy/veristat-action@f8aaf0aff94a274fea229c37e1165b3083d43611 # v1.0.1
         with:
           programs: "bpf/objs/*.o"
