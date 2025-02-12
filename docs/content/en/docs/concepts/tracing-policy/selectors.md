@@ -1193,6 +1193,7 @@ generate any event about that.
   - index: 2
     type: "int"
   returnArg:
+    index: 0
     type: "int"
   selectors:
   - matchPIDs:

@@ -416,6 +416,7 @@ set to `true`, and the `returnArg` parameter needs to be set to specify the
     type: int
     label: "family"
   returnArg:
+    index: 0
     type: sock
 ```
 
@@ -450,6 +451,7 @@ See [`TrackSock`](/docs/concepts/tracing-policy/selectors/#tracksock-action) and
     type: int
     label: "family"
   returnArg:
+    index: 0
     type: sock
   returnArgAction: TrackSock
 ```
