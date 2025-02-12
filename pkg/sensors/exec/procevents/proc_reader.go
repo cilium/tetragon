@@ -371,11 +371,9 @@ func writeExecveMap(procs []procs) {
 		}
 	}
 
-	entries, ok := base.ExecveMap.GetMaxEntries()
-	if !ok {
-		logger.GetLogger().Fatal("Failed to get number of execve_map entries, confused..")
-	}
+	entries := m.MaxEntries()
 	logger.GetLogger().Infof("Maximum execve_map entries %d, need to add %d.", entries, len(procs))
+
 	i := uint32(0)
 
 	inInitTree := make(map[uint32]struct{})
