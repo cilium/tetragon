@@ -91,6 +91,30 @@ func parseExecveMapSize(str string) (int, error) {
 	return val, nil
 }
 
+func GetExecveEntries(configEntries int, configSize string) int {
+	// Setup execve_map max entries
+	if configEntries != 0 && len(configSize) != 0 {
+		log.Fatal("Both ExecveMapEntries and ExecveMapSize set, confused..")
+	}
+
+	var (
+		entries int
+		err     error
+	)
+
+	if configEntries != 0 {
+		entries = configEntries
+	} else if len(configSize) != 0 {
+		if entries, err = parseExecveMapSize(configSize); err != nil {
+			log.Fatal("Failed to parse ExecveMapSize value")
+		}
+	} else {
+		entries = execveMapMaxEntries
+	}
+
+	return entries
+}
+
 func setupSensor() {
 	// exit program function
 	ks, err := ksyms.KernelSymbols()
@@ -111,22 +135,7 @@ func setupSensor() {
 	}
 	logger.GetLogger().Infof("Exit probe on %s", Exit.Attach)
 
-	// Setup execve_map max entries
-	if option.Config.ExecveMapEntries != 0 && len(option.Config.ExecveMapSize) != 0 {
-		log.Fatal("Both ExecveMapEntries and ExecveMapSize set, confused..")
-	}
-
-	var entries int
-
-	if option.Config.ExecveMapEntries != 0 {
-		entries = option.Config.ExecveMapEntries
-	} else if len(option.Config.ExecveMapSize) != 0 {
-		if entries, err = parseExecveMapSize(option.Config.ExecveMapSize); err != nil {
-			log.Fatal("Failed to parse ExecveMapSize value")
-		}
-	} else {
-		entries = execveMapMaxEntries
-	}
+	entries := GetExecveEntries(option.Config.ExecveMapEntries, option.Config.ExecveMapSize)
 	ExecveMap.SetMaxEntries(entries)
 
 	logger.GetLogger().
