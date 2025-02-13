@@ -44,14 +44,8 @@ func (e *ValidationFailed) Error() string {
 // NB: turns out we need more than BTF information for the validation (see
 // syscalls). We still keep this code in the btf package for now, and we can
 // move it once we found a better home for it.
-func ValidateKprobeSpec(bspec *btf.Spec, call string, kspec *v1alpha1.KProbeSpec) error {
+func ValidateKprobeSpec(bspec *btf.Spec, call string, kspec *v1alpha1.KProbeSpec, ks *ksyms.Ksyms) error {
 	var fn *btf.Func
-
-	// get kernel symbols
-	ks, err := ksyms.KernelSymbols()
-	if err != nil {
-		return fmt.Errorf("validateKprobeSpec: ksyms.KernelSymbols: %w", err)
-	}
 
 	// check if this functio name is part of a kernel module
 	if kmod, err := ks.GetKmod(call); err == nil {
@@ -64,7 +58,7 @@ func ValidateKprobeSpec(bspec *btf.Spec, call string, kspec *v1alpha1.KProbeSpec
 	}
 
 	origCall := call
-	err = bspec.TypeByName(call, &fn)
+	err := bspec.TypeByName(call, &fn)
 	if err != nil && kspec.Syscall {
 		// Try with system call prefix
 		call, err = arch.AddSyscallPrefix(call)
