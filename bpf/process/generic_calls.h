@@ -9,6 +9,7 @@
 #include "policy_filter.h"
 #include "types/basic.h"
 #include "vmlinux.h"
+#include "policy_conf.h"
 
 #define MAX_TOTAL 9000
 
@@ -283,7 +284,7 @@ do_override_action(__s32 error)
 #endif
 
 FUNC_LOCAL __u32
-do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post)
+do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool monitor_mode)
 {
 	int signal __maybe_unused = FGS_SIGKILL;
 	int action = actions->act[i];
@@ -354,11 +355,13 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post)
 	case ACTION_SIGNAL:
 		signal = actions->act[++i];
 	case ACTION_SIGKILL:
-		do_action_signal(signal);
+		if (!monitor_mode)
+			do_action_signal(signal);
 		break;
 	case ACTION_OVERRIDE:
 		error = actions->act[++i];
-		do_override_action(error);
+		if (!monitor_mode)
+			do_override_action(error);
 		break;
 	case ACTION_GETURL:
 	case ACTION_DNSLOOKUP:
@@ -374,7 +377,8 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post)
 		error = actions->act[++i];
 		signal = actions->act[++i];
 		argi = actions->act[++i];
-		do_action_notify_enforcer(e, error, signal, argi);
+		if (!monitor_mode)
+			do_action_notify_enforcer(e, error, signal, argi);
 		break;
 	case ACTION_CLEANUP_ENFORCER_NOTIFICATION:
 		do_enforcer_cleanup();
@@ -401,7 +405,16 @@ FUNC_INLINE bool
 do_actions(void *ctx, struct selector_action *actions)
 {
 	bool post = true;
-	__u32 l, i = 0;
+	__u32 l, i = 0, zero = 0;
+	struct policy_conf *pcnf;
+	bool monitor_mode = false;
+
+	/* check if policy is in monitor (non-enforcement) mode and, if it is, skip enforcement
+	 * actions
+	 */
+	pcnf = map_lookup_elem(&policy_conf, &zero);
+	if (pcnf && pcnf->mode == POLICY_MODE_MONITOR)
+		monitor_mode = true;
 
 #ifndef __LARGE_BPF_PROG
 #pragma unroll
@@ -409,7 +422,7 @@ do_actions(void *ctx, struct selector_action *actions)
 	for (l = 0; l < MAX_ACTIONS; l++) {
 		if (!has_action(actions, i))
 			break;
-		i = do_action(ctx, i, actions, &post);
+		i = do_action(ctx, i, actions, &post, monitor_mode);
 	}
 
 	return post;
