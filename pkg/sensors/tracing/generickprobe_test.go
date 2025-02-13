@@ -13,6 +13,7 @@ import (
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/stretchr/testify/assert"
@@ -82,7 +83,9 @@ func Test_SensorDestroyHook(t *testing.T) {
 	// insertion in the table in AddKprobe, but this is done by the caller to
 	// have just DestroyHook that regroups all the potential multiple kprobes
 	// contained in one sensor.
-	sensor, err := createGenericKprobeSensor(spec, "test_sensor", &policyInfo{name: "test_policy"})
+	policyInfo, err := newPolicyInfoFromSpec("", "test_policy", policyfilter.NoFilterID, spec, nil)
+	require.NoError(t, err)
+	sensor, err := createGenericKprobeSensor(spec, "test_sensor", policyInfo)
 	if err != nil {
 		t.Errorf("createGenericKprobeSensor err expected: nil, got: %s", err)
 	}

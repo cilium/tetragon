@@ -252,11 +252,6 @@ func createGenericUprobeSensor(
 	var ids []idtable.EntryID
 	var err error
 
-	options, err := getSpecOptions(spec.Options)
-	if err != nil {
-		return nil, fmt.Errorf("failed to set options: %s", err)
-	}
-
 	in := addUprobeIn{
 		sensorPath: name,
 		policyName: polInfo.name,
@@ -264,7 +259,7 @@ func createGenericUprobeSensor(
 		// use multi kprobe only if:
 		// - it's not disabled by spec option
 		// - there's support detected
-		useMulti: !options.DisableUprobeMulti && bpf.HasUprobeMulti(),
+		useMulti: !polInfo.specOpts.DisableUprobeMulti && bpf.HasUprobeMulti(),
 	}
 
 	for _, uprobe := range spec.UProbes {
