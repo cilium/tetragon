@@ -6,13 +6,13 @@ go 1.23.0
 toolchain go1.23.1
 
 require (
-	github.com/alecthomas/kong v1.7.0
+	github.com/alecthomas/kong v1.8.0
 	github.com/cilium/lumberjack/v2 v2.4.1
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/containerd/containerd v1.7.25
 	github.com/containerd/nri v0.9.0
 	github.com/containers/common v0.62.0
-	github.com/google/cel-go v0.23.1
+	github.com/google/cel-go v0.23.2
 	github.com/opencontainers/runc v1.2.4
 	github.com/opencontainers/runtime-spec v1.2.0
 	github.com/pelletier/go-toml v1.9.5
@@ -53,7 +53,7 @@ require (
 	golang.org/x/text v0.21.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20241202173237-19429a94021a // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250102185135-69823020774d // indirect
-	google.golang.org/protobuf v1.36.4 // indirect
+	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/cri-api v0.31.2 // indirect
 )

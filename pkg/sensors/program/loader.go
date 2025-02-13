@@ -28,6 +28,7 @@ type OpenFunc func(*ebpf.CollectionSpec) error
 type LoadOpts struct {
 	Attach AttachFunc
 	Open   OpenFunc
+	Maps   []*Map
 }
 
 func linkPinPath(bpfDir string, load *Program, extra ...string) string {
@@ -531,24 +532,27 @@ func MultiKprobeAttach(load *Program, bpfDir string) AttachFunc {
 	}
 }
 
-func LoadTracepointProgram(bpfDir string, load *Program, verbose int) error {
+func LoadTracepointProgram(bpfDir string, load *Program, maps []*Map, verbose int) error {
 	opts := &LoadOpts{
 		Attach: TracepointAttach(load, bpfDir),
+		Maps:   maps,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
-func LoadRawTracepointProgram(bpfDir string, load *Program, verbose int) error {
+func LoadRawTracepointProgram(bpfDir string, load *Program, maps []*Map, verbose int) error {
 	opts := &LoadOpts{
 		Attach: RawTracepointAttach(load),
+		Maps:   maps,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
-func LoadKprobeProgram(bpfDir string, load *Program, verbose int) error {
+func LoadKprobeProgram(bpfDir string, load *Program, maps []*Map, verbose int) error {
 	opts := &LoadOpts{
 		Attach: KprobeAttach(load, bpfDir),
 		Open:   KprobeOpen(load),
+		Maps:   maps,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
@@ -575,29 +579,32 @@ func KprobeAttachMany(load *Program, syms []string, bpfDir string) AttachFunc {
 	}
 }
 
-func LoadKprobeProgramAttachMany(bpfDir string, load *Program, syms []string, verbose int) error {
+func LoadKprobeProgramAttachMany(bpfDir string, load *Program, syms []string, maps []*Map, verbose int) error {
 	opts := &LoadOpts{
 		Attach: KprobeAttachMany(load, syms, bpfDir),
+		Maps:   maps,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
-func LoadUprobeProgram(bpfDir string, load *Program, verbose int) error {
+func LoadUprobeProgram(bpfDir string, load *Program, maps []*Map, verbose int) error {
 	opts := &LoadOpts{
 		Attach: UprobeAttach(load),
+		Maps:   maps,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
-func LoadMultiKprobeProgram(bpfDir string, load *Program, verbose int) error {
+func LoadMultiKprobeProgram(bpfDir string, load *Program, maps []*Map, verbose int) error {
 	opts := &LoadOpts{
 		Attach: MultiKprobeAttach(load, bpfDir),
 		Open:   KprobeOpen(load),
+		Maps:   maps,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
-func LoadFmodRetProgram(bpfDir string, load *Program, progName string, verbose int) error {
+func LoadFmodRetProgram(bpfDir string, load *Program, maps []*Map, progName string, verbose int) error {
 	opts := &LoadOpts{
 		Attach: func(
 			_ *ebpf.Collection,
@@ -629,35 +636,40 @@ func LoadFmodRetProgram(bpfDir string, load *Program, progName string, verbose i
 			progSpec.AttachTo = load.Attach
 			return nil
 		},
+		Maps: maps,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
-func LoadTracingProgram(bpfDir string, load *Program, verbose int) error {
+func LoadTracingProgram(bpfDir string, load *Program, maps []*Map, verbose int) error {
 	opts := &LoadOpts{
 		Attach: TracingAttach(load, bpfDir),
+		Maps:   maps,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
-func LoadLSMProgram(bpfDir string, load *Program, verbose int) error {
+func LoadLSMProgram(bpfDir string, load *Program, maps []*Map, verbose int) error {
 	opts := &LoadOpts{
 		Attach: LSMAttach(),
 		Open:   LSMOpen(load),
+		Maps:   maps,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
-func LoadLSMProgramSimple(bpfDir string, load *Program, verbose int) error {
+func LoadLSMProgramSimple(bpfDir string, load *Program, maps []*Map, verbose int) error {
 	opts := &LoadOpts{
 		Attach: LSMAttach(),
+		Maps:   maps,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
-func LoadMultiUprobeProgram(bpfDir string, load *Program, verbose int) error {
+func LoadMultiUprobeProgram(bpfDir string, load *Program, maps []*Map, verbose int) error {
 	opts := &LoadOpts{
 		Attach: MultiUprobeAttach(load),
+		Maps:   maps,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
@@ -804,8 +816,47 @@ func doLoadProgram(
 		}
 	}
 
+	// We have following maps available for loading:
+	// - maps attached/pinned to program directly in load.PinMap[name]
+	// - maps passed to loader (all sensor maps)
+	//
+	// We need to resolve maps (find program.Map object) to be able to
+	// complete following operations:
+	//
+	//  (1) before loading:
+	//   - setup maps max entries values
+	//   - resolve all program's referenced maps
+	//
+	//  (2) after loading:
+	//   - load values to maps via load.MapLoad interface
+	//
+	// The resolveMap function is used for (1) and takes map name and
+	// searches for map object in following order:
+	//
+	//   1) load.PinMap[name]
+	//   2) loadOpts.Maps user maps
+	//
+	// For (2) we search only maps that the program owns, which are
+	// placed in load.PinMap.
+
+	userMaps := map[string]*Map{}
+	for _, pm := range loadOpts.Maps {
+		if !pm.IsOwner() {
+			userMaps[pm.Name] = pm
+		}
+	}
+
+	resolveMap := func(name string) (*Map, bool) {
+		m, ok := load.PinMap[name]
+		if ok {
+			return m, true
+		}
+		m, ok = userMaps[name]
+		return m, ok
+	}
+
 	for _, ms := range spec.Maps {
-		m, ok := load.PinMap[ms.Name]
+		m, ok := resolveMap(ms.Name)
 		if !ok {
 			continue
 		}
@@ -847,7 +898,8 @@ func doLoadProgram(
 		var m *ebpf.Map
 		var err error
 		var mapPath string
-		if pm, ok := load.PinMap[name]; ok {
+
+		if pm, ok := resolveMap(name); ok {
 			mapPath = filepath.Join(bpfDir, pm.PinPath)
 		} else {
 			mapPath = filepath.Join(bpfDir, name)
@@ -950,6 +1002,7 @@ func doLoadProgram(
 
 	for _, mapLoad := range load.MapLoad {
 		pinPath := ""
+		// We allow to load only maps that we own.
 		if pm, ok := load.PinMap[mapLoad.Name]; ok {
 			pinPath = pm.PinPath
 		}
@@ -1058,10 +1111,11 @@ func loadProgram(
 func LoadProgram(
 	bpfDir string,
 	load *Program,
+	maps []*Map,
 	attach AttachFunc,
 	verbose int,
 ) error {
-	return loadProgram(bpfDir, load, &LoadOpts{Attach: attach}, verbose)
+	return loadProgram(bpfDir, load, &LoadOpts{Attach: attach, Maps: maps}, verbose)
 }
 
 func LoadProgramOpts(

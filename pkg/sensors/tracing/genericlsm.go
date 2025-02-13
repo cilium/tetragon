@@ -27,6 +27,7 @@ import (
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
 
@@ -99,7 +100,7 @@ func (k *observerLsmSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 		}
 		args.Load.MapLoad = append(args.Load.MapLoad, config)
 
-		if err := program.LoadLSMProgram(args.BPFDir, args.Load, args.Verbose); err == nil {
+		if err := program.LoadLSMProgram(args.BPFDir, args.Load, args.Maps, args.Verbose); err == nil {
 			logger.GetLogger().Infof("Loaded generic LSM program: %s -> %s", args.Load.Name, args.Load.Attach)
 		} else {
 			return err
@@ -363,6 +364,8 @@ func createGenericLsmSensor(
 	if err != nil {
 		return nil, err
 	}
+
+	maps = append(maps, program.MapUserFrom(base.ExecveMap))
 
 	return &sensors.Sensor{
 		Name:  name,

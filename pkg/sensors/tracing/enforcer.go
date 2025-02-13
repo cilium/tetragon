@@ -50,21 +50,21 @@ func init() {
 	sensors.RegisterPolicyHandlerAtInit("enforcer", gEnforcerPolicy)
 }
 
-func enforcerMapsUser(load ...*program.Program) []*program.Map {
-	edm := program.MapUserPolicy(enforcerDataMapName, load...)
+func enforcerMapsUser(load *program.Program) []*program.Map {
+	edm := program.MapUserPolicy(enforcerDataMapName, load)
 	edm.SetMaxEntries(enforcerMapMaxEntries)
 	return []*program.Map{
 		edm,
-		program.MapUserPolicy(enforcermetrics.EnforcerMissedMapName, load...),
+		program.MapUserPolicy(enforcermetrics.EnforcerMissedMapName, load),
 	}
 }
 
-func enforcerMaps(load ...*program.Program) []*program.Map {
-	edm := program.MapBuilderPolicy(enforcerDataMapName, load...)
+func enforcerMaps(load *program.Program) []*program.Map {
+	edm := program.MapBuilderPolicy(enforcerDataMapName, load)
 	edm.SetMaxEntries(enforcerMapMaxEntries)
 	return []*program.Map{
 		edm,
-		program.MapBuilderPolicy(enforcermetrics.EnforcerMissedMapName, load...),
+		program.MapBuilderPolicy(enforcermetrics.EnforcerMissedMapName, load),
 	}
 }
 
@@ -122,9 +122,9 @@ func (kp *enforcerPolicy) PolicyHandler(
 
 func (kp *enforcerPolicy) loadSingleEnforcerSensor(
 	kh *enforcerHandler,
-	bpfDir string, load *program.Program, verbose int,
+	bpfDir string, load *program.Program, maps []*program.Map, verbose int,
 ) error {
-	if err := program.LoadKprobeProgramAttachMany(bpfDir, load, kh.syscallsSyms, verbose); err == nil {
+	if err := program.LoadKprobeProgramAttachMany(bpfDir, load, kh.syscallsSyms, maps, verbose); err == nil {
 		logger.GetLogger().Infof("Loaded enforcer sensor: %s", load.Attach)
 	} else {
 		return err
@@ -134,7 +134,7 @@ func (kp *enforcerPolicy) loadSingleEnforcerSensor(
 
 func (kp *enforcerPolicy) loadMultiEnforcerSensor(
 	kh *enforcerHandler,
-	bpfDir string, load *program.Program, verbose int,
+	bpfDir string, load *program.Program, maps []*program.Map, verbose int,
 ) error {
 	data := &program.MultiKprobeAttachData{}
 
@@ -142,7 +142,7 @@ func (kp *enforcerPolicy) loadMultiEnforcerSensor(
 
 	load.SetAttachData(data)
 
-	if err := program.LoadMultiKprobeProgram(bpfDir, load, verbose); err != nil {
+	if err := program.LoadMultiKprobeProgram(bpfDir, load, maps, verbose); err != nil {
 		return err
 	}
 
@@ -161,14 +161,14 @@ func (kp *enforcerPolicy) LoadProbe(args sensors.LoadProbeArgs) error {
 		return fmt.Errorf("failed to get enforcer handler for '%s'", name)
 	}
 	if args.Load.Label == "kprobe.multi/enforcer" {
-		return kp.loadMultiEnforcerSensor(kh, args.BPFDir, args.Load, args.Verbose)
+		return kp.loadMultiEnforcerSensor(kh, args.BPFDir, args.Load, args.Maps, args.Verbose)
 	}
 	if args.Load.Label == "kprobe/enforcer" {
-		return kp.loadSingleEnforcerSensor(kh, args.BPFDir, args.Load, args.Verbose)
+		return kp.loadSingleEnforcerSensor(kh, args.BPFDir, args.Load, args.Maps, args.Verbose)
 	}
 
 	if strings.HasPrefix(args.Load.Label, "fmod_ret/") {
-		return program.LoadFmodRetProgram(args.BPFDir, args.Load, "fmodret_enforcer", args.Verbose)
+		return program.LoadFmodRetProgram(args.BPFDir, args.Load, args.Maps, "fmodret_enforcer", args.Verbose)
 	}
 
 	return fmt.Errorf("enforcer loader: unknown label: %s", args.Load.Label)
@@ -316,6 +316,7 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 			SetPolicy(policyName)
 
 		progs = append(progs, load)
+		maps = append(maps, enforcerMaps(load)...)
 	case OverrideMethodFmodRet:
 		// for fmod_ret, we need one program per syscall
 		logger.GetLogger().Infof("enforcer: using fmod_ret")
@@ -329,12 +330,11 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 				SetLoaderData(policyName).
 				SetPolicy(policyName)
 			progs = append(progs, load)
+			maps = append(maps, enforcerMaps(load)...)
 		}
 	default:
 		return nil, fmt.Errorf("unexpected override method: %d", overrideMethod)
 	}
-
-	maps = append(maps, enforcerMaps(progs...)...)
 
 	if ok := kp.enforcerAdd(policyName, kh); !ok {
 		return nil, fmt.Errorf("failed to add enforcer: '%s'", policyName)

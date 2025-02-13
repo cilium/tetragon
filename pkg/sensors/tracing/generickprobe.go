@@ -35,6 +35,7 @@ import (
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/sirupsen/logrus"
@@ -665,6 +666,8 @@ func createGenericKprobeSensor(
 		return nil, err
 	}
 
+	maps = append(maps, program.MapUserFrom(base.ExecveMap))
+
 	return &sensors.Sensor{
 		Name:      name,
 		Progs:     progs,
@@ -1088,7 +1091,7 @@ func getMapLoad(load *program.Program, kprobeEntry *genericKprobe, index uint32)
 	return selectorsMaploads(state, index)
 }
 
-func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Program, verbose int) error {
+func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Program, maps []*program.Map, verbose int) error {
 	gk, err := genericKprobeTableGet(id)
 	if err != nil {
 		return err
@@ -1107,7 +1110,7 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Pro
 	}
 	load.MapLoad = append(load.MapLoad, config)
 
-	if err := program.LoadKprobeProgram(bpfDir, load, verbose); err == nil {
+	if err := program.LoadKprobeProgram(bpfDir, load, maps, verbose); err == nil {
 		logger.GetLogger().Infof("Loaded generic kprobe program: %s -> %s", load.Name, load.Attach)
 	} else {
 		return err
@@ -1116,7 +1119,7 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Pro
 	return err
 }
 
-func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir string, load *program.Program, verbose int) error {
+func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir string, load *program.Program, maps []*program.Map, verbose int) error {
 	bin_buf := make([]bytes.Buffer, len(ids))
 
 	data := &program.MultiKprobeAttachData{}
@@ -1151,7 +1154,7 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir string, load *program.P
 	load.OverrideFmodRet = false
 	load.SetAttachData(data)
 
-	if err := program.LoadMultiKprobeProgram(bpfDir, load, verbose); err == nil {
+	if err := program.LoadMultiKprobeProgram(bpfDir, load, maps, verbose); err == nil {
 		logger.GetLogger().Infof("Loaded generic kprobe sensor: %s -> %s", load.Name, load.Attach)
 	} else {
 		return err
@@ -1160,12 +1163,12 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir string, load *program.P
 	return nil
 }
 
-func loadGenericKprobeSensor(bpfDir string, load *program.Program, verbose int) error {
+func loadGenericKprobeSensor(bpfDir string, load *program.Program, maps []*program.Map, verbose int) error {
 	if id, ok := load.LoaderData.(idtable.EntryID); ok {
-		return loadSingleKprobeSensor(id, bpfDir, load, verbose)
+		return loadSingleKprobeSensor(id, bpfDir, load, maps, verbose)
 	}
 	if ids, ok := load.LoaderData.([]idtable.EntryID); ok {
-		return loadMultiKprobeSensor(ids, bpfDir, load, verbose)
+		return loadMultiKprobeSensor(ids, bpfDir, load, maps, verbose)
 	}
 	return fmt.Errorf("invalid loadData type: expecting idtable.EntryID/[] and got: %T (%v)",
 		load.LoaderData, load.LoaderData)
@@ -1389,7 +1392,7 @@ func retprobeMerge(prev pendingEvent, curr pendingEvent) *tracing.MsgGenericKpro
 }
 
 func (k *observerKprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
-	return loadGenericKprobeSensor(args.BPFDir, args.Load, args.Verbose)
+	return loadGenericKprobeSensor(args.BPFDir, args.Load, args.Maps, args.Verbose)
 }
 
 func selectorsHaveRateLimit(selectors []v1alpha1.KProbeSelector) bool {

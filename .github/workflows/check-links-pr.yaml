@@ -58,7 +58,7 @@ jobs:
 
       - name: Check new links
         id: lychee
-        uses: lycheeverse/lychee-action@f796c8b7d468feb9b8c0a46da3fac0af6874d374 # v2.2.0
+        uses: lycheeverse/lychee-action@f613c4a64e50d792e0b31ec34bbcbba12263c6a6 # v2.3.0
         with:
           args: --config .github/lychee.toml --base http://localhost:1313 $PATCH_FILE
           failIfEmpty: false # this can happen as we are checking diffs

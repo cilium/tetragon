@@ -24,7 +24,7 @@ jobs:
         path: go/src/github.com/cilium/tetragon/
 
     - name: Install Go
-      uses: actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a # v5.2.0
+      uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
       with:
         # renovate: datasource=golang-version depName=go
         go-version: '1.23.5'
@@ -56,7 +56,7 @@ jobs:
         tar cz --exclude='tetragon/.git' -f /tmp/tetragon.tar ./tetragon
 
     - name: upload build
-      uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
       with:
          name: tetragon-build
          path: /tmp/tetragon.tar
@@ -69,19 +69,19 @@ jobs:
               # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
               - 'rhel8.9-20240806.173325'
               # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-              - 'bpf-next-20250131.013253'
+              - 'bpf-next-20250210.013321'
               # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-              - '6.6-20250126.112744'
+              - '6.6-20250206.054533'
               # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-              - '6.1-20250126.112744'
+              - '6.1-20250206.054533'
               # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-              - '5.15-20250126.112744'
+              - '5.15-20250206.054533'
               # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-              - '5.10-20250126.112744'
+              - '5.10-20250206.054533'
               # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-              - '5.4-20250126.112744'
+              - '5.4-20250206.054533'
               # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-              - '4.19-20250126.112744'
+              - '4.19-20250206.054533'
            group:
               - 0
     concurrency:
@@ -150,7 +150,7 @@ jobs:
 
     - name: Upload test results on failure or cancelation
       if: failure() || cancelled()
-      uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
       with:
         name: tetragon-vmtests-${{ matrix.kernel }}-${{ matrix.group }}-results
         path: go/src/github.com/cilium/tetragon/tests/vmtests/vmtests-results-*
