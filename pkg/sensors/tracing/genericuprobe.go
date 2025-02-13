@@ -245,8 +245,7 @@ type addUprobeIn struct {
 func createGenericUprobeSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
-	policyName string,
-	namespace string,
+	polInfo *policyInfo,
 ) (*sensors.Sensor, error) {
 	var progs []*program.Program
 	var maps []*program.Map
@@ -260,7 +259,7 @@ func createGenericUprobeSensor(
 
 	in := addUprobeIn{
 		sensorPath: name,
-		policyName: policyName,
+		policyName: polInfo.name,
 
 		// use multi kprobe only if:
 		// - it's not disabled by spec option
@@ -276,7 +275,7 @@ func createGenericUprobeSensor(
 	}
 
 	if in.useMulti {
-		progs, maps, err = createMultiUprobeSensor(name, ids, policyName)
+		progs, maps, err = createMultiUprobeSensor(name, ids, polInfo.name)
 	} else {
 		progs, maps, err = createSingleUprobeSensor(ids)
 	}
@@ -291,8 +290,8 @@ func createGenericUprobeSensor(
 		Name:      name,
 		Progs:     progs,
 		Maps:      maps,
-		Policy:    policyName,
-		Namespace: namespace,
+		Policy:    polInfo.name,
+		Namespace: polInfo.namespace,
 	}, nil
 }
 
