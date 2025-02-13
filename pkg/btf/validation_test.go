@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/cilium/ebpf/btf"
+	"github.com/cilium/tetragon/pkg/ksyms"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/stretchr/testify/require"
 )
@@ -52,6 +53,12 @@ func TestSpecs(t *testing.T) {
 	_, testFname, _, _ := runtime.Caller(0)
 	testdataPath := filepath.Join(filepath.Dir(testFname), "..", "..", "testdata")
 
+	// get kernel symbols
+	ks, err := ksyms.KernelSymbols()
+	if err != nil {
+		t.Fatalf("validateKprobeSpec: ksyms.KernelSymbols: %s", err)
+	}
+
 	// NB: for now we check against a single BTF file.
 	btfFname := filepath.Join(testdataPath, "btf", "vmlinux-5.4.104+")
 	if _, err := os.Stat(btfFname); err != nil {
@@ -72,7 +79,7 @@ func TestSpecs(t *testing.T) {
 			}
 			spec := tp.TpSpec()
 			for ki := range spec.KProbes {
-				err = ValidateKprobeSpec(btf, spec.KProbes[ki].Call, &spec.KProbes[ki])
+				err = ValidateKprobeSpec(btf, spec.KProbes[ki].Call, &spec.KProbes[ki], ks)
 				if checkErr := testFiles[fi].checkFn(t, err); checkErr != nil {
 					t.Fatal(checkErr)
 				}

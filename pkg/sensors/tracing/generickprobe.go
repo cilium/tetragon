@@ -28,6 +28,7 @@ import (
 	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/pkg/ksyms"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/kprobemetrics"
 	"github.com/cilium/tetragon/pkg/observer"
@@ -449,6 +450,12 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec, lists []v1al
 		return err
 	}
 
+	// get kernel symbols
+	ks, err := ksyms.KernelSymbols()
+	if err != nil {
+		return fmt.Errorf("validateKprobeSpec: ksyms.KernelSymbols: %w", err)
+	}
+
 	for i := range kprobes {
 		f := &kprobes[i]
 
@@ -508,7 +515,7 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec, lists []v1al
 
 		for idx := range calls {
 			// Now go over BTF validation
-			if err := btf.ValidateKprobeSpec(btfobj, calls[idx], f); err != nil {
+			if err := btf.ValidateKprobeSpec(btfobj, calls[idx], f, ks); err != nil {
 				if warn, ok := err.(*btf.ValidationWarn); ok {
 					logger.GetLogger().WithFields(logrus.Fields{
 						"sensor": name,
