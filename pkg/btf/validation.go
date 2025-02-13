@@ -501,7 +501,7 @@ func GetSyscallsList() ([]string, error) {
 	}
 	for _, value := range names {
 		var fn *btf.Func
-		sym, err := arch.AddSyscallPrefix(value)
+		sym, err := arch.AddSyscallPrefix(fmt.Sprint("sys_", value))
 		if err != nil {
 			return []string{}, err
 		}
