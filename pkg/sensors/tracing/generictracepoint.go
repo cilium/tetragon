@@ -310,9 +310,7 @@ func buildGenericTracepointArgs(info *tracepoint.Tracepoint, specArgs []v1alpha1
 func createGenericTracepoint(
 	sensorName string,
 	conf *v1alpha1.TracepointSpec,
-	policyID policyfilter.PolicyID,
-	policyName string,
-	customHandler eventhandler.Handler,
+	polInfo *policyInfo,
 ) (*genericTracepoint, error) {
 	if conf == nil {
 		return nil, errors.New("failed creating generic tracepoint, conf is nil")
@@ -327,7 +325,7 @@ func createGenericTracepoint(
 	if errors.Is(err, ErrMsgSyntaxShort) || errors.Is(err, ErrMsgSyntaxEscape) {
 		return nil, err
 	} else if errors.Is(err, ErrMsgSyntaxLong) {
-		logger.GetLogger().WithField("policy-name", policyName).Warnf("TracingPolicy 'message' field too long, truncated to %d characters", TpMaxMessageLen)
+		logger.GetLogger().WithField("policy-name", polInfo.name).Warnf("TracingPolicy 'message' field too long, truncated to %d characters", TpMaxMessageLen)
 	}
 
 	tagsField, err := getPolicyTags(conf.Tags)
@@ -348,9 +346,9 @@ func createGenericTracepoint(
 		Info:          &tp,
 		Spec:          conf,
 		args:          tpArgs,
-		policyID:      policyID,
-		policyName:    policyName,
-		customHandler: customHandler,
+		policyID:      polInfo.policyID,
+		policyName:    polInfo.name,
+		customHandler: polInfo.customHandler,
 		message:       msgField,
 		tags:          tagsField,
 	}
@@ -428,28 +426,25 @@ func tpValidateAndAdjustEnforcerAction(
 func createGenericTracepointSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
-	policyID policyfilter.PolicyID,
-	policyName string,
-	namespace string,
-	customHandler eventhandler.Handler,
+	polInfo *policyInfo,
 ) (*sensors.Sensor, error) {
 	confs := spec.Tracepoints
 	lists := spec.Lists
 
 	ret := &sensors.Sensor{
 		Name:      name,
-		Policy:    policyName,
-		Namespace: namespace,
+		Policy:    polInfo.name,
+		Namespace: polInfo.namespace,
 	}
 
 	tracepoints := make([]*genericTracepoint, 0, len(confs))
 	for i := range confs {
 		tpSpec := &confs[i]
-		err := tpValidateAndAdjustEnforcerAction(ret, tpSpec, i, policyName, spec)
+		err := tpValidateAndAdjustEnforcerAction(ret, tpSpec, i, polInfo.name, spec)
 		if err != nil {
 			return nil, err
 		}
-		tp, err := createGenericTracepoint(name, tpSpec, policyID, policyName, customHandler)
+		tp, err := createGenericTracepoint(name, tpSpec, polInfo)
 		if err != nil {
 			return nil, err
 		}
@@ -480,7 +475,7 @@ func createGenericTracepointSensor(
 			"tracepoint/generic_tracepoint",
 			pinProg,
 			"generic_tracepoint",
-		).SetPolicy(policyName)
+		).SetPolicy(polInfo.name)
 
 		err := tp.InitKernelSelectors(lists)
 		if err != nil {

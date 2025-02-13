@@ -595,10 +595,7 @@ func hasMapsSetup(spec *v1alpha1.TracingPolicySpec) hasMaps {
 func createGenericKprobeSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
-	policyID policyfilter.PolicyID,
-	policyName string,
-	namespace string,
-	customHandler eventhandler.Handler,
+	polInfo *policyInfo,
 ) (*sensors.Sensor, error) {
 	var progs []*program.Program
 	var maps []*program.Map
@@ -629,9 +626,9 @@ func createGenericKprobeSensor(
 	in := addKprobeIn{
 		useMulti:      useMulti,
 		sensorPath:    name,
-		policyID:      policyID,
-		policyName:    policyName,
-		customHandler: customHandler,
+		policyID:      polInfo.policyID,
+		policyName:    polInfo.name,
+		customHandler: polInfo.customHandler,
 		selMaps:       selMaps,
 	}
 
@@ -679,8 +676,8 @@ func createGenericKprobeSensor(
 		Name:      name,
 		Progs:     progs,
 		Maps:      maps,
-		Policy:    policyName,
-		Namespace: namespace,
+		Policy:    polInfo.name,
+		Namespace: polInfo.namespace,
 		DestroyHook: func() error {
 			var errs error
 			for _, id := range ids {
