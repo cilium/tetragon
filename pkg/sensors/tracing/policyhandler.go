@@ -42,8 +42,11 @@ func (h policyHandler) PolicyHandler(
 	if len(spec.LsmHooks) > 0 {
 		sections++
 	}
+	if len(spec.UProbes) > 0 {
+		sections++
+	}
 	if sections > 1 {
-		return nil, errors.New("tracing policies with multiple sections of kprobes, tracepoints, or lsm hooks are currently not supported")
+		return nil, errors.New("tracing policies with multiple sections of kprobes, tracepoints, lsm hooks, or uprobes are currently not supported")
 	}
 
 	handler := eventhandler.GetCustomEventhandler(policy)
@@ -62,7 +65,7 @@ func (h policyHandler) PolicyHandler(
 		return createGenericLsmSensor(spec, "generic_lsm", policyID, policyName, namespace)
 	}
 	if len(spec.UProbes) > 0 {
-		return createGenericUprobeSensor(spec, "generic_lsm", policyName, namespace)
+		return createGenericUprobeSensor(spec, "generic_uprobe", policyName, namespace)
 	}
 	return nil, nil
 }
