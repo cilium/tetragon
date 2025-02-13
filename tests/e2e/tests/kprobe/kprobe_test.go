@@ -124,7 +124,8 @@ func TestKprobeTracingPolicy(t *testing.T) {
 }
 
 const kprobeReadWritePolicy = `
-apiVersion: cilium.io/v1alpha1kind: TracingPolicyNamespaced
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicyNamespaced
 metadata:
   name: "sys-read-write"
 spec:
