@@ -608,16 +608,11 @@ func createGenericKprobeSensor(
 	kprobes := spec.KProbes
 	lists := spec.Lists
 
-	specOpts, err := getSpecOptions(spec.Options)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get spec options: %s", err)
-	}
-
 	// use multi kprobe only if:
 	// - it's not disabled by spec option
 	// - it's not disabled by command line option
 	// - there's support detected
-	if !specOpts.DisableKprobeMulti {
+	if !polInfo.specOpts.DisableKprobeMulti {
 		useMulti = !option.Config.DisableKprobeMulti && bpf.HasKprobeMulti()
 	}
 
@@ -662,6 +657,7 @@ func createGenericKprobeSensor(
 		}
 	}
 
+	var err error
 	if useMulti {
 		progs, maps, err = createMultiKprobeSensor(polInfo, ids, has)
 	} else {

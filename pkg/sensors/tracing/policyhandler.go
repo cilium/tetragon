@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/cilium/tetragon/pkg/eventhandler"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
@@ -26,23 +27,46 @@ type policyInfo struct {
 	policyID      policyfilter.PolicyID
 	customHandler eventhandler.Handler
 	policyConf    *program.Map
+	specOpts      *specOptions
 }
 
 func newPolicyInfo(
 	policy tracingpolicy.TracingPolicy,
 	policyID policyfilter.PolicyID,
-) *policyInfo {
+) (*policyInfo, error) {
 	namespace := ""
 	if tpn, ok := policy.(tracingpolicy.TracingPolicyNamespaced); ok {
 		namespace = tpn.TpNamespace()
 	}
+
+	return newPolicyInfoFromSpec(
+		namespace,
+		policy.TpName(),
+		policyID,
+		policy.TpSpec(),
+		eventhandler.GetCustomEventhandler(policy),
+	)
+
+}
+
+func newPolicyInfoFromSpec(
+	namespace, name string,
+	policyID policyfilter.PolicyID,
+	spec *v1alpha1.TracingPolicySpec,
+	customHandler eventhandler.Handler,
+) (*policyInfo, error) {
+	opts, err := getSpecOptions(spec.Options)
+	if err != nil {
+		return nil, err
+	}
 	return &policyInfo{
-		name:          policy.TpName(),
+		name:          name,
 		namespace:     namespace,
 		policyID:      policyID,
-		customHandler: eventhandler.GetCustomEventhandler(policy),
+		customHandler: customHandler,
 		policyConf:    nil,
-	}
+		specOpts:      opts,
+	}, nil
 }
 
 func (pi *policyInfo) policyConfMap(prog *program.Program) *program.Map {
@@ -76,7 +100,10 @@ func (h policyHandler) PolicyHandler(
 		return nil, errors.New("tracing policies with multiple sections of kprobes, tracepoints, lsm hooks, or uprobes are currently not supported")
 	}
 
-	polInfo := newPolicyInfo(policy, policyID)
+	polInfo, err := newPolicyInfo(policy, policyID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse options: %w", err)
+	}
 
 	if len(spec.KProbes) > 0 {
 		name := "generic_kprobe"
