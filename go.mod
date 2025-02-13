@@ -8,7 +8,7 @@ toolchain go1.23.1
 require (
 	github.com/alecthomas/kong v1.6.1
 	github.com/bombsimon/logrusr/v4 v4.1.0
-	github.com/cilium/cilium v1.17.0
+	github.com/cilium/cilium v1.17.1
 	github.com/cilium/ebpf v0.17.1
 	github.com/cilium/little-vm-helper v0.0.19
 	github.com/cilium/lumberjack/v2 v2.4.1
