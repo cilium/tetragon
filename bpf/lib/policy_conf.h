@@ -4,6 +4,7 @@
 #ifndef BPF_POLICYCONF_H__
 #define BPF_POLICYCONF_H__
 
+// NB: values should match the ones defined in go (EnforceMode, MonitorMode)
 enum {
 	POLICY_MODE_ENFORCE = 0,
 	POLICY_MODE_MONITOR = 1,
