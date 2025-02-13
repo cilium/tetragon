@@ -378,7 +378,7 @@ func createGenericLsmSensor(
 		if err != nil {
 			return nil, err
 		}
-		progs, maps = createLsmSensorFromEntry(gl, progs, maps)
+		progs, maps = createLsmSensorFromEntry(polInfo, gl, progs, maps)
 	}
 
 	if err != nil {
@@ -444,7 +444,7 @@ func imaProgName(lsmEntry *genericLsm) (string, string) {
 	return pName, pType
 }
 
-func createLsmSensorFromEntry(lsmEntry *genericLsm,
+func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 	progs []*program.Program, maps []*program.Map) ([]*program.Program, []*program.Map) {
 
 	loadProgCoreName := "bpf_generic_lsm_core.o"
@@ -540,6 +540,8 @@ func createLsmSensorFromEntry(lsmEntry *genericLsm,
 	maps = append(maps, overrideTasksMap)
 	overrideTasksMapOutput := program.MapBuilderProgram("override_tasks", loadOutput)
 	maps = append(maps, overrideTasksMapOutput)
+
+	maps = append(maps, polInfo.policyConfMap(load))
 
 	logger.GetLogger().
 		Infof("Added generic lsm sensor: %s -> %s", load.Name, load.Attach)

@@ -10,6 +10,7 @@ import (
 	"github.com/cilium/tetragon/pkg/eventhandler"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
@@ -24,6 +25,7 @@ type policyInfo struct {
 	namespace     string
 	policyID      policyfilter.PolicyID
 	customHandler eventhandler.Handler
+	policyConf    *program.Map
 }
 
 func newPolicyInfo(
@@ -39,7 +41,16 @@ func newPolicyInfo(
 		namespace:     namespace,
 		policyID:      policyID,
 		customHandler: eventhandler.GetCustomEventhandler(policy),
+		policyConf:    nil,
 	}
+}
+
+func (pi *policyInfo) policyConfMap(prog *program.Program) *program.Map {
+	if pi.policyConf != nil {
+		return program.MapUserFrom(pi.policyConf)
+	}
+	pi.policyConf = program.MapBuilderPolicy("policy_conf", prog)
+	return pi.policyConf
 }
 
 func (h policyHandler) PolicyHandler(
