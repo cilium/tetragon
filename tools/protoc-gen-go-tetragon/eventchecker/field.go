@@ -241,9 +241,8 @@ func doGetFieldFrom(field *Field, g *protogen.GeneratedFile, handleList, handleO
 			return doTimestampFrom(), nil
 		} else if field.Message.GoIdent.GoImportPath == imports.DurationPath {
 			return doDurationFrom(), nil
-		} else {
-			return doCheckerFrom(), nil
 		}
+		return doCheckerFrom(), nil
 
 	case protoreflect.EnumKind:
 		return doEnumFrom(), nil
@@ -457,9 +456,8 @@ func checkForKind(g *protogen.GeneratedFile, field *Field, checkerVar, eventVar 
 			return doTimestampCheck(), nil
 		} else if field.Message.GoIdent.GoImportPath == imports.DurationPath {
 			return doDurationCheck(), nil
-		} else {
-			return doCheckerCheck(), nil
 		}
+		return doCheckerCheck(), nil
 
 	case protoreflect.EnumKind:
 		return doEnumCheck(), nil
