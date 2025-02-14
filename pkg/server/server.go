@@ -48,8 +48,6 @@ type observer interface {
 	ListTracingPolicies(ctx context.Context) (*tetragon.ListTracingPoliciesResponse, error)
 	DisableTracingPolicy(ctx context.Context, name string, namespace string) error
 	EnableTracingPolicy(ctx context.Context, name string, namespace string) error
-	// ListTracingPolicies lists active traing policies
-	// ListTracingPolicies lists active traing policies
 
 	EnableSensor(ctx context.Context, name string) error
 	DisableSensor(ctx context.Context, name string) error
