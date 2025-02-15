@@ -114,6 +114,9 @@ spec:
           path: {{ quote .Values.tetragon.cri.socketHostPath }}
           type: Socket
 {{- end }}
+      - name: security-lsm
+        hostPath:
+          path: /sys/kernel/security/lsm
 {{- end }}
       {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 6 }}
