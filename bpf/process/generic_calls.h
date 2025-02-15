@@ -638,8 +638,12 @@ FUNC_INLINE int generic_process_filter(void)
 		return 0;
 
 	enter = event_find_curr(&ppid, &walker);
-	if (!enter)
-		return PFILTER_CURR_NOT_FOUND;
+	if (!enter) {
+		enter = event_find_curr_probe(msg);
+		if (!enter)
+			return PFILTER_CURR_NOT_FOUND;
+		msg->common.flags |= MSG_COMMON_FLAG_PROCESS_NOT_FOUND;
+	}
 
 	f = map_lookup_elem(&filter_map, &msg->idx);
 	if (!f)

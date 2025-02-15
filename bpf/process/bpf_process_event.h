@@ -288,4 +288,31 @@ set_in_init_tree(struct execve_map_value *curr, struct execve_map_value *parent)
 		DEBUG("%s: nspid=1", __func__);
 	}
 }
+
+#ifdef __LARGE_BPF_PROG
+FUNC_INLINE struct execve_map_value *
+event_find_curr_probe(struct msg_generic_kprobe *msg)
+{
+	struct task_struct *task = (struct task_struct *)get_current_task();
+	struct execve_map_value *curr;
+
+	curr = &msg->curr;
+	curr->key.pid = BPF_CORE_READ(task, tgid);
+	curr->key.ktime = ktime_get_ns();
+	curr->nspid = get_task_pid_vnr_by_task(task);
+
+	get_current_subj_caps(&curr->caps, task);
+	get_namespaces(&curr->ns, task);
+	set_in_init_tree(curr, NULL);
+
+	read_exe((struct task_struct *)get_current_task(), &msg->exe);
+	return curr;
+}
+#else
+FUNC_INLINE struct execve_map_value *
+event_find_curr_probe(struct msg_generic_kprobe *msg)
+{
+	return NULL;
+}
+#endif
 #endif
