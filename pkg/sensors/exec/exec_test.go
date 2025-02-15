@@ -565,7 +565,7 @@ func TestLoadInitialSensor(t *testing.T) {
 	var sensorProgs = []tus.SensorProg{}
 	var sensorMaps = []tus.SensorMap{}
 
-	sensor := base.GetInitialSensor()
+	sensor := base.GetInitialSensorTest(t)
 
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 

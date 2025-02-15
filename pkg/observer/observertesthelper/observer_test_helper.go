@@ -298,7 +298,7 @@ func GetDefaultObserverWithFile(tb testing.TB, ctx context.Context, file, lib st
 	opts = append(opts, WithConfig(file))
 	opts = append(opts, WithLib(lib))
 
-	b := base.GetInitialSensor()
+	b := base.GetInitialSensorTest(tb)
 	return GetDefaultObserverWithWatchers(tb, ctx, b, opts...)
 }
 
@@ -313,7 +313,7 @@ func GetDefaultSensorsWithFile(tb testing.TB, file, lib string, opts ...TestOpti
 	opts = append(opts, WithConfig(file))
 	opts = append(opts, WithLib(lib))
 
-	b := base.GetInitialSensor()
+	b := base.GetInitialSensorTest(tb)
 	return getDefaultSensors(tb, b, opts...)
 }
 
@@ -634,7 +634,7 @@ func GetDefaultObserver(tb testing.TB, ctx context.Context, lib string, opts ...
 }
 
 func GetDefaultObserverWithConfig(tb testing.TB, ctx context.Context, config, lib string, opts ...TestOption) (*observer.Observer, error) {
-	b := base.GetInitialSensor()
+	b := base.GetInitialSensorTest(tb)
 
 	opts = append(opts, WithConfig(config))
 	opts = append(opts, WithLib(lib))

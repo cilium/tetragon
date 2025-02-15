@@ -118,7 +118,7 @@ spec:
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	initialSensor := base.GetInitialSensor()
+	initialSensor := base.GetInitialSensorTest(t)
 	initialSensor.Load(bpf.MapPrefixPath())
 }
 
@@ -3082,7 +3082,7 @@ func runKprobe_char_iovec(t *testing.T, configHook string,
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	b := base.GetInitialSensor()
+	b := base.GetInitialSensorTest(t)
 	obs, err := observertesthelper.GetDefaultObserverWithWatchers(t, ctx, b, observertesthelper.WithConfig(testConfigFile), observertesthelper.WithLib(tus.Conf().TetragonLib), observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithWatchers error: %s", err)
