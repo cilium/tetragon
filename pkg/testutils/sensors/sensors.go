@@ -34,7 +34,7 @@ func LoadSensor(t *testing.T, sensori sensors.SensorIface) {
 }
 
 func LoadInitialSensor(t *testing.T) {
-	LoadSensor(t, base.GetInitialSensor())
+	LoadSensor(t, base.GetInitialSensorTest(t))
 
 	if err := procevents.GetRunningProcs(); err != nil {
 		t.Fatalf("procevents.GetRunningProcs: %s", err)
