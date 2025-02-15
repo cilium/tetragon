@@ -6,6 +6,7 @@ package tracing
 import (
 	"encoding/hex"
 	"fmt"
+	"strings"
 
 	"github.com/cilium/tetragon/pkg/reader/kernel"
 	"golang.org/x/sys/unix"
@@ -31,14 +32,19 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-func getProcessParent(key *processapi.MsgExecveKey) (*process.ProcessInternal, *process.ProcessInternal, *tetragon.Process, *tetragon.Process) {
+func getProcessParent(key *processapi.MsgExecveKey, flags uint8) (*process.ProcessInternal, *process.ProcessInternal, *tetragon.Process, *tetragon.Process) {
 	var tetragonParent, tetragonProcess *tetragon.Process
+
+	unknown := flags&processapi.MSG_COMMON_FLAG_PROCESS_NOT_FOUND != 0
 
 	proc, parent := process.GetParentProcessInternal(key.Pid, key.Ktime)
 	if proc == nil {
 		tetragonProcess = &tetragon.Process{
 			Pid:       &wrapperspb.UInt32Value{Value: key.Pid},
 			StartTime: ktime.ToProto(key.Ktime),
+		}
+		if unknown {
+			tetragonProcess.Flags = "unknown"
 		}
 	} else {
 		tetragonProcess = proc.UnsafeGetProcess()
@@ -52,6 +58,10 @@ func getProcessParent(key *processapi.MsgExecveKey) (*process.ProcessInternal, *
 	}
 
 	return proc, parent, tetragonProcess, tetragonParent
+}
+
+func isUnknown(proc *tetragon.Process) bool {
+	return strings.Contains(proc.Flags, "unknown")
 }
 
 func kprobeAction(act uint64) tetragon.KprobeAction {
@@ -316,7 +326,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 	var tetragonArgs []*tetragon.KprobeArgument
 	var tetragonReturnArg *tetragon.KprobeArgument
 
-	proc, parent, tetragonProcess, tetragonParent := getProcessParent(&event.Msg.ProcessKey)
+	proc, parent, tetragonProcess, tetragonParent := getProcessParent(&event.Msg.ProcessKey, event.Msg.Common.Flags)
 
 	// Set the ancestors only if --enable-process-kprobe-ancestors flag is set.
 	if option.Config.EnableProcessKprobeAncestors && proc.NeededAncestors() {
@@ -407,7 +417,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 		return nil
 	}
 
-	if ec := eventcache.Get(); ec != nil &&
+	if ec := eventcache.Get(); ec != nil && !isUnknown(tetragonProcess) &&
 		(ec.Needed(tetragonProcess) ||
 			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent)) ||
 			(option.Config.EnableProcessKprobeAncestors && ec.NeededAncestors(parent, ancestors))) {
@@ -469,7 +479,7 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 	var ancestors []*process.ProcessInternal
 	var tetragonAncestors []*tetragon.Process
 
-	proc, parent, tetragonProcess, tetragonParent := getProcessParent(&msg.Msg.ProcessKey)
+	proc, parent, tetragonProcess, tetragonParent := getProcessParent(&msg.Msg.ProcessKey, msg.Msg.Common.Flags)
 
 	// Set the ancestors only if --enable-process-tracepoint-ancestors flag is set.
 	if option.Config.EnableProcessTracepointAncestors && proc.NeededAncestors() {
@@ -590,7 +600,7 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 		return nil
 	}
 
-	if ec := eventcache.Get(); ec != nil &&
+	if ec := eventcache.Get(); ec != nil && !isUnknown(tetragonProcess) &&
 		(ec.Needed(tetragonProcess) ||
 			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent)) ||
 			(option.Config.EnableProcessTracepointAncestors && ec.NeededAncestors(parent, ancestors))) {
@@ -700,7 +710,7 @@ func (event *ProcessLoaderNotify) SetAncestors([]*tetragon.Process) {
 }
 
 func GetProcessLoader(msg *MsgProcessLoaderUnix) *tetragon.ProcessLoader {
-	_, _, tetragonProcess, _ := getProcessParent(&msg.Msg.ProcessKey)
+	_, _, tetragonProcess, _ := getProcessParent(&msg.Msg.ProcessKey, 0)
 
 	notifyEvent := &ProcessLoaderNotify{
 		ProcessLoader: tetragon.ProcessLoader{
@@ -788,7 +798,7 @@ func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
 	var tetragonAncestors []*tetragon.Process
 	var tetragonArgs []*tetragon.KprobeArgument
 
-	proc, parent, tetragonProcess, tetragonParent := getProcessParent(&event.Msg.ProcessKey)
+	proc, parent, tetragonProcess, tetragonParent := getProcessParent(&event.Msg.ProcessKey, event.Msg.Common.Flags)
 
 	// Set the ancestors only if --enable-process-uprobe-ancestors flag is set.
 	if option.Config.EnableProcessUprobeAncestors && proc.NeededAncestors() {
@@ -819,7 +829,7 @@ func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
 		return nil
 	}
 
-	if ec := eventcache.Get(); ec != nil &&
+	if ec := eventcache.Get(); ec != nil && !isUnknown(tetragonProcess) &&
 		(ec.Needed(tetragonProcess) ||
 			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent)) ||
 			(option.Config.EnableProcessUprobeAncestors && ec.NeededAncestors(parent, ancestors))) {
@@ -912,7 +922,7 @@ func GetProcessLsm(event *MsgGenericLsmUnix) *tetragon.ProcessLsm {
 	var tetragonAncestors []*tetragon.Process
 	var tetragonArgs []*tetragon.KprobeArgument
 
-	proc, parent, tetragonProcess, tetragonParent := getProcessParent(&event.Msg.ProcessKey)
+	proc, parent, tetragonProcess, tetragonParent := getProcessParent(&event.Msg.ProcessKey, event.Msg.Common.Flags)
 
 	// Set the ancestors only if --enable-process-lsm-ancestors flag is set.
 	if option.Config.EnableProcessLsmAncestors && proc.NeededAncestors() {
@@ -962,7 +972,7 @@ func GetProcessLsm(event *MsgGenericLsmUnix) *tetragon.ProcessLsm {
 		return nil
 	}
 
-	if ec := eventcache.Get(); ec != nil &&
+	if ec := eventcache.Get(); ec != nil && !isUnknown(tetragonProcess) &&
 		(ec.Needed(tetragonProcess) ||
 			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent)) ||
 			(option.Config.EnableProcessLsmAncestors && ec.NeededAncestors(parent, ancestors))) {

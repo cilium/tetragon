@@ -62,6 +62,8 @@ struct msg_generic_kprobe {
 			bool post; // true if event needs to be posted
 		} lsm;
 	};
+	struct execve_map_value curr;
+	struct heap_exe exe;
 };
 
 FUNC_INLINE size_t generic_kprobe_common_size(void)
