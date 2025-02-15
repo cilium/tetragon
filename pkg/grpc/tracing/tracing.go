@@ -469,6 +469,10 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 		}
 	} else {
 		tetragonProcess = proc.UnsafeGetProcess()
+		if err := proc.AnnotateProcess(option.Config.EnableProcessCred, option.Config.EnableProcessNs); err != nil {
+			logger.GetLogger().WithError(err).WithField("processId", tetragonProcess.Pid).
+				Debugf("Failed to annotate process with capabilities and namespaces info")
+		}
 	}
 	if parent != nil {
 		tetragonParent = parent.UnsafeGetProcess()
