@@ -244,6 +244,8 @@ message Process {
   // current process with a new process by doing an exec* without a clone. In
   // this case the flag will be omitted and the same PID will be used by the
   // kernel for both the old process and the newly exec'd process.
+  // - `unknown` Indicates the process was not found in the process cache
+  // and contains just pid and start time.
   string flags = 7;
   // Start time of the execution.
   google.protobuf.Timestamp start_time = 8;

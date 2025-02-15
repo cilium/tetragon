@@ -1300,6 +1300,8 @@ type Process struct {
 	// current process with a new process by doing an exec* without a clone. In
 	// this case the flag will be omitted and the same PID will be used by the
 	// kernel for both the old process and the newly exec'd process.
+	// - `unknown` Indicates the process was not found in the process cache
+	// and contains just pid and start time.
 	Flags string `protobuf:"bytes,7,opt,name=flags,proto3" json:"flags,omitempty"`
 	// Start time of the execution.
 	StartTime *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
