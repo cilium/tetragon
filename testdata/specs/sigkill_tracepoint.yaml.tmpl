@@ -1,0 +1,26 @@
+# test for the tracepoint sigkill action
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "sigkilltest"
+spec:
+  tracepoints:
+  - subsystem: "syscalls"
+    event: "sys_enter_lseek"
+    args:
+    # whence argument
+    - index: 7
+      type: "int32"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        values:
+        - {{.MatchedPID}}
+        isNamespacePID: {{.NamespacePID}}
+      matchArgs:
+      - index: 7
+        operator: Equal
+        values:
+        - 5555 # magic value, see also sigkill-tester
+      matchActions:
+      - action: Sigkill
