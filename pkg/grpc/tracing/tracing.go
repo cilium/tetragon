@@ -11,6 +11,7 @@ import (
 	"golang.org/x/sys/unix"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/eventcache"
@@ -29,6 +30,29 @@ import (
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
+
+func getProcessParent(key *processapi.MsgExecveKey) (*process.ProcessInternal, *process.ProcessInternal, *tetragon.Process, *tetragon.Process) {
+	var tetragonParent, tetragonProcess *tetragon.Process
+
+	proc, parent := process.GetParentProcessInternal(key.Pid, key.Ktime)
+	if proc == nil {
+		tetragonProcess = &tetragon.Process{
+			Pid:       &wrapperspb.UInt32Value{Value: key.Pid},
+			StartTime: ktime.ToProto(key.Ktime),
+		}
+	} else {
+		tetragonProcess = proc.UnsafeGetProcess()
+		if err := proc.AnnotateProcess(option.Config.EnableProcessCred, option.Config.EnableProcessNs); err != nil {
+			logger.GetLogger().WithError(err).WithField("processId", tetragonProcess.Pid).
+				Debugf("Failed to annotate process with capabilities and namespaces info")
+		}
+	}
+	if parent != nil {
+		tetragonParent = parent.UnsafeGetProcess()
+	}
+
+	return proc, parent, tetragonProcess, tetragonParent
+}
 
 func kprobeAction(act uint64) tetragon.KprobeAction {
 	switch act {
@@ -287,27 +311,12 @@ func getKprobeArgument(arg tracingapi.MsgGenericKprobeArg) *tetragon.KprobeArgum
 }
 
 func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
-	var tetragonParent, tetragonProcess *tetragon.Process
 	var ancestors []*process.ProcessInternal
 	var tetragonAncestors []*tetragon.Process
 	var tetragonArgs []*tetragon.KprobeArgument
 	var tetragonReturnArg *tetragon.KprobeArgument
 
-	proc, parent := process.GetParentProcessInternal(event.Msg.ProcessKey.Pid, event.Msg.ProcessKey.Ktime)
-	if proc == nil {
-		tetragonProcess = &tetragon.Process{
-			Pid:       &wrapperspb.UInt32Value{Value: event.Msg.ProcessKey.Pid},
-			StartTime: ktime.ToProto(event.Msg.ProcessKey.Ktime),
-		}
-	} else {
-		tetragonProcess = proc.UnsafeGetProcess()
-		if err := proc.AnnotateProcess(option.Config.EnableProcessCred, option.Config.EnableProcessNs); err != nil {
-			logger.GetLogger().WithError(err).WithField("processId", tetragonProcess.Pid).Debugf("Failed to annotate process with capabilities and namespaces info")
-		}
-	}
-	if parent != nil {
-		tetragonParent = parent.UnsafeGetProcess()
-	}
+	proc, parent, tetragonProcess, tetragonParent := getProcessParent(&event.Msg.ProcessKey)
 
 	// Set the ancestors only if --enable-process-kprobe-ancestors flag is set.
 	if option.Config.EnableProcessKprobeAncestors && proc.NeededAncestors() {
@@ -457,26 +466,10 @@ func familyString(family uint16) string {
 }
 
 func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse {
-	var tetragonParent, tetragonProcess *tetragon.Process
 	var ancestors []*process.ProcessInternal
 	var tetragonAncestors []*tetragon.Process
 
-	proc, parent := process.GetParentProcessInternal(msg.Msg.ProcessKey.Pid, msg.Msg.ProcessKey.Ktime)
-	if proc == nil {
-		tetragonProcess = &tetragon.Process{
-			Pid:       &wrapperspb.UInt32Value{Value: msg.Msg.ProcessKey.Pid},
-			StartTime: ktime.ToProto(msg.Msg.ProcessKey.Ktime),
-		}
-	} else {
-		tetragonProcess = proc.UnsafeGetProcess()
-		if err := proc.AnnotateProcess(option.Config.EnableProcessCred, option.Config.EnableProcessNs); err != nil {
-			logger.GetLogger().WithError(err).WithField("processId", tetragonProcess.Pid).
-				Debugf("Failed to annotate process with capabilities and namespaces info")
-		}
-	}
-	if parent != nil {
-		tetragonParent = parent.UnsafeGetProcess()
-	}
+	proc, parent, tetragonProcess, tetragonParent := getProcessParent(&msg.Msg.ProcessKey)
 
 	// Set the ancestors only if --enable-process-tracepoint-ancestors flag is set.
 	if option.Config.EnableProcessTracepointAncestors && proc.NeededAncestors() {
@@ -707,17 +700,7 @@ func (event *ProcessLoaderNotify) SetAncestors([]*tetragon.Process) {
 }
 
 func GetProcessLoader(msg *MsgProcessLoaderUnix) *tetragon.ProcessLoader {
-	var tetragonProcess *tetragon.Process
-
-	process, _ := process.GetParentProcessInternal(msg.Msg.ProcessKey.Pid, msg.Msg.ProcessKey.Ktime)
-	if process == nil {
-		tetragonProcess = &tetragon.Process{
-			Pid:       &wrapperspb.UInt32Value{Value: msg.Msg.ProcessKey.Pid},
-			StartTime: ktime.ToProto(msg.Msg.ProcessKey.Ktime),
-		}
-	} else {
-		tetragonProcess = process.UnsafeGetProcess()
-	}
+	_, _, tetragonProcess, _ := getProcessParent(&msg.Msg.ProcessKey)
 
 	notifyEvent := &ProcessLoaderNotify{
 		ProcessLoader: tetragon.ProcessLoader{
@@ -801,28 +784,11 @@ func (msg *MsgGenericUprobeUnix) Retry(internal *process.ProcessInternal, ev not
 }
 
 func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
-	var tetragonParent, tetragonProcess *tetragon.Process
 	var ancestors []*process.ProcessInternal
 	var tetragonAncestors []*tetragon.Process
 	var tetragonArgs []*tetragon.KprobeArgument
 
-	proc, parent := process.GetParentProcessInternal(event.Msg.ProcessKey.Pid, event.Msg.ProcessKey.Ktime)
-	if proc == nil {
-		tetragonProcess = &tetragon.Process{
-			Pid:       &wrapperspb.UInt32Value{Value: event.Msg.ProcessKey.Pid},
-			StartTime: ktime.ToProto(event.Msg.ProcessKey.Ktime),
-		}
-	} else {
-		tetragonProcess = proc.UnsafeGetProcess()
-		if err := proc.AnnotateProcess(option.Config.EnableProcessCred, option.Config.EnableProcessNs); err != nil {
-			logger.GetLogger().WithError(err).WithField("processId", tetragonProcess.Pid).
-				Debugf("Failed to annotate process with capabilities and namespaces info")
-		}
-	}
-
-	if parent != nil {
-		tetragonParent = parent.UnsafeGetProcess()
-	}
+	proc, parent, tetragonProcess, tetragonParent := getProcessParent(&event.Msg.ProcessKey)
 
 	// Set the ancestors only if --enable-process-uprobe-ancestors flag is set.
 	if option.Config.EnableProcessUprobeAncestors && proc.NeededAncestors() {
@@ -942,26 +908,11 @@ func (msg *MsgGenericLsmUnix) PolicyInfo() tracingpolicy.PolicyInfo {
 }
 
 func GetProcessLsm(event *MsgGenericLsmUnix) *tetragon.ProcessLsm {
-	var tetragonParent, tetragonProcess *tetragon.Process
 	var ancestors []*process.ProcessInternal
 	var tetragonAncestors []*tetragon.Process
 	var tetragonArgs []*tetragon.KprobeArgument
 
-	proc, parent := process.GetParentProcessInternal(event.Msg.ProcessKey.Pid, event.Msg.ProcessKey.Ktime)
-	if proc == nil {
-		tetragonProcess = &tetragon.Process{
-			Pid:       &wrapperspb.UInt32Value{Value: event.Msg.ProcessKey.Pid},
-			StartTime: ktime.ToProto(event.Msg.ProcessKey.Ktime),
-		}
-	} else {
-		tetragonProcess = proc.UnsafeGetProcess()
-		if err := proc.AnnotateProcess(option.Config.EnableProcessCred, option.Config.EnableProcessNs); err != nil {
-			logger.GetLogger().WithError(err).WithField("processId", tetragonProcess.Pid).Debugf("Failed to annotate process with capabilities and namespaces info")
-		}
-	}
-	if parent != nil {
-		tetragonParent = parent.UnsafeGetProcess()
-	}
+	proc, parent, tetragonProcess, tetragonParent := getProcessParent(&event.Msg.ProcessKey)
 
 	// Set the ancestors only if --enable-process-lsm-ancestors flag is set.
 	if option.Config.EnableProcessLsmAncestors && proc.NeededAncestors() {
