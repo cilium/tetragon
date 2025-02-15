@@ -18,6 +18,7 @@ import (
 	"github.com/cilium/tetragon/pkg/kernels"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
+	smatcher "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/testutils"
@@ -88,7 +89,7 @@ func TestKprobeSigkill(t *testing.T) {
 		t.Skip("sigkill requires at least 5.3.0 version")
 	}
 
-	// makeSpecFile creates a new spec file bsed on the template, and the provided arguments
+	// makeSpecFile creates a new spec file based on the template, and the provided arguments
 	makeSpecFile := func(pid string) string {
 		data := map[string]string{
 			"MatchedPID":   pid,
@@ -138,6 +139,42 @@ func TestKprobeSigkillExecveMap1(t *testing.T) {
 			WithOperator(lc.Ordered).
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithIntArg(5555),
+			)).
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_SIGKILL).
+		WithProcess(ec.NewProcessChecker().WithFlags(sm.Full("unknown")))
+
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	option.Config.ExecveMapEntries = 1
+	testSigkill(t, makeSpecFile, checker)
+	option.Config.ExecveMapEntries = 0
+}
+
+func TestTracepointSigkillExecveMap1(t *testing.T) {
+	if !kernels.MinKernelVersion("5.3.0") {
+		t.Skip("sigkill requires at least 5.3.0 version")
+	}
+
+	// makeSpecFile creates a new spec file bsed on the template, and the provided arguments
+	makeSpecFile := func(pid string) string {
+		data := map[string]string{
+			"MatchedPID":   pid,
+			"NamespacePID": "false",
+		}
+		specName, err := testutils.GetSpecFromTemplate("sigkill_tracepoint.yaml.tmpl", data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return specName
+	}
+
+	kpChecker := ec.NewProcessTracepointChecker("").
+		WithSubsys(smatcher.Full("syscalls")).
+		WithEvent(smatcher.Full("sys_enter_lseek")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(5555)),
 			)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_SIGKILL).
 		WithProcess(ec.NewProcessChecker().WithFlags(sm.Full("unknown")))
