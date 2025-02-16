@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
-package tracingpolicy
+// Package crdutils provides utilities for working with CRDs outside of
+// Kubernetes context. It allows to load CRD objects from YAML files, apply
+// defaults and validate them using the CRD's schema.
+package crdutils
 
 import (
 	"errors"
