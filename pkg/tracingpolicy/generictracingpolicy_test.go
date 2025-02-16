@@ -6,7 +6,6 @@ package tracingpolicy
 import (
 	"bytes"
 	_ "embed"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -547,22 +546,18 @@ func createTempFile(t *testing.T, data string) string {
 	return file.Name()
 }
 
-const failedLoadingTpFile = "failed loading tracing policy file"
-
 func TestEmptyTracingPolicy(t *testing.T) {
 	path := createTempFile(t, "")
 	_, err := FromFile(path)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), failedLoadingTpFile, "unexpected error")
-	assert.Contains(t, errors.Unwrap(err).Error(), "could not find validator for: /", "unexpected wrapped error")
+	assert.Contains(t, err.Error(), "unknown CRD kind: ")
 }
 
 func TestInvalidYAMLInTracingPolicy(t *testing.T) {
 	path := createTempFile(t, "<not-quite-yaml>")
 	_, err := FromFile(path)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), failedLoadingTpFile, "unexpected error")
-	assert.Contains(t, errors.Unwrap(err).Error(), "failed to unmarshall policy", "unexpected wrapped error")
+	assert.Contains(t, err.Error(), "failed to unmarshal YAML: error unmarshaling JSON: while decoding JSON: json: cannot unmarshal string into Go value of type map[string]interface {}")
 }
 
 const tpWithoutMetadata = `
@@ -575,8 +570,7 @@ func TestTracingPolicyWithoutMetadata(t *testing.T) {
 	path := createTempFile(t, tpWithoutMetadata)
 	_, err := FromFile(path)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), failedLoadingTpFile, "unexpected error")
-	assert.Contains(t, errors.Unwrap(err).Error(), "validation failure list:\nmetadata.name", "unexpected wrapped error")
+	assert.Contains(t, err.Error(), "metadata.name: Required value: name or generateName is required")
 }
 
 const tpNotCoveredBySpec = `
@@ -592,6 +586,5 @@ func TestTracingPolicyNotCoveredBySpec(t *testing.T) {
 	path := createTempFile(t, tpNotCoveredBySpec)
 	_, err := FromFile(path)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), failedLoadingTpFile, "unexpected error")
-	assert.Contains(t, errors.Unwrap(err).Error(), "unknown field \"some_field\"", "unexpected wrapped error")
+	assert.Contains(t, err.Error(), "failed to unmarshal into typed object: error unmarshaling JSON: while decoding JSON: json: unknown field \"some_field\"")
 }
