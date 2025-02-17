@@ -10,6 +10,7 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/eventhandler"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/policyconf"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
@@ -70,10 +71,6 @@ func newPolicyInfoFromSpec(
 	}, nil
 }
 
-type policyConf struct {
-	mode uint8
-}
-
 func (pi *policyInfo) policyConfMap(prog *program.Program) *program.Map {
 	if pi.policyConf != nil {
 		return program.MapUserFrom(pi.policyConf)
@@ -81,10 +78,14 @@ func (pi *policyInfo) policyConfMap(prog *program.Program) *program.Map {
 	pi.policyConf = program.MapBuilderPolicy("policy_conf", prog)
 	prog.MapLoad = append(prog.MapLoad, &program.MapLoad{
 		Index: 0,
-		Name:  "policy_conf",
+		Name:  policyconf.PolicyConfMapName,
 		Load: func(m *ebpf.Map, _ string, _ uint32) error {
-			conf := policyConf{
-				mode: uint8(pi.specOpts.policyMode),
+			mode := policyconf.EnforceMode
+			if pi.specOpts != nil {
+				mode = pi.specOpts.policyMode
+			}
+			conf := policyconf.PolicyConf{
+				Mode: mode,
 			}
 			key := uint32(0)
 			return m.Update(key, &conf, ebpf.UpdateAny)

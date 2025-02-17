@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/policyconf"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"go.uber.org/multierr"
 )
@@ -89,6 +90,25 @@ func (c *collection) info() string {
 		return c.tracingpolicy.TpInfo()
 	}
 	return c.name
+}
+
+func (c *collection) mode() tetragon.TracingPolicyMode {
+	if c.tracingpolicy == nil || c.state != EnabledState {
+		return tetragon.TracingPolicyMode_TP_MODE_UNKNOWN
+	}
+	mode, err := policyconf.PolicyMode(c.tracingpolicy)
+	if err != nil {
+		return tetragon.TracingPolicyMode_TP_MODE_UNKNOWN
+	}
+
+	switch mode {
+	case policyconf.EnforceMode:
+		return tetragon.TracingPolicyMode_TP_MODE_ENFORCE
+	case policyconf.MonitorMode:
+		return tetragon.TracingPolicyMode_TP_MODE_MONITOR
+	}
+
+	return tetragon.TracingPolicyMode_TP_MODE_UNKNOWN
 }
 
 // load will attempt to load a collection of sensors. If loading one of the sensors fails, it

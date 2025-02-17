@@ -387,16 +387,14 @@ func (h *handler) listPolicies() []*tetragon.TracingPolicyStatus {
 			Enabled:  col.state == EnabledState,
 			FilterId: col.policyfilterID,
 			State:    col.state.ToTetragonState(),
+			Mode:     col.mode(),
 		}
 
 		if col.err != nil {
 			pol.Error = col.err.Error()
 		}
 
-		pol.Namespace = ""
-		if tpNs, ok := col.tracingpolicy.(tracingpolicy.TracingPolicyNamespaced); ok {
-			pol.Namespace = tpNs.TpNamespace()
-		}
+		pol.Namespace = tracingpolicy.Namespace(col.tracingpolicy)
 
 		for _, sens := range col.sensors {
 			pol.Sensors = append(pol.Sensors, sens.GetName())

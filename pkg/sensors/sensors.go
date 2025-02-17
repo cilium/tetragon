@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"sort"
-	"strings"
 	"sync"
 
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -87,10 +86,6 @@ func (s *Sensor) AddPostUnloadHook(hook SensorHook) {
 		err2 := hook()
 		return errors.Join(err1, err2)
 	}
-}
-
-func sanitize(name string) string {
-	return strings.ReplaceAll(name, "/", "_")
 }
 
 type Prog struct {

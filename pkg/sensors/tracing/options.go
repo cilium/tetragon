@@ -10,7 +10,7 @@ import (
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
-	"github.com/cilium/tetragon/pkg/tracingpolicy"
+	"github.com/cilium/tetragon/pkg/policyconf"
 )
 
 type OverrideMethod int
@@ -44,7 +44,7 @@ type specOptions struct {
 	DisableKprobeMulti bool
 	DisableUprobeMulti bool
 	OverrideMethod     OverrideMethod
-	policyMode         tracingpolicy.Mode
+	policyMode         policyconf.Mode
 }
 
 type opt struct {
@@ -84,7 +84,7 @@ var opts = map[string]opt{
 	},
 	keyPolicyMode: opt{
 		set: func(str string, options *specOptions) (err error) {
-			mode, err := tracingpolicy.ParseMode(str)
+			mode, err := policyconf.ParseMode(str)
 			if err != nil {
 				return err
 			}
