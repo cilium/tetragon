@@ -10,6 +10,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/cmd/tetra/tracingpolicy/generate"
+	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/spf13/cobra"
 )
 
@@ -20,9 +21,40 @@ func New() *cobra.Command {
 		Short:   "Manage tracing policies",
 	}
 
+	var tpModMode string
+	tpModCmd := &cobra.Command{
+		Use:   "modify <yaml_file>",
+		Short: "modify a tracing policy YAML file",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			c, err := common.NewClientWithDefaultContextAndAddress()
+			if err != nil {
+				return fmt.Errorf("failed create gRPC client: %w", err)
+			}
+			defer c.Close()
+
+			yamlb, err := os.ReadFile(args[0])
+			if err != nil {
+				return fmt.Errorf("failed to read yaml file %s: %w", args[0], err)
+			}
+
+			if tpModMode != "" {
+				yamlb, err = tracingpolicy.PolicyYAMLSetMode(yamlb, tpModMode)
+				if err != nil {
+					return fmt.Errorf("failed to apply mode %q to yaml file %s: %w", tpModMode, args[0], err)
+				}
+			}
+			_, err = os.Stdout.Write(yamlb)
+			return err
+		},
+	}
+	tpModlags := tpModCmd.Flags()
+	tpModlags.StringVarP(&tpModMode, "mode", "m", "", "Tracing policy mode (enforce|monitor)")
+
+	var tpAddMode string
 	tpAddCmd := &cobra.Command{
 		Use:   "add <yaml_file>",
-		Short: "add a new sensor based on a tracing policy",
+		Short: "add a tracing policy",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c, err := common.NewClientWithDefaultContextAndAddress()
@@ -36,6 +68,13 @@ func New() *cobra.Command {
 				return fmt.Errorf("failed to read yaml file %s: %w", args[0], err)
 			}
 
+			if tpAddMode != "" {
+				yamlb, err = tracingpolicy.PolicyYAMLSetMode(yamlb, tpAddMode)
+				if err != nil {
+					return fmt.Errorf("failed to apply mode %q to yaml file %s: %w", tpAddMode, args[0], err)
+				}
+			}
+
 			_, err = c.Client.AddTracingPolicy(c.Ctx, &tetragon.AddTracingPolicyRequest{
 				Yaml: string(yamlb),
 			})
@@ -47,6 +86,8 @@ func New() *cobra.Command {
 			return nil
 		},
 	}
+	tpAddFlags := tpAddCmd.Flags()
+	tpAddFlags.StringVarP(&tpAddMode, "mode", "m", "", "Tracing policy mode (enforce|monitor)")
 
 	var tpDelNamespaceFlag string
 	tpDelCmd := &cobra.Command{
@@ -175,6 +216,7 @@ func New() *cobra.Command {
 	tpListFlags.StringVarP(&tpListOutputFlag, common.KeyOutput, "o", "text", "Output format. text or json")
 
 	tpCmd.AddCommand(
+		tpModCmd,
 		tpAddCmd,
 		tpDelCmd,
 		tpEnableCmd,
