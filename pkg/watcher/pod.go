@@ -22,6 +22,21 @@ var (
 	errNoPod = errors.New("object is not a *corev1.Pod")
 )
 
+type K8sResourceWatcher interface {
+	Watcher
+	PodAccessor
+}
+
+// PodAccessor defines an interface for accessing pods from Kubernetes API.
+type PodAccessor interface {
+	// Find a pod/container pair for the given container ID.
+	FindContainer(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool)
+	// Find a pod given the podID
+	FindPod(podID string) (*corev1.Pod, error)
+	// Find a mirror pod for a static pod
+	FindMirrorPod(hash string) (*corev1.Pod, error)
+}
+
 func containerIDKey(contID string) (string, error) {
 	parts := strings.Split(contID, "//")
 	if len(parts) != 2 {
@@ -86,7 +101,7 @@ func podIndexFunc(obj interface{}) ([]string, error) {
 	return nil, fmt.Errorf("podIndexFunc: %w - found %T", errNoPod, obj)
 }
 
-// FindContainer implements K8sResourceWatcher.FindContainer.
+// FindContainer implements PodAccessor.FindContainer.
 func (watcher *K8sWatcher) FindContainer(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool) {
 	podInformer := watcher.GetInformer(podInformerName)
 	if podInformer == nil {

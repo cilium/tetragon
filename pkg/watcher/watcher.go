@@ -11,7 +11,6 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/podhooks"
 	"github.com/cilium/tetragon/pkg/reader/node"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"
@@ -19,22 +18,12 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-// K8sResourceWatcher defines an interface for accessing various resources from Kubernetes API.
-type K8sResourceWatcher interface {
+type Watcher interface {
 	AddInformers(factory InternalSharedInformerFactory, infs ...*InternalInformer)
 	GetInformer(name string) cache.SharedIndexInformer
 	Start()
-
-	// Find a pod/container pair for the given container ID.
-	FindContainer(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool)
-
-	// Find a pod given the podID
-	FindPod(podID string) (*corev1.Pod, error)
-	// Find a mirror pod for a static pod
-	FindMirrorPod(hash string) (*corev1.Pod, error)
 }
 
-// K8sWatcher maintains a local cache of k8s resources.
 type K8sWatcher struct {
 	informers       map[string]cache.SharedIndexInformer
 	startFunc       func()

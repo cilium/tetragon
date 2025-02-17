@@ -22,7 +22,7 @@ const (
 
 type CreateContainerArg struct {
 	Req     *v1.CreateContainer
-	Watcher watcher.K8sResourceWatcher
+	Watcher watcher.PodAccessor
 
 	// cached values
 	cgroupID       *uint64

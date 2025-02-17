@@ -11,7 +11,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-// FakeK8sWatcher is used as an "empty" K8sResourceWatcher when --enable-k8s-api flag is not set.
+// FakeK8sWatcher is used as an "empty" PodAccessor when --enable-k8s-api flag is not set.
 // It is also used for testing, allowing users to specify a static list of pods.
 type FakeK8sWatcher struct {
 	pods     []interface{}
@@ -28,7 +28,7 @@ func NewFakeK8sWatcherWithPodsAndServices(pods []interface{}, services []interfa
 	return &FakeK8sWatcher{pods, services}
 }
 
-// FindContainer implements K8sResourceWatcher.FindContainer
+// FindContainer implements PodAccessor.FindContainer
 func (watcher *FakeK8sWatcher) FindContainer(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool) {
 	return findContainer(containerID, watcher.pods)
 }

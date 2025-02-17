@@ -14,7 +14,7 @@ import (
 
 type Runner struct {
 	callbacks []Callbacks
-	watcher   watcher.K8sResourceWatcher
+	watcher   watcher.PodAccessor
 }
 
 // RunHooks executes all registered callbacks
@@ -42,7 +42,7 @@ func (r *Runner) registerCallbacks(cbs Callbacks) {
 }
 
 // WithWatcher sets the watcher on a runner
-func (r *Runner) WithWatcher(watcher watcher.K8sResourceWatcher) *Runner {
+func (r *Runner) WithWatcher(watcher watcher.PodAccessor) *Runner {
 	r.watcher = watcher
 	return r
 }
