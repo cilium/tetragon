@@ -40,7 +40,7 @@ func (watcher *FakeK8sWatcher) FindMirrorPod(_ string) (*corev1.Pod, error) {
 }
 
 func (watcher *FakeK8sWatcher) FindPod(podID string) (*corev1.Pod, error) {
-	ret, ok := findPod(watcher.pods)
+	ret, ok := findPod(podID, watcher.pods)
 	if ok {
 		return ret, nil
 	}
