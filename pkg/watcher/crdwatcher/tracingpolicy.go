@@ -11,16 +11,13 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
-	"github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned"
-	"github.com/cilium/tetragon/pkg/k8s/client/informers/externalversions"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
-	k8sconf "github.com/cilium/tetragon/pkg/watcher/conf"
+	"github.com/cilium/tetragon/pkg/watcher"
 )
 
 // Log "missing tracing policy" message once.
@@ -182,16 +179,18 @@ func updateTracingPolicy(ctx context.Context, log logrus.FieldLogger, s *sensors
 	}
 }
 
-func WatchTracePolicy(ctx context.Context, s *sensors.Manager) {
+func AddTracingPolicyInformer(ctx context.Context, w watcher.Watcher, s *sensors.Manager) error {
 	log := logger.GetLogger()
-	conf, err := k8sconf.K8sConfig()
-	if err != nil {
-		log.WithError(err).Fatal("couldn't get cluster config")
+	if w == nil {
+		return fmt.Errorf("k8s watcher not initialized")
 	}
-	client := versioned.NewForConfigOrDie(conf)
-	factory := externalversions.NewSharedInformerFactory(client, 0)
+	factory := w.GetCRDInformerFactory()
+	if factory == nil {
+		return fmt.Errorf("CRD informer factory not initialized")
+	}
 
-	factory.Cilium().V1alpha1().TracingPolicies().Informer().AddEventHandler(
+	tpInformer := factory.Cilium().V1alpha1().TracingPolicies().Informer()
+	tpInformer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
 				addTracingPolicy(ctx, log, s, obj)
@@ -202,8 +201,13 @@ func WatchTracePolicy(ctx context.Context, s *sensors.Manager) {
 			UpdateFunc: func(oldObj interface{}, newObj interface{}) {
 				updateTracingPolicy(ctx, log, s, oldObj, newObj)
 			}})
+	err := w.AddInformer("TracingPolicy", tpInformer, nil)
+	if err != nil {
+		return fmt.Errorf("failed to add TracingPolicy informer: %w", err)
+	}
 
-	factory.Cilium().V1alpha1().TracingPoliciesNamespaced().Informer().AddEventHandler(
+	tpnInformer := factory.Cilium().V1alpha1().TracingPoliciesNamespaced().Informer()
+	tpnInformer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
 				addTracingPolicy(ctx, log, s, obj)
@@ -214,8 +218,10 @@ func WatchTracePolicy(ctx context.Context, s *sensors.Manager) {
 			UpdateFunc: func(oldObj interface{}, newObj interface{}) {
 				updateTracingPolicy(ctx, log, s, oldObj, newObj)
 			}})
+	err = w.AddInformer("TracingPolicyNamespaced", tpnInformer, nil)
+	if err != nil {
+		return fmt.Errorf("failed to add TracingPolicyNamespaced informer: %w", err)
+	}
 
-	go factory.Start(wait.NeverStop)
-	factory.WaitForCacheSync(wait.NeverStop)
-	log.Info("Started watching tracing policies")
+	return nil
 }
