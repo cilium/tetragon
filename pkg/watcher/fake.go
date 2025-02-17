@@ -18,7 +18,7 @@ type FakeK8sWatcher struct {
 	services []interface{}
 }
 
-// NewK8sWatcher returns a pointer to an initialized FakeK8sWatcher struct.
+// NewFakeK8sWatcher returns a pointer to an initialized FakeK8sWatcher struct.
 func NewFakeK8sWatcher(pods []interface{}) *FakeK8sWatcher {
 	return NewFakeK8sWatcherWithPodsAndServices(pods, nil)
 }
@@ -64,7 +64,8 @@ func (watcher *FakeK8sWatcher) ClearAllServices() {
 	watcher.services = nil
 }
 
-func (watcher *FakeK8sWatcher) AddInformers(_ InternalSharedInformerFactory, _ ...*InternalInformer) {
+func (watcher *FakeK8sWatcher) AddInformer(_ string, _ cache.SharedIndexInformer, _ cache.Indexers) error {
+	return nil
 }
 
 func (watcher *FakeK8sWatcher) GetInformer(_ string) cache.SharedIndexInformer {

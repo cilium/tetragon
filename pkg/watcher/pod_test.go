@@ -19,7 +19,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8stypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	clienttesting "k8s.io/client-go/testing"
@@ -70,12 +69,11 @@ func TestFastK8s(t *testing.T) {
 	})
 
 	// We will create an informer that writes added pods to a channel.
-	informerFactory := informers.NewSharedInformerFactory(client, 0)
-	podInformer := informerFactory.Core().V1().Pods().Informer()
-	podInformer.AddEventHandler(ts.eventHandler())
-
-	watcher, err := newK8sWatcher(informerFactory)
+	watcher := NewK8sWatcher(client, nil, 0)
+	err := AddPodInformer(watcher, false)
 	require.Nil(t, err)
+	podInformer := watcher.GetInformer(podInformerName)
+	podInformer.AddEventHandler(ts.eventHandler())
 	watcher.Start()
 
 	// This is not required in tests, but it serves as a proof-of-concept by
