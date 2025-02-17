@@ -431,6 +431,12 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		if err != nil {
 			return err
 		}
+		if option.Config.EnableTracingPolicyCRD {
+			err := crdwatcher.AddTracingPolicyInformer(ctx, k8sWatcher, observer.GetSensorManager())
+			if err != nil {
+				return err
+			}
+		}
 	} else {
 		log.Info("Disabling Kubernetes API")
 		k8sWatcher = watcher.NewFakeK8sWatcher(nil)
@@ -504,9 +510,6 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	log.WithField("enabled", option.Config.ExportFilename != "").WithField("fileName", option.Config.ExportFilename).Info("Exporter configuration")
 	obs.AddListener(pm)
 	saveInitInfo()
-	if option.Config.EnableK8s && option.Config.EnableTracingPolicyCRD {
-		go crdwatcher.WatchTracePolicy(ctx, observer.GetSensorManager())
-	}
 
 	obs.LogPinnedBpf(observerDir)
 
