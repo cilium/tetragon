@@ -1,13 +1,18 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
-package crd
+package crdwatcher
 
 import (
 	"context"
 	"fmt"
 	"strings"
 	"sync"
+
+	"github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/tools/cache"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned"
@@ -16,10 +21,6 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	k8sconf "github.com/cilium/tetragon/pkg/watcher/conf"
-	"github.com/sirupsen/logrus"
-	"k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/tools/cache"
 )
 
 // Log "missing tracing policy" message once.

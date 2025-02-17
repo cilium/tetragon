@@ -44,7 +44,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/cilium/tetragon/pkg/watcher"
-	"github.com/cilium/tetragon/pkg/watcher/crd"
+	"github.com/cilium/tetragon/pkg/watcher/crdwatcher"
 
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -389,7 +389,7 @@ func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, op
 	})
 
 	if oo.crd {
-		crd.WatchTracePolicy(ctx, sensorManager)
+		crdwatcher.WatchTracePolicy(ctx, sensorManager)
 	}
 
 	if err := btf.InitCachedBTF(option.Config.HubbleLib, ""); err != nil {
