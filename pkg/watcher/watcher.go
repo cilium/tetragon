@@ -5,124 +5,95 @@ package watcher
 
 import (
 	"fmt"
-	"reflect"
 	"time"
 
-	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/podhooks"
-	"github.com/cilium/tetragon/pkg/reader/node"
+	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
+
+	"github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned"
+	"github.com/cilium/tetragon/pkg/k8s/client/informers/externalversions"
+	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/reader/node"
 )
 
 type Watcher interface {
-	AddInformers(factory InternalSharedInformerFactory, infs ...*InternalInformer)
+	AddInformer(name string, informer cache.SharedIndexInformer, indexers cache.Indexers) error
 	GetInformer(name string) cache.SharedIndexInformer
 	Start()
 }
 
 type K8sWatcher struct {
-	informers       map[string]cache.SharedIndexInformer
-	startFunc       func()
-	deletedPodCache *deletedPodCache
+	K8sInformerFactory      informers.SharedInformerFactory        // for k8s built-in resources
+	LocalK8sInformerFactory informers.SharedInformerFactory        // for k8s built-in resources local to the node
+	CRDInformerFactory      externalversions.SharedInformerFactory // for Tetragon CRDs
+	informers               map[string]cache.SharedIndexInformer
+	deletedPodCache         *deletedPodCache
 }
 
-type InternalSharedInformerFactory interface {
-	Start(stopCh <-chan struct{})
-	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
+// NewK8sWatcher creates a new K8sWatcher with initialized informer factories.
+func NewK8sWatcher(
+	k8sClient kubernetes.Interface, crdClient versioned.Interface, stateSyncIntervalSec time.Duration,
+) *K8sWatcher {
+	var k8sInformerFactory, localK8sInformerFactory informers.SharedInformerFactory
+	var crdInformerFactory externalversions.SharedInformerFactory
+
+	if k8sClient != nil {
+		k8sInformerFactory = informers.NewSharedInformerFactory(k8sClient, stateSyncIntervalSec)
+		localK8sInformerFactory = informers.NewSharedInformerFactoryWithOptions(
+			k8sClient, stateSyncIntervalSec, informers.WithTweakListOptions(
+				func(options *metav1.ListOptions) {
+					// watch local pods only
+					options.FieldSelector = "spec.nodeName=" + node.GetNodeNameForExport()
+				}))
+	}
+	if crdClient != nil {
+		crdInformerFactory = externalversions.NewSharedInformerFactory(crdClient, stateSyncIntervalSec)
+	}
+
+	return &K8sWatcher{
+		K8sInformerFactory:      k8sInformerFactory,
+		LocalK8sInformerFactory: localK8sInformerFactory,
+		CRDInformerFactory:      crdInformerFactory,
+		informers:               make(map[string]cache.SharedIndexInformer),
+	}
 }
 
-type InternalInformer struct {
-	Name     string
-	Informer cache.SharedIndexInformer
-	Indexers cache.Indexers
-}
+func (w *K8sWatcher) AddInformer(name string, informer cache.SharedIndexInformer, indexers cache.Indexers) error {
+	w.informers[name] = informer
 
-func newK8sWatcher(
-	informerFactory informers.SharedInformerFactory,
-) (*K8sWatcher, error) {
-
-	deletedPodCache, err := newDeletedPodCache()
+	err := informer.AddIndexers(indexers)
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize deleted pod cache: %w", err)
+		return fmt.Errorf("failed to add indexers: %w", err)
 	}
 
-	k8sWatcher := &K8sWatcher{
-		informers:       make(map[string]cache.SharedIndexInformer),
-		startFunc:       func() {},
-		deletedPodCache: deletedPodCache,
-	}
-
-	podInformer := informerFactory.Core().V1().Pods().Informer()
-	k8sWatcher.AddInformers(informerFactory, &InternalInformer{
-		Name:     podInformerName,
-		Informer: podInformer,
-		Indexers: map[string]cache.IndexFunc{
-			containerIdx: containerIndexFunc,
-			podIdx:       podIndexFunc,
-		},
-	})
-	podInformer.AddEventHandler(k8sWatcher.deletedPodCache.eventHandler())
-	podhooks.InstallHooks(podInformer)
-
-	return k8sWatcher, nil
+	return nil
 }
 
-// NewK8sWatcher returns a pointer to an initialized K8sWatcher struct.
-func NewK8sWatcher(k8sClient kubernetes.Interface, stateSyncIntervalSec time.Duration) (*K8sWatcher, error) {
-	nodeName := node.GetNodeNameForExport()
-	if nodeName == "" {
-		logger.GetLogger().Warn("env var NODE_NAME not specified, K8s watcher will not work as expected")
-	}
-
-	informerFactory := informers.NewSharedInformerFactoryWithOptions(k8sClient, stateSyncIntervalSec,
-		informers.WithTweakListOptions(func(options *metav1.ListOptions) {
-			// Watch local pods only.
-			options.FieldSelector = "spec.nodeName=" + nodeName
-		}))
-
-	return newK8sWatcher(informerFactory)
+func (w *K8sWatcher) GetInformer(name string) cache.SharedIndexInformer {
+	return w.informers[name]
 }
 
-func (watcher *K8sWatcher) AddInformers(factory InternalSharedInformerFactory, infs ...*InternalInformer) {
-	if watcher.startFunc == nil {
-		watcher.startFunc = func() {}
+func (w *K8sWatcher) Start() {
+	if w.K8sInformerFactory != nil {
+		w.K8sInformerFactory.Start(wait.NeverStop)
+		w.K8sInformerFactory.WaitForCacheSync(wait.NeverStop)
 	}
-	// Add informers
-	for _, inf := range infs {
-		watcher.informers[inf.Name] = inf.Informer
-		oldStart := watcher.startFunc
-		watcher.startFunc = func() {
-			oldStart()
-			err := inf.Informer.AddIndexers(inf.Indexers)
-			if err != nil {
-				// Panic during setup since this should never fail, if it fails is a
-				// developer mistake.
-				panic(err)
-			}
-		}
+	if w.LocalK8sInformerFactory != nil {
+		w.LocalK8sInformerFactory.Start(wait.NeverStop)
+		w.LocalK8sInformerFactory.WaitForCacheSync(wait.NeverStop)
 	}
-	// Start the informer factory
-	oldStart := watcher.startFunc
-	watcher.startFunc = func() {
-		oldStart()
-		factory.Start(wait.NeverStop)
-		factory.WaitForCacheSync(wait.NeverStop)
-		for name, informer := range watcher.informers {
-			logger.GetLogger().WithField("informer", name).WithField("count", len(informer.GetStore().ListKeys())).Info("Initialized informer cache")
-		}
+	if w.CRDInformerFactory != nil {
+		w.CRDInformerFactory.Start(wait.NeverStop)
+		w.CRDInformerFactory.WaitForCacheSync(wait.NeverStop)
 	}
-}
-
-func (watcher *K8sWatcher) GetInformer(name string) cache.SharedIndexInformer {
-	return watcher.informers[name]
-}
-
-func (watcher *K8sWatcher) Start() {
-	if watcher.startFunc != nil {
-		watcher.startFunc()
+	for name, informer := range w.informers {
+		logger.GetLogger().WithFields(logrus.Fields{
+			"informer": name,
+			"count":    len(informer.GetStore().ListKeys()),
+		}).Info("Initialized informer cache")
 	}
 }

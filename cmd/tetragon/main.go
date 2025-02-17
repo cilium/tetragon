@@ -63,6 +63,7 @@ import (
 
 	"github.com/cilium/lumberjack/v2"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned"
 	gops "github.com/google/gops/agent"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -403,20 +404,30 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	// Probe runtime configuration and do not fail on errors
 	obs.UpdateRuntimeConf(option.Config.BpfDir)
 
+	// Initialize K8s watcher
 	var k8sWatcher watcher.K8sResourceWatcher
 	if option.Config.EnableK8s {
 		log.Info("Enabling Kubernetes API")
+		// retrieve k8s clients
 		config, err := k8sconf.K8sConfig()
 		if err != nil {
 			return err
 		}
-
 		if err := waitCRDs(config); err != nil {
 			return err
 		}
-
 		k8sClient := kubernetes.NewForConfigOrDie(config)
-		k8sWatcher, err = watcher.NewK8sWatcher(k8sClient, 60*time.Second)
+		crdClient := versioned.NewForConfigOrDie(config)
+
+		// create k8s watcher
+		k8sWatcher = watcher.NewK8sWatcher(k8sClient, crdClient, 60*time.Second)
+
+		// add informers for all resources
+		// NB(anna): To add a pod informer, we need to pass the underlying
+		// struct, not just the interface, because the function initializes
+		// a cache inside this struct. This can be refactored if needed.
+		realK8sWatcher := k8sWatcher.(*watcher.K8sWatcher)
+		err = watcher.AddPodInformer(realK8sWatcher, true)
 		if err != nil {
 			return err
 		}
@@ -424,6 +435,7 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		log.Info("Disabling Kubernetes API")
 		k8sWatcher = watcher.NewFakeK8sWatcher(nil)
 	}
+	// start k8s watcher
 	k8sWatcher.Start()
 
 	pcGCInterval := option.Config.ProcessCacheGCInterval

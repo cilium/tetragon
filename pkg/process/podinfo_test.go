@@ -50,11 +50,12 @@ func TestK8sWatcher_GetPodInfo(t *testing.T) {
 	}
 
 	k8sClient := fake.NewSimpleClientset(&pod)
-	watcher, err := watcher.NewK8sWatcher(k8sClient, time.Hour)
+	k8sWatcher := watcher.NewK8sWatcher(k8sClient, nil, time.Hour)
+	err := watcher.AddPodInformer(k8sWatcher, true)
 	require.NoError(t, err)
-	watcher.Start()
+	k8sWatcher.Start()
 	pid := uint32(1)
-	podInfo := getPodInfo(watcher, "abcd1234", "curl", "cilium.io", 1)
+	podInfo := getPodInfo(k8sWatcher, "abcd1234", "curl", "cilium.io", 1)
 	assert.True(t, proto.Equal(podInfo, &tetragon.Pod{
 		Namespace:    pod.Namespace,
 		Workload:     pod.OwnerReferences[0].Name,

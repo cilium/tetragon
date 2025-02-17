@@ -576,7 +576,8 @@ func (f *fakeK8sWatcher) FindContainer(containerID string) (*corev1.Pod, *corev1
 	return &pod, &container, true
 }
 
-func (f *fakeK8sWatcher) AddInformers(_ watcher.InternalSharedInformerFactory, _ ...*watcher.InternalInformer) {
+func (f *fakeK8sWatcher) AddInformer(_ string, _ cache.SharedIndexInformer, _ cache.Indexers) error {
+	return nil
 }
 
 func (f *fakeK8sWatcher) GetInformer(_ string) cache.SharedIndexInformer {

@@ -9,6 +9,9 @@ import (
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/tools/cache"
+
+	"github.com/cilium/tetragon/pkg/podhooks"
 )
 
 const (
@@ -35,6 +38,39 @@ type PodAccessor interface {
 	FindPod(podID string) (*corev1.Pod, error)
 	// Find a mirror pod for a static pod
 	FindMirrorPod(hash string) (*corev1.Pod, error)
+}
+
+func AddPodInformer(w *K8sWatcher, local bool) error {
+	if w == nil {
+		return fmt.Errorf("k8s watcher not initialized")
+	}
+	factory := w.K8sInformerFactory
+	if local {
+		factory = w.LocalK8sInformerFactory
+	}
+	if factory == nil {
+		return fmt.Errorf("k8s informer factory not initialized")
+	}
+
+	// initialize deleted pod cache
+	var err error
+	w.deletedPodCache, err = newDeletedPodCache()
+	if err != nil {
+		return fmt.Errorf("failed to initialize deleted pod cache: %w", err)
+	}
+
+	// add informer to the watcher
+	informer := factory.Core().V1().Pods().Informer()
+	w.AddInformer(podInformerName, informer, map[string]cache.IndexFunc{
+		containerIdx: containerIndexFunc,
+		podIdx:       podIndexFunc,
+	})
+
+	// add event handlers to the informer
+	informer.AddEventHandler(w.deletedPodCache.eventHandler())
+	podhooks.InstallHooks(informer)
+
+	return nil
 }
 
 func containerIDKey(contID string) (string, error) {
