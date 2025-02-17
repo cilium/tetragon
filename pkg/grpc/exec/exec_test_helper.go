@@ -382,7 +382,7 @@ func CreateAncestorEvents[EXEC notify.Message, EXIT notify.Message](
 	return &execMsg, &exitMsg
 }
 
-func InitEnv[EXEC notify.Message, EXIT notify.Message](t *testing.T, watcher watcher.K8sResourceWatcher) DummyNotifier[EXEC, EXIT] {
+func InitEnv[EXEC notify.Message, EXIT notify.Message](t *testing.T, watcher watcher.PodAccessor) DummyNotifier[EXEC, EXIT] {
 	if err := process.InitCache(watcher, 65536, defaults.DefaultProcessCacheGCInterval); err != nil {
 		t.Fatalf("failed to call process.InitCache %s", err)
 	}

@@ -33,7 +33,7 @@ func getProbes(pod *corev1.Pod, containerStatus *corev1.ContainerStatus) ([]stri
 }
 
 func getPodInfo(
-	w watcher.K8sResourceWatcher,
+	w watcher.PodAccessor,
 	containerID string,
 	binary string,
 	args string,

@@ -65,14 +65,14 @@ type ProcessInternal struct {
 
 var (
 	procCache *Cache
-	k8s       watcher.K8sResourceWatcher
+	k8s       watcher.PodAccessor
 )
 
 var (
 	ErrProcessInfoMissing = errors.New("failed process info missing")
 )
 
-func InitCache(w watcher.K8sResourceWatcher, size int, GCInterval time.Duration) error {
+func InitCache(w watcher.PodAccessor, size int, GCInterval time.Duration) error {
 	var err error
 
 	if procCache != nil {
@@ -553,9 +553,9 @@ func Get(execId string) (*ProcessInternal, error) {
 	return procCache.get(execId)
 }
 
-// GetK8s returns K8sResourceWatcher. You must call InitCache before calling this function to ensure
+// GetK8s returns PodAccessor. You must call InitCache before calling this function to ensure
 // that k8s has been initialized.
-func GetK8s() watcher.K8sResourceWatcher {
+func GetK8s() watcher.PodAccessor {
 	return k8s
 }
 
