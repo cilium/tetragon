@@ -8,7 +8,10 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
+
+	"github.com/cilium/tetragon/pkg/k8s/client/informers/externalversions"
 )
 
 // FakeK8sWatcher is used as an "empty" PodAccessor when --enable-k8s-api flag is not set.
@@ -73,3 +76,15 @@ func (watcher *FakeK8sWatcher) GetInformer(_ string) cache.SharedIndexInformer {
 }
 
 func (watcher *FakeK8sWatcher) Start() {}
+
+func (watcher *FakeK8sWatcher) GetK8sInformerFactory() informers.SharedInformerFactory {
+	return nil
+}
+
+func (watcher *FakeK8sWatcher) GetLocalK8sInformerFactory() informers.SharedInformerFactory {
+	return nil
+}
+
+func (watcher *FakeK8sWatcher) GetCRDInformerFactory() externalversions.SharedInformerFactory {
+	return nil
+}
