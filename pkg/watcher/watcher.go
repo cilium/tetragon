@@ -24,12 +24,15 @@ type Watcher interface {
 	AddInformer(name string, informer cache.SharedIndexInformer, indexers cache.Indexers) error
 	GetInformer(name string) cache.SharedIndexInformer
 	Start()
+	GetK8sInformerFactory() informers.SharedInformerFactory
+	GetLocalK8sInformerFactory() informers.SharedInformerFactory
+	GetCRDInformerFactory() externalversions.SharedInformerFactory
 }
 
 type K8sWatcher struct {
-	K8sInformerFactory      informers.SharedInformerFactory        // for k8s built-in resources
-	LocalK8sInformerFactory informers.SharedInformerFactory        // for k8s built-in resources local to the node
-	CRDInformerFactory      externalversions.SharedInformerFactory // for Tetragon CRDs
+	k8sInformerFactory      informers.SharedInformerFactory        // for k8s built-in resources
+	localK8sInformerFactory informers.SharedInformerFactory        // for k8s built-in resources local to the node
+	crdInformerFactory      externalversions.SharedInformerFactory // for Tetragon CRDs
 	informers               map[string]cache.SharedIndexInformer
 	deletedPodCache         *deletedPodCache
 }
@@ -55,9 +58,9 @@ func NewK8sWatcher(
 	}
 
 	return &K8sWatcher{
-		K8sInformerFactory:      k8sInformerFactory,
-		LocalK8sInformerFactory: localK8sInformerFactory,
-		CRDInformerFactory:      crdInformerFactory,
+		k8sInformerFactory:      k8sInformerFactory,
+		localK8sInformerFactory: localK8sInformerFactory,
+		crdInformerFactory:      crdInformerFactory,
 		informers:               make(map[string]cache.SharedIndexInformer),
 	}
 }
@@ -78,17 +81,17 @@ func (w *K8sWatcher) GetInformer(name string) cache.SharedIndexInformer {
 }
 
 func (w *K8sWatcher) Start() {
-	if w.K8sInformerFactory != nil {
-		w.K8sInformerFactory.Start(wait.NeverStop)
-		w.K8sInformerFactory.WaitForCacheSync(wait.NeverStop)
+	if w.k8sInformerFactory != nil {
+		w.k8sInformerFactory.Start(wait.NeverStop)
+		w.k8sInformerFactory.WaitForCacheSync(wait.NeverStop)
 	}
-	if w.LocalK8sInformerFactory != nil {
-		w.LocalK8sInformerFactory.Start(wait.NeverStop)
-		w.LocalK8sInformerFactory.WaitForCacheSync(wait.NeverStop)
+	if w.localK8sInformerFactory != nil {
+		w.localK8sInformerFactory.Start(wait.NeverStop)
+		w.localK8sInformerFactory.WaitForCacheSync(wait.NeverStop)
 	}
-	if w.CRDInformerFactory != nil {
-		w.CRDInformerFactory.Start(wait.NeverStop)
-		w.CRDInformerFactory.WaitForCacheSync(wait.NeverStop)
+	if w.crdInformerFactory != nil {
+		w.crdInformerFactory.Start(wait.NeverStop)
+		w.crdInformerFactory.WaitForCacheSync(wait.NeverStop)
 	}
 	for name, informer := range w.informers {
 		logger.GetLogger().WithFields(logrus.Fields{
@@ -96,4 +99,16 @@ func (w *K8sWatcher) Start() {
 			"count":    len(informer.GetStore().ListKeys()),
 		}).Info("Initialized informer cache")
 	}
+}
+
+func (w *K8sWatcher) GetK8sInformerFactory() informers.SharedInformerFactory {
+	return w.k8sInformerFactory
+}
+
+func (w *K8sWatcher) GetLocalK8sInformerFactory() informers.SharedInformerFactory {
+	return w.localK8sInformerFactory
+}
+
+func (w *K8sWatcher) GetCRDInformerFactory() externalversions.SharedInformerFactory {
+	return w.crdInformerFactory
 }

@@ -44,9 +44,9 @@ func AddPodInformer(w *K8sWatcher, local bool) error {
 	if w == nil {
 		return fmt.Errorf("k8s watcher not initialized")
 	}
-	factory := w.K8sInformerFactory
+	factory := w.GetK8sInformerFactory()
 	if local {
-		factory = w.LocalK8sInformerFactory
+		factory = w.GetLocalK8sInformerFactory()
 	}
 	if factory == nil {
 		return fmt.Errorf("k8s informer factory not initialized")
