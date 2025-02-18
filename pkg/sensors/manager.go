@@ -164,6 +164,11 @@ func (h *Manager) DisableTracingPolicy(ctx context.Context, name, namespace stri
 	return h.handler.disableTracingPolicy(op)
 }
 
+func (h *Manager) ConfigureTracingPolicy(_ context.Context, conf *tetragon.ConfigureTracingPolicyRequest) error {
+	ck := collectionKey{conf.GetName(), conf.GetNamespace()}
+	return h.handler.configureTracingPolicy(ck, conf.Mode, conf.Enable)
+}
+
 // ListTracingPolicies returns a list of the active tracing policies
 func (h *Manager) ListTracingPolicies(_ context.Context) (*tetragon.ListTracingPoliciesResponse, error) {
 	ret := &tetragon.ListTracingPoliciesResponse{}

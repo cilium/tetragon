@@ -46,9 +46,13 @@ type observer interface {
 	DeleteTracingPolicy(ctx context.Context, name string, namespace string) error
 	// ListTracingPolicies lists active traing policies
 	ListTracingPolicies(ctx context.Context) (*tetragon.ListTracingPoliciesResponse, error)
+	ConfigureTracingPolicy(ctx context.Context, conf *tetragon.ConfigureTracingPolicyRequest) error
+
+	// {Disable, Enable}TracingPolicy are deprecated, use ConfigureTracingPolicy instead
 	DisableTracingPolicy(ctx context.Context, name string, namespace string) error
 	EnableTracingPolicy(ctx context.Context, name string, namespace string) error
 
+	// The Sensor API is deprecated
 	EnableSensor(ctx context.Context, name string) error
 	DisableSensor(ctx context.Context, name string) error
 	ListSensors(ctx context.Context) (*[]sensors.SensorStatus, error)
@@ -293,6 +297,17 @@ func (s *Server) EnableTracingPolicy(ctx context.Context, req *tetragon.EnableTr
 		return nil, err
 	}
 	return &tetragon.EnableTracingPolicyResponse{}, nil
+}
+func (s *Server) ConfigureTracingPolicy(ctx context.Context, req *tetragon.ConfigureTracingPolicyRequest) (*tetragon.ConfigureTracingPolicyResponse, error) {
+	logger.GetLogger().WithFields(logrus.Fields{
+		"name": req.GetName(),
+	}).Debug("Received a ConfigureTrcingPolicy request")
+
+	if err := s.observer.ConfigureTracingPolicy(ctx, req); err != nil {
+		return nil, err
+	}
+
+	return &tetragon.ConfigureTracingPolicyResponse{}, nil
 }
 
 func (s *Server) DisableTracingPolicy(ctx context.Context, req *tetragon.DisableTracingPolicyRequest) (*tetragon.DisableTracingPolicyResponse, error) {
