@@ -4,6 +4,7 @@
 package sensors
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 
@@ -258,6 +259,38 @@ func (h *handler) doEnableTracingPolicy(col *collection) error {
 
 	col.state = EnabledState
 	return nil
+}
+
+func (h *handler) configureTracingPolicy(
+	ck collectionKey,
+	mode *tetragon.TracingPolicyMode,
+	enable *bool,
+) error {
+	h.collections.mu.Lock()
+	defer h.collections.mu.Unlock()
+	collections := h.collections.c
+	col, exists := collections[ck]
+	if !exists {
+		return fmt.Errorf("tracing policy %s does not exist", ck)
+	}
+
+	var err error
+
+	// change mode of policy
+	if mode != nil {
+		err = errors.Join(err, col.setMode(*mode))
+	}
+
+	// enable or disable policy
+	if enable != nil {
+		if *enable {
+			err = errors.Join(err, h.doEnableTracingPolicy(col))
+		} else {
+			err = errors.Join(err, h.doDisableTracingPolicy(col))
+		}
+	}
+
+	return err
 }
 
 func (h *handler) addSensor(op *sensorAdd) error {
