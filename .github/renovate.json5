@@ -232,7 +232,7 @@
         // We need to trigger a golang install manually here because in some
         // cases it might not be preinstalled, see:
         // https://github.com/renovatebot/renovate/discussions/23485
-        "commands": ["install-tool golang $(grep -oP '^toolchain go\\K.+$' go.mod || grep -oP '^go \\K.+$' go.mod)", "make vendor"],
+        "commands": ["install-tool golang $(grep -oP '^toolchain go\\K.+$' go.mod || grep -oP '^go \\K.+$' go.mod)", "make vendor", "make metrics-docs"],
         "fileFilters": ["**/**"],
         "executionMode": "branch"
       },
@@ -253,7 +253,7 @@
         // We need to trigger a golang install manually here because in some
         // cases it might not be preinstalled, see:
         // https://github.com/renovatebot/renovate/discussions/23485
-        "commands": ["install-tool golang $(grep -oP '^toolchain go\\K.+$' go.mod || grep -oP '^go \\K.+$' go.mod)", "make vendor"],
+        "commands": ["install-tool golang $(grep -oP '^toolchain go\\K.+$' go.mod || grep -oP '^go \\K.+$' go.mod)", "make vendor", "make metrics-docs"],
         "fileFilters": ["**/**"],
         "executionMode": "branch"
       },
