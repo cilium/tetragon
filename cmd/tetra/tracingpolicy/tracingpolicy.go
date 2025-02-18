@@ -127,9 +127,11 @@ func New() *cobra.Command {
 			}
 			defer c.Close()
 
-			_, err = c.Client.EnableTracingPolicy(c.Ctx, &tetragon.EnableTracingPolicyRequest{
+			enable := true
+			_, err = c.Client.ConfigureTracingPolicy(c.Ctx, &tetragon.ConfigureTracingPolicyRequest{
 				Name:      args[0],
 				Namespace: tpEnableNamespaceFlag,
+				Enable:    &enable,
 			})
 			if err != nil {
 				return fmt.Errorf("failed to enable tracing policy: %w", err)
@@ -153,9 +155,11 @@ func New() *cobra.Command {
 			}
 			defer c.Close()
 
-			_, err = c.Client.DisableTracingPolicy(c.Ctx, &tetragon.DisableTracingPolicyRequest{
+			enable := false
+			_, err = c.Client.ConfigureTracingPolicy(c.Ctx, &tetragon.ConfigureTracingPolicyRequest{
 				Name:      args[0],
 				Namespace: tpDisableNamespaceFlag,
+				Enable:    &enable,
 			})
 
 			if err != nil {
