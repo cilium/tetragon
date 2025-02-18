@@ -73,6 +73,35 @@ extract_arg_depth(u32 i, struct extract_arg_data *data)
 	return 0;
 }
 
+#ifdef __LARGE_BPF_PROG
+FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long a)
+{
+	struct config_btf_arg *btf_config;
+
+	if (index >= EVENT_CONFIG_MAX_ARG)
+		return;
+
+	btf_config = config->btf_arg[index];
+	if (btf_config->is_initialized) {
+		struct extract_arg_data extract_data = {
+			.btf_config = btf_config,
+			.arg = &a,
+		};
+#ifndef __V61_BPF_PROG
+#pragma unroll
+		for (int i = 0; i < MAX_BTF_ARG_DEPTH; ++i) {
+			if (extract_arg_depth(i, &extract_data))
+				break;
+		}
+#else
+		loop(MAX_BTF_ARG_DEPTH, extract_arg_depth, &extract_data, 0);
+#endif /* __V61_BPF_PROG */
+	}
+}
+#else
+FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long a) {}
+#endif /* __LARGE_BPF_PROG */
+
 FUNC_INLINE int
 generic_process_event(void *ctx, struct bpf_map_def *tailcals)
 {
@@ -81,9 +110,6 @@ generic_process_event(void *ctx, struct bpf_map_def *tailcals)
 	int index, zero = 0;
 	unsigned long a;
 	long ty, total;
-#ifdef __LARGE_BPF_PROG
-	struct config_btf_arg *btf_config;
-#endif /* __LARGE_BPF_PROG */
 
 	e = map_lookup_elem(&process_call_heap, &zero);
 	if (!e)
@@ -101,24 +127,7 @@ generic_process_event(void *ctx, struct bpf_map_def *tailcals)
 	a = (&e->a0)[index];
 	total = e->common.size;
 
-#ifdef __LARGE_BPF_PROG
-	btf_config = config->btf_arg[index];
-	if (index < EVENT_CONFIG_MAX_ARG && btf_config->is_initialized) {
-		struct extract_arg_data extract_data = {
-			.btf_config = btf_config,
-			.arg = &a,
-		};
-#ifndef __V61_BPF_PROG
-#pragma unroll
-		for (int i = 0; i < MAX_BTF_ARG_DEPTH; ++i) {
-			if (extract_arg_depth(i, &extract_data))
-				break;
-		}
-#else
-		loop(MAX_BTF_ARG_DEPTH, extract_arg_depth, &extract_data, 0);
-#endif /* __V61_BPF_PROG */
-	}
-#endif /* __LARGE_BPF_PROG */
+	extract_arg(config, index, a);
 
 	/* Read out args1-5 */
 	ty = (&config->arg0)[index];
