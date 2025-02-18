@@ -22,7 +22,7 @@ jobs:
           # TODO: enable linting once we have a chance to fix the underlying issues
           # make -C api lint EXTRA_BUF_FLAGS="--error-format=github-actions"
           if ${{ github.event_name == 'push' }}; then
-            make -C api check-breaking EXTRA_BUF_FLAGS="--error-format=github-actions" BUF_BREAKING_AGAINST_BRANCH="origin/${{ github.ref }}"
+            make -C api check-breaking EXTRA_BUF_FLAGS="--error-format=github-actions" BUF_BREAKING_AGAINST_BRANCH="origin/${{ github.ref_name }}"
           else
             make -C api check-breaking EXTRA_BUF_FLAGS="--error-format=github-actions" BUF_BREAKING_AGAINST_BRANCH="origin/${{ github.base_ref }}"
           fi
@@ -44,7 +44,7 @@ jobs:
         run: |
           make generate
           if ${{ github.event_name == 'push' }}; then
-            make codegen BUF_BREAKING_AGAINST_BRANCH="origin/${{ github.ref }}"
+            make codegen BUF_BREAKING_AGAINST_BRANCH="origin/${{ github.ref_name }}"
           else
             make codegen BUF_BREAKING_AGAINST_BRANCH="origin/${{ github.base_ref }}"
           fi
