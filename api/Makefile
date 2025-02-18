@@ -30,7 +30,7 @@ __check-breaking_local:
 
 .PHONY: proto lint format check-breaking
 all proto lint format check-breaking:
-	$(CONTAINER_ENGINE) container run --rm \
+	../contrib/scripts/repo-docker-run.sh --rm \
 		--volume $(CURDIR)/..:/src \
 		--workdir /src/api \
 		--user "$(shell id -u):$(shell id -g)" \
@@ -39,7 +39,7 @@ all proto lint format check-breaking:
 
 .PHONY: debug
 debug:
-	@echo $(CONTAINER_ENGINE) container run --rm \
+	@echo ../contrib/scripts/repo-docker-run.sh --rm \
 		--volume $(CURDIR)/..:/src \
 		--workdir /src/api \
 		--user "$(shell id -u):$(shell id -g)" \
