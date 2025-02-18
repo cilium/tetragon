@@ -67,6 +67,7 @@ type Server struct {
 	notifier     Notifier
 	observer     observer
 	hookRunner   hookRunner
+	tetragon.UnimplementedFineGuidanceSensorsServer
 }
 
 type getEventsListener struct {

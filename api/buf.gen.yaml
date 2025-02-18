@@ -4,6 +4,10 @@ plugins:
     out: ./v1
     opt:
       - paths=source_relative
+  - local: protoc-gen-go-grpc
+    out: ./v1
+    opt:
+      - paths=source_relative
   - local: protoc-gen-go-json
     out: ./v1
     opt:
