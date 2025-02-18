@@ -21,7 +21,11 @@ jobs:
         run: |
           # TODO: enable linting once we have a chance to fix the underlying issues
           # make -C api lint EXTRA_BUF_FLAGS="--error-format=github-actions"
-          make -C api check-breaking EXTRA_BUF_FLAGS="--error-format=github-actions" BUF_BREAKING_AGAINST_BRANCH="origin/${{ github.base_ref }}"
+          if ${{ github.event_name == 'push' }}; then
+            make -C api check-breaking EXTRA_BUF_FLAGS="--error-format=github-actions" BUF_BREAKING_AGAINST_BRANCH="origin/${{ github.ref }}"
+          else
+            make -C api check-breaking EXTRA_BUF_FLAGS="--error-format=github-actions" BUF_BREAKING_AGAINST_BRANCH="origin/${{ github.base_ref }}"
+          fi
           make -C api format EXTRA_BUF_FLAGS="--exit-code --error-format=github-actions"
   generated-files:
     runs-on: ubuntu-latest
@@ -39,7 +43,11 @@ jobs:
       - name: Validate that generated files are up to date.
         run: |
           make generate
-          make codegen BUF_BREAKING_AGAINST_BRANCH="origin/${{ github.base_ref }}"
+          if ${{ github.event_name == 'push' }}; then
+            make codegen BUF_BREAKING_AGAINST_BRANCH="origin/${{ github.ref }}"
+          else
+            make codegen BUF_BREAKING_AGAINST_BRANCH="origin/${{ github.base_ref }}"
+          fi
           git status
           git diff
           test -z "$(git status --porcelain)"
