@@ -59,3 +59,25 @@ func PolicyMode(tp tracingpolicy.TracingPolicy) (Mode, error) {
 	fname := filepath.Join(bpf.MapPrefixPath(), tracingpolicy.PolicyDir(tracingpolicy.Namespace(tp), tp.TpName()), PolicyConfMapName)
 	return ModeFromBPFMap(fname)
 }
+
+func SetModeInBPFMap(fname string, mode Mode) error {
+	m, err := ebpf.LoadPinnedMap(fname, &ebpf.LoadPinOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to load map %q: %v", fname, err)
+	}
+	defer m.Close()
+
+	conf := PolicyConf{
+		Mode: mode,
+	}
+	zero := uint32(0)
+	if err = m.Update(&zero, &conf, ebpf.UpdateExist); err != nil {
+		return fmt.Errorf("failed to update map %q with val %v: %v", fname, conf, err)
+	}
+	return nil
+}
+
+func SetPolicyMode(tp tracingpolicy.TracingPolicy, m Mode) error {
+	fname := filepath.Join(bpf.MapPrefixPath(), tracingpolicy.PolicyDir(tracingpolicy.Namespace(tp), tp.TpName()), PolicyConfMapName)
+	return SetModeInBPFMap(fname, m)
+}
