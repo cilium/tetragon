@@ -13,10 +13,8 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-var (
-	// Chars is the set of characters used to generate random strings.
-	Chars = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-)
+// Chars is the set of characters used to generate random strings.
+var Chars = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
 // ProtoRand is a source of random values for protobuf fields.
 type ProtoRand struct {
@@ -286,7 +284,7 @@ func (p *ProtoRand) chooseEnumValueRandomly(values protoreflect.EnumValueDescrip
 		return 0
 	}
 
-	value := values.Get(p.rand.Intn(ln - 1))
+	value := values.Get(p.rand.Intn(ln))
 	return value.Number()
 }
 
@@ -295,6 +293,6 @@ func (p *ProtoRand) chooseOneOfFieldRandomly(oneOf protoreflect.OneofDescriptor)
 	if ln == 1 {
 		return oneOf.Fields().Get(0)
 	}
-	index := p.rand.Intn(ln - 1)
+	index := p.rand.Intn(ln)
 	return oneOf.Fields().Get(index)
 }
