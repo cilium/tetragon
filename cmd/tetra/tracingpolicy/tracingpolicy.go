@@ -14,13 +14,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func New() *cobra.Command {
-	tpCmd := &cobra.Command{
-		Use:     "tracingpolicy",
-		Aliases: []string{"tp"},
-		Short:   "Manage tracing policies",
-	}
-
+func tpModifyCmd() *cobra.Command {
 	var tpModMode string
 	tpModCmd := &cobra.Command{
 		Use:   "modify <yaml_file>",
@@ -50,7 +44,10 @@ func New() *cobra.Command {
 	}
 	tpModlags := tpModCmd.Flags()
 	tpModlags.StringVarP(&tpModMode, "mode", "m", "", "Tracing policy mode (enforce|monitor)")
+	return tpModCmd
+}
 
+func tpAddCmd() *cobra.Command {
 	var tpAddMode string
 	tpAddCmd := &cobra.Command{
 		Use:   "add <yaml_file>",
@@ -88,7 +85,10 @@ func New() *cobra.Command {
 	}
 	tpAddFlags := tpAddCmd.Flags()
 	tpAddFlags.StringVarP(&tpAddMode, "mode", "m", "", "Tracing policy mode (enforce|monitor)")
+	return tpAddCmd
+}
 
+func tpDelCmd() *cobra.Command {
 	var tpDelNamespaceFlag string
 	tpDelCmd := &cobra.Command{
 		Use:   "delete <name>",
@@ -113,7 +113,12 @@ func New() *cobra.Command {
 			return nil
 		},
 	}
+	tpDelFlags := tpDelCmd.Flags()
+	tpDelFlags.StringVarP(&tpDelNamespaceFlag, common.KeyNamespace, "n", "", "Namespace of the tracing policy.")
+	return tpDelCmd
+}
 
+func tpEnableCmd() *cobra.Command {
 	var tpEnableNamespaceFlag string
 	tpEnableCmd := &cobra.Command{
 		Use:   "enable <name>",
@@ -141,7 +146,12 @@ func New() *cobra.Command {
 			return nil
 		},
 	}
+	tpEnableFlags := tpEnableCmd.Flags()
+	tpEnableFlags.StringVarP(&tpEnableNamespaceFlag, common.KeyNamespace, "n", "", "Namespace of the tracing policy.")
+	return tpEnableCmd
+}
 
+func tpDisableCmd() *cobra.Command {
 	var tpDisableNamespaceFlag string
 	tpDisableCmd := &cobra.Command{
 		Use:   "disable <name>",
@@ -172,6 +182,12 @@ func New() *cobra.Command {
 		},
 	}
 
+	tpDisableFlags := tpDisableCmd.Flags()
+	tpDisableFlags.StringVarP(&tpDisableNamespaceFlag, common.KeyNamespace, "n", "", "Namespace of the tracing policy.")
+	return tpDisableCmd
+}
+
+func tpListCmd() *cobra.Command {
 	var tpListOutputFlag string
 	tpListCmd := &cobra.Command{
 		Use:   "list",
@@ -210,22 +226,25 @@ func New() *cobra.Command {
 			return nil
 		},
 	}
-	tpDelFlags := tpDelCmd.Flags()
-	tpDelFlags.StringVarP(&tpDelNamespaceFlag, common.KeyNamespace, "n", "", "Namespace of the tracing policy.")
-	tpEnableFlags := tpEnableCmd.Flags()
-	tpEnableFlags.StringVarP(&tpEnableNamespaceFlag, common.KeyNamespace, "n", "", "Namespace of the tracing policy.")
-	tpDisableFlags := tpDisableCmd.Flags()
-	tpDisableFlags.StringVarP(&tpDisableNamespaceFlag, common.KeyNamespace, "n", "", "Namespace of the tracing policy.")
 	tpListFlags := tpListCmd.Flags()
 	tpListFlags.StringVarP(&tpListOutputFlag, common.KeyOutput, "o", "text", "Output format. text or json")
+	return tpListCmd
+}
+
+func New() *cobra.Command {
+	tpCmd := &cobra.Command{
+		Use:     "tracingpolicy",
+		Aliases: []string{"tp"},
+		Short:   "Manage tracing policies",
+	}
 
 	tpCmd.AddCommand(
-		tpModCmd,
-		tpAddCmd,
-		tpDelCmd,
-		tpEnableCmd,
-		tpDisableCmd,
-		tpListCmd,
+		tpModifyCmd(),
+		tpAddCmd(),
+		tpDelCmd(),
+		tpEnableCmd(),
+		tpDisableCmd(),
+		tpListCmd(),
 		generate.New(),
 	)
 
