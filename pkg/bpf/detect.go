@@ -9,9 +9,7 @@ package bpf
 import (
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"unsafe"
 
@@ -231,39 +229,31 @@ func detectLSM() bool {
 	if features.HaveProgramType(ebpf.LSM) != nil {
 		return false
 	}
-	b, err := os.ReadFile("/sys/kernel/security/lsm")
+	prog, err := ebpf.NewProgram(&ebpf.ProgramSpec{
+		Name: "probe_lsm_file_open",
+		Type: ebpf.LSM,
+		Instructions: asm.Instructions{
+			asm.Mov.Imm(asm.R0, 0),
+			asm.Return(),
+		},
+		AttachTo:   "file_open",
+		AttachType: ebpf.AttachLSMMac,
+		License:    "Dual BSD/GPL",
+	})
 	if err != nil {
-		logger.GetLogger().WithError(err).Error("failed to read /sys/kernel/security/lsm")
+		logger.GetLogger().WithError(err).Error("failed to load lsm probe")
 		return false
 	}
-	if strings.Contains(string(b), "bpf") {
-		prog, err := ebpf.NewProgram(&ebpf.ProgramSpec{
-			Name: "probe_lsm_file_open",
-			Type: ebpf.LSM,
-			Instructions: asm.Instructions{
-				asm.Mov.Imm(asm.R0, 0),
-				asm.Return(),
-			},
-			AttachTo:   "file_open",
-			AttachType: ebpf.AttachLSMMac,
-			License:    "Dual BSD/GPL",
-		})
-		if err != nil {
-			logger.GetLogger().WithError(err).Error("failed to load lsm probe")
-			return false
-		}
-		defer prog.Close()
+	defer prog.Close()
 
-		link, err := link.AttachLSM(link.LSMOptions{
-			Program: prog,
-		})
-		if err != nil {
-			logger.GetLogger().WithError(err).Error("failed to attach lsm probe")
-			return false
-		}
-		link.Close()
-		return true
+	link, err := link.AttachLSM(link.LSMOptions{
+		Program: prog,
+	})
+	if err != nil {
+		logger.GetLogger().WithError(err).Error("failed to attach lsm probe")
+		return false
 	}
+	link.Close()
 
 	return false
 }
