@@ -15,7 +15,6 @@ concurrency:
 
 env:
   clusterName: tetragon-ci
-  ciliumCliVersion: v0.15.0
 
 jobs:
   prepare:
@@ -92,10 +91,14 @@ jobs:
     - name: Install kubectl, kind and cilium CLI
       uses: alexellis/arkade-get@master
       with:
-        kubectl: latest
-        helm: v3.12.1
-        kind: v0.20.0
-        cilium: ${{ env.ciliumCliVersion }}
+        # renovate: datasource=github-releases depName=kubernetes/kubernetes
+        kubectl: v1.32.2
+        # renovate: datasource=github-releases depName=helm/helm
+        helm: v3.17.1
+        # renovate: datasource=github-releases depName=kubernetes-sigs/kind
+        kind: v0.27.0
+        # renovate: datasource=github-releases depName=cilium/cilium-cli
+        cilium: v0.16.24
         print-summary: false
 
     - name: Pull Tetragon Images
