@@ -89,16 +89,25 @@
         "go", // golang version directive upgrade in go.mod
       ],
       "matchPackageNames": [
-        "docker.io/library/**", // official Docker images
+        // Docker deps
+        "docker.io/library/**", // Official Docker images
+        "quay.io/cilium/**", // Cilium quay repo
+        "quay.io/lvh-images/kernel-images", // LVH images
+        // Golang deps
         "github.com/golang/**", // Golang official org
         "golang.org/x/**", // Golang official experimental org
         "google.golang.org/**", // Google official repo for api/genproto/grpc/protobuf
         "github.com/google/**", // Google official github org
         "k8s.io/**", // Kubernetes official repo
         "sigs.k8s.io/**", // Kubernetes official SIG repo
-        "quay.io/lvh-images/kernel-images", // LVH images
+        "github.com/cilium/**", // Cilium org
+        "github.com/prometheus/**", // Prometheus org
+        "github.com/hashicorp/**", // Hashicorp org
+        "go.uber.org/**", // Uber org
+        "go", // The Go package
       ],
       "matchUpdateTypes": [
+        "minor",
         "patch",
         "pin",
         "pinDigest"
