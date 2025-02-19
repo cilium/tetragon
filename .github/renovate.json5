@@ -472,6 +472,13 @@
       ],
     },
     {
+      // This major update is breaking tetragon rthooks
+      "enabled": false,
+      "matchFileNames": ["contrib/tetragon-rthooks/go.*"],
+      "matchPackageNames": ["github.com/containerd/containerd"],
+      "matchUpdateTypes": ["major"],
+    },
+    {
       // Disable digest updates on Docker images except for the base image of
       // our build that needs to have all deps updated
       "enabled": false,
