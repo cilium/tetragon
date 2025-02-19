@@ -15,8 +15,8 @@ import (
 )
 
 func tpModifyCmd() *cobra.Command {
-	var tpModMode string
-	tpModCmd := &cobra.Command{
+	var mode string
+	ret := &cobra.Command{
 		Use:   "modify <yaml_file>",
 		Short: "modify a tracing policy YAML file",
 		Args:  cobra.ExactArgs(1),
@@ -32,24 +32,24 @@ func tpModifyCmd() *cobra.Command {
 				return fmt.Errorf("failed to read yaml file %s: %w", args[0], err)
 			}
 
-			if tpModMode != "" {
-				yamlb, err = tracingpolicy.PolicyYAMLSetMode(yamlb, tpModMode)
+			if mode != "" {
+				yamlb, err = tracingpolicy.PolicyYAMLSetMode(yamlb, mode)
 				if err != nil {
-					return fmt.Errorf("failed to apply mode %q to yaml file %s: %w", tpModMode, args[0], err)
+					return fmt.Errorf("failed to apply mode %q to yaml file %s: %w", mode, args[0], err)
 				}
 			}
 			_, err = os.Stdout.Write(yamlb)
 			return err
 		},
 	}
-	tpModlags := tpModCmd.Flags()
-	tpModlags.StringVarP(&tpModMode, "mode", "m", "", "Tracing policy mode (enforce|monitor)")
-	return tpModCmd
+	flags := ret.Flags()
+	flags.StringVarP(&mode, "mode", "m", "", "Tracing policy mode (enforce|monitor)")
+	return ret
 }
 
 func tpAddCmd() *cobra.Command {
-	var tpAddMode string
-	tpAddCmd := &cobra.Command{
+	var mode string
+	ret := &cobra.Command{
 		Use:   "add <yaml_file>",
 		Short: "add a tracing policy",
 		Args:  cobra.ExactArgs(1),
@@ -65,10 +65,10 @@ func tpAddCmd() *cobra.Command {
 				return fmt.Errorf("failed to read yaml file %s: %w", args[0], err)
 			}
 
-			if tpAddMode != "" {
-				yamlb, err = tracingpolicy.PolicyYAMLSetMode(yamlb, tpAddMode)
+			if mode != "" {
+				yamlb, err = tracingpolicy.PolicyYAMLSetMode(yamlb, mode)
 				if err != nil {
-					return fmt.Errorf("failed to apply mode %q to yaml file %s: %w", tpAddMode, args[0], err)
+					return fmt.Errorf("failed to apply mode %q to yaml file %s: %w", mode, args[0], err)
 				}
 			}
 
@@ -83,14 +83,14 @@ func tpAddCmd() *cobra.Command {
 			return nil
 		},
 	}
-	tpAddFlags := tpAddCmd.Flags()
-	tpAddFlags.StringVarP(&tpAddMode, "mode", "m", "", "Tracing policy mode (enforce|monitor)")
-	return tpAddCmd
+	flags := ret.Flags()
+	flags.StringVarP(&mode, "mode", "m", "", "Tracing policy mode (enforce|monitor)")
+	return ret
 }
 
 func tpDelCmd() *cobra.Command {
-	var tpDelNamespaceFlag string
-	tpDelCmd := &cobra.Command{
+	var namespace string
+	ret := &cobra.Command{
 		Use:   "delete <name>",
 		Short: "delete a tracing policy",
 		Args:  cobra.ExactArgs(1),
@@ -103,7 +103,7 @@ func tpDelCmd() *cobra.Command {
 
 			_, err = c.Client.DeleteTracingPolicy(c.Ctx, &tetragon.DeleteTracingPolicyRequest{
 				Name:      args[0],
-				Namespace: tpDelNamespaceFlag,
+				Namespace: namespace,
 			})
 			if err != nil {
 				return fmt.Errorf("failed to delete tracing policy: %w", err)
@@ -113,14 +113,14 @@ func tpDelCmd() *cobra.Command {
 			return nil
 		},
 	}
-	tpDelFlags := tpDelCmd.Flags()
-	tpDelFlags.StringVarP(&tpDelNamespaceFlag, common.KeyNamespace, "n", "", "Namespace of the tracing policy.")
-	return tpDelCmd
+	flags := ret.Flags()
+	flags.StringVarP(&namespace, common.KeyNamespace, "n", "", "Namespace of the tracing policy.")
+	return ret
 }
 
 func tpEnableCmd() *cobra.Command {
-	var tpEnableNamespaceFlag string
-	tpEnableCmd := &cobra.Command{
+	var namespace string
+	ret := &cobra.Command{
 		Use:   "enable <name>",
 		Short: "enable a tracing policy",
 		Long:  "Enable a disabled tracing policy. Use disable to re-disable the tracing policy.",
@@ -135,7 +135,7 @@ func tpEnableCmd() *cobra.Command {
 			enable := true
 			_, err = c.Client.ConfigureTracingPolicy(c.Ctx, &tetragon.ConfigureTracingPolicyRequest{
 				Name:      args[0],
-				Namespace: tpEnableNamespaceFlag,
+				Namespace: namespace,
 				Enable:    &enable,
 			})
 			if err != nil {
@@ -146,14 +146,14 @@ func tpEnableCmd() *cobra.Command {
 			return nil
 		},
 	}
-	tpEnableFlags := tpEnableCmd.Flags()
-	tpEnableFlags.StringVarP(&tpEnableNamespaceFlag, common.KeyNamespace, "n", "", "Namespace of the tracing policy.")
-	return tpEnableCmd
+	flags := ret.Flags()
+	flags.StringVarP(&namespace, common.KeyNamespace, "n", "", "Namespace of the tracing policy.")
+	return ret
 }
 
 func tpDisableCmd() *cobra.Command {
-	var tpDisableNamespaceFlag string
-	tpDisableCmd := &cobra.Command{
+	var namespace string
+	ret := &cobra.Command{
 		Use:   "disable <name>",
 		Short: "disable a tracing policy",
 		Long:  "Disable an enabled tracing policy. Use enable to re-enable the tracing policy.",
@@ -168,7 +168,7 @@ func tpDisableCmd() *cobra.Command {
 			enable := false
 			_, err = c.Client.ConfigureTracingPolicy(c.Ctx, &tetragon.ConfigureTracingPolicyRequest{
 				Name:      args[0],
-				Namespace: tpDisableNamespaceFlag,
+				Namespace: namespace,
 				Enable:    &enable,
 			})
 
@@ -182,21 +182,21 @@ func tpDisableCmd() *cobra.Command {
 		},
 	}
 
-	tpDisableFlags := tpDisableCmd.Flags()
-	tpDisableFlags.StringVarP(&tpDisableNamespaceFlag, common.KeyNamespace, "n", "", "Namespace of the tracing policy.")
-	return tpDisableCmd
+	flags := ret.Flags()
+	flags.StringVarP(&namespace, common.KeyNamespace, "n", "", "Namespace of the tracing policy.")
+	return ret
 }
 
 func tpListCmd() *cobra.Command {
-	var tpListOutputFlag string
-	tpListCmd := &cobra.Command{
+	var output string
+	ret := &cobra.Command{
 		Use:   "list",
 		Short: "list loaded tracing policies",
 		Long:  "List loaded tracing policies, use the JSON output format for full output.",
 		Args:  cobra.ExactArgs(0),
 		PreRunE: func(_ *cobra.Command, _ []string) error {
-			if tpListOutputFlag != "json" && tpListOutputFlag != "text" {
-				return fmt.Errorf("invalid value for %q flag: %s", common.KeyOutput, tpListOutputFlag)
+			if output != "json" && output != "text" {
+				return fmt.Errorf("invalid value for %q flag: %s", common.KeyOutput, output)
 			}
 			return nil
 		},
@@ -212,7 +212,7 @@ func tpListCmd() *cobra.Command {
 				return fmt.Errorf("failed to list tracing policies: %w", err)
 			}
 
-			switch tpListOutputFlag {
+			switch output {
 			case "json":
 				b, err := res.MarshalJSON()
 				if err != nil {
@@ -226,9 +226,9 @@ func tpListCmd() *cobra.Command {
 			return nil
 		},
 	}
-	tpListFlags := tpListCmd.Flags()
-	tpListFlags.StringVarP(&tpListOutputFlag, common.KeyOutput, "o", "text", "Output format. text or json")
-	return tpListCmd
+	flags := ret.Flags()
+	flags.StringVarP(&output, common.KeyOutput, "o", "text", "Output format. text or json")
+	return ret
 }
 
 func New() *cobra.Command {
