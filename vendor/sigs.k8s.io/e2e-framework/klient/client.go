@@ -19,7 +19,9 @@ package klient
 import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
+	klog "k8s.io/klog/v2"
 	cr "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/e2e-framework/klient/conf"
 	"sigs.k8s.io/e2e-framework/klient/k8s/resources"
 )
@@ -81,4 +83,8 @@ func (c *client) Resources(namespace ...string) *resources.Resources {
 	default:
 		panic("too many namespaces provided")
 	}
+}
+
+func init() {
+	log.SetLogger(klog.NewKlogr())
 }

@@ -19,7 +19,7 @@ package features
 import (
 	"regexp"
 
-	"sigs.k8s.io/e2e-framework/pkg/internal/types"
+	"sigs.k8s.io/e2e-framework/pkg/types"
 )
 
 type (
@@ -30,14 +30,24 @@ type (
 	Level   = types.Level
 )
 
+const (
+	// LevelSetup when doing the setup phase
+	LevelSetup = types.LevelSetup
+	// LevelAssess when doing the assess phase
+	LevelAssess = types.LevelAssess
+	// LevelTeardown when doing the teardown phase
+	LevelTeardown = types.LevelTeardown
+)
+
 type defaultFeature struct {
-	name   string
-	labels types.Labels
-	steps  []types.Step
+	name        string
+	description string
+	labels      types.Labels
+	steps       []types.Step
 }
 
-func newDefaultFeature(name string) *defaultFeature {
-	return &defaultFeature{name: name, labels: make(types.Labels)}
+func newDefaultFeature(name, description string) *defaultFeature {
+	return &defaultFeature{name: name, description: description, labels: make(types.Labels), steps: make([]types.Step, 0)}
 }
 
 func (f *defaultFeature) Name() string {
@@ -52,17 +62,27 @@ func (f *defaultFeature) Steps() []types.Step {
 	return f.steps
 }
 
+func (f *defaultFeature) Description() string {
+	return f.description
+}
+
 type testStep struct {
-	name  string
-	level Level
-	fn    Func
+	name        string
+	description string
+	level       Level
+	fn          Func
 }
 
 func newStep(name string, level Level, fn Func) *testStep {
+	return newStepWithDescription(name, "", level, fn)
+}
+
+func newStepWithDescription(name, description string, level Level, fn Func) *testStep {
 	return &testStep{
-		name:  name,
-		level: level,
-		fn:    fn,
+		name:        name,
+		description: description,
+		level:       level,
+		fn:          fn,
 	}
 }
 
@@ -76,6 +96,10 @@ func (s *testStep) Level() Level {
 
 func (s *testStep) Func() Func {
 	return s.fn
+}
+
+func (s *testStep) Description() string {
+	return s.description
 }
 
 func GetStepsByLevel(steps []types.Step, l types.Level) []types.Step {
