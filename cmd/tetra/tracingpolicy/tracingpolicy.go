@@ -223,6 +223,39 @@ func tpListCmd() *cobra.Command {
 	return ret
 }
 
+func tpSetModeCmd() *cobra.Command {
+	var namespace string
+	ret := &cobra.Command{
+		Use:   "set-mode <name> <mode>",
+		Short: "set the mode of a tracing policy",
+		Long:  "Set a tracing policy to monitor or enforce mode.",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+
+			var mode tetragon.TracingPolicyMode
+			switch args[1] {
+			case "enforce":
+				mode = tetragon.TracingPolicyMode_TP_MODE_ENFORCE
+			case "monitor":
+				mode = tetragon.TracingPolicyMode_TP_MODE_MONITOR
+			default:
+				return fmt.Errorf("invalid mode %q", args[1])
+			}
+
+			err := tpConfigure(args[0], namespace, nil, &mode)
+			if err != nil {
+				return fmt.Errorf("failed set mode to %q tracing policy: %w", args[1], err)
+			}
+			cmd.Printf("tracing policy %q set to mode %q\n", args[0], args[1])
+			return nil
+		},
+	}
+
+	flags := ret.Flags()
+	flags.StringVarP(&namespace, common.KeyNamespace, "n", "", "Namespace of the tracing policy.")
+	return ret
+}
+
 func New() *cobra.Command {
 	tpCmd := &cobra.Command{
 		Use:     "tracingpolicy",
@@ -237,6 +270,7 @@ func New() *cobra.Command {
 		tpEnableCmd(),
 		tpDisableCmd(),
 		tpListCmd(),
+		tpSetModeCmd(),
 		generate.New(),
 	)
 
