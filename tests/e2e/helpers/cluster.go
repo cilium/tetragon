@@ -21,6 +21,7 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/envfuncs"
 	"sigs.k8s.io/e2e-framework/pkg/features"
+	"sigs.k8s.io/e2e-framework/support/kind"
 )
 
 const configPath = "/tmp/tetragon-e2e-kind.yaml"
@@ -147,7 +148,7 @@ func MaybeCreateTempKindCluster(testenv env.Environment, namePrefix string) env.
 			if err != nil {
 				return ctx, err
 			}
-			ctx, err = envfuncs.CreateKindClusterWithConfig(name, clusterImage, configPath)(ctx, cfg)
+			ctx, err = envfuncs.CreateClusterWithConfig(kind.NewProvider(), name, configPath, kind.WithImage(clusterImage))(ctx, cfg)
 			if err != nil {
 				return ctx, err
 			}
@@ -165,7 +166,7 @@ func deleteTempKindCluster(clusterName string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 		klog.Infof("Deleting temporary kind cluster %s", clusterName)
 		var err error
-		ctx, err = envfuncs.DestroyKindCluster(clusterName)(ctx, cfg)
+		ctx, err = envfuncs.DestroyCluster(clusterName)(ctx, cfg)
 		if err != nil {
 			return ctx, err
 		}

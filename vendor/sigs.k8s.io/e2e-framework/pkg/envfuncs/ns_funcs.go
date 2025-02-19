@@ -22,11 +22,28 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/e2e-framework/klient"
 	"sigs.k8s.io/e2e-framework/pkg/env"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 )
 
-type namespaceContextKey string
+type NamespaceContextKey string
+
+type CreateNamespaceOpts func(klient.Client, *corev1.Namespace)
+
+// WithLabels provides an option to set custom labels on the namespace.
+func WithLabels(labels map[string]string) CreateNamespaceOpts {
+	return func(client klient.Client, ns *corev1.Namespace) {
+		client.Resources().Label(ns, labels)
+	}
+}
+
+// WithAnnotations provides an option to set custom annotations on the namespace.
+func WithAnnotations(annotations map[string]string) CreateNamespaceOpts {
+	return func(client klient.Client, ns *corev1.Namespace) {
+		client.Resources().Annotate(ns, annotations)
+	}
+}
 
 // CreateNamespace provides an Environment.Func that
 // creates a new namespace API object and stores it the context
@@ -35,18 +52,21 @@ type namespaceContextKey string
 // NOTE: the returned environment function automatically updates
 // the env config, it receives, with the namespace to make it available
 // for subsequent call.
-func CreateNamespace(name string) env.Func {
+func CreateNamespace(name string, opts ...CreateNamespaceOpts) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 		namespace := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}}
 		client, err := cfg.NewClient()
 		if err != nil {
 			return ctx, fmt.Errorf("create namespace func: %w", err)
 		}
+		for _, opt := range opts {
+			opt(client, &namespace)
+		}
 		if err := client.Resources().Create(ctx, &namespace); err != nil {
 			return ctx, fmt.Errorf("create namespace func: %w", err)
 		}
 		cfg.WithNamespace(name) // set env config default namespace
-		return context.WithValue(ctx, namespaceContextKey(name), namespace), nil
+		return context.WithValue(ctx, NamespaceContextKey(name), namespace), nil
 	}
 }
 
@@ -58,10 +78,10 @@ func DeleteNamespace(name string) env.Func {
 		var namespace *corev1.Namespace
 
 		// attempt to retrieve from context
-		nsVal := ctx.Value(namespaceContextKey(name))
+		nsVal := ctx.Value(NamespaceContextKey(name))
 		if nsVal != nil {
-			if ns, ok := nsVal.(*corev1.Namespace); ok {
-				namespace = ns
+			if ns, ok := nsVal.(corev1.Namespace); ok {
+				namespace = &ns
 			}
 		}
 

@@ -21,7 +21,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/rest"
+	klog "k8s.io/klog/v2"
 	cr "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/e2e-framework/klient/k8s"
 )
 
@@ -107,20 +109,24 @@ func (e *EventHandlerFuncs) Stop() {
 	e.watcher.Stop()
 }
 
-// SetAddFunc used to set action on create event
+// WithAddFunc used to set action on create event
 func (e *EventHandlerFuncs) WithAddFunc(addfn func(obj interface{})) *EventHandlerFuncs {
 	e.addFunc = addfn
 	return e
 }
 
-// SetUpdateFunc sets action for any update events
+// WithUpdateFunc sets action for any update events
 func (e *EventHandlerFuncs) WithUpdateFunc(updatefn func(updated interface{})) *EventHandlerFuncs {
 	e.updateFunc = updatefn
 	return e
 }
 
-// SetDeleteFunc sets action for delete events
+// WithDeleteFunc sets action for delete events
 func (e *EventHandlerFuncs) WithDeleteFunc(deletefn func(obj interface{})) *EventHandlerFuncs {
 	e.deleteFunc = deletefn
 	return e
+}
+
+func init() {
+	log.SetLogger(klog.NewKlogr())
 }

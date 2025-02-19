@@ -1,18 +1,22 @@
 package vars
 
 import (
-	"bufio"
 	"os"
 	"regexp"
-	"strings"
 	"sync"
 )
 
 var (
-	varsKeyValRgx = regexp.MustCompile(`\s*=\s*`)
-	// varsLineRegx matches vars/envs of form "a =b c= $d    e=f g=${h}"
-	varsLineRegx = regexp.MustCompile(`\w+\s*=\s*(\$?\{?)\w+(\}?)`)
+	// varsRegex matches variable pairs of the forms: a=b, c="${d}",  e='f' g="h i j ${k}"
+	// Var pairs must not contain space between name and value.
+	varsRegex = regexp.MustCompile(`([A-Za-z0-9_]+)=["']?([^"']*?\$\{[A-Za-z0-9_\.\s]+\}[^"']*?|[^"']*)["']?`)
 )
+
+// varmap is used to store parsed variables
+type varmap struct {
+	key   string
+	value string
+}
 
 // Variables stores a variable map that used for variable expansion
 // in parsed commands and other parsed strings.
@@ -39,102 +43,104 @@ func (v *Variables) Err() error {
 	return v.err
 }
 
-// Envs declares process environment variables using
-// a multi-line space-separated list of KEY=VAL format:
-// i.e. GOOS=linux GOARCH=amd64
-func (v *Variables) Envs(val string) *Variables {
-	vars, err := v.parseVars(val)
-	if err != nil {
-		v.err = err
+// Envs declares process environment variables with support for
+// variable expansion. Each variable must use the form:
+//
+// <key-name>=<value>
+//
+// With no space between key name, equal sign, and value,
+// i.e. Envs(`GOOS=linux`, `GOARCH=amd64`, `INFO="OS: ${GOOS}, ARC: ${GOARCH}"`)
+func (v *Variables) Envs(variables ...string) *Variables {
+	if len(variables) == 0 {
 		return v
 	}
-	for key, value := range vars {
-		if err := os.Setenv(key, v.ExpandVar(value, v.Val)); err != nil {
-			v.err = err
-			return v
-		}
+	varmaps := v.parseVars(variables...)
+	for _, parsedVar := range varmaps {
+		v.SetEnv(parsedVar.key, parsedVar.value)
 	}
 	return v
 }
 
-// SetEnv sets a process environment variable.
-func (v *Variables) SetEnv(name, value string) *Variables {
-	if err := os.Setenv(name, v.ExpandVar(value, v.Val)); err != nil {
+// SetEnv sets an environment variable key with value.
+func (v *Variables) SetEnv(key, value string) *Variables {
+	if err := os.Setenv(key, v.ExpandVar(value, v.Val)); err != nil {
 		v.err = err
 		return v
 	}
 	return v
 }
 
-// Vars declares an internal variable used during current gexe session.
-// It uses a multi-line, space-separated list of KEY=VAL format:
-// i.e. foo=bar fuzz=buzz
-func (v *Variables) Vars(val string) *Variables {
-	vars, err := v.parseVars(val)
-
-	if err != nil {
-		v.err = err
+// Vars declares gexe session variables with support for
+// variable expansion. Each variable must use the form:
+//
+// <key-name>=<value>
+//
+// With no space between key name, equal sign, and value,
+// i.e. Vars(`foo=bar`, `fuzz=${foo}`, `dazz="this is ${fuzz}"`)
+func (v *Variables) Vars(variables ...string) *Variables {
+	if len(variables) == 0 {
 		return v
 	}
 
-	// copy them
-	v.Lock()
-	defer v.Unlock()
-	for key, val := range vars {
-		v.vars[key] = val
-	}
+	varmaps := v.parseVars(variables...)
 
+	// set variables
+	for _, parsedVar := range varmaps {
+		v.SetVar(parsedVar.key, parsedVar.value)
+	}
 	return v
 }
 
-// SetVar declares an in-process local variable.
+// SetVar declares a gexe session variable.
 func (v *Variables) SetVar(name, value string) *Variables {
+	expVar := v.ExpandVar(value, v.Val)
 	v.Lock()
 	defer v.Unlock()
-	v.vars[name] = v.ExpandVar(value, v.Val)
+	v.vars[name] = expVar
 	return v
 }
 
-// Val searches for a Var with provided key, if not found
-// searches for environment var, for running process, with same key
-func (v *Variables) Val(name string) string {
-	//v.Lock()
-	//defer v.Unlock()
-	if val, ok := v.vars[name]; ok {
+// UnsetVar removes a previously set gexe session variable.
+func (v *Variables) UnsetVar(name string) *Variables {
+	v.Lock()
+	defer v.Unlock()
+	delete(v.vars, name)
+	return v
+}
+
+// Val searches for a gexe session variable with provided key, if not found
+// searches for an environment variable with that key.
+func (v *Variables) Val(key string) string {
+	v.RLock()
+	defer v.RUnlock()
+	if val, ok := v.vars[key]; ok {
 		return val
 	}
-	return os.Getenv(name)
+	return os.Getenv(key)
 }
 
 // Eval returns the string str with its content expanded
-// with variable values i.e. Eval("I am $HOME") returns
+// with variable references i.e. Eval("I am $HOME") returns
 // "I am </user/home/path>"
 func (v *Variables) Eval(str string) string {
 	return v.ExpandVar(str, v.Val)
 }
 
-// parseVars parses multi-line, space-separated key=value pairs
-// into map[string]string
-func (v *Variables) parseVars(lines string) (map[string]string, error) {
-	// parse lines into envs = []{"KEY0=VAL0", "KEY1=VAL1",...}
-	var envs []string
-	scnr := bufio.NewScanner(strings.NewReader(lines))
-
-	for scnr.Scan() {
-		envs = append(envs, varsLineRegx.FindAllString(scnr.Text(), -1)...)
-	}
-	if err := scnr.Err(); err != nil {
-		return nil, err
+// parseVars parses each var line and maps each key to value into []varmap result.
+// This method does not do variable expansion.
+func (v *Variables) parseVars(lines ...string) []varmap {
+	var result []varmap
+	if len(lines) == 0 {
+		return []varmap{}
 	}
 
-	// parse each item in []string{"key=value",...} item into key=value
-	result := make(map[string]string)
-	for _, env := range envs {
-		kv := varsKeyValRgx.Split(env, 2)
-		if len(kv) == 2 {
-			result[kv[0]] = v.Eval(kv[1])
+	// each line should contain (<key>)=(<val>) pair
+	// matched with expressino which returns match[1] (key) and match[2] (value)
+	for _, line := range lines {
+		matches := varsRegex.FindStringSubmatch(line)
+		if len(matches) >= 3 {
+			result = append(result, varmap{key: matches[1], value: matches[2]})
 		}
 	}
-
-	return result, nil
+	return result
 }

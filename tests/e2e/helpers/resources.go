@@ -114,7 +114,7 @@ func LoadObjects(namespace string, objs []k8s.Object, waitForPods bool) env.Func
 			r.List(ctx, podList)
 			wait.For(conditions.New(r).ResourcesMatch(podList, func(object k8s.Object) bool {
 				o := object.(*v1.Pod)
-				done, err := conditions.New(r).PodRunning(o)()
+				done, err := conditions.New(r).PodRunning(o)(ctx)
 				if done && err == nil {
 					return true
 				}

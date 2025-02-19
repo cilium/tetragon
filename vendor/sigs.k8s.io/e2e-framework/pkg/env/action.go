@@ -21,9 +21,9 @@ import (
 	"fmt"
 	"testing"
 
-	"k8s.io/klog/v2"
+	klog "k8s.io/klog/v2"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
-	"sigs.k8s.io/e2e-framework/pkg/internal/types"
+	"sigs.k8s.io/e2e-framework/pkg/types"
 )
 
 type actionRole uint8
@@ -72,6 +72,7 @@ type action struct {
 
 // runWithT will run the action and inject *testing.T into the callback function.
 func (a *action) runWithT(ctx context.Context, cfg *envconf.Config, t *testing.T) (context.Context, error) {
+	t.Helper()
 	switch a.role {
 	case roleBeforeTest, roleAfterTest:
 		if cfg.DryRunMode() {
@@ -98,6 +99,7 @@ func (a *action) runWithT(ctx context.Context, cfg *envconf.Config, t *testing.T
 
 // runWithFeature will run the action and inject a FeatureInfo object into the callback function.
 func (a *action) runWithFeature(ctx context.Context, cfg *envconf.Config, t *testing.T, fi types.Feature) (context.Context, error) {
+	t.Helper()
 	switch a.role {
 	case roleBeforeFeature, roleAfterFeature:
 		if cfg.DryRunMode() {

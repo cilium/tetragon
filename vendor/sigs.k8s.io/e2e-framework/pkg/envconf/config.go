@@ -17,11 +17,10 @@ limitations under the License.
 package envconf
 
 import (
+	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"math/rand"
 	"regexp"
-	"time"
 
 	log "k8s.io/klog/v2"
 
@@ -107,6 +106,11 @@ func (c *Config) WithClient(client klient.Client) *Config {
 	return c
 }
 
+// GetClient returns the client for the environment
+func (c *Config) GetClient() klient.Client {
+	return c.client
+}
+
 // NewClient is a constructor function that returns a previously
 // created klient.Client or create a new one based on configuration
 // previously set. Will return an error if unable to do so.
@@ -117,11 +121,10 @@ func (c *Config) NewClient() (klient.Client, error) {
 
 	client, err := klient.NewWithKubeConfigFile(c.kubeconfig)
 	if err != nil {
-		return nil, fmt.Errorf("envconfig: client failed: %w", err)
+		return nil, fmt.Errorf("client failed: %w", err)
 	}
-	c.client = client
 
-	return c.client, nil
+	return client, nil
 }
 
 // Client is a constructor function that returns a previously
@@ -136,10 +139,9 @@ func (c *Config) Client() klient.Client {
 
 	client, err := klient.NewWithKubeConfigFile(c.kubeconfig)
 	if err != nil {
-		panic(fmt.Errorf("envconfig: client failed: %w", err).Error())
+		panic(fmt.Errorf("client failed: %w", err).Error())
 	}
-	c.client = client
-	return c.client
+	return client
 }
 
 // WithNamespace updates the environment namespace value
@@ -282,7 +284,7 @@ func (c *Config) WithKubeContext(kubeContext string) *Config {
 	return c
 }
 
-// WithKubeContext is used to get the kubeconfig context
+// KubeContext is used to get the kubeconfig context
 func (c *Config) KubeContext() string {
 	return c.kubeContext
 }
@@ -300,8 +302,15 @@ func RandomName(prefix string, n int) string {
 	if len(prefix) >= n {
 		return prefix
 	}
-	rand.Seed(time.Now().UnixNano())
+
 	p := make([]byte, n)
-	rand.Read(p)
+	_, err := rand.Read(p)
+	if err != nil {
+		log.ErrorS(err, "failed to generate random name. falling back to prefix directly")
+		return prefix
+	}
+	if prefix == "" {
+		return hex.EncodeToString(p)[:n]
+	}
 	return fmt.Sprintf("%s-%s", prefix, hex.EncodeToString(p))[:n]
 }
