@@ -14,6 +14,22 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func tpConfigure(name, namespace string, enable *bool, mode *tetragon.TracingPolicyMode) error {
+	c, err := common.NewClientWithDefaultContextAndAddress()
+	if err != nil {
+		return fmt.Errorf("failed create gRPC client: %w", err)
+	}
+	defer c.Close()
+
+	_, err = c.Client.ConfigureTracingPolicy(c.Ctx, &tetragon.ConfigureTracingPolicyRequest{
+		Name:      name,
+		Namespace: namespace,
+		Enable:    enable,
+		Mode:      mode,
+	})
+	return err
+}
+
 func tpModifyCmd() *cobra.Command {
 	var mode string
 	ret := &cobra.Command{
@@ -126,23 +142,12 @@ func tpEnableCmd() *cobra.Command {
 		Long:  "Enable a disabled tracing policy. Use disable to re-disable the tracing policy.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c, err := common.NewClientWithDefaultContextAndAddress()
-			if err != nil {
-				return fmt.Errorf("failed create gRPC client: %w", err)
-			}
-			defer c.Close()
-
 			enable := true
-			_, err = c.Client.ConfigureTracingPolicy(c.Ctx, &tetragon.ConfigureTracingPolicyRequest{
-				Name:      args[0],
-				Namespace: namespace,
-				Enable:    &enable,
-			})
+			err := tpConfigure(args[0], namespace, &enable, nil)
 			if err != nil {
 				return fmt.Errorf("failed to enable tracing policy: %w", err)
 			}
 			cmd.Printf("tracing policy %q enabled\n", args[0])
-
 			return nil
 		},
 	}
@@ -159,25 +164,12 @@ func tpDisableCmd() *cobra.Command {
 		Long:  "Disable an enabled tracing policy. Use enable to re-enable the tracing policy.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c, err := common.NewClientWithDefaultContextAndAddress()
-			if err != nil {
-				return fmt.Errorf("failed create gRPC client: %w", err)
-			}
-			defer c.Close()
-
 			enable := false
-			_, err = c.Client.ConfigureTracingPolicy(c.Ctx, &tetragon.ConfigureTracingPolicyRequest{
-				Name:      args[0],
-				Namespace: namespace,
-				Enable:    &enable,
-			})
-
+			err := tpConfigure(args[0], namespace, &enable, nil)
 			if err != nil {
 				return fmt.Errorf("failed to disable tracing policy: %w", err)
 			}
-
 			cmd.Printf("tracing policy %q disabled\n", args[0])
-
 			return nil
 		},
 	}
