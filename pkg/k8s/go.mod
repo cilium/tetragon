@@ -1,9 +1,7 @@
 module github.com/cilium/tetragon/pkg/k8s
 
 // renovate: datasource=golang-version depName=go
-go 1.23.0
-
-toolchain go1.23.1
+go 1.24.0
 
 require (
 	github.com/blang/semver/v4 v4.0.0
