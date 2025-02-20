@@ -42,6 +42,22 @@ func compile(env *cel.Env, expr string, celType *cel.Type) (*cel.Ast, error) {
 	return ast, nil
 }
 
+func EvalCEL(ctx context.Context, program cel.Program, event *tetragon.GetEventsResponse) (bool, error) {
+	out, _, err := program.ContextEval(ctx, helpers.ProcessEventMap(event))
+	if err != nil {
+		return false, fmt.Errorf("error running CEL program: %w", err)
+	}
+	v, err := out.ConvertToNative(reflect.TypeOf(false))
+	if err != nil {
+		return false, fmt.Errorf("invalid conversion in CEL program: %w", err)
+	}
+	b, ok := v.(bool)
+	if ok && b {
+		return true, nil
+	}
+	return false, nil
+}
+
 func (c *CELExpressionFilter) filterByCELExpression(ctx context.Context, log logrus.FieldLogger, exprs []string) (hubbleFilters.FilterFunc, error) {
 	var programs []cel.Program
 	for _, expr := range exprs {
@@ -61,19 +77,12 @@ func (c *CELExpressionFilter) filterByCELExpression(ctx context.Context, log log
 			return false
 		}
 		for _, prg := range programs {
-			out, _, err := prg.ContextEval(ctx, helpers.ProcessEventMap(response))
+			match, err := EvalCEL(ctx, prg, response)
 			if err != nil {
-				log.Errorf("error running CEL program %s", err)
+				log.Error(err)
 				return false
 			}
-
-			v, err := out.ConvertToNative(reflect.TypeOf(false))
-			if err != nil {
-				log.Errorf("invalid conversion in CEL program: %s", err)
-				return false
-			}
-			b, ok := v.(bool)
-			if ok && b {
+			if match {
 				return true
 			}
 		}
