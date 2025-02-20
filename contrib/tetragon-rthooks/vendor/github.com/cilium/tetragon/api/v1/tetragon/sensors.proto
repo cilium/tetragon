@@ -49,6 +49,12 @@ enum TracingPolicyState {
   TP_STATE_UNLOADING = 6;
 }
 
+enum TracingPolicyMode {
+  TP_MODE_UNKNOWN = 0;
+  TP_MODE_ENFORCE = 1;
+  TP_MODE_MONITOR = 2;
+}
+
 message TracingPolicyStatus {
   // id is the id of the policy
   uint64 id = 1;
@@ -70,6 +76,8 @@ message TracingPolicyStatus {
   TracingPolicyState state = 9;
   // the amount of kernel memory in bytes used by policy's sensors non-shared BPF maps (memlock)
   uint64 kernel_memory_bytes = 10;
+  // current mode of the tracing policy
+  TracingPolicyMode mode = 11;
 }
 
 message ListTracingPoliciesResponse {
