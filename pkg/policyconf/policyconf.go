@@ -50,11 +50,9 @@ func ModeFromBPFMap(fname string) (Mode, error) {
 	var ret PolicyConf
 	zero := uint32(0)
 	if err = m.Lookup(&zero, &ret); err != nil {
-		//  TODO: remove Printf
-		fmt.Printf("FAILED to lookup map %q: %v", fname, err)
 		return InvalidMode, err
 	}
-	return ret, nil
+	return ret.Mode, nil
 }
 
 func PolicyMode(tp tracingpolicy.TracingPolicy) (Mode, error) {
