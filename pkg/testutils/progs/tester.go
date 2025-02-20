@@ -33,10 +33,15 @@ type Tester struct {
 func TestHelperMain() {
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
-		switch cmd := scanner.Text(); {
+		execMayFail := false
+		cmd := scanner.Text()
+		switch {
 		case cmd == "ping":
 			fmt.Println("pong")
 
+		case strings.HasPrefix(cmd, "exec_mayfail "):
+			execMayFail = true
+			fallthrough
 		case strings.HasPrefix(cmd, "exec "):
 			fields := strings.Fields(cmd)
 			if len(fields) < 2 {
@@ -50,11 +55,15 @@ func TestHelperMain() {
 			}
 			cmd := exec.Command(cmdName, cmdArgs...)
 			out, err := cmd.CombinedOutput()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "cmd='%s' returned an error (%s)\n", cmd, err)
+			if err == nil {
+				fmt.Fprintf(os.Stdout, "cmd=%q returned without an error. Combined output was: %q\n", cmd, out)
+				continue
+			}
+			if !execMayFail {
+				fmt.Fprintf(os.Stderr, "cmd=%q returned an error (%s)\n", cmd, err)
 				os.Exit(1)
 			}
-			fmt.Fprintf(os.Stdout, "cmd='%s' returned without an error. Combined output was: %q\n", cmd, out)
+			fmt.Fprintf(os.Stdout, "cmd=%q returned an error %q\n", cmd, err)
 
 		case strings.HasPrefix(cmd, "lseek "):
 			fields := strings.Fields(cmd)
@@ -170,6 +179,16 @@ func (pt *Tester) Exec(cmd string) (string, error) {
 	out, err := pt.Command(execCmd)
 	if err != nil {
 		return "", fmt.Errorf("exec failed: %w", err)
+	}
+	return out, nil
+}
+
+// similar to Exec, but command may fail
+func (pt *Tester) ExecMayFail(cmd string) (string, error) {
+	execCmd := fmt.Sprintf("exec_mayfail %s", cmd)
+	out, err := pt.Command(execCmd)
+	if err != nil {
+		return "", fmt.Errorf("exec_mayfail failed: %w", err)
 	}
 	return out, nil
 }
