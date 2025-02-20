@@ -50,9 +50,9 @@ enum TracingPolicyState {
 }
 
 enum TracingPolicyMode {
-	TP_MODE_UNKNOWN = 0;
-	TP_MODE_ENFORCE = 1;
-	TP_MODE_MONITOR = 2;
+  TP_MODE_UNKNOWN = 0;
+  TP_MODE_ENFORCE = 1;
+  TP_MODE_MONITOR = 2;
 }
 
 message TracingPolicyStatus {
