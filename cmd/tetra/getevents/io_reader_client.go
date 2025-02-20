@@ -140,3 +140,7 @@ func (i *ioReaderClient) GetDebug(_ context.Context, _ *tetragon.GetDebugRequest
 func (i *ioReaderClient) SetDebug(_ context.Context, _ *tetragon.SetDebugRequest, _ ...grpc.CallOption) (*tetragon.SetDebugResponse, error) {
 	panic("stub")
 }
+
+func (i *ioReaderClient) ConfigureTracingPolicy(_ context.Context, _ *tetragon.ConfigureTracingPolicyRequest, _ ...grpc.CallOption) (*tetragon.ConfigureTracingPolicyResponse, error) {
+	panic("stub")
+}
