@@ -26,7 +26,8 @@ PROGS = sigkill-tester \
 	change-capabilities \
 	user-stacktrace \
 	test-helper \
-	pause
+	pause \
+	raisesigkill
 
 
 all: $(PROGS)
