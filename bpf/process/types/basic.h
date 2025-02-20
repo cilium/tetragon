@@ -360,7 +360,7 @@ FUNC_INLINE long copy_path(char *args, const struct path *arg)
 	if (!buffer)
 		return 0;
 
-	asm volatile("%[size] &= 0xff;\n"
+	asm volatile("%[size] &= 0xfff;\n"
 		     : [size] "+r"(size));
 	probe_read(curr, size, buffer);
 	*s = size;
