@@ -179,6 +179,30 @@ func (msg *DisableTracingPolicyResponse) UnmarshalJSON(b []byte) error {
 }
 
 // MarshalJSON implements json.Marshaler
+func (msg *ConfigureTracingPolicyRequest) MarshalJSON() ([]byte, error) {
+	return protojson.MarshalOptions{
+		UseProtoNames: true,
+	}.Marshal(msg)
+}
+
+// UnmarshalJSON implements json.Unmarshaler
+func (msg *ConfigureTracingPolicyRequest) UnmarshalJSON(b []byte) error {
+	return protojson.UnmarshalOptions{}.Unmarshal(b, msg)
+}
+
+// MarshalJSON implements json.Marshaler
+func (msg *ConfigureTracingPolicyResponse) MarshalJSON() ([]byte, error) {
+	return protojson.MarshalOptions{
+		UseProtoNames: true,
+	}.Marshal(msg)
+}
+
+// UnmarshalJSON implements json.Unmarshaler
+func (msg *ConfigureTracingPolicyResponse) UnmarshalJSON(b []byte) error {
+	return protojson.UnmarshalOptions{}.Unmarshal(b, msg)
+}
+
+// MarshalJSON implements json.Marshaler
 func (msg *RemoveSensorRequest) MarshalJSON() ([]byte, error) {
 	return protojson.MarshalOptions{
 		UseProtoNames: true,
