@@ -125,6 +125,7 @@
   
     - [ConfigFlag](#tetragon-ConfigFlag)
     - [LogLevel](#tetragon-LogLevel)
+    - [TracingPolicyMode](#tetragon-TracingPolicyMode)
     - [TracingPolicyState](#tetragon-TracingPolicyState)
   
     - [FineGuidanceSensors](#tetragon-FineGuidanceSensors)
@@ -2149,6 +2150,7 @@ Determines the behavior of a field filter
 | error | [string](#string) |  | potential error of the policy |
 | state | [TracingPolicyState](#tetragon-TracingPolicyState) |  | current state of the tracing policy |
 | kernel_memory_bytes | [uint64](#uint64) |  | the amount of kernel memory in bytes used by policy&#39;s sensors non-shared BPF maps (memlock) |
+| mode | [TracingPolicyMode](#tetragon-TracingPolicyMode) |  | current mode of the tracing policy |
 
 
 
@@ -2183,6 +2185,19 @@ For now, we only want to support debug-related config flags to be configurable.
 | LOG_LEVEL_INFO | 4 |  |
 | LOG_LEVEL_DEBUG | 5 |  |
 | LOG_LEVEL_TRACE | 6 |  |
+
+
+
+<a name="tetragon-TracingPolicyMode"></a>
+
+### TracingPolicyMode
+
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| TP_MODE_UNKNOWN | 0 |  |
+| TP_MODE_ENFORCE | 1 |  |
+| TP_MODE_MONITOR | 2 |  |
 
 
 
