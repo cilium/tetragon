@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"unsafe"
 
 	"github.com/cilium/tetragon/pkg/testutils"
 
@@ -85,6 +86,16 @@ func TestHelperMain() {
 
 			o, err := unix.Seek(int(fd), off, int(whence))
 			fmt.Fprintf(os.Stdout, "cmd=%q returned o=%d err=%v\n", cmd, o, err)
+
+		case cmd == "getcpu":
+			var cpu, node int
+			_, _, err := unix.Syscall(
+				unix.SYS_GETCPU,
+				uintptr(unsafe.Pointer(&cpu)),
+				uintptr(unsafe.Pointer(&node)),
+				0,
+			)
+			fmt.Fprintf(os.Stdout, "getpcu returned: err:%v\n", err)
 
 		case cmd == "exit":
 			fmt.Fprintf(os.Stderr, "Exiting...\n")
