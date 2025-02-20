@@ -74,7 +74,7 @@ func (t *CELExpressionFilter) filterByCELExpression(ctx context.Context, log log
 				return false
 			}
 
-			v, err := out.ConvertToNative(t.boolType)
+			v, err := out.ConvertToNative(reflect.TypeOf(false))
 			if err != nil {
 				log.Errorf("invalid conversion in CEL program: %s", err)
 				return false
@@ -91,9 +91,8 @@ func (t *CELExpressionFilter) filterByCELExpression(ctx context.Context, log log
 // CELExpressionFilter implements filtering based on CEL (common expression
 // language) expressions
 type CELExpressionFilter struct {
-	log      logrus.FieldLogger
-	celEnv   *cel.Env
-	boolType reflect.Type
+	log    logrus.FieldLogger
+	celEnv *cel.Env
 }
 
 func NewCELExpressionFilter(log logrus.FieldLogger) *CELExpressionFilter {
@@ -114,9 +113,8 @@ func NewCELExpressionFilter(log logrus.FieldLogger) *CELExpressionFilter {
 		panic(fmt.Sprintf("error creating CEL env %s", err))
 	}
 	return &CELExpressionFilter{
-		log:      log,
-		celEnv:   celEnv,
-		boolType: reflect.TypeOf(false),
+		log:    log,
+		celEnv: celEnv,
 	}
 }
 
