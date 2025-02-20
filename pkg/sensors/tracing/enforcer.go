@@ -21,10 +21,6 @@ import (
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
-const (
-	enforcerDataMapName = "enforcer_data"
-)
-
 type enforcerHandler struct {
 	syscallsSyms []string
 }
@@ -51,7 +47,7 @@ func init() {
 }
 
 func enforcerMapsUser(load *program.Program) []*program.Map {
-	edm := program.MapUserPolicy(enforcerDataMapName, load)
+	edm := program.MapUserPolicy(EnforcerDataMapName, load)
 	edm.SetMaxEntries(enforcerMapMaxEntries)
 	return []*program.Map{
 		edm,
@@ -60,7 +56,7 @@ func enforcerMapsUser(load *program.Program) []*program.Map {
 }
 
 func enforcerMaps(load *program.Program) []*program.Map {
-	edm := program.MapBuilderPolicy(enforcerDataMapName, load)
+	edm := program.MapBuilderPolicy(EnforcerDataMapName, load)
 	edm.SetMaxEntries(enforcerMapMaxEntries)
 	return []*program.Map{
 		edm,
