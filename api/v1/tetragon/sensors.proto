@@ -107,6 +107,16 @@ message DisableTracingPolicyRequest {
 }
 message DisableTracingPolicyResponse {}
 
+message ConfigureTracingPolicyRequest {
+  string name = 1;
+  string namespace = 2;
+
+  optional bool enable = 3;
+  optional TracingPolicyMode mode = 4;
+}
+
+message ConfigureTracingPolicyResponse {}
+
 message RemoveSensorRequest {
   string name = 1;
 }
@@ -211,8 +221,22 @@ service FineGuidanceSensors {
   rpc AddTracingPolicy(AddTracingPolicyRequest) returns (AddTracingPolicyResponse) {}
   rpc DeleteTracingPolicy(DeleteTracingPolicyRequest) returns (DeleteTracingPolicyResponse) {}
   rpc ListTracingPolicies(ListTracingPoliciesRequest) returns (ListTracingPoliciesResponse) {}
-  rpc EnableTracingPolicy(EnableTracingPolicyRequest) returns (EnableTracingPolicyResponse) {}
-  rpc DisableTracingPolicy(DisableTracingPolicyRequest) returns (DisableTracingPolicyResponse) {}
+  // ConfigureTracingPolicy can be used to configure a loaded tracing policy.
+  // It can be used to:
+  //   - enable/disable it
+  //   - change its mode (enforcement vs monitoring)
+  // If multiple changes are requested and an error is encountered, the resulting state might have
+  // partial updates applied. In other words, the configuring a tracing policy is not atomic.
+  rpc ConfigureTracingPolicy(ConfigureTracingPolicyRequest) returns (ConfigureTracingPolicyResponse) {}
+
+  rpc EnableTracingPolicy(EnableTracingPolicyRequest) returns (EnableTracingPolicyResponse) {
+    // use ConfigureTracingPolicy instead
+    option deprecated = true;
+  }
+  rpc DisableTracingPolicy(DisableTracingPolicyRequest) returns (DisableTracingPolicyResponse) {
+    // use ConfigureTracingPolicy instead
+    option deprecated = true;
+  }
 
   rpc ListSensors(ListSensorsRequest) returns (ListSensorsResponse) {
     option deprecated = true;
