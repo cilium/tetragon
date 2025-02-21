@@ -13,7 +13,9 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -7208,6 +7210,83 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kp_8888, kp_9999)
 
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+// TestLongPath could be split into a test checking for long args from kprobe
+// events and a test checking for long cwd
+func TestLongPath(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	// depending on temp dir, this should generate a path of ~1500 chars
+	// we can increase this to reach ~4000 for kernel supporting more than 11 dentry walk
+	longDirectory := strings.Repeat("a", 255)
+	longPathSlices := slices.Repeat([]string{longDirectory}, 6)
+	longPath := path.Join(t.TempDir(), path.Join(longPathSlices...))
+
+	// create a long temporary directory structure
+	err := os.MkdirAll(longPath, 0644)
+	require.NoError(t, err)
+	longPathWithFile := path.Join(longPath, "file")
+	file, err := os.Create(longPathWithFile)
+	require.NoError(t, err)
+	file.Close()
+
+	fdinstallHook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "fdinstall"
+spec:
+  kprobes:
+  - call: "fd_install"
+    syscall: false
+    args:
+    - index: 1
+      type: "file"`
+
+	createCrdFile(t, fdinstallHook)
+
+	kprobeLongFileArgChecker := ec.NewProcessKprobeChecker("longFile").
+		WithFunctionName(sm.Full("fd_install")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().WithValues(
+			ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Full(longPathWithFile))),
+		))
+
+	processLongCWDChecker := ec.NewProcessExecChecker("longCWD").
+		WithProcess(ec.NewProcessChecker().WithBinary(sm.Suffix("ls")).WithCwd(sm.Full(longPath)))
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	// generate an event by opening the file
+	file, err = os.Open(longPathWithFile)
+	require.NoError(t, err)
+	file.Close()
+
+	// generate an event by exec with cwd
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+
+	err = os.Chdir(longPath)
+	require.NoError(t, err)
+
+	cmd := exec.Command("ls")
+	err = cmd.Run()
+	require.NoError(t, err)
+
+	err = os.Chdir(cwd)
+	require.NoError(t, err)
+
+	checker := ec.NewUnorderedEventChecker(kprobeLongFileArgChecker, processLongCWDChecker)
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
