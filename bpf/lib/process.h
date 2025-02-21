@@ -93,7 +93,7 @@
  *
  * Phew all clear now?
  */
-#define CWD_MAX	     256
+#define CWD_MAX	     4096
 #define BUFFER	     1024
 #define SIZEOF_EVENT 56
 #define PADDED_BUFFER \
