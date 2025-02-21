@@ -6972,7 +6972,9 @@ tetragon_missed_prog_probes_total{attach="wake_up_new_task",policy="__base__"} 0
 
 }
 
-func TestKprobeMatchArgsLongFile(t *testing.T) {
+// TestLongPath could be split into a test checking for long args from kprobe
+// events and a test checking for long cwd
+func TestLongPath(t *testing.T) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -7010,11 +7012,14 @@ spec:
 
 	createCrdFile(t, fdinstallHook)
 
-	longFileArgChecker := ec.NewProcessKprobeChecker("longFile").
+	kprobeLongFileArgChecker := ec.NewProcessKprobeChecker("longFile").
 		WithFunctionName(sm.Full("fd_install")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().WithValues(
 			ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Full(longPathWithFile))),
 		))
+
+	processLongCWDChecker := ec.NewProcessExecChecker("longCWD").
+		WithProcess(ec.NewProcessChecker().WithBinary(sm.Suffix("ls")).WithCwd(sm.Full(longPath)))
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -7028,7 +7033,21 @@ spec:
 	require.NoError(t, err)
 	file.Close()
 
-	checker := ec.NewUnorderedEventChecker(longFileArgChecker)
+	// generate an event by exec with cwd
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+
+	err = os.Chdir(longPath)
+	require.NoError(t, err)
+
+	cmd := exec.Command("ls")
+	err = cmd.Run()
+	require.NoError(t, err)
+
+	err = os.Chdir(cwd)
+	require.NoError(t, err)
+
+	checker := ec.NewUnorderedEventChecker(kprobeLongFileArgChecker, processLongCWDChecker)
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
