@@ -16,7 +16,7 @@ require (
 	github.com/deckarep/golang-set/v2 v2.7.0
 	github.com/fatih/color v1.18.0
 	github.com/google/cel-go v0.22.1
-	github.com/google/go-cmp v0.6.0
+	github.com/google/go-cmp v0.7.0
 	github.com/google/gops v0.3.28
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.1
@@ -37,7 +37,7 @@ require (
 	github.com/sryoya/protorand v0.0.0-20250114120907-8c1a8e3138f2
 	github.com/stretchr/testify v1.10.0
 	github.com/tidwall/gjson v1.18.0
-	github.com/vishvananda/netlink v1.3.1-0.20250209162617-655392bc778a
+	github.com/vishvananda/netlink v1.3.1-0.20250221194427-0af32151e72b
 	go.uber.org/atomic v1.11.0
 	go.uber.org/multierr v1.11.0
 	golang.org/x/sync v0.11.0
