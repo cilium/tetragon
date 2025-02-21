@@ -376,21 +376,8 @@ FUNC_INLINE long copy_path(char *args, const struct path *arg)
 	 * -----------------------------------------
 	 * Next we set up the flags.
 	 */
-	asm volatile goto(
-		"r1 = *(u64 *)%[pid];\n"
-		"r7 = *(u32 *)%[offset];\n"
-		"if r7 s< 0 goto %l[a];\n"
-		"if r7 s> 1188 goto %l[a];\n"
-		"r1 += r7;\n"
-		"r2 = *(u32 *)%[flags];\n"
-		"*(u32 *)(r1 + 0) = r2;\n"
-		"r2 = *(u16 *)%[mode];\n"
-		"*(u16 *)(r1 + 4) = r2;\n"
-		:
-		: [pid] "m"(args), [flags] "m"(flags), [offset] "m"(size), [mode] "m"(i_mode)
-		: "r0", "r1", "r2", "r7", "memory"
-		: a);
-a:
+	args[size] = (u32)flags;
+	args[size + sizeof(u32)] = (u16)i_mode;
 	size += sizeof(u32) + sizeof(u16); // for the flags + i_mode
 
 	return size;
