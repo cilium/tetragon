@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
-	"syscall"
 	"testing"
 	"time"
 
@@ -33,6 +32,7 @@ import (
 	testsensor "github.com/cilium/tetragon/pkg/sensors/test"
 	_ "github.com/cilium/tetragon/pkg/sensors/tracing" // NB: needed so that the exec tracing sensor can load its policy handlers on init
 	"github.com/cilium/tetragon/pkg/testutils"
+	tucg "github.com/cilium/tetragon/pkg/testutils/cgroup"
 	tuo "github.com/cilium/tetragon/pkg/testutils/observer"
 	"github.com/cilium/tetragon/pkg/testutils/perfring"
 	testprogs "github.com/cilium/tetragon/pkg/testutils/progs"
@@ -43,7 +43,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/sys/unix"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -71,33 +70,6 @@ func loadCgTrackerSensor(t *testing.T) *sensors.Sensor {
 	require.NoError(t, err)
 	tus.LoadSensor(t, s)
 	return s
-}
-
-func cgfsMkdirTemp(t *testing.T, cgfsPath string) string {
-	var st syscall.Statfs_t
-	if err := syscall.Statfs(cgfsPath, &st); err != nil {
-		t.Fatalf("error accessing cgroup path '%s': %s", cgfsPath, err)
-	}
-	if st.Type == unix.CGROUP2_SUPER_MAGIC {
-		t.Logf("'%s' is cgroup v2", cgfsPath)
-	} else if st.Type == unix.TMPFS_MAGIC {
-		t.Logf("'%s' is cgroup v1", cgfsPath)
-	} else {
-		t.Fatalf("'%s' not a cgroup fs", cgfsPath)
-	}
-
-	// create tempdir
-	dir, err := os.MkdirTemp(cgfsPath, "cgtracker-test-*")
-	if err != nil {
-		t.Skipf("skipping test, failed to create test dir: %s", err)
-	}
-	t.Cleanup(func() {
-		err := os.RemoveAll(dir)
-		if err != nil {
-			t.Logf("failed to remove '%s': %s", dir, err)
-		}
-	})
-	return dir
 }
 
 func doMapTest(t *testing.T, cgfsPath string) {
@@ -345,7 +317,7 @@ type testCgroupFS struct {
 }
 
 func newTestCgroupFS(t *testing.T, cgfsPath string) *testCgroupFS {
-	dir := cgfsMkdirTemp(t, cgfsPath)
+	dir := tucg.CgfsMkTemp(t, cgfsPath, "cgtracker-test-*")
 	t.Logf("created cgroup dir '%s'", dir)
 
 	mapFname := filepath.Join(bpf.MapPrefixPath(), cgtracker.MapName)

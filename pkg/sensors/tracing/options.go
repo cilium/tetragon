@@ -10,6 +10,7 @@ import (
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/policyconf"
 )
 
 type OverrideMethod int
@@ -18,6 +19,7 @@ const (
 	keyOverrideMethod = "override-method"
 	valFmodRet        = "fmod-ret"
 	valOverrideReturn = "override-return"
+	keyPolicyMode     = "policy-mode"
 )
 
 const (
@@ -42,6 +44,7 @@ type specOptions struct {
 	DisableKprobeMulti bool
 	DisableUprobeMulti bool
 	OverrideMethod     OverrideMethod
+	policyMode         policyconf.Mode
 }
 
 type opt struct {
@@ -76,6 +79,16 @@ var opts = map[string]opt{
 				return fmt.Errorf("invalid override method: '%s'", str)
 			}
 			options.OverrideMethod = m
+			return nil
+		},
+	},
+	keyPolicyMode: opt{
+		set: func(str string, options *specOptions) (err error) {
+			mode, err := policyconf.ParseMode(str)
+			if err != nil {
+				return err
+			}
+			options.policyMode = mode
 			return nil
 		},
 	},

@@ -17,6 +17,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/program"
+	"github.com/cilium/tetragon/pkg/tracingpolicy"
 
 	"github.com/sirupsen/logrus"
 )
@@ -64,10 +65,7 @@ func LoadConfig(bpfDir string, sens []*Sensor) error {
 }
 
 func (s *Sensor) policyDir() string {
-	if s.Namespace == "" {
-		return sanitize(s.Policy)
-	}
-	return fmt.Sprintf("%s:%s", s.Namespace, sanitize(s.Policy))
+	return tracingpolicy.PolicyDir(s.Namespace, s.Policy)
 }
 
 func (s *Sensor) createDirs(bpfDir string) {

@@ -53,3 +53,7 @@ func (f *FakeObserver) RemoveSensor(ctx context.Context, sensorName string) erro
 func (f *FakeObserver) ListTracingPolicies(ctx context.Context) (*tetragon.ListTracingPoliciesResponse, error) {
 	return nil, nil
 }
+
+func (h *FakeObserver) ConfigureTracingPolicy(_ context.Context, _ *tetragon.ConfigureTracingPolicyRequest) error {
+	return nil
+}

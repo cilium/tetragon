@@ -92,6 +92,8 @@
 - [tetragon/sensors.proto](#tetragon_sensors-proto)
     - [AddTracingPolicyRequest](#tetragon-AddTracingPolicyRequest)
     - [AddTracingPolicyResponse](#tetragon-AddTracingPolicyResponse)
+    - [ConfigureTracingPolicyRequest](#tetragon-ConfigureTracingPolicyRequest)
+    - [ConfigureTracingPolicyResponse](#tetragon-ConfigureTracingPolicyResponse)
     - [DeleteTracingPolicyRequest](#tetragon-DeleteTracingPolicyRequest)
     - [DeleteTracingPolicyResponse](#tetragon-DeleteTracingPolicyResponse)
     - [DisableSensorRequest](#tetragon-DisableSensorRequest)
@@ -125,6 +127,7 @@
   
     - [ConfigFlag](#tetragon-ConfigFlag)
     - [LogLevel](#tetragon-LogLevel)
+    - [TracingPolicyMode](#tetragon-TracingPolicyMode)
     - [TracingPolicyState](#tetragon-TracingPolicyState)
   
     - [FineGuidanceSensors](#tetragon-FineGuidanceSensors)
@@ -1726,6 +1729,34 @@ Determines the behavior of a field filter
 
 
 
+<a name="tetragon-ConfigureTracingPolicyRequest"></a>
+
+### ConfigureTracingPolicyRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| name | [string](#string) |  |  |
+| namespace | [string](#string) |  |  |
+| enable | [bool](#bool) | optional |  |
+| mode | [TracingPolicyMode](#tetragon-TracingPolicyMode) | optional |  |
+
+
+
+
+
+
+<a name="tetragon-ConfigureTracingPolicyResponse"></a>
+
+### ConfigureTracingPolicyResponse
+
+
+
+
+
+
+
 <a name="tetragon-DeleteTracingPolicyRequest"></a>
 
 ### DeleteTracingPolicyRequest
@@ -2149,6 +2180,7 @@ Determines the behavior of a field filter
 | error | [string](#string) |  | potential error of the policy |
 | state | [TracingPolicyState](#tetragon-TracingPolicyState) |  | current state of the tracing policy |
 | kernel_memory_bytes | [uint64](#uint64) |  | the amount of kernel memory in bytes used by policy&#39;s sensors non-shared BPF maps (memlock) |
+| mode | [TracingPolicyMode](#tetragon-TracingPolicyMode) |  | current mode of the tracing policy |
 
 
 
@@ -2186,6 +2218,19 @@ For now, we only want to support debug-related config flags to be configurable.
 
 
 
+<a name="tetragon-TracingPolicyMode"></a>
+
+### TracingPolicyMode
+
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| TP_MODE_UNKNOWN | 0 |  |
+| TP_MODE_ENFORCE | 1 |  |
+| TP_MODE_MONITOR | 2 |  |
+
+
+
 <a name="tetragon-TracingPolicyState"></a>
 
 ### TracingPolicyState
@@ -2219,6 +2264,7 @@ For now, we only want to support debug-related config flags to be configurable.
 | AddTracingPolicy | [AddTracingPolicyRequest](#tetragon-AddTracingPolicyRequest) | [AddTracingPolicyResponse](#tetragon-AddTracingPolicyResponse) |  |
 | DeleteTracingPolicy | [DeleteTracingPolicyRequest](#tetragon-DeleteTracingPolicyRequest) | [DeleteTracingPolicyResponse](#tetragon-DeleteTracingPolicyResponse) |  |
 | ListTracingPolicies | [ListTracingPoliciesRequest](#tetragon-ListTracingPoliciesRequest) | [ListTracingPoliciesResponse](#tetragon-ListTracingPoliciesResponse) |  |
+| ConfigureTracingPolicy | [ConfigureTracingPolicyRequest](#tetragon-ConfigureTracingPolicyRequest) | [ConfigureTracingPolicyResponse](#tetragon-ConfigureTracingPolicyResponse) | ConfigureTracingPolicy can be used to configure a loaded tracing policy. It can be used to: - enable/disable it - change its mode (enforcement vs monitoring) If multiple changes are requested and an error is encountered, the resulting state might have partial updates applied. In other words, the configuring a tracing policy is not atomic. |
 | EnableTracingPolicy | [EnableTracingPolicyRequest](#tetragon-EnableTracingPolicyRequest) | [EnableTracingPolicyResponse](#tetragon-EnableTracingPolicyResponse) |  |
 | DisableTracingPolicy | [DisableTracingPolicyRequest](#tetragon-DisableTracingPolicyRequest) | [DisableTracingPolicyResponse](#tetragon-DisableTracingPolicyResponse) |  |
 | ListSensors | [ListSensorsRequest](#tetragon-ListSensorsRequest) | [ListSensorsResponse](#tetragon-ListSensorsResponse) |  |

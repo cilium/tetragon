@@ -4,6 +4,7 @@
 package sensors
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 
@@ -198,9 +199,14 @@ func (h *handler) disableTracingPolicy(op *tracingPolicyDisable) error {
 	if !exists {
 		return fmt.Errorf("tracing policy %s does not exist", op.ck)
 	}
+	return h.doDisableTracingPolicy(col)
 
+}
+
+// should be called with h.collections.mu locked (for writing)
+func (h *handler) doDisableTracingPolicy(col *collection) error {
 	if col.state != EnabledState {
-		return fmt.Errorf("tracing policy %s is not enabled", op.ck)
+		return fmt.Errorf("tracing policy %s is not enabled", col.name)
 	}
 
 	col.state = UnloadingState
@@ -230,8 +236,13 @@ func (h *handler) enableTracingPolicy(op *tracingPolicyEnable) error {
 		return fmt.Errorf("tracing policy %s does not exist", op.ck)
 	}
 
+	return h.doEnableTracingPolicy(col)
+}
+
+// should be called with h.collections.mu locked (for writing)
+func (h *handler) doEnableTracingPolicy(col *collection) error {
 	if col.state != DisabledState {
-		return fmt.Errorf("tracing policy %s is not disabled", op.ck)
+		return fmt.Errorf("tracing policy %s is not disabled", col.name)
 	}
 
 	col.state = LoadingState
@@ -248,6 +259,38 @@ func (h *handler) enableTracingPolicy(op *tracingPolicyEnable) error {
 
 	col.state = EnabledState
 	return nil
+}
+
+func (h *handler) configureTracingPolicy(
+	ck collectionKey,
+	mode *tetragon.TracingPolicyMode,
+	enable *bool,
+) error {
+	h.collections.mu.Lock()
+	defer h.collections.mu.Unlock()
+	collections := h.collections.c
+	col, exists := collections[ck]
+	if !exists {
+		return fmt.Errorf("tracing policy %s does not exist", ck)
+	}
+
+	var err error
+
+	// change mode of policy
+	if mode != nil {
+		err = errors.Join(err, col.setMode(*mode))
+	}
+
+	// enable or disable policy
+	if enable != nil {
+		if *enable {
+			err = errors.Join(err, h.doEnableTracingPolicy(col))
+		} else {
+			err = errors.Join(err, h.doDisableTracingPolicy(col))
+		}
+	}
+
+	return err
 }
 
 func (h *handler) addSensor(op *sensorAdd) error {
@@ -387,16 +430,14 @@ func (h *handler) listPolicies() []*tetragon.TracingPolicyStatus {
 			Enabled:  col.state == EnabledState,
 			FilterId: col.policyfilterID,
 			State:    col.state.ToTetragonState(),
+			Mode:     col.mode(),
 		}
 
 		if col.err != nil {
 			pol.Error = col.err.Error()
 		}
 
-		pol.Namespace = ""
-		if tpNs, ok := col.tracingpolicy.(tracingpolicy.TracingPolicyNamespaced); ok {
-			pol.Namespace = tpNs.TpNamespace()
-		}
+		pol.Namespace = tracingpolicy.Namespace(col.tracingpolicy)
 
 		for _, sens := range col.sensors {
 			pol.Sensors = append(pol.Sensors, sens.GetName())

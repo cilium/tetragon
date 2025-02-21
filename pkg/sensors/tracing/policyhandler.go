@@ -7,9 +7,13 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/eventhandler"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/policyconf"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
@@ -19,19 +23,83 @@ func init() {
 	sensors.RegisterPolicyHandlerAtInit("tracing", policyHandler{})
 }
 
-func (h policyHandler) PolicyHandler(
+type policyInfo struct {
+	name          string
+	namespace     string
+	policyID      policyfilter.PolicyID
+	customHandler eventhandler.Handler
+	policyConf    *program.Map
+	specOpts      *specOptions
+}
+
+func newPolicyInfo(
 	policy tracingpolicy.TracingPolicy,
 	policyID policyfilter.PolicyID,
-) (sensors.SensorIface, error) {
-
-	policyName := policy.TpName()
-	spec := policy.TpSpec()
-
+) (*policyInfo, error) {
 	namespace := ""
 	if tpn, ok := policy.(tracingpolicy.TracingPolicyNamespaced); ok {
 		namespace = tpn.TpNamespace()
 	}
 
+	return newPolicyInfoFromSpec(
+		namespace,
+		policy.TpName(),
+		policyID,
+		policy.TpSpec(),
+		eventhandler.GetCustomEventhandler(policy),
+	)
+
+}
+
+func newPolicyInfoFromSpec(
+	namespace, name string,
+	policyID policyfilter.PolicyID,
+	spec *v1alpha1.TracingPolicySpec,
+	customHandler eventhandler.Handler,
+) (*policyInfo, error) {
+	opts, err := getSpecOptions(spec.Options)
+	if err != nil {
+		return nil, err
+	}
+	return &policyInfo{
+		name:          name,
+		namespace:     namespace,
+		policyID:      policyID,
+		customHandler: customHandler,
+		policyConf:    nil,
+		specOpts:      opts,
+	}, nil
+}
+
+func (pi *policyInfo) policyConfMap(prog *program.Program) *program.Map {
+	if pi.policyConf != nil {
+		return program.MapUserFrom(pi.policyConf)
+	}
+	pi.policyConf = program.MapBuilderPolicy("policy_conf", prog)
+	prog.MapLoad = append(prog.MapLoad, &program.MapLoad{
+		Index: 0,
+		Name:  policyconf.PolicyConfMapName,
+		Load: func(m *ebpf.Map, _ string, _ uint32) error {
+			mode := policyconf.EnforceMode
+			if pi.specOpts != nil {
+				mode = pi.specOpts.policyMode
+			}
+			conf := policyconf.PolicyConf{
+				Mode: mode,
+			}
+			key := uint32(0)
+			return m.Update(key, &conf, ebpf.UpdateAny)
+		},
+	})
+	return pi.policyConf
+}
+
+func (h policyHandler) PolicyHandler(
+	policy tracingpolicy.TracingPolicy,
+	policyID policyfilter.PolicyID,
+) (sensors.SensorIface, error) {
+
+	spec := policy.TpSpec()
 	sections := 0
 	if len(spec.KProbes) > 0 {
 		sections++
@@ -42,27 +110,34 @@ func (h policyHandler) PolicyHandler(
 	if len(spec.LsmHooks) > 0 {
 		sections++
 	}
+	if len(spec.UProbes) > 0 {
+		sections++
+	}
 	if sections > 1 {
-		return nil, errors.New("tracing policies with multiple sections of kprobes, tracepoints, or lsm hooks are currently not supported")
+		return nil, errors.New("tracing policies with multiple sections of kprobes, tracepoints, lsm hooks, or uprobes are currently not supported")
 	}
 
-	handler := eventhandler.GetCustomEventhandler(policy)
+	polInfo, err := newPolicyInfo(policy, policyID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse options: %w", err)
+	}
+
 	if len(spec.KProbes) > 0 {
 		name := "generic_kprobe"
 		err := preValidateKprobes(name, spec.KProbes, spec.Lists)
 		if err != nil {
 			return nil, fmt.Errorf("validation failed: %w", err)
 		}
-		return createGenericKprobeSensor(spec, name, policyID, policyName, namespace, handler)
+		return createGenericKprobeSensor(spec, name, polInfo)
 	}
 	if len(spec.Tracepoints) > 0 {
-		return createGenericTracepointSensor(spec, "generic_tracepoint", policyID, policyName, namespace, handler)
+		return createGenericTracepointSensor(spec, "generic_tracepoint", polInfo)
 	}
 	if len(spec.LsmHooks) > 0 {
-		return createGenericLsmSensor(spec, "generic_lsm", policyID, policyName, namespace)
+		return createGenericLsmSensor(spec, "generic_lsm", polInfo)
 	}
 	if len(spec.UProbes) > 0 {
-		return createGenericUprobeSensor(spec, "generic_lsm", policyName, namespace)
+		return createGenericUprobeSensor(spec, "generic_uprobe", polInfo)
 	}
 	return nil, nil
 }
