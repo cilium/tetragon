@@ -86,6 +86,8 @@ enum {
 	sockaddr_type = 40,
 	socket_type = 41,
 
+	dentry_type = 42,
+
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
 	nop_u32_ty = -12,
@@ -2182,6 +2184,23 @@ FUNC_INLINE void do_action_notify_enforcer(struct msg_generic_kprobe *e,
 #define do_action_notify_enforcer(e, error, signal, info_arg_id)
 #endif
 
+FUNC_INLINE void path_from_dentry(struct dentry *dentry, struct path *path_buf)
+{
+	// Construct struct path element with task->nsproxy->mnt_ns->root
+	struct task_struct *task;
+	struct nsproxy *ns;
+	struct mnt_namespace *mnt_ns;
+	struct vfsmount *root;
+
+	task = (struct task_struct *)get_current_task();
+	probe_read(&ns, sizeof(ns), _(&task->nsproxy));
+	probe_read(&mnt_ns, sizeof(mnt_ns), _(&ns->mnt_ns));
+	probe_read(&root, sizeof(root), _(&mnt_ns->root));
+
+	path_buf->mnt = root;
+	path_buf->dentry = dentry;
+}
+
 /**
  * Read a generic argument
  *
@@ -2204,6 +2223,7 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	char *args = e->args;
 	long size = -1;
 	const struct path *path_arg = 0;
+	struct path path_buf;
 
 	if (orig_off >= 16383 - min_size) {
 		return 0;
@@ -2237,6 +2257,10 @@ read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 		probe_read(&path_arg, sizeof(path_arg), &arg);
 		goto do_copy_path;
 	}
+	case dentry_type:
+		path_from_dentry((struct dentry *)arg, &path_buf);
+		path_arg = &path_buf;
+		goto do_copy_path;
 	case fd_ty: {
 		struct fdinstall_key key = { 0 };
 		struct fdinstall_value *val;

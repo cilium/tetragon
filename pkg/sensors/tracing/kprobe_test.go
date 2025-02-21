@@ -44,6 +44,7 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
+	"github.com/cilium/tetragon/pkg/reader/path"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tuo "github.com/cilium/tetragon/pkg/testutils/observer"
@@ -7207,6 +7208,67 @@ spec:
 		WithTags(ec.NewStringListMatcher().WithValues(sm.Full("prctl_9999")))
 
 	checker := ec.NewUnorderedEventChecker(kp_8888, kp_9999)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestKprobeDentryPath(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	file, err := os.CreateTemp(t.TempDir(), "dentry-unlink")
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+	defer assert.NoError(t, file.Close())
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	hook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "multiple-symbols"
+spec:
+  kprobes:
+  - call: "security_path_unlink"
+    syscall: false
+    args:
+    - index: 1
+      type: "dentry"
+    selectors:
+    - matchArgs:
+      - index: 1
+        operator: "Equal"
+        values:
+        - "` + file.Name() + `"
+`
+	createCrdFile(t, hook)
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	t.Logf("Removing %s %s\n", file.Name(), path.FilePathModeToStr(syscall.O_RDWR))
+	syscall.Unlink(file.Name())
+
+	kpChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full("security_path_unlink")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithPathArg(ec.NewKprobePathChecker().
+					WithPath(sm.Full(file.Name())),
+				),
+			)).
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Suffix(tus.Conf().SelfBinary)))
+
+	checker := ec.NewUnorderedEventChecker(kpChecker)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
