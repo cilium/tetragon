@@ -384,7 +384,7 @@ getcwd(struct msg_process *curr, __u32 offset, __u32 proc_pid)
 
 	asm volatile("%[offset] &= 0x3ff;\n"
 		     : [offset] "+r"(offset));
-	asm volatile("%[size] &= 0xff;\n"
+	asm volatile("%[size] &= 0xfff;\n"
 		     : [size] "+r"(size));
 	probe_read((char *)curr + offset, size, buffer);
 
