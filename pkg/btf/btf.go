@@ -123,6 +123,11 @@ func FindBtfFuncParamFromHook(hook string, argIndex int) (*btf.FuncParam, error)
 	}
 
 	if err = spec.TypeByName(hook, &hookFn); err != nil {
+		if strings.HasPrefix(hook, "bpf_lsm_") {
+			return nil, fmt.Errorf("failed to find BTF type for hook %q: %w."+
+				"Please check if the hook exists or if your kernel supports BTF for lsm hooks."+
+				"As an alternative, consider switching to kprobes. ", hook, err)
+		}
 		return nil, fmt.Errorf("failed to find BTF type for hook %q: %w", hook, err)
 	}
 
