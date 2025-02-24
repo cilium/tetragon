@@ -1175,8 +1175,6 @@ var errParseStringSize = errors.New("error parsing string size from binary")
 
 // this is from bpf/process/types/basic.h 'MAX_STRING'
 const maxStringSize = 4096
-const maxStringSizeSmall = 510
-const maxStringSizeTiny = 144
 
 func getUrl(url string) {
 	// We fire and forget URLs, and we don't care if they hit or not.
