@@ -181,3 +181,17 @@ func (u *MultiRelinkUnloader) Relink() error {
 	u.IsLinked = true
 	return nil
 }
+
+func (tu TcUnloader) Unload(unpin bool) error {
+	// PROG_ATTACH does not return any link, so there's nothing to unpin,
+	// but we must skip the detach operation for 'unpin == false' otherwise
+	// the pinned program will be un-attached
+	if unpin {
+		for _, att := range tu.Attachments {
+			if err := detachTC(att.LinkName, att.IsIngress); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}

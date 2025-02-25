@@ -56,13 +56,14 @@ import (
 	"github.com/cilium/tetragon/pkg/version"
 	"github.com/cilium/tetragon/pkg/watcher"
 	k8sconf "github.com/cilium/tetragon/pkg/watcher/conf"
-	"github.com/cilium/tetragon/pkg/watcher/crd"
+	"github.com/cilium/tetragon/pkg/watcher/crdwatcher"
 
 	// Imported to allow sensors to be initialized inside init().
 	_ "github.com/cilium/tetragon/pkg/sensors"
 
 	"github.com/cilium/lumberjack/v2"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned"
 	gops "github.com/google/gops/agent"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -222,6 +223,10 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 
 	if option.Config.RBSize != 0 && option.Config.RBSizeTotal != 0 {
 		log.Fatalf("Can't specify --rb-size and --rb-size-total together")
+	}
+
+	if option.Config.ExecveMapEntries != 0 && len(option.Config.ExecveMapSize) != 0 {
+		log.Fatalf("Can't specify --execve-map-entries and --execve-map-size together")
 	}
 
 	// enable extra programs/maps loading debug output
@@ -399,27 +404,44 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	// Probe runtime configuration and do not fail on errors
 	obs.UpdateRuntimeConf(option.Config.BpfDir)
 
+	// Initialize K8s watcher
 	var k8sWatcher watcher.K8sResourceWatcher
 	if option.Config.EnableK8s {
 		log.Info("Enabling Kubernetes API")
+		// retrieve k8s clients
 		config, err := k8sconf.K8sConfig()
 		if err != nil {
 			return err
 		}
-
 		if err := waitCRDs(config); err != nil {
 			return err
 		}
-
 		k8sClient := kubernetes.NewForConfigOrDie(config)
-		k8sWatcher, err = watcher.NewK8sWatcher(k8sClient, 60*time.Second)
+		crdClient := versioned.NewForConfigOrDie(config)
+
+		// create k8s watcher
+		k8sWatcher = watcher.NewK8sWatcher(k8sClient, crdClient, 60*time.Second)
+
+		// add informers for all resources
+		// NB(anna): To add a pod informer, we need to pass the underlying
+		// struct, not just the interface, because the function initializes
+		// a cache inside this struct. This can be refactored if needed.
+		realK8sWatcher := k8sWatcher.(*watcher.K8sWatcher)
+		err = watcher.AddPodInformer(realK8sWatcher, true)
 		if err != nil {
 			return err
+		}
+		if option.Config.EnableTracingPolicyCRD {
+			err := crdwatcher.AddTracingPolicyInformer(ctx, k8sWatcher, observer.GetSensorManager())
+			if err != nil {
+				return err
+			}
 		}
 	} else {
 		log.Info("Disabling Kubernetes API")
 		k8sWatcher = watcher.NewFakeK8sWatcher(nil)
 	}
+	// start k8s watcher
 	k8sWatcher.Start()
 
 	pcGCInterval := option.Config.ProcessCacheGCInterval
@@ -461,6 +483,7 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	observer.GetSensorManager().LogSensorsAndProbes(ctx)
 	defer func() {
 		observer.RemoveSensors(ctx)
+		os.Remove(observerDir)
 	}()
 
 	pm, err := tetragonGrpc.NewProcessManager(
@@ -487,9 +510,6 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	log.WithField("enabled", option.Config.ExportFilename != "").WithField("fileName", option.Config.ExportFilename).Info("Exporter configuration")
 	obs.AddListener(pm)
 	saveInitInfo()
-	if option.Config.EnableK8s && option.Config.EnableTracingPolicyCRD {
-		go crd.WatchTracePolicy(ctx, observer.GetSensorManager())
-	}
 
 	obs.LogPinnedBpf(observerDir)
 
@@ -577,17 +597,18 @@ func waitCRDs(config *rest.Config) error {
 }
 
 func loadTpFromDir(ctx context.Context, dir string) error {
-	tpMaxDepth := 1
-	tpFS := os.DirFS(dir)
-
-	if dir == defaults.DefaultTpDir {
-		// If the default directory does not exist then do not fail
-		// Probably tetragon not fully installed, developers testing, etc
-		if _, err := os.Stat(dir); os.IsNotExist(err) {
+	if _, err := os.Stat(dir); err != nil {
+		// Do not fail if the default directory doesn't exist,
+		// it might because of developer setup or incomplete installation
+		if os.IsNotExist(err) && dir == defaults.DefaultTpDir {
 			log.WithField("tracing-policy-dir", dir).Info("Loading Tracing Policies from directory ignored, directory does not exist")
 			return nil
 		}
+		return fmt.Errorf("Failed to access tracing policies dir %s: %w", dir, err)
 	}
+
+	tpMaxDepth := 1
+	tpFS := os.DirFS(dir)
 
 	err := fs.WalkDir(tpFS, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {

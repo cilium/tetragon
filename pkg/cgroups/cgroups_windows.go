@@ -6,7 +6,6 @@ package cgroups
 import (
 	"bufio"
 	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"os"
@@ -14,15 +13,17 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/sirupsen/logrus"
 	"go.uber.org/multierr"
-	"golang.org/x/sys/unix"
 )
+
+func CgroupFsMagicStr(magic uint64) string {
+	return ""
+}
 
 const (
 	// Generic unset value that means undefined or not set
@@ -156,19 +157,7 @@ type FileHandle struct {
 }
 
 func GetCgroupIdFromPath(cgroupPath string) (uint64, error) {
-	var fh FileHandle
-
-	handle, _, err := unix.NameToHandleAt(unix.AT_FDCWD, cgroupPath, 0)
-	if err != nil {
-		return 0, err
-	}
-
-	err = binary.Read(bytes.NewBuffer(handle.Bytes()), binary.LittleEndian, &fh)
-	if err != nil {
-		return 0, fmt.Errorf("decoding NameToHandleAt data failed: %v", err)
-	}
-
-	return fh.Id, nil
+	return 0, fmt.Errorf("Not supported on Windows ")
 }
 
 // parseCgroupv1SubSysIds() parse cgroupv1 controllers and save their
@@ -264,30 +253,7 @@ func parseCgroupv1SubSysIds(filePath string) error {
 // in. We need this dynamic behavior since these controllers are
 // compile config.
 func DiscoverSubSysIds() error {
-	var err error
-	magic := GetCgroupFSMagic()
-	if magic == CGROUP_UNSET_VALUE {
-		magic, err = DetectCgroupFSMagic()
-		if err != nil {
-			return err
-		}
-	}
-
-	if magic == unix.CGROUP_SUPER_MAGIC {
-		return parseCgroupv1SubSysIds(filepath.Join(option.Config.ProcFS, "cgroups"))
-	} else if magic == unix.CGROUP2_SUPER_MAGIC {
-		/* Parse Root Cgroup active controllers.
-		 * This step helps debugging since we may have some
-		 * race conditions when processes are moved or spawned in their
-		 * appropriate cgroups which affect cgroup association, so
-		 * having more information on the environment helps to debug
-		 * or reproduce.
-		 */
-		path := filepath.Clean(fmt.Sprintf("%s/1/root/%s", option.Config.ProcFS, cgroupFSPath))
-		return checkCgroupv2Controllers(path)
-	}
-
-	return fmt.Errorf("could not detect Cgroup filesystem")
+	return fmt.Errorf("not supported on windows")
 }
 
 func setDeploymentMode(cgroupPath string) error {
@@ -588,23 +554,7 @@ func findMigrationPath(pid uint32) (string, error) {
 }
 
 func detectCgroupMode(cgroupfs string) (CgroupModeCode, error) {
-	var st syscall.Statfs_t
-
-	if err := syscall.Statfs(cgroupfs, &st); err != nil {
-		return CGROUP_UNDEF, err
-	}
-
-	if st.Type == unix.CGROUP2_SUPER_MAGIC {
-		return CGROUP_UNIFIED, nil
-	} else if st.Type == unix.TMPFS_MAGIC {
-		err := syscall.Statfs(filepath.Join(cgroupfs, "unified"), &st)
-		if err == nil && st.Type == unix.CGROUP2_SUPER_MAGIC {
-			return CGROUP_HYBRID, nil
-		}
-		return CGROUP_LEGACY, nil
-	}
-
-	return CGROUP_UNDEF, fmt.Errorf("wrong type '%d' for cgroupfs '%s'", st.Type, cgroupfs)
+	return CGROUP_UNDEF, fmt.Errorf("not supported on Windows")
 }
 
 // DetectCgroupMode() Returns the current Cgroup mode that is applied to the system
@@ -691,30 +641,7 @@ func DetectDeploymentMode() (DeploymentCode, error) {
 // DetectCgroupFSMagic() runs by default DetectCgroupMode()
 // Return the Cgroupfs v1 or v2 that will be used by bpf programs
 func DetectCgroupFSMagic() (uint64, error) {
-	// Run get cgroup mode again in case
-	mode, err := DetectCgroupMode()
-	if err != nil {
-		return CGROUP_UNSET_VALUE, err
-	}
-
-	// Run this once and log output
-	detectCgroupFSOnce.Do(func() {
-		switch mode {
-		case CGROUP_LEGACY, CGROUP_HYBRID:
-			/* In both legacy or Hybrid modes we switch to Cgroupv1 from bpf side. */
-			logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).Debug("Cgroup BPF helpers will run in raw Cgroup mode")
-			cgroupFSMagic = unix.CGROUP_SUPER_MAGIC
-		case CGROUP_UNIFIED:
-			logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).Debug("Cgroup BPF helpers will run in Cgroupv2 mode or fallback to raw Cgroup on errors")
-			cgroupFSMagic = unix.CGROUP2_SUPER_MAGIC
-		}
-	})
-
-	if cgroupFSMagic == CGROUP_UNSET_VALUE {
-		return CGROUP_UNSET_VALUE, fmt.Errorf("could not detect Cgroup filesystem Magic")
-	}
-
-	return cgroupFSMagic, nil
+	return CGROUP_UNSET_VALUE, fmt.Errorf("not supported on windows")
 }
 
 // CgroupNameFromCstr() Returns a Golang string from the passed C language format string.
@@ -727,31 +654,7 @@ func CgroupNameFromCStr(cstr []byte) string {
 }
 
 func tryHostCgroup(path string) error {
-	var st, pst unix.Stat_t
-	if err := unix.Lstat(path, &st); err != nil {
-		return fmt.Errorf("cannot determine cgroup root: error acessing path '%s': %w", path, err)
-	}
-
-	parent := filepath.Dir(path)
-	if err := unix.Lstat(parent, &pst); err != nil {
-		return fmt.Errorf("cannot determine cgroup root: error acessing parent path '%s': %w", parent, err)
-	}
-
-	if st.Dev == pst.Dev {
-		return fmt.Errorf("cannot determine cgroup root: '%s' does not appear to be a mount point", path)
-	}
-
-	fst := unix.Statfs_t{}
-	if err := unix.Statfs(path, &fst); err != nil {
-		return fmt.Errorf("cannot determine cgroup root: failed to get info for '%s'", path)
-	}
-
-	switch fst.Type {
-	case unix.CGROUP2_SUPER_MAGIC, unix.CGROUP_SUPER_MAGIC:
-		return nil
-	default:
-		return fmt.Errorf("cannot determine cgroup root: path '%s' is not a cgroup fs", path)
-	}
+	return fmt.Errorf("not supported on windows")
 }
 
 // HostCgroupRoot tries to retrieve the host cgroup root

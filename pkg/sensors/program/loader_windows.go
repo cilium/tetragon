@@ -26,6 +26,7 @@ type OpenFunc func(*ebpf.CollectionSpec) error
 type LoadOpts struct {
 	Attach AttachFunc
 	Open   OpenFunc
+	Maps   []*Map
 }
 
 func linkPinPath(bpfDir string, load *Program, extra ...string) string {
@@ -351,26 +352,18 @@ func MultiKprobeAttach(load *Program, bpfDir string) AttachFunc {
 	}
 }
 
-func LoadTracepointProgram(bpfDir string, load *Program, verbose int) error {
-	opts := &LoadOpts{
-		Attach: TracepointAttach(load, bpfDir),
-	}
-	return loadProgram(bpfDir, load, opts, verbose)
+func LoadTracepointProgram(bpfDir string, load *Program, maps []*Map, verbose int) error {
+	return fmt.Errorf("not supported on windows")
 }
 
-func LoadRawTracepointProgram(bpfDir string, load *Program, verbose int) error {
-	opts := &LoadOpts{
-		Attach: RawTracepointAttach(load),
-	}
-	return loadProgram(bpfDir, load, opts, verbose)
+func LoadRawTracepointProgram(bpfDir string, load *Program, maps []*Map, verbose int) error {
+	return fmt.Errorf("not supported on windows")
+
 }
 
-func LoadKprobeProgram(bpfDir string, load *Program, verbose int) error {
-	opts := &LoadOpts{
-		Attach: KprobeAttach(load, bpfDir),
-		Open:   KprobeOpen(load),
-	}
-	return loadProgram(bpfDir, load, opts, verbose)
+func LoadKprobeProgram(bpfDir string, load *Program, maps []*Map, verbose int) error {
+	return fmt.Errorf("windows not supported")
+
 }
 
 func KprobeAttachMany(load *Program, syms []string, bpfDir string) AttachFunc {
@@ -395,9 +388,10 @@ func KprobeAttachMany(load *Program, syms []string, bpfDir string) AttachFunc {
 	}
 }
 
-func LoadKprobeProgramAttachMany(bpfDir string, load *Program, syms []string, verbose int) error {
+func LoadKprobeProgramAttachMany(bpfDir string, load *Program, syms []string, maps []*Map, verbose int) error {
 	opts := &LoadOpts{
 		Attach: KprobeAttachMany(load, syms, bpfDir),
+		Maps:   maps,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
@@ -409,15 +403,16 @@ func LoadUprobeProgram(bpfDir string, load *Program, verbose int) error {
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
-func LoadMultiKprobeProgram(bpfDir string, load *Program, verbose int) error {
+func LoadMultiKprobeProgram(bpfDir string, load *Program, maps []*Map, verbose int) error {
 	opts := &LoadOpts{
 		Attach: MultiKprobeAttach(load, bpfDir),
 		Open:   KprobeOpen(load),
+		Maps:   maps,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
-func LoadFmodRetProgram(bpfDir string, load *Program, progName string, verbose int) error {
+func LoadFmodRetProgram(bpfDir string, load *Program, maps []*Map, progName string, verbose int) error {
 	return fmt.Errorf("windows not supported")
 }
 
@@ -428,26 +423,19 @@ func LoadTracingProgram(bpfDir string, load *Program, verbose int) error {
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
-func LoadLSMProgram(bpfDir string, load *Program, verbose int) error {
-	opts := &LoadOpts{
-		Attach: LSMAttach(),
-		Open:   LSMOpen(load),
-	}
-	return loadProgram(bpfDir, load, opts, verbose)
+func LoadLSMProgram(bpfDir string, load *Program, maps []*Map, verbose int) error {
+	return fmt.Errorf("windows not supported")
+
 }
 
 func LoadLSMProgramSimple(bpfDir string, load *Program, verbose int) error {
-	opts := &LoadOpts{
-		Attach: LSMAttach(),
-	}
-	return loadProgram(bpfDir, load, opts, verbose)
+	return fmt.Errorf("windows not supported")
+
 }
 
 func LoadMultiUprobeProgram(bpfDir string, load *Program, verbose int) error {
-	opts := &LoadOpts{
-		Attach: MultiUprobeAttach(load),
-	}
-	return loadProgram(bpfDir, load, opts, verbose)
+	return fmt.Errorf("windows not supported")
+
 }
 
 func slimVerifierError(errStr string) string {

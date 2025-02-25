@@ -54,13 +54,13 @@ import (
 	"github.com/cilium/tetragon/pkg/version"
 	"github.com/cilium/tetragon/pkg/watcher"
 	k8sconf "github.com/cilium/tetragon/pkg/watcher/conf"
-	"github.com/cilium/tetragon/pkg/watcher/crd"
 
 	// Imported to allow sensors to be initialized inside init().
 	_ "github.com/cilium/tetragon/pkg/sensors"
 
 	"github.com/cilium/lumberjack/v2"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned"
 	gops "github.com/google/gops/agent"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -404,10 +404,11 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		}
 
 		k8sClient := kubernetes.NewForConfigOrDie(config)
-		k8sWatcher, err = watcher.NewK8sWatcher(k8sClient, 60*time.Second)
-		if err != nil {
-			return err
-		}
+		crdClient := versioned.NewForConfigOrDie(config)
+
+		// create k8s watcher
+		k8sWatcher = watcher.NewK8sWatcher(k8sClient, crdClient, 60*time.Second)
+
 	} else {
 		log.Info("Disabling Kubernetes API")
 		k8sWatcher = watcher.NewFakeK8sWatcher(nil)
@@ -479,9 +480,6 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	log.WithField("enabled", option.Config.ExportFilename != "").WithField("fileName", option.Config.ExportFilename).Info("Exporter configuration")
 	obs.AddListener(pm)
 	saveInitInfo()
-	if option.Config.EnableK8s && option.Config.EnableTracingPolicyCRD {
-		go crd.WatchTracePolicy(ctx, observer.GetSensorManager())
-	}
 
 	obs.LogPinnedBpf(observerDir)
 

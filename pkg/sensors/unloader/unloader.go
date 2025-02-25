@@ -10,9 +10,7 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/link"
-	"github.com/vishvananda/netlink"
 	"go.uber.org/multierr"
-	"golang.org/x/sys/unix"
 )
 
 // Unloader describes how to unload a sensor resource, e.g.
@@ -108,59 +106,6 @@ type TcUnloader struct {
 type TcAttachment struct {
 	LinkName  string
 	IsIngress bool
-}
-
-func (tu TcUnloader) Unload(unpin bool) error {
-	// PROG_ATTACH does not return any link, so there's nothing to unpin,
-	// but we must skip the detach operation for 'unpin == false' otherwise
-	// the pinned program will be un-attached
-	if unpin {
-		for _, att := range tu.Attachments {
-			if err := detachTC(att.LinkName, att.IsIngress); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func detachTC(linkName string, ingress bool) error {
-	var parent uint32
-	var name string
-
-	link, err := netlink.LinkByName(linkName)
-	if err != nil {
-		return fmt.Errorf("LinkByName failed (%s): %w", linkName, err)
-	}
-
-	if ingress {
-		parent = netlink.HANDLE_MIN_INGRESS
-		name = "fgs-ingress"
-	} else {
-		parent = netlink.HANDLE_MIN_EGRESS
-		name = "fgs-egress"
-	}
-
-	filterAttrs := netlink.FilterAttrs{
-		LinkIndex: link.Attrs().Index,
-		Parent:    parent,
-		Handle:    netlink.MakeHandle(0, 2),
-		Protocol:  unix.ETH_P_ALL,
-		Priority:  1,
-	}
-	filter := &netlink.BpfFilter{
-		FilterAttrs:  filterAttrs,
-		Name:         name,
-		DirectAction: true,
-	}
-	if filter.Fd < 0 {
-		return fmt.Errorf("BpfFilter failed (%s): %d", linkName, filter.Fd)
-	}
-	if err = netlink.FilterDel(filter); err != nil {
-		return fmt.Errorf("FilterDel failed (%s): %w", linkName, err)
-	}
-	return err
-
 }
 
 // RelinkUnloader is an unloader that allows unlinking/relinking as well.
