@@ -6,12 +6,94 @@ package unloader
 import (
 	"errors"
 	"fmt"
+	"strings"
 
+	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/link"
 	"github.com/vishvananda/netlink"
 	"go.uber.org/multierr"
 	"golang.org/x/sys/unix"
 )
+
+// Unloader describes how to unload a sensor resource, e.g.
+// programs or maps.
+type Unloader interface {
+	Unload(unpin bool) error
+}
+
+// chainUnloader is an unloader for multiple resources.
+// Useful when a loading operation needs to be unwinded due to an error.
+type ChainUnloader []Unloader
+
+type chainUnloaderErrors struct {
+	errors []error
+}
+
+func (cue chainUnloaderErrors) Error() string {
+	strs := []string{}
+	for _, e := range cue.errors {
+		strs = append(strs, e.Error())
+	}
+	return strings.Join(strs, "; ")
+}
+
+func (cu ChainUnloader) Unload(unpin bool) error {
+	var cue chainUnloaderErrors
+	for i := len(cu) - 1; i >= 0; i-- {
+		if err := (cu)[i].Unload(unpin); err != nil {
+			cue.errors = append(cue.errors, err)
+		}
+	}
+	if len(cue.errors) > 0 {
+		return cue
+	}
+	return nil
+}
+
+// ProgUnloader unpins and closes a BPF program.
+type ProgUnloader struct {
+	Prog *ebpf.Program
+}
+
+func (pu ProgUnloader) Unload(unpin bool) error {
+	if unpin {
+		pu.Prog.Unpin()
+	}
+	return pu.Prog.Close()
+}
+
+// ProgUnloader unpins and closes a BPF program.
+type LinkUnloader struct {
+	Link link.Link
+}
+
+func (lu LinkUnloader) Unload(unpin bool) error {
+	if unpin {
+		lu.Link.Unpin()
+	}
+	return lu.Link.Close()
+}
+
+// rawDetachUnloader can be used to unload cgroup and sockmap programs.
+type RawDetachUnloader struct {
+	TargetFD   int
+	Name       string
+	Prog       *ebpf.Program
+	AttachType ebpf.AttachType
+}
+
+func (rdu *RawDetachUnloader) Unload(_ bool) error {
+	defer rdu.Prog.Close()
+	err := link.RawDetachProgram(link.RawDetachProgramOptions{
+		Target:  rdu.TargetFD,
+		Program: rdu.Prog,
+		Attach:  rdu.AttachType,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to detach %s: %w", rdu.Name, err)
+	}
+	return nil
+}
 
 // TcUnloader unloads programs attached to TC filters
 type TcUnloader struct {
@@ -179,19 +261,5 @@ func (u *MultiRelinkUnloader) Relink() error {
 
 	u.Links = links
 	u.IsLinked = true
-	return nil
-}
-
-func (tu TcUnloader) Unload(unpin bool) error {
-	// PROG_ATTACH does not return any link, so there's nothing to unpin,
-	// but we must skip the detach operation for 'unpin == false' otherwise
-	// the pinned program will be un-attached
-	if unpin {
-		for _, att := range tu.Attachments {
-			if err := detachTC(att.LinkName, att.IsIngress); err != nil {
-				return err
-			}
-		}
-	}
 	return nil
 }
