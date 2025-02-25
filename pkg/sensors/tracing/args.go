@@ -140,7 +140,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		arg.Flags = flags
 		arg.Label = a.label
 		return arg
-	case gt.GenericPathType:
+	case gt.GenericPathType, gt.GenericDentryType:
 		var arg api.MsgGenericKprobeArgPath
 		var flags uint32
 		var mode uint16
