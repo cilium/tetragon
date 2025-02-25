@@ -5,91 +5,106 @@ import (
 	"runtime"
 )
 
-var ErrUnsupportedArch = fmt.Errorf("unsupported architecture: %s", runtime.GOARCH)
+type Arch string
+
+func NewArch(arch string) (Arch, error) {
+	switch arch {
+	case "amd64", "arm64":
+		return Arch(arch), nil
+	default:
+		return Arch(""), fmt.Errorf("unsupported architecture %s", arch)
+	}
+}
 
 // Target returns the Linux Makefile target to build the kernel, for historical
 // reasons, those are different between architectures.
-func Target(arch string) (string, error) {
-	if arch == "" {
-		arch = runtime.GOARCH
-	}
-	switch arch {
+func (a Arch) Target() string {
+	switch a {
 	case "amd64":
-		return "bzImage", nil
+		return "bzImage"
 	case "arm64":
-		return "Image.gz", nil
+		return "Image.gz"
 	default:
-		return "", fmt.Errorf("unsupported architecture for Makefile target: %s", arch)
+		panic(fmt.Sprintf("Target(): Unsupported arch: %s", a))
 	}
 }
 
-func CrossCompiling(targetArch string) bool {
-	return targetArch != "" && targetArch != runtime.GOARCH
+func (a Arch) CrossCompiling() bool {
+	return !a.IsNative()
 }
 
-func CrossCompileMakeArgs(targetArch string) ([]string, error) {
-	if !CrossCompiling(targetArch) {
-		return nil, nil
+func (a Arch) IsNative() bool {
+	return string(a) == runtime.GOARCH
+}
+
+func (a Arch) CrossCompileMakeArgs() []string {
+	if !a.CrossCompiling() {
+		return nil
 	}
 
-	switch targetArch {
+	switch a {
 	case "arm64":
-		return []string{"ARCH=arm64", "CROSS_COMPILE=aarch64-linux-gnu-"}, nil
+		return []string{"ARCH=arm64", "CROSS_COMPILE=aarch64-linux-gnu-"}
 	case "amd64":
-		return []string{"ARCH=x86_64", "CROSS_COMPILE=x86_64-linux-gnu-"}, nil
-	}
-	return nil, fmt.Errorf("unsupported architecture for cross-compilation: %s", targetArch)
-}
-
-func QemuBinary() (string, error) {
-	switch runtime.GOARCH {
-	case "amd64":
-		return "qemu-system-x86_64", nil
-	case "arm64":
-		return "qemu-system-aarch64", nil
+		return []string{"ARCH=x86_64", "CROSS_COMPILE=x86_64-linux-gnu-"}
 	default:
-		return "", ErrUnsupportedArch
+		panic(fmt.Sprintf("CrossCompileMakeArgs(): Unsupported arch: %s", a))
+	}
+}
+
+func (a Arch) QemuBinary() string {
+	switch a {
+	case "amd64":
+		return "qemu-system-x86_64"
+	case "arm64":
+		return "qemu-system-aarch64"
+	default:
+		panic(fmt.Sprintf("QemuBinary(): Unsupported arch: %s", a))
 	}
 }
 
 // Console returns the name of the device for the first serial port.
-func Console() (string, error) {
-	switch runtime.GOARCH {
+func (a Arch) Console() string {
+	switch a {
 	case "amd64":
-		return "ttyS0", nil
+		return "ttyS0"
 	case "arm64":
-		return "ttyAMA0", nil
+		return "ttyAMA0"
 	default:
-		return "", ErrUnsupportedArch
+		panic(fmt.Sprintf("Console(): Unsupported arch: %s", a))
 	}
 }
 
 // AppendArchSpecificQemuArgs appends Qemu arguments to the input that are
 // specific to the architecture lvh is running on. For example on ARM64, Qemu
 // needs some precision on the -machine option to start.
-func AppendArchSpecificQemuArgs(qemuArgs []string) []string {
-	switch runtime.GOARCH {
+func (a Arch) AppendArchSpecificQemuArgs(qemuArgs []string) []string {
+	switch a {
 	case "arm64":
 		return append(qemuArgs, "-machine", "virt")
-	default:
+	case "amd64":
 		return qemuArgs
+	default:
+		panic(fmt.Sprintf("AppendArchSpecificQemuArgs(): Unsupported arch: %s", a))
 	}
 }
 
 // AppendCPUKind appends the -cpu type if needed, historically amd64 has used no
 // specific kind when running without KVM, and using kvm64 when running with
 // KVM. However, arm64 needs -cpu max in both cases to start properly.
-func AppendCPUKind(qemuArgs []string, kvmEnabled bool, cpuKind string) []string {
+func (a Arch) AppendCPUKind(qemuArgs []string, kvmEnabled bool, cpuKind string) []string {
 	if cpuKind != "" {
 		return append(qemuArgs, "-cpu", cpuKind)
 	}
-	switch runtime.GOARCH {
+	switch a {
 	case "amd64":
 		if kvmEnabled {
 			return append(qemuArgs, "-cpu", "kvm64")
 		}
 	case "arm64":
 		return append(qemuArgs, "-cpu", "max")
+	default:
+		panic(fmt.Sprintf("AppendCPUKind(): Unsupported arch: %s", a))
 	}
 	return qemuArgs
 }
@@ -98,9 +113,9 @@ func AppendCPUKind(qemuArgs []string, kvmEnabled bool, cpuKind string) []string 
 // so option is unconfigured. Typically arm64 should not be bootable by default
 // because we didn't take the time to find a bootloader that was arm64
 // compatible so far.
-func Bootable(bootable *bool) bool {
+func (a Arch) Bootable(bootable *bool) bool {
 	if bootable == nil {
-		return runtime.GOARCH == "amd64"
+		return string(a) == "amd64"
 	}
 	return *bootable
 }
