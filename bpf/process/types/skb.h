@@ -180,30 +180,30 @@ set_event_from_skb(struct skb_type *event, struct sk_buff *skb)
 	event->tuple.sport = bpf_ntohs(event->tuple.sport);
 	event->tuple.dport = bpf_ntohs(event->tuple.dport);
 
-        if (bpf_core_field_exists(skb->active_extensions)) {
-                struct sec_path *sp;
-                struct skb_ext *ext;
-                u64 offset;
-                int sec_path_id;
+	if (bpf_core_field_exists(skb->active_extensions)) {
+		struct sec_path *sp;
+		struct skb_ext *ext;
+		u64 offset;
+		int sec_path_id;
 
-                if (!bpf_core_enum_value_exists(enum skb_ext_id, SKB_EXT_SEC_PATH))
-                        return 0;
-                sec_path_id = bpf_core_enum_value(enum skb_ext_id, SKB_EXT_SEC_PATH);
+		if (!bpf_core_enum_value_exists(enum skb_ext_id, SKB_EXT_SEC_PATH))
+			return 0;
+		sec_path_id = bpf_core_enum_value(enum skb_ext_id, SKB_EXT_SEC_PATH);
 
-                bpf_core_read(&ext, sizeof(ext), &skb->extensions);
-                if (ext) {
-                        bpf_core_read(&offset, sizeof(offset),
-                                      &ext->offset[sec_path_id]);
-                        sp = (void *)ext + (offset << 3);
+		bpf_core_read(&ext, sizeof(ext), &skb->extensions);
+		if (ext) {
+			bpf_core_read(&offset, sizeof(offset),
+				      &ext->offset[sec_path_id]);
+			sp = (void *)ext + (offset << 3);
 
-                        bpf_core_read(&event->secpath_len,
-                                      sizeof(event->secpath_len),
-                                      &sp->len);
-                        bpf_core_read(&event->secpath_olen,
-                                      sizeof(event->secpath_olen),
-                                      &sp->olen);
-                }
-        }
+			bpf_core_read(&event->secpath_len,
+				      sizeof(event->secpath_len),
+				      &sp->len);
+			bpf_core_read(&event->secpath_olen,
+				      sizeof(event->secpath_olen),
+				      &sp->olen);
+		}
+	}
 
 	return 0;
 }
