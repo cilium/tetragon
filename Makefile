@@ -19,6 +19,7 @@ GO_TEST_TIMEOUT ?= 20m
 E2E_TEST_TIMEOUT ?= 20m
 BUILD_PKG_DIR ?= $(shell pwd)/build/$(TARGET_ARCH)
 VERSION ?= $(shell git describe --tags --always --exclude '*/*')
+TETRAGONDIR ?= $(CURDIR)/bpf/objs
 
 # Do a parallel build with multiple jobs, based on the number of CPUs online
 # in this system: 'make -j8' on a 8-CPU system, etc.
@@ -277,7 +278,7 @@ bpf-test:
 
 .PHONY: verify
 verify: tetragon-bpf ## Verify BPF programs.
-	sudo contrib/verify/verify.sh bpf/objs
+	sudo DEBUG=${DEBUG} TETRAGONDIR=${TETRAGONDIR} $(shell which go) test contrib/verify/verify_test.go -v
 
 .PHONY: alignchecker
 alignchecker: ## Run alignchecker.
