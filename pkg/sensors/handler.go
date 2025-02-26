@@ -191,18 +191,6 @@ func (h *handler) deleteTracingPolicy(op *tracingPolicyDelete) error {
 	return nil
 }
 
-func (h *handler) disableTracingPolicy(op *tracingPolicyDisable) error {
-	h.collections.mu.Lock()
-	defer h.collections.mu.Unlock()
-	collections := h.collections.c
-	col, exists := collections[op.ck]
-	if !exists {
-		return fmt.Errorf("tracing policy %s does not exist", op.ck)
-	}
-	return h.doDisableTracingPolicy(col)
-
-}
-
 // should be called with h.collections.mu locked (for writing)
 func (h *handler) doDisableTracingPolicy(col *collection) error {
 	if col.state != EnabledState {
@@ -225,18 +213,6 @@ func (h *handler) doDisableTracingPolicy(col *collection) error {
 
 	col.state = DisabledState
 	return nil
-}
-
-func (h *handler) enableTracingPolicy(op *tracingPolicyEnable) error {
-	h.collections.mu.Lock()
-	defer h.collections.mu.Unlock()
-	collections := h.collections.c
-	col, exists := collections[op.ck]
-	if !exists {
-		return fmt.Errorf("tracing policy %s does not exist", op.ck)
-	}
-
-	return h.doEnableTracingPolicy(col)
 }
 
 // should be called with h.collections.mu locked (for writing)
