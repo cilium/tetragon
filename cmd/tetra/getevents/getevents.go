@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/cmd/tetra/common"
@@ -21,24 +22,26 @@ import (
 )
 
 type Opts struct {
-	Output        string
-	Color         string
-	IncludeFields []string
-	EventTypes    []string
-	ExcludeFields []string
-	Namespaces    []string
-	Namespace     []string // deprecated: use Namespaces
-	Processes     []string
-	Process       []string // deprecated: use Processes
-	Pods          []string
-	Pod           []string // deprecated: use Pods
-	Host          bool
-	Timestamps    bool
-	TTYEncode     string
-	StackTraces   bool
-	ImaHash       bool
-	PolicyNames   []string
-	CelExpression []string
+	Output           string
+	Color            string
+	IncludeFields    []string
+	EventTypes       []string
+	ExcludeFields    []string
+	Namespaces       []string
+	Namespace        []string // deprecated: use Namespaces
+	Processes        []string
+	Process          []string // deprecated: use Processes
+	Pods             []string
+	Pod              []string // deprecated: use Pods
+	Host             bool
+	Timestamps       bool
+	TTYEncode        string
+	StackTraces      bool
+	ImaHash          bool
+	PolicyNames      []string
+	CelExpression    []string
+	Reconnect        bool
+	ReconnectTimeout time.Duration
 }
 
 var Options Opts
@@ -191,13 +194,32 @@ redirection of events to the stdin. Examples:
 				// read events from stdin
 				return getEvents(context.Background(), newIOReaderClient(os.Stdin, common.Debug))
 			}
-			// connect to server
-			c, err := common.NewClientWithDefaultContextAndAddress()
-			if err != nil {
-				return fmt.Errorf("failed create gRPC client: %w", err)
+
+			reconnect := Options.Reconnect
+			tryGetEvents := func() error {
+				// connect to server
+				c, err := common.NewClientWithDefaultContextAndAddress()
+				if err != nil {
+					return fmt.Errorf("failed create gRPC client: %w", err)
+				}
+				defer c.Close()
+				ret := getEvents(c.SignalCtx, c.Client)
+				if ctxErr := c.SignalCtx.Err(); ctxErr != nil && errors.Is(ctxErr, context.Canceled) {
+					// we got a signal, so we should not try to reconnect
+					reconnect = false
+				}
+				return ret
 			}
-			defer c.Close()
-			return getEvents(c.SignalCtx, c.Client)
+
+			for {
+				err := tryGetEvents()
+				if !reconnect {
+					return err
+				}
+				fmt.Fprintf(os.Stderr, "getevents: err:%v retrying in %v\n", err, Options.ReconnectTimeout)
+				time.Sleep(Options.ReconnectTimeout)
+			}
+
 		},
 	}
 
@@ -227,5 +249,7 @@ redirection of events to the stdin. Examples:
 	flags.BoolVar(&Options.ImaHash, "ima-hash", true, "Include ima hashes in compact output")
 	flags.StringSliceVar(&Options.PolicyNames, "policy-names", nil, "Get events by tracing policy names")
 	flags.StringSliceVar(&Options.CelExpression, "cel-expression", nil, "Get events satisfying the CEL expression")
+	flags.BoolVar(&Options.Reconnect, "reconnect", false, "Keep trying to connect even if an error occurred")
+	flags.DurationVar(&Options.ReconnectTimeout, "reconnect-timeout", 2*time.Second, "reconnect timeout")
 	return &cmd
 }
