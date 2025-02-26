@@ -11,7 +11,6 @@ import (
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/cgroupratemetrics"
-	"github.com/cilium/tetragon/pkg/metrics/crimetrics"
 	"github.com/cilium/tetragon/pkg/metrics/enforcermetrics"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/metrics/eventmetrics"
@@ -100,6 +99,4 @@ func registerHealthMetrics(group metrics.Group) {
 	group.MustRegister(enforcermetrics.NewCollector())
 	// overhead metris
 	group.MustRegister(overhead.NewBPFCollector())
-	// cri metrics
-	crimetrics.RegisterMetrics(group)
 }
