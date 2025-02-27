@@ -286,8 +286,7 @@ tetragonOperator:
   strategy: {}
   # -- Steer the Tetragon Operator Deployment Pod placement via nodeSelector, tolerations and affinity rules.
   nodeSelector: {}
-  tolerations:
-    - operator: Exists
+  tolerations: []
   affinity: {}
   # -- tetragon-operator image.
   image:
