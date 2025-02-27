@@ -119,7 +119,8 @@ Helm chart for Tetragon
 | tetragon.redactionFilters | string | `""` | Filters to redact secrets from the args fields in Tetragon events. To perform redactions, redaction filters define RE2 regular expressions in the `redact` field. Any capture groups in these RE2 regular expressions are redacted and replaced with "*****".  For more control, you can select which binary or binaries should have their arguments redacted with the `binary_regex` field.  NOTE: This feature uses RE2 as its regular expression library. Make sure that you follow RE2 regular expression guidelines as you may observe unexpected results otherwise. More information on RE2 syntax can be found [here](https://github.com/google/re2/wiki/Syntax).  NOTE: When writing regular expressions in JSON, it is important to escape backslash characters. For instance `\Wpasswd\W?` would be written as `{"redact": "\\Wpasswd\\W?"}`.  As a concrete example, the following will redact all passwords passed to processes with the "--password" argument:    {"redact": ["--password(?:\\s+|=)(\\S*)"]}  Now, an event which contains the string "--password=foo" would have that string replaced with "--password=*****".  Suppose we also see some passwords passed via the -p shorthand for a specific binary, foo. We can also redact these as follows:    {"binary_regex": ["(?:^|/)foo$"], "redact": ["-p(?:\\s+|=)(\\S*)"]}  With both of the above redaction filters in place, we are now redacting all password arguments. |
 | tetragon.resources | object | `{}` |  |
 | tetragon.securityContext.privileged | bool | `true` |  |
-| tetragonOperator.affinity | object | `{}` |  |
+| tetragonOperator.affinity.podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution[0].labelSelector.matchLabels."app.kubernetes.io/name" | string | `"tetragon-operator"` |  |
+| tetragonOperator.affinity.podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution[0].topologyKey | string | `"kubernetes.io/hostname"` |  |
 | tetragonOperator.annotations | object | `{}` | Annotations for the Tetragon Operator Deployment. |
 | tetragonOperator.enabled | bool | `true` | Enables the Tetragon Operator. |
 | tetragonOperator.extraLabels | object | `{}` | Extra labels to be added on the Tetragon Operator Deployment. |
@@ -140,10 +141,11 @@ Helm chart for Tetragon
 | tetragonOperator.prometheus.serviceMonitor.extraLabels | object | `{}` | Extra labels to be added on the Tetragon Operator ServiceMonitor. |
 | tetragonOperator.prometheus.serviceMonitor.labelsOverride | object | `{}` | The set of labels to place on the 'ServiceMonitor' resource. |
 | tetragonOperator.prometheus.serviceMonitor.scrapeInterval | string | `"10s"` | Interval at which metrics should be scraped. If not specified, Prometheus' global scrape interval is used. |
+| tetragonOperator.replicas | int | `1` | Number of replicas to run for the tetragon-operator deployment |
 | tetragonOperator.resources | object | `{"limits":{"cpu":"500m","memory":"128Mi"},"requests":{"cpu":"10m","memory":"64Mi"}}` | resources for the Tetragon Operator Deployment Pod container. |
 | tetragonOperator.securityContext | object | `{}` | securityContext for the Tetragon Operator Deployment Pods. |
 | tetragonOperator.serviceAccount | object | `{"annotations":{},"create":true,"name":""}` | tetragon-operator service account. |
-| tetragonOperator.strategy | object | `{}` | resources for the Tetragon Operator Deployment update strategy |
+| tetragonOperator.strategy | object | `{"rollingUpdate":{"maxSurge":"25%","maxUnavailable":"50%"},"type":"RollingUpdate"}` | resources for the Tetragon Operator Deployment update strategy |
 | tetragonOperator.tolerations | list | `[]` |  |
 | tetragonOperator.tracingPolicy.enabled | bool | `true` | Enables the TracingPolicy and TracingPolicyNamespaced CRD creation. |
 | tolerations[0].operator | string | `"Exists"` |  |
