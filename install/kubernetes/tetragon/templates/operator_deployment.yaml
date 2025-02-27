@@ -17,7 +17,7 @@ spec:
   selector:
     matchLabels:
       {{- include "tetragon-operator.selectorLabels" . | nindent 6 }}
-  replicas: 1
+  replicas: {{ .Values.tetragonOperator.replicas }}
   template:
     metadata:
       {{- with .Values.tetragonOperator.podAnnotations }}
@@ -107,8 +107,8 @@ spec:
       {{- with .Values.tetragonOperator.extraVolumes }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
-{{- with .Values.tetragonOperator.strategy }}
+  {{- with .Values.tetragonOperator.strategy }}
   strategy:
-    {{- toYaml . | nindent 4 }}
-{{- end }}
+    {{- toYaml . | trim | nindent 4 }}
+  {{- end }}
 {{- end }}

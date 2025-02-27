@@ -251,6 +251,20 @@ tetragon:
 tetragonOperator:
   # -- Enables the Tetragon Operator.
   enabled: true
+  # -- Number of replicas to run for the tetragon-operator deployment
+  replicas: 1
+  # -- Lease handling for an automated failover when running multiple replicas
+  failoverLease:
+    # -- Enable lease failover functionality
+    enabled: false
+    # -- Kubernetes Namespace in which the Lease resource is created. Defaults to the namespace where Tetragon is deployed in, if it's empty.
+    namespace: ""
+    # -- If a lease is not renewed for X duration, the current leader is considered dead, a new leader is picked
+    leaseDuration: 15s
+    # -- The interval at which the leader will renew the lease
+    leaseRenewDeadline: 5s
+    # -- The timeout between retries if renewal fails
+    leaseRetryPeriod: 2s
   # -- Annotations for the Tetragon Operator Deployment.
   annotations: {}
   # -- Annotations for the Tetragon Operator Deployment Pods.
@@ -283,11 +297,23 @@ tetragonOperator:
       cpu: 10m
       memory: 64Mi
   # -- resources for the Tetragon Operator Deployment update strategy
-  strategy: {}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   # -- Steer the Tetragon Operator Deployment Pod placement via nodeSelector, tolerations and affinity rules.
   nodeSelector: {}
   tolerations: []
-  affinity: {}
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: tetragon-operator
   # -- tetragon-operator image.
   image:
     override: ~
