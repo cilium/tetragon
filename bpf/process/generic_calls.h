@@ -76,7 +76,7 @@ extract_arg_depth(u32 i, struct extract_arg_data *data)
 }
 
 #ifdef __LARGE_BPF_PROG
-FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long a)
+FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long *a)
 {
 	struct config_btf_arg *btf_config;
 
@@ -87,7 +87,7 @@ FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned lo
 	if (btf_config->is_initialized) {
 		struct extract_arg_data extract_data = {
 			.btf_config = btf_config,
-			.arg = &a,
+			.arg = a,
 		};
 #ifndef __V61_BPF_PROG
 #pragma unroll
@@ -101,7 +101,7 @@ FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned lo
 	}
 }
 #else
-FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long a) {}
+FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long *a) {}
 #endif /* __LARGE_BPF_PROG */
 
 FUNC_INLINE int
@@ -129,7 +129,7 @@ generic_process_event(void *ctx, struct bpf_map_def *tailcals)
 	a = (&e->a0)[index];
 	total = e->common.size;
 
-	extract_arg(config, index, a);
+	extract_arg(config, index, &a);
 
 	/* Read out args1-5 */
 	ty = (&config->arg0)[index];
