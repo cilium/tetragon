@@ -7,12 +7,22 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 
 	"github.com/cilium/little-vm-helper/pkg/arch"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
+
+func getArch(rcnf *RunConf) (arch.Arch, error) {
+	a := rcnf.QemuArch
+	if a == "" {
+		a = runtime.GOARCH
+	}
+
+	return arch.NewArch(a)
+}
 
 func BuildQemuArgs(log *logrus.Logger, rcnf *RunConf) ([]string, error) {
 	qemuArgs := []string{
@@ -26,21 +36,30 @@ func BuildQemuArgs(log *logrus.Logger, rcnf *RunConf) ([]string, error) {
 		"-smp", fmt.Sprintf("%d", rcnf.CPU), "-m", rcnf.Mem,
 	}
 
-	qemuArgs = arch.AppendArchSpecificQemuArgs(qemuArgs)
+	qArch, err := getArch(rcnf)
+	if err != nil {
+		return nil, err
+	}
+	qemuArgs = qArch.AppendArchSpecificQemuArgs(qemuArgs)
 
 	// quick-and-dirty kvm detection
 	kvmEnabled := false
-	if !rcnf.DisableKVM {
-		if f, err := os.OpenFile("/dev/kvm", os.O_RDWR, 0755); err == nil {
-			qemuArgs = append(qemuArgs, "-enable-kvm")
-			f.Close()
-			kvmEnabled = true
-		} else {
-			log.Info("KVM disabled")
+	if !rcnf.DisableHardwareAccel && qArch.IsNative() {
+		switch runtime.GOOS {
+		case "linux":
+			if f, err := os.OpenFile("/dev/kvm", os.O_RDWR, 0755); err == nil {
+				qemuArgs = append(qemuArgs, "-enable-kvm")
+				f.Close()
+				kvmEnabled = true
+			} else {
+				log.Info("KVM disabled")
+			}
+		case "darwin":
+			qemuArgs = append(qemuArgs, "-accel", "hvf")
 		}
 	}
 
-	qemuArgs = arch.AppendCPUKind(qemuArgs, kvmEnabled, rcnf.CPUKind)
+	qemuArgs = qArch.AppendCPUKind(qemuArgs, kvmEnabled, rcnf.CPUKind)
 
 	if rcnf.SerialPort != 0 {
 		qemuArgs = append(qemuArgs,
@@ -67,7 +86,7 @@ func BuildQemuArgs(log *logrus.Logger, rcnf *RunConf) ([]string, error) {
 	}
 
 	if rcnf.KernelFname != "" {
-		console, err := arch.Console()
+		console := qArch.Console()
 		if err != nil {
 			return nil, fmt.Errorf("failed retrieving console name: %w", err)
 		}
@@ -114,11 +133,12 @@ func BuildQemuArgs(log *logrus.Logger, rcnf *RunConf) ([]string, error) {
 }
 
 func StartQemu(rcnf RunConf) error {
-	qemuBin, err := arch.QemuBinary()
+	qArch, err := getArch(&rcnf)
 	if err != nil {
-		return fmt.Errorf("failed to retrieve Qemu binary: %w", err)
+		return err
 	}
 
+	qemuBin := qArch.QemuBinary()
 	qemuArgs, err := BuildQemuArgs(rcnf.Logger, &rcnf)
 	if err != nil {
 		return err
