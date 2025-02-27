@@ -16,6 +16,10 @@ data:
   skip-tracing-policy-crd: {{ not .Values.tetragonOperator.tracingPolicy.enabled | quote }}
   force-update-crds: {{ .Values.tetragonOperator.forceUpdateCRDs | quote }}
   {{- if gt (int .Values.tetragonOperator.replicas) 1 }}
-  leader-elect: "true"
+  leader-elect: {{ .Values.tetragonOperator.failoverLease.enabled | quote }}
+  leader-election-namespace: {{ .Values.tetragonOperator.failoverLease.namespace | quote }}
+  leader-election-lease-duration: {{ .Values.tetragonOperator.failoverLease.leaseDuration | quote }}
+  leader-election-renew-deadline: {{ .Values.tetragonOperator.failoverLease.leaseRenewDeadline | quote }}
+  leader-election-retry-period: {{ .Values.tetragonOperator.failoverLease.leaseRetryPeriod | quote }}
   {{- end }}
 {{- end }}

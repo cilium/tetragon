@@ -145,6 +145,12 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | tetragonOperator.extraPodLabels | object | `{}` | Extra labels to be added on the Tetragon Operator Deployment Pods. |
 | tetragonOperator.extraVolumeMounts | list | `[]` |  |
 | tetragonOperator.extraVolumes | list | `[]` | Extra volumes for the Tetragon Operator Deployment. |
+| tetragonOperator.failoverLease | object | `{"enabled":false,"leaseDuration":"15s","leaseRenewDeadline":"5s","leaseRetryPeriod":"2s","namespace":""}` | Lease handling for an automated failover when running multiple replicas |
+| tetragonOperator.failoverLease.enabled | bool | `false` | Enable lease failover functionality |
+| tetragonOperator.failoverLease.leaseDuration | string | `"15s"` | If a lease is not renewed for X duration, the current leader is considered dead, a new leader is picked |
+| tetragonOperator.failoverLease.leaseRenewDeadline | string | `"5s"` | The interval at which the leader will renew the lease |
+| tetragonOperator.failoverLease.leaseRetryPeriod | string | `"2s"` | The timeout between retries if renewal fails |
+| tetragonOperator.failoverLease.namespace | string | `""` | Kubernetes Namespace in which the Lease resource is created. Defaults to the namespace where Tetragon is deployed in, if it's empty. |
 | tetragonOperator.forceUpdateCRDs | bool | `false` |  |
 | tetragonOperator.image | object | `{"override":null,"pullPolicy":"IfNotPresent","repository":"quay.io/cilium/tetragon-operator","tag":"v1.3.0"}` | tetragon-operator image. |
 | tetragonOperator.nodeSelector | object | `{}` | Steer the Tetragon Operator Deployment Pod placement via nodeSelector, tolerations and affinity rules. |
