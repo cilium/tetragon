@@ -7317,7 +7317,7 @@ func TestKprobeDentryPath(t *testing.T) {
 	check := file.Name()
 	for _, info := range infos {
 		if len(info.MountPoint) > 1 && strings.HasPrefix(file.Name(), info.MountPoint) {
-			check = info.MountPoint[len(info.MountPoint):]
+			check = check[len(info.MountPoint):]
 			break
 		}
 	}
@@ -7342,6 +7342,8 @@ spec:
 `
 	createCrdFile(t, hook)
 
+	t.Logf("Removing file %s, mode %s, check %s\n", file.Name(), pathr.FilePathModeToStr(syscall.O_RDWR), check)
+
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
@@ -7349,7 +7351,6 @@ spec:
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
-	t.Logf("Removing file %s, mode %s, check %s\n", file.Name(), pathr.FilePathModeToStr(syscall.O_RDWR), check)
 	syscall.Unlink(file.Name())
 
 	kpChecker := ec.NewProcessKprobeChecker("").
