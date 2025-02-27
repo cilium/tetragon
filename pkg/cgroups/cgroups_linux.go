@@ -307,6 +307,10 @@ func DiscoverSubSysIds() error {
 }
 
 func setDeploymentMode(cgroupPath string) error {
+	if cgroupPath == "" {
+		return fmt.Errorf("cgroup path is empty")
+	}
+
 	if deploymentMode != DEPLOY_UNKNOWN {
 		return nil
 	}
@@ -333,7 +337,9 @@ func setDeploymentMode(cgroupPath string) error {
 		}
 	}
 
-	return fmt.Errorf("detect deployment mode failed, no match on Cgroup path '%s'", cgroupPath)
+	/* Set deployment mode to unknown and do not fail */
+	deploymentMode = DEPLOY_UNKNOWN
+	return nil
 }
 
 func GetDeploymentMode() DeploymentCode {
@@ -397,9 +403,19 @@ func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
 				path := s[idx+1:]
 				cgroupPath := filepath.Join(cgroupFSPath, controller.Name, path)
 				finalpath := filepath.Join(cgroupPath, "cgroup.procs")
+				logger.GetLogger().WithFields(logrus.Fields{
+					"cgroup.fs":              cgroupFSPath,
+					"cgroup.controller.name": controller.Name,
+					"cgroup.path":            cgroupPath,
+				}).Tracef("Cgroupv1 probing environment and deployment detection")
 				_, err := os.Stat(finalpath)
 				if err != nil {
-					// Probably namespaced... run the deployment mode detection
+					// Probably running from root hierarchy or namespaced
+					// run the detection again.
+					logger.GetLogger().WithFields(logrus.Fields{
+						"cgroup.fs":              cgroupFSPath,
+						"cgroup.controller.name": controller.Name,
+					}).Tracef("Cgroupv1 detected namespaces or running from root hierarchy, trying again")
 					err = setDeploymentMode(path)
 					if err == nil {
 						mode := GetDeploymentMode()
@@ -661,28 +677,31 @@ func detectDeploymentMode() (DeploymentCode, error) {
 	return GetDeploymentMode(), nil
 }
 
-func DetectDeploymentMode() (uint32, error) {
+func DetectDeploymentMode() (DeploymentCode, error) {
 	detectDeploymentOnce.Do(func() {
-		mode, err := detectDeploymentMode()
+		_, err := detectDeploymentMode()
 		if err != nil {
 			logger.GetLogger().WithFields(logrus.Fields{
 				"cgroup.fs": cgroupFSPath,
 			}).WithError(err).Warn("Detection of deployment mode failed")
 			return
 		}
-
-		logger.GetLogger().WithFields(logrus.Fields{
-			"cgroup.fs":       cgroupFSPath,
-			"deployment.mode": DeploymentCode(mode).String(),
-		}).Info("Deployment mode detection succeeded")
 	})
 
 	mode := GetDeploymentMode()
 	if mode == DEPLOY_UNKNOWN {
-		return uint32(mode), fmt.Errorf("detect deployment mode failed, could not parse process cgroup paths")
+		logger.GetLogger().WithFields(logrus.Fields{
+			"cgroup.fs":       cgroupFSPath,
+			"deployment.mode": DeploymentCode(mode).String(),
+		}).Warn("Deployment mode detection failed")
+	} else {
+		logger.GetLogger().WithFields(logrus.Fields{
+			"cgroup.fs":       cgroupFSPath,
+			"deployment.mode": DeploymentCode(mode).String(),
+		}).Info("Deployment mode detection succeeded")
 	}
 
-	return uint32(mode), nil
+	return mode, nil
 }
 
 // DetectCgroupFSMagic() runs by default DetectCgroupMode()

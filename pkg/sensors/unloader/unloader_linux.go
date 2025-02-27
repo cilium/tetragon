@@ -82,15 +82,20 @@ type RawDetachUnloader struct {
 	AttachType ebpf.AttachType
 }
 
-func (rdu *RawDetachUnloader) Unload(_ bool) error {
+func (rdu *RawDetachUnloader) Unload(unpin bool) error {
 	defer rdu.Prog.Close()
-	err := link.RawDetachProgram(link.RawDetachProgramOptions{
-		Target:  rdu.TargetFD,
-		Program: rdu.Prog,
-		Attach:  rdu.AttachType,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to detach %s: %w", rdu.Name, err)
+	// PROG_ATTACH does not return any link, so there's nothing to unpin,
+	// but we must skip the detach operation for 'unpin == false' otherwise
+	// the pinned program will be un-attached
+	if unpin {
+		err := link.RawDetachProgram(link.RawDetachProgramOptions{
+			Target:  rdu.TargetFD,
+			Program: rdu.Prog,
+			Attach:  rdu.AttachType,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to detach %s: %w", rdu.Name, err)
+		}
 	}
 	return nil
 }
@@ -105,10 +110,15 @@ type TcAttachment struct {
 	IsIngress bool
 }
 
-func (tu TcUnloader) Unload(_ bool) error {
-	for _, att := range tu.Attachments {
-		if err := detachTC(att.LinkName, att.IsIngress); err != nil {
-			return err
+func (tu TcUnloader) Unload(unpin bool) error {
+	// PROG_ATTACH does not return any link, so there's nothing to unpin,
+	// but we must skip the detach operation for 'unpin == false' otherwise
+	// the pinned program will be un-attached
+	if unpin {
+		for _, att := range tu.Attachments {
+			if err := detachTC(att.LinkName, att.IsIngress); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

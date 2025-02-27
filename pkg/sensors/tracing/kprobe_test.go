@@ -43,11 +43,13 @@ import (
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/cilium/tetragon/pkg/metricsconfig"
+	"github.com/cilium/tetragon/pkg/mountinfo"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
+	pathr "github.com/cilium/tetragon/pkg/reader/path"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tuo "github.com/cilium/tetragon/pkg/testutils/observer"
@@ -7289,6 +7291,83 @@ spec:
 	require.NoError(t, err)
 
 	checker := ec.NewUnorderedEventChecker(kprobeLongFileArgChecker, processLongCWDChecker)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestKprobeDentryPath(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	file, err := os.CreateTemp(t.TempDir(), "dentry-unlink")
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+	defer assert.NoError(t, file.Close())
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	infos, err := mountinfo.GetMountInfo()
+	if err != nil {
+		t.Fatalf("mountinfo.GetMountInfo() err %s", err)
+	}
+
+	// We can extract dentry type until first mount point,
+	// so let's detect that and find final path portion for
+	// checking.
+	check := file.Name()
+	for _, info := range infos {
+		if len(info.MountPoint) > 1 && strings.HasPrefix(file.Name(), info.MountPoint) {
+			check = info.MountPoint[len(info.MountPoint):]
+			break
+		}
+	}
+
+	hook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "multiple-symbols"
+spec:
+  kprobes:
+  - call: "security_path_unlink"
+    syscall: false
+    args:
+    - index: 1
+      type: "dentry"
+    selectors:
+    - matchArgs:
+      - index: 1
+        operator: "Postfix"
+        values:
+        - "` + check + `"
+`
+	createCrdFile(t, hook)
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	t.Logf("Removing file %s, mode %s, check %s\n", file.Name(), pathr.FilePathModeToStr(syscall.O_RDWR), check)
+	syscall.Unlink(file.Name())
+
+	kpChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full("security_path_unlink")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithPathArg(ec.NewKprobePathChecker().
+					WithPath(sm.Full(check)),
+				),
+			)).
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Suffix(tus.Conf().SelfBinary)))
+
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }

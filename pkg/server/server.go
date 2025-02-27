@@ -20,7 +20,6 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics/eventmetrics"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
-	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/cilium/tetragon/pkg/version"
 
@@ -51,12 +50,6 @@ type observer interface {
 	// {Disable, Enable}TracingPolicy are deprecated, use ConfigureTracingPolicy instead
 	DisableTracingPolicy(ctx context.Context, name string, namespace string) error
 	EnableTracingPolicy(ctx context.Context, name string, namespace string) error
-
-	// The Sensor API is deprecated
-	EnableSensor(ctx context.Context, name string) error
-	DisableSensor(ctx context.Context, name string) error
-	ListSensors(ctx context.Context) (*[]sensors.SensorStatus, error)
-	RemoveSensor(ctx context.Context, sensorName string) error
 }
 
 type hookRunner interface {
@@ -225,24 +218,9 @@ func (s *Server) GetHealth(_ context.Context, request *tetragon.GetHealthStatusR
 	return health.GetHealth()
 }
 
-func (s *Server) ListSensors(ctx context.Context, _ *tetragon.ListSensorsRequest) (*tetragon.ListSensorsResponse, error) {
+func (s *Server) ListSensors(_ context.Context, _ *tetragon.ListSensorsRequest) (*tetragon.ListSensorsResponse, error) {
 	logger.GetLogger().Debug("Received a ListSensors request")
-	list, err := s.observer.ListSensors(ctx)
-	if err != nil {
-		logger.GetLogger().WithError(err).Warn("Server ListSensors request failed")
-		return nil, err
-	}
-
-	sensors := make([]*tetragon.SensorStatus, 0, len(*list))
-	for _, s := range *list {
-		sensors = append(sensors, &tetragon.SensorStatus{
-			Name:       s.Name,
-			Enabled:    s.Enabled,
-			Collection: s.Collection,
-		})
-	}
-
-	return &tetragon.ListSensorsResponse{Sensors: sensors}, nil
+	return nil, fmt.Errorf("ListSensors is deprecated")
 }
 
 func (s *Server) AddTracingPolicy(ctx context.Context, req *tetragon.AddTracingPolicyRequest) (*tetragon.AddTracingPolicyResponse, error) {
@@ -333,41 +311,19 @@ func (s *Server) ListTracingPolicies(ctx context.Context, req *tetragon.ListTrac
 	return ret, err
 }
 
-func (s *Server) RemoveSensor(ctx context.Context, req *tetragon.RemoveSensorRequest) (*tetragon.RemoveSensorResponse, error) {
+func (s *Server) RemoveSensor(_ context.Context, req *tetragon.RemoveSensorRequest) (*tetragon.RemoveSensorResponse, error) {
 	logger.GetLogger().WithField("sensor.name", req.GetName()).Debug("Received a RemoveSensor request")
-	if err := s.observer.RemoveSensor(ctx, req.GetName()); err != nil {
-		logger.GetLogger().WithFields(logrus.Fields{
-			"sensor.name": req.GetName(),
-		}).WithError(err).Warn("Server RemoveSensor request failed")
-		return nil, err
-	}
-	return &tetragon.RemoveSensorResponse{}, nil
+	return nil, fmt.Errorf("RemoveSensor is deprecated")
 }
 
-func (s *Server) EnableSensor(ctx context.Context, req *tetragon.EnableSensorRequest) (*tetragon.EnableSensorResponse, error) {
+func (s *Server) EnableSensor(_ context.Context, req *tetragon.EnableSensorRequest) (*tetragon.EnableSensorResponse, error) {
 	logger.GetLogger().WithField("sensor.name", req.GetName()).Debug("Received a EnableSensor request")
-	err := s.observer.EnableSensor(ctx, req.GetName())
-	if err != nil {
-		logger.GetLogger().WithFields(logrus.Fields{
-			"sensor.name": req.GetName(),
-		}).WithError(err).Warn("Server EnableSensor request failed")
-		return nil, err
-	}
-
-	return &tetragon.EnableSensorResponse{}, nil
+	return nil, fmt.Errorf("EnableSensor is deprecated")
 }
 
-func (s *Server) DisableSensor(ctx context.Context, req *tetragon.DisableSensorRequest) (*tetragon.DisableSensorResponse, error) {
+func (s *Server) DisableSensor(_ context.Context, req *tetragon.DisableSensorRequest) (*tetragon.DisableSensorResponse, error) {
 	logger.GetLogger().WithField("sensor.name", req.GetName()).Debug("Received a DisableSensor request")
-	err := s.observer.DisableSensor(ctx, req.GetName())
-	if err != nil {
-		logger.GetLogger().WithFields(logrus.Fields{
-			"sensor.name": req.GetName(),
-		}).WithError(err).Warn("Server DisableSensor request failed")
-		return nil, err
-	}
-
-	return &tetragon.DisableSensorResponse{}, nil
+	return nil, fmt.Errorf("DisableSensor is deprecated")
 }
 
 func (s *Server) GetStackTraceTree(_ context.Context, req *tetragon.GetStackTraceTreeRequest) (*tetragon.GetStackTraceTreeResponse, error) {

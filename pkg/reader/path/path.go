@@ -63,8 +63,8 @@ func permString(bits uint16, rwx string, sticky byte) string {
 
 func FilePathModeToStr(mode uint16) string {
 	var str strings.Builder
-	upcast_mode := uint32(mode)
-	switch upcast_mode & syscall.S_IFMT {
+
+	switch mode & syscall.S_IFMT {
 	case syscall.S_IFBLK:
 		str.WriteString("b")
 	case syscall.S_IFCHR:

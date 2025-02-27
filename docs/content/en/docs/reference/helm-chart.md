@@ -162,7 +162,7 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | tetragonOperator.securityContext | object | `{}` | securityContext for the Tetragon Operator Deployment Pods. |
 | tetragonOperator.serviceAccount | object | `{"annotations":{},"create":true,"name":""}` | tetragon-operator service account. |
 | tetragonOperator.strategy | object | `{}` | resources for the Tetragon Operator Deployment update strategy |
-| tetragonOperator.tolerations[0].operator | string | `"Exists"` |  |
+| tetragonOperator.tolerations | list | `[]` |  |
 | tetragonOperator.tracingPolicy.enabled | bool | `true` | Enables the TracingPolicy and TracingPolicyNamespaced CRD creation. |
 | tolerations[0].operator | string | `"Exists"` |  |
 | updateStrategy | object | `{}` |  |
