@@ -27,6 +27,7 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/asm"
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -47,7 +48,6 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
-	pathr "github.com/cilium/tetragon/pkg/reader/path"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tuo "github.com/cilium/tetragon/pkg/testutils/observer"
@@ -7297,11 +7297,22 @@ func TestKprobeDentryPath(t *testing.T) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
-	file, err := os.CreateTemp(t.TempDir(), "dentry-unlink")
+	// In this test we create 2 files dentry-unlink-[12] and load config
+	// spec to watch unlink of one of them dentry-unlink-1.
+	// The we make sure we get proper expected path value in the event
+	// and that there's no event for dentry-unlink-2 file removal.
+
+	file_1, err := os.CreateTemp(t.TempDir(), "dentry-unlink-1")
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
-	defer assert.NoError(t, file.Close())
+	defer assert.NoError(t, file_1.Close())
+
+	file_2, err := os.CreateTemp(t.TempDir(), "dentry-unlink-2")
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+	defer assert.NoError(t, file_2.Close())
 
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
@@ -7314,10 +7325,12 @@ func TestKprobeDentryPath(t *testing.T) {
 	// We can extract dentry type until first mount point,
 	// so let's detect that and find final path portion for
 	// checking.
-	check := file.Name()
+	check_1 := file_1.Name()
+	check_2 := file_2.Name()
 	for _, info := range infos {
-		if len(info.MountPoint) > 1 && strings.HasPrefix(file.Name(), info.MountPoint) {
-			check = check[len(info.MountPoint):]
+		if len(info.MountPoint) > 1 && strings.HasPrefix(file_1.Name(), info.MountPoint) {
+			check_1 = check_1[len(info.MountPoint):]
+			check_2 = check_2[len(info.MountPoint):]
 			break
 		}
 	}
@@ -7338,11 +7351,12 @@ spec:
       - index: 1
         operator: "Postfix"
         values:
-        - "` + check + `"
+        - "` + check_1 + `"
 `
 	createCrdFile(t, hook)
 
-	t.Logf("Removing file %s, mode %s, check %s\n", file.Name(), pathr.FilePathModeToStr(syscall.O_RDWR), check)
+	t.Logf("Removing file 1 %s, check %s\n", file_1.Name(), check_1)
+	t.Logf("Removing file 2 %s, check %s\n", file_2.Name(), check_2)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -7351,24 +7365,32 @@ spec:
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
-	syscall.Unlink(file.Name())
+	syscall.Unlink(file_1.Name())
+	syscall.Unlink(file_2.Name())
 
-	kpChecker := ec.NewProcessKprobeChecker("").
-		WithFunctionName(sm.Full("security_path_unlink")).
-		WithArgs(ec.NewKprobeArgumentListMatcher().
-			WithOperator(lc.Ordered).
-			WithValues(
-				ec.NewKprobeArgumentChecker().WithPathArg(ec.NewKprobePathChecker().
-					WithPath(sm.Full(check)),
-				),
-			)).
-		WithProcess(ec.NewProcessChecker().
-			WithBinary(sm.Suffix(tus.Conf().SelfBinary)))
+	getChecker := func(check string) *eventchecker.UnorderedEventChecker {
+		kpChecker := ec.NewProcessKprobeChecker("").
+			WithFunctionName(sm.Full("security_path_unlink")).
+			WithArgs(ec.NewKprobeArgumentListMatcher().
+				WithOperator(lc.Ordered).
+				WithValues(
+					ec.NewKprobeArgumentChecker().WithPathArg(ec.NewKprobePathChecker().
+						WithPath(sm.Full(check)),
+					),
+				)).
+			WithProcess(ec.NewProcessChecker().
+				WithBinary(sm.Suffix(tus.Conf().SelfBinary)))
 
-	checker := ec.NewUnorderedEventChecker(kpChecker)
+		return ec.NewUnorderedEventChecker(kpChecker)
+	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	// We filter for file_1 (check_1) so we should get event for that
+	err = jsonchecker.JsonTestCheck(t, getChecker(check_1))
 	assert.NoError(t, err)
+
+	// ... but not for file_2 (check_2).
+	err = jsonchecker.JsonTestCheck(t, getChecker(check_2))
+	assert.Error(t, err)
 }
 
 func TestKprobeResolvePid(t *testing.T) {
