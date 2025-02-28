@@ -28,9 +28,9 @@ struct {
 	__array(values, int(struct pt_regs *));
 } retkprobe_calls SEC(".maps") = {
 	.values = {
-		[3] = (void *)&generic_retkprobe_filter_arg,
-		[4] = (void *)&generic_retkprobe_actions,
-		[5] = (void *)&generic_retkprobe_output,
+		[TAIL_CALL_ARGS] = (void *)&generic_retkprobe_filter_arg,
+		[TAIL_CALL_ACTIONS] = (void *)&generic_retkprobe_actions,
+		[TAIL_CALL_SEND] = (void *)&generic_retkprobe_output,
 	},
 };
 
