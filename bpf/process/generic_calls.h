@@ -10,6 +10,7 @@
 #include "types/basic.h"
 #include "vmlinux.h"
 #include "policy_conf.h"
+#include "generic_path.h"
 
 #define MAX_TOTAL 9000
 
@@ -44,6 +45,7 @@ generic_start_process_filter(void *ctx, struct bpf_map_def *calls)
 	msg->sel.pass = false;
 	msg->tailcall_index_process = 0;
 	msg->tailcall_index_selector = 0;
+	generic_path_init(msg);
 	task = (struct task_struct *)get_current_task();
 	/* Initialize namespaces to apply filters on them */
 	get_namespaces(&msg->ns, task);
@@ -107,7 +109,7 @@ FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned lo
 FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long *a) {}
 #endif /* __LARGE_BPF_PROG */
 
-FUNC_INLINE long generic_read_arg(void *ctx, int index, long off)
+FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map_def *tailcals)
 {
 	struct msg_generic_kprobe *e;
 	struct event_config *config;
@@ -131,6 +133,9 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off)
 	a = (&e->a0)[index];
 	extract_arg(config, index, &a);
 
+	if (should_offload_path(ty))
+		return generic_path_offload(ctx, ty, a, index, off, tailcals);
+
 	am = (&config->arg0m)[index];
 	return read_arg(ctx, e, index, ty, off, a, am, data_heap_ptr);
 }
@@ -153,7 +158,7 @@ generic_process_event(void *ctx, struct bpf_map_def *tailcals)
 	if (total < MAX_TOTAL) {
 		long errv;
 
-		errv = generic_read_arg(ctx, index, total);
+		errv = generic_read_arg(ctx, index, total, tailcals);
 		if (errv > 0)
 			total += errv;
 		/* Follow filter lookup failed so lets abort the event.
