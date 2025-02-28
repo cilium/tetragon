@@ -140,7 +140,7 @@ generic_process_event(void *ctx, struct bpf_map_def *tailcals)
 		int am = (&config->arg0m)[index];
 		long errv;
 
-		errv = read_call_arg(ctx, e, index, ty, total, a, am, data_heap_ptr);
+		errv = read_arg(ctx, e, index, ty, total, a, am, data_heap_ptr);
 		if (errv > 0)
 			total += errv;
 		/* Follow filter lookup failed so lets abort the event.
@@ -552,7 +552,7 @@ FUNC_INLINE int generic_retkprobe(void *ctx, struct bpf_map_def *calls, unsigned
 	ty_arg = config->argreturn;
 	do_copy = config->argreturncopy;
 	if (ty_arg) {
-		size += read_call_arg(ctx, e, 0, ty_arg, size, ret, 0, data_heap_ptr);
+		size += read_arg(ctx, e, 0, ty_arg, size, ret, 0, data_heap_ptr);
 #ifdef __LARGE_BPF_PROG
 		struct socket_owner owner;
 
