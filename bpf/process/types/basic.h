@@ -2197,7 +2197,7 @@ FUNC_INLINE void path_from_dentry(struct dentry *dentry, struct path *path_buf)
  * Returns the size of data appended to @args.
  */
 FUNC_INLINE long
-read_call_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
+read_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	      long orig_off, unsigned long arg, int argm,
 	      struct bpf_map_def *data_heap)
 {
