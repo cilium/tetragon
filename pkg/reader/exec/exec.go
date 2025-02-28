@@ -4,10 +4,7 @@
 package exec
 
 import (
-	"syscall"
-
 	"github.com/cilium/tetragon/pkg/api"
-	"golang.org/x/sys/unix"
 )
 
 // TODO: Harmonize these with the API docs (Flags field in tetragon.Process)
@@ -76,11 +73,4 @@ func DecodeCommonFlags(flags uint32) []string {
 		}
 	}
 	return s
-}
-
-func Signal(s uint32) string {
-	if s == 0 {
-		return ""
-	}
-	return unix.SignalName(syscall.Signal(s))
 }
