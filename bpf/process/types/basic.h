@@ -1505,6 +1505,7 @@ FUNC_INLINE size_t type_to_min_size(int type, int argm)
 	case fd_ty:
 	case file_ty:
 	case path_ty:
+	case dentry_type:
 	case string_type:
 		return MAX_STRING;
 	case int_type:
@@ -1747,6 +1748,7 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 			args += 4;
 		case file_ty:
 		case path_ty:
+		case dentry_type:
 #ifdef __LARGE_BPF_PROG
 		case linux_binprm_type:
 #endif
