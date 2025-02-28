@@ -132,6 +132,7 @@ enum {
 	TAIL_CALL_ARGS = 3,
 	TAIL_CALL_ACTIONS = 4,
 	TAIL_CALL_SEND = 5,
+	TAIL_CALL_PATH = 6,
 };
 
 struct selector_action {
