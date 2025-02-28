@@ -21,6 +21,7 @@ int generic_tracepoint_filter(void *ctx);
 int generic_tracepoint_arg(void *ctx);
 int generic_tracepoint_actions(void *ctx);
 int generic_tracepoint_output(void *ctx);
+int generic_tracepoint_path(void *ctx);
 
 struct {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
@@ -34,6 +35,9 @@ struct {
 		[TAIL_CALL_ARGS] = (void *)&generic_tracepoint_arg,
 		[TAIL_CALL_ACTIONS] = (void *)&generic_tracepoint_actions,
 		[TAIL_CALL_SEND] = (void *)&generic_tracepoint_output,
+#ifndef __V61_BPF_PROG
+		[TAIL_CALL_PATH] = (void *)&generic_tracepoint_path,
+#endif
 	},
 };
 
@@ -271,5 +275,13 @@ generic_tracepoint_output(void *ctx)
 {
 	return generic_output(ctx, MSG_OP_GENERIC_TRACEPOINT);
 }
+
+#ifndef __V61_BPF_PROG
+__attribute__((section("tracepoint"), used)) int
+generic_tracepoint_path(void *ctx)
+{
+	return generic_path(ctx, (struct bpf_map_def *)&tp_calls);
+}
+#endif
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
