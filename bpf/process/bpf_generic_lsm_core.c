@@ -31,11 +31,11 @@ struct {
 	__array(values, int(void *));
 } lsm_calls SEC(".maps") = {
 	.values = {
-		[0] = (void *)&generic_lsm_setup_event,
-		[1] = (void *)&generic_lsm_process_event,
-		[2] = (void *)&generic_lsm_process_filter,
-		[3] = (void *)&generic_lsm_filter_arg,
-		[4] = (void *)&generic_lsm_actions,
+		[TAIL_CALL_SETUP] = (void *)&generic_lsm_setup_event,
+		[TAIL_CALL_PROCESS] = (void *)&generic_lsm_process_event,
+		[TAIL_CALL_FILTER] = (void *)&generic_lsm_process_filter,
+		[TAIL_CALL_ARGS] = (void *)&generic_lsm_filter_arg,
+		[TAIL_CALL_ACTIONS] = (void *)&generic_lsm_actions,
 	},
 };
 
