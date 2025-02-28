@@ -13,6 +13,12 @@
 
 #define MAX_TOTAL 9000
 
+enum {
+	STATE_INIT,
+	STATE_WORK,
+	STATE_FINI,
+};
+
 FUNC_INLINE int
 generic_start_process_filter(void *ctx, struct bpf_map_def *calls)
 {
@@ -44,6 +50,7 @@ generic_start_process_filter(void *ctx, struct bpf_map_def *calls)
 	msg->sel.pass = false;
 	msg->tailcall_index_process = 0;
 	msg->tailcall_index_selector = 0;
+	msg->path.state = STATE_INIT;
 	task = (struct task_struct *)get_current_task();
 	/* Initialize namespaces to apply filters on them */
 	get_namespaces(&msg->ns, task);
@@ -104,7 +111,184 @@ FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned lo
 FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long *a) {}
 #endif /* __LARGE_BPF_PROG */
 
-FUNC_INLINE long generic_read_arg(void *ctx, int index, long off)
+FUNC_INLINE int get_off(char *buffer, char *buf)
+{
+	return buf - buffer;
+}
+
+FUNC_INLINE char *get_buf(char *buffer, int off)
+{
+	asm volatile("%[off] &= 0xfff;\n" : [off] "+r"(off));
+	return buffer + off;
+}
+
+FUNC_INLINE long generic_path_init(void *ctx, struct generic_path *gp, struct bpf_map_def *tailcals)
+{
+	const struct path *path = gp->path;
+	struct task_struct *task;
+	const struct path *root;
+	struct dentry *dentry;
+	struct fs_struct *fs;
+	char *buffer, *buf;
+	int zero = 0, buflen = MAX_BUF_LEN;
+
+	buffer = buf = map_lookup_elem(&buffer_heap_map, &zero);
+	if (!buffer)
+		return 0;
+
+	buf += MAX_BUF_LEN - 1;
+	probe_read(&dentry, sizeof(dentry), _(&path->dentry));
+	if (d_unlinked(dentry)) {
+		int error = prepend(&buf, &buflen, " (deleted)", 10);
+
+		if (error) // will never happen as prepend will never return a value != 0
+			return error;
+	}
+
+	task = (struct task_struct *)get_current_task();
+	probe_read(&fs, sizeof(fs), _(&task->fs));
+
+	root = _(&fs->root);
+	path = gp->path;
+
+	probe_read(&gp->root_dentry, sizeof(gp->root_dentry), _(&root->dentry));
+	probe_read(&gp->root_mnt, sizeof(gp->root_mnt), _(&root->mnt));
+	probe_read(&gp->dentry, sizeof(gp->dentry), _(&path->dentry));
+	probe_read(&gp->vfsmnt, sizeof(gp->vfsmnt), _(&path->mnt));
+	gp->mnt = real_mount(gp->vfsmnt);
+
+	gp->cnt = 0;
+	gp->off = get_off(buffer, buf);
+	gp->state = STATE_WORK;
+	tail_call(ctx, tailcals, TAIL_CALL_PATH);
+	return 0;
+}
+
+FUNC_INLINE long generic_path_work(void *ctx, struct generic_path *gp, struct bpf_map_def *tailcals)
+{
+	struct cwd_read_data data = {
+		.root_dentry = gp->root_dentry,
+		.root_mnt    = gp->root_mnt,
+		.dentry      = gp->dentry,
+		.vfsmnt      = gp->vfsmnt,
+		.mnt         = gp->mnt,
+	};
+	char *buffer, *buf;
+	int zero = 0;
+
+	buffer = map_lookup_elem(&buffer_heap_map, &zero);
+	if (!buffer)
+		return 0;
+
+	buf = get_buf(buffer, gp->off);
+
+	data.bf = buffer;
+	data.bptr = buf;
+	data.blen = gp->off;
+
+#ifndef __V61_BPF_PROG
+#pragma unroll
+	for (int i = 0; i < 512; ++i) {
+		if (cwd_read(&data))
+			break;
+	}
+#else
+        loop(4096, cwd_read_v61, (void *)&data, 0);
+#endif /* __V61_BPF_PROG */
+
+
+	gp->cnt++;
+	gp->off = get_off(buffer, data.bptr);
+
+	if (data.resolved || gp->cnt == 8) {
+		gp->state = STATE_FINI;
+		tail_call(ctx, tailcals, TAIL_CALL_PATH);
+		return 0;
+	}
+
+	gp->dentry = data.dentry;
+	gp->vfsmnt = data.vfsmnt;
+	gp->mnt    = data.mnt;
+
+	tail_call(ctx, tailcals, TAIL_CALL_PATH);
+	return 0;
+}
+
+FUNC_INLINE long generic_path_fini(void *ctx, struct generic_path *gp, struct bpf_map_def *tailcals)
+{
+	tail_call(ctx, tailcals, TAIL_CALL_PROCESS);
+	return 0;
+}
+
+FUNC_INLINE long generic_path(void *ctx, struct bpf_map_def *tailcals)
+{
+	struct msg_generic_kprobe *e;
+	int zero = 0;
+
+	e = map_lookup_elem(&process_call_heap, &zero);
+	if (!e)
+		return 0;
+
+	switch (e->path.state) {
+	case STATE_INIT:
+		return generic_path_init(ctx, &e->path, tailcals);
+	case STATE_FINI:
+		return generic_path_fini(ctx, &e->path, tailcals);
+	case STATE_WORK:
+		return generic_path_work(ctx, &e->path, tailcals);
+	}
+
+	return 0;
+}
+
+FUNC_INLINE const struct path * get_path(long ty, unsigned long arg)
+{
+	struct file *file;
+
+	switch (ty) {
+	case file_ty:
+		probe_read(&file, sizeof(file), &arg);
+		return (const struct path *) _(&file->f_path);
+	case path_ty:
+		return (const struct path *) arg;
+	}
+
+	return NULL;
+}
+
+FUNC_INLINE long generic_path_offload(void *ctx, long ty, unsigned long arg,
+				      int index, unsigned long orig_off,
+				      struct bpf_map_def *tailcals)
+{
+	struct msg_generic_kprobe *e;
+	char *args, *buffer, *buf;
+	int zero = 0;
+
+	e = map_lookup_elem(&process_call_heap, &zero);
+	if (!e)
+		return 0;
+
+	if (e->path.state == STATE_INIT) {
+		e->path.state = STATE_INIT;
+		e->path.path = get_path(ty, arg);
+		tail_call(ctx, tailcals, TAIL_CALL_PATH);
+		return 0;
+	}
+
+	if (e->path.state != STATE_FINI)
+		return 0;
+
+	args = args_off(e, orig_off);
+	e->argsoff[index & MAX_SELECTORS_MASK] = orig_off;
+
+	buffer = map_lookup_elem(&buffer_heap_map, &zero);
+	if (!buffer)
+		return 0;
+	buf = get_buf(buffer, e->path.off);
+	return store_path(args, buf, e->path.path, MAX_BUF_LEN - e->path.off, 0);
+}
+
+FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map_def *tailcals)
 {
 	struct msg_generic_kprobe *e;
 	struct event_config *config;
@@ -123,15 +307,17 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off)
 	asm volatile("%[index] &= %1 ;\n"
 		     : [index] "+r"(index)
 		     : "i"(MAX_SELECTORS_MASK));
-	ty = (&config->arg0)[index];
 
 	a = (&e->a0)[index];
 	extract_arg(config, index, &a);
 
+	ty = (&config->arg0)[index];
+	if (ty == path_ty || ty == file_ty)
+		return generic_path_offload(ctx, ty, a, index, off, tailcals);
+
 	am = (&config->arg0m)[index];
 	asm volatile("%[am] &= 0xffff;\n"
 		     : [am] "+r"(am));
-
 	return read_arg(ctx, e, index, ty, off, a, am, data_heap_ptr);
 }
 
@@ -153,7 +339,7 @@ generic_process_event(void *ctx, struct bpf_map_def *tailcals)
 	if (total < MAX_TOTAL) {
 		long errv;
 
-		errv = generic_read_arg(ctx, index, total);
+		errv = generic_read_arg(ctx, index, total, tailcals);
 		if (errv > 0)
 			total += errv;
 		/* Follow filter lookup failed so lets abort the event.

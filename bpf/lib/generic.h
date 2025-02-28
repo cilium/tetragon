@@ -36,6 +36,18 @@ struct msg_selector_data {
 /* value to mask an offsset into msg_generic_kprobe->args */
 #define GENERIC_MSG_ARGS_MASK 0x7ff
 
+struct generic_path {
+	int state;
+	int off;
+	int cnt;
+	const struct path *path;
+	struct dentry *root_dentry;
+	struct vfsmount *root_mnt;
+	struct dentry *dentry;
+	struct vfsmount *vfsmnt;
+	struct mount *mnt;
+};
+
 struct msg_generic_kprobe {
 	struct msg_common common;
 	struct msg_execve_key current;
@@ -64,6 +76,7 @@ struct msg_generic_kprobe {
 	};
 	struct execve_map_value curr;
 	struct heap_exe exe;
+	struct generic_path path;
 };
 
 FUNC_INLINE size_t generic_kprobe_common_size(void)
