@@ -30,12 +30,12 @@ struct {
 	__array(values, int(void *));
 } kprobe_calls SEC(".maps") = {
 	.values = {
-		[0] = (void *)&generic_kprobe_setup_event,
-		[1] = (void *)&generic_kprobe_process_event,
-		[2] = (void *)&generic_kprobe_process_filter,
-		[3] = (void *)&generic_kprobe_filter_arg,
-		[4] = (void *)&generic_kprobe_actions,
-		[5] = (void *)&generic_kprobe_output,
+		[TAIL_CALL_SETUP] = (void *)&generic_kprobe_setup_event,
+		[TAIL_CALL_PROCESS] = (void *)&generic_kprobe_process_event,
+		[TAIL_CALL_FILTER] = (void *)&generic_kprobe_process_filter,
+		[TAIL_CALL_ARGS] = (void *)&generic_kprobe_filter_arg,
+		[TAIL_CALL_ACTIONS] = (void *)&generic_kprobe_actions,
+		[TAIL_CALL_SEND] = (void *)&generic_kprobe_output,
 	},
 };
 
