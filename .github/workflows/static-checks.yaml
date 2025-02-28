@@ -36,7 +36,7 @@ jobs:
     - name: Check if build works for every commit
       run: |
         set -x
-        PR_FIRST_COMMIT=$(git rev-list --reverse -1 origin/${{ github.event.pull_request.base.ref }}..HEAD)
+        PR_FIRST_COMMIT=$(git rev-list --reverse origin/${{ github.event.pull_request.base.ref }}..HEAD | head -1)
         git rebase --exec "make -j$(nproc) tetragon tetra tetragon-bpf tetragon-operator" $PR_FIRST_COMMIT^
 
     - name: Failed commit during the build
