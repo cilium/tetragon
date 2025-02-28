@@ -104,14 +104,13 @@ FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned lo
 FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long *a) {}
 #endif /* __LARGE_BPF_PROG */
 
-FUNC_INLINE int
-generic_process_event(void *ctx, struct bpf_map_def *tailcals)
+FUNC_INLINE long generic_read_arg(void *ctx, int index, long off)
 {
 	struct msg_generic_kprobe *e;
 	struct event_config *config;
-	int index, zero = 0;
+	int am, zero = 0;
 	unsigned long a;
-	long ty, total;
+	long ty;
 
 	e = map_lookup_elem(&process_call_heap, &zero);
 	if (!e)
@@ -121,26 +120,37 @@ generic_process_event(void *ctx, struct bpf_map_def *tailcals)
 	if (!config)
 		return 0;
 
-	index = e->tailcall_index_process;
-	asm volatile("%[index] &= %1 ;\n"
-		     : [index] "+r"(index)
-		     : "i"(MAX_SELECTORS_MASK));
-
-	a = (&e->a0)[index];
-	total = e->common.size;
-
-	extract_arg(config, index, &a);
-
-	/* Read out args1-5 */
 	asm volatile("%[index] &= %1 ;\n"
 		     : [index] "+r"(index)
 		     : "i"(MAX_SELECTORS_MASK));
 	ty = (&config->arg0)[index];
+
+	a = (&e->a0)[index];
+	extract_arg(config, index, &a);
+
+	am = (&config->arg0m)[index];
+	return read_arg(ctx, e, index, ty, off, a, am, data_heap_ptr);
+}
+
+FUNC_INLINE int
+generic_process_event(void *ctx, struct bpf_map_def *tailcals)
+{
+	struct msg_generic_kprobe *e;
+	int index, zero = 0;
+	long total;
+
+	e = map_lookup_elem(&process_call_heap, &zero);
+	if (!e)
+		return 0;
+
+	index = e->tailcall_index_process;
+	total = e->common.size;
+
+	/* Read out args1-5 */
 	if (total < MAX_TOTAL) {
-		int am = (&config->arg0m)[index];
 		long errv;
 
-		errv = read_arg(ctx, e, index, ty, total, a, am, data_heap_ptr);
+		errv = generic_read_arg(ctx, index, total);
 		if (errv > 0)
 			total += errv;
 		/* Follow filter lookup failed so lets abort the event.
