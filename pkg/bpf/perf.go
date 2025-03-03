@@ -3,7 +3,9 @@
 
 package bpf
 
-import "golang.org/x/sys/unix"
+import (
+	"github.com/cilium/tetragon/pkg/constants"
+)
 
 const (
 	eventsMapName = "tcpmon_map"
@@ -103,5 +105,5 @@ const (
 	BPF_F_STACK_BUILD_ID = 1 << 5
 
 	// Build ID flags bit for perf_event_open
-	PerfBitBuildId = unix.CBitFieldMaskBit34
+	PerfBitBuildId = constants.CBitFieldMaskBit34
 )
