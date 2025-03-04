@@ -184,22 +184,26 @@ set_event_from_skb(struct skb_type *event, struct sk_buff *skb)
 		struct sec_path *sp;
 		struct skb_ext *ext;
 		u64 offset;
+		int sec_path_id;
 
-#define SKB_EXT_SEC_PATH 1 // TBD do this with BTF
-		probe_read(&ext, sizeof(ext), _(&skb->extensions));
+		if (!bpf_core_enum_value_exists(enum skb_ext_id,
+						SKB_EXT_SEC_PATH))
+			return 0;
+		sec_path_id = bpf_core_enum_value(enum skb_ext_id,
+						  SKB_EXT_SEC_PATH);
+
+		bpf_core_read(&ext, sizeof(ext), &skb->extensions);
 		if (ext) {
-			probe_read(&offset, sizeof(offset),
-				   _(&ext->offset[SKB_EXT_SEC_PATH]));
+			bpf_core_read(&offset, sizeof(offset),
+				      &ext->offset[sec_path_id]);
 			sp = (void *)ext + (offset << 3);
-
-			probe_read(&event->secpath_len,
-				   sizeof(event->secpath_len),
-				   _(&sp->len));
-			probe_read(&event->secpath_olen,
-				   sizeof(event->secpath_olen),
-				   _(&sp->olen));
+			bpf_core_read(&event->secpath_len,
+				      sizeof(event->secpath_len), &sp->len);
+			bpf_core_read(&event->secpath_olen,
+				      sizeof(event->secpath_olen), &sp->olen);
 		}
 	}
+
 	return 0;
 }
 #endif // __SKB_H__
