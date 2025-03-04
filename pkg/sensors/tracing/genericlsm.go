@@ -346,8 +346,7 @@ func createGenericLsmSensor(
 	var err error
 
 	if !bpf.HasLSMPrograms() || !kernels.EnableLargeProgs() {
-		return nil, fmt.Errorf("Unable to load simple LSM BPF program. " +
-			"Does you kernel support the bpf LSM? You can enable LSM BPF by modifying " +
+		return nil, fmt.Errorf("Does you kernel support the bpf LSM? You can enable LSM BPF by modifying" +
 			"the GRUB configuration /etc/default/grub with GRUB_CMDLINE_LINUX=\"lsm=bpf\"")
 	}
 
