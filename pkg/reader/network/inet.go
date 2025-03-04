@@ -5,57 +5,7 @@ package network
 
 import (
 	"fmt"
-
-	"golang.org/x/sys/unix"
 )
-
-var inetFamily = map[uint16]string{
-	unix.AF_UNSPEC:     "AF_UNSPEC",
-	unix.AF_UNIX:       "AF_UNIX",
-	unix.AF_INET:       "AF_INET",
-	unix.AF_AX25:       "AF_AX25",
-	unix.AF_IPX:        "AF_IPX",
-	unix.AF_APPLETALK:  "AF_APPLETALK",
-	unix.AF_NETROM:     "AF_NETROM",
-	unix.AF_BRIDGE:     "AF_BRIDGE",
-	unix.AF_ATMPVC:     "AF_ATMPVC",
-	unix.AF_X25:        "AF_X25",
-	unix.AF_INET6:      "AF_INET6",
-	unix.AF_ROSE:       "AF_ROSE",
-	unix.AF_DECnet:     "AF_DECnet",
-	unix.AF_NETBEUI:    "AF_NETBEUI",
-	unix.AF_SECURITY:   "AF_SECURITY",
-	unix.AF_KEY:        "AF_KEY",
-	unix.AF_NETLINK:    "AF_NETLINK",
-	unix.AF_PACKET:     "AF_PACKET",
-	unix.AF_ASH:        "AF_ASH",
-	unix.AF_ECONET:     "AF_ECONET",
-	unix.AF_ATMSVC:     "AF_ATMSVC",
-	unix.AF_RDS:        "AF_RDS",
-	unix.AF_IRDA:       "AF_IRDA",
-	unix.AF_PPPOX:      "AF_PPPOX",
-	unix.AF_WANPIPE:    "AF_WANPIPE",
-	unix.AF_LLC:        "AF_LLC",
-	unix.AF_IB:         "AF_IB",
-	unix.AF_MPLS:       "AF_MPLS",
-	unix.AF_CAN:        "AF_CAN",
-	unix.AF_TIPC:       "AF_TIPC",
-	unix.AF_BLUETOOTH:  "AF_BLUETOOTH",
-	unix.AF_IUCV:       "AF_IUCV",
-	unix.AF_RXRPC:      "AF_RXRPC",
-	unix.AF_ISDN:       "AF_ISDN",
-	unix.AF_PHONET:     "AF_PHONET",
-	unix.AF_IEEE802154: "AF_IEEE802154",
-	unix.AF_CAIF:       "AF_CAIF",
-	unix.AF_ALG:        "AF_ALG",
-	unix.AF_NFC:        "AF_NFC",
-	unix.AF_VSOCK:      "AF_VSOCK",
-	unix.AF_KCM:        "AF_KCM",
-	unix.AF_QIPCRTR:    "AF_QIPCRTR",
-	unix.AF_SMC:        "AF_SMC",
-	unix.AF_XDP:        "AF_XDP",
-	unix.AF_MCTP:       "AF_MCTP",
-}
 
 func InetFamily(family uint16) string {
 
