@@ -5,10 +5,8 @@ package errmetrics
 
 import (
 	"fmt"
-	"syscall"
 
 	"github.com/cilium/ebpf"
-	"golang.org/x/sys/unix"
 )
 
 const UnknownFname = "<unknown>"
@@ -67,7 +65,7 @@ func (m Map) Dump() ([]DumpEntry, error) {
 		}
 		ret = append(ret, DumpEntry{
 			Location: fmt.Sprintf("bpf/%s:%d", fname, key.LineNR),
-			Error:    fmt.Sprintf("%s (%d)", unix.ErrnoName(syscall.Errno(key.Err)), key.Err),
+			Error:    fmt.Sprintf("%s (%d)", GetErrorMessage(key.Err), key.Err),
 			Count:    count,
 		})
 	}
