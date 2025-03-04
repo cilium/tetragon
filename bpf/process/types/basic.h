@@ -350,17 +350,12 @@ parse_iovec_array(long off, unsigned long arg, int i, unsigned long max,
 #define MAX_STRING_FILTER 32
 #endif
 
-FUNC_INLINE long copy_path(char *args, const struct path *arg)
+FUNC_INLINE long store_path(char *args, char *buffer, const struct path *arg,
+			    int size, int flags)
 {
 	int *s = (int *)args;
-	int size = 0, flags = 0;
-	char *buffer;
 	void *curr = &args[4];
 	umode_t i_mode;
-
-	buffer = d_path_local(arg, &size, &flags);
-	if (!buffer)
-		return 0;
 
 	asm volatile("%[size] &= 0xfff;\n"
 		     : [size] "+r"(size));
@@ -383,6 +378,18 @@ FUNC_INLINE long copy_path(char *args, const struct path *arg)
 	size += sizeof(u32) + sizeof(u16); // for the flags + i_mode
 
 	return size;
+}
+
+FUNC_INLINE long copy_path(char *args, const struct path *arg)
+{
+	int size = 0, flags = 0;
+	char *buffer;
+
+	buffer = d_path_local(arg, &size, &flags);
+	if (!buffer)
+		return 0;
+
+	return store_path(args, buffer, arg, size, flags);
 }
 
 FUNC_INLINE long copy_strings(char *args, char *arg, int max_size)
