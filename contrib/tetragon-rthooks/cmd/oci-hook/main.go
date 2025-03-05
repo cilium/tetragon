@@ -263,7 +263,7 @@ func createContainerHook(log *slog.Logger) (error, map[string]string) {
 	// In "containerd (createContainer)" and "cri-o" we are already in the
 	// container root directory. In "containerd (createRuntime)" we need to
 	// append the rootDir the root path from the spec.
-	if configName == "config.json" {
+	if configName == filepath.Join(rootDir, "config.json") {
 		rootDir = path.Join(rootDir, spec.Root.Path)
 	}
 
