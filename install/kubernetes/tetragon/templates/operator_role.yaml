@@ -1,0 +1,30 @@
+{{- if and .Values.tetragonOperator.enabled .Values.serviceAccount.create .Values.tetragonOperator.failoverLease.enabled }}
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ .Release.Name }}-operator
+  namespace: {{ .Release.Namespace }}
+  labels:
+  {{- include "tetragon-operator.labels" . | nindent 4 }}
+rules:
+# For tetragon-operator running with multiple replicas
+#
+# Tetragon operator running in HA mode requires the use of ResourceLock for Leader Election
+# between multiple running instances.
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - create
+  - get
+  - update
+# A Lease changes will result in Kubernetes events. Thus, allow the operator ServiceAccount
+# to create them.
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+{{- end }}

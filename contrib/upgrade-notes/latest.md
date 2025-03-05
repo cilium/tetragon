@@ -11,7 +11,9 @@ Depending on your setup, changes listed here might require a manual intervention
 
 ### Helm Values
 
-* TBD
+* It's now supported to run multiple Tetragon operator replicas simultaneously. Enable it by setting `tetragonOperator.replicas=2` and `tetragonOperator.failoverLease.enabled=true`.
+* `tetragonOperator.strategy` now sets a default `rollingUpdate` strategy (`maxSurge=1`, `maxUnavailable=0`) to reduce downtime during an upgrade.
+* The Tetragon operator Deployment now sets a default `podAntiAffinity` (`preferredDuringSchedulingIgnoredDuringExecution`) to improve the Pod distribution (if possible), without enforcing it to avoid being stuck during upgrades on single or two node clusters.
 
 ### TracingPolicy (k8s CRD)
 
