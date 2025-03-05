@@ -132,6 +132,9 @@ generic_process_event(void *ctx, struct bpf_map_def *tailcals)
 	extract_arg(config, index, &a);
 
 	/* Read out args1-5 */
+	asm volatile("%[index] &= %1 ;\n"
+		     : [index] "+r"(index)
+		     : "i"(MAX_SELECTORS_MASK));
 	ty = (&config->arg0)[index];
 	if (total < MAX_TOTAL) {
 		long errv;
