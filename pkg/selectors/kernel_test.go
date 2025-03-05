@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
+//go:build !windows
+
 // go test -gcflags="" -c ./pkg/selectors -o go-tests/selectors.test
 // sudo ./go-tests/selectors.test  [ -test.run TestCopyFileRange ]
 
