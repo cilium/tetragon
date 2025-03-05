@@ -66,19 +66,18 @@ func Handle(event interface{}) {
 
 func rawSyscallName(tp *tetragon.ProcessTracepoint) string {
 	sysID := int64(-1)
-	if len(tp.Args) > 0 && tp.Args[0] != nil {
-		if x, ok := tp.Args[0].GetArg().(*tetragon.KprobeArgument_LongArg); ok {
-			sysID = x.LongArg
+	var sysABI string
+	for _, x := range tp.Args {
+		if x, ok := x.GetArg().(*tetragon.KprobeArgument_SyscallId); ok {
+			sysID = int64(x.SyscallId.Id)
+			sysABI = x.SyscallId.Abi
+			break
 		}
 	}
 	if sysID == -1 {
 		return ""
 	}
-	abi, err := syscallinfo.DefaultABI()
-	if err != nil {
-		return ""
-	}
-	name, err := syscallinfo.GetSyscallName(abi, int(sysID))
+	name, err := syscallinfo.GetSyscallName(sysABI, int(sysID))
 	if err != nil {
 		return ""
 	}
