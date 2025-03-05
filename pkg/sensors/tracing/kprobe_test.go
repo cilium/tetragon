@@ -7354,6 +7354,73 @@ spec:
 	assert.NoError(t, err)
 }
 
+func TestLongPathMax(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	// depending on temp dir, this should generate a path of ~1500 chars
+	// we can increase this to reach ~4000 for kernel supporting more than 11 dentry walk
+	tmp := t.TempDir()
+	cnt := (4096 - /* "/a" */ 2 - 1 - len(tmp)) / 2
+	longPathSlices := slices.Repeat([]string{"a"}, cnt)
+	longPath := path.Join(tmp, path.Join(longPathSlices...))
+
+	// create a long temporary directory structure
+	err := os.MkdirAll(longPath, 0644)
+	require.NoError(t, err)
+	longPathWithFile := path.Join(longPath, "f")
+	file, err := os.Create(longPathWithFile)
+	require.NoError(t, err)
+	file.Close()
+
+	fdinstallHook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "fdinstall"
+spec:
+  kprobes:
+  - call: "fd_install"
+    syscall: false
+    args:
+    - index: 1
+      type: "file"`
+
+	createCrdFile(t, fdinstallHook)
+
+	checkPath := longPathWithFile
+	if !config.EnableLargeProgs() {
+		// 4.19 is limited in path processing, we can get 32 iterations
+		// together with 8 tail calls gives 32 * 8 = 256 path components
+		slices := slices.Repeat([]string{"a"}, 255)
+		checkPath = path.Join("/", path.Join(slices...), "f")
+	}
+
+	kprobeLongFileArgChecker := ec.NewProcessKprobeChecker("longFile").
+		WithFunctionName(sm.Full("fd_install")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().WithValues(
+			ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Full(checkPath))),
+		))
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	// generate an event by opening the file
+	file, err = os.Open(longPathWithFile)
+	require.NoError(t, err)
+	file.Close()
+
+	checker := ec.NewUnorderedEventChecker(kprobeLongFileArgChecker)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
 func TestKprobeDentryPath(t *testing.T) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
