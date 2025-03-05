@@ -625,7 +625,7 @@ FUNC_INLINE int generic_retkprobe(void *ctx, struct bpf_map_def *calls, unsigned
 // msg_generic_hdr structure.
 FUNC_INLINE int generic_process_filter(void)
 {
-	int selectors, pass, curr, zero = 0;
+	int selectors, pass, zero = 0;
 	struct execve_map_value *enter;
 	struct msg_generic_kprobe *msg;
 	struct msg_execve_key *current;
@@ -652,8 +652,7 @@ FUNC_INLINE int generic_process_filter(void)
 	sel = &msg->sel;
 	current = &msg->current;
 
-	curr = sel->curr;
-	if (curr > MAX_SELECTORS)
+	if (sel->curr > MAX_SELECTORS)
 		return process_filter_done(sel, enter, current);
 
 	selectors = f[0];
@@ -664,12 +663,14 @@ FUNC_INLINE int generic_process_filter(void)
 	}
 
 	/* If we get here with reference to uninitialized selector drop */
-	if (selectors <= curr)
+	if (selectors <= sel->curr)
 		return process_filter_done(sel, enter, current);
 
-	pass = selector_process_filter(f, curr, enter, msg);
+	pass = selector_process_filter(f, sel->curr, enter, msg);
 	if (pass) {
 		/* Verify lost that msg is not null here so recheck */
+		int curr = sel->curr;
+
 		asm volatile("%[curr] &= 0x1f;\n"
 			     : [curr] "+r"(curr));
 		sel->active[curr] = true;
