@@ -48,8 +48,8 @@ func TestPodDelete(t *testing.T) {
 						},
 						Args: []*tetragon.KprobeArgument{
 							{
-								Arg: &tetragon.KprobeArgument_LongArg{
-									LongArg: 0,
+								Arg: &tetragon.KprobeArgument_SyscallId{
+									SyscallId: &tetragon.SyscallId{Id: 0, Abi: "x64"},
 								},
 							},
 						},
