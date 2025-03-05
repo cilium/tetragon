@@ -44,7 +44,7 @@ func New() *cobra.Command {
 	flags := rootCmd.PersistentFlags()
 	flags.BoolVarP(&common.Debug, common.KeyDebug, "d", false, "Enable debug messages")
 	flags.StringVar(&common.ServerAddress, common.KeyServerAddress, "", "gRPC server address")
-	flags.DurationVar(&common.Timeout, common.KeyTimeout, 10*time.Second, "Connection timeout")
+	flags.DurationVar(&common.Timeout, common.KeyTimeout, 30*time.Second, "Connection timeout")
 	flags.IntVar(&common.Retries, common.KeyRetries, 1, "Connection retries with exponential backoff")
 	return rootCmd
 }
