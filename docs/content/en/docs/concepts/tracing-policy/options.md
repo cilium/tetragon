@@ -19,6 +19,7 @@ Options array is passed and processed by each hook used in the spec file that
 supports options. At the moment it's availabe for kprobe and uprobe hooks.
 
 - [`Kprobe Options`](#kprobe-options): options for kprobe hooks.
+- [`Uprobe Options`](#uprobe-options): options for uprobe hooks.
 
 ## Kprobe options
 
@@ -39,8 +40,6 @@ Example:
     - name: "disable-kprobe-multi"
       value: "1"
 ```
-
-- [`Uprobe Options`](#uprobe-options): options for uprobe hooks.
 
 ## Uprobe options
 
