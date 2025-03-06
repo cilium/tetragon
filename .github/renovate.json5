@@ -346,7 +346,6 @@
       "allowedVersions": "/^1\\.22\\.[0-9]+-?(alpine)?$/",
       "matchBaseBranches": [
         "v1.1",
-        "v1.2",
       ]
     },
     {
@@ -358,6 +357,7 @@
       ],
       "allowedVersions": "/^1\\.23\\.[0-9]+-?(alpine)?$/",
       "matchBaseBranches": [
+        "v1.2",
         "v1.3",
       ]
     },
