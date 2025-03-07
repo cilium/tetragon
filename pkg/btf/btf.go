@@ -16,10 +16,9 @@ import (
 	"github.com/cilium/ebpf/btf"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/defaults"
+	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
-
-	"golang.org/x/sys/unix"
 )
 
 var (
@@ -43,18 +42,9 @@ func observerFindBTF(lib, btf string) (string, error) {
 			return tetragonBtfEnv, nil
 		}
 
-		var kernelVersion string
-
-		// Force configured kernel version
-		if option.Config.KernelVersion != "" {
-			kernelVersion = option.Config.KernelVersion
-		} else {
-			var uname unix.Utsname
-			err := unix.Uname(&uname)
-			if err != nil {
-				return btf, fmt.Errorf("Kernel version lookup (uname -r) failing. Use '--kernel' to set manually: %w", err)
-			}
-			kernelVersion = unix.ByteSliceToString(uname.Release[:])
+		_, kernelVersion, err := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
+		if err != nil {
+			return btf, err
 		}
 
 		// Preference of BTF files, first search for kernel exposed BTF, then
