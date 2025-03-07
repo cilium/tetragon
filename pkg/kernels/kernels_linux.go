@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/option"
 
 	"golang.org/x/sys/unix"
@@ -126,24 +125,6 @@ func MinKernelVersion(kernel string) bool {
 	minVersion := int(KernelStringToNumeric(kernel))
 
 	return minVersion <= runningVersion
-}
-
-func EnableV61Progs() bool {
-	if option.Config.ForceSmallProgs {
-		return false
-	}
-	kernelVer, _, _ := GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
-	return (int64(kernelVer) >= KernelStringToNumeric("6.1.0"))
-}
-
-func EnableLargeProgs() bool {
-	if option.Config.ForceSmallProgs {
-		return false
-	}
-	if option.Config.ForceLargeProgs {
-		return true
-	}
-	return bpf.HasProgramLargeSize() && bpf.HasSignalHelper()
 }
 
 func IsKernelVersionLessThan(version string) bool {

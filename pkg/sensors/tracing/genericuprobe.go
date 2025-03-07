@@ -16,11 +16,11 @@ import (
 	"github.com/cilium/tetragon/pkg/api/ops"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/config"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
-	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
@@ -448,9 +448,9 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 	progs []*program.Program, maps []*program.Map) ([]*program.Program, []*program.Map) {
 
 	loadProgName := "bpf_generic_uprobe.o"
-	if kernels.EnableV61Progs() {
+	if config.EnableV61Progs() {
 		loadProgName = "bpf_generic_uprobe_v61.o"
-	} else if kernels.EnableLargeProgs() {
+	} else if config.EnableLargeProgs() {
 		loadProgName = "bpf_generic_uprobe_v53.o"
 	}
 

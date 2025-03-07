@@ -15,8 +15,8 @@ import (
 
 	"github.com/cilium/ebpf"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
+	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
-	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
@@ -57,7 +57,7 @@ func TestLoadUprobeSensor(t *testing.T) {
 		tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
 	}
 
-	if kernels.EnableLargeProgs() {
+	if config.EnableLargeProgs() {
 		// shared with base sensor
 		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 5, 6}})
 	} else {
