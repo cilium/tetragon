@@ -28,7 +28,6 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/config/confmap"
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
-
 	"github.com/sirupsen/logrus"
 )
 
@@ -38,10 +37,17 @@ const (
 
 var (
 	eventHandler = make(map[uint8]func(r *bytes.Reader) ([]Event, error))
-
 	observerList []*Observer
+
+	// Use a sync.Pool to reuse bytes.Reader objects
+	readerPool = sync.Pool{
+		New: func() interface{} {
+			return new(bytes.Reader)
+		},
+	}
 )
 
+// Event is defined the same as notify.Message
 type Event notify.Message
 
 func RegisterEventHandlerAtInit(ev uint8, handler func(r *bytes.Reader) ([]Event, error)) {
@@ -76,6 +82,7 @@ func (k *Observer) RemoveListener(listener Listener) {
 	}
 }
 
+// HandlePerfError wraps errors from perf data handling
 type HandlePerfError struct {
 	kind   errormetrics.EventHandlerError
 	err    error
@@ -90,12 +97,12 @@ func (e *HandlePerfError) Unwrap() error {
 	return e.err
 }
 
-// HandlePerfData returns the events from raw bytes
-// NB: It is made public so that it can be used in testing.
+// HandlePerfData uses the object pool to get a bytes.Reader for parsing perf data
 func HandlePerfData(data []byte) (byte, []Event, *HandlePerfError) {
 	op := data[0]
-	r := bytes.NewReader(data)
-	// These ops handlers are registered by RegisterEventHandlerAtInit().
+	r := readerPool.Get().(*bytes.Reader)
+	defer readerPool.Put(r)
+	r.Reset(data)
 	handler, ok := eventHandler[op]
 	if !ok {
 		return op, nil, &HandlePerfError{
@@ -104,7 +111,6 @@ func HandlePerfData(data []byte) (byte, []Event, *HandlePerfError) {
 			opcode: op,
 		}
 	}
-
 	events, err := handler(r)
 	if err != nil {
 		return op, events, &HandlePerfError{
@@ -141,38 +147,27 @@ func (k *Observer) receiveEvent(data []byte) {
 	}
 }
 
-// Gets final size for single perf ring buffer rounded from
-// passed size argument (kindly borrowed from ebpf/cilium)
+// perfBufferSize calculates the final ring buffer size based on the perCPUBuffer parameter
 func perfBufferSize(perCPUBuffer int) int {
 	pageSize := os.Getpagesize()
-
-	// Smallest whole number of pages
 	nPages := (perCPUBuffer + pageSize - 1) / pageSize
-
-	// Round up to nearest power of two number of pages
 	nPages = int(math.Pow(2, math.Ceil(math.Log2(float64(nPages)))))
-
-	// Add one for metadata
 	nPages++
-
 	return nPages * pageSize
 }
 
 func sizeWithSuffix(size int) string {
 	suffix := [4]string{"", "K", "M", "G"}
-
 	i := 0
 	for size > 1024 && i < 3 {
 		size = size / 1024
 		i++
 	}
-
 	return fmt.Sprintf("%d%s", size, suffix[i])
 }
 
 func (k *Observer) getRBSize(cpus int) int {
 	var size int
-
 	if option.Config.RBSize == 0 && option.Config.RBSizeTotal == 0 {
 		size = perCPUBufferBytes
 	} else if option.Config.RBSize != 0 {
@@ -180,10 +175,8 @@ func (k *Observer) getRBSize(cpus int) int {
 	} else {
 		size = option.Config.RBSizeTotal / int(cpus)
 	}
-
 	cpuSize := perfBufferSize(size)
 	totalSize := cpuSize * cpus
-
 	k.log.WithField("percpu", sizeWithSuffix(cpuSize)).
 		WithField("total", sizeWithSuffix(totalSize)).
 		Info("Perf ring buffer size (bytes)")
@@ -200,6 +193,7 @@ func (k *Observer) getRBQueueSize() int {
 	return size
 }
 
+// RunEvents uses a batched reading and processing strategy for perf events to improve memory and CPU utilization
 func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 	pinOpts := ebpf.LoadPinOptions{}
 	perfMap, err := ebpf.LoadPinnedMap(k.PerfConfig.MapName, &pinOpts)
@@ -210,88 +204,87 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 
 	rbSize := k.getRBSize(int(perfMap.MaxEntries()))
 	perfReader, err := perf.NewReader(perfMap, rbSize)
-
 	if err != nil {
 		return fmt.Errorf("creating perf array reader failed: %w", err)
 	}
 
-	// Inform caller that we're about to start processing events.
+	// Notify listeners that event processing is about to start
 	k.observerListeners(&readyapi.MsgTetragonReady{})
 	ready()
 
-	// We spawn go routine to read and process perf events,
-	// connected with main app through eventsQueue channel.
-	eventsQueue := make(chan *perf.Record, k.getRBQueueSize())
+	// Use a larger queue capacity to reduce channel contention
+	queueSize := runtime.NumCPU() * 1024
+	eventsQueue := make(chan *perf.Record, queueSize)
 
-	// Listeners are ready and about to start reading from perf reader, tell
-	// user everything is ready.
 	k.log.Info("Listening for events...")
 
-	// Start reading records from the perf array. Reads until the reader is closed.
 	var wg sync.WaitGroup
+
+	// Batch read perf events and push them into the event queue
 	wg.Add(1)
-	defer wg.Wait()
 	go func() {
 		defer wg.Done()
+		batch := make([]*perf.Record, 0, 100)
 		for stopCtx.Err() == nil {
 			record, err := perfReader.Read()
 			if err != nil {
-				// NOTE(JM and Djalal): count and log errors while excluding the stopping context
 				if stopCtx.Err() == nil {
 					RingbufErrors.Inc()
 					errorCnt := getCounterValue(RingbufErrors)
 					k.log.WithField("errors", errorCnt).WithError(err).Warn("Reading bpf events failed")
 				}
-			} else {
-				if len(record.RawSample) > 0 {
-					select {
-					case eventsQueue <- &record:
-					default:
-						// eventsQueue channel is full, drop the event
-						queueLost.Inc()
-					}
-					RingbufReceived.Inc()
+				continue
+			}
+			if len(record.RawSample) > 0 {
+				batch = append(batch, &record)
+				RingbufReceived.Inc()
+			}
+			if record.LostSamples > 0 {
+				RingbufLost.Add(float64(record.LostSamples))
+			}
+			// When the batch size is reached, send the entire batch to the event queue
+			if len(batch) >= 128 {
+				for _, rec := range batch {
+					eventsQueue <- rec
 				}
-
-				if record.LostSamples > 0 {
-					RingbufLost.Add(float64(record.LostSamples))
-				}
+				batch = batch[:0]
+			}
+		}
+		// Process any remaining records that did not fill the batch
+		if len(batch) > 0 {
+			for _, rec := range batch {
+				eventsQueue <- rec
 			}
 		}
 	}()
 
-	// Start processing records from perf.
+	// Process events from the event queue and trigger GC periodically after processing a certain number of events
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		processedEvents := 0
 		for {
 			select {
 			case event := <-eventsQueue:
 				k.receiveEvent(event.RawSample)
-				queueReceived.Inc()
+				processedEvents++
+				if processedEvents%500 == 0 {
+					runtime.GC()
+				}
 			case <-stopCtx.Done():
-				k.log.WithError(stopCtx.Err()).Infof("Listening for events completed.")
+				k.log.WithError(stopCtx.Err()).Info("Listening for events completed.")
 				k.log.Debugf("Unprocessed events in RB queue: %d", len(eventsQueue))
 				return
 			}
 		}
 	}()
 
-	// Loading default program consumes some memory lets kick GC to give
-	// this back to the OS (K8s).
-	go func() {
-		runtime.GC()
-	}()
-
-	// Wait for context to be cancelled and then stop.
 	<-stopCtx.Done()
+	wg.Wait()
 	return perfReader.Close()
 }
 
-// Observer represents the link between the BPF perf ring and the listeners. It
-// manages the perf ring and receive events from it. It ensures that the BPF
-// event we are receiving from the kernel is complete. The listeners are
-// notified of their corresponding events.
+// Observer represents the bridge between the BPF perf ring and event listeners, managing the perf ring and event distribution.
 type Observer struct {
 	/* Configuration */
 	listeners  map[Listener]struct{}
@@ -302,22 +295,11 @@ type Observer struct {
 	recvCntr   prometheus.Counter
 	filterPass uint64
 	filterDrop uint64
-	/* Filters */
+	/* Logger */
 	log logrus.FieldLogger
 }
 
-// UpdateRuntimeConf() Gathers information about Tetragon runtime environment and
-// updates BPF map TetragonConfMap
-//
-// The observer needs to do this to discover and properly operate on the right
-// cgroup context. Use this function in your tests to allow Pod and Containers
-// association to work.
-//
-// The environment and cgroup configuration discovery may fail for several
-// reasons, in such cases errors will be logged.
-// On errors we also print a warning that advanced Cgroups tracking will be
-// disabled which might affect process association with kubernetes pods and
-// containers.
+// UpdateRuntimeConf updates the runtime configuration
 func (k *Observer) UpdateRuntimeConf(bpfDir string) error {
 	pid := os.Getpid()
 	err := confmap.UpdateTgRuntimeConf(bpfDir, pid)
@@ -325,20 +307,18 @@ func (k *Observer) UpdateRuntimeConf(bpfDir string) error {
 		k.log.WithField("observer", "confmap-update").WithError(err).Warn("Update TetragonConf map failed, advanced Cgroups tracking will be disabled")
 		k.log.WithField("observer", "confmap-update").Warn("Continuing without advanced Cgroups tracking. Process association with Pods and Containers might be limited")
 	}
-
 	return err
 }
 
-// Start starts the observer
+// Start starts the observer using StartReady
 func (k *Observer) Start(ctx context.Context) error {
 	return k.StartReady(ctx, func() {})
 }
 
+// StartReady starts the observer and calls the ready callback
 func (k *Observer) StartReady(ctx context.Context, ready func()) error {
 	k.PerfConfig = bpf.DefaultPerfEventConfig()
-
-	var err error
-	if err = k.RunEvents(ctx, ready); err != nil {
+	if err := k.RunEvents(ctx, ready); err != nil {
 		return fmt.Errorf("tetragon, aborting runtime error: %w", err)
 	}
 	return nil
@@ -395,7 +375,6 @@ func (k *Observer) PrintStats() {
 		loss = (float64(lostCntr) * 100.0) / total
 	}
 	k.log.Infof("BPF events statistics: %d received, %.2g%% events loss", recvCntr, loss)
-
 	k.log.WithFields(logrus.Fields{
 		"received":   recvCntr,
 		"lost":       lostCntr,
@@ -411,23 +390,19 @@ func RemoveSensors(ctx context.Context) {
 	}
 }
 
-// Log Active pinned BPF resources
+// LogPinnedBpf logs the active pinned BPF resources
 func (k *Observer) LogPinnedBpf(observerDir string) {
 	finfo, err := os.Stat(observerDir)
 	if err != nil {
 		k.log.WithField("bpf-dir", observerDir).Info("BPF: resources are empty")
 		return
 	}
-
 	if !finfo.IsDir() {
 		err := fmt.Errorf("is not a directory")
 		k.log.WithField("bpf-dir", observerDir).WithError(err).Warn("BPF: checking BPF resources failed")
-		// Do not fail, let bpf part handle it
 		return
 	}
-
 	bpfRes, _ := os.ReadDir(observerDir)
-	// Do not fail, let bpf part handle it
 	if len(bpfRes) == 0 {
 		k.log.WithField("bpf-dir", observerDir).Info("BPF: resources are empty")
 	} else {
