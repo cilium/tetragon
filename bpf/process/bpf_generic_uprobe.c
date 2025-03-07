@@ -29,12 +29,12 @@ struct {
 	__array(values, int(void *));
 } uprobe_calls SEC(".maps") = {
 	.values = {
-		[0] = (void *)&generic_uprobe_setup_event,
-		[1] = (void *)&generic_uprobe_process_event,
-		[2] = (void *)&generic_uprobe_process_filter,
-		[3] = (void *)&generic_uprobe_filter_arg,
-		[4] = (void *)&generic_uprobe_actions,
-		[5] = (void *)&generic_uprobe_output,
+		[TAIL_CALL_SETUP] = (void *)&generic_uprobe_setup_event,
+		[TAIL_CALL_PROCESS] = (void *)&generic_uprobe_process_event,
+		[TAIL_CALL_FILTER] = (void *)&generic_uprobe_process_filter,
+		[TAIL_CALL_ARGS] = (void *)&generic_uprobe_filter_arg,
+		[TAIL_CALL_ACTIONS] = (void *)&generic_uprobe_actions,
+		[TAIL_CALL_SEND] = (void *)&generic_uprobe_output,
 	},
 };
 

@@ -23,6 +23,7 @@ int generic_lsm_process_event(void *ctx);
 int generic_lsm_process_filter(void *ctx);
 int generic_lsm_filter_arg(void *ctx);
 int generic_lsm_actions(void *ctx);
+int generic_lsm_path(void *ctx);
 
 struct {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
@@ -31,11 +32,14 @@ struct {
 	__array(values, int(void *));
 } lsm_calls SEC(".maps") = {
 	.values = {
-		[0] = (void *)&generic_lsm_setup_event,
-		[1] = (void *)&generic_lsm_process_event,
-		[2] = (void *)&generic_lsm_process_filter,
-		[3] = (void *)&generic_lsm_filter_arg,
-		[4] = (void *)&generic_lsm_actions,
+		[TAIL_CALL_SETUP] = (void *)&generic_lsm_setup_event,
+		[TAIL_CALL_PROCESS] = (void *)&generic_lsm_process_event,
+		[TAIL_CALL_FILTER] = (void *)&generic_lsm_process_filter,
+		[TAIL_CALL_ARGS] = (void *)&generic_lsm_filter_arg,
+		[TAIL_CALL_ACTIONS] = (void *)&generic_lsm_actions,
+#ifndef __V61_BPF_PROG
+		[TAIL_CALL_PATH] = (void *)&generic_lsm_path,
+#endif
 	},
 };
 
@@ -113,3 +117,11 @@ generic_lsm_actions(void *ctx)
 
 	return 0;
 }
+
+#ifndef __V61_BPF_PROG
+__attribute__((section("lsm"), used)) int
+generic_tracepoint_path(void *ctx)
+{
+	return generic_path(ctx, (struct bpf_map_def *)&lsm_calls);
+}
+#endif
