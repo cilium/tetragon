@@ -2190,6 +2190,44 @@ FUNC_INLINE void path_from_dentry(struct dentry *dentry, struct path *path_buf)
 	path_buf->dentry = dentry;
 }
 
+FUNC_INLINE const struct path *get_path(long type, unsigned long arg, struct path *path_buf)
+{
+	const struct path *path_arg = 0;
+	struct kiocb *kiocb;
+	struct file *file;
+
+	switch (type) {
+	case kiocb_type:
+		kiocb = (struct kiocb *)arg;
+		arg = (unsigned long)_(&kiocb->ki_filp);
+		probe_read(&file, sizeof(file), (const void *)arg);
+		arg = (unsigned long)file;
+		fallthrough;
+	case file_ty:
+		probe_read(&file, sizeof(file), &arg);
+		path_arg = _(&file->f_path);
+		break;
+	case path_ty:
+		probe_read(&path_arg, sizeof(path_arg), &arg);
+		break;
+	case dentry_type:
+		path_from_dentry((struct dentry *)arg, path_buf);
+		path_arg = path_buf;
+		break;
+#ifdef __LARGE_BPF_PROG
+	case linux_binprm_type: {
+		struct linux_binprm *bprm = (struct linux_binprm *)arg;
+
+		arg = (unsigned long)_(&bprm->file);
+		probe_read(&file, sizeof(file), (const void *)arg);
+		path_arg = _(&file->f_path);
+		break;
+	};
+#endif
+	}
+	return path_arg;
+}
+
 /**
  * Read a generic argument
  *
@@ -2223,33 +2261,14 @@ read_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	/* Cache args offset for filter use later */
 	e->argsoff[index & MAX_SELECTORS_MASK] = orig_off;
 
+	path_arg = get_path(type, arg, &path_buf);
+	if (path_arg)
+		return copy_path(args, path_arg);
+
 	switch (type) {
 	case iov_iter_type:
 		size = copy_iov_iter(ctx, orig_off, arg, argm, e, data_heap);
 		break;
-	case kiocb_type: {
-		struct kiocb *kiocb = (struct kiocb *)arg;
-		struct file *file;
-
-		arg = (unsigned long)_(&kiocb->ki_filp);
-		probe_read(&file, sizeof(file), (const void *)arg);
-		arg = (unsigned long)file;
-	}
-		// fallthrough to file_ty
-	case file_ty: {
-		struct file *file;
-		probe_read(&file, sizeof(file), &arg);
-		path_arg = _(&file->f_path);
-		goto do_copy_path;
-	}
-	case path_ty: {
-		probe_read(&path_arg, sizeof(path_arg), &arg);
-		goto do_copy_path;
-	}
-	case dentry_type:
-		path_from_dentry((struct dentry *)arg, &path_buf);
-		path_arg = &path_buf;
-		goto do_copy_path;
 	case fd_ty: {
 		struct fdinstall_key key = { 0 };
 		struct fdinstall_value *val;
@@ -2282,17 +2301,6 @@ read_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 			return -1;
 		}
 	} break;
-#ifdef __LARGE_BPF_PROG
-	case linux_binprm_type: {
-		struct linux_binprm *bprm = (struct linux_binprm *)arg;
-		struct file *file;
-
-		arg = (unsigned long)_(&bprm->file);
-		probe_read(&file, sizeof(file), (const void *)arg);
-		path_arg = _(&file->f_path);
-		goto do_copy_path;
-	} break;
-#endif
 	case filename_ty: {
 		struct filename *file;
 		probe_read(&file, sizeof(file), &arg);
@@ -2411,9 +2419,6 @@ read_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 		break;
 	}
 	return size;
-
-do_copy_path:
-	return copy_path(args, path_arg);
 }
 
 #define __STR(x) #x
