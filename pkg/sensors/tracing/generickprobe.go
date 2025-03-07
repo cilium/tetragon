@@ -26,6 +26,7 @@ import (
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/cgtracker"
 	"github.com/cilium/tetragon/pkg/config"
+	conf "github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/eventhandler"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/idtable"
@@ -272,7 +273,7 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 
 	loadProgName := "bpf_multi_kprobe_v53.o"
 	loadProgRetName := "bpf_multi_retkprobe_v53.o"
-	if kernels.EnableV61Progs() {
+	if conf.EnableV61Progs() {
 		loadProgName = "bpf_multi_kprobe_v61.o"
 		loadProgRetName = "bpf_multi_retkprobe_v61.o"
 	} else if kernels.MinKernelVersion("5.11") {
@@ -327,12 +328,12 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 	maps = append(maps, stackTraceMap)
 	data.stackTraceMap = stackTraceMap
 
-	if kernels.EnableLargeProgs() {
+	if conf.EnableLargeProgs() {
 		socktrack := program.MapBuilderSensor("socktrack_map", load)
 		maps = append(maps, socktrack)
 	}
 
-	if kernels.EnableLargeProgs() {
+	if conf.EnableLargeProgs() {
 		ratelimitMap := program.MapBuilderSensor("ratelimit_map", load)
 		if has.rateLimit {
 			ratelimitMap.SetMaxEntries(ratelimitMapMaxEntries)
@@ -487,7 +488,7 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec, lists []v1al
 			}
 		}
 
-		if selectors.HasSigkillAction(f) && !kernels.EnableLargeProgs() {
+		if selectors.HasSigkillAction(f) && !conf.EnableLargeProgs() {
 			return fmt.Errorf("sigkill action requires kernel >= 5.3.0")
 		}
 
@@ -687,7 +688,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 	config := &api.EventConfig{}
 	config.PolicyID = uint32(in.policyID)
 	if len(f.ReturnArgAction) > 0 {
-		if !kernels.EnableLargeProgs() {
+		if !conf.EnableLargeProgs() {
 			return errFn(fmt.Errorf("ReturnArgAction requires kernel >=5.3"))
 		}
 		config.ArgReturnAction = selectors.ActionTypeFromString(f.ReturnArgAction)
@@ -761,7 +762,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 			if argType != gt.GenericCharBuffer {
 				logger.GetLogger().Warnf("maxData flag is ignored (supported for char_buf type)")
 			}
-			if !kernels.EnableLargeProgs() {
+			if !conf.EnableLargeProgs() {
 				logger.GetLogger().Warnf("maxData flag is ignored (supported from large programs)")
 			}
 		}
@@ -973,12 +974,12 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 	maps = append(maps, stackTraceMap)
 	kprobeEntry.data.stackTraceMap = stackTraceMap
 
-	if kernels.EnableLargeProgs() {
+	if conf.EnableLargeProgs() {
 		socktrack := program.MapBuilderSensor("socktrack_map", load)
 		maps = append(maps, socktrack)
 	}
 
-	if kernels.EnableLargeProgs() {
+	if conf.EnableLargeProgs() {
 		ratelimitMap := program.MapBuilderSensor("ratelimit_map", load)
 		if has.rateLimit {
 			// similarly as for stacktrace, we expand the max size only if
@@ -1044,7 +1045,7 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 		}
 		maps = append(maps, fdinstall)
 
-		if kernels.EnableLargeProgs() {
+		if conf.EnableLargeProgs() {
 			socktrack := program.MapBuilderSensor("socktrack_map", loadret)
 			maps = append(maps, socktrack)
 		}

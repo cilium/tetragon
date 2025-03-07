@@ -18,6 +18,8 @@ import (
 	processapi "github.com/cilium/tetragon/pkg/api/processapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/config"
+	conf "github.com/cilium/tetragon/pkg/config"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/idtable"
@@ -261,7 +263,7 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 			if argType != gt.GenericCharBuffer {
 				logger.GetLogger().Warnf("maxData flag is ignored (supported for char_buf type)")
 			}
-			if !kernels.EnableLargeProgs() {
+			if !conf.EnableLargeProgs() {
 				logger.GetLogger().Warnf("maxData flag is ignored (supported from large programs)")
 			}
 		}
@@ -347,7 +349,7 @@ func createGenericLsmSensor(
 	var selMaps *selectors.KernelSelectorMaps
 	var err error
 
-	if !bpf.HasLSMPrograms() || !kernels.EnableLargeProgs() {
+	if !bpf.HasLSMPrograms() || !config.EnableLargeProgs() {
 		return nil, fmt.Errorf("Does you kernel support the bpf LSM? You can enable LSM BPF by modifying" +
 			"the GRUB configuration /etc/default/grub with GRUB_CMDLINE_LINUX=\"lsm=bpf\"")
 	}
@@ -432,7 +434,7 @@ func imaProgName(lsmEntry *genericLsm) (string, string) {
 	default:
 		return "", ""
 	}
-	if kernels.EnableV61Progs() {
+	if config.EnableV61Progs() {
 		pName = "bpf_generic_lsm_ima_" + pType + "_v61.o"
 	} else if kernels.MinKernelVersion("5.11") {
 		pName = "bpf_generic_lsm_ima_" + pType + "_v511.o"
@@ -445,7 +447,7 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 
 	loadProgCoreName := "bpf_generic_lsm_core.o"
 	loadProgOutputName := "bpf_generic_lsm_output.o"
-	if kernels.EnableV61Progs() {
+	if config.EnableV61Progs() {
 		loadProgCoreName = "bpf_generic_lsm_core_v61.o"
 		loadProgOutputName = "bpf_generic_lsm_output_v61.o"
 	} else if kernels.MinKernelVersion("5.11") {
