@@ -47,7 +47,7 @@ jobs:
         echo `clang --version`
 
     - name: Install bpftool
-      uses: mtardy/setup-bpftool@adeab4f9332cc28db56064a93911860d0775665b # v1.0.3
+      uses: mtardy/setup-bpftool@9bc044304197616a6321d452e04cc059e006d8e2 # v1.0.4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
 
