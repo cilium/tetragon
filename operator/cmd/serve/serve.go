@@ -5,6 +5,7 @@ package serve
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/bombsimon/logrusr/v4"
 	"github.com/cilium/cilium/pkg/logging"
@@ -24,17 +25,29 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
+const (
+	// LeaderElectionID is the name of the leader election Lease resource
+	LeaderElectionID = "tetragon-operator-resource-lock"
+)
+
 var (
-	metricsAddr          string
-	enableLeaderElection bool
-	probeAddr            string
-	scheme               = runtime.NewScheme()
-	setupLog             = ctrl.Log.WithName("setup")
+	scheme   = runtime.NewScheme()
+	setupLog = ctrl.Log.WithName("setup")
 )
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(ciliumiov1alpha1.AddToScheme(scheme))
+}
+
+func validateLeaderElectionParams() error {
+	if operatorOption.Config.LeaderElectionLeaseDuration <= operatorOption.Config.LeaderElectionRenewDeadline {
+		return fmt.Errorf("leader-election-lease-duration must be greater than leader-election-renew-deadline")
+	}
+	if operatorOption.Config.LeaderElectionRenewDeadline <= operatorOption.Config.LeaderElectionRetryPeriod {
+		return fmt.Errorf("leader-election-renew-deadline must be greater than leader-election-retry-period")
+	}
+	return nil
 }
 
 func New() *cobra.Command {
@@ -45,24 +58,21 @@ func New() *cobra.Command {
 			log := logrusr.New(logging.DefaultLogger.WithField(logfields.LogSubsys, "operator"))
 			ctrl.SetLogger(log)
 			common.Initialize(cmd)
+			if err := validateLeaderElectionParams(); err != nil {
+				return fmt.Errorf("invalid leader election parameters: %w", err)
+			}
 			mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-				Scheme:                 scheme,
-				Metrics:                metricsserver.Options{BindAddress: metricsAddr},
-				WebhookServer:          webhook.NewServer(webhook.Options{Port: 9443}),
-				HealthProbeBindAddress: probeAddr,
-				LeaderElection:         enableLeaderElection,
-				LeaderElectionID:       "f161f714.tetragon.cilium.io",
-				// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
-				// when the Manager ends. This requires the binary to immediately end when the
-				// Manager is stopped, otherwise, this setting is unsafe. Setting this significantly
-				// speeds up voluntary leader transitions as the new leader don't have to wait
-				// LeaseDuration time first.
-				//
-				// In the default scaffold provided, the program ends immediately after
-				// the manager stops, so would be fine to enable this option. However,
-				// if you are doing or is intended to do any operation such as perform cleanups
-				// after the manager stops then its usage might be unsafe.
-				// LeaderElectionReleaseOnCancel: true,
+				Scheme:                        scheme,
+				Metrics:                       metricsserver.Options{BindAddress: operatorOption.Config.MetricsAddr},
+				WebhookServer:                 webhook.NewServer(webhook.Options{Port: 9443}),
+				HealthProbeBindAddress:        operatorOption.Config.ProbeAddr,
+				LeaderElection:                operatorOption.Config.EnableLeaderElection,
+				LeaderElectionID:              LeaderElectionID,
+				LeaderElectionNamespace:       operatorOption.Config.LeaderElectionNamespace,
+				LeaderElectionReleaseOnCancel: true,
+				LeaseDuration:                 &operatorOption.Config.LeaderElectionLeaseDuration,
+				RenewDeadline:                 &operatorOption.Config.LeaderElectionRenewDeadline,
+				RetryPeriod:                   &operatorOption.Config.LeaderElectionRetryPeriod,
 			})
 			if err != nil {
 				return fmt.Errorf("unable to start manager: %w", err)
@@ -83,19 +93,28 @@ func New() *cobra.Command {
 				return fmt.Errorf("unable to set up ready check %w", err)
 			}
 
-			setupLog.Info("starting manager")
+			setupLog.Info("starting manager", "metricsAddr", operatorOption.Config.MetricsAddr, "probeAddr", operatorOption.Config.ProbeAddr, "leaderElection", operatorOption.Config.EnableLeaderElection)
 			if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 				return fmt.Errorf("problem running manager %w", err)
 			}
+			setupLog.Info("manager stopped gracefully")
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metric endpoint binds to.")
-	cmd.Flags().StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	cmd.Flags().BoolVar(&enableLeaderElection, "leader-elect", false,
+	common.AddCommonFlags(&cmd)
+	cmd.Flags().StringVar(&operatorOption.Config.MetricsAddr, "metrics-bind-address", "0", "The address the metric endpoint binds to.")
+	cmd.Flags().StringVar(&operatorOption.Config.ProbeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
+	cmd.Flags().BoolVar(&operatorOption.Config.EnableLeaderElection, "leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	common.AddCommonFlags(&cmd)
+	cmd.Flags().StringVar(&operatorOption.Config.LeaderElectionNamespace, "leader-election-namespace", "",
+		"Kubernetes namespace in which the leader election Lease resource should be created.")
+	cmd.Flags().DurationVar(&operatorOption.Config.LeaderElectionLeaseDuration, "leader-election-lease-duration", 15*time.Second,
+		"Duration that non-leader operator candidates will wait before forcing to acquire leadership")
+	cmd.Flags().DurationVar(&operatorOption.Config.LeaderElectionRenewDeadline, "leader-election-renew-deadline", 5*time.Second,
+		"Duration that current acting master will retry refreshing leadership in before giving up the lock")
+	cmd.Flags().DurationVar(&operatorOption.Config.LeaderElectionRetryPeriod, "leader-election-retry-period", 2*time.Second,
+		"Duration that LeaderElector clients should wait between retries of the actions")
 	viper.BindPFlags(cmd.Flags())
 	return &cmd
 }
