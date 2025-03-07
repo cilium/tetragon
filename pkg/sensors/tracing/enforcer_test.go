@@ -19,8 +19,8 @@ import (
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
-	"github.com/cilium/tetragon/pkg/kernels"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
@@ -351,7 +351,7 @@ func TestEnforcerSecuritySigKill(t *testing.T) {
 		t.Skip("skipping enforcer test, fmod_ret is not available")
 	}
 
-	if !kernels.EnableLargeProgs() {
+	if !config.EnableLargeProgs() {
 		t.Skip("Older kernels do not support matchArgs for more than one arguments")
 	}
 
@@ -438,7 +438,7 @@ func TestEnforcerSecurityNotifyEnforcer(t *testing.T) {
 		t.Skip("skipping enforcer test, fmod_ret is not available")
 	}
 
-	if !kernels.EnableLargeProgs() {
+	if !config.EnableLargeProgs() {
 		t.Skip("Older kernels do not support matchArgs for more than one arguments")
 	}
 
@@ -520,7 +520,7 @@ func TestEnforcerMulti(t *testing.T) {
 		t.Skip("skipping enforcer test, fmod_ret is not available")
 	}
 
-	if !kernels.EnableLargeProgs() {
+	if !config.EnableLargeProgs() {
 		t.Skip("Older kernels do not support matchArgs for more than one arguments")
 	}
 

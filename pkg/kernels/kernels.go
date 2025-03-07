@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
+//go:build !windows
+
 package kernels
 
 import (
@@ -8,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/option"
 
 	"golang.org/x/sys/unix"
@@ -128,37 +129,7 @@ func MinKernelVersion(kernel string) bool {
 	return minVersion <= runningVersion
 }
 
-func EnableV61Progs() bool {
-	if option.Config.ForceSmallProgs {
-		return false
-	}
-	kernelVer, _, _ := GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
-	return (int64(kernelVer) >= KernelStringToNumeric("6.1.0"))
-}
-
-func EnableLargeProgs() bool {
-	if option.Config.ForceSmallProgs {
-		return false
-	}
-	if option.Config.ForceLargeProgs {
-		return true
-	}
-	return bpf.HasProgramLargeSize() && bpf.HasSignalHelper()
-}
-
 func IsKernelVersionLessThan(version string) bool {
 	kernelVer, _, _ := GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
 	return (int64(kernelVer) < KernelStringToNumeric(version))
-}
-
-// GenericKprobeObjs returns the generic kprobe and generic retprobe objects
-func GenericKprobeObjs() (string, string) {
-	if EnableV61Progs() {
-		return "bpf_generic_kprobe_v61.o", "bpf_generic_retkprobe_v61.o"
-	} else if MinKernelVersion("5.11") {
-		return "bpf_generic_kprobe_v511.o", "bpf_generic_retkprobe_v511.o"
-	} else if EnableLargeProgs() {
-		return "bpf_generic_kprobe_v53.o", "bpf_generic_retkprobe_v53.o"
-	}
-	return "bpf_generic_kprobe.o", "bpf_generic_retkprobe.o"
 }

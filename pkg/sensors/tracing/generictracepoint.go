@@ -18,6 +18,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/cgtracker"
+	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/eventhandler"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/idtable"
@@ -454,11 +455,11 @@ func createGenericTracepointSensor(
 	}
 
 	progName := "bpf_generic_tracepoint.o"
-	if kernels.EnableV61Progs() {
+	if config.EnableV61Progs() {
 		progName = "bpf_generic_tracepoint_v61.o"
 	} else if kernels.MinKernelVersion("5.11") {
 		progName = "bpf_generic_tracepoint_v511.o"
-	} else if kernels.EnableLargeProgs() {
+	} else if config.EnableLargeProgs() {
 		progName = "bpf_generic_tracepoint_v53.o"
 	}
 

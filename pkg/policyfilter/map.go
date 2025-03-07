@@ -13,7 +13,7 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/bpf"
-	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/option"
 )
 
@@ -62,7 +62,7 @@ func openMap(spec *ebpf.CollectionSpec, mapName string, innerMaxEntries uint32) 
 // newMap returns a new policy filter map.
 func newPfMap(enableCgroupMap bool) (PfMap, error) {
 	// use the generic kprobe program, to find the policy filter map spec
-	objName, _ := kernels.GenericKprobeObjs()
+	objName, _ := config.GenericKprobeObjs()
 	objPath := path.Join(option.Config.HubbleLib, objName)
 	spec, err := ebpf.LoadCollectionSpec(objPath)
 	if err != nil {

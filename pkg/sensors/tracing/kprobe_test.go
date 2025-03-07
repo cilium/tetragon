@@ -33,6 +33,7 @@ import (
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/ftrace"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
@@ -1630,7 +1631,7 @@ func testKprobeObjectFilteredReturnValue(t *testing.T,
 }
 
 func TestKprobeObjectFilterReturnValueGTOk(t *testing.T) {
-	if !kernels.EnableLargeProgs() {
+	if !config.EnableLargeProgs() {
 		t.Skip("Older kernels do not support GT/LT matching")
 	}
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
@@ -1666,7 +1667,7 @@ func TestKprobeObjectFilterReturnValueGTOk(t *testing.T) {
 }
 
 func TestKprobeObjectFilterReturnValueGTFail(t *testing.T) {
-	if !kernels.EnableLargeProgs() {
+	if !config.EnableLargeProgs() {
 		t.Skip("Older kernels do not support GT/LT matching")
 	}
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
@@ -1680,7 +1681,7 @@ func TestKprobeObjectFilterReturnValueGTFail(t *testing.T) {
 }
 
 func TestKprobeObjectFilterReturnValueLTOk(t *testing.T) {
-	if !kernels.EnableLargeProgs() {
+	if !config.EnableLargeProgs() {
 		t.Skip("Older kernels do not support GT/LT matching")
 	}
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
@@ -1707,7 +1708,7 @@ func TestKprobeObjectFilterReturnValueLTOk(t *testing.T) {
 }
 
 func TestKprobeObjectFilterReturnValueLTFail(t *testing.T) {
-	if !kernels.EnableLargeProgs() {
+	if !config.EnableLargeProgs() {
 		t.Skip("Older kernels do not support GT/LT matching")
 	}
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
@@ -2138,7 +2139,7 @@ func testMultiplePathComponentsFiltered(t *testing.T, readHook string) {
 
 	filePath := path + "/testfile"
 	writeChecker := getWriteChecker(t, "/7/8/9/10/11/12/13/14/15/16/testfile", "unresolvedPathComponents")
-	if kernels.EnableLargeProgs() {
+	if config.EnableLargeProgs() {
 		writeChecker = getWriteChecker(t, "/tmp/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/testfile", "")
 	}
 
@@ -2202,7 +2203,7 @@ func testMultipleMountPathFiltered(t *testing.T, readHook string) {
 
 	filePath := path + "/testfile"
 	writeChecker := getWriteChecker(t, "/7/8/9/10/11/12/13/14/15/16/testfile", "unresolvedPathComponents")
-	if kernels.EnableLargeProgs() {
+	if config.EnableLargeProgs() {
 		writeChecker = getWriteChecker(t, "/tmp2/tmp3/tmp4/tmp5/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/testfile", "")
 	}
 
@@ -2230,7 +2231,7 @@ func TestMultipleMountPath(t *testing.T) {
 func TestMultipleMountPathFiltered(t *testing.T) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, "/7/8/9/10/11/12/13/14/15/16")
-	if kernels.EnableLargeProgs() {
+	if config.EnableLargeProgs() {
 		readHook = testKprobeObjectFileWriteFilteredHook(pidStr, "/tmp2/tmp3/tmp4/tmp5/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16")
 	}
 	testMultipleMountPathFiltered(t, readHook)
@@ -2621,7 +2622,7 @@ func runKprobeOverrideSignal(t *testing.T, hook string, checker ec.MultiEventChe
 }
 
 func TestKprobeOverrideSignal(t *testing.T) {
-	if !kernels.EnableLargeProgs() {
+	if !config.EnableLargeProgs() {
 		t.Skip()
 	}
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
@@ -2687,7 +2688,7 @@ spec:
 }
 
 func TestKprobeSignalOverride(t *testing.T) {
-	if !kernels.EnableLargeProgs() {
+	if !config.EnableLargeProgs() {
 		t.Skip()
 	}
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
@@ -2753,7 +2754,7 @@ spec:
 }
 
 func TestKprobeSignalOverrideNopost(t *testing.T) {
-	if !kernels.EnableLargeProgs() {
+	if !config.EnableLargeProgs() {
 		t.Skip()
 	}
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
@@ -2879,7 +2880,7 @@ func runKprobeOverrideMulti(t *testing.T, hook string, checker ec.MultiEventChec
 }
 
 func TestKprobeOverrideMulti(t *testing.T) {
-	if !kernels.EnableLargeProgs() {
+	if !config.EnableLargeProgs() {
 		t.Skip()
 	}
 
@@ -3439,7 +3440,7 @@ func createCrdFile(t *testing.T, readHook string) {
 }
 
 func getNumValues() int {
-	if kernels.EnableLargeProgs() {
+	if config.EnableLargeProgs() {
 		return 4
 	}
 	return 2
@@ -3456,7 +3457,7 @@ func TestKprobeMatchArgsFileEqual(t *testing.T) {
 	argVals := make([]string, numValues)
 	argVals[0] = "/etc/passwd"
 	argVals[1] = "/etc/group"
-	if kernels.EnableLargeProgs() {
+	if config.EnableLargeProgs() {
 		argVals[2] = "/etc/hostname"
 		argVals[3] = "/etc/shadow"
 	}
@@ -3496,7 +3497,7 @@ func TestKprobeMatchArgsFilePostfix(t *testing.T) {
 	argVals := make([]string, numValues)
 	argVals[0] = "passwd"
 	argVals[1] = "group"
-	if kernels.EnableLargeProgs() {
+	if config.EnableLargeProgs() {
 		argVals[2] = "hostname"
 		argVals[3] = "shadow"
 	}
@@ -3536,7 +3537,7 @@ func TestKprobeMatchArgsFilePrefix(t *testing.T) {
 	argVals := make([]string, numValues)
 	argVals[0] = "/etc/p"
 	argVals[1] = "/etc/g"
-	if kernels.EnableLargeProgs() {
+	if config.EnableLargeProgs() {
 		argVals[2] = "/etc/h"
 		argVals[3] = "/etc/s"
 	}
@@ -3576,7 +3577,7 @@ func TestKprobeMatchArgsFdEqual(t *testing.T) {
 	argVals := make([]string, numValues)
 	argVals[0] = "/etc/passwd"
 	argVals[1] = "/etc/group"
-	if kernels.EnableLargeProgs() {
+	if config.EnableLargeProgs() {
 		argVals[2] = "/etc/hostname"
 		argVals[3] = "/etc/shadow"
 	}
@@ -3612,7 +3613,7 @@ func TestKprobeMatchArgsFdPostfix(t *testing.T) {
 	argVals := make([]string, numValues)
 	argVals[0] = "passwd"
 	argVals[1] = "group"
-	if kernels.EnableLargeProgs() {
+	if config.EnableLargeProgs() {
 		argVals[2] = "hostname"
 		argVals[3] = "shadow"
 	}
@@ -3648,7 +3649,7 @@ func TestKprobeMatchArgsFdPrefix(t *testing.T) {
 	argVals := make([]string, numValues)
 	argVals[0] = "/etc/p"
 	argVals[1] = "/etc/g"
-	if kernels.EnableLargeProgs() {
+	if config.EnableLargeProgs() {
 		argVals[2] = "/etc/h"
 		argVals[3] = "/etc/s"
 	}
@@ -3734,7 +3735,7 @@ func TestKprobeMatchArgsFileMonitoringPrefix(t *testing.T) {
 }
 
 func TestKprobeMatchArgsNonPrefix(t *testing.T) {
-	if !kernels.EnableLargeProgs() {
+	if !config.EnableLargeProgs() {
 		t.Skip()
 	}
 
@@ -3896,25 +3897,25 @@ func TestKprobeMatchBinaries(t *testing.T) {
 		matchBinariesTest(t, "NotIn", []string{"/usr/bin/tail"}, createBinariesChecker("/usr/bin/head", "/etc/passwd"))
 	})
 	t.Run("Prefix", func(t *testing.T) {
-		if !kernels.EnableLargeProgs() {
+		if !config.EnableLargeProgs() {
 			t.Skip(skipMatchBinaries)
 		}
 		matchBinariesTest(t, "Prefix", []string{"/usr/bin/t"}, createBinariesChecker("/usr/bin/tail", "/etc/passwd"))
 	})
 	t.Run("NotPrefix", func(t *testing.T) {
-		if !kernels.EnableLargeProgs() {
+		if !config.EnableLargeProgs() {
 			t.Skip(skipMatchBinaries)
 		}
 		matchBinariesTest(t, "NotPrefix", []string{"/usr/bin/t"}, createBinariesChecker("/usr/bin/head", "/etc/passwd"))
 	})
 	t.Run("Postfix", func(t *testing.T) {
-		if !kernels.EnableLargeProgs() {
+		if !config.EnableLargeProgs() {
 			t.Skip(skipMatchBinaries)
 		}
 		matchBinariesTest(t, "Postfix", []string{"bin/tail"}, createBinariesChecker("/usr/bin/tail", "/etc/passwd"))
 	})
 	t.Run("NotPostfix", func(t *testing.T) {
-		if !kernels.EnableLargeProgs() {
+		if !config.EnableLargeProgs() {
 			t.Skip(skipMatchBinaries)
 		}
 		matchBinariesTest(t, "NotPostfix", []string{"bin/tail"}, createBinariesChecker("/usr/bin/head", "/etc/passwd"))
@@ -3950,7 +3951,7 @@ func matchBinariesLargePathTest(t *testing.T, operator string, values []string, 
 
 }
 func TestKprobeMatchBinariesLargePath(t *testing.T) {
-	if !kernels.EnableLargeProgs() {
+	if !config.EnableLargeProgs() {
 		t.Skip()
 	}
 
@@ -4068,13 +4069,13 @@ func TestKprobeMatchBinariesPerfring(t *testing.T) {
 		matchBinariesPerfringTest(t, "In", []string{"/usr/bin/tail"})
 	})
 	t.Run("Prefix", func(t *testing.T) {
-		if !kernels.EnableLargeProgs() {
+		if !config.EnableLargeProgs() {
 			t.Skip(skipMatchBinaries)
 		}
 		matchBinariesPerfringTest(t, "Prefix", []string{"/usr/bin/t"})
 	})
 	t.Run("Postfix", func(t *testing.T) {
-		if !kernels.EnableLargeProgs() {
+		if !config.EnableLargeProgs() {
 			t.Skip(skipMatchBinaries)
 		}
 		matchBinariesPerfringTest(t, "Postfix", []string{"tail"})
@@ -4160,7 +4161,7 @@ func TestKprobeMatchBinariesEarlyExec(t *testing.T) {
 // matchBinaries works well with the prefix of matchArgs since its reusing some
 // of its machinery.
 func TestKprobeMatchBinariesPrefixMatchArgs(t *testing.T) {
-	if !kernels.EnableLargeProgs() {
+	if !config.EnableLargeProgs() {
 		t.Skip(skipMatchBinaries)
 	}
 
@@ -4388,7 +4389,7 @@ func TestLoadKprobeSensor(t *testing.T) {
 		tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
 	}
 
-	if kernels.EnableLargeProgs() {
+	if config.EnableLargeProgs() {
 		// shared with base sensor
 		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 5, 6, 7, 9}})
 
@@ -4763,7 +4764,7 @@ spec:
         - "9919"
 `
 
-	if kernels.EnableLargeProgs() {
+	if config.EnableLargeProgs() {
 		createCrdFile(t, hookFull)
 	} else {
 		createCrdFile(t, hookPart)
@@ -4852,7 +4853,7 @@ spec:
         - "9918"
 `
 
-	if kernels.EnableLargeProgs() {
+	if config.EnableLargeProgs() {
 		createCrdFile(t, hookFull)
 	} else {
 		createCrdFile(t, hookPart)
@@ -4945,7 +4946,7 @@ spec:
         - "9925"
 `
 
-	if kernels.EnableLargeProgs() {
+	if config.EnableLargeProgs() {
 		createCrdFile(t, hookFull)
 	} else {
 		createCrdFile(t, hookPart)
@@ -5034,7 +5035,7 @@ spec:
         - "9910:9920"
 `
 
-	if kernels.EnableLargeProgs() {
+	if config.EnableLargeProgs() {
 		createCrdFile(t, hookFull)
 	} else {
 		createCrdFile(t, hookPart)
@@ -5119,7 +5120,7 @@ spec:
         operator: "DPortPriv"
 `
 
-	if kernels.EnableLargeProgs() {
+	if config.EnableLargeProgs() {
 		createCrdFile(t, hookFull)
 	} else {
 		createCrdFile(t, hookPart)
@@ -5204,7 +5205,7 @@ spec:
         operator: "NotDPortPriv"
 `
 
-	if kernels.EnableLargeProgs() {
+	if config.EnableLargeProgs() {
 		createCrdFile(t, hookFull)
 	} else {
 		createCrdFile(t, hookPart)
@@ -5293,7 +5294,7 @@ spec:
         - "10.0.0.0/8"
 `
 
-	if kernels.EnableLargeProgs() {
+	if config.EnableLargeProgs() {
 		createCrdFile(t, hookFull)
 	} else {
 		createCrdFile(t, hookPart)
@@ -5386,7 +5387,7 @@ spec:
         - "172.16.0.0/16"
 `
 
-	if kernels.EnableLargeProgs() {
+	if config.EnableLargeProgs() {
 		createCrdFile(t, hookFull)
 	} else {
 		createCrdFile(t, hookPart)
@@ -5486,7 +5487,7 @@ spec:
         - "TCP_SYN_RECV"
 `
 
-	if kernels.EnableLargeProgs() {
+	if config.EnableLargeProgs() {
 		createCrdFile(t, hookFull)
 	} else {
 		createCrdFile(t, hookPart)
@@ -5580,7 +5581,7 @@ spec:
         - "AF_INET"
 `
 
-	if kernels.EnableLargeProgs() {
+	if config.EnableLargeProgs() {
 		createCrdFile(t, hookFull)
 	} else {
 		createCrdFile(t, hookPart)
@@ -5678,7 +5679,7 @@ spec:
         - "IPPROTO_TCP"
 `
 
-	if kernels.EnableLargeProgs() {
+	if config.EnableLargeProgs() {
 		createCrdFile(t, hookFull)
 	} else {
 		createCrdFile(t, hookPart)
@@ -5772,7 +5773,7 @@ spec:
         - "53"
 `
 
-	if kernels.EnableLargeProgs() {
+	if config.EnableLargeProgs() {
 		createCrdFile(t, hookFull)
 	} else {
 		createCrdFile(t, hookPart)
@@ -5865,7 +5866,7 @@ spec:
         - "::1"
 `
 
-	if kernels.EnableLargeProgs() {
+	if config.EnableLargeProgs() {
 		createCrdFile(t, hookFull)
 	} else {
 		createCrdFile(t, hookPart)
@@ -5956,7 +5957,7 @@ spec:
         - "::1"
 `
 
-	if kernels.EnableLargeProgs() {
+	if config.EnableLargeProgs() {
 		createCrdFile(t, hookFull)
 	} else {
 		createCrdFile(t, hookPart)
@@ -6100,7 +6101,7 @@ spec:
 }
 
 func TestKprobeNoRateLimit(t *testing.T) {
-	if !kernels.EnableLargeProgs() {
+	if !config.EnableLargeProgs() {
 		t.Skip("Test requires kernel 5.4")
 	}
 
@@ -6108,7 +6109,7 @@ func TestKprobeNoRateLimit(t *testing.T) {
 }
 
 func TestKprobeRateLimit(t *testing.T) {
-	if !kernels.EnableLargeProgs() {
+	if !config.EnableLargeProgs() {
 		t.Skip("Test requires kernel 5.4")
 	}
 
@@ -6200,7 +6201,7 @@ spec:
 }
 
 func TestLinuxBinprmExtractPath(t *testing.T) {
-	if !kernels.EnableLargeProgs() {
+	if !config.EnableLargeProgs() {
 		t.Skip("Older kernels do not support matchArgs with linux_binprm")
 	}
 	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
@@ -6584,7 +6585,7 @@ spec:
 }
 
 func TestKprobeMultiMatcArgs(t *testing.T) {
-	if !kernels.EnableLargeProgs() {
+	if !config.EnableLargeProgs() {
 		t.Skip("Older kernels do not support matchArgs for more than one arguments")
 	}
 

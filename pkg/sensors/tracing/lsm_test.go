@@ -20,6 +20,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/kernels"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
@@ -32,7 +33,7 @@ import (
 )
 
 func TestLSMObjectLoad(t *testing.T) {
-	if !bpf.HasLSMPrograms() || !kernels.EnableLargeProgs() {
+	if !bpf.HasLSMPrograms() || !config.EnableLargeProgs() {
 		t.Skip()
 	}
 
@@ -106,7 +107,7 @@ spec:
 }
 
 func TestLSMOpenFile(t *testing.T) {
-	if !bpf.HasLSMPrograms() || !kernels.EnableLargeProgs() {
+	if !bpf.HasLSMPrograms() || !config.EnableLargeProgs() {
 		t.Skip()
 	}
 	var doneWG, readyWG sync.WaitGroup
@@ -171,7 +172,7 @@ spec:
 }
 
 func TestLSMOverrideAction(t *testing.T) {
-	if !bpf.HasLSMPrograms() || !kernels.EnableLargeProgs() {
+	if !bpf.HasLSMPrograms() || !config.EnableLargeProgs() {
 		t.Skip()
 	}
 	var doneWG, readyWG sync.WaitGroup
@@ -243,7 +244,7 @@ spec:
 }
 
 func TestLSMIMAHash(t *testing.T) {
-	if !bpf.HasLSMPrograms() || !kernels.EnableLargeProgs() || !kernels.MinKernelVersion("6.0") {
+	if !bpf.HasLSMPrograms() || !config.EnableLargeProgs() || !kernels.MinKernelVersion("6.0") {
 		t.Skip()
 	}
 	var doneWG, readyWG sync.WaitGroup
