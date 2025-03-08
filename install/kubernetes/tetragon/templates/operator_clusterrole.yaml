@@ -47,4 +47,5 @@ rules:
       - get
       - list
       - watch
+  {{- include "operatorclusterrole.extra" . | nindent 2 }}
 {{- end }}
