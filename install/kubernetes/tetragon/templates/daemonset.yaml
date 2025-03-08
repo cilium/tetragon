@@ -114,6 +114,12 @@ spec:
           path: {{ quote .Values.tetragon.cri.socketHostPath }}
           type: Socket
 {{- end }}
+{{- if .Values.tetragon.enableLsmSensor }}
+      - name: lsm-volume
+        hostPath:
+          path: /sys/kernel/security
+          type: Directory
+{{- end }}
 {{- end }}
       {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 6 }}

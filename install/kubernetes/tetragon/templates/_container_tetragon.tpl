@@ -42,6 +42,11 @@
     - mountPath: {{ quote .Values.tetragon.cri.socketHostPath }}
       name: cri-socket
 {{- end }}
+{{- if .Values.tetragon.enableLsmSensor }}
+    - mountPath: "/sys/kernel/security"
+      name: lsm-volume
+      readOnly: true
+{{- end }}
 {{- range .Values.extraHostPathMounts }}
     - name: {{ .name }}
       mountPath: {{ .mountPath }}
