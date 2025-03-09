@@ -247,6 +247,8 @@ tetragon:
   # pod association. This feature depends on cri being enabled.
   cgidmap:
     enabled: false
+  # -- Read-only mount /sys/kernel/security into Tetragon container to check if LSM BPF is enabled on the host.
+  enableLsmSensor: false
 # Tetragon Operator settings
 tetragonOperator:
   # -- Enables the Tetragon Operator.
