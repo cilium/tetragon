@@ -9,14 +9,18 @@ package btf
 import (
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/cilium/ebpf/btf"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/defaults"
+	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/sys/unix"
 )
@@ -45,6 +49,25 @@ func setupfiles() func(*testing.T, string, ...string) {
 			}
 		}
 	}
+}
+
+func listBtfFiles() ([]string, error) {
+	_, kernelVersion, err := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
+	if err != nil {
+		return nil, err
+	}
+
+	_, testFname, _, _ := runtime.Caller(0)
+	testdataPath := filepath.Join(filepath.Dir(testFname), "..", "..", "testdata")
+
+	btfFiles := []string{
+		defaults.DefaultBTFFile,
+		path.Join(defaults.DefaultTetragonLib, "btf"),
+		path.Join(defaults.DefaultTetragonLib, "metadata", "vmlinux-"+kernelVersion),
+		filepath.Join(testdataPath, "btf", "vmlinux-5.4.104+"),
+	}
+
+	return btfFiles, nil
 }
 
 func TestObserverFindBTF(t *testing.T) {
