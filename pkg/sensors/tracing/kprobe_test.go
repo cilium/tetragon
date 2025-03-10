@@ -1988,7 +1988,7 @@ func getWriteChecker(t *testing.T, path, flags string) ec.MultiEventChecker {
 			WithOperator(lc.Ordered).
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().
-					WithPath(sm.Suffix(path)).
+					WithPath(sm.Full(path)).
 					WithFlags(sm.Full(flags)),
 				),
 				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full([]byte("hello world"))),
@@ -2110,39 +2110,29 @@ func testMultipleMountsFiltered(t *testing.T, readHook string) {
 }
 
 func testMultiplePathComponentsFiltered(t *testing.T, readHook string) {
-	var pathStack []string
 	path := "/tmp"
 
-	// let's create /tmp/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16 where each dir is a directory
-	for i := 0; i <= 16; i++ {
+	// let's create /tmp/0/.. 32*8 where each dir is a directory
+	for i := 0; i < 32*8; i++ {
 		path = filepath.Join(path, fmt.Sprintf("%d", i))
-		pathStack = append(pathStack, path)
-		if err := os.Mkdir(path, 0755); err != nil {
-			t.Logf("Mkdir failed: %s\n", err)
-			t.Skip()
-		}
 	}
+	if err := os.MkdirAll(path, 0755); err != nil {
+		t.Fatalf("Mkdir failed: %s\n", err)
+	}
+
 	t.Cleanup(func() {
-		if err := os.Remove(path + "/testfile"); err != nil {
-			t.Logf("Remove testfile failed: %s\n", err)
-		}
-		// let's clear all
-		for len(pathStack) > 0 {
-			n := len(pathStack) - 1
-			path := pathStack[n]
-			if err := os.Remove(path); err != nil {
-				t.Logf("Remove failed: %s\n", err)
-			}
-			pathStack = pathStack[:n]
-		}
+		os.RemoveAll("/tmp/0")
 	})
 
 	filePath := path + "/testfile"
-	writeChecker := getWriteChecker(t, "/7/8/9/10/11/12/13/14/15/16/testfile", "unresolvedPathComponents")
-	if config.EnableLargeProgs() {
-		writeChecker = getWriteChecker(t, "/tmp/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/testfile", "")
-	}
 
+	// skip '/tmp/0' for v4.19, '/1/.../testfile' has 32*8 path components
+	writeChecker := getWriteChecker(t, filePath[6:], "")
+
+	// full path for large programs
+	if config.EnableLargeProgs() {
+		writeChecker = getWriteChecker(t, filePath, "")
+	}
 	corePathTest(t, filePath, readHook, writeChecker)
 }
 
