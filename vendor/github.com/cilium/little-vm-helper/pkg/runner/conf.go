@@ -16,8 +16,8 @@ type RunConf struct {
 	KernelAppendArgs []string
 	// Do not run the qemu command, just print it
 	QemuPrint bool
-	// Do not use KVM acceleration, even if /dev/kvm exists
-	DisableKVM bool
+	// Do not use hardware acceleration, KVM for Linux or HVF for macOS
+	DisableHardwareAccel bool
 	// Daemonize QEMU after initializing
 	Daemonize bool
 	// Log file for virtual console output
@@ -45,6 +45,8 @@ type RunConf struct {
 	RootDev string
 
 	QemuMonitorPort int
+
+	QemuArch string
 }
 
 func (rc *RunConf) testImageFname() string {

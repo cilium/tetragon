@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/cilium/little-vm-helper/pkg/arch"
@@ -75,7 +76,11 @@ func (s *CreateImage) makeRootImage(ctx context.Context) error {
 	}
 	imgFname := filepath.Join(s.imagesDir, s.imgCnf.Name)
 	tarFname := path.Join(s.imagesDir, fmt.Sprintf("%s.tar", s.imgCnf.Name))
-	bootable := arch.Bootable(s.imgCnf.Bootable)
+	iarch, err := arch.NewArch(runtime.GOARCH)
+	if err != nil {
+		return err
+	}
+	bootable := iarch.Bootable(s.imgCnf.Bootable)
 	// build package list: add a kernel if building a bootable image
 	packages := make([]string, 0, len(s.imgCnf.Packages)+1)
 	if bootable {
@@ -88,7 +93,7 @@ func (s *CreateImage) makeRootImage(ctx context.Context) error {
 		"--include", strings.Join(packages, ","),
 		tarFname,
 	)
-	err := logcmd.RunAndLogCommand(cmd, s.log)
+	err = logcmd.RunAndLogCommand(cmd, s.log)
 	if err != nil {
 		return err
 	}

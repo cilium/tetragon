@@ -26,6 +26,7 @@ type PullConf struct {
 	Image     string
 	TargetDir string
 	Cache     bool
+	Platform  string
 }
 
 type ExtractResult struct {
@@ -41,7 +42,9 @@ func PullImage(ctx context.Context, conf PullConf) error {
 	}
 	defer cli.Close()
 
-	remotePullReader, err := cli.ImagePull(ctx, conf.Image, image.PullOptions{})
+	remotePullReader, err := cli.ImagePull(ctx, conf.Image, image.PullOptions{
+		Platform: conf.Platform,
+	})
 	if err != nil {
 		return fmt.Errorf("cannot pull image %s: %w", conf.Image, err)
 	}
