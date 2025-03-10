@@ -192,8 +192,8 @@ func TestInitCachedBTF(t *testing.T) {
 	}
 }
 
-func genericTestFindBtfFuncParamFromHook(t *testing.T, hook string, argIndex int, expectedName string) error {
-	param, err := FindBtfFuncParamFromHook(hook, argIndex)
+func genericTestFindBtfFuncParamFromHook(t *testing.T, spec *btf.Spec, hook string, argIndex int, expectedName string) error {
+	param, err := findBtfFuncParamFromHookWithSpec(spec, hook, argIndex)
 	if err != nil {
 		return err
 	}
@@ -204,34 +204,50 @@ func genericTestFindBtfFuncParamFromHook(t *testing.T, hook string, argIndex int
 	return nil
 }
 
+func testFindBtfFuncParamFromHook(btfFName string) func(*testing.T) {
+	return func(t *testing.T) {
+		spec, err := btf.LoadSpec(btfFName)
+		if err != nil {
+			t.Skipf("%q not found", btfFName)
+		}
+
+		// Assert no errors on Kprobe
+		hook := "wake_up_new_task"
+		argIndex := 0
+		expectedName := "p"
+		err = genericTestFindBtfFuncParamFromHook(t, spec, hook, argIndex, expectedName)
+		assert.NoError(t, err)
+
+		// Assert error raises with invalid hook
+		hook = "fake_hook"
+		argIndex = 0
+		expectedName = "p"
+		err = genericTestFindBtfFuncParamFromHook(t, spec, hook, argIndex, expectedName)
+		assert.ErrorContains(t, err, fmt.Sprintf("failed to find BTF type for hook %q", hook))
+
+		// Assert error raises when hook is a valid BTF type but not btf.Func
+		hook = "linux_binprm"
+		argIndex = 0
+		expectedName = "p"
+		err = genericTestFindBtfFuncParamFromHook(t, spec, hook, argIndex, expectedName)
+		assert.ErrorContains(t, err, fmt.Sprintf("failed to find BTF type for hook %q", hook))
+
+		// Assert error raises when argIndex is out of scope
+		hook = "wake_up_new_task"
+		argIndex = 10
+		expectedName = "p"
+		err = genericTestFindBtfFuncParamFromHook(t, spec, hook, argIndex, expectedName)
+		assert.ErrorContains(t, err, fmt.Sprintf("index %d is out of range", argIndex))
+	}
+}
+
 func TestFindBtfFuncParamFromHook(t *testing.T) {
-	// Assert no errors on Kprobe
-	hook := "wake_up_new_task"
-	argIndex := 0
-	expectedName := "p"
-	err := genericTestFindBtfFuncParamFromHook(t, hook, argIndex, expectedName)
-	assert.NoError(t, err)
+	btfFiles, err := listBtfFiles()
+	fatalOnError(t, err)
 
-	// Assert error raises with invalid hook
-	hook = "fake_hook"
-	argIndex = 0
-	expectedName = "p"
-	err = genericTestFindBtfFuncParamFromHook(t, hook, argIndex, expectedName)
-	assert.ErrorContains(t, err, fmt.Sprintf("failed to find BTF type for hook %q", hook))
-
-	// Assert error raises when hook is a valid BTF type but not btf.Func
-	hook = "linux_binprm"
-	argIndex = 0
-	expectedName = "p"
-	err = genericTestFindBtfFuncParamFromHook(t, hook, argIndex, expectedName)
-	assert.ErrorContains(t, err, fmt.Sprintf("failed to find BTF type for hook %q", hook))
-
-	// Assert error raises when argIndex is out of scope
-	hook = "wake_up_new_task"
-	argIndex = 10
-	expectedName = "p"
-	err = genericTestFindBtfFuncParamFromHook(t, hook, argIndex, expectedName)
-	assert.ErrorContains(t, err, fmt.Sprintf("index %d is out of range", argIndex))
+	for _, btfFile := range btfFiles {
+		t.Run(btfFile, testFindBtfFuncParamFromHook(btfFile))
+	}
 }
 
 func fatalOnError(t *testing.T, err error) {
@@ -426,118 +442,139 @@ func testPathIsAccessible(rootType btf.Type, strPath string) (*[api.MaxBtfArgDep
 	return &btfArgs, lastBtfType, nil
 }
 
-func testAssertEqualPath(t *testing.T) {
-	hook := "security_bprm_check"
-	argIndex := 0 // struct linux_binprm *bprm
-	funcParamTy, err := FindBtfFuncParamFromHook(hook, argIndex)
-	fatalOnError(t, err)
+func testAssertEqualPath(spec *btf.Spec) func(*testing.T) {
+	return func(t *testing.T) {
+		hook := "security_bprm_check"
+		argIndex := 0 // struct linux_binprm *bprm
+		funcParamTy, err := findBtfFuncParamFromHookWithSpec(spec, hook, argIndex)
+		fatalOnError(t, err)
 
-	bprmTy := funcParamTy.Type
-	if ty, ok := bprmTy.(*btf.Pointer); ok {
-		bprmTy = ty.Target
+		bprmTy := funcParamTy.Type
+		if ty, ok := bprmTy.(*btf.Pointer); ok {
+			bprmTy = ty.Target
+		}
+
+		// Test default behaviour
+		path := "file.f_path.dentry.d_name.name"
+		assert.Equal(t,
+			buildExpectedBtfConfig(t, bprmTy, path),
+			buildResolveBtfConfig(t, bprmTy, path),
+		)
+
+		// Test anonymous struct
+		path = "mm.arg_start"
+		assert.Equal(t,
+			buildExpectedBtfConfig(t, bprmTy, path),
+			buildResolveBtfConfig(t, bprmTy, path),
+		)
+
+		// Test Union
+		path = "file.f_inode.i_dir_seq"
+		assert.Equal(t,
+			buildExpectedBtfConfig(t, bprmTy, path),
+			buildResolveBtfConfig(t, bprmTy, path),
+		)
+
+		// Test if param is double ptr
+		hook = "security_inode_copy_up"
+		argIndex = 1 // struct cred **new
+		funcParamTy, err = findBtfFuncParamFromHookWithSpec(spec, hook, argIndex)
+		fatalOnError(t, err)
+
+		newTy := funcParamTy.Type
+		if ty, ok := newTy.(*btf.Pointer); ok {
+			newTy = ty.Target
+		}
+		path = "uid.val"
+		assert.Equal(t,
+			buildExpectedBtfConfig(t, newTy, path),
+			buildResolveBtfConfig(t, newTy, path),
+		)
 	}
-
-	// Test default behaviour
-	path := "file.f_path.dentry.d_name.name"
-	assert.Equal(t,
-		buildExpectedBtfConfig(t, bprmTy, path),
-		buildResolveBtfConfig(t, bprmTy, path),
-	)
-
-	// Test anonymous struct
-	path = "mm.arg_start"
-	assert.Equal(t,
-		buildExpectedBtfConfig(t, bprmTy, path),
-		buildResolveBtfConfig(t, bprmTy, path),
-	)
-
-	// Test Union
-	path = "file.f_inode.i_dir_seq"
-	assert.Equal(t,
-		buildExpectedBtfConfig(t, bprmTy, path),
-		buildResolveBtfConfig(t, bprmTy, path),
-	)
-
-	// Test if param is double ptr
-	hook = "security_inode_copy_up"
-	argIndex = 1 // struct cred **new
-	funcParamTy, err = FindBtfFuncParamFromHook(hook, argIndex)
-	fatalOnError(t, err)
-
-	newTy := funcParamTy.Type
-	if ty, ok := newTy.(*btf.Pointer); ok {
-		newTy = ty.Target
-	}
-	path = "uid.val"
-	assert.Equal(t,
-		buildExpectedBtfConfig(t, newTy, path),
-		buildResolveBtfConfig(t, newTy, path),
-	)
 }
 
-func testAssertPathIsAccessible(t *testing.T) {
-	hook := "wake_up_new_task"
-	argIndex := 0 //struct task_struct *p
-	funcParamTy, err := FindBtfFuncParamFromHook(hook, argIndex)
-	fatalOnError(t, err)
+func testAssertPathIsAccessible(spec *btf.Spec) func(*testing.T) {
+	return func(t *testing.T) {
+		hook := "wake_up_new_task"
+		argIndex := 0 //struct task_struct *p
+		funcParamTy, err := findBtfFuncParamFromHookWithSpec(spec, hook, argIndex)
+		fatalOnError(t, err)
 
-	taskStructTy := funcParamTy.Type
-	if ty, ok := taskStructTy.(*btf.Pointer); ok {
-		taskStructTy = ty.Target
+		taskStructTy := funcParamTy.Type
+		if ty, ok := taskStructTy.(*btf.Pointer); ok {
+			taskStructTy = ty.Target
+		}
+
+		_, _, err = testPathIsAccessible(taskStructTy, "sched_task_group.css.id")
+		assert.NoError(t, err)
+
+		hook = "security_bprm_check"
+		argIndex = 0 // struct linux_binprm *bprm
+		funcParamTy, err = findBtfFuncParamFromHookWithSpec(spec, hook, argIndex)
+		fatalOnError(t, err)
+
+		bprmTy := funcParamTy.Type
+		if ty, ok := bprmTy.(*btf.Pointer); ok {
+			bprmTy = ty.Target
+		}
+
+		_, _, err = testPathIsAccessible(bprmTy, "mm.pgd.pgd")
+		assert.NoError(t, err)
 	}
-
-	_, _, err = testPathIsAccessible(taskStructTy, "sched_task_group.css.id")
-	assert.NoError(t, err)
-
-	hook = "security_bprm_check"
-	argIndex = 0 // struct linux_binprm *bprm
-	funcParamTy, err = FindBtfFuncParamFromHook(hook, argIndex)
-	fatalOnError(t, err)
-
-	bprmTy := funcParamTy.Type
-	if ty, ok := bprmTy.(*btf.Pointer); ok {
-		bprmTy = ty.Target
-	}
-
-	_, _, err = testPathIsAccessible(bprmTy, "mm.pgd.pgd")
-	assert.NoError(t, err)
 }
 
-func testAssertErrorOnInvalidPath(t *testing.T) {
-	hook := "security_bprm_check"
-	argIndex := 0 // struct linux_binprm *bprm
-	funcParamTy, err := FindBtfFuncParamFromHook(hook, argIndex)
-	fatalOnError(t, err)
+func testAssertErrorOnInvalidPath(spec *btf.Spec) func(*testing.T) {
+	return func(t *testing.T) {
+		hook := "security_bprm_check"
+		argIndex := 0 // struct linux_binprm *bprm
+		funcParamTy, err := findBtfFuncParamFromHookWithSpec(spec, hook, argIndex)
+		fatalOnError(t, err)
 
-	rootType := funcParamTy.Type
-	if rootTy, ok := rootType.(*btf.Pointer); ok {
-		rootType = rootTy.Target
+		rootType := funcParamTy.Type
+		if rootTy, ok := rootType.(*btf.Pointer); ok {
+			rootType = rootTy.Target
+		}
+
+		// Assert an error is raised when attribute does not exists
+		_, _, err = testPathIsAccessible(rootType, "fail")
+		assert.ErrorContains(t, err, "Attribute \"fail\" not found in structure")
+
+		_, _, err = testPathIsAccessible(rootType, "mm.fail")
+		assert.ErrorContains(t, err, "Attribute \"fail\" not found in structure")
+
+		_, _, err = testPathIsAccessible(rootType, "mm.pgd.fail")
+		assert.ErrorContains(t, err, "Attribute \"fail\" not found in structure")
+
+		hook = "do_sys_open"
+		argIndex = 0 // int dfd
+		funcParamTy, err = findBtfFuncParamFromHookWithSpec(spec, hook, argIndex)
+		fatalOnError(t, err)
+
+		rootType = funcParamTy.Type
+
+		// Assert an error is raised when attribute has invalid type
+		_, _, err = testPathIsAccessible(rootType, "fail")
+		assert.ErrorContains(t, err, fmt.Sprintf("Unexpected type : \"fail\" has type %q", rootType.TypeName()))
 	}
+}
 
-	// Assert an error is raised when attribute does not exists
-	_, _, err = testPathIsAccessible(rootType, "fail")
-	assert.ErrorContains(t, err, "Attribute \"fail\" not found in structure")
-
-	_, _, err = testPathIsAccessible(rootType, "mm.fail")
-	assert.ErrorContains(t, err, "Attribute \"fail\" not found in structure")
-
-	_, _, err = testPathIsAccessible(rootType, "mm.pgd.fail")
-	assert.ErrorContains(t, err, "Attribute \"fail\" not found in structure")
-
-	hook = "do_sys_open"
-	argIndex = 0 // int dfd
-	funcParamTy, err = FindBtfFuncParamFromHook(hook, argIndex)
-	fatalOnError(t, err)
-
-	rootType = funcParamTy.Type
-
-	// Assert an error is raised when attribute has invalid type
-	_, _, err = testPathIsAccessible(rootType, "fail")
-	assert.ErrorContains(t, err, fmt.Sprintf("Unexpected type : \"fail\" has type %q", rootType.TypeName()))
+func testResolveBtfPath(btfFName string) func(t *testing.T) {
+	return func(t *testing.T) {
+		spec, err := btf.LoadSpec(btfFName)
+		if err != nil {
+			t.Skipf("%q not found", btfFName)
+		}
+		t.Run("PathIsAccessible", testAssertPathIsAccessible(spec))
+		t.Run("AssertErrorOnInvalidPath", testAssertErrorOnInvalidPath(spec))
+		t.Run("AssertEqualPath", testAssertEqualPath(spec))
+	}
 }
 
 func TestResolveBtfPath(t *testing.T) {
-	t.Run("PathIsAccessible", testAssertPathIsAccessible)
-	t.Run("AssertErrorOnInvalidPath", testAssertErrorOnInvalidPath)
-	t.Run("AssertEqualPath", testAssertEqualPath)
+	btfFiles, err := listBtfFiles()
+	fatalOnError(t, err)
+
+	for _, btfFile := range btfFiles {
+		t.Run(btfFile, testResolveBtfPath(btfFile))
+	}
 }
