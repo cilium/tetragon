@@ -207,11 +207,11 @@ func (kd *KernelsDir) rawConfigureKernel(
 		}
 	}
 
-	crossCompilationArgs, err := arch.CrossCompileMakeArgs(targetArch)
+	tarch, err := arch.NewArch(targetArch)
 	if err != nil {
-		return fmt.Errorf("failed to retrieve cross compilation args: %w", err)
+		return err
 	}
-
+	crossCompilationArgs := tarch.CrossCompileMakeArgs()
 	olddefconfigMakeArgs := []string{"olddefconfig"}
 	olddefconfigMakeArgs = append(olddefconfigMakeArgs, crossCompilationArgs...)
 
@@ -232,11 +232,11 @@ func (kd *KernelsDir) rawConfigureKernel(
 
 func (kd *KernelsDir) configureKernel(ctx context.Context, log *logrus.Logger, kc *KernelConf, targetArch string) error {
 	srcDir := filepath.Join(kd.Dir, kc.Name)
-	crossCompilationArgs, err := arch.CrossCompileMakeArgs(targetArch)
+	tarch, err := arch.NewArch(targetArch)
 	if err != nil {
-		return fmt.Errorf("failed to retrieve cross compilation args: %w", err)
+		return err
 	}
-
+	crossCompilationArgs := tarch.CrossCompileMakeArgs()
 	configureMakeArgs := []string{"defconfig", "prepare"}
 	configureMakeArgs = append(configureMakeArgs, crossCompilationArgs...)
 
@@ -264,17 +264,14 @@ func (kd *KernelsDir) buildKernel(ctx context.Context, log *logrus.Logger, kc *K
 
 	ncpus := fmt.Sprintf("%d", runtime.NumCPU())
 
-	target, err := arch.Target(targetArch)
+	tarch, err := arch.NewArch(targetArch)
 	if err != nil {
-		return fmt.Errorf("failed to get make target: %w", err)
+		return err
 	}
-
+	target := tarch.Target()
 	buildMakeArgs := []string{"-C", srcDir, "-j", ncpus, target, "modules"}
 
-	crossCompilationArgs, err := arch.CrossCompileMakeArgs(targetArch)
-	if err != nil {
-		return fmt.Errorf("failed to retrieve cross compilation args: %w", err)
-	}
+	crossCompilationArgs := tarch.CrossCompileMakeArgs()
 	buildMakeArgs = append(buildMakeArgs, crossCompilationArgs...)
 
 	if err := runAndLogMake(ctx, log, kc, buildMakeArgs...); err != nil {
