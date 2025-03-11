@@ -631,6 +631,8 @@ func (tp *genericTracepoint) InitKernelSelectors(lists []v1alpha1.ListSpec) erro
 				}
 			}
 		}
+
+		pathArgWarning(tpArg.ArgIdx, ty, selSelectors)
 	}
 
 	selectors, err := selectors.InitKernelSelectorState(selSelectors, selArgs, &tp.actionArgs, &listReader{lists}, nil)
