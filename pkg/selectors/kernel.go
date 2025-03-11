@@ -1420,3 +1420,14 @@ func HasSigkillAction(kspec *v1alpha1.KProbeSpec) bool {
 	}
 	return false
 }
+
+func HasFilter(selectors []v1alpha1.KProbeSelector, index uint32) bool {
+	for _, s := range selectors {
+		for _, a := range s.MatchArgs {
+			if a.Index == index {
+				return true
+			}
+		}
+	}
+	return false
+}
