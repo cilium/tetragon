@@ -784,6 +784,8 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 		argsBTFSet[a.Index] = true
 		argP := argPrinter{index: j, ty: argType, userType: userArgType, maxData: a.MaxData, label: a.Label}
 		argSigPrinters = append(argSigPrinters, argP)
+
+		pathArgWarning(a.Index, argType, f.Selectors)
 	}
 
 	// Parse ReturnArg, we have two types of return arg parsing. We
