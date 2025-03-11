@@ -281,6 +281,8 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 		argsBTFSet[a.Index] = true
 		argP := argPrinter{index: j, ty: argType, maxData: a.MaxData, label: a.Label}
 		argSigPrinters = append(argSigPrinters, argP)
+
+		pathArgWarning(a.Index, argType, f.Selectors)
 	}
 
 	config.BTFArg = allBTFArgs
