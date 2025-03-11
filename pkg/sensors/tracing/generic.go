@@ -12,8 +12,12 @@ import (
 	ebtf "github.com/cilium/ebpf/btf"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/btf"
+	conf "github.com/cilium/tetragon/pkg/config"
+	"github.com/cilium/tetragon/pkg/generictypes"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/selectors"
 )
 
 func addPaddingOnNestedPtr(ty ebtf.Type, path []string) []string {
@@ -57,4 +61,15 @@ func findTypeFromBTFType(arg v1alpha1.KProbeArg, btfType *ebtf.Type) int {
 		return gt.GenericTypeFromString(arg.Type)
 	}
 	return ty
+}
+
+func pathArgWarning(index uint32, ty int, s []v1alpha1.KProbeSelector) {
+	if !conf.EnableLargeProgs() && generictypes.PathType(ty) && selectors.HasFilter(s, index) {
+		name, err := generictypes.GenericTypeToString(ty)
+		if err != nil {
+			name = "N/A"
+		}
+		logger.GetLogger().Warnf("argument filter for '%s' (index %d) does not support the whole path retrieval",
+			name, index)
+	}
 }
