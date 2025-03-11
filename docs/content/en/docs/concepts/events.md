@@ -184,8 +184,8 @@ only the `process.binary`, `parent.binary`, and `pod.name` fields.
 
 By default, a field filter applies to all process events, although you
 can control this behaviour with the `"event_set"` key. For example, you
-can apply a field filter to `PROCESS_CONNECT` and `PROCESS_CLOSE` events
-by specifying `"event_set":["PROCESS_CONNECT","PROCESS_CLOSE"]` in the
+can apply a field filter to `PROCESS_KPROBE` and `PROCESS_TRACEPOINT` events
+by specifying `"event_set":["PROCESS_KPROBE","PROCESS_TRACEPOINT"]` in the
 filter definition.
 
 Each field filter has an `"action"` that determines what the filter
