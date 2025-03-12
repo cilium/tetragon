@@ -137,12 +137,8 @@ generic_process_event(void *ctx, struct bpf_map_def *tailcals)
 		     : "i"(MAX_SELECTORS_MASK));
 	ty = (&config->arg0)[index];
 	if (total < MAX_TOTAL) {
+		int am = (&config->arg0m)[index];
 		long errv;
-		int am;
-
-		am = (&config->arg0m)[index];
-		asm volatile("%[am] &= 0xffff;\n"
-			     : [am] "+r"(am));
 
 		errv = read_call_arg(ctx, e, index, ty, total, a, am, data_heap_ptr);
 		if (errv > 0)
