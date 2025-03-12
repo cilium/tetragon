@@ -428,12 +428,12 @@ func validateSycall(kspec *v1alpha1.KProbeSpec, name string) error {
 func AvailableSyscalls() ([]string, error) {
 	// NB(kkourt): we should have a single function for this (see observerFindBTF)
 	btfFile := "/sys/kernel/btf/vmlinux"
-	tetragonBtfEnv := os.Getenv("TETRAGON_BTF")
-	if tetragonBtfEnv != "" {
-		if _, err := os.Stat(tetragonBtfEnv); err != nil {
-			return nil, fmt.Errorf("Failed to find BTF: %s", tetragonBtfEnv)
+	tetragonBTFEnv := os.Getenv("TETRAGON_BTF")
+	if tetragonBTFEnv != "" {
+		if _, err := os.Stat(tetragonBTFEnv); err != nil {
+			return nil, fmt.Errorf("Failed to find BTF: %s", tetragonBTFEnv)
 		}
-		btfFile = tetragonBtfEnv
+		btfFile = tetragonBTFEnv
 	}
 	bspec, err := btf.LoadSpec(btfFile)
 	if err != nil {
@@ -473,12 +473,12 @@ func AvailableSyscalls() ([]string, error) {
 func GetSyscallsList() ([]string, error) {
 	btfFile := "/sys/kernel/btf/vmlinux"
 
-	tetragonBtfEnv := os.Getenv("TETRAGON_BTF")
-	if tetragonBtfEnv != "" {
-		if _, err := os.Stat(tetragonBtfEnv); err != nil {
-			return []string{}, fmt.Errorf("Failed to find BTF: %s", tetragonBtfEnv)
+	tetragonBTFEnv := os.Getenv("TETRAGON_BTF")
+	if tetragonBTFEnv != "" {
+		if _, err := os.Stat(tetragonBTFEnv); err != nil {
+			return []string{}, fmt.Errorf("Failed to find BTF: %s", tetragonBTFEnv)
 		}
-		btfFile = tetragonBtfEnv
+		btfFile = tetragonBTFEnv
 	}
 
 	bspec, err := btf.LoadSpec(btfFile)

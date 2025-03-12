@@ -17,8 +17,8 @@ import (
 // This test attempt to test the Resolve flag in tracing policies.
 //   - The 2 first hooks assert no error occures when searching for the BTF config
 //   - The last test is used to assert an error occures when path length is
-//     higher than api.MaxBtfArgDepth
-func TestResolveBtfArgFromKprobePolicy(t *testing.T) {
+//     higher than api.MaxBTFArgDepth
+func TestResolveBTFArgFromKprobePolicy(t *testing.T) {
 	rawPolicy := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -51,25 +51,25 @@ spec:
 	successHook := policy.TpSpec().KProbes[:2]
 	for _, hook := range successHook {
 		for _, arg := range hook.Args {
-			lastBtfType, btfArg, err := resolveBtfArg(hook.Call, arg)
+			lastBTFType, btfArg, err := resolveBTFArg(hook.Call, arg)
 
 			if err != nil {
 				t.Fatal(hook.Call, err)
 			}
-			assert.NotNil(t, lastBtfType)
+			assert.NotNil(t, lastBTFType)
 			assert.NotNil(t, btfArg)
 
-			argType := findTypeFromBtfType(arg, lastBtfType)
-			assert.NotEqual(t, gt.GenericInvalidType, argType, "Type %q is not supported", (*lastBtfType).TypeName())
+			argType := findTypeFromBTFType(arg, lastBTFType)
+			assert.NotEqual(t, gt.GenericInvalidType, argType, "Type %q is not supported", (*lastBTFType).TypeName())
 		}
 	}
 
 	failHook := policy.TpSpec().KProbes[2]
 	for _, arg := range failHook.Args {
-		_, _, err := resolveBtfArg(failHook.Call, arg)
+		_, _, err := resolveBTFArg(failHook.Call, arg)
 
 		if !assert.ErrorContains(t, err, "The maximum depth allowed is") {
-			t.Fatalf("The path %q must have len < %d", arg.Resolve, api.MaxBtfArgDepth)
+			t.Fatalf("The path %q must have len < %d", arg.Resolve, api.MaxBTFArgDepth)
 		}
 	}
 }

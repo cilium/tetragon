@@ -167,7 +167,7 @@ func saveInitInfo(o *TestOptions, exportFile string) error {
 	info := bugtool.InitInfo{
 		ExportFname: exportPath,
 		LibDir:      libPath,
-		BtfFname:    btfPath,
+		BTFFname:    btfPath,
 		MetricsAddr: metricsAddr,
 		ServerAddr:  "",
 	}

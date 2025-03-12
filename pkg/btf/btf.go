@@ -34,12 +34,12 @@ func observerFindBTF(lib, btf string) (string, error) {
 	if btf == "" {
 		// Alternative to auto-discovery and/or command line argument we
 		// can also set via environment variable.
-		tetragonBtfEnv := os.Getenv("TETRAGON_BTF")
-		if tetragonBtfEnv != "" {
-			if _, err := os.Stat(tetragonBtfEnv); err != nil {
+		tetragonBTFEnv := os.Getenv("TETRAGON_BTF")
+		if tetragonBTFEnv != "" {
+			if _, err := os.Stat(tetragonBTFEnv); err != nil {
 				return btf, err
 			}
-			return tetragonBtfEnv, nil
+			return tetragonBTFEnv, nil
 		}
 
 		_, kernelVersion, err := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
@@ -98,15 +98,15 @@ func GetCachedBTFFile() string {
 	return btfFile
 }
 
-func FindBtfFuncParamFromHook(hook string, argIndex int) (*btf.FuncParam, error) {
+func FindBTFFuncParamFromHook(hook string, argIndex int) (*btf.FuncParam, error) {
 	spec, err := NewBTF()
 	if err != nil {
 		return nil, err
 	}
-	return findBtfFuncParamFromHookWithSpec(spec, hook, argIndex)
+	return findBTFFuncParamFromHookWithSpec(spec, hook, argIndex)
 }
 
-func findBtfFuncParamFromHookWithSpec(spec *btf.Spec, hook string, argIndex int) (*btf.FuncParam, error) {
+func findBTFFuncParamFromHookWithSpec(spec *btf.Spec, hook string, argIndex int) (*btf.FuncParam, error) {
 	var hookFn *btf.Func
 
 	if err := spec.TypeByName(hook, &hookFn); err != nil {
@@ -118,8 +118,8 @@ func findBtfFuncParamFromHookWithSpec(spec *btf.Spec, hook string, argIndex int)
 		return nil, fmt.Errorf("failed to find BTF type for hook %q: %w", hook, err)
 	}
 
-	btfHookProto, isBtfFuncProto := hookFn.Type.(*btf.FuncProto)
-	if !isBtfFuncProto {
+	btfHookProto, isBTFFuncProto := hookFn.Type.(*btf.FuncProto)
+	if !isBTFFuncProto {
 		return nil, fmt.Errorf("hook %q has no BTF type FuncProto", hook)
 	}
 	paramLen := len(btfHookProto.Params)
@@ -147,7 +147,7 @@ func ResolveNestedTypes(ty btf.Type) btf.Type {
 	return ty
 }
 
-// ResolveBtfPath function recursively search in a btf structure in order to
+// ResolveBTFPath function recursively search in a btf structure in order to
 // found a specific path until it reach the target or fail.
 
 // The function also search in embedded anonymous structures or unions to cover as
@@ -162,8 +162,8 @@ func ResolveNestedTypes(ty btf.Type) btf.Type {
 // @i: The current depth, until last element of pathToFound.
 
 // Return: The last type found matching the path, or error.
-func ResolveBtfPath(
-	btfArgs *[api.MaxBtfArgDepth]api.ConfigBtfArg,
+func ResolveBTFPath(
+	btfArgs *[api.MaxBTFArgDepth]api.ConfigBTFArg,
 	currentType btf.Type,
 	pathToFound []string,
 	i int,
@@ -177,10 +177,10 @@ func ResolveBtfPath(
 		if len(pathToFound[i]) == 0 {
 			(*btfArgs)[i].IsPointer = uint16(1)
 			(*btfArgs)[i].IsInitialized = uint16(1)
-			return ResolveBtfPath(btfArgs, ResolveNestedTypes(t.Target), pathToFound, i+1)
+			return ResolveBTFPath(btfArgs, ResolveNestedTypes(t.Target), pathToFound, i+1)
 		}
 		(*btfArgs)[i-1].IsPointer = uint16(1)
-		return ResolveBtfPath(btfArgs, ResolveNestedTypes(t.Target), pathToFound, i)
+		return ResolveBTFPath(btfArgs, ResolveNestedTypes(t.Target), pathToFound, i)
 	default:
 		ty := currentType.TypeName()
 		if len(ty) == 0 {
@@ -195,7 +195,7 @@ func ResolveBtfPath(
 }
 
 func processMembers(
-	btfArgs *[api.MaxBtfArgDepth]api.ConfigBtfArg,
+	btfArgs *[api.MaxBTFArgDepth]api.ConfigBTFArg,
 	currentType btf.Type,
 	members []btf.Member,
 	pathToFound []string,
@@ -207,7 +207,7 @@ func processMembers(
 		if len(member.Name) == 0 { // If anonymous struct, fallthrough
 			(*btfArgs)[i].Offset = member.Offset.Bytes()
 			(*btfArgs)[i].IsInitialized = uint16(1)
-			lastTy, err := ResolveBtfPath(btfArgs, ResolveNestedTypes(member.Type), pathToFound, i)
+			lastTy, err := ResolveBTFPath(btfArgs, ResolveNestedTypes(member.Type), pathToFound, i)
 			if err != nil {
 				if lastError != nil {
 					idx := i + 1
@@ -225,9 +225,9 @@ func processMembers(
 			memberWasFound = true
 			(*btfArgs)[i].Offset = member.Offset.Bytes()
 			(*btfArgs)[i].IsInitialized = uint16(1)
-			isNotLastChild := i < len(pathToFound)-1 && i < api.MaxBtfArgDepth
+			isNotLastChild := i < len(pathToFound)-1 && i < api.MaxBTFArgDepth
 			if isNotLastChild {
-				return ResolveBtfPath(btfArgs, ResolveNestedTypes(member.Type), pathToFound, i+1)
+				return ResolveBTFPath(btfArgs, ResolveNestedTypes(member.Type), pathToFound, i+1)
 			}
 			currentType = ResolveNestedTypes(member.Type)
 			break
