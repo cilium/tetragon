@@ -92,7 +92,7 @@ func TestSpecs(t *testing.T) {
 		t.Fatalf("validateKprobeSpec: ksyms.KernelSymbols: %s", err)
 	}
 
-	btfFiles, err := listBtfFiles()
+	btfFiles, err := listBTFFiles()
 	fatalOnError(t, err)
 
 	for _, btfFile := range btfFiles {

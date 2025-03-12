@@ -597,14 +597,14 @@ type KprobeArgs struct {
 	Args4 []byte
 }
 
-type ConfigBtfArg struct {
+type ConfigBTFArg struct {
 	Offset        uint32 `align:"offset"`
 	IsPointer     uint16 `align:"is_pointer"`
 	IsInitialized uint16 `align:"is_initialized"`
 }
 
 const EventConfigMaxArgs = 5
-const MaxBtfArgDepth = 10 // Artificial value for compilation, may be extended
+const MaxBTFArgDepth = 10 // Artificial value for compilation, may be extended
 
 type EventConfig struct {
 	FuncId          uint32                                           `align:"func_id"`
@@ -617,5 +617,5 @@ type EventConfig struct {
 	ArgReturnAction int32                                            `align:"argreturnaction"`
 	PolicyID        uint32                                           `align:"policy_id"`
 	Flags           uint32                                           `align:"flags"`
-	BtfArg          [EventConfigMaxArgs][MaxBtfArgDepth]ConfigBtfArg `align:"btf_arg"`
+	BTFArg          [EventConfigMaxArgs][MaxBTFArgDepth]ConfigBTFArg `align:"btf_arg"`
 }

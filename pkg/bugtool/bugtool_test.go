@@ -24,7 +24,7 @@ func TestSaveAndLoad(t *testing.T) {
 	info1 := InitInfo{
 		ExportFname: "1",
 		LibDir:      "2",
-		BtfFname:    "3",
+		BTFFname:    "3",
 		ServerAddr:  "",
 		MetricsAddr: "foo",
 	}
