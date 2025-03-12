@@ -214,7 +214,7 @@ type addLsmIn struct {
 func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err error) {
 	var argSigPrinters []argPrinter
 	var argsBTFSet [api.MaxArgsSupported]bool
-	var allBtfArgs [api.EventConfigMaxArgs][api.MaxBtfArgDepth]api.ConfigBtfArg
+	var allBTFArgs [api.EventConfigMaxArgs][api.MaxBTFArgDepth]api.ConfigBTFArg
 
 	errFn := func(err error) (idtable.EntryID, error) {
 		return idtable.UninitializedEntryID, err
@@ -247,12 +247,12 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 			if !bpf.HasProgramLargeSize() {
 				return errFn(fmt.Errorf("Error: Resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag"))
 			}
-			lastBtfType, btfArg, err := resolveBtfArg("bpf_lsm_"+f.Hook, a)
+			lastBTFType, btfArg, err := resolveBTFArg("bpf_lsm_"+f.Hook, a)
 			if err != nil {
 				return errFn(fmt.Errorf("Error on hook %q for index %d : %v", f.Hook, a.Index, err))
 			}
-			allBtfArgs[j] = btfArg
-			argType = findTypeFromBtfType(a, lastBtfType)
+			allBTFArgs[j] = btfArg
+			argType = findTypeFromBTFType(a, lastBTFType)
 		}
 
 		if argType == gt.GenericInvalidType {
@@ -283,7 +283,7 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 		argSigPrinters = append(argSigPrinters, argP)
 	}
 
-	config.BtfArg = allBtfArgs
+	config.BTFArg = allBTFArgs
 	config.ArgReturn = int32(0)
 	config.ArgReturnCopy = int32(0)
 

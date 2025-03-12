@@ -25,7 +25,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-var testBtfFiles = []struct {
+var testBTFFiles = []struct {
 	btf     string
 	create  string
 	wantbtf string
@@ -51,7 +51,7 @@ func setupfiles() func(*testing.T, string, ...string) {
 	}
 }
 
-func listBtfFiles() ([]string, error) {
+func listBTFFiles() ([]string, error) {
 	_, kernelVersion, err := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
 	if err != nil {
 		return nil, err
@@ -77,7 +77,7 @@ func TestObserverFindBTF(t *testing.T) {
 	defer os.Setenv("TETRAGON_BTF", old)
 
 	handlefiles := setupfiles()
-	for _, test := range testBtfFiles {
+	for _, test := range testBTFFiles {
 		if test.create != "" {
 			handlefiles(t, "create", test.create, filepath.Join(tmpdir, test.create))
 			defer handlefiles(t, "remove", test.create, filepath.Join(tmpdir, test.create))
@@ -192,8 +192,8 @@ func TestInitCachedBTF(t *testing.T) {
 	}
 }
 
-func genericTestFindBtfFuncParamFromHook(t *testing.T, spec *btf.Spec, hook string, argIndex int, expectedName string) error {
-	param, err := findBtfFuncParamFromHookWithSpec(spec, hook, argIndex)
+func genericTestFindBTFFuncParamFromHook(t *testing.T, spec *btf.Spec, hook string, argIndex int, expectedName string) error {
+	param, err := findBTFFuncParamFromHookWithSpec(spec, hook, argIndex)
 	if err != nil {
 		return err
 	}
@@ -204,7 +204,7 @@ func genericTestFindBtfFuncParamFromHook(t *testing.T, spec *btf.Spec, hook stri
 	return nil
 }
 
-func testFindBtfFuncParamFromHook(btfFName string) func(*testing.T) {
+func testFindBTFFuncParamFromHook(btfFName string) func(*testing.T) {
 	return func(t *testing.T) {
 		spec, err := btf.LoadSpec(btfFName)
 		if err != nil {
@@ -215,38 +215,38 @@ func testFindBtfFuncParamFromHook(btfFName string) func(*testing.T) {
 		hook := "wake_up_new_task"
 		argIndex := 0
 		expectedName := "p"
-		err = genericTestFindBtfFuncParamFromHook(t, spec, hook, argIndex, expectedName)
+		err = genericTestFindBTFFuncParamFromHook(t, spec, hook, argIndex, expectedName)
 		assert.NoError(t, err)
 
 		// Assert error raises with invalid hook
 		hook = "fake_hook"
 		argIndex = 0
 		expectedName = "p"
-		err = genericTestFindBtfFuncParamFromHook(t, spec, hook, argIndex, expectedName)
+		err = genericTestFindBTFFuncParamFromHook(t, spec, hook, argIndex, expectedName)
 		assert.ErrorContains(t, err, fmt.Sprintf("failed to find BTF type for hook %q", hook))
 
 		// Assert error raises when hook is a valid BTF type but not btf.Func
 		hook = "linux_binprm"
 		argIndex = 0
 		expectedName = "p"
-		err = genericTestFindBtfFuncParamFromHook(t, spec, hook, argIndex, expectedName)
+		err = genericTestFindBTFFuncParamFromHook(t, spec, hook, argIndex, expectedName)
 		assert.ErrorContains(t, err, fmt.Sprintf("failed to find BTF type for hook %q", hook))
 
 		// Assert error raises when argIndex is out of scope
 		hook = "wake_up_new_task"
 		argIndex = 10
 		expectedName = "p"
-		err = genericTestFindBtfFuncParamFromHook(t, spec, hook, argIndex, expectedName)
+		err = genericTestFindBTFFuncParamFromHook(t, spec, hook, argIndex, expectedName)
 		assert.ErrorContains(t, err, fmt.Sprintf("index %d is out of range", argIndex))
 	}
 }
 
-func TestFindBtfFuncParamFromHook(t *testing.T) {
-	btfFiles, err := listBtfFiles()
+func TestFindBTFFuncParamFromHook(t *testing.T) {
+	btfFiles, err := listBTFFiles()
 	fatalOnError(t, err)
 
 	for _, btfFile := range btfFiles {
-		t.Run(btfFile, testFindBtfFuncParamFromHook(btfFile))
+		t.Run(btfFile, testFindBTFFuncParamFromHook(btfFile))
 	}
 }
 
@@ -257,7 +257,7 @@ func fatalOnError(t *testing.T, err error) {
 	}
 }
 
-func getBtfStruct(ty btf.Type) (*btf.Struct, error) {
+func getBTFStruct(ty btf.Type) (*btf.Struct, error) {
 	t, ok := ty.(*btf.Struct)
 	if ok {
 		return t, nil
@@ -265,7 +265,7 @@ func getBtfStruct(ty btf.Type) (*btf.Struct, error) {
 	return nil, fmt.Errorf("Invalid type for \"%v\", expected \"*btf.Struct\", got %q", t, reflect.TypeOf(ty).String())
 }
 
-func getBtfPointer(ty btf.Type) (*btf.Pointer, error) {
+func getBTFPointer(ty btf.Type) (*btf.Pointer, error) {
 	t, ok := ty.(*btf.Pointer)
 	if ok {
 		return t, nil
@@ -273,7 +273,7 @@ func getBtfPointer(ty btf.Type) (*btf.Pointer, error) {
 	return nil, fmt.Errorf("Invalid type for \"%v\", expected \"*btf.Pointer\", got %q", t, reflect.TypeOf(ty).String())
 }
 
-func findMemberInBtfStruct(structTy *btf.Struct, memberName string) (*btf.Member, error) {
+func findMemberInBTFStruct(structTy *btf.Struct, memberName string) (*btf.Member, error) {
 	for _, member := range structTy.Members {
 		if member.Name == memberName {
 			return &member, nil
@@ -298,8 +298,8 @@ func findMemberInBtfStruct(structTy *btf.Struct, memberName string) (*btf.Member
 	return nil, fmt.Errorf("Member %q not found in struct %v", memberName, structTy)
 }
 
-func getBtfPointerAndSetConfig(ty btf.Type, btfConfig *api.ConfigBtfArg) (*btf.Pointer, error) {
-	ptr, err := getBtfPointer(ty)
+func getBTFPointerAndSetConfig(ty btf.Type, btfConfig *api.ConfigBTFArg) (*btf.Pointer, error) {
+	ptr, err := getBTFPointer(ty)
 	if err != nil {
 		return nil, err
 	}
@@ -309,10 +309,10 @@ func getBtfPointerAndSetConfig(ty btf.Type, btfConfig *api.ConfigBtfArg) (*btf.P
 	return ptr, nil
 }
 
-func getConfigAndNextType(structTy *btf.Struct, memberName string) (*btf.Type, *api.ConfigBtfArg, error) {
-	btfConfig := api.ConfigBtfArg{}
+func getConfigAndNextType(structTy *btf.Struct, memberName string) (*btf.Type, *api.ConfigBTFArg, error) {
+	btfConfig := api.ConfigBTFArg{}
 
-	member, err := findMemberInBtfStruct(structTy, memberName)
+	member, err := findMemberInBTFStruct(structTy, memberName)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -322,7 +322,7 @@ func getConfigAndNextType(structTy *btf.Struct, memberName string) (*btf.Type, *
 
 	ty := ResolveNestedTypes(member.Type)
 
-	ptr, _ := getBtfPointerAndSetConfig(ty, &btfConfig)
+	ptr, _ := getBTFPointerAndSetConfig(ty, &btfConfig)
 	if ptr != nil {
 		return &ptr.Target, &btfConfig, err
 	}
@@ -332,10 +332,10 @@ func getConfigAndNextType(structTy *btf.Struct, memberName string) (*btf.Type, *
 	return &ty, &btfConfig, err
 }
 
-func getConfigAndNextStruct(structTy *btf.Struct, memberName string) (*btf.Struct, *api.ConfigBtfArg, error) {
-	btfConfig := api.ConfigBtfArg{}
+func getConfigAndNextStruct(structTy *btf.Struct, memberName string) (*btf.Struct, *api.ConfigBTFArg, error) {
+	btfConfig := api.ConfigBTFArg{}
 
-	member, err := findMemberInBtfStruct(structTy, memberName)
+	member, err := findMemberInBTFStruct(structTy, memberName)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -345,12 +345,12 @@ func getConfigAndNextStruct(structTy *btf.Struct, memberName string) (*btf.Struc
 
 	ty := ResolveNestedTypes(member.Type)
 
-	ptr, _ := getBtfPointerAndSetConfig(ty, &btfConfig)
+	ptr, _ := getBTFPointerAndSetConfig(ty, &btfConfig)
 	if ptr != nil {
-		t, err := getBtfStruct(ptr.Target)
+		t, err := getBTFStruct(ptr.Target)
 		return t, &btfConfig, err
 	}
-	t, err := getBtfStruct(ty)
+	t, err := getBTFStruct(ty)
 	return t, &btfConfig, err
 }
 
@@ -362,10 +362,10 @@ func addPaddingOnNestedPtr(ty btf.Type, path []string) []string {
 	return path
 }
 
-func resolveNestedPtr(rootType btf.Type, btfArgs *[api.MaxBtfArgDepth]api.ConfigBtfArg, i int) (btf.Type, int) {
+func resolveNestedPtr(rootType btf.Type, btfArgs *[api.MaxBTFArgDepth]api.ConfigBTFArg, i int) (btf.Type, int) {
 	if ptr, ok := rootType.(*btf.Pointer); ok {
-		btfArgs[i] = api.ConfigBtfArg{}
-		ty, err := getBtfPointerAndSetConfig(ptr, &btfArgs[i])
+		btfArgs[i] = api.ConfigBTFArg{}
+		ty, err := getBTFPointerAndSetConfig(ptr, &btfArgs[i])
 		if err != nil {
 			return ty.Target, i
 		}
@@ -374,22 +374,22 @@ func resolveNestedPtr(rootType btf.Type, btfArgs *[api.MaxBtfArgDepth]api.Config
 	return rootType, i
 }
 
-func manuallyResolveBtfPath(t *testing.T, rootType btf.Type, p []string) [api.MaxBtfArgDepth]api.ConfigBtfArg {
-	var btfArgs [api.MaxBtfArgDepth]api.ConfigBtfArg
+func manuallyResolveBTFPath(t *testing.T, rootType btf.Type, p []string) [api.MaxBTFArgDepth]api.ConfigBTFArg {
+	var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
 	var i int
 
 	rootType, i = resolveNestedPtr(rootType, &btfArgs, 0)
 
-	currentStruct, err := getBtfStruct(rootType)
+	currentStruct, err := getBTFStruct(rootType)
 	fatalOnError(t, err)
 
 	for ; i < len(p); i++ {
 		step := p[i]
 		if len(step) == 0 {
-			btfArgs[i] = api.ConfigBtfArg{}
-			ptr, err := getBtfPointerAndSetConfig(ResolveNestedTypes(rootType), &btfArgs[i])
+			btfArgs[i] = api.ConfigBTFArg{}
+			ptr, err := getBTFPointerAndSetConfig(ResolveNestedTypes(rootType), &btfArgs[i])
 			fatalOnError(t, err)
-			currentStruct, err = getBtfStruct(ptr.Target)
+			currentStruct, err = getBTFStruct(ptr.Target)
 			fatalOnError(t, err)
 		} else if i < len(p)-1 {
 			ty, nextConfig, err := getConfigAndNextStruct(currentStruct, step)
@@ -409,44 +409,44 @@ func manuallyResolveBtfPath(t *testing.T, rootType btf.Type, p []string) [api.Ma
 func buildPathFromString(t *testing.T, rootType btf.Type, pathStr string) []string {
 	pathBase := strings.Split(pathStr, ".")
 	path := addPaddingOnNestedPtr(rootType, pathBase)
-	if len(path) > api.MaxBtfArgDepth {
-		assert.Fail(t, "Unable to resolve %q. The maximum depth allowed is %d", pathStr, api.MaxBtfArgDepth)
+	if len(path) > api.MaxBTFArgDepth {
+		assert.Fail(t, "Unable to resolve %q. The maximum depth allowed is %d", pathStr, api.MaxBTFArgDepth)
 	}
 	return path
 }
 
-func buildResolveBtfConfig(t *testing.T, rootType btf.Type, pathStr string) [api.MaxBtfArgDepth]api.ConfigBtfArg {
-	var btfArgs [api.MaxBtfArgDepth]api.ConfigBtfArg
+func buildResolveBTFConfig(t *testing.T, rootType btf.Type, pathStr string) [api.MaxBTFArgDepth]api.ConfigBTFArg {
+	var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
 
 	path := buildPathFromString(t, rootType, pathStr)
-	_, err := ResolveBtfPath(&btfArgs, rootType, path, 0)
+	_, err := ResolveBTFPath(&btfArgs, rootType, path, 0)
 	fatalOnError(t, err)
 
 	return btfArgs
 }
 
-func buildExpectedBtfConfig(t *testing.T, rootType btf.Type, pathStr string) [api.MaxBtfArgDepth]api.ConfigBtfArg {
+func buildExpectedBTFConfig(t *testing.T, rootType btf.Type, pathStr string) [api.MaxBTFArgDepth]api.ConfigBTFArg {
 	path := buildPathFromString(t, rootType, pathStr)
-	return manuallyResolveBtfPath(t, rootType, path)
+	return manuallyResolveBTFPath(t, rootType, path)
 }
 
-func testPathIsAccessible(rootType btf.Type, strPath string) (*[api.MaxBtfArgDepth]api.ConfigBtfArg, *btf.Type, error) {
-	var btfArgs [api.MaxBtfArgDepth]api.ConfigBtfArg
+func testPathIsAccessible(rootType btf.Type, strPath string) (*[api.MaxBTFArgDepth]api.ConfigBTFArg, *btf.Type, error) {
+	var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
 	path := strings.Split(strPath, ".")
 
-	lastBtfType, err := ResolveBtfPath(&btfArgs, ResolveNestedTypes(rootType), path, 0)
+	lastBTFType, err := ResolveBTFPath(&btfArgs, ResolveNestedTypes(rootType), path, 0)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return &btfArgs, lastBtfType, nil
+	return &btfArgs, lastBTFType, nil
 }
 
 func testAssertEqualPath(spec *btf.Spec) func(*testing.T) {
 	return func(t *testing.T) {
 		hook := "security_bprm_check"
 		argIndex := 0 // struct linux_binprm *bprm
-		funcParamTy, err := findBtfFuncParamFromHookWithSpec(spec, hook, argIndex)
+		funcParamTy, err := findBTFFuncParamFromHookWithSpec(spec, hook, argIndex)
 		fatalOnError(t, err)
 
 		bprmTy := funcParamTy.Type
@@ -457,28 +457,28 @@ func testAssertEqualPath(spec *btf.Spec) func(*testing.T) {
 		// Test default behaviour
 		path := "file.f_path.dentry.d_name.name"
 		assert.Equal(t,
-			buildExpectedBtfConfig(t, bprmTy, path),
-			buildResolveBtfConfig(t, bprmTy, path),
+			buildExpectedBTFConfig(t, bprmTy, path),
+			buildResolveBTFConfig(t, bprmTy, path),
 		)
 
 		// Test anonymous struct
 		path = "mm.arg_start"
 		assert.Equal(t,
-			buildExpectedBtfConfig(t, bprmTy, path),
-			buildResolveBtfConfig(t, bprmTy, path),
+			buildExpectedBTFConfig(t, bprmTy, path),
+			buildResolveBTFConfig(t, bprmTy, path),
 		)
 
 		// Test Union
 		path = "file.f_inode.i_dir_seq"
 		assert.Equal(t,
-			buildExpectedBtfConfig(t, bprmTy, path),
-			buildResolveBtfConfig(t, bprmTy, path),
+			buildExpectedBTFConfig(t, bprmTy, path),
+			buildResolveBTFConfig(t, bprmTy, path),
 		)
 
 		// Test if param is double ptr
 		hook = "security_inode_copy_up"
 		argIndex = 1 // struct cred **new
-		funcParamTy, err = findBtfFuncParamFromHookWithSpec(spec, hook, argIndex)
+		funcParamTy, err = findBTFFuncParamFromHookWithSpec(spec, hook, argIndex)
 		fatalOnError(t, err)
 
 		newTy := funcParamTy.Type
@@ -487,8 +487,8 @@ func testAssertEqualPath(spec *btf.Spec) func(*testing.T) {
 		}
 		path = "uid.val"
 		assert.Equal(t,
-			buildExpectedBtfConfig(t, newTy, path),
-			buildResolveBtfConfig(t, newTy, path),
+			buildExpectedBTFConfig(t, newTy, path),
+			buildResolveBTFConfig(t, newTy, path),
 		)
 	}
 }
@@ -497,7 +497,7 @@ func testAssertPathIsAccessible(spec *btf.Spec) func(*testing.T) {
 	return func(t *testing.T) {
 		hook := "wake_up_new_task"
 		argIndex := 0 //struct task_struct *p
-		funcParamTy, err := findBtfFuncParamFromHookWithSpec(spec, hook, argIndex)
+		funcParamTy, err := findBTFFuncParamFromHookWithSpec(spec, hook, argIndex)
 		fatalOnError(t, err)
 
 		taskStructTy := funcParamTy.Type
@@ -510,7 +510,7 @@ func testAssertPathIsAccessible(spec *btf.Spec) func(*testing.T) {
 
 		hook = "security_bprm_check"
 		argIndex = 0 // struct linux_binprm *bprm
-		funcParamTy, err = findBtfFuncParamFromHookWithSpec(spec, hook, argIndex)
+		funcParamTy, err = findBTFFuncParamFromHookWithSpec(spec, hook, argIndex)
 		fatalOnError(t, err)
 
 		bprmTy := funcParamTy.Type
@@ -527,7 +527,7 @@ func testAssertErrorOnInvalidPath(spec *btf.Spec) func(*testing.T) {
 	return func(t *testing.T) {
 		hook := "security_bprm_check"
 		argIndex := 0 // struct linux_binprm *bprm
-		funcParamTy, err := findBtfFuncParamFromHookWithSpec(spec, hook, argIndex)
+		funcParamTy, err := findBTFFuncParamFromHookWithSpec(spec, hook, argIndex)
 		fatalOnError(t, err)
 
 		rootType := funcParamTy.Type
@@ -547,7 +547,7 @@ func testAssertErrorOnInvalidPath(spec *btf.Spec) func(*testing.T) {
 
 		hook = "do_sys_open"
 		argIndex = 0 // int dfd
-		funcParamTy, err = findBtfFuncParamFromHookWithSpec(spec, hook, argIndex)
+		funcParamTy, err = findBTFFuncParamFromHookWithSpec(spec, hook, argIndex)
 		fatalOnError(t, err)
 
 		rootType = funcParamTy.Type
@@ -558,7 +558,7 @@ func testAssertErrorOnInvalidPath(spec *btf.Spec) func(*testing.T) {
 	}
 }
 
-func testResolveBtfPath(btfFName string) func(t *testing.T) {
+func testResolveBTFPath(btfFName string) func(t *testing.T) {
 	return func(t *testing.T) {
 		spec, err := btf.LoadSpec(btfFName)
 		if err != nil {
@@ -570,11 +570,11 @@ func testResolveBtfPath(btfFName string) func(t *testing.T) {
 	}
 }
 
-func TestResolveBtfPath(t *testing.T) {
-	btfFiles, err := listBtfFiles()
+func TestResolveBTFPath(t *testing.T) {
+	btfFiles, err := listBTFFiles()
 	fatalOnError(t, err)
 
 	for _, btfFile := range btfFiles {
-		t.Run(btfFile, testResolveBtfPath(btfFile))
+		t.Run(btfFile, testResolveBTFPath(btfFile))
 	}
 }

@@ -111,13 +111,13 @@ func buildTesterActions(rcnf *RunConf, tmpDir string) ([]images.Action, error) {
 
 	// NB: need to do this before we marshal the configuration
 	if rcnf.btfFile != "" {
-		absBtfFile, err := filepath.Abs(rcnf.btfFile)
+		absBTFFile, err := filepath.Abs(rcnf.btfFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get btf file full path: %w", err)
 		}
 		ret = append(ret, images.Action{
 			Op: &images.CopyInCommand{
-				LocalPath: absBtfFile,
+				LocalPath: absBTFFile,
 				RemoteDir: "/boot/",
 			},
 		})
