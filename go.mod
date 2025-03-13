@@ -4,7 +4,7 @@ module github.com/cilium/tetragon
 go 1.24.0
 
 require (
-	github.com/alecthomas/kong v1.8.1
+	github.com/alecthomas/kong v1.9.0
 	github.com/bombsimon/logrusr/v4 v4.1.0
 	github.com/cilium/cilium v1.17.1
 	github.com/cilium/ebpf v0.17.1
@@ -37,13 +37,13 @@ require (
 	github.com/sryoya/protorand v0.0.0-20250114120907-8c1a8e3138f2
 	github.com/stretchr/testify v1.10.0
 	github.com/tidwall/gjson v1.18.0
-	github.com/vishvananda/netlink v1.3.1-0.20250221194427-0af32151e72b
+	github.com/vishvananda/netlink v1.3.1-0.20250303224720-0e7078ed04c8
 	go.uber.org/atomic v1.11.0
 	go.uber.org/multierr v1.11.0
 	golang.org/x/sync v0.12.0
-	golang.org/x/sys v0.30.0
-	golang.org/x/term v0.29.0
-	golang.org/x/time v0.10.0
+	golang.org/x/sys v0.31.0
+	golang.org/x/term v0.30.0
+	golang.org/x/time v0.11.0
 	google.golang.org/grpc v1.71.0
 	google.golang.org/protobuf v1.36.5
 	gopkg.in/yaml.v2 v2.4.0
