@@ -214,13 +214,6 @@ struct {
 	__uint(value_size, STRING_MAPS_HEAP_SIZE);
 } string_maps_heap SEC(".maps");
 
-struct {
-	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__uint(max_entries, 1);
-	__type(key, __u32);
-	__uint(value_size, STRING_MAPS_HEAP_SIZE);
-} string_maps_ro_zero SEC(".maps");
-
 #define STRING_PREFIX_MAX_LENGTH 256
 
 struct string_prefix_lpm_trie {
