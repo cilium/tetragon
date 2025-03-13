@@ -114,6 +114,7 @@ jobs:
       env:
         GHA_OS: ${{matrix.os}}
       run: |
+        set -x
         cd go/src/github.com/cilium/tetragon
         make e2e-test \
           E2E_TESTS=${{matrix.package.f}} \
