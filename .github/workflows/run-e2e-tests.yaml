@@ -123,6 +123,11 @@ jobs:
           E2E_OPERATOR=${{ needs.prepare.outputs.operatorImage }}
         ls /tmp/tetragon.e2e.*
 
+    - name: ls logs
+      if: failure() || cancelled()
+      run: |
+        ls /tmp/tetragon.e2e.*
+
     - name: Upload Tetragon Logs
       if: failure() || cancelled()
       uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
