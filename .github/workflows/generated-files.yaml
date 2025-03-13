@@ -6,9 +6,9 @@ on:
       - v*
     paths-ignore:
       - "docs/**"
-  pull_request:
-    paths-ignore:
-      - "docs/**"
+  # pull_request:
+  #   paths-ignore:
+  #     - "docs/**"
 
 jobs:
   checks:

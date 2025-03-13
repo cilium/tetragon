@@ -1,7 +1,7 @@
 name: Check pull request commits
 on:
   push:
-  pull_request:
+  # pull_request:
 
 jobs:
   checkpatch:
