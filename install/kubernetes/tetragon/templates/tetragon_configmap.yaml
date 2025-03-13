@@ -82,7 +82,7 @@ data:
 {{- end }}
   process-cache-gc-interval: {{ .Values.tetragon.processCacheGCInterval | quote }}
   enable-cri: {{ .Values.tetragon.cri.enabled | quote }}
-{{- if and (.Values.tetragon.cri.enable) (.Values.tetragon.cri.socketHostPath) }}
+{{- if and (.Values.tetragon.cri.enabled) (.Values.tetragon.cri.socketHostPath) }}
   cri-endpoint: "unix://{{ .Values.tetragon.cri.socketHostPath }}"
 {{- end }}
   enable-cgidmap: {{ .Values.tetragon.cgidmap.enabled | quote }}
