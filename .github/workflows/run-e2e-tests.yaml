@@ -120,6 +120,7 @@ jobs:
           E2E_BUILD_IMAGES=0 \
           E2E_AGENT=${{ needs.prepare.outputs.agentImage }} \
           E2E_OPERATOR=${{ needs.prepare.outputs.operatorImage }}
+        ls /tmp/tetragon.e2e.*
 
     - name: Upload Tetragon Logs
       if: failure() || cancelled()
