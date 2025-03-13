@@ -26,6 +26,7 @@
 #include "process/bpf_enforcer.h"
 #include "../syscall64.h"
 #include "process/ratelimit_maps.h"
+#include "process/heap.h"
 
 /* Type IDs form API with user space generickprobe.go */
 enum {
@@ -770,7 +771,7 @@ filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint or
 		return 0;
 
 	heap = (char *)map_lookup_elem(&string_maps_heap, &zero);
-	zero_heap = (char *)map_lookup_elem(&string_maps_ro_zero, &zero);
+	zero_heap = (char *)map_lookup_elem(&heap_ro_zero, &zero);
 	if (!heap || !zero_heap)
 		return 0;
 
@@ -1964,7 +1965,7 @@ rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_k
 	key = map_lookup_elem(&ratelimit_heap, &zero);
 	if (!key)
 		return false;
-	ro_heap = map_lookup_elem(&ratelimit_ro_heap, &zero);
+	ro_heap = map_lookup_elem(&heap_ro_zero, &zero);
 
 	key->func_id = e->func_id;
 	key->action = e->action;

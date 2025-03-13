@@ -46,12 +46,4 @@ struct {
 	__type(value, __u8[sizeof(struct ratelimit_key) + 128]);
 } ratelimit_heap SEC(".maps");
 
-// This is zeroed memory that we NEVER write to, and use to copy over reusable heap in order
-// to zero it.
-struct {
-	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__uint(max_entries, 1);
-	__type(key, __u32);
-	__type(value, __u8[sizeof(struct ratelimit_key) + 128]);
-} ratelimit_ro_heap SEC(".maps");
 #endif /* __RATELIMIT_MAPS_H__ */
