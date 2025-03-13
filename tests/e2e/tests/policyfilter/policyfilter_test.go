@@ -16,7 +16,6 @@ import (
 	"github.com/cilium/tetragon/tests/e2e/helpers"
 	"github.com/cilium/tetragon/tests/e2e/helpers/grpc"
 	"github.com/cilium/tetragon/tests/e2e/runners"
-	"github.com/cilium/tetragon/tests/e2e/state"
 	"github.com/sirupsen/logrus"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
@@ -132,7 +131,7 @@ func TestNamespacedPolicy(t *testing.T) {
 				klog.ErrorS(err, "failed to uninstall policy")
 				t.Fail()
 			}
-			ctx = context.WithValue(ctx, state.TestFailure, true)
+			t.Fail()
 			return ctx
 		}).
 		Feature()
