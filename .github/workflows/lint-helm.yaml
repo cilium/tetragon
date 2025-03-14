@@ -7,11 +7,13 @@ on:
     paths:
     - 'install/kubernetes/**'
     - 'pkg/k8s/apis/cilium.io/client/crds/v1alpha1/*.yaml'
+    - 'docs/content/en/docs/reference/helm-chart.md'
     - '.github/workflows/lint-helm.yaml'
   pull_request:
     paths:
     - 'install/kubernetes/**'
     - 'pkg/k8s/apis/cilium.io/client/crds/v1alpha1/*.yaml'
+    - 'docs/content/en/docs/reference/helm-chart.md'
     - '.github/workflows/lint-helm.yaml'
 
 permissions:
@@ -23,11 +25,13 @@ env:
   PYTHON_VERSION: "3.12"
 
 jobs:
-  generated-files:
+  build-and-lint-helm:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
 
       # Build Tetragon Helm chart
       - name: Check if Tetragon Helm chart is up to date
@@ -35,7 +39,8 @@ jobs:
           make -C install/kubernetes
           test -z "$(git status --porcelain)"
           if [ $? != 0 ]; then
-            git status --porcelain
+            git status
+            git diff
             echo "The Tetragon Helm chart is outdated."
             echo "Please run 'make -C install/kubernetes' and submit your changes."; exit 1
           fi
@@ -47,10 +52,15 @@ jobs:
           make -C install/kubernetes openapi2jsonschema.py
           test -z "$(git status --porcelain)"
           if [ $? != 0 ]; then
-            git status --porcelain
+            git status
+            git diff
             echo "openapi2jsonschema.py seems to be outdated."
             echo "Please run 'make -C install/kubernetes openapi2jsonschema.py' and submit your changes."; exit 1
           fi
+      - name: Run helm lint
+        run: |
+          set -ex
+          make -C install/kubernetes lint
       - name: Run Kubeconform with minimum supported K8s version
         if: success() || steps.validate_openapi2jsonschema_script.outcome == 'failure'
         id: kubeconform_min_k8s_version
