@@ -85,42 +85,6 @@
   //   important rules override settings from earlier rules if needed.
   "packageRules": [
     {
-      "matchPackageNames": [
-        "go", // golang version directive upgrade in go.mod
-      ],
-      "matchPackageNames": [
-        // Docker deps
-        "docker.io/library/**", // Official Docker images
-        "quay.io/cilium/**", // Cilium quay repo
-        "quay.io/lvh-images/kernel-images", // LVH images
-        "google/**", // Google gops docker image
-        "kindest/**", // kind docker images
-        // Golang deps
-        "github.com/golang/**", // Golang official org
-        "golang.org/x/**", // Golang official experimental org
-        "google.golang.org/**", // Google official repo for api/genproto/grpc/protobuf
-        "github.com/google/**", // Google official github org
-        "k8s.io/**", // Kubernetes official repo
-        "sigs.k8s.io/**", // Kubernetes official SIG repo
-        "github.com/cilium/**", // Cilium org
-        "github.com/prometheus/**", // Prometheus org
-        "github.com/hashicorp/**", // Hashicorp org
-        "go.uber.org/**", // Uber org
-        // Github Releases
-        "cilium/**", // Cilium CLI
-        "helm/**",
-        // Go
-        "go", // The Go package
-      ],
-      "matchUpdateTypes": [
-        "minor",
-        "patch",
-        "pin",
-        "pinDigest"
-      ],
-      "automerge": true
-    },
-    {
       "groupName": "all github action dependencies",
       "groupSlug": "all-github-action",
       "matchFileNames": [
@@ -491,6 +455,43 @@
       "matchDatasources": ["docker"],
       "matchUpdateTypes": ["digest"],
       "matchPackageNames": ["!docker.io/library/alpine"],
+    },
+    // automerge section
+    {
+      "matchPackageNames": [
+        "go", // golang version directive upgrade in go.mod
+      ],
+      "matchPackageNames": [
+        // Docker deps
+        "docker.io/library/**", // Official Docker images
+        "quay.io/cilium/**", // Cilium quay repo
+        "quay.io/lvh-images/kernel-images", // LVH images
+        "google/**", // Google gops docker image
+        "kindest/**", // kind docker images
+        // Golang deps
+        "github.com/golang/**", // Golang official org
+        "golang.org/x/**", // Golang official experimental org
+        "google.golang.org/**", // Google official repo for api/genproto/grpc/protobuf
+        "github.com/google/**", // Google official github org
+        "k8s.io/**", // Kubernetes official repo
+        "sigs.k8s.io/**", // Kubernetes official SIG repo
+        "github.com/cilium/**", // Cilium org
+        "github.com/prometheus/**", // Prometheus org
+        "github.com/hashicorp/**", // Hashicorp org
+        "go.uber.org/**", // Uber org
+        // Github Releases
+        "cilium/**", // Cilium CLI
+        "helm/**",
+        // Go
+        "go", // The Go package
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "pinDigest"
+      ],
+      "automerge": true
     },
   ],
   // Those regexes manage version strings in variousfiles, similar to the
