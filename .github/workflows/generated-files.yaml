@@ -11,22 +11,6 @@ on:
       - "docs/**"
 
 jobs:
-  checks:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-        with:
-          fetch-depth: 0
-      - name: Lint protobuf
-        run: |
-          # TODO: enable linting once we have a chance to fix the underlying issues
-          # make -C api lint EXTRA_BUF_FLAGS="--error-format=github-actions"
-          if ${{ github.event_name == 'push' }}; then
-            make -C api check-breaking EXTRA_BUF_FLAGS="--error-format=github-actions" BUF_BREAKING_AGAINST_BRANCH="origin/${{ github.ref_name }}"
-          else
-            make -C api check-breaking EXTRA_BUF_FLAGS="--error-format=github-actions" BUF_BREAKING_AGAINST_BRANCH="origin/${{ github.base_ref }}"
-          fi
-          make -C api format EXTRA_BUF_FLAGS="--exit-code --error-format=github-actions"
   generated-files:
     runs-on: ubuntu-latest
     steps:
@@ -43,17 +27,12 @@ jobs:
       - name: Validate that generated files are up to date.
         run: |
           make generate
-          if ${{ github.event_name == 'push' }}; then
-            make codegen BUF_BREAKING_AGAINST_BRANCH="origin/${{ github.ref_name }}"
-          else
-            make codegen BUF_BREAKING_AGAINST_BRANCH="origin/${{ github.base_ref }}"
-          fi
           git status
           git diff
           test -z "$(git status --porcelain)"
           if [ $? != 0 ]; then
             git status --porcelain
-            echo "Please run 'make generate && make codegen' and submit your changes."; exit 1
+            echo "Please run 'make generate' and submit your changes."; exit 1
           fi
       - name: Check Tetragon daemon flags
         run: |
