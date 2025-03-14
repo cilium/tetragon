@@ -1,12 +1,12 @@
 name: PodInfo Integration Test
 on:
-  pull_request:
-    types:
-      - opened
-      - synchronize
-      - reopened
-    paths-ignore:
-      - 'docs/**'
+  # pull_request:
+  #   types:
+  #     - opened
+  #     - synchronize
+  #     - reopened
+  #   paths-ignore:
+  #     - 'docs/**'
   push:
     branches:
       - main
