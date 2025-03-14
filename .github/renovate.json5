@@ -93,6 +93,8 @@
         "docker.io/library/**", // Official Docker images
         "quay.io/cilium/**", // Cilium quay repo
         "quay.io/lvh-images/kernel-images", // LVH images
+        "google/**", // Google gops docker image
+        "kindest/**", // kind docker images
         // Golang deps
         "github.com/golang/**", // Golang official org
         "golang.org/x/**", // Golang official experimental org
@@ -104,6 +106,10 @@
         "github.com/prometheus/**", // Prometheus org
         "github.com/hashicorp/**", // Hashicorp org
         "go.uber.org/**", // Uber org
+        // Github Releases
+        "cilium/**", // Cilium CLI
+        "helm/**",
+        // Go
         "go", // The Go package
       ],
       "matchUpdateTypes": [
