@@ -464,6 +464,17 @@ lint-metrics-md: metrics-docs ## Check if metrics documentation is up to date.
 		false; \
 	fi
 
+.PHONY: validate
+validate: check format generate-flags metrics-docs ## Convenience target running linters, formatters and generators across the codebase.
+	# FIXME: add api linting once we fix the lints
+	$(MAKE) -C api vendor format proto
+	$(MAKE) -C pkg/k8s vendor generate
+	# Vendoring includes api and pkg/k8s vendoring. To avoid running vendor
+	# million times, run the global vendor target after api and pkg/k8s builds.
+	$(MAKE) vendor
+	$(MAKE) -C install/kubernetes
+	$(MAKE) -C install/kubernetes validation
+
 ##@ Documentation
 
 .PHONY: help
