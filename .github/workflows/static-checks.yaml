@@ -1,3 +1,6 @@
+# This workflow runs various sanity checks across the codebase. Specific
+# components, like APIs, are also validated by dedicated workflows.
+
 name: Run static checks
 on:
   push:
