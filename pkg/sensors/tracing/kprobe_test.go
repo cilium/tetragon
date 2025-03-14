@@ -2138,11 +2138,7 @@ func testMultiplePathComponentsFiltered(t *testing.T, readHook string) {
 	})
 
 	filePath := path + "/testfile"
-	writeChecker := getWriteChecker(t, "/7/8/9/10/11/12/13/14/15/16/testfile", "unresolvedPathComponents")
-	if config.EnableLargeProgs() {
-		writeChecker = getWriteChecker(t, "/tmp/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/testfile", "")
-	}
-
+	writeChecker := getWriteChecker(t, "/tmp/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/testfile", "")
 	corePathTest(t, filePath, readHook, writeChecker)
 }
 
@@ -2202,11 +2198,7 @@ func testMultipleMountPathFiltered(t *testing.T, readHook string) {
 	})
 
 	filePath := path + "/testfile"
-	writeChecker := getWriteChecker(t, "/7/8/9/10/11/12/13/14/15/16/testfile", "unresolvedPathComponents")
-	if config.EnableLargeProgs() {
-		writeChecker = getWriteChecker(t, "/tmp2/tmp3/tmp4/tmp5/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/testfile", "")
-	}
-
+	writeChecker := getWriteChecker(t, "/tmp2/tmp3/tmp4/tmp5/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/testfile", "")
 	corePathTest(t, filePath, readHook, writeChecker)
 }
 
@@ -4346,64 +4338,122 @@ spec:
 }
 
 func TestLoadKprobeSensor(t *testing.T) {
-	var sensorProgs = []tus.SensorProg{
-		// kprobe
-		0: tus.SensorProg{Name: "generic_kprobe_event", Type: ebpf.Kprobe},
-		1: tus.SensorProg{Name: "generic_kprobe_setup_event", Type: ebpf.Kprobe},
-		2: tus.SensorProg{Name: "generic_kprobe_process_event", Type: ebpf.Kprobe},
-		3: tus.SensorProg{Name: "generic_kprobe_filter_arg", Type: ebpf.Kprobe},
-		4: tus.SensorProg{Name: "generic_kprobe_process_filter", Type: ebpf.Kprobe},
-		5: tus.SensorProg{Name: "generic_kprobe_actions", Type: ebpf.Kprobe},
-		6: tus.SensorProg{Name: "generic_kprobe_output", Type: ebpf.Kprobe},
-		// retkprobe
-		7:  tus.SensorProg{Name: "generic_retkprobe_event", Type: ebpf.Kprobe},
-		8:  tus.SensorProg{Name: "generic_retkprobe_filter_arg", Type: ebpf.Kprobe},
-		9:  tus.SensorProg{Name: "generic_retkprobe_actions", Type: ebpf.Kprobe},
-		10: tus.SensorProg{Name: "generic_retkprobe_output", Type: ebpf.Kprobe},
-	}
+	var sensorProgs []tus.SensorProg
+	var sensorMaps []tus.SensorMap
 
-	var sensorMaps = []tus.SensorMap{
-		// all kprobe programs
-		tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
+	if config.EnableV61Progs() {
+		sensorProgs = []tus.SensorProg{
+			// kprobe
+			0: tus.SensorProg{Name: "generic_kprobe_event", Type: ebpf.Kprobe},
+			1: tus.SensorProg{Name: "generic_kprobe_setup_event", Type: ebpf.Kprobe},
+			2: tus.SensorProg{Name: "generic_kprobe_process_event", Type: ebpf.Kprobe},
+			3: tus.SensorProg{Name: "generic_kprobe_filter_arg", Type: ebpf.Kprobe},
+			4: tus.SensorProg{Name: "generic_kprobe_process_filter", Type: ebpf.Kprobe},
+			5: tus.SensorProg{Name: "generic_kprobe_actions", Type: ebpf.Kprobe},
+			6: tus.SensorProg{Name: "generic_kprobe_output", Type: ebpf.Kprobe},
+			// retkprobe
+			7:  tus.SensorProg{Name: "generic_retkprobe_event", Type: ebpf.Kprobe},
+			8:  tus.SensorProg{Name: "generic_retkprobe_filter_arg", Type: ebpf.Kprobe},
+			9:  tus.SensorProg{Name: "generic_retkprobe_actions", Type: ebpf.Kprobe},
+			10: tus.SensorProg{Name: "generic_retkprobe_output", Type: ebpf.Kprobe},
+		}
+		sensorMaps = []tus.SensorMap{
+			// all kprobe programs
+			tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
 
-		// all but generic_kprobe_output
-		tus.SensorMap{Name: "kprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5}},
+			// all but generic_kprobe_output
+			tus.SensorMap{Name: "kprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5}},
 
-		// generic_retkprobe_event
-		tus.SensorMap{Name: "retkprobe_calls", Progs: []uint{7, 8, 9}},
+			// generic_retkprobe_event
+			tus.SensorMap{Name: "retkprobe_calls", Progs: []uint{7, 8, 9}},
 
-		// generic_kprobe_process_filter,generic_kprobe_filter_arg,
-		// generic_kprobe_actions,generic_kprobe_output
-		tus.SensorMap{Name: "filter_map", Progs: []uint{3, 4, 5}},
+			// generic_kprobe_process_filter,generic_kprobe_filter_arg,
+			// generic_kprobe_actions,generic_kprobe_output
+			tus.SensorMap{Name: "filter_map", Progs: []uint{3, 4, 5}},
 
-		// generic_kprobe_actions
-		tus.SensorMap{Name: "override_tasks", Progs: []uint{5}},
+			// generic_kprobe_actions
+			tus.SensorMap{Name: "override_tasks", Progs: []uint{5}},
 
-		// all kprobe but generic_kprobe_process_filter,generic_retkprobe_event
-		tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2}},
+			// all kprobe but generic_kprobe_process_filter,generic_retkprobe_event
+			tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2}},
 
-		// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
-		tus.SensorMap{Name: "fdinstall_map", Progs: []uint{1, 2, 5, 7, 9}},
+			// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
+			tus.SensorMap{Name: "fdinstall_map", Progs: []uint{1, 2, 5, 7, 9}},
 
-		// generic_kprobe_event
-		tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
-	}
+			// generic_kprobe_event
+			tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
 
-	if config.EnableLargeProgs() {
-		// shared with base sensor
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 5, 6, 7, 9}})
+			// shared with base sensor
+			tus.SensorMap{Name: "execve_map", Progs: []uint{4, 5, 6, 7, 9}},
 
-		// generic_kprobe_process_event*,generic_kprobe_output,generic_retkprobe_output
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tcpmon_map", Progs: []uint{1, 2, 6, 10}})
+			// generic_kprobe_process_event*,generic_kprobe_output,generic_retkprobe_output
+			tus.SensorMap{Name: "tcpmon_map", Progs: []uint{1, 2, 6, 10}},
 
-		// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "socktrack_map", Progs: []uint{1, 2, 5, 7, 9}})
+			// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
+			tus.SensorMap{Name: "socktrack_map", Progs: []uint{1, 2, 5, 7, 9}},
+		}
+
 	} else {
-		// shared with base sensor
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 7}})
+		sensorProgs = []tus.SensorProg{
+			// kprobe
+			0: tus.SensorProg{Name: "generic_kprobe_event", Type: ebpf.Kprobe},
+			1: tus.SensorProg{Name: "generic_kprobe_setup_event", Type: ebpf.Kprobe},
+			2: tus.SensorProg{Name: "generic_kprobe_process_event", Type: ebpf.Kprobe},
+			3: tus.SensorProg{Name: "generic_kprobe_filter_arg", Type: ebpf.Kprobe},
+			4: tus.SensorProg{Name: "generic_kprobe_process_filter", Type: ebpf.Kprobe},
+			5: tus.SensorProg{Name: "generic_kprobe_actions", Type: ebpf.Kprobe},
+			6: tus.SensorProg{Name: "generic_kprobe_output", Type: ebpf.Kprobe},
+			7: tus.SensorProg{Name: "generic_kprobe_path", Type: ebpf.Kprobe},
+			// retkprobe
+			8:  tus.SensorProg{Name: "generic_retkprobe_event", Type: ebpf.Kprobe},
+			9:  tus.SensorProg{Name: "generic_retkprobe_filter_arg", Type: ebpf.Kprobe},
+			10: tus.SensorProg{Name: "generic_retkprobe_actions", Type: ebpf.Kprobe},
+			11: tus.SensorProg{Name: "generic_retkprobe_output", Type: ebpf.Kprobe},
+		}
 
-		// generic_kprobe_output,generic_retkprobe_output
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tcpmon_map", Progs: []uint{6, 10}})
+		sensorMaps = []tus.SensorMap{
+			// all kprobe programs
+			tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}},
+
+			// all but generic_kprobe_output
+			tus.SensorMap{Name: "kprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7}},
+
+			// generic_retkprobe_event
+			tus.SensorMap{Name: "retkprobe_calls", Progs: []uint{8, 9, 10}},
+
+			// generic_kprobe_process_filter,generic_kprobe_filter_arg,
+			// generic_kprobe_actions,generic_kprobe_output
+			tus.SensorMap{Name: "filter_map", Progs: []uint{3, 4, 5}},
+
+			// generic_kprobe_actions
+			tus.SensorMap{Name: "override_tasks", Progs: []uint{5}},
+
+			// all kprobe but generic_kprobe_process_filter,generic_retkprobe_event
+			tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2}},
+
+			// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
+			tus.SensorMap{Name: "fdinstall_map", Progs: []uint{1, 2, 5, 8, 10}},
+
+			// generic_kprobe_event
+			tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
+		}
+
+		if config.EnableLargeProgs() {
+			// shared with base sensor
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 5, 6, 8, 10}})
+
+			// generic_kprobe_process_event*,generic_kprobe_output,generic_retkprobe_output
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tcpmon_map", Progs: []uint{1, 2, 6, 11}})
+
+			// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "socktrack_map", Progs: []uint{1, 2, 5, 8, 10}})
+		} else {
+			// shared with base sensor
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 8}})
+
+			// generic_kprobe_output,generic_retkprobe_output
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tcpmon_map", Progs: []uint{6, 11}})
+		}
 	}
 
 	readHook := `
@@ -7292,6 +7342,73 @@ spec:
 	require.NoError(t, err)
 
 	checker := ec.NewUnorderedEventChecker(kprobeLongFileArgChecker, processLongCWDChecker)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
+func TestLongPathMax(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	// depending on temp dir, this should generate a path of ~1500 chars
+	// we can increase this to reach ~4000 for kernel supporting more than 11 dentry walk
+	tmp := t.TempDir()
+	cnt := (4096 - /* "/a" */ 2 - 1 - len(tmp)) / 2
+	longPathSlices := slices.Repeat([]string{"a"}, cnt)
+	longPath := path.Join(tmp, path.Join(longPathSlices...))
+
+	// create a long temporary directory structure
+	err := os.MkdirAll(longPath, 0644)
+	require.NoError(t, err)
+	longPathWithFile := path.Join(longPath, "f")
+	file, err := os.Create(longPathWithFile)
+	require.NoError(t, err)
+	file.Close()
+
+	fdinstallHook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "fdinstall"
+spec:
+  kprobes:
+  - call: "fd_install"
+    syscall: false
+    args:
+    - index: 1
+      type: "file"`
+
+	createCrdFile(t, fdinstallHook)
+
+	checkPath := longPathWithFile
+	if !config.EnableLargeProgs() {
+		// 4.19 is limited in path processing, we can get 32 iterations
+		// together with 8 tail calls gives 32 * 8 = 256 path components
+		slices := slices.Repeat([]string{"a"}, 255)
+		checkPath = path.Join("/", path.Join(slices...), "f")
+	}
+
+	kprobeLongFileArgChecker := ec.NewProcessKprobeChecker("longFile").
+		WithFunctionName(sm.Full("fd_install")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().WithValues(
+			ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Full(checkPath))),
+		))
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	// generate an event by opening the file
+	file, err = os.Open(longPathWithFile)
+	require.NoError(t, err)
+	file.Close()
+
+	checker := ec.NewUnorderedEventChecker(kprobeLongFileArgChecker)
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }

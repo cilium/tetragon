@@ -244,3 +244,11 @@ func GenericTypeToString(ty int) (string, error) {
 	}
 	return arg, nil
 }
+
+func PathType(ty int) bool {
+	return ty == GenericPathType ||
+		ty == GenericFileType ||
+		ty == GenericDentryType ||
+		ty == GenericLinuxBinprmType ||
+		ty == GenericKiocb
+}
