@@ -45,10 +45,10 @@ github.com/containerd/ttrpc
 # github.com/containerd/typeurl/v2 v2.2.3
 ## explicit; go 1.21
 github.com/containerd/typeurl/v2
-# github.com/containers/common v0.62.1
+# github.com/containers/common v0.62.2
 ## explicit; go 1.22.8
 github.com/containers/common/pkg/hooks/1.0.0
-# github.com/containers/storage v1.57.1
+# github.com/containers/storage v1.57.2
 ## explicit; go 1.22.0
 github.com/containers/storage/pkg/fileutils
 # github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
