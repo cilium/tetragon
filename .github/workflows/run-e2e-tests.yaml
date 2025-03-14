@@ -94,7 +94,7 @@ jobs:
         # renovate: datasource=github-releases depName=kubernetes/kubernetes
         kubectl: v1.32.2
         # renovate: datasource=github-releases depName=helm/helm
-        helm: v3.17.1
+        helm: v3.17.2
         # renovate: datasource=github-releases depName=kubernetes-sigs/kind
         kind: v0.27.0
         # renovate: datasource=github-releases depName=cilium/cilium-cli
