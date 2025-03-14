@@ -17,7 +17,20 @@ struct {
 	__uint(type, BPF_MAP_TYPE_ARRAY);
 	__uint(max_entries, 1);
 	__type(key, __u32);
-	__uint(value_size, STRING_MAPS_HEAP_SIZE);
+	__type(value, struct heap_ro_value);
 } heap_ro_zero SEC(".maps");
+
+struct heap_value {
+	union {
+		char fdinstall[264];
+	};
+};
+
+struct {
+	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, __u32);
+	__type(value, struct heap_value);
+} heap SEC(".maps");
 
 #endif // __HEAP_H__

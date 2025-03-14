@@ -1830,10 +1830,14 @@ struct {
 FUNC_INLINE int
 installfd(struct msg_generic_kprobe *e, int fd, int name, bool follow)
 {
-	struct fdinstall_value val = { 0 };
 	struct fdinstall_key key = { 0 };
+	struct fdinstall_value *val;
+	int err = 0, zero = 0;
 	long fdoff, nameoff;
-	int err = 0;
+
+	val = map_lookup_elem(&heap, &zero);
+	if (!val)
+		return 0;
 
 	/* Satisfies verifier but is a bit ugly, ideally we
 	 * can just '&' and drop the '>' case.
@@ -1870,9 +1874,9 @@ installfd(struct msg_generic_kprobe *e, int fd, int name, bool follow)
 			     : [size] "+r"(size)
 			     :);
 
-		probe_read(&val.file[0], size + 4 /* size */ + 4 /* flags */,
+		probe_read(&val->file[0], size + 4 /* size */ + 4 /* flags */,
 			   &e->args[nameoff]);
-		map_update_elem(&fdinstall_map, &key, &val, BPF_ANY);
+		map_update_elem(&fdinstall_map, &key, val, BPF_ANY);
 	} else {
 		err = map_delete_elem(&fdinstall_map, &key);
 	}
