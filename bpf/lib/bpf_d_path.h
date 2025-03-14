@@ -5,6 +5,7 @@
 #define __D_PATH__
 
 #include "bpf_helpers.h"
+#include "process/heap.h"
 
 #define ENAMETOOLONG 36 /* File name too long */
 
@@ -34,20 +35,6 @@
 		void *__mptr = (void *)(ptr);                    \
 		((type *)(__mptr - offsetof_btf(type, member))); \
 	})
-struct buffer_heap_map_value {
-	// Buffer need a bit more space here  because of the verifier. In
-	// prepend_name unit tests, the verifier figures out that MAX_BUF_LEN is
-	// enough and that the buffer_offset will not overflow, but in the real
-	// use-case it looks like it's forgetting about that.
-	unsigned char buf[MAX_BUF_LEN + 256];
-};
-
-struct {
-	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
-	__uint(max_entries, 1);
-	__type(key, int);
-	__type(value, struct buffer_heap_map_value);
-} buffer_heap_map SEC(".maps");
 
 FUNC_INLINE struct mount *real_mount(struct vfsmount *mnt)
 {
@@ -330,7 +317,7 @@ d_path_local(const struct path *path, int *buflen, int *error)
 	int zero = 0;
 	char *buffer = 0;
 
-	buffer = map_lookup_elem(&buffer_heap_map, &zero);
+	buffer = map_lookup_elem(&heap, &zero);
 	if (!buffer)
 		return 0;
 

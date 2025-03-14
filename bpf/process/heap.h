@@ -5,6 +5,7 @@
 #define __HEAP_H__
 
 #include "ratelimit_maps.h"
+#include "process/string_maps.h"
 
 struct heap_ro_value {
 	union {
@@ -23,6 +24,7 @@ struct {
 struct heap_value {
 	union {
 		char fdinstall[264];
+		char d_path[4096 + 256];
 	};
 };
 
