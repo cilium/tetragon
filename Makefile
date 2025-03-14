@@ -457,13 +457,6 @@ metrics-docs: tetragon-metrics-docs ## Generate metrics reference documentation 
 	$(CONTAINER_ENGINE) run --rm -v $(PWD):$(PWD) -w $(PWD) $(GO_IMAGE) ./tetragon-metrics-docs resources >> $(METRICS_DOCS_PATH)
 	$(CONTAINER_ENGINE) run --rm -v $(PWD):$(PWD) -w $(PWD) $(GO_IMAGE) ./tetragon-metrics-docs events >> $(METRICS_DOCS_PATH)
 
-.PHONY: lint-metrics-md
-lint-metrics-md: metrics-docs ## Check if metrics documentation is up to date.
-	@if [ -n "$$(git status --porcelain $(METRICS_DOCS_PATH))" ]; then \
-		echo "metrics doc out of sync; please run 'make metrics-docs'" > /dev/stderr; \
-		false; \
-	fi
-
 .PHONY: validate
 validate: check format generate-flags metrics-docs ## Convenience target running linters, formatters and generators across the codebase.
 	# FIXME: add api linting once we fix the lints

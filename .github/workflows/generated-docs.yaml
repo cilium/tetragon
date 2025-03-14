@@ -1,0 +1,68 @@
+name: Check generated docs
+on:
+  push:
+    branches:
+      - main
+      - v*
+    paths:
+      - "**"
+      - "!docs/**"
+      - "!examples/**"
+      - "!install/**"
+      - "!tests/**"
+      - "!**.md"
+      - "!**.yaml"
+      - docs/content/en/docs/reference/metrics.md
+      - docs/data/tetragon_flags.yaml
+      - .github/workflows/generated-docs.yaml
+  pull_request:
+    paths:
+      - "**"
+      - "!docs/**"
+      - "!examples/**"
+      - "!install/**"
+      - "!tests/**"
+      - "!**.md"
+      - "!**.yaml"
+      - docs/content/en/docs/reference/metrics.md
+      - docs/data/tetragon_flags.yaml
+      - .github/workflows/generated-docs.yaml
+
+jobs:
+  check-generated-docs:
+    strategy:
+      fail-fast: false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Install Go
+        uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
+        with:
+          # renovate: datasource=golang-version depName=go
+          go-version: "1.24.1"
+      - name: Go version
+        run: go version
+      - name: Check Tetragon daemon flags
+        run: |
+          set -ex
+          make generate-flags
+          test -z "$(git status --porcelain)"
+          if [ $? != 0 ]; then
+            git status
+            git diff
+            echo "Generated flags reference is outdated."
+            echo "Please run 'make generate-flags' and submit your changes."; exit 1
+          fi
+      - name: Check metrics docs
+        run: |
+          set -ex
+          make metrics-docs
+          test -z "$(git status --porcelain)"
+          if [ $? != 0 ]; then
+            git status
+            git diff
+            echo "Generated metrics reference is outdated."
+            echo "Please run 'make metrics-docs' and submit your changes."; exit 1
+          fi
