@@ -24,10 +24,10 @@ func addPaddingOnNestedPtr(ty ebtf.Type, path []string) []string {
 	return path
 }
 
-func resolveBtfArg(hook string, arg v1alpha1.KProbeArg) (*ebtf.Type, [api.MaxBtfArgDepth]api.ConfigBtfArg, error) {
-	btfArg := [api.MaxBtfArgDepth]api.ConfigBtfArg{}
+func resolveBTFArg(hook string, arg v1alpha1.KProbeArg) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
+	btfArg := [api.MaxBTFArgDepth]api.ConfigBTFArg{}
 
-	param, err := btf.FindBtfFuncParamFromHook(hook, int(arg.Index))
+	param, err := btf.FindBTFFuncParamFromHook(hook, int(arg.Index))
 	if err != nil {
 		return nil, btfArg, err
 	}
@@ -39,19 +39,19 @@ func resolveBtfArg(hook string, arg v1alpha1.KProbeArg) (*ebtf.Type, [api.MaxBtf
 
 	pathBase := strings.Split(arg.Resolve, ".")
 	path := addPaddingOnNestedPtr(rootType, pathBase)
-	if len(path) > api.MaxBtfArgDepth {
-		return nil, btfArg, fmt.Errorf("Unable to resolve %q. The maximum depth allowed is %d", arg.Resolve, api.MaxBtfArgDepth)
+	if len(path) > api.MaxBTFArgDepth {
+		return nil, btfArg, fmt.Errorf("Unable to resolve %q. The maximum depth allowed is %d", arg.Resolve, api.MaxBTFArgDepth)
 	}
 
-	lastBtfType, err := resolveBtfPath(&btfArg, btf.ResolveNestedTypes(rootType), path)
-	return lastBtfType, btfArg, err
+	lastBTFType, err := resolveBTFPath(&btfArg, btf.ResolveNestedTypes(rootType), path)
+	return lastBTFType, btfArg, err
 }
 
-func resolveBtfPath(btfArg *[api.MaxBtfArgDepth]api.ConfigBtfArg, rootType ebtf.Type, path []string) (*ebtf.Type, error) {
-	return btf.ResolveBtfPath(btfArg, rootType, path, 0)
+func resolveBTFPath(btfArg *[api.MaxBTFArgDepth]api.ConfigBTFArg, rootType ebtf.Type, path []string) (*ebtf.Type, error) {
+	return btf.ResolveBTFPath(btfArg, rootType, path, 0)
 }
 
-func findTypeFromBtfType(arg v1alpha1.KProbeArg, btfType *ebtf.Type) int {
+func findTypeFromBTFType(arg v1alpha1.KProbeArg, btfType *ebtf.Type) int {
 	ty := gt.GenericTypeFromBTF(*btfType)
 	if ty == gt.GenericInvalidType {
 		return gt.GenericTypeFromString(arg.Type)
