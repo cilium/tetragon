@@ -15,7 +15,8 @@ Depending on your setup, changes listed here might require a manual intervention
 
 ### TracingPolicy (k8s CRD)
 
-* TBD
+* `FollowFD`, `UnfollowFD`, and `CopyFD` actions are being deprecarted in this (1.4) and are
+  scheduled for removal in the next (1.5)
 
 ### Events (protobuf API)
 

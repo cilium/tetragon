@@ -1,7 +1,7 @@
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
-  name: "syswritefollowfdpsswd"
+  name: "security-override"
 spec:
   kprobes:
   - call: "security_inode_mkdir"

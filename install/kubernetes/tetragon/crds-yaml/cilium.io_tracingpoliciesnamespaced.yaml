@@ -335,7 +335,10 @@ spec:
                             items:
                               properties:
                                 action:
-                                  description: Action to execute.
+                                  description: |-
+                                    Action to execute.
+                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
+                                    be removed in version 1.5.
                                   enum:
                                   - Post
                                   - FollowFD
@@ -657,7 +660,10 @@ spec:
                             items:
                               properties:
                                 action:
-                                  description: Action to execute.
+                                  description: |-
+                                    Action to execute.
+                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
+                                    be removed in version 1.5.
                                   enum:
                                   - Post
                                   - FollowFD
@@ -959,7 +965,10 @@ spec:
                             items:
                               properties:
                                 action:
-                                  description: Action to execute.
+                                  description: |-
+                                    Action to execute.
+                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
+                                    be removed in version 1.5.
                                   enum:
                                   - Post
                                   - FollowFD
@@ -1281,7 +1290,10 @@ spec:
                             items:
                               properties:
                                 action:
-                                  description: Action to execute.
+                                  description: |-
+                                    Action to execute.
+                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
+                                    be removed in version 1.5.
                                   enum:
                                   - Post
                                   - FollowFD
@@ -1616,7 +1628,10 @@ spec:
                             items:
                               properties:
                                 action:
-                                  description: Action to execute.
+                                  description: |-
+                                    Action to execute.
+                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
+                                    be removed in version 1.5.
                                   enum:
                                   - Post
                                   - FollowFD
@@ -1938,7 +1953,10 @@ spec:
                             items:
                               properties:
                                 action:
-                                  description: Action to execute.
+                                  description: |-
+                                    Action to execute.
+                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
+                                    be removed in version 1.5.
                                   enum:
                                   - Post
                                   - FollowFD
@@ -2208,7 +2226,10 @@ spec:
                             items:
                               properties:
                                 action:
-                                  description: Action to execute.
+                                  description: |-
+                                    Action to execute.
+                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
+                                    be removed in version 1.5.
                                   enum:
                                   - Post
                                   - FollowFD
@@ -2530,7 +2551,10 @@ spec:
                             items:
                               properties:
                                 action:
-                                  description: Action to execute.
+                                  description: |-
+                                    Action to execute.
+                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
+                                    be removed in version 1.5.
                                   enum:
                                   - Post
                                   - FollowFD

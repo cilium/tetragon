@@ -529,12 +529,18 @@ matches. They are defined under `matchActions` and currently, the following
 - [UntrackSock action](#untracksock-action)
 - [Notify Enforcer action](#notify-enforcer-action)
 
+{{< warning >}}
+The FollowFD and related (UnfollowFD, CopyFD) actions have been deprecated due to being unsafe and
+are planned to be removed in version 1.5.
+{{< /warning >}}
+
 {{< note >}}
 `Sigkill`, `Override`, `FollowFD`, `UnfollowFD`, `CopyFD`, `Post`,
 `TrackSock` and `UntrackSock` are
 executed directly in the kernel BPF code while `GetUrl` and `DnsLookup` are
 happening in userspace after the reception of events.
 {{< /note >}}
+
 
 ### Sigkill action
 
@@ -674,6 +680,12 @@ ensure they properly follow the [Error Injectable Functions](https://docs.kernel
 
 ### FollowFD action
 
+{{< warning >}}
+The FollowFD and related (UnfollowFD, CopyFD) actions have been deprecated due to being unsafe and
+are planned to be removed in version 1.5.
+{{< /warning >}}
+
+
 The `FollowFD` action allows to create a mapping using a BPF map between file
 descriptors and filenames. After its creation, the mapping can be maintained
 through [`UnfollowFD`](#unfollowfd-action) and [`CopyFD`](#copyfd-action)
@@ -780,6 +792,11 @@ kprobes:
 
 ### UnfollowFD action
 
+{{< warning >}}
+The FollowFD and related (UnfollowFD, CopyFD) actions have been deprecated due to being unsafe and
+are planned to be removed in version 1.5.
+{{< /warning >}}
+
 The `UnfollowFD` action takes a file descriptor from a system call and deletes
 the corresponding entry from the BPF map, where it was put under the `FollowFD`
 action.
@@ -830,6 +847,11 @@ broken.
 {{< /caution >}}
 
 ### CopyFD action
+
+{{< warning >}}
+The FollowFD and related (UnfollowFD, CopyFD) actions have been deprecated due to being unsafe and
+are planned to be removed in version 1.5.
+{{< /warning >}}
 
 The `CopyFD` action is specific to duplication of file descriptor use cases.
 Similary to `FollowFD`, it takes an `argFd` and `argName` arguments. It can
