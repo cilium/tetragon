@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"unsafe"
 
 	"github.com/cilium/ebpf"
@@ -230,6 +231,25 @@ func HasProgramLargeSize() bool {
 func detectLSM() bool {
 	if features.HaveProgramType(ebpf.LSM) != nil {
 		return false
+	}
+	files, err := os.ReadDir("/sys/kernel/security")
+	if err != nil {
+		logger.GetLogger().WithError(err).Error("unable to read /sys/kernel/security directory")
+		return false
+	}
+	if len(files) == 0 {
+		// Empty /sys/kernel/security means that securityfs is not mounted
+		err := syscall.Mount("securityfs", "/sys/kernel/security", "securityfs", syscall.MS_RDONLY, "")
+		if err != nil {
+			logger.GetLogger().WithError(err).Error("failed to mount securityfs to /sys/kernel/security")
+			return false
+		}
+		defer func() {
+			err := syscall.Unmount("/sys/kernel/security", 0)
+			if err != nil {
+				logger.GetLogger().WithError(err).Error("failed to unmount /sys/kernel/security")
+			}
+		}()
 	}
 	b, err := os.ReadFile("/sys/kernel/security/lsm")
 	if err != nil {
