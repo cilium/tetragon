@@ -11,6 +11,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials/insecure"
@@ -154,6 +155,10 @@ func (cm *ClientMultiplexer) GetEvents(ctx context.Context, allowList, denyList 
 			})
 			if err == nil {
 				break
+			} else {
+				logger.GetLogger().WithError(err).WithFields(logrus.Fields{
+					"attempt": fmt.Sprintf("%d/%d", i, cm.connectRetries),
+				}).Warnf("failed to get events, retrying...")
 			}
 			time.Sleep(cm.connectBackoff)
 		}
