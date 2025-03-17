@@ -9,8 +9,8 @@ require (
 	github.com/alecthomas/kong v0.9.0
 	github.com/cilium/lumberjack/v2 v2.3.0
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
-	github.com/containerd/containerd v1.7.21
-	github.com/containerd/nri v0.6.1
+	github.com/containerd/containerd v1.7.27
+	github.com/containerd/nri v0.8.0
 	github.com/containers/common v0.60.4
 	github.com/google/cel-go v0.21.0
 	github.com/opencontainers/runc v1.1.14
@@ -24,9 +24,9 @@ require (
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
 	github.com/cilium/ebpf v0.12.3 // indirect
-	github.com/containerd/errdefs v0.1.0 // indirect
+	github.com/containerd/errdefs v0.3.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
-	github.com/containerd/ttrpc v1.2.5 // indirect
+	github.com/containerd/ttrpc v1.2.7 // indirect
 	github.com/containerd/typeurl/v2 v2.1.1 // indirect
 	github.com/containers/storage v1.55.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
@@ -47,7 +47,7 @@ require (
 	golang.org/x/text v0.21.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240604185151-ef581f913117 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240701130421-f6361c86f094 // indirect
-	google.golang.org/protobuf v1.34.2 // indirect
+	google.golang.org/protobuf v1.35.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/cri-api v0.27.1 // indirect
 )
