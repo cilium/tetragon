@@ -1,5 +1,3 @@
-//go:build !go1.8 || windows || !amd64 || static_build || gccgo || no_dynamic_plugins
-
 /*
    Copyright The containerd Authors.
 
@@ -16,9 +14,15 @@
    limitations under the License.
 */
 
-package plugin
+package api
 
-func loadPlugins(path string) (int, error) {
-	// plugins not supported until 1.8
-	return 0, nil
-}
+import (
+	"time"
+)
+
+const (
+	// DefaultPluginRegistrationTimeout is the default timeout for plugin registration.
+	DefaultPluginRegistrationTimeout = 5 * time.Second
+	// DefaultPluginRequestTimeout is the default timeout for plugins to handle a request.
+	DefaultPluginRequestTimeout = 2 * time.Second
+)
