@@ -55,7 +55,6 @@ import (
 	"github.com/cilium/tetragon/pkg/unixlisten"
 	"github.com/cilium/tetragon/pkg/version"
 	"github.com/cilium/tetragon/pkg/watcher"
-	k8sconf "github.com/cilium/tetragon/pkg/watcher/conf"
 	"github.com/cilium/tetragon/pkg/watcher/crdwatcher"
 
 	// Imported to allow sensors to be initialized inside init().
@@ -404,23 +403,22 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	// Probe runtime configuration and do not fail on errors
 	obs.UpdateRuntimeConf(option.Config.BpfDir)
 
-	// Initialize K8s watcher
+	// Initialize a k8s watcher used to retrieve process metadata. This should
+	// happen before the sensors are loaded, otherwise events will be stuck
+	// waiting for metadata.
+	var k8sClient *kubernetes.Clientset
+	var crdClient *versioned.Clientset
 	var k8sWatcher watcher.K8sResourceWatcher
 	if option.Config.EnableK8s {
 		log.Info("Enabling Kubernetes API")
 		// retrieve k8s clients
-		config, err := k8sconf.K8sConfig()
+		k8sClient, crdClient, err = watcher.GetK8sClients(waitCRDs)
 		if err != nil {
 			return err
 		}
-		if err := waitCRDs(config); err != nil {
-			return err
-		}
-		k8sClient := kubernetes.NewForConfigOrDie(config)
-		crdClient := versioned.NewForConfigOrDie(config)
 
 		// create k8s watcher
-		k8sWatcher = watcher.NewK8sWatcher(k8sClient, crdClient, 60*time.Second)
+		k8sWatcher = watcher.NewK8sWatcher(k8sClient, nil, 60*time.Second)
 
 		// add informers for all resources
 		// NB(anna): To add a pod informer, we need to pass the underlying
@@ -430,12 +428,6 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		err = watcher.AddPodInformer(realK8sWatcher, true)
 		if err != nil {
 			return err
-		}
-		if option.Config.EnableTracingPolicyCRD {
-			err := crdwatcher.AddTracingPolicyInformer(ctx, k8sWatcher, observer.GetSensorManager())
-			if err != nil {
-				return err
-			}
 		}
 	} else {
 		log.Info("Disabling Kubernetes API")
@@ -510,6 +502,24 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	log.WithField("enabled", option.Config.ExportFilename != "").WithField("fileName", option.Config.ExportFilename).Info("Exporter configuration")
 	obs.AddListener(pm)
 	saveInitInfo()
+
+	// Initialize a k8s watcher used to manage policies. This should happen
+	// after the sensors are loaded, otherwise existing policies will fail to
+	// load on the first attempt.
+	if option.Config.EnableK8s {
+		log.Info("Enabling policy watcher")
+		// create k8s watcher
+		policyWatcher := watcher.NewK8sWatcher(nil, crdClient, 60*time.Second)
+
+		// add informers for all resources
+		if option.Config.EnableTracingPolicyCRD {
+			err := crdwatcher.AddTracingPolicyInformer(ctx, policyWatcher, observer.GetSensorManager())
+			if err != nil {
+				return err
+			}
+		}
+		policyWatcher.Start()
+	}
 
 	obs.LogPinnedBpf(observerDir)
 
