@@ -1818,7 +1818,7 @@ struct fdinstall_key {
 };
 
 struct fdinstall_value {
-	char file[264]; // 256B paths + 4B length + 4B flags
+	char file[4104]; // 4096B paths + 4B length + 4B flags
 };
 
 struct {
@@ -1871,12 +1871,13 @@ installfd(struct msg_generic_kprobe *e, int fd, int name, bool follow)
 			     :);
 
 		size = *(__u32 *)&e->args[nameoff];
-		asm volatile("%[size] &= 0xff;\n"
+		asm volatile("%[size] &= 0xfff;\n"
 			     : [size] "+r"(size)
 			     :);
 
 		probe_read(&val->file[0], size + 4 /* size */ + 4 /* flags */,
 			   &e->args[nameoff]);
+
 		map_update_elem(&fdinstall_map, &key, val, BPF_ANY);
 	} else {
 		err = map_delete_elem(&fdinstall_map, &key);
@@ -2240,10 +2241,10 @@ read_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 
 		val = map_lookup_elem(&fdinstall_map, &key);
 		if (val) {
-			__u32 bytes = (__u32)val->file[0];
+			__u32 bytes = *((__u32 *)&val->file[0]);
 
 			probe_read(&args[0], sizeof(__u32), &fd);
-			asm volatile("%[bytes] &= 0xff;\n"
+			asm volatile("%[bytes] &= 0xfff;\n"
 				     : [bytes] "+r"(bytes)
 				     :);
 			probe_read(&args[4], bytes + 4, (char *)&val->file[0]);
