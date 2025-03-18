@@ -6,10 +6,12 @@ on:
       - v*
     paths:
       - api/**
+      - docs/content/en/docs/reference/grpc-api.md
       - .github/workflows/lint-proto.yaml
   pull_request:
     paths:
       - api/**
+      - docs/content/en/docs/reference/grpc-api.md
       - .github/workflows/lint-proto.yaml
 
 jobs:
