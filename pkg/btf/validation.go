@@ -142,13 +142,8 @@ func ValidateKprobeSpec(bspec *btf.Spec, call string, kspec *v1alpha1.KProbeSpec
 		}
 
 		// next try to deduce the syscall name.
-		// NB: this might change in different kernels so if we fail we treat it as a warning
-		prefix := "__x64_sys_"
-		if !strings.HasPrefix(call, prefix) {
-			return &ValidationWarn{s: fmt.Sprintf("could not get the function prototype for %s: arguments will not be verified", call)}
-		}
-		syscall := strings.TrimPrefix(call, prefix)
-		return validateSycall(kspec, syscall)
+		_, syscall := arch.CutSyscallPrefix(call)
+		return validateSycall(kspec, strings.TrimPrefix(syscall, "sys_"))
 	}
 
 	fnNArgs := uint32(len(proto.Params))
