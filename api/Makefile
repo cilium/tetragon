@@ -15,6 +15,7 @@ __all_local: __format_local __check-breaking_local __proto_local #__lint_local
 .PHONY: __proto_local
 __proto_local: 
 	$(BUF) generate $(EXTRA_BUF_FLAGS)
+	./export-doc.sh ../docs/content/en/docs/reference/grpc-api.md
 
 .PHONY: __lint_local
 __lint_local:
