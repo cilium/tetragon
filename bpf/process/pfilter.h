@@ -313,22 +313,38 @@ selector_match(__u32 *f, struct selector_filter *sel,
 				     struct execve_map_value *, struct msg_ns *,
 				     struct msg_capabilities *))
 {
-	int res1 = 0, res2 = 0, res3 = 0, res4 = 0;
+	int res[MAX_SELECTOR_VALUES] = { 0 };
 	__u32 index = sel->index;
 	__u64 len = sel->len;
 	__u64 ty = sel->ty;
+	__u64 i;
+
+	if (len > MAX_SELECTOR_VALUES)
+		len = MAX_SELECTOR_VALUES;
 
 	/* For NotIn op we AND results so default to 1 so we fallthru open */
-	if (ty == op_filter_notin)
-		res1 = res2 = res3 = res4 = 1;
+	if (ty == op_filter_notin) {
+#pragma unroll
+		for (i = 0; i < MAX_SELECTOR_VALUES; i++)
+			res[i] = 1;
+	}
 
+	/* Updating the number of iterations below, you should also
+	 * update the function namespaceSelectorValue() in kernel.go
+	 */
+#ifdef __LARGE_BPF_PROG
+	for (i = 0; i < len; i++) {
+		if (i > (MAX_SELECTOR_VALUES - 1)) // we need to make the verifier happy
+			break;
+		res[i] = process_filter(sel, f, enter, &msg->ns, &msg->caps);
+		index = next_pid_value(index, f, ty);
+		sel->index = index;
+	}
+#else
 	/* Unrolling this loop was problematic for clang so rather
 	 * than fight with clang just open code it. Its hard to see
 	 * how many pid values will be used anyways. Having zero
 	 * length values is an input error that CRD should catch.
-	 */
-	/* Updateing the number of iterations below, you should also
-	 * update the function namespaceSelectorValue() in kernel.go
 	 */
 	if (len == 4)
 		goto four;
@@ -339,26 +355,27 @@ selector_match(__u32 *f, struct selector_filter *sel,
 	else if (len == 1)
 		goto one;
 four:
-	res4 = process_filter(sel, f, enter, &msg->ns, &msg->caps);
+	res[3] = process_filter(sel, f, enter, &msg->ns, &msg->caps);
 	index = next_pid_value(index, f, ty);
 	sel->index = index;
 three:
-	res3 = process_filter(sel, f, enter, &msg->ns, &msg->caps);
+	res[2] = process_filter(sel, f, enter, &msg->ns, &msg->caps);
 	index = next_pid_value(index, f, ty);
 	sel->index = index;
 two:
-	res2 = process_filter(sel, f, enter, &msg->ns, &msg->caps);
+	res[1] = process_filter(sel, f, enter, &msg->ns, &msg->caps);
 	index = next_pid_value(index, f, ty);
 	sel->index = index;
 one:
-	res1 = process_filter(sel, f, enter, &msg->ns, &msg->caps);
+	res[0] = process_filter(sel, f, enter, &msg->ns, &msg->caps);
 	index = next_pid_value(index, f, ty);
 	sel->index = index;
+#endif
 
 	if (ty == op_filter_notin)
-		return res1 & res2 & res3 & res4;
+		return res[0] & res[1] & res[2] & res[3];
 	else
-		return res1 | res2 | res3 | res4;
+		return res[0] | res[1] | res[2] | res[3];
 }
 
 struct pid_filter {
