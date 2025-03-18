@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/cilium/ebpf/btf"
@@ -74,6 +75,10 @@ func genericTestSpecs(ks *ksyms.Ksyms, testdataPath string, btfFName string) fun
 				for ki := range spec.KProbes {
 					err = ValidateKprobeSpec(btf, spec.KProbes[ki].Call, &spec.KProbes[ki], ks)
 					if checkErr := testFiles[fi].checkFn(t, err); checkErr != nil {
+						// We skip these tests on ARM because the current testFiles include inlined functions for ARM
+						if strings.HasPrefix(runtime.GOARCH, "arm") {
+							t.Skip(checkErr)
+						}
 						t.Fatal(checkErr)
 					}
 				}
