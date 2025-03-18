@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"strings"
 
 	"github.com/cilium/ebpf/btf"
 	"github.com/cilium/tetragon/pkg/arch"
@@ -143,11 +142,10 @@ func ValidateKprobeSpec(bspec *btf.Spec, call string, kspec *v1alpha1.KProbeSpec
 
 		// next try to deduce the syscall name.
 		// NB: this might change in different kernels so if we fail we treat it as a warning
-		prefix := "__x64_sys_"
-		if !strings.HasPrefix(call, prefix) {
+		syscall := arch.TrimSyscallPrefix(call)
+		if syscall == "" {
 			return &ValidationWarn{s: fmt.Sprintf("could not get the function prototype for %s: arguments will not be verified", call)}
 		}
-		syscall := strings.TrimPrefix(call, prefix)
 		return validateSycall(kspec, syscall)
 	}
 
