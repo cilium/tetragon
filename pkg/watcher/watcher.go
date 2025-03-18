@@ -39,22 +39,22 @@ type K8sWatcher struct {
 
 // NewK8sWatcher creates a new K8sWatcher with initialized informer factories.
 func NewK8sWatcher(
-	k8sClient kubernetes.Interface, crdClient versioned.Interface, stateSyncIntervalSec time.Duration,
+	k8sClient kubernetes.Interface, crdClient versioned.Interface, stateSyncInterval time.Duration,
 ) *K8sWatcher {
 	var k8sInformerFactory, localK8sInformerFactory informers.SharedInformerFactory
 	var crdInformerFactory externalversions.SharedInformerFactory
 
 	if k8sClient != nil {
-		k8sInformerFactory = informers.NewSharedInformerFactory(k8sClient, stateSyncIntervalSec)
+		k8sInformerFactory = informers.NewSharedInformerFactory(k8sClient, stateSyncInterval)
 		localK8sInformerFactory = informers.NewSharedInformerFactoryWithOptions(
-			k8sClient, stateSyncIntervalSec, informers.WithTweakListOptions(
+			k8sClient, stateSyncInterval, informers.WithTweakListOptions(
 				func(options *metav1.ListOptions) {
 					// watch local pods only
 					options.FieldSelector = "spec.nodeName=" + node.GetNodeNameForExport()
 				}))
 	}
 	if crdClient != nil {
-		crdInformerFactory = externalversions.NewSharedInformerFactory(crdClient, stateSyncIntervalSec)
+		crdInformerFactory = externalversions.NewSharedInformerFactory(crdClient, stateSyncInterval)
 	}
 
 	return &K8sWatcher{
