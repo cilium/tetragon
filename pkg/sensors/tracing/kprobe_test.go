@@ -7414,6 +7414,49 @@ spec:
 		err = jsonchecker.JsonTestCheck(t, checker)
 		assert.NoError(t, err)
 	})
+
+	t.Run("path", func(t *testing.T) {
+		var doneWG, readyWG sync.WaitGroup
+		defer doneWG.Wait()
+
+		ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+		defer cancel()
+
+		spec := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "fdinstall"
+spec:
+  kprobes:
+  - call: "security_path_truncate"
+    syscall: false
+    args:
+    - index: 0
+      type: "path"`
+
+		createCrdFile(t, spec)
+
+		kprobeChecker := ec.NewProcessKprobeChecker("path").
+			WithFunctionName(sm.Full("security_path_truncate")).
+			WithArgs(ec.NewKprobeArgumentListMatcher().WithValues(
+				ec.NewKprobeArgumentChecker().WithPathArg(ec.NewKprobePathChecker().WithPath(sm.Full(pathCheck))),
+			))
+
+		obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+		if err != nil {
+			t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+		}
+		observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+		readyWG.Wait()
+
+		// generate an event by truncating the file
+		unix.Truncate(pathFull, 0)
+
+		checker := ec.NewUnorderedEventChecker(kprobeChecker)
+		err = jsonchecker.JsonTestCheck(t, checker)
+		assert.NoError(t, err)
+	})
 }
 
 func TestKprobeDentryPath(t *testing.T) {
