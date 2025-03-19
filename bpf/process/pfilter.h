@@ -435,7 +435,10 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 
 	/* read the start offset of the corresponding selector */
 	/* selector section offset by reading the relative offset in the array */
-	index += *(__u32 *)((__u64)f + (index & INDEX_MASK));
+	i = index;
+	asm volatile("%[i] &= 0x3ff;\n" // INDEX_MASK
+		     : [i] "+r"(i));
+	index += *(__u32 *)((__u64)f + i);
 	index &= INDEX_MASK;
 	index += 4; /* skip selector size field */
 
