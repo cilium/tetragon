@@ -306,16 +306,16 @@ fetch-testdata:
 	wget -nc -P testdata/btf 'https://github.com/cilium/tetragon-testdata/raw/main/btf/vmlinux-5.4.104+'
 
 # Agent image to use for end-to-end tests
-E2E_AGENT ?= "cilium/tetragon:$(DOCKER_IMAGE_TAG)"
+E2E_AGENT ?= cilium/tetragon:$(DOCKER_IMAGE_TAG)
 # Operator image to use for end-to-end tests
-E2E_OPERATOR ?= "cilium/tetragon-operator:$(DOCKER_IMAGE_TAG)"
+E2E_OPERATOR ?= cilium/tetragon-operator:$(DOCKER_IMAGE_TAG)
 # BTF file to use in the E2E test. Set to nothing to use system BTF.
-E2E_BTF ?= ""
+E2E_BTF ?= 
 # Actual flags to use for BTF file in e2e test. Use E2E_BTF instead.
-ifneq ($(E2E_BTF), "")
-	E2E_BTF_FLAGS ?= "-tetragon.btf=$(shell readlink -f $(E2E_BTF))"
+ifneq ($(E2E_BTF), )
+	E2E_BTF_FLAGS ?= -tetragon.btf="$(shell readlink -f $(E2E_BTF))"
 else
-	E2E_BTF_FLAGS = ""
+	E2E_BTF_FLAGS = 
 endif
 # Build image and operator images locally before running test. Set to 0 to disable.
 E2E_BUILD_IMAGES ?= 1
@@ -335,7 +335,7 @@ e2e-test: image image-operator
 else
 e2e-test:
 endif
-	$(GO) list $(E2E_TESTS) | xargs -Ipkg $(GO) test $(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -timeout $(E2E_TEST_TIMEOUT) -failfast -cover pkg ${EXTRA_TESTFLAGS} -fail-fast -tetragon.helm.set tetragon.image.override="$(E2E_AGENT)" -tetragon.helm.set tetragonOperator.image.override="$(E2E_OPERATOR)" -tetragon.helm.url="" -tetragon.helm.chart="$(realpath ./install/kubernetes/tetragon)" $(E2E_BTF_FLAGS)
+	$(GO) list $(E2E_TESTS) | xargs -Ipkg $(GO) test -exec "$(SUDO)" $(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -timeout $(E2E_TEST_TIMEOUT) -failfast -cover pkg ${EXTRA_TESTFLAGS} -fail-fast -tetragon.helm.set tetragon.image.override="$(E2E_AGENT)" -tetragon.helm.set tetragonOperator.image.override="$(E2E_OPERATOR)" -tetragon.helm.url="" -tetragon.helm.chart="$(realpath ./install/kubernetes/tetragon)" $(E2E_BTF_FLAGS)
 
 ##@ Development
 
