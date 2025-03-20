@@ -3,6 +3,10 @@
 
   &--inner {
     margin-bottom: 128px;
+
+    @media (max-width: $mobile) {
+      margin-bottom: 80px;
+    }
   }
 
   @media (max-width: $desktop) {
