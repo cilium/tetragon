@@ -550,6 +550,16 @@ found.
 | pod_labels | [Pod.PodLabelsEntry](#tetragon-Pod-PodLabelsEntry) | repeated | Contains all the labels of the pod. |
 | workload | [string](#string) |  | Kubernetes workload of the Pod. |
 | workload_kind | [string](#string) |  | Kubernetes workload kind (e.g. &#34;Deployment&#34;, &#34;DaemonSet&#34;) of the Pod. |
+| pod_annotations | [Pod.PodAnnotationsEntry](#tetragon-Pod-PodAnnotationsEntry) | repeated | Contains all the annotationss of the pod. |
+
+<a name="tetragon-Pod-PodAnnotationsEntry"></a>
+
+### Pod.PodAnnotationsEntry
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| key | [string](#string) |  |  |
+| value | [string](#string) |  |  |
 
 <a name="tetragon-Pod-PodLabelsEntry"></a>
 
