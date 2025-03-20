@@ -88,3 +88,11 @@ jobs:
         name: tetragon-bugtool
         path: /tmp/tetragon-bugtool*
         retention-days: 5
+
+    - name: Upload vmlinux file
+      if: failure()
+      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+      with:
+        name: btf-vmlinux-${{ matrix.os }}
+        path: /sys/kernel/btf/vmlinux
+        retention-days: 5
