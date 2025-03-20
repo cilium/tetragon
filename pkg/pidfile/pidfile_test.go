@@ -5,6 +5,7 @@ package pidfile
 
 import (
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -31,4 +32,11 @@ func TestCreatePidFile(t *testing.T) {
 	pid1, err = readPidFile()
 	require.ErrorIs(t, err, ErrPidFileAccess)
 	require.Zero(t, pid1)
+}
+
+func TestIsPidRunning(t *testing.T) {
+	pid := os.Getpid()
+	strPid := strconv.Itoa(pid)
+	isPidRunning := isPidAlive((strPid))
+	require.True(t, isPidRunning)
 }

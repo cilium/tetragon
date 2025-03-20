@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"errors"
 	"os"
-	"path/filepath"
 	"strconv"
 
 	"github.com/cilium/tetragon/pkg/defaults"
@@ -33,8 +32,7 @@ func readPidFile() (uint64, error) {
 	}
 
 	pid := string(bytes.TrimSpace(data))
-	_, err = os.Stat(filepath.Join(option.Config.ProcFS, pid))
-	if err != nil {
+	if !isPidAlive(pid) {
 		return 0, ErrPidIsNotAlive
 	}
 
