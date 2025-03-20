@@ -150,7 +150,7 @@ flags, or environment variables.
 
 | Filter | Description | 
 | ------ | ----------- |
-| `event_set` | Filter process events by event types. Supported types include: `PROCESS_EXEC`, `PROCESS_EXIT`, `PROCESS_KPROBE`, `PROCESS_UPROBE`, `PROCESS_TRACAEPOINT`, `PROCESS_LOADER` |
+| `event_set` | Filter process events by event types. Supported types include: `PROCESS_EXEC`, `PROCESS_EXIT`, `PROCESS_KPROBE`, `PROCESS_UPROBE`, `PROCESS_TRACEPOINT`, `PROCESS_LOADER` |
 | `binary_regex` | Filter process events by a list of regular expressions of process binary names (e.g. `"^/home/kubernetes/bin/kubelet$"`). You can find the full syntax [here](https://github.com/google/re2/wiki/Syntax). | 
 | `health_check` | Filter process events if their binary names match Kubernetes liveness / readiness probe commands of their corresponding pods. | 
 | `namespace` | Filter by Kubernetes pod namespaces. An empty string (`""`) filters processes that do not belong to any pod namespace. | 
