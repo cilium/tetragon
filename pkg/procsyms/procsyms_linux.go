@@ -21,18 +21,6 @@ var (
 	setCache sync.Once
 )
 
-// FnSym is a function location (function name, module path + offset)
-type FnSym struct {
-	Name   string
-	Module string
-	Offset uint64
-}
-
-// ToString returns a string representation of FnSym
-func (fsym *FnSym) ToString() string {
-	return fmt.Sprintf("%s (%s+0x%x)", fsym.Name, fsym.Module, fsym.Offset)
-}
-
 // GetFnSymbol -- returns the FnSym for a given address and PID
 func GetFnSymbol(pid int, addr uint64) (*FnSym, error) {
 	// TODO: Think about cache [pid+addr] -> [module+offset]
