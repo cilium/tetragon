@@ -9,6 +9,10 @@
     }
   }
 
+  &--use-case {
+    margin-top: 56px;
+  }
+
   @media (max-width: $desktop) {
     margin-top: 100px;
   }
@@ -35,6 +39,10 @@
 
     @media (max-width: $mobile) {
       font-size: 28px;
+    }
+
+    .social--use-case & {
+      color: #253737;
     }
   }
 
