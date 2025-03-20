@@ -7457,6 +7457,85 @@ spec:
 		err = jsonchecker.JsonTestCheck(t, checker)
 		assert.NoError(t, err)
 	})
+
+	t.Run("dentry", func(t *testing.T) {
+
+		var doneWG, readyWG sync.WaitGroup
+		defer doneWG.Wait()
+
+		ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+		defer cancel()
+
+		pathRemoved := pathFull[:len(pathFull)-1] + "b"
+
+		if err := testutils.CopyFile(pathRemoved, pathFull, 0755); err != nil {
+			t.Fatalf("testutils.CopyFileerror: %s", err)
+		}
+
+		infos, err := mountinfo.GetMountInfo()
+		if err != nil {
+			t.Fatalf("mountinfo.GetMountInfo() err %s", err)
+		}
+
+		pathRemovedCheck := pathRemoved
+
+		if config.EnableLargeProgs() {
+			// We can extract dentry type until first mount point,
+			// so let's detect that and find final path portion for
+			// checking.
+			for _, info := range infos {
+				if len(info.MountPoint) > 1 && strings.HasPrefix(pathRemovedCheck, info.MountPoint) {
+					pathRemovedCheck = pathRemovedCheck[len(info.MountPoint):]
+					break
+				}
+			}
+		} else {
+			pathRemovedCheck = pathCheck[:len(pathCheck)-1] + "b"
+		}
+
+		hook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "multiple-symbols"
+spec:
+  kprobes:
+  - call: "security_path_unlink"
+    syscall: false
+    args:
+    - index: 1
+      type: "dentry"`
+
+		createCrdFile(t, hook)
+
+		t.Logf("Removing file %s, check %s\n", pathRemoved, pathRemovedCheck)
+
+		obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+		if err != nil {
+			t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+		}
+		observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+		readyWG.Wait()
+
+		syscall.Unlink(pathRemoved)
+
+		kpChecker := ec.NewProcessKprobeChecker("").
+			WithFunctionName(sm.Full("security_path_unlink")).
+			WithArgs(ec.NewKprobeArgumentListMatcher().
+				WithOperator(lc.Ordered).
+				WithValues(
+					ec.NewKprobeArgumentChecker().WithPathArg(ec.NewKprobePathChecker().
+						WithPath(sm.Full(pathRemovedCheck)),
+					),
+				)).
+			WithProcess(ec.NewProcessChecker().
+				WithBinary(sm.Suffix(tus.Conf().SelfBinary)))
+
+		checker := ec.NewUnorderedEventChecker(kpChecker)
+
+		err = jsonchecker.JsonTestCheck(t, checker)
+		assert.NoError(t, err)
+	})
 }
 
 func TestKprobeDentryPath(t *testing.T) {
