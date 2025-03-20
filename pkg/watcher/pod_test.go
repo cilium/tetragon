@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/podhooks"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/google/uuid"
@@ -215,4 +217,75 @@ func (ts *testState) waitForCallbacks(t *testing.T) {
 	}
 
 	t.Fatalf("waitForCallbacks: timeout (%s)", dt)
+}
+
+func testFindPod(t *testing.T, client *k8sfake.Clientset, watcher *K8sWatcher) {
+	// Create a few pods
+	podNamespace := "test-namespace"
+	podNamePrefix := "test-pod-"
+	containerName := "test-container"
+	ts := testState{client: client}
+	for i := range 3 {
+		ts.createPod(t, podNamespace, fmt.Sprintf("%s%d", podNamePrefix, i), containerName)
+	}
+	assert.Eventually(t, func() bool {
+		return len(watcher.GetInformer(podInformerName).GetStore().List()) == 3
+	}, 10*time.Second, 1*time.Second)
+
+	// Find one of the created pod IDs
+	podName := fmt.Sprintf("%s%d", podNamePrefix, 1)
+	obj, _ := ts.client.CoreV1().Pods(podNamespace).Get(t.Context(), podName, metav1.GetOptions{})
+	podID := string(obj.GetUID())
+
+	// Verify the pod can be found
+	pod, err := watcher.FindPod(podID)
+	assert.NoError(t, err)
+	assert.NotNil(t, pod)
+	assert.Equal(t, pod.Name, podName)
+
+	// Delete the pod
+	ts.deletePod(t, podNamespace, podName)
+	assert.Eventually(t, func() bool {
+		return len(watcher.GetInformer(podInformerName).GetStore().List()) == 2
+	}, 10*time.Second, 1*time.Second)
+
+	// Verify the pod cannot be found anymore
+	pod, err = watcher.FindPod(podID)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "unable to find pod with ID")
+	assert.Nil(t, pod)
+}
+
+func TestFindPodIndex(t *testing.T) {
+	client := k8sfake.NewSimpleClientset()
+	watcher := NewK8sWatcher(client, nil, 0)
+	// Create a regular informer - pod should be found via index
+	err := AddPodInformer(watcher, false)
+	assert.NoError(t, err)
+	watcher.Start()
+
+	testFindPod(t, client, watcher)
+}
+
+func TestFindPodWalk(t *testing.T) {
+	client := k8sfake.NewSimpleClientset()
+	watcher := NewK8sWatcher(client, nil, 0)
+	// Create an informer with a dummy indexer to simulate a fallback where we
+	// find pod by walking the entire pod list
+	addPodInformerDummyIndexer(watcher)
+	watcher.Start()
+
+	testFindPod(t, client, watcher)
+}
+
+// simplified version of AddPodInformer for testing
+func addPodInformerDummyIndexer(w *K8sWatcher) {
+	factory := w.GetK8sInformerFactory()
+	w.deletedPodCache, _ = newDeletedPodCache()
+	informer := factory.Core().V1().Pods().Informer()
+	w.AddInformer(podInformerName, informer, map[string]cache.IndexFunc{
+		podIdx: func(any) ([]string, error) { return nil, nil },
+	})
+	informer.AddEventHandler(w.deletedPodCache.eventHandler())
+	podhooks.InstallHooks(informer)
 }
