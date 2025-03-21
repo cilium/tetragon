@@ -98,6 +98,9 @@ type genericTracepoint struct {
 
 	// custom event handler
 	customHandler eventhandler.Handler
+
+	// is raw_tp tracepoint
+	raw bool
 }
 
 // genericTracepointArg is the internal representation of an output value of a
@@ -320,6 +323,7 @@ func createGenericTracepoint(
 	sensorName string,
 	conf *v1alpha1.TracepointSpec,
 	polInfo *policyInfo,
+	raw bool,
 ) (*genericTracepoint, error) {
 	if conf == nil {
 		return nil, errors.New("failed creating generic tracepoint, conf is nil")
@@ -360,6 +364,7 @@ func createGenericTracepoint(
 		customHandler: polInfo.customHandler,
 		message:       msgField,
 		tags:          tagsField,
+		raw:           raw,
 	}
 
 	genericTracepointTable.addTracepoint(ret)
@@ -429,6 +434,44 @@ func tpValidateAndAdjustEnforcerAction(
 	return nil
 }
 
+func createGenericRawTracepointSensor(
+	spec *v1alpha1.TracingPolicySpec,
+	name string,
+	polInfo *policyInfo,
+) (*sensors.Sensor, error) {
+
+	tracepoints := make([]*genericTracepoint, 0, len(spec.RawTracepoints))
+	for i := range spec.RawTracepoints {
+		tp, err := createGenericTracepoint(name, &spec.RawTracepoints[i], polInfo, true)
+		if err != nil {
+			return nil, err
+		}
+		tracepoints = append(tracepoints, tp)
+	}
+
+	progName := "bpf_generic_rawtp.o"
+	if config.EnableV61Progs() {
+		progName = "bpf_generic_rawtp_v61.o"
+	} else if kernels.MinKernelVersion("5.11") {
+		progName = "bpf_generic_rawtp_v511.o"
+	} else if config.EnableLargeProgs() {
+		progName = "bpf_generic_rawtp_v53.o"
+	}
+
+	progs, maps, err := createTracepointSensor(tracepoints, progName, spec.Lists, hasMaps{}, polInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	return &sensors.Sensor{
+		Name:      name,
+		Progs:     progs,
+		Maps:      maps,
+		Policy:    polInfo.name,
+		Namespace: polInfo.namespace,
+	}, nil
+}
+
 // createGenericTracepointSensor will create a sensor that can be loaded based on a generic tracepoint configuration
 func createGenericTracepointSensor(
 	spec *v1alpha1.TracingPolicySpec,
@@ -450,7 +493,7 @@ func createGenericTracepointSensor(
 		if err != nil {
 			return nil, err
 		}
-		tp, err := createGenericTracepoint(name, &tpSpec, polInfo)
+		tp, err := createGenericTracepoint(name, &tpSpec, polInfo, false)
 		if err != nil {
 			return nil, err
 		}
@@ -491,10 +534,14 @@ func createTracepointSensor(tracepoints []*genericTracepoint, progName string,
 	for _, tp := range tracepoints {
 		pinProg := sensors.PathJoin(fmt.Sprintf("%s:%s", tp.Info.Subsys, tp.Info.Event))
 		attach := fmt.Sprintf("%s/%s", tp.Info.Subsys, tp.Info.Event)
+		label := "tracepoint/generic_tracepoint"
+		if tp.raw {
+			label = "raw_tp/generic_tracepoint"
+		}
 		prog0 := program.Builder(
 			path.Join(option.Config.HubbleLib, progName),
 			attach,
-			"tracepoint/generic_tracepoint",
+			label,
 			pinProg,
 			"generic_tracepoint",
 		).SetPolicy(polInfo.name)
@@ -710,12 +757,15 @@ func LoadGenericTracepointSensor(bpfDir string, load *program.Program, maps []*p
 	}
 	load.MapLoad = append(load.MapLoad, cfg)
 
-	if err := program.LoadTracepointProgram(bpfDir, load, maps, verbose); err == nil {
-		logger.GetLogger().Infof("Loaded generic tracepoint program: %s -> %s", load.Name, load.Attach)
+	if tp.raw {
+		err = program.LoadRawTracepointProgram(bpfDir, load, maps, verbose)
 	} else {
-		return err
+		err = program.LoadTracepointProgram(bpfDir, load, maps, verbose)
 	}
 
+	if err == nil {
+		logger.GetLogger().Infof("Loaded generic tracepoint program: %s -> %s", load.Name, load.Attach)
+	}
 	return err
 }
 
