@@ -123,7 +123,7 @@ demo_app_url = "https://raw.githubusercontent.com/cilium/cilium/v1.15.3/examples
 # Used in the "version-banner" partial to display a version number for the
 # current doc set.
 # renovate: datasource=docker depName=quay.io/cilium/tetragon
-version = "v1.3.0"
+version = "v1.4.0"
 
 [params.search.algolia]
 appId = "UI18HE156K"

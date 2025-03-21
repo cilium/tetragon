@@ -40,7 +40,7 @@ tetragon:
   image:
     override: ~
     repository: quay.io/cilium/tetragon
-    tag: v1.3.0
+    tag: v1.4.0
   resources: {}
   extraArgs: {}
   extraEnv: []
@@ -318,7 +318,7 @@ tetragonOperator:
   image:
     override: ~
     repository: quay.io/cilium/tetragon-operator
-    tag: v1.3.0
+    tag: v1.4.0
     pullPolicy: IfNotPresent
   # -- Extra volumes for the Tetragon Operator Deployment.
   extraVolumes: []
