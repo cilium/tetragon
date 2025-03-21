@@ -25,6 +25,9 @@ func (h policyHandler) PolicyHandler(
 	if len(spec.Tracepoints) > 0 {
 		sections++
 	}
+	if len(spec.RawTracepoints) > 0 {
+		sections++
+	}
 	if len(spec.LsmHooks) > 0 {
 		sections++
 	}
@@ -50,6 +53,9 @@ func (h policyHandler) PolicyHandler(
 	}
 	if len(spec.Tracepoints) > 0 {
 		return createGenericTracepointSensor(spec, "generic_tracepoint", polInfo)
+	}
+	if len(spec.RawTracepoints) > 0 {
+		return createGenericRawTracepointSensor(spec, "generic_tracepoint", polInfo)
 	}
 	if len(spec.LsmHooks) > 0 {
 		return createGenericLsmSensor(spec, "generic_lsm", polInfo)
