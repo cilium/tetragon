@@ -5,6 +5,7 @@ package runners
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -235,7 +236,7 @@ func (r *Runner) cancelContext() {
 // Must be called at the beinning of every test.
 func (r *Runner) SetupExport(t *testing.T) {
 	setup := features.New("Setup Export").Assess("Setup Export", func(ctx context.Context, _ *testing.T, _ *envconf.Config) context.Context {
-		ctx, err := helpers.CreateExportDir(ctx, t)
+		ctx, err := createExportDir(ctx, t)
 		if err != nil {
 			t.Fatalf("failed to create export dir: %s", err)
 		}
@@ -253,4 +254,21 @@ func (r *Runner) SetupExport(t *testing.T) {
 	}).Feature()
 
 	r.Test(t, setup)
+}
+
+func createExportDir(ctx context.Context, t *testing.T) (context.Context, error) {
+	dir, err := helpers.GetExportDir(ctx)
+	if err == nil {
+		klog.V(2).InfoS("export dir already exists, skipping creation", "test", t.Name(), "dir", dir)
+		return ctx, nil
+	}
+
+	dir, err = os.MkdirTemp("", fmt.Sprintf("tetragon.e2e.%s.*", t.Name()))
+	if err != nil {
+		return ctx, err
+	}
+
+	klog.InfoS("created export dir for test", "test", t.Name(), "dir", dir)
+
+	return context.WithValue(ctx, state.ExportDir, dir), nil
 }
