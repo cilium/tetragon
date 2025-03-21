@@ -86,6 +86,4 @@ data:
   cri-endpoint: "unix://{{ .Values.tetragon.cri.socketHostPath }}"
 {{- end }}
   enable-cgidmap: {{ .Values.tetragon.cgidmap.enabled | quote }}
-{{- if .Values.tetragon.enablePodAnnotations }}
-  enable-pod-annotations: "true"
-{{- end }}
+  enable-pod-annotations: {{ .Values.tetragon.podAnnotations.enabled | quote }}
