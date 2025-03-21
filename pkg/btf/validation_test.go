@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/cilium/ebpf/btf"
@@ -52,6 +53,40 @@ var testFiles = []struct {
 	/* {specFname: "specs/wrongrettype.yaml", checkFn: expectError}, */
 }
 
+func genericTestSpecs(ks *ksyms.Ksyms, testdataPath string, btfFName string) func(*testing.T) {
+	return func(t *testing.T) {
+		if _, err := os.Stat(btfFName); err != nil {
+			t.Skipf("%q not found", btfFName)
+		}
+		btf, err := btf.LoadSpec(btfFName)
+		if err != nil {
+			t.Fatalf("failed to initialize BTF: %s", err)
+		}
+
+		for fi := range testFiles {
+			specFname := testFiles[fi].specFname
+			t.Run(specFname, func(t *testing.T) {
+				specFname := filepath.Join(testdataPath, specFname)
+				tp, err := tracingpolicy.FromFile(specFname)
+				if err != nil {
+					t.Fatal(err)
+				}
+				spec := tp.TpSpec()
+				for ki := range spec.KProbes {
+					err = ValidateKprobeSpec(btf, spec.KProbes[ki].Call, &spec.KProbes[ki], ks)
+					if checkErr := testFiles[fi].checkFn(t, err); checkErr != nil {
+						// We skip these tests on ARM because the current testFiles include inlined functions for ARM
+						if strings.HasPrefix(runtime.GOARCH, "arm") {
+							t.Skip(checkErr)
+						}
+						t.Fatal(checkErr)
+					}
+				}
+			})
+		}
+	}
+}
+
 func TestSpecs(t *testing.T) {
 	_, testFname, _, _ := runtime.Caller(0)
 	testdataPath := filepath.Join(filepath.Dir(testFname), "..", "..", "testdata")
@@ -62,32 +97,12 @@ func TestSpecs(t *testing.T) {
 		t.Fatalf("validateKprobeSpec: ksyms.KernelSymbols: %s", err)
 	}
 
-	// NB: for now we check against a single BTF file.
-	btfFname := filepath.Join(testdataPath, "btf", "vmlinux-5.4.104+")
-	if _, err := os.Stat(btfFname); err != nil {
-		t.Skipf("%s not found", btfFname)
-	}
-	btf, err := btf.LoadSpec(btfFname)
-	if err != nil {
-		t.Fatalf("failed to initialize BTF: %s", err)
-	}
+	btfFiles, err := listBTFFiles()
+	fatalOnError(t, err)
 
-	for fi := range testFiles {
-		specFname := testFiles[fi].specFname
-		t.Run(specFname, func(t *testing.T) {
-			specFname := filepath.Join(testdataPath, specFname)
-			tp, err := tracingpolicy.FromFile(specFname)
-			if err != nil {
-				t.Fatal(err)
-			}
-			spec := tp.TpSpec()
-			for ki := range spec.KProbes {
-				err = ValidateKprobeSpec(btf, spec.KProbes[ki].Call, &spec.KProbes[ki], ks)
-				if checkErr := testFiles[fi].checkFn(t, err); checkErr != nil {
-					t.Fatal(checkErr)
-				}
-			}
-		})
+	for _, btfFile := range btfFiles {
+		// An extra "/" is added to enhance test name readability
+		t.Run(btfFile+"/", genericTestSpecs(ks, testdataPath, btfFile))
 	}
 }
 

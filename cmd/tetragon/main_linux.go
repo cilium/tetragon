@@ -128,7 +128,7 @@ func saveInitInfo() error {
 	info := bugtool.InitInfo{
 		ExportFname: option.Config.ExportFilename,
 		LibDir:      option.Config.HubbleLib,
-		BtfFname:    option.Config.BTF,
+		BTFFname:    option.Config.BTF,
 		MetricsAddr: option.Config.MetricsServer,
 		ServerAddr:  option.Config.ServerAddress,
 		GopsAddr:    option.Config.GopsAddr,

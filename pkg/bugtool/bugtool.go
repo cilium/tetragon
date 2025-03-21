@@ -40,7 +40,7 @@ import (
 type InitInfo struct {
 	ExportFname string `json:"export_fname"`
 	LibDir      string `json:"lib_dir"`
-	BtfFname    string `json:"btf_fname"`
+	BTFFname    string `json:"btf_fname"`
 	ServerAddr  string `json:"server_address"`
 	MetricsAddr string `json:"metrics_address"`
 	GopsAddr    string `json:"gops_address"`
@@ -250,7 +250,7 @@ func doBugtool(info *InitInfo, outFname string) error {
 
 	si.addInitInfo(tarWriter)
 	si.addLibFiles(tarWriter)
-	si.addBtfFile(tarWriter)
+	si.addBTFFile(tarWriter)
 	si.addTetragonLog(tarWriter)
 	si.addMetrics(tarWriter)
 	si.execCmd(tarWriter, "dmesg.out", "dmesg")
@@ -347,15 +347,15 @@ func (s *bugtoolInfo) addLibFiles(tarWriter *tar.Writer) error {
 		})
 }
 
-// addBtfFile adds the btf file to the archive.
-func (s *bugtoolInfo) addBtfFile(tarWriter *tar.Writer) error {
-	btfFname, err := filepath.EvalSymlinks(s.info.BtfFname)
-	if err != nil && s.info.BtfFname != "" {
-		s.multiLog.WithField("btfFname", s.info.BtfFname).Warnf("error resolving btf file: %s", err)
+// addBTFFile adds the btf file to the archive.
+func (s *bugtoolInfo) addBTFFile(tarWriter *tar.Writer) error {
+	btfFname, err := filepath.EvalSymlinks(s.info.BTFFname)
+	if err != nil && s.info.BTFFname != "" {
+		s.multiLog.WithField("btfFname", s.info.BTFFname).Warnf("error resolving btf file: %s", err)
 		return err
 	}
 
-	if s.info.BtfFname == "" {
+	if s.info.BTFFname == "" {
 		s.multiLog.Warnf("no btf filename in tetragon config, attempting to fall back to /sys/kernel/btf/vmlinux")
 		btfFname = "/sys/kernel/btf/vmlinux"
 	}

@@ -81,3 +81,14 @@ func HasSyscallPrefix(symbol string) bool {
 	}
 	return false
 }
+
+// Return the syscall name without arch prefix
+func TrimSyscallPrefix(symbol string) string {
+	for _, archPrefix := range supportedArchPrefix {
+		prefix := archPrefix + "sys_"
+		if strings.HasPrefix(symbol, prefix) {
+			return strings.TrimPrefix(symbol, prefix)
+		}
+	}
+	return ""
+}
