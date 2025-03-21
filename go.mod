@@ -6,7 +6,7 @@ go 1.24.0
 require (
 	github.com/alecthomas/kong v1.9.0
 	github.com/bombsimon/logrusr/v4 v4.1.0
-	github.com/cilium/cilium v1.17.1
+	github.com/cilium/cilium v1.17.2
 	github.com/cilium/ebpf v0.17.3
 	github.com/cilium/little-vm-helper v0.0.23
 	github.com/cilium/lumberjack/v2 v2.4.1
