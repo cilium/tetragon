@@ -273,6 +273,16 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 	generic_process_init(e, MSG_OP_GENERIC_UPROBE, config);
 #endif
 
+#ifdef GENERIC_RAWTP
+	struct bpf_raw_tracepoint_args *raw_args = (struct bpf_raw_tracepoint_args *)ctx;
+
+	e->a0 = BPF_CORE_READ(raw_args, args[0]);
+	e->a1 = BPF_CORE_READ(raw_args, args[1]);
+	e->a2 = BPF_CORE_READ(raw_args, args[2]);
+	e->a3 = BPF_CORE_READ(raw_args, args[3]);
+	e->a4 = BPF_CORE_READ(raw_args, args[4]);
+	generic_process_init(e, MSG_OP_GENERIC_TRACEPOINT, config);
+#endif
 	return generic_process_event(ctx, tailcals);
 }
 
