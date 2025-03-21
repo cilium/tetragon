@@ -9,6 +9,11 @@ The missing `generic` set collection for the Go language.  Until Go has sets bui
 ## Psst
 * Hi there, 👋! Do you use or have interest in the [Zig programming language](https://ziglang.org/) created by Andrew Kelley? If so, the golang-set project has a new sibling project: [ziglang-set](https://github.com/deckarep/ziglang-set)! Come check it out!
 
+## Update 3/14/2025
+* Packaged version: `2.8.0` introduces support for true iterators for Go 1.23+. Please see [issue #141](https://github.com/deckarep/golang-set/issues/141)
+for further details on the implications of how iterations work between older Go versions vs newer Go versions. Additionally, this
+release has a minor unit-test spelling fix.
+
 ## Update 12/3/2024
 * Packaged version: `2.7.0` fixes a long-standing bug with *JSON Unmarshaling*. A large refactor in the interest of performance
 introduced this bug and there was no way around it but to revert the code back to how it was previously. The performance

@@ -109,6 +109,26 @@ func (s *threadUnsafeSet[T]) ContainsAny(v ...T) bool {
 	return false
 }
 
+func (s *threadUnsafeSet[T]) ContainsAnyElement(other Set[T]) bool {
+	o := other.(*threadUnsafeSet[T])
+
+	// loop over smaller set
+	if s.Cardinality() < other.Cardinality() {
+		for elem := range *s {
+			if o.contains(elem) {
+				return true
+			}
+		}
+	} else {
+		for elem := range *o {
+			if s.contains(elem) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // private version of Contains for a single element v
 func (s *threadUnsafeSet[T]) contains(v T) (ok bool) {
 	_, ok = (*s)[v]

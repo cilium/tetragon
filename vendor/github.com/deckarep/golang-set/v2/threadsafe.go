@@ -82,6 +82,19 @@ func (t *threadSafeSet[T]) ContainsAny(v ...T) bool {
 	return ret
 }
 
+func (t *threadSafeSet[T]) ContainsAnyElement(other Set[T]) bool {
+	o := other.(*threadSafeSet[T])
+
+	t.RLock()
+	o.RLock()
+
+	ret := t.uss.ContainsAnyElement(o.uss)
+
+	t.RUnlock()
+	o.RUnlock()
+	return ret
+}
+
 func (t *threadSafeSet[T]) IsEmpty() bool {
 	return t.Cardinality() == 0
 }
