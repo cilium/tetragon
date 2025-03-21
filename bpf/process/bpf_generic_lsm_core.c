@@ -23,6 +23,7 @@ int generic_lsm_process_event(void *ctx);
 int generic_lsm_process_filter(void *ctx);
 int generic_lsm_filter_arg(void *ctx);
 int generic_lsm_actions(void *ctx);
+int generic_lsm_path(void *ctx);
 
 struct {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
@@ -36,6 +37,9 @@ struct {
 		[TAIL_CALL_FILTER] = (void *)&generic_lsm_process_filter,
 		[TAIL_CALL_ARGS] = (void *)&generic_lsm_filter_arg,
 		[TAIL_CALL_ACTIONS] = (void *)&generic_lsm_actions,
+#ifndef __V61_BPF_PROG
+		[TAIL_CALL_PATH] = (void *)&generic_lsm_path,
+#endif
 	},
 };
 
@@ -113,3 +117,11 @@ generic_lsm_actions(void *ctx)
 
 	return 0;
 }
+
+#ifndef __V61_BPF_PROG
+__attribute__((section("lsm"), used)) int
+generic_lsm_path(void *ctx)
+{
+	return generic_path(ctx, (struct bpf_map_def *)&lsm_calls);
+}
+#endif

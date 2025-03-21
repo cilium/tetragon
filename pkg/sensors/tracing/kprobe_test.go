@@ -1988,7 +1988,7 @@ func getWriteChecker(t *testing.T, path, flags string) ec.MultiEventChecker {
 			WithOperator(lc.Ordered).
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().
-					WithPath(sm.Suffix(path)).
+					WithPath(sm.Full(path)).
 					WithFlags(sm.Full(flags)),
 				),
 				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full([]byte("hello world"))),
@@ -2110,39 +2110,29 @@ func testMultipleMountsFiltered(t *testing.T, readHook string) {
 }
 
 func testMultiplePathComponentsFiltered(t *testing.T, readHook string) {
-	var pathStack []string
 	path := "/tmp"
 
-	// let's create /tmp/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16 where each dir is a directory
-	for i := 0; i <= 16; i++ {
+	// let's create /tmp/0/.. 32*8 where each dir is a directory
+	for i := 0; i < 32*8; i++ {
 		path = filepath.Join(path, fmt.Sprintf("%d", i))
-		pathStack = append(pathStack, path)
-		if err := os.Mkdir(path, 0755); err != nil {
-			t.Logf("Mkdir failed: %s\n", err)
-			t.Skip()
-		}
 	}
+	if err := os.MkdirAll(path, 0755); err != nil {
+		t.Fatalf("Mkdir failed: %s\n", err)
+	}
+
 	t.Cleanup(func() {
-		if err := os.Remove(path + "/testfile"); err != nil {
-			t.Logf("Remove testfile failed: %s\n", err)
-		}
-		// let's clear all
-		for len(pathStack) > 0 {
-			n := len(pathStack) - 1
-			path := pathStack[n]
-			if err := os.Remove(path); err != nil {
-				t.Logf("Remove failed: %s\n", err)
-			}
-			pathStack = pathStack[:n]
-		}
+		os.RemoveAll("/tmp/0")
 	})
 
 	filePath := path + "/testfile"
-	writeChecker := getWriteChecker(t, "/7/8/9/10/11/12/13/14/15/16/testfile", "unresolvedPathComponents")
-	if config.EnableLargeProgs() {
-		writeChecker = getWriteChecker(t, "/tmp/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/testfile", "")
-	}
 
+	// skip '/tmp/0' for v4.19, '/1/.../testfile' has 32*8 path components
+	writeChecker := getWriteChecker(t, filePath[6:], "")
+
+	// full path for large programs
+	if config.EnableLargeProgs() {
+		writeChecker = getWriteChecker(t, filePath, "")
+	}
 	corePathTest(t, filePath, readHook, writeChecker)
 }
 
@@ -2202,11 +2192,7 @@ func testMultipleMountPathFiltered(t *testing.T, readHook string) {
 	})
 
 	filePath := path + "/testfile"
-	writeChecker := getWriteChecker(t, "/7/8/9/10/11/12/13/14/15/16/testfile", "unresolvedPathComponents")
-	if config.EnableLargeProgs() {
-		writeChecker = getWriteChecker(t, "/tmp2/tmp3/tmp4/tmp5/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/testfile", "")
-	}
-
+	writeChecker := getWriteChecker(t, "/tmp2/tmp3/tmp4/tmp5/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/testfile", "")
 	corePathTest(t, filePath, readHook, writeChecker)
 }
 
@@ -4346,64 +4332,122 @@ spec:
 }
 
 func TestLoadKprobeSensor(t *testing.T) {
-	var sensorProgs = []tus.SensorProg{
-		// kprobe
-		0: tus.SensorProg{Name: "generic_kprobe_event", Type: ebpf.Kprobe},
-		1: tus.SensorProg{Name: "generic_kprobe_setup_event", Type: ebpf.Kprobe},
-		2: tus.SensorProg{Name: "generic_kprobe_process_event", Type: ebpf.Kprobe},
-		3: tus.SensorProg{Name: "generic_kprobe_filter_arg", Type: ebpf.Kprobe},
-		4: tus.SensorProg{Name: "generic_kprobe_process_filter", Type: ebpf.Kprobe},
-		5: tus.SensorProg{Name: "generic_kprobe_actions", Type: ebpf.Kprobe},
-		6: tus.SensorProg{Name: "generic_kprobe_output", Type: ebpf.Kprobe},
-		// retkprobe
-		7:  tus.SensorProg{Name: "generic_retkprobe_event", Type: ebpf.Kprobe},
-		8:  tus.SensorProg{Name: "generic_retkprobe_filter_arg", Type: ebpf.Kprobe},
-		9:  tus.SensorProg{Name: "generic_retkprobe_actions", Type: ebpf.Kprobe},
-		10: tus.SensorProg{Name: "generic_retkprobe_output", Type: ebpf.Kprobe},
-	}
+	var sensorProgs []tus.SensorProg
+	var sensorMaps []tus.SensorMap
 
-	var sensorMaps = []tus.SensorMap{
-		// all kprobe programs
-		tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
+	if config.EnableV61Progs() {
+		sensorProgs = []tus.SensorProg{
+			// kprobe
+			0: tus.SensorProg{Name: "generic_kprobe_event", Type: ebpf.Kprobe},
+			1: tus.SensorProg{Name: "generic_kprobe_setup_event", Type: ebpf.Kprobe},
+			2: tus.SensorProg{Name: "generic_kprobe_process_event", Type: ebpf.Kprobe},
+			3: tus.SensorProg{Name: "generic_kprobe_filter_arg", Type: ebpf.Kprobe},
+			4: tus.SensorProg{Name: "generic_kprobe_process_filter", Type: ebpf.Kprobe},
+			5: tus.SensorProg{Name: "generic_kprobe_actions", Type: ebpf.Kprobe},
+			6: tus.SensorProg{Name: "generic_kprobe_output", Type: ebpf.Kprobe},
+			// retkprobe
+			7:  tus.SensorProg{Name: "generic_retkprobe_event", Type: ebpf.Kprobe},
+			8:  tus.SensorProg{Name: "generic_retkprobe_filter_arg", Type: ebpf.Kprobe},
+			9:  tus.SensorProg{Name: "generic_retkprobe_actions", Type: ebpf.Kprobe},
+			10: tus.SensorProg{Name: "generic_retkprobe_output", Type: ebpf.Kprobe},
+		}
+		sensorMaps = []tus.SensorMap{
+			// all kprobe programs
+			tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
 
-		// all but generic_kprobe_output
-		tus.SensorMap{Name: "kprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5}},
+			// all but generic_kprobe_output
+			tus.SensorMap{Name: "kprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5}},
 
-		// generic_retkprobe_event
-		tus.SensorMap{Name: "retkprobe_calls", Progs: []uint{7, 8, 9}},
+			// generic_retkprobe_event
+			tus.SensorMap{Name: "retkprobe_calls", Progs: []uint{7, 8, 9}},
 
-		// generic_kprobe_process_filter,generic_kprobe_filter_arg,
-		// generic_kprobe_actions,generic_kprobe_output
-		tus.SensorMap{Name: "filter_map", Progs: []uint{3, 4, 5}},
+			// generic_kprobe_process_filter,generic_kprobe_filter_arg,
+			// generic_kprobe_actions,generic_kprobe_output
+			tus.SensorMap{Name: "filter_map", Progs: []uint{3, 4, 5}},
 
-		// generic_kprobe_actions
-		tus.SensorMap{Name: "override_tasks", Progs: []uint{5}},
+			// generic_kprobe_actions
+			tus.SensorMap{Name: "override_tasks", Progs: []uint{5}},
 
-		// all kprobe but generic_kprobe_process_filter,generic_retkprobe_event
-		tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2}},
+			// all kprobe but generic_kprobe_process_filter,generic_retkprobe_event
+			tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2}},
 
-		// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
-		tus.SensorMap{Name: "fdinstall_map", Progs: []uint{1, 2, 5, 7, 9}},
+			// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
+			tus.SensorMap{Name: "fdinstall_map", Progs: []uint{1, 2, 5, 7, 9}},
 
-		// generic_kprobe_event
-		tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
-	}
+			// generic_kprobe_event
+			tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
 
-	if config.EnableLargeProgs() {
-		// shared with base sensor
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 5, 6, 7, 9}})
+			// shared with base sensor
+			tus.SensorMap{Name: "execve_map", Progs: []uint{4, 5, 6, 7, 9}},
 
-		// generic_kprobe_process_event*,generic_kprobe_output,generic_retkprobe_output
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tcpmon_map", Progs: []uint{1, 2, 6, 10}})
+			// generic_kprobe_process_event*,generic_kprobe_output,generic_retkprobe_output
+			tus.SensorMap{Name: "tcpmon_map", Progs: []uint{1, 2, 6, 10}},
 
-		// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "socktrack_map", Progs: []uint{1, 2, 5, 7, 9}})
+			// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
+			tus.SensorMap{Name: "socktrack_map", Progs: []uint{1, 2, 5, 7, 9}},
+		}
+
 	} else {
-		// shared with base sensor
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 7}})
+		sensorProgs = []tus.SensorProg{
+			// kprobe
+			0: tus.SensorProg{Name: "generic_kprobe_event", Type: ebpf.Kprobe},
+			1: tus.SensorProg{Name: "generic_kprobe_setup_event", Type: ebpf.Kprobe},
+			2: tus.SensorProg{Name: "generic_kprobe_process_event", Type: ebpf.Kprobe},
+			3: tus.SensorProg{Name: "generic_kprobe_filter_arg", Type: ebpf.Kprobe},
+			4: tus.SensorProg{Name: "generic_kprobe_process_filter", Type: ebpf.Kprobe},
+			5: tus.SensorProg{Name: "generic_kprobe_actions", Type: ebpf.Kprobe},
+			6: tus.SensorProg{Name: "generic_kprobe_output", Type: ebpf.Kprobe},
+			7: tus.SensorProg{Name: "generic_kprobe_path", Type: ebpf.Kprobe},
+			// retkprobe
+			8:  tus.SensorProg{Name: "generic_retkprobe_event", Type: ebpf.Kprobe},
+			9:  tus.SensorProg{Name: "generic_retkprobe_filter_arg", Type: ebpf.Kprobe},
+			10: tus.SensorProg{Name: "generic_retkprobe_actions", Type: ebpf.Kprobe},
+			11: tus.SensorProg{Name: "generic_retkprobe_output", Type: ebpf.Kprobe},
+		}
 
-		// generic_kprobe_output,generic_retkprobe_output
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tcpmon_map", Progs: []uint{6, 10}})
+		sensorMaps = []tus.SensorMap{
+			// all kprobe programs
+			tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}},
+
+			// all but generic_kprobe_output
+			tus.SensorMap{Name: "kprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7}},
+
+			// generic_retkprobe_event
+			tus.SensorMap{Name: "retkprobe_calls", Progs: []uint{8, 9, 10}},
+
+			// generic_kprobe_process_filter,generic_kprobe_filter_arg,
+			// generic_kprobe_actions,generic_kprobe_output
+			tus.SensorMap{Name: "filter_map", Progs: []uint{3, 4, 5}},
+
+			// generic_kprobe_actions
+			tus.SensorMap{Name: "override_tasks", Progs: []uint{5}},
+
+			// all kprobe but generic_kprobe_process_filter,generic_retkprobe_event
+			tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2}},
+
+			// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
+			tus.SensorMap{Name: "fdinstall_map", Progs: []uint{1, 2, 5, 8, 10}},
+
+			// generic_kprobe_event
+			tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
+		}
+
+		if config.EnableLargeProgs() {
+			// shared with base sensor
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 5, 6, 8, 10}})
+
+			// generic_kprobe_process_event*,generic_kprobe_output,generic_retkprobe_output
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tcpmon_map", Progs: []uint{1, 2, 6, 11}})
+
+			// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "socktrack_map", Progs: []uint{1, 2, 5, 8, 10}})
+		} else {
+			// shared with base sensor
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 8}})
+
+			// generic_kprobe_output,generic_retkprobe_output
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tcpmon_map", Progs: []uint{6, 11}})
+		}
 	}
 
 	readHook := `
@@ -7294,6 +7338,204 @@ spec:
 	checker := ec.NewUnorderedEventChecker(kprobeLongFileArgChecker, processLongCWDChecker)
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
+}
+
+func TestMaxPath(t *testing.T) {
+	// depending on temp dir, this should generate a path of ~1500 chars
+	// we can increase this to reach ~4000 for kernel supporting more than 11 dentry walk
+	tmp := t.TempDir()
+	cnt := (4096 - /* "/a" */ 2 - 1 - len(tmp)) / 2
+	longPathSlices := slices.Repeat([]string{"a"}, cnt)
+	longPath := path.Join(tmp, path.Join(longPathSlices...))
+
+	// create a long temporary directory structure
+	err := os.MkdirAll(longPath, 0644)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		os.RemoveAll(tmp)
+	})
+	pathFull := path.Join(longPath, "f")
+	file, err := os.Create(pathFull)
+	require.NoError(t, err)
+	file.Close()
+
+	pathCheck := pathFull
+	if !config.EnableLargeProgs() {
+		// 4.19 is limited in path processing, we can get 32 iterations
+		// together with 8 tail calls gives 32 * 8 = 256 path components
+		slices := slices.Repeat([]string{"a"}, 255)
+		pathCheck = path.Join("/", path.Join(slices...), "f")
+	}
+
+	t.Logf("path full:  %s\n", pathFull)
+	t.Logf("path check: %s\n", pathCheck)
+
+	t.Run("file", func(t *testing.T) {
+		var doneWG, readyWG sync.WaitGroup
+		defer doneWG.Wait()
+
+		ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+		defer cancel()
+
+		spec := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "fdinstall"
+spec:
+  kprobes:
+  - call: "fd_install"
+    syscall: false
+    args:
+    - index: 1
+      type: "file"`
+
+		createCrdFile(t, spec)
+
+		kprobeCheck := ec.NewProcessKprobeChecker("file").
+			WithFunctionName(sm.Full("fd_install")).
+			WithArgs(ec.NewKprobeArgumentListMatcher().WithValues(
+				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Full(pathCheck))),
+			))
+
+		obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+		if err != nil {
+			t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+		}
+		observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+		readyWG.Wait()
+
+		// generate an event by opening the file
+		file, err = os.Open(pathFull)
+		require.NoError(t, err)
+		file.Close()
+
+		checker := ec.NewUnorderedEventChecker(kprobeCheck)
+		err = jsonchecker.JsonTestCheck(t, checker)
+		assert.NoError(t, err)
+	})
+
+	t.Run("path", func(t *testing.T) {
+		var doneWG, readyWG sync.WaitGroup
+		defer doneWG.Wait()
+
+		ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+		defer cancel()
+
+		spec := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "fdinstall"
+spec:
+  kprobes:
+  - call: "security_path_truncate"
+    syscall: false
+    args:
+    - index: 0
+      type: "path"`
+
+		createCrdFile(t, spec)
+
+		kprobeChecker := ec.NewProcessKprobeChecker("path").
+			WithFunctionName(sm.Full("security_path_truncate")).
+			WithArgs(ec.NewKprobeArgumentListMatcher().WithValues(
+				ec.NewKprobeArgumentChecker().WithPathArg(ec.NewKprobePathChecker().WithPath(sm.Full(pathCheck))),
+			))
+
+		obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+		if err != nil {
+			t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+		}
+		observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+		readyWG.Wait()
+
+		// generate an event by truncating the file
+		unix.Truncate(pathFull, 0)
+
+		checker := ec.NewUnorderedEventChecker(kprobeChecker)
+		err = jsonchecker.JsonTestCheck(t, checker)
+		assert.NoError(t, err)
+	})
+
+	t.Run("dentry", func(t *testing.T) {
+
+		var doneWG, readyWG sync.WaitGroup
+		defer doneWG.Wait()
+
+		ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+		defer cancel()
+
+		pathRemoved := pathFull[:len(pathFull)-1] + "b"
+
+		if err := testutils.CopyFile(pathRemoved, pathFull, 0755); err != nil {
+			t.Fatalf("testutils.CopyFileerror: %s", err)
+		}
+
+		infos, err := mountinfo.GetMountInfo()
+		if err != nil {
+			t.Fatalf("mountinfo.GetMountInfo() err %s", err)
+		}
+
+		pathRemovedCheck := pathRemoved
+
+		if config.EnableLargeProgs() {
+			// We can extract dentry type until first mount point,
+			// so let's detect that and find final path portion for
+			// checking.
+			for _, info := range infos {
+				if len(info.MountPoint) > 1 && strings.HasPrefix(pathRemovedCheck, info.MountPoint) {
+					pathRemovedCheck = pathRemovedCheck[len(info.MountPoint):]
+					break
+				}
+			}
+		} else {
+			pathRemovedCheck = pathCheck[:len(pathCheck)-1] + "b"
+		}
+
+		hook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "multiple-symbols"
+spec:
+  kprobes:
+  - call: "security_path_unlink"
+    syscall: false
+    args:
+    - index: 1
+      type: "dentry"`
+
+		createCrdFile(t, hook)
+
+		t.Logf("Removing file %s, check %s\n", pathRemoved, pathRemovedCheck)
+
+		obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+		if err != nil {
+			t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+		}
+		observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+		readyWG.Wait()
+
+		syscall.Unlink(pathRemoved)
+
+		kpChecker := ec.NewProcessKprobeChecker("").
+			WithFunctionName(sm.Full("security_path_unlink")).
+			WithArgs(ec.NewKprobeArgumentListMatcher().
+				WithOperator(lc.Ordered).
+				WithValues(
+					ec.NewKprobeArgumentChecker().WithPathArg(ec.NewKprobePathChecker().
+						WithPath(sm.Full(pathRemovedCheck)),
+					),
+				)).
+			WithProcess(ec.NewProcessChecker().
+				WithBinary(sm.Suffix(tus.Conf().SelfBinary)))
+
+		checker := ec.NewUnorderedEventChecker(kpChecker)
+
+		err = jsonchecker.JsonTestCheck(t, checker)
+		assert.NoError(t, err)
+	})
 }
 
 func TestKprobeDentryPath(t *testing.T) {
