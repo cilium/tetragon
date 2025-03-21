@@ -4,7 +4,7 @@ module github.com/cilium/tetragon/contrib/rthooks/tetragon-oci-hook
 go 1.24.0
 
 require (
-	github.com/alecthomas/kong v1.8.1
+	github.com/alecthomas/kong v1.9.0
 	github.com/cilium/lumberjack/v2 v2.4.1
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/containerd/containerd v1.7.27
