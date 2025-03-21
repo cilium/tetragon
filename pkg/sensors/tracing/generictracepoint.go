@@ -470,8 +470,24 @@ func createGenericTracepointSensor(
 		enforcer: len(spec.Enforcers) != 0,
 	}
 
-	maps := []*program.Map{}
-	progs := make([]*program.Program, 0, len(tracepoints))
+	progs, maps, err := createTracepointSensor(tracepoints, progName, lists, has, polInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	ret.Progs = progs
+	ret.Maps = maps
+	return ret, nil
+}
+
+func createTracepointSensor(tracepoints []*genericTracepoint, progName string,
+	lists []v1alpha1.ListSpec, has hasMaps, polInfo *policyInfo) ([]*program.Program, []*program.Map, error) {
+
+	var (
+		progs []*program.Program
+		maps  []*program.Map
+	)
+
 	for _, tp := range tracepoints {
 		pinProg := sensors.PathJoin(fmt.Sprintf("%s:%s", tp.Info.Subsys, tp.Info.Event))
 		attach := fmt.Sprintf("%s/%s", tp.Info.Subsys, tp.Info.Event)
@@ -485,7 +501,7 @@ func createGenericTracepointSensor(
 
 		err := tp.InitKernelSelectors(lists)
 		if err != nil {
-			return nil, fmt.Errorf("failed to initialize tracepoint kernel selectors: %w", err)
+			return nil, nil, fmt.Errorf("failed to initialize tracepoint kernel selectors: %w", err)
 		}
 
 		has.fdInstall = selectorsHaveFDInstall(tp.Spec.Selectors)
@@ -588,10 +604,7 @@ func createGenericTracepointSensor(
 	}
 
 	maps = append(maps, program.MapUserFrom(base.ExecveMap))
-
-	ret.Progs = progs
-	ret.Maps = maps
-	return ret, nil
+	return progs, maps, nil
 }
 
 func (tp *genericTracepoint) InitKernelSelectors(lists []v1alpha1.ListSpec) error {
