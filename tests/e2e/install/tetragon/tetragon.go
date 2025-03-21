@@ -94,8 +94,6 @@ func Uninstall(opts ...Option) env.Func {
 
 		manager := helm.New(cfg.KubeconfigFile())
 
-		klog.InfoS("Uninstalling Tetragon...", "namespace", o.Namespace, "daemonset", o.DaemonSetName)
-
 		helmOpts := []helm.Option{
 			helm.WithName(o.DaemonSetName),
 			helm.WithNamespace(o.Namespace),
@@ -212,8 +210,6 @@ func Install(opts ...Option) env.Func {
 		}
 
 		helmArgs.WriteString(" --install")
-
-		klog.InfoS("Installing Tetragon...", "namespace", o.Namespace, "daemonset", o.DaemonSetName)
 
 		helmOpts := []helm.Option{
 			helm.WithName(o.DaemonSetName),
