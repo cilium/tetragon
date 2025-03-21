@@ -1,0 +1,11 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "rawtp"
+spec:
+  rawtracepoints:
+    - subsystem: "sched"
+      event: "sched_process_exec"
+      args:
+        - index: 2
+          type: "linux_binprm"
