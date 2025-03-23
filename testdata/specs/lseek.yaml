@@ -4,10 +4,10 @@ metadata:
   name: "lseek"
 spec:
   kprobes:
-  - call: "ksys_lseek"
+  - call: "vfs_llseek"
     syscall: false
     args:
     - index: 0
-      type: "int"
+      type: "file"
 
 
