@@ -4,5 +4,5 @@ metadata:
   name: "sys-lseek"
 spec:
   kprobes:
-  - call: "ksys_lseek"
+  - call: "vfs_llseek"
     syscall: true
