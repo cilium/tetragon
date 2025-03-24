@@ -355,7 +355,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Bool(KeyEnableProcessCred, false, "Enable process_cred events")
 	flags.Bool(KeyEnableProcessNs, false, "Enable namespace information in process_exec and process_kprobe events")
 	flags.Uint(KeyEventQueueSize, 10000, "Set the size of the internal event queue.")
-        flags.Bool(KeyEnablePodAnnotations, false, "Add pod annotations field to events.")
+        flags.Bool(KeyEnablePodAnnotations, true, "Add pod annotations field to events.")
 	// Allow to include ancestor processes in events
 	flags.Bool(KeyEnableProcessAncestors, false, "Include ancestors in process_exec and process_exit events. Disabled by default. Required by other enable ancestors options for correct reference counting")
 	flags.Bool(KeyEnableProcessKprobeAncestors, false, fmt.Sprintf("Include ancestors in process_kprobe events. Only used if '%s' is set to 'true'", KeyEnableProcessAncestors))
