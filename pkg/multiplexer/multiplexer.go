@@ -6,7 +6,6 @@ package multiplexer
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
@@ -15,18 +14,12 @@ import (
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/proto"
-	"k8s.io/klog/v2"
 )
 
 const (
 	defaultConnectRetries = 10
 	defaultConnectBackoff = time.Second
 )
-
-type connResult struct {
-	*grpc.ClientConn
-	Error error
-}
 
 // GetEventsResult encapsulates a GetEventsResponse and an error
 type GetEventsResult struct {
@@ -95,60 +88,11 @@ func ConnectAttempt(ctx context.Context, addr string) (*grpc.ClientConn, error) 
 	}
 }
 
-// Connect connects the ClientMultiplexer to one or more gRPC servers specified addrs
-func (cm *ClientMultiplexer) Connect(ctx context.Context, connTimeout time.Duration, addrs ...string) error {
-	connCtx, connCancel := context.WithTimeout(ctx, connTimeout)
-	defer connCancel()
-
-	var wg sync.WaitGroup
-	queue := make(chan connResult, len(addrs))
-	wg.Add(len(addrs))
-
-	for _, addr := range addrs {
-		klog.V(2).InfoS("Connecting to gRPC server...", "addr", addr)
-		go func(addr string) {
-			defer wg.Done()
-			conn, err := ConnectAttempt(connCtx, addr)
-			if err == nil {
-				logger.GetLogger().WithField("addr", addr).Info("Connected to gRPC server")
-				queue <- connResult{conn, nil}
-			} else {
-				queue <- connResult{nil, err}
-			}
-		}(addr)
-	}
-
-	// Close the channel when everything is connected
-	go func() {
-		wg.Wait()
-		close(queue)
-	}()
-
-	// Pull connections out of the channel
-	var conns []*grpc.ClientConn
-	var connErrors []error
-	for cr := range queue {
-		if cr.Error != nil {
-			connErrors = append(connErrors, cr.Error)
-		} else {
-			conns = append(conns, cr.ClientConn)
-		}
-	}
-
-	// Close everything and abort if we failed to connect to one or more server
-	if len(connErrors) > 0 {
-		for _, conn := range conns {
-			conn.Close()
-		}
-		return fmt.Errorf("failed to connect to one or more servers: %v", connErrors)
-	}
-
+func (cm *ClientMultiplexer) SetConns(conns []*grpc.ClientConn) {
 	for _, conn := range conns {
 		client := tetragon.NewFineGuidanceSensorsClient(conn)
 		cm.clients = append(cm.clients, client)
 	}
-
-	return nil
 }
 
 // GetEventsWithFilters calls GetEvents for each client in the multiplexer and returns a channel that
