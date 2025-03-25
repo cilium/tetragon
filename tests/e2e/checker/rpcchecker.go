@@ -28,6 +28,7 @@ import (
 	"github.com/cilium/tetragon/tests/e2e/state"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/klog/v2"
@@ -129,7 +130,7 @@ func (rc *RPCChecker) CheckInNamespace(connTimeout time.Duration, namespaces ...
 
 // CheckInNamespace returns a feature func that runs event checks on events filtered by
 // one or more filters.
-func (rc *RPCChecker) CheckWithFilters(connTimeout time.Duration, allowList, denyList []*tetragon.Filter) features.Func {
+func (rc *RPCChecker) CheckWithFilters(_ time.Duration, allowList, denyList []*tetragon.Filter) features.Func {
 	return func(ctx context.Context, t *testing.T, _ *envconf.Config) context.Context {
 		// We acquire a lock here to avoid erroneously running this checker more than once
 		// simultaneously in a testenv.TestInParallel call.
@@ -151,21 +152,19 @@ func (rc *RPCChecker) CheckWithFilters(connTimeout time.Duration, allowList, den
 			}
 		}
 
-		ports, ok := ctx.Value(state.GrpcForwardedPorts).(map[string]int)
+		connsMap, ok := ctx.Value(state.GrpcForwardedConns).(map[string]*grpc.ClientConn)
 		if !ok {
-			assert.Fail(t, "failed to find forwarded gRPC ports")
+			assert.Fail(t, "failed to find forwarded gRPC connections")
 			return ctx
 		}
 
-		var addrs []string
-		for _, port := range ports {
-			addrs = append(addrs, fmt.Sprintf("localhost:%d", port))
+		var conns []*grpc.ClientConn
+		for _, conn := range connsMap {
+			conns = append(conns, conn)
 		}
 
 		if rc.getEvents == nil {
-			if err := rc.connect(ctx, connTimeout, addrs...); !assert.NoError(t, err, "checker should connect") {
-				return ctx
-			}
+			rc.setConns(conns)
 		}
 
 		if err := rc.check(ctx, allowList, denyList); !assert.NoError(t, err, "checks should pass") {
@@ -186,13 +185,10 @@ func (rc *RPCChecker) ResetEventCount() {
 
 // Connect connects the RPCChecker to one or more gRPC servers. This must be called
 // before calling RPCChecker.Check().
-func (rc *RPCChecker) connect(ctx context.Context, connTimeout time.Duration, addrs ...string) error {
+func (rc *RPCChecker) setConns(conns []*grpc.ClientConn) {
 	cm := multiplexer.NewClientMultiplexer()
-	if err := cm.Connect(ctx, connTimeout, addrs...); err != nil {
-		return err
-	}
+	cm.SetConns(conns)
 	rc.getEvents = cm
-	return nil
 }
 
 // Check checks an event stream from one or more gRPC servers.
