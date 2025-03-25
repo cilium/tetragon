@@ -131,6 +131,7 @@ func TestNamespacedPolicy(t *testing.T) {
 				klog.ErrorS(err, "failed to uninstall policy")
 				t.Fail()
 			}
+			t.Fail()
 			return ctx
 		}).
 		Feature()

@@ -42,20 +42,12 @@ nodes:
 `
 
 var (
-	clusterName  string
 	clusterImage string
 )
 
 func init() {
-	flag.StringVar(&clusterName, "cluster-name", "tetragon-ci", "Set the name of the k8s cluster being used")
 	// renovate: datasource=docker
 	flag.StringVar(&clusterImage, "cluster-image", "kindest/node:v1.32.3", "Set the node image for the kind cluster")
-}
-
-// GetClusterName fetches the cluster name configured with -cluster-name or the temporary
-// kind cluster name.
-func GetClusterName() string {
-	return clusterName
 }
 
 func SetMinKernelVersion() env.Func {
@@ -141,7 +133,6 @@ func MaybeCreateTempKindCluster(testenv env.Environment, namePrefix string) env.
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 		if cfg.KubeconfigFile() == "" {
 			name := envconf.RandomName(namePrefix, 16)
-			clusterName = name
 			klog.Infof("No kubeconfig specified, creating temporary kind cluster %s", name)
 			var err error
 			err = writeKindConfig()

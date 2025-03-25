@@ -334,7 +334,7 @@ func (rc *RPCChecker) updateContextEventCheckers(ctx context.Context) context.Co
 func getExportDir(ctx context.Context) (string, error) {
 	exportDir, ok := ctx.Value(state.ExportDir).(string)
 	if !ok {
-		return "", fmt.Errorf("export dir has not been created. Call helpers.CreateExportDir() first")
+		return "", fmt.Errorf("export dir has not been created. Call runner.SetupExport() first")
 	}
 	return exportDir, nil
 }
