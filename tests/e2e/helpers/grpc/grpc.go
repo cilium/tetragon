@@ -11,34 +11,23 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/tests/e2e/state"
+	"google.golang.org/grpc"
 )
 
 // WaitForTracingPolicy checks that a tracing policy exists in all tetragon pods.
 func WaitForTracingPolicy(ctx context.Context, policyName string) error {
-	tetraPorts, ok := ctx.Value(state.GrpcForwardedPorts).(map[string]int)
+	tetraConns, ok := ctx.Value(state.GrpcForwardedConns).(map[string]*grpc.ClientConn)
 	if !ok {
 		return fmt.Errorf("failed to find tetragon grpc forwarded ports")
 	}
 
 	maxTries := 20
-	for podName, grpcPort := range tetraPorts {
-		addr := fmt.Sprintf("127.0.0.1:%d", grpcPort)
-		// https://github.com/grpc/grpc-go/pull/7905 requires the number of retries to
-		// be greater than 1 in google.golang.org/grpc v1.7.0.
-		// We already do that + 1 in retryPolicy() so it is safe to make that 1.
-		common.Retries = 1
-		// NB(kkourt): maybe it would make sense to cache the grpc connections in the
-		// context, but we keep things simple for now.
-		c, err := common.NewClient(ctx, addr, 10*time.Second)
-		if err != nil {
-			return fmt.Errorf("failed to create gRPC client to pod (%s) at forwared port (%d): %w", podName, grpcPort, err)
-		}
-		defer c.Close()
-
+	for podName, grpcConn := range tetraConns {
+		client := tetragon.NewFineGuidanceSensorsClient(grpcConn)
+		var err error
 		for i := 0; i < maxTries; i++ {
-			err = ensureTracingPolicy(c.Ctx, policyName, c.Client)
+			err = ensureTracingPolicy(ctx, policyName, client)
 			if err == nil {
 				break
 			}
