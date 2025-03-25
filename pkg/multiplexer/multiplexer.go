@@ -64,6 +64,37 @@ func (cm *ClientMultiplexer) WithConnectBackoff(backoff time.Duration) *ClientMu
 	return cm
 }
 
+func ConnectAttempt(ctx context.Context, addr string) (*grpc.ClientConn, error) {
+	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", addr, err)
+	}
+
+	// Deprecation of grpc.DialContext made us switch to grpc.NewClient
+	// which does not perform any I/O, the following statement should
+	// maintain the previous "connect" behavior by waiting for client
+	// connection.
+	for {
+		switch state := conn.GetState(); state {
+		case connectivity.Ready:
+			return conn, nil
+		case connectivity.Idle:
+			conn.Connect()
+			fallthrough
+		case connectivity.Connecting:
+			ok := conn.WaitForStateChange(ctx, state)
+			if !ok {
+				return nil, fmt.Errorf("conn for %s did not change from %s: %w", addr, state, ctx.Err())
+			}
+		case connectivity.TransientFailure, connectivity.Shutdown:
+			return nil, fmt.Errorf("conn for %s in state %s bailing out", addr, state)
+		default:
+			return nil, fmt.Errorf("%s: unknown conn state: %s", addr, state)
+		}
+
+	}
+}
+
 // Connect connects the ClientMultiplexer to one or more gRPC servers specified addrs
 func (cm *ClientMultiplexer) Connect(ctx context.Context, connTimeout time.Duration, addrs ...string) error {
 	connCtx, connCancel := context.WithTimeout(ctx, connTimeout)
@@ -77,31 +108,13 @@ func (cm *ClientMultiplexer) Connect(ctx context.Context, connTimeout time.Durat
 		klog.V(2).InfoS("Connecting to gRPC server...", "addr", addr)
 		go func(addr string) {
 			defer wg.Done()
-
-			conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-
-			if err != nil {
-				queue <- connResult{nil, fmt.Errorf("%s: %w", addr, err)}
-				return
+			conn, err := ConnectAttempt(connCtx, addr)
+			if err == nil {
+				logger.GetLogger().WithField("addr", addr).Info("Connected to gRPC server")
+				queue <- connResult{conn, nil}
+			} else {
+				queue <- connResult{nil, err}
 			}
-
-			// Deprecation of grpc.DialContext made us switch to grpc.NewClient
-			// which does not perform any I/O, the following statement should
-			// maintain the previous "connect" behavior by waiting for client
-			// connection.
-			state := conn.GetState()
-			if state == connectivity.Idle {
-				conn.Connect()
-			}
-			// if connectivity was already ready, jump to the end, otherwise
-			// wait for the connection to change
-			if state != connectivity.Ready && !conn.WaitForStateChange(connCtx, state) {
-				queue <- connResult{nil, fmt.Errorf("%s: %w", addr, connCtx.Err())}
-				return
-			}
-
-			queue <- connResult{conn, nil}
-			logger.GetLogger().WithField("addr", addr).Info("Connected to gRPC server")
 		}(addr)
 	}
 
