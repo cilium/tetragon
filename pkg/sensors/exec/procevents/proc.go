@@ -6,13 +6,9 @@ package procevents
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/cilium/tetragon/pkg/api/processapi"
-	"github.com/cilium/tetragon/pkg/option"
 )
 
 const (
@@ -150,19 +146,4 @@ func procsFindDockerId(cgroups string) (string, int) {
 		}
 	}
 	return "", 0
-}
-
-// procDockerId reads the pid cgroup from proc and returns the container ID.
-// pid argument is the pid of the target process
-// Returns the container ID and nil on success, or an empty string if it fails to identify
-// the container ID or if an error happens. If the pid is unavailable, an error will be
-// returned.
-func procsDockerId(pid uint32) (string, error) {
-	pidstr := fmt.Sprint(pid)
-	cgroups, err := os.ReadFile(filepath.Join(option.Config.ProcFS, pidstr, "cgroup"))
-	if err != nil {
-		return "", err
-	}
-	off, _ := procsFindDockerId(string(cgroups))
-	return off, nil
 }
