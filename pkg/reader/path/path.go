@@ -10,6 +10,7 @@ import (
 	"unicode"
 
 	"github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/constants"
 )
 
 func GetBinaryAbsolutePath(binary string, cwd string) string {
@@ -64,7 +65,7 @@ func permString(bits uint16, rwx string, sticky byte) string {
 func FilePathModeToStr(mode uint16) string {
 	var str strings.Builder
 
-	switch mode & syscall.S_IFMT {
+	switch mode & constants.S_IFMT {
 	case syscall.S_IFBLK:
 		str.WriteString("b")
 	case syscall.S_IFCHR:
