@@ -1068,6 +1068,34 @@ func handleMsgGenericTracepoint(
 				unix.Args = append(unix.Args, val)
 			}
 
+		case gt.GenericLinuxBinprmType:
+			var arg api.MsgGenericKprobeArgLinuxBinprm
+			var flags uint32
+			var mode uint16
+			var err error
+
+			arg.Value, err = parseString(r)
+			if err != nil {
+				if errors.Is(err, errParseStringSize) {
+					arg.Value = "/"
+				} else {
+					logger.GetLogger().WithError(err).Warn("error parsing arg type linux_binprm")
+				}
+			}
+
+			err = binary.Read(r, binary.LittleEndian, &flags)
+			if err != nil {
+				flags = 0
+			}
+
+			err = binary.Read(r, binary.LittleEndian, &mode)
+			if err != nil {
+				mode = 0
+			}
+			arg.Flags = flags
+			arg.Permission = mode
+			unix.Args = append(unix.Args, arg)
+
 		default:
 			logger.GetLogger().Warnf("handleGenericTracepoint: ignoring:  %+v", out)
 		}
