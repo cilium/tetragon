@@ -237,7 +237,18 @@ func (out *genericTracepointArg) getGenericTypeId() (int, error) {
 	return gt.GenericInvalidType, fmt.Errorf("Unknown type: %T", out.format.Field.Type)
 }
 
-func buildGenericTracepointArgs(info *tracepoint.Tracepoint, specArgs []v1alpha1.KProbeArg) ([]genericTracepointArg, error) {
+func buildGenericTracepointArgs(tp *tracepoint.Tracepoint, specArgs []v1alpha1.KProbeArg, raw bool) ([]genericTracepointArg, error) {
+	if raw {
+		return buildArgsRaw(tp, specArgs)
+	}
+
+	if err := tp.LoadFormat(); err != nil {
+		return nil, fmt.Errorf("tracepoint %s/%s not supported: %w", tp.Subsys, tp.Event, err)
+	}
+	return buildArgs(tp, specArgs)
+}
+
+func buildArgs(info *tracepoint.Tracepoint, specArgs []v1alpha1.KProbeArg) ([]genericTracepointArg, error) {
 	ret := make([]genericTracepointArg, 0, len(specArgs))
 	nfields := uint32(len(info.Format.Fields))
 
@@ -317,6 +328,32 @@ func buildGenericTracepointArgs(info *tracepoint.Tracepoint, specArgs []v1alpha1
 	return ret, nil
 }
 
+func buildArgsRaw(info *tracepoint.Tracepoint, specArgs []v1alpha1.KProbeArg) ([]genericTracepointArg, error) {
+	ret := make([]genericTracepointArg, 0, len(specArgs))
+	for i, tpArg := range specArgs {
+		if tpArg.Index > 5 {
+			return nil, fmt.Errorf("raw tracepoint (%s/%s) can read up to %d arguments, but %d was requested",
+				info.Subsys, info.Event, 5, tpArg.Index)
+		}
+
+		arg := genericTracepointArg{
+			ArgIdx:   uint32(i),
+			TpIdx:    int(tpArg.Index),
+			MetaTp:   getTracepointMetaValue(&tpArg),
+			userType: tpArg.Type,
+		}
+
+		argType, err := arg.getGenericTypeId()
+		if err != nil {
+			return nil, fmt.Errorf("output argument %v unsupported: %w", tpArg, err)
+		}
+
+		arg.genericTypeId = argType
+		ret = append(ret, arg)
+	}
+	return ret, nil
+}
+
 // createGenericTracepoint creates the genericTracepoint information based on
 // the user-provided configuration
 func createGenericTracepoint(
@@ -346,11 +383,7 @@ func createGenericTracepoint(
 		return nil, err
 	}
 
-	if err := tp.LoadFormat(); err != nil {
-		return nil, fmt.Errorf("tracepoint %s/%s not supported: %w", tp.Subsys, tp.Event, err)
-	}
-
-	tpArgs, err := buildGenericTracepointArgs(&tp, conf.Args)
+	tpArgs, err := buildGenericTracepointArgs(&tp, conf.Args, raw)
 	if err != nil {
 		return nil, err
 	}
@@ -698,15 +731,40 @@ func (tp *genericTracepoint) InitKernelSelectors(lists []v1alpha1.ListSpec) erro
 	return nil
 }
 
-func (tp *genericTracepoint) EventConfig() (api.EventConfig, error) {
+func (tp *genericTracepoint) EventConfig() (*api.EventConfig, error) {
 
 	if len(tp.args) > api.EventConfigMaxArgs {
-		return api.EventConfig{}, fmt.Errorf("number of arguments (%d) larger than max (%d)", len(tp.args), api.EventConfigMaxArgs)
+		return nil, fmt.Errorf("number of arguments (%d) larger than max (%d)", len(tp.args), api.EventConfigMaxArgs)
 	}
 
 	config := api.EventConfig{}
 	config.PolicyID = uint32(tp.policyID)
 	config.FuncId = uint32(tp.tableIdx)
+
+	if tp.raw {
+		return tp.eventConfigRaw(&config)
+	}
+	return tp.eventConfig(&config)
+}
+
+func (tp *genericTracepoint) eventConfigRaw(config *api.EventConfig) (*api.EventConfig, error) {
+	for i := range config.Arg {
+		config.Arg[i] = int32(gt.GenericNopType)
+		config.ArgM[i] = uint32(0)
+	}
+
+	// iterate over output arguments
+	for i, tpArg := range tp.args {
+		config.Arg[tpArg.TpIdx] = int32(tpArg.genericTypeId)
+		config.ArgM[tpArg.TpIdx] = uint32(tpArg.MetaArg)
+
+		tracepointLog.Debugf("configured argument #%d: %+v (type:%d)", i, tpArg, tpArg.genericTypeId)
+	}
+	return config, nil
+}
+
+func (tp *genericTracepoint) eventConfig(config *api.EventConfig) (*api.EventConfig, error) {
+
 	// iterate over output arguments
 	for i, tpArg := range tp.args {
 		config.ArgTpCtxOff[i] = uint32(tpArg.CtxOffset)
@@ -747,7 +805,7 @@ func LoadGenericTracepointSensor(bpfDir string, load *program.Program, maps []*p
 		return fmt.Errorf("failed to generate config data for generic tracepoint: %w", err)
 	}
 	var binBuf bytes.Buffer
-	binary.Write(&binBuf, binary.LittleEndian, config)
+	binary.Write(&binBuf, binary.LittleEndian, *config)
 	cfg := &program.MapLoad{
 		Index: 0,
 		Name:  "config_map",
