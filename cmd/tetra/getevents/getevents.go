@@ -42,6 +42,7 @@ type Opts struct {
 	CelExpression []string
 	Reconnect     bool
 	ReconnectWait time.Duration
+	Containers    []string
 }
 
 var Options Opts
@@ -91,6 +92,15 @@ var GetFilter = func() *tetragon.Filter {
 	}
 	if len(Options.CelExpression) > 0 {
 		filter.CelExpression = Options.CelExpression
+	}
+
+	if len(Options.Containers) > 0 {
+		var containerConditions []string
+		for _, c := range Options.Containers {
+			containerConditions = append(containerConditions, fmt.Sprintf(`process.pod.container.name == %q`, c))
+		}
+		containerFilter := fmt.Sprintf("has(process) && (%s)", strings.Join(containerConditions, " || "))
+		filter.CelExpression = append(filter.CelExpression, containerFilter)
 	}
 
 	return &filter
@@ -161,7 +171,10 @@ redirection of events to the stdin. Examples:
   tetra getevents -F parent
 
   # Include only process and parent.pod fields
-  tetra getevents -f process,parent.pod`,
+  tetra getevents -f process,parent.pod
+  
+  # Filter by container name
+  tetra getevents --container bar`,
 		PreRunE: func(_ *cobra.Command, _ []string) error {
 			if Options.Output != "json" && Options.Output != "compact" {
 				return fmt.Errorf("invalid value for %q flag: %s", common.KeyOutput, Options.Output)
@@ -251,5 +264,7 @@ redirection of events to the stdin. Examples:
 	flags.StringSliceVar(&Options.CelExpression, "cel-expression", nil, "Get events satisfying the CEL expression")
 	flags.BoolVar(&Options.Reconnect, "reconnect", false, "Keep trying to connect even if an error occurred")
 	flags.DurationVar(&Options.ReconnectWait, "reconnect-wait", 2*time.Second, "wait time before attempting to reconnect")
+
+	flags.StringSliceVar(&Options.Containers, "container", nil, "Get events by container name")
 	return &cmd
 }
