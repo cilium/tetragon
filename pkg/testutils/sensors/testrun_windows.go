@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/pkg/bpf"
-	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/program"
@@ -63,15 +62,7 @@ func TestSensorsRun(m *testing.M, sensorName string) int {
 		logger.DefaultLogger.SetLevel(logrus.TraceLevel)
 	}
 
-	// use a sensor-specific name for the bpffs directory for the maps.
-	// Also, we currently seem to fail to remove the /sys/fs/bpf/<testMapDir>
-	// Do so here, until we figure out a way to do it properly. Also, issue
-	// a message.
 	testMapDir := fmt.Sprintf("test%s", sensorName)
-
-	bpf.CheckOrMountFS("")
-	bpf.CheckOrMountDebugFS()
-	bpf.ConfigureResourceLimits()
 
 	if config.TetragonLib != "" {
 		option.Config.HubbleLib = config.TetragonLib
@@ -95,8 +86,5 @@ func TestSensorsRun(m *testing.M, sensorName string) int {
 		log.Printf("map dir `%s` still exists after test. Removing it.", path)
 		os.RemoveAll(path)
 	}()
-	if err := btf.InitCachedBTF(config.TetragonLib, ""); err != nil {
-		fmt.Printf("InitCachedBTF failed: %v", err)
-	}
 	return m.Run()
 }
