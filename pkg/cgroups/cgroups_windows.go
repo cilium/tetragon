@@ -4,6 +4,8 @@ package cgroups
 
 import (
 	"errors"
+
+	"github.com/cilium/tetragon/pkg/constants"
 )
 
 func CgroupFsMagicStr(magic uint64) string {
@@ -11,7 +13,7 @@ func CgroupFsMagicStr(magic uint64) string {
 }
 
 func GetCgroupIdFromPath(cgroupPath string) (uint64, error) {
-	return 0, errors.New("not Supported on windows")
+	return 0, constants.ErrWindowsNotSupported
 }
 
 func DiscoverSubSysIds() error {
@@ -39,26 +41,26 @@ func GetCgrpControllerName() string {
 }
 
 func DetectCgroupMode() (CgroupModeCode, error) {
-	return CGROUP_UNDEF, errors.New("not Supported on windows")
+	return CGROUP_UNDEF, constants.ErrWindowsNotSupported
 }
 
 func DetectDeploymentMode() (DeploymentCode, error) {
-	return DEPLOY_UNKNOWN, errors.New("not Supported on windows")
+	return DEPLOY_UNKNOWN, constants.ErrWindowsNotSupported
 }
 
 func DetectCgroupFSMagic() (uint64, error) {
-	return CGROUP_UNSET_VALUE, errors.New("not Supported on windows")
+	return CGROUP_UNSET_VALUE, constants.ErrWindowsNotSupported
 }
 
 func HostCgroupRoot() (string, error) {
-	return "", errors.New("not Supported on windows")
+	return "", constants.ErrWindowsNotSupported
 }
 
 func CgroupIDFromPID(pid uint32) (uint64, error) {
-	return 0, errors.New("not Supported on windows")
+	return 0, constants.ErrWindowsNotSupported
 }
 
 func GetCgroupIDFromSubCgroup(p string) (uint64, error) {
 
-	return 0, errors.New("not Supported on windows")
+	return 0, constants.ErrWindowsNotSupported
 }
