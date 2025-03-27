@@ -247,7 +247,7 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 			if !bpf.HasProgramLargeSize() {
 				return errFn(fmt.Errorf("Error: Resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag"))
 			}
-			lastBTFType, btfArg, err := resolveBTFArg("bpf_lsm_"+f.Hook, a)
+			lastBTFType, btfArg, err := resolveBTFArg("bpf_lsm_"+f.Hook, a, false)
 			if err != nil {
 				return errFn(fmt.Errorf("Error on hook %q for index %d : %v", f.Hook, a.Index, err))
 			}
