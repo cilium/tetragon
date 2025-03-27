@@ -162,12 +162,6 @@ func (out *genericTracepointArg) String() string {
 	return fmt.Sprintf("genericTracepointArg{CtxOffset: %d format: %+v}", out.CtxOffset, out.format)
 }
 
-func (out *genericTracepointArg) setGenericTypeId() (int, error) {
-	ret, err := out.getGenericTypeId()
-	out.genericTypeId = ret
-	return ret, err
-}
-
 // getGenericTypeId: returns the generic type Id of a tracepoint argument
 // if such an id cannot be termined, it returns an GenericInvalidType and an error
 func (out *genericTracepointArg) getGenericTypeId() (int, error) {
@@ -250,16 +244,23 @@ func buildGenericTracepointArgs(info *tracepoint.Tracepoint, specArgs []v1alpha1
 			return nil, fmt.Errorf("tracepoint %s/%s has %d fields but field %d was requested", info.Subsys, info.Event, nfields, specArg.Index)
 		}
 		field := info.Format.Fields[specArg.Index]
-		ret = append(ret, genericTracepointArg{
-			CtxOffset:     int(field.Offset),
-			ArgIdx:        uint32(argIdx),
-			TpIdx:         int(specArg.Index),
-			MetaTp:        getTracepointMetaValue(specArg),
-			nopTy:         false,
-			format:        &field,
-			genericTypeId: gt.GenericInvalidType,
-			userType:      specArg.Type,
-		})
+
+		tpArg := genericTracepointArg{
+			CtxOffset: int(field.Offset),
+			ArgIdx:    uint32(argIdx),
+			TpIdx:     int(specArg.Index),
+			MetaTp:    getTracepointMetaValue(specArg),
+			nopTy:     false,
+			format:    &field,
+			userType:  specArg.Type,
+		}
+
+		ty, err := tpArg.getGenericTypeId()
+		if err != nil {
+			return nil, fmt.Errorf("output argument %v unsupported: %w", tpArg, err)
+		}
+		tpArg.genericTypeId = ty
+		ret = append(ret, tpArg)
 	}
 
 	// getOrAppendMeta is a helper function for meta arguments now that we
@@ -606,11 +607,7 @@ func (tp *genericTracepoint) InitKernelSelectors(lists []v1alpha1.ListSpec) erro
 
 	for i := range tp.args {
 		tpArg := &tp.args[i]
-		ty, err := tpArg.setGenericTypeId()
-		if err != nil {
-			return fmt.Errorf("output argument %v unsupported: %w", tpArg, err)
-		}
-		selType, err := gt.GenericTypeToString(ty)
+		selType, err := gt.GenericTypeToString(tpArg.genericTypeId)
 		if err != nil {
 			return fmt.Errorf("output argument %v type not found: %w", tpArg, err)
 		}
@@ -654,11 +651,6 @@ func (tp *genericTracepoint) EventConfig() (api.EventConfig, error) {
 	for i := range tp.args {
 		tpArg := &tp.args[i]
 		config.ArgTpCtxOff[i] = uint32(tpArg.CtxOffset)
-		_, err := tpArg.setGenericTypeId()
-		if err != nil {
-			return api.EventConfig{}, fmt.Errorf("output argument %v unsupported: %w", tpArg, err)
-		}
-
 		config.Arg[i] = int32(tpArg.genericTypeId)
 		config.ArgM[i] = uint32(tpArg.MetaArg)
 
