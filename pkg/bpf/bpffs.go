@@ -18,9 +18,6 @@ var (
 	// Path to where bpffs is mounted
 	mapRoot = defaults.DefaultMapRoot
 
-	// Path to where debugfs is mounted
-	debugFSRoot = "/sys/kernel/debug"
-
 	// Prefix for all maps (default: tc/globals)
 	mapPrefix = defaults.DefaultMapPrefix
 

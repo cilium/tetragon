@@ -11,12 +11,6 @@ var (
 	notSupportedWinErr = errors.New("not supported on windows")
 )
 
-// mountFS mounts the BPFFS filesystem into the desired mapRoot directory.
-func mountFS(root, kind string) error {
-
-	return notSupportedWinErr
-}
-
 func CheckOrMountFS(bpfRoot string) {
 
 }
