@@ -27,10 +27,16 @@ func addPaddingOnNestedPtr(ty ebtf.Type, path []string) []string {
 	return path
 }
 
-func resolveBTFArg(hook string, arg v1alpha1.KProbeArg) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
+func resolveBTFArg(hook string, arg v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
 	btfArg := [api.MaxBTFArgDepth]api.ConfigBTFArg{}
 
-	param, err := btf.FindBTFFuncParamFromHook(hook, int(arg.Index))
+	// tracepoints have extra first internal argument, so we need to adjust the index
+	index := int(arg.Index)
+	if tp {
+		index++
+	}
+
+	param, err := btf.FindBTFFuncParamFromHook(hook, index)
 	if err != nil {
 		return nil, btfArg, err
 	}

@@ -749,7 +749,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 			if !bpf.HasProgramLargeSize() {
 				return errFn(errors.New("error: Resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag"))
 			}
-			lastBTFType, btfArg, err := resolveBTFArg(f.Call, a)
+			lastBTFType, btfArg, err := resolveBTFArg(f.Call, a, false)
 			if err != nil {
 				return errFn(fmt.Errorf("error on hook %q for index %d : %w", f.Call, a.Index, err))
 			}
