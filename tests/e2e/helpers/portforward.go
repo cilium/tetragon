@@ -14,6 +14,7 @@ import (
 	"github.com/cilium/tetragon/pkg/multiplexer"
 	"github.com/cilium/tetragon/tests/e2e/flags"
 	"github.com/cilium/tetragon/tests/e2e/state"
+	"google.golang.org/grpc"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -60,6 +61,7 @@ func PortForwardTetragonPods(testenv env.Environment) env.Func {
 		grpcPorts := make(map[string]int)
 		promPorts := make(map[string]int)
 		gopsPorts := make(map[string]int)
+		grpcConns := make(map[string]*grpc.ClientConn)
 		for i, pod := range podList.Items {
 			grpcLocalPort := grpcPort + i
 			if ctx, err = PortForwardPod(
@@ -73,7 +75,7 @@ func PortForwardTetragonPods(testenv env.Environment) env.Func {
 					addr := fmt.Sprintf("localhost:%d", grpcLocalPort)
 					conn, err := multiplexer.ConnectAttempt(ctx, addr)
 					if err == nil {
-						conn.Close()
+						grpcConns[pod.Name] = conn
 					}
 					return err
 				},
@@ -89,8 +91,15 @@ func PortForwardTetragonPods(testenv env.Environment) env.Func {
 		}
 
 		ctx = context.WithValue(ctx, state.GrpcForwardedPorts, grpcPorts)
+		ctx = context.WithValue(ctx, state.GrpcForwardedConns, grpcConns)
 		ctx = context.WithValue(ctx, state.PromForwardedPorts, promPorts)
 		ctx = context.WithValue(ctx, state.GopsForwardedPorts, gopsPorts)
+		testenv.Finish(func(ctx context.Context, _ *envconf.Config) (context.Context, error) {
+			for _, conn := range grpcConns {
+				conn.Close()
+			}
+			return ctx, nil
+		})
 
 		klog.InfoS("Successfully forwarded ports for Tetragon pods", "grpcPorts", grpcPorts, "promPorts", promPorts, "gopsPorts", gopsPorts)
 
