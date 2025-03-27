@@ -16,6 +16,7 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/cgtracker"
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/eventhandler"
@@ -132,6 +133,9 @@ type genericTracepointArg struct {
 
 	// user type overload
 	userType string
+
+	// data for config.BTFArg
+	btf [tracingapi.MaxBTFArgDepth]tracingapi.ConfigBTFArg
 }
 
 // tracepointTable is, for now, an array.
@@ -330,6 +334,8 @@ func buildArgs(info *tracepoint.Tracepoint, specArgs []v1alpha1.KProbeArg) ([]ge
 func buildArgsRaw(info *tracepoint.Tracepoint, specArgs []v1alpha1.KProbeArg) ([]genericTracepointArg, error) {
 	ret := make([]genericTracepointArg, 0, len(specArgs))
 	for i, tpArg := range specArgs {
+		var btf [tracingapi.MaxBTFArgDepth]tracingapi.ConfigBTFArg
+
 		if tpArg.Index > 5 {
 			return nil, fmt.Errorf("raw tracepoint (%s/%s) can read up to %d arguments, but %d was requested",
 				info.Subsys, info.Event, 5, tpArg.Index)
@@ -347,6 +353,21 @@ func buildArgsRaw(info *tracepoint.Tracepoint, specArgs []v1alpha1.KProbeArg) ([
 			return nil, fmt.Errorf("output argument %v unsupported: %w", tpArg, err)
 		}
 
+		if tpArg.Resolve != "" {
+			if !bpf.HasProgramLargeSize() {
+				return nil, errors.New("error: Resolve flag can be used on v5.4 kernel or higher")
+			}
+			fn := "__bpf_trace_" + info.Event
+
+			lastBTFType, btfArg, err := resolveBTFArg(fn, tpArg, true)
+			if err != nil {
+				return nil, fmt.Errorf("error on hook %q for index %d : %w", fn, tpArg.Index, err)
+			}
+			btf = btfArg
+			argType = findTypeFromBTFType(tpArg, lastBTFType)
+		}
+
+		arg.btf = btf
 		arg.genericTypeId = argType
 		ret = append(ret, arg)
 	}
@@ -714,6 +735,7 @@ func (tp *genericTracepoint) eventConfigRaw(config *tracingapi.EventConfig) (*tr
 
 	// iterate over output arguments
 	for i, tpArg := range tp.args {
+		config.BTFArg[tpArg.TpIdx] = tpArg.btf
 		config.Arg[tpArg.TpIdx] = int32(tpArg.genericTypeId)
 		config.ArgM[tpArg.TpIdx] = uint32(tpArg.MetaArg)
 
