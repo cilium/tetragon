@@ -13,6 +13,8 @@ var (
 	InstallOpts = Key{slug: "InstallOpts"}
 	// Key for storing a list of ports we forwarded for gRPC
 	GrpcForwardedPorts = Key{slug: "GrpcForwardedPorts"}
+	// Key for storing a list of forwarded connections for gRPC
+	GrpcForwardedConns = Key{slug: "GrpcForwardedConns"}
 	// Key for storing a list of ports we forwarded for prometheus metics
 	PromForwardedPorts = Key{slug: "PromForwardedPorts"}
 	// Key for storing a list of ports we forwarded for the pprof server
