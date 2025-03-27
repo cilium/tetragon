@@ -375,10 +375,8 @@ func tpValidateAndAdjustEnforcerAction(
 	spec *v1alpha1.TracingPolicySpec) error {
 
 	registeredEnforcerMetrics := false
-	for si := range tp.Selectors {
-		sel := &tp.Selectors[si]
-		for ai := range sel.MatchActions {
-			act := &sel.MatchActions[ai]
+	for _, sel := range tp.Selectors {
+		for _, act := range sel.MatchActions {
 			if act.Action == "NotifyEnforcer" {
 				if len(spec.Enforcers) == 0 {
 					return fmt.Errorf("NotifyEnforcer action specified, but spec contains no enforcers")
@@ -447,13 +445,12 @@ func createGenericTracepointSensor(
 	}
 
 	tracepoints := make([]*genericTracepoint, 0, len(confs))
-	for i := range confs {
-		tpSpec := &confs[i]
-		err := tpValidateAndAdjustEnforcerAction(ret, tpSpec, i, polInfo.name, spec)
+	for i, tpSpec := range confs {
+		err := tpValidateAndAdjustEnforcerAction(ret, &tpSpec, i, polInfo.name, spec)
 		if err != nil {
 			return nil, err
 		}
-		tp, err := createGenericTracepoint(name, tpSpec, polInfo)
+		tp, err := createGenericTracepoint(name, &tpSpec, polInfo)
 		if err != nil {
 			return nil, err
 		}
@@ -605,13 +602,11 @@ func (tp *genericTracepoint) InitKernelSelectors(lists []v1alpha1.ListSpec) erro
 	// rewrite arg index
 	selArgs := make([]v1alpha1.KProbeArg, 0, len(tp.args))
 	selSelectors := make([]v1alpha1.KProbeSelector, 0, len(tp.Spec.Selectors))
-	for i := range tp.Spec.Selectors {
-		origSel := &tp.Spec.Selectors[i]
+	for _, origSel := range tp.Spec.Selectors {
 		selSelectors = append(selSelectors, *origSel.DeepCopy())
 	}
 
-	for i := range tp.args {
-		tpArg := &tp.args[i]
+	for _, tpArg := range tp.args {
 		selType, err := gt.GenericTypeToString(tpArg.genericTypeId)
 		if err != nil {
 			return fmt.Errorf("output argument %v type not found: %w", tpArg, err)
@@ -653,8 +648,7 @@ func (tp *genericTracepoint) EventConfig() (api.EventConfig, error) {
 	config.PolicyID = uint32(tp.policyID)
 	config.FuncId = uint32(tp.tableIdx)
 	// iterate over output arguments
-	for i := range tp.args {
-		tpArg := &tp.args[i]
+	for i, tpArg := range tp.args {
 		config.ArgTpCtxOff[i] = uint32(tpArg.CtxOffset)
 		config.Arg[i] = int32(tpArg.genericTypeId)
 		config.ArgM[i] = uint32(tpArg.MetaArg)
