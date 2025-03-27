@@ -60,6 +60,10 @@ jobs:
           test -z "$(cat $outfile)"
 
   golangci-lint:
+    strategy:
+      matrix:
+        os: [linux, windows]
+      fail-fast: false
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -75,6 +79,8 @@ jobs:
 
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@1481404843c368bc19ca9406f87d6e0fc97bdcfd # v7.0.0
+        env:
+          GOOS: ${{ matrix.os }}
         with:
           # renovate: datasource=docker depName=docker.io/golangci/golangci-lint
           version: v2.1.5
