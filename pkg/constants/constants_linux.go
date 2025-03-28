@@ -4,6 +4,8 @@
 package constants
 
 import (
+	"syscall"
+
 	"golang.org/x/sys/unix"
 )
 
@@ -58,4 +60,5 @@ const (
 	AF_SMC               = unix.AF_SMC
 	AF_XDP               = unix.AF_XDP
 	AF_MCTP              = unix.AF_MCTP
+	S_IFMT               = syscall.S_IFMT
 )
