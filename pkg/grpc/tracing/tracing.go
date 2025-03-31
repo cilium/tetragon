@@ -586,6 +586,16 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 				LinuxBinprmArg: bprm,
 			}})
 
+		case tracingapi.MsgGenericKprobeArgFile:
+			fileArg := &tetragon.KprobeFile{
+				Path:       v.Value,
+				Flags:      path.FilePathFlagsToStr(v.Flags),
+				Permission: path.FilePathModeToStr(v.Permission),
+			}
+
+			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_FileArg{
+				FileArg: fileArg,
+			}})
 		default:
 			logger.GetLogger().Warnf("handleGenericTracepointMessage: unhandled value: %+v (%T)", arg, arg)
 		}

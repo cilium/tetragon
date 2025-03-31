@@ -1096,6 +1096,49 @@ func handleMsgGenericTracepoint(
 			arg.Permission = mode
 			unix.Args = append(unix.Args, arg)
 
+		case gt.GenericFileType, gt.GenericFdType, gt.GenericKiocb:
+			var arg api.MsgGenericKprobeArgFile
+			var flags uint32
+			var b int32
+			var mode uint16
+			var err error
+
+			/* Eat file descriptor its not used in userland */
+			if out.genericTypeId == gt.GenericFdType {
+				binary.Read(r, binary.LittleEndian, &b)
+			}
+
+			arg.Value, err = parseString(r)
+			if err != nil {
+				if errors.Is(err, errParseStringSize) {
+					// If no size then path walk was not possible and file was
+					// either a mount point or not a "file" at all which can
+					// happen if running without any filters and kernel opens an
+					// anonymous inode. For this lets just report its on "/" all
+					// though pid filtering will mostly catch this.
+					arg.Value = "/"
+				} else {
+					logger.GetLogger().WithError(err).Warn("error parsing arg type file")
+				}
+			}
+
+			// read the first byte that keeps the flags
+			err = binary.Read(r, binary.LittleEndian, &flags)
+			if err != nil {
+				flags = 0
+			}
+
+			if out.genericTypeId == gt.GenericFileType || out.genericTypeId == gt.GenericKiocb {
+				err = binary.Read(r, binary.LittleEndian, &mode)
+				if err != nil {
+					mode = 0
+				}
+				arg.Permission = mode
+			}
+
+			arg.Flags = flags
+			unix.Args = append(unix.Args, arg)
+
 		default:
 			logger.GetLogger().Warnf("handleGenericTracepoint: ignoring:  %+v", out)
 		}
