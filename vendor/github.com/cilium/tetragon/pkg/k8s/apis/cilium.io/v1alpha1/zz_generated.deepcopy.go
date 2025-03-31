@@ -682,6 +682,13 @@ func (in *TracingPolicySpec) DeepCopyInto(out *TracingPolicySpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.RawTracepoints != nil {
+		in, out := &in.RawTracepoints, &out.RawTracepoints
+		*out = make([]TracepointSpec, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	if in.UProbes != nil {
 		in, out := &in.UProbes, &out.UProbes
 		*out = make([]UProbeSpec, len(*in))
