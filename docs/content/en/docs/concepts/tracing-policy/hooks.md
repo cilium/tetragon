@@ -156,6 +156,107 @@ spec:
     - index: 4
       type: "int64"
 ```
+## Raw Tracepoints
+
+Raw tracepoints allow same attachment as tracepoints, but allow access to raw
+tracepoint arguments (compared to standard tracepoints that provide access to
+arguments through tracepoint format).
+
+Raw tracepoints are attach directly without the perf layer in the middle,
+so should be bit faster than standard tracepoints.
+
+Each tracepoint is defined in kernel with similar statement like following:
+```
+TRACE_EVENT(sched_process_exec,
+
+        TP_PROTO(struct task_struct *p, pid_t old_pid,
+                 struct linux_binprm *bprm),
+        ...
+);
+```
+
+which defines `sched:sched_process_exec` tracepoint with arguments.
+
+Raw tracepoints are configured by setting with `raw` spec tag.
+```yaml
+apiversion: cilium.io/v1alpha1
+kind: tracingpolicy
+metadata:
+  name: "rawtp"
+spec:
+  tracepoints:
+    - subsystem: "sched"
+      event: "sched_process_exec"
+      raw: true
+```
+
+We can use raw tracepoint to attach the tracepoint and access above arguments
+directly.
+
+Following example stores 3rd argument:
+```yaml
+apiversion: cilium.io/v1alpha1
+kind: tracingpolicy
+metadata:
+  name: "rawtp"
+spec:
+  tracepoints:
+    - subsystem: "sched"
+      event: "sched_process_exec"
+      raw: true
+      args:
+        - index: 2
+          type: "linux_binprm"
+```
+
+which is represented as path and permission data in the resulted event:
+```json
+    "subsys": "sched",
+    "event": "sched_process_exec",
+    "args": [
+      {
+        "linux_binprm_arg": {
+          "path": "/usr/bin/ls",
+          "permission": "rwxr-xr-x"
+        }
+      }
+```
+
+It's also possible to resolve data from arguments with `Resolve`, like:
+```yaml
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "rawtp"
+spec:
+  tracepoints:
+    - subsystem: "sched"
+      event: "sched_process_exec"
+      raw: true
+      args:
+        - index: 0
+          type: "int"
+          resolve: "pid"
+        - index: 2
+          type: "linux_binprm"
+```
+
+which gives you `pid` field from first `task_struct` argument, resulting in following event data:
+```json
+    "subsys": "sched",
+    "event": "sched_process_exec",
+    "args": [
+      {
+        "int_arg": 938600
+      },
+      {
+        "linux_binprm_arg": {
+          "path": "/usr/bin/ls",
+          "permission": "rwxr-xr-x"
+        }
+      }
+```
+
 ## Uprobes
 
 Uprobes are similar to kprobes, but they allow you to dynamically hook into any
