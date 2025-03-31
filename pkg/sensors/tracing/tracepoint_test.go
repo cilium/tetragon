@@ -882,3 +882,62 @@ spec:
 
 	testListSyscallsDupsRange(t, checker, configHook)
 }
+
+func TestTracepointResolve(t *testing.T) {
+	if !kernels.MinKernelVersion("5.4") {
+		t.Skip("Test requires kernel 5.4+")
+	}
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	hook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "rawtp"
+spec:
+  tracepoints:
+    - subsystem: "sched"
+      event: "sched_process_exec"
+      raw: true
+      args:
+        - index: 2
+          type: "file"
+          resolve: "file"
+`
+
+	createCrdFile(t, hook)
+
+	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	if err := exec.Command(testNop).Run(); err != nil {
+		fmt.Printf("Failed to execute test binary: %s\n", err)
+	}
+
+	tpChecker := ec.NewProcessTracepointChecker("").
+		WithSubsys(smatcher.Full("sched")).
+		WithEvent(smatcher.Full("sched_process_exec")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().
+					WithPath(sm.Full(testNop)),
+				),
+			))
+
+	checker := ec.NewUnorderedEventChecker(tpChecker)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
