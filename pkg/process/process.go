@@ -4,7 +4,6 @@
 package process
 
 import (
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"strings"
@@ -25,7 +24,6 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/exec"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
-	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/reader/path"
 	"github.com/cilium/tetragon/pkg/reader/proc"
 	"github.com/cilium/tetragon/pkg/watcher"
@@ -258,10 +256,6 @@ func UpdateEventProcessTid(process *tetragon.Process, tid *uint32) {
 	if process != nil && tid != nil {
 		process.Tid = &wrapperspb.UInt32Value{Value: *tid}
 	}
-}
-
-func GetProcessID(pid uint32, ktime uint64) string {
-	return base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%d:%d", node.GetNodeNameForExport(), ktime, pid)))
 }
 
 func GetExecID(proc *tetragonAPI.MsgProcess) string {
