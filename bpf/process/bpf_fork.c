@@ -26,7 +26,7 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 	struct execve_map_value *curr, *parent;
 	struct msg_clone_event msg;
 	u64 msg_size = sizeof(struct msg_clone_event);
-	struct msg_k8s kube;
+	// struct msg_k8s kube;
 	u32 tgid = 0;
 
 	if (!task)
@@ -52,24 +52,24 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 	if (curr->key.ktime != 0)
 		return 0;
 
-	/* Setup the execve_map entry. */
-	curr->flags = EVENT_COMMON_FLAG_CLONE;
-	curr->key.pid = tgid;
-	curr->key.ktime = ktime_get_ns();
-	curr->nspid = get_task_pid_vnr_by_task(task);
-	memcpy(&curr->bin, &parent->bin, sizeof(curr->bin));
-	curr->pkey = parent->key;
+	// /* Setup the execve_map entry. */
+	// curr->flags = EVENT_COMMON_FLAG_CLONE;
+	// curr->key.pid = tgid;
+	// curr->key.ktime = ktime_get_ns();
+	// curr->nspid = get_task_pid_vnr_by_task(task);
+	// memcpy(&curr->bin, &parent->bin, sizeof(curr->bin));
+	// curr->pkey = parent->key;
 
-	/* Store the thread leader capabilities so we can check later
-	 * before the execve hook point if they changed or not.
-	 * This needs to be converted later to credentials.
-	 */
-	get_current_subj_caps(&curr->caps, task);
+	// /* Store the thread leader capabilities so we can check later
+	//  * before the execve hook point if they changed or not.
+	//  * This needs to be converted later to credentials.
+	//  */
+	// get_current_subj_caps(&curr->caps, task);
 
 	/* Store the thread leader namespaces so we can check later
 	 * before the execve hook point if they changed or not.
 	 */
-	get_namespaces(&curr->ns, task);
+	// get_namespaces(&curr->ns, task);
 
 	/* Set EVENT_IN_INIT_TREE flag on the process if its parent is in a
 	 * container's init tree or if it has nspid=1.
@@ -92,12 +92,12 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 	msg.nspid = curr->nspid;
 	msg.flags = curr->flags;
 
-	__event_get_cgroup_info(task, &kube);
+	// __event_get_cgroup_info(task, &kube);
 
-	if (cgroup_rate(ctx, &kube, msg.ktime)) {
-		perf_event_output_metric(ctx, MSG_OP_CLONE, &tcpmon_map,
-					 BPF_F_CURRENT_CPU, &msg, msg_size);
-	}
+	// if (cgroup_rate(ctx, &kube, msg.ktime)) {
+	perf_event_output_metric(ctx, MSG_OP_CLONE, &tcpmon_map,
+				 BPF_F_CURRENT_CPU, &msg, msg_size);
+	// }
 
 	return 0;
 }

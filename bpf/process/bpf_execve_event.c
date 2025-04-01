@@ -126,33 +126,33 @@ read_args(void *ctx, struct msg_execve_event *event)
 	return size;
 }
 
-FUNC_INLINE __u32
-read_path(void *ctx, struct msg_execve_event *event, void *filename)
-{
-	struct msg_process *p = &event->process;
-	__s32 size = 0;
-	__u32 flags = 0;
-	char *earg;
+// FUNC_INLINE __u32
+// read_path(void *ctx, struct msg_execve_event *event, void *filename)
+// {
+// 	struct msg_process *p = &event->process;
+// 	__s32 size = 0;
+// 	__u32 flags = 0;
+// 	char *earg;
 
-	earg = (void *)p + offsetof(struct msg_process, args);
+// 	earg = (void *)p + offsetof(struct msg_process, args);
 
-	size = probe_read_str(earg, MAXARGLENGTH - 1, filename);
-	if (size < 0) {
-		flags |= EVENT_ERROR_FILENAME;
-		size = 0;
-	} else if (size == MAXARGLENGTH - 1) {
-		size = data_event_str(ctx, (struct data_event_desc *)earg,
-				      (unsigned long)filename,
-				      (struct bpf_map_def *)&data_heap);
-		if (size == 0)
-			flags |= EVENT_ERROR_FILENAME;
-		else
-			flags |= EVENT_DATA_FILENAME;
-	}
+// 	size = probe_read_str(earg, MAXARGLENGTH - 1, filename);
+// 	if (size < 0) {
+// 		flags |= EVENT_ERROR_FILENAME;
+// 		size = 0;
+// 	} else if (size == MAXARGLENGTH - 1) {
+// 		size = data_event_str(ctx, (struct data_event_desc *)earg,
+// 				      (unsigned long)filename,
+// 				      (struct bpf_map_def *)&data_heap);
+// 		if (size == 0)
+// 			flags |= EVENT_ERROR_FILENAME;
+// 		else
+// 			flags |= EVENT_DATA_FILENAME;
+// 	}
 
-	p->flags |= flags;
-	return size;
-}
+// 	p->flags |= flags;
+// 	return size;
+// }
 
 FUNC_INLINE __u32
 read_cwd(void *ctx, struct msg_process *p)
@@ -185,7 +185,7 @@ __attribute__((section("tracepoint/sys_execve"), used)) int
 event_execve(struct trace_event_raw_sched_process_exec *ctx)
 {
 	struct task_struct *task = (struct task_struct *)get_current_task();
-	char *filename = (char *)ctx + (_(ctx->__data_loc_filename) & 0xFFFF);
+	// char *filename = (char *)ctx + (_(ctx->__data_loc_filename) & 0xFFFF);
 	struct msg_execve_event *event;
 	struct execve_map_value *parent;
 	struct msg_process *p;
@@ -220,7 +220,7 @@ event_execve(struct trace_event_raw_sched_process_exec *ctx)
 	p->auid = get_auid();
 	read_execve_shared_info(ctx, p, pid);
 
-	p->size += read_path(ctx, event, filename);
+	// p->size += read_path(ctx, event, filename);
 	p->size += read_args(ctx, event);
 	p->size += read_cwd(ctx, p);
 
@@ -228,7 +228,7 @@ event_execve(struct trace_event_raw_sched_process_exec *ctx)
 	event->common.ktime = p->ktime;
 	event->common.size = offsetof(struct msg_execve_event, process) + p->size;
 
-	get_current_subj_creds(&event->creds, task);
+	// get_current_subj_creds(&event->creds, task);
 	/**
 	 * Instead of showing the task owner, we want to display the effective
 	 * uid that is used to calculate the privileges of current task when
@@ -236,8 +236,8 @@ event_execve(struct trace_event_raw_sched_process_exec *ctx)
 	 * tool that reports snapshot of current processes.
 	 */
 	p->uid = event->creds.euid;
-	get_namespaces(&event->ns, task);
-	p->flags |= __event_get_cgroup_info(task, &event->kube);
+	// get_namespaces(&event->ns, task);
+	// p->flags |= __event_get_cgroup_info(task, &event->kube);
 
 	tail_call(ctx, &execve_calls, 0);
 	return 0;

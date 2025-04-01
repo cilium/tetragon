@@ -39,7 +39,7 @@ FUNC_INLINE void event_exit_send(void *ctx, __u32 tgid)
 		struct task_struct *task = (struct task_struct *)get_current_task();
 		size_t size = sizeof(struct msg_exit);
 		struct msg_exit *exit;
-		struct msg_k8s kube;
+		// struct msg_k8s kube;
 		int zero = 0;
 
 		exit = map_lookup_elem(&exit_heap_map, &zero);
@@ -70,12 +70,12 @@ FUNC_INLINE void event_exit_send(void *ctx, __u32 tgid)
 		probe_read(&exit->info.code, sizeof(exit->info.code),
 			   _(&task->exit_code));
 
-		__event_get_cgroup_info(task, &kube);
+		// __event_get_cgroup_info(task, &kube);
 
-		if (cgroup_rate(ctx, &kube, exit->common.ktime)) {
-			perf_event_output_metric(ctx, MSG_OP_EXIT, &tcpmon_map,
-						 BPF_F_CURRENT_CPU, exit, size);
-		}
+		// if (cgroup_rate(ctx, &kube, exit->common.ktime)) {
+		perf_event_output_metric(ctx, MSG_OP_EXIT, &tcpmon_map,
+					 BPF_F_CURRENT_CPU, exit, size);
+		// }
 	}
 	execve_map_delete(tgid);
 }
