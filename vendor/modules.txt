@@ -487,7 +487,7 @@ github.com/spf13/cobra/doc
 # github.com/spf13/pflag v1.0.6
 ## explicit; go 1.12
 github.com/spf13/pflag
-# github.com/spf13/viper v1.20.0
+# github.com/spf13/viper v1.20.1
 ## explicit; go 1.21.0
 github.com/spf13/viper
 github.com/spf13/viper/internal/encoding/dotenv
@@ -695,7 +695,7 @@ google.golang.org/genproto/googleapis/api/expr/v1alpha1
 # google.golang.org/genproto/googleapis/rpc v0.0.0-20250115164207-1a7da9e5054f
 ## explicit; go 1.22
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.71.0
+# google.golang.org/grpc v1.71.1
 ## explicit; go 1.22.0
 google.golang.org/grpc
 google.golang.org/grpc/attributes
