@@ -1,9 +1,9 @@
 module github.com/cilium/tetragon
 
 // renovate: datasource=golang-version depName=go
-go 1.22.1
+go 1.23.0
 
-toolchain go1.22.3
+toolchain go1.23.8
 
 require (
 	github.com/bombsimon/logrusr/v4 v4.1.0
@@ -190,7 +190,7 @@ require (
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
 	golang.org/x/mod v0.20.0 // indirect
 	golang.org/x/net v0.33.0 // indirect
-	golang.org/x/oauth2 v0.21.0 // indirect
+	golang.org/x/oauth2 v0.27.0 // indirect
 	golang.org/x/term v0.28.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/tools v0.24.0 // indirect
