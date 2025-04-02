@@ -56,4 +56,20 @@ struct ftrace_raw_sched_process_exec {
 	char __data[0];
 };
 
+struct uts_namespace___rhel7 {
+	unsigned int proc_inum;
+};
+
+struct ipc_namespace___rhel7 {
+	unsigned int proc_inum;
+};
+
+struct mnt_namespace___rhel7 {
+	unsigned int proc_inum;
+};
+
+struct net___rhel7 {
+	unsigned int proc_inum;
+};
+
 #endif /* __VMLINUX_H__ */

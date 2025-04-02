@@ -9,6 +9,7 @@
 #include "bpf_cgroup.h"
 #include "bpf_cred.h"
 #include "bpf_d_path.h"
+#include "bpf_tracing.h"
 
 #include "cgroup/cgtracker.h"
 
@@ -168,13 +169,38 @@ get_namespaces(struct msg_ns *msg, struct task_struct *task)
 	probe_read(&nsproxy, sizeof(nsproxy), _(&task->nsproxy));
 	probe_read(&nsp, sizeof(nsp), _(nsproxy));
 
-	probe_read(&msg->uts_inum, sizeof(msg->uts_inum),
-		   _(&nsp.uts_ns->ns.inum));
-	probe_read(&msg->ipc_inum, sizeof(msg->ipc_inum),
-		   _(&nsp.ipc_ns->ns.inum));
-	probe_read(&msg->mnt_inum, sizeof(msg->mnt_inum),
-		   _(&nsp.mnt_ns->ns.inum));
-	{
+	if (bpf_core_field_exists(nsproxy->uts_ns->ns)) {
+		probe_read(&msg->uts_inum, sizeof(msg->uts_inum),
+			   _(&nsp.uts_ns->ns.inum));
+	} else {
+		struct uts_namespace___rhel7 *ns = (struct uts_namespace___rhel7 *)_(nsp.uts_ns);
+
+		probe_read(&msg->uts_inum, sizeof(msg->uts_inum),
+			   _(&ns->proc_inum));
+	}
+
+	if (bpf_core_field_exists(nsproxy->ipc_ns->ns)) {
+		probe_read(&msg->ipc_inum, sizeof(msg->ipc_inum),
+			   _(&nsp.ipc_ns->ns.inum));
+	} else {
+		struct ipc_namespace___rhel7 *ns = (struct ipc_namespace___rhel7 *)_(nsp.ipc_ns);
+
+		probe_read(&msg->ipc_inum, sizeof(msg->ipc_inum),
+			   _(&ns->proc_inum));
+	}
+
+	if (bpf_core_field_exists(nsproxy->mnt_ns->ns)) {
+		probe_read(&msg->mnt_inum, sizeof(msg->mnt_inum),
+			   _(&nsp.mnt_ns->ns.inum));
+	} else {
+		struct mnt_namespace___rhel7 *ns = (struct mnt_namespace___rhel7 *)_(nsp.mnt_ns);
+
+		probe_read(&msg->ipc_inum, sizeof(msg->ipc_inum),
+			   _(&ns->proc_inum));
+	}
+
+	// TODO rhel7 pid namespace support
+	if (bpf_core_field_exists(task->thread_pid)) {
 		struct pid *p = 0;
 
 		probe_read(&p, sizeof(p), _(&task->thread_pid));
@@ -189,11 +215,24 @@ get_namespaces(struct msg_ns *msg, struct task_struct *task)
 		} else
 			msg->pid_inum = 0;
 	}
-	probe_read(&msg->pid_for_children_inum,
-		   sizeof(msg->pid_for_children_inum),
-		   _(&nsp.pid_ns_for_children->ns.inum));
-	probe_read(&msg->net_inum, sizeof(msg->net_inum),
-		   _(&nsp.net_ns->ns.inum));
+
+	if (bpf_core_field_exists(nsproxy->pid_ns_for_children)) {
+		probe_read(&msg->pid_for_children_inum,
+			   sizeof(msg->pid_for_children_inum),
+			   _(&nsp.pid_ns_for_children->ns.inum));
+	} else {
+		msg->pid_for_children_inum = 0;
+	}
+
+	if (bpf_core_field_exists(nsproxy->net_ns->ns)) {
+		probe_read(&msg->net_inum, sizeof(msg->net_inum),
+			   _(&nsp.net_ns->ns.inum));
+	} else {
+		struct net___rhel7 *ns = (struct net___rhel7 *)_(nsp.net_ns);
+
+		probe_read(&msg->net_inum, sizeof(msg->net_inum),
+			   _(&ns->proc_inum));
+	}
 
 	// this also includes time_ns_for_children
 	if (bpf_core_field_exists(nsproxy->time_ns)) {
@@ -204,16 +243,25 @@ get_namespaces(struct msg_ns *msg, struct task_struct *task)
 			   _(&nsp.time_ns_for_children->ns.inum));
 	}
 
-	probe_read(&msg->cgroup_inum, sizeof(msg->cgroup_inum),
-		   _(&nsp.cgroup_ns->ns.inum));
+	if (bpf_core_field_exists(nsproxy->cgroup_ns)) {
+		probe_read(&msg->cgroup_inum, sizeof(msg->cgroup_inum),
+			   _(&nsp.cgroup_ns->ns.inum));
+	} else {
+		msg->cgroup_inum = 0;
+	}
+
 	{
-		struct mm_struct *mm;
+		struct mm_struct *mm = NULL;
 		struct user_namespace *user_ns;
 
-		probe_read(&mm, sizeof(mm), _(&task->mm));
-		probe_read(&user_ns, sizeof(user_ns), _(&mm->user_ns));
-		probe_read(&msg->user_inum, sizeof(msg->user_inum),
-			   _(&user_ns->ns.inum));
+		if (bpf_core_field_exists(mm->user_ns)) {
+			probe_read(&mm, sizeof(mm), _(&task->mm));
+			probe_read(&user_ns, sizeof(user_ns), _(&mm->user_ns));
+			probe_read(&msg->user_inum, sizeof(msg->user_inum),
+				   _(&user_ns->ns.inum));
+		} else {
+			msg->user_inum = 0;
+		}
 	}
 }
 
