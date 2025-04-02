@@ -45,7 +45,7 @@ var (
 	).SetPolicy(basePolicy)
 
 	Exit = program.Builder(
-		"bpf_exit.o",
+		config.ExitObj(),
 		"acct_process",
 		"kprobe/acct_process",
 		"event_exit",
@@ -53,7 +53,7 @@ var (
 	).SetPolicy(basePolicy)
 
 	Fork = program.Builder(
-		"bpf_fork.o",
+		config.ForkObj(),
 		"wake_up_new_task",
 		"kprobe/wake_up_new_task",
 		"kprobe_pid_clear",
