@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/program"
@@ -100,6 +101,92 @@ func (s *Sensor) removeDirs() {
 	// might be other sensors in the policy, so the last sensors removed
 	// will succeed in removal policy dir.
 	os.Remove(filepath.Join(s.BpfDir, s.policyDir()))
+}
+
+// Load loads the sensor, by loading all the BPF programs and maps.
+func (s *Sensor) Load(bpfDir string) (err error) {
+	if s == nil {
+		return nil
+	}
+
+	if s.Destroyed {
+		return fmt.Errorf("sensor %s has been previously destroyed, please recreate it before loading", s.Name)
+	}
+
+	logger.GetLogger().WithField("metadata", getCachedBTFFile()).Info("BTF file: using metadata file")
+	if _, err = observerMinReqs(); err != nil {
+		return fmt.Errorf("tetragon, aborting minimum requirements not met: %w", err)
+	}
+
+	var (
+		loadedMaps  []*program.Map
+		loadedProgs []*program.Program
+	)
+
+	s.createDirs(bpfDir)
+	defer func() {
+		if err != nil {
+			for _, m := range loadedMaps {
+				m.Unload(true)
+			}
+			for _, p := range loadedProgs {
+				unloadProgram(p, true)
+			}
+			s.removeDirs()
+		}
+	}()
+
+	l := logger.GetLogger()
+
+	l.WithField("name", s.Name).Info("Loading sensor")
+	if s.Loaded {
+		return fmt.Errorf("loading sensor %s failed: sensor already loaded", s.Name)
+	}
+
+	_, verStr, _ := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
+	l.Infof("Loading kernel version %s", verStr)
+
+	if err = s.FindPrograms(); err != nil {
+		return fmt.Errorf("tetragon, aborting could not find BPF programs: %w", err)
+	}
+	if loadedMaps, err = s.preLoadMaps(bpfDir, loadedMaps); err != nil {
+		return err
+	}
+	for _, p := range s.Progs {
+		if p.LoadState.IsLoaded() {
+			l.WithField("prog", p.Name).Info("BPF prog is already loaded, incrementing reference count")
+			p.LoadState.RefInc()
+			continue
+		}
+
+		if err = observerLoadInstance(bpfDir, p, s.Maps); err != nil {
+			return err
+		}
+		p.LoadState.RefInc()
+		loadedProgs = append(loadedProgs, p)
+		l.WithField("prog", p.Name).WithField("label", p.Label).Debugf("BPF prog was loaded")
+	}
+
+	// Add the *loaded* programs and maps, so they can be unloaded later
+	progsAdd(s.Progs)
+	AllMaps = append(AllMaps, s.Maps...)
+
+	if s.PostLoadHook != nil {
+		if err := s.PostLoadHook(); err != nil {
+			logger.GetLogger().WithError(err).WithField("sensor", s.Name).Warn("Post load hook failed")
+		}
+	}
+
+	// cleanup the BTF once we have loaded all sensor's program
+	flushKernelSpec()
+
+	l.WithFields(logrus.Fields{
+		"sensor": s.Name,
+		"maps":   loadedMaps,
+		"progs":  loadedProgs,
+	}).Infof("Loaded BPF maps and events for sensor successfully")
+	s.Loaded = true
+	return nil
 }
 
 func (s *Sensor) Unload(unpin bool) error {

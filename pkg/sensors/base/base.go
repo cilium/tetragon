@@ -155,33 +155,6 @@ func GetTetragonConfMap() *program.Map {
 	return TetragonConfMap
 }
 
-func GetDefaultPrograms() []*program.Program {
-	progs := []*program.Program{
-		Exit,
-		Fork,
-		Execve,
-		ExecveBprmCommit,
-	}
-	return progs
-}
-
-func GetDefaultMaps() []*program.Map {
-	maps := []*program.Map{
-		ExecveMap,
-		ExecveJoinMap,
-		ExecveStats,
-		ExecveJoinMapStats,
-		ExecveTailCallsMap,
-		TCPMonMap,
-		TetragonConfMap,
-		StatsMap,
-		MatchBinariesSetMap,
-		ErrMetricsMap,
-	}
-	return maps
-
-}
-
 func initBaseSensor() *sensors.Sensor {
 	sensor := sensors.Sensor{
 		Name: basePolicy,
