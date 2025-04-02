@@ -243,7 +243,9 @@ event_execve(struct exec_ctx_struct *ctx)
 	 */
 	p->uid = event->creds.euid;
 	get_namespaces(&event->ns, task);
+#ifndef __RHEL7_BPF_PROG
 	p->flags |= __event_get_cgroup_info(task, &event->kube);
+#endif
 
 	tail_call(ctx, &execve_calls, 0);
 	return 0;

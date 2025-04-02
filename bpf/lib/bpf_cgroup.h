@@ -266,6 +266,7 @@ get_task_cgroup(struct task_struct *task, __u64 cgrpfs_ver, __u32 subsys_idx, __
 		return cgrp;
 	}
 
+#ifndef __RHEL7_BPF_PROG
 	/* If we are in Cgroupv2 return the default css_set cgroup */
 	if (cgrpfs_ver == CGROUP2_SUPER_MAGIC) {
 		probe_read_kernel(&cgrp, sizeof(cgrp), _(&cgroups->dfl_cgrp));
@@ -273,6 +274,7 @@ get_task_cgroup(struct task_struct *task, __u64 cgrpfs_ver, __u32 subsys_idx, __
 			*error_flags |= EVENT_ERROR_CGROUP_SUBSYSCGRP;
 		return cgrp;
 	}
+#endif
 
 	/* We are interested only in the cpuset, memory or pids controllers
 	 * which are indexed at 0, 4 and 11 respectively assuming all controllers
