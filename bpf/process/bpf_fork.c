@@ -26,7 +26,6 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 	struct execve_map_value *curr, *parent;
 	struct msg_clone_event msg;
 	u64 msg_size = sizeof(struct msg_clone_event);
-	struct msg_k8s kube;
 	u32 tgid = 0;
 
 	if (!task)
@@ -92,12 +91,15 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 	msg.nspid = curr->nspid;
 	msg.flags = curr->flags;
 
+#ifndef __RHEL7_BPF_PROG
+	struct msg_k8s kube;
+
 	__event_get_cgroup_info(task, &kube);
 
-	if (cgroup_rate(ctx, &kube, msg.ktime)) {
+	if (cgroup_rate(ctx, &kube, msg.ktime))
+#endif
 		perf_event_output_metric(ctx, MSG_OP_CLONE, &tcpmon_map,
 					 BPF_F_CURRENT_CPU, &msg, msg_size);
-	}
 
 	return 0;
 }
