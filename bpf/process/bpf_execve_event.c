@@ -181,8 +181,14 @@ read_execve_shared_info(void *ctx, struct msg_process *p, __u64 pid)
 	execve_joined_info_map_clear(pid);
 }
 
+#ifdef __RHEL7_BPF_PROG
+#define exec_ctx_struct ftrace_raw_sched_process_exec
+#else
+#define exec_ctx_struct trace_event_raw_sched_process_exec
+#endif
+
 __attribute__((section("tracepoint/sys_execve"), used)) int
-event_execve(struct trace_event_raw_sched_process_exec *ctx)
+event_execve(struct exec_ctx_struct *ctx)
 {
 	struct task_struct *task = (struct task_struct *)get_current_task();
 	char *filename = (char *)ctx + (_(ctx->__data_loc_filename) & 0xFFFF);
