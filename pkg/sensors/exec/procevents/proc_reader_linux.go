@@ -161,6 +161,9 @@ func listRunningProcs(procPath string) ([]procs, error) {
 		return nil, err
 	}
 
+	cgroupNsWarned := false
+	pidForChildrenWarned := false
+
 	for _, d := range procFS {
 		var pcmdline []byte
 		var pstats []string
@@ -263,8 +266,9 @@ func listRunningProcs(procPath string) ([]procs, error) {
 			logger.GetLogger().WithError(err).Warnf("Reading pid namespace failed")
 		}
 		pid_for_children_ns, err := namespace.GetPidNsInode(uint32(pid), "pid_for_children")
-		if err != nil {
+		if err != nil && !pidForChildrenWarned {
 			logger.GetLogger().WithError(err).Warnf("Reading pid_for_children namespace failed")
+			pidForChildrenWarned = true
 		}
 		net_ns, err := namespace.GetPidNsInode(uint32(pid), "net")
 		if err != nil {
@@ -283,8 +287,9 @@ func listRunningProcs(procPath string) ([]procs, error) {
 			}
 		}
 		cgroup_ns, err := namespace.GetPidNsInode(uint32(pid), "cgroup")
-		if err != nil {
+		if err != nil && !cgroupNsWarned {
 			logger.GetLogger().WithError(err).Warnf("Reading cgroup namespace failed")
+			cgroupNsWarned = true
 		}
 		user_ns, err := namespace.GetPidNsInode(uint32(pid), "user")
 		if err != nil {
