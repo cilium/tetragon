@@ -92,6 +92,7 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 		require.NotNil(t, spec, "collection spec should not be nil")
 
 		if isDebugEnabled() {
+			fmt.Printf("[%s]\n", fileName)
 			for _, progSpec := range spec.Programs {
 				fmt.Printf("%s\n", progSpec.Instructions.String())
 			}
