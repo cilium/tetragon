@@ -14,6 +14,11 @@ data:
   debug: {{ .Values.tetragon.debug | quote }}
   enable-process-cred: {{ .Values.tetragon.enableProcessCred | quote }}
   enable-process-ns: {{ .Values.tetragon.enableProcessNs | quote }}
+  enable-process-ancestors: {{ .Values.tetragon.enableProcessAncestors | quote }}
+  enable-process-kprobe-ancestors: {{ .Values.tetragon.enableProcessKprobeAncestors | quote }}
+  enable-process-tracepoint-ancestors: {{ .Values.tetragon.enableProcessTracepointAncestors | quote }}
+  enable-process-uprobe-ancestors: {{ .Values.tetragon.enableProcessUprobeAncestors | quote }}
+  enable-process-lsm-ancestors: {{ .Values.tetragon.enableProcessLsmAncestors | quote }}
   process-cache-size: {{ .Values.tetragon.processCacheSize | quote }}
 {{- if .Values.tetragon.exportFilename }}
   export-filename: {{ .Values.exportDirectory}}/{{ .Values.tetragon.exportFilename }}

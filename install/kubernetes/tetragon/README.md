@@ -66,8 +66,13 @@ Helm chart for Tetragon
 | tetragon.enablePolicyFilter | bool | `true` | Enable policy filter. This is required for K8s namespace and pod-label filtering. |
 | tetragon.enablePolicyFilterCgroupMap | bool | `false` | Enable policy filter cgroup map. |
 | tetragon.enablePolicyFilterDebug | bool | `false` | Enable policy filter debug messages. |
+| tetragon.enableProcessAncestors | bool | `false` | Enable Ancestors visibility in exec and exit events. |
 | tetragon.enableProcessCred | bool | `false` | Enable Capabilities visibility in exec and kprobe events. |
+| tetragon.enableProcessKprobeAncestors | bool | `false` | Enable Ancestors visibility in kprobe events. |
+| tetragon.enableProcessLsmAncestors | bool | `false` | Enable Ancestors visibility in lsm events. |
 | tetragon.enableProcessNs | bool | `false` | Enable Namespaces visibility in exec and kprobe events. |
+| tetragon.enableProcessTracepointAncestors | bool | `false` | Enable Ancestors visibility in tracepoint events. |
+| tetragon.enableProcessUprobeAncestors | bool | `false` | Enable Ancestors visibility in uprobe events. |
 | tetragon.enabled | bool | `true` |  |
 | tetragon.eventCacheRetries | int | `15` | Configure the number of retries in tetragon's event cache. |
 | tetragon.eventCacheRetryDelay | int | `2` | Configure the delay (in seconds) between retires in tetragon's event cache. |

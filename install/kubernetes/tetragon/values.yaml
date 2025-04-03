@@ -146,6 +146,16 @@ tetragon:
   enableProcessCred: false
   # -- Enable Namespaces visibility in exec and kprobe events.
   enableProcessNs: false
+  # -- Enable Ancestors visibility in exec and exit events.
+  enableProcessAncestors: false
+  # -- Enable Ancestors visibility in kprobe events.
+  enableProcessKprobeAncestors: false
+  # -- Enable Ancestors visibility in tracepoint events.
+  enableProcessTracepointAncestors: false
+  # -- Enable Ancestors visibility in uprobe events.
+  enableProcessUprobeAncestors: false
+  # -- Enable Ancestors visibility in lsm events.
+  enableProcessLsmAncestors: false
   # -- Set --btf option to explicitly specify an absolute path to a btf file. For advanced users only.
   btf: ""
   # -- Override the command. For advanced users only.
