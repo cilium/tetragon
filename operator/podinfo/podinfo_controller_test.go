@@ -100,6 +100,7 @@ func randomPodGenerator() *corev1.Pod {
 					Image: "nginx:latest",
 				},
 			},
+			NodeName: getRandString(5),
 		},
 		Status: corev1.PodStatus{
 			PodIP:  randIP,
@@ -138,6 +139,9 @@ func TestGeneratePod(t *testing.T) {
 						BlockOwnerDeletion: &blockOwnerDeletion,
 					},
 				},
+			},
+			Spec: ciliumv1alpha1.PodInfoSpec{
+				NodeName: pod.Spec.NodeName,
 			},
 			Status: ciliumv1alpha1.PodInfoStatus{
 				PodIP:  pod.Status.PodIP,
@@ -191,6 +195,13 @@ func TestHasAllRequiredFields(t *testing.T) {
 			pod.UID = ""
 			assert.False(t, hasAllRequiredFields(pod), "Pod UID not available still returning Pod to be ready")
 		})
+
+		t.Run("Pod NodeName not available", func(t *testing.T) {
+			pod := randomPodGenerator()
+			pod.Spec.NodeName = ""
+			assert.False(t, hasAllRequiredFields(pod), "Pod NodeName not available still returning Pod to be ready")
+		})
+
 	})
 }
 
@@ -279,6 +290,13 @@ func TestEqual(t *testing.T) {
 			podInfo := generatePodInfo(pod)
 			pod.Spec.HostNetwork = true
 			assert.False(t, equal(pod, podInfo), "Pod spec hostNetwork changed, still returning pod not changed")
+		})
+
+		t.Run("Pod spec nodeName changed", func(t *testing.T) {
+			pod := randomPodGenerator()
+			podInfo := generatePodInfo(pod)
+			pod.Spec.NodeName = getRandString(4)
+			assert.False(t, equal(pod, podInfo), "Pod spec nodeName changed, still returning pod not changed")
 		})
 	})
 }

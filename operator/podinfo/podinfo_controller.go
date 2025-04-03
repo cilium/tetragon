@@ -110,7 +110,8 @@ func equal(pod *corev1.Pod, podInfo *ciliumiov1alpha1.PodInfo) bool {
 		reflect.DeepEqual(podInfo.OwnerReferences[0], expectedOwnerReference) &&
 		reflect.DeepEqual(podInfo.WorkloadObject, workloadObject) &&
 		reflect.DeepEqual(podInfo.WorkloadType, workloadType) &&
-		pod.Spec.HostNetwork == podInfo.Spec.HostNetwork
+		pod.Spec.HostNetwork == podInfo.Spec.HostNetwork &&
+		pod.Spec.NodeName == podInfo.Spec.NodeName
 }
 
 // hasAllRequiredFields checks if the necessary pod fields are available.
@@ -119,7 +120,8 @@ func hasAllRequiredFields(pod *corev1.Pod) bool {
 		pod.Name != "" &&
 		pod.Namespace != "" &&
 		pod.Status.PodIP != "" &&
-		len(pod.Status.PodIPs) > 0
+		len(pod.Status.PodIPs) > 0 &&
+		pod.Spec.NodeName != ""
 }
 
 // generatePodInfo creates a PodInfo from a Pod
@@ -152,6 +154,7 @@ func generatePodInfo(pod *corev1.Pod) *ciliumiov1alpha1.PodInfo {
 		},
 		Spec: ciliumiov1alpha1.PodInfoSpec{
 			HostNetwork: pod.Spec.HostNetwork,
+			NodeName:    pod.Spec.NodeName,
 		},
 		Status: ciliumiov1alpha1.PodInfoStatus{
 			PodIP:  pod.Status.PodIP,

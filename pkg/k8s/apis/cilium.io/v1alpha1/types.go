@@ -360,6 +360,8 @@ type PodInfoSpec struct {
 	// Host networking requested for this pod. Use the host's network namespace.
 	// If this option is set, the ports that will be used must be specified.
 	HostNetwork bool `json:"hostNetwork,omitempty"`
+	// NodeName is the name of the node that the pod is schduled to run on.
+	NodeName string `json:"nodeName,omitempty"`
 }
 
 type PodInfoStatus struct {
