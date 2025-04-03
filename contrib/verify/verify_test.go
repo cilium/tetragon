@@ -70,6 +70,11 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 			continue
 		}
 
+		// Skip rhel7 objects, it's special
+		if strings.HasSuffix(fileName, "310.o") {
+			continue
+		}
+
 		// Skip bpf_loader for kernel < 5.19
 		if strings.HasPrefix(fileName, "bpf_loader") && !kernels.MinKernelVersion("5.19") {
 			continue
