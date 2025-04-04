@@ -264,8 +264,9 @@ FUNC_INLINE int return_error(int *s, int err)
 FUNC_INLINE char *
 args_off(struct msg_generic_kprobe *e, unsigned long off)
 {
-	asm volatile("%[off] &= 0x3fff;\n"
-		     : [off] "+r"(off));
+	asm volatile("%[off] &= %1;\n"
+		     : [off] "+r"(off)
+		     : "i"(GENERIC_MSG_ARGS_MASK));
 	return e->args + off;
 }
 
@@ -1894,8 +1895,7 @@ msg_generic_arg_value_u64(struct msg_generic_kprobe *e, unsigned int arg_id, __u
 	if (arg_id > MAX_POSSIBLE_ARGS)
 		return err_val;
 	argoff = e->argsoff[arg_id];
-	argoff &= GENERIC_MSG_ARGS_MASK;
-	ret = (__u64 *)&e->args[argoff];
+	ret = (__u64 *) args_off(e, argoff);
 	return *ret;
 }
 
