@@ -8,7 +8,8 @@
 
 #define ENAMETOOLONG 36 /* File name too long */
 
-#define MAX_BUF_LEN 4096
+#define MAX_BUF_LEN	 4096
+#define MAX_BUF_LEN_MASK (MAX_BUF_LEN - 1)
 
 /* __d_path_local flags */
 // #define UNRESOLVED_MOUNT_POINTS	   0x01 // (deprecated)
