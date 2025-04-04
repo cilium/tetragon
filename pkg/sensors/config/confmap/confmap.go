@@ -11,12 +11,12 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/config"
+	"github.com/cilium/tetragon/pkg/constants"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/sys/unix"
 )
 
 const (
@@ -122,7 +122,7 @@ func UpdateTgRuntimeConf(mapDir string, nspid int) error {
 		return err
 	}
 
-	if v.CgrpFsMagic == unix.CGROUP2_SUPER_MAGIC {
+	if v.CgrpFsMagic == constants.CGROUP2_SUPER_MAGIC {
 		log.WithFields(logrus.Fields{
 			"confmap-update":     configMapName,
 			"deployment.mode":    deployMode.String(),

@@ -17,97 +17,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Load loads the sensor, by loading all the BPF programs and maps.
-func (s *Sensor) Load(bpfDir string) (err error) {
-	if s == nil {
-		return nil
-	}
-
-	if s.Destroyed {
-		return fmt.Errorf("sensor %s has been previously destroyed, please recreate it before loading", s.Name)
-	}
-
-	logger.GetLogger().WithField("metadata", cachedbtf.GetCachedBTFFile()).Info("BTF file: using metadata file")
-	if _, err = observerMinReqs(); err != nil {
-		return fmt.Errorf("tetragon, aborting minimum requirements not met: %w", err)
-	}
-
-	var (
-		loadedMaps  []*program.Map
-		loadedProgs []*program.Program
-	)
-
-	s.createDirs(bpfDir)
-	defer func() {
-		if err != nil {
-			for _, m := range loadedMaps {
-				m.Unload(true)
-			}
-			for _, p := range loadedProgs {
-				unloadProgram(p, true)
-			}
-			s.removeDirs()
-		}
-	}()
-
-	l := logger.GetLogger()
-
-	l.WithField("name", s.Name).Info("Loading sensor")
-	if s.Loaded {
-		return fmt.Errorf("loading sensor %s failed: sensor already loaded", s.Name)
-	}
-
-	_, verStr, _ := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
-	l.Infof("Loading kernel version %s", verStr)
-
-	if err = s.FindPrograms(); err != nil {
-		return fmt.Errorf("tetragon, aborting could not find BPF programs: %w", err)
-	}
-
-	for _, m := range s.Maps {
-		if err = s.loadMap(bpfDir, m); err != nil {
-			return fmt.Errorf("tetragon, aborting could not load sensor BPF maps: %w", err)
-		}
-		loadedMaps = append(loadedMaps, m)
-	}
-
-	for _, p := range s.Progs {
-		if p.LoadState.IsLoaded() {
-			l.WithField("prog", p.Name).Info("BPF prog is already loaded, incrementing reference count")
-			p.LoadState.RefInc()
-			continue
-		}
-
-		if err = observerLoadInstance(bpfDir, p, s.Maps); err != nil {
-			return err
-		}
-		p.LoadState.RefInc()
-		loadedProgs = append(loadedProgs, p)
-		l.WithField("prog", p.Name).WithField("label", p.Label).Debugf("BPF prog was loaded")
-	}
-
-	// Add the *loaded* programs and maps, so they can be unloaded later
-	progsAdd(s.Progs)
-	AllMaps = append(AllMaps, s.Maps...)
-
-	if s.PostLoadHook != nil {
-		if err := s.PostLoadHook(); err != nil {
-			logger.GetLogger().WithError(err).WithField("sensor", s.Name).Warn("Post load hook failed")
-		}
-	}
-
-	// cleanup the BTF once we have loaded all sensor's program
-	btf.FlushKernelSpec()
-
-	l.WithFields(logrus.Fields{
-		"sensor": s.Name,
-		"maps":   loadedMaps,
-		"progs":  loadedProgs,
-	}).Infof("Loaded BPF maps and events for sensor successfully")
-	s.Loaded = true
-	return nil
-}
-
 func (s *Sensor) setMapPinPath(m *program.Map) {
 	policy := s.policyDir()
 	switch m.Type {
@@ -120,6 +29,16 @@ func (s *Sensor) setMapPinPath(m *program.Map) {
 	case program.MapTypeProgram:
 		m.PinPath = filepath.Join(policy, s.Name, m.Prog.PinName, m.Name)
 	}
+}
+
+func (s *Sensor) preLoadMaps(bpfDir string, loadedMaps []*program.Map) ([]*program.Map, error) {
+	for _, m := range s.Maps {
+		if err := s.loadMap(bpfDir, m); err != nil {
+			return loadedMaps, fmt.Errorf("tetragon, aborting could not load sensor BPF maps: %w", err)
+		}
+		loadedMaps = append(loadedMaps, m)
+	}
+	return loadedMaps, nil
 }
 
 // loadMap loads BPF map in the sensor.
@@ -281,4 +200,12 @@ func observerMinReqs() (bool, error) {
 		return false, fmt.Errorf("kernel version lookup failed, required for kprobe")
 	}
 	return true, nil
+}
+
+func flushKernelSpec() {
+	btf.FlushKernelSpec()
+}
+
+func getCachedBTFFile() string {
+	return cachedbtf.GetCachedBTFFile()
 }
