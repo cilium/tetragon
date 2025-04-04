@@ -80,6 +80,9 @@ type TracingPolicySpec struct {
 	// A list of tracepoint specs.
 	Tracepoints []TracepointSpec `json:"tracepoints,omitempty"`
 	// +kubebuilder:validation:Optional
+	// A list of raw tracepoint specs.
+	RawTracepoints []TracepointSpec `json:"rawtracepoints,omitempty"`
+	// +kubebuilder:validation:Optional
 	// Enable loader events
 	Loader bool `json:"loader,omitempty"`
 	// +kubebuilder:validation:Optional

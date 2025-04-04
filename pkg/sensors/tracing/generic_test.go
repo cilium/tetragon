@@ -51,7 +51,7 @@ spec:
 	successHook := policy.TpSpec().KProbes[:2]
 	for _, hook := range successHook {
 		for _, arg := range hook.Args {
-			lastBTFType, btfArg, err := resolveBTFArg(hook.Call, arg)
+			lastBTFType, btfArg, err := resolveBTFArg(hook.Call, arg, false)
 
 			if err != nil {
 				t.Fatal(hook.Call, err)
@@ -66,7 +66,7 @@ spec:
 
 	failHook := policy.TpSpec().KProbes[2]
 	for _, arg := range failHook.Args {
-		_, _, err := resolveBTFArg(failHook.Call, arg)
+		_, _, err := resolveBTFArg(failHook.Call, arg, false)
 
 		if !assert.ErrorContains(t, err, "The maximum depth allowed is") {
 			t.Fatalf("The path %q must have len < %d", arg.Resolve, api.MaxBTFArgDepth)

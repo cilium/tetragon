@@ -40,7 +40,8 @@ PROCESS = bpf_loader.o \
 PROCESS += bpf_execve_event.o bpf_fork.o bpf_exit.o bpf_execve_bprm_commit_creds.o
 # generic probes
 PROCESS += bpf_generic_kprobe.o bpf_generic_retkprobe.o bpf_generic_tracepoint.o \
-	   bpf_generic_uprobe.o
+	   bpf_generic_uprobe.o bpf_generic_rawtp.o
+
 # lsm
 PROCESS += bpf_generic_lsm_core.o bpf_generic_lsm_output.o
 
@@ -50,7 +51,8 @@ PROCESS += bpf_execve_event_v53.o
 # generic probes
 PROCESS += bpf_generic_kprobe_v53.o bpf_generic_retkprobe_v53.o \
 	   bpf_multi_kprobe_v53.o bpf_multi_retkprobe_v53.o \
-	   bpf_generic_tracepoint_v53.o bpf_generic_uprobe_v53.o
+	   bpf_generic_tracepoint_v53.o bpf_generic_uprobe_v53.o \
+	   bpf_generic_rawtp_v53.o
 
 # v5.11
 # base sensor
@@ -58,7 +60,9 @@ PROCESS += bpf_execve_event_v511.o
 # generic probes
 PROCESS += bpf_generic_kprobe_v511.o bpf_generic_retkprobe_v511.o \
 	   bpf_multi_kprobe_v511.o bpf_multi_retkprobe_v511.o \
-	   bpf_generic_tracepoint_v511.o bpf_generic_uprobe_v511.o
+	   bpf_generic_tracepoint_v511.o bpf_generic_uprobe_v511.o \
+	   bpf_generic_rawtp_v511.o
+
 # lsm
 PROCESS += bpf_generic_lsm_core_v511.o bpf_generic_lsm_output_v511.o \
 	   bpf_generic_lsm_ima_file_v511.o bpf_generic_lsm_ima_bprm_v511.o
@@ -70,7 +74,9 @@ PROCESS += bpf_execve_event_v61.o
 PROCESS += bpf_generic_kprobe_v61.o bpf_generic_retkprobe_v61.o \
 	   bpf_multi_kprobe_v61.o bpf_multi_retkprobe_v61.o \
 	   bpf_generic_tracepoint_v61.o bpf_generic_uprobe_v61.o \
-	   bpf_multi_uprobe_v61.o
+	   bpf_multi_uprobe_v61.o \
+	   bpf_generic_rawtp_v61.o
+
 # lsm
 PROCESS += bpf_generic_lsm_core_v61.o bpf_generic_lsm_output_v61.o \
 	   bpf_generic_lsm_ima_file_v61.o bpf_generic_lsm_ima_bprm_v61.o

@@ -17,6 +17,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/cgtracker"
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/eventhandler"
@@ -98,6 +99,9 @@ type genericTracepoint struct {
 
 	// custom event handler
 	customHandler eventhandler.Handler
+
+	// is raw_tp tracepoint
+	raw bool
 }
 
 // genericTracepointArg is the internal representation of an output value of a
@@ -130,6 +134,9 @@ type genericTracepointArg struct {
 
 	// user type overload
 	userType string
+
+	// data for config.BTFArg
+	btf [api.MaxBTFArgDepth]api.ConfigBTFArg
 }
 
 // tracepointTable is, for now, an array.
@@ -160,12 +167,6 @@ func (t *tracepointTable) getTracepoint(idx int) (*genericTracepoint, error) {
 
 func (out *genericTracepointArg) String() string {
 	return fmt.Sprintf("genericTracepointArg{CtxOffset: %d format: %+v}", out.CtxOffset, out.format)
-}
-
-func (out *genericTracepointArg) setGenericTypeId() (int, error) {
-	ret, err := out.getGenericTypeId()
-	out.genericTypeId = ret
-	return ret, err
 }
 
 // getGenericTypeId: returns the generic type Id of a tracepoint argument
@@ -240,9 +241,22 @@ func (out *genericTracepointArg) getGenericTypeId() (int, error) {
 	return gt.GenericInvalidType, fmt.Errorf("Unknown type: %T", out.format.Field.Type)
 }
 
-func buildGenericTracepointArgs(info *tracepoint.Tracepoint, specArgs []v1alpha1.KProbeArg) ([]genericTracepointArg, error) {
+func buildGenericTracepointArgs(tp *tracepoint.Tracepoint, specArgs []v1alpha1.KProbeArg, raw bool) ([]genericTracepointArg, error) {
+	if raw {
+		return buildArgsRaw(tp, specArgs)
+	}
+
+	if err := tp.LoadFormat(); err != nil {
+		return nil, fmt.Errorf("tracepoint %s/%s not supported: %w", tp.Subsys, tp.Event, err)
+	}
+	return buildArgs(tp, specArgs)
+}
+
+func buildArgs(info *tracepoint.Tracepoint, specArgs []v1alpha1.KProbeArg) ([]genericTracepointArg, error) {
 	ret := make([]genericTracepointArg, 0, len(specArgs))
 	nfields := uint32(len(info.Format.Fields))
+
+	var err error
 
 	for argIdx := range specArgs {
 		specArg := &specArgs[argIdx]
@@ -250,16 +264,22 @@ func buildGenericTracepointArgs(info *tracepoint.Tracepoint, specArgs []v1alpha1
 			return nil, fmt.Errorf("tracepoint %s/%s has %d fields but field %d was requested", info.Subsys, info.Event, nfields, specArg.Index)
 		}
 		field := info.Format.Fields[specArg.Index]
-		ret = append(ret, genericTracepointArg{
-			CtxOffset:     int(field.Offset),
-			ArgIdx:        uint32(argIdx),
-			TpIdx:         int(specArg.Index),
-			MetaTp:        getTracepointMetaValue(specArg),
-			nopTy:         false,
-			format:        &field,
-			genericTypeId: gt.GenericInvalidType,
-			userType:      specArg.Type,
-		})
+
+		tpArg := genericTracepointArg{
+			CtxOffset: int(field.Offset),
+			ArgIdx:    uint32(argIdx),
+			TpIdx:     int(specArg.Index),
+			MetaTp:    getTracepointMetaValue(specArg),
+			nopTy:     false,
+			format:    &field,
+			userType:  specArg.Type,
+		}
+
+		tpArg.genericTypeId, err = tpArg.getGenericTypeId()
+		if err != nil {
+			return nil, fmt.Errorf("output argument %v unsupported: %w", tpArg, err)
+		}
+		ret = append(ret, tpArg)
 	}
 
 	// getOrAppendMeta is a helper function for meta arguments now that we
@@ -280,7 +300,7 @@ func buildGenericTracepointArgs(info *tracepoint.Tracepoint, specArgs []v1alpha1
 		}
 		field := info.Format.Fields[tpIdx]
 		argIdx := uint32(len(ret))
-		ret = append(ret, genericTracepointArg{
+		tpArg := genericTracepointArg{
 			CtxOffset:     int(field.Offset),
 			ArgIdx:        argIdx,
 			TpIdx:         tpIdx,
@@ -289,14 +309,18 @@ func buildGenericTracepointArgs(info *tracepoint.Tracepoint, specArgs []v1alpha1
 			nopTy:         true,
 			format:        &field,
 			genericTypeId: gt.GenericInvalidType,
-		})
+		}
+		tpArg.genericTypeId, err = tpArg.getGenericTypeId()
+		if err != nil {
+			return nil, fmt.Errorf("output argument %v unsupported: %w", tpArg, err)
+		}
+		ret = append(ret, tpArg)
 		return &ret[argIdx], nil
 	}
 
 	for idx := 0; idx < len(ret); idx++ {
 		meta := ret[idx].MetaTp
 		if meta == 0 || meta == -1 {
-			ret[idx].MetaArg = meta
 			continue
 		}
 		a, err := getOrAppendMeta(meta)
@@ -308,12 +332,56 @@ func buildGenericTracepointArgs(info *tracepoint.Tracepoint, specArgs []v1alpha1
 	return ret, nil
 }
 
+func buildArgsRaw(info *tracepoint.Tracepoint, specArgs []v1alpha1.KProbeArg) ([]genericTracepointArg, error) {
+	ret := make([]genericTracepointArg, 0, len(specArgs))
+	for i, tpArg := range specArgs {
+		var btf [api.MaxBTFArgDepth]api.ConfigBTFArg
+
+		if tpArg.Index > 5 {
+			return nil, fmt.Errorf("raw tracepoint (%s/%s) can read up to %d arguments, but %d was requested",
+				info.Subsys, info.Event, 5, tpArg.Index)
+		}
+
+		arg := genericTracepointArg{
+			ArgIdx:   uint32(i),
+			TpIdx:    int(tpArg.Index),
+			MetaTp:   getTracepointMetaValue(&tpArg),
+			userType: tpArg.Type,
+		}
+
+		argType, err := arg.getGenericTypeId()
+		if err != nil {
+			return nil, fmt.Errorf("output argument %v unsupported: %w", tpArg, err)
+		}
+
+		if tpArg.Resolve != "" {
+			if !bpf.HasProgramLargeSize() {
+				return nil, fmt.Errorf("Error: Resolve flag can be used on v5.4 kernel or higher")
+			}
+			fn := fmt.Sprintf("__bpf_trace_%s", info.Event)
+
+			lastBTFType, btfArg, err := resolveBTFArg(fn, tpArg, true)
+			if err != nil {
+				return nil, fmt.Errorf("Error on hook %q for index %d : %v", fn, tpArg.Index, err)
+			}
+			btf = btfArg
+			argType = findTypeFromBTFType(tpArg, lastBTFType)
+		}
+
+		arg.btf = btf
+		arg.genericTypeId = argType
+		ret = append(ret, arg)
+	}
+	return ret, nil
+}
+
 // createGenericTracepoint creates the genericTracepoint information based on
 // the user-provided configuration
 func createGenericTracepoint(
 	sensorName string,
 	conf *v1alpha1.TracepointSpec,
 	polInfo *policyInfo,
+	raw bool,
 ) (*genericTracepoint, error) {
 	if conf == nil {
 		return nil, errors.New("failed creating generic tracepoint, conf is nil")
@@ -336,11 +404,7 @@ func createGenericTracepoint(
 		return nil, err
 	}
 
-	if err := tp.LoadFormat(); err != nil {
-		return nil, fmt.Errorf("tracepoint %s/%s not supported: %w", tp.Subsys, tp.Event, err)
-	}
-
-	tpArgs, err := buildGenericTracepointArgs(&tp, conf.Args)
+	tpArgs, err := buildGenericTracepointArgs(&tp, conf.Args, raw)
 	if err != nil {
 		return nil, err
 	}
@@ -354,6 +418,7 @@ func createGenericTracepoint(
 		customHandler: polInfo.customHandler,
 		message:       msgField,
 		tags:          tagsField,
+		raw:           raw,
 	}
 
 	genericTracepointTable.addTracepoint(ret)
@@ -369,10 +434,8 @@ func tpValidateAndAdjustEnforcerAction(
 	spec *v1alpha1.TracingPolicySpec) error {
 
 	registeredEnforcerMetrics := false
-	for si := range tp.Selectors {
-		sel := &tp.Selectors[si]
-		for ai := range sel.MatchActions {
-			act := &sel.MatchActions[ai]
+	for _, sel := range tp.Selectors {
+		for _, act := range sel.MatchActions {
 			if act.Action == "NotifyEnforcer" {
 				if len(spec.Enforcers) == 0 {
 					return fmt.Errorf("NotifyEnforcer action specified, but spec contains no enforcers")
@@ -425,6 +488,44 @@ func tpValidateAndAdjustEnforcerAction(
 	return nil
 }
 
+func createGenericRawTracepointSensor(
+	spec *v1alpha1.TracingPolicySpec,
+	name string,
+	polInfo *policyInfo,
+) (*sensors.Sensor, error) {
+
+	tracepoints := make([]*genericTracepoint, 0, len(spec.RawTracepoints))
+	for i := range spec.RawTracepoints {
+		tp, err := createGenericTracepoint(name, &spec.RawTracepoints[i], polInfo, true)
+		if err != nil {
+			return nil, err
+		}
+		tracepoints = append(tracepoints, tp)
+	}
+
+	progName := "bpf_generic_rawtp.o"
+	if config.EnableV61Progs() {
+		progName = "bpf_generic_rawtp_v61.o"
+	} else if kernels.MinKernelVersion("5.11") {
+		progName = "bpf_generic_rawtp_v511.o"
+	} else if config.EnableLargeProgs() {
+		progName = "bpf_generic_rawtp_v53.o"
+	}
+
+	progs, maps, err := createTracepointSensor(tracepoints, progName, spec.Lists, hasMaps{}, polInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	return &sensors.Sensor{
+		Name:      name,
+		Progs:     progs,
+		Maps:      maps,
+		Policy:    polInfo.name,
+		Namespace: polInfo.namespace,
+	}, nil
+}
+
 // createGenericTracepointSensor will create a sensor that can be loaded based on a generic tracepoint configuration
 func createGenericTracepointSensor(
 	spec *v1alpha1.TracingPolicySpec,
@@ -441,13 +542,12 @@ func createGenericTracepointSensor(
 	}
 
 	tracepoints := make([]*genericTracepoint, 0, len(confs))
-	for i := range confs {
-		tpSpec := &confs[i]
-		err := tpValidateAndAdjustEnforcerAction(ret, tpSpec, i, polInfo.name, spec)
+	for i, tpSpec := range confs {
+		err := tpValidateAndAdjustEnforcerAction(ret, &tpSpec, i, polInfo.name, spec)
 		if err != nil {
 			return nil, err
 		}
-		tp, err := createGenericTracepoint(name, tpSpec, polInfo)
+		tp, err := createGenericTracepoint(name, &tpSpec, polInfo, false)
 		if err != nil {
 			return nil, err
 		}
@@ -467,22 +567,42 @@ func createGenericTracepointSensor(
 		enforcer: len(spec.Enforcers) != 0,
 	}
 
-	maps := []*program.Map{}
-	progs := make([]*program.Program, 0, len(tracepoints))
+	progs, maps, err := createTracepointSensor(tracepoints, progName, lists, has, polInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	ret.Progs = progs
+	ret.Maps = maps
+	return ret, nil
+}
+
+func createTracepointSensor(tracepoints []*genericTracepoint, progName string,
+	lists []v1alpha1.ListSpec, has hasMaps, polInfo *policyInfo) ([]*program.Program, []*program.Map, error) {
+
+	var (
+		progs []*program.Program
+		maps  []*program.Map
+	)
+
 	for _, tp := range tracepoints {
 		pinProg := sensors.PathJoin(fmt.Sprintf("%s:%s", tp.Info.Subsys, tp.Info.Event))
 		attach := fmt.Sprintf("%s/%s", tp.Info.Subsys, tp.Info.Event)
+		label := "tracepoint/generic_tracepoint"
+		if tp.raw {
+			label = "raw_tp/generic_tracepoint"
+		}
 		prog0 := program.Builder(
 			path.Join(option.Config.HubbleLib, progName),
 			attach,
-			"tracepoint/generic_tracepoint",
+			label,
 			pinProg,
 			"generic_tracepoint",
 		).SetPolicy(polInfo.name)
 
 		err := tp.InitKernelSelectors(lists)
 		if err != nil {
-			return nil, fmt.Errorf("failed to initialize tracepoint kernel selectors: %w", err)
+			return nil, nil, fmt.Errorf("failed to initialize tracepoint kernel selectors: %w", err)
 		}
 
 		has.fdInstall = selectorsHaveFDInstall(tp.Spec.Selectors)
@@ -585,10 +705,7 @@ func createGenericTracepointSensor(
 	}
 
 	maps = append(maps, program.MapUserFrom(base.ExecveMap))
-
-	ret.Progs = progs
-	ret.Maps = maps
-	return ret, nil
+	return progs, maps, nil
 }
 
 func (tp *genericTracepoint) InitKernelSelectors(lists []v1alpha1.ListSpec) error {
@@ -599,18 +716,12 @@ func (tp *genericTracepoint) InitKernelSelectors(lists []v1alpha1.ListSpec) erro
 	// rewrite arg index
 	selArgs := make([]v1alpha1.KProbeArg, 0, len(tp.args))
 	selSelectors := make([]v1alpha1.KProbeSelector, 0, len(tp.Spec.Selectors))
-	for i := range tp.Spec.Selectors {
-		origSel := &tp.Spec.Selectors[i]
+	for _, origSel := range tp.Spec.Selectors {
 		selSelectors = append(selSelectors, *origSel.DeepCopy())
 	}
 
-	for i := range tp.args {
-		tpArg := &tp.args[i]
-		ty, err := tpArg.setGenericTypeId()
-		if err != nil {
-			return fmt.Errorf("output argument %v unsupported: %w", tpArg, err)
-		}
-		selType, err := gt.GenericTypeToString(ty)
+	for _, tpArg := range tp.args {
+		selType, err := gt.GenericTypeToString(tpArg.genericTypeId)
 		if err != nil {
 			return fmt.Errorf("output argument %v type not found: %w", tpArg, err)
 		}
@@ -641,24 +752,45 @@ func (tp *genericTracepoint) InitKernelSelectors(lists []v1alpha1.ListSpec) erro
 	return nil
 }
 
-func (tp *genericTracepoint) EventConfig() (api.EventConfig, error) {
+func (tp *genericTracepoint) EventConfig() (*api.EventConfig, error) {
 
 	if len(tp.args) > api.EventConfigMaxArgs {
-		return api.EventConfig{}, fmt.Errorf("number of arguments (%d) larger than max (%d)", len(tp.args), api.EventConfigMaxArgs)
+		return nil, fmt.Errorf("number of arguments (%d) larger than max (%d)", len(tp.args), api.EventConfigMaxArgs)
 	}
 
 	config := api.EventConfig{}
 	config.PolicyID = uint32(tp.policyID)
 	config.FuncId = uint32(tp.tableIdx)
-	// iterate over output arguments
-	for i := range tp.args {
-		tpArg := &tp.args[i]
-		config.ArgTpCtxOff[i] = uint32(tpArg.CtxOffset)
-		_, err := tpArg.setGenericTypeId()
-		if err != nil {
-			return api.EventConfig{}, fmt.Errorf("output argument %v unsupported: %w", tpArg, err)
-		}
 
+	if tp.raw {
+		return tp.eventConfigRaw(&config)
+	}
+	return tp.eventConfig(&config)
+}
+
+func (tp *genericTracepoint) eventConfigRaw(config *api.EventConfig) (*api.EventConfig, error) {
+
+	for i := range config.Arg {
+		config.Arg[i] = int32(gt.GenericNopType)
+		config.ArgM[i] = uint32(0)
+	}
+
+	// iterate over output arguments
+	for i, tpArg := range tp.args {
+		config.BTFArg[tpArg.TpIdx] = tpArg.btf
+		config.Arg[tpArg.TpIdx] = int32(tpArg.genericTypeId)
+		config.ArgM[tpArg.TpIdx] = uint32(tpArg.MetaArg)
+
+		tracepointLog.Debugf("configured argument #%d: %+v (type:%d)", i, tpArg, tpArg.genericTypeId)
+	}
+	return config, nil
+}
+
+func (tp *genericTracepoint) eventConfig(config *api.EventConfig) (*api.EventConfig, error) {
+
+	// iterate over output arguments
+	for i, tpArg := range tp.args {
+		config.ArgTpCtxOff[i] = uint32(tpArg.CtxOffset)
 		config.Arg[i] = int32(tpArg.genericTypeId)
 		config.ArgM[i] = uint32(tpArg.MetaArg)
 
@@ -696,7 +828,7 @@ func LoadGenericTracepointSensor(bpfDir string, load *program.Program, maps []*p
 		return fmt.Errorf("failed to generate config data for generic tracepoint: %w", err)
 	}
 	var binBuf bytes.Buffer
-	binary.Write(&binBuf, binary.LittleEndian, config)
+	binary.Write(&binBuf, binary.LittleEndian, *config)
 	cfg := &program.MapLoad{
 		Index: 0,
 		Name:  "config_map",
@@ -706,12 +838,15 @@ func LoadGenericTracepointSensor(bpfDir string, load *program.Program, maps []*p
 	}
 	load.MapLoad = append(load.MapLoad, cfg)
 
-	if err := program.LoadTracepointProgram(bpfDir, load, maps, verbose); err == nil {
-		logger.GetLogger().Infof("Loaded generic tracepoint program: %s -> %s", load.Name, load.Attach)
+	if tp.raw {
+		err = program.LoadRawTracepointProgram(bpfDir, load, maps, verbose)
 	} else {
-		return err
+		err = program.LoadTracepointProgram(bpfDir, load, maps, verbose)
 	}
 
+	if err == nil {
+		logger.GetLogger().Infof("Loaded generic tracepoint program: %s -> %s", load.Name, load.Attach)
+	}
 	return err
 }
 
@@ -932,6 +1067,77 @@ func handleMsgGenericTracepoint(
 				val := parseSyscall64Value(val)
 				unix.Args = append(unix.Args, val)
 			}
+
+		case gt.GenericLinuxBinprmType:
+			var arg api.MsgGenericKprobeArgLinuxBinprm
+			var flags uint32
+			var mode uint16
+			var err error
+
+			arg.Value, err = parseString(r)
+			if err != nil {
+				if errors.Is(err, errParseStringSize) {
+					arg.Value = "/"
+				} else {
+					logger.GetLogger().WithError(err).Warn("error parsing arg type linux_binprm")
+				}
+			}
+
+			err = binary.Read(r, binary.LittleEndian, &flags)
+			if err != nil {
+				flags = 0
+			}
+
+			err = binary.Read(r, binary.LittleEndian, &mode)
+			if err != nil {
+				mode = 0
+			}
+			arg.Flags = flags
+			arg.Permission = mode
+			unix.Args = append(unix.Args, arg)
+
+		case gt.GenericFileType, gt.GenericFdType, gt.GenericKiocb:
+			var arg api.MsgGenericKprobeArgFile
+			var flags uint32
+			var b int32
+			var mode uint16
+			var err error
+
+			/* Eat file descriptor its not used in userland */
+			if out.genericTypeId == gt.GenericFdType {
+				binary.Read(r, binary.LittleEndian, &b)
+			}
+
+			arg.Value, err = parseString(r)
+			if err != nil {
+				if errors.Is(err, errParseStringSize) {
+					// If no size then path walk was not possible and file was
+					// either a mount point or not a "file" at all which can
+					// happen if running without any filters and kernel opens an
+					// anonymous inode. For this lets just report its on "/" all
+					// though pid filtering will mostly catch this.
+					arg.Value = "/"
+				} else {
+					logger.GetLogger().WithError(err).Warn("error parsing arg type file")
+				}
+			}
+
+			// read the first byte that keeps the flags
+			err = binary.Read(r, binary.LittleEndian, &flags)
+			if err != nil {
+				flags = 0
+			}
+
+			if out.genericTypeId == gt.GenericFileType || out.genericTypeId == gt.GenericKiocb {
+				err = binary.Read(r, binary.LittleEndian, &mode)
+				if err != nil {
+					mode = 0
+				}
+				arg.Permission = mode
+			}
+
+			arg.Flags = flags
+			unix.Args = append(unix.Args, arg)
 
 		default:
 			logger.GetLogger().Warnf("handleGenericTracepoint: ignoring:  %+v", out)
