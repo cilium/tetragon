@@ -70,6 +70,11 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 			continue
 		}
 
+		// Skip rhel7 objects, it's special
+		if strings.HasSuffix(fileName, "310.o") {
+			continue
+		}
+
 		// Skip bpf_loader for kernel < 5.19
 		if strings.HasPrefix(fileName, "bpf_loader") && !kernels.MinKernelVersion("5.19") {
 			continue
@@ -92,6 +97,7 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 		require.NotNil(t, spec, "collection spec should not be nil")
 
 		if isDebugEnabled() {
+			fmt.Printf("[%s]\n", fileName)
 			for _, progSpec := range spec.Programs {
 				fmt.Printf("%s\n", progSpec.Instructions.String())
 			}

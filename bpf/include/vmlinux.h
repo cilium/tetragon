@@ -47,4 +47,29 @@ union kernfs_node_id {
 	u64 id;
 };
 
+// RHEL7 v3.10 exec ctx struct
+struct ftrace_raw_sched_process_exec {
+	struct trace_entry ent;
+	s32 __data_loc_filename;
+	pid_t pid;
+	pid_t old_pid;
+	char __data[0];
+};
+
+struct uts_namespace___rhel7 {
+	unsigned int proc_inum;
+};
+
+struct ipc_namespace___rhel7 {
+	unsigned int proc_inum;
+};
+
+struct mnt_namespace___rhel7 {
+	unsigned int proc_inum;
+};
+
+struct net___rhel7 {
+	unsigned int proc_inum;
+};
+
 #endif /* __VMLINUX_H__ */

@@ -11,7 +11,9 @@ import (
 
 // ExecObj returns the exec object based on the kernel version
 func ExecObj() string {
-	if EnableV61Progs() {
+	if EnableRhel7Progs() {
+		return "bpf_execve_event_v310.o"
+	} else if EnableV61Progs() {
 		return "bpf_execve_event_v61.o"
 	} else if kernels.MinKernelVersion("5.11") {
 		return "bpf_execve_event_v511.o"
@@ -19,6 +21,20 @@ func ExecObj() string {
 		return "bpf_execve_event_v53.o"
 	}
 	return "bpf_execve_event.o"
+}
+
+func ExitObj() string {
+	if EnableRhel7Progs() {
+		return "bpf_exit_v310.o"
+	}
+	return "bpf_exit.o"
+}
+
+func ForkObj() string {
+	if EnableRhel7Progs() {
+		return "bpf_fork_v310.o"
+	}
+	return "bpf_fork.o"
 }
 
 // GenericKprobeObjs returns the generic kprobe and generic retprobe objects
@@ -31,6 +47,11 @@ func GenericKprobeObjs() (string, string) {
 		return "bpf_generic_kprobe_v53.o", "bpf_generic_retkprobe_v53.o"
 	}
 	return "bpf_generic_kprobe.o", "bpf_generic_retkprobe.o"
+}
+
+func EnableRhel7Progs() bool {
+	kernelVer, _, _ := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
+	return (int64(kernelVer) < kernels.KernelStringToNumeric("3.11.0"))
 }
 
 func EnableV61Progs() bool {

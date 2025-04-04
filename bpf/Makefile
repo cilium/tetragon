@@ -35,6 +35,10 @@ PROCESS = bpf_loader.o \
 	  bpf_map_test_p1.o bpf_map_test_p2.o bpf_map_test_p3.o \
 	  bpf_prog_iter.o
 
+# v3.10 RHEL7
+# base sensor
+PROCESS += bpf_execve_event_v310.o bpf_exit_v310.o bpf_fork_v310.o
+
 # v4.19
 # base sensor
 PROCESS += bpf_execve_event.o bpf_fork.o bpf_exit.o bpf_execve_bprm_commit_creds.o
@@ -107,6 +111,7 @@ $(DEPSDIR):
 	mkdir $(DEPSDIR)
 
 # Define extra CFLAGS for each variant
+CFLAGS_v310 = -D__RHEL7_BPF_PROG
 CFLAGS_v53  = -D__LARGE_BPF_PROG
 CFLAGS_v511 = -D__LARGE_BPF_PROG -D__LARGE_MAP_KEYS
 CFLAGS_v61  = -D__LARGE_BPF_PROG -D__LARGE_MAP_KEYS -D__V61_BPF_PROG
@@ -168,6 +173,7 @@ endif
 
 endef
 
+$(eval $(call DEFINE_VARIANT,v310))
 $(eval $(call DEFINE_VARIANT,v53))
 $(eval $(call DEFINE_VARIANT,v511))
 $(eval $(call DEFINE_VARIANT,v61))
