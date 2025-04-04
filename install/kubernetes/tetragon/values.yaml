@@ -47,6 +47,7 @@ tetragon:
   # extraEnv:
   #   - name: foo
   #     value: bar
+  podAnnotations: {}
   extraVolumeMounts: []
   securityContext:
     privileged: true
