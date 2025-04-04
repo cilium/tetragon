@@ -263,7 +263,10 @@ copy-golangci-lint:
 
 .PHONY: test
 test: tester-progs tetragon-bpf ## Run Go tests.
-	$(GO) test -exec "$(SUDO)" -p 1 -parallel 1 $(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -timeout $(GO_TEST_TIMEOUT) -failfast -cover ./pkg/... ./cmd/... ./operator/... ${EXTRA_TESTFLAGS}
+	$(GO) test -exec "$(SUDO)" -p 1 -parallel 1 \
+	$(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -timeout $(GO_TEST_TIMEOUT) -failfast -cover \
+	./pkg/... ./cmd/... ./operator/... \
+	${EXTRA_TESTFLAGS}
 
 .PHONY: tester-progs
 tester-progs: ## Compile helper programs for unit testing.
@@ -285,7 +288,10 @@ alignchecker: ## Run alignchecker.
 
 .PHONY: bench
 bench: ## Run Go benchmarks.
-	$(GO) test -exec "$(SUDO)" -p 1 -parallel 1 -run ^$$ $(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -timeout $(GO_TEST_TIMEOUT) -failfast -cover ./pkg/... ./cmd/... ./operator/... -bench=. ${EXTRA_TESTFLAGS}
+	$(GO) test -exec "$(SUDO)" -p 1 -parallel 1 -run ^$$ \
+	$(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -timeout $(GO_TEST_TIMEOUT) -failfast -cover \
+	./pkg/... ./cmd/... ./operator/... \
+	-bench=. ${EXTRA_TESTFLAGS}
 
 TEST_COMPILE ?= ./...
 .PHONY: test-compile
@@ -335,7 +341,13 @@ e2e-test: image image-operator
 else
 e2e-test:
 endif
-	$(GO) list $(E2E_TESTS) | xargs -Ipkg $(GO) test $(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -timeout $(E2E_TEST_TIMEOUT) -failfast -cover pkg ${EXTRA_TESTFLAGS} -fail-fast -tetragon.helm.set tetragon.image.override="$(E2E_AGENT)" -tetragon.helm.set tetragonOperator.image.override="$(E2E_OPERATOR)" -tetragon.helm.url="" -tetragon.helm.chart="$(realpath ./install/kubernetes/tetragon)" $(E2E_BTF_FLAGS)
+	$(GO) list $(E2E_TESTS) | xargs -Ipkg \
+	$(GO) test $(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -timeout $(E2E_TEST_TIMEOUT) -failfast -cover pkg \
+	${EXTRA_TESTFLAGS} \
+	-tetragon.helm.set tetragon.image.override="$(E2E_AGENT)" \
+	-tetragon.helm.set tetragonOperator.image.override="$(E2E_OPERATOR)" \
+	-tetragon.helm.url="" -tetragon.helm.chart="$(realpath ./install/kubernetes/tetragon)" \
+	$(E2E_BTF_FLAGS)
 
 ##@ Development
 

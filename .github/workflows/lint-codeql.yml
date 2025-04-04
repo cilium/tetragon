@@ -1,11 +1,11 @@
 name: codeql
 
 on:
-  pull_request:
-    branches:
-      - main
-    paths-ignore:
-      - 'docs/**'
+  # pull_request:
+  #   branches:
+  #     - main
+  #   paths-ignore:
+  #     - 'docs/**'
   push:
     branches:
       - main

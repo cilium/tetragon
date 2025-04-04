@@ -90,11 +90,9 @@ func processOpts(opts ...Option) *flags.HelmOptions {
 func Uninstall(opts ...Option) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 		o := processOpts(opts...)
-		klog.InfoS("Uninstalling Tetragon...", "opts", o)
+		klog.InfoS("Uninstalling Tetragon...", "opts", o, "namespace", o.Namespace, "daemonset", o.DaemonSetName)
 
 		manager := helm.New(cfg.KubeconfigFile())
-
-		klog.InfoS("Uninstalling Tetragon...", "namespace", o.Namespace, "daemonset", o.DaemonSetName)
 
 		helmOpts := []helm.Option{
 			helm.WithName(o.DaemonSetName),
@@ -133,7 +131,7 @@ func Uninstall(opts ...Option) env.Func {
 func Install(opts ...Option) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 		o := processOpts(opts...)
-		klog.InfoS("Installing Tetragon...", "opts", o)
+		klog.InfoS("Installing Tetragon...", "opts", o, "namespace", o.Namespace, "daemonset", o.DaemonSetName)
 
 		manager := helm.New(cfg.KubeconfigFile())
 
@@ -212,8 +210,6 @@ func Install(opts ...Option) env.Func {
 		}
 
 		helmArgs.WriteString(" --install")
-
-		klog.InfoS("Installing Tetragon...", "namespace", o.Namespace, "daemonset", o.DaemonSetName)
 
 		helmOpts := []helm.Option{
 			helm.WithName(o.DaemonSetName),
