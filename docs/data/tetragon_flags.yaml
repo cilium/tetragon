@@ -63,6 +63,9 @@ options:
       default_value: "false"
       usage: |
         Enable pidSet export filters. Not recommended for production use
+    - name: enable-pod-annotations
+      default_value: "false"
+      usage: Add pod annotations field to events.
     - name: enable-pod-info
       default_value: "false"
       usage: Enable PodInfo custom resource

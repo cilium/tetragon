@@ -54,6 +54,8 @@ message Pod {
   string workload = 6;
   // Kubernetes workload kind (e.g. "Deployment", "DaemonSet") of the Pod.
   string workload_kind = 7;
+  // Contains all the annotations of the pod.
+  map<string, string> pod_annotations = 8;
 }
 
 message Capabilities {
