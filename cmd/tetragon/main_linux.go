@@ -429,6 +429,9 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		if err != nil {
 			return err
 		}
+		if err := watcher.AddNamespaceInformer(k8sWatcher); err != nil {
+			return err
+		}
 	} else {
 		log.Info("Disabling Kubernetes API")
 		k8sWatcher = watcher.NewFakeK8sWatcher(nil)
