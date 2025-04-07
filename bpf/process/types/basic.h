@@ -376,8 +376,8 @@ FUNC_INLINE long store_path(char *args, char *buffer, const struct path *arg,
 	 * -----------------------------------------
 	 * Next we set up the flags.
 	 */
-	args[size] = (u32)flags;
-	args[size + sizeof(u32)] = (u16)i_mode;
+	*(u32 *)&args[size] = (u32)flags;
+	*(u16 *)&args[size + sizeof(u32)] = (u16)i_mode;
 	size += sizeof(u32) + sizeof(u16); // for the flags + i_mode
 
 	return size;
