@@ -307,6 +307,18 @@
       ]
     },
     {
+      // update go patch for 1.22 for stable branches
+      "enabled": true,
+      "matchPackageNames": [
+        "go",
+        "docker.io/library/golang"
+      ],
+      "allowedVersions": "/^1\\.22\\.[0-9]+-?(alpine)?$/",
+      "matchBaseBranches": [
+        "v1.2",
+      ]
+    },
+    {
       // update go patch for 1.23 for stable branches
       "enabled": true,
       "matchPackageNames": [
@@ -315,12 +327,11 @@
       ],
       "allowedVersions": "/^1\\.23\\.[0-9]+-?(alpine)?$/",
       "matchBaseBranches": [
-        "v1.2",
         "v1.3",
       ]
     },
     {
-      // update go patch for 1.23 for stable branches
+      // update go patch for 1.24 for stable branches
       "enabled": true,
       "matchPackageNames": [
         "go",
