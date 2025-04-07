@@ -103,6 +103,7 @@ Helm chart for Tetragon
 | tetragon.ociHookSetup.interface | string | `"oci-hooks"` | interface specifices how the hook is  configured. There is only one avaialble value for now: "oci-hooks" (https://github.com/containers/common/blob/main/pkg/hooks/docs/oci-hooks.5.md). |
 | tetragon.ociHookSetup.resources | object | `{}` | resources for the the oci-hook-setup init container |
 | tetragon.ociHookSetup.securityContext | object | `{"privileged":true}` | Security context for oci-hook-setup init container |
+| tetragon.podAnnotations.enabled | bool | `false` |  |
 | tetragon.pprof.address | string | `"localhost"` | The address at which to expose pprof. |
 | tetragon.pprof.enabled | bool | `false` | Whether to enable exposing pprof server. |
 | tetragon.pprof.port | int | `6060` | The port at which to expose pprof. |
