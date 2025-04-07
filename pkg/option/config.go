@@ -27,6 +27,8 @@ type config struct {
 	ForceLargeProgs bool
 	ClusterName     string
 
+	EnablePodAnnotations bool
+
 	EnableProcessAncestors           bool
 	EnableProcessKprobeAncestors     bool
 	EnableProcessTracepointAncestors bool
