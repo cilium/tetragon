@@ -11,7 +11,7 @@ metadata:
     {{- with .Values.rthooks.extraLabels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
-  name: {{ .Release.Name }}-rthooks
+  name: {{ include "tetragon.fullname" . }}-rthooks
   namespace: {{ .Release.Namespace }}
 spec:
   selector:

@@ -12,7 +12,7 @@ metadata:
     {{- with .Values.tetragon.prometheus.serviceMonitor.extraLabels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
-  name: {{ .Release.Name }}
+  name: {{ include "tetragon.fullname" . }}
   namespace: {{ .Release.Namespace }}
 spec:
   endpoints:

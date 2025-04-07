@@ -2,7 +2,7 @@
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: {{.Release.Name}}-operator
+  name: {{ include "tetragon.fullname" . }}-operator
   labels:
   {{- include "tetragon-operator.labels" . | nindent 4 }}
 rules:
