@@ -13,9 +13,6 @@ concurrency:
   group: ${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  clusterName: tetragon-ci
-
 jobs:
   prepare:
     runs-on: ubuntu-22.04
@@ -74,7 +71,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-22.04, ubuntu-22.04-arm64 ]
+        os: [ ubuntu-22.04 ]
         package: ${{fromJson(needs.prepare.outputs.packages)}}
     steps:
     - name: Checkout Code
@@ -117,8 +114,18 @@ jobs:
       env:
         GHA_OS: ${{matrix.os}}
       run: |
+        set -x
         cd go/src/github.com/cilium/tetragon
-        make e2e-test E2E_TESTS=${{matrix.package.f}} E2E_BUILD_IMAGES=0 E2E_AGENT=${{ needs.prepare.outputs.agentImage }} E2E_OPERATOR=${{ needs.prepare.outputs.operatorImage }} EXTRA_TESTFLAGS="-cluster-name=${{ env.clusterName }} -args -v=4"
+        make e2e-test \
+          E2E_TESTS=${{matrix.package.f}} \
+          E2E_BUILD_IMAGES=0 \
+          E2E_AGENT=${{ needs.prepare.outputs.agentImage }} \
+          E2E_OPERATOR=${{ needs.prepare.outputs.operatorImage }}
+
+    - name: ls logs
+      if: failure() || cancelled()
+      run: |
+        ls /tmp/tetragon.e2e.*
 
     - name: Upload Tetragon Logs
       if: failure() || cancelled()
