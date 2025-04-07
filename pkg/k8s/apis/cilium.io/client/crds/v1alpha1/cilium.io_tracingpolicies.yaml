@@ -1614,6 +1614,9 @@ spec:
                         A short message of 256 characters max that will be included
                         in the event output to inform users what is going on.
                       type: string
+                    raw:
+                      description: Enable raw tracepoint arguments
+                      type: boolean
                     selectors:
                       description: Selectors to apply before producing trace output.
                         Selectors are ORed.
