@@ -19,9 +19,11 @@ Helm chart for Tetragon
 | extraConfigmapMounts | list | `[]` |  |
 | extraHostPathMounts | list | `[]` |  |
 | extraVolumes | list | `[]` |  |
+| fullnameOverride | string | `""` |  |
 | hostNetwork | bool | `true` | Configures whether Tetragon pods run on the host network.  IMPORTANT: Tetragon must be on the host network for the process visibility to function properly. |
 | imagePullPolicy | string | `"IfNotPresent"` |  |
 | imagePullSecrets | list | `[]` |  |
+| nameOverride | string | `""` |  |
 | nodeSelector | object | `{}` |  |
 | podAnnotations | object | `{}` |  |
 | podLabels | object | `{}` |  |
