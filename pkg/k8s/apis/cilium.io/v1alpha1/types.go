@@ -286,6 +286,9 @@ type TracepointSpec struct {
 	// Tags to categorize the event, will be include in the event output.
 	// Maximum of 16 Tags are supported.
 	Tags []string `json:"tags,omitempty"`
+	// +kubebuilder:validation:Optional
+	// Enable raw tracepoint arguments
+	Raw bool `json:"raw,omitempty"`
 }
 
 type UProbeSpec struct {
