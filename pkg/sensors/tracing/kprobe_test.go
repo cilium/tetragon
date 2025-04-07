@@ -11,6 +11,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"net"
 	"os"
 	"os/exec"
@@ -61,6 +62,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	tpath "github.com/cilium/tetragon/pkg/reader/path"
 
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
@@ -7359,6 +7362,8 @@ func TestMaxPath(t *testing.T) {
 	require.NoError(t, err)
 	file.Close()
 
+	defer func() { syscall.Unlink(pathFull) }()
+
 	pathCheck := pathFull
 	if !config.EnableLargeProgs() {
 		// 4.19 is limited in path processing, we can get 32 iterations
@@ -7367,8 +7372,13 @@ func TestMaxPath(t *testing.T) {
 		pathCheck = path.Join("/", path.Join(slices...), "f")
 	}
 
+	st, err := os.Stat(pathFull)
+	require.NoError(t, err)
+	pathPerm := tpath.FilePathModeToStr(uint16(st.Mode() | syscall.S_IFREG))
+
 	t.Logf("path full:  %s\n", pathFull)
 	t.Logf("path check: %s\n", pathCheck)
+	t.Logf("path perm:  %s\n", pathPerm)
 
 	t.Run("file", func(t *testing.T) {
 		var doneWG, readyWG sync.WaitGroup
@@ -7395,7 +7405,11 @@ spec:
 		kprobeCheck := ec.NewProcessKprobeChecker("file").
 			WithFunctionName(sm.Full("fd_install")).
 			WithArgs(ec.NewKprobeArgumentListMatcher().WithValues(
-				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Full(pathCheck))),
+				ec.NewKprobeArgumentChecker().WithFileArg(
+					ec.NewKprobeFileChecker().
+						WithPath(sm.Full(pathCheck)).
+						WithPermission(sm.Full(pathPerm)),
+				),
 			))
 
 		obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
@@ -7440,7 +7454,10 @@ spec:
 		kprobeChecker := ec.NewProcessKprobeChecker("path").
 			WithFunctionName(sm.Full("security_path_truncate")).
 			WithArgs(ec.NewKprobeArgumentListMatcher().WithValues(
-				ec.NewKprobeArgumentChecker().WithPathArg(ec.NewKprobePathChecker().WithPath(sm.Full(pathCheck))),
+				ec.NewKprobeArgumentChecker().WithPathArg(ec.NewKprobePathChecker().
+					WithPath(sm.Full(pathCheck)).
+					WithPermission(sm.Full(pathPerm)),
+				),
 			))
 
 		obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
@@ -7468,7 +7485,7 @@ spec:
 
 		pathRemoved := pathFull[:len(pathFull)-1] + "b"
 
-		if err := testutils.CopyFile(pathRemoved, pathFull, 0755); err != nil {
+		if err := testutils.CopyFile(pathRemoved, pathFull, 0755|fs.ModeSetuid|fs.ModeSetgid); err != nil {
 			t.Fatalf("testutils.CopyFileerror: %s", err)
 		}
 
@@ -7492,6 +7509,15 @@ spec:
 		} else {
 			pathRemovedCheck = pathCheck[:len(pathCheck)-1] + "b"
 		}
+
+		st, err := os.Stat(pathRemoved)
+		require.NoError(t, err)
+		pathPerm := tpath.FilePathModeToStr(uint16(st.Mode() | syscall.S_IFREG | syscall.S_ISUID | syscall.S_ISGID))
+
+		t.Logf("path full:     %s\n", pathFull)
+		t.Logf("path removed:  %s\n", pathRemoved)
+		t.Logf("path check:    %s\n", pathRemovedCheck)
+		t.Logf("path perm:     %s\n", pathPerm)
 
 		hook := `
 apiVersion: cilium.io/v1alpha1
@@ -7525,7 +7551,8 @@ spec:
 				WithOperator(lc.Ordered).
 				WithValues(
 					ec.NewKprobeArgumentChecker().WithPathArg(ec.NewKprobePathChecker().
-						WithPath(sm.Full(pathRemovedCheck)),
+						WithPath(sm.Full(pathRemovedCheck)).
+						WithPermission(sm.Full(pathPerm)),
 					),
 				)).
 			WithProcess(ec.NewProcessChecker().
