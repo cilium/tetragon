@@ -8,6 +8,7 @@ import (
 	"github.com/cilium/tetragon/pkg/filters"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/watchermetrics"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/podhelpers"
 	"github.com/cilium/tetragon/pkg/watcher"
 
@@ -65,7 +66,7 @@ func getPodInfo(
 	}
 	workloadObject, workloadType := podhelpers.GetWorkloadMetaFromPod(pod)
 	watchermetrics.GetWatcherEvents(watchermetrics.K8sWatcher).Inc()
-	return &tetragon.Pod{
+	podInfo := &tetragon.Pod{
 		Namespace:    pod.Namespace,
 		Workload:     workloadObject.Name,
 		WorkloadKind: workloadType.Kind,
@@ -83,4 +84,8 @@ func getPodInfo(
 			MaybeExecProbe: maybeExecProbe,
 		},
 	}
+	if option.Config.EnablePodAnnotations {
+		podInfo.PodAnnotations = pod.Annotations
+	}
+	return podInfo
 }
