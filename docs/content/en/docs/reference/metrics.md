@@ -25,7 +25,7 @@ Build information about tetragon
 | label | values |
 | ----- | ------ |
 | `commit` | `931b70f2c9878ba985ba6b589827bea17da6ec33` |
-| `go_version` | `go1.24.1` |
+| `go_version` | `go1.24.2` |
 | `modified` | `false` |
 | `time ` | `2022-05-13T15:54:45Z` |
 | `version` | `v1.2.0` |
@@ -400,7 +400,7 @@ Information about the Go environment.
 
 | label | values |
 | ----- | ------ |
-| `version` | `go1.24.1` |
+| `version` | `go1.24.2` |
 
 ### `go_memstats_alloc_bytes`
 
