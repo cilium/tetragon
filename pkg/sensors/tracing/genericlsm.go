@@ -121,13 +121,13 @@ func handleGenericLsm(r *bytes.Reader) ([]observer.Event, error) {
 	err := binary.Read(r, binary.LittleEndian, &m)
 	if err != nil {
 		logger.GetLogger().WithError(err).Warnf("Failed to read process call msg")
-		return nil, fmt.Errorf("Failed to read process call msg")
+		return nil, fmt.Errorf("failed to read process call msg")
 	}
 
 	gl, err := genericLsmTableGet(idtable.EntryID{ID: int(m.FuncId)})
 	if err != nil {
 		logger.GetLogger().WithError(err).Warnf("Failed to match id:%d", m.FuncId)
-		return nil, fmt.Errorf("Failed to match id")
+		return nil, fmt.Errorf("failed to match id")
 	}
 
 	unix := &tracing.MsgGenericLsmUnix{}
@@ -155,7 +155,7 @@ func handleGenericLsm(r *bytes.Reader) ([]observer.Event, error) {
 		err := binary.Read(r, binary.LittleEndian, &state)
 		if err != nil {
 			logger.GetLogger().WithError(err).Warnf("Failed to read IMA hash state")
-			return nil, fmt.Errorf("Failed to read IMA hash state")
+			return nil, fmt.Errorf("failed to read IMA hash state")
 		}
 		if state != 2 {
 			logger.GetLogger().WithError(err).Warnf("LSM bpf program chain is violated")
@@ -165,13 +165,13 @@ func handleGenericLsm(r *bytes.Reader) ([]observer.Event, error) {
 		err = binary.Read(r, binary.LittleEndian, &algo)
 		if err != nil {
 			logger.GetLogger().WithError(err).Warnf("Failed to read IMA hash algorithm")
-			return nil, fmt.Errorf("Failed to read IMA hash algorithm")
+			return nil, fmt.Errorf("failed to read IMA hash algorithm")
 		}
 		unix.ImaHash.Algo = int32(algo)
 		err = binary.Read(r, binary.LittleEndian, &unix.ImaHash.Hash)
 		if err != nil {
 			logger.GetLogger().WithError(err).Warnf("Failed to read IMA hash value")
-			return nil, fmt.Errorf("Failed to read IMA hash value")
+			return nil, fmt.Errorf("failed to read IMA hash value")
 		}
 	}
 
@@ -193,7 +193,7 @@ func isValidLsmSelectors(selectors []v1alpha1.KProbeSelector) error {
 					continue
 				case "post":
 					if a.KernelStackTrace || a.UserStackTrace {
-						return fmt.Errorf("Stacktrace actions are not supported")
+						return fmt.Errorf("stacktrace actions are not supported")
 					}
 				default:
 					return fmt.Errorf("%s action is not supported", a.Action)
@@ -229,14 +229,14 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 
 	msgField, err := getPolicyMessage(f.Message)
 	if errors.Is(err, ErrMsgSyntaxShort) || errors.Is(err, ErrMsgSyntaxEscape) {
-		return errFn(fmt.Errorf("Error: '%v'", err))
+		return errFn(fmt.Errorf("error: '%v'", err))
 	} else if errors.Is(err, ErrMsgSyntaxLong) {
 		logger.GetLogger().WithField("policy-name", in.policyName).Warnf("TracingPolicy 'message' field too long, truncated to %d characters", TpMaxMessageLen)
 	}
 
 	tagsField, err := getPolicyTags(f.Tags)
 	if err != nil {
-		return errFn(fmt.Errorf("Error: '%v'", err))
+		return errFn(fmt.Errorf("error: '%v'", err))
 	}
 
 	// Parse Arguments
@@ -245,11 +245,11 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 
 		if a.Resolve != "" && j < api.EventConfigMaxArgs {
 			if !bpf.HasProgramLargeSize() {
-				return errFn(fmt.Errorf("Error: Resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag"))
+				return errFn(fmt.Errorf("error: Resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag"))
 			}
 			lastBTFType, btfArg, err := resolveBTFArg("bpf_lsm_"+f.Hook, a)
 			if err != nil {
-				return errFn(fmt.Errorf("Error on hook %q for index %d : %v", f.Hook, a.Index, err))
+				return errFn(fmt.Errorf("error on hook %q for index %d : %v", f.Hook, a.Index, err))
 			}
 			allBTFArgs[j] = btfArg
 			argType = findTypeFromBTFType(a, lastBTFType)
@@ -272,7 +272,7 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 			return errFn(err)
 		}
 		if a.Index > 4 {
-			return errFn(fmt.Errorf("Error add arg: ArgType %s Index %d out of bounds",
+			return errFn(fmt.Errorf("error add arg: ArgType %s Index %d out of bounds",
 				a.Type, int(a.Index)))
 		}
 		config.Arg[a.Index] = int32(argType)
@@ -352,7 +352,7 @@ func createGenericLsmSensor(
 	var err error
 
 	if !bpf.HasLSMPrograms() || !config.EnableLargeProgs() {
-		return nil, fmt.Errorf("Does you kernel support the bpf LSM? You can enable LSM BPF by modifying" +
+		return nil, fmt.Errorf("does you kernel support the bpf LSM? You can enable LSM BPF by modifying" +
 			"the GRUB configuration /etc/default/grub with GRUB_CMDLINE_LINUX=\"lsm=bpf\"")
 	}
 

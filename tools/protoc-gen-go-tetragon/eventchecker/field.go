@@ -249,7 +249,7 @@ func doGetFieldFrom(field *Field, g *protogen.GeneratedFile, handleList, handleO
 		return doEnumFrom(), nil
 
 	default:
-		return "", fmt.Errorf("Unhandled field type %s (please edit doGetFieldFrom in field.go)", kind)
+		return "", fmt.Errorf("unhandled field type %s (please edit doGetFieldFrom in field.go)", kind)
 	}
 }
 
@@ -465,7 +465,7 @@ func checkForKind(g *protogen.GeneratedFile, field *Field, checkerVar, eventVar 
 		return doEnumCheck(), nil
 
 	default:
-		return "", fmt.Errorf("Unhandled field type %s (please edit checkForKind in field.go)", kind)
+		return "", fmt.Errorf("unhandled field type %s (please edit checkForKind in field.go)", kind)
 	}
 }
 
@@ -834,7 +834,7 @@ func (field *Field) typeName(g *protogen.GeneratedFile) (string, error) {
 		}
 
 	default:
-		return "", fmt.Errorf("Unhandled field type %s (please edit checkerTypeName in field.go)", kind)
+		return "", fmt.Errorf("unhandled field type %s (please edit checkerTypeName in field.go)", kind)
 	}
 
 	if field.isMap() {

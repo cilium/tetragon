@@ -28,7 +28,7 @@ func operatorFromString(str string) (Operator, error) {
 	case Subset.slug:
 		return Subset, nil
 	default:
-		return opUnknown, fmt.Errorf("Invalid value for ListMatcher operator: %s", str)
+		return opUnknown, fmt.Errorf("invalid value for ListMatcher operator: %s", str)
 	}
 }
 

@@ -315,7 +315,7 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	// bother renaming in that case.
 	oldBpfDir, err := getOldBpfDir(bpf.MapPrefixPath())
 	if err != nil {
-		return fmt.Errorf("Failed to move old tetragon base directory: %w", err)
+		return fmt.Errorf("failed to move old tetragon base directory: %w", err)
 	}
 
 	if option.Config.PprofAddr != "" {
@@ -617,7 +617,7 @@ func loadTpFromDir(ctx context.Context, dir string) error {
 			log.WithField("tracing-policy-dir", dir).Info("Loading Tracing Policies from directory ignored, directory does not exist")
 			return nil
 		}
-		return fmt.Errorf("Failed to access tracing policies dir %s: %w", dir, err)
+		return fmt.Errorf("failed to access tracing policies dir %s: %w", dir, err)
 	}
 
 	tpMaxDepth := 1

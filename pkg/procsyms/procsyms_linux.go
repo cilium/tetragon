@@ -26,11 +26,11 @@ func GetFnSymbol(pid int, addr uint64) (*FnSym, error) {
 	// TODO: Think about cache [pid+addr] -> [module+offset]
 	p, err := procfs.NewProc(pid)
 	if err != nil {
-		return nil, fmt.Errorf("Can't open /proc/%d", pid)
+		return nil, fmt.Errorf("can't open /proc/%d", pid)
 	}
 	maps, err := p.ProcMaps()
 	if err != nil {
-		return nil, fmt.Errorf("Can't get proc/%d/maps", pid)
+		return nil, fmt.Errorf("can't get proc/%d/maps", pid)
 	}
 
 	if len(maps) == 0 {

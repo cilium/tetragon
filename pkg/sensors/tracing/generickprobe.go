@@ -444,7 +444,7 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec, lists []v1al
 		// or specifies directly the function
 		if isL, list := isList(f.Call, lists); isL {
 			if list == nil {
-				return fmt.Errorf("Error list '%s' not found", f.Call)
+				return fmt.Errorf("error list '%s' not found", f.Call)
 			}
 			var err error
 			calls, err = getListSymbols(list)
@@ -477,12 +477,12 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec, lists []v1al
 
 		if selectors.HasOverride(f) {
 			if !bpf.HasOverrideHelper() {
-				return fmt.Errorf("Error override action not supported, bpf_override_return helper not available")
+				return fmt.Errorf("error override action not supported, bpf_override_return helper not available")
 			}
 			if !f.Syscall {
 				for idx := range calls {
 					if !strings.HasPrefix(calls[idx], "security_") {
-						return fmt.Errorf("Error override action can be used only with syscalls and security_ hooks")
+						return fmt.Errorf("error override action can be used only with syscalls and security_ hooks")
 					}
 				}
 			}
@@ -701,30 +701,30 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 
 	if selectors.HasOverride(f) {
 		if isSecurityFunc && in.useMulti {
-			return errFn(fmt.Errorf("Error: can't override '%s' function with kprobe_multi, use --disable-kprobe-multi option",
+			return errFn(fmt.Errorf("error: can't override '%s' function with kprobe_multi, use --disable-kprobe-multi option",
 				funcName))
 		}
 		if isSecurityFunc && !bpf.HasModifyReturn() {
-			return errFn(fmt.Errorf("Error: can't override '%s' function without fmodret support",
+			return errFn(fmt.Errorf("error: can't override '%s' function without fmodret support",
 				funcName))
 		}
 	}
 
 	if in.useMulti && instance > 0 {
-		return errFn(fmt.Errorf("Error: can't have multiple instances of same symbol '%s' with kprobe_multi, use --disable-kprobe-multi option",
+		return errFn(fmt.Errorf("error: can't have multiple instances of same symbol '%s' with kprobe_multi, use --disable-kprobe-multi option",
 			funcName))
 	}
 
 	msgField, err := getPolicyMessage(f.Message)
 	if errors.Is(err, ErrMsgSyntaxShort) || errors.Is(err, ErrMsgSyntaxEscape) {
-		return errFn(fmt.Errorf("Error: '%v'", err))
+		return errFn(fmt.Errorf("error: '%v'", err))
 	} else if errors.Is(err, ErrMsgSyntaxLong) {
 		logger.GetLogger().WithField("policy-name", in.policyName).Warnf("TracingPolicy 'message' field too long, truncated to %d characters", TpMaxMessageLen)
 	}
 
 	tagsField, err := getPolicyTags(f.Tags)
 	if err != nil {
-		return errFn(fmt.Errorf("Error: '%v'", err))
+		return errFn(fmt.Errorf("error: '%v'", err))
 	}
 
 	argRetprobe = nil // holds pointer to arg for return handler
@@ -744,11 +744,11 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 
 		if a.Resolve != "" && j < api.EventConfigMaxArgs {
 			if !bpf.HasProgramLargeSize() {
-				return errFn(fmt.Errorf("Error: Resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag"))
+				return errFn(fmt.Errorf("error: Resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag"))
 			}
 			lastBTFType, btfArg, err := resolveBTFArg(f.Call, a)
 			if err != nil {
-				return errFn(fmt.Errorf("Error on hook %q for index %d : %v", f.Call, a.Index, err))
+				return errFn(fmt.Errorf("error on hook %q for index %d : %v", f.Call, a.Index, err))
 			}
 			allBTFArgs[j] = btfArg
 			argType = findTypeFromBTFType(a, lastBTFType)
@@ -774,7 +774,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 			argRetprobe = &f.Args[j]
 		}
 		if a.Index > 4 {
-			return errFn(fmt.Errorf("Error add arg: ArgType %s Index %d out of bounds",
+			return errFn(fmt.Errorf("error add arg: ArgType %s Index %d out of bounds",
 				a.Type, int(a.Index)))
 		}
 		config.BTFArg = allBTFArgs
@@ -1193,13 +1193,13 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 	err := binary.Read(r, binary.LittleEndian, &m)
 	if err != nil {
 		logger.GetLogger().WithError(err).Warnf("Failed to read process call msg")
-		return nil, fmt.Errorf("Failed to read process call msg")
+		return nil, fmt.Errorf("failed to read process call msg")
 	}
 
 	gk, err := genericKprobeTableGet(idtable.EntryID{ID: int(m.FuncId)})
 	if err != nil {
 		logger.GetLogger().WithError(err).Warnf("Failed to match id:%d", m.FuncId)
-		return nil, fmt.Errorf("Failed to match id")
+		return nil, fmt.Errorf("failed to match id")
 	}
 
 	ret, err := handleMsgGenericKprobe(&m, gk, r)
@@ -1217,7 +1217,7 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 		actionArgEntry, err := gk.actionArgs.GetEntry(idtable.EntryID{ID: int(m.ActionArgId)})
 		if err != nil {
 			logger.GetLogger().WithError(err).Warnf("Failed to find argument for id:%d", m.ActionArgId)
-			return nil, fmt.Errorf("Failed to find argument for id")
+			return nil, fmt.Errorf("failed to find argument for id")
 		}
 		actionArg := actionArgEntry.(*selectors.ActionArgEntry).GetArg()
 		switch m.ActionId {

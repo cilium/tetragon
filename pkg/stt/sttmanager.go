@@ -133,7 +133,7 @@ func (h Handle) DestroyTree(tname string) error {
 
 func (h Handle) Insert(tname string, stt *stt.Stt) error {
 	if h == nil {
-		return fmt.Errorf("Instert failed, Handle is nil")
+		return fmt.Errorf("instert failed, Handle is nil")
 	}
 
 	retc := make(chan error)

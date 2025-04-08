@@ -1008,11 +1008,11 @@ func (msg *MsgProcessThrottleUnix) Notify() bool {
 }
 
 func (msg *MsgProcessThrottleUnix) RetryInternal(_ notify.Event, _ uint64) (*process.ProcessInternal, error) {
-	return nil, fmt.Errorf("Unreachable state: MsgProcessThrottleUnix RetryInternal() was called")
+	return nil, fmt.Errorf("unreachable state: MsgProcessThrottleUnix RetryInternal() was called")
 }
 
 func (msg *MsgProcessThrottleUnix) Retry(_ *process.ProcessInternal, _ notify.Event) error {
-	return fmt.Errorf("Unreachable state: MsgProcessThrottleUnix Retry() was called")
+	return fmt.Errorf("unreachable state: MsgProcessThrottleUnix Retry() was called")
 }
 
 func (msg *MsgProcessThrottleUnix) HandleMessage() *tetragon.GetEventsResponse {

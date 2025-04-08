@@ -59,7 +59,7 @@ func fillStatus(file string, status *Status) error {
 	path := filepath.Join(file, "status")
 	f, err := os.Open(path)
 	if err != nil {
-		return fmt.Errorf("Open %s failed: %v", path, err)
+		return fmt.Errorf("open %s failed: %v", path, err)
 	}
 
 	defer f.Close()
@@ -75,14 +75,14 @@ func fillStatus(file string, status *Status) error {
 
 		if fields[0] == "Uid:" {
 			if len(fields) != 5 {
-				return fmt.Errorf("Reading Uid from %s failed: malformed input", path)
+				return fmt.Errorf("reading Uid from %s failed: malformed input", path)
 			}
 			status.Uids = []string{fields[1], fields[2], fields[3], fields[4]}
 		}
 
 		if fields[0] == "Gid:" {
 			if len(fields) != 5 {
-				return fmt.Errorf("Reading Gid from %s failed: malformed input", path)
+				return fmt.Errorf("reading Gid from %s failed: malformed input", path)
 			}
 			status.Gids = []string{fields[1], fields[2], fields[3], fields[4]}
 		}

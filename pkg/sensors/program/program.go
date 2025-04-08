@@ -198,11 +198,11 @@ func (p *Program) Unload(unpin bool) error {
 		return nil
 	}
 	if err := p.unloader.Unload(unpin); err != nil {
-		return fmt.Errorf("Failed to unload: %w", err)
+		return fmt.Errorf("failed to unload: %w", err)
 	}
 	if p.unloaderOverride != nil {
 		if err := p.unloaderOverride.Unload(unpin); err != nil {
-			return fmt.Errorf("Failed to unload override: %w", err)
+			return fmt.Errorf("failed to unload override: %w", err)
 		}
 	}
 	p.unloader = nil

@@ -181,7 +181,7 @@ func (k *Ksyms) getFnOffset(addr uint64) (*FnOffset, error) {
 
 	sym := k.table[l]
 	if !sym.isFunction() {
-		return nil, fmt.Errorf("Unable to find function for addr 0x%x", addr)
+		return nil, fmt.Errorf("unable to find function for addr 0x%x", addr)
 	}
 
 	return &FnOffset{

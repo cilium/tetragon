@@ -290,7 +290,7 @@ func SelectorOp(op string) (uint32, error) {
 		return SelectorOpState, nil
 	}
 
-	return 0, fmt.Errorf("Unknown op '%s'", op)
+	return 0, fmt.Errorf("unknown op '%s'", op)
 }
 
 const (
@@ -422,7 +422,7 @@ func writeRangeInMap(v string, ty uint32, op uint32, m *ValueMap) error {
 			}
 			uRangeVal[idx] = i
 		default:
-			return fmt.Errorf("Unknown type: %d", ty)
+			return fmt.Errorf("unknown type: %d", ty)
 		}
 	}
 	switch ty {
@@ -479,7 +479,7 @@ func writeListValuesInMap(k *KernelSelectorState, v string, ty uint32, m *ValueM
 		case gt.GenericU64Type, gt.GenericU32Type, gt.GenericU16Type, gt.GenericU8Type:
 			binary.LittleEndian.PutUint64(val[:], uint64(values[idx]))
 		default:
-			return fmt.Errorf("Unknown type: %d", ty)
+			return fmt.Errorf("unknown type: %d", ty)
 		}
 		m.Data[val] = struct{}{}
 	}
@@ -520,7 +520,7 @@ func writeMatchValuesInMap(k *KernelSelectorState, values []string, ty uint32, o
 			}
 			binary.LittleEndian.PutUint64(val[:], uint64(i))
 		default:
-			return fmt.Errorf("Unknown type: %d", ty)
+			return fmt.Errorf("unknown type: %d", ty)
 		}
 		m.Data[val] = struct{}{}
 	}
@@ -1037,7 +1037,7 @@ func namespaceSelectorValue(ns *v1alpha1.NamespaceSelector, nstype string) ([]by
 				}
 				val = uint64(n)
 			} else {
-				return b, 0, fmt.Errorf("Values for matchNamespace can only be numeric or \"host_ns\". (%w)", err)
+				return b, 0, fmt.Errorf("values for matchNamespace can only be numeric or \"host_ns\". (%w)", err)
 			}
 		}
 

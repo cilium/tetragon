@@ -237,7 +237,7 @@ func (out *genericTracepointArg) getGenericTypeId() (int, error) {
 		return gt.GenericSizeType, nil
 	}
 
-	return gt.GenericInvalidType, fmt.Errorf("Unknown type: %T", out.format.Field.Type)
+	return gt.GenericInvalidType, fmt.Errorf("unknown type: %T", out.format.Field.Type)
 }
 
 func buildGenericTracepointArgs(info *tracepoint.Tracepoint, specArgs []v1alpha1.KProbeArg) ([]genericTracepointArg, error) {
@@ -686,7 +686,7 @@ func LoadGenericTracepointSensor(bpfDir string, load *program.Program, maps []*p
 
 	tp, err := genericTracepointTable.getTracepoint(tpIdx)
 	if err != nil {
-		return fmt.Errorf("Could not find generic tracepoint information for %s: %w", load.Attach, err)
+		return fmt.Errorf("could not find generic tracepoint information for %s: %w", load.Attach, err)
 	}
 
 	load.MapLoad = append(load.MapLoad, selectorsMaploads(tp.selectors, 0)...)
@@ -719,7 +719,7 @@ func handleGenericTracepoint(r *bytes.Reader) ([]observer.Event, error) {
 	m := tracingapi.MsgGenericTracepoint{}
 	err := binary.Read(r, binary.LittleEndian, &m)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read tracepoint: %w", err)
+		return nil, fmt.Errorf("failed to read tracepoint: %w", err)
 	}
 
 	unix := &tracing.MsgGenericTracepointUnix{
@@ -753,7 +753,7 @@ func handleMsgGenericTracepoint(
 		actionArgEntry, err := tp.actionArgs.GetEntry(idtable.EntryID{ID: int(m.ActionArgId)})
 		if err != nil {
 			logger.GetLogger().WithError(err).Warnf("Failed to find argument for id:%d", m.ActionArgId)
-			return nil, fmt.Errorf("Failed to find argument for id")
+			return nil, fmt.Errorf("failed to find argument for id")
 		}
 		actionArg := actionArgEntry.(*selectors.ActionArgEntry).GetArg()
 		switch m.ActionId {

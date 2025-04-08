@@ -126,7 +126,7 @@ func (k *loaderSensor) PolicyHandler(p tracingpolicy.TracingPolicy, fid policyfi
 	}
 
 	if !hasLoaderEvents() {
-		return nil, fmt.Errorf("Loader event are not supported on running kernel")
+		return nil, fmt.Errorf("loader event are not supported on running kernel")
 	}
 	loaderEnabled = true
 	return GetLoaderSensor(), nil
@@ -201,7 +201,7 @@ func handleLoader(r *bytes.Reader) ([]observer.Event, error) {
 	err := binary.Read(r, binary.LittleEndian, &m)
 	if err != nil {
 		logger.GetLogger().WithError(err).Warnf("Failed to read process call msg")
-		return nil, fmt.Errorf("Failed to read process call msg")
+		return nil, fmt.Errorf("failed to read process call msg")
 	}
 
 	path := m.Path[:m.PathSize-1]

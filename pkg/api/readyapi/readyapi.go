@@ -18,11 +18,11 @@ func (msg *MsgTetragonReady) Notify() bool {
 }
 
 func (msg *MsgTetragonReady) RetryInternal(_ notify.Event, _ uint64) (*process.ProcessInternal, error) {
-	return nil, fmt.Errorf("Unsupported cache event MsgTetragonReady")
+	return nil, fmt.Errorf("unsupported cache event MsgTetragonReady")
 }
 
 func (msg *MsgTetragonReady) Retry(_ *process.ProcessInternal, _ notify.Event) error {
-	return fmt.Errorf("Unsupported cache retry event MsgTetragonReady")
+	return fmt.Errorf("unsupported cache retry event MsgTetragonReady")
 }
 
 func (msg *MsgTetragonReady) HandleMessage() *tetragon.GetEventsResponse {

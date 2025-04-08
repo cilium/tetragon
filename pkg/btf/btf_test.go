@@ -538,13 +538,13 @@ func testAssertErrorOnInvalidPath(spec *btf.Spec) func(*testing.T) {
 
 		// Assert an error is raised when attribute does not exists
 		_, _, err = testPathIsAccessible(rootType, "fail")
-		assert.ErrorContains(t, err, "Attribute \"fail\" not found in structure")
+		assert.ErrorContains(t, err, "attribute \"fail\" not found in structure")
 
 		_, _, err = testPathIsAccessible(rootType, "mm.fail")
-		assert.ErrorContains(t, err, "Attribute \"fail\" not found in structure")
+		assert.ErrorContains(t, err, "attribute \"fail\" not found in structure")
 
 		_, _, err = testPathIsAccessible(rootType, "mm.pgd.fail")
-		assert.ErrorContains(t, err, "Attribute \"fail\" not found in structure")
+		assert.ErrorContains(t, err, "attribute \"fail\" not found in structure")
 
 		hook = "do_sys_open"
 		argIndex = 0 // int dfd
@@ -555,7 +555,7 @@ func testAssertErrorOnInvalidPath(spec *btf.Spec) func(*testing.T) {
 
 		// Assert an error is raised when attribute has invalid type
 		_, _, err = testPathIsAccessible(rootType, "fail")
-		assert.ErrorContains(t, err, fmt.Sprintf("Unexpected type : \"fail\" has type %q", rootType.TypeName()))
+		assert.ErrorContains(t, err, fmt.Sprintf("unexpected type : \"fail\" has type %q", rootType.TypeName()))
 	}
 }
 

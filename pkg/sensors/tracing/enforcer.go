@@ -219,7 +219,7 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 		var symsToAdd []string
 		if isL, list := isList(call, lists); isL {
 			if list == nil {
-				return nil, fmt.Errorf("Error list '%s' not found", call)
+				return nil, fmt.Errorf("error list '%s' not found", call)
 			}
 			switch list.Type {
 			case "syscalls":

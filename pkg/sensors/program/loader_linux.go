@@ -387,7 +387,7 @@ func LSMOpen(load *Program) OpenFunc {
 			if prog.AttachType == ebpf.AttachLSMMac {
 				prog.AttachTo = load.Attach
 			} else {
-				return fmt.Errorf("Only AttachLSMMac is supported for generic_lsm programs")
+				return fmt.Errorf("only AttachLSMMac is supported for generic_lsm programs")
 			}
 		}
 		return nil
