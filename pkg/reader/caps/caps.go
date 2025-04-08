@@ -54,11 +54,10 @@ func isCapValid(capInt int32) bool {
 	return false
 }
 
-// AreSubset() Checks if "a" is a subset of "set"
-// Rerturns true if all "a" capabilities are also in "set", otherwise
-// false.
+// AreSubset checks if "a" is a subset of "set". Returns true if all "a"
+// capabilities are also in "set", otherwise false.
 func AreSubset(a uint64, set uint64) bool {
-	return (!((a & ^uint64(set)) != 0))
+	return (a & set) == a
 }
 
 // capToMask() returns the mask of the corresponding u32
