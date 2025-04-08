@@ -4,7 +4,8 @@
 package network
 
 import (
-	"fmt"
+	"errors"
+	"strconv"
 )
 
 func InetFamily(family uint16) string {
@@ -12,7 +13,7 @@ func InetFamily(family uint16) string {
 	if f, ok := inetFamily[family]; ok {
 		return f
 	}
-	return fmt.Sprintf("%d", family)
+	return strconv.FormatUint(uint64(family), 10)
 }
 
 func InetFamilyNumber(family string) (uint16, error) {
@@ -21,7 +22,7 @@ func InetFamilyNumber(family string) (uint16, error) {
 			return familynum, nil
 		}
 	}
-	return 0, fmt.Errorf("address family string not known")
+	return 0, errors.New("address family string not known")
 }
 
 var inetType = map[uint16]string{
@@ -38,7 +39,7 @@ func InetType(ty uint16) string {
 	if t, ok := inetType[ty]; ok {
 		return t
 	}
-	return fmt.Sprintf("%d", ty)
+	return strconv.FormatUint(uint64(ty), 10)
 }
 
 var inetProtocol = map[uint16]string{
@@ -75,7 +76,7 @@ func InetProtocol(proto uint16) string {
 	if p, ok := inetProtocol[proto]; ok {
 		return p
 	}
-	return fmt.Sprintf("%d", proto)
+	return strconv.FormatUint(uint64(proto), 10)
 }
 
 func InetProtocolNumber(proto string) (uint16, error) {
@@ -84,7 +85,7 @@ func InetProtocolNumber(proto string) (uint16, error) {
 			return protonum, nil
 		}
 	}
-	return 0, fmt.Errorf("protocol string not known")
+	return 0, errors.New("protocol string not known")
 }
 
 var tcpState = map[uint8]string{
@@ -106,7 +107,7 @@ func TcpState(state uint8) string {
 	if p, ok := tcpState[state]; ok {
 		return p
 	}
-	return fmt.Sprintf("%d", state)
+	return strconv.FormatUint(uint64(state), 10)
 }
 
 func TcpStateNumber(state string) (uint8, error) {
@@ -115,5 +116,5 @@ func TcpStateNumber(state string) (uint8, error) {
 			return statenum, nil
 		}
 	}
-	return 0, fmt.Errorf("state string not known")
+	return 0, errors.New("state string not known")
 }

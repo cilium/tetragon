@@ -7,6 +7,7 @@ package policyfilter
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"math/rand"
 	"testing"
@@ -71,7 +72,7 @@ type testPod struct {
 func (ts *testState) randString(length int) string {
 	b := make([]byte, length+2)
 	ts.rnd.Read(b)
-	return fmt.Sprintf("%x", b)[2 : length+2]
+	return hex.EncodeToString(b)[2 : length+2]
 }
 
 // testState provides two things: i) helper functions for creating/updating pods, and ii) a fake

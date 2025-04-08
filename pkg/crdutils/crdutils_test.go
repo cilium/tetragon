@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 	"text/template"
@@ -445,7 +446,7 @@ func TestExamplesSmoke(t *testing.T) {
 
 		// Fill this in with template data as needed
 		data := map[string]string{
-			"Pid": fmt.Sprint(os.Getpid()),
+			"Pid": strconv.Itoa(os.Getpid()),
 		}
 
 		// Attempt to parse the file

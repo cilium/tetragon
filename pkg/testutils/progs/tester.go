@@ -188,7 +188,7 @@ func (pt *Tester) Ping() error {
 // Exec is very basic. tester will split arguments using strings.Fields() (see TesterMain), execute the comand, and
 // return its combined output in stdout.
 func (pt *Tester) Exec(cmd string) (string, error) {
-	execCmd := fmt.Sprintf("exec %s", cmd)
+	execCmd := "exec " + cmd
 	out, err := pt.Command(execCmd)
 	if err != nil {
 		return "", fmt.Errorf("exec failed: %w", err)
@@ -198,7 +198,7 @@ func (pt *Tester) Exec(cmd string) (string, error) {
 
 // similar to Exec, but command may fail
 func (pt *Tester) ExecMayFail(cmd string) (string, error) {
-	execCmd := fmt.Sprintf("exec_mayfail %s", cmd)
+	execCmd := "exec_mayfail " + cmd
 	out, err := pt.Command(execCmd)
 	if err != nil {
 		return "", fmt.Errorf("exec_mayfail failed: %w", err)
@@ -226,7 +226,7 @@ func (pt *Tester) Stop() error {
 func (pt *Tester) AddToCgroup(t *testing.T, cgroupPath string) {
 	pid := pt.Cmd.Process.Pid
 	procs := filepath.Join(cgroupPath, "cgroup.procs")
-	pidStr := fmt.Sprintf("%d", pid)
+	pidStr := strconv.Itoa(pid)
 	err := os.WriteFile(procs, []byte(pidStr), 0644)
 	require.NoError(t, err, fmt.Sprintf("failed to add pid '%s' to %s", pidStr, procs))
 	// TODO: add check that cgroup is what we set

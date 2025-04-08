@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"strconv"
 	"sync"
 	"syscall"
 	"testing"
@@ -106,7 +107,7 @@ func TestExitLeader(t *testing.T) {
 		fmt.Printf("delta %v\n", delta)
 
 		if delta < 5*time.Second {
-			return fmt.Errorf("unexpected delta < 5 seconds")
+			return errors.New("unexpected delta < 5 seconds")
 		}
 		return nil
 	}
@@ -228,7 +229,7 @@ func TestExitCode(t *testing.T) {
 		// since Linux will return an unsigned integer after execution
 		expectedCode := uint8(testCaseCode)
 
-		if err := exec.Command(testExitCodeBinary, fmt.Sprint(testCaseCode)).Run(); err != nil {
+		if err := exec.Command(testExitCodeBinary, strconv.Itoa(int(testCaseCode))).Run(); err != nil {
 			if exitErr := new(exec.ExitError); errors.As(err, &exitErr) {
 				if uint8(exitErr.ExitCode()) != expectedCode {
 					t.Errorf("unexpected: wanted exit code %d, execution returned %d", expectedCode, exitErr.ExitCode())
@@ -293,7 +294,7 @@ func TestExitSignal(t *testing.T) {
 		}
 
 		checker.AddChecks(
-			ec.NewProcessExitChecker(fmt.Sprintf("exitSignal=%s", expectedSignal)).WithSignal(sm.Full(expectedSignal)),
+			ec.NewProcessExitChecker("exitSignal=" + expectedSignal).WithSignal(sm.Full(expectedSignal)),
 		)
 	}
 

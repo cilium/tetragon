@@ -4,7 +4,7 @@
 package sensors
 
 import (
-	"fmt"
+	"errors"
 	"testing"
 	"time"
 )
@@ -51,7 +51,7 @@ func (tds *TestDelayedSensor) Load(_ string) error {
 	select {
 	case <-tds.ch:
 	case <-time.After(10 * time.Second):
-		return fmt.Errorf("TestDelayedSensor/Load timeout when waiting for unblocking")
+		return errors.New("TestDelayedSensor/Load timeout when waiting for unblocking")
 	}
 	tds.loaded = true
 	return nil
@@ -61,7 +61,7 @@ func (tds *TestDelayedSensor) Unload(_ bool) error {
 	select {
 	case <-tds.ch:
 	case <-time.After(10 * time.Second):
-		return fmt.Errorf("TestDelayedSensor/Unload timeout when waiting for unblocking")
+		return errors.New("TestDelayedSensor/Unload timeout when waiting for unblocking")
 	}
 	tds.loaded = false
 	return nil

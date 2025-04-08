@@ -5,6 +5,7 @@ package filters
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -84,7 +85,7 @@ func ensure_single_set_defined(filter *tetragon.CapFilterSet) error {
 		return fmt.Errorf("capability filter may only define one match set, got: %s", strings.Join(defined[:], ", "))
 	}
 	if len(defined) == 0 {
-		return fmt.Errorf("capability filter must define exactly one match set")
+		return errors.New("capability filter must define exactly one match set")
 	}
 	return nil
 }
@@ -94,7 +95,7 @@ func (f *CapsFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]hu
 	if ff.Capabilities != nil {
 		// Enable caps filter only if processCred is enabled
 		if !option.Config.EnableProcessCred {
-			return nil, fmt.Errorf("capabilities are not enabled in process events, cannot configure capability filter")
+			return nil, errors.New("capabilities are not enabled in process events, cannot configure capability filter")
 		}
 
 		if err := ensure_single_set_defined(ff.Capabilities.Permitted); err != nil {

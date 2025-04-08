@@ -8,6 +8,7 @@ package exec
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -226,7 +227,7 @@ func mountCgroupv1Controllers(t *testing.T, cgroupRoot string, usedController st
 	}
 
 	if mountedControllers == 0 {
-		return nil, fmt.Errorf("failed to mount cgroupv1 controllers")
+		return nil, errors.New("failed to mount cgroupv1 controllers")
 	}
 	if usedControllerMounted == false {
 		// cleanup now

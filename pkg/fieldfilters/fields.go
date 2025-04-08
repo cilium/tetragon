@@ -230,7 +230,7 @@ func (f *FieldFilter) Filter(event *tetragon.GetEventsResponse) (*tetragon.GetEv
 	})
 
 	if !src.IsValid() {
-		return nil, fmt.Errorf("invalid event after field filter")
+		return nil, errors.New("invalid event after field filter")
 	}
 
 	return dst.Interface().(*tetragon.GetEventsResponse), errors.Join(filterErrs...)

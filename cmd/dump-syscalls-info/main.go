@@ -364,7 +364,7 @@ func (c *SyscallsIDsCmd) Run() error {
 			"git", "archive",
 			"--remote=git://sourceware.org/git/glibc.git",
 			//"HEAD:sysdeps/unix/sysv/linux/aarch64",
-			fmt.Sprintf("HEAD:%s", glibcLoc),
+			"HEAD:" + glibcLoc,
 			"--", "arch-syscall.h",
 			"|",
 			"tar", "xv", "-C", abiTmpDir},

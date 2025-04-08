@@ -4,7 +4,7 @@
 package fileutils
 
 import (
-	"fmt"
+	"errors"
 	"os"
 	"strconv"
 	"syscall"
@@ -26,7 +26,7 @@ const (
 // that the owner always has read/write permissions
 func RegularFilePerms(s string) (os.FileMode, error) {
 	if s == "" {
-		return regularSecure, fmt.Errorf("passed permissions are empty")
+		return regularSecure, errors.New("passed permissions are empty")
 	}
 
 	n, err := strconv.ParseUint(s, 8, 32)

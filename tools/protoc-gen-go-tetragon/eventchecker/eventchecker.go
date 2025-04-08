@@ -4,8 +4,6 @@
 package eventchecker
 
 import (
-	"fmt"
-
 	"github.com/cilium/tetragon/tools/protoc-gen-go-tetragon/common"
 	"google.golang.org/protobuf/compiler/protogen"
 )
@@ -155,7 +153,7 @@ func generateEventFromResponse(g *protogen.GeneratedFile, f []*protogen.File) er
     func EventFromResponse(response *` + tetragonGER + `) (Event, error) {
         switch ev := response.Event.(type) {`)
 	for _, event := range events {
-		g.P(`case *` + common.TetragonApiIdent(g, fmt.Sprintf("GetEventsResponse_%s", event.GoIdent.GoName)) + `:
+		g.P(`case *` + common.TetragonApiIdent(g, "GetEventsResponse_"+event.GoIdent.GoName) + `:
             return ev.` + event.GoIdent.GoName + `, nil`)
 	}
 	g.P(`

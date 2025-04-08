@@ -4,6 +4,7 @@
 package policyfilter
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -41,11 +42,11 @@ type NamespaceMap struct {
 func newNamespaceMap() (*NamespaceMap, error) {
 	idCache, err := lru.New[StateID, NSID](namespaceCacheSize)
 	if err != nil {
-		return nil, fmt.Errorf("create namespace ID cache failed")
+		return nil, errors.New("create namespace ID cache failed")
 	}
 	nameCache, err := lru.New[NSID, StateID](namespaceCacheSize)
 	if err != nil {
-		return nil, fmt.Errorf("create namespace name cache failed")
+		return nil, errors.New("create namespace name cache failed")
 	}
 
 	objName := config.ExecObj()

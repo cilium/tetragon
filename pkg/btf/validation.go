@@ -112,33 +112,33 @@ func ValidateKprobeSpec(bspec *btf.Spec, call string, kspec *v1alpha1.KProbeSpec
 	if kspec.Syscall {
 		ret, ok := proto.Return.(*btf.Int)
 		if !ok {
-			return fmt.Errorf("kprobe spec validation failed: syscall return type is not Int")
+			return errors.New("kprobe spec validation failed: syscall return type is not Int")
 		}
 		if ret.Name != "long int" {
-			return fmt.Errorf("kprobe spec validation failed: syscall return type is not long int")
+			return errors.New("kprobe spec validation failed: syscall return type is not long int")
 		}
 
 		if len(proto.Params) != 1 {
-			return fmt.Errorf("kprobe spec validation failed: syscall with more than one arg")
+			return errors.New("kprobe spec validation failed: syscall with more than one arg")
 		}
 
 		ptr, ok := proto.Params[0].Type.(*btf.Pointer)
 		if !ok {
-			return fmt.Errorf("kprobe spec validation failed: syscall arg is not pointer")
+			return errors.New("kprobe spec validation failed: syscall arg is not pointer")
 		}
 
 		cnst, ok := ptr.Target.(*btf.Const)
 		if !ok {
-			return fmt.Errorf("kprobe spec validation failed: syscall arg is not const pointer")
+			return errors.New("kprobe spec validation failed: syscall arg is not const pointer")
 		}
 
 		arg, ok := cnst.Type.(*btf.Struct)
 		if !ok {
-			return fmt.Errorf("kprobe spec validation failed: syscall arg is not const pointer to struct")
+			return errors.New("kprobe spec validation failed: syscall arg is not const pointer to struct")
 		}
 
 		if arg.Name != "pt_regs" {
-			return fmt.Errorf("kprobe spec validation failed: syscall arg is not const pointer to struct pt_regs")
+			return errors.New("kprobe spec validation failed: syscall arg is not const pointer to struct pt_regs")
 		}
 
 		// next try to deduce the syscall name.

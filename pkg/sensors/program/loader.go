@@ -3,7 +3,7 @@
 package program
 
 import (
-	"fmt"
+	"errors"
 	"path/filepath"
 	"strings"
 
@@ -53,7 +53,7 @@ type MissingConstantsError struct {
 }
 
 func (m *MissingConstantsError) Error() string {
-	return fmt.Sprintf("some constants are missing from .rodata: %s", strings.Join(m.Constants, ", "))
+	return "some constants are missing from .rodata: " + strings.Join(m.Constants, ", ")
 }
 
 // The loadProgram loads and attach bpf object @load. It is expected that user
@@ -88,7 +88,7 @@ func loadProgram(
 
 	// Attach function is mandatory
 	if opts.Attach == nil {
-		return fmt.Errorf("attach function is not provided")
+		return errors.New("attach function is not provided")
 	}
 
 	lc, err := doLoadProgram(bpfDir, load, opts, verbose)

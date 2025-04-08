@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/fs"
 	"net"
@@ -746,7 +747,7 @@ func startExporter(ctx context.Context, server *server.Server) error {
 	finfo, err := os.Stat(filepath.Clean(option.Config.ExportFilename))
 	if err == nil && finfo.IsDir() {
 		// Error if exportFilename points to a directory
-		return fmt.Errorf("passed export JSON logs file point to a directory")
+		return errors.New("passed export JSON logs file point to a directory")
 	}
 	logFile := filepath.Base(option.Config.ExportFilename)
 	logsDir, err := filepath.Abs(filepath.Dir(filepath.Clean(option.Config.ExportFilename)))

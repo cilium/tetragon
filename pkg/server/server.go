@@ -5,6 +5,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"sync"
@@ -220,7 +221,7 @@ func (s *Server) GetHealth(_ context.Context, request *tetragon.GetHealthStatusR
 
 func (s *Server) ListSensors(_ context.Context, _ *tetragon.ListSensorsRequest) (*tetragon.ListSensorsResponse, error) {
 	logger.GetLogger().Debug("Received a ListSensors request")
-	return nil, fmt.Errorf("ListSensors is deprecated")
+	return nil, errors.New("ListSensors is deprecated")
 }
 
 func (s *Server) AddTracingPolicy(ctx context.Context, req *tetragon.AddTracingPolicyRequest) (*tetragon.AddTracingPolicyResponse, error) {
@@ -313,22 +314,22 @@ func (s *Server) ListTracingPolicies(ctx context.Context, req *tetragon.ListTrac
 
 func (s *Server) RemoveSensor(_ context.Context, req *tetragon.RemoveSensorRequest) (*tetragon.RemoveSensorResponse, error) {
 	logger.GetLogger().WithField("sensor.name", req.GetName()).Debug("Received a RemoveSensor request")
-	return nil, fmt.Errorf("RemoveSensor is deprecated")
+	return nil, errors.New("RemoveSensor is deprecated")
 }
 
 func (s *Server) EnableSensor(_ context.Context, req *tetragon.EnableSensorRequest) (*tetragon.EnableSensorResponse, error) {
 	logger.GetLogger().WithField("sensor.name", req.GetName()).Debug("Received a EnableSensor request")
-	return nil, fmt.Errorf("EnableSensor is deprecated")
+	return nil, errors.New("EnableSensor is deprecated")
 }
 
 func (s *Server) DisableSensor(_ context.Context, req *tetragon.DisableSensorRequest) (*tetragon.DisableSensorResponse, error) {
 	logger.GetLogger().WithField("sensor.name", req.GetName()).Debug("Received a DisableSensor request")
-	return nil, fmt.Errorf("DisableSensor is deprecated")
+	return nil, errors.New("DisableSensor is deprecated")
 }
 
 func (s *Server) GetStackTraceTree(_ context.Context, req *tetragon.GetStackTraceTreeRequest) (*tetragon.GetStackTraceTreeResponse, error) {
 	logger.GetLogger().WithField("request", req).Debug("Received a GetStackTraceTree request")
-	err := fmt.Errorf("unsupported GetStackTraceTree")
+	err := errors.New("unsupported GetStackTraceTree")
 	logger.GetLogger().WithError(err).Warn("Server GetStackTraceTree failed")
 	return nil, err
 }

@@ -4,6 +4,7 @@
 package option
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -194,7 +195,7 @@ func ReadAndSetFlags() error {
 	Config.ProcessCacheGCInterval = viper.GetDuration(KeyProcessCacheGCInterval)
 
 	if Config.ProcessCacheGCInterval <= 0 {
-		return fmt.Errorf("failed to parse process-cache-gc-interval value. Must be >= 0")
+		return errors.New("failed to parse process-cache-gc-interval value. Must be >= 0")
 	}
 
 	Config.MetricsServer = viper.GetString(KeyMetricsServer)

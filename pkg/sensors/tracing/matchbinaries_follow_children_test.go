@@ -71,7 +71,7 @@ func TestMatchBinariesFollowChildren(t *testing.T) {
 
 	getcpuCnt = 0
 	ops2 := func() {
-		cmd := exec.Command(tmpShPath, "-c", fmt.Sprintf("exec sh -c %s", getcpuBin))
+		cmd := exec.Command(tmpShPath, "-c", "exec sh -c "+getcpuBin)
 		if err := cmd.Run(); err != nil {
 			t.Fatalf("failed to run command %s: %v", cmd, err)
 		}

@@ -84,13 +84,13 @@ func handleGenericUprobe(r *bytes.Reader) ([]observer.Event, error) {
 	err := binary.Read(r, binary.LittleEndian, &m)
 	if err != nil {
 		logger.GetLogger().WithError(err).Warnf("Failed to read process call msg")
-		return nil, fmt.Errorf("failed to read process call msg")
+		return nil, errors.New("failed to read process call msg")
 	}
 
 	uprobeEntry, err := genericUprobeTableGet(idtable.EntryID{ID: int(m.FuncId)})
 	if err != nil {
 		logger.GetLogger().WithError(err).Warnf("Failed to match id:%d", m.FuncId)
-		return nil, fmt.Errorf("failed to match id")
+		return nil, errors.New("failed to match id")
 	}
 
 	unix := &tracing.MsgGenericUprobeUnix{}
@@ -160,7 +160,7 @@ func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) er
 		uprobeEntry, err := genericUprobeTableGet(id)
 		if err != nil {
 			logger.GetLogger().WithError(err).Warnf("Failed to match id:%d", id)
-			return fmt.Errorf("failed to match id")
+			return errors.New("failed to match id")
 		}
 
 		// config_map data
@@ -232,7 +232,7 @@ func isValidUprobeSelectors(selectors []v1alpha1.KProbeSelector) error {
 			len(s.MatchNamespaceChanges) > 0 ||
 			len(s.MatchCapabilities) > 0 ||
 			len(s.MatchCapabilityChanges) > 0 {
-			return fmt.Errorf("only matchPIDs selector is supported")
+			return errors.New("only matchPIDs selector is supported")
 		}
 	}
 	return nil
@@ -342,7 +342,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		}
 
 		if a.Resolve != "" {
-			return nil, fmt.Errorf("resolving attributes for Uprobes is not supported")
+			return nil, errors.New("resolving attributes for Uprobes is not supported")
 		}
 		argTypes[a.Index] = int32(argType)
 		argMeta[a.Index] = uint32(argMValue)

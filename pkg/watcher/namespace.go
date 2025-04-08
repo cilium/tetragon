@@ -4,6 +4,7 @@
 package watcher
 
 import (
+	"errors"
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
@@ -16,11 +17,11 @@ const (
 
 func AddNamespaceInformer(w Watcher) error {
 	if w == nil {
-		return fmt.Errorf("k8s watcher not initialized")
+		return errors.New("k8s watcher not initialized")
 	}
 	factory := w.GetK8sInformerFactory()
 	if factory == nil {
-		return fmt.Errorf("k8s informer factory not initialized")
+		return errors.New("k8s informer factory not initialized")
 	}
 	informer := factory.Core().V1().Namespaces().Informer()
 	w.AddInformer(namespaceInformerName, informer, map[string]cache.IndexFunc{})
@@ -30,7 +31,7 @@ func AddNamespaceInformer(w Watcher) error {
 func (watcher *K8sWatcher) GetNamespace(name string) (*corev1.Namespace, error) {
 	namespaceInformer := watcher.GetInformer(namespaceInformerName)
 	if namespaceInformer == nil {
-		return nil, fmt.Errorf("namespace informer not initialized")
+		return nil, errors.New("namespace informer not initialized")
 	}
 	obj, exists, err := namespaceInformer.GetStore().GetByKey(name)
 	if err != nil {

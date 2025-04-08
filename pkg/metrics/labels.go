@@ -4,7 +4,7 @@
 package metrics
 
 import (
-	"fmt"
+	"strconv"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/ops"
@@ -69,7 +69,7 @@ func getOpcodes() []string {
 	i := 0
 	for opcode := range ops.OpCodeStrings {
 		if opcode != ops.MSG_OP_UNDEF && opcode != ops.MSG_OP_TEST {
-			result[i] = fmt.Sprint(int32(opcode))
+			result[i] = strconv.Itoa(int(int32(opcode)))
 			i++
 		}
 	}

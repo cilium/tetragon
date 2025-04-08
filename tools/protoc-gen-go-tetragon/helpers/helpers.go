@@ -20,8 +20,8 @@ func generateResponseTypeString(g *protogen.GeneratedFile, files []*protogen.Fil
 	doCases := func() string {
 		var ret string
 		for _, oneof := range oneofs {
-			msgGoIdent := common.TetragonApiIdent(g, fmt.Sprintf("GetEventsResponse_%s", oneof.TypeName))
-			typeGoIdent := common.TetragonApiIdent(g, fmt.Sprintf("EventType_%s", strings.ToUpper(oneof.FieldName)))
+			msgGoIdent := common.TetragonApiIdent(g, "GetEventsResponse_"+oneof.TypeName)
+			typeGoIdent := common.TetragonApiIdent(g, "EventType_"+strings.ToUpper(oneof.FieldName))
 
 			ret += `case *` + msgGoIdent + `:
                 return ` + typeGoIdent + `.String(), nil
@@ -88,7 +88,7 @@ func generateResponseInnerGetProcess(g *protogen.GeneratedFile, files []*protoge
 				continue
 			}
 
-			goIdent := common.TetragonApiIdent(g, fmt.Sprintf("GetEventsResponse_%s", msg.GoIdent.GoName))
+			goIdent := common.TetragonApiIdent(g, "GetEventsResponse_"+msg.GoIdent.GoName)
 
 			ret += `case *` + goIdent + `:
                 return ev.` + msg.GoIdent.GoName + `.Process
@@ -162,7 +162,7 @@ func generateResponseInnerGetParent(g *protogen.GeneratedFile, files []*protogen
 				continue
 			}
 
-			goIdent := common.TetragonApiIdent(g, fmt.Sprintf("GetEventsResponse_%s", msg.GoIdent.GoName))
+			goIdent := common.TetragonApiIdent(g, "GetEventsResponse_"+msg.GoIdent.GoName)
 
 			ret += `case *` + goIdent + `:
                 return ev.` + msg.GoIdent.GoName + `.Parent
@@ -220,7 +220,7 @@ func generateResponseInnerGetAncestors(g *protogen.GeneratedFile, files []*proto
 				continue
 			}
 
-			goIdent := common.TetragonApiIdent(g, fmt.Sprintf("GetEventsResponse_%s", msg.GoIdent.GoName))
+			goIdent := common.TetragonApiIdent(g, "GetEventsResponse_"+msg.GoIdent.GoName)
 
 			ret += `case *` + goIdent + `:
                 return ev.` + msg.GoIdent.GoName + `.Ancestors

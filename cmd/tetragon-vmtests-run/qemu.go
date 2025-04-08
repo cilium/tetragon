@@ -4,7 +4,6 @@
 package main
 
 import (
-	"fmt"
 	"path/filepath"
 
 	"github.com/cilium/little-vm-helper/pkg/runner"
@@ -19,7 +18,7 @@ func buildQemuArgs(log *logrus.Logger, rcnf RunConf) ([]string, error) {
 			rcnf.KernelAppendArgs = append(rcnf.KernelAppendArgs, "systemd.unified_cgroup_hierarchy=0")
 		}
 		if rcnf.useTetragonTesterInit {
-			rcnf.KernelAppendArgs = append(rcnf.KernelAppendArgs, fmt.Sprintf("init=%s", TetragonTesterBin))
+			rcnf.KernelAppendArgs = append(rcnf.KernelAppendArgs, "init="+TetragonTesterBin)
 		}
 	}
 

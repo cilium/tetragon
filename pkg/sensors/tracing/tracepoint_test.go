@@ -7,6 +7,7 @@ package tracing
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -229,7 +230,7 @@ func TestGenericTracepointArgFilterLseek(t *testing.T) {
 	fd_u := int32(100)
 	fd := 100
 	whence_u := uint64(whenceBogusValue)
-	whenceStr := fmt.Sprintf("%d", whenceBogusValue)
+	whenceStr := strconv.Itoa(whenceBogusValue)
 	whence := whenceBogusValue
 
 	tracepointConf := v1alpha1.TracepointSpec{
@@ -312,7 +313,7 @@ func TestGenericTracepointMeta(t *testing.T) {
 			MatchArgs: []v1alpha1.ArgSelector{{
 				Index:    5,
 				Operator: "eq",
-				Values:   []string{fmt.Sprint(fd)},
+				Values:   []string{strconv.Itoa(fd)},
 			}},
 		}},
 	}
@@ -337,7 +338,7 @@ func TestGenericTracepointMeta(t *testing.T) {
 		}
 		arg1 := string(arg1_.BytesArg)
 		if arg1 != "hello world" {
-			return fmt.Errorf("Arg does not match \"hello world\"")
+			return errors.New("Arg does not match \"hello world\"")
 		}
 		return nil
 	}
@@ -377,7 +378,7 @@ func TestGenericTracepointRawSyscall(t *testing.T) {
 					{
 						Index:    4,
 						Operator: "Equal",
-						Values:   []string{fmt.Sprintf("%d", unix.SYS_LSEEK)},
+						Values:   []string{strconv.Itoa(unix.SYS_LSEEK)},
 					},
 				},
 			},

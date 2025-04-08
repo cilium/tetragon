@@ -4,9 +4,9 @@
 package procevents
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/cilium/tetragon/pkg/option"
 )
@@ -17,7 +17,7 @@ import (
 // the container ID or if an error happens. If the pid is unavailable, an error will be
 // returned.
 func procsDockerId(pid uint32) (string, error) {
-	pidstr := fmt.Sprint(pid)
+	pidstr := strconv.FormatUint(uint64(pid), 10)
 	cgroups, err := os.ReadFile(filepath.Join(option.Config.ProcFS, pidstr, "cgroup"))
 	if err != nil {
 		return "", err

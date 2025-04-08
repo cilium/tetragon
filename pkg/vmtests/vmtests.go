@@ -60,7 +60,7 @@ func copyBugTool(cnf *Conf, res *Result) error {
 	}
 	defer in.Close()
 
-	outPattern := fmt.Sprintf("%s-bugtool-*.tar.gz", res.Name)
+	outPattern := res.Name + "-bugtool-*.tar.gz"
 	out, err := os.CreateTemp(cnf.ResultsDir, outPattern)
 	if err != nil {
 		return err
@@ -233,7 +233,7 @@ func runTest(cnf *Conf, testName string, cmd string, args ...string) (*Result, e
 	testCmd := exec.CommandContext(ctx, cmd, args...)
 
 	// create file for output
-	outF, err := os.CreateTemp(cnf.ResultsDir, fmt.Sprintf("%s.", testName))
+	outF, err := os.CreateTemp(cnf.ResultsDir, testName+".")
 	if err != nil {
 		return nil, err
 	}

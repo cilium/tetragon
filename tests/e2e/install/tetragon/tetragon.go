@@ -5,6 +5,7 @@ package tetragon
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -172,14 +173,14 @@ func Install(opts ...Option) env.Func {
 			}
 		}
 		if o.ValuesFile != "" {
-			helmArgs.WriteString(fmt.Sprintf(" --values=%s", o.ValuesFile))
+			helmArgs.WriteString(" --values=" + o.ValuesFile)
 		}
 
 		// Handle BTF option for KinD cluster
 		if o.BTF != "" {
 			if clusterName := helpers.GetTempKindClusterName(ctx); clusterName != "" {
-				controlPlaneId := fmt.Sprintf("%s-control-plane", clusterName)
-				cmd := exec.CommandContext(ctx, "docker", "cp", o.BTF, fmt.Sprintf("%s:/btf", controlPlaneId))
+				controlPlaneId := clusterName + "-control-plane"
+				cmd := exec.CommandContext(ctx, "docker", "cp", o.BTF, controlPlaneId+":/btf")
 				err := cmd.Run()
 				if err != nil {
 					return ctx, fmt.Errorf("failed to load BTF file into KinD cluster: %w", err)
@@ -189,7 +190,7 @@ func Install(opts ...Option) env.Func {
 				helmArgs.WriteString(" --set=extraHostPathMounts[0].mountPath=/btf")
 				helmArgs.WriteString(" --set=extraHostPathMounts[0].readOnly=true")
 			} else {
-				return ctx, fmt.Errorf("option -tetragon.btf only makes sense for KinD clusters")
+				return ctx, errors.New("option -tetragon.btf only makes sense for KinD clusters")
 			}
 		}
 

@@ -5,6 +5,7 @@ package tracing
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -679,7 +680,7 @@ func (msg *MsgGenericKprobeUnix) Cast(o interface{}) notify.Message {
 func (msg *MsgGenericKprobeUnix) PolicyInfo() tracingpolicy.PolicyInfo {
 	return tracingpolicy.PolicyInfo{
 		Name: msg.PolicyName,
-		Hook: fmt.Sprintf("kprobe:%s", msg.FuncName),
+		Hook: "kprobe:" + msg.FuncName,
 	}
 }
 
@@ -911,7 +912,7 @@ func (msg *MsgGenericLsmUnix) Cast(o interface{}) notify.Message {
 func (msg *MsgGenericLsmUnix) PolicyInfo() tracingpolicy.PolicyInfo {
 	return tracingpolicy.PolicyInfo{
 		Name: msg.PolicyName,
-		Hook: fmt.Sprintf("lsm:%s", msg.Hook),
+		Hook: "lsm:" + msg.Hook,
 	}
 }
 
@@ -949,17 +950,17 @@ func GetProcessLsm(event *MsgGenericLsmUnix) *tetragon.ProcessLsm {
 
 	switch event.ImaHash.Algo {
 	case 1: // MD5
-		tetragonEvent.ImaHash = fmt.Sprintf("md5:%s", hex.EncodeToString(event.ImaHash.Hash[:16]))
+		tetragonEvent.ImaHash = "md5:" + hex.EncodeToString(event.ImaHash.Hash[:16])
 	case 2: // SHA1
-		tetragonEvent.ImaHash = fmt.Sprintf("sha1:%s", hex.EncodeToString(event.ImaHash.Hash[:20]))
+		tetragonEvent.ImaHash = "sha1:" + hex.EncodeToString(event.ImaHash.Hash[:20])
 	case 4: // SHA256
-		tetragonEvent.ImaHash = fmt.Sprintf("sha256:%s", hex.EncodeToString(event.ImaHash.Hash[:32]))
+		tetragonEvent.ImaHash = "sha256:" + hex.EncodeToString(event.ImaHash.Hash[:32])
 	case 6: // SHA512
-		tetragonEvent.ImaHash = fmt.Sprintf("sha512:%s", hex.EncodeToString(event.ImaHash.Hash[:]))
+		tetragonEvent.ImaHash = "sha512:" + hex.EncodeToString(event.ImaHash.Hash[:])
 	case 13: // WP512
-		tetragonEvent.ImaHash = fmt.Sprintf("wp512:%s", hex.EncodeToString(event.ImaHash.Hash[:]))
+		tetragonEvent.ImaHash = "wp512:" + hex.EncodeToString(event.ImaHash.Hash[:])
 	case 17: // SM3
-		tetragonEvent.ImaHash = fmt.Sprintf("sm3:%s", hex.EncodeToString(event.ImaHash.Hash[:32]))
+		tetragonEvent.ImaHash = "sm3:" + hex.EncodeToString(event.ImaHash.Hash[:32])
 
 	default:
 		logger.GetLogger().Debugf("bpf_ima_inode_hash/bpf_ima_file_hash returned code: %d", event.ImaHash.Algo)
@@ -1007,11 +1008,11 @@ func (msg *MsgProcessThrottleUnix) Notify() bool {
 }
 
 func (msg *MsgProcessThrottleUnix) RetryInternal(_ notify.Event, _ uint64) (*process.ProcessInternal, error) {
-	return nil, fmt.Errorf("unreachable state: MsgProcessThrottleUnix RetryInternal() was called")
+	return nil, errors.New("unreachable state: MsgProcessThrottleUnix RetryInternal() was called")
 }
 
 func (msg *MsgProcessThrottleUnix) Retry(_ *process.ProcessInternal, _ notify.Event) error {
-	return fmt.Errorf("unreachable state: MsgProcessThrottleUnix Retry() was called")
+	return errors.New("unreachable state: MsgProcessThrottleUnix Retry() was called")
 }
 
 func (msg *MsgProcessThrottleUnix) HandleMessage() *tetragon.GetEventsResponse {

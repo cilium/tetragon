@@ -4,7 +4,7 @@
 package generictypes
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/cilium/ebpf/btf"
 )
@@ -240,7 +240,7 @@ func GenericUserTypeToString(ty int) string {
 func GenericTypeToString(ty int) (string, error) {
 	arg, ok := GenericTypeToStringTable[ty]
 	if !ok {
-		return "", fmt.Errorf("invalid argument type")
+		return "", errors.New("invalid argument type")
 	}
 	return arg, nil
 }

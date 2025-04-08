@@ -7,7 +7,6 @@ package tracing
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"strconv"
 	"sync"
@@ -57,7 +56,7 @@ spec:
         values:
         - ` + pidStr
 
-	testConfigFile := fmt.Sprintf("%s/tetragon.gotest.yaml", t.TempDir())
+	testConfigFile := t.TempDir() + "/tetragon.gotest.yaml"
 	writeConfigHook := []byte(credshook_)
 	err := os.WriteFile(testConfigFile, writeConfigHook, 0644)
 	if err != nil {
@@ -206,7 +205,7 @@ spec:
         values:
         - ` + pidStr
 
-	testConfigFile := fmt.Sprintf("%s/tetragon.gotest.yaml", t.TempDir())
+	testConfigFile := t.TempDir() + "/tetragon.gotest.yaml"
 	writeConfigHook := []byte(credshook_)
 	err := os.WriteFile(testConfigFile, writeConfigHook, 0644)
 	if err != nil {

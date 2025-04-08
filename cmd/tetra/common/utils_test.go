@@ -4,7 +4,7 @@
 package common
 
 import (
-	"fmt"
+	"strconv"
 	"testing"
 )
 
@@ -25,7 +25,7 @@ func TestHumanizeByteCount(t *testing.T) {
 		{12970000000000, "12.97 TB"},
 	}
 	for _, tt := range tests {
-		t.Run(fmt.Sprintf("%d", tt.input), func(t *testing.T) {
+		t.Run(strconv.Itoa(tt.input), func(t *testing.T) {
 			if got := HumanizeByteCount(tt.input); got != tt.want {
 				t.Errorf("HumanizeByteCount(%d) = %v, want %v", tt.input, got, tt.want)
 			}

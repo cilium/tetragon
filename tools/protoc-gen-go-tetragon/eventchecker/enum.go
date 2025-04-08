@@ -4,8 +4,6 @@
 package eventchecker
 
 import (
-	"fmt"
-
 	"github.com/cilium/tetragon/tools/protoc-gen-go-tetragon/common"
 	"github.com/jpillora/longestcommon"
 	"google.golang.org/protobuf/compiler/protogen"
@@ -68,7 +66,7 @@ func (enum *Enum) generateChecker(g *protogen.GeneratedFile) error {
 func (enum *Enum) generateMarshal(g *protogen.GeneratedFile) error {
 	jsonMarshal := common.GoIdent(g, "encoding/json", "Marshal")
 	stringsTrimPrefix := common.GoIdent(g, "strings", "TrimPrefix")
-	nameMap := common.TetragonApiIdent(g, fmt.Sprintf("%s_name", enum.GoIdent.GoName))
+	nameMap := common.TetragonApiIdent(g, enum.GoIdent.GoName+"_name")
 
 	longestPrefix := getLongestPreifx(enum)
 
@@ -90,7 +88,7 @@ func (enum *Enum) generateUnmarshal(g *protogen.GeneratedFile) error {
 	// We want to use yaml.UnmarshalStrict here since it will complain about unknown fields
 	yamlUnmarshal := common.GoIdent(g, "sigs.k8s.io/yaml", "UnmarshalStrict")
 	stringsToUpper := common.GoIdent(g, "strings", "ToUpper")
-	valueMap := common.TetragonApiIdent(g, fmt.Sprintf("%s_value", enum.GoIdent.GoName))
+	valueMap := common.TetragonApiIdent(g, enum.GoIdent.GoName+"_value")
 
 	longestPrefix := getLongestPreifx(enum)
 
@@ -120,7 +118,7 @@ func (enum *Enum) generateUnmarshal(g *protogen.GeneratedFile) error {
 }
 
 func (enum *Enum) checkerName() string {
-	return fmt.Sprintf("%sChecker", enum.GoIdent.GoName)
+	return enum.GoIdent.GoName + "Checker"
 }
 
 func getLongestPreifx(enum *Enum) string {

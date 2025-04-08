@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -96,7 +97,7 @@ func createCgroup(t *testing.T, dir string, pids ...uint64) policyfilter.CgroupI
 	}
 
 	id, err := tgcgroups.GetCgroupIdFromPath(path)
-	require.NoError(t, err, fmt.Sprintf("failed to get cgroup id for path=%s", path))
+	require.NoError(t, err, "failed to get cgroup id for path="+path)
 	t.Logf("cgroup path:%s cgroup id:%d", path, id)
 	return policyfilter.CgroupID(id)
 }
@@ -171,7 +172,7 @@ func TestNamespacedPolicies(t *testing.T) {
 			{MatchArgs: []v1alpha1.ArgSelector{{
 				Index:    0,
 				Operator: "Equal",
-				Values:   []string{fmt.Sprintf("%d", bogusFD)},
+				Values:   []string{strconv.Itoa(bogusFD)},
 			}}},
 		},
 	}

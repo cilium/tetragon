@@ -4,7 +4,7 @@
 package opcodemetrics
 
 import (
-	"fmt"
+	"strconv"
 
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/metrics"
@@ -39,14 +39,14 @@ func InitMetrics() {
 	for opcode := range ops.OpCodeStrings {
 		if opcode != ops.MSG_OP_UNDEF && opcode != ops.MSG_OP_TEST {
 			GetOpTotal(opcode).Add(0)
-			LatencyStats.WithLabelValues(fmt.Sprint(int32(opcode)))
+			LatencyStats.WithLabelValues(strconv.Itoa(int(int32(opcode))))
 		}
 	}
 }
 
 // Get a new handle on a msgOpsCount metric for an OpCode
 func GetOpTotal(opcode ops.OpCode) prometheus.Counter {
-	return MsgOpsCount.WithLabelValues(fmt.Sprint(int32(opcode)))
+	return MsgOpsCount.WithLabelValues(strconv.Itoa(int(int32(opcode))))
 }
 
 // Increment an msgOpsCount for an OpCode

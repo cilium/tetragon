@@ -5,8 +5,8 @@ package helpers
 
 import (
 	"context"
+	"errors"
 	"flag"
-	"fmt"
 	"math"
 	"os"
 	"strings"
@@ -69,7 +69,7 @@ func SetMinKernelVersion() env.Func {
 		nodeList := &corev1.NodeList{}
 		r.List(ctx, nodeList)
 		if len(nodeList.Items) < 1 {
-			return ctx, fmt.Errorf("failed to list nodes in cluster")
+			return ctx, errors.New("failed to list nodes in cluster")
 		}
 
 		var versions []string

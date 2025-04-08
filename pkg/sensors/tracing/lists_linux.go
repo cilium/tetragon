@@ -4,6 +4,7 @@
 package tracing
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -146,7 +147,7 @@ func (lr *listReader) Read(name string, ty uint32) ([]uint32, error) {
 
 func getSyscallListSymbols(list *v1alpha1.ListSpec) ([]string, error) {
 	if list.Type != "syscalls" {
-		return nil, fmt.Errorf("unexpected error: getSyscallListSymbols was passed a non-syscall list")
+		return nil, errors.New("unexpected error: getSyscallListSymbols was passed a non-syscall list")
 	}
 
 	// syscalls list values requires special interpretation

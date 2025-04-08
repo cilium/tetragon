@@ -4,6 +4,7 @@
 package common
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -27,7 +28,7 @@ var TetragonCopyrightHeader = `// SPDX-License-Identifier: Apache-2.0
 func NewFile(gen *protogen.Plugin, file *protogen.File, pkg string, pkgName string, fileName string) *protogen.GeneratedFile {
 	importPath := filepath.Join(string(file.GoImportPath), pkg)
 	pathSuffix := filepath.Base(file.GeneratedFilenamePrefix)
-	fileName = filepath.Join(strings.TrimSuffix(file.GeneratedFilenamePrefix, pathSuffix), pkg, fmt.Sprintf("%s.pb.go", fileName))
+	fileName = filepath.Join(strings.TrimSuffix(file.GeneratedFilenamePrefix, pathSuffix), pkg, fileName+".pb.go")
 	logger.GetLogger().Infof("%s", fileName)
 
 	g := gen.NewGeneratedFile(fileName, protogen.GoImportPath(importPath))
@@ -82,7 +83,7 @@ func GeneratedIdent(g *protogen.GeneratedFile, importPath string, name string) s
 
 // Logger is a convenience helper that generates a call to logger.GetLogger()
 func Logger(g *protogen.GeneratedFile) string {
-	return fmt.Sprintf("%s()", GoIdent(g, "github.com/cilium/tetragon/pkg/logger", "GetLogger"))
+	return GoIdent(g, "github.com/cilium/tetragon/pkg/logger", "GetLogger") + "()"
 }
 
 func ProcessIdent(g *protogen.GeneratedFile) string {
@@ -181,7 +182,7 @@ func GetEventsResponseOneofs(files []*protogen.File) ([]GetEventsResponseOneofIn
 		}
 	}
 	if getEventsResponse == nil {
-		return nil, fmt.Errorf("unable to find GetEventsResponse message")
+		return nil, errors.New("unable to find GetEventsResponse message")
 	}
 
 	var eventOneof *protogen.Oneof
@@ -192,7 +193,7 @@ func GetEventsResponseOneofs(files []*protogen.File) ([]GetEventsResponseOneofIn
 		}
 	}
 	if eventOneof == nil {
-		return nil, fmt.Errorf("unable to find GetEventsResponse.event")
+		return nil, errors.New("unable to find GetEventsResponse.event")
 	}
 
 	var info []GetEventsResponseOneofInfo
@@ -222,7 +223,7 @@ func GetEvents(files []*protogen.File) ([]*protogen.Message, error) {
 		}
 	}
 	if getEventsResponse == nil {
-		return nil, fmt.Errorf("unable to find GetEventsResponse message")
+		return nil, errors.New("unable to find GetEventsResponse message")
 	}
 
 	var eventOneof *protogen.Oneof
@@ -233,7 +234,7 @@ func GetEvents(files []*protogen.File) ([]*protogen.Message, error) {
 		}
 	}
 	if eventOneof == nil {
-		return nil, fmt.Errorf("unable to find GetEventsResponse.event")
+		return nil, errors.New("unable to find GetEventsResponse.event")
 	}
 
 	validNames := make(map[string]struct{})

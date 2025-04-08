@@ -7,6 +7,7 @@ package selectors
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"net"
 	"strconv"
@@ -363,7 +364,7 @@ func argSelectorType(arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) (uint3
 			return uint32(gt.GenericTypeFromString(s.Type)), nil
 		}
 	}
-	return 0, fmt.Errorf("argFilter for unknown index")
+	return 0, errors.New("argFilter for unknown index")
 }
 
 func writeRangeInMap(v string, ty uint32, op uint32, m *ValueMap) error {
@@ -389,19 +390,19 @@ func writeRangeInMap(v string, ty uint32, op uint32, m *ValueMap) error {
 		case SelectorOpProtocol:
 			protocol, err := network.InetProtocolNumber(v)
 			if err == nil {
-				protocolStr := fmt.Sprintf("%d", protocol)
+				protocolStr := strconv.FormatUint(uint64(protocol), 10)
 				rangeStr = []string{protocolStr, protocolStr}
 			}
 		case SelectorOpFamily:
 			family, err := network.InetFamilyNumber(v)
 			if err == nil {
-				familyStr := fmt.Sprintf("%d", family)
+				familyStr := strconv.FormatUint(uint64(family), 10)
 				rangeStr = []string{familyStr, familyStr}
 			}
 		case SelectorOpState:
 			state, err := network.TcpStateNumber(v)
 			if err == nil {
-				stateStr := fmt.Sprintf("%d", state)
+				stateStr := strconv.FormatUint(uint64(state), 10)
 				rangeStr = []string{stateStr, stateStr}
 			}
 		}
@@ -464,7 +465,7 @@ func writeMatchRangesInMap(k *KernelSelectorState, values []string, ty uint32, o
 
 func writeListValuesInMap(k *KernelSelectorState, v string, ty uint32, m *ValueMap) error {
 	if k.listReader == nil {
-		return fmt.Errorf("failed list values loading is not supported")
+		return errors.New("failed list values loading is not supported")
 	}
 	values, err := k.listReader.Read(v, ty)
 	if err != nil {
@@ -585,35 +586,35 @@ func parseAddr(v string) ([]byte, uint32, error) {
 		if ipaddr6 != nil {
 			return ipaddr6, 128, nil
 		}
-		return nil, 0, fmt.Errorf("IP address is not valid: does not parse as IPv4 or IPv6")
+		return nil, 0, errors.New("IP address is not valid: does not parse as IPv4 or IPv6")
 	}
 	vParts := strings.Split(v, "/")
 	if len(vParts) != 2 {
-		return nil, 0, fmt.Errorf("IP address is not valid: should be in format ADDR or ADDR/MASKLEN")
+		return nil, 0, errors.New("IP address is not valid: should be in format ADDR or ADDR/MASKLEN")
 	}
 	ipaddr = net.ParseIP(vParts[0])
 	if ipaddr == nil {
-		return nil, 0, fmt.Errorf("IP CIDR is not valid: address part does not parse as IPv4 or IPv6")
+		return nil, 0, errors.New("IP CIDR is not valid: address part does not parse as IPv4 or IPv6")
 	}
 	maskLen, err := strconv.ParseUint(vParts[1], 10, 32)
 	if err != nil {
-		return nil, 0, fmt.Errorf("IP CIDR is not valid: mask part does not parse")
+		return nil, 0, errors.New("IP CIDR is not valid: mask part does not parse")
 	}
 	ipaddr4 := ipaddr.To4()
 	if ipaddr4 != nil {
 		if maskLen <= 32 {
 			return ipaddr4, uint32(maskLen), nil
 		}
-		return nil, 0, fmt.Errorf("IP CIDR is not valid: IPv4 mask len must be <= 32")
+		return nil, 0, errors.New("IP CIDR is not valid: IPv4 mask len must be <= 32")
 	}
 	ipaddr6 := ipaddr.To16()
 	if ipaddr6 != nil {
 		if maskLen <= 128 {
 			return ipaddr6, uint32(maskLen), nil
 		}
-		return nil, 0, fmt.Errorf("IP CIDR is not valid: IPv6 mask len must be <= 128")
+		return nil, 0, errors.New("IP CIDR is not valid: IPv6 mask len must be <= 128")
 	}
-	return nil, 0, fmt.Errorf("IP CIDR is not valid: address part does not parse")
+	return nil, 0, errors.New("IP CIDR is not valid: address part does not parse")
 }
 
 func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) error {
@@ -759,7 +760,7 @@ func checkOp(op uint32) error {
 	switch op {
 	case SelectorOpGT, SelectorOpLT:
 		if !config.EnableLargeProgs() {
-			return fmt.Errorf("GT/LT operators are only supported in kernels >= 5.3")
+			return errors.New("GT/LT operators are only supported in kernels >= 5.3")
 		}
 	}
 	return nil
@@ -814,10 +815,10 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 		}
 	case SelectorOpSport, SelectorOpDport, SelectorOpNotSport, SelectorOpNotDport, SelectorOpProtocol, SelectorOpFamily, SelectorOpState:
 		if ty != gt.GenericSockType && ty != gt.GenericSkbType && ty != gt.GenericSockaddrType && ty != gt.GenericSocketType {
-			return fmt.Errorf("sock/socket/skb/sockaddr operators specified for non-sock/socket/skb/sockaddr type")
+			return errors.New("sock/socket/skb/sockaddr operators specified for non-sock/socket/skb/sockaddr type")
 		}
 		if ty == gt.GenericSockaddrType && (op == SelectorOpDport || op == SelectorOpNotDport || op == SelectorOpProtocol || op == SelectorOpState) {
-			return fmt.Errorf("sockaddr only supports [not]saddr, [not]sport[priv], and family")
+			return errors.New("sockaddr only supports [not]saddr, [not]sport[priv], and family")
 		}
 		err := writeMatchRangesInMap(k, arg.Values, gt.GenericU64Type, op) // force type for ports and protocols as ty is sock/socket/skb/sockaddr
 		if err != nil {
@@ -825,10 +826,10 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 		}
 	case SelectorOpSaddr, SelectorOpDaddr, SelectorOpNotSaddr, SelectorOpNotDaddr:
 		if ty != gt.GenericSockType && ty != gt.GenericSkbType && ty != gt.GenericSockaddrType && ty != gt.GenericSocketType {
-			return fmt.Errorf("sock/socket/skb/sockaddr operators specified for non-sock/socket/skb/sockaddr type")
+			return errors.New("sock/socket/skb/sockaddr operators specified for non-sock/socket/skb/sockaddr type")
 		}
 		if ty == gt.GenericSockaddrType && (op == SelectorOpDaddr || op == SelectorOpNotDaddr) {
-			return fmt.Errorf("sockaddr only supports [not]saddr, [not]sport[priv], and family")
+			return errors.New("sockaddr only supports [not]saddr, [not]sport[priv], and family")
 		}
 		err := writeMatchAddrsInMap(k, arg.Values)
 		if err != nil {
@@ -837,10 +838,10 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 	case SelectorOpSportPriv, SelectorOpDportPriv, SelectorOpNotSportPriv, SelectorOpNotDportPriv:
 		// These selectors do not take any values, but we do check that they are only used for sock/skb.
 		if ty != gt.GenericSockType && ty != gt.GenericSkbType && ty != gt.GenericSockaddrType && ty != gt.GenericSocketType {
-			return fmt.Errorf("sock/socket/skb/sockaddr operators specified for non-sock/socket/skb/sockaddr type")
+			return errors.New("sock/socket/skb/sockaddr operators specified for non-sock/socket/skb/sockaddr type")
 		}
 		if ty == gt.GenericSockaddrType && (op == SelectorOpDportPriv || op == SelectorOpNotDportPriv) {
-			return fmt.Errorf("sockaddr only supports [not]saddr, [not]sport[priv], and family")
+			return errors.New("sockaddr only supports [not]saddr, [not]sport[priv], and family")
 		}
 	default:
 		err = writeMatchValues(k, arg.Values, ty, op)
@@ -1062,7 +1063,7 @@ func ParseMatchNamespace(k *KernelSelectorState, action *v1alpha1.NamespaceSelec
 		return fmt.Errorf("matchNamespace error: %w", err)
 	}
 	if (op != SelectorOpIn) && (op != SelectorOpNotIn) {
-		return fmt.Errorf("matchNamespace supports only In and NotIn operators")
+		return errors.New("matchNamespace supports only In and NotIn operators")
 	}
 	WriteSelectorUint32(&k.data, op)
 
@@ -1102,7 +1103,7 @@ func ParseMatchNamespaceChange(k *KernelSelectorState, action *v1alpha1.Namespac
 		return fmt.Errorf("matchNamespaceChanges error: %w", err)
 	}
 	if (op != SelectorOpIn) && (op != SelectorOpNotIn) {
-		return fmt.Errorf("matchNamespaceChanges supports only In and NotIn operators")
+		return errors.New("matchNamespaceChanges supports only In and NotIn operators")
 	}
 	WriteSelectorUint32(&k.data, op)
 
@@ -1125,7 +1126,7 @@ func ParseMatchNamespaceChanges(k *KernelSelectorState, actions []v1alpha1.Names
 		return fmt.Errorf("matchNamespaceChanges supports only a single filter (current number of filters is %d)", len(actions))
 	}
 	if (len(actions) == 1) && !config.EnableLargeProgs() {
-		return fmt.Errorf("matchNamespaceChanges is only supported in kernels >= 5.3")
+		return errors.New("matchNamespaceChanges is only supported in kernels >= 5.3")
 	}
 	loff := AdvanceSelectorLength(&k.data)
 	// maybe write the number of namespace matches
@@ -1153,7 +1154,7 @@ func ParseMatchCaps(k *KernelSelectorState, action *v1alpha1.CapabilitiesSelecto
 		return fmt.Errorf("matchCapabilities error: %w", err)
 	}
 	if (op != SelectorOpIn) && (op != SelectorOpNotIn) {
-		return fmt.Errorf("matchCapabilities supports only In and NotIn operators")
+		return errors.New("matchCapabilities supports only In and NotIn operators")
 	}
 	WriteSelectorUint32(&k.data, op)
 
@@ -1240,7 +1241,7 @@ func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx
 		}
 	case SelectorOpPrefix, SelectorOpNotPrefix:
 		if !config.EnableLargeProgs() {
-			return fmt.Errorf("matchBinary error: \"Prefix\" and \"NotPrefix\" operators need large BPF progs (kernel>5.3)")
+			return errors.New("matchBinary error: \"Prefix\" and \"NotPrefix\" operators need large BPF progs (kernel>5.3)")
 		}
 		sel.MapID, err = writePrefixBinaries(k, b.Values)
 		if err != nil {
@@ -1248,14 +1249,14 @@ func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx
 		}
 	case SelectorOpPostfix, SelectorOpNotPostfix:
 		if !config.EnableLargeProgs() {
-			return fmt.Errorf("matchBinary error: \"Postfix\" and \"NotPostfix\" operators need large BPF progs (kernel>5.3)")
+			return errors.New("matchBinary error: \"Postfix\" and \"NotPostfix\" operators need large BPF progs (kernel>5.3)")
 		}
 		sel.MapID, err = writePostfixBinaries(k, b.Values)
 		if err != nil {
 			return fmt.Errorf("failed to write the prefix operator for the matchBinaries selector: %w", err)
 		}
 	default:
-		return fmt.Errorf("matchBinary error: Only \"In\", \"NotIn\", \"Prefix\", \"NotPrefix\", \"Postfix\" and \"NotPostfix\" operators are supported")
+		return errors.New("matchBinary error: Only \"In\", \"NotIn\", \"Prefix\", \"NotPrefix\", \"Postfix\" and \"NotPostfix\" operators are supported")
 	}
 
 	k.AddMatchBinaries(selIdx, sel)
@@ -1265,7 +1266,7 @@ func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx
 
 func ParseMatchBinaries(k *KernelSelectorState, binarys []v1alpha1.BinarySelector, selIdx int) error {
 	if len(binarys) > 1 {
-		return fmt.Errorf("only support a single matchBinaries per selector")
+		return errors.New("only support a single matchBinaries per selector")
 	}
 	for _, s := range binarys {
 		if err := ParseMatchBinary(k, &s, selIdx); err != nil {

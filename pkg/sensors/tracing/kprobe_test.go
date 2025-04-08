@@ -466,7 +466,7 @@ func createTestFile(t *testing.T) (int, int, string) {
 		t.Fatal()
 	}
 	t.Cleanup(func() { syscall.Close(fd2) })
-	return fd, fd2, fmt.Sprint(fd2)
+	return fd, fd2, strconv.Itoa(fd2)
 }
 
 func runKprobeObjectRead(t *testing.T, readHook string, checker ec.MultiEventChecker, fd, fd2 int) {
@@ -2116,7 +2116,7 @@ func testMultiplePathComponentsFiltered(t *testing.T, readHook string) {
 
 	// let's create /tmp/0/.. 32*8 where each dir is a directory
 	for i := range 32 * 8 {
-		path = filepath.Join(path, fmt.Sprintf("%d", i))
+		path = filepath.Join(path, strconv.Itoa(i))
 	}
 	if err := os.MkdirAll(path, 0755); err != nil {
 		t.Fatalf("Mkdir failed: %s\n", err)
@@ -2159,7 +2159,7 @@ func testMultipleMountPathFiltered(t *testing.T, readHook string) {
 		}
 	}
 	for i := range 17 {
-		path = filepath.Join(path, fmt.Sprintf("%d", i))
+		path = filepath.Join(path, strconv.Itoa(i))
 		dirStack = append(dirStack, path)
 		if err := os.Mkdir(path, 0755); err != nil {
 			t.Logf("Mkdir failed: %s\n", err)
@@ -3144,7 +3144,7 @@ spec:
       - index: 0
         operator: "Equal"
         values:
-        - ` + fmt.Sprint(fdw)
+        - ` + strconv.Itoa(fdw)
 
 	size := 4094
 	buffer := make([]byte, size)
@@ -3198,7 +3198,7 @@ spec:
       - index: 0
         operator: "Equal"
         values:
-        - ` + fmt.Sprint(fdw)
+        - ` + strconv.Itoa(fdw)
 
 	size := 5000
 	buffer := make([]byte, size)
@@ -3253,7 +3253,7 @@ spec:
       - index: 0
         operator: "Equal"
         values:
-        - ` + fmt.Sprint(fdr)
+        - ` + strconv.Itoa(fdr)
 
 	size := 4000
 	buffer := make([]byte, size)
@@ -6464,7 +6464,7 @@ spec:
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithFileArg(
 					ec.NewKprobeFileChecker().
-						WithPath(sm.Contains(fmt.Sprintf("%s.ko", module)))),
+						WithPath(sm.Contains(module+".ko"))),
 				ec.NewKprobeArgumentChecker().WithIntArg(2),
 			),
 		)
@@ -6994,7 +6994,7 @@ spec:
 	firstChange := fullSet&0xffffffff00000000 | uint64(0xffdfffff)  // Removes CAP_SYS_ADMIN
 	secondChange := fullSet&0xffffffff00000000 | uint64(0xffdffffe) // removes CAP_SYS_ADMIN and CAP_CHOWN
 
-	_, currentPermitted, currentEffective, _ := caps.GetPIDCaps(filepath.Join(option.Config.ProcFS, fmt.Sprint(os.Getpid()), "status"))
+	_, currentPermitted, currentEffective, _ := caps.GetPIDCaps(filepath.Join(option.Config.ProcFS, strconv.Itoa(os.Getpid()), "status"))
 
 	if currentPermitted == 0 || currentPermitted != currentEffective {
 		t.Skip("Skipping test since current Permitted or Effective capabilities are zero or do not match")

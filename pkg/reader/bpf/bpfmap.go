@@ -3,9 +3,7 @@
 
 package bpf
 
-import (
-	"fmt"
-)
+import "strconv"
 
 /*uapi/linux/bpf.h */
 var bpfMapTypeString = map[uint32]string{
@@ -46,5 +44,5 @@ func GetBpfMapType(t uint32) string {
 	if t, ok := bpfMapTypeString[t]; ok {
 		return t
 	}
-	return fmt.Sprintf("%d", t)
+	return strconv.FormatUint(uint64(t), 10)
 }

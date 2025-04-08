@@ -3,9 +3,7 @@
 
 package bpf
 
-import (
-	"fmt"
-)
+import "strconv"
 
 /*uapi/linux/perfevent.h */
 var perfEventTypeString = map[uint32]string{
@@ -22,5 +20,5 @@ func GetPerfEventType(t uint32) string {
 	if t, ok := perfEventTypeString[t]; ok {
 		return t
 	}
-	return fmt.Sprintf("%d", t)
+	return strconv.FormatUint(uint64(t), 10)
 }

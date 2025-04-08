@@ -374,7 +374,7 @@ func tpValidateAndAdjustEnforcerAction(
 			act := &sel.MatchActions[ai]
 			if act.Action == "NotifyEnforcer" {
 				if len(spec.Enforcers) == 0 {
-					return fmt.Errorf("NotifyEnforcer action specified, but spec contains no enforcers")
+					return errors.New("NotifyEnforcer action specified, but spec contains no enforcers")
 				}
 
 				// EnforcerNotifyActionArgIndex already set, do nothing
@@ -592,7 +592,7 @@ func createGenericTracepointSensor(
 
 func (tp *genericTracepoint) InitKernelSelectors(lists []v1alpha1.ListSpec) error {
 	if tp.selectors != nil {
-		return fmt.Errorf("InitKernelSelectors: selectors already initialized")
+		return errors.New("InitKernelSelectors: selectors already initialized")
 	}
 
 	// rewrite arg index
@@ -752,7 +752,7 @@ func handleMsgGenericTracepoint(
 		actionArgEntry, err := tp.actionArgs.GetEntry(idtable.EntryID{ID: int(m.ActionArgId)})
 		if err != nil {
 			logger.GetLogger().WithError(err).Warnf("Failed to find argument for id:%d", m.ActionArgId)
-			return nil, fmt.Errorf("failed to find argument for id")
+			return nil, errors.New("failed to find argument for id")
 		}
 		actionArg := actionArgEntry.(*selectors.ActionArgEntry).GetArg()
 		switch m.ActionId {

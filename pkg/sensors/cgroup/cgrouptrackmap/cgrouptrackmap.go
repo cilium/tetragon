@@ -4,7 +4,7 @@
 package cgrouptrackmap
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/sirupsen/logrus"
 
@@ -35,7 +35,7 @@ type CgrpTrackingValue struct {
 
 func LookupTrackingCgroup(mapPath string, cgrpid uint64) (*CgrpTrackingValue, error) {
 	if cgrpid == 0 {
-		return nil, fmt.Errorf("invalid CgroupIdTracking")
+		return nil, errors.New("invalid CgroupIdTracking")
 	}
 
 	m, err := ebpf.LoadPinnedMap(mapPath, nil)

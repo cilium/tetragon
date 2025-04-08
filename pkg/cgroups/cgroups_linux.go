@@ -206,9 +206,9 @@ func parseCgroupv1SubSysIds(filePath string) error {
 			// Warn with error
 			switch controller.Name {
 			case "memory":
-				err = fmt.Errorf("Cgroupv1 controller 'memory' is not active, ensure kernel CONFIG_MEMCG=y and CONFIG_MEMCG_V1=y are set")
+				err = errors.New("Cgroupv1 controller 'memory' is not active, ensure kernel CONFIG_MEMCG=y and CONFIG_MEMCG_V1=y are set")
 			case "cpuset":
-				err = fmt.Errorf("Cgroupv1 controller 'cpuset' is not active, ensure kernel CONFIG_CPUSETS=y and CONFIG_CPUSETS_V1=y are set")
+				err = errors.New("Cgroupv1 controller 'cpuset' is not active, ensure kernel CONFIG_CPUSETS=y and CONFIG_CPUSETS_V1=y are set")
 			default:
 				logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).Warnf("Cgroupv1 '%s' supported controller is missing", controller.Name)
 			}
@@ -252,12 +252,12 @@ func DiscoverSubSysIds() error {
 		return checkCgroupv2Controllers(path)
 	}
 
-	return fmt.Errorf("could not detect Cgroup filesystem")
+	return errors.New("could not detect Cgroup filesystem")
 }
 
 func setDeploymentMode(cgroupPath string) error {
 	if cgroupPath == "" {
-		return fmt.Errorf("cgroup path is empty")
+		return errors.New("cgroup path is empty")
 	}
 
 	if deploymentMode != DEPLOY_UNKNOWN {
@@ -409,7 +409,7 @@ func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
 
 	// Cgroupv1 hierarchy is not properly setup we can not support such systems,
 	// reason should have been logged in above messages.
-	return "", fmt.Errorf("could not validate Cgroupv1 hierarchies")
+	return "", errors.New("could not validate Cgroupv1 hierarchies")
 }
 
 // Check and log Cgroupv2 active controllers
@@ -492,11 +492,11 @@ func getValidCgroupv2Path(cgroupPaths []string) (string, error) {
 
 	// Cgroupv2 hierarchy is not properly setup we can not support such systems,
 	// reason should have been logged in above messages.
-	return "", fmt.Errorf("could not validate Cgroupv2 hierarchy")
+	return "", errors.New("could not validate Cgroupv2 hierarchy")
 }
 
 func getPidCgroupPaths(pid uint32) ([]string, error) {
-	file := filepath.Join(option.Config.ProcFS, fmt.Sprint(pid), "cgroup")
+	file := filepath.Join(option.Config.ProcFS, strconv.FormatUint(uint64(pid), 10), "cgroup")
 
 	cgroups, err := os.ReadFile(file)
 	if err != nil {
@@ -537,7 +537,7 @@ func findMigrationPath(pid uint32) (string, error) {
 		case CGROUP_UNIFIED:
 			cgrpMigrationPath, err = getValidCgroupv2Path(cgroupPaths)
 		default:
-			err = fmt.Errorf("could not detect Cgroup Mode")
+			err = errors.New("could not detect Cgroup Mode")
 		}
 
 		if err != nil {
@@ -604,7 +604,7 @@ func DetectCgroupMode() (CgroupModeCode, error) {
 	})
 
 	if cgroupMode == CGROUP_UNDEF {
-		return CGROUP_UNDEF, fmt.Errorf("could not detect Cgroup Mode")
+		return CGROUP_UNDEF, errors.New("could not detect Cgroup Mode")
 	}
 
 	return cgroupMode, nil
@@ -677,7 +677,7 @@ func DetectCgroupFSMagic() (uint64, error) {
 	})
 
 	if cgroupFSMagic == CGROUP_UNSET_VALUE {
-		return CGROUP_UNSET_VALUE, fmt.Errorf("could not detect Cgroup filesystem Magic")
+		return CGROUP_UNSET_VALUE, errors.New("could not detect Cgroup filesystem Magic")
 	}
 
 	return cgroupFSMagic, nil
@@ -752,7 +752,7 @@ func CgroupIDFromPID(pid uint32) (uint64, error) {
 		return 0, err
 	}
 
-	pathPrefix := fmt.Sprintf("%s/1/root/sys/fs/cgroup", option.Config.ProcFS)
+	pathPrefix := option.Config.ProcFS + "/1/root/sys/fs/cgroup"
 
 	// pathFunc returns (true, path) if it found the proper cgroup path, or (false, "") if it
 	// did not. There are two versions of this function, one for cgroup v1 and one for cgroup
@@ -761,7 +761,7 @@ func CgroupIDFromPID(pid uint32) (uint64, error) {
 
 	switch GetCgroupMode() {
 	case CGROUP_UNDEF:
-		return 0, fmt.Errorf("cgroup mode undefined")
+		return 0, errors.New("cgroup mode undefined")
 	case CGROUP_UNIFIED:
 		pathFunc = func(line string) (bool, string) {
 			v2Prefix := "0::"

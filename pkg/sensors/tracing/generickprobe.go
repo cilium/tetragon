@@ -476,19 +476,19 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec, lists []v1al
 
 		if selectors.HasOverride(f) {
 			if !bpf.HasOverrideHelper() {
-				return fmt.Errorf("error override action not supported, bpf_override_return helper not available")
+				return errors.New("error override action not supported, bpf_override_return helper not available")
 			}
 			if !f.Syscall {
 				for idx := range calls {
 					if !strings.HasPrefix(calls[idx], "security_") {
-						return fmt.Errorf("error override action can be used only with syscalls and security_ hooks")
+						return errors.New("error override action can be used only with syscalls and security_ hooks")
 					}
 				}
 			}
 		}
 
 		if selectors.HasSigkillAction(f) && !config.EnableLargeProgs() {
-			return fmt.Errorf("sigkill action requires kernel >= 5.3.0")
+			return errors.New("sigkill action requires kernel >= 5.3.0")
 		}
 
 		for idx := range calls {
@@ -692,7 +692,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 	eventConfig.PolicyID = uint32(in.policyID)
 	if len(f.ReturnArgAction) > 0 {
 		if !config.EnableLargeProgs() {
-			return errFn(fmt.Errorf("ReturnArgAction requires kernel >=5.3"))
+			return errFn(errors.New("ReturnArgAction requires kernel >=5.3"))
 		}
 		eventConfig.ArgReturnAction = selectors.ActionTypeFromString(f.ReturnArgAction)
 		if eventConfig.ArgReturnAction == selectors.ActionTypeInvalid {
@@ -747,7 +747,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 
 		if a.Resolve != "" && j < api.EventConfigMaxArgs {
 			if !bpf.HasProgramLargeSize() {
-				return errFn(fmt.Errorf("error: Resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag"))
+				return errFn(errors.New("error: Resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag"))
 			}
 			lastBTFType, btfArg, err := resolveBTFArg(f.Call, a)
 			if err != nil {
@@ -802,12 +802,12 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 	// argReturnPrinters tell golang printer piece how to print the event.
 	if f.Return {
 		if f.ReturnArg == nil {
-			return errFn(fmt.Errorf("ReturnArg not specified with Return=true"))
+			return errFn(errors.New("ReturnArg not specified with Return=true"))
 		}
 		argType := gt.GenericTypeFromString(f.ReturnArg.Type)
 		if argType == gt.GenericInvalidType {
 			if f.ReturnArg.Type == "" {
-				return errFn(fmt.Errorf("ReturnArg not specified with Return=true"))
+				return errFn(errors.New("ReturnArg not specified with Return=true"))
 			}
 			return errFn(fmt.Errorf("ReturnArg type '%s' unsupported", f.ReturnArg.Type))
 		}
@@ -1011,7 +1011,7 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 	maps = append(maps, polInfo.policyConfMap(load))
 
 	if kprobeEntry.loadArgs.retprobe {
-		pinRetProg := sensors.PathJoin(fmt.Sprintf("%s_return", kprobeEntry.funcName))
+		pinRetProg := sensors.PathJoin(kprobeEntry.funcName + "_return")
 		if kprobeEntry.instance != 0 {
 			pinRetProg = sensors.PathJoin(fmt.Sprintf("%s_return:%d", kprobeEntry.funcName, kprobeEntry.instance))
 		}
@@ -1196,13 +1196,13 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 	err := binary.Read(r, binary.LittleEndian, &m)
 	if err != nil {
 		logger.GetLogger().WithError(err).Warnf("Failed to read process call msg")
-		return nil, fmt.Errorf("failed to read process call msg")
+		return nil, errors.New("failed to read process call msg")
 	}
 
 	gk, err := genericKprobeTableGet(idtable.EntryID{ID: int(m.FuncId)})
 	if err != nil {
 		logger.GetLogger().WithError(err).Warnf("Failed to match id:%d", m.FuncId)
-		return nil, fmt.Errorf("failed to match id")
+		return nil, errors.New("failed to match id")
 	}
 
 	ret, err := handleMsgGenericKprobe(&m, gk, r)
@@ -1220,7 +1220,7 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 		actionArgEntry, err := gk.actionArgs.GetEntry(idtable.EntryID{ID: int(m.ActionArgId)})
 		if err != nil {
 			logger.GetLogger().WithError(err).Warnf("Failed to find argument for id:%d", m.ActionArgId)
-			return nil, fmt.Errorf("failed to find argument for id")
+			return nil, errors.New("failed to find argument for id")
 		}
 		actionArg := actionArgEntry.(*selectors.ActionArgEntry).GetArg()
 		switch m.ActionId {
@@ -1248,7 +1248,7 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 		// if this a return event, also read the ktime of the enter event
 		err := binary.Read(r, binary.LittleEndian, &ktimeEnter)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read ktimeEnter")
+			return nil, errors.New("failed to read ktimeEnter")
 		}
 		printers = gk.argReturnPrinters
 	} else {

@@ -4,6 +4,7 @@
 package tracing
 
 import (
+	"errors"
 	"fmt"
 	"path"
 	"strings"
@@ -180,15 +181,15 @@ func selectOverrideMethod(overrideMethod OverrideMethod, hasSyscall bool) (Overr
 		} else if bpf.HasModifyReturnSyscall() {
 			overrideMethod = OverrideMethodFmodRet
 		} else {
-			return OverrideMethodInvalid, fmt.Errorf("no override helper or mod_ret support: cannot load enforcer")
+			return OverrideMethodInvalid, errors.New("no override helper or mod_ret support: cannot load enforcer")
 		}
 	case OverrideMethodReturn:
 		if !bpf.HasOverrideHelper() {
-			return OverrideMethodInvalid, fmt.Errorf("option override return set, but it is not supported")
+			return OverrideMethodInvalid, errors.New("option override return set, but it is not supported")
 		}
 	case OverrideMethodFmodRet:
 		if !bpf.HasModifyReturn() || (hasSyscall && !bpf.HasModifyReturnSyscall()) {
-			return OverrideMethodInvalid, fmt.Errorf("option fmod_ret set, but it is not supported")
+			return OverrideMethodInvalid, errors.New("option fmod_ret set, but it is not supported")
 		}
 	}
 
@@ -204,7 +205,7 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 ) (*sensors.Sensor, error) {
 
 	if len(enforcers) > 1 {
-		return nil, fmt.Errorf("failed: we support only single enforcer sensor")
+		return nil, errors.New("failed: we support only single enforcer sensor")
 	}
 
 	enforcer := enforcers[0]
@@ -269,7 +270,7 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 	}
 
 	if !bpf.HasSignalHelper() {
-		return nil, fmt.Errorf("enforcer sensor requires signal helper which is not available")
+		return nil, errors.New("enforcer sensor requires signal helper which is not available")
 	}
 
 	// select proper override method based on configuration and spec options
@@ -280,7 +281,7 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 	if hasSecurity && overrideMethod != OverrideMethodFmodRet {
 		// fail if override-return is directly requested
 		if overrideMethod == OverrideMethodReturn {
-			return nil, fmt.Errorf("enforcer: can't override security function with override-return")
+			return nil, errors.New("enforcer: can't override security function with override-return")
 		}
 		overrideMethod = OverrideMethodFmodRet
 		logger.GetLogger().Infof("enforcer: forcing fmod_ret (security_* call detected)")
@@ -321,7 +322,7 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 				path.Join(option.Config.HubbleLib, "bpf_fmodret_enforcer.o"),
 				syscallSym,
 				"fmod_ret/security_task_prctl",
-				fmt.Sprintf("fmod_ret_%s", syscallSym),
+				"fmod_ret_"+syscallSym,
 				"enforcer").
 				SetLoaderData(policyName).
 				SetPolicy(policyName)

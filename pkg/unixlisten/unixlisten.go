@@ -4,7 +4,6 @@
 package unixlisten
 
 import (
-	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -34,7 +33,7 @@ func ListenWithRename(path string, mode os.FileMode) (net.Listener, error) {
 	dirName := filepath.Dir(path)
 
 	// Create a temporary directory: MkdirTemp creates the directory with 0700
-	tmpDir, err := os.MkdirTemp(dirName, fmt.Sprintf("%s-dir-*", baseName))
+	tmpDir, err := os.MkdirTemp(dirName, baseName+"-dir-*")
 	if err != nil {
 		return nil, err
 	}

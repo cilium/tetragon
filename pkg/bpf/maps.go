@@ -5,6 +5,7 @@ package bpf
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -96,5 +97,5 @@ func parseMemlockFromFDInfoReader(r io.Reader) (int, error) {
 	if err := scanner.Err(); err != nil {
 		return 0, fmt.Errorf("failed to scan: %w", err)
 	}
-	return 0, fmt.Errorf("didn't find memlock field")
+	return 0, errors.New("didn't find memlock field")
 }

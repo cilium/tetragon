@@ -7,6 +7,7 @@
 package btf
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -33,7 +34,7 @@ var testBTFFiles = []struct {
 }{
 	{"", "", defaults.DefaultBTFFile, nil},
 	{defaults.DefaultBTFFile, "", defaults.DefaultBTFFile, nil},
-	{"invalid-btf-file", "", "", fmt.Errorf("BTF file 'invalid-btf-file' does not exist should fail")},
+	{"invalid-btf-file", "", "", errors.New("BTF file 'invalid-btf-file' does not exist should fail")},
 	{"valid-btf-file", "valid-btf-file", "valid-btf-file", nil},
 }
 
@@ -141,7 +142,7 @@ func TestObserverFindBTFEnv(t *testing.T) {
 		err = unix.Uname(&uname)
 		assert.NoError(t, err)
 		kernelVersion := unix.ByteSliceToString(uname.Release[:])
-		os.Setenv("TETRAGON_BTF", filepath.Join("/boot/", fmt.Sprintf("btf-%s", kernelVersion)))
+		os.Setenv("TETRAGON_BTF", filepath.Join("/boot/", "btf-"+kernelVersion))
 		btf, err = observerFindBTF(lib, "")
 		assert.NoError(t, err)
 		assert.NotEmpty(t, btf)

@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/cilium/tetragon/pkg/metrics/kprobemetrics"
@@ -141,16 +142,16 @@ func (s *Summary) CSVPrint(path, name string) error {
 			fmt.Sprintf("%v", s.TetragonCPUUsage.UserTime),
 			fmt.Sprintf("%d", s.TetragonCPUUsage.UserTime),
 		},
-		{"Tetragon MaxRss", fmt.Sprintf("%d", s.TetragonCPUUsage.MaxRss)},
-		{"Tetragon ContextSwitches", fmt.Sprintf("%d", s.TetragonCPUUsage.ContextSwitches)},
+		{"Tetragon MaxRss", strconv.FormatInt(s.TetragonCPUUsage.MaxRss, 10)},
+		{"Tetragon ContextSwitches", strconv.FormatInt(s.TetragonCPUUsage.ContextSwitches, 10)},
 	}
 	w.WriteAll(records)
 
 	if !s.Args.Baseline {
 		records = [][]string{
-			{"Received", fmt.Sprintf("%d", getCounterValue(observer.RingbufReceived))},
-			{"Lost", fmt.Sprintf("%d", getCounterValue(observer.RingbufLost))},
-			{"Errors", fmt.Sprintf("%d", getCounterValue(observer.RingbufErrors))},
+			{"Received", strconv.Itoa(getCounterValue(observer.RingbufReceived))},
+			{"Lost", strconv.Itoa(getCounterValue(observer.RingbufLost))},
+			{"Errors", strconv.Itoa(getCounterValue(observer.RingbufErrors))},
 		}
 		w.WriteAll(records)
 	}

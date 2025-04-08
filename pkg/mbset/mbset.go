@@ -58,7 +58,7 @@ func (s *state) AllocID() (uint32, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.nextID >= MaxIDs {
-		return InvalidID, fmt.Errorf("cannot allocate new id")
+		return InvalidID, errors.New("cannot allocate new id")
 	}
 	ret := s.nextID
 	s.nextID++
@@ -71,9 +71,9 @@ func (s *state) UpdateMap(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byt
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if id == InvalidID {
-		return fmt.Errorf("invalid id")
+		return errors.New("invalid id")
 	} else if id >= MaxIDs {
-		return fmt.Errorf("unexpected id")
+		return errors.New("unexpected id")
 	}
 
 	bit := uint64(1) << id

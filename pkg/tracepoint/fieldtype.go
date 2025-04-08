@@ -63,7 +63,7 @@ type ParseError struct {
 }
 
 func (e *ParseError) Error() string {
-	return fmt.Sprintf("failed to parse field: %s", e.r)
+	return "failed to parse field: " + e.r
 }
 
 func parseTy(tyFields []string) (interface{}, error) {
@@ -140,7 +140,7 @@ func parseTy(tyFields []string) (interface{}, error) {
 	case ty == "dma_addr_t":
 		retTy = DmaAddrTy{}
 	default:
-		return nil, &ParseError{r: fmt.Sprintf("unknown type:%s", ty)}
+		return nil, &ParseError{r: "unknown type:" + ty}
 	}
 
 	if lastField() {

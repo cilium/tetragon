@@ -5,6 +5,7 @@ package helpers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -33,7 +34,7 @@ func PortForwardTetragonPods(testenv env.Environment) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 		opts, ok := ctx.Value(state.InstallOpts).(*flags.HelmOptions)
 		if !ok {
-			return ctx, fmt.Errorf("failed to find Tetragon install options. Did the test setup install Tetragon?")
+			return ctx, errors.New("failed to find Tetragon install options. Did the test setup install Tetragon?")
 		}
 
 		client, err := cfg.NewClient()
@@ -46,7 +47,7 @@ func PortForwardTetragonPods(testenv env.Environment) env.Func {
 		if err = r.List(
 			ctx,
 			podList,
-			resources.WithLabelSelector(fmt.Sprintf("app.kubernetes.io/name=%s", opts.DaemonSetName)),
+			resources.WithLabelSelector("app.kubernetes.io/name="+opts.DaemonSetName),
 		); err != nil {
 			return ctx, err
 		}

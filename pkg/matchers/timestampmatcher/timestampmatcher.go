@@ -5,6 +5,7 @@ package timestampmatcher
 
 import (
 	json "encoding/json"
+	"errors"
 	fmt "fmt"
 	strings "strings"
 	time "time"
@@ -62,7 +63,7 @@ type timestampValue interface {
 func (m *TimestampMatcher) checkDay(ts *time.Time) error {
 	value, ok := m.Value.(*Time)
 	if !ok {
-		return fmt.Errorf("value is not a timestamp")
+		return errors.New("value is not a timestamp")
 	}
 
 	tsYear := ts.Year()
@@ -92,7 +93,7 @@ func (m *TimestampMatcher) checkDay(ts *time.Time) error {
 func (m *TimestampMatcher) checkHour(ts *time.Time) error {
 	value, ok := m.Value.(*Time)
 	if !ok {
-		return fmt.Errorf("value is not a timestamp")
+		return errors.New("value is not a timestamp")
 	}
 
 	if err := m.checkDay(ts); err != nil {
@@ -112,7 +113,7 @@ func (m *TimestampMatcher) checkHour(ts *time.Time) error {
 func (m *TimestampMatcher) checkMinute(ts *time.Time) error {
 	value, ok := m.Value.(*Time)
 	if !ok {
-		return fmt.Errorf("value is not a timestamp")
+		return errors.New("value is not a timestamp")
 	}
 
 	if err := m.checkHour(ts); err != nil {
@@ -132,7 +133,7 @@ func (m *TimestampMatcher) checkMinute(ts *time.Time) error {
 func (m *TimestampMatcher) checkSecond(ts *time.Time) error {
 	value, ok := m.Value.(*Time)
 	if !ok {
-		return fmt.Errorf("value is not a timestamp")
+		return errors.New("value is not a timestamp")
 	}
 
 	if err := m.checkMinute(ts); err != nil {
@@ -152,7 +153,7 @@ func (m *TimestampMatcher) checkSecond(ts *time.Time) error {
 func (m *TimestampMatcher) checkBefore(ts *time.Time) error {
 	value, ok := m.Value.(*Time)
 	if !ok {
-		return fmt.Errorf("value is not a timestamp")
+		return errors.New("value is not a timestamp")
 	}
 
 	tsTime := ts
@@ -168,7 +169,7 @@ func (m *TimestampMatcher) checkBefore(ts *time.Time) error {
 func (m *TimestampMatcher) checkAfter(ts *time.Time) error {
 	value, ok := m.Value.(*Time)
 	if !ok {
-		return fmt.Errorf("value is not a timestamp")
+		return errors.New("value is not a timestamp")
 	}
 
 	tsTime := ts
@@ -184,11 +185,11 @@ func (m *TimestampMatcher) checkAfter(ts *time.Time) error {
 func (m *TimestampMatcher) checkBetween(ts *time.Time) error {
 	value, ok := m.Value.(*timestampBetween)
 	if !ok {
-		return fmt.Errorf("value is not a timestampBetween")
+		return errors.New("value is not a timestampBetween")
 	}
 
 	if value.Before == nil || value.After == nil {
-		return fmt.Errorf("value is nil")
+		return errors.New("value is nil")
 	}
 
 	tsTime := ts
@@ -212,11 +213,11 @@ func (m *TimestampMatcher) checkBetween(ts *time.Time) error {
 func (m *TimestampMatcher) checkFormat(ts *time.Time) error {
 	value, ok := m.Value.(*timestampFormat)
 	if !ok {
-		return fmt.Errorf("value is not a timestampFormat")
+		return errors.New("value is not a timestampFormat")
 	}
 
 	if value.Timestamp == nil {
-		return fmt.Errorf("value is nil")
+		return errors.New("value is nil")
 	}
 
 	tsStr := ts.Format(value.Format)
@@ -318,10 +319,10 @@ func (m *TimestampMatcher) Match(value *timestamppb.Timestamp) error {
 	case opAfter:
 		{
 			if m.Value == nil {
-				return fmt.Errorf("matcher value is nil")
+				return errors.New("matcher value is nil")
 			}
 			if value == nil {
-				return fmt.Errorf("timestamp is nil")
+				return errors.New("timestamp is nil")
 			}
 			tsTime := value.AsTime().UTC()
 			return m.checkAfter(&tsTime)
@@ -329,10 +330,10 @@ func (m *TimestampMatcher) Match(value *timestamppb.Timestamp) error {
 	case opBefore:
 		{
 			if m.Value == nil {
-				return fmt.Errorf("matcher value is nil")
+				return errors.New("matcher value is nil")
 			}
 			if value == nil {
-				return fmt.Errorf("timestamp is nil")
+				return errors.New("timestamp is nil")
 			}
 			tsTime := value.AsTime().UTC()
 			return m.checkBefore(&tsTime)
@@ -340,10 +341,10 @@ func (m *TimestampMatcher) Match(value *timestamppb.Timestamp) error {
 	case opBetween:
 		{
 			if m.Value == nil {
-				return fmt.Errorf("matcher value is nil")
+				return errors.New("matcher value is nil")
 			}
 			if value == nil {
-				return fmt.Errorf("timestamp is nil")
+				return errors.New("timestamp is nil")
 			}
 			tsTime := value.AsTime().UTC()
 			return m.checkBetween(&tsTime)
@@ -351,10 +352,10 @@ func (m *TimestampMatcher) Match(value *timestamppb.Timestamp) error {
 	case opDay:
 		{
 			if m.Value == nil {
-				return fmt.Errorf("matcher value is nil")
+				return errors.New("matcher value is nil")
 			}
 			if value == nil {
-				return fmt.Errorf("timestamp is nil")
+				return errors.New("timestamp is nil")
 			}
 			tsTime := value.AsTime().UTC()
 			return m.checkDay(&tsTime)
@@ -362,10 +363,10 @@ func (m *TimestampMatcher) Match(value *timestamppb.Timestamp) error {
 	case opFormat:
 		{
 			if m.Value == nil {
-				return fmt.Errorf("matcher value is nil")
+				return errors.New("matcher value is nil")
 			}
 			if value == nil {
-				return fmt.Errorf("timestamp is nil")
+				return errors.New("timestamp is nil")
 			}
 			tsTime := value.AsTime().UTC()
 			return m.checkFormat(&tsTime)
@@ -373,10 +374,10 @@ func (m *TimestampMatcher) Match(value *timestamppb.Timestamp) error {
 	case opHour:
 		{
 			if m.Value == nil {
-				return fmt.Errorf("matcher value is nil")
+				return errors.New("matcher value is nil")
 			}
 			if value == nil {
-				return fmt.Errorf("timestamp is nil")
+				return errors.New("timestamp is nil")
 			}
 			tsTime := value.AsTime().UTC()
 			return m.checkHour(&tsTime)
@@ -384,10 +385,10 @@ func (m *TimestampMatcher) Match(value *timestamppb.Timestamp) error {
 	case opMinute:
 		{
 			if m.Value == nil {
-				return fmt.Errorf("matcher value is nil")
+				return errors.New("matcher value is nil")
 			}
 			if value == nil {
-				return fmt.Errorf("timestamp is nil")
+				return errors.New("timestamp is nil")
 			}
 			tsTime := value.AsTime().UTC()
 			return m.checkMinute(&tsTime)
@@ -395,10 +396,10 @@ func (m *TimestampMatcher) Match(value *timestamppb.Timestamp) error {
 	case opSecond:
 		{
 			if m.Value == nil {
-				return fmt.Errorf("matcher value is nil")
+				return errors.New("matcher value is nil")
 			}
 			if value == nil {
-				return fmt.Errorf("timestamp is nil")
+				return errors.New("timestamp is nil")
 			}
 			tsTime := value.AsTime().UTC()
 			return m.checkSecond(&tsTime)
@@ -437,7 +438,7 @@ func (m TimestampMatcher) MarshalJSON() ([]byte, error) {
 			Alias: (*Alias)(&m),
 		})
 	default:
-		return nil, fmt.Errorf("marshal DurationMatcher: Invalid match value")
+		return nil, errors.New("marshal DurationMatcher: Invalid match value")
 	}
 }
 
@@ -483,7 +484,7 @@ func (m *TimestampMatcher) UnmarshalJSON(b []byte) error {
 			return nil
 		}
 	}
-	return fmt.Errorf("unmarshal TimestampMatcher: Failed to unmarshal")
+	return errors.New("unmarshal TimestampMatcher: Failed to unmarshal")
 }
 
 // After constructs a new TimestampMatcher that matches using the After operator

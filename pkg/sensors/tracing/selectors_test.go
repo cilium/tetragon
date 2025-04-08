@@ -12,6 +12,7 @@ package tracing
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"testing"
 	"time"
 
@@ -262,7 +263,7 @@ func selectorsFromWhenceVals(t *testing.T, filterWhenceVals [][]int, whenceIdx u
 	for _, whenceVals := range filterWhenceVals {
 		whences := make([]string, len(whenceVals))
 		for i := range whenceVals {
-			whences[i] = fmt.Sprintf("%d", whenceVals[i])
+			whences[i] = strconv.Itoa(whenceVals[i])
 		}
 		sels = append(sels, v1alpha1.KProbeSelector{
 			MatchPIDs: myPidMatchPIDs,

@@ -4,7 +4,7 @@
 package observer
 
 import (
-	"fmt"
+	"errors"
 	"sync"
 
 	"github.com/cilium/tetragon/pkg/sensors"
@@ -27,7 +27,7 @@ func SetSensorManager(sm *sensors.Manager) error {
 	defer sensorManagerMu.Unlock()
 
 	if sensorManager != nil {
-		return fmt.Errorf("observer sensorManager already set")
+		return errors.New("observer sensorManager already set")
 	}
 	sensorManager = sm
 	return nil
