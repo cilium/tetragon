@@ -40,11 +40,12 @@ var testBTFFiles = []struct {
 func setupfiles() func(*testing.T, string, ...string) {
 	return func(t *testing.T, param string, files ...string) {
 		for _, f := range files {
-			if param == "create" {
+			switch param {
+			case "create":
 				h, e := os.Create(f)
 				assert.NoError(t, e)
 				h.Close()
-			} else if param == "remove" {
+			case "remove":
 				os.Remove(f)
 			}
 		}

@@ -380,7 +380,7 @@ func (msg *MsgCloneEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 	if ec := eventcache.Get(); ec != nil {
 		if proc == nil {
 			// adding to the cache due to missing parent
-			ec.Add(nil, nil, msg.MsgCloneEvent.Common.Ktime, msg.MsgCloneEvent.Ktime, msg)
+			ec.Add(nil, nil, msg.Common.Ktime, msg.Ktime, msg)
 			return nil
 		}
 
@@ -389,7 +389,7 @@ func (msg *MsgCloneEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 		if ec.Needed(proc.UnsafeGetProcess()) ||
 			option.Config.EnableProcessAncestors && ec.NeededAncestors(parent, ancestors) {
 			// adding to the cache due to missing pod info or ancestors
-			ec.Add(proc, nil, msg.MsgCloneEvent.Common.Ktime, msg.MsgCloneEvent.Ktime, msg)
+			ec.Add(proc, nil, msg.Common.Ktime, msg.Ktime, msg)
 			return nil
 		}
 	}

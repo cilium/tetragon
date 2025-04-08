@@ -641,11 +641,12 @@ func CheckCloneEvents(t *testing.T, events []*tetragon.GetEventsResponse, curren
 			assert.NotEqual(t, exitEv.Process.ExecId, "") // ensure not empty
 			assert.NotEqual(t, exitEv.Process.Binary, "") // ensure not empty
 
-			if exitEv.Process.Pid.Value == currentPid {
+			switch exitEv.Process.Pid.Value {
+			case currentPid:
 				foundExitExecProcess = true
-			} else if exitEv.Process.Pid.Value == clonePid {
+			case clonePid:
 				foundExitCloneProcess = true
-			} else {
+			default:
 				assert.Fail(t, "unknown event PID")
 			}
 		} else {

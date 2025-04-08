@@ -61,10 +61,11 @@ func dumpSyscalls(fname string) (map[string][]SyscallArg, error) {
 	secRodataIdx := -1
 	var secData, secRodata *elf.Section
 	for idx, s := range f.Sections {
-		if s.Name == ".data" {
+		switch s.Name {
+		case ".data":
 			secDataIdx = idx
 			secData = s
-		} else if s.Name == ".rodata" {
+		case ".rodata":
 			secRodataIdx = idx
 			secRodata = s
 		}
@@ -95,7 +96,7 @@ func dumpSyscalls(fname string) (map[string][]SyscallArg, error) {
 		}
 
 		var v uint64
-		err = binary.Read(secDataReader, f.FileHeader.ByteOrder, &v)
+		err = binary.Read(secDataReader, f.ByteOrder, &v)
 		if err != nil {
 			return "", errors.New("read failed")
 		}

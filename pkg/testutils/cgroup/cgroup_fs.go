@@ -19,11 +19,12 @@ func CgfsMkTemp(t *testing.T, cgfsPath string, pattern string) string {
 	if err := syscall.Statfs(cgfsPath, &st); err != nil {
 		t.Fatalf("error accessing cgroup path '%s': %s", cgfsPath, err)
 	}
-	if st.Type == unix.CGROUP2_SUPER_MAGIC {
+	switch st.Type {
+	case unix.CGROUP2_SUPER_MAGIC:
 		t.Logf("'%s' is cgroup v2", cgfsPath)
-	} else if st.Type == unix.TMPFS_MAGIC {
+	case unix.TMPFS_MAGIC:
 		t.Logf("'%s' is cgroup v1", cgfsPath)
-	} else {
+	default:
 		t.Fatalf("'%s' not a cgroup fs", cgfsPath)
 	}
 

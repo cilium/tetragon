@@ -413,9 +413,10 @@ func detectMissedStats() (bool, bool) {
 	}
 
 	for _, m := range union.Members {
-		if m.Name == "kprobe_multi" {
+		switch m.Name {
+		case "kprobe_multi":
 			kprobeMulti = detectKprobeMulti(m)
-		} else if m.Name == "perf_event" {
+		case "perf_event":
 			kprobe = detectKprobe(m)
 		}
 	}

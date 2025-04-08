@@ -205,9 +205,10 @@ func TestDetectCgroupModeDefault(t *testing.T) {
 	mode, err := detectCgroupMode(defaultCgroupRoot)
 	assert.NoError(t, err)
 
-	if st.Type == unix.CGROUP2_SUPER_MAGIC {
+	switch st.Type {
+	case unix.CGROUP2_SUPER_MAGIC:
 		assert.Equal(t, CGROUP_UNIFIED, mode)
-	} else if st.Type == unix.TMPFS_MAGIC {
+	case unix.TMPFS_MAGIC:
 		unified := filepath.Join(defaultCgroupRoot, "unified")
 		err = syscall.Statfs(unified, &st)
 		if err == nil && st.Type == unix.CGROUP2_SUPER_MAGIC {
@@ -220,7 +221,7 @@ func TestDetectCgroupModeDefault(t *testing.T) {
 		} else {
 			assert.Equal(t, CGROUP_LEGACY, mode)
 		}
-	} else {
+	default:
 		t.Errorf("TestDetectCgroupModeDefault() failed Cgroupfs %s type failed:  want:%d or %d -  got:%d",
 			defaultCgroupRoot, unix.CGROUP2_SUPER_MAGIC, unix.TMPFS_MAGIC, st.Type)
 	}
@@ -266,16 +267,17 @@ func TestDetectCgroupFSMagic(t *testing.T) {
 	fs, err := DetectCgroupFSMagic()
 	assert.NoError(t, err)
 	assert.NotEqual(t, CGROUP_UNDEF, fs)
-	if cgroupMode == CGROUP_UNIFIED {
+	switch cgroupMode {
+	case CGROUP_UNIFIED:
 		assert.Equal(t, uint64(unix.CGROUP2_SUPER_MAGIC), fs)
-	} else if cgroupMode == CGROUP_HYBRID {
+	case CGROUP_HYBRID:
 		assert.Equal(t, uint64(unix.CGROUP_SUPER_MAGIC), fs)
 		mounted, err := isDirMountFsType(filepath.Join(cgroupFSPath, "unified"), mountinfo.FilesystemTypeCgroup2)
 		assert.NoError(t, err)
 		assert.Equal(t, true, mounted)
-	} else if cgroupMode == CGROUP_LEGACY {
+	case CGROUP_LEGACY:
 		assert.Equal(t, uint64(unix.CGROUP_SUPER_MAGIC), fs)
-	} else {
+	default:
 		t.Errorf("Test failed to get Cgroup filesystem %s type", cgroupFSPath)
 	}
 

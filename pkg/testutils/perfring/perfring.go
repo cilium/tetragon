@@ -93,10 +93,7 @@ func ProcessEvents(t *testing.T, ctx context.Context, eventFn EventFn, wgStarted
 
 		complChecker := testsensor.NewCompletionChecker()
 
-		for {
-			if ctx.Err() != nil {
-				break
-			}
+		for ctx.Err() == nil {
 
 			record, err := perfReader.Read()
 			if err != nil {

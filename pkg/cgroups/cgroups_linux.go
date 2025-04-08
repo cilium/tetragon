@@ -96,9 +96,10 @@ func (code CgroupModeCode) String() string {
 // DetectCgroupFSMagic() runs by default DetectCgroupMode()
 // CgroupFsMagicStr() Returns "Cgroupv2" or "Cgroupv1" based on passed magic.
 func CgroupFsMagicStr(magic uint64) string {
-	if magic == unix.CGROUP2_SUPER_MAGIC {
+	switch magic {
+	case unix.CGROUP2_SUPER_MAGIC:
 		return "Cgroupv2"
-	} else if magic == unix.CGROUP_SUPER_MAGIC {
+	case unix.CGROUP_SUPER_MAGIC:
 		return "Cgroupv1"
 	}
 
@@ -203,11 +204,12 @@ func parseCgroupv1SubSysIds(filePath string) error {
 		} else {
 			var err error
 			// Warn with error
-			if controller.Name == "memory" {
+			switch controller.Name {
+			case "memory":
 				err = fmt.Errorf("Cgroupv1 controller 'memory' is not active, ensure kernel CONFIG_MEMCG=y and CONFIG_MEMCG_V1=y are set")
-			} else if controller.Name == "cpuset" {
+			case "cpuset":
 				err = fmt.Errorf("Cgroupv1 controller 'cpuset' is not active, ensure kernel CONFIG_CPUSETS=y and CONFIG_CPUSETS_V1=y are set")
-			} else {
+			default:
 				logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).Warnf("Cgroupv1 '%s' supported controller is missing", controller.Name)
 			}
 
@@ -235,9 +237,10 @@ func DiscoverSubSysIds() error {
 		}
 	}
 
-	if magic == unix.CGROUP_SUPER_MAGIC {
+	switch magic {
+	case unix.CGROUP_SUPER_MAGIC:
 		return parseCgroupv1SubSysIds(filepath.Join(option.Config.ProcFS, "cgroups"))
-	} else if magic == unix.CGROUP2_SUPER_MAGIC {
+	case unix.CGROUP2_SUPER_MAGIC:
 		/* Parse Root Cgroup active controllers.
 		 * This step helps debugging since we may have some
 		 * race conditions when processes are moved or spawned in their
@@ -556,9 +559,10 @@ func detectCgroupMode(cgroupfs string) (CgroupModeCode, error) {
 		return CGROUP_UNDEF, err
 	}
 
-	if st.Type == unix.CGROUP2_SUPER_MAGIC {
+	switch st.Type {
+	case unix.CGROUP2_SUPER_MAGIC:
 		return CGROUP_UNIFIED, nil
-	} else if st.Type == unix.TMPFS_MAGIC {
+	case unix.TMPFS_MAGIC:
 		err := syscall.Statfs(filepath.Join(cgroupfs, "unified"), &st)
 		if err == nil && st.Type == unix.CGROUP2_SUPER_MAGIC {
 			return CGROUP_HYBRID, nil

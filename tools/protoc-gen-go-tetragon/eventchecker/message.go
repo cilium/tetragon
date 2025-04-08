@@ -165,7 +165,7 @@ func (msg *CheckedMessage) fieldsBody(g *protogen.GeneratedFile) (string, error)
 		if err != nil {
 			return "", err
 		}
-		if !(f.isList() || f.isMap()) {
+		if !f.isList() && !f.isMap() {
 			fieldsStr += fmt.Sprintf("%s *%s `%s`\n", f.name(), typeName, f.jsonTag())
 		} else if f.isList() {
 			fieldsStr += fmt.Sprintf("%s *%s `%s`\n", f.name(), f.listCheckerName(g), f.jsonTag())
