@@ -10,8 +10,8 @@ linters:
     - err113
     - errname
     - errorlint
+    - exptostd
     - goheader
-    - gomodguard
     - govet
     - ineffassign
     - makezero
@@ -42,19 +42,6 @@ linters:
       template: |-
         SPDX-License-Identifier: Apache-2.0
         Copyright Authors of {{ PROJECT }}
-    gomodguard:
-      blocked:
-        modules:
-          - golang.org/x/exp/maps:
-              recommendations:
-                - iter
-                - maps
-                - slices
-              reason: Go 1.23+ supports iterating over maps and slices, see https://go.dev/doc/go1.23#iterators
-          - golang.org/x/exp/slices:
-              recommendations:
-                - slices
-              reason: Go 1.21+ provides many common operations for slices using generic functions, see https://go.dev/doc/go1.21#slices
   exclusions:
     generated: lax
     presets:
