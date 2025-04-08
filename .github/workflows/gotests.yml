@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-20.04, ubuntu-22.04-arm64 ]
+        os: [ ubuntu-24.04, ubuntu-24.04-arm64 ]
     steps:
     - name: Checkout code
       uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -44,12 +44,12 @@ jobs:
     - name: Install dependencies x86
       run: |
         sudo apt-get -y install libc6-dev-i386
-      if: ${{ matrix.os == 'ubuntu-20.04' }}
+      if: ${{ matrix.os == 'ubuntu-24.04' }}
 
     - name: Install dependencies ARM
       run: |
         sudo apt-get -y install gcc-arm-linux-gnueabihf
-      if: ${{ matrix.os == 'ubuntu-22.04-arm64' }}
+      if: ${{ matrix.os == 'ubuntu-24.04-arm64' }}
 
     - name: Install bpftool
       uses: mtardy/setup-bpftool@9bc044304197616a6321d452e04cc059e006d8e2 # v1.0.4
