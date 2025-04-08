@@ -30,7 +30,6 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/asm"
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -7640,7 +7639,7 @@ spec:
 	syscall.Unlink(file_1.Name())
 	syscall.Unlink(file_2.Name())
 
-	getChecker := func(check string) *eventchecker.UnorderedEventChecker {
+	getChecker := func(check string) *ec.UnorderedEventChecker {
 		kpChecker := ec.NewProcessKprobeChecker("").
 			WithFunctionName(sm.Full("security_path_unlink")).
 			WithArgs(ec.NewKprobeArgumentListMatcher().

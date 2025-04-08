@@ -14,13 +14,11 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
-	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/kernels"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
-	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
-	smatcher "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
+	"github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/testutils"
@@ -104,15 +102,15 @@ func TestKprobeSigkill(t *testing.T) {
 		return specName
 	}
 
-	kpChecker := ec.NewProcessKprobeChecker("").
-		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_lseek"))).
-		WithArgs(ec.NewKprobeArgumentListMatcher().
+	kpChecker := eventchecker.NewProcessKprobeChecker("").
+		WithFunctionName(stringmatcher.Full(arch.AddSyscallPrefixTestHelper(t, "sys_lseek"))).
+		WithArgs(eventchecker.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
-				ec.NewKprobeArgumentChecker().WithIntArg(5555),
+				eventchecker.NewKprobeArgumentChecker().WithIntArg(5555),
 			)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_SIGKILL)
-	checker := ec.NewUnorderedEventChecker(kpChecker)
+	checker := eventchecker.NewUnorderedEventChecker(kpChecker)
 
 	testSigkill(t, makeSpecFile, checker)
 }
@@ -135,17 +133,17 @@ func TestKprobeSigkillExecveMap1(t *testing.T) {
 		return specName
 	}
 
-	kpChecker := ec.NewProcessKprobeChecker("").
-		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_lseek"))).
-		WithArgs(ec.NewKprobeArgumentListMatcher().
+	kpChecker := eventchecker.NewProcessKprobeChecker("").
+		WithFunctionName(stringmatcher.Full(arch.AddSyscallPrefixTestHelper(t, "sys_lseek"))).
+		WithArgs(eventchecker.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
-				ec.NewKprobeArgumentChecker().WithIntArg(5555),
+				eventchecker.NewKprobeArgumentChecker().WithIntArg(5555),
 			)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_SIGKILL).
-		WithProcess(ec.NewProcessChecker().WithFlags(sm.Full("unknown")))
+		WithProcess(eventchecker.NewProcessChecker().WithFlags(stringmatcher.Full("unknown")))
 
-	checker := ec.NewUnorderedEventChecker(kpChecker)
+	checker := eventchecker.NewUnorderedEventChecker(kpChecker)
 
 	option.Config.ExecveMapEntries = 1
 	testSigkill(t, makeSpecFile, checker)
@@ -170,18 +168,18 @@ func TestTracepointSigkillExecveMap1(t *testing.T) {
 		return specName
 	}
 
-	kpChecker := ec.NewProcessTracepointChecker("").
-		WithSubsys(smatcher.Full("syscalls")).
-		WithEvent(smatcher.Full("sys_enter_lseek")).
-		WithArgs(ec.NewKprobeArgumentListMatcher().
+	kpChecker := eventchecker.NewProcessTracepointChecker("").
+		WithSubsys(stringmatcher.Full("syscalls")).
+		WithEvent(stringmatcher.Full("sys_enter_lseek")).
+		WithArgs(eventchecker.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
-				ec.NewKprobeArgumentChecker().WithIntArg(int32(5555)),
+				eventchecker.NewKprobeArgumentChecker().WithIntArg(int32(5555)),
 			)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_SIGKILL).
-		WithProcess(ec.NewProcessChecker().WithFlags(sm.Full("unknown")))
+		WithProcess(eventchecker.NewProcessChecker().WithFlags(stringmatcher.Full("unknown")))
 
-	checker := ec.NewUnorderedEventChecker(kpChecker)
+	checker := eventchecker.NewUnorderedEventChecker(kpChecker)
 
 	option.Config.ExecveMapEntries = 1
 	testSigkill(t, makeSpecFile, checker)
@@ -206,17 +204,17 @@ func TestReturnKprobeSigkill(t *testing.T) {
 		return specName
 	}
 
-	kpChecker := ec.NewProcessKprobeChecker("").
-		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_lseek"))).
-		WithArgs(ec.NewKprobeArgumentListMatcher().
+	kpChecker := eventchecker.NewProcessKprobeChecker("").
+		WithFunctionName(stringmatcher.Full(arch.AddSyscallPrefixTestHelper(t, "sys_lseek"))).
+		WithArgs(eventchecker.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
-				ec.NewKprobeArgumentChecker().WithIntArg(5555),
+				eventchecker.NewKprobeArgumentChecker().WithIntArg(5555),
 			)).
-		WithReturn(ec.NewKprobeArgumentChecker().WithIntArg(-9)).
+		WithReturn(eventchecker.NewKprobeArgumentChecker().WithIntArg(-9)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_POST).
 		WithReturnAction(tetragon.KprobeAction_KPROBE_ACTION_SIGKILL)
-	checker := ec.NewUnorderedEventChecker(kpChecker)
+	checker := eventchecker.NewUnorderedEventChecker(kpChecker)
 
 	testSigkill(t, makeSpecFile, checker)
 }
@@ -295,11 +293,11 @@ func testUnprivilegedUsernsKill(t *testing.T, pidns bool) {
 		t.Fatalf("command failed with %s. Context error: %s", err, ctx.Err())
 	}
 
-	kpChecker := ec.NewProcessKprobeChecker("").
-		WithFunctionName(sm.Full("create_user_ns")).
+	kpChecker := eventchecker.NewProcessKprobeChecker("").
+		WithFunctionName(stringmatcher.Full("create_user_ns")).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_SIGKILL)
 
-	checker := ec.NewUnorderedEventChecker(kpChecker)
+	checker := eventchecker.NewUnorderedEventChecker(kpChecker)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)

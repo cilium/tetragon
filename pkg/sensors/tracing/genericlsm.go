@@ -19,7 +19,6 @@ import (
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
-	conf "github.com/cilium/tetragon/pkg/config"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/idtable"
@@ -224,8 +223,8 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 		return errFn(err)
 	}
 
-	config := &api.EventConfig{}
-	config.PolicyID = uint32(in.policyID)
+	eventConfig := &api.EventConfig{}
+	eventConfig.PolicyID = uint32(in.policyID)
 
 	msgField, err := getPolicyMessage(f.Message)
 	if errors.Is(err, ErrMsgSyntaxShort) || errors.Is(err, ErrMsgSyntaxEscape) {
@@ -263,7 +262,7 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 			if argType != gt.GenericCharBuffer {
 				logger.GetLogger().Warnf("maxData flag is ignored (supported for char_buf type)")
 			}
-			if !conf.EnableLargeProgs() {
+			if !config.EnableLargeProgs() {
 				logger.GetLogger().Warnf("maxData flag is ignored (supported from large programs)")
 			}
 		}
@@ -275,8 +274,8 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 			return errFn(fmt.Errorf("error add arg: ArgType %s Index %d out of bounds",
 				a.Type, int(a.Index)))
 		}
-		config.Arg[a.Index] = int32(argType)
-		config.ArgM[a.Index] = uint32(argMValue)
+		eventConfig.Arg[a.Index] = int32(argType)
+		eventConfig.ArgM[a.Index] = uint32(argMValue)
 
 		argsBTFSet[a.Index] = true
 		argP := argPrinter{index: j, ty: argType, maxData: a.MaxData, label: a.Label}
@@ -285,27 +284,27 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 		pathArgWarning(a.Index, argType, f.Selectors)
 	}
 
-	config.BTFArg = allBTFArgs
-	config.ArgReturn = int32(0)
-	config.ArgReturnCopy = int32(0)
+	eventConfig.BTFArg = allBTFArgs
+	eventConfig.ArgReturn = int32(0)
+	eventConfig.ArgReturnCopy = int32(0)
 
 	// Mark remaining arguments as 'nops' the kernel side will skip
 	// copying 'nop' args.
 	for j, a := range argsBTFSet {
 		if !a {
 			if j != api.ReturnArgIndex {
-				config.Arg[j] = gt.GenericNopType
-				config.ArgM[j] = 0
+				eventConfig.Arg[j] = gt.GenericNopType
+				eventConfig.ArgM[j] = 0
 			}
 		}
 	}
 
-	config.Syscall = 0
+	eventConfig.Syscall = 0
 
 	// create a new entry on the table, and pass its id to BPF-side
 	// so that we can do the matching at event-generation time
 	lsmEntry := genericLsm{
-		config:      config,
+		config:      eventConfig,
 		argPrinters: argSigPrinters,
 		hook:        f.Hook,
 		tableId:     idtable.UninitializedEntryID,
@@ -331,7 +330,7 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 	}
 
 	genericLsmTable.AddEntry(&lsmEntry)
-	config.FuncId = uint32(lsmEntry.tableId.ID)
+	eventConfig.FuncId = uint32(lsmEntry.tableId.ID)
 
 	logger.GetLogger().
 		WithField("hook", lsmEntry.hook).

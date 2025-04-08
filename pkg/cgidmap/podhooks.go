@@ -14,7 +14,6 @@ import (
 
 	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -40,7 +39,7 @@ func registerPodCallbacks(podInformer cache.SharedIndexInformer) {
 	podInformer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
-				pod, ok := obj.(*v1.Pod)
+				pod, ok := obj.(*corev1.Pod)
 				if !ok {
 					logger.GetLogger().Warn("cgidmap, add-pod handler: unexpected object type: %T", pod)
 					return
@@ -48,7 +47,7 @@ func registerPodCallbacks(podInformer cache.SharedIndexInformer) {
 				updatePodHandler(m, pod)
 			},
 			UpdateFunc: func(_, newObj interface{}) {
-				pod, ok := newObj.(*v1.Pod)
+				pod, ok := newObj.(*corev1.Pod)
 				if !ok {
 					logger.GetLogger().Warn("cgidmap, update-pod handler: unexpected object type(s): new:%T", pod)
 					return

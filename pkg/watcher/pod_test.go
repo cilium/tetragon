@@ -21,7 +21,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8stypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/kubernetes/fake"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	clienttesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
@@ -156,7 +155,7 @@ type testState struct {
 	// number of callbacks being called for pods adds/deletes
 	cbAdds, cbDels atomic.Uint64
 
-	client *fake.Clientset
+	client *k8sfake.Clientset
 }
 
 func contIDFromName(s string) string {

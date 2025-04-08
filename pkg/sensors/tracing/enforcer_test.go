@@ -16,7 +16,6 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
-	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
@@ -101,15 +100,15 @@ func TestEnforcerOverride(t *testing.T) {
 			WithOverrideValue(-17) // EEXIST
 	}
 
-	tpChecker := ec.NewProcessTracepointChecker("").
-		WithArgs(ec.NewKprobeArgumentListMatcher().
+	tpChecker := eventchecker.NewProcessTracepointChecker("").
+		WithArgs(eventchecker.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
-				ec.NewKprobeArgumentChecker().WithSyscallId(mkSysIDChecker(t, unix.SYS_GETCPU)),
+				eventchecker.NewKprobeArgumentChecker().WithSyscallId(mkSysIDChecker(t, unix.SYS_GETCPU)),
 			)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYENFORCER)
 
-	checker := ec.NewUnorderedEventChecker(tpChecker)
+	checker := eventchecker.NewUnorderedEventChecker(tpChecker)
 
 	checkerFunc := func(t *testing.T, _ error, rc int) {
 		if rc != int(syscall.EEXIST) {
@@ -155,15 +154,15 @@ func TestEnforcerOverrideManySyscalls(t *testing.T) {
 			WithOverrideValue(-17) // EEXIST
 	}
 
-	tpChecker := ec.NewProcessTracepointChecker("").
-		WithArgs(ec.NewKprobeArgumentListMatcher().
+	tpChecker := eventchecker.NewProcessTracepointChecker("").
+		WithArgs(eventchecker.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
-				ec.NewKprobeArgumentChecker().WithSyscallId(mkSysIDChecker(t, unix.SYS_GETCPU)),
+				eventchecker.NewKprobeArgumentChecker().WithSyscallId(mkSysIDChecker(t, unix.SYS_GETCPU)),
 			)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYENFORCER)
 
-	checker := ec.NewUnorderedEventChecker(tpChecker)
+	checker := eventchecker.NewUnorderedEventChecker(tpChecker)
 
 	checkerFunc := func(t *testing.T, _ error, rc int) {
 		if rc != int(syscall.EEXIST) {
@@ -198,10 +197,10 @@ func TestEnforcerOverrideManySyscalls(t *testing.T) {
 	})
 }
 
-func mkSysIDChecker(t *testing.T, id uint64) *ec.SyscallIdChecker {
+func mkSysIDChecker(t *testing.T, id uint64) *eventchecker.SyscallIdChecker {
 	abi, err := syscallinfo.DefaultABI()
 	require.NoError(t, err)
-	return ec.NewSyscallIdChecker().WithId(uint32(id)).WithAbi(sm.Full(abi))
+	return eventchecker.NewSyscallIdChecker().WithId(uint32(id)).WithAbi(sm.Full(abi))
 }
 
 func TestEnforcerSignal(t *testing.T) {
@@ -209,15 +208,15 @@ func TestEnforcerSignal(t *testing.T) {
 
 	test := testutils.RepoRootPath("contrib/tester-progs/enforcer-tester")
 
-	tpChecker := ec.NewProcessTracepointChecker("").
-		WithArgs(ec.NewKprobeArgumentListMatcher().
+	tpChecker := eventchecker.NewProcessTracepointChecker("").
+		WithArgs(eventchecker.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
-				ec.NewKprobeArgumentChecker().WithSyscallId(mkSysIDChecker(t, syscall.SYS_PRCTL)),
+				eventchecker.NewKprobeArgumentChecker().WithSyscallId(mkSysIDChecker(t, syscall.SYS_PRCTL)),
 			)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYENFORCER)
 
-	checker := ec.NewUnorderedEventChecker(tpChecker)
+	checker := eventchecker.NewUnorderedEventChecker(tpChecker)
 
 	checkerFunc := func(t *testing.T, err error, _ int) {
 		if err == nil || err.Error() != "signal: killed" {
@@ -287,19 +286,19 @@ func testSecurity(t *testing.T, tracingPolicy, tempFile string) {
 
 	t.Logf("Running: %s %v\n", cmd.String(), err)
 
-	kpCheckerPwrite := ec.NewProcessKprobeChecker("").
-		WithProcess(ec.NewProcessChecker().
+	kpCheckerPwrite := eventchecker.NewProcessKprobeChecker("").
+		WithProcess(eventchecker.NewProcessChecker().
 			WithBinary(sm.Suffix(testBin))).
 		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_pwrite64"))).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_NOTIFYENFORCER).
-		WithArgs(ec.NewKprobeArgumentListMatcher().
+		WithArgs(eventchecker.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
-				ec.NewKprobeArgumentChecker().WithFileArg(
-					ec.NewKprobeFileChecker().WithPath(sm.Full(tempFile))),
+				eventchecker.NewKprobeArgumentChecker().WithFileArg(
+					eventchecker.NewKprobeFileChecker().WithPath(sm.Full(tempFile))),
 			))
 
-	checker := ec.NewUnorderedEventChecker(kpCheckerPwrite)
+	checker := eventchecker.NewUnorderedEventChecker(kpCheckerPwrite)
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 
