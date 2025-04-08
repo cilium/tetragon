@@ -107,9 +107,7 @@ func (src traceBenchRw) Run(ctx context.Context, _ *Arguments, _ *Summary) error
 	var wg sync.WaitGroup
 	defer wg.Wait()
 
-	var i uint
-
-	for i = 0; i < *rwThreads; i++ {
+	for range uint(*rwThreads) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

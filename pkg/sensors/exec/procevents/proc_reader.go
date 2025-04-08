@@ -115,7 +115,7 @@ func pushExecveEvents(p procs) {
 			need -= int32(deduct)
 		}
 
-		for i := int32(0); i < need; i++ {
+		for range need {
 			if len(raw_pargs) > len(raw_args) {
 				p.pflags |= api.EventTruncArgs
 				raw_pargs = raw_pargs[:len(raw_pargs)-1]

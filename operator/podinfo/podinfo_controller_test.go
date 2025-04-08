@@ -66,7 +66,7 @@ func getRandIP() string {
 func getRandIPs() (string, []string) {
 	length := getRandNum() + 1
 	podIPs := make([]string, length)
-	for i := 0; i < length; i++ {
+	for i := range length {
 		podIPs[i] = getRandIP()
 	}
 	return podIPs[0], podIPs

@@ -104,7 +104,7 @@ func (cm *ClientMultiplexer) GetEvents(ctx context.Context, allowList, denyList 
 	for _, client := range cm.clients {
 		var stream tetragon.FineGuidanceSensors_GetEventsClient
 		var err error
-		for i := 0; i < cm.connectRetries; i++ {
+		for range cm.connectRetries {
 			stream, err = client.GetEvents(ctx, &tetragon.GetEventsRequest{
 				AllowList: allowList,
 				DenyList:  denyList,

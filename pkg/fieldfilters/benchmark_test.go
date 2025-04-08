@@ -45,7 +45,7 @@ func (gen *randomEventGenerator) Generate(tb testing.TB) *tetragon.GetEventsResp
 
 func (gen *randomEventGenerator) GenerateN(b *testing.B) []*tetragon.GetEventsResponse {
 	evs := make([]*tetragon.GetEventsResponse, b.N)
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		ev := gen.Generate(b)
 		evs[i] = ev
 	}
@@ -75,7 +75,7 @@ func BenchmarkSerialize(b *testing.B) {
 	evs := gen.GenerateN(b)
 	b.StartTimer()
 
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		ev := evs[i]
 		err := encoder.Encode(ev)
 		assert.NoError(b, err, "event must encode")
@@ -91,7 +91,7 @@ func BenchmarkSerialize_DeepCopy(b *testing.B) {
 	evs := gen.GenerateN(b)
 	b.StartTimer()
 
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		ev := evs[i]
 		ev = proto.Clone(ev).(*tetragon.GetEventsResponse)
 		err := encoder.Encode(ev)
@@ -107,7 +107,7 @@ func BenchmarkSerialize_DeepCopyProcess(b *testing.B) {
 	evs := gen.GenerateN(b)
 	b.StartTimer()
 
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		ev := evs[i]
 		if setter, ok := tetragon.UnwrapGetEventsResponse(ev).(tetragon.ProcessEvent); ok {
 			proc := helpers.ResponseGetProcess(ev)
@@ -130,7 +130,7 @@ func BenchmarkSerialize_FieldFilters(b *testing.B) {
 	require.NoError(b, err)
 	b.StartTimer()
 
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		ev := evs[i]
 		ev, err = ff.Filter(ev)
 		assert.NoError(b, err, "event must filter")
@@ -149,7 +149,7 @@ func BenchmarkSerialize_FieldFilters_NoProcessInfo(b *testing.B) {
 	require.NoError(b, err)
 	b.StartTimer()
 
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		ev := evs[i]
 		ev, err = ff.Filter(ev)
 		assert.NoError(b, err, "event must filter")
@@ -169,7 +169,7 @@ func BenchmarkSerialize_FieldFilters_NoProcesInfoKeepExecid(b *testing.B) {
 	require.NoError(b, err)
 	b.StartTimer()
 
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		ev := evs[i]
 		ev, err = ff.Filter(ev)
 		assert.NoError(b, err, "event must filter")
@@ -189,7 +189,7 @@ func BenchmarkSerialize_RedactionFilters(b *testing.B) {
 	require.NoError(b, err)
 	b.StartTimer()
 
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		ev := evs[i]
 		getProcess, ok := ev.Event.(interface{ GetProcess() *tetragon.Process })
 		if ok {

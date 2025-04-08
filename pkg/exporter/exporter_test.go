@@ -205,7 +205,7 @@ func Test_rateLimitExport(t *testing.T) {
 				ratelimit.NewRateLimiter(ctx, 50*time.Millisecond, tt.rateLimit, encoder),
 			)
 			assert.NoError(t, exporter.Start(), "exporter must start without errors")
-			for i := 0; i < tt.totalEvents; i++ {
+			for i := range tt.totalEvents {
 				eventNotifier.NotifyListener(nil, &tetragon.GetEventsResponse{
 					Event: &tetragon.GetEventsResponse_ProcessExec{
 						ProcessExec: &tetragon.ProcessExec{Process: &tetragon.Process{Binary: fmt.Sprintf("a%d", i)}},

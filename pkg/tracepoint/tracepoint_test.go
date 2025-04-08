@@ -56,7 +56,7 @@ func TestTracepointLoadFormat(t *testing.T) {
 		},
 	}
 
-	for loop := 0; loop < 4; loop++ {
+	for loop := range 4 {
 		fields := []FieldFormat{
 			FieldFormat{
 				FieldStr: "unsigned short common_type",

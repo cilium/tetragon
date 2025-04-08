@@ -63,9 +63,7 @@ func (src traceBenchOpen) Run(ctx context.Context, _ *Arguments, _ *Summary) err
 
 	fmt.Printf("threads %v, loops %v, sleep %v(us)\n", *openThreads, *openLoops, *openSleep)
 
-	var i uint
-
-	for i = 0; i < *openThreads; i++ {
+	for range uint(*openThreads) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

@@ -90,7 +90,7 @@ func GetCapability(capInt int32) (string, error) {
 
 func GetCapabilities(capInt uint64) string {
 	var caps []string
-	for i := uint64(0); i < 64; i++ {
+	for i := range uint64(64) {
 		if (1<<i)&capInt != 0 {
 			caps = append(caps, capabilitiesString[i])
 		}
@@ -463,7 +463,7 @@ func GetPIDCaps(filename string) (uint32, uint64, uint64, uint64) {
 
 func GetCapabilitiesTypes(capInt uint64) []tetragon.CapabilitiesType {
 	var caps []tetragon.CapabilitiesType
-	for i := uint64(0); i < 64; i++ {
+	for i := range uint64(64) {
 		if (1<<i)&capInt != 0 {
 			e := tetragon.CapabilitiesType(i)
 			caps = append(caps, e)

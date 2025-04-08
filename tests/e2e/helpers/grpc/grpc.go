@@ -26,7 +26,7 @@ func WaitForTracingPolicy(ctx context.Context, policyName string) error {
 	for podName, grpcConn := range tetraConns {
 		client := tetragon.NewFineGuidanceSensorsClient(grpcConn)
 		var err error
-		for i := 0; i < maxTries; i++ {
+		for range maxTries {
 			err = ensureTracingPolicy(ctx, policyName, client)
 			if err == nil {
 				break

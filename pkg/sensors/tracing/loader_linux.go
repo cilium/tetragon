@@ -154,7 +154,7 @@ func createLoaderEvents() error {
 
 	var ids []uint64
 
-	for cpu := 0; cpu < nCpus; cpu++ {
+	for cpu := range nCpus {
 		fd, err := unix.PerfEventOpen(attr, -1, cpu, -1, unix.PERF_FLAG_FD_CLOEXEC)
 		if err != nil {
 			return fmt.Errorf("can't create perf event: %w", err)

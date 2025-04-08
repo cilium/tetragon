@@ -140,7 +140,7 @@ func (pod *podInfo) delCachedPolicy(polID PolicyID) {
 }
 
 func (pod *podInfo) addCachedPolicy(polID PolicyID) {
-	for i := 0; i < len(pod.matchedPolicies); i++ {
+	for i := range len(pod.matchedPolicies) {
 		if pod.matchedPolicies[i] == polID {
 			return
 		}
@@ -149,7 +149,7 @@ func (pod *podInfo) addCachedPolicy(polID PolicyID) {
 }
 
 func (pod *podInfo) hasPolicy(polID PolicyID) bool {
-	for i := 0; i < len(pod.matchedPolicies); i++ {
+	for i := range len(pod.matchedPolicies) {
 		if pod.matchedPolicies[i] == polID {
 			return true
 		}

@@ -101,7 +101,7 @@ func (ts *testState) callbacksDone() bool {
 
 func (ts *testState) waitForCallbacks(t *testing.T) {
 	dt := 1 * time.Millisecond
-	for i := 0; i < 6; i++ {
+	for range 6 {
 		time.Sleep(dt)
 		if ts.callbacksDone() {
 			return

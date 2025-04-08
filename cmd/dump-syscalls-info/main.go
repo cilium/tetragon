@@ -123,7 +123,7 @@ func dumpSyscalls(fname string) (map[string][]SyscallArg, error) {
 
 		arr := make([]SyscallArg, 0)
 		n := typSym.Size / 8
-		for i := uint64(0); i < n; i++ {
+		for i := range n {
 			typPtr := typSym.Value + (i * 8)
 			typStr, err := ReadString(typPtr)
 			if err != nil {
