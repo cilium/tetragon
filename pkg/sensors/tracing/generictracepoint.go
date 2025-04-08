@@ -292,7 +292,7 @@ func buildGenericTracepointArgs(info *tracepoint.Tracepoint, specArgs []v1alpha1
 		return &ret[argIdx], nil
 	}
 
-	for idx := 0; idx < len(ret); idx++ {
+	for idx := range ret {
 		meta := ret[idx].MetaTp
 		if meta == 0 || meta == -1 {
 			ret[idx].MetaArg = meta
@@ -532,7 +532,7 @@ func createGenericTracepointSensor(
 		if !kernels.MinKernelVersion("5.11") {
 			numSubMaps = selectors.StringMapsNumSubMapsSmall
 		}
-		for string_map_index := 0; string_map_index < numSubMaps; string_map_index++ {
+		for string_map_index := range numSubMaps {
 			stringFilterMap := program.MapBuilderProgram(fmt.Sprintf("string_maps_%d", string_map_index), prog0)
 			if !kernels.MinKernelVersion("5.9") {
 				// Versions before 5.9 do not allow inner maps to have different sizes.
@@ -841,7 +841,7 @@ func handleMsgGenericTracepoint(
 				switch intTy.Base {
 				case tracepoint.IntTyLong:
 					var val uint64
-					for i := 0; i < int(arrTy.Size); i++ {
+					for i := range arrTy.Size {
 						err := binary.Read(r, binary.LittleEndian, &val)
 						if err != nil {
 							logger.GetLogger().WithError(err).Warnf("failed to read element %d from array", i)

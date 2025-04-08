@@ -41,7 +41,7 @@ func installDemoApp(labelsChecker *checker.RPCChecker) features.Func {
 			t.Fatalf("failed to update helm repo: %s", err)
 		}
 
-		for i := 0; i < demoAppRetry; i++ {
+		for range demoAppRetry {
 			if err := manager.RunInstall(
 				helm.WithName("otel-demo"),
 				helm.WithChart("open-telemetry/opentelemetry-demo"),

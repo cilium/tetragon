@@ -583,7 +583,7 @@ func filterMapsForLsm(load *program.Program, lsmEntry *genericLsm) []*program.Ma
 		numSubMaps = selectors.StringMapsNumSubMapsSmall
 	}
 
-	for string_map_index := 0; string_map_index < numSubMaps; string_map_index++ {
+	for string_map_index := range numSubMaps {
 		stringFilterMap[string_map_index] = program.MapBuilderProgram(fmt.Sprintf("string_maps_%d", string_map_index), load)
 		if !kernels.MinKernelVersion("5.9") {
 			// Versions before 5.9 do not allow inner maps to have different sizes.

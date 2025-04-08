@@ -20,7 +20,7 @@ func Test_ioReaderClient_GetEvents(t *testing.T) {
 	client := newIOReaderClient(events, false)
 	getEventsClient, err := client.GetEvents(context.Background(), &tetragon.GetEventsRequest{})
 	assert.NoError(t, err)
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		_, err := getEventsClient.Recv()
 		assert.NoError(t, err)
 	}

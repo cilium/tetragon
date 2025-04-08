@@ -2115,7 +2115,7 @@ func testMultiplePathComponentsFiltered(t *testing.T, readHook string) {
 	path := "/tmp"
 
 	// let's create /tmp/0/.. 32*8 where each dir is a directory
-	for i := 0; i < 32*8; i++ {
+	for i := range 32 * 8 {
 		path = filepath.Join(path, fmt.Sprintf("%d", i))
 	}
 	if err := os.MkdirAll(path, 0755); err != nil {
@@ -2158,7 +2158,7 @@ func testMultipleMountPathFiltered(t *testing.T, readHook string) {
 			t.Skip()
 		}
 	}
-	for i := 0; i <= 16; i++ {
+	for i := range 17 {
 		path = filepath.Join(path, fmt.Sprintf("%d", i))
 		dirStack = append(dirStack, path)
 		if err := os.Mkdir(path, 0755); err != nil {
@@ -3149,7 +3149,7 @@ spec:
 	size := 4094
 	buffer := make([]byte, size)
 
-	for i := 0; i < size; i++ {
+	for i := range size {
 		buffer[i] = 'A' + byte(i%26)
 	}
 
@@ -3203,7 +3203,7 @@ spec:
 	size := 5000
 	buffer := make([]byte, size)
 
-	for i := 0; i < size; i++ {
+	for i := range size {
 		buffer[i] = 'A' + byte(i%26)
 	}
 
@@ -3258,7 +3258,7 @@ spec:
 	size := 4000
 	buffer := make([]byte, size)
 
-	for i := 0; i < size; i++ {
+	for i := range size {
 		buffer[i] = 'A' + byte(i%26)
 	}
 
@@ -3296,7 +3296,7 @@ spec:
       - index: 1
         operator: "` + opStr + `"
         values: `
-	for i := 0; i < len(vals); i++ {
+	for i := range vals {
 		configHook += fmt.Sprintf("\n        - \"%s\"", vals[i])
 	}
 	return configHook
@@ -3322,7 +3322,7 @@ spec:
       - index: 1
         operator: "` + opStr + `"
         values: `
-	for i := 0; i < len(vals); i++ {
+	for i := range vals {
 		configHook += fmt.Sprintf("\n        - \"%s\"", vals[i])
 	}
 	configHook += "\n"
@@ -3355,7 +3355,7 @@ spec:
       - index: 0
         operator: "` + opStr + `"
         values: `
-	for i := 0; i < len(vals); i++ {
+	for i := range vals {
 		configHook += fmt.Sprintf("\n        - \"%s\"", vals[i])
 	}
 	return configHook
@@ -3460,7 +3460,7 @@ func TestKprobeMatchArgsFileEqual(t *testing.T) {
 	readyWG.Wait()
 
 	fds := make([]int, numValues)
-	for i := 0; i < numValues; i++ {
+	for i := range numValues {
 		fds[i] = openFile(t, allFiles[i])
 	}
 
@@ -3500,7 +3500,7 @@ func TestKprobeMatchArgsFilePostfix(t *testing.T) {
 	readyWG.Wait()
 
 	fds := make([]int, numValues)
-	for i := 0; i < numValues; i++ {
+	for i := range numValues {
 		fds[i] = openFile(t, allFiles[i])
 	}
 
@@ -3540,7 +3540,7 @@ func TestKprobeMatchArgsFilePrefix(t *testing.T) {
 	readyWG.Wait()
 
 	fds := make([]int, numValues)
-	for i := 0; i < numValues; i++ {
+	for i := range numValues {
 		fds[i] = openFile(t, allFiles[i])
 	}
 
@@ -3580,7 +3580,7 @@ func TestKprobeMatchArgsFdEqual(t *testing.T) {
 	readyWG.Wait()
 
 	kpCheckers := make([]ec.EventChecker, numValues)
-	for i := 0; i < numValues; i++ {
+	for i := range numValues {
 		readFile(t, allFiles[i])
 		kpCheckers[i] = createReadChecker(t, allFiles[i])
 	}
@@ -3616,7 +3616,7 @@ func TestKprobeMatchArgsFdPostfix(t *testing.T) {
 	readyWG.Wait()
 
 	kpCheckers := make([]ec.EventChecker, numValues)
-	for i := 0; i < numValues; i++ {
+	for i := range numValues {
 		readFile(t, allFiles[i])
 		kpCheckers[i] = createReadChecker(t, allFiles[i])
 	}
@@ -3652,7 +3652,7 @@ func TestKprobeMatchArgsFdPrefix(t *testing.T) {
 	readyWG.Wait()
 
 	kpCheckers := make([]ec.EventChecker, numValues)
-	for i := 0; i < numValues; i++ {
+	for i := range numValues {
 		readFile(t, allFiles[i])
 		kpCheckers[i] = createReadChecker(t, allFiles[i])
 	}
@@ -3793,7 +3793,7 @@ spec:
 
 	// now check that there is no read event for "/etc/passwd" and "/etc/group"
 	kpErrCheckers := make([]ec.EventChecker, 2)
-	for i := 0; i < len(testFiles)-2; i++ {
+	for i := range len(testFiles) - 2 {
 		kpErrCheckers[i] = ec.NewProcessKprobeChecker("").
 			WithFunctionName(sm.Full("security_file_permission")).
 			WithArgs(ec.NewKprobeArgumentListMatcher().
@@ -3828,7 +3828,7 @@ spec:
     - matchBinaries:
       - operator: "` + opStr + `"
         values: `
-	for i := 0; i < len(vals); i++ {
+	for i := range vals {
 		configHook += fmt.Sprintf("\n        - \"%s\"", vals[i])
 	}
 	return configHook
@@ -6107,7 +6107,7 @@ spec:
 		t.Fatalf("failed dialing socket: %s", err)
 	}
 
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		_, err := socket.Write([]byte("data"))
 		if err != nil {
 			t.Fatalf("failed writing to socket: %s", err)

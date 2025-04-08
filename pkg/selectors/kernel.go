@@ -406,7 +406,7 @@ func writeRangeInMap(v string, ty uint32, op uint32, m *ValueMap) error {
 			}
 		}
 	}
-	for idx := 0; idx < 2; idx++ {
+	for idx := range 2 {
 		switch ty {
 		case gt.GenericIntType, gt.GenericS64Type, gt.GenericS32Type, gt.GenericS16Type, gt.GenericS8Type, gt.GenericSyscall64, gt.GenericSizeType:
 			i, err := strconv.ParseInt(rangeStr[idx], 10, 64)
@@ -668,7 +668,7 @@ func writeMatchStrings(k *KernelSelectorState, values []string, ty uint32) error
 			numSubMaps = StringMapsNumSubMapsSmall
 		}
 
-		for sizeIdx := 0; sizeIdx < numSubMaps; sizeIdx++ {
+		for sizeIdx := range numSubMaps {
 			stringMapSize := StringMapsSizes[sizeIdx]
 			if sizeIdx == 7 && !kernels.MinKernelVersion("5.11") {
 				stringMapSize = StringMapSize7a
@@ -734,7 +734,7 @@ func writePostfix(k *KernelSelectorState, values []string, ty uint32, selector s
 		}
 		val := KernelLPMTrieStringPostfix{prefixLen: size * 8} // postfix is in bits, but size is in bytes
 		// Copy postfix in reverse order, so that it can be used in LPM map
-		for i := 0; i < len(value); i++ {
+		for i := range value {
 			val.data[len(value)-i-1] = value[i]
 		}
 		m[val] = struct{}{}
@@ -864,7 +864,7 @@ func ParseMatchArgs(k *KernelSelectorState, args []v1alpha1.ArgSelector, sig []v
 	actionOffset := GetCurrentOffset(&k.data)
 	loff := AdvanceSelectorLength(&k.data)
 	argOff := make([]uint32, 5)
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		argOff[i] = AdvanceSelectorLength(&k.data)
 		WriteSelectorOffsetUint32(&k.data, argOff[i], 0)
 	}

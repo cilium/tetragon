@@ -414,7 +414,7 @@ func TestGenericTracepointRawSyscall(t *testing.T) {
 
 		var err error
 		args := make([]uint64, 3)
-		for i := 0; i < 3; i++ {
+		for i := range 3 {
 			args[i], err = getSizeArg(i + 1)
 			if err != nil {
 				return err

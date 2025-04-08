@@ -955,7 +955,7 @@ func testCgroupv2K8sHierarchy(ctx context.Context, t *testing.T, mode cgroups.Cg
 			path = filepath.Join(path, dir.path)
 		}
 
-		for i := 0; i < len(kubeCgroupHierarchy); i++ {
+		for range kubeCgroupHierarchy {
 			err := cgroupRmdir(t, cgroupRoot, "", path)
 			if err != nil {
 				t.Fatalf("Failed to remove cgroup %s/%s", cgroupRoot, path)
@@ -1184,7 +1184,7 @@ func testCgroupv1K8sHierarchyInHybrid(t *testing.T, withExec bool, selectedContr
 				path = filepath.Join(path, dir.path)
 			}
 
-			for i := 0; i < len(cgroupHierarchy); i++ {
+			for range cgroupHierarchy {
 				err := cgroupRmdir(t, cgroupRoot, hierarchy, path)
 				if err != nil {
 					t.Fatalf("Failed to remove cgroup %s/%s/%s", cgroupRoot, hierarchy, path)
@@ -1237,7 +1237,7 @@ func testCgroupv1K8sHierarchyInHybrid(t *testing.T, withExec bool, selectedContr
 		for _, dir := range kubeCgroupHierarchiesMap[usedController] {
 			path = filepath.Join(path, dir.path)
 		}
-		for i := 0; i < len(kubeCgroupHierarchiesMap[usedController]); i++ {
+		for range len(kubeCgroupHierarchiesMap[usedController]) {
 			err := cgroupRmdir(t, cgroupRoot, usedController, path)
 			if err != nil {
 				t.Fatalf("Failed to remove cgroup %s/%s/%s", cgroupRoot, usedController, path)

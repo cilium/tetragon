@@ -117,7 +117,7 @@ func NewCompletionChecker() *CompletionChecker {
 	// is not the caes (e.g., cores getting offline), but we ignore them
 	// for now.
 	ret.remCount = ncpus
-	for i := 0; i < ncpus; i++ {
+	for i := range ncpus {
 		ret.cpuDone[uint64(i)] = false
 	}
 

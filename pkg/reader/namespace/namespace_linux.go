@@ -94,7 +94,7 @@ func GetCurrentNamespace() *tetragon.Namespaces {
 		return nil
 	}
 	self_ns := make(map[string]uint32)
-	for i := 0; i < len(listNamespaces); i++ {
+	for i := range listNamespaces {
 		ino, err := GetSelfNsInode(listNamespaces[i])
 		if err != nil {
 			logger.GetLogger().WithError(err).Warnf("Failed to read current namespace")

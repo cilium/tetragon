@@ -296,7 +296,7 @@ func GetCurrentOffset(k *KernelSelectorData) uint32 {
 }
 
 func WriteSelectorByteArray(k *KernelSelectorData, b []byte, size uint32) {
-	for l := uint32(0); l < size; l++ {
+	for l := range size {
 		k.e[k.off+l] = b[l]
 	}
 	k.off += size
@@ -469,7 +469,7 @@ func (k *KernelSelectorState) insertStringMaps(stringMaps SelectorStringMaps) [S
 	details := [StringMapsNumSubMaps]uint32{}
 	mapid := uint32(0)
 
-	for subMap := 0; subMap < StringMapsNumSubMaps; subMap++ {
+	for subMap := range StringMapsNumSubMaps {
 		if len(stringMaps[subMap]) > 0 {
 			mapid = uint32(len(k.maps.stringMaps[subMap]))
 			k.maps.stringMaps[subMap] = append(k.maps.stringMaps[subMap], stringMaps[subMap])

@@ -512,7 +512,7 @@ func ExecWGCurl(readyWG *sync.WaitGroup, retries uint, args ...string) error {
 
 	var err error
 	// retries=0 -> 1 try, retries=1 -> 2 tries, and so on...
-	for try := uint(0); try < retries+1; try++ {
+	for try := range uint(retries + 1) {
 		cmd := exec.Command("/usr/bin/curl", args...)
 		err = cmd.Run()
 		if err == nil {
@@ -612,7 +612,7 @@ func WaitForProcess(process string) error {
 		procfs = "/proc/"
 	}
 	procDir, _ := os.ReadDir(procfs)
-	for i := 0; i < 120; i++ {
+	for range 120 {
 		for _, d := range procDir {
 
 			cmdline, err := os.ReadFile(filepath.Join(procfs, d.Name(), "/cmdline"))

@@ -116,7 +116,7 @@ func Test_msgToExecveKubeUnix(t *testing.T) {
 	assert.Equal(t, idLength, len(kube.Docker))
 
 	// Empty event so we don't fail tests
-	for i := 0; i < processapi.DOCKER_ID_LENGTH; i++ {
+	for i := range processapi.DOCKER_ID_LENGTH {
 		event.Kube.Docker[i] = 0
 	}
 	// Not valid
@@ -126,7 +126,7 @@ func Test_msgToExecveKubeUnix(t *testing.T) {
 	assert.Empty(t, kube.Docker)
 
 	// Empty event so we don't fail tests
-	for i := 0; i < processapi.DOCKER_ID_LENGTH; i++ {
+	for i := range processapi.DOCKER_ID_LENGTH {
 		event.Kube.Docker[i] = 0
 	}
 	id = ":ba4c34f800cf9f92881fd55cea8e60d"
@@ -187,7 +187,7 @@ func TestEventExitThreads(t *testing.T) {
 
 	// running the workload 10 times to make the change we hit the race
 	// window bigger and collect all tgids from testThreadsExit output
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		out, err := exec.Command(testThreadsExit).Output()
 		if err != nil {
 			t.Fatalf("Failed to execute test binary: %s\n", err)
@@ -353,8 +353,8 @@ func TestEventExecveLongPath(t *testing.T) {
 		dirNum = 6
 	}
 
-	for d := 0; d < dirNum; d++ {
-		for i := 0; i < 254; i++ {
+	for d := range dirNum {
+		for range 254 {
 			testDir = fmt.Sprintf("%s%c", testDir, 'a'+d)
 		}
 		testDir = testDir + "/"
@@ -362,7 +362,7 @@ func TestEventExecveLongPath(t *testing.T) {
 
 	// and add the file
 	testBin := testDir
-	for i := 0; i < 254; i++ {
+	for range 254 {
 		testBin = fmt.Sprintf("%s%c", testBin, 'a')
 	}
 
@@ -435,17 +435,17 @@ func TestEventExecveLongArgs(t *testing.T) {
 
 	// prepare args
 	testArg1 := "arg1_"
-	for i := 0; i < 512; i++ {
+	for range 512 {
 		testArg1 = fmt.Sprintf("%s%c", testArg1, 'a')
 	}
 
 	testArg2 := "arg2_"
-	for i := 0; i < 512; i++ {
+	for range 512 {
 		testArg2 = fmt.Sprintf("%s%c", testArg2, 'b')
 	}
 
 	testArg3 := "arg3_"
-	for i := 0; i < 512; i++ {
+	for range 512 {
 		testArg3 = fmt.Sprintf("%s%c", testArg3, 'c')
 	}
 
@@ -482,8 +482,8 @@ func TestEventExecveLongPathLongArgs(t *testing.T) {
 		dirNum = 6
 	}
 
-	for d := 0; d < dirNum; d++ {
-		for i := 0; i < 254; i++ {
+	for d := range dirNum {
+		for range 254 {
 			testDir = fmt.Sprintf("%s%c", testDir, 'a'+d)
 		}
 		testDir = testDir + "/"
@@ -491,7 +491,7 @@ func TestEventExecveLongPathLongArgs(t *testing.T) {
 
 	// and add the file
 	testBin := testDir
-	for i := 0; i < 254; i++ {
+	for range 254 {
 		testBin = fmt.Sprintf("%s%c", testBin, 'a')
 	}
 
@@ -521,17 +521,17 @@ func TestEventExecveLongPathLongArgs(t *testing.T) {
 
 	// prepare args
 	testArg1 := "arg1_"
-	for i := 0; i < 512; i++ {
+	for range 512 {
 		testArg1 = fmt.Sprintf("%s%c", testArg1, 'a')
 	}
 
 	testArg2 := "arg2_"
-	for i := 0; i < 512; i++ {
+	for range 512 {
 		testArg2 = fmt.Sprintf("%s%c", testArg2, 'b')
 	}
 
 	testArg3 := "arg3_"
-	for i := 0; i < 512; i++ {
+	for range 512 {
 		testArg3 = fmt.Sprintf("%s%c", testArg3, 'c')
 	}
 
@@ -1614,7 +1614,7 @@ func testThrottle(t *testing.T) {
 
 	// create the load 40 fork/exec per sec for 4 seconds
 	// to get THROTTLE START
-	for cnt := 0; cnt < 40; cnt++ {
+	for range 40 {
 		if err := exec.Command("taskset", "-c", "1", "sleep", "0.1s").Run(); err != nil {
 			t.Fatalf("Failed to execute test binary: %s\n", err)
 		}

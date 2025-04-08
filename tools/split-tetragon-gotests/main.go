@@ -26,7 +26,7 @@ func splitProgs(n int, blacklist []vmtests.GoTest) error {
 	}
 
 	files := make([]*os.File, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		fname := filepath.Join(outDir, fmt.Sprintf("test-group-%d", i))
 		files[i], err = os.Create(fname)
 		if err != nil {

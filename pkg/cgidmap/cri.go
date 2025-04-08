@@ -60,7 +60,7 @@ func (c *criResolver) enqeue(unmappedIDs []unmappedID) {
 	// remove IDs from the end that for which we don't have the capacity
 	newCnt := len(unmappedIDs) + c.unresolvedIDs.Len()
 	if newCnt > maxUnmappedIDs {
-		for i := 0; i < (newCnt - maxUnmappedIDs); i++ {
+		for range newCnt - maxUnmappedIDs {
 			c.unresolvedIDs.Remove(c.unresolvedIDs.Back())
 		}
 	}
