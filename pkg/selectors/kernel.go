@@ -1033,7 +1033,7 @@ func namespaceSelectorValue(ns *v1alpha1.NamespaceSelector, nstype string) ([]by
 			if v == "host_ns" {
 				n, err := namespace.GetHostNsInode(nstype)
 				if err != nil {
-					return b, 0, fmt.Errorf("matchNamespace reading host '%s' namespace failed: %v", nstype, err)
+					return b, 0, fmt.Errorf("matchNamespace reading host '%s' namespace failed: %w", nstype, err)
 				}
 				val = uint64(n)
 			} else {
@@ -1168,7 +1168,7 @@ func ParseMatchCaps(k *KernelSelectorState, action *v1alpha1.CapabilitiesSelecto
 		// user namespace to compare with that inside the kernel.
 		isns, err = namespace.GetPidNsInode(1, "user")
 		if err != nil {
-			return fmt.Errorf("matchCapabilities reading pid 1 user namespace failed: %v", err)
+			return fmt.Errorf("matchCapabilities reading pid 1 user namespace failed: %w", err)
 		}
 	}
 	WriteSelectorUint32(&k.data, isns)

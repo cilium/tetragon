@@ -53,7 +53,7 @@ func runTests(
 
 	f, err := os.Open(resFile)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open results file %s: %v", resFile, err)
+		return nil, fmt.Errorf("failed to open results file %s: %w", resFile, err)
 	}
 	defer f.Close()
 

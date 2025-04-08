@@ -952,7 +952,7 @@ func doLoadProgram(
 
 	err = installTailCalls(bpfDir, spec, coll, load)
 	if err != nil {
-		return nil, fmt.Errorf("installing tail calls failed: %s", err)
+		return nil, fmt.Errorf("installing tail calls failed: %w", err)
 	}
 
 	for _, mapLoad := range load.MapLoad {

@@ -47,7 +47,7 @@ func getPolicyTags(tags []string) ([]string, error) {
 	for i, v := range tags {
 		parsed, err := escapeTag(v)
 		if err != nil {
-			return nil, fmt.Errorf("custom tag n%d: %v", i, err)
+			return nil, fmt.Errorf("custom tag n%d: %w", i, err)
 		}
 		newTags = append(newTags, parsed)
 	}

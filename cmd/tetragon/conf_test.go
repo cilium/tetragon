@@ -1030,7 +1030,7 @@ func writeDropInConf(fullDir string, options map[string]interface{}) error {
 		file := filepath.Join(fullDir, k)
 		err := os.WriteFile(file, data, 0644)
 		if err != nil {
-			return fmt.Errorf("failed to write %s: %v", file, err)
+			return fmt.Errorf("failed to write %s: %w", file, err)
 		}
 	}
 

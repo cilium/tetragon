@@ -35,7 +35,7 @@ func setupTest(t *testing.T) (*testContext, error) {
 	if err != nil {
 		var ve *ebpf.VerifierError
 		if errors.As(err, &ve) {
-			return nil, fmt.Errorf("verifier error: %+v", ve)
+			return nil, fmt.Errorf("verifier error: %+w", ve)
 		}
 		return nil, err
 	}

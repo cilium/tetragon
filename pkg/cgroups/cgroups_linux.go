@@ -128,7 +128,7 @@ func GetCgroupIdFromPath(cgroupPath string) (uint64, error) {
 
 	err = binary.Read(bytes.NewBuffer(handle.Bytes()), binary.LittleEndian, &fh)
 	if err != nil {
-		return 0, fmt.Errorf("decoding NameToHandleAt data failed: %v", err)
+		return 0, fmt.Errorf("decoding NameToHandleAt data failed: %w", err)
 	}
 
 	return fh.Id, nil
@@ -417,7 +417,7 @@ func checkCgroupv2Controllers(cgroupPath string) error {
 	file := filepath.Join(cgroupPath, "cgroup.controllers")
 	data, err := os.ReadFile(file)
 	if err != nil {
-		return fmt.Errorf("failed to read %s: %v", file, err)
+		return fmt.Errorf("failed to read %s: %w", file, err)
 	}
 
 	activeControllers := strings.TrimRight(string(data), "\n")
@@ -500,7 +500,7 @@ func getPidCgroupPaths(pid uint32) ([]string, error) {
 
 	cgroups, err := os.ReadFile(file)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read %s: %v", file, err)
+		return nil, fmt.Errorf("failed to read %s: %w", file, err)
 	}
 
 	if len(cgroups) == 0 {

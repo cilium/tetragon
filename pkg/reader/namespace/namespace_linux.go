@@ -43,7 +43,7 @@ func GetPidNsInode(pid uint32, nsStr string) (uint32, error) {
 	netns := filepath.Join(option.Config.ProcFS, pidStr, "ns", nsStr)
 	netStr, err := os.Readlink(netns)
 	if err != nil {
-		return 0, fmt.Errorf("namespace '%s' %v", netns, err)
+		return 0, fmt.Errorf("namespace '%s' %w", netns, err)
 	}
 	fields := strings.Split(netStr, ":")
 	if len(fields) < 2 {

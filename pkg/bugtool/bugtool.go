@@ -642,7 +642,7 @@ func findCgroupMountPath(r io.Reader, unified bool, controller string) (string, 
 	}
 
 	if err := scanner.Err(); err != nil {
-		return "", fmt.Errorf("error reading /proc/mounts: %v", err)
+		return "", fmt.Errorf("error reading /proc/mounts: %w", err)
 	}
 
 	return "", fmt.Errorf("cgroup filesystem not found")
@@ -651,7 +651,7 @@ func findCgroupMountPath(r io.Reader, unified bool, controller string) (string, 
 func FindCgroupMountPath(unified bool, controller string) (string, error) {
 	file, err := os.Open("/proc/mounts")
 	if err != nil {
-		return "", fmt.Errorf("failed to open /proc/mounts: %v", err)
+		return "", fmt.Errorf("failed to open /proc/mounts: %w", err)
 	}
 	defer file.Close()
 	return findCgroupMountPath(file, unified, controller)

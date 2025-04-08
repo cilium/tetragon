@@ -576,7 +576,7 @@ func parseString(r io.Reader) (string, error) {
 	var size int32
 	err := binary.Read(r, binary.LittleEndian, &size)
 	if err != nil {
-		return "", fmt.Errorf("%w: %s", errParseStringSize, err)
+		return "", fmt.Errorf("%w: %w", errParseStringSize, err)
 	}
 
 	if size < 0 {
@@ -590,7 +590,7 @@ func parseString(r io.Reader) (string, error) {
 	stringBuffer := make([]byte, size)
 	err = binary.Read(r, binary.LittleEndian, &stringBuffer)
 	if err != nil {
-		return "", fmt.Errorf("error parsing string from binary with size %d: %s", size, err)
+		return "", fmt.Errorf("error parsing string from binary with size %d: %w", size, err)
 	}
 
 	// remove the trailing '\0' from the C string

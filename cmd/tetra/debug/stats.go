@@ -23,7 +23,7 @@ func NewEnableStatsCmd() *cobra.Command {
 			// the stats descriptor is open - app is running
 			_, err := ebpf.EnableStats(uint32(unix.BPF_STATS_RUN_TIME))
 			if err != nil {
-				return fmt.Errorf("failed to enable stats: %v", err)
+				return fmt.Errorf("failed to enable stats: %w", err)
 			}
 
 			// BPF stats are enabled..
