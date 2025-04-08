@@ -9,7 +9,6 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
-	tetragonAPI "github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/eventcache"
 	"github.com/cilium/tetragon/pkg/ktime"
@@ -513,7 +512,7 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 }
 
 type MsgExitEventUnix struct {
-	tetragonAPI.MsgExitEvent
+	processapi.MsgExitEvent
 	RefCntDone [3]bool
 }
 
@@ -588,7 +587,7 @@ func (msg *MsgExitEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 }
 
 func (msg *MsgExitEventUnix) Cast(o interface{}) notify.Message {
-	t := o.(tetragonAPI.MsgExitEvent)
+	t := o.(processapi.MsgExitEvent)
 	return &MsgExitEventUnix{MsgExitEvent: t}
 }
 

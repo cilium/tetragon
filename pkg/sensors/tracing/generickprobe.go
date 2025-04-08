@@ -26,7 +26,6 @@ import (
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/cgtracker"
 	"github.com/cilium/tetragon/pkg/config"
-	conf "github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/eventhandler"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/idtable"
@@ -273,7 +272,7 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 
 	loadProgName := "bpf_multi_kprobe_v53.o"
 	loadProgRetName := "bpf_multi_retkprobe_v53.o"
-	if conf.EnableV61Progs() {
+	if config.EnableV61Progs() {
 		loadProgName = "bpf_multi_kprobe_v61.o"
 		loadProgRetName = "bpf_multi_retkprobe_v61.o"
 	} else if kernels.MinKernelVersion("5.11") {
@@ -328,12 +327,12 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 	maps = append(maps, stackTraceMap)
 	data.stackTraceMap = stackTraceMap
 
-	if conf.EnableLargeProgs() {
+	if config.EnableLargeProgs() {
 		socktrack := program.MapBuilderSensor("socktrack_map", load)
 		maps = append(maps, socktrack)
 	}
 
-	if conf.EnableLargeProgs() {
+	if config.EnableLargeProgs() {
 		ratelimitMap := program.MapBuilderSensor("ratelimit_map", load)
 		if has.rateLimit {
 			ratelimitMap.SetMaxEntries(ratelimitMapMaxEntries)
@@ -488,7 +487,7 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec, lists []v1al
 			}
 		}
 
-		if selectors.HasSigkillAction(f) && !conf.EnableLargeProgs() {
+		if selectors.HasSigkillAction(f) && !config.EnableLargeProgs() {
 			return fmt.Errorf("sigkill action requires kernel >= 5.3.0")
 		}
 
@@ -685,14 +684,14 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 		return errFn(errors.New("error adding kprobe, the kprobe spec is nil"))
 	}
 
-	config := &api.EventConfig{}
-	config.PolicyID = uint32(in.policyID)
+	eventConfig := &api.EventConfig{}
+	eventConfig.PolicyID = uint32(in.policyID)
 	if len(f.ReturnArgAction) > 0 {
-		if !conf.EnableLargeProgs() {
+		if !config.EnableLargeProgs() {
 			return errFn(fmt.Errorf("ReturnArgAction requires kernel >=5.3"))
 		}
-		config.ArgReturnAction = selectors.ActionTypeFromString(f.ReturnArgAction)
-		if config.ArgReturnAction == selectors.ActionTypeInvalid {
+		eventConfig.ArgReturnAction = selectors.ActionTypeFromString(f.ReturnArgAction)
+		if eventConfig.ArgReturnAction == selectors.ActionTypeInvalid {
 			return errFn(fmt.Errorf("ReturnArgAction type '%s' unsupported", f.ReturnArgAction))
 		}
 	}
@@ -762,7 +761,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 			if argType != gt.GenericCharBuffer {
 				logger.GetLogger().Warnf("maxData flag is ignored (supported for char_buf type)")
 			}
-			if !conf.EnableLargeProgs() {
+			if !config.EnableLargeProgs() {
 				logger.GetLogger().Warnf("maxData flag is ignored (supported from large programs)")
 			}
 		}
@@ -777,9 +776,9 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 			return errFn(fmt.Errorf("error add arg: ArgType %s Index %d out of bounds",
 				a.Type, int(a.Index)))
 		}
-		config.BTFArg = allBTFArgs
-		config.Arg[a.Index] = int32(argType)
-		config.ArgM[a.Index] = uint32(argMValue)
+		eventConfig.BTFArg = allBTFArgs
+		eventConfig.Arg[a.Index] = int32(argType)
+		eventConfig.ArgM[a.Index] = uint32(argMValue)
 
 		argsBTFSet[a.Index] = true
 		argP := argPrinter{index: j, ty: argType, userType: userArgType, maxData: a.MaxData, label: a.Label}
@@ -808,12 +807,12 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 			}
 			return errFn(fmt.Errorf("ReturnArg type '%s' unsupported", f.ReturnArg.Type))
 		}
-		config.ArgReturn = int32(argType)
+		eventConfig.ArgReturn = int32(argType)
 		argsBTFSet[api.ReturnArgIndex] = true
 		argP := argPrinter{index: api.ReturnArgIndex, ty: argType}
 		argReturnPrinters = append(argReturnPrinters, argP)
 	} else {
-		config.ArgReturn = int32(0)
+		eventConfig.ArgReturn = int32(0)
 	}
 
 	if argRetprobe != nil {
@@ -821,12 +820,12 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 		setRetprobe = true
 
 		argType := gt.GenericTypeFromString(argRetprobe.Type)
-		config.ArgReturnCopy = int32(argType)
+		eventConfig.ArgReturnCopy = int32(argType)
 
 		argP := argPrinter{index: int(argRetprobe.Index), ty: argType, label: argRetprobe.Label}
 		argReturnPrinters = append(argReturnPrinters, argP)
 	} else {
-		config.ArgReturnCopy = int32(0)
+		eventConfig.ArgReturnCopy = int32(0)
 	}
 
 	// Mark remaining arguments as 'nops' the kernel side will skip
@@ -834,8 +833,8 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 	for j, a := range argsBTFSet {
 		if !a {
 			if j != api.ReturnArgIndex {
-				config.Arg[j] = gt.GenericNopType
-				config.ArgM[j] = 0
+				eventConfig.Arg[j] = gt.GenericNopType
+				eventConfig.ArgM[j] = 0
 			}
 		}
 	}
@@ -846,9 +845,9 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 	}
 
 	if f.Syscall {
-		config.Syscall = 1
+		eventConfig.Syscall = 1
 	} else {
-		config.Syscall = 0
+		eventConfig.Syscall = 0
 	}
 
 	// create a new entry on the table, and pass its id to BPF-side
@@ -857,7 +856,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 		loadArgs: kprobeLoadArgs{
 			retprobe: setRetprobe,
 			syscall:  f.Syscall,
-			config:   config,
+			config:   eventConfig,
 		},
 		argSigPrinters:    argSigPrinters,
 		argReturnPrinters: argReturnPrinters,
@@ -894,7 +893,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 	}
 
 	genericKprobeTable.AddEntry(&kprobeEntry)
-	config.FuncId = uint32(kprobeEntry.tableId.ID)
+	eventConfig.FuncId = uint32(kprobeEntry.tableId.ID)
 
 	logger.GetLogger().
 		WithField("return", setRetprobe).
@@ -976,12 +975,12 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 	maps = append(maps, stackTraceMap)
 	kprobeEntry.data.stackTraceMap = stackTraceMap
 
-	if conf.EnableLargeProgs() {
+	if config.EnableLargeProgs() {
 		socktrack := program.MapBuilderSensor("socktrack_map", load)
 		maps = append(maps, socktrack)
 	}
 
-	if conf.EnableLargeProgs() {
+	if config.EnableLargeProgs() {
 		ratelimitMap := program.MapBuilderSensor("ratelimit_map", load)
 		if has.rateLimit {
 			// similarly as for stacktrace, we expand the max size only if
@@ -1047,7 +1046,7 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 		}
 		maps = append(maps, fdinstall)
 
-		if conf.EnableLargeProgs() {
+		if config.EnableLargeProgs() {
 			socktrack := program.MapBuilderSensor("socktrack_map", loadret)
 			maps = append(maps, socktrack)
 		}

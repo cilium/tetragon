@@ -16,7 +16,6 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
-	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/cgtracker"
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/eventhandler"
@@ -641,13 +640,13 @@ func (tp *genericTracepoint) InitKernelSelectors(lists []v1alpha1.ListSpec) erro
 	return nil
 }
 
-func (tp *genericTracepoint) EventConfig() (api.EventConfig, error) {
+func (tp *genericTracepoint) EventConfig() (tracingapi.EventConfig, error) {
 
-	if len(tp.args) > api.EventConfigMaxArgs {
-		return api.EventConfig{}, fmt.Errorf("number of arguments (%d) larger than max (%d)", len(tp.args), api.EventConfigMaxArgs)
+	if len(tp.args) > tracingapi.EventConfigMaxArgs {
+		return tracingapi.EventConfig{}, fmt.Errorf("number of arguments (%d) larger than max (%d)", len(tp.args), tracingapi.EventConfigMaxArgs)
 	}
 
-	config := api.EventConfig{}
+	config := tracingapi.EventConfig{}
 	config.PolicyID = uint32(tp.policyID)
 	config.FuncId = uint32(tp.tableIdx)
 	// iterate over output arguments
@@ -656,7 +655,7 @@ func (tp *genericTracepoint) EventConfig() (api.EventConfig, error) {
 		config.ArgTpCtxOff[i] = uint32(tpArg.CtxOffset)
 		_, err := tpArg.setGenericTypeId()
 		if err != nil {
-			return api.EventConfig{}, fmt.Errorf("output argument %v unsupported: %w", tpArg, err)
+			return tracingapi.EventConfig{}, fmt.Errorf("output argument %v unsupported: %w", tpArg, err)
 		}
 
 		config.Arg[i] = int32(tpArg.genericTypeId)
@@ -666,7 +665,7 @@ func (tp *genericTracepoint) EventConfig() (api.EventConfig, error) {
 	}
 
 	// nop args
-	for i := len(tp.args); i < api.EventConfigMaxArgs; i++ {
+	for i := len(tp.args); i < tracingapi.EventConfigMaxArgs; i++ {
 		config.ArgTpCtxOff[i] = uint32(0)
 		config.Arg[i] = int32(gt.GenericNopType)
 		config.ArgM[i] = uint32(0)
@@ -861,8 +860,8 @@ func handleMsgGenericTracepoint(
 				unix.Args = append(unix.Args, arg)
 			}
 		case gt.GenericSkbType:
-			var skb api.MsgGenericKprobeSkb
-			var arg api.MsgGenericKprobeArgSkb
+			var skb tracingapi.MsgGenericKprobeSkb
+			var arg tracingapi.MsgGenericKprobeArgSkb
 
 			err := binary.Read(r, binary.LittleEndian, &skb)
 			if err != nil {
@@ -883,8 +882,8 @@ func handleMsgGenericTracepoint(
 			arg.SecPathOLen = skb.SecPathOLen
 			unix.Args = append(unix.Args, arg)
 		case gt.GenericSockType, gt.GenericSocketType:
-			var sock api.MsgGenericKprobeSock
-			var arg api.MsgGenericKprobeArgSock
+			var sock tracingapi.MsgGenericKprobeSock
+			var arg tracingapi.MsgGenericKprobeArgSock
 
 			err := binary.Read(r, binary.LittleEndian, &sock)
 			if err != nil {
@@ -905,8 +904,8 @@ func handleMsgGenericTracepoint(
 			unix.Args = append(unix.Args, arg)
 
 		case gt.GenericSockaddrType:
-			var address api.MsgGenericKprobeSockaddr
-			var arg api.MsgGenericKprobeArgSockaddr
+			var address tracingapi.MsgGenericKprobeSockaddr
+			var arg tracingapi.MsgGenericKprobeArgSockaddr
 
 			err := binary.Read(r, binary.LittleEndian, &address)
 			if err != nil {

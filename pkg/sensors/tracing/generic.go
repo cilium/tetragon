@@ -14,7 +14,6 @@ import (
 	"github.com/cilium/tetragon/pkg/btf"
 	conf "github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/generictypes"
-	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/selectors"
@@ -56,9 +55,9 @@ func resolveBTFPath(btfArg *[api.MaxBTFArgDepth]api.ConfigBTFArg, rootType ebtf.
 }
 
 func findTypeFromBTFType(arg v1alpha1.KProbeArg, btfType *ebtf.Type) int {
-	ty := gt.GenericTypeFromBTF(*btfType)
-	if ty == gt.GenericInvalidType {
-		return gt.GenericTypeFromString(arg.Type)
+	ty := generictypes.GenericTypeFromBTF(*btfType)
+	if ty == generictypes.GenericInvalidType {
+		return generictypes.GenericTypeFromString(arg.Type)
 	}
 	return ty
 }

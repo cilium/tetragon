@@ -19,7 +19,6 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
@@ -28,8 +27,7 @@ import (
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
-	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
-	smatcher "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
+	"github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/reader/notify"
@@ -96,8 +94,8 @@ func TestGenericTracepointSimple(t *testing.T) {
 	sm.AddAndEnableSensor(ctx, t, sensor, "GtpLseekTest")
 
 	tpChecker := ec.NewProcessTracepointChecker("").
-		WithSubsys(smatcher.Full("syscalls")).
-		WithEvent(smatcher.Full("sys_enter_lseek")).
+		WithSubsys(stringmatcher.Full("syscalls")).
+		WithEvent(stringmatcher.Full("sys_enter_lseek")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
@@ -578,7 +576,7 @@ func TestTracepointCloneThreads(t *testing.T) {
 	cti.AssertPidsTids(t)
 
 	parentCheck := ec.NewProcessChecker().
-		WithBinary(smatcher.Suffix("threads-tester")).
+		WithBinary(stringmatcher.Suffix("threads-tester")).
 		WithPid(cti.ParentPid).
 		WithTid(cti.ParentTid)
 
@@ -589,13 +587,13 @@ func TestTracepointCloneThreads(t *testing.T) {
 		WithProcess(parentCheck)
 
 	child1Checker := ec.NewProcessChecker().
-		WithBinary(smatcher.Suffix("threads-tester")).
+		WithBinary(stringmatcher.Suffix("threads-tester")).
 		WithPid(cti.Child1Pid).
 		WithTid(cti.Child1Tid)
 
 	child1TpChecker := ec.NewProcessTracepointChecker("").
-		WithSubsys(smatcher.Full("syscalls")).
-		WithEvent(smatcher.Full("sys_enter_lseek")).
+		WithSubsys(stringmatcher.Full("syscalls")).
+		WithEvent(stringmatcher.Full("sys_enter_lseek")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
@@ -604,13 +602,13 @@ func TestTracepointCloneThreads(t *testing.T) {
 			)).WithProcess(child1Checker).WithParent(parentCheck)
 
 	thread1Checker := ec.NewProcessChecker().
-		WithBinary(smatcher.Suffix("threads-tester")).
+		WithBinary(stringmatcher.Suffix("threads-tester")).
 		WithPid(cti.Thread1Pid).
 		WithTid(cti.Thread1Tid)
 
 	thread1TpChecker := ec.NewProcessTracepointChecker("").
-		WithSubsys(smatcher.Full("syscalls")).
-		WithEvent(smatcher.Full("sys_enter_lseek")).
+		WithSubsys(stringmatcher.Full("syscalls")).
+		WithEvent(stringmatcher.Full("sys_enter_lseek")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
@@ -686,7 +684,7 @@ spec:
 	cti.AssertPidsTids(t)
 
 	parentCheck := ec.NewProcessChecker().
-		WithBinary(smatcher.Suffix("threads-tester")).
+		WithBinary(stringmatcher.Suffix("threads-tester")).
 		WithPid(cti.ParentPid).
 		WithTid(cti.ParentTid)
 
@@ -697,14 +695,14 @@ spec:
 		WithProcess(parentCheck)
 
 	child1Checker := ec.NewProcessChecker().
-		WithBinary(smatcher.Suffix("threads-tester")).
+		WithBinary(stringmatcher.Suffix("threads-tester")).
 		WithPid(cti.Child1Pid).
 		WithTid(cti.Child1Tid)
 
 	child1TpChecker := ec.NewProcessTracepointChecker("").
-		WithSubsys(smatcher.Full("syscalls")).
-		WithEvent(smatcher.Full("sys_enter_lseek")).
-		WithMessage(sm.Full("System call lseek tracepoint test")).
+		WithSubsys(stringmatcher.Full("syscalls")).
+		WithEvent(stringmatcher.Full("sys_enter_lseek")).
+		WithMessage(stringmatcher.Full("System call lseek tracepoint test")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
@@ -713,14 +711,14 @@ spec:
 			)).WithProcess(child1Checker).WithParent(parentCheck)
 
 	thread1Checker := ec.NewProcessChecker().
-		WithBinary(smatcher.Suffix("threads-tester")).
+		WithBinary(stringmatcher.Suffix("threads-tester")).
 		WithPid(cti.Thread1Pid).
 		WithTid(cti.Thread1Tid)
 
 	thread1TpChecker := ec.NewProcessTracepointChecker("").
-		WithSubsys(smatcher.Full("syscalls")).
-		WithEvent(smatcher.Full("sys_enter_lseek")).
-		WithMessage(sm.Full("System call lseek tracepoint test")).
+		WithSubsys(stringmatcher.Full("syscalls")).
+		WithEvent(stringmatcher.Full("sys_enter_lseek")).
+		WithMessage(stringmatcher.Full("System call lseek tracepoint test")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
@@ -793,7 +791,7 @@ func TestStringTracepoint(t *testing.T) {
 	require.Equal(t, 1, countPizza, "expected events with 'pizzaisthebest'")
 }
 
-func testListSyscallsDupsRange(t *testing.T, checker *eventchecker.UnorderedEventChecker, configHook string) {
+func testListSyscallsDupsRange(t *testing.T, checker *ec.UnorderedEventChecker, configHook string) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 

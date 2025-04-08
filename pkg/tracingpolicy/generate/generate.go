@@ -6,7 +6,6 @@ package generate
 import (
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func NewTracingPolicy(name string) *v1alpha1.TracingPolicy {
@@ -20,7 +19,7 @@ func NewTracingPolicy(name string) *v1alpha1.TracingPolicy {
 			// CreationTimestamp is not a pointer so it will not be omitted, so let's
 			// just at a timestamp.
 			// https://github.com/kubernetes/kubernetes/issues/67610
-			CreationTimestamp: v1.Now(),
+			CreationTimestamp: metav1.Now(),
 		},
 	}
 

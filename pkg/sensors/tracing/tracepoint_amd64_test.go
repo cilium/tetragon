@@ -14,7 +14,6 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/kernels"
@@ -24,7 +23,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func testListSyscallsDups(t *testing.T, checker *eventchecker.UnorderedEventChecker, configHook string) {
+func testListSyscallsDups(t *testing.T, checker *ec.UnorderedEventChecker, configHook string) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
