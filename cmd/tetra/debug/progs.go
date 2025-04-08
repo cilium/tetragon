@@ -60,7 +60,7 @@ type progsConfig struct {
 
 var (
 	initOnce sync.Once
-	initErr  error
+	initErr  error // nolint:errname
 	initProg *ebpf.Program
 	cfg      progsConfig
 )

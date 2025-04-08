@@ -248,15 +248,15 @@ func (m *cgidm) Update(podID PodID, contIDs []ContainerID) {
 
 var (
 	glMap    *cgidm
-	glError  error
+	glError  error // nolint:errname
 	setGlMap sync.Once
 )
 
-type cgidDisabledTy struct{}
+type cgidDisabledError struct{}
 
-var cgidDisabled = &cgidDisabledTy{}
+var cgidDisabled = &cgidDisabledError{} // nolint:errname
 
-func (e *cgidDisabledTy) Error() string {
+func (e *cgidDisabledError) Error() string {
 	return "cgidmap disabled"
 }
 

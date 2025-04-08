@@ -21,24 +21,24 @@ import (
 	"github.com/cilium/tetragon/pkg/syscallinfo"
 )
 
-// ValidationWarn is used to mark that validation was not successful but it's not
+// ValidationWarnError is used to mark that validation was not successful but it's not
 // clear that the spec is problematic. Callers may use this error to issue a
 // warning instead of aborting
-type ValidationWarn struct {
+type ValidationWarnError struct {
 	s string
 }
 
-func (e *ValidationWarn) Error() string {
+func (e *ValidationWarnError) Error() string {
 	return e.s
 }
 
-// ValidationFailed is used to mark that validation was not successful and that
+// ValidationFailedError is used to mark that validation was not successful and that
 // the we should not continue with loading this spec.
-type ValidationFailed struct {
+type ValidationFailedError struct {
 	s string
 }
 
-func (e *ValidationFailed) Error() string {
+func (e *ValidationFailedError) Error() string {
 	return e.s
 }
 
@@ -92,11 +92,11 @@ func ValidateKprobeSpec(bspec *btf.Spec, call string, kspec *v1alpha1.KProbeSpec
 
 	if err != nil {
 		if kspec.Syscall {
-			return &ValidationFailed{
+			return &ValidationFailedError{
 				s: fmt.Sprintf("syscall %q (or %q) %v", origCall, call, err),
 			}
 		}
-		return &ValidationFailed{s: fmt.Sprintf("call %q %v", call, err)}
+		return &ValidationFailedError{s: fmt.Sprintf("call %q %v", call, err)}
 	}
 
 	proto, ok := fn.Type.(*btf.FuncProto)
@@ -155,17 +155,17 @@ func ValidateKprobeSpec(bspec *btf.Spec, call string, kspec *v1alpha1.KProbeSpec
 		arg := proto.Params[int(specArg.Index)]
 		paramTyStr := getKernelType(arg.Type)
 		if !typesCompatible(specArg.Type, paramTyStr) {
-			return &ValidationWarn{s: fmt.Sprintf("type (%s) of argument %d does not match spec type (%s)\n", paramTyStr, specArg.Index, specArg.Type)}
+			return &ValidationWarnError{s: fmt.Sprintf("type (%s) of argument %d does not match spec type (%s)\n", paramTyStr, specArg.Index, specArg.Type)}
 		}
 	}
 
 	if kspec.Return {
 		retTyStr := getKernelType(proto.Return)
 		if kspec.ReturnArg == nil {
-			return &ValidationWarn{s: "return is set to true, but there is no return arg specified"}
+			return &ValidationWarnError{s: "return is set to true, but there is no return arg specified"}
 		}
 		if !typesCompatible(kspec.ReturnArg.Type, retTyStr) {
-			return &ValidationWarn{s: fmt.Sprintf("return type (%s) does not match spec return type (%s)\n", retTyStr, kspec.ReturnArg.Type)}
+			return &ValidationWarnError{s: fmt.Sprintf("return type (%s) does not match spec return type (%s)\n", retTyStr, kspec.ReturnArg.Type)}
 		}
 	}
 
@@ -399,7 +399,7 @@ func validateSycall(kspec *v1alpha1.KProbeSpec, name string) error {
 
 	argsInfo, ok := syscallinfo.GetSyscallArgs(name)
 	if !ok {
-		return &ValidationWarn{s: fmt.Sprintf("missing information for syscall %s: arguments will not be verified", name)}
+		return &ValidationWarnError{s: fmt.Sprintf("missing information for syscall %s: arguments will not be verified", name)}
 	}
 
 	for i := range kspec.Args {
@@ -410,7 +410,7 @@ func validateSycall(kspec *v1alpha1.KProbeSpec, name string) error {
 
 		argTy := argsInfo[specArg.Index].Type
 		if !typesCompatible(specArg.Type, argTy) {
-			return &ValidationWarn{s: fmt.Sprintf("type (%s) of syscall argument %d does not match spec type (%s)\n", argTy, specArg.Index, specArg.Type)}
+			return &ValidationWarnError{s: fmt.Sprintf("type (%s) of syscall argument %d does not match spec type (%s)\n", argTy, specArg.Index, specArg.Type)}
 		}
 	}
 

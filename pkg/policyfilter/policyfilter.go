@@ -16,7 +16,7 @@ import (
 
 var (
 	glblState   State
-	glblError   error
+	glblError   error // nolint:errname
 	setGlobalPf sync.Once
 )
 
