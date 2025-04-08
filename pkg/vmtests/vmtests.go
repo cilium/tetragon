@@ -84,9 +84,9 @@ func printProgress(f *os.File, done <-chan struct{}) {
 
 		case <-ticker.C:
 			if i%10 == 0 {
-				f.Write([]byte("m"))
+				f.WriteString("m")
 			} else {
-				f.Write([]byte("."))
+				f.WriteString(".")
 			}
 			f.Sync()
 		}
