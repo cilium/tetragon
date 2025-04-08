@@ -635,7 +635,7 @@ func WriteConfigFile(fileName, config string) error {
 	if err != nil {
 		return err
 	}
-	if _, err := out.Write([]byte(config)); err != nil {
+	if _, err := out.WriteString(config); err != nil {
 		return err
 	}
 	return out.Sync()

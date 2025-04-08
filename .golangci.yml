@@ -17,6 +17,7 @@ linters:
     - intrange
     - makezero
     - misspell
+    - mirror
     - revive
     - staticcheck
     - unused

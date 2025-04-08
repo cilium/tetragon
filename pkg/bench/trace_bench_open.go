@@ -99,7 +99,7 @@ spec:
 	}
 	defer f.Close()
 
-	f.Write([]byte(tmpl))
+	f.WriteString(tmpl)
 	return f.Name()
 }
 
