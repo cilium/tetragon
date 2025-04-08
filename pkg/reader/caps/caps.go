@@ -418,7 +418,7 @@ func GetPIDCaps(filename string) (uint32, uint64, uint64, uint64) {
 	getValue64Hex := func(line string) (uint64, error) {
 		fields := strings.Fields(line)
 		if len(fields) < 2 {
-			return 0, fmt.Errorf("Fields to few arguments")
+			return 0, fmt.Errorf("fields to few arguments")
 		}
 		pidField := fields[len(fields)-1]
 		pid, err := strconv.ParseUint(pidField, 16, 64)
@@ -428,7 +428,7 @@ func GetPIDCaps(filename string) (uint32, uint64, uint64, uint64) {
 	getValue32Int := func(line string) (uint32, error) {
 		fields := strings.Fields(line)
 		if len(fields) < 2 {
-			return 0, fmt.Errorf("Fields to few arguments")
+			return 0, fmt.Errorf("fields to few arguments")
 		}
 		pidField := fields[len(fields)-1]
 		pid, err := strconv.ParseUint(pidField, 10, 32)

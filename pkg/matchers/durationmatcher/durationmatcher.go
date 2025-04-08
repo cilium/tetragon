@@ -140,7 +140,7 @@ func operatorFromString(str string) (Operator, error) {
 		return opLess, nil
 
 	default:
-		return opUnknown, fmt.Errorf("Invalid value for DurationMatcher operator: %s", str)
+		return opUnknown, fmt.Errorf("invalid value for DurationMatcher operator: %s", str)
 	}
 }
 
@@ -223,7 +223,7 @@ func (m *DurationMatcher) Match(value *durationpb.Duration) error {
 			return m.checkLess(&dur)
 		}
 	default:
-		return fmt.Errorf("Unhandled DurationMatcher operator %s", m.Operator)
+		return fmt.Errorf("unhandled DurationMatcher operator %s", m.Operator)
 	}
 }
 
@@ -248,7 +248,7 @@ func (m DurationMatcher) MarshalJSON() ([]byte, error) {
 			Alias: (*Alias)(&m),
 		})
 	default:
-		return nil, fmt.Errorf("Marshal DurationMatcher: Invalid match value")
+		return nil, fmt.Errorf("marshal DurationMatcher: Invalid match value")
 	}
 }
 
@@ -284,7 +284,7 @@ func (m *DurationMatcher) UnmarshalJSON(b []byte) error {
 			return nil
 		}
 	}
-	return fmt.Errorf("Unmarshal DurationMatcher: Failed to unmarshal")
+	return fmt.Errorf("unmarshal DurationMatcher: Failed to unmarshal")
 }
 
 // Between constructs a new DurationMatcher that matches using the Between operator

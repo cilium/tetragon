@@ -206,7 +206,7 @@ func (pi *ProcessInternal) AnnotateProcess(cred, ns bool) error {
 	process := pi.getProcess()
 	defer pi.putProcess()
 	if process == nil {
-		return fmt.Errorf("Process is nil")
+		return fmt.Errorf("process is nil")
 	}
 	if cred {
 		process.Cap = pi.capabilities

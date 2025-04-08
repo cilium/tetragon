@@ -70,10 +70,10 @@ func observerFindBTF(lib, btf string) (string, error) {
 		}
 		logger.GetLogger().WithField("btf-file", runFile).Info("BTF discovery: candidate btf file does not exist")
 
-		return btf, fmt.Errorf("Kernel version %q BTF search failed kernel is not included in supported list. Please check Tetragon requirements documentation, then use --btf option to specify BTF path and/or '--kernel' to specify kernel version", kernelVersion)
+		return btf, fmt.Errorf("kernel version %q BTF search failed kernel is not included in supported list. Please check Tetragon requirements documentation, then use --btf option to specify BTF path and/or '--kernel' to specify kernel version", kernelVersion)
 	}
 	if err := btfFileExists(btf); err != nil {
-		return btf, fmt.Errorf("User specified BTF does not exist: %w", err)
+		return btf, fmt.Errorf("user specified BTF does not exist: %w", err)
 	}
 	logger.GetLogger().WithField("btf-file", btf).Info("BTF file: user specified btf file found")
 	return btf, nil
@@ -190,7 +190,7 @@ func ResolveBTFPath(
 		if i > 0 {
 			currentPath = pathToFound[i-1]
 		}
-		return nil, fmt.Errorf("Unexpected type : %q has type %q", currentPath, ty)
+		return nil, fmt.Errorf("unexpected type : %q has type %q", currentPath, ty)
 	}
 }
 
@@ -238,7 +238,7 @@ func processMembers(
 			return nil, lastError
 		}
 		return nil, fmt.Errorf(
-			"Attribute %q not found in structure %q found %v",
+			"attribute %q not found in structure %q found %v",
 			pathToFound[i],
 			currentType.TypeName(),
 			members,

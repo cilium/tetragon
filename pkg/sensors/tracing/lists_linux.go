@@ -61,13 +61,13 @@ func isSyscallListType(typ string) bool {
 
 func validateList(list *v1alpha1.ListSpec) (err error) {
 	if listTypeFromString(list.Type) == ListTypeInvalid {
-		return fmt.Errorf("Invalid list type: %s", list.Type)
+		return fmt.Errorf("invalid list type: %s", list.Type)
 	}
 
 	// Generate syscalls list
 	if listTypeFromString(list.Type) == ListTypeGeneratedSyscalls {
 		if len(list.Values) != 0 {
-			return fmt.Errorf("Error generated list '%s' has values", list.Name)
+			return fmt.Errorf("error generated list '%s' has values", list.Name)
 		}
 		tmp, err := btf.GetSyscallsList()
 		if err != nil {
@@ -80,10 +80,10 @@ func validateList(list *v1alpha1.ListSpec) (err error) {
 	// Generate ftrace list
 	if listTypeFromString(list.Type) == ListTypeGeneratedFtrace {
 		if len(list.Values) != 0 {
-			return fmt.Errorf("Error generated list '%s' has values", list.Name)
+			return fmt.Errorf("error generated list '%s' has values", list.Name)
 		}
 		if list.Pattern == nil || (list.Pattern != nil && *(list.Pattern) == "") {
-			return fmt.Errorf("Error generated ftrace list '%s' must specify pattern", list.Name)
+			return fmt.Errorf("error generated ftrace list '%s' must specify pattern", list.Name)
 		}
 		list.Values, err = ftrace.ReadAvailFuncs(*(list.Pattern))
 		return err
@@ -123,13 +123,13 @@ func (lr *listReader) Read(name string, ty uint32) ([]uint32, error) {
 	}()
 
 	if list == nil {
-		return []uint32{}, fmt.Errorf("Error list '%s' not found", name)
+		return []uint32{}, fmt.Errorf("error list '%s' not found", name)
 	}
 	if !isSyscallListType(list.Type) {
-		return []uint32{}, fmt.Errorf("Error list '%s' is not syscall type", name)
+		return []uint32{}, fmt.Errorf("error list '%s' is not syscall type", name)
 	}
 	if ty != gt.GenericSyscall64 {
-		return []uint32{}, fmt.Errorf("Error list '%s' argument type is not syscall64", name)
+		return []uint32{}, fmt.Errorf("error list '%s' argument type is not syscall64", name)
 	}
 
 	var res []uint32

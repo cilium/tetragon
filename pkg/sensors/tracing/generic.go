@@ -44,7 +44,7 @@ func resolveBTFArg(hook string, arg v1alpha1.KProbeArg) (*ebtf.Type, [api.MaxBTF
 	pathBase := strings.Split(arg.Resolve, ".")
 	path := addPaddingOnNestedPtr(rootType, pathBase)
 	if len(path) > api.MaxBTFArgDepth {
-		return nil, btfArg, fmt.Errorf("Unable to resolve %q. The maximum depth allowed is %d", arg.Resolve, api.MaxBTFArgDepth)
+		return nil, btfArg, fmt.Errorf("unable to resolve %q. The maximum depth allowed is %d", arg.Resolve, api.MaxBTFArgDepth)
 	}
 
 	lastBTFType, err := resolveBTFPath(&btfArg, btf.ResolveNestedTypes(rootType), path)

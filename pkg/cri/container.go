@@ -79,7 +79,7 @@ func ParseCgroupsPath(cgroupPath string) (string, error) {
 		return filepath.Join(slice, name), nil
 	}
 
-	return "", fmt.Errorf("Unknown cgroup path: %s", cgroupPath)
+	return "", fmt.Errorf("unknown cgroup path: %s", cgroupPath)
 }
 
 func CgroupPath(ctx context.Context, cli criapi.RuntimeServiceClient, containerID string) (string, error) {

@@ -25,7 +25,7 @@ func (msg *CheckedMessage) Generate(g *protogen.GeneratedFile, isEvent bool) err
 			continue
 		}
 		if err := field.generateListMatcher(g); err != nil {
-			return fmt.Errorf("Failed to generate list checker: %w", err)
+			return fmt.Errorf("failed to generate list checker: %w", err)
 		}
 	}
 

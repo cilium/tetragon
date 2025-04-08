@@ -426,7 +426,7 @@ func AvailableSyscalls() ([]string, error) {
 	tetragonBTFEnv := os.Getenv("TETRAGON_BTF")
 	if tetragonBTFEnv != "" {
 		if _, err := os.Stat(tetragonBTFEnv); err != nil {
-			return nil, fmt.Errorf("Failed to find BTF: %s", tetragonBTFEnv)
+			return nil, fmt.Errorf("failed to find BTF: %s", tetragonBTFEnv)
 		}
 		btfFile = tetragonBTFEnv
 	}
@@ -471,7 +471,7 @@ func GetSyscallsList() ([]string, error) {
 	tetragonBTFEnv := os.Getenv("TETRAGON_BTF")
 	if tetragonBTFEnv != "" {
 		if _, err := os.Stat(tetragonBTFEnv); err != nil {
-			return []string{}, fmt.Errorf("Failed to find BTF: %s", tetragonBTFEnv)
+			return []string{}, fmt.Errorf("failed to find BTF: %s", tetragonBTFEnv)
 		}
 		btfFile = tetragonBTFEnv
 	}

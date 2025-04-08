@@ -40,7 +40,7 @@ func (t *Time) UnmarshalJSON(b []byte) error {
 		}
 	}
 
-	return fmt.Errorf("Unmarshal Time: Failed to parse time %s as RFC3339", s)
+	return fmt.Errorf("unmarshal Time: Failed to parse time %s as RFC3339", s)
 }
 
 type timestampBetween struct {
@@ -273,7 +273,7 @@ func operatorFromString(str string) (Operator, error) {
 		return opSecond, nil
 
 	default:
-		return opUnknown, fmt.Errorf("Invalid value for TimestampMatcher operator: %s", str)
+		return opUnknown, fmt.Errorf("invalid value for TimestampMatcher operator: %s", str)
 	}
 }
 
@@ -404,7 +404,7 @@ func (m *TimestampMatcher) Match(value *timestamppb.Timestamp) error {
 			return m.checkSecond(&tsTime)
 		}
 	default:
-		return fmt.Errorf("Unhandled TimestampMatcher operator %s", m.Operator)
+		return fmt.Errorf("unhandled TimestampMatcher operator %s", m.Operator)
 	}
 }
 
@@ -437,7 +437,7 @@ func (m TimestampMatcher) MarshalJSON() ([]byte, error) {
 			Alias: (*Alias)(&m),
 		})
 	default:
-		return nil, fmt.Errorf("Marshal DurationMatcher: Invalid match value")
+		return nil, fmt.Errorf("marshal DurationMatcher: Invalid match value")
 	}
 }
 
@@ -483,7 +483,7 @@ func (m *TimestampMatcher) UnmarshalJSON(b []byte) error {
 			return nil
 		}
 	}
-	return fmt.Errorf("Unmarshal TimestampMatcher: Failed to unmarshal")
+	return fmt.Errorf("unmarshal TimestampMatcher: Failed to unmarshal")
 }
 
 // After constructs a new TimestampMatcher that matches using the After operator

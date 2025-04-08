@@ -181,7 +181,7 @@ func GetEventsResponseOneofs(files []*protogen.File) ([]GetEventsResponseOneofIn
 		}
 	}
 	if getEventsResponse == nil {
-		return nil, fmt.Errorf("Unable to find GetEventsResponse message")
+		return nil, fmt.Errorf("unable to find GetEventsResponse message")
 	}
 
 	var eventOneof *protogen.Oneof
@@ -192,7 +192,7 @@ func GetEventsResponseOneofs(files []*protogen.File) ([]GetEventsResponseOneofIn
 		}
 	}
 	if eventOneof == nil {
-		return nil, fmt.Errorf("Unable to find GetEventsResponse.event")
+		return nil, fmt.Errorf("unable to find GetEventsResponse.event")
 	}
 
 	var info []GetEventsResponseOneofInfo
@@ -222,7 +222,7 @@ func GetEvents(files []*protogen.File) ([]*protogen.Message, error) {
 		}
 	}
 	if getEventsResponse == nil {
-		return nil, fmt.Errorf("Unable to find GetEventsResponse message")
+		return nil, fmt.Errorf("unable to find GetEventsResponse message")
 	}
 
 	var eventOneof *protogen.Oneof
@@ -233,7 +233,7 @@ func GetEvents(files []*protogen.File) ([]*protogen.Message, error) {
 		}
 	}
 	if eventOneof == nil {
-		return nil, fmt.Errorf("Unable to find GetEventsResponse.event")
+		return nil, fmt.Errorf("unable to find GetEventsResponse.event")
 	}
 
 	validNames := make(map[string]struct{})

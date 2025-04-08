@@ -44,7 +44,7 @@ func operatorFromString(str string) (Operator, error) {
 		return opSuffix, nil
 
 	default:
-		return opUnknown, fmt.Errorf("Invalid value for BytesMatcher operator: %s", str)
+		return opUnknown, fmt.Errorf("invalid value for BytesMatcher operator: %s", str)
 	}
 }
 
@@ -111,7 +111,7 @@ func (m *BytesMatcher) Match(value []byte) error {
 			return fmt.Errorf("'%v' does not have suffix '%v'", value, m.Value)
 		}
 	default:
-		return fmt.Errorf("Unhandled BytesMatcher operator %s", m.Operator)
+		return fmt.Errorf("unhandled BytesMatcher operator %s", m.Operator)
 	}
 }
 
@@ -130,7 +130,7 @@ func (m *BytesMatcher) UnmarshalJSON(b []byte) error {
 	var alias Alias
 	err = yaml.UnmarshalStrict(b, &alias)
 	if err != nil {
-		return fmt.Errorf("Unmarshal BytesMatcher: %w", err)
+		return fmt.Errorf("unmarshal BytesMatcher: %w", err)
 	}
 	*m = BytesMatcher(alias)
 	return nil

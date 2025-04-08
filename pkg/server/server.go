@@ -328,7 +328,7 @@ func (s *Server) DisableSensor(_ context.Context, req *tetragon.DisableSensorReq
 
 func (s *Server) GetStackTraceTree(_ context.Context, req *tetragon.GetStackTraceTreeRequest) (*tetragon.GetStackTraceTreeResponse, error) {
 	logger.GetLogger().WithField("request", req).Debug("Received a GetStackTraceTree request")
-	err := fmt.Errorf("Unsupported GetStackTraceTree")
+	err := fmt.Errorf("unsupported GetStackTraceTree")
 	logger.GetLogger().WithError(err).Warn("Server GetStackTraceTree failed")
 	return nil, err
 }

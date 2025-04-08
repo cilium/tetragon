@@ -41,7 +41,7 @@ func operatorFromString(str string) (Operator, error) {
 		return opSuffix, nil
 
 	default:
-		return opUnknown, fmt.Errorf("Invalid value for StringMatcher operator: %s", str)
+		return opUnknown, fmt.Errorf("invalid value for StringMatcher operator: %s", str)
 	}
 }
 
@@ -107,7 +107,7 @@ func (m *StringMatcher) Match(value string) error {
 				var err error
 				m.regex, err = regexp.Compile(m.Value)
 				if err != nil {
-					return fmt.Errorf("Invalid regex '%s': %v", m.Value, err)
+					return fmt.Errorf("invalid regex '%s': %v", m.Value, err)
 				}
 			}
 
@@ -126,7 +126,7 @@ func (m *StringMatcher) Match(value string) error {
 			return fmt.Errorf("'%s' does not have suffix '%s'", value, m.Value)
 		}
 	default:
-		return fmt.Errorf("Unhandled StringMatcher operator %s", m.Operator)
+		return fmt.Errorf("unhandled StringMatcher operator %s", m.Operator)
 	}
 }
 
@@ -192,7 +192,7 @@ func (m *StringMatcher) UnmarshalJSON(b []byte) error {
 	var alias Alias
 	err = yaml.UnmarshalStrict(b, &alias)
 	if err != nil {
-		return fmt.Errorf("Unmarshal StringMatcher: %w", err)
+		return fmt.Errorf("unmarshal StringMatcher: %w", err)
 	}
 	*m = StringMatcher(alias)
 
@@ -201,7 +201,7 @@ func (m *StringMatcher) UnmarshalJSON(b []byte) error {
 	if m.Operator == opRegex {
 		re, err := regexp.Compile(m.Value)
 		if err != nil {
-			return fmt.Errorf("Unmarshal StringMatcher: Invalid regex '%s': %v", m.Value, err)
+			return fmt.Errorf("unmarshal StringMatcher: Invalid regex '%s': %v", m.Value, err)
 		}
 		m.regex = re
 	}

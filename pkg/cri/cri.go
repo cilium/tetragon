@@ -26,7 +26,7 @@ var (
 	}
 
 	errNotUnix     = errors.New("only unix endpoints are supported")
-	errCRIDisabled = errors.New("Connecting to CRI is disabled")
+	errCRIDisabled = errors.New("connecting to CRI is disabled")
 )
 
 func NewClient(ctx context.Context, endpoint string) (criapi.RuntimeServiceClient, error) {
@@ -39,7 +39,7 @@ func NewClient(ctx context.Context, endpoint string) (criapi.RuntimeServiceClien
 			return cli, nil
 		}
 	}
-	return nil, fmt.Errorf("Unable to connect to CRI endpoints (%q)", defaultEndpoints)
+	return nil, fmt.Errorf("unable to connect to CRI endpoints (%q)", defaultEndpoints)
 }
 
 func newClientTry(ctx context.Context, endpoint string) (criapi.RuntimeServiceClient, error) {
