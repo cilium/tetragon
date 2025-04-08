@@ -174,13 +174,13 @@ func ReadAndSetFlags() error {
 	var err error
 
 	if Config.RBSize, err = strutils.ParseSize(viper.GetString(KeyRBSize)); err != nil {
-		return fmt.Errorf("failed to parse rb-size value: %s", err)
+		return fmt.Errorf("failed to parse rb-size value: %w", err)
 	}
 	if Config.RBSizeTotal, err = strutils.ParseSize(viper.GetString(KeyRBSizeTotal)); err != nil {
-		return fmt.Errorf("failed to parse rb-size-total value: %s", err)
+		return fmt.Errorf("failed to parse rb-size-total value: %w", err)
 	}
 	if Config.RBQueueSize, err = strutils.ParseSize(viper.GetString(KeyRBQueueSize)); err != nil {
-		return fmt.Errorf("failed to parse rb-queue-size value: %s", err)
+		return fmt.Errorf("failed to parse rb-queue-size value: %w", err)
 	}
 
 	Config.GopsAddr = viper.GetString(KeyGopsAddr)

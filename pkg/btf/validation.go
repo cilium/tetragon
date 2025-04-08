@@ -432,7 +432,7 @@ func AvailableSyscalls() ([]string, error) {
 	}
 	bspec, err := btf.LoadSpec(btfFile)
 	if err != nil {
-		return nil, fmt.Errorf("BTF load failed: %v", err)
+		return nil, fmt.Errorf("BTF load failed: %w", err)
 	}
 
 	ret := []string{}
@@ -478,7 +478,7 @@ func GetSyscallsList() ([]string, error) {
 
 	bspec, err := btf.LoadSpec(btfFile)
 	if err != nil {
-		return []string{}, fmt.Errorf("BTF load failed: %v", err)
+		return []string{}, fmt.Errorf("BTF load failed: %w", err)
 	}
 
 	var list []string

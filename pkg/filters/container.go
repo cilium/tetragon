@@ -18,7 +18,7 @@ func filterByContainerID(idPatterns []string) (hubbleFilters.FilterFunc, error) 
 	for _, pattern := range idPatterns {
 		query, err := regexp.Compile(pattern)
 		if err != nil {
-			return nil, fmt.Errorf("failed to compile regexp: %v", err)
+			return nil, fmt.Errorf("failed to compile regexp: %w", err)
 		}
 		ids = append(ids, query)
 	}

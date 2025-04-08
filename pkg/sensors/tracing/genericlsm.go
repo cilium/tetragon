@@ -228,14 +228,14 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 
 	msgField, err := getPolicyMessage(f.Message)
 	if errors.Is(err, ErrMsgSyntaxShort) || errors.Is(err, ErrMsgSyntaxEscape) {
-		return errFn(fmt.Errorf("error: '%v'", err))
+		return errFn(fmt.Errorf("error: '%w'", err))
 	} else if errors.Is(err, ErrMsgSyntaxLong) {
 		logger.GetLogger().WithField("policy-name", in.policyName).Warnf("TracingPolicy 'message' field too long, truncated to %d characters", TpMaxMessageLen)
 	}
 
 	tagsField, err := getPolicyTags(f.Tags)
 	if err != nil {
-		return errFn(fmt.Errorf("error: '%v'", err))
+		return errFn(fmt.Errorf("error: '%w'", err))
 	}
 
 	// Parse Arguments
@@ -248,7 +248,7 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 			}
 			lastBTFType, btfArg, err := resolveBTFArg("bpf_lsm_"+f.Hook, a)
 			if err != nil {
-				return errFn(fmt.Errorf("error on hook %q for index %d : %v", f.Hook, a.Index, err))
+				return errFn(fmt.Errorf("error on hook %q for index %d : %w", f.Hook, a.Index, err))
 			}
 			allBTFArgs[j] = btfArg
 			argType = findTypeFromBTFType(a, lastBTFType)

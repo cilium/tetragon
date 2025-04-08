@@ -148,7 +148,7 @@ func (c *collection) load(bpfDir string) error {
 			continue
 		}
 		if err = sensor.Load(bpfDir); err != nil {
-			err = fmt.Errorf("sensor %s from collection %s failed to load: %s", sensor.GetName(), c.name, err)
+			err = fmt.Errorf("sensor %s from collection %s failed to load: %w", sensor.GetName(), c.name, err)
 			break
 		}
 	}

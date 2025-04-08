@@ -82,7 +82,7 @@ func NewKsyms(procfs string) (*Ksyms, error) {
 		}
 
 		if sym.addr, err = strconv.ParseUint(fields[0], 16, 64); err != nil {
-			err = fmt.Errorf("failed to parse address: %v", err)
+			err = fmt.Errorf("failed to parse address: %w", err)
 			break
 		}
 		sym.ty = fields[1]

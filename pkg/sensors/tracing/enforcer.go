@@ -265,7 +265,7 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 	var maps []*program.Map
 	specOpts, err := getSpecOptions(opts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get spec options: %s", err)
+		return nil, fmt.Errorf("failed to get spec options: %w", err)
 	}
 
 	if !bpf.HasSignalHelper() {

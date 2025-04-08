@@ -18,7 +18,7 @@ func filterByArgumentsRegex(argumentsPatterns []string, parent bool) (hubbleFilt
 	for _, pattern := range argumentsPatterns {
 		query, err := regexp.Compile(pattern)
 		if err != nil {
-			return nil, fmt.Errorf("failed to compile regexp: %v", err)
+			return nil, fmt.Errorf("failed to compile regexp: %w", err)
 		}
 		argsRegexList = append(argsRegexList, query)
 	}

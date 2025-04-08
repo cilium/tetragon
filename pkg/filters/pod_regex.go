@@ -18,7 +18,7 @@ func filterByPodRegex(podPatterns []string) (hubbleFilters.FilterFunc, error) {
 	for _, pattern := range podPatterns {
 		query, err := regexp.Compile(pattern)
 		if err != nil {
-			return nil, fmt.Errorf("failed to compile regexp: %v", err)
+			return nil, fmt.Errorf("failed to compile regexp: %w", err)
 		}
 		pods = append(pods, query)
 	}

@@ -27,10 +27,10 @@ func mountFS(root, kind string) error {
 	if err != nil {
 		if os.IsNotExist(err) {
 			if err := os.MkdirAll(root, 0755); err != nil {
-				return fmt.Errorf("unable to create %s mount directory: %s", kind, err)
+				return fmt.Errorf("unable to create %s mount directory: %w", kind, err)
 			}
 		} else {
-			return fmt.Errorf("failed to stat the mount path %s: %s", root, err)
+			return fmt.Errorf("failed to stat the mount path %s: %w", root, err)
 
 		}
 	} else if !mapRootStat.IsDir() {
@@ -38,7 +38,7 @@ func mountFS(root, kind string) error {
 	}
 
 	if err := syscall.Mount(root, root, kind, 0, ""); err != nil {
-		return fmt.Errorf("failed to mount %s %s: %s", root, kind, err)
+		return fmt.Errorf("failed to mount %s %s: %w", root, kind, err)
 	}
 	return nil
 }

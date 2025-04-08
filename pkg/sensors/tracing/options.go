@@ -100,7 +100,7 @@ func getSpecOptions(specs []v1alpha1.OptionSpec) (*specOptions, error) {
 		opt, ok := opts[spec.Name]
 		if ok {
 			if err := opt.set(spec.Value, options); err != nil {
-				return nil, fmt.Errorf("failed to set option %s: %s", spec.Name, err)
+				return nil, fmt.Errorf("failed to set option %s: %w", spec.Name, err)
 			}
 			logger.GetLogger().Infof("Set option %s = %s", spec.Name, spec.Value)
 		}

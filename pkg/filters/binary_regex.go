@@ -24,7 +24,7 @@ func filterByBinaryRegex(binaryPatterns []string, level int) (hubbleFilters.Filt
 	for _, pattern := range binaryPatterns {
 		query, err := regexp.Compile(pattern)
 		if err != nil {
-			return nil, fmt.Errorf("failed to compile regexp: %v", err)
+			return nil, fmt.Errorf("failed to compile regexp: %w", err)
 		}
 		binaries = append(binaries, query)
 	}

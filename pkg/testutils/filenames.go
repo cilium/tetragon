@@ -70,7 +70,7 @@ func CreateExportFile(tb testing.TB) (*ExportFile, error) {
 	fname := fmt.Sprintf("tetragon.gotest.%s.*.json", testName)
 	f, err := os.CreateTemp("/tmp", fname)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create export file for test %s: %s", tb.Name(), err)
+		return nil, fmt.Errorf("failed to create export file for test %s: %w", tb.Name(), err)
 	}
 	os.Chmod(f.Name(), 0644)
 

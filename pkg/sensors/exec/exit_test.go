@@ -7,6 +7,7 @@ package exec
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os/exec"
 	"sync"
@@ -228,7 +229,7 @@ func TestExitCode(t *testing.T) {
 		expectedCode := uint8(testCaseCode)
 
 		if err := exec.Command(testExitCodeBinary, fmt.Sprint(testCaseCode)).Run(); err != nil {
-			if exitErr, ok := err.(*exec.ExitError); ok {
+			if exitErr := new(exec.ExitError); errors.As(err, &exitErr) {
 				if uint8(exitErr.ExitCode()) != expectedCode {
 					t.Errorf("unexpected: wanted exit code %d, execution returned %d", expectedCode, exitErr.ExitCode())
 				}
@@ -284,7 +285,7 @@ func TestExitSignal(t *testing.T) {
 		}
 
 		if err := cmd.Wait(); err != nil {
-			if exitErr, ok := err.(*exec.ExitError); ok {
+			if exitErr := new(exec.ExitError); errors.As(err, &exitErr) {
 				if got := exitErr.Sys().(syscall.WaitStatus).Signal(); got != signal {
 					t.Errorf("unexpected: wanted signal %q, execution returned %q", signal, got)
 				}

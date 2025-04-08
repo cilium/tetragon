@@ -49,7 +49,7 @@ func (l *LabelsFilter) OnBuildFilter(_ context.Context, filter *tetragon.Filter)
 	if filter.Labels != nil {
 		slf, err := FilterByLabelSelectors(filter.Labels)
 		if err != nil {
-			return nil, fmt.Errorf("invalid pod label filter: %v", err)
+			return nil, fmt.Errorf("invalid pod label filter: %w", err)
 		}
 		fs = append(fs, slf)
 	}

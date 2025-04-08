@@ -419,7 +419,7 @@ func fileConfigWithTemplate(fileName string, data interface{}) (*GenericTracingP
 
 	pol, err := TPContext.FromYAML(buf.String())
 	if err != nil {
-		return nil, fmt.Errorf("TPContext.FromYAML error %s", err)
+		return nil, fmt.Errorf("TPContext.FromYAML error %w", err)
 	}
 	return pol, nil
 }

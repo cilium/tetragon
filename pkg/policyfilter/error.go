@@ -4,6 +4,7 @@
 package policyfilter
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/cilium/tetragon/pkg/metrics/policyfiltermetrics"
@@ -25,10 +26,10 @@ func ErrorLabel(err error) string {
 	if err == nil {
 		return policyfiltermetrics.NoErr.String()
 	}
-	switch err.(type) {
-	case *podNamespaceConflictError:
+
+	var podNamespaceConflictErr *podNamespaceConflictError
+	if errors.As(err, &podNamespaceConflictErr) {
 		return policyfiltermetrics.PodNamespaceConflictErr.String()
-	default:
-		return policyfiltermetrics.GenericErr.String()
 	}
+	return policyfiltermetrics.GenericErr.String()
 }

@@ -63,7 +63,7 @@ func PolicyMode(tp tracingpolicy.TracingPolicy) (Mode, error) {
 func SetModeInBPFMap(fname string, mode Mode) error {
 	m, err := ebpf.LoadPinnedMap(fname, &ebpf.LoadPinOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to load map %q: %v", fname, err)
+		return fmt.Errorf("failed to load map %q: %w", fname, err)
 	}
 	defer m.Close()
 
@@ -72,7 +72,7 @@ func SetModeInBPFMap(fname string, mode Mode) error {
 	}
 	zero := uint32(0)
 	if err = m.Update(&zero, &conf, ebpf.UpdateExist); err != nil {
-		return fmt.Errorf("failed to update map %q with val %v: %v", fname, conf, err)
+		return fmt.Errorf("failed to update map %q with val %v: %w", fname, conf, err)
 	}
 	return nil
 }

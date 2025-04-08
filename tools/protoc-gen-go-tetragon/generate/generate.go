@@ -24,7 +24,7 @@ func Generate() {
 	protogen.Options{}.Run(func(gen *protogen.Plugin) error {
 		for _, generator := range Generators {
 			if err := generator(gen, gen.Files); err != nil {
-				return fmt.Errorf("failed to generate file: %v", err)
+				return fmt.Errorf("failed to generate file: %w", err)
 			}
 		}
 		return nil

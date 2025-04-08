@@ -494,14 +494,18 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec, lists []v1al
 		for idx := range calls {
 			// Now go over BTF validation
 			if err := btf.ValidateKprobeSpec(btfobj, calls[idx], f, ks); err != nil {
-				if warn, ok := err.(*btf.ValidationWarnError); ok {
+				var warn *btf.ValidationWarnError
+				var failed *btf.ValidationFailedError
+
+				switch {
+				case errors.As(err, &warn):
 					logger.GetLogger().WithFields(logrus.Fields{
 						"sensor": name,
 					}).WithError(warn).Warn("Kprobe spec pre-validation failed, but will continue with loading")
-				} else if e, ok := err.(*btf.ValidationFailedError); ok {
-					return fmt.Errorf("kprobe spec pre-validation failed: %w", e)
-				} else {
-					err = fmt.Errorf("invalid or old kprobe spec: %s", err)
+				case errors.As(err, &failed):
+					return fmt.Errorf("kprobe spec pre-validation failed: %w", failed)
+				default:
+					err = fmt.Errorf("invalid or old kprobe spec: %w", err)
 					logger.GetLogger().WithFields(logrus.Fields{
 						"sensor": name,
 					}).WithError(err).Warn("Kprobe spec pre-validation failed, but will continue with loading")
@@ -716,14 +720,14 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 
 	msgField, err := getPolicyMessage(f.Message)
 	if errors.Is(err, ErrMsgSyntaxShort) || errors.Is(err, ErrMsgSyntaxEscape) {
-		return errFn(fmt.Errorf("error: '%v'", err))
+		return errFn(fmt.Errorf("error: '%w'", err))
 	} else if errors.Is(err, ErrMsgSyntaxLong) {
 		logger.GetLogger().WithField("policy-name", in.policyName).Warnf("TracingPolicy 'message' field too long, truncated to %d characters", TpMaxMessageLen)
 	}
 
 	tagsField, err := getPolicyTags(f.Tags)
 	if err != nil {
-		return errFn(fmt.Errorf("error: '%v'", err))
+		return errFn(fmt.Errorf("error: '%w'", err))
 	}
 
 	argRetprobe = nil // holds pointer to arg for return handler
@@ -747,7 +751,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 			}
 			lastBTFType, btfArg, err := resolveBTFArg(f.Call, a)
 			if err != nil {
-				return errFn(fmt.Errorf("error on hook %q for index %d : %v", f.Call, a.Index, err))
+				return errFn(fmt.Errorf("error on hook %q for index %d : %w", f.Call, a.Index, err))
 			}
 			allBTFArgs[j] = btfArg
 			argType = findTypeFromBTFType(a, lastBTFType)

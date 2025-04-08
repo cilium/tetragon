@@ -146,12 +146,12 @@ FieldsLoop:
 	for {
 		res, err := getMatches(fieldRe, "parsing fields")
 		if err != nil {
-			switch err {
-			case io.EOF:
+			switch {
+			case errors.Is(err, io.EOF):
 				break FieldsLoop
-			case errEmptyLine:
+			case errors.Is(err, errEmptyLine):
 				continue FieldsLoop
-			case errPrintFormatLine:
+			case errors.Is(err, errPrintFormatLine):
 				break FieldsLoop
 			default:
 				return nil, err

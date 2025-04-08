@@ -107,7 +107,7 @@ func (m *StringMatcher) Match(value string) error {
 				var err error
 				m.regex, err = regexp.Compile(m.Value)
 				if err != nil {
-					return fmt.Errorf("invalid regex '%s': %v", m.Value, err)
+					return fmt.Errorf("invalid regex '%s': %w", m.Value, err)
 				}
 			}
 
@@ -201,7 +201,7 @@ func (m *StringMatcher) UnmarshalJSON(b []byte) error {
 	if m.Operator == opRegex {
 		re, err := regexp.Compile(m.Value)
 		if err != nil {
-			return fmt.Errorf("unmarshal StringMatcher: Invalid regex '%s': %v", m.Value, err)
+			return fmt.Errorf("unmarshal StringMatcher: Invalid regex '%s': %w", m.Value, err)
 		}
 		m.regex = re
 	}
