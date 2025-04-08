@@ -7,6 +7,7 @@ package grpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -19,7 +20,7 @@ import (
 func WaitForTracingPolicy(ctx context.Context, policyName string) error {
 	tetraConns, ok := ctx.Value(state.GrpcForwardedConns).(map[string]*grpc.ClientConn)
 	if !ok {
-		return fmt.Errorf("failed to find tetragon grpc forwarded ports")
+		return errors.New("failed to find tetragon grpc forwarded ports")
 	}
 
 	maxTries := 20

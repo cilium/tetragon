@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -443,7 +444,7 @@ func namespacedLseekPolicy(namespace string, fd int) *tracingpolicy.GenericTraci
 					{MatchArgs: []v1alpha1.ArgSelector{{
 						Index:    0,
 						Operator: "Equal",
-						Values:   []string{fmt.Sprintf("%d", fd)},
+						Values:   []string{strconv.Itoa(fd)},
 					}}},
 				},
 			}},

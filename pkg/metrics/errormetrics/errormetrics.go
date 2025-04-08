@@ -4,7 +4,7 @@
 package errormetrics
 
 import (
-	"fmt"
+	"strconv"
 
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/metrics"
@@ -102,7 +102,7 @@ func ErrorTotalInc(er ErrorType) {
 
 // Get a new handle on the HandlerErrors metric
 func GetHandlerErrors(opcode ops.OpCode, er EventHandlerError) prometheus.Counter {
-	return HandlerErrors.WithLabelValues(fmt.Sprint(int32(opcode)), er.String())
+	return HandlerErrors.WithLabelValues(strconv.Itoa(int(int32(opcode))), er.String())
 }
 
 // Increment the HandlerErrors metric

@@ -5,6 +5,7 @@ package crdwatcher
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -133,7 +134,7 @@ func updateTracingPolicy(ctx context.Context, log logrus.FieldLogger, s *sensors
 	case *v1alpha1.TracingPolicy:
 		newTp, ok := newObj.(*v1alpha1.TracingPolicy)
 		if !ok {
-			err = fmt.Errorf("type mismatch")
+			err = errors.New("type mismatch")
 			break
 		}
 		// FIXME: add proper DeepEquals. The resource might have different
@@ -152,7 +153,7 @@ func updateTracingPolicy(ctx context.Context, log logrus.FieldLogger, s *sensors
 	case *v1alpha1.TracingPolicyNamespaced:
 		newTp, ok := newObj.(*v1alpha1.TracingPolicyNamespaced)
 		if !ok {
-			err = fmt.Errorf("type mismatch")
+			err = errors.New("type mismatch")
 			break
 		}
 		// FIXME: add proper DeepEquals. The resource might have different
@@ -182,11 +183,11 @@ func updateTracingPolicy(ctx context.Context, log logrus.FieldLogger, s *sensors
 func AddTracingPolicyInformer(ctx context.Context, w watcher.Watcher, s *sensors.Manager) error {
 	log := logger.GetLogger()
 	if w == nil {
-		return fmt.Errorf("k8s watcher not initialized")
+		return errors.New("k8s watcher not initialized")
 	}
 	factory := w.GetCRDInformerFactory()
 	if factory == nil {
-		return fmt.Errorf("CRD informer factory not initialized")
+		return errors.New("CRD informer factory not initialized")
 	}
 
 	tpInformer := factory.Cilium().V1alpha1().TracingPolicies().Informer()

@@ -104,13 +104,13 @@ func (c *ciliumCLI) install() error {
 		args = append(args, "--wait")
 	}
 	if c.opts.Namespace != "" {
-		args = append(args, fmt.Sprintf("--namespace=%s", c.opts.Namespace))
+		args = append(args, "--namespace="+c.opts.Namespace)
 	}
 	if c.opts.ChartDirectory != "" {
-		args = append(args, fmt.Sprintf("--chart-directory=%s", c.opts.ChartDirectory))
+		args = append(args, "--chart-directory="+c.opts.ChartDirectory)
 	}
 	if c.opts.Version != "" {
-		args = append(args, fmt.Sprintf("--version=%s", c.opts.Version))
+		args = append(args, "--version="+c.opts.Version)
 	}
 	for k, v := range c.opts.HelmOptions {
 		args = append(args, fmt.Sprintf("--helm-set=%s=%s", k, v))
@@ -138,7 +138,7 @@ func (c *ciliumCLI) uninstall() error {
 
 	args := []string{"uninstall"}
 	if c.opts.ChartDirectory != "" {
-		args = append(args, fmt.Sprintf("--chart-directory=%s", c.opts.ChartDirectory))
+		args = append(args, "--chart-directory="+c.opts.ChartDirectory)
 	}
 
 	uninstallCmd := exec.Command(c.cmd, args...)

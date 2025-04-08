@@ -4,7 +4,7 @@
 package sensors
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/asm"
@@ -12,11 +12,11 @@ import (
 
 func UpdateStatsMap(m *ebpf.Map, val int64) error {
 	if m.KeySize() != uint32(4) || m.ValueSize() != uint32(8) {
-		return fmt.Errorf("wrong key/value size")
+		return errors.New("wrong key/value size")
 	}
 
 	if m.Type() != ebpf.PerCPUArray {
-		return fmt.Errorf("wrong map type")
+		return errors.New("wrong map type")
 	}
 
 	prog, err := ebpf.NewProgram(&ebpf.ProgramSpec{
@@ -68,7 +68,7 @@ func UpdateStatsMap(m *ebpf.Map, val int64) error {
 
 	// executed, but failed in bpf program above
 	if err == nil && ret != 0 {
-		err = fmt.Errorf("failed to update map value")
+		err = errors.New("failed to update map value")
 	}
 	return err
 }

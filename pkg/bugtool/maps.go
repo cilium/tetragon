@@ -120,7 +120,7 @@ func FindPinnedMaps(path string) ([]bpf.ExtendedMapInfo, error) {
 // mapIDsFromProgs retrieves all map IDs used inside a prog.
 func mapIDsFromProgs(prog *ebpf.Program) (iter.Seq[int], error) {
 	if prog == nil {
-		return nil, fmt.Errorf("prog is nil")
+		return nil, errors.New("prog is nil")
 	}
 	progInfo, err := prog.Info()
 	if err != nil {
@@ -129,7 +129,7 @@ func mapIDsFromProgs(prog *ebpf.Program) (iter.Seq[int], error) {
 	// check if field is available
 	ids, available := progInfo.MapIDs()
 	if !available {
-		return nil, fmt.Errorf("can't link prog to map IDs, field available from 4.15")
+		return nil, errors.New("can't link prog to map IDs, field available from 4.15")
 	}
 	mapSet := map[int]bool{}
 	for _, id := range ids {
@@ -182,7 +182,7 @@ func mapIDsFromPinnedProgs(path string) (iter.Seq[int], error) {
 	progIDs := []int{}
 	for _, progArray := range progArrays {
 		if progArray == nil {
-			return nil, fmt.Errorf("prog array reference is nil")
+			return nil, errors.New("prog array reference is nil")
 		}
 		defer progArray.Close()
 

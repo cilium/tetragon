@@ -5,7 +5,7 @@
 package policyfilter
 
 import (
-	"fmt"
+	"errors"
 
 	slimv1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/tetragon/pkg/labels"
@@ -21,14 +21,14 @@ type disabled struct {
 
 func (s *disabled) AddPolicy(polID PolicyID, namespace string, podSelector *slimv1.LabelSelector,
 	containerSelector *slimv1.LabelSelector) error {
-	return fmt.Errorf("policyfilter is disabled")
+	return errors.New("policyfilter is disabled")
 }
 
 func (s *disabled) DelPolicy(polID PolicyID) error {
 	if polID == NoFilterPolicyID {
 		return nil
 	}
-	return fmt.Errorf("policyfilter is disabled")
+	return errors.New("policyfilter is disabled")
 }
 
 func (s *disabled) AddPodContainer(podID PodID, namespace, workload, kind string, podLabels labels.Labels,

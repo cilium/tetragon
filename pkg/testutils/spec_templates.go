@@ -4,7 +4,6 @@
 package testutils
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -24,7 +23,7 @@ func GetSpecFromTemplate(
 		return "", err
 	}
 
-	tmpFilePattern := fmt.Sprintf("%s-*.yaml", strings.TrimSuffix(tmplname, ".yaml.tmpl"))
+	tmpFilePattern := strings.TrimSuffix(tmplname, ".yaml.tmpl") + "-*.yaml"
 	tmpF, err := os.CreateTemp("", tmpFilePattern)
 	if err != nil {
 		return "", err

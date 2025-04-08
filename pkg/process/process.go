@@ -5,7 +5,6 @@ package process
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -206,7 +205,7 @@ func (pi *ProcessInternal) AnnotateProcess(cred, ns bool) error {
 	process := pi.getProcess()
 	defer pi.putProcess()
 	if process == nil {
-		return fmt.Errorf("process is nil")
+		return errors.New("process is nil")
 	}
 	if cred {
 		process.Cap = pi.capabilities
@@ -219,11 +218,11 @@ func (pi *ProcessInternal) AnnotateProcess(cred, ns bool) error {
 }
 
 func (pi *ProcessInternal) RefDec(reason string) {
-	procCache.refDec(pi, fmt.Sprintf("%s--", reason))
+	procCache.refDec(pi, reason+"--")
 }
 
 func (pi *ProcessInternal) RefInc(reason string) {
-	procCache.refInc(pi, fmt.Sprintf("%s++", reason))
+	procCache.refInc(pi, reason+"++")
 }
 
 func (pi *ProcessInternal) RefGet() uint32 {
@@ -407,7 +406,7 @@ func initProcessInternalClone(event *tetragonAPI.MsgCloneEvent,
 	parent *ProcessInternal, parentExecId string) (*ProcessInternal, error) {
 	pi := parent.cloneInternalProcessCopy()
 	if pi.process == nil {
-		err := fmt.Errorf("failed to clone parent process from cache")
+		err := errors.New("failed to clone parent process from cache")
 		logger.GetLogger().WithFields(logrus.Fields{
 			"event.name":           "Clone",
 			"event.parent.pid":     event.Parent.Pid,

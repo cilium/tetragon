@@ -4,7 +4,7 @@
 package exec
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/ops"
@@ -136,11 +136,11 @@ func (msg *MsgCgroupEventUnix) Notify() bool {
 }
 
 func (msg *MsgCgroupEventUnix) RetryInternal(_ notify.Event, _ uint64) (*process.ProcessInternal, error) {
-	return nil, fmt.Errorf("unreachable state: MsgCgroupEventUnix RetryInternal() was called")
+	return nil, errors.New("unreachable state: MsgCgroupEventUnix RetryInternal() was called")
 }
 
 func (msg *MsgCgroupEventUnix) Retry(_ *process.ProcessInternal, _ notify.Event) error {
-	return fmt.Errorf("unreachable state: MsgCgroupEventUnix Retry() was called")
+	return errors.New("unreachable state: MsgCgroupEventUnix Retry() was called")
 }
 
 func (msg *MsgCgroupEventUnix) HandleMessage() *tetragon.GetEventsResponse {
@@ -193,7 +193,7 @@ func (msg *MsgExecveEventUnix) Notify() bool {
 }
 
 func (msg *MsgExecveEventUnix) RetryInternal(_ notify.Event, _ uint64) (*process.ProcessInternal, error) {
-	return nil, fmt.Errorf("unreachable state: MsgExecveEventUnix with missing internal")
+	return nil, errors.New("unreachable state: MsgExecveEventUnix with missing internal")
 }
 
 func (msg *MsgExecveEventUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {

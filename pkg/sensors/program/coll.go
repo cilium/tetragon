@@ -5,7 +5,6 @@ package program
 
 import (
 	"errors"
-	"fmt"
 	"os"
 
 	"github.com/cilium/ebpf"
@@ -81,7 +80,7 @@ func printLoadedCollection(str string, lc *LoadedCollection) {
 
 func copyLoadedCollection(coll *ebpf.Collection) (*LoadedCollection, error) {
 	if coll == nil {
-		return nil, fmt.Errorf("failed to get collection")
+		return nil, errors.New("failed to get collection")
 	}
 	lc := newLoadedCollection()
 	// copy all loaded maps
@@ -92,7 +91,7 @@ func copyLoadedCollection(coll *ebpf.Collection) (*LoadedCollection, error) {
 		}
 		id, ok := info.ID()
 		if !ok {
-			return nil, fmt.Errorf("failed to get id")
+			return nil, errors.New("failed to get id")
 		}
 		lm := &LoadedMap{id}
 		lc.Maps[name] = lm
@@ -105,7 +104,7 @@ func copyLoadedCollection(coll *ebpf.Collection) (*LoadedCollection, error) {
 		}
 		id, ok := info.ID()
 		if !ok {
-			return nil, fmt.Errorf("failed to get id")
+			return nil, errors.New("failed to get id")
 		}
 		mapIDs, ok := info.MapIDs()
 

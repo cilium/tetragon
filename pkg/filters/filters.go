@@ -6,6 +6,7 @@ package filters
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -34,7 +35,7 @@ func ParseFilterList(filters string, enablePidSetFilters bool) ([]*tetragon.Filt
 			return nil, err
 		}
 		if len(result.PidSet) != 0 && !enablePidSetFilters {
-			return nil, fmt.Errorf("pidSet filters use a best-effort approach for tracking PIDs and are intended for testing/development, not for production (pass the --enable-pid-set-filter to ignore)")
+			return nil, errors.New("pidSet filters use a best-effort approach for tracking PIDs and are intended for testing/development, not for production (pass the --enable-pid-set-filter to ignore)")
 		}
 		results = append(results, &result)
 	}

@@ -4,6 +4,7 @@
 package serve
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -42,10 +43,10 @@ func init() {
 
 func validateLeaderElectionParams() error {
 	if operatorOption.Config.LeaderElectionLeaseDuration <= operatorOption.Config.LeaderElectionRenewDeadline {
-		return fmt.Errorf("leader-election-lease-duration must be greater than leader-election-renew-deadline")
+		return errors.New("leader-election-lease-duration must be greater than leader-election-renew-deadline")
 	}
 	if operatorOption.Config.LeaderElectionRenewDeadline <= operatorOption.Config.LeaderElectionRetryPeriod {
-		return fmt.Errorf("leader-election-renew-deadline must be greater than leader-election-retry-period")
+		return errors.New("leader-election-renew-deadline must be greater than leader-election-retry-period")
 	}
 	return nil
 }

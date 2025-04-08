@@ -3,9 +3,7 @@
 
 package bpf
 
-import (
-	"fmt"
-)
+import "strconv"
 
 /*uapi/linux/bpf.h */
 var progTypeString = map[uint32]string{
@@ -47,5 +45,5 @@ func GetProgType(t uint32) string {
 	if t, ok := progTypeString[t]; ok {
 		return t
 	}
-	return fmt.Sprintf("%d", t)
+	return strconv.FormatUint(uint64(t), 10)
 }

@@ -59,7 +59,7 @@ func (ksym *ksym) isFunction() bool {
 
 // NewKsyms creates a new Ksyms structure (by reading procfs/kallsyms)
 func NewKsyms(procfs string) (*Ksyms, error) {
-	kallsymsFname := fmt.Sprintf("%s/kallsyms", procfs)
+	kallsymsFname := procfs + "/kallsyms"
 	file, err := os.Open(kallsymsFname)
 	if err != nil {
 		return nil, err

@@ -7,7 +7,6 @@ package tracing
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/exec"
 	"sync"
@@ -35,7 +34,7 @@ func TestKprobeCloneThreads(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	testConfigFile := fmt.Sprintf("%s/tetragon-kprobe-threads.yaml", t.TempDir())
+	testConfigFile := t.TempDir() + "/tetragon-kprobe-threads.yaml"
 
 	configHook_ := `
 apiVersion: cilium.io/v1alpha1

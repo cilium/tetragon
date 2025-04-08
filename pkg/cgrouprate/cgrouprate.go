@@ -23,7 +23,7 @@ package cgrouprate
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"sync"
 	"time"
 
@@ -104,7 +104,7 @@ func NewCgroupRate(ctx context.Context,
 	glSt.mu.Lock()
 	defer glSt.mu.Unlock()
 	if glSt.cgRateMap == nil {
-		return fmt.Errorf("cgrouprate has not been registered to base sensor")
+		return errors.New("cgrouprate has not been registered to base sensor")
 	}
 
 	glSt.handle = newCgroupRate(listener, glSt.cgRateMap, opts)
@@ -332,7 +332,7 @@ func RegisterCgroupRate(sensor *sensors.Sensor) (*sensors.Sensor, error) {
 	defer glSt.mu.Unlock()
 
 	if glSt.handle != nil {
-		return nil, fmt.Errorf("cgrouprate: handle is already set, need to cleanup first")
+		return nil, errors.New("cgrouprate: handle is already set, need to cleanup first")
 	}
 
 	var rateProgs []*program.Program
@@ -347,7 +347,7 @@ func RegisterCgroupRate(sensor *sensors.Sensor) (*sensors.Sensor, error) {
 	}
 
 	if len(optsProgs) == 0 || len(rateProgs) == 0 {
-		return nil, fmt.Errorf("failed to find base programs")
+		return nil, errors.New("failed to find base programs")
 	}
 
 	cgRmdirProg := program.Builder(

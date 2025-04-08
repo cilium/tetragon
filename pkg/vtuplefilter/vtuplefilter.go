@@ -20,7 +20,7 @@ type ParseError struct {
 }
 
 func (e *ParseError) Error() string {
-	return fmt.Sprintf("parsing error: %s", e.msg)
+	return "parsing error: " + e.msg
 }
 
 func ParseErrorFmt(s string, args ...interface{}) *ParseError {

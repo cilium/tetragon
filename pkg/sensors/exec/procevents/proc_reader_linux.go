@@ -4,7 +4,6 @@
 package procevents
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -53,7 +52,7 @@ func procKernel() procs {
 
 func getCWD(pid uint32) (string, uint32) {
 	flags := uint32(0)
-	pidstr := fmt.Sprint(pid)
+	pidstr := strconv.FormatUint(uint64(pid), 10)
 
 	if pid == 0 {
 		return "", flags

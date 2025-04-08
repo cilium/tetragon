@@ -159,7 +159,7 @@ type testState struct {
 }
 
 func contIDFromName(s string) string {
-	return fmt.Sprintf("cont-id-%s", s)
+	return "cont-id-" + s
 }
 
 func (ts *testState) createPod(t *testing.T, namespace string, name string, containerNames ...string) {

@@ -7,6 +7,7 @@ package encoder
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/syscallinfo"
@@ -53,7 +54,7 @@ func rawSyscallEnter(tp *tetragon.ProcessTracepoint) string {
 							isPtr = true
 							argVal = fmt.Sprintf("0x%x", argVal_)
 						} else {
-							argVal = fmt.Sprintf("%d", argVal_)
+							argVal = strconv.FormatUint(argVal_, 10)
 						}
 					}
 				}

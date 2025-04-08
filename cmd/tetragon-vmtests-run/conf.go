@@ -4,7 +4,6 @@
 package main
 
 import (
-	"fmt"
 	"path/filepath"
 
 	"github.com/cilium/little-vm-helper/pkg/runner"
@@ -32,7 +31,7 @@ type RunConf struct {
 
 func (rc RunConf) testImageFilename() string {
 	if ext := filepath.Ext(rc.vmName); ext == "" {
-		return fmt.Sprintf("%s.qcow2", rc.vmName)
+		return rc.vmName + ".qcow2"
 	}
 	return rc.vmName
 }

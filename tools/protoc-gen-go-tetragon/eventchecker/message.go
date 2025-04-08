@@ -145,7 +145,7 @@ func (msg *CheckedMessage) generateChecker(g *protogen.GeneratedFile, isEvent bo
 }
 
 func (msg *CheckedMessage) checkerName(g *protogen.GeneratedFile) string {
-	ret := fmt.Sprintf("%sChecker", msg.GoIdent.GoName)
+	ret := msg.GoIdent.GoName + "Checker"
 	typeImportPath := string(msg.GoIdent.GoImportPath)
 	if !strings.HasPrefix(typeImportPath, common.TetragonPackageName) {
 		importPath := filepath.Join(typeImportPath, "codegen", "eventchecker")

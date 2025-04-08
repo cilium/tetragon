@@ -221,7 +221,7 @@ func (rc *RPCChecker) check(ctx context.Context, allowList, denyList []*tetragon
 	defer func() {
 		checker, ok := rc.checker.(interface{ GetRemainingChecks() []ec.EventChecker })
 		if !ok {
-			klog.ErrorS(fmt.Errorf("checker has no method GetRemainingChecks()"), "unable to dump remaining checks")
+			klog.ErrorS(errors.New("checker has no method GetRemainingChecks()"), "unable to dump remaining checks")
 			return
 		}
 		if err := dumpChecks(ctx, rc.Name(), checker.GetRemainingChecks()); err != nil {
@@ -330,7 +330,7 @@ func (rc *RPCChecker) updateContextEventCheckers(ctx context.Context) context.Co
 func getExportDir(ctx context.Context) (string, error) {
 	exportDir, ok := ctx.Value(state.ExportDir).(string)
 	if !ok {
-		return "", fmt.Errorf("export dir has not been created. Call helpers.CreateExportDir() first")
+		return "", errors.New("export dir has not been created. Call helpers.CreateExportDir() first")
 	}
 	return exportDir, nil
 }

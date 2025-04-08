@@ -6,6 +6,7 @@ package observer
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"unsafe"
 
@@ -86,12 +87,12 @@ func HandleData(r *bytes.Reader) ([]Event, error) {
 	m := dataapi.MsgData{}
 	err := binary.Read(r, binary.LittleEndian, &m)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read data msg")
+		return nil, errors.New("failed to read data msg")
 	}
 
 	err = add(r, &m)
 	if err != nil {
-		return nil, fmt.Errorf("failed to add data msg")
+		return nil, errors.New("failed to add data msg")
 	}
 
 	// we don't send the event further

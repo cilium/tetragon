@@ -67,7 +67,7 @@ func TestSensorsRun(m *testing.M, sensorName string) int {
 	// Also, we currently seem to fail to remove the /sys/fs/bpf/<testMapDir>
 	// Do so here, until we figure out a way to do it properly. Also, issue
 	// a message.
-	testMapDir := fmt.Sprintf("test%s", sensorName)
+	testMapDir := "test" + sensorName
 
 	bpf.CheckOrMountFS("")
 	bpf.CheckOrMountDebugFS()

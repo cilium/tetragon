@@ -95,7 +95,7 @@ func detectBpffs() (string, error) {
 		}
 		return path, nil
 	}
-	return "", fmt.Errorf("bpffs mount not found")
+	return "", errors.New("bpffs mount not found")
 }
 
 func detectLib() (string, error) {
@@ -107,7 +107,7 @@ func detectLib() (string, error) {
 		}
 		return path, nil
 	}
-	return "", fmt.Errorf("lib directory mount not found")
+	return "", errors.New("lib directory mount not found")
 }
 
 func NewProgsCmd() *cobra.Command {
@@ -329,7 +329,7 @@ func getAllProgs(lib string) ([]*prog, error) {
 
 		prog, ok := coll.Programs["iter"]
 		if !ok {
-			initErr = fmt.Errorf("can't file iter program")
+			initErr = errors.New("can't file iter program")
 			return
 		}
 		initProg, initErr = prog.Clone()

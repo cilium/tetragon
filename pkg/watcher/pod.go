@@ -42,14 +42,14 @@ type PodAccessor interface {
 
 func AddPodInformer(w *K8sWatcher, local bool) error {
 	if w == nil {
-		return fmt.Errorf("k8s watcher not initialized")
+		return errors.New("k8s watcher not initialized")
 	}
 	factory := w.GetK8sInformerFactory()
 	if local {
 		factory = w.GetLocalK8sInformerFactory()
 	}
 	if factory == nil {
-		return fmt.Errorf("k8s informer factory not initialized")
+		return errors.New("k8s informer factory not initialized")
 	}
 
 	// initialize deleted pod cache
@@ -203,7 +203,7 @@ func findContainer(containerID string, pods []interface{}) (*corev1.Pod, *corev1
 func (watcher *K8sWatcher) FindMirrorPod(hash string) (*corev1.Pod, error) {
 	podInformer := watcher.GetInformer(podInformerName)
 	if podInformer == nil {
-		return nil, fmt.Errorf("pod informer not initialized")
+		return nil, errors.New("pod informer not initialized")
 	}
 	pods := podInformer.GetStore().List()
 	for i := range pods {
@@ -221,7 +221,7 @@ func (watcher *K8sWatcher) FindMirrorPod(hash string) (*corev1.Pod, error) {
 func (watcher *K8sWatcher) FindPod(podID string) (*corev1.Pod, error) {
 	podInformer := watcher.GetInformer(podInformerName)
 	if podInformer == nil {
-		return nil, fmt.Errorf("pod informer not initialized")
+		return nil, errors.New("pod informer not initialized")
 	}
 
 	// First try to find the pod by index

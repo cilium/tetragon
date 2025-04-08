@@ -4,6 +4,7 @@
 package loglevel
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
@@ -54,7 +55,7 @@ func New() *cobra.Command {
 	  tetra loglevel set info`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) != 1 {
-				return fmt.Errorf("usage: tetra loglevel set [trace|debug|info|warning|error|fatal|panic]")
+				return errors.New("usage: tetra loglevel set [trace|debug|info|warning|error|fatal|panic]")
 			}
 			levelStr := args[0]
 			levelParsed, err := logrus.ParseLevel(levelStr)

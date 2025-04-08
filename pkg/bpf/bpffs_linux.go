@@ -4,6 +4,7 @@
 package bpf
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"syscall"
@@ -106,7 +107,7 @@ func checkOrMountDebugFSDefaultLocations() error {
 		return mountFS(debugFSRoot, mountinfo.FilesystemTypeDebugFS)
 	}
 	if !debugfsInstance {
-		return fmt.Errorf("instance exists with othe type")
+		return errors.New("instance exists with othe type")
 	}
 	return nil
 }
@@ -127,7 +128,7 @@ func checkOrMountCgroupDefaultLocation() error {
 		return mountFS(cgroup2Root, mountinfo.FilesystemTypeCgroup2)
 	}
 	if !cgroupInstance {
-		return fmt.Errorf("instance exists with other type")
+		return errors.New("instance exists with other type")
 	}
 	return nil
 }

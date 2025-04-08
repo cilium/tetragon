@@ -28,6 +28,7 @@ package tracing
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"log"
 	"syscall"
@@ -122,11 +123,11 @@ func (k *loaderSensor) PolicyHandler(p tracingpolicy.TracingPolicy, fid policyfi
 	}
 
 	if fid != policyfilter.NoFilterID {
-		return nil, fmt.Errorf("loader sensor does not implement policy filtering")
+		return nil, errors.New("loader sensor does not implement policy filtering")
 	}
 
 	if !hasLoaderEvents() {
-		return nil, fmt.Errorf("loader event are not supported on running kernel")
+		return nil, errors.New("loader event are not supported on running kernel")
 	}
 	loaderEnabled = true
 	return GetLoaderSensor(), nil
@@ -201,7 +202,7 @@ func handleLoader(r *bytes.Reader) ([]observer.Event, error) {
 	err := binary.Read(r, binary.LittleEndian, &m)
 	if err != nil {
 		logger.GetLogger().WithError(err).Warnf("Failed to read process call msg")
-		return nil, fmt.Errorf("failed to read process call msg")
+		return nil, errors.New("failed to read process call msg")
 	}
 
 	path := m.Path[:m.PathSize-1]

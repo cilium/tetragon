@@ -4,6 +4,7 @@
 package sensors
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 
@@ -198,7 +199,7 @@ func loadInstance(bpfDir string, load *program.Program, maps []*program.Map, ver
 func observerMinReqs() (bool, error) {
 	_, _, err := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
 	if err != nil {
-		return false, fmt.Errorf("kernel version lookup failed, required for kprobe")
+		return false, errors.New("kernel version lookup failed, required for kprobe")
 	}
 	return true, nil
 }

@@ -124,7 +124,7 @@ func doJsonTestCheck(t *testing.T, jsonFile *os.File, checker ec.MultiEventCheck
 	fieldLogger := logger.GetLogger()
 	log, ok := fieldLogger.(*logrus.Logger)
 	if !ok {
-		return fmt.Errorf("failed to convert logger")
+		return errors.New("failed to convert logger")
 	}
 
 	cnt := 0

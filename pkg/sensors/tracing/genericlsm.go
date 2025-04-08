@@ -120,13 +120,13 @@ func handleGenericLsm(r *bytes.Reader) ([]observer.Event, error) {
 	err := binary.Read(r, binary.LittleEndian, &m)
 	if err != nil {
 		logger.GetLogger().WithError(err).Warnf("Failed to read process call msg")
-		return nil, fmt.Errorf("failed to read process call msg")
+		return nil, errors.New("failed to read process call msg")
 	}
 
 	gl, err := genericLsmTableGet(idtable.EntryID{ID: int(m.FuncId)})
 	if err != nil {
 		logger.GetLogger().WithError(err).Warnf("Failed to match id:%d", m.FuncId)
-		return nil, fmt.Errorf("failed to match id")
+		return nil, errors.New("failed to match id")
 	}
 
 	unix := &tracing.MsgGenericLsmUnix{}
@@ -154,23 +154,23 @@ func handleGenericLsm(r *bytes.Reader) ([]observer.Event, error) {
 		err := binary.Read(r, binary.LittleEndian, &state)
 		if err != nil {
 			logger.GetLogger().WithError(err).Warnf("Failed to read IMA hash state")
-			return nil, fmt.Errorf("failed to read IMA hash state")
+			return nil, errors.New("failed to read IMA hash state")
 		}
 		if state != 2 {
 			logger.GetLogger().WithError(err).Warnf("LSM bpf program chain is violated")
-			return nil, fmt.Errorf("LSM bpf program chain is violated")
+			return nil, errors.New("LSM bpf program chain is violated")
 		}
 		var algo int8
 		err = binary.Read(r, binary.LittleEndian, &algo)
 		if err != nil {
 			logger.GetLogger().WithError(err).Warnf("Failed to read IMA hash algorithm")
-			return nil, fmt.Errorf("failed to read IMA hash algorithm")
+			return nil, errors.New("failed to read IMA hash algorithm")
 		}
 		unix.ImaHash.Algo = int32(algo)
 		err = binary.Read(r, binary.LittleEndian, &unix.ImaHash.Hash)
 		if err != nil {
 			logger.GetLogger().WithError(err).Warnf("Failed to read IMA hash value")
-			return nil, fmt.Errorf("failed to read IMA hash value")
+			return nil, errors.New("failed to read IMA hash value")
 		}
 	}
 
@@ -180,7 +180,7 @@ func handleGenericLsm(r *bytes.Reader) ([]observer.Event, error) {
 func isValidLsmSelectors(selectors []v1alpha1.KProbeSelector) error {
 	for _, s := range selectors {
 		if len(s.MatchReturnArgs) > 0 {
-			return fmt.Errorf("MatchReturnArgs selector is not supported")
+			return errors.New("MatchReturnArgs selector is not supported")
 		}
 		if len(s.MatchActions) > 0 {
 			for _, a := range s.MatchActions {
@@ -192,7 +192,7 @@ func isValidLsmSelectors(selectors []v1alpha1.KProbeSelector) error {
 					continue
 				case "post":
 					if a.KernelStackTrace || a.UserStackTrace {
-						return fmt.Errorf("stacktrace actions are not supported")
+						return errors.New("stacktrace actions are not supported")
 					}
 				default:
 					return fmt.Errorf("%s action is not supported", a.Action)
@@ -244,7 +244,7 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 
 		if a.Resolve != "" && j < api.EventConfigMaxArgs {
 			if !bpf.HasProgramLargeSize() {
-				return errFn(fmt.Errorf("error: Resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag"))
+				return errFn(errors.New("error: Resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag"))
 			}
 			lastBTFType, btfArg, err := resolveBTFArg("bpf_lsm_"+f.Hook, a)
 			if err != nil {
@@ -351,7 +351,7 @@ func createGenericLsmSensor(
 	var err error
 
 	if !bpf.HasLSMPrograms() || !config.EnableLargeProgs() {
-		return nil, fmt.Errorf("does you kernel support the bpf LSM? You can enable LSM BPF by modifying" +
+		return nil, errors.New("does you kernel support the bpf LSM? You can enable LSM BPF by modifying" +
 			"the GRUB configuration /etc/default/grub with GRUB_CMDLINE_LINUX=\"lsm=bpf\"")
 	}
 

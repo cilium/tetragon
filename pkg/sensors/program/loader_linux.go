@@ -137,7 +137,7 @@ func KprobeOpen(load *Program) OpenFunc {
 			if load.OverrideFmodRet {
 				spec, ok := coll.Programs["generic_fmodret_override"]
 				if !ok {
-					return fmt.Errorf("failed to find generic_fmodret_override")
+					return errors.New("failed to find generic_fmodret_override")
 				}
 				spec.AttachTo = load.Attach
 				disableProg(coll, "generic_kprobe_override")
@@ -182,12 +182,12 @@ func kprobeAttachOverride(load *Program, bpfDir string,
 
 	spec, ok := collSpec.Programs["generic_kprobe_override"]
 	if !ok {
-		return fmt.Errorf("spec for generic_kprobe_override program not found")
+		return errors.New("spec for generic_kprobe_override program not found")
 	}
 
 	prog, ok := coll.Programs["generic_kprobe_override"]
 	if !ok {
-		return fmt.Errorf("program generic_kprobe_override not found")
+		return errors.New("program generic_kprobe_override not found")
 	}
 
 	prog, err := prog.Clone()
@@ -214,12 +214,12 @@ func fmodretAttachOverride(load *Program, bpfDir string,
 
 	spec, ok := collSpec.Programs["generic_fmodret_override"]
 	if !ok {
-		return fmt.Errorf("spec for generic_fmodret_override program not found")
+		return errors.New("spec for generic_fmodret_override program not found")
 	}
 
 	prog, ok := coll.Programs["generic_fmodret_override"]
 	if !ok {
-		return fmt.Errorf("program generic_fmodret_override not found")
+		return errors.New("program generic_fmodret_override not found")
 	}
 
 	prog, err := prog.Clone()
@@ -387,7 +387,7 @@ func LSMOpen(load *Program) OpenFunc {
 			if prog.AttachType == ebpf.AttachLSMMac {
 				prog.AttachTo = load.Attach
 			} else {
-				return fmt.Errorf("only AttachLSMMac is supported for generic_lsm programs")
+				return errors.New("only AttachLSMMac is supported for generic_lsm programs")
 			}
 		}
 		return nil

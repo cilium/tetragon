@@ -6,9 +6,11 @@ package observer
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -133,7 +135,7 @@ func (k *Observer) receiveEvent(data []byte) {
 		k.observerListeners(event)
 	}
 	if option.Config.EnableMsgHandlingLatency {
-		opcodemetrics.LatencyStats.WithLabelValues(fmt.Sprint(op)).Observe(float64(time.Since(timer).Microseconds()))
+		opcodemetrics.LatencyStats.WithLabelValues(strconv.FormatUint(uint64(op), 10)).Observe(float64(time.Since(timer).Microseconds()))
 	}
 }
 
@@ -316,7 +318,7 @@ func (k *Observer) LogPinnedBpf(observerDir string) {
 	}
 
 	if !finfo.IsDir() {
-		err := fmt.Errorf("is not a directory")
+		err := errors.New("is not a directory")
 		k.log.WithField("bpf-dir", observerDir).WithError(err).Warn("BPF: checking BPF resources failed")
 		// Do not fail, let bpf part handle it
 		return

@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -231,7 +232,7 @@ func TestEventExitThreads(t *testing.T) {
 				for pid := range tgids {
 					tgids[pid] = false
 				}
-				return fmt.Errorf("final check failed")
+				return errors.New("final check failed")
 			}
 		}
 		seenAll = true
@@ -1526,7 +1527,7 @@ func TestExecDeletedBinary(t *testing.T) {
 	testDir := t.TempDir()
 	// Copy /bin/true
 	truePath := "/bin/true"
-	testTruePath := fmt.Sprintf("%s/true", testDir)
+	testTruePath := testDir + "/true"
 	if err := testutils.CopyFile(testTruePath, truePath, 0755); err != nil {
 		t.Fatalf("Failed to copy binary: %s", err)
 	}

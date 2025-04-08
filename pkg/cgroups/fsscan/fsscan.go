@@ -93,7 +93,7 @@ func (fs *fsScannerState) FindContainerPath(podID uuid.UUID, containerID string)
 		}
 	}
 	if fs.rootErr != nil {
-		return "", fmt.Errorf("no cgroup root")
+		return "", errors.New("no cgroup root")
 	}
 
 	podPath := fsFindPodPath(fs.root, podID)

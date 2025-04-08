@@ -6,12 +6,14 @@ package helpers
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -37,7 +39,7 @@ type TestEnvFunc = func(ctx context.Context, cfg *envconf.Config, t *testing.T) 
 func DumpInfo(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 	opts, ok := ctx.Value(state.InstallOpts).(*flags.HelmOptions)
 	if !ok {
-		return ctx, fmt.Errorf("failed to find Tetragon install options. Did the test setup install Tetragon?")
+		return ctx, errors.New("failed to find Tetragon install options. Did the test setup install Tetragon?")
 	}
 
 	exportDir, err := GetExportDir(ctx)
@@ -58,7 +60,7 @@ func DumpInfo(ctx context.Context, cfg *envconf.Config) (context.Context, error)
 	if err = r.List(
 		ctx,
 		podList,
-		resources.WithLabelSelector(fmt.Sprintf("app.kubernetes.io/instance=%s", opts.DaemonSetName)),
+		resources.WithLabelSelector("app.kubernetes.io/instance="+opts.DaemonSetName),
 	); err != nil {
 		return ctx, err
 	}
@@ -105,7 +107,7 @@ func CreateExportDir(ctx context.Context, t *testing.T) (context.Context, error)
 func GetExportDir(ctx context.Context) (string, error) {
 	exportDir, ok := ctx.Value(state.ExportDir).(string)
 	if !ok {
-		return "", fmt.Errorf("export dir has not been created. Call runner.CreateExportDir() first")
+		return "", errors.New("export dir has not been created. Call runner.CreateExportDir() first")
 	}
 
 	return exportDir, nil
@@ -218,12 +220,12 @@ func dumpCheckers(ctx context.Context, exportDir string) {
 				klog.ErrorS(err, "failed to dump checker yaml for %s", name)
 			}
 
-			fname := filepath.Join(exportDir, fmt.Sprintf("%s.eventchecker.yaml", name))
+			fname := filepath.Join(exportDir, name+".eventchecker.yaml")
 			if err := os.WriteFile(fname, []byte(yamlStr), os.FileMode(0o644)); err != nil {
 				klog.ErrorS(err, "failed to write checker yaml to file %s", fname, err)
 			}
 
-			fname = filepath.Join(exportDir, fmt.Sprintf("%s.eventchecker.log", name))
+			fname = filepath.Join(exportDir, name+".eventchecker.log")
 			if err := os.WriteFile(fname, checker.Logs(), os.FileMode(0o644)); err != nil {
 				klog.ErrorS(err, "failed to write checker logs to file %s", fname)
 			}
@@ -270,7 +272,7 @@ func StartMetricsDumper(ctx context.Context, exportDir string, interval time.Dur
 			case <-ticker.C:
 				if ports, ok := ctx.Value(state.PromForwardedPorts).(map[string]int); ok {
 					for podName, port := range ports {
-						dumpMetrics(fmt.Sprint(port), podName, exportDir)
+						dumpMetrics(strconv.Itoa(port), podName, exportDir)
 					}
 				} else {
 					klog.V(4).Info("failed to retrieve metrics portforward, refusing to dump metrics")
@@ -278,7 +280,7 @@ func StartMetricsDumper(ctx context.Context, exportDir string, interval time.Dur
 			case <-ctx.Done():
 				if ports, ok := ctx.Value(state.PromForwardedPorts).(map[string]int); ok {
 					for podName, port := range ports {
-						dumpMetrics(fmt.Sprint(port), podName, exportDir)
+						dumpMetrics(strconv.Itoa(port), podName, exportDir)
 					}
 				} else {
 					klog.V(4).Info("failed to retrieve metrics portforward, refusing to dump metrics")

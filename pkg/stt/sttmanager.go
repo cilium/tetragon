@@ -4,6 +4,7 @@
 package sttManager
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
@@ -105,7 +106,7 @@ func StartSttManager() Handle {
 
 func (h Handle) CreateTree(tname string) error {
 	if h == nil {
-		return fmt.Errorf("CreateTree failed, Handle is nil")
+		return errors.New("CreateTree failed, Handle is nil")
 	}
 
 	retc := make(chan error)
@@ -119,7 +120,7 @@ func (h Handle) CreateTree(tname string) error {
 
 func (h Handle) DestroyTree(tname string) error {
 	if h == nil {
-		return fmt.Errorf("DestroyTree failed, Handle is nil")
+		return errors.New("DestroyTree failed, Handle is nil")
 	}
 
 	retc := make(chan error)
@@ -133,7 +134,7 @@ func (h Handle) DestroyTree(tname string) error {
 
 func (h Handle) Insert(tname string, stt *stt.Stt) error {
 	if h == nil {
-		return fmt.Errorf("instert failed, Handle is nil")
+		return errors.New("instert failed, Handle is nil")
 	}
 
 	retc := make(chan error)

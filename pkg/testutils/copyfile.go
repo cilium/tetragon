@@ -4,7 +4,6 @@
 package testutils
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -35,7 +34,7 @@ func CopyFile(toPath, fromPath string, perm os.FileMode) error {
 
 func CopyFileToTmp(fname string) (string, error) {
 	bname := path.Base(fname)
-	pattern := fmt.Sprintf("%s.*", bname)
+	pattern := bname + ".*"
 	outf, err := os.CreateTemp("", pattern)
 	if err != nil {
 		return "", err
