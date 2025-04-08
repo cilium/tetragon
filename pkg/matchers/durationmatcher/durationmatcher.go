@@ -35,7 +35,7 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 }
 
 func (d Duration) MarshalJSON() ([]byte, error) {
-	return json.Marshal(d.Duration.String())
+	return json.Marshal(d.String())
 }
 
 type durationBetween struct {
@@ -67,7 +67,7 @@ func (m *DurationMatcher) checkLess(duration *time.Duration) error {
 		return fmt.Errorf("value is not a duration")
 	}
 
-	if !(*duration <= value.Duration) {
+	if *duration > value.Duration {
 		return fmt.Errorf("%s is not less than %s", *duration, value.Duration)
 	}
 
@@ -80,7 +80,7 @@ func (m *DurationMatcher) checkGreater(duration *time.Duration) error {
 		return fmt.Errorf("value is not a duration")
 	}
 
-	if !(*duration >= value.Duration) {
+	if *duration < value.Duration {
 		return fmt.Errorf("%s is not greater than %s", *duration, value.Duration)
 	}
 
@@ -97,11 +97,11 @@ func (m *DurationMatcher) checkBetween(duration *time.Duration) error {
 		return fmt.Errorf("value is nil")
 	}
 
-	if !(*duration <= value.Upper.Duration) {
+	if *duration > value.Upper.Duration {
 		return fmt.Errorf("%s is not less than %s", *duration, value.Upper.Duration)
 	}
 
-	if !(*duration >= value.Lower.Duration) {
+	if *duration < value.Lower.Duration {
 		return fmt.Errorf("%s is not greater than %s", *duration, value.Lower.Duration)
 	}
 

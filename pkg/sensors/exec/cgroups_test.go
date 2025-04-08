@@ -1012,14 +1012,15 @@ func testCgroupv2K8sHierarchy(ctx context.Context, t *testing.T, mode cgroups.Cg
 		testCgroupv2HierarchyInUnified(ctx, t, cgroupRoot, kubeCgroupHierarchy,
 			trackingCgrpLevel, triggersExecIDs)
 	} else {
-		if mode == cgroups.CGROUP_HYBRID {
+		switch mode {
+		case cgroups.CGROUP_HYBRID:
 			// This test will run in hybrid mode since systemd will mount first cgroup2
 			testCgroupv2HierarchyInHybrid(ctx, t, cgroupRoot, kubeCgroupHierarchy,
 				trackingCgrpLevel, triggersMkdirRmdir)
-		} else if mode == cgroups.CGROUP_UNIFIED {
+		case cgroups.CGROUP_UNIFIED:
 			testCgroupv2HierarchyInUnified(ctx, t, cgroupRoot, kubeCgroupHierarchy,
 				trackingCgrpLevel, triggersMkdirRmdir)
-		} else {
+		default:
 			t.Fatalf("Test %s unsupported Cgroup Mode", t.Name())
 		}
 	}

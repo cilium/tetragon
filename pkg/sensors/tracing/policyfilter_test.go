@@ -46,7 +46,8 @@ import (
 func createCgroup(t *testing.T, dir string, pids ...uint64) policyfilter.CgroupID {
 	cgMode := cgroups.Mode()
 	var path string
-	if cgMode == cgroups.Unified {
+	switch cgMode {
+	case cgroups.Unified:
 		cgroupFs := "/sys/fs/cgroup"
 		res := cgroupsv2.Resources{}
 		m, err := cgroupsv2.NewSystemd("/", dir, -1, &res)
@@ -62,7 +63,7 @@ func createCgroup(t *testing.T, dir string, pids ...uint64) policyfilter.CgroupI
 		path = filepath.Join(cgroupFs, dir)
 		require.NoError(t, err)
 
-	} else if cgMode == cgroups.Hybrid {
+	case cgroups.Hybrid:
 		cgroupFs := "/sys/fs/cgroup"
 		slice := "system.slice"
 		// NB(kkourt): this is just for our vmtests VM
@@ -86,7 +87,7 @@ func createCgroup(t *testing.T, dir string, pids ...uint64) policyfilter.CgroupI
 		// Example: "/sys/fs/cgroup/memory/system.slice/TestNamespacedPolicies.cgroup1.20230302140421.slice"
 		path = filepath.Join(cgroupFs, tgcgroups.GetCgrpControllerName(), slice, dir)
 		require.NoError(t, err)
-	} else {
+	default:
 		t.Skipf("Unsupported cgroup mode: %d", cgMode)
 	}
 

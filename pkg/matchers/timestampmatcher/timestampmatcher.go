@@ -158,7 +158,7 @@ func (m *TimestampMatcher) checkBefore(ts *time.Time) error {
 	tsTime := ts
 	tcTime := value.Time
 
-	if !(tsTime.Before(tcTime) || tsTime.Equal(tcTime)) {
+	if !tsTime.Before(tcTime) && !tsTime.Equal(tcTime) {
 		return fmt.Errorf("%s is not before %s", tsTime, tcTime)
 	}
 
@@ -174,7 +174,7 @@ func (m *TimestampMatcher) checkAfter(ts *time.Time) error {
 	tsTime := ts
 	tcTime := value.Time
 
-	if !(tsTime.After(tcTime) || tsTime.Equal(tcTime)) {
+	if !tsTime.After(tcTime) && !tsTime.Equal(tcTime) {
 		return fmt.Errorf("%s is not after %s", tsTime, tcTime)
 	}
 

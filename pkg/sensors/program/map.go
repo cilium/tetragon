@@ -280,7 +280,7 @@ func compatible(ms *ebpf.MapSpec, m *ebpf.Map) error {
 	case m.ValueSize() != ms.ValueSize:
 		return fmt.Errorf("expected value size %v, got %v: %w", ms.ValueSize, m.ValueSize(), ebpf.ErrMapIncompatible)
 
-	case !(ms.Type == ebpf.PerfEventArray && ms.MaxEntries == 0) &&
+	case (ms.Type != ebpf.PerfEventArray || ms.MaxEntries != 0) &&
 		m.MaxEntries() != ms.MaxEntries:
 		return fmt.Errorf("expected max entries %v, got %v: %w", ms.MaxEntries, m.MaxEntries(), ebpf.ErrMapIncompatible)
 

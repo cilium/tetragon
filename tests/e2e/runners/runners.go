@@ -157,7 +157,7 @@ func (r *Runner) Init() *Runner {
 	r.Environment = env.NewWithConfig(cfg)
 	ctx, cancel := context.WithCancel(context.Background())
 	r.cancel = cancel
-	r.Environment = r.Environment.WithContext(ctx)
+	r.Environment = r.WithContext(ctx)
 
 	if r.setupCluster == nil {
 		klog.Fatalf("Runner.setupCluster cannot be nil")

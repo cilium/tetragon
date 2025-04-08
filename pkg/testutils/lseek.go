@@ -44,7 +44,7 @@ func (lp *LseekPipeCmd) Pid() int {
 }
 
 func (lp *LseekPipeCmd) Lseek(fd int, offset int64, whence int) string {
-	lp.Pipes.P.Stdin.Write([]byte(fmt.Sprintf("%d %d %d\n", fd, offset, whence)))
+	fmt.Fprintf(lp.Pipes.P.Stdin, "%d %d %d\n", fd, offset, whence)
 	// NB: read the result from the lseek-pipe program. Doing so means that
 	// whenever we return, we know that the lseek syscall has been
 	// executed.

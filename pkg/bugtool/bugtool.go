@@ -304,7 +304,7 @@ func (s *bugtoolInfo) addLibFiles(tarWriter *tar.Writer) error {
 			// symlinks if they point within the directory we are archiving, but since
 			// we do not use them, there is currently no reason for the complexity.
 			mode := info.Mode()
-			if !(mode.IsRegular() || mode.IsDir()) {
+			if !mode.IsRegular() && !mode.IsDir() {
 				s.multiLog.WithField("path", path).Warn("not a regular file, ignoring")
 				return nil
 			}

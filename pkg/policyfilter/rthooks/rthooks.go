@@ -70,7 +70,7 @@ func createContainerHook(_ context.Context, arg *rthooks.CreateContainerArg) err
 		return err
 	}
 
-	namespace := pod.ObjectMeta.Namespace
+	namespace := pod.Namespace
 	workloadMeta, workloadKind := podhelpers.GetWorkloadMetaFromPod(pod)
 	workload := workloadMeta.Name
 	kind := workloadKind.Kind

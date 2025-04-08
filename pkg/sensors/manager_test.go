@@ -45,7 +45,7 @@ func TestAddPolicy(t *testing.T) {
 	policy := v1alpha1.TracingPolicy{}
 	mgr, err := StartSensorManager("")
 	assert.NoError(t, err)
-	policy.ObjectMeta.Name = "test-policy"
+	policy.Name = "test-policy"
 	err = mgr.AddTracingPolicy(ctx, &policy)
 	assert.NoError(t, err)
 	l, err := mgr.ListSensors(ctx)
@@ -68,7 +68,7 @@ func TestAddPolicies(t *testing.T) {
 	policy := v1alpha1.TracingPolicy{}
 	mgr, err := StartSensorManager("")
 	assert.NoError(t, err)
-	policy.ObjectMeta.Name = "test-policy"
+	policy.Name = "test-policy"
 	err = mgr.AddTracingPolicy(ctx, &policy)
 	assert.NoError(t, err)
 	l, err := mgr.ListSensors(ctx)
@@ -94,7 +94,7 @@ func TestAddPolicySpecError(t *testing.T) {
 	policy := v1alpha1.TracingPolicy{}
 	mgr, err := StartSensorManager("")
 	assert.NoError(t, err)
-	policy.ObjectMeta.Name = "test-policy"
+	policy.Name = "test-policy"
 	err = mgr.AddTracingPolicy(ctx, &policy)
 	assert.NotNil(t, err)
 	t.Logf("got error (as expected): %s", err)
@@ -121,7 +121,7 @@ func TestAddPolicyLoadError(t *testing.T) {
 	policy := v1alpha1.TracingPolicy{}
 	mgr, err := StartSensorManager("")
 	assert.NoError(t, err)
-	policy.ObjectMeta.Name = "test-policy"
+	policy.Name = "test-policy"
 	addError := mgr.AddTracingPolicy(ctx, &policy)
 	assert.NotNil(t, addError)
 	t.Logf("got error (as expected): %s", addError)
@@ -145,7 +145,7 @@ func TestPolicyFilterDisabled(t *testing.T) {
 	// normal policy should succeed
 	policyName := "test-policy"
 	policyNamespace := ""
-	policy.ObjectMeta.Name = policyName
+	policy.Name = policyName
 	err = mgr.AddTracingPolicy(ctx, &policy)
 	require.NoError(t, err, fmt.Sprintf("Add tracing policy failed with error: %v", err))
 	err = mgr.DeleteTracingPolicy(ctx, policyName, policyNamespace)
@@ -157,9 +157,9 @@ func TestPolicyFilterDisabled(t *testing.T) {
 
 	// namespaced policy with disabled state should fail
 	namespacedPolicy := v1alpha1.TracingPolicyNamespaced{}
-	policy.ObjectMeta.Name = policyName
-	namespacedPolicy.ObjectMeta.Name = policyName
-	namespacedPolicy.ObjectMeta.Namespace = "namespace"
+	policy.Name = policyName
+	namespacedPolicy.Name = policyName
+	namespacedPolicy.Namespace = "namespace"
 	err = mgr.AddTracingPolicy(ctx, &namespacedPolicy)
 	require.Error(t, err)
 
@@ -190,7 +190,7 @@ func TestPolicyStates(t *testing.T) {
 		policy := v1alpha1.TracingPolicy{}
 		mgr, err := StartSensorManager("")
 		require.NoError(t, err)
-		policy.ObjectMeta.Name = "test-policy"
+		policy.Name = "test-policy"
 		addError := mgr.AddTracingPolicy(ctx, &policy)
 		assert.NotNil(t, addError)
 
@@ -210,7 +210,7 @@ func TestPolicyStates(t *testing.T) {
 		policy := v1alpha1.TracingPolicy{}
 		mgr, err := StartSensorManager("")
 		require.NoError(t, err)
-		policy.ObjectMeta.Name = "test-policy"
+		policy.Name = "test-policy"
 		err = mgr.AddTracingPolicy(ctx, &policy)
 		assert.NoError(t, err)
 
@@ -219,7 +219,7 @@ func TestPolicyStates(t *testing.T) {
 		assert.Len(t, l.Policies, 1)
 		assert.Equal(t, EnabledState.ToTetragonState(), l.Policies[0].State)
 
-		err = mgr.DisableTracingPolicy(ctx, policy.ObjectMeta.Name, policy.Namespace)
+		err = mgr.DisableTracingPolicy(ctx, policy.Name, policy.Namespace)
 		assert.NoError(t, err)
 		l, err = mgr.ListTracingPolicies(ctx)
 		assert.NoError(t, err)
@@ -245,7 +245,7 @@ func TestPolicyLoadErrorOverride(t *testing.T) {
 	policy := v1alpha1.TracingPolicy{}
 	mgr, err := StartSensorManager("")
 	require.NoError(t, err)
-	policy.ObjectMeta.Name = "test-policy"
+	policy.Name = "test-policy"
 	addError := mgr.AddTracingPolicy(ctx, &policy)
 	assert.NotNil(t, addError)
 
@@ -308,7 +308,7 @@ func TestPolicyListingWhileLoadUnload(t *testing.T) {
 
 	t.Log("adding policy")
 	policy := v1alpha1.TracingPolicy{}
-	policy.ObjectMeta.Name = polName
+	policy.Name = polName
 	err = mgr.AddTracingPolicy(ctx, &policy)
 	require.NoError(t, err)
 	wg.Wait()
@@ -401,7 +401,7 @@ func TestPolicyKernelMemoryBytes(t *testing.T) {
 	policy := v1alpha1.TracingPolicy{}
 	mgr, err := StartSensorManager("")
 	require.NoError(t, err)
-	policy.ObjectMeta.Name = "test-policy"
+	policy.Name = "test-policy"
 	addError := mgr.AddTracingPolicy(ctx, &policy)
 	// this will fail to load because the programs do not exist
 	require.Error(t, addError)

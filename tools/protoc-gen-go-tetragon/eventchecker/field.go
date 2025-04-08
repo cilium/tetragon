@@ -32,7 +32,7 @@ func (field *Field) generateWith(g *protogen.GeneratedFile, msg *CheckedMessage)
 	}
 
 	g.P(`// With` + field.GoName + ` adds a ` + field.GoName + ` check to the ` + msg.checkerName(g))
-	if field.isPrimitive() && !(field.isList() || field.isMap()) {
+	if field.isPrimitive() && (!field.isList() && !field.isMap()) {
 		g.P(`func (checker *` + msg.checkerName(g) + `) With` + field.GoName + `(check ` + typeName + `) *` + msg.checkerName(g) + `{
             checker.` + field.GoName + ` = &check`)
 	} else if field.isList() {
@@ -235,11 +235,12 @@ func doGetFieldFrom(field *Field, g *protogen.GeneratedFile, handleList, handleO
 		return doStringFrom(), nil
 
 	case protoreflect.MessageKind:
-		if field.Message.GoIdent.GoImportPath == imports.WrappersPath {
+		switch field.Message.GoIdent.GoImportPath {
+		case imports.WrappersPath:
 			return doWrapperFrom(), nil
-		} else if field.Message.GoIdent.GoImportPath == imports.TimestampPath {
+		case imports.TimestampPath:
 			return doTimestampFrom(), nil
-		} else if field.Message.GoIdent.GoImportPath == imports.DurationPath {
+		case imports.DurationPath:
 			return doDurationFrom(), nil
 		}
 		return doCheckerFrom(), nil
@@ -450,11 +451,12 @@ func checkForKind(g *protogen.GeneratedFile, field *Field, checkerVar, eventVar 
 		return doStringCheck(), nil
 
 	case protoreflect.MessageKind:
-		if field.Message.GoIdent.GoImportPath == imports.WrappersPath {
+		switch field.Message.GoIdent.GoImportPath {
+		case imports.WrappersPath:
 			return doWrapperCheck(), nil
-		} else if field.Message.GoIdent.GoImportPath == imports.TimestampPath {
+		case imports.TimestampPath:
 			return doTimestampCheck(), nil
-		} else if field.Message.GoIdent.GoImportPath == imports.DurationPath {
+		case imports.DurationPath:
 			return doDurationCheck(), nil
 		}
 		return doCheckerCheck(), nil
@@ -801,13 +803,14 @@ func (field *Field) typeName(g *protogen.GeneratedFile) (string, error) {
 		type_ = smatcher
 
 	case protoreflect.MessageKind:
-		if field.Message.GoIdent.GoImportPath == imports.TimestampPath {
+		switch field.Message.GoIdent.GoImportPath {
+		case imports.TimestampPath:
 			tsmatcher := common.TimestampMatcherIdent(g, "TimestampMatcher")
 			type_ = tsmatcher
-		} else if field.Message.GoIdent.GoImportPath == imports.DurationPath {
+		case imports.DurationPath:
 			dmatcher := common.DurationMatcherIdent(g, "DurationMatcher")
 			type_ = dmatcher
-		} else {
+		default:
 			type_ = fmt.Sprintf("%sChecker", field.Message.GoIdent.GoName)
 			typeImportPath := string(field.Message.GoIdent.GoImportPath)
 			if !strings.HasPrefix(typeImportPath, common.TetragonPackageName) {

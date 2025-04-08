@@ -92,7 +92,7 @@ const (
 )
 
 func (i PodID) String() string {
-	var x uuid.UUID = uuid.UUID(i)
+	var x = uuid.UUID(i)
 	return x.String()
 }
 

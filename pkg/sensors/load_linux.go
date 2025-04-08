@@ -127,7 +127,8 @@ func observerLoadInstance(bpfDir string, load *program.Program, maps []*program.
 		"prog":         load.Name,
 		"kern_version": version,
 	}).Debugf("observerLoadInstance %s %d", load.Name, version)
-	if load.Type == "tracepoint" {
+	switch load.Type {
+	case "tracepoint":
 		err = loadInstance(bpfDir, load, maps, version, option.Config.Verbosity)
 		if err != nil {
 			l.WithField(
@@ -140,7 +141,7 @@ func observerLoadInstance(bpfDir string, load *program.Program, maps []*program.
 			return fmt.Errorf("failed prog %s kern_version %d LoadTracingProgram: %w",
 				load.Name, version, err)
 		}
-	} else if load.Type == "raw_tracepoint" || load.Type == "raw_tp" {
+	case "raw_tracepoint", "raw_tp":
 		err = loadInstance(bpfDir, load, maps, version, option.Config.Verbosity)
 		if err != nil {
 			l.WithField(
@@ -153,7 +154,7 @@ func observerLoadInstance(bpfDir string, load *program.Program, maps []*program.
 			return fmt.Errorf("failed prog %s kern_version %d LoadRawTracepointProgram: %w",
 				load.Name, version, err)
 		}
-	} else {
+	default:
 		err = loadInstance(bpfDir, load, maps, version, option.Config.Verbosity)
 		if err != nil && load.ErrorFatal {
 			return fmt.Errorf("failed prog %s kern_version %d loadInstance: %w",

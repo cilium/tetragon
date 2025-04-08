@@ -485,9 +485,10 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 			if len(kprobe.Args) > 1 && kprobe.Args[0] != nil && kprobe.Args[1] != nil {
 				file := kprobe.Args[0].GetFileArg()
 				action := kprobe.Args[1].GetIntArg()
-				if action == 0x02 {
+				switch action {
+				case 0x02:
 					event = p.Colorer.Blue.Sprintf("📝 %-7s", "write")
-				} else if action == 0x04 {
+				case 0x04:
 					event = p.Colorer.Blue.Sprintf("📚 %-7s", "read")
 				}
 				attr = p.Colorer.Cyan.Sprintf("%s", file.Path)
