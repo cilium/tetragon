@@ -169,7 +169,7 @@ func init() {
 
 var (
 	glMap    Map
-	glError  error
+	glError  error // nolint:errname
 	setGlMap sync.Once
 )
 

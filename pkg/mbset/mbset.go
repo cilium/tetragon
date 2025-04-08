@@ -101,7 +101,7 @@ func (s *state) UpdateMap(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byt
 
 var (
 	glbSt          *state
-	glbErr         error
+	glbErr         error // nolint:errname
 	setGlobalState sync.Once
 )
 

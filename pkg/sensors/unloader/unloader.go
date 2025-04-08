@@ -20,11 +20,11 @@ type Unloader interface {
 // Useful when a loading operation needs to be unwinded due to an error.
 type ChainUnloader []Unloader
 
-type chainUnloaderErrors struct {
+type chainUnloaderError struct {
 	errors []error
 }
 
-func (cue chainUnloaderErrors) Error() string {
+func (cue chainUnloaderError) Error() string {
 	strs := []string{}
 	for _, e := range cue.errors {
 		strs = append(strs, e.Error())
@@ -33,7 +33,7 @@ func (cue chainUnloaderErrors) Error() string {
 }
 
 func (cu ChainUnloader) Unload(unpin bool) error {
-	var cue chainUnloaderErrors
+	var cue chainUnloaderError
 	for i := len(cu) - 1; i >= 0; i-- {
 		if err := (cu)[i].Unload(unpin); err != nil {
 			cue.errors = append(cue.errors, err)

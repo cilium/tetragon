@@ -49,12 +49,12 @@ func (e *DebugError) Unwrap() error {
 	return e.err
 }
 
-// JsonEOF is a type of error where we went over all the events and there was no match.
+// JsonEOFError is a type of error where we went over all the events and there was no match.
 //
 // The reason to have a special error is that there are cases where the events
 // we are looking for might not have been processed yet. In these cases, we
 // need to retry.
-type JsonEOF struct {
+type JsonEOFError struct {
 	// err is what FinalCheck() returned
 	err error
 	// count is the number of events we checked
@@ -62,12 +62,12 @@ type JsonEOF struct {
 }
 
 // Error returns the error message
-func (e *JsonEOF) Error() string {
+func (e *JsonEOFError) Error() string {
 	return fmt.Sprintf("JsonEOF: failed to match after %d events: err:%v", e.count, e.err)
 }
 
 // Unwrap returns the original error
-func (e *JsonEOF) Unwrap() error {
+func (e *JsonEOFError) Unwrap() error {
 	return e.err
 }
 
@@ -80,7 +80,7 @@ func JsonCheck(jsonFile *os.File, checker ec.MultiEventChecker, log *logrus.Logg
 		var ev tetragon.GetEventsResponse
 		if err := dec.Decode(&ev); err != nil {
 			if errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, io.EOF) {
-				return &JsonEOF{
+				return &JsonEOFError{
 					count: count,
 					err:   fmt.Errorf("unmarshal failed: %w", err),
 				}
@@ -112,7 +112,7 @@ func JsonCheck(jsonFile *os.File, checker ec.MultiEventChecker, log *logrus.Logg
 	}
 
 	if err := checker.FinalCheck(log); err != nil {
-		return &JsonEOF{
+		return &JsonEOFError{
 			count: count,
 			err:   err,
 		}
@@ -141,7 +141,7 @@ func doJsonTestCheck(t *testing.T, jsonFile *os.File, checker ec.MultiEventCheck
 
 		// if this is not a JsonEOF error, it means that the checker
 		// concluded that there was a falure. Dont retry.
-		var errEOF *JsonEOF
+		var errEOF *JsonEOFError
 		if !errors.As(err, &errEOF) {
 			break
 		}

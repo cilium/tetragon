@@ -494,11 +494,11 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec, lists []v1al
 		for idx := range calls {
 			// Now go over BTF validation
 			if err := btf.ValidateKprobeSpec(btfobj, calls[idx], f, ks); err != nil {
-				if warn, ok := err.(*btf.ValidationWarn); ok {
+				if warn, ok := err.(*btf.ValidationWarnError); ok {
 					logger.GetLogger().WithFields(logrus.Fields{
 						"sensor": name,
 					}).WithError(warn).Warn("Kprobe spec pre-validation failed, but will continue with loading")
-				} else if e, ok := err.(*btf.ValidationFailed); ok {
+				} else if e, ok := err.(*btf.ValidationFailedError); ok {
 					return fmt.Errorf("kprobe spec pre-validation failed: %w", e)
 				} else {
 					err = fmt.Errorf("invalid or old kprobe spec: %s", err)
