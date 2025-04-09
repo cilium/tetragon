@@ -1,0 +1,71 @@
+{{ define "main" }}
+<div class="home feature">
+  <div class="intro">
+    <div class="container container--sm">
+        <h1 class="title title--xl">{{ .Params.hero.title }}</h1>
+        <p>{{ .Params.hero.intro }}</p>
+        <div class="intro__video">
+            <div class="intro__preview">
+                <img src="https://img.youtube.com/vi/{{ .Params.hero.videoID }}/maxresdefault.jpg" width="772" height="415" loading="eager" alt="Thumbnail for video about {{ .Params.hero.title }}" class="video-thumbnail" onload="if(this.naturalWidth === 120) { this.src = '/images/video-preview/default-cover.jpg'; }" onerror="this.src = '/images/video-preview/default-cover.jpg'"/>
+            <button type="button" class="intro__preview-button">
+                <span class="sr-only">Play video</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80" fill="none">
+                    <rect x="0.5" y="0.5" width="79" height="79" rx="39.5" fill="currentColor" />
+                    <path d="M30 56.24V23.76C30 23.4333 30.3627 23.2371 30.6361 23.4159L55.4738 39.6559C55.7219 39.8182 55.7219 40.1818 55.4738 40.3441L30.6361 56.5841C30.3627 56.7629 30 56.5667 30 56.24Z" fill="#1D1D1D" />
+                </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="case">
+    <div class="container container--sm">
+      <h2>{{ .Params.contentTitle }}</h2>
+
+      {{ .Content }}
+
+      <h2>Tetragon empowers security teams with actionable process insights</h2>
+      {{ with .Params.features }}
+      <ul>
+        {{ range . }}
+        <li>
+          <img src="/images/use-cases/{{ .icon }}.svg" alt="" width="56" height="56" loading="lazy" />
+          <h3>{{ .title }}</h3>
+          <p>{{ .description }}</p>
+        </li>
+        {{ end }}
+      </ul>
+      {{ end }}
+    </div>
+  </div>
+
+  {{ partial "social.html" (dict "class" "social--inner social--use-case") }}
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const content = document.createElement("div");
+    content.classList.add("intro__video-content");
+    const iframe = document.createElement("iframe");
+    iframe.src =
+      "https://www.youtube.com/embed/{{ .Params.hero.videoID }}?autoplay=1";
+    iframe.title = "YouTube video player";
+    iframe.frameborder = "0";
+    iframe.allow =
+      "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+    iframe.referrerpolicy = "strict-origin-when-cross-origin";
+    iframe.allowfullscreen = true;
+    content.appendChild(iframe);
+
+    const videoElement = document.querySelector(".intro__video");
+    const videoButton = document.querySelector(".intro__preview-button");
+
+    if (videoButton) {
+      videoButton.addEventListener("click", () => {
+        videoElement.replaceChildren(content);
+      });
+    }
+  });
+</script>
+{{ end }}

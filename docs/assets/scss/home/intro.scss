@@ -1,0 +1,111 @@
+.intro {
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  padding-top: 58px;
+  padding-bottom: 254px;
+  background-color: #f7fdfd;
+
+  @media (max-width: $tablet) {
+    padding-bottom: 200px;
+  }
+
+  @media (max-width: $mobile) {
+    padding-top: 32px;
+    padding-bottom: 32px;
+  }
+
+  h1 {
+    text-align: center;
+    color: #253737;
+  }
+
+  p {
+    margin-top: 14px;
+    margin-inline: auto;
+    padding-inline: 36px;
+    text-align: center;
+    color: #2b383b;
+  }
+}
+
+.intro__video {
+  position: absolute;
+  left: 50%;
+  bottom: -215px;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 800px;
+  max-height: 443px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid #e0e6f0;
+  background-color: white;
+
+  @media (max-width: $tablet) {
+    bottom: -180px;
+    max-width: 600px;
+  }
+
+  @media (max-width: $mobile) {
+    position: relative;
+    bottom: 0;
+    margin-top: 32px;
+    max-width: 100%;
+    padding: 8px;
+  }
+
+  .intro__preview,
+  .intro__video-content {
+    position: relative;
+    width: 100%;
+    height: 0;
+    padding-top: 53.5%;
+    border-radius: 4px;
+    border: 1px solid #deeded;
+    overflow: hidden;
+  }
+
+  img,
+  iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  img {
+    object-fit: cover;
+  }
+
+  .intro__preview-button {
+    position: absolute;
+    inset: 0;
+    color: #cfdefc;
+    background-color: rgba(0, 0, 0, 0.1);
+    border: none;
+    transition: all 0.2s ease-out;
+
+    &:hover,
+    &:focus {
+      color: #ffffff;
+      transform: scale(1.1);
+    }
+
+    svg {
+      @media (max-width: $tablet) {
+        width: 64px;
+        height: 64px;
+      }
+
+      @media (max-width: $mobile) {
+        width: 44px;
+        height: 44px;
+      }
+    }
+  }
+}

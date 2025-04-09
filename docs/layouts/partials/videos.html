@@ -1,0 +1,111 @@
+<div class="videos">
+	<div class="videos__title">
+		<h2 class="title">
+			Watch videos on Tetragon technology
+		</h2>
+		<div class="videos__controls">
+			<button type="button" class="videos__control videos__control--prev">
+				<span class="sr-only">Previous videos</span>
+				<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38" fill="none">
+					<rect x="1" y="1" width="36" height="36" rx="18" stroke="currentColor" stroke-width="1.5" />
+					<path
+						d="M26.4332 18.6207C26.8474 18.6205 27.1834 18.9561 27.1836 19.3703C27.1838 19.7845 26.8482 20.1205 26.434 20.1207L26.4332 18.6207ZM11.5699 18.6289L26.4332 18.6207L26.434 20.1207L11.5707 20.1289L11.5699 18.6289Z"
+						fill="currentColor" />
+					<path d="M16.4609 14.5L11.572 19.2735L16.4609 24.2444" stroke="currentColor" stroke-width="1.5"
+						stroke-linecap="round" stroke-linejoin="round" />
+				</svg>
+			</button>
+			<button type="button" class="videos__control videos__control--next">
+				<span class="sr-only">Next videos</span>
+				<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38" fill="none">
+					<rect x="1" y="1" width="36" height="36" rx="18" stroke="currentColor" stroke-width="1.5" />
+					<path
+						d="M11.5668 18.6207C11.1526 18.6205 10.8166 18.9561 10.8164 19.3703C10.8162 19.7845 11.1518 20.1205 11.566 20.1207L11.5668 18.6207ZM26.4301 18.6289L11.5668 18.6207L11.566 20.1207L26.4293 20.1289L26.4301 18.6289Z"
+						fill="currentColor" />
+					<path d="M21.5391 14.5L26.428 19.2735L21.5391 24.2444" stroke="currentColor" stroke-width="1.5"
+						stroke-linecap="round" stroke-linejoin="round" />
+				</svg>
+			</button>
+		</div>
+	</div>
+
+	<div class="videos__container">
+		<ul class="videos__list">
+			{{ range site.Data.videos.videoContent }}
+			<li>
+				<a href="{{ if .youtubeID }}https://www.youtube.com/watch?v={{ .youtubeID }}{{ else }}{{ .url }}{{ end }}"
+					target="_blank" rel="noopener noreferrer">
+					{{ if .preview }}
+					<img src="{{ .preview }}" width="640" height="360" loading="lazy" alt="Thumbnail for {{ .title }}">
+					{{ else if .youtubeID }}
+					<img src="https://img.youtube.com/vi/{{ .youtubeID }}/maxresdefault.jpg" width="640" height="360"
+						loading="lazy" alt="Thumbnail for {{ .title }}" class="video-thumbnail"
+						onload="if(this.naturalWidth === 120) { this.src = '/images/video-preview/default-cover.jpg'; }"
+						onerror="this.src = '/images/video-preview/default-cover.jpg'">
+					{{ else }}
+					<img src="/images/video-preview/default-cover.jpg" width="640" height="360" loading="lazy"
+						alt="Thumbnail for {{ .title }}">
+					{{ end }}
+					<h3>
+						{{ .title }}
+					</h3>
+					<p>
+						{{ .authors }} •
+						<time datetime="{{ .date }}">{{ .date }}</time>
+					</p>
+				</a>
+			</li>
+			{{ end }}
+		</ul>
+	</div>
+</div>
+
+<script>
+	document.addEventListener('DOMContentLoaded', function () {
+		const containerElement = document.querySelector('.videos__container');
+		const listElement = document.querySelector('.videos__list');
+		const buttonPrev = document.querySelector('.videos__control--prev');
+		const buttonNext = document.querySelector('.videos__control--next');
+
+		let scrollPosition = 0;
+
+		function getScrollAmount() {
+			const containerWidth = containerElement.clientWidth;
+			const tabletBreakpoint = 992;
+
+			if (window.innerWidth <= tabletBreakpoint) {
+				return (containerWidth / 2) + 12;
+			}
+			return (containerWidth / 3) + 11;
+		}
+
+		function updateButtonStates() {
+			buttonPrev.disabled = scrollPosition <= 0;
+			buttonNext.disabled = scrollPosition >= listElement.scrollWidth - containerElement.clientWidth;
+		}
+
+		function resetPosition() {
+			scrollPosition = 0;
+			listElement.style.transform = `translateX(0)`;
+			containerElement.scrollLeft = 0;
+			updateButtonStates();
+		}
+
+		buttonPrev.addEventListener('click', () => {
+			scrollPosition = Math.max(scrollPosition - getScrollAmount(), 0);
+			listElement.style.transform = `translateX(-${scrollPosition}px)`;
+			updateButtonStates();
+		});
+
+		buttonNext.addEventListener('click', () => {
+			const maxScroll = listElement.scrollWidth - containerElement.clientWidth;
+			scrollPosition = Math.min(scrollPosition + getScrollAmount(), maxScroll);
+			listElement.style.transform = `translateX(-${scrollPosition}px)`;
+			updateButtonStates();
+		});
+
+		updateButtonStates();
+
+		window.addEventListener('resize', resetPosition);
+	});
+</script>
