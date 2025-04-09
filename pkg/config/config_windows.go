@@ -8,6 +8,14 @@ func ExecObj() string {
 	return ""
 }
 
+func ExitObj() string {
+	return ""
+}
+
+func ForkObj() string {
+	return ""
+}
+
 // GenericKprobeObjs returns the generic kprobe and generic retprobe objects
 func GenericKprobeObjs() (string, string) {
 	return "", ""
