@@ -217,17 +217,17 @@ func dumpCheckers(ctx context.Context, exportDir string) {
 
 			yamlStr, err := checker.CheckerYaml()
 			if err != nil {
-				klog.ErrorS(err, "failed to dump checker yaml for %s", name)
+				klog.ErrorS(err, "failed to dump checker yaml", "name", name)
 			}
 
 			fname := filepath.Join(exportDir, name+".eventchecker.yaml")
 			if err := os.WriteFile(fname, []byte(yamlStr), os.FileMode(0o644)); err != nil {
-				klog.ErrorS(err, "failed to write checker yaml to file %s", fname, err)
+				klog.ErrorS(err, "failed to write checker yaml to file", "file", fname)
 			}
 
 			fname = filepath.Join(exportDir, name+".eventchecker.log")
 			if err := os.WriteFile(fname, checker.Logs(), os.FileMode(0o644)); err != nil {
-				klog.ErrorS(err, "failed to write checker logs to file %s", fname)
+				klog.ErrorS(err, "failed to write checker logs to file", "file", fname)
 			}
 		}
 		return
