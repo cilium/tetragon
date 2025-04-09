@@ -15,6 +15,7 @@ linters:
     - govet
     - ineffassign
     - intrange
+    - loggercheck
     - makezero
     - misspell
     - mirror
