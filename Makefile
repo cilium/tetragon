@@ -109,6 +109,7 @@ pkg/errmetrics/fileids.json: bpf/tetragon/fileids.h
 .PHONY: fileids
 fileids: pkg/errmetrics/fileids.json
 
+-include Makefile.windows
 
 .PHONY: tetragon
 tetragon: ## Compile the Tetragon agent.
