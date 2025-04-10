@@ -214,7 +214,7 @@ func TestProcessManager_GetProcessExec(t *testing.T) {
 
 func TestProcessManager_GetProcessID(t *testing.T) {
 	assert.NoError(t, os.Setenv("NODE_NAME", "my-node"))
-	node.SetNodeName()
+	node.SetExportNodeName()
 
 	err := process.InitCache(watcher.NewFakeK8sWatcher([]interface{}{}), 10, defaults.DefaultProcessCacheGCInterval)
 	assert.NoError(t, err)
