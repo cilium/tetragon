@@ -56,7 +56,7 @@ func NewK8sWatcher(
 			k8sClient, stateSyncInterval, informers.WithTweakListOptions(
 				func(options *metav1.ListOptions) {
 					// watch local pods only
-					options.FieldSelector = "spec.nodeName=" + node.GetNodeNameForExport()
+					options.FieldSelector = "spec.nodeName=" + node.GetKubernetesNodeName()
 				}))
 	}
 	if crdClient != nil {

@@ -172,7 +172,7 @@ func Test_rateLimitExport(t *testing.T) {
 		}
 		defer os.Unsetenv(hubbleNodeNameEnv)
 	}
-	node.SetNodeName()
+	node.SetExportNodeName()
 
 	tests := []struct {
 		name              string
