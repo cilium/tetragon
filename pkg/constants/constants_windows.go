@@ -20,6 +20,8 @@ const (
 	CGROUP2_SUPER_MAGIC  = 0x63677270
 	BPF_STATS_RUN_TIME   = 0
 	S_IFMT               = 0xf000
+	DEFAULT_TEMP_DIR     = ""
+	INIT_PROC_ID         = 0
 )
 
 var (
