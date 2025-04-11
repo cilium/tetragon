@@ -61,4 +61,6 @@ const (
 	AF_XDP               = unix.AF_XDP
 	AF_MCTP              = unix.AF_MCTP
 	S_IFMT               = syscall.S_IFMT
+	DEFAULT_TEMP_DIR     = "/tmp"
+	INIT_PROC_ID         = 1
 )
