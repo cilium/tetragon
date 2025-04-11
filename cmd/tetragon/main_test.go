@@ -11,6 +11,7 @@ import (
 	"time"
 
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
+	"github.com/cilium/tetragon/pkg/constants"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/option"
@@ -70,7 +71,7 @@ func TestGeneratedExecEvents(t *testing.T) {
 	// Make sure exec event with pid 1 was generated
 	checker := ec.NewUnorderedEventChecker(
 		ec.NewProcessExecChecker("").WithProcess(
-			ec.NewProcessChecker().WithPid(1)),
+			ec.NewProcessChecker().WithPid(constants.INIT_PROC_ID)),
 	)
 
 	// Try it 5 times and make sure exporter is up and processed all data

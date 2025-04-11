@@ -9,6 +9,8 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/cilium/tetragon/pkg/constants"
 )
 
 // t.Name() -> ExportFile
@@ -68,7 +70,7 @@ func CreateExportFile(tb testing.TB) (*ExportFile, error) {
 	// Test names with / (e.g. subtests) will be rejected by os.CreateTemp due to path
 	// separator in the template string. Replace / with - to avoid this.
 	fname := fmt.Sprintf("tetragon.gotest.%s.*.json", testName)
-	f, err := os.CreateTemp("/tmp", fname)
+	f, err := os.CreateTemp(constants.DEFAULT_TEMP_DIR, fname)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create export file for test %s: %w", tb.Name(), err)
 	}
