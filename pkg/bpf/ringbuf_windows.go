@@ -159,7 +159,7 @@ func (reader *WindowsRingBufReader) invokeIoctl(request unsafe.Pointer, dwReqSiz
 	if overlapped == nil {
 		if reader.hSync == INVALID_HANDLE_VALUE {
 			reader.hSync, _, err = CreateFileW.Call(
-				uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(`\\.\EbpfIoDevice`))),
+				uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(EBPF_IO_DEVICE))),
 				uintptr(syscall.GENERIC_READ|syscall.GENERIC_WRITE),
 				0,
 				0,
@@ -175,7 +175,7 @@ func (reader *WindowsRingBufReader) invokeIoctl(request unsafe.Pointer, dwReqSiz
 	} else {
 		if reader.hASync == INVALID_HANDLE_VALUE {
 			reader.hASync, _, err = CreateFileW.Call(
-				uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(`\\.\EbpfIoDevice`))),
+				uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(EBPF_IO_DEVICE))),
 				uintptr(syscall.GENERIC_READ|syscall.GENERIC_WRITE),
 				0,
 				0,
@@ -190,7 +190,7 @@ func (reader *WindowsRingBufReader) invokeIoctl(request unsafe.Pointer, dwReqSiz
 		hDevice = reader.hASync
 	}
 	if hDevice == INVALID_HANDLE_VALUE {
-		return fmt.Errorf("Erro Opening Device")
+		return fmt.Errorf("error opening device")
 	}
 	success, _, err := DeviceIoControl.Call(
 		uintptr(hDevice),
@@ -208,12 +208,11 @@ func (reader *WindowsRingBufReader) invokeIoctl(request unsafe.Pointer, dwReqSiz
 	}
 
 	if success == 0 {
-		fmt.Printf("Device io control failed. Error = %d\n", syscall.GetLastError())
+		log.WithError(syscall.GetLastError()).Error("device io control failed.")
 		return err
 	}
 
 	if actualReplySize != replySize && !variableReplySize {
-		fmt.Printf("\nDevice io control incorrect reply. ")
 		return err
 	}
 	return nil
@@ -224,7 +223,7 @@ func CreateOverlappedEvent() (uintptr, error) {
 	var hEvent uintptr
 	hEvent, _, err = CreateEventW.Call(0, 0, 0, 0)
 	if err != error(syscall.Errno(0)) {
-		fmt.Printf("Error = %s", err.Error())
+		log.WithError(err).Error("failed creating overlapped Event.")
 		return INVALID_HANDLE_VALUE, err
 	}
 	ResetEvent.Call(hEvent)
@@ -239,18 +238,18 @@ func EbpfGetHandleFromFd(fd int) (uintptr, error) {
 		moduleHandle, _, err = GetModuleHandleW.Call(uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(`ucrtbase.dll`))))
 	}
 	if (err != success_err) || (moduleHandle == 0) {
-		fmt.Printf("Error getting ucrt base. Wont work")
+		log.WithError(err).Error("error getting ucrt base.")
 		return 0, err
 	}
 	proc, err := syscall.GetProcAddress(syscall.Handle(moduleHandle), "_get_osfhandle")
 	if (err != nil) || (proc == 0) {
-		fmt.Printf("Error getting _get_osfhandle. Won't work")
+		log.WithError(err).Error("error getting _get_osfhandle.")
 		return 0, err
 	}
 
 	ret, _, err := syscall.Syscall9(uintptr(proc), 1, uintptr(fd), 0, 0, 0, 0, 0, 0, 0, 0)
 	if (err != success_err) || (ret == 0) {
-		fmt.Printf("Error calling api.  Won't work")
+		log.WithError(err).Error("error calling api.")
 		return 0, err
 	}
 
@@ -266,17 +265,17 @@ func EbpfRingBufferNextRecord(buffer []byte, bufferLength, consumer, producer ui
 
 func (reader *WindowsRingBufReader) Init(fd int, ring_buffer_size int) error {
 	if fd <= 0 {
-		return fmt.Errorf("Invalid FD provided")
+		return fmt.Errorf("invalid fd provided")
 	}
 	reader.ring_buffer_size = uint64(ring_buffer_size)
 	handle, err := EbpfGetHandleFromFd(fd)
 	if err != nil {
-		return fmt.Errorf("Cannot get handle from FD")
+		return fmt.Errorf("cannot get handle from fd: %w", err)
 	}
 	var map_handle windows.Handle
 	err = windows.DuplicateHandle(windows.CurrentProcess(), windows.Handle(handle), windows.CurrentProcess(), &map_handle, 0, false, windows.DUPLICATE_SAME_ACCESS)
 	if err != nil {
-		return fmt.Errorf("Cannot duplicate handle")
+		return fmt.Errorf("cannot duplicate handle: %w", err)
 	}
 	var req _ebpf_operation_map_query_buffer_request
 	req.map_handle = uint64(handle)
@@ -285,7 +284,7 @@ func (reader *WindowsRingBufReader) Init(fd int, ring_buffer_size int) error {
 	var reply _ebpf_operation_map_query_buffer_reply
 	err = reader.invokeIoctl(unsafe.Pointer(&req), uint32(unsafe.Sizeof(req)), unsafe.Pointer(&reply), uint32(unsafe.Sizeof(reply)), nil)
 	if err != nil {
-		return fmt.Errorf("Failed to do device io control")
+		return fmt.Errorf("failed to do device io control: %w", err)
 	}
 	var buffer uintptr
 	buffer = uintptr(reply.buffer_address)
@@ -301,7 +300,7 @@ func (reader *WindowsRingBufReader) Init(fd int, ring_buffer_size int) error {
 
 func (reader *WindowsRingBufReader) fetchNextOffsets() error {
 	if reader.consumer_offset > reader.producer_offset {
-		return fmt.Errorf("Offsets are not same, read ahead in Buffer")
+		return fmt.Errorf("offsets are not same, read ahead in buffer")
 	}
 	var async_reply _ebpf_operation_map_async_query_reply
 	var overlapped syscall.Overlapped
@@ -312,15 +311,15 @@ func (reader *WindowsRingBufReader) fetchNextOffsets() error {
 		err = nil
 	}
 	if err != nil {
-		fmt.Printf(err.Error())
-		return fmt.Errorf("Failed to do async device io control")
+		log.WithError(err).Error("failed to do async device io control.")
+		return err
 	}
 	waitReason, _, err := WaitForSingleObject.Call(uintptr(overlapped.HEvent), syscall.INFINITE)
 	if err != success_err {
 		return err
 	}
 	if waitReason != windows.WAIT_OBJECT_0 {
-		return fmt.Errorf("Failed in wait function")
+		return fmt.Errorf("failed in wait function: %d", waitReason)
 
 	}
 	windows.ResetEvent(windows.Handle(overlapped.HEvent))
