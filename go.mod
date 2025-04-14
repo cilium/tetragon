@@ -176,6 +176,8 @@ replace (
 	github.com/cilium/tetragon/pkg/k8s => ./pkg/k8s
 )
 
+replace github.com/cilium/ebpf => github.com/lmb/ebpf v0.7.1-0.20250331135743-ef68628835ae
+
 // This replace directive has to be in sync with with github.com/cilium/cilium
 // except for sigs.k8s.io/controller-tools.  If the github.com/cilium/cilium
 // version is bumped, the sync must be refreshed. As of now we use, see the

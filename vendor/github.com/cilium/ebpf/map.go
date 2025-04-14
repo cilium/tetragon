@@ -50,9 +50,8 @@ type MapID = sys.MapID
 
 // MapSpec defines a Map.
 type MapSpec struct {
-	// Name is passed to the kernel as a debug aid.
-	//
-	// Unsupported characters will be stripped.
+	// Name is passed to the kernel as a debug aid. Must only contain
+	// alpha numeric and '_' characters.
 	Name       string
 	Type       MapType
 	KeySize    uint32
@@ -487,7 +486,6 @@ func (spec *MapSpec) createMap(inner *sys.FD) (_ *Map, err error) {
 	}
 
 	attr := sys.MapCreateAttr{
-		MapName:    maybeFillObjName(spec.Name),
 		MapType:    sys.MapType(sysMapType),
 		KeySize:    spec.KeySize,
 		ValueSize:  spec.ValueSize,
@@ -498,6 +496,10 @@ func (spec *MapSpec) createMap(inner *sys.FD) (_ *Map, err error) {
 
 	if inner != nil {
 		attr.InnerMapFd = inner.Uint()
+	}
+
+	if haveObjName() == nil {
+		attr.MapName = sys.NewObjName(spec.Name)
 	}
 
 	if spec.Key != nil || spec.Value != nil {

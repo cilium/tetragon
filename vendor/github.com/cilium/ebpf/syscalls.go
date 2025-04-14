@@ -7,7 +7,6 @@ import (
 	"math"
 	"os"
 	"runtime"
-	"strings"
 
 	"github.com/cilium/ebpf/asm"
 	"github.com/cilium/ebpf/internal"
@@ -27,41 +26,25 @@ var (
 	sysErrNotSupported = sys.Error(ErrNotSupported, sys.ENOTSUPP)
 )
 
-// sanitizeName replaces all invalid characters in name with replacement.
-// Passing a negative value for replacement will delete characters instead
-// of replacing them.
-//
-// The set of allowed characters may change over time.
-func sanitizeName(name string, replacement rune) string {
-	return strings.Map(func(char rune) rune {
-		switch {
-		case char >= 'A' && char <= 'Z':
-			return char
-		case char >= 'a' && char <= 'z':
-			return char
-		case char >= '0' && char <= '9':
-			return char
-		case char == '.':
-			return char
-		case char == '_':
-			return char
-		default:
-			return replacement
-		}
-	}, name)
-}
+// invalidBPFObjNameChar returns true if char may not appear in
+// a BPF object name.
+func invalidBPFObjNameChar(char rune) bool {
+	dotAllowed := objNameAllowsDot() == nil
 
-func maybeFillObjName(name string) sys.ObjName {
-	if errors.Is(haveObjName(), ErrNotSupported) {
-		return sys.ObjName{}
+	switch {
+	case char >= 'A' && char <= 'Z':
+		return false
+	case char >= 'a' && char <= 'z':
+		return false
+	case char >= '0' && char <= '9':
+		return false
+	case dotAllowed && char == '.':
+		return false
+	case char == '_':
+		return false
+	default:
+		return true
 	}
-
-	name = sanitizeName(name, -1)
-	if errors.Is(objNameAllowsDot(), ErrNotSupported) {
-		name = strings.ReplaceAll(name, ".", "")
-	}
-
-	return sys.NewObjName(name)
 }
 
 func progLoad(insns asm.Instructions, typ ProgramType, license string) (*sys.FD, error) {
@@ -207,9 +190,17 @@ var haveObjName = internal.NewFeatureTest("object names", func() error {
 		MapName:    sys.NewObjName("feature_test"),
 	}
 
+	// Tolerate EPERM as this runs during ELF loading which is potentially
+	// unprivileged. Only EINVAL is conclusive, thrown from CHECK_ATTR.
 	fd, err := sys.MapCreate(&attr)
-	if err != nil {
+	if errors.Is(err, unix.EPERM) {
+		return nil
+	}
+	if errors.Is(err, unix.EINVAL) {
 		return internal.ErrNotSupported
+	}
+	if err != nil {
+		return err
 	}
 
 	_ = fd.Close()
@@ -234,9 +225,18 @@ var objNameAllowsDot = internal.NewFeatureTest("dot in object names", func() err
 		MapName:    sys.NewObjName(".test"),
 	}
 
+	// Tolerate EPERM, otherwise MapSpec.Name has its dots removed when run by
+	// unprivileged tools. (bpf2go, other code gen). Only EINVAL is conclusive,
+	// thrown from bpf_obj_name_cpy().
 	fd, err := sys.MapCreate(&attr)
-	if err != nil {
+	if errors.Is(err, unix.EPERM) {
+		return nil
+	}
+	if errors.Is(err, unix.EINVAL) {
 		return internal.ErrNotSupported
+	}
+	if err != nil {
+		return err
 	}
 
 	_ = fd.Close()
