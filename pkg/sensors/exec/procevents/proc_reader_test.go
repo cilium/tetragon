@@ -5,6 +5,7 @@ package procevents
 
 import (
 	"os/exec"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -29,7 +30,7 @@ func TestListRunningProcs(t *testing.T) {
 }
 
 func TestInInitTreeProcfs(t *testing.T) {
-	if err := exec.Command("docker", "version").Run(); err != nil {
+	if err := exec.Command("docker", "version").Run(); (err != nil) || (runtime.GOOS == "windows") {
 		t.Skipf("docker not available. skipping test: %s", err)
 	}
 
