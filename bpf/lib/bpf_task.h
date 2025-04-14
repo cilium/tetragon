@@ -15,10 +15,14 @@
 // - the path was too long to fit in the buffer
 #define UNRESOLVED_PATH_COMPONENTS 0x02
 
+#ifndef __V61_BPF_PROG
 #ifdef __LARGE_BPF_PROG
 #define PROBE_CWD_READ_ITERATIONS 128
 #else
 #define PROBE_CWD_READ_ITERATIONS 11
+#endif
+#else
+#define PROBE_CWD_READ_ITERATIONS 2048
 #endif
 
 FUNC_INLINE struct task_struct *get_parent(struct task_struct *t)
