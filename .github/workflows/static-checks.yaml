@@ -135,3 +135,14 @@ jobs:
 
       - name: Build CLI release binaries
         run: make cli-release
+
+  build-windows:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Build tetragon Windows binaries
+        run: |
+          GOOS=windows GOARCH=amd64 make tetragon
+          GOOS=windows GOARCH=arm64 make tetragon
