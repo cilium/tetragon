@@ -128,7 +128,7 @@ logical AND of sibling expressions within a filter object. As a concrete
 example, suppose we had the following filter configuration:
 
 ```json
-{"event_set": ["PROCESS_EXEC", "PROCESS_EXIT"], "namespace": "foo"}
+{"event_set": ["PROCESS_EXEC", "PROCESS_EXIT"], "namespace": ["foo"]}
 {"event_set": ["PROCESS_KPROBE"]}
 ```
 
