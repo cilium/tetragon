@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"log"
 	"os"
 	"path"
@@ -407,45 +406,40 @@ func getTetragonProgs(base string) ([]*prog, error) {
 	var progs []*prog
 
 	// Walk bpffs/tetragon and look for programs
-	err := pin.WalkDir(base,
-		func(path string, finfo fs.DirEntry, obj pin.Pinner, err error) error {
-			if err != nil {
-				return err
-			}
-			if finfo.IsDir() {
-				return nil
-			}
+	iter := pin.WalkDir(base, nil)
+	for pin, err := range iter {
+		if err != nil {
+			return nil, err
+		}
 
-			p, ok := obj.(*ebpf.Program)
-			if !ok {
-				return nil
-			}
-			defer p.Close()
+		p, ok := pin.Object.(*ebpf.Program)
+		if !ok {
+			continue
+		}
 
-			info, err := p.Info()
-			if err != nil {
-				return err
-			}
+		info, err := p.Info()
+		if err != nil {
+			return nil, err
+		}
 
-			id, ok := info.ID()
-			if !ok {
-				return err
-			}
+		id, ok := info.ID()
+		if !ok {
+			return nil, err
+		}
 
-			runTime, _ := info.Runtime()
-			runCnt, _ := info.RunCount()
+		runTime, _ := info.Runtime()
+		runCnt, _ := info.RunCount()
 
-			progs = append(progs, &prog{
-				id:    uint32(id),
-				name:  getName(p, info),
-				pin:   filepath.Join(base, path),
-				cnt:   runCnt,
-				time:  runTime,
-				alive: true,
-			})
-			return nil
+		progs = append(progs, &prog{
+			id:    uint32(id),
+			name:  getName(p, info),
+			pin:   filepath.Join(base, pin.Path),
+			cnt:   runCnt,
+			time:  runTime,
+			alive: true,
 		})
-	return progs, err
+	}
+	return progs, nil
 }
 
 func getName(p *ebpf.Program, info *ebpf.ProgramInfo) string {

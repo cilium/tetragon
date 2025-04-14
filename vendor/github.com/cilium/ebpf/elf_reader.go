@@ -80,8 +80,8 @@ func LoadCollectionSpecFromReader(rd io.ReaderAt) (*CollectionSpec, error) {
 
 	// Checks if the ELF file is for BPF data.
 	// Old LLVM versions set e_machine to EM_NONE.
-	if f.Machine != elf.EM_NONE && f.Machine != elf.EM_BPF {
-		return nil, fmt.Errorf("unexpected machine type for BPF ELF: %s", f.Machine)
+	if f.File.Machine != elf.EM_NONE && f.File.Machine != elf.EM_BPF {
+		return nil, fmt.Errorf("unexpected machine type for BPF ELF: %s", f.File.Machine)
 	}
 
 	var (
@@ -742,7 +742,7 @@ func (ec *elfCode) loadMaps() error {
 			lr := io.LimitReader(r, int64(size))
 
 			spec := MapSpec{
-				Name: sanitizeName(mapName, -1),
+				Name: SanitizeName(mapName, -1),
 			}
 			switch {
 			case binary.Read(lr, ec.ByteOrder, &spec.Type) != nil:
@@ -1029,7 +1029,7 @@ func mapSpecFromBTF(es *elfSection, vs *btf.VarSecinfo, def *btf.Struct, spec *b
 	}
 
 	return &MapSpec{
-		Name:       sanitizeName(name, -1),
+		Name:       SanitizeName(name, -1),
 		Type:       MapType(mapType),
 		KeySize:    keySize,
 		ValueSize:  valueSize,
@@ -1095,7 +1095,7 @@ func resolveBTFValuesContents(es *elfSection, vs *btf.VarSecinfo, member btf.Mem
 	end := vs.Size + vs.Offset
 	// The size of an address in this section. This determines the width of
 	// an index in the array.
-	align := uint32(es.Addralign)
+	align := uint32(es.SectionHeader.Addralign)
 
 	// Check if variable-length section is aligned.
 	if (end-start)%align != 0 {
@@ -1156,7 +1156,7 @@ func (ec *elfCode) loadDataSections() error {
 		}
 
 		mapSpec := &MapSpec{
-			Name:       sanitizeName(sec.Name, -1),
+			Name:       SanitizeName(sec.Name, -1),
 			Type:       Array,
 			KeySize:    4,
 			ValueSize:  uint32(sec.Size),
