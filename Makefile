@@ -97,7 +97,7 @@ all: tetragon-bpf tetragon tetra generate-flags test-compile tester-progs protoc
 .PHONY: clean
 clean: cli-clean tarball-clean
 	$(MAKE) -C ./bpf clean
-	rm -f go-tests/*.test ./ksyms ./tetragon ./tetragon-operator ./tetra ./alignchecker
+	rm -f go-tests/*.test ./ksyms ./tetragon ./tetragon-operator ./tetra ./alignchecker ./tetragon.exe
 	rm -f contrib/sigkill-tester/sigkill-tester contrib/namespace-tester/test_ns contrib/capabilities-tester/test_caps
 	$(MAKE) -C $(TESTER_PROGS_DIR) clean
 
