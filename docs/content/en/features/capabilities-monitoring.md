@@ -6,10 +6,12 @@ body_class: "td-home"
 
 hero:
   title: "Capabilities Monitoring"
-  intro: "Tetragon is a security tool that provides comprehensive process monitoring capabilities, offering detailed visibility into process behavior and execution within Kubernetes environments⁠"
+  intro: "Monitor and record capabilities checks conducted by the kernel on behalf of applications during privileged operations.⁠"
   videoID: "WZXC5MLo7HI"
 
-contentTitle: "Understanding Process Behavior in Complex Environments"
+contentTitle: "Bring Transparency to Privileged Operations"
+
+tagline: "Tetragon empowers security team to detect and prevent privilege abuse"
 
 features:
   - title: "Real-Time Privilege Monitoring"

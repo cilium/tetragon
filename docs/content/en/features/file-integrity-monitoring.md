@@ -6,8 +6,10 @@ body_class: "td-home"
 
 hero:
   title: "File Integrity Monitoring"
-  intro: "Tetragon is a security tool that provides comprehensive process monitoring capabilities, offering detailed visibility into process behavior and execution within Kubernetes environments⁠"
+  intro: "Kernel-level file monitoring with eBPF for real-time visibility, context-aware insights, and inline enforcement⁠"
   videoID: "SiQm6N3ucyc"
+
+tagline: "Prevent unauthorized access to resources"
 
 contentTitle: "Scalable File Integrity Monitoring"
 
