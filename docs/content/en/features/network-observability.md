@@ -11,6 +11,8 @@ hero:
 
 contentTitle: "Network Observability for Cloud Native Environments"
 
+tagline: "Tetragon empowers security teams with actionable network insights"
+
 features:
   - title: "Process-Aware Network Monitoring"
     description: "Link every network event to the specific processes and workloads driving the activity for full context."

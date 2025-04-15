@@ -25,7 +25,7 @@
 
       {{ .Content }}
 
-      <h2>Tetragon empowers security teams with actionable process insights</h2>
+      <h2>{{ .Params.tagline}}</h2>
       {{ with .Params.features }}
       <ul>
         {{ range . }}

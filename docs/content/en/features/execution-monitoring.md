@@ -6,8 +6,10 @@ body_class: "td-home"
 
 hero:
   title: "Execution Monitoring"
-  intro: "Tetragon is a security tool that provides comprehensive process monitoring capabilities, offering detailed visibility into process behavior and execution within Kubernetes environments⁠"
+  intro: "Tetragon provides comprehensive process monitoring capabilities, offering detailed visibility into process behavior and execution within Kubernetes environments⁠"
   videoID: "ix9mtT3ndKc"
+
+tagline: "Tetragon empowers security teams with actionable process insights"
 
 contentTitle: "Understanding Process Behavior in Complex Environments"
 
