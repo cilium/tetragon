@@ -35,6 +35,7 @@ import (
 	tetragonGrpc "github.com/cilium/tetragon/pkg/grpc"
 	"github.com/cilium/tetragon/pkg/health"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/manager"
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metricsconfig"
 	"github.com/cilium/tetragon/pkg/observer"
@@ -398,6 +399,9 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	var k8sWatcher watcher.K8sResourceWatcher
 	if option.Config.EnableK8s {
 		log.Info("Enabling Kubernetes API")
+		// Start controller-runtime manager.
+		controllerManager := manager.Get()
+		controllerManager.Start(ctx)
 		// retrieve k8s clients
 		k8sClient, crdClient, err = watcher.GetK8sClients(waitCRDs)
 		if err != nil {
@@ -414,9 +418,6 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		realK8sWatcher := k8sWatcher.(*watcher.K8sWatcher)
 		err = watcher.AddPodInformer(realK8sWatcher, true)
 		if err != nil {
-			return err
-		}
-		if err := watcher.AddNamespaceInformer(k8sWatcher); err != nil {
 			return err
 		}
 	} else {
