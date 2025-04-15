@@ -1,4 +1,4 @@
-name: PodInfo Integration Test
+name: Integration Test
 on:
   pull_request:
     types:
@@ -61,4 +61,4 @@ jobs:
           --set tetragonOperator.podInfo.enabled=true \
           --set tetragonOperator.image.override=${{ steps.vars.outputs.operatorImage }}
         kubectl rollout status -n kube-system deployment/tetragon-operator
-        go test --tags=integration -v ./operator/...
+        go test --tags=integration -v ./operator/... ./pkg/manager/...
