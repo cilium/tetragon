@@ -23,4 +23,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/cilium/tetragon => ../
+replace (
+	github.com/cilium/tetragon => ../
+	github.com/cilium/tetragon/pkg/k8s => ../pkg/k8s
+)

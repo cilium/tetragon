@@ -326,4 +326,6 @@ gopkg.in/yaml.v3
 # k8s.io/cri-api v0.31.2
 ## explicit; go 1.22.0
 k8s.io/cri-api/pkg/apis/runtime/v1
+# github.com/cilium/tetragon => ../../
 # github.com/cilium/tetragon/api => ../../api
+# github.com/cilium/tetragon/pkg/k8s => ../../pkg/k8s
