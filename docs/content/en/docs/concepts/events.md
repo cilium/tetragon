@@ -148,6 +148,9 @@ flags, or environment variables.
 
 ##### List of Process Event Filters
 
+The type for each filter attribute can be determined by referring to the 
+[events.proto](https://github.com/cilium/tetragon/blob/main/api/v1/tetragon/events.proto#L38) file.
+
 | Filter | Description | 
 | ------ | ----------- |
 | `event_set` | Filter process events by event types. Supported types include: `PROCESS_EXEC`, `PROCESS_EXIT`, `PROCESS_KPROBE`, `PROCESS_UPROBE`, `PROCESS_TRACEPOINT`, `PROCESS_LOADER` |
