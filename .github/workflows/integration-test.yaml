@@ -1,4 +1,4 @@
-name: PodInfo Integration Test
+name: Integration Test
 on:
   pull_request:
     types:
@@ -33,6 +33,7 @@ jobs:
           SHA=${{ github.sha }}
         fi
         echo "sha=${SHA}" >> $GITHUB_OUTPUT
+        echo "agentImage=quay.io/cilium/tetragon-ci:${SHA}" >> $GITHUB_OUTPUT
         echo "operatorImage=quay.io/cilium/tetragon-operator-ci:${SHA}" >> $GITHUB_OUTPUT
 
     - name: Install Go
@@ -59,6 +60,7 @@ jobs:
       run: |
         helm upgrade --install tetragon ./install/kubernetes/tetragon -n kube-system \
           --set tetragonOperator.podInfo.enabled=true \
+          --set tetragon.image.override=${{ steps.vars.outputs.agentImage }} \
           --set tetragonOperator.image.override=${{ steps.vars.outputs.operatorImage }}
         kubectl rollout status -n kube-system deployment/tetragon-operator
-        go test --tags=integration -v ./operator/...
+        go test --tags=integration -v ./operator/... ./pkg/manager/...
