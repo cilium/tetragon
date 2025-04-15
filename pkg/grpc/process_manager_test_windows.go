@@ -26,4 +26,5 @@ func TestProcessManager_GetProcessID(t *testing.T) {
 	decoded, err := base64.StdEncoding.DecodeString(id)
 	assert.NoError(t, err)
 	assert.Equal(t, "1:1:1", string(decoded))
+	assert.NoError(t, os.Unsetenv("NODE_NAME"))
 }
