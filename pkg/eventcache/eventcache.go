@@ -51,21 +51,6 @@ var (
 	ErrFailedToGetAncestorsInfo = errors.New("failed to get ancestors info from event cache")
 )
 
-func enabledAncestors(ev notify.Event) bool {
-	switch ev.(type) {
-	case *tetragon.ProcessKprobe:
-		return option.Config.EnableProcessKprobeAncestors
-	case *tetragon.ProcessTracepoint:
-		return option.Config.EnableProcessTracepointAncestors
-	case *tetragon.ProcessUprobe:
-		return option.Config.EnableProcessUprobeAncestors
-	case *tetragon.ProcessLsm:
-		return option.Config.EnableProcessLsmAncestors
-	default:
-		return false
-	}
-}
-
 // Generic internal lookup happens when events are received out of order and
 // this event was handled before an exec event so it wasn't able to populate
 // the process info yet.
@@ -73,7 +58,8 @@ func HandleGenericInternal(ev notify.Event, pid uint32, tid *uint32, timestamp u
 	internal, parent := process.GetParentProcessInternal(pid, timestamp)
 	var err error
 
-	if enabledAncestors(ev) && internal.NeededAncestors() {
+	eventType := notify.EventType(ev)
+	if option.AncestorsEnabled(eventType) && internal.NeededAncestors() {
 		// We do not need to try to recollect all ancestors starting from the immediate parent here,
 		// if we already collected some of them in previous attempts. So, if we already have a number
 		// of ancestors collected, we just need to try to resume the collection process from the last
