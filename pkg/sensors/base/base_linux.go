@@ -29,6 +29,7 @@ func GetDefaultMaps() []*program.Map {
 		StatsMap,
 		MatchBinariesSetMap,
 		ErrMetricsMap,
+		NsidMap,
 	}
 	return maps
 

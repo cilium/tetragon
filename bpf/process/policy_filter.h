@@ -11,6 +11,8 @@
 #define POLICY_FILTER_MAX_NAMESPACES 1024
 #define POLICY_FILTER_MAX_CGROUP_IDS 1024
 
+u64 glbl_next_nsid = 1;
+
 struct {
 	__uint(type, BPF_MAP_TYPE_LRU_HASH);
 	__uint(max_entries, POLICY_FILTER_MAX_NAMESPACES);
@@ -72,6 +74,30 @@ FUNC_INLINE bool policy_filter_check(u32 policy_id)
 		cgroupid = trackerid;
 
 	return map_lookup_elem(policy_map, &cgroupid);
+}
+
+FUNC_INLINE u64 __get_next_id_nsmap(void)
+{
+	__sync_fetch_and_add(&glbl_next_nsid, 1);
+	return glbl_next_nsid - 1;
+}
+
+// maybe_insert_nsmap looks up the corresponding nsid for a cgroup id and
+// returns it if it exists. It not, it updates the map, incrementing the
+// previous id and adding a new entry.
+FUNC_INLINE u64 tg_maybe_insert_nsmap(u64 cgid)
+{
+	u64 nsid;
+	u64 *nsid_p;
+
+	nsid_p = map_lookup_elem(&tg_cgroup_namespace_map, &cgid);
+	if (nsid_p)
+		return *nsid_p;
+
+	nsid = __get_next_id_nsmap();
+	map_update_elem(&tg_cgroup_namespace_map, &cgid, &nsid, 0);
+
+	return nsid;
 }
 
 #endif /* POLICY_FILTER_MAPS_H__ */

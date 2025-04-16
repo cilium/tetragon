@@ -33,7 +33,6 @@ type NamespaceMap struct {
 	cgroupIdMap *ebpf.Map
 	nsIdMap     *lru.Cache[StateID, NSID]
 	nsNameMap   *lru.Cache[NSID, StateID]
-	id          StateID
 }
 
 // newNamespaceMap returns a new namespace mapping. The namespace map consists of
@@ -79,6 +78,5 @@ func newNamespaceMap() (*NamespaceMap, error) {
 		cgroupIdMap: ret,
 		nsIdMap:     idCache,
 		nsNameMap:   nameCache,
-		id:          1,
 	}, err
 }
