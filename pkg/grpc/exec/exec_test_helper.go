@@ -1107,7 +1107,7 @@ func GrpcDelayedExecK8sOutOfOrder[EXEC notify.Message, EXIT notify.Message](t *t
 }
 
 func GrpcExecAncestorsInOrder[EXEC notify.Message, CLONE notify.Message, EXIT notify.Message](t *testing.T) {
-	option.Config.EnableProcessAncestors = true // enable Ancestors
+	option.Config.EnableAncestors = option.AncestorsEventFilter{"base": true} // enable Ancestors
 	AllEvents = nil
 	watcher := watcher.NewFakeK8sWatcher(nil)
 	dn := InitEnv[EXEC, EXIT](t, watcher)
@@ -1280,7 +1280,7 @@ func GrpcExecAncestorsInOrder[EXEC notify.Message, CLONE notify.Message, EXIT no
 }
 
 func GrpcExecAncestorsOutOfOrder[EXEC notify.Message, CLONE notify.Message, EXIT notify.Message](t *testing.T) {
-	option.Config.EnableProcessAncestors = true // enable Ancestors
+	option.Config.EnableAncestors = option.AncestorsEventFilter{"base": true} // enable Ancestors
 	AllEvents = nil
 	watcher := watcher.NewFakeK8sWatcher(nil)
 	dn := InitEnv[EXEC, EXIT](t, watcher)

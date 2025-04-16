@@ -55,8 +55,8 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 		tetragonParent = parent.UnsafeGetProcess()
 	}
 
-	// Set the ancestors only if --enable-process-ancestors flag is set.
-	if option.Config.EnableProcessAncestors && proc.NeededAncestors() {
+	// Set the ancestors only if --enable-ancestors flag includes 'base'.
+	if option.Config.EnableAncestors["base"] && proc.NeededAncestors() {
 		// We don't care about an error here, because later we call ec.NeededAncestors,
 		// that will determine if we were successful in collecting all ancestors and,
 		// if we were not, the event will be added to the event cache for reprocessing.
@@ -89,13 +89,13 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 		if ec := eventcache.Get(); ec != nil &&
 			(ec.Needed(tetragonProcess) ||
 				(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent)) ||
-				(option.Config.EnableProcessAncestors && ec.NeededAncestors(parent, ancestors))) {
+				(option.Config.EnableAncestors["base"] && ec.NeededAncestors(parent, ancestors))) {
 			ec.Add(proc, tetragonEvent, event.Unix.Msg.Common.Ktime, event.Unix.Process.Ktime, event)
 			return nil
 		}
 	}
 
-	if option.Config.EnableProcessAncestors {
+	if option.Config.EnableAncestors["base"] {
 		for _, ancestor := range ancestors {
 			ancestor.RefInc("ancestor")
 		}
@@ -239,7 +239,7 @@ func (msg *MsgExecveEventUnix) Retry(internal *process.ProcessInternal, ev notif
 	// ancestors of the given process, including the immediate parent. So in order for us
 	// to collect ancestors beyond immediate parent, we need to pass immediate parent to
 	// GetAncestorProcessesInternal.
-	if option.Config.EnableProcessAncestors && internal.NeededAncestors() && !msg.RefCntDone[AncestorsRefCnt] {
+	if option.Config.EnableAncestors["base"] && internal.NeededAncestors() && !msg.RefCntDone[AncestorsRefCnt] {
 		if ancestors, err := process.GetAncestorProcessesInternal(tetragonProcess.ParentExecId); err == nil {
 			var tetragonAncestors []*tetragon.Process
 			for _, ancestor := range ancestors {
@@ -354,7 +354,7 @@ func (msg *MsgCloneEventUnix) Retry(internal *process.ProcessInternal, _ notify.
 		internal.AddPodInfo(podInfo)
 	}
 
-	if option.Config.EnableProcessAncestors && internal.NeededAncestors() {
+	if option.Config.EnableAncestors["base"] && internal.NeededAncestors() {
 		if ancestors, err := process.GetAncestorProcessesInternal(tetragonProcess.ParentExecId); err == nil {
 			for _, ancestor := range ancestors {
 				ancestor.RefInc("ancestor")
@@ -372,7 +372,7 @@ func (msg *MsgCloneEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 	var ancestors []*process.ProcessInternal
 
 	proc, _ := process.AddCloneEvent(&msg.MsgCloneEvent)
-	if option.Config.EnableProcessAncestors && proc.NeededAncestors() {
+	if option.Config.EnableAncestors["base"] && proc.NeededAncestors() {
 		ancestors, _ = process.GetAncestorProcessesInternal(proc.UnsafeGetProcess().ParentExecId)
 	}
 
@@ -386,14 +386,14 @@ func (msg *MsgCloneEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 		parent, _ := process.Get(proc.UnsafeGetProcess().ParentExecId)
 
 		if ec.Needed(proc.UnsafeGetProcess()) ||
-			option.Config.EnableProcessAncestors && ec.NeededAncestors(parent, ancestors) {
+			option.Config.EnableAncestors["base"] && ec.NeededAncestors(parent, ancestors) {
 			// adding to the cache due to missing pod info or ancestors
 			ec.Add(proc, nil, msg.Common.Ktime, msg.Ktime, msg)
 			return nil
 		}
 	}
 
-	if option.Config.EnableProcessAncestors {
+	if option.Config.EnableAncestors["base"] {
 		for _, ancestor := range ancestors {
 			ancestor.RefInc("ancestor")
 		}
@@ -425,8 +425,8 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 		tetragonParent = parent.UnsafeGetProcess()
 	}
 
-	// Set the ancestors only if --enable-process-ancestors flag is set.
-	if option.Config.EnableProcessAncestors && proc.NeededAncestors() {
+	// Set the ancestors only if --enable-ancestors flag includes 'base'.
+	if option.Config.EnableAncestors["base"] && proc.NeededAncestors() {
 		// We don't care about an error here, because later we call ec.NeededAncestors,
 		// that will determine if we were successful in collecting all ancestors and,
 		// if we were not, the event will be added to the event cache for reprocessing.
@@ -492,12 +492,12 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 	if ec := eventcache.Get(); ec != nil &&
 		(ec.Needed(tetragonProcess) ||
 			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent)) ||
-			(option.Config.EnableProcessAncestors && ec.NeededAncestors(parent, ancestors))) {
+			(option.Config.EnableAncestors["base"] && ec.NeededAncestors(parent, ancestors))) {
 		ec.Add(nil, tetragonEvent, event.Common.Ktime, event.ProcessKey.Ktime, event)
 		return nil
 	}
 
-	if option.Config.EnableProcessAncestors {
+	if option.Config.EnableAncestors["base"] {
 		for _, ancestor := range ancestors {
 			ancestor.RefDec("ancestor")
 		}
@@ -524,7 +524,7 @@ func (msg *MsgExitEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*
 	proc, parent := process.GetParentProcessInternal(msg.ProcessKey.Pid, timestamp)
 	var err error
 
-	if option.Config.EnableProcessAncestors && proc.NeededAncestors() && !msg.RefCntDone[AncestorsRefCnt] {
+	if option.Config.EnableAncestors["base"] && proc.NeededAncestors() && !msg.RefCntDone[AncestorsRefCnt] {
 		if ancestors, perr := process.GetAncestorProcessesInternal(proc.UnsafeGetProcess().ParentExecId); perr == nil {
 			var tetragonAncestors []*tetragon.Process
 			for _, ancestor := range ancestors {
@@ -605,7 +605,7 @@ func (msg *MsgProcessCleanupEventUnix) RetryInternal(_ notify.Event, timestamp u
 	proc, parent := process.GetParentProcessInternal(msg.PID, timestamp)
 	var err error
 
-	if option.Config.EnableProcessAncestors && proc.NeededAncestors() && !msg.RefCntDone[AncestorsRefCnt] {
+	if option.Config.EnableAncestors["base"] && proc.NeededAncestors() && !msg.RefCntDone[AncestorsRefCnt] {
 		if ancestors, perr := process.GetAncestorProcessesInternal(proc.UnsafeGetProcess().ParentExecId); perr == nil {
 			for _, ancestor := range ancestors {
 				ancestor.RefDec("ancestor")
@@ -652,19 +652,19 @@ func (msg *MsgProcessCleanupEventUnix) HandleMessage() *tetragon.GetEventsRespon
 
 	msg.RefCntDone = [3]bool{false, false, false}
 	proc, parent := process.GetParentProcessInternal(msg.PID, msg.Ktime)
-	if option.Config.EnableProcessAncestors && proc.NeededAncestors() {
+	if option.Config.EnableAncestors["base"] && proc.NeededAncestors() {
 		ancestors, _ = process.GetAncestorProcessesInternal(proc.UnsafeGetProcess().ParentExecId)
 	}
 
 	if ec := eventcache.Get(); ec != nil &&
 		(proc == nil ||
 			parent == nil ||
-			option.Config.EnableProcessAncestors && ec.NeededAncestors(parent, ancestors)) {
+			option.Config.EnableAncestors["base"] && ec.NeededAncestors(parent, ancestors)) {
 		ec.Add(nil, nil, msg.Ktime, msg.Ktime, msg)
 		return nil
 	}
 
-	if option.Config.EnableProcessAncestors {
+	if option.Config.EnableAncestors["base"] {
 		for _, ancestor := range ancestors {
 			ancestor.RefDec("ancestor")
 		}

@@ -20,7 +20,7 @@ import (
 func TestMain(m *testing.M) {
 	// Needed for cap filters
 	option.Config.EnableProcessCred = true
-	option.Config.EnableProcessAncestors = true
+	option.Config.EnableAncestors = option.AncestorsEventFilter{"base": true}
 
 	code := m.Run()
 	os.Exit(code)
