@@ -148,6 +148,12 @@ tetragon:
   enableProcessCred: false
   # -- Enable Namespaces visibility in exec and kprobe events.
   enableProcessNs: false
+  processAncestors:
+    # -- Comma-separated list of process event types to enable ancestors for.
+    # Supported event types are: base, kprobe, tracepoint, uprobe, lsm. Unknown event types will be ignored.
+    # Type "base" is required by all other supported event types for correct reference counting.
+    # Set it to "" to disable ancestors completely.
+    enabled: ""
   # -- Set --btf option to explicitly specify an absolute path to a btf file. For advanced users only.
   btf: ""
   # -- Override the command. For advanced users only.
