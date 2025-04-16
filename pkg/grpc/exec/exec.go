@@ -55,7 +55,7 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 		tetragonParent = parent.UnsafeGetProcess()
 	}
 
-	// Set the ancestors only if --enable-process-ancestors flag is set.
+	// Set the ancestors only if --enable-ancestors flag includes 'base'.
 	if option.Config.EnableProcessAncestors && proc.NeededAncestors() {
 		// We don't care about an error here, because later we call ec.NeededAncestors,
 		// that will determine if we were successful in collecting all ancestors and,
@@ -425,7 +425,7 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 		tetragonParent = parent.UnsafeGetProcess()
 	}
 
-	// Set the ancestors only if --enable-process-ancestors flag is set.
+	// Set the ancestors only if --enable-ancestors flag includes 'base'.
 	if option.Config.EnableProcessAncestors && proc.NeededAncestors() {
 		// We don't care about an error here, because later we call ec.NeededAncestors,
 		// that will determine if we were successful in collecting all ancestors and,

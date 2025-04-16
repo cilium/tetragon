@@ -327,7 +327,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 
 	proc, parent, tetragonProcess, tetragonParent := getProcessParent(&event.Msg.ProcessKey, event.Msg.Common.Flags)
 
-	// Set the ancestors only if --enable-process-kprobe-ancestors flag is set.
+	// Set the ancestors only if --enable-ancestors flag includes 'kprobe'.
 	if option.Config.EnableProcessKprobeAncestors && proc.NeededAncestors() {
 		ancestors, _ = process.GetAncestorProcessesInternal(tetragonProcess.ParentExecId)
 		for _, ancestor := range ancestors {
@@ -480,7 +480,7 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 
 	proc, parent, tetragonProcess, tetragonParent := getProcessParent(&msg.Msg.ProcessKey, msg.Msg.Common.Flags)
 
-	// Set the ancestors only if --enable-process-tracepoint-ancestors flag is set.
+	// Set the ancestors only if --enable-ancestors flag includes 'tracepoint'.
 	if option.Config.EnableProcessTracepointAncestors && proc.NeededAncestors() {
 		ancestors, _ = process.GetAncestorProcessesInternal(tetragonProcess.ParentExecId)
 		for _, ancestor := range ancestors {
@@ -821,7 +821,7 @@ func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
 
 	proc, parent, tetragonProcess, tetragonParent := getProcessParent(&event.Msg.ProcessKey, event.Msg.Common.Flags)
 
-	// Set the ancestors only if --enable-process-uprobe-ancestors flag is set.
+	// Set the ancestors only if --enable-ancestors flag includes 'uprobe'.
 	if option.Config.EnableProcessUprobeAncestors && proc.NeededAncestors() {
 		ancestors, _ = process.GetAncestorProcessesInternal(tetragonProcess.ParentExecId)
 		for _, ancestor := range ancestors {
@@ -947,7 +947,7 @@ func GetProcessLsm(event *MsgGenericLsmUnix) *tetragon.ProcessLsm {
 
 	proc, parent, tetragonProcess, tetragonParent := getProcessParent(&event.Msg.ProcessKey, event.Msg.Common.Flags)
 
-	// Set the ancestors only if --enable-process-lsm-ancestors flag is set.
+	// Set the ancestors only if --enable-ancestors flag includes 'lsm'.
 	if option.Config.EnableProcessLsmAncestors && proc.NeededAncestors() {
 		ancestors, _ = process.GetAncestorProcessesInternal(tetragonProcess.ParentExecId)
 		for _, ancestor := range ancestors {
