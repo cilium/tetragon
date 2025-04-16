@@ -6,6 +6,7 @@ package policyfilter
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	slimv1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/ebpf"
@@ -525,49 +526,76 @@ func cgIDPointerStr(p *CgroupID) string {
 }
 
 // addCgroupIDs add cgroups ids to the policy map
-// todo: use batch operations when supported
 func (m *state) addCgroupIDs(cinfo []containerInfo, pod *podInfo) error {
+	var id StateID
 	nsmap := m.nsMap
 
+	logger.GetLogger().WithFields(logrus.Fields{"pod": pod.workload, "namespace": pod.namespace}).Debug("adding cgroup id mapping for pod")
+
+outer:
 	for _, c := range cinfo {
+		logger.GetLogger().WithFields(logrus.Fields{"pod": pod.workload, "namespace": pod.namespace, "cgid": c.cgID}).Debug("add cgroup id")
 		key := NSID{
 			Namespace: pod.namespace,
 			Workload:  pod.workload,
 			Kind:      pod.kind,
 		}
-		id, ok := nsmap.nsNameMap.Get(key)
-		if ok {
-			if err := nsmap.cgroupIdMap.Update(&c.cgID, id, ebpf.UpdateAny); err != nil {
-				logger.GetLogger().WithError(err).Warn("Unable to assign cgroup to existing namespace")
-			}
-			continue
-		}
-		logger.GetLogger().WithField("cgrp", c).WithField("pod", pod).WithField("id", nsmap.id).Debug("update cgroupid map")
 
-		// If this is a new namespace we create a new map entry and bind it to a stable id.
-		if err := nsmap.cgroupIdMap.Update(&c.cgID, nsmap.id, ebpf.UpdateAny); err != nil {
-			logger.GetLogger().WithError(err).WithFields(logrus.Fields{
-				"cgid": c.cgID,
-				"id":   nsmap.id,
-				"ns":   c.name,
-			}).Warn("Unable to insert cgroup id map")
-			continue
+		// Kernels < 5.4 will not support UUID updates from the BPF side, so
+		// let's keep the old logic of updating here for backward compatibility.
+		if NSMapUpdateSupportedFromBPF() {
+			id, ok := nsmap.nsNameMap.Get(key)
+			if ok {
+				if err := nsmap.cgroupIdMap.Update(&c.cgID, id, ebpf.UpdateAny); err != nil {
+					logger.GetLogger().WithError(err).Warn("Unable to assign cgroup to existing namespace")
+				}
+				continue
+			}
+			// If this is a new namespace we create a new map entry and bind it to a stable id.
+			id = nsmap.id
+			nsmap.id++
+			if err := nsmap.cgroupIdMap.Update(&c.cgID, id, ebpf.UpdateAny); err != nil {
+				logger.GetLogger().WithError(err).WithFields(logrus.Fields{
+					"cgid": c.cgID,
+					"id":   id,
+					"ns":   c.name,
+				}).Warn("Unable to insert cgroup id map")
+				continue
+			}
+		} else {
+			// The BPF side might not be ready yet, so attempt the map lookup a few times.
+			for i := 0; ; i++ {
+				err := nsmap.cgroupIdMap.Lookup(&c.cgID, &id)
+				if err == nil {
+					break
+				}
+				if i == 10 {
+					logger.GetLogger().WithError(err).WithFields(logrus.Fields{
+						"workload":  pod.workload,
+						"namespace": pod.namespace,
+						"key":       c.cgID,
+					}).Warn("Failed to look up nsid from namespace map")
+					continue outer
+				}
+				time.Sleep(1 * time.Second)
+			}
+			logger.GetLogger().WithFields(logrus.Fields{"pod": pod.workload, "namespace": pod.namespace, "cgid": c.cgID, "nsid": id}).Debug("found cgroup id mapping")
 		}
-		if ok := nsmap.nsIdMap.Add(nsmap.id, key); ok {
+
+		if ok := nsmap.nsIdMap.Add(id, key); ok {
 			logger.GetLogger().WithFields(logrus.Fields{
 				"cgid": c.cgID,
-				"id":   nsmap.id,
+				"id":   id,
 				"ns":   c.name,
-			}).Info("Id to namespace map caused eviction")
+			}).Info("id to namespace map caused eviction")
 		}
-		if ok := nsmap.nsNameMap.Add(key, nsmap.id); ok {
+		if ok := nsmap.nsNameMap.Add(key, id); ok {
 			logger.GetLogger().WithFields(logrus.Fields{
 				"cgid": c.cgID,
-				"id":   nsmap.id,
+				"id":   id,
 				"ns":   c.name,
-			}).Info("Namespace to Id map caused eviction")
+			}).Info("namespace to id map caused eviction")
 		}
-		nsmap.id++
 	}
 
 	return nil

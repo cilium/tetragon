@@ -198,6 +198,12 @@ event_execve(struct exec_ctx_struct *ctx)
 	__u32 zero = 0;
 	__u64 pid;
 
+	// Not supported in 4.19
+#ifdef __LARGE_BPF_PROG
+	// Update nsid map.
+	tg_maybe_insert_nsmap(tg_get_current_cgroup_id());
+#endif
+
 	event = map_lookup_elem(&execve_msg_heap_map, &zero);
 	if (!event)
 		return 0;

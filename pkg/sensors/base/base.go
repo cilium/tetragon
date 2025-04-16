@@ -79,6 +79,8 @@ var (
 	MatchBinariesSetMap = program.MapBuilder(mbset.MapName, Execve)
 
 	ErrMetricsMap = program.MapBuilder(errmetrics.MapName, Execve)
+
+	NsidMap = program.MapBuilder("tg_cgroup_namespace_map", Execve)
 )
 
 func parseExecveMapSize(str string) (int, error) {

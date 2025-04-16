@@ -79,6 +79,5 @@ func newNamespaceMap() (*NamespaceMap, error) {
 		cgroupIdMap: ret,
 		nsIdMap:     idCache,
 		nsNameMap:   nameCache,
-		id:          1,
 	}, err
 }

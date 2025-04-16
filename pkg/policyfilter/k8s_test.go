@@ -10,10 +10,13 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/rand"
+	"path/filepath"
 	"testing"
 	"time"
 
 	slimv1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
+	"github.com/cilium/ebpf"
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/labels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
@@ -69,6 +72,15 @@ type testPod struct {
 	containers []testContainer
 }
 
+func (ts *testState) addCgroupID(cgid CgroupID) error {
+	m, err := ebpf.LoadPinnedMap(filepath.Join(bpf.MapPrefixPath(), CgrpNsMapName), &ebpf.LoadPinOptions{})
+	if err != nil {
+		return err
+	}
+	ts.nextNsid++
+	return m.Update(&cgid, &ts.nextNsid, ebpf.UpdateAny)
+}
+
 func (ts *testState) randString(length int) string {
 	b := make([]byte, length+2)
 	ts.rnd.Read(b)
@@ -78,9 +90,10 @@ func (ts *testState) randString(length int) string {
 // testState provides two things: i) helper functions for creating/updating pods, and ii) a fake
 // FsScanner.
 type testState struct {
-	pods   []testPod
-	client *fake.Clientset
-	rnd    *rand.Rand
+	pods     []testPod
+	client   *fake.Clientset
+	rnd      *rand.Rand
+	nextNsid uint64
 
 	nrAdds, nrUpds, nrDels uint64
 	cbAdds, cbUpds, cbDels atomic.Uint64
@@ -162,6 +175,7 @@ func (tp *testPod) Pod() *v1.Pod {
 func (ts *testState) newTestContainer(name string) testContainer {
 	contID := fmt.Sprintf("%s-%s", name, ts.randString(8))
 	cgID := CgroupID(ts.rnd.Uint64())
+	ts.addCgroupID(cgID)
 	return testContainer{
 		name: name,
 		id:   contID,
