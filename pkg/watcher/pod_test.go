@@ -280,11 +280,11 @@ func TestFindPodWalk(t *testing.T) {
 // simplified version of AddPodInformer for testing
 func addPodInformerDummyIndexer(w *K8sWatcher) {
 	factory := w.GetK8sInformerFactory()
-	w.deletedPodCache, _ = newDeletedPodCache()
+	w.deletedPodCache, _ = NewDeletedPodCache()
 	informer := factory.Core().V1().Pods().Informer()
 	w.AddInformer(podInformerName, informer, map[string]cache.IndexFunc{
 		podIdx: func(any) ([]string, error) { return nil, nil },
 	})
-	informer.AddEventHandler(w.deletedPodCache.eventHandler())
+	informer.AddEventHandler(w.deletedPodCache.EventHandler())
 	podhooks.InstallHooks(informer)
 }

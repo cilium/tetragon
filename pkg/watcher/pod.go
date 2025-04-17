@@ -54,7 +54,7 @@ func AddPodInformer(w *K8sWatcher, local bool) error {
 
 	// initialize deleted pod cache
 	var err error
-	w.deletedPodCache, err = newDeletedPodCache()
+	w.deletedPodCache, err = NewDeletedPodCache()
 	if err != nil {
 		return fmt.Errorf("failed to initialize deleted pod cache: %w", err)
 	}
@@ -67,7 +67,7 @@ func AddPodInformer(w *K8sWatcher, local bool) error {
 	})
 
 	// add event handlers to the informer
-	informer.AddEventHandler(w.deletedPodCache.eventHandler())
+	informer.AddEventHandler(w.deletedPodCache.EventHandler())
 	podhooks.InstallHooks(informer)
 
 	return nil
@@ -161,7 +161,7 @@ func (watcher *K8sWatcher) FindContainer(containerID string) (*corev1.Pod, *core
 		return pod, cont, found
 	}
 
-	return watcher.deletedPodCache.findContainer(indexedContainerID)
+	return watcher.deletedPodCache.FindContainer(indexedContainerID)
 }
 
 // TODO(michi) Not the most efficient implementation. Optimize as needed.
