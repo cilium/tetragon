@@ -31,7 +31,7 @@ type Watcher interface {
 	GetCRDInformerFactory() externalversions.SharedInformerFactory
 }
 
-// NB(anna): localK8sInformerFactory and deletedPodCache are relevant only when
+// NB(anna): localK8sInformerFactory and DeletedPodCache are relevant only when
 // watching pods. If a K8sWatcher instance is e.g. watching only policies, they
 // are unused. If needed, they can be factored out to make the K8sWatcher
 // struct more generic.
@@ -40,7 +40,7 @@ type K8sWatcher struct {
 	localK8sInformerFactory informers.SharedInformerFactory        // for k8s built-in resources local to the node
 	crdInformerFactory      externalversions.SharedInformerFactory // for Tetragon CRDs
 	informers               map[string]cache.SharedIndexInformer
-	deletedPodCache         *deletedPodCache
+	deletedPodCache         *DeletedPodCache
 }
 
 // NewK8sWatcher creates a new K8sWatcher with initialized informer factories.

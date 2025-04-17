@@ -16,19 +16,19 @@ type deletedPodCacheEntry struct {
 	contStatus *corev1.ContainerStatus
 }
 
-type deletedPodCache struct {
+type DeletedPodCache struct {
 	*lru.Cache[string, deletedPodCacheEntry]
 }
 
-func newDeletedPodCache() (*deletedPodCache, error) {
+func NewDeletedPodCache() (*DeletedPodCache, error) {
 	c, err := lru.New[string, deletedPodCacheEntry](128)
 	if err != nil {
 		return nil, err
 	}
-	return &deletedPodCache{c}, nil
+	return &DeletedPodCache{c}, nil
 }
 
-func (c *deletedPodCache) eventHandler() cache.ResourceEventHandler {
+func (c *DeletedPodCache) EventHandler() cache.ResourceEventHandler {
 	return cache.ResourceEventHandlerFuncs{
 		DeleteFunc: func(obj interface{}) {
 			var pod *corev1.Pod
@@ -75,7 +75,7 @@ func (c *deletedPodCache) eventHandler() cache.ResourceEventHandler {
 	}
 }
 
-func (c *deletedPodCache) findContainer(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool) {
+func (c *DeletedPodCache) FindContainer(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool) {
 	v, ok := c.Get(containerID)
 	if !ok {
 		return nil, nil, false
