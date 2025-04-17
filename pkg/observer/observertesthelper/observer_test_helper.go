@@ -53,7 +53,6 @@ import (
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/cilium/tetragon/pkg/watcher"
-	"github.com/cilium/tetragon/pkg/watcher/crdwatcher"
 )
 
 var (
@@ -62,7 +61,6 @@ var (
 )
 
 type testObserverOptions struct {
-	crd                 bool
 	config              string
 	lib                 string
 	procCacheGCInterval time.Duration
@@ -187,7 +185,6 @@ func newDefaultTestOptions(opts ...TestOption) *TestOptions {
 	// default values
 	options := &TestOptions{
 		observer: testObserverOptions{
-			crd:    false,
 			config: "",
 			lib:    "",
 		},
@@ -391,10 +388,6 @@ func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, op
 	tb.Cleanup(func() {
 		observer.ResetSensorManager()
 	})
-
-	if oo.crd {
-		crdwatcher.AddTracingPolicyInformer(ctx, k8sWatcher, sensorManager)
-	}
 
 	if err := btf.InitCachedBTF(option.Config.HubbleLib, ""); err != nil {
 		return err
