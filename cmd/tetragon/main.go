@@ -59,7 +59,6 @@ import (
 
 	"github.com/cilium/lumberjack/v2"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
-	"github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned"
 	gops "github.com/google/gops/agent"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -395,15 +394,15 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	// happen before the sensors are loaded, otherwise events will be stuck
 	// waiting for metadata.
 	var k8sClient *kubernetes.Clientset
-	var crdClient *versioned.Clientset
+	var controllerManager *manager.ControllerManager
 	var k8sWatcher watcher.K8sResourceWatcher
 	if option.Config.EnableK8s {
 		log.Info("Enabling Kubernetes API")
 		// Start controller-runtime manager.
-		controllerManager := manager.Get()
+		controllerManager = manager.Get()
 		controllerManager.Start(ctx)
 		// retrieve k8s clients
-		k8sClient, crdClient, err = watcher.GetK8sClients(waitCRDs)
+		k8sClient, _, err = watcher.GetK8sClients(waitCRDs)
 		if err != nil {
 			return err
 		}
@@ -497,19 +496,13 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	// Initialize a k8s watcher used to manage policies. This should happen
 	// after the sensors are loaded, otherwise existing policies will fail to
 	// load on the first attempt.
-	if option.Config.EnableK8s {
-		log.Info("Enabling policy watcher")
-		// create k8s watcher
-		policyWatcher := watcher.NewK8sWatcher(nil, crdClient, 60*time.Second)
-
+	if option.Config.EnableK8s && option.Config.EnableTracingPolicyCRD {
 		// add informers for all resources
-		if option.Config.EnableTracingPolicyCRD {
-			err := crdwatcher.AddTracingPolicyInformer(ctx, policyWatcher, observer.GetSensorManager())
-			if err != nil {
-				return err
-			}
+		log.Info("Enabling policy informers")
+		err := crdwatcher.AddTracingPolicyInformer(ctx, controllerManager, observer.GetSensorManager())
+		if err != nil {
+			return err
 		}
-		policyWatcher.Start()
 	}
 
 	obs.LogPinnedBpf(observerDir)

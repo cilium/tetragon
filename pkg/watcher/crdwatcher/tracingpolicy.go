@@ -16,9 +16,9 @@ import (
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/manager"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
-	"github.com/cilium/tetragon/pkg/watcher"
 )
 
 // Log "missing tracing policy" message once.
@@ -180,18 +180,13 @@ func updateTracingPolicy(ctx context.Context, log logrus.FieldLogger, s *sensors
 	}
 }
 
-func AddTracingPolicyInformer(ctx context.Context, w watcher.Watcher, s *sensors.Manager) error {
+func AddTracingPolicyInformer(ctx context.Context, m *manager.ControllerManager, s *sensors.Manager) error {
 	log := logger.GetLogger()
-	if w == nil {
-		return errors.New("k8s watcher not initialized")
+	tpInformer, err := m.Manager.GetCache().GetInformer(ctx, &v1alpha1.TracingPolicy{})
+	if err != nil {
+		return err
 	}
-	factory := w.GetCRDInformerFactory()
-	if factory == nil {
-		return errors.New("CRD informer factory not initialized")
-	}
-
-	tpInformer := factory.Cilium().V1alpha1().TracingPolicies().Informer()
-	tpInformer.AddEventHandler(
+	_, err = tpInformer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
 				addTracingPolicy(ctx, log, s, obj)
@@ -202,13 +197,15 @@ func AddTracingPolicyInformer(ctx context.Context, w watcher.Watcher, s *sensors
 			UpdateFunc: func(oldObj interface{}, newObj interface{}) {
 				updateTracingPolicy(ctx, log, s, oldObj, newObj)
 			}})
-	err := w.AddInformer("TracingPolicy", tpInformer, nil)
 	if err != nil {
-		return fmt.Errorf("failed to add TracingPolicy informer: %w", err)
+		return err
 	}
 
-	tpnInformer := factory.Cilium().V1alpha1().TracingPoliciesNamespaced().Informer()
-	tpnInformer.AddEventHandler(
+	tpnInformer, err := m.Manager.GetCache().GetInformer(ctx, &v1alpha1.TracingPolicyNamespaced{})
+	if err != nil {
+		return err
+	}
+	_, err = tpnInformer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
 				addTracingPolicy(ctx, log, s, obj)
@@ -219,9 +216,8 @@ func AddTracingPolicyInformer(ctx context.Context, w watcher.Watcher, s *sensors
 			UpdateFunc: func(oldObj interface{}, newObj interface{}) {
 				updateTracingPolicy(ctx, log, s, oldObj, newObj)
 			}})
-	err = w.AddInformer("TracingPolicyNamespaced", tpnInformer, nil)
 	if err != nil {
-		return fmt.Errorf("failed to add TracingPolicyNamespaced informer: %w", err)
+		return err
 	}
 
 	return nil
