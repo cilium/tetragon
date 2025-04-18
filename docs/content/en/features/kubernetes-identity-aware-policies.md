@@ -9,7 +9,9 @@ hero:
   intro: "Tetragon was built from the ground up to cater to the unique needs of Linux, container, and Kubernetes workloads⁠"
   videoID: "3sRJk7CgMyU"
 
-contentTitle: "Understanding Process Behavior in Complex Environments"
+contentTitle: "Kubernetes-Aware Security Observability and Runtime Enforcement"
+
+tagline: "Enforce precise, workload-specific policies in Kubernetes with eBPF-powered observability and runtime control."
 
 features:
   - title: "Kubernetes Identity Aware Policies"
@@ -21,8 +23,8 @@ features:
   - title: "Dynamic Policy Enforcement"
     description: "Adapt to the dynamic, ephemeral nature of Kubernetes environments with policies tailored to changing workloads."
     icon: "shield-code"
-  - title: "Enhanced Security Observability"
-    description: "Apply security observability and runtime enforcement precisely where it’s most needed, ensuring comprehensive protection."
+  - title: "Broad Kubernetes Runtime Support"
+    description: "Supports both containerd and CRI-O, bringing runtime security to diverse Kubernetes environments."
     icon: "telescope-blue"
 ---
 

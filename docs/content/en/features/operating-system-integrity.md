@@ -9,21 +9,17 @@ hero:
   intro: "Tetragon Operating System Integrity lets you observe kernel Module operations, eBPF subsystem activity, and process injections⁠"
   videoID: "UBVTJ0LeXxc"
 
-contentTitle: "Understanding Process Behavior in Complex Environments"
+contentTitle: "Audit eBPF Subsystem Interactions and Kernel Modules"
+
+tagline: "Tetragon empowers security teams to monitor host system changes"
 
 features:
-  - title: "Real-Time Kernel Module Monitoring"
+  - title: "Kernel Modules Audit Trail"
     description: "Track the loading and unloading of kernel modules, identifying responsible processes or containers."
     icon: "monitoring"
-  - title: "Code Integrity Assurance"
-    description: "Verify kernel modules by checking for signatures, ensuring only authorized code is integrated."
-    icon: "shield-lock-blue"
   - title: "eBPF Subsystem Observability"
     description: "Monitor eBPF program loads and interactions to detect suspicious activity and potential threats."
     icon: "telescope-green"
-  - title: "Threat Detection and Response"
-    description: "Swiftly detect, investigate, and respond to malicious manipulation of kernel-level components to protect system integrity."
-    icon: "target-blue"
 ---
 
 Modern containerized environments often rely on dynamic host system changes, such as loading kernel modules or modifying kernel parameters, to deliver necessary functionality. However, this same flexibility introduces significant security risks. Malicious actors can exploit these capabilities to load unauthorized kernel modules, alter system behavior, or hide their presence within the system. For security teams, the challenge lies in distinguishing legitimate activity from malicious manipulation of these critical kernel-level components.

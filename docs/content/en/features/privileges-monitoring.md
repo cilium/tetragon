@@ -1,6 +1,6 @@
 ---
-title: "Real-Time Privileges Monitoring with Tetragon"
-description: "Monitor credential changes at the kernel level to detect suspicious activity and safeguard system integrity."
+title: "Privilege and Capabilities Monitoring with Tetragon"
+description: "Monitor process credential changes at the kernel level to detect suspicious activity."
 layout: "features"
 body_class: "td-home"
 
@@ -9,13 +9,15 @@ hero:
   intro: "Tetragon is a security tool that provides comprehensive process monitoring capabilities, offering detailed visibility into process behavior and execution within Kubernetes environments⁠"
   videoID: "2BIe4VmSYyQ"
 
-contentTitle: "Understanding Process Behavior in Complex Environments"
+contentTitle: "Monitor Privilege Escalations"
+
+tagline: "Tetragon empowers security team to detect and prevent privilege abuse"
 
 features:
   - title: "Real-Time Credential Monitoring"
     description: "Track changes to user IDs, group IDs, and capabilities as they occur, ensuring immediate visibility."
     icon: "monitoring"
-  - title: "CSystem Call and Kernel-Level Insights"
+  - title: "System Call and Kernel-Level Insights"
     description: "Hook into system calls to capture detailed information on credential manipulations in real-time."
     icon: "search-activity-blue"
   - title: "Tamper-Resistant Observability"
