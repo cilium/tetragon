@@ -29,12 +29,7 @@ type config struct {
 
 	EnablePodAnnotations bool
 
-	EnableProcessAncestors           bool
-	EnableProcessKprobeAncestors     bool
-	EnableProcessTracepointAncestors bool
-	EnableProcessUprobeAncestors     bool
-	EnableProcessLsmAncestors        bool
-
+	EnableAncestors   AncestorsEventFilter
 	EnableProcessNs   bool
 	EnableProcessCred bool
 	EnableK8s         bool

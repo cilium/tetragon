@@ -38,7 +38,7 @@ func filterByBinaryRegex(binaryPatterns []string, level int) (hubbleFilters.Filt
 		case ancestorBinary:
 			processes = GetAncestors(ev)
 		}
-		if processes == nil || processes[0] == nil {
+		if len(processes) == 0 || processes[0] == nil {
 			return false
 		}
 		for _, process := range processes {
