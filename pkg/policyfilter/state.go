@@ -542,32 +542,26 @@ func (m *state) addCgroupIDs(cinfo []containerInfo, pod *podInfo) error {
 			}
 			continue
 		}
-		logger.GetLogger().WithField("cgrp", c).WithField("pod", pod).WithField("id", nsmap.id).Debug("update cgroupid map")
-
-		// If this is a new namespace we create a new map entry and bind it to a stable id.
-		if err := nsmap.cgroupIdMap.Update(&c.cgID, nsmap.id, ebpf.UpdateAny); err != nil {
-			logger.GetLogger().WithError(err).WithFields(logrus.Fields{
-				"cgid": c.cgID,
-				"id":   nsmap.id,
-				"ns":   c.name,
-			}).Warn("Unable to insert cgroup id map")
+		if err := nsmap.cgroupIdMap.Lookup(&c.cgID, &id); err != nil {
+			logger.GetLogger().WithError(err).Warn("Failed to look up nsid from namespace map")
 			continue
 		}
-		if ok := nsmap.nsIdMap.Add(nsmap.id, key); ok {
+		logger.GetLogger().WithField("cgrp", c).WithField("pod", pod).WithField("id", id).Debug("update cgroupid map")
+
+		if ok := nsmap.nsIdMap.Add(id, key); ok {
 			logger.GetLogger().WithFields(logrus.Fields{
 				"cgid": c.cgID,
-				"id":   nsmap.id,
+				"id":   id,
 				"ns":   c.name,
 			}).Info("Id to namespace map caused eviction")
 		}
-		if ok := nsmap.nsNameMap.Add(key, nsmap.id); ok {
+		if ok := nsmap.nsNameMap.Add(key, id); ok {
 			logger.GetLogger().WithFields(logrus.Fields{
 				"cgid": c.cgID,
-				"id":   nsmap.id,
+				"id":   id,
 				"ns":   c.name,
 			}).Info("Namespace to Id map caused eviction")
 		}
-		nsmap.id++
 	}
 
 	return nil
