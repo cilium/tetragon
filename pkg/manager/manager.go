@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/bombsimon/logrusr/v4"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -36,6 +37,7 @@ func Get() *ControllerManager {
 		ctrl.SetLogger(logrusr.New(logger.GetLogger()))
 		scheme := runtime.NewScheme()
 		utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+		utilruntime.Must(v1alpha1.AddToScheme(scheme))
 		controllerManager, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{Scheme: scheme})
 		if err != nil {
 			panic(err)
