@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
+//go:build !windows
+
 package main
 
 import (
@@ -28,6 +30,8 @@ func TestMain(m *testing.M) {
 // The test starts tetragon with minimal setup and stops it
 // when it observer is ready. By that time we should have
 // exec events generated, make sure it's done.
+// ToDo: Enable on Windows once windows programs start compiling
+// and are present in the obj directory
 func TestGeneratedExecEvents(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 
