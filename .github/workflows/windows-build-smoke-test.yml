@@ -1,0 +1,249 @@
+name: Windows Build and Smoke
+on:
+  pull_request:
+    paths-ignore:
+      - docs/**
+  push:
+    branches:
+      - main
+      - v*
+    paths-ignore:
+      - docs/**
+jobs:
+  windows-ebpf-prog-build:
+    name: Build Windows process ebpf program
+    runs-on: windows-2022
+    timeout-minutes: 15
+
+    env:
+      GOCACHE: D:\gocache
+      GOMODCACHE: D:\gomodcache
+      TEMP: D:\temp
+      CI_EFW_VERSION: 0.20.0
+      BUILD_CONFIGURATION: Release
+      BUILD_PLATFORM: x64
+
+    steps:
+      - name: Create Temp Directory
+        run: mkdir D:\temp
+        shell: pwsh
+
+      - name: Set MSVC Environment Variables
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          powershell.exe "echo 'msvc_tools_path=%VCToolsInstallDir%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          powershell.exe "echo 'msvc_tools_version=%VCToolsVersion%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          powershell.exe "echo 'ASAN_WIN_CONTINUE_ON_INTERCEPTION_FAILURE=true' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          powershell.exe "echo 'VCINSTALLDIR=%VCINSTALLDIR%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce
+        with:
+          msbuild-architecture: x64
+      
+      - name: Add Visual Studio LLVM to path
+        run: |
+          echo "$env:VCINSTALLDIR\tools\llvm\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Check for Clang version (MSVC)
+        run:
+          clang.exe --version
+
+      - name: Check clang version (LLVM)
+        shell: cmd
+        run:
+            '"c:\Program Files\llvm\bin\clang.exe" --version'
+
+      - name: Download ntosebpfext 
+        id: download-ntosebpfet
+        shell: powershell
+        working-directory: ${{ env.TEMP }}
+        run: | 
+          git clone --recursive https://github.com/microsoft/ntosebpfext.git
+          cd ${{ env.TEMP }}\ntosebpfext
+          git checkout e7dc209a8be0da2ff5d75f5772a0ee0bf4a10383
+      
+      - name: Configuring repo for first build
+        if: steps.skip_check.outputs.should_skip != 'true'
+        working-directory: ${{ env.TEMP }}\ntosebpfext
+        env:
+          CXXFLAGS: /ZH:SHA_256 ${{ env.CXX_FLAGS }}
+          LDFLAGS: ${{ env.LD_FLAGS }}
+        run: |
+            .\scripts\initialize_repo.ps1
+
+      - name: Build
+        working-directory: ${{ env.TEMP }}\ntosebpfext
+        run: msbuild -target:Tools\process_monitor_bpf:Rebuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} /bl:${{env.BUILD_PLATFORM}}_${{env.BUILD_CONFIGURATION}}\build_logs\build.binlog ${{env.BUILD_OPTIONS}} ${{env.SOLUTION_FILE_PATH}}
+
+      - name: Zip Build Output
+        working-directory: ${{ env.TEMP }}\ntosebpfext
+        run: |
+          Compress-Archive -Path ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -DestinationPath .\build-${{env.BUILD_PLATFORM}}.${{env.BUILD_CONFIGURATION}}.zip
+
+      - name: Upload Build Output
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+        with:
+          working-directory: ${{ env.TEMP }}\ntosebpfext
+          name: ntosebpfext-build-output
+          path: ${{ env.TEMP }}\ntosebpfext\build-${{env.BUILD_PLATFORM}}.${{env.BUILD_CONFIGURATION}}.zip
+          retention-days: 5
+
+  windows-tetragon-build:
+    name: Build and Uplod Windows Tetragon and Tetra Binaries
+    runs-on: windows-2022
+    timeout-minutes: 15
+    env:
+      TEMP: D:\temp
+
+    steps:
+      - name: Create Temp Directory
+        run: mkdir D:\temp
+        shell: pwsh
+
+      - name: Install Go
+        uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
+        with:
+          go-version: '1.24.2'
+
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          path: go/src/github.com/cilium/tetragon/
+      
+      - name: Build and Zip tetragon Windows binaries
+        working-directory: ${{ github.workspace }}\go\src\github.com\cilium\tetragon
+        shell: powershell
+        run: |
+          go build -o .\Tetra.exe .\cmd\tetra\ 
+          go build -o .\Tetragon.exe .\cmd\tetragon\
+          Get-ChildItem
+          New-Item -ItemType Directory -Path ${{ env.TEMP }}\Tetragon-Windows
+          Copy-Item *.exe -Destination ${{ env.TEMP }}\Tetragon-Windows
+          Compress-Archive -Path ${{ env.TEMP }}\Tetragon-Windows\* -DestinationPath ${{ env.TEMP }}\Tetragon-Windows.zip
+          Get-ChildItem -Recurse ${{ env.TEMP }} 
+
+      - name: Upload Tetragon Windows binaries
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+        with:
+          name: tetragon-windows-build-output
+          path: ${{ env.TEMP }}\Tetragon-Windows.zip
+          retention-days: 5
+
+  windows-smoke-test:
+    name: Deploy and Test tetragon for Windows 
+    runs-on: windows-2022
+    needs:
+      - windows-tetragon-build
+      - windows-ebpf-prog-build
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        version:
+          - main
+    env:
+      TEMP: D:\temp
+      
+    steps:
+      - name: Create Temp Directory
+        run: mkdir D:\temp
+        shell: powershell
+      
+      - name: Create Temp Staging Directory
+        run: mkdir D:\temp\test
+        shell: powershell
+
+      - name: Download and Install eBPF for Windows
+        shell: powershell
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/microsoft/ebpf-for-windows/releases/download/Release-v0.21.0/Build-native-only.NativeOnlyRelease.x64.zip" -OutFile "$env:TEMP\efw.zip"
+          Expand-Archive -Path "$env:TEMP\efw.zip" -DestinationPath "$env:TEMP"
+          Rename-Item -Path "$env:TEMP\Build-native-only NativeOnlyRelease x64" -NewName "$env:TEMP\ebpf"
+          $setupScript = Get-ChildItem -Path "$env:TEMP\ebpf" -Filter "setup-ebpf.ps1" -Recurse | Select-Object -First 1
+          if ($setupScript) {
+            Write-Host "Found setup script: $($setupScript.FullName)"
+            Set-Location -Path $setupScript.DirectoryName
+            Write-Host "Changed directory to: $(Get-Location)"
+            & $setupScript.FullName
+          } else {
+            Write-Error "Setup script not found in the extracted package"
+            exit 1
+          }
+
+      - name: Add eBPF for Windows to PATH
+        shell: pwsh
+        run: echo "C:\Program Files\ebpf-for-windows\" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Download tetragon-windows-build-output
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          path: ${{ env.TEMP }}\test
+          name: tetragon-windows-build-output
+      
+      - name: Download ntosebpfext-build-output
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          path: ${{ env.TEMP }}\test
+          name: ntosebpfext-build-output
+    
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          path: go/src/github.com/cilium/tetragon/
+
+      - name: Setup Tetragon for Windows 
+        working-directory: ${{ github.workspace }}\go\src\github.com\cilium\tetragon
+        shell: powershell
+        run: ${{ github.workspace }}\go\src\github.com\cilium\tetragon\install\windows\setup-windows.ps1 ${{ env.TEMP }}\test\Tetragon-Windows.zip ${{ env.TEMP }}\test\build-x64.Release.zip 
+
+      - name: Run Smoke test Windows
+        env:
+          TEMP: D:\temp
+          PATH: ${{ env.TEMP }};"C:\Program Files\ebpf-for-windows"
+        working-directory: C:\Program Files\Tetragon\cmd
+        shell: powershell
+        run: |
+          # Define the path to the JSON file
+          $jsonFilePath = "C:\Program Files\Tetragon\events.json"
+
+          # Define the path to the executable
+          $tetragonProcess = "C:\Program Files\Tetragon\cmd\tetragon.exe"
+
+          # Start the process in the background and capture its PID
+          $tetragonBackgroundProcess = Start-Process -FilePath "$tetragonProcess" -ArgumentList "--export-filename ""$jsonFilePath""" -RedirectStandardOutput "C:\Program Files\Tetragon\tetragon.log" -NoNewWindow -PassThru
+
+          Start-Sleep -Seconds 5
+
+          if(Get-Process -id $tetragonBackgroundProcess.Id) {
+            Write-Host "Tetragon Running "
+          }
+          else {
+            throw "Tetragon is Not Running"
+          }
+
+          $notepad = Start-Process -FilePath "C:\Windows\System32\notepad.exe" -PassThru
+          $notepadPID = $notepad.Id
+          Write-Host "Process launched with PID: $notepadPID"
+
+          $searchString = "\{\""process_exec\""\:\{\""process\""\:\{\""exec_id\""\:\"".{16,30}\""\,.{0,1}\""pid\""\:$notepadPID\,.{0,1}\""uid\""\:0\,.{0,1}\""binary\""\:\""C:\\\\Windows\\\\system32\\\\notepad.exe\"""
+
+          Write-Host "Looking for regex: $searchString"
+          # Load the JSON content
+          $jsonContent = Get-Content -Path $jsonFilePath 
+
+          # Search for the PID in the JSON file
+          if ($jsonContent -match $searchString) {
+              Write-Host "Found PID $notepadPID in JSON file: $searchString"
+          } else {
+              Write-Host "PID $notepadPID not found in event file: $jsonContent "
+              throw "PID not found in event JSON file."
+          }
+
+      
+      
+
+
+
+        
+
