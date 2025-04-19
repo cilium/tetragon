@@ -24,7 +24,9 @@ declare -a mountpoints=(
 # to know about worktrees, so we're not in a worktree either. So it means
 # we're in the main git working copy, and thus we don't need to mount the
 # .git directory.
-if [ "${GIT_DIR}" ]; then
+# If GID_DIR is ".git", then we are in the main git working copy, and ".git"
+# directory will be included in the main Docker volume.
+if [[ "${GIT_DIR}" && "${GIT_DIR}" != ".git" ]]; then
     # GIT_DIR in the main working copy (when git supports worktrees) will
     # be just '.git', but 'docker run' needs an absolute path. If it is
     # not absolute, GIT_DIR is relative to MAIN_DIR. If it's an absolute
