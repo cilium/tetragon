@@ -11,7 +11,7 @@ metadata:
   {{- else }}
     {{- include "tetragon.labels" . | nindent 4 }}
   {{- end }}
-  name: {{ .Release.Name }}
+  name: {{ include "tetragon.fullname" . }}
   namespace: {{ .Release.Namespace }}
 spec:
   selector:
@@ -89,7 +89,7 @@ spec:
 {{- if .Values.tetragon.enabled }}
       - name: tetragon-config
         configMap:
-          name: {{ .Release.Name }}-config
+          name: {{ include "tetragon.fullname" . }}-config
       - name: bpf-maps
         hostPath:
           path: /sys/fs/bpf
