@@ -7,7 +7,7 @@
 
 
 DIR=$(dirname "${0}")
-MAIN_DIR=$(readlink -f "${DIR}/..")
+MAIN_DIR=$(realpath "${DIR}/..")
 if [ -L "${MAIN_DIR}/.git/config" ]; then
     # Support git-new-workdir
     GIT_DIR="$(dirname "$(realpath "${MAIN_DIR}/.git/config")")"
@@ -29,14 +29,14 @@ if [ "${GIT_DIR}" ]; then
     # be just '.git', but 'docker run' needs an absolute path. If it is
     # not absolute, GIT_DIR is relative to MAIN_DIR. If it's an absolute
     # path already (in a wordir), then that's a noop.
-    GIT_DIR="$(cd "${MAIN_DIR}"; readlink -e "${GIT_DIR}")"
+    GIT_DIR="$(cd "${MAIN_DIR}"; realpath "${GIT_DIR}")"
     mountpoints+=( "${GIT_DIR}" )
 
     # 'repo' stores .git/objects separately.
     if [ -L "${GIT_DIR}/objects" ]; then
         # GITDIR is already an absolute path, but for symetry
-        # with the above, keep the same cd+readlink construct.
-        OBJECTS_DIR="$(cd "${MAIN_DIR}"; readlink -e "${GIT_DIR}/objects")"
+        # with the above, keep the same cd+realpath construct.
+        OBJECTS_DIR="$(cd "${MAIN_DIR}"; realpath "${GIT_DIR}/objects")"
         mountpoints+=( "${OBJECTS_DIR}" )
     fi
 fi
