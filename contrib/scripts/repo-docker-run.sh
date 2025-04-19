@@ -5,7 +5,7 @@
 #
 # See: https://github.com/buildroot/buildroot/blob/master/utils/docker-run
 
-
+CONTAINER_ENGINE="${CONTAINER_ENGINE:-docker}"
 DIR=$(dirname "${0}")
 MAIN_DIR=$(realpath "${DIR}/../..")
 if [ -L "${MAIN_DIR}/.git/config" ]; then
@@ -53,4 +53,4 @@ for dir in $(printf '%s\n' "${mountpoints[@]}" |LC_ALL=C sort -u); do
     docker_opts+=( --mount "type=bind,src=${dir},dst=${dir}" )
 done
 
-docker run "${docker_opts[@]}" "${@}"
+"${CONTAINER_ENGINE}" run "${docker_opts[@]}" "${@}"
