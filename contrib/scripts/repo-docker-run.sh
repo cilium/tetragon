@@ -7,7 +7,7 @@
 
 
 DIR=$(dirname "${0}")
-MAIN_DIR=$(realpath "${DIR}/..")
+MAIN_DIR=$(realpath "${DIR}/../..")
 if [ -L "${MAIN_DIR}/.git/config" ]; then
     # Support git-new-workdir
     GIT_DIR="$(dirname "$(realpath "${MAIN_DIR}/.git/config")")"
