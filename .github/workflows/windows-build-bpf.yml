@@ -1,0 +1,147 @@
+name: Windows Build and Smoke
+on:
+  pull_request:
+    paths-ignore:
+      - docs/**
+  push:
+    branches:
+      - main
+      - v*
+    paths-ignore:
+      - docs/**
+jobs:
+  windows-ebpf-prog-build:
+    name: Build Windows process ebpf program
+    runs-on: windows-2022
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        version:
+          - main
+    env:
+      GOCACHE: D:\gocache
+      GOMODCACHE: D:\gomodcache
+      TEMP: D:\temp
+      CI_EFW_VERSION: 0.20.0
+      BUILD_CONFIGURATION: Release
+      BUILD_PLATFORM: x64
+
+    steps:
+      - run: mkdir D:\temp
+        shell: pwsh
+
+      - name: Set MSVC Environment Variables
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          powershell.exe "echo 'msvc_tools_path=%VCToolsInstallDir%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          powershell.exe "echo 'msvc_tools_version=%VCToolsVersion%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          powershell.exe "echo 'ASAN_WIN_CONTINUE_ON_INTERCEPTION_FAILURE=true' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          powershell.exe "echo 'VCINSTALLDIR=%VCINSTALLDIR%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce
+        with:
+          msbuild-architecture: x64
+      
+      - name: Add Visual Studio LLVM to path
+        if: steps.skip_check.outputs.should_skip != 'true'
+        run: |
+          echo "$env:VCINSTALLDIR\tools\llvm\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Check for Clang version (MSVC)
+        if: steps.skip_check.outputs.should_skip != 'true'
+        run:
+          clang.exe --version
+
+      - name: Check clang version (LLVM)
+        if: steps.skip_check.outputs.should_skip != 'true'
+        shell: cmd
+        run:
+            '"c:\Program Files\llvm\bin\clang.exe" --version'
+
+
+      - name: Download ntosebpfext 
+        id: download-ntosebpfet
+        shell: powershell
+        working-directory: ${{ env.TEMP }}
+        run: | 
+          git clone --recursive https://github.com/microsoft/ntosebpfext.git
+          cd ${{ env.TEMP }}\ntosebpfext
+          git checkout e7dc209a8be0da2ff5d75f5772a0ee0bf4a10383
+      
+      - name: Configuring repo for first build
+        if: steps.skip_check.outputs.should_skip != 'true'
+        working-directory: ${{ env.TEMP }}\ntosebpfext
+        env:
+          CXXFLAGS: /ZH:SHA_256 ${{ env.CXX_FLAGS }}
+          LDFLAGS: ${{ env.LD_FLAGS }}
+        run: |
+            .\scripts\initialize_repo.ps1
+
+      - name: Build
+        working-directory: ${{ env.TEMP }}\ntosebpfext
+        run: msbuild -target:Tools\process_monitor_bpf:Rebuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} /bl:${{env.BUILD_PLATFORM}}_${{env.BUILD_CONFIGURATION}}\build_logs\build.binlog ${{env.BUILD_OPTIONS}} ${{env.SOLUTION_FILE_PATH}}
+
+      - name: Zip Build Output
+        working-directory: ${{ env.TEMP }}\ntosebpfext
+        run: |
+          Compress-Archive -Path ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -DestinationPath .\build-${{env.BUILD_PLATFORM}}.${{env.BUILD_CONFIGURATION}}.zip
+
+      - name: Upload Build Output
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+        with:
+          working-directory: ${{ env.TEMP }}\ntosebpfext
+          name: ntosebpfext-build-output
+          path: ${{ env.TEMP }}\ntosebpfext\build-${{env.BUILD_PLATFORM}}.${{env.BUILD_CONFIGURATION}}.zip
+          retention-days: 5
+
+
+  windows-tetragon-build:
+    name: Build and Uplod Windows Tetragon and Tetra Binaries
+    runs-on: windows-2022
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        version:
+          - main
+
+    env:
+      TEMP: D:\temp
+      
+
+    steps:
+
+      - run: mkdir D:\temp
+        shell: pwsh
+
+      - name: Install Go
+        uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
+        with:
+          go-version: '1.24.2'
+
+
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          path: go/src/github.com/cilium/tetragon/
+      
+      - name: Build and Zip tetragon Windows binaries
+        working-directory: ${{ github.workspace }}\go\src\github.com\cilium\tetragon
+        shell: powershell
+        run: |
+          go build -o .\Tetra.exe .\cmd\tetra\ 
+          go build -o .\Tetragon.exe .\cmd\tetragon\
+          Get-ChildItem
+          New-Item -ItemType Directory -Path ${{ env.TEMP }}\Tetragon-Windows
+          Copy-Item *.exe -Destination ${{ env.TEMP }}\Tetragon-Windows
+          Compress-Archive -Path ${{ env.TEMP }}\Tetragon-Windows\* -DestinationPath ${{ env.TEMP }}\Tetragon-Windows.zip
+          Get-ChildItem -Recurse ${{ env.TEMP }} 
+
+      - name: Upload Tetragon Windows binaries
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+        with:
+          name: tetragon-windows-build-output
+          path: ${{ env.TEMP }}\Tetragon-Windows.zip
+          retention-days: 5
+
