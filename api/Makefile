@@ -31,19 +31,17 @@ __check-breaking_local:
 
 .PHONY: proto lint format check-breaking
 all proto lint format check-breaking:
-	../contrib/scripts/repo-docker-run.sh --rm \
+	../contrib/scripts/repo-docker-run.sh \
 		--volume $(CURDIR)/..:/src \
 		--workdir /src/api \
-		--user "$(shell id -u):$(shell id -g)" \
 		$(BUILDER_IMAGE) \
 		make -C /src/api __$@_local BUF_BREAKING_AGAINST_BRANCH=$(BUF_BREAKING_AGAINST_BRANCH) 
 
 .PHONY: debug
 debug:
-	@echo ../contrib/scripts/repo-docker-run.sh --rm \
+	@echo ../contrib/scripts/repo-docker-run.sh \
 		--volume $(CURDIR)/..:/src \
 		--workdir /src/api \
-		--user "$(shell id -u):$(shell id -g)" \
 		$(BUILDER_IMAGE) \
 		buf $(EXTRA_BUF_FLAGS)
 
