@@ -29,7 +29,7 @@ require (
 	github.com/opencontainers/runtime-spec v1.2.1
 	github.com/prometheus/client_golang v1.22.0
 	github.com/prometheus/client_model v0.6.2
-	github.com/prometheus/procfs v0.16.0
+	github.com/prometheus/procfs v0.16.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.6
