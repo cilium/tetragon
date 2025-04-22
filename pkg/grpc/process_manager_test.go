@@ -80,7 +80,8 @@ func TestProcessManager_getPodInfo(t *testing.T) {
 					Seconds: int64(podA.Status.ContainerStatuses[0].State.Running.StartedAt.Second()),
 					Nanos:   int32(podA.Status.ContainerStatuses[0].State.Running.StartedAt.Nanosecond()),
 				},
-				Pid: &wrapperspb.UInt32Value{Value: 1234},
+				Pid:             &wrapperspb.UInt32Value{Value: 1234},
+				SecurityContext: &tetragon.SecurityContext{},
 			},
 		}, pod)
 }
@@ -133,11 +134,12 @@ func TestProcessManager_getPodInfoMaybeExecProbe(t *testing.T) {
 			Workload:  podA.OwnerReferences[0].Name,
 			Name:      podA.Name,
 			Container: &tetragon.Container{
-				Id:             podA.Status.ContainerStatuses[0].ContainerID,
-				Name:           podA.Status.ContainerStatuses[0].Name,
-				Image:          &tetragon.Image{},
-				Pid:            &wrapperspb.UInt32Value{Value: 1234},
-				MaybeExecProbe: true,
+				Id:              podA.Status.ContainerStatuses[0].ContainerID,
+				Name:            podA.Status.ContainerStatuses[0].Name,
+				Image:           &tetragon.Image{},
+				Pid:             &wrapperspb.UInt32Value{Value: 1234},
+				MaybeExecProbe:  true,
+				SecurityContext: &tetragon.SecurityContext{},
 			},
 		}, pod)
 }

@@ -20,6 +20,11 @@ message Image {
   string name = 2;
 }
 
+message SecurityContext {
+  // True if this container is priviledged.
+  bool privileged = 1;
+}
+
 message Container {
   // Identifier of the container.
   string id = 1;
@@ -38,6 +43,8 @@ message Container {
   //    and "ls" are considered a match.
   // 2. The arguments field exactly matches the rest of the exec command list.
   bool maybe_exec_probe = 13;
+  // The security context of the container
+  SecurityContext security_context = 14;
 }
 
 message Pod {

@@ -219,6 +219,7 @@ Reasons of why the process privileges changed.
 | start_time | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | Start time of the container. |
 | pid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | Process identifier in the container namespace. |
 | maybe_exec_probe | [bool](#bool) |  | If this is set true, it means that the process might have been originated from a Kubernetes exec probe. For this field to be true, the following must be true: 1. The binary field matches the first element of the exec command list for either liveness or readiness probe excluding the basename. For example, &#34;/bin/ls&#34; and &#34;ls&#34; are considered a match. 2. The arguments field exactly matches the rest of the exec command list. |
+| security_context | [SecurityContext](#tetragon-SecurityContext) |  | The security context of the container |
 
 <a name="tetragon-CreateContainer"></a>
 
@@ -731,6 +732,14 @@ RuntimeHookRequest synchronously propagates information to the agent about run-t
 <a name="tetragon-RuntimeHookResponse"></a>
 
 ### RuntimeHookResponse
+
+<a name="tetragon-SecurityContext"></a>
+
+### SecurityContext
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| privileged | [bool](#bool) |  | True if this container is priviledged. |
 
 <a name="tetragon-StackTraceEntry"></a>
 
