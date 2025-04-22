@@ -68,6 +68,7 @@ func TestK8sWatcher_GetPodInfo(t *testing.T) {
 				Id:   pod.Status.ContainerStatuses[0].ImageID,
 				Name: pod.Status.ContainerStatuses[0].Image,
 			},
+			SecurityContext: &tetragon.SecurityContext{},
 		},
 		PodLabels: pod.Labels,
 	}))

@@ -33,6 +33,37 @@ func getProbes(pod *corev1.Pod, containerStatus *corev1.ContainerStatus) ([]stri
 	return nil, nil
 }
 
+func isContainerPrivileged(pod *corev1.Pod, container *corev1.ContainerStatus) bool {
+	for _, c := range pod.Spec.Containers {
+		if c.Name == container.Name {
+			if c.SecurityContext != nil && c.SecurityContext.Privileged != nil {
+				return *c.SecurityContext.Privileged
+			}
+			return false
+		}
+	}
+
+	for _, c := range pod.Spec.InitContainers {
+		if c.Name == container.Name {
+			if c.SecurityContext != nil && c.SecurityContext.Privileged != nil {
+				return *c.SecurityContext.Privileged
+			}
+			return false
+		}
+	}
+
+	for _, c := range pod.Spec.EphemeralContainers {
+		if c.Name == container.Name {
+			if c.SecurityContext != nil && c.SecurityContext.Privileged != nil {
+				return *c.SecurityContext.Privileged
+			}
+			return false
+		}
+	}
+
+	return false
+}
+
 func getPodInfo(
 	w watcher.PodAccessor,
 	containerID string,
@@ -51,6 +82,7 @@ func getPodInfo(
 	}
 	var startTime *timestamppb.Timestamp
 	livenessProbe, readinessProbe := getProbes(pod, container)
+	isPrivileged := isContainerPrivileged(pod, container)
 	maybeExecProbe := filters.MaybeExecProbe(binary, args, livenessProbe) ||
 		filters.MaybeExecProbe(binary, args, readinessProbe)
 	if container.State.Running != nil {
@@ -82,6 +114,9 @@ func getPodInfo(
 			},
 			StartTime:      startTime,
 			MaybeExecProbe: maybeExecProbe,
+			SecurityContext: &tetragon.SecurityContext{
+				Privileged: isPrivileged,
+			},
 		},
 	}
 	if option.Config.EnablePodAnnotations {
