@@ -315,9 +315,9 @@ func (m *state) updatePodHandler(pod *v1.Pod) error {
 	}
 
 	namespace := pod.Namespace
-	workloadMeta, kindMeta := podhelpers.GetWorkloadMetaFromPod(pod)
-	workload := workloadMeta.Name
-	kind := kindMeta.Kind
+	topLevelWorkload := podhelpers.GetTopLevelWorkloadFromPod(pod)
+	workload := topLevelWorkload.Name
+	kind := topLevelWorkload.Kind
 
 	err = m.UpdatePod(PodID(podID), namespace, workload, kind, pod.Labels, containerIDs, containerNames)
 	if err != nil {

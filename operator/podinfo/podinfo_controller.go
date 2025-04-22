@@ -100,7 +100,7 @@ func equal(pod *corev1.Pod, podInfo *ciliumiov1alpha1.PodInfo) bool {
 		Controller:         &controller,
 		BlockOwnerDeletion: &blockOwnerDeletion,
 	}
-	workloadObject, workloadType := podhelpers.GetWorkloadMetaFromPod(pod)
+	topLevelWorkload := podhelpers.GetTopLevelWorkloadFromPod(pod)
 	return pod.Name == podInfo.Name &&
 		pod.Namespace == podInfo.Namespace &&
 		pod.Status.PodIP == podInfo.Status.PodIP &&
@@ -108,8 +108,7 @@ func equal(pod *corev1.Pod, podInfo *ciliumiov1alpha1.PodInfo) bool {
 		maps.Equal(pod.Labels, podInfo.Labels) &&
 		len(podInfo.OwnerReferences) == 1 &&
 		reflect.DeepEqual(podInfo.OwnerReferences[0], expectedOwnerReference) &&
-		reflect.DeepEqual(podInfo.WorkloadObject, workloadObject) &&
-		reflect.DeepEqual(podInfo.WorkloadType, workloadType) &&
+		reflect.DeepEqual(podInfo.Status.TopLevelWorkload, topLevelWorkload) &&
 		pod.Spec.HostNetwork == podInfo.Spec.HostNetwork &&
 		pod.Spec.NodeName == podInfo.Spec.NodeName
 }
@@ -131,7 +130,7 @@ func generatePodInfo(pod *corev1.Pod) *ciliumiov1alpha1.PodInfo {
 	for _, podIP := range pod.Status.PodIPs {
 		podIPs = append(podIPs, ciliumiov1alpha1.PodIP{IP: podIP.IP})
 	}
-	workloadObject, workloadType := podhelpers.GetWorkloadMetaFromPod(pod)
+	topLevelWorkload := podhelpers.GetTopLevelWorkloadFromPod(pod)
 	controller := true
 	blockOwnerDeletion := true
 	return &ciliumiov1alpha1.PodInfo{
@@ -157,11 +156,10 @@ func generatePodInfo(pod *corev1.Pod) *ciliumiov1alpha1.PodInfo {
 			NodeName:    pod.Spec.NodeName,
 		},
 		Status: ciliumiov1alpha1.PodInfoStatus{
-			PodIP:  pod.Status.PodIP,
-			PodIPs: podIPs,
+			PodIP:            pod.Status.PodIP,
+			PodIPs:           podIPs,
+			TopLevelWorkload: topLevelWorkload,
 		},
-		WorkloadType:   workloadType,
-		WorkloadObject: workloadObject,
 	}
 }
 

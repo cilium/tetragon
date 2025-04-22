@@ -71,9 +71,9 @@ func createContainerHook(_ context.Context, arg *rthooks.CreateContainerArg) err
 	}
 
 	namespace := pod.Namespace
-	workloadMeta, workloadKind := podhelpers.GetWorkloadMetaFromPod(pod)
-	workload := workloadMeta.Name
-	kind := workloadKind.Kind
+	topLevelWorkload := podhelpers.GetTopLevelWorkloadFromPod(pod)
+	workload := topLevelWorkload.Name
+	kind := topLevelWorkload.Kind
 
 	containerName := arg.Req.ContainerName
 	if containerName == "" {
