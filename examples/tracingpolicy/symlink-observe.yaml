@@ -1,3 +1,8 @@
+# This policy is provided as a sample only, and does not provide any security observability
+# guarantees. Users are strongly encouraged to evaluate the functionality defined in this policy and
+# make any modifications necessary to achieve their desired security posture. In particular, syscall
+# tracing suffers from Time-of-Check-to-Time-of-Use (TOCTOU) issues that may limit the utility of
+# this policy.
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
