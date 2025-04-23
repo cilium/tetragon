@@ -123,7 +123,7 @@ func GetCgroupIdFromPath(cgroupPath string) (uint64, error) {
 
 	handle, _, err := unix.NameToHandleAt(unix.AT_FDCWD, cgroupPath, 0)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("nameToHandle on %s failed: %w", cgroupPath, err)
 	}
 
 	err = binary.Read(bytes.NewBuffer(handle.Bytes()), binary.LittleEndian, &fh)
