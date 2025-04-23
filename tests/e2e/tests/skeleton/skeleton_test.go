@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
+//go:build !windows
+
 // This package contains a simple test skeleton that can be copied, pasted, and modified
 // to create new Tetragon e2e tests.
 package skeleton_test

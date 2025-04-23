@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
+//go:build !windows
+
 // Package gops is a simple gops client implementation to dump gops info from end-to-end
 // tests.
 package gops
