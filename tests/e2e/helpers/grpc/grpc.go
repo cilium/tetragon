@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
+//go:build !windows
+
 // Package grpc provides some helpers for contacting with the gRPC tetragon service.
 // It depends on the grpc port being forwarded and available in the context
 package grpc

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
+//go:build !windows
+
 // This package contains helpers for configuring test runners that automate test
 // setup/teardown. In general, every e2e test should at least have something like the
 // following:
