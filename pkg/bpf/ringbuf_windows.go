@@ -157,10 +157,15 @@ func (reader *WindowsRingBufReader) invokeIoctl(request unsafe.Pointer, dwReqSiz
 	var err error
 	var hDevice = INVALID_HANDLE_VALUE
 
+	ebpfIODevicePtr, err := syscall.UTF16PtrFromString(EBPF_IO_DEVICE)
+	if err != nil {
+		return fmt.Errorf("failed to convert string %s to UTF16 pointer: %w", EBPF_IO_DEVICE, err)
+	}
+
 	if overlapped == nil {
 		if reader.hSync == INVALID_HANDLE_VALUE {
 			reader.hSync, _, err = CreateFileW.Call(
-				uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(EBPF_IO_DEVICE))),
+				uintptr(unsafe.Pointer(ebpfIODevicePtr)),
 				uintptr(syscall.GENERIC_READ|syscall.GENERIC_WRITE),
 				0,
 				0,
@@ -176,7 +181,7 @@ func (reader *WindowsRingBufReader) invokeIoctl(request unsafe.Pointer, dwReqSiz
 	} else {
 		if reader.hASync == INVALID_HANDLE_VALUE {
 			reader.hASync, _, err = CreateFileW.Call(
-				uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(EBPF_IO_DEVICE))),
+				uintptr(unsafe.Pointer(ebpfIODevicePtr)),
 				uintptr(syscall.GENERIC_READ|syscall.GENERIC_WRITE),
 				0,
 				0,
@@ -234,9 +239,20 @@ func CreateOverlappedEvent() (uintptr, error) {
 func EbpfGetHandleFromFd(fd int) (uintptr, error) {
 	var moduleHandle uintptr
 
-	moduleHandle, _, err := GetModuleHandleW.Call(uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(`ucrtbased.dll`))))
+	ucrtbased := "ucrtbased.dll"
+	ucrtbasedPtr, err := syscall.UTF16PtrFromString(ucrtbased)
+	if err != nil {
+		return 0, fmt.Errorf("failed to convert string %s to UTF16 pointer: %w", ucrtbased, err)
+	}
+	moduleHandle, _, err = GetModuleHandleW.Call(uintptr(unsafe.Pointer(ucrtbasedPtr)))
 	if (!errors.Is(err, errSuccess)) || (moduleHandle == 0) {
-		moduleHandle, _, err = GetModuleHandleW.Call(uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(`ucrtbase.dll`))))
+		ucrtbase := "ucrtbase.dll"
+		var ucrtbasePtr *uint16
+		ucrtbasePtr, err = syscall.UTF16PtrFromString(ucrtbase)
+		if err != nil {
+			return 0, fmt.Errorf("failed to convert string %s to UTF16 pointer: %w", ucrtbase, err)
+		}
+		moduleHandle, _, err = GetModuleHandleW.Call(uintptr(unsafe.Pointer(ucrtbasePtr)))
 	}
 	if (!errors.Is(err, errSuccess)) || (moduleHandle == 0) {
 		log.WithError(err).Error("error getting ucrt base.")
