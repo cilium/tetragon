@@ -160,15 +160,15 @@ type RecordStruct struct {
 	execEvent MsgExecveEvent
 }
 
-func getExitRecordFromProcInfo(process_info *bpf.ProcessInfo) (Record, error) {
+func getExitRecordFromProcInfo(processInfo *bpf.ProcessInfo) (Record, error) {
 	var record Record
 
 	var exitEvent MsgExit
 	exitEvent.Common.Op = ops.MSG_OP_EXIT
-	exitEvent.Curent.PID = process_info.ProcessId
-	exitEvent.Curent.Ktime = process_info.ExitTime
-	exitEvent.Info.Code = process_info.ProcessExitCode
-	exitEvent.Info.Tid = process_info.ProcessId
+	exitEvent.Curent.PID = processInfo.ProcessId
+	exitEvent.Curent.Ktime = processInfo.ExitTime
+	exitEvent.Info.Code = processInfo.ProcessExitCode
+	exitEvent.Info.Tid = processInfo.ProcessId
 	record.RawSample = make([]byte, unsafe.Sizeof(exitEvent))
 	record.CPU = 0
 	copyBuf := unsafe.Slice((*byte)(unsafe.Pointer(&exitEvent)), unsafe.Sizeof(exitEvent))
@@ -176,26 +176,26 @@ func getExitRecordFromProcInfo(process_info *bpf.ProcessInfo) (Record, error) {
 	return record, nil
 }
 
-func getExecRecordFromProcInfo(process_info *bpf.ProcessInfo, command_map *ebpf.Map, imageMap *ebpf.Map) (Record, error) {
+func getExecRecordFromProcInfo(processInfo *bpf.ProcessInfo, command_map *ebpf.Map, imageMap *ebpf.Map) (Record, error) {
 	// Create record struct
 	var record Record
 
 	var procEvent RecordStruct
 	procEvent.execEvent.Common.Op = ops.MSG_OP_EXECVE
-	procEvent.execEvent.Parent.PID = process_info.CreatingProcessId
-	procEvent.execEvent.Process.PID = process_info.ProcessId
-	procEvent.execEvent.Process.TID = process_info.ProcessId
+	procEvent.execEvent.Parent.PID = processInfo.CreatingProcessID
+	procEvent.execEvent.Process.PID = processInfo.ProcessId
+	procEvent.execEvent.Process.TID = processInfo.ProcessId
 	procEvent.execEvent.Process.Flags = 1
 	procEvent.execEvent.Process.NSPID = 0
 	procEvent.execEvent.Process.Size = uint32(unsafe.Offsetof(procEvent.execEvent.Process.Args))
-	procEvent.execEvent.Process.Ktime = process_info.CreationTime
+	procEvent.execEvent.Process.Ktime = processInfo.CreationTime
 
 	var wideCmd [2048]uint16
-	command_map.Lookup(process_info.ProcessId, &wideCmd)
+	command_map.Lookup(processInfo.ProcessId, &wideCmd)
 	strCmd := windows.UTF16ToString(wideCmd[:])
 
 	var wideImagePath [1024]byte
-	imageMap.Lookup(process_info.ProcessId, &wideImagePath)
+	imageMap.Lookup(processInfo.ProcessId, &wideImagePath)
 	var s = (*uint16)(unsafe.Pointer(&wideImagePath[0]))
 	strImagePath := windows.UTF16PtrToString(s)
 
