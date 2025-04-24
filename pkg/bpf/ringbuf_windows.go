@@ -264,6 +264,7 @@ func EbpfGetHandleFromFd(fd int) (uintptr, error) {
 		return 0, err
 	}
 
+	// nolint:staticcheck
 	ret, _, err := syscall.Syscall9(uintptr(proc), 1, uintptr(fd), 0, 0, 0, 0, 0, 0, 0, 0)
 	if (!errors.Is(err, errSuccess)) || (ret == 0) {
 		log.WithError(err).Error("error calling api.")
