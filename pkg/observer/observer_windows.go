@@ -134,9 +134,9 @@ type ExitInfo struct {
 }
 
 type MsgExit struct {
-	Common MsgCommon
-	Curent MsgExecveKey
-	Info   ExitInfo
+	Common  MsgCommon
+	Current MsgExecveKey
+	Info    ExitInfo
 }
 
 type Record struct {
@@ -166,8 +166,8 @@ func getExitRecordFromProcInfo(processInfo *bpf.ProcessInfo) (Record, error) {
 
 	var exitEvent MsgExit
 	exitEvent.Common.Op = ops.MSG_OP_EXIT
-	exitEvent.Curent.PID = processInfo.ProcessId
-	exitEvent.Curent.Ktime = processInfo.ExitTime
+	exitEvent.Current.PID = processInfo.ProcessId
+	exitEvent.Current.Ktime = processInfo.ExitTime
 	exitEvent.Info.Code = processInfo.ProcessExitCode
 	exitEvent.Info.Tid = processInfo.ProcessId
 	record.RawSample = make([]byte, unsafe.Sizeof(exitEvent))
