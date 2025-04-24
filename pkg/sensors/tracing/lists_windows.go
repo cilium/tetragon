@@ -9,11 +9,11 @@ import (
 )
 
 // isList checks if a value specifies a list, and if so it returns it (or nil if list does not exist)
-func isList(val string, lists []v1alpha1.ListSpec) (bool, *v1alpha1.ListSpec) {
+func isList(_ string, _ []v1alpha1.ListSpec) (bool, *v1alpha1.ListSpec) {
 	return false, nil
 }
 
-func preValidateLists(lists []v1alpha1.ListSpec) (err error) {
+func preValidateLists(_ []v1alpha1.ListSpec) (err error) {
 	return constants.ErrWindowsNotSupported
 }
 
@@ -25,6 +25,6 @@ func (lr *listReader) Read(name string, ty uint32) ([]uint32, error) {
 	return []uint32{}, constants.ErrWindowsNotSupported
 }
 
-func getSyscallListSymbols(list *v1alpha1.ListSpec) ([]string, error) {
+func getSyscallListSymbols(_ *v1alpha1.ListSpec) ([]string, error) {
 	return nil, constants.ErrWindowsNotSupported
 }

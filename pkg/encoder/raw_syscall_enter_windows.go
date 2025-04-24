@@ -5,7 +5,7 @@ package encoder
 
 import "github.com/cilium/tetragon/api/v1/tetragon"
 
-func rawSyscallEnter(tp *tetragon.ProcessTracepoint) string {
+func rawSyscallEnter(_ *tetragon.ProcessTracepoint) string {
 	return "unknown win32"
 
 }

@@ -8,7 +8,6 @@ import (
 )
 
 // GetFnSymbol -- returns the FnSym for a given address and PID
-func GetFnSymbol(pid int, addr uint64) (*FnSym, error) {
+func GetFnSymbol(_ int, _ uint64) (*FnSym, error) {
 	return nil, errors.New("not implemented on windows ")
-
 }

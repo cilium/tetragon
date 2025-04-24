@@ -8,6 +8,6 @@ import (
 	"fmt"
 )
 
-func GetProcessID(pid uint32, ktime uint64) string {
+func GetProcessID(pid uint32, _ uint64) string {
 	return base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%d:%d:%d", pid, pid, pid)))
 }

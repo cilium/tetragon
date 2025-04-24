@@ -8,11 +8,11 @@ import (
 	"github.com/cilium/tetragon/pkg/constants"
 )
 
-func CgroupFsMagicStr(magic uint64) string {
+func CgroupFsMagicStr(_ uint64) string {
 	return ""
 }
 
-func GetCgroupIdFromPath(cgroupPath string) (uint64, error) {
+func GetCgroupIdFromPath(_ string) (uint64, error) {
 	return 0, constants.ErrWindowsNotSupported
 }
 
@@ -56,11 +56,11 @@ func HostCgroupRoot() (string, error) {
 	return "", constants.ErrWindowsNotSupported
 }
 
-func CgroupIDFromPID(pid uint32) (uint64, error) {
+func CgroupIDFromPID(_ uint32) (uint64, error) {
 	return 0, constants.ErrWindowsNotSupported
 }
 
-func GetCgroupIDFromSubCgroup(p string) (uint64, error) {
+func GetCgroupIDFromSubCgroup(_ string) (uint64, error) {
 
 	return 0, constants.ErrWindowsNotSupported
 }

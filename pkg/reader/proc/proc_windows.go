@@ -133,7 +133,7 @@ func GetStatus(pid uint32) (*Status, error) {
 	return GetStatusFromHandle(hProc)
 }
 
-func GetProcStatStrings(file string) ([]string, error) {
+func GetProcStatStrings(_ string) ([]string, error) {
 	return nil, fmt.Errorf(" Not supported on Windows")
 }
 
@@ -143,6 +143,6 @@ func GetProcStatStrings(file string) ([]string, error) {
 //
 //	Current pid from procfs and nil on success
 //	Zero and error on failure
-func GetSelfPid(procfs string) (uint64, error) {
+func GetSelfPid(_ string) (uint64, error) {
 	return uint64(windows.GetCurrentProcessId()), nil
 }

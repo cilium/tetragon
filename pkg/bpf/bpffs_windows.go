@@ -11,9 +11,7 @@ var (
 	notSupportedWinErr = errors.New("not supported on windows")
 )
 
-func CheckOrMountFS(bpfRoot string) {
-
-}
+func CheckOrMountFS(_ string) {}
 
 func CheckOrMountDebugFS() error {
 	return notSupportedWinErr
