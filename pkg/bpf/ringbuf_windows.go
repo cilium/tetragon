@@ -203,7 +203,7 @@ func (reader *WindowsRingBufReader) invokeIoctl(request unsafe.Pointer, dwReqSiz
 		uintptr(unsafe.Pointer(&actualReplySize)),
 		uintptr(overlapped),
 	)
-	if (overlapped != nil) && (success == 0) && (err == errIOPending) {
+	if (overlapped != nil) && (success == 0) && (errors.Is(err, errIOPending)) {
 		success = 1
 		err = nil
 	}
@@ -223,7 +223,7 @@ func CreateOverlappedEvent() (uintptr, error) {
 	var err error
 	var hEvent uintptr
 	hEvent, _, err = CreateEventW.Call(0, 0, 0, 0)
-	if err != error(syscall.Errno(0)) {
+	if !errors.Is(err, error(syscall.Errno(0))) {
 		log.WithError(err).Error("failed creating overlapped Event.")
 		return INVALID_HANDLE_VALUE, err
 	}
@@ -235,10 +235,10 @@ func EbpfGetHandleFromFd(fd int) (uintptr, error) {
 	var moduleHandle uintptr
 
 	moduleHandle, _, err := GetModuleHandleW.Call(uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(`ucrtbased.dll`))))
-	if (err != errSuccess) || (moduleHandle == 0) {
+	if (!errors.Is(err, errSuccess)) || (moduleHandle == 0) {
 		moduleHandle, _, err = GetModuleHandleW.Call(uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(`ucrtbase.dll`))))
 	}
-	if (err != errSuccess) || (moduleHandle == 0) {
+	if (!errors.Is(err, errSuccess)) || (moduleHandle == 0) {
 		log.WithError(err).Error("error getting ucrt base.")
 		return 0, err
 	}
@@ -249,7 +249,7 @@ func EbpfGetHandleFromFd(fd int) (uintptr, error) {
 	}
 
 	ret, _, err := syscall.Syscall9(uintptr(proc), 1, uintptr(fd), 0, 0, 0, 0, 0, 0, 0, 0)
-	if (err != errSuccess) || (ret == 0) {
+	if (!errors.Is(err, errSuccess)) || (ret == 0) {
 		log.WithError(err).Error("error calling api.")
 		return 0, err
 	}
@@ -307,7 +307,7 @@ func (reader *WindowsRingBufReader) fetchNextOffsets() error {
 	overlapped.HEvent = syscall.Handle(reader.hOverlappedEvent)
 
 	err := reader.invokeIoctl(unsafe.Pointer(&reader.currRequest), uint32(unsafe.Sizeof(reader.currRequest)), unsafe.Pointer(&asyncReply), uint32(unsafe.Sizeof(asyncReply)), unsafe.Pointer(&overlapped))
-	if err == error(syscall.Errno(997)) {
+	if errors.Is(err, error(syscall.Errno(997))) {
 		err = nil
 	}
 	if err != nil {
@@ -315,7 +315,7 @@ func (reader *WindowsRingBufReader) fetchNextOffsets() error {
 		return err
 	}
 	waitReason, _, err := WaitForSingleObject.Call(uintptr(overlapped.HEvent), syscall.INFINITE)
-	if err != errSuccess {
+	if !errors.Is(err, errSuccess) {
 		return err
 	}
 	if waitReason != windows.WAIT_OBJECT_0 {
