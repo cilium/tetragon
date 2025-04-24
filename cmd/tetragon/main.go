@@ -710,36 +710,73 @@ func startExporter(ctx context.Context, server *server.Server) error {
 	if err != nil {
 		return err
 	}
+
+	var rateLimiter *ratelimit.RateLimiter
+	var aggregationOptions *tetragon.AggregationOptions
+	if option.Config.EnableExportAggregation {
+		aggregationOptions = &tetragon.AggregationOptions{
+			WindowSize:        durationpb.New(option.Config.ExportAggregationWindowSize),
+			ChannelBufferSize: option.Config.ExportAggregationBufferSize,
+		}
+	}
+	req := tetragon.GetEventsRequest{AllowList: allowList, DenyList: denyList, AggregationOptions: aggregationOptions, FieldFilters: fieldFilters}
+	log.WithFields(logrus.Fields{
+		"fieldFilters": fieldFilters,
+		"allowList":    allowList,
+		"denyList":     denyList,
+	}).Info("Configured event request")
+
+	// Handle export.mode
+	if option.Config.ExportMode == "stdout" {
+		log.WithFields(logrus.Fields{"mode": "stdout"}).Warn("export.mode 'stdout' is deprecated; use 'file' or 'direct-stdout'")
+		option.Config.ExportMode = "file" // Fallback to file
+	}
+
+	if option.Config.ExportMode == "direct-stdout" {
+		log.WithFields(logrus.Fields{"mode": "direct-stdout"}).Info("Starting direct stdout exporter")
+		stdoutEncoder := encoder.NewJSONStdoutEncoder()
+		if option.Config.ExportRateLimit >= 0 {
+			rateLimiter = ratelimit.NewRateLimiter(ctx, 1*time.Minute, option.Config.ExportRateLimit, stdoutEncoder)
+			log.WithFields(logrus.Fields{"rateLimit": option.Config.ExportRateLimit}).Info("Rate limiter enabled")
+		}
+		exporter := exporter.NewExporter(ctx, &req, server, stdoutEncoder, stdoutEncoder, rateLimiter)
+		log.WithFields(logrus.Fields{"destination": "stdout"}).Debug("Starting JSON stdout exporter")
+		go exporter.Start() // Run in goroutine like previous code
+		return nil
+	}
+
+	// File mode
+	if option.Config.ExportMode != "file" {
+		log.WithFields(logrus.Fields{"mode": option.Config.ExportMode}).Warn("Invalid export.mode; defaulting to 'file'")
+		option.Config.ExportMode = "file"
+	}
+
+	log.WithFields(logrus.Fields{"mode": "file"}).Info("Starting file-based exporter")
 	writer := &lumberjack.Logger{
 		Filename:   option.Config.ExportFilename,
 		MaxSize:    option.Config.ExportFileMaxSizeMB,
 		MaxBackups: option.Config.ExportFileMaxBackups,
 		Compress:   option.Config.ExportFileCompress,
 	}
-
 	perms, err := fileutils.RegularFilePerms(option.Config.ExportFilePerm)
 	if err != nil {
-		log.WithError(err).Warnf("Failed to parse export file permission '%s', failing back to %v",
+		log.WithError(err).Warnf("Failed to parse export file permission '%s', falling back to %v",
 			option.KeyExportFilePerm, perms)
 	}
 	writer.FileMode = perms
 
 	finfo, err := os.Stat(filepath.Clean(option.Config.ExportFilename))
 	if err == nil && finfo.IsDir() {
-		// Error if exportFilename points to a directory
-		return errors.New("passed export JSON logs file point to a directory")
+		return errors.New("passed export JSON logs file points to a directory")
 	}
 	logFile := filepath.Base(option.Config.ExportFilename)
 	logsDir, err := filepath.Abs(filepath.Dir(filepath.Clean(option.Config.ExportFilename)))
 	if err != nil {
 		log.WithError(err).Warnf("Failed to get absolute path of exported JSON logs '%s'", option.Config.ExportFilename)
-		// Do not fail; we let lumberjack handle this. We want to
-		// log the rotate logs operation.
 		logsDir = filepath.Dir(option.Config.ExportFilename)
 	}
 
 	if option.Config.ExportFileRotationInterval < 0 {
-		// Passed an invalid interval let's error out
 		return fmt.Errorf("frequency '%s' at which to rotate JSON export files is negative", option.Config.ExportFileRotationInterval.String())
 	} else if option.Config.ExportFileRotationInterval > 0 {
 		log.WithFields(logrus.Fields{
@@ -767,25 +804,15 @@ func startExporter(ctx context.Context, server *server.Server) error {
 		}()
 	}
 
-	// Track how many bytes are written to the event export location
 	encoderWriter := exporter.NewExportedBytesTotalWriter(writer)
-	encoder := encoder.NewProtojsonEncoder(encoderWriter)
-	var rateLimiter *ratelimit.RateLimiter
+	jsonEncoder := encoder.NewProtojsonEncoder(encoderWriter)
 	if option.Config.ExportRateLimit >= 0 {
-		rateLimiter = ratelimit.NewRateLimiter(ctx, 1*time.Minute, option.Config.ExportRateLimit, encoder)
+		rateLimiter = ratelimit.NewRateLimiter(ctx, 1*time.Minute, option.Config.ExportRateLimit, jsonEncoder)
 	}
-	var aggregationOptions *tetragon.AggregationOptions
-	if option.Config.EnableExportAggregation {
-		aggregationOptions = &tetragon.AggregationOptions{
-			WindowSize:        durationpb.New(option.Config.ExportAggregationWindowSize),
-			ChannelBufferSize: option.Config.ExportAggregationBufferSize,
-		}
-	}
-	req := tetragon.GetEventsRequest{AllowList: allowList, DenyList: denyList, AggregationOptions: aggregationOptions, FieldFilters: fieldFilters}
-	log.WithFields(logrus.Fields{"fieldFilters": fieldFilters}).Info("Configured field filters")
 	log.WithFields(logrus.Fields{"logger": writer, "request": &req}).Info("Starting JSON exporter")
-	exporter := exporter.NewExporter(ctx, &req, server, encoder, writer, rateLimiter)
-	return exporter.Start()
+	exporter := exporter.NewExporter(ctx, &req, server, jsonEncoder, writer, rateLimiter)
+	go exporter.Start()
+	return nil
 }
 
 func Serve(ctx context.Context, listenAddr string, srv *server.Server) error {
