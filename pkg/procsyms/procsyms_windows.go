@@ -4,10 +4,10 @@
 package procsyms
 
 import (
-	"errors"
+	"github.com/cilium/tetragon/pkg/constants"
 )
 
 // GetFnSymbol -- returns the FnSym for a given address and PID
 func GetFnSymbol(_ int, _ uint64) (*FnSym, error) {
-	return nil, errors.New("not implemented on windows ")
+	return nil, constants.ErrWindowsNotSupported
 }
