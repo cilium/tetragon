@@ -351,7 +351,7 @@ tetragonOperator:
       scrapeInterval: "10s"
 # -- Tetragon events export settings
 export:
-  # "stdout". "" to disable.
+  # "stdout (deprecated)" - file (sidecar + volume) - direct-stdout (stdout without file and sidecar).
   mode: "stdout"
   resources: {}
   securityContext: {}
