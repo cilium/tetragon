@@ -18,7 +18,7 @@ func UpdateElementFromPointers(fd int, structPtr, sizeOfStruct uintptr) error {
 
 	ret, _, err := BPF.Call(BPF_MAP_LOOKUP_ELEM, structPtr, sizeOfStruct)
 	if ret != 0 || err != nil {
-		return fmt.Errorf("Unable to update element for map with file descriptor %d: %s", fd, err)
+		return fmt.Errorf("unable to update element for map with file descriptor %d: %w", fd, err)
 	}
 	return nil
 }

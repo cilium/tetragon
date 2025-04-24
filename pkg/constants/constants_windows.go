@@ -28,5 +28,5 @@ const (
 )
 
 var (
-	ErrWindowsNotSupported = errors.New("This functionality is not supported on windows")
+	ErrWindowsNotSupported = errors.New("this functionality is not supported on Windows")
 )
