@@ -73,7 +73,7 @@ func getTokenInfo(t syscall.Token, class uint32, initSize int) (unsafe.Pointer, 
 		if e == nil {
 			return unsafe.Pointer(&b[0]), nil
 		}
-		if e != syscall.ERROR_INSUFFICIENT_BUFFER {
+		if !errors.Is(e, syscall.ERROR_INSUFFICIENT_BUFFER) {
 			return nil, e
 		}
 		if n <= uint32(len(b)) {
