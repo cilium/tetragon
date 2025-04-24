@@ -14,18 +14,16 @@ import (
 )
 
 var (
-	ModuleNt       = windows.NewLazySystemDLL("ntdll.dll")
 	ModuleKernel32 = windows.NewLazySystemDLL("kernel32.dll")
 
-	NtQuerySystemInformation = ModuleNt.NewProc("NtQuerySystemInformation")
-	CreateFileW              = ModuleKernel32.NewProc("CreateFileW")
-	DeviceIoControl          = ModuleKernel32.NewProc("DeviceIoControl")
-	WaitForSingleObject      = ModuleKernel32.NewProc("WaitForSingleObject")
-	CreateEventW             = ModuleKernel32.NewProc("CreateEventW")
-	ResetEvent               = ModuleKernel32.NewProc("ResetEvent")
-	GetModuleHandleW         = ModuleKernel32.NewProc("GetModuleHandleW")
-	GetHandleFromFd          = EbpfApi.NewProc("ebpf_get_handle_from_fd")
-	log                      = logger.GetLogger()
+	CreateFileW         = ModuleKernel32.NewProc("CreateFileW")
+	DeviceIoControl     = ModuleKernel32.NewProc("DeviceIoControl")
+	WaitForSingleObject = ModuleKernel32.NewProc("WaitForSingleObject")
+	CreateEventW        = ModuleKernel32.NewProc("CreateEventW")
+	ResetEvent          = ModuleKernel32.NewProc("ResetEvent")
+	GetModuleHandleW    = ModuleKernel32.NewProc("GetModuleHandleW")
+	GetHandleFromFd     = EbpfApi.NewProc("ebpf_get_handle_from_fd")
+	log                 = logger.GetLogger()
 )
 
 type operationHeader struct {
@@ -153,8 +151,6 @@ func (reader *WindowsRingBufReader) invokeIoctl(request unsafe.Pointer, dwReqSiz
 	var requestPtr = request
 	var replySize = dwRespSize
 	var replyPtr = response
-	var variableReplySize = false
-	var err error
 	var hDevice = INVALID_HANDLE_VALUE
 
 	ebpfIODevicePtr, err := syscall.UTF16PtrFromString(EBPF_IO_DEVICE)
@@ -174,7 +170,7 @@ func (reader *WindowsRingBufReader) invokeIoctl(request unsafe.Pointer, dwReqSiz
 				0,
 			)
 			if reader.hSync == INVALID_HANDLE_VALUE {
-				return err
+				return fmt.Errorf("fail to call CreateFileW: %w", err)
 			}
 			hDevice = reader.hSync
 		}
@@ -190,7 +186,7 @@ func (reader *WindowsRingBufReader) invokeIoctl(request unsafe.Pointer, dwReqSiz
 				0,
 			)
 			if reader.hASync == INVALID_HANDLE_VALUE {
-				return err
+				return fmt.Errorf("fail to call CreateFileW with flag overlapped: %w", err)
 			}
 		}
 		hDevice = reader.hASync
@@ -214,20 +210,17 @@ func (reader *WindowsRingBufReader) invokeIoctl(request unsafe.Pointer, dwReqSiz
 	}
 
 	if success == 0 {
-		log.WithError(syscall.GetLastError()).Error("device io control failed.")
-		return err
+		return fmt.Errorf("device IO control failed: %w", err)
 	}
 
-	if actualReplySize != replySize && !variableReplySize {
-		return err
+	if actualReplySize != replySize {
+		return fmt.Errorf("actualReplySize %d != replySize %d: %w", actualReplySize, replySize, err)
 	}
 	return nil
 
 }
 func CreateOverlappedEvent() (uintptr, error) {
-	var err error
-	var hEvent uintptr
-	hEvent, _, err = CreateEventW.Call(0, 0, 0, 0)
+	hEvent, _, err := CreateEventW.Call(0, 0, 0, 0)
 	if !errors.Is(err, error(syscall.Errno(0))) {
 		log.WithError(err).Error("failed creating overlapped Event.")
 		return INVALID_HANDLE_VALUE, err
@@ -236,15 +229,13 @@ func CreateOverlappedEvent() (uintptr, error) {
 	return hEvent, nil
 }
 
-func EbpfGetHandleFromFd(fd int) (uintptr, error) {
-	var moduleHandle uintptr
-
+func EbpfGetHandleFromFD(fd int) (uintptr, error) {
 	ucrtbased := "ucrtbased.dll"
 	ucrtbasedPtr, err := syscall.UTF16PtrFromString(ucrtbased)
 	if err != nil {
 		return 0, fmt.Errorf("failed to convert string %s to UTF16 pointer: %w", ucrtbased, err)
 	}
-	moduleHandle, _, err = GetModuleHandleW.Call(uintptr(unsafe.Pointer(ucrtbasedPtr)))
+	moduleHandle, _, err := GetModuleHandleW.Call(uintptr(unsafe.Pointer(ucrtbasedPtr)))
 	if (!errors.Is(err, errSuccess)) || (moduleHandle == 0) {
 		ucrtbase := "ucrtbase.dll"
 		var ucrtbasePtr *uint16
@@ -253,22 +244,20 @@ func EbpfGetHandleFromFd(fd int) (uintptr, error) {
 			return 0, fmt.Errorf("failed to convert string %s to UTF16 pointer: %w", ucrtbase, err)
 		}
 		moduleHandle, _, err = GetModuleHandleW.Call(uintptr(unsafe.Pointer(ucrtbasePtr)))
+		if (!errors.Is(err, errSuccess)) || (moduleHandle == 0) {
+			return 0, fmt.Errorf("error getting ucrt base: %w", err)
+		}
 	}
-	if (!errors.Is(err, errSuccess)) || (moduleHandle == 0) {
-		log.WithError(err).Error("error getting ucrt base.")
-		return 0, err
-	}
+
 	proc, err := syscall.GetProcAddress(syscall.Handle(moduleHandle), "_get_osfhandle")
 	if (err != nil) || (proc == 0) {
-		log.WithError(err).Error("error getting _get_osfhandle.")
-		return 0, err
+		return 0, fmt.Errorf("error getting _get_osfhandle: %w", err)
 	}
 
 	// nolint:staticcheck
 	ret, _, err := syscall.Syscall9(uintptr(proc), 1, uintptr(fd), 0, 0, 0, 0, 0, 0, 0, 0)
 	if (!errors.Is(err, errSuccess)) || (ret == 0) {
-		log.WithError(err).Error("error calling api.")
-		return 0, err
+		return 0, fmt.Errorf("error calling api: %w", err)
 	}
 
 	return ret, nil
@@ -286,7 +275,7 @@ func (reader *WindowsRingBufReader) Init(fd int, ring_buffer_size int) error {
 		return errors.New("invalid fd provided")
 	}
 	reader.ringBufferSize = uint64(ring_buffer_size)
-	handle, err := EbpfGetHandleFromFd(fd)
+	handle, err := EbpfGetHandleFromFD(fd)
 	if err != nil {
 		return fmt.Errorf("cannot get handle from fd: %w", err)
 	}
