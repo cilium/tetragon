@@ -5,6 +5,7 @@ package observer
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"runtime"
 	"sync"
@@ -215,7 +216,7 @@ func getExecRecordFromProcInfo(processInfo *bpf.ProcessInfo, command_map *ebpf.M
 func (observer *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 	coll := bpf.GetExecCollection()
 	if coll == nil {
-		return fmt.Errorf("Exec Preloaded collection is nil")
+		return errors.New("exec Preloaded collection is nil")
 	}
 	commandline_map := coll.Maps["command_map"]
 	ringBufMap := coll.Maps["process_ringbuf"]

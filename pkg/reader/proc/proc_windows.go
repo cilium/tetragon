@@ -4,6 +4,7 @@
 package proc
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"syscall"
@@ -96,7 +97,7 @@ func fillLoginUid(hProc windows.Handle, status *Status) error {
 	}
 	tokenGroups := (*TokenGroups)(ret)
 	if tokenGroups.GroupCount == 0 {
-		return fmt.Errorf("login uid not found")
+		return errors.New("login uid not found")
 	}
 
 	sidAndAttributes := (*syscall.SIDAndAttributes)(unsafe.Pointer(&tokenGroups.Groups[0]))

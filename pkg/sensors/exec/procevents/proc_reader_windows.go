@@ -201,12 +201,12 @@ func getProcessParamsFromHandle64(handle windows.Handle) (RtlUserProcessParams64
 
 	buf := readProcessMemory(syscall.Handle(handle), false, pebAddress, uint(unsafe.Sizeof(PEB64{})))
 	if len(buf) != int(unsafe.Sizeof(PEB64{})) {
-		return RtlUserProcessParams64{}, fmt.Errorf("cannot read process PEB")
+		return RtlUserProcessParams64{}, errors.New("cannot read process PEB")
 	}
 	peb := (*PEB64)(unsafe.Pointer(&buf[0]))
 	buf = readProcessMemory(syscall.Handle(handle), false, peb.ProcessParameters, uint(unsafe.Sizeof(RtlUserProcessParams64{})))
 	if len(buf) != int(unsafe.Sizeof(RtlUserProcessParams64{})) {
-		return RtlUserProcessParams64{}, fmt.Errorf("cannot read user process parameters")
+		return RtlUserProcessParams64{}, errors.New("cannot read user process parameters")
 	}
 	return *(*RtlUserProcessParams64)(unsafe.Pointer(&buf[0])), nil
 }
@@ -219,12 +219,12 @@ func getProcessParamsFromHandle32(handle windows.Handle) (RtlUserProcessParams32
 
 	buf := readProcessMemory(syscall.Handle(handle), true, pebAddress, uint(unsafe.Sizeof(PEB32{})))
 	if len(buf) != int(unsafe.Sizeof(PEB32{})) {
-		return RtlUserProcessParams32{}, fmt.Errorf("cannot read process PEB")
+		return RtlUserProcessParams32{}, errors.New("cannot read process PEB")
 	}
 	peb := (*PEB32)(unsafe.Pointer(&buf[0]))
 	buf = readProcessMemory(syscall.Handle(handle), true, uint64(peb.ProcessParameters), uint(unsafe.Sizeof(RtlUserProcessParams32{})))
 	if len(buf) != int(unsafe.Sizeof(RtlUserProcessParams32{})) {
-		return RtlUserProcessParams32{}, fmt.Errorf("cannot read user process parameters")
+		return RtlUserProcessParams32{}, errors.New("cannot read user process parameters")
 	}
 	return *(*RtlUserProcessParams32)(unsafe.Pointer(&buf[0])), nil
 }
@@ -339,7 +339,7 @@ func getProcessImagePathFromHandle(hProc windows.Handle) (string, error) {
 		}
 		return windows.UTF16ToString(buf[:]), nil
 	}
-	return "", fmt.Errorf("Could not find function QueryFullProcessImageNameW")
+	return "", errors.New("could not find function QueryFullProcessImageNameW")
 }
 
 func fetchProcessCmdLineFromHandle(hProc windows.Handle) (string, error) {
