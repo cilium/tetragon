@@ -224,7 +224,7 @@ func (observer *Observer) RunEvents(stopCtx context.Context, ready func()) error
 	reader := bpf.GetNewWindowsRingBufReader()
 	err := reader.Init(ringBufMap.FD(), int(ringBufMap.MaxEntries()))
 	if err != nil {
-		return fmt.Errorf("failed initing rinbuf reader: %w", err)
+		return fmt.Errorf("failed initializing ringbuf reader: %w", err)
 	}
 	// Inform caller that we're about to start processing events.
 	observer.observerListeners(&readyapi.MsgTetragonReady{})
