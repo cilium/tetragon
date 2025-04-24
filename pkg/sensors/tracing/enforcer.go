@@ -47,15 +47,6 @@ func init() {
 	sensors.RegisterPolicyHandlerAtInit("enforcer", gEnforcerPolicy)
 }
 
-func enforcerMapsUser(load *program.Program) []*program.Map {
-	edm := program.MapUserPolicy(EnforcerDataMapName, load)
-	edm.SetMaxEntries(enforcerMapMaxEntries)
-	return []*program.Map{
-		edm,
-		program.MapUserPolicy(enforcermetrics.EnforcerMissedMapName, load),
-	}
-}
-
 func enforcerMaps(load *program.Program) []*program.Map {
 	edm := program.MapBuilderPolicy(EnforcerDataMapName, load)
 	edm.SetMaxEntries(enforcerMapMaxEntries)

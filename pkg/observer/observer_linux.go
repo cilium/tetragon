@@ -6,13 +6,58 @@ package observer
 import (
 	"context"
 	"fmt"
+	"math"
+	"os"
 	"runtime"
 	"sync"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/perf"
 	"github.com/cilium/tetragon/pkg/api/readyapi"
+	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/strutils"
 )
+
+const (
+	perCPUBufferBytes = 65535
+)
+
+func (k *Observer) getRBSize(cpus int) int {
+	var size int
+
+	if option.Config.RBSize == 0 && option.Config.RBSizeTotal == 0 {
+		size = perCPUBufferBytes
+	} else if option.Config.RBSize != 0 {
+		size = option.Config.RBSize
+	} else {
+		size = option.Config.RBSizeTotal / int(cpus)
+	}
+
+	cpuSize := perfBufferSize(size)
+	totalSize := cpuSize * cpus
+
+	k.log.WithField("percpu", strutils.SizeWithSuffix(cpuSize)).
+		WithField("total", strutils.SizeWithSuffix(totalSize)).
+		Info("Perf ring buffer size (bytes)")
+	return size
+}
+
+// Gets final size for single perf ring buffer rounded from
+// passed size argument (kindly borrowed from ebpf/cilium)
+func perfBufferSize(perCPUBuffer int) int {
+	pageSize := os.Getpagesize()
+
+	// Smallest whole number of pages
+	nPages := (perCPUBuffer + pageSize - 1) / pageSize
+
+	// Round up to nearest power of two number of pages
+	nPages = int(math.Pow(2, math.Ceil(math.Log2(float64(nPages)))))
+
+	// Add one for metadata
+	nPages++
+
+	return nPages * pageSize
+}
 
 func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 	pinOpts := ebpf.LoadPinOptions{}

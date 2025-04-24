@@ -23,9 +23,6 @@ import (
 )
 
 const (
-	maxMapRetries = 4
-	mapRetryDelay = 1
-
 	kernelPid = uint32(0)
 )
 

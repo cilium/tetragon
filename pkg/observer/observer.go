@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -28,10 +27,6 @@ import (
 	dto "github.com/prometheus/client_model/go"
 
 	"github.com/sirupsen/logrus"
-)
-
-const (
-	perCPUBufferBytes = 65535
 )
 
 var (
@@ -137,43 +132,6 @@ func (k *Observer) receiveEvent(data []byte) {
 	if option.Config.EnableMsgHandlingLatency {
 		opcodemetrics.LatencyStats.WithLabelValues(strconv.FormatUint(uint64(op), 10)).Observe(float64(time.Since(timer).Microseconds()))
 	}
-}
-
-// Gets final size for single perf ring buffer rounded from
-// passed size argument (kindly borrowed from ebpf/cilium)
-func perfBufferSize(perCPUBuffer int) int {
-	pageSize := os.Getpagesize()
-
-	// Smallest whole number of pages
-	nPages := (perCPUBuffer + pageSize - 1) / pageSize
-
-	// Round up to nearest power of two number of pages
-	nPages = int(math.Pow(2, math.Ceil(math.Log2(float64(nPages)))))
-
-	// Add one for metadata
-	nPages++
-
-	return nPages * pageSize
-}
-
-func (k *Observer) getRBSize(cpus int) int {
-	var size int
-
-	if option.Config.RBSize == 0 && option.Config.RBSizeTotal == 0 {
-		size = perCPUBufferBytes
-	} else if option.Config.RBSize != 0 {
-		size = option.Config.RBSize
-	} else {
-		size = option.Config.RBSizeTotal / int(cpus)
-	}
-
-	cpuSize := perfBufferSize(size)
-	totalSize := cpuSize * cpus
-
-	k.log.WithField("percpu", strutils.SizeWithSuffix(cpuSize)).
-		WithField("total", strutils.SizeWithSuffix(totalSize)).
-		Info("Perf ring buffer size (bytes)")
-	return size
 }
 
 func (k *Observer) getRBQueueSize() int {
