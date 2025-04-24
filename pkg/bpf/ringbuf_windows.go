@@ -3,6 +3,7 @@
 package bpf
 
 import (
+	"errors"
 	"fmt"
 	"sync/atomic"
 	"syscall"
@@ -190,7 +191,7 @@ func (reader *WindowsRingBufReader) invokeIoctl(request unsafe.Pointer, dwReqSiz
 		hDevice = reader.hASync
 	}
 	if hDevice == INVALID_HANDLE_VALUE {
-		return fmt.Errorf("error opening device")
+		return errors.New("error opening device")
 	}
 	success, _, err := DeviceIoControl.Call(
 		uintptr(hDevice),
@@ -265,7 +266,7 @@ func EbpfRingBufferNextRecord(buffer []byte, bufferLength, consumer, producer ui
 
 func (reader *WindowsRingBufReader) Init(fd int, ring_buffer_size int) error {
 	if fd <= 0 {
-		return fmt.Errorf("invalid fd provided")
+		return errors.New("invalid fd provided")
 	}
 	reader.ringBufferSize = uint64(ring_buffer_size)
 	handle, err := EbpfGetHandleFromFd(fd)
@@ -299,7 +300,7 @@ func (reader *WindowsRingBufReader) Init(fd int, ring_buffer_size int) error {
 
 func (reader *WindowsRingBufReader) fetchNextOffsets() error {
 	if reader.consumerOffset > reader.producerOffset {
-		return fmt.Errorf("offsets are not same, read ahead in buffer")
+		return errors.New("offsets are not same, read ahead in buffer")
 	}
 	var asyncReply operationMapAsyncQueryReply
 	var overlapped syscall.Overlapped
