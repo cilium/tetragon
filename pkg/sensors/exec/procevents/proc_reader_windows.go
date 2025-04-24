@@ -107,7 +107,7 @@ type RtlUserProcessParams64 struct {
 	CommandLine   UnicodeString64
 }
 
-type SYSTEM_INFO struct {
+type SystemInfo struct {
 	wProcessorArchitecture      uint16
 	wReserved                   uint16
 	dwPageSize                  uint32
@@ -295,7 +295,7 @@ func readProcessMemory(procHandle syscall.Handle, _ bool, address uint64, size u
 }
 
 func init() {
-	var systemInfo SYSTEM_INFO
+	var systemInfo SystemInfo
 	GetSystemInfo.Call(uintptr(unsafe.Pointer(&systemInfo)))
 	processorArch = uint(systemInfo.wProcessorArchitecture)
 }
