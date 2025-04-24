@@ -39,6 +39,7 @@ const (
 	KeyK8sKubeConfigPath = "k8s-kubeconfig-path"
 
 	KeyEnablePodAnnotations = "enable-pod-annotations"
+	KeyExportMode           = "export-mode"
 
 	KeyMetricsServer      = "metrics-server"
 	KeyMetricsLabelFilter = "metrics-label-filter"
@@ -234,6 +235,7 @@ func ReadAndSetFlags() error {
 
 	Config.EnablePodInfo = viper.GetBool(KeyEnablePodInfo)
 	Config.EnablePodAnnotations = viper.GetBool(KeyEnablePodAnnotations)
+	Config.ExportMode = viper.GetString(KeyExportMode)
 	Config.EnableTracingPolicyCRD = viper.GetBool(KeyEnableTracingPolicyCRD)
 
 	Config.TracingPolicy = viper.GetString(KeyTracingPolicy)
@@ -357,6 +359,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Bool(KeyEnableProcessNs, false, "Enable namespace information in process_exec and process_kprobe events")
 	flags.Uint(KeyEventQueueSize, 10000, "Set the size of the internal event queue.")
 	flags.Bool(KeyEnablePodAnnotations, false, "Add pod annotations field to events.")
+	flags.String(KeyExportMode, "file", "Export mode: file (logs to file with sidecar) or direct-stdout (logs to stdout, no sidecar)")
 	// Allow to include ancestor processes in events
 	flags.Bool(KeyEnableProcessAncestors, false, "Include ancestors in process_exec and process_exit events. Disabled by default. Required by other enable ancestors options for correct reference counting")
 	flags.Bool(KeyEnableProcessKprobeAncestors, false, fmt.Sprintf("Include ancestors in process_kprobe events. Only used if '%s' is set to 'true'", KeyEnableProcessAncestors))

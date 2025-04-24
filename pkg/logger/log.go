@@ -39,6 +39,7 @@ func InitializeDefaultLogger() (logger *logrus.Logger) {
 	fmt, _ := getFormatter(defaultLogFormat)
 	logger.SetFormatter(fmt)
 	logger.SetLevel(defaultLogLevel)
+	logger.SetOutput(os.Stderr)
 	return
 }
 
@@ -82,7 +83,7 @@ func (o LogOptions) getLogFormat() LogFormat {
 }
 
 func ResetLogOutput() {
-	DefaultLogger.SetOutput(os.Stdout)
+	DefaultLogger.SetOutput(os.Stderr)
 }
 
 func GetLogLevel() logrus.Level {
@@ -132,7 +133,7 @@ func SetupLogging(o LogOptions, debug bool) error {
 	// Updating the default log format
 	setLogFormat(o.getLogFormat())
 
-	logrus.SetOutput(os.Stdout)
+	logrus.SetOutput(os.Stderr)
 
 	// Updating the default log level, overriding the log options if the debug arg is being set
 	if debug {
