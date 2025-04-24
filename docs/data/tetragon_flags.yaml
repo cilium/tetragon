@@ -151,6 +151,10 @@ options:
         Interval at which to rotate JSON export files in addition to rotating them by size
     - name: export-filename
       usage: Filename for JSON export. Disabled by default
+    - name: export-mode
+      default_value: file
+      usage: |
+        Export mode: file (logs to file with sidecar) or direct-stdout (logs to stdout, no sidecar)
     - name: export-rate-limit
       default_value: "-1"
       usage: |
