@@ -56,7 +56,7 @@ spec:
 {{- end }}
       {{- include "initcontainers.extra" . | nindent 6 }}
       containers:
-{{- if eq .Values.export.mode "stdout" }}
+{{- if or (eq .Values.export.mode "file") (eq .Values.export.mode "stdout") }}
       {{- include "container.export.stdout" . | nindent 6 -}}
 {{- end }}
 {{- if .Values.tetragon.enabled }}
@@ -82,10 +82,12 @@ spec:
         hostPath:
           path: /var/run/cilium
           type: DirectoryOrCreate
+{{- if or (eq .Values.export.mode "file") (eq .Values.export.mode "stdout") }}
       - name: export-logs
         hostPath:
           path: {{ .Values.exportDirectory }}
           type: DirectoryOrCreate
+{{- end }}
 {{- if .Values.tetragon.enabled }}
       - name: tetragon-config
         configMap:
