@@ -100,7 +100,3 @@ func Environment() []string {
 		"TC_BPF_MNT="+GetMapRoot(),
 	)
 }
-
-var (
-	mountOnce sync.Once
-)

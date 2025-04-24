@@ -10,11 +10,6 @@ import (
 	"github.com/cilium/tetragon/pkg/api/processapi"
 )
 
-type hostNamespaces struct {
-	ns  *tetragon.Namespaces
-	err error
-}
-
 func GetMyPidG() uint32 {
 	return uint32(os.Getpid())
 }

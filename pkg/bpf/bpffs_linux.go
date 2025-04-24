@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sync"
 	"syscall"
 
 	"github.com/cilium/ebpf/rlimit"
@@ -16,6 +17,7 @@ import (
 )
 
 var (
+	mountOnce sync.Once
 	// Path to where debugfs is mounted
 	debugFSRoot = "/sys/kernel/debug"
 	// Path to where cgroup2 is mounted

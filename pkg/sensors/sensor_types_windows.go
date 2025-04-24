@@ -4,14 +4,8 @@
 package sensors
 
 import (
-	"strings"
-
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
-
-func sanitize(name string) string {
-	return strings.ReplaceAll(name, "/", "_")
-}
 
 var (
 	// list of registered policy handlers, see RegisterPolicyHandlerAtInit()

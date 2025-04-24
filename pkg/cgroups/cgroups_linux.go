@@ -28,6 +28,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type deploymentEnv struct {
+	id       DeploymentCode
+	str      string
+	endsWith string
+}
+
 type CgroupController struct {
 	Id     uint32 // Hierarchy unique ID
 	Idx    uint32 // Cgroup SubSys index

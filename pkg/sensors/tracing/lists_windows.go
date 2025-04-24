@@ -17,14 +17,6 @@ func preValidateLists(_ []v1alpha1.ListSpec) (err error) {
 	return constants.ErrWindowsNotSupported
 }
 
-type listReader struct {
-	lists []v1alpha1.ListSpec
-}
-
-func (lr *listReader) Read(name string, ty uint32) ([]uint32, error) {
-	return []uint32{}, constants.ErrWindowsNotSupported
-}
-
 func getSyscallListSymbols(_ *v1alpha1.ListSpec) ([]string, error) {
 	return nil, constants.ErrWindowsNotSupported
 }

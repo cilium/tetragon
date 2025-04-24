@@ -25,6 +25,11 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
 )
 
+const (
+	maxMapRetries = 4
+	mapRetryDelay = 1
+)
+
 func procKernel() procs {
 	kernelArgs := []byte("<kernel>\u0000")
 	return procs{

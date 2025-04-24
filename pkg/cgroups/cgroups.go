@@ -33,12 +33,6 @@ const (
 
 type DeploymentCode int
 
-type deploymentEnv struct {
-	id       DeploymentCode
-	str      string
-	endsWith string
-}
-
 const (
 	// Deployment modes
 	DEPLOY_UNKNOWN    DeploymentCode = iota
