@@ -128,7 +128,7 @@ func convertUTF16ToString(src []byte) string {
 	codePoints := make([]uint16, srcLen)
 
 	srcIdx := 0
-	for i := 0; i < srcLen; i++ {
+	for i := range srcLen {
 		codePoints[i] = uint16(src[srcIdx]) | uint16(src[srcIdx+1])<<8
 		srcIdx += 2
 	}
