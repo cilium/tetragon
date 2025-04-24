@@ -7,6 +7,6 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 )
 
-func rawSyscallName(tp *tetragon.ProcessTracepoint) string {
+func rawSyscallName(_ *tetragon.ProcessTracepoint) string {
 	return ""
 }

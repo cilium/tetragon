@@ -187,7 +187,7 @@ func updateExecveMapStats(procs int64) {
 
 }
 
-func writeExecveMap(procs []procs) {
+func writeExecveMap(_ []procs) {
 	//ToDo: WIP
 	// Currently we do not share the infor gathered in usermode with execve map in kernel in Windows,
 	// This method is currently stubbed out but will be implemented
@@ -505,7 +505,7 @@ func NewProcess(procEntry windows.ProcessEntry32) (procs, error) {
 
 }
 
-func listRunningProcs(procPath string) ([]procs, error) {
+func listRunningProcs(_ string) ([]procs, error) {
 	var processes []procs
 	snapshotHandle, err := windows.CreateToolhelp32Snapshot(windows.TH32CS_SNAPPROCESS, uint32(0))
 	if err != nil {

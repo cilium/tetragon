@@ -3,6 +3,6 @@
 
 package procevents
 
-func procsDockerId(pid uint32) (string, error) {
+func procsDockerId(_ uint32) (string, error) {
 	return "", nil
 }

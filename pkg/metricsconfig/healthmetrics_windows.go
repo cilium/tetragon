@@ -5,6 +5,6 @@ package metricsconfig
 
 import "github.com/cilium/tetragon/pkg/metrics"
 
-func registerHealthMetricsEx(group metrics.Group) {
+func registerHealthMetricsEx(_ metrics.Group) {
 
 }

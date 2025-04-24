@@ -14,7 +14,7 @@ func checkProcFS() {
 
 }
 
-func initCachedBTF(lib, btf string) error {
+func initCachedBTF(_, _ string) error {
 	return nil
 }
 
