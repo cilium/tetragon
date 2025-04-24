@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"unsafe"
 
+	"github.com/cilium/tetragon/pkg/constants"
 	"golang.org/x/sys/windows"
 )
 
@@ -134,7 +135,7 @@ func GetStatus(pid uint32) (*Status, error) {
 }
 
 func GetProcStatStrings(_ string) ([]string, error) {
-	return nil, fmt.Errorf(" Not supported on Windows")
+	return nil, constants.ErrWindowsNotSupported
 }
 
 // GetSelfPid() Get current pid
