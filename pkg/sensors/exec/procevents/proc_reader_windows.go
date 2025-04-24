@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"syscall"
 	"unsafe"
 
@@ -161,7 +162,7 @@ func procKernel() procs {
 
 func getCWD(pid uint32) (string, uint32) {
 	flags := uint32(0)
-	pidstr := fmt.Sprint(pid)
+	pidstr := strconv.FormatUint(uint64(pid), 10)
 
 	if pid == 0 {
 		return "", flags

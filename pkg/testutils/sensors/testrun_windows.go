@@ -5,7 +5,6 @@ package sensors
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -62,7 +61,7 @@ func TestSensorsRun(m *testing.M, sensorName string) int {
 		logger.DefaultLogger.SetLevel(logrus.TraceLevel)
 	}
 
-	testMapDir := fmt.Sprintf("test%s", sensorName)
+	testMapDir := "test" + sensorName
 
 	if config.TetragonLib != "" {
 		option.Config.HubbleLib = config.TetragonLib
