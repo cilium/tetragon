@@ -196,8 +196,7 @@ func getExecRecordFromProcInfo(process_info *bpf.ProcessInfo, command_map *ebpf.
 
 	var wideImagePath [1024]byte
 	imageMap.Lookup(process_info.ProcessId, &wideImagePath)
-	var s *uint16
-	s = (*uint16)(unsafe.Pointer(&wideImagePath[0]))
+	var s = (*uint16)(unsafe.Pointer(&wideImagePath[0]))
 	strImagePath := windows.UTF16PtrToString(s)
 
 	strImagePath += string(uint8(0))

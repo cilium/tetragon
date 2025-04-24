@@ -148,13 +148,13 @@ func EbpfRingBufferRecordTotalSize(record *ebpf_ring_buffer_record) uint32 {
 
 func (reader *WindowsRingBufReader) invokeIoctl(request unsafe.Pointer, dwReqSize uint32, response unsafe.Pointer, dwRespSize uint32, overlapped unsafe.Pointer) error {
 	var actualReplySize uint32
-	var requestSize uint32 = dwReqSize
-	var requestPtr unsafe.Pointer = request
-	var replySize uint32 = dwRespSize
-	var replyPtr unsafe.Pointer = response
-	var variableReplySize bool = false
+	var requestSize = dwReqSize
+	var requestPtr = request
+	var replySize = dwRespSize
+	var replyPtr = response
+	var variableReplySize = false
 	var err error
-	var hDevice uintptr = INVALID_HANDLE_VALUE
+	var hDevice = INVALID_HANDLE_VALUE
 
 	if overlapped == nil {
 		if reader.hSync == INVALID_HANDLE_VALUE {

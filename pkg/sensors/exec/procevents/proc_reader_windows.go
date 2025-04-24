@@ -376,15 +376,16 @@ func fetchProcessCmdLineFromHandle(hProc windows.Handle) (string, error) {
 	return "", nil
 }
 
+// nolint:revive
 func NewProcess(procEntry windows.ProcessEntry32) (procs, error) {
 	var empty procs
 	var pcmdline string
 	var cmdline string
 	var ktime uint64
 	var pktime uint64
-	var pid uint32 = procEntry.ProcessID
-	var ppid uint32 = procEntry.ParentProcessID
-	var execPath string = windows.UTF16ToString(procEntry.ExeFile[:])
+	var pid = procEntry.ProcessID
+	var ppid = procEntry.ParentProcessID
+	var execPath = windows.UTF16ToString(procEntry.ExeFile[:])
 	var pexecPath string
 	hProc, err := windows.OpenProcess(windows.PROCESS_QUERY_INFORMATION|windows.PROCESS_VM_READ|windows.PROCESS_QUERY_LIMITED_INFORMATION, false, uint32(pid))
 	if err != nil {
