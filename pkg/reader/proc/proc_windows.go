@@ -22,7 +22,7 @@ type TokenGroups struct {
 func getIDFromSID(str_sid string) (string, error) {
 	tokens := strings.Split(str_sid, "-")
 	if len(tokens) <= 1 {
-		return "", fmt.Errorf("Could no parse SID %s", str_sid)
+		return "", fmt.Errorf("could no parse SID %s", str_sid)
 	}
 	return tokens[len(tokens)-1], nil
 }
