@@ -23,6 +23,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/policyfilter"
 
 	"github.com/cilium/tetragon/pkg/bugtool"
 	"github.com/cilium/tetragon/pkg/cgrouprate"
@@ -45,6 +46,7 @@ import (
 	"github.com/cilium/tetragon/pkg/ratelimit"
 	"github.com/cilium/tetragon/pkg/rthooks"
 	"github.com/cilium/tetragon/pkg/sensors/base"
+	"github.com/cilium/tetragon/pkg/sensors/base/procfs"
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/server"
@@ -471,6 +473,11 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	// so it's there before we allow to load policies.
 	if err = loadInitialSensor(ctx); err != nil {
 		return err
+	}
+	if option.Config.EnablePolicyFilter && policyfilter.NSMapUpdateSupportedFromBPF() {
+		if err := procfs.Walk(); err != nil {
+			logger.GetLogger().WithError(err).Warn("failed to walk procfs, policyfilter may not work as expected")
+		}
 	}
 	observer.GetSensorManager().LogSensorsAndProbes(ctx)
 	defer func() {

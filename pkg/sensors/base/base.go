@@ -16,6 +16,7 @@ import (
 	"github.com/cilium/tetragon/pkg/mbset"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/base/procfs"
 	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/strutils"
@@ -164,6 +165,11 @@ func initBaseSensor() *sensors.Sensor {
 	setupSensor()
 	sensor.Progs = GetDefaultPrograms()
 	sensor.Maps = GetDefaultMaps()
+	if option.Config.EnablePolicyFilter {
+		cgroupProgs, cgroupMaps := procfs.Enable()
+		sensor.Progs = append(sensor.Progs, cgroupProgs...)
+		sensor.Maps = append(sensor.Maps, cgroupMaps...)
+	}
 	return ApplyExtensions(&sensor)
 }
 

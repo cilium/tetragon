@@ -33,7 +33,9 @@ PROCESS = bpf_loader.o \
 	  bpf_cgroup.o \
 	  bpf_enforcer.o bpf_multi_enforcer.o bpf_fmodret_enforcer.o \
 	  bpf_map_test_p1.o bpf_map_test_p2.o bpf_map_test_p3.o \
-	  bpf_prog_iter.o
+	  bpf_prog_iter.o \
+	  bpf_cgroup_lookup.o \
+	  bpf_cgroup_lookup_fentry.o
 
 # v3.10 RHEL7
 # base sensor
