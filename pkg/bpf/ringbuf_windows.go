@@ -21,7 +21,7 @@ var (
 	WaitForSingleObject = ModuleKernel32.NewProc("WaitForSingleObject")
 	CreateEventW        = ModuleKernel32.NewProc("CreateEventW")
 	ResetEvent          = ModuleKernel32.NewProc("ResetEvent")
-	GetModuleHandleW    = ModuleKernel32.NewProc("GetModuleHandleW")
+	getModuleHandleW    = ModuleKernel32.NewProc("GetModuleHandleW")
 	GetHandleFromFd     = EbpfApi.NewProc("ebpf_get_handle_from_fd")
 	log                 = logger.GetLogger()
 )
@@ -227,27 +227,31 @@ func CreateOverlappedEvent() (uintptr, error) {
 	return hEvent, nil
 }
 
-func EbpfGetHandleFromFD(fd int) (uintptr, error) {
-	ucrtbased := "ucrtbased.dll"
-	ucrtbasedPtr, err := syscall.UTF16PtrFromString(ucrtbased)
+func GetModuleHandleW(module string) (syscall.Handle, error) {
+	moduleStringPtr, err := syscall.UTF16PtrFromString(module)
 	if err != nil {
-		return 0, fmt.Errorf("failed to convert string %s to UTF16 pointer: %w", ucrtbased, err)
+		return syscall.InvalidHandle, fmt.Errorf("fail to convert string %s to UTF16 pointer: %w", module, err)
 	}
-	moduleHandle, _, err := GetModuleHandleW.Call(uintptr(unsafe.Pointer(ucrtbasedPtr)))
-	if (!errors.Is(err, errSuccess)) || (moduleHandle == 0) {
-		ucrtbase := "ucrtbase.dll"
-		var ucrtbasePtr *uint16
-		ucrtbasePtr, err = syscall.UTF16PtrFromString(ucrtbase)
+
+	handlerPtr, _, err := getModuleHandleW.Call(uintptr(unsafe.Pointer(moduleStringPtr)))
+	if (!errors.Is(err, errSuccess)) || (handlerPtr == 0) {
+		return syscall.InvalidHandle, err
+	}
+
+	return syscall.Handle(handlerPtr), nil
+}
+
+func EbpfGetHandleFromFD(fd int) (uintptr, error) {
+	moduleHandle, err := GetModuleHandleW("ucrtbased.dll")
+	if err != nil {
+		// retry with another name
+		moduleHandle, err = GetModuleHandleW("ucrtbase.dll")
 		if err != nil {
-			return 0, fmt.Errorf("failed to convert string %s to UTF16 pointer: %w", ucrtbase, err)
-		}
-		moduleHandle, _, err = GetModuleHandleW.Call(uintptr(unsafe.Pointer(ucrtbasePtr)))
-		if (!errors.Is(err, errSuccess)) || (moduleHandle == 0) {
-			return 0, fmt.Errorf("error getting ucrt base: %w", err)
+			return 0, err
 		}
 	}
 
-	proc, err := syscall.GetProcAddress(syscall.Handle(moduleHandle), "_get_osfhandle")
+	proc, err := syscall.GetProcAddress(moduleHandle, "_get_osfhandle")
 	if (err != nil) || (proc == 0) {
 		return 0, fmt.Errorf("error getting _get_osfhandle: %w", err)
 	}
