@@ -213,12 +213,10 @@ func (reader *WindowsRingBufReader) invokeIoctl(request unsafe.Pointer, dwReqSiz
 		return fmt.Errorf("device IO control failed: %w", err)
 	}
 
-	if actualReplySize != replySize {
-		return fmt.Errorf("actualReplySize %d != replySize %d: %w", actualReplySize, replySize, err)
-	}
+	// Note that actualReplySize != replySize is not an error for async APIs
 	return nil
-
 }
+
 func CreateOverlappedEvent() (uintptr, error) {
 	hEvent, _, err := CreateEventW.Call(0, 0, 0, 0)
 	if !errors.Is(err, error(syscall.Errno(0))) {
