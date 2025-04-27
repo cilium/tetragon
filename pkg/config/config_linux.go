@@ -91,6 +91,21 @@ func GenericUprobeObjs(multi bool) string {
 	return "bpf_generic_uprobe.o"
 }
 
+func GenericUsdtObjs(multi bool) string {
+	if multi {
+		if EnableV612Progs() {
+			return "bpf_multi_usdt_v612.o"
+		}
+		return "bpf_multi_usdt_v61.o"
+	}
+	if EnableV612Progs() {
+		return "bpf_generic_usdt_v612.o"
+	} else if EnableV61Progs() {
+		return "bpf_generic_usdt_v61.o"
+	}
+	return "bpf_generic_usdt_v53.o"
+}
+
 func GenericTracepointObjs(raw bool) string {
 	if raw {
 		if EnableV612Progs() {
