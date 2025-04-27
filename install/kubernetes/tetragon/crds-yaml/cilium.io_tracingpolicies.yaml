@@ -2709,6 +2709,46 @@ spec:
                   - symbols
                   type: object
                 type: array
+              usdts:
+                description: A list of usdt specs.
+                items:
+                  properties:
+                    message:
+                      description: |-
+                        A short message of 256 characters max that will be included
+                        in the event output to inform users what is going on.
+                      type: string
+                    names:
+                      description: Provider name
+                      items:
+                        properties:
+                          name:
+                            description: Usdt name
+                            type: string
+                          provider:
+                            description: Usdt provider name
+                            type: string
+                        required:
+                        - name
+                        - provider
+                        type: object
+                      type: array
+                    path:
+                      description: Name of the traced binary
+                      type: string
+                    tags:
+                      description: |-
+                        Tags to categorize the event, will be include in the event output.
+                        Maximum of 16 Tags are supported.
+                      items:
+                        type: string
+                      maxItems: 16
+                      type: array
+                  required:
+                  - names
+                  - path
+                  type: object
+                type: array
             type: object
         required:
         - metadata
