@@ -332,6 +332,24 @@ type UProbeSpec struct {
 	Tags []string `json:"tags,omitempty"`
 }
 
+type UsdtSpec struct {
+	// Name of the traced binary
+	Path string `json:"path"`
+	// Usdt provider name
+	Provider string `json:"provider"`
+	// Usdt name
+	Name string `json:"name"`
+	// +kubebuilder:validation:optional
+	// +kubebuilder:validation:MaxItems=16
+	// Tags to categorize the event, will be include in the event output.
+	// Maximum of 16 Tags are supported.
+	Tags []string `json:"tags,omitempty"`
+	// +kubebuilder:validation:Optional
+	// A short message of 256 characters max that will be included
+	// in the event output to inform users what is going on.
+	Message string `json:"message"`
+}
+
 type LsmHookSpec struct {
 	// Name of the function to apply the kprobe spec to.
 	Hook string `json:"hook"`
