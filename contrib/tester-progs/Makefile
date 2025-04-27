@@ -27,7 +27,8 @@ PROGS = sigkill-tester \
 	user-stacktrace \
 	test-helper \
 	pause \
-	raisesigkill
+	raisesigkill \
+	usdt
 
 
 all: $(PROGS)
@@ -76,6 +77,9 @@ uprobe-test-1: uprobe-test.c libuprobe.so
 
 uprobe-test-2: uprobe-test-1
 	cp uprobe-test-1 uprobe-test-2
+
+usdt: usdt.c
+	$(GCC) -Wall $< -o $@
 
 # NB: compile the 32 bit version of enforcer-tester statically so that we don't
 # need additional libraries in the VMs
