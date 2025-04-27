@@ -82,13 +82,17 @@ container-shell:
 clean:
 	find "$(CURDIR)" -name "*.elf" -delete
 	find "$(CURDIR)" -name "*.o" -delete
+	rm usdt
 
 format:
 	find . -type f -name "*.c" | xargs clang-format -i
 
-all: format $(addsuffix -el.elf,$(TARGETS)) $(addsuffix -eb.elf,$(TARGETS)) generate
+all: format $(addsuffix -el.elf,$(TARGETS)) $(addsuffix -eb.elf,$(TARGETS)) generate usdt
 	ln -srf testdata/loader-$(CLANG)-el.elf testdata/loader-el.elf
 	ln -srf testdata/loader-$(CLANG)-eb.elf testdata/loader-eb.elf
+
+usdt: usdt.c
+	$(CC) -o usdt usdt.c
 
 generate:
 	go generate -run "internal/cmd/gentypes" ./...

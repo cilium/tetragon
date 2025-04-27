@@ -42,6 +42,10 @@ type Executable struct {
 	cachedAddresses map[string]uint64
 	// Keep track of symbol table lazy load.
 	cacheAddressesOnce sync.Once
+	// Parsed Elf's USDT targets.
+	cachedUsdt []*UsdtTarget
+	// Keep track of usdt targets lazy load.
+	cachedUsdtOnce sync.Once
 }
 
 // UprobeOptions defines additional parameters that will be used
