@@ -44,7 +44,7 @@ PROCESS += bpf_execve_event_v310.o bpf_exit_v310.o bpf_fork_v310.o
 PROCESS += bpf_execve_event.o bpf_fork.o bpf_exit.o bpf_execve_bprm_commit_creds.o
 # generic probes
 PROCESS += bpf_generic_kprobe.o bpf_generic_retkprobe.o bpf_generic_tracepoint.o \
-	   bpf_generic_uprobe.o bpf_generic_rawtp.o
+	   bpf_generic_uprobe.o bpf_generic_rawtp.o bpf_generic_usdt.o
 
 # lsm
 PROCESS += bpf_generic_lsm_core.o bpf_generic_lsm_output.o
@@ -56,7 +56,8 @@ PROCESS += bpf_execve_event_v53.o
 PROCESS += bpf_generic_kprobe_v53.o bpf_generic_retkprobe_v53.o \
 	   bpf_multi_kprobe_v53.o bpf_multi_retkprobe_v53.o \
 	   bpf_generic_tracepoint_v53.o bpf_generic_uprobe_v53.o \
-	   bpf_generic_rawtp_v53.o
+	   bpf_generic_rawtp_v53.o \
+	   bpf_generic_usdt_v53.o
 
 # v5.11
 # base sensor
@@ -65,7 +66,8 @@ PROCESS += bpf_execve_event_v511.o
 PROCESS += bpf_generic_kprobe_v511.o bpf_generic_retkprobe_v511.o \
 	   bpf_multi_kprobe_v511.o bpf_multi_retkprobe_v511.o \
 	   bpf_generic_tracepoint_v511.o bpf_generic_uprobe_v511.o \
-	   bpf_generic_rawtp_v511.o
+	   bpf_generic_rawtp_v511.o \
+	   bpf_generic_usdt_v511.o
 
 # lsm
 PROCESS += bpf_generic_lsm_core_v511.o bpf_generic_lsm_output_v511.o \
@@ -79,7 +81,9 @@ PROCESS += bpf_generic_kprobe_v61.o bpf_generic_retkprobe_v61.o \
 	   bpf_multi_kprobe_v61.o bpf_multi_retkprobe_v61.o \
 	   bpf_generic_tracepoint_v61.o bpf_generic_uprobe_v61.o \
 	   bpf_multi_uprobe_v61.o \
-	   bpf_generic_rawtp_v61.o
+	   bpf_generic_rawtp_v61.o \
+	   bpf_generic_usdt_v61.o \
+	   bpf_multi_usdt_v61.o
 
 # v6.12
 # base sensor
@@ -89,7 +93,10 @@ PROCESS += bpf_generic_kprobe_v612.o bpf_generic_retkprobe_v612.o \
 	   bpf_multi_kprobe_v612.o bpf_multi_retkprobe_v612.o \
 	   bpf_generic_tracepoint_v612.o bpf_generic_uprobe_v612.o \
 	   bpf_multi_uprobe_v612.o \
-	   bpf_generic_rawtp_v612.o
+	   bpf_generic_rawtp_v612.o \
+	   bpf_generic_usdt_v612.o \
+	   bpf_multi_usdt_v612.o
+
 # lsm
 PROCESS += bpf_generic_lsm_core_v61.o bpf_generic_lsm_output_v61.o \
 	   bpf_generic_lsm_ima_file_v61.o bpf_generic_lsm_ima_bprm_v61.o \
@@ -173,6 +180,7 @@ VAR := $1
 $(DEPSDIR)bpf_multi_kprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_kprobe.c
 $(DEPSDIR)bpf_multi_retkprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_retkprobe.c
 $(DEPSDIR)bpf_multi_uprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_uprobe.c
+$(DEPSDIR)bpf_multi_usdt_$$(VAR).d: $(PROCESSDIR)bpf_generic_usdt.c
 
 # Object build rule for VARIANT objects
 $(OBJSDIR)%_$$(VAR).o:
@@ -193,9 +201,11 @@ CFLAGS_bpf_multi_kprobe_$$(VAR).o    = -D__MULTI_KPROBE
 CFLAGS_bpf_multi_retkprobe_$$(VAR).o = -D__MULTI_KPROBE
 ifeq (v61,$$(VAR))
 CFLAGS_bpf_multi_uprobe_$$(VAR).o    = -D__MULTI_KPROBE
+CFLAGS_bpf_multi_usdt_$$(VAR).o      = -D__MULTI_KPROBE
 endif
 ifeq (v612,$$(VAR))
 CFLAGS_bpf_multi_uprobe_$$(VAR).o    = -D__MULTI_KPROBE
+CFLAGS_bpf_multi_usdt_$$(VAR).o      = -D__MULTI_KPROBE
 endif
 endef # DEFINE_VARIANT
 
