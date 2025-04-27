@@ -616,6 +616,10 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 	generic_process_init(e, MSG_OP_GENERIC_UPROBE, config);
 #endif
 
+#ifdef GENERIC_USDT
+	generic_process_init(e, MSG_OP_GENERIC_USDT, config);
+#endif
+
 #ifdef GENERIC_RAWTP
 	struct bpf_raw_tracepoint_args *raw_args = (struct bpf_raw_tracepoint_args *)ctx;
 
