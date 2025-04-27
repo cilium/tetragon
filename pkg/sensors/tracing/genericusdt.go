@@ -1,0 +1,396 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright Authors of Tetragon
+
+//go:build !windows
+
+package tracing
+
+import (
+	"bytes"
+	"encoding/binary"
+	"errors"
+	"fmt"
+	"path"
+
+	"github.com/cilium/ebpf"
+	"github.com/cilium/ebpf/link"
+	"github.com/cilium/tetragon/pkg/api/ops"
+	api "github.com/cilium/tetragon/pkg/api/tracingapi"
+	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/config"
+	"github.com/cilium/tetragon/pkg/grpc/tracing"
+	"github.com/cilium/tetragon/pkg/idtable"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/base"
+	"github.com/cilium/tetragon/pkg/sensors/program"
+)
+
+type observerUsdtSensor struct {
+	name string
+}
+
+var (
+	usdtTable idtable.Table
+)
+
+type genericUsdt struct {
+	tableId idtable.EntryID
+	config  *api.EventConfig
+	path    string
+	target  *link.UsdtTarget
+	// policyName is the name of the policy that this uprobe belongs to
+	policyName string
+	// message field of the Tracing Policy
+	message string
+	// argument data printers
+	argPrinters []argPrinter
+	// tags field of the Tracing Policy
+	tags []string
+}
+
+func (g *genericUsdt) SetID(id idtable.EntryID) {
+	g.tableId = id
+}
+
+func init() {
+	usdt := &observerUsdtSensor{
+		name: "usdt sensor",
+	}
+	sensors.RegisterProbeType("generic_usdt", usdt)
+	observer.RegisterEventHandlerAtInit(ops.MSG_OP_GENERIC_USDT, handleGenericUsdt)
+}
+
+func genericUsdtTableGet(id idtable.EntryID) (*genericUsdt, error) {
+	entry, err := usdtTable.GetEntry(id)
+	if err != nil {
+		return nil, fmt.Errorf("getting entry from usdtTable failed with: %w", err)
+	}
+	val, ok := entry.(*genericUsdt)
+	if !ok {
+		return nil, fmt.Errorf("getting entry from usdtTable failed with: got invalid type: %T (%v)", entry, entry)
+	}
+	return val, nil
+}
+
+type addUsdtIn struct {
+	sensorPath string
+	policyName string
+	useMulti   bool
+}
+
+func createGenericUsdtSensor(
+	spec *v1alpha1.TracingPolicySpec,
+	name string,
+	polInfo *policyInfo,
+) (*sensors.Sensor, error) {
+	var progs []*program.Program
+	var maps []*program.Map
+	var ids []idtable.EntryID
+	var err error
+
+	in := addUsdtIn{
+		sensorPath: name,
+		policyName: polInfo.name,
+		useMulti:   !polInfo.specOpts.DisableUprobeMulti && bpf.HasUprobeMulti(),
+	}
+
+	for _, usdt := range spec.Usdts {
+		ids, err = addUsdt(&usdt, ids, &in)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if in.useMulti {
+		progs, maps, err = createMultiUsdtSensor(name, ids, polInfo.name)
+	} else {
+		progs, maps, err = createSingleUsdtSensor(ids)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	maps = append(maps, program.MapUserFrom(base.ExecveMap))
+
+	return &sensors.Sensor{
+		Name:      name,
+		Progs:     progs,
+		Maps:      maps,
+		Policy:    polInfo.name,
+		Namespace: polInfo.namespace,
+	}, nil
+}
+
+func createMultiUsdtSensor(sensorPath string, multiIDs []idtable.EntryID, policyName string) ([]*program.Program, []*program.Map, error) {
+	var progs []*program.Program
+	var maps []*program.Map
+
+	loadProgName := "bpf_multi_usdt_v61.o"
+
+	load := program.Builder(
+		path.Join(option.Config.HubbleLib, loadProgName),
+		fmt.Sprintf("uprobe_multi (%d functions)", len(multiIDs)),
+		"uprobe.multi/generic_usdt",
+		"multi_uprobe",
+		"generic_usdt").
+		SetLoaderData(multiIDs).
+		SetPolicy(policyName)
+
+	progs = append(progs, load)
+
+	configMap := program.MapBuilderProgram("config_map", load)
+	tailCalls := program.MapBuilderProgram("usdt_calls", load)
+	filterMap := program.MapBuilderProgram("filter_map", load)
+
+	maps = append(maps, configMap, tailCalls, filterMap)
+
+	filterMap.SetMaxEntries(len(multiIDs))
+	configMap.SetMaxEntries(len(multiIDs))
+	return progs, maps, nil
+}
+
+func createSingleUsdtSensor(ids []idtable.EntryID) ([]*program.Program, []*program.Map, error) {
+	var progs []*program.Program
+	var maps []*program.Map
+
+	for _, id := range ids {
+		usdtEntry, err := genericUsdtTableGet(id)
+		if err != nil {
+			return nil, nil, err
+		}
+		progs, maps = createUsdtSensorFromEntry(usdtEntry, progs, maps)
+	}
+
+	return progs, maps, nil
+}
+
+func createUsdtSensorFromEntry(usdtEntry *genericUsdt,
+	progs []*program.Program, maps []*program.Map) ([]*program.Program, []*program.Map) {
+
+	loadProgName := "bpf_generic_usdt.o"
+	if config.EnableV61Progs() {
+		loadProgName = "bpf_generic_usdt_v61.o"
+	} else if config.EnableLargeProgs() {
+		loadProgName = "bpf_generic_usdt_v53.o"
+	}
+
+	attachData := &program.UprobeAttachData{
+		Path:         usdtEntry.path,
+		Address:      usdtEntry.target.IpRel,
+		RefCtrOffset: usdtEntry.target.SemaOff,
+	}
+
+	load := program.Builder(
+		path.Join(option.Config.HubbleLib, loadProgName),
+		fmt.Sprintf("%s %s %s", usdtEntry.path, usdtEntry.target.Spec.Provider, usdtEntry.target.Spec.Name),
+		"uprobe/generic_usdt",
+		fmt.Sprintf("%s_%s_%d", usdtEntry.target.Spec.Provider, usdtEntry.target.Spec.Name, usdtEntry.tableId.ID),
+		"generic_usdt").
+		SetAttachData(attachData).
+		SetLoaderData(usdtEntry).
+		SetPolicy(usdtEntry.policyName)
+
+	progs = append(progs, load)
+
+	configMap := program.MapBuilderProgram("config_map", load)
+	tailCalls := program.MapBuilderProgram("usdt_calls", load)
+	filterMap := program.MapBuilderProgram("filter_map", load)
+	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
+	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap)
+	return progs, maps
+}
+
+func addUsdt(spec *v1alpha1.UsdtSpec, ids []idtable.EntryID, in *addUsdtIn) ([]idtable.EntryID, error) {
+	ex, err := link.OpenExecutable(spec.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	targets, err := ex.UsdtTargets()
+	if err != nil {
+		return nil, err
+	}
+
+	find := func(provider, name string) *link.UsdtTarget {
+		for _, target := range targets {
+			if provider == target.Spec.Provider && name == target.Spec.Name {
+				return target
+			}
+		}
+		return nil
+	}
+
+	tagsField, err := getPolicyTags(spec.Tags)
+	if err != nil {
+		return nil, err
+	}
+
+	msgField, err := getPolicyMessage(spec.Message)
+	if errors.Is(err, ErrMsgSyntaxShort) || errors.Is(err, ErrMsgSyntaxEscape) {
+		return nil, err
+	} else if errors.Is(err, ErrMsgSyntaxLong) {
+		logger.GetLogger().WithField("policy-name", in.policyName).
+			Warnf("TracingPolicy 'message' field too long, truncated to %d characters", TpMaxMessageLen)
+	}
+
+	var argPrinters []argPrinter
+
+	for _, name := range spec.Names {
+		target := find(name.Provider, name.Name)
+		if target == nil {
+			return nil, fmt.Errorf("failed to find USDT target for %s/%s\n", name.Provider, name.Name)
+		}
+
+		config := &api.EventConfig{}
+
+		usdtEntry := &genericUsdt{
+			tableId:     idtable.UninitializedEntryID,
+			config:      config,
+			path:        spec.Path,
+			target:      target,
+			policyName:  in.policyName,
+			argPrinters: argPrinters,
+			tags:        tagsField,
+			message:     msgField,
+		}
+
+		usdtTable.AddEntry(usdtEntry)
+		id := usdtEntry.tableId
+
+		config.FuncId = uint32(id.ID)
+
+		ids = append(ids, id)
+	}
+
+	return ids, nil
+}
+
+func (k *observerUsdtSensor) LoadProbe(args sensors.LoadProbeArgs) error {
+	load := args.Load
+	if entry, ok := load.LoaderData.(*genericUsdt); ok {
+		return loadSingleUsdtSensor(entry, args)
+	}
+	if ids, ok := load.LoaderData.([]idtable.EntryID); ok {
+		return loadMultiUsdtSensor(ids, args)
+	}
+	return fmt.Errorf("invalid loadData type: expecting idtable.EntryID/[] and got: %T (%v)",
+		load.LoaderData, load.LoaderData)
+}
+
+func loadSingleUsdtSensor(usdtEntry *genericUsdt, args sensors.LoadProbeArgs) error {
+	load := args.Load
+
+	// config_map data
+	var configData bytes.Buffer
+	binary.Write(&configData, binary.LittleEndian, usdtEntry.config)
+
+	mapLoad := []*program.MapLoad{
+		{
+			Index: 0,
+			Name:  "config_map",
+			Load: func(m *ebpf.Map, _ string, index uint32) error {
+				return m.Update(index, configData.Bytes()[:], ebpf.UpdateAny)
+			},
+		},
+	}
+
+	load.MapLoad = append(load.MapLoad, mapLoad...)
+
+	if err := program.LoadUprobeProgram(args.BPFDir, args.Load, args.Maps, args.Verbose); err != nil {
+		return err
+	}
+
+	logger.GetLogger().Infof("Loaded generic usdt program: %s -> %s [%s]",
+		args.Load.Name, usdtEntry.path, usdtEntry.target.Spec.Provider, usdtEntry.target.Spec.Name)
+	return nil
+}
+
+func loadMultiUsdtSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) error {
+	load := args.Load
+	data := &program.MultiUprobeAttachData{}
+	data.Attach = make(map[string]*program.MultiUprobeAttachSymbolsCookies)
+
+	for index, id := range ids {
+		usdtEntry, err := genericUsdtTableGet(id)
+		if err != nil {
+			logger.GetLogger().WithError(err).Warnf("Failed to match id:%d", id)
+			return errors.New("failed to match id")
+		}
+
+		// config_map data
+		var configData bytes.Buffer
+		binary.Write(&configData, binary.LittleEndian, usdtEntry.config)
+
+		mapLoad := []*program.MapLoad{
+			{
+				Index: uint32(index),
+				Name:  "config_map",
+				Load: func(m *ebpf.Map, _ string, index uint32) error {
+					return m.Update(index, configData.Bytes()[:], ebpf.UpdateAny)
+				},
+			},
+		}
+		load.MapLoad = append(load.MapLoad, mapLoad...)
+
+		attach, ok := data.Attach[usdtEntry.path]
+		if !ok {
+			attach = &program.MultiUprobeAttachSymbolsCookies{}
+		}
+
+		attach.Addresses = append(attach.Addresses, usdtEntry.target.IpRel)
+		attach.RefCtrOffsets = append(attach.RefCtrOffsets, usdtEntry.target.SemaOff)
+		attach.Cookies = append(attach.Cookies, uint64(index))
+
+		data.Attach[usdtEntry.path] = attach
+	}
+
+	load.SetAttachData(data)
+
+	if err := program.LoadMultiUprobeProgram(args.BPFDir, args.Load, args.Maps, args.Verbose); err == nil {
+		logger.GetLogger().Infof("Loaded generic uprobe sensor: %s -> %s", load.Name, load.Attach)
+	} else {
+		return err
+	}
+
+	return nil
+}
+
+func handleGenericUsdt(r *bytes.Reader) ([]observer.Event, error) {
+	m := api.MsgGenericKprobe{}
+	err := binary.Read(r, binary.LittleEndian, &m)
+	if err != nil {
+		logger.GetLogger().WithError(err).Warnf("Failed to read process call msg")
+		return nil, errors.New("failed to read process call msg")
+	}
+
+	uprobeUsdt, err := genericUsdtTableGet(idtable.EntryID{ID: int(m.FuncId)})
+	if err != nil {
+		logger.GetLogger().WithError(err).Warnf("Failed to match id:%d", m.FuncId)
+		return nil, errors.New("failed to match id")
+	}
+
+	unix := &tracing.MsgGenericUprobeUnix{}
+	unix.Msg = &m
+	unix.Path = uprobeUsdt.path
+	unix.Symbol = uprobeUsdt.target.Spec.Provider + ":" + uprobeUsdt.target.Spec.Name
+	unix.PolicyName = uprobeUsdt.policyName
+	unix.Message = uprobeUsdt.message
+	unix.Tags = uprobeUsdt.tags
+
+	// Get argument objects for specific printers/types
+	for _, a := range uprobeUsdt.argPrinters {
+		arg := getArg(r, a)
+		// nop or unknown type (already logged)
+		if arg == nil {
+			continue
+		}
+		unix.Args = append(unix.Args, arg)
+	}
+
+	return []observer.Event{unix}, err
+}
