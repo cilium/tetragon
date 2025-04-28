@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 
+	telf "github.com/cilium/tetragon/pkg/elf"
 	"github.com/cilium/tetragon/pkg/ftrace"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/tracingpolicy/generate"
@@ -178,6 +179,74 @@ func New() *cobra.Command {
 	uprobesFlags := uprobes.Flags()
 	uprobesFlags.StringVarP(&uprobesBinary, "binary", "b", "", "Binary path")
 
+	var usdtsBinary string
+	usdts := &cobra.Command{
+		Use:   "usdts",
+		Short: "all usdts",
+		Run: func(_ *cobra.Command, _ []string) {
+			if usdtsBinary == "" {
+				log.Fatalf("binary is not specified, please use --binary option")
+			}
+
+			se, err := telf.OpenSafeELFFile(usdtsBinary)
+			if err != nil {
+				log.Fatalf("failed to open '%s': %v", usdtsBinary, err)
+			}
+
+			tp := generate.NewTracingPolicy("usdts")
+
+			targets, err := se.UsdtTargets()
+			if err != nil {
+				log.Fatalf("failed to retrieve usdt targets '%s': %v", usdtsBinary, err)
+			}
+
+			getArgType := func(arg *telf.UsdtArg) string {
+				var typ string
+
+				switch arg.Size {
+				case 1:
+					typ = "uint8"
+				case 2:
+					typ = "uint16"
+				case 4:
+					typ = "uint32"
+				case 8:
+					typ = "uint64"
+				}
+				if arg.Signed {
+					typ = typ[1:]
+				}
+				return typ
+			}
+
+			for _, target := range targets {
+				usdt := generate.AddUsdt(tp)
+				usdt.Provider = target.Spec.Provider
+				usdt.Name = target.Spec.Name
+				usdt.Path = usdtsBinary
+
+				var idx uint32
+
+				for idx = 0; idx < target.Spec.ArgsCnt; idx++ {
+					arg := &target.Spec.Args[idx]
+					tpArg := generate.AddUsdtArg(usdt)
+					tpArg.Label = arg.Str
+					tpArg.Type = getArgType(arg)
+					tpArg.Index = idx
+				}
+			}
+
+			b, err := yaml.Marshal(tp)
+			if err != nil {
+				log.Fatal(err)
+			}
+			os.Stdout.Write(b)
+		},
+	}
+
+	usdtsFlags := usdts.Flags()
+	usdtsFlags.StringVarP(&usdtsBinary, "binary", "b", "", "Binary path")
+
 	cmd := &cobra.Command{
 		Use:   "generate",
 		Short: "generate tracing policies",
@@ -185,6 +254,6 @@ func New() *cobra.Command {
 	pflags := cmd.PersistentFlags()
 	pflags.StringVarP(&matchBinary, "match-binary", "m", "", "Add binary to matchBinaries selector")
 
-	cmd.AddCommand(empty, allSyscalls, allSyscallsList, ftraceList, uprobes)
+	cmd.AddCommand(empty, allSyscalls, allSyscallsList, ftraceList, uprobes, usdts)
 	return cmd
 }
