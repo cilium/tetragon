@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 
+	telf "github.com/cilium/tetragon/pkg/elf"
 	"github.com/cilium/tetragon/pkg/ftrace"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/tracingpolicy/generate"
@@ -178,6 +179,45 @@ func New() *cobra.Command {
 	uprobesFlags := uprobes.Flags()
 	uprobesFlags.StringVarP(&uprobesBinary, "binary", "b", "", "Binary path")
 
+	var usdtsBinary string
+	usdts := &cobra.Command{
+		Use:   "usdts",
+		Short: "all usdts",
+		Run: func(_ *cobra.Command, _ []string) {
+			if usdtsBinary == "" {
+				log.Fatalf("binary is not specified, please use --binary option")
+			}
+
+			se, err := telf.OpenSafeELFFile(usdtsBinary)
+			if err != nil {
+				log.Fatalf("failed to open '%s': %v", usdtsBinary, err)
+			}
+
+			tp := generate.NewTracingPolicy("usdts")
+			usdt := generate.AddUsdt(tp)
+
+			targets, err := se.UsdtTargets()
+			if err != nil {
+				log.Fatalf("failed to retrieve usdt targets '%s': %v", usdtsBinary, err)
+			}
+
+			for _, target := range targets {
+				usdt.Provider = target.Spec.Provider
+				usdt.Name = target.Spec.Name
+			}
+
+			usdt.Path = usdtsBinary
+			b, err := yaml.Marshal(tp)
+			if err != nil {
+				log.Fatal(err)
+			}
+			os.Stdout.Write(b)
+		},
+	}
+
+	usdtsFlags := usdts.Flags()
+	usdtsFlags.StringVarP(&usdtsBinary, "binary", "b", "", "Binary path")
+
 	cmd := &cobra.Command{
 		Use:   "generate",
 		Short: "generate tracing policies",
@@ -185,6 +225,6 @@ func New() *cobra.Command {
 	pflags := cmd.PersistentFlags()
 	pflags.StringVarP(&matchBinary, "match-binary", "m", "", "Add binary to matchBinaries selector")
 
-	cmd.AddCommand(empty, allSyscalls, allSyscallsList, ftraceList, uprobes)
+	cmd.AddCommand(empty, allSyscalls, allSyscallsList, ftraceList, uprobes, usdts)
 	return cmd
 }
