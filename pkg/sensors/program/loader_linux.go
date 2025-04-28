@@ -294,7 +294,11 @@ func UprobeAttach(load *Program) AttachFunc {
 			if err != nil {
 				return nil, err
 			}
-			return exec.Uprobe(data.Symbol, prog, nil)
+			opts := &link.UprobeOptions{
+				Address:      data.Address,
+				RefCtrOffset: data.RefCtrOffset,
+			}
+			return exec.Uprobe(data.Symbol, prog, opts)
 		}
 
 		lnk, err := linkFn()
@@ -328,7 +332,12 @@ func MultiUprobeAttach(load *Program) AttachFunc {
 				if err != nil {
 					return nil, err
 				}
-				lnk, err = exec.UprobeMulti(attach.Symbols, prog, &link.UprobeMultiOptions{Cookies: attach.Cookies})
+				opts := &link.UprobeMultiOptions{
+					Addresses:     attach.Addresses,
+					RefCtrOffsets: attach.RefCtrOffsets,
+					Cookies:       attach.Cookies,
+				}
+				lnk, err = exec.UprobeMulti(attach.Symbols, prog, opts)
 				if err != nil {
 					return nil, err
 				}
