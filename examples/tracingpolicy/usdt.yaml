@@ -3,6 +3,9 @@ kind: TracingPolicy
 metadata:
   name: "usdts"
 spec:
+  options:
+    - name: "disable-uprobe-multi"
+      value: "1"
   usdts:
   - path: "/home/jolsa/tetragon/contrib/tester-progs/usdt"
     names:
