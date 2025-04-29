@@ -891,6 +891,111 @@ func (msg *MsgGenericUprobeUnix) Cast(o interface{}) notify.Message {
 	return &t
 }
 
+type MsgGenericUsdtUnix struct {
+	Msg        *tracingapi.MsgGenericKprobe
+	Path       string
+	Provider   string
+	Name       string
+	PolicyName string
+	Message    string
+	Args       []tracingapi.MsgGenericKprobeArg
+	Tags       []string
+}
+
+func (msg *MsgGenericUsdtUnix) Notify() bool {
+	return true
+}
+
+func (msg *MsgGenericUsdtUnix) PolicyInfo() tracingpolicy.PolicyInfo {
+	return tracingpolicy.PolicyInfo{
+		Name: msg.PolicyName,
+		Hook: fmt.Sprintf("usdt:%s/%s", msg.Provider, msg.Name),
+	}
+}
+
+func (msg *MsgGenericUsdtUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
+	return eventcache.HandleGenericInternal(ev, msg.Msg.ProcessKey.Pid, &msg.Msg.Tid, timestamp)
+}
+
+func (msg *MsgGenericUsdtUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
+	return eventcache.HandleGenericEvent(internal, ev, &msg.Msg.Tid)
+}
+
+func GetProcessUsdt(event *MsgGenericUsdtUnix) *tetragon.ProcessUsdt {
+	var ancestors []*process.ProcessInternal
+	var tetragonAncestors []*tetragon.Process
+	var tetragonArgs []*tetragon.KprobeArgument
+
+	proc, parent, tetragonProcess, tetragonParent := getProcessParent(&event.Msg.ProcessKey, event.Msg.Common.Flags)
+
+	// Set the ancestors only if --enable-process-uprobe-ancestors flag is set.
+	if option.Config.EnableProcessUprobeAncestors && proc.NeededAncestors() {
+		ancestors, _ = process.GetAncestorProcessesInternal(tetragonProcess.ParentExecId)
+		for _, ancestor := range ancestors {
+			tetragonAncestors = append(tetragonAncestors, ancestor.UnsafeGetProcess())
+		}
+	}
+
+	for _, arg := range event.Args {
+		tetragonArgs = append(tetragonArgs, getKprobeArgument(arg))
+	}
+
+	tetragonEvent := &tetragon.ProcessUsdt{
+		Process:    tetragonProcess,
+		Parent:     tetragonParent,
+		Ancestors:  tetragonAncestors,
+		Path:       event.Path,
+		Provider:   event.Provider,
+		Name:       event.Name,
+		PolicyName: event.PolicyName,
+		Message:    event.Message,
+		Args:       tetragonArgs,
+		Tags:       event.Tags,
+	}
+
+	if tetragonProcess.Pid == nil {
+		eventcache.CacheErrors(eventcache.NilProcessPid, notify.EventType(tetragonEvent)).Inc()
+		return nil
+	}
+
+	if ec := eventcache.Get(); ec != nil && !isUnknown(tetragonProcess) &&
+		(ec.Needed(tetragonProcess) ||
+			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent)) ||
+			(option.Config.EnableProcessUprobeAncestors && ec.NeededAncestors(parent, ancestors))) {
+		ec.Add(nil, tetragonEvent, event.Msg.Common.Ktime, event.Msg.ProcessKey.Ktime, event)
+		return nil
+	}
+
+	if proc != nil {
+		// At uprobes we report the per thread fields, so take a copy
+		// of the thread leader from the cache then update the corresponding
+		// per thread fields.
+		//
+		// The cost to get this is relatively high because it requires a
+		// deep copy of all the fields of the thread leader from the cache in
+		// order to safely modify them, to not corrupt gRPC streams.
+		tetragonEvent.Process = proc.GetProcessCopy()
+		process.UpdateEventProcessTid(tetragonEvent.Process, &event.Msg.Tid)
+	}
+	return tetragonEvent
+}
+
+func (msg *MsgGenericUsdtUnix) HandleMessage() *tetragon.GetEventsResponse {
+	k := GetProcessUsdt(msg)
+	if k == nil {
+		return nil
+	}
+	return &tetragon.GetEventsResponse{
+		Event: &tetragon.GetEventsResponse_ProcessUsdt{ProcessUsdt: k},
+		Time:  ktime.ToProto(msg.Msg.Common.Ktime),
+	}
+}
+
+func (msg *MsgGenericUsdtUnix) Cast(o interface{}) notify.Message {
+	t := o.(MsgGenericUsdtUnix)
+	return &t
+}
+
 type MsgImaHash struct {
 	Algo int32     `align:"algo"`
 	Hash [64]uint8 `align:"hash"`
