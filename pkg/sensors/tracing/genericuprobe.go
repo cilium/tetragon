@@ -226,7 +226,6 @@ func (k *observerUprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 func isValidUprobeSelectors(selectors []v1alpha1.KProbeSelector) error {
 	for _, s := range selectors {
 		if len(s.MatchArgs) > 0 ||
-			len(s.MatchActions) > 0 ||
 			len(s.MatchReturnArgs) > 0 ||
 			len(s.MatchNamespaces) > 0 ||
 			len(s.MatchNamespaceChanges) > 0 ||
