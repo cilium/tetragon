@@ -11,7 +11,10 @@ Depending on your setup, changes listed here might require a manual intervention
 
 ### Helm Values
 
-* TBD
+* The default value of metrics scrape interval in both agent and operator
+  ServiceMonitors (`tetragon.prometheus.serviceMonitor.scrapeInterval` and
+  `tetragonOperator.prometheus.serviceMonitor.scrapeInterval` values
+  respectively) is changed from 10s to 60s.
 
 ### TracingPolicy (k8s CRD)
 

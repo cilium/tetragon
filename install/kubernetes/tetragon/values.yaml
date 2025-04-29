@@ -173,7 +173,7 @@ tetragon:
       # -- Extra labels to be added on the Tetragon ServiceMonitor.
       extraLabels: {}
       # -- Interval at which metrics should be scraped. If not specified, Prometheus' global scrape interval is used.
-      scrapeInterval: "10s"
+      scrapeInterval: 60s
   grpc:
     # -- Whether to enable exposing Tetragon gRPC.
     enabled: true
@@ -348,7 +348,7 @@ tetragonOperator:
       # -- Extra labels to be added on the Tetragon Operator ServiceMonitor.
       extraLabels: {}
       # -- Interval at which metrics should be scraped. If not specified, Prometheus' global scrape interval is used.
-      scrapeInterval: "10s"
+      scrapeInterval: 60s
 # -- Tetragon events export settings
 export:
   # "stdout". "" to disable.
