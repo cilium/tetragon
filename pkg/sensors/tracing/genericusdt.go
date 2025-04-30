@@ -15,6 +15,7 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/elf"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
@@ -79,6 +80,7 @@ func genericUsdtTableGet(id idtable.EntryID) (*genericUsdt, error) {
 type addUsdtIn struct {
 	sensorPath string
 	policyName string
+	useMulti   bool
 }
 
 func createGenericUsdtSensor(
@@ -96,6 +98,7 @@ func createGenericUsdtSensor(
 	in := addUsdtIn{
 		sensorPath: name,
 		policyName: polInfo.name,
+		useMulti:   !polInfo.specOpts.DisableUprobeMulti && bpf.HasUprobeMulti(),
 	}
 
 	for _, usdt := range spec.Usdts {
@@ -105,7 +108,12 @@ func createGenericUsdtSensor(
 		}
 	}
 
-	progs, maps, err = createSingleUsdtSensor(ids)
+	if in.useMulti {
+		progs, maps, err = createMultiUsdtSensor(ids, polInfo.name)
+	} else {
+		progs, maps, err = createSingleUsdtSensor(ids)
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -119,6 +127,34 @@ func createGenericUsdtSensor(
 		Policy:    polInfo.name,
 		Namespace: polInfo.namespace,
 	}, nil
+}
+
+func createMultiUsdtSensor(multiIDs []idtable.EntryID, policyName string) ([]*program.Program, []*program.Map, error) {
+	var progs []*program.Program
+	var maps []*program.Map
+
+	loadProgName := config.GenericUsdtObjs(true)
+
+	load := program.Builder(
+		path.Join(option.Config.HubbleLib, loadProgName),
+		fmt.Sprintf("uprobe_multi (%d functions)", len(multiIDs)),
+		"uprobe.multi/generic_usdt",
+		"multi_usdt",
+		"generic_usdt").
+		SetLoaderData(multiIDs).
+		SetPolicy(policyName)
+
+	progs = append(progs, load)
+
+	configMap := program.MapBuilderProgram("config_map", load)
+	tailCalls := program.MapBuilderProgram("usdt_calls", load)
+	filterMap := program.MapBuilderProgram("filter_map", load)
+
+	maps = append(maps, configMap, tailCalls, filterMap)
+
+	filterMap.SetMaxEntries(len(multiIDs))
+	configMap.SetMaxEntries(len(multiIDs))
+	return progs, maps, nil
 }
 
 func createSingleUsdtSensor(ids []idtable.EntryID) ([]*program.Program, []*program.Map, error) {
@@ -227,6 +263,9 @@ func (k *observerUsdtSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 	if entry, ok := load.LoaderData.(*genericUsdt); ok {
 		return loadSingleUsdtSensor(entry, args)
 	}
+	if ids, ok := load.LoaderData.([]idtable.EntryID); ok {
+		return loadMultiUsdtSensor(ids, args)
+	}
 	return fmt.Errorf("invalid loadData type: expecting idtable.EntryID/[] and got: %T (%v)",
 		load.LoaderData, load.LoaderData)
 }
@@ -255,6 +294,56 @@ func loadSingleUsdtSensor(usdtEntry *genericUsdt, args sensors.LoadProbeArgs) er
 
 	logger.GetLogger().Info(fmt.Sprintf("Loaded generic usdt sensor: %s -> %s [%s/%s]",
 		args.Load.Name, usdtEntry.path, usdtEntry.target.Spec.Provider, usdtEntry.target.Spec.Name))
+	return nil
+}
+
+func loadMultiUsdtSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) error {
+	load := args.Load
+	data := &program.MultiUprobeAttachData{}
+	data.Attach = make(map[string]*program.MultiUprobeAttachSymbolsCookies)
+
+	for index, id := range ids {
+		usdtEntry, err := genericUsdtTableGet(id)
+		if err != nil {
+			logger.GetLogger().Warn(fmt.Sprintf("Failed to match id:%d", id), logfields.Error, err)
+			return errors.New("failed to match id")
+		}
+
+		// config_map data
+		var configData bytes.Buffer
+		binary.Write(&configData, binary.LittleEndian, usdtEntry.config)
+
+		mapLoad := []*program.MapLoad{
+			{
+				Name: "config_map",
+				Load: func(m *ebpf.Map, _ string) error {
+					return m.Update(uint32(index), configData.Bytes()[:], ebpf.UpdateAny)
+				},
+			},
+		}
+		load.MapLoad = append(load.MapLoad, mapLoad...)
+
+		attach, ok := data.Attach[usdtEntry.path]
+		if !ok {
+			attach = &program.MultiUprobeAttachSymbolsCookies{}
+		}
+
+		attach.Addresses = append(attach.Addresses, usdtEntry.target.IpRel)
+		attach.RefCtrOffsets = append(attach.RefCtrOffsets, usdtEntry.target.SemaOff)
+		attach.Cookies = append(attach.Cookies, uint64(index))
+
+		data.Attach[usdtEntry.path] = attach
+	}
+
+	load.SetAttachData(data)
+
+	if err := program.LoadMultiUprobeProgram(args.BPFDir, args.Load, args.Maps, args.Verbose); err == nil {
+		logger.GetLogger().Info(fmt.Sprintf("Loaded generic usdt multi sensor: %s -> %s",
+			load.Name, load.Attach))
+	} else {
+		return err
+	}
+
 	return nil
 }
 
