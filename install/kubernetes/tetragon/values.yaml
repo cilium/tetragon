@@ -283,9 +283,9 @@ tetragonOperator:
     annotations: {}
     name: ""
   # -- securityContext for the Tetragon Operator Deployment Pods.
-  securityContext: {}
+  podSecurityContext: {}
   # -- securityContext for the Tetragon Operator Deployment Pod container.
-  podSecurityContext:
+  securityContext:
     allowPrivilegeEscalation: false
     capabilities:
       drop:
