@@ -4,7 +4,7 @@ plugins:
     out: ./v1
     opt:
       - paths=source_relative
-  - local: protoc-gen-go-grpc
+  - local: /src/bin/protoc-gen-go-tetragon
     out: ./v1
     opt:
       - paths=source_relative
