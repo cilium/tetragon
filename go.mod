@@ -174,10 +174,3 @@ replace (
 	github.com/cilium/tetragon/api => ./api
 	github.com/cilium/tetragon/pkg/k8s => ./pkg/k8s
 )
-
-// This replace directive has to be in sync with with github.com/cilium/cilium
-// except for sigs.k8s.io/controller-tools.  If the github.com/cilium/cilium
-// version is bumped, the sync must be refreshed. As of now we use, see the
-// replace directive:
-// https://github.com/cilium/cilium/blob/cdf10116cea7a3babc493214b4ac856128734bcc/go.mod#L332-L338
-replace go.universe.tf/metallb => github.com/cilium/metallb v0.1.1-0.20220829170633-5d7dfb1129f7
