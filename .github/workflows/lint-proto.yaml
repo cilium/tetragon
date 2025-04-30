@@ -23,6 +23,7 @@ jobs:
           fetch-depth: 0
       - name: Lint protobuf
         run: |
+          make protoc-gen-go-tetragon
           # TODO: enable linting once we have a chance to fix the underlying issues
           # make -C api lint EXTRA_BUF_FLAGS="--error-format=github-actions"
           if ${{ github.event_name == 'push' }}; then
@@ -48,6 +49,7 @@ jobs:
         run: |
           set -ex
           # Don't run 'make protogen' here, as it duplicates linting and vendoring checks.
+          make protoc-gen-go-tetragon
           make -C api vendor proto
           test -z "$(git status --porcelain)"
           if [ $? != 0 ]; then
