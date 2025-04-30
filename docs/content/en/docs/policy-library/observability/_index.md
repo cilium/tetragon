@@ -28,7 +28,7 @@ description: >
 
 ### Networking
 
-- [Network Activity of SSH daemon]({{< ref "#ssh" >}})
+- [Network Activity of SSH daemon]({{< ref "#ssh-network" >}})
 - [Outbound Connections]({{< ref "#egress-connections" >}})
 
 
@@ -456,7 +456,7 @@ jq 'select(.process_loader != null) | "\(.time) \(.process_loader.process.pod.na
 "2023-10-31T19:42:33.065233159Z default/xwing /usr/bin/curl https://ebpf.io /usr/lib/x86_64-linux-gnu/libssl.so.3"
 ```
 
-## SSHd connection monitoring {#ssh-network}
+## Network Activity of SSH daemon {#ssh-network}
 
 ### Description
 
