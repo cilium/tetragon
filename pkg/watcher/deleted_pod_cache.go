@@ -55,7 +55,7 @@ func (c *DeletedPodCache) EventHandler() cache.ResourceEventHandler {
 						continue
 					}
 
-					key, err := containerIDKey(contID)
+					key, err := ContainerIDKey(contID)
 					if err != nil {
 						logger.GetLogger().Warn("failed to crate container key for id '%s': %w", contID, err)
 						continue

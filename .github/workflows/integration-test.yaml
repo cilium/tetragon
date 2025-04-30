@@ -41,8 +41,9 @@ jobs:
         # renovate: datasource=golang-version depName=go
         go-version: '1.24.2'
 
-    - name: Install Kind and create cluster
-      uses: helm/kind-action@a1b0e391336a6ee6713a0583f8c6240d70863de3 # v1.12.0
+    - name: Create a Kind cluster
+      run: |
+        make kind
 
     - name: Pull Tetragon Images
       uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0

@@ -16,8 +16,8 @@ import (
 
 const (
 	containerIDLen  = 15
-	containerIdx    = "containers-ids"
-	podIdx          = "pod-ids"
+	ContainerIdx    = "containers-ids"
+	PodIdx          = "pod-ids"
 	podInformerName = "pod"
 )
 
@@ -62,8 +62,8 @@ func AddPodInformer(w *K8sWatcher, local bool) error {
 	// add informer to the watcher
 	informer := factory.Core().V1().Pods().Informer()
 	w.AddInformer(podInformerName, informer, map[string]cache.IndexFunc{
-		containerIdx: containerIndexFunc,
-		podIdx:       podIndexFunc,
+		ContainerIdx: ContainerIndexFunc,
+		PodIdx:       PodIndexFunc,
 	})
 
 	// add event handlers to the informer
@@ -73,7 +73,7 @@ func AddPodInformer(w *K8sWatcher, local bool) error {
 	return nil
 }
 
-func containerIDKey(contID string) (string, error) {
+func ContainerIDKey(contID string) (string, error) {
 	parts := strings.Split(contID, "//")
 	if len(parts) != 2 {
 		return "", fmt.Errorf("unexpected containerID format, expecting 'docker://<name>', got %q", contID)
@@ -86,8 +86,8 @@ func containerIDKey(contID string) (string, error) {
 
 }
 
-// containerIndexFunc index pod by container IDs.
-func containerIndexFunc(obj interface{}) ([]string, error) {
+// ContainerIndexFunc index pod by container IDs.
+func ContainerIndexFunc(obj interface{}) ([]string, error) {
 	var containerIDs []string
 	putContainer := func(fullContainerID string) error {
 		if fullContainerID == "" {
@@ -96,7 +96,7 @@ func containerIndexFunc(obj interface{}) ([]string, error) {
 			// be patient.
 			return nil
 		}
-		cid, err := containerIDKey(fullContainerID)
+		cid, err := ContainerIDKey(fullContainerID)
 		if err != nil {
 			return err
 		}
@@ -129,12 +129,12 @@ func containerIndexFunc(obj interface{}) ([]string, error) {
 	return nil, fmt.Errorf("%w - found %T", errNoPod, obj)
 }
 
-func podIndexFunc(obj interface{}) ([]string, error) {
+func PodIndexFunc(obj interface{}) ([]string, error) {
 	switch t := obj.(type) {
 	case *corev1.Pod:
 		return []string{string(t.UID)}, nil
 	}
-	return nil, fmt.Errorf("podIndexFunc: %w - found %T", errNoPod, obj)
+	return nil, fmt.Errorf("PodIndexFunc: %w - found %T", errNoPod, obj)
 }
 
 // FindContainer implements PodAccessor.FindContainer.
@@ -151,7 +151,7 @@ func FindContainer(containerID string, podInformer cache.SharedIndexInformer, de
 	if len(containerID) > containerIDLen {
 		indexedContainerID = containerID[:containerIDLen]
 	}
-	objs, err := podInformer.GetIndexer().ByIndex(containerIdx, indexedContainerID)
+	objs, err := podInformer.GetIndexer().ByIndex(ContainerIdx, indexedContainerID)
 	if err != nil {
 		return nil, nil, false
 	}
@@ -236,7 +236,7 @@ func (watcher *K8sWatcher) FindPod(podID string) (*corev1.Pod, error) {
 
 func FindPod(podID string, podInformer cache.SharedIndexInformer) (*corev1.Pod, error) {
 	// First try to find the pod by index
-	objs, err := podInformer.GetIndexer().ByIndex(podIdx, podID)
+	objs, err := podInformer.GetIndexer().ByIndex(PodIdx, podID)
 	if err != nil {
 		return nil, fmt.Errorf("watcher returned: %w", err)
 	}
