@@ -89,6 +89,82 @@ Install the new configuration file and restart containerd
 minikube cp /tmp/new-config.toml /etc/containerd/config.toml
 minikube ssh sudo systemctl restart containerd
 ```
+{{% /tab %}}
+
+{{% tab "kind (with Containerd)" %}}
+
+Note: Kind [only supports
+containerd](https://kind.sigs.k8s.io/docs/design/principles/#target-cri-functionality)
+currently.
+
+```shell
+cat <<EOF > kind-config.yaml
+apiVersion: kind.x-k8s.io/v1alpha4
+kind: Cluster
+nodes:
+  - role: control-plane
+    extraMounts:
+      - hostPath: /proc
+        containerPath: /procHost
+EOF
+kind create cluster --config kind-config.yaml
+EXTRA_HELM_FLAGS=(--set tetragon.hostProcPath=/procHost) # flags for helm install
+```
+
+Tetragon Runtime Hooks use [NRI](https://github.com/containerd/nri). NRI is [enabled by
+default](https://github.com/containerd/containerd/blob/main/docs/NRI.md#disabling-nri-support-in-containerd)
+starting from containerd version 2.0. For version 1.7, however, it needs to be enabled in the
+configuration.
+
+You can check the containerd version using:
+
+```shell
+docker exec -it kind-control-plane crictl version
+```
+
+Output should be similar to:
+
+```
+Version:  0.1.0
+RuntimeName:  containerd
+RuntimeVersion:  v1.7.18
+RuntimeApiVersion:  v1
+```
+
+Assuming that the containerd version is earlier than 2.0,
+you can use the `tetragon-oci-hook-setup` to patch the configuration file:
+
+```shell
+docker cp kind-control-plane:/etc/containerd/config.toml /tmp/old-config.toml
+./contrib/tetragon-rthooks/tetragon-oci-hook-setup patch-containerd-conf enable-nri --config-file=/tmp/old-config.toml --output=/tmp/new-config.toml
+diff -u /tmp/old-config.toml /tmp/new-config.toml
+```
+
+Output should be something like:
+
+```diff
+--- /tmp/old-config.toml        2024-08-13 23:31:06.000000000 +0200
++++ /tmp/new-config.toml        2025-04-30 10:42:28.707064377 +0200
+@@ -40,3 +40,11 @@
+   tolerate_missing_hugepages_controller = true
+      # restrict_oom_score_adj needs to be true when running inside UserNS (rootless)
+         restrict_oom_score_adj = false
+         +[plugins."io.containerd.nri.v1.nri"]
+         +  disable = false
+         +  disable_connections = false
+         +  plugin_config_path = "/etc/nri/conf.d"
+         +  plugin_path = "/opt/nri/plugins"
+         +  plugin_registration_timeout = "5s"
+         +  plugin_request_timeout = "2s"
+         +  socket_path = "/var/run/nri/nri.sock"
+```
+
+Install the new configuration file and restart containerd
+
+```shell
+docker cp /tmp/new-config.toml kind-control-plane:/etc/containerd/config.toml
+docker exec -it kind-control-plane systemctl restart containerd
+```
 
 {{% /tab %}}
 
@@ -96,20 +172,27 @@ minikube ssh sudo systemctl restart containerd
 
 ### Install Tetragon
 
+```shell
+helm repo add cilium https://helm.cilium.io
+helm repo update
+```
+
 {{< tabpane lang=shell >}}
 {{< tab "CRI-O (oci-hooks)" >}}
 helm install \
    --namespace kube-system \
    --set rthooks.enabled=true \
    --set rthooks.interface=oci-hooks \
-   tetragon ./install/kubernetes/tetragon
+   ${EXTRA_HELM_FLAGS[@]} \
+   tetragon cilium/tetragon
 {{< /tab >}}
 {{< tab "Containerd (nri-hook)" >}}
 helm install \
    --namespace kube-system \
    --set rthooks.enabled=true \
    --set rthooks.interface=nri-hook \
-   tetragon ./install/kubernetes/tetragon
+   ${EXTRA_HELM_FLAGS[@]} \
+   tetragon cilium/tetragon
 {{< /tab >}}
 {{< /tabpane >}}
 
