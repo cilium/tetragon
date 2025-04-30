@@ -2446,14 +2446,68 @@ func (checker *ImageChecker) FromImage(event *tetragon.Image) *ImageChecker {
 	return checker
 }
 
+// SecurityContextChecker implements a checker struct to check a SecurityContext field
+type SecurityContextChecker struct {
+	Privileged *bool `json:"privileged,omitempty"`
+}
+
+// NewSecurityContextChecker creates a new SecurityContextChecker
+func NewSecurityContextChecker() *SecurityContextChecker {
+	return &SecurityContextChecker{}
+}
+
+// Get the type of the checker as a string
+func (checker *SecurityContextChecker) GetCheckerType() string {
+	return "SecurityContextChecker"
+}
+
+// Check checks a SecurityContext field
+func (checker *SecurityContextChecker) Check(event *tetragon.SecurityContext) error {
+	if event == nil {
+		return fmt.Errorf("%s: SecurityContext field is nil", CheckerLogPrefix(checker))
+	}
+
+	fieldChecks := func() error {
+		if checker.Privileged != nil {
+			if *checker.Privileged != event.Privileged {
+				return fmt.Errorf("Privileged has value %t which does not match expected value %t", event.Privileged, *checker.Privileged)
+			}
+		}
+		return nil
+	}
+	if err := fieldChecks(); err != nil {
+		return fmt.Errorf("%s: %w", CheckerLogPrefix(checker), err)
+	}
+	return nil
+}
+
+// WithPrivileged adds a Privileged check to the SecurityContextChecker
+func (checker *SecurityContextChecker) WithPrivileged(check bool) *SecurityContextChecker {
+	checker.Privileged = &check
+	return checker
+}
+
+//FromSecurityContext populates the SecurityContextChecker using data from a SecurityContext field
+func (checker *SecurityContextChecker) FromSecurityContext(event *tetragon.SecurityContext) *SecurityContextChecker {
+	if event == nil {
+		return checker
+	}
+	{
+		val := event.Privileged
+		checker.Privileged = &val
+	}
+	return checker
+}
+
 // ContainerChecker implements a checker struct to check a Container field
 type ContainerChecker struct {
-	Id             *stringmatcher.StringMatcher       `json:"id,omitempty"`
-	Name           *stringmatcher.StringMatcher       `json:"name,omitempty"`
-	Image          *ImageChecker                      `json:"image,omitempty"`
-	StartTime      *timestampmatcher.TimestampMatcher `json:"startTime,omitempty"`
-	Pid            *uint32                            `json:"pid,omitempty"`
-	MaybeExecProbe *bool                              `json:"maybeExecProbe,omitempty"`
+	Id              *stringmatcher.StringMatcher       `json:"id,omitempty"`
+	Name            *stringmatcher.StringMatcher       `json:"name,omitempty"`
+	Image           *ImageChecker                      `json:"image,omitempty"`
+	StartTime       *timestampmatcher.TimestampMatcher `json:"startTime,omitempty"`
+	Pid             *uint32                            `json:"pid,omitempty"`
+	MaybeExecProbe  *bool                              `json:"maybeExecProbe,omitempty"`
+	SecurityContext *SecurityContextChecker            `json:"securityContext,omitempty"`
 }
 
 // NewContainerChecker creates a new ContainerChecker
@@ -2506,6 +2560,11 @@ func (checker *ContainerChecker) Check(event *tetragon.Container) error {
 				return fmt.Errorf("MaybeExecProbe has value %t which does not match expected value %t", event.MaybeExecProbe, *checker.MaybeExecProbe)
 			}
 		}
+		if checker.SecurityContext != nil {
+			if err := checker.SecurityContext.Check(event.SecurityContext); err != nil {
+				return fmt.Errorf("SecurityContext check failed: %w", err)
+			}
+		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -2550,6 +2609,12 @@ func (checker *ContainerChecker) WithMaybeExecProbe(check bool) *ContainerChecke
 	return checker
 }
 
+// WithSecurityContext adds a SecurityContext check to the ContainerChecker
+func (checker *ContainerChecker) WithSecurityContext(check *SecurityContextChecker) *ContainerChecker {
+	checker.SecurityContext = check
+	return checker
+}
+
 //FromContainer populates the ContainerChecker using data from a Container field
 func (checker *ContainerChecker) FromContainer(event *tetragon.Container) *ContainerChecker {
 	if event == nil {
@@ -2570,17 +2635,21 @@ func (checker *ContainerChecker) FromContainer(event *tetragon.Container) *Conta
 		val := event.MaybeExecProbe
 		checker.MaybeExecProbe = &val
 	}
+	if event.SecurityContext != nil {
+		checker.SecurityContext = NewSecurityContextChecker().FromSecurityContext(event.SecurityContext)
+	}
 	return checker
 }
 
 // PodChecker implements a checker struct to check a Pod field
 type PodChecker struct {
-	Namespace    *stringmatcher.StringMatcher           `json:"namespace,omitempty"`
-	Name         *stringmatcher.StringMatcher           `json:"name,omitempty"`
-	Container    *ContainerChecker                      `json:"container,omitempty"`
-	PodLabels    map[string]stringmatcher.StringMatcher `json:"podLabels,omitempty"`
-	Workload     *stringmatcher.StringMatcher           `json:"workload,omitempty"`
-	WorkloadKind *stringmatcher.StringMatcher           `json:"workloadKind,omitempty"`
+	Namespace      *stringmatcher.StringMatcher           `json:"namespace,omitempty"`
+	Name           *stringmatcher.StringMatcher           `json:"name,omitempty"`
+	Container      *ContainerChecker                      `json:"container,omitempty"`
+	PodLabels      map[string]stringmatcher.StringMatcher `json:"podLabels,omitempty"`
+	Workload       *stringmatcher.StringMatcher           `json:"workload,omitempty"`
+	WorkloadKind   *stringmatcher.StringMatcher           `json:"workloadKind,omitempty"`
+	PodAnnotations map[string]stringmatcher.StringMatcher `json:"podAnnotations,omitempty"`
 }
 
 // NewPodChecker creates a new PodChecker
@@ -2650,6 +2719,31 @@ func (checker *PodChecker) Check(event *tetragon.Pod) error {
 				return fmt.Errorf("WorkloadKind check failed: %w", err)
 			}
 		}
+		{
+			var unmatched []string
+			matched := make(map[string]struct{})
+			for key, value := range event.PodAnnotations {
+				if len(checker.PodAnnotations) > 0 {
+					// Attempt to grab the matcher for this key
+					if matcher, ok := checker.PodAnnotations[key]; ok {
+						if err := matcher.Match(value); err != nil {
+							return fmt.Errorf("PodAnnotations[%s] (%s=%s) check failed: %w", key, key, value, err)
+						}
+						matched[key] = struct{}{}
+					}
+				}
+			}
+
+			// See if we have any unmatched values that we wanted to match
+			if len(matched) != len(checker.PodAnnotations) {
+				for k := range checker.PodAnnotations {
+					if _, ok := matched[k]; !ok {
+						unmatched = append(unmatched, k)
+					}
+				}
+				return fmt.Errorf("PodAnnotations unmatched: %v", unmatched)
+			}
+		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -2694,6 +2788,12 @@ func (checker *PodChecker) WithWorkloadKind(check *stringmatcher.StringMatcher) 
 	return checker
 }
 
+// WithPodAnnotations adds a PodAnnotations check to the PodChecker
+func (checker *PodChecker) WithPodAnnotations(check map[string]stringmatcher.StringMatcher) *PodChecker {
+	checker.PodAnnotations = check
+	return checker
+}
+
 //FromPod populates the PodChecker using data from a Pod field
 func (checker *PodChecker) FromPod(event *tetragon.Pod) *PodChecker {
 	if event == nil {
@@ -2707,6 +2807,7 @@ func (checker *PodChecker) FromPod(event *tetragon.Pod) *PodChecker {
 	// TODO: implement fromMap
 	checker.Workload = stringmatcher.Full(event.Workload)
 	checker.WorkloadKind = stringmatcher.Full(event.WorkloadKind)
+	// TODO: implement fromMap
 	return checker
 }
 
@@ -6873,6 +6974,58 @@ func (checker *StackTraceEntryChecker) FromStackTraceEntry(event *tetragon.Stack
 	return checker
 }
 
+// BpfCmdChecker checks a tetragon.BpfCmd
+type BpfCmdChecker tetragon.BpfCmd
+
+// MarshalJSON implements json.Marshaler interface
+func (enum BpfCmdChecker) MarshalJSON() ([]byte, error) {
+	if name, ok := tetragon.BpfCmd_name[int32(enum)]; ok {
+		name = strings.TrimPrefix(name, "BPF_")
+		return json.Marshal(name)
+	}
+
+	return nil, fmt.Errorf("Unknown BpfCmd %d", enum)
+}
+
+// UnmarshalJSON implements json.Unmarshaler interface
+func (enum *BpfCmdChecker) UnmarshalJSON(b []byte) error {
+	var str string
+	if err := yaml.UnmarshalStrict(b, &str); err != nil {
+		return err
+	}
+
+	// Convert to uppercase if not already
+	str = strings.ToUpper(str)
+
+	// Look up the value from the enum values map
+	if n, ok := tetragon.BpfCmd_value[str]; ok {
+		*enum = BpfCmdChecker(n)
+	} else if n, ok := tetragon.BpfCmd_value["BPF_"+str]; ok {
+		*enum = BpfCmdChecker(n)
+	} else {
+		return fmt.Errorf("Unknown BpfCmd %s", str)
+	}
+
+	return nil
+}
+
+// NewBpfCmdChecker creates a new BpfCmdChecker
+func NewBpfCmdChecker(val tetragon.BpfCmd) *BpfCmdChecker {
+	enum := BpfCmdChecker(val)
+	return &enum
+}
+
+// Check checks a BpfCmd against the checker
+func (enum *BpfCmdChecker) Check(val *tetragon.BpfCmd) error {
+	if val == nil {
+		return fmt.Errorf("BpfCmdChecker: BpfCmd is nil and does not match expected value %s", tetragon.BpfCmd(*enum))
+	}
+	if *enum != BpfCmdChecker(*val) {
+		return fmt.Errorf("BpfCmdChecker: BpfCmd has value %s which does not match expected value %s", (*val), tetragon.BpfCmd(*enum))
+	}
+	return nil
+}
+
 // CapabilitiesTypeChecker checks a tetragon.CapabilitiesType
 type CapabilitiesTypeChecker tetragon.CapabilitiesType
 
@@ -7025,58 +7178,6 @@ func (enum *ProcessPrivilegesChangedChecker) Check(val *tetragon.ProcessPrivileg
 	}
 	if *enum != ProcessPrivilegesChangedChecker(*val) {
 		return fmt.Errorf("ProcessPrivilegesChangedChecker: ProcessPrivilegesChanged has value %s which does not match expected value %s", (*val), tetragon.ProcessPrivilegesChanged(*enum))
-	}
-	return nil
-}
-
-// BpfCmdChecker checks a tetragon.BpfCmd
-type BpfCmdChecker tetragon.BpfCmd
-
-// MarshalJSON implements json.Marshaler interface
-func (enum BpfCmdChecker) MarshalJSON() ([]byte, error) {
-	if name, ok := tetragon.BpfCmd_name[int32(enum)]; ok {
-		name = strings.TrimPrefix(name, "BPF_")
-		return json.Marshal(name)
-	}
-
-	return nil, fmt.Errorf("Unknown BpfCmd %d", enum)
-}
-
-// UnmarshalJSON implements json.Unmarshaler interface
-func (enum *BpfCmdChecker) UnmarshalJSON(b []byte) error {
-	var str string
-	if err := yaml.UnmarshalStrict(b, &str); err != nil {
-		return err
-	}
-
-	// Convert to uppercase if not already
-	str = strings.ToUpper(str)
-
-	// Look up the value from the enum values map
-	if n, ok := tetragon.BpfCmd_value[str]; ok {
-		*enum = BpfCmdChecker(n)
-	} else if n, ok := tetragon.BpfCmd_value["BPF_"+str]; ok {
-		*enum = BpfCmdChecker(n)
-	} else {
-		return fmt.Errorf("Unknown BpfCmd %s", str)
-	}
-
-	return nil
-}
-
-// NewBpfCmdChecker creates a new BpfCmdChecker
-func NewBpfCmdChecker(val tetragon.BpfCmd) *BpfCmdChecker {
-	enum := BpfCmdChecker(val)
-	return &enum
-}
-
-// Check checks a BpfCmd against the checker
-func (enum *BpfCmdChecker) Check(val *tetragon.BpfCmd) error {
-	if val == nil {
-		return fmt.Errorf("BpfCmdChecker: BpfCmd is nil and does not match expected value %s", tetragon.BpfCmd(*enum))
-	}
-	if *enum != BpfCmdChecker(*val) {
-		return fmt.Errorf("BpfCmdChecker: BpfCmd has value %s which does not match expected value %s", (*val), tetragon.BpfCmd(*enum))
 	}
 	return nil
 }
