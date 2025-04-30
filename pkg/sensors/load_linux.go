@@ -33,8 +33,9 @@ func (s *Sensor) setMapPinPath(m *program.Map) {
 }
 
 func (s *Sensor) preLoadMaps(bpfDir string, loadedMaps []*program.Map) ([]*program.Map, error) {
+	loaderCache := newLoaderCache()
 	for _, m := range s.Maps {
-		if err := s.loadMap(bpfDir, m); err != nil {
+		if err := s.loadMap(bpfDir, loaderCache, m); err != nil {
 			return loadedMaps, fmt.Errorf("tetragon, aborting could not load sensor BPF maps: %w", err)
 		}
 		loadedMaps = append(loadedMaps, m)
@@ -43,7 +44,7 @@ func (s *Sensor) preLoadMaps(bpfDir string, loadedMaps []*program.Map) ([]*progr
 }
 
 // loadMap loads BPF map in the sensor.
-func (s *Sensor) loadMap(bpfDir string, m *program.Map) error {
+func (s *Sensor) loadMap(bpfDir string, loaderCache *loaderCache, m *program.Map) error {
 	l := logger.GetLogger()
 	if m.PinState.IsLoaded() {
 		l.WithFields(logrus.Fields{
@@ -54,7 +55,7 @@ func (s *Sensor) loadMap(bpfDir string, m *program.Map) error {
 		return nil
 	}
 
-	spec, err := ebpf.LoadCollectionSpec(m.Prog.Name)
+	spec, err := loaderCache.loadCollectionSpec(m.Prog.Name)
 	if err != nil {
 		return fmt.Errorf("failed to open collection '%s': %w", m.Prog.Name, err)
 	}
@@ -210,4 +211,27 @@ func flushKernelSpec() {
 
 func getCachedBTFFile() string {
 	return cachedbtf.GetCachedBTFFile()
+}
+
+type loaderCache struct {
+	specCache map[string]*ebpf.CollectionSpec
+}
+
+func newLoaderCache() *loaderCache {
+	return &loaderCache{
+		specCache: make(map[string]*ebpf.CollectionSpec),
+	}
+}
+
+func (c *loaderCache) loadCollectionSpec(n string) (*ebpf.CollectionSpec, error) {
+	ret, ok := c.specCache[n]
+	if ok {
+		return ret, nil
+	}
+
+	ret, err := ebpf.LoadCollectionSpec(n)
+	if err == nil {
+		c.specCache[n] = ret
+	}
+	return ret, err
 }
