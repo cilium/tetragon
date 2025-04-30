@@ -399,19 +399,6 @@
       "enabled": false
     },
     {
-      // do not update dependencies from the replace directive from cilium/cilium
-      // see go.mod second replace directive comments for more info
-      "enabled": false,
-      "matchPackageNames": [
-        // All of these packages are maintained on a Cilium fork. Thus, we don't
-        // want to update them automatically.
-        "go.universe.tf/metallb",
-        "github.com/cilium/metallb",
-        // metallb is still using an old version of "github.com/mdlayher/arp"
-        "github.com/mdlayher/arp",
-      ]
-    },
-    {
       // not an ignore but almost, please automate this if you have the energy
       // require manual steps for minor and major cilium/cilium updates
       "matchPackageNames": [
