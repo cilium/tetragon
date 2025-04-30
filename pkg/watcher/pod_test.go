@@ -283,7 +283,7 @@ func addPodInformerDummyIndexer(w *K8sWatcher) {
 	w.deletedPodCache, _ = NewDeletedPodCache()
 	informer := factory.Core().V1().Pods().Informer()
 	w.AddInformer(podInformerName, informer, map[string]cache.IndexFunc{
-		podIdx: func(any) ([]string, error) { return nil, nil },
+		PodIdx: func(any) ([]string, error) { return nil, nil },
 	})
 	informer.AddEventHandler(w.deletedPodCache.EventHandler())
 	podhooks.InstallHooks(informer)
