@@ -86,7 +86,7 @@ again:
 	return 0;
 }
 
-int check_cap()
+static int check_cap(cap_value_t cap)
 {
 	int ret;
 	cap_t caps;
@@ -96,7 +96,7 @@ int check_cap()
 	if (caps == NULL)
 		errExit("cap_get_proc");
 
-	ret = cap_get_flag(caps, CAP_SYS_ADMIN, CAP_EFFECTIVE, &value);
+	ret = cap_get_flag(caps, cap, CAP_EFFECTIVE, &value);
 	if (ret)
 		errExit("cap_get_flag");
 
@@ -105,7 +105,7 @@ int check_cap()
 	return value;
 }
 
-void clear_cap(cap_value_t c)
+static void clear_cap(cap_value_t c)
 {
 	cap_t cap;
 	cap_value_t cap_list[CAP_LAST_CAP+1];
@@ -124,7 +124,7 @@ void clear_cap(cap_value_t c)
 	cap_free(cap);
 }
 
-void set_cap(cap_value_t c)
+static void set_cap(cap_value_t c)
 {
 	cap_t cap;
 	cap_value_t cap_list[CAP_LAST_CAP+1];
@@ -143,12 +143,12 @@ void set_cap(cap_value_t c)
 	cap_free(cap);
 }
 
-int unshare_pidns()
+static int unshare_pidns()
 {
 	return unshare(CLONE_NEWPID);
 }
 
-int return_to_root_pidns(int fd)
+static int return_to_root_pidns(int fd)
 {
 	if (fd < 0)
 		return fd;
@@ -161,7 +161,7 @@ int return_to_root_pidns(int fd)
 	return 0;
 }
 
-int get_my_pidns_fd()
+static int get_my_pidns_fd()
 {
 	int fd = -1;
 
@@ -172,7 +172,7 @@ int get_my_pidns_fd()
 	return fd;
 }
 
-int child_clone(int pipe[][2]) {
+static int child_clone(int pipe[][2]) {
 	int ret;
 	pid_t parent_tid = -1, pid = -1, ppid = getpid();
 	struct clone_args args = {
