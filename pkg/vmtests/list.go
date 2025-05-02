@@ -20,11 +20,12 @@ type GoTest struct {
 	PackageProg, Test string
 }
 
-func (t *GoTest) ToString() string {
+func (t *GoTest) ToPattern() string {
 	if t.Test == "" {
 		return t.PackageProg
 	}
-	return fmt.Sprintf("%s:%s", t.PackageProg, t.Test)
+	// some tests are substrings of others. Use an exact pattern to avoid running tests twice.
+	return fmt.Sprintf("%s:^%s$", t.PackageProg, t.Test)
 }
 
 func fromString(testDir, s string) []GoTest {
@@ -86,12 +87,12 @@ func ListTests(
 		return nil, err
 	}
 
-	blacklistMap := make(map[string]struct{})
+	blacklistMap := make(map[GoTest]struct{})
 	for _, b := range blacklist {
 		if b.Test == "" {
 			continue
 		}
-		blacklistMap[b.ToString()] = struct{}{}
+		blacklistMap[b] = struct{}{}
 	}
 
 	ret := []GoTest{}
@@ -110,7 +111,7 @@ func ListTests(
 
 		for _, test := range tests {
 			t := GoTest{PackageProg: prog, Test: test}
-			if _, ok := blacklistMap[t.ToString()]; ok {
+			if _, ok := blacklistMap[t]; ok {
 				continue
 			}
 			ret = append(ret, t)

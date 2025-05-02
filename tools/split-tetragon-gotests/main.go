@@ -40,7 +40,7 @@ func splitProgs(n int, blacklist []vmtests.GoTest) error {
 	// load-balance between the groups.
 	i := 0
 	for _, test := range tests {
-		fmt.Fprintf(files[i%n], "%s\n", test.ToString())
+		fmt.Fprintf(files[i%n], "%s\n", test.ToPattern())
 		i++
 	}
 
