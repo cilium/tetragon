@@ -1165,6 +1165,8 @@ loader sensor event triggered for loaded binary/library
 | args | [KprobeArgument](#tetragon-KprobeArgument) | repeated | Arguments definition of the observed uprobe. |
 | tags | [string](#string) | repeated | Tags of the Tracing Policy to categorize the event. |
 | ancestors | [Process](#tetragon-Process) | repeated | Ancestors of the process beyond the immediate parent. |
+| offset | [uint64](#uint64) |  | uprobe offset (mutualy exclusive with symbol) |
+| ref_ctr_offset | [uint64](#uint64) |  | uprobe ref_ctr_offset |
 
 
 
