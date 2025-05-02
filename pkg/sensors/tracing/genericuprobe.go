@@ -39,12 +39,11 @@ var (
 )
 
 type genericUprobe struct {
-	tableId       idtable.EntryID
-	pinPathPrefix string
-	config        *api.EventConfig
-	path          string
-	symbol        string
-	selectors     *selectors.KernelSelectorState
+	tableId   idtable.EntryID
+	config    *api.EventConfig
+	path      string
+	symbol    string
+	selectors *selectors.KernelSelectorState
 	// policyName is the name of the policy that this uprobe belongs to
 	policyName string
 	// message field of the Tracing Policy
@@ -379,12 +378,6 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 
 		uprobeTable.AddEntry(uprobeEntry)
 		id := uprobeEntry.tableId
-
-		if in.useMulti {
-			uprobeEntry.pinPathPrefix = multiUprobePinPath(in.sensorPath)
-		} else {
-			uprobeEntry.pinPathPrefix = sensors.PathJoin(in.sensorPath, fmt.Sprintf("gup-%d", id.ID))
-		}
 
 		config.FuncId = uint32(id.ID)
 
