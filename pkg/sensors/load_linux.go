@@ -64,6 +64,10 @@ func (s *Sensor) loadMap(bpfDir string, loaderCache *loaderCache, m *program.Map
 		return fmt.Errorf("map '%s' not found from '%s'", m.Name, m.Prog.Name)
 	}
 
+	// code below will modify mapSpec. Crate a copy so that the original spec (which is reused
+	// via the loaderCache for different inscanes of the map) is not modified.
+	mapSpec = mapSpec.Copy()
+
 	s.setMapPinPath(m)
 	pinPath := filepath.Join(bpfDir, m.PinPath)
 
