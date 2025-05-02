@@ -108,14 +108,6 @@ github.com/cilium/tetragon/api/v1/tetragon/codegen/helpers
 github.com/cilium/tetragon/pkg/k8s/apis/cilium.io
 github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/client
 github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1
-github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned
-github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned/scheme
-github.com/cilium/tetragon/pkg/k8s/client/clientset/versioned/typed/cilium.io/v1alpha1
-github.com/cilium/tetragon/pkg/k8s/client/informers/externalversions
-github.com/cilium/tetragon/pkg/k8s/client/informers/externalversions/cilium.io
-github.com/cilium/tetragon/pkg/k8s/client/informers/externalversions/cilium.io/v1alpha1
-github.com/cilium/tetragon/pkg/k8s/client/informers/externalversions/internalinterfaces
-github.com/cilium/tetragon/pkg/k8s/client/listers/cilium.io/v1alpha1
 github.com/cilium/tetragon/pkg/k8s/crdutils
 github.com/cilium/tetragon/pkg/k8s/version
 # github.com/containerd/cgroups v1.1.0
