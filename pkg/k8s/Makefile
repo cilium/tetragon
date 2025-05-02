@@ -21,7 +21,6 @@ generate:
 .PHONY: __do_generate
 __do_generate:
 	./tools/controller-gen crd paths=./apis/... output:dir=apis/cilium.io/client/crds/v1alpha1
-	./tools/k8s-code-gen.sh
 
 .PHONY: vendor
 vendor:
