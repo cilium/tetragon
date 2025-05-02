@@ -5,22 +5,20 @@ package process
 
 import (
 	"testing"
-	"time"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/watcher"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/fake"
 )
 
 func TestK8sWatcher_GetPodInfo(t *testing.T) {
 	controller := true
-	pod := v1.Pod{
+	var pods []interface{}
+	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "test-pod",
 			Namespace:         "kube-system",
@@ -48,14 +46,11 @@ func TestK8sWatcher_GetPodInfo(t *testing.T) {
 			},
 		},
 	}
+	pods = append(pods, pod)
 
-	k8sClient := fake.NewSimpleClientset(&pod)
-	k8sWatcher := watcher.NewK8sWatcher(k8sClient, nil, time.Hour)
-	err := watcher.AddPodInformer(k8sWatcher, true)
-	require.NoError(t, err)
-	k8sWatcher.Start()
+	podAccessor := watcher.NewFakeK8sWatcher(pods)
 	pid := uint32(1)
-	podInfo := getPodInfo(k8sWatcher, "abcd1234", "curl", "cilium.io", 1)
+	podInfo := getPodInfo(podAccessor, "abcd1234", "curl", "cilium.io", 1)
 	assert.True(t, proto.Equal(podInfo, &tetragon.Pod{
 		Namespace:    pod.Namespace,
 		Workload:     pod.OwnerReferences[0].Name,
