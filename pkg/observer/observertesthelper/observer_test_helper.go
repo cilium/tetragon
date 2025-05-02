@@ -12,7 +12,6 @@ package observertesthelper
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -23,11 +22,6 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	k8stypes "k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/informers"
-	"k8s.io/client-go/tools/cache"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -38,7 +32,6 @@ import (
 	"github.com/cilium/tetragon/pkg/encoder"
 	"github.com/cilium/tetragon/pkg/exporter"
 	tetragonGrpc "github.com/cilium/tetragon/pkg/grpc"
-	"github.com/cilium/tetragon/pkg/k8s/client/informers/externalversions"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metricsconfig"
 	"github.com/cilium/tetragon/pkg/observer"
@@ -67,9 +60,9 @@ type testObserverOptions struct {
 }
 
 type testExporterOptions struct {
-	watcher   watcher.K8sResourceWatcher
-	allowList []*tetragon.Filter
-	denyList  []*tetragon.Filter
+	podAccessor watcher.PodAccessor
+	allowList   []*tetragon.Filter
+	denyList    []*tetragon.Filter
 }
 
 type TestOptions struct {
@@ -121,12 +114,6 @@ func WithProcCacheGCInterval(GCInterval time.Duration) TestOption {
 	}
 }
 
-func withK8sWatcher(w watcher.K8sResourceWatcher) TestOption {
-	return func(o *TestOptions) {
-		o.exporter.watcher = w
-	}
-}
-
 func WithLib(lib string) TestOption {
 	return func(o *TestOptions) {
 		o.observer.lib = lib
@@ -173,14 +160,6 @@ func saveInitInfo(o *TestOptions, exportFile string) error {
 	return bugtool.SaveInitInfo(&info)
 }
 
-// Create a fake K8s watcher to avoid delayed event due to missing pod info
-func createFakeWatcher(testPod, testNamespace string) *fakeK8sWatcher {
-	return &fakeK8sWatcher{
-		fakePod:       testPod,
-		fakeNamespace: testNamespace,
-	}
-}
-
 func newDefaultTestOptions(opts ...TestOption) *TestOptions {
 	// default values
 	options := &TestOptions{
@@ -189,9 +168,9 @@ func newDefaultTestOptions(opts ...TestOption) *TestOptions {
 			lib:    "",
 		},
 		exporter: testExporterOptions{
-			watcher:   watcher.NewFakeK8sWatcher(nil),
-			allowList: []*tetragon.Filter{},
-			denyList:  []*tetragon.Filter{},
+			podAccessor: watcher.NewFakeK8sWatcher(nil),
+			allowList:   []*tetragon.Filter{},
+			denyList:    []*tetragon.Filter{},
 		},
 	}
 	// apply user options
@@ -277,14 +256,6 @@ func getDefaultObserver(tb testing.TB, ctx context.Context, initialSensor *senso
 }
 
 func GetDefaultObserverWithWatchers(tb testing.TB, ctx context.Context, base *sensors.Sensor, opts ...TestOption) (*observer.Observer, error) {
-	const (
-		testPod       = "pod-1"
-		testNamespace = "ns-1"
-	)
-
-	w := createFakeWatcher(testPod, testNamespace)
-
-	opts = append(opts, withK8sWatcher(w))
 	return getDefaultObserver(tb, ctx, base, opts...)
 }
 
@@ -373,7 +344,7 @@ func getDefaultSensors(tb testing.TB, initialSensor *sensors.Sensor, opts ...Tes
 }
 
 func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, opts *testExporterOptions, oo *testObserverOptions) error {
-	k8sWatcher := opts.watcher
+	k8sWatcher := opts.podAccessor
 	processCacheSize := 32768
 	dataCacheSize := 1024
 	procCacheGCInterval := defaults.DefaultProcessCacheGCInterval
@@ -516,83 +487,6 @@ func ExecWGCurl(readyWG *sync.WaitGroup, retries uint, args ...string) error {
 	}
 
 	return err
-}
-
-type fakeK8sWatcher struct {
-	fakePod, fakeNamespace string
-}
-
-func (f *fakeK8sWatcher) FindMirrorPod(_ string) (*corev1.Pod, error) {
-	return nil, errors.New("fakeK8sWatcher does not support Mirror pods")
-}
-
-func (f *fakeK8sWatcher) FindPod(podID string) (*corev1.Pod, error) {
-	if podID == "" {
-		return nil, errors.New("empty podID")
-	}
-
-	return &corev1.Pod{
-		ObjectMeta: v1.ObjectMeta{
-			Name:      f.fakePod,
-			Namespace: f.fakeNamespace,
-			UID:       k8stypes.UID(podID),
-		},
-	}, nil
-}
-
-func (f *fakeK8sWatcher) FindContainer(containerID string) (*corev1.Pod, *corev1.ContainerStatus, bool) {
-	if containerID == "" {
-		return nil, nil, false
-	}
-
-	container := corev1.ContainerStatus{
-		Name:        containerID,
-		Image:       "image",
-		ImageID:     "id",
-		ContainerID: "docker://" + containerID,
-		State: corev1.ContainerState{
-			Running: &corev1.ContainerStateRunning{
-				StartedAt: v1.Time{
-					Time: time.Unix(1, 2),
-				},
-			},
-		},
-	}
-	pod := corev1.Pod{
-		ObjectMeta: v1.ObjectMeta{
-			Name:      f.fakePod,
-			Namespace: f.fakeNamespace,
-		},
-		Status: corev1.PodStatus{
-			ContainerStatuses: []corev1.ContainerStatus{
-				container,
-			},
-		},
-	}
-
-	return &pod, &container, true
-}
-
-func (f *fakeK8sWatcher) AddInformer(_ string, _ cache.SharedIndexInformer, _ cache.Indexers) error {
-	return nil
-}
-
-func (f *fakeK8sWatcher) GetInformer(_ string) cache.SharedIndexInformer {
-	return nil
-}
-
-func (f *fakeK8sWatcher) Start() {}
-
-func (f *fakeK8sWatcher) GetK8sInformerFactory() informers.SharedInformerFactory {
-	return nil
-}
-
-func (f *fakeK8sWatcher) GetLocalK8sInformerFactory() informers.SharedInformerFactory {
-	return nil
-}
-
-func (f *fakeK8sWatcher) GetCRDInformerFactory() externalversions.SharedInformerFactory {
-	return nil
 }
 
 // Used to wait for a process to start, we do a lookup on PROCFS because this
