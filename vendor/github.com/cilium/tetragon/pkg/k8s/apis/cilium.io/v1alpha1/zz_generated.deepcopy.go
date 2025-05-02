@@ -746,6 +746,16 @@ func (in *UProbeSpec) DeepCopyInto(out *UProbeSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.Offsets != nil {
+		in, out := &in.Offsets, &out.Offsets
+		*out = make([]uint64, len(*in))
+		copy(*out, *in)
+	}
+	if in.RefCtrOffsets != nil {
+		in, out := &in.RefCtrOffsets, &out.RefCtrOffsets
+		*out = make([]uint64, len(*in))
+		copy(*out, *in)
+	}
 	if in.Selectors != nil {
 		in, out := &in.Selectors, &out.Selectors
 		*out = make([]KProbeSelector, len(*in))
