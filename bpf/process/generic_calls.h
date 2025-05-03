@@ -66,6 +66,241 @@ generic_start_process_filter(void *ctx, struct bpf_map_def *calls)
 	return 0;
 }
 
+#ifdef GENERIC_KPROBE
+FUNC_INLINE long __get_arg_value(struct pt_regs *ctx, struct event_config *config, int index)
+{
+	if (config->syscall) {
+		struct pt_regs *_ctx;
+
+		_ctx = PT_REGS_SYSCALL_REGS(ctx);
+		if (!_ctx)
+			return 0;
+		switch (index) {
+		case 0:
+			return PT_REGS_PARM1_CORE_SYSCALL(_ctx);
+		case 1:
+			return PT_REGS_PARM2_CORE_SYSCALL(_ctx);
+		case 2:
+			return PT_REGS_PARM3_CORE_SYSCALL(_ctx);
+		case 3:
+			return PT_REGS_PARM4_CORE_SYSCALL(_ctx);
+		case 4:
+			return PT_REGS_PARM5_CORE_SYSCALL(_ctx);
+		}
+	} else {
+		switch (index) {
+		case 0:
+			return PT_REGS_PARM1_CORE(ctx);
+		case 1:
+			return PT_REGS_PARM2_CORE(ctx);
+		case 2:
+			return PT_REGS_PARM3_CORE(ctx);
+		case 3:
+			return PT_REGS_PARM4_CORE(ctx);
+		case 4:
+			return PT_REGS_PARM5_CORE(ctx);
+		}
+	}
+	return -1L;
+}
+#endif
+
+#ifdef GENERIC_KRETPROBE
+FUNC_INLINE long __get_arg_value(struct pt_regs *ctx, struct event_config *config, int index)
+{
+	return 0;
+}
+#endif
+
+#ifdef GENERIC_UPROBE
+FUNC_INLINE long __get_arg_value(struct pt_regs *ctx, struct event_config *config, int index)
+{
+	switch (index) {
+	case 0:
+		return PT_REGS_PARM1_CORE(ctx);
+	case 1:
+		return PT_REGS_PARM2_CORE(ctx);
+	case 2:
+		return PT_REGS_PARM3_CORE(ctx);
+	case 3:
+		return PT_REGS_PARM4_CORE(ctx);
+	case 4:
+		return PT_REGS_PARM5_CORE(ctx);
+	}
+	return -1L;
+}
+#endif
+
+#ifdef GENERIC_LSM
+FUNC_INLINE long __get_arg_value(struct pt_regs *ctx, struct event_config *config, int index)
+{
+	struct bpf_raw_tracepoint_args *raw_args = (struct bpf_raw_tracepoint_args *)ctx;
+
+	return BPF_CORE_READ(raw_args, args[index]);
+}
+#endif
+
+#ifdef GENERIC_RAWTP
+FUNC_INLINE long __get_arg_value(struct pt_regs *ctx, struct event_config *config, int index)
+{
+	struct bpf_raw_tracepoint_args *raw_args = (struct bpf_raw_tracepoint_args *)ctx;
+
+	return BPF_CORE_READ(raw_args, args[index]);
+}
+#endif
+
+#ifdef GENERIC_TRACEPOINT
+struct generic_tracepoint_event_arg {
+	/* common header */
+	__u16 common_type;
+	__u8 common_flags;
+	__u8 common_preempt_count;
+	__s32 common_pid;
+	/* tracepoint specific fields ... */
+};
+
+FUNC_INLINE unsigned long get_ctx_ul(void *src, int type)
+{
+	switch (type) {
+	case syscall64_type:
+	case nop_s64_ty:
+	case nop_u64_ty:
+	case s64_ty:
+	case u64_ty: {
+		u64 ret;
+
+		probe_read(&ret, sizeof(u64), src);
+		if (type == syscall64_type)
+			ret = syscall64_set_32bit(ret);
+		return ret;
+	}
+
+	case size_type: {
+		size_t ret;
+
+		probe_read(&ret, sizeof(size_t), src);
+		return (unsigned long)ret;
+	}
+
+	case nop_s32_ty:
+	case s32_ty: {
+		s32 ret;
+
+		probe_read(&ret, sizeof(u32), src);
+		return ret;
+	}
+
+	case nop_u32_ty:
+	case u32_ty: {
+		u32 ret;
+
+		probe_read(&ret, sizeof(u32), src);
+		return ret;
+	}
+
+	case char_buf:
+	case string_type: {
+		char *buff;
+		probe_read(&buff, sizeof(char *), src);
+		return (unsigned long)buff;
+	}
+
+	case data_loc_type: {
+		u32 ret;
+
+		probe_read(&ret, sizeof(ret), src);
+		return ret;
+	}
+
+	case const_buf_type: {
+		return (unsigned long)src;
+	}
+
+	case skb_type: {
+		struct sk_buff *skb;
+
+		probe_read(&skb, sizeof(struct sk_buff *), src);
+		return (unsigned long)skb;
+	}
+
+	case sock_type: {
+		struct sock *sk;
+
+		probe_read(&sk, sizeof(struct sock *), src);
+		return (unsigned long)sk;
+	}
+
+	case sockaddr_type: {
+		struct sockaddr *address;
+
+		probe_read(&address, sizeof(struct sockaddr *), src);
+		return (unsigned long)address;
+	}
+
+	case socket_type: {
+		struct socket *sock;
+
+		probe_read(&sock, sizeof(struct socket *), src);
+		return (unsigned long)sock;
+	}
+
+	default:
+	case nop_ty:
+		return 0;
+	}
+}
+
+FUNC_INLINE long __get_arg_value(struct generic_tracepoint_event_arg *ctx,
+			         struct event_config *config, int index)
+{
+	unsigned long ctx_off;
+
+	switch (index) {
+	case 0:
+		ctx_off = config->t_arg0_ctx_off;
+		asm volatile("%[ctx_off] &= 0xffff;\n"
+			     : [ctx_off] "+r"(ctx_off));
+		return get_ctx_ul((char *)ctx + ctx_off, config->arg0);
+	case 1:
+		ctx_off = config->t_arg1_ctx_off;
+		asm volatile("%[ctx_off] &= 0xffff;\n"
+			     : [ctx_off] "+r"(ctx_off));
+		return get_ctx_ul((char *)ctx + ctx_off, config->arg1);
+	case 2:
+		ctx_off = config->t_arg2_ctx_off;
+		asm volatile("%[ctx_off] &= 0xffff;\n"
+			     : [ctx_off] "+r"(ctx_off));
+		return get_ctx_ul((char *)ctx + ctx_off, config->arg2);
+	case 3:
+		ctx_off = config->t_arg3_ctx_off;
+		asm volatile("%[ctx_off] &= 0xffff;\n"
+			     : [ctx_off] "+r"(ctx_off));
+		return get_ctx_ul((char *)ctx + ctx_off, config->arg3);
+	case 4:
+		ctx_off = config->t_arg4_ctx_off;
+		asm volatile("%[ctx_off] &= 0xffff;\n"
+			     : [ctx_off] "+r"(ctx_off));
+		return get_ctx_ul((char *)ctx + ctx_off, config->arg4);
+	}
+	return -1;
+}
+#endif
+
+FUNC_INLINE long get_arg_value(void *ctx, int index)
+{
+	struct msg_generic_kprobe *e;
+	struct event_config *config;
+	int zero = 0;
+
+	e = map_lookup_elem(&process_call_heap, &zero);
+	if (!e)
+		return 0;
+	config = map_lookup_elem(&config_map, &e->idx);
+	if (!config)
+		return 0;
+	return __get_arg_value(ctx, config, index);
+}
+
 FUNC_INLINE long
 __copy_char_buf(void *ctx, long off, unsigned long arg, unsigned long bytes,
 		bool max_data, struct msg_generic_kprobe *e)
@@ -118,21 +353,13 @@ FUNC_INLINE bool has_max_data(unsigned long argm)
 	return (argm & ARGM_MAX_DATA) != 0;
 }
 
-FUNC_INLINE unsigned long get_arg_meta(int meta, struct msg_generic_kprobe *e)
+FUNC_INLINE unsigned long get_arg_meta(void *ctx, int meta, struct msg_generic_kprobe *e)
 {
-	switch (meta & ARGM_INDEX_MASK) {
-	case 1:
-		return e->a0;
-	case 2:
-		return e->a1;
-	case 3:
-		return e->a2;
-	case 4:
-		return e->a3;
-	case 5:
-		return e->a4;
-	}
-	return 0;
+	int index = meta & ARGM_INDEX_MASK;
+
+	if (index == 0 || index > 5)
+		return 0;
+	return get_arg_value(ctx, --index & ARGM_INDEX_MASK);
 }
 
 FUNC_INLINE long
@@ -149,7 +376,7 @@ copy_char_buf(void *ctx, long off, unsigned long arg, int argm,
 		retprobe_map_set(e->func_id, retid, e->common.ktime, arg);
 		return return_error(s, char_buf_saved_for_retprobe);
 	}
-	meta = get_arg_meta(argm, e);
+	meta = get_arg_meta(ctx, argm, e);
 	probe_read(&bytes, sizeof(bytes), &meta);
 	return __copy_char_buf(ctx, off, arg, bytes, has_max_data(argm), e);
 }
@@ -161,7 +388,7 @@ copy_char_iovec(void *ctx, long off, unsigned long arg, int argm,
 	int *s = (int *)args_off(e, off);
 	unsigned long meta;
 
-	meta = get_arg_meta(argm, e);
+	meta = get_arg_meta(ctx, argm, e);
 
 	if (hasReturnCopy(argm)) {
 		u64 retid = retprobe_map_get_key(ctx);
@@ -444,12 +671,13 @@ FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned lo
 {
 	struct config_btf_arg *btf_config;
 
-	if (index >= EVENT_CONFIG_MAX_ARG)
-		return;
-
 	asm volatile("%[index] &= %1 ;\n"
 		     : [index] "+r"(index)
 		     : "i"(MAX_SELECTORS_MASK));
+
+	if (index >= EVENT_CONFIG_MAX_ARG)
+		return;
+
 	btf_config = config->btf_arg[index];
 	if (btf_config->is_initialized) {
 		struct extract_arg_data extract_data = {
@@ -492,7 +720,8 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 		     : "i"(MAX_SELECTORS_MASK));
 	ty = (&config->arg0)[index];
 
-	a = (&e->a0)[index];
+	a = __get_arg_value(ctx, config, index);
+
 	extract_arg(config, index, &a);
 
 	if (should_offload_path(ty))
@@ -586,24 +815,6 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 		return 0;
 
 #ifdef GENERIC_KPROBE
-	if (config->syscall) {
-		struct pt_regs *_ctx;
-		_ctx = PT_REGS_SYSCALL_REGS(ctx);
-		if (!_ctx)
-			return 0;
-		e->a0 = PT_REGS_PARM1_CORE_SYSCALL(_ctx);
-		e->a1 = PT_REGS_PARM2_CORE_SYSCALL(_ctx);
-		e->a2 = PT_REGS_PARM3_CORE_SYSCALL(_ctx);
-		e->a3 = PT_REGS_PARM4_CORE_SYSCALL(_ctx);
-		e->a4 = PT_REGS_PARM5_CORE_SYSCALL(_ctx);
-	} else {
-		e->a0 = PT_REGS_PARM1_CORE(ctx);
-		e->a1 = PT_REGS_PARM2_CORE(ctx);
-		e->a2 = PT_REGS_PARM3_CORE(ctx);
-		e->a3 = PT_REGS_PARM4_CORE(ctx);
-		e->a4 = PT_REGS_PARM5_CORE(ctx);
-	}
-
 	generic_process_init(e, MSG_OP_GENERIC_KPROBE, config);
 
 	e->retprobe_id = retprobe_map_get_key(ctx);
@@ -615,34 +826,14 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 #endif
 
 #ifdef GENERIC_LSM
-	struct bpf_raw_tracepoint_args *raw_args = (struct bpf_raw_tracepoint_args *)ctx;
-
-	e->a0 = BPF_CORE_READ(raw_args, args[0]);
-	e->a1 = BPF_CORE_READ(raw_args, args[1]);
-	e->a2 = BPF_CORE_READ(raw_args, args[2]);
-	e->a3 = BPF_CORE_READ(raw_args, args[3]);
-	e->a4 = BPF_CORE_READ(raw_args, args[4]);
 	generic_process_init(e, MSG_OP_GENERIC_LSM, config);
 #endif
 
 #ifdef GENERIC_UPROBE
-	/* no arguments for uprobes for now */
-	e->a0 = PT_REGS_PARM1_CORE(ctx);
-	e->a1 = PT_REGS_PARM2_CORE(ctx);
-	e->a2 = PT_REGS_PARM3_CORE(ctx);
-	e->a3 = PT_REGS_PARM4_CORE(ctx);
-	e->a4 = PT_REGS_PARM5_CORE(ctx);
 	generic_process_init(e, MSG_OP_GENERIC_UPROBE, config);
 #endif
 
 #ifdef GENERIC_RAWTP
-	struct bpf_raw_tracepoint_args *raw_args = (struct bpf_raw_tracepoint_args *)ctx;
-
-	e->a0 = BPF_CORE_READ(raw_args, args[0]);
-	e->a1 = BPF_CORE_READ(raw_args, args[1]);
-	e->a2 = BPF_CORE_READ(raw_args, args[2]);
-	e->a3 = BPF_CORE_READ(raw_args, args[3]);
-	e->a4 = BPF_CORE_READ(raw_args, args[4]);
 	generic_process_init(e, MSG_OP_GENERIC_TRACEPOINT, config);
 #endif
 	return generic_process_event(ctx, tailcals);

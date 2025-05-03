@@ -63,7 +63,6 @@ struct msg_generic_kprobe {
 	__u64 user_stack_id; // User Stack trace ID
 	/* anything above is shared with the userspace so it should match structs MsgGenericKprobe and MsgGenericTracepoint in Go */
 	char args[24000];
-	unsigned long a0, a1, a2, a3, a4;
 	long argsoff[MAX_POSSIBLE_ARGS];
 	struct msg_selector_data sel;
 	__u32 idx; // attach cookie index
