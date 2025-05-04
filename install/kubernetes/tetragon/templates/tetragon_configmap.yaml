@@ -87,3 +87,4 @@ data:
 {{- end }}
   enable-cgidmap: {{ .Values.tetragon.cgidmap.enabled | quote }}
   enable-pod-annotations: {{ .Values.tetragon.podAnnotations.enabled | default "false" | quote }}
+  export-mode: {{ .Values.export.mode | default "stdout" | quote }}

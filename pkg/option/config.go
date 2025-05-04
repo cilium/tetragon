@@ -28,6 +28,7 @@ type config struct {
 	ClusterName     string
 
 	EnablePodAnnotations bool
+	ExportMode           string
 
 	EnableProcessAncestors           bool
 	EnableProcessKprobeAncestors     bool

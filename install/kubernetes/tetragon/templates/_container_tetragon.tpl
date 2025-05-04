@@ -34,8 +34,10 @@
       name: bpf-maps
     - mountPath: "/var/run/cilium"
       name: cilium-run
+{{- if or (eq .Values.export.mode "file") (eq .Values.export.mode "stdout") }}
     - mountPath: {{ .Values.exportDirectory }}
       name: export-logs
+{{- end }}
     - mountPath: "/procRoot"
       name: host-proc
 {{- if and (.Values.tetragon.cri.enabled) (.Values.tetragon.cri.socketHostPath) }}
