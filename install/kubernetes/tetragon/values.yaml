@@ -396,7 +396,7 @@ rthooks:
   image:
     override: ~
     repository: quay.io/cilium/tetragon-rthooks
-    tag: v0.3
+    tag: v0.5
   # -- rthooks service account.
   serviceAccount:
     name: ""
