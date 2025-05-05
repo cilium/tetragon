@@ -3100,6 +3100,10 @@ func linkFlags(rawFlags uint32) net.Flags {
 	return f
 }
 
+type genevePortRange struct {
+	Lo, Hi uint16
+}
+
 func addGeneveAttrs(geneve *Geneve, linkInfo *nl.RtAttr) {
 	data := linkInfo.AddRtAttr(nl.IFLA_INFO_DATA, nil)
 
@@ -3136,6 +3140,15 @@ func addGeneveAttrs(geneve *Geneve, linkInfo *nl.RtAttr) {
 		data.AddRtAttr(nl.IFLA_GENEVE_TOS, nl.Uint8Attr(geneve.Tos))
 	}
 
+	if geneve.PortLow > 0 || geneve.PortHigh > 0 {
+		pr := genevePortRange{uint16(geneve.PortLow), uint16(geneve.PortHigh)}
+
+		buf := new(bytes.Buffer)
+		binary.Write(buf, binary.BigEndian, &pr)
+
+		data.AddRtAttr(nl.IFLA_GENEVE_PORT_RANGE, buf.Bytes())
+	}
+
 	data.AddRtAttr(nl.IFLA_GENEVE_DF, nl.Uint8Attr(uint8(geneve.Df)))
 }
 
@@ -3157,6 +3170,13 @@ func parseGeneveData(link Link, data []syscall.NetlinkRouteAttr) {
 			geneve.FlowBased = true
 		case nl.IFLA_GENEVE_INNER_PROTO_INHERIT:
 			geneve.InnerProtoInherit = true
+		case nl.IFLA_GENEVE_PORT_RANGE:
+			buf := bytes.NewBuffer(datum.Value[0:4])
+			var pr genevePortRange
+			if binary.Read(buf, binary.BigEndian, &pr) == nil {
+				geneve.PortLow = int(pr.Lo)
+				geneve.PortHigh = int(pr.Hi)
+			}
 		}
 	}
 }
