@@ -53,11 +53,11 @@ The cgroup rate is configured with `--cgroup-rate` option:
 
 - `--cgroup-rate=100,1m`
 
-    sets the cgroup threshold on 1000 events per 1 minutes
+    sets the cgroup threshold on 100 events per 1 minute
 
 - `--cgroup-rate=10000,10m`
 
-    sets the cgroup threshold on 1000 events per 10 minutes
+    sets the cgroup threshold on 10000 events per 10 minutes
 
 
 ## Events
