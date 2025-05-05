@@ -16,6 +16,8 @@ Depending on your setup, changes listed here might require a manual intervention
   `tetragonOperator.prometheus.serviceMonitor.scrapeInterval` values
   respectively) is changed from 10s to 60s.
 
+* OciHookSetup section is removed after being deprecated in 1.2.
+
 ### TracingPolicy (k8s CRD)
 
 * TBD
