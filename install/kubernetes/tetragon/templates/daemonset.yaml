@@ -51,9 +51,6 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       initContainers:
-{{- if .Values.tetragon.ociHookSetup.enabled }}
-      {{- include "container.tetragon-oci-hook-setup" . | nindent 6 -}}
-{{- end }}
       {{- include "initcontainers.extra" . | nindent 6 }}
       containers:
 {{- if eq .Values.export.mode "stdout" }}
@@ -98,16 +95,6 @@ spec:
         hostPath:
           path: {{ .Values.tetragon.hostProcPath }}
           type: Directory
-{{- if .Values.tetragon.ociHookSetup.enabled }}
-      - name: oci-hooks-path
-        hostPath:
-          path: /usr/share/containers/oci/hooks.d/
-          type: Directory
-      - name: oci-hooks-install-path
-        hostPath:
-          path: {{ quote .Values.tetragon.ociHookSetup.installDir }}
-          type: DirectoryOrCreate
-{{- end }}
 {{- if and (.Values.tetragon.cri.enabled) (.Values.tetragon.cri.socketHostPath) }}
       - name: cri-socket
         hostPath:

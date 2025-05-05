@@ -96,13 +96,6 @@ Helm chart for Tetragon
 | tetragon.image.repository | string | `"quay.io/cilium/tetragon"` |  |
 | tetragon.image.tag | string | `"v1.4.0"` |  |
 | tetragon.livenessProbe | object | `{}` | Overrides the default livenessProbe for the tetragon container. |
-| tetragon.ociHookSetup | object | `{"enabled":false,"extraVolumeMounts":[],"failAllowNamespaces":"","installDir":"/opt/tetragon","interface":"oci-hooks","resources":{},"securityContext":{"privileged":true}}` | Configure tetragon's init container for setting up tetragon-oci-hook on the host NOTE: This is deprecated, please use .rthooks |
-| tetragon.ociHookSetup.enabled | bool | `false` | enable  init container to setup tetragon-oci-hook |
-| tetragon.ociHookSetup.extraVolumeMounts | list | `[]` | Extra volume mounts to add to the oci-hook-setup init container |
-| tetragon.ociHookSetup.failAllowNamespaces | string | `""` | Comma-separated list of namespaces to allow Pod creation for, in case tetragon-oci-hook fails to reach Tetragon agent. The namespace Tetragon is deployed in is always added as an exception and must not be added again. |
-| tetragon.ociHookSetup.interface | string | `"oci-hooks"` | interface specifices how the hook is  configured. There is only one avaialble value for now: "oci-hooks" (https://github.com/containers/common/blob/main/pkg/hooks/docs/oci-hooks.5.md). |
-| tetragon.ociHookSetup.resources | object | `{}` | resources for the the oci-hook-setup init container |
-| tetragon.ociHookSetup.securityContext | object | `{"privileged":true}` | Security context for oci-hook-setup init container |
 | tetragon.podAnnotations.enabled | bool | `false` |  |
 | tetragon.pprof.address | string | `"localhost"` | The address at which to expose pprof. |
 | tetragon.pprof.enabled | bool | `false` | Whether to enable exposing pprof server. |

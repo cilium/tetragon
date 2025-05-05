@@ -212,25 +212,6 @@ tetragon:
   # host, the path is /proc. Exceptions to this are environments like kind, where the runtime itself
   # does not run on the host.
   hostProcPath: "/proc"
-  # -- Configure tetragon's init container for setting up tetragon-oci-hook on the host
-  # NOTE: This is deprecated, please use .rthooks
-  ociHookSetup:
-    # -- enable  init container to setup tetragon-oci-hook
-    enabled: false
-    # -- interface specifices how the hook is  configured. There is only one avaialble value for now:
-    # "oci-hooks" (https://github.com/containers/common/blob/main/pkg/hooks/docs/oci-hooks.5.md).
-    interface: "oci-hooks"
-    installDir: "/opt/tetragon"
-    # -- Comma-separated list of namespaces to allow Pod creation for, in case tetragon-oci-hook fails to reach Tetragon agent.
-    # The namespace Tetragon is deployed in is always added as an exception and must not be added again.
-    failAllowNamespaces: ""
-    # -- Security context for oci-hook-setup init container
-    securityContext:
-      privileged: true
-    # -- Extra volume mounts to add to the oci-hook-setup init container
-    extraVolumeMounts: []
-    # -- resources for the the oci-hook-setup init container
-    resources: {}
   # -- Configure the number of retries in tetragon's event cache.
   eventCacheRetries: 15
   # -- Configure the delay (in seconds) between retires in tetragon's event cache.
