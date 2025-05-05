@@ -385,11 +385,12 @@ rthooks:
   #       Add an apppriate file to "/usr/share/containers/oci/hooks.d". Use this with CRI-O.
   #       See https://github.com/containers/common/blob/main/pkg/hooks/docs/oci-hooks.5.md
   #       for more details.
-  #       Specific configuration for this interface can be found under "OciHooks".
+  #       Specific configuration for this interface can be found under "ociHooks".
   #
   #    "nri-hook":
   #      Install the hook via NRI. Use this with containerd. Requires NRI being enabled.
   #      see: https://github.com/containerd/containerd/blob/main/docs/NRI.md.
+  #      Specific configuration for this interface can be found under "nriHook".
   #
   interface: ""
   # -- Annotations for the Tetragon rthooks daemonset
