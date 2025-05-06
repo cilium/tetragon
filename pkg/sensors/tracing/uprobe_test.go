@@ -17,6 +17,7 @@ import (
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
@@ -24,8 +25,11 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
+	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/yaml"
 )
 
 func TestLoadUprobeSensor(t *testing.T) {
@@ -380,92 +384,131 @@ func TestUprobeArgs(t *testing.T) {
 	execBinary := testutils.RepoRootPath("contrib/tester-progs/uprobe-test-1")
 	libUprobe := testutils.RepoRootPath("contrib/tester-progs/libuprobe.so")
 
-	pathHook := `
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "uprobe"
-spec:
-  uprobes:
-  - path: "` + libUprobe + `"
-    symbols:
-    - "uprobe_test_lib_arg1"
-    args:
-    - index: 0
-      type: "int"
-    selectors:
-    - matchBinaries:
-      - operator: "In"
-        values:
-        - "` + execBinary + `"
-  - path: "` + libUprobe + `"
-    symbols:
-    - "uprobe_test_lib_arg2"
-    args:
-    - index: 0
-      type: "int8"
-    - index: 1
-      type: "int"
-    selectors:
-    - matchBinaries:
-      - operator: "In"
-        values:
-        - "` + execBinary + `"
-  - path: "` + libUprobe + `"
-    symbols:
-    - "uprobe_test_lib_arg3"
-    args:
-    - index: 0
-      type: "uint64"
-    - index: 1
-      type: "uint32"
-    - index: 2
-      type: "uint64"
-    selectors:
-    - matchBinaries:
-      - operator: "In"
-        values:
-        - "` + execBinary + `"
-  - path: "` + libUprobe + `"
-    symbols:
-    - "uprobe_test_lib_arg4"
-    args:
-    - index: 0
-      type: "int64"
-    - index: 1
-      type: "int"
-    - index: 2
-      type: "int8"
-    - index: 3
-      type: "uint64"
-    selectors:
-    - matchBinaries:
-      - operator: "In"
-        values:
-        - "` + execBinary + `"
-  - path: "` + libUprobe + `"
-    symbols:
-    - "uprobe_test_lib_arg5"
-    args:
-    - index: 0
-      type: "int"
-    - index: 1
-      type: "int8"
-    - index: 2
-      type: "uint64"
-    - index: 3
-      type: "int16"
-    - index: 4
-      type: "uint64"
-    selectors:
-    - matchBinaries:
-      - operator: "In"
-        values:
-        - "` + execBinary + `"
-`
+	sel := []v1alpha1.KProbeSelector{
+		{
+			MatchBinaries: []v1alpha1.BinarySelector{
+				{
+					Operator: "In",
+					Values:   []string{execBinary},
+				},
+			},
+		},
+	}
+	tp := tracingpolicy.GenericTracingPolicy{
+		Metadata: v1.ObjectMeta{
+			Name: "uprobe",
+		},
+		TypeMeta: v1.TypeMeta{
+			Kind:       "TracingPolicy",
+			APIVersion: "cilium.io/v1alpha1",
+		},
+		Spec: v1alpha1.TracingPolicySpec{
+			UProbes: []v1alpha1.UProbeSpec{
+				{
+					Path:    libUprobe,
+					Symbols: []string{"uprobe_test_lib_arg1"},
+					Args: []v1alpha1.KProbeArg{
+						{
+							Index: 0,
+							Type:  "int",
+						},
+					},
+					Selectors: sel,
+				},
+				{
+					Path:    libUprobe,
+					Symbols: []string{"uprobe_test_lib_arg2"},
+					Args: []v1alpha1.KProbeArg{
+						{
+							Index: 0,
+							Type:  "int8",
+						},
+						{
+							Index: 1,
+							Type:  "int",
+						},
+					},
+					Selectors: sel,
+				},
+				{
+					Path:    libUprobe,
+					Symbols: []string{"uprobe_test_lib_arg3"},
+					Args: []v1alpha1.KProbeArg{
+						{
+							Index: 0,
+							Type:  "uint64",
+						},
+						{
+							Index: 1,
+							Type:  "uint32",
+						},
+						{
+							Index: 2,
+							Type:  "uint64",
+						},
+					},
+					Selectors: sel,
+				},
+				{
+					Path:    libUprobe,
+					Symbols: []string{"uprobe_test_lib_arg4"},
+					Args: []v1alpha1.KProbeArg{
+						{
+							Index: 0,
+							Type:  "int64",
+						},
+						{
+							Index: 1,
+							Type:  "int",
+						},
+						{
+							Index: 2,
+							Type:  "int8",
+						},
+						{
+							Index: 3,
+							Type:  "uint64",
+						},
+					},
+					Selectors: sel,
+				},
+				{
+					Path:    libUprobe,
+					Symbols: []string{"uprobe_test_lib_arg5"},
+					Args: []v1alpha1.KProbeArg{
+						{
+							Index: 0,
+							Type:  "int",
+						},
+						{
+							Index: 1,
+							Type:  "int8",
+						},
+						{
+							Index: 2,
+							Type:  "uint64",
+						},
+						{
+							Index: 3,
+							Type:  "int16",
+						},
+						{
+							Index: 4,
+							Type:  "uint64",
+						},
+					},
+					Selectors: sel,
+				},
+			},
+		},
+	}
 
-	pathConfigHook := []byte(pathHook)
-	err := os.WriteFile(testConfigFile, pathConfigHook, 0644)
+	pathConfigHook, err := yaml.Marshal(tp)
+	if err != nil {
+		t.Fatalf("marshal failed with %v", err)
+	}
+
+	err = os.WriteFile(testConfigFile, pathConfigHook, 0644)
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
