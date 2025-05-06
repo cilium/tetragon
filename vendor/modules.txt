@@ -229,7 +229,7 @@ github.com/cilium/proxy/go/envoy/type/tracing/v3
 github.com/cilium/proxy/go/envoy/type/v3
 github.com/cilium/proxy/pkg/policy/api/kafka
 # github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000 => ./api
-## explicit; go 1.22.1
+## explicit; go 1.23.0
 github.com/cilium/tetragon/api/v1/tetragon
 github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker
 github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/yaml
@@ -887,14 +887,15 @@ golang.org/x/exp/slog/internal/buffer
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.33.0
-## explicit; go 1.18
+# golang.org/x/net v0.38.0
+## explicit; go 1.23.0
 golang.org/x/net/html
 golang.org/x/net/html/atom
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2
 golang.org/x/net/http2/hpack
 golang.org/x/net/idna
+golang.org/x/net/internal/httpcommon
 golang.org/x/net/internal/socks
 golang.org/x/net/internal/timeseries
 golang.org/x/net/proxy
@@ -903,21 +904,21 @@ golang.org/x/net/trace
 ## explicit; go 1.18
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sync v0.10.0
-## explicit; go 1.18
+# golang.org/x/sync v0.12.0
+## explicit; go 1.23.0
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
 golang.org/x/sync/singleflight
-# golang.org/x/sys v0.29.0
-## explicit; go 1.18
+# golang.org/x/sys v0.31.0
+## explicit; go 1.23.0
 golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/term v0.28.0
-## explicit; go 1.18
+# golang.org/x/term v0.30.0
+## explicit; go 1.23.0
 golang.org/x/term
-# golang.org/x/text v0.21.0
-## explicit; go 1.18
+# golang.org/x/text v0.23.0
+## explicit; go 1.23.0
 golang.org/x/text/encoding
 golang.org/x/text/encoding/internal
 golang.org/x/text/encoding/internal/identifier
