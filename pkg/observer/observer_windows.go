@@ -214,7 +214,7 @@ func getExecRecordFromProcInfo(processInfo *bpf.ProcessInfo, command_map *ebpf.M
 }
 
 func (observer *Observer) RunEvents(stopCtx context.Context, ready func()) error {
-	coll := bpf.GetExecCollection()
+	coll, err := bpf.GetCollection("ProcessMonitor")
 	if coll == nil {
 		return errors.New("exec Preloaded collection is nil")
 	}
@@ -222,7 +222,7 @@ func (observer *Observer) RunEvents(stopCtx context.Context, ready func()) error
 	ringBufMap := coll.Maps["process_ringbuf"]
 	imageMap := coll.Maps["process_map"]
 	reader := bpf.GetNewWindowsRingBufReader()
-	err := reader.Init(ringBufMap.FD(), int(ringBufMap.MaxEntries()))
+	err = reader.Init(ringBufMap.FD(), int(ringBufMap.MaxEntries()))
 	if err != nil {
 		return fmt.Errorf("failed initializing ringbuf reader: %w", err)
 	}

@@ -66,7 +66,19 @@ type RingBufferRecord struct {
 	data        [1]uint8
 }
 
+type MsgCommon struct {
+	Op uint8
+	// Flags is used to:
+	//  - distinguish between an entry and a return kprobe event
+	//  - indicate if a stack trace id was passed in the event
+	Flags  uint8
+	Pad_v2 [2]uint8
+	Size   uint32
+	Ktime  uint64
+}
+
 type ProcessInfo struct {
+	Common            MsgCommon
 	ProcessId         uint32
 	ParentProcessID   uint32
 	CreatingProcessID uint32
