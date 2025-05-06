@@ -103,7 +103,7 @@ func doLoadProgram(
 		logger.GetLogger().WithError(err).WithField("Error ", err.Error()).Warn(" Failed to load Native Windows Collection ")
 		return nil, err
 	}
-	bpf.SetExecCollection(coll)
+	bpf.SetCollection(load.Label, coll)
 
 	collMaps := map[ebpf.MapID]*ebpf.Map{}
 	// we need a mapping by ID
