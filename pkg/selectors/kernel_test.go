@@ -14,10 +14,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/stretchr/testify/require"
+
 	"github.com/cilium/tetragon/pkg/config"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/idtable"
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 )
 
 func TestWriteSelectorUint32(t *testing.T) {
@@ -1005,5 +1007,90 @@ func TestReturnSelectorArgIntActionFollowfd(t *testing.T) {
 
 	if bytes.Equal(expected[:expectedLen], b[:expectedLen]) == false {
 		t.Errorf("\ngot: %v\nexp: %v\n", b[:expectedLen], expected[:expectedLen])
+	}
+}
+
+func TestParseAddr(t *testing.T) {
+	tests := map[string]struct {
+		addrStr         string
+		expectedAddr    []byte
+		expectedMaskLen uint32
+		expectedErr     string
+	}{
+		"invalid address format": {
+			addrStr:     "1.2.3.4/16/16",
+			expectedErr: "CIDR is invalid",
+		},
+		"invalid ipv4 cidr": {
+			addrStr:     "a.b.c.d/16",
+			expectedErr: "CIDR is invalid",
+		},
+		"invalid ipv6 cidr": {
+			addrStr:     "::gg/16",
+			expectedErr: "CIDR is invalid",
+		},
+		"invalid mask value": {
+			addrStr:     "1.2.3.4/invalid",
+			expectedErr: "CIDR is invalid",
+		},
+		"invalid ipv4 mask len": {
+			addrStr:     "1.2.3.4/33",
+			expectedErr: "CIDR is invalid",
+		},
+		"invalid ipv6 mask len": {
+			addrStr:     "::1/256",
+			expectedErr: "CIDR is invalid",
+		},
+		"invalid ipv4 address": {
+			addrStr:     "a.b.c.d",
+			expectedErr: "IP address is invalid",
+		},
+		"invalid ipv6 address": {
+			addrStr:     "::gg",
+			expectedErr: "IP address is invalid",
+		},
+		"valid ipv4": {
+			addrStr:         "1.2.3.4",
+			expectedAddr:    []byte{1, 2, 3, 4},
+			expectedMaskLen: 32,
+		},
+		"valid ipv4 cidr": {
+			addrStr:         "1.2.3.4/16",
+			expectedAddr:    []byte{1, 2, 3, 4},
+			expectedMaskLen: 16,
+		},
+		"valid ipv6": {
+			addrStr:         "0102::0304",
+			expectedAddr:    []byte{1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 4},
+			expectedMaskLen: 128,
+		},
+		"valid ipv6 cidr": {
+			addrStr:         "0102::0304/64",
+			expectedAddr:    []byte{1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 4},
+			expectedMaskLen: 64,
+		},
+		"valid ipv4-mapped ipv6": {
+			addrStr:         "::ffff:1.2.3.4",
+			expectedAddr:    []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 1, 2, 3, 4},
+			expectedMaskLen: 128,
+		},
+		"valid ipv4-mapped ipv6 cidr": {
+			addrStr:         "::ffff:1.2.3.4/96",
+			expectedAddr:    []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 1, 2, 3, 4},
+			expectedMaskLen: 96,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			addr, maskLen, err := parseAddr(test.addrStr)
+			if test.expectedErr != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), test.expectedErr)
+			} else {
+				require.Equal(t, test.expectedAddr, addr)
+				require.Equal(t, test.expectedMaskLen, maskLen)
+			}
+		})
 	}
 }
