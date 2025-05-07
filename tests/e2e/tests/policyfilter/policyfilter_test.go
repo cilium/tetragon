@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -374,10 +375,8 @@ func (plc *podLabelChecker) FinalCheck(_ *logrus.Logger) error {
 	return fmt.Errorf("pod-label checker failed, had %d matches", plc.matches)
 }
 
-func TestContainerFieldFilters(t *testing.T) {
+func testContainerFieldFilters(t *testing.T, checker *checker.RPCChecker, policy, pod string) {
 	runner.SetupExport(t)
-
-	checker := containerSelectorChecker().WithTimeLimit(30 * time.Second).WithEventLimit(20)
 
 	runEventChecker := features.New("Run Event Checks").
 		Assess("Run Event Checks", checker.CheckWithFilters(
@@ -393,7 +392,7 @@ func TestContainerFieldFilters(t *testing.T) {
 
 	runWorkload := features.New("Container field filter test").
 		Assess("Install policy", func(ctx context.Context, _ *testing.T, c *envconf.Config) context.Context {
-			ctx, err := helpers.LoadCRDString(containerSelectorNamespace, containerSelectorPolicy, false)(ctx, c)
+			ctx, err := helpers.LoadCRDString(containerSelectorNamespace, policy, false)(ctx, c)
 			if err != nil {
 				klog.ErrorS(err, "failed to install policy")
 				t.Fail()
@@ -410,7 +409,7 @@ func TestContainerFieldFilters(t *testing.T) {
 		Assess("Wait for Checker", checker.Wait(30*time.Second)).
 		Assess("Start pods", func(ctx context.Context, _ *testing.T, c *envconf.Config) context.Context {
 			var err error
-			for _, pod := range []string{ubuntuPod_l3} {
+			for _, pod := range []string{pod} {
 				ctx, err = helpers.LoadCRDString(containerSelectorNamespace, pod, true)(ctx, c)
 				if err != nil {
 					klog.ErrorS(err, "failed to load pod")
@@ -421,7 +420,7 @@ func TestContainerFieldFilters(t *testing.T) {
 			return ctx
 		}).
 		Assess("Uninstall policy", func(ctx context.Context, _ *testing.T, c *envconf.Config) context.Context {
-			ctx, err := helpers.UnloadCRDString(containerSelectorNamespace, containerSelectorPolicy, false)(ctx, c)
+			ctx, err := helpers.UnloadCRDString(containerSelectorNamespace, policy, false)(ctx, c)
 			if err != nil {
 				klog.ErrorS(err, "failed to uninstall policy")
 				t.Fail()
@@ -433,7 +432,7 @@ func TestContainerFieldFilters(t *testing.T) {
 	runner.TestInParallel(t, runWorkload, runEventChecker)
 }
 
-const containerSelectorPolicy = `
+const containerSelectorNamePolicy = `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicyNamespaced
 metadata:
@@ -481,15 +480,15 @@ spec:
         args: ["-c", "while sleep 1; do cat /etc/hostname; done"]
 `
 
-func containerSelectorChecker() *checker.RPCChecker {
-	return checker.NewRPCChecker(&containerFieldChecker{}, "policyfilter-container-field-checker")
+func containerSelectorNameChecker() *checker.RPCChecker {
+	return checker.NewRPCChecker(&containerFieldNameChecker{}, "policyfilter-container-field-checker")
 }
 
-type containerFieldChecker struct {
+type containerFieldNameChecker struct {
 	matches int
 }
 
-func (cfc *containerFieldChecker) NextEventCheck(event ec.Event, _ *logrus.Logger) (bool, error) {
+func (cfc *containerFieldNameChecker) NextEventCheck(event ec.Event, _ *logrus.Logger) (bool, error) {
 	// ignore non-trace point events
 	ev, ok := event.(*tetragon.ProcessTracepoint)
 	if !ok {
@@ -511,9 +510,104 @@ func (cfc *containerFieldChecker) NextEventCheck(event ec.Event, _ *logrus.Logge
 	return false, nil
 }
 
-func (cfc *containerFieldChecker) FinalCheck(_ *logrus.Logger) error {
+func (cfc *containerFieldNameChecker) FinalCheck(_ *logrus.Logger) error {
 	if cfc.matches > 0 {
 		return nil
 	}
 	return fmt.Errorf("container-field checker failed, had %d matches", cfc.matches)
+}
+
+func TestContainerFieldNameFilters(t *testing.T) {
+	checker := containerSelectorNameChecker().WithTimeLimit(30 * time.Second).WithEventLimit(20)
+	testContainerFieldFilters(t, checker, containerSelectorNamePolicy, ubuntuPod_l3)
+}
+
+const containerSelectorRepoPolicy = `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicyNamespaced
+metadata:
+  name: "ubuntu-container-syscalls"
+spec:
+  containerSelector:
+    matchExpressions:
+    - key: repo
+      operator: NotIn
+      values:
+      - "docker.io/library/ubuntu"
+  tracepoints:
+  - subsystem: "raw_syscalls"
+    event: "sys_exit"
+    args:
+    - index: 4
+      type: "int64"
+`
+
+const ubuntuPod_l4 = `
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: ubuntu-l4
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: "ubuntu-l4"
+  template:
+    metadata:
+      labels:
+        app: "ubuntu-l4"
+    spec:
+      containers:
+      - name: main
+        image: ubuntu:20.04
+        imagePullPolicy: IfNotPresent
+        command: ["bash"]
+        args: ["-c", "while sleep 1; do cat /etc/hostname; done"]
+      - name: sidecar
+        image: debian:12.10
+        imagePullPolicy: IfNotPresent
+        command: ["bash"]
+        args: ["-c", "while sleep 1; do cat /etc/hostname; done"]
+`
+
+func containerSelectorRepoChecker() *checker.RPCChecker {
+	return checker.NewRPCChecker(&containerFieldRepoChecker{}, "policyfilter-container-field-checker")
+}
+
+type containerFieldRepoChecker struct {
+	matches int
+}
+
+func (cfc *containerFieldRepoChecker) NextEventCheck(event ec.Event, _ *logrus.Logger) (bool, error) {
+	// ignore non-trace point events
+	ev, ok := event.(*tetragon.ProcessTracepoint)
+	if !ok {
+		return false, errors.New("not a tracepoint")
+	}
+
+	// ignore other tracepoints
+	if ev.GetSubsys() != "raw_syscalls" || ev.GetEvent() != "sys_exit" {
+		return false, fmt.Errorf("not raw_syscalls:sys_exit (%s:%s instead)", ev.GetSubsys(), ev.GetEvent())
+	}
+
+	container := ev.GetProcess().GetPod().GetContainer()
+
+	if strings.HasPrefix(container.Image.Id, "docker.io/library/ubuntu") {
+		return true, fmt.Errorf("event %+v has wrong container", ev)
+	}
+
+	cfc.matches++
+	return false, nil
+}
+
+func (cfc *containerFieldRepoChecker) FinalCheck(_ *logrus.Logger) error {
+	if cfc.matches > 0 {
+		return nil
+	}
+	return fmt.Errorf("container-field checker failed, had %d matches", cfc.matches)
+}
+
+func TestContainerFieldRepoFilters(t *testing.T) {
+	checker := containerSelectorRepoChecker().WithTimeLimit(30 * time.Second).WithEventLimit(20)
+	testContainerFieldFilters(t, checker, containerSelectorRepoPolicy, ubuntuPod_l4)
 }
