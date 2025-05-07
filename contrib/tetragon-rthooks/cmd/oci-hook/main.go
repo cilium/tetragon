@@ -147,6 +147,21 @@ func containerNameFromAnnotations(annotations map[string]string) string {
 	return ""
 }
 
+func containerImageFromAnnotations(annotations map[string]string) string {
+	// containerd
+	// ref: https://github.com/containerd/containerd/blob/7f707b5e7970105723257d483394454049eabe47/internal/cri/annotations/annotations.go#L78-L79
+	if val, ok := annotations["io.kubernetes.cri.image-name"]; ok { // example value "docker.io/library/ubuntu:22.04"
+		return val
+	}
+
+	// crio
+	if val, ok := annotations["io.kubernetes.cri-o.ImageName"]; ok { // example value "docker.io/library/ubuntu:22.04"
+		return val
+	}
+
+	return ""
+}
+
 func containerIDFromAnnotations(annotations map[string]string) string {
 	// crio
 	// ref: https://github.com/cri-o/cri-o/blob/cd3a03c9f7852227f8171e7698535610e41e2e29/server/nri-api.go#L586-L591
@@ -268,14 +283,15 @@ func createContainerHook(log *slog.Logger) (error, map[string]string) {
 	}
 
 	createContainer := &tetragon.CreateContainer{
-		CgroupsPath:   cgroupPath,
-		RootDir:       rootDir,
-		ContainerName: containerNameFromAnnotations(spec.Annotations),
-		ContainerID:   containerIDFromAnnotations(spec.Annotations),
-		PodName:       podNameFromAnnotations(spec.Annotations),
-		PodUID:        podUIDFromAnnotations(spec.Annotations),
-		PodNamespace:  podNamespaceFromAnnotations(spec.Annotations),
-		Annotations:   spec.Annotations,
+		CgroupsPath:    cgroupPath,
+		RootDir:        rootDir,
+		ContainerName:  containerNameFromAnnotations(spec.Annotations),
+		ContainerID:    containerIDFromAnnotations(spec.Annotations),
+		ContainerImage: containerImageFromAnnotations(spec.Annotations),
+		PodName:        podNameFromAnnotations(spec.Annotations),
+		PodUID:         podUIDFromAnnotations(spec.Annotations),
+		PodNamespace:   podNamespaceFromAnnotations(spec.Annotations),
+		Annotations:    spec.Annotations,
 	}
 
 	req := &tetragon.RuntimeHookRequest{
@@ -289,6 +305,7 @@ func createContainerHook(log *slog.Logger) (error, map[string]string) {
 		"req-rootdir", rootDir,
 		"req-containerName", createContainer.ContainerName,
 		"req-containerID", createContainer.ContainerID,
+		"req-containerImage", createContainer.ContainerImage,
 		"req-podName", createContainer.PodName,
 		"req-podUID", createContainer.PodUID,
 		"req-podNamespace", createContainer.PodNamespace,

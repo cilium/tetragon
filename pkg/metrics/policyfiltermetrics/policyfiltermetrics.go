@@ -96,10 +96,17 @@ var (
 		Help:        "The total number of operations when the container name was missing in the OCI hook",
 		ConstLabels: nil,
 	})
+
+	PolicyFilterHookContainerImageMissingMetrics = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace:   consts.MetricsNamespace,
+		Name:        "policyfilter_hook_container_image_missing_total",
+		Help:        "The total number of operations when the container image was missing in the OCI hook",
+		ConstLabels: nil,
+	})
 )
 
 func RegisterMetrics(group metrics.Group) {
-	group.MustRegister(PolicyFilterOpMetrics, PolicyFilterHookContainerNameMissingMetrics)
+	group.MustRegister(PolicyFilterOpMetrics, PolicyFilterHookContainerNameMissingMetrics, PolicyFilterHookContainerImageMissingMetrics)
 }
 
 func OpInc(subsys Subsys, op Operation, err string) {
@@ -108,4 +115,8 @@ func OpInc(subsys Subsys, op Operation, err string) {
 
 func ContNameMissInc() {
 	PolicyFilterHookContainerNameMissingMetrics.Inc()
+}
+
+func ContImageMissInc() {
+	PolicyFilterHookContainerImageMissingMetrics.Inc()
 }

@@ -5,6 +5,7 @@ package rthooks
 
 import (
 	"context"
+	"strings"
 
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/policyfiltermetrics"
@@ -81,6 +82,18 @@ func createContainerHook(_ context.Context, arg *rthooks.CreateContainerArg) err
 		policyfiltermetrics.ContNameMissInc()
 	}
 
+	containerImage := arg.Req.ContainerImage
+	if containerImage == "" {
+		log.Warnf("failed to find container image for %s, but will continue", containerID)
+		policyfiltermetrics.ContImageMissInc()
+	}
+
+	containerRepo := containerImage
+	containerImageParts := strings.Split(containerImage, ":")
+	if len(containerImageParts) == 2 {
+		containerRepo = containerImageParts[0]
+	}
+
 	log.WithFields(logrus.Fields{
 		"pod-id":         podID,
 		"namespace":      namespace,
@@ -91,7 +104,7 @@ func createContainerHook(_ context.Context, arg *rthooks.CreateContainerArg) err
 		"container-name": containerName,
 	}).Trace("policyfilter: add pod container")
 	cgid := policyfilter.CgroupID(cgID)
-	err = pfState.AddPodContainer(policyfilter.PodID(podID), namespace, workload, kind, pod.Labels, containerID, cgid, containerName)
+	err = pfState.AddPodContainer(policyfilter.PodID(podID), namespace, workload, kind, pod.Labels, containerID, cgid, podhelpers.ContainerInfo{Name: containerName, Repo: containerRepo})
 	policyfiltermetrics.OpInc(policyfiltermetrics.RTHooksSubsys, policyfiltermetrics.AddContainerOperation, policyfilter.ErrorLabel(err))
 
 	if err != nil {

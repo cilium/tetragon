@@ -243,6 +243,7 @@ found.
 | podName | [string](#string) |  | podName is the pod name |
 | podUID | [string](#string) |  | podUID is the pod uid |
 | podNamespace | [string](#string) |  | podNamespace is the namespace of the pod |
+| containerImage | [string](#string) |  | containerImage is the full image location (repo &#43; image) |
 
 <a name="tetragon-CreateContainer-AnnotationsEntry"></a>
 

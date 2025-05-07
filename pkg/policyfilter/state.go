@@ -100,6 +100,7 @@ type containerInfo struct {
 	id   string   // container id
 	cgID CgroupID // cgroup id
 	name string   // container name
+	repo string   // container repo
 }
 
 // podInfo contains the necessary information for each pod
@@ -230,6 +231,7 @@ func (pol *policy) podInfoMatches(pod *podInfo) bool {
 func (pol *policy) containerMatches(container *containerInfo) bool {
 	containerFilterFields := labels.Labels{
 		"name": container.name,
+		"repo": container.repo,
 	}
 	return pol.containerSelector.Match(containerFilterFields)
 }
@@ -307,7 +309,7 @@ func newState(
 
 func (m *state) updatePodHandler(pod *v1.Pod) error {
 	containerIDs := podhelpers.PodContainersIDs(pod)
-	containerNames := podhelpers.PodContainersNames(pod)
+	containerInfo := podhelpers.PodContainersInfo(pod)
 	podID, err := uuid.Parse(string(pod.UID))
 	if err != nil {
 		m.log.WithError(err).WithField("pod-id", pod.UID).Warn("policyfilter, pod handler: failed to parse pod id")
@@ -319,7 +321,7 @@ func (m *state) updatePodHandler(pod *v1.Pod) error {
 	workload := workloadMeta.Name
 	kind := kindMeta.Kind
 
-	err = m.UpdatePod(PodID(podID), namespace, workload, kind, pod.Labels, containerIDs, containerNames)
+	err = m.UpdatePod(PodID(podID), namespace, workload, kind, pod.Labels, containerIDs, containerInfo)
 	if err != nil {
 		m.log.WithError(err).WithFields(logrus.Fields{
 			"pod-id":        podID,
@@ -579,7 +581,7 @@ func (m *state) addCgroupIDs(cinfo []containerInfo, pod *podInfo) error {
 // the function will try to figure out the cgroup id on its own.
 // Finally, it will scan over all the matching policies for the pod and update the policy maps.
 func (m *state) addPodContainers(pod *podInfo, containerIDs []string,
-	cgroupIDs []CgroupID, containerNames []string) {
+	cgroupIDs []CgroupID, containerData []podhelpers.ContainerInfo) {
 	// Find the containers that do not exist in our state, and for those find the cgroup id if
 	// one does not exist.
 	cinfo := make([]containerInfo, 0, len(containerIDs))
@@ -588,7 +590,7 @@ func (m *state) addPodContainers(pod *podInfo, containerIDs []string,
 		if len(cgroupIDs) > i {
 			cgIDptr = &cgroupIDs[i]
 		}
-		containerName := containerNames[i]
+		containerData := containerData[i]
 
 		if m.containerExists(pod, contID, cgIDptr) {
 			m.DebugLogWithCallers(4).WithFields(logrus.Fields{
@@ -613,7 +615,7 @@ func (m *state) addPodContainers(pod *podInfo, containerIDs []string,
 			cgIDptr = &cgid
 		}
 
-		cinfo = append(cinfo, containerInfo{contID, *cgIDptr, containerName})
+		cinfo = append(cinfo, containerInfo{contID, *cgIDptr, containerData.Name, containerData.Repo})
 	}
 
 	if len(cinfo) == 0 {
@@ -692,7 +694,7 @@ func (m *state) addNewPod(podID PodID, namespace, workload, kind string, podLabe
 //
 // The pod might or might not have been encountered before.
 func (m *state) AddPodContainer(podID PodID, namespace, workload, kind string, podLabels labels.Labels,
-	containerID string, cgID CgroupID, containerName string) error {
+	containerID string, cgID CgroupID, containerInfo podhelpers.ContainerInfo) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -705,14 +707,14 @@ func (m *state) AddPodContainer(podID PodID, namespace, workload, kind string, p
 			"workload":       workload,
 			"container-id":   containerID,
 			"cgroup-id":      cgID,
-			"container-name": containerName,
+			"container-info": containerInfo,
 		}).Info("AddPodContainer: added pod")
 	} else if pod.namespace != namespace {
 		// sanity check: old and new namespace should match
 		return &podNamespaceConflictError{podID: podID, oldNs: pod.namespace, newNs: namespace}
 	}
 
-	m.addPodContainers(pod, []string{containerID}, []CgroupID{cgID}, []string{containerName})
+	m.addPodContainers(pod, []string{containerID}, []CgroupID{cgID}, []podhelpers.ContainerInfo{containerInfo})
 	return nil
 }
 
@@ -905,15 +907,15 @@ func (pod *podInfo) containerDiff(newContainerIDs []string) ([]string, []string)
 //
 // It is intended to be used from k8s watchers (where no cgroup information is available)
 func (m *state) UpdatePod(podID PodID, namespace, workload, kind string, podLabels labels.Labels,
-	containerIDs []string, containerNames []string) error {
+	containerIDs []string, containerInfo []podhelpers.ContainerInfo) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	dlog := m.DebugLogWithCallers(4).WithFields(logrus.Fields{
-		"pod-id":          podID,
-		"namespace":       namespace,
-		"container-ids":   containerIDs,
-		"container-names": containerNames,
+		"pod-id":         podID,
+		"namespace":      namespace,
+		"container-ids":  containerIDs,
+		"container-info": containerInfo,
 	})
 
 	pod := m.findPod(podID)
@@ -953,18 +955,18 @@ func (m *state) UpdatePod(podID PodID, namespace, workload, kind string, podLabe
 	}
 
 	// container names that are associated with addIDs
-	var addContainerNames []string
+	var addContainerInfo []podhelpers.ContainerInfo
 
 	// find container names of the container IDs that should be added to pod
 	for addID := range addIDs {
 		for allID := range containerIDs {
 			if addIDs[addID] == containerIDs[allID] {
-				addContainerNames = append(addContainerNames, containerNames[allID])
+				addContainerInfo = append(addContainerInfo, containerInfo[allID])
 			}
 		}
 	}
 
-	m.addPodContainers(pod, addIDs, nil, addContainerNames)
+	m.addPodContainers(pod, addIDs, nil, addContainerInfo)
 	return nil
 }
 

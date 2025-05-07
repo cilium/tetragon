@@ -27,6 +27,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/podhelpers"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/sensors"
@@ -253,7 +254,7 @@ func TestCgTrackerPolicyFilter(t *testing.T) {
 	err = pfState.AddPodContainer(
 		policyfilter.PodID(uuid.New()),
 		namespace, "wl", "kind", nil,
-		"pod-container", policyfilter.CgroupID(cgfs.cgIDs["a"]), "container-name")
+		"pod-container", policyfilter.CgroupID(cgfs.cgIDs["a"]), podhelpers.ContainerInfo{Name: "container-name", Repo: "container-repo"})
 	require.NoError(t, err)
 
 	// NB: make true if you want to see a dump of the policyfilter maps

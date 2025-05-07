@@ -25,6 +25,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/podhelpers"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/sensors/config/confmap"
@@ -274,10 +275,10 @@ func TestNamespacedPolicies(t *testing.T) {
 	podId2 := uuid.New()
 	require.NoError(t, err)
 	err = pfState.AddPodContainer(policyfilter.PodID(podId1), "ns1", "wl1", "kind1", nil,
-		"pod1-container1", cgID1, "container-name1")
+		"pod1-container1", cgID1, podhelpers.ContainerInfo{Name: "container-name1", Repo: "container-repo1"})
 	require.NoError(t, err)
 	err = pfState.AddPodContainer(policyfilter.PodID(podId2), "ns2", "wl2", "kind2", nil,
-		"pod1-container2", cgID2, "container-name2")
+		"pod1-container2", cgID2, podhelpers.ContainerInfo{Name: "container-name2", Repo: "container-repo2"})
 	require.NoError(t, err)
 
 	// Hence, we expect one event with whence value of 4444
