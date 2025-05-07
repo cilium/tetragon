@@ -24,7 +24,7 @@ features:
     description: "Enhance network observability with Kubernetes identities, including pod labels and namespaces."
     icon: "table"
   - title: "Comprehensive Network Visibility"
-    description: "Gain a holistic view of network activity to enable faster troubleshooting and stronger security across cloud-native environments."
+    description: "Gain a holistic view of network activity to enable faster troubleshooting and stronger security across cloud native environments."
     icon: "eye"
 ---
 
