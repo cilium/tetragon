@@ -47,7 +47,7 @@ the policy is applied to.
 
 ## Container field filters
 
-For container field filters, we use the `containerSelector` field of tracing policies to select the containers that the policy is applied to. At the moment, the only supported field is `name`.
+For container field filters, we use the `containerSelector` field of tracing policies to select the containers that the policy is applied to. At the moment, the only supported fields are `name` and `repo` which refers to the container repository.
 
 ## Demo
 
