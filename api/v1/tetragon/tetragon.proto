@@ -571,6 +571,10 @@ message ProcessUprobe {
   repeated string tags = 8;
   // Ancestors of the process beyond the immediate parent.
   repeated Process ancestors = 9;
+  // uprobe offset (mutualy exclusive with symbol)
+  uint64 offset = 10;
+  // uprobe ref_ctr_offset
+  uint64 ref_ctr_offset = 11;
 }
 
 message ProcessLsm {
