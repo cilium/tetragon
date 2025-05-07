@@ -710,6 +710,8 @@ message CreateContainer {
   string podUID = 7;
   // podNamespace is the namespace of the pod
   string podNamespace = 8;
+  // containerImage is the full image location (repo + image)
+  string containerImage = 9;
 }
 
 message StackTraceEntry {

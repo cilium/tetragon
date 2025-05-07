@@ -296,6 +296,10 @@ The total time of BPF program running.
 | `section` | `kprobe/sys_open` |
 | `sensor` | `generic_kprobe` |
 
+### `tetragon_policyfilter_hook_container_image_missing_total`
+
+The total number of operations when the container image was missing in the OCI hook
+
 ### `tetragon_policyfilter_hook_container_name_missing_total`
 
 The total number of operations when the container name was missing in the OCI hook

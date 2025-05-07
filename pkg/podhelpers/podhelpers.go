@@ -41,10 +41,19 @@ func PodContainersIDs(pod *v1.Pod) []string {
 	return ret
 }
 
-func PodContainersNames(pod *v1.Pod) []string {
-	ret := make([]string, 0)
+type ContainerInfo struct {
+	Name string
+	Repo string
+}
+
+func PodContainersInfo(pod *v1.Pod) []ContainerInfo {
+	ret := make([]ContainerInfo, 0)
 	podForAllContainers(pod, func(c *v1.ContainerStatus) {
-		ret = append(ret, c.Name)
+		var repo string
+		if parts := strings.Split(c.ImageID, "@"); len(parts) == 2 { // example ImageID: docker.io/library/ubuntu@sha256:aadf9a3f5eda81295050d13dabe851b26a67597e424a908f25a63f589dfed48f
+			repo = parts[0]
+		}
+		ret = append(ret, ContainerInfo{Name: c.Name, Repo: repo})
 	})
 	return ret
 }

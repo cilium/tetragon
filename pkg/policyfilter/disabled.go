@@ -9,6 +9,7 @@ import (
 
 	slimv1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/tetragon/pkg/labels"
+	"github.com/cilium/tetragon/pkg/podhelpers"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -32,12 +33,12 @@ func (s *disabled) DelPolicy(polID PolicyID) error {
 }
 
 func (s *disabled) AddPodContainer(podID PodID, namespace, workload, kind string, podLabels labels.Labels,
-	containerID string, cgID CgroupID, containerName string) error {
+	containerID string, cgID CgroupID, containerInfo podhelpers.ContainerInfo) error {
 	return nil
 }
 
 func (s *disabled) UpdatePod(podID PodID, namespace, workload, kind string, podLabels labels.Labels,
-	containerIDs []string, containerNames []string) error {
+	containerIDs []string, containerInfo []podhelpers.ContainerInfo) error {
 	return nil
 }
 

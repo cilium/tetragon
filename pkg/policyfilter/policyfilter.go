@@ -11,6 +11,7 @@ import (
 	"github.com/cilium/tetragon/pkg/labels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/podhelpers"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -87,12 +88,12 @@ type State interface {
 	// The pod might or might not have been encountered before.
 	// This method is intended to update policyfilter state from container hooks
 	AddPodContainer(podID PodID, namespace, workload, kind string, podLabels labels.Labels,
-		containerID string, cgID CgroupID, containerName string) error
+		containerID string, cgID CgroupID, containerInfo podhelpers.ContainerInfo) error
 
 	// UpdatePod updates the pod state for a pod, where containerIDs contains all the container ids for the given pod.
 	// This method is intended to be used from k8s watchers (where no cgroup information is available)
 	UpdatePod(podID PodID, namespace, workload, kind string, podLabels labels.Labels,
-		containerIDs []string, containerNames []string) error
+		containerIDs []string, containerInfo []podhelpers.ContainerInfo) error
 
 	// DelPodContainer informs policyfilter that a container was deleted from a pod
 	DelPodContainer(podID PodID, containerID string) error

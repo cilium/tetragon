@@ -18,6 +18,7 @@ import (
 	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/podhelpers"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/config/confmap"
@@ -99,7 +100,7 @@ func (pft *Tester) AddPolicy(t *testing.T, ctx context.Context, tp *tracingpolic
 	err = pft.Pfstate.AddPodContainer(
 		policyfilter.PodID(uuid.New()),
 		tracingpolicy.Namespace(tp), "workload", "kind", nil,
-		"pod-container", policyfilter.CgroupID(pft.CgID), "container-name")
+		"pod-container", policyfilter.CgroupID(pft.CgID), podhelpers.ContainerInfo{Name: "container-name", Repo: "container-repo"})
 	require.NoError(t, err)
 
 	// NB: make true if you want to see a dump of the policyfilter maps

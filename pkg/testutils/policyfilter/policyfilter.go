@@ -8,6 +8,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/cilium/tetragon/pkg/labels"
+	"github.com/cilium/tetragon/pkg/podhelpers"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 )
 
@@ -27,12 +28,12 @@ func (s *DummyPF) DelPolicy(_ policyfilter.PolicyID) error {
 }
 
 func (s *DummyPF) AddPodContainer(_ policyfilter.PodID, _, _, _ string, _ labels.Labels,
-	_ string, _ policyfilter.CgroupID, _ string) error {
+	_ string, _ policyfilter.CgroupID, _ podhelpers.ContainerInfo) error {
 	return nil
 }
 
 func (s *DummyPF) UpdatePod(_ policyfilter.PodID, _, _, _ string, _ labels.Labels,
-	_ []string, _ []string) error {
+	_ []string, _ []podhelpers.ContainerInfo) error {
 	return nil
 }
 
