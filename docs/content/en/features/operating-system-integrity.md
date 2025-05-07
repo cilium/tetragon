@@ -6,7 +6,7 @@ body_class: "td-home"
 
 hero:
   title: "Operating System Integrity"
-  intro: "Tetragon Operating System Integrity lets you observe kernel Module operations, eBPF subsystem activity, and process injections⁠"
+  intro: "Tetragon Operating System Integrity lets you observe kernel module operations, eBPF subsystem activity, and process injections⁠"
   videoID: "UBVTJ0LeXxc"
 
 contentTitle: "Audit eBPF Subsystem Interactions and Kernel Modules"
