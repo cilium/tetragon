@@ -18,16 +18,25 @@ import (
 
 var cronJobNameRegexp = regexp.MustCompile(`(.+)-\d{8,10}$`)
 
-// GetWorkloadMetaFromPod heuristically derives workload metadata from the pod spec.
-func GetWorkloadMetaFromPod(pod *corev1.Pod) (v1alpha1.WorkloadObjectMeta, metav1.TypeMeta) {
+func GetTopLevelWorkloadFromPod(pod *corev1.Pod) v1alpha1.TopLevelWorkload {
+	o, t := GetTopLevelWorkloadMetaFromPod(pod)
+	return v1alpha1.TopLevelWorkload{
+		TypeMeta:  t,
+		Name:      o.Name,
+		Namespace: o.Namespace,
+	}
+}
+
+// GetTopLevelWorkloadFromPod heuristically derives workload metadata from the Pod spec.
+func GetTopLevelWorkloadMetaFromPod(pod *corev1.Pod) (metav1.ObjectMeta, metav1.TypeMeta) {
 	if pod == nil {
-		return v1alpha1.WorkloadObjectMeta{}, metav1.TypeMeta{}
+		return metav1.ObjectMeta{}, metav1.TypeMeta{}
 	}
 	// try to capture more useful namespace/name info for deployments, etc.
 	// TODO(dougreid): expand to enable lookup of OWNERs recursively a la kubernetesenv
-	deployMeta := v1alpha1.WorkloadObjectMeta{
-		Name:      pod.GetObjectMeta().GetName(),
-		Namespace: pod.GetObjectMeta().GetNamespace(),
+	deployMeta := metav1.ObjectMeta{
+		Name:      pod.Name,
+		Namespace: pod.Namespace,
 	}
 
 	typeMetadata := metav1.TypeMeta{
