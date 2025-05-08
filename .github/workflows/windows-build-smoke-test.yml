@@ -28,6 +28,11 @@ jobs:
         run: mkdir D:\temp
         shell: pwsh
 
+      - name: Checkout Tetragon Repo 
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          path: go/src/github.com/cilium/tetragon/
+      
       - name: Set MSVC Environment Variables
         shell: cmd
         run: |
@@ -64,6 +69,13 @@ jobs:
           cd ${{ env.TEMP }}\ntosebpfext
           git checkout e7dc209a8be0da2ff5d75f5772a0ee0bf4a10383
       
+      - name: Copy Process_monitor.c file
+        run: |
+            $sourcePath = "${{ github.workspace }}\go\src\github.com\cilium\tetragon\bpf\windows\process_monitor.c"
+            $destinationPath = "${{ env.TEMP }}\ntosebpfext\tools\process_monitor_bpf\process_monitor.c"
+            Copy-Item -Path $sourcePath -Destination $destinationPath -Force
+        shell: powershell
+
       - name: Configuring repo for first build
         if: steps.skip_check.outputs.should_skip != 'true'
         working-directory: ${{ env.TEMP }}\ntosebpfext
@@ -72,7 +84,6 @@ jobs:
           LDFLAGS: ${{ env.LD_FLAGS }}
         run: |
             .\scripts\initialize_repo.ps1
-
       - name: Build
         working-directory: ${{ env.TEMP }}\ntosebpfext
         run: msbuild -target:Tools\process_monitor_bpf:Rebuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} /bl:${{env.BUILD_PLATFORM}}_${{env.BUILD_CONFIGURATION}}\build_logs\build.binlog ${{env.BUILD_OPTIONS}} ${{env.SOLUTION_FILE_PATH}}
