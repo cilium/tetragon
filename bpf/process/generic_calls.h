@@ -114,7 +114,7 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 	struct msg_generic_kprobe *e;
 	struct event_config *config;
 	int am, zero = 0;
-	unsigned long a;
+	unsigned long *a;
 	long ty;
 
 	e = map_lookup_elem(&process_call_heap, &zero);
@@ -130,14 +130,14 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 		     : "i"(MAX_SELECTORS_MASK));
 	ty = (&config->arg0)[index];
 
-	a = (&e->a0)[index];
-	extract_arg(config, index, &a);
+	a = &(&e->a0)[index];
+	extract_arg(config, index, a);
 
 	if (should_offload_path(ty))
-		return generic_path_offload(ctx, ty, a, index, off, tailcals);
+		return generic_path_offload(ctx, ty, *a, index, off, tailcals);
 
 	am = (&config->arg0m)[index];
-	return read_arg(ctx, e, index, ty, off, a, am, data_heap_ptr);
+	return read_arg(ctx, e, index, ty, off, *a, am, data_heap_ptr);
 }
 
 FUNC_INLINE int
