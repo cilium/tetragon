@@ -20,11 +20,12 @@ type GoTest struct {
 	PackageProg, Test string
 }
 
-func (t *GoTest) ToString() string {
+func (t *GoTest) ToPattern() string {
 	if t.Test == "" {
 		return t.PackageProg
 	}
-	return fmt.Sprintf("%s:%s", t.PackageProg, t.Test)
+	// some tests are substrings of others. Use an exact pattern to avoid running tests twice.
+	return fmt.Sprintf("%s:^%s$", t.PackageProg, t.Test)
 }
 
 func fromString(testDir, s string) []GoTest {
@@ -78,20 +79,20 @@ func LoadTestsFromFile(testDir string, fname string) ([]GoTest, error) {
 func ListTests(
 	testDir string,
 	packagesOnly bool,
-	blacklist []GoTest,
+	ignorelist []GoTest,
 ) ([]GoTest, error) {
 
-	progs, err := listTestProgs(testDir, blacklist)
+	progs, err := listTestProgs(testDir, ignorelist)
 	if err != nil {
 		return nil, err
 	}
 
-	blacklistMap := make(map[string]struct{})
-	for _, b := range blacklist {
+	ignorelistMap := make(map[GoTest]struct{})
+	for _, b := range ignorelist {
 		if b.Test == "" {
 			continue
 		}
-		blacklistMap[b.ToString()] = struct{}{}
+		ignorelistMap[b] = struct{}{}
 	}
 
 	ret := []GoTest{}
@@ -110,7 +111,7 @@ func ListTests(
 
 		for _, test := range tests {
 			t := GoTest{PackageProg: prog, Test: test}
-			if _, ok := blacklistMap[t.ToString()]; ok {
+			if _, ok := ignorelistMap[t]; ok {
 				continue
 			}
 			ret = append(ret, t)
@@ -121,16 +122,16 @@ func ListTests(
 }
 
 // listTestProgs lists tests programs from the filesystem (typically, this is the go-tests directory)
-func listTestProgs(testDir string, blacklist []GoTest) ([]string, error) {
+func listTestProgs(testDir string, ignoreList []GoTest) ([]string, error) {
 	files, err := os.ReadDir(testDir)
 	if err != nil {
 		return nil, err
 	}
 
-	blackListedPackages := make(map[string]struct{})
-	for _, t := range blacklist {
+	ignoredPackages := make(map[string]struct{})
+	for _, t := range ignoreList {
 		if t.Test == "" {
-			blackListedPackages[t.PackageProg] = struct{}{}
+			ignoredPackages[t.PackageProg] = struct{}{}
 		}
 	}
 
@@ -143,7 +144,7 @@ func listTestProgs(testDir string, blacklist []GoTest) ([]string, error) {
 		if !strings.HasPrefix(name, "pkg.") {
 			continue
 		}
-		if _, ok := blackListedPackages[name]; ok {
+		if _, ok := ignoredPackages[name]; ok {
 			continue
 		}
 		ret = append(ret, name)

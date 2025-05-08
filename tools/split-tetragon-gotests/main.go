@@ -19,8 +19,8 @@ var (
 	outDir      = filepath.Join(tetragonDir, "tests", "vmtests")
 )
 
-func splitProgs(n int, blacklist []vmtests.GoTest) error {
-	tests, err := vmtests.ListTests(goTestsDir, false, blacklist)
+func splitProgs(n int, ignorelist []vmtests.GoTest) error {
+	tests, err := vmtests.ListTests(goTestsDir, false, ignorelist)
 	if err != nil || len(tests) == 0 {
 		return fmt.Errorf("no tests found (err:%w). Is %s accesible? Did you run `make test-compile`?", err, goTestsDir)
 	}
@@ -40,14 +40,14 @@ func splitProgs(n int, blacklist []vmtests.GoTest) error {
 	// load-balance between the groups.
 	i := 0
 	for _, test := range tests {
-		fmt.Fprintf(files[i%n], "%s\n", test.ToString())
+		fmt.Fprintf(files[i%n], "%s\n", test.ToPattern())
 		i++
 	}
 
 	return nil
 }
 
-var CiBlacklist = []vmtests.GoTest{
+var CiIgnorelist = []vmtests.GoTest{
 	// pkg.exporter has a rate limit test, which is time-dependent. There
 	// was a previous attempt to fix the test, but failed. Ignore it for
 	// now.
@@ -71,7 +71,7 @@ func usage() {
 func main() {
 
 	var cirun bool
-	flag.BoolVar(&cirun, "ci-run", false, "This option enables CI blacklist for tests")
+	flag.BoolVar(&cirun, "ci-run", false, "This option enables CI ignorelist for tests")
 	flag.Parse()
 
 	if flag.NArg() != 1 {
@@ -85,11 +85,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	var blacklist []vmtests.GoTest
+	var ignorelist []vmtests.GoTest
 	if cirun {
-		blacklist = CiBlacklist
+		ignorelist = CiIgnorelist
 	}
-	err = splitProgs(n, blacklist)
+	err = splitProgs(n, ignorelist)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err)
 		os.Exit(1)
