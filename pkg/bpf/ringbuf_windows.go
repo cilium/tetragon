@@ -137,6 +137,24 @@ func GetNewWindowsRingBufReader() *WindowsRingBufReader {
 	return &reader
 }
 
+type Record struct {
+	// The CPU this record was generated on.
+	CPU int
+
+	// The data submitted via bpf_perf_event_output.
+	// Due to a kernel bug, this can contain between 0 and 7 bytes of trailing
+	// garbage from the ring depending on the input sample's length.
+	RawSample []byte
+
+	// The number of samples which could not be output, since
+	// the ring buffer was full.
+	LostSamples uint64
+
+	// The minimum number of bytes remaining in the per-CPU buffer after this Record has been read.
+	// Negative for overwritable buffers.
+	Remaining int
+}
+
 func CTLCode(DeviceType, Function, Method, Access uint32) uint32 {
 	return (DeviceType << 16) | (Access << 14) | (Function << 2) | Method
 }
@@ -350,27 +368,32 @@ func (reader *WindowsRingBufReader) fetchNextOffsets() error {
 	return nil
 }
 
-func (reader *WindowsRingBufReader) GetNextProcess() (*ProcessInfo, uint32) {
+func (reader *WindowsRingBufReader) GetNextRecord() (Record, uint32) {
+	var r Record
 	if reader.consumerOffset == reader.producerOffset {
 		err := reader.fetchNextOffsets()
 		if err != nil {
-			return nil, ERR_RINGBUF_UNKNOWN_ERROR
+			return r, ERR_RINGBUF_UNKNOWN_ERROR
 		}
 	}
 	record := EbpfRingBufferNextRecord(reader.byteBuf, uint64(reader.ringBufferSize), reader.consumerOffset, reader.producerOffset)
 	if record == nil {
-		return nil, ERR_RINGBUF_OFFSET_MISMATCH
+		return r, ERR_RINGBUF_OFFSET_MISMATCH
 	}
 	if EbpfRingBufferRecordIsLocked(record) {
-		return nil, ERR_RINGBUF_TRY_AGAIN
+		return r, ERR_RINGBUF_TRY_AGAIN
 	}
-	reader.consumerOffset += uint64(EbpfRingBufferRecordTotalSize(record))
+	recordSize := uint64(EbpfRingBufferRecordTotalSize(record))
+	reader.consumerOffset += recordSize
 	// This will be communicated in next ioctl
 	reader.currRequest.consumerOffset = reader.consumerOffset
 	if !EbpfRingBufferRecordIsDiscarded(record) {
-		procInfo := (*ProcessInfo)(unsafe.Pointer(&(record.data)))
-		return procInfo, ERR_RINGBUF_SUCCESS
+		r.RawSample = make([]byte, recordSize)
+		r.CPU = 0
+		copyBuf := unsafe.Slice((*byte)(unsafe.Pointer(&(record.data))), recordSize)
+		copy(r.RawSample, copyBuf)
+		return r, ERR_RINGBUF_SUCCESS
 
 	}
-	return nil, ERR_RINGBUF_RECORD_DISCARDED
+	return r, ERR_RINGBUF_RECORD_DISCARDED
 }

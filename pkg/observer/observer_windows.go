@@ -9,218 +9,17 @@ import (
 	"fmt"
 	"runtime"
 	"sync"
-	"unsafe"
 
-	"github.com/cilium/ebpf"
-	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/readyapi"
 	"github.com/cilium/tetragon/pkg/bpf"
-	"golang.org/x/sys/windows"
 )
-
-// process_info_t struct
-type ProcessInfo struct {
-	ProcessID         uint32
-	ParentProcessID   uint32
-	CreatingProcessID uint32
-	CreatingThreadID  uint32
-	CreationTime      uint64
-	ExitTime          uint64
-	ProcessExitCode   uint32
-	Operation         uint8
-}
-
-// msg_process struct
-type MsgProcess struct {
-	Size       uint32
-	PID        uint32
-	TID        uint32
-	NSPID      uint32
-	SecureExec uint32
-	UID        uint32
-	AUID       uint32
-	Flags      uint32
-	INlink     uint32
-	Pad        uint32
-	IIno       uint64
-	Ktime      uint64
-	Args       [2048]byte // Adjust size as needed
-}
-
-// msg_k8s struct
-type MsgK8s struct {
-	Cgrpid        uint64
-	CgrpTrackerID uint64
-	DockerID      [128]byte
-}
-
-// msg_execve_key struct
-type MsgExecveKey struct {
-	PID   uint32
-	Pad   [4]byte
-	Ktime uint64
-}
-
-// msg_capabilities struct
-type MsgCapabilities struct {
-	Permitted   uint64
-	Effective   uint64
-	Inheritable uint64
-}
-
-// msg_user_namespace struct
-type MsgUserNamespace struct {
-	Level  int32
-	UID    uint32
-	GID    uint32
-	NSInum uint32
-}
-
-// msg_cred struct
-type MsgCred struct {
-	UID        uint32
-	GID        uint32
-	SUID       uint32
-	SGID       uint32
-	EUID       uint32
-	EGID       uint32
-	FSUID      uint32
-	FSGID      uint32
-	SecureBits uint32
-	Pad        uint32
-	Caps       MsgCapabilities
-	UserNS     MsgUserNamespace
-}
-
-// msg_ns struct
-type MsgNS struct {
-	UTSInum             uint32
-	IPCInum             uint32
-	MNTInum             uint32
-	PIDInum             uint32
-	PIDForChildrenInum  uint32
-	NetInum             uint32
-	TimeInum            uint32
-	TimeForChildrenInum uint32
-	CgroupInum          uint32
-	UserInum            uint32
-}
-
-// msg_common struct
-type MsgCommon struct {
-	Op    uint8
-	Flags uint8
-	Pad   [2]byte
-	Size  uint32
-	Ktime uint64
-}
-
-// msg_execve_event struct
-type MsgExecveEvent struct {
-	Common      MsgCommon
-	Kube        MsgK8s
-	Parent      MsgExecveKey
-	ParentFlags uint64
-	Creds       MsgCred
-	NS          MsgNS
-	CleanupKey  MsgExecveKey
-	Process     MsgProcess
-	Buffer      [1024 + 256 + 56 + 56 + 256]byte
-}
-
-type ExitInfo struct {
-	Code uint32
-	Tid  uint32
-}
-
-type MsgExit struct {
-	Common  MsgCommon
-	Current MsgExecveKey
-	Info    ExitInfo
-}
-
-type Record struct {
-	// The CPU this record was generated on.
-	CPU int
-
-	// The data submitted via bpf_perf_event_output.
-	// Due to a kernel bug, this can contain between 0 and 7 bytes of trailing
-	// garbage from the ring depending on the input sample's length.
-	RawSample []byte
-
-	// The number of samples which could not be output, since
-	// the ring buffer was full.
-	LostSamples uint64
-
-	// The minimum number of bytes remaining in the per-CPU buffer after this Record has been read.
-	// Negative for overwritable buffers.
-	Remaining int
-}
-
-type RecordStruct struct {
-	execEvent MsgExecveEvent
-}
-
-func getExitRecordFromProcInfo(processInfo *bpf.ProcessInfo) (Record, error) {
-	var record Record
-
-	var exitEvent MsgExit
-	exitEvent.Common.Op = ops.MSG_OP_EXIT
-	exitEvent.Current.PID = processInfo.ProcessId
-	exitEvent.Current.Ktime = processInfo.ExitTime
-	exitEvent.Info.Code = processInfo.ProcessExitCode
-	exitEvent.Info.Tid = processInfo.ProcessId
-	record.RawSample = make([]byte, unsafe.Sizeof(exitEvent))
-	record.CPU = 0
-	copyBuf := unsafe.Slice((*byte)(unsafe.Pointer(&exitEvent)), unsafe.Sizeof(exitEvent))
-	copy(record.RawSample, copyBuf)
-	return record, nil
-}
-
-func getExecRecordFromProcInfo(processInfo *bpf.ProcessInfo, command_map *ebpf.Map, imageMap *ebpf.Map) (Record, error) {
-	// Create record struct
-	var record Record
-
-	var procEvent RecordStruct
-	procEvent.execEvent.Common.Op = ops.MSG_OP_EXECVE
-	procEvent.execEvent.Parent.PID = processInfo.CreatingProcessID
-	procEvent.execEvent.Process.PID = processInfo.ProcessId
-	procEvent.execEvent.Process.TID = processInfo.ProcessId
-	procEvent.execEvent.Process.Flags = 1
-	procEvent.execEvent.Process.NSPID = 0
-	procEvent.execEvent.Process.Size = uint32(unsafe.Offsetof(procEvent.execEvent.Process.Args))
-	procEvent.execEvent.Process.Ktime = processInfo.CreationTime
-
-	var wideCmd [2048]uint16
-	command_map.Lookup(processInfo.ProcessId, &wideCmd)
-	strCmd := windows.UTF16ToString(wideCmd[:])
-
-	var wideImagePath [1024]byte
-	imageMap.Lookup(processInfo.ProcessId, &wideImagePath)
-	var s = (*uint16)(unsafe.Pointer(&wideImagePath[0]))
-	strImagePath := windows.UTF16PtrToString(s)
-
-	strImagePath += string(uint8(0))
-	strImagePath += strCmd
-	copy(procEvent.execEvent.Process.Args[:], strImagePath)
-	procEvent.execEvent.Process.Size += uint32(len(strImagePath))
-
-	bufSize := int(unsafe.Sizeof(procEvent)) + len(strImagePath)
-	record.RawSample = make([]byte, bufSize)
-	record.CPU = 0
-	copyBuf := unsafe.Slice((*byte)(unsafe.Pointer(&procEvent)), bufSize)
-	copy(record.RawSample, copyBuf)
-	return record, nil
-}
 
 func (observer *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 	coll, err := bpf.GetCollection("ProcessMonitor")
 	if coll == nil {
 		return errors.New("exec Preloaded collection is nil")
 	}
-	commandline_map := coll.Maps["command_map"]
 	ringBufMap := coll.Maps["process_ringbuf"]
-	imageMap := coll.Maps["process_map"]
 	reader := bpf.GetNewWindowsRingBufReader()
 	err = reader.Init(ringBufMap.FD(), int(ringBufMap.MaxEntries()))
 	if err != nil {
@@ -232,7 +31,7 @@ func (observer *Observer) RunEvents(stopCtx context.Context, ready func()) error
 
 	// We spawn go routine to read and process perf events,
 	// connected with main app through winEventsQueue channel.
-	winEventsQueue := make(chan *Record, observer.getRBQueueSize())
+	winEventsQueue := make(chan *bpf.Record, observer.getRBQueueSize())
 
 	// Listeners are ready and about to start reading from perf reader, tell
 	// user everything is ready.
@@ -251,8 +50,8 @@ func (observer *Observer) RunEvents(stopCtx context.Context, ready func()) error
 		defer wg.Done()
 
 		for stopCtx.Err() == nil {
-			var record Record
-			procInfo, errCode := reader.GetNextProcess()
+			var record bpf.Record
+			record, errCode := reader.GetNextRecord()
 			if (errCode == bpf.ERR_RINGBUF_OFFSET_MISMATCH) || (errCode == bpf.ERR_RINGBUF_UNKNOWN_ERROR) {
 				observer.log.WithField("NewError ", 0).WithError(err).Warn("Reading bpf events failed")
 				break
@@ -260,30 +59,17 @@ func (observer *Observer) RunEvents(stopCtx context.Context, ready func()) error
 			if (errCode == bpf.ERR_RINGBUF_RECORD_DISCARDED) || (errCode == bpf.ERR_RINGBUF_TRY_AGAIN) {
 				continue
 			}
-			if procInfo.Operation != 0 {
-				record, err = getExitRecordFromProcInfo(procInfo)
-			} else {
-				record, err = getExecRecordFromProcInfo(procInfo, commandline_map, imageMap)
+			if len(record.RawSample) > 0 {
+				select {
+				case winEventsQueue <- &record:
+				default:
+					// drop the event, since channel is full
+					queueLost.Inc()
+				}
+				RingbufReceived.Inc()
 			}
-			if err != nil {
-				if stopCtx.Err() == nil {
-					RingbufErrors.Inc()
-					errorCnt := getCounterValue(RingbufErrors)
-					observer.log.WithField("errors", errorCnt).WithError(err).Warn("Reading bpf events failed")
-				}
-			} else {
-				if len(record.RawSample) > 0 {
-					select {
-					case winEventsQueue <- &record:
-					default:
-						// drop the event, since channel is full
-						queueLost.Inc()
-					}
-					RingbufReceived.Inc()
-				}
-				if record.LostSamples > 0 {
-					RingbufLost.Add(float64(record.LostSamples))
-				}
+			if record.LostSamples > 0 {
+				RingbufLost.Add(float64(record.LostSamples))
 			}
 		}
 	}()
