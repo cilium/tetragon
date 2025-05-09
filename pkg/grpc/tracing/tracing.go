@@ -784,13 +784,15 @@ func (msg *MsgProcessLoaderUnix) Cast(o interface{}) notify.Message {
 }
 
 type MsgGenericUprobeUnix struct {
-	Msg        *tracingapi.MsgGenericKprobe
-	Path       string
-	Symbol     string
-	PolicyName string
-	Message    string
-	Args       []tracingapi.MsgGenericKprobeArg
-	Tags       []string
+	Msg          *tracingapi.MsgGenericKprobe
+	Path         string
+	Symbol       string
+	Offset       uint64
+	RefCtrOffset uint64
+	PolicyName   string
+	Message      string
+	Args         []tracingapi.MsgGenericKprobeArg
+	Tags         []string
 }
 
 func (msg *MsgGenericUprobeUnix) Notify() bool {
@@ -832,15 +834,17 @@ func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
 	}
 
 	tetragonEvent := &tetragon.ProcessUprobe{
-		Process:    tetragonProcess,
-		Parent:     tetragonParent,
-		Ancestors:  tetragonAncestors,
-		Path:       event.Path,
-		Symbol:     event.Symbol,
-		PolicyName: event.PolicyName,
-		Message:    event.Message,
-		Args:       tetragonArgs,
-		Tags:       event.Tags,
+		Process:      tetragonProcess,
+		Parent:       tetragonParent,
+		Ancestors:    tetragonAncestors,
+		Path:         event.Path,
+		Symbol:       event.Symbol,
+		PolicyName:   event.PolicyName,
+		Message:      event.Message,
+		Args:         tetragonArgs,
+		Tags:         event.Tags,
+		Offset:       event.Offset,
+		RefCtrOffset: event.RefCtrOffset,
 	}
 
 	if tetragonProcess.Pid == nil {

@@ -98,6 +98,8 @@ func handleGenericUprobe(r *bytes.Reader) ([]observer.Event, error) {
 	unix.Msg = &m
 	unix.Path = uprobeEntry.path
 	unix.Symbol = uprobeEntry.symbol
+	unix.Offset = uprobeEntry.address
+	unix.RefCtrOffset = uprobeEntry.refCtrOffset
 	unix.PolicyName = uprobeEntry.policyName
 	unix.Message = uprobeEntry.message
 	unix.Tags = uprobeEntry.tags
