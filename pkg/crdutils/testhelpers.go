@@ -37,16 +37,29 @@ func (gtp *GenericTracingPolicy) GetObjectMetaStruct() *metav1.ObjectMeta {
 	return &gtp.Metadata
 }
 
-func FileConfigWithTemplate(fileName string, data any) (*GenericTracingPolicy, error) {
+// Read a template file and apply data to it, returning the resulting string
+func ReadFileTemplate(fileName string, data any) (string, error) {
 	templ, err := template.ParseFiles(fileName)
+	if err != nil {
+		return "", err
+	}
+
+	var buf bytes.Buffer
+	err = templ.Execute(&buf, data)
+	if err != nil {
+		return "", err
+	}
+
+	return buf.String(), nil
+}
+
+func FileConfigWithTemplate(fileName string, data any) (*GenericTracingPolicy, error) {
+	polyaml, err := ReadFileTemplate(fileName, data)
 	if err != nil {
 		return nil, err
 	}
 
-	var buf bytes.Buffer
-	templ.Execute(&buf, data)
-
-	pol, err := TPContext.FromYAML(buf.String())
+	pol, err := TPContext.FromYAML(polyaml)
 	if err != nil {
 		return nil, fmt.Errorf("TPContext.FromYAML error %w", err)
 	}
