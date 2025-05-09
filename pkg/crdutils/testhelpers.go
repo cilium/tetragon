@@ -7,9 +7,71 @@
 package crdutils
 
 import (
+	"bytes"
+	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 	"testing"
+	"text/template"
+
+	"github.com/stretchr/testify/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/client"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 )
+
+// TPContext and GenericTracingPolicy replicate definitions from tracingpolicy
+// package as examples to test generic functionality.
+
+var TPContext, _ = NewCRDContext[*GenericTracingPolicy](&client.TracingPolicyCRD.Definition)
+
+type GenericTracingPolicy struct {
+	metav1.TypeMeta
+	Metadata metav1.ObjectMeta          `json:"metadata"`
+	Spec     v1alpha1.TracingPolicySpec `json:"spec"`
+}
+
+func (gtp *GenericTracingPolicy) GetObjectMetaStruct() *metav1.ObjectMeta {
+	return &gtp.Metadata
+}
+
+func FileConfigWithTemplate(fileName string, data any) (*GenericTracingPolicy, error) {
+	templ, err := template.ParseFiles(fileName)
+	if err != nil {
+		return nil, err
+	}
+
+	var buf bytes.Buffer
+	templ.Execute(&buf, data)
+
+	pol, err := TPContext.FromYAML(buf.String())
+	if err != nil {
+		return nil, fmt.Errorf("TPContext.FromYAML error %w", err)
+	}
+	return pol, nil
+}
+
+func CheckPolicies(t *testing.T, policiesDir string, fromFile func(string) error) {
+	err := filepath.Walk(policiesDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Skip directories and non-yaml files
+		if info.IsDir() || (!strings.HasSuffix(info.Name(), "yaml") && !strings.HasSuffix(info.Name(), "yml")) {
+			return nil
+		}
+
+		// Attempt to parse the file
+		err = fromFile(path)
+		assert.NoError(t, err, "example %s must parse correctly: %s", info.Name(), err)
+
+		return nil
+	})
+	assert.NoError(t, err, "failed to walk examples directory")
+}
 
 func CreateTempFile(t *testing.T, data string) string {
 	file, err := os.CreateTemp(t.TempDir(), "tetragon-")
