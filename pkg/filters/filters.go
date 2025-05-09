@@ -161,39 +161,13 @@ func GetPolicyName(event *v1.Event) string {
 	}
 }
 
-var AncestorsEventSet = []tetragon.EventType{
-	tetragon.EventType_PROCESS_EXEC,
-	tetragon.EventType_PROCESS_EXIT,
-	tetragon.EventType_PROCESS_KPROBE,
-	tetragon.EventType_PROCESS_TRACEPOINT,
-	tetragon.EventType_PROCESS_UPROBE,
-	tetragon.EventType_PROCESS_LSM,
-}
-
-func enabledAncestors(eventType tetragon.EventType) bool {
-	switch eventType {
-	case tetragon.EventType_PROCESS_EXEC, tetragon.EventType_PROCESS_EXIT:
-		return option.Config.EnableProcessAncestors
-	case tetragon.EventType_PROCESS_KPROBE:
-		return option.Config.EnableProcessKprobeAncestors
-	case tetragon.EventType_PROCESS_TRACEPOINT:
-		return option.Config.EnableProcessTracepointAncestors
-	case tetragon.EventType_PROCESS_UPROBE:
-		return option.Config.EnableProcessUprobeAncestors
-	case tetragon.EventType_PROCESS_LSM:
-		return option.Config.EnableProcessLsmAncestors
-	default:
-		return false
-	}
-}
-
 func CheckAncestorsEnabled(types []tetragon.EventType) error {
-	if types == nil {
-		types = AncestorsEventSet
+	if len(types) == 0 {
+		types = option.AncestorsEventTypes
 	}
 
 	for _, eventType := range types {
-		if !enabledAncestors(eventType) {
+		if !option.AncestorsEnabled(eventType) {
 			return fmt.Errorf("ancestors are not enabled for %s event type, cannot configure ancestor filter", eventType)
 		}
 	}
