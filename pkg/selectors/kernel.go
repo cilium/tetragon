@@ -14,11 +14,12 @@ import (
 	"strings"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/config"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/idtable"
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/mbset"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
@@ -536,17 +537,16 @@ func writeMatchAddrsInMap(k *KernelSelectorState, values []string) error {
 	for _, v := range values {
 		addr, maskLen, err := parseAddr(v)
 		if err != nil {
-			return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
+			return fmt.Errorf("MatchArgs value %s invalid: parse IP: %w", v, err)
 		}
-		if len(addr) == 4 {
+
+		if len(addr) == net.IPv4len {
 			val := KernelLPMTrie4{prefixLen: maskLen, addr: binary.LittleEndian.Uint32(addr)}
 			m4[val] = struct{}{}
-		} else if len(addr) == 16 {
+		} else {
 			val := KernelLPMTrie6{prefixLen: maskLen}
 			copy(val.addr[:], addr)
 			m6[val] = struct{}{}
-		} else {
-			return fmt.Errorf("MatchArgs value %s invalid: should be either 4 or 16 bytes long", v)
 		}
 	}
 	// write the map ids into the selector
@@ -576,45 +576,55 @@ func getBase(v string) int {
 }
 
 func parseAddr(v string) ([]byte, uint32, error) {
-	ipaddr := net.ParseIP(v)
-	if ipaddr != nil {
-		ipaddr4 := ipaddr.To4()
-		if ipaddr4 != nil {
-			return ipaddr4, 32, nil
-		}
-		ipaddr6 := ipaddr.To16()
-		if ipaddr6 != nil {
-			return ipaddr6, 128, nil
-		}
-		return nil, 0, errors.New("IP address is not valid: does not parse as IPv4 or IPv6")
-	}
+	var maskLen uint32
+
 	vParts := strings.Split(v, "/")
-	if len(vParts) != 2 {
-		return nil, 0, errors.New("IP address is not valid: should be in format ADDR or ADDR/MASKLEN")
-	}
-	ipaddr = net.ParseIP(vParts[0])
-	if ipaddr == nil {
-		return nil, 0, errors.New("IP CIDR is not valid: address part does not parse as IPv4 or IPv6")
-	}
-	maskLen, err := strconv.ParseUint(vParts[1], 10, 32)
-	if err != nil {
-		return nil, 0, errors.New("IP CIDR is not valid: mask part does not parse")
-	}
-	ipaddr4 := ipaddr.To4()
-	if ipaddr4 != nil {
-		if maskLen <= 32 {
-			return ipaddr4, uint32(maskLen), nil
+	switch len(vParts) {
+	case 1:
+	case 2:
+		x, err := strconv.ParseUint(vParts[1], 10, 32)
+		if err != nil {
+			return nil, 0, errors.New("CIDR mask is invalid")
 		}
-		return nil, 0, errors.New("IP CIDR is not valid: IPv4 mask len must be <= 32")
+		maskLen = uint32(x)
+	default:
+		return nil, 0, errors.New("IP address is invalid: invalid format")
 	}
-	ipaddr6 := ipaddr.To16()
-	if ipaddr6 != nil {
-		if maskLen <= 128 {
-			return ipaddr6, uint32(maskLen), nil
+
+	ipAddr := net.ParseIP(vParts[0])
+	if ipAddr == nil {
+		return nil, 0, errors.New("IP address is invalid: failed to parse")
+	}
+
+	// IPv4-mapped IPv6 form of address (::ffff:x.x.x.x) will
+	// be successfully parsed as IPv4 address, but we want to consider
+	// such form only as IPv6 address to add it to corresponding map,
+	// so parse IPv4 address only in case of absence of colon.
+	if !strings.Contains(v, ":") {
+		ip4 := ipAddr.To4()
+		if ip4 == nil {
+			return nil, 0, errors.New("IPv4 address is invalid")
 		}
-		return nil, 0, errors.New("IP CIDR is not valid: IPv6 mask len must be <= 128")
+		if maskLen == 0 {
+			maskLen = 32
+		} else if maskLen > 32 {
+			return nil, 0, errors.New("IPv4 mask len must be <= 32")
+		}
+
+		return ip4, maskLen, nil
 	}
-	return nil, 0, errors.New("IP CIDR is not valid: address part does not parse")
+
+	ip6 := ipAddr.To16()
+	if ip6 == nil {
+		return nil, 0, errors.New("IPv6 address is invalid")
+	}
+	if maskLen == 0 {
+		maskLen = 128
+	} else if maskLen > 128 {
+		return nil, 0, errors.New("IPv6 mask len must be <= 128")
+	}
+
+	return ip6, maskLen, nil
 }
 
 func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) error {
