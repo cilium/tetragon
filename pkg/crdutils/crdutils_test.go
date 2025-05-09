@@ -4,40 +4,19 @@
 package crdutils
 
 import (
-	"bytes"
 	_ "embed"
-	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
 	"runtime"
 	"strconv"
-	"strings"
 	"testing"
-	"text/template"
-
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/client"
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
-	"github.com/cilium/tetragon/pkg/logger"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/stretchr/testify/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 )
-
-// TPContext and GenericTracingPolicy replicate definitions from tracingpolicy
-// package as examples to test generic functionality.
-
-var TPContext, _ = NewCRDContext[*GenericTracingPolicy](&client.TracingPolicyCRD.Definition)
-
-type GenericTracingPolicy struct {
-	metav1.TypeMeta
-	Metadata metav1.ObjectMeta          `json:"metadata"`
-	Spec     v1alpha1.TracingPolicySpec `json:"spec"`
-}
-
-func (gtp *GenericTracingPolicy) GetObjectMetaStruct() *metav1.ObjectMeta {
-	return &gtp.Metadata
-}
 
 var writev = `
 apiVersion: cilium.io/v1alpha1
@@ -408,55 +387,16 @@ func TestYamlData(t *testing.T) {
 	}
 }
 
-// Read a config file and sub in templated values
-func fileConfigWithTemplate(fileName string, data interface{}) (*GenericTracingPolicy, error) {
-	templ, err := template.ParseFiles(fileName)
-	if err != nil {
-		return nil, err
-	}
-
-	var buf bytes.Buffer
-	templ.Execute(&buf, data)
-
-	pol, err := TPContext.FromYAML(buf.String())
-	if err != nil {
-		return nil, fmt.Errorf("TPContext.FromYAML error %w", err)
-	}
-	return pol, nil
-}
-
 func TestExamplesSmoke(t *testing.T) {
 	_, filename, _, _ := runtime.Caller(0)
 	examplesDir := filepath.Join(filepath.Dir(filename), "../../examples/tracingpolicy")
-	err := filepath.Walk(examplesDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		// Skip non-directories
-		if info.IsDir() {
-			return nil
-		}
-
-		// Skip non-yaml files with a warning
-		if !strings.HasSuffix(info.Name(), "yaml") || strings.HasSuffix(info.Name(), "yml") {
-			logger.GetLogger().WithField("path", path).Warn("skipping non-yaml file")
-			return nil
-		}
-
-		// Fill this in with template data as needed
+	CheckPolicies(t, examplesDir, func(path string) error {
 		data := map[string]string{
 			"Pid": strconv.Itoa(os.Getpid()),
 		}
-
-		// Attempt to parse the file
-		_, err = fileConfigWithTemplate(path, data)
-		assert.NoError(t, err, "example %s must parse correctly: %s", info.Name(), err)
-
-		return nil
+		_, err := FileConfigWithTemplate(path, data)
+		return err
 	})
-
-	assert.NoError(t, err, "failed to walk examples directory")
 }
 
 const invalidNameYaml = `apiVersion: cilium.io/v1alpha1
