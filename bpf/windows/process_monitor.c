@@ -9,6 +9,7 @@
 #define COMMAND_SCRATCH_SIZE ((64 * 1024) - 16)
 
 #define MSG_OP_EXECVE 5
+#define MSG_OP_EXIT   7
 
 struct msg_common {
 	uint8_t op;
@@ -35,17 +36,22 @@ struct {
 
 // The non variable fields from the process_md_t struct.
 // Note: this must be kept in sync with the C# version in process_monitor.Library's ProcessMonitorBPFLoader.cs
-struct process_info_t {
+struct process_create_info_t {
 	struct msg_common common;
 	uint32_t process_id;
 	uint32_t parent_process_id;
 	uint32_t creating_process_id;
 	uint32_t creating_thread_id;
 	uint64_t creation_time; ///< Process creation time.
+};
+
+struct process_exit_info_t {
+	struct msg_common common;
+	uint32_t process_id;
 	uint64_t exit_time; ///< Process exit time.
 	uint32_t process_exit_code;
 	uint8_t operation;
-} process_info_t;
+};
 
 // LRU hash for storing the image path of a process.
 struct {
@@ -80,6 +86,7 @@ get_scratch_space()
 {
 	uint64_t current_pid_tgid_key = bpf_get_current_pid_tgid();
 	void *scratch = bpf_map_lookup_elem(&temp, &current_pid_tgid_key);
+
 	if (!scratch) {
 		uint32_t temp_key = 0;
 		// Allocate scratch space for this CPU.
@@ -105,26 +112,22 @@ get_scratch_space()
 SEC("process")
 int ProcessMonitor(process_md_t *ctx)
 {
-	struct process_info_t process_info;
+	if (ctx->operation == PROCESS_OPERATION_CREATE) {
+		struct process_create_info_t process_create_info;
 
-	memset(&process_info, 0, sizeof(process_info));
-	process_info.common.op = MSG_OP_EXECVE;
-	process_info.process_id = ctx->process_id;
-	process_info.parent_process_id = ctx->parent_process_id;
-	process_info.creating_process_id = ctx->creating_process_id;
-	process_info.creating_thread_id = ctx->creating_thread_id;
-	process_info.creation_time = ctx->creation_time;
-	process_info.common.ktime = bpf_ktime_get_ns();
-	process_info.exit_time = ctx->exit_time;
-	process_info.process_exit_code = ctx->process_exit_code;
-	process_info.operation = ctx->operation;
+		memset(&process_create_info, 0, sizeof(process_create_info));
+		process_create_info.common.op = MSG_OP_EXECVE;
+		process_create_info.process_id = ctx->process_id;
+		process_create_info.parent_process_id = ctx->parent_process_id;
+		process_create_info.creating_process_id = ctx->creating_process_id;
+		process_create_info.creating_thread_id = ctx->creating_thread_id;
+		process_create_info.common.ktime = ctx->creation_time;
+		process_create_info.creation_time = ctx->creation_time;
 
-	if (process_info.operation == PROCESS_OPERATION_CREATE) {
 		void *buffer = get_scratch_space();
 
 		if (!buffer)
 			return 0;
-
 		int command_length = ctx->command_end - ctx->command_start;
 		if (command_length > COMMAND_SCRATCH_SIZE)
 			command_length = COMMAND_SCRATCH_SIZE;
@@ -132,15 +135,26 @@ int ProcessMonitor(process_md_t *ctx)
 		// Use COMMAND_SCRATCH_SIZE -1 to ensure the last byte stays a 0 for null termination
 		memcpy_s(buffer, COMMAND_SCRATCH_SIZE - 1, ctx->command_start, command_length);
 
-		bpf_map_update_elem(&command_map, &process_info.process_id, buffer, BPF_ANY);
+		bpf_map_update_elem(&command_map, &process_create_info.process_id, buffer, BPF_ANY);
 
 		// Reset the buffer.
 		memset(buffer, 0, COMMAND_SCRATCH_SIZE);
 
 		// Copy image path into the LRU hash.  Note we use IMAGE_PATH_SIZE - 1 to leave a guaranteed null terminator
 		bpf_process_get_image_path(ctx, buffer, IMAGE_PATH_SIZE - 1);
-		bpf_map_update_elem(&process_map, &process_info.process_id, buffer, BPF_ANY);
+		bpf_map_update_elem(&process_map, &process_create_info.process_id, buffer, BPF_ANY);
+		bpf_ringbuf_output(&process_ringbuf, &process_create_info, sizeof(process_create_info), 0);
+
+	} else if (ctx->operation == PROCESS_OPERATION_DELETE) {
+		struct process_exit_info_t process_exit_info;
+
+		memset(&process_exit_info, 0, sizeof(process_exit_info));
+		process_exit_info.process_id = ctx->process_id;
+		process_exit_info.common.ktime = ctx->exit_time;
+		process_exit_info.exit_time = ctx->exit_time;
+		process_exit_info.process_exit_code = ctx->process_exit_code;
+		process_exit_info.common.op = MSG_OP_EXIT;
+		bpf_ringbuf_output(&process_ringbuf, &process_exit_info, sizeof(process_exit_info), 0);
 	}
-	bpf_ringbuf_output(&process_ringbuf, &process_info, sizeof(process_info), 0);
 	return 0;
 }

@@ -6,8 +6,7 @@ package exec
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
-	"strings"
+	"unsafe"
 
 	"github.com/cilium/tetragon/pkg/api"
 	"github.com/cilium/tetragon/pkg/api/ops"
@@ -18,69 +17,33 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/exec/userinfo"
 	"github.com/cilium/tetragon/pkg/sensors/program"
-	"github.com/cilium/tetragon/pkg/strutils"
 	"github.com/sirupsen/logrus"
 )
 
-func msgToExecveUnix(m *processapi.MsgExecveEvent) *exec.MsgExecveEventUnix {
+func msgToExecveUnix(m *processapi.MsgCreateProcessEvent) *exec.MsgExecveEventUnix {
 	unix := &exec.MsgExecveEventUnix{}
 	unix.Unix = &processapi.MsgExecveEventUnix{}
-	unix.Unix.Msg = m
+
+	unix.Unix.Process = processapi.MsgProcess{
+		PID:   m.ProcessID,
+		TID:   m.ProcessID,
+		NSPID: 0,
+		Flags: 1,
+		Size:  0,
+		Ktime: m.CreationTime,
+	}
+	unix.Unix.Msg = &processapi.MsgExecveEvent{
+		Common: m.Common,
+		Kube:   processapi.MsgK8s{},
+		Parent: processapi.MsgExecveKey{
+			Pid:   m.CreatingProcessID,
+			Ktime: 0,
+		},
+	}
+	unix.Unix.Process.Filename, unix.Unix.Process.Args, _ = getArgsFromPID(m.ProcessID)
+	unix.Unix.Process.Size = uint32(unsafe.Sizeof(unix.Unix.Process))
+	unix.Unix.Process.Flags = api.EventNoCWDSupport
 	return unix
-}
-
-func execParse(reader *bytes.Reader) (processapi.MsgProcess, bool, error) {
-	proc := processapi.MsgProcess{}
-	exec := processapi.MsgExec{}
-
-	if err := binary.Read(reader, binary.LittleEndian, &exec); err != nil {
-		logger.GetLogger().WithError(err).Debug("Failed to read exec event")
-		return proc, true, err
-	}
-
-	proc.Size = exec.Size
-	proc.PID = exec.PID
-	proc.TID = exec.TID
-	proc.NSPID = exec.NSPID
-	proc.UID = exec.UID
-	proc.Flags = exec.Flags
-	proc.Ktime = exec.Ktime
-	proc.AUID = exec.AUID
-	proc.SecureExec = exec.SecureExec
-	proc.Nlink = exec.Nlink
-	proc.Ino = exec.Ino
-
-	size := exec.Size - processapi.MSG_SIZEOF_EXECVE
-	if size > processapi.MSG_SIZEOF_BUFFER-processapi.MSG_SIZEOF_EXECVE {
-		err := errors.New("msg exec size larger than argsbuffer")
-		exec.Size = processapi.MSG_SIZEOF_EXECVE
-		proc.Args = "enomem enomem"
-		proc.Filename = "enomem"
-		return proc, false, err
-	}
-
-	args := make([]byte, size) //+2)
-	if err := binary.Read(reader, binary.LittleEndian, &args); err != nil {
-		proc.Size = processapi.MSG_SIZEOF_EXECVE
-		proc.Args = "enomem enomem"
-		proc.Filename = "enomem"
-		return proc, false, err
-	}
-
-	n := bytes.Index(args, []byte{0x00})
-	if n != -1 {
-		proc.Filename = strings.TrimPrefix(strutils.UTF8FromBPFBytes(args[:n]), "\\??\\")
-		args = args[n+1:]
-	}
-	remFileName := proc.Filename
-	if args[0] == '"' {
-		remFileName = "\"" + proc.Filename + "\""
-	}
-
-	proc.Args = strings.TrimPrefix(strutils.UTF8FromBPFBytes(args), remFileName)
-	proc.Args = strings.TrimPrefix(proc.Args, " ")
-	proc.Flags = api.EventNoCWDSupport
-	return proc, false, nil
 }
 
 func nopMsgProcess() processapi.MsgProcess {
@@ -93,14 +56,12 @@ func nopMsgProcess() processapi.MsgProcess {
 func handleExecve(r *bytes.Reader) ([]observer.Event, error) {
 	var empty bool
 
-	m := processapi.MsgExecveEvent{}
+	m := processapi.MsgCreateProcessEvent{}
 	err := binary.Read(r, binary.LittleEndian, &m)
 	if err != nil {
 		return nil, err
 	}
-	//ToDo: Function Name
 	msgUnix := msgToExecveUnix(&m)
-	msgUnix.Unix.Process, empty, err = execParse(r)
 	if err != nil && empty {
 		msgUnix.Unix.Process = nopMsgProcess()
 	}
@@ -117,12 +78,23 @@ func handleExecve(r *bytes.Reader) ([]observer.Event, error) {
 	return []observer.Event{msgUnix}, nil
 }
 
-func msgToExitUnix(m *processapi.MsgExitEvent) *exec.MsgExitEventUnix {
-	return &exec.MsgExitEventUnix{MsgExitEvent: *m}
+func msgToExitUnix(m *processapi.MsgExitProcessEvent) *exec.MsgExitEventUnix {
+	msgExitEvent := processapi.MsgExitEvent{
+		Common: m.Common,
+		ProcessKey: processapi.MsgExecveKey{
+			Pid:   m.ProcessID,
+			Ktime: m.Common.Ktime,
+		},
+		Info: processapi.MsgExitInfo{
+			Code: m.ProcessExitCode,
+			Tid:  m.ProcessID,
+		},
+	}
+	return &exec.MsgExitEventUnix{MsgExitEvent: msgExitEvent}
 }
 
 func handleExit(r *bytes.Reader) ([]observer.Event, error) {
-	m := processapi.MsgExitEvent{}
+	m := processapi.MsgExitProcessEvent{}
 	err := binary.Read(r, binary.LittleEndian, &m)
 	if err != nil {
 		return nil, err
