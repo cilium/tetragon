@@ -80,13 +80,17 @@ type MultiKprobeAttachData struct {
 }
 
 type UprobeAttachData struct {
-	Path   string
-	Symbol string
+	Path         string
+	Symbol       string
+	Address      uint64
+	RefCtrOffset uint64
 }
 
 type MultiUprobeAttachSymbolsCookies struct {
-	Symbols []string
-	Cookies []uint64
+	Symbols       []string
+	Addresses     []uint64
+	RefCtrOffsets []uint64
+	Cookies       []uint64
 }
 
 type MultiUprobeAttachData struct {

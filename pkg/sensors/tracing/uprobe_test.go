@@ -16,7 +16,9 @@ import (
 	"github.com/cilium/ebpf"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/config"
+	"github.com/cilium/tetragon/pkg/elf"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
@@ -24,8 +26,11 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
+	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/yaml"
 )
 
 func TestLoadUprobeSensor(t *testing.T) {
@@ -376,114 +381,154 @@ spec:
 	assert.NoError(t, err)
 }
 
-func TestUprobeArgs(t *testing.T) {
-	execBinary := testutils.RepoRootPath("contrib/tester-progs/uprobe-test-1")
-	libUprobe := testutils.RepoRootPath("contrib/tester-progs/libuprobe.so")
-
-	pathHook := `
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "uprobe"
-spec:
-  uprobes:
-  - path: "` + libUprobe + `"
-    symbols:
-    - "uprobe_test_lib_arg1"
-    args:
-    - index: 0
-      type: "int"
-    selectors:
-    - matchBinaries:
-      - operator: "In"
-        values:
-        - "` + execBinary + `"
-  - path: "` + libUprobe + `"
-    symbols:
-    - "uprobe_test_lib_arg2"
-    args:
-    - index: 0
-      type: "int8"
-    - index: 1
-      type: "int"
-    selectors:
-    - matchBinaries:
-      - operator: "In"
-        values:
-        - "` + execBinary + `"
-  - path: "` + libUprobe + `"
-    symbols:
-    - "uprobe_test_lib_arg3"
-    args:
-    - index: 0
-      type: "uint64"
-    - index: 1
-      type: "uint32"
-    - index: 2
-      type: "uint64"
-    selectors:
-    - matchBinaries:
-      - operator: "In"
-        values:
-        - "` + execBinary + `"
-  - path: "` + libUprobe + `"
-    symbols:
-    - "uprobe_test_lib_arg4"
-    args:
-    - index: 0
-      type: "int64"
-    - index: 1
-      type: "int"
-    - index: 2
-      type: "int8"
-    - index: 3
-      type: "uint64"
-    selectors:
-    - matchBinaries:
-      - operator: "In"
-        values:
-        - "` + execBinary + `"
-  - path: "` + libUprobe + `"
-    symbols:
-    - "uprobe_test_lib_arg5"
-    args:
-    - index: 0
-      type: "int"
-    - index: 1
-      type: "int8"
-    - index: 2
-      type: "uint64"
-    - index: 3
-      type: "int16"
-    - index: 4
-      type: "uint64"
-    selectors:
-    - matchBinaries:
-      - operator: "In"
-        values:
-        - "` + execBinary + `"
-`
-
-	pathConfigHook := []byte(pathHook)
-	err := os.WriteFile(testConfigFile, pathConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+var (
+	uprobeArgsBinary  = testutils.RepoRootPath("contrib/tester-progs/uprobe-test-1")
+	uprobeArgsLib     = testutils.RepoRootPath("contrib/tester-progs/libuprobe.so")
+	uprobeArgsSymbols = []string{
+		"uprobe_test_lib_arg1",
+		"uprobe_test_lib_arg2",
+		"uprobe_test_lib_arg3",
+		"uprobe_test_lib_arg4",
+		"uprobe_test_lib_arg5",
 	}
+)
 
-	check1 := ec.NewProcessUprobeChecker("UPROBE_ARG1").
+func getUprobeArgsPolicy() tracingpolicy.GenericTracingPolicy {
+	sel := []v1alpha1.KProbeSelector{
+		{
+			MatchBinaries: []v1alpha1.BinarySelector{
+				{
+					Operator: "In",
+					Values:   []string{uprobeArgsBinary},
+				},
+			},
+		},
+	}
+	return tracingpolicy.GenericTracingPolicy{
+		Metadata: v1.ObjectMeta{
+			Name: "uprobe",
+		},
+		TypeMeta: v1.TypeMeta{
+			Kind:       "TracingPolicy",
+			APIVersion: "cilium.io/v1alpha1",
+		},
+		Spec: v1alpha1.TracingPolicySpec{
+			UProbes: []v1alpha1.UProbeSpec{
+				{
+					// uprobe_test_lib_arg1
+					Path: uprobeArgsLib,
+					Args: []v1alpha1.KProbeArg{
+						{
+							Index: 0,
+							Type:  "int",
+						},
+					},
+					Selectors: sel,
+				},
+				{
+					// uprobe_test_lib_arg2
+					Path: uprobeArgsLib,
+					Args: []v1alpha1.KProbeArg{
+						{
+							Index: 0,
+							Type:  "int8",
+						},
+						{
+							Index: 1,
+							Type:  "int",
+						},
+					},
+					Selectors: sel,
+				},
+				{
+					// uprobe_test_lib_arg3
+					Path: uprobeArgsLib,
+					Args: []v1alpha1.KProbeArg{
+						{
+							Index: 0,
+							Type:  "uint64",
+						},
+						{
+							Index: 1,
+							Type:  "uint32",
+						},
+						{
+							Index: 2,
+							Type:  "uint64",
+						},
+					},
+					Selectors: sel,
+				},
+				{
+					// uprobe_test_lib_arg4
+					Path: uprobeArgsLib,
+					Args: []v1alpha1.KProbeArg{
+						{
+							Index: 0,
+							Type:  "int64",
+						},
+						{
+							Index: 1,
+							Type:  "int",
+						},
+						{
+							Index: 2,
+							Type:  "int8",
+						},
+						{
+							Index: 3,
+							Type:  "uint64",
+						},
+					},
+					Selectors: sel,
+				},
+				{
+					// uprobe_test_lib_arg5
+					Path: uprobeArgsLib,
+					Args: []v1alpha1.KProbeArg{
+						{
+							Index: 0,
+							Type:  "int",
+						},
+						{
+							Index: 1,
+							Type:  "int8",
+						},
+						{
+							Index: 2,
+							Type:  "uint64",
+						},
+						{
+							Index: 3,
+							Type:  "int16",
+						},
+						{
+							Index: 4,
+							Type:  "uint64",
+						},
+					},
+					Selectors: sel,
+				},
+			},
+		},
+	}
+}
+
+func getUprobeArgsCheckers() [5]*ec.ProcessUprobeChecker {
+	checkers := [5]*ec.ProcessUprobeChecker{}
+
+	checkers[0] = ec.NewProcessUprobeChecker("UPROBE_ARG1").
 		WithProcess(ec.NewProcessChecker().
-			WithBinary(sm.Full(execBinary))).
-		WithSymbol(sm.Full("uprobe_test_lib_arg1")).
+			WithBinary(sm.Full(uprobeArgsBinary))).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithIntArg(123),
 			))
 
-	check2 := ec.NewProcessUprobeChecker("UPROBE_ARG2").
+	checkers[1] = ec.NewProcessUprobeChecker("UPROBE_ARG2").
 		WithProcess(ec.NewProcessChecker().
-			WithBinary(sm.Full(execBinary))).
-		WithSymbol(sm.Full("uprobe_test_lib_arg2")).
+			WithBinary(sm.Full(uprobeArgsBinary))).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
@@ -491,10 +536,9 @@ spec:
 				ec.NewKprobeArgumentChecker().WithIntArg(4321),
 			))
 
-	check3 := ec.NewProcessUprobeChecker("UPROBE_ARG3").
+	checkers[2] = ec.NewProcessUprobeChecker("UPROBE_ARG3").
 		WithProcess(ec.NewProcessChecker().
-			WithBinary(sm.Full(execBinary))).
-		WithSymbol(sm.Full("uprobe_test_lib_arg3")).
+			WithBinary(sm.Full(uprobeArgsBinary))).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
@@ -503,10 +547,9 @@ spec:
 				ec.NewKprobeArgumentChecker().WithSizeArg(0),
 			))
 
-	check4 := ec.NewProcessUprobeChecker("UPROBE_ARG4").
+	checkers[3] = ec.NewProcessUprobeChecker("UPROBE_ARG4").
 		WithProcess(ec.NewProcessChecker().
-			WithBinary(sm.Full(execBinary))).
-		WithSymbol(sm.Full("uprobe_test_lib_arg4")).
+			WithBinary(sm.Full(uprobeArgsBinary))).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
@@ -516,10 +559,9 @@ spec:
 				ec.NewKprobeArgumentChecker().WithSizeArg(1),
 			))
 
-	check5 := ec.NewProcessUprobeChecker("UPROBE_ARG5").
+	checkers[4] = ec.NewProcessUprobeChecker("UPROBE_ARG5").
 		WithProcess(ec.NewProcessChecker().
-			WithBinary(sm.Full(execBinary))).
-		WithSymbol(sm.Full("uprobe_test_lib_arg5")).
+			WithBinary(sm.Full(uprobeArgsBinary))).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
@@ -530,7 +572,21 @@ spec:
 				ec.NewKprobeArgumentChecker().WithSizeArg(2),
 			))
 
-	checker := ec.NewUnorderedEventChecker(check1, check2, check3, check4, check5)
+	return checkers
+}
+
+func testUprobeArgs(t *testing.T, checkers [5]*ec.ProcessUprobeChecker, tp tracingpolicy.GenericTracingPolicy) {
+	checker := ec.NewUnorderedEventChecker(checkers[0], checkers[1], checkers[2], checkers[3], checkers[4])
+
+	pathConfigHook, err := yaml.Marshal(tp)
+	if err != nil {
+		t.Fatalf("marshal failed with %v", err)
+	}
+
+	err = os.WriteFile(testConfigFile, pathConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
 
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
@@ -546,10 +602,49 @@ spec:
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
-	if err := exec.Command(execBinary).Run(); err != nil {
+	if err := exec.Command(uprobeArgsBinary).Run(); err != nil {
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
+}
+
+func TestUprobeArgsWithOffset(t *testing.T) {
+	f, err := elf.OpenSafeELFFile(uprobeArgsLib)
+	if err != nil {
+		t.Fatalf("telf.OpenSafeELFFile failed with %v", err)
+	}
+	defer f.Close()
+
+	offsets := [5]uint64{}
+	for idx, s := range uprobeArgsSymbols {
+		offset, err := f.Offset(s)
+		if err != nil {
+			t.Fatalf("f.Offset failed with %v", err)
+		}
+		offsets[idx] = offset
+	}
+
+	checkers := getUprobeArgsCheckers()
+	tp := getUprobeArgsPolicy()
+
+	for idx := range tp.Spec.UProbes {
+		tp.Spec.UProbes[idx].Offsets = []uint64{offsets[idx]}
+		checkers[idx] = checkers[idx].WithOffset(offsets[idx])
+	}
+
+	testUprobeArgs(t, checkers, tp)
+}
+
+func TestUprobeArgsWithSymbol(t *testing.T) {
+	checkers := getUprobeArgsCheckers()
+	tp := getUprobeArgsPolicy()
+
+	for idx := range tp.Spec.UProbes {
+		tp.Spec.UProbes[idx].Symbols = []string{uprobeArgsSymbols[idx]}
+		checkers[idx] = checkers[idx].WithSymbol(sm.Full(uprobeArgsSymbols[idx]))
+	}
+
+	testUprobeArgs(t, checkers, tp)
 }

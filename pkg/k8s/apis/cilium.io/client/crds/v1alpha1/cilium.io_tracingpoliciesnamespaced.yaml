@@ -2212,9 +2212,21 @@ spec:
                         A short message of 256 characters max that will be included
                         in the event output to inform users what is going on.
                       type: string
+                    offsets:
+                      description: List of the traced offsets
+                      items:
+                        format: int64
+                        type: integer
+                      type: array
                     path:
                       description: Name of the traced binary
                       type: string
+                    refCtrOffsets:
+                      description: List of the traced ref_ctr_offsets
+                      items:
+                        format: int64
+                        type: integer
+                      type: array
                     selectors:
                       description: Selectors to apply before producing trace output.
                         Selectors are ORed.
@@ -2706,7 +2718,6 @@ spec:
                       type: array
                   required:
                   - path
-                  - symbols
                   type: object
                 type: array
             type: object

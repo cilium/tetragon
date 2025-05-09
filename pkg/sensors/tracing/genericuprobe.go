@@ -39,12 +39,13 @@ var (
 )
 
 type genericUprobe struct {
-	tableId       idtable.EntryID
-	pinPathPrefix string
-	config        *api.EventConfig
-	path          string
-	symbol        string
-	selectors     *selectors.KernelSelectorState
+	tableId      idtable.EntryID
+	config       *api.EventConfig
+	path         string
+	symbol       string
+	address      uint64
+	refCtrOffset uint64
+	selectors    *selectors.KernelSelectorState
 	// policyName is the name of the policy that this uprobe belongs to
 	policyName string
 	// message field of the Tracing Policy
@@ -97,6 +98,8 @@ func handleGenericUprobe(r *bytes.Reader) ([]observer.Event, error) {
 	unix.Msg = &m
 	unix.Path = uprobeEntry.path
 	unix.Symbol = uprobeEntry.symbol
+	unix.Offset = uprobeEntry.address
+	unix.RefCtrOffset = uprobeEntry.refCtrOffset
 	unix.PolicyName = uprobeEntry.policyName
 	unix.Message = uprobeEntry.message
 	unix.Tags = uprobeEntry.tags
@@ -193,7 +196,16 @@ func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) er
 			attach = &program.MultiUprobeAttachSymbolsCookies{}
 		}
 
-		attach.Symbols = append(attach.Symbols, uprobeEntry.symbol)
+		if uprobeEntry.symbol != "" {
+			attach.Symbols = append(attach.Symbols, uprobeEntry.symbol)
+		} else {
+			attach.Addresses = append(attach.Addresses, uprobeEntry.address)
+		}
+
+		if uprobeEntry.refCtrOffset != 0 {
+			attach.RefCtrOffsets = append(attach.RefCtrOffsets, uprobeEntry.refCtrOffset)
+		}
+
 		attach.Cookies = append(attach.Cookies, uint64(index))
 
 		data.Attach[uprobeEntry.path] = attach
@@ -294,6 +306,28 @@ func createGenericUprobeSensor(
 func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn) ([]idtable.EntryID, error) {
 	var args []v1alpha1.KProbeArg
 
+	symbols := len(spec.Symbols)
+	offsets := len(spec.Offsets)
+	refCtrOffsets := len(spec.RefCtrOffsets)
+
+	// uprobe definition spec usanity checks
+	if symbols == 0 && offsets == 0 {
+		return nil, errors.New("uprobe need either Symbols or Offsets defined")
+	}
+	if symbols != 0 && offsets != 0 {
+		return nil, errors.New("uprobe is defined either only with Symbols or Offsets")
+	}
+	if refCtrOffsets != 0 {
+		if symbols != 0 && symbols != refCtrOffsets {
+			return nil, fmt.Errorf("RefCtrOffsets(%d) has different dimension than Symbols(%d)",
+				refCtrOffsets, symbols)
+		}
+		if offsets != 0 && offsets != refCtrOffsets {
+			return nil, fmt.Errorf("RefCtrOffsets(%d) has different dimension than Offsets(%d)",
+				refCtrOffsets, offsets)
+		}
+	}
+
 	if err := isValidUprobeSelectors(spec.Selectors); err != nil {
 		return nil, err
 	}
@@ -359,36 +393,47 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		}
 	}
 
-	for _, sym := range spec.Symbols {
+	addUprobeEntry := func(sym string, offset uint64, idx int) {
+		var refCtrOffset uint64
+
+		if refCtrOffsets != 0 {
+			refCtrOffset = spec.RefCtrOffsets[idx]
+		}
 		config := &api.EventConfig{
 			Arg:  argTypes,
 			ArgM: argMeta,
 		}
 
 		uprobeEntry := &genericUprobe{
-			tableId:     idtable.UninitializedEntryID,
-			config:      config,
-			path:        spec.Path,
-			symbol:      sym,
-			selectors:   uprobeSelectorState,
-			policyName:  in.policyName,
-			message:     msgField,
-			argPrinters: argPrinters,
-			tags:        tagsField,
+			tableId:      idtable.UninitializedEntryID,
+			config:       config,
+			path:         spec.Path,
+			symbol:       sym,
+			address:      offset,
+			refCtrOffset: refCtrOffset,
+			selectors:    uprobeSelectorState,
+			policyName:   in.policyName,
+			message:      msgField,
+			argPrinters:  argPrinters,
+			tags:         tagsField,
 		}
 
 		uprobeTable.AddEntry(uprobeEntry)
 		id := uprobeEntry.tableId
 
-		if in.useMulti {
-			uprobeEntry.pinPathPrefix = multiUprobePinPath(in.sensorPath)
-		} else {
-			uprobeEntry.pinPathPrefix = sensors.PathJoin(in.sensorPath, fmt.Sprintf("gup-%d", id.ID))
-		}
-
 		config.FuncId = uint32(id.ID)
 
 		ids = append(ids, id)
+	}
+
+	if symbols != 0 {
+		for idx, sym := range spec.Symbols {
+			addUprobeEntry(sym, 0, idx)
+		}
+	} else {
+		for idx, off := range spec.Offsets {
+			addUprobeEntry("", off, idx)
+		}
 	}
 
 	return ids, nil
@@ -454,8 +499,10 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 	}
 
 	attachData := &program.UprobeAttachData{
-		Path:   uprobeEntry.path,
-		Symbol: uprobeEntry.symbol,
+		Path:         uprobeEntry.path,
+		Symbol:       uprobeEntry.symbol,
+		Address:      uprobeEntry.address,
+		RefCtrOffset: uprobeEntry.refCtrOffset,
 	}
 
 	load := program.Builder(
