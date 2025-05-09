@@ -349,7 +349,7 @@ kind: ## Create a kind cluster for Tetragon development.
 	./contrib/kind/bootstrap-kind-cluster.sh
 
 KIND_BUILD_IMAGES ?= 1
-VALUES ?= 
+VALUES ?=
 
 ## kind-install-tetragon: ## Install Tetragon in a kind cluster.
 ## kind-install-tetragon KIND_BUILD_IMAGES=0: ## Install Tetragon in a kind cluster without (re-)building images.
@@ -493,3 +493,16 @@ docs: ## Preview documentation website.
 .PHONY: version
 version: ## Print Tetragon version.
 	@echo $(VERSION)
+
+.PHONY: gen_compile_commands
+BEAR_CLI := $(shell which bear 2> /dev/null)
+gen_compile_commands: ## Generates compile_commands.json
+ifeq ($(BEAR_CLI),)
+	@echo "Error: 'bear' must be installed and available in \$\$PATH to generate the compile_commands.json"
+	@exit 1
+else
+	@echo "Generating compile_commands.json using bear..."
+	@export LOCAL_CLANG=1 && \
+	export LOCAL_CLANG_FORMAT=1 && \
+	$(BEAR_CLI) -- make tetragon-bpf
+endif
