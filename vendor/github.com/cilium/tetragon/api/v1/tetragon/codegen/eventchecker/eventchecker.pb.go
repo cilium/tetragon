@@ -274,6 +274,8 @@ func CheckerFromEvent(event Event) (EventChecker, error) {
 		return NewProcessTracepointChecker("").FromProcessTracepoint(ev), nil
 	case *tetragon.ProcessUprobe:
 		return NewProcessUprobeChecker("").FromProcessUprobe(ev), nil
+	case *tetragon.ProcessUsdt:
+		return NewProcessUsdtChecker("").FromProcessUsdt(ev), nil
 	case *tetragon.ProcessLsm:
 		return NewProcessLsmChecker("").FromProcessLsm(ev), nil
 	case *tetragon.Test:
@@ -338,6 +340,8 @@ func EventFromResponse(response *tetragon.GetEventsResponse) (Event, error) {
 		return ev.ProcessTracepoint, nil
 	case *tetragon.GetEventsResponse_ProcessUprobe:
 		return ev.ProcessUprobe, nil
+	case *tetragon.GetEventsResponse_ProcessUsdt:
+		return ev.ProcessUsdt, nil
 	case *tetragon.GetEventsResponse_ProcessLsm:
 		return ev.ProcessLsm, nil
 	case *tetragon.GetEventsResponse_Test:
@@ -1794,6 +1798,234 @@ func (checker *ProcessUprobeChecker) FromProcessUprobe(event *tetragon.ProcessUp
 	{
 		val := event.RefCtrOffset
 		checker.RefCtrOffset = &val
+	}
+	return checker
+}
+
+// ProcessUsdtChecker implements a checker struct to check a ProcessUsdt event
+type ProcessUsdtChecker struct {
+	CheckerName string                       `json:"checkerName"`
+	Process     *ProcessChecker              `json:"process,omitempty"`
+	Parent      *ProcessChecker              `json:"parent,omitempty"`
+	Path        *stringmatcher.StringMatcher `json:"path,omitempty"`
+	Provider    *stringmatcher.StringMatcher `json:"provider,omitempty"`
+	Name        *stringmatcher.StringMatcher `json:"name,omitempty"`
+	PolicyName  *stringmatcher.StringMatcher `json:"policyName,omitempty"`
+	Message     *stringmatcher.StringMatcher `json:"message,omitempty"`
+	Args        *KprobeArgumentListMatcher   `json:"args,omitempty"`
+	Tags        *StringListMatcher           `json:"tags,omitempty"`
+	Ancestors   *ProcessListMatcher          `json:"ancestors,omitempty"`
+}
+
+// CheckEvent checks a single event and implements the EventChecker interface
+func (checker *ProcessUsdtChecker) CheckEvent(event Event) error {
+	if ev, ok := event.(*tetragon.ProcessUsdt); ok {
+		return checker.Check(ev)
+	}
+	return fmt.Errorf("%s: %T is not a ProcessUsdt event", CheckerLogPrefix(checker), event)
+}
+
+// CheckResponse checks a single gRPC response and implements the EventChecker interface
+func (checker *ProcessUsdtChecker) CheckResponse(response *tetragon.GetEventsResponse) error {
+	event, err := EventFromResponse(response)
+	if err != nil {
+		return err
+	}
+	return checker.CheckEvent(event)
+}
+
+// NewProcessUsdtChecker creates a new ProcessUsdtChecker
+func NewProcessUsdtChecker(name string) *ProcessUsdtChecker {
+	return &ProcessUsdtChecker{CheckerName: name}
+}
+
+// Get the name associated with the checker
+func (checker *ProcessUsdtChecker) GetCheckerName() string {
+	return checker.CheckerName
+}
+
+// Get the type of the checker as a string
+func (checker *ProcessUsdtChecker) GetCheckerType() string {
+	return "ProcessUsdtChecker"
+}
+
+// Check checks a ProcessUsdt event
+func (checker *ProcessUsdtChecker) Check(event *tetragon.ProcessUsdt) error {
+	if event == nil {
+		return fmt.Errorf("%s: ProcessUsdt event is nil", CheckerLogPrefix(checker))
+	}
+
+	fieldChecks := func() error {
+		if checker.Process != nil {
+			if err := checker.Process.Check(event.Process); err != nil {
+				return fmt.Errorf("Process check failed: %w", err)
+			}
+		}
+		if checker.Parent != nil {
+			if err := checker.Parent.Check(event.Parent); err != nil {
+				return fmt.Errorf("Parent check failed: %w", err)
+			}
+		}
+		if checker.Path != nil {
+			if err := checker.Path.Match(event.Path); err != nil {
+				return fmt.Errorf("Path check failed: %w", err)
+			}
+		}
+		if checker.Provider != nil {
+			if err := checker.Provider.Match(event.Provider); err != nil {
+				return fmt.Errorf("Provider check failed: %w", err)
+			}
+		}
+		if checker.Name != nil {
+			if err := checker.Name.Match(event.Name); err != nil {
+				return fmt.Errorf("Name check failed: %w", err)
+			}
+		}
+		if checker.PolicyName != nil {
+			if err := checker.PolicyName.Match(event.PolicyName); err != nil {
+				return fmt.Errorf("PolicyName check failed: %w", err)
+			}
+		}
+		if checker.Message != nil {
+			if err := checker.Message.Match(event.Message); err != nil {
+				return fmt.Errorf("Message check failed: %w", err)
+			}
+		}
+		if checker.Args != nil {
+			if err := checker.Args.Check(event.Args); err != nil {
+				return fmt.Errorf("Args check failed: %w", err)
+			}
+		}
+		if checker.Tags != nil {
+			if err := checker.Tags.Check(event.Tags); err != nil {
+				return fmt.Errorf("Tags check failed: %w", err)
+			}
+		}
+		if checker.Ancestors != nil {
+			if err := checker.Ancestors.Check(event.Ancestors); err != nil {
+				return fmt.Errorf("Ancestors check failed: %w", err)
+			}
+		}
+		return nil
+	}
+	if err := fieldChecks(); err != nil {
+		return fmt.Errorf("%s: %w", CheckerLogPrefix(checker), err)
+	}
+	return nil
+}
+
+// WithProcess adds a Process check to the ProcessUsdtChecker
+func (checker *ProcessUsdtChecker) WithProcess(check *ProcessChecker) *ProcessUsdtChecker {
+	checker.Process = check
+	return checker
+}
+
+// WithParent adds a Parent check to the ProcessUsdtChecker
+func (checker *ProcessUsdtChecker) WithParent(check *ProcessChecker) *ProcessUsdtChecker {
+	checker.Parent = check
+	return checker
+}
+
+// WithPath adds a Path check to the ProcessUsdtChecker
+func (checker *ProcessUsdtChecker) WithPath(check *stringmatcher.StringMatcher) *ProcessUsdtChecker {
+	checker.Path = check
+	return checker
+}
+
+// WithProvider adds a Provider check to the ProcessUsdtChecker
+func (checker *ProcessUsdtChecker) WithProvider(check *stringmatcher.StringMatcher) *ProcessUsdtChecker {
+	checker.Provider = check
+	return checker
+}
+
+// WithName adds a Name check to the ProcessUsdtChecker
+func (checker *ProcessUsdtChecker) WithName(check *stringmatcher.StringMatcher) *ProcessUsdtChecker {
+	checker.Name = check
+	return checker
+}
+
+// WithPolicyName adds a PolicyName check to the ProcessUsdtChecker
+func (checker *ProcessUsdtChecker) WithPolicyName(check *stringmatcher.StringMatcher) *ProcessUsdtChecker {
+	checker.PolicyName = check
+	return checker
+}
+
+// WithMessage adds a Message check to the ProcessUsdtChecker
+func (checker *ProcessUsdtChecker) WithMessage(check *stringmatcher.StringMatcher) *ProcessUsdtChecker {
+	checker.Message = check
+	return checker
+}
+
+// WithArgs adds a Args check to the ProcessUsdtChecker
+func (checker *ProcessUsdtChecker) WithArgs(check *KprobeArgumentListMatcher) *ProcessUsdtChecker {
+	checker.Args = check
+	return checker
+}
+
+// WithTags adds a Tags check to the ProcessUsdtChecker
+func (checker *ProcessUsdtChecker) WithTags(check *StringListMatcher) *ProcessUsdtChecker {
+	checker.Tags = check
+	return checker
+}
+
+// WithAncestors adds a Ancestors check to the ProcessUsdtChecker
+func (checker *ProcessUsdtChecker) WithAncestors(check *ProcessListMatcher) *ProcessUsdtChecker {
+	checker.Ancestors = check
+	return checker
+}
+
+//FromProcessUsdt populates the ProcessUsdtChecker using data from a ProcessUsdt event
+func (checker *ProcessUsdtChecker) FromProcessUsdt(event *tetragon.ProcessUsdt) *ProcessUsdtChecker {
+	if event == nil {
+		return checker
+	}
+	if event.Process != nil {
+		checker.Process = NewProcessChecker().FromProcess(event.Process)
+	}
+	if event.Parent != nil {
+		checker.Parent = NewProcessChecker().FromProcess(event.Parent)
+	}
+	checker.Path = stringmatcher.Full(event.Path)
+	checker.Provider = stringmatcher.Full(event.Provider)
+	checker.Name = stringmatcher.Full(event.Name)
+	checker.PolicyName = stringmatcher.Full(event.PolicyName)
+	checker.Message = stringmatcher.Full(event.Message)
+	{
+		var checks []*KprobeArgumentChecker
+		for _, check := range event.Args {
+			var convertedCheck *KprobeArgumentChecker
+			if check != nil {
+				convertedCheck = NewKprobeArgumentChecker().FromKprobeArgument(check)
+			}
+			checks = append(checks, convertedCheck)
+		}
+		lm := NewKprobeArgumentListMatcher().WithOperator(listmatcher.Ordered).
+			WithValues(checks...)
+		checker.Args = lm
+	}
+	{
+		var checks []*stringmatcher.StringMatcher
+		for _, check := range event.Tags {
+			var convertedCheck *stringmatcher.StringMatcher
+			convertedCheck = stringmatcher.Full(check)
+			checks = append(checks, convertedCheck)
+		}
+		lm := NewStringListMatcher().WithOperator(listmatcher.Ordered).
+			WithValues(checks...)
+		checker.Tags = lm
+	}
+	{
+		var checks []*ProcessChecker
+		for _, check := range event.Ancestors {
+			var convertedCheck *ProcessChecker
+			if check != nil {
+				convertedCheck = NewProcessChecker().FromProcess(check)
+			}
+			checks = append(checks, convertedCheck)
+		}
+		lm := NewProcessListMatcher().WithOperator(listmatcher.Ordered).
+			WithValues(checks...)
+		checker.Ancestors = lm
 	}
 	return checker
 }
