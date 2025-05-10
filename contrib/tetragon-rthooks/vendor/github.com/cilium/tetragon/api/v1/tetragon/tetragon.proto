@@ -577,6 +577,24 @@ message ProcessUprobe {
   uint64 ref_ctr_offset = 11;
 }
 
+message ProcessUsdt {
+  Process process = 1;
+  Process parent = 2;
+  string path = 3;
+  string provider = 4;
+  string name = 5;
+  // Name of the policy that created that uprobe.
+  string policy_name = 6;
+  // Short message of the Tracing Policy to inform users what is going on.
+  string message = 7;
+  // Arguments definition of the observed uprobe.
+  repeated KprobeArgument args = 8;
+  // Tags of the Tracing Policy to categorize the event.
+  repeated string tags = 9;
+  // Ancestors of the process beyond the immediate parent.
+  repeated Process ancestors = 10;
+}
+
 message ProcessLsm {
   Process process = 1;
   Process parent = 2;
