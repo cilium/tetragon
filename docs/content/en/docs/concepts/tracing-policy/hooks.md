@@ -387,7 +387,7 @@ arguments to include in the trace output. Tetragon's BPF code requires
 information about the types of arguments to properly read, print and
 filter on its arguments. This information needs to be provided by the user under the
 `args` section. For the [available
-types](https://github.com/cilium/tetragon/blob/main/pkg/k8s/apis/cilium.io/client/crds/v1alpha1/cilium.io_tracingpolicies.yaml#L64-L88),
+types](https://github.com/cilium/tetragon/blob/v1.4.0/pkg/k8s/apis/cilium.io/client/crds/v1alpha1/cilium.io_tracingpolicies.yaml#L166-L208),
 check the [`TracingPolicy`
 CRD](https://github.com/cilium/tetragon/blob/main/pkg/k8s/apis/cilium.io/client/crds/v1alpha1/cilium.io_tracingpolicies.yaml).
 
@@ -416,7 +416,7 @@ args:
 To properly read and hook onto the `fd_install(unsigned int fd, struct file
 *file)` function, the YAML snippet above tells the BPF code that the first
 argument is an `int` and the second argument is a `file`, which is the
-[`struct file`](https://elixir.bootlin.com/linux/latest/source/include/linux/fs.h#L940)
+[`struct file`](https://elixir.bootlin.com/linux/v6.13.7/source/include/linux/fs.h#L1035)
 of the kernel. In this way, the BPF code and its printer can properly collect
 and print the arguments.
 
