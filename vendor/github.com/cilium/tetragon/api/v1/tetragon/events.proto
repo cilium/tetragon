@@ -30,6 +30,7 @@ enum EventType {
   PROCESS_UPROBE = 12;
   PROCESS_THROTTLE = 27;
   PROCESS_LSM = 28;
+  PROCESS_USDT = 29;
 
   TEST = 40000;
   RATE_LIMIT_INFO = 40001;
@@ -208,6 +209,7 @@ message GetEventsResponse {
     ProcessUprobe process_uprobe = 12;
     ProcessThrottle process_throttle = 27;
     ProcessLsm process_lsm = 28;
+    ProcessUsdt process_usdt = 29;
 
     Test test = 40000;
     RateLimitInfo rate_limit_info = 40001;
