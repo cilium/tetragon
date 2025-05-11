@@ -7449,3 +7449,70 @@ spec:
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
+
+func TestKprobeArgsReverse(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	t.Logf("tester pid=%s\n", pidStr)
+
+	lseekConfigHook_ := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "sys-write"
+spec:
+  kprobes:
+  - call: "sys_lseek"
+    return: false
+    syscall: true
+    args:
+    - index: 2
+      type: "int"
+      label: "index 2"
+    - index: 1
+      type: "int"
+      label: "index 1"
+    - index: 0
+      type: "int"
+      label: "index 0"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        isNamespacePID: false
+        values:
+        - ` + pidStr
+
+	lseekConfigHook := []byte(lseekConfigHook_)
+	err := os.WriteFile(testConfigFile, lseekConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	kpChecker := ec.NewProcessKprobeChecker("lseek-checker").
+		WithFunctionName(sm.Suffix("sys_lseek")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(0).WithLabel(sm.Full("index 0")),
+				ec.NewKprobeArgumentChecker().WithIntArg(1).WithLabel(sm.Full("index 1")),
+				ec.NewKprobeArgumentChecker().WithIntArg(2).WithLabel(sm.Full("index 2")),
+			))
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+	fmt.Printf("Calling lseek...\n")
+	unix.Seek(0, 1, 2)
+
+	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
+	assert.NoError(t, err)
+}
