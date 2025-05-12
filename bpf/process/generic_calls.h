@@ -104,6 +104,37 @@ __copy_char_buf(void *ctx, long off, unsigned long arg, unsigned long bytes,
 	return rd_bytes + extra;
 }
 
+#define ARGM_INDEX_MASK	 0xf
+#define ARGM_RETURN_COPY BIT(4)
+#define ARGM_MAX_DATA	 BIT(5)
+
+FUNC_INLINE bool hasReturnCopy(unsigned long argm)
+{
+	return (argm & ARGM_RETURN_COPY) != 0;
+}
+
+FUNC_INLINE bool has_max_data(unsigned long argm)
+{
+	return (argm & ARGM_MAX_DATA) != 0;
+}
+
+FUNC_INLINE unsigned long get_arg_meta(int meta, struct msg_generic_kprobe *e)
+{
+	switch (meta & ARGM_INDEX_MASK) {
+	case 1:
+		return e->a0;
+	case 2:
+		return e->a1;
+	case 3:
+		return e->a2;
+	case 4:
+		return e->a3;
+	case 5:
+		return e->a4;
+	}
+	return 0;
+}
+
 FUNC_INLINE long
 copy_char_buf(void *ctx, long off, unsigned long arg, int argm,
 	      struct msg_generic_kprobe *e)
@@ -121,6 +152,24 @@ copy_char_buf(void *ctx, long off, unsigned long arg, int argm,
 	meta = get_arg_meta(argm, e);
 	probe_read(&bytes, sizeof(bytes), &meta);
 	return __copy_char_buf(ctx, off, arg, bytes, has_max_data(argm), e);
+}
+
+FUNC_INLINE long
+copy_char_iovec(void *ctx, long off, unsigned long arg, int argm,
+		struct msg_generic_kprobe *e)
+{
+	int *s = (int *)args_off(e, off);
+	unsigned long meta;
+
+	meta = get_arg_meta(argm, e);
+
+	if (hasReturnCopy(argm)) {
+		u64 retid = retprobe_map_get_key(ctx);
+
+		retprobe_map_set_iovec(e->func_id, retid, e->common.ktime, arg, meta);
+		return return_error(s, char_buf_saved_for_retprobe);
+	}
+	return __copy_char_iovec(off, arg, meta, 0, e);
 }
 
 #ifdef __LARGE_BPF_PROG
