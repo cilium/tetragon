@@ -367,6 +367,19 @@ type PodInfoSpec struct {
 	NodeName string `json:"nodeName,omitempty"`
 }
 
+type TopLevelWorkload struct {
+	metav1.TypeMeta `json:",inline"`
+	// Name of the object.
+	// +optional
+	Name string `json:"name,omitempty"`
+	// Namespace of this object.
+	// +optional
+	Namespace string `json:"namespace,omitempty"`
+}
+
+func (w TopLevelWorkload) GetName() string { return w.Name }
+func (w TopLevelWorkload) GetNamespace() string { return w.Namespace }
+
 type PodInfoStatus struct {
 	// IP address allocated to the pod. Routable at least within the cluster.
 	// Empty if not yet allocated.
@@ -374,22 +387,16 @@ type PodInfoStatus struct {
 
 	// List of Ip addresses allocated to the pod. 0th entry must be same as PodIP.
 	PodIPs []PodIP `json:"podIPs,omitempty"`
+
+	// Metadata associated with the top-level workload controller (e.g.
+	// Deployment, DaemonSet, CronJob) that owns this Pod, or the Pod
+	// metadata if standalone.
+	TopLevelWorkload TopLevelWorkload `json:"topLevelWorkload,omitempty"`
 }
 
 type PodIP struct {
 	// IP is an IP address (IPv4 or IPv6) assigned to the pod
 	IP string `json:"IP,omitempty"`
-}
-
-// WorkloadObjectMeta is metadata associated with workloads that create pods.
-type WorkloadObjectMeta struct {
-	// Name of the object.
-	// +optional
-	Name string `json:"name,omitempty"`
-
-	// Namespace of this object.
-	// +optional
-	Namespace string `json:"namespace,omitempty"`
 }
 
 // +genclient
@@ -404,11 +411,6 @@ type PodInfo struct {
 
 	Spec   PodInfoSpec   `json:"spec,omitempty"`
 	Status PodInfoStatus `json:"status,omitempty"`
-
-	// Workload type (e.g. "Deployment", "Daemonset") that created this pod.
-	WorkloadType metav1.TypeMeta `json:"workloadType,omitempty"`
-	// Workload that created this pod.
-	WorkloadObject WorkloadObjectMeta `json:"workloadObject,omitempty"`
 }
 
 // +kubebuilder:object:root=true

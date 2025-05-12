@@ -122,7 +122,7 @@ func TestGeneratePod(t *testing.T) {
 		for _, podIP := range pod.Status.PodIPs {
 			podIPs = append(podIPs, ciliumv1alpha1.PodIP{IP: podIP.IP})
 		}
-		workloadObject, workloadType := podhelpers.GetWorkloadMetaFromPod(pod)
+		topLevelWorkload := podhelpers.GetTopLevelWorkloadFromPod(pod)
 		expectedPodInfo := &ciliumv1alpha1.PodInfo{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        pod.Name,
@@ -144,11 +144,10 @@ func TestGeneratePod(t *testing.T) {
 				NodeName: pod.Spec.NodeName,
 			},
 			Status: ciliumv1alpha1.PodInfoStatus{
-				PodIP:  pod.Status.PodIP,
-				PodIPs: podIPs,
+				PodIP:            pod.Status.PodIP,
+				PodIPs:           podIPs,
+				TopLevelWorkload: topLevelWorkload,
 			},
-			WorkloadType:   workloadType,
-			WorkloadObject: workloadObject,
 		}
 		generatedPodInfo := generatePodInfo(pod)
 		assert.Equal(t, expectedPodInfo, generatedPodInfo, "Generated incorrect PodInfo corresponding to the pod")
