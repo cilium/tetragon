@@ -68,15 +68,14 @@ generic_start_process_filter(void *ctx, struct bpf_map_def *calls)
 
 FUNC_INLINE long
 __copy_char_buf(void *ctx, long off, unsigned long arg, unsigned long bytes,
-		bool max_data, struct msg_generic_kprobe *e,
-		struct bpf_map_def *data_heap)
+		bool max_data, struct msg_generic_kprobe *e)
 {
 	int *s = (int *)args_off(e, off);
 	size_t rd_bytes, extra = 8;
 	int err;
 
 #ifdef __LARGE_BPF_PROG
-	if (max_data && data_heap) {
+	if (max_data && data_heap_ptr) {
 		/* The max_data flag is enabled, the first int value indicates
 		 * if we use (1) data events or not (0).
 		 */
@@ -84,7 +83,7 @@ __copy_char_buf(void *ctx, long off, unsigned long arg, unsigned long bytes,
 			s[0] = 1;
 			return data_event_bytes(ctx,
 						(struct data_event_desc *)&s[1],
-						arg, bytes, data_heap) +
+						arg, bytes, data_heap_ptr) +
 			       4;
 		}
 		s[0] = 0;
@@ -107,8 +106,7 @@ __copy_char_buf(void *ctx, long off, unsigned long arg, unsigned long bytes,
 
 FUNC_INLINE long
 copy_char_buf(void *ctx, long off, unsigned long arg, int argm,
-	      struct msg_generic_kprobe *e,
-	      struct bpf_map_def *data_heap)
+	      struct msg_generic_kprobe *e)
 {
 	int *s = (int *)args_off(e, off);
 	unsigned long meta;
@@ -122,13 +120,12 @@ copy_char_buf(void *ctx, long off, unsigned long arg, int argm,
 	}
 	meta = get_arg_meta(argm, e);
 	probe_read(&bytes, sizeof(bytes), &meta);
-	return __copy_char_buf(ctx, off, arg, bytes, has_max_data(argm), e, data_heap);
+	return __copy_char_buf(ctx, off, arg, bytes, has_max_data(argm), e);
 }
 
 #ifdef __LARGE_BPF_PROG
 FUNC_INLINE long
-copy_iov_iter(void *ctx, long off, unsigned long arg, int argm, struct msg_generic_kprobe *e,
-	      struct bpf_map_def *data_heap)
+copy_iov_iter(void *ctx, long off, unsigned long arg, int argm, struct msg_generic_kprobe *e)
 {
 	long iter_iovec = -1, iter_ubuf __maybe_unused = -1;
 	struct iov_iter *iov_iter = (struct iov_iter *)arg;
@@ -164,7 +161,7 @@ copy_iov_iter(void *ctx, long off, unsigned long arg, int argm, struct msg_gener
 		probe_read(&count, sizeof(count), tmp);
 
 		return __copy_char_buf(ctx, off, (unsigned long)buf, count,
-				       has_max_data(argm), e, data_heap);
+				       has_max_data(argm), e);
 	}
 
 #ifdef __V61_BPF_PROG
@@ -176,7 +173,7 @@ copy_iov_iter(void *ctx, long off, unsigned long arg, int argm, struct msg_gener
 		probe_read(&count, sizeof(count), tmp);
 
 		return __copy_char_buf(ctx, off, (unsigned long)buf, count,
-				       has_max_data(argm), e, data_heap);
+				       has_max_data(argm), e);
 	}
 #endif
 
@@ -187,7 +184,7 @@ nodata:
 	return 8;
 }
 #else
-#define copy_iov_iter(ctx, orig_off, arg, argm, e, data_heap) 0
+#define copy_iov_iter(ctx, orig_off, arg, argm, e) 0
 #endif /* __LARGE_BPF_PROG */
 
 /**
@@ -205,8 +202,7 @@ nodata:
  */
 FUNC_INLINE long
 read_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
-	 long orig_off, unsigned long arg, int argm,
-	 struct bpf_map_def *data_heap)
+	 long orig_off, unsigned long arg, int argm)
 {
 	size_t min_size = type_to_min_size(type, argm);
 	char *args = e->args;
@@ -229,7 +225,7 @@ read_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 
 	switch (type) {
 	case iov_iter_type:
-		size = copy_iov_iter(ctx, orig_off, arg, argm, e, data_heap);
+		size = copy_iov_iter(ctx, orig_off, arg, argm, e);
 		break;
 	case fd_ty: {
 		struct fdinstall_key key = { 0 };
@@ -330,7 +326,7 @@ read_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 		size = copy_cred(args, arg);
 		break;
 	case char_buf:
-		size = copy_char_buf(ctx, orig_off, arg, argm, e, data_heap);
+		size = copy_char_buf(ctx, orig_off, arg, argm, e);
 		break;
 	case char_iovec:
 		size = copy_char_iovec(ctx, orig_off, arg, argm, e);
@@ -454,7 +450,7 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 		return generic_path_offload(ctx, ty, a, index, off, tailcals);
 
 	am = (&config->arg0m)[index];
-	return read_arg(ctx, e, index, ty, off, a, am, data_heap_ptr);
+	return read_arg(ctx, e, index, ty, off, a, am);
 }
 
 FUNC_INLINE int
@@ -897,7 +893,7 @@ FUNC_INLINE int generic_retkprobe(void *ctx, struct bpf_map_def *calls, unsigned
 	ty_arg = config->argreturn;
 	do_copy = config->argreturncopy;
 	if (ty_arg) {
-		size += read_arg(ctx, e, 0, ty_arg, size, ret, 0, data_heap_ptr);
+		size += read_arg(ctx, e, 0, ty_arg, size, ret, 0);
 #ifdef __LARGE_BPF_PROG
 		struct socket_owner owner;
 
@@ -924,7 +920,7 @@ FUNC_INLINE int generic_retkprobe(void *ctx, struct bpf_map_def *calls, unsigned
 
 	switch (do_copy) {
 	case char_buf:
-		size += __copy_char_buf(ctx, size, info.ptr, ret, false, e, data_heap_ptr);
+		size += __copy_char_buf(ctx, size, info.ptr, ret, false, e);
 		break;
 	case char_iovec:
 		size += __copy_char_iovec(size, info.ptr, info.cnt, ret, e);
