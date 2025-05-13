@@ -375,7 +375,7 @@ func (plc *podLabelChecker) FinalCheck(_ *logrus.Logger) error {
 	return fmt.Errorf("pod-label checker failed, had %d matches", plc.matches)
 }
 
-func testContainerFieldFilters(t *testing.T, checker *checker.RPCChecker, policy, pod string) {
+func testContainerFieldFilters(t *testing.T, checker *checker.RPCChecker, policy, policyName, pod string) {
 	runner.SetupExport(t)
 
 	runEventChecker := features.New("Run Event Checks").
@@ -400,7 +400,7 @@ func testContainerFieldFilters(t *testing.T, checker *checker.RPCChecker, policy
 			return ctx
 		}).
 		Assess("Wait for policy", func(ctx context.Context, _ *testing.T, _ *envconf.Config) context.Context {
-			if err := grpc.WaitForTracingPolicy(ctx, "ubuntu-container-syscalls"); err != nil {
+			if err := grpc.WaitForTracingPolicy(ctx, policyName); err != nil {
 				klog.ErrorS(err, "failed to wait for policy")
 				t.Fail()
 			}
@@ -424,6 +424,18 @@ func testContainerFieldFilters(t *testing.T, checker *checker.RPCChecker, policy
 			if err != nil {
 				klog.ErrorS(err, "failed to uninstall policy")
 				t.Fail()
+			}
+			return ctx
+		}).
+		Assess("Stop pods", func(ctx context.Context, _ *testing.T, c *envconf.Config) context.Context {
+			var err error
+			for _, pod := range []string{pod} {
+				ctx, err = helpers.UnloadCRDString(containerSelectorNamespace, pod, true)(ctx, c)
+				if err != nil {
+					klog.ErrorS(err, "failed to uninstall pod")
+					t.Fail()
+				}
+
 			}
 			return ctx
 		}).
@@ -500,6 +512,11 @@ func (cfc *containerFieldNameChecker) NextEventCheck(event ec.Event, _ *logrus.L
 		return false, fmt.Errorf("not raw_syscalls:sys_exit (%s:%s instead)", ev.GetSubsys(), ev.GetEvent())
 	}
 
+	// ignore other tracing policies
+	if ev.GetPolicyName() != "ubuntu-container-syscalls" {
+		return false, fmt.Errorf("not ubuntu-container-syscalls policy (%s instead)", ev.GetPolicyName())
+	}
+
 	container := ev.GetProcess().GetPod().GetContainer()
 
 	if container.Name != "sidecar" {
@@ -519,14 +536,14 @@ func (cfc *containerFieldNameChecker) FinalCheck(_ *logrus.Logger) error {
 
 func TestContainerFieldNameFilters(t *testing.T) {
 	checker := containerSelectorNameChecker().WithTimeLimit(30 * time.Second).WithEventLimit(20)
-	testContainerFieldFilters(t, checker, containerSelectorNamePolicy, ubuntuPod_l3)
+	testContainerFieldFilters(t, checker, containerSelectorNamePolicy, "ubuntu-container-syscalls", ubuntuPod_l3)
 }
 
 const containerSelectorRepoPolicy = `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicyNamespaced
 metadata:
-  name: "ubuntu-container-syscalls"
+  name: "debian-container-syscalls"
 spec:
   containerSelector:
     matchExpressions:
@@ -590,6 +607,11 @@ func (cfc *containerFieldRepoChecker) NextEventCheck(event ec.Event, _ *logrus.L
 		return false, fmt.Errorf("not raw_syscalls:sys_exit (%s:%s instead)", ev.GetSubsys(), ev.GetEvent())
 	}
 
+	// ignore other tracing policies
+	if ev.GetPolicyName() != "debian-container-syscalls" {
+		return false, fmt.Errorf("not debian-container-syscalls policy (%s instead)", ev.GetPolicyName())
+	}
+
 	container := ev.GetProcess().GetPod().GetContainer()
 
 	if strings.HasPrefix(container.Image.Id, "docker.io/library/ubuntu") {
@@ -609,5 +631,5 @@ func (cfc *containerFieldRepoChecker) FinalCheck(_ *logrus.Logger) error {
 
 func TestContainerFieldRepoFilters(t *testing.T) {
 	checker := containerSelectorRepoChecker().WithTimeLimit(30 * time.Second).WithEventLimit(20)
-	testContainerFieldFilters(t, checker, containerSelectorRepoPolicy, ubuntuPod_l4)
+	testContainerFieldFilters(t, checker, containerSelectorRepoPolicy, "debian-container-syscalls", ubuntuPod_l4)
 }
