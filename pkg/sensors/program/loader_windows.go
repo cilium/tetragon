@@ -17,7 +17,11 @@ import (
 )
 
 var (
-	attachTypeProcessGUID = makeGUID(0x66e20687, 0x9805, 0x4458, [8]byte{0xa0, 0xdb, 0x38, 0xe2, 0x20, 0xd3, 0x16, 0x85})
+	attachTypeProcessGUID               = makeGUID(0x66e20687, 0x9805, 0x4458, [8]byte{0xa0, 0xdb, 0x38, 0xe2, 0x20, 0xd3, 0x16, 0x85})
+	attachTypeCgroupInet4ConnectGUID    = makeGUID(0xa82e37b1, 0xaee7, 0x11ec, [8]byte{0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee})
+	attachTypeCgroupInet6ConnectGUID    = makeGUID(0xa82e37b2, 0xaee7, 0x11ec, [8]byte{0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee})
+	attachTypeCgroupInet4RecvAcceptGUID = makeGUID(0xa82e37b3, 0xaee7, 0x11ec, [8]byte{0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee})
+	attachTypeCgroupInet6RecvAcceptGUID = makeGUID(0xa82e37b4, 0xaee7, 0x11ec, [8]byte{0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee})
 )
 
 func makeGUID(data1 uint32, data2 uint16, data3 uint16, data4 [8]byte) windows.GUID {
@@ -34,10 +38,31 @@ func RawAttachWithFlags(_ int, _ uint32) AttachFunc {
 	return winAttachStub
 }
 
-func windowsAttach(_ *Program, prog *ebpf.Program, _ *ebpf.ProgramSpec,
-	_ string, _ string, _ ...string) (unloader.Unloader, error) {
+func getAttachTypeForAttachTarget(attachTarget string) (ebpf.AttachType, error) {
+	var attachTypeGuid string
+	switch attachTarget {
+	case "process":
+		attachTypeGuid = attachTypeProcessGUID.String()
+	case "cgroup/connect4":
+		attachTypeGuid = attachTypeCgroupInet4ConnectGUID.String()
+	case "cgroup/connect6":
+		attachTypeGuid = attachTypeCgroupInet6ConnectGUID.String()
+	case "cgroup/recv_accept4":
+		attachTypeGuid = attachTypeCgroupInet4RecvAcceptGUID.String()
+	case "cgroup/recv_accept6":
+		attachTypeGuid = attachTypeCgroupInet6RecvAcceptGUID.String()
 
-	attachType, err := ebpf.WindowsAttachTypeForGUID(attachTypeProcessGUID.String())
+	default:
+		return ebpf.AttachNone, nil
+	}
+
+	return ebpf.WindowsAttachTypeForGUID(attachTypeGuid)
+}
+
+func windowsAttach(_ *Program, prog *ebpf.Program, _ *ebpf.ProgramSpec,
+	attach string, _ string, _ ...string) (unloader.Unloader, error) {
+
+	attachType, err := getAttachTypeForAttachTarget(attach)
 	if err != nil {
 		return nil, err
 	}
