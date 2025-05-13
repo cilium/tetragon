@@ -41,8 +41,9 @@ Copy-Item -Path $tetragonBinaries\*.exe -destination "C:\Program Files\tetragon\
 Copy-Item -Path "$ntosebpfextZipBinaries\Release\process_monitor_km\process_monitor.sys" -destination "C:\Program Files\tetragon\BPF\" -Force
 
 
-Start-Process -FilePath "$ntosebpfextZipBinaries\Release\ntos_ebpf_ext_export_program_info.exe" -ArgumentList "--clear"
-Start-Process -FilePath "$ntosebpfextZipBinaries\Release\ntos_ebpf_ext_export_program_info.exe"
+Start-Process -FilePath "$ntosebpfextZipBinaries\Release\ntos_ebpf_ext_export_program_info.exe" -ArgumentList "--clear" -Wait
+
+Start-Process -FilePath "$ntosebpfextZipBinaries\Release\ntos_ebpf_ext_export_program_info.exe" -Wait
 
 sc.exe delete "ntosebpfext"
 
