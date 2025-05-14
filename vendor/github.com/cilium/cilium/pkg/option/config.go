@@ -22,6 +22,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/cilium/ebpf"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/mackerelio/go-osstat/memory"
@@ -43,6 +44,7 @@ import (
 	"github.com/cilium/cilium/pkg/logging/logfields"
 	"github.com/cilium/cilium/pkg/mac"
 	"github.com/cilium/cilium/pkg/time"
+	"github.com/cilium/cilium/pkg/util"
 	"github.com/cilium/cilium/pkg/version"
 )
 
@@ -3622,6 +3624,8 @@ func (c *DaemonConfig) calculateBPFMapSizes(vp *viper.Viper) error {
 		}
 		c.calculateDynamicBPFMapSizes(vp, vms.Total, dynamicSizeRatio)
 		c.BPFMapsDynamicSizeRatio = dynamicSizeRatio
+	} else if c.BPFDistributedLRU {
+		return fmt.Errorf("distributed LRU is only valid with a specified dynamic map size ratio")
 	} else if dynamicSizeRatio < 0.0 {
 		return fmt.Errorf("specified dynamic map size ratio %f must be > 0.0", dynamicSizeRatio)
 	} else if dynamicSizeRatio > 1.0 {
@@ -3645,6 +3649,7 @@ func (c *DaemonConfig) SetMapElementSizes(
 }
 
 func (c *DaemonConfig) calculateDynamicBPFMapSizes(vp *viper.Viper, totalMemory uint64, dynamicSizeRatio float64) {
+	possibleCPUs := 1
 	// Heuristic:
 	// Distribute relative to map default entries among the different maps.
 	// Cap each map size by the maximum. Map size provided by the user will
@@ -3669,13 +3674,28 @@ func (c *DaemonConfig) calculateDynamicBPFMapSizes(vp *viper.Viper, totalMemory 
 		SockRevNATMapEntriesDefault*c.SizeofSockRevElement
 	log.Debugf("Total memory for default map entries: %d", totalMapMemoryDefault)
 
+	// In case of distributed LRU, we need to round up to the number of possible CPUs
+	// since this is also what the kernel does internally, see htab_map_alloc()'s:
+	//
+	//   htab->map.max_entries = roundup(attr->max_entries,
+	//				     num_possible_cpus());
+	//
+	// Thus, if we would not round up from agent side, then Cilium would constantly
+	// try to replace maps due to property mismatch!
+	if c.BPFDistributedLRU {
+		cpus, err := ebpf.PossibleCPU()
+		if err != nil {
+			log.Fatal("Failed to get number of possible CPUs needed for the distributed LRU")
+		}
+		possibleCPUs = cpus
+	}
 	getEntries := func(entriesDefault, min, max int) int {
 		entries := (entriesDefault * memoryAvailableForMaps) / totalMapMemoryDefault
+		entries = util.RoundUp(entries, possibleCPUs)
 		if entries < min {
-			entries = min
+			entries = util.RoundUp(min, possibleCPUs)
 		} else if entries > max {
-			log.Debugf("clamped from %d to %d", entries, max)
-			entries = max
+			entries = util.RoundDown(max, possibleCPUs)
 		}
 		return entries
 	}
