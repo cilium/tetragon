@@ -6,7 +6,7 @@ go 1.24.0
 require (
 	github.com/alecthomas/kong v1.10.0
 	github.com/bombsimon/logrusr/v4 v4.1.0
-	github.com/cilium/cilium v1.17.3
+	github.com/cilium/cilium v1.17.4
 	github.com/cilium/ebpf v0.18.0
 	github.com/cilium/little-vm-helper v0.0.23
 	github.com/cilium/lumberjack/v2 v2.4.1
@@ -22,7 +22,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.1
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/iancoleman/strcase v0.3.0
-	github.com/isovalent/metricstool v0.1.3
+	github.com/isovalent/metricstool v0.1.4
 	github.com/jpillora/longestcommon v0.0.0-20161227235612-adb9d91ee629
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/mennanov/fieldmask-utils v1.1.2
@@ -37,14 +37,14 @@ require (
 	github.com/sryoya/protorand v0.0.0-20250114120907-8c1a8e3138f2
 	github.com/stretchr/testify v1.10.0
 	github.com/tidwall/gjson v1.18.0
-	github.com/vishvananda/netlink v1.3.1-0.20250425193846-9d88d8385bf9
+	github.com/vishvananda/netlink v1.3.1
 	go.uber.org/atomic v1.11.0
 	go.uber.org/multierr v1.11.0
 	golang.org/x/sync v0.14.0
 	golang.org/x/sys v0.33.0
 	golang.org/x/term v0.32.0
 	golang.org/x/time v0.11.0
-	google.golang.org/grpc v1.72.0
+	google.golang.org/grpc v1.72.1
 	google.golang.org/protobuf v1.36.6
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
