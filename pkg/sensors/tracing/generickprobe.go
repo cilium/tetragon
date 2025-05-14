@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"path"
 	"slices"
+	"sort"
 	"strings"
 
 	"github.com/cilium/ebpf"
@@ -782,9 +783,15 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 		config.ArgM[a.Index] = uint32(argMValue)
 
 		argsBTFSet[a.Index] = true
-		argP := argPrinter{index: j, ty: argType, userType: userArgType, maxData: a.MaxData, label: a.Label}
+		argP := argPrinter{index: int(a.Index), ty: argType, userType: userArgType, maxData: a.MaxData, label: a.Label}
 		argSigPrinters = append(argSigPrinters, argP)
 	}
+
+	// Arguments are appended based on the index value,
+	// so the argument printers need to follow that
+	sort.Slice(argSigPrinters, func(i, j int) bool {
+		return argSigPrinters[i].index < argSigPrinters[j].index
+	})
 
 	// Parse ReturnArg, we have two types of return arg parsing. We
 	// support populating a kprobe buffer from kretprobe hooks. This
