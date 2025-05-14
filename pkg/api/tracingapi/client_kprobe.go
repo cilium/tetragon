@@ -609,7 +609,7 @@ const MaxBTFArgDepth = 10 // Artificial value for compilation, may be extended
 type EventConfig struct {
 	FuncId          uint32                                           `align:"func_id"`
 	Arg             [EventConfigMaxArgs]int32                        `align:"arg"`
-	ArgM            [EventConfigMaxArgs]uint32                       `align:"arg0m"`
+	ArgM            [EventConfigMaxArgs]uint32                       `align:"arm"`
 	ArgTpCtxOff     [EventConfigMaxArgs]uint32                       `align:"t_arg0_ctx_off"`
 	Syscall         uint32                                           `align:"syscall"`
 	ArgReturnCopy   int32                                            `align:"argreturncopy"`

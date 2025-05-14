@@ -136,7 +136,7 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 	if (should_offload_path(ty))
 		return generic_path_offload(ctx, ty, a, index, off, tailcals);
 
-	am = (&config->arg0m)[index];
+	am = config->arm[index];
 	return read_arg(ctx, e, index, ty, off, a, am, data_heap_ptr);
 }
 
