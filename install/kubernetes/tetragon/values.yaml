@@ -366,7 +366,7 @@ export:
     image:
       override: ~
       repository: quay.io/cilium/hubble-export-stdout
-      tag: v1.0.4
+      tag: v1.1.0
 crds:
   # -- Method for installing CRDs. Supported values are: "operator", "helm" and "none".
   # The "operator" method allows for fine-grained control over which CRDs are installed and by
