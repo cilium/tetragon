@@ -167,7 +167,7 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 
 	msg->a0 = ({
 		unsigned long ctx_off = config->t_arg0_ctx_off;
-		int ty = config->arg0;
+		int ty = config->arg[0];
 		asm volatile("%[ctx_off] &= 0xffff;\n"
 			     : [ctx_off] "+r"(ctx_off));
 		get_ctx_ul((char *)ctx + ctx_off, ty);
@@ -175,7 +175,7 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 
 	msg->a1 = ({
 		unsigned long ctx_off = config->t_arg1_ctx_off;
-		int ty = config->arg1;
+		int ty = config->arg[1];
 		asm volatile("%[ctx_off] &= 0xffff;\n"
 			     : [ctx_off] "+r"(ctx_off));
 		get_ctx_ul((char *)ctx + ctx_off, ty);
@@ -183,7 +183,7 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 
 	msg->a2 = ({
 		unsigned long ctx_off = config->t_arg2_ctx_off;
-		int ty = config->arg2;
+		int ty = config->arg[2];
 		asm volatile("%[ctx_off] &= 0xffff;\n"
 			     : [ctx_off] "+r"(ctx_off));
 		get_ctx_ul((char *)ctx + ctx_off, ty);
@@ -191,7 +191,7 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 
 	msg->a3 = ({
 		unsigned long ctx_off = config->t_arg3_ctx_off;
-		int ty = config->arg3;
+		int ty = config->arg[3];
 		asm volatile("%[ctx_off] &= 0xffff;\n"
 			     : [ctx_off] "+r"(ctx_off));
 		get_ctx_ul((char *)ctx + ctx_off, ty);
@@ -199,7 +199,7 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 
 	msg->a4 = ({
 		unsigned long ctx_off = config->t_arg4_ctx_off;
-		int ty = config->arg4;
+		int ty = config->arg[4];
 		asm volatile("%[ctx_off] &= 0xffff;\n"
 			     : [ctx_off] "+r"(ctx_off));
 		get_ctx_ul((char *)ctx + ctx_off, ty);
