@@ -754,7 +754,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 			if err != nil {
 				return errFn(fmt.Errorf("error on hook %q for index %d : %w", f.Call, a.Index, err))
 			}
-			allBTFArgs[j] = btfArg
+			allBTFArgs[a.Index] = btfArg
 			argType = findTypeFromBTFType(a, lastBTFType)
 		}
 
