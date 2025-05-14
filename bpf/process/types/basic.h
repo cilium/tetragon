@@ -169,11 +169,7 @@ struct extract_arg_data {
 
 struct event_config {
 	__u32 func_id;
-	__s32 arg0;
-	__s32 arg1;
-	__s32 arg2;
-	__s32 arg3;
-	__s32 arg4;
+	__s32 arg[EVENT_CONFIG_MAX_ARG];
 	__u32 arg0m;
 	__u32 arg1m;
 	__u32 arg2m;

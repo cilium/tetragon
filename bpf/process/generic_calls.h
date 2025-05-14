@@ -128,7 +128,7 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 	asm volatile("%[index] &= %1 ;\n"
 		     : [index] "+r"(index)
 		     : "i"(MAX_SELECTORS_MASK));
-	ty = (&config->arg0)[index];
+	ty = config->arg[index];
 
 	a = (&e->a0)[index];
 	extract_arg(config, index, &a);
