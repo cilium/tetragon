@@ -7784,3 +7784,56 @@ spec:
 	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
 	assert.NoError(t, err)
 }
+
+func TestKprobeResolveSecondArg(t *testing.T) {
+	if !kernels.MinKernelVersion("5.4") {
+		t.Skip("Test requires kernel 5.4+")
+	}
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	hook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "resolve-sockaddr"
+spec:
+  kprobes:
+  - call: "security_socket_connect"
+    syscall: false
+    args:
+    - index: 1
+      type: "uint16"
+      resolve: "sa_family"
+`
+
+	createCrdFile(t, hook)
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	// NB: it does not matter if this connect succeeds
+	net.Dial("tcp", "127.0.0.1:1234")
+
+	kpChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full("security_socket_connect")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithUintArg(unix.AF_INET),
+			)).
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Suffix(tus.Conf().SelfBinary)))
+
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
