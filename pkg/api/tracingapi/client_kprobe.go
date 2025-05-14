@@ -589,14 +589,6 @@ type MsgGenericKprobeUnix struct {
 	Args         []MsgGenericKprobeArg
 }
 
-type KprobeArgs struct {
-	Args0 []byte
-	Args1 []byte
-	Args2 []byte
-	Args3 []byte
-	Args4 []byte
-}
-
 type ConfigBTFArg struct {
 	Offset        uint32 `align:"offset"`
 	IsPointer     uint16 `align:"is_pointer"`
