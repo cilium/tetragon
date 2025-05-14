@@ -47,7 +47,7 @@ type ControllerManager struct {
 func Get() *ControllerManager {
 	var err error
 	initOnce.Do(func() {
-		manager, err = newControllerManager(true)
+		manager, err = newControllerManager()
 		if err != nil {
 			panic(err)
 		}
@@ -58,7 +58,7 @@ func Get() *ControllerManager {
 // newControllerManager creates a new controller manager. The enableMetrics flag
 // is for unit tests so that we can instantiate multiple ControllerManager instances
 // without them trying to bind to the same port 8080.
-func newControllerManager(enableMetrics bool) (*ControllerManager, error) {
+func newControllerManager() (*ControllerManager, error) {
 	ctrl.SetLogger(logrusr.New(logger.GetLogger()))
 	scheme := runtime.NewScheme()
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
@@ -71,10 +71,7 @@ func newControllerManager(enableMetrics bool) (*ControllerManager, error) {
 			},
 		},
 	}
-	metricsOptions := metricsserver.Options{}
-	if !enableMetrics {
-		metricsOptions.BindAddress = "0"
-	}
+	metricsOptions := metricsserver.Options{BindAddress: "0"}
 	controllerOptions := ctrl.Options{Scheme: scheme, Cache: cacheOptions, Metrics: metricsOptions}
 	controllerManager, err := ctrl.NewManager(ctrl.GetConfigOrDie(), controllerOptions)
 	if err != nil {

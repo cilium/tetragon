@@ -127,7 +127,7 @@ func (suite *ManagerTestSuite) TestLocalPods() {
 	err := os.Setenv("NODE_NAME", "nonexistent-node")
 	assert.NoError(suite.T(), err)
 	node.SetKubernetesNodeName()
-	controllerManager, err := newControllerManager(false)
+	controllerManager, err := newControllerManager()
 	assert.NoError(suite.T(), err)
 	go func() {
 		assert.NoError(suite.T(), controllerManager.Manager.Start(ctx))
