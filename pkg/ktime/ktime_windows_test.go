@@ -25,3 +25,8 @@ func TestBoottime(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Greater(t, ktime1.UnixMilli(), int64(0))
 }
+
+func TestKernelTime(t *testing.T) {
+	uTime, _ := DecodeKtime(133918958189958838, false)
+	assert.Equal(t, uTime.Unix(), int64(1747422218))
+}
