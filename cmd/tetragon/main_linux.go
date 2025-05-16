@@ -4,15 +4,15 @@
 package main
 
 import (
-	"path"
-
 	"github.com/cilium/tetragon/pkg/alignchecker"
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/checkprocfs"
+	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/reader/proc"
+
 	"github.com/spf13/viper"
 )
 
@@ -34,7 +34,10 @@ func initCachedBTF(lib, btf_string string) error {
 }
 
 func checkStructAlignments() error {
-	path := path.Join(option.Config.HubbleLib, "bpf_alignchecker.o")
+	path, err := config.FindProgramFile("bpf_alignchecker.o")
+	if err != nil {
+		return err
+	}
 	return alignchecker.CheckStructAlignments(path)
 }
 

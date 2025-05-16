@@ -7,13 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
-	"github.com/cilium/tetragon/pkg/option"
 	lru "github.com/hashicorp/golang-lru/v2"
 )
 
@@ -50,7 +48,10 @@ func newNamespaceMap() (*NamespaceMap, error) {
 	}
 
 	objName := config.ExecObj()
-	objPath := path.Join(option.Config.HubbleLib, objName)
+	objPath, err := config.FindProgramFile(objName)
+	if err != nil {
+		return nil, fmt.Errorf("loading spec for %s failed: %w", objPath, err)
+	}
 	spec, err := ebpf.LoadCollectionSpec(objPath)
 	if err != nil {
 		return nil, fmt.Errorf("loading spec for %s failed: %w", objPath, err)

@@ -6,10 +6,9 @@ package sensors
 import (
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
-	"strings"
 
+	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
@@ -258,22 +257,12 @@ func (s *Sensor) Destroy(unpin bool) {
 }
 
 func (s *Sensor) findProgram(p *program.Program) error {
-	var checkedPaths []string
-
-	if _, err := os.Stat(p.Name); err == nil {
-		return nil
+	pathname, err := config.FindProgramFile(p.Name)
+	if err != nil {
+		return err
 	}
-	checkedPaths = append(checkedPaths, p.Name)
-
-	filename := filepath.Base(p.Name)
-	path := path.Join(option.Config.HubbleLib, filename)
-	if _, err := os.Stat(path); err == nil {
-		p.Name = path
-		return nil
-	}
-	checkedPaths = append(checkedPaths, path)
-
-	return fmt.Errorf("sensor program %q can not be found (checked paths: %s)", p.Name, strings.Join(checkedPaths, ","))
+	p.Name = pathname
+	return nil
 }
 
 // FindPrograms finds all the BPF programs in the sensor on the filesytem.
