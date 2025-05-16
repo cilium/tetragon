@@ -19,6 +19,7 @@ GO_TEST_TIMEOUT ?= 20m
 E2E_TEST_TIMEOUT ?= 20m
 BUILD_PKG_DIR ?= $(shell pwd)/build/$(TARGET_ARCH)
 VERSION ?= $(shell git describe --tags --always --exclude '*/*')
+CONTAINER_ENGINE_ARGS ?=
 
 # Do a parallel build with multiple jobs, based on the number of CPUs online
 # in this system: 'make -j8' on a 8-CPU system, etc.
@@ -174,7 +175,7 @@ install: ## Install tetragon agent and tetra as standalone binaries.
 
 .PHONY: image
 image: ## Build the Tetragon agent container image.
-	$(CONTAINER_ENGINE) build -t "cilium/tetragon:${DOCKER_IMAGE_TAG}" --target release --build-arg TETRAGON_VERSION=$(VERSION) --platform=linux/${TARGET_ARCH} .
+	$(CONTAINER_ENGINE) build -t "cilium/tetragon:${DOCKER_IMAGE_TAG}" --target release --build-arg TETRAGON_VERSION=$(VERSION) ${CONTAINER_ENGINE_ARGS} --platform=linux/${TARGET_ARCH} .
 	@echo "Push like this when ready:"
 	@echo "${CONTAINER_ENGINE} push cilium/tetragon:$(DOCKER_IMAGE_TAG)"
 
