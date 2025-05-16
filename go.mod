@@ -4,7 +4,7 @@ module github.com/cilium/tetragon
 go 1.24.0
 
 require (
-	github.com/alecthomas/kong v1.10.0
+	github.com/alecthomas/kong v1.11.0
 	github.com/bombsimon/logrusr/v4 v4.1.0
 	github.com/cilium/cilium v1.17.4
 	github.com/cilium/ebpf v0.18.0
