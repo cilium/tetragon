@@ -7,14 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"unsafe"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
-	"github.com/cilium/tetragon/pkg/option"
 )
 
 const (
@@ -62,8 +60,12 @@ func openMap(spec *ebpf.CollectionSpec, mapName string, innerMaxEntries uint32) 
 // newMap returns a new policy filter map.
 func newPfMap(enableCgroupMap bool) (PfMap, error) {
 	// use the generic kprobe program, to find the policy filter map spec
+
 	objName, _ := config.GenericKprobeObjs()
-	objPath := path.Join(option.Config.HubbleLib, objName)
+	objPath, err := config.FindProgramFile(objName)
+	if err != nil {
+		return PfMap{}, fmt.Errorf("loading spec for %s failed: %w", objPath, err)
+	}
 	spec, err := ebpf.LoadCollectionSpec(objPath)
 	if err != nil {
 		return PfMap{}, fmt.Errorf("loading spec for %s failed: %w", objPath, err)
