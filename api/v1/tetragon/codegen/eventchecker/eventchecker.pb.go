@@ -1553,16 +1553,18 @@ func (checker *ProcessTracepointChecker) FromProcessTracepoint(event *tetragon.P
 
 // ProcessUprobeChecker implements a checker struct to check a ProcessUprobe event
 type ProcessUprobeChecker struct {
-	CheckerName string                       `json:"checkerName"`
-	Process     *ProcessChecker              `json:"process,omitempty"`
-	Parent      *ProcessChecker              `json:"parent,omitempty"`
-	Path        *stringmatcher.StringMatcher `json:"path,omitempty"`
-	Symbol      *stringmatcher.StringMatcher `json:"symbol,omitempty"`
-	PolicyName  *stringmatcher.StringMatcher `json:"policyName,omitempty"`
-	Message     *stringmatcher.StringMatcher `json:"message,omitempty"`
-	Args        *KprobeArgumentListMatcher   `json:"args,omitempty"`
-	Tags        *StringListMatcher           `json:"tags,omitempty"`
-	Ancestors   *ProcessListMatcher          `json:"ancestors,omitempty"`
+	CheckerName  string                       `json:"checkerName"`
+	Process      *ProcessChecker              `json:"process,omitempty"`
+	Parent       *ProcessChecker              `json:"parent,omitempty"`
+	Path         *stringmatcher.StringMatcher `json:"path,omitempty"`
+	Symbol       *stringmatcher.StringMatcher `json:"symbol,omitempty"`
+	PolicyName   *stringmatcher.StringMatcher `json:"policyName,omitempty"`
+	Message      *stringmatcher.StringMatcher `json:"message,omitempty"`
+	Args         *KprobeArgumentListMatcher   `json:"args,omitempty"`
+	Tags         *StringListMatcher           `json:"tags,omitempty"`
+	Ancestors    *ProcessListMatcher          `json:"ancestors,omitempty"`
+	Offset       *uint64                      `json:"offset,omitempty"`
+	RefCtrOffset *uint64                      `json:"refCtrOffset,omitempty"`
 }
 
 // CheckEvent checks a single event and implements the EventChecker interface
@@ -1649,6 +1651,16 @@ func (checker *ProcessUprobeChecker) Check(event *tetragon.ProcessUprobe) error 
 				return fmt.Errorf("Ancestors check failed: %w", err)
 			}
 		}
+		if checker.Offset != nil {
+			if *checker.Offset != event.Offset {
+				return fmt.Errorf("Offset has value %d which does not match expected value %d", event.Offset, *checker.Offset)
+			}
+		}
+		if checker.RefCtrOffset != nil {
+			if *checker.RefCtrOffset != event.RefCtrOffset {
+				return fmt.Errorf("RefCtrOffset has value %d which does not match expected value %d", event.RefCtrOffset, *checker.RefCtrOffset)
+			}
+		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -1711,6 +1723,18 @@ func (checker *ProcessUprobeChecker) WithAncestors(check *ProcessListMatcher) *P
 	return checker
 }
 
+// WithOffset adds a Offset check to the ProcessUprobeChecker
+func (checker *ProcessUprobeChecker) WithOffset(check uint64) *ProcessUprobeChecker {
+	checker.Offset = &check
+	return checker
+}
+
+// WithRefCtrOffset adds a RefCtrOffset check to the ProcessUprobeChecker
+func (checker *ProcessUprobeChecker) WithRefCtrOffset(check uint64) *ProcessUprobeChecker {
+	checker.RefCtrOffset = &check
+	return checker
+}
+
 //FromProcessUprobe populates the ProcessUprobeChecker using data from a ProcessUprobe event
 func (checker *ProcessUprobeChecker) FromProcessUprobe(event *tetragon.ProcessUprobe) *ProcessUprobeChecker {
 	if event == nil {
@@ -1762,6 +1786,14 @@ func (checker *ProcessUprobeChecker) FromProcessUprobe(event *tetragon.ProcessUp
 		lm := NewProcessListMatcher().WithOperator(listmatcher.Ordered).
 			WithValues(checks...)
 		checker.Ancestors = lm
+	}
+	{
+		val := event.Offset
+		checker.Offset = &val
+	}
+	{
+		val := event.RefCtrOffset
+		checker.RefCtrOffset = &val
 	}
 	return checker
 }
