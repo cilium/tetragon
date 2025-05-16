@@ -5,7 +5,7 @@ go 1.24.0
 
 require (
 	github.com/blang/semver/v4 v4.0.0
-	github.com/cilium/cilium v1.17.3
+	github.com/cilium/cilium v1.17.4
 	github.com/sirupsen/logrus v1.9.3
 	golang.org/x/sync v0.14.0
 	k8s.io/apiextensions-apiserver v0.32.5
