@@ -4,14 +4,14 @@ module github.com/cilium/tetragon/contrib/rthooks/tetragon-oci-hook
 go 1.24.0
 
 require (
-	github.com/alecthomas/kong v1.10.0
+	github.com/alecthomas/kong v1.11.0
 	github.com/cilium/lumberjack/v2 v2.4.1
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/containerd/containerd v1.7.27
 	github.com/containerd/nri v0.9.0
 	github.com/containers/common v0.63.0
 	github.com/google/cel-go v0.23.2
-	github.com/opencontainers/runc v1.2.6
+	github.com/opencontainers/runc v1.3.0
 	github.com/opencontainers/runtime-spec v1.2.1
 	github.com/pelletier/go-toml v1.9.5
 	github.com/pelletier/go-toml/v2 v2.2.4
