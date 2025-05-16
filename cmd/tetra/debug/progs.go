@@ -28,6 +28,8 @@ import (
 	"github.com/cilium/ebpf/btf"
 	"github.com/cilium/ebpf/link"
 	"github.com/cilium/ebpf/pin"
+	"github.com/cilium/tetragon/pkg/bugtool"
+	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/spf13/cobra"
 	"golang.org/x/sys/unix"
 	"golang.org/x/term"
@@ -98,18 +100,6 @@ func detectBpffs() (string, error) {
 	return "", errors.New("bpffs mount not found")
 }
 
-func detectLib() (string, error) {
-	paths := []string{"/var/lib/tetragon", "./bpf/objs/"}
-
-	for _, path := range paths {
-		if _, err := os.Stat(filepath.Join(path, "bpf_prog_iter.o")); err != nil {
-			continue
-		}
-		return path, nil
-	}
-	return "", errors.New("lib directory mount not found")
-}
-
 func NewProgsCmd() *cobra.Command {
 	cmd := cobra.Command{
 		Use:     "progs",
@@ -147,8 +137,12 @@ Examples:
 			}
 
 			if cfg.lib == "" {
-				if cfg.lib, err = detectLib(); err != nil {
-					log.Fatal(err)
+				// detect library from the info file, or use the default
+				initInfo, err := bugtool.LoadInitInfo()
+				if err == nil {
+					cfg.lib = initInfo.LibDir
+				} else {
+					cfg.lib = defaults.DefaultTetragonLib
 				}
 			}
 
