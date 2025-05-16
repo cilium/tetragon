@@ -14,7 +14,6 @@ import (
 	"io/fs"
 	"log"
 	"os"
-	"path"
 	"path/filepath"
 	"runtime"
 	"sort"
@@ -29,6 +28,7 @@ import (
 	"github.com/cilium/ebpf/link"
 	"github.com/cilium/ebpf/pin"
 	"github.com/cilium/tetragon/pkg/bugtool"
+	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/spf13/cobra"
 	"golang.org/x/sys/unix"
@@ -307,7 +307,11 @@ func getProgs(all bool, libDir, mapDir string) ([]*prog, error) {
 func getAllProgs(lib string) ([]*prog, error) {
 	// Open the object file just once
 	initOnce.Do(func() {
-		file := path.Join(lib, "bpf_prog_iter.o")
+		file, err := config.FindProgramFileUnderLocations("bpf_prog_iter.o", lib)
+		if err != nil {
+			initErr = err
+			return
+		}
 		spec, err := ebpf.LoadCollectionSpec(file)
 		if err != nil {
 			initErr = err
