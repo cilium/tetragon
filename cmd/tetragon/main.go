@@ -107,17 +107,29 @@ func setRedactionFilters() error {
 	return err
 }
 
+func absPath(p string) string {
+	if len(p) == 0 {
+		return p
+	}
+	ret, err := filepath.Abs(p)
+	if err != nil {
+		log.WithField("path", p).WithError(err).Warning("failed to get absolute path")
+		return p
+	}
+	return ret
+}
+
 // Save daemon information so it is used by client cli but
 // also by bugtool
 func saveInitInfo() error {
 	info := bugtool.InitInfo{
-		ExportFname: option.Config.ExportFilename,
-		LibDir:      option.Config.HubbleLib,
-		BTFFname:    option.Config.BTF,
+		ExportFname: absPath(option.Config.ExportFilename),
+		LibDir:      absPath(option.Config.HubbleLib),
+		BTFFname:    absPath(option.Config.BTF),
 		MetricsAddr: option.Config.MetricsServer,
 		ServerAddr:  option.Config.ServerAddress,
 		GopsAddr:    option.Config.GopsAddr,
-		MapDir:      bpf.MapPrefixPath(),
+		MapDir:      absPath(bpf.MapPrefixPath()),
 		PID:         os.Getpid(),
 	}
 	return bugtool.SaveInitInfo(&info)
