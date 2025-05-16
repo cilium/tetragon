@@ -397,7 +397,8 @@ func NewProcess(procEntry windows.ProcessEntry32) (procs, error) {
 	if err != nil {
 		logger.GetLogger().WithError(err).Warnf("Reading process times error")
 	}
-	ktime = uint64(times.CreationTime.Nanoseconds())
+	ct := times.CreationTime
+	ktime = uint64((int64(ct.HighDateTime) << 32) + int64(ct.LowDateTime))
 	// Initialize with invalid uid
 	uids := []uint32{proc.InvalidUid, proc.InvalidUid, proc.InvalidUid, proc.InvalidUid}
 	gids := []uint32{proc.InvalidUid, proc.InvalidUid, proc.InvalidUid, proc.InvalidUid}

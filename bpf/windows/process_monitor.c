@@ -115,13 +115,16 @@ int ProcessMonitor(process_md_t *ctx)
 	if (ctx->operation == PROCESS_OPERATION_CREATE) {
 		struct process_create_info_t process_create_info;
 
-		memset(&process_create_info, 0, sizeof(process_create_info));
+		int size = sizeof(process_create_info);
+
+		memset(&process_create_info, 0, size);
 		process_create_info.common.op = MSG_OP_EXECVE;
+		process_create_info.common.size = size;
+		process_create_info.common.ktime = ctx->creation_time;
 		process_create_info.process_id = ctx->process_id;
 		process_create_info.parent_process_id = ctx->parent_process_id;
 		process_create_info.creating_process_id = ctx->creating_process_id;
 		process_create_info.creating_thread_id = ctx->creating_thread_id;
-		process_create_info.common.ktime = ctx->creation_time;
 		process_create_info.creation_time = ctx->creation_time;
 
 		void *buffer = get_scratch_space();
@@ -147,13 +150,15 @@ int ProcessMonitor(process_md_t *ctx)
 
 	} else if (ctx->operation == PROCESS_OPERATION_DELETE) {
 		struct process_exit_info_t process_exit_info;
+		int size = sizeof(process_exit_info);
 
-		memset(&process_exit_info, 0, sizeof(process_exit_info));
+		memset(&process_exit_info, 0, size);
 		process_exit_info.process_id = ctx->process_id;
+		process_exit_info.common.op = MSG_OP_EXIT;
 		process_exit_info.common.ktime = ctx->exit_time;
+		process_exit_info.common.size = size;
 		process_exit_info.exit_time = ctx->exit_time;
 		process_exit_info.process_exit_code = ctx->process_exit_code;
-		process_exit_info.common.op = MSG_OP_EXIT;
 		bpf_ringbuf_output(&process_ringbuf, &process_exit_info, sizeof(process_exit_info), 0);
 	}
 	return 0;

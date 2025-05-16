@@ -4,15 +4,7 @@
 package ktime
 
 import (
-	"syscall"
 	"time"
-	"unsafe"
-)
-
-var (
-	dll            = syscall.MustLoadDLL("kernel32.dll")
-	queryCounter   = dll.MustFindProc("QueryPerformanceCounter")
-	queryFrequency = dll.MustFindProc("QueryPerformanceFrequency")
 )
 
 func NanoTimeSince(ktime int64) (time.Duration, error) {
@@ -25,21 +17,19 @@ func Monotonic() (time.Duration, error) {
 	return time.Duration(time.Now().Nanosecond()), nil
 }
 
-func getBootTimeNanoseconds() int64 {
-	var freq, counter int64
-	queryFrequency.Call(uintptr(unsafe.Pointer(&freq)))
-	queryCounter.Call(uintptr(unsafe.Pointer(&counter)))
-	return (counter * 1e9) / freq
+func WindowsToUnixTime(winTime uint64) uint64 {
+	// Difference between Windows epoch (1601) and Unix epoch (1970) in 100-nanosecond intervals
+	const epochDifference = 116444736000000000
+	unixTime := (winTime - epochDifference) / 10000 // Convert 100-ns units to microseconds
+	return unixTime
 }
 
-func DecodeKtime(ktime int64, monotonic bool) (time.Time, error) {
-	var nowTime int64
-	if monotonic {
-		nowTime = int64(time.Now().Nanosecond())
-	} else {
-		nowTime = getBootTimeNanoseconds()
-	}
-	diff := ktime - nowTime
-	t := time.Now().Add(time.Duration(diff))
+func DecodeKtime(ktime int64, _ bool) (time.Time, error) {
+	var t time.Time
+
+	uTime := WindowsToUnixTime(uint64(ktime))
+	t = time.UnixMilli(int64(uTime))
+
 	return t, nil
+
 }
