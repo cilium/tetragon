@@ -8,7 +8,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -264,9 +263,7 @@ func (s *Sensor) findProgram(p *program.Program) error {
 		return nil
 	}
 	logger.GetLogger().WithField("file", p.Name).Debug("Candidate bpf file does not exist")
-	last := strings.Split(p.Name, "/")
-	filename := last[len(last)-1]
-
+	filename := filepath.Base(p.Name)
 	path := path.Join(option.Config.HubbleLib, filename)
 	if _, err := os.Stat(path); err == nil {
 		p.Name = path
