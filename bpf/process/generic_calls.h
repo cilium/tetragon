@@ -708,7 +708,7 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 {
 	struct msg_generic_kprobe *e;
 	struct event_config *config;
-	int am, zero = 0;
+	int fi, am, zero = 0;
 	unsigned long a;
 	long ty;
 
@@ -724,10 +724,11 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 		     : [index] "+r"(index)
 		     : "i"(MAX_SELECTORS_MASK));
 	ty = config->arg[index];
+	fi = config->idx[index];
 
-	a = __get_arg_value(ctx, config, index);
+	a = __get_arg_value(ctx, config, fi);
 
-	extract_arg(config, index, &a);
+	extract_arg(config, fi, &a);
 
 	if (should_offload_path(ty))
 		return generic_path_offload(ctx, ty, a, index, off, tailcals);
@@ -736,7 +737,28 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 		     : [index] "+r"(index)
 		     : "i"(MAX_SELECTORS_MASK));
 	am = config->arm[index];
-	return read_arg(ctx, e, index, ty, off, a, am);
+	return read_arg(ctx, e, fi, ty, off, a, am);
+}
+
+
+FUNC_INLINE int arg_idx(int index)
+{
+	struct msg_generic_kprobe *e;
+	struct event_config *config;
+	int zero = 0;
+
+	e = map_lookup_elem(&process_call_heap, &zero);
+	if (!e)
+		return -1;
+
+	config = map_lookup_elem(&config_map, &e->idx);
+	if (!config)
+		return -1;
+
+	asm volatile("%[index] &= %1 ;\n"
+		     : [index] "+r"(index)
+		     : "i"(MAX_SELECTORS_MASK));
+	return config->idx[index];
 }
 
 FUNC_INLINE int
@@ -770,7 +792,7 @@ generic_process_event(void *ctx, struct bpf_map_def *tailcals)
 	}
 	e->common.size = total;
 	/* Continue to process other arguments. */
-	if (index < 4) {
+	if (index < 4 && arg_idx(index + 1) != -1) {
 		e->tailcall_index_process = index + 1;
 		tail_call(ctx, tailcals, TAIL_CALL_PROCESS);
 	}
@@ -779,6 +801,15 @@ generic_process_event(void *ctx, struct bpf_map_def *tailcals)
 	e->tailcall_index_process = 0;
 	tail_call(ctx, tailcals, TAIL_CALL_ARGS);
 	return 0;
+}
+
+FUNC_INLINE int
+generic_process_event0(void *ctx, struct bpf_map_def *tailcals)
+{
+	/* No arguments, go send.. */
+	if (arg_idx(0) == -1)
+		tail_call(ctx, tailcals, TAIL_CALL_ARGS);
+	return generic_process_event(ctx, tailcals);
 }
 
 FUNC_INLINE void
@@ -844,7 +875,7 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 #ifdef GENERIC_RAWTP
 	generic_process_init(e, MSG_OP_GENERIC_TRACEPOINT, config);
 #endif
-	return generic_process_event(ctx, tailcals);
+	return generic_process_event0(ctx, tailcals);
 }
 
 #if defined GENERIC_KPROBE || defined GENERIC_LSM
