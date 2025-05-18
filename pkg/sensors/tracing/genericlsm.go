@@ -223,7 +223,7 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 		return errFn(err)
 	}
 
-	eventConfig := &api.EventConfig{}
+	eventConfig := initEventConfig()
 	eventConfig.PolicyID = uint32(in.policyID)
 
 	msgField, err := getPolicyMessage(f.Message)
@@ -274,8 +274,9 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 			return errFn(fmt.Errorf("error add arg: ArgType %s Index %d out of bounds",
 				a.Type, int(a.Index)))
 		}
-		eventConfig.Arg[a.Index] = int32(argType)
-		eventConfig.ArgM[a.Index] = uint32(argMValue)
+		eventConfig.Arg[j] = int32(argType)
+		eventConfig.ArgM[j] = uint32(argMValue)
+		eventConfig.ArgIndex[j] = int32(a.Index)
 
 		argsBTFSet[a.Index] = true
 		argP := argPrinter{index: j, ty: argType, maxData: a.MaxData, label: a.Label}
@@ -287,18 +288,6 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 	eventConfig.BTFArg = allBTFArgs
 	eventConfig.ArgReturn = int32(0)
 	eventConfig.ArgReturnCopy = int32(0)
-
-	// Mark remaining arguments as 'nops' the kernel side will skip
-	// copying 'nop' args.
-	for j, a := range argsBTFSet {
-		if !a {
-			if j != api.ReturnArgIndex {
-				eventConfig.Arg[j] = gt.GenericNopType
-				eventConfig.ArgM[j] = 0
-			}
-		}
-	}
-
 	eventConfig.Syscall = 0
 
 	// create a new entry on the table, and pass its id to BPF-side
