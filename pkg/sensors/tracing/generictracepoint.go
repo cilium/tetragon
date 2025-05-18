@@ -716,27 +716,24 @@ func (tp *genericTracepoint) EventConfig() (*tracingapi.EventConfig, error) {
 		return nil, fmt.Errorf("number of arguments (%d) larger than max (%d)", len(tp.args), tracingapi.EventConfigMaxArgs)
 	}
 
-	config := tracingapi.EventConfig{}
+	config := initEventConfig()
 	config.PolicyID = uint32(tp.policyID)
 	config.FuncId = uint32(tp.tableId.ID)
 
 	if tp.raw {
-		return tp.eventConfigRaw(&config)
+		return tp.eventConfigRaw(config)
 	}
-	return tp.eventConfig(&config)
+	return tp.eventConfig(config)
 }
 
 func (tp *genericTracepoint) eventConfigRaw(config *tracingapi.EventConfig) (*tracingapi.EventConfig, error) {
-	for i := range config.Arg {
-		config.Arg[i] = int32(gt.GenericNopType)
-		config.ArgM[i] = uint32(0)
-	}
 
 	// iterate over output arguments
 	for i, tpArg := range tp.args {
-		config.BTFArg[tpArg.TpIdx] = tpArg.btf
-		config.Arg[tpArg.TpIdx] = int32(tpArg.genericTypeId)
-		config.ArgM[tpArg.TpIdx] = uint32(tpArg.MetaArg)
+		config.BTFArg[i] = tpArg.btf
+		config.Arg[i] = int32(tpArg.genericTypeId)
+		config.ArgM[i] = uint32(tpArg.MetaArg)
+		config.ArgIndex[i] = int32(tpArg.TpIdx)
 
 		tracepointLog.Debug(fmt.Sprintf("configured argument #%d: %+v (type:%d)", i, tpArg, tpArg.genericTypeId))
 	}
@@ -750,15 +747,11 @@ func (tp *genericTracepoint) eventConfig(config *tracingapi.EventConfig) (*traci
 		config.ArgTpCtxOff[i] = uint32(tpArg.CtxOffset)
 		config.Arg[i] = int32(tpArg.genericTypeId)
 		config.ArgM[i] = uint32(tpArg.MetaArg)
+		config.ArgIndex[i] = int32(tpArg.TpIdx)
+
+		fmt.Printf("KRAVA i %d ArgIndex %d ArgTpCtxOff %d\n", i, config.ArgIndex[i], config.ArgTpCtxOff[i])
 
 		tracepointLog.Debug(fmt.Sprintf("configured argument #%d: %+v (type:%d)", i, tpArg, tpArg.genericTypeId))
-	}
-
-	// nop args
-	for i := len(tp.args); i < tracingapi.EventConfigMaxArgs; i++ {
-		config.ArgTpCtxOff[i] = uint32(0)
-		config.Arg[i] = int32(gt.GenericNopType)
-		config.ArgM[i] = uint32(0)
 	}
 
 	return config, nil

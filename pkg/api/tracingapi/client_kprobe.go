@@ -603,6 +603,7 @@ type EventConfig struct {
 	Arg             [EventConfigMaxArgs]int32                        `align:"arg"`
 	ArgM            [EventConfigMaxArgs]uint32                       `align:"arm"`
 	ArgTpCtxOff     [EventConfigMaxArgs]uint32                       `align:"off"`
+	ArgIndex        [EventConfigMaxArgs]int32                        `align:"idx"`
 	Syscall         uint32                                           `align:"syscall"`
 	ArgReturnCopy   int32                                            `align:"argreturncopy"`
 	ArgReturn       int32                                            `align:"argreturn"`
