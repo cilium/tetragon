@@ -6455,9 +6455,9 @@ spec:
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
-				ec.NewKprobeArgumentChecker().WithIntArg(0).WithLabel(sm.Full("index 0")),
-				ec.NewKprobeArgumentChecker().WithIntArg(1).WithLabel(sm.Full("index 1")),
 				ec.NewKprobeArgumentChecker().WithIntArg(2).WithLabel(sm.Full("index 2")),
+				ec.NewKprobeArgumentChecker().WithIntArg(1).WithLabel(sm.Full("index 1")),
+				ec.NewKprobeArgumentChecker().WithIntArg(0).WithLabel(sm.Full("index 0")),
 			))
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())

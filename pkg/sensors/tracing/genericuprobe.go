@@ -357,7 +357,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 	var (
 		argTypes [api.EventConfigMaxArgs]int32
 		argMeta  [api.EventConfigMaxArgs]uint32
-		argSet   [api.EventConfigMaxArgs]bool
+		argIdx   [api.EventConfigMaxArgs]int32
 
 		argPrinters []argPrinter
 	)
@@ -385,20 +385,11 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		if a.Resolve != "" {
 			return nil, errors.New("resolving attributes for Uprobes is not supported")
 		}
-		argTypes[a.Index] = int32(argType)
-		argMeta[a.Index] = uint32(argMValue)
-		argSet[a.Index] = true
+		argTypes[i] = int32(argType)
+		argMeta[i] = uint32(argMValue)
+		argIdx[i] = int32(a.Index)
 
 		argPrinters = append(argPrinters, argPrinter{index: i, ty: argType})
-	}
-
-	// Mark remaining arguments as 'nops' the kernel side will skip
-	// copying 'nop' args.
-	for i, a := range argSet {
-		if !a {
-			argTypes[i] = gt.GenericNopType
-			argMeta[i] = 0
-		}
 	}
 
 	addUprobeEntry := func(sym string, offset uint64, idx int) {
@@ -407,10 +398,11 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		if refCtrOffsets != 0 {
 			refCtrOffset = spec.RefCtrOffsets[idx]
 		}
-		config := &api.EventConfig{
-			Arg:  argTypes,
-			ArgM: argMeta,
-		}
+
+		config := initEventConfig()
+		config.Arg = argTypes
+		config.ArgM = argMeta
+		config.ArgIndex = argIdx
 
 		uprobeEntry := &genericUprobe{
 			tableId:      idtable.UninitializedEntryID,

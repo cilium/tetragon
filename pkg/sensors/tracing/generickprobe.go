@@ -15,7 +15,6 @@ import (
 	"net/http"
 	"path"
 	"slices"
-	"sort"
 	"strings"
 
 	"github.com/cilium/ebpf"
@@ -689,6 +688,12 @@ func createGenericKprobeSensor(
 	}, nil
 }
 
+func initEventConfig() *api.EventConfig {
+	return &api.EventConfig{
+		ArgIndex: [api.EventConfigMaxArgs]int32{-1, -1, -1, -1, -1},
+	}
+}
+
 // addKprobe will, amongst other things, create a generic kprobe entry and add
 // it to the genericKprobeTable. The caller should make sure that this entry is
 // properly removed on kprobe removal.
@@ -708,7 +713,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 		return errFn(errors.New("error adding kprobe, the kprobe spec is nil"))
 	}
 
-	eventConfig := &api.EventConfig{}
+	eventConfig := initEventConfig()
 	eventConfig.PolicyID = uint32(in.policyID)
 	if len(f.ReturnArgAction) > 0 {
 		if !config.EnableLargeProgs() {
@@ -773,7 +778,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 			if err != nil {
 				return errFn(fmt.Errorf("error on hook %q for index %d : %w", f.Call, a.Index, err))
 			}
-			allBTFArgs[a.Index] = btfArg
+			allBTFArgs[j] = btfArg
 			argType = findTypeFromBTFType(a, lastBTFType)
 		}
 
@@ -801,8 +806,9 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 				a.Type, int(a.Index)))
 		}
 		eventConfig.BTFArg = allBTFArgs
-		eventConfig.Arg[a.Index] = int32(argType)
-		eventConfig.ArgM[a.Index] = uint32(argMValue)
+		eventConfig.Arg[j] = int32(argType)
+		eventConfig.ArgM[j] = uint32(argMValue)
+		eventConfig.ArgIndex[j] = int32(a.Index)
 
 		argsBTFSet[a.Index] = true
 		argP := argPrinter{index: int(a.Index), ty: argType, userType: userArgType, maxData: a.MaxData, label: a.Label}
@@ -810,12 +816,6 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 
 		pathArgWarning(a.Index, argType, f.Selectors)
 	}
-
-	// Arguments are appended based on the index value,
-	// so the argument printers need to follow that
-	sort.Slice(argSigPrinters, func(i, j int) bool {
-		return argSigPrinters[i].index < argSigPrinters[j].index
-	})
 
 	// Parse ReturnArg, we have two types of return arg parsing. We
 	// support populating a kprobe buffer from kretprobe hooks. This
@@ -856,17 +856,6 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 		argReturnPrinters = append(argReturnPrinters, argP)
 	} else {
 		eventConfig.ArgReturnCopy = int32(0)
-	}
-
-	// Mark remaining arguments as 'nops' the kernel side will skip
-	// copying 'nop' args.
-	for j, a := range argsBTFSet {
-		if !a {
-			if j != api.ReturnArgIndex {
-				eventConfig.Arg[j] = gt.GenericNopType
-				eventConfig.ArgM[j] = 0
-			}
-		}
 	}
 
 	// Write attributes into BTF ptr for use with load
