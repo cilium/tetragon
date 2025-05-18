@@ -423,11 +423,31 @@ FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned lo
 FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long *a) {}
 #endif /* __LARGE_BPF_PROG */
 
+FUNC_INLINE int arg_idx(int index)
+{
+	struct msg_generic_kprobe *e;
+	struct event_config *config;
+	int zero = 0;
+
+	e = map_lookup_elem(&process_call_heap, &zero);
+	if (!e)
+		return -1;
+
+	config = map_lookup_elem(&config_map, &e->idx);
+	if (!config)
+		return -1;
+
+	asm volatile("%[index] &= %1 ;\n"
+		     : [index] "+r"(index)
+		     : "i"(MAX_SELECTORS_MASK));
+	return config->idx[index];
+}
+
 FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map_def *tailcals)
 {
 	struct msg_generic_kprobe *e;
 	struct event_config *config;
-	int am, zero = 0;
+	int am, zero = 0, arg_index;
 	unsigned long a;
 	long ty;
 
@@ -444,13 +464,28 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 		     : "i"(MAX_SELECTORS_MASK));
 	ty = config->arg[index];
 
+	arg_index = config->idx[index];
+	asm volatile("%[arg_index] &= %1 ;\n"
+		     : [arg_index] "+r"(arg_index)
+		     : "i"(MAX_SELECTORS_MASK));
+
+#ifdef GENERIC_TRACEPOINT
 	a = (&e->a0)[index];
+#else
+	a = (&e->a0)[arg_index];
+#endif
+
 	extract_arg(config, index, &a);
 
 	if (should_offload_path(ty))
 		return generic_path_offload(ctx, ty, a, index, off, tailcals);
 
 	am = config->arm[index];
+
+#ifndef GENERIC_TRACEPOINT
+	index = arg_index;
+#endif
+
 	return read_arg(ctx, e, index, ty, off, a, am);
 }
 
@@ -485,7 +520,7 @@ generic_process_event(void *ctx, struct bpf_map_def *tailcals)
 	}
 	e->common.size = total;
 	/* Continue to process other arguments. */
-	if (index < 4) {
+	if (index < 4 && arg_idx(index + 1) != -1) {
 		e->tailcall_index_process = index + 1;
 		tail_call(ctx, tailcals, TAIL_CALL_PROCESS);
 	}
@@ -597,7 +632,12 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 	e->a4 = BPF_CORE_READ(raw_args, args[4]);
 	generic_process_init(e, MSG_OP_GENERIC_TRACEPOINT, config);
 #endif
-	return generic_process_event(ctx, tailcals);
+
+	/* No arguments, go send.. */
+	if (arg_idx(0) == -1)
+		tail_call(ctx, tailcals, TAIL_CALL_ARGS);
+	tail_call(ctx, tailcals, TAIL_CALL_PROCESS);
+	return 0;
 }
 
 #if defined GENERIC_KPROBE || defined GENERIC_LSM
