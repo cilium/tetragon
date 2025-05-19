@@ -27,7 +27,7 @@ import (
 	"github.com/alecthomas/kong"
 	"github.com/cilium/lumberjack/v2"
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
+	"github.com/opencontainers/cgroups/systemd"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
