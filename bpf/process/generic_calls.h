@@ -214,7 +214,10 @@ FUNC_INLINE unsigned long get_ctx_ul(void *src, int type)
 	}
 
 	case const_buf_type: {
-		return (unsigned long)src;
+		unsigned long ret;
+
+		probe_read(&ret, sizeof(ret), &src);
+		return ret;
 	}
 
 	case skb_type: {
