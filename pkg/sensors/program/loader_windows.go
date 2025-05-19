@@ -198,7 +198,7 @@ func doLoadProgram(
 			pinPath = pm.PinPath
 		}
 		if m, ok := coll.Maps[mapLoad.Name]; ok {
-			if err := mapLoad.Load(m, pinPath, mapLoad.Index); err != nil {
+			if err := mapLoad.Load(m, pinPath); err != nil {
 				return nil, err
 			}
 		} else {

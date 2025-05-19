@@ -1109,10 +1109,9 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Pro
 	var configData bytes.Buffer
 	binary.Write(&configData, binary.LittleEndian, gk.loadArgs.config)
 	config := &program.MapLoad{
-		Index: 0,
-		Name:  "config_map",
-		Load: func(m *ebpf.Map, _ string, index uint32) error {
-			return m.Update(index, configData.Bytes()[:], ebpf.UpdateAny)
+		Name: "config_map",
+		Load: func(m *ebpf.Map, _ string) error {
+			return m.Update(uint32(0), configData.Bytes()[:], ebpf.UpdateAny)
 		},
 	}
 	load.MapLoad = append(load.MapLoad, config)
@@ -1141,10 +1140,9 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir string, load *program.P
 
 		binary.Write(&bin_buf[index], binary.LittleEndian, gk.loadArgs.config)
 		config := &program.MapLoad{
-			Index: uint32(index),
-			Name:  "config_map",
-			Load: func(m *ebpf.Map, _ string, index uint32) error {
-				return m.Update(index, bin_buf[index].Bytes()[:], ebpf.UpdateAny)
+			Name: "config_map",
+			Load: func(m *ebpf.Map, _ string) error {
+				return m.Update(uint32(index), bin_buf[index].Bytes()[:], ebpf.UpdateAny)
 			},
 		}
 		load.MapLoad = append(load.MapLoad, config)
