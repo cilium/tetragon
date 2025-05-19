@@ -95,10 +95,9 @@ func (k *observerLsmSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 		var configData bytes.Buffer
 		binary.Write(&configData, binary.LittleEndian, gl.config)
 		config := &program.MapLoad{
-			Index: 0,
-			Name:  "config_map",
-			Load: func(m *ebpf.Map, _ string, index uint32) error {
-				return m.Update(index, configData.Bytes()[:], ebpf.UpdateAny)
+			Name: "config_map",
+			Load: func(m *ebpf.Map, _ string) error {
+				return m.Update(uint32(0), configData.Bytes()[:], ebpf.UpdateAny)
 			},
 		}
 		args.Load.MapLoad = append(args.Load.MapLoad, config)

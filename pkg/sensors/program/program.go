@@ -68,9 +68,8 @@ func GetProgramInfo(l *Program) (program, label, prog string) {
 }
 
 type MapLoad struct {
-	Index uint32
-	Name  string
-	Load  func(m *ebpf.Map, pinPathPrefix string, index uint32) error
+	Name string
+	Load func(m *ebpf.Map, pinPathPrefix string) error
 }
 
 type MultiKprobeAttachData struct {

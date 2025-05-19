@@ -962,8 +962,8 @@ func doLoadProgram(
 			pinPath = pm.PinPath
 		}
 		if m, ok := coll.Maps[mapLoad.Name]; ok {
-			if err := mapLoad.Load(m, pinPath, mapLoad.Index); err != nil {
-				return nil, err
+			if err := mapLoad.Load(m, pinPath); err != nil {
+				return nil, fmt.Errorf("map load for %s failed: %w", mapLoad.Name, err)
 			}
 		} else {
 			return nil, fmt.Errorf("populating map failed as map '%s' was not found from collection", mapLoad.Name)
