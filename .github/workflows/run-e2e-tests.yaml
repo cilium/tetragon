@@ -96,7 +96,7 @@ jobs:
         # renovate: datasource=github-releases depName=helm/helm
         helm: v3.17.3
         # renovate: datasource=github-releases depName=kubernetes-sigs/kind
-        kind: v0.27.0
+        kind: v0.28.0
         # renovate: datasource=github-releases depName=cilium/cilium-cli
         cilium: v0.18.3
         print-summary: false
