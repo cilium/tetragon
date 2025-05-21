@@ -988,6 +988,20 @@ struct ip_ver {
 	u8 version : 4;
 };
 
+FUNC_INLINE long
+filter_addr_op_mod(__u32 op, long value)
+{
+	switch (op) {
+	case op_filter_saddr:
+	case op_filter_daddr:
+		return !!value;
+	case op_filter_notsaddr:
+	case op_filter_notdaddr:
+		return !value;
+	}
+	return 0;
+}
+
 // use the selector value to determine a LPM Trie map, and do a lookup to determine whether the argument
 // is in the defined set.
 FUNC_INLINE long
@@ -1024,17 +1038,9 @@ filter_addr_map(struct selector_arg_filter *filter, __u64 *addr, __u16 family)
 		return 0;
 	}
 
-	__u8 *pass = map_lookup_elem(addrmap, arg);
+	long exists = (long)map_lookup_elem(addrmap, arg);
 
-	switch (filter->op) {
-	case op_filter_saddr:
-	case op_filter_daddr:
-		return !!pass;
-	case op_filter_notsaddr:
-	case op_filter_notdaddr:
-		return !pass;
-	}
-	return 0;
+	return filter_addr_op_mod(filter->op, exists);
 }
 
 /* filter_inet: runs a comparison between the IPv4/6 addresses and ports in
