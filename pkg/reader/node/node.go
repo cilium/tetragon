@@ -17,8 +17,9 @@ const (
 )
 
 var (
-	kubernetesNodeName string
-	exportNodeName     string
+	kubernetesNodeName   string
+	exportNodeName       string
+	kubernetesNodeLabels = map[string]string{}
 )
 
 func init() {
@@ -58,6 +59,10 @@ func SetKubernetesNodeName() {
 	}
 }
 
+func SetKubernetesNodeLabels(labels map[string]string) {
+	kubernetesNodeLabels = labels
+}
+
 // GetNodeNameForExport returns node name string for JSON export. It uses the HUBBLE_NODE_NAME
 // env variable by default, and falls back to NODE_NAME if the former is missing. If both
 // are missing, it will use the host name reported by the kernel
@@ -80,4 +85,5 @@ func GetKubernetesNodeName() string {
 func SetCommonFields(ev *tetragon.GetEventsResponse) {
 	ev.NodeName = exportNodeName
 	ev.ClusterName = option.Config.ClusterName
+	ev.NodeLabels = kubernetesNodeLabels
 }

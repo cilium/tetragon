@@ -43,6 +43,7 @@ import (
 	"github.com/cilium/tetragon/pkg/pidfile"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/ratelimit"
+	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/rthooks"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
@@ -421,6 +422,12 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 			}
 		}
 		podAccessor = controllerManager
+		k8sNode, err := controllerManager.GetNode()
+		if err != nil {
+			log.WithError(err).Warn("Failed to get local Kubernetes node info. node_labels field will be empty")
+		} else {
+			node.SetKubernetesNodeLabels(k8sNode.Labels)
+		}
 	} else {
 		log.Info("Disabling Kubernetes API")
 		podAccessor = watcher.NewFakeK8sWatcher(nil)

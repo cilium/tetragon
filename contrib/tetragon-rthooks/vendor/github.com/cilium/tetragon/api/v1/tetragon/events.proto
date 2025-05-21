@@ -224,4 +224,6 @@ message GetEventsResponse {
   AggregationInfo aggregation_info = 1002;
   // Name of the cluster where this event was observed.
   string cluster_name = 1003;
+  // Labels associated with the node where this event was observed.
+  map<string, string> node_labels = 1004;
 }
