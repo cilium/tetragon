@@ -1019,7 +1019,7 @@ filter_addr_map(struct selector_arg_filter *filter, __u64 *addr, __u16 family)
 		map_idx = map_idxs[0];
 		addrmap = map_lookup_elem(&addr4lpm_maps, &map_idx);
 		if (!addrmap)
-			return 0;
+			return filter_addr_op_mod(filter->op, 0);
 		arg4.prefix = 32;
 		arg4.addr = addr[0];
 		arg = &arg4;
@@ -1028,7 +1028,7 @@ filter_addr_map(struct selector_arg_filter *filter, __u64 *addr, __u16 family)
 		map_idx = map_idxs[1];
 		addrmap = map_lookup_elem(&addr6lpm_maps, &map_idx);
 		if (!addrmap)
-			return 0;
+			return filter_addr_op_mod(filter->op, 0);
 		arg6.prefix = 128;
 		// write the address in as 4 u32s due to alignment
 		write_ipv6_addr32(arg6.addr, (__u32 *)addr);
