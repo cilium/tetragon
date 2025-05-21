@@ -14,6 +14,7 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/watcher"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -138,6 +139,20 @@ func (suite *ManagerTestSuite) TestLocalPods() {
 	assert.NoError(suite.T(), err)
 	// Pod cache should be empty because the node name is set to a nonexistent node.
 	assert.Empty(suite.T(), pods.Items)
+	assert.NoError(suite.T(), os.Setenv("NODE_NAME", nodeName))
+	node.SetKubernetesNodeName()
+}
+
+func (suite *ManagerTestSuite) TestGetNode() {
+	k8sNode, err := suite.manager.GetNode()
+	require.NoError(suite.T(), err)
+	assert.Equal(suite.T(), nodeName, k8sNode.Name)
+
+	// Make sure it's only caching the local node.
+	nodeList := corev1.NodeList{}
+	err = suite.manager.Manager.GetCache().List(context.Background(), &nodeList)
+	require.NoError(suite.T(), err)
+	assert.Len(suite.T(), nodeList.Items, 1)
 }
 
 func (suite *ManagerTestSuite) TearDownSuite() {

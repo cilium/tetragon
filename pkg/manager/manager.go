@@ -69,6 +69,9 @@ func newControllerManager() (*ControllerManager, error) {
 			&corev1.Pod{}: {
 				Field: fields.OneTermEqualSelector("spec.nodeName", node.GetKubernetesNodeName()),
 			},
+			&corev1.Node{}: {
+				Field: fields.SelectorFromSet(fields.Set{"metadata.name": node.GetKubernetesNodeName()}),
+			},
 		},
 	}
 	metricsOptions := metricsserver.Options{BindAddress: "0"}
@@ -104,6 +107,14 @@ func (cm *ControllerManager) GetNamespace(name string) (*corev1.Namespace, error
 		return nil, err
 	}
 	return &ns, nil
+}
+
+func (cm *ControllerManager) GetNode() (*corev1.Node, error) {
+	k8sNode := corev1.Node{}
+	if err := cm.Manager.GetCache().Get(context.Background(), types.NamespacedName{Name: node.GetKubernetesNodeName()}, &k8sNode); err != nil {
+		return nil, err
+	}
+	return &k8sNode, nil
 }
 
 func (cm *ControllerManager) ListNamespaces() ([]corev1.Namespace, error) {

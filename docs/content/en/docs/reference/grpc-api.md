@@ -969,6 +969,16 @@ Capability set to filter over. NOTE: you may specify only ONE set here.
 | time | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  | Timestamp at which this event was observed. For an aggregated response, this field to set to the timestamp at which the event was observed for the first time in a given aggregation time window. |
 | aggregation_info | [AggregationInfo](#tetragon-AggregationInfo) |  | aggregation_info contains information about aggregation results. This field is set only for aggregated responses. |
 | cluster_name | [string](#string) |  | Name of the cluster where this event was observed. |
+| node_labels | [GetEventsResponse.NodeLabelsEntry](#tetragon-GetEventsResponse-NodeLabelsEntry) | repeated | Labels associated with the node where this event was observed. |
+
+<a name="tetragon-GetEventsResponse-NodeLabelsEntry"></a>
+
+### GetEventsResponse.NodeLabelsEntry
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| key | [string](#string) |  |  |
+| value | [string](#string) |  |  |
 
 <a name="tetragon-ProcessThrottle"></a>
 
