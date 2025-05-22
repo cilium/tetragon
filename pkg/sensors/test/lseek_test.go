@@ -17,7 +17,7 @@ import (
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
 	tuo "github.com/cilium/tetragon/pkg/testutils/observer"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/unix"
 )
 
@@ -54,7 +54,7 @@ func TestSensorLseekLoad(t *testing.T) {
 	unix.Seek(BogusFd, 0, BogusWhenceVal)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestSensorLseekEnable(t *testing.T) {
@@ -87,5 +87,5 @@ func TestSensorLseekEnable(t *testing.T) {
 	unix.Seek(BogusFd, 0, BogusWhenceVal)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }

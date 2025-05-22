@@ -17,6 +17,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMapBuildersSingle(t *testing.T) {
@@ -253,12 +254,12 @@ func TestMapUser(t *testing.T) {
 		}
 
 		err = s1.Load(bpf.MapPrefixPath())
+		require.NoError(t, err)
 		defer s1.Unload(true)
-		assert.NoError(t, err)
 
 		err = s2.Load(bpf.MapPrefixPath())
+		require.NoError(t, err)
 		defer s2.Unload(true)
-		assert.NoError(t, err)
 	})
 
 	// Create sensor with user map (via opts) and make sure it's
@@ -285,12 +286,12 @@ func TestMapUser(t *testing.T) {
 		}
 
 		err = s1.Load(bpf.MapPrefixPath())
+		require.NoError(t, err)
 		defer s1.Unload(true)
-		assert.NoError(t, err)
 
 		err = s2.Load(bpf.MapPrefixPath())
+		require.NoError(t, err)
 		defer s2.Unload(true)
-		assert.NoError(t, err)
 	})
 
 	// Create sensor with user map (via MapUser builder) and make sure
@@ -317,12 +318,12 @@ func TestMapUser(t *testing.T) {
 		}
 
 		err = s1.Load(bpf.MapPrefixPath())
+		require.NoError(t, err)
 		defer s1.Unload(true)
-		assert.NoError(t, err)
 
 		err = s2.Load(bpf.MapPrefixPath())
+		require.NoError(t, err)
 		defer s2.Unload(true)
-		assert.NoError(t, err)
 	})
 
 	// Create sensor with user map with wrong name (no existing pinned
@@ -372,12 +373,12 @@ func TestMapUser(t *testing.T) {
 		}
 
 		err = s1.Load(bpf.MapPrefixPath())
+		require.NoError(t, err)
 		defer s1.Unload(true)
-		assert.NoError(t, err)
 
 		err = s2.Load(bpf.MapPrefixPath())
+		require.Error(t, err)
 		defer s2.Unload(true)
-		assert.Error(t, err)
 	})
 
 	// Create sensor with user map with different spec from real owner
@@ -404,12 +405,12 @@ func TestMapUser(t *testing.T) {
 		}
 
 		err = s1.Load(bpf.MapPrefixPath())
+		require.NoError(t, err)
 		defer s1.Unload(true)
-		assert.NoError(t, err)
 
 		err = s3.Load(bpf.MapPrefixPath())
+		require.Error(t, err)
 		defer s3.Unload(true)
-		assert.Error(t, err)
 	})
 }
 
@@ -589,7 +590,7 @@ func TestCleanup(t *testing.T) {
 		}
 
 		err = s1.Load(bpf.MapPrefixPath())
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		s1.Unload(true)
 		verifyRemoved("m1", "m2", "policy")
@@ -614,9 +615,9 @@ func TestCleanup(t *testing.T) {
 		}
 
 		err = s1.Load(bpf.MapPrefixPath())
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		err = s2.Load(bpf.MapPrefixPath())
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		s1.Unload(true)
 		verifyRemoved("policy/sensor1")
@@ -663,10 +664,10 @@ func TestCleanup(t *testing.T) {
 		}
 
 		err = s1.Load(bpf.MapPrefixPath())
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		err = s3.Load(bpf.MapPrefixPath())
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		s1.Unload(true)
 		verifyRemoved("m1", "policy")
@@ -693,9 +694,9 @@ func TestCleanup(t *testing.T) {
 		}
 
 		err = s1.Load(bpf.MapPrefixPath())
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		err = s2.Load(bpf.MapPrefixPath())
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		s1.Unload(true)
 		verifyRemoved("ns1:policy")
@@ -731,13 +732,13 @@ func TestCleanup(t *testing.T) {
 		}
 
 		err = s1.Load(bpf.MapPrefixPath())
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		err = s2.Load(bpf.MapPrefixPath())
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		err = s2.Unload(true)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// s1 is still loaded and we just unloaded s2 with m1 being user map,
 		// m1 should be untouched
@@ -747,7 +748,7 @@ func TestCleanup(t *testing.T) {
 		verifyRemoved("policy/sensor2")
 
 		err = s1.Unload(true)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// s1 unload takes down everything
 		verifyRemoved("policy", "m1", "m2")
@@ -795,12 +796,12 @@ func TestNamespace(t *testing.T) {
 		}
 
 		err = s1.Load(bpf.MapPrefixPath())
+		require.NoError(t, err)
 		defer s1.Unload(true)
-		assert.NoError(t, err)
 
 		err = s2.Load(bpf.MapPrefixPath())
+		require.NoError(t, err)
 		defer s2.Unload(true)
-		assert.NoError(t, err)
 
 		assert.Equal(t, "ns1:policy/sensor1/p1", p1.PinPath)
 		assert.Equal(t, "ns2:policy/sensor2/p2", p2.PinPath)

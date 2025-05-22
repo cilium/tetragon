@@ -17,7 +17,6 @@ import (
 	"github.com/cilium/tetragon/pkg/process"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -47,7 +46,7 @@ func TestProcessCacheInterval(t *testing.T) {
 
 	readyWG.Wait()
 	cmd := exec.Command(sleepBin, "0.001")
-	assert.NoError(t, cmd.Start())
+	require.NoError(t, cmd.Start())
 	pid := cmd.Process.Pid
 	time.Sleep(50 * time.Millisecond)
 

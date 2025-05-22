@@ -24,7 +24,7 @@ import (
 	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/unix"
 )
 
@@ -57,7 +57,7 @@ func TestExit(t *testing.T) {
 	}
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestExitLeader(t *testing.T) {
@@ -178,7 +178,7 @@ func TestExitZombie(t *testing.T) {
 	)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 // TestExitCode tests whether we properly return the exit code of the process.
@@ -245,7 +245,7 @@ func TestExitCode(t *testing.T) {
 	}
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 // TestExitSignal tests whether we properly return the exit signal of the process.
@@ -299,5 +299,5 @@ func TestExitSignal(t *testing.T) {
 	}
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }

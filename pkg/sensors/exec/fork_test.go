@@ -21,6 +21,7 @@ import (
 	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestFork checks that tetragon properly handles processes that fork() but do not exec()
@@ -79,7 +80,7 @@ func TestFork(t *testing.T) {
 	checker := ec.NewUnorderedEventChecker(exitCheck)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 type forkTesterInfo struct {

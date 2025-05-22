@@ -224,5 +224,5 @@ func TestExecThreads(t *testing.T) {
 	checker := ec.NewUnorderedEventChecker(execCheck, exitCheck)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }

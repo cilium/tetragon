@@ -210,7 +210,7 @@ func mountCgroupv1Controllers(t *testing.T, cgroupRoot string, usedController st
 	for i, controller := range controllers {
 		hierarchy := filepath.Join(cgroupRoot, controller.name)
 		err := os.MkdirAll(hierarchy, 0555)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		_, err = mountCgroup(t, hierarchy, "cgroup", controller.name)
 		if err != nil {
 			t.Logf("mountCgroup() %s failed: %v", hierarchy, err)
@@ -623,17 +623,17 @@ func TestTgRuntimeConf(t *testing.T) {
 	tus.LoadInitialSensor(t)
 
 	val, err := testutils.GetTgRuntimeConf()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assert.NotZero(t, val.NSPID)
 	assert.NotZero(t, val.CgrpFsMagic)
 
 	mapDir := bpf.MapPrefixPath()
 	err = confmap.UpdateConfMap(mapDir, val)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	ret, err := testutils.ReadTgRuntimeConf(mapDir)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assert.EqualValues(t, ret, val)
 
@@ -663,7 +663,7 @@ func TestCgroupNoEvents(t *testing.T) {
 	setupTgRuntimeConf(t, trackingCgrpLevel, uint32(logrus.TraceLevel), invalidValue, invalidValue)
 
 	cgroupFSPath := cgroups.GetCgroupFSPath()
-	assert.NotEmpty(t, cgroupFSPath)
+	require.NotEmpty(t, cgroupFSPath)
 
 	dir, hierarchy := getTestCgroupDirAndHierarchy(t)
 	cgroupRmdir(t, cgroupFSPath, hierarchy, tetragonCgrpRoot)
@@ -680,7 +680,7 @@ func TestCgroupNoEvents(t *testing.T) {
 
 	trigger := func() {
 		err = cgroupMkdir(t, cgroupFSPath, hierarchy, dir)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	}
 
 	events := perfring.RunTestEvents(t, ctx, trigger)
@@ -718,7 +718,7 @@ func TestCgroupEventMkdirRmdir(t *testing.T) {
 	setupTgRuntimeConf(t, trackingCgrpLevel, uint32(logrus.TraceLevel), invalidValue, invalidValue)
 
 	cgroupFSPath := cgroups.GetCgroupFSPath()
-	assert.NotEmpty(t, cgroupFSPath)
+	require.NotEmpty(t, cgroupFSPath)
 
 	dir, hierarchy := getTestCgroupDirAndHierarchy(t)
 	cgroupRmdir(t, cgroupFSPath, hierarchy, tetragonCgrpRoot)
@@ -736,10 +736,10 @@ func TestCgroupEventMkdirRmdir(t *testing.T) {
 
 	trigger := func() {
 		err = cgroupMkdir(t, cgroupFSPath, hierarchy, dir)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		err = cgroupRmdir(t, cgroupFSPath, hierarchy, dir)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	}
 
 	mkdir := false
@@ -801,7 +801,7 @@ func TestCgroupEventMkdirRmdir(t *testing.T) {
 
 	// Should be removed from the tracking map
 	_, err = cgrouptrackmap.LookupTrackingCgroup(cgrpMapPath, cgrpTrackingId)
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func testCgroupv2HierarchyInHybrid(ctx context.Context, t *testing.T,
@@ -918,7 +918,7 @@ func testCgroupv2K8sHierarchy(ctx context.Context, t *testing.T, mode cgroups.Cg
 	logDefaultCgroupConfig(t)
 	logTetragonConfig(t, bpf.MapPrefixPath())
 	err = logCgroupMountInfo(t)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	kubeCgroupHierarchy := make([]cgroupHierarchy, 0)
 	for i, c := range defaultKubeCgroupHierarchy {
@@ -1163,7 +1163,7 @@ func testCgroupv1K8sHierarchyInHybrid(t *testing.T, withExec bool, selectedContr
 	logDefaultCgroupConfig(t)
 	logTetragonConfig(t, bpf.MapPrefixPath())
 	err = logCgroupMountInfo(t)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	triggerCgroupMkdir := func() {
 		for hierarchy, cgroupHierarchy := range kubeCgroupHierarchiesMap {
