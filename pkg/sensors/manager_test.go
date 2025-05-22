@@ -44,12 +44,12 @@ func TestAddPolicy(t *testing.T) {
 
 	policy := v1alpha1.TracingPolicy{}
 	mgr, err := StartSensorManager("")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	policy.Name = "test-policy"
 	err = mgr.AddTracingPolicy(ctx, &policy)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	l, err := mgr.ListSensors(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, []SensorStatus{{Name: "dummy-sensor", Enabled: true, Collection: "test-policy (object:0/) (type:/)"}}, *l)
 }
 
@@ -67,12 +67,12 @@ func TestAddPolicies(t *testing.T) {
 
 	policy := v1alpha1.TracingPolicy{}
 	mgr, err := StartSensorManager("")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	policy.Name = "test-policy"
 	err = mgr.AddTracingPolicy(ctx, &policy)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	l, err := mgr.ListSensors(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.ElementsMatch(t, []SensorStatus{
 		{Name: "dummy-sensor1", Enabled: true, Collection: "test-policy (object:0/) (type:/)"},
 		{Name: "dummy-sensor2", Enabled: true, Collection: "test-policy (object:0/) (type:/)"},
@@ -93,13 +93,13 @@ func TestAddPolicySpecError(t *testing.T) {
 
 	policy := v1alpha1.TracingPolicy{}
 	mgr, err := StartSensorManager("")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	policy.Name = "test-policy"
 	err = mgr.AddTracingPolicy(ctx, &policy)
-	assert.NotNil(t, err)
+	require.NotNil(t, err)
 	t.Logf("got error (as expected): %s", err)
 	l, err := mgr.ListSensors(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, []SensorStatus{}, *l)
 }
 
@@ -120,14 +120,14 @@ func TestAddPolicyLoadError(t *testing.T) {
 
 	policy := v1alpha1.TracingPolicy{}
 	mgr, err := StartSensorManager("")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	policy.Name = "test-policy"
 	addError := mgr.AddTracingPolicy(ctx, &policy)
-	assert.NotNil(t, addError)
+	require.NotNil(t, addError)
 	t.Logf("got error (as expected): %s", addError)
 
 	l, err := mgr.ListTracingPolicies(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Len(t, l.Policies, 1)
 	assert.Equal(t, LoadErrorState.ToTetragonState(), l.Policies[0].State)
 	assert.Equal(t, addError.Error(), l.Policies[0].Error)
@@ -138,7 +138,7 @@ func TestPolicyFilterDisabled(t *testing.T) {
 	defer cancel()
 
 	mgr, err := StartSensorManagerWithPF("", policyfilter.DisabledState())
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	policy := v1alpha1.TracingPolicy{}
 
@@ -192,10 +192,10 @@ func TestPolicyStates(t *testing.T) {
 		require.NoError(t, err)
 		policy.Name = "test-policy"
 		addError := mgr.AddTracingPolicy(ctx, &policy)
-		assert.NotNil(t, addError)
+		require.NotNil(t, addError)
 
 		l, err := mgr.ListTracingPolicies(ctx)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Len(t, l.Policies, 1)
 		assert.Equal(t, LoadErrorState.ToTetragonState(), l.Policies[0].State)
 		assert.Equal(t, addError.Error(), l.Policies[0].Error)
@@ -212,17 +212,17 @@ func TestPolicyStates(t *testing.T) {
 		require.NoError(t, err)
 		policy.Name = "test-policy"
 		err = mgr.AddTracingPolicy(ctx, &policy)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		l, err := mgr.ListTracingPolicies(ctx)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Len(t, l.Policies, 1)
 		assert.Equal(t, EnabledState.ToTetragonState(), l.Policies[0].State)
 
 		err = mgr.DisableTracingPolicy(ctx, policy.Name, policy.Namespace)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		l, err = mgr.ListTracingPolicies(ctx)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Len(t, l.Policies, 1)
 		assert.Equal(t, DisabledState.ToTetragonState(), l.Policies[0].State)
 	})
@@ -247,10 +247,10 @@ func TestPolicyLoadErrorOverride(t *testing.T) {
 	require.NoError(t, err)
 	policy.Name = "test-policy"
 	addError := mgr.AddTracingPolicy(ctx, &policy)
-	assert.NotNil(t, addError)
+	require.NotNil(t, addError)
 
 	l, err := mgr.ListTracingPolicies(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Len(t, l.Policies, 1)
 	assert.Equal(t, LoadErrorState.ToTetragonState(), l.Policies[0].State)
 	assert.Equal(t, addError.Error(), l.Policies[0].Error)
@@ -262,10 +262,10 @@ func TestPolicyLoadErrorOverride(t *testing.T) {
 		delete(registeredPolicyHandlers, "dummy")
 	})
 	addError = mgr.AddTracingPolicy(ctx, &policy)
-	assert.NoError(t, addError)
+	require.NoError(t, addError)
 
 	l, err = mgr.ListTracingPolicies(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Len(t, l.Policies, 1)
 	assert.Equal(t, EnabledState.ToTetragonState(), l.Policies[0].State)
 }

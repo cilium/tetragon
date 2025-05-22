@@ -164,7 +164,7 @@ func TestNamespaces(t *testing.T) {
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestEventExitThreads(t *testing.T) {
@@ -247,9 +247,9 @@ func TestEventExitThreads(t *testing.T) {
 	checker := testsensor.NewTestChecker(&checker_)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
-	assert.True(t, seenAll, "did not see all exit events")
+	require.True(t, seenAll, "did not see all exit events")
 }
 
 func TestEventExecve(t *testing.T) {
@@ -284,7 +284,7 @@ func TestEventExecve(t *testing.T) {
 	}
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestEventExecveWithUsername(t *testing.T) {
@@ -333,7 +333,7 @@ func TestEventExecveWithUsername(t *testing.T) {
 	}
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestEventExecveLongPath(t *testing.T) {
@@ -415,7 +415,7 @@ func TestEventExecveLongPath(t *testing.T) {
 	}
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestEventExecveLongArgs(t *testing.T) {
@@ -462,7 +462,7 @@ func TestEventExecveLongArgs(t *testing.T) {
 	}
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestEventExecveLongPathLongArgs(t *testing.T) {
@@ -560,7 +560,7 @@ func TestEventExecveLongPathLongArgs(t *testing.T) {
 	}
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestLoadInitialSensor(t *testing.T) {
@@ -627,7 +627,7 @@ func TestDocker(t *testing.T) {
 	)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestInInitTree(t *testing.T) {
@@ -707,7 +707,7 @@ func TestInInitTree(t *testing.T) {
 	)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestUpdateStatsMap(t *testing.T) {
@@ -824,7 +824,7 @@ func TestExecParse(t *testing.T) {
 		reader := bytes.NewReader(buf.Bytes())
 
 		process, empty, err := execParse(reader)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Equal(t, string(filename), process.Filename)
 		assert.Equal(t, string(cwd), process.Args)
@@ -858,7 +858,7 @@ func TestExecParse(t *testing.T) {
 		reader := bytes.NewReader(buf.Bytes())
 
 		process, empty, err := execParse(reader)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// execParse check
 		assert.Equal(t, string(filename), process.Filename)
@@ -884,7 +884,7 @@ func TestExecParse(t *testing.T) {
 		id := dataapi.DataEventId{Pid: 1, Time: 2}
 		desc := dataapi.DataEventDesc{Error: 0, Pad: 0, Leftover: 0, Size: uint32(len(args[:])), Id: id}
 		err = observer.DataAdd(id, args)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		exec.Flags = api.EventDataArgs
 		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + len(filename) + binary.Size(desc) + len(cwd) + 1)
@@ -899,7 +899,7 @@ func TestExecParse(t *testing.T) {
 		reader := bytes.NewReader(buf.Bytes())
 
 		process, empty, err := execParse(reader)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// execParse check
 		assert.Equal(t, string(filename), process.Filename)
@@ -922,7 +922,7 @@ func TestExecParse(t *testing.T) {
 		id1 := dataapi.DataEventId{Pid: 1, Time: 1}
 		desc1 := dataapi.DataEventDesc{Error: 0, Pad: 0, Leftover: 0, Size: uint32(len(filename[:])), Id: id1}
 		err = observer.DataAdd(id1, filename)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		var args []byte
 		args = append(args, 'a', 'r', 'g', '1', 0, 'a', 'r', 'g', '2', 0)
@@ -930,7 +930,7 @@ func TestExecParse(t *testing.T) {
 		id2 := dataapi.DataEventId{Pid: 1, Time: 2}
 		desc2 := dataapi.DataEventDesc{Error: 0, Pad: 0, Leftover: 0, Size: uint32(len(args[:])), Id: id2}
 		err = observer.DataAdd(id2, args)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		exec.Flags = api.EventDataFilename | api.EventDataArgs
 		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + binary.Size(desc1) + binary.Size(desc2) + len(cwd))
@@ -944,7 +944,7 @@ func TestExecParse(t *testing.T) {
 		reader := bytes.NewReader(buf.Bytes())
 
 		process, empty, err := execParse(reader)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// execParse check
 		assert.Equal(t, string(filename), process.Filename)
@@ -970,7 +970,7 @@ func TestExecParse(t *testing.T) {
 		id := dataapi.DataEventId{Pid: 1, Time: 2}
 		desc := dataapi.DataEventDesc{Error: 0, Pad: 0, Leftover: 0, Size: uint32(len(args[:])), Id: id}
 		err = observer.DataAdd(id, args)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		exec.Flags = api.EventDataArgs
 		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + len(filename) + binary.Size(desc) + len(cwd) + 1)
@@ -985,7 +985,7 @@ func TestExecParse(t *testing.T) {
 		reader := bytes.NewReader(buf.Bytes())
 
 		process, empty, err := execParse(reader)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// execParse check
 		assert.Equal(t, strutils.UTF8FromBPFBytes(filename), process.Filename)
@@ -1066,7 +1066,7 @@ func TestExecProcessCredentials(t *testing.T) {
 	checker := ec.NewUnorderedEventChecker(execChecker, execGidChecker, exitChecker, exitGidChecker)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 // Test ensures that running as fully privileged root and executing a setuid or
@@ -1126,7 +1126,7 @@ func TestExecProcessCredentialsSuidRootNoPrivsChange(t *testing.T) {
 
 	checker := ec.NewUnorderedEventChecker(execNoPrivilegesChangedChecker, execSetuidRootNoPrivilegesChangedChecker)
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 // Test running with different combinations of setgid bit set
@@ -1245,7 +1245,7 @@ func TestExecProcessCredentialsSetgidChanges(t *testing.T) {
 
 	checker := ec.NewUnorderedEventChecker(execNoGidsCredsChangedChecker, execSetgidRootChecker, exitSetgidRootChecker, execSetgidNoRootChecker, exitSetgidNoRootChecker)
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 // Test running with different combinations of setuid bit set
@@ -1345,7 +1345,7 @@ func TestExecProcessCredentialsSetuidChanges(t *testing.T) {
 
 	checker := ec.NewUnorderedEventChecker(execSetuidNoRootChecker, exitSetuidNoRootChecker, execSetuidRootChecker, exitSetuidRootChecker)
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 // Detect execution of binaries with file capability sets
@@ -1409,7 +1409,7 @@ func TestExecProcessCredentialsFileCapChanges(t *testing.T) {
 
 	checker := ec.NewUnorderedEventChecker(execChecker, exitChecker)
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestExecInodeNotDeleted(t *testing.T) {
@@ -1441,7 +1441,7 @@ func TestExecInodeNotDeleted(t *testing.T) {
 	)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestExecDeletedBinaryMemfd(t *testing.T) {
@@ -1509,7 +1509,7 @@ func TestExecDeletedBinaryMemfd(t *testing.T) {
 	)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestExecDeletedBinary(t *testing.T) {
@@ -1582,7 +1582,7 @@ func TestExecDeletedBinary(t *testing.T) {
 	)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func testThrottle(t *testing.T) {
@@ -1625,7 +1625,7 @@ func testThrottle(t *testing.T) {
 	time.Sleep(8 * time.Second)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestThrottle1(t *testing.T) {
