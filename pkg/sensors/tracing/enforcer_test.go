@@ -86,7 +86,7 @@ func testEnforcer(t *testing.T, configHook string,
 	}
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestEnforcerOverride(t *testing.T) {
@@ -258,7 +258,7 @@ func TestEnforcerMultiNotSupported(t *testing.T) {
 		WithOverrideValue(-17). // EEXIST
 		MustYAML()
 	err := checkCrd(t, yaml)
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func testSecurity(t *testing.T, tracingPolicy, tempFile string) {
@@ -282,7 +282,7 @@ func testSecurity(t *testing.T, tracingPolicy, tempFile string) {
 
 	cmd := exec.Command(testBin, tempFile)
 	err = cmd.Run()
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	t.Logf("Running: %s %v\n", cmd.String(), err)
 
@@ -300,12 +300,12 @@ func testSecurity(t *testing.T, tracingPolicy, tempFile string) {
 
 	checker := eventchecker.NewUnorderedEventChecker(kpCheckerPwrite)
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// check the pwrite syscall did not write anything
 	fileInfo, err := os.Stat(tempFile)
 	if assert.NoError(t, err) {
-		assert.NotEqual(t, 0, fileInfo.Size())
+		require.NotEqual(t, 0, fileInfo.Size())
 	}
 }
 
@@ -627,16 +627,16 @@ spec:
 	tus.LoadInitialSensor(t)
 
 	sensor1, err := gEnforcerPolicy.PolicyHandler(policy1, policyfilter.NoFilterID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	sensor2, err := policyHandler{}.PolicyHandler(policy1, policyfilter.NoFilterID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	sensor3, err := gEnforcerPolicy.PolicyHandler(policy2, policyfilter.NoFilterID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	sensor4, err := policyHandler{}.PolicyHandler(policy2, policyfilter.NoFilterID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Loading all policies
 	tus.LoadSensor(t, sensor1)
@@ -736,7 +736,7 @@ func testEnforcerPersistentKeep(t *testing.T, builder func() *EnforcerSpecBuilde
 	tus.LoadInitialSensor(t)
 	path := bpf.MapPrefixPath()
 	mgr, err := sensors.StartSensorManager(path)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	run := func(idx int, exp string) {
 		cmd := exec.Command(test, "0xfffe")
@@ -749,10 +749,10 @@ func testEnforcerPersistentKeep(t *testing.T, builder func() *EnforcerSpecBuilde
 	}
 
 	tp, err := builder().WithoutMultiKprobe().Build()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = mgr.AddTracingPolicy(ctx, tp)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// first run - sensors are loaded, we should get kill/override
 	run(1, expected)
@@ -797,7 +797,7 @@ func testEnforcerPersistentNoKeep(t *testing.T, builder func() *EnforcerSpecBuil
 	tus.LoadInitialSensor(t)
 	path := bpf.MapPrefixPath()
 	mgr, err := sensors.StartSensorManager(path)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	run := func(idx int, exp string) {
 		cmd := exec.Command(test, "0xfffe")
@@ -810,10 +810,10 @@ func testEnforcerPersistentNoKeep(t *testing.T, builder func() *EnforcerSpecBuil
 	}
 
 	tp, err := builder().WithoutMultiKprobe().Build()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = mgr.AddTracingPolicy(ctx, tp)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// first run - sensors are loaded, we should get kill/override
 	run(1, expected)
@@ -853,7 +853,7 @@ func testEnforcerPersistentUnload(t *testing.T, builder func() *EnforcerSpecBuil
 	tus.LoadInitialSensor(t)
 	path := bpf.MapPrefixPath()
 	mgr, err := sensors.StartSensorManager(path)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	run := func(idx int, exp string) {
 		cmd := exec.Command(test, "0xfffe")
@@ -866,17 +866,17 @@ func testEnforcerPersistentUnload(t *testing.T, builder func() *EnforcerSpecBuil
 	}
 
 	tp, err := builder().WithoutMultiKprobe().Build()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = mgr.AddTracingPolicy(ctx, tp)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// first run - sensors are loaded, we should get kill/override
 	run(1, expected)
 
 	// disable the policy and we should get rid of the enforcement
 	err = mgr.DisableTracingPolicy(ctx, tp.TpName(), "")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// bpf pinned links removal is asynchronous, we need to wait to be sure it's gone
 	time.Sleep(2 * time.Second)
@@ -886,14 +886,14 @@ func testEnforcerPersistentUnload(t *testing.T, builder func() *EnforcerSpecBuil
 
 	// enable the policy and we should get the enforcement
 	err = mgr.EnableTracingPolicy(ctx, tp.TpName(), "")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// third run - sensors are loaded, we should get kill/override
 	run(3, expected)
 
 	// remove the policy and we should get rid of the enforcement
 	err = mgr.DeleteTracingPolicy(ctx, tp.TpName(), "")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// bpf pinned links removal is asynchronous, we need to wait to be sure it's gone
 	time.Sleep(2 * time.Second)

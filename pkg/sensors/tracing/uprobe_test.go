@@ -28,7 +28,7 @@ import (
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
@@ -148,12 +148,12 @@ spec:
 	}
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func uprobePidMatch(t *testing.T, pid uint32) error {
 	path, err := os.Executable()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	pidStr := strconv.Itoa(int(pid))
 
@@ -207,12 +207,12 @@ spec:
 
 func TestUprobePidMatch(t *testing.T) {
 	err := uprobePidMatch(t, observertesthelper.GetMyPid())
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestUprobePidMatchNot(t *testing.T) {
 	err := uprobePidMatch(t, observertesthelper.GetMyPid()+1)
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func uprobeBinariesMatch(t *testing.T, execBinary string) error {
@@ -271,13 +271,13 @@ spec:
 func TestUprobeBinariesMatch(t *testing.T) {
 	uprobeTest1 := testutils.RepoRootPath("contrib/tester-progs/uprobe-test-1")
 	err := uprobeBinariesMatch(t, uprobeTest1)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestUprobeBinariesMatchNot(t *testing.T) {
 	uprobeTest2 := testutils.RepoRootPath("contrib/tester-progs/uprobe-test-2")
 	err := uprobeBinariesMatch(t, uprobeTest2)
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestUprobeCloneThreads(t *testing.T) {
@@ -378,7 +378,7 @@ spec:
 	checker := ec.NewUnorderedEventChecker(execCheck, child1UpChecker, thread1UpChecker, exitCheck)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 var (
@@ -607,7 +607,7 @@ func testUprobeArgs(t *testing.T, checkers [5]*ec.ProcessUprobeChecker, tp traci
 	}
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestUprobeArgsWithOffset(t *testing.T) {

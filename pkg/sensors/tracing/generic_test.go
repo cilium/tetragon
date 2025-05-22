@@ -12,6 +12,7 @@ import (
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // This test attempt to test the Resolve flag in tracing policies.
@@ -46,7 +47,7 @@ spec:
       resolve: 'mm.owner.real_parent.real_parent.real_parent.real_parent.real_parent.real_parent.real_parent.real_parent.comm'
   `
 	policy, err := tracingpolicy.FromYAML(rawPolicy)
-	assert.NoError(t, err, "FromYAML rawPolicy error %q", err)
+	require.NoError(t, err, "FromYAML rawPolicy error %q", err)
 
 	successHook := policy.TpSpec().KProbes[:2]
 	for _, hook := range successHook {
@@ -56,11 +57,11 @@ spec:
 			if err != nil {
 				t.Fatal(hook.Call, err)
 			}
-			assert.NotNil(t, lastBTFType)
+			require.NotNil(t, lastBTFType)
 			assert.NotNil(t, btfArg)
 
 			argType := findTypeFromBTFType(arg, lastBTFType)
-			assert.NotEqual(t, gt.GenericInvalidType, argType, "Type %q is not supported", (*lastBTFType).TypeName())
+			require.NotEqual(t, gt.GenericInvalidType, argType, "Type %q is not supported", (*lastBTFType).TypeName())
 		}
 	}
 

@@ -13,6 +13,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func checkCrd(t *testing.T, crd string) error {
@@ -45,7 +46,7 @@ spec:
 `
 
 	err := checkCrd(t, crd)
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestKprobeValidationListWrongOverride(t *testing.T) {
@@ -73,7 +74,7 @@ spec:
 `
 
 	err := checkCrd(t, crd)
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestKprobeValidationListWrongName(t *testing.T) {
@@ -97,7 +98,7 @@ spec:
 `
 
 	err := checkCrd(t, crd)
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestKprobeValidationListGeneratedSyscallsNotEmpty(t *testing.T) {
@@ -121,7 +122,7 @@ spec:
 `
 
 	err := checkCrd(t, crd)
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestKprobeValidationListGeneratedFtraceNotEmpty(t *testing.T) {
@@ -145,7 +146,7 @@ spec:
 `
 
 	err := checkCrd(t, crd)
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestKprobeValidationListGeneratedFtraceNoPattern(t *testing.T) {
@@ -166,7 +167,7 @@ spec:
 `
 
 	err := checkCrd(t, crd)
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 func TestKprobeValidationWrongSyscallName(t *testing.T) {
 
@@ -183,7 +184,7 @@ spec:
 `
 
 	err := checkCrd(t, crd)
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestKprobeValidationWrongOverride(t *testing.T) {
@@ -205,7 +206,7 @@ spec:
 `
 
 	err := checkCrd(t, crd)
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestKprobeValidationNonSyscallOverride(t *testing.T) {
@@ -231,7 +232,7 @@ spec:
 `
 
 	err := checkCrd(t, crd)
-	assert.Error(t, err)
+	require.Error(t, err)
 
 }
 
@@ -252,7 +253,7 @@ spec:
 `
 
 	err := checkCrd(t, crd)
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestKprobeLTOp(t *testing.T) {
@@ -280,9 +281,9 @@ spec:
 
 	err := checkCrd(t, crd)
 	if config.EnableLargeProgs() {
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	} else {
-		assert.Error(t, err)
+		require.Error(t, err)
 	}
 }
 
@@ -311,9 +312,9 @@ spec:
 
 	err := checkCrd(t, crd)
 	if config.EnableLargeProgs() {
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	} else {
-		assert.Error(t, err)
+		require.Error(t, err)
 	}
 }
 
@@ -362,7 +363,7 @@ spec:
 	assert.NoError(t, err)
 
 	_, err = tracingpolicy.FromYAML(crd3)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeMultiSymbolInstancesFail(t *testing.T) {
@@ -384,5 +385,5 @@ spec:
 `
 
 	err := checkCrd(t, crd)
-	assert.Error(t, err)
+	require.Error(t, err)
 }

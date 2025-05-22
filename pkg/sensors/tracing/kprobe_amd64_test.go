@@ -23,10 +23,10 @@ import (
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
+	"github.com/stretchr/testify/require"
 
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
 
-	"github.com/stretchr/testify/assert"
 	"golang.org/x/sys/unix"
 )
 
@@ -113,7 +113,7 @@ spec:
 	syscall.Ioperm(io_delay, 1, 0)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeListSyscallDups(t *testing.T) {
