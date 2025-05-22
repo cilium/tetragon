@@ -30,6 +30,7 @@ import (
 	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLSMObjectLoad(t *testing.T) {
@@ -211,7 +212,7 @@ spec:
 	}
 
 	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(lsmChecker))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestLSMOverrideAction(t *testing.T) {
@@ -283,7 +284,7 @@ spec:
 	assert.Equal(t, -1, testCmd.ProcessState.ExitCode(), "Exit code should be -1")
 
 	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(lsmChecker))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestLSMIMAHash(t *testing.T) {
@@ -366,5 +367,5 @@ spec:
 		}
 		return true
 	}
-	assert.Condition(t, checkFunc)
+	require.Condition(t, checkFunc)
 }

@@ -23,7 +23,7 @@ import (
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type note struct {
@@ -137,8 +137,8 @@ spec:
 	if err := exec.Command(testNop).Run(); err != nil {
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }

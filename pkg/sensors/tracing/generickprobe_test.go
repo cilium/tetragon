@@ -149,34 +149,34 @@ func Test_DisableEnablePolicy_Kprobe(t *testing.T) {
 	tus.LoadInitialSensor(t)
 	path := bpf.MapPrefixPath()
 	mgr, err := sensors.StartSensorManager(path)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	t.Run("sensor", func(t *testing.T) {
 		err = mgr.AddTracingPolicy(ctx, &tcpConnectPolicy)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		t.Cleanup(func() {
 			err = mgr.DeleteTracingPolicy(ctx, tcpConnectPolicyName, tcpConnectPolicyNamespace)
 			assert.NoError(t, err)
 		})
 
 		err = mgr.DisableSensor(ctx, tcpConnectPolicyName)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		err = mgr.EnableSensor(ctx, tcpConnectPolicyName)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 
 	t.Run("tracing-policy", func(t *testing.T) {
 		err = mgr.AddTracingPolicy(ctx, &tcpConnectPolicy)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		t.Cleanup(func() {
 			err = mgr.DeleteTracingPolicy(ctx, tcpConnectPolicyName, tcpConnectPolicyNamespace)
 			assert.NoError(t, err)
 		})
 
 		err = mgr.DisableTracingPolicy(ctx, tcpConnectPolicyName, tcpConnectPolicyNamespace)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		err = mgr.EnableTracingPolicy(ctx, tcpConnectPolicyName, tcpConnectPolicyNamespace)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 }
 

@@ -183,7 +183,7 @@ spec:
 	unix.Seek(-1, 0, 4444)
 
 	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func getTestKprobeObjectWRChecker(t *testing.T) ec.MultiEventChecker {
@@ -227,10 +227,10 @@ func runKprobeObjectWriteRead(t *testing.T, writeReadHook string) {
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 	_, err = syscall.Write(1, []byte("hello world"))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeObjectWriteReadHostNs(t *testing.T) {
@@ -503,7 +503,7 @@ func runKprobeObjectRead(t *testing.T, readHook string, checker ec.MultiEventChe
 	}
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeObjectRead(t *testing.T) {
@@ -681,9 +681,9 @@ func testKprobeObjectFiltered(t *testing.T,
 	data := "hello world"
 	n, err := syscall.Write(fd2, []byte(data))
 	assert.Equal(t, len(data), n)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	err = jsonchecker.JsonTestCheckExpect(t, checker, expectFailure)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 // String matches should not require the '\0' null character on the end.
@@ -783,7 +783,7 @@ func testKprobeStringMatch(t *testing.T,
 	readyWG.Wait()
 	syscall.Open(filePath, syscall.O_RDONLY, 0)
 	err = jsonchecker.JsonTestCheckExpect(t, checker, false)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func testKprobeStringMatchHook(pidStr string, dir string) string {
@@ -1629,7 +1629,7 @@ func testKprobeObjectFilteredReturnValue(t *testing.T,
 	fd2, _ := syscall.Open(path, syscall.O_RDWR, 0x770)
 	t.Cleanup(func() { syscall.Close(fd2) })
 	err = jsonchecker.JsonTestCheckExpect(t, checker, expectFailure)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeObjectFilterReturnValueGTOk(t *testing.T) {
@@ -1807,10 +1807,10 @@ spec:
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 	err = helloIovecWorldWritev()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func getFilpOpenChecker(dir string) ec.MultiEventChecker {
@@ -2067,9 +2067,9 @@ func corePathTest(t *testing.T, filePath string, readHook string, writeChecker e
 	data := "hello world"
 	n, err := syscall.Write(fd2, []byte(data))
 	assert.Equal(t, len(data), n)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	err = jsonchecker.JsonTestCheck(t, writeChecker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func testMultipleMountsFiltered(t *testing.T, readHook string) {
@@ -2316,7 +2316,7 @@ spec:
 		uintptr(flags), 0)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 // override
@@ -2362,9 +2362,9 @@ func runKprobeOverride(t *testing.T, hook string, checker ec.MultiEventChecker,
 	err = jsonchecker.JsonTestCheck(t, checker)
 
 	if nopost {
-		assert.Error(t, err)
+		require.Error(t, err)
 	} else {
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	}
 }
 
@@ -2375,7 +2375,7 @@ func TestKprobeOverride(t *testing.T) {
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
-	defer assert.NoError(t, file.Close())
+	defer require.NoError(t, file.Close())
 
 	openAtHook := `
 apiVersion: cilium.io/v1alpha1
@@ -2440,7 +2440,7 @@ func TestKprobeOverrideSecurity(t *testing.T) {
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
-	defer assert.NoError(t, file.Close())
+	defer require.NoError(t, file.Close())
 
 	openAtHook := `
 apiVersion: cilium.io/v1alpha1
@@ -2498,7 +2498,7 @@ func TestKprobeOverrideNopostAction(t *testing.T) {
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
-	defer assert.NoError(t, file.Close())
+	defer require.NoError(t, file.Close())
 
 	openAtHook := `
 apiVersion: cilium.io/v1alpha1
@@ -2603,9 +2603,9 @@ func runKprobeOverrideSignal(t *testing.T, hook string, checker ec.MultiEventChe
 	err = jsonchecker.JsonTestCheck(t, checker)
 
 	if nopost {
-		assert.Error(t, err)
+		require.Error(t, err)
 	} else {
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	}
 }
 
@@ -2619,7 +2619,7 @@ func TestKprobeOverrideSignal(t *testing.T) {
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
-	defer assert.NoError(t, file.Close())
+	defer require.NoError(t, file.Close())
 
 	openAtHook := `
 apiVersion: cilium.io/v1alpha1
@@ -2685,7 +2685,7 @@ func TestKprobeSignalOverride(t *testing.T) {
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
-	defer assert.NoError(t, file.Close())
+	defer require.NoError(t, file.Close())
 
 	openAtHook := `
 apiVersion: cilium.io/v1alpha1
@@ -2751,7 +2751,7 @@ func TestKprobeSignalOverrideNopost(t *testing.T) {
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
-	defer assert.NoError(t, file.Close())
+	defer require.NoError(t, file.Close())
 
 	openAtHook := `
 apiVersion: cilium.io/v1alpha1
@@ -2864,7 +2864,7 @@ func runKprobeOverrideMulti(t *testing.T, hook string, checker ec.MultiEventChec
 	}
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeOverrideMulti(t *testing.T) {
@@ -2882,7 +2882,7 @@ func TestKprobeOverrideMulti(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateTemp failed: %s", err)
 	}
-	defer assert.NoError(t, file.Close())
+	defer require.NoError(t, file.Close())
 
 	link, err := os.CreateTemp(t.TempDir(), "kprobe-override-")
 	if err != nil {
@@ -3093,7 +3093,7 @@ func runKprobe_char_iovec(t *testing.T, configHook string,
 
 	iovw[0] = buffer
 	_, err = unix.Writev(fdw, iovw)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	syscall.Fsync(fdw)
 
@@ -3107,10 +3107,10 @@ func runKprobe_char_iovec(t *testing.T, configHook string,
 	iovr[7] = make([]byte, 1700)
 
 	_, err = unix.Readv(fdr, iovr)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobe_char_iovec(t *testing.T) {
@@ -3471,7 +3471,7 @@ func TestKprobeMatchArgsFileEqual(t *testing.T) {
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers...)
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeMatchArgsFilePostfix(t *testing.T) {
@@ -3511,7 +3511,7 @@ func TestKprobeMatchArgsFilePostfix(t *testing.T) {
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers...)
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeMatchArgsFilePrefix(t *testing.T) {
@@ -3551,7 +3551,7 @@ func TestKprobeMatchArgsFilePrefix(t *testing.T) {
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers...)
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeMatchArgsFdEqual(t *testing.T) {
@@ -3587,7 +3587,7 @@ func TestKprobeMatchArgsFdEqual(t *testing.T) {
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers...)
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeMatchArgsFdPostfix(t *testing.T) {
@@ -3623,7 +3623,7 @@ func TestKprobeMatchArgsFdPostfix(t *testing.T) {
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers...)
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeMatchArgsFdPrefix(t *testing.T) {
@@ -3659,7 +3659,7 @@ func TestKprobeMatchArgsFdPrefix(t *testing.T) {
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers...)
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func getMatchArgsFileFIMCrd(vals []string) string {
@@ -3719,7 +3719,7 @@ func TestKprobeMatchArgsFileMonitoringPrefix(t *testing.T) {
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers...)
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeMatchArgsNonPrefix(t *testing.T) {
@@ -3789,7 +3789,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers...)
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// now check that there is no read event for "/etc/passwd" and "/etc/group"
 	kpErrCheckers := make([]ec.EventChecker, 2)
@@ -3806,7 +3806,7 @@ spec:
 
 	errChecker := ec.NewUnorderedEventChecker(kpErrCheckers...)
 	err = jsonchecker.JsonTestCheck(t, errChecker)
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func getMatchBinariesCrd(opStr string, vals []string) string {
@@ -3872,7 +3872,7 @@ func matchBinariesTest(t *testing.T, operator string, values []string, kpChecker
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 const skipMatchBinaries = "kernels without large progs do not support matchBinaries Prefix/NotPrefix/Postfix/NotPostfix"
@@ -3935,7 +3935,7 @@ func matchBinariesLargePathTest(t *testing.T, operator string, values []string, 
 		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(binary))).
 		WithFunctionName(sm.Full("fd_install")))
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 }
 func TestKprobeMatchBinariesLargePath(t *testing.T) {
@@ -4021,16 +4021,16 @@ func matchBinariesPerfringTest(t *testing.T, operator string, values []string) {
 		headCmd := exec.Command("/usr/bin/head", "/etc/passwd")
 
 		err := tailCmd.Start()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		tailPID = tailCmd.Process.Pid
 		err = headCmd.Start()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		headPID = headCmd.Process.Pid
 
 		err = tailCmd.Wait()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		err = headCmd.Wait()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	}
 	events := perfring.RunTestEvents(t, ctx, ops)
 
@@ -4079,7 +4079,7 @@ func TestKprobeMatchBinariesEarlyExec(t *testing.T) {
 
 	// create a temporary file
 	file, err := os.CreateTemp("/tmp", fmt.Sprintf("tetragon.%s.", t.Name()))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	t.Cleanup(func() {
 		file.Close()
 		os.Remove(file.Name())
@@ -4087,7 +4087,7 @@ func TestKprobeMatchBinariesEarlyExec(t *testing.T) {
 	// execute commands before Tetragon starts
 	tailCommand := exec.Command("/usr/bin/tail", "-f", file.Name())
 	err = tailCommand.Start()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer tailCommand.Process.Kill()
 
 	if err := observer.InitDataCache(1024); err != nil {
@@ -4217,21 +4217,21 @@ func TestKprobeMatchBinariesPrefixMatchArgs(t *testing.T) {
 		headCmd := exec.Command("/usr/bin/head", "/etc/passwd")
 
 		err := tailEtcCmd.Start()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		tailEtcPID = tailEtcCmd.Process.Pid
 		err = tailProcCmd.Start()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		tailProcPID = tailProcCmd.Process.Pid
 		err = headCmd.Start()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		headPID = headCmd.Process.Pid
 
 		err = tailEtcCmd.Wait()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		err = tailProcCmd.Wait()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		err = headCmd.Wait()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	}
 	events := perfring.RunTestEvents(t, ctx, ops)
 
@@ -4330,7 +4330,7 @@ spec:
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestLoadKprobeSensor(t *testing.T) {
@@ -4510,15 +4510,15 @@ spec:
 `
 
 	_, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, "", tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	tp, err := tracingpolicy.FromYAML(testHook)
-	assert.NoError(t, err)
-	assert.NotNil(t, tp)
+	require.NoError(t, err)
+	require.NotNil(t, tp)
 
 	sens, err := sensors.GetMergedSensorFromParserPolicy(tp)
-	assert.Error(t, err)
-	assert.Nil(t, sens)
+	require.Error(t, err)
+	require.Nil(t, sens)
 
 	t.Logf("got error (as expected): %s", err)
 }
@@ -4545,10 +4545,10 @@ func testMaxData(t *testing.T, data []byte, checker *ec.UnorderedEventChecker, c
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 	_, err = syscall.Write(fd, data)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeWriteMaxDataTrunc(t *testing.T) {
@@ -4827,9 +4827,9 @@ spec:
 	go miniTcpNopServer(tcpReady)
 	<-tcpReady
 	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:9919")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	_, err = net.DialTCP("tcp", nil, addr)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	kpChecker := ec.NewProcessKprobeChecker("tcp-connect-checker").
 		WithFunctionName(sm.Full("tcp_connect")).
@@ -4844,7 +4844,7 @@ spec:
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeSockNotPort(t *testing.T) {
@@ -4916,9 +4916,9 @@ spec:
 	go miniTcpNopServer(tcpReady)
 	<-tcpReady
 	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:9919")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	_, err = net.DialTCP("tcp", nil, addr)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	kpChecker := ec.NewProcessKprobeChecker("tcp-connect-checker").
 		WithFunctionName(sm.Full("tcp_connect")).
@@ -4933,7 +4933,7 @@ spec:
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeSockMultiplePorts(t *testing.T) {
@@ -5009,9 +5009,9 @@ spec:
 	go miniTcpNopServer(tcpReady)
 	<-tcpReady
 	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:9919")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	_, err = net.DialTCP("tcp", nil, addr)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	kpChecker := ec.NewProcessKprobeChecker("tcp-connect-checker").
 		WithFunctionName(sm.Full("tcp_connect")).
@@ -5026,7 +5026,7 @@ spec:
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeSockPortRange(t *testing.T) {
@@ -5098,9 +5098,9 @@ spec:
 	go miniTcpNopServer(tcpReady)
 	<-tcpReady
 	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:9919")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	_, err = net.DialTCP("tcp", nil, addr)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	kpChecker := ec.NewProcessKprobeChecker("tcp-connect-checker").
 		WithFunctionName(sm.Full("tcp_connect")).
@@ -5115,7 +5115,7 @@ spec:
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeSockPrivPorts(t *testing.T) {
@@ -5183,9 +5183,9 @@ spec:
 	go miniTcpNopServerWithPort(tcpReady, 1020, false)
 	<-tcpReady
 	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:1020")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	_, err = net.DialTCP("tcp", nil, addr)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	kpChecker := ec.NewProcessKprobeChecker("tcp-connect-checker").
 		WithFunctionName(sm.Full("tcp_connect")).
@@ -5200,7 +5200,7 @@ spec:
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeSockNotPrivPorts(t *testing.T) {
@@ -5268,9 +5268,9 @@ spec:
 	go miniTcpNopServer(tcpReady)
 	<-tcpReady
 	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:9919")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	_, err = net.DialTCP("tcp", nil, addr)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	kpChecker := ec.NewProcessKprobeChecker("tcp-connect-checker").
 		WithFunctionName(sm.Full("tcp_connect")).
@@ -5285,7 +5285,7 @@ spec:
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeSockNotCIDR(t *testing.T) {
@@ -5357,9 +5357,9 @@ spec:
 	go miniTcpNopServer(tcpReady)
 	<-tcpReady
 	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:9919")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	_, err = net.DialTCP("tcp", nil, addr)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	kpChecker := ec.NewProcessKprobeChecker("tcp-connect-checker").
 		WithFunctionName(sm.Full("tcp_connect")).
@@ -5374,7 +5374,7 @@ spec:
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeSockNotCIDRWrongAF(t *testing.T) {
@@ -5446,9 +5446,9 @@ spec:
 	go miniTcpNopServer(tcpReady)
 	<-tcpReady
 	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:9919")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	_, err = net.DialTCP("tcp", nil, addr)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	kpChecker := ec.NewProcessKprobeChecker("tcp-connect-checker").
 		WithFunctionName(sm.Full("tcp_connect")).
@@ -5463,7 +5463,7 @@ spec:
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeSockMultipleCIDRs(t *testing.T) {
@@ -5539,9 +5539,9 @@ spec:
 	go miniTcpNopServer(tcpReady)
 	<-tcpReady
 	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:9919")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	_, err = net.DialTCP("tcp", nil, addr)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	kpChecker := ec.NewProcessKprobeChecker("tcp-connect-checker").
 		WithFunctionName(sm.Full("tcp_connect")).
@@ -5556,7 +5556,7 @@ spec:
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeSockState(t *testing.T) {
@@ -5639,9 +5639,9 @@ spec:
 	go miniTcpNopServer(tcpReady)
 	<-tcpReady
 	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:9919")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	_, err = net.DialTCP("tcp", nil, addr)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	kpChecker := ec.NewProcessKprobeChecker("tcp-state-checker").
 		WithFunctionName(sm.Full("tcp_set_state")).
@@ -5657,7 +5657,7 @@ spec:
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeSockFamily(t *testing.T) {
@@ -5733,9 +5733,9 @@ spec:
 	go miniTcpNopServer(tcpReady)
 	<-tcpReady
 	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:9919")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	_, err = net.DialTCP("tcp", nil, addr)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	kpChecker := ec.NewProcessKprobeChecker("tcp-connect-checker").
 		WithFunctionName(sm.Full("tcp_connect")).
@@ -5751,7 +5751,7 @@ spec:
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeSocketAndSockaddr(t *testing.T) {
@@ -5831,9 +5831,9 @@ spec:
 	go miniTcpNopServer(tcpReady)
 	<-tcpReady
 	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:9919")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	_, err = net.DialTCP("tcp", nil, addr)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	kpChecker := ec.NewProcessKprobeChecker("security-socket-connect-checker").
 		WithFunctionName(sm.Full("security_socket_connect")).
@@ -5851,7 +5851,7 @@ spec:
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeSkb(t *testing.T) {
@@ -5946,7 +5946,7 @@ spec:
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeSockIpv6(t *testing.T) {
@@ -6018,9 +6018,9 @@ spec:
 	go miniTcpNopServer6(tcpReady)
 	<-tcpReady
 	addr, err := net.ResolveTCPAddr("tcp", "[::1]:9919")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	_, err = net.DialTCP("tcp", nil, addr)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	kpChecker := ec.NewProcessKprobeChecker("tcp-connect-checker").
 		WithFunctionName(sm.Full("tcp_connect")).
@@ -6035,7 +6035,7 @@ spec:
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeSkbIpv6(t *testing.T) {
@@ -6130,7 +6130,7 @@ spec:
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func testKprobeRateLimit(t *testing.T, rateLimit bool) {
@@ -6187,7 +6187,7 @@ spec:
 
 	server := "nc.openbsd"
 	cmdServer := exec.Command(server, "-unvlp", "9468", "-s", "127.0.0.1")
-	assert.NoError(t, cmdServer.Start())
+	require.NoError(t, cmdServer.Start())
 	time.Sleep(1 * time.Second)
 
 	// Generate 5 datagrams
@@ -6230,9 +6230,9 @@ spec:
 	cmdServer.Process.Kill()
 
 	err = jsonchecker.JsonTestCheck(t, checkerSuccess)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	err = jsonchecker.JsonTestCheckExpect(t, checkerFailure, true)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeNoRateLimit(t *testing.T) {
@@ -6401,9 +6401,9 @@ func TestLinuxBinprmExtractPath(t *testing.T) {
 
 	ops := func() {
 		err = targetCommand.Start()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		err = filteredCommand.Start()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		defer targetCommand.Process.Kill()
 		defer filteredCommand.Process.Kill()
 	}
@@ -6589,7 +6589,7 @@ spec:
 	checker := ec.NewUnorderedEventChecker(kpChecker1, kpChecker2, kpChecker3, kpChecker4)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeKernelStackTrace(t *testing.T) {
@@ -6649,7 +6649,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(stackTraceChecker)
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 func TestKprobeUserStackTrace(t *testing.T) {
 	var doneWG, readyWG sync.WaitGroup
@@ -6716,7 +6716,7 @@ spec:
 	// Kill test because of endless loop in the test for stable stack trace extraction
 	test_cmd.Process.Kill()
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeMultiMatcArgs(t *testing.T) {
@@ -6828,7 +6828,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpCheckersRead, kpCheckersMmap)
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func trigger(t *testing.T) {
@@ -7030,7 +7030,7 @@ spec:
 	checker := ec.NewUnorderedEventChecker(check1, check2, check3, check4, check5)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 // Detect changing capabilities
@@ -7158,7 +7158,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers1, kpCheckers2)
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestMissedProgStatsKprobeMulti(t *testing.T) {
@@ -7221,7 +7221,7 @@ tetragon_missed_prog_probes_total{attach="security_bprm_committing_creds",policy
 tetragon_missed_prog_probes_total{attach="wake_up_new_task",policy="__base__"} 0
 `)
 
-	assert.NoError(t, testutil.GatherAndCompare(metricsconfig.GetRegistry(), expected,
+	require.NoError(t, testutil.GatherAndCompare(metricsconfig.GetRegistry(), expected,
 		prometheus.BuildFQName(consts.MetricsNamespace, "", "missed_prog_probes_total")))
 
 }
@@ -7287,7 +7287,7 @@ spec:
 	checker := ec.NewUnorderedEventChecker(mapCreate, progLoad, btfLoad)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeMultiSymbolInstancesOk(t *testing.T) {
@@ -7351,7 +7351,7 @@ spec:
 	checker := ec.NewUnorderedEventChecker(kp_8888, kp_9999)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 // TestLongPath could be split into a test checking for long args from kprobe
@@ -7428,7 +7428,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kprobeLongFileArgChecker, processLongCWDChecker)
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestMaxPath(t *testing.T) {
@@ -7514,7 +7514,7 @@ spec:
 
 		checker := ec.NewUnorderedEventChecker(kprobeCheck)
 		err = jsonchecker.JsonTestCheck(t, checker)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 
 	t.Run("path", func(t *testing.T) {
@@ -7560,7 +7560,7 @@ spec:
 
 		checker := ec.NewUnorderedEventChecker(kprobeChecker)
 		err = jsonchecker.JsonTestCheck(t, checker)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 
 	t.Run("dentry", func(t *testing.T) {
@@ -7649,7 +7649,7 @@ spec:
 		checker := ec.NewUnorderedEventChecker(kpChecker)
 
 		err = jsonchecker.JsonTestCheck(t, checker)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 }
 
@@ -7666,7 +7666,7 @@ func TestKprobeDentryPath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
-	defer assert.NoError(t, file_1.Close())
+	defer require.NoError(t, file_1.Close())
 
 	file_2, err := os.CreateTemp(t.TempDir(), "dentry-unlink-2")
 	if err != nil {
@@ -7746,11 +7746,11 @@ spec:
 
 	// We filter for file_1 (check_1) so we should get event for that
 	err = jsonchecker.JsonTestCheck(t, getChecker(check_1))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// ... but not for file_2 (check_2).
 	err = jsonchecker.JsonTestCheck(t, getChecker(check_2))
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestKprobeResolvePid(t *testing.T) {
@@ -7804,7 +7804,7 @@ spec:
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeArgsReverse(t *testing.T) {
@@ -7871,7 +7871,7 @@ spec:
 	unix.Seek(0, 1, 2)
 
 	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeResolveSecondArg(t *testing.T) {
@@ -7924,5 +7924,5 @@ spec:
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }

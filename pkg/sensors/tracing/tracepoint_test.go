@@ -39,7 +39,6 @@ import (
 	"github.com/cilium/tetragon/pkg/testutils/perfring"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/unix"
 
@@ -110,7 +109,7 @@ func TestGenericTracepointSimple(t *testing.T) {
 	unix.Seek(-1, 0, whenceBogusValue)
 	time.Sleep(1000 * time.Millisecond)
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 // doTestGenericTracepointPidFilter is a utility function for doing generic
@@ -293,7 +292,7 @@ func TestGenericTracepointMeta(t *testing.T) {
 	// We want to write to a file so we can filter by non-stdout fd and thus avoid
 	// catching all the writes to test logs
 	fd, err := syscall.Open("/tmp/testificate", syscall.O_CREAT|syscall.O_WRONLY, 0o644)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer func() { syscall.Unlink("/tmp/testificate") }()
 
 	tracepointConf := v1alpha1.TracepointSpec{
@@ -620,7 +619,7 @@ func TestTracepointCloneThreads(t *testing.T) {
 	checker := ec.NewUnorderedEventChecker(execCheck, child1TpChecker, thread1TpChecker, exitCheck)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestTracepointForceType(t *testing.T) {
@@ -730,7 +729,7 @@ spec:
 	checker := ec.NewUnorderedEventChecker(execCheck, child1TpChecker, thread1TpChecker, exitCheck)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestStringTracepoint(t *testing.T) {
@@ -816,7 +815,7 @@ func testListSyscallsDupsRange(t *testing.T, checker *ec.UnorderedEventChecker, 
 	}
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestTracepointListSyscallDupsRange(t *testing.T) {
@@ -938,5 +937,5 @@ spec:
 	checker := ec.NewUnorderedEventChecker(tpChecker)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }

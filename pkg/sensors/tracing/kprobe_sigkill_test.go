@@ -23,7 +23,7 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
 )
@@ -81,7 +81,7 @@ func testSigkill(t *testing.T, makeSpecFile func(pid string) string, checker *ev
 	}
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeSigkill(t *testing.T) {
@@ -300,7 +300,7 @@ func testUnprivilegedUsernsKill(t *testing.T, pidns bool) {
 	checker := eventchecker.NewUnorderedEventChecker(kpChecker)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKillUnprivilegedUserns(t *testing.T) {

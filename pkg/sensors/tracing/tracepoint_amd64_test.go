@@ -20,7 +20,7 @@ import (
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func testListSyscallsDups(t *testing.T, checker *ec.UnorderedEventChecker, configHook string) {
@@ -47,7 +47,7 @@ func testListSyscallsDups(t *testing.T, checker *ec.UnorderedEventChecker, confi
 	syscall.Dup3(9999, 2222, 0)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestTracepointListSyscallDups(t *testing.T) {

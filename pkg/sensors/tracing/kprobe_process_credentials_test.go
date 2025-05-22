@@ -21,11 +21,10 @@ import (
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/unix"
 
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestKprobeTraceCommitCreds(t *testing.T) {
@@ -174,7 +173,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChangeGidChecker, kpChangeUidChecker, kpPrivilegedChecker)
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestKprobeTraceSecureBits(t *testing.T) {
@@ -336,5 +335,5 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChangeGidChecker, kpChangeUidChecker, kpPrivilegedChecker)
 	err = jsonchecker.JsonTestCheck(t, checker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
