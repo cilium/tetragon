@@ -7,8 +7,8 @@ import (
 	"context"
 	"testing"
 
-	v1 "github.com/cilium/cilium/pkg/hubble/api/v1"
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/event"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -68,7 +68,7 @@ func Test_healthCheckFilter(t *testing.T) {
 		[]OnBuildFilter{&HealthCheckFilter{}})
 	assert.NoError(t, err)
 
-	process := v1.Event{
+	process := event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
 				ProcessExec: &tetragon.ProcessExec{Process: &tetragon.Process{Pod: &tetragon.Pod{Container: &tetragon.Container{
@@ -77,7 +77,7 @@ func Test_healthCheckFilter(t *testing.T) {
 			},
 		},
 	}
-	parent := v1.Event{
+	parent := event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
 				ProcessExec: &tetragon.ProcessExec{Parent: &tetragon.Process{Pod: &tetragon.Pod{Container: &tetragon.Container{
@@ -86,7 +86,7 @@ func Test_healthCheckFilter(t *testing.T) {
 			},
 		},
 	}
-	neither := v1.Event{
+	neither := event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
 				ProcessExec: &tetragon.ProcessExec{Process: &tetragon.Process{Pod: &tetragon.Pod{Container: &tetragon.Container{}}}},

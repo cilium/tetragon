@@ -10,9 +10,8 @@ import (
 	"io"
 	"os"
 
-	hubbleV1 "github.com/cilium/cilium/pkg/hubble/api/v1"
-	hubbleFilters "github.com/cilium/cilium/pkg/hubble/filters"
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/event"
 	"github.com/cilium/tetragon/pkg/fieldfilters"
 	"github.com/cilium/tetragon/pkg/filters"
 	"google.golang.org/grpc"
@@ -23,7 +22,7 @@ import (
 // ioReaderObserver implements tetragon.FineGuidanceSensorsClient interface. It reads Tetragon events
 type ioReaderClient struct {
 	scanner      *bufio.Scanner
-	allowlist    hubbleFilters.FilterFuncs
+	allowlist    filters.FilterFuncs
 	fieldFilters []*fieldfilters.FieldFilter
 	unmarshaller protojson.UnmarshalOptions
 	debug        bool
@@ -112,7 +111,7 @@ func (i *ioReaderClient) Recv() (*tetragon.GetEventsResponse, error) {
 			fmt.Fprintf(os.Stderr, "DEBUG: failed unmarshal: %s: %s\n", line, err)
 			continue
 		}
-		if !hubbleFilters.Apply(i.allowlist, nil, &hubbleV1.Event{Event: res}) {
+		if !filters.Apply(i.allowlist, nil, &event.Event{Event: res}) {
 			continue
 		}
 		for _, filter := range i.fieldFilters {

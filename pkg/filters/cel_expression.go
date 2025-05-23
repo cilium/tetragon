@@ -8,10 +8,9 @@ import (
 	"fmt"
 	"reflect"
 
-	v1 "github.com/cilium/cilium/pkg/hubble/api/v1"
-	hubbleFilters "github.com/cilium/cilium/pkg/hubble/filters"
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/api/v1/tetragon/codegen/helpers"
+	"github.com/cilium/tetragon/pkg/event"
 	"github.com/google/cel-go/cel"
 	"github.com/sirupsen/logrus"
 	celk8s "k8s.io/apiserver/pkg/cel/library"
@@ -58,7 +57,7 @@ func EvalCEL(ctx context.Context, program cel.Program, event *tetragon.GetEvents
 	return false, nil
 }
 
-func (c *CELExpressionFilter) filterByCELExpression(ctx context.Context, log logrus.FieldLogger, exprs []string) (hubbleFilters.FilterFunc, error) {
+func (c *CELExpressionFilter) filterByCELExpression(ctx context.Context, log logrus.FieldLogger, exprs []string) (FilterFunc, error) {
 	var programs []cel.Program
 	for _, expr := range exprs {
 		prg, err := c.CompileCEL(expr)
@@ -68,7 +67,7 @@ func (c *CELExpressionFilter) filterByCELExpression(ctx context.Context, log log
 		programs = append(programs, prg)
 	}
 
-	return func(ev *v1.Event) bool {
+	return func(ev *event.Event) bool {
 		if ev == nil {
 			return false
 		}
@@ -136,13 +135,13 @@ func (c *CELExpressionFilter) CompileCEL(expr string) (cel.Program, error) {
 }
 
 // OnBuildFilter builds a CEL expression filter.
-func (c *CELExpressionFilter) OnBuildFilter(ctx context.Context, f *tetragon.Filter) ([]hubbleFilters.FilterFunc, error) {
+func (c *CELExpressionFilter) OnBuildFilter(ctx context.Context, f *tetragon.Filter) ([]FilterFunc, error) {
 	if exprs := f.GetCelExpression(); exprs != nil {
 		filter, err := c.filterByCELExpression(ctx, c.log, exprs)
 		if err != nil {
 			return nil, err
 		}
-		return []hubbleFilters.FilterFunc{filter}, nil
+		return []FilterFunc{filter}, nil
 	}
-	return []hubbleFilters.FilterFunc{}, nil
+	return []FilterFunc{}, nil
 }

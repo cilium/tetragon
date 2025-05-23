@@ -11,13 +11,61 @@ import (
 	"io"
 	"strings"
 
-	v1 "github.com/cilium/cilium/pkg/hubble/api/v1"
-	hubbleFilters "github.com/cilium/cilium/pkg/hubble/filters"
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/api/v1/tetragon/codegen/helpers"
+	"github.com/cilium/tetragon/pkg/event"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/sirupsen/logrus"
 )
+
+type FilterFunc func(ev *event.Event) bool
+type FilterFuncs []FilterFunc
+
+// Apply filters the flow with the given white- and blacklist. Returns true
+// if the flow should be included in the result.
+func Apply(whitelist, blacklist FilterFuncs, ev *event.Event) bool {
+	return whitelist.MatchOne(ev) && blacklist.MatchNone(ev)
+}
+
+// MatchAll returns true if all the filters match the provided data, i.e. AND.
+func (fs FilterFuncs) MatchAll(ev *event.Event) bool {
+	for _, f := range fs {
+		if !f(ev) {
+			return false
+		}
+	}
+	return true
+}
+
+// MatchOne returns true if at least one of the filters match the provided data or
+// if no filters are specified, i.e. OR.
+func (fs FilterFuncs) MatchOne(ev *event.Event) bool {
+	if len(fs) == 0 {
+		return true
+	}
+
+	for _, f := range fs {
+		if f(ev) {
+			return true
+		}
+	}
+	return false
+}
+
+// MatchNone returns true if none of the filters match the provided data or
+// if no filters are specified, i.e. NOR
+func (fs FilterFuncs) MatchNone(ev *event.Event) bool {
+	if len(fs) == 0 {
+		return true
+	}
+
+	for _, f := range fs {
+		if f(ev) {
+			return false
+		}
+	}
+	return true
+}
 
 // ParseFilterList parses a list of process filters in JSON format into protobuf messages.
 func ParseFilterList(filters string, enablePidSetFilters bool) ([]*tetragon.Filter, error) {
@@ -44,19 +92,19 @@ func ParseFilterList(filters string, enablePidSetFilters bool) ([]*tetragon.Filt
 
 // OnBuildFilter is invoked while building a flow filter
 type OnBuildFilter interface {
-	OnBuildFilter(context.Context, *tetragon.Filter) ([]hubbleFilters.FilterFunc, error)
+	OnBuildFilter(context.Context, *tetragon.Filter) ([]FilterFunc, error)
 }
 
 // OnBuildFilterFunc implements OnBuildFilter for a single function
-type OnBuildFilterFunc func(context.Context, *tetragon.Filter) ([]hubbleFilters.FilterFunc, error)
+type OnBuildFilterFunc func(context.Context, *tetragon.Filter) ([]FilterFunc, error)
 
 // OnBuildFilter is invoked while building a flow filter
-func (f OnBuildFilterFunc) OnBuildFilter(ctx context.Context, tetragonFilter *tetragon.Filter) ([]hubbleFilters.FilterFunc, error) {
+func (f OnBuildFilterFunc) OnBuildFilter(ctx context.Context, tetragonFilter *tetragon.Filter) ([]FilterFunc, error) {
 	return f(ctx, tetragonFilter)
 }
 
-func BuildFilter(ctx context.Context, ff *tetragon.Filter, filterFuncs []OnBuildFilter) (hubbleFilters.FilterFuncs, error) {
-	var fs []hubbleFilters.FilterFunc
+func BuildFilter(ctx context.Context, ff *tetragon.Filter, filterFuncs []OnBuildFilter) (FilterFuncs, error) {
+	var fs []FilterFunc
 	for _, f := range filterFuncs {
 		fl, err := f.OnBuildFilter(ctx, ff)
 		if err != nil {
@@ -69,14 +117,14 @@ func BuildFilter(ctx context.Context, ff *tetragon.Filter, filterFuncs []OnBuild
 	return fs, nil
 }
 
-func BuildFilterList(ctx context.Context, ff []*tetragon.Filter, filterFuncs []OnBuildFilter) (hubbleFilters.FilterFuncs, error) {
-	filterList := make([]hubbleFilters.FilterFunc, 0, len(ff))
+func BuildFilterList(ctx context.Context, ff []*tetragon.Filter, filterFuncs []OnBuildFilter) (FilterFuncs, error) {
+	filterList := make([]FilterFunc, 0, len(ff))
 	for _, flowFilter := range ff {
 		tf, err := BuildFilter(ctx, flowFilter, filterFuncs)
 		if err != nil {
 			return nil, err
 		}
-		filterFunc := func(ev *v1.Event) bool {
+		filterFunc := func(ev *event.Event) bool {
 			return tf.MatchAll(ev)
 		}
 		filterList = append(filterList, filterFunc)
@@ -105,7 +153,7 @@ var Filters = []OnBuildFilter{
 	NewCELExpressionFilter(logrus.New()),
 }
 
-func GetProcess(event *v1.Event) *tetragon.Process {
+func GetProcess(event *event.Event) *tetragon.Process {
 	if event == nil {
 		return nil
 	}
@@ -116,7 +164,7 @@ func GetProcess(event *v1.Event) *tetragon.Process {
 	return helpers.ResponseGetProcess(response)
 }
 
-func GetParent(event *v1.Event) *tetragon.Process {
+func GetParent(event *event.Event) *tetragon.Process {
 	if event == nil {
 		return nil
 	}
@@ -127,7 +175,7 @@ func GetParent(event *v1.Event) *tetragon.Process {
 	return helpers.ResponseGetParent(response)
 }
 
-func GetAncestors(event *v1.Event) []*tetragon.Process {
+func GetAncestors(event *event.Event) []*tetragon.Process {
 	if event == nil {
 		return nil
 	}
@@ -138,7 +186,7 @@ func GetAncestors(event *v1.Event) []*tetragon.Process {
 	return helpers.ResponseGetAncestors(response)
 }
 
-func GetPolicyName(event *v1.Event) string {
+func GetPolicyName(event *event.Event) string {
 	if event == nil {
 		return ""
 	}

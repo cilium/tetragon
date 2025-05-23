@@ -6,13 +6,12 @@ package filters
 import (
 	"context"
 
-	v1 "github.com/cilium/cilium/pkg/hubble/api/v1"
-	hubbleFilters "github.com/cilium/cilium/pkg/hubble/filters"
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/event"
 )
 
-func filterByNamespace(namespaces []string) hubbleFilters.FilterFunc {
-	return func(ev *v1.Event) bool {
+func filterByNamespace(namespaces []string) FilterFunc {
+	return func(ev *event.Event) bool {
 		process := GetProcess(ev)
 		if process == nil {
 			return false
@@ -32,8 +31,8 @@ func filterByNamespace(namespaces []string) hubbleFilters.FilterFunc {
 
 type NamespaceFilter struct{}
 
-func (f *NamespaceFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]hubbleFilters.FilterFunc, error) {
-	var fs []hubbleFilters.FilterFunc
+func (f *NamespaceFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]FilterFunc, error) {
+	var fs []FilterFunc
 	if ff.Namespace != nil {
 		fs = append(fs, filterByNamespace(ff.Namespace))
 	}

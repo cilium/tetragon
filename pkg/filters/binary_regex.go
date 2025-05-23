@@ -8,9 +8,8 @@ import (
 	"fmt"
 	"regexp"
 
-	v1 "github.com/cilium/cilium/pkg/hubble/api/v1"
-	hubbleFilters "github.com/cilium/cilium/pkg/hubble/filters"
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/event"
 )
 
 const (
@@ -19,7 +18,7 @@ const (
 	ancestorBinary
 )
 
-func filterByBinaryRegex(binaryPatterns []string, level int) (hubbleFilters.FilterFunc, error) {
+func filterByBinaryRegex(binaryPatterns []string, level int) (FilterFunc, error) {
 	var binaries []*regexp.Regexp
 	for _, pattern := range binaryPatterns {
 		query, err := regexp.Compile(pattern)
@@ -28,7 +27,7 @@ func filterByBinaryRegex(binaryPatterns []string, level int) (hubbleFilters.Filt
 		}
 		binaries = append(binaries, query)
 	}
-	return func(ev *v1.Event) bool {
+	return func(ev *event.Event) bool {
 		var processes []*tetragon.Process
 		switch level {
 		case processBinary:
@@ -54,8 +53,8 @@ func filterByBinaryRegex(binaryPatterns []string, level int) (hubbleFilters.Filt
 
 type BinaryRegexFilter struct{}
 
-func (f *BinaryRegexFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]hubbleFilters.FilterFunc, error) {
-	var fs []hubbleFilters.FilterFunc
+func (f *BinaryRegexFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]FilterFunc, error) {
+	var fs []FilterFunc
 	if ff.BinaryRegex != nil {
 		filters, err := filterByBinaryRegex(ff.BinaryRegex, processBinary)
 		if err != nil {
@@ -68,8 +67,8 @@ func (f *BinaryRegexFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter
 
 type ParentBinaryRegexFilter struct{}
 
-func (f *ParentBinaryRegexFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]hubbleFilters.FilterFunc, error) {
-	var fs []hubbleFilters.FilterFunc
+func (f *ParentBinaryRegexFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]FilterFunc, error) {
+	var fs []FilterFunc
 	if ff.ParentBinaryRegex != nil {
 		filters, err := filterByBinaryRegex(ff.ParentBinaryRegex, parentBinary)
 		if err != nil {
@@ -82,8 +81,8 @@ func (f *ParentBinaryRegexFilter) OnBuildFilter(_ context.Context, ff *tetragon.
 
 type AncestorBinaryRegexFilter struct{}
 
-func (f *AncestorBinaryRegexFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]hubbleFilters.FilterFunc, error) {
-	var fs []hubbleFilters.FilterFunc
+func (f *AncestorBinaryRegexFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]FilterFunc, error) {
+	var fs []FilterFunc
 	if ff.AncestorBinaryRegex != nil {
 		if err := CheckAncestorsEnabled(ff.EventSet); err != nil {
 			return nil, err

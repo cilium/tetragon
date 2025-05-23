@@ -8,12 +8,11 @@ import (
 	"fmt"
 	"regexp"
 
-	v1 "github.com/cilium/cilium/pkg/hubble/api/v1"
-	hubbleFilters "github.com/cilium/cilium/pkg/hubble/filters"
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/event"
 )
 
-func filterByContainerID(idPatterns []string) (hubbleFilters.FilterFunc, error) {
+func filterByContainerID(idPatterns []string) (FilterFunc, error) {
 	var ids []*regexp.Regexp
 	for _, pattern := range idPatterns {
 		query, err := regexp.Compile(pattern)
@@ -23,7 +22,7 @@ func filterByContainerID(idPatterns []string) (hubbleFilters.FilterFunc, error) 
 		ids = append(ids, query)
 	}
 
-	return func(ev *v1.Event) bool {
+	return func(ev *event.Event) bool {
 		process := GetProcess(ev)
 		if process == nil {
 			return false
@@ -39,8 +38,8 @@ func filterByContainerID(idPatterns []string) (hubbleFilters.FilterFunc, error) 
 
 type ContainerIDFilter struct{}
 
-func (f *ContainerIDFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]hubbleFilters.FilterFunc, error) {
-	var fs []hubbleFilters.FilterFunc
+func (f *ContainerIDFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]FilterFunc, error) {
+	var fs []FilterFunc
 	if ff.ContainerId != nil {
 		filters, err := filterByContainerID(ff.ContainerId)
 		if err != nil {
@@ -51,8 +50,8 @@ func (f *ContainerIDFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter
 	return fs, nil
 }
 
-func filterByInInitTree(inInitTree bool) hubbleFilters.FilterFunc {
-	return func(ev *v1.Event) bool {
+func filterByInInitTree(inInitTree bool) FilterFunc {
+	return func(ev *event.Event) bool {
 		process := GetProcess(ev)
 		// We want to be safe and assume false if process.InInitTree is missing somehow
 		inInitTreeVal := false
@@ -65,8 +64,8 @@ func filterByInInitTree(inInitTree bool) hubbleFilters.FilterFunc {
 
 type InInitTreeFilter struct{}
 
-func (f *InInitTreeFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]hubbleFilters.FilterFunc, error) {
-	var fs []hubbleFilters.FilterFunc
+func (f *InInitTreeFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]FilterFunc, error) {
+	var fs []FilterFunc
 	if ff.InInitTree != nil {
 		fs = append(fs, filterByInInitTree(ff.InInitTree.Value))
 	}

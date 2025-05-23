@@ -7,8 +7,8 @@ import (
 	"context"
 	"testing"
 
-	v1 "github.com/cilium/cilium/pkg/hubble/api/v1"
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/event"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,7 +27,7 @@ func TestLabelSelectorFilterInvalidEvent(t *testing.T) {
 	exec := tetragon.GetEventsResponse_ProcessExec{
 		ProcessExec: &tetragon.ProcessExec{Process: &tetragon.Process{}},
 	}
-	ev := v1.Event{Event: &tetragon.GetEventsResponse{Event: &exec}}
+	ev := event.Event{Event: &tetragon.GetEventsResponse{Event: &exec}}
 	assert.False(t, fl.MatchOne(&ev))
 
 	// nil process should not match.
@@ -42,7 +42,7 @@ func TestLabelSelectorFilterNoValue(t *testing.T) {
 	exec := tetragon.GetEventsResponse_ProcessExec{
 		ProcessExec: &tetragon.ProcessExec{Process: &tetragon.Process{Pod: &tetragon.Pod{PodLabels: map[string]string{}}}},
 	}
-	ev := v1.Event{Event: &tetragon.GetEventsResponse{Event: &exec}}
+	ev := event.Event{Event: &tetragon.GetEventsResponse{Event: &exec}}
 	assert.False(t, fl.MatchOne(&ev))
 	exec.ProcessExec.Process.Pod.PodLabels = map[string]string{"key3": "val3"}
 	assert.False(t, fl.MatchOne(&ev))
@@ -61,7 +61,7 @@ func TestLabelSelectorFilterWithValue(t *testing.T) {
 	exec := tetragon.GetEventsResponse_ProcessExec{
 		ProcessExec: &tetragon.ProcessExec{Process: &tetragon.Process{Pod: &tetragon.Pod{PodLabels: map[string]string{}}}},
 	}
-	ev := v1.Event{Event: &tetragon.GetEventsResponse{Event: &exec}}
+	ev := event.Event{Event: &tetragon.GetEventsResponse{Event: &exec}}
 	assert.False(t, fl.MatchOne(&ev))
 	exec.ProcessExec.Process.Pod.PodLabels = map[string]string{"key3": "val3"}
 	assert.False(t, fl.MatchOne(&ev))
@@ -84,7 +84,7 @@ func TestLabelSelectorFilterEmptySelector(t *testing.T) {
 	}
 
 	// empty selector matches everything.
-	ev := v1.Event{Event: &tetragon.GetEventsResponse{Event: &exec}}
+	ev := event.Event{Event: &tetragon.GetEventsResponse{Event: &exec}}
 	assert.True(t, fl.MatchOne(&ev))
 	exec.ProcessExec.Process.Pod.PodLabels = map[string]string{"key3": "val3"}
 	assert.True(t, fl.MatchOne(&ev))
@@ -106,7 +106,7 @@ func TestLabelSelectorFilterSetSelector(t *testing.T) {
 		ProcessExec: &tetragon.ProcessExec{Process: &tetragon.Process{Pod: &tetragon.Pod{PodLabels: map[string]string{}}}},
 	}
 
-	ev := v1.Event{Event: &tetragon.GetEventsResponse{Event: &exec}}
+	ev := event.Event{Event: &tetragon.GetEventsResponse{Event: &exec}}
 	assert.False(t, fl.MatchOne(&ev))
 	exec.ProcessExec.Process.Pod.PodLabels = map[string]string{"key1": "foo"}
 	assert.True(t, fl.MatchOne(&ev))

@@ -10,10 +10,9 @@ import (
 	"io"
 	"sync"
 
-	v1 "github.com/cilium/cilium/pkg/hubble/api/v1"
-	hubbleFilters "github.com/cilium/cilium/pkg/hubble/filters"
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/aggregator"
+	pkgEvent "github.com/cilium/tetragon/pkg/event"
 	"github.com/cilium/tetragon/pkg/fieldfilters"
 	"github.com/cilium/tetragon/pkg/filters"
 	"github.com/cilium/tetragon/pkg/health"
@@ -164,7 +163,7 @@ func (s *Server) GetEventsWG(request *tetragon.GetEventsRequest, server tetragon
 	for {
 		select {
 		case event := <-l.events:
-			if !hubbleFilters.Apply(allowList, denyList, &v1.Event{Event: event}) {
+			if !filters.Apply(allowList, denyList, &pkgEvent.Event{Event: event}) {
 				// Event is filtered out. Nothing to do here. Continue.
 				continue
 			}

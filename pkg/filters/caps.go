@@ -9,9 +9,8 @@ import (
 	"fmt"
 	"strings"
 
-	hubbleV1 "github.com/cilium/cilium/pkg/hubble/api/v1"
-	hubbleFilters "github.com/cilium/cilium/pkg/hubble/filters"
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/event"
 	"github.com/cilium/tetragon/pkg/option"
 	mapset "github.com/deckarep/golang-set/v2"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -50,8 +49,8 @@ func filterSingleCapSet(caps []tetragon.CapabilitiesType, filters *tetragon.CapF
 	return false
 }
 
-func filterByCaps(filter *tetragon.CapFilter) (hubbleFilters.FilterFunc, error) {
-	return func(ev *hubbleV1.Event) bool {
+func filterByCaps(filter *tetragon.CapFilter) (FilterFunc, error) {
+	return func(ev *event.Event) bool {
 		process := GetProcess(ev)
 		if process == nil {
 			return false
@@ -90,8 +89,8 @@ func ensure_single_set_defined(filter *tetragon.CapFilterSet) error {
 	return nil
 }
 
-func (f *CapsFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]hubbleFilters.FilterFunc, error) {
-	var fs []hubbleFilters.FilterFunc
+func (f *CapsFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]FilterFunc, error) {
+	var fs []FilterFunc
 	if ff.Capabilities != nil {
 		// Enable caps filter only if processCred is enabled
 		if !option.Config.EnableProcessCred {
