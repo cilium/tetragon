@@ -1,14 +1,14 @@
-{{- if and .Values.tetragonOperator.enabled .Values.serviceAccount.create }}
+{{- if and .Values.tetragonOperator.enabled .Values.tetragonOperator.serviceAccount.create }}
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: {{ .Release.Name }}-operator-rolebinding
+  name: {{ include "tetragon-operator.serviceAccount" . }}
   labels:
-  {{- include "tetragon-operator.labels" . | nindent 4 }}
+    {{- include "tetragon-operator.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ .Release.Name }}-operator
+  name: {{ include "tetragon.fullname" . }}-operator
 subjects:
   - kind: ServiceAccount
     namespace: {{ .Release.Namespace }}
