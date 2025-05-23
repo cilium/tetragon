@@ -7,8 +7,8 @@ package version
 
 import (
 	"fmt"
+	"sync"
 
-	"github.com/cilium/cilium/pkg/lock"
 	"github.com/cilium/cilium/pkg/versioncheck"
 
 	semver "github.com/blang/semver/v4"
@@ -32,7 +32,7 @@ type ServerCapabilities struct {
 }
 
 type cachedVersion struct {
-	mutex        lock.RWMutex
+	mutex        sync.RWMutex
 	capabilities ServerCapabilities
 	version      semver.Version
 }
