@@ -8,12 +8,11 @@ import (
 	"fmt"
 	"regexp"
 
-	hubbleV1 "github.com/cilium/cilium/pkg/hubble/api/v1"
-	hubbleFilters "github.com/cilium/cilium/pkg/hubble/filters"
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/event"
 )
 
-func filterByArgumentsRegex(argumentsPatterns []string, parent bool) (hubbleFilters.FilterFunc, error) {
+func filterByArgumentsRegex(argumentsPatterns []string, parent bool) (FilterFunc, error) {
 	var argsRegexList []*regexp.Regexp
 	for _, pattern := range argumentsPatterns {
 		query, err := regexp.Compile(pattern)
@@ -22,7 +21,7 @@ func filterByArgumentsRegex(argumentsPatterns []string, parent bool) (hubbleFilt
 		}
 		argsRegexList = append(argsRegexList, query)
 	}
-	return func(ev *hubbleV1.Event) bool {
+	return func(ev *event.Event) bool {
 		var process *tetragon.Process
 		if parent {
 			process = GetParent(ev)
@@ -43,8 +42,8 @@ func filterByArgumentsRegex(argumentsPatterns []string, parent bool) (hubbleFilt
 
 type ArgumentsRegexFilter struct{}
 
-func (f *ArgumentsRegexFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]hubbleFilters.FilterFunc, error) {
-	var fs []hubbleFilters.FilterFunc
+func (f *ArgumentsRegexFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]FilterFunc, error) {
+	var fs []FilterFunc
 	if ff.ArgumentsRegex != nil {
 		argumentsFilters, err := filterByArgumentsRegex(ff.ArgumentsRegex, false)
 		if err != nil {
@@ -57,8 +56,8 @@ func (f *ArgumentsRegexFilter) OnBuildFilter(_ context.Context, ff *tetragon.Fil
 
 type ParentArgumentsRegexFilter struct{}
 
-func (f *ParentArgumentsRegexFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]hubbleFilters.FilterFunc, error) {
-	var fs []hubbleFilters.FilterFunc
+func (f *ParentArgumentsRegexFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]FilterFunc, error) {
+	var fs []FilterFunc
 	if ff.ParentArgumentsRegex != nil {
 		argumentsFilters, err := filterByArgumentsRegex(ff.ParentArgumentsRegex, true)
 		if err != nil {

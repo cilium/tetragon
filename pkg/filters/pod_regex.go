@@ -8,12 +8,11 @@ import (
 	"fmt"
 	"regexp"
 
-	v1 "github.com/cilium/cilium/pkg/hubble/api/v1"
-	hubbleFilters "github.com/cilium/cilium/pkg/hubble/filters"
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/event"
 )
 
-func filterByPodRegex(podPatterns []string) (hubbleFilters.FilterFunc, error) {
+func filterByPodRegex(podPatterns []string) (FilterFunc, error) {
 	var pods []*regexp.Regexp
 	for _, pattern := range podPatterns {
 		query, err := regexp.Compile(pattern)
@@ -22,7 +21,7 @@ func filterByPodRegex(podPatterns []string) (hubbleFilters.FilterFunc, error) {
 		}
 		pods = append(pods, query)
 	}
-	return func(ev *v1.Event) bool {
+	return func(ev *event.Event) bool {
 		process := GetProcess(ev)
 		if process == nil {
 			return false
@@ -41,8 +40,8 @@ func filterByPodRegex(podPatterns []string) (hubbleFilters.FilterFunc, error) {
 
 type PodRegexFilter struct{}
 
-func (f *PodRegexFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]hubbleFilters.FilterFunc, error) {
-	var fs []hubbleFilters.FilterFunc
+func (f *PodRegexFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]FilterFunc, error) {
+	var fs []FilterFunc
 	if ff.PodRegex != nil {
 		dnsFilters, err := filterByPodRegex(ff.PodRegex)
 		if err != nil {

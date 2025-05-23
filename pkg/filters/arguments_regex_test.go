@@ -7,8 +7,8 @@ import (
 	"context"
 	"testing"
 
-	v1 "github.com/cilium/cilium/pkg/hubble/api/v1"
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/event"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,7 +21,7 @@ func TestArgumentsRegexFilterBasic(t *testing.T) {
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&ArgumentsRegexFilter{}})
 	assert.NoError(t, err)
 	process := tetragon.Process{Arguments: "-namespace moby -id 1234abcd -address /run/containerd/containerd.sock"}
-	ev := v1.Event{
+	ev := event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
 				ProcessExec: &tetragon.ProcessExec{
@@ -47,7 +47,7 @@ func TestParentArgumentsRegexFilter(t *testing.T) {
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&ParentArgumentsRegexFilter{}})
 	assert.NoError(t, err)
 	process := tetragon.Process{Arguments: "foo"}
-	ev := v1.Event{
+	ev := event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
 				ProcessExec: &tetragon.ProcessExec{
@@ -74,16 +74,16 @@ func TestArgumentsRegexFilterInvalidEvent(t *testing.T) {
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&ArgumentsRegexFilter{}})
 	assert.NoError(t, err)
 	assert.False(t, fl.MatchOne(nil))
-	assert.False(t, fl.MatchOne(&v1.Event{Event: nil}))
-	assert.False(t, fl.MatchOne(&v1.Event{Event: struct{}{}}))
-	assert.False(t, fl.MatchOne(&v1.Event{Event: &tetragon.GetEventsResponse{Event: nil}}))
-	assert.False(t, fl.MatchOne(&v1.Event{Event: &tetragon.GetEventsResponse{
+	assert.False(t, fl.MatchOne(&event.Event{Event: nil}))
+	assert.False(t, fl.MatchOne(&event.Event{Event: struct{}{}}))
+	assert.False(t, fl.MatchOne(&event.Event{Event: &tetragon.GetEventsResponse{Event: nil}}))
+	assert.False(t, fl.MatchOne(&event.Event{Event: &tetragon.GetEventsResponse{
 		Event: &tetragon.GetEventsResponse_ProcessExec{ProcessExec: &tetragon.ProcessExec{Process: nil}},
 	}}))
-	assert.False(t, fl.MatchOne(&v1.Event{Event: &tetragon.GetEventsResponse{
+	assert.False(t, fl.MatchOne(&event.Event{Event: &tetragon.GetEventsResponse{
 		Event: &tetragon.GetEventsResponse_ProcessExec{ProcessExec: &tetragon.ProcessExec{Process: nil}},
 	}}))
-	assert.False(t, fl.MatchOne(&v1.Event{Event: &tetragon.GetEventsResponse{
+	assert.False(t, fl.MatchOne(&event.Event{Event: &tetragon.GetEventsResponse{
 		Event: &tetragon.GetEventsResponse_ProcessExec{ProcessExec: &tetragon.ProcessExec{Process: nil}},
 	}}))
 }

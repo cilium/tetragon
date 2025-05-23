@@ -6,9 +6,8 @@ package filters
 import (
 	"context"
 
-	v1 "github.com/cilium/cilium/pkg/hubble/api/v1"
-	hubbleFilters "github.com/cilium/cilium/pkg/hubble/filters"
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/event"
 	"github.com/cilium/tetragon/pkg/logger"
 )
 
@@ -33,7 +32,7 @@ func checkPidSetMembership(pid uint32, pidSet []uint32, childCache ChildCache) b
 	return ok
 }
 
-func doFilterByPidSet(ev *v1.Event, pidSet []uint32, childCache ChildCache, childCacheWarning *int) bool {
+func doFilterByPidSet(ev *event.Event, pidSet []uint32, childCache ChildCache, childCacheWarning *int) bool {
 	process := GetProcess(ev)
 	if process == nil {
 		return false
@@ -68,8 +67,8 @@ func doFilterByPidSet(ev *v1.Event, pidSet []uint32, childCache ChildCache, chil
 	return false
 }
 
-func filterByPidSet(pidSet []uint32, childCache ChildCache, childCacheWarning int) hubbleFilters.FilterFunc {
-	return func(ev *v1.Event) bool {
+func filterByPidSet(pidSet []uint32, childCache ChildCache, childCacheWarning int) FilterFunc {
+	return func(ev *event.Event) bool {
 		return doFilterByPidSet(ev, pidSet, childCache, &childCacheWarning)
 	}
 }
@@ -78,8 +77,8 @@ func filterByPidSet(pidSet []uint32, childCache ChildCache, childCacheWarning in
 // PID, up to maxChildCacheSize number of children.
 type PidSetFilter struct{}
 
-func (f *PidSetFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]hubbleFilters.FilterFunc, error) {
-	var fs []hubbleFilters.FilterFunc
+func (f *PidSetFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]FilterFunc, error) {
+	var fs []FilterFunc
 	if ff.PidSet != nil {
 		childCache := make(ChildCache)
 		childCacheWarning := 8192

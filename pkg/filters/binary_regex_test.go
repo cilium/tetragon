@@ -7,8 +7,8 @@ import (
 	"context"
 	"testing"
 
-	v1 "github.com/cilium/cilium/pkg/hubble/api/v1"
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/event"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,7 +16,7 @@ func TestBinaryRegexFilterBasic(t *testing.T) {
 	f := []*tetragon.Filter{{BinaryRegex: []string{"iptable", "systemd"}}}
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&BinaryRegexFilter{}})
 	assert.NoError(t, err)
-	ev := v1.Event{
+	ev := event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
 				ProcessExec: &tetragon.ProcessExec{
@@ -26,7 +26,7 @@ func TestBinaryRegexFilterBasic(t *testing.T) {
 		},
 	}
 	assert.True(t, fl.MatchOne(&ev))
-	ev = v1.Event{
+	ev = event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
 				ProcessExec: &tetragon.ProcessExec{
@@ -36,7 +36,7 @@ func TestBinaryRegexFilterBasic(t *testing.T) {
 		},
 	}
 	assert.True(t, fl.MatchOne(&ev))
-	ev = v1.Event{
+	ev = event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
 				ProcessExec: &tetragon.ProcessExec{
@@ -48,7 +48,7 @@ func TestBinaryRegexFilterBasic(t *testing.T) {
 		},
 	}
 	assert.True(t, fl.MatchOne(&ev))
-	ev = v1.Event{
+	ev = event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
 				ProcessExec: &tetragon.ProcessExec{
@@ -60,7 +60,7 @@ func TestBinaryRegexFilterBasic(t *testing.T) {
 		},
 	}
 	assert.True(t, fl.MatchOne(&ev))
-	ev = v1.Event{
+	ev = event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
 				ProcessExec: &tetragon.ProcessExec{
@@ -78,7 +78,7 @@ func TestBinaryRegexFilterAdvanced(t *testing.T) {
 	f := []*tetragon.Filter{{BinaryRegex: []string{"/usr/sbin/.*", "^/usr/lib/systemd/systemd$"}}}
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&BinaryRegexFilter{}})
 	assert.NoError(t, err)
-	ev := v1.Event{
+	ev := event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
 				ProcessExec: &tetragon.ProcessExec{
@@ -90,7 +90,7 @@ func TestBinaryRegexFilterAdvanced(t *testing.T) {
 		},
 	}
 	assert.True(t, fl.MatchOne(&ev))
-	ev = v1.Event{
+	ev = event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
 				ProcessExec: &tetragon.ProcessExec{
@@ -102,7 +102,7 @@ func TestBinaryRegexFilterAdvanced(t *testing.T) {
 		},
 	}
 	assert.True(t, fl.MatchOne(&ev))
-	ev = v1.Event{
+	ev = event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
 				ProcessExec: &tetragon.ProcessExec{
@@ -114,7 +114,7 @@ func TestBinaryRegexFilterAdvanced(t *testing.T) {
 		},
 	}
 	assert.True(t, fl.MatchOne(&ev))
-	ev = v1.Event{
+	ev = event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
 				ProcessExec: &tetragon.ProcessExec{
@@ -139,16 +139,16 @@ func TestBinaryRegexFilterInvalidEvent(t *testing.T) {
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&BinaryRegexFilter{}})
 	assert.NoError(t, err)
 	assert.False(t, fl.MatchOne(nil))
-	assert.False(t, fl.MatchOne(&v1.Event{Event: nil}))
-	assert.False(t, fl.MatchOne(&v1.Event{Event: struct{}{}}))
-	assert.False(t, fl.MatchOne(&v1.Event{Event: &tetragon.GetEventsResponse{Event: nil}}))
-	assert.False(t, fl.MatchOne(&v1.Event{Event: &tetragon.GetEventsResponse{
+	assert.False(t, fl.MatchOne(&event.Event{Event: nil}))
+	assert.False(t, fl.MatchOne(&event.Event{Event: struct{}{}}))
+	assert.False(t, fl.MatchOne(&event.Event{Event: &tetragon.GetEventsResponse{Event: nil}}))
+	assert.False(t, fl.MatchOne(&event.Event{Event: &tetragon.GetEventsResponse{
 		Event: &tetragon.GetEventsResponse_ProcessExec{ProcessExec: &tetragon.ProcessExec{Process: nil}},
 	}}))
-	assert.False(t, fl.MatchOne(&v1.Event{Event: &tetragon.GetEventsResponse{
+	assert.False(t, fl.MatchOne(&event.Event{Event: &tetragon.GetEventsResponse{
 		Event: &tetragon.GetEventsResponse_ProcessExec{ProcessExec: &tetragon.ProcessExec{Process: nil}},
 	}}))
-	assert.False(t, fl.MatchOne(&v1.Event{Event: &tetragon.GetEventsResponse{
+	assert.False(t, fl.MatchOne(&event.Event{Event: &tetragon.GetEventsResponse{
 		Event: &tetragon.GetEventsResponse_ProcessExec{ProcessExec: &tetragon.ProcessExec{Process: nil}},
 	}}))
 }
@@ -157,7 +157,7 @@ func TestParentBinaryRegexFilter(t *testing.T) {
 	f := []*tetragon.Filter{{ParentBinaryRegex: []string{"bash", "zsh"}}}
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&ParentBinaryRegexFilter{}})
 	assert.NoError(t, err)
-	ev := v1.Event{
+	ev := event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
 				ProcessExec: &tetragon.ProcessExec{
@@ -167,7 +167,7 @@ func TestParentBinaryRegexFilter(t *testing.T) {
 		},
 	}
 	assert.False(t, fl.MatchOne(&ev))
-	ev = v1.Event{
+	ev = event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
 				ProcessExec: &tetragon.ProcessExec{
@@ -178,7 +178,7 @@ func TestParentBinaryRegexFilter(t *testing.T) {
 		},
 	}
 	assert.False(t, fl.MatchOne(&ev))
-	ev = v1.Event{
+	ev = event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
 				ProcessExec: &tetragon.ProcessExec{
@@ -189,7 +189,7 @@ func TestParentBinaryRegexFilter(t *testing.T) {
 		},
 	}
 	assert.True(t, fl.MatchOne(&ev))
-	ev = v1.Event{
+	ev = event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
 				ProcessExec: &tetragon.ProcessExec{
@@ -209,7 +209,7 @@ func TestAncestorBinaryRegexFilter(t *testing.T) {
 	}}
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&AncestorBinaryRegexFilter{}})
 	assert.NoError(t, err)
-	ev := v1.Event{
+	ev := event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
 				ProcessExec: &tetragon.ProcessExec{
@@ -219,7 +219,7 @@ func TestAncestorBinaryRegexFilter(t *testing.T) {
 		},
 	}
 	assert.False(t, fl.MatchOne(&ev))
-	ev = v1.Event{
+	ev = event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
 				ProcessExec: &tetragon.ProcessExec{
@@ -230,7 +230,7 @@ func TestAncestorBinaryRegexFilter(t *testing.T) {
 		},
 	}
 	assert.False(t, fl.MatchOne(&ev))
-	ev = v1.Event{
+	ev = event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
 				ProcessExec: &tetragon.ProcessExec{
@@ -241,7 +241,7 @@ func TestAncestorBinaryRegexFilter(t *testing.T) {
 		},
 	}
 	assert.False(t, fl.MatchOne(&ev))
-	ev = v1.Event{
+	ev = event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
 				ProcessExec: &tetragon.ProcessExec{
@@ -256,7 +256,7 @@ func TestAncestorBinaryRegexFilter(t *testing.T) {
 		},
 	}
 	assert.False(t, fl.MatchOne(&ev))
-	ev = v1.Event{
+	ev = event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
 				ProcessExec: &tetragon.ProcessExec{
@@ -271,7 +271,7 @@ func TestAncestorBinaryRegexFilter(t *testing.T) {
 		},
 	}
 	assert.True(t, fl.MatchOne(&ev))
-	ev = v1.Event{
+	ev = event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
 				ProcessExec: &tetragon.ProcessExec{

@@ -7,8 +7,8 @@ import (
 	"context"
 	"testing"
 
-	v1 "github.com/cilium/cilium/pkg/hubble/api/v1"
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/event"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -20,7 +20,7 @@ func TestContainerID(t *testing.T) {
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&ContainerIDFilter{}})
 	assert.NoError(t, err)
 	process := tetragon.Process{Docker: "2f00a73446e0"}
-	ev := v1.Event{
+	ev := event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
 				ProcessExec: &tetragon.ProcessExec{
@@ -39,7 +39,7 @@ func TestInInitTree(t *testing.T) {
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&InInitTreeFilter{}})
 	assert.NoError(t, err)
 	process := tetragon.Process{}
-	ev := v1.Event{
+	ev := event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
 				ProcessExec: &tetragon.ProcessExec{

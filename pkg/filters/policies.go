@@ -6,15 +6,14 @@ package filters
 import (
 	"context"
 
-	v1 "github.com/cilium/cilium/pkg/hubble/api/v1"
-	hubbleFilters "github.com/cilium/cilium/pkg/hubble/filters"
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/event"
 )
 
 // filterByPolicyName returns a FilterFunc. The FilterFunc returns true if and only if any of the
 // specified policy names select the event.
-func filterByPolicyName(values []string) hubbleFilters.FilterFunc {
-	return func(ev *v1.Event) bool {
+func filterByPolicyName(values []string) FilterFunc {
+	return func(ev *event.Event) bool {
 		policyName := GetPolicyName(ev)
 		if policyName == "" {
 			return false
@@ -32,8 +31,8 @@ func filterByPolicyName(values []string) hubbleFilters.FilterFunc {
 type PolicyNamesFilter struct{}
 
 // OnBuildFilter builds a Tetragon policy name filter
-func (f *PolicyNamesFilter) OnBuildFilter(_ context.Context, filter *tetragon.Filter) ([]hubbleFilters.FilterFunc, error) {
-	var fs []hubbleFilters.FilterFunc
+func (f *PolicyNamesFilter) OnBuildFilter(_ context.Context, filter *tetragon.Filter) ([]FilterFunc, error) {
+	var fs []FilterFunc
 
 	if filter.PolicyNames != nil {
 		fs = append(fs, filterByPolicyName(filter.PolicyNames))

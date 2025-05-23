@@ -7,10 +7,10 @@ import (
 	"maps"
 	"slices"
 
-	v1 "github.com/cilium/cilium/pkg/hubble/api/v1"
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/api/v1/tetragon/codegen/helpers"
 	"github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/event"
 	"github.com/cilium/tetragon/pkg/filters"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics"
@@ -139,7 +139,7 @@ func handleProcessedEvent(pInfo *tracingpolicy.PolicyInfo, processedEvent interf
 	var eventType, namespace, workload, pod, binary string
 	switch ev := processedEvent.(type) {
 	case *tetragon.GetEventsResponse:
-		binary, pod, workload, namespace = GetProcessInfo(filters.GetProcess(&v1.Event{Event: ev}))
+		binary, pod, workload, namespace = GetProcessInfo(filters.GetProcess(&event.Event{Event: ev}))
 		var err error
 		eventType, err = helpers.ResponseTypeString(ev)
 		if err != nil {

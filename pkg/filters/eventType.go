@@ -6,14 +6,13 @@ package filters
 import (
 	"context"
 
-	v1 "github.com/cilium/cilium/pkg/hubble/api/v1"
-	hubbleFilters "github.com/cilium/cilium/pkg/hubble/filters"
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	pkgEvent "github.com/cilium/tetragon/pkg/event"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-func filterByEventType(types []tetragon.EventType) hubbleFilters.FilterFunc {
-	return func(ev *v1.Event) bool {
+func filterByEventType(types []tetragon.EventType) FilterFunc {
+	return func(ev *pkgEvent.Event) bool {
 		switch event := ev.Event.(type) {
 		case *tetragon.GetEventsResponse:
 			eventProtoNum := tetragon.EventType_UNDEF
@@ -40,8 +39,8 @@ func filterByEventType(types []tetragon.EventType) hubbleFilters.FilterFunc {
 
 type EventTypeFilter struct{}
 
-func (f *EventTypeFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]hubbleFilters.FilterFunc, error) {
-	var fs []hubbleFilters.FilterFunc
+func (f *EventTypeFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]FilterFunc, error) {
+	var fs []FilterFunc
 	if ff.EventSet != nil {
 		fs = append(fs, filterByEventType(ff.EventSet))
 	}

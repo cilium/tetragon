@@ -7,8 +7,8 @@ import (
 	"context"
 	"testing"
 
-	v1 "github.com/cilium/cilium/pkg/hubble/api/v1"
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/event"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -77,8 +77,8 @@ func TestPolicyNamesFilterNilValue(t *testing.T) {
 
 // eventsWithPolicyName generates kprobe, tracepoint, uprobe, and lsm events
 // with the specified policy name.
-func eventsWithPolicyName(policyName string) []v1.Event {
-	return []v1.Event{
+func eventsWithPolicyName(policyName string) []event.Event {
+	return []event.Event{
 		{
 			Event: &tetragon.GetEventsResponse{
 				Event: &tetragon.GetEventsResponse_ProcessKprobe{
