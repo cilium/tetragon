@@ -8,7 +8,7 @@
   // config, for example the regex. See:
   // https://docs.renovatebot.com/self-hosted-configuration/#requireconfig
   "requireConfig": "ignored",
-  "allowedPostUpgradeCommands": [
+  "allowedCommands": [
     "^/tmp/install-buildx$", 
     "^make protogen$",
     "^make crds$",
@@ -497,9 +497,9 @@
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": [
-        "^\\.github/workflows/[^/]+\\.ya?ml$",
-        "^docs/hugo.toml$",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/[^/]+\\.ya?ml$/",
+        "docs/hugo.toml",
       ],
       "matchStrings": [
         // this regex is used to match both:
@@ -515,9 +515,9 @@
     {
       "customType": "regex",
       // explicitely not writing ^Makefile$ to match files with Makefile.extension
-      "fileMatch": [
-        "Makefile",
-        "^contrib/update-helm-chart.sh$",
+      "managerFilePatterns": [
+        "**/Makefile*",
+        "contrib/update-helm-chart.sh",
       ],
       // This regex is for upgrading docker image full reference in Makefiles or scripts, for examples:
       //
@@ -533,8 +533,8 @@
     {
       "customType": "regex",
       // match all go.mod in all subfolders
-      "fileMatch": [
-        "go\\.mod$"
+      "managerFilePatterns": [
+        "**/**go.mod"
       ],
       "matchStrings": [
         "// renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s+go (?<currentValue>.*)"
@@ -542,8 +542,8 @@
     },
     {
       "customType": "regex",
-      "fileMatch": [
-        "^Dockerfile$"
+      "managerFilePatterns": [
+        "Dockerfile"
       ],
       "matchStrings": [
         "# renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s+&& git clone --depth 1 --branch (?<currentValue>v\\d+\\.\\d+\\.\\d+)"
@@ -551,8 +551,8 @@
     },
     {
       "customType": "regex",
-      "fileMatch": [
-        "^cmd/tetragon-metrics-docs/metricsmd/metricsmd.go$"
+      "managerFilePatterns": [
+        "cmd/tetragon-metrics-docs/metricsmd/metricsmd.go"
       ],
       "matchStrings": [
         "\\/\\/ renovate: datasource=(?<datasource>.*?)\\s+Values: \\[]string{\"(?<depName>go)(?<currentValue>.*?)\""
@@ -560,8 +560,8 @@
     },
     {
       "customType": "regex",
-      "fileMatch": [
-        "^tests/e2e/helpers/cluster.go$"
+      "managerFilePatterns": [
+        "tests/e2e/helpers/cluster.go"
       ],
       "matchStrings": [
         "\\/\\/ renovate: datasource=(?<datasource>.*?)\\s+.*\"(?<depName>.*?):(?<currentValue>.*?)\""
@@ -569,8 +569,8 @@
     },
     {
       "customType": "regex",
-      "fileMatch": [
-        "^tests/e2e/flags/flags.go$"
+      "managerFilePatterns": [
+        "tests/e2e/flags/flags.go"
       ],
       "matchStrings": [
         "\\/\\/ renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s+CiliumVersion:\\s*\"(?<currentValue>.*?)\""
