@@ -21,6 +21,7 @@ generate:
 .PHONY: __do_generate
 __do_generate:
 	./tools/controller-gen crd paths=./apis/... output:dir=apis/cilium.io/client/crds/v1alpha1
+	./tools/controller-gen object:headerFile=./tools/header.txt paths=./apis/... output:dir=apis/cilium.io/v1alpha1
 
 .PHONY: vendor
 vendor:
