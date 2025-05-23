@@ -71,9 +71,8 @@ func (pi *policyInfo) policyConfMap(prog *program.Program) *program.Map {
 	}
 	pi.policyConf = program.MapBuilderPolicy("policy_conf", prog)
 	prog.MapLoad = append(prog.MapLoad, &program.MapLoad{
-		Index: 0,
-		Name:  policyconf.PolicyConfMapName,
-		Load: func(m *ebpf.Map, _ string, _ uint32) error {
+		Name: policyconf.PolicyConfMapName,
+		Load: func(m *ebpf.Map, _ string) error {
 			mode := policyconf.EnforceMode
 			if pi.specOpts != nil {
 				mode = pi.specOpts.policyMode

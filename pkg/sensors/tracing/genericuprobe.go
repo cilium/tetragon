@@ -129,17 +129,15 @@ func loadSingleUprobeSensor(uprobeEntry *genericUprobe, args sensors.LoadProbeAr
 
 	mapLoad := []*program.MapLoad{
 		{
-			Index: 0,
-			Name:  "config_map",
-			Load: func(m *ebpf.Map, _ string, index uint32) error {
-				return m.Update(index, configData.Bytes()[:], ebpf.UpdateAny)
+			Name: "config_map",
+			Load: func(m *ebpf.Map, _ string) error {
+				return m.Update(uint32(0), configData.Bytes()[:], ebpf.UpdateAny)
 			},
 		},
 		{
-			Index: 0,
-			Name:  "filter_map",
-			Load: func(m *ebpf.Map, _ string, index uint32) error {
-				return m.Update(index, selBuff[:], ebpf.UpdateAny)
+			Name: "filter_map",
+			Load: func(m *ebpf.Map, _ string) error {
+				return m.Update(uint32(0), selBuff[:], ebpf.UpdateAny)
 			},
 		},
 	}
@@ -175,17 +173,15 @@ func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) er
 
 		mapLoad := []*program.MapLoad{
 			{
-				Index: uint32(index),
-				Name:  "config_map",
-				Load: func(m *ebpf.Map, _ string, index uint32) error {
-					return m.Update(index, configData.Bytes()[:], ebpf.UpdateAny)
+				Name: "config_map",
+				Load: func(m *ebpf.Map, _ string) error {
+					return m.Update(uint32(index), configData.Bytes()[:], ebpf.UpdateAny)
 				},
 			},
 			{
-				Index: uint32(index),
-				Name:  "filter_map",
-				Load: func(m *ebpf.Map, _ string, index uint32) error {
-					return m.Update(index, selBuff[:], ebpf.UpdateAny)
+				Name: "filter_map",
+				Load: func(m *ebpf.Map, _ string) error {
+					return m.Update(uint32(index), selBuff[:], ebpf.UpdateAny)
 				},
 			},
 		}
