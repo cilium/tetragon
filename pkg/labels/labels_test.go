@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"testing"
 
-	slimv1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
+	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/stretchr/testify/require"
 )
 

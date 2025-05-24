@@ -8,11 +8,10 @@ package v1
 import (
 	"fmt"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	"github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/labels"
-	"github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/selection"
+	"github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/labels"
+	"github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/selection"
 )
 
 // LabelSelectorAsSelector converts the LabelSelector api type into a struct that implements
@@ -164,64 +163,4 @@ func FormatLabelSelector(labelSelector *LabelSelector) string {
 		l = "<none>"
 	}
 	return l
-}
-
-// FullOwnerReferences converts slim OwnerReferences to original OwnerReferences
-func FullOwnerReferences(references []OwnerReference) []metav1.OwnerReference {
-	var fullRefs []metav1.OwnerReference
-	for _, ref := range references {
-		full := metav1.OwnerReference{
-			APIVersion: ref.APIVersion,
-			UID:        ref.UID,
-			Name:       ref.Name,
-			Kind:       ref.Kind,
-			Controller: ref.Controller,
-		}
-		fullRefs = append(fullRefs, full)
-	}
-	return fullRefs
-}
-
-// SlimOwnerReferences converts original OwnerReferences to slim OwnerReferences
-func SlimOwnerReferences(references []metav1.OwnerReference) []OwnerReference {
-	var slimRefs []OwnerReference
-	for _, ref := range references {
-		slim := OwnerReference{
-			APIVersion: ref.APIVersion,
-			Name:       ref.Name,
-			UID:        ref.UID,
-			Kind:       ref.Kind,
-			Controller: ref.Controller,
-		}
-		slimRefs = append(slimRefs, slim)
-	}
-	return slimRefs
-}
-
-// HasAnnotation returns a bool if passed in annotation exists
-func HasAnnotation(obj ObjectMeta, ann string) bool {
-	_, found := obj.Annotations[ann]
-	return found
-}
-
-// SetMetaDataAnnotation sets the annotation and value
-func SetMetaDataAnnotation(obj *ObjectMeta, ann string, value string) {
-	if obj.Annotations == nil {
-		obj.Annotations = make(map[string]string)
-	}
-	obj.Annotations[ann] = value
-}
-
-// HasLabel returns a bool if passed in label exists
-func HasLabel(obj ObjectMeta, label string) bool {
-	_, found := obj.Labels[label]
-	return found
-}
-
-// SetMetaDataLabel sets the label and value
-func SetMetaDataLabel(obj *ObjectMeta, label string, value string) {
-	if obj.Labels == nil {
-		obj.Labels = make(map[string]string)
-	}
-	obj.Labels[label] = value
 }
