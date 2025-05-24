@@ -3,9 +3,6 @@
 github.com/blang/semver/v4
 # github.com/cilium/cilium v1.17.4
 ## explicit; go 1.24.0
-github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/labels
-github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1
-github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/selection
 github.com/cilium/cilium/pkg/lock
 github.com/cilium/cilium/pkg/logging
 github.com/cilium/cilium/pkg/logging/logfields

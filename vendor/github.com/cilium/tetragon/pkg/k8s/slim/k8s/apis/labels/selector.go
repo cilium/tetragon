@@ -17,7 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/klog/v2"
 
-	"github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/selection"
+	"github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/selection"
 )
 
 var (
