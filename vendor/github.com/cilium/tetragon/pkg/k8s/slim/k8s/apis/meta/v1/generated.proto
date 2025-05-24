@@ -6,13 +6,13 @@
 
 syntax = "proto2";
 
-package github.com.cilium.cilium.pkg.k8s.slim.k8s.apis.meta.v1;
+package github.com.cilium.tetragon.pkg.k8s.slim.k8s.apis.meta.v1;
 
 import "k8s.io/apimachinery/pkg/runtime/generated.proto";
 import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
 
 // Package-wide variables from generator "generated".
-option go_package = "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1";
+option go_package = "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1";
 
 // Condition contains details for one aspect of the current state of this API Resource.
 // ---
