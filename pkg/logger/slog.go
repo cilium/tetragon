@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright Authors of Cilium
+// Copyright Authors of Tetragon
 
-package logging
+package logger
 
 import (
 	"context"
@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cilium/tetragon/pkg/logger/logfields"
+	"github.com/go-logr/logr"
 	"github.com/sirupsen/logrus"
-
-	"github.com/cilium/cilium/pkg/logging/logfields"
 )
 
 // logrErrorKey is the key used by the logr library for the error parameter.
@@ -34,8 +34,8 @@ var slogHandlerOpts = &slog.HandlerOptions{
 	ReplaceAttr: replaceAttrFnWithoutTimestamp,
 }
 
-// Default slog logger. Will be overwritten once initializeSlog is called.
-var DefaultSlogLogger *slog.Logger = slog.New(slog.NewTextHandler(
+// DefaultSlogLogger is for convenient usage. Will be overwritten once initializeSlog is called.
+var DefaultSlogLogger = slog.New(slog.NewTextHandler(
 	os.Stderr,
 	slogHandlerOpts,
 ))
@@ -55,17 +55,17 @@ func slogLevel(l logrus.Level) slog.Level {
 	}
 }
 
-// Approximates the logrus output via slog for job groups during the transition
+// InitializeSlog approximates the logrus output via slog for job groups during the transition
 // phase.
-func initializeSlog(logOpts LogOptions, useStdout bool) {
+func InitializeSlog(logOpts LogOptions, useStdout bool) {
 	opts := *slogHandlerOpts
-	opts.Level = slogLevel(logOpts.GetLogLevel())
+	opts.Level = slogLevel(logOpts.getLogLevel())
 
-	logFormat := logOpts.GetLogFormat()
+	logFormat := logOpts.getLogFormat()
 	switch logFormat {
-	case LogFormatJSON, LogFormatText:
+	case logFormatJSON, logFormatText:
 		opts.ReplaceAttr = replaceAttrFnWithoutTimestamp
-	case LogFormatJSONTimestamp, LogFormatTextTimestamp:
+	case logFormatJSONTimestamp, logFormatTextTimestamp:
 		opts.ReplaceAttr = replaceAttrFn
 	}
 
@@ -75,12 +75,12 @@ func initializeSlog(logOpts LogOptions, useStdout bool) {
 	}
 
 	switch logFormat {
-	case LogFormatJSON, LogFormatJSONTimestamp:
+	case logFormatJSON, logFormatJSONTimestamp:
 		DefaultSlogLogger = slog.New(slog.NewJSONHandler(
 			writer,
 			&opts,
 		))
-	case LogFormatText, LogFormatTextTimestamp:
+	case logFormatText, logFormatTextTimestamp:
 		DefaultSlogLogger = slog.New(slog.NewTextHandler(
 			writer,
 			&opts,
@@ -88,7 +88,7 @@ func initializeSlog(logOpts LogOptions, useStdout bool) {
 	}
 }
 
-func replaceAttrFn(groups []string, a slog.Attr) slog.Attr {
+func replaceAttrFn(_ []string, a slog.Attr) slog.Attr {
 	switch a.Key {
 	case slog.TimeKey:
 		// Adjust to timestamp format that logrus uses; except that we can't
@@ -118,4 +118,22 @@ func replaceAttrFnWithoutTimestamp(groups []string, a slog.Attr) slog.Attr {
 	default:
 		return replaceAttrFn(groups, a)
 	}
+}
+
+func NewLogrFromSlog(logger *slog.Logger) logr.Logger {
+	return logr.New(logSink{logr.FromSlogHandler(logger.Handler()).GetSink()})
+}
+
+type logSink struct{ logr.LogSink }
+
+func (w logSink) Error(err error, msg string, keysAndValues ...any) {
+	w.LogSink.Error(err, msg, keysAndValues...)
+}
+
+func (w logSink) WithValues(keysAndValues ...any) logr.LogSink {
+	return logSink{w.LogSink.WithValues(keysAndValues...)}
+}
+
+func (w logSink) WithName(name string) logr.LogSink {
+	return logSink{w.LogSink.WithName(name)}
 }

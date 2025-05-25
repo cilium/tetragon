@@ -15,6 +15,7 @@ require (
 	github.com/containerd/cgroups v1.1.0
 	github.com/deckarep/golang-set/v2 v2.8.0
 	github.com/fatih/color v1.18.0
+	github.com/go-logr/logr v1.4.2
 	github.com/google/cel-go v0.23.2
 	github.com/google/go-cmp v0.7.0
 	github.com/google/gops v0.3.28
@@ -83,7 +84,6 @@ require (
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
-	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/jsonreference v0.21.0 // indirect

@@ -17,8 +17,10 @@ const (
 	LevelOpt  = "level"
 	FormatOpt = "format"
 
-	logFormatText LogFormat = "text"
-	logFormatJSON LogFormat = "json"
+	logFormatText          LogFormat = "text"
+	logFormatTextTimestamp LogFormat = "text-ts"
+	logFormatJSON          LogFormat = "json"
+	logFormatJSONTimestamp LogFormat = "json-ts"
 
 	defaultLogFormat LogFormat    = logFormatText
 	defaultLogLevel  logrus.Level = logrus.InfoLevel
