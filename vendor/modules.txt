@@ -35,7 +35,6 @@ github.com/cespare/xxhash/v2
 # github.com/cilium/cilium v1.17.4
 ## explicit; go 1.24.0
 github.com/cilium/cilium/pkg/alignchecker
-github.com/cilium/cilium/pkg/versioncheck
 # github.com/cilium/ebpf v0.18.0
 ## explicit; go 1.23.0
 github.com/cilium/ebpf
@@ -85,6 +84,7 @@ github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/labels
 github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1
 github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/selection
 github.com/cilium/tetragon/pkg/k8s/version
+github.com/cilium/tetragon/pkg/k8s/versioncheck
 # github.com/containerd/cgroups v1.1.0
 ## explicit; go 1.17
 github.com/containerd/cgroups
