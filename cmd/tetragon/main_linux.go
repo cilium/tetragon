@@ -38,7 +38,7 @@ func checkStructAlignments() error {
 	if err != nil {
 		return err
 	}
-	return alignchecker.CheckStructAlignments(path)
+	return alignchecker.CheckStructAlignmentsDefault(path)
 }
 
 func setNetNSDir() {

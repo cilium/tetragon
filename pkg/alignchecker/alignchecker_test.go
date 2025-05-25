@@ -29,6 +29,6 @@ func init() {
 func Test_Alignments(t *testing.T) {
 	bpfObjPath := filepath.Join(tetragonLib, "bpf_alignchecker.o")
 
-	err := CheckStructAlignments(bpfObjPath)
+	err := CheckStructAlignmentsDefault(bpfObjPath)
 	assert.NoError(t, err, "structs must align")
 }
