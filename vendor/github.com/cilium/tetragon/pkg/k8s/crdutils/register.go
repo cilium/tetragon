@@ -11,7 +11,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/cilium/cilium/pkg/versioncheck"
+	ciliumio "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/k8s/versioncheck"
 	"golang.org/x/sync/errgroup"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -20,9 +22,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/yaml"
-
-	ciliumio "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io"
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 )
 
 const (

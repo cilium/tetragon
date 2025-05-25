@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/cilium/cilium/pkg/versioncheck"
+	"github.com/cilium/tetragon/pkg/k8s/versioncheck"
 
 	semver "github.com/blang/semver/v4"
 	"k8s.io/client-go/kubernetes"
