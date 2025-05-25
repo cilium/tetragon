@@ -3,8 +3,6 @@
 github.com/blang/semver/v4
 # github.com/cilium/cilium v1.17.4
 ## explicit; go 1.24.0
-github.com/cilium/cilium/pkg/logging
-github.com/cilium/cilium/pkg/logging/logfields
 github.com/cilium/cilium/pkg/versioncheck
 # github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 ## explicit
@@ -88,10 +86,6 @@ github.com/munnerz/goautoneg
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
-# github.com/sirupsen/logrus v1.9.3
-## explicit; go 1.13
-github.com/sirupsen/logrus
-github.com/sirupsen/logrus/hooks/syslog
 # github.com/spf13/cobra v1.9.1
 ## explicit; go 1.15
 github.com/spf13/cobra

@@ -7,10 +7,10 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
+	"log/slog"
+	"os"
 	"time"
 
-	"github.com/cilium/cilium/pkg/logging"
-	"github.com/cilium/cilium/pkg/logging/logfields"
 	"github.com/cilium/cilium/pkg/versioncheck"
 	"golang.org/x/sync/errgroup"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -23,7 +23,6 @@ import (
 
 	ciliumio "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -35,9 +34,6 @@ const (
 )
 
 var (
-	// log is the k8s package logger object.
-	log = logging.DefaultLogger.WithField(logfields.LogSubsys, subsysK8s)
-
 	comparableCRDSchemaVersion = versioncheck.MustVersion(v1alpha1.CustomResourceDefinitionSchemaVersion)
 )
 
@@ -52,10 +48,11 @@ type CRD struct {
 	ResName    string
 }
 
-func NewCRDBytes(crdName, resName string, crdBytes []byte) CRD {
+func NewCRDBytes(logger *slog.Logger, crdName, resName string, crdBytes []byte) CRD {
 	isoCRD := apiextensionsv1.CustomResourceDefinition{}
 	if err := yaml.Unmarshal(crdBytes, &isoCRD); err != nil {
-		log.WithField("crdName", crdName).WithError(err).Fatal("Error unmarshalling pre-generated CRD")
+		logger.With("crdName", crdName).With("error", err).Error("Error unmarshalling pre-generated CRD")
+		os.Exit(1)
 	}
 
 	return NewCRD(crdName, resName, isoCRD)
@@ -69,23 +66,24 @@ func NewCRD(crdName, resName string, crd apiextensionsv1.CustomResourceDefinitio
 	}
 }
 
-func RegisterCRDs(clientset apiextensionsclient.Interface, crds []CRD) error {
-	return RegisterCRDsWithOptions(clientset, crds, CRDOptions{})
+func RegisterCRDs(logger *slog.Logger, clientset apiextensionsclient.Interface, crds []CRD) error {
+	return RegisterCRDsWithOptions(logger, clientset, crds, CRDOptions{})
 }
 
-func RegisterCRDsWithOptions(clientset apiextensionsclient.Interface, crds []CRD, opts CRDOptions) error {
+func RegisterCRDsWithOptions(logger *slog.Logger, clientset apiextensionsclient.Interface, crds []CRD, opts CRDOptions) error {
 	g, _ := errgroup.WithContext(context.Background())
 	g.Go(func() error {
-		return createCRDs(clientset, crds, opts)
+		return createCRDs(logger, clientset, crds, opts)
 	})
 
 	return g.Wait()
 }
 
 // createCRDs creates or updates the CRDs with the API server.
-func createCRDs(clientset apiextensionsclient.Interface, crds []CRD, opts CRDOptions) error {
+func createCRDs(logger *slog.Logger, clientset apiextensionsclient.Interface, crds []CRD, opts CRDOptions) error {
 	doCreateCRD := func(crd *CRD) error {
 		err := createUpdateCRD(
+			logger,
 			clientset,
 			crd.CRDName,
 			constructV1CRD(crd.ResName, crd.Definition),
@@ -112,13 +110,14 @@ func createCRDs(clientset apiextensionsclient.Interface, crds []CRD, opts CRDOpt
 // CRDs into v1 form and only perform conversions on-demand, simplifying the
 // code.
 func createUpdateCRD(
+	logger *slog.Logger,
 	clientset apiextensionsclient.Interface,
 	crdName string,
 	crd *apiextensionsv1.CustomResourceDefinition,
 	poller poller,
 	opts CRDOptions,
 ) error {
-	scopedLog := log.WithField("name", crdName)
+	scopedLog := logger.With("name", crdName)
 	v1CRDClient := clientset.ApiextensionsV1()
 	// get the CRD if it is already registered.
 	clusterCRD, err := v1CRDClient.CustomResourceDefinitions().Get(
@@ -216,7 +215,7 @@ func needsUpdateV1(clusterCRD *apiextensionsv1.CustomResourceDefinition, opts CR
 
 // updateV1CRD checks and updates the pre-existing CRD with the new one.
 func updateV1CRD(
-	scopedLog *logrus.Entry,
+	scopedLog *slog.Logger,
 	crd, clusterCRD *apiextensionsv1.CustomResourceDefinition,
 	client v1client.CustomResourceDefinitionsGetter,
 	poller poller,
@@ -259,14 +258,14 @@ func updateV1CRD(
 					metav1.UpdateOptions{})
 				switch {
 				case errors.IsConflict(err): // Occurs as Operators race to update CRDs.
-					scopedLog.WithError(err).
+					scopedLog.With("error", err).
 						Debug("The CRD update was based on an older version, retrying...")
 					return false, nil
 				case err == nil:
 					return true, nil
 				}
 
-				scopedLog.WithError(err).Debug("Unable to update CRD validation")
+				scopedLog.With("error", err).Debug("Unable to update CRD validation")
 
 				return false, err
 			}
@@ -274,7 +273,7 @@ func updateV1CRD(
 			return true, nil
 		})
 		if err != nil {
-			scopedLog.WithError(err).Error("Unable to update CRD")
+			scopedLog.With("error", err).Error("Unable to update CRD")
 			return err
 		}
 	}
@@ -283,13 +282,13 @@ func updateV1CRD(
 }
 
 func waitForV1CRD(
-	scopedLog *logrus.Entry,
+	logger *slog.Logger,
 	crdName string,
 	crd *apiextensionsv1.CustomResourceDefinition,
 	client v1client.CustomResourceDefinitionsGetter,
 	poller poller,
 ) error {
-	scopedLog.Debug("Waiting for CRD (CustomResourceDefinition) to be available...")
+	logger.Debug("Waiting for CRD (CustomResourceDefinition) to be available...")
 
 	err := poller.Poll(500*time.Millisecond, 60*time.Second, func() (bool, error) {
 		for _, cond := range crd.Status.Conditions {
@@ -301,7 +300,7 @@ func waitForV1CRD(
 			case apiextensionsv1.NamesAccepted:
 				if cond.Status == apiextensionsv1.ConditionFalse {
 					err := goerrors.New(cond.Reason)
-					scopedLog.WithError(err).Error("Name conflict for CRD")
+					logger.With("error", err).Error("Name conflict for CRD")
 					return false, err
 				}
 			}
@@ -342,4 +341,3 @@ func (p defaultPoll) Poll(
 ) error {
 	return wait.Poll(interval, duration, conditionFn)
 }
-

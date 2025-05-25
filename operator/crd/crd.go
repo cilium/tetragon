@@ -5,14 +5,14 @@ package crd
 
 import (
 	"fmt"
+	"os"
 
-	"github.com/cilium/cilium/pkg/logging"
-	"github.com/cilium/cilium/pkg/logging/logfields"
 	"github.com/cilium/tetragon/operator/option"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/client"
 	"github.com/cilium/tetragon/pkg/k8s/version"
+	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	version2 "github.com/cilium/tetragon/pkg/version"
-	"github.com/sirupsen/logrus"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -22,38 +22,43 @@ import (
 )
 
 var (
-	log = logging.DefaultLogger.WithField(logfields.LogSubsys, "crd")
+	log = logger.DefaultSlogLogger.With(logfields.LogSubsys, "crd")
 )
 
 func RegisterCRDs() {
 	restConfig, err := getConfig()
 	if err != nil {
-		log.WithError(err).Fatal("Unable to check k8s configuration")
+		log.With(logfields.Error, err).Error("Unable to check k8s configuration")
+		os.Exit(1)
 	}
 
 	k8sClient, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
-		log.WithError(err).Fatal("Unable to create k8s client")
+		log.With(logfields.Error, err).Error("Unable to create k8s client")
+		os.Exit(1)
 	}
 
 	k8sAPIExtClient, err := clientset.NewForConfig(restConfig)
 	if err != nil {
-		log.WithError(err).Fatal("Unable to create k8s API ext. client")
+		log.With(logfields.Error, err).Error("Unable to create k8s API ext. client")
+		os.Exit(1)
 	}
 
 	err = version.UpdateK8sServerVersion(k8sClient)
 	if err != nil {
-		log.WithError(err).Fatal("Unable to check k8s version")
+		log.With(logfields.Error, err).Error("Unable to check k8s version")
+		os.Exit(1)
 	}
 
-	log.WithFields(logrus.Fields{
-		"config":  fmt.Sprintf("%+v", option.Config),
-		"version": version2.Version,
-	}).Info("Starting Tetragon Operator")
+	log.With(
+		"config", fmt.Sprintf("%+v", option.Config),
+		"version", version2.Version,
+	).Info("Starting Tetragon Operator")
 	capabilities := version.Capabilities()
 	if !capabilities.MinimalVersionMet {
-		log.Fatalf("Minimal kubernetes version not met: %s < %s",
-			version.Version(), version.MinimalVersionConstraint)
+		log.Error(fmt.Sprintf("Minimal kubernetes version not met: %s < %s",
+			version.Version(), version.MinimalVersionConstraint))
+		os.Exit(1)
 	}
 
 	crds := []crdutils.CRD{}
@@ -77,8 +82,9 @@ func RegisterCRDs() {
 		}
 
 		// if skipPodInfoCRD flag set true, don't register Pod Info CRD.
-		if err := crdutils.RegisterCRDsWithOptions(k8sAPIExtClient, crds, opts); err != nil {
-			log.WithError(err).Fatal("Unable to Register CRDs")
+		if err := crdutils.RegisterCRDsWithOptions(log, k8sAPIExtClient, crds, opts); err != nil {
+			log.With(logfields.Error, err).Error("Unable to Register CRDs")
+			os.Exit(1)
 		}
 	} else {
 		log.Info("Skipping creation of CRDs")

@@ -8,11 +8,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/cilium/cilium/pkg/logging"
-	"github.com/cilium/cilium/pkg/logging/logfields"
 	"github.com/cilium/tetragon/operator/cmd/common"
 	"github.com/cilium/tetragon/operator/cmd/serve"
 	operatorOption "github.com/cilium/tetragon/operator/option"
+	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -21,7 +21,7 @@ import (
 // New create a new root command.
 func New() *cobra.Command {
 	binaryName := filepath.Base(os.Args[0])
-	log := logging.DefaultLogger.WithField(logfields.LogSubsys, binaryName)
+	log := logger.DefaultSlogLogger.With(logfields.LogSubsys, binaryName)
 
 	rootCmd := &cobra.Command{
 		Use:   binaryName,
@@ -43,10 +43,10 @@ func New() *cobra.Command {
 		if configDir != "" {
 			err := option.ReadConfigDir(configDir)
 			if err != nil {
-				log.WithField(operatorOption.ConfigDir, configDir).WithError(err).Fatal("Failed to read config from directory")
-			} else {
-				log.WithField(operatorOption.ConfigDir, configDir).Info("Loaded config from directory")
+				log.With(operatorOption.ConfigDir, configDir, logfields.Error, err).Error("Failed to read config from directory")
+				os.Exit(1)
 			}
+			log.With(operatorOption.ConfigDir, configDir).Info("Loaded config from directory")
 		}
 	})
 
