@@ -5,6 +5,7 @@ package client
 
 import (
 	_ "embed"
+	"log/slog"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	crdutils "github.com/cilium/tetragon/pkg/k8s/crdutils"
@@ -15,6 +16,7 @@ var (
 	crdsv1Alpha1TracingPolicies []byte
 
 	TracingPolicyCRD = crdutils.NewCRDBytes(
+		slog.Default(),
 		v1alpha1.TPCRDName,
 		v1alpha1.TPName,
 		crdsv1Alpha1TracingPolicies)
@@ -23,6 +25,7 @@ var (
 	crdsv1Alpha1TracingPoliciesNamespaced []byte
 
 	TracingPolicyNamespacedCRD = crdutils.NewCRDBytes(
+		slog.Default(),
 		v1alpha1.TPNamespacedCRDName,
 		v1alpha1.TPNamespacedName,
 		crdsv1Alpha1TracingPoliciesNamespaced)
@@ -31,6 +34,7 @@ var (
 	crdsv1Alpha1PodInfo []byte
 
 	PodInfoCRD = crdutils.NewCRDBytes(
+		slog.Default(),
 		v1alpha1.PICRDName,
 		v1alpha1.PIName,
 		crdsv1Alpha1PodInfo)

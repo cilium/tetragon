@@ -8,13 +8,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/bombsimon/logrusr/v4"
-	"github.com/cilium/cilium/pkg/logging"
-	"github.com/cilium/cilium/pkg/logging/logfields"
 	"github.com/cilium/tetragon/operator/cmd/common"
 	operatorOption "github.com/cilium/tetragon/operator/option"
 	"github.com/cilium/tetragon/operator/podinfo"
 	ciliumiov1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -56,8 +55,7 @@ func New() *cobra.Command {
 		Use:   "serve",
 		Short: "Run Tetragon operator",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			log := logrusr.New(logging.DefaultLogger.WithField(logfields.LogSubsys, "operator"))
-			ctrl.SetLogger(log)
+			ctrl.SetLogger(logger.NewLogrFromSlog(logger.DefaultSlogLogger.With(logfields.LogSubsys, "operator")))
 			common.Initialize(cmd)
 			if err := validateLeaderElectionParams(); err != nil {
 				return fmt.Errorf("invalid leader election parameters: %w", err)

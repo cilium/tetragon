@@ -35,8 +35,6 @@ github.com/cespare/xxhash/v2
 # github.com/cilium/cilium v1.17.4
 ## explicit; go 1.24.0
 github.com/cilium/cilium/pkg/alignchecker
-github.com/cilium/cilium/pkg/logging
-github.com/cilium/cilium/pkg/logging/logfields
 github.com/cilium/cilium/pkg/versioncheck
 # github.com/cilium/ebpf v0.18.0
 ## explicit; go 1.23.0
@@ -378,7 +376,6 @@ github.com/sagikazarmark/locafero
 # github.com/sirupsen/logrus v1.9.3
 ## explicit; go 1.13
 github.com/sirupsen/logrus
-github.com/sirupsen/logrus/hooks/syslog
 # github.com/sourcegraph/conc v0.3.0
 ## explicit; go 1.19
 github.com/sourcegraph/conc
