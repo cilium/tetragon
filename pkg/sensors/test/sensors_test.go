@@ -342,7 +342,7 @@ func TestMapUser(t *testing.T) {
 		}
 
 		err = s1.Load(bpf.MapPrefixPath())
-		assert.Error(t, err)
+		require.Error(t, err)
 		if err == nil {
 			defer s1.Unload(true)
 		}
@@ -566,7 +566,7 @@ func TestCleanup(t *testing.T) {
 		for _, f := range files {
 			_, err := os.Stat(filepath.Join(bpf.MapPrefixPath(), f))
 			t.Logf("Removed checking path: '%s'\n", f)
-			assert.Error(t, err)
+			require.Error(t, err)
 		}
 	}
 
@@ -574,7 +574,7 @@ func TestCleanup(t *testing.T) {
 		for _, f := range files {
 			_, err := os.Stat(filepath.Join(bpf.MapPrefixPath(), f))
 			t.Logf("Exists checking path: '%s'\n", f)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		}
 	}
 
@@ -639,7 +639,7 @@ func TestCleanup(t *testing.T) {
 		}
 
 		err = s1.Load(bpf.MapPrefixPath())
-		assert.Error(t, err)
+		require.Error(t, err)
 		if err == nil {
 			defer s1.Unload(true)
 		}

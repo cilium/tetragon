@@ -15,7 +15,7 @@ import (
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -54,33 +54,33 @@ tetragon_tracingpolicy_loaded{state="load_error"} %d
 			Name: "pizza",
 		},
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	// Add three policies with the same name: one clusterwide, two namespaced
 	err = manager.AddTracingPolicy(context.TODO(), &tracingpolicy.GenericTracingPolicy{
 		Metadata: v1.ObjectMeta{
 			Name: "amazing-one",
 		},
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	err = manager.AddTracingPolicy(context.TODO(), &tracingpolicy.GenericTracingPolicyNamespaced{
 		Metadata: v1.ObjectMeta{
 			Name:      "amazing-one",
 			Namespace: "default",
 		},
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	err = manager.AddTracingPolicy(context.TODO(), &tracingpolicy.GenericTracingPolicyNamespaced{
 		Metadata: v1.ObjectMeta{
 			Name:      "amazing-one",
 			Namespace: "kube-system",
 		},
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	err = testutil.CollectAndCompare(collector, expectedMetrics(0, 4, 0, 0))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = manager.DisableTracingPolicy(context.TODO(), "pizza", "")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	err = testutil.CollectAndCompare(collector, expectedMetrics(1, 3, 0, 0))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }

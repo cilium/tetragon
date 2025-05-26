@@ -10,6 +10,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/event"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPolicyNamesFilterInvalidEvent(t *testing.T) {
@@ -17,7 +18,7 @@ func TestPolicyNamesFilterInvalidEvent(t *testing.T) {
 	filters := []*tetragon.Filter{{PolicyNames: []string{"red-policy"}}}
 	filterFuncs := []OnBuildFilter{&PolicyNamesFilter{}}
 	fs, err := BuildFilterList(ctx, filters, filterFuncs)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	events := eventsWithPolicyName("")
 	for _, ev := range events {
@@ -30,7 +31,7 @@ func TestPolicyNamesFilterCorrectValue(t *testing.T) {
 	filters := []*tetragon.Filter{{PolicyNames: []string{"red-policy", "blue-policy"}}}
 	filterFuncs := []OnBuildFilter{&PolicyNamesFilter{}}
 	fs, err := BuildFilterList(ctx, filters, filterFuncs)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	testCases := []struct {
 		policyName string
@@ -54,7 +55,7 @@ func TestPolicyNamesFilterEmptyValue(t *testing.T) {
 	filters := []*tetragon.Filter{{PolicyNames: []string{""}}}
 	filterFuncs := []OnBuildFilter{&PolicyNamesFilter{}}
 	fs, err := BuildFilterList(ctx, filters, filterFuncs)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	// empty selector matches nothing
 	events := eventsWithPolicyName("red-policy")
 	for _, ev := range events {
@@ -67,7 +68,7 @@ func TestPolicyNamesFilterNilValue(t *testing.T) {
 	filters := []*tetragon.Filter{{PolicyNames: nil}}
 	filterFuncs := []OnBuildFilter{&PolicyNamesFilter{}}
 	fs, err := BuildFilterList(ctx, filters, filterFuncs)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	// nil selector matches everything, i.e., does not filter events
 	events := eventsWithPolicyName("red-policy")
 	for _, ev := range events {

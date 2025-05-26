@@ -338,7 +338,7 @@ func requireCgroupEventOpMkdir(t *testing.T, msg *grpcexec.MsgCgroupEventUnix, c
 	require.EqualValues(t, ops.CGROUP_NEW, msg.CgrpData.State)
 
 	looked, err := cgrouptrackmap.LookupTrackingCgroup(cgrpMapPath, msg.CgrpidTracker)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	if looked == nil {
 		t.Fatalf("Failed to find tracking cgroupID=%d in bpf-map=%s", msg.CgrpidTracker, cgrpMapPath)
 	}
@@ -348,7 +348,7 @@ func requireCgroupEventOpMkdir(t *testing.T, msg *grpcexec.MsgCgroupEventUnix, c
 
 func requireCgroupEventOpRmdir(t *testing.T, msg *grpcexec.MsgCgroupEventUnix, cgrpMapPath string) {
 	looked, err := cgrouptrackmap.LookupTrackingCgroup(cgrpMapPath, msg.CgrpidTracker)
-	assert.Error(t, err)
+	require.Error(t, err)
 	if looked != nil {
 		t.Fatalf("Failed found tracking cgroup with cgroupID=%d in bpf-map=%s", msg.CgrpidTracker, cgrpMapPath)
 	}

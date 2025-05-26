@@ -15,6 +15,7 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/unix"
 )
 
@@ -148,13 +149,13 @@ func Test_PrependName(t *testing.T) {
 	// This part is factorized since it's the setup used in many of the tests below
 	SetupCatBinHelper := func() {
 		err = state.UpdateDentry("cat")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		code := runPrependName()
 		assert.Equal(t, 0, code)
 		assert.Equal(t, "/cat", state.BufferToString())
 
 		err = state.UpdateDentry("bin")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		code = runPrependName()
 		assert.Equal(t, 0, code)
 		assert.Equal(t, "/bin/cat", state.BufferToString())
@@ -166,7 +167,7 @@ func Test_PrependName(t *testing.T) {
 		SetupCatBinHelper()
 
 		err = state.UpdateDentry("usr")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		code := runPrependName()
 		assert.Equal(t, 0, code)
 		assert.Equal(t, "/usr/bin/cat", state.BufferToString())
@@ -178,7 +179,7 @@ func Test_PrependName(t *testing.T) {
 		SetupCatBinHelper()
 
 		err = state.UpdateDentry("usr")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		code := runPrependName()
 		assert.Equal(t, 0, code)
 		assert.NotEqual(t, byte(0), state.Buf()[0])
@@ -191,7 +192,7 @@ func Test_PrependName(t *testing.T) {
 		SetupCatBinHelper()
 
 		err = state.UpdateDentry("usr")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		code := runPrependName()
 		assert.Equal(t, -int(unix.ENAMETOOLONG), code)
 		assert.Equal(t, "usr/bin/cat", state.BufferToString())
@@ -203,7 +204,7 @@ func Test_PrependName(t *testing.T) {
 		SetupCatBinHelper()
 
 		err = state.UpdateDentry("usr")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		code := runPrependName()
 		assert.Equal(t, 0, code)
 		assert.Equal(t, "/usr/bin/cat", state.BufferToString())
@@ -216,7 +217,7 @@ func Test_PrependName(t *testing.T) {
 		SetupCatBinHelper()
 
 		err = state.UpdateDentry("usr")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		code := runPrependName()
 		assert.Equal(t, -int(unix.ENAMETOOLONG), code)
 		assert.Equal(t, "/bin/cat", state.BufferToString())
@@ -228,7 +229,7 @@ func Test_PrependName(t *testing.T) {
 		SetupCatBinHelper()
 
 		err = state.UpdateDentry("usr")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		code := runPrependName()
 		assert.Equal(t, -int(unix.ENAMETOOLONG), code)
 		assert.Equal(t, "sr/bin/cat", state.BufferToString())
@@ -242,14 +243,14 @@ func Test_PrependName(t *testing.T) {
 		state.ResetStateWithBuflen(bufsize)
 
 		err = state.UpdateDentry(longDentry)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		code := runPrependName()
 		assert.Equal(t, 0, code)
 		assert.Equal(t, "/"+longDentry, state.BufferToString())
 
 		// length is 15, so 239 + 15 + 2 slash chars = 256
 		err = state.UpdateDentry("favorite_recipe")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		code = runPrependName()
 		assert.Equal(t, 0, code)
 		assert.Equal(t, "/favorite_recipe"+"/"+longDentry, state.BufferToString())
@@ -264,7 +265,7 @@ func Test_PrependName(t *testing.T) {
 		// (len("/") + 255) * 16 = 4096
 		for range 16 {
 			err = state.UpdateDentry(maxDentry)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			code := runPrependName()
 			assert.Equal(t, 0, code)
 			expectedState += "/" + maxDentry
@@ -280,7 +281,7 @@ func Test_PrependName(t *testing.T) {
 		// (len("/") + 240) * 16 = 3856
 		for range 16 {
 			err = state.UpdateDentry(largeDentry)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			code := runPrependName()
 			assert.Equal(t, 0, code)
 			expectedState = "/" + largeDentry + expectedState
@@ -289,7 +290,7 @@ func Test_PrependName(t *testing.T) {
 		// at this stage, there should be 240 chars left in the buf which leaves
 		// no space for the remaining root slash character
 		err = state.UpdateDentry(largeDentry)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		code := runPrependName()
 		assert.Equal(t, -int(unix.ENAMETOOLONG), code)
 		// note that I intentionally don't add the '/' char

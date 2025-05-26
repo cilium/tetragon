@@ -19,7 +19,7 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMain(m *testing.M) {
@@ -66,7 +66,7 @@ func TestGeneratedExecEvents(t *testing.T) {
 	// export/server machinery running until we get expected results.
 	go func() {
 		err = tetragonExecuteCtx(ctx, cancel, ready)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	}()
 
 	// Wait till tetragon's observer is up and running
@@ -90,5 +90,5 @@ func TestGeneratedExecEvents(t *testing.T) {
 	}
 
 	cancel()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }

@@ -92,6 +92,6 @@ func TestYamlNamespaced(t *testing.T) {
 func TestEmptyTracingPolicy(t *testing.T) {
 	path := crdutils.CreateTempFile(t, "")
 	_, err := FromFile(path)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unknown CRD kind: ")
 }

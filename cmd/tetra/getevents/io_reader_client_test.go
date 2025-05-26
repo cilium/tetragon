@@ -11,19 +11,19 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/testutils"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_ioReaderClient_GetEvents(t *testing.T) {
 	events, err := os.Open(testutils.RepoRootPath("testdata/events.json"))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	client := newIOReaderClient(events, false)
 	getEventsClient, err := client.GetEvents(context.Background(), &tetragon.GetEventsRequest{})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	for range 3 {
 		_, err := getEventsClient.Recv()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	}
 	_, err = getEventsClient.Recv()
-	assert.ErrorIs(t, err, io.EOF)
+	require.ErrorIs(t, err, io.EOF)
 }

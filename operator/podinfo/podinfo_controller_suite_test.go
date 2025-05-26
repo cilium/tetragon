@@ -13,6 +13,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -36,17 +37,17 @@ func (suite *ControllerTestSuite) SetupSuite() {
 		UseExistingCluster: &useExistingCluster,
 	}
 	cfg, err := suite.testEnv.Start()
-	assert.NoError(suite.T(), err)
-	assert.NoError(suite.T(), v1alpha1.AddToScheme(scheme.Scheme))
+	require.NoError(suite.T(), err)
+	require.NoError(suite.T(), v1alpha1.AddToScheme(scheme.Scheme))
 	suite.k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
-	assert.NoError(suite.T(), err)
+	require.NoError(suite.T(), err)
 }
 
 // TestPodInfoCreation checks if PodInfo gets created / deleted for a Pod.
 func (suite *ControllerTestSuite) TestPodInfoCreateAndDelete() {
 	ctx := context.Background()
 	pod := getRandomPod("default")
-	assert.NoError(suite.T(), suite.k8sClient.Create(ctx, pod))
+	require.NoError(suite.T(), suite.k8sClient.Create(ctx, pod))
 
 	podLookupKey := types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}
 	assert.Eventually(suite.T(), func() bool {
@@ -66,7 +67,7 @@ func (suite *ControllerTestSuite) TestPodInfoCreateAndDelete() {
 		return equal(pod, podInfo)
 	}, 20*time.Second, 1*time.Second)
 
-	assert.NoError(suite.T(), suite.k8sClient.Delete(ctx, pod))
+	require.NoError(suite.T(), suite.k8sClient.Delete(ctx, pod))
 	assert.Eventually(suite.T(), func() bool {
 		return apierrors.IsNotFound(suite.k8sClient.Get(ctx, podLookupKey, podInfo))
 	}, 20*time.Second, 1*time.Second)
@@ -76,7 +77,7 @@ func (suite *ControllerTestSuite) TestPodInfoCreateAndDelete() {
 func (suite *ControllerTestSuite) TestPodInfoUpdate() {
 	ctx := context.Background()
 	pod := getRandomPod("default")
-	assert.NoError(suite.T(), suite.k8sClient.Create(ctx, pod))
+	require.NoError(suite.T(), suite.k8sClient.Create(ctx, pod))
 	podLookupKey := types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}
 	assert.Eventually(suite.T(), func() bool {
 		err := suite.k8sClient.Get(ctx, podLookupKey, pod)
@@ -98,7 +99,7 @@ func (suite *ControllerTestSuite) TestPodInfoUpdate() {
 
 	// Update the pod labels.
 	pod.ObjectMeta.Labels = getRandMap()
-	assert.NoError(suite.T(), suite.k8sClient.Update(ctx, pod))
+	require.NoError(suite.T(), suite.k8sClient.Update(ctx, pod))
 
 	// Get the updated podInfo
 	assert.Eventually(suite.T(), func() bool {
@@ -133,7 +134,7 @@ func getRandomPod(namespace string) *corev1.Pod {
 
 // TearDownSuite will close the test environment and close the go-routine running the controller.
 func (suite *ControllerTestSuite) TearDownSuite() {
-	assert.NoError(suite.T(), suite.testEnv.Stop())
+	require.NoError(suite.T(), suite.testEnv.Stop())
 }
 
 func TestControllerSuite(t *testing.T) {

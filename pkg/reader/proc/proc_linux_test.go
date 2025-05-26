@@ -10,6 +10,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetProcStatStrings(t *testing.T) {
@@ -28,7 +29,7 @@ func TestGetStatus(t *testing.T) {
 	self := filepath.Join(option.Config.ProcFS, "self")
 
 	status, err := GetStatus(self)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, status.Uids)
 	for i := range status.Uids {
 		assert.NotEmpty(t, status.Uids[i])
@@ -46,21 +47,21 @@ func TestGetPid1Status(t *testing.T) {
 	file.Close()
 
 	status, err := GetStatus(pid1)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, status.Uids)
 
 	uids, err := status.GetUids()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, uint32(0), uids[0])
 	assert.Equal(t, uint32(0), uids[1])
 
 	gids, err := status.GetGids()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, uint32(0), gids[0])
 	assert.Equal(t, uint32(0), gids[1])
 
 	// PID 1 does not have a loginuid
 	loginuid, err := status.GetLoginUid()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, uint32(4294967295), loginuid)
 }

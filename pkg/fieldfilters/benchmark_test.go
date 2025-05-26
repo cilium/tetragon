@@ -14,7 +14,6 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon/codegen/helpers"
 	"github.com/cilium/tetragon/pkg/encoder"
 	"github.com/sryoya/protorand"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 )
@@ -78,7 +77,7 @@ func BenchmarkSerialize(b *testing.B) {
 	for i := range b.N {
 		ev := evs[i]
 		err := encoder.Encode(ev)
-		assert.NoError(b, err, "event must encode")
+		require.NoError(b, err, "event must encode")
 	}
 }
 
@@ -95,7 +94,7 @@ func BenchmarkSerialize_DeepCopy(b *testing.B) {
 		ev := evs[i]
 		ev = proto.Clone(ev).(*tetragon.GetEventsResponse)
 		err := encoder.Encode(ev)
-		assert.NoError(b, err, "event must encode")
+		require.NoError(b, err, "event must encode")
 	}
 }
 
@@ -115,7 +114,7 @@ func BenchmarkSerialize_DeepCopyProcess(b *testing.B) {
 			setter.SetProcess(proc)
 		}
 		err := encoder.Encode(ev)
-		assert.NoError(b, err, "event must encode")
+		require.NoError(b, err, "event must encode")
 	}
 }
 
@@ -133,9 +132,9 @@ func BenchmarkSerialize_FieldFilters(b *testing.B) {
 	for i := range b.N {
 		ev := evs[i]
 		ev, err = ff.Filter(ev)
-		assert.NoError(b, err, "event must filter")
+		require.NoError(b, err, "event must filter")
 		err := encoder.Encode(ev)
-		assert.NoError(b, err, "event must encode")
+		require.NoError(b, err, "event must encode")
 	}
 }
 
@@ -152,9 +151,9 @@ func BenchmarkSerialize_FieldFilters_NoProcessInfo(b *testing.B) {
 	for i := range b.N {
 		ev := evs[i]
 		ev, err = ff.Filter(ev)
-		assert.NoError(b, err, "event must filter")
+		require.NoError(b, err, "event must filter")
 		err := encoder.Encode(ev)
-		assert.NoError(b, err, "event must encode")
+		require.NoError(b, err, "event must encode")
 	}
 }
 
@@ -172,9 +171,9 @@ func BenchmarkSerialize_FieldFilters_NoProcesInfoKeepExecid(b *testing.B) {
 	for i := range b.N {
 		ev := evs[i]
 		ev, err = ff.Filter(ev)
-		assert.NoError(b, err, "event must filter")
+		require.NoError(b, err, "event must filter")
 		err = encoder.Encode(ev)
-		assert.NoError(b, err, "event must encode")
+		require.NoError(b, err, "event must encode")
 	}
 }
 
@@ -197,6 +196,6 @@ func BenchmarkSerialize_RedactionFilters(b *testing.B) {
 			process.Arguments = ff.Redact(process.Binary, process.Arguments)
 		}
 		err := encoder.Encode(ev)
-		assert.NoError(b, err, "event must encode")
+		require.NoError(b, err, "event must encode")
 	}
 }

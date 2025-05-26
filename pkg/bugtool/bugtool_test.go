@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSaveAndLoad(t *testing.T) {
@@ -19,7 +19,7 @@ func TestSaveAndLoad(t *testing.T) {
 	if err != nil {
 		t.Error("failed to create temporary file")
 	}
-	defer assert.NoError(t, tmpFile.Close())
+	defer require.NoError(t, tmpFile.Close())
 
 	info1 := InitInfo{
 		ExportFname: "1",

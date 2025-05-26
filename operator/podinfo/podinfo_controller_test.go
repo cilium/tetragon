@@ -14,6 +14,7 @@ import (
 	ciliumv1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/podhelpers"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -307,9 +308,9 @@ func TestReconcile(t *testing.T) {
 	reconciler := Reconciler{client}
 	namespacedName := types.NamespacedName{Namespace: pod.Namespace, Name: pod.Name}
 	res, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namespacedName})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.False(t, res.Requeue)
-	assert.NoError(t, client.Get(context.Background(), namespacedName, &ciliumv1alpha1.PodInfo{}))
+	require.NoError(t, client.Get(context.Background(), namespacedName, &ciliumv1alpha1.PodInfo{}))
 }
 
 func TestReconcileWithDeletionTimestamp(t *testing.T) {
@@ -321,7 +322,7 @@ func TestReconcileWithDeletionTimestamp(t *testing.T) {
 	reconciler := Reconciler{client}
 	namespacedName := types.NamespacedName{Namespace: pod.Namespace, Name: pod.Name}
 	res, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namespacedName})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.False(t, res.Requeue)
 	err = client.Get(context.Background(), namespacedName, &ciliumv1alpha1.PodInfo{})
 	assert.True(t, errors.IsNotFound(err))

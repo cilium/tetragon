@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/cilium/tetragon/pkg/eventcheckertests/yamlhelpers"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBytesMatcherFullSmoke(t *testing.T) {
@@ -27,10 +27,10 @@ func TestBytesMatcherFullSmoke(t *testing.T) {
 	}
 
 	err := checker.Match(bytes)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = checker.Match(bytes[:3])
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestBytesMatcherPrefixSmoke(t *testing.T) {
@@ -49,13 +49,13 @@ func TestBytesMatcherPrefixSmoke(t *testing.T) {
 	}
 
 	err := checker.Match(bytes)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = checker.Match(bytes[:3])
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = checker.Match(bytes[:2])
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestBytesMatcherSuffixSmoke(t *testing.T) {
@@ -74,13 +74,13 @@ func TestBytesMatcherSuffixSmoke(t *testing.T) {
 	}
 
 	err := checker.Match(bytes)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = checker.Match(bytes[3:])
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = checker.Match(bytes[:3])
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestBytesMatcherContainsSmoke(t *testing.T) {
@@ -99,14 +99,14 @@ func TestBytesMatcherContainsSmoke(t *testing.T) {
 	}
 
 	err := checker.Match(bytes)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = checker.Match(bytes[:4])
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = checker.Match(bytes[1:4])
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = checker.Match(bytes[:3])
-	assert.Error(t, err)
+	require.Error(t, err)
 }

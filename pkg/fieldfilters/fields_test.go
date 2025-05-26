@@ -91,7 +91,7 @@ func TestEventFieldFilters(t *testing.T) {
 	require.NoError(t, err)
 	for _, filter := range filters {
 		ev, err = filter.Filter(ev)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	}
 
 	// These fields should all have been included and so should not be empty

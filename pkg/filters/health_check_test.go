@@ -10,6 +10,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/event"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -62,11 +63,11 @@ func Test_healthCheckFilter(t *testing.T) {
 	maybeHealthCheck, err := BuildFilterList(context.Background(),
 		[]*tetragon.Filter{{HealthCheck: &wrapperspb.BoolValue{Value: true}}},
 		[]OnBuildFilter{&HealthCheckFilter{}})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	notHealthCheck, err := BuildFilterList(context.Background(),
 		[]*tetragon.Filter{{HealthCheck: &wrapperspb.BoolValue{Value: false}}},
 		[]OnBuildFilter{&HealthCheckFilter{}})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	process := event.Event{
 		Event: &tetragon.GetEventsResponse{

@@ -14,6 +14,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -37,7 +38,7 @@ func TestParseFilterList(t *testing.T) {
 {"capabilities": {"effective": {"all": ["CAP_BPF", "CAP_SYS_ADMIN"]}}}
 {"cel_expression": ["process_exec.process.bad_field_name == 'curl'"]}`
 	filterProto, err := ParseFilterList(f, true)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	if diff := cmp.Diff(
 		[]*tetragon.Filter{
 			{Namespace: []string{"kube-system", ""}},
@@ -63,12 +64,12 @@ func TestParseFilterList(t *testing.T) {
 		t.Errorf("filter mismatch (-want +got):\n%s", diff)
 	}
 	_, err = ParseFilterList("invalid filter json", true)
-	assert.Error(t, err)
+	require.Error(t, err)
 	filterProto, err = ParseFilterList("", true)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Empty(t, filterProto)
 	filterProto, err = ParseFilterList(`{"pid_set":[1]}`, false)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Empty(t, filterProto)
 }
 
@@ -80,7 +81,7 @@ func TestEventTypeFilterMatch(t *testing.T) {
 	}}
 
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&EventTypeFilter{}})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	ev := event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
@@ -99,7 +100,7 @@ func TestEventTypeFilterNoMatch(t *testing.T) {
 	}}
 
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&EventTypeFilter{}})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	ev := event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{

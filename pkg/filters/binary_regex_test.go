@@ -10,12 +10,13 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/event"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBinaryRegexFilterBasic(t *testing.T) {
 	f := []*tetragon.Filter{{BinaryRegex: []string{"iptable", "systemd"}}}
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&BinaryRegexFilter{}})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	ev := event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
@@ -77,7 +78,7 @@ func TestBinaryRegexFilterBasic(t *testing.T) {
 func TestBinaryRegexFilterAdvanced(t *testing.T) {
 	f := []*tetragon.Filter{{BinaryRegex: []string{"/usr/sbin/.*", "^/usr/lib/systemd/systemd$"}}}
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&BinaryRegexFilter{}})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	ev := event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
@@ -131,13 +132,13 @@ func TestBinaryRegexFilterAdvanced(t *testing.T) {
 func TestBinaryRegexFilterInvalidRegex(t *testing.T) {
 	f := []*tetragon.Filter{{BinaryRegex: []string{"*"}}}
 	_, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&BinaryRegexFilter{}})
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestBinaryRegexFilterInvalidEvent(t *testing.T) {
 	f := []*tetragon.Filter{{BinaryRegex: []string{".*"}}}
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&BinaryRegexFilter{}})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.False(t, fl.MatchOne(nil))
 	assert.False(t, fl.MatchOne(&event.Event{Event: nil}))
 	assert.False(t, fl.MatchOne(&event.Event{Event: struct{}{}}))
@@ -156,7 +157,7 @@ func TestBinaryRegexFilterInvalidEvent(t *testing.T) {
 func TestParentBinaryRegexFilter(t *testing.T) {
 	f := []*tetragon.Filter{{ParentBinaryRegex: []string{"bash", "zsh"}}}
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&ParentBinaryRegexFilter{}})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	ev := event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
@@ -208,7 +209,7 @@ func TestAncestorBinaryRegexFilter(t *testing.T) {
 		AncestorBinaryRegex: []string{"bash", "zsh"},
 	}}
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&AncestorBinaryRegexFilter{}})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	ev := event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{

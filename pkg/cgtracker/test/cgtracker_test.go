@@ -109,10 +109,10 @@ func doMapTest(t *testing.T, cgfsPath string) {
 		var val uint64
 		err = fs.cgTrackerMap.Lookup(&trackedID, &val)
 		if strings.HasPrefix(p, "tracked") {
-			assert.NoError(t, err, "cgroup (%x) id for %s should exist in the map", trackedID, p)
+			require.NoError(t, err, "cgroup (%x) id for %s should exist in the map", trackedID, p)
 			assert.Equal(t, trackerID, val, "tracker ID value should match tracker for key 0x%x (%s)", trackedID, p)
 		} else {
-			assert.Error(t, err)
+			require.Error(t, err)
 		}
 
 	})

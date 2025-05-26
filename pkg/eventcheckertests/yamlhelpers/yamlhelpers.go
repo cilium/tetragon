@@ -15,12 +15,14 @@ import (
 // produces the same object.
 func AssertMarshalRoundTrip(t *testing.T, o interface{}) bool {
 	out, err := yaml.Marshal(o)
+	// nolint:testifylint
 	if !assert.NoError(t, err, "`%#v` should marshal", o) {
 		return false
 	}
 
 	o2 := reflect.New(reflect.TypeOf(o).Elem()).Interface()
 	err = yaml.UnmarshalStrict(out, o2)
+	// nolint:testifylint
 	if !assert.NoError(t, err, "`%#v` should unmarshal from marshaled value", o) {
 		return false
 	}
@@ -32,6 +34,7 @@ func AssertMarshalRoundTrip(t *testing.T, o interface{}) bool {
 // makes sure that unmarshalling again produces the same object.
 func AssertUnmarshalRoundTrip(t *testing.T, b []byte, o interface{}) bool {
 	err := yaml.Unmarshal(b, o)
+	// nolint:testifylint
 	if !assert.NoError(t, err, "`%s` should unmarshal", string(b)) {
 		return false
 	}

@@ -8,6 +8,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/constants"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestIsCapValid(t *testing.T) {
@@ -27,19 +28,19 @@ func TestIsCapValid(t *testing.T) {
 func TestGetCapability(t *testing.T) {
 	// Test our caps package if it was updated and contains the last CAP_LAST_CAP from upstream
 	str, err := GetCapability(constants.CAP_LAST_CAP)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, str)
 
 	str, err = GetCapability(constants.CAP_CHOWN)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "CAP_CHOWN", str)
 
 	str, err = GetCapability(constants.CAP_LAST_CAP + 1)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Empty(t, str)
 
 	str, err = GetCapability(constants.CAP_CHOWN - 1)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Empty(t, str)
 }
 

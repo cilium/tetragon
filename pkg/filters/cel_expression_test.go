@@ -11,6 +11,7 @@ import (
 	"github.com/cilium/tetragon/pkg/event"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -19,14 +20,14 @@ func TestInvalidFilter(t *testing.T) {
 	f := tetragon.Filter{CelExpression: []string{"process_exec.process.bad_field_name == 'curl'"}}
 	celFilter := NewCELExpressionFilter(log)
 	_, err := celFilter.OnBuildFilter(context.Background(), &f)
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestProcessExecFilter(t *testing.T) {
 	log := logrus.New()
 	f := []*tetragon.Filter{{CelExpression: []string{"process_exec.process.pid > uint(1)"}}}
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{NewCELExpressionFilter(log)})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	ev := event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
@@ -49,7 +50,7 @@ func TestProcessKprobeFilter(t *testing.T) {
 	log := logrus.New()
 	f := []*tetragon.Filter{{CelExpression: []string{"process_kprobe.function_name == 'security_file_permission'"}}}
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{NewCELExpressionFilter(log)})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	ev := event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessKprobe{
@@ -70,7 +71,7 @@ func TestCIDR(t *testing.T) {
 	log := logrus.New()
 	f := []*tetragon.Filter{{CelExpression: []string{"cidr('10.0.0.0/16').containsIP(process_kprobe.args[0].sock_arg.saddr)"}}}
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{NewCELExpressionFilter(log)})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	ev := event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessKprobe{
@@ -91,7 +92,7 @@ func TestIP(t *testing.T) {
 	log := logrus.New()
 	f := []*tetragon.Filter{{CelExpression: []string{"ip(process_kprobe.args[0].sock_arg.saddr).family() == 4"}}}
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{NewCELExpressionFilter(log)})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	ev := event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessKprobe{

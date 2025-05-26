@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestKernelStringToNumeric(t *testing.T) {
@@ -44,6 +45,6 @@ func TestKernelStringToNumeric(t *testing.T) {
 
 func TestGetKernelVersion(t *testing.T) {
 	ver, verStr, err := GetKernelVersion("", "/proc")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.EqualValues(t, KernelStringToNumeric(verStr), ver)
 }

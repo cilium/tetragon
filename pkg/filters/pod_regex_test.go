@@ -10,12 +10,13 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/event"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPodRegexFilterBasic(t *testing.T) {
 	f := []*tetragon.Filter{{PodRegex: []string{"client", "server"}}}
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&PodRegexFilter{}})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	ev := event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
@@ -91,7 +92,7 @@ func TestPodRegexFilterBasic(t *testing.T) {
 func TestPodRegexFilterAdvanced(t *testing.T) {
 	f := []*tetragon.Filter{{PodRegex: []string{"client.*", "^server$"}}}
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&PodRegexFilter{}})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	ev := event.Event{
 		Event: &tetragon.GetEventsResponse{
 			Event: &tetragon.GetEventsResponse_ProcessExec{
@@ -167,13 +168,13 @@ func TestPodRegexFilterAdvanced(t *testing.T) {
 func TestPodRegexFilterInvalidRegex(t *testing.T) {
 	f := []*tetragon.Filter{{PodRegex: []string{"*"}}}
 	_, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&PodRegexFilter{}})
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestPodRegexFilterInvalidEvent(t *testing.T) {
 	f := []*tetragon.Filter{{PodRegex: []string{".*"}}}
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&PodRegexFilter{}})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.False(t, fl.MatchOne(nil))
 	assert.False(t, fl.MatchOne(&event.Event{Event: nil}))
 	assert.False(t, fl.MatchOne(&event.Event{Event: struct{}{}}))

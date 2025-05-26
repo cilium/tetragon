@@ -38,14 +38,14 @@ type ManagerTestSuite struct {
 
 func (suite *ManagerTestSuite) SetupSuite() {
 	err := os.Setenv("NODE_NAME", nodeName)
-	assert.NoError(suite.T(), err)
+	require.NoError(suite.T(), err)
 	node.SetKubernetesNodeName()
 	useExistingCluster := true
 	suite.testEnv = &envtest.Environment{
 		UseExistingCluster: &useExistingCluster,
 	}
 	_, err = suite.testEnv.Start()
-	assert.NoError(suite.T(), err)
+	require.NoError(suite.T(), err)
 	suite.manager = Get()
 	suite.manager.Start(context.Background())
 }
@@ -53,22 +53,22 @@ func (suite *ManagerTestSuite) SetupSuite() {
 func (suite *ManagerTestSuite) TestListNamespaces() {
 	// List namespaces.
 	namespaces, err := suite.manager.ListNamespaces()
-	assert.NoError(suite.T(), err)
+	require.NoError(suite.T(), err)
 	assert.NotEmpty(suite.T(), namespaces)
 
 	// Call GetNamespace on the first namespace in the list.
 	namespace, err := suite.manager.GetNamespace(namespaces[0].Name)
-	assert.NoError(suite.T(), err)
+	require.NoError(suite.T(), err)
 	assert.Equal(suite.T(), namespaces[0].Name, namespace.Name)
 }
 
 func (suite *ManagerTestSuite) TestFindPod() {
 	var pods corev1.PodList
 	err := suite.manager.Manager.GetCache().List(context.Background(), &pods, client.InNamespace("kube-system"))
-	assert.NoError(suite.T(), err)
+	require.NoError(suite.T(), err)
 	assert.NotEmpty(suite.T(), pods.Items)
 	pod, err := suite.manager.FindPod(string(pods.Items[0].UID))
-	assert.NoError(suite.T(), err)
+	require.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pods.Items[0].UID, pod.UID)
 }
 
@@ -109,7 +109,7 @@ func (suite *ManagerTestSuite) TestFindContainer() {
 
 	// Delete the pod.
 	err := k8sClient.Delete(context.Background(), pod)
-	assert.NoError(suite.T(), err)
+	require.NoError(suite.T(), err)
 	assert.Eventually(suite.T(), func() bool {
 		err = k8sClient.Get(context.Background(), client.ObjectKey{Namespace: pod.Namespace, Name: pod.Name}, &podFromClient)
 		return errors.IsNotFound(err)
@@ -126,20 +126,20 @@ func (suite *ManagerTestSuite) TestLocalPods() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	err := os.Setenv("NODE_NAME", "nonexistent-node")
-	assert.NoError(suite.T(), err)
+	require.NoError(suite.T(), err)
 	node.SetKubernetesNodeName()
 	controllerManager, err := newControllerManager()
-	assert.NoError(suite.T(), err)
+	require.NoError(suite.T(), err)
 	go func() {
-		assert.NoError(suite.T(), controllerManager.Manager.Start(ctx))
+		require.NoError(suite.T(), controllerManager.Manager.Start(ctx))
 	}()
 	controllerManager.Manager.GetCache().WaitForCacheSync(ctx)
 	pods := corev1.PodList{}
 	err = controllerManager.Manager.GetCache().List(context.Background(), &pods)
-	assert.NoError(suite.T(), err)
+	require.NoError(suite.T(), err)
 	// Pod cache should be empty because the node name is set to a nonexistent node.
 	assert.Empty(suite.T(), pods.Items)
-	assert.NoError(suite.T(), os.Setenv("NODE_NAME", nodeName))
+	require.NoError(suite.T(), os.Setenv("NODE_NAME", nodeName))
 	node.SetKubernetesNodeName()
 }
 
@@ -156,7 +156,7 @@ func (suite *ManagerTestSuite) TestGetNode() {
 }
 
 func (suite *ManagerTestSuite) TearDownSuite() {
-	assert.NoError(suite.T(), suite.testEnv.Stop())
+	require.NoError(suite.T(), suite.testEnv.Stop())
 }
 
 func TestControllerSuite(t *testing.T) {

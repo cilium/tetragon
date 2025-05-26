@@ -156,7 +156,7 @@ func Test_DisableEnablePolicy_Kprobe(t *testing.T) {
 		require.NoError(t, err)
 		t.Cleanup(func() {
 			err = mgr.DeleteTracingPolicy(ctx, tcpConnectPolicyName, tcpConnectPolicyNamespace)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		})
 
 		err = mgr.DisableSensor(ctx, tcpConnectPolicyName)
@@ -170,7 +170,7 @@ func Test_DisableEnablePolicy_Kprobe(t *testing.T) {
 		require.NoError(t, err)
 		t.Cleanup(func() {
 			err = mgr.DeleteTracingPolicy(ctx, tcpConnectPolicyName, tcpConnectPolicyNamespace)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		})
 
 		err = mgr.DisableTracingPolicy(ctx, tcpConnectPolicyName, tcpConnectPolicyNamespace)
@@ -196,7 +196,7 @@ func Test_DisableEnablePolicy_KernelMemoryBytes(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		err = mgr.DeleteTracingPolicy(ctx, tcpConnectPolicyName, tcpConnectPolicyNamespace)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 
 	list, err := mgr.ListTracingPolicies(ctx)

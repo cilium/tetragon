@@ -18,6 +18,7 @@ import (
 	"github.com/cilium/tetragon/pkg/rthooks"
 	"github.com/cilium/tetragon/pkg/watcher"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	corev1 "k8s.io/api/core/v1"
@@ -59,7 +60,7 @@ func TestProcessManager_getPodInfo(t *testing.T) {
 
 	pods := []interface{}{&podA}
 	err := process.InitCache(watcher.NewFakeK8sWatcher(pods), 10, defaults.DefaultProcessCacheGCInterval)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer process.FreeCache()
 	pod := process.GetPodInfo("container-id-not-found", "", "", 0)
 	assert.Nil(t, pod)
@@ -125,7 +126,7 @@ func TestProcessManager_getPodInfoMaybeExecProbe(t *testing.T) {
 	}
 	pods := []interface{}{&podA}
 	err := process.InitCache(watcher.NewFakeK8sWatcher(pods), 10, defaults.DefaultProcessCacheGCInterval)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer process.FreeCache()
 	pod := process.GetPodInfo("aaaaaaa", "/bin/command", "arg-a arg-b", 1234)
 	assert.Equal(t,
@@ -146,7 +147,7 @@ func TestProcessManager_getPodInfoMaybeExecProbe(t *testing.T) {
 
 func TestProcessManager_GetProcessExec(t *testing.T) {
 	err := process.InitCache(watcher.NewFakeK8sWatcher(nil), 10, defaults.DefaultProcessCacheGCInterval)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer process.FreeCache()
 	var wg sync.WaitGroup
 
@@ -157,7 +158,7 @@ func TestProcessManager_GetProcessExec(t *testing.T) {
 		&wg,
 		nil,
 		&rthooks.Runner{})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	pi := &exec.MsgExecveEventUnix{
 		Unix: &processapi.MsgExecveEventUnix{
 			Msg: &processapi.MsgExecveEvent{

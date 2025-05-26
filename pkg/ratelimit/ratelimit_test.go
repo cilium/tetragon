@@ -9,6 +9,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -40,11 +41,11 @@ func Test_rateLimitJSON(t *testing.T) {
 		Time:     timestamppb.New(time.Time{}),
 	}
 	b, err := protojson.MarshalOptions{UseProtoNames: true}.Marshal(ev)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	ev2 := &tetragon.GetEventsResponse{}
 	err = ev2.UnmarshalJSON(b)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, ev, ev2)
 }
