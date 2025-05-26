@@ -32,7 +32,7 @@ func TestProcsContainerIdOffset(t *testing.T) {
 	assert.Equal(t, offsetValue3, i, "Expect docker- offset")
 
 	s, i = ProcsContainerIdOffset("")
-	assert.Equal(t, "", s, "Expect output '' empty string")
+	assert.Empty(t, s, "Expect output '' empty string")
 	assert.Equal(t, 0, i, "Expect ContainerId offset should be zero")
 }
 
@@ -102,18 +102,18 @@ func TestProcsFindContainerId(t *testing.T) {
 	p = "0::/libpod_parent/conmon"
 	d, i = procsFindDockerId(p)
 	assert.Equal(t, 0, i, "ContainerId offset wrong should be zero")
-	assert.Equal(t, "", d, "ContainerId wrong should return empty")
+	assert.Empty(t, d, "ContainerId wrong should return empty")
 
 	// Minikube with docker container and --extra-config=kubelet.cgroup-driver=systemd
 	p = "0::/system.slice/docker-1b3319ed9c1d4cca681f9c102da9b015555785b6240c4e4619f11b535cabdc07.scope/init.scope"
 	d, i = procsFindDockerId(p)
 	assert.Equal(t, 0, i, "ContainerId offset wrong should be zero")
-	assert.Equal(t, "", d, "ContainerId wrong should return empty")
+	assert.Empty(t, d, "ContainerId wrong should return empty")
 
 	p = "0::/system.slice/docker-1b3319ed9c1d4cca681f9c102da9b015555785b6240c4e4619f11b535cabdc07.scope/system.slice/containerd.service"
 	d, i = procsFindDockerId(p)
 	assert.Equal(t, 0, i, "ContainerId offset wrong should be zero")
-	assert.Equal(t, "", d, "ContainerId wrong should return empty")
+	assert.Empty(t, d, "ContainerId wrong should return empty")
 
 	p = "0::/system.slice/docker-1b3319ed9c1d4cca681f9c102da9b015555785b6240c4e4619f11b535cabdc07.scope/kubepods.slice/kubepods-besteffort.slice/kubepods-besteffort-podeb653d22_2525_47ca_9fc4_3762497ae1d2.slice/docker-84e9ffffe97fea4c5a0f01d401611cbafbf7e559fc6190ed74abfc2b25e889d4.scope"
 	d, i = procsFindDockerId(p)
@@ -140,13 +140,13 @@ func TestProcsFindContainerId(t *testing.T) {
 	p = "0::/system.slice/docker-c1146e7ccca9ab4436abd69923c07d097b37b762ed21cc3f24584c2f84e77c57.scope/system.slice/containerd.service"
 	d, i = procsFindDockerId(p)
 	assert.Equal(t, 0, i, "ContainerId offset wrong should be zero")
-	assert.Equal(t, "", d, "ContainerId wrong should be empty")
+	assert.Empty(t, d, "ContainerId wrong should be empty")
 
 	// Kind: kubelet under a system slice which is under a docker container that is using systemd as cgroup manager
 	p = "0::/system.slice/docker-c1146e7ccca9ab4436abd69923c07d097b37b762ed21cc3f24584c2f84e77c57.scope/system.slice/kubelet.service"
 	d, i = procsFindDockerId(p)
 	assert.Equal(t, 0, i, "ContainerId offset wrong should be zero")
-	assert.Equal(t, "", d, "ContainerId wrong should be empty")
+	assert.Empty(t, d, "ContainerId wrong should be empty")
 
 	// Kind with a cgroup driver cgroupfs under /kubelet/ path
 	p = "0::/system.slice/docker-c1146e7ccca9ab4436abd69923c07d097b37b762ed21cc3f24584c2f84e77c57.scope/kubelet/kubepods/burstable/pod09a70ae9ccc491e651e5c773579b3490/b0e6aa50e847c3d3b1880e307ec7996040275c8063832cffc9274defce2cb655"
@@ -173,6 +173,6 @@ func TestProcsFindContainerId(t *testing.T) {
 
 	p = ""
 	d, i = procsFindDockerId(p)
-	assert.Equal(t, "", d, "Expect output '' empty string")
+	assert.Empty(t, d, "Expect output '' empty string")
 	assert.Equal(t, 0, i, "Expect ContainerId offset should be zero")
 }

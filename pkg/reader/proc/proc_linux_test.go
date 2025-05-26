@@ -22,7 +22,7 @@ func TestGetProcStatStrings(t *testing.T) {
 	assert.Equal(t, "206303", statStrings[3], "Incorrect fourth field")
 	assert.Equal(t, "140729040986095", statStrings[50], "Incorrect 51st field")
 	assert.Equal(t, "0", statStrings[51], "Incorrect 52nd field")
-	assert.Equal(t, 52, len(statStrings), "Incorrect number of entries")
+	assert.Len(t, statStrings, 52, "Incorrect number of entries")
 }
 
 func TestGetStatus(t *testing.T) {
