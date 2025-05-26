@@ -413,7 +413,7 @@ func buildPathFromString(t *testing.T, rootType btf.Type, pathStr string) []stri
 	pathBase := strings.Split(pathStr, ".")
 	path := addPaddingOnNestedPtr(rootType, pathBase)
 	if len(path) > api.MaxBTFArgDepth {
-		assert.Fail(t, "Unable to resolve %q. The maximum depth allowed is %d", pathStr, api.MaxBTFArgDepth)
+		t.Errorf("Unable to resolve %q. The maximum depth allowed is %d", pathStr, api.MaxBTFArgDepth)
 	}
 	return path
 }
