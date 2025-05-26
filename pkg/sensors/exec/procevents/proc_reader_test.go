@@ -21,7 +21,7 @@ func TestListRunningProcs(t *testing.T) {
 	procs, err := listRunningProcs("/proc")
 	require.NoError(t, err)
 	require.NotNil(t, procs)
-	require.NotEqual(t, 0, len(procs))
+	require.NotEmpty(t, procs)
 
 	for _, p := range procs {
 		require.NotZero(t, p.pid)
@@ -47,7 +47,7 @@ func TestInInitTreeProcfs(t *testing.T) {
 	procs, err := listRunningProcs("/proc")
 	require.NoError(t, err)
 	require.NotNil(t, procs)
-	require.NotEqual(t, 0, len(procs))
+	require.NotEmpty(t, procs)
 
 	inInitTree := make(map[uint32]struct{})
 	for _, p := range procs {

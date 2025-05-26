@@ -21,7 +21,7 @@ func TestPing(t *testing.T) {
 	err := pt.Ping()
 	require.NoError(t, err)
 	err = pt.Stop()
-	require.Nil(t, err)
+	require.NoError(t, err)
 }
 
 func TestExec(t *testing.T) {
@@ -32,7 +32,7 @@ func TestExec(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "cmd=\"/bin/echo hello\" returned without an error. Combined output was: \"hello\\n\"", out)
 	err = pt.Stop()
-	require.Nil(t, err)
+	require.NoError(t, err)
 }
 
 func TestSigkill(t *testing.T) {
@@ -44,5 +44,5 @@ func TestSigkill(t *testing.T) {
 	require.NoError(t, err)
 	require.Contains(t, out, "signal: killed")
 	err = pt.Stop()
-	require.Nil(t, err)
+	require.NoError(t, err)
 }

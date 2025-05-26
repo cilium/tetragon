@@ -25,18 +25,18 @@ func TestProcessLabels(t *testing.T) {
 
 	// by default all labels should be enabled
 	processLabels := option.CreateProcessLabels(namespace, workload, pod, binary)
-	assert.Equal(t, processLabels.Values(), []string{namespace, workload, pod, binary})
+	assert.Equal(t, []string{namespace, workload, pod, binary}, processLabels.Values())
 
 	// disable workload and pod
 	option.Config.MetricsLabelFilter["workload"] = false
 	option.Config.MetricsLabelFilter["pod"] = false
 	processLabels = option.CreateProcessLabels(namespace, workload, pod, binary)
-	assert.Equal(t, processLabels.Values(), []string{namespace, "", "", binary})
+	assert.Equal(t, []string{namespace, "", "", binary}, processLabels.Values())
 
 	// delete binary (this shouldn't really happen, we set the values to false instead)
 	delete(option.Config.MetricsLabelFilter, "binary")
 	processLabels = option.CreateProcessLabels(namespace, workload, pod, binary)
-	assert.Equal(t, processLabels.Values(), []string{namespace, "", "", ""})
+	assert.Equal(t, []string{namespace, "", "", ""}, processLabels.Values())
 
 	// disable all
 	option.Config.MetricsLabelFilter = option.DefaultLabelFilter()
@@ -44,10 +44,10 @@ func TestProcessLabels(t *testing.T) {
 		option.Config.MetricsLabelFilter[l] = false
 	}
 	processLabels = option.CreateProcessLabels(namespace, workload, pod, binary)
-	assert.Equal(t, processLabels.Values(), []string{"", "", "", ""})
+	assert.Equal(t, []string{"", "", "", ""}, processLabels.Values())
 
 	// clear label filter (this shouldn't really happen, we set the values to false instead)
 	option.Config.MetricsLabelFilter = metrics.LabelFilter{}
 	processLabels = option.CreateProcessLabels(namespace, workload, pod, binary)
-	assert.Equal(t, processLabels.Values(), []string{"", "", "", ""})
+	assert.Equal(t, []string{"", "", "", ""}, processLabels.Values())
 }

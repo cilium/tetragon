@@ -33,8 +33,8 @@ func requirePfmEqualTo(t *testing.T, m PfMap, val map[uint64][]uint64) {
 
 	mapVals, err := m.readAll()
 	require.NoError(t, err)
-	require.EqualValues(t, checkVals, mapVals.Policy)
-	require.EqualValues(t, checkCgroupVals, mapVals.Cgroup)
+	require.Equal(t, checkVals, mapVals.Policy)
+	require.Equal(t, checkCgroupVals, mapVals.Cgroup)
 }
 
 // TestPfMapOps tests some simple map operations

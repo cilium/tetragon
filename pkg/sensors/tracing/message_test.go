@@ -21,9 +21,9 @@ func TestGetPolicyMessage(t *testing.T) {
 
 	msg, err = getPolicyMessage("test")
 	require.NoError(t, err)
-	require.Equal(t, msg, "test")
+	require.Equal(t, "test", msg)
 
 	msg, err = getPolicyMessage(strings.Repeat("a", TpMaxMessageLen+1))
 	require.Equal(t, err, ErrMsgSyntaxLong)
-	require.Equal(t, TpMaxMessageLen, len(msg))
+	require.Len(t, msg, TpMaxMessageLen)
 }

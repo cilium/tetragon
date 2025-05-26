@@ -170,7 +170,7 @@ func TestObserverFindBTFEnv(t *testing.T) {
 	assert.NoError(t, err)
 	btf, err := observerFindBTF(lib, "")
 	assert.Error(t, err)
-	assert.Equal(t, "", btf)
+	assert.Empty(t, btf)
 }
 
 func TestInitCachedBTF(t *testing.T) {
@@ -181,7 +181,7 @@ func TestInitCachedBTF(t *testing.T) {
 		if btffile != "" {
 			assert.NoError(t, err)
 			file := GetCachedBTFFile()
-			assert.EqualValues(t, btffile, file, "GetCachedBTFFile()  -  want:'%s'  - got:'%s'", btffile, file)
+			assert.Equal(t, btffile, file, "GetCachedBTFFile()  -  want:'%s'  - got:'%s'", btffile, file)
 		} else {
 			assert.Error(t, err)
 		}
@@ -190,7 +190,7 @@ func TestInitCachedBTF(t *testing.T) {
 		assert.NoError(t, err)
 
 		btffile := GetCachedBTFFile()
-		assert.EqualValues(t, defaults.DefaultBTFFile, btffile, "GetCachedBTFFile()  -  want:'%s'  - got:'%s'", defaults.DefaultBTFFile, btffile)
+		assert.Equal(t, defaults.DefaultBTFFile, btffile, "GetCachedBTFFile()  -  want:'%s'  - got:'%s'", defaults.DefaultBTFFile, btffile)
 	}
 }
 

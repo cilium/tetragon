@@ -623,7 +623,7 @@ func TestSlimExecEventsFieldFilterExample(t *testing.T) {
 		}
 	}
 	for i := range evs {
-		if !assert.True(t, proto.Equal(evs[i], expected[i]), fmt.Sprintf("event %d should be equal after filter", i)) {
+		if !assert.True(t, proto.Equal(evs[i], expected[i]), "event %d should be equal after filter", i) {
 			fmt.Println("expected: ", expected[i])
 			fmt.Println("actual: ", evs[i])
 		}

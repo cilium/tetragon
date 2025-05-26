@@ -4,7 +4,6 @@
 package labels
 
 import (
-	"fmt"
 	"testing"
 
 	slimv1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
@@ -203,7 +202,7 @@ func TestCmp(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		require.Equal(t, tc.expected, Labels(tc.l1).Cmp(tc.l2), fmt.Sprintf("test: %+v", tc))
-		require.Equal(t, tc.expected, Labels(tc.l2).Cmp(tc.l1), fmt.Sprintf("reverse-test: %+v", tc))
+		require.Equal(t, tc.expected, Labels(tc.l1).Cmp(tc.l2), "test: %+v", tc)
+		require.Equal(t, tc.expected, Labels(tc.l2).Cmp(tc.l1), "reverse-test: %+v", tc)
 	}
 }

@@ -6,7 +6,6 @@ package sensors
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -96,7 +95,7 @@ func TestAddPolicySpecError(t *testing.T) {
 	require.NoError(t, err)
 	policy.Name = "test-policy"
 	err = mgr.AddTracingPolicy(ctx, &policy)
-	require.NotNil(t, err)
+	require.Error(t, err)
 	t.Logf("got error (as expected): %s", err)
 	l, err := mgr.ListSensors(ctx)
 	require.NoError(t, err)
@@ -123,7 +122,7 @@ func TestAddPolicyLoadError(t *testing.T) {
 	require.NoError(t, err)
 	policy.Name = "test-policy"
 	addError := mgr.AddTracingPolicy(ctx, &policy)
-	require.NotNil(t, addError)
+	require.Error(t, addError)
 	t.Logf("got error (as expected): %s", addError)
 
 	l, err := mgr.ListTracingPolicies(ctx)
@@ -147,7 +146,7 @@ func TestPolicyFilterDisabled(t *testing.T) {
 	policyNamespace := ""
 	policy.Name = policyName
 	err = mgr.AddTracingPolicy(ctx, &policy)
-	require.NoError(t, err, fmt.Sprintf("Add tracing policy failed with error: %v", err))
+	require.NoError(t, err, "Add tracing policy failed with error: %v", err)
 	err = mgr.DeleteTracingPolicy(ctx, policyName, policyNamespace)
 	require.NoError(t, err)
 	err = mgr.AddTracingPolicy(ctx, &policy)
@@ -192,7 +191,7 @@ func TestPolicyStates(t *testing.T) {
 		require.NoError(t, err)
 		policy.Name = "test-policy"
 		addError := mgr.AddTracingPolicy(ctx, &policy)
-		require.NotNil(t, addError)
+		require.Error(t, addError)
 
 		l, err := mgr.ListTracingPolicies(ctx)
 		require.NoError(t, err)
@@ -247,7 +246,7 @@ func TestPolicyLoadErrorOverride(t *testing.T) {
 	require.NoError(t, err)
 	policy.Name = "test-policy"
 	addError := mgr.AddTracingPolicy(ctx, &policy)
-	require.NotNil(t, addError)
+	require.Error(t, addError)
 
 	l, err := mgr.ListTracingPolicies(ctx)
 	require.NoError(t, err)
@@ -281,7 +280,7 @@ func TestPolicyListingWhileLoadUnload(t *testing.T) {
 	require.NoError(t, err)
 
 	checkPolicy := func(t *testing.T, statuses []*tetragon.TracingPolicyStatus, state tetragon.TracingPolicyState) {
-		require.Equal(t, 1, len(statuses))
+		require.Len(t, statuses, 1)
 		pol := statuses[0]
 		require.Equal(t, pol.Name, polName)
 		require.Equal(t, pol.State, state)
@@ -325,7 +324,7 @@ func TestPolicyListingWhileLoadUnload(t *testing.T) {
 		for {
 			l, err := mgr.ListTracingPolicies(ctx)
 			require.NoError(t, err)
-			require.Equal(t, len(l.Policies), 1)
+			require.Equal(t, 1, len(l.Policies))
 			if l.Policies[0].State == tetragon.TracingPolicyState_TP_STATE_UNLOADING {
 				testSensor.unblock(t)
 				break
@@ -350,7 +349,7 @@ func TestPolicyListingWhileLoadUnload(t *testing.T) {
 		for {
 			l, err := mgr.ListTracingPolicies(ctx)
 			require.NoError(t, err)
-			require.Equal(t, len(l.Policies), 1, "policies:", l.Policies)
+			require.Equal(t, 1, len(l.Policies), "policies:", l.Policies)
 			if l.Policies[0].State == tetragon.TracingPolicyState_TP_STATE_LOADING {
 				testSensor.unblock(t)
 				break
@@ -375,7 +374,7 @@ func TestPolicyListingWhileLoadUnload(t *testing.T) {
 	require.NoError(t, err)
 	l, err = mgr.ListTracingPolicies(ctx)
 	require.NoError(t, err)
-	require.Equal(t, 0, len(l.Policies))
+	require.Empty(t, l.Policies)
 }
 
 func TestPolicyKernelMemoryBytes(t *testing.T) {

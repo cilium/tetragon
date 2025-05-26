@@ -11,6 +11,6 @@ import (
 
 func TestErrorLabel(t *testing.T) {
 	var err error = &podNamespaceConflictError{PodID{}, "foo", "lala"}
-	require.Equal(t, "", ErrorLabel(nil))
+	require.Empty(t, ErrorLabel(nil))
 	require.Equal(t, "pod-namespace-conflict", ErrorLabel(err))
 }

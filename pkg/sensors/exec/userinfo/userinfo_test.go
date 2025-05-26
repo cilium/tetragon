@@ -29,7 +29,7 @@ func TestAccountUnix(t *testing.T) {
 
 	name, err = getAccountUnix(0, &ns)
 	require.NoError(t, err)
-	require.Equal(t, name, "root")
+	require.Equal(t, "root", name)
 
 	ns.MntInum += 0x1000
 	name, err = getAccountUnix(1, &ns)

@@ -228,6 +228,6 @@ func (pt *Tester) AddToCgroup(t *testing.T, cgroupPath string) {
 	procs := filepath.Join(cgroupPath, "cgroup.procs")
 	pidStr := strconv.Itoa(pid)
 	err := os.WriteFile(procs, []byte(pidStr), 0644)
-	require.NoError(t, err, fmt.Sprintf("failed to add pid '%s' to %s", pidStr, procs))
+	require.NoError(t, err, "failed to add pid '%s' to %s", pidStr, procs)
 	// TODO: add check that cgroup is what we set
 }

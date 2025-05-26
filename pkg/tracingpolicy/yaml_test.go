@@ -4,7 +4,6 @@
 package tracingpolicy
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 	"text/template"
@@ -100,8 +99,8 @@ func TestPolicyYAMLSetMode(t *testing.T) {
 		require.NoError(t, err)
 		out := outBld.String()
 		ret, err := PolicyYAMLSetMode([]byte(in), c.mode)
-		require.NoError(t, err, fmt.Sprintf("unexpected error test %q", c.desc))
-		require.Equal(t, out, string(ret), fmt.Sprintf("test %q failed", c.desc))
+		require.NoError(t, err, "unexpected error test %q", c.desc)
+		require.Equal(t, out, string(ret), "test %q failed", c.desc)
 	}
 
 }

@@ -12,16 +12,16 @@ import (
 
 func TestIsCapValid(t *testing.T) {
 	valid := isCapValid(constants.CAP_CHOWN)
-	assert.Equal(t, true, valid)
+	assert.True(t, valid)
 
 	valid = isCapValid(constants.CAP_CHOWN - 1)
-	assert.Equal(t, false, valid)
+	assert.False(t, valid)
 
 	valid = isCapValid(constants.CAP_LAST_CAP)
-	assert.Equal(t, true, valid)
+	assert.True(t, valid)
 
 	valid = isCapValid(constants.CAP_LAST_CAP + 1)
-	assert.Equal(t, false, valid)
+	assert.False(t, valid)
 }
 
 func TestGetCapability(t *testing.T) {
@@ -44,8 +44,8 @@ func TestGetCapability(t *testing.T) {
 }
 
 func TestCapsAreSubset(t *testing.T) {
-	assert.Equal(t, true, AreSubset(0x000001ffffffffff, 0x000001ffffffffff))
-	assert.Equal(t, true, AreSubset(0x000001fffffffffe, 0x000001ffffffffff))
-	assert.Equal(t, false, AreSubset(0x000001ffffffffff, 0x000001fffffffffe))
-	assert.Equal(t, true, AreSubset(0x0, 0x0))
+	assert.True(t, AreSubset(0x000001ffffffffff, 0x000001ffffffffff))
+	assert.True(t, AreSubset(0x000001fffffffffe, 0x000001ffffffffff))
+	assert.False(t, AreSubset(0x000001ffffffffff, 0x000001fffffffffe))
+	assert.True(t, AreSubset(0x0, 0x0))
 }

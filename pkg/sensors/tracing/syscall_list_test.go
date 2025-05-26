@@ -6,7 +6,6 @@
 package tracing
 
 import (
-	"fmt"
 	"runtime"
 	"testing"
 
@@ -16,7 +15,7 @@ import (
 
 func defABI(t *testing.T) string {
 	abi, err := syscallinfo.DefaultABI()
-	require.Nil(t, err)
+	require.NoError(t, err)
 	return abi
 }
 
@@ -51,9 +50,9 @@ func TestParseSyscallValue(t *testing.T) {
 	for _, tc := range tcs {
 		abi, name, err := parseSyscallValue(SyscallVal(tc.val))
 		if tc.expError {
-			require.Error(t, err, fmt.Sprintf("tc: %+v", tc))
+			require.Error(t, err, "tc: %+v", tc)
 		} else {
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Equal(t, tc.expABI, abi)
 			require.Equal(t, tc.expName, name)
 		}
@@ -82,7 +81,7 @@ func TestSyscallValSymbol(t *testing.T) {
 		if tc.symExpError {
 			require.Error(t, err)
 		} else {
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Equal(t, tc.symExpVal, sym)
 		}
 	}
