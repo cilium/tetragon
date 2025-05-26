@@ -407,7 +407,7 @@ func GetProcessRefcntFromCache(t *testing.T, Pid uint32, Ktime uint64) uint32 {
 }
 
 func GetEvents(t *testing.T, events []*tetragon.GetEventsResponse) (*tetragon.ProcessExec, *tetragon.ProcessExit) {
-	assert.Equal(t, 2, len(events))
+	assert.Len(t, events, 2)
 
 	var execEv *tetragon.ProcessExec
 	var exitEv *tetragon.ProcessExit
@@ -441,7 +441,7 @@ func CheckProcessEqual(t *testing.T, p1, p2 *tetragon.Process) {
 }
 
 func CheckExecEvents(t *testing.T, events []*tetragon.GetEventsResponse, parentPid uint32, currentPid uint32) {
-	assert.Equal(t, 4, len(events))
+	assert.Len(t, events, 4)
 
 	var execRootEv, execParentEv, execEv *tetragon.ProcessExec
 	var exitEv *tetragon.ProcessExit
@@ -584,13 +584,13 @@ func GrpcMissingExec[EXEC notify.Message, EXIT notify.Message](t *testing.T) {
 
 	dn.WaitNotifier(2)
 
-	assert.Equal(t, 1, len(AllEvents))
+	assert.Len(t, AllEvents, 1)
 	ev := AllEvents[0]
 	assert.NotNil(t, ev.GetProcessExit())
 
 	// this events misses process info
-	assert.Equal(t, "", ev.GetProcessExit().Process.ExecId)
-	assert.Equal(t, "", ev.GetProcessExit().Process.Binary)
+	assert.Empty(t, ev.GetProcessExit().Process.ExecId)
+	assert.Empty(t, ev.GetProcessExit().Process.Binary)
 
 	// but should have a correct Pid
 	assert.Equal(t, &wrapperspb.UInt32Value{Value: currentPid}, ev.GetProcessExit().Process.Pid)
@@ -628,7 +628,7 @@ func GrpcExecParentOutOfOrder[EXEC notify.Message, EXIT notify.Message](t *testi
 }
 
 func CheckCloneEvents(t *testing.T, events []*tetragon.GetEventsResponse, currentPid uint32, clonePid uint32) {
-	assert.Equal(t, 3, len(events))
+	assert.Len(t, events, 3)
 
 	foundExitExecProcess := false
 	foundExitCloneProcess := false
@@ -638,8 +638,8 @@ func CheckCloneEvents(t *testing.T, events []*tetragon.GetEventsResponse, curren
 			assert.Equal(t, execEv.Process.Pid.Value, currentPid)
 		} else if ev.GetProcessExit() != nil {
 			exitEv := ev.GetProcessExit()
-			assert.NotEqual(t, "", exitEv.Process.ExecId) // ensure not empty
-			assert.NotEqual(t, "", exitEv.Process.Binary) // ensure not empty
+			assert.NotEmpty(t, exitEv.Process.ExecId) // ensure not empty
+			assert.NotEmpty(t, exitEv.Process.Binary) // ensure not empty
 
 			switch exitEv.Process.Pid.Value {
 			case currentPid:
@@ -755,7 +755,7 @@ func GrpcParentInOrder[EXEC notify.Message, EXIT notify.Message](t *testing.T) {
 		AllEvents = append(AllEvents, e)
 	}
 
-	assert.Equal(t, 4, len(AllEvents))
+	assert.Len(t, AllEvents, 4)
 
 	parentExecEv := AllEvents[0].GetProcessExec()
 	currentExecEv := AllEvents[1].GetProcessExec()
@@ -802,13 +802,13 @@ func CheckPodEvents(t *testing.T, events []*tetragon.GetEventsResponse) {
 	assert.NotNil(t, execEv)
 	assert.NotNil(t, execEv.Process.Pod)                                // has pod info
 	assert.Equal(t, "fake_pod_namespace", execEv.Process.Pod.Namespace) // correct pod
-	assert.NotEqual(t, "", execEv.Process.ExecId)                       // full process info
+	assert.NotEmpty(t, execEv.Process.ExecId)                           // full process info
 	assert.NotNil(t, execEv.Parent)
 
 	assert.NotNil(t, exitEv)
 	assert.NotNil(t, exitEv.Process.Pod)                                // has pod info
 	assert.Equal(t, "fake_pod_namespace", exitEv.Process.Pod.Namespace) // correct pod
-	assert.NotEqual(t, "", exitEv.Process.ExecId)                       // full process info
+	assert.NotEmpty(t, exitEv.Process.ExecId)                           // full process info
 	assert.NotNil(t, exitEv.Parent)
 }
 

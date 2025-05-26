@@ -324,7 +324,7 @@ func TestPolicyListingWhileLoadUnload(t *testing.T) {
 		for {
 			l, err := mgr.ListTracingPolicies(ctx)
 			require.NoError(t, err)
-			require.Equal(t, 1, len(l.Policies))
+			require.Len(t, l.Policies, 1)
 			if l.Policies[0].State == tetragon.TracingPolicyState_TP_STATE_UNLOADING {
 				testSensor.unblock(t)
 				break
@@ -349,7 +349,7 @@ func TestPolicyListingWhileLoadUnload(t *testing.T) {
 		for {
 			l, err := mgr.ListTracingPolicies(ctx)
 			require.NoError(t, err)
-			require.Equal(t, 1, len(l.Policies), "policies:", l.Policies)
+			require.Len(t, l.Policies, 1, "policies:", l.Policies)
 			if l.Policies[0].State == tetragon.TracingPolicyState_TP_STATE_LOADING {
 				testSensor.unblock(t)
 				break

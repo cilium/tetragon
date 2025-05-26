@@ -635,7 +635,7 @@ func testPreExistingPods(t *testing.T, st *state, ts *testState) {
 	}, nil)
 	require.NoError(t, err)
 
-	require.Equal(t, 2, len(ts.podsCgroupIDs(t, "web")))
+	require.Len(t, ts.podsCgroupIDs(t, "web"), 2)
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
 			uint64(matchesWebID): ts.podsCgroupIDs(t, "web"),
@@ -671,8 +671,8 @@ func testContainersChange(t *testing.T, st *state, ts *testState) {
 		})
 	require.NoError(t, err)
 
-	require.Equal(t, 2, len(ts.podsCgroupIDs(t, "web")))
-	require.Equal(t, 1, len(ts.podsCgroupIDs(t, "db")))
+	require.Len(t, ts.podsCgroupIDs(t, "web"), 2)
+	require.Len(t, ts.podsCgroupIDs(t, "db"), 1)
 	require.Empty(t, ts.containersCgroupIDs(t, map[string][]string{"log": {}}))
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
@@ -682,8 +682,8 @@ func testContainersChange(t *testing.T, st *state, ts *testState) {
 
 	ts.updatePodContainers(t, "web", "web-c1", "web-c3", "web-c4")
 	ts.updatePodContainers(t, "db", "db-c2")
-	require.Equal(t, 3, len(ts.podsCgroupIDs(t, "web")))
-	require.Equal(t, 1, len(ts.podsCgroupIDs(t, "db")))
+	require.Len(t, ts.podsCgroupIDs(t, "web"), 3)
+	require.Len(t, ts.podsCgroupIDs(t, "db"), 1)
 	ts.waitForCallbacks(t)
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
