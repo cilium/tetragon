@@ -328,7 +328,7 @@ func getCgroupEventOpAndPath(t *testing.T, msg *grpcexec.MsgCgroupEventUnix, cgr
 	require.NotZero(t, msg.PID)
 	require.NotZero(t, msg.Cgrpid)
 	require.NotZero(t, msg.CgrpidTracker)
-	require.NotEqualValues(t, msg.CgrpData.State, ops.CGROUP_UNTRACKED)
+	require.NotEqualValues(t, ops.CGROUP_UNTRACKED, msg.CgrpData.State)
 	require.NotZero(t, msg.CgrpData.Level)
 
 	return op, cgrpPath
@@ -342,8 +342,8 @@ func requireCgroupEventOpMkdir(t *testing.T, msg *grpcexec.MsgCgroupEventUnix, c
 	if looked == nil {
 		t.Fatalf("Failed to find tracking cgroupID=%d in bpf-map=%s", msg.CgrpidTracker, cgrpMapPath)
 	}
-	require.EqualValues(t, msg.CgrpData.Level, looked.Level)
-	require.EqualValues(t, msg.CgrpData.Name, looked.Name)
+	require.Equal(t, msg.CgrpData.Level, looked.Level)
+	require.Equal(t, msg.CgrpData.Name, looked.Name)
 }
 
 func requireCgroupEventOpRmdir(t *testing.T, msg *grpcexec.MsgCgroupEventUnix, cgrpMapPath string) {
@@ -357,16 +357,16 @@ func requireCgroupEventOpRmdir(t *testing.T, msg *grpcexec.MsgCgroupEventUnix, c
 func assertCgroupDirTracking(t *testing.T, cgroupHierarchy []cgroupHierarchy, assertRmdir bool) {
 	for i, c := range cgroupHierarchy {
 		if c.tracking == true {
-			assert.Equalf(t, true, c.added,
+			assert.Truef(t, c.added,
 				"failed at cgroupHierarchy[%d].path=%s should be tracked and added into bpf-map", i, c.path)
 			if assertRmdir {
-				assert.Equalf(t, true, c.removed,
+				assert.Truef(t, c.removed,
 					"failed at cgroupHierarchy[%d].path=%s should be tracked and removed from bpf-map", i, c.path)
 			}
 		} else {
-			assert.Equalf(t, false, c.added,
+			assert.Falsef(t, c.added,
 				"failed at cgroupHierarchy[%d].path=%s should not be tracked nor added into bpf-map", i, c.path)
-			assert.Equalf(t, false, c.removed,
+			assert.Falsef(t, c.removed,
 				"failed at cgroupHierarchy[%d].path=%s should not be tracked nor added/removed from bpf-map", i, c.path)
 		}
 	}
@@ -424,21 +424,21 @@ func assertCgroupv1Events(ctx context.Context, t *testing.T, selectedController 
 				switch op {
 				case ops.MSG_OP_CGROUP_MKDIR:
 					require.EqualValues(t, ops.CGROUP_NEW, msg.CgrpData.State)
-					require.EqualValues(t, cgroupHierarchiesMap[controller][msg.CgrpData.Level-1].path, cgrpName)
+					require.Equal(t, cgroupHierarchiesMap[controller][msg.CgrpData.Level-1].path, cgrpName)
 
 					// Get cgroup id from path
 					targetPath := filepath.Join(cgroups.GetCgroupFSPath(), controller, cgrpPath)
 					id, err := cgroups.GetCgroupIdFromPath(targetPath)
 					require.NoErrorf(t, err, "failed to get cgroup ID from path %s", targetPath)
 					// Assert that received cgroup id from event is same as the id from the cgroup fs
-					require.EqualValues(t, msg.CgrpidTracker, id)
+					require.Equal(t, msg.CgrpidTracker, id)
 
 					requireCgroupEventOpMkdir(t, msg, cgrpMapPath)
 					cgroupHierarchiesMap[controller][msg.CgrpData.Level-1].added = true
 					// Save the cgrpid of the cgroup_mkdir so we can match it later with cgrpid of execve
 					cgroupHierarchiesMap[controller][msg.CgrpData.Level-1].mkdirCgrpID = msg.CgrpidTracker
 				case ops.MSG_OP_CGROUP_RMDIR:
-					require.EqualValues(t, cgroupHierarchiesMap[controller][msg.CgrpData.Level-1].path, cgrpName)
+					require.Equal(t, cgroupHierarchiesMap[controller][msg.CgrpData.Level-1].path, cgrpName)
 					requireCgroupEventOpRmdir(t, msg, cgrpMapPath)
 					cgroupHierarchiesMap[controller][msg.CgrpData.Level-1].removed = true
 				}
@@ -486,7 +486,7 @@ func assertCgroupv2Events(ctx context.Context, t *testing.T, cgroupRoot string, 
 				switch op {
 				case ops.MSG_OP_CGROUP_MKDIR:
 					require.EqualValues(t, ops.CGROUP_NEW, msg.CgrpData.State)
-					require.EqualValues(t, cgroupHierarchy[msg.CgrpData.Level-1].path, cgrpName)
+					require.Equal(t, cgroupHierarchy[msg.CgrpData.Level-1].path, cgrpName)
 
 					// Get cgroup id from path
 					targetPath := filepath.Join(cgroupRoot, cgrpPath)
@@ -494,14 +494,14 @@ func assertCgroupv2Events(ctx context.Context, t *testing.T, cgroupRoot string, 
 					require.NoErrorf(t, err, "failed to get cgroup ID from path %s", targetPath)
 					require.NoError(t, err)
 					// Assert that received cgroup id from event is same as the id from the cgroup fs
-					require.EqualValues(t, msg.CgrpidTracker, id)
+					require.Equal(t, msg.CgrpidTracker, id)
 
 					requireCgroupEventOpMkdir(t, msg, cgrpMapPath)
 					cgroupHierarchy[msg.CgrpData.Level-1].added = true
 					// Save the cgrpid of the cgroup_mkdir so we can match it later with cgrpid of execve
 					cgroupHierarchy[msg.CgrpData.Level-1].mkdirCgrpID = msg.CgrpidTracker
 				case ops.MSG_OP_CGROUP_RMDIR:
-					require.EqualValues(t, cgroupHierarchy[msg.CgrpData.Level-1].path, cgrpName)
+					require.Equal(t, cgroupHierarchy[msg.CgrpData.Level-1].path, cgrpName)
 					requireCgroupEventOpRmdir(t, msg, cgrpMapPath)
 					cgroupHierarchy[msg.CgrpData.Level-1].removed = true
 				}
@@ -635,7 +635,7 @@ func TestTgRuntimeConf(t *testing.T) {
 	ret, err := testutils.ReadTgRuntimeConf(mapDir)
 	require.NoError(t, err)
 
-	assert.EqualValues(t, ret, val)
+	assert.Equal(t, ret, val)
 
 	assert.Equal(t, ret.TgCgrpHierarchy, cgroups.GetCgrpHierarchyID())
 	assert.Equal(t, ret.TgCgrpv1SubsysIdx, cgroups.GetCgrpv1SubsystemIdx())
@@ -768,7 +768,7 @@ func TestCgroupEventMkdirRmdir(t *testing.T) {
 				assert.NotZero(t, msg.PID)
 				assert.NotZero(t, msg.Cgrpid)
 				assert.NotZero(t, msg.CgrpidTracker)
-				assert.NotEqualValues(t, msg.CgrpData.State, ops.CGROUP_UNTRACKED)
+				assert.NotEqualValues(t, ops.CGROUP_UNTRACKED, msg.CgrpData.State)
 				assert.NotZero(t, msg.CgrpData.Level)
 
 				switch op {
@@ -777,7 +777,7 @@ func TestCgroupEventMkdirRmdir(t *testing.T) {
 					// Match only our test
 					if cgrpPath == matchedPath {
 						cgrpName := cgroups.CgroupNameFromCStr(msg.CgrpData.Name[:processapi.CGROUP_NAME_LENGTH])
-						assert.EqualValues(t, t.Name(), cgrpName)
+						assert.Equal(t, t.Name(), cgrpName)
 
 						mkdir = true
 						cgrpTrackingId = msg.CgrpidTracker
@@ -786,7 +786,7 @@ func TestCgroupEventMkdirRmdir(t *testing.T) {
 					// Match only our test
 					if cgrpPath == matchedPath {
 						cgrpName := cgroups.CgroupNameFromCStr(msg.CgrpData.Name[:processapi.CGROUP_NAME_LENGTH])
-						assert.EqualValues(t, t.Name(), cgrpName)
+						assert.Equal(t, t.Name(), cgrpName)
 						rmdir = true
 					}
 				}
@@ -795,8 +795,8 @@ func TestCgroupEventMkdirRmdir(t *testing.T) {
 	}
 
 	// Ensure that we received proper events
-	assert.Equal(t, true, mkdir)
-	assert.Equal(t, true, rmdir)
+	assert.True(t, mkdir)
+	assert.True(t, rmdir)
 	assert.NotZero(t, true, cgrpTrackingId)
 
 	// Should be removed from the tracking map
@@ -910,7 +910,7 @@ func testCgroupv2K8sHierarchy(ctx context.Context, t *testing.T, mode cgroups.Cg
 
 	trackingCgrpLevel := getTrackingLevel(defaultKubeCgroupHierarchy)
 	require.NotZero(t, trackingCgrpLevel)
-	require.True(t, trackingCgrpLevel <= uint32(len(defaultKubeCgroupHierarchy)))
+	require.LessOrEqual(t, trackingCgrpLevel, uint32(len(defaultKubeCgroupHierarchy)))
 
 	// Setup unified cgroup tracking 0 as hierarchy ID
 	setupTgRuntimeConf(t, trackingCgrpLevel, uint32(logrus.TraceLevel), 0, invalidValue)
@@ -1123,7 +1123,7 @@ func testCgroupv1K8sHierarchyInHybrid(t *testing.T, withExec bool, selectedContr
 
 	trackingCgrpLevel := getTrackingLevel(defaultKubeCgroupHierarchy)
 	require.NotZero(t, trackingCgrpLevel)
-	require.True(t, trackingCgrpLevel <= uint32(len(defaultKubeCgroupHierarchy)))
+	require.LessOrEqual(t, trackingCgrpLevel, uint32(len(defaultKubeCgroupHierarchy)))
 
 	// First setup default cgroup with our tracking level and trace level
 	setupTgRuntimeConf(t, trackingCgrpLevel, uint32(logrus.TraceLevel), invalidValue, invalidValue)

@@ -21,5 +21,5 @@ func TestParseFieldFilterList(t *testing.T) {
 	filters, err := ParseFieldFilterList(`{"event_set":["PROCESS_EXEC","PROCESS_EXIT"], "fields":"process.start_time,process.binary,process.arguments,process.cap,process.ns,parent.binary", "action":"INCLUDE"}
 {"event_set":["PROCESS_KPROBE"], "fields":"process.start_time,process.binary,process.arguments,process.cap,process.ns,parent.binary,function_name", "action":"INCLUDE"}`)
 	require.NoError(t, err, "must parse")
-	assert.Equal(t, filters[0].Fields.Paths[0], "process.start_time")
+	assert.Equal(t, "process.start_time", filters[0].Fields.Paths[0])
 }

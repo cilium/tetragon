@@ -44,6 +44,6 @@ func TestKernelStringToNumeric(t *testing.T) {
 
 func TestGetKernelVersion(t *testing.T) {
 	ver, verStr, err := GetKernelVersion("", "/proc")
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.EqualValues(t, KernelStringToNumeric(verStr), ver)
 }

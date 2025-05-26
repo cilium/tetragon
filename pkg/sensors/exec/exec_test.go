@@ -79,7 +79,7 @@ func Test_msgToExecveKubeUnix(t *testing.T) {
 	copy(event.Kube.Docker[:], gkeID)
 	kube = msgToExecveKubeUnix(&event, "", "")
 	assert.Equal(t, gkeID[:idLength], kube.Docker)
-	assert.Equal(t, idLength, len(kube.Docker))
+	assert.Len(t, kube.Docker, idLength)
 	event.Kube.Docker[0] = 0
 	kube = msgToExecveKubeUnix(&event, "", "")
 	assert.Empty(t, kube.Docker)
@@ -89,32 +89,32 @@ func Test_msgToExecveKubeUnix(t *testing.T) {
 	kube = msgToExecveKubeUnix(&event, "", "")
 	assert.Equal(t, id[80:80+idLength], kube.Docker)
 	assert.Equal(t, strings.Split(id, ":")[2][:idLength], kube.Docker)
-	assert.Equal(t, idLength, len(kube.Docker))
+	assert.Len(t, kube.Docker, idLength)
 
 	id = "kubepods-besteffort-pod13cb8437-00ed-40e4-99d8-e17193a58086.slice:cri-containerd:a5a6a3af5d51ad95b915ca948710b90a94abc279e84963b9d22a39f342ce67d9"
 	copy(event.Kube.Docker[:], id)
 	kube = msgToExecveKubeUnix(&event, "", "")
 	assert.Equal(t, id[81:81+idLength], kube.Docker)
 	assert.Equal(t, strings.Split(id, ":")[2][:idLength], kube.Docker)
-	assert.Equal(t, idLength, len(kube.Docker))
+	assert.Len(t, kube.Docker, idLength)
 
 	id = "cri-containerd-5694f82f44168cc048e014ae14d1b0c8ef673bec49f329dc169911ea638f63c2.scope"
 	copy(event.Kube.Docker[:], id)
 	kube = msgToExecveKubeUnix(&event, "", "")
 	assert.Equal(t, strings.Split(id, "-")[2][:idLength], kube.Docker)
-	assert.Equal(t, idLength, len(kube.Docker))
+	assert.Len(t, kube.Docker, idLength)
 
 	id = "libpod-01f3c60cfaadbb51e4d5947dd2ef0480d53551cbcee8f3ada8c3723b2bf03bf4"
 	copy(event.Kube.Docker[:], id)
 	kube = msgToExecveKubeUnix(&event, "", "")
 	assert.Equal(t, strings.Split(id, "-")[1][:idLength], kube.Docker)
-	assert.Equal(t, idLength, len(kube.Docker))
+	assert.Len(t, kube.Docker, idLength)
 
 	id = ":a5a6a3af5d51ad95b915ca948710b90a94abc279e84963b9d22a39f342ce67d9"
 	copy(event.Kube.Docker[:], id)
 	kube = msgToExecveKubeUnix(&event, "", "")
 	assert.Equal(t, strings.Split(id, ":")[1][:idLength], kube.Docker)
-	assert.Equal(t, idLength, len(kube.Docker))
+	assert.Len(t, kube.Docker, idLength)
 
 	// Empty event so we don't fail tests
 	for i := range processapi.DOCKER_ID_LENGTH {
@@ -828,10 +828,10 @@ func TestExecParse(t *testing.T) {
 
 		assert.Equal(t, string(filename), process.Filename)
 		assert.Equal(t, string(cwd), process.Args)
-		assert.Equal(t, empty, false)
+		assert.False(t, empty)
 
 		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
-		assert.Equal(t, "", decArgs)
+		assert.Empty(t, decArgs)
 		assert.Equal(t, string(cwd), decCwd)
 	}
 
@@ -863,11 +863,11 @@ func TestExecParse(t *testing.T) {
 		// execParse check
 		assert.Equal(t, string(filename), process.Filename)
 		assert.Equal(t, string(cwd), process.Args)
-		assert.Equal(t, empty, false)
+		assert.False(t, empty)
 
 		// ArgsDecoder check
 		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
-		assert.Equal(t, "", decArgs)
+		assert.Empty(t, decArgs)
 		assert.Equal(t, string(cwd), decCwd)
 	}
 
@@ -904,7 +904,7 @@ func TestExecParse(t *testing.T) {
 		// execParse check
 		assert.Equal(t, string(filename), process.Filename)
 		assert.Equal(t, string(args)+string(cwd), process.Args)
-		assert.Equal(t, empty, false)
+		assert.False(t, empty)
 
 		// ArgsDecoder check
 		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
@@ -949,7 +949,7 @@ func TestExecParse(t *testing.T) {
 		// execParse check
 		assert.Equal(t, string(filename), process.Filename)
 		assert.Equal(t, string(args)+string(cwd), process.Args)
-		assert.Equal(t, empty, false)
+		assert.False(t, empty)
 
 		// ArgsDecoder check
 		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
@@ -990,7 +990,7 @@ func TestExecParse(t *testing.T) {
 		// execParse check
 		assert.Equal(t, strutils.UTF8FromBPFBytes(filename), process.Filename)
 		assert.Equal(t, strutils.UTF8FromBPFBytes(args)+strutils.UTF8FromBPFBytes(cwd), process.Args)
-		assert.Equal(t, empty, false)
+		assert.False(t, empty)
 
 		// ArgsDecoder check
 		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)

@@ -158,10 +158,10 @@ misc	10	1	1
 	require.NoError(t, err)
 	for _, c := range CgroupControllers {
 		if strings.Contains(d.used, c.Name) {
-			require.Equal(t, true, c.Active)
+			require.True(t, c.Active)
 			require.NotZero(t, c.Id)
 		} else {
-			require.Equal(t, false, c.Active)
+			require.False(t, c.Active)
 			require.Zero(t, c.Id)
 		}
 	}
@@ -274,7 +274,7 @@ func TestDetectCgroupFSMagic(t *testing.T) {
 		assert.Equal(t, uint64(unix.CGROUP_SUPER_MAGIC), fs)
 		mounted, err := isDirMountFsType(filepath.Join(cgroupFSPath, "unified"), mountinfo.FilesystemTypeCgroup2)
 		assert.NoError(t, err)
-		assert.Equal(t, true, mounted)
+		assert.True(t, mounted)
 	case CGROUP_LEGACY:
 		assert.Equal(t, uint64(unix.CGROUP_SUPER_MAGIC), fs)
 	default:
@@ -284,7 +284,7 @@ func TestDetectCgroupFSMagic(t *testing.T) {
 	assert.NotEqual(t, uint64(CGROUP_UNDEF), GetCgroupFSMagic())
 	assert.NotEmpty(t, CgroupFsMagicStr(fs))
 	assert.NotEmpty(t, GetCgroupFSPath())
-	assert.Equal(t, true, filepath.IsAbs(GetCgroupFSPath()))
+	assert.True(t, filepath.IsAbs(GetCgroupFSPath()))
 }
 
 // Test discovery of compiled-in Cgroups controllers
@@ -328,7 +328,7 @@ func TestDiscoverCgroupv1SubSysIdsDefault(t *testing.T) {
 		}
 	}
 
-	assert.Equalf(t, true, fixed, "TestDiscoverSubSysIdsDefault() could not detect active cgroup controllers")
+	assert.Truef(t, fixed, "TestDiscoverSubSysIdsDefault() could not detect active cgroup controllers")
 }
 
 func TestGetCgroupIdFromPath(t *testing.T) {

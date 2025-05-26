@@ -195,8 +195,8 @@ func TestMapMultipleSensors(t *testing.T) {
 	s2.Load(bpf.MapPrefixPath())
 	defer s2.Unload(true)
 
-	assert.Equal(t, m11.PinPath, "m1")
-	assert.Equal(t, m12.PinPath, "policy/m2")
+	assert.Equal(t, "m1", m11.PinPath)
+	assert.Equal(t, "policy/m2", m12.PinPath)
 	assert.Equal(t, m11.PinPath, m21.PinPath)
 	assert.Equal(t, m12.PinPath, m22.PinPath)
 }

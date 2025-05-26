@@ -253,7 +253,7 @@ func Test_PrependName(t *testing.T) {
 		code = runPrependName()
 		assert.Equal(t, 0, code)
 		assert.Equal(t, "/favorite_recipe"+"/"+longDentry, state.BufferToString())
-		assert.Equal(t, bufsize, len(state.BufferToString()))
+		assert.Len(t, state.BufferToString(), bufsize)
 	})
 
 	t.Run("MaxSizeBufFull", func(t *testing.T) {

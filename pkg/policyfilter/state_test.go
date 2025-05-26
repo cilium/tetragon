@@ -89,7 +89,7 @@ func TestState(t *testing.T) {
 	require.NoError(t, err)
 	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{})
 
-	require.Len(t, s.policies, 0)
+	require.Empty(t, s.policies)
 	require.Len(t, s.pods, 3)
 
 	err = s.DelPod(pod1)
@@ -100,6 +100,6 @@ func TestState(t *testing.T) {
 	require.NoError(t, err)
 	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{})
 
-	require.Len(t, s.policies, 0)
-	require.Len(t, s.pods, 0)
+	require.Empty(t, s.policies)
+	require.Empty(t, s.pods)
 }

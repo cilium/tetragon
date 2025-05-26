@@ -13,7 +13,7 @@ import (
 )
 
 func TestGetNodeNameForExport(t *testing.T) {
-	assert.NotEqual(t, "", GetNodeNameForExport()) // we should get the hostname here
+	assert.NotEmpty(t, GetNodeNameForExport()) // we should get the hostname here
 	assert.NoError(t, os.Setenv("NODE_NAME", "from-node-name"))
 	SetExportNodeName()
 	assert.Equal(t, "from-node-name", GetNodeNameForExport())
@@ -39,7 +39,7 @@ func TestSetCommonFields(t *testing.T) {
 }
 
 func TestGetKubernetesNodeName(t *testing.T) {
-	assert.NotEqual(t, "", GetKubernetesNodeName()) // we should get the hostname here
+	assert.NotEmpty(t, GetKubernetesNodeName()) // we should get the hostname here
 	assert.NoError(t, os.Setenv("NODE_NAME", "from-node-name"))
 	SetKubernetesNodeName()
 	assert.Equal(t, "from-node-name", GetKubernetesNodeName())

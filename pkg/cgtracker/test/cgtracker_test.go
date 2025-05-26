@@ -7,7 +7,6 @@ package cgtracker
 
 import (
 	"context"
-	"fmt"
 	"iter"
 	"os"
 	"path/filepath"
@@ -110,8 +109,8 @@ func doMapTest(t *testing.T, cgfsPath string) {
 		var val uint64
 		err = fs.cgTrackerMap.Lookup(&trackedID, &val)
 		if strings.HasPrefix(p, "tracked") {
-			assert.NoError(t, err, fmt.Sprintf("cgroup (%x) id for %s should exist in the map", trackedID, p))
-			assert.Equal(t, trackerID, val, fmt.Sprintf("tracker ID value should match tracker for key 0x%x (%s)", trackedID, p))
+			assert.NoError(t, err, "cgroup (%x) id for %s should exist in the map", trackedID, p)
+			assert.Equal(t, trackerID, val, "tracker ID value should match tracker for key 0x%x (%s)", trackedID, p)
 		} else {
 			assert.Error(t, err)
 		}
@@ -126,7 +125,7 @@ func doMapTest(t *testing.T, cgfsPath string) {
 	time.Sleep(1 * time.Second)
 	vals, err := cgfs.cgTrackerMap.Dump()
 	require.NoError(t, err)
-	assert.Equal(t, vals, map[uint64][]uint64{})
+	assert.Equal(t, map[uint64][]uint64{}, vals)
 }
 
 func TestCgTrackerMap(t *testing.T) {
@@ -307,7 +306,7 @@ func TestCgTrackerPolicyFilter(t *testing.T) {
 				}
 				return 0
 			})
-		assert.Equal(t, tc.expectEvents, res[1] >= 1, fmt.Sprintf("path:%s expectEvents:%t eventsNR:%d\n", tc.cgPath, tc.expectEvents, res[1]))
+		assert.Equal(t, tc.expectEvents, res[1] >= 1, "path:%s expectEvents:%t eventsNR:%d\n", tc.cgPath, tc.expectEvents, res[1])
 	}
 
 }

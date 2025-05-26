@@ -93,7 +93,7 @@ func TestModeSigKill(t *testing.T) {
 			})
 		require.NoError(t, progErr)
 		require.Contains(t, progOut, "signal: killed")
-		require.Equal(t, cnt[1], 1, fmt.Sprintf("count=%v", cnt))
+		require.Equal(t, 1, cnt[1], fmt.Sprintf("count=%v", cnt))
 	}
 
 	checkMonitor := func() {
@@ -110,7 +110,7 @@ func TestModeSigKill(t *testing.T) {
 		require.NoError(t, progErr)
 		require.NotContains(t, progOut, "signal: killed")
 		require.Contains(t, progOut, "returned without an error")
-		require.Equal(t, cnt[1], 1, fmt.Sprintf("count=%v", cnt))
+		require.Equal(t, 1, cnt[1], fmt.Sprintf("count=%v", cnt))
 	}
 
 	// finally, we can do the test
@@ -190,14 +190,14 @@ func TestModeEnforcer(t *testing.T) {
 				return 0
 			})
 		require.NoError(t, cmdErr)
-		require.Equal(t, cnt[1], 1, fmt.Sprintf("count=%v", cnt))
+		require.Equal(t, 1, cnt[1], fmt.Sprintf("count=%v", cnt))
 		enfDump, enfDumpErr := stracing.DumpEnforcerMap(polName, polNamespace)
 		require.NoError(t, enfDumpErr)
 		require.Len(t, enfDump, 1)
 		require.Contains(t, cmdOut, "operation not permitted")
 		for key, val := range enfDump {
 			require.Equal(t, pid, int(key.PidTgid>>32))
-			require.Equal(t, val.Sig, int16(9))
+			require.Equal(t, int16(9), val.Sig)
 			break
 		}
 	}
@@ -219,11 +219,11 @@ func TestModeEnforcer(t *testing.T) {
 				return 0
 			})
 		require.NoError(t, cmdErr)
-		require.Equal(t, cnt[1], 1, fmt.Sprintf("count=%v", cnt))
+		require.Equal(t, 1, cnt[1], fmt.Sprintf("count=%v", cnt))
 		require.NotContains(t, cmdOut, "operation not permitted")
 		enfDump, enfDumpErr := stracing.DumpEnforcerMap(polName, polNamespace)
 		require.NoError(t, enfDumpErr)
-		require.Len(t, enfDump, 0)
+		require.Empty(t, enfDump)
 	}
 
 	// finally, we can do the test

@@ -1125,16 +1125,16 @@ func runTestCases(t *testing.T) {
 		switch expected := v.(type) {
 		case int:
 			actual := viper.GetInt(opt)
-			require.EqualValuesf(t, expected, actual, "failed to match int option '%s' at test %s", opt, c.description)
+			require.Equalf(t, expected, actual, "failed to match int option '%s' at test %s", opt, c.description)
 		case uint:
 			actual := viper.GetUint(opt)
-			require.EqualValuesf(t, expected, actual, "failed to match uint option '%s' at test %s", opt, c.description)
+			require.Equalf(t, expected, actual, "failed to match uint option '%s' at test %s", opt, c.description)
 		case string:
 			actual := viper.GetString(opt)
-			require.EqualValuesf(t, expected, actual, "failed to match string option '%s' at test %s", opt, c.description)
+			require.Equalf(t, expected, actual, "failed to match string option '%s' at test %s", opt, c.description)
 		case bool:
 			actual := viper.GetBool(opt)
-			require.EqualValuesf(t, expected, actual, "failed to match bool option '%s' at test %s", opt, c.description)
+			require.Equalf(t, expected, actual, "failed to match bool option '%s' at test %s", opt, c.description)
 		}
 	}
 

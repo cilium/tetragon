@@ -103,13 +103,13 @@ func TestSpecs(t *testing.T) {
 
 func TestEnum(t *testing.T) {
 	require.Equal(t,
-		getKernelType(&btf.Enum{
+		"u16", getKernelType(&btf.Enum{
 			Size:   2,
 			Signed: false,
-		}), "u16")
+		}))
 	require.Equal(t,
-		getKernelType(&btf.Enum{
+		"s32", getKernelType(&btf.Enum{
 			Size:   4,
 			Signed: true,
-		}), "s32")
+		}))
 }

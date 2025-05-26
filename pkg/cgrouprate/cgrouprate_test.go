@@ -243,7 +243,7 @@ func TestProcessCgroup(t *testing.T) {
 
 		// setup cgrouprate cgroup
 		glSt.handle.cgroups[key.Id] = cgroup
-		assert.NotEqual(t, nil, glSt.handle)
+		assert.NotNil(t, glSt.handle)
 
 		// store hash values
 		values[0] = d.values[0]

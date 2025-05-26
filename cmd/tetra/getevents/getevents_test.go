@@ -139,7 +139,7 @@ func Test_GetEvents_FilterFields(t *testing.T) {
 		// remove last trailing newline for splitting
 		output = bytes.TrimSpace(output)
 		lines := bytes.Split(output, []byte("\n"))
-		assert.Equal(t, 2, len(lines))
+		assert.Len(t, lines, 2)
 		for _, line := range lines {
 			var res tetragon.GetEventsResponse
 			err := json.Unmarshal(line, &res)
@@ -148,7 +148,7 @@ func Test_GetEvents_FilterFields(t *testing.T) {
 			}
 			class, ok := res.GetProcessExec().Process.Pod.PodLabels["class"]
 			assert.True(t, ok, "Class label should be present")
-			assert.Equal(t, class, "deathstar")
+			assert.Equal(t, "deathstar", class)
 		}
 	})
 }
