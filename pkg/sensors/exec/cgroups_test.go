@@ -797,7 +797,7 @@ func TestCgroupEventMkdirRmdir(t *testing.T) {
 	// Ensure that we received proper events
 	assert.True(t, mkdir)
 	assert.True(t, rmdir)
-	assert.NotZero(t, true, cgrpTrackingId)
+	assert.NotZero(t, cgrpTrackingId)
 
 	// Should be removed from the tracking map
 	_, err = cgrouptrackmap.LookupTrackingCgroup(cgrpMapPath, cgrpTrackingId)
