@@ -23,6 +23,7 @@ import (
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/unix"
 )
 
@@ -44,7 +45,7 @@ func setupfiles() func(*testing.T, string, ...string) {
 			switch param {
 			case "create":
 				h, e := os.Create(f)
-				assert.NoError(t, e)
+				require.NoError(t, e)
 				h.Close()
 			case "remove":
 				os.Remove(f)
@@ -92,19 +93,19 @@ func TestObserverFindBTF(t *testing.T) {
 
 		btf, err := observerFindBTF(tmpdir, test.btf)
 		if test.err != nil {
-			assert.Errorf(t, err, "observerFindBTF() on '%s'  -  want:%v  -  got:no error", test.btf, test.err)
+			require.Errorf(t, err, "observerFindBTF() on '%s'  -  want:%v  -  got:no error", test.btf, test.err)
 			continue
 		}
-		assert.NoErrorf(t, err, "observerFindBTF() on '%s'  - want:no error  -  got:%v", test.btf, err)
+		require.NoErrorf(t, err, "observerFindBTF() on '%s'  - want:no error  -  got:%v", test.btf, err)
 		assert.Equalf(t, test.wantbtf, btf, "observerFindBTF() on '%s'  -  want:'%s'  -  got:'%s'", test.btf, test.wantbtf, btf)
 
 		// Test now without lib set
 		btf, err = observerFindBTF("", test.btf)
 		if test.err != nil {
-			assert.Errorf(t, err, "observerFindBTF() on '%s'  -  want:%v  -  got:no error", test.btf, test.err)
+			require.Errorf(t, err, "observerFindBTF() on '%s'  -  want:%v  -  got:no error", test.btf, test.err)
 			continue
 		}
-		assert.NoErrorf(t, err, "observerFindBTF() on '%s'  -   want:no error  -  got:%v", test.btf, err)
+		require.NoErrorf(t, err, "observerFindBTF() on '%s'  -   want:no error  -  got:%v", test.btf, err)
 		assert.Equalf(t, test.wantbtf, btf, "observerFindBTF() on '%s'  -  want:'%s'  -  got:'%s'", test.btf, test.wantbtf, btf)
 	}
 }
@@ -120,56 +121,56 @@ func TestObserverFindBTFEnv(t *testing.T) {
 		/* No default vmlinux file */
 		btf, err := observerFindBTF("", "")
 		if old != "" {
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotEmpty(t, btf)
 		} else {
-			assert.Error(t, err)
+			require.Error(t, err)
 			assert.Empty(t, btf)
 		}
 		/* Let's clear up environment vars */
 		os.Setenv("TETRAGON_BTF", "")
 		btf, err = observerFindBTF("", "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Empty(t, btf)
 
 		/* Let's try provided path to lib but tests put the btf inside /boot/ */
 		btf, err = observerFindBTF(lib, "")
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Empty(t, btf)
 
 		/* Let's try out the btf file that is inside /boot/ */
 		var uname unix.Utsname
 		err = unix.Uname(&uname)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		kernelVersion := unix.ByteSliceToString(uname.Release[:])
 		os.Setenv("TETRAGON_BTF", filepath.Join("/boot/", "btf-"+kernelVersion))
 		btf, err = observerFindBTF(lib, "")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, btf)
 
 		btffile = btf
 		err = os.Setenv("TETRAGON_BTF", btffile)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		btf, err = observerFindBTF(lib, "")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, btffile, btf)
 	} else {
 		btf, err := observerFindBTF("", "")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, btffile, btf)
 
 		err = os.Setenv("TETRAGON_BTF", btffile)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		btf, err = observerFindBTF(lib, "")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, btffile, btf)
 	}
 
 	/* Following should fail */
 	err = os.Setenv("TETRAGON_BTF", "invalid-btf-file")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	btf, err := observerFindBTF(lib, "")
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Empty(t, btf)
 }
 
@@ -179,15 +180,15 @@ func TestInitCachedBTF(t *testing.T) {
 		btffile := os.Getenv("TETRAGON_BTF")
 		err = InitCachedBTF(defaults.DefaultTetragonLib, "")
 		if btffile != "" {
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			file := GetCachedBTFFile()
 			assert.Equal(t, btffile, file, "GetCachedBTFFile()  -  want:'%s'  - got:'%s'", btffile, file)
 		} else {
-			assert.Error(t, err)
+			require.Error(t, err)
 		}
 	} else {
 		err = InitCachedBTF(defaults.DefaultTetragonLib, "")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		btffile := GetCachedBTFFile()
 		assert.Equal(t, defaults.DefaultBTFFile, btffile, "GetCachedBTFFile()  -  want:'%s'  - got:'%s'", defaults.DefaultBTFFile, btffile)
@@ -218,28 +219,28 @@ func testFindBTFFuncParamFromHook(btfFName string) func(*testing.T) {
 		argIndex := 0
 		expectedName := "p"
 		err = genericTestFindBTFFuncParamFromHook(t, spec, hook, argIndex, expectedName)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// Assert error raises with invalid hook
 		hook = "fake_hook"
 		argIndex = 0
 		expectedName = "p"
 		err = genericTestFindBTFFuncParamFromHook(t, spec, hook, argIndex, expectedName)
-		assert.ErrorContains(t, err, fmt.Sprintf("failed to find BTF type for hook %q", hook))
+		require.ErrorContains(t, err, fmt.Sprintf("failed to find BTF type for hook %q", hook))
 
 		// Assert error raises when hook is a valid BTF type but not btf.Func
 		hook = "linux_binprm"
 		argIndex = 0
 		expectedName = "p"
 		err = genericTestFindBTFFuncParamFromHook(t, spec, hook, argIndex, expectedName)
-		assert.ErrorContains(t, err, fmt.Sprintf("failed to find BTF type for hook %q", hook))
+		require.ErrorContains(t, err, fmt.Sprintf("failed to find BTF type for hook %q", hook))
 
 		// Assert error raises when argIndex is out of scope
 		hook = "wake_up_new_task"
 		argIndex = 10
 		expectedName = "p"
 		err = genericTestFindBTFFuncParamFromHook(t, spec, hook, argIndex, expectedName)
-		assert.ErrorContains(t, err, fmt.Sprintf("index %d is out of range", argIndex))
+		require.ErrorContains(t, err, fmt.Sprintf("index %d is out of range", argIndex))
 	}
 }
 
@@ -254,7 +255,7 @@ func TestFindBTFFuncParamFromHook(t *testing.T) {
 
 func fatalOnError(t *testing.T, err error) {
 	if err != nil {
-		assert.Error(t, err)
+		require.Error(t, err)
 		t.Fatal(err.Error())
 	}
 }
@@ -508,7 +509,7 @@ func testAssertPathIsAccessible(spec *btf.Spec) func(*testing.T) {
 		}
 
 		_, _, err = testPathIsAccessible(taskStructTy, "sched_task_group.css.id")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		hook = "security_bprm_check"
 		argIndex = 0 // struct linux_binprm *bprm
@@ -521,7 +522,7 @@ func testAssertPathIsAccessible(spec *btf.Spec) func(*testing.T) {
 		}
 
 		_, _, err = testPathIsAccessible(bprmTy, "mm.pgd.pgd")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	}
 }
 
@@ -539,13 +540,13 @@ func testAssertErrorOnInvalidPath(spec *btf.Spec) func(*testing.T) {
 
 		// Assert an error is raised when attribute does not exists
 		_, _, err = testPathIsAccessible(rootType, "fail")
-		assert.ErrorContains(t, err, "attribute \"fail\" not found in structure")
+		require.ErrorContains(t, err, "attribute \"fail\" not found in structure")
 
 		_, _, err = testPathIsAccessible(rootType, "mm.fail")
-		assert.ErrorContains(t, err, "attribute \"fail\" not found in structure")
+		require.ErrorContains(t, err, "attribute \"fail\" not found in structure")
 
 		_, _, err = testPathIsAccessible(rootType, "mm.pgd.fail")
-		assert.ErrorContains(t, err, "attribute \"fail\" not found in structure")
+		require.ErrorContains(t, err, "attribute \"fail\" not found in structure")
 
 		hook = "do_sys_open"
 		argIndex = 0 // int dfd
@@ -556,7 +557,7 @@ func testAssertErrorOnInvalidPath(spec *btf.Spec) func(*testing.T) {
 
 		// Assert an error is raised when attribute has invalid type
 		_, _, err = testPathIsAccessible(rootType, "fail")
-		assert.ErrorContains(t, err, fmt.Sprintf("unexpected type : \"fail\" has type %q", rootType.TypeName()))
+		require.ErrorContains(t, err, fmt.Sprintf("unexpected type : \"fail\" has type %q", rootType.TypeName()))
 	}
 }
 

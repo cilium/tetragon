@@ -11,11 +11,11 @@ import (
 	"github.com/cilium/tetragon/pkg/api"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/prometheus/client_golang/prometheus/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHandleProcessedEvent(t *testing.T) {
-	assert.NoError(t, testutil.CollectAndCompare(EventsProcessed, strings.NewReader("")))
+	require.NoError(t, testutil.CollectAndCompare(EventsProcessed, strings.NewReader("")))
 	handleProcessedEvent(nil, nil)
 	// empty process
 	handleProcessedEvent(nil, &tetragon.GetEventsResponse{Event: &tetragon.GetEventsResponse_ProcessKprobe{ProcessKprobe: &tetragon.ProcessKprobe{}}})
@@ -79,13 +79,13 @@ tetragon_events_total{binary="binary_c",namespace="namespace_c",pod="pod_c",type
 tetragon_events_total{binary="binary_e",namespace="",pod="",type="PROCESS_EXIT",workload=""} 1
 tetragon_events_total{binary="binary_e",namespace="namespace_e",pod="pod_e",type="PROCESS_EXIT",workload="workload_e"} 1
 `)
-	assert.NoError(t, testutil.CollectAndCompare(EventsProcessed, expected))
+	require.NoError(t, testutil.CollectAndCompare(EventsProcessed, expected))
 }
 
 func TestHandleOriginalEvent(t *testing.T) {
 	handleOriginalEvent(nil)
 	handleOriginalEvent(&processapi.MsgExecveEventUnix{})
-	assert.NoError(t, testutil.CollectAndCompare(FlagCount, strings.NewReader("")))
+	require.NoError(t, testutil.CollectAndCompare(FlagCount, strings.NewReader("")))
 	handleOriginalEvent(&processapi.MsgExecveEventUnix{
 		Process: processapi.MsgProcess{
 			Flags: api.EventClone | api.EventExecve,
@@ -96,5 +96,5 @@ func TestHandleOriginalEvent(t *testing.T) {
 tetragon_flags_total{type="clone"} 1
 tetragon_flags_total{type="execve"} 1
 `)
-	assert.NoError(t, testutil.CollectAndCompare(FlagCount, expected))
+	require.NoError(t, testutil.CollectAndCompare(FlagCount, expected))
 }

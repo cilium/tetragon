@@ -2888,7 +2888,7 @@ func TestKprobeOverrideMulti(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateTemp failed: %s", err)
 	}
-	defer assert.NoError(t, link.Close())
+	defer require.NoError(t, link.Close())
 
 	// The test hooks on 4 syscalls and override 3 of them.
 	//
@@ -7672,7 +7672,7 @@ func TestKprobeDentryPath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
-	defer assert.NoError(t, file_2.Close())
+	defer require.NoError(t, file_2.Close())
 
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()

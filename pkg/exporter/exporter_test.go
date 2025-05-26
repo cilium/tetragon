@@ -20,6 +20,7 @@ import (
 	"github.com/cilium/tetragon/pkg/rthooks"
 	"github.com/cilium/tetragon/pkg/server"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type arrayWriter struct {
@@ -92,7 +93,7 @@ func TestExporter_Send(t *testing.T) {
 	encoder := encoder.NewProtojsonEncoder(results)
 	request := tetragon.GetEventsRequest{DenyList: []*tetragon.Filter{{BinaryRegex: []string{"b"}}}}
 	exporter := NewExporter(ctx, &request, grpcServer, encoder, results, nil)
-	assert.NoError(t, exporter.Start(), "exporter must start without errors")
+	require.NoError(t, exporter.Start(), "exporter must start without errors")
 	eventNotifier.NotifyListener(nil, &tetragon.GetEventsResponse{
 		Event: &tetragon.GetEventsResponse_ProcessExec{
 			ProcessExec: &tetragon.ProcessExec{Process: &tetragon.Process{Binary: "a"}},
@@ -204,7 +205,7 @@ func Test_rateLimitExport(t *testing.T) {
 				results,
 				ratelimit.NewRateLimiter(ctx, 50*time.Millisecond, tt.rateLimit, encoder),
 			)
-			assert.NoError(t, exporter.Start(), "exporter must start without errors")
+			require.NoError(t, exporter.Start(), "exporter must start without errors")
 			for i := range tt.totalEvents {
 				eventNotifier.NotifyListener(nil, &tetragon.GetEventsResponse{
 					Event: &tetragon.GetEventsResponse_ProcessExec{

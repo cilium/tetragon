@@ -845,7 +845,7 @@ func TestExecParse(t *testing.T) {
 		id := dataapi.DataEventId{Pid: 1, Time: 1}
 		desc := dataapi.DataEventDesc{Error: 0, Pad: 0, Leftover: 0, Size: uint32(len(filename[:])), Id: id}
 		err = observer.DataAdd(id, filename)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		exec.Flags = api.EventDataFilename
 		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + binary.Size(desc) + len(cwd))

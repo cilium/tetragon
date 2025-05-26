@@ -12,7 +12,6 @@ import (
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -357,10 +356,10 @@ spec:
  `
 
 	_, err := tracingpolicy.FromYAML(crd1)
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	_, err = tracingpolicy.FromYAML(crd2)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	_, err = tracingpolicy.FromYAML(crd3)
 	require.NoError(t, err)

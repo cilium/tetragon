@@ -189,7 +189,7 @@ func TestCheckCgroupv2Controllers(t *testing.T) {
 // Test cgroup mode detection on an invalid directory
 func TestDetectCgroupModeInvalid(t *testing.T) {
 	mode, err := detectCgroupMode("invalid-cgroupfs-path")
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Equal(t, CGROUP_UNDEF, mode)
 }
 
@@ -203,7 +203,7 @@ func TestDetectCgroupModeDefault(t *testing.T) {
 	}
 
 	mode, err := detectCgroupMode(defaultCgroupRoot)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	switch st.Type {
 	case unix.CGROUP2_SUPER_MAGIC:
@@ -216,7 +216,7 @@ func TestDetectCgroupModeDefault(t *testing.T) {
 
 			// Extra detection
 			mode, err = detectCgroupMode(unified)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, CGROUP_UNIFIED, mode)
 		} else {
 			assert.Equal(t, CGROUP_LEGACY, mode)
@@ -231,14 +231,14 @@ func TestDetectCgroupModeDefault(t *testing.T) {
 func TestDetectCgroupModeCustomLocation(t *testing.T) {
 	// We also mount cgroup2 on /run/tetragon/cgroup2 let's test it
 	mounted, err := isDirMountFsType(defaults.Cgroup2Dir, mountinfo.FilesystemTypeCgroup2)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	mode, err := detectCgroupMode(defaults.Cgroup2Dir)
 	if mounted {
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, CGROUP_UNIFIED, mode)
 	} else {
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, CGROUP_UNDEF, mode)
 	}
 }
@@ -251,7 +251,7 @@ func TestDetectCgroupModeCustomLocation(t *testing.T) {
 // they are properly set.
 func TestDetectCgroupMode(t *testing.T) {
 	mode, err := DetectCgroupMode()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEqual(t, CGROUP_UNDEF, mode)
 	assert.NotEqual(t, CGROUP_UNDEF, cgroupMode)
 	assert.NotEmpty(t, cgroupFSPath)
@@ -265,7 +265,7 @@ func TestDetectCgroupMode(t *testing.T) {
 // TODO Setup multiple cgroupv1 and cgroupv2 combinations
 func TestDetectCgroupFSMagic(t *testing.T) {
 	fs, err := DetectCgroupFSMagic()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEqual(t, CGROUP_UNDEF, fs)
 	switch cgroupMode {
 	case CGROUP_UNIFIED:
@@ -273,7 +273,7 @@ func TestDetectCgroupFSMagic(t *testing.T) {
 	case CGROUP_HYBRID:
 		assert.Equal(t, uint64(unix.CGROUP_SUPER_MAGIC), fs)
 		mounted, err := isDirMountFsType(filepath.Join(cgroupFSPath, "unified"), mountinfo.FilesystemTypeCgroup2)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.True(t, mounted)
 	case CGROUP_LEGACY:
 		assert.Equal(t, uint64(unix.CGROUP_SUPER_MAGIC), fs)
@@ -294,11 +294,11 @@ func TestDetectCgroupFSMagic(t *testing.T) {
 // - Their css index
 func TestDiscoverCgroupv1SubSysIdsDefault(t *testing.T) {
 	fs, err := DetectCgroupFSMagic()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEqual(t, CGROUP_UNDEF, fs)
 
 	err = DiscoverSubSysIds()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	accessFs := false
 	fixed := false
@@ -333,19 +333,19 @@ func TestDiscoverCgroupv1SubSysIdsDefault(t *testing.T) {
 
 func TestGetCgroupIdFromPath(t *testing.T) {
 	mode, err := DetectCgroupMode()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEqual(t, CGROUP_UNDEF, mode)
 
 	err = DiscoverSubSysIds()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	pid := os.Getpid()
 	path, err := findMigrationPath(uint32(pid))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, path)
 
 	id, err := GetCgroupIdFromPath(path)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotZero(t, id)
 
 	// Log data useful to inspect different hierarchies

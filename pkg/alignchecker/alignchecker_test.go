@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var tetragonLib string
@@ -30,5 +30,5 @@ func Test_Alignments(t *testing.T) {
 	bpfObjPath := filepath.Join(tetragonLib, "bpf_alignchecker.o")
 
 	err := CheckStructAlignments(bpfObjPath)
-	assert.NoError(t, err, "structs must align")
+	require.NoError(t, err, "structs must align")
 }

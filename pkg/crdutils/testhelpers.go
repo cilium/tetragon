@@ -15,11 +15,11 @@ import (
 	"testing"
 	"text/template"
 
-	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/client"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/stretchr/testify/require"
 )
 
 // TPContext and GenericTracingPolicy replicate definitions from tracingpolicy
@@ -79,11 +79,11 @@ func CheckPolicies(t *testing.T, policiesDir string, fromFile func(string) error
 
 		// Attempt to parse the file
 		err = fromFile(path)
-		assert.NoError(t, err, "example %s must parse correctly: %s", info.Name(), err)
+		require.NoError(t, err, "example %s must parse correctly: %s", info.Name(), err)
 
 		return nil
 	})
-	assert.NoError(t, err, "failed to walk examples directory")
+	require.NoError(t, err, "failed to walk examples directory")
 }
 
 func CreateTempFile(t *testing.T, data string) string {

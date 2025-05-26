@@ -11,6 +11,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_GetEvents_Namespaces(t *testing.T) {
@@ -52,7 +53,7 @@ func Test_GetEvents_EventTypes(t *testing.T) {
 		cmd.SetOut(&devNull)
 
 		err := cmd.Execute()
-		assert.Error(t, err)
+		require.Error(t, err)
 	})
 }
 

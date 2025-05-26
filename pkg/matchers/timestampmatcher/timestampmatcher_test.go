@@ -9,6 +9,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/eventcheckertests/yamlhelpers"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -63,22 +64,22 @@ func TestTimestampMatcherDaySmoke(t *testing.T) {
 	// Right day, month, year
 	toCheck := time.Date(2022, 5, 9, 0, 0, 0, 0, time.UTC)
 	err := checker.Match(timestamppb.New(toCheck))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Wrong day
 	toCheck = time.Date(2022, 5, 10, 20, 29, 34, 0, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	// Wrong month
 	toCheck = time.Date(2022, 6, 9, 20, 29, 34, 0, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	// Wrong year
 	toCheck = time.Date(2023, 5, 9, 20, 29, 34, 0, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestTimestampMatcherHourSmoke(t *testing.T) {
@@ -95,27 +96,27 @@ func TestTimestampMatcherHourSmoke(t *testing.T) {
 	// Right day, month, year, hour
 	toCheck := time.Date(2022, 5, 9, 20, 0, 0, 0, time.UTC)
 	err := checker.Match(timestamppb.New(toCheck))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Wrong hour
 	toCheck = time.Date(2022, 5, 9, 21, 29, 34, 0, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	// Wrong day
 	toCheck = time.Date(2022, 5, 10, 21, 29, 34, 0, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	// Wrong month
 	toCheck = time.Date(2022, 6, 9, 21, 29, 34, 0, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	// Wrong year
 	toCheck = time.Date(2023, 5, 9, 21, 29, 34, 0, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestTimestampMatcherMinuteSmoke(t *testing.T) {
@@ -132,32 +133,32 @@ func TestTimestampMatcherMinuteSmoke(t *testing.T) {
 	// Right day, month, year, hour, minute
 	toCheck := time.Date(2022, 5, 9, 20, 29, 0, 0, time.UTC)
 	err := checker.Match(timestamppb.New(toCheck))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Wrong minute
 	toCheck = time.Date(2022, 5, 9, 21, 30, 34, 0, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	// Wrong hour
 	toCheck = time.Date(2022, 5, 9, 21, 29, 34, 0, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	// Wrong day
 	toCheck = time.Date(2022, 5, 10, 21, 29, 34, 0, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	// Wrong month
 	toCheck = time.Date(2022, 6, 9, 21, 29, 34, 0, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	// Wrong year
 	toCheck = time.Date(2023, 5, 9, 21, 29, 34, 0, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestTimestampMatcherSecondSmoke(t *testing.T) {
@@ -174,37 +175,37 @@ func TestTimestampMatcherSecondSmoke(t *testing.T) {
 	// Right day, month, year, hour, minute, second
 	toCheck := time.Date(2022, 5, 9, 20, 29, 34, 0, time.UTC)
 	err := checker.Match(timestamppb.New(toCheck))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Wrong second
 	toCheck = time.Date(2022, 5, 9, 21, 29, 35, 0, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	// Wrong minute
 	toCheck = time.Date(2022, 5, 9, 21, 30, 34, 0, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	// Wrong hour
 	toCheck = time.Date(2022, 5, 9, 21, 29, 34, 0, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	// Wrong day
 	toCheck = time.Date(2022, 5, 10, 21, 29, 34, 0, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	// Wrong month
 	toCheck = time.Date(2022, 6, 9, 21, 29, 34, 0, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	// Wrong year
 	toCheck = time.Date(2023, 5, 9, 21, 29, 34, 0, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestTimestampMatcherBeforeSmoke(t *testing.T) {
@@ -221,37 +222,37 @@ func TestTimestampMatcherBeforeSmoke(t *testing.T) {
 	// Equal
 	toCheck := time.Date(2022, 5, 9, 20, 29, 34, 0, time.UTC)
 	err := checker.Match(timestamppb.New(toCheck))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Second before
 	toCheck = time.Date(2022, 5, 9, 20, 29, 33, 0, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// NS before
 	toCheck = time.Date(2022, 5, 9, 20, 29, 33, 137, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Year before
 	toCheck = time.Date(2021, 5, 9, 20, 29, 34, 0, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Second after
 	toCheck = time.Date(2022, 5, 9, 20, 29, 35, 0, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	// Year after
 	toCheck = time.Date(2023, 5, 9, 20, 29, 34, 0, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	// NS after
 	toCheck = time.Date(2022, 5, 9, 20, 29, 34, 137, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestTimestampMatcherAfterSmoke(t *testing.T) {
@@ -268,37 +269,37 @@ func TestTimestampMatcherAfterSmoke(t *testing.T) {
 	// Equal
 	toCheck := time.Date(2022, 5, 9, 20, 29, 34, 0, time.UTC)
 	err := checker.Match(timestamppb.New(toCheck))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Second before
 	toCheck = time.Date(2022, 5, 9, 20, 29, 33, 0, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	// NS before
 	toCheck = time.Date(2022, 5, 9, 20, 29, 33, 137, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	// Year before
 	toCheck = time.Date(2021, 5, 9, 20, 29, 34, 0, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	// Second after
 	toCheck = time.Date(2022, 5, 9, 20, 29, 35, 0, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Year after
 	toCheck = time.Date(2023, 5, 9, 20, 29, 34, 0, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// NS after
 	toCheck = time.Date(2022, 5, 9, 20, 29, 34, 137, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestTimestampMatcherBetweenSmoke(t *testing.T) {
@@ -317,15 +318,15 @@ func TestTimestampMatcherBetweenSmoke(t *testing.T) {
 	// Inside
 	toCheck := time.Date(2022, 5, 9, 20, 29, 34, 0, time.UTC)
 	err := checker.Match(timestamppb.New(toCheck))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Before by 1s
 	toCheck = time.Date(2022, 5, 9, 20, 28, 59, 0, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	// After by 1s
 	toCheck = time.Date(2022, 5, 9, 20, 30, 1, 0, time.UTC)
 	err = checker.Match(timestamppb.New(toCheck))
-	assert.Error(t, err)
+	require.Error(t, err)
 }

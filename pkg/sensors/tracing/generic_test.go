@@ -69,8 +69,6 @@ spec:
 	for _, arg := range failHook.Args {
 		_, _, err := resolveBTFArg(failHook.Call, arg, false)
 
-		if !assert.ErrorContains(t, err, "The maximum depth allowed is") {
-			t.Fatalf("The path %q must have len < %d", arg.Resolve, api.MaxBTFArgDepth)
-		}
+		require.ErrorContains(t, err, "The maximum depth allowed is", "The path %q must have len < %d", arg.Resolve, api.MaxBTFArgDepth)
 	}
 }

@@ -35,7 +35,7 @@ func TestProcessCache(t *testing.T) {
 	assert.Equal(t, 1, cache.len())
 
 	result, err := cache.get(proc.process.ExecId)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, proc.process.ExecId, result.process.ExecId)
 	assert.Equal(t, proc.capabilities, result.capabilities)
 
@@ -43,5 +43,5 @@ func TestProcessCache(t *testing.T) {
 	assert.True(t, cache.remove(proc.process))
 	assert.Equal(t, 0, cache.len())
 	_, err = cache.get(proc.process.ExecId)
-	assert.Error(t, err)
+	require.Error(t, err)
 }

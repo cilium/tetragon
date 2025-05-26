@@ -10,6 +10,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/event"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCapFilterAny(t *testing.T) {
@@ -17,7 +18,7 @@ func TestCapFilterAny(t *testing.T) {
 		Any: []tetragon.CapabilitiesType{tetragon.CapabilitiesType_CAP_SYS_ADMIN, tetragon.CapabilitiesType_CAP_BPF},
 	}}}}
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&CapsFilter{}})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	process := tetragon.Process{Cap: &tetragon.Capabilities{}}
 	ev := event.Event{
 		Event: &tetragon.GetEventsResponse{
@@ -62,7 +63,7 @@ func TestCapFilterAll(t *testing.T) {
 		All: []tetragon.CapabilitiesType{tetragon.CapabilitiesType_CAP_SYS_ADMIN, tetragon.CapabilitiesType_CAP_BPF},
 	}}}}
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&CapsFilter{}})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	process := tetragon.Process{Cap: &tetragon.Capabilities{}}
 	ev := event.Event{
 		Event: &tetragon.GetEventsResponse{
@@ -107,7 +108,7 @@ func TestCapFilterExactly(t *testing.T) {
 		Exactly: []tetragon.CapabilitiesType{tetragon.CapabilitiesType_CAP_SYS_ADMIN, tetragon.CapabilitiesType_CAP_BPF},
 	}}}}
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&CapsFilter{}})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	process := tetragon.Process{Cap: &tetragon.Capabilities{}}
 	ev := event.Event{
 		Event: &tetragon.GetEventsResponse{
@@ -152,7 +153,7 @@ func TestCapFilterNone(t *testing.T) {
 		None: []tetragon.CapabilitiesType{tetragon.CapabilitiesType_CAP_SYS_ADMIN, tetragon.CapabilitiesType_CAP_BPF},
 	}}}}
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{&CapsFilter{}})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	process := tetragon.Process{Cap: &tetragon.Capabilities{}}
 	ev := event.Event{
 		Event: &tetragon.GetEventsResponse{

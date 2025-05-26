@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/cilium/tetragon/pkg/eventcheckertests/yamlhelpers"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStringMatcherFullSmoke(t *testing.T) {
@@ -24,10 +24,10 @@ func TestStringMatcherFullSmoke(t *testing.T) {
 	}
 
 	err := checker.Match(str)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = checker.Match(str[:3])
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestStringMatcherPrefixSmoke(t *testing.T) {
@@ -44,13 +44,13 @@ func TestStringMatcherPrefixSmoke(t *testing.T) {
 	}
 
 	err := checker.Match(str)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = checker.Match(str[:3])
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = checker.Match(str[2:])
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestStringMatcherSuffixSmoke(t *testing.T) {
@@ -67,13 +67,13 @@ func TestStringMatcherSuffixSmoke(t *testing.T) {
 	}
 
 	err := checker.Match(str)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = checker.Match(str[3:])
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = checker.Match(str[:3])
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestStringMatcherContainsSmoke(t *testing.T) {
@@ -90,16 +90,16 @@ func TestStringMatcherContainsSmoke(t *testing.T) {
 	}
 
 	err := checker.Match(str)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = checker.Match(str[:4])
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = checker.Match(str[1:4])
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = checker.Match(str[:3])
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestStringMatcherRegexSmoke(t *testing.T) {
@@ -114,17 +114,17 @@ func TestStringMatcherRegexSmoke(t *testing.T) {
 	}
 
 	err := checker.Match("foobarqux")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = checker.Match("barqux")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = checker.Match("bazbarqux")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = checker.Match("foobarqu")
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	err = checker.Match("foobarquxxxxx")
-	assert.Error(t, err)
+	require.Error(t, err)
 }

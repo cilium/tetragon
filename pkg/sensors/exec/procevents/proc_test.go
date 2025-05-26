@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestProcsContainerIdOffset(t *testing.T) {
@@ -41,7 +42,7 @@ func TestProcsContainerId(t *testing.T) {
 	s, e := procsDockerId(myPid)
 	// This is not in a docker-cgroup so we have no info
 	assert.Empty(t, s, "No cgroup info here")
-	assert.NoError(t, e)
+	require.NoError(t, e)
 
 	// To further test we need a k8s environment unforunately. TBD
 }

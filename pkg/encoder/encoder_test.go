@@ -25,7 +25,7 @@ func TestCompactEncoder_InvalidEventToString(t *testing.T) {
 
 	// should fail if the event field is nil.
 	_, err := p.EventToString(&tetragon.GetEventsResponse{})
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestCompactEncoder_ExecEventToString(t *testing.T) {
@@ -37,7 +37,7 @@ func TestCompactEncoder_ExecEventToString(t *testing.T) {
 			ProcessExec: &tetragon.ProcessExec{},
 		},
 	})
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	// without pod info
 	result, err := p.EventToString(&tetragon.GetEventsResponse{
@@ -51,7 +51,7 @@ func TestCompactEncoder_ExecEventToString(t *testing.T) {
 		},
 		NodeName: "my-node",
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "🚀 process my-node /usr/bin/curl cilium.io", result)
 
 	// with pod info
@@ -69,7 +69,7 @@ func TestCompactEncoder_ExecEventToString(t *testing.T) {
 			},
 		},
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "🚀 process kube-system/tetragon /usr/bin/curl cilium.io", result)
 }
 
@@ -82,7 +82,7 @@ func TestCompactEncoder_ExitEventToString(t *testing.T) {
 			ProcessExit: &tetragon.ProcessExit{},
 		},
 	})
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	// with status
 	result, err := p.EventToString(&tetragon.GetEventsResponse{
@@ -100,7 +100,7 @@ func TestCompactEncoder_ExitEventToString(t *testing.T) {
 			},
 		},
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "💥 exit    kube-system/tetragon /usr/bin/curl cilium.io 1", result)
 
 	// with signal
@@ -119,7 +119,7 @@ func TestCompactEncoder_ExitEventToString(t *testing.T) {
 			},
 		},
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "💥 exit    kube-system/tetragon /usr/bin/curl cilium.io SIGKILL", result)
 }
 
@@ -134,7 +134,7 @@ func TestCompactEncoder_KprobeEventToString(t *testing.T) {
 			},
 		},
 	})
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	// unknown function
 	result, err := p.EventToString(&tetragon.GetEventsResponse{
@@ -151,7 +151,7 @@ func TestCompactEncoder_KprobeEventToString(t *testing.T) {
 			},
 		},
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "❓ syscall kube-system/tetragon /usr/bin/curl unhandled_function", result)
 
 }
@@ -174,7 +174,7 @@ func TestCompactEncoder_KprobeOpenEventToString(t *testing.T) {
 			},
 		},
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "📬 open    kube-system/tetragon /usr/bin/curl ", result)
 
 	// open with args
@@ -196,7 +196,7 @@ func TestCompactEncoder_KprobeOpenEventToString(t *testing.T) {
 			},
 		},
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "📬 open    kube-system/tetragon /usr/bin/curl /etc/password", result)
 }
 
@@ -218,7 +218,7 @@ func TestCompactEncoder_KprobeWriteEventToString(t *testing.T) {
 			},
 		},
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "📝 write   kube-system/tetragon /usr/bin/curl  ", result)
 
 	// write with args
@@ -241,7 +241,7 @@ func TestCompactEncoder_KprobeWriteEventToString(t *testing.T) {
 			},
 		},
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "📝 write   kube-system/tetragon /usr/bin/curl /etc/password 1234 bytes", result)
 }
 
@@ -263,7 +263,7 @@ func TestCompactEncoder_KprobeCloseEventToString(t *testing.T) {
 			},
 		},
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "📪 close   kube-system/tetragon /usr/bin/curl ", result)
 
 	// open with args
@@ -284,7 +284,7 @@ func TestCompactEncoder_KprobeCloseEventToString(t *testing.T) {
 			},
 		},
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "📪 close   kube-system/tetragon /usr/bin/curl /etc/password", result)
 }
 
@@ -305,7 +305,7 @@ func TestCompactEncoder_KprobeBPFEventToString(t *testing.T) {
 				FunctionName: "bpf_check",
 			},
 		}})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "🐝 bpf_load kube-system/tetragon /usr/bin/bpftool ", result)
 
 	// bpf with args
@@ -332,7 +332,7 @@ func TestCompactEncoder_KprobeBPFEventToString(t *testing.T) {
 				},
 			},
 		}})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "🐝 bpf_load kube-system/tetragon /usr/bin/bpftool BPF_PROG_TYPE_KPROBE amazing-program instruction count 2048", result)
 }
 
@@ -353,7 +353,7 @@ func TestCompactEncoder_KprobePerfEventAllocEventToString(t *testing.T) {
 				FunctionName: "security_perf_event_alloc",
 			},
 		}})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "🐝 perf_event_alloc kube-system/tetragon /usr/bin/bpftool ", result)
 
 	// perf event alloc with args
@@ -379,7 +379,7 @@ func TestCompactEncoder_KprobePerfEventAllocEventToString(t *testing.T) {
 				},
 			},
 		}})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "🐝 perf_event_alloc kube-system/tetragon /usr/bin/bpftool PERF_TYPE_TRACEPOINT commit_creds", result)
 }
 
@@ -400,7 +400,7 @@ func TestCompactEncoder_KprobeBPFMapAllocEventToString(t *testing.T) {
 				FunctionName: "security_bpf_map_alloc",
 			},
 		}})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "🗺 bpf_map_create kube-system/tetragon /usr/bin/bpftool ", result)
 
 	// bpf map with args
@@ -429,7 +429,7 @@ func TestCompactEncoder_KprobeBPFMapAllocEventToString(t *testing.T) {
 				},
 			},
 		}})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "🗺 bpf_map_create kube-system/tetragon /usr/bin/bpftool BPF_MAP_TYPE_HASH amazing-map key size 8 value size 8 max entries 1024", result)
 }
 
@@ -439,11 +439,11 @@ func TestCompactEncoder_Encode(t *testing.T) {
 
 	// invalid event
 	err := p.Encode(nil)
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	// more invalid event
 	err = p.Encode(&tetragon.GetEventsResponse{})
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	// valid event
 	err = p.Encode(&tetragon.GetEventsResponse{
@@ -460,7 +460,7 @@ func TestCompactEncoder_Encode(t *testing.T) {
 			},
 		},
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "🚀 process kube-system/tetragon /usr/bin/curl cilium.io\n", b.String())
 }
 
@@ -470,11 +470,11 @@ func TestCompactEncoder_EncodeWithTimestamp(t *testing.T) {
 
 	// invalid event
 	err := p.Encode(nil)
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	// more invalid event
 	err = p.Encode(&tetragon.GetEventsResponse{})
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	// valid event
 	err = p.Encode(&tetragon.GetEventsResponse{
@@ -492,7 +492,7 @@ func TestCompactEncoder_EncodeWithTimestamp(t *testing.T) {
 		},
 		Time: &timestamppb.Timestamp{},
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "1970-01-01T00:00:00.000000000Z 🚀 process kube-system/tetragon /usr/bin/curl cilium.io\n", b.String())
 }
 

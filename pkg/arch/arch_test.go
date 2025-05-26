@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_addSyscallPrefix(t *testing.T) {
@@ -17,21 +18,21 @@ func Test_addSyscallPrefix(t *testing.T) {
 
 	// adding prefix
 	res, err := addSyscallPrefix(symbol, arch)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, prefixedSymbol, res)
 
 	// doing nothing
 	res, err = addSyscallPrefix(prefixedSymbol, arch)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, prefixedSymbol, res)
 
 	// wrong prefix for current arch
 	res, err = addSyscallPrefix("__x64_"+symbol, arch)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Empty(t, res)
 
 	// not supported arch
 	res, err = addSyscallPrefix(symbol, "unsupported64")
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Empty(t, res)
 }

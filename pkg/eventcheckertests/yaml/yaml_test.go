@@ -14,7 +14,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/yaml"
 	"github.com/cilium/tetragon/pkg/crdutils"
 	"github.com/cilium/tetragon/pkg/eventcheckertests/yamlhelpers"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestExamplesSmoke(t *testing.T) {
@@ -38,7 +38,7 @@ func TestExamplesSmoke(t *testing.T) {
 
 		// Attempt to parse the file
 		data, err := crdutils.ReadFileTemplate(path, templateData)
-		assert.NoError(t, err, "example %s must parse correctly", info.Name())
+		require.NoError(t, err, "example %s must parse correctly", info.Name())
 
 		var conf yaml.EventCheckerConf
 		yamlhelpers.AssertUnmarshalRoundTrip(t, []byte(data), &conf)
@@ -46,5 +46,5 @@ func TestExamplesSmoke(t *testing.T) {
 		return nil
 	})
 
-	assert.NoError(t, err, "failed to walk examples directory")
+	require.NoError(t, err, "failed to walk examples directory")
 }

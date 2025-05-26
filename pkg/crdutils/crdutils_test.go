@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
@@ -406,20 +407,20 @@ metadata:
 
 func TestReadConfigYamlInvalidName(t *testing.T) {
 	_, err := TPContext.FromYAML(invalidNameYaml)
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestEmptyTracingPolicy(t *testing.T) {
 	path := CreateTempFile(t, "")
 	_, err := TPContext.FromFile(path)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "validation failed: metadata.name: Required value: name or generateName is required")
 }
 
 func TestInvalidYAMLInTracingPolicy(t *testing.T) {
 	path := CreateTempFile(t, "<not-quite-yaml>")
 	_, err := TPContext.FromFile(path)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to unmarshal YAML: error unmarshaling JSON: while decoding JSON: json: cannot unmarshal string into Go value of type map[string]interface {}")
 }
 
@@ -432,7 +433,7 @@ metadata: {}
 func TestTracingPolicyWithoutMetadata(t *testing.T) {
 	path := CreateTempFile(t, tpWithoutMetadata)
 	_, err := TPContext.FromFile(path)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "metadata.name: Required value: name or generateName is required")
 }
 
@@ -448,6 +449,6 @@ spec:
 func TestTracingPolicyNotCoveredBySpec(t *testing.T) {
 	path := CreateTempFile(t, tpNotCoveredBySpec)
 	_, err := TPContext.FromFile(path)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to unmarshal into typed object: error unmarshaling JSON: while decoding JSON: json: unknown field \"some_field\"")
 }
