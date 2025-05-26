@@ -62,11 +62,12 @@ func TestGeneratedExecEvents(t *testing.T) {
 		wg.Done()
 	}
 
+	errCh := make(chan error, 1)
 	// Start tetragon in separate process so we can keep the whole
 	// export/server machinery running until we get expected results.
 	go func() {
 		err = tetragonExecuteCtx(ctx, cancel, ready)
-		require.NoError(t, err)
+		errCh <- err
 	}()
 
 	// Wait till tetragon's observer is up and running
@@ -90,5 +91,8 @@ func TestGeneratedExecEvents(t *testing.T) {
 	}
 
 	cancel()
+	require.NoError(t, err)
+	// blocking on terminating tetragon
+	err = <-errCh
 	require.NoError(t, err)
 }
