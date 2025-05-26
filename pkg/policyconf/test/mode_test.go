@@ -7,7 +7,6 @@ package test
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -93,7 +92,7 @@ func TestModeSigKill(t *testing.T) {
 			})
 		require.NoError(t, progErr)
 		require.Contains(t, progOut, "signal: killed")
-		require.Equal(t, 1, cnt[1], fmt.Sprintf("count=%v", cnt))
+		require.Equal(t, 1, cnt[1], "count=%v", cnt)
 	}
 
 	checkMonitor := func() {
@@ -110,7 +109,7 @@ func TestModeSigKill(t *testing.T) {
 		require.NoError(t, progErr)
 		require.NotContains(t, progOut, "signal: killed")
 		require.Contains(t, progOut, "returned without an error")
-		require.Equal(t, 1, cnt[1], fmt.Sprintf("count=%v", cnt))
+		require.Equal(t, 1, cnt[1], "count=%v", cnt)
 	}
 
 	// finally, we can do the test
@@ -190,7 +189,7 @@ func TestModeEnforcer(t *testing.T) {
 				return 0
 			})
 		require.NoError(t, cmdErr)
-		require.Equal(t, 1, cnt[1], fmt.Sprintf("count=%v", cnt))
+		require.Equal(t, 1, cnt[1], "count=%v", cnt)
 		enfDump, enfDumpErr := stracing.DumpEnforcerMap(polName, polNamespace)
 		require.NoError(t, enfDumpErr)
 		require.Len(t, enfDump, 1)
@@ -219,7 +218,7 @@ func TestModeEnforcer(t *testing.T) {
 				return 0
 			})
 		require.NoError(t, cmdErr)
-		require.Equal(t, 1, cnt[1], fmt.Sprintf("count=%v", cnt))
+		require.Equal(t, 1, cnt[1], "count=%v", cnt)
 		require.NotContains(t, cmdOut, "operation not permitted")
 		enfDump, enfDumpErr := stracing.DumpEnforcerMap(polName, polNamespace)
 		require.NoError(t, enfDumpErr)
