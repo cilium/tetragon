@@ -1170,6 +1170,9 @@ func ParseMatchCaps(k *KernelSelectorState, action *v1alpha1.CapabilitiesSelecto
 	}
 	WriteSelectorUint64(&k.data, caps)
 
+	index := action.Index
+	WriteSelectorInt32(&k.data, index)
+
 	return nil
 }
 
@@ -1187,6 +1190,9 @@ func ParseMatchCapabilities(k *KernelSelectorState, actions []v1alpha1.Capabilit
 func ParseMatchCapabilityChanges(k *KernelSelectorState, actions []v1alpha1.CapabilitiesSelector) error {
 	loff := AdvanceSelectorLength(&k.data)
 	for _, a := range actions {
+		if a.Index != -1 {
+			return errors.New("specifying index is not allowed for matchCapabilityChanges")
+		}
 		if err := ParseMatchCaps(k, &a); err != nil {
 			return err
 		}
