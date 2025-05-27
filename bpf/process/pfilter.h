@@ -548,6 +548,8 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 	if (len > 0) {
 		caps = (struct caps_filter *)((u64)f + (index & INDEX_MASK));
 		index += sizeof(struct caps_filter); /* 24: ty, op, ns, val, idx */
+		if (caps->idx != -1)
+			return res;
 		res = process_filter_capability_change(
 			caps->ty, caps->op, caps->ns, caps->val, &msg->ns, &msg->caps, &msg->sel);
 	}
