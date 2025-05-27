@@ -233,10 +233,12 @@ process_filter_namespace_change(__u64 ty, __u64 val,
 #endif
 
 FUNC_INLINE int
-process_filter_capabilities(__u32 ty, __u32 op, __u32 ns, __u64 val,
-			    struct msg_ns *n, struct msg_capabilities *c)
+process_filter_capabilities(__u32 ty, __u32 op, __u32 ns, __u64 val, __s32 idx,
+			    struct msg_generic_kprobe *msg)
 {
 	__u64 caps;
+	struct msg_ns *n = &msg->ns;
+	struct msg_capabilities *c = &msg->caps;
 
 	/* if ns != 0 we care only for events in different than the host user namespace */
 	if (ns != 0 && n->user_inum == ns)
@@ -247,6 +249,13 @@ process_filter_capabilities(__u32 ty, __u32 op, __u32 ns, __u64 val,
 		return PFILTER_REJECT;
 
 	caps = c->c[ty];
+
+	if (idx > -1 && idx < EVENT_CONFIG_MAX_ARG) {
+		asm volatile("%[idx] &= %1 ;\n"
+			     : [idx] "+r"(idx)
+			     : "i"(MAX_SELECTORS_MASK));
+		caps = (&msg->a0)[idx];
+	}
 
 	if (op == op_filter_in)
 		return (caps & val) ? PFILTER_ACCEPT : PFILTER_REJECT;
@@ -504,12 +513,11 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 	len = *(__u32 *)((__u64)f + (index & INDEX_MASK));
 	index += 4; /* 4: caps header */
 	len -= 4;
-
 	if (len > 0) {
 		caps = (struct caps_filter *)((u64)f + (index & INDEX_MASK));
 		index += sizeof(struct caps_filter); /* 24: ty, op, ns, val, idx */
 		res = process_filter_capabilities(caps->ty, caps->op, caps->ns,
-						  caps->val, &msg->ns, &msg->caps);
+						  caps->val, caps->idx, msg);
 	}
 	if (res == PFILTER_REJECT)
 		return res;
