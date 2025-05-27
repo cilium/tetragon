@@ -227,7 +227,7 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 	msg->sel.match_cap = 0;
 #endif
 	msg->common.flags = 0;
-	tail_call(ctx, &tp_calls, TAIL_CALL_FILTER);
+	tail_call(ctx, &tp_calls, TAIL_CALL_PROCESS);
 	return 0;
 }
 
@@ -246,7 +246,7 @@ generic_tracepoint_filter(void *ctx)
 	if (ret == PFILTER_CONTINUE)
 		tail_call(ctx, &tp_calls, TAIL_CALL_FILTER);
 	else if (ret == PFILTER_ACCEPT)
-		tail_call(ctx, &tp_calls, TAIL_CALL_PROCESS);
+		tail_call(ctx, &tp_calls, TAIL_CALL_ARGS);
 	/* If filter does not accept drop it. Ideally we would
 	 * log error codes for later review, TBD.
 	 */
