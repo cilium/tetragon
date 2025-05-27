@@ -1170,6 +1170,9 @@ func ParseMatchCaps(k *KernelSelectorState, action *v1alpha1.CapabilitiesSelecto
 	}
 	WriteSelectorUint64(&k.data, caps)
 
+	index := action.Index
+	WriteSelectorInt32(&k.data, index)
+
 	return nil
 }
 
