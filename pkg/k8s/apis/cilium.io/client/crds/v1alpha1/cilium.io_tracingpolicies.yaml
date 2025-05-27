@@ -503,6 +503,13 @@ spec:
                             description: A list of capabilities and IDs
                             items:
                               properties:
+                                index:
+                                  default: -1
+                                  description: Use the capability defined at a specific
+                                    index.
+                                  format: int32
+                                  minimum: -1
+                                  type: integer
                                 isNamespaceCapability:
                                   default: false
                                   description: Indicates whether these caps are namespace
@@ -536,6 +543,13 @@ spec:
                             description: IDs for capabilities changes
                             items:
                               properties:
+                                index:
+                                  default: -1
+                                  description: Use the capability defined at a specific
+                                    index.
+                                  format: int32
+                                  minimum: -1
+                                  type: integer
                                 isNamespaceCapability:
                                   default: false
                                   description: Indicates whether these caps are namespace
@@ -1133,6 +1147,13 @@ spec:
                             description: A list of capabilities and IDs
                             items:
                               properties:
+                                index:
+                                  default: -1
+                                  description: Use the capability defined at a specific
+                                    index.
+                                  format: int32
+                                  minimum: -1
+                                  type: integer
                                 isNamespaceCapability:
                                   default: false
                                   description: Indicates whether these caps are namespace
@@ -1166,6 +1187,13 @@ spec:
                             description: IDs for capabilities changes
                             items:
                               properties:
+                                index:
+                                  default: -1
+                                  description: Use the capability defined at a specific
+                                    index.
+                                  format: int32
+                                  minimum: -1
+                                  type: integer
                                 isNamespaceCapability:
                                   default: false
                                   description: Indicates whether these caps are namespace
@@ -1799,6 +1827,13 @@ spec:
                             description: A list of capabilities and IDs
                             items:
                               properties:
+                                index:
+                                  default: -1
+                                  description: Use the capability defined at a specific
+                                    index.
+                                  format: int32
+                                  minimum: -1
+                                  type: integer
                                 isNamespaceCapability:
                                   default: false
                                   description: Indicates whether these caps are namespace
@@ -1832,6 +1867,13 @@ spec:
                             description: IDs for capabilities changes
                             items:
                               properties:
+                                index:
+                                  default: -1
+                                  description: Use the capability defined at a specific
+                                    index.
+                                  format: int32
+                                  minimum: -1
+                                  type: integer
                                 isNamespaceCapability:
                                   default: false
                                   description: Indicates whether these caps are namespace
@@ -2409,6 +2451,13 @@ spec:
                             description: A list of capabilities and IDs
                             items:
                               properties:
+                                index:
+                                  default: -1
+                                  description: Use the capability defined at a specific
+                                    index.
+                                  format: int32
+                                  minimum: -1
+                                  type: integer
                                 isNamespaceCapability:
                                   default: false
                                   description: Indicates whether these caps are namespace
@@ -2442,6 +2491,13 @@ spec:
                             description: IDs for capabilities changes
                             items:
                               properties:
+                                index:
+                                  default: -1
+                                  description: Use the capability defined at a specific
+                                    index.
+                                  format: int32
+                                  minimum: -1
+                                  type: integer
                                 isNamespaceCapability:
                                   default: false
                                   description: Indicates whether these caps are namespace
