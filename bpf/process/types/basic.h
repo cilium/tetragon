@@ -171,6 +171,7 @@ struct event_config {
 	__u32 func_id;
 	__s32 arg[EVENT_CONFIG_MAX_ARG];
 	__u32 arm[EVENT_CONFIG_MAX_ARG];
+	__u32 arg_idx[EVENT_CONFIG_MAX_ARG];
 	__u32 off[EVENT_CONFIG_MAX_ARG];
 	__u32 syscall;
 	__s32 argreturncopy;
