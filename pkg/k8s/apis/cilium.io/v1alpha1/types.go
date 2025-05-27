@@ -168,6 +168,11 @@ type CapabilitiesSelector struct {
 	// +kubebuilder:validation:Enum=In;NotIn
 	// Namespace selector operator.
 	Operator string `json:"operator"`
+	// +kubebuilder:validation:Minimum=-1
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=-1
+	// Use the capability defined at a specific index.
+	Index int32 `json:"index"`
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=false
 	// Indicates whether these caps are namespace caps.
