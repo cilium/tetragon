@@ -62,7 +62,7 @@ generic_start_process_filter(void *ctx, struct bpf_map_def *calls)
 	msg->common.flags = 0;
 
 	/* Tail call into filters. */
-	tail_call(ctx, calls, TAIL_CALL_FILTER);
+	tail_call(ctx, calls, TAIL_CALL_SETUP);
 	return 0;
 }
 
@@ -178,7 +178,7 @@ generic_process_event(void *ctx, struct bpf_map_def *tailcals)
 
 	/* Last argument, go send.. */
 	e->tailcall_index_process = 0;
-	tail_call(ctx, tailcals, TAIL_CALL_ARGS);
+	tail_call(ctx, tailcals, TAIL_CALL_FILTER);
 	return 0;
 }
 
