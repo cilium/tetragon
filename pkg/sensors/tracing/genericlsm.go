@@ -239,12 +239,16 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 
 	// Parse Arguments
 	for j, a := range f.Args {
+		if j > api.EventConfigMaxArgs {
+			return errFn(fmt.Errorf("error add arg: Too many arguments set. You can only have %d arguments", api.EventConfigMaxArgs))
+		}
 		argType := gt.GenericTypeFromString(a.Type)
 
 		if a.Resolve != "" && j < api.EventConfigMaxArgs {
 			if !bpf.HasProgramLargeSize() {
 				return errFn(errors.New("error: Resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag"))
 			}
+
 			lastBTFType, btfArg, err := resolveBTFArg("bpf_lsm_"+f.Hook, a, false)
 			if err != nil {
 				return errFn(fmt.Errorf("error on hook %q for index %d : %w", f.Hook, a.Index, err))
@@ -269,14 +273,11 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 		if err != nil {
 			return errFn(err)
 		}
-		if a.Index > 4 {
-			return errFn(fmt.Errorf("error add arg: ArgType %s Index %d out of bounds",
-				a.Type, int(a.Index)))
-		}
-		eventConfig.Arg[a.Index] = int32(argType)
-		eventConfig.ArgM[a.Index] = uint32(argMValue)
+		eventConfig.Arg[j] = int32(argType)
+		eventConfig.ArgM[j] = uint32(argMValue)
+		eventConfig.ArgIdx[j] = uint32(a.Index)
 
-		argsBTFSet[a.Index] = true
+		argsBTFSet[j] = true
 		argP := argPrinter{index: j, ty: argType, maxData: a.MaxData, label: a.Label}
 		argSigPrinters = append(argSigPrinters, argP)
 
