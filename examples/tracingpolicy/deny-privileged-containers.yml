@@ -1,0 +1,29 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "capset-enforcement"
+spec:
+  lsmhooks:
+  - hook: "capset"
+    args:
+    - index: 0
+      type: nop
+    - index: 1
+      type: nop
+    - index: 2
+      type: "kernel_cap_t"       # works also with cap_*
+    selectors:
+    - matchActions:
+      - action: Post
+      - action: Override
+        argError: -1
+      matchBinaries:
+      - operator: "In"
+        values:
+        - "/usr/local/sbin/runc" # runc in KinD
+        - "/usr/bin/runc"        # runc in Docker
+      matchCapabilities:
+      - index: 2
+        operator: In
+        values:
+        - "CAP_SYS_ADMIN"
