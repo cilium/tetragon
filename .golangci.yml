@@ -11,6 +11,7 @@ linters:
     - errname
     - errorlint
     - exptostd
+    - gomodguard
     - goheader
     - govet
     - ineffassign
@@ -47,6 +48,13 @@ linters:
       template: |-
         SPDX-License-Identifier: Apache-2.0
         Copyright Authors of {{ PROJECT }}
+    gomodguard:
+      blocked:
+        modules:
+        - github.com/cilium/cilium:
+            recommendations:
+            - github.com/cilium/tetragon
+            reason: cilium/cilium package might be overkilled, consider other alternatives
   exclusions:
     generated: lax
     presets:
