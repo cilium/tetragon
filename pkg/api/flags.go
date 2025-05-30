@@ -96,4 +96,11 @@ const (
 	// EventDataArgs indicates that a clone event's process is in its
 	// container's init process tree.
 	EventInInitTree = 0x2000000
+
+	// EventDataEnvs indicates envs are received with data event
+	EventDataEnvs = 0x10000000
+	// EventErrorEnvs is an *error flag* indicating an error happened while
+	// reading the process envs. If this is set it should be reported to
+	// Tetragon developers for debugging.
+	EventErrorEnvs = 0x20000000
 )

@@ -127,6 +127,79 @@ read_args(void *ctx, struct msg_execve_event *event)
 }
 
 FUNC_INLINE __u32
+read_envs(void *ctx, struct msg_execve_event *event)
+{
+	struct task_struct *task = (struct task_struct *)get_current_task();
+	struct msg_process *p = &event->process;
+	struct mm_struct *mm;
+	unsigned long env_start_addr, env_end_addr;
+	unsigned long envs_data_len;
+	char *current_write_ptr;
+	unsigned long remaining_space_in_event_buf;
+	__u32 total_event_bytes_written = 0;
+	int err;
+
+	static const char two_null_bytes_arr[2] = {'\0', '\0'};
+
+	probe_read(&mm, sizeof(mm), _(&task->mm));
+	if (!mm)
+		return 0;
+
+	probe_read(&env_start_addr, sizeof(env_start_addr), _(&mm->env_start));
+	probe_read(&env_end_addr, sizeof(env_end_addr), _(&mm->env_end));
+
+	if (!env_start_addr || !env_end_addr || env_start_addr >= env_end_addr) {
+		envs_data_len = 0;
+	} else {
+		envs_data_len = env_end_addr - env_start_addr;
+	}
+
+	if (p->size > BUFFER - 2) /* Not enough space for the two initial null bytes. */
+		return 0;
+
+	current_write_ptr = (char *)p + p->size;
+	remaining_space_in_event_buf = (char *)&event->process + BUFFER - current_write_ptr;
+
+	/* Prepend two null bytes */
+	if (probe_read(current_write_ptr, 2, (const void *)two_null_bytes_arr) < 0) {
+		return 0;
+	}
+	total_event_bytes_written = 2;
+
+	if (envs_data_len == 0) {
+		return total_event_bytes_written;
+	}
+
+	current_write_ptr += 2;
+	remaining_space_in_event_buf -= 2;
+
+	if (remaining_space_in_event_buf == 0) {
+		return total_event_bytes_written;
+	}
+
+	if (envs_data_len < BUFFER && envs_data_len < remaining_space_in_event_buf) {
+		__u32 bytes_to_copy = envs_data_len & 0x3ff; /* BUFFER - 1 */
+		err = probe_read(current_write_ptr, bytes_to_copy, (char *)env_start_addr);
+		if (err < 0) {
+			p->flags |= EVENT_ERROR_ENVS;
+		} else {
+			total_event_bytes_written += bytes_to_copy;
+		}
+	} else {
+		__u32 data_event_written_size = data_event_bytes(ctx, (struct data_event_desc *)current_write_ptr,
+								 (unsigned long)env_start_addr,
+								 envs_data_len,
+								 (struct bpf_map_def *)&data_heap);
+		if (data_event_written_size > 0) {
+			p->flags |= EVENT_DATA_ENVS;
+			total_event_bytes_written += data_event_written_size;
+		}
+	}
+
+	return total_event_bytes_written;
+}
+
+FUNC_INLINE __u32
 read_path(void *ctx, struct msg_execve_event *event, void *filename)
 {
 	struct msg_process *p = &event->process;
@@ -229,6 +302,7 @@ event_execve(struct exec_ctx_struct *ctx)
 	p->size += read_path(ctx, event, filename);
 	p->size += read_args(ctx, event);
 	p->size += read_cwd(ctx, p);
+	p->size += read_envs(ctx, event);
 
 	event->common.op = MSG_OP_EXECVE;
 	event->common.ktime = p->ktime;
