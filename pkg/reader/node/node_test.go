@@ -40,13 +40,13 @@ func TestSetCommonFields(t *testing.T) {
 }
 
 func TestGetKubernetesNodeName(t *testing.T) {
-	assert.NotEmpty(t, GetKubernetesNodeName()) // we should get the hostname here
+	assert.NotEmpty(t, GetNodeName()) // we should get the hostname here
 	require.NoError(t, os.Setenv("NODE_NAME", "from-node-name"))
-	SetKubernetesNodeName()
-	assert.Equal(t, "from-node-name", GetKubernetesNodeName())
+	SetNodeName()
+	assert.Equal(t, "from-node-name", GetNodeName())
 	require.NoError(t, os.Setenv("HUBBLE_NODE_NAME", "from-hubble-node-name"))
-	SetKubernetesNodeName()
-	assert.Equal(t, "from-node-name", GetKubernetesNodeName())
+	SetNodeName()
+	assert.Equal(t, "from-node-name", GetNodeName())
 	require.NoError(t, os.Unsetenv("NODE_NAME"))
 	require.NoError(t, os.Unsetenv("HUBBLE_NODE_NAME"))
 }

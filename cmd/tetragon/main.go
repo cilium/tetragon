@@ -426,7 +426,7 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		if err != nil {
 			log.WithError(err).Warn("Failed to get local Kubernetes node info. node_labels field will be empty")
 		} else {
-			node.SetKubernetesNodeLabels(k8sNode.Labels)
+			node.SetNodeLabels(k8sNode.Labels)
 		}
 	} else {
 		log.Info("Disabling Kubernetes API")

@@ -67,10 +67,10 @@ func newControllerManager() (*ControllerManager, error) {
 	cacheOptions := cmCache.Options{
 		ByObject: map[client.Object]cmCache.ByObject{
 			&corev1.Pod{}: {
-				Field: fields.OneTermEqualSelector("spec.nodeName", node.GetKubernetesNodeName()),
+				Field: fields.OneTermEqualSelector("spec.nodeName", node.GetNodeName()),
 			},
 			&corev1.Node{}: {
-				Field: fields.SelectorFromSet(fields.Set{"metadata.name": node.GetKubernetesNodeName()}),
+				Field: fields.SelectorFromSet(fields.Set{"metadata.name": node.GetNodeName()}),
 			},
 		},
 	}
@@ -111,7 +111,7 @@ func (cm *ControllerManager) GetNamespace(name string) (*corev1.Namespace, error
 
 func (cm *ControllerManager) GetNode() (*corev1.Node, error) {
 	k8sNode := corev1.Node{}
-	if err := cm.Manager.GetCache().Get(context.Background(), types.NamespacedName{Name: node.GetKubernetesNodeName()}, &k8sNode); err != nil {
+	if err := cm.Manager.GetCache().Get(context.Background(), types.NamespacedName{Name: node.GetNodeName()}, &k8sNode); err != nil {
 		return nil, err
 	}
 	return &k8sNode, nil
