@@ -125,6 +125,7 @@ int ProcessMonitor(process_md_t *ctx)
 		process_create_info.parent_process_id = ctx->parent_process_id;
 		process_create_info.creating_process_id = ctx->creating_process_id;
 		process_create_info.creating_thread_id = ctx->creating_thread_id;
+		process_create_info.user_luid = bpf_get_current_logon_id(ctx);
 		process_create_info.creation_time = ctx->creation_time;
 
 		void *buffer = get_scratch_space();
