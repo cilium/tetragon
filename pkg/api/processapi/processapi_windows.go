@@ -9,6 +9,7 @@ type MsgCreateProcessEvent struct {
 	ParentProcessID   uint32
 	CreatingProcessID uint32
 	CreatingThreadID  uint32
+	UserLUID          uint64
 	CreationTime      uint64
 }
 

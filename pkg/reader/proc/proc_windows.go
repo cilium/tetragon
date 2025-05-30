@@ -6,6 +6,7 @@ package proc
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"syscall"
 	"unsafe"
@@ -19,6 +20,19 @@ type TokenGroups struct {
 	Groups     []syscall.SIDAndAttributes
 }
 
+type TokenStatistics struct {
+	TokenId            windows.LUID
+	AuthenticationId   windows.LUID
+	ExpirationTime     int64
+	TokenType          uint32
+	ImpersonationLevel uint32
+	DynamicCharged     uint32
+	DynamicAvailable   uint32
+	GroupCount         uint32
+	PrivilegeCount     uint32
+	ModifiedId         windows.LUID
+}
+
 func getIDFromSID(str_sid string) (string, error) {
 	tokens := strings.Split(str_sid, "-")
 	if len(tokens) <= 1 {
@@ -27,24 +41,40 @@ func getIDFromSID(str_sid string) (string, error) {
 	return tokens[len(tokens)-1], nil
 }
 
+func getStrLuidFromToken(token windows.Token) (string, error) {
+
+	var size uint32
+	err := windows.GetTokenInformation(token, windows.TokenStatistics, nil, 0, &size)
+	if !errors.Is(err, syscall.ERROR_INSUFFICIENT_BUFFER) {
+		return "", fmt.Errorf("gettokeninformation (size query) failed: %w", err)
+	}
+
+	// Allocate buffer and retrieve TokenStatistics
+	buffer := make([]byte, size)
+	err = windows.GetTokenInformation(token, windows.TokenStatistics, &buffer[0], size, &size)
+	if err != nil {
+		return "", fmt.Errorf("gettokeninformation failed: %w", err)
+	}
+
+	// Cast buffer to TOKEN_STATISTICS
+	stats := (*TokenStatistics)(unsafe.Pointer(&buffer[0]))
+
+	luid := *(*uint64)(unsafe.Pointer(&stats.AuthenticationId))
+	strLUID := strconv.FormatUint(luid, 10)
+	return strLUID, nil
+
+}
+
 // fillStatus returns the content of /proc/pid/status as Status
 func fillStatus(hProc windows.Handle, status *Status) error {
-	var token syscall.Token
-	err := syscall.OpenProcessToken(syscall.Handle(hProc), syscall.TOKEN_QUERY, &token)
+	var token windows.Token
+	err := windows.OpenProcessToken(hProc, windows.TOKEN_QUERY, &token)
 	if err != nil {
 		return err
 	}
 
 	defer token.Close()
-	tokenUser, err := token.GetTokenUser()
-	if err != nil {
-		return err
-	}
-	sid_string, err := tokenUser.User.Sid.String()
-	if err != nil {
-		return err
-	}
-	str_uid, err := getIDFromSID(sid_string)
+	str_uid, err := getStrLuidFromToken(token)
 	if err != nil {
 		return err
 	}
@@ -53,7 +83,7 @@ func fillStatus(hProc windows.Handle, status *Status) error {
 	if err != nil {
 		return err
 	}
-	str_groupid, err := tokenGroup.PrimaryGroup.String()
+	str_groupid := tokenGroup.PrimaryGroup.String()
 	if err != nil {
 		return err
 	}
