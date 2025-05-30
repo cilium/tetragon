@@ -39,7 +39,7 @@ type ManagerTestSuite struct {
 func (suite *ManagerTestSuite) SetupSuite() {
 	err := os.Setenv("NODE_NAME", nodeName)
 	require.NoError(suite.T(), err)
-	node.SetKubernetesNodeName()
+	node.SetNodeName()
 	useExistingCluster := true
 	suite.testEnv = &envtest.Environment{
 		UseExistingCluster: &useExistingCluster,
@@ -127,7 +127,7 @@ func (suite *ManagerTestSuite) TestLocalPods() {
 	defer cancel()
 	err := os.Setenv("NODE_NAME", "nonexistent-node")
 	require.NoError(suite.T(), err)
-	node.SetKubernetesNodeName()
+	node.SetNodeName()
 	controllerManager, err := newControllerManager()
 	require.NoError(suite.T(), err)
 	go func() {
@@ -140,7 +140,7 @@ func (suite *ManagerTestSuite) TestLocalPods() {
 	// Pod cache should be empty because the node name is set to a nonexistent node.
 	assert.Empty(suite.T(), pods.Items)
 	require.NoError(suite.T(), os.Setenv("NODE_NAME", nodeName))
-	node.SetKubernetesNodeName()
+	node.SetNodeName()
 }
 
 func (suite *ManagerTestSuite) TestGetNode() {

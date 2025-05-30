@@ -17,14 +17,14 @@ const (
 )
 
 var (
-	kubernetesNodeName   string
-	exportNodeName       string
-	kubernetesNodeLabels = map[string]string{}
+	nodeName       string
+	exportNodeName string
+	nodeLabels     = map[string]string{}
 )
 
 func init() {
 	SetExportNodeName()
-	SetKubernetesNodeName()
+	SetNodeName()
 }
 
 // SetExportNodeName initializes the exportNodeName variable. It's defined separately from
@@ -43,24 +43,24 @@ func SetExportNodeName() {
 	}
 }
 
-// SetKubernetesNodeName initializes the kubernetesNodeName variable. It's defined separately from
+// SetNodeName initializes the nodeName variable. It's defined separately from
 // init() so that it can be called from unit tests.
-func SetKubernetesNodeName() {
+func SetNodeName() {
 	var err error
-	if kubernetesNodeName = os.Getenv(nodeNameEnvVar); kubernetesNodeName != "" {
+	if nodeName = os.Getenv(nodeNameEnvVar); nodeName != "" {
 		return
 	}
-	if kubernetesNodeName = os.Getenv(hubbleNodeNameEnvVar); kubernetesNodeName != "" {
+	if nodeName = os.Getenv(hubbleNodeNameEnvVar); nodeName != "" {
 		return
 	}
-	kubernetesNodeName, err = os.Hostname()
+	nodeName, err = os.Hostname()
 	if err != nil {
 		logger.GetLogger().WithError(err).Warn("failed to retrieve hostname")
 	}
 }
 
-func SetKubernetesNodeLabels(labels map[string]string) {
-	kubernetesNodeLabels = labels
+func SetNodeLabels(labels map[string]string) {
+	nodeLabels = labels
 }
 
 // GetNodeNameForExport returns node name string for JSON export. It uses the HUBBLE_NODE_NAME
@@ -70,20 +70,20 @@ func GetNodeNameForExport() string {
 	return exportNodeName
 }
 
-// GetKubernetesNodeName returns node name string for the given node in Kubernetes. It uses the NODE_NAME
+// GetNodeName returns node name string for the given node in Kubernetes. It uses the NODE_NAME
 // env variable by default, and falls back to HUBBLE_NODE_NAME if the former is missing. If both
 // are missing, it will use the host name reported by the kernel. This value is used when watching for
 // pods running on the node in Kubernetes.
 //
 // NOTE: This is different from the Export equivalent for cases where nodes in kubernetes are named different
 // from the desired node name in the JSON export.
-func GetKubernetesNodeName() string {
-	return kubernetesNodeName
+func GetNodeName() string {
+	return nodeName
 }
 
 // SetCommonFields set fields that are common in all the events.
 func SetCommonFields(ev *tetragon.GetEventsResponse) {
 	ev.NodeName = exportNodeName
 	ev.ClusterName = option.Config.ClusterName
-	ev.NodeLabels = kubernetesNodeLabels
+	ev.NodeLabels = nodeLabels
 }
