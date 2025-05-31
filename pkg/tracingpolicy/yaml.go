@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 func specSetMode(spec map[interface{}]interface{}, mode string) error {
