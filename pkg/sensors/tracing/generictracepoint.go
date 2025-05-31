@@ -735,9 +735,10 @@ func (tp *genericTracepoint) eventConfigRaw(config *tracingapi.EventConfig) (*tr
 
 	// iterate over output arguments
 	for i, tpArg := range tp.args {
-		config.BTFArg[tpArg.TpIdx] = tpArg.btf
-		config.Arg[tpArg.TpIdx] = int32(tpArg.genericTypeId)
-		config.ArgM[tpArg.TpIdx] = uint32(tpArg.MetaArg)
+		config.ArgIdx[i] = uint32(tpArg.TpIdx)
+		config.BTFArg[i] = tpArg.btf
+		config.Arg[i] = int32(tpArg.genericTypeId)
+		config.ArgM[i] = uint32(tpArg.MetaArg)
 
 		tracepointLog.Debugf("configured argument #%d: %+v (type:%d)", i, tpArg, tpArg.genericTypeId)
 	}
