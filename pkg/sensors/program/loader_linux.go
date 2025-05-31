@@ -879,13 +879,21 @@ func doLoadProgram(
 
 	var opts ebpf.CollectionOptions
 	if btfSpec != nil {
+		// we have a BTF in a non-normal location let's use that in the first try
 		opts.Programs.KernelTypes = btfSpec
+	} else if load.KernelTypes != nil {
+		// here we have the nornal BTF file (i.e. /sys/kernel/btf/vmlinux) and we can
+		// check if the user provided any custom BTF (i.e. containing kmod data) and use
+		// that instead
+		opts.Programs.KernelTypes = load.KernelTypes
 	}
 
 	opts.MapReplacements = pinnedMaps
 
 	coll, err := ebpf.NewCollectionWithOptions(spec, opts)
-	if err != nil && load.KernelTypes != nil {
+	if err != nil && btfSpec != nil && load.KernelTypes != nil {
+		// here we have tried using btfSpec and failed now let's
+		// try to use the user-provided load.KernelTypes
 		opts.Programs.KernelTypes = load.KernelTypes
 		coll, err = ebpf.NewCollectionWithOptions(spec, opts)
 	}
