@@ -12,7 +12,7 @@ on:
 jobs:
   windows-ebpf-prog-build:
     name: Build Windows process ebpf program
-    runs-on: windows-2022
+    runs-on: windows-2025
     timeout-minutes: 15
 
     env:
@@ -103,7 +103,7 @@ jobs:
 
   windows-tetragon-build:
     name: Build and Uplod Windows Tetragon and Tetra Binaries
-    runs-on: windows-2022
+    runs-on: windows-2025
     timeout-minutes: 15
     env:
       TEMP: D:\temp
@@ -144,7 +144,7 @@ jobs:
 
   windows-smoke-test:
     name: Deploy and Test tetragon for Windows 
-    runs-on: windows-2022
+    runs-on: windows-2025
     needs:
       - windows-tetragon-build
       - windows-ebpf-prog-build
