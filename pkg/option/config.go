@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics"
@@ -148,6 +149,26 @@ var (
 
 func CgroupRateEnabled() bool {
 	return Config.CgroupRate.Events != 0 && Config.CgroupRate.Interval != 0
+}
+
+// AncestorsEnabled returns the value of the configuration option responsible for
+// enabling process ancestors for events with the specified eventType.
+// If events with the specified eventType don't support ancestors, false is returned.
+func AncestorsEnabled(eventType tetragon.EventType) bool {
+	switch eventType {
+	case tetragon.EventType_PROCESS_EXEC, tetragon.EventType_PROCESS_EXIT:
+		return Config.EnableProcessAncestors
+	case tetragon.EventType_PROCESS_KPROBE:
+		return Config.EnableProcessKprobeAncestors
+	case tetragon.EventType_PROCESS_TRACEPOINT:
+		return Config.EnableProcessTracepointAncestors
+	case tetragon.EventType_PROCESS_UPROBE:
+		return Config.EnableProcessUprobeAncestors
+	case tetragon.EventType_PROCESS_LSM:
+		return Config.EnableProcessLsmAncestors
+	default:
+		return false
+	}
 }
 
 // ReadDirConfig reads the given directory and returns a map that maps the
