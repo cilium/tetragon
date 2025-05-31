@@ -18,7 +18,7 @@ env:
 
 jobs:
   prepare:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       packages: ${{ steps.set-packages.outputs.packages }}
       agentImage: ${{ steps.vars.outputs.agentImage }}
