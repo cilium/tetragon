@@ -507,7 +507,7 @@ matchCapabilityChanges:
   - "CAP_SETUID"
 ```
 
-See a [demonstration example](https://github.com/cilium/tetragon/blob/main/examples/tracingpolicy/match_capability_changes.yaml)
+See a [demonstration example](https://github.com/cilium/tetragon/blob/main/examples/tracingpolicy/fd_install_cap_changes.yaml)
 of this feature.
 
 ## Actions filter
