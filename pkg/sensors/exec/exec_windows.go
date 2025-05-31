@@ -28,6 +28,7 @@ func msgToExecveUnix(m *processapi.MsgCreateProcessEvent) *exec.MsgExecveEventUn
 		PID:   m.ProcessID,
 		TID:   m.ProcessID,
 		NSPID: 0,
+		UID:   uint32(m.UserLUID),
 		Flags: 1,
 		Size:  0,
 		Ktime: m.CreationTime,
