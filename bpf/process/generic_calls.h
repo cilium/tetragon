@@ -206,6 +206,71 @@ generic_process_init(struct msg_generic_kprobe *e, u8 op, struct event_config *c
 	e->tid = (__u32)get_current_pid_tgid();
 }
 
+FUNC_INLINE unsigned long
+get_lsm_arg(void *ctx, int index)
+{
+	if (index >= EVENT_CONFIG_MAX_ARG || index < 0)
+		return 0;
+	struct bpf_raw_tracepoint_args *raw_args = (struct bpf_raw_tracepoint_args *)ctx;
+	return BPF_CORE_READ(raw_args, args[index & 7]);
+}
+
+FUNC_INLINE unsigned long
+get_kprobe_arg(struct pt_regs *ctx, int index, int is_syscall)
+{
+	if (is_syscall) {
+		struct pt_regs *_ctx;
+		_ctx = PT_REGS_SYSCALL_REGS(ctx);
+		if (!_ctx)
+			return 0;
+		switch (index) {
+		case 0:
+			return PT_REGS_PARM1_CORE_SYSCALL(_ctx);
+		case 1:
+			return PT_REGS_PARM2_CORE_SYSCALL(_ctx);
+		case 2:
+			return PT_REGS_PARM3_CORE_SYSCALL(_ctx);
+		case 3:
+			return PT_REGS_PARM4_CORE_SYSCALL(_ctx);
+		case 4:
+			return PT_REGS_PARM5_CORE_SYSCALL(_ctx);
+		}
+		return -1L;
+	}
+
+	switch (index) {
+	case 0:
+		return PT_REGS_PARM1_CORE(ctx);
+	case 1:
+		return PT_REGS_PARM2_CORE(ctx);
+	case 2:
+		return PT_REGS_PARM3_CORE(ctx);
+	case 3:
+		return PT_REGS_PARM4_CORE(ctx);
+	case 4:
+		return PT_REGS_PARM5_CORE(ctx);
+	}
+	return -1L;
+}
+
+FUNC_INLINE unsigned long
+get_argument(void *ctx, struct event_config *config, int index)
+{
+#ifdef GENERIC_KPROBE
+	return get_kprobe_arg(ctx, index, config->syscall);
+#endif
+#ifdef GENERIC_UPROBE
+	return get_kprobe_arg(ctx, index, 0);
+#endif
+#ifdef GENERIC_LSM
+	return get_lsm_arg(ctx, index);
+#endif
+#ifdef GENERIC_RAWTP
+	return get_lsm_arg(ctx, index);
+#endif
+	return -1L;
+}
+
 FUNC_INLINE int
 generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcals)
 {
@@ -223,25 +288,13 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 	if (!config)
 		return 0;
 
-#ifdef GENERIC_KPROBE
-	if (config->syscall) {
-		struct pt_regs *_ctx;
-		_ctx = PT_REGS_SYSCALL_REGS(ctx);
-		if (!_ctx)
-			return 0;
-		e->a0 = PT_REGS_PARM1_CORE_SYSCALL(_ctx);
-		e->a1 = PT_REGS_PARM2_CORE_SYSCALL(_ctx);
-		e->a2 = PT_REGS_PARM3_CORE_SYSCALL(_ctx);
-		e->a3 = PT_REGS_PARM4_CORE_SYSCALL(_ctx);
-		e->a4 = PT_REGS_PARM5_CORE_SYSCALL(_ctx);
-	} else {
-		e->a0 = PT_REGS_PARM1_CORE(ctx);
-		e->a1 = PT_REGS_PARM2_CORE(ctx);
-		e->a2 = PT_REGS_PARM3_CORE(ctx);
-		e->a3 = PT_REGS_PARM4_CORE(ctx);
-		e->a4 = PT_REGS_PARM5_CORE(ctx);
-	}
+	e->a0 = get_argument(ctx, config, config->arg_idx[0]);
+	e->a1 = get_argument(ctx, config, config->arg_idx[1]);
+	e->a2 = get_argument(ctx, config, config->arg_idx[2]);
+	e->a3 = get_argument(ctx, config, config->arg_idx[3]);
+	e->a4 = get_argument(ctx, config, config->arg_idx[4]);
 
+#ifdef GENERIC_KPROBE
 	generic_process_init(e, MSG_OP_GENERIC_KPROBE, config);
 
 	e->retprobe_id = retprobe_map_get_key(ctx);
@@ -253,34 +306,14 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 #endif
 
 #ifdef GENERIC_LSM
-	struct bpf_raw_tracepoint_args *raw_args = (struct bpf_raw_tracepoint_args *)ctx;
-
-	e->a0 = BPF_CORE_READ(raw_args, args[0]);
-	e->a1 = BPF_CORE_READ(raw_args, args[1]);
-	e->a2 = BPF_CORE_READ(raw_args, args[2]);
-	e->a3 = BPF_CORE_READ(raw_args, args[3]);
-	e->a4 = BPF_CORE_READ(raw_args, args[4]);
 	generic_process_init(e, MSG_OP_GENERIC_LSM, config);
 #endif
 
 #ifdef GENERIC_UPROBE
-	/* no arguments for uprobes for now */
-	e->a0 = PT_REGS_PARM1_CORE(ctx);
-	e->a1 = PT_REGS_PARM2_CORE(ctx);
-	e->a2 = PT_REGS_PARM3_CORE(ctx);
-	e->a3 = PT_REGS_PARM4_CORE(ctx);
-	e->a4 = PT_REGS_PARM5_CORE(ctx);
 	generic_process_init(e, MSG_OP_GENERIC_UPROBE, config);
 #endif
 
 #ifdef GENERIC_RAWTP
-	struct bpf_raw_tracepoint_args *raw_args = (struct bpf_raw_tracepoint_args *)ctx;
-
-	e->a0 = BPF_CORE_READ(raw_args, args[0]);
-	e->a1 = BPF_CORE_READ(raw_args, args[1]);
-	e->a2 = BPF_CORE_READ(raw_args, args[2]);
-	e->a3 = BPF_CORE_READ(raw_args, args[3]);
-	e->a4 = BPF_CORE_READ(raw_args, args[4]);
 	generic_process_init(e, MSG_OP_GENERIC_TRACEPOINT, config);
 #endif
 	return generic_process_event(ctx, tailcals);

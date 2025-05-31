@@ -359,14 +359,11 @@ func ActionTypeFromString(action string) int32 {
 }
 
 func argSelectorType(arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) (uint32, error) {
-	for _, s := range sig {
-		if arg.Index == s.Index {
-			// TBD: We shouldn't get this far with invalid KProbe args
-			// KProbe args have already been validated
-			return uint32(gt.GenericTypeFromString(s.Type)), nil
-		}
+	if int(arg.Index) >= len(sig) {
+		return 0, fmt.Errorf("argSelectorType: index %d out of range. The policy only have %d available arguments)", arg.Index, len(sig))
 	}
-	return 0, errors.New("argFilter for unknown index")
+
+	return uint32(gt.GenericTypeFromString(sig[arg.Index].Type)), nil
 }
 
 func writeRangeInMap(v string, ty uint32, op uint32, m *ValueMap) error {
