@@ -43,7 +43,7 @@ jobs:
           powershell.exe "echo 'VCINSTALLDIR=%VCINSTALLDIR%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
 
       - name: Add MSBuild to PATH
-        uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce
+        uses: microsoft/setup-msbuild@767f00a3f09872d96a0cb9fcd5e6a4ff33311330
         with:
           msbuild-architecture: x64
       
@@ -94,7 +94,7 @@ jobs:
           Compress-Archive -Path ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -DestinationPath .\build-${{env.BUILD_PLATFORM}}.${{env.BUILD_CONFIGURATION}}.zip
 
       - name: Upload Build Output
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+        uses: actions/upload-artifact@6027e3dd177782cd8ab9af838c04fd81a07f1d47
         with:
           working-directory: ${{ env.TEMP }}\ntosebpfext
           name: ntosebpfext-build-output
@@ -114,7 +114,7 @@ jobs:
         shell: pwsh
 
       - name: Install Go
-        uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
           go-version: '1.24.2'
 
@@ -136,7 +136,7 @@ jobs:
           Get-ChildItem -Recurse ${{ env.TEMP }} 
 
       - name: Upload Tetragon Windows binaries
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+        uses: actions/upload-artifact@6027e3dd177782cd8ab9af838c04fd81a07f1d47
         with:
           name: tetragon-windows-build-output
           path: ${{ env.TEMP }}\Tetragon-Windows.zip
@@ -187,13 +187,13 @@ jobs:
         run: echo "C:\Program Files\ebpf-for-windows\" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Download tetragon-windows-build-output
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: ${{ env.TEMP }}\test
           name: tetragon-windows-build-output
       
       - name: Download ntosebpfext-build-output
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: ${{ env.TEMP }}\test
           name: ntosebpfext-build-output
