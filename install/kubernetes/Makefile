@@ -7,7 +7,7 @@ include ../../Makefile.defs
 # -- Images
 #
 # renovate: datasource=docker
-HELM_IMAGE = docker.io/alpine/helm:3.18.0@sha256:2174b15dcd4159888dae175b5f033583f903cbc39b16711c95e83021a79cfd21
+HELM_IMAGE = docker.io/alpine/helm:3.18.1@sha256:d8e77d58291e853a058aeada49a043ac22751f47fafaedf39ca48a880c7831ce
 # renovate: datasource=docker
 KUBECONFORM_IMAGE = ghcr.io/yannh/kubeconform:v0.7.0-alpine@sha256:8f0eeaaa96ba27ba1500b0e4b1c215acc358d159c62a7ecae58d7a03403287b0
 # renovate: datasource=docker
