@@ -1090,7 +1090,7 @@ The following list of LSM hooks is supported:
 - file_receive
 - mmap_file
 
-First, you need to be sure that LSB BPF is [enabled](https://tetragon.io/docs/concepts/tracing-policy/hooks/#lsm-bpf).
+First, you need to be sure that LSM BPF is [enabled](https://tetragon.io/docs/concepts/tracing-policy/hooks/#lsm-bpf).
 
 To verify if IMA-measurement is available use the following command:
 
