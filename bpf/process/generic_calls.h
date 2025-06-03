@@ -597,7 +597,9 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 	e->a4 = BPF_CORE_READ(raw_args, args[4]);
 	generic_process_init(e, MSG_OP_GENERIC_TRACEPOINT, config);
 #endif
-	return generic_process_event(ctx, tailcals);
+
+	tail_call(ctx, tailcals, TAIL_CALL_PROCESS);
+	return 0;
 }
 
 #if defined GENERIC_KPROBE || defined GENERIC_LSM
