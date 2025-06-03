@@ -76,7 +76,7 @@ func TestLSMObjectLoad(t *testing.T) {
 			tus.SensorMap{Name: "execve_map", Progs: []uint{4, 5, 6}},
 
 			// generic_lsm_process_event*,generic_lsm_output
-			tus.SensorMap{Name: "tcpmon_map", Progs: []uint{1, 2, 6}},
+			tus.SensorMap{Name: "tcpmon_map", Progs: []uint{2, 6}},
 		}
 	} else {
 		sensorProgs = []tus.SensorProg{
@@ -114,7 +114,7 @@ func TestLSMObjectLoad(t *testing.T) {
 			tus.SensorMap{Name: "execve_map", Progs: []uint{4, 5, 6}},
 
 			// generic_lsm_process_event*,generic_lsm_output
-			tus.SensorMap{Name: "tcpmon_map", Progs: []uint{1, 2, 6}},
+			tus.SensorMap{Name: "tcpmon_map", Progs: []uint{2, 6}},
 		}
 	}
 
