@@ -237,7 +237,7 @@ jobs:
           $notepadPID = $notepad.Id
           Write-Host "Process launched with PID: $notepadPID"
 
-          $searchString = "\{\""process_exec\""\:\{\""process\""\:\{\""exec_id\""\:\"".{16,30}\""\,.{0,1}\""pid\""\:$notepadPID\,.{0,1}\""uid\""\:0\,.{0,1}\""binary\""\:\""C:\\\\Windows\\\\system32\\\\notepad.exe\"""
+          $searchString = "\{\""process_exec\""\:\{\""process\""\:\{\""exec_id\""\:\"".{16,30}\""\,.{0,1}\""pid\""\:$notepadPID\,.{0,1}\""uid\""\:[0-9]{0,9}\,.{0,1}\""binary\""\:\""C:\\\\Windows\\\\system32\\\\notepad.exe\"""
 
           Write-Host "Looking for regex: $searchString"
           # Load the JSON content
