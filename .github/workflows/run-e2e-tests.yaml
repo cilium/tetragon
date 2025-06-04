@@ -98,7 +98,7 @@ jobs:
         # renovate: datasource=github-releases depName=kubernetes-sigs/kind
         kind: v0.29.0
         # renovate: datasource=github-releases depName=cilium/cilium-cli
-        cilium: v0.18.3
+        cilium: v0.18.4
         print-summary: false
 
     - name: Pull Tetragon Images
