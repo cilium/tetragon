@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
@@ -24,9 +23,7 @@ import (
 	"time"
 
 	"github.com/cilium/ebpf"
-	"github.com/cilium/ebpf/btf"
 	"github.com/cilium/ebpf/link"
-	"github.com/cilium/ebpf/pin"
 	"github.com/cilium/tetragon/pkg/bugtool"
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/defaults"
@@ -388,8 +385,13 @@ func getProg(id uint32) (*prog, error) {
 		return nil, err
 	}
 
-	runTime, _ := info.Runtime()
-	runCnt, _ := info.RunCount()
+	stats, err := p.Stats()
+	if err != nil {
+		return nil, err
+	}
+
+	runTime := stats.Runtime
+	runCnt := stats.RunCount
 
 	return &prog{
 		id:    id,
@@ -403,65 +405,66 @@ func getProg(id uint32) (*prog, error) {
 
 func getTetragonProgs(base string) ([]*prog, error) {
 	var progs []*prog
+	var err error
 
 	// Walk bpffs/tetragon and look for programs
-	err := pin.WalkDir(base,
-		func(path string, finfo fs.DirEntry, obj pin.Pinner, err error) error {
-			if err != nil {
-				return err
-			}
-			if finfo.IsDir() {
-				return nil
-			}
+	// err := pin.WalkDir(base,
+	// 	func(path string, finfo fs.DirEntry, obj pin.Pinner, err error) error {
+	// 		if err != nil {
+	// 			return err
+	// 		}
+	// 		if finfo.IsDir() {
+	// 			return nil
+	// 		}
 
-			p, ok := obj.(*ebpf.Program)
-			if !ok {
-				return nil
-			}
-			defer p.Close()
+	// 		p, ok := obj.(*ebpf.Program)
+	// 		if !ok {
+	// 			return nil
+	// 		}
+	// 		defer p.Close()
 
-			info, err := p.Info()
-			if err != nil {
-				return err
-			}
+	// 		info, err := p.Info()
+	// 		if err != nil {
+	// 			return err
+	// 		}
 
-			id, ok := info.ID()
-			if !ok {
-				return err
-			}
+	// 		id, ok := info.ID()
+	// 		if !ok {
+	// 			return err
+	// 		}
 
-			runTime, _ := info.Runtime()
-			runCnt, _ := info.RunCount()
+	// 		runTime, _ := info.Runtime()
+	// 		runCnt, _ := info.RunCount()
 
-			progs = append(progs, &prog{
-				id:    uint32(id),
-				name:  getName(p, info),
-				pin:   filepath.Join(base, path),
-				cnt:   runCnt,
-				time:  runTime,
-				alive: true,
-			})
-			return nil
-		})
+	// 		progs = append(progs, &prog{
+	// 			id:    uint32(id),
+	// 			name:  getName(p, info),
+	// 			pin:   filepath.Join(base, path),
+	// 			cnt:   runCnt,
+	// 			time:  runTime,
+	// 			alive: true,
+	// 		})
+	// 		return nil
+	// 	})
 	return progs, err
 }
 
-func getName(p *ebpf.Program, info *ebpf.ProgramInfo) string {
-	handle, err := p.Handle()
-	if err != nil {
-		return info.Name
-	}
+// func getName(p *ebpf.Program, info *ebpf.ProgramInfo) string {
+// handle, err := p.Handle()
+// if err != nil {
+// 	return info.Name
+// }
 
-	spec, err := handle.Spec(nil)
-	if err != nil {
-		return info.Name
-	}
+// spec, err := handle.Spec(nil)
+// if err != nil {
+// 	return info.Name
+// }
 
-	iter := spec.Iterate()
-	for iter.Next() {
-		if fn, ok := iter.Type.(*btf.Func); ok {
-			return fn.Name
-		}
-	}
-	return info.Name
-}
+// iter := spec.Iterate()
+// for iter.Next() {
+// 	if fn, ok := iter.Type.(*btf.Func); ok {
+// 		return fn.Name
+// 	}
+// }
+// return info.Name
+// }

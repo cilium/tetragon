@@ -59,12 +59,12 @@ func collectLink(load *program.Program) (uint64, bool) {
 }
 
 func collectProg(load *program.Program) (uint64, bool) {
-	info, err := load.Prog.Info()
+	info, err := load.Prog.Stats()
 	if err != nil {
 		return 0, false
 	}
 
-	return info.RecursionMisses()
+	return info.RecursionMisses, true
 }
 
 type missedKey struct {

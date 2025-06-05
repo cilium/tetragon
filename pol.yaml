@@ -1,0 +1,8 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "test-ovl"
+spec:
+  kprobes:
+  - call: "ovl_inode_upper"
+    syscall: false

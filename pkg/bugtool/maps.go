@@ -6,7 +6,6 @@ package bugtool
 import (
 	"errors"
 	"fmt"
-	"io/fs"
 	"iter"
 	"maps"
 	"os"
@@ -15,7 +14,6 @@ import (
 	"syscall"
 
 	"github.com/cilium/ebpf"
-	"github.com/cilium/ebpf/pin"
 	"github.com/cilium/tetragon/pkg/bpf"
 )
 
@@ -90,30 +88,30 @@ func FindAllMaps() ([]bpf.ExtendedMapInfo, error) {
 func FindPinnedMaps(path string) ([]bpf.ExtendedMapInfo, error) {
 	var infos []bpf.ExtendedMapInfo
 
-	err := pin.WalkDir(path, func(_ string, d fs.DirEntry, obj pin.Pinner, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() {
-			return nil // skip directories
-		}
+	// err := pin.WalkDir(path, func(_ string, d fs.DirEntry, obj pin.Pinner, err error) error {
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	if d.IsDir() {
+	// 		return nil // skip directories
+	// 	}
 
-		m, ok := obj.(*ebpf.Map)
-		if !ok {
-			return nil // skip non map
-		}
-		defer m.Close()
+	// 	m, ok := obj.(*ebpf.Map)
+	// 	if !ok {
+	// 		return nil // skip non map
+	// 	}
+	// 	defer m.Close()
 
-		xInfo, err := bpf.ExtendedInfoFromMap(m)
-		if err != nil {
-			return fmt.Errorf("failed to retrieve extended info from map %v: %w", m, err)
-		}
-		infos = append(infos, xInfo)
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
+	// 	xInfo, err := bpf.ExtendedInfoFromMap(m)
+	// 	if err != nil {
+	// 		return fmt.Errorf("failed to retrieve extended info from map %v: %w", m, err)
+	// 	}
+	// 	infos = append(infos, xInfo)
+	// 	return nil
+	// })
+	// if err != nil {
+	// 	return nil, err
+	// }
 	return infos, nil
 }
 
@@ -145,38 +143,38 @@ func mapIDsFromProgs(prog *ebpf.Program) (iter.Seq[int], error) {
 func mapIDsFromPinnedProgs(path string) (iter.Seq[int], error) {
 	mapSet := map[int]bool{}
 	progArrays := []*ebpf.Map{}
-	err := pin.WalkDir(path, func(_ string, d fs.DirEntry, obj pin.Pinner, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() {
-			return nil // skip directories
-		}
+	// err := pin.WalkDir(path, func(_ string, d fs.DirEntry, obj pin.Pinner, err error) error {
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	if d.IsDir() {
+	// 		return nil // skip directories
+	// 	}
 
-		switch typedObj := obj.(type) {
-		case *ebpf.Program:
-			newIDs, err := mapIDsFromProgs(typedObj)
-			if err != nil {
-				return fmt.Errorf("failed to retrieve map IDs from prog: %w", err)
-			}
-			typedObj.Close()
-			for id := range newIDs {
-				mapSet[id] = true
-			}
-		case *ebpf.Map:
-			if typedObj.Type() == ebpf.ProgramArray {
-				progArrays = append(progArrays, typedObj)
-				// don't forget to close those files when used later on
-			} else {
-				typedObj.Close()
-			}
-		}
+	// 	switch typedObj := obj.(type) {
+	// 	case *ebpf.Program:
+	// 		newIDs, err := mapIDsFromProgs(typedObj)
+	// 		if err != nil {
+	// 			return fmt.Errorf("failed to retrieve map IDs from prog: %w", err)
+	// 		}
+	// 		typedObj.Close()
+	// 		for id := range newIDs {
+	// 			mapSet[id] = true
+	// 		}
+	// 	case *ebpf.Map:
+	// 		if typedObj.Type() == ebpf.ProgramArray {
+	// 			progArrays = append(progArrays, typedObj)
+	// 			// don't forget to close those files when used later on
+	// 		} else {
+	// 			typedObj.Close()
+	// 		}
+	// 	}
 
-		return nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed walking the path %q: %w", path, err)
-	}
+	// 	return nil
+	// })
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed walking the path %q: %w", path, err)
+	// }
 
 	// retrieve all the program IDs from prog array maps
 	progIDs := []int{}
