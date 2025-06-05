@@ -731,8 +731,8 @@ func (tp *genericTracepoint) eventConfigRaw(config *tracingapi.EventConfig) (*tr
 	// iterate over output arguments
 	for i, tpArg := range tp.args {
 		config.BTFArg[i] = tpArg.btf
-		config.Arg[i] = int32(tpArg.genericTypeId)
-		config.ArgM[i] = uint32(tpArg.MetaArg)
+		config.ArgType[i] = int32(tpArg.genericTypeId)
+		config.ArgMeta[i] = uint32(tpArg.MetaArg)
 		config.ArgIndex[i] = int32(tpArg.TpIdx)
 
 		tracepointLog.Debug(fmt.Sprintf("configured argument #%d: %+v (type:%d)", i, tpArg, tpArg.genericTypeId))
@@ -745,8 +745,8 @@ func (tp *genericTracepoint) eventConfig(config *tracingapi.EventConfig) (*traci
 	// iterate over output arguments
 	for i, tpArg := range tp.args {
 		config.ArgTpCtxOff[i] = uint32(tpArg.CtxOffset)
-		config.Arg[i] = int32(tpArg.genericTypeId)
-		config.ArgM[i] = uint32(tpArg.MetaArg)
+		config.ArgType[i] = int32(tpArg.genericTypeId)
+		config.ArgMeta[i] = uint32(tpArg.MetaArg)
 		config.ArgIndex[i] = int32(tpArg.TpIdx)
 
 		fmt.Printf("KRAVA i %d ArgIndex %d ArgTpCtxOff %d\n", i, config.ArgIndex[i], config.ArgTpCtxOff[i])
