@@ -806,8 +806,8 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 				a.Type, int(a.Index)))
 		}
 		eventConfig.BTFArg = allBTFArgs
-		eventConfig.Arg[j] = int32(argType)
-		eventConfig.ArgM[j] = uint32(argMValue)
+		eventConfig.ArgType[j] = int32(argType)
+		eventConfig.ArgMeta[j] = uint32(argMValue)
 		eventConfig.ArgIndex[j] = int32(a.Index)
 
 		argsBTFSet[a.Index] = true

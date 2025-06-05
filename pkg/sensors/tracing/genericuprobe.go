@@ -400,8 +400,8 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		}
 
 		config := initEventConfig()
-		config.Arg = argTypes
-		config.ArgM = argMeta
+		config.ArgType = argTypes
+		config.ArgMeta = argMeta
 		config.ArgIndex = argIdx
 
 		uprobeEntry := &genericUprobe{

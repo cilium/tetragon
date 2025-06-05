@@ -274,8 +274,8 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 			return errFn(fmt.Errorf("error add arg: ArgType %s Index %d out of bounds",
 				a.Type, int(a.Index)))
 		}
-		eventConfig.Arg[j] = int32(argType)
-		eventConfig.ArgM[j] = uint32(argMValue)
+		eventConfig.ArgType[j] = int32(argType)
+		eventConfig.ArgMeta[j] = uint32(argMValue)
 		eventConfig.ArgIndex[j] = int32(a.Index)
 
 		argsBTFSet[a.Index] = true
