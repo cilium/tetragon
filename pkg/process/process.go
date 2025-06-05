@@ -46,6 +46,10 @@ type ProcessInternal struct {
 	// will be constructed on the fly when returning these extra fields
 	// about the binary during the corresponding ProcessExec only.
 	apiBinaryProp *tetragon.BinaryProperties
+	// EnvironmentVariables is a string map of unprocessed environment variables
+	// that were passed to the process. This is not stored into the process,
+	// but is used to construct the ProcessExec event.
+	environmentVariables string
 	// garbage collector metadata
 	color  int // Writes should happen only inside gc select channel
 	refcnt atomic.Uint32
@@ -237,6 +241,14 @@ func (pi *ProcessInternal) NeededAncestors() bool {
 	return false
 }
 
+func (pi *ProcessInternal) GetEnvironmentVariables() string {
+	if pi == nil {
+		return ""
+	}
+
+	return pi.environmentVariables
+}
+
 // UpdateEventProcessTID Updates the Process.Tid of the event on the fly.
 //
 // From BPF side as we track processes by their TGID we do not cache TIDs,
@@ -365,28 +377,28 @@ func initProcessInternalExec(
 
 	pi := &ProcessInternal{
 		process: &tetragon.Process{
-			Pid:                  &wrapperspb.UInt32Value{Value: process.PID},
-			Tid:                  &wrapperspb.UInt32Value{Value: process.TID},
-			Uid:                  &wrapperspb.UInt32Value{Value: process.UID},
-			Cwd:                  cwd,
-			Binary:               binary,
-			Arguments:            args,
-			Flags:                strings.Join(exec.DecodeCommonFlags(process.Flags), " "),
-			StartTime:            ktime.ToProtoOpt(process.Ktime, (process.Flags&api.EventProcFS) == 0),
-			Auid:                 &wrapperspb.UInt32Value{Value: process.AUID},
-			Pod:                  protoPod,
-			ExecId:               execID,
-			Docker:               event.Kube.Docker,
-			ParentExecId:         parentExecID,
-			Refcnt:               0,
-			User:                 user,
-			EnvironmentVariables: process.Envs,
+			Pid:          &wrapperspb.UInt32Value{Value: process.PID},
+			Tid:          &wrapperspb.UInt32Value{Value: process.TID},
+			Uid:          &wrapperspb.UInt32Value{Value: process.UID},
+			Cwd:          cwd,
+			Binary:       binary,
+			Arguments:    args,
+			Flags:        strings.Join(exec.DecodeCommonFlags(process.Flags), " "),
+			StartTime:    ktime.ToProtoOpt(process.Ktime, (process.Flags&api.EventProcFS) == 0),
+			Auid:         &wrapperspb.UInt32Value{Value: process.AUID},
+			Pod:          protoPod,
+			ExecId:       execID,
+			Docker:       event.Kube.Docker,
+			ParentExecId: parentExecID,
+			Refcnt:       0,
+			User:         user,
 		},
-		capabilities:  apiCaps,
-		apiCreds:      apiCreds,
-		apiBinaryProp: apiBinaryProp,
-		namespaces:    apiNs,
-		refcntOps:     map[string]int32{"process++": 1},
+		capabilities:         apiCaps,
+		apiCreds:             apiCreds,
+		apiBinaryProp:        apiBinaryProp,
+		environmentVariables: process.Envs,
+		namespaces:           apiNs,
+		refcntOps:            map[string]int32{"process++": 1},
 	}
 	pi.refcnt.Store(1)
 
