@@ -102,9 +102,6 @@ func TestLabelsDemoApp(t *testing.T) {
 		t.Skip("Skipping, see: ://github.com/cilium/tetragon/issues/3060")
 	}
 
-	// Must be called at the beginning of every test
-	runner.SetupExport(t)
-
 	labelsChecker := labelsEventChecker().WithEventLimit(5000).WithTimeLimit(5 * time.Minute)
 
 	// This starts labelsChecker and uses it to run event checks.

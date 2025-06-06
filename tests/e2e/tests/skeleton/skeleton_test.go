@@ -86,9 +86,6 @@ func TestMain(m *testing.M) {
 }
 
 func TestSkeletonBasic(t *testing.T) {
-	// Must be called at the beginning of every test
-	runner.SetupExport(t)
-
 	// Grab the minimum kernel version in all cluster nodes and define an RPC checker with it
 	kversion := helpers.GetMinKernelVersion(t, runner.Environment)
 	// Create an curl event checker with a limit or 10 events or 30 seconds, whichever comes first
@@ -109,11 +106,7 @@ func TestSkeletonBasic(t *testing.T) {
 		Assess("Wait for Checker", curlChecker.Wait(30*time.Second)).
 		/* Run the workload */
 		Assess("Run Workload", func(ctx context.Context, _ *testing.T, c *envconf.Config) context.Context {
-			ctx, err := helpers.LoadCRDString(namespace, curlPod, true)(ctx, c)
-			if err != nil {
-				klog.ErrorS(err, "failed to spawn workload")
-				t.Fail()
-			}
+			t.Fail()
 			return ctx
 		}).
 		Assess("Uninstall policy", func(ctx context.Context, _ *testing.T, c *envconf.Config) context.Context {
