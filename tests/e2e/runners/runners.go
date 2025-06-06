@@ -15,7 +15,6 @@ import (
 	"github.com/cilium/tetragon/tests/e2e/helpers"
 	"github.com/cilium/tetragon/tests/e2e/install/cilium"
 	"github.com/cilium/tetragon/tests/e2e/install/tetragon"
-	"github.com/cilium/tetragon/tests/e2e/state"
 	appsv1 "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog/v2"
@@ -23,7 +22,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/e2e-framework/pkg/env"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
-	"sigs.k8s.io/e2e-framework/pkg/features"
 
 	// Auth plugins
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -177,32 +175,26 @@ func (r *Runner) Init() *Runner {
 	}
 	r.Setup(r.installTetragon)
 
-	// Store test success or failure
-	r.AfterEachTest(func(ctx context.Context, _ *envconf.Config, t *testing.T) (context.Context, error) {
-		if t.Failed() {
-			return context.WithValue(ctx, state.TestFailure, true), nil
-		}
-		return ctx, err
+	r.BeforeEachTest(func(ctx context.Context, _ *envconf.Config, t *testing.T) (context.Context, error) {
+		return r.SetupExport(ctx, t)
 	})
 
-	r.Finish(func(ctx context.Context, c *envconf.Config) (context.Context, error) {
-		failure, ok := ctx.Value(state.TestFailure).(bool)
-		if !ok {
-			failure = false
+	r.AfterEachTest(func(ctx context.Context, c *envconf.Config, t *testing.T) (context.Context, error) {
+		if t.Failed() {
+			return helpers.DumpInfo(ctx, c)
 		}
-		ctx = context.WithValue(ctx, state.TestFailure, nil)
-		// The test passed and we are not keeping export files, remove the export dir
-		// and return early
-		if !r.keepExportFiles && !failure {
-			if exportDir, err := helpers.GetExportDir(ctx); err == nil {
-				klog.Info("test passed and keep-export not set, removing export dir")
-				if err := os.RemoveAll(exportDir); err != nil {
-					klog.ErrorS(err, "failed to remove export dir")
-				}
-			}
+		if r.keepExportFiles {
+			return ctx, nil
+		}
+		exportDir, err := helpers.GetExportDir(ctx)
+		if err != nil {
 			return ctx, err
 		}
-		return helpers.DumpInfo(ctx, c)
+		klog.InfoS("test passed and keep-export not set, removing export dir", "dir", exportDir)
+		if err := os.RemoveAll(exportDir); err != nil {
+			return ctx, err
+		}
+		return ctx, nil
 	})
 
 	if r.tetragonPortForward != nil {
@@ -234,25 +226,19 @@ func (r *Runner) cancelContext() {
 	}
 }
 
-// Must be called at the beinning of every test.
-func (r *Runner) SetupExport(t *testing.T) {
-	setup := features.New("Setup Export").Assess("Setup Export", func(ctx context.Context, _ *testing.T, _ *envconf.Config) context.Context {
-		ctx, err := helpers.CreateExportDir(ctx, t)
-		if err != nil {
-			t.Fatalf("failed to create export dir: %s", err)
-		}
+func (r *Runner) SetupExport(ctx context.Context, t *testing.T) (context.Context, error) {
+	ctx, err := helpers.CreateExportDir(ctx, t)
+	if err != nil {
+		return ctx, err
+	}
 
-		exportDir, err := helpers.GetExportDir(ctx)
-		if err != nil {
-			t.Fatalf("failed to get export dir: %s", err)
-		}
+	exportDir, err := helpers.GetExportDir(ctx)
+	if err != nil {
+		return ctx, err
+	}
 
-		// Start the metrics and gops dumpers
-		helpers.StartMetricsDumper(ctx, exportDir, 30*time.Second)
-		helpers.StartGopsDumper(ctx, exportDir, 30*time.Second)
-
-		return ctx
-	}).Feature()
-
-	r.Test(t, setup)
+	// Start the metrics and gops dumpers
+	helpers.StartMetricsDumper(ctx, exportDir, 30*time.Second)
+	helpers.StartGopsDumper(ctx, exportDir, 30*time.Second)
+	return ctx, nil
 }
