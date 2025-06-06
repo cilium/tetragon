@@ -120,10 +120,14 @@ jobs:
         cd go/src/github.com/cilium/tetragon
         make e2e-test E2E_TESTS=${{matrix.package.f}} E2E_BUILD_IMAGES=0 E2E_AGENT=${{ needs.prepare.outputs.agentImage }} E2E_OPERATOR=${{ needs.prepare.outputs.operatorImage }} EXTRA_TESTFLAGS="-cluster-name=${{ env.clusterName }} -args -v=4"
 
+    - name: what's in /tmp
+      run: |
+        ls -l /tmp
+
     - name: Upload Tetragon Logs
-      if: failure() || cancelled()
+      if: always()
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: tetragon-logs-${{ matrix.os }}-${{ matrix.package.s }}
-        path: /tmp/tetragon.e2e.*
+        path: /tmp/tetragon*
         retention-days: 5
