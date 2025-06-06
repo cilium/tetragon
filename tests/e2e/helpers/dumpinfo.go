@@ -41,6 +41,7 @@ type TestEnvFunc = func(ctx context.Context, cfg *envconf.Config, t *testing.T) 
 func DumpInfo(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 	opts, ok := ctx.Value(state.InstallOpts).(*flags.HelmOptions)
 	if !ok {
+		klog.InfoS("Failed to get Helm options", "opts", opts, "ok", ok)
 		return ctx, errors.New("failed to find Tetragon install options. Did the test setup install Tetragon?")
 	}
 

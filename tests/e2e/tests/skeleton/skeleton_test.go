@@ -106,11 +106,7 @@ func TestSkeletonBasic(t *testing.T) {
 		Assess("Wait for Checker", curlChecker.Wait(30*time.Second)).
 		/* Run the workload */
 		Assess("Run Workload", func(ctx context.Context, _ *testing.T, c *envconf.Config) context.Context {
-			ctx, err := helpers.LoadCRDString(namespace, curlPod, true)(ctx, c)
-			if err != nil {
-				klog.ErrorS(err, "failed to spawn workload")
-				t.Fail()
-			}
+			t.Fail()
 			return ctx
 		}).
 		Assess("Uninstall policy", func(ctx context.Context, _ *testing.T, c *envconf.Config) context.Context {
