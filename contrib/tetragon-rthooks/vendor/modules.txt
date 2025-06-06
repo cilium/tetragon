@@ -45,7 +45,7 @@ github.com/containerd/ttrpc
 # github.com/containerd/typeurl/v2 v2.2.3
 ## explicit; go 1.21
 github.com/containerd/typeurl/v2
-# github.com/containers/common v0.63.0
+# github.com/containers/common v0.63.1
 ## explicit; go 1.23.3
 github.com/containers/common/pkg/hooks/1.0.0
 # github.com/containers/storage v1.58.0
