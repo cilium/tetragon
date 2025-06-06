@@ -83,8 +83,6 @@ func TestMain(m *testing.M) {
 }
 
 func TestNamespacedPolicy(t *testing.T) {
-	runner.SetupExport(t)
-
 	checker := nsChecker().WithTimeLimit(30 * time.Second).WithEventLimit(20)
 
 	runEventChecker := features.New("Run Event Checks").
@@ -214,8 +212,6 @@ func (nsc *namespaceChecker) FinalCheck(_ *logrus.Logger) error {
 }
 
 func TestPodLabelFilters(t *testing.T) {
-	runner.SetupExport(t)
-
 	checker := podlblChecker().WithTimeLimit(30 * time.Second).WithEventLimit(20)
 
 	runEventChecker := features.New("Run Event Checks").
@@ -376,8 +372,6 @@ func (plc *podLabelChecker) FinalCheck(_ *logrus.Logger) error {
 }
 
 func testContainerFieldFilters(t *testing.T, checker *checker.RPCChecker, policy, policyName, pod string) {
-	runner.SetupExport(t)
-
 	runEventChecker := features.New("Run Event Checks").
 		Assess("Run Event Checks", checker.CheckWithFilters(
 			30*time.Second,
