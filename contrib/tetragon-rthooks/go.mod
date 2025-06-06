@@ -9,7 +9,7 @@ require (
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/containerd/containerd v1.7.27
 	github.com/containerd/nri v0.9.0
-	github.com/containers/common v0.63.0
+	github.com/containers/common v0.63.1
 	github.com/google/cel-go v0.23.2
 	github.com/opencontainers/cgroups v0.0.2
 	github.com/opencontainers/runtime-spec v1.2.1
