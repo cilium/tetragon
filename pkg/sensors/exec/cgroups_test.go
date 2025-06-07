@@ -22,18 +22,15 @@ import (
 	"github.com/cilium/tetragon/pkg/cgroups"
 	grpcexec "github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/mountinfo"
-	"github.com/cilium/tetragon/pkg/sensors"
 
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/cgroup/cgrouptrackmap"
 	"github.com/cilium/tetragon/pkg/sensors/config/confmap"
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 	testsensor "github.com/cilium/tetragon/pkg/sensors/test"
 	"github.com/cilium/tetragon/pkg/testutils"
-	tuo "github.com/cilium/tetragon/pkg/testutils/observer"
 	"github.com/cilium/tetragon/pkg/testutils/perfring"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/sirupsen/logrus"
@@ -90,13 +87,6 @@ var (
 		{"devices", false, false, nil},
 	}
 )
-
-func getLoadedSensors() []*sensors.Sensor {
-	return []*sensors.Sensor{
-		testsensor.GetTestSensor(),
-		testsensor.GetCgroupSensor(),
-	}
-}
 
 func getTrackingLevel(cgroupHierarchy []cgroupHierarchy) uint32 {
 	level := 0
@@ -591,14 +581,6 @@ func setupTgRuntimeConf(t *testing.T, trackingCgrpLevel, logLevel, hierarchyId, 
 	}
 }
 
-func setupObserver(t *testing.T) *tus.TestSensorManager {
-	testManager := tuo.GetTestSensorManager(t)
-	if err := observer.InitDataCache(1024); err != nil {
-		t.Fatalf("failed to call observer.InitDataCache %s", err)
-	}
-	return testManager
-}
-
 // Test loading bpf cgroups programs
 func TestLoadCgroupsPrograms(t *testing.T) {
 	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
@@ -649,10 +631,8 @@ func TestCgroupNoEvents(t *testing.T) {
 	option.Config.Verbosity = 5
 
 	tus.LoadInitialSensor(t)
-
-	testManager := setupObserver(t)
-
-	testManager.AddAndEnableSensors(ctx, t, getLoadedSensors())
+	tus.LoadSensor(t, testsensor.GetTestSensor())
+	tus.LoadSensor(t, testsensor.GetCgroupSensor())
 
 	// Set Cgroup Tracking level to Zero means no tracking and no
 	// cgroup events, all bpf cgroups related programs have no effect
@@ -701,13 +681,8 @@ func TestCgroupEventMkdirRmdir(t *testing.T) {
 	option.Config.Verbosity = 5
 
 	tus.LoadInitialSensor(t)
-
-	testManager := setupObserver(t)
-
-	testManager.AddAndEnableSensors(ctx, t, getLoadedSensors())
-	t.Cleanup(func() {
-		testManager.DisableSensors(ctx, t, getLoadedSensors())
-	})
+	tus.LoadSensor(t, testsensor.GetTestSensor())
+	tus.LoadSensor(t, testsensor.GetCgroupSensor())
 
 	// Set Tracking level to 3 so we receive notifcations about
 	// /sys/fs/cgroup/$1/$2/$3 all cgroups that are at level <=3
@@ -881,13 +856,6 @@ func testCgroupv2HierarchyInUnified(ctx context.Context, t *testing.T,
 // Test Cgroupv2 tries to emulate k8s hierarchy without exec context
 // Works in systemd unified and hybrid mode according to parameter
 func testCgroupv2K8sHierarchy(ctx context.Context, t *testing.T, mode cgroups.CgroupModeCode, withExec bool) {
-	testManager := setupObserver(t)
-
-	testManager.AddAndEnableSensors(ctx, t, getLoadedSensors())
-	t.Cleanup(func() {
-		testManager.DisableSensors(ctx, t, getLoadedSensors())
-	})
-
 	_, err := testutils.GetTgRuntimeConf()
 	require.NoError(t, err)
 	if mode != cgroups.CGROUP_HYBRID && mode != cgroups.CGROUP_UNIFIED {
@@ -1052,6 +1020,8 @@ func TestCgroupv2K8sHierarchyInUnified(t *testing.T) {
 	option.Config.Verbosity = 5
 
 	tus.LoadInitialSensor(t)
+	tus.LoadSensor(t, testsensor.GetTestSensor())
+	tus.LoadSensor(t, testsensor.GetCgroupSensor())
 
 	// Probe full environment detection
 	setupTgRuntimeConf(t, invalidValue, invalidValue, invalidValue, invalidValue)
@@ -1094,10 +1064,8 @@ func testCgroupv1K8sHierarchyInHybrid(t *testing.T, withExec bool, selectedContr
 	option.Config.Verbosity = 5
 
 	tus.LoadInitialSensor(t)
-
-	testManager := setupObserver(t)
-
-	testManager.AddAndEnableSensors(ctx, t, getLoadedSensors())
+	tus.LoadSensor(t, testsensor.GetTestSensor())
+	tus.LoadSensor(t, testsensor.GetCgroupSensor())
 
 	// Probe full environment detection
 	_, err := testutils.GetTgRuntimeConf()
@@ -1351,6 +1319,8 @@ func TestCgroupv2ExecK8sHierarchyInUnified(t *testing.T) {
 	option.Config.Verbosity = 5
 
 	tus.LoadInitialSensor(t)
+	tus.LoadSensor(t, testsensor.GetTestSensor())
+	tus.LoadSensor(t, testsensor.GetCgroupSensor())
 
 	// Probe full environment detection
 	_, err := testutils.GetTgRuntimeConf()
