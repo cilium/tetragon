@@ -46,6 +46,10 @@ type ProcessInternal struct {
 	// will be constructed on the fly when returning these extra fields
 	// about the binary during the corresponding ProcessExec only.
 	apiBinaryProp *tetragon.BinaryProperties
+	// EnvironmentVariables is a string map of unprocessed environment variables
+	// that were passed to the process. This is not stored into the process,
+	// but is used to construct the ProcessExec event.
+	environmentVariables string
 	// garbage collector metadata
 	color  int // Writes should happen only inside gc select channel
 	refcnt uint32
@@ -236,6 +240,14 @@ func (pi *ProcessInternal) NeededAncestors() bool {
 	return false
 }
 
+func (pi *ProcessInternal) GetEnvironmentVariables() string {
+	if pi == nil {
+		return ""
+	}
+
+	return pi.environmentVariables
+}
+
 // UpdateEventProcessTID Updates the Process.Tid of the event on the fly.
 //
 // From BPF side as we track processes by their TGID we do not cache TIDs,
@@ -382,12 +394,13 @@ func initProcessInternalExec(
 			Refcnt:       0,
 			User:         user,
 		},
-		capabilities:  apiCaps,
-		apiCreds:      apiCreds,
-		apiBinaryProp: apiBinaryProp,
-		namespaces:    apiNs,
-		refcnt:        1,
-		refcntOps:     map[string]int32{"process++": 1},
+		capabilities:         apiCaps,
+		apiCreds:             apiCreds,
+		apiBinaryProp:        apiBinaryProp,
+		environmentVariables: process.Envs,
+		namespaces:           apiNs,
+		refcnt:               1,
+		refcntOps:            map[string]int32{"process++": 1},
 	}
 
 	// Set in_init_tree flag
