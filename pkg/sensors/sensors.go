@@ -20,10 +20,10 @@ import (
 var (
 	// allPrograms are all the loaded programs. For use with Unload().
 	allPrograms = []*program.Program{}
-	// allPrograms lock
-	allProgramsMutex sync.Mutex
-	// AllMaps are all the loaded programs. For use with Unload().
-	AllMaps = []*program.Map{}
+	// allMaps are all the loaded programs. For use with Unload().
+	allMaps = []*program.Map{}
+	// protects allPrograms and allMaps
+	allProgramsAndMapsMutex sync.Mutex
 )
 
 // Sensors
@@ -171,16 +171,27 @@ func GetMergedSensorFromParserPolicy(tp tracingpolicy.TracingPolicy) (SensorIfac
 	return SensorCombine(tp.TpName(), sensors...), nil
 }
 
-func progsAdd(progs []*program.Program) {
-	allProgramsMutex.Lock()
-	defer allProgramsMutex.Unlock()
+func addProgsAndMaps(progs []*program.Program, maps []*program.Map) {
+	allProgramsAndMapsMutex.Lock()
+	defer allProgramsAndMapsMutex.Unlock()
 
 	allPrograms = append(allPrograms, progs...)
+	allMaps = append(allMaps, maps...)
 }
 
-func progsCleanup() {
-	allProgramsMutex.Lock()
-	defer allProgramsMutex.Unlock()
+func cleanupProgsAndMaps() {
+	allProgramsAndMapsMutex.Lock()
+	defer allProgramsAndMapsMutex.Unlock()
+
+	maps := []*program.Map{}
+
+	for _, m := range allMaps {
+		if m.Prog.LoadState.IsLoaded() {
+			maps = append(maps, m)
+		}
+	}
+
+	allMaps = maps
 
 	progs := []*program.Program{}
 
@@ -195,4 +206,8 @@ func progsCleanup() {
 
 func AllPrograms() []*program.Program {
 	return append([]*program.Program{}, allPrograms...)
+}
+
+func AllMaps() []*program.Map {
+	return append([]*program.Map{}, allMaps...)
 }

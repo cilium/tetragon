@@ -113,8 +113,7 @@ func (s *Sensor) Load(bpfDir string) error {
 	}
 
 	// Add the *loaded* programs and maps, so they can be unloaded later
-	progsAdd(s.Progs)
-	AllMaps = append(AllMaps, s.Maps...)
+	addProgsAndMaps(s.Progs, s.Maps)
 
 	// cleanup the BTF once we have loaded all sensor's program
 	btf.FlushKernelSpec()
@@ -154,7 +153,7 @@ func (s *Sensor) Unload() error {
 		}
 	}
 
-	progsCleanup()
+	cleanupProgsAndMaps()
 	return nil
 }
 
