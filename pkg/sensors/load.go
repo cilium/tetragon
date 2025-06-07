@@ -167,8 +167,7 @@ func (s *Sensor) Load(bpfDir string) (err error) {
 	}
 
 	// Add the *loaded* programs and maps, so they can be unloaded later
-	progsAdd(s.Progs)
-	AllMaps = append(AllMaps, s.Maps...)
+	addProgsAndMaps(s.Progs, s.Maps)
 
 	if s.PostLoadHook != nil {
 		if err := s.PostLoadHook(); err != nil {
@@ -228,7 +227,7 @@ func (s *Sensor) Unload(unpin bool) error {
 		}
 	}
 
-	progsCleanup()
+	cleanupProgsAndMaps()
 	logger.GetLogger().WithFields(logrus.Fields{
 		"maps":       mapsOk,
 		"maps-error": mapsErr,
