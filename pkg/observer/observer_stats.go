@@ -37,7 +37,7 @@ func collect(ch chan<- prometheus.Metric) {
 	// collected metric "XXX" {...} was collected before with the same name and label values
 	// To avoid that we keep a map and we process each map only once.
 	processedMaps := make(map[string]bool)
-	for _, m := range sensors.AllMaps {
+	for _, m := range sensors.AllMaps() {
 		name := m.Name
 		if ok := processedMaps[name]; ok {
 			// We have already got the stats of this map
