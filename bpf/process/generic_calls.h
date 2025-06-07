@@ -66,6 +66,320 @@ generic_start_process_filter(void *ctx, struct bpf_map_def *calls)
 	return 0;
 }
 
+FUNC_INLINE long
+__copy_char_buf(void *ctx, long off, unsigned long arg, unsigned long bytes,
+		bool max_data, struct msg_generic_kprobe *e)
+{
+	int *s = (int *)args_off(e, off);
+	size_t rd_bytes, extra = 8;
+	int err;
+
+#ifdef __LARGE_BPF_PROG
+	if (max_data && data_heap_ptr) {
+		/* The max_data flag is enabled, the first int value indicates
+		 * if we use (1) data events or not (0).
+		 */
+		if (bytes >= 0x1000) {
+			s[0] = 1;
+			return data_event_bytes(ctx,
+						(struct data_event_desc *)&s[1],
+						arg, bytes, data_heap_ptr) +
+			       4;
+		}
+		s[0] = 0;
+		s = (int *)args_off(e, off + 4);
+		extra += 4;
+	}
+#endif // __LARGE_BPF_PROG
+
+	/* Bound bytes <4095 to ensure bytes does not read past end of buffer */
+	rd_bytes = bytes < 0x1000 ? bytes : 0xfff;
+	asm volatile("%[rd_bytes] &= 0xfff;\n"
+		     : [rd_bytes] "+r"(rd_bytes));
+	err = probe_read(&s[2], rd_bytes, (char *)arg);
+	if (err < 0)
+		return return_error(s, char_buf_pagefault);
+	s[0] = (int)bytes;
+	s[1] = (int)rd_bytes;
+	return rd_bytes + extra;
+}
+
+FUNC_INLINE long
+copy_char_buf(void *ctx, long off, unsigned long arg, int argm,
+	      struct msg_generic_kprobe *e)
+{
+	int *s = (int *)args_off(e, off);
+	unsigned long meta;
+	size_t bytes = 0;
+
+	if (has_return_copy(argm)) {
+		u64 retid = retprobe_map_get_key(ctx);
+
+		retprobe_map_set(e->func_id, retid, e->common.ktime, arg);
+		return return_error(s, char_buf_saved_for_retprobe);
+	}
+	meta = get_arg_meta(argm, e);
+	probe_read(&bytes, sizeof(bytes), &meta);
+	return __copy_char_buf(ctx, off, arg, bytes, has_max_data(argm), e);
+}
+
+#ifdef __LARGE_BPF_PROG
+FUNC_INLINE long
+copy_iov_iter(void *ctx, long off, unsigned long arg, int argm, struct msg_generic_kprobe *e)
+{
+	long iter_iovec = -1, iter_ubuf __maybe_unused = -1;
+	struct iov_iter *iov_iter = (struct iov_iter *)arg;
+	struct kvec *kvec;
+	const char *buf;
+	size_t count;
+	u8 iter_type;
+	void *tmp;
+	int *s;
+
+	if (!bpf_core_field_exists(iov_iter->iter_type))
+		goto nodata;
+
+	tmp = _(&iov_iter->iter_type);
+	probe_read(&iter_type, sizeof(iter_type), tmp);
+
+	if (bpf_core_enum_value_exists(enum iter_type, ITER_IOVEC))
+		iter_iovec = bpf_core_enum_value(enum iter_type, ITER_IOVEC);
+
+#ifdef __V61_BPF_PROG
+	if (bpf_core_enum_value_exists(enum iter_type, ITER_UBUF))
+		iter_ubuf = bpf_core_enum_value(enum iter_type, ITER_UBUF);
+#endif
+
+	if (iter_type == iter_iovec) {
+		tmp = _(&iov_iter->kvec);
+		probe_read(&kvec, sizeof(kvec), tmp);
+
+		tmp = _(&kvec->iov_base);
+		probe_read(&buf, sizeof(buf), tmp);
+
+		tmp = _(&kvec->iov_len);
+		probe_read(&count, sizeof(count), tmp);
+
+		return __copy_char_buf(ctx, off, (unsigned long)buf, count,
+				       has_max_data(argm), e);
+	}
+
+#ifdef __V61_BPF_PROG
+	if (iter_type == iter_ubuf) {
+		tmp = _(&iov_iter->ubuf);
+		probe_read(&buf, sizeof(buf), tmp);
+
+		tmp = _(&iov_iter->count);
+		probe_read(&count, sizeof(count), tmp);
+
+		return __copy_char_buf(ctx, off, (unsigned long)buf, count,
+				       has_max_data(argm), e);
+	}
+#endif
+
+nodata:
+	s = (int *)args_off(e, off);
+	s[0] = 0;
+	s[1] = 0;
+	return 8;
+}
+#else
+#define copy_iov_iter(ctx, orig_off, arg, argm, e) 0
+#endif /* __LARGE_BPF_PROG */
+
+/**
+ * Read a generic argument
+ *
+ * @args: destination buffer for the generic argument
+ * @type: type of the argument
+ * @off: offset of the argument within @args
+ * @arg: argument location (generally, address of the argument)
+ * @argm: argument metadata. The meaning of this depends on the @type. Some
+ *        types use a -1 to designate saving @arg into the retprobe map
+ * @filter_map:
+ *
+ * Returns the size of data appended to @args.
+ */
+FUNC_INLINE long
+read_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
+	 long orig_off, unsigned long arg, int argm)
+{
+	size_t min_size = type_to_min_size(type, argm);
+	char *args = e->args;
+	long size = -1;
+	const struct path *path_arg = 0;
+	struct path path_buf;
+
+	if (orig_off >= 16383 - min_size)
+		return 0;
+
+	orig_off &= 16383;
+	args = args_off(e, orig_off);
+
+	/* Cache args offset for filter use later */
+	e->argsoff[index & MAX_SELECTORS_MASK] = orig_off;
+
+	path_arg = get_path(type, arg, &path_buf);
+	if (path_arg)
+		return copy_path(args, path_arg);
+
+	switch (type) {
+	case iov_iter_type:
+		size = copy_iov_iter(ctx, orig_off, arg, argm, e);
+		break;
+	case fd_ty: {
+		struct fdinstall_key key = { 0 };
+		struct fdinstall_value *val;
+		__u32 fd;
+
+		key.tid = get_current_pid_tgid() >> 32;
+		probe_read(&fd, sizeof(__u32), &arg);
+		key.fd = fd;
+
+		val = map_lookup_elem(&fdinstall_map, &key);
+		if (val) {
+			__u32 bytes = *((__u32 *)&val->file[0]);
+
+			probe_read(&args[0], sizeof(__u32), &fd);
+			asm volatile("%[bytes] &= 0xfff;\n"
+				     : [bytes] "+r"(bytes)
+				     :);
+			probe_read(&args[4], bytes + 4, (char *)&val->file[0]);
+			size = bytes + 4 + 4;
+
+			// flags
+			probe_read(&args[size], 4,
+				   (char *)&val->file[size - 4]);
+			size += 4;
+		} else {
+			/* If filter specification is fd type then we
+			 * expect the fd has been previously followed
+			 * otherwise drop the event.
+			 */
+			return -1;
+		}
+	} break;
+	case filename_ty: {
+		struct filename *file;
+
+		probe_read(&file, sizeof(file), &arg);
+		probe_read(&arg, sizeof(arg), &file->name);
+	}
+		fallthrough;
+	case string_type:
+		size = copy_strings(args, (char *)arg, MAX_STRING);
+		break;
+	case net_dev_ty: {
+		struct net_device *dev = (struct net_device *)arg;
+
+		size = copy_strings(args, dev->name, IFNAMSIZ);
+	} break;
+	case data_loc_type: {
+		// data_loc: lower 16 bits is offset from ctx; upper 16 bits is length
+		long dl_len = (arg >> 16) & 0xfff; // masked to 4095 chars
+		char *dl_loc = ctx + (arg & 0xffff);
+
+		size = copy_strings(args, dl_loc, dl_len);
+	} break;
+	case syscall64_type:
+	case size_type:
+	case s64_ty:
+	case u64_ty:
+		probe_read(args, sizeof(__u64), &arg);
+		size = sizeof(__u64);
+		break;
+	/* Consolidate all the types to save instructions */
+	case int_type:
+	case s32_ty:
+	case u32_ty:
+		probe_read(args, sizeof(__u32), &arg);
+		size = sizeof(__u32);
+		break;
+	case s16_ty:
+	case u16_ty:
+		/* read 2 bytes, but send 4 to keep alignment */
+		probe_read(args, sizeof(__u16), &arg);
+		size = sizeof(__u32);
+		break;
+	case s8_ty:
+	case u8_ty:
+		/* read 1 byte, but send 4 to keep alignment */
+		probe_read(args, sizeof(__u8), &arg);
+		size = sizeof(__u32);
+		break;
+	case skb_type:
+		size = copy_skb(args, arg);
+		break;
+	case sock_type:
+		size = copy_sock(args, arg);
+		// Look up socket in our sock->pid_tgid map
+		update_pid_tid_from_sock(e, arg);
+		break;
+	case sockaddr_type:
+		size = copy_sockaddr(args, arg);
+		break;
+	case socket_type:
+		size = copy_socket(args, arg);
+		// Look up socket in our sock->pid_tgid map
+		update_pid_tid_from_sock(e, ((struct sk_type *)args)->sockaddr);
+		break;
+	case cred_type:
+		size = copy_cred(args, arg);
+		break;
+	case char_buf:
+		size = copy_char_buf(ctx, orig_off, arg, argm, e);
+		break;
+	case char_iovec:
+		size = copy_char_iovec(ctx, orig_off, arg, argm, e);
+		break;
+	case const_buf_type: {
+		// bound size to 1023 to help the verifier out
+		size = argm & 0x03ff;
+		probe_read(args, size, (char *)arg);
+		break;
+	}
+	case bpf_attr_type: {
+		size = copy_bpf_attr(args, arg);
+		break;
+	}
+	case perf_event_type: {
+		size = copy_perf_event(args, arg);
+		break;
+	}
+	case bpf_map_type: {
+		size = copy_bpf_map(args, arg);
+		break;
+	}
+	case user_namespace_type: {
+		size = copy_user_ns(args, arg);
+		break;
+	}
+	case capability_type: {
+		size = copy_capability(args, arg);
+		break;
+	}
+	case load_module_type: {
+		size = copy_load_module(args, arg);
+		break;
+	}
+	case kernel_module_type: {
+		size = copy_kernel_module(args, arg);
+		break;
+	}
+	case kernel_cap_ty:
+	case cap_inh_ty:
+	case cap_prm_ty:
+	case cap_eff_ty:
+		probe_read(args, sizeof(__u64), (char *)arg);
+		size = sizeof(__u64);
+		break;
+	default:
+		size = 0;
+		break;
+	}
+	return size;
+}
+
 FUNC_INLINE int
 extract_arg_depth(u32 i, struct extract_arg_data *data)
 {
@@ -109,11 +423,31 @@ FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned lo
 FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long *a) {}
 #endif /* __LARGE_BPF_PROG */
 
+FUNC_INLINE int arg_idx(int index)
+{
+	struct msg_generic_kprobe *e;
+	struct event_config *config;
+	int zero = 0;
+
+	e = map_lookup_elem(&process_call_heap, &zero);
+	if (!e)
+		return -1;
+
+	config = map_lookup_elem(&config_map, &e->idx);
+	if (!config)
+		return -1;
+
+	asm volatile("%[index] &= %1 ;\n"
+		     : [index] "+r"(index)
+		     : "i"(MAX_SELECTORS_MASK));
+	return config->idx[index];
+}
+
 FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map_def *tailcals)
 {
 	struct msg_generic_kprobe *e;
 	struct event_config *config;
-	int am, zero = 0;
+	int am, zero = 0, arg_index __maybe_unused;
 	unsigned long a;
 	long ty;
 
@@ -129,15 +463,26 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 		     : [index] "+r"(index)
 		     : "i"(MAX_SELECTORS_MASK));
 	ty = config->arg[index];
+	am = config->arm[index];
 
+#ifdef GENERIC_TRACEPOINT
 	a = (&e->a0)[index];
+#else
+	arg_index = config->idx[index];
+	asm volatile("%[arg_index] &= %1 ;\n"
+		     : [arg_index] "+r"(arg_index)
+		     : "i"(MAX_SELECTORS_MASK));
+
+	a = (&e->a0)[arg_index];
 	extract_arg(config, index, &a);
 
 	if (should_offload_path(ty))
 		return generic_path_offload(ctx, ty, a, index, off, tailcals);
 
-	am = config->arm[index];
-	return read_arg(ctx, e, index, ty, off, a, am, data_heap_ptr);
+	index = arg_index;
+#endif
+
+	return read_arg(ctx, e, index, ty, off, a, am);
 }
 
 FUNC_INLINE int
@@ -171,7 +516,7 @@ generic_process_event(void *ctx, struct bpf_map_def *tailcals)
 	}
 	e->common.size = total;
 	/* Continue to process other arguments. */
-	if (index < 4) {
+	if (index < 4 && arg_idx(index + 1) != -1) {
 		e->tailcall_index_process = index + 1;
 		tail_call(ctx, tailcals, TAIL_CALL_PROCESS);
 	}
@@ -283,7 +628,13 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 	e->a4 = BPF_CORE_READ(raw_args, args[4]);
 	generic_process_init(e, MSG_OP_GENERIC_TRACEPOINT, config);
 #endif
-	return generic_process_event(ctx, tailcals);
+
+	/* No arguments, go send.. */
+	if (arg_idx(0) == -1)
+		tail_call(ctx, tailcals, TAIL_CALL_ARGS);
+
+	tail_call(ctx, tailcals, TAIL_CALL_PROCESS);
+	return 0;
 }
 
 #if defined GENERIC_KPROBE || defined GENERIC_LSM
@@ -580,7 +931,7 @@ FUNC_INLINE int generic_retkprobe(void *ctx, struct bpf_map_def *calls, unsigned
 	ty_arg = config->argreturn;
 	do_copy = config->argreturncopy;
 	if (ty_arg) {
-		size += read_arg(ctx, e, 0, ty_arg, size, ret, 0, data_heap_ptr);
+		size += read_arg(ctx, e, 0, ty_arg, size, ret, 0);
 #ifdef __LARGE_BPF_PROG
 		struct socket_owner owner;
 
@@ -607,7 +958,7 @@ FUNC_INLINE int generic_retkprobe(void *ctx, struct bpf_map_def *calls, unsigned
 
 	switch (do_copy) {
 	case char_buf:
-		size += __copy_char_buf(ctx, size, info.ptr, ret, false, e, data_heap_ptr);
+		size += __copy_char_buf(ctx, size, info.ptr, ret, false, e);
 		break;
 	case char_iovec:
 		size += __copy_char_iovec(size, info.ptr, info.cnt, ret, e);

@@ -4374,7 +4374,7 @@ func TestLoadKprobeSensor(t *testing.T) {
 			tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2}},
 
 			// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
-			tus.SensorMap{Name: "fdinstall_map", Progs: []uint{1, 2, 5, 7, 9}},
+			tus.SensorMap{Name: "fdinstall_map", Progs: []uint{2, 5, 7, 9}},
 
 			// generic_kprobe_event
 			tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
@@ -4383,10 +4383,10 @@ func TestLoadKprobeSensor(t *testing.T) {
 			tus.SensorMap{Name: "execve_map", Progs: []uint{4, 5, 6, 7, 9}},
 
 			// generic_kprobe_process_event*,generic_kprobe_output,generic_retkprobe_output
-			tus.SensorMap{Name: "tcpmon_map", Progs: []uint{1, 2, 6, 10}},
+			tus.SensorMap{Name: "tcpmon_map", Progs: []uint{2, 6, 10}},
 
 			// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
-			tus.SensorMap{Name: "socktrack_map", Progs: []uint{1, 2, 5, 7, 9}},
+			tus.SensorMap{Name: "socktrack_map", Progs: []uint{2, 5, 7, 9}},
 		}
 
 	} else {
@@ -4428,7 +4428,7 @@ func TestLoadKprobeSensor(t *testing.T) {
 			tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2}},
 
 			// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
-			tus.SensorMap{Name: "fdinstall_map", Progs: []uint{1, 2, 5, 8, 10}},
+			tus.SensorMap{Name: "fdinstall_map", Progs: []uint{2, 5, 8, 10}},
 
 			// generic_kprobe_event
 			tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
@@ -4439,10 +4439,10 @@ func TestLoadKprobeSensor(t *testing.T) {
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 5, 6, 8, 10}})
 
 			// generic_kprobe_process_event*,generic_kprobe_output,generic_retkprobe_output
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tcpmon_map", Progs: []uint{1, 2, 6, 11}})
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tcpmon_map", Progs: []uint{2, 6, 11}})
 
 			// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "socktrack_map", Progs: []uint{1, 2, 5, 8, 10}})
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "socktrack_map", Progs: []uint{2, 5, 8, 10}})
 		} else {
 			// shared with base sensor
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 8}})
@@ -7856,9 +7856,9 @@ spec:
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
-				ec.NewKprobeArgumentChecker().WithIntArg(0).WithLabel(sm.Full("index 0")),
-				ec.NewKprobeArgumentChecker().WithIntArg(1).WithLabel(sm.Full("index 1")),
 				ec.NewKprobeArgumentChecker().WithIntArg(2).WithLabel(sm.Full("index 2")),
+				ec.NewKprobeArgumentChecker().WithIntArg(1).WithLabel(sm.Full("index 1")),
+				ec.NewKprobeArgumentChecker().WithIntArg(0).WithLabel(sm.Full("index 0")),
 			))
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
@@ -7917,6 +7917,139 @@ spec:
 			WithOperator(lc.Ordered).
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithUintArg(unix.AF_INET),
+			)).
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Suffix(tus.Conf().SelfBinary)))
+
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
+func TestKprobeArgsMulti(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	t.Logf("tester pid=%s\n", pidStr)
+
+	lseekConfigHook_ := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "sys-write"
+spec:
+  kprobes:
+  - call: "sys_lseek"
+    return: false
+    syscall: true
+    args:
+    - index: 2
+      type: "int"
+      label: "arg1-index2"
+    - index: 1
+      type: "int"
+      label: "arg2-index1"
+    - index: 0
+      type: "int"
+      label: "arg3-index0"
+    - index: 1
+      type: "int"
+      label: "arg4-index1"
+    - index: 1
+      type: "int"
+      label: "arg5-index1"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        isNamespacePID: false
+        values:
+        - ` + pidStr
+
+	lseekConfigHook := []byte(lseekConfigHook_)
+	err := os.WriteFile(testConfigFile, lseekConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	kpChecker := ec.NewProcessKprobeChecker("lseek-checker").
+		WithFunctionName(sm.Suffix("sys_lseek")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(2).WithLabel(sm.Full("arg1-index2")),
+				ec.NewKprobeArgumentChecker().WithIntArg(1).WithLabel(sm.Full("arg2-index1")),
+				ec.NewKprobeArgumentChecker().WithIntArg(0).WithLabel(sm.Full("arg3-index0")),
+				ec.NewKprobeArgumentChecker().WithIntArg(1).WithLabel(sm.Full("arg4-index1")),
+				ec.NewKprobeArgumentChecker().WithIntArg(1).WithLabel(sm.Full("arg5-index1")),
+			))
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+	fmt.Printf("Calling lseek...\n")
+	unix.Seek(0, 1, 2)
+
+	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
+	require.NoError(t, err)
+}
+
+func TestKprobeArgsMultiResolve(t *testing.T) {
+	if !kernels.MinKernelVersion("5.4") {
+		t.Skip("Test requires kernel 5.4+")
+	}
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	hook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "resolve-parent-comm"
+spec:
+  kprobes:
+  - call: "security_task_getscheduler"
+    syscall: false
+    args:
+    - index: 0
+      type: "int"
+      resolve: "mm.owner.pid"
+    - index: 0
+      type: "int"
+      resolve: "mm.owner.mm.owner.pid"
+`
+
+	createCrdFile(t, hook)
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	_ = unix.SchedGetaffinity(0, nil)
+
+	pid := os.Getpid()
+
+	kpChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full("security_task_getscheduler")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(pid)),
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(pid)),
 			)).
 		WithProcess(ec.NewProcessChecker().
 			WithBinary(sm.Suffix(tus.Conf().SelfBinary)))
