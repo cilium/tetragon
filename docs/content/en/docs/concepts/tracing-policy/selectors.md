@@ -433,10 +433,21 @@ NetNs == host`)` `]`
 
 ## Capabilities filter
 
-Capabilities filters can be specified under the `matchCapabilities` field and
-provide filtering of calls based on Linux capabilities in the specific sets.
+The `matchCapabilities` field provide filtering of calls based on Linux
+capabilities in the specific sets. You can found more details on the
+Linux capabilities in the
+[kernel source code](https://elixir.bootlin.com/linux/v6.15.1/source/include/uapi/linux/capability.h).
 
-An example syntax is:
+This filter supports two distinct use cases:
+- To check whether the current process has a specific capability — that is,
+  whether the process's effective capabilities include the one specified in
+  the policy.
+- To compare a given capability against the capabilities resolved from a
+  hook parameter attribute, as defined in the policy.
+
+### Match process capabilities
+
+To compare a capability within the running process, an example syntax is:
 ```yaml
 - matchCapabilities:
   - type: Effective
@@ -450,9 +461,26 @@ This will match if: [`Effective` capabilities contain `CAP_CHOWN`] OR
 [`Effective` capabilities contain `CAP_NET_RAW`]
 
 - `type` can be: `Effective`, `Inheritable`, or `Permitted`.
-- `operator` can be `In` or `NotIn`
+- `operator` can be `In` or `NotIn`.
 - `values` can be any supported capability. A list of all supported
   capabilities can be found in `/usr/include/linux/capability.h`.
+
+### Match hook capability
+
+If you want to use a specific capability from the hook and
+compare it, an example syntax is:
+```yaml
+- matchCapabilities:
+  - index: 2
+    operator: In
+    values:
+    - "CAP_CHOWN"
+    - "CAP_NET_RAW"
+```
+
+- `index` : This field matchs the index of the hook capability. See the
+  [deny privileged containers](https://github.com/cilium/tetragon/blob/main/examples/tracingpolicy/deny-privileged-containers.yml)
+  tracing policy as a complete example.
 
 **Limitations**
 
