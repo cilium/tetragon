@@ -7161,6 +7161,65 @@ spec:
 	require.NoError(t, err)
 }
 
+func TestMatchCapFromIdx(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	tracingPolicy := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "capset"
+spec:
+  kprobes:
+  - call: "security_capset"
+    syscall: false
+    args:
+    - index: 0
+      type: nop
+    - index: 1
+      type: nop
+    - index: 2
+      type: "kernel_cap_t"
+    selectors:
+    - matchCapabilities:
+      - index: 2
+        operator: In
+        values:
+        - "CAP_MKNOD"
+`
+	createCrdFile(t, tracingPolicy)
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	testCapTester := testutils.RepoRootPath("contrib/tester-progs/capabilities-tester")
+	if err := exec.Command(testCapTester).Run(); err != nil {
+		fmt.Printf("Failed to execute test binary: %s\n", err)
+	}
+
+	fullSet := caps.GetCapsFullSet()
+	capChange := fullSet | (uint64(1) << 27) // CAP_MKNOD = 27
+
+	kpChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full("security_capset")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithKernelCapTArg(sm.Full(caps.GetCapabilitiesHex(capChange))),
+			))
+
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
 func TestMissedProgStatsKprobeMulti(t *testing.T) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
