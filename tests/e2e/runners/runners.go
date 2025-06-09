@@ -43,6 +43,7 @@ type Runner struct {
 	hasCalledInit       bool
 	keepExportFiles     bool
 	cancel              context.CancelFunc
+	setupTetragonFailed bool
 	env.Environment
 }
 
@@ -173,7 +174,13 @@ func (r *Runner) Init() *Runner {
 	if r.installTetragon == nil {
 		klog.Fatalf("Runner.installTetragon cannot be nil")
 	}
-	r.Setup(r.installTetragon)
+	r.Setup(func(ctx context.Context, config *envconf.Config) (context.Context, error) {
+		ctx, err := r.installTetragon(ctx, config)
+		if err != nil {
+			r.setupTetragonFailed = true
+		}
+		return ctx, err
+	})
 
 	r.BeforeEachTest(func(ctx context.Context, _ *envconf.Config, t *testing.T) (context.Context, error) {
 		return r.SetupExport(ctx, t)
@@ -198,8 +205,25 @@ func (r *Runner) Init() *Runner {
 	})
 
 	if r.tetragonPortForward != nil {
-		r.Setup(r.tetragonPortForward(r.Environment))
+		r.Setup(func(ctx context.Context, config *envconf.Config) (context.Context, error) {
+			ctx, err := r.tetragonPortForward(r.Environment)(ctx, config)
+			if err != nil {
+				r.setupTetragonFailed = true
+			}
+			return ctx, err
+		})
 	}
+
+	r.Finish(func(ctx context.Context, config *envconf.Config) (context.Context, error) {
+		if !r.setupTetragonFailed {
+			return ctx, nil
+		}
+		ctx, err := helpers.CreateExportDir(ctx, "setup")
+		if err != nil {
+			return ctx, err
+		}
+		return helpers.DumpInfo(ctx, config)
+	})
 
 	if r.uninstallTetragon != nil {
 		r.Finish(r.uninstallTetragon)
@@ -227,7 +251,7 @@ func (r *Runner) cancelContext() {
 }
 
 func (r *Runner) SetupExport(ctx context.Context, t *testing.T) (context.Context, error) {
-	ctx, err := helpers.CreateExportDir(ctx, t)
+	ctx, err := helpers.CreateExportDir(ctx, t.Name())
 	if err != nil {
 		return ctx, err
 	}

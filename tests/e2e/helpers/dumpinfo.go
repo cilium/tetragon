@@ -112,19 +112,19 @@ func DumpInfo(ctx context.Context, cfg *envconf.Config) (context.Context, error)
 	return ctx, nil
 }
 
-func CreateExportDir(ctx context.Context, t *testing.T) (context.Context, error) {
+func CreateExportDir(ctx context.Context, name string) (context.Context, error) {
 	dir, err := GetExportDir(ctx)
 	if err == nil {
-		klog.V(2).InfoS("export dir already exists, skipping creation", "test", t.Name(), "dir", dir)
+		klog.V(2).InfoS("export dir already exists, skipping creation", "name", name, "dir", dir)
 		return ctx, nil
 	}
 
-	dir, err = os.MkdirTemp("", fmt.Sprintf("tetragon.e2e.%s.*", t.Name()))
+	dir, err = os.MkdirTemp("", fmt.Sprintf("tetragon.e2e.%s.*", name))
 	if err != nil {
 		return ctx, err
 	}
 
-	klog.InfoS("created export dir for test", "test", t.Name(), "dir", dir)
+	klog.InfoS("created export dir", "name", name, "dir", dir)
 
 	return context.WithValue(ctx, state.ExportDir, dir), nil
 }
