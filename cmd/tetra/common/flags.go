@@ -11,7 +11,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/sirupsen/logrus"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 )
 
 const (
@@ -62,16 +62,17 @@ func ResolveServerAddress() string {
 		sa, err := readActiveServerAddressFromFile(defaults.InitInfoFile)
 
 		if err != nil {
-			logger.GetLogger().WithError(err).WithField(
-				"defaultServerAddress", defaultServerAddress,
-			).Debug("failed to resolve server address reading init info file, using default value")
+			logger.GetLogger().
+				Debug("failed to resolve server address reading init info file, using default value",
+					"defaultServerAddress", defaultServerAddress,
+					logfields.Error, err)
 			return defaultServerAddress
 		}
 
-		logger.GetLogger().WithFields(logrus.Fields{
-			"InitInfoFile":  defaults.InitInfoFile,
-			"ServerAddress": sa,
-		}).Debug("resolved server address using info file")
+		logger.GetLogger().Debug("resolved server address using info file",
+			"InitInfoFile", defaults.InitInfoFile,
+			"ServerAddress", sa,
+			logfields.Error, err)
 		return sa
 	}
 

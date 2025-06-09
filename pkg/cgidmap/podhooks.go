@@ -7,8 +7,10 @@ package cgidmap
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/podhelpers"
 	"github.com/cilium/tetragon/pkg/podhooks"
 
@@ -31,7 +33,7 @@ func registerPodCallbacks(podInformer cache.SharedIndexInformer) {
 	if err != nil {
 		// if cgidmap is disabled, an error is expected so do not omit a warning
 		if !errors.Is(err, cgidDisabled) {
-			logger.GetLogger().WithError(err).Warn("failed to retrieve cgidmap, not registering podhook")
+			logger.GetLogger().Warn("failed to retrieve cgidmap, not registering podhook", logfields.Error, err)
 		}
 		return
 	}
@@ -41,7 +43,7 @@ func registerPodCallbacks(podInformer cache.SharedIndexInformer) {
 			AddFunc: func(obj interface{}) {
 				pod, ok := obj.(*corev1.Pod)
 				if !ok {
-					logger.GetLogger().Warn("cgidmap, add-pod handler: unexpected object type: %T", pod)
+					logger.GetLogger().Warn(fmt.Sprintf("cgidmap, add-pod handler: unexpected object type: %T", pod))
 					return
 				}
 				updatePodHandler(m, pod)
@@ -49,7 +51,7 @@ func registerPodCallbacks(podInformer cache.SharedIndexInformer) {
 			UpdateFunc: func(_, newObj interface{}) {
 				pod, ok := newObj.(*corev1.Pod)
 				if !ok {
-					logger.GetLogger().Warn("cgidmap, update-pod handler: unexpected object type(s): new:%T", pod)
+					logger.GetLogger().Warn(fmt.Sprintf("cgidmap, update-pod handler: unexpected object type(s): new:%T", pod))
 					return
 				}
 				updatePodHandler(m, pod)
@@ -80,7 +82,7 @@ func registerPodCallbacks(podInformer cache.SharedIndexInformer) {
 func deletePodHandler(m Map, pod *corev1.Pod) {
 	podID, err := uuid.Parse(string(pod.UID))
 	if err != nil {
-		logger.GetLogger().WithError(err).WithField("pod-id", pod.UID).Warn("cgidmap, podDeleted: failed to parse pod id")
+		logger.GetLogger().Warn("cgidmap, podDeleted: failed to parse pod id", "pod-id", pod.UID, logfields.Error, err)
 		return
 	}
 	m.Update(podID, nil)
@@ -89,7 +91,7 @@ func deletePodHandler(m Map, pod *corev1.Pod) {
 func updatePodHandler(m Map, pod *corev1.Pod) {
 	podID, err := uuid.Parse(string(pod.UID))
 	if err != nil {
-		logger.GetLogger().WithError(err).WithField("pod-id", pod.UID).Warn("cgidmap, podDeleted: failed to parse pod id")
+		logger.GetLogger().Warn("cgidmap, podDeleted: failed to parse pod id", "pod-id", pod.UID, logfields.Error, err)
 		return
 	}
 	m.Update(podID, podhelpers.PodContainersIDs(pod))

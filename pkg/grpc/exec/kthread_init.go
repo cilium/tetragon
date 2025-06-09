@@ -4,6 +4,8 @@
 package exec
 
 import (
+	"fmt"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -22,7 +24,7 @@ func (msg *MsgKThreadInitUnix) HandleMessage() *tetragon.GetEventsResponse {
 	proc := process.AddExecEvent(msg.Unix)
 	parent, err := process.Get(proc.UnsafeGetProcess().ParentExecId)
 	if err != nil {
-		logger.GetLogger().Warnf("Failed to find parent for kernel thread %d", msg.Unix.Msg.Parent.Pid)
+		logger.GetLogger().Warn(fmt.Sprintf("Failed to find parent for kernel thread %d", msg.Unix.Msg.Parent.Pid))
 		return nil
 	}
 	parent.RefInc("parent")

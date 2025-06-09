@@ -4,12 +4,12 @@
 package server
 
 import (
-	"context"
+	"log/slog"
 	"testing"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/require"
 )
 
 func TestServer(t *testing.T) {
@@ -20,27 +20,16 @@ func TestServer(t *testing.T) {
 func TestGetDebug(t *testing.T) {
 	srv := &Server{}
 	req := &tetragon.GetDebugRequest{Flag: tetragon.ConfigFlag_CONFIG_FLAG_LOG_LEVEL}
-	resp, err := srv.GetDebug(context.Background(), req)
-	if err != nil {
-		t.Errorf("Expected GetDebug to succeed, got error %v", err)
-	}
-	if resp.Flag != tetragon.ConfigFlag_CONFIG_FLAG_LOG_LEVEL {
-		t.Errorf("Expected flag in response to be %d, but got %d", tetragon.ConfigFlag_CONFIG_FLAG_LOG_LEVEL, resp.Flag)
-	}
-	expectedLogLevel := logger.GetLogLevel()
-	if resp.GetLevel() != tetragon.LogLevel(expectedLogLevel) {
-		t.Errorf("Expected log level in response to be %s, but got %s", expectedLogLevel.String(), resp.GetLevel().String())
-	}
+	resp, err := srv.GetDebug(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, tetragon.ConfigFlag_CONFIG_FLAG_LOG_LEVEL, resp.Flag)
+	require.Equal(t, toTetragonLogLevel(logger.GetLogLevel(logger.GetLogger())).String(), resp.GetLevel().String())
 
 	// Test unknown flag
 	req = &tetragon.GetDebugRequest{Flag: 42}
-	resp, err = srv.GetDebug(context.Background(), req)
-	if err == nil {
-		t.Errorf("Expected GetDebug to fail with error for unknown flag")
-	}
-	if resp != nil {
-		t.Errorf("Expected response to be nil for unknown flag, but got %v", resp)
-	}
+	resp, err = srv.GetDebug(t.Context(), req)
+	require.Error(t, err)
+	require.Nil(t, resp)
 }
 
 func TestSetDebug(t *testing.T) {
@@ -48,45 +37,29 @@ func TestSetDebug(t *testing.T) {
 	req := &tetragon.SetDebugRequest{
 		Flag: tetragon.ConfigFlag_CONFIG_FLAG_LOG_LEVEL,
 		Arg: &tetragon.SetDebugRequest_Level{
-			Level: tetragon.LogLevel(logrus.InfoLevel),
+			Level: tetragon.LogLevel_LOG_LEVEL_INFO,
 		},
 	}
-	resp, err := srv.SetDebug(context.Background(), req)
-	if err != nil {
-		t.Errorf("Expected SetDebug to succeed, got error %v", err)
-	}
-	if resp.Flag != tetragon.ConfigFlag_CONFIG_FLAG_LOG_LEVEL {
-		t.Errorf("Expected flag in response to be %d, but got %d", tetragon.ConfigFlag_CONFIG_FLAG_LOG_LEVEL, resp.Flag)
-	}
-	expectedLogLevel := logrus.InfoLevel
-	if resp.GetLevel() != tetragon.LogLevel(expectedLogLevel) {
-		t.Errorf("Expected log level in response to be %s, but got %s", expectedLogLevel.String(), resp.GetLevel().String())
-	}
+	resp, err := srv.SetDebug(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, tetragon.ConfigFlag_CONFIG_FLAG_LOG_LEVEL, req.Flag)
+	require.Equal(t, int(toTetragonLogLevel(slog.LevelInfo)), int(resp.GetLevel()))
 
 	// Test unknown flag
 	req = &tetragon.SetDebugRequest{Flag: 42}
-	resp, err = srv.SetDebug(context.Background(), req)
-	if err == nil {
-		t.Errorf("Expected SetDebug to fail with error for unknown flag")
-	}
-	if resp != nil {
-		t.Errorf("Expected response to be nil for unknown flag, but got %v", resp)
-	}
+	resp, err = srv.SetDebug(t.Context(), req)
+	require.Error(t, err, "Expected SetDebug to fail with error for unknown flag")
+	require.Nil(t, resp, "Expected response to be non-nil for unknown flag")
 
 	// Test changing log level
-	prevLogLevel := logger.GetLogLevel()
+	prevLogLevel := logger.GetLogLevel(logger.GetLogger())
 	req = &tetragon.SetDebugRequest{
 		Flag: tetragon.ConfigFlag_CONFIG_FLAG_LOG_LEVEL,
 		Arg: &tetragon.SetDebugRequest_Level{
-			Level: tetragon.LogLevel(logrus.DebugLevel),
+			Level: tetragon.LogLevel_LOG_LEVEL_DEBUG,
 		},
 	}
-	_, err = srv.SetDebug(context.Background(), req)
-	if err != nil {
-		t.Errorf("Expected SetDebug to succeed, got error %v", err)
-	}
-	newLogLevel := logger.GetLogLevel()
-	if prevLogLevel == newLogLevel {
-		t.Errorf("Expected log level to change, but it didn't")
-	}
+	_, err = srv.SetDebug(t.Context(), req)
+	require.NoError(t, err, "Expected SetDebug to succeed with valid log level")
+	require.NotEqual(t, logger.GetLogLevel(logger.GetLogger()), prevLogLevel, "Expected log level to change, but it didn't")
 }

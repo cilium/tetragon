@@ -11,6 +11,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/encoder"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"golang.org/x/time/rate"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -65,9 +66,7 @@ func (r *RateLimiter) reportRateLimitInfo(encoder encoder.EventEncoder) {
 				err := encoder.Encode(&ev)
 				if err != nil {
 					logger.GetLogger().
-						WithError(err).
-						WithField("dropped", dropped).
-						Warn("Failed to encode rate_limit_info event")
+						Warn("Failed to encode rate_limit_info event", "dropped", dropped, logfields.Error, err)
 				}
 			}
 		case <-r.ctx.Done():

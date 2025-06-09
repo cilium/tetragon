@@ -59,7 +59,6 @@ import (
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
-	"github.com/sirupsen/logrus"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	tpath "github.com/cilium/tetragon/pkg/reader/path"
@@ -3972,7 +3971,7 @@ func TestKprobeMatchBinariesLargePath(t *testing.T) {
 // matchBinariesPerfringTest checks that the matchBinaries do correctly
 // filter the events i.e. it checks that no other events appear.
 func matchBinariesPerfringTest(t *testing.T, operator string, values []string) {
-	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
@@ -4073,7 +4072,7 @@ func TestKprobeMatchBinariesPerfring(t *testing.T) {
 // TestKprobeMatchBinariesEarlyExec checks that the matchBinaries can filter
 // events triggered by process started before Tetragon.
 func TestKprobeMatchBinariesEarlyExec(t *testing.T) {
-	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
@@ -4153,7 +4152,7 @@ func TestKprobeMatchBinariesPrefixMatchArgs(t *testing.T) {
 		t.Skip(skipMatchBinaries)
 	}
 
-	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
@@ -4939,7 +4938,7 @@ func TestLinuxBinprmExtractPath(t *testing.T) {
 	if !config.EnableLargeProgs() {
 		t.Skip("Older kernels do not support matchArgs with linux_binprm")
 	}
-	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 

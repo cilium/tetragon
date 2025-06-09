@@ -14,6 +14,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/strutils"
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/spf13/pflag"
@@ -311,7 +312,7 @@ func ParseCgroupRate(rate string) CgroupRate {
 
 	s := strings.Split(rate, ",")
 	if len(s) != 2 {
-		logger.GetLogger().Warnf("failed to parse cgroup rate '%s'", rate)
+		logger.GetLogger().Warn(fmt.Sprintf("failed to parse cgroup rate '%s'", rate))
 		return empty
 	}
 
@@ -322,7 +323,7 @@ func ParseCgroupRate(rate string) CgroupRate {
 	if len(s[0]) > 0 {
 		events, err = strconv.Atoi(s[0])
 		if err != nil {
-			logger.GetLogger().Warnf("failed to parse cgroup rate '%s' : %s", rate, err)
+			logger.GetLogger().Warn(fmt.Sprintf("failed to parse cgroup rate '%s' : %s", rate, err))
 			return empty
 		}
 	}
@@ -330,7 +331,7 @@ func ParseCgroupRate(rate string) CgroupRate {
 	if len(s[1]) > 0 {
 		interval, err = time.ParseDuration(s[1])
 		if err != nil {
-			logger.GetLogger().Warnf("failed to parse cgroup rate '%s' : %s", rate, err)
+			logger.GetLogger().Warn(fmt.Sprintf("failed to parse cgroup rate '%s'", rate), logfields.Error, err)
 			return empty
 		}
 	}

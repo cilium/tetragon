@@ -12,6 +12,7 @@ import (
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/constants"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
 	"golang.org/x/sys/windows"
 )
@@ -125,7 +126,7 @@ func doLoadProgram(
 
 	coll, err := ebpf.LoadCollection(load.Name)
 	if err != nil {
-		logger.GetLogger().WithError(err).WithField("Error ", err.Error()).Warn(" Failed to load Native Windows Collection ")
+		logger.GetLogger().Warn(" Failed to load Native Windows Collection", logfields.Error, err)
 		return nil, err
 	}
 	bpf.SetCollection(load.Label, coll)
@@ -136,12 +137,12 @@ func doLoadProgram(
 
 		info, err := m.Info()
 		if err != nil {
-			logger.GetLogger().WithError(err).WithField("map", m.String()).Warn("failed to retrieve BPF map info")
+			logger.GetLogger().Warn("failed to retrieve BPF map info", "map", m.String(), logfields.Error, err)
 			continue
 		}
 		id, available := info.ID()
 		if !available {
-			logger.GetLogger().WithField("map", m.String()).Warn("failed to retrieve BPF map ID, you might be running <4.13")
+			logger.GetLogger().Warn("failed to retrieve BPF map ID, you might be running <4.13", "map", m.String())
 			continue
 		}
 		collMaps[id] = m
@@ -171,12 +172,12 @@ func doLoadProgram(
 			prog = p
 		}
 		if err != nil {
-			logger.GetLogger().WithError(err).WithField("program", p.String()).Warn("failed to retrieve BPF program info, you might be running <4.10")
+			logger.GetLogger().Warn("failed to retrieve BPF program info, you might be running <4.10", "program", p.String(), logfields.Error, err)
 			break
 		}
 		ids, available := i.MapIDs()
 		if !available {
-			logger.GetLogger().WithField("program", p.String()).Warn("failed to retrieve BPF program map IDs, you might be running <4.15")
+			logger.GetLogger().Warn("failed to retrieve BPF program map IDs, you might be running <4.15", "program", p.String())
 			break
 		}
 		for _, id := range ids {
@@ -185,7 +186,7 @@ func doLoadProgram(
 			}
 			xInfo, err := bpf.ExtendedInfoFromMap(collMaps[id])
 			if err != nil {
-				logger.GetLogger().WithError(err).WithField("mapID", id).Warn("failed to retrieve extended map info")
+				logger.GetLogger().Warn("failed to retrieve extended map info", "mapID", id, logfields.Error, err)
 				break
 			}
 			load.LoadedMapsInfo[int(id)] = xInfo
@@ -211,9 +212,9 @@ func doLoadProgram(
 
 	pinPath := load.PinPath
 	if _, err := os.Stat(pinPath); err == nil {
-		logger.GetLogger().Debugf("Pin file '%s' already exists, repinning", load.PinPath)
+		logger.GetLogger().Debug(fmt.Sprintf("Pin file '%s' already exists, repinning", load.PinPath))
 		if err := os.Remove(pinPath); err != nil {
-			logger.GetLogger().Warnf("Unpinning '%s' failed: %s", pinPath, err)
+			logger.GetLogger().Warn("Unpinning failed", "pinPath", pinPath, logfields.Error, err)
 		}
 	}
 
@@ -231,7 +232,7 @@ func doLoadProgram(
 	load.unloader, err = loadOpts.Attach(coll, nil, prog, nil)
 	if err != nil {
 		if err := prog.Unpin(); err != nil {
-			logger.GetLogger().Warnf("Unpinning '%s' failed: %w", pinPath, err)
+			logger.GetLogger().Warn("Unpinning failed", "pinPath", pinPath, logfields.Error, err)
 		}
 		return nil, err
 	}

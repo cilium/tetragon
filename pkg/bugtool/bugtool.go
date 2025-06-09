@@ -15,6 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -33,7 +34,6 @@ import (
 	gopssignal "github.com/google/gops/signal"
 	"go.uber.org/multierr"
 
-	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 )
 
@@ -64,14 +64,14 @@ func SaveInitInfo(info *InitInfo) error {
 func doLoadInitInfo(fname string) (*InitInfo, error) {
 	f, err := os.Open(fname)
 	if err != nil {
-		logger.GetLogger().WithField("infoFile", fname).Warn("failed to open file")
+		logger.GetLogger().Warn("failed to open file", "infoFile", fname)
 		return nil, err
 	}
 	defer f.Close()
 
 	var info InitInfo
 	if err := json.NewDecoder(f).Decode(&info); err != nil {
-		logger.GetLogger().WithField("infoFile", fname).Warn("failed to read information from file")
+		logger.GetLogger().Warn("failed to read information from file", "infoFile", fname)
 		return nil, err
 	}
 
@@ -85,7 +85,7 @@ func doSaveInitInfo(fname string, info *InitInfo) error {
 		logger.GetLogger().Warn("failed to locate bpftool binary, on bugtool debugging ensure you have bpftool installed")
 	} else {
 		info.BpfToolPath = bpftool
-		logger.GetLogger().WithField("bpftool", info.BpfToolPath).Info("Successfully detected bpftool path")
+		logger.GetLogger().Info("Successfully detected bpftool path", "bpftool", info.BpfToolPath)
 	}
 
 	gops, err := exec.LookPath("gops")
@@ -93,28 +93,28 @@ func doSaveInitInfo(fname string, info *InitInfo) error {
 		logger.GetLogger().Warn("failed to locate gops binary, on bugtool debugging ensure you have gops installed")
 	} else {
 		info.GopsPath = gops
-		logger.GetLogger().WithField("gops", info.GopsPath).Info("Successfully detected gops path")
+		logger.GetLogger().Info("Successfully detected gops path", "gops", info.GopsPath)
 	}
 
 	// Create DefaultRunDir if it does not already exist
 	if err := os.MkdirAll(defaults.DefaultRunDir, 0755); err != nil {
-		logger.GetLogger().WithField("infoFile", fname).Warn("failed to directory exists")
+		logger.GetLogger().Warn("failed to directory exists", "infoFile", fname)
 		return err
 	}
 	f, err := os.OpenFile(fname, os.O_WRONLY|os.O_CREATE, 0744)
 	if err != nil {
-		logger.GetLogger().WithField("infoFile", fname).Warn("failed to create file")
+		logger.GetLogger().Warn("failed to create file", "infoFile", fname)
 		return err
 	}
 	defer f.Close()
 
 	if err := f.Truncate(0); err != nil {
-		logger.GetLogger().WithField("infoFile", fname).Warn("failed to truncate file")
+		logger.GetLogger().Warn("failed to truncate file", "infoFile", fname)
 		return err
 	}
 
 	if err := json.NewEncoder(f).Encode(info); err != nil {
-		logger.GetLogger().WithField("infoFile", fname).Warn("failed to write information to file")
+		logger.GetLogger().Warn("failed to write information to file", "infoFile", fname)
 		return err
 	}
 
@@ -215,12 +215,12 @@ func Bugtool(outFname string, bpftool string, gops string) error {
 func doBugtool(info *InitInfo, outFname string) error {
 	// we log into two logs, one is the standard one and another one is a
 	// buffer that we are going to include as a file into the bugtool archive.
-	bugtoolLogger := logrus.New()
 	logBuff := new(bytes.Buffer)
-	bugtoolLogger.Out = logBuff
-	logrus.SetLevel(logrus.InfoLevel)
+	bugtoolLogger := slog.New(slog.NewTextHandler(logBuff, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
 	multiLog := MultiLog{
-		Logs: []logrus.FieldLogger{
+		Logs: []logger.FieldLogger{
 			logger.GetLogger(),
 			bugtoolLogger,
 		},

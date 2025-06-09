@@ -10,6 +10,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/cilium/tetragon/pkg/observer"
@@ -65,7 +66,7 @@ func collect(ch chan<- prometheus.Metric) {
 	defer cancel()
 	list, err := sm.ListTracingPolicies(ctx)
 	if err != nil {
-		logger.GetLogger().WithError(err).Warn("error listing tracing policies to collect policies state")
+		logger.GetLogger().Warn("error listing tracing policies to collect policies state", logfields.Error, err)
 		return
 	}
 

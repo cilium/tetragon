@@ -10,6 +10,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"google.golang.org/grpc"
 	gh "google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
@@ -33,12 +34,12 @@ func StartHealthServer(ctx context.Context, address string, interval int) {
 		// the gRPC server for the health checks listens on port 6789
 		listener, err := net.Listen("tcp", address)
 		if err != nil {
-			log.WithError(err).Fatal("Failed to listen for gRPC healthserver")
+			logger.Fatal(log, "Failed to listen for gRPC healthserver")
 		}
 
-		log.WithField("address", address).WithField("interval", interval).Info("Starting gRPC health server")
+		log.Info("Starting gRPC health server", "address", address, "interval", interval)
 		if err = grpcHealthServer.Serve(listener); err != nil {
-			log.WithError(err).Fatal("Failed to start gRPC healthserver")
+			logger.Fatal(log, "Failed to start gRPC healthserver", logfields.Error, err)
 		}
 	}()
 

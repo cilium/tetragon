@@ -91,7 +91,7 @@ func ValidateKprobeSpec(bspec *btf.Spec, call string, kspec *v1alpha1.KProbeSpec
 			}
 			// TypeByName() above ensures btf.Func type, but Check again so semantically we are correct
 			if len(fnTypes) > 0 {
-				logger.GetLogger().Infof("BTF metadata includes '%d' matched candidates on call %q, using first one", len(fnTypes), call)
+				logger.GetLogger().Info(fmt.Sprintf("BTF metadata includes '%d' matched candidates on call %q, using first one", len(fnTypes), call))
 				// take first one.
 				reflect.ValueOf(&fn).Elem().Set(reflect.ValueOf(fnTypes[0]))
 			}

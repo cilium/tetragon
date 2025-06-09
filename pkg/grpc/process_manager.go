@@ -17,7 +17,6 @@ import (
 	"github.com/cilium/tetragon/pkg/rthooks"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/server"
-	"github.com/sirupsen/logrus"
 )
 
 // ProcessManager maintains a cache of processes from tetragon exec events.
@@ -44,11 +43,10 @@ func NewProcessManager(
 	// Exec cache is always needed to ensure events have an associated Process{}
 	eventcache.New(pm)
 
-	logger.GetLogger().WithFields(logrus.Fields{
-		"enableK8s":         option.Config.EnableK8s,
-		"enableProcessCred": option.Config.EnableProcessCred,
-		"enableProcessNs":   option.Config.EnableProcessNs,
-	}).Info("Starting process manager")
+	logger.GetLogger().Info("Starting process manager",
+		"enableK8s", option.Config.EnableK8s,
+		"enableProcessCred", option.Config.EnableProcessCred,
+		"enableProcessNs", option.Config.EnableProcessNs)
 	return pm, nil
 }
 
@@ -67,14 +65,14 @@ func (pm *ProcessManager) Close() error {
 }
 
 func (pm *ProcessManager) AddListener(listener server.Listener) {
-	logger.GetLogger().WithField("getEventsListener", listener).Debug("Adding a getEventsListener")
+	logger.GetLogger().Debug("Adding a getEventsListener", "getEventsListener", listener)
 	pm.mux.Lock()
 	defer pm.mux.Unlock()
 	pm.listeners[listener] = struct{}{}
 }
 
 func (pm *ProcessManager) RemoveListener(listener server.Listener) {
-	logger.GetLogger().WithField("getEventsListener", listener).Debug("Removing a getEventsListener")
+	logger.GetLogger().Debug("Removing a getEventsListener", "getEventsListener", listener)
 	pm.mux.Lock()
 	defer pm.mux.Unlock()
 	delete(pm.listeners, listener)

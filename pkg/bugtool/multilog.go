@@ -8,33 +8,31 @@ package bugtool
 // log levels of these two are not always the same, so we need two different
 // loggers.
 //
-// We also keep both generated Entries in a new MultiLogEntry structure. This
-// means that we cannot implement the logrus.FileLogger interface
-// (https://godoc.org/github.com/sirupsen/logrus#FieldLogger), but we can have
-// similar functions that use MultiLogEntry instead of Entry.
-//
 // Currently, there are only a few functions implemented but we can add what we
 // need as we go.
 
 import (
-	"github.com/sirupsen/logrus"
+	"fmt"
+
+	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 )
 
 // MultiLog maintains multiple loggers
 type MultiLog struct {
-	Logs []logrus.FieldLogger
+	Logs []logger.FieldLogger
 }
 
 // MultiLogEntry maintains entries generated using a MultiLog
 type MultiLogEntry struct {
-	Entries []*logrus.Entry
+	Entries []logger.FieldLogger
 }
 
 // WithField creates a new entry and adds a field to it.
 func (ml *MultiLog) WithField(key string, value interface{}) *MultiLogEntry {
-	entries := make([]*logrus.Entry, 0, len(ml.Logs))
+	entries := make([]logger.FieldLogger, 0, len(ml.Logs))
 	for _, log := range ml.Logs {
-		entries = append(entries, log.WithField(key, value))
+		entries = append(entries, log.With(key, value))
 	}
 	return &MultiLogEntry{
 		Entries: entries,
@@ -43,44 +41,44 @@ func (ml *MultiLog) WithField(key string, value interface{}) *MultiLogEntry {
 
 // WithError adds err as a single field (using ErrorKey)
 func (ml *MultiLog) WithError(err error) *MultiLogEntry {
-	entries := make([]*logrus.Entry, 0, len(ml.Logs))
+	entries := make([]logger.FieldLogger, 0, len(ml.Logs))
 	for _, log := range ml.Logs {
-		entries = append(entries, log.WithError(err))
+		entries = append(entries, log.With(logfields.Error, err))
 	}
 	return &MultiLogEntry{
 		Entries: entries,
 	}
 }
 
-func (ml *MultiLog) Info(args ...interface{}) {
+func (ml *MultiLog) Info(msg string, args ...interface{}) {
 	for _, log := range ml.Logs {
-		log.Info(args...)
+		log.Info(msg, args...)
 	}
 }
 
-func (ml *MultiLog) Warn(args ...interface{}) {
+func (ml *MultiLog) Warn(msg string, args ...interface{}) {
 	for _, log := range ml.Logs {
-		log.Warn(args...)
+		log.Warn(msg, args...)
 	}
 }
 
 func (ml *MultiLog) Warnf(format string, args ...interface{}) {
 	for _, log := range ml.Logs {
-		log.Warnf(format, args...)
+		log.Warn(fmt.Sprintf(format, args...))
 	}
 }
 
 func (ml *MultiLog) Infof(format string, args ...interface{}) {
 	for _, log := range ml.Logs {
-		log.Infof(format, args...)
+		log.Info(fmt.Sprintf(format, args...))
 	}
 }
 
 // WithField creates a new entry by adding a field to an existing one
 func (mle *MultiLogEntry) WithField(key string, value interface{}) *MultiLogEntry {
-	entries := make([]*logrus.Entry, 0, len(mle.Entries))
+	entries := make([]logger.FieldLogger, 0, len(mle.Entries))
 	for _, entry := range mle.Entries {
-		entries = append(entries, entry.WithField(key, value))
+		entries = append(entries, entry.With(key, value))
 	}
 	return &MultiLogEntry{
 		Entries: entries,
@@ -89,9 +87,9 @@ func (mle *MultiLogEntry) WithField(key string, value interface{}) *MultiLogEntr
 
 // WithError adds err as a single field (using ErrorKey)
 func (mle *MultiLogEntry) WithError(err error) *MultiLogEntry {
-	entries := make([]*logrus.Entry, 0, len(mle.Entries))
+	entries := make([]logger.FieldLogger, 0, len(mle.Entries))
 	for _, entry := range mle.Entries {
-		entries = append(entries, entry.WithError(err))
+		entries = append(entries, entry.With(logfields.Error, err))
 	}
 	return &MultiLogEntry{
 		Entries: entries,
@@ -99,27 +97,27 @@ func (mle *MultiLogEntry) WithError(err error) *MultiLogEntry {
 }
 
 // Warn logs at the Warning level
-func (mle *MultiLogEntry) Warn(args ...interface{}) {
+func (mle *MultiLogEntry) Warn(msg string, args ...interface{}) {
 	for _, entry := range mle.Entries {
-		entry.Warn(args...)
+		entry.Warn(msg, args...)
 	}
 }
 
 // Info logs at the Info level
-func (mle *MultiLogEntry) Info(args ...interface{}) {
+func (mle *MultiLogEntry) Info(msg string, args ...interface{}) {
 	for _, entry := range mle.Entries {
-		entry.Info(args...)
+		entry.Info(msg, args...)
 	}
 }
 
 func (mle *MultiLogEntry) Warnf(format string, args ...interface{}) {
 	for _, entry := range mle.Entries {
-		entry.Warnf(format, args...)
+		entry.Warn(fmt.Sprintf(format, args...))
 	}
 }
 
 func (mle *MultiLogEntry) Infof(format string, args ...interface{}) {
 	for _, entry := range mle.Entries {
-		entry.Infof(format, args...)
+		entry.Info(fmt.Sprintf(format, args...))
 	}
 }

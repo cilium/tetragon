@@ -18,12 +18,11 @@ import (
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
-
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -104,12 +103,11 @@ func (m *Map) AddCgroupTrackerPath(trackerPath string) error {
 			walkErr = errors.Join(walkErr, fmt.Errorf("failed to update id (%d) for '%s': %w", trackedID, p, merr))
 		}
 
-		logger.GetLogger().WithFields(logrus.Fields{
-			"tracked":      trackedID,
-			"tracker":      cgID,
-			"tracked path": p,
-			"tracker path": trackerPath,
-		}).Debug("added mapping")
+		logger.GetLogger().Debug("added mapping",
+			"tracked", trackedID,
+			"tracker", cgID,
+			"tracked path", p,
+			"tracker path", trackerPath)
 
 		return nil
 	})
@@ -117,7 +115,7 @@ func (m *Map) AddCgroupTrackerPath(trackerPath string) error {
 	// NB: if we managed to insert something in the map, call it a success: log the failures and
 	// do not return an error
 	if walkErr != nil {
-		logger.GetLogger().WithField("cgtracker", true).WithError(walkErr).Warn("failed to retrieve some the cgroup id for some paths")
+		logger.GetLogger().Warn("failed to retrieve some the cgroup id for some paths", "cgtracker", true, logfields.Error, walkErr)
 	}
 	return nil
 }
@@ -188,7 +186,7 @@ func globalMap() (Map, error) {
 				log.Info("cgtracker map initialized")
 				return
 			} else if retries > 5 {
-				log.WithError(glError).WithField("fname", fname).WithField("retries", retries).Warn("cgtracker map initialization failed")
+				log.Warn("cgtracker map initialization failed", "fname", fname, "retries", retries, logfields.Error, glError)
 			}
 			time.Sleep(500 * time.Millisecond)
 			retries++

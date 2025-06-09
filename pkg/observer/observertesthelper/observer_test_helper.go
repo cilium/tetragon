@@ -21,8 +21,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
@@ -33,6 +31,7 @@ import (
 	"github.com/cilium/tetragon/pkg/exporter"
 	tetragonGrpc "github.com/cilium/tetragon/pkg/grpc"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/metricsconfig"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
@@ -124,11 +123,9 @@ func testDone(tb testing.TB, obs *observer.Observer) {
 	if tb.Failed() {
 		bugtoolFname := "/tmp/tetragon-bugtool.tar.gz"
 		if err := bugtool.Bugtool(bugtoolFname, "", ""); err == nil {
-			logger.GetLogger().WithField("test", tb.Name()).
-				WithField("file", bugtoolFname).Info("Dumped bugtool info")
+			logger.GetLogger().Info("Dumped bugtool info", "test", tb.Name(), "file", bugtoolFname)
 		} else {
-			logger.GetLogger().WithField("test", tb.Name()).
-				WithField("file", bugtoolFname).Warnf("Failed to dump bugtool info: %v", err)
+			logger.GetLogger().Warn("Failed to dump bugtool info", logfields.Error, err, "test", tb.Name(), "file", bugtoolFname)
 		}
 	}
 
@@ -140,15 +137,15 @@ func testDone(tb testing.TB, obs *observer.Observer) {
 func saveInitInfo(o *TestOptions, exportFile string) error {
 	exportPath, err := filepath.Abs(exportFile)
 	if err != nil {
-		logger.GetLogger().Warnf("Failed to get export path when saving init info: %v", err)
+		logger.GetLogger().Warn("Failed to get export path when saving init info", logfields.Error, err)
 	}
 	btfPath, err := filepath.Abs(btf.GetCachedBTFFile())
 	if err != nil {
-		logger.GetLogger().Warnf("Failed to get BTF path when saving init info: %v", err)
+		logger.GetLogger().Warn("Failed to get BTF path when saving init info", logfields.Error, err)
 	}
 	libPath, err := filepath.Abs(o.observer.lib)
 	if err != nil {
-		logger.GetLogger().Warnf("Failed to get lib path when saving init info: %v", err)
+		logger.GetLogger().Warn("Failed to get lib path when saving init info", logfields.Error, err)
 	}
 	info := bugtool.InitInfo{
 		ExportFname: exportPath,
@@ -187,7 +184,7 @@ func newDefaultObserver() *observer.Observer {
 }
 
 func getDefaultObserver(tb testing.TB, ctx context.Context, initialSensor *sensors.Sensor, opts ...TestOption) (*observer.Observer, error) {
-	testutils.CaptureLog(tb, logger.GetLogger().(*logrus.Logger))
+	testutils.CaptureLog(tb, logger.GetLogger())
 
 	o := newDefaultTestOptions(opts...)
 
@@ -248,7 +245,7 @@ func getDefaultObserver(tb testing.TB, ctx context.Context, initialSensor *senso
 		testDone(tb, obs)
 	})
 
-	logger.GetLogger().Info("BPF detected features: ", bpf.LogFeatures())
+	logger.GetLogger().Info("BPF detected features: " + bpf.LogFeatures())
 
 	obs.PerfConfig = bpf.DefaultPerfEventConfig()
 	obs.PerfConfig.MapName = filepath.Join(bpf.MapPrefixPath(), "tcpmon_map")
@@ -292,7 +289,7 @@ func GetDefaultSensorsWithFile(tb testing.TB, file, lib string, opts ...TestOpti
 func getDefaultSensors(tb testing.TB, initialSensor *sensors.Sensor, opts ...TestOption) ([]*sensors.Sensor, error) {
 	option.Config.BpfDir = bpf.MapPrefixPath()
 
-	testutils.CaptureLog(tb, logger.GetLogger().(*logrus.Logger))
+	testutils.CaptureLog(tb, logger.GetLogger())
 
 	o := newDefaultTestOptions(opts...)
 
@@ -483,7 +480,7 @@ func ExecWGCurl(readyWG *sync.WaitGroup, retries uint, args ...string) error {
 		if err == nil {
 			break
 		}
-		logger.GetLogger().Warnf("%v failed with %v (attempt %d/%d)", cmd, err, try+1, retries)
+		logger.GetLogger().Warn(fmt.Sprintf("%v failed with %v (attempt %d/%d)", cmd, err, try+1, retries))
 	}
 
 	return err

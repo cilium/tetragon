@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"sync"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
@@ -17,6 +18,7 @@ import (
 	"github.com/cilium/tetragon/pkg/filters"
 	"github.com/cilium/tetragon/pkg/health"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/metrics/eventmetrics"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
@@ -24,7 +26,6 @@ import (
 	"github.com/cilium/tetragon/pkg/version"
 
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 )
 
 type Listener interface {
@@ -121,12 +122,11 @@ func (s *Server) GetEvents(request *tetragon.GetEventsRequest, server tetragon.F
 }
 
 func (s *Server) GetEventsWG(request *tetragon.GetEventsRequest, server tetragon.FineGuidanceSensors_GetEventsServer, closer io.Closer, readyWG *sync.WaitGroup) error {
-	logger.GetLogger().WithFields(logrus.Fields{
-		"events.allow_list":          request.GetAllowList(),
-		"events.deny_list":           request.GetDenyList(),
-		"events.field_filters":       request.GetFieldFilters(),
-		"events.aggregation_options": request.GetAggregationOptions(),
-	}).Debug("Received a GetEvents request")
+	logger.GetLogger().Debug("Received a GetEvents request",
+		"events.allow_list", request.GetAllowList(),
+		"events.deny_list", request.GetDenyList(),
+		"events.field_filters", request.GetFieldFilters(),
+		"events.aggregation_options", request.GetAggregationOptions())
 	allowList, err := filters.BuildFilterList(s.ctx, request.AllowList, filters.Filters)
 	if err != nil {
 		if readyWG != nil {
@@ -178,7 +178,7 @@ func (s *Server) GetEventsWG(request *tetragon.GetEventsRequest, server tetragon
 			for _, filter := range filters {
 				ev, err := filter.Filter(event)
 				if err != nil {
-					logger.GetLogger().WithField("filter", filter).WithError(err).Warn("Failed to apply field filter")
+					logger.GetLogger().Warn("Failed to apply field filter", "filter", filter, logfields.Error, err)
 					continue
 				}
 				event = ev
@@ -189,9 +189,8 @@ func (s *Server) GetEventsWG(request *tetragon.GetEventsRequest, server tetragon
 				select {
 				case aggregator.GetEventChannel() <- event:
 				default:
-					logger.GetLogger().
-						WithField("request", request).
-						Warn("Aggregator buffer is full. Consider increasing AggregatorOptions.channel_buffer_size.")
+					logger.GetLogger().Warn("Aggregator buffer is full. Consider increasing AggregatorOptions.channel_buffer_size.",
+						"request", request)
 				}
 			} else {
 				// No need to aggregate. Directly send out the response.
@@ -214,7 +213,7 @@ func (s *Server) GetEventsWG(request *tetragon.GetEventsRequest, server tetragon
 }
 
 func (s *Server) GetHealth(_ context.Context, request *tetragon.GetHealthStatusRequest) (*tetragon.GetHealthStatusResponse, error) {
-	logger.GetLogger().WithField("request", request).Debug("Received a GetHealth request")
+	logger.GetLogger().Debug("Received a GetHealth request", "request", request)
 	return health.GetHealth()
 }
 
@@ -226,7 +225,7 @@ func (s *Server) ListSensors(_ context.Context, _ *tetragon.ListSensorsRequest) 
 func (s *Server) AddTracingPolicy(ctx context.Context, req *tetragon.AddTracingPolicyRequest) (*tetragon.AddTracingPolicyResponse, error) {
 	tp, err := tracingpolicy.FromYAML(req.GetYaml())
 	if err != nil {
-		logger.GetLogger().WithError(err).Warn("Server AddTracingPolicy request failed")
+		logger.GetLogger().Warn("Server AddTracingPolicy request failed", logfields.Error, err)
 		return nil, err
 	}
 	namespace := ""
@@ -234,52 +233,41 @@ func (s *Server) AddTracingPolicy(ctx context.Context, req *tetragon.AddTracingP
 		namespace = tpNs.TpNamespace()
 	}
 
-	logger.GetLogger().WithFields(logrus.Fields{
-		"metadata.namespace": namespace,
-		"metadata.name":      tp.TpName(),
-	}).Debug("Received an AddTracingPolicy request")
+	logger.GetLogger().Debug("Received an AddTracingPolicy request",
+		"metadata.namespace", namespace,
+		"metadata.name", tp.TpName())
 
 	if err := s.observer.AddTracingPolicy(ctx, tp); err != nil {
-		logger.GetLogger().WithFields(logrus.Fields{
-			"metadata.namespace": namespace,
-			"metadata.name":      tp.TpName(),
-		}).WithError(err).Warn("Server AddTracingPolicy request failed")
+		logger.GetLogger().Warn("Server AddTracingPolicy request failed",
+			logfields.Error, err,
+			"metadata.namespace", namespace,
+			"metadata.name", tp.TpName())
 		return nil, err
 	}
 	return &tetragon.AddTracingPolicyResponse{}, nil
 }
 
 func (s *Server) DeleteTracingPolicy(ctx context.Context, req *tetragon.DeleteTracingPolicyRequest) (*tetragon.DeleteTracingPolicyResponse, error) {
-	logger.GetLogger().WithFields(logrus.Fields{
-		"name": req.GetName(),
-	}).Debug("Received a DeleteTracingPolicy request")
+	logger.GetLogger().Debug("Received a DeleteTracingPolicy request", "name", req.GetName())
 
 	if err := s.observer.DeleteTracingPolicy(ctx, req.GetName(), req.GetNamespace()); err != nil {
-		logger.GetLogger().WithFields(logrus.Fields{
-			"name": req.GetName(),
-		}).WithError(err).Warn("Server DeleteTracingPolicy request failed")
+		logger.GetLogger().Warn("Server DeleteTracingPolicy request failed", "name", req.GetName(), logfields.Error, err)
 		return nil, err
 	}
 	return &tetragon.DeleteTracingPolicyResponse{}, nil
 }
 
 func (s *Server) EnableTracingPolicy(ctx context.Context, req *tetragon.EnableTracingPolicyRequest) (*tetragon.EnableTracingPolicyResponse, error) {
-	logger.GetLogger().WithFields(logrus.Fields{
-		"name": req.GetName(),
-	}).Debug("Received a EnableTracingPolicy request")
+	logger.GetLogger().Debug("Received a EnableTracingPolicy request", "name", req.GetName())
 
 	if err := s.observer.EnableTracingPolicy(ctx, req.GetName(), req.GetNamespace()); err != nil {
-		logger.GetLogger().WithFields(logrus.Fields{
-			"name": req.GetName(),
-		}).WithError(err).Warn("Server EnableTracingPolicy request failed")
+		logger.GetLogger().Warn("Server EnableTracingPolicy request failed", "name", req.GetName(), logfields.Error, err)
 		return nil, err
 	}
 	return &tetragon.EnableTracingPolicyResponse{}, nil
 }
 func (s *Server) ConfigureTracingPolicy(ctx context.Context, req *tetragon.ConfigureTracingPolicyRequest) (*tetragon.ConfigureTracingPolicyResponse, error) {
-	logger.GetLogger().WithFields(logrus.Fields{
-		"name": req.GetName(),
-	}).Debug("Received a ConfigureTrcingPolicy request")
+	logger.GetLogger().Debug("Received a ConfigureTrcingPolicy request", "name", req.GetName())
 
 	if err := s.observer.ConfigureTracingPolicy(ctx, req); err != nil {
 		return nil, err
@@ -289,47 +277,43 @@ func (s *Server) ConfigureTracingPolicy(ctx context.Context, req *tetragon.Confi
 }
 
 func (s *Server) DisableTracingPolicy(ctx context.Context, req *tetragon.DisableTracingPolicyRequest) (*tetragon.DisableTracingPolicyResponse, error) {
-	logger.GetLogger().WithFields(logrus.Fields{
-		"name": req.GetName(),
-	}).Debug("Received a DisableTracingPolicy request")
+	logger.GetLogger().Debug("Received a DisableTracingPolicy request", "name", req.GetName())
 
 	if err := s.observer.DisableTracingPolicy(ctx, req.GetName(), req.GetNamespace()); err != nil {
-		logger.GetLogger().WithFields(logrus.Fields{
-			"name": req.GetName(),
-		}).WithError(err).Warn("Server DisableTracingPolicy request failed")
+		logger.GetLogger().Warn("Server DisableTracingPolicy request failed", "name", req.GetName(), logfields.Error, err)
 		return nil, err
 	}
 	return &tetragon.DisableTracingPolicyResponse{}, nil
 }
 
 func (s *Server) ListTracingPolicies(ctx context.Context, req *tetragon.ListTracingPoliciesRequest) (*tetragon.ListTracingPoliciesResponse, error) {
-	logger.GetLogger().WithField("request", req).Debug("Received a ListTracingPolicies request")
+	logger.GetLogger().Debug("Received a ListTracingPolicies request", "request", req)
 	ret, err := s.observer.ListTracingPolicies(ctx)
 	if err != nil {
-		logger.GetLogger().WithError(err).Warn("Server ListTracingPolicies request failed")
+		logger.GetLogger().Warn("Server ListTracingPolicies request failed", logfields.Error, err)
 	}
 	return ret, err
 }
 
 func (s *Server) RemoveSensor(_ context.Context, req *tetragon.RemoveSensorRequest) (*tetragon.RemoveSensorResponse, error) {
-	logger.GetLogger().WithField("sensor.name", req.GetName()).Debug("Received a RemoveSensor request")
+	logger.GetLogger().Debug("Received a RemoveSensor request", "sensor.name", req.GetName())
 	return nil, errors.New("RemoveSensor is deprecated")
 }
 
 func (s *Server) EnableSensor(_ context.Context, req *tetragon.EnableSensorRequest) (*tetragon.EnableSensorResponse, error) {
-	logger.GetLogger().WithField("sensor.name", req.GetName()).Debug("Received a EnableSensor request")
+	logger.GetLogger().Debug("Received a EnableSensor request", "sensor.name", req.GetName())
 	return nil, errors.New("EnableSensor is deprecated")
 }
 
 func (s *Server) DisableSensor(_ context.Context, req *tetragon.DisableSensorRequest) (*tetragon.DisableSensorResponse, error) {
-	logger.GetLogger().WithField("sensor.name", req.GetName()).Debug("Received a DisableSensor request")
+	logger.GetLogger().Debug("Received a DisableSensor request", "sensor.name", req.GetName())
 	return nil, errors.New("DisableSensor is deprecated")
 }
 
 func (s *Server) GetStackTraceTree(_ context.Context, req *tetragon.GetStackTraceTreeRequest) (*tetragon.GetStackTraceTreeResponse, error) {
-	logger.GetLogger().WithField("request", req).Debug("Received a GetStackTraceTree request")
+	logger.GetLogger().Debug("Received a GetStackTraceTree request", "request", req)
 	err := errors.New("unsupported GetStackTraceTree")
-	logger.GetLogger().WithError(err).Warn("Server GetStackTraceTree failed")
+	logger.GetLogger().Warn("Server GetStackTraceTree failed", logfields.Error, err)
 	return nil, err
 }
 
@@ -338,13 +322,11 @@ func (s *Server) GetVersion(_ context.Context, _ *tetragon.GetVersionRequest) (*
 }
 
 func (s *Server) RuntimeHook(ctx context.Context, req *tetragon.RuntimeHookRequest) (*tetragon.RuntimeHookResponse, error) {
-	logger.GetLogger().WithField("request", req).Debug("Received a RuntimeHook request")
+	logger.GetLogger().Debug("Received a RuntimeHook request", "request", req)
 	err := s.hookRunner.RunHooks(ctx, req)
 	if err != nil {
 		id := uuid.New()
-		logger.GetLogger().WithFields(logrus.Fields{
-			"logid": id,
-		}).WithError(err).Warn("server runtime hook failed")
+		logger.GetLogger().Warn("server runtime hook failed", "logid", id, logfields.Error, err)
 		return nil, fmt.Errorf("server runtime hook failed. Check agent logs with logid=%s for details", id)
 	}
 	return &tetragon.RuntimeHookResponse{}, nil
@@ -353,11 +335,11 @@ func (s *Server) RuntimeHook(ctx context.Context, req *tetragon.RuntimeHookReque
 func (s *Server) GetDebug(_ context.Context, req *tetragon.GetDebugRequest) (*tetragon.GetDebugResponse, error) {
 	switch req.GetFlag() {
 	case tetragon.ConfigFlag_CONFIG_FLAG_LOG_LEVEL:
-		logger.GetLogger().Debugf("Client requested current log level: %s", logger.GetLogLevel().String())
+		logger.GetLogger().Debug("Client requested current log level: " + logger.GetLogLevel(logger.GetLogger()).String())
 		return &tetragon.GetDebugResponse{
 			Flag: tetragon.ConfigFlag_CONFIG_FLAG_LOG_LEVEL,
 			Arg: &tetragon.GetDebugResponse_Level{
-				Level: tetragon.LogLevel(logger.GetLogLevel()),
+				Level: toTetragonLogLevel(logger.GetLogLevel(logger.GetLogger())),
 			},
 		}, nil
 	case tetragon.ConfigFlag_CONFIG_FLAG_DUMP_PROCESS_CACHE:
@@ -372,7 +354,7 @@ func (s *Server) GetDebug(_ context.Context, req *tetragon.GetDebugRequest) (*te
 			},
 		}, nil
 	default:
-		logger.GetLogger().WithField("request", req).Warnf("Client requested unknown config flag %d", req.GetFlag())
+		logger.GetLogger().Warn(fmt.Sprintf("Client requested unknown config flag %d", req.GetFlag()), "request", req)
 		return nil, fmt.Errorf("client requested unknown config flag %d", req.GetFlag())
 	}
 }
@@ -380,18 +362,60 @@ func (s *Server) GetDebug(_ context.Context, req *tetragon.GetDebugRequest) (*te
 func (s *Server) SetDebug(_ context.Context, req *tetragon.SetDebugRequest) (*tetragon.SetDebugResponse, error) {
 	switch req.GetFlag() {
 	case tetragon.ConfigFlag_CONFIG_FLAG_LOG_LEVEL:
-		currentLogLevel := logger.GetLogLevel()
-		changedLogLevel := logrus.Level(req.GetLevel())
+		currentLogLevel := logger.GetLogLevel(logger.GetLogger())
+		changedLogLevel := toSlogLevel(req.GetLevel())
 		logger.SetLogLevel(changedLogLevel)
-		logger.GetLogger().WithField("request", req).Warnf("Log level changed from %s to %s", currentLogLevel, changedLogLevel.String())
+		logger.GetLogger().Warn(fmt.Sprintf("Log level changed from %s to %s", currentLogLevel, changedLogLevel), "request", req)
 		return &tetragon.SetDebugResponse{
 			Flag: tetragon.ConfigFlag_CONFIG_FLAG_LOG_LEVEL,
 			Arg: &tetragon.SetDebugResponse_Level{
-				Level: tetragon.LogLevel(changedLogLevel),
+				Level: req.GetLevel(),
 			},
 		}, nil
 	default:
-		logger.GetLogger().WithField("request", req).Warnf("Client requested change of unknown config flag %d", req.GetFlag())
+		logger.GetLogger().Warn(fmt.Sprintf("Client requested change of unknown config flag %d", req.GetFlag()), "request", req)
 		return nil, fmt.Errorf("client requested change of unknown config flag %d", req.GetFlag())
+	}
+}
+
+func toTetragonLogLevel(level slog.Level) tetragon.LogLevel {
+	switch level {
+	case logger.LevelTrace:
+		return tetragon.LogLevel_LOG_LEVEL_TRACE
+	case slog.LevelDebug:
+		return tetragon.LogLevel_LOG_LEVEL_DEBUG
+	case slog.LevelInfo:
+		return tetragon.LogLevel_LOG_LEVEL_INFO
+	case slog.LevelWarn:
+		return tetragon.LogLevel_LOG_LEVEL_WARN
+	case slog.LevelError:
+		return tetragon.LogLevel_LOG_LEVEL_ERROR
+	case logger.LevelPanic:
+		return tetragon.LogLevel_LOG_LEVEL_PANIC
+	case logger.LevelFatal:
+		return tetragon.LogLevel_LOG_LEVEL_FATAL
+	default:
+		return tetragon.LogLevel_LOG_LEVEL_INFO
+	}
+}
+
+func toSlogLevel(level tetragon.LogLevel) slog.Level {
+	switch level {
+	case tetragon.LogLevel_LOG_LEVEL_TRACE:
+		return logger.LevelTrace
+	case tetragon.LogLevel_LOG_LEVEL_DEBUG:
+		return slog.LevelDebug
+	case tetragon.LogLevel_LOG_LEVEL_INFO:
+		return slog.LevelInfo
+	case tetragon.LogLevel_LOG_LEVEL_WARN:
+		return slog.LevelWarn
+	case tetragon.LogLevel_LOG_LEVEL_ERROR:
+		return slog.LevelError
+	case tetragon.LogLevel_LOG_LEVEL_PANIC:
+		return logger.LevelPanic
+	case tetragon.LogLevel_LOG_LEVEL_FATAL:
+		return logger.LevelFatal
+	default:
+		return slog.LevelInfo
 	}
 }

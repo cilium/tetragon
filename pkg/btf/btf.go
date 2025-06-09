@@ -51,31 +51,31 @@ func observerFindBTF(lib, btf string) (string, error) {
 		// check for vmlinux- hubble metadata, and finally if all those are missing
 		// search the lib directory for a btf file.
 		if _, err := os.Stat(defaults.DefaultBTFFile); err == nil {
-			logger.GetLogger().WithField("btf-file", defaults.DefaultBTFFile).Info("BTF discovery: default kernel btf file found")
+			logger.GetLogger().Info("BTF discovery: default kernel btf file found", "btf-file", defaults.DefaultBTFFile)
 			return defaults.DefaultBTFFile, nil
 		}
-		logger.GetLogger().WithField("btf-file", defaults.DefaultBTFFile).Info("BTF discovery: default kernel btf file does not exist")
+		logger.GetLogger().Info("BTF discovery: default kernel btf file does not exist", "btf-file", defaults.DefaultBTFFile)
 
 		runFile := path.Join(lib, "metadata", "vmlinux-"+kernelVersion)
 		if _, err := os.Stat(runFile); err == nil {
-			logger.GetLogger().WithField("btf-file", runFile).Info("BTF discovery: candidate btf file found")
+			logger.GetLogger().Info("BTF discovery: candidate btf file found", "btf-file", runFile)
 			return runFile, nil
 		}
-		logger.GetLogger().WithField("btf-file", runFile).Info("BTF discovery: candidate btf file does not exist")
+		logger.GetLogger().Info("BTF discovery: candidate btf file does not exist", "btf-file", runFile)
 
 		runFile = path.Join(lib, "btf")
 		if _, err := os.Stat(runFile); err == nil {
-			logger.GetLogger().WithField("btf-file", runFile).Info("BTF discovery: candidate btf file found")
+			logger.GetLogger().Info("BTF discovery: candidate btf file found", "btf-file", runFile)
 			return runFile, nil
 		}
-		logger.GetLogger().WithField("btf-file", runFile).Info("BTF discovery: candidate btf file does not exist")
+		logger.GetLogger().Info("BTF discovery: candidate btf file does not exist", "btf-file", runFile)
 
 		return btf, fmt.Errorf("kernel version %q BTF search failed kernel is not included in supported list. Please check Tetragon requirements documentation, then use --btf option to specify BTF path and/or '--kernel' to specify kernel version", kernelVersion)
 	}
 	if err := btfFileExists(btf); err != nil {
 		return btf, fmt.Errorf("user specified BTF does not exist: %w", err)
 	}
-	logger.GetLogger().WithField("btf-file", btf).Info("BTF file: user specified btf file found")
+	logger.GetLogger().Info("BTF file: user specified btf file found", "btf-file", btf)
 	return btf, nil
 }
 

@@ -13,6 +13,7 @@ import (
 	"github.com/cilium/ebpf/rlimit"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/mountinfo"
 )
 
@@ -89,7 +90,7 @@ func checkOrMountCustomLocation(bpfRoot string) error {
 		return fmt.Errorf("mount in the custom directory %s has a different filesystem than BPFFS", bpfRoot)
 	}
 
-	logger.GetLogger().Debugf("Detected mounted BPF filesystem at %s", mapRoot)
+	logger.GetLogger().Debug("Detected mounted BPF filesystem at " + mapRoot)
 
 	return nil
 }
@@ -172,12 +173,11 @@ func checkOrMountDefaultLocations() error {
 		// such as the connection tracking table of the BPF programs to
 		// be released which will cause all connections into local
 		// containers to be dropped. User is going to be warned.
-		logger.GetLogger().Warnf("BPF filesystem is going to be mounted automatically "+
+		logger.GetLogger().Warn(fmt.Sprintf("BPF filesystem is going to be mounted automatically "+
 			"in %s. However, it probably means that Cilium is running "+
 			"inside container and BPFFS is not mounted on the host. "+
 			"for more information, see: https://cilium.link/err-bpf-mount",
-			defaults.DefaultMapRootFallback,
-		)
+			defaults.DefaultMapRootFallback))
 		SetMapRoot(defaults.DefaultMapRootFallback)
 
 		infos, err = mountinfo.GetMountInfo()
@@ -191,11 +191,11 @@ func checkOrMountDefaultLocations() error {
 				return err
 			}
 		} else if !cBpffsInstance {
-			logger.GetLogger().Warnf("%s is mounted but has a different filesystem than BPFFS", defaults.DefaultMapRootFallback)
+			logger.GetLogger().Warn(defaults.DefaultMapRootFallback + " is mounted but has a different filesystem than BPFFS")
 		}
 	}
 
-	logger.GetLogger().Debugf("Detected mounted BPF filesystem at %s", mapRoot)
+	logger.GetLogger().Debug("Detected mounted BPF filesystem at " + mapRoot)
 
 	return nil
 }
@@ -228,7 +228,7 @@ func checkOrMountFS(bpfRoot string) error {
 func CheckOrMountFS(bpfRoot string) {
 	mountOnce.Do(func() {
 		if err := checkOrMountFS(bpfRoot); err != nil {
-			logger.GetLogger().WithError(err).Warn("Unable to mount BPF filesystem")
+			logger.GetLogger().Warn("Unable to mount BPF filesystem", logfields.Error, err)
 		}
 	})
 }

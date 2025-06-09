@@ -13,10 +13,10 @@ import (
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/constants"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -76,41 +76,39 @@ func UpdateTgRuntimeConf(mapDir string, nspid int) error {
 	// First let's detect cgroupfs magic
 	cgroupFsMagic, err := cgroups.DetectCgroupFSMagic()
 	if err != nil {
-		log.WithField("confmap-update", configMapName).WithError(err).Warnf("Detection of Cgroupfs version failed")
-		log.WithField("confmap-update", configMapName).Warn("Cgroupfs magic is unknown, advanced Cgroups tracking will be disabled")
+		log.Warn("Detection of Cgroupfs version failed", "confmap-update", configMapName, logfields.Error, err)
+		log.Warn("Cgroupfs magic is unknown, advanced Cgroups tracking will be disabled", "confmap-update", configMapName)
 		return err
 	}
 
 	// This must be called before probing cgroup configurations
 	err = cgroups.DiscoverSubSysIds()
 	if err != nil {
-		log.WithField("confmap-update", configMapName).WithError(err).Warnf("Detection of Cgroup Subsystem Controllers failed")
-		log.WithField("confmap-update", configMapName).Warn("Cgroup Subsystems IDs are unknown, advanced Cgroups tracking will be disabled")
+		log.Warn("Detection of Cgroup Subsystem Controllers failed", "confmap-update", configMapName, logfields.Error, err)
+		log.Warn("Cgroup Subsystems IDs are unknown, advanced Cgroups tracking will be disabled", "confmap-update", configMapName)
 		return err
 	}
 
 	// Detect deployment mode but do not fail
 	deployMode, err := cgroups.DetectDeploymentMode()
 	if err != nil {
-		log.WithField("confmap-update", configMapName).WithError(err).Warnf("Detection of deployment mode failed")
+		log.Warn("Detection of deployment mode failed", "confmap-update", configMapName, logfields.Error, err)
 	}
 
 	// Do not fail if deployment mode is unknown
 	if deployMode == cgroups.DEPLOY_UNKNOWN {
-		log.WithField("confmap-update", configMapName).Warn("Deployment mode is unknown, advanced Cgroups tracking will be disabled")
+		log.Warn("Deployment mode is unknown, advanced Cgroups tracking will be disabled", "confmap-update", configMapName)
 	}
 
 	if option.Config.UsernameMetadata == int(option.USERNAME_METADATA_UNIX) &&
 		deployMode != cgroups.DEPLOY_SD_SERVICE && deployMode != cgroups.DEPLOY_SD_USER {
 		option.Config.UsernameMetadata = int(option.USERNAME_METADATA_DISABLED)
-		log.WithFields(logrus.Fields{
-			"confmap-update":  configMapName,
-			"deployment.mode": deployMode.String(),
-		}).Warn("Username resolution is not available for given deployment mode")
+		log.Warn("Username resolution is not available for given deployment mode", "confmap-update", configMapName,
+			"deployment.mode", deployMode)
 	}
 
 	v := &TetragonConfValue{
-		LogLevel:          uint32(logger.GetLogLevel()),
+		LogLevel:          uint32(logger.GetLogLevel(logger.GetLogger())),
 		TgCgrpHierarchy:   cgroups.GetCgrpHierarchyID(),
 		TgCgrpv1SubsysIdx: cgroups.GetCgrpv1SubsystemIdx(),
 		NSPID:             uint32(nspid),
@@ -118,30 +116,28 @@ func UpdateTgRuntimeConf(mapDir string, nspid int) error {
 	}
 
 	if err := UpdateConfMap(mapDir, v); err != nil {
-		log.WithField("confmap-update", configMapName).WithError(err).Warnf("failed to update map")
+		log.Warn("failed to update map", "confmap-update", configMapName, logfields.Error, err)
 		return err
 	}
 
 	if v.CgrpFsMagic == constants.CGROUP2_SUPER_MAGIC {
-		log.WithFields(logrus.Fields{
-			"confmap-update":     configMapName,
-			"deployment.mode":    deployMode.String(),
-			"log.level":          logrus.Level(v.LogLevel).String(),
-			"cgroup.fs.magic":    cgroups.CgroupFsMagicStr(v.CgrpFsMagic),
-			"cgroup.hierarchyID": v.TgCgrpHierarchy,
-			"NSPID":              nspid,
-		}).Info("Updated TetragonConf map successfully")
+		log.Info("Updated TetragonConf map successfully",
+			"confmap-update", configMapName,
+			"deployment.mode", deployMode.String(),
+			"log.level", v.LogLevel,
+			"cgroup.fs.magic", cgroups.CgroupFsMagicStr(v.CgrpFsMagic),
+			"cgroup.hierarchyID", v.TgCgrpHierarchy,
+			"NSPID", nspid)
 	} else {
-		log.WithFields(logrus.Fields{
-			"confmap-update":                configMapName,
-			"deployment.mode":               deployMode.String(),
-			"log.level":                     logrus.Level(v.LogLevel).String(),
-			"cgroup.fs.magic":               cgroups.CgroupFsMagicStr(v.CgrpFsMagic),
-			"cgroup.controller.name":        cgroups.GetCgrpControllerName(),
-			"cgroup.controller.hierarchyID": v.TgCgrpHierarchy,
-			"cgroup.controller.index":       v.TgCgrpv1SubsysIdx,
-			"NSPID":                         nspid,
-		}).Info("Updated TetragonConf map successfully")
+		log.Info("Updated TetragonConf map successfully",
+			"confmap-update", configMapName,
+			"deployment.mode", deployMode.String(),
+			"log.level", v.LogLevel,
+			"cgroup.fs.magic", cgroups.CgroupFsMagicStr(v.CgrpFsMagic),
+			"cgroup.controller.name", cgroups.GetCgrpControllerName(),
+			"cgroup.controller.hierarchyID", v.TgCgrpHierarchy,
+			"cgroup.controller.index", v.TgCgrpv1SubsysIdx,
+			"NSPID", nspid)
 	}
 
 	return nil
@@ -186,8 +182,8 @@ func UpdateConfMap(mapDir string, v *TetragonConfValue) error {
 	k := &TetragonConfKey{Key: 0}
 	err = m.Update(k, v, ebpf.UpdateAny)
 	if err != nil {
-		log.WithField("confmap-update", configMap.Name).WithError(err).Warn("Failed to update TetragonConf map")
-		log.WithField("confmap-update", configMap.Name).Warn("Update TetragonConf map failed, advanced Cgroups tracking will be disabled")
+		log.Warn("Failed to update TetragonConf map", "confmap-update", configMap.Name, logfields.Error, err)
+		log.Warn("Update TetragonConf map failed, advanced Cgroups tracking will be disabled", "confmap-update", configMap.Name)
 		return err
 	}
 

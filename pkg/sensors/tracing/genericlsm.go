@@ -25,6 +25,7 @@ import (
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/policyfilter"
@@ -103,7 +104,7 @@ func (k *observerLsmSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 		args.Load.MapLoad = append(args.Load.MapLoad, config)
 
 		if err := program.LoadLSMProgram(args.BPFDir, args.Load, args.Maps, args.Verbose); err == nil {
-			logger.GetLogger().Infof("Loaded generic LSM program: %s -> %s", args.Load.Name, args.Load.Attach)
+			logger.GetLogger().Info(fmt.Sprintf("Loaded generic LSM program: %s -> %s", args.Load.Name, args.Load.Attach))
 		} else {
 			return err
 		}
@@ -118,13 +119,13 @@ func handleGenericLsm(r *bytes.Reader) ([]observer.Event, error) {
 	m := api.MsgGenericKprobe{}
 	err := binary.Read(r, binary.LittleEndian, &m)
 	if err != nil {
-		logger.GetLogger().WithError(err).Warnf("Failed to read process call msg")
+		logger.GetLogger().Warn("Failed to read process call msg", logfields.Error, err)
 		return nil, errors.New("failed to read process call msg")
 	}
 
 	gl, err := genericLsmTableGet(idtable.EntryID{ID: int(m.FuncId)})
 	if err != nil {
-		logger.GetLogger().WithError(err).Warnf("Failed to match id:%d", m.FuncId)
+		logger.GetLogger().Warn(fmt.Sprintf("Failed to match id:%d", m.FuncId), logfields.Error, err)
 		return nil, errors.New("failed to match id")
 	}
 
@@ -152,23 +153,23 @@ func handleGenericLsm(r *bytes.Reader) ([]observer.Event, error) {
 		var state int8
 		err := binary.Read(r, binary.LittleEndian, &state)
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("Failed to read IMA hash state")
+			logger.GetLogger().Warn("Failed to read IMA hash state", logfields.Error, err)
 			return nil, errors.New("failed to read IMA hash state")
 		}
 		if state != 2 {
-			logger.GetLogger().WithError(err).Warnf("LSM bpf program chain is violated")
+			logger.GetLogger().Warn("LSM bpf program chain is violated", logfields.Error, err)
 			return nil, errors.New("LSM bpf program chain is violated")
 		}
 		var algo int8
 		err = binary.Read(r, binary.LittleEndian, &algo)
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("Failed to read IMA hash algorithm")
+			logger.GetLogger().Warn("Failed to read IMA hash algorithm", logfields.Error, err)
 			return nil, errors.New("failed to read IMA hash algorithm")
 		}
 		unix.ImaHash.Algo = int32(algo)
 		err = binary.Read(r, binary.LittleEndian, &unix.ImaHash.Hash)
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("Failed to read IMA hash value")
+			logger.GetLogger().Warn("Failed to read IMA hash value", logfields.Error, err)
 			return nil, errors.New("failed to read IMA hash value")
 		}
 	}
@@ -229,7 +230,7 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 	if errors.Is(err, ErrMsgSyntaxShort) || errors.Is(err, ErrMsgSyntaxEscape) {
 		return errFn(fmt.Errorf("error: '%w'", err))
 	} else if errors.Is(err, ErrMsgSyntaxLong) {
-		logger.GetLogger().WithField("policy-name", in.policyName).Warnf("TracingPolicy 'message' field too long, truncated to %d characters", TpMaxMessageLen)
+		logger.GetLogger().Warn(fmt.Sprintf("TracingPolicy 'message' field too long, truncated to %d characters", TpMaxMessageLen), "policy-name", in.policyName)
 	}
 
 	tagsField, err := getPolicyTags(f.Tags)
@@ -259,10 +260,10 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 
 		if a.MaxData {
 			if argType != gt.GenericCharBuffer {
-				logger.GetLogger().Warnf("maxData flag is ignored (supported for char_buf type)")
+				logger.GetLogger().Warn("maxData flag is ignored (supported for char_buf type)")
 			}
 			if !config.EnableLargeProgs() {
-				logger.GetLogger().Warnf("maxData flag is ignored (supported from large programs)")
+				logger.GetLogger().Warn("maxData flag is ignored (supported from large programs)")
 			}
 		}
 		argMValue, err := getMetaValue(&a)
@@ -331,9 +332,7 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 	genericLsmTable.AddEntry(&lsmEntry)
 	eventConfig.FuncId = uint32(lsmEntry.tableId.ID)
 
-	logger.GetLogger().
-		WithField("hook", lsmEntry.hook).
-		Infof("Added lsm Hook")
+	logger.GetLogger().Info("Added lsm Hook", "hook", lsmEntry.hook)
 
 	return lsmEntry.tableId, nil
 }
@@ -501,7 +500,7 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 			maps = append(maps, imaHashMapCore)
 		} else {
 			logger.GetLogger().
-				Warnf("IMA hash calculation is not supported for this hook: %s", lsmEntry.hook)
+				Warn("IMA hash calculation is not supported for this hook: " + lsmEntry.hook)
 		}
 	}
 
@@ -542,7 +541,7 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 	maps = append(maps, polInfo.policyConfMap(load))
 
 	logger.GetLogger().
-		Infof("Added generic lsm sensor: %s -> %s", load.Name, load.Attach)
+		Info(fmt.Sprintf("Added generic lsm sensor: %s -> %s", load.Name, load.Attach))
 	return progs, maps
 }
 

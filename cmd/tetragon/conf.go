@@ -6,6 +6,8 @@ package main
 import (
 	"strings"
 
+	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/option"
 
 	"github.com/spf13/viper"
@@ -51,9 +53,9 @@ func readConfigSettings(defaultConfDir string, defaultConfDropIn string, dropIns
 		if configDir != "" {
 			err := option.ReadConfigDir(configDir)
 			if err != nil {
-				log.WithField(option.KeyConfigDir, configDir).WithError(err).Fatal("Failed to read config from directory")
+				logger.Fatal(log, "Failed to read config from directory", option.KeyConfigDir, configDir, logfields.Error, err)
 			} else {
-				log.WithField(option.KeyConfigDir, configDir).Info("Loaded config from directory")
+				log.Info("Loaded config from directory", option.KeyConfigDir, configDir)
 			}
 		}
 	}

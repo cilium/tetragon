@@ -16,6 +16,7 @@ import (
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/reader/network"
 	"github.com/cilium/tetragon/pkg/strutils"
@@ -88,9 +89,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 
 		err := binary.Read(r, binary.LittleEndian, &output)
 		if err != nil {
-			logger.GetLogger().
-				WithField("arg.usertype", gt.GenericUserTypeToString(a.userType)).
-				WithError(err).Warnf("Int type error")
+			logger.GetLogger().Warn("Int type error", "arg.usertype", gt.GenericUserTypeToString(a.userType), logfields.Error, err)
 		}
 
 		arg.Index = uint64(a.index)
@@ -119,7 +118,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 				// though pid filtering will mostly catch this.
 				arg.Value = "/"
 			} else {
-				logger.GetLogger().WithError(err).Warn("error parsing arg type file")
+				logger.GetLogger().Warn("error parsing arg type file", logfields.Error, err)
 			}
 		}
 
@@ -151,7 +150,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 			if errors.Is(err, errParseStringSize) {
 				arg.Value = "/"
 			} else {
-				logger.GetLogger().WithError(err).Warn("error parsing arg type path")
+				logger.GetLogger().Warn("error parsing arg type path", logfields.Error, err)
 			}
 		}
 
@@ -176,7 +175,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		arg.Index = uint64(a.index)
 		arg.Value, err = parseString(r)
 		if err != nil {
-			logger.GetLogger().WithError(err).Warn("error parsing arg type string")
+			logger.GetLogger().Warn("error parsing arg type string", logfields.Error, err)
 		}
 
 		arg.Label = a.label
@@ -187,7 +186,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 
 		err := binary.Read(r, binary.LittleEndian, &cred)
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("cred type err")
+			logger.GetLogger().Warn("cred type err", logfields.Error, err)
 		}
 
 		arg.Index = uint64(a.index)
@@ -215,14 +214,14 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 			arg.Label = a.label
 			return *arg
 		}
-		logger.GetLogger().WithError(err).Warnf("failed to read bytes argument")
+		logger.GetLogger().Warn("failed to read bytes argument", logfields.Error, err)
 	case gt.GenericSkbType:
 		var skb api.MsgGenericKprobeSkb
 		var arg api.MsgGenericKprobeArgSkb
 
 		err := binary.Read(r, binary.LittleEndian, &skb)
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("skb type err")
+			logger.GetLogger().Warn("skb type err", logfields.Error, err)
 		}
 
 		arg.Index = uint64(a.index)
@@ -246,7 +245,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 
 		err := binary.Read(r, binary.LittleEndian, &sock)
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("sock type err")
+			logger.GetLogger().Warn("sock type err", logfields.Error, err)
 		}
 
 		arg.Index = uint64(a.index)
@@ -269,7 +268,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 
 		err := binary.Read(r, binary.LittleEndian, &address)
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("sockaddr type err")
+			logger.GetLogger().Warn("sockaddr type err", logfields.Error, err)
 		}
 
 		arg.Index = uint64(a.index)
@@ -283,7 +282,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 
 		err := binary.Read(r, binary.LittleEndian, &output)
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("Size type err")
+			logger.GetLogger().Warn("Size type err", logfields.Error, err)
 		}
 
 		arg.Index = uint64(a.index)
@@ -296,7 +295,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 
 		err := binary.Read(r, binary.LittleEndian, &output)
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("Size type err")
+			logger.GetLogger().Warn("Size type err", logfields.Error, err)
 		}
 
 		arg.Index = uint64(a.index)
@@ -311,7 +310,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 
 		err := binary.Read(r, binary.LittleEndian, &output)
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("bpf_attr type error")
+			logger.GetLogger().Warn("bpf_attr type error", logfields.Error, err)
 		}
 		arg.ProgType = output.ProgType
 		arg.InsnCnt = output.InsnCnt
@@ -325,7 +324,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 
 		err := binary.Read(r, binary.LittleEndian, &output)
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("perf_event type error")
+			logger.GetLogger().Warn("perf_event type error", logfields.Error, err)
 		}
 		length := bytes.IndexByte(output.KprobeFunc[:], 0) // trim tailing null bytes
 		arg.KprobeFunc = string(output.KprobeFunc[:length])
@@ -340,7 +339,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 
 		err := binary.Read(r, binary.LittleEndian, &output)
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("bpf_map type error")
+			logger.GetLogger().Warn("bpf_map type error", logfields.Error, err)
 		}
 
 		arg.MapType = output.MapType
@@ -357,7 +356,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 
 		err := binary.Read(r, binary.LittleEndian, &output)
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("UInt type error")
+			logger.GetLogger().Warn("UInt type error", logfields.Error, err)
 		}
 
 		arg.Index = uint64(a.index)
@@ -370,7 +369,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 
 		err := binary.Read(r, binary.LittleEndian, &output)
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("user_namespace type error")
+			logger.GetLogger().Warn("user_namespace type error", logfields.Error, err)
 		}
 		arg.Level = output.Level
 		arg.Uid = output.Uid
@@ -384,7 +383,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 
 		err := binary.Read(r, binary.LittleEndian, &output)
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("capability type error")
+			logger.GetLogger().Warn("capability type error", logfields.Error, err)
 		}
 		arg.Value = output.Value
 		arg.Label = a.label
@@ -395,7 +394,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 
 		err := binary.Read(r, binary.LittleEndian, &output)
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("load_module type error")
+			logger.GetLogger().Warn("load_module type error", logfields.Error, err)
 		} else if output.Name[0] != 0x00 {
 			i := bytes.IndexByte(output.Name[:api.MODULE_NAME_LEN], 0)
 			if i == -1 {
@@ -413,7 +412,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 
 		err := binary.Read(r, binary.LittleEndian, &output)
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("kernel module type error")
+			logger.GetLogger().Warn("kernel module type error", logfields.Error, err)
 		} else if output.Name[0] != 0x00 {
 			i := bytes.IndexByte(output.Name[:api.MODULE_NAME_LEN], 0)
 			if i == -1 {
@@ -430,7 +429,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 
 		err := binary.Read(r, binary.LittleEndian, &output)
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("UInt type error")
+			logger.GetLogger().Warn("UInt type error", logfields.Error, err)
 		}
 
 		arg.Index = uint64(a.index)
@@ -443,7 +442,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 
 		err := binary.Read(r, binary.LittleEndian, &output)
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("UInt type error")
+			logger.GetLogger().Warn("UInt type error", logfields.Error, err)
 		}
 
 		arg.Index = uint64(a.index)
@@ -456,7 +455,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 
 		err := binary.Read(r, binary.LittleEndian, &output)
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("Int type error")
+			logger.GetLogger().Warn("Int type error", logfields.Error, err)
 		}
 
 		arg.Index = uint64(a.index)
@@ -469,7 +468,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 
 		err := binary.Read(r, binary.LittleEndian, &output)
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("Int type error")
+			logger.GetLogger().Warn("Int type error", logfields.Error, err)
 		}
 
 		arg.Index = uint64(a.index)
@@ -482,7 +481,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 
 		err := binary.Read(r, binary.LittleEndian, &output)
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("kernel_cap_t type error")
+			logger.GetLogger().Warn("kernel_cap_t type error", logfields.Error, err)
 		} else {
 			arg.Caps = output
 		}
@@ -496,7 +495,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 
 		err := binary.Read(r, binary.LittleEndian, &output)
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("kernel_cap_t cap_inheritable type error")
+			logger.GetLogger().Warn("kernel_cap_t cap_inheritable type error", logfields.Error, err)
 		} else {
 			arg.Caps = output
 		}
@@ -510,7 +509,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 
 		err := binary.Read(r, binary.LittleEndian, &output)
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("kernel_cap_t cap_permitted type error")
+			logger.GetLogger().Warn("kernel_cap_t cap_permitted type error", logfields.Error, err)
 		} else {
 			arg.Caps = output
 		}
@@ -524,7 +523,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 
 		err := binary.Read(r, binary.LittleEndian, &output)
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("kernel_cap_t cap_effective type error")
+			logger.GetLogger().Warn("kernel_cap_t cap_effective type error", logfields.Error, err)
 		} else {
 			arg.Caps = output
 		}
@@ -543,7 +542,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 			if errors.Is(err, errParseStringSize) {
 				arg.Value = "/"
 			} else {
-				logger.GetLogger().WithError(err).Warn("error parsing arg type linux_binprm")
+				logger.GetLogger().Warn("error parsing arg type linux_binprm", logfields.Error, err)
 			}
 		}
 
@@ -561,7 +560,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		arg.Label = a.label
 		return arg
 	default:
-		logger.GetLogger().WithError(err).WithField("event-type", a.ty).Warnf("Unknown event type")
+		logger.GetLogger().Warn("Unknown event type", "event-type", a.ty, logfields.Error, err)
 	}
 
 	return nil

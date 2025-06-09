@@ -9,4 +9,6 @@ const (
 
 	// Error is the Go error
 	Error = "error"
+
+	Matcher = "matcher"
 )

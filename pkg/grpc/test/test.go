@@ -44,7 +44,7 @@ func (msg *MsgTestEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 			Time: ktime.ToProto(msg.Msg.Common.Ktime),
 		}
 	default:
-		logger.GetLogger().WithField("message", msg).Warn("HandleTestMessage: Unhandled event")
+		logger.GetLogger().Warn("HandleTestMessage: Unhandled event", "message", msg)
 	}
 	return res
 }
