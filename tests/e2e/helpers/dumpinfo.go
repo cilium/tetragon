@@ -32,8 +32,9 @@ import (
 )
 
 var (
-	TetragonContainerName = "tetragon"
-	TetragonJsonPathname  = "/var/run/cilium/tetragon/tetragon.log"
+	TetragonContainerName         = "tetragon"
+	TetragonOperatorContainerName = "tetragon-operator"
+	TetragonJsonPathname          = "/var/run/cilium/tetragon/tetragon.log"
 )
 
 type TestEnvFunc = func(ctx context.Context, cfg *envconf.Config, t *testing.T) (context.Context, error)
@@ -58,11 +59,15 @@ func DumpInfo(ctx context.Context, cfg *envconf.Config) (context.Context, error)
 	}
 	r := client.Resources(opts.Namespace)
 
+	if err := dumpPodSummary("pods.txt", exportDir); err != nil {
+		klog.ErrorS(err, "Failed to dump pod summary")
+	}
+
 	podList := &corev1.PodList{}
 	if err = r.List(
 		ctx,
 		podList,
-		resources.WithLabelSelector("app.kubernetes.io/instance="+opts.DaemonSetName),
+		resources.WithLabelSelector("app.kubernetes.io/name="+opts.DaemonSetName),
 	); err != nil {
 		return ctx, err
 	}
@@ -71,19 +76,37 @@ func DumpInfo(ctx context.Context, cfg *envconf.Config) (context.Context, error)
 		if err := extractJson(&pod, exportDir); err != nil {
 			klog.ErrorS(err, "Failed to extract json events")
 		}
-		if err := extractLogs(&pod, exportDir, true); err != nil {
-			klog.ErrorS(err, "Failed to extract previous tetragon logs")
+		if err := extractLogs(&pod, TetragonContainerName, exportDir, true); err != nil {
+			klog.InfoS("Failed to extract previous tetragon logs", "err", err)
 		}
-		if err := extractLogs(&pod, exportDir, false); err != nil {
+		if err := extractLogs(&pod, TetragonContainerName, exportDir, false); err != nil {
 			klog.ErrorS(err, "Failed to extract tetragon logs")
 		}
 		if err := describeTetragonPod(&pod, exportDir); err != nil {
 			klog.ErrorS(err, "Failed to describe tetragon pods")
 		}
-		if err := dumpPodSummary("pods.txt", exportDir); err != nil {
-			klog.ErrorS(err, "Failed to dump pod summary")
-		}
 		dumpBpftool(ctx, client, exportDir, pod.Namespace, pod.Name, TetragonContainerName)
+	}
+
+	operatorPodList := &corev1.PodList{}
+	if err = r.List(
+		ctx,
+		operatorPodList,
+		resources.WithLabelSelector("app.kubernetes.io/name=tetragon-operator"),
+	); err != nil {
+		return ctx, err
+	}
+
+	for _, pod := range operatorPodList.Items {
+		if err := extractLogs(&pod, TetragonOperatorContainerName, exportDir, true); err != nil {
+			klog.InfoS("Failed to extract previous tetragon-operator logs", "error", err)
+		}
+		if err := extractLogs(&pod, TetragonOperatorContainerName, exportDir, false); err != nil {
+			klog.ErrorS(err, "Failed to extract tetragon-operator logs")
+		}
+		if err := describeTetragonPod(&pod, exportDir); err != nil {
+			klog.ErrorS(err, "Failed to describe tetragon-operator pods")
+		}
 	}
 
 	return ctx, nil
@@ -123,7 +146,7 @@ func extractJson(pod *corev1.Pod, exportDir string) error {
 		filepath.Join(exportDir, fmt.Sprintf("tetragon.%s.json", pod.Name)))
 }
 
-func extractLogs(pod *corev1.Pod, exportDir string, prev bool) error {
+func extractLogs(pod *corev1.Pod, containerName, exportDir string, prev bool) error {
 	var fname string
 	if prev {
 		fname = fmt.Sprintf("tetragon.%s.prev.log", pod.Name)
@@ -133,7 +156,7 @@ func extractLogs(pod *corev1.Pod, exportDir string, prev bool) error {
 	return kubectlLogs(filepath.Join(exportDir, fname),
 		pod.Namespace,
 		pod.Name,
-		TetragonContainerName,
+		containerName,
 		prev)
 }
 
