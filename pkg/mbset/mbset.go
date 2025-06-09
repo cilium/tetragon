@@ -33,7 +33,7 @@ func openMap() (*ebpf.Map, error) {
 
 type state struct {
 	mu       sync.Mutex
-	nextID   uint32
+	ids      map[uint32]struct{}
 	mbsetMap *ebpf.Map
 }
 
@@ -44,6 +44,7 @@ func newState() (*state, error) {
 	}
 	return &state{
 		mbsetMap: m,
+		ids:      make(map[uint32]struct{}),
 	}, nil
 }
 
@@ -57,12 +58,14 @@ func (s *state) Close() error {
 func (s *state) AllocID() (uint32, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.nextID >= MaxIDs {
-		return InvalidID, errors.New("cannot allocate new id")
+
+	for id := uint32(0); id < MaxIDs; id++ {
+		if _, ok := s.ids[id]; !ok {
+			s.ids[id] = struct{}{}
+			return id, nil
+		}
 	}
-	ret := s.nextID
-	s.nextID++
-	return ret, nil
+	return 0, errors.New("cannot allocate new id")
 }
 
 // UpadteMap updates the map for a given id and its paths
