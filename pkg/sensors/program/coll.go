@@ -5,6 +5,7 @@ package program
 
 import (
 	"errors"
+	"fmt"
 	"os"
 
 	"github.com/cilium/ebpf"
@@ -68,13 +69,13 @@ func newLoadedCollection() *LoadedCollection {
 }
 
 func printLoadedCollection(str string, lc *LoadedCollection) {
-	logger.GetLogger().Debugf("Programs (%s):", str)
+	logger.GetLogger().Debug(fmt.Sprintf("Programs (%s):", str))
 	for name, lp := range lc.Programs {
-		logger.GetLogger().Debugf(" - %d: %s - %v", lp.ID, name, lp.MapIDs)
+		logger.GetLogger().Debug(fmt.Sprintf(" - %d: %s - %v", lp.ID, name, lp.MapIDs))
 	}
-	logger.GetLogger().Debugf("Maps (%s):", str)
+	logger.GetLogger().Debug(fmt.Sprintf("Maps (%s):", str))
 	for name, lm := range lc.Maps {
-		logger.GetLogger().Debugf(" - %d: %s", lm.ID, name)
+		logger.GetLogger().Debug(fmt.Sprintf(" - %d: %s", lm.ID, name))
 	}
 }
 

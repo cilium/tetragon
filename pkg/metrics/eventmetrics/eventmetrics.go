@@ -13,6 +13,7 @@ import (
 	"github.com/cilium/tetragon/pkg/event"
 	"github.com/cilium/tetragon/pkg/filters"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/cilium/tetragon/pkg/metrics/syscallmetrics"
@@ -143,7 +144,7 @@ func handleProcessedEvent(pInfo *tracingpolicy.PolicyInfo, processedEvent interf
 		var err error
 		eventType, err = helpers.ResponseTypeString(ev)
 		if err != nil {
-			logger.GetLogger().WithField("event", processedEvent).WithError(err).Warn("metrics: handleProcessedEvent: unhandled event")
+			logger.GetLogger().Warn("metrics: handleProcessedEvent: unhandled event", "event", processedEvent, logfields.Error, err)
 			eventType = "unhandled"
 		}
 	default:

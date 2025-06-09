@@ -16,6 +16,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/constants"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 )
@@ -32,11 +33,11 @@ func GetLastCap() int32 {
 	lastCapOnce.Do(func() {
 		d, err := os.ReadFile(filepath.Join(option.Config.ProcFS, "/sys/kernel/cap_last_cap"))
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("Could not read kernel cap_last_cap, using default '%d' as cap_last_cap", cap_last_cap)
+			logger.GetLogger().Warn(fmt.Sprintf("Could not read kernel cap_last_cap, using default '%d' as cap_last_cap", cap_last_cap), logfields.Error, err)
 		}
 		val, err := strconv.ParseInt(strings.TrimRight(string(d), "\n"), 10, 32)
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("Could not parse cap_last_cap, using default '%d' as cap_last_cap", cap_last_cap)
+			logger.GetLogger().Warn(fmt.Sprintf("Could not parse cap_last_cap, using default '%d' as cap_last_cap", cap_last_cap), logfields.Error, err)
 			return
 		}
 		// just silence some CodeQL
@@ -437,7 +438,7 @@ func GetPIDCaps(filename string) (uint32, uint64, uint64, uint64) {
 
 	file, err := os.ReadFile(filename)
 	if err != nil {
-		logger.GetLogger().WithError(err).Warnf("ReadFile failed: %s", filename)
+		logger.GetLogger().Warn("ReadFile failed"+filename, logfields.Error, err)
 		return 0, 0, 0, 0
 	}
 	statuslines := strings.Split(string(file), "\n")
@@ -456,7 +457,7 @@ func GetPIDCaps(filename string) (uint32, uint64, uint64, uint64) {
 			inheritable, err = getValue64Hex(line)
 		}
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("ReadFile (%s) error: %s", line, filename)
+			logger.GetLogger().Warn(fmt.Sprintf("ReadFile (%s) error: %s", line, filename), logfields.Error, err)
 		}
 	}
 	return pid, permitted, effective, inheritable

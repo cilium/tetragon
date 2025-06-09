@@ -1116,10 +1116,10 @@ func runTestCases(t *testing.T) {
 	for _, c := range packageTgConfDropIns {
 		packageConfDropIns = append(packageConfDropIns, filepath.Join(testDir, c))
 	}
-	log.Infof("Test %s index %d dumping settings before: %+v", c.description, globalTestIndex, viper.AllSettings())
+	log.Info(fmt.Sprintf("Test %s index %d dumping settings before: %+v", c.description, globalTestIndex, viper.AllSettings()))
 	readConfigSettings(defaultConfYamlFile, defaultConfDropIn, packageConfDropIns)
-	log.Infof("Test %s index %d expected settings: %+v", c.description, globalTestIndex, c.expectedOptions)
-	log.Infof("Test %s index %d dumping settings after: %+v", c.description, globalTestIndex, viper.AllSettings())
+	log.Info(fmt.Sprintf("Test %s index %d expected settings: %+v", c.description, globalTestIndex, c.expectedOptions))
+	log.Info(fmt.Sprintf("Test %s index %d dumping settings after: %+v", c.description, globalTestIndex, viper.AllSettings()))
 
 	for opt, v := range c.expectedOptions {
 		switch expected := v.(type) {

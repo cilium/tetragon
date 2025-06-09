@@ -12,6 +12,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/api/readyapi"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 )
 
 func (observer *Observer) RunEvents(stopCtx context.Context, ready func()) error {
@@ -53,7 +54,7 @@ func (observer *Observer) RunEvents(stopCtx context.Context, ready func()) error
 			var record bpf.Record
 			record, errCode := reader.GetNextRecord()
 			if (errCode == bpf.ERR_RINGBUF_OFFSET_MISMATCH) || (errCode == bpf.ERR_RINGBUF_UNKNOWN_ERROR) {
-				observer.log.WithField("NewError ", 0).WithError(err).Warn("Reading bpf events failed")
+				observer.log.Warn("Reading bpf events failed", "NewError", 0, logfields.Error, err)
 				break
 			}
 			if (errCode == bpf.ERR_RINGBUF_RECORD_DISCARDED) || (errCode == bpf.ERR_RINGBUF_TRY_AGAIN) {
@@ -84,8 +85,8 @@ func (observer *Observer) RunEvents(stopCtx context.Context, ready func()) error
 				observer.receiveEvent(winEvent.RawSample)
 				queueReceived.Inc()
 			case <-stopCtx.Done():
-				observer.log.WithError(stopCtx.Err()).Infof("Listening for events completed.")
-				observer.log.Debugf("Unprocessed events in RB queue: %d", len(winEventsQueue))
+				observer.log.Info("Listening for events completed.", logfields.Error, stopCtx.Err())
+				observer.log.Debug(fmt.Sprintf("Unprocessed events in RB queue: %d", len(winEventsQueue)))
 				return
 			}
 		}

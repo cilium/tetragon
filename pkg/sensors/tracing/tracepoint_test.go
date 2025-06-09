@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"strconv"
@@ -38,7 +39,6 @@ import (
 	tuo "github.com/cilium/tetragon/pkg/testutils/observer"
 	"github.com/cilium/tetragon/pkg/testutils/perfring"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/unix"
 
@@ -168,7 +168,7 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf v1alpha1.TracepointSpec
 	t.Log("Marked test end")
 
 	tpEventsNr := 0
-	nextCheck := func(event ec.Event, _ *logrus.Logger) (bool, error) {
+	nextCheck := func(event ec.Event, _ *slog.Logger) (bool, error) {
 		switch tpEvent := event.(type) {
 		case *tetragon.ProcessTracepoint:
 			if err := checkFn(tpEvent); err != nil {
@@ -185,7 +185,7 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf v1alpha1.TracepointSpec
 
 		}
 	}
-	finalCheck := func(_ *logrus.Logger) error {
+	finalCheck := func(_ *slog.Logger) error {
 		defer func() { tpEventsNr = 0 }()
 		// NB: in some cases we get more than one events. I think this
 		// might be due to -EINTR or similar return values.
@@ -513,7 +513,7 @@ spec:
 }
 
 func TestTracepointCloneThreads(t *testing.T) {
-	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	testutils.CaptureLog(t, logger.GetLogger())
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -733,7 +733,7 @@ spec:
 }
 
 func TestStringTracepoint(t *testing.T) {
-	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 

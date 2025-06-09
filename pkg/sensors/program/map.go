@@ -69,7 +69,7 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/sirupsen/logrus"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 )
 
 type MaxEntries struct {
@@ -227,13 +227,13 @@ func (m *Map) IsOwner() bool {
 }
 
 func (m *Map) Unload(unpin bool) error {
-	log := logger.GetLogger().WithField("map", m.Name).WithField("pin", m.PinPath)
+	log := logger.GetLogger().With("map", m.Name, "pin", m.PinPath)
 	if !m.PinState.IsLoaded() {
-		log.WithField("count", m.PinState.count).Debug("Refusing to unload map as it is not loaded")
+		log.Debug("Refusing to unload map as it is not loaded", "count", m.PinState.count)
 		return nil
 	}
 	if count := m.PinState.RefDec(); count > 0 {
-		log.WithField("count", count).Debug("Reference exists, not unloading map yet")
+		log.Debug("Reference exists, not unloading map yet", "count", count)
 		return nil
 	}
 	log.Debug("map was unloaded")
@@ -307,9 +307,7 @@ func (m *Map) GetFD() (int, error) {
 
 func (m *Map) LoadOrCreatePinnedMap(pinPath string, mapSpec *ebpf.MapSpec) error {
 	if m.MapHandle != nil {
-		logger.GetLogger().WithFields(logrus.Fields{
-			"map-name": m.Name,
-		}).Warn("LoadOrCreatePinnedMap called with non-nil map, will close and continue.")
+		logger.GetLogger().Warn("LoadOrCreatePinnedMap called with non-nil map, will close and continue.", "map-name", m.Name)
 		m.MapHandle.Close()
 	}
 
@@ -342,16 +340,14 @@ func LoadOrCreatePinnedMap(pinPath string, mapSpec *ebpf.MapSpec, create bool) (
 			return nil, fmt.Errorf("loading pinned map from path '%s' failed: %w", pinPath, err)
 		}
 		if err := compatible(mapSpec, m); err != nil {
-			logger.GetLogger().WithError(err).WithFields(logrus.Fields{
-				"path":     pinPath,
-				"map-name": mapSpec.Name,
-			}).Warn("incompatible map found")
+			logger.GetLogger().Warn("incompatible map found", logfields.Error, err,
+				"path", pinPath,
+				"map-name", mapSpec.Name)
 			m.Close()
 			// If we are creating the map, let's ignore the compatibility error,
 			// remove the pin and create the map with our spec.
 			if create {
-				logger.GetLogger().WithField("map", mapSpec.Name).
-					Warn("will delete and recreate")
+				logger.GetLogger().Warn("will delete and recreate", "map", mapSpec.Name)
 				os.Remove(pinPath)
 				return createPinnedMap(pinPath, mapSpec)
 			}

@@ -8,11 +8,11 @@ import (
 	"log/slog"
 	"os"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/go-logr/logr"
-	"github.com/sirupsen/logrus"
 )
 
 // logrErrorKey is the key used by the logr library for the error parameter.
@@ -30,7 +30,7 @@ func (n nopHandler) WithGroup(string) slog.Handler           { return n }
 
 var slogHandlerOpts = &slog.HandlerOptions{
 	AddSource:   false,
-	Level:       slog.LevelInfo,
+	Level:       slogLeveler,
 	ReplaceAttr: replaceAttrFnWithoutTimestamp,
 }
 
@@ -40,28 +40,23 @@ var DefaultSlogLogger = slog.New(slog.NewTextHandler(
 	slogHandlerOpts,
 ))
 
-func slogLevel(l logrus.Level) slog.Level {
-	switch l {
-	case logrus.DebugLevel, logrus.TraceLevel:
-		return slog.LevelDebug
-	case logrus.InfoLevel:
-		return slog.LevelInfo
-	case logrus.WarnLevel:
-		return slog.LevelWarn
-	case logrus.ErrorLevel, logrus.PanicLevel, logrus.FatalLevel:
-		return slog.LevelError
-	default:
-		return slog.LevelInfo
-	}
-}
+var slogLeveler = func() *slog.LevelVar {
+	var levelVar slog.LevelVar
+	levelVar.Set(slog.LevelInfo)
+	return &levelVar
+}()
 
-// InitializeSlog approximates the logrus output via slog for job groups during the transition
+// initializeSlog approximates the logrus output via slog for job groups during the transition
 // phase.
-func InitializeSlog(logOpts LogOptions, useStdout bool) {
+func initializeSlog(logOpts LogOptions, useStdout bool) {
 	opts := *slogHandlerOpts
-	opts.Level = slogLevel(logOpts.getLogLevel())
+	opts.Level = logOpts.GetLogLevel()
 
-	logFormat := logOpts.getLogFormat()
+	if opts.Level == slog.LevelDebug {
+		opts.AddSource = true
+	}
+
+	logFormat := logOpts.GetLogFormat()
 	switch logFormat {
 	case logFormatJSON, logFormatText:
 		opts.ReplaceAttr = replaceAttrFnWithoutTimestamp
@@ -136,4 +131,51 @@ func (w logSink) WithValues(keysAndValues ...any) logr.LogSink {
 
 func (w logSink) WithName(name string) logr.LogSink {
 	return logSink{w.LogSink.WithName(name)}
+}
+
+type FieldLogger interface {
+	Handler() slog.Handler
+	With(args ...any) *slog.Logger
+	WithGroup(name string) *slog.Logger
+	Enabled(ctx context.Context, level slog.Level) bool
+	Log(ctx context.Context, level slog.Level, msg string, args ...any)
+	LogAttrs(ctx context.Context, level slog.Level, msg string, attrs ...slog.Attr)
+	Debug(msg string, args ...any)
+	DebugContext(ctx context.Context, msg string, args ...any)
+	Info(msg string, args ...any)
+	InfoContext(ctx context.Context, msg string, args ...any)
+	Warn(msg string, args ...any)
+	WarnContext(ctx context.Context, msg string, args ...any)
+	Error(msg string, args ...any)
+	ErrorContext(ctx context.Context, msg string, args ...any)
+}
+
+func init() {
+	// Set a no-op exit handler to avoid nil dereference
+	a := func() {}
+	exitHandler.Store(&a)
+}
+
+var (
+	exitHandler atomic.Pointer[func()]
+)
+
+func Trace(logger FieldLogger, msg string, args ...any) {
+	logger.Log(context.Background(), LevelTrace, msg, args...)
+}
+
+func Fatal(logger FieldLogger, msg string, args ...any) {
+	logger.Error(msg, args...)
+	(*exitHandler.Load())()
+	os.Exit(-1)
+}
+
+func Panic(logger FieldLogger, msg string, args ...any) {
+	logger.Error(msg, args...)
+	(*exitHandler.Load())()
+	panic(msg)
+}
+
+func RegisterExitHandler(handler func()) {
+	exitHandler.Store(&handler)
 }

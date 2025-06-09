@@ -33,7 +33,7 @@ func GetTgRuntimeConf() (*confmap.TetragonConfValue, error) {
 	}
 
 	return &confmap.TetragonConfValue{
-		LogLevel:          uint32(logger.GetLogLevel()),
+		LogLevel:          uint32(logger.GetLogLevel(logger.GetLogger())),
 		TgCgrpHierarchy:   cgroups.GetCgrpHierarchyID(),
 		TgCgrpv1SubsysIdx: cgroups.GetCgrpv1SubsystemIdx(),
 		NSPID:             uint32(nspid),

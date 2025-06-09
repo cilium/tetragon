@@ -14,12 +14,12 @@ import (
 	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/proc"
 	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
 	"github.com/cilium/tetragon/pkg/sensors/exec/userinfo"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -177,7 +177,7 @@ func pushExecveEvents(p procs) {
 		if p.pid > 0 {
 			m.Unix.Kube.Docker, err = procsDockerId(p.pid)
 			if err != nil {
-				logger.GetLogger().WithError(err).Warn("Procfs execve event pods/ identifier error")
+				logger.GetLogger().Warn("Procfs execve event pods/ identifier error", logfields.Error, err)
 			}
 			if m.Unix.Kube.Docker != "" {
 				if cgid, err := cgroups.CgroupIDFromPID(p.pid); err == nil {
@@ -186,7 +186,7 @@ func pushExecveEvents(p procs) {
 				} else if option.Config.EnableCgIDmap {
 					// only warn if cgidmap is enabled since this is where this
 					// value is used
-					logger.GetLogger().WithError(err).WithField("pid", p.pid).Warn("failed to find cgroup id for pid")
+					logger.GetLogger().Warn("failed to find cgroup id for pid", "pid", p.pid, logfields.Error, err)
 				}
 			}
 		}
@@ -231,11 +231,11 @@ func pushExecveEvents(p procs) {
 
 		err := userinfo.MsgToExecveAccountUnix(m.Unix)
 		if err != nil {
-			logger.GetLogger().WithFields(logrus.Fields{
-				"process.pid":    p.pid,
-				"process.binary": filename,
-				"process.uid":    m.Unix.Process.UID,
-			}).WithError(err).Trace("Resolving process uid to username record failed")
+			logger.Trace(logger.GetLogger(), "Resolving process uid to username record failed",
+				logfields.Error, err,
+				"process.pid", p.pid,
+				"process.binary", filename,
+				"process.uid", m.Unix.Process.UID)
 		}
 
 		observer.AllListeners(&m)
@@ -292,7 +292,7 @@ func pushEvents(ps []procs) {
 func GetRunningProcs() error {
 	procs, err := listRunningProcs(option.Config.ProcFS)
 	if err != nil {
-		logger.GetLogger().WithError(err).Errorf("Failed to list running processes from '%s'", option.Config.ProcFS)
+		logger.GetLogger().Error(fmt.Sprintf("Failed to list running processes from '%s'", option.Config.ProcFS), logfields.Error, err)
 		return err
 	}
 

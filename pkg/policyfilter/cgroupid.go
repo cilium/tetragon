@@ -5,11 +5,11 @@ package policyfilter
 
 import (
 	"errors"
+	"log/slog"
 
 	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/cgroups/fsscan"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 )
 
 type cgidFinder interface {
@@ -18,16 +18,14 @@ type cgidFinder interface {
 
 type cgfsFinder struct {
 	fsscan.FsScanner
-	log logrus.FieldLogger
+	log *slog.Logger
 }
 
 func (s *cgfsFinder) findCgroupID(podID PodID, containerID string) (CgroupID, error) {
 	path, err := s.FindContainerPath(uuid.UUID(podID), containerID)
 	if errors.Is(err, fsscan.ErrContainerPathWithoutMatchingPodID) {
-		s.log.WithFields(logrus.Fields{
-			"pod-id":       podID,
-			"container-id": containerID,
-		}).Info("FindCgroupID: found path without matching pod id, continuing.")
+		s.log.Info("FindCgroupID: found path without matching pod id, continuing.", "pod-id", podID,
+			"container-id", containerID)
 	} else if err != nil {
 		return CgroupID(0), err
 	}

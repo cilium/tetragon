@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/prometheus/procfs"
 )
@@ -64,7 +65,7 @@ func GetFnSymbol(pid int, addr uint64) (*FnSym, error) {
 		if err == nil {
 			cache = c
 		} else {
-			logger.GetLogger().Infof("failed to initialize cache: %s", err)
+			logger.GetLogger().Info("failed to initialize cache", logfields.Error, err)
 		}
 
 	})

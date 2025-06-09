@@ -13,6 +13,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/google/uuid"
 )
 
@@ -89,7 +90,7 @@ func (fs *fsScannerState) FindContainerPath(podID uuid.UUID, containerID string)
 	if fs.root == "" && fs.rootErr == nil {
 		fs.root, fs.rootErr = cgroups.HostCgroupRoot()
 		if fs.rootErr != nil {
-			logger.GetLogger().WithError(fs.rootErr).Warnf("failed to retrieve host cgroup root")
+			logger.GetLogger().Warn("failed to retrieve host cgroup root", logfields.Error, fs.rootErr)
 		}
 	}
 	if fs.rootErr != nil {
@@ -107,7 +108,7 @@ func (fs *fsScannerState) FindContainerPath(podID uuid.UUID, containerID string)
 	podDir := filepath.Dir(podPath)
 	// found a new pod directory, added it to the cached locations
 	fs.knownPodDirs = append(fs.knownPodDirs, podDir)
-	logger.GetLogger().Infof("adding %s to cgroup pod directories", podDir)
+	logger.GetLogger().Info(fmt.Sprintf("adding %s to cgroup pod directories", podDir))
 	containerDir := findContainerDirectory(podPath, containerID)
 	if containerDir == "" {
 		return "", fmt.Errorf("found pod dir=%s but failed to find container for id=%s", podPath, containerID)

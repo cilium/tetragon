@@ -11,6 +11,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/ratelimit"
 	"github.com/cilium/tetragon/pkg/server"
 	"google.golang.org/grpc/metadata"
@@ -61,7 +62,7 @@ func (e *Exporter) Send(event *tetragon.GetEventsResponse) error {
 	}
 
 	if err := e.encoder.Encode(event); err != nil {
-		logger.GetLogger().WithError(err).Warning("Failed to JSON encode")
+		logger.GetLogger().Warn("Failed to JSON encode", logfields.Error, err)
 	}
 	eventsExportedTotal.Inc()
 	eventsExportTimestamp.Set(float64(event.GetTime().GetSeconds()))

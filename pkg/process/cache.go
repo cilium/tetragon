@@ -14,6 +14,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"google.golang.org/protobuf/proto"
@@ -166,7 +167,7 @@ func NewCache(
 func (pc *Cache) get(processID string) (*ProcessInternal, error) {
 	process, ok := pc.cache.Get(processID)
 	if !ok {
-		logger.GetLogger().WithField("id in event", processID).Debug("process not found in cache")
+		logger.GetLogger().Debug("process not found in cache", "id", processID)
 		processCacheMisses.WithLabelValues("get").Inc()
 		return nil, fmt.Errorf("invalid entry for process ID: %s", processID)
 	}
@@ -204,7 +205,7 @@ func (pc *Cache) dump(opts *tetragon.DumpProcessCacheReqArgs) []*tetragon.Proces
 	if opts.ExcludeExecveMapProcesses {
 		execveMap, err = ebpf.LoadPinnedMap(execveMapPath, &ebpf.LoadPinOptions{ReadOnly: true})
 		if err != nil {
-			logger.GetLogger().WithError(err).Warn("failed to open execve_map")
+			logger.GetLogger().Warn("failed to open execve_map", logfields.Error, err)
 			return []*tetragon.ProcessInternal{}
 		}
 		defer execveMap.Close()

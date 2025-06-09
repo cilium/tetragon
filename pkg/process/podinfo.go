@@ -77,7 +77,7 @@ func getPodInfo(
 	pod, container, ok := w.FindContainer(containerID)
 	if !ok {
 		watchermetrics.GetWatcherErrors(watchermetrics.K8sWatcher, watchermetrics.FailedToGetPodError).Inc()
-		logger.GetLogger().WithField("container id", containerID).Trace("failed to get pod")
+		logger.Trace(logger.GetLogger(), "failed to get pod", "container_id", containerID)
 		return nil
 	}
 	var startTime *timestamppb.Timestamp

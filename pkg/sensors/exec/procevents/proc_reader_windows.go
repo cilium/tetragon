@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"unsafe"
 
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"golang.org/x/sys/windows"
 
 	"github.com/cilium/tetragon/pkg/api"
@@ -380,22 +381,22 @@ func NewProcess(procEntry windows.ProcessEntry32) (procs, error) {
 	var pexecPath string
 	hProc, err := windows.OpenProcess(windows.PROCESS_QUERY_INFORMATION|windows.PROCESS_VM_READ|windows.PROCESS_QUERY_LIMITED_INFORMATION, false, uint32(pid))
 	if err != nil {
-		logger.GetLogger().WithError(err).Warnf("Failed Opening Process %d (%s)", pid, execPath)
+		logger.GetLogger().Warn(fmt.Sprintf("Failed Opening Process %d (%s)", pid, execPath), logfields.Error, err)
 		return empty, err
 	}
 	defer windows.CloseHandle(hProc)
 	execPath, err = getProcessImagePathFromHandle(hProc)
 	if err != nil {
-		logger.GetLogger().WithError(err).Warnf("Reading process path error")
+		logger.GetLogger().Warn("Reading process path error", logfields.Error, err)
 		return empty, err
 	}
 	cmdline, err = fetchProcessCmdLineFromHandle(hProc)
 	if err != nil {
-		logger.GetLogger().WithError(err).Warnf("Reading process cmdline error")
+		logger.GetLogger().Warn("Reading process cmdline error", logfields.Error, err)
 	}
 	times, err := getProcessTimesFromHandle(hProc)
 	if err != nil {
-		logger.GetLogger().WithError(err).Warnf("Reading process times error")
+		logger.GetLogger().Warn("Reading process times error", logfields.Error, err)
 	}
 	ct := times.CreationTime
 	ktime = uint64((int64(ct.HighDateTime) << 32) + int64(ct.LowDateTime))
@@ -406,21 +407,21 @@ func NewProcess(procEntry windows.ProcessEntry32) (procs, error) {
 	// Get process status
 	status, err := proc.GetStatusFromHandle(hProc)
 	if err != nil {
-		logger.GetLogger().WithError(err).Warnf("Reading process status error")
+		logger.GetLogger().Warn("Reading process status error", logfields.Error, err)
 	} else {
 		uids, err = status.GetUids()
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("Reading Uids of %d failed, falling back to uid: %d", pid, uint32(proc.InvalidUid))
+			logger.GetLogger().Warn(fmt.Sprintf("Reading Uids of %d failed, falling back to uid: %d", pid, uint32(proc.InvalidUid)), logfields.Error, err)
 		}
 
 		gids, err = status.GetGids()
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("Reading Uids of %d failed, falling back to gid: %d", pid, uint32(proc.InvalidUid))
+			logger.GetLogger().Warn(fmt.Sprintf("Reading Uids of %d failed, falling back to gid: %d", pid, uint32(proc.InvalidUid)), logfields.Error, err)
 		}
 
 		auid, err = status.GetLoginUid()
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("Reading Loginuid of %d failed, falling back to loginuid: %d", pid, uint32(auid))
+			logger.GetLogger().Warn(fmt.Sprintf("Reading Loginuid of %d failed, falling back to loginuid: %d", pid, uint32(auid)), logfields.Error, err)
 		}
 	}
 	// ToDo: In Windows, there is no namespace.
@@ -440,21 +441,21 @@ func NewProcess(procEntry windows.ProcessEntry32) (procs, error) {
 	if ppid != 0 {
 		hPProc, err := windows.OpenProcess(windows.PROCESS_QUERY_INFORMATION|windows.PROCESS_VM_READ|windows.PROCESS_QUERY_LIMITED_INFORMATION, false, uint32(ppid))
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("Failed Opening Parent Process %d", ppid)
+			logger.GetLogger().Warn(fmt.Sprintf("Failed Opening Parent Process %d", ppid), logfields.Error, err)
 		} else {
 			defer windows.CloseHandle(hPProc)
 			pcmdline, err = fetchProcessCmdLineFromHandle(hPProc)
 			if err != nil {
-				logger.GetLogger().WithError(err).Warnf("Reading parent process cmdline error")
+				logger.GetLogger().Warn("Reading parent process cmdline error", logfields.Error, err)
 			}
 			ptimes, err := getProcessTimesFromHandle(hPProc)
 			if err != nil {
-				logger.GetLogger().WithError(err).Warnf("Reading parent process times error")
+				logger.GetLogger().Warn("Reading parent process times error", logfields.Error, err)
 			}
 			pktime = uint64(ptimes.CreationTime.Nanoseconds())
 			pexecPath, err = getProcessImagePathFromHandle(hPProc)
 			if err != nil {
-				logger.GetLogger().WithError(err).Warnf("Reading parent process image path error")
+				logger.GetLogger().Warn("Reading parent process image path error", logfields.Error, err)
 			}
 		}
 	}
@@ -523,6 +524,6 @@ func listRunningProcs(_ string) ([]procs, error) {
 
 	}
 
-	logger.GetLogger().Infof("Read process list appended %d entries", len(processes))
+	logger.GetLogger().Info(fmt.Sprintf("Read process list appended %d entries", len(processes)))
 	return processes, nil
 }

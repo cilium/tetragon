@@ -74,7 +74,7 @@ func pathArgWarning(index uint32, ty int, s []v1alpha1.KProbeSelector) {
 		if err != nil {
 			name = "N/A"
 		}
-		logger.GetLogger().Warnf("argument filter for '%s' (index %d) does not support the whole path retrieval",
-			name, index)
+		logger.GetLogger().Warn(fmt.Sprintf("argument filter for '%s' (index %d) does not support the whole path retrieval",
+			name, index))
 	}
 }

@@ -108,7 +108,7 @@ func (p *CompactEncoder) Encode(v interface{}) error {
 	if !ok {
 		return ErrInvalidEvent
 	}
-	logger.GetLogger().WithField("event", v).Debug("Processing event")
+	logger.GetLogger().With("event", v).Debug("Processing event")
 	str, err := p.EventToString(event)
 	if err != nil {
 		return err

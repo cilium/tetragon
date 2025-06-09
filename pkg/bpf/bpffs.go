@@ -11,6 +11,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/mountinfo"
 )
 
@@ -60,7 +61,7 @@ func mapPathFromMountInfo(name string) string {
 	readMountInfo.Do(func() {
 		mountInfos, err := mountinfo.GetMountInfo()
 		if err != nil {
-			logger.GetLogger().WithError(err).Warn("Could not get mount info for map root lookup")
+			logger.GetLogger().Warn("Could not get mount info for map root lookup", logfields.Error, err)
 		}
 
 		for _, mountInfo := range mountInfos {

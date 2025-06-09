@@ -5,6 +5,7 @@ package filters
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/event"
@@ -57,7 +58,7 @@ func doFilterByPidSet(ev *event.Event, pidSet []uint32, childCache ChildCache, c
 		// If we exceeded the pre-determined warning limit, log a warning message and
 		// double it.
 		if len(childCache) == *childCacheWarning {
-			logger.GetLogger().Warnf("pidSet filter cache has exceeded %d entries. To prevent excess memory usage, consider disabling it.", childCacheWarning)
+			logger.GetLogger().Warn(fmt.Sprintf("pidSet filter cache has exceeded %d entries. To prevent excess memory usage, consider disabling it.", childCacheWarning))
 			*childCacheWarning *= 2
 		}
 		return true

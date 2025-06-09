@@ -11,6 +11,11 @@ Depending on your setup, changes listed here might require a manual intervention
    * `--enable-process-uprobe-ancestors`
    * `--enable-process-lsm-ancestors`
 
+* The logging library used by Tetragon is migrated from `logrus` to `log/slog`. 
+  This change is not expected to affect the end user, but it may require some adjustments in custom scripts or tools 
+  that parse Tetragon logs.
+  * `level=warning` is now `level=warn`
+
 ### Agent Options
 
 * TBD

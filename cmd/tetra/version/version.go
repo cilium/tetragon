@@ -10,6 +10,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/version"
 
 	"github.com/spf13/cobra"
@@ -40,12 +41,12 @@ func New() *cobra.Command {
 					func(ctx context.Context, cli tetragon.FineGuidanceSensorsClient) {
 						res, err := cli.GetVersion(ctx, &tetragon.GetVersionRequest{})
 						if err != nil {
-							logger.GetLogger().WithError(err).Error("error retrieving server version")
+							logger.GetLogger().Error("error retrieving server version", logfields.Error, err)
 						}
 						fmt.Printf("Server version: %s\n", res.Version)
 					},
 					func(err error) {
-						logger.GetLogger().WithError(err).Error("error retrieving server version")
+						logger.GetLogger().Error("error retrieving server version", logfields.Error, err)
 					},
 				)
 			}

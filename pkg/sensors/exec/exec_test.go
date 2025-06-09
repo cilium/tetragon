@@ -11,6 +11,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"strings"
@@ -49,7 +50,6 @@ import (
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/cilium/tetragon/pkg/testutils/perfring"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/unix"
@@ -203,7 +203,7 @@ func TestEventExitThreads(t *testing.T) {
 
 	// check we got single exit event for each testThreadsExit
 	// execution and no more
-	nextCheck := func(event ec.Event, _ *logrus.Logger) (bool, error) {
+	nextCheck := func(event ec.Event, _ *slog.Logger) (bool, error) {
 		switch ev := event.(type) {
 		case *tetragon.ProcessExit:
 			if ev.Process.Binary != testThreadsExit {
@@ -222,7 +222,7 @@ func TestEventExitThreads(t *testing.T) {
 
 	var seenAll bool
 
-	finalCheck := func(_ *logrus.Logger) error {
+	finalCheck := func(_ *slog.Logger) error {
 		// Make sure we saw all pids
 		for pid, used := range tgids {
 			if !used {
@@ -754,7 +754,7 @@ func TestUpdateStatsMap(t *testing.T) {
 }
 
 func TestExecPerfring(t *testing.T) {
-	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 

@@ -24,6 +24,7 @@ import (
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"golang.org/x/sys/unix"
 )
 
@@ -179,7 +180,7 @@ func detectModifyReturnSyscall() (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("failed to add arch specific syscall prefix: %w", err)
 	}
-	logger.GetLogger().Debugf("probing detectModifyReturnSyscall using %s", sysGetcpu)
+	logger.GetLogger().Debug("probing detectModifyReturnSyscall using " + sysGetcpu)
 	prog, err := ebpf.NewProgram(&ebpf.ProgramSpec{
 		Name: "probe_sys_fmod_ret",
 		Type: ebpf.Tracing,
@@ -218,7 +219,7 @@ func HasModifyReturnSyscall() bool {
 		var err error
 		modifyReturnSyscall.detected, err = detectModifyReturnSyscall()
 		if err != nil {
-			logger.GetLogger().WithError(err).Error("detect modify return syscall")
+			logger.GetLogger().Error("detect modify return syscall", logfields.Error, err)
 		}
 	})
 	return modifyReturnSyscall.detected
@@ -234,26 +235,26 @@ func detectLSM() bool {
 	}
 	files, err := os.ReadDir("/sys/kernel/security")
 	if err != nil {
-		logger.GetLogger().WithError(err).Error("unable to read /sys/kernel/security directory")
+		logger.GetLogger().Error("unable to read /sys/kernel/security directory", logfields.Error, err)
 		return false
 	}
 	if len(files) == 0 {
 		// Empty /sys/kernel/security means that securityfs is not mounted
 		err := syscall.Mount("securityfs", "/sys/kernel/security", "securityfs", syscall.MS_RDONLY, "")
 		if err != nil {
-			logger.GetLogger().WithError(err).Error("failed to mount securityfs to /sys/kernel/security")
+			logger.GetLogger().Error("failed to mount securityfs to /sys/kernel/security", logfields.Error, err)
 			return false
 		}
 		defer func() {
 			err := syscall.Unmount("/sys/kernel/security", 0)
 			if err != nil {
-				logger.GetLogger().WithError(err).Error("failed to unmount /sys/kernel/security")
+				logger.GetLogger().Error("failed to unmount /sys/kernel/security", logfields.Error, err)
 			}
 		}()
 	}
 	b, err := os.ReadFile("/sys/kernel/security/lsm")
 	if err != nil {
-		logger.GetLogger().WithError(err).Error("failed to read /sys/kernel/security/lsm")
+		logger.GetLogger().Error("failed to read /sys/kernel/security/lsm", logfields.Error, err)
 		return false
 	}
 	if strings.Contains(string(b), "bpf") {
@@ -269,7 +270,7 @@ func detectLSM() bool {
 			License:    "Dual BSD/GPL",
 		})
 		if err != nil {
-			logger.GetLogger().WithError(err).Error("failed to load lsm probe")
+			logger.GetLogger().Error("failed to load lsm probe", logfields.Error, err)
 			return false
 		}
 		defer prog.Close()
@@ -278,7 +279,7 @@ func detectLSM() bool {
 			Program: prog,
 		})
 		if err != nil {
-			logger.GetLogger().WithError(err).Error("failed to attach lsm probe")
+			logger.GetLogger().Error("failed to attach lsm probe", logfields.Error, err)
 			return false
 		}
 		link.Close()
@@ -329,7 +330,7 @@ func HasLinkPin() bool {
 
 		linkPin.detected, err = detectLinkPin()
 		if err != nil {
-			logger.GetLogger().WithError(err).Error("detect link pin")
+			logger.GetLogger().Error("detect link pin", logfields.Error, err)
 		}
 	})
 	return linkPin.detected

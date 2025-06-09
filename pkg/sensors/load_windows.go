@@ -10,8 +10,6 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/program"
-
-	"github.com/sirupsen/logrus"
 )
 
 func observerLoadInstance(bpfDir string, load *program.Program, maps []*program.Map) error {
@@ -21,10 +19,7 @@ func observerLoadInstance(bpfDir string, load *program.Program, maps []*program.
 	}
 
 	l := logger.GetLogger()
-	l.WithFields(logrus.Fields{
-		"prog":         load.Name,
-		"kern_version": version,
-	}).Debugf("observerLoadInstance %s %d", load.Name, version)
+	l.Debug(fmt.Sprintf("observerLoadInstance %s %d", load.Name, version), "prog", load.Name, "kern_version", version)
 
 	err = loadInstance(bpfDir, load, maps, version, option.Config.Verbosity)
 	if err != nil && load.ErrorFatal {
@@ -38,10 +33,7 @@ func loadInstance(bpfDir string, load *program.Program, maps []*program.Map, _, 
 	// Check if the load.type is a standard program type. If so, use the standard loader.
 	loadFn, ok := standardTypes[load.Type]
 	if ok {
-		logger.GetLogger().WithField("Program", load.Name).
-			WithField("Type", load.Type).
-			WithField("Attach", load.Attach).
-			Debug("Loading BPF program")
+		logger.GetLogger().Debug("Loading BPF program", "Program", load.Name, "Type", load.Type, "Attach", load.Attach)
 		return loadFn(bpfDir, load, maps, verbose)
 	}
 

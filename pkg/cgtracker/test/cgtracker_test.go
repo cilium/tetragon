@@ -43,7 +43,6 @@ import (
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -76,7 +75,7 @@ func loadCgTrackerSensor(t *testing.T) *sensors.Sensor {
 }
 
 func doMapTest(t *testing.T, cgfsPath string) {
-	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	testutils.CaptureLog(t, logger.GetLogger())
 
 	cgfs := newTestCgroupFS(t, cgfsPath)
 
@@ -148,7 +147,7 @@ func TestCgTrackerEvents(t *testing.T) {
 }
 
 func doProgTest(t *testing.T, cgfsPath string) {
-	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	testutils.CaptureLog(t, logger.GetLogger())
 
 	if err := observer.InitDataCache(1024); err != nil {
 		t.Fatalf("observertesthelper.InitDataCache: %s", err)
@@ -216,7 +215,7 @@ func doProgTest(t *testing.T, cgfsPath string) {
 // TestCgTrackerPolicyFilter checks that cgroup tracking works with policyfilter
 func TestCgTrackerPolicyFilter(t *testing.T) {
 	cgfsPath := "/sys/fs/cgroup"
-	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	testutils.CaptureLog(t, logger.GetLogger())
 
 	if err := observer.InitDataCache(1024); err != nil {
 		t.Fatalf("observertesthelper.InitDataCache: %s", err)

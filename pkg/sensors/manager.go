@@ -11,6 +11,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
@@ -196,26 +197,26 @@ func (h *Manager) LogSensorsAndProbes(ctx context.Context) {
 	log := logger.GetLogger()
 	sensors, err := h.ListSensors(ctx)
 	if err != nil {
-		log.WithError(err).Warn("failed to list sensors")
+		log.Warn("failed to list sensors", logfields.Error, err)
 	}
 
 	names := []string{}
 	for _, s := range *sensors {
 		names = append(names, s.Name)
 	}
-	log.WithField("sensors", strings.Join(names, ", ")).Info("Available sensors")
+	log.Info("Available sensors", "sensors", strings.Join(names, ", "))
 
 	names = []string{}
 	for n := range registeredPolicyHandlers {
 		names = append(names, n)
 	}
-	log.WithField("policy-handlers", strings.Join(names, ", ")).Info("Registered sensors (policy-handlers)")
+	log.Info("Registered sensors (policy-handlers)", "policy-handlers", strings.Join(names, ", "))
 
 	names = []string{}
 	for n := range registeredProbeLoad {
 		names = append(names, n)
 	}
-	log.WithField("types", strings.Join(names, ", ")).Info("Registered probe types")
+	log.Info("Registered probe types", "types", strings.Join(names, ", "))
 }
 
 // Manager handles dynamic sensor management, such as adding / removing sensors

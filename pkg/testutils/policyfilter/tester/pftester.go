@@ -30,7 +30,6 @@ import (
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 )
 
@@ -49,7 +48,7 @@ type Tester struct {
 
 func Start(t *testing.T, ctx context.Context) *Tester {
 	// capture tetragon log in the t
-	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	testutils.CaptureLog(t, logger.GetLogger())
 
 	// initialize things
 	policyfilter.TestingEnableAndReset(t)
