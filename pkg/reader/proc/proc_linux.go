@@ -13,7 +13,6 @@ import (
 
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
-	"github.com/sirupsen/logrus"
 )
 
 // The /proc/PID/stat file consists of a single line of space-separated strings, where
@@ -187,11 +186,10 @@ func LogCurrentSecurityContext() {
 		/* Now log all LSM security so we can debug later in
 		 * case some operations fail.
 		 */
-		logger.GetLogger().WithFields(logrus.Fields{
-			"SELinux":  lsms["selinux"],
-			"AppArmor": lsms["apparmor"],
-			"Smack":    lsms["smack"],
-			"Lockdown": lockdown,
-		}).Info("Tetragon current security context")
+		logger.GetLogger().Info("Tetragon current security context",
+			"SELinux", lsms["selinux"],
+			"AppArmor", lsms["apparmor"],
+			"Smack", lsms["smack"],
+			"Lockdown", lockdown)
 	}
 }

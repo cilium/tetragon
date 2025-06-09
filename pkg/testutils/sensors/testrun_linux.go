@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"testing"
@@ -17,7 +18,6 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/program"
-	"github.com/sirupsen/logrus"
 )
 
 func TestSensorsRun(m *testing.M, sensorName string) int {
@@ -60,7 +60,7 @@ func TestSensorsRun(m *testing.M, sensorName string) int {
 		}
 	}
 	if config.Trace {
-		logger.DefaultLogger.SetLevel(logrus.TraceLevel)
+		logger.SetLogLevel(slog.LevelDebug)
 	}
 
 	// use a sensor-specific name for the bpffs directory for the maps.
@@ -88,11 +88,11 @@ func TestSensorsRun(m *testing.M, sensorName string) int {
 
 		if entries, err := os.ReadDir(path); err == nil {
 			for _, entry := range entries {
-				log.Printf("`%s` still exists after test", entry.Name())
+				log.Debug(fmt.Sprintf("`%s` still exists after test", entry.Name()))
 			}
 		}
 
-		log.Printf("map dir `%s` still exists after test. Removing it.", path)
+		log.Debug(fmt.Sprintf("map dir `%s` still exists after test. Removing it.", path))
 		os.RemoveAll(path)
 	}()
 	if err := btf.InitCachedBTF(config.TetragonLib, ""); err != nil {

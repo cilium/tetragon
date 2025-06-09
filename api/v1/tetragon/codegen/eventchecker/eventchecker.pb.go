@@ -14,7 +14,7 @@ import (
 	listmatcher "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	stringmatcher "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	timestampmatcher "github.com/cilium/tetragon/pkg/matchers/timestampmatcher"
-	logrus "github.com/sirupsen/logrus"
+	slog "log/slog"
 	yaml "sigs.k8s.io/yaml"
 	strings "strings"
 )
@@ -30,18 +30,18 @@ type MultiEventChecker interface {
 	// (false, !nil): this event check not was successful, but need to check more events
 	// (true,   nil): checker was successful, no need to check more events
 	// (true,  !nil): checker failed, no need to check more events
-	NextEventCheck(Event, *logrus.Logger) (bool, error)
+	NextEventCheck(Event, *slog.Logger) (bool, error)
 
 	// FinalCheck indicates that the sequence of events has ended, and
 	// asks the checker to make a final decision. Once this function is
 	// called, the checker is expected to return to its initial state so
 	// that it can be reused. Hence, this function should only be called
 	// once for each stream of events.
-	FinalCheck(*logrus.Logger) error
+	FinalCheck(*slog.Logger) error
 }
 
 // NextResponseCheck checks the next response
-func NextResponseCheck(c MultiEventChecker, res *tetragon.GetEventsResponse, l *logrus.Logger) (bool, error) {
+func NextResponseCheck(c MultiEventChecker, res *tetragon.GetEventsResponse, l *slog.Logger) (bool, error) {
 	event, err := EventFromResponse(res)
 	if err != nil {
 		return false, err
@@ -64,7 +64,7 @@ func NewOrderedEventChecker(checks ...EventChecker) *OrderedEventChecker {
 }
 
 // NextEventCheck implements the MultiEventChecker interface
-func (checker *OrderedEventChecker) NextEventCheck(event Event, logger *logrus.Logger) (bool, error) {
+func (checker *OrderedEventChecker) NextEventCheck(event Event, logger *slog.Logger) (bool, error) {
 	if checker.idx >= len(checker.checks) {
 		return true, nil
 	}
@@ -77,19 +77,19 @@ func (checker *OrderedEventChecker) NextEventCheck(event Event, logger *logrus.L
 	checker.idx++
 	if checker.idx == len(checker.checks) {
 		if logger != nil {
-			logger.Infof("OrderedEventChecker: all %d checks matched", len(checker.checks))
+			logger.Info(fmt.Sprintf("OrderedEventChecker: all %d checks matched", len(checker.checks)))
 		}
 		return true, nil
 	}
 
 	if logger != nil {
-		logger.Infof("OrderedEventChecker: %d/%d matched", checker.idx, len(checker.checks))
+		logger.Info(fmt.Sprintf("OrderedEventChecker: %d/%d matched", checker.idx, len(checker.checks)))
 	}
 	return false, nil
 }
 
 // FinalCheck implements the MultiEventChecker interface
-func (checker *OrderedEventChecker) FinalCheck(logger *logrus.Logger) error {
+func (checker *OrderedEventChecker) FinalCheck(logger *slog.Logger) error {
 	idx := checker.idx
 	checker.idx = 0
 
@@ -142,7 +142,7 @@ func NewUnorderedEventChecker(checks ...EventChecker) *UnorderedEventChecker {
 }
 
 // NextEventCheck implements the MultiEventChecker interface
-func (checker *UnorderedEventChecker) NextEventCheck(event Event, logger *logrus.Logger) (bool, error) {
+func (checker *UnorderedEventChecker) NextEventCheck(event Event, logger *slog.Logger) (bool, error) {
 	pending := checker.pendingChecks.Len()
 	if pending == 0 {
 		return true, nil
@@ -150,7 +150,7 @@ func (checker *UnorderedEventChecker) NextEventCheck(event Event, logger *logrus
 
 	totalMatched := checker.totalChecks - pending
 	if logger != nil {
-		logger.Infof("UnorderedEventChecker: checking event with %d/%d total matched", totalMatched, checker.totalChecks)
+		logger.Info(fmt.Sprintf("UnorderedEventChecker: checking event with %d/%d total matched", totalMatched, checker.totalChecks))
 	}
 	idx := 1
 
@@ -160,7 +160,7 @@ func (checker *UnorderedEventChecker) NextEventCheck(event Event, logger *logrus
 		if err == nil {
 			totalMatched++
 			if logger != nil {
-				logger.Infof("UnorderedEventChecker: successfully matched %d/%d", totalMatched, checker.totalChecks)
+				logger.Info(fmt.Sprintf("UnorderedEventChecker: successfully matched %d/%d", totalMatched, checker.totalChecks))
 			}
 			checker.pendingChecks.Remove(e)
 			pending--
@@ -169,12 +169,12 @@ func (checker *UnorderedEventChecker) NextEventCheck(event Event, logger *logrus
 			}
 
 			if logger != nil {
-				logger.Infof("UnorderedEventChecker: all %d check(s) matched", checker.totalChecks)
+				logger.Info(fmt.Sprintf("UnorderedEventChecker: all %d check(s) matched", checker.totalChecks))
 			}
 			return true, nil
 		}
 		if logger != nil {
-			logger.Infof("UnorderedEventChecker: checking pending %d/%d: %s", idx, pending, err)
+			logger.Info(fmt.Sprintf("UnorderedEventChecker: checking pending %d/%d: %s", idx, pending, err))
 		}
 		idx++
 	}
@@ -183,7 +183,7 @@ func (checker *UnorderedEventChecker) NextEventCheck(event Event, logger *logrus
 }
 
 // FinalCheck implements the MultiEventChecker interface
-func (checker *UnorderedEventChecker) FinalCheck(logger *logrus.Logger) error {
+func (checker *UnorderedEventChecker) FinalCheck(logger *slog.Logger) error {
 	pending := checker.pendingChecks.Len()
 	total := checker.totalChecks
 
@@ -245,19 +245,19 @@ type FnEventChecker struct {
 	// (false, !nil): this event check not was successful, but need to check more events
 	// (true,   nil): checker was successful, no need to check more events
 	// (true,  !nil): checker failed, no need to check more events
-	NextCheckFn func(Event, *logrus.Logger) (bool, error)
+	NextCheckFn func(Event, *slog.Logger) (bool, error)
 	// FinalCheckFn indicates that the sequence of events has ended, and asks the
 	// checker to make a final decision. Any cleanup should also be performed here.
-	FinalCheckFn func(*logrus.Logger) error
+	FinalCheckFn func(*slog.Logger) error
 }
 
 // NextEventCheck implements the MultiEventChecker interface
-func (checker *FnEventChecker) NextEventCheck(event Event, logger *logrus.Logger) (bool, error) {
+func (checker *FnEventChecker) NextEventCheck(event Event, logger *slog.Logger) (bool, error) {
 	return checker.NextCheckFn(event, logger)
 }
 
 // FinalCheck implements the MultiEventChecker interface
-func (checker *FnEventChecker) FinalCheck(logger *logrus.Logger) error {
+func (checker *FnEventChecker) FinalCheck(logger *slog.Logger) error {
 	return checker.FinalCheckFn(logger)
 }
 

@@ -13,12 +13,12 @@ import (
 	"github.com/cilium/tetragon/pkg/eventcache"
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
 	readerexec "github.com/cilium/tetragon/pkg/reader/exec"
 	"github.com/cilium/tetragon/pkg/reader/notify"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -70,8 +70,8 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 
 	// Set the cap field only if --enable-process-cred flag is set.
 	if err := proc.AnnotateProcess(option.Config.EnableProcessCred, option.Config.EnableProcessNs); err != nil {
-		logger.GetLogger().WithError(err).WithField("processId", processId).WithField("parentId", parentId).
-			Debugf("Failed to annotate process with capabilities and namespaces info")
+		logger.GetLogger().Debug("Failed to annotate process with capabilities and namespaces info",
+			"processId", processId, "parentId", parentId, logfields.Error, err)
 	}
 
 	tetragonEvent := &tetragon.ProcessExec{
@@ -108,13 +108,12 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 	if err := event.finalize(tetragonEvent, proc, eventcache.NO_EV_CACHE); err != nil {
 		// Propagate metric errors about finalizing the event
 		errormetrics.ErrorTotalInc(errormetrics.EventFinalizeProcessInfoFailed)
-		logger.GetLogger().WithFields(logrus.Fields{
-			"event.name":            "Execve",
-			"event.process.pid":     tetragonProcess.GetPid().GetValue(),
-			"event.process.binary":  tetragonProcess.Binary,
-			"event.process.exec_id": processId,
-			"event.event_cache":     "no",
-		}).Debugf("ExecveEvent: failed to finalize process exec event")
+		logger.GetLogger().Debug("ExecveEvent: failed to finalize process exec event",
+			"event.name", "Execve",
+			"event.process.pid", tetragonProcess.GetPid().GetValue(),
+			"event.process.binary", tetragonProcess.Binary,
+			"event.process.exec_id", processId,
+			"event.event_cache", "no")
 		// For ProcessExec event we do not fail let's return what we have even if it's not complete
 		// The eventmetrics will count further errors
 	}
@@ -148,32 +147,30 @@ func (msg *MsgCgroupEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 	st := ops.CgroupState(msg.CgrpData.State).String()
 	switch op {
 	case ops.MSG_OP_CGROUP_MKDIR, ops.MSG_OP_CGROUP_RMDIR, ops.MSG_OP_CGROUP_RELEASE:
-		logger.GetLogger().WithFields(logrus.Fields{
-			"cgroup.event":       op.String(),
-			"PID":                msg.PID,
-			"NSPID":              msg.NSPID,
-			"cgroup.ID":          msg.Cgrpid,
-			"cgroup.state":       st,
-			"cgroup.hierarchyID": msg.CgrpData.HierarchyId,
-			"cgroup.level":       msg.CgrpData.Level,
-			"cgroup.path":        cgroups.CgroupNameFromCStr(msg.Path[:processapi.CGROUP_PATH_LENGTH]),
-		}).Debug("Received Cgroup event")
+		logger.GetLogger().Debug("Received Cgroup event",
+			"cgroup.event", op.String(),
+			"PID", msg.PID,
+			"NSPID", msg.NSPID,
+			"cgroup.ID", msg.Cgrpid,
+			"cgroup.state", st,
+			"cgroup.hierarchyID", msg.CgrpData.HierarchyId,
+			"cgroup.level", msg.CgrpData.Level,
+			"cgroup.path", cgroups.CgroupNameFromCStr(msg.Path[:processapi.CGROUP_PATH_LENGTH]))
 	case ops.MSG_OP_CGROUP_ATTACH_TASK:
 		// Here we should get notification when Tetragon migrate itself
 		// and discovers cgroups configuration
-		logger.GetLogger().WithFields(logrus.Fields{
-			"cgroup.event":       op.String(),
-			"PID":                msg.PID,
-			"NSPID":              msg.NSPID,
-			"cgroup.IDTracker":   msg.CgrpidTracker,
-			"cgroup.ID":          msg.Cgrpid,
-			"cgroup.state":       st,
-			"cgroup.hierarchyID": msg.CgrpData.HierarchyId,
-			"cgroup.level":       msg.CgrpData.Level,
-			"cgroup.path":        cgroups.CgroupNameFromCStr(msg.Path[:processapi.CGROUP_PATH_LENGTH]),
-		}).Info("Received Cgroup event")
+		logger.GetLogger().Info("Received Cgroup event",
+			"cgroup.event", op.String(),
+			"PID", msg.PID,
+			"NSPID", msg.NSPID,
+			"cgroup.IDTracker", msg.CgrpidTracker,
+			"cgroup.ID", msg.Cgrpid,
+			"cgroup.state", st,
+			"cgroup.hierarchyID", msg.CgrpData.HierarchyId,
+			"cgroup.level", msg.CgrpData.Level,
+			"cgroup.path", cgroups.CgroupNameFromCStr(msg.Path[:processapi.CGROUP_PATH_LENGTH]))
 	default:
-		logger.GetLogger().WithField("message", msg).Warn("HandleCgroupMessage: Unhandled Cgroup operation event")
+		logger.GetLogger().Warn("HandleCgroupMessage: Unhandled Cgroup operation event", "message", msg)
 	}
 	return nil
 }
@@ -258,13 +255,12 @@ func (msg *MsgExecveEventUnix) Retry(internal *process.ProcessInternal, ev notif
 	if err := msg.finalize(ev, internal, eventcache.FROM_EV_CACHE); err != nil {
 		// Propagate metric errors about finalizing the event
 		errormetrics.ErrorTotalInc(errormetrics.EventFinalizeProcessInfoFailed)
-		logger.GetLogger().WithFields(logrus.Fields{
-			"event.name":            "Execve",
-			"event.process.pid":     tetragonProcess.Pid.GetValue(),
-			"event.process.binary":  filename,
-			"event.process.exec_id": tetragonProcess.GetExecId(),
-			"event.event_cache":     "yes",
-		}).Debugf("ExecveEvent: failed to finalize process exec event")
+		logger.GetLogger().Debug("ExecveEvent: failed to finalize process exec event",
+			"event.name", "Execve",
+			"event.process.pid", tetragonProcess.Pid.GetValue(),
+			"event.process.binary", filename,
+			"event.process.exec_id", tetragonProcess.GetExecId(),
+			"event.event_cache", "yes")
 		// For ProcessExec event we do not fail let's return what we have even if it's not complete
 		// The eventmetrics will count further errors
 	}
@@ -466,12 +462,11 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 	// Check must be against event.Info.Tid so we cover all the cases of
 	// the tetragonProcess.Pid against BPF.
 	if tetragonProcess.Pid.GetValue() != event.Info.Tid {
-		logger.GetLogger().WithFields(logrus.Fields{
-			"event.name":           "Exit",
-			"event.process.pid":    event.ProcessKey.Pid,
-			"event.process.tid":    event.Info.Tid,
-			"event.process.binary": tetragonProcess.Binary,
-		}).Warn("ExitEvent: process PID and TID mismatch")
+		logger.GetLogger().Warn("ExitEvent: process PID and TID mismatch",
+			"event.name", "Exit",
+			"event.process.pid", event.ProcessKey.Pid,
+			"event.process.tid", event.Info.Tid,
+			"event.process.binary", tetragonProcess.Binary)
 		errormetrics.ErrorTotalInc(errormetrics.ProcessPidTidMismatch)
 	}
 

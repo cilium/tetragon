@@ -89,7 +89,7 @@ func StartSttManager() Handle {
 				err = nil
 
 			case *SttMgStop:
-				logger.GetLogger().Debugf("stopping tree manager...")
+				logger.GetLogger().Debug("stopping tree manager...")
 				done = true
 				err = nil
 

@@ -14,8 +14,8 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/api/v1/tetragon/codegen/helpers"
 	"github.com/cilium/tetragon/pkg/event"
+	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
-	"github.com/sirupsen/logrus"
 )
 
 type FilterFunc func(ev *event.Event) bool
@@ -150,7 +150,7 @@ var Filters = []OnBuildFilter{
 	&CapsFilter{},
 	&ContainerIDFilter{},
 	&InInitTreeFilter{},
-	NewCELExpressionFilter(logrus.New()),
+	NewCELExpressionFilter(logger.GetLogger()),
 }
 
 func GetProcess(event *event.Event) *tetragon.Process {

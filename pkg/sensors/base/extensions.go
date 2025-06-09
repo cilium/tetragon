@@ -5,8 +5,8 @@ package base
 
 import (
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/sensors"
-	"github.com/sirupsen/logrus"
 )
 
 // facilities to extend the base sensor
@@ -31,10 +31,8 @@ func ApplyExtensions(s *sensors.Sensor) *sensors.Sensor {
 	for _, ext := range extensions {
 		newS, err := ext.fn(s)
 		if err != nil {
-			logger.GetLogger().WithFields(logrus.Fields{
-				"extension": ext.name,
-				"error":     err,
-			}).Warn("failed to apply base sensor extension")
+			logger.GetLogger().Warn("failed to apply base sensor extension",
+				"extension", ext.name, logfields.Error, err)
 			continue
 		}
 		s = newS

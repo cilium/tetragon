@@ -14,7 +14,6 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/sirupsen/logrus"
 )
 
 func NewBPFCollector() metrics.CollectorWithInit {
@@ -65,10 +64,8 @@ func collect(ch chan<- prometheus.Metric) {
 		if err != nil {
 			// We have already opened the map with _stats suffix
 			// so we don't expect that to fail.
-			logger.GetLogger().WithFields(logrus.Fields{
-				"MapName":      pin,
-				"StatsMapName": pinStats,
-			}).Warn("Failed to open the corresponding map for an existing stats map.")
+			logger.GetLogger().Warn("Failed to open the corresponding map for an existing stats map.",
+				"MapName", pin, "StatsMapName", pinStats)
 			continue
 		}
 		defer mapLink.Close()

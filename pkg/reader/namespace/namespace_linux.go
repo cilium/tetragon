@@ -14,6 +14,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/option"
 )
 
@@ -97,7 +98,7 @@ func GetCurrentNamespace() *tetragon.Namespaces {
 	for i := range listNamespaces {
 		ino, err := GetSelfNsInode(listNamespaces[i])
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("Failed to read current namespace")
+			logger.GetLogger().Warn("Failed to read current namespace", logfields.Error, err)
 			continue
 		}
 		self_ns[listNamespaces[i]] = ino
@@ -238,7 +239,7 @@ func initHostNamespace() (*tetragon.Namespaces, error) {
 	for _, n := range listNamespaces {
 		ino, err := GetPidNsInode(1, n)
 		if err != nil {
-			logger.GetLogger().WithError(err).Infof("Kernel does not support %s namespaces", n)
+			logger.GetLogger().Info(fmt.Sprintf("Kernel does not support %s namespaces", n), logfields.Error, err)
 			knownNamespaces[n] = &tetragon.Namespace{Inum: 0, IsHost: false}
 			continue
 		}

@@ -5,6 +5,7 @@ package policyfilter
 
 import (
 	"fmt"
+	"log/slog"
 	"sync"
 
 	"github.com/cilium/ebpf"
@@ -12,13 +13,13 @@ import (
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/tetragon/pkg/labels"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/metrics/policyfiltermetrics"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/podhelpers"
 	"github.com/cilium/tetragon/pkg/podhooks"
 
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/cache"
 )
@@ -181,12 +182,11 @@ func (m *state) containerExists(pod *podInfo, containerID string, cgIDp *CgroupI
 		// NB: if this happens, we might end up with multiple cgroup
 		// ids for the same container. Since we have no way of knowing
 		// which one is the correct, we keep both.
-		m.log.WithFields(logrus.Fields{
-			"pod-id":        pod.id,
-			"container-id":  containerID,
-			"old-cgroup-id": container.cgID,
-			"new-cgroup-id": *cgIDp,
-		}).Warnf("AddPodContainer: conflicting cgroup ids")
+		m.log.Warn("AddPodContainer: conflicting cgroup ids",
+			"pod-id", pod.id,
+			"container-id", containerID,
+			"old-cgroup-id", container.cgID,
+			"new-cgroup-id", *cgIDp)
 	}
 
 	return false
@@ -250,7 +250,7 @@ func (pol *policy) matchingContainersCgroupIDs(containers []containerInfo) []Cgr
 
 // State holds the necessary state for policyfilter
 type state struct {
-	log logrus.FieldLogger
+	log *slog.Logger
 	*logger.DebugLogger
 
 	// mutex serializes access to the internal structures, as well as operations.
@@ -272,7 +272,7 @@ type state struct {
 //
 //revive:disable:unexported-return
 func New(enableCgroupMap bool) (*state, error) {
-	log := logger.GetLogger().WithField("subsystem", "policy-filter")
+	log := logger.GetLogger().With("subsystem", "policy-filter")
 	return newState(
 		log,
 		&cgfsFinder{fsscan.New(), log},
@@ -281,7 +281,7 @@ func New(enableCgroupMap bool) (*state, error) {
 }
 
 func newState(
-	log logrus.FieldLogger,
+	log *slog.Logger,
 	cgidFinder cgidFinder,
 	enableCgroupMap bool,
 ) (*state, error) {
@@ -312,7 +312,7 @@ func (m *state) updatePodHandler(pod *v1.Pod) error {
 	containerInfo := podhelpers.PodContainersInfo(pod)
 	podID, err := uuid.Parse(string(pod.UID))
 	if err != nil {
-		m.log.WithError(err).WithField("pod-id", pod.UID).Warn("policyfilter, pod handler: failed to parse pod id")
+		m.log.Warn("policyfilter, pod handler: failed to parse pod id", logfields.Error, err, "pod-id", pod.UID)
 		return err
 	}
 
@@ -323,13 +323,13 @@ func (m *state) updatePodHandler(pod *v1.Pod) error {
 
 	err = m.UpdatePod(PodID(podID), namespace, workload, kind, pod.Labels, containerIDs, containerInfo)
 	if err != nil {
-		m.log.WithError(err).WithFields(logrus.Fields{
-			"pod-id":        podID,
-			"container-ids": containerIDs,
-			"namespace":     namespace,
-			"workload":      workload,
-			"kind":          kind,
-		}).Warn("policyfilter, UpdatePod failed")
+		m.log.Warn("policyfilter, UpdatePod failed",
+			logfields.Error, err,
+			"pod-id", podID,
+			"container-ids", containerIDs,
+			"namespace", namespace,
+			"workload", workload,
+			"kind", kind)
 		return err
 	}
 
@@ -341,7 +341,7 @@ func (m *state) getPodEventHandlers() cache.ResourceEventHandlerFuncs {
 		AddFunc: func(obj interface{}) {
 			pod, ok := obj.(*v1.Pod)
 			if !ok {
-				logger.GetLogger().Warn("policyfilter, add-pod handler: unexpected object type: %T", pod)
+				logger.GetLogger().Warn(fmt.Sprintf("policyfilter, add-pod handler: unexpected object type: %T", pod))
 				return
 			}
 			err := m.updatePodHandler(pod)
@@ -350,7 +350,7 @@ func (m *state) getPodEventHandlers() cache.ResourceEventHandlerFuncs {
 		UpdateFunc: func(_, newObj interface{}) {
 			pod, ok := newObj.(*v1.Pod)
 			if !ok {
-				logger.GetLogger().Warn("policyfilter, update-pod handler: unexpected object type(s): new:%T", pod)
+				logger.GetLogger().Warn(fmt.Sprintf("policyfilter, update-pod handler: unexpected object type(s): new:%T", pod))
 				return
 			}
 			err := m.updatePodHandler(pod)
@@ -360,22 +360,22 @@ func (m *state) getPodEventHandlers() cache.ResourceEventHandlerFuncs {
 			// Remove all containers for this pod
 			pod, ok := obj.(*v1.Pod)
 			if !ok {
-				logger.GetLogger().Warn("policyfilter, delete-pod handler: unexpected object type: %T", pod)
+				logger.GetLogger().Warn(fmt.Sprintf("policyfilter, delete-pod handler: unexpected object type: %T", pod))
 				return
 			}
 			podID, err := uuid.Parse(string(pod.UID))
 			if err != nil {
-				logger.GetLogger().WithField("pod-id", pod.UID).WithError(err).Warn("policyfilter, delete-pod: failed to parse id")
+				logger.GetLogger().Warn("policyfilter, delete-pod: failed to parse id", "pod-id", pod.UID, logfields.Error, err)
 				return
 			}
 
 			namespace := pod.Namespace
 			err = m.DelPod(PodID(podID))
 			if err != nil {
-				logger.GetLogger().WithError(err).WithFields(logrus.Fields{
-					"pod-id":    podID,
-					"namespace": namespace,
-				}).Warn("policyfilter, delete-pod handler: DelPod failed")
+				logger.GetLogger().Warn("policyfilter, delete-pod handler: DelPod failed",
+					logfields.Error, err,
+					"pod-id", podID,
+					"namespace", namespace)
 			}
 			policyfiltermetrics.OpInc(policyfiltermetrics.PodHandlersSubsys, policyfiltermetrics.DeletePodOperation, ErrorLabel(err))
 		},
@@ -501,11 +501,11 @@ func (m *state) DelPolicy(polID PolicyID) error {
 	if policy != nil {
 		policy.polMap.Inner.Close()
 	} else {
-		m.log.WithField("policy-id", polID).Warn("DelPolicy: policy internal map not found")
+		m.log.Warn("DelPolicy: policy internal map not found", "policy-id", polID)
 	}
 
 	if err := m.pfMap.policyMap.Delete(polID); err != nil {
-		m.log.WithField("policy-id", polID).Warn("DelPolicy: failed to remove policy from external map")
+		m.log.Warn("DelPolicy: failed to remove policy from external map", "policy-id", polID)
 	}
 
 	// update cgroup map
@@ -540,34 +540,32 @@ func (m *state) addCgroupIDs(cinfo []containerInfo, pod *podInfo) error {
 		id, ok := nsmap.nsNameMap.Get(key)
 		if ok {
 			if err := nsmap.cgroupIdMap.Update(&c.cgID, id, ebpf.UpdateAny); err != nil {
-				logger.GetLogger().WithError(err).Warn("Unable to assign cgroup to existing namespace")
+				logger.GetLogger().Warn("Unable to assign cgroup to existing namespace", logfields.Error, err)
 			}
 			continue
 		}
-		logger.GetLogger().WithField("cgrp", c).WithField("pod", pod).WithField("id", nsmap.id).Debug("update cgroupid map")
+		logger.GetLogger().Debug("update cgroupid map", "cgrp", c, "pod", pod, "id", nsmap.id)
 
 		// If this is a new namespace we create a new map entry and bind it to a stable id.
 		if err := nsmap.cgroupIdMap.Update(&c.cgID, nsmap.id, ebpf.UpdateAny); err != nil {
-			logger.GetLogger().WithError(err).WithFields(logrus.Fields{
-				"cgid": c.cgID,
-				"id":   nsmap.id,
-				"ns":   c.name,
-			}).Warn("Unable to insert cgroup id map")
+			logger.GetLogger().Warn("Unable to insert cgroup id map",
+				logfields.Error, err,
+				"cgid", c.cgID,
+				"id", nsmap.id,
+				"ns", c.name)
 			continue
 		}
 		if ok := nsmap.nsIdMap.Add(nsmap.id, key); ok {
-			logger.GetLogger().WithFields(logrus.Fields{
-				"cgid": c.cgID,
-				"id":   nsmap.id,
-				"ns":   c.name,
-			}).Info("Id to namespace map caused eviction")
+			logger.GetLogger().Info("Id to namespace map caused eviction",
+				"cgid", c.cgID,
+				"id", nsmap.id,
+				"ns", c.name)
 		}
 		if ok := nsmap.nsNameMap.Add(key, nsmap.id); ok {
-			logger.GetLogger().WithFields(logrus.Fields{
-				"cgid": c.cgID,
-				"id":   nsmap.id,
-				"ns":   c.name,
-			}).Info("Namespace to Id map caused eviction")
+			logger.GetLogger().Info("Namespace to Id map caused eviction",
+				"cgid", c.cgID,
+				"id", nsmap.id,
+				"ns", c.name)
 		}
 		nsmap.id++
 	}
@@ -593,12 +591,11 @@ func (m *state) addPodContainers(pod *podInfo, containerIDs []string,
 		containerData := containerData[i]
 
 		if m.containerExists(pod, contID, cgIDptr) {
-			m.DebugLogWithCallers(4).WithFields(logrus.Fields{
-				"pod-id":       pod.id,
-				"namespace":    pod.namespace,
-				"container-id": contID,
-				"cgroup-id":    cgIDPointerStr(cgIDptr),
-			}).Info("addPodContainers: container exists, skipping")
+			m.DebugLogWithCallers(4).Info("addPodContainers: container exists, skipping",
+				"pod-id", pod.id,
+				"namespace", pod.namespace,
+				"container-id", contID,
+				"cgroup-id", cgIDPointerStr(cgIDptr))
 			continue
 		}
 
@@ -606,10 +603,10 @@ func (m *state) addPodContainers(pod *podInfo, containerIDs []string,
 			cgid, err := m.cgidFinder.findCgroupID(pod.id, contID)
 			if err != nil {
 				// error: skip this container id
-				m.log.WithError(err).WithFields(logrus.Fields{
-					"pod-id":       pod.id,
-					"container-id": contID,
-				}).Warn("failed to find cgroup id. Skipping container.")
+				m.log.Warn("failed to find cgroup id. Skipping container.",
+					logfields.Error, err,
+					"pod-id", pod.id,
+					"container-id", contID)
 				continue
 			}
 			cgIDptr = &cgid
@@ -619,21 +616,19 @@ func (m *state) addPodContainers(pod *podInfo, containerIDs []string,
 	}
 
 	if len(cinfo) == 0 {
-		m.DebugLogWithCallers(4).WithFields(logrus.Fields{
-			"pod-id":        pod.id,
-			"namespace":     pod.namespace,
-			"container-ids": containerIDs,
-		}).Info("addPodContainers: nothing to do, returning")
+		m.DebugLogWithCallers(4).Info("addPodContainers: nothing to do, returning",
+			"pod-id", pod.id,
+			"namespace", pod.namespace,
+			"container-ids", containerIDs)
 		return
 	}
 
 	// update containers
 	pod.containers = append(pod.containers, cinfo...)
-	m.DebugLogWithCallers(4).WithFields(logrus.Fields{
-		"pod-id":          pod.id,
-		"namespace":       pod.namespace,
-		"containers-info": cinfo,
-	}).Info("addPodContainers: container(s) added")
+	m.DebugLogWithCallers(4).Info("addPodContainers: container(s) added",
+		"pod-id", pod.id,
+		"namespace", pod.namespace,
+		"containers-info", cinfo)
 
 	m.addCgroupIDs(cinfo, pod)
 
@@ -641,11 +636,10 @@ func (m *state) addPodContainers(pod *podInfo, containerIDs []string,
 	for _, policyID := range pod.matchedPolicies {
 		pol := m.findPolicy(policyID)
 		if pol == nil {
-			m.log.WithFields(logrus.Fields{
-				"policy-id":  policyID,
-				"pod-id":     pod.id,
-				"cgroup-ids": cgroupIDs,
-			}).Warn("addPodContainers: unknown policy id found in pod. This should not happen, ignoring.")
+			m.log.Warn("addPodContainers: unknown policy id found in pod. This should not happen, ignoring.",
+				"policy-id", policyID,
+				"pod-id", pod.id,
+				"cgroup-ids", cgroupIDs)
 			continue
 		}
 
@@ -653,18 +647,18 @@ func (m *state) addPodContainers(pod *podInfo, containerIDs []string,
 		matchingCgIDs := pol.matchingContainersCgroupIDs(pod.containers)
 
 		if err := pol.polMap.addCgroupIDs(matchingCgIDs); err != nil {
-			m.log.WithError(err).WithFields(logrus.Fields{
-				"policy-id":  pol.id,
-				"pod-id":     pod.id,
-				"cgroup-ids": matchingCgIDs,
-			}).Warn("failed to update policy map")
+			m.log.Warn("failed to update policy map",
+				logfields.Error, err,
+				"policy-id", pol.id,
+				"pod-id", pod.id,
+				"cgroup-ids", matchingCgIDs)
 		} else {
 			if err := pol.polMap.addPolicyIDs(pol.id, matchingCgIDs); err != nil {
-				m.log.WithError(err).WithFields(logrus.Fields{
-					"policy-id":  pol.id,
-					"pod-id":     pod.id,
-					"cgroup-ids": matchingCgIDs,
-				}).Warn("failed to update cgroup map")
+				m.log.Warn("failed to update cgroup map",
+					logfields.Error, err,
+					"policy-id", pol.id,
+					"pod-id", pod.id,
+					"cgroup-ids", matchingCgIDs)
 			}
 		}
 	}
@@ -701,14 +695,13 @@ func (m *state) AddPodContainer(podID PodID, namespace, workload, kind string, p
 	pod := m.findPod(podID)
 	if pod == nil {
 		pod = m.addNewPod(podID, namespace, workload, kind, podLabels)
-		m.DebugLogWithCallers(4).WithFields(logrus.Fields{
-			"pod-id":         podID,
-			"namespace":      namespace,
-			"workload":       workload,
-			"container-id":   containerID,
-			"cgroup-id":      cgID,
-			"container-info": containerInfo,
-		}).Info("AddPodContainer: added pod")
+		m.DebugLogWithCallers(4).Info("AddPodContainer: added pod",
+			"pod-id", podID,
+			"namespace", namespace,
+			"workload", workload,
+			"container-id", containerID,
+			"cgroup-id", cgID,
+			"container-info", containerInfo)
 	} else if pod.namespace != namespace {
 		// sanity check: old and new namespace should match
 		return &podNamespaceConflictError{podID: podID, oldNs: pod.namespace, newNs: namespace}
@@ -730,10 +723,9 @@ func (m *state) delPodCgroupIDsFromPolicyMaps(pod *podInfo, containers []contain
 	for _, policyID := range pod.matchedPolicies {
 		pol := m.findPolicy(policyID)
 		if pol == nil {
-			m.log.WithFields(logrus.Fields{
-				"policy-id": policyID,
-				"pod-id":    pod.id,
-			}).Warn("delPodCgroupIDsFromPolicyMaps: unknown policy id found in pod. This should not happen, ignoring.")
+			m.log.Warn("delPodCgroupIDsFromPolicyMaps: unknown policy id found in pod. This should not happen, ignoring.",
+				"policy-id", policyID,
+				"pod-id", pod.id)
 			continue
 		}
 
@@ -742,11 +734,11 @@ func (m *state) delPodCgroupIDsFromPolicyMaps(pod *podInfo, containers []contain
 		cgroupIDs := pol.matchingContainersCgroupIDs(containers)
 		if err := pol.polMap.delCgroupIDs(pol.id, cgroupIDs); err != nil {
 			// NB: depending on the error, we might want to schedule some retries here
-			m.log.WithError(err).WithFields(logrus.Fields{
-				"policy-id":  pol.id,
-				"pod-id":     pod.id,
-				"cgroup-ids": cgroupIDs,
-			}).Warn("delPodCgroupIDsFromPolicyMaps: failed to delete cgroup ids from policy map")
+			m.log.Warn("delPodCgroupIDsFromPolicyMaps: failed to delete cgroup ids from policy map",
+				logfields.Error, err,
+				"policy-id", pol.id,
+				"pod-id", pod.id,
+				"cgroup-ids", cgroupIDs)
 		}
 	}
 }
@@ -797,6 +789,7 @@ type policiesDiffRes struct {
 func (m *state) policiesDiff(pod *podInfo, newLabels labels.Labels) *policiesDiffRes {
 	addedPolicies := []*policy{}
 	deletedPolicies := []*policy{}
+
 	newMatchedPolicies := []PolicyID{}
 	for i := range m.policies {
 		pol := &m.policies[i]
@@ -836,21 +829,21 @@ func (m *state) applyPodPolicyDiff(pod *podInfo, polDiff *policiesDiffRes) {
 	for _, addPol := range polDiff.addedPolicies {
 		cgroupIDs = addPol.matchingContainersCgroupIDs(pod.containers)
 		if err := addPol.polMap.addCgroupIDs(cgroupIDs); err != nil {
-			m.log.WithError(err).WithFields(logrus.Fields{
-				"policy-id":  addPol.id,
-				"pod-id":     pod.id,
-				"cgroup-ids": cgroupIDs,
-				"reason":     "labels change caused policy to match",
-			}).Warn("failed to update policy map")
+			m.log.Warn("failed to update policy map",
+				logfields.Error, err,
+				"policy-id", addPol.id,
+				"pod-id", pod.id,
+				"cgroup-ids", cgroupIDs,
+				"reason", "labels change caused policy to match")
 		} else {
 			// update cgroup map if addCgroupIDs succeeds
 			if err := addPol.polMap.addPolicyIDs(addPol.id, cgroupIDs); err != nil {
-				m.log.WithError(err).WithFields(logrus.Fields{
-					"policy-id":  addPol.id,
-					"pod-id":     pod.id,
-					"cgroup-ids": cgroupIDs,
-					"reason":     "labels change caused policy to match",
-				}).Warn("failed to update cgroup map")
+				m.log.Warn("failed to update cgroup map",
+					logfields.Error, err,
+					"policy-id", addPol.id,
+					"pod-id", pod.id,
+					"cgroup-ids", cgroupIDs,
+					"reason", "labels change caused policy to match")
 			}
 		}
 	}
@@ -858,12 +851,12 @@ func (m *state) applyPodPolicyDiff(pod *podInfo, polDiff *policiesDiffRes) {
 	for _, delPol := range polDiff.deletedPolicies {
 		cgroupIDs = delPol.matchingContainersCgroupIDs(pod.containers)
 		if err := delPol.polMap.delCgroupIDs(delPol.id, cgroupIDs); err != nil {
-			m.log.WithError(err).WithFields(logrus.Fields{
-				"policy-id":  delPol.id,
-				"pod-id":     pod.id,
-				"cgroup-ids": cgroupIDs,
-				"reason":     "labels change caused policy to unmatch",
-			}).Warn("failed to update policy map")
+			m.log.Warn("failed to update policy map",
+				logfields.Error, err,
+				"policy-id", delPol.id,
+				"pod-id", pod.id,
+				"cgroup-ids", cgroupIDs,
+				"reason", "labels change caused policy to unmatch")
 		}
 	}
 	pod.matchedPolicies = polDiff.newMatchedPolicies
@@ -911,12 +904,12 @@ func (m *state) UpdatePod(podID PodID, namespace, workload, kind string, podLabe
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	dlog := m.DebugLogWithCallers(4).WithFields(logrus.Fields{
-		"pod-id":         podID,
-		"namespace":      namespace,
-		"container-ids":  containerIDs,
-		"container-info": containerInfo,
-	})
+	dlog := m.DebugLogWithCallers(4).With(
+		"pod-id", podID,
+		"namespace", namespace,
+		"container-ids", containerIDs,
+		"container-info", containerInfo,
+	)
 
 	pod := m.findPod(podID)
 	if pod == nil {
@@ -933,12 +926,11 @@ func (m *state) UpdatePod(podID PodID, namespace, workload, kind string, podLabe
 	// and update state accordingly
 	if pod.labels.Cmp(podLabels) {
 		polDiff := m.policiesDiff(pod, podLabels)
-		m.DebugLogWithCallers(1).WithFields(logrus.Fields{
-			"pod-id":         pod.id,
-			"pod-old-labels": pod.labels,
-			"pod-new-labels": podLabels,
-			"policy-diff":    fmt.Sprintf("%+v", polDiff),
-		}).Info("UpdatePod: pod labels changed")
+		m.DebugLogWithCallers(1).Info("UpdatePod: pod labels changed",
+			"pod-id", pod.id,
+			"pod-old-labels", pod.labels,
+			"pod-new-labels", podLabels,
+			"policy-diff", fmt.Sprintf("%+v", polDiff))
 		m.applyPodPolicyDiff(pod, polDiff)
 		pod.labels = podLabels
 	}

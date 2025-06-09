@@ -41,7 +41,6 @@ import (
 	"github.com/containerd/cgroups"
 	cgroupsv2 "github.com/containerd/cgroups/v2"
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 )
 
@@ -105,7 +104,7 @@ func createCgroup(t *testing.T, dir string, pids ...uint64) policyfilter.CgroupI
 
 // TestNamespacedPolicies tests namespace filtering on tracepoints and kprobes
 func TestNamespacedPolicies(t *testing.T) {
-	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 

@@ -13,11 +13,11 @@ import (
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	exec "github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/exec/userinfo"
 	"github.com/cilium/tetragon/pkg/sensors/program"
-	"github.com/sirupsen/logrus"
 )
 
 func msgToExecveUnix(m *processapi.MsgCreateProcessEvent) *exec.MsgExecveEventUnix {
@@ -69,11 +69,11 @@ func handleExecve(r *bytes.Reader) ([]observer.Event, error) {
 	if err == nil && !empty {
 		err = userinfo.MsgToExecveAccountUnix(msgUnix.Unix)
 		if err != nil {
-			logger.GetLogger().WithFields(logrus.Fields{
-				"process.pid":    msgUnix.Unix.Process.PID,
-				"process.binary": msgUnix.Unix.Process.Filename,
-				"process.uid":    msgUnix.Unix.Process.UID,
-			}).WithError(err).Trace("Resolving process uid to username record failed")
+			logger.Trace(logger.GetLogger(), "Resolving process uid to username record failed",
+				logfields.Error, err,
+				"process.pid", msgUnix.Unix.Process.PID,
+				"process.binary", msgUnix.Unix.Process.Filename,
+				"process.uid", msgUnix.Unix.Process.UID)
 		}
 	}
 	return []observer.Event{msgUnix}, nil

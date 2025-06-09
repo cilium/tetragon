@@ -9,24 +9,22 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/event"
-	"github.com/sirupsen/logrus"
+	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func TestInvalidFilter(t *testing.T) {
-	log := logrus.New()
 	f := tetragon.Filter{CelExpression: []string{"process_exec.process.bad_field_name == 'curl'"}}
-	celFilter := NewCELExpressionFilter(log)
+	celFilter := NewCELExpressionFilter(logger.GetLogger())
 	_, err := celFilter.OnBuildFilter(context.Background(), &f)
 	require.Error(t, err)
 }
 
 func TestProcessExecFilter(t *testing.T) {
-	log := logrus.New()
 	f := []*tetragon.Filter{{CelExpression: []string{"process_exec.process.pid > uint(1)"}}}
-	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{NewCELExpressionFilter(log)})
+	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{NewCELExpressionFilter(logger.GetLogger())})
 	require.NoError(t, err)
 	ev := event.Event{
 		Event: &tetragon.GetEventsResponse{
@@ -47,9 +45,8 @@ func TestProcessExecFilter(t *testing.T) {
 }
 
 func TestProcessKprobeFilter(t *testing.T) {
-	log := logrus.New()
 	f := []*tetragon.Filter{{CelExpression: []string{"process_kprobe.function_name == 'security_file_permission'"}}}
-	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{NewCELExpressionFilter(log)})
+	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{NewCELExpressionFilter(logger.GetLogger())})
 	require.NoError(t, err)
 	ev := event.Event{
 		Event: &tetragon.GetEventsResponse{
@@ -68,9 +65,8 @@ func TestProcessKprobeFilter(t *testing.T) {
 }
 
 func TestCIDR(t *testing.T) {
-	log := logrus.New()
 	f := []*tetragon.Filter{{CelExpression: []string{"cidr('10.0.0.0/16').containsIP(process_kprobe.args[0].sock_arg.saddr)"}}}
-	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{NewCELExpressionFilter(log)})
+	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{NewCELExpressionFilter(logger.GetLogger())})
 	require.NoError(t, err)
 	ev := event.Event{
 		Event: &tetragon.GetEventsResponse{
@@ -89,9 +85,8 @@ func TestCIDR(t *testing.T) {
 }
 
 func TestIP(t *testing.T) {
-	log := logrus.New()
 	f := []*tetragon.Filter{{CelExpression: []string{"ip(process_kprobe.args[0].sock_arg.saddr).family() == 4"}}}
-	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{NewCELExpressionFilter(log)})
+	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{NewCELExpressionFilter(logger.GetLogger())})
 	require.NoError(t, err)
 	ev := event.Event{
 		Event: &tetragon.GetEventsResponse{

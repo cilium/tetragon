@@ -33,7 +33,6 @@ import (
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/google/go-cmp/cmp"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -161,7 +160,7 @@ var testCases = []struct {
 //
 // As other tracepoint tests, it uses the lseek system call with a bogus whence value.
 func TestTracepointSelectors(t *testing.T) {
-	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
@@ -235,7 +234,7 @@ func TestTracepointSelectors(t *testing.T) {
 	for _, tcs := range testCases {
 		tName := fmt.Sprintf("spec:%s%v", tcs.specOperator, tcs.specFilterVals)
 		t.Run(tName, func(t *testing.T) {
-			testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+			testutils.CaptureLog(t, logger.GetLogger())
 			t.Logf("Running %s", tName)
 			t0 := time.Now()
 			spec := makeSpec(t, tcs.specFilterVals, tcs.specOperator)
@@ -287,7 +286,7 @@ func selectorsFromWhenceVals(t *testing.T, filterWhenceVals [][]int, whenceIdx u
 }
 
 func TestKprobeSelectors(t *testing.T) {
-	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
@@ -358,7 +357,7 @@ func TestKprobeSelectors(t *testing.T) {
 	for _, tcs := range testCases {
 		tName := fmt.Sprintf("spec:%s%v", tcs.specOperator, tcs.specFilterVals)
 		t.Run(tName, func(t *testing.T) {
-			testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+			testutils.CaptureLog(t, logger.GetLogger())
 			t.Logf("Running %s", tName)
 
 			t0 := time.Now()

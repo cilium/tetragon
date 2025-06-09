@@ -31,7 +31,7 @@ func NewFile(gen *protogen.Plugin, file *protogen.File, pkg string, pkgName stri
 	importPath := filepath.Join(string(file.GoImportPath), pkg)
 	pathSuffix := filepath.Base(file.GeneratedFilenamePrefix)
 	fileName = filepath.Join(strings.TrimSuffix(file.GeneratedFilenamePrefix, pathSuffix), pkg, fileName+".pb.go")
-	logger.GetLogger().Infof("%s", fileName)
+	logger.GetLogger().Info(fileName)
 
 	g := gen.NewGeneratedFile(fileName, protogen.GoImportPath(importPath))
 	g.P(TetragonCopyrightHeader)

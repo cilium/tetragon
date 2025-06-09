@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"log/slog"
 	"math/rand"
 	"testing"
 	"time"
@@ -18,7 +19,6 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/atomic"
 	v1 "k8s.io/api/core/v1"
@@ -47,7 +47,7 @@ import (
 
 type tlog struct {
 	*testing.T
-	Logger *logrus.Logger
+	Logger *slog.Logger
 }
 
 func (tl tlog) Write(p []byte) (n int, err error) {
@@ -708,9 +708,9 @@ func TestK8s(t *testing.T) {
 	defer cancel()
 
 	// NB: using testutils.CaptureLog causes import cycle
-	log := logger.GetLogger().(*logrus.Logger)
-	lc := &tlog{T: t, Logger: log}
-	log.SetOutput(lc)
+	lc := &tlog{T: t}
+	log := slog.New(slog.NewTextHandler(lc, nil))
+	logger.DefaultSlogLogger = log
 
 	oldEnablePolicyFilterValue := option.Config.EnablePolicyFilter
 	oldEnablePolicyFilterValueDebug := option.Config.EnablePolicyFilterDebug

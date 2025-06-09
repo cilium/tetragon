@@ -6,10 +6,11 @@ package loglevel
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/cmd/tetra/common"
-	"github.com/sirupsen/logrus"
+	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -37,7 +38,7 @@ func New() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("failed to get current Tetragon log level: %w", err)
 			}
-			cmd.Printf("Current log level: %s\n", logrus.Level(currentLoglevel.GetLevel()))
+			cmd.Printf("Current log level: %s\n", currentLoglevel.GetLevel())
 
 			return nil
 		},
@@ -58,7 +59,7 @@ func New() *cobra.Command {
 				return errors.New("usage: tetra loglevel set [trace|debug|info|warning|error|fatal|panic]")
 			}
 			levelStr := args[0]
-			levelParsed, err := logrus.ParseLevel(levelStr)
+			levelParsed, err := logger.ParseLevel(levelStr)
 			if err != nil {
 				return fmt.Errorf("invalid log level: %s", levelStr)
 			}
@@ -69,16 +70,35 @@ func New() *cobra.Command {
 			}
 			defer c.Close()
 
+			var logLevel tetragon.LogLevel
+			switch levelParsed {
+			case logger.LevelTrace:
+				logLevel = tetragon.LogLevel_LOG_LEVEL_TRACE
+			case slog.LevelDebug:
+				logLevel = tetragon.LogLevel_LOG_LEVEL_DEBUG
+			case slog.LevelInfo:
+				logLevel = tetragon.LogLevel_LOG_LEVEL_INFO
+			case slog.LevelWarn:
+				logLevel = tetragon.LogLevel_LOG_LEVEL_WARN
+			case slog.LevelError:
+				logLevel = tetragon.LogLevel_LOG_LEVEL_ERROR
+			case logger.LevelPanic:
+				logLevel = tetragon.LogLevel_LOG_LEVEL_PANIC
+			case logger.LevelFatal:
+				logLevel = tetragon.LogLevel_LOG_LEVEL_FATAL
+			default:
+				logLevel = tetragon.LogLevel_LOG_LEVEL_INFO
+			}
 			currentLogLevel, err := c.Client.SetDebug(c.Ctx, &tetragon.SetDebugRequest{
 				Flag: tetragon.ConfigFlag_CONFIG_FLAG_LOG_LEVEL,
 				Arg: &tetragon.SetDebugRequest_Level{
-					Level: tetragon.LogLevel(levelParsed),
+					Level: logLevel,
 				},
 			})
 			if err != nil {
 				return fmt.Errorf("failed to set log level: %w", err)
 			}
-			cmd.Printf("Log level set to: %s\n", logrus.Level(currentLogLevel.GetLevel()))
+			cmd.Printf("Log level set to: %s\n", currentLogLevel.GetLevel())
 
 			return nil
 		},

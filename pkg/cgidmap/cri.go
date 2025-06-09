@@ -15,6 +15,7 @@ import (
 	"github.com/cilium/tetragon/pkg/cgtracker"
 	"github.com/cilium/tetragon/pkg/cri"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/metrics/crimetrics"
 	"github.com/cilium/tetragon/pkg/option"
 )
@@ -103,7 +104,7 @@ func criResolve(m Map, id unmappedID) error {
 	}
 
 	if err := cgtracker.AddCgroupTrackerPath(path); err != nil {
-		logger.GetLogger().WithField("cri-resolve", true).WithError(err).Warn("failed to add path to cgroup tracker")
+		logger.GetLogger().Warn("failed to add path to cgroup tracker", "cri-resolve", true, logfields.Error, err)
 	}
 	m.Add(id.podID, id.contID, cgID)
 	return nil
@@ -132,7 +133,7 @@ func newCriResolver(m Map) *criResolver {
 			err := criResolve(m, id)
 			if err != nil {
 				crimetrics.CriResolutionErrorsTotal.WithLabelValues().Inc()
-				logger.GetLogger().WithError(err).Warn("criResolve failed")
+				logger.GetLogger().Warn("criResolve failed", logfields.Error, err)
 			}
 			crimetrics.CriResolutionsTotal.WithLabelValues().Inc()
 			ret.mu.Lock()

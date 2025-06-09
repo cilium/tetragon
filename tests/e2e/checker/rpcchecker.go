@@ -12,7 +12,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -28,7 +27,6 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/multiplexer"
 	"github.com/cilium/tetragon/tests/e2e/state"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -274,24 +272,24 @@ func (rc *RPCChecker) check(ctx context.Context, allowList, denyList []*tetragon
 			}
 
 			// FIXME: refactor eventchecker so we can use klog here
-			log := logger.GetLogger().(*logrus.Logger)
-			mw := io.MultiWriter(os.Stderr, rc.logs)
-			log.SetOutput(mw)
+			log := logger.GetLogger()
+			//mw := io.MultiWriter(os.Stderr, rc.logs)
+			//log.SetOutput(mw)
 
 			done, err := ec.NextResponseCheck(rc.checker, event, log)
 			if done && err == nil {
-				log.Infof("%s => FINAL MATCH ", prefix)
-				log.Infof("DONE!")
+				log.Info(prefix + " => FINAL MATCH ")
+				log.Info("DONE!")
 				rc.checker.FinalCheck(nil) // reset event checker
 				return nil
 			} else if err == nil {
-				log.Infof("%s => MATCH, continuing", prefix)
+				log.Info(prefix + " => MATCH, continuing")
 			} else if done {
-				log.Errorf("%s => terminating error: %s", prefix, err)
+				log.Error(fmt.Sprintf("%s => terminating error: %s", prefix, err))
 				rc.checker.FinalCheck(nil) // reset event checker
 				return err
 			} else {
-				log.Infof("%s => no match: %s, continuing", prefix, err)
+				log.Info(fmt.Sprintf("%s => no match: %s, continuing", prefix, err))
 			}
 		}
 	}

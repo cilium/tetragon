@@ -4,15 +4,14 @@
 package test
 
 import (
+	"log/slog"
 	"os/exec"
 	"runtime"
 	"testing"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/pkg/testutils"
-	"github.com/sirupsen/logrus"
-
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
+	"github.com/cilium/tetragon/pkg/testutils"
 )
 
 //revive:disable
@@ -75,7 +74,7 @@ func (tc *TestEventChecker) update(ev ec.Event) {
 	}
 }
 
-func (tc *TestEventChecker) NextEventCheck(ev ec.Event, l *logrus.Logger) (bool, error) {
+func (tc *TestEventChecker) NextEventCheck(ev ec.Event, l *slog.Logger) (bool, error) {
 	if tc.completionChecker.Done() {
 		l.Info("seen events on all CPUs, finalizing test")
 		return true, tc.eventChecker.FinalCheck(l)
@@ -94,7 +93,7 @@ func (tc *TestEventChecker) NextEventCheck(ev ec.Event, l *logrus.Logger) (bool,
 	return false, err
 }
 
-func (tc *TestEventChecker) FinalCheck(l *logrus.Logger) error {
+func (tc *TestEventChecker) FinalCheck(l *slog.Logger) error {
 	// this means that we run out of events before seeing all test events.
 	// Just return what the underlying checker returns
 	tc.completionChecker.Reset()

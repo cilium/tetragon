@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/pkg/fieldfilters"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
-	"github.com/sirupsen/logrus"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api"
@@ -286,14 +286,13 @@ func initProcessInternalExec(
 	binary := path.GetBinaryAbsolutePath(process.Filename, cwd)
 	apiNs, err := namespace.GetMsgNamespaces(event.Msg.Namespaces)
 	if err != nil {
-		logger.GetLogger().WithFields(logrus.Fields{
-			"event.name":            "Execve",
-			"event.process.pid":     process.PID,
-			"event.process.tid":     process.TID,
-			"event.process.binary":  binary,
-			"event.process.exec_id": execID,
-			"event.parent.exec_id":  parentExecID,
-		}).Warn("ExecveEvent: parsing namespaces failed")
+		logger.GetLogger().Warn("ExecveEvent: parsing namespaces failed",
+			"event.name", "Execve",
+			"event.process.pid", process.PID,
+			"event.process.tid", process.TID,
+			"event.process.binary", binary,
+			"event.process.exec_id", execID,
+			"event.parent.exec_id", parentExecID)
 	}
 
 	apiCreds := &tetragon.ProcessCredentials{
@@ -339,14 +338,13 @@ func initProcessInternalExec(
 	// kernel threads PID will be 0, so instead of checking against 0,
 	// assert that TGID == TID
 	if process.PID != process.TID {
-		logger.GetLogger().WithFields(logrus.Fields{
-			"event.name":            "Execve",
-			"event.process.pid":     process.PID,
-			"event.process.tid":     process.TID,
-			"event.process.binary":  binary,
-			"event.process.exec_id": execID,
-			"event.parent.exec_id":  parentExecID,
-		}).Warn("ExecveEvent: process PID and TID mismatch")
+		logger.GetLogger().Warn("ExecveEvent: process PID and TID mismatch",
+			"event.name", "Execve",
+			"event.process.pid", process.PID,
+			"event.process.tid", process.TID,
+			"event.process.binary", binary,
+			"event.process.exec_id", execID,
+			"event.parent.exec_id", parentExecID)
 		// Explicitly reset TID to be PID
 		process.TID = process.PID
 		errormetrics.ErrorTotalInc(errormetrics.ProcessPidTidMismatch)
@@ -407,11 +405,11 @@ func initProcessInternalClone(event *tetragonAPI.MsgCloneEvent,
 	pi := parent.cloneInternalProcessCopy()
 	if pi.process == nil {
 		err := errors.New("failed to clone parent process from cache")
-		logger.GetLogger().WithFields(logrus.Fields{
-			"event.name":           "Clone",
-			"event.parent.pid":     event.Parent.Pid,
-			"event.parent.exec_id": parentExecId,
-		}).WithError(err).Debug("CloneEvent: parent process information is missing")
+		logger.GetLogger().Debug("CloneEvent: parent process information is missing",
+			logfields.Error, err,
+			"event.name", "Clone",
+			"event.parent.pid", event.Parent.Pid,
+			"event.parent.exec_id", parentExecId)
 		return nil, err
 	}
 
@@ -422,13 +420,12 @@ func initProcessInternalClone(event *tetragonAPI.MsgCloneEvent,
 	//  Since from BPF side we only generate one clone event per
 	//  thread group that is for the leader, assert on that.
 	if event.PID != event.TID {
-		logger.GetLogger().WithFields(logrus.Fields{
-			"event.name":            "Clone",
-			"event.process.pid":     event.PID,
-			"event.process.tid":     event.TID,
-			"event.process.exec_id": pi.process.ExecId,
-			"event.parent.exec_id":  parentExecId,
-		}).Debug("CloneEvent: process PID and TID mismatch")
+		logger.GetLogger().Debug("CloneEvent: process PID and TID mismatch",
+			"event.name", "Clone",
+			"event.process.pid", event.PID,
+			"event.process.tid", event.TID,
+			"event.process.exec_id", pi.process.ExecId,
+			"event.parent.exec_id", parentExecId)
 		errormetrics.ErrorTotalInc(errormetrics.ProcessPidTidMismatch)
 	}
 	// Set the TID here and if we have an exit without an exec we report
@@ -470,12 +467,18 @@ func GetParentProcessInternal(pid uint32, ktime uint64) (*ProcessInternal, *Proc
 	processID := GetProcessID(pid, ktime)
 
 	if process, err = procCache.get(processID); err != nil {
-		logger.GetLogger().WithField("id in event", processID).WithField("pid", pid).WithField("ktime", ktime).Debug("process not found in cache")
+		logger.GetLogger().Debug("process not found in cache",
+			"id in event", processID,
+			"pid", pid,
+			"ktime", ktime)
 		return nil, nil
 	}
 
 	if parent, err = procCache.get(process.process.ParentExecId); err != nil {
-		logger.GetLogger().WithField("id in event", process.process.ParentExecId).WithField("pid", pid).WithField("ktime", ktime).Debug("parent process not found in cache")
+		logger.GetLogger().Debug("parent process not found in cache",
+			"id in event", processID,
+			"pid", pid,
+			"ktime", ktime)
 		return process, nil
 	}
 	return process, parent
@@ -495,7 +498,9 @@ func GetAncestorProcessesInternal(execId string) ([]*ProcessInternal, error) {
 	// No need to include <kernel> process (PID 0)
 	for process.process.Pid.Value > 2 {
 		if process, err = procCache.get(process.process.ParentExecId); err != nil {
-			logger.GetLogger().WithError(err).WithField("id in event", execId).Debug("ancestor process not found in cache")
+			logger.GetLogger().Debug("ancestor process not found in cache",
+				logfields.Error, err,
+				"id in event", execId)
 			break
 		}
 		ancestors = append(ancestors, process)
@@ -524,11 +529,11 @@ func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) (*ProcessInternal, error) {
 	parentExecId := GetProcessID(event.Parent.Pid, event.Parent.Ktime)
 	parent, err := Get(parentExecId)
 	if err != nil {
-		logger.GetLogger().WithFields(logrus.Fields{
-			"event.name":           "Clone",
-			"event.parent.pid":     event.Parent.Pid,
-			"event.parent.exec_id": parentExecId,
-		}).WithError(err).Debug("CloneEvent: parent process not found in cache")
+		logger.GetLogger().Debug("CloneEvent: parent process not found in cache",
+			logfields.Error, err,
+			"event.name", "Clone",
+			"event.parent.pid", event.Parent.Pid,
+			"event.parent.exec_id", parentExecId)
 		return nil, err
 	}
 

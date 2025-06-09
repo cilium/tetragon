@@ -16,6 +16,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/metrics/opcodemetrics"
 	"github.com/cilium/tetragon/pkg/option"
@@ -25,8 +26,6 @@ import (
 	"github.com/cilium/tetragon/pkg/strutils"
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
-
-	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -57,15 +56,15 @@ func AllListeners(msg notify.Message) {
 }
 
 func (k *Observer) AddListener(listener Listener) {
-	k.log.WithField("listener", listener).Debug("Add listener")
+	k.log.Debug("Add listener", "listener", listener)
 	k.listeners[listener] = struct{}{}
 }
 
 func (k *Observer) RemoveListener(listener Listener) {
-	k.log.WithField("listener", listener).Debug("Delete listener")
+	k.log.Debug("Delete listener", "listener", listener)
 	delete(k.listeners, listener)
 	if err := listener.Close(); err != nil {
-		k.log.WithError(err).Warn("failed to close listener")
+		k.log.Warn("failed to close listener", logfields.Error, err)
 	}
 }
 
@@ -121,9 +120,9 @@ func (k *Observer) receiveEvent(data []byte) {
 		errormetrics.HandlerErrorsInc(ops.OpCode(op), err.kind)
 		switch err.kind {
 		case errormetrics.HandlePerfUnknownOp:
-			k.log.WithField("opcode", err.opcode).Debug("unknown opcode ignored")
+			k.log.Debug("unknown opcode ignored", "opcode", err.opcode)
 		default:
-			k.log.WithError(err).WithField("opcode", err.opcode).Debug("error occurred in event handler")
+			k.log.Debug("error occurred in event handler", "opcode", err.opcode, logfields.Error, err)
 		}
 	}
 	for _, event := range events {
@@ -139,8 +138,7 @@ func (k *Observer) getRBQueueSize() int {
 	if size == 0 {
 		size = 65535
 	}
-	k.log.WithField("size", strutils.SizeWithSuffix(size)).
-		Info("Perf ring buffer events queue size (events)")
+	k.log.Info("Perf ring buffer events queue size (events)", "size", strutils.SizeWithSuffix(size))
 	return size
 }
 
@@ -159,7 +157,7 @@ type Observer struct {
 	filterPass uint64
 	filterDrop uint64
 	/* Filters */
-	log logrus.FieldLogger
+	log logger.FieldLogger
 }
 
 // UpdateRuntimeConf() Gathers information about Tetragon runtime environment and
@@ -178,8 +176,8 @@ func (k *Observer) UpdateRuntimeConf(bpfDir string) error {
 	pid := os.Getpid()
 	err := confmap.UpdateTgRuntimeConf(bpfDir, pid)
 	if err != nil {
-		k.log.WithField("observer", "confmap-update").WithError(err).Warn("Update TetragonConf map failed, advanced Cgroups tracking will be disabled")
-		k.log.WithField("observer", "confmap-update").Warn("Continuing without advanced Cgroups tracking. Process association with Pods and Containers might be limited")
+		k.log.Warn("Update TetragonConf map failed, advanced Cgroups tracking will be disabled", "observer", "confmap-update", logfields.Error, err)
+		k.log.Warn("Continuing without advanced Cgroups tracking. Process association with Pods and Containers might be limited", "observer", "confmap-update")
 	}
 
 	return err
@@ -250,15 +248,14 @@ func (k *Observer) PrintStats() {
 	if total > 0 {
 		loss = (float64(lostCntr) * 100.0) / total
 	}
-	k.log.Infof("BPF events statistics: %d received, %.2g%% events loss", recvCntr, loss)
+	k.log.Info(fmt.Sprintf("BPF events statistics: %d received, %.2g%% events loss", recvCntr, loss))
 
-	k.log.WithFields(logrus.Fields{
-		"received":   recvCntr,
-		"lost":       lostCntr,
-		"errors":     k.ReadErrorEvents(),
-		"filterPass": k.filterPass,
-		"filterDrop": k.filterDrop,
-	}).Info("Observer events statistics")
+	k.log.Info("Observer events statistics",
+		"received", recvCntr,
+		"lost", lostCntr,
+		"errors", k.ReadErrorEvents(),
+		"filterPass", k.filterPass,
+		"filterDrop", k.filterDrop)
 }
 
 func RemoveSensors(ctx context.Context) {
@@ -271,13 +268,13 @@ func RemoveSensors(ctx context.Context) {
 func (k *Observer) LogPinnedBpf(observerDir string) {
 	finfo, err := os.Stat(observerDir)
 	if err != nil {
-		k.log.WithField("bpf-dir", observerDir).Info("BPF: resources are empty")
+		k.log.Info("BPF: resources are empty", "bpf-dir", observerDir)
 		return
 	}
 
 	if !finfo.IsDir() {
 		err := errors.New("is not a directory")
-		k.log.WithField("bpf-dir", observerDir).WithError(err).Warn("BPF: checking BPF resources failed")
+		k.log.Warn("BPF: checking BPF resources failed", "bpf-dir", observerDir, logfields.Error, err)
 		// Do not fail, let bpf part handle it
 		return
 	}
@@ -285,16 +282,14 @@ func (k *Observer) LogPinnedBpf(observerDir string) {
 	bpfRes, _ := os.ReadDir(observerDir)
 	// Do not fail, let bpf part handle it
 	if len(bpfRes) == 0 {
-		k.log.WithField("bpf-dir", observerDir).Info("BPF: resources are empty")
+		k.log.Info("BPF: resources are empty", "bpf-dir", observerDir)
 	} else {
 		res := make([]string, 0)
 		for _, b := range bpfRes {
 			res = append(res, b.Name())
 		}
-		k.log.WithFields(logrus.Fields{
-			"bpf-dir":    observerDir,
-			"pinned-bpf": fmt.Sprintf("[%s]", strings.Join(res, " ")),
-		}).Info("BPF: found active BPF resources")
+		k.log.Info("BPF: found active BPF resources", "bpf-dir", observerDir,
+			"pinned-bpf", fmt.Sprintf("[%s]", strings.Join(res, " ")))
 	}
 }
 

@@ -19,13 +19,13 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"go.uber.org/multierr"
 	"golang.org/x/sys/unix"
 
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
-	"github.com/sirupsen/logrus"
 )
 
 type deploymentEnv struct {
@@ -183,30 +183,28 @@ func parseCgroupv1SubSysIds(filePath string) error {
 					CgroupControllers[i].Idx = uint32(idx)
 					CgroupControllers[i].Active = true
 				} else {
-					logger.GetLogger().WithFields(logrus.Fields{
-						"cgroup.fs":              cgroupFSPath,
-						"cgroup.controller.name": controller.Name,
-					}).WithError(err).Warnf("Cgroupv1 parsing controller line from '%s' failed", filePath)
+					logger.GetLogger().Warn(fmt.Sprintf("Cgroupv1 parsing controller line from '%s' failed", filePath),
+						logfields.Error, err,
+						"cgroup.fs", cgroupFSPath,
+						"cgroup.controller.name", controller.Name)
 				}
 			}
 		}
 		idx++
 	}
 
-	logger.GetLogger().WithFields(logrus.Fields{
-		"cgroup.fs":          cgroupFSPath,
-		"cgroup.controllers": fmt.Sprintf("[%s]", strings.Join(allcontrollers, " ")),
-	}).Debugf("Cgroupv1 available controllers")
+	logger.GetLogger().Debug("Cgroupv1 available controllers",
+		"cgroup.fs", cgroupFSPath,
+		"cgroup.controllers", fmt.Sprintf("[%s]", strings.Join(allcontrollers, " ")))
 
 	for _, controller := range CgroupControllers {
 		// Print again everything that is available and if not, fail with error
 		if controller.Active {
-			logger.GetLogger().WithFields(logrus.Fields{
-				"cgroup.fs":                     cgroupFSPath,
-				"cgroup.controller.name":        controller.Name,
-				"cgroup.controller.hierarchyID": controller.Id,
-				"cgroup.controller.index":       controller.Idx,
-			}).Infof("Cgroupv1 supported controller '%s' is active on the system", controller.Name)
+			logger.GetLogger().Info(fmt.Sprintf("Cgroupv1 supported controller '%s' is active on the system", controller.Name),
+				"cgroup.fs", cgroupFSPath,
+				"cgroup.controller.name", controller.Name,
+				"cgroup.controller.hierarchyID", controller.Id,
+				"cgroup.controller.index", controller.Idx)
 		} else {
 			var err error
 			// Warn with error
@@ -216,11 +214,12 @@ func parseCgroupv1SubSysIds(filePath string) error {
 			case "cpuset":
 				err = errors.New("Cgroupv1 controller 'cpuset' is not active, ensure kernel CONFIG_CPUSETS=y and CONFIG_CPUSETS_V1=y are set")
 			default:
-				logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).Warnf("Cgroupv1 '%s' supported controller is missing", controller.Name)
+				logger.GetLogger().Warn(fmt.Sprintf("Cgroupv1 '%s' supported controller is missing", controller.Name), "cgroup.fs", cgroupFSPath)
 			}
 
 			if err != nil {
-				logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).WithError(err).Warnf("Cgroupv1 '%s' supported controller is missing", controller.Name)
+				logger.GetLogger().Warn(fmt.Sprintf("Cgroupv1 '%s' supported controller is missing", controller.Name),
+					logfields.Error, err, "cgroup.fs", cgroupFSPath)
 				return err
 			}
 		}
@@ -348,7 +347,7 @@ func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
 	for _, controller := range CgroupControllers {
 		// First lets go again over list of active controllers
 		if !controller.Active {
-			logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).Debugf("Cgroup controller '%s' is not active", controller.Name)
+			logger.GetLogger().Debug(fmt.Sprintf("Cgroup controller '%s' is not active", controller.Name), "cgroup.fs", cgroupFSPath)
 			continue
 		}
 
@@ -358,19 +357,17 @@ func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
 				path := s[idx+1:]
 				cgroupPath := filepath.Join(cgroupFSPath, controller.Name, path)
 				finalpath := filepath.Join(cgroupPath, "cgroup.procs")
-				logger.GetLogger().WithFields(logrus.Fields{
-					"cgroup.fs":              cgroupFSPath,
-					"cgroup.controller.name": controller.Name,
-					"cgroup.path":            cgroupPath,
-				}).Tracef("Cgroupv1 probing environment and deployment detection")
+				logger.GetLogger().Debug("Cgroupv1 probing environment and deployment detection",
+					"cgroup.fs", cgroupFSPath,
+					"cgroup.controller.name", controller.Name,
+					"cgroup.path", cgroupPath)
 				_, err := os.Stat(finalpath)
 				if err != nil {
 					// Probably running from root hierarchy or namespaced
 					// run the detection again.
-					logger.GetLogger().WithFields(logrus.Fields{
-						"cgroup.fs":              cgroupFSPath,
-						"cgroup.controller.name": controller.Name,
-					}).Tracef("Cgroupv1 detected namespaces or running from root hierarchy, trying again")
+					logger.GetLogger().Debug("Cgroupv1 detected namespaces or running from root hierarchy, trying again",
+						"cgroup.fs", cgroupFSPath,
+						"cgroup.controller.name", controller.Name)
 					err = setDeploymentMode(path)
 					if err == nil {
 						mode := GetDeploymentMode()
@@ -384,30 +381,28 @@ func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
 				}
 
 				if err != nil {
-					logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).WithError(err).Warnf("Failed to validate Cgroupv1 path '%s'", finalpath)
+					logger.GetLogger().Warn(fmt.Sprintf("Failed to validate Cgroupv1 path '%s'", finalpath), "cgroup.fs", cgroupFSPath, logfields.Error, err)
 					continue
 				}
 
 				// Run the deployment mode detection last again, fine to rerun.
 				err = setDeploymentMode(path)
 				if err != nil {
-					logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).WithError(err).Warn("Failed to detect deployment mode from Cgroupv1 path")
+					logger.GetLogger().Warn("Failed to detect deployment mode from Cgroupv1 path", "cgroup.fs", cgroupFSPath, logfields.Error, err)
 					continue
 				}
 
-				logger.GetLogger().WithFields(logrus.Fields{
-					"cgroup.fs":                     cgroupFSPath,
-					"cgroup.controller.name":        controller.Name,
-					"cgroup.controller.hierarchyID": controller.Id,
-					"cgroup.controller.index":       controller.Idx,
-				}).Infof("Cgroupv1 controller '%s' will be used", controller.Name)
+				logger.GetLogger().Info(fmt.Sprintf("Cgroupv1 controller '%s' will be used", controller.Name),
+					"cgroup.fs", cgroupFSPath,
+					"cgroup.controller.name", controller.Name,
+					"cgroup.controller.hierarchyID", controller.Id,
+					"cgroup.controller.index", controller.Idx)
 
 				setCgrpHierarchyID(&controller)
 				setCgrpv1SubsystemIdx(&controller)
-				logger.GetLogger().WithFields(logrus.Fields{
-					"cgroup.fs":   cgroupFSPath,
-					"cgroup.path": cgroupPath,
-				}).Info("Cgroupv1 hierarchy validated successfully")
+				logger.GetLogger().Info("Cgroupv1 hierarchy validated successfully",
+					"cgroup.fs", cgroupFSPath,
+					"cgroup.path", cgroupPath)
 				return finalpath, nil
 			}
 		}
@@ -431,12 +426,11 @@ func checkCgroupv2Controllers(cgroupPath string) error {
 		return fmt.Errorf("no active controllers from '%s'", file)
 	}
 
-	logger.GetLogger().WithFields(logrus.Fields{
-		"cgroup.fs":          cgroupFSPath,
-		"cgroup.path":        cgroupPath,
-		"cgroup.controllers": strings.Fields(activeControllers),
-		"cgroup.hierarchyID": CGROUP_DEFAULT_HIERARCHY,
-	}).Info("Cgroupv2 supported controllers detected successfully")
+	logger.GetLogger().Info("Cgroupv2 supported controllers detected successfully",
+		"cgroup.fs", cgroupFSPath,
+		"cgroup.path", cgroupPath,
+		"cgroup.controllers", strings.Fields(activeControllers),
+		"cgroup.hierarchyID", CGROUP_DEFAULT_HIERARCHY)
 
 	return nil
 }
@@ -465,7 +459,7 @@ func getValidCgroupv2Path(cgroupPaths []string) (string, error) {
 			}
 
 			if err != nil {
-				logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).WithError(err).Warnf("Failed to validate Cgroupv2 path '%s'", finalpath)
+				logger.GetLogger().Warn(fmt.Sprintf("Failed to validate Cgroupv2 path '%s'", finalpath), "cgroup.fs", cgroupFSPath, logfields.Error, err)
 				break
 			}
 
@@ -477,21 +471,20 @@ func getValidCgroupv2Path(cgroupPaths []string) (string, error) {
 			// context, that should be same for all other k8s hierarchy.
 			err = checkCgroupv2Controllers(cgroupPath)
 			if err != nil {
-				logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).WithError(err).Warnf("Cgroupv2: failed to detect current active controllers")
+				logger.GetLogger().Warn("Cgroupv2: failed to detect current active controllers", "cgroup.fs", cgroupFSPath, logfields.Error, err)
 			}
 
 			// Run the deployment mode detection last again, fine to rerun.
 			err = setDeploymentMode(path)
 			if err != nil {
-				logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).WithError(err).Warn("Failed to detect deployment mode from Cgroupv2 path")
+				logger.GetLogger().Warn("Failed to detect deployment mode from Cgroupv2 path", "cgroup.fs", cgroupFSPath, logfields.Error, err)
 				break
 			}
 
 			setCgrp2HierarchyID()
-			logger.GetLogger().WithFields(logrus.Fields{
-				"cgroup.fs":   cgroupFSPath,
-				"cgroup.path": cgroupPath,
-			}).Info("Cgroupv2 hierarchy validated successfully")
+			logger.GetLogger().Info("Cgroupv2 hierarchy validated successfully",
+				"cgroup.fs", cgroupFSPath,
+				"cgroup.path", cgroupPath)
 			return finalpath, nil
 		}
 	}
@@ -523,7 +516,7 @@ func findMigrationPath(pid uint32) (string, error) {
 
 	cgroupPaths, err := getPidCgroupPaths(pid)
 	if err != nil {
-		logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).WithError(err).Warnf("Unable to get Cgroup paths for pid=%d", pid)
+		logger.GetLogger().Warn(fmt.Sprintf("Unable to get Cgroup paths for pid=%d", pid), "cgroup.fs", cgroupFSPath, logfields.Error, err)
 		return "", err
 	}
 
@@ -547,7 +540,7 @@ func findMigrationPath(pid uint32) (string, error) {
 		}
 
 		if err != nil {
-			logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).WithError(err).Warnf("Unable to find Cgroup migration path for pid=%d", pid)
+			logger.GetLogger().Warn(fmt.Sprintf("Unable to find Cgroup migration path for pid=%d", pid), "cgroup.fs", cgroupFSPath, logfields.Error, err)
 		}
 	})
 
@@ -593,19 +586,18 @@ func DetectCgroupMode() (CgroupModeCode, error) {
 		cgroupFSPath = defaultCgroupRoot
 		cgroupMode, err = detectCgroupMode(cgroupFSPath)
 		if err != nil {
-			logger.GetLogger().WithError(err).WithField("cgroup.fs", cgroupFSPath).Debug("Could not detect Cgroup Mode")
+			logger.GetLogger().Debug("Could not detect Cgroup Mode", "cgroup.fs", cgroupFSPath, logfields.Error, err)
 			cgroupMode, err = detectCgroupMode(defaults.Cgroup2Dir)
 			if err != nil {
-				logger.GetLogger().WithError(err).WithField("cgroup.fs", defaults.Cgroup2Dir).Debug("Could not detect Cgroup Mode")
+				logger.GetLogger().Debug("Could not detect Cgroup Mode", "cgroup.fs", defaults.Cgroup2Dir, logfields.Error, err)
 			} else {
 				cgroupFSPath = defaults.Cgroup2Dir
 			}
 		}
 		if cgroupMode != CGROUP_UNDEF {
-			logger.GetLogger().WithFields(logrus.Fields{
-				"cgroup.fs":   cgroupFSPath,
-				"cgroup.mode": cgroupMode.String(),
-			}).Infof("Cgroup mode detection succeeded")
+			logger.GetLogger().Info("Cgroup mode detection succeeded",
+				"cgroup.fs", cgroupFSPath,
+				"cgroup.mode", cgroupMode.String())
 		}
 	})
 
@@ -637,24 +629,20 @@ func DetectDeploymentMode() (DeploymentCode, error) {
 	detectDeploymentOnce.Do(func() {
 		_, err := detectDeploymentMode()
 		if err != nil {
-			logger.GetLogger().WithFields(logrus.Fields{
-				"cgroup.fs": cgroupFSPath,
-			}).WithError(err).Warn("Detection of deployment mode failed")
+			logger.GetLogger().Warn("Detection of deployment mode failed", "cgroup.fs", cgroupFSPath, logfields.Error, err)
 			return
 		}
 	})
 
 	mode := GetDeploymentMode()
 	if mode == DEPLOY_UNKNOWN {
-		logger.GetLogger().WithFields(logrus.Fields{
-			"cgroup.fs":       cgroupFSPath,
-			"deployment.mode": DeploymentCode(mode).String(),
-		}).Warn("Deployment mode detection failed")
+		logger.GetLogger().Warn("Deployment mode detection failed",
+			"cgroup.fs", cgroupFSPath,
+			"deployment.mode", DeploymentCode(mode).String())
 	} else {
-		logger.GetLogger().WithFields(logrus.Fields{
-			"cgroup.fs":       cgroupFSPath,
-			"deployment.mode": DeploymentCode(mode).String(),
-		}).Info("Deployment mode detection succeeded")
+		logger.GetLogger().Info("Deployment mode detection succeeded",
+			"cgroup.fs", cgroupFSPath,
+			"deployment.mode", DeploymentCode(mode).String())
 	}
 
 	return mode, nil
@@ -674,10 +662,10 @@ func DetectCgroupFSMagic() (uint64, error) {
 		switch mode {
 		case CGROUP_LEGACY, CGROUP_HYBRID:
 			/* In both legacy or Hybrid modes we switch to Cgroupv1 from bpf side. */
-			logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).Debug("Cgroup BPF helpers will run in raw Cgroup mode")
+			logger.GetLogger().Debug("Cgroup BPF helpers will run in raw Cgroup mode", "cgroup.fs", cgroupFSPath)
 			cgroupFSMagic = unix.CGROUP_SUPER_MAGIC
 		case CGROUP_UNIFIED:
-			logger.GetLogger().WithField("cgroup.fs", cgroupFSPath).Debug("Cgroup BPF helpers will run in Cgroupv2 mode or fallback to raw Cgroup on errors")
+			logger.GetLogger().Debug("Cgroup BPF helpers will run in Cgroupv2 mode or fallback to raw Cgroup on errors", "cgroup.fs", cgroupFSPath)
 			cgroupFSMagic = unix.CGROUP2_SUPER_MAGIC
 		}
 	})

@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"testing"
 	"time"
@@ -19,7 +20,6 @@ import (
 	"github.com/cilium/tetragon/tests/e2e/helpers"
 	"github.com/cilium/tetragon/tests/e2e/helpers/grpc"
 	"github.com/cilium/tetragon/tests/e2e/runners"
-	"github.com/sirupsen/logrus"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
@@ -184,7 +184,7 @@ type namespaceChecker struct {
 	matches int
 }
 
-func (nsc *namespaceChecker) NextEventCheck(event ec.Event, _ *logrus.Logger) (bool, error) {
+func (nsc *namespaceChecker) NextEventCheck(event ec.Event, _ *slog.Logger) (bool, error) {
 	// ignore non-trace point events
 	ev, ok := event.(*tetragon.ProcessTracepoint)
 	if !ok {
@@ -204,7 +204,7 @@ func (nsc *namespaceChecker) NextEventCheck(event ec.Event, _ *logrus.Logger) (b
 	return false, nil
 }
 
-func (nsc *namespaceChecker) FinalCheck(_ *logrus.Logger) error {
+func (nsc *namespaceChecker) FinalCheck(_ *slog.Logger) error {
 	if nsc.matches > 0 {
 		return nil
 	}
@@ -339,7 +339,7 @@ type podLabelChecker struct {
 	matches int
 }
 
-func (plc *podLabelChecker) NextEventCheck(event ec.Event, _ *logrus.Logger) (bool, error) {
+func (plc *podLabelChecker) NextEventCheck(event ec.Event, _ *slog.Logger) (bool, error) {
 	// ignore non-trace point events
 	ev, ok := event.(*tetragon.ProcessTracepoint)
 	if !ok {
@@ -364,7 +364,7 @@ func (plc *podLabelChecker) NextEventCheck(event ec.Event, _ *logrus.Logger) (bo
 	return false, nil
 }
 
-func (plc *podLabelChecker) FinalCheck(_ *logrus.Logger) error {
+func (plc *podLabelChecker) FinalCheck(_ *slog.Logger) error {
 	if plc.matches > 0 {
 		return nil
 	}
@@ -494,7 +494,7 @@ type containerFieldNameChecker struct {
 	matches int
 }
 
-func (cfc *containerFieldNameChecker) NextEventCheck(event ec.Event, _ *logrus.Logger) (bool, error) {
+func (cfc *containerFieldNameChecker) NextEventCheck(event ec.Event, _ *slog.Logger) (bool, error) {
 	// ignore non-trace point events
 	ev, ok := event.(*tetragon.ProcessTracepoint)
 	if !ok {
@@ -521,7 +521,7 @@ func (cfc *containerFieldNameChecker) NextEventCheck(event ec.Event, _ *logrus.L
 	return false, nil
 }
 
-func (cfc *containerFieldNameChecker) FinalCheck(_ *logrus.Logger) error {
+func (cfc *containerFieldNameChecker) FinalCheck(_ *slog.Logger) error {
 	if cfc.matches > 0 {
 		return nil
 	}
@@ -589,7 +589,7 @@ type containerFieldRepoChecker struct {
 	matches int
 }
 
-func (cfc *containerFieldRepoChecker) NextEventCheck(event ec.Event, _ *logrus.Logger) (bool, error) {
+func (cfc *containerFieldRepoChecker) NextEventCheck(event ec.Event, _ *slog.Logger) (bool, error) {
 	// ignore non-trace point events
 	ev, ok := event.(*tetragon.ProcessTracepoint)
 	if !ok {
@@ -616,7 +616,7 @@ func (cfc *containerFieldRepoChecker) NextEventCheck(event ec.Event, _ *logrus.L
 	return false, nil
 }
 
-func (cfc *containerFieldRepoChecker) FinalCheck(_ *logrus.Logger) error {
+func (cfc *containerFieldRepoChecker) FinalCheck(_ *slog.Logger) error {
 	if cfc.matches > 0 {
 		return nil
 	}

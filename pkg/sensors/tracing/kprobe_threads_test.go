@@ -12,7 +12,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
@@ -27,7 +26,7 @@ import (
 )
 
 func TestKprobeCloneThreads(t *testing.T) {
-	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	testutils.CaptureLog(t, logger.GetLogger())
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 

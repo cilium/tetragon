@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/sirupsen/logrus"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 
@@ -38,45 +38,35 @@ func k8sErrorHandler(_ context.Context, e error, _ string, _ ...interface{}) {
 		// TODO: For now log an info message once if TracingPolicy is not defined.
 		//       In the long term we should automate the CRD creation process.
 		logOnce.Do(func() {
-			logger.GetLogger().WithError(e).Infof("TracingPolicy CRD not defined")
+			logger.GetLogger().Info("TracingPolicy CRD not defined", logfields.Error, e)
 		})
 	default:
-		logger.GetLogger().WithError(e).Errorf("Kubernetes API error")
+		logger.GetLogger().Error("Kubernetes API error", logfields.Error, e)
 	}
 }
 
-func addTracingPolicy(ctx context.Context, log logrus.FieldLogger, s *sensors.Manager,
+func addTracingPolicy(ctx context.Context, log logger.FieldLogger, s *sensors.Manager,
 	obj interface{},
 ) {
 	var err error
 	switch tp := obj.(type) {
 	case *v1alpha1.TracingPolicy:
-		log.WithFields(logrus.Fields{
-			"name": tp.TpName(),
-			"info": tp.TpInfo(),
-		}).Info("adding tracing policy")
+		log.Info("adding tracing policy", "name", tp.TpName(), "info", tp.TpInfo())
 		err = s.AddTracingPolicy(ctx, tp)
 	case *v1alpha1.TracingPolicyNamespaced:
-		log.WithFields(logrus.Fields{
-			"name":      tp.TpName(),
-			"info":      tp.TpInfo(),
-			"namespace": tp.TpNamespace(),
-		}).Info("adding namespaced tracing policy")
+		log.Info("adding namespaced tracing policy", "name", tp.TpName(), "info", tp.TpInfo(), "namespace", tp.TpNamespace())
 		err = s.AddTracingPolicy(ctx, tp)
 	default:
-		log.WithFields(logrus.Fields{
-			"obj":      obj,
-			"obj-type": fmt.Sprintf("%T", obj),
-		}).Warn("addTracingPolicy: invalid type")
+		log.Warn("addTracingPolicy: invalid type", "obj", obj, "obj-type", fmt.Sprintf("%T", obj))
 		return
 	}
 
 	if err != nil {
-		log.WithError(err).Warn("adding tracing policy failed")
+		log.Warn("adding tracing policy failed", logfields.Error, err)
 	}
 }
 
-func deleteTracingPolicy(ctx context.Context, log logrus.FieldLogger, s *sensors.Manager,
+func deleteTracingPolicy(ctx context.Context, log logger.FieldLogger, s *sensors.Manager,
 	obj interface{}) {
 
 	if dfsu, ok := obj.(cache.DeletedFinalStateUnknown); ok {
@@ -86,27 +76,20 @@ func deleteTracingPolicy(ctx context.Context, log logrus.FieldLogger, s *sensors
 	var err error
 	switch tp := obj.(type) {
 	case *v1alpha1.TracingPolicy:
-		log.WithFields(logrus.Fields{
-			"name": tp.TpName(),
-			"info": tp.TpInfo(),
-		}).Info("deleting tracing policy")
+		log.Info("deleting tracing policy", "name", tp.TpName(), "info", tp.TpInfo())
 		err = s.DeleteTracingPolicy(ctx, tp.TpName(), "")
 
 	case *v1alpha1.TracingPolicyNamespaced:
-		log.WithFields(logrus.Fields{
-			"name":      tp.TpName(),
-			"info":      tp.TpInfo(),
-			"namespace": tp.TpNamespace(),
-		}).Info("deleting namespaced tracing policy")
+		log.Info("deleting namespaced tracing policy", "name", tp.TpName(), "info", tp.TpInfo(), "namespace", tp.TpNamespace())
 		err = s.DeleteTracingPolicy(ctx, tp.TpName(), tp.TpNamespace())
 	}
 
 	if err != nil {
-		log.WithError(err).Warn("delete tracing policy failed")
+		log.Warn("delete tracing policy failed", logfields.Error, err)
 	}
 }
 
-func updateTracingPolicy(ctx context.Context, log logrus.FieldLogger, s *sensors.Manager,
+func updateTracingPolicy(ctx context.Context, log logger.FieldLogger, s *sensors.Manager,
 	oldObj interface{}, newObj interface{}) {
 
 	update := func(oldTp, newTp tracingpolicy.TracingPolicy) {
@@ -116,15 +99,11 @@ func updateTracingPolicy(ctx context.Context, log logrus.FieldLogger, s *sensors
 		}
 
 		if err := s.DeleteTracingPolicy(ctx, oldTp.TpName(), namespace); err != nil {
-			log.WithError(err).WithField(
-				"old-name", oldTp.TpName(),
-			).Warnf("updateTracingPolicy: failed to remove old policy")
+			log.Warn("updateTracingPolicy: failed to remove old policy", "old-name", oldTp.TpName(), logfields.Error, err)
 			return
 		}
 		if err := s.AddTracingPolicy(ctx, newTp); err != nil {
-			log.WithError(err).WithField(
-				"new-name", newTp.TpName(),
-			).Warnf("updateTracingPolicy: failed to add new policy")
+			log.Warn("updateTracingPolicy: failed to add new policy", "new-name", newTp.TpName(), logfields.Error, err)
 			return
 		}
 	}
@@ -144,10 +123,7 @@ func updateTracingPolicy(ctx context.Context, log logrus.FieldLogger, s *sensors
 			return
 		}
 
-		log.WithFields(logrus.Fields{
-			"old": oldTp.TpName(),
-			"new": newTp.TpName(),
-		}).Info("updating tracing policy")
+		log.Info("updating tracing policy", "old", oldTp.TpName(), "new", newTp.TpName())
 		update(oldTp, newTp)
 
 	case *v1alpha1.TracingPolicyNamespaced:
@@ -163,20 +139,17 @@ func updateTracingPolicy(ctx context.Context, log logrus.FieldLogger, s *sensors
 			return
 		}
 
-		log.WithFields(logrus.Fields{
-			"old": oldTp.TpName(),
-			"new": newTp.TpName(),
-		}).Info("updating namespaced tracing policy")
+		log.Info("updating namespaced tracing policy", "old", oldTp.TpName(), "new", newTp.TpName())
 		update(oldTp, newTp)
 	}
 
 	if err != nil {
-		log.WithFields(logrus.Fields{
-			"old-obj":      oldObj,
-			"old-obj-type": fmt.Sprintf("%T", oldObj),
-			"new-obj":      newObj,
-			"new-obj-type": fmt.Sprintf("%T", newObj),
-		}).Warnf("updateTracingPolicy: %s", err.Error())
+		log.Warn("updateTracingPolicy error",
+			logfields.Error, err,
+			"old-obj", oldObj,
+			"old-obj-type", fmt.Sprintf("%T", oldObj),
+			"new-obj", newObj,
+			"new-obj-type", fmt.Sprintf("%T", newObj))
 	}
 }
 

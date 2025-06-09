@@ -27,7 +27,7 @@ func GetRegistry() *prometheus.Registry {
 func EnableMetrics(address string) {
 	reg := GetRegistry()
 
-	logger.GetLogger().WithField("addr", address).Info("Starting metrics server")
+	logger.GetLogger().Info("Starting metrics server", "addr", address)
 	http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
 	http.ListenAndServe(address, nil)
 }
