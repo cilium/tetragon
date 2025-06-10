@@ -678,8 +678,17 @@ func createGenericKprobeSensor(
 		Namespace: polInfo.namespace,
 		DestroyHook: func() error {
 			var errs error
+
 			for _, id := range ids {
-				_, err := genericKprobeTable.RemoveEntry(id)
+				gk, err := genericKprobeTableGet(id)
+				if err != nil {
+					errs = errors.Join(errs, err)
+					continue
+				}
+
+				selectors.CleanupKernelSelectorState(gk.loadArgs.selectors.entry)
+
+				_, err = genericKprobeTable.RemoveEntry(id)
 				if err != nil {
 					errs = errors.Join(errs, err)
 				}
