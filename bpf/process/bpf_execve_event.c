@@ -53,6 +53,13 @@ struct {
 	__type(value, mbset_t);
 } tg_mbset_map SEC(".maps");
 
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, __u32);
+	__type(value, mbset_t);
+} tg_mbset_removal SEC(".maps");
+
 FUNC_INLINE __u32
 read_args(void *ctx, struct msg_execve_event *event)
 {
@@ -270,15 +277,22 @@ execve_rate(void *ctx __arg_ctx)
 FUNC_INLINE
 void update_mb_bitset(struct binary *bin)
 {
-	__u64 *bitsetp;
+	__u64 *bitsetp, *maskp, mask;
 	struct execve_map_value *parent;
+	__u32 zero = 0;
+
+	maskp = map_lookup_elem(&tg_mbset_removal, &zero);
+	if (!maskp)
+		return;
+
+	mask = ~(*maskp);
 
 	parent = event_find_parent();
 	if (parent) {
 		/* ->mb_bitset is used to track matchBinary matches to children (followChildren), so
 		 * here we propagate the parent value to the child.
 		 */
-		bin->mb_bitset |= parent->bin.mb_bitset;
+		bin->mb_bitset |= parent->bin.mb_bitset & mask;
 	}
 
 	/* check the map and see if the binary path matches a binary
@@ -286,7 +300,7 @@ void update_mb_bitset(struct binary *bin)
 	 */
 	bitsetp = map_lookup_elem(&tg_mbset_map, bin->path);
 	if (bitsetp)
-		bin->mb_bitset |= *bitsetp;
+		bin->mb_bitset |= *bitsetp & mask;
 }
 
 /**

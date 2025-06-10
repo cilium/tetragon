@@ -17,6 +17,7 @@ import (
 
 const (
 	MapName       = "tg_mbset_map"
+	RemovalName   = "tg_mbset_removal"
 	ExecveMapName = "execve_map"
 	InvalidID     = ^uint32(0)
 	MaxIDs        = 64 // this value should correspond to the number of bits we can fit in mbset_t
@@ -73,15 +74,26 @@ func (s *state) RemoveID(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byte
 	}
 	defer mbsetMap.Close()
 
+	mbsetRem, err := openMap(RemovalName)
+	if err != nil {
+		return fmt.Errorf("failed to open mbset removal map: %w", err)
+	}
+	defer mbsetRem.Close()
+
 	hash, err := openMap(ExecveMapName)
 	if err != nil {
 		return fmt.Errorf("failed to open execve_map hash map: %w", err)
 	}
 	defer hash.Close()
 
-	// clean mbset_map
 	bit := uint64(1) << id
 
+	// mark removal values
+	if err := mbsetRem.Update(uint32(0), uint64(bit), 0); err != nil {
+		return fmt.Errorf("failed to update mbset removal: %w", err)
+	}
+
+	// clean mbset_map
 	for _, path := range paths {
 		var val bitSet
 
@@ -121,6 +133,11 @@ func (s *state) RemoveID(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byte
 		if err := hash.Update(upd.key, upd.val, ebpf.UpdateExist); err != nil {
 			return fmt.Errorf("failed to update mbset map: %w", err)
 		}
+	}
+
+	// clear removal values
+	if err := mbsetRem.Update(uint32(0), uint64(0), 0); err != nil {
+		return fmt.Errorf("failed to update mbset removal: %w", err)
 	}
 
 	if _, ok := s.ids[id]; !ok {
