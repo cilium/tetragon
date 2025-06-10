@@ -1403,6 +1403,18 @@ func InitKernelReturnSelectorState(selectors []v1alpha1.KProbeSelector, returnAr
 	return createKernelSelectorState(selectors, listReader, maps, parse)
 }
 
+func CleanupKernelSelectorState(state *KernelSelectorState) error {
+	var errs error
+
+	for selectorID, paths := range state.MatchBinariesPaths() {
+		sel := state.MatchBinaries()[selectorID]
+		if err := mbset.RemoveID(sel.MBSetID, paths); err != nil {
+			errs = errors.Join(errs, err)
+		}
+	}
+	return errs
+}
+
 func HasOverride(spec *v1alpha1.KProbeSpec) bool {
 	for _, s := range spec.Selectors {
 		for _, action := range s.MatchActions {
