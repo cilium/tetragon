@@ -12,12 +12,14 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
 )
 
 const (
-	MapName   = "tg_mbset_map"
-	InvalidID = ^uint32(0)
-	MaxIDs    = 64 // this value should correspond to the number of bits we can fit in mbset_t
+	MapName       = "tg_mbset_map"
+	ExecveMapName = "execve_map"
+	InvalidID     = ^uint32(0)
+	MaxIDs        = 64 // this value should correspond to the number of bits we can fit in mbset_t
 )
 
 type bitSet = uint64
@@ -54,6 +56,79 @@ func (s *state) AllocID() (uint32, error) {
 		}
 	}
 	return 0, errors.New("cannot allocate new id")
+}
+
+type execve struct {
+	key execvemap.ExecveKey
+	val execvemap.ExecveValue
+}
+
+func (s *state) RemoveID(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byte) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	mbsetMap, err := openMap(MapName)
+	if err != nil {
+		return fmt.Errorf("failed to open mbset map: %w", err)
+	}
+	defer mbsetMap.Close()
+
+	hash, err := openMap(ExecveMapName)
+	if err != nil {
+		return fmt.Errorf("failed to open execve_map hash map: %w", err)
+	}
+	defer hash.Close()
+
+	// clean mbset_map
+	bit := uint64(1) << id
+
+	for _, path := range paths {
+		var val bitSet
+
+		err := mbsetMap.Lookup(path, &val)
+		if err != nil {
+			return fmt.Errorf("failed to lookup mbset map: %w", err)
+		}
+
+		val &= ^bit
+
+		if val != 0 {
+			if err := mbsetMap.Update(path, val, ebpf.UpdateExist); err != nil {
+				return fmt.Errorf("failed to update mbset map: %w", err)
+			}
+		} else {
+			if err := mbsetMap.Delete(path); err != nil {
+				return fmt.Errorf("failed to remove mbset map: %w", err)
+			}
+		}
+	}
+
+	// clean execve_map_val
+	var tmp execve
+	var update []execve
+
+	iter := hash.Iterate()
+	for iter.Next(&tmp.key, &tmp.val) {
+		if tmp.val.Binary.MBSet&bit != 0 {
+			v := tmp
+			update = append(update, v)
+		}
+	}
+
+	// TODO batch update
+	for _, upd := range update {
+		upd.val.Binary.MBSet &= ^bit
+		if err := hash.Update(upd.key, upd.val, ebpf.UpdateExist); err != nil {
+			return fmt.Errorf("failed to update mbset map: %w", err)
+		}
+	}
+
+	if _, ok := s.ids[id]; !ok {
+		return fmt.Errorf("cannot find id %d", id)
+	}
+	delete(s.ids, id)
+
+	return nil
 }
 
 // UpadteMap updates the map for a given id and its paths
@@ -112,6 +187,10 @@ func getState() *state {
 
 func AllocID() (uint32, error) {
 	return getState().AllocID()
+}
+
+func RemoveID(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byte) error {
+	return getState().RemoveID(id, paths)
 }
 
 func UpdateMap(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byte) error {
