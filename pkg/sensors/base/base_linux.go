@@ -30,6 +30,7 @@ func GetDefaultMaps() []*program.Map {
 		TetragonConfMap,
 		StatsMap,
 		MatchBinariesSetMap,
+		MatchBinariesSetRemoval,
 		ErrMetricsMap,
 	}
 	return maps

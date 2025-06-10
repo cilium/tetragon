@@ -17,6 +17,7 @@ import (
 
 const (
 	MapName       = "tg_mbset_map"
+	RemovalName   = "tg_mbset_removal"
 	ExecveMapName = "execve_map"
 	InvalidID     = ^uint32(0)
 	MaxIDs        = 64 // this value should correspond to the number of bits we can fit in mbset_t
@@ -73,15 +74,23 @@ func (s *state) RemoveID(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byte
 	// so we need to release them when the policy is removed.
 	//
 	// We need to:
-	// 1) clean up mbset_map and unset ID bit from all its records
-	// 2) clean up execve_map and unset ID bit from all its binary records
-	// 3) remove id from the state map
+	// 1) set ID in tg_mbset_removal map
+	// 2) clean up mbset_map and unset ID bit from all its records
+	// 3) clean up execve_map and unset ID bit from all its binary records
+	// 4) remove id from the state map
+	// 5) unset ID in tg_mbset_removal map
 
 	mbsetMap, err := openMap(MapName)
 	if err != nil {
 		return fmt.Errorf("failed to open mbset map: %w", err)
 	}
 	defer mbsetMap.Close()
+
+	mbsetRem, err := openMap(RemovalName)
+	if err != nil {
+		return fmt.Errorf("failed to open mbset removal map: %w", err)
+	}
+	defer mbsetRem.Close()
 
 	hash, err := openMap(ExecveMapName)
 	if err != nil {
@@ -91,7 +100,12 @@ func (s *state) RemoveID(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byte
 
 	bit := uint64(1) << id
 
-	// 1) Clean up mbset_map
+	// 1) Set ID in tg_mbset_removal map
+	if err := mbsetRem.Update(uint32(0), uint64(bit), 0); err != nil {
+		return fmt.Errorf("failed to update mbset removal: %w", err)
+	}
+
+	// 2) Clean up mbset_map
 	for _, path := range paths {
 		var val bitSet
 
@@ -113,7 +127,7 @@ func (s *state) RemoveID(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byte
 		}
 	}
 
-	// 2) Clean up execve_map_val
+	// 3) Clean up execve_map_val
 	var (
 		key  execvemap.ExecveKey
 		val  execvemap.ExecveValue
@@ -131,7 +145,12 @@ func (s *state) RemoveID(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byte
 		return err
 	}
 
-	// 3) Remove id from the state map
+	// 4) Unset ID in tg_mbset_removal map
+	if err := mbsetRem.Update(uint32(0), uint64(0), 0); err != nil {
+		return fmt.Errorf("failed to update mbset removal: %w", err)
+	}
+
+	// 5) Remove id from the state map
 	if _, ok := s.ids[id]; !ok {
 		return fmt.Errorf("cannot find id %d", id)
 	}
