@@ -380,7 +380,17 @@ func createGenericLsmSensor(
 		DestroyHook: func() error {
 			var errs error
 			for _, id := range ids {
-				_, err := genericLsmTable.RemoveEntry(id)
+				gl, err := genericLsmTableGet(id)
+				if err != nil {
+					errs = errors.Join(errs, err)
+					continue
+				}
+
+				if err = selectors.CleanupKernelSelectorState(gl.selectors); err != nil {
+					errs = errors.Join(errs, err)
+				}
+
+				_, err = genericLsmTable.RemoveEntry(id)
 				if err != nil {
 					errs = errors.Join(errs, err)
 				}
