@@ -155,12 +155,14 @@ var expectedWrite = GenericTracingPolicy{
 								Operator:              "In",
 								IsNamespaceCapability: true,
 								Values:                []string{"CAP_CHOWN", "CAP_NET_RAW"},
+								Index:                 -1,
 							},
 							{
 								Type:                  "Inheritable",
 								Operator:              "NotIn",
 								IsNamespaceCapability: false,
 								Values:                []string{"CAP_SETPCAP", "CAP_SYS_ADMIN"},
+								Index:                 -1,
 							},
 						},
 						MatchCapabilityChanges: []v1alpha1.CapabilitiesSelector{
@@ -169,6 +171,7 @@ var expectedWrite = GenericTracingPolicy{
 								Operator:              "In",
 								IsNamespaceCapability: true,
 								Values:                []string{"CAP_SYS_ADMIN", "CAP_NET_RAW"},
+								Index:                 -1,
 							},
 						},
 					},
@@ -351,6 +354,7 @@ var expectedData = GenericTracingPolicy{
 								Operator:              "In",
 								IsNamespaceCapability: true,
 								Values:                []string{"CAP_SYS_ADMIN"},
+								Index:                 -1,
 							},
 						},
 						MatchCapabilityChanges: []v1alpha1.CapabilitiesSelector{
@@ -359,6 +363,7 @@ var expectedData = GenericTracingPolicy{
 								Operator:              "In",
 								IsNamespaceCapability: true,
 								Values:                []string{"CAP_SYS_ADMIN"},
+								Index:                 -1,
 							},
 						},
 					},
