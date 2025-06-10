@@ -77,7 +77,8 @@ var (
 	ExecveJoinMapStats = program.MapBuilder("tg_execve_joined_info_map_stats", ExecveBprmCommit)
 	StatsMap           = program.MapBuilder("tg_stats_map", Execve)
 
-	MatchBinariesSetMap = program.MapBuilder(mbset.MapName, Execve)
+	MatchBinariesSetMap     = program.MapBuilder(mbset.MapName, Execve)
+	MatchBinariesSetRemoval = program.MapBuilder(mbset.RemovalName, Execve)
 
 	ErrMetricsMap = program.MapBuilder(errmetrics.MapName, Execve)
 )
