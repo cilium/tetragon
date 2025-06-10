@@ -655,6 +655,8 @@ func createGenericTracepointSensor(
 		var errs error
 
 		for _, tp := range tracepoints {
+			selectors.CleanupKernelSelectorState(tp.selectors)
+
 			_, err := genericTracepointTable.RemoveEntry(tp.tableId)
 			if err != nil {
 				errs = errors.Join(errs, err)
