@@ -300,6 +300,14 @@ func createGenericUprobeSensor(
 			var errs error
 
 			for _, id := range ids {
+				uprobeEntry, err := genericUprobeTableGet(id)
+				if err != nil {
+					errs = errors.Join(errs, err)
+					continue
+				}
+
+				selectors.CleanupKernelSelectorState(uprobeEntry.selectors)
+
 				_, err = uprobeTable.RemoveEntry(id)
 				if err != nil {
 					errs = errors.Join(errs, err)
