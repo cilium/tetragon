@@ -34,6 +34,7 @@ import (
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/ksyms"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/mbset"
 	"github.com/cilium/tetragon/pkg/metrics/kprobemetrics"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
@@ -659,8 +660,21 @@ func createGenericKprobeSensor(
 		Namespace: polInfo.namespace,
 		DestroyHook: func() error {
 			var errs error
+
 			for _, id := range ids {
-				_, err := genericKprobeTable.RemoveEntry(id)
+				gk, err := genericKprobeTableGet(id)
+				if err != nil {
+					errs = errors.Join(errs, err)
+					continue
+				}
+
+				sstate := gk.loadArgs.selectors.entry
+				for selectorID, paths := range sstate.MatchBinariesPaths() {
+					sel := sstate.MatchBinaries()[selectorID]
+					mbset.RemoveID(sel.MBSetID, paths)
+				}
+
+				_, err = genericKprobeTable.RemoveEntry(id)
 				if err != nil {
 					errs = errors.Join(errs, err)
 				}
