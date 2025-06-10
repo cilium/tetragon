@@ -12,18 +12,21 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
 )
 
 const (
-	MapName   = "tg_mbset_map"
-	InvalidID = ^uint32(0)
-	MaxIDs    = 64 // this value should correspond to the number of bits we can fit in mbset_t
+	MapName       = "tg_mbset_map"
+	RemovalName   = "tg_mbset_removal"
+	ExecveMapName = "execve_map"
+	InvalidID     = ^uint32(0)
+	MaxIDs        = 64 // this value should correspond to the number of bits we can fit in mbset_t
 )
 
 type bitSet = uint64
 
-func openMap() (*ebpf.Map, error) {
-	fname := filepath.Join(bpf.MapPrefixPath(), MapName)
+func openMap(name string) (*ebpf.Map, error) {
+	fname := filepath.Join(bpf.MapPrefixPath(), name)
 	ret, err := ebpf.LoadPinnedMap(fname, &ebpf.LoadPinOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", fname, err)
@@ -35,23 +38,40 @@ type state struct {
 	mu       sync.Mutex
 	ids      map[uint32]struct{}
 	mbsetMap *ebpf.Map
+	mbsetRem *ebpf.Map
+	hash     *ebpf.Map
 }
 
 func newState() (*state, error) {
-	m, err := openMap()
+	m, err := openMap(MapName)
 	if err != nil {
+		return nil, fmt.Errorf("failed to open map: %w", err)
+	}
+	r, err := openMap(RemovalName)
+	if err != nil {
+		m.Close()
+		return nil, fmt.Errorf("failed to open map: %w", err)
+	}
+	h, err := openMap(ExecveMapName)
+	if err != nil {
+		r.Close()
+		m.Close()
 		return nil, fmt.Errorf("failed to open map: %w", err)
 	}
 	return &state{
 		mbsetMap: m,
+		mbsetRem: r,
+		hash:     h,
 		ids:      make(map[uint32]struct{}),
 	}, nil
 }
 
-func (s *state) Close() error {
+func (s *state) Close() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.mbsetMap.Close()
+	s.mbsetMap.Close()
+	s.mbsetRem.Close()
+	s.hash.Close()
 }
 
 // AllocID allocates a new ID
@@ -66,6 +86,77 @@ func (s *state) AllocID() (uint32, error) {
 		}
 	}
 	return 0, errors.New("cannot allocate new id")
+}
+
+type execve struct {
+	key execvemap.ExecveKey
+	val execvemap.ExecveValue
+}
+
+func (s *state) RemoveID(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byte) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Mark removal values
+	if err := s.mbsetRem.Update(uint32(0), uint64(id), 0); err != nil {
+		return fmt.Errorf("failed to update mbset removal: %w", err)
+	}
+
+	// clean mbset_map
+	bit := uint64(1) << id
+
+	for _, path := range paths {
+		var val bitSet
+		var uflags ebpf.MapUpdateFlags
+
+		err := s.mbsetMap.Lookup(path, &val)
+		if err != nil {
+			return fmt.Errorf("failed to lookup mbset map: %w", err)
+		} else {
+			val &= ^bit
+			uflags = ebpf.UpdateExist
+		}
+
+		if val != 0 {
+			if err := s.mbsetMap.Update(path, val, uflags); err != nil {
+				return fmt.Errorf("failed to update mbset map: %w", err)
+			}
+		} else {
+			if err := s.mbsetMap.Delete(path); err != nil {
+				return fmt.Errorf("failed to remove mbset map: %w", err)
+			}
+		}
+	}
+
+	// clean execve_map_val
+	var tmp execve
+	var update []execve
+
+	iter := s.hash.Iterate()
+	for iter.Next(&tmp.key, &tmp.val) {
+		if tmp.val.Binary.MBSet&bit != 0 {
+			v := tmp
+			update = append(update, v)
+		}
+	}
+
+	for _, upd := range update {
+		if err := s.hash.Update(upd.key, upd.val, ebpf.UpdateExist); err != nil {
+			return fmt.Errorf("failed to update mbset map: %w", err)
+		}
+	}
+
+	// Clear removal values
+	if err := s.mbsetRem.Update(uint32(0), uint64(0), 0); err != nil {
+		return fmt.Errorf("failed to update mbset removal: %w", err)
+	}
+
+	if _, ok := s.ids[id]; !ok {
+		return fmt.Errorf("cannot find id %d", id)
+	}
+	delete(s.ids, id)
+
+	return nil
 }
 
 // UpadteMap updates the map for a given id and its paths
@@ -122,6 +213,15 @@ func AllocID() (uint32, error) {
 		return InvalidID, err
 	}
 	return s.AllocID()
+}
+
+func RemoveID(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byte) error {
+	s, err := getState()
+	if err != nil {
+		return err
+	}
+
+	return s.RemoveID(id, paths)
 }
 
 func UpdateMap(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byte) error {
