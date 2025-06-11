@@ -296,6 +296,17 @@ func createGenericUprobeSensor(
 		Maps:      maps,
 		Policy:    polInfo.name,
 		Namespace: polInfo.namespace,
+		DestroyHook: func() error {
+			var errs error
+
+			for _, id := range ids {
+				_, err = uprobeTable.RemoveEntry(id)
+				if err != nil {
+					errs = errors.Join(errs, err)
+				}
+			}
+			return errs
+		},
 	}, nil
 }
 
