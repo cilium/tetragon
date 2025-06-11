@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"path"
-	"sync"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/api/ops"
@@ -48,10 +47,7 @@ const (
 )
 
 var (
-	// Tracepoint information (genericTracepoint) is needed at load time
-	// and at the time we process the perf event from bpf-side. We keep
-	// this information on a table index by a (unique) tracepoint id.
-	genericTracepointTable = tracepointTable{}
+	genericTracepointTable idtable.Table
 
 	tracepointLog logrus.FieldLogger
 )
@@ -70,14 +66,13 @@ func init() {
 
 // genericTracepoint is the internal representation of a tracepoint
 type genericTracepoint struct {
+	tableId idtable.EntryID
+
 	Info *tracepoint.Tracepoint
 	args []genericTracepointArg
 
 	Spec     *v1alpha1.TracepointSpec
 	policyID policyfilter.PolicyID
-
-	// index to access this on genericTracepointTable
-	tableIdx int
 
 	// for tracepoints that have a GetUrl or DnsLookup action, we store the table of arguments.
 	actionArgs idtable.Table
@@ -101,6 +96,10 @@ type genericTracepoint struct {
 
 	// is raw tracepoint
 	raw bool
+}
+
+func (tp *genericTracepoint) SetID(id idtable.EntryID) {
+	tp.tableId = id
 }
 
 // genericTracepointArg is the internal representation of an output value of a
@@ -138,30 +137,16 @@ type genericTracepointArg struct {
 	btf [tracingapi.MaxBTFArgDepth]tracingapi.ConfigBTFArg
 }
 
-// tracepointTable is, for now, an array.
-type tracepointTable struct {
-	mu  sync.Mutex
-	arr []*genericTracepoint
-}
-
-// addTracepoint adds a tracepoint to the table, and sets its .tableIdx field
-// to be the index to retrieve it from the table.
-func (t *tracepointTable) addTracepoint(tp *genericTracepoint) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	idx := len(t.arr)
-	t.arr = append(t.arr, tp)
-	tp.tableIdx = idx
-}
-
-// getTracepoint retrieves a tracepoint from the table using its id
-func (t *tracepointTable) getTracepoint(idx int) (*genericTracepoint, error) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	if idx < len(t.arr) {
-		return t.arr[idx], nil
+func genericTracepointTableGet(id idtable.EntryID) (*genericTracepoint, error) {
+	entry, err := genericTracepointTable.GetEntry(id)
+	if err != nil {
+		return nil, fmt.Errorf("getting entry from genericTracepointTable failed with: %w", err)
 	}
-	return nil, fmt.Errorf("tracepoint table: invalid id:%d (len=%d)", idx, len(t.arr))
+	val, ok := entry.(*genericTracepoint)
+	if !ok {
+		return nil, fmt.Errorf("getting entry from genericTracepointTable failed with: got invalid type: %T (%v)", entry, entry)
+	}
+	return val, nil
 }
 
 func (out *genericTracepointArg) String() string {
@@ -408,6 +393,7 @@ func createGenericTracepoint(
 	}
 
 	ret := &genericTracepoint{
+		tableId:       idtable.UninitializedEntryID,
 		Info:          &tp,
 		Spec:          conf,
 		args:          tpArgs,
@@ -419,8 +405,8 @@ func createGenericTracepoint(
 		raw:           conf.Raw,
 	}
 
-	genericTracepointTable.addTracepoint(ret)
-	ret.pinPathPrefix = sensors.PathJoin(sensorName, fmt.Sprintf("gtp-%d", ret.tableIdx))
+	genericTracepointTable.AddEntry(ret)
+	ret.pinPathPrefix = sensors.PathJoin(sensorName, fmt.Sprintf("gtp-%d", ret.tableId.ID))
 	return ret, nil
 }
 
@@ -563,7 +549,7 @@ func createGenericTracepointSensor(
 
 		has.fdInstall = selectorsHaveFDInstall(tp.Spec.Selectors)
 
-		prog0.LoaderData = tp.tableIdx
+		prog0.LoaderData = tp.tableId
 		progs = append(progs, prog0)
 
 		fdinstall := program.MapBuilderSensor("fdinstall_map", prog0)
@@ -664,6 +650,19 @@ func createGenericTracepointSensor(
 
 	ret.Progs = progs
 	ret.Maps = maps
+
+	ret.DestroyHook = func() error {
+		var errs error
+
+		for _, tp := range tracepoints {
+			_, err := genericTracepointTable.RemoveEntry(tp.tableId)
+			if err != nil {
+				errs = errors.Join(errs, err)
+			}
+		}
+		return errs
+	}
+
 	return ret, nil
 }
 
@@ -719,7 +718,7 @@ func (tp *genericTracepoint) EventConfig() (*tracingapi.EventConfig, error) {
 
 	config := tracingapi.EventConfig{}
 	config.PolicyID = uint32(tp.policyID)
-	config.FuncId = uint32(tp.tableIdx)
+	config.FuncId = uint32(tp.tableId.ID)
 
 	if tp.raw {
 		return tp.eventConfigRaw(&config)
@@ -769,12 +768,12 @@ func LoadGenericTracepointSensor(bpfDir string, load *program.Program, maps []*p
 
 	tracepointLog = logger.GetLogger()
 
-	tpIdx, ok := load.LoaderData.(int)
+	id, ok := load.LoaderData.(idtable.EntryID)
 	if !ok {
 		return fmt.Errorf("loaderData for genericTracepoint %s is %T (%v) (not an int)", load.Name, load.LoaderData, load.LoaderData)
 	}
 
-	tp, err := genericTracepointTable.getTracepoint(tpIdx)
+	tp, err := genericTracepointTableGet(id)
 	if err != nil {
 		return fmt.Errorf("could not find generic tracepoint information for %s: %w", load.Attach, err)
 	}
@@ -820,7 +819,7 @@ func handleGenericTracepoint(r *bytes.Reader) ([]observer.Event, error) {
 		Event:  "UNKNOWN",
 	}
 
-	tp, err := genericTracepointTable.getTracepoint(int(m.FuncId))
+	tp, err := genericTracepointTableGet(idtable.EntryID{ID: int(m.FuncId)})
 	if err != nil {
 		logger.GetLogger().WithField("id", m.FuncId).WithError(err).Warnf("genericTracepoint info not found")
 		return []observer.Event{unix}, nil
