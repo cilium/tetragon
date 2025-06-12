@@ -66,6 +66,18 @@ func Test_parseString(t *testing.T) {
 	})
 }
 
+// simpleValidateInfo provides kpValidateInfo without any validation
+func simpleValidateInfo(kprobes []v1alpha1.KProbeSpec) []*kpValidateInfo {
+	ret := make([]*kpValidateInfo, 0, len(kprobes))
+	for i := range kprobes {
+		ret = append(ret, &kpValidateInfo{
+			calls:   []string{kprobes[i].Call},
+			syscall: kprobes[i].Syscall,
+		})
+	}
+	return ret
+}
+
 func Test_SensorDestroyHook(t *testing.T) {
 	if genericKprobeTable.Len() != 0 {
 		t.Errorf("genericKprobeTable expected initial length: 0, got: %d", genericKprobeTable.Len())
@@ -87,7 +99,7 @@ func Test_SensorDestroyHook(t *testing.T) {
 	// contained in one sensor.
 	policyInfo, err := newPolicyInfoFromSpec("", "test_policy", policyfilter.NoFilterID, spec, nil)
 	require.NoError(t, err)
-	sensor, err := createGenericKprobeSensor(spec, "test_sensor", policyInfo)
+	sensor, err := createGenericKprobeSensor(spec, "test_sensor", policyInfo, simpleValidateInfo(spec.KProbes))
 	if err != nil {
 		t.Errorf("createGenericKprobeSensor err expected: nil, got: %s", err)
 	}

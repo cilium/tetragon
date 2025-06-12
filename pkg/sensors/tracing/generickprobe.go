@@ -413,63 +413,70 @@ func validateKprobeType(ty string) error {
 	return nil
 }
 
+type kpValidateInfo struct {
+	calls   []string
+	syscall bool
+}
+
 func preValidateKprobe(
 	log logrus.FieldLogger,
 	f *v1alpha1.KProbeSpec,
 	ks *ksyms.Ksyms,
 	btfobj *btf.Spec,
 	lists []v1alpha1.ListSpec,
-) error {
+) (*kpValidateInfo, error) {
+	isSyscall := false
 	var calls []string
-
 	// the f.Call is either defined as list:NAME
 	// or specifies directly the function
 	if isL, list := isList(f.Call, lists); isL {
 		if list == nil {
-			return fmt.Errorf("error list '%s' not found", f.Call)
+			return nil, fmt.Errorf("error list '%s' not found", f.Call)
 		}
 		var err error
 		calls, err = getListSymbols(list)
 		if err != nil {
-			return fmt.Errorf("failed to get symbols from list '%s': %w", f.Call, err)
+			return nil, fmt.Errorf("failed to get symbols from list '%s': %w", f.Call, err)
 		}
+		isSyscall = isSyscallListType(list.Type)
 	} else {
+		calls = []string{f.Call}
 		if f.Syscall {
 			// modifying f.Call directly since BTF validation
 			// later will use v1alpha1.KProbeSpec object
 			prefixedName, err := arch.AddSyscallPrefix(f.Call)
 			if err != nil {
-				log.WithError(err).Warn("Kprobe spec pre-validation of syscall prefix failed")
+				log.WithError(err).Warn("kprobe spec pre-validation of syscall prefix failed, continuing with original name")
 			} else {
-				f.Call = prefixedName
+				calls[0] = prefixedName
 			}
+			isSyscall = true
 		}
-		calls = []string{f.Call}
 	}
 
 	for sid, selector := range f.Selectors {
 		for mid, matchAction := range selector.MatchActions {
 			if (matchAction.KernelStackTrace || matchAction.UserStackTrace) && matchAction.Action != "Post" {
-				return fmt.Errorf("kernelStackTrace or userStackTrace can only be used along Post action: got (kernelStackTrace/userStackTrace) enabled in selectors[%d].matchActions[%d] with action '%s'", sid, mid, matchAction.Action)
+				return nil, fmt.Errorf("kernelStackTrace or userStackTrace can only be used along Post action: got (kernelStackTrace/userStackTrace) enabled in selectors[%d].matchActions[%d] with action '%s'", sid, mid, matchAction.Action)
 			}
 		}
 	}
 
 	if selectors.HasOverride(f) {
 		if !bpf.HasOverrideHelper() {
-			return errors.New("error override action not supported, bpf_override_return helper not available")
+			return nil, errors.New("error override action not supported, bpf_override_return helper not available")
 		}
 		if !f.Syscall {
 			for idx := range calls {
 				if !strings.HasPrefix(calls[idx], "security_") {
-					return errors.New("error override action can be used only with syscalls and security_ hooks")
+					return nil, errors.New("error override action can be used only with syscalls and security_ hooks")
 				}
 			}
 		}
 	}
 
 	if selectors.HasSigkillAction(f) && !config.EnableLargeProgs() {
-		return errors.New("sigkill action requires kernel >= 5.3.0")
+		return nil, errors.New("sigkill action requires kernel >= 5.3.0")
 	}
 
 	for idx := range calls {
@@ -482,7 +489,7 @@ func preValidateKprobe(
 			case errors.As(err, &warn):
 				log.WithError(warn).Warn("Kprobe spec pre-validation failed, but will continue with loading")
 			case errors.As(err, &failed):
-				return fmt.Errorf("kprobe spec pre-validation failed: %w", failed)
+				return nil, fmt.Errorf("kprobe spec pre-validation failed: %w", failed)
 			default:
 				err = fmt.Errorf("invalid or old kprobe spec: %w", err)
 				log.WithError(err).Warn("Kprobe spec pre-validation failed, but will continue with loading")
@@ -494,43 +501,47 @@ func preValidateKprobe(
 
 	for idxArg, arg := range f.Args {
 		if err := validateKprobeType(arg.Type); err != nil {
-			return fmt.Errorf("args[%d].type: %w", idxArg, err)
+			return nil, fmt.Errorf("args[%d].type: %w", idxArg, err)
 		}
 	}
 
-	return nil
+	return &kpValidateInfo{
+		calls:   calls,
+		syscall: isSyscall,
+	}, nil
 }
 
 // preValidateKprobes pre-validates the semantics and BTF information of a Kprobe spec
-//
-// Pre validate the kprobe semantics and BTF information in order to separate
-// the kprobe errors from BPF related ones.
-func preValidateKprobes(log logrus.FieldLogger, kprobes []v1alpha1.KProbeSpec, lists []v1alpha1.ListSpec) error {
+// Furthermore, it does some preprocessing of the calls and returns one kpValidateInfo struct per
+// kprobe
+func preValidateKprobes(log logrus.FieldLogger, kprobes []v1alpha1.KProbeSpec, lists []v1alpha1.ListSpec) ([]*kpValidateInfo, error) {
 	btfobj, err := btf.NewBTF()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// validate lists first
 	err = preValidateLists(lists)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// get kernel symbols
 	ks, err := ksyms.KernelSymbols()
 	if err != nil {
-		return fmt.Errorf("validateKprobeSpec: ksyms.KernelSymbols: %w", err)
+		return nil, fmt.Errorf("validateKprobeSpec: ksyms.KernelSymbols: %w", err)
 	}
 
+	ret := make([]*kpValidateInfo, len(kprobes))
 	for i := range kprobes {
-		err := preValidateKprobe(log, &kprobes[i], ks, btfobj, lists)
+		var err error
+		ret[i], err = preValidateKprobe(log, &kprobes[i], ks, btfobj, lists)
 		if err != nil {
-			return fmt.Errorf("error in spec.kprobes[%d]: %w", i, err)
+			return nil, fmt.Errorf("error in spec.kprobes[%d]: %w", i, err)
 		}
 	}
 
-	return nil
+	return ret, nil
 }
 
 type addKprobeIn struct {
@@ -540,20 +551,6 @@ type addKprobeIn struct {
 	policyID      policyfilter.PolicyID
 	customHandler eventhandler.Handler
 	selMaps       *selectors.KernelSelectorMaps
-}
-
-func getKprobeSymbols(symbol string, syscall bool, lists []v1alpha1.ListSpec) ([]string, bool, error) {
-	if isL, list := isList(symbol, lists); isL {
-		if list == nil {
-			return nil, false, fmt.Errorf("list '%s' not found", symbol)
-		}
-		symbols, err := getListSymbols(list)
-		if err != nil {
-			return nil, true, fmt.Errorf("failed to get kprobe symbols from syscall list: %w", err)
-		}
-		return symbols, isSyscallListType(list.Type), nil
-	}
-	return []string{symbol}, syscall, nil
 }
 
 type hasMaps struct {
@@ -584,6 +581,7 @@ func createGenericKprobeSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
 	polInfo *policyInfo,
+	valInfo []*kpValidateInfo,
 ) (*sensors.Sensor, error) {
 	var progs []*program.Program
 	var maps []*program.Map
@@ -592,7 +590,6 @@ func createGenericKprobeSensor(
 	var selMaps *selectors.KernelSelectorMaps
 
 	kprobes := spec.KProbes
-	lists := spec.Lists
 
 	// use multi kprobe only if:
 	// - it's not disabled by spec option
@@ -619,11 +616,8 @@ func createGenericKprobeSensor(
 	dups := make(map[string]int)
 
 	for i := range kprobes {
-		syms, syscall, err := getKprobeSymbols(kprobes[i].Call, kprobes[i].Syscall, lists)
-		if err != nil {
-			return nil, err
-		}
-
+		syms := valInfo[i].calls
+		syscall := valInfo[i].syscall
 		// Syscall flag might be changed in list definition
 		kprobes[i].Syscall = syscall
 
