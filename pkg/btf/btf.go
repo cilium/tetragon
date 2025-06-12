@@ -79,6 +79,8 @@ func observerFindBTF(lib, btf string) (string, error) {
 	return btf, nil
 }
 
+type Spec = btf.Spec
+
 func NewBTF() (*btf.Spec, error) {
 	return btf.LoadSpec(btfFile)
 }
