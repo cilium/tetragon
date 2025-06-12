@@ -168,7 +168,7 @@ tetragon:
     # -- The port at which to expose metrics.
     port: 2112
     # -- Comma-separated list of enabled metrics labels.
-    # The configurable labels are: namespace, workload, pod, binary. Unkown labels will be ignored.
+    # The configurable labels are: namespace, workload, pod, binary. Unknown labels will be ignored.
     # Removing some labels from the list might help reduce the metrics cardinality if needed.
     metricsLabelFilter: "namespace,workload,pod,binary"
     serviceMonitor:
