@@ -413,6 +413,94 @@ func validateKprobeType(ty string) error {
 	return nil
 }
 
+func preValidateKprobe(
+	log logrus.FieldLogger,
+	f *v1alpha1.KProbeSpec,
+	ks *ksyms.Ksyms,
+	btfobj *btf.Spec,
+	lists []v1alpha1.ListSpec,
+) error {
+	var calls []string
+
+	// the f.Call is either defined as list:NAME
+	// or specifies directly the function
+	if isL, list := isList(f.Call, lists); isL {
+		if list == nil {
+			return fmt.Errorf("error list '%s' not found", f.Call)
+		}
+		var err error
+		calls, err = getListSymbols(list)
+		if err != nil {
+			return fmt.Errorf("failed to get symbols from list '%s': %w", f.Call, err)
+		}
+	} else {
+		if f.Syscall {
+			// modifying f.Call directly since BTF validation
+			// later will use v1alpha1.KProbeSpec object
+			prefixedName, err := arch.AddSyscallPrefix(f.Call)
+			if err != nil {
+				log.WithError(err).Warn("Kprobe spec pre-validation of syscall prefix failed")
+			} else {
+				f.Call = prefixedName
+			}
+		}
+		calls = []string{f.Call}
+	}
+
+	for sid, selector := range f.Selectors {
+		for mid, matchAction := range selector.MatchActions {
+			if (matchAction.KernelStackTrace || matchAction.UserStackTrace) && matchAction.Action != "Post" {
+				return fmt.Errorf("kernelStackTrace or userStackTrace can only be used along Post action: got (kernelStackTrace/userStackTrace) enabled in selectors[%d].matchActions[%d] with action '%s'", sid, mid, matchAction.Action)
+			}
+		}
+	}
+
+	if selectors.HasOverride(f) {
+		if !bpf.HasOverrideHelper() {
+			return errors.New("error override action not supported, bpf_override_return helper not available")
+		}
+		if !f.Syscall {
+			for idx := range calls {
+				if !strings.HasPrefix(calls[idx], "security_") {
+					return errors.New("error override action can be used only with syscalls and security_ hooks")
+				}
+			}
+		}
+	}
+
+	if selectors.HasSigkillAction(f) && !config.EnableLargeProgs() {
+		return errors.New("sigkill action requires kernel >= 5.3.0")
+	}
+
+	for idx := range calls {
+		// Now go over BTF validation
+		if err := btf.ValidateKprobeSpec(btfobj, calls[idx], f, ks); err != nil {
+			var warn *btf.ValidationWarnError
+			var failed *btf.ValidationFailedError
+
+			switch {
+			case errors.As(err, &warn):
+				log.WithError(warn).Warn("Kprobe spec pre-validation failed, but will continue with loading")
+			case errors.As(err, &failed):
+				return fmt.Errorf("kprobe spec pre-validation failed: %w", failed)
+			default:
+				err = fmt.Errorf("invalid or old kprobe spec: %w", err)
+				log.WithError(err).Warn("Kprobe spec pre-validation failed, but will continue with loading")
+			}
+		} else {
+			log.Debug("Kprobe spec pre-validation succeeded")
+		}
+	}
+
+	for idxArg, arg := range f.Args {
+		if err := validateKprobeType(arg.Type); err != nil {
+			return fmt.Errorf("args[%d].type: %w", idxArg, err)
+		}
+	}
+
+	return nil
+}
+
 // preValidateKprobes pre-validates the semantics and BTF information of a Kprobe spec
 //
 // Pre validate the kprobe semantics and BTF information in order to separate
@@ -436,84 +524,9 @@ func preValidateKprobes(log logrus.FieldLogger, kprobes []v1alpha1.KProbeSpec, l
 	}
 
 	for i := range kprobes {
-		f := &kprobes[i]
-
-		var calls []string
-
-		// the f.Call is either defined as list:NAME
-		// or specifies directly the function
-		if isL, list := isList(f.Call, lists); isL {
-			if list == nil {
-				return fmt.Errorf("error list '%s' not found", f.Call)
-			}
-			var err error
-			calls, err = getListSymbols(list)
-			if err != nil {
-				return fmt.Errorf("failed to get symbols from list '%s': %w", f.Call, err)
-			}
-		} else {
-			if f.Syscall {
-				// modifying f.Call directly since BTF validation
-				// later will use v1alpha1.KProbeSpec object
-				prefixedName, err := arch.AddSyscallPrefix(f.Call)
-				if err != nil {
-					log.WithError(err).Warn("Kprobe spec pre-validation of syscall prefix failed")
-				} else {
-					f.Call = prefixedName
-				}
-			}
-			calls = []string{f.Call}
-		}
-
-		for sid, selector := range f.Selectors {
-			for mid, matchAction := range selector.MatchActions {
-				if (matchAction.KernelStackTrace || matchAction.UserStackTrace) && matchAction.Action != "Post" {
-					return fmt.Errorf("kernelStackTrace or userStackTrace can only be used along Post action: got (kernelStackTrace/userStackTrace) enabled in kprobes[%d].selectors[%d].matchActions[%d] with action '%s'", i, sid, mid, matchAction.Action)
-				}
-			}
-		}
-
-		if selectors.HasOverride(f) {
-			if !bpf.HasOverrideHelper() {
-				return errors.New("error override action not supported, bpf_override_return helper not available")
-			}
-			if !f.Syscall {
-				for idx := range calls {
-					if !strings.HasPrefix(calls[idx], "security_") {
-						return errors.New("error override action can be used only with syscalls and security_ hooks")
-					}
-				}
-			}
-		}
-
-		if selectors.HasSigkillAction(f) && !config.EnableLargeProgs() {
-			return errors.New("sigkill action requires kernel >= 5.3.0")
-		}
-
-		for idx := range calls {
-			// Now go over BTF validation
-			if err := btf.ValidateKprobeSpec(btfobj, calls[idx], f, ks); err != nil {
-				var warn *btf.ValidationWarnError
-				var failed *btf.ValidationFailedError
-
-				switch {
-				case errors.As(err, &warn):
-					log.WithError(warn).Warn("Kprobe spec pre-validation failed, but will continue with loading")
-				case errors.As(err, &failed):
-					return fmt.Errorf("kprobe spec pre-validation failed: %w", failed)
-				default:
-					err = fmt.Errorf("invalid or old kprobe spec: %w", err)
-					log.WithError(err).Warn("Kprobe spec pre-validation failed, but will continue with loading")
-				}
-			} else {
-				log.Debug("Kprobe spec pre-validation succeeded")
-			}
-		}
-
-		for idxArg, arg := range f.Args {
-			if err := validateKprobeType(arg.Type); err != nil {
-				return fmt.Errorf("spec.kprobes[%d].args[%d].type: %w", i, idxArg, err)
-			}
+		err := preValidateKprobe(log, &kprobes[i], ks, btfobj, lists)
+		if err != nil {
+			return fmt.Errorf("error in spec.kprobes[%d]: %w", i, err)
 		}
 	}
 
