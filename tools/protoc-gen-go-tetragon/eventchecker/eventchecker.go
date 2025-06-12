@@ -14,8 +14,12 @@ func Generate(gen *protogen.Plugin, files []*protogen.File) error {
 	// generated files will be in pkg tetragon so its not important
 	// from packaging side and any prefix will work fine we just pick
 	// the first file arbitrarily.
-	g := common.NewCodegenFile(gen, files[0], "eventchecker")
-	yaml := common.NewCodegenFile(gen, files[0], "eventchecker/yaml")
+	f, err := common.GetFirstTetragonFile(files)
+	if err != nil {
+		return err
+	}
+	g := common.NewCodegenFile(gen, f, "eventchecker")
+	yaml := common.NewCodegenFile(gen, f, "eventchecker/yaml")
 
 	if err := generateEventCheckerConf(yaml); err != nil {
 		return err

@@ -11,7 +11,11 @@ import (
 )
 
 func Generate(gen *protogen.Plugin, files []*protogen.File) error {
-	g := common.NewFile(gen, files[0], "", filepath.Base(common.TetragonApiPackageName), "types")
+	f, err := common.GetFirstTetragonFile(files)
+	if err != nil {
+		return err
+	}
+	g := common.NewFile(gen, f, "", filepath.Base(common.TetragonApiPackageName), "types")
 
 	events, err := common.GetEvents(files)
 	if err != nil {

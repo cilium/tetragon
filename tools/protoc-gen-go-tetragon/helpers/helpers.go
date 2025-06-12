@@ -298,8 +298,11 @@ func generateProcessEventMap(g *protogen.GeneratedFile, files []*protogen.File) 
 
 // Generate generates boilerplate helpers
 func Generate(gen *protogen.Plugin, files []*protogen.File) error {
-	// Pick arbitrary file to use for prefix of generated files, files[0] here.
-	g := common.NewCodegenFile(gen, files[0], "helpers")
+	f, err := common.GetFirstTetragonFile(files)
+	if err != nil {
+		return err
+	}
+	g := common.NewCodegenFile(gen, f, "helpers")
 
 	if err := generateResponseTypeString(g, files); err != nil {
 		return err
