@@ -735,6 +735,10 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 
 	// Parse Arguments
 	for j, a := range f.Args {
+		if j >= api.EventConfigMaxArgs {
+			return errFn(fmt.Errorf("error add arg: Too many arguments set. You can only have %d arguments", api.EventConfigMaxArgs))
+		}
+
 		// First try userspace types
 		var argType int
 		userArgType := gt.GenericUserTypeFromString(a.Type)
@@ -754,7 +758,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 			if err != nil {
 				return errFn(fmt.Errorf("error on hook %q for index %d : %w", f.Call, a.Index, err))
 			}
-			allBTFArgs[a.Index] = btfArg
+			allBTFArgs[j] = btfArg
 			argType = findTypeFromBTFType(a, lastBTFType)
 		}
 
@@ -782,11 +786,12 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 				a.Type, int(a.Index)))
 		}
 		eventConfig.BTFArg = allBTFArgs
-		eventConfig.Arg[a.Index] = int32(argType)
-		eventConfig.ArgM[a.Index] = uint32(argMValue)
+		eventConfig.Arg[j] = int32(argType)
+		eventConfig.ArgM[j] = uint32(argMValue)
+		eventConfig.ArgIdx[j] = uint32(a.Index)
 
-		argsBTFSet[a.Index] = true
-		argP := argPrinter{index: int(a.Index), ty: argType, userType: userArgType, maxData: a.MaxData, label: a.Label}
+		argsBTFSet[j] = true
+		argP := argPrinter{index: j, ty: argType, userType: userArgType, maxData: a.MaxData, label: a.Label}
 		argSigPrinters = append(argSigPrinters, argP)
 
 		pathArgWarning(a.Index, argType, f.Selectors)

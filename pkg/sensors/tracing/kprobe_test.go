@@ -7926,3 +7926,66 @@ spec:
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 }
+
+func TestKprobeReuseParameterMultipleTime(t *testing.T) {
+	if !kernels.MinKernelVersion("5.4") {
+		t.Skip("Test requires kernel 5.4+")
+	}
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	hook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "reuse-same-parameter"
+spec:
+  kprobes:
+  - call: "security_task_getscheduler"
+    syscall: false
+    args:
+    - index: 0
+      type: "int"
+      resolve: "mm.owner.pid"
+    - index: 0
+      type: "string"
+      resolve: "mm.owner.comm"
+`
+
+	createCrdFile(t, hook)
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	_ = unix.SchedGetaffinity(0, nil)
+
+	pid := os.Getpid()
+
+	comm, err := os.ReadFile("/proc/self/comm")
+	if err != nil {
+		t.Fatalf("failed to read comm: %v", err)
+	}
+
+	kpChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full("security_task_getscheduler")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(pid)),
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Full(strings.TrimSpace(string(comm)))),
+			)).
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Suffix(tus.Conf().SelfBinary)))
+
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
