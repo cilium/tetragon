@@ -123,11 +123,11 @@ func (h policyHandler) PolicyHandler(
 			"policy": tracingpolicy.TpLongname(policy),
 			"sensor": name,
 		})
-		err := preValidateKprobes(log, spec.KProbes, spec.Lists)
+		validateInfo, err := preValidateKprobes(log, spec.KProbes, spec.Lists)
 		if err != nil {
 			return nil, fmt.Errorf("validation failed: %w", err)
 		}
-		return createGenericKprobeSensor(spec, name, polInfo)
+		return createGenericKprobeSensor(spec, name, polInfo, validateInfo)
 	}
 	if len(spec.Tracepoints) > 0 {
 		return createGenericTracepointSensor(spec, "generic_tracepoint", polInfo)
