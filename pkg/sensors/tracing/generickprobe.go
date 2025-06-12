@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/cilium/ebpf"
+	ciliumbtf "github.com/cilium/ebpf/btf"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
@@ -416,6 +417,7 @@ func validateKprobeType(ty string) error {
 type kpValidateInfo struct {
 	calls   []string
 	syscall bool
+	ignore  bool
 }
 
 func preValidateKprobe(
@@ -479,24 +481,29 @@ func preValidateKprobe(
 		return nil, errors.New("sigkill action requires kernel >= 5.3.0")
 	}
 
-	for idx := range calls {
-		// Now go over BTF validation
-		if err := btf.ValidateKprobeSpec(btfobj, calls[idx], f, ks); err != nil {
-			var warn *btf.ValidationWarnError
-			var failed *btf.ValidationFailedError
+	retCalls := make([]string, 0, len(calls))
+	ignored := 0
+	for idx, call := range calls {
+		var warn *btf.ValidationWarnError
+		var failed *btf.ValidationFailedError
 
-			switch {
-			case errors.As(err, &warn):
-				log.WithError(warn).Warn("Kprobe spec pre-validation failed, but will continue with loading")
-			case errors.As(err, &failed):
-				return nil, fmt.Errorf("kprobe spec pre-validation failed: %w", failed)
-			default:
-				err = fmt.Errorf("invalid or old kprobe spec: %w", err)
-				log.WithError(err).Warn("Kprobe spec pre-validation failed, but will continue with loading")
+		// Now go over BTF validation
+		err := btf.ValidateKprobeSpec(btfobj, call, f, ks)
+		switch {
+		case err == nil:
+		case errors.As(err, &warn):
+			log.WithError(warn).Warn("kprobe spec pre-validation issued a warning, but will continue with loading")
+		case errors.As(err, &failed):
+			if f.Ignore != nil && f.Ignore.CallNotFound && errors.Is(err, ciliumbtf.ErrNotFound) {
+				log.WithField("idx", idx).WithField("call", call).Info("kprobe call ignored because it was not found")
+				ignored++
+				continue
 			}
-		} else {
-			log.Debug("Kprobe spec pre-validation succeeded")
+			return nil, fmt.Errorf("kprobe spec pre-validation failed: %w", failed)
+		default:
+			log.WithError(err).Warn("kprobe spec pre-validation returned an error, but will continue with loading")
 		}
+		retCalls = append(retCalls, call)
 	}
 
 	for idxArg, arg := range f.Args {
@@ -506,9 +513,19 @@ func preValidateKprobe(
 	}
 
 	return &kpValidateInfo{
-		calls:   calls,
+		calls:   retCalls,
 		syscall: isSyscall,
+		ignore:  ignored == len(calls), // if all calls were ignored, ignore the whole kprobe
 	}, nil
+}
+
+func allKprobesIgnored(info []*kpValidateInfo) bool {
+	for _, i := range info {
+		if !i.ignore {
+			return false
+		}
+	}
+	return true
 }
 
 // preValidateKprobes pre-validates the semantics and BTF information of a Kprobe spec
@@ -616,6 +633,9 @@ func createGenericKprobeSensor(
 	dups := make(map[string]int)
 
 	for i := range kprobes {
+		if valInfo[i].ignore {
+			continue
+		}
 		syms := valInfo[i].calls
 		syscall := valInfo[i].syscall
 		// Syscall flag might be changed in list definition
