@@ -10,11 +10,13 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/eventhandler"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policyconf"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
+	"github.com/sirupsen/logrus"
 )
 
 type policyInfo struct {
@@ -117,7 +119,11 @@ func (h policyHandler) PolicyHandler(
 
 	if len(spec.KProbes) > 0 {
 		name := "generic_kprobe"
-		err := preValidateKprobes(name, spec.KProbes, spec.Lists)
+		log := logger.GetLogger().WithFields(logrus.Fields{
+			"policy": tracingpolicy.TpLongname(policy),
+			"sensor": name,
+		})
+		err := preValidateKprobes(log, spec.KProbes, spec.Lists)
 		if err != nil {
 			return nil, fmt.Errorf("validation failed: %w", err)
 		}

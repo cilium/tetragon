@@ -417,7 +417,7 @@ func validateKprobeType(ty string) error {
 //
 // Pre validate the kprobe semantics and BTF information in order to separate
 // the kprobe errors from BPF related ones.
-func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec, lists []v1alpha1.ListSpec) error {
+func preValidateKprobes(log logrus.FieldLogger, kprobes []v1alpha1.KProbeSpec, lists []v1alpha1.ListSpec) error {
 	btfobj, err := btf.NewBTF()
 	if err != nil {
 		return err
@@ -457,9 +457,7 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec, lists []v1al
 				// later will use v1alpha1.KProbeSpec object
 				prefixedName, err := arch.AddSyscallPrefix(f.Call)
 				if err != nil {
-					logger.GetLogger().WithFields(logrus.Fields{
-						"sensor": name,
-					}).WithError(err).Warn("Kprobe spec pre-validation of syscall prefix failed")
+					log.WithError(err).Warn("Kprobe spec pre-validation of syscall prefix failed")
 				} else {
 					f.Call = prefixedName
 				}
@@ -500,21 +498,15 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec, lists []v1al
 
 				switch {
 				case errors.As(err, &warn):
-					logger.GetLogger().WithFields(logrus.Fields{
-						"sensor": name,
-					}).WithError(warn).Warn("Kprobe spec pre-validation failed, but will continue with loading")
+					log.WithError(warn).Warn("Kprobe spec pre-validation failed, but will continue with loading")
 				case errors.As(err, &failed):
 					return fmt.Errorf("kprobe spec pre-validation failed: %w", failed)
 				default:
 					err = fmt.Errorf("invalid or old kprobe spec: %w", err)
-					logger.GetLogger().WithFields(logrus.Fields{
-						"sensor": name,
-					}).WithError(err).Warn("Kprobe spec pre-validation failed, but will continue with loading")
+					log.WithError(err).Warn("Kprobe spec pre-validation failed, but will continue with loading")
 				}
 			} else {
-				logger.GetLogger().WithFields(logrus.Fields{
-					"sensor": name,
-				}).Debug("Kprobe spec pre-validation succeeded")
+				log.Debug("Kprobe spec pre-validation succeeded")
 			}
 		}
 

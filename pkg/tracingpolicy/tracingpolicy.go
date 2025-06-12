@@ -39,3 +39,13 @@ type PolicyInfo struct {
 type PolicyEvent interface {
 	PolicyInfo() PolicyInfo
 }
+
+// TpLongname returns a long name of a tracing policy:
+// name if the policy is not namespaced, or namespace/name if it is
+func TpLongname(tp TracingPolicy) string {
+	name := tp.TpName()
+	if tpns, ok := tp.(TracingPolicyNamespaced); ok {
+		name = tpns.TpNamespace() + "/" + name
+	}
+	return name
+}
