@@ -14,6 +14,8 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
+var TetragonProtoPackageName = "tetragon"
+
 // TetragonPackageName is the import path for the Tetragon package
 var TetragonPackageName = "github.com/cilium/tetragon"
 
@@ -365,4 +367,15 @@ func GetEnums(files []*protogen.File) ([]*protogen.Enum, error) {
 	}
 
 	return enumsCache, nil
+}
+
+// GetFirstTetragonFile returns the first file in the provided files that has a filename prefix
+// starting with TetragonProtoPackageName
+func GetFirstTetragonFile(files []*protogen.File) (*protogen.File, error) {
+	for _, file := range files {
+		if strings.HasPrefix(file.GeneratedFilenamePrefix, TetragonProtoPackageName) {
+			return file, nil
+		}
+	}
+	return nil, errors.New("no Tetragon file found in the provided files")
 }
