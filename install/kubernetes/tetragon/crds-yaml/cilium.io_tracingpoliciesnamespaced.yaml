@@ -215,6 +215,13 @@ spec:
                     call:
                       description: Name of the function to apply the kprobe spec to.
                       type: string
+                    ignore:
+                      description: Conditions for ignoring this kprobe
+                      properties:
+                        callNotFound:
+                          description: Ignores calls that are not present in the system
+                          type: boolean
+                      type: object
                     message:
                       description: |-
                         A short message of 256 characters max that will be included

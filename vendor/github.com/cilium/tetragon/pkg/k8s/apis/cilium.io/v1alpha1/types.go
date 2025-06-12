@@ -21,6 +21,12 @@ const (
 	PIName = PIPluralName + "." + ciliumio.GroupName
 )
 
+type KprobeIgnore struct {
+	// Ignores calls that are not present in the system
+	// +kubebuilder:validation:Optional
+	CallNotFound bool `json:"callNotFound,omitempty"`
+}
+
 type KProbeSpec struct {
 	// Name of the function to apply the kprobe spec to.
 	Call string `json:"call"`
@@ -54,6 +60,9 @@ type KProbeSpec struct {
 	// Tags to categorize the event, will be include in the event output.
 	// Maximum of 16 Tags are supported.
 	Tags []string `json:"tags,omitempty"`
+	// +kubebuilder:validation:Optional
+	// Conditions for ignoring this kprobe
+	Ignore *KprobeIgnore `json:"ignore,omitempty"`
 }
 
 type KProbeArg struct {
