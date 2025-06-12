@@ -167,6 +167,10 @@ func doJsonTestCheck(t *testing.T, jsonFile *os.File, checker ec.MultiEventCheck
 }
 
 func JsonTestCheckExpect(t *testing.T, checker ec.MultiEventChecker, expectCheckerFailure bool) error {
+	return JsonTestCheckExpectWithKeep(t, checker, expectCheckerFailure, false)
+}
+
+func JsonTestCheckExpectWithKeep(t *testing.T, checker ec.MultiEventChecker, expectCheckerFailure, keep bool) error {
 	var err error
 
 	jsonFname, err := testutils.GetExportFilename(t)
@@ -195,7 +199,7 @@ func JsonTestCheckExpect(t *testing.T, checker ec.MultiEventChecker, expectCheck
 		}
 	}
 
-	if err == nil {
+	if err == nil && !keep {
 		// mark the file to be deleted
 		if xerr := testutils.DoneWithExportFile(t); xerr != nil {
 			// We failed to mark the file as deleted. This will happen if we hit a
