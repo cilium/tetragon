@@ -105,7 +105,7 @@ Helm chart for Tetragon
 | tetragon.processCacheSize | int | `65536` | Tetragon puts processes in an LRU cache. The cache is used to find ancestors for subsequently exec'ed processes. |
 | tetragon.prometheus.address | string | `""` | The address at which to expose metrics. Set it to "" to expose on all available interfaces. |
 | tetragon.prometheus.enabled | bool | `true` | Whether to enable exposing Tetragon metrics. |
-| tetragon.prometheus.metricsLabelFilter | string | `"namespace,workload,pod,binary"` | Comma-separated list of enabled metrics labels. The configurable labels are: namespace, workload, pod, binary. Unkown labels will be ignored. Removing some labels from the list might help reduce the metrics cardinality if needed. |
+| tetragon.prometheus.metricsLabelFilter | string | `"namespace,workload,pod,binary"` | Comma-separated list of enabled metrics labels. The configurable labels are: namespace, workload, pod, binary. Unknown labels will be ignored. Removing some labels from the list might help reduce the metrics cardinality if needed. |
 | tetragon.prometheus.port | int | `2112` | The port at which to expose metrics. |
 | tetragon.prometheus.serviceMonitor.enabled | bool | `false` | Whether to create a 'ServiceMonitor' resource targeting the tetragon pods. |
 | tetragon.prometheus.serviceMonitor.extraLabels | object | `{}` | Extra labels to be added on the Tetragon ServiceMonitor. |
