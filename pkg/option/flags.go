@@ -50,11 +50,12 @@ const (
 
 	// NOTE: enable-process-ancestors flags are marked as deprecated and
 	// planned to be removed in version 1.6
-	KeyEnableProcessAncestors           = "enable-process-ancestors"
-	KeyEnableProcessKprobeAncestors     = "enable-process-kprobe-ancestors"
-	KeyEnableProcessTracepointAncestors = "enable-process-tracepoint-ancestors"
-	KeyEnableProcessUprobeAncestors     = "enable-process-uprobe-ancestors"
-	KeyEnableProcessLsmAncestors        = "enable-process-lsm-ancestors"
+	KeyEnableProcessAncestors            = "enable-process-ancestors"
+	KeyEnableProcessKprobeAncestors      = "enable-process-kprobe-ancestors"
+	KeyEnableProcessTracepointAncestors  = "enable-process-tracepoint-ancestors"
+	KeyEnableProcessUprobeAncestors      = "enable-process-uprobe-ancestors"
+	KeyEnableProcessLsmAncestors         = "enable-process-lsm-ancestors"
+	KeyEnableProcessEnvironmentVariables = "enable-process-environment-variables"
 
 	KeyEnableAncestors   = "enable-ancestors"
 	KeyEnableProcessCred = "enable-process-cred"
@@ -203,6 +204,8 @@ func ReadAndSetFlags() error {
 		Config.EnableProcessUprobeAncestors = viper.GetBool(KeyEnableProcessUprobeAncestors)
 		Config.EnableProcessLsmAncestors = viper.GetBool(KeyEnableProcessLsmAncestors)
 	}
+
+	Config.EnableProcessEnvironmentVariables = viper.GetBool(KeyEnableProcessEnvironmentVariables)
 
 	Config.GopsAddr = viper.GetString(KeyGopsAddr)
 
@@ -401,6 +404,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Bool(KeyEnableProcessTracepointAncestors, false, fmt.Sprintf("Deprecated, please, use --enable-ancestors=base,tracepoint. Include ancestors in process_tracepoint events. Only used if '%s' is set to 'true'", KeyEnableProcessAncestors))
 	flags.Bool(KeyEnableProcessUprobeAncestors, false, fmt.Sprintf("Deprecated, please, use --enable-ancestors=base,uprobe. Include ancestors in process_uprobe events. Only used if '%s' is set to 'true'", KeyEnableProcessAncestors))
 	flags.Bool(KeyEnableProcessLsmAncestors, false, fmt.Sprintf("Deprecated, please, use --enable-ancestors=base,lsm. Include ancestors in process_lsm events. Only used if '%s' is set to 'true'", KeyEnableProcessAncestors))
+	flags.Bool(KeyEnableProcessEnvironmentVariables, false, "Include environment variables in process_exec events. Disabled by default. Note that this option can significantly increase the size of the events and may impact performance")
 	flags.MarkDeprecated(KeyEnableProcessAncestors, "please use --enable-ancestors=base")
 	flags.MarkDeprecated(KeyEnableProcessKprobeAncestors, "please use --enable-ancestors=base,kprobe")
 	flags.MarkDeprecated(KeyEnableProcessTracepointAncestors, "please use --enable-ancestors=base,tracepoint")
