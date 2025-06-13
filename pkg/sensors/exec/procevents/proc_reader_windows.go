@@ -239,10 +239,11 @@ func getCWD(pid uint32) (string, uint32) {
 	return cwd, flags
 }
 
-func writeExecveMap(_ []procs) {
+func writeExecveMap(_ []procs) map[uint32]struct{} {
 	//ToDo: WIP
 	// Currently we do not share the infor gathered in usermode with execve map in kernel in Windows,
 	// This method is currently stubbed out but will be implemented
+	return make(map[uint32]struct{})
 }
 
 func getProcessParamsFromHandle64(handle windows.Handle) (RtlUserProcessParams64, error) {

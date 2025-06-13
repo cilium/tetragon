@@ -94,7 +94,7 @@ func updateExecveMapStats(procs int64) {
 	}
 }
 
-func writeExecveMap(procs []procs) {
+func writeExecveMap(procs []procs) map[uint32]struct{} {
 	mapDir := bpf.MapPrefixPath()
 
 	execveMap := base.GetExecveMap()
@@ -109,31 +109,9 @@ func writeExecveMap(procs []procs) {
 			panic(err)
 		}
 	}
+	inInitTree := make(map[uint32]struct{})
 	for _, p := range procs {
-		k := &execvemap.ExecveKey{Pid: p.pid}
-		v := &execvemap.ExecveValue{}
-
-		v.Parent.Pid = p.ppid
-		v.Parent.Ktime = p.pktime
-		v.Process.Pid = p.pid
-		v.Process.Ktime = p.ktime
-		v.Flags = 0
-		v.Nspid = p.nspid
-		v.Capabilities.Permitted = p.permitted
-		v.Capabilities.Effective = p.effective
-		v.Capabilities.Inheritable = p.inheritable
-		v.Namespaces.UtsInum = p.uts_ns
-		v.Namespaces.IpcInum = p.ipc_ns
-		v.Namespaces.MntInum = p.mnt_ns
-		v.Namespaces.PidInum = p.pid_ns
-		v.Namespaces.PidChildInum = p.pid_for_children_ns
-		v.Namespaces.NetInum = p.net_ns
-		v.Namespaces.TimeInum = p.time_ns
-		v.Namespaces.TimeChildInum = p.time_for_children_ns
-		v.Namespaces.CgroupInum = p.cgroup_ns
-		v.Namespaces.UserInum = p.user_ns
-		pathLength := copy(v.Binary.Path[:], p.exe)
-		v.Binary.PathLength = int32(pathLength)
+		k, v := procToKeyValue(p, inInitTree)
 
 		err := m.Put(k, v)
 		if err != nil {
@@ -156,6 +134,8 @@ func writeExecveMap(procs []procs) {
 	m.Close()
 
 	updateExecveMapStats(int64(len(procs)))
+
+	return inInitTree
 }
 
 func listRunningProcs(procPath string) ([]procs, error) {
