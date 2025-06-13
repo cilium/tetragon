@@ -33,6 +33,7 @@ import (
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/ftrace"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
@@ -7925,4 +7926,69 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
+}
+
+func TestKprobeMatchBinariesIDs(t *testing.T) {
+	// Limit this test to kprobe_multi systems, otherwise it'd take too long.
+	// The mbset functionality works the same for kprobe or kprobe_multi,
+	// so no harm done.
+
+	if !bpf.HasKprobeMulti() {
+		t.Skip("Test requires kprobe multi")
+	}
+
+	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	if err := observer.InitDataCache(1024); err != nil {
+		t.Fatalf("observertesthelper.InitDataCache: %s", err)
+	}
+
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+	tus.LoadInitialSensor(t)
+	tus.LoadSensor(t, testsensor.GetTestSensor())
+	sm := tuo.GetTestSensorManager(t)
+
+	// Create tracing policy for 64 syscalls and each of them has MatchBinaries
+	// selector with FollowChildren, which uses 1 mbset ID.
+
+	sel := []v1alpha1.KProbeSelector{
+		{
+			MatchBinaries: []v1alpha1.BinarySelector{
+				{
+					Operator:       "In",
+					Values:         []string{"/usr/bin/tail"},
+					FollowChildren: true,
+				},
+			},
+		},
+	}
+
+	tp := tracingpolicy.GenericTracingPolicy{
+		Metadata: v1.ObjectMeta{
+			Name: "match-binaries",
+		},
+	}
+
+	syscalls, err := btf.GetSyscallsList()
+	require.NoError(t, err)
+
+	for _, sc := range syscalls[:64] {
+		kp := v1alpha1.KProbeSpec{
+			Call:      sc,
+			Syscall:   true,
+			Selectors: sel,
+		}
+		tp.Spec.KProbes = append(tp.Spec.KProbes, kp)
+	}
+
+	// Adding the tracing policy twice will ensure we recycle the mbset IDs
+	// properly on tracing policy removal.
+
+	for range 2 {
+		err := sm.Manager.AddTracingPolicy(ctx, &tp)
+		require.NoError(t, err)
+		sm.Manager.DeleteTracingPolicy(ctx, "match-binaries", "")
+	}
 }
