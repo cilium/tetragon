@@ -33,5 +33,5 @@ func TestTimer(t *testing.T) {
 
 func Worker() {
 	count++
-	logger.GetLogger().WithField("count", count).Info("Counting")
+	logger.GetLogger().Info("Counting", "count", count)
 }

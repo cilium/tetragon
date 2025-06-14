@@ -13,6 +13,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/dataapi"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 )
 
 func init() {
@@ -39,7 +40,7 @@ func DataAdd(id dataapi.DataEventId, msgData []byte) error {
 		data = append(data, msgData...)
 		dataCache.add(id, data)
 		DataEventMetricInc(DataEventAppended)
-		logger.GetLogger().WithFields(nil).Tracef("Data message received id %v, size %v, total %v", id, size, len(data))
+		logger.GetLogger().Debug(fmt.Sprintf("Data message received id %v, size %v, total %v", id, size, len(data)))
 	}
 
 	return nil
@@ -51,7 +52,7 @@ func add(r *bytes.Reader, m *dataapi.MsgData) error {
 
 	err := binary.Read(r, binary.LittleEndian, &msgData)
 	if err != nil {
-		logger.GetLogger().WithError(err).Warnf("Failed to read data msg payload")
+		logger.GetLogger().Warn("Failed to read data msg payload", logfields.Error, err)
 		return err
 	}
 
@@ -76,7 +77,7 @@ func DataGet(desc dataapi.DataEventDesc) ([]byte, error) {
 
 	DataEventMetricSizeOk(desc.Size)
 
-	logger.GetLogger().WithFields(nil).Tracef("Data message used id %v, data len %v", desc.Id, len(data))
+	logger.GetLogger().Debug(fmt.Sprintf("Data message used id %v, data len %v", desc.Id, len(data)))
 	DataEventMetricInc(DataEventMatched)
 	return data, nil
 }

@@ -24,6 +24,7 @@ package cgrouprate
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -33,6 +34,7 @@ import (
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/metrics/cgroupratemetrics"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
@@ -40,7 +42,6 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -68,7 +69,7 @@ type cgroupQueue struct {
 
 type CgroupRate struct {
 	listener observer.Listener
-	log      logrus.FieldLogger
+	log      logger.FieldLogger
 	ch       chan *cgroupQueue
 	opts     *option.CgroupRate
 	hash     *program.Map
@@ -96,8 +97,7 @@ func NewCgroupRate(ctx context.Context,
 	opts *option.CgroupRate) error {
 
 	if opts.Events == 0 || opts.Interval == 0 {
-		logger.GetLogger().Infof("Cgroup rate disabled (%d/%s)",
-			opts.Events, time.Duration(opts.Interval).String())
+		logger.GetLogger().Info(fmt.Sprintf("Cgroup rate disabled (%d/%s)", opts.Events, time.Duration(opts.Interval).String()))
 		return nil
 	}
 
@@ -121,14 +121,13 @@ func NewTestCgroupRate(listener observer.Listener,
 
 func (r *CgroupRate) notify(msg notify.Message) {
 	if err := r.listener.Notify(msg); err != nil {
-		r.log.WithError(err).Warn("failed to notify listener")
+		r.log.Warn("failed to notify listener", logfields.Error, err)
 	}
 }
 
 func (r *CgroupRate) process(ctx context.Context) {
 	ticker := time.NewTicker(time.Second)
-	r.log.Infof("Cgroup rate started (%d/%s)",
-		r.opts.Events, time.Duration(r.opts.Interval).String())
+	r.log.Info(fmt.Sprintf("Cgroup rate started (%d/%s)", r.opts.Events, time.Duration(r.opts.Interval).String()))
 
 	defer func() {
 		// cleanup

@@ -13,6 +13,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/spf13/viper"
 )
@@ -189,7 +190,7 @@ func ReadDirConfig(dirName string) (map[string]interface{}, error) {
 		if f.Type()&os.ModeSymlink == 0 {
 			absFileName, err := filepath.EvalSymlinks(fName)
 			if err != nil {
-				log.WithError(err).Warnf("Unable to read configuration file %q", absFileName)
+				log.Warn(fmt.Sprintf("Unable to read configuration file %q", absFileName), logfields.Error, err)
 				continue
 			}
 			fName = absFileName
@@ -197,7 +198,7 @@ func ReadDirConfig(dirName string) (map[string]interface{}, error) {
 
 		fi, err := os.Stat(fName)
 		if err != nil {
-			log.WithError(err).Warnf("Unable to read configuration file %q", fName)
+			log.Warn(fmt.Sprintf("Unable to read configuration file %q", fName), logfields.Error, err)
 			continue
 		}
 		if fi.Mode().IsDir() {
@@ -206,7 +207,7 @@ func ReadDirConfig(dirName string) (map[string]interface{}, error) {
 
 		b, err := os.ReadFile(fName)
 		if err != nil {
-			log.WithError(err).Warnf("Unable to read configuration file %q", fName)
+			log.Warn(fmt.Sprintf("Unable to read configuration file %q", fName), logfields.Error, err)
 			continue
 		}
 		m[f.Name()] = string(bytes.TrimSpace(b))

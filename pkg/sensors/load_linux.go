@@ -15,7 +15,6 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/program"
-	"github.com/sirupsen/logrus"
 )
 
 func (s *Sensor) setMapPinPath(m *program.Map) {
@@ -47,10 +46,7 @@ func (s *Sensor) preLoadMaps(bpfDir string, loadedMaps []*program.Map) ([]*progr
 func (s *Sensor) loadMap(bpfDir string, loaderCache *loaderCache, m *program.Map) error {
 	l := logger.GetLogger()
 	if m.PinState.IsLoaded() {
-		l.WithFields(logrus.Fields{
-			"sensor": s.Name,
-			"map":    m.Name,
-		}).Info("map is already loaded, incrementing reference count")
+		l.Info("map is already loaded, incrementing reference count", "sensor", s.Name, "map", m.Name)
 		m.PinState.RefInc()
 		return nil
 	}
@@ -112,12 +108,7 @@ func (s *Sensor) loadMap(bpfDir string, loaderCache *loaderCache, m *program.Map
 		return fmt.Errorf("failed to load map '%s' for sensor '%s': %w", m.Name, s.Name, err)
 	}
 
-	l.WithFields(logrus.Fields{
-		"sensor": s.Name,
-		"map":    m.Name,
-		"path":   pinPath,
-		"max":    m.Entries,
-	}).Debug("tetragon, map loaded.")
+	l.Debug("tetragon, map loaded.", "sensor", s.Name, "map", m.Name, "path", pinPath, "max", m.Entries)
 
 	return nil
 }
@@ -129,17 +120,12 @@ func observerLoadInstance(bpfDir string, load *program.Program, maps []*program.
 	}
 
 	l := logger.GetLogger()
-	l.WithFields(logrus.Fields{
-		"prog":         load.Name,
-		"kern_version": version,
-	}).Debugf("observerLoadInstance %s %d", load.Name, version)
+	l.Debug(fmt.Sprintf("observerLoadInstance %s %d", load.Name, version), "prog", load.Name, "kern_version", version)
 	switch load.Type {
 	case "tracepoint":
 		err = loadInstance(bpfDir, load, maps, version, option.Config.Verbosity)
 		if err != nil {
-			l.WithField(
-				"tracepoint", load.Name,
-			).Info("Failed to load, trying to remove and retrying")
+			l.Info("Failed to load, trying to remove and retrying", "tracepoint", load.Name)
 			load.Unload(true)
 			err = loadInstance(bpfDir, load, maps, version, option.Config.Verbosity)
 		}
@@ -150,9 +136,7 @@ func observerLoadInstance(bpfDir string, load *program.Program, maps []*program.
 	case "raw_tracepoint", "raw_tp":
 		err = loadInstance(bpfDir, load, maps, version, option.Config.Verbosity)
 		if err != nil {
-			l.WithField(
-				"raw_tracepoint", load.Name,
-			).Info("Failed to load, trying to remove and retrying")
+			l.Info("Failed to load, trying to remove and retrying", "raw_tracepoint", load.Name)
 			load.Unload(true)
 			err = loadInstance(bpfDir, load, maps, version, option.Config.Verbosity)
 		}
@@ -174,19 +158,13 @@ func loadInstance(bpfDir string, load *program.Program, maps []*program.Map, ver
 	// Check if the load.type is a standard program type. If so, use the standard loader.
 	loadFn, ok := standardTypes[load.Type]
 	if ok {
-		logger.GetLogger().WithField("Program", load.Name).
-			WithField("Type", load.Type).
-			WithField("Attach", load.Attach).
-			Debug("Loading BPF program")
+		logger.GetLogger().Debug("Loading BPF program", "Program", load.Name, "Type", load.Type, "Attach", load.Attach)
 		return loadFn(bpfDir, load, maps, verbose)
 	}
 	// Otherwise, check for a registered probe type. If one exists, use that.
 	probe, ok := registeredProbeLoad[load.Type]
 	if ok {
-		logger.GetLogger().WithField("Program", load.Name).
-			WithField("Type", load.Type).
-			WithField("Attach", load.Attach).
-			Debug("Loading registered BPF probe")
+		logger.GetLogger().Debug("Loading registered BPF probe", "Program", load.Name, "Type", load.Type, "Attach", load.Attach)
 		// Registered probes need extra setup
 		version = kernels.FixKernelVersion(version)
 		return probe.LoadProbe(LoadProbeArgs{

@@ -18,6 +18,7 @@ import (
 	"github.com/cilium/tetragon/pkg/ksyms"
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/procsyms"
@@ -48,8 +49,8 @@ func getProcessParent(key *processapi.MsgExecveKey, flags uint8) (*process.Proce
 	} else {
 		tetragonProcess = proc.UnsafeGetProcess()
 		if err := proc.AnnotateProcess(option.Config.EnableProcessCred, option.Config.EnableProcessNs); err != nil {
-			logger.GetLogger().WithError(err).WithField("processId", tetragonProcess.Pid).
-				Debugf("Failed to annotate process with capabilities and namespaces info")
+			logger.GetLogger().Debug("Failed to annotate process with capabilities and namespaces info",
+				"processId", tetragonProcess.Pid, logfields.Error, err)
 		}
 	}
 	if parent != nil {
@@ -314,7 +315,7 @@ func getKprobeArgument(arg tracingapi.MsgGenericKprobeArg) *tetragon.KprobeArgum
 		a.Arg = &tetragon.KprobeArgument_LinuxBinprmArg{LinuxBinprmArg: lArg}
 		a.Label = e.Label
 	default:
-		logger.GetLogger().WithField("arg", e).Warnf("unexpected type: %T", e)
+		logger.GetLogger().Warn(fmt.Sprintf("unexpected type: %T", e), "arg", e)
 	}
 	return a
 }
@@ -355,13 +356,13 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 		}
 		kernelSymbols, err := ksyms.KernelSymbols()
 		if err != nil {
-			logger.GetLogger().WithError(err).Warn("stacktrace: failed to read kernel symbols")
+			logger.GetLogger().Warn("stacktrace: failed to read kernel symbols", logfields.Error, err)
 			continue
 		}
 		fnOffset, err := kernelSymbols.GetFnOffset(addr)
 		if err != nil {
 			// maybe group those errors as they might come in pack
-			logger.GetLogger().WithField("address", fmt.Sprintf("0x%x", addr)).Warn("stacktrace: failed to retrieve symbol and offset")
+			logger.GetLogger().Warn("stacktrace: failed to retrieve symbol and offset", "address", fmt.Sprintf("0x%x", addr))
 			continue
 		}
 		entry := &tetragon.StackTraceEntry{
@@ -383,7 +384,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 		entry := &tetragon.StackTraceEntry{}
 		fsym, err := procsyms.GetFnSymbol(int(event.Msg.Tid), addr)
 		if err != nil {
-			logger.GetLogger().WithField("address", fmt.Sprintf("0x%x", addr)).Debug("stacktrace: failed to retrieve symbol, offset and module")
+			logger.GetLogger().Debug("stacktrace: failed to retrieve symbol, offset and module", "address", fmt.Sprintf("0x%x", addr))
 			continue
 		}
 		entry.Offset = fsym.Offset
@@ -597,7 +598,7 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 				FileArg: fileArg,
 			}})
 		default:
-			logger.GetLogger().Warnf("handleGenericTracepointMessage: unhandled value: %+v (%T)", arg, arg)
+			logger.GetLogger().Warn(fmt.Sprintf("handleGenericTracepointMessage: unhandled value: %+v (%T)", arg, arg))
 		}
 	}
 
@@ -987,7 +988,7 @@ func GetProcessLsm(event *MsgGenericLsmUnix) *tetragon.ProcessLsm {
 		tetragonEvent.ImaHash = "sm3:" + hex.EncodeToString(event.ImaHash.Hash[:32])
 
 	default:
-		logger.GetLogger().Debugf("bpf_ima_inode_hash/bpf_ima_file_hash returned code: %d", event.ImaHash.Algo)
+		logger.GetLogger().Debug(fmt.Sprintf("bpf_ima_inode_hash/bpf_ima_file_hash returned code: %d", event.ImaHash.Algo))
 	}
 
 	if tetragonProcess.Pid == nil {

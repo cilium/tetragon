@@ -260,7 +260,7 @@ func NewWithTimer(n server.Notifier, dur time.Duration) *Cache {
 		cache.done <- true
 	}
 
-	logger.GetLogger().WithField("retries", option.Config.EventCacheNumRetries).WithField("delay", dur).Info("Creating new EventCache")
+	logger.GetLogger().Info("Creating new EventCache", "retries", option.Config.EventCacheNumRetries, "delay", dur)
 
 	cache = &Cache{
 		objsChan: make(chan CacheObj),

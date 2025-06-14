@@ -11,8 +11,9 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/api/v1/tetragon/codegen/helpers"
 	"github.com/cilium/tetragon/pkg/event"
+	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/google/cel-go/cel"
-	"github.com/sirupsen/logrus"
 	celk8s "k8s.io/apiserver/pkg/cel/library"
 )
 
@@ -57,7 +58,7 @@ func EvalCEL(ctx context.Context, program cel.Program, event *tetragon.GetEvents
 	return false, nil
 }
 
-func (c *CELExpressionFilter) filterByCELExpression(ctx context.Context, log logrus.FieldLogger, exprs []string) (FilterFunc, error) {
+func (c *CELExpressionFilter) filterByCELExpression(ctx context.Context, log logger.FieldLogger, exprs []string) (FilterFunc, error) {
 	var programs []cel.Program
 	for _, expr := range exprs {
 		prg, err := c.CompileCEL(expr)
@@ -78,7 +79,7 @@ func (c *CELExpressionFilter) filterByCELExpression(ctx context.Context, log log
 		for _, prg := range programs {
 			match, err := EvalCEL(ctx, prg, response)
 			if err != nil {
-				log.Error(err)
+				log.Error("EvalCEL Error", logfields.Error, err)
 				return false
 			}
 			if match {
@@ -92,11 +93,11 @@ func (c *CELExpressionFilter) filterByCELExpression(ctx context.Context, log log
 // CELExpressionFilter implements filtering based on CEL (common expression
 // language) expressions
 type CELExpressionFilter struct {
-	log    logrus.FieldLogger
+	log    logger.FieldLogger
 	celEnv *cel.Env
 }
 
-func NewCELExpressionFilter(log logrus.FieldLogger) *CELExpressionFilter {
+func NewCELExpressionFilter(log logger.FieldLogger) *CELExpressionFilter {
 	responseTypeMap := helpers.ResponseTypeMap()
 	options := []cel.EnvOption{
 		cel.Container("tetragon"),

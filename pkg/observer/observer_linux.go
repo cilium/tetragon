@@ -14,6 +14,7 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/perf"
 	"github.com/cilium/tetragon/pkg/api/readyapi"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/strutils"
 )
@@ -36,9 +37,7 @@ func (k *Observer) getRBSize(cpus int) int {
 	cpuSize := perfBufferSize(size)
 	totalSize := cpuSize * cpus
 
-	k.log.WithField("percpu", strutils.SizeWithSuffix(cpuSize)).
-		WithField("total", strutils.SizeWithSuffix(totalSize)).
-		Info("Perf ring buffer size (bytes)")
+	k.log.Info("Perf ring buffer size (bytes)", "percpu", strutils.SizeWithSuffix(cpuSize), "total", strutils.SizeWithSuffix(totalSize))
 	return size
 }
 
@@ -99,7 +98,7 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 				if stopCtx.Err() == nil {
 					RingbufErrors.Inc()
 					errorCnt := getCounterValue(RingbufErrors)
-					k.log.WithField("errors", errorCnt).WithError(err).Warn("Reading bpf events failed")
+					k.log.Warn("Reading bpf events failed", "errors", errorCnt, logfields.Error, err)
 				}
 			} else {
 				if len(record.RawSample) > 0 {
@@ -129,8 +128,8 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 				k.receiveEvent(event.RawSample)
 				queueReceived.Inc()
 			case <-stopCtx.Done():
-				k.log.WithError(stopCtx.Err()).Infof("Listening for events completed.")
-				k.log.Debugf("Unprocessed events in RB queue: %d", len(eventsQueue))
+				k.log.Info("Listening for events completed.", logfields.Error, stopCtx.Err())
+				k.log.Debug(fmt.Sprintf("Unprocessed events in RB queue: %d", len(eventsQueue)))
 				return
 			}
 		}

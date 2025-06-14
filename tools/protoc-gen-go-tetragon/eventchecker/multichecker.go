@@ -36,7 +36,7 @@ func generateMultiEventCheckers(g *protogen.GeneratedFile) error {
 
 // generateOrderedEventChecker generates boilerplate for the ordered MultiEventChecker
 func generateOrderedEventChecker(g *protogen.GeneratedFile) error {
-	logger := common.GoIdent(g, "github.com/sirupsen/logrus", "Logger")
+	logger := common.GoIdent(g, "log/slog", "Logger")
 
 	g.P(`// OrderedEventChecker checks a series of events in order
     type OrderedEventChecker struct {
@@ -66,13 +66,13 @@ func generateOrderedEventChecker(g *protogen.GeneratedFile) error {
         checker.idx++
         if checker.idx == len(checker.checks) {
             if logger != nil {
-                logger.Infof("OrderedEventChecker: all %d checks matched", len(checker.checks))
+                logger.Info(fmt.Sprintf("OrderedEventChecker: all %d checks matched", len(checker.checks)))
             }
             return true, nil
         }
 
         if logger != nil {
-            logger.Infof("OrderedEventChecker: %d/%d matched", checker.idx, len(checker.checks))
+            logger.Info(fmt.Sprintf("OrderedEventChecker: %d/%d matched", checker.idx, len(checker.checks)))
         }
         return false, nil
     }`)
@@ -111,7 +111,7 @@ func generateOrderedEventChecker(g *protogen.GeneratedFile) error {
 
 // generateUnorderedEventChecker generates boilerplate for the unordered MultiEventChecker
 func generateUnorderedEventChecker(g *protogen.GeneratedFile) error {
-	logger := common.GoIdent(g, "github.com/sirupsen/logrus", "Logger")
+	logger := common.GoIdent(g, "log/slog", "Logger")
 
 	listList := common.GoIdent(g, "container/list", "List")
 
@@ -148,7 +148,7 @@ func generateUnorderedEventChecker(g *protogen.GeneratedFile) error {
 
         totalMatched := checker.totalChecks - pending
         if logger != nil {
-            logger.Infof("UnorderedEventChecker: checking event with %d/%d total matched", totalMatched, checker.totalChecks)
+            logger.Info(fmt.Sprintf("UnorderedEventChecker: checking event with %d/%d total matched", totalMatched, checker.totalChecks))
         }
         idx := 1
 
@@ -158,7 +158,7 @@ func generateUnorderedEventChecker(g *protogen.GeneratedFile) error {
             if err == nil {
                 totalMatched++
                 if logger != nil {
-                        logger.Infof("UnorderedEventChecker: successfully matched %d/%d", totalMatched, checker.totalChecks)
+                        logger.Info(fmt.Sprintf("UnorderedEventChecker: successfully matched %d/%d", totalMatched, checker.totalChecks))
                 }
                 checker.pendingChecks.Remove(e)
                 pending--
@@ -167,12 +167,12 @@ func generateUnorderedEventChecker(g *protogen.GeneratedFile) error {
                 }
 
                 if logger != nil {
-                    logger.Infof("UnorderedEventChecker: all %d check(s) matched", checker.totalChecks)
+                    logger.Info(fmt.Sprintf("UnorderedEventChecker: all %d check(s) matched", checker.totalChecks))
                 }
                 return true, nil
             }
             if logger != nil {
-                logger.Infof("UnorderedEventChecker: checking pending %d/%d: %s", idx, pending, err)
+                logger.Info(fmt.Sprintf("UnorderedEventChecker: checking pending %d/%d: %s", idx, pending, err))
             }
             idx++
         }
@@ -236,7 +236,7 @@ func generateUnorderedEventChecker(g *protogen.GeneratedFile) error {
 
 // generateFnEventChecker generates boilerplate for the unordered MultiEventChecker
 func generateFnEventChecker(g *protogen.GeneratedFile) error {
-	logger := common.GoIdent(g, "github.com/sirupsen/logrus", "Logger")
+	logger := common.GoIdent(g, "log/slog", "Logger")
 
 	g.P(`// FnEventChecker checks a series of events using custom-defined functions for
     // the MultiEventChecker implementation
@@ -271,7 +271,7 @@ func generateFnEventChecker(g *protogen.GeneratedFile) error {
 
 // generateMultiEventCheckerInterface generates the MultiEventChecker interface
 func generateMultiEventCheckerInterface(g *protogen.GeneratedFile) error {
-	logger := common.GoIdent(g, "github.com/sirupsen/logrus", "Logger")
+	logger := common.GoIdent(g, "log/slog", "Logger")
 
 	g.P(`// MultiEventChecker is an interface for checking multiple Tetragon events
         type MultiEventChecker interface {
@@ -300,7 +300,7 @@ func generateMultiEventCheckerInterface(g *protogen.GeneratedFile) error {
 
 // generateMultiEventCheckerHelpers generates the MultiEventChecker helper functions
 func generateMultiEventCheckerHelpers(g *protogen.GeneratedFile) error {
-	logger := common.GoIdent(g, "github.com/sirupsen/logrus", "Logger")
+	logger := common.GoIdent(g, "log/slog", "Logger")
 	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
 
 	g.P(`// NextResponseCheck checks the next response

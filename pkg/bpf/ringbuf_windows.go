@@ -10,6 +10,7 @@ import (
 	"unsafe"
 
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"golang.org/x/sys/windows"
 )
 
@@ -250,7 +251,7 @@ func (reader *WindowsRingBufReader) invokeIoctl(request unsafe.Pointer, dwReqSiz
 func CreateOverlappedEvent() (uintptr, error) {
 	hEvent, _, err := CreateEventW.Call(0, 0, 0, 0)
 	if !errors.Is(err, error(syscall.Errno(0))) {
-		log.WithError(err).Error("failed creating overlapped Event.")
+		log.Error("failed creating overlapped Event.", logfields.Error, err)
 		return INVALID_HANDLE_VALUE, err
 	}
 	ResetEvent.Call(hEvent)
@@ -349,7 +350,7 @@ func (reader *WindowsRingBufReader) fetchNextOffsets() error {
 		err = nil
 	}
 	if err != nil {
-		log.WithError(err).Error("failed to do async device io control.")
+		log.Error("failed to do async device io control.", logfields.Error, err)
 		return err
 	}
 	waitReason, _, err := WaitForSingleObject.Call(uintptr(overlapped.HEvent), syscall.INFINITE)

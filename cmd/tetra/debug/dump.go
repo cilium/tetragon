@@ -18,6 +18,7 @@ import (
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/errmetrics"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
@@ -91,7 +92,7 @@ func dumpExecveMap(fname string) {
 		ReadOnly: true,
 	})
 	if err != nil {
-		logger.GetLogger().WithError(err).Fatal("failed to open execve map")
+		logger.Fatal(logger.GetLogger(), "failed to open execve map", logfields.Error, err)
 	}
 
 	data := make(map[execvemap.ExecveKey]execvemap.ExecveValue)
@@ -104,7 +105,7 @@ func dumpExecveMap(fname string) {
 	}
 
 	if err := iter.Err(); err != nil {
-		logger.GetLogger().WithError(err).Fatal("error iterating execve map")
+		logger.Fatal(logger.GetLogger(), "error iterating execve map", logfields.Error, err)
 	}
 
 	if len(data) == 0 {
@@ -156,7 +157,7 @@ func dumpProcessCache() *cobra.Command {
 				if s, err := p.MarshalJSON(); err == nil {
 					cmd.Println(string(s))
 				} else {
-					logger.GetLogger().WithError(err).WithField("process", p).Error("failed to marshal process")
+					logger.GetLogger().Error("failed to marshal process", "process", p, logfields.Error, err)
 				}
 			}
 
@@ -175,14 +176,14 @@ func dumpProcessCache() *cobra.Command {
 func PolicyfilterState(fname string) {
 	m, err := policyfilter.OpenMap(fname)
 	if err != nil {
-		logger.GetLogger().WithError(err).Fatal("Failed to open policyfilter map")
+		logger.Fatal(logger.GetLogger(), "failed to open policyfilter map", logfields.Error, err)
 		return
 	}
 	defer m.Close()
 
 	data, err := m.Dump()
 	if err != nil {
-		logger.GetLogger().WithError(err).Fatal("Failed to open policyfilter map")
+		logger.Fatal(logger.GetLogger(), "failed to dump policyfilter map", logfields.Error, err)
 		return
 	}
 
@@ -222,7 +223,7 @@ func NamespaceState(fname string) error {
 		ReadOnly: true,
 	})
 	if err != nil {
-		logger.GetLogger().WithError(err).WithField("file", fname).Warn("Could not open process tree map")
+		logger.GetLogger().Warn("Could not open process tree map", "file", fname, logfields.Error, err)
 		return err
 	}
 

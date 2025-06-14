@@ -225,7 +225,7 @@ func RegisterPolicyHandlerAtInit(name string, h policyHandler) {
 // This function is meant to be called in an init() by sensors that
 // need extra logic when loading a specific probe type.
 func RegisterProbeType(probeType string, s probeLoader) {
-	logger.GetLogger().WithField("probeType", probeType).WithField("sensors", s).Debug("Registered probe type")
+	logger.GetLogger().Debug("Registered probe type", "probeType", probeType, "sensors", s)
 	if _, exists := registeredProbeLoad[probeType]; exists {
 		panic(fmt.Sprintf("RegisterProbeType called, but %s is already registered", probeType))
 	}

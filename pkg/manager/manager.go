@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/bombsimon/logrusr/v4"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/podhooks"
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/watcher"
@@ -59,7 +59,7 @@ func Get() *ControllerManager {
 // is for unit tests so that we can instantiate multiple ControllerManager instances
 // without them trying to bind to the same port 8080.
 func newControllerManager() (*ControllerManager, error) {
-	ctrl.SetLogger(logrusr.New(logger.GetLogger()))
+	ctrl.SetLogger(logger.NewLogrFromSlog(logger.GetLogger()))
 	scheme := runtime.NewScheme()
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(v1alpha1.AddToScheme(scheme))
@@ -127,7 +127,7 @@ func (cm *ControllerManager) ListNamespaces() ([]corev1.Namespace, error) {
 
 func (cm *ControllerManager) WaitCRDs(ctx context.Context, crds map[string]struct{}) error {
 	log := logger.GetLogger()
-	log.WithField("crds", crds).Info("Waiting for required CRDs")
+	log.Info("Waiting for required CRDs", "crds", crds)
 	var wg sync.WaitGroup
 	wg.Add(1)
 	crdInformer, err := cm.Manager.GetCache().GetInformer(ctx, &apiextensionsv1.CustomResourceDefinition{})
@@ -138,11 +138,11 @@ func (cm *ControllerManager) WaitCRDs(ctx context.Context, crds map[string]struc
 		AddFunc: func(obj interface{}) {
 			crdObject, ok := obj.(*apiextensionsv1.CustomResourceDefinition)
 			if !ok {
-				log.WithField("obj", obj).Warn("Received an invalid object")
+				log.Warn("Received an invalid object", "obj", obj)
 				return
 			}
 			if _, ok := crds[crdObject.Name]; ok {
-				log.WithField("crd", crdObject.Name).Info("Found CRD")
+				log.Info("Found CRD", "crd", crdObject.Name)
 				delete(crds, crdObject.Name)
 				if len(crds) == 0 {
 					log.Info("Found all the required CRDs")
@@ -152,13 +152,13 @@ func (cm *ControllerManager) WaitCRDs(ctx context.Context, crds map[string]struc
 		},
 	})
 	if err != nil {
-		log.WithError(err).Error("failed to add event handler")
+		log.Error("failed to add event handler", logfields.Error, err)
 		return err
 	}
 	wg.Wait()
 	err = cm.Manager.GetCache().RemoveInformer(ctx, &apiextensionsv1.CustomResourceDefinition{})
 	if err != nil {
-		log.WithError(err).Warn("failed to remove CRD informer")
+		log.Warn("failed to remove CRD informer", logfields.Error, err)
 	}
 	return nil
 }

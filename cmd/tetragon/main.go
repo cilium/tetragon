@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"log/slog"
 	"net"
 	"net/http"
 	pprofhttp "net/http/pprof"
@@ -23,6 +24,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 
 	"github.com/cilium/tetragon/pkg/bugtool"
 	"github.com/cilium/tetragon/pkg/cgrouprate"
@@ -61,7 +63,6 @@ import (
 	"github.com/cilium/lumberjack/v2"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	gops "github.com/google/gops/agent"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
 	"github.com/spf13/viper"
@@ -101,9 +102,9 @@ func setRedactionFilters() error {
 	redactionFilters := viper.GetString(option.KeyRedactionFilters)
 	fieldfilters.RedactionFilters, err = fieldfilters.ParseRedactionFilterList(redactionFilters)
 	if err == nil {
-		log.WithFields(logrus.Fields{"redactionFilters": redactionFilters}).Info("Configured redaction filters")
+		log.Info("Configured redaction filters", "redactionFilters", redactionFilters)
 	} else {
-		log.WithError(err).Error("Error configuring redaction filters")
+		log.Error("Error configuring redaction filters", logfields.Error, err)
 	}
 	return err
 }
@@ -114,7 +115,7 @@ func absPath(p string) string {
 	}
 	ret, err := filepath.Abs(p)
 	if err != nil {
-		log.WithField("path", p).WithError(err).Warning("failed to get absolute path")
+		log.Warn("failed to get absolute path", "path", p, logfields.Error, err)
 		return p
 	}
 	return ret
@@ -138,20 +139,20 @@ func saveInitInfo() error {
 
 func stopProfile() {
 	if option.Config.MemProfile != "" {
-		log.WithField("file", option.Config.MemProfile).Info("Stopping mem profiling")
+		log.Info("Stopping mem profiling", "file", option.Config.MemProfile)
 		f, err := os.Create(option.Config.MemProfile)
 		if err != nil {
-			log.WithField("file", option.Config.MemProfile).Fatal("Could not create memory profile: ", err)
+			logger.Fatal(log, "could not create memory profile", "file", option.Config.MemProfile, logfields.Error, err)
 		}
 		defer f.Close()
 		// get up-to-date statistics
 		runtime.GC()
 		if err := pprof.WriteHeapProfile(f); err != nil {
-			log.Fatal("could not write memory profile: ", err)
+			logger.Fatal(log, "could not write memory profile", logfields.Error, err)
 		}
 	}
 	if option.Config.CpuProfile != "" {
-		log.WithField("file", option.Config.CpuProfile).Info("Stopping cpu profiling")
+		log.Info("Stopping cpu profiling", "file", option.Config.CpuProfile)
 		pprof.StopCPUProfile()
 	}
 }
@@ -168,12 +169,12 @@ func getOldBpfDir(path string) (string, error) {
 	// remove the 'xxx_old' leftover if neded
 	if _, err := os.Stat(old); err == nil {
 		os.RemoveAll(old)
-		log.Info("Found bpf leftover instance, removing: %s", old)
+		log.Info("Found bpf leftover instance, removing: " + old)
 	}
 	if err := os.Rename(path, old); err != nil {
 		return "", err
 	}
-	log.Infof("Found bpf instance: %s, moved to: %s", path, old)
+	log.Info(fmt.Sprintf("Found bpf instance: %s, moved to: %s", path, old))
 	return old, nil
 }
 
@@ -182,10 +183,10 @@ func deleteOldBpfDir(path string) {
 		return
 	}
 	if err := os.RemoveAll(path); err != nil {
-		log.Errorf("Failed to remove old bpf instance '%s': %s\n", path, err)
+		log.Error(fmt.Sprintf("Failed to remove old bpf instance '%s'\n", path), logfields.Error, err)
 		return
 	}
-	log.Infof("Removed bpf instance: %s", path)
+	log.Info("Removed bpf instance: " + path)
 }
 
 func loadInitialSensor(ctx context.Context) error {
@@ -210,29 +211,29 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 
 	// Logging should always be bootstrapped first. Do not add any code above this!
 	if err := logger.SetupLogging(option.Config.LogOpts, option.Config.Debug); err != nil {
-		log.Fatal(err)
+		logger.Fatal(log, "Failed to setup logging", logfields.Error, err)
 	}
 
 	if !filepath.IsAbs(option.Config.TracingPolicyDir) {
-		log.Fatalf("Failed path specified by --tracing-policy-dir '%q' is not absolute", option.Config.TracingPolicyDir)
+		logger.Fatal(log, fmt.Sprintf("Failed path specified by --tracing-policy-dir '%q' is not absolute", option.Config.TracingPolicyDir))
 	}
 	option.Config.TracingPolicyDir = filepath.Clean(option.Config.TracingPolicyDir)
 
 	if option.Config.RBSize != 0 && option.Config.RBSizeTotal != 0 {
-		log.Fatalf("Can't specify --rb-size and --rb-size-total together")
+		logger.Fatal(log, "Can't specify --rb-size and --rb-size-total together")
 	}
 
 	if option.Config.ExecveMapEntries != 0 && len(option.Config.ExecveMapSize) != 0 {
-		log.Fatalf("Can't specify --execve-map-entries and --execve-map-size together")
+		logger.Fatal(log, "Can't specify --execve-map-entries and --execve-map-size together")
 	}
 
 	// enable extra programs/maps loading debug output
-	if logger.DefaultLogger.IsLevelEnabled(logrus.DebugLevel) {
+	if logger.GetLogger().Enabled(ctx, slog.LevelDebug) {
 		program.KeepCollection = true
 	}
 
-	log.WithField("version", version.Version).Info("Starting tetragon")
-	log.WithField("config", viper.AllSettings()).Info("config settings")
+	log.Info("Starting tetragon", "version", version.Version)
+	log.Info("config settings", "config", viper.AllSettings())
 
 	// Create run dir early
 	os.MkdirAll(defaults.DefaultRunDir, 0755)
@@ -253,13 +254,10 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	}
 	defer pidfile.Delete()
 
-	log.WithFields(logrus.Fields{
-		"pid":     pid,
-		"pidfile": defaults.DefaultPidFile,
-	}).Info("Tetragon pid file creation succeeded")
+	log.Info("Tetragon pid file creation succeeded", "pid", pid, "pidfile", defaults.DefaultPidFile)
 
 	if option.Config.ForceLargeProgs && option.Config.ForceSmallProgs {
-		log.Fatalf("Can't specify --force-small-progs and --force-large-progs together")
+		logger.Fatal(log, "Can't specify --force-small-progs and --force-large-progs together")
 	}
 
 	if option.Config.ForceLargeProgs {
@@ -291,7 +289,7 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	// Providing correct information can't be achieved anyway.
 	err = initHostNamespaces()
 	if err != nil {
-		log.WithField("procfs", option.Config.ProcFS).WithError(err).Fatalf("Failed to initialize host namespaces")
+		logger.Fatal(log, "Failed to initialize host namespaces", "procfs", option.Config.ProcFS, logfields.Error, err)
 	}
 	checkProcFS()
 	// Setup file system mounts
@@ -315,27 +313,27 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	if option.Config.PprofAddr != "" {
 		go func() {
 			if err := servePprof(option.Config.PprofAddr); err != nil {
-				log.Warnf("serving pprof via http: %v", err)
+				log.Warn("serving pprof via http", logfields.Error, err)
 			}
 		}()
 	}
 
 	// Start profilers first as we have to capture them in signal handling
 	if option.Config.MemProfile != "" {
-		log.WithField("file", option.Config.MemProfile).Info("Starting mem profiling")
+		log.Info("Starting mem profiling", "file", option.Config.MemProfile)
 	}
 
 	if option.Config.CpuProfile != "" {
 		f, err := os.Create(option.Config.CpuProfile)
 		if err != nil {
-			log.Fatal("could not create CPU profile: ", err)
+			logger.Fatal(log, "could not create CPU profile", logfields.Error, err)
 		}
 		defer f.Close()
 
 		if err := pprof.StartCPUProfile(f); err != nil {
-			log.Fatal("could not start CPU profile: ", err)
+			logger.Fatal(log, "could not start CPU profile", logfields.Error, err)
 		}
-		log.WithField("file", option.Config.CpuProfile).Info("Starting cpu profiling")
+		log.Info("Starting cpu profiling", "file", option.Config.CpuProfile)
 	}
 
 	defer stopProfile()
@@ -351,9 +349,9 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	if option.Config.ReleasePinned {
 		err := os.RemoveAll(observerDir)
 		if err != nil {
-			log.WithField("bpf-dir", observerDir).WithError(err).Warn("BPF: failed to release pinned BPF programs and maps, Consider removing it manually")
+			log.Warn("BPF: failed to release pinned BPF programs and maps, Consider removing it manually", "bpf-dir", observerDir, logfields.Error, err)
 		} else {
-			log.WithField("bpf-dir", observerDir).Info("BPF: successfully released pinned BPF programs and maps")
+			log.Info("BPF: successfully released pinned BPF programs and maps", "bpf-dir", observerDir)
 		}
 	}
 
@@ -367,7 +365,7 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		s := <-sigs
 		// if we receive a signal, call cancel so that contexts are finalized, which will
 		// leads to normally return from tetragonExecute().
-		log.Infof("Received signal %s, shutting down...", s)
+		log.Info(fmt.Sprintf("Received signal %s, shutting down...", s))
 		cancel()
 	}()
 
@@ -380,7 +378,7 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	}
 
 	// needs BTF, so caling it after InitCachedBTF
-	log.Info("BPF detected features: ", bpf.LogFeatures())
+	log.Info("BPF detected features: " + bpf.LogFeatures())
 
 	if err := observer.InitDataCache(option.Config.DataCacheSize); err != nil {
 		return err
@@ -424,7 +422,7 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		podAccessor = controllerManager
 		k8sNode, err := controllerManager.GetNode()
 		if err != nil {
-			log.WithError(err).Warn("Failed to get local Kubernetes node info. node_labels field will be empty")
+			log.Warn("Failed to get local Kubernetes node info. node_labels field will be empty", logfields.Error, err)
 		} else {
 			node.SetNodeLabels(k8sNode.Labels)
 		}
@@ -496,7 +494,7 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		health.StartHealthServer(ctx, option.Config.HealthServerAddress, option.Config.HealthServerInterval)
 	}
 
-	log.WithField("enabled", option.Config.ExportFilename != "").WithField("fileName", option.Config.ExportFilename).Info("Exporter configuration")
+	log.Info("Exporter configuration", "enabled", option.Config.ExportFilename != "", "fileName", option.Config.ExportFilename)
 	obs.AddListener(pm)
 	saveInitInfo()
 
@@ -551,7 +549,7 @@ func loadTpFromDir(ctx context.Context, dir string) error {
 		// Do not fail if the default directory doesn't exist,
 		// it might because of developer setup or incomplete installation
 		if os.IsNotExist(err) && dir == defaults.DefaultTpDir {
-			log.WithField("tracing-policy-dir", dir).Info("Loading Tracing Policies from directory ignored, directory does not exist")
+			log.Info("Loading Tracing Policies from directory ignored, directory does not exist", "tracing-policy-dir", dir)
 			return nil
 		}
 		return fmt.Errorf("failed to access tracing policies dir %s: %w", dir, err)
@@ -609,11 +607,10 @@ func addTracingPolicy(ctx context.Context, file string) error {
 		namespace = tpNs.TpNamespace()
 	}
 
-	logger.GetLogger().WithFields(logrus.Fields{
-		"TracingPolicy":      file,
-		"metadata.namespace": namespace,
-		"metadata.name":      tp.TpName(),
-	}).Info("Added TracingPolicy with success")
+	logger.GetLogger().Info("Added TracingPolicy with success",
+		"TracingPolicy", file,
+		"metadata.namespace", namespace,
+		"metadata.name", tp.TpName())
 
 	return nil
 }
@@ -675,8 +672,8 @@ func startExporter(ctx context.Context, server *server.Server) error {
 
 	perms, err := fileutils.RegularFilePerms(option.Config.ExportFilePerm)
 	if err != nil {
-		log.WithError(err).Warnf("Failed to parse export file permission '%s', failing back to %v",
-			option.KeyExportFilePerm, perms)
+		log.Warn(fmt.Sprintf("Failed to parse export file permission '%s', failing back to %v",
+			option.KeyExportFilePerm, perms), logfields.Error, err)
 	}
 	writer.FileMode = perms
 
@@ -688,7 +685,7 @@ func startExporter(ctx context.Context, server *server.Server) error {
 	logFile := filepath.Base(option.Config.ExportFilename)
 	logsDir, err := filepath.Abs(filepath.Dir(filepath.Clean(option.Config.ExportFilename)))
 	if err != nil {
-		log.WithError(err).Warnf("Failed to get absolute path of exported JSON logs '%s'", option.Config.ExportFilename)
+		log.Warn(fmt.Sprintf("Failed to get absolute path of exported JSON logs '%s'", option.Config.ExportFilename), logfields.Error, err)
 		// Do not fail; we let lumberjack handle this. We want to
 		// log the rotate logs operation.
 		logsDir = filepath.Dir(option.Config.ExportFilename)
@@ -698,10 +695,9 @@ func startExporter(ctx context.Context, server *server.Server) error {
 		// Passed an invalid interval let's error out
 		return fmt.Errorf("frequency '%s' at which to rotate JSON export files is negative", option.Config.ExportFileRotationInterval.String())
 	} else if option.Config.ExportFileRotationInterval > 0 {
-		log.WithFields(logrus.Fields{
-			"directory": logsDir,
-			"frequency": option.Config.ExportFileRotationInterval.String(),
-		}).Info("Periodically rotating JSON export files")
+		log.Info("Periodically rotating JSON export files",
+			"directory", logsDir,
+			"frequency", option.Config.ExportFileRotationInterval.String())
 		go func() {
 			ticker := time.NewTicker(option.Config.ExportFileRotationInterval)
 			for {
@@ -709,14 +705,9 @@ func startExporter(ctx context.Context, server *server.Server) error {
 				case <-ctx.Done():
 					return
 				case <-ticker.C:
-					log.WithFields(logrus.Fields{
-						"file":      logFile,
-						"directory": logsDir,
-					}).Info("Rotating JSON logs export")
+					log.Info("Rotating JSON logs export", "file", logFile, "directory", logsDir)
 					if rotationErr := writer.Rotate(); rotationErr != nil {
-						log.WithError(rotationErr).
-							WithField("file", option.Config.ExportFilename).
-							Warn("Failed to rotate JSON export file")
+						log.Warn("Failed to rotate JSON export file", "file", option.Config.ExportFilename, logfields.Error, rotationErr)
 					}
 				}
 			}
@@ -738,8 +729,8 @@ func startExporter(ctx context.Context, server *server.Server) error {
 		}
 	}
 	req := tetragon.GetEventsRequest{AllowList: allowList, DenyList: denyList, AggregationOptions: aggregationOptions, FieldFilters: fieldFilters}
-	log.WithFields(logrus.Fields{"fieldFilters": fieldFilters}).Info("Configured field filters")
-	log.WithFields(logrus.Fields{"logger": writer, "request": &req}).Info("Starting JSON exporter")
+	log.Info("Configured field filters", "fieldFilters", fieldFilters)
+	log.Info("Starting JSON exporter", "logger", writer, "request", &req)
 	exporter := exporter.NewExporter(ctx, &req, server, encoder, writer, rateLimiter)
 	return exporter.Start()
 }
@@ -764,11 +755,11 @@ func Serve(ctx context.Context, listenAddr string, srv *server.Server) error {
 			listener, err = net.Listen(proto, addr)
 		}
 		if err != nil {
-			log.WithError(err).WithField("protocol", proto).WithField("address", addr).Fatal("Failed to start gRPC server")
+			logger.Fatal(log, "Failed to start gRPC server", "protocol", proto, "address", addr, logfields.Error, err)
 		}
-		log.WithField("address", addr).WithField("protocol", proto).Info("Starting gRPC server")
+		log.Info("Starting gRPC server", "protocol", proto, "address", addr)
 		if err = grpcServer.Serve(listener); err != nil {
-			log.WithError(err).Error("Failed to close gRPC server")
+			log.Error("Failed to close gRPC server", logfields.Error, err)
 		}
 	}(proto, addr)
 	go func(proto, addr string) {
@@ -796,7 +787,7 @@ func startGopsServer() error {
 		return err
 	}
 
-	log.WithField("addr", option.Config.GopsAddr).Info("Starting gops server")
+	log.Info("Starting gops server", "addr", option.Config.GopsAddr)
 
 	return nil
 }
@@ -808,20 +799,20 @@ func execute() error {
 		Run: func(cmd *cobra.Command, _ []string) {
 			if viper.GetBool(option.KeyGenerateDocs) {
 				if err := doc.GenYaml(cmd, os.Stdout); err != nil {
-					log.WithError(err).Fatal("Failed to generate docs")
+					logger.Fatal(log, "Failed to generate docs", logfields.Error, err)
 				}
 				return
 			}
 
 			if err := option.ReadAndSetFlags(); err != nil {
-				log.WithError(err).Fatal("Failed to parse command line flags")
+				logger.Fatal(log, "Failed to parse command line flags", logfields.Error, err)
 			}
 			if err := startGopsServer(); err != nil {
-				log.WithError(err).Fatal("Failed to start gops")
+				logger.Fatal(log, "Failed to start gRPC server", logfields.Error, err)
 			}
 
 			if err := tetragonExecute(); err != nil {
-				log.WithError(err).Fatal("Failed to start tetragon")
+				logger.Fatal(log, "Failed to execute tetragon", logfields.Error, err)
 			}
 		},
 	}

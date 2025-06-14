@@ -4,18 +4,17 @@
 package testutils
 
 import (
-	"io"
+	"log/slog"
 	"strings"
 	"testing"
 
+	"github.com/cilium/tetragon/pkg/logger"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
-
-	"github.com/sirupsen/logrus"
 )
 
 type LogCapturer struct {
 	TB  testing.TB
-	Log *logrus.Logger
+	Log *slog.Logger
 }
 
 func (tl LogCapturer) Write(p []byte) (n int, err error) {
@@ -26,21 +25,24 @@ func (tl LogCapturer) Write(p []byte) (n int, err error) {
 	return len(s), nil
 }
 
-// CaptureLog redirects logrus output to testing.Log
-func CaptureLog(tb testing.TB, l *logrus.Logger) {
+// CaptureLog redirects slog output to testing.Log
+func CaptureLog(tb testing.TB, l *slog.Logger) {
 	lc := &LogCapturer{
 		TB:  tb,
 		Log: l,
 	}
 
-	origOut := logrus.StandardLogger().Out
+	originalLogger := logger.DefaultSlogLogger
+
 	tb.Cleanup(func() {
-		l.SetOutput(origOut)
+		logger.DefaultSlogLogger = originalLogger
 	})
 
 	if tus.Conf().DisableTetragonLogs {
-		l.SetOutput(io.Discard)
+		newLogger := slog.New(logger.SlogNopHandler)
+		logger.DefaultSlogLogger = newLogger
 	} else {
-		l.SetOutput(lc)
+		newLogger := slog.New(slog.NewTextHandler(lc, nil))
+		logger.DefaultSlogLogger = newLogger
 	}
 }

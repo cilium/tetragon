@@ -6,7 +6,7 @@ package ktime
 import (
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"github.com/cilium/tetragon/pkg/logger"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -17,7 +17,7 @@ func ToProto(ktime uint64) *timestamppb.Timestamp {
 func ToProtoOpt(ktime uint64, monotonic bool) *timestamppb.Timestamp {
 	decodedTime, err := DecodeKtime(int64(ktime), monotonic)
 	if err != nil {
-		logrus.WithError(err).WithField("ktime", ktime).Warn("Failed to decode ktime")
+		logger.GetLogger().Warn("Failed to decode ktime", "ktime", ktime)
 		return timestamppb.Now()
 	}
 	return timestamppb.New(decodedTime)

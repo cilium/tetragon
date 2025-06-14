@@ -15,10 +15,10 @@ import (
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/cgtracker"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/option"
 
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 )
 
 // convinience types to make APIs more readable
@@ -74,14 +74,14 @@ type cgidm struct {
 	contMap    map[ContainerID]int
 	invalidCnt int
 
-	log logrus.FieldLogger
+	log logger.FieldLogger
 	*logger.DebugLogger
 
 	criResolver *criResolver
 }
 
 func newMap() (*cgidm, error) {
-	log := logger.GetLogger().WithField("cgidmap", true)
+	log := logger.GetLogger().With("cgidmap", true)
 
 	m := &cgidm{
 		entries:     make([]entry, 0, 1024),
@@ -136,32 +136,26 @@ func (m *cgidm) addEntry(e entry) {
 func (m *cgidm) updateEntry(idx int, newEntry entry) {
 	oldEntry := &m.entries[idx]
 	if oldEntry.podID != newEntry.podID {
-		m.log.WithFields(logrus.Fields{
-			"newEntry.podID": newEntry.podID,
-			"oldEntry.podID": oldEntry.podID,
-			"containerID":    newEntry.contID,
-		}).Warn("invalid entry in cgidmap: mismatching pod id, please report this message to Tetragon developers")
+		m.log.Warn("invalid entry in cgidmap: mismatching pod id, please report this message to Tetragon developers",
+			"newEntry.podID", newEntry.podID,
+			"oldEntry.podID", oldEntry.podID,
+			"containerID", newEntry.contID)
 		oldEntry.podID = newEntry.podID
 	}
 
 	if oldEntry.cgID != newEntry.cgID {
-		m.log.WithFields(logrus.Fields{
-			"podID":       newEntry.podID,
-			"containerID": newEntry.contID,
-			"newcgID":     newEntry.cgID,
-			"oldcgID":     oldEntry.cgID,
-		}).Warn("invalid entry in cgidmap: mismatching cg id, please report this message to Tetragon developers")
+		m.log.Warn("invalid entry in cgidmap: mismatching cg id, please report this message to Tetragon developers",
+			"podID", newEntry.podID,
+			"containerID", newEntry.contID,
+			"newcgID", newEntry.cgID,
+			"oldcgID", oldEntry.cgID)
 		oldEntry.cgID = newEntry.cgID
 	}
 }
 
 // Add adds a new entry to the cgid map
 func (m *cgidm) Add(podID PodID, contID ContainerID, cgroupID CgroupID) {
-	m.DebugLogWithCallers(2).WithFields(logrus.Fields{
-		"podID":    podID,
-		"contID":   contID,
-		"cgroupID": cgroupID,
-	}).Info("cgidmap.Add")
+	m.DebugLogWithCallers(2).Info("cgidmap.Add", "podID", podID, "contID", contID, "cgroupID", cgroupID)
 
 	newEntry := entry{
 		podID:  podID,
@@ -179,9 +173,7 @@ func (m *cgidm) Add(podID PodID, contID ContainerID, cgroupID CgroupID) {
 }
 
 func (m *cgidm) Get(cgID CgroupID) (ContainerID, bool) {
-	m.DebugLogWithCallers(2).WithFields(logrus.Fields{
-		"cgroupID": cgID,
-	}).Debug("cgidmap.Get")
+	m.DebugLogWithCallers(2).Debug("cgidmap.Get", "cgroupID", cgID)
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -193,10 +185,7 @@ func (m *cgidm) Get(cgID CgroupID) (ContainerID, bool) {
 
 // Update updates the cgid map for the container ids of a given pod
 func (m *cgidm) Update(podID PodID, contIDs []ContainerID) {
-	m.DebugLogWithCallers(2).WithFields(logrus.Fields{
-		"podID":   podID,
-		"contIDs": contIDs,
-	}).Info("cgidmap.Update")
+	m.DebugLogWithCallers(2).Info("cgidmap.Update", "podID", podID, "contIDs", contIDs)
 
 	tmp := make(map[ContainerID]struct{}, len(contIDs))
 	for _, id := range contIDs {
@@ -273,7 +262,7 @@ func GlobalMap() (Map, error) {
 		if glError == nil {
 			glMap.log.Info("cgidmap initialized")
 		} else {
-			glMap.log.WithError(glError).Warn("cgidmap initialization failed")
+			glMap.log.Warn("cgidmap initialization failed", logfields.Error, glError)
 		}
 	})
 	return glMap, glError
@@ -282,7 +271,7 @@ func GlobalMap() (Map, error) {
 func SetContainerID(info *processapi.MsgK8sUnix) {
 	m, err := GlobalMap()
 	if err != nil {
-		logger.GetLogger().WithError(err).Warn("failed to get cgIdMap")
+		logger.GetLogger().Warn("failed to get cgIdMap", logfields.Error, err)
 		return
 	}
 

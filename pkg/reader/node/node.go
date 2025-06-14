@@ -8,6 +8,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/option"
 )
 
@@ -39,7 +40,7 @@ func SetExportNodeName() {
 	}
 	exportNodeName, err = os.Hostname()
 	if err != nil {
-		logger.GetLogger().WithError(err).Warn("failed to retrieve hostname")
+		logger.GetLogger().Warn("failed to retrieve hostname", logfields.Error, err)
 	}
 }
 
@@ -55,7 +56,7 @@ func SetNodeName() {
 	}
 	nodeName, err = os.Hostname()
 	if err != nil {
-		logger.GetLogger().WithError(err).Warn("failed to retrieve hostname")
+		logger.GetLogger().Warn("failed to retrieve hostname", logfields.Error, err)
 	}
 }
 

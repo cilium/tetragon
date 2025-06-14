@@ -4,6 +4,7 @@
 package base
 
 import (
+	"fmt"
 	"log"
 	"sync"
 	"testing"
@@ -133,14 +134,13 @@ func setupSensor() {
 			log.Fatal("Failed to detect exit probe symbol.")
 		}
 	}
-	logger.GetLogger().Infof("Exit probe on %s", Exit.Attach)
+	logger.GetLogger().Info("Exit probe on " + Exit.Attach)
 
 	entries := GetExecveEntries(option.Config.ExecveMapEntries, option.Config.ExecveMapSize)
 	ExecveMap.SetMaxEntries(entries)
 
-	logger.GetLogger().
-		WithField("size", strutils.SizeWithSuffix(entries*int(unsafe.Sizeof(execvemap.ExecveValue{})))).
-		Infof("Set execve_map entries %d", entries)
+	logger.GetLogger().Info(fmt.Sprintf("Set execve_map entries %d", entries),
+		"size", strutils.SizeWithSuffix(entries*int(unsafe.Sizeof(execvemap.ExecveValue{}))))
 }
 
 func GetExecveMap() *program.Map {

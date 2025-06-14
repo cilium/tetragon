@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"testing"
 	"time"
@@ -17,7 +18,6 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon/codegen/helpers"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/testutils"
-	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -72,7 +72,7 @@ func (e *JsonEOFError) Unwrap() error {
 }
 
 // JsonCheck checks a JSON string using the new eventchecker library.
-func JsonCheck(jsonFile *os.File, checker ec.MultiEventChecker, log *logrus.Logger) error {
+func JsonCheck(jsonFile *os.File, checker ec.MultiEventChecker, log *slog.Logger) error {
 	count := 0
 	dec := json.NewDecoder(jsonFile)
 	for dec.More() {
@@ -96,18 +96,18 @@ func JsonCheck(jsonFile *os.File, checker ec.MultiEventChecker, log *logrus.Logg
 		matchPrefix := fmt.Sprintf("%sevent:%s", prefix, eType)
 		done, err := ec.NextResponseCheck(checker, &ev, log)
 		if done && err == nil {
-			log.Infof("%s =>  FINAL MATCH", matchPrefix)
-			log.Infof("jsonTestCheck: DONE!")
+			log.Info(matchPrefix + " =>  FINAL MATCH")
+			log.Info("jsonTestCheck: DONE!")
 			return nil
 		} else if err == nil {
-			log.Infof("%s => MATCH, continuing", matchPrefix)
+			log.Info(matchPrefix + " => MATCH, continuing")
 		} else if done && err != nil {
-			log.Errorf("%s => terminating error: %s", matchPrefix, err)
+			log.Error(fmt.Sprintf("%s => terminating error: %s", matchPrefix, err))
 			return err
 		} else if errors.As(err, &dbgErr) {
-			log.Debugf("%s => no match: %s, continuing", matchPrefix, err)
+			log.Debug(fmt.Sprintf("%s => no match: %s, continuing", matchPrefix, err))
 		} else {
-			log.Infof("%s => no match: %s, continuing", matchPrefix, err)
+			log.Info(fmt.Sprintf("%s => no match: %s, continuing", matchPrefix, err))
 		}
 	}
 
@@ -121,18 +121,12 @@ func JsonCheck(jsonFile *os.File, checker ec.MultiEventChecker, log *logrus.Logg
 }
 
 func doJsonTestCheck(t *testing.T, jsonFile *os.File, checker ec.MultiEventChecker) error {
-	fieldLogger := logger.GetLogger()
-	log, ok := fieldLogger.(*logrus.Logger)
-	if !ok {
-		return errors.New("failed to convert logger")
-	}
-
 	cnt := 0
 	prevEvents := 0
 	var err error
 	for {
 		t0 := time.Now()
-		err = JsonCheck(jsonFile, checker, log)
+		err = JsonCheck(jsonFile, checker, logger.GetLogger())
 		elapsed := time.Since(t0)
 		t.Logf("JsonCheck (retry=%d) took %s", cnt, elapsed)
 		if err == nil {

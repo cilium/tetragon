@@ -5,21 +5,17 @@ package logger
 
 import (
 	"fmt"
-	"io"
+	"log/slog"
 	"runtime"
-
-	"github.com/sirupsen/logrus"
 )
 
 // there is no way to have selective information level  per sub-system
 // (see: https://github.com/cilium/cilium/issues/21002) so we define
 // a utility type here
 
-func initEmptylogger() logrus.FieldLogger {
+func initEmptylogger() FieldLogger {
 	// NB: we could define a better empty logger, that also ignores WithField
-	log := logrus.New()
-	log.SetOutput(io.Discard)
-	return log
+	return slog.New(SlogNopHandler)
 }
 
 var (
@@ -27,18 +23,18 @@ var (
 )
 
 type DebugLogger struct {
-	logger       logrus.FieldLogger
+	logger       *slog.Logger
 	debugEnabled bool
 }
 
-func NewDebugLogger(logger logrus.FieldLogger, debugEnabled bool) *DebugLogger {
+func NewDebugLogger(logger *slog.Logger, debugEnabled bool) *DebugLogger {
 	return &DebugLogger{
 		logger:       logger,
 		debugEnabled: debugEnabled,
 	}
 }
 
-func (d *DebugLogger) DebugLogWithCallers(nCallers int) logrus.FieldLogger {
+func (d *DebugLogger) DebugLogWithCallers(nCallers int) FieldLogger {
 	if !d.debugEnabled {
 		return emptyLogger
 	}
@@ -51,24 +47,24 @@ func (d *DebugLogger) DebugLogWithCallers(nCallers int) logrus.FieldLogger {
 		}
 		fn := runtime.FuncForPC(pc)
 		key := fmt.Sprintf("caller-%d", i)
-		log = log.WithField(key, fn.Name())
+		log = log.With(key, fn.Name())
 	}
 
 	return log
 }
 
-func (d *DebugLogger) Debug(args ...interface{}) {
+func (d *DebugLogger) Debug(msg string, args ...interface{}) {
 	if d.debugEnabled {
-		d.logger.Info(args...)
+		d.logger.Info(msg, args...)
 	} else {
-		d.logger.Debug(args...)
+		d.logger.Debug(msg, args...)
 	}
 }
 
-func (d *DebugLogger) Debugf(fmt string, args ...interface{}) {
+func (d *DebugLogger) Debugf(format string, args ...interface{}) {
 	if d.debugEnabled {
-		d.logger.Infof(fmt, args...)
+		d.logger.Info(fmt.Sprintf(format, args...))
 	} else {
-		d.logger.Debugf(fmt, args...)
+		d.logger.Debug(fmt.Sprintf(format, args...))
 	}
 }

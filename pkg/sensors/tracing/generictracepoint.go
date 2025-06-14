@@ -24,6 +24,7 @@ import (
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/metrics/enforcermetrics"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
@@ -35,7 +36,6 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/syscallinfo"
 	"github.com/cilium/tetragon/pkg/tracepoint"
-	"github.com/sirupsen/logrus"
 
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 )
@@ -49,7 +49,7 @@ const (
 var (
 	genericTracepointTable idtable.Table
 
-	tracepointLog logrus.FieldLogger
+	tracepointLog logger.FieldLogger
 )
 
 type observerTracepointSensor struct {
@@ -379,7 +379,7 @@ func createGenericTracepoint(
 	if errors.Is(err, ErrMsgSyntaxShort) || errors.Is(err, ErrMsgSyntaxEscape) {
 		return nil, err
 	} else if errors.Is(err, ErrMsgSyntaxLong) {
-		logger.GetLogger().WithField("policy-name", polInfo.name).Warnf("TracingPolicy 'message' field too long, truncated to %d characters", TpMaxMessageLen)
+		logger.GetLogger().Warn(fmt.Sprintf("TracingPolicy 'message' field too long, truncated to %d characters", TpMaxMessageLen), "policy-name", polInfo.name)
 	}
 
 	tagsField, err := getPolicyTags(conf.Tags)
@@ -738,7 +738,7 @@ func (tp *genericTracepoint) eventConfigRaw(config *tracingapi.EventConfig) (*tr
 		config.Arg[tpArg.TpIdx] = int32(tpArg.genericTypeId)
 		config.ArgM[tpArg.TpIdx] = uint32(tpArg.MetaArg)
 
-		tracepointLog.Debugf("configured argument #%d: %+v (type:%d)", i, tpArg, tpArg.genericTypeId)
+		tracepointLog.Debug(fmt.Sprintf("configured argument #%d: %+v (type:%d)", i, tpArg, tpArg.genericTypeId))
 	}
 	return config, nil
 }
@@ -751,7 +751,7 @@ func (tp *genericTracepoint) eventConfig(config *tracingapi.EventConfig) (*traci
 		config.Arg[i] = int32(tpArg.genericTypeId)
 		config.ArgM[i] = uint32(tpArg.MetaArg)
 
-		tracepointLog.Debugf("configured argument #%d: %+v (type:%d)", i, tpArg, tpArg.genericTypeId)
+		tracepointLog.Debug(fmt.Sprintf("configured argument #%d: %+v (type:%d)", i, tpArg, tpArg.genericTypeId))
 	}
 
 	// nop args
@@ -801,7 +801,7 @@ func LoadGenericTracepointSensor(bpfDir string, load *program.Program, maps []*p
 	}
 
 	if err == nil {
-		logger.GetLogger().Infof("Loaded generic tracepoint program: %s -> %s", load.Name, load.Attach)
+		logger.GetLogger().Info(fmt.Sprintf("Loaded generic tracepoint program: %s -> %s", load.Name, load.Attach))
 	}
 	return err
 }
@@ -821,7 +821,7 @@ func handleGenericTracepoint(r *bytes.Reader) ([]observer.Event, error) {
 
 	tp, err := genericTracepointTableGet(idtable.EntryID{ID: int(m.FuncId)})
 	if err != nil {
-		logger.GetLogger().WithField("id", m.FuncId).WithError(err).Warnf("genericTracepoint info not found")
+		logger.GetLogger().Warn("genericTracepoint info not found", "id", m.FuncId, logfields.Error, err)
 		return []observer.Event{unix}, nil
 	}
 
@@ -843,16 +843,16 @@ func handleMsgGenericTracepoint(
 	case selectors.ActionTypeGetUrl, selectors.ActionTypeDnsLookup:
 		actionArgEntry, err := tp.actionArgs.GetEntry(idtable.EntryID{ID: int(m.ActionArgId)})
 		if err != nil {
-			logger.GetLogger().WithError(err).Warnf("Failed to find argument for id:%d", m.ActionArgId)
+			logger.GetLogger().Warn(fmt.Sprintf("Failed to find argument for id:%d", m.ActionArgId), logfields.Error, err)
 			return nil, errors.New("failed to find argument for id")
 		}
 		actionArg := actionArgEntry.(*selectors.ActionArgEntry).GetArg()
 		switch m.ActionId {
 		case selectors.ActionTypeGetUrl:
-			logger.GetLogger().WithField("URL", actionArg).Trace("Get URL Action")
+			logger.Trace(logger.GetLogger(), "Get URL Action", "URL", actionArg)
 			getUrl(actionArg)
 		case selectors.ActionTypeDnsLookup:
-			logger.GetLogger().WithField("FQDN", actionArg).Trace("DNS lookup")
+			logger.Trace(logger.GetLogger(), "DNS lookup", "FQDN", actionArg)
 			dnsLookup(actionArg)
 		}
 	}
@@ -874,7 +874,7 @@ func handleMsgGenericTracepoint(
 			var val uint64
 			err := binary.Read(r, binary.LittleEndian, &val)
 			if err != nil {
-				logger.GetLogger().WithError(err).Warnf("Size type error sizeof %d", m.Common.Size)
+				logger.GetLogger().Warn(fmt.Sprintf("Size type error sizeof %d", m.Common.Size), logfields.Error, err)
 			}
 			unix.Args = append(unix.Args, val)
 
@@ -882,7 +882,7 @@ func handleMsgGenericTracepoint(
 			var val int64
 			err := binary.Read(r, binary.LittleEndian, &val)
 			if err != nil {
-				logger.GetLogger().WithError(err).Warnf("Size type error sizeof %d", m.Common.Size)
+				logger.GetLogger().Warn(fmt.Sprintf("Size type error sizeof %d", m.Common.Size), logfields.Error, err)
 			}
 			unix.Args = append(unix.Args, val)
 
@@ -890,7 +890,7 @@ func handleMsgGenericTracepoint(
 			var val uint32
 			err := binary.Read(r, binary.LittleEndian, &val)
 			if err != nil {
-				logger.GetLogger().WithError(err).Warnf("Size type error sizeof %d", m.Common.Size)
+				logger.GetLogger().Warn(fmt.Sprintf("Size type error sizeof %d", m.Common.Size), logfields.Error, err)
 			}
 			unix.Args = append(unix.Args, val)
 
@@ -898,7 +898,7 @@ func handleMsgGenericTracepoint(
 			var val int32
 			err := binary.Read(r, binary.LittleEndian, &val)
 			if err != nil {
-				logger.GetLogger().WithError(err).Warnf("Size type error sizeof %d", m.Common.Size)
+				logger.GetLogger().Warn(fmt.Sprintf("Size type error sizeof %d", m.Common.Size), logfields.Error, err)
 			}
 			unix.Args = append(unix.Args, val)
 
@@ -907,7 +907,7 @@ func handleMsgGenericTracepoint(
 
 			err := binary.Read(r, binary.LittleEndian, &val)
 			if err != nil {
-				logger.GetLogger().WithError(err).Warnf("Size type error sizeof %d", m.Common.Size)
+				logger.GetLogger().Warn(fmt.Sprintf("Size type error sizeof %d", m.Common.Size), logfields.Error, err)
 			}
 			unix.Args = append(unix.Args, val)
 
@@ -915,7 +915,7 @@ func handleMsgGenericTracepoint(
 			if arg, err := ReadArgBytes(r, idx, false); err == nil {
 				unix.Args = append(unix.Args, arg.Value)
 			} else {
-				logger.GetLogger().WithError(err).Warnf("failed to read bytes argument")
+				logger.GetLogger().Warn("failed to read bytes argument", logfields.Error, err)
 			}
 
 		case gt.GenericConstBuffer:
@@ -936,18 +936,18 @@ func handleMsgGenericTracepoint(
 					for i := range arrTy.Size {
 						err := binary.Read(r, binary.LittleEndian, &val)
 						if err != nil {
-							logger.GetLogger().WithError(err).Warnf("failed to read element %d from array", i)
+							logger.GetLogger().Warn(fmt.Sprintf("failed to read element %d from array", i), logfields.Error, err)
 							return nil, err
 						}
 						unix.Args = append(unix.Args, val)
 					}
 				default:
-					logger.GetLogger().Warnf("failed to read array argument: unexpected base type: %w", intTy.Base)
+					logger.GetLogger().Warn(fmt.Sprintf("failed to read array argument: unexpected base type: %d", intTy.Base))
 				}
 			}
 		case gt.GenericStringType, gt.GenericDataLoc:
 			if arg, err := parseString(r); err != nil {
-				logger.GetLogger().WithError(err).Warn("error parsing arg type string")
+				logger.GetLogger().Warn("error parsing arg type string", logfields.Error, err)
 			} else {
 				unix.Args = append(unix.Args, arg)
 			}
@@ -957,7 +957,7 @@ func handleMsgGenericTracepoint(
 
 			err := binary.Read(r, binary.LittleEndian, &skb)
 			if err != nil {
-				logger.GetLogger().WithError(err).Warnf("skb type err")
+				logger.GetLogger().Warn("skb type err", logfields.Error, err)
 			}
 
 			arg.Hash = skb.Hash
@@ -979,7 +979,7 @@ func handleMsgGenericTracepoint(
 
 			err := binary.Read(r, binary.LittleEndian, &sock)
 			if err != nil {
-				logger.GetLogger().WithError(err).Warnf("sock type err")
+				logger.GetLogger().Warn("sock type err", logfields.Error, err)
 			}
 
 			arg.Family = sock.Tuple.Family
@@ -1001,7 +1001,7 @@ func handleMsgGenericTracepoint(
 
 			err := binary.Read(r, binary.LittleEndian, &address)
 			if err != nil {
-				logger.GetLogger().WithError(err).Warnf("sockaddr type err")
+				logger.GetLogger().Warn("sockaddr type err", logfields.Error, err)
 			}
 
 			arg.SinFamily = address.SinFamily
@@ -1013,7 +1013,7 @@ func handleMsgGenericTracepoint(
 			var val uint64
 			err := binary.Read(r, binary.LittleEndian, &val)
 			if err != nil {
-				logger.GetLogger().WithError(err).Warnf("Size type error sizeof %d", m.Common.Size)
+				logger.GetLogger().Warn(fmt.Sprintf("Size type error sizeof %d", m.Common.Size), logfields.Error, err)
 			}
 			if option.Config.CompatibilitySyscall64SizeType {
 				// NB: clear Is32Bit to mantain previous behaviour
@@ -1035,7 +1035,7 @@ func handleMsgGenericTracepoint(
 				if errors.Is(err, errParseStringSize) {
 					arg.Value = "/"
 				} else {
-					logger.GetLogger().WithError(err).Warn("error parsing arg type linux_binprm")
+					logger.GetLogger().Warn("error parsing arg type linux_binprm")
 				}
 			}
 
@@ -1074,7 +1074,7 @@ func handleMsgGenericTracepoint(
 					// though pid filtering will mostly catch this.
 					arg.Value = "/"
 				} else {
-					logger.GetLogger().WithError(err).Warn("error parsing arg type file")
+					logger.GetLogger().Warn("error parsing arg type file", logfields.Error, err)
 				}
 			}
 
@@ -1096,7 +1096,7 @@ func handleMsgGenericTracepoint(
 			unix.Args = append(unix.Args, arg)
 
 		default:
-			logger.GetLogger().Warnf("handleGenericTracepoint: ignoring:  %+v", out)
+			logger.GetLogger().Warn(fmt.Sprintf("handleGenericTracepoint: ignoring:  %+v", out))
 		}
 	}
 	return []observer.Event{unix}, nil

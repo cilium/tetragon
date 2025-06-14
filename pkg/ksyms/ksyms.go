@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/option"
 
 	lru "github.com/hashicorp/golang-lru/v2"
@@ -130,7 +131,7 @@ func NewKsyms(procfs string) (*Ksyms, error) {
 		ksyms.fnCache = fc
 	} else {
 
-		logger.GetLogger().Infof("failed to initialize cache: %s", err)
+		logger.GetLogger().Info("failed to initialize cache", logfields.Error, err)
 	}
 
 	return &ksyms, nil

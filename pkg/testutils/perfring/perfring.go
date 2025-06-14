@@ -25,7 +25,6 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	testsensor "github.com/cilium/tetragon/pkg/sensors/test"
 	"github.com/cilium/tetragon/pkg/testutils"
-	"github.com/sirupsen/logrus"
 )
 
 // EventFn is the type of function called by ProcessEvents for each event.
@@ -218,7 +217,7 @@ func RunTestEventReduceCount[K comparable](
 // similar to RunTest, but uses t.Run()
 func RunSubTest(t *testing.T, ctx context.Context, name string, selfOperations func(t *testing.T), eventFn EventFn) bool {
 	return t.Run(name, func(t *testing.T) {
-		testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+		testutils.CaptureLog(t, logger.GetLogger())
 		RunTest(t, ctx, func() { selfOperations(t) }, eventFn)
 	})
 }

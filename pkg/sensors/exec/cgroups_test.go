@@ -18,12 +18,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cilium/tetragon/pkg/kernels"
-
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/cgroups"
 	grpcexec "github.com/cilium/tetragon/pkg/grpc/exec"
+	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/mountinfo"
 
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -36,7 +35,6 @@ import (
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/cilium/tetragon/pkg/testutils/perfring"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -68,6 +66,8 @@ const (
 	tetragonCgrpRoot = "tetragon-tests"
 
 	invalidValue = ^uint32(0)
+
+	tetragonTraceLevel = uint32(6) // Trace level LogLevel_LOG_LEVEL_TRACE for Tetragon
 )
 
 var (
@@ -298,17 +298,16 @@ func getCgroupEventOpAndPath(t *testing.T, msg *grpcexec.MsgCgroupEventUnix, cgr
 
 	op := ops.CgroupOpCode(msg.CgrpOp)
 	st := ops.CgroupState(msg.CgrpData.State).String()
-	logger.GetLogger().WithFields(logrus.Fields{
-		"cgroup.event":       op.String(),
-		"PID":                msg.PID,
-		"NSPID":              msg.NSPID,
-		"cgroup.IDTracker":   msg.CgrpidTracker,
-		"cgroup.ID":          msg.Cgrpid,
-		"cgroup.state":       st,
-		"cgroup.hierarchyID": msg.CgrpData.HierarchyId,
-		"cgroup.level":       msg.CgrpData.Level,
-		"cgroup.path":        cgrpPath,
-	}).Info("Received Cgroup event")
+	logger.GetLogger().Info("Received Cgroup event",
+		"cgroup.event", op.String(),
+		"PID", msg.PID,
+		"NSPID", msg.NSPID,
+		"cgroup.IDTracker", msg.CgrpidTracker,
+		"cgroup.ID", msg.Cgrpid,
+		"cgroup.state", st,
+		"cgroup.hierarchyID", msg.CgrpData.HierarchyId,
+		"cgroup.level", msg.CgrpData.Level,
+		"cgroup.path", cgrpPath)
 
 	// match only our target cgroup paths
 	if strings.HasPrefix(cgrpPath, filepath.Join("/", cgroupHierarchy[0].path)) == false {
@@ -586,7 +585,7 @@ func setupTgRuntimeConf(t *testing.T, trackingCgrpLevel, logLevel, hierarchyId, 
 
 // Test loading bpf cgroups programs
 func TestLoadCgroupsPrograms(t *testing.T) {
-	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	testutils.CaptureLog(t, logger.GetLogger())
 
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 	option.Config.Verbosity = 5
@@ -597,7 +596,7 @@ func TestLoadCgroupsPrograms(t *testing.T) {
 
 // Test `tg_conf_map` BPF map that it can hold runtime configuration
 func TestTgRuntimeConf(t *testing.T) {
-	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	testutils.CaptureLog(t, logger.GetLogger())
 
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 	option.Config.Verbosity = 5
@@ -621,12 +620,12 @@ func TestTgRuntimeConf(t *testing.T) {
 
 	assert.Equal(t, ret.TgCgrpHierarchy, cgroups.GetCgrpHierarchyID())
 	assert.Equal(t, ret.TgCgrpv1SubsysIdx, cgroups.GetCgrpv1SubsystemIdx())
-	assert.Equal(t, ret.LogLevel, uint32(logger.GetLogLevel()))
+	assert.Equal(t, ret.LogLevel, uint32(logger.GetLogLevel(logger.GetLogger())))
 }
 
 // Test we do not receive any cgroup events from BPF side
 func TestCgroupNoEvents(t *testing.T) {
-	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 
@@ -640,7 +639,7 @@ func TestCgroupNoEvents(t *testing.T) {
 	// Set Cgroup Tracking level to Zero means no tracking and no
 	// cgroup events, all bpf cgroups related programs have no effect
 	trackingCgrpLevel := uint32(0)
-	setupTgRuntimeConf(t, trackingCgrpLevel, uint32(logrus.TraceLevel), invalidValue, invalidValue)
+	setupTgRuntimeConf(t, trackingCgrpLevel, tetragonTraceLevel, invalidValue, invalidValue)
 
 	cgroupFSPath := cgroups.GetCgroupFSPath()
 	require.NotEmpty(t, cgroupFSPath)
@@ -676,7 +675,7 @@ func TestCgroupNoEvents(t *testing.T) {
 
 // Ensure that we get cgroup_{mkdir|rmdir} events
 func TestCgroupEventMkdirRmdir(t *testing.T) {
-	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 
@@ -690,7 +689,7 @@ func TestCgroupEventMkdirRmdir(t *testing.T) {
 	// Set Tracking level to 3 so we receive notifcations about
 	// /sys/fs/cgroup/$1/$2/$3 all cgroups that are at level <=3
 	trackingCgrpLevel := uint32(3)
-	setupTgRuntimeConf(t, trackingCgrpLevel, uint32(logrus.TraceLevel), invalidValue, invalidValue)
+	setupTgRuntimeConf(t, trackingCgrpLevel, tetragonTraceLevel, invalidValue, invalidValue)
 
 	cgroupFSPath := cgroups.GetCgroupFSPath()
 	require.NotEmpty(t, cgroupFSPath)
@@ -729,16 +728,15 @@ func TestCgroupEventMkdirRmdir(t *testing.T) {
 				cgrpPath := cgroups.CgroupNameFromCStr(msg.Path[:processapi.CGROUP_PATH_LENGTH])
 				op := ops.CgroupOpCode(msg.CgrpOp)
 				st := ops.CgroupState(msg.CgrpData.State).String()
-				logger.GetLogger().WithFields(logrus.Fields{
-					"cgroup.event":     op.String(),
-					"PID":              msg.PID,
-					"NSPID":            msg.NSPID,
-					"cgroup.IDTracker": msg.CgrpidTracker,
-					"cgroup.ID":        msg.Cgrpid,
-					"cgroup.state":     st,
-					"cgroup.level":     msg.CgrpData.Level,
-					"cgroup.path":      cgrpPath,
-				}).Info("Received Cgroup event")
+				logger.GetLogger().Info("Received Cgroup event",
+					"cgroup.event", op.String(),
+					"PID", msg.PID,
+					"NSPID", msg.NSPID,
+					"cgroup.IDTracker", msg.CgrpidTracker,
+					"cgroup.ID", msg.Cgrpid,
+					"cgroup.state", st,
+					"cgroup.level", msg.CgrpData.Level,
+					"cgroup.path", cgrpPath)
 
 				assert.NotZero(t, msg.PID)
 				assert.NotZero(t, msg.Cgrpid)
@@ -881,7 +879,7 @@ func testCgroupv2K8sHierarchy(ctx context.Context, t *testing.T, mode cgroups.Cg
 	require.LessOrEqual(t, trackingCgrpLevel, uint32(len(defaultKubeCgroupHierarchy)))
 
 	// Setup unified cgroup tracking 0 as hierarchy ID
-	setupTgRuntimeConf(t, trackingCgrpLevel, uint32(logrus.TraceLevel), 0, invalidValue)
+	setupTgRuntimeConf(t, trackingCgrpLevel, tetragonTraceLevel, 0, invalidValue)
 
 	logDefaultCgroupConfig(t)
 	logTetragonConfig(t, bpf.MapPrefixPath())
@@ -1016,7 +1014,7 @@ func testCgroupv2K8sHierarchy(ctx context.Context, t *testing.T, mode cgroups.Cg
 // Test Cgroupv2 tries to emulate k8s hierarchy without exec context
 // Works in systemd Unified pure cgroupv2
 func TestCgroupv2K8sHierarchyInUnified(t *testing.T) {
-	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 
@@ -1040,7 +1038,7 @@ func TestCgroupv2K8sHierarchyInUnified(t *testing.T) {
 // Test Cgroupv2 tries to emulate k8s hierarchy without exec context
 // Works in systemd hybrid mode
 func TestCgroupv2K8sHierarchyInHybrid(t *testing.T) {
-	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 
@@ -1060,7 +1058,7 @@ func TestCgroupv2K8sHierarchyInHybrid(t *testing.T) {
 }
 
 func testCgroupv1K8sHierarchyInHybrid(t *testing.T, withExec bool, selectedController string) {
-	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 
@@ -1094,13 +1092,13 @@ func testCgroupv1K8sHierarchyInHybrid(t *testing.T, withExec bool, selectedContr
 	require.LessOrEqual(t, trackingCgrpLevel, uint32(len(defaultKubeCgroupHierarchy)))
 
 	// First setup default cgroup with our tracking level and trace level
-	setupTgRuntimeConf(t, trackingCgrpLevel, uint32(logrus.TraceLevel), invalidValue, invalidValue)
+	setupTgRuntimeConf(t, trackingCgrpLevel, tetragonTraceLevel, invalidValue, invalidValue)
 	// Fetch default controller name that we will use
 	usedController := cgroups.GetCgrpControllerName()
 
 	// See if we should use another controller for testing
 	if selectedController != usedController {
-		usedController = changeTestCgrpController(t, trackingCgrpLevel, uint32(logrus.TraceLevel), selectedController)
+		usedController = changeTestCgrpController(t, trackingCgrpLevel, tetragonTraceLevel, selectedController)
 		if selectedController == "memory" || selectedController == "pids" {
 			// We should always succeed to use memory or pids controllers otherwise panic
 			require.NotEmptyf(t, usedController, "failed to use the %s controller", selectedController)
@@ -1315,7 +1313,7 @@ func TestCgroupv1ExecK8sHierarchyInHybridInvalid(t *testing.T) {
 // Test Cgroupv2 tries to emulate k8s hierarchy with exec context
 // Works in systemd hybrid mode
 func TestCgroupv2ExecK8sHierarchyInUnified(t *testing.T) {
-	testutils.CaptureLog(t, logger.GetLogger().(*logrus.Logger))
+	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 

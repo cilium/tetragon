@@ -16,6 +16,7 @@ import (
 	"github.com/cilium/tetragon/pkg/bpf"
 	cachedbtf "github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
 )
 
@@ -203,7 +204,7 @@ func kprobeAttachOverride(load *Program, bpfDir string,
 
 	load.unloaderOverride, err = kprobeAttach(load, prog, spec, load.Attach, bpfDir, "override")
 	if err != nil {
-		logger.GetLogger().Warnf("Failed to attach override program: %w", err)
+		logger.GetLogger().Warn("Failed to attach override program", logfields.Error, err)
 	}
 
 	return nil
@@ -493,7 +494,7 @@ func MultiKprobeAttach(load *Program, bpfDir string) AttachFunc {
 
 			load.unloaderOverride, err = multiKprobeAttach(load, progOverride, progOverrideSpec, opts, bpfDir, "override")
 			if err != nil {
-				logger.GetLogger().Warnf("Failed to attach override program: %w", err)
+				logger.GetLogger().Warn("Failed to attach override program", logfields.Error, err)
 			}
 		}
 
@@ -873,7 +874,7 @@ func doLoadProgram(
 			defer m.Close()
 			pinnedMaps[name] = m
 		} else {
-			logger.GetLogger().WithField("prog", load.Label).Debugf("pin file for map '%s' not found, map is not shared!\n", name)
+			logger.GetLogger().Debug(fmt.Sprintf("pin file for map '%s' not found, map is not shared!\n", name), "prog", load.Label)
 		}
 	}
 
@@ -901,7 +902,7 @@ func doLoadProgram(
 		// Log the error directly using the logger so that the verifier log
 		// gets properly pretty-printed.
 		if verbose != 0 {
-			logger.GetLogger().Infof("Opening collection failed, dumping verifier log.")
+			logger.GetLogger().Info("Opening collection failed, dumping verifier log.")
 			var ve *ebpf.VerifierError
 			if errors.As(err, &ve) {
 				// Print a truncated version if we have verbose=1, otherwise dump the
@@ -932,12 +933,12 @@ func doLoadProgram(
 	for _, m := range coll.Maps {
 		info, err := m.Info()
 		if err != nil {
-			logger.GetLogger().WithError(err).WithField("map", m.String()).Warn("failed to retrieve BPF map info")
+			logger.GetLogger().Warn("failed to retrieve BPF map info", "map", m.String(), logfields.Error, err)
 			break
 		}
 		id, available := info.ID()
 		if !available {
-			logger.GetLogger().WithField("map", m.String()).Warn("failed to retrieve BPF map ID, you might be running <4.13")
+			logger.GetLogger().Warn("failed to retrieve BPF map ID, you might be running <4.13", "map", m.String())
 			break
 		}
 		collMaps[id] = m
@@ -946,12 +947,12 @@ func doLoadProgram(
 	for _, p := range coll.Programs {
 		i, err := p.Info()
 		if err != nil {
-			logger.GetLogger().WithError(err).WithField("program", p.String()).Warn("failed to retrieve BPF program info, you might be running <4.10")
+			logger.GetLogger().Warn("failed to retrieve BPF program info, you might be running <4.10", "program", p.String(), logfields.Error, err)
 			break
 		}
 		ids, available := i.MapIDs()
 		if !available {
-			logger.GetLogger().WithField("program", p.String()).Warn("failed to retrieve BPF program map IDs, you might be running <4.15")
+			logger.GetLogger().Warn("failed to retrieve BPF program map IDs, you might be running <4.15", "program", p.String())
 			break
 		}
 		for _, id := range ids {
@@ -960,7 +961,7 @@ func doLoadProgram(
 			}
 			xInfo, err := bpf.ExtendedInfoFromMap(collMaps[id])
 			if err != nil {
-				logger.GetLogger().WithError(err).WithField("mapID", id).Warn("failed to retrieve extended map info")
+				logger.GetLogger().Warn("failed to retrieve extended map info", "mapID", id, logfields.Error, err)
 				break
 			}
 			load.LoadedMapsInfo[int(id)] = xInfo
@@ -995,9 +996,9 @@ func doLoadProgram(
 	pinPath := filepath.Join(bpfDir, load.PinPath, "prog")
 
 	if _, err := os.Stat(pinPath); err == nil {
-		logger.GetLogger().Debugf("Pin file '%s' already exists, repinning", load.PinPath)
+		logger.GetLogger().Debug(fmt.Sprintf("Pin file '%s' already exists, repinning", load.PinPath))
 		if err := os.Remove(pinPath); err != nil {
-			logger.GetLogger().Warnf("Unpinning '%s' failed: %s", pinPath, err)
+			logger.GetLogger().Warn(fmt.Sprintf("Unpinning '%s' failed", pinPath), logfields.Error, err)
 		}
 	}
 
@@ -1015,7 +1016,7 @@ func doLoadProgram(
 	load.unloader, err = loadOpts.Attach(coll, spec, prog, progSpec)
 	if err != nil {
 		if err := prog.Unpin(); err != nil {
-			logger.GetLogger().Warnf("Unpinning '%s' failed: %w", pinPath, err)
+			logger.GetLogger().Warn(fmt.Sprintf("Unpinning '%s' failed", pinPath), logfields.Error, err)
 		}
 		return nil, err
 	}

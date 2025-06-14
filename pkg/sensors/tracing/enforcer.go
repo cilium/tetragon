@@ -113,7 +113,7 @@ func (kp *enforcerPolicy) loadSingleEnforcerSensor(
 	bpfDir string, load *program.Program, maps []*program.Map, verbose int,
 ) error {
 	if err := program.LoadKprobeProgramAttachMany(bpfDir, load, kh.syscallsSyms, maps, verbose); err == nil {
-		logger.GetLogger().Infof("Loaded enforcer sensor: %s", load.Attach)
+		logger.GetLogger().Info("Loaded enforcer sensor: " + load.Attach)
 	} else {
 		return err
 	}
@@ -134,7 +134,7 @@ func (kp *enforcerPolicy) loadMultiEnforcerSensor(
 		return err
 	}
 
-	logger.GetLogger().Infof("Loaded enforcer sensor: %s", load.Attach)
+	logger.GetLogger().Info("Loaded enforcer sensor" + load.Attach)
 	return nil
 }
 
@@ -275,7 +275,7 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 			return nil, errors.New("enforcer: can't override security function with override-return")
 		}
 		overrideMethod = OverrideMethodFmodRet
-		logger.GetLogger().Infof("enforcer: forcing fmod_ret (security_* call detected)")
+		logger.GetLogger().Info("enforcer: forcing fmod_ret (security_* call detected)")
 	}
 
 	overrideMethod, err = selectOverrideMethod(overrideMethod, hasSyscall)
@@ -286,7 +286,7 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 	switch overrideMethod {
 	case OverrideMethodReturn:
 		useMulti := !specOpts.DisableKprobeMulti && !option.Config.DisableKprobeMulti && bpf.HasKprobeMulti()
-		logger.GetLogger().Infof("enforcer: using override return (multi-kprobe: %t)", useMulti)
+		logger.GetLogger().Info(fmt.Sprintf("enforcer: using override return (multi-kprobe: %t)", useMulti))
 		label := "kprobe/enforcer"
 		prog := "bpf_enforcer.o"
 		if useMulti {
@@ -307,7 +307,7 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 		maps = append(maps, enforcerMaps(load)...)
 	case OverrideMethodFmodRet:
 		// for fmod_ret, we need one program per syscall
-		logger.GetLogger().Infof("enforcer: using fmod_ret")
+		logger.GetLogger().Info("enforcer: using fmod_ret")
 		for _, syscallSym := range kh.syscallsSyms {
 			load = program.Builder(
 				path.Join(option.Config.HubbleLib, "bpf_fmodret_enforcer.o"),
@@ -328,7 +328,7 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 		return nil, fmt.Errorf("failed to add enforcer: '%s'", policyName)
 	}
 
-	logger.GetLogger().Infof("Added enforcer sensor '%s'", policyName)
+	logger.GetLogger().Info(fmt.Sprintf("Added enforcer sensor '%s'", policyName))
 
 	return &sensors.Sensor{
 		Name:      "__enforcer__",
@@ -338,9 +338,9 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 		Namespace: policyNamespace,
 		DestroyHook: func() error {
 			if ok := kp.enforcerDel(policyName); !ok {
-				logger.GetLogger().Infof("Failed to clean up enforcer sensor '%s'", policyName)
+				logger.GetLogger().Info(fmt.Sprintf("Failed to clean up enforcer sensor '%s'", policyName))
 			} else {
-				logger.GetLogger().Infof("Cleaned up enforcer sensor '%s'", policyName)
+				logger.GetLogger().Info(fmt.Sprintf("Cleaned up enforcer sensor '%s'", policyName))
 			}
 			return nil
 		},

@@ -5,6 +5,7 @@ package overhead
 
 import (
 	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/sensors"
@@ -31,7 +32,7 @@ func collect(ch chan<- prometheus.Metric) {
 
 	overheads, err := sm.ListOverheads()
 	if err != nil {
-		logger.GetLogger().WithError(err).Warn("error listing overheads to collect overheads metrics")
+		logger.GetLogger().Warn("error listing overheads to collect overheads metrics", logfields.Error, err)
 		return
 	}
 
