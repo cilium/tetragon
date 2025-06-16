@@ -37,6 +37,10 @@ func HasKprobeMulti() bool {
 	return false
 }
 
+func HasBatchAPI() bool {
+	return false
+}
+
 func LogFeatures() string {
 	return fmt.Sprintf("override_return: %t, buildid: %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t, link_pin: %t",
 		HasOverrideHelper(), HasBuildId(), HasModifyReturn(), HasModifyReturnSyscall(), HasSignalHelper(), HasProgramLargeSize(),
