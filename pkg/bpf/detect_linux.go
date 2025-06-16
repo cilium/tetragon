@@ -43,6 +43,7 @@ var (
 	lsm                    Feature
 	missedStatsKprobe      Feature
 	missedStatsKprobeMulti Feature
+	batchUpdate            Feature
 )
 
 func HasOverrideHelper() bool {
@@ -443,13 +444,47 @@ func HasMissedStatsKprobeMulti() bool {
 	return missedStatsKprobeMulti.detected
 }
 
+func detectBatchAPI() bool {
+	m, err := ebpf.NewMap(&ebpf.MapSpec{
+		Type:       ebpf.Hash,
+		KeySize:    4,
+		ValueSize:  4,
+		MaxEntries: 1,
+	})
+	if err != nil {
+		return false
+	}
+	defer m.Close()
+
+	key := make([]uint32, 1)
+	val := make([]uint32, 1)
+
+	n, err := m.BatchUpdate(key, val, nil)
+	if err != nil || n != 1 {
+		return false
+	}
+	return true
+}
+
+func detectBatchAPIOnce() {
+	batchUpdate.init.Do(func() {
+		batchUpdate.detected = detectBatchAPI()
+	})
+}
+
+func HasBatchAPI() bool {
+	detectBatchAPIOnce()
+	return batchUpdate.detected
+}
+
 func LogFeatures() string {
 	// once we have detected all features, flush the BTF spec
 	// we cache all values so calling again a Has* function will
 	// not load the BTF again
 	defer ebtf.FlushKernelSpec()
-	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, uprobe_multi %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t, link_pin: %t, lsm: %t, missed_stats_kprobe_multi: %t, missed_stats_kprobe: %t",
+	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, uprobe_multi %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t, link_pin: %t, lsm: %t, missed_stats_kprobe_multi: %t, missed_stats_kprobe: %t, batch_update: %t",
 		HasOverrideHelper(), HasBuildId(), HasKprobeMulti(), HasUprobeMulti(),
 		HasModifyReturn(), HasModifyReturnSyscall(), HasSignalHelper(), HasProgramLargeSize(),
-		HasLinkPin(), HasLSMPrograms(), HasMissedStatsKprobeMulti(), HasMissedStatsPerfEvent())
+		HasLinkPin(), HasLSMPrograms(), HasMissedStatsKprobeMulti(), HasMissedStatsPerfEvent(),
+		HasBatchAPI())
 }
