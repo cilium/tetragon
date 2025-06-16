@@ -17,8 +17,10 @@ import (
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
+	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
+	"github.com/cilium/tetragon/pkg/tracingpolicy"
 
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
 
@@ -48,6 +50,22 @@ func miniTcpNopServerWithPort(c chan<- bool, port int, ipv6 bool) {
 	ses, _ := conn.Accept()
 	ses.Close()
 	conn.Close()
+}
+
+// Both testing.T and context.Context want to be the first argument.
+//
+//revive:disable:context-as-argument
+func addTracingPolicy(t *testing.T, ctx context.Context, tpYaml string) tracingpolicy.TracingPolicy {
+	tp, err := tracingpolicy.FromYAML(tpYaml)
+	require.NoError(t, err)
+	err = observer.GetSensorManager().AddTracingPolicy(ctx, tp)
+	require.NoError(t, err)
+	return tp
+}
+
+func deleteTracingPolicy(t *testing.T, ctx context.Context, tp tracingpolicy.TracingPolicy) {
+	err := observer.GetSensorManager().DeleteTracingPolicy(ctx, tp.TpName(), "")
+	require.NoError(t, err)
 }
 
 func TestKprobeSockBasic(t *testing.T) {
@@ -102,18 +120,21 @@ spec:
         - "9919"
 `
 
-	if config.EnableLargeProgs() {
-		createCrdFile(t, hookFull)
-	} else {
-		createCrdFile(t, hookPart)
+	hook := hookFull
+	if !config.EnableLargeProgs() {
+		hook = hookPart
 	}
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
 	if err != nil {
-		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
+
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
+
+	tp := addTracingPolicy(t, ctx, hook)
+	defer deleteTracingPolicy(t, ctx, tp)
 
 	tcpReady := make(chan bool)
 	go miniTcpNopServer(tcpReady)
@@ -191,18 +212,21 @@ spec:
         - "9918"
 `
 
-	if config.EnableLargeProgs() {
-		createCrdFile(t, hookFull)
-	} else {
-		createCrdFile(t, hookPart)
+	hook := hookFull
+	if !config.EnableLargeProgs() {
+		hook = hookPart
 	}
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
 	if err != nil {
-		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
+
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
+
+	tp := addTracingPolicy(t, ctx, hook)
+	defer deleteTracingPolicy(t, ctx, tp)
 
 	tcpReady := make(chan bool)
 	go miniTcpNopServer(tcpReady)
