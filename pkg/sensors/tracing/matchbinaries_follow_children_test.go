@@ -9,7 +9,11 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"syscall"
 	"testing"
+	"unsafe"
+
+	"golang.org/x/sys/unix"
 
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
@@ -18,6 +22,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	testsensor "github.com/cilium/tetragon/pkg/sensors/test"
 	"github.com/cilium/tetragon/pkg/testutils"
@@ -29,7 +34,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func testMatchBinariesFollowChildren(t *testing.T, op string, result int) {
+func testMatchBinariesFollowChildren(t *testing.T, op string, result, resultMyPid int) {
 
 	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
@@ -56,14 +61,34 @@ func testMatchBinariesFollowChildren(t *testing.T, op string, result int) {
 
 	loadGenericSensorTest(t, spec)
 	getcpuCnt := 0
+	getcpuCntMyPid := 0
 	eventFn := func(ev notify.Message) error {
 		if tpEvent, ok := ev.(*tracing.MsgGenericTracepointUnix); ok {
 			if tpEvent.Event != event {
 				return fmt.Errorf("unexpected tracepoint event, %s:%s", tpEvent.Subsys, tpEvent.Event)
 			}
-			getcpuCnt++
+			// Make sure we count only children getcpu calls
+			if tpEvent.Msg.ProcessKey.Pid == namespace.GetMyPidG() {
+				getcpuCntMyPid++
+			} else {
+				getcpuCnt++
+			}
 		}
 		return nil
+	}
+
+	// Extra execution of getcpu syscall in current process to make sure
+	// the filtering will include only proper getcpu children
+	getCpu := func() {
+		var cpu, node int
+
+		_, _, err := unix.Syscall(
+			unix.SYS_GETCPU,
+			uintptr(unsafe.Pointer(&cpu)),
+			uintptr(unsafe.Pointer(&node)),
+			0,
+		)
+		require.Equal(t, err, syscall.Errno(0), "getcpuexec")
 	}
 
 	getcpuBin := testutils.RepoRootPath("contrib/tester-progs/getcpu")
@@ -72,27 +97,34 @@ func testMatchBinariesFollowChildren(t *testing.T, op string, result int) {
 		if err := cmd.Run(); err != nil {
 			t.Fatalf("failed to run command %s: %v", cmd, err)
 		}
+
+		getCpu()
 	}
 	perfring.RunTest(t, ctx, ops, eventFn)
 	require.Equal(t, result, getcpuCnt, "single exec")
+	require.Equal(t, resultMyPid, getcpuCntMyPid, "single exec in current process")
 
 	getcpuCnt = 0
+	getcpuCntMyPid = 0
 	ops2 := func() {
 		cmd := exec.Command(tmpShPath, "-c", "exec sh -c "+getcpuBin)
 		if err := cmd.Run(); err != nil {
 			t.Fatalf("failed to run command %s: %v", cmd, err)
 		}
+
+		getCpu()
 	}
 	perfring.RunTest(t, ctx, ops2, eventFn)
 	require.Equal(t, result, getcpuCnt, "double exec")
+	require.Equal(t, resultMyPid, getcpuCntMyPid, "single exec in current process")
 }
 
 func TestMatchBinariesFollowChildren(t *testing.T) {
 	t.Run("In", func(t *testing.T) {
-		testMatchBinariesFollowChildren(t, "In", 1)
+		testMatchBinariesFollowChildren(t, "In", 1, 0)
 	})
 	t.Run("NotIn", func(t *testing.T) {
-		testMatchBinariesFollowChildren(t, "NotIn", 0)
+		testMatchBinariesFollowChildren(t, "NotIn", 0, 1)
 	})
 }
 
