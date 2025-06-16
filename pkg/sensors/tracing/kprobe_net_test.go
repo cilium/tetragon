@@ -19,12 +19,14 @@ import (
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
+	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
 
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
 func miniTcpNopServer(c chan<- bool) {
@@ -52,29 +54,49 @@ func miniTcpNopServerWithPort(c chan<- bool, port int, ipv6 bool) {
 	conn.Close()
 }
 
-// Both testing.T and context.Context want to be the first argument.
-//
-//revive:disable:context-as-argument
-func addTracingPolicy(t *testing.T, ctx context.Context, tpYaml string) tracingpolicy.TracingPolicy {
+func (suite *KprobeNet) addTracingPolicy(tpYaml string) tracingpolicy.TracingPolicy {
 	tp, err := tracingpolicy.FromYAML(tpYaml)
-	require.NoError(t, err)
-	err = observer.GetSensorManager().AddTracingPolicy(ctx, tp)
-	require.NoError(t, err)
+	suite.Require().NoError(err)
+	err = observer.GetSensorManager().AddTracingPolicy(suite.ctx, tp)
+	suite.Require().NoError(err)
 	return tp
 }
 
-func deleteTracingPolicy(t *testing.T, ctx context.Context, tp tracingpolicy.TracingPolicy) {
-	err := observer.GetSensorManager().DeleteTracingPolicy(ctx, tp.TpName(), "")
-	require.NoError(t, err)
+func (suite *KprobeNet) deleteTracingPolicy(tp tracingpolicy.TracingPolicy) {
+	err := observer.GetSensorManager().DeleteTracingPolicy(suite.ctx, tp.TpName(), "")
+	suite.Require().NoError(err)
 }
 
-func TestKprobeSockBasic(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
+type KprobeNet struct {
+	suite.Suite
+	doneWG, readyWG sync.WaitGroup
+	ctx             context.Context
+	cancel          context.CancelFunc
+}
 
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
+func TestKprobeNet(t *testing.T) {
+	suite.Run(t, new(KprobeNet))
+}
 
+func (suite *KprobeNet) SetupSuite() {
+	suite.ctx, suite.cancel = context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	obs, err := observertesthelper.GetDefaultObserver(suite.T(), suite.ctx, tus.Conf().TetragonLib)
+	suite.Require().NoError(err)
+	observertesthelper.LoopEvents(suite.ctx, suite.T(), &suite.doneWG, &suite.readyWG, obs)
+}
+
+func (suite *KprobeNet) HandleStats(_ string, stats *suite.SuiteInformation) {
+	if stats.Passed() {
+		testutils.DoneWithExportFile(suite.T())
+	}
+}
+
+func (suite *KprobeNet) TearDownSuite() {
+	suite.cancel()
+	suite.doneWG.Wait()
+}
+
+func (suite *KprobeNet) TestKprobeSockBasic() {
 	hookFull := `apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
@@ -125,24 +147,18 @@ spec:
 		hook = hookPart
 	}
 
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
-	if err != nil {
-		t.Fatalf("GetDefaultObserver error: %s", err)
-	}
+	suite.readyWG.Wait()
 
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
-	tp := addTracingPolicy(t, ctx, hook)
-	defer deleteTracingPolicy(t, ctx, tp)
+	tp := suite.addTracingPolicy(hook)
+	defer suite.deleteTracingPolicy(tp)
 
 	tcpReady := make(chan bool)
-	go miniTcpNopServer(tcpReady)
+	go miniTcpNopServerWithPort(tcpReady, 9919, false)
 	<-tcpReady
 	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:9919")
-	require.NoError(t, err)
+	suite.Require().NoError(err)
 	_, err = net.DialTCP("tcp", nil, addr)
-	require.NoError(t, err)
+	suite.Require().NoError(err)
 
 	kpChecker := ec.NewProcessKprobeChecker("tcp-connect-checker").
 		WithFunctionName(sm.Full("tcp_connect")).
@@ -156,17 +172,11 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
-	require.NoError(t, err)
+	err = jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	suite.Require().NoError(err)
 }
 
-func TestKprobeSockNotPort(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
+func (suite *KprobeNet) TestKprobeSockNotPort() {
 	hookFull := `apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
@@ -217,24 +227,18 @@ spec:
 		hook = hookPart
 	}
 
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
-	if err != nil {
-		t.Fatalf("GetDefaultObserver error: %s", err)
-	}
+	suite.readyWG.Wait()
 
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
-	tp := addTracingPolicy(t, ctx, hook)
-	defer deleteTracingPolicy(t, ctx, tp)
+	tp := suite.addTracingPolicy(hook)
+	defer suite.deleteTracingPolicy(tp)
 
 	tcpReady := make(chan bool)
-	go miniTcpNopServer(tcpReady)
+	go miniTcpNopServerWithPort(tcpReady, 9920, false)
 	<-tcpReady
-	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:9919")
-	require.NoError(t, err)
+	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:9920")
+	suite.Require().NoError(err)
 	_, err = net.DialTCP("tcp", nil, addr)
-	require.NoError(t, err)
+	suite.Require().NoError(err)
 
 	kpChecker := ec.NewProcessKprobeChecker("tcp-connect-checker").
 		WithFunctionName(sm.Full("tcp_connect")).
@@ -242,14 +246,14 @@ spec:
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithSockArg(ec.NewKprobeSockChecker().
 					WithDaddr(sm.Full("127.0.0.1")).
-					WithDport(9919),
+					WithDport(9920),
 				),
 			))
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
-	require.NoError(t, err)
+	err = jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	suite.Require().NoError(err)
 }
 
 func TestKprobeSockMultiplePorts(t *testing.T) {
