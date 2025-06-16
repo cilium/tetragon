@@ -14,12 +14,12 @@ require (
 	github.com/deckarep/golang-set/v2 v2.8.0
 	github.com/fatih/color v1.18.0
 	github.com/go-logr/logr v1.4.3
-	github.com/go-viper/mapstructure/v2 v2.2.1
+	github.com/go-viper/mapstructure/v2 v2.3.0
 	github.com/google/cel-go v0.23.2
 	github.com/google/go-cmp v0.7.0
 	github.com/google/gops v0.3.28
 	github.com/google/uuid v1.6.0
-	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.1
+	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/iancoleman/strcase v0.3.0
 	github.com/isovalent/metricstool v0.1.4
