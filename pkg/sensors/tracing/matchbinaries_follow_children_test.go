@@ -29,7 +29,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestMatchBinariesFollowChildren(t *testing.T) {
+func testMatchBinariesFollowChildren(t *testing.T, op string, result int) {
 
 	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
@@ -44,7 +44,7 @@ func TestMatchBinariesFollowChildren(t *testing.T) {
 			Args:      []v1alpha1.KProbeArg{},
 			Selectors: []v1alpha1.KProbeSelector{{
 				MatchBinaries: []v1alpha1.BinarySelector{{
-					Operator: "In",
+					Operator: op,
 					Values: []string{
 						tmpShPath,
 					},
@@ -74,7 +74,7 @@ func TestMatchBinariesFollowChildren(t *testing.T) {
 		}
 	}
 	perfring.RunTest(t, ctx, ops, eventFn)
-	require.Equal(t, 1, getcpuCnt, "single exec")
+	require.Equal(t, result, getcpuCnt, "single exec")
 
 	getcpuCnt = 0
 	ops2 := func() {
@@ -84,7 +84,16 @@ func TestMatchBinariesFollowChildren(t *testing.T) {
 		}
 	}
 	perfring.RunTest(t, ctx, ops2, eventFn)
-	require.Equal(t, 1, getcpuCnt, "double exec")
+	require.Equal(t, result, getcpuCnt, "double exec")
+}
+
+func TestMatchBinariesFollowChildren(t *testing.T) {
+	t.Run("In", func(t *testing.T) {
+		testMatchBinariesFollowChildren(t, "In", 1)
+	})
+	t.Run("NotIn", func(t *testing.T) {
+		testMatchBinariesFollowChildren(t, "NotIn", 0)
+	})
 }
 
 func TestMatchBinariesFollowChildrenIDs(t *testing.T) {
