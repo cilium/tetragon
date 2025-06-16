@@ -1206,9 +1206,6 @@ func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx
 	sel.Op = op
 	sel.MBSetID = mbset.InvalidID
 	if b.FollowChildren {
-		if op != SelectorOpIn {
-			return fmt.Errorf("matchBinary: followChildren not yet implemented for operation '%s'", b.Operator)
-		}
 		sel.MBSetID, err = mbset.AllocID()
 		if err != nil {
 			return fmt.Errorf("matchBinary followChildren: failed to allocate ID: %w", err)
