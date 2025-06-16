@@ -139,7 +139,7 @@ read_envs(void *ctx, struct msg_execve_event *event)
 	__u32 total_event_bytes_written = 0;
 	int err;
 
-	static const char two_null_bytes_arr[2] = {'\0', '\0'};
+	static const char two_null_bytes_arr[2] = { '\0', '\0' };
 
 	probe_read(&mm, sizeof(mm), _(&task->mm));
 	if (!mm)
