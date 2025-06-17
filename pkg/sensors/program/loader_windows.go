@@ -124,12 +124,15 @@ func doLoadProgram(
 	_ int,
 ) (*LoadedCollection, error) {
 
-	coll, err := ebpf.LoadCollection(load.Name)
+	coll, err := bpf.GetCollectionByPath(load.Name)
 	if err != nil {
-		logger.GetLogger().Warn(" Failed to load Native Windows Collection", logfields.Error, err)
-		return nil, err
+		coll, err = ebpf.LoadCollection(load.Name)
+		if err != nil {
+			logger.GetLogger().Warn(" Failed to load Native Windows Collection", logfields.Error, err)
+			return nil, err
+		}
+		bpf.SetCollection(load.Label, load.Name, coll)
 	}
-	bpf.SetCollection(load.Label, coll)
 
 	collMaps := map[ebpf.MapID]*ebpf.Map{}
 	// we need a mapping by ID
@@ -166,7 +169,6 @@ func doLoadProgram(
 
 	var prog *ebpf.Program
 	for _, p := range coll.Programs {
-
 		i, err := p.Info()
 		if i.Name == load.Label {
 			prog = p
