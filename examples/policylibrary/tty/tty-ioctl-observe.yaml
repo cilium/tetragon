@@ -1,0 +1,72 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "tty-ioctl-observe"
+  annotations:
+    author: "Djalal Harouni"
+    description: "Observe dangerous TTY ioctl performed by unprivileged"
+spec:
+  kprobes:
+  - call: "tty_ioctl"
+    # https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/drivers/tty/tty_io.c?id=83efeeeb3d04b22aaed1df99bc70a48fe9d22c4d
+    # https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/drivers/tty/tty_io.c?id=690c8b804ad2eafbd35da5d3c95ad325ca7d5061
+    syscall: false
+    message: "TTY dangerous TIOCSTI ioctl operation that allows to fake input"
+    args:
+    - index: 0
+      type: "file"
+    - index: 1
+      type: "uint32"
+    selectors:
+    - matchCapabilities:
+      - type: Effective
+        operator: NotIn
+        values:
+        - "CAP_SYS_ADMIN"
+      matchArgs:
+      - index: 1
+        operator: "Equal"
+        values:
+        - 0x5412 # TIOCSTI  fake input
+      matchActions:
+      - action: Post
+        rateLimit: "1m"
+  - call: "set_selection_user"
+    # Restricted in Linux v6.7  TIOCLINUX  https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/drivers/tty/vt?id=8d1b43f6a6df7bcea20982ad376a000d90906b42
+    syscall: false
+    message: "TTY dangerous TIOCLINUX TIOCL_SETSEL ioctl that allows to set terminal regions"
+    selectors:
+    - matchCapabilities:
+      - type: Effective
+        operator: NotIn
+        values:
+        - "CAP_SYS_ADMIN"
+      matchActions:
+      - action: Post
+        rateLimit: "1m"
+  - call: "paste_selection"
+    # Restricted in Linux v6.7  TIOCLINUX  https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/drivers/tty/vt?id=8d1b43f6a6df7bcea20982ad376a000d90906b42
+    syscall: false
+    message: "TTY dangerous TIOCLINUX TIOCL_PASTESEL ioctl that allows to past content into input buffer"
+    selectors:
+    - matchCapabilities:
+      - type: Effective
+        operator: NotIn
+        values:
+        - "CAP_SYS_ADMIN"
+      matchActions:
+      - action: Post
+        rateLimit: "1m"
+  - call: "sel_loadlut"
+    # Restricted in Linux v6.7  TIOCLINUX  https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/drivers/tty/vt?id=8d1b43f6a6df7bcea20982ad376a000d90906b42
+    syscall: false
+    message: "TTY dangerous TIOCLINUX TIOCL_SELLOADLUT that changes content of the look up table defining characters"
+    selectors:
+    - matchCapabilities:
+      - type: Effective
+        operator: NotIn
+        values:
+        - "CAP_SYS_ADMIN"
+      matchActions:
+      - action: Post
+        rateLimit: "1m"
