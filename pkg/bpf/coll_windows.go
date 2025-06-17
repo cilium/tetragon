@@ -9,25 +9,33 @@ import (
 	"github.com/cilium/ebpf"
 )
 
-type CollectionStore struct {
-	collMap map[string]*ebpf.Collection
-}
-
 var (
-	store          CollectionStore
-	collstoreMutex sync.RWMutex
+	collectionByName map[string]*ebpf.Collection
+	collectionByPath map[string]*ebpf.Collection
+	collstoreMutex   sync.RWMutex
 )
 
-func SetCollection(name string, coll *ebpf.Collection) {
+func SetCollection(name string, path string, coll *ebpf.Collection) {
 	collstoreMutex.Lock()
-	store.collMap[name] = coll
-	collstoreMutex.Unlock()
+	defer collstoreMutex.Unlock()
+	collectionByName[name] = coll
+	collectionByPath[path] = coll
+}
+
+func GetCollectionByPath(path string) (*ebpf.Collection, error) {
+	collstoreMutex.RLock()
+	defer collstoreMutex.RUnlock()
+	coll, ok := collectionByPath[path]
+	if ok {
+		return coll, nil
+	}
+	return nil, errors.New("collection object not found by path")
 }
 
 func GetCollection(name string) (*ebpf.Collection, error) {
 	collstoreMutex.RLock()
-	coll, ok := store.collMap[name]
-	collstoreMutex.RUnlock()
+	defer collstoreMutex.RUnlock()
+	coll, ok := collectionByName[name]
 	if ok {
 		return coll, nil
 	}
@@ -35,5 +43,6 @@ func GetCollection(name string) (*ebpf.Collection, error) {
 }
 
 func init() {
-	store.collMap = make(map[string]*ebpf.Collection)
+	collectionByName = make(map[string]*ebpf.Collection)
+	collectionByPath = make(map[string]*ebpf.Collection)
 }
