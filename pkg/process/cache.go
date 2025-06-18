@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"maps"
 	"path/filepath"
-	"sync/atomic"
 	"time"
 
 	"github.com/cilium/ebpf"
@@ -77,8 +76,7 @@ func (pc *Cache) cacheGarbageCollector(intervalGC time.Duration) {
 					 * later if we care. Also we may try to delete the
 					 * process a second time, but that is harmless.
 					 */
-					ref := atomic.LoadUint32(&p.refcnt)
-					if ref != 0 {
+					if p.refcnt.Load() != 0 {
 						continue
 					}
 					if p.color == deleteReady {
@@ -124,7 +122,7 @@ func (pc *Cache) refDec(p *ProcessInternal, reason string) {
 	// count number of times refcnt is decremented for a specific reason (i.e. process, parent, etc.)
 	p.refcntOps[reason]++
 	p.refcntOpsLock.Unlock()
-	ref := atomic.AddUint32(&p.refcnt, ^uint32(0))
+	ref := p.refcnt.Add(^uint32(0))
 	if ref == 0 {
 		pc.deletePending(p)
 	}
@@ -135,7 +133,7 @@ func (pc *Cache) refInc(p *ProcessInternal, reason string) {
 	// count number of times refcnt is increamented for a specific reason (i.e. process, parent, etc.)
 	p.refcntOps[reason]++
 	p.refcntOpsLock.Unlock()
-	atomic.AddUint32(&p.refcnt, 1)
+	p.refcnt.Add(1)
 }
 
 func (pc *Cache) purge() {
@@ -213,7 +211,8 @@ func (pc *Cache) dump(opts *tetragon.DumpProcessCacheReqArgs) []*tetragon.Proces
 
 	var processes []*tetragon.ProcessInternal
 	for _, v := range pc.cache.Values() {
-		if opts.SkipZeroRefcnt && v.refcnt == 0 {
+		ref := v.refcnt.Load()
+		if opts.SkipZeroRefcnt && ref == 0 {
 			continue
 		}
 		if opts.ExcludeExecveMapProcesses {
@@ -225,7 +224,7 @@ func (pc *Cache) dump(opts *tetragon.DumpProcessCacheReqArgs) []*tetragon.Proces
 		}
 		processes = append(processes, &tetragon.ProcessInternal{
 			Process:   proto.Clone(v.process).(*tetragon.Process),
-			Refcnt:    &wrapperspb.UInt32Value{Value: v.refcnt},
+			Refcnt:    &wrapperspb.UInt32Value{Value: ref},
 			RefcntOps: maps.Clone(v.refcntOps),
 			Color:     colorStr[v.color],
 		})
@@ -238,7 +237,7 @@ func (pc *Cache) getEntries() []*tetragon.ProcessInternal {
 	for _, v := range pc.cache.Values() {
 		processes = append(processes, &tetragon.ProcessInternal{
 			Process:   v.process,
-			Refcnt:    &wrapperspb.UInt32Value{Value: v.refcnt},
+			Refcnt:    &wrapperspb.UInt32Value{Value: v.refcnt.Load()},
 			RefcntOps: v.refcntOps,
 			Color:     colorStr[v.color],
 		})

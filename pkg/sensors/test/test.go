@@ -31,7 +31,7 @@ var (
 
 var (
 	// (atomic) counter for sensor names. Initialized at 0 so that first sensor is "1"
-	sensorCounter uint64
+	sensorCounter atomic.Uint64
 )
 
 func init() {
@@ -58,7 +58,7 @@ func handleTest(r *bytes.Reader) ([]observer.Event, error) {
 
 // GetTestSensor creates a new test sensor.
 func GetTestSensor() *sensors.Sensor {
-	sensorName := fmt.Sprintf("test-sensor-%d", atomic.AddUint64(&sensorCounter, 1))
+	sensorName := fmt.Sprintf("test-sensor-%d", sensorCounter.Add(1))
 	progs := []*program.Program{program.Builder(
 		"bpf_lseek.o",
 		"syscalls/sys_enter_lseek",

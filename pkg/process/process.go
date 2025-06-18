@@ -48,7 +48,7 @@ type ProcessInternal struct {
 	apiBinaryProp *tetragon.BinaryProperties
 	// garbage collector metadata
 	color  int // Writes should happen only inside gc select channel
-	refcnt uint32
+	refcnt atomic.Uint32
 	// refcntOps is a map of operations to refcnt change
 	// keys can be:
 	// - "process++": process increased refcnt (i.e. this process starts)
@@ -97,7 +97,7 @@ func (pi *ProcessInternal) GetProcessCopy() *tetragon.Process {
 	pi.mu.Lock()
 	proc := proto.Clone(pi.process).(*tetragon.Process)
 	pi.mu.Unlock()
-	proc.Refcnt = atomic.LoadUint32(&pi.refcnt)
+	proc.Refcnt = pi.refcnt.Load()
 	return proc
 }
 
@@ -106,15 +106,16 @@ func (pi *ProcessInternal) GetProcessCopy() *tetragon.Process {
 func (pi *ProcessInternal) cloneInternalProcessCopy() *ProcessInternal {
 	pi.mu.Lock()
 	defer pi.mu.Unlock()
-	return &ProcessInternal{
+	npi := &ProcessInternal{
 		process:       proto.Clone(pi.process).(*tetragon.Process),
 		capabilities:  pi.capabilities,
 		apiCreds:      pi.apiCreds,
 		apiBinaryProp: pi.apiBinaryProp,
 		namespaces:    pi.namespaces,
-		refcnt:        1, // Explicitly initialize refcnt to 1
 		refcntOps:     map[string]int32{"process++": 1},
 	}
+	npi.refcnt.Store(1) // Explicitly initialize refcnt to 1
+	return npi
 }
 
 func (pi *ProcessInternal) AddPodInfo(pod *tetragon.Pod) {
@@ -226,7 +227,7 @@ func (pi *ProcessInternal) RefInc(reason string) {
 }
 
 func (pi *ProcessInternal) RefGet() uint32 {
-	return atomic.LoadUint32(&pi.refcnt)
+	return pi.refcnt.Load()
 }
 
 func (pi *ProcessInternal) NeededAncestors() bool {
@@ -384,9 +385,9 @@ func initProcessInternalExec(
 		apiCreds:      apiCreds,
 		apiBinaryProp: apiBinaryProp,
 		namespaces:    apiNs,
-		refcnt:        1,
 		refcntOps:     map[string]int32{"process++": 1},
 	}
+	pi.refcnt.Store(1)
 
 	// Set in_init_tree flag
 	if event.Process.Flags&api.EventInInitTree == api.EventInInitTree {
