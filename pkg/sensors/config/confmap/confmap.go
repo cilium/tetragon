@@ -5,7 +5,6 @@ package confmap
 
 import (
 	"fmt"
-	"path"
 	"path/filepath"
 
 	"github.com/cilium/ebpf"
@@ -45,7 +44,10 @@ var (
 // confmapSpec returns the spec for the configuration map
 func confmapSpec() (*ebpf.MapSpec, error) {
 	objName := config.ExecObj()
-	objPath := path.Join(option.Config.HubbleLib, objName)
+	objPath, err := config.FindProgramFile(objName)
+	if err != nil {
+		return nil, fmt.Errorf("loading spec for %s failed: %w", objPath, err)
+	}
 	spec, err := ebpf.LoadCollectionSpec(objPath)
 	if err != nil {
 		return nil, fmt.Errorf("loading spec for %s failed: %w", objPath, err)
