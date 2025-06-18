@@ -9,12 +9,15 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"path/filepath"
 	"syscall"
 	"testing"
+	"time"
 	"unsafe"
 
 	"golang.org/x/sys/unix"
 
+	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
@@ -24,6 +27,7 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/reader/notify"
+	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
 	testsensor "github.com/cilium/tetragon/pkg/sensors/test"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tuo "github.com/cilium/tetragon/pkg/testutils/observer"
@@ -191,4 +195,126 @@ func TestMatchBinariesFollowChildrenIDs(t *testing.T) {
 		require.NoError(t, err)
 		sm.Manager.DeleteTracingPolicy(ctx, "match-binaries", "")
 	}
+}
+
+func openMap(name string) (*ebpf.Map, error) {
+	fname := filepath.Join(bpf.MapPrefixPath(), name)
+	ret, err := ebpf.LoadPinnedMap(fname, &ebpf.LoadPinOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", fname, err)
+	}
+	return ret, nil
+}
+
+// This test checks on properly updated execve_map after the
+// policy is added and removed. We do following:
+// - add tracing policy that has MatchBinaries on "forks" binary with FollowChildren
+// - executes "forks" with "count" (30000) argument that will result in count
+//   fork-ed processes
+// - check that all related execve_map records are updated
+// - remove policy
+// - check that all related execve_map records are updated
+
+func TestMatchBinariesFollowChildrenUpdate(t *testing.T) {
+	testutils.CaptureLog(t, logger.GetLogger())
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	if err := observer.InitDataCache(1024); err != nil {
+		t.Fatalf("observertesthelper.InitDataCache: %s", err)
+	}
+
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+	tus.LoadInitialSensor(t)
+	tus.LoadSensor(t, testsensor.GetTestSensor())
+	sm := tuo.GetTestSensorManager(t)
+
+	forks := testutils.RepoRootPath("contrib/tester-progs/forks")
+
+	tp := tracingpolicy.GenericTracingPolicy{
+		Metadata: v1.ObjectMeta{
+			Name: "match-binaries",
+		},
+		Spec: v1alpha1.TracingPolicySpec{
+			KProbes: []v1alpha1.KProbeSpec{
+				{
+					Call:    "sys_prctl",
+					Syscall: true,
+					Selectors: []v1alpha1.KProbeSelector{
+						{
+							MatchBinaries: []v1alpha1.BinarySelector{
+								{
+									Operator:       "In",
+									Values:         []string{forks},
+									FollowChildren: true,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// Add policy
+	err := sm.Manager.AddTracingPolicy(ctx, &tp)
+	require.NoError(t, err)
+
+	count := 1000
+	countStr := "1000"
+
+	// Execute forks
+	cmd := exec.Command(forks, countStr)
+	if err := cmd.Start(); err != nil {
+		t.Fatalf("failed to run command %s: %v", cmd, err)
+	}
+
+	// Make sure it's properly terminated
+	t.Cleanup(func() {
+		cmd.Process.Signal(syscall.Signal(2))
+		cmd.Process.Wait()
+	})
+
+	hash, err := openMap("execve_map")
+	require.NoError(t, err, "failed to open execve_map")
+	defer hash.Close()
+
+	var (
+		key   execvemap.ExecveKey
+		val   execvemap.ExecveValue
+		found int
+	)
+
+	// Check that all "forks" processes are updated. Let's wait (maximum 2 seconds)
+	// before "forks" fork-ed all the children to be sure we checked all of them.
+	for range 20 {
+		found = 0
+		iter := hash.Iterate()
+		for iter.Next(&key, &val) {
+			if unix.ByteSliceToString(val.Binary.Path[:]) == forks {
+				require.Equal(t, uint64(1), val.Binary.MBSet, "Binary.MBSet_1")
+				found++
+			}
+		}
+		if found == count {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	require.Equal(t, count, found, "found")
+
+	// Remove policy
+	err = sm.Manager.DeleteTracingPolicy(ctx, "match-binaries", "")
+	require.NoError(t, err)
+
+	// Check that all "forks" processes are updated
+	iter := hash.Iterate()
+	for iter.Next(&key, &val) {
+		if unix.ByteSliceToString(val.Binary.Path[:]) == forks {
+			require.Equal(t, uint64(0), val.Binary.MBSet, "Binary.MBSet_0")
+		}
+	}
+
+	// "forks" is terminated via .Cleanup above
 }
