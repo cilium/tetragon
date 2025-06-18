@@ -27,7 +27,8 @@ PROGS = sigkill-tester \
 	user-stacktrace \
 	test-helper \
 	pause \
-	raisesigkill
+	raisesigkill \
+	forks
 
 
 all: $(PROGS)
