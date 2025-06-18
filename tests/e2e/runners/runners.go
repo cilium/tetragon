@@ -225,7 +225,7 @@ func (r *Runner) Init() *Runner {
 		return helpers.DumpInfo(ctx, config)
 	})
 
-	if r.uninstallTetragon != nil {
+	if r.uninstallTetragon != nil && flags.Opts.UninstallTetragon {
 		r.Finish(r.uninstallTetragon)
 	}
 

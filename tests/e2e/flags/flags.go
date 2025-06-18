@@ -29,7 +29,8 @@ var Opts = Flags{
 	KeepExportData: false,
 	InstallCilium:  true,
 	// renovate: datasource=go depName=github.com/cilium/cilium
-	CiliumVersion: "v1.17.4",
+	CiliumVersion:     "v1.17.4",
+	UninstallTetragon: true,
 }
 
 func init() {
@@ -91,6 +92,11 @@ func init() {
 		"tetragon.cilium-version",
 		Opts.CiliumVersion,
 		"Version of Cilium to install. Only makes sense if tetragon.install-cilium is true.")
+
+	flag.BoolVar(&Opts.UninstallTetragon,
+		"tetragon.uninstall-tetragon",
+		Opts.UninstallTetragon,
+		"Uninstall Tetragon after the test run.")
 }
 
 type Flags struct {
@@ -101,6 +107,8 @@ type Flags struct {
 	InstallCilium bool
 	// Version of Cilium to use
 	CiliumVersion string
+	// UninstallTetragon specifies whether Tetragon should be uninstalled after the test run.
+	UninstallTetragon bool
 }
 
 type HelmOptions struct {
