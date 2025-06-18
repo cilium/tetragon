@@ -178,14 +178,14 @@ func (bl *benchmarkListener) Close() error {
 }
 
 type timingEncoder struct {
-	totalDuration uint64
+	totalDuration atomic.Uint64
 	inner         exporter.ExportEncoder
 }
 
 func (te *timingEncoder) Encode(v interface{}) error {
 	t0 := time.Now()
 	err := te.inner.Encode(v)
-	atomic.AddUint64(&te.totalDuration, uint64(time.Since(t0)))
+	te.totalDuration.Add(uint64(time.Since(t0)))
 	return err
 }
 
@@ -248,7 +248,7 @@ func startBenchmarkExporter(ctx context.Context, obs *observer.Observer, summary
 		// FIXME I'm racy, someone might read summary before this is written.
 		// Likely not an issue since we wait for slower things to exit.
 		<-ctx.Done()
-		summary.JSONEncodingDurationNanos = time.Duration(timingEncoder.totalDuration)
+		summary.JSONEncodingDurationNanos = time.Duration(timingEncoder.totalDuration.Load())
 	}()
 
 	req := tetragon.GetEventsRequest{AllowList: nil, DenyList: nil, AggregationOptions: nil}

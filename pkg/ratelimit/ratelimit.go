@@ -21,7 +21,7 @@ type RateLimiter struct {
 	*rate.Limiter
 	ctx            context.Context
 	reportInterval time.Duration
-	dropped        uint64 // accessed atomically
+	dropped        atomic.Uint64
 }
 
 // getLimit converts an numEvents and interval to rate.Limit which is a floating point value
@@ -38,10 +38,9 @@ func NewRateLimiter(ctx context.Context, interval time.Duration, numEvents int, 
 		return nil
 	}
 	r := &RateLimiter{
-		rate.NewLimiter(getLimit(numEvents, interval), numEvents),
-		ctx,
-		interval, // TODO(tk): use a separate interval for reporting?
-		0,
+		Limiter:        rate.NewLimiter(getLimit(numEvents, interval), numEvents),
+		ctx:            ctx,
+		reportInterval: interval, // TODO(tk): use a separate interval for reporting?
 	}
 	go r.reportRateLimitInfo(encoder)
 	return r
@@ -52,7 +51,7 @@ func (r *RateLimiter) reportRateLimitInfo(encoder encoder.EventEncoder) {
 	for {
 		select {
 		case <-ticker.C:
-			dropped := atomic.SwapUint64(&r.dropped, 0)
+			dropped := r.dropped.Swap(0)
 			if dropped > 0 {
 				ev := tetragon.GetEventsResponse{
 					Event: &tetragon.GetEventsResponse_RateLimitInfo{
@@ -76,5 +75,5 @@ func (r *RateLimiter) reportRateLimitInfo(encoder encoder.EventEncoder) {
 }
 
 func (r *RateLimiter) Drop() {
-	atomic.AddUint64(&r.dropped, 1)
+	r.dropped.Add(1)
 }

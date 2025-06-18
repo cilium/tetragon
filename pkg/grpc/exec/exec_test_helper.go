@@ -30,8 +30,8 @@ const (
 
 var (
 	AllEvents []*tetragon.GetEventsResponse
-	BasePid   uint32 = 46987
-	dummyPod         = &corev1.Pod{
+	BasePid   atomic.Uint32
+	dummyPod  = &corev1.Pod{
 		ObjectMeta: v1.ObjectMeta{
 			Namespace: "fake_pod_namespace",
 			Name:      "fake_pod_name",
@@ -55,6 +55,10 @@ var (
 		},
 	}
 )
+
+func init() {
+	BasePid.Store(46987)
+}
 
 type DummyNotifier[EXEC notify.Message, EXIT notify.Message] struct {
 	t  *testing.T
@@ -489,8 +493,8 @@ func GrpcExecOutOfOrder[EXEC notify.Message, EXIT notify.Message](t *testing.T) 
 	watcher := watcher.NewFakeK8sWatcher(nil)
 	dn := InitEnv[EXEC, EXIT](t, watcher)
 
-	parentPid := atomic.AddUint32(&BasePid, 1)
-	currentPid := atomic.AddUint32(&BasePid, 1)
+	parentPid := BasePid.Add(1)
+	currentPid := BasePid.Add(1)
 
 	execRoot, execParent, execMsg, exitMsg := CreateEvents[EXEC, EXIT](currentPid, 21034975089403, parentPid, 75200000000, "")
 
@@ -519,8 +523,8 @@ func GrpcExecInOrder[EXEC notify.Message, EXIT notify.Message](t *testing.T) {
 	watcher := watcher.NewFakeK8sWatcher(nil)
 	InitEnv[EXEC, EXIT](t, watcher)
 
-	parentPid := atomic.AddUint32(&BasePid, 1)
-	currentPid := atomic.AddUint32(&BasePid, 1)
+	parentPid := BasePid.Add(1)
+	currentPid := BasePid.Add(1)
 
 	execRoot, execParent, execMsg, exitMsg := CreateEvents[EXEC, EXIT](currentPid, 21034975089403, parentPid, 75200000000, "")
 
@@ -548,8 +552,8 @@ func GrpcExecMisingParent[EXEC notify.Message, EXIT notify.Message](t *testing.T
 	watcher := watcher.NewFakeK8sWatcher(nil)
 	dn := InitEnv[EXEC, EXIT](t, watcher)
 
-	parentPid := atomic.AddUint32(&BasePid, 1)
-	currentPid := atomic.AddUint32(&BasePid, 1)
+	parentPid := BasePid.Add(1)
+	currentPid := BasePid.Add(1)
 
 	_, _, execMsg, _ := CreateEvents[EXEC, EXIT](currentPid, 21034975089403, parentPid, 75200000000, "")
 
@@ -573,8 +577,8 @@ func GrpcMissingExec[EXEC notify.Message, EXIT notify.Message](t *testing.T) {
 	watcher := watcher.NewFakeK8sWatcher(nil)
 	dn := InitEnv[EXEC, EXIT](t, watcher)
 
-	parentPid := atomic.AddUint32(&BasePid, 1)
-	currentPid := atomic.AddUint32(&BasePid, 1)
+	parentPid := BasePid.Add(1)
+	currentPid := BasePid.Add(1)
 
 	_, _, _, exitMsg := CreateEvents[EXEC, EXIT](currentPid, 21034975089403, parentPid, 75200000000, "")
 
@@ -601,8 +605,8 @@ func GrpcExecParentOutOfOrder[EXEC notify.Message, EXIT notify.Message](t *testi
 	watcher := watcher.NewFakeK8sWatcher(nil)
 	InitEnv[EXEC, EXIT](t, watcher)
 
-	parentPid := atomic.AddUint32(&BasePid, 1)
-	currentPid := atomic.AddUint32(&BasePid, 1)
+	parentPid := BasePid.Add(1)
+	currentPid := BasePid.Add(1)
 
 	execRoot, execParent, execMsg, exitMsg := CreateEvents[EXEC, EXIT](currentPid, 21034975089403, parentPid, 75200000000, "")
 
@@ -663,9 +667,9 @@ func GrpcExecCloneInOrder[EXEC notify.Message, CLONE notify.Message, EXIT notify
 	watcher := watcher.NewFakeK8sWatcher(nil)
 	InitEnv[EXEC, EXIT](t, watcher)
 
-	parentPid := atomic.AddUint32(&BasePid, 1)
-	currentPid := atomic.AddUint32(&BasePid, 1)
-	clonePid := atomic.AddUint32(&BasePid, 1)
+	parentPid := BasePid.Add(1)
+	currentPid := BasePid.Add(1)
+	clonePid := BasePid.Add(1)
 
 	execRoot, execParent, execMsg, exitMsg := CreateEvents[EXEC, EXIT](currentPid, 21034975089403, parentPid, 75200000000, "")
 	cloneMsg, exitCloneMsg := CreateCloneEvents[CLONE, EXIT](clonePid, 21034995089403, currentPid, 21034975089403)
@@ -696,9 +700,9 @@ func GrpcExecCloneOutOfOrder[EXEC notify.Message, CLONE notify.Message, EXIT not
 	watcher := watcher.NewFakeK8sWatcher(nil)
 	dn := InitEnv[EXEC, EXIT](t, watcher)
 
-	parentPid := atomic.AddUint32(&BasePid, 1)
-	currentPid := atomic.AddUint32(&BasePid, 1)
-	clonePid := atomic.AddUint32(&BasePid, 1)
+	parentPid := BasePid.Add(1)
+	currentPid := BasePid.Add(1)
+	clonePid := BasePid.Add(1)
 
 	execRoot, execParent, execMsg, exitMsg := CreateEvents[EXEC, EXIT](currentPid, 21034975089403, parentPid, 75200000000, "")
 	cloneMsg, exitCloneMsg := CreateCloneEvents[CLONE, EXIT](clonePid, 21034995089403, currentPid, 21034975089403)
@@ -731,8 +735,8 @@ func GrpcParentInOrder[EXEC notify.Message, EXIT notify.Message](t *testing.T) {
 	watcher := watcher.NewFakeK8sWatcher(nil)
 	InitEnv[EXEC, EXIT](t, watcher)
 
-	parentPid := atomic.AddUint32(&BasePid, 1)
-	currentPid := atomic.AddUint32(&BasePid, 1)
+	parentPid := BasePid.Add(1)
+	currentPid := BasePid.Add(1)
 
 	rootMsg, _, parentExecMsg, parentExitMsg := CreateEvents[EXEC, EXIT](parentPid, 75200000000, 1, 0, "")
 	_, _, execMsg, exitMsg := CreateEvents[EXEC, EXIT](currentPid, 21034975089403, parentPid, 75200000000, "")
@@ -822,8 +826,8 @@ func GrpcExecPodInfoInOrder[EXEC notify.Message, EXIT notify.Message](t *testing
 	fakeWatcher := watcher.NewFakeK8sWatcher(nil)
 	dn := InitEnv[EXEC, EXIT](t, fakeWatcher)
 
-	parentPid := atomic.AddUint32(&BasePid, 1)
-	currentPid := atomic.AddUint32(&BasePid, 1)
+	parentPid := BasePid.Add(1)
+	currentPid := BasePid.Add(1)
 
 	rootMsg, parentMsg, execMsg, exitMsg := CreateEvents[EXEC, EXIT](currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
 
@@ -860,8 +864,8 @@ func GrpcExecPodInfoOutOfOrder[EXEC notify.Message, EXIT notify.Message](t *test
 	fakeWatcher := watcher.NewFakeK8sWatcher(nil)
 	dn := InitEnv[EXEC, EXIT](t, fakeWatcher)
 
-	parentPid := atomic.AddUint32(&BasePid, 1)
-	currentPid := atomic.AddUint32(&BasePid, 1)
+	parentPid := BasePid.Add(1)
+	currentPid := BasePid.Add(1)
 
 	rootMsg, parentMsg, execMsg, exitMsg := CreateEvents[EXEC, EXIT](currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
 
@@ -901,8 +905,8 @@ func GrpcExecPodInfoInOrderAfter[EXEC notify.Message, EXIT notify.Message](t *te
 	fakeWatcher := watcher.NewFakeK8sWatcher(nil)
 	dn := InitEnv[EXEC, EXIT](t, fakeWatcher)
 
-	parentPid := atomic.AddUint32(&BasePid, 1)
-	currentPid := atomic.AddUint32(&BasePid, 1)
+	parentPid := BasePid.Add(1)
+	currentPid := BasePid.Add(1)
 
 	rootMsg, parentMsg, execMsg, exitMsg := CreateEvents[EXEC, EXIT](currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
 
@@ -943,8 +947,8 @@ func GrpcExecPodInfoOutOfOrderAfter[EXEC notify.Message, EXIT notify.Message](t 
 	fakeWatcher := watcher.NewFakeK8sWatcher(nil)
 	dn := InitEnv[EXEC, EXIT](t, fakeWatcher)
 
-	parentPid := atomic.AddUint32(&BasePid, 1)
-	currentPid := atomic.AddUint32(&BasePid, 1)
+	parentPid := BasePid.Add(1)
+	currentPid := BasePid.Add(1)
 
 	rootMsg, parentMsg, execMsg, exitMsg := CreateEvents[EXEC, EXIT](currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
 
@@ -982,8 +986,8 @@ func GrpcExecPodInfoDelayedOutOfOrder[EXEC notify.Message, EXIT notify.Message](
 	fakeWatcher := watcher.NewFakeK8sWatcher(nil)
 	dn := InitEnv[EXEC, EXIT](t, fakeWatcher)
 
-	parentPid := atomic.AddUint32(&BasePid, 1)
-	currentPid := atomic.AddUint32(&BasePid, 1)
+	parentPid := BasePid.Add(1)
+	currentPid := BasePid.Add(1)
 
 	rootMsg, parentMsg, execMsg, exitMsg := CreateEvents[EXEC, EXIT](currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
 
@@ -1027,8 +1031,8 @@ func GrpcExecPodInfoDelayedInOrder[EXEC notify.Message, EXIT notify.Message](t *
 	fakeWatcher := watcher.NewFakeK8sWatcher(nil)
 	dn := InitEnv[EXEC, EXIT](t, fakeWatcher)
 
-	parentPid := atomic.AddUint32(&BasePid, 1)
-	currentPid := atomic.AddUint32(&BasePid, 1)
+	parentPid := BasePid.Add(1)
+	currentPid := BasePid.Add(1)
 
 	rootMsg, parentMsg, execMsg, exitMsg := CreateEvents[EXEC, EXIT](currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
 
@@ -1071,8 +1075,8 @@ func GrpcDelayedExecK8sOutOfOrder[EXEC notify.Message, EXIT notify.Message](t *t
 	fakeWatcher := watcher.NewFakeK8sWatcher(nil)
 	dn := InitEnv[EXEC, EXIT](t, fakeWatcher)
 
-	parentPid := atomic.AddUint32(&BasePid, 1)
-	currentPid := atomic.AddUint32(&BasePid, 1)
+	parentPid := BasePid.Add(1)
+	currentPid := BasePid.Add(1)
 
 	rootMsg, parentMsg, execMsg, exitMsg := CreateEvents[EXEC, EXIT](currentPid, 21034975089403, parentPid, 75200000000, "fake_container_container_id")
 

@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math/rand"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -20,7 +21,6 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/atomic"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8stypes "k8s.io/apimachinery/pkg/types"
