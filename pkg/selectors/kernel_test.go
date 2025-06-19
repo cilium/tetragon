@@ -237,7 +237,7 @@ func TestParseMatchArg(t *testing.T) {
 	d := &k.data
 
 	expected1 := []byte{
-		0x01, 0x00, 0x00, 0x00, // Index == 1
+		0x00, 0x00, 0x00, 0x00, // Index == 0
 		0x03, 0x00, 0x00, 0x00, // operator == equal
 		52, 0x00, 0x00, 0x00, // length == 32
 		0x06, 0x00, 0x00, 0x00, // value type == string
@@ -260,7 +260,7 @@ func TestParseMatchArg(t *testing.T) {
 	nextArg := d.off
 	arg2 := &v1alpha1.ArgSelector{Index: 2, Operator: "Equal", Values: []string{"1", "2"}}
 	expected2 := []byte{
-		0x02, 0x00, 0x00, 0x00, // Index == 2
+		0x01, 0x00, 0x00, 0x00, // Index == 1
 		0x03, 0x00, 0x00, 0x00, // operator == equal
 		16, 0x00, 0x00, 0x00, // length == 16
 		0x01, 0x00, 0x00, 0x00, // value type == int
@@ -274,7 +274,7 @@ func TestParseMatchArg(t *testing.T) {
 	nextArg = d.off
 	arg3 := &v1alpha1.ArgSelector{Index: 5, Operator: "SAddr", Values: []string{"127.0.0.1", "10.1.2.3/24", "192.168.254.254/20"}}
 	expected3 := []byte{
-		0x05, 0x00, 0x00, 0x00, // Index == 5
+		0x04, 0x00, 0x00, 0x00, // Index == 4
 		13, 0x00, 0x00, 0x00, // operator == saddr
 		16, 0x00, 0x00, 0x00, // length == 16
 		0x07, 0x00, 0x00, 0x00, // value type == sock
@@ -288,7 +288,7 @@ func TestParseMatchArg(t *testing.T) {
 	nextArg = d.off
 	arg4 := &v1alpha1.ArgSelector{Index: 6, Operator: "SPort", Values: []string{"8081", "25", "31337"}}
 	expected4 := []byte{
-		0x06, 0x00, 0x00, 0x00, // Index == 6
+		0x05, 0x00, 0x00, 0x00, // Index == 5
 		15, 0x00, 0x00, 0x00, // operator == sport
 		12, 0x00, 0x00, 0x00, // length == 12
 		0x05, 0x00, 0x00, 0x00, // value type == skb
@@ -301,7 +301,7 @@ func TestParseMatchArg(t *testing.T) {
 	nextArg = d.off
 	arg5 := &v1alpha1.ArgSelector{Index: 7, Operator: "Protocol", Values: []string{"3", "IPPROTO_UDP", "IPPROTO_TCP"}}
 	expected5 := []byte{
-		0x07, 0x00, 0x00, 0x00, // Index == 7
+		0x06, 0x00, 0x00, 0x00, // Index == 6
 		17, 0x00, 0x00, 0x00, // operator == protocol
 		12, 0x00, 0x00, 0x00, // length == 12
 		0x05, 0x00, 0x00, 0x00, // value type == skb
@@ -314,7 +314,7 @@ func TestParseMatchArg(t *testing.T) {
 	nextArg = d.off
 	arg6 := &v1alpha1.ArgSelector{Index: 8, Operator: "SAddr", Values: []string{"127.0.0.1", "::1/128"}}
 	expected6 := []byte{
-		0x08, 0x00, 0x00, 0x00, // Index == 8
+		0x07, 0x00, 0x00, 0x00, // Index == 7
 		13, 0x00, 0x00, 0x00, // operator == saddr
 		16, 0x00, 0x00, 0x00, // length == 16
 		0x07, 0x00, 0x00, 0x00, // value type == sock
@@ -328,7 +328,7 @@ func TestParseMatchArg(t *testing.T) {
 	nextArg = d.off
 	arg7 := &v1alpha1.ArgSelector{Index: 9, Operator: "SAddr", Values: []string{"127.0.0.1", "::1/128"}}
 	expected7 := []byte{
-		0x09, 0x00, 0x00, 0x00, // Index == 9
+		0x08, 0x00, 0x00, 0x00, // Index == 8
 		13, 0x00, 0x00, 0x00, // operator == saddr
 		16, 0x00, 0x00, 0x00, // length == 16
 		0x28, 0x00, 0x00, 0x00, // value type == sockaddr
@@ -342,7 +342,7 @@ func TestParseMatchArg(t *testing.T) {
 	nextArg = d.off
 	arg8 := &v1alpha1.ArgSelector{Index: 10, Operator: "SAddr", Values: []string{"127.0.0.1", "::1/128"}}
 	expected8 := []byte{
-		0x0A, 0x00, 0x00, 0x00, // Index == 10
+		0x09, 0x00, 0x00, 0x00, // Index == 9
 		13, 0x00, 0x00, 0x00, // operator == saddr
 		16, 0x00, 0x00, 0x00, // length == 16
 		0x29, 0x00, 0x00, 0x00, // value type == socket
@@ -616,7 +616,7 @@ func TestMultipleSelectorsExample(t *testing.T) {
 	expU32Push(0)                 // off: 92      selector1: matchArgs[2]: offset
 	expU32Push(0)                 // off: 96      selector1: matchArgs[3]: offset
 	expU32Push(0)                 // off: 100     selector1: matchArgs[4]: offset
-	expU32Push(1)                 // off: 104     selector1: matchArgs: arg0: index
+	expU32Push(0)                 // off: 104     selector1: matchArgs: arg0: index
 	expU32Push(SelectorOpEQ)      // off: 108     selector1: matchArgs: arg0: operator
 	expU32Push(16)                // off: 112     selector1: matchArgs: arg0: len of vals
 	expU32Push(gt.GenericIntType) // off: 116     selector1: matchArgs: arg0: type
@@ -737,7 +737,7 @@ func TestInitKernelSelectors(t *testing.T) {
 		0x00, 0x00, 0x00, 0x00, // arg[4] offset
 
 		//arg1 size = 60
-		0x01, 0x00, 0x00, 0x00, // Index == 1
+		0x00, 0x00, 0x00, 0x00, // Index == 0
 		0x03, 0x00, 0x00, 0x00, // operator == equal
 		52, 0x00, 0x00, 0x00, // length == 32
 		0x06, 0x00, 0x00, 0x00, // value type == string
@@ -754,7 +754,7 @@ func TestInitKernelSelectors(t *testing.T) {
 		0xff, 0xff, 0xff, 0xff, // map ID for strings 2049-4096
 
 		//arg2 size = 24
-		0x02, 0x00, 0x00, 0x00, // Index == 2
+		0x01, 0x00, 0x00, 0x00, // Index == 1
 		0x03, 0x00, 0x00, 0x00, // operator == equal
 		16, 0x00, 0x00, 0x00, // length == 0x10
 		0x01, 0x00, 0x00, 0x00, // value type == int
@@ -784,7 +784,7 @@ func TestInitKernelSelectors(t *testing.T) {
 		0x00, 0x00, 0x00, 0x00, // arg[4] offset
 
 		//arg1 size = 60
-		0x01, 0x00, 0x00, 0x00, // Index == 1
+		0x00, 0x00, 0x00, 0x00, // Index == 0
 		0x03, 0x00, 0x00, 0x00, // operator == equal
 		52, 0x00, 0x00, 0x00, // length == 32
 		0x06, 0x00, 0x00, 0x00, // value type == string

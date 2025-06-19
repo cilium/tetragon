@@ -358,17 +358,6 @@ func ActionTypeFromString(action string) int32 {
 	return int32(act)
 }
 
-func argSelectorType(arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) (uint32, error) {
-	for _, s := range sig {
-		if arg.Index == s.Index {
-			// TBD: We shouldn't get this far with invalid KProbe args
-			// KProbe args have already been validated
-			return uint32(gt.GenericTypeFromString(s.Type)), nil
-		}
-	}
-	return 0, errors.New("argFilter for unknown index")
-}
-
 func writeRangeInMap(v string, ty uint32, op uint32, m *ValueMap) error {
 	// We store the start and end of the range as uint64s for unsigned values, and as int64s
 	// for signed values. This is to allow both a signed range from -5 to 5, and also an
@@ -769,8 +758,31 @@ func checkOp(op uint32) error {
 	return nil
 }
 
+func argIndexType(arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) (uint32, uint32, error) {
+	if arg.Arg != nil {
+		index := *arg.Arg
+		if index >= uint32(len(sig)) {
+			return 0, 0, fmt.Errorf("wrong ArgSelector.Arg value %d, max(%d)", index, uint32(len(sig)))
+		}
+		ty := sig[index].Type
+		return index, uint32(gt.GenericTypeFromString(ty)), nil
+	}
+	for idx, s := range sig {
+		if arg.Index == s.Index {
+			// TBD: We shouldn't get this far with invalid KProbe args
+			// KProbe args have already been validated
+			return uint32(idx), uint32(gt.GenericTypeFromString(s.Type)), nil
+		}
+	}
+	return 0, 0, errors.New("argFilter for unknown index")
+}
+
 func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) error {
-	WriteSelectorUint32(&k.data, arg.Index)
+	index, ty, err := argIndexType(arg, sig)
+	if err != nil {
+		return err
+	}
+	WriteSelectorUint32(&k.data, index)
 
 	op, err := SelectorOp(arg.Operator)
 	if err != nil {
@@ -782,10 +794,6 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 	}
 	WriteSelectorUint32(&k.data, op)
 	moff := AdvanceSelectorLength(&k.data)
-	ty, err := argSelectorType(arg, sig)
-	if err != nil {
-		return fmt.Errorf("argSelector error: %w", err)
-	}
 	WriteSelectorUint32(&k.data, ty)
 	switch op {
 	case SelectorInMap, SelectorNotInMap:
