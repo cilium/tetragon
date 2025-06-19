@@ -572,6 +572,33 @@ spec:
                               - values
                               type: object
                             type: array
+                          matchCurrentCred:
+                            description: match Current Task credentials
+                            items:
+                              properties:
+                                ruid:
+                                  description: Real UIDs to match.
+                                  items:
+                                    properties:
+                                      operator:
+                                        description: Values selector operator.
+                                        enum:
+                                        - eq
+                                        - neq
+                                        - Equal
+                                        - NotEqual
+                                        type: string
+                                      values:
+                                        description: the values of gid/uid to match
+                                        items:
+                                          type: string
+                                        type: array
+                                    required:
+                                    - operator
+                                    type: object
+                                  type: array
+                              type: object
+                            type: array
                           matchNamespaceChanges:
                             description: IDs for namespace changes
                             items:
@@ -1200,6 +1227,33 @@ spec:
                               required:
                               - operator
                               - values
+                              type: object
+                            type: array
+                          matchCurrentCred:
+                            description: match Current Task credentials
+                            items:
+                              properties:
+                                ruid:
+                                  description: Real UIDs to match.
+                                  items:
+                                    properties:
+                                      operator:
+                                        description: Values selector operator.
+                                        enum:
+                                        - eq
+                                        - neq
+                                        - Equal
+                                        - NotEqual
+                                        type: string
+                                      values:
+                                        description: the values of gid/uid to match
+                                        items:
+                                          type: string
+                                        type: array
+                                    required:
+                                    - operator
+                                    type: object
+                                  type: array
                               type: object
                             type: array
                           matchNamespaceChanges:
@@ -1868,6 +1922,33 @@ spec:
                               - values
                               type: object
                             type: array
+                          matchCurrentCred:
+                            description: match Current Task credentials
+                            items:
+                              properties:
+                                ruid:
+                                  description: Real UIDs to match.
+                                  items:
+                                    properties:
+                                      operator:
+                                        description: Values selector operator.
+                                        enum:
+                                        - eq
+                                        - neq
+                                        - Equal
+                                        - NotEqual
+                                        type: string
+                                      values:
+                                        description: the values of gid/uid to match
+                                        items:
+                                          type: string
+                                        type: array
+                                    required:
+                                    - operator
+                                    type: object
+                                  type: array
+                              type: object
+                            type: array
                           matchNamespaceChanges:
                             description: IDs for namespace changes
                             items:
@@ -2476,6 +2557,33 @@ spec:
                               required:
                               - operator
                               - values
+                              type: object
+                            type: array
+                          matchCurrentCred:
+                            description: match Current Task credentials
+                            items:
+                              properties:
+                                ruid:
+                                  description: Real UIDs to match.
+                                  items:
+                                    properties:
+                                      operator:
+                                        description: Values selector operator.
+                                        enum:
+                                        - eq
+                                        - neq
+                                        - Equal
+                                        - NotEqual
+                                        type: string
+                                      values:
+                                        description: the values of gid/uid to match
+                                        items:
+                                          type: string
+                                        type: array
+                                    required:
+                                    - operator
+                                    type: object
+                                  type: array
                               type: object
                             type: array
                           matchNamespaceChanges:
