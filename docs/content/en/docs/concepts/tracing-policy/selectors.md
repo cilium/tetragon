@@ -1537,6 +1537,7 @@ There are different types supported for each operator. In case of `matchArgs`:
 * Protocol
 * Family
 * State
+* Capability (see an [example](https://github.com/cilium/tetragon/blob/main/examples/tracingpolicy/deny-privileged-containers.yml))
 
 The operator types `Equal` and `NotEqual` are used to test whether the certain
 argument of a system call is equal to the defined value in the CR.
@@ -1631,6 +1632,10 @@ can be specified as either `AF_INET6` or 10.
 The `State` operator can accept integer values to match against or the equivalent
 TCP_ enumeration. For example, an established socket can be matched with
 `TCP_ESTABLISHED` or 1; a closed socket with `TCP_CLOSE` or 7.
+
+The `Capability` operator can be used to match a kernel capability from the hook.
+The concept is very similar to [`matchCapabilities`](https://tetragon.io/docs/concepts/tracing-policy/selectors/#capabilities-filter), but is restricted to arguments you get from the hook.
+The filter accept all the available capabilities (see also the [kernel source](https://elixir.bootlin.com/linux/v6.15.3/source/include/uapi/linux/capability.h#L114))
 
 In case of `matchPIDs`:
 
