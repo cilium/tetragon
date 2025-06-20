@@ -200,6 +200,9 @@ const (
 	// more socket ops
 	SelectorOpFamily = 28
 	SelectorOpState  = 29
+
+	// capabilities mask
+	SelectorOpCapability = 30
 )
 
 var selectorOpStringTable = map[uint32]string{
@@ -214,6 +217,7 @@ var selectorOpStringTable = map[uint32]string{
 	SelectorInMap:          "InMap",
 	SelectorNotInMap:       "NotInMap",
 	SelectorOpMASK:         "Mask",
+	SelectorOpCapability:   "Capability",
 	SelectorOpSaddr:        "SAddr",
 	SelectorOpDaddr:        "DAddr",
 	SelectorOpSport:        "SPort",
@@ -261,6 +265,8 @@ func SelectorOp(op string) (uint32, error) {
 		return SelectorNotInMap, nil
 	case "mask", "Mask":
 		return SelectorOpMASK, nil
+	case "capability", "Capability":
+		return SelectorOpCapability, nil
 	case "saddr", "Saddr", "SAddr":
 		return SelectorOpSaddr, nil
 	case "daddr", "Daddr", "DAddr":
@@ -840,6 +846,16 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 		if ty == gt.GenericSockaddrType && (op == SelectorOpDportPriv || op == SelectorOpNotDportPriv) {
 			return errors.New("sockaddr only supports [not]saddr, [not]sport[priv], and family")
 		}
+	case SelectorOpCapability:
+		if !config.EnableLargeProgs() {
+			return errors.New("matchArgs error: \"Capability\" operator need large BPF progs (kernel>5.3)")
+		}
+		caps, err := capsStrToUint64(arg.Values)
+		if err != nil {
+			return err
+		}
+		WriteSelectorUint64(&k.data, caps)
+
 	default:
 		err = writeMatchValues(k, arg.Values, ty, op)
 		if err != nil {
