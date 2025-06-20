@@ -1537,6 +1537,7 @@ There are different types supported for each operator. In case of `matchArgs`:
 * Protocol
 * Family
 * State
+* Capability (see an [example](https://github.com/cilium/tetragon/blob/main/examples/tracingpolicy/deny-privileged-containers.yml)) - Available for kernel >= 5.4
 
 The operator types `Equal` and `NotEqual` are used to test whether the certain
 argument of a system call is equal to the defined value in the CR.

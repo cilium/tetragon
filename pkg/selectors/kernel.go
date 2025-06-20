@@ -200,6 +200,9 @@ const (
 	// more socket ops
 	SelectorOpFamily = 28
 	SelectorOpState  = 29
+
+	// capabilities mask
+	SelectorOpCapability = 30
 )
 
 var selectorOpStringTable = map[uint32]string{
@@ -214,6 +217,7 @@ var selectorOpStringTable = map[uint32]string{
 	SelectorInMap:          "InMap",
 	SelectorNotInMap:       "NotInMap",
 	SelectorOpMASK:         "Mask",
+	SelectorOpCapability:   "Capability",
 	SelectorOpSaddr:        "SAddr",
 	SelectorOpDaddr:        "DAddr",
 	SelectorOpSport:        "SPort",
@@ -261,6 +265,8 @@ func SelectorOp(op string) (uint32, error) {
 		return SelectorNotInMap, nil
 	case "mask", "Mask":
 		return SelectorOpMASK, nil
+	case "capability", "Capability":
+		return SelectorOpCapability, nil
 	case "saddr", "Saddr", "SAddr":
 		return SelectorOpSaddr, nil
 	case "daddr", "Daddr", "DAddr":
@@ -601,6 +607,19 @@ func parseAddr(v string) ([]byte, uint32, error) {
 	return ipAddr.AsSlice(), uint32(ipAddr.BitLen()), nil
 }
 
+func capsStrToUint64(values []string) (uint64, error) {
+	caps := uint64(0)
+	for _, v := range values {
+		valstr := strings.ToUpper(v)
+		c, ok := tetragon.CapabilitiesType_value[valstr]
+		if !ok {
+			return 0, fmt.Errorf("value %s unknown", valstr)
+		}
+		caps |= (1 << c)
+	}
+	return caps, nil
+}
+
 func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) error {
 	for _, v := range values {
 		base := getBase(v)
@@ -827,6 +846,16 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 		if ty == gt.GenericSockaddrType && (op == SelectorOpDportPriv || op == SelectorOpNotDportPriv) {
 			return errors.New("sockaddr only supports [not]saddr, [not]sport[priv], and family")
 		}
+	case SelectorOpCapability:
+		if !config.EnableLargeProgs() {
+			return errors.New("matchArgs error: \"Capability\" operator need large BPF progs (kernel>5.3)")
+		}
+		caps, err := capsStrToUint64(arg.Values)
+		if err != nil {
+			return err
+		}
+		WriteSelectorUint64(&k.data, caps)
+
 	default:
 		err = writeMatchValues(k, arg.Values, ty, op)
 		if err != nil {
@@ -1159,14 +1188,9 @@ func ParseMatchCaps(k *KernelSelectorState, action *v1alpha1.CapabilitiesSelecto
 	WriteSelectorUint32(&k.data, isns)
 
 	// values
-	caps := uint64(0)
-	for _, v := range action.Values {
-		valstr := strings.ToUpper(v)
-		c, ok := tetragon.CapabilitiesType_value[valstr]
-		if !ok {
-			return fmt.Errorf("parseMatchCapability: value %s unknown", valstr)
-		}
-		caps |= (1 << c)
+	caps, err := capsStrToUint64(action.Values)
+	if err != nil {
+		return err
 	}
 	WriteSelectorUint64(&k.data, caps)
 
