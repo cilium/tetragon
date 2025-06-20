@@ -631,7 +631,7 @@ func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) er
 				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
 			WriteSelectorUint32(&k.data, uint32(i))
-		case gt.GenericS64Type, gt.GenericSyscall64:
+		case gt.GenericS64Type, gt.GenericSyscall64, gt.GenericKernelCap, gt.GenericCapEffective, gt.GenericCapInheritable, gt.GenericCapPermitted:
 			i, err := strconv.ParseInt(v, base, 64)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
@@ -763,8 +763,25 @@ func checkOp(op uint32) error {
 	return nil
 }
 
+func handleHiddenOperators(arg *v1alpha1.ArgSelector) error {
+	if arg.Operator == "CapabilityMask" {
+		caps, err := capsStrToUint64(arg.Values)
+		if err != nil {
+			return err
+		}
+		arg.Values = []string{strconv.Itoa(int(caps))}
+		arg.Operator = "Mask"
+	}
+	return nil
+}
+
 func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) error {
 	WriteSelectorUint32(&k.data, arg.Index)
+
+	err := handleHiddenOperators(arg)
+	if err != nil {
+		return fmt.Errorf("matcharg error: %w", err)
+	}
 
 	op, err := SelectorOp(arg.Operator)
 	if err != nil {
