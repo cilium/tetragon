@@ -92,7 +92,7 @@ jobs:
       uses: alexellis/arkade-get@master
       with:
         # renovate: datasource=github-releases depName=kubernetes/kubernetes
-        kubectl: v1.33.1
+        kubectl: v1.33.2
         # renovate: datasource=github-releases depName=helm/helm
         helm: v3.18.3
         # renovate: datasource=github-releases depName=kubernetes-sigs/kind
