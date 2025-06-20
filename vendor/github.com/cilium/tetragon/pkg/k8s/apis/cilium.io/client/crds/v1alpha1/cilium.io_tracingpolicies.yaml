@@ -429,9 +429,15 @@ spec:
                               ANDed.
                             items:
                               properties:
+                                arg:
+                                  description: Position of the argument (in spec file)
+                                    to apply fhe filter to.
+                                  format: int32
+                                  minimum: 0
+                                  type: integer
                                 index:
-                                  description: Position of the argument to apply fhe
-                                    filter to.
+                                  description: Position of the argument (in function
+                                    prototype) to apply fhe filter to.
                                   format: int32
                                   minimum: 0
                                   type: integer
@@ -754,9 +760,15 @@ spec:
                               ANDed.
                             items:
                               properties:
+                                arg:
+                                  description: Position of the argument (in spec file)
+                                    to apply fhe filter to.
+                                  format: int32
+                                  minimum: 0
+                                  type: integer
                                 index:
-                                  description: Position of the argument to apply fhe
-                                    filter to.
+                                  description: Position of the argument (in function
+                                    prototype) to apply fhe filter to.
                                   format: int32
                                   minimum: 0
                                   type: integer
@@ -1059,9 +1071,15 @@ spec:
                               ANDed.
                             items:
                               properties:
+                                arg:
+                                  description: Position of the argument (in spec file)
+                                    to apply fhe filter to.
+                                  format: int32
+                                  minimum: 0
+                                  type: integer
                                 index:
-                                  description: Position of the argument to apply fhe
-                                    filter to.
+                                  description: Position of the argument (in function
+                                    prototype) to apply fhe filter to.
                                   format: int32
                                   minimum: 0
                                   type: integer
@@ -1384,9 +1402,15 @@ spec:
                               ANDed.
                             items:
                               properties:
+                                arg:
+                                  description: Position of the argument (in spec file)
+                                    to apply fhe filter to.
+                                  format: int32
+                                  minimum: 0
+                                  type: integer
                                 index:
-                                  description: Position of the argument to apply fhe
-                                    filter to.
+                                  description: Position of the argument (in function
+                                    prototype) to apply fhe filter to.
                                   format: int32
                                   minimum: 0
                                   type: integer
@@ -1725,9 +1749,15 @@ spec:
                               ANDed.
                             items:
                               properties:
+                                arg:
+                                  description: Position of the argument (in spec file)
+                                    to apply fhe filter to.
+                                  format: int32
+                                  minimum: 0
+                                  type: integer
                                 index:
-                                  description: Position of the argument to apply fhe
-                                    filter to.
+                                  description: Position of the argument (in function
+                                    prototype) to apply fhe filter to.
                                   format: int32
                                   minimum: 0
                                   type: integer
@@ -2050,9 +2080,15 @@ spec:
                               ANDed.
                             items:
                               properties:
+                                arg:
+                                  description: Position of the argument (in spec file)
+                                    to apply fhe filter to.
+                                  format: int32
+                                  minimum: 0
+                                  type: integer
                                 index:
-                                  description: Position of the argument to apply fhe
-                                    filter to.
+                                  description: Position of the argument (in function
+                                    prototype) to apply fhe filter to.
                                   format: int32
                                   minimum: 0
                                   type: integer
@@ -2335,9 +2371,15 @@ spec:
                               ANDed.
                             items:
                               properties:
+                                arg:
+                                  description: Position of the argument (in spec file)
+                                    to apply fhe filter to.
+                                  format: int32
+                                  minimum: 0
+                                  type: integer
                                 index:
-                                  description: Position of the argument to apply fhe
-                                    filter to.
+                                  description: Position of the argument (in function
+                                    prototype) to apply fhe filter to.
                                   format: int32
                                   minimum: 0
                                   type: integer
@@ -2660,9 +2702,15 @@ spec:
                               ANDed.
                             items:
                               properties:
+                                arg:
+                                  description: Position of the argument (in spec file)
+                                    to apply fhe filter to.
+                                  format: int32
+                                  minimum: 0
+                                  type: integer
                                 index:
-                                  description: Position of the argument to apply fhe
-                                    filter to.
+                                  description: Position of the argument (in function
+                                    prototype) to apply fhe filter to.
                                   format: int32
                                   minimum: 0
                                   type: integer
