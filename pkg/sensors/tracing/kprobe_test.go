@@ -6715,3 +6715,100 @@ spec:
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 }
+
+func TestKprobeArgsFilter(t *testing.T) {
+	if !config.EnableLargeProgs() {
+		t.Skip("Older kernels do not support more than 1 selector argument")
+	}
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	t.Logf("tester pid=%s\n", pidStr)
+
+	lseekConfigHook_ := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "sys-write"
+spec:
+  kprobes:
+  - call: "sys_lseek"
+    return: false
+    syscall: true
+    args:
+    - index: 2
+      type: "int"
+      label: "arg0-index2"
+    - index: 1
+      type: "int"
+      label: "arg1-index1"
+    - index: 0
+      type: "int"
+      label: "arg2-index0"
+    - index: 1
+      type: "int"
+      label: "arg3-index1"
+    - index: 1
+      type: "int"
+      label: "arg4-index1"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        isNamespacePID: false
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - arg: 4
+        operator: Equal
+        values:
+        - "1"
+      - arg: 0
+        operator: Equal
+        values:
+        - "2"
+      - arg: 2
+        operator: Equal
+        values:
+        - "0"
+      - index: 0
+        operator: Equal
+        values:
+        - "0"
+`
+
+	lseekConfigHook := []byte(lseekConfigHook_)
+	err := os.WriteFile(testConfigFile, lseekConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	kpChecker := ec.NewProcessKprobeChecker("lseek-checker").
+		WithFunctionName(sm.Suffix("sys_lseek")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(2).WithLabel(sm.Full("arg0-index2")),
+				ec.NewKprobeArgumentChecker().WithIntArg(1).WithLabel(sm.Full("arg1-index1")),
+				ec.NewKprobeArgumentChecker().WithIntArg(0).WithLabel(sm.Full("arg2-index0")),
+				ec.NewKprobeArgumentChecker().WithIntArg(1).WithLabel(sm.Full("arg3-index1")),
+				ec.NewKprobeArgumentChecker().WithIntArg(1).WithLabel(sm.Full("arg4-index1")),
+			))
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+	fmt.Printf("Calling lseek...\n")
+	unix.Seek(0, 1, 2)
+
+	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
+	require.NoError(t, err)
+}
