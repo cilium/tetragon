@@ -11,7 +11,7 @@ metadata:
     {{- with .Values.tetragonOperator.extraLabels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
-  name: {{ .Release.Name }}-operator
+  name: {{ include "tetragon.fullname" . }}-operator
   namespace: {{ .Release.Namespace }}
 spec:
   selector:
@@ -31,7 +31,7 @@ spec:
         {{- end }}
     spec:
       containers:
-      - name: {{ .Release.Name }}-operator
+      - name: {{ include "tetragon.fullname" . }}-operator
         command:
           - /usr/bin/tetragon-operator
         args:
@@ -103,7 +103,7 @@ spec:
       volumes:
         - name: tetragon-operator-config
           configMap:
-            name: {{ .Release.Name }}-operator-config
+            name: {{ include "tetragon.fullname" . }}-operator-config
       {{- with .Values.tetragonOperator.extraVolumes }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
