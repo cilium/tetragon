@@ -1221,6 +1221,7 @@ filter_64ty_selector_val(struct selector_arg_filter *filter, char *args)
 				return 1;
 			break;
 		case op_filter_mask:
+		case op_filter_capability:
 			if (*(u64 *)args & w)
 				return 1;
 		default:
@@ -1266,6 +1267,7 @@ filter_64ty(struct selector_arg_filter *filter, char *args)
 	case op_filter_eq:
 	case op_filter_neq:
 	case op_filter_mask:
+	case op_filter_capability:
 		return filter_64ty_selector_val(filter, args);
 	case op_filter_inmap:
 	case op_filter_notinmap:
