@@ -69,14 +69,8 @@ FUNC_INLINE void event_exit_send(void *ctx, __u32 tgid)
 		probe_read(&exit->info.code, sizeof(exit->info.code),
 			   _(&task->exit_code));
 
-#ifndef __RHEL7_BPF_PROG
-		struct msg_k8s kube;
-
-		__event_get_cgroup_info(task, &kube);
-		if (cgroup_rate(ctx, &kube, exit->common.ktime))
-#endif
-			perf_event_output_metric(ctx, MSG_OP_EXIT, &tcpmon_map,
-						 BPF_F_CURRENT_CPU, exit, size);
+		perf_event_output_metric(ctx, MSG_OP_EXIT, &tcpmon_map,
+					 BPF_F_CURRENT_CPU, exit, size);
 	}
 	execve_map_delete(tgid);
 }
