@@ -20,6 +20,10 @@ const (
 	MaxIDs    = 64 // this value should correspond to the number of bits we can fit in mbset_t
 )
 
+type UpdateExecveMap interface {
+	MBSetBitClear(bit uint32, pids []uint32) error
+}
+
 type bitSet = uint64
 
 func openMap() (*ebpf.Map, error) {
@@ -38,6 +42,9 @@ type state struct {
 }
 
 func newState() (*state, error) {
+	if update == nil {
+		return nil, errors.New("UpdateExecveMap not initialized\n")
+	}
 	m, err := openMap()
 	if err != nil {
 		return nil, fmt.Errorf("failed to open map: %w", err)
@@ -103,6 +110,7 @@ var (
 	glbSt          *state
 	glbErr         error // nolint:errname
 	setGlobalState sync.Once
+	update         UpdateExecveMap
 )
 
 func getState() (*state, error) {
@@ -127,4 +135,8 @@ func UpdateMap(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byte) error {
 		return err
 	}
 	return s.UpdateMap(id, paths)
+}
+
+func SetMBSetUpdater(upd UpdateExecveMap) {
+	update = upd
 }
