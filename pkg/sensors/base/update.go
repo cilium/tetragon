@@ -17,8 +17,9 @@ type execveMapUpdater struct {
 }
 
 type UpdateData struct {
-	pid uint32
-	bit uint32
+	bit  uint32
+	cnt  uint32
+	pids [1024]uint32
 }
 
 func (upd *execveMapUpdater) MBSetBitClear(bit uint32, pids []uint32) error {
@@ -31,12 +32,12 @@ func (upd *execveMapUpdater) MBSetBitClear(bit uint32, pids []uint32) error {
 
 	opts := ebpf.RunOptions{Data: in}
 
-	for _, pid := range pids {
-		fmt.Printf("pid %d bit %d\n", pid, bit)
+	key := uint32(0)
+	val := UpdateData{
+		bit: bit,
+	}
 
-		key := uint32(0)
-		val := UpdateData{pid, bit}
-
+	run := func() error {
 		if err := upd.Map.MapHandle.Update(key, val, 0); err != nil {
 			fmt.Printf("KRAVA MBSetBitClear update %v\n", err)
 			return errors.New("failed to update data map value")
@@ -49,8 +50,32 @@ func (upd *execveMapUpdater) MBSetBitClear(bit uint32, pids []uint32) error {
 		if err == nil && ret != 0 {
 			return errors.New("failed to update map value")
 		}
+		return nil
+	}
+
+	var err error
+
+	for _, pid := range pids {
+		fmt.Printf("pid %d bit %d\n", pid, bit)
+
+		if val.cnt < 1000 {
+			val.pids[val.cnt] = pid
+			val.cnt++
+			continue
+		}
+
+		// update every 1000 keys
+		if err := run(); err != nil {
+			return err
+		}
+		val.cnt = 0
+	}
+
+	// ... and the rest
+	if val.cnt > 0 {
+		err = run()
 	}
 
 	fmt.Printf("KRAVA MBSetBitClear EXIT\n")
-	return nil
+	return err
 }
