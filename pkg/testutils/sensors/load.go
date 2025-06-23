@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/cilium/ebpf"
+	cfg "github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
@@ -143,11 +144,11 @@ func CheckSensorLoad(sensors []*sensors.Sensor, sensorMaps []SensorMap, sensorPr
 		3: SensorProg{Name: "execve_send", Type: ebpf.TracePoint},
 		4: SensorProg{Name: "tg_kp_bprm_committing_creds", Type: ebpf.Kprobe},
 		5: SensorProg{Name: "execve_rate", Type: ebpf.TracePoint},
+		6: SensorProg{Name: "execve_map_update", Type: ebpf.SocketFilter},
 	}
 
 	var baseMaps = []SensorMap{
 		// all programs
-		SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2, 3, 4}},
 		SensorMap{Name: "tcpmon_map", Progs: []uint{0, 1, 2, 3, 5}},
 
 		// all but event_execve
@@ -170,6 +171,17 @@ func CheckSensorLoad(sensors []*sensors.Sensor, sensorMaps []SensorMap, sensorPr
 
 		/* cgroup_rate_map */
 		baseMaps = append(baseMaps, SensorMap{Name: "cgroup_rate_map", Progs: []uint{1, 2, 5, 6}})
+	}
+
+	if cfg.EnableLargeProgs() {
+		// all programs
+		baseMaps = append(baseMaps, SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2, 3, 4, 6}})
+
+		// execve_map_update
+		baseMaps = append(baseMaps, SensorMap{Name: "execve_map_update_data", Progs: []uint{6}})
+	} else {
+		// all programs except for execve_map_update, execve_rate
+		baseMaps = append(baseMaps, SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2, 3, 4}})
 	}
 
 	CheckSensorLoadBase(t, sensors, sensorMaps, sensorProgs, baseMaps, baseProgs)
