@@ -301,6 +301,20 @@ const (
 	pidFollowForks  = 0x2
 )
 
+const (
+	FILTER_CRED_UNKNOWN = 0x00
+	FILTER_CRED_RUID    = 0x01 // Real UIDs
+	FILTER_CRED_RGID    = 0x02 // Real GIDs
+	FILTER_CRED_EUID    = 0x04 // Effective UIDs
+	FILTER_CRED_EGID    = 0x08 // Effective GIDs
+)
+
+const (
+	InvalidUid            = ^uint32(0) // Invalid UID 4294967295 (2^32 - 1)
+	MaxCredSelectorFields = 1          // Same Selector fields for Credentials
+	MaxCredSelectorValues = 4          // Max Selector values for Credentials
+)
+
 func pidSelectorFlags(pid *v1alpha1.PIDSelector) uint32 {
 	flags := uint32(0)
 
@@ -1195,6 +1209,130 @@ func ParseMatchCapabilityChanges(k *KernelSelectorState, actions []v1alpha1.Capa
 	return nil
 }
 
+func credUidSelectorValues(uids *v1alpha1.CredIdValues) ([]byte, uint32, error) {
+	b := make([]byte, len(uids.Values)*8)
+
+	if len(uids.Values) > MaxCredSelectorValues {
+		return nil, 0, fmt.Errorf("selector supports only %d uids/gids selector values", MaxCredSelectorValues)
+	}
+
+	for i, v := range uids.Values {
+		rangeStr := strings.Split(v, ":")
+		if len(rangeStr) > 2 {
+			return nil, 0, fmt.Errorf("uids/gids values %q invalid: range should be 'min:max'", v)
+		}
+
+		min, err := strconv.ParseUint(rangeStr[0], 10, 64)
+		if err != nil {
+			return nil, 0, fmt.Errorf("uids/gids values %q invalid: %w", v, err)
+		}
+		max := min
+		if len(rangeStr) > 1 {
+			max, err = strconv.ParseUint(rangeStr[1], 10, 64)
+			if err != nil {
+				return nil, 0, fmt.Errorf("uids/gids values %q invalid: %w", v, err)
+			}
+		}
+
+		if min > uint64(InvalidUid) || max > uint64(InvalidUid) {
+			return nil, 0, fmt.Errorf("uids/gids values outside of range 0:%d", ^uint32(0))
+		}
+		if min > max {
+			min = max
+		}
+
+		off := i * 8
+		binary.LittleEndian.PutUint32(b[off:], uint32(min))
+		binary.LittleEndian.PutUint32(b[off+4:], uint32(max))
+	}
+
+	return b, uint32(len(b)), nil
+}
+
+func credUidSelector(k *KernelSelectorState, uids *v1alpha1.CredIdValues, ty uint32) error {
+	if len(uids.Values) > MaxCredSelectorValues {
+		return fmt.Errorf("error: selector supports only %d values", MaxCredSelectorValues)
+	} else if len(uids.Values) == 0 {
+		return errors.New("error: selector must include at least one value")
+	}
+
+	op, err := SelectorOp(uids.Operator)
+	if err != nil {
+		return fmt.Errorf("error: operator %w", err)
+	}
+
+	if (op != SelectorOpEQ) && (op != SelectorOpNEQ) {
+		return errors.New("error: operator supports only 'eq' and 'neq' operators")
+	}
+
+	value, size, err := credUidSelectorValues(uids)
+	if err != nil {
+		return fmt.Errorf("error: values %w", err)
+	}
+
+	/* Credential type flags */
+	WriteSelectorUint64(&k.data, uint64(ty))
+
+	/* Operator */
+	WriteSelectorUint32(&k.data, op)
+
+	/* Write number of values */
+	WriteSelectorUint32(&k.data, size/8)
+
+	/* Values */
+	WriteSelectorByteArray(&k.data, value, size)
+
+	return nil
+}
+
+func ParseMatchCred(k *KernelSelectorState, action *v1alpha1.CredentialsSelector) error {
+	flags := FILTER_CRED_UNKNOWN
+
+	off_flags := GetCurrentOffset(&k.data)
+	/* Initialize filter with zero flags to not trigger useless bpf filters */
+	WriteSelectorUint32(&k.data, uint32(flags))
+
+	if len(action.Ruid) > MaxCredSelectorFields {
+		return fmt.Errorf("matchCurrentCred supports only %d ruid selector", MaxCredSelectorFields)
+	}
+
+	if len(action.Ruid) > 0 {
+		flags |= FILTER_CRED_RUID
+	}
+
+	if (flags & FILTER_CRED_RUID) != 0 {
+		ruid := &action.Ruid[0]
+		err := credUidSelector(k, ruid, FILTER_CRED_RUID)
+		if err != nil {
+			return fmt.Errorf("matchCurrentCred ruid %w", err)
+		}
+	}
+
+	/* After parsing overwrite available credential filters */
+	WriteSelectorOffsetUint32(&k.data, off_flags, uint32(flags))
+
+	return nil
+}
+
+func ParseMatchCurrentCred(k *KernelSelectorState, actions []v1alpha1.CredentialsSelector) error {
+	if !config.EnableLargeProgs() {
+		return errors.New("matchCurrentCred error: need large BPF progs (kernel>5.3)")
+	}
+	if len(actions) > 1 {
+		return errors.New("matchCurrentCred error: only one single matchCurrentCred per selector is supported")
+	}
+
+	// Get offset to save length
+	loff := AdvanceSelectorLength(&k.data)
+	for _, a := range actions {
+		if err := ParseMatchCred(k, &a); err != nil {
+			return err
+		}
+	}
+	WriteSelectorLength(&k.data, loff)
+	return nil
+}
+
 func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx int) error {
 	op, err := SelectorOp(b.Operator)
 	if err != nil {
@@ -1272,25 +1410,29 @@ func ParseMatchBinaries(k *KernelSelectorState, binarys []v1alpha1.BinarySelecto
 //
 // Sx := [length]
 //
-//	[matchPIDs]
-//	[matchNamespaces]
-//	[matchCapabilities]
-//	[matchNamespaceChanges]
-//	[matchCapabilityChanges]
-//	[matchArgs]
-//	[matchActions]
+//		[matchPIDs]
+//		[matchNamespaces]
+//		[matchCapabilities]
+//		[matchNamespaceChanges]
+//		[matchCapabilityChanges]
+//	        [matchCurrentCred]
+//		[matchArgs]
+//		[matchActions]
 //
 // matchPIDs := [length][PID1][PID2]...[PIDn]
 // matchNamespaces := [length][NSx][NSy]...[NSn]
 // matchCapabilities := [length][CAx][CAy]...[CAn]
 // matchNamespaceChanges := [length][NCx][NCy]...[NCn]
 // matchCapabilityChanges := [length][CAx][CAy]...[CAn]
+// matchCurrentCred := [length][flags][Ruid][Rgid][Euid][Egid]
 // matchArgs := [length][ARGx][ARGy]...[ARGn]
 // PIDn := [op][flags][nValues][v1]...[vn]
 // Argn := [index][op][valueGen]
 // NSn := [namespace][op][valueInt]
 // NCn := [op][valueInt]
 // CAn := [type][op][namespacecap][valueInt]
+// Ruid := [type][op][nValues][vX0][vY0][vX1][vY1]...[vX3][vY3]
+// Xuid := [type][op][nValues][vX0][vY0][vX1][vY1]...[vX3][vY3]
 // valueGen := [type][len][v]
 // valueInt := [len][v]
 //
@@ -1349,6 +1491,9 @@ func InitKernelSelectorState(selectors []v1alpha1.KProbeSelector, args []v1alpha
 		}
 		if err := ParseMatchCapabilityChanges(k, selectors.MatchCapabilityChanges); err != nil {
 			return fmt.Errorf("parseMatchCapabilityChanges error: %w", err)
+		}
+		if err := ParseMatchCurrentCred(k, selectors.MatchCurrentCred); err != nil {
+			return fmt.Errorf("parseMatchCurrentCred error: %w", err)
 		}
 		if err := ParseMatchBinaries(k, selectors.MatchBinaries, selIdx); err != nil {
 			return fmt.Errorf("parseMatchBinaries error: %w", err)

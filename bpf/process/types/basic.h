@@ -1588,6 +1588,10 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 		seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
 		/* skip the matchCapabilityChanges by reading its length */
 		seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+#ifdef __LARGE_BPF_PROG
+		/* skip the matchCurrentCred */
+		seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+#endif
 	}
 
 	/* Making binary selectors fixes size helps on some kernels */
