@@ -85,6 +85,10 @@ PROCESS += bpf_generic_kprobe_v61.o bpf_generic_retkprobe_v61.o \
 PROCESS += bpf_generic_lsm_core_v61.o bpf_generic_lsm_output_v61.o \
 	   bpf_generic_lsm_ima_file_v61.o bpf_generic_lsm_ima_bprm_v61.o
 
+# execve_map update
+PROCESS += bpf_execve_map_update.o
+
+
 CGROUP = bpf_cgroup_mkdir.o bpf_cgroup_rmdir.o bpf_cgroup_release.o bpf_cgtracker.o
 BPFTEST = bpf_lseek.o
 

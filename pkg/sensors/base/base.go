@@ -37,6 +37,14 @@ var (
 		"execve",
 	).SetPolicy(basePolicy)
 
+	ExecveMapUpdate = program.Builder(
+		"bpf_execve_map_update.o",
+		"seccomp",
+		"seccomp",
+		"execve_map_update",
+		"seccomp",
+	).SetPolicy(basePolicy)
+
 	ExecveBprmCommit = program.Builder(
 		"bpf_execve_bprm_commit_creds.o",
 		"security_bprm_committing_creds",
@@ -64,8 +72,9 @@ var (
 	/* Event Ring map */
 	TCPMonMap = program.MapBuilder("tcpmon_map", Execve)
 	/* Networking and Process Monitoring maps */
-	ExecveMap          = program.MapBuilder("execve_map", Execve, Exit, Fork, ExecveBprmCommit)
-	ExecveTailCallsMap = program.MapBuilderProgram("execve_calls", Execve)
+	ExecveMap           = program.MapBuilder("execve_map", Execve, Exit, Fork, ExecveBprmCommit, ExecveMapUpdate)
+	ExecveTailCallsMap  = program.MapBuilderProgram("execve_calls", Execve)
+	ExecveMapUpdateData = program.MapBuilder("execve_map_update_data", ExecveMapUpdate)
 
 	ExecveJoinMap = program.MapBuilder("tg_execve_joined_info_map", ExecveBprmCommit)
 
@@ -161,6 +170,10 @@ func initBaseSensor() *sensors.Sensor {
 		Name: basePolicy,
 	}
 	setupSensor()
+	mbset.SetMBSetUpdater(&execveMapUpdater{
+		Load: ExecveMapUpdate,
+		Map:  ExecveMapUpdateData,
+	})
 	sensor.Progs = GetDefaultPrograms()
 	sensor.Maps = GetDefaultMaps()
 	return ApplyExtensions(&sensor)

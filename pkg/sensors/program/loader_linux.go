@@ -649,6 +649,24 @@ func LoadMultiUprobeProgram(bpfDir string, load *Program, maps []*Map, verbose i
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
+func SeccompAttach() AttachFunc {
+	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
+		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
+
+		return &unloader.ProgUnloader{
+			Prog: prog,
+		}, nil
+	}
+}
+
+func LoadSeccompProgram(bpfDir string, load *Program, maps []*Map, verbose int) error {
+	opts := &LoadOpts{
+		Attach: SeccompAttach(),
+		Maps:   maps,
+	}
+	return loadProgram(bpfDir, load, opts, verbose)
+}
+
 func slimVerifierError(errStr string) string {
 	// The error is potentially up to 'verifierLogBufferSize' bytes long,
 	// and most of it is not interesting. For a user-friendly output, we'll

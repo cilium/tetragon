@@ -241,3 +241,42 @@ func UpdateMap(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byte) error {
 func SetMBSetUpdater(upd UpdateExecveMap) {
 	update = upd
 }
+
+func Krava() error {
+	spec, err := ebpf.LoadCollectionSpec("./bpf/objs/bpf_execve_map_update.o")
+	if err != nil {
+		return err
+	}
+
+	/*
+		strMap := spec.Maps[".rodata.str1.1"]
+		if strMap == nil {
+			t.Fatal("Unable to find map '.rodata.str1.1' in loaded collection")
+		}
+
+		if !strMap.readOnly() {
+			t.Fatal("Read only data maps should be frozen")
+		}
+
+		if strMap.Flags != sys.BPF_F_RDONLY_PROG {
+			t.Fatal("Read only data maps should have the prog-read-only flag set")
+		}
+	*/
+
+	coll, err := ebpf.NewCollection(spec)
+	if err != nil {
+		return err
+	}
+	defer coll.Close()
+
+	prog := coll.Programs["seccomp"]
+	if prog == nil {
+		return nil
+	}
+
+	_, err = prog.Run(&ebpf.RunOptions{})
+	if err != nil {
+		return err
+	}
+	return nil
+}
