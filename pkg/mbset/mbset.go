@@ -26,8 +26,8 @@ type UpdateExecveMap interface {
 
 type bitSet = uint64
 
-func openMap() (*ebpf.Map, error) {
-	fname := filepath.Join(bpf.MapPrefixPath(), MapName)
+func openMap(name string) (*ebpf.Map, error) {
+	fname := filepath.Join(bpf.MapPrefixPath(), name)
 	ret, err := ebpf.LoadPinnedMap(fname, &ebpf.LoadPinOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", fname, err)
@@ -36,25 +36,12 @@ func openMap() (*ebpf.Map, error) {
 }
 
 type state struct {
-	mu       sync.Mutex
-	nextID   uint32
-	mbsetMap *ebpf.Map
+	mu     sync.Mutex
+	nextID uint32
 }
 
 func newState() (*state, error) {
-	m, err := openMap()
-	if err != nil {
-		return nil, fmt.Errorf("failed to open map: %w", err)
-	}
-	return &state{
-		mbsetMap: m,
-	}, nil
-}
-
-func (s *state) Close() error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.mbsetMap.Close()
+	return &state{}, nil
 }
 
 // AllocID allocates a new ID
@@ -80,11 +67,17 @@ func (s *state) UpdateMap(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byt
 		return errors.New("unexpected id")
 	}
 
+	mbsetMap, err := openMap(MapName)
+	if err != nil {
+		return fmt.Errorf("failed to open mbset map: %w", err)
+	}
+	defer mbsetMap.Close()
+
 	bit := uint64(1) << id
 	for _, path := range paths {
 		var val bitSet
 		var uflags ebpf.MapUpdateFlags
-		err := s.mbsetMap.Lookup(path, &val)
+		err := mbsetMap.Lookup(path, &val)
 		if errors.Is(err, ebpf.ErrKeyNotExist) {
 			val = bit
 			uflags = ebpf.UpdateNoExist
@@ -95,7 +88,7 @@ func (s *state) UpdateMap(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byt
 			uflags = ebpf.UpdateExist
 		}
 
-		if err := s.mbsetMap.Update(path, val, uflags); err != nil {
+		if err := mbsetMap.Update(path, val, uflags); err != nil {
 			return fmt.Errorf("failed to update mbset map: %w", err)
 		}
 	}
