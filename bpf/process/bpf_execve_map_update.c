@@ -39,7 +39,7 @@ execve_map_update(void *ctx)
 	curr = execve_map_get_noinit(pid);
 	if (curr) {
 		bpf_printk("KRAVA found, unset\n");
-		curr->bin.mb_bitset &= ~(1 << bit);
+		__sync_fetch_and_and(&curr->bin.mb_bitset, ~(1 << bit));
 	} else {
 		bpf_printk("KRAVA NOT found\n");
 	}

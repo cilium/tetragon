@@ -292,7 +292,7 @@ void update_mb_bitset(struct binary *bin)
 		/* ->mb_bitset is used to track matchBinary matches to children (followChildren), so
 		 * here we propagate the parent value to the child.
 		 */
-		bin->mb_bitset |= parent->bin.mb_bitset & mask;
+		__sync_fetch_and_or(&bin->mb_bitset, parent->bin.mb_bitset & mask);
 	}
 
 	/* check the map and see if the binary path matches a binary
@@ -300,7 +300,7 @@ void update_mb_bitset(struct binary *bin)
 	 */
 	bitsetp = map_lookup_elem(&tg_mbset_map, bin->path);
 	if (bitsetp)
-		bin->mb_bitset |= *bitsetp & mask;
+		__sync_fetch_and_or(&bin->mb_bitset, *bitsetp & mask);
 }
 
 /**
