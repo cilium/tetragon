@@ -23,6 +23,17 @@ func ExecObj() string {
 	return "bpf_execve_event.o"
 }
 
+func ExecUpdateObj() string {
+	if EnableV61Progs() {
+		return "bpf_execve_map_update_v61.o"
+	} else if kernels.MinKernelVersion("5.11") {
+		return "bpf_execve_map_update_v511.o"
+	} else if EnableLargeProgs() {
+		return "bpf_execve_map_update_v53.o"
+	}
+	return "bpf_execve_map_update.o"
+}
+
 func ExitObj() string {
 	if EnableRhel7Progs() {
 		return "bpf_exit_v310.o"
