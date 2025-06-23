@@ -5816,6 +5816,7 @@ spec:
 tetragon_missed_prog_probes_total{attach="acct_process",policy="__base__"} 0
 tetragon_missed_prog_probes_total{attach="kprobe_multi (2 functions)",policy="syswritefollowfdpsswd"} 1
 tetragon_missed_prog_probes_total{attach="sched/sched_process_exec",policy="__base__"} 0
+tetragon_missed_prog_probes_total{attach="seccomp",policy="__base__"} 0
 tetragon_missed_prog_probes_total{attach="security_bprm_committing_creds",policy="__base__"} 0
 tetragon_missed_prog_probes_total{attach="wake_up_new_task",policy="__base__"} 0
 `)

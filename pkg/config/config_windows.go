@@ -12,6 +12,10 @@ func ExitObj() string {
 	return ""
 }
 
+func ExecUpdateObj() string {
+	return ""
+}
+
 func ForkObj() string {
 	return ""
 }
