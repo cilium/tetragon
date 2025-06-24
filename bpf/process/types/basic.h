@@ -214,7 +214,7 @@ struct event_config {
  * buffer size information.
  */
 #ifdef __LARGE_BPF_PROG
-#ifdef __LARGE_MAP_KEYS
+#ifdef __V511_BPF_PROG
 #define MAX_STRING (STRING_MAPS_SIZE_10 - 2)
 #else
 #define MAX_STRING (STRING_MAPS_SIZE_7 - 2)
@@ -587,7 +587,7 @@ FUNC_INLINE u16 string_padded_len(u16 len)
 	if (len <= STRING_MAPS_SIZE_6 - 2)
 		return STRING_MAPS_SIZE_6 - 2;
 #ifdef __LARGE_BPF_PROG
-#ifdef __LARGE_MAP_KEYS
+#ifdef __V511_BPF_PROG
 	if (len <= STRING_MAPS_SIZE_7 - 2)
 		return STRING_MAPS_SIZE_7 - 2;
 	if (len <= STRING_MAPS_SIZE_8 - 2)
@@ -609,7 +609,7 @@ FUNC_INLINE int string_map_index(u16 padded_len)
 		return (padded_len / STRING_MAPS_KEY_INC_SIZE) - 1;
 
 #ifdef __LARGE_BPF_PROG
-#ifdef __LARGE_MAP_KEYS
+#ifdef __V511_BPF_PROG
 	switch (padded_len) {
 	case STRING_MAPS_SIZE_6 - 2:
 		return 6;
@@ -651,7 +651,7 @@ FUNC_INLINE void *get_string_map(int index, __u32 map_idx)
 		return map_lookup_elem(&string_maps_6, &map_idx);
 	case 7:
 		return map_lookup_elem(&string_maps_7, &map_idx);
-#ifdef __LARGE_MAP_KEYS
+#ifdef __V511_BPF_PROG
 	case 8:
 		return map_lookup_elem(&string_maps_8, &map_idx);
 	case 9:
@@ -677,7 +677,7 @@ filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint or
 	int index;
 
 #ifdef __LARGE_BPF_PROG
-#ifdef __LARGE_MAP_KEYS
+#ifdef __V511_BPF_PROG
 	if (orig_len > STRING_MAPS_SIZE_10 - 2 || !orig_len)
 		return 0;
 #else

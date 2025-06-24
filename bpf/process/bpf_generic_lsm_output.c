@@ -8,7 +8,7 @@
 
 #include "compiler.h"
 #include "bpf_event.h"
-#ifdef __LARGE_MAP_KEYS
+#ifdef __V511_BPF_PROG
 #include "bpf_lsm_ima.h"
 #endif
 #include "bpf_task.h"
@@ -30,7 +30,7 @@ generic_lsm_output(void *ctx)
 	e = map_lookup_elem(&process_call_heap, &zero);
 	if (!e)
 		return 0;
-#ifdef __LARGE_MAP_KEYS
+#ifdef __V511_BPF_PROG
 	if (e && e->common.flags & MSG_COMMON_FLAG_IMA_HASH) {
 		__u64 pid_tgid = get_current_pid_tgid();
 		struct ima_hash *hash = map_lookup_elem(&ima_hash_map, &pid_tgid);
