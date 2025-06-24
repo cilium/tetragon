@@ -50,7 +50,7 @@
 #define STRING_MAPS_SIZE_4	 (5 * STRING_MAPS_KEY_INC_SIZE + 1)
 #define STRING_MAPS_SIZE_5	 (6 * STRING_MAPS_KEY_INC_SIZE + 1)
 #define STRING_MAPS_SIZE_6	 (256 + 2)
-#ifdef __LARGE_MAP_KEYS
+#ifdef __V511_BPF_PROG
 #define STRING_MAPS_SIZE_7  (512 + 2)
 #define STRING_MAPS_SIZE_8  (1024 + 2)
 #define STRING_MAPS_SIZE_9  (2048 + 2)
@@ -166,7 +166,7 @@ struct {
 		});
 } string_maps_7 SEC(".maps");
 
-#ifdef __LARGE_MAP_KEYS
+#ifdef __V511_BPF_PROG
 struct {
 	__uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
 	__uint(max_entries, STRING_MAPS_OUTER_MAX_ENTRIES);

@@ -9,7 +9,7 @@
 #include "compiler.h"
 #include "bpf_event.h"
 #include "bpf_task.h"
-#ifdef __LARGE_MAP_KEYS
+#ifdef __V511_BPF_PROG
 #include "bpf_lsm_ima.h"
 #endif
 #include "retprobe_map.h"
@@ -98,7 +98,7 @@ generic_lsm_actions(void *ctx)
 		return 0;
 
 	e->lsm.post = postit;
-#ifdef __LARGE_MAP_KEYS
+#ifdef __V511_BPF_PROG
 	// Set dummy hash entry for ima program
 	if (e && e->common.flags & MSG_COMMON_FLAG_IMA_HASH && e->lsm.post) {
 		struct ima_hash hash;
