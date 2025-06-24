@@ -34,7 +34,7 @@ import (
 // Also note that the final backoff duration is completely random and chosen
 // between 0 and the final duration that was computed via to the params:
 // https://github.com/grpc/grpc-go/blob/v1.65.0/stream.go#L702
-func retryPolicy(retries int) string {
+func RetryPolicy(retries int) string {
 	if retries < 0 {
 		// gRPC should ignore the invalid retry policy but will issue a warning,
 		return "{}"
@@ -108,7 +108,7 @@ func NewClient(ctx context.Context, address string, timeout time.Duration) (*Cli
 	var err error
 	c.conn, err = grpc.NewClient(address,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithDefaultServiceConfig(retryPolicy(Retries)),
+		grpc.WithDefaultServiceConfig(RetryPolicy(Retries)),
 		grpc.WithMaxCallAttempts(Retries+1), // maxAttempt includes the first call
 	)
 	if err != nil {
