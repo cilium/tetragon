@@ -160,6 +160,13 @@ func ValidateKprobeSpec(bspec *btf.Spec, call string, kspec *v1alpha1.KProbeSpec
 		if specArg.Index >= fnNArgs {
 			return fmt.Errorf("kprobe arg %d has an invalid index: %d based on prototype: %s", i, specArg.Index, proto)
 		}
+
+		// If there is a resolve path defined by the user, we need to traverse it to match
+		// the types. This will happen later (e.g., see resolveBTFArg) so skip the check
+		// here.
+		if specArg.Resolve != "" {
+			continue
+		}
 		arg := proto.Params[int(specArg.Index)]
 		paramTyStr := getKernelType(arg.Type)
 		if !typesCompatible(specArg.Type, paramTyStr) {
