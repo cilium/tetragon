@@ -26,6 +26,9 @@ linters:
     - testifylint
     - unused
   settings:
+    staticcheck:
+      checks:
+      - all
     dupword:
       keywords:
         - the
