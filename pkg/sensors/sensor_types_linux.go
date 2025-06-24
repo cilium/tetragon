@@ -20,5 +20,6 @@ var (
 		"cgrp_socket":    cgroup.LoadCgroupProgram,
 		"kprobe":         program.LoadKprobeProgram,
 		"lsm":            program.LoadLSMProgram,
+		"seccomp":        program.LoadSeccompProgram,
 	}
 )
