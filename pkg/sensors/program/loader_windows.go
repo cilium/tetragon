@@ -18,6 +18,7 @@ import (
 )
 
 var (
+	attachTypeBindGUID                  = makeGUID(0xb9707e04, 0x8127, 0x4c72, [8]byte{0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96})
 	attachTypeProcessGUID               = makeGUID(0x66e20687, 0x9805, 0x4458, [8]byte{0xa0, 0xdb, 0x38, 0xe2, 0x20, 0xd3, 0x16, 0x85})
 	attachTypeCgroupInet4ConnectGUID    = makeGUID(0xa82e37b1, 0xaee7, 0x11ec, [8]byte{0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee})
 	attachTypeCgroupInet6ConnectGUID    = makeGUID(0xa82e37b2, 0xaee7, 0x11ec, [8]byte{0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee})
@@ -52,6 +53,8 @@ func getAttachTypeForAttachTarget(attachTarget string) (ebpf.AttachType, error) 
 		attachTypeGuid = attachTypeCgroupInet4RecvAcceptGUID.String()
 	case "cgroup/recv_accept6":
 		attachTypeGuid = attachTypeCgroupInet6RecvAcceptGUID.String()
+	case "bind":
+		attachTypeGuid = attachTypeBindGUID.String()
 
 	default:
 		return ebpf.AttachNone, nil
