@@ -301,7 +301,7 @@ func generateMultiEventCheckerInterface(g *protogen.GeneratedFile) error {
 // generateMultiEventCheckerHelpers generates the MultiEventChecker helper functions
 func generateMultiEventCheckerHelpers(g *protogen.GeneratedFile) error {
 	logger := common.GoIdent(g, "log/slog", "Logger")
-	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
+	tetragonGER := common.TetragonAPIIdent(g, "GetEventsResponse")
 
 	g.P(`// NextResponseCheck checks the next response
         func NextResponseCheck(c MultiEventChecker , res *` + tetragonGER + `, l *` + logger + `) (bool, error) {

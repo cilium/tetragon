@@ -18,8 +18,8 @@ const (
 	ActionUnfollowFd                  = 3
 	ActionOverride                    = 4
 	ActionCopyFd                      = 5
-	ActionGetUrl                      = 6
-	ActionLookupDns                   = 7
+	ActionGetURL                      = 6
+	ActionLookupDNS                   = 7
 	ActionNoPost                      = 8
 	ActionSignal                      = 9
 	ActionTrackSock                   = 10
@@ -39,9 +39,9 @@ type MsgLoader struct {
 	Common      processapi.MsgCommon
 	ProcessKey  processapi.MsgExecveKey
 	Pid         uint32
-	BuildIdSize uint32
+	BuildIDSize uint32
 	PathSize    uint32
-	BuildId     [20]byte
+	BuildID     [20]byte
 	Path        [4096]byte
 }
 
@@ -50,11 +50,11 @@ type MsgGenericKprobe struct {
 	ProcessKey    processapi.MsgExecveKey
 	Namespaces    processapi.MsgNamespaces
 	Capabilities  processapi.MsgCapabilities
-	FuncId        uint64
-	RetProbeId    uint64
-	ActionId      uint64
-	ActionArgId   uint32
-	Tid           uint32 // The recorded TID that triggered the event
+	FuncID        uint64
+	RetProbeID    uint64
+	ActionID      uint64
+	ActionArgID   uint32
+	TID           uint32 // The recorded TID that triggered the event
 	KernelStackID int64
 	UserStackID   int64
 }
@@ -304,8 +304,8 @@ func (m MsgGenericKprobeArgNetDev) IsReturnArg() bool {
 
 type MsgGenericKprobeArgCred struct {
 	Index      uint64
-	Uid        uint32
-	Gid        uint32
+	UID        uint32
+	GID        uint32
 	Suid       uint32
 	Sgid       uint32
 	Euid       uint32
@@ -441,16 +441,16 @@ func (m MsgGenericKprobeArgLinuxBinprm) IsReturnArg() bool {
 
 type MsgGenericUserNamespace struct {
 	Level  int32
-	Uid    uint32
-	Gid    uint32
+	UID    uint32
+	GID    uint32
 	NsInum uint32
 }
 
 type MsgGenericKprobeArgUserNamespace struct {
 	Index  uint64
 	Level  int32
-	Uid    uint32
-	Gid    uint32
+	UID    uint32
+	GID    uint32
 	NsInum uint32
 	Label  string
 }
@@ -583,7 +583,7 @@ type MsgGenericKprobeUnix struct {
 	ProcessKey   processapi.MsgExecveKey
 	Namespaces   processapi.MsgNamespaces
 	Capabilities processapi.MsgCapabilities
-	Id           uint64
+	ID           uint64
 	Action       uint64
 	FuncName     string
 	Args         []MsgGenericKprobeArg
@@ -599,7 +599,7 @@ const EventConfigMaxArgs = 5
 const MaxBTFArgDepth = 10 // Artificial value for compilation, may be extended
 
 type EventConfig struct {
-	FuncId          uint32                                           `align:"func_id"`
+	FuncID          uint32                                           `align:"func_id"`
 	Arg             [EventConfigMaxArgs]int32                        `align:"arg"`
 	ArgM            [EventConfigMaxArgs]uint32                       `align:"arm"`
 	ArgTpCtxOff     [EventConfigMaxArgs]uint32                       `align:"off"`

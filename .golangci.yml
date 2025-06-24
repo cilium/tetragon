@@ -82,6 +82,12 @@ linters:
       - linters:
           - goheader
         path: pkg/sensors/tracing/genericuprobe_cgo.go
+      - linters:
+          - staticcheck
+        text: should not use ALL_CAPS in Go names; use CamelCase instead
+      - linters:
+          - staticcheck
+        text: should not use underscores in Go names
     paths:
       - third_party$
       - builtin$

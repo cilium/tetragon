@@ -21,7 +21,7 @@ func GetTgRuntimeConf() (*confmap.TetragonConfValue, error) {
 	}
 
 	// This must be called before probing cgroup configurations
-	err = cgroups.DiscoverSubSysIds()
+	err = cgroups.DiscoverSubSysIDs()
 	if err != nil {
 		return nil, err
 	}

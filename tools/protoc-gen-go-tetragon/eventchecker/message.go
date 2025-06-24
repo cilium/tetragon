@@ -33,8 +33,8 @@ func (msg *CheckedMessage) Generate(g *protogen.GeneratedFile, isEvent bool) err
 }
 
 func (msg *CheckedMessage) generateChecker(g *protogen.GeneratedFile, isEvent bool) error {
-	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
-	targetIdent := common.TetragonApiIdent(g, msg.GoIdent.GoName)
+	tetragonGER := common.TetragonAPIIdent(g, "GetEventsResponse")
+	targetIdent := common.TetragonAPIIdent(g, msg.GoIdent.GoName)
 
 	var msgType string
 	if isEvent {

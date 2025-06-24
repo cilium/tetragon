@@ -57,10 +57,10 @@ func (s *disabled) Close() error {
 	return nil
 }
 
-func (s *disabled) GetNsId(stateID StateID) (*NSID, bool) {
+func (s *disabled) GetNsID(stateID StateID) (*NSID, bool) {
 	return nil, false
 }
 
-func (s *disabled) GetIdNs(id NSID) (StateID, bool) {
+func (s *disabled) GetIDNs(id NSID) (StateID, bool) {
 	return StateID(0), false
 }

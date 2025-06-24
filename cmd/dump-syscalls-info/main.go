@@ -27,8 +27,8 @@ type cli struct {
 }
 
 type SyscallsInfoCmd struct {
-	VmLinux  string `name:"vmlinux"`
-	JsonFile string `name:"jsonfile" help:"json file to update (or create)"`
+	VMLinux  string `name:"vmlinux"`
+	JSONFile string `name:"jsonfile" help:"json file to update (or create)"`
 	DryRun   bool
 }
 
@@ -247,15 +247,15 @@ func updateInfo(
 }
 
 func (c *SyscallsInfoCmd) Run() error {
-	info, err := dumpSyscalls(c.VmLinux)
+	info, err := dumpSyscalls(c.VMLinux)
 	if err != nil {
 		return err
 	}
 
 	outF := os.Stdout
-	if c.JsonFile != "" {
+	if c.JSONFile != "" {
 		var oldInfo map[string][]SyscallArg
-		f, err := os.Open(c.JsonFile)
+		f, err := os.Open(c.JSONFile)
 		if err != nil {
 			return err
 		}
@@ -273,8 +273,8 @@ func (c *SyscallsInfoCmd) Run() error {
 		f.Close()
 	}
 
-	if c.JsonFile != "" && !c.DryRun {
-		outF, err = os.Create(c.JsonFile)
+	if c.JSONFile != "" && !c.DryRun {
+		outF, err = os.Create(c.JSONFile)
 		if err != nil {
 			return err
 		}

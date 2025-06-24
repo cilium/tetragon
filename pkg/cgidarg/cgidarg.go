@@ -22,7 +22,7 @@ func Parse(s string) (uint64, error) {
 		return ret, nil
 	}
 	if sfname := strings.TrimPrefix(s, "fname:"); len(sfname) < len(s) {
-		ret, err := cgroups.GetCgroupIdFromPath(sfname)
+		ret, err := cgroups.GetCgroupIDFromPath(sfname)
 		if err != nil {
 			return 0, fmt.Errorf("cannot get cgroup id for path %s from argument %s: %w", sfname, s, err)
 		}
@@ -31,5 +31,5 @@ func Parse(s string) (uint64, error) {
 	if id, err := strconv.ParseUint(s, 10, 64); err == nil {
 		return id, nil
 	}
-	return cgroups.GetCgroupIdFromPath(s)
+	return cgroups.GetCgroupIDFromPath(s)
 }

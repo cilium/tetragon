@@ -83,7 +83,7 @@ func TestGeneratedExecEvents(t *testing.T) {
 	// in case it lags for some reason like slow CI server.
 	cnt := 0
 	for cnt < 5 {
-		if err = jsonchecker.JsonTestCheck(t, checker); err == nil {
+		if err = jsonchecker.JSONTestCheck(t, checker); err == nil {
 			break
 		}
 		time.Sleep(time.Second)

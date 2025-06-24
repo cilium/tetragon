@@ -35,8 +35,8 @@ const (
 	ActionTypeUnfollowFd                  = 3
 	ActionTypeOverride                    = 4
 	ActionTypeCopyFd                      = 5
-	ActionTypeGetUrl                      = 6
-	ActionTypeDnsLookup                   = 7
+	ActionTypeGetURL                      = 6
+	ActionTypeDNSLookup                   = 7
 	ActionTypeNoPost                      = 8
 	ActionTypeSignal                      = 9
 	ActionTypeTrackSock                   = 10
@@ -52,8 +52,8 @@ var actionTypeTable = map[string]uint32{
 	"sigkill":                     ActionTypeSigKill,
 	"override":                    ActionTypeOverride,
 	"copyfd":                      ActionTypeCopyFd,
-	"geturl":                      ActionTypeGetUrl,
-	"dnslookup":                   ActionTypeDnsLookup,
+	"geturl":                      ActionTypeGetURL,
+	"dnslookup":                   ActionTypeDNSLookup,
 	"nopost":                      ActionTypeNoPost,
 	"signal":                      ActionTypeSignal,
 	"tracksock":                   ActionTypeTrackSock,
@@ -69,8 +69,8 @@ var actionTypeStringTable = map[uint32]string{
 	ActionTypeSigKill:                     "sigkill",
 	ActionTypeOverride:                    "override",
 	ActionTypeCopyFd:                      "copyfd",
-	ActionTypeGetUrl:                      "geturl",
-	ActionTypeDnsLookup:                   "dnslookup",
+	ActionTypeGetURL:                      "geturl",
+	ActionTypeDNSLookup:                   "dnslookup",
 	ActionTypeNoPost:                      "nopost",
 	ActionTypeSignal:                      "signal",
 	ActionTypeTrackSock:                   "tracksock",
@@ -93,11 +93,11 @@ var actionRateLimitScope = map[string]uint32{
 // Action argument table entry (for URL and FQDN arguments)
 type ActionArgEntry struct {
 	arg     string
-	tableId idtable.EntryID
+	tableID idtable.EntryID
 }
 
 func (g *ActionArgEntry) SetID(id idtable.EntryID) {
-	g.tableId = id
+	g.tableID = id
 }
 
 func (g *ActionArgEntry) GetArg() string {
@@ -402,7 +402,7 @@ func writeRangeInMap(v string, ty uint32, op uint32, m *ValueMap) error {
 				rangeStr = []string{familyStr, familyStr}
 			}
 		case SelectorOpState:
-			state, err := network.TcpStateNumber(v)
+			state, err := network.TCPStateNumber(v)
 			if err == nil {
 				stateStr := strconv.FormatUint(uint64(state), 10)
 				rangeStr = []string{stateStr, stateStr}
@@ -926,25 +926,25 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 
 	switch act {
 	case ActionTypeFollowFd, ActionTypeCopyFd:
-		WriteSelectorUint32(&k.data, action.ArgFd)
+		WriteSelectorUint32(&k.data, action.ArgFD)
 		WriteSelectorUint32(&k.data, action.ArgName)
 	case ActionTypeUnfollowFd:
-		WriteSelectorUint32(&k.data, action.ArgFd)
+		WriteSelectorUint32(&k.data, action.ArgFD)
 		WriteSelectorUint32(&k.data, action.ArgName)
 	case ActionTypeOverride:
 		WriteSelectorInt32(&k.data, action.ArgError)
-	case ActionTypeGetUrl, ActionTypeDnsLookup:
+	case ActionTypeGetURL, ActionTypeDNSLookup:
 		actionArg := ActionArgEntry{
-			tableId: idtable.UninitializedEntryID,
+			tableID: idtable.UninitializedEntryID,
 		}
 		switch act {
-		case ActionTypeGetUrl:
-			actionArg.arg = action.ArgUrl
-		case ActionTypeDnsLookup:
+		case ActionTypeGetURL:
+			actionArg.arg = action.ArgURL
+		case ActionTypeDNSLookup:
 			actionArg.arg = action.ArgFqdn
 		}
 		actionArgTable.AddEntry(&actionArg)
-		WriteSelectorUint32(&k.data, uint32(actionArg.tableId.ID))
+		WriteSelectorUint32(&k.data, uint32(actionArg.tableID.ID))
 	case ActionTypeSignal:
 		WriteSelectorUint32(&k.data, action.ArgSig)
 	case ActionTypeTrackSock, ActionTypeUntrackSock:

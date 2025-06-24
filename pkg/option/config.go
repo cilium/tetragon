@@ -79,7 +79,7 @@ type config struct {
 	ExportAggregationWindowSize time.Duration
 	ExportAggregationBufferSize uint64
 
-	CpuProfile string
+	CPUProfile string
 	MemProfile string
 	PprofAddr  string
 

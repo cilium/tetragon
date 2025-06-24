@@ -12,7 +12,7 @@ import (
 type Enum protogen.Enum
 
 func (enum *Enum) Generate(g *protogen.GeneratedFile) error {
-	enumIdent := common.TetragonApiIdent(g, enum.GoIdent.GoName)
+	enumIdent := common.TetragonAPIIdent(g, enum.GoIdent.GoName)
 	g.P(`// ` + enum.checkerName() + ` checks a ` + enumIdent + `
     type ` + enum.checkerName() + ` ` + enumIdent)
 
@@ -33,7 +33,7 @@ func (enum *Enum) Generate(g *protogen.GeneratedFile) error {
 }
 
 func (enum *Enum) generateChecker(g *protogen.GeneratedFile) error {
-	targetIdent := common.TetragonApiIdent(g, enum.GoIdent.GoName)
+	targetIdent := common.TetragonAPIIdent(g, enum.GoIdent.GoName)
 
 	g.P(`// New` + enum.checkerName() + ` creates a new ` + enum.checkerName() + `
     func New` + enum.checkerName() + `(val ` + targetIdent + `) *` + enum.checkerName() + ` {
@@ -66,7 +66,7 @@ func (enum *Enum) generateChecker(g *protogen.GeneratedFile) error {
 func (enum *Enum) generateMarshal(g *protogen.GeneratedFile) error {
 	jsonMarshal := common.GoIdent(g, "encoding/json", "Marshal")
 	stringsTrimPrefix := common.GoIdent(g, "strings", "TrimPrefix")
-	nameMap := common.TetragonApiIdent(g, enum.GoIdent.GoName+"_name")
+	nameMap := common.TetragonAPIIdent(g, enum.GoIdent.GoName+"_name")
 
 	longestPrefix := getLongestPreifx(enum)
 
@@ -88,7 +88,7 @@ func (enum *Enum) generateUnmarshal(g *protogen.GeneratedFile) error {
 	// We want to use yaml.UnmarshalStrict here since it will complain about unknown fields
 	yamlUnmarshal := common.GoIdent(g, "sigs.k8s.io/yaml", "UnmarshalStrict")
 	stringsToUpper := common.GoIdent(g, "strings", "ToUpper")
-	valueMap := common.TetragonApiIdent(g, enum.GoIdent.GoName+"_value")
+	valueMap := common.TetragonAPIIdent(g, enum.GoIdent.GoName+"_value")
 
 	longestPrefix := getLongestPreifx(enum)
 

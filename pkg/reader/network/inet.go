@@ -103,14 +103,14 @@ var tcpState = map[uint8]string{
 	12: "TCP_NEW_SYN_RECV",
 }
 
-func TcpState(state uint8) string {
+func TCPState(state uint8) string {
 	if p, ok := tcpState[state]; ok {
 		return p
 	}
 	return strconv.FormatUint(uint64(state), 10)
 }
 
-func TcpStateNumber(state string) (uint8, error) {
+func TCPStateNumber(state string) (uint8, error) {
 	for statenum, statestr := range tcpState {
 		if state == statestr {
 			return statenum, nil

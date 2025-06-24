@@ -85,7 +85,7 @@ func testEnforcer(t *testing.T, configHook string,
 		cc.checkFn(t, err, cmd.ProcessState.ExitCode())
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -299,7 +299,7 @@ func testSecurity(t *testing.T, tracingPolicy, tempFile string) {
 			))
 
 	checker := eventchecker.NewUnorderedEventChecker(kpCheckerPwrite)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 
 	// check the pwrite syscall did not write anything

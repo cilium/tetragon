@@ -12,7 +12,7 @@ import (
 )
 
 type CgrpTrackingKey struct {
-	CgrpId uint64
+	CgrpID uint64
 }
 
 type CgrpTrackingValue struct {
@@ -20,7 +20,7 @@ type CgrpTrackingValue struct {
 	State int32 `align:"state"`
 
 	/* Unique id for the hierarchy this is mostly for cgroupv1 */
-	HierarchyId uint32 `align:"hierarchy_id"`
+	HierarchyID uint32 `align:"hierarchy_id"`
 
 	/* The depth this cgroup is at - We don't track ancestors as they may change */
 	Level uint32 `align:"level"`
@@ -48,7 +48,7 @@ func LookupTrackingCgroup(mapPath string, cgrpid uint64) (*CgrpTrackingValue, er
 
 	var v CgrpTrackingValue
 
-	err = m.Lookup(&CgrpTrackingKey{CgrpId: cgrpid}, &v)
+	err = m.Lookup(&CgrpTrackingKey{CgrpID: cgrpid}, &v)
 	if err != nil {
 		return nil, err
 	}

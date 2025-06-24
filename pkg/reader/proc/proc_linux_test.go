@@ -55,13 +55,13 @@ func TestGetPid1Status(t *testing.T) {
 	assert.Equal(t, uint32(0), uids[0])
 	assert.Equal(t, uint32(0), uids[1])
 
-	gids, err := status.GetGids()
+	gids, err := status.GetGIDs()
 	require.NoError(t, err)
 	assert.Equal(t, uint32(0), gids[0])
 	assert.Equal(t, uint32(0), gids[1])
 
 	// PID 1 does not have a loginuid
-	loginuid, err := status.GetLoginUid()
+	loginuid, err := status.GetLoginUID()
 	require.NoError(t, err)
 	assert.Equal(t, uint32(4294967295), loginuid)
 }

@@ -66,7 +66,7 @@ func init() {
 
 // genericTracepoint is the internal representation of a tracepoint
 type genericTracepoint struct {
-	tableId idtable.EntryID
+	tableID idtable.EntryID
 
 	Info *tracepoint.Tracepoint
 	args []genericTracepointArg
@@ -74,7 +74,7 @@ type genericTracepoint struct {
 	Spec     *v1alpha1.TracepointSpec
 	policyID policyfilter.PolicyID
 
-	// for tracepoints that have a GetUrl or DnsLookup action, we store the table of arguments.
+	// for tracepoints that have a GetURL or DnsLookup action, we store the table of arguments.
 	actionArgs idtable.Table
 
 	pinPathPrefix string
@@ -99,7 +99,7 @@ type genericTracepoint struct {
 }
 
 func (tp *genericTracepoint) SetID(id idtable.EntryID) {
-	tp.tableId = id
+	tp.tableID = id
 }
 
 // genericTracepointArg is the internal representation of an output value of a
@@ -128,7 +128,7 @@ type genericTracepointArg struct {
 	format *tracepoint.FieldFormat
 
 	// bpf generic type
-	genericTypeId int
+	genericTypeID int
 
 	// user type overload
 	userType string
@@ -153,9 +153,9 @@ func (out *genericTracepointArg) String() string {
 	return fmt.Sprintf("genericTracepointArg{CtxOffset: %d format: %+v}", out.CtxOffset, out.format)
 }
 
-// getGenericTypeId: returns the generic type Id of a tracepoint argument
+// getGenericTypeID: returns the generic type Id of a tracepoint argument
 // if such an id cannot be termined, it returns an GenericInvalidType and an error
-func (out *genericTracepointArg) getGenericTypeId() (int, error) {
+func (out *genericTracepointArg) getGenericTypeID() (int, error) {
 
 	if out.userType != "" && out.userType != "auto" {
 		if out.userType == "const_buf" {
@@ -259,7 +259,7 @@ func buildArgs(info *tracepoint.Tracepoint, specArgs []v1alpha1.KProbeArg) ([]ge
 			userType:  specArg.Type,
 		}
 
-		tpArg.genericTypeId, err = tpArg.getGenericTypeId()
+		tpArg.genericTypeID, err = tpArg.getGenericTypeID()
 		if err != nil {
 			return nil, fmt.Errorf("output argument %v unsupported: %w", tpArg, err)
 		}
@@ -292,9 +292,9 @@ func buildArgs(info *tracepoint.Tracepoint, specArgs []v1alpha1.KProbeArg) ([]ge
 			MetaArg:       0,
 			nopTy:         true,
 			format:        &field,
-			genericTypeId: gt.GenericInvalidType,
+			genericTypeID: gt.GenericInvalidType,
 		}
-		tpArg.genericTypeId, err = tpArg.getGenericTypeId()
+		tpArg.genericTypeID, err = tpArg.getGenericTypeID()
 		if err != nil {
 			return nil, fmt.Errorf("output argument %v unsupported: %w", tpArg, err)
 		}
@@ -333,7 +333,7 @@ func buildArgsRaw(info *tracepoint.Tracepoint, specArgs []v1alpha1.KProbeArg) ([
 			userType: tpArg.Type,
 		}
 
-		argType, err := arg.getGenericTypeId()
+		argType, err := arg.getGenericTypeID()
 		if err != nil {
 			return nil, fmt.Errorf("output argument %v unsupported: %w", tpArg, err)
 		}
@@ -353,7 +353,7 @@ func buildArgsRaw(info *tracepoint.Tracepoint, specArgs []v1alpha1.KProbeArg) ([
 		}
 
 		arg.btf = btf
-		arg.genericTypeId = argType
+		arg.genericTypeID = argType
 		ret = append(ret, arg)
 	}
 	return ret, nil
@@ -393,7 +393,7 @@ func createGenericTracepoint(
 	}
 
 	ret := &genericTracepoint{
-		tableId:       idtable.UninitializedEntryID,
+		tableID:       idtable.UninitializedEntryID,
 		Info:          &tp,
 		Spec:          conf,
 		args:          tpArgs,
@@ -406,7 +406,7 @@ func createGenericTracepoint(
 	}
 
 	genericTracepointTable.AddEntry(ret)
-	ret.pinPathPrefix = sensors.PathJoin(sensorName, fmt.Sprintf("gtp-%d", ret.tableId.ID))
+	ret.pinPathPrefix = sensors.PathJoin(sensorName, fmt.Sprintf("gtp-%d", ret.tableID.ID))
 	return ret, nil
 }
 
@@ -549,7 +549,7 @@ func createGenericTracepointSensor(
 
 		has.fdInstall = selectorsHaveFDInstall(tp.Spec.Selectors)
 
-		prog0.LoaderData = tp.tableId
+		prog0.LoaderData = tp.tableID
 		progs = append(progs, prog0)
 
 		fdinstall := program.MapBuilderSensor("fdinstall_map", prog0)
@@ -655,7 +655,7 @@ func createGenericTracepointSensor(
 		var errs error
 
 		for _, tp := range tracepoints {
-			_, err := genericTracepointTable.RemoveEntry(tp.tableId)
+			_, err := genericTracepointTable.RemoveEntry(tp.tableID)
 			if err != nil {
 				errs = errors.Join(errs, err)
 			}
@@ -679,7 +679,7 @@ func (tp *genericTracepoint) InitKernelSelectors(lists []v1alpha1.ListSpec) erro
 	}
 
 	for _, tpArg := range tp.args {
-		selType, err := gt.GenericTypeToString(tpArg.genericTypeId)
+		selType, err := gt.GenericTypeToString(tpArg.genericTypeID)
 		if err != nil {
 			return fmt.Errorf("output argument %v type not found: %w", tpArg, err)
 		}
@@ -718,7 +718,7 @@ func (tp *genericTracepoint) EventConfig() (*tracingapi.EventConfig, error) {
 
 	config := tracingapi.EventConfig{}
 	config.PolicyID = uint32(tp.policyID)
-	config.FuncId = uint32(tp.tableId.ID)
+	config.FuncID = uint32(tp.tableID.ID)
 
 	if tp.raw {
 		return tp.eventConfigRaw(&config)
@@ -735,10 +735,10 @@ func (tp *genericTracepoint) eventConfigRaw(config *tracingapi.EventConfig) (*tr
 	// iterate over output arguments
 	for i, tpArg := range tp.args {
 		config.BTFArg[tpArg.TpIdx] = tpArg.btf
-		config.Arg[tpArg.TpIdx] = int32(tpArg.genericTypeId)
+		config.Arg[tpArg.TpIdx] = int32(tpArg.genericTypeID)
 		config.ArgM[tpArg.TpIdx] = uint32(tpArg.MetaArg)
 
-		tracepointLog.Debug(fmt.Sprintf("configured argument #%d: %+v (type:%d)", i, tpArg, tpArg.genericTypeId))
+		tracepointLog.Debug(fmt.Sprintf("configured argument #%d: %+v (type:%d)", i, tpArg, tpArg.genericTypeID))
 	}
 	return config, nil
 }
@@ -748,10 +748,10 @@ func (tp *genericTracepoint) eventConfig(config *tracingapi.EventConfig) (*traci
 	// iterate over output arguments
 	for i, tpArg := range tp.args {
 		config.ArgTpCtxOff[i] = uint32(tpArg.CtxOffset)
-		config.Arg[i] = int32(tpArg.genericTypeId)
+		config.Arg[i] = int32(tpArg.genericTypeID)
 		config.ArgM[i] = uint32(tpArg.MetaArg)
 
-		tracepointLog.Debug(fmt.Sprintf("configured argument #%d: %+v (type:%d)", i, tpArg, tpArg.genericTypeId))
+		tracepointLog.Debug(fmt.Sprintf("configured argument #%d: %+v (type:%d)", i, tpArg, tpArg.genericTypeID))
 	}
 
 	// nop args
@@ -819,9 +819,9 @@ func handleGenericTracepoint(r *bytes.Reader) ([]observer.Event, error) {
 		Event:  "UNKNOWN",
 	}
 
-	tp, err := genericTracepointTableGet(idtable.EntryID{ID: int(m.FuncId)})
+	tp, err := genericTracepointTableGet(idtable.EntryID{ID: int(m.FuncID)})
 	if err != nil {
-		logger.GetLogger().Warn("genericTracepoint info not found", "id", m.FuncId, logfields.Error, err)
+		logger.GetLogger().Warn("genericTracepoint info not found", "id", m.FuncID, logfields.Error, err)
 		return []observer.Event{unix}, nil
 	}
 
@@ -839,19 +839,19 @@ func handleMsgGenericTracepoint(
 	r *bytes.Reader,
 ) ([]observer.Event, error) {
 
-	switch m.ActionId {
-	case selectors.ActionTypeGetUrl, selectors.ActionTypeDnsLookup:
-		actionArgEntry, err := tp.actionArgs.GetEntry(idtable.EntryID{ID: int(m.ActionArgId)})
+	switch m.ActionID {
+	case selectors.ActionTypeGetURL, selectors.ActionTypeDNSLookup:
+		actionArgEntry, err := tp.actionArgs.GetEntry(idtable.EntryID{ID: int(m.ActionArgID)})
 		if err != nil {
-			logger.GetLogger().Warn(fmt.Sprintf("Failed to find argument for id:%d", m.ActionArgId), logfields.Error, err)
+			logger.GetLogger().Warn(fmt.Sprintf("Failed to find argument for id:%d", m.ActionArgID), logfields.Error, err)
 			return nil, errors.New("failed to find argument for id")
 		}
 		actionArg := actionArgEntry.(*selectors.ActionArgEntry).GetArg()
-		switch m.ActionId {
-		case selectors.ActionTypeGetUrl:
+		switch m.ActionID {
+		case selectors.ActionTypeGetURL:
 			logger.Trace(logger.GetLogger(), "Get URL Action", "URL", actionArg)
-			getUrl(actionArg)
-		case selectors.ActionTypeDnsLookup:
+			getURL(actionArg)
+		case selectors.ActionTypeDNSLookup:
 			logger.Trace(logger.GetLogger(), "DNS lookup", "FQDN", actionArg)
 			dnsLookup(actionArg)
 		}
@@ -869,7 +869,7 @@ func handleMsgGenericTracepoint(
 			continue
 		}
 
-		switch out.genericTypeId {
+		switch out.genericTypeID {
 		case gt.GenericU64Type:
 			var val uint64
 			err := binary.Read(r, binary.LittleEndian, &val)
@@ -1060,7 +1060,7 @@ func handleMsgGenericTracepoint(
 			var err error
 
 			/* Eat file descriptor its not used in userland */
-			if out.genericTypeId == gt.GenericFdType {
+			if out.genericTypeID == gt.GenericFdType {
 				binary.Read(r, binary.LittleEndian, &b)
 			}
 
@@ -1084,7 +1084,7 @@ func handleMsgGenericTracepoint(
 				flags = 0
 			}
 
-			if out.genericTypeId == gt.GenericFileType || out.genericTypeId == gt.GenericKiocb {
+			if out.genericTypeID == gt.GenericFileType || out.genericTypeID == gt.GenericKiocb {
 				err = binary.Read(r, binary.LittleEndian, &mode)
 				if err != nil {
 					mode = 0

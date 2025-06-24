@@ -55,7 +55,7 @@ func TestTestChecker(t *testing.T) {
 
 	TestCheckerMarkEnd(t)
 
-	err = jsonchecker.JsonTestCheck(t, errorChecker)
+	err = jsonchecker.JSONTestCheck(t, errorChecker)
 	t.Logf("got error: %v", err)
 	if !errors.Is(err, dummyErr) {
 		t.Fatalf("unexpected error: %v", err)

@@ -74,7 +74,7 @@ spec:
 	currentCaps := caps.GetCurrentCapabilities()
 	myCaps := ec.NewCapabilitiesChecker().FromCapabilities(currentCaps)
 	myUserns := ec.NewUserNamespaceChecker().WithUid(0).WithGid(0)
-	myCredGid := ec.NewProcessCredentialsChecker().
+	myCredGID := ec.NewProcessCredentialsChecker().
 		WithUid(uint32(0)).
 		WithGid(uint32(0)).
 		WithEuid(uint32(0)).
@@ -86,13 +86,13 @@ spec:
 		WithCaps(myCaps).
 		WithUserNs(myUserns)
 
-	kpChangeGidChecker := ec.NewProcessKprobeChecker("").
+	kpChangeGIDChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full("commit_creds")).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_POST).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithProcessCredentialsArg(
-					myCredGid,
+					myCredGID,
 				),
 			),
 		)
@@ -113,7 +113,7 @@ spec:
 		WithCaps(myECaps).
 		WithUserNs(myUserns)
 
-	kpChangeUidChecker := ec.NewProcessKprobeChecker("").
+	kpChangeUIDChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full("commit_creds")).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_POST).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
@@ -171,8 +171,8 @@ spec:
 		t.Fatalf("setgid(%d) error: %s", gid+1, err)
 	}
 
-	checker := ec.NewUnorderedEventChecker(kpChangeGidChecker, kpChangeUidChecker, kpPrivilegedChecker)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	checker := ec.NewUnorderedEventChecker(kpChangeGIDChecker, kpChangeUIDChecker, kpPrivilegedChecker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -223,7 +223,7 @@ spec:
 	currentCaps := caps.GetCurrentCapabilities()
 	myCaps := ec.NewCapabilitiesChecker().FromCapabilities(currentCaps)
 	myUserns := ec.NewUserNamespaceChecker().WithUid(0).WithGid(0)
-	myCredGid := ec.NewProcessCredentialsChecker().
+	myCredGID := ec.NewProcessCredentialsChecker().
 		WithUid(uint32(0)).
 		WithGid(uint32(gid)).
 		WithEuid(uint32(0)).
@@ -235,13 +235,13 @@ spec:
 		WithCaps(myCaps).
 		WithUserNs(myUserns)
 
-	kpChangeGidChecker := ec.NewProcessKprobeChecker("").
+	kpChangeGIDChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full("commit_creds")).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_POST).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithProcessCredentialsArg(
-					myCredGid,
+					myCredGID,
 				),
 			),
 		)
@@ -267,7 +267,7 @@ spec:
 		WithCaps(myECaps).
 		WithUserNs(myUserns)
 
-	kpChangeUidChecker := ec.NewProcessKprobeChecker("").
+	kpChangeUIDChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full("commit_creds")).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_POST).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
@@ -333,7 +333,7 @@ spec:
 		t.Fatalf("setgid(%d) error: %s", gid+1, err)
 	}
 
-	checker := ec.NewUnorderedEventChecker(kpChangeGidChecker, kpChangeUidChecker, kpPrivilegedChecker)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	checker := ec.NewUnorderedEventChecker(kpChangeGIDChecker, kpChangeUIDChecker, kpPrivilegedChecker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }

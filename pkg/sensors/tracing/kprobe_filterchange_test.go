@@ -104,7 +104,7 @@ func TestKprobeNSChanges(t *testing.T) {
 	checker := ec.NewUnorderedEventChecker(
 		kprobeChecker,
 	)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -187,7 +187,7 @@ func testKprobeCapChanges(t *testing.T, spec string, op string, value string) {
 		kprobeChecker,
 	)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 

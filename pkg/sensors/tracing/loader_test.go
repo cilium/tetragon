@@ -65,7 +65,7 @@ func parseNote(dat []byte) ([]byte, bool) {
 	}
 }
 
-func parseBuildId(filename string) ([]byte, error) {
+func parseBuildID(filename string) ([]byte, error) {
 	f, err := elf.Open(filename)
 	if err != nil {
 		return []byte{}, err
@@ -116,7 +116,7 @@ spec:
 
 	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
 
-	id, err := parseBuildId(testNop)
+	id, err := parseBuildID(testNop)
 	if err != nil {
 		t.Fatalf("Failed to ParseBuildId: %v\n", err)
 	}
@@ -139,6 +139,6 @@ spec:
 	}
 	require.NoError(t, err)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }

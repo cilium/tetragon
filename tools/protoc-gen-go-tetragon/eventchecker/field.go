@@ -43,7 +43,7 @@ func (field *Field) generateWith(g *protogen.GeneratedFile, msg *CheckedMessage)
 		g.P(`func (checker *` + msg.checkerName(g) + `) With` + field.GoName + `(check ` + typeName + `) *` + msg.checkerName(g) + `{
             checker.` + field.GoName + ` = check`)
 	} else if field.isEnum() {
-		enumIdent := common.TetragonApiIdent(g, field.Enum.GoIdent.GoName)
+		enumIdent := common.TetragonAPIIdent(g, field.Enum.GoIdent.GoName)
 		g.P(`func (checker *` + msg.checkerName(g) + `) With` + field.GoName + `(check ` + enumIdent + `) *` + msg.checkerName(g) + `{
             wrappedCheck := ` + typeName + `(check)
             checker.` + field.GoName + ` = &wrappedCheck`)
@@ -114,7 +114,7 @@ func doGetFieldFrom(field *Field, g *protogen.GeneratedFile, handleList, handleO
 			return "", err
 		}
 
-		innerType := common.TetragonApiIdent(g, field.GoIdent.GoName)
+		innerType := common.TetragonAPIIdent(g, field.GoIdent.GoName)
 
 		return `switch event := ` + fmt.Sprintf("%s.%s", eventVarName, oneof.GoName) + `.(type) {
             case * ` + innerType + `:
@@ -358,7 +358,7 @@ func checkForOneof(g *protogen.GeneratedFile, field *Field, checkerName string, 
 	if err != nil {
 		return "", err
 	}
-	fieldIdent := common.TetragonApiIdent(g, field.GoIdent.GoName)
+	fieldIdent := common.TetragonAPIIdent(g, field.GoIdent.GoName)
 	return `switch event := ` + fmt.Sprintf("%s.%s", eventVarName, field.Oneof.GoName) + `.(type) {
     case *` + fieldIdent + `:
         ` + inner + `
@@ -483,14 +483,14 @@ func (field *Field) generateListMatcher(g *protogen.GeneratedFile) error {
 			// NB: not one of our types, skip it
 			return nil
 		}
-		varIdent = common.TetragonApiIdent(g, msg.GoIdent.GoName)
+		varIdent = common.TetragonAPIIdent(g, msg.GoIdent.GoName)
 	} else if enum := field.Enum; enum != nil {
 		typeImportPath := string(enum.GoIdent.GoImportPath)
 		if !strings.HasPrefix(typeImportPath, common.TetragonPackageName) {
 			// NB: not one of our types, skip it
 			return nil
 		}
-		varIdent = common.TetragonApiIdent(g, enum.GoIdent.GoName)
+		varIdent = common.TetragonAPIIdent(g, enum.GoIdent.GoName)
 	} else {
 		varIdent = field.kind().String()
 	}

@@ -190,7 +190,7 @@ var (
 	CLONE_NEWUTS    = 0x4000000
 )
 
-var nsId = map[int32]string{
+var nsID = map[int32]string{
 	int32(0):               "any",
 	int32(CLONE_NEWCGROUP): "cgroup",
 	int32(CLONE_NEWIPC):    "ipc",
@@ -203,7 +203,7 @@ var nsId = map[int32]string{
 }
 
 func PrintNS(ns int32) string {
-	return nsId[ns]
+	return nsID[ns]
 }
 
 func HumanStackTrace(response *tetragon.GetEventsResponse, colorer *Colorer) string {

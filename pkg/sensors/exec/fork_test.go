@@ -79,7 +79,7 @@ func TestFork(t *testing.T) {
 		WithParent(ec.NewProcessChecker().WithPid(fti.child1Pid))
 	checker := ec.NewUnorderedEventChecker(exitCheck)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 

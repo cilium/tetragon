@@ -84,7 +84,7 @@ const (
 	EventErrorCgroupSubsysCgrp = 0x040000
 	EventErrorCgroupSubsys     = 0x080000
 	EventErrorCgroups          = 0x100000
-	EventErrorCgroupId         = 0x200000
+	EventErrorCgroupID         = 0x200000
 
 	EventErrorPathComponents = 0x400000
 

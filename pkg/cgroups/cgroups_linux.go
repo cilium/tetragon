@@ -35,7 +35,7 @@ type deploymentEnv struct {
 }
 
 type CgroupController struct {
-	Id     uint32 // Hierarchy unique ID
+	ID     uint32 // Hierarchy unique ID
 	Idx    uint32 // Cgroup SubSys index
 	Name   string // Controller name
 	Active bool   // Will be set to true if controller is set and active
@@ -121,10 +121,10 @@ func GetCgroupFSPath() string {
 }
 
 type FileHandle struct {
-	Id uint64
+	ID uint64
 }
 
-func GetCgroupIdFromPath(cgroupPath string) (uint64, error) {
+func GetCgroupIDFromPath(cgroupPath string) (uint64, error) {
 	var fh FileHandle
 
 	handle, _, err := unix.NameToHandleAt(unix.AT_FDCWD, cgroupPath, 0)
@@ -137,16 +137,16 @@ func GetCgroupIdFromPath(cgroupPath string) (uint64, error) {
 		return 0, fmt.Errorf("decoding NameToHandleAt data failed: %w", err)
 	}
 
-	return fh.Id, nil
+	return fh.ID, nil
 }
 
-// parseCgroupv1SubSysIds() parse cgroupv1 controllers and save their
+// parseCgroupv1SubSysIDs() parse cgroupv1 controllers and save their
 // hierarchy IDs and related css indexes.
 // If the 'memory' or 'cpuset' are not detected we fail, as we use them
 // from BPF side to gather cgroup information and we need them to be
 // exported by the kernel since their corresponding index allows us to
 // fetch the cgroup from the corresponding cgroup subsystem state.
-func parseCgroupv1SubSysIds(filePath string) error {
+func parseCgroupv1SubSysIDs(filePath string) error {
 	var allcontrollers []string
 
 	file, err := os.Open(filePath)
@@ -179,7 +179,7 @@ func parseCgroupv1SubSysIds(filePath string) error {
 
 				id, err := strconv.ParseUint(fields[1], 10, 32)
 				if err == nil {
-					CgroupControllers[i].Id = uint32(id)
+					CgroupControllers[i].ID = uint32(id)
 					CgroupControllers[i].Idx = uint32(idx)
 					CgroupControllers[i].Active = true
 				} else {
@@ -203,7 +203,7 @@ func parseCgroupv1SubSysIds(filePath string) error {
 			logger.GetLogger().Info(fmt.Sprintf("Cgroupv1 supported controller '%s' is active on the system", controller.Name),
 				"cgroup.fs", cgroupFSPath,
 				"cgroup.controller.name", controller.Name,
-				"cgroup.controller.hierarchyID", controller.Id,
+				"cgroup.controller.hierarchyID", controller.ID,
 				"cgroup.controller.index", controller.Idx)
 		} else {
 			var err error
@@ -228,11 +228,11 @@ func parseCgroupv1SubSysIds(filePath string) error {
 	return nil
 }
 
-// DiscoverSubSysIds() Discover Cgroup SubSys IDs and indexes.
+// DiscoverSubSysIDs() Discover Cgroup SubSys IDs and indexes.
 // of the corresponding controllers that we are interested
 // in. We need this dynamic behavior since these controllers are
 // compile config.
-func DiscoverSubSysIds() error {
+func DiscoverSubSysIDs() error {
 	var err error
 	magic := GetCgroupFSMagic()
 	if magic == CGROUP_UNSET_VALUE {
@@ -244,7 +244,7 @@ func DiscoverSubSysIds() error {
 
 	switch magic {
 	case unix.CGROUP_SUPER_MAGIC:
-		return parseCgroupv1SubSysIds(filepath.Join(option.Config.ProcFS, "cgroups"))
+		return parseCgroupv1SubSysIDs(filepath.Join(option.Config.ProcFS, "cgroups"))
 	case unix.CGROUP2_SUPER_MAGIC:
 		/* Parse Root Cgroup active controllers.
 		 * This step helps debugging since we may have some
@@ -305,7 +305,7 @@ func GetCgroupMode() CgroupModeCode {
 }
 
 func setCgrpHierarchyID(controller *CgroupController) {
-	cgrpHierarchy = controller.Id
+	cgrpHierarchy = controller.ID
 }
 
 func setCgrp2HierarchyID() {
@@ -395,7 +395,7 @@ func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
 				logger.GetLogger().Info(fmt.Sprintf("Cgroupv1 controller '%s' will be used", controller.Name),
 					"cgroup.fs", cgroupFSPath,
 					"cgroup.controller.name", controller.Name,
-					"cgroup.controller.hierarchyID", controller.Id,
+					"cgroup.controller.hierarchyID", controller.ID,
 					"cgroup.controller.index", controller.Idx)
 
 				setCgrpHierarchyID(&controller)
@@ -788,7 +788,7 @@ func CgroupIDFromPID(pid uint32) (uint64, error) {
 		return 0, errors.New("failed to find proper cgroup")
 	}
 
-	cgID, err := GetCgroupIdFromPath(path)
+	cgID, err := GetCgroupIDFromPath(path)
 	if err != nil {
 		return 0, err
 	}
@@ -835,5 +835,5 @@ func GetCgroupIDFromSubCgroup(p string) (uint64, error) {
 		p = filepath.Join(p, child)
 	}
 
-	return GetCgroupIdFromPath(p)
+	return GetCgroupIDFromPath(p)
 }

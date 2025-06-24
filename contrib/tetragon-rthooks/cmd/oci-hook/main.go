@@ -56,7 +56,7 @@ var cliConf struct {
 	HookName string `arg:"" name:"hook"`
 }
 
-func readJsonSpec(fname string) (*specs.Spec, error) {
+func readJSONSpec(fname string) (*specs.Spec, error) {
 	data, err := os.ReadFile(fname)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read %s: %w", fname, err)
@@ -262,7 +262,7 @@ func createContainerHook(log *slog.Logger) (error, map[string]string) {
 	// We use the config.json file to get the cgroup path. An alternative option is to use
 	// /proc/self/cgroup, but parsing the spec seems like a better option.
 	var cgroupPath string
-	spec, err := readJsonSpec(configName)
+	spec, err := readJSONSpec(configName)
 	if err != nil {
 		log.Warn("failed to read spec file", "name", configName, "error", err)
 	} else if cgroupPath, err = getCgroupPath(spec); err != nil {

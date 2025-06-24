@@ -83,10 +83,10 @@ func fillStatus(file string, status *Status) error {
 			if len(fields) != 5 {
 				return fmt.Errorf("reading Gid from %s failed: malformed input", path)
 			}
-			status.Gids = []string{fields[1], fields[2], fields[3], fields[4]}
+			status.GIDs = []string{fields[1], fields[2], fields[3], fields[4]}
 		}
 
-		if len(status.Uids) > 0 && len(status.Gids) > 0 {
+		if len(status.Uids) > 0 && len(status.GIDs) > 0 {
 			break
 		}
 	}
@@ -94,14 +94,14 @@ func fillStatus(file string, status *Status) error {
 	return nil
 }
 
-func fillLoginUid(file string, status *Status) error {
+func fillLoginUID(file string, status *Status) error {
 	path := filepath.Join(file, "loginuid")
 	auid, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("ReadFile %s failed: %w", path, err)
 	}
 
-	status.LoginUid = strings.TrimRight(string(auid), "\n")
+	status.LoginUID = strings.TrimRight(string(auid), "\n")
 
 	return nil
 }
@@ -113,7 +113,7 @@ func GetStatus(file string) (*Status, error) {
 		return nil, err
 	}
 
-	err = fillLoginUid(file, &status)
+	err = fillLoginUID(file, &status)
 	if err != nil {
 		return nil, err
 	}

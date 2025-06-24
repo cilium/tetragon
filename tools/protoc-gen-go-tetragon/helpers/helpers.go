@@ -20,8 +20,8 @@ func generateResponseTypeString(g *protogen.GeneratedFile, files []*protogen.Fil
 	doCases := func() string {
 		var ret string
 		for _, oneof := range oneofs {
-			msgGoIdent := common.TetragonApiIdent(g, "GetEventsResponse_"+oneof.TypeName)
-			typeGoIdent := common.TetragonApiIdent(g, "EventType_"+strings.ToUpper(oneof.FieldName))
+			msgGoIdent := common.TetragonAPIIdent(g, "GetEventsResponse_"+oneof.TypeName)
+			typeGoIdent := common.TetragonAPIIdent(g, "EventType_"+strings.ToUpper(oneof.FieldName))
 
 			ret += `case *` + msgGoIdent + `:
                 return ` + typeGoIdent + `.String(), nil
@@ -30,7 +30,7 @@ func generateResponseTypeString(g *protogen.GeneratedFile, files []*protogen.Fil
 		return ret
 	}
 
-	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
+	tetragonGER := common.TetragonAPIIdent(g, "GetEventsResponse")
 
 	g.P(`// ResponseTypeString returns an event's type as a string
     func ResponseTypeString(response *` + tetragonGER + `) (string, error) {
@@ -54,7 +54,7 @@ func generateResponseTypeString(g *protogen.GeneratedFile, files []*protogen.Fil
 
 func generateResponseGetProcess(g *protogen.GeneratedFile) error {
 	tetragonProcess := common.ProcessIdent(g)
-	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
+	tetragonGER := common.TetragonAPIIdent(g, "GetEventsResponse")
 
 	g.P(`// ResponseGetProcess returns a GetEventsResponse's process if it exists
     func ResponseGetProcess(response *` + tetragonGER + `) *` + tetragonProcess + ` {
@@ -88,7 +88,7 @@ func generateResponseInnerGetProcess(g *protogen.GeneratedFile, files []*protoge
 				continue
 			}
 
-			goIdent := common.TetragonApiIdent(g, "GetEventsResponse_"+msg.GoIdent.GoName)
+			goIdent := common.TetragonAPIIdent(g, "GetEventsResponse_"+msg.GoIdent.GoName)
 
 			ret += `case *` + goIdent + `:
                 return ev.` + msg.GoIdent.GoName + `.Process
@@ -97,7 +97,7 @@ func generateResponseInnerGetProcess(g *protogen.GeneratedFile, files []*protoge
 		return ret
 	}
 
-	ifaceIdent := common.TetragonApiIdent(g, "IsGetEventsResponse_Event")
+	ifaceIdent := common.TetragonAPIIdent(g, "IsGetEventsResponse_Event")
 
 	g.P(`// ResponseInnerGetProcess returns a GetEventsResponse inner event's process if it exists
     func ResponseInnerGetProcess(event ` + ifaceIdent + `) *` + tetragonProcess + ` {
@@ -112,7 +112,7 @@ func generateResponseInnerGetProcess(g *protogen.GeneratedFile, files []*protoge
 
 func generateResponseGetProcessKprobe(g *protogen.GeneratedFile) error {
 	processKprobe := common.ProcessKprobeIdent(g)
-	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
+	tetragonGER := common.TetragonAPIIdent(g, "GetEventsResponse")
 
 	g.P(`// ResponseGetProcessKprobe returns a GetEventsResponse's process if it exists
     func ResponseGetProcessKprobe(response *` + tetragonGER + `) *` + processKprobe + ` {
@@ -128,7 +128,7 @@ func generateResponseGetProcessKprobe(g *protogen.GeneratedFile) error {
 
 func generateResponseGetParent(g *protogen.GeneratedFile) error {
 	tetragonProcess := common.ProcessIdent(g)
-	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
+	tetragonGER := common.TetragonAPIIdent(g, "GetEventsResponse")
 
 	g.P(`// ResponseGetParent returns a GetEventsResponse's parent process if it exists
     func ResponseGetParent(response *` + tetragonGER + `) *` + tetragonProcess + ` {
@@ -162,7 +162,7 @@ func generateResponseInnerGetParent(g *protogen.GeneratedFile, files []*protogen
 				continue
 			}
 
-			goIdent := common.TetragonApiIdent(g, "GetEventsResponse_"+msg.GoIdent.GoName)
+			goIdent := common.TetragonAPIIdent(g, "GetEventsResponse_"+msg.GoIdent.GoName)
 
 			ret += `case *` + goIdent + `:
                 return ev.` + msg.GoIdent.GoName + `.Parent
@@ -171,7 +171,7 @@ func generateResponseInnerGetParent(g *protogen.GeneratedFile, files []*protogen
 		return ret
 	}
 
-	ifaceIdent := common.TetragonApiIdent(g, "IsGetEventsResponse_Event")
+	ifaceIdent := common.TetragonAPIIdent(g, "IsGetEventsResponse_Event")
 
 	g.P(`// ResponseInnerGetParent returns a GetEventsResponse inner event's parent process if it exists
     func ResponseInnerGetParent(event ` + ifaceIdent + `) *` + tetragonProcess + ` {
@@ -186,7 +186,7 @@ func generateResponseInnerGetParent(g *protogen.GeneratedFile, files []*protogen
 
 func generateResponseGetAncestors(g *protogen.GeneratedFile) error {
 	tetragonProcess := common.ProcessIdent(g)
-	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
+	tetragonGER := common.TetragonAPIIdent(g, "GetEventsResponse")
 
 	g.P(`// ResponseGetAncestors returns a GetEventsResponse's ancestors processes if they exists
     func ResponseGetAncestors(response *` + tetragonGER + `) []*` + tetragonProcess + ` {
@@ -220,7 +220,7 @@ func generateResponseInnerGetAncestors(g *protogen.GeneratedFile, files []*proto
 				continue
 			}
 
-			goIdent := common.TetragonApiIdent(g, "GetEventsResponse_"+msg.GoIdent.GoName)
+			goIdent := common.TetragonAPIIdent(g, "GetEventsResponse_"+msg.GoIdent.GoName)
 
 			ret += `case *` + goIdent + `:
                 return ev.` + msg.GoIdent.GoName + `.Ancestors
@@ -229,7 +229,7 @@ func generateResponseInnerGetAncestors(g *protogen.GeneratedFile, files []*proto
 		return ret
 	}
 
-	ifaceIdent := common.TetragonApiIdent(g, "IsGetEventsResponse_Event")
+	ifaceIdent := common.TetragonAPIIdent(g, "IsGetEventsResponse_Event")
 
 	g.P(`// ResponseInnerGetAncestors returns a GetEventsResponse inner event's ancestors processes if they exists
     func ResponseInnerGetAncestors(event ` + ifaceIdent + `) []*` + tetragonProcess + ` {
@@ -251,7 +251,7 @@ func generateResponseTypeMap(g *protogen.GeneratedFile, files []*protogen.File) 
 	doCases := func() string {
 		var ret string
 		for _, oneof := range oneofs {
-			msgGoIdent := common.TetragonApiIdent(g, oneof.TypeName)
+			msgGoIdent := common.TetragonAPIIdent(g, oneof.TypeName)
 			ret += fmt.Sprintf("\"%s\": &%s{},\n", oneof.FieldName, msgGoIdent)
 		}
 		return ret
@@ -278,13 +278,13 @@ func generateProcessEventMap(g *protogen.GeneratedFile, files []*protogen.File) 
 	doCases := func() string {
 		var ret string
 		for _, oneof := range oneofs {
-			msgGoIdent := strings.Split(common.TetragonApiIdent(g, oneof.TypeName), ".")
+			msgGoIdent := strings.Split(common.TetragonAPIIdent(g, oneof.TypeName), ".")
 			ret += fmt.Sprintf("\"%s\": response.Get%s(),\n", oneof.FieldName, msgGoIdent[len(msgGoIdent)-1])
 		}
 		return ret
 	}
 
-	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
+	tetragonGER := common.TetragonAPIIdent(g, "GetEventsResponse")
 	g.P(`// ProcessEventMap returns a map from event field names (e.g. "process_exec") to corresponding
     // protobuf messages in a given tetragon.GetEventsResponse (e.g. response.GetProcessExec()).
     func ProcessEventMap(response *` + tetragonGER + `) map[string]any {

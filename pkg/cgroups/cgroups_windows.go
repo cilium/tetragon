@@ -12,11 +12,11 @@ func CgroupFsMagicStr(_ uint64) string {
 	return ""
 }
 
-func GetCgroupIdFromPath(_ string) (uint64, error) {
+func GetCgroupIDFromPath(_ string) (uint64, error) {
 	return 0, constants.ErrWindowsNotSupported
 }
 
-func DiscoverSubSysIds() error {
+func DiscoverSubSysIDs() error {
 	return errors.New("could not detect cgroup filesystem on windows")
 }
 

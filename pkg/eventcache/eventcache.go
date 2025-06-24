@@ -65,15 +65,15 @@ func HandleGenericInternal(ev notify.Event, pid uint32, tid *uint32, timestamp u
 		// of ancestors collected, we just need to try to resume the collection process from the last
 		// known ancestor.
 		tetragonAncestors := ev.GetAncestors()
-		var nextExecId string
+		var nextExecID string
 
 		if len(tetragonAncestors) == 0 {
-			nextExecId = internal.UnsafeGetProcess().ParentExecId
+			nextExecID = internal.UnsafeGetProcess().ParentExecId
 		} else {
-			nextExecId = tetragonAncestors[len(tetragonAncestors)-1].ExecId
+			nextExecID = tetragonAncestors[len(tetragonAncestors)-1].ExecId
 		}
 
-		if ancestors, perr := process.GetAncestorProcessesInternal(nextExecId); perr == nil {
+		if ancestors, perr := process.GetAncestorProcessesInternal(nextExecID); perr == nil {
 			for _, ancestor := range ancestors {
 				tetragonAncestors = append(tetragonAncestors, ancestor.UnsafeGetProcess())
 			}

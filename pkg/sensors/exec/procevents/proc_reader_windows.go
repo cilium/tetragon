@@ -27,8 +27,8 @@ type ProcessBasicInfo64 struct {
 	PebBaseAddress               uint64
 	AffinityMask                 uint64
 	BasePriority                 uint64
-	UniqueProcessId              uint64
-	InheritedFromUniqueProcessId uint64
+	UniqueProcessID              uint64
+	InheritedFromUniqueProcessID uint64
 }
 
 type PEB32 struct {
@@ -149,7 +149,7 @@ func procKernel() procs {
 		pid:         kernelPid,
 		tid:         kernelPid,
 		nspid:       0,
-		auid:        proc.InvalidUid,
+		auid:        proc.InvalidUID,
 		flags:       api.EventProcFS,
 		ktime:       1,
 		exe:         kernelArgs,
@@ -401,9 +401,9 @@ func NewProcess(procEntry windows.ProcessEntry32) (procs, error) {
 	ct := times.CreationTime
 	ktime = uint64((int64(ct.HighDateTime) << 32) + int64(ct.LowDateTime))
 	// Initialize with invalid uid
-	uids := []uint32{proc.InvalidUid, proc.InvalidUid, proc.InvalidUid, proc.InvalidUid}
-	gids := []uint32{proc.InvalidUid, proc.InvalidUid, proc.InvalidUid, proc.InvalidUid}
-	auid := proc.InvalidUid
+	uids := []uint32{proc.InvalidUID, proc.InvalidUID, proc.InvalidUID, proc.InvalidUID}
+	gids := []uint32{proc.InvalidUID, proc.InvalidUID, proc.InvalidUID, proc.InvalidUID}
+	auid := proc.InvalidUID
 	// Get process status
 	status, err := proc.GetStatusFromHandle(hProc)
 	if err != nil {
@@ -411,15 +411,15 @@ func NewProcess(procEntry windows.ProcessEntry32) (procs, error) {
 	} else {
 		uids, err = status.GetUids()
 		if err != nil {
-			logger.GetLogger().Warn(fmt.Sprintf("Reading Uids of %d failed, falling back to uid: %d", pid, uint32(proc.InvalidUid)), logfields.Error, err)
+			logger.GetLogger().Warn(fmt.Sprintf("Reading UIDs of %d failed, falling back to uid: %d", pid, uint32(proc.InvalidUID)), logfields.Error, err)
 		}
 
-		gids, err = status.GetGids()
+		gids, err = status.GetGIDs()
 		if err != nil {
-			logger.GetLogger().Warn(fmt.Sprintf("Reading Uids of %d failed, falling back to gid: %d", pid, uint32(proc.InvalidUid)), logfields.Error, err)
+			logger.GetLogger().Warn(fmt.Sprintf("Reading UIDs of %d failed, falling back to gid: %d", pid, uint32(proc.InvalidUID)), logfields.Error, err)
 		}
 
-		auid, err = status.GetLoginUid()
+		auid, err = status.GetLoginUID()
 		if err != nil {
 			logger.GetLogger().Warn(fmt.Sprintf("Reading Loginuid of %d failed, falling back to loginuid: %d", pid, uint32(auid)), logfields.Error, err)
 		}

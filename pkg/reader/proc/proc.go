@@ -13,10 +13,10 @@ import (
 type Status struct {
 	// Real, effective, saved, and filesystem.
 	Uids []string
-	Gids []string
+	GIDs []string
 
 	// /proc/[pid]/loginuid
-	LoginUid string
+	LoginUID string
 }
 
 const (
@@ -43,7 +43,7 @@ const (
 	// The UID 4294967295 (-1 as an unsigned integer) is an invalid UID, the kernel
 	// ignores and return it in some cases where there is no mapping or to indicate
 	// an invalid UID. So we use it to initialize our UIDs and return it on errors.
-	InvalidUid = ^uint32(0) // 4294967295 (2^32 - 1)
+	InvalidUID = ^uint32(0) // 4294967295 (2^32 - 1)
 )
 
 func GetStatsKtime(s []string) (uint64, error) {
@@ -64,7 +64,7 @@ func GetProcPid(pid string) (uint64, error) {
 // The overflow ID is returned when the kernel decides and pass it back,
 // as it can be a valid indication of UID mapping error.
 func (status *Status) GetUids() ([]uint32, error) {
-	uids := []uint32{InvalidUid, InvalidUid, InvalidUid, InvalidUid}
+	uids := []uint32{InvalidUID, InvalidUID, InvalidUID, InvalidUID}
 
 	for i, v := range status.Uids {
 		uid, err := strconv.ParseUint(v, 10, 32)
@@ -82,10 +82,10 @@ func (status *Status) GetUids() ([]uint32, error) {
 // (-1 as an unsigned integer).
 // The overflow ID is returned when the kernel decides and pass it back,
 // as it can be a valid indication of UID mapping error.
-func (status *Status) GetGids() ([]uint32, error) {
-	gids := []uint32{InvalidUid, InvalidUid, InvalidUid, InvalidUid}
+func (status *Status) GetGIDs() ([]uint32, error) {
+	gids := []uint32{InvalidUID, InvalidUID, InvalidUID, InvalidUID}
 
-	for i, v := range status.Gids {
+	for i, v := range status.GIDs {
 		gid, err := strconv.ParseUint(v, 10, 32)
 		if err != nil {
 			return gids, err
@@ -101,10 +101,10 @@ func (status *Status) GetGids() ([]uint32, error) {
 // Returns the task loginuid on success, if we fail we return
 // the invalid uid 4294967295 that is same value of tasks
 // without loginuid.
-func (status *Status) GetLoginUid() (uint32, error) {
-	auid, err := strconv.ParseUint(status.LoginUid, 10, 32)
+func (status *Status) GetLoginUID() (uint32, error) {
+	auid, err := strconv.ParseUint(status.LoginUID, 10, 32)
 	if err != nil {
-		return InvalidUid, err
+		return InvalidUID, err
 	}
 
 	return uint32(auid), nil

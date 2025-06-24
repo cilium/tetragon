@@ -190,21 +190,21 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		}
 
 		arg.Index = uint64(a.index)
-		arg.Uid = cred.Uid
-		arg.Gid = cred.Gid
-		arg.Suid = cred.Suid
-		arg.Sgid = cred.Sgid
-		arg.Euid = cred.Euid
-		arg.Egid = cred.Egid
-		arg.FSuid = cred.FSuid
-		arg.FSgid = cred.FSgid
+		arg.UID = cred.UID
+		arg.GID = cred.GID
+		arg.Suid = cred.SUID
+		arg.Sgid = cred.SGID
+		arg.Euid = cred.EUID
+		arg.Egid = cred.EGID
+		arg.FSuid = cred.FSUID
+		arg.FSgid = cred.FSGID
 		arg.SecureBits = cred.SecureBits
 		arg.Cap.Permitted = cred.Cap.Permitted
 		arg.Cap.Effective = cred.Cap.Effective
 		arg.Cap.Inheritable = cred.Cap.Inheritable
 		arg.UserNs.Level = cred.UserNs.Level
-		arg.UserNs.Uid = cred.UserNs.Uid
-		arg.UserNs.Gid = cred.UserNs.Gid
+		arg.UserNs.UID = cred.UserNs.UID
+		arg.UserNs.GID = cred.UserNs.GID
 		arg.UserNs.NsInum = cred.UserNs.NsInum
 		arg.Label = a.label
 		return arg
@@ -372,8 +372,8 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 			logger.GetLogger().Warn("user_namespace type error", logfields.Error, err)
 		}
 		arg.Level = output.Level
-		arg.Uid = output.Uid
-		arg.Gid = output.Gid
+		arg.UID = output.UID
+		arg.GID = output.GID
 		arg.NsInum = output.NsInum
 		arg.Label = a.label
 		return arg

@@ -855,7 +855,7 @@ func TestInitKernelSelectors(t *testing.T) {
 	}
 	act1 := &v1alpha1.ActionSelector{Action: "post"}
 	act2 := &v1alpha1.ActionSelector{Action: "followfd",
-		ArgFd:   0,
+		ArgFD:   0,
 		ArgName: 1}
 	matchActions := []v1alpha1.ActionSelector{*act1, *act2}
 
@@ -964,7 +964,7 @@ func TestReturnSelectorArgIntActionFollowfd(t *testing.T) {
 
 	act1 := v1alpha1.ActionSelector{Action: "post"}
 	act2 := v1alpha1.ActionSelector{Action: "followfd",
-		ArgFd:   7,
+		ArgFD:   7,
 		ArgName: 8}
 
 	matchReturnActions := []v1alpha1.ActionSelector{act1, act2}
@@ -1002,7 +1002,7 @@ func TestReturnSelectorArgIntActionFollowfd(t *testing.T) {
 	expU32Push(0)  // off: 52      selector: userStackTrace
 	expU32Push(0)  // off: 56      selector: imaHash
 	expU32Push(1)  // off: 60      selector: selectors.ActionTypeFollowFd
-	expU32Push(7)  // off: 64      selector: action.ArgFd
+	expU32Push(7)  // off: 64      selector: action.ArgFD
 	expU32Push(8)  // off: 68      selector: action.ArgName
 
 	if bytes.Equal(expected[:expectedLen], b[:expectedLen]) == false {

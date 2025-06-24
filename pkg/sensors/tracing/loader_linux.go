@@ -113,7 +113,7 @@ func GetLoaderSensor() *sensors.Sensor {
 }
 
 func hasLoaderEvents() bool {
-	return bpf.HasBuildId() && kernels.MinKernelVersion("5.19.0")
+	return bpf.HasBuildID() && kernels.MinKernelVersion("5.19.0")
 }
 
 func (k *loaderSensor) PolicyHandler(p tracingpolicy.TracingPolicy, fid policyfilter.PolicyID) (sensors.SensorIface, error) {
@@ -142,7 +142,7 @@ func createLoaderEvents() error {
 
 		// Enable all possible perf mmap events to increase the possibility
 		// we get valid build id data for the binary.
-		Bits: unix.PerfBitMmap | unix.PerfBitMmap2 | bpf.PerfBitBuildId |
+		Bits: unix.PerfBitMmap | unix.PerfBitMmap2 | bpf.PerfBitBuildID |
 			unix.PerfBitMmapData,
 	}
 
@@ -217,7 +217,7 @@ func handleLoader(r *bytes.Reader) ([]observer.Event, error) {
 	msg := &tracing.MsgProcessLoaderUnix{
 		Msg:     &m,
 		Path:    strutils.UTF8FromBPFBytes(path),
-		Buildid: m.BuildId[:m.BuildIdSize],
+		Buildid: m.BuildID[:m.BuildIDSize],
 	}
 	return []observer.Event{msg}, nil
 }

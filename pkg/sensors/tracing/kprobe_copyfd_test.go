@@ -107,6 +107,6 @@ func TestCopyFd(t *testing.T) {
 		kpChecker,
 	)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }

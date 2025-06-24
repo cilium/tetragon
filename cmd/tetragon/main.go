@@ -151,8 +151,8 @@ func stopProfile() {
 			logger.Fatal(log, "could not write memory profile", logfields.Error, err)
 		}
 	}
-	if option.Config.CpuProfile != "" {
-		log.Info("Stopping cpu profiling", "file", option.Config.CpuProfile)
+	if option.Config.CPUProfile != "" {
+		log.Info("Stopping cpu profiling", "file", option.Config.CPUProfile)
 		pprof.StopCPUProfile()
 	}
 }
@@ -323,8 +323,8 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		log.Info("Starting mem profiling", "file", option.Config.MemProfile)
 	}
 
-	if option.Config.CpuProfile != "" {
-		f, err := os.Create(option.Config.CpuProfile)
+	if option.Config.CPUProfile != "" {
+		f, err := os.Create(option.Config.CPUProfile)
 		if err != nil {
 			logger.Fatal(log, "could not create CPU profile", logfields.Error, err)
 		}
@@ -333,7 +333,7 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		if err := pprof.StartCPUProfile(f); err != nil {
 			logger.Fatal(log, "could not start CPU profile", logfields.Error, err)
 		}
-		log.Info("Starting cpu profiling", "file", option.Config.CpuProfile)
+		log.Info("Starting cpu profiling", "file", option.Config.CPUProfile)
 	}
 
 	defer stopProfile()

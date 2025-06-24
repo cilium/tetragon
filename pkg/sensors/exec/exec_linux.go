@@ -53,7 +53,7 @@ func msgToExecveKubeUnix(m *processapi.MsgExecveEvent, exec_id string, filename 
 	if m.Kube.Docker[0] != 0x00 {
 		// We always get a null terminated buffer from bpf
 		cgroup := cgroups.CgroupNameFromCStr(m.Kube.Docker[:processapi.CGROUP_NAME_LENGTH])
-		docker, _ := procevents.LookupContainerId(cgroup, true, false)
+		docker, _ := procevents.LookupContainerID(cgroup, true, false)
 		if docker != "" {
 			kube.Docker = docker
 			logger.Trace(logger.GetLogger(), "process_exec: container ID set successfully",

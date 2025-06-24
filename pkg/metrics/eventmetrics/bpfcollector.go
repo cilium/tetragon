@@ -32,13 +32,13 @@ func collect(ch chan<- prometheus.Metric) {
 	defer mapHandle.Close()
 
 	var zero uint32
-	var allCpuValue []processapi.KernelStats
-	if err := mapHandle.Lookup(zero, &allCpuValue); err != nil {
+	var allCPUValue []processapi.KernelStats
+	if err := mapHandle.Lookup(zero, &allCPUValue); err != nil {
 		return
 	}
 
 	sum := processapi.KernelStats{}
-	for _, val := range allCpuValue {
+	for _, val := range allCPUValue {
 		for opcode, errors := range val.SentFailed {
 			for er, count := range errors {
 				sum.SentFailed[opcode][er] += count

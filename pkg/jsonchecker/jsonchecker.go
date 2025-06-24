@@ -49,12 +49,12 @@ func (e *DebugError) Unwrap() error {
 	return e.err
 }
 
-// JsonEOFError is a type of error where we went over all the events and there was no match.
+// JSONEOFError is a type of error where we went over all the events and there was no match.
 //
 // The reason to have a special error is that there are cases where the events
 // we are looking for might not have been processed yet. In these cases, we
 // need to retry.
-type JsonEOFError struct {
+type JSONEOFError struct {
 	// err is what FinalCheck() returned
 	err error
 	// count is the number of events we checked
@@ -62,17 +62,17 @@ type JsonEOFError struct {
 }
 
 // Error returns the error message
-func (e *JsonEOFError) Error() string {
-	return fmt.Sprintf("JsonEOF: failed to match after %d events: err:%v", e.count, e.err)
+func (e *JSONEOFError) Error() string {
+	return fmt.Sprintf("JSONEOF: failed to match after %d events: err:%v", e.count, e.err)
 }
 
 // Unwrap returns the original error
-func (e *JsonEOFError) Unwrap() error {
+func (e *JSONEOFError) Unwrap() error {
 	return e.err
 }
 
-// JsonCheck checks a JSON string using the new eventchecker library.
-func JsonCheck(jsonFile *os.File, checker ec.MultiEventChecker, log *slog.Logger) error {
+// JSONCheck checks a JSON string using the new eventchecker library.
+func JSONCheck(jsonFile *os.File, checker ec.MultiEventChecker, log *slog.Logger) error {
 	count := 0
 	dec := json.NewDecoder(jsonFile)
 	for dec.More() {
@@ -80,7 +80,7 @@ func JsonCheck(jsonFile *os.File, checker ec.MultiEventChecker, log *slog.Logger
 		var ev tetragon.GetEventsResponse
 		if err := dec.Decode(&ev); err != nil {
 			if errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, io.EOF) {
-				return &JsonEOFError{
+				return &JSONEOFError{
 					count: count,
 					err:   fmt.Errorf("unmarshal failed: %w", err),
 				}
@@ -112,7 +112,7 @@ func JsonCheck(jsonFile *os.File, checker ec.MultiEventChecker, log *slog.Logger
 	}
 
 	if err := checker.FinalCheck(log); err != nil {
-		return &JsonEOFError{
+		return &JSONEOFError{
 			count: count,
 			err:   err,
 		}
@@ -120,39 +120,39 @@ func JsonCheck(jsonFile *os.File, checker ec.MultiEventChecker, log *slog.Logger
 	return nil
 }
 
-func doJsonTestCheck(t *testing.T, jsonFile *os.File, checker ec.MultiEventChecker) error {
+func doJSONTestCheck(t *testing.T, jsonFile *os.File, checker ec.MultiEventChecker) error {
 	cnt := 0
 	prevEvents := 0
 	var err error
 	for {
 		t0 := time.Now()
-		err = JsonCheck(jsonFile, checker, logger.GetLogger())
+		err = JSONCheck(jsonFile, checker, logger.GetLogger())
 		elapsed := time.Since(t0)
-		t.Logf("JsonCheck (retry=%d) took %s", cnt, elapsed)
+		t.Logf("JSONCheck (retry=%d) took %s", cnt, elapsed)
 		if err == nil {
 			break
 		}
 
-		// if this is not a JsonEOF error, it means that the checker
+		// if this is not a JSONEOF error, it means that the checker
 		// concluded that there was a falure. Dont retry.
-		var errEOF *JsonEOFError
+		var errEOF *JSONEOFError
 		if !errors.As(err, &errEOF) {
 			break
 		}
 
 		// bail out if there are no new events in two consecutive runs
 		if cnt > 0 && prevEvents == errEOF.count {
-			err = fmt.Errorf("JsonTestCheck failed in retry cnt=%d and there were no new events from previous try: %w", cnt, err)
+			err = fmt.Errorf("JSONTestCheck failed in retry cnt=%d and there were no new events from previous try: %w", cnt, err)
 			break
 		}
 		prevEvents = errEOF.count
 
 		cnt++
 		if cnt > Retries {
-			err = fmt.Errorf("JsonTestCheck failed after %d retries: %w", Retries, err)
+			err = fmt.Errorf("JSONTestCheck failed after %d retries: %w", Retries, err)
 			break
 		}
-		t.Logf("JsonCheck (retry=%d) failed: %s. Retrying after %s", cnt, err, RetryDelay)
+		t.Logf("JSONCheck (retry=%d) failed: %s. Retrying after %s", cnt, err, RetryDelay)
 		jsonFile.Seek(0, io.SeekStart)
 		time.Sleep(RetryDelay)
 	}
@@ -160,11 +160,11 @@ func doJsonTestCheck(t *testing.T, jsonFile *os.File, checker ec.MultiEventCheck
 	return err
 }
 
-func JsonTestCheckExpect(t *testing.T, checker ec.MultiEventChecker, expectCheckerFailure bool) error {
-	return JsonTestCheckExpectWithKeep(t, checker, expectCheckerFailure, false)
+func JSONTestCheckExpect(t *testing.T, checker ec.MultiEventChecker, expectCheckerFailure bool) error {
+	return JSONTestCheckExpectWithKeep(t, checker, expectCheckerFailure, false)
 }
 
-func JsonTestCheckExpectWithKeep(t *testing.T, checker ec.MultiEventChecker, expectCheckerFailure, keep bool) error {
+func JSONTestCheckExpectWithKeep(t *testing.T, checker ec.MultiEventChecker, expectCheckerFailure, keep bool) error {
 	var err error
 
 	jsonFname, err := testutils.GetExportFilename(t)
@@ -172,7 +172,7 @@ func JsonTestCheckExpectWithKeep(t *testing.T, checker ec.MultiEventChecker, exp
 		return err
 	}
 
-	// NB: some tests will run JsonTestCheckExpect multiple times. Reset any previous
+	// NB: some tests will run JSONTestCheckExpect multiple times. Reset any previous
 	// DoneWithExportFile from previous invocations.
 	testutils.KeepExportFile(t)
 
@@ -184,7 +184,7 @@ func JsonTestCheckExpectWithKeep(t *testing.T, checker ec.MultiEventChecker, exp
 	}
 	defer jsonFile.Close()
 
-	err = doJsonTestCheck(t, jsonFile, checker)
+	err = doJSONTestCheck(t, jsonFile, checker)
 	if expectCheckerFailure {
 		if err == nil {
 			err = errors.New("tester expected to fail, but succeeded")
@@ -206,7 +206,7 @@ func JsonTestCheckExpectWithKeep(t *testing.T, checker ec.MultiEventChecker, exp
 	return err
 }
 
-// JsonTestCheck checks a JSON file
-func JsonTestCheck(t *testing.T, checker ec.MultiEventChecker) error {
-	return JsonTestCheckExpect(t, checker, false)
+// JSONTestCheck checks a JSON file
+func JSONTestCheck(t *testing.T, checker ec.MultiEventChecker) error {
+	return JSONTestCheckExpect(t, checker, false)
 }

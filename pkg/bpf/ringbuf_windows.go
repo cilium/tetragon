@@ -23,7 +23,7 @@ var (
 	CreateEventW        = ModuleKernel32.NewProc("CreateEventW")
 	ResetEvent          = ModuleKernel32.NewProc("ResetEvent")
 	getModuleHandleW    = ModuleKernel32.NewProc("GetModuleHandleW")
-	GetHandleFromFd     = EbpfApi.NewProc("ebpf_get_handle_from_fd")
+	GetHandleFromFd     = EbpfAPI.NewProc("ebpf_get_handle_from_fd")
 	log                 = logger.GetLogger()
 )
 
@@ -80,7 +80,7 @@ type MsgCommon struct {
 
 type ProcessInfo struct {
 	Common            MsgCommon
-	ProcessId         uint32
+	ProcessID         uint32
 	ParentProcessID   uint32
 	CreatingProcessID uint32
 	CreatingThreadID  uint32

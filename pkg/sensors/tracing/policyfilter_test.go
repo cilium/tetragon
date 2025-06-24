@@ -96,7 +96,7 @@ func createCgroup(t *testing.T, dir string, pids ...uint64) policyfilter.CgroupI
 		t.Fatal("createCgroup: unexpected error")
 	}
 
-	id, err := tgcgroups.GetCgroupIdFromPath(path)
+	id, err := tgcgroups.GetCgroupIDFromPath(path)
 	require.NoError(t, err, "failed to get cgroup id for path="+path)
 	t.Logf("cgroup path:%s cgroup id:%d", path, id)
 	return policyfilter.CgroupID(id)
@@ -270,13 +270,13 @@ func TestNamespacedPolicies(t *testing.T) {
 	pfState, err := policyfilter.GetState()
 	t.Cleanup(func() { pfState.Close() })
 	require.NoError(t, err)
-	podId1 := uuid.New()
-	podId2 := uuid.New()
+	podID1 := uuid.New()
+	podID2 := uuid.New()
 	require.NoError(t, err)
-	err = pfState.AddPodContainer(policyfilter.PodID(podId1), "ns1", "wl1", "kind1", nil,
+	err = pfState.AddPodContainer(policyfilter.PodID(podID1), "ns1", "wl1", "kind1", nil,
 		"pod1-container1", cgID1, podhelpers.ContainerInfo{Name: "container-name1", Repo: "container-repo1"})
 	require.NoError(t, err)
-	err = pfState.AddPodContainer(policyfilter.PodID(podId2), "ns2", "wl2", "kind2", nil,
+	err = pfState.AddPodContainer(policyfilter.PodID(podID2), "ns2", "wl2", "kind2", nil,
 		"pod1-container2", cgID2, podhelpers.ContainerInfo{Name: "container-name2", Repo: "container-repo2"})
 	require.NoError(t, err)
 

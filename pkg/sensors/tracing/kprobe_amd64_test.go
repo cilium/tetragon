@@ -112,7 +112,7 @@ spec:
 	// disable port
 	syscall.Ioperm(io_delay, 1, 0)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 

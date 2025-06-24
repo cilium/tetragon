@@ -46,7 +46,7 @@ func testListSyscallsDups(t *testing.T, checker *ec.UnorderedEventChecker, confi
 	syscall.Dup2(9999, 2222)
 	syscall.Dup3(9999, 2222, 0)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 

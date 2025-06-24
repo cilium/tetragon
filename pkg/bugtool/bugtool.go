@@ -151,7 +151,7 @@ func (s *bugtoolInfo) tarAddBuff(tarWriter *tar.Writer, fname string, buff *byte
 	return doTarAddBuff(tarWriter, name, buff)
 }
 
-func (s *bugtoolInfo) tarAddJson(tarWriter *tar.Writer, fname string, obj interface{}) error {
+func (s *bugtoolInfo) tarAddJSON(tarWriter *tar.Writer, fname string, obj interface{}) error {
 	b, err := json.Marshal(obj)
 	if err != nil {
 		return err
@@ -587,7 +587,7 @@ func (s *bugtoolInfo) dumpPolicyFilterMap(tarWriter *tar.Writer) error {
 		s.multiLog.WithError(err).Warnf("failed to dump policyfilter map")
 		return err
 	}
-	return s.tarAddJson(tarWriter, policyfilter.MapName+".json", obj)
+	return s.tarAddJSON(tarWriter, policyfilter.MapName+".json", obj)
 }
 
 func (s *bugtoolInfo) addGrpcInfo(tarWriter *tar.Writer) {
@@ -605,7 +605,7 @@ func (s *bugtoolInfo) addGrpcInfo(tarWriter *tar.Writer) {
 	}
 
 	fname := "tracing-policies.json"
-	err = s.tarAddJson(tarWriter, fname, res)
+	err = s.tarAddJSON(tarWriter, fname, res)
 	if err != nil {
 		s.multiLog.Warnf("failed to dump tracing policies: %v", err)
 		return
@@ -767,7 +767,7 @@ func (s bugtoolInfo) addBPFMapsStats(tarWriter *tar.Writer) error {
 	}
 
 	const file = "debugmaps.json"
-	err = s.tarAddJson(tarWriter, file, out)
+	err = s.tarAddJSON(tarWriter, file, out)
 	if err != nil {
 		s.multiLog.WithError(err).Warn("failed to add the BPF maps checks to the tar archive")
 		return err

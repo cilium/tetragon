@@ -5,7 +5,7 @@ package dataapi
 
 import "github.com/cilium/tetragon/pkg/api/processapi"
 
-type DataEventId struct {
+type DataEventID struct {
 	Pid  uint64
 	Time uint64
 }
@@ -15,10 +15,10 @@ type DataEventDesc struct {
 	Pad      uint32
 	Leftover uint32
 	Size     uint32
-	Id       DataEventId
+	ID       DataEventID
 }
 
 type MsgData struct {
 	Common processapi.MsgCommon
-	Id     DataEventId
+	ID     DataEventID
 }

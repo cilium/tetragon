@@ -76,9 +76,9 @@ func FromLine(s string) (Filter, error) {
 		case "prot":
 			switch strings.ToLower(opts[1]) {
 			case "tcp":
-				f = &ProtTcpFilter{}
+				f = &ProtTCPFilter{}
 			case "udp":
-				f = &ProtUdpFilter{}
+				f = &ProtUDPFilter{}
 
 				// NB: once needed, we can easily do {tcp,udp}{4,6}
 			}
@@ -211,15 +211,15 @@ func CreateAnyAddrFilter(addr Addr) Filter {
 
 // protocol filters
 
-type ProtTcpFilter struct{}
+type ProtTCPFilter struct{}
 
-func (f *ProtTcpFilter) FilterFn(t vtuple.VTuple) bool {
+func (f *ProtTCPFilter) FilterFn(t vtuple.VTuple) bool {
 	return t.IsTCP()
 }
 
-type ProtUdpFilter struct{}
+type ProtUDPFilter struct{}
 
-func (f *ProtUdpFilter) FilterFn(t vtuple.VTuple) bool {
+func (f *ProtUDPFilter) FilterFn(t vtuple.VTuple) bool {
 	return t.IsUDP()
 }
 

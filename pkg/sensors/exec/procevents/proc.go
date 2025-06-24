@@ -13,16 +13,16 @@ import (
 
 const (
 	// ContainerIDLength is the standard length of the Container ID
-	ContainerIdLength = 64
+	ContainerIDLength = 64
 
-	// BpfContainerIdLength Minimum 31 chars to assume it is a Container ID
+	// BpfContainerIDLength Minimum 31 chars to assume it is a Container ID
 	// in case it was truncated
-	BpfContainerIdLength = 31
+	BpfContainerIDLength = 31
 )
 
-// ProcsContainerIdOffset Returns the container ID and its offset
+// ProcsContainerIDOffset Returns the container ID and its offset
 // This can fail, better use LookupContainerId to handle different container runtimes.
-func ProcsContainerIdOffset(subdir string) (string, int) {
+func ProcsContainerIDOffset(subdir string) (string, int) {
 	// If the cgroup subdir contains ":" it means that we are dealing with
 	// Linux.CgroupPath where the cgroup driver is cgroupfs
 	// https://github.com/opencontainers/runc/blob/main/docs/systemd.md
@@ -37,7 +37,7 @@ func ProcsContainerIdOffset(subdir string) (string, int) {
 	return s[len(s)-1], off + p
 }
 
-// LookupContainerId returns the container ID as a 31 character string length from the full cgroup path
+// LookupContainerID returns the container ID as a 31 character string length from the full cgroup path
 // cgroup argument is the full cgroup path
 // bpfSource is set to true if cgroup was obtained from BPF, otherwise false.
 // walkParent if set then walk the parent hierarchy subdirs and try to find the container ID of the process,
@@ -46,7 +46,7 @@ func ProcsContainerIdOffset(subdir string) (string, int) {
 //
 // Returns the container ID as a string of 31 characters and its offset on the full cgroup path,
 // otherwise on errors an empty string and 0 as offset.
-func LookupContainerId(cgroup string, bpfSource bool, walkParent bool) (string, int) {
+func LookupContainerID(cgroup string, bpfSource bool, walkParent bool) (string, int) {
 	idTruncated := false
 	subDirs := strings.Split(cgroup, "/")
 	subdir := subDirs[len(subDirs)-1]
@@ -73,7 +73,7 @@ func LookupContainerId(cgroup string, bpfSource bool, walkParent bool) (string, 
 		idTruncated = true
 	}
 
-	container, i := ProcsContainerIdOffset(subdir)
+	container, i := ProcsContainerIDOffset(subdir)
 
 	// Let's first check if this was a valid container id, it can be only the id
 	// or the id.scope
@@ -82,12 +82,12 @@ func LookupContainerId(cgroup string, bpfSource bool, walkParent bool) (string, 
 	// we are interested into it then we should walk the parent subdir with
 	// walkParent argument set and get its parent cgroup
 	if !strings.HasSuffix(container, "service") &&
-		((len(container) >= ContainerIdLength) ||
-			(idTruncated && len(container) >= BpfContainerIdLength)) {
+		((len(container) >= ContainerIDLength) ||
+			(idTruncated && len(container) >= BpfContainerIDLength)) {
 		// Return first 31 chars. If the string is less than 31 chars
 		// it's not a docker ID so skip it. For example docker.server
 		// will get here.
-		return container[:BpfContainerIdLength], i
+		return container[:BpfContainerIDLength], i
 	}
 
 	// Podman may set the last subdir to 'container' so let's walk parent subdir
@@ -102,13 +102,13 @@ func LookupContainerId(cgroup string, bpfSource bool, walkParent bool) (string, 
 
 	// Walk the parent subdirs until the first ancestor which is not included
 	for j := len(subDirs) - 2; j > 1; j-- {
-		container, i = ProcsContainerIdOffset(subDirs[j])
+		container, i = ProcsContainerIDOffset(subDirs[j])
 		// Either container ID or the first transient scope unit
-		if len(container) == ContainerIdLength || (len(container) > ContainerIdLength && strings.HasSuffix(container, "scope")) {
+		if len(container) == ContainerIDLength || (len(container) > ContainerIDLength && strings.HasSuffix(container, "scope")) {
 			// Return first 31 chars. If the string is less than 31 chars
 			// it's not a docker ID so skip it. For example docker.server
 			// will get here.
-			return container[:BpfContainerIdLength], i
+			return container[:BpfContainerIDLength], i
 		}
 	}
 
@@ -122,13 +122,13 @@ func procsFilename(args []byte) (string, string) {
 	return cmds, filename
 }
 
-func procsFindDockerId(cgroups string) (string, int) {
+func procsFindDockerID(cgroups string) (string, int) {
 	cgrpPaths := strings.Split(cgroups, "\n")
 	for _, s := range cgrpPaths {
 		if strings.Contains(s, "pods") || strings.Contains(s, "docker") ||
 			strings.Contains(s, "libpod") {
 			// Get the container ID and the offset
-			container, i := LookupContainerId(s, false, false)
+			container, i := LookupContainerID(s, false, false)
 			if container != "" {
 				return container, i
 			}

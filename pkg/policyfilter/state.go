@@ -539,7 +539,7 @@ func (m *state) addCgroupIDs(cinfo []containerInfo, pod *podInfo) error {
 		}
 		id, ok := nsmap.nsNameMap.Get(key)
 		if ok {
-			if err := nsmap.cgroupIdMap.Update(&c.cgID, id, ebpf.UpdateAny); err != nil {
+			if err := nsmap.cgroupIDMap.Update(&c.cgID, id, ebpf.UpdateAny); err != nil {
 				logger.GetLogger().Warn("Unable to assign cgroup to existing namespace", logfields.Error, err)
 			}
 			continue
@@ -547,7 +547,7 @@ func (m *state) addCgroupIDs(cinfo []containerInfo, pod *podInfo) error {
 		logger.GetLogger().Debug("update cgroupid map", "cgrp", c, "pod", pod, "id", nsmap.id)
 
 		// If this is a new namespace we create a new map entry and bind it to a stable id.
-		if err := nsmap.cgroupIdMap.Update(&c.cgID, nsmap.id, ebpf.UpdateAny); err != nil {
+		if err := nsmap.cgroupIDMap.Update(&c.cgID, nsmap.id, ebpf.UpdateAny); err != nil {
 			logger.GetLogger().Warn("Unable to insert cgroup id map",
 				logfields.Error, err,
 				"cgid", c.cgID,
@@ -555,7 +555,7 @@ func (m *state) addCgroupIDs(cinfo []containerInfo, pod *podInfo) error {
 				"ns", c.name)
 			continue
 		}
-		if ok := nsmap.nsIdMap.Add(nsmap.id, key); ok {
+		if ok := nsmap.nsIDMap.Add(nsmap.id, key); ok {
 			logger.GetLogger().Info("Id to namespace map caused eviction",
 				"cgid", c.cgID,
 				"id", nsmap.id,
@@ -962,14 +962,14 @@ func (m *state) UpdatePod(podID PodID, namespace, workload, kind string, podLabe
 	return nil
 }
 
-func (m *state) GetNsId(stateID StateID) (*NSID, bool) {
-	if ns, ok := m.nsMap.nsIdMap.Get(stateID); ok {
+func (m *state) GetNsID(stateID StateID) (*NSID, bool) {
+	if ns, ok := m.nsMap.nsIDMap.Get(stateID); ok {
 		return &ns, ok
 	}
 	return nil, false
 }
 
-func (m *state) GetIdNs(id NSID) (StateID, bool) {
+func (m *state) GetIDNs(id NSID) (StateID, bool) {
 	if stateID, ok := m.nsMap.nsNameMap.Get(id); ok {
 		return stateID, ok
 	}

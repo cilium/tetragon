@@ -184,7 +184,7 @@ func PortForwardPod(
 			return ctx, err
 		}
 
-		reqUrl := restClient.Post().
+		reqURL := restClient.Post().
 			Resource("pods").
 			Name(pod.Name).
 			Namespace(pod.Namespace).
@@ -192,7 +192,7 @@ func PortForwardPod(
 			URL()
 
 		for i := uint(0); ; i++ {
-			err = doPortForward(testenv, restCfg, reqUrl, out, outErr, pod, testFn, ports...)
+			err = doPortForward(testenv, restCfg, reqURL, out, outErr, pod, testFn, ports...)
 			if err == nil || i == retries {
 				return ctx, err
 			}
@@ -201,13 +201,13 @@ func PortForwardPod(
 	}
 }
 
-func newPortForwarder(restCfg *rest.Config, reqUrl *url.URL, out, outErr *os.File, stopChan, readyChan chan struct{}, ports []string) (*portforward.PortForwarder, error) {
+func newPortForwarder(restCfg *rest.Config, reqURL *url.URL, out, outErr *os.File, stopChan, readyChan chan struct{}, ports []string) (*portforward.PortForwarder, error) {
 	transport, upgrader, err := spdy.RoundTripperFor(restCfg)
 	if err != nil {
 		return nil, err
 	}
 
-	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, http.MethodPost, reqUrl)
+	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, http.MethodPost, reqURL)
 
 	return portforward.New(dialer, ports, stopChan, readyChan, out, outErr)
 }
