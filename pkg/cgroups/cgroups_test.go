@@ -108,7 +108,7 @@ func TestCgroupNameFromCStr(t *testing.T) {
 // Ensure that Cgroupv1 controllers discovery fails if no 'cpuset' and no 'memory'
 func TestParseCgroupSubSysIdsWithoutMemoryCpuset(t *testing.T) {
 	testDir := t.TempDir()
-	invalid_cgroupv1_controllers :=
+	invalidCgroupv1Controllers :=
 		`
 #subsys_name	hierarchy	num_cgroups	enabled
 cpu	6	78	1
@@ -118,7 +118,7 @@ perf_event	8	2	1
 `
 
 	file := filepath.Join(testDir, "testfile")
-	err := os.WriteFile(file, []byte(invalid_cgroupv1_controllers), 0644)
+	err := os.WriteFile(file, []byte(invalidCgroupv1Controllers), 0644)
 	require.NoError(t, err)
 
 	err = parseCgroupv1SubSysIds(file)
@@ -169,10 +169,10 @@ misc	10	1	1
 
 func TestCheckCgroupv2Controllers(t *testing.T) {
 	testDir := t.TempDir()
-	empty_controllers := ""
+	emptyControllers := ""
 
 	file := filepath.Join(testDir, "cgroup.controllers")
-	err := os.WriteFile(file, []byte(empty_controllers), 0644)
+	err := os.WriteFile(file, []byte(emptyControllers), 0644)
 	require.NoError(t, err)
 
 	err = checkCgroupv2Controllers(testDir)

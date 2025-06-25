@@ -46,20 +46,20 @@ func sttPrint(ctx context.Context, client tetragon.FineGuidanceSensorsClient, st
 
 	// NB: leave this here, in case we want to add a json option at some point
 	if false {
-		res_json, err := json.Marshal(res)
+		resJSON, err := json.Marshal(res)
 		if err != nil {
 			fmt.Printf("error marshaling stt %s: %s\n", stt, err)
 			return
 		}
-		fmt.Printf("%s\n", string(res_json))
+		fmt.Printf("%s\n", string(resJSON))
 	}
 
 	sttPrintNodeTree(res.Root, 0)
 }
 
 func sttPrintNodeTree(node *tetragon.StackTraceNode, level int) {
-	indent_space := "    "
-	indent := strings.Repeat(indent_space, level)
+	identSpace := "    "
+	indent := strings.Repeat(identSpace, level)
 	fmt.Printf("%s0x%x (%s) count:%d\n", indent, node.Address.Address, node.Address.Symbol, node.Count)
 
 	nchildren := len(node.Children)
@@ -70,7 +70,7 @@ func sttPrintNodeTree(node *tetragon.StackTraceNode, level int) {
 	// This is a leaf, so we also print label counters
 	if nchildren == 0 {
 		for _, label := range node.Labels {
-			fmt.Printf("%s%s%s count:%d\n", indent, indent_space, label.Key, label.Count)
+			fmt.Printf("%s%s%s count:%d\n", indent, identSpace, label.Key, label.Count)
 		}
 	}
 }

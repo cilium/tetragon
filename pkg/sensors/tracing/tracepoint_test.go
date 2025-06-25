@@ -226,9 +226,9 @@ func TestGenericTracepointPidFilterLseek(t *testing.T) {
 }
 
 func TestGenericTracepointArgFilterLseek(t *testing.T) {
-	fd_u := int32(100)
+	fdU := int32(100)
 	fd := 100
-	whence_u := uint64(whenceBogusValue)
+	whenceU := uint64(whenceBogusValue)
 	whenceStr := strconv.Itoa(whenceBogusValue)
 	whence := whenceBogusValue
 
@@ -271,7 +271,7 @@ func TestGenericTracepointArgFilterLseek(t *testing.T) {
 			return fmt.Errorf("unexpected first arg: %s", event.Args[0])
 		}
 		xwhence := arg0.SizeArg
-		if xwhence != whence_u {
+		if xwhence != whenceU {
 			return fmt.Errorf("unexpected arg val. got:%d expecting:%d", xwhence, whence)
 		}
 		arg1, ok := event.Args[1].GetArg().(*tetragon.KprobeArgument_IntArg)
@@ -279,7 +279,7 @@ func TestGenericTracepointArgFilterLseek(t *testing.T) {
 			return fmt.Errorf("unexpected first arg: %s", event.Args[1])
 		}
 		xfd := arg1.IntArg
-		if xfd != fd_u {
+		if xfd != fdU {
 			return fmt.Errorf("unexpected arg val. got:%d expecting:%d", xfd, fd)
 		}
 		return nil

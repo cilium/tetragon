@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestProcessManager_GetProcessID(t *testing.T) {
+func TestProcessManagerGetProcessID(t *testing.T) {
 	require.NoError(t, os.Setenv("NODE_NAME", "my-node"))
 	node.SetExportNodeName()
 
