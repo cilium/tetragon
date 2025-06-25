@@ -448,6 +448,7 @@ spec:
                                   - LessThan
                                   - GT
                                   - LT
+                                  - CapabilityMask
                                   - Mask
                                   - SPort
                                   - NotSPort
@@ -773,6 +774,7 @@ spec:
                                   - LessThan
                                   - GT
                                   - LT
+                                  - CapabilityMask
                                   - Mask
                                   - SPort
                                   - NotSPort
@@ -1078,6 +1080,7 @@ spec:
                                   - LessThan
                                   - GT
                                   - LT
+                                  - CapabilityMask
                                   - Mask
                                   - SPort
                                   - NotSPort
@@ -1403,6 +1406,7 @@ spec:
                                   - LessThan
                                   - GT
                                   - LT
+                                  - CapabilityMask
                                   - Mask
                                   - SPort
                                   - NotSPort
@@ -1744,6 +1748,7 @@ spec:
                                   - LessThan
                                   - GT
                                   - LT
+                                  - CapabilityMask
                                   - Mask
                                   - SPort
                                   - NotSPort
@@ -2069,6 +2074,7 @@ spec:
                                   - LessThan
                                   - GT
                                   - LT
+                                  - CapabilityMask
                                   - Mask
                                   - SPort
                                   - NotSPort
@@ -2354,6 +2360,7 @@ spec:
                                   - LessThan
                                   - GT
                                   - LT
+                                  - CapabilityMask
                                   - Mask
                                   - SPort
                                   - NotSPort
@@ -2679,6 +2686,7 @@ spec:
                                   - LessThan
                                   - GT
                                   - LT
+                                  - CapabilityMask
                                   - Mask
                                   - SPort
                                   - NotSPort

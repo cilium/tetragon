@@ -601,6 +601,19 @@ func parseAddr(v string) ([]byte, uint32, error) {
 	return ipAddr.AsSlice(), uint32(ipAddr.BitLen()), nil
 }
 
+func capsStrToUint64(values []string) (uint64, error) {
+	caps := uint64(0)
+	for _, v := range values {
+		valstr := strings.ToUpper(v)
+		c, ok := tetragon.CapabilitiesType_value[valstr]
+		if !ok {
+			return 0, fmt.Errorf("value %s unknown", valstr)
+		}
+		caps |= (1 << c)
+	}
+	return caps, nil
+}
+
 func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) error {
 	for _, v := range values {
 		base := getBase(v)
@@ -618,7 +631,7 @@ func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) er
 				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
 			WriteSelectorUint32(&k.data, uint32(i))
-		case gt.GenericS64Type, gt.GenericSyscall64:
+		case gt.GenericS64Type, gt.GenericSyscall64, gt.GenericKernelCap, gt.GenericCapEffective, gt.GenericCapInheritable, gt.GenericCapPermitted:
 			i, err := strconv.ParseInt(v, base, 64)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
@@ -750,8 +763,25 @@ func checkOp(op uint32) error {
 	return nil
 }
 
+func handleHiddenOperators(arg *v1alpha1.ArgSelector) error {
+	if arg.Operator == "CapabilityMask" {
+		caps, err := capsStrToUint64(arg.Values)
+		if err != nil {
+			return err
+		}
+		arg.Values = []string{strconv.Itoa(int(caps))}
+		arg.Operator = "Mask"
+	}
+	return nil
+}
+
 func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) error {
 	WriteSelectorUint32(&k.data, arg.Index)
+
+	err := handleHiddenOperators(arg)
+	if err != nil {
+		return fmt.Errorf("matcharg error: %w", err)
+	}
 
 	op, err := SelectorOp(arg.Operator)
 	if err != nil {
@@ -1159,14 +1189,9 @@ func ParseMatchCaps(k *KernelSelectorState, action *v1alpha1.CapabilitiesSelecto
 	WriteSelectorUint32(&k.data, isns)
 
 	// values
-	caps := uint64(0)
-	for _, v := range action.Values {
-		valstr := strings.ToUpper(v)
-		c, ok := tetragon.CapabilitiesType_value[valstr]
-		if !ok {
-			return fmt.Errorf("parseMatchCapability: value %s unknown", valstr)
-		}
-		caps |= (1 << c)
+	caps, err := capsStrToUint64(action.Values)
+	if err != nil {
+		return err
 	}
 	WriteSelectorUint64(&k.data, caps)
 
