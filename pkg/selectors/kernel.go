@@ -632,8 +632,8 @@ func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) er
 			WriteSelectorUint64(&k.data, uint64(i))
 		case gt.GenericSockType, gt.GenericSkbType, gt.GenericSockaddrType, gt.GenericSocketType, gt.GenericNetDev:
 			return fmt.Errorf("MatchArgs type sock, socket, skb, sockaddr and net_device do not support operator %s", selectorOpStringTable[op])
-		case gt.GenericCharIovec:
-			return fmt.Errorf("MatchArgs values %s unsupported", v)
+		default:
+			return fmt.Errorf("MatchArgs type %s unsupported", gt.GenericTypeString(int(ty)))
 		}
 	}
 	return nil
