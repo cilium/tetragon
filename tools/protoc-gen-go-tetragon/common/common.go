@@ -307,11 +307,11 @@ func GetFields(files []*protogen.File) ([]*protogen.Message, error) {
 // getFieldsForMessage recursively looks up all the fields for a given message
 func getFieldsForMessage(msg *protogen.Message) []*protogen.Field {
 	seen := make(map[string]struct{})
-	return __getFieldsForMessage(msg, seen)
+	return getFieldsForMessageRec(msg, seen)
 }
 
-// __getFieldsForMessage is the underlying recusion logic of getFieldsForMessage
-func __getFieldsForMessage(msg *protogen.Message, seen map[string]struct{}) []*protogen.Field {
+// getFieldsForMessageRec is the underlying recusion logic of getFieldsForMessage
+func getFieldsForMessageRec(msg *protogen.Message, seen map[string]struct{}) []*protogen.Field {
 	var fields []*protogen.Field
 
 	for _, field := range msg.Fields {
@@ -324,7 +324,7 @@ func __getFieldsForMessage(msg *protogen.Message, seen map[string]struct{}) []*p
 		}
 		seen[fieldType] = struct{}{}
 		fields = append(fields, field)
-		fields = append(fields, __getFieldsForMessage(field.Message, seen)...)
+		fields = append(fields, getFieldsForMessageRec(field.Message, seen)...)
 	}
 
 	return fields

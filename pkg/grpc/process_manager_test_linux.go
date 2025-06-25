@@ -17,7 +17,7 @@ import (
 	"github.com/cilium/tetragon/pkg/watcher"
 )
 
-func TestProcessManager_GetProcessID(t *testing.T) {
+func TestProcessManagerGetProcessID(t *testing.T) {
 	require.NoError(t, os.Setenv("NODE_NAME", "my-node"))
 	node.SetExportNodeName()
 

@@ -131,14 +131,14 @@ func setupSensor() {
 	// exit program function
 	ks, err := ksyms.KernelSymbols()
 	if err == nil {
-		has_acct_process := ks.IsAvailable("acct_process")
-		has_disassociate_ctty := ks.IsAvailable("disassociate_ctty")
+		hasAcctProcess := ks.IsAvailable("acct_process")
+		hasDisassociateCtty := ks.IsAvailable("disassociate_ctty")
 
 		/* Preffer acct_process over disassociate_ctty */
-		if has_acct_process {
+		if hasAcctProcess {
 			Exit.Attach = "acct_process"
 			Exit.Label = "kprobe/acct_process"
-		} else if has_disassociate_ctty {
+		} else if hasDisassociateCtty {
 			Exit.Attach = "disassociate_ctty"
 			Exit.Label = "kprobe/disassociate_ctty"
 		} else {

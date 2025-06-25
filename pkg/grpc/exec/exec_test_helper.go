@@ -123,11 +123,11 @@ func CreateEvents[EXEC notify.Message, EXIT notify.Message](Pid uint32, Ktime ui
 	rootEv := tetragonAPI.MsgExecveEventUnix{
 		Msg: &tetragonAPI.MsgExecveEvent{
 			Common: tetragonAPI.MsgCommon{
-				Op:     5,
-				Flags:  0,
-				Pad_v2: [2]uint8{0, 0},
-				Size:   326,
-				Ktime:  0,
+				Op:    5,
+				Flags: 0,
+				PadV2: [2]uint8{0, 0},
+				Size:  326,
+				Ktime: 0,
 			},
 			Kube: tetragonAPI.MsgK8s{
 				Cgrpid: 0,
@@ -162,11 +162,11 @@ func CreateEvents[EXEC notify.Message, EXIT notify.Message](Pid uint32, Ktime ui
 	parentEv := tetragonAPI.MsgExecveEventUnix{
 		Msg: &tetragonAPI.MsgExecveEvent{
 			Common: tetragonAPI.MsgCommon{
-				Op:     5,
-				Flags:  0,
-				Pad_v2: [2]uint8{0, 0},
-				Size:   326,
-				Ktime:  21034975106173,
+				Op:    5,
+				Flags: 0,
+				PadV2: [2]uint8{0, 0},
+				Size:  326,
+				Ktime: 21034975106173,
 			},
 			Kube: tetragonAPI.MsgK8s{
 				Cgrpid: 0,
@@ -201,11 +201,11 @@ func CreateEvents[EXEC notify.Message, EXIT notify.Message](Pid uint32, Ktime ui
 	execEv := tetragonAPI.MsgExecveEventUnix{
 		Msg: &tetragonAPI.MsgExecveEvent{
 			Common: tetragonAPI.MsgCommon{
-				Op:     5,
-				Flags:  0,
-				Pad_v2: [2]uint8{0, 0},
-				Size:   326,
-				Ktime:  21034975106173,
+				Op:    5,
+				Flags: 0,
+				PadV2: [2]uint8{0, 0},
+				Size:  326,
+				Ktime: 21034975106173,
 			},
 			Kube: tetragonAPI.MsgK8s{
 				Cgrpid: 0,
@@ -238,11 +238,11 @@ func CreateEvents[EXEC notify.Message, EXIT notify.Message](Pid uint32, Ktime ui
 
 	exitEv := tetragonAPI.MsgExitEvent{
 		Common: tetragonAPI.MsgCommon{
-			Op:     7,
-			Flags:  0,
-			Pad_v2: [2]uint8{0, 0},
-			Size:   40,
-			Ktime:  21034976281104,
+			Op:    7,
+			Flags: 0,
+			PadV2: [2]uint8{0, 0},
+			Size:  40,
+			Ktime: 21034976281104,
 		},
 		ProcessKey: tetragonAPI.MsgExecveKey{
 			Pid:   Pid,
@@ -264,11 +264,11 @@ func CreateEvents[EXEC notify.Message, EXIT notify.Message](Pid uint32, Ktime ui
 func CreateCloneEvents[CLONE notify.Message, EXIT notify.Message](Pid uint32, Ktime uint64, ParentPid uint32, ParentKtime uint64) (*CLONE, *EXIT) {
 	cloneEv := tetragonAPI.MsgCloneEvent{
 		Common: tetragonAPI.MsgCommon{
-			Op:     23,
-			Flags:  0,
-			Pad_v2: [2]uint8{0, 0},
-			Size:   326,
-			Ktime:  21034975126173,
+			Op:    23,
+			Flags: 0,
+			PadV2: [2]uint8{0, 0},
+			Size:  326,
+			Ktime: 21034975126173,
 		},
 		Parent: tetragonAPI.MsgExecveKey{
 			Pid:   ParentPid,
@@ -286,11 +286,11 @@ func CreateCloneEvents[CLONE notify.Message, EXIT notify.Message](Pid uint32, Kt
 
 	exitEv := tetragonAPI.MsgExitEvent{
 		Common: tetragonAPI.MsgCommon{
-			Op:     7,
-			Flags:  0,
-			Pad_v2: [2]uint8{0, 0},
-			Size:   40,
-			Ktime:  21034976291104,
+			Op:    7,
+			Flags: 0,
+			PadV2: [2]uint8{0, 0},
+			Size:  40,
+			Ktime: 21034976291104,
 		},
 		ProcessKey: tetragonAPI.MsgExecveKey{
 			Pid:   Pid,
@@ -321,11 +321,11 @@ func CreateAncestorEvents[EXEC notify.Message, EXIT notify.Message](
 	execEv := tetragonAPI.MsgExecveEventUnix{
 		Msg: &tetragonAPI.MsgExecveEvent{
 			Common: tetragonAPI.MsgCommon{
-				Op:     5,
-				Flags:  0,
-				Pad_v2: [2]uint8{0, 0},
-				Size:   326,
-				Ktime:  Ktime + 1200000,
+				Op:    5,
+				Flags: 0,
+				PadV2: [2]uint8{0, 0},
+				Size:  326,
+				Ktime: Ktime + 1200000,
 			},
 			Kube: tetragonAPI.MsgK8s{
 				Cgrpid: 0,
@@ -363,11 +363,11 @@ func CreateAncestorEvents[EXEC notify.Message, EXIT notify.Message](
 
 	exitEv := tetragonAPI.MsgExitEvent{
 		Common: tetragonAPI.MsgCommon{
-			Op:     7,
-			Flags:  0,
-			Pad_v2: [2]uint8{0, 0},
-			Size:   40,
-			Ktime:  Ktime + 20000000,
+			Op:    7,
+			Flags: 0,
+			PadV2: [2]uint8{0, 0},
+			Size:  40,
+			Ktime: Ktime + 20000000,
 		},
 		ProcessKey: tetragonAPI.MsgExecveKey{
 			Pid:   Pid,
