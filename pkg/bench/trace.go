@@ -47,10 +47,10 @@ func RunTraceBench(args *Arguments) (summary *Summary) {
 	summary = newSummary(args)
 	summary.StartTime = time.Now()
 
-	disable := EnableBpfStats()
+	disable := EnableBPFStats()
 	defer disable()
 
-	oldBpfStats := GetBpfStats()
+	oldBPFStats := GetBPFStats()
 
 	var bench TraceBench
 
@@ -103,7 +103,7 @@ func RunTraceBench(args *Arguments) (summary *Summary) {
 
 	cpuUsageAfter := GetCPUUsage(CPU_USAGE_ALL_THREADS)
 
-	summary.BpfStats = GetBpfStatsSince(oldBpfStats)
+	summary.BPFStats = GetBPFStatsSince(oldBPFStats)
 	summary.TestDurationNanos = summary.EndTime.Sub(summary.StartTime)
 
 	log.Printf("Benchmark finished, cleaning..")

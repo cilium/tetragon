@@ -25,7 +25,7 @@ func NewBPFCollector() metrics.CollectorWithInit {
 }
 
 func collect(ch chan<- prometheus.Metric) {
-	mapHandle, err := ebpf.LoadPinnedMap(filepath.Join(option.Config.BpfDir, "tg_stats_map"), nil)
+	mapHandle, err := ebpf.LoadPinnedMap(filepath.Join(option.Config.BPFDir, "tg_stats_map"), nil)
 	if err != nil {
 		return
 	}

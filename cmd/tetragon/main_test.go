@@ -39,7 +39,7 @@ func TestGeneratedExecEvents(t *testing.T) {
 	option.Config.ExportRateLimit = -1
 	option.Config.DataCacheSize = 1024
 	option.Config.ProcessCacheSize = 65536
-	option.Config.BpfDir = defaults.DefaultMapPrefix
+	option.Config.BPFDir = defaults.DefaultMapPrefix
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 	option.Config.TracingPolicyDir = defaults.DefaultTpDir
 

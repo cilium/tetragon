@@ -304,9 +304,9 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		return arg
 	case gt.GenericNopType:
 		// do nothing
-	case gt.GenericBpfAttr:
-		var output api.MsgGenericKprobeBpfAttr
-		var arg api.MsgGenericKprobeArgBpfAttr
+	case gt.GenericBPFAttr:
+		var output api.MsgGenericKprobeBPFAttr
+		var arg api.MsgGenericKprobeArgBPFAttr
 
 		err := binary.Read(r, binary.LittleEndian, &output)
 		if err != nil {
@@ -333,9 +333,9 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		arg.ProbeOffset = output.ProbeOffset
 		arg.Label = a.label
 		return arg
-	case gt.GenericBpfMap:
-		var output api.MsgGenericKprobeBpfMap
-		var arg api.MsgGenericKprobeArgBpfMap
+	case gt.GenericBPFMap:
+		var output api.MsgGenericKprobeBPFMap
+		var arg api.MsgGenericKprobeArgBPFMap
 
 		err := binary.Read(r, binary.LittleEndian, &output)
 		if err != nil {

@@ -25,7 +25,7 @@ type Config struct {
 }
 
 var ConfigDefaults = Config{
-	TetragonLib: filepath.Join(TetragonBpfPath(), "objs"),
+	TetragonLib: filepath.Join(TetragonBPFPath(), "objs"),
 	SelfBinary:  filepath.Base(os.Args[0]),
 	// NB: for sensor tests, CmdWaitTime is initialized by TestSensorsRun to 5min
 	CmdWaitTime:         60000 * time.Millisecond,
@@ -41,8 +41,8 @@ func Conf() *Config {
 	return config
 }
 
-// TetragonBpfPath retrieves bpf code path
-func TetragonBpfPath() string {
+// TetragonBPFPath retrieves bpf code path
+func TetragonBPFPath() string {
 	_, testFname, _, _ := runtime.Caller(0)
 	return filepath.Join(filepath.Dir(testFname), "..", "..", "..", "bpf")
 }

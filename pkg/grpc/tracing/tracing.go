@@ -100,7 +100,7 @@ func kprobeAction(act uint64) tetragon.KprobeAction {
 }
 
 func getKprobeArgInt(arg tracingapi.MsgGenericKprobeArgInt, a *tetragon.KprobeArgument) {
-	if arg.UserSpaceType == gt.GenericUserBpfCmdType {
+	if arg.UserSpaceType == gt.GenericUserBPFCmdType {
 		a.Arg = &tetragon.KprobeArgument_BpfCmdArg{BpfCmdArg: tetragon.BpfCmd(arg.Value)}
 	} else {
 		a.Arg = &tetragon.KprobeArgument_IntArg{IntArg: arg.Value}
@@ -231,7 +231,7 @@ func getKprobeArgument(arg tracingapi.MsgGenericKprobeArg) *tetragon.KprobeArgum
 		}
 		a.Arg = &tetragon.KprobeArgument_PathArg{PathArg: pathArg}
 		a.Label = e.Label
-	case tracingapi.MsgGenericKprobeArgBpfAttr:
+	case tracingapi.MsgGenericKprobeArgBPFAttr:
 		bpfAttrArg := &tetragon.KprobeBpfAttr{
 			ProgType: bpf.GetProgType(e.ProgType),
 			InsnCnt:  e.InsnCnt,
@@ -248,9 +248,9 @@ func getKprobeArgument(arg tracingapi.MsgGenericKprobeArg) *tetragon.KprobeArgum
 		}
 		a.Arg = &tetragon.KprobeArgument_PerfEventArg{PerfEventArg: perfEventArg}
 		a.Label = e.Label
-	case tracingapi.MsgGenericKprobeArgBpfMap:
+	case tracingapi.MsgGenericKprobeArgBPFMap:
 		bpfMapArg := &tetragon.KprobeBpfMap{
-			MapType:    bpf.GetBpfMapType(e.MapType),
+			MapType:    bpf.GetBPFMapType(e.MapType),
 			KeySize:    e.KeySize,
 			ValueSize:  e.ValueSize,
 			MaxEntries: e.MaxEntries,

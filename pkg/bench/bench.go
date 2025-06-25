@@ -87,7 +87,7 @@ func runTetragon(ctx context.Context, configFile string, args *Arguments, summar
 
 	option.Config.RBSize = args.RBSize
 
-	option.Config.BpfDir = bpf.MapPrefixPath()
+	option.Config.BPFDir = bpf.MapPrefixPath()
 	obs := observer.NewObserver()
 
 	if err := obs.InitSensorManager(); err != nil {
@@ -127,11 +127,11 @@ func runTetragon(ctx context.Context, configFile string, args *Arguments, summar
 
 	baseSensors := base.GetInitialSensor()
 
-	if err := baseSensors.Load(option.Config.BpfDir); err != nil {
+	if err := baseSensors.Load(option.Config.BPFDir); err != nil {
 		log.Fatalf("Load base error: %s\n", err)
 	}
 
-	if err := benchSensors.Load(option.Config.BpfDir); err != nil {
+	if err := benchSensors.Load(option.Config.BPFDir); err != nil {
 		log.Fatalf("Load sensors error: %s\n", err)
 	}
 

@@ -42,7 +42,7 @@ type Summary struct {
 	TetragonCPUUsage CPUUsage
 
 	// key is the bpf program id
-	BpfStats map[int64]*BpfProgStats
+	BPFStats map[int64]*BPFProgStats
 
 	Error string
 }
@@ -90,7 +90,7 @@ func (s *Summary) PrettyPrint() {
 	}
 
 	fmt.Println("BPF statistics:")
-	for _, bps := range s.BpfStats {
+	for _, bps := range s.BPFStats {
 		if bps.RunCnt > 0 {
 			fmt.Printf("  %s\n", bps)
 		}

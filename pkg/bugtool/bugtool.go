@@ -46,7 +46,7 @@ type InitInfo struct {
 	MetricsAddr string `json:"metrics_address"`
 	GopsAddr    string `json:"gops_address"`
 	MapDir      string `json:"map_dir"`
-	BpfToolPath string `json:"bpftool_path"`
+	BPFToolPath string `json:"bpftool_path"`
 	GopsPath    string `json:"gops_path"`
 	PID         int    `json:"pid"`
 }
@@ -84,8 +84,8 @@ func doSaveInitInfo(fname string, info *InitInfo) error {
 	if err != nil {
 		logger.GetLogger().Warn("failed to locate bpftool binary, on bugtool debugging ensure you have bpftool installed")
 	} else {
-		info.BpfToolPath = bpftool
-		logger.GetLogger().Info("Successfully detected bpftool path", "bpftool", info.BpfToolPath)
+		info.BPFToolPath = bpftool
+		logger.GetLogger().Info("Successfully detected bpftool path", "bpftool", info.BPFToolPath)
 	}
 
 	gops, err := exec.LookPath("gops")
@@ -202,7 +202,7 @@ func Bugtool(outFname string, bpftool string, gops string) error {
 	}
 
 	if bpftool != "" {
-		info.BpfToolPath = bpftool
+		info.BPFToolPath = bpftool
 	}
 
 	if gops != "" {
@@ -502,19 +502,19 @@ func (s *bugtoolInfo) addTcInfo(tarWriter *tar.Writer) error {
 
 // addBpftoolInfo adds information about loaded eBPF maps and programs
 func (s *bugtoolInfo) addBpftoolInfo(tarWriter *tar.Writer) {
-	if s.info.BpfToolPath == "" {
+	if s.info.BPFToolPath == "" {
 		s.multiLog.Warn("Failed to locate bpftool, please install it and specify its path")
 		return
 	}
 
-	_, err := os.Stat(s.info.BpfToolPath)
+	_, err := os.Stat(s.info.BPFToolPath)
 	if err != nil {
 		s.multiLog.WithError(err).Warn("Failed to locate bpftool. Please install it or specify its path, see 'bugtool --help'")
 		return
 	}
-	s.execCmd(tarWriter, "bpftool-maps.json", s.info.BpfToolPath, "map", "show", "-j")
-	s.execCmd(tarWriter, "bpftool-progs.json", s.info.BpfToolPath, "prog", "show", "-j")
-	s.execCmd(tarWriter, "bpftool-cgroups.json", s.info.BpfToolPath, "cgroup", "tree", "-j")
+	s.execCmd(tarWriter, "bpftool-maps.json", s.info.BPFToolPath, "map", "show", "-j")
+	s.execCmd(tarWriter, "bpftool-progs.json", s.info.BPFToolPath, "prog", "show", "-j")
+	s.execCmd(tarWriter, "bpftool-cgroups.json", s.info.BPFToolPath, "cgroup", "tree", "-j")
 }
 
 func (s *bugtoolInfo) getPProf(tarWriter *tar.Writer, file string) error {

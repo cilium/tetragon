@@ -15,9 +15,9 @@ const (
 	// ContainerIDLength is the standard length of the Container ID
 	ContainerIDLength = 64
 
-	// BpfContainerIDLength Minimum 31 chars to assume it is a Container ID
+	// BPFContainerIDLength Minimum 31 chars to assume it is a Container ID
 	// in case it was truncated
-	BpfContainerIDLength = 31
+	BPFContainerIDLength = 31
 )
 
 // ProcsContainerIDOffset Returns the container ID and its offset
@@ -83,11 +83,11 @@ func LookupContainerID(cgroup string, bpfSource bool, walkParent bool) (string, 
 	// walkParent argument set and get its parent cgroup
 	if !strings.HasSuffix(container, "service") &&
 		((len(container) >= ContainerIDLength) ||
-			(idTruncated && len(container) >= BpfContainerIDLength)) {
+			(idTruncated && len(container) >= BPFContainerIDLength)) {
 		// Return first 31 chars. If the string is less than 31 chars
 		// it's not a docker ID so skip it. For example docker.server
 		// will get here.
-		return container[:BpfContainerIDLength], i
+		return container[:BPFContainerIDLength], i
 	}
 
 	// Podman may set the last subdir to 'container' so let's walk parent subdir
@@ -108,7 +108,7 @@ func LookupContainerID(cgroup string, bpfSource bool, walkParent bool) (string, 
 			// Return first 31 chars. If the string is less than 31 chars
 			// it's not a docker ID so skip it. For example docker.server
 			// will get here.
-			return container[:BpfContainerIDLength], i
+			return container[:BPFContainerIDLength], i
 		}
 	}
 

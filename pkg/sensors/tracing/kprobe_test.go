@@ -4276,7 +4276,7 @@ spec:
 	if err != nil {
 		return err
 	}
-	err = sens.Load(option.Config.BpfDir)
+	err = sens.Load(option.Config.BPFDir)
 	if err != nil {
 		return err
 	}

@@ -62,7 +62,7 @@ func TestMain(m *testing.M) {
 
 func Test_msgToExecveKubeUnix(t *testing.T) {
 	event := processapi.MsgExecveEvent{}
-	idLength := procevents.BpfContainerIDLength
+	idLength := procevents.BPFContainerIDLength
 
 	// Minikube has "docker-" prefix.
 	prefix := "docker-"

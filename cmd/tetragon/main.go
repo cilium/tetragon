@@ -157,7 +157,7 @@ func stopProfile() {
 	}
 }
 
-func getOldBpfDir(path string) (string, error) {
+func getOldBPFDir(path string) (string, error) {
 	// sysfs directory will be removed, so we don't care
 	if option.Config.ReleasePinned {
 		return "", nil
@@ -178,7 +178,7 @@ func getOldBpfDir(path string) (string, error) {
 	return old, nil
 }
 
-func deleteOldBpfDir(path string) {
+func deleteOldBPFDir(path string) {
 	if path == "" {
 		return
 	}
@@ -296,7 +296,7 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	bpf.CheckOrMountFS("")
 	bpf.CheckOrMountDebugFS()
 	bpf.CheckOrMountCgroup2()
-	bpf.SetMapPrefix(option.Config.BpfDir)
+	bpf.SetMapPrefix(option.Config.BPFDir)
 
 	// We try to detect previous instance, which might be there for legitimate reasons
 	// (--keep-sensors-on-exit) and rename to 'tetragon_old'.
@@ -305,7 +305,7 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	// If there's --release-pinned-bpf option enabled, we need to remove previous sysfs
 	// instance right away (see check for option.Config.ReleasePinned below), so we don't
 	// bother renaming in that case.
-	oldBpfDir, err := getOldBpfDir(bpf.MapPrefixPath())
+	oldBPFDir, err := getOldBPFDir(bpf.MapPrefixPath())
 	if err != nil {
 		return fmt.Errorf("failed to move old tetragon base directory: %w", err)
 	}
@@ -343,7 +343,7 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 
 	// Get observer bpf maps and programs directory
 	observerDir := getObserverDir()
-	option.Config.BpfDir = observerDir
+	option.Config.BPFDir = observerDir
 
 	// Check if option to remove old BPF and maps is enabled.
 	if option.Config.ReleasePinned {
@@ -393,7 +393,7 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	}
 
 	// Probe runtime configuration and do not fail on errors
-	obs.UpdateRuntimeConf(option.Config.BpfDir)
+	obs.UpdateRuntimeConf(option.Config.BPFDir)
 
 	// Initialize a k8s watcher used to retrieve process metadata. This should
 	// happen before the sensors are loaded, otherwise events will be stuck
@@ -510,7 +510,7 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		}
 	}
 
-	obs.LogPinnedBpf(observerDir)
+	obs.LogPinnedBPF(observerDir)
 
 	if err = procevents.GetRunningProcs(); err != nil {
 		return err
@@ -534,7 +534,7 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		}
 	}
 
-	deleteOldBpfDir(oldBpfDir)
+	deleteOldBPFDir(oldBPFDir)
 
 	// k8s should have metrics, so periodically log only in a non k8s
 	if !option.Config.EnableK8s {

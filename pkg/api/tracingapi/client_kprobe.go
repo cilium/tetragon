@@ -501,13 +501,13 @@ func (m MsgGenericKprobeArgKernelModule) IsReturnArg() bool {
 	return m.Index == ReturnArgIndex
 }
 
-type MsgGenericKprobeBpfAttr struct {
+type MsgGenericKprobeBPFAttr struct {
 	ProgType uint32
 	InsnCnt  uint32
 	ProgName [BPF_OBJ_NAME_LEN]byte
 }
 
-type MsgGenericKprobeArgBpfAttr struct {
+type MsgGenericKprobeArgBPFAttr struct {
 	Index    uint64
 	ProgType uint32
 	InsnCnt  uint32
@@ -515,11 +515,11 @@ type MsgGenericKprobeArgBpfAttr struct {
 	Label    string
 }
 
-func (m MsgGenericKprobeArgBpfAttr) GetIndex() uint64 {
+func (m MsgGenericKprobeArgBPFAttr) GetIndex() uint64 {
 	return m.Index
 }
 
-func (m MsgGenericKprobeArgBpfAttr) IsReturnArg() bool {
+func (m MsgGenericKprobeArgBPFAttr) IsReturnArg() bool {
 	return m.Index == ReturnArgIndex
 }
 
@@ -547,7 +547,7 @@ func (m MsgGenericKprobeArgPerfEvent) IsReturnArg() bool {
 	return m.Index == ReturnArgIndex
 }
 
-type MsgGenericKprobeBpfMap struct {
+type MsgGenericKprobeBPFMap struct {
 	MapType    uint32
 	KeySize    uint32
 	ValueSize  uint32
@@ -555,7 +555,7 @@ type MsgGenericKprobeBpfMap struct {
 	MapName    [BPF_OBJ_NAME_LEN]byte
 }
 
-type MsgGenericKprobeArgBpfMap struct {
+type MsgGenericKprobeArgBPFMap struct {
 	MapType    uint32
 	Index      uint64
 	KeySize    uint32
@@ -565,11 +565,11 @@ type MsgGenericKprobeArgBpfMap struct {
 	Label      string
 }
 
-func (m MsgGenericKprobeArgBpfMap) GetIndex() uint64 {
+func (m MsgGenericKprobeArgBPFMap) GetIndex() uint64 {
 	return m.Index
 }
 
-func (m MsgGenericKprobeArgBpfMap) IsReturnArg() bool {
+func (m MsgGenericKprobeArgBPFMap) IsReturnArg() bool {
 	return m.Index == ReturnArgIndex
 }
 
