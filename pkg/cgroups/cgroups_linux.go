@@ -494,7 +494,7 @@ func getValidCgroupv2Path(cgroupPaths []string) (string, error) {
 	return "", errors.New("could not validate Cgroupv2 hierarchy")
 }
 
-func getPidCgroupPaths(pid uint32) ([]string, error) {
+func getPIDCgroupPaths(pid uint32) ([]string, error) {
 	file := filepath.Join(option.Config.ProcFS, strconv.FormatUint(uint64(pid), 10), "cgroup")
 
 	cgroups, err := os.ReadFile(file)
@@ -514,7 +514,7 @@ func findMigrationPath(pid uint32) (string, error) {
 		return cgrpMigrationPath, nil
 	}
 
-	cgroupPaths, err := getPidCgroupPaths(pid)
+	cgroupPaths, err := getPIDCgroupPaths(pid)
 	if err != nil {
 		logger.GetLogger().Warn(fmt.Sprintf("Unable to get Cgroup paths for pid=%d", pid), "cgroup.fs", cgroupFSPath, logfields.Error, err)
 		return "", err

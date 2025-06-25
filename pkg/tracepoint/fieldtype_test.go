@@ -35,7 +35,7 @@ func TestTracepointFieldParsing(t *testing.T) {
 			"pid_t pid",
 			&Field{
 				Name: "pid",
-				Type: PidTy{},
+				Type: PIDTy{},
 			},
 		}, {
 			"char comm[16]",

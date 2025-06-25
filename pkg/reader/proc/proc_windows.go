@@ -169,12 +169,12 @@ func GetProcStatStrings(_ string) ([]string, error) {
 	return nil, constants.ErrWindowsNotSupported
 }
 
-// GetSelfPid() Get current pid
+// GetSelfPID() Get current pid
 //
 // Returns:
 //
 //	Current pid from procfs and nil on success
 //	Zero and error on failure
-func GetSelfPid(_ string) (uint64, error) {
+func GetSelfPID(_ string) (uint64, error) {
 	return uint64(windows.GetCurrentProcessId()), nil
 }

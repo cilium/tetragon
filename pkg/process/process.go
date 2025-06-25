@@ -263,7 +263,7 @@ func GetExecID(proc *tetragonAPI.MsgProcess) string {
 }
 
 func GetExecIDFromKey(key *tetragonAPI.MsgExecveKey) string {
-	return GetProcessID(key.Pid, key.Ktime)
+	return GetProcessID(key.PID, key.Ktime)
 }
 
 // initProcessInternalExec() initialize and returns ProcessInternal and
@@ -275,7 +275,7 @@ func initProcessInternalExec(
 	process := event.Process
 	args, cwd := ArgsDecoder(process.Args, process.Flags)
 	var parentExecID string
-	if parent.Pid != 0 {
+	if parent.PID != 0 {
 		parentExecID = GetExecIDFromKey(&parent)
 	} else {
 		parentExecID = GetProcessID(0, 1)
@@ -348,7 +348,7 @@ func initProcessInternalExec(
 			"event.parent.exec_id", parentExecID)
 		// Explicitly reset TID to be PID
 		process.TID = process.PID
-		errormetrics.ErrorTotalInc(errormetrics.ProcessPidTidMismatch)
+		errormetrics.ErrorTotalInc(errormetrics.ProcessPIDTidMismatch)
 	}
 
 	if fieldfilters.RedactionFilters != nil {
@@ -409,7 +409,7 @@ func initProcessInternalClone(event *tetragonAPI.MsgCloneEvent,
 		logger.GetLogger().Debug("CloneEvent: parent process information is missing",
 			logfields.Error, err,
 			"event.name", "Clone",
-			"event.parent.pid", event.Parent.Pid,
+			"event.parent.pid", event.Parent.PID,
 			"event.parent.exec_id", parentExecID)
 		return nil, err
 	}
@@ -427,7 +427,7 @@ func initProcessInternalClone(event *tetragonAPI.MsgCloneEvent,
 			"event.process.tid", event.TID,
 			"event.process.exec_id", pi.process.ExecId,
 			"event.parent.exec_id", parentExecID)
-		errormetrics.ErrorTotalInc(errormetrics.ProcessPidTidMismatch)
+		errormetrics.ErrorTotalInc(errormetrics.ProcessPIDTidMismatch)
 	}
 	// Set the TID here and if we have an exit without an exec we report
 	// directly this TID without copying again objects.
@@ -527,13 +527,13 @@ func AddExecEvent(event *tetragonAPI.MsgExecveEventUnix) *ProcessInternal {
 
 // AddCloneEvent adds a new process into the cache from a CloneEvent
 func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) (*ProcessInternal, error) {
-	parentExecID := GetProcessID(event.Parent.Pid, event.Parent.Ktime)
+	parentExecID := GetProcessID(event.Parent.PID, event.Parent.Ktime)
 	parent, err := Get(parentExecID)
 	if err != nil {
 		logger.GetLogger().Debug("CloneEvent: parent process not found in cache",
 			logfields.Error, err,
 			"event.name", "Clone",
-			"event.parent.pid", event.Parent.Pid,
+			"event.parent.pid", event.Parent.PID,
 			"event.parent.exec_id", parentExecID)
 		return nil, err
 	}

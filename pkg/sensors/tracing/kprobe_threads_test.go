@@ -97,7 +97,7 @@ spec:
 
 	parentCheck := ec.NewProcessChecker().
 		WithBinary(sm.Suffix("threads-tester")).
-		WithPid(cti.ParentPid).
+		WithPid(cti.ParentPID).
 		WithTid(cti.ParentTid).
 		WithCap(myCaps).
 		WithNs(myNs)
@@ -110,7 +110,7 @@ spec:
 
 	child1Checker := ec.NewProcessChecker().
 		WithBinary(sm.Suffix("threads-tester")).
-		WithPid(cti.Child1Pid).
+		WithPid(cti.Child1PID).
 		WithTid(cti.Child1Tid).
 		WithCap(myCaps).
 		WithNs(myNs)
@@ -120,7 +120,7 @@ spec:
 
 	thread1Checker := ec.NewProcessChecker().
 		WithBinary(sm.Suffix("threads-tester")).
-		WithPid(cti.Thread1Pid).
+		WithPid(cti.Thread1PID).
 		WithTid(cti.Thread1Tid).
 		WithCap(myCaps).
 		WithNs(myNs)

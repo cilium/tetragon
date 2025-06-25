@@ -54,7 +54,7 @@ func GetStatsKtime(s []string) (uint64, error) {
 	return ktime * (nanoPerSeconds / clktck), nil
 }
 
-func GetProcPid(pid string) (uint64, error) {
+func GetProcPID(pid string) (uint64, error) {
 	return strconv.ParseUint(pid, 10, 32)
 }
 

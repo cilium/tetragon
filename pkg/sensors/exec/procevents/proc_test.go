@@ -37,9 +37,9 @@ func TestProcsContainerIdOffset(t *testing.T) {
 }
 
 func TestProcsContainerId(t *testing.T) {
-	myPid := uint32(os.Getpid())
+	myPID := uint32(os.Getpid())
 
-	s, e := procsDockerID(myPid)
+	s, e := procsDockerID(myPID)
 	// This is not in a docker-cgroup so we have no info
 	assert.Empty(t, s, "No cgroup info here")
 	require.NoError(t, e)

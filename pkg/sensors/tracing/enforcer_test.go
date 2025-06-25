@@ -72,7 +72,7 @@ func testEnforcer(t *testing.T, configHook string,
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -271,7 +271,7 @@ func testSecurity(t *testing.T, tracingPolicy, tempFile string) {
 	createCrdFile(t, tracingPolicy)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile,
-		tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+		tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}

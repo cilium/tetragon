@@ -34,7 +34,7 @@ func TestKprobeTraceCommitCreds(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	t.Logf("tester pid=%s\n", pidStr)
 
 	credshook_ := `
@@ -62,7 +62,7 @@ spec:
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -183,7 +183,7 @@ func TestKprobeTraceSecureBits(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	t.Logf("tester pid=%s\n", pidStr)
 
 	credshook_ := `
@@ -211,7 +211,7 @@ spec:
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}

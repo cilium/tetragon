@@ -72,10 +72,10 @@ type TestOptions struct {
 type TestOption func(*TestOptions)
 
 // Filter for the gotest process and its children in the export
-func WithMyPid() TestOption {
+func WithMyPID() TestOption {
 	return func(o *TestOptions) {
 		o.exporter.allowList = append(o.exporter.allowList, &tetragon.Filter{
-			PidSet: []uint32{GetMyPid()},
+			PidSet: []uint32{GetMyPID()},
 		})
 	}
 }
@@ -543,6 +543,6 @@ func GetDefaultObserverWithConfig(tb testing.TB, ctx context.Context, config, li
 	return GetDefaultObserverWithWatchers(tb, ctx, b, opts...)
 }
 
-func GetMyPid() uint32 {
-	return namespace.GetMyPidG()
+func GetMyPID() uint32 {
+	return namespace.GetMyPIDG()
 }

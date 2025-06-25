@@ -89,7 +89,7 @@ spec:
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
-	sens, err = observertesthelper.GetDefaultSensorsWithFile(t, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	sens, err = observertesthelper.GetDefaultSensorsWithFile(t, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -135,7 +135,7 @@ spec:
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -150,7 +150,7 @@ spec:
 	require.NoError(t, err)
 }
 
-func uprobePidMatch(t *testing.T, pid uint32) error {
+func uprobePIDMatch(t *testing.T, pid uint32) error {
 	path, err := os.Executable()
 	require.NoError(t, err)
 
@@ -192,7 +192,7 @@ spec:
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -205,12 +205,12 @@ spec:
 }
 
 func TestUprobePidMatch(t *testing.T) {
-	err := uprobePidMatch(t, observertesthelper.GetMyPid())
+	err := uprobePIDMatch(t, observertesthelper.GetMyPID())
 	require.NoError(t, err)
 }
 
 func TestUprobePidMatchNot(t *testing.T) {
-	err := uprobePidMatch(t, observertesthelper.GetMyPid()+1)
+	err := uprobePIDMatch(t, observertesthelper.GetMyPID()+1)
 	require.Error(t, err)
 }
 
@@ -253,7 +253,7 @@ spec:
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -345,7 +345,7 @@ spec:
 
 	parentCheck := ec.NewProcessChecker().
 		WithBinary(sm.Full(testBin)).
-		WithPid(cti.ParentPid).
+		WithPid(cti.ParentPID).
 		WithTid(cti.ParentTid)
 
 	execCheck := ec.NewProcessExecChecker("").
@@ -356,7 +356,7 @@ spec:
 
 	child1Checker := ec.NewProcessChecker().
 		WithBinary(sm.Full(testBin)).
-		WithPid(cti.Child1Pid).
+		WithPid(cti.Child1PID).
 		WithTid(cti.Child1Tid)
 
 	child1UpChecker := ec.NewProcessUprobeChecker("").
@@ -366,7 +366,7 @@ spec:
 
 	thread1Checker := ec.NewProcessChecker().
 		WithBinary(sm.Full(testBin)).
-		WithPid(cti.Thread1Pid).
+		WithPid(cti.Thread1PID).
 		WithTid(cti.Thread1Tid)
 
 	thread1UpChecker := ec.NewProcessUprobeChecker("").
@@ -594,7 +594,7 @@ func testUprobeArgs(t *testing.T, checkers [5]*ec.ProcessUprobeChecker, tp traci
 	defer cancel()
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile,
-		tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+		tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}

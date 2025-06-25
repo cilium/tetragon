@@ -129,8 +129,8 @@ const (
 	namespaceTypeUts             = 0
 	namespaceTypeIpc             = 1
 	namespaceTypeMnt             = 2
-	namespaceTypePid             = 3
-	namespaceTypePidForChildren  = 4
+	namespaceTypePID             = 3
+	namespaceTypePIDForChildren  = 4
 	namespaceTypeNet             = 5
 	namespaceTypeTime            = 6
 	namespaceTypeTimeForChildren = 7
@@ -142,8 +142,8 @@ var namespaceTypeTable = map[string]uint32{
 	"uts":             namespaceTypeUts,
 	"ipc":             namespaceTypeIpc,
 	"mnt":             namespaceTypeMnt,
-	"pid":             namespaceTypePid,
-	"pidforchildren":  namespaceTypePidForChildren,
+	"pid":             namespaceTypePID,
+	"pidforchildren":  namespaceTypePIDForChildren,
 	"net":             namespaceTypeNet,
 	"time":            namespaceTypeTime,
 	"timeforchildren": namespaceTypeTimeForChildren,
@@ -297,7 +297,7 @@ func SelectorOp(op string) (uint32, error) {
 }
 
 const (
-	pidNamespacePid = 0x1
+	pidNamespacePID = 0x1
 	pidFollowForks  = 0x2
 )
 
@@ -305,7 +305,7 @@ func pidSelectorFlags(pid *v1alpha1.PIDSelector) uint32 {
 	flags := uint32(0)
 
 	if pid.IsNamespacePID {
-		flags |= pidNamespacePid
+		flags |= pidNamespacePID
 	}
 	if pid.FollowForks {
 		flags |= pidFollowForks
@@ -323,7 +323,7 @@ func pidSelectorValue(pid *v1alpha1.PIDSelector) ([]byte, uint32) {
 	return b, uint32(len(b))
 }
 
-func ParseMatchPid(k *KernelSelectorState, pid *v1alpha1.PIDSelector) error {
+func ParseMatchPID(k *KernelSelectorState, pid *v1alpha1.PIDSelector) error {
 	op, err := SelectorOp(pid.Operator)
 	if err != nil {
 		return fmt.Errorf("matchpid error: %w", err)
@@ -342,7 +342,7 @@ func ParseMatchPid(k *KernelSelectorState, pid *v1alpha1.PIDSelector) error {
 func ParseMatchPids(k *KernelSelectorState, matchPids []v1alpha1.PIDSelector) error {
 	loff := AdvanceSelectorLength(&k.data)
 	for _, p := range matchPids {
-		if err := ParseMatchPid(k, &p); err != nil {
+		if err := ParseMatchPID(k, &p); err != nil {
 			return err
 		}
 	}
@@ -1151,7 +1151,7 @@ func ParseMatchCaps(k *KernelSelectorState, action *v1alpha1.CapabilitiesSelecto
 		//     ignoring the user_namespace value.
 		// To implement this we pass the "/proc/1/ns/user" value as the host
 		// user namespace to compare with that inside the kernel.
-		isns, err = namespace.GetPidNsInode(1, "user")
+		isns, err = namespace.GetPIDNsInode(1, "user")
 		if err != nil {
 			return fmt.Errorf("matchCapabilities reading pid 1 user namespace failed: %w", err)
 		}

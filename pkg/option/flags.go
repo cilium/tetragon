@@ -102,7 +102,7 @@ const (
 	KeyEnablePolicyFilterCgroupMap = "enable-policy-filter-cgroup-map"
 	KeyEnablePolicyFilterDebug     = "enable-policy-filter-debug"
 
-	KeyEnablePidSetFilter = "enable-pid-set-filter"
+	KeyEnablePIDSetFilter = "enable-pid-set-filter"
 
 	KeyEnableMsgHandlingLatency = "enable-msg-handling-latency"
 
@@ -247,7 +247,7 @@ func ReadAndSetFlags() error {
 	Config.EnablePolicyFilterDebug = viper.GetBool(KeyEnablePolicyFilterDebug)
 	Config.EnableMsgHandlingLatency = viper.GetBool(KeyEnableMsgHandlingLatency)
 
-	Config.EnablePidSetFilter = viper.GetBool(KeyEnablePidSetFilter)
+	Config.EnablePIDSetFilter = viper.GetBool(KeyEnablePIDSetFilter)
 
 	Config.TracingPolicyDir = viper.GetString(KeyTracingPolicyDir)
 
@@ -459,7 +459,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Bool(KeyEnablePolicyFilterDebug, false, "Enable policy filter debug messages")
 
 	// Provide option to enable the pidSet export filters.
-	flags.Bool(KeyEnablePidSetFilter, false, "Enable pidSet export filters. Not recommended for production use")
+	flags.Bool(KeyEnablePIDSetFilter, false, "Enable pidSet export filters. Not recommended for production use")
 
 	flags.Bool(KeyEnableMsgHandlingLatency, false, "Enable metrics for message handling latency")
 

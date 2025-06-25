@@ -38,7 +38,7 @@ const (
 type MsgLoader struct {
 	Common      processapi.MsgCommon
 	ProcessKey  processapi.MsgExecveKey
-	Pid         uint32
+	PID         uint32
 	BuildIDSize uint32
 	PathSize    uint32
 	BuildID     [20]byte

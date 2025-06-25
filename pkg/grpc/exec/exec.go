@@ -33,7 +33,7 @@ func (msg *MsgExecveEventUnix) getCleanupEvent() *MsgProcessCleanupEventUnix {
 		return nil
 	}
 	return &MsgProcessCleanupEventUnix{
-		PID:   msg.Unix.Msg.CleanupProcess.Pid,
+		PID:   msg.Unix.Msg.CleanupProcess.PID,
 		Ktime: msg.Unix.Msg.CleanupProcess.Ktime,
 	}
 }
@@ -81,7 +81,7 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 	}
 
 	if tetragonProcess.Pid == nil {
-		eventcache.CacheErrors(eventcache.NilProcessPid, notify.EventType(tetragonEvent)).Inc()
+		eventcache.CacheErrors(eventcache.NilProcessPID, notify.EventType(tetragonEvent)).Inc()
 		return nil
 	}
 
@@ -408,12 +408,12 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 	var tetragonAncestors []*tetragon.Process
 	var ancestors []*process.ProcessInternal
 
-	proc, parent := process.GetParentProcessInternal(event.ProcessKey.Pid, event.ProcessKey.Ktime)
+	proc, parent := process.GetParentProcessInternal(event.ProcessKey.PID, event.ProcessKey.Ktime)
 	if proc != nil {
 		tetragonProcess = proc.UnsafeGetProcess()
 	} else {
 		tetragonProcess = &tetragon.Process{
-			Pid:       &wrapperspb.UInt32Value{Value: event.ProcessKey.Pid},
+			Pid:       &wrapperspb.UInt32Value{Value: event.ProcessKey.PID},
 			StartTime: ktime.ToProto(event.ProcessKey.Ktime),
 		}
 	}
@@ -464,10 +464,10 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 	if tetragonProcess.Pid.GetValue() != event.Info.Tid {
 		logger.GetLogger().Warn("ExitEvent: process PID and TID mismatch",
 			"event.name", "Exit",
-			"event.process.pid", event.ProcessKey.Pid,
+			"event.process.pid", event.ProcessKey.PID,
 			"event.process.tid", event.Info.Tid,
 			"event.process.binary", tetragonProcess.Binary)
-		errormetrics.ErrorTotalInc(errormetrics.ProcessPidTidMismatch)
+		errormetrics.ErrorTotalInc(errormetrics.ProcessPIDTidMismatch)
 	}
 
 	tetragonEvent := &tetragon.ProcessExit{
@@ -480,7 +480,7 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 	}
 
 	if tetragonProcess.Pid == nil {
-		eventcache.CacheErrors(eventcache.NilProcessPid, notify.EventType(tetragonEvent)).Inc()
+		eventcache.CacheErrors(eventcache.NilProcessPID, notify.EventType(tetragonEvent)).Inc()
 		return nil
 	}
 
@@ -516,7 +516,7 @@ func (msg *MsgExitEventUnix) Notify() bool {
 }
 
 func (msg *MsgExitEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
-	proc, parent := process.GetParentProcessInternal(msg.ProcessKey.Pid, timestamp)
+	proc, parent := process.GetParentProcessInternal(msg.ProcessKey.PID, timestamp)
 	var err error
 
 	if option.Config.EnableProcessAncestors && proc.NeededAncestors() && !msg.RefCntDone[AncestorsRefCnt] {

@@ -250,9 +250,9 @@ func TestTracepointSelectors(t *testing.T) {
 
 func selectorsFromWhenceVals(t *testing.T, filterWhenceVals [][]int, whenceIdx uint32, filterOperator string) []v1alpha1.KProbeSelector {
 	sels := []v1alpha1.KProbeSelector{}
-	mypid := int(observertesthelper.GetMyPid())
+	mypid := int(observertesthelper.GetMyPID())
 	t.Logf("filtering for my pid (%d)", mypid)
-	myPidMatchPIDs := []v1alpha1.PIDSelector{{
+	myPIDMatchPIDs := []v1alpha1.PIDSelector{{
 		Operator:       "In",
 		IsNamespacePID: false,
 		FollowForks:    true,
@@ -265,7 +265,7 @@ func selectorsFromWhenceVals(t *testing.T, filterWhenceVals [][]int, whenceIdx u
 			whences[i] = strconv.Itoa(whenceVals[i])
 		}
 		sels = append(sels, v1alpha1.KProbeSelector{
-			MatchPIDs: myPidMatchPIDs,
+			MatchPIDs: myPIDMatchPIDs,
 			MatchArgs: []v1alpha1.ArgSelector{{
 				Index:    whenceIdx,
 				Operator: filterOperator,
@@ -276,7 +276,7 @@ func selectorsFromWhenceVals(t *testing.T, filterWhenceVals [][]int, whenceIdx u
 
 	if len(sels) == 0 {
 		sel := v1alpha1.KProbeSelector{
-			MatchPIDs: myPidMatchPIDs,
+			MatchPIDs: myPIDMatchPIDs,
 		}
 
 		sels = append(sels, sel)

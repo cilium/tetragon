@@ -39,7 +39,7 @@ func NewLseekPipe(t *testing.T, ctx context.Context) *LseekPipeCmd {
 
 //revive:enable:context-as-argument
 
-func (lp *LseekPipeCmd) Pid() int {
+func (lp *LseekPipeCmd) PID() int {
 	return lp.Cmd.Process.Pid
 }
 

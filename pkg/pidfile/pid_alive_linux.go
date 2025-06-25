@@ -10,7 +10,7 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 )
 
-func isPidAlive(pid string) bool {
+func isPIDAlive(pid string) bool {
 	_, err := os.Stat(filepath.Join(option.Config.ProcFS, pid))
 	return err == nil
 }

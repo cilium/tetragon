@@ -132,8 +132,8 @@ func TestNamespacedPolicies(t *testing.T) {
 	lseekPipeCmd2 := testutils.NewLseekPipe(t, ctx)
 	cgDir1 := fmt.Sprintf("%s.cgroup1.%s.slice", t.Name(), time.Now().Format("20060102150405"))
 	cgDir2 := fmt.Sprintf("%s.cgroup2.%s.slice", t.Name(), time.Now().Format("20060102150405"))
-	cgID1 := createCgroup(t, cgDir1, uint64(lseekPipeCmd1.Pid()))
-	cgID2 := createCgroup(t, cgDir2, uint64(lseekPipeCmd2.Pid()))
+	cgID1 := createCgroup(t, cgDir1, uint64(lseekPipeCmd1.PID()))
+	cgID2 := createCgroup(t, cgDir2, uint64(lseekPipeCmd2.PID()))
 
 	// The idea of the test is to execute invalid lseek operations and see what events we
 	// create. The first process will run an lseek with fd=-42 and whence=4444, and the second

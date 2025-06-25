@@ -140,14 +140,14 @@ func procKernel() procs {
 	kernelArgs := []byte("<kernel>\u0000")
 	return procs{
 		psize:       uint32(processapi.MSG_SIZEOF_EXECVE + len(kernelArgs) + processapi.MSG_SIZEOF_CWD),
-		ppid:        kernelPid,
+		ppid:        kernelPID,
 		pnspid:      0,
 		pflags:      api.EventProcFS,
 		pktime:      1,
 		pexe:        kernelArgs,
 		size:        uint32(processapi.MSG_SIZEOF_EXECVE + len(kernelArgs) + processapi.MSG_SIZEOF_CWD),
-		pid:         kernelPid,
-		tid:         kernelPid,
+		pid:         kernelPID,
+		tid:         kernelPID,
 		nspid:       0,
 		auid:        proc.InvalidUID,
 		flags:       api.EventProcFS,

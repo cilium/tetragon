@@ -6,7 +6,7 @@ package dataapi
 import "github.com/cilium/tetragon/pkg/api/processapi"
 
 type DataEventID struct {
-	Pid  uint64
+	PID  uint64
 	Time uint64
 }
 

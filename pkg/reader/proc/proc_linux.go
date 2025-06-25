@@ -129,13 +129,13 @@ func GetProcStatStrings(file string) ([]string, error) {
 	return getProcStatStrings(string(statline)), nil
 }
 
-// GetSelfPid() Get current pid
+// GetSelfPID() Get current pid
 //
 // Returns:
 //
 //	Current pid from procfs and nil on success
 //	Zero and error on failure
-func GetSelfPid(procfs string) (uint64, error) {
+func GetSelfPID(procfs string) (uint64, error) {
 	str, err := filepath.EvalSymlinks(filepath.Join(procfs, "self"))
 	if err != nil {
 		return 0, err

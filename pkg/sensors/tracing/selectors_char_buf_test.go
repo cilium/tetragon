@@ -30,7 +30,7 @@ func TestCharBufKprobe(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	mypid := int(observertesthelper.GetMyPid())
+	mypid := int(observertesthelper.GetMyPID())
 	t.Logf("filtering for my pid (%d)", mypid)
 
 	writeBufArgIdx := uint32(1)
@@ -102,7 +102,7 @@ func TestCharBufTracepoint(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	mypid := int(observertesthelper.GetMyPid())
+	mypid := int(observertesthelper.GetMyPID())
 	t.Logf("filtering for my pid (%d)", mypid)
 
 	writeBufArgIdx := uint32(6)

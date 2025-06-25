@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	kernelPid = uint32(0)
+	kernelPID = uint32(0)
 )
 
 func stringToUTF8(s []byte) []byte {
@@ -147,7 +147,7 @@ func pushExecveEvents(p procs) {
 		m.Unix.Msg.Kube = processapi.MsgK8s{}
 		m.Unix.Msg.CleanupProcess = processapi.MsgExecveKey{}
 
-		m.Unix.Msg.Parent.Pid = p.ppid
+		m.Unix.Msg.Parent.PID = p.ppid
 		m.Unix.Msg.Parent.Ktime = p.pktime
 
 		m.Unix.Msg.Creds.Cap = processapi.MsgCapabilities{}
@@ -191,7 +191,7 @@ func pushExecveEvents(p procs) {
 			}
 		}
 
-		m.Unix.Msg.Parent.Pid = p.ppid
+		m.Unix.Msg.Parent.PID = p.ppid
 		m.Unix.Msg.Parent.Ktime = p.pktime
 
 		caps := processapi.MsgCapabilities{
@@ -203,8 +203,8 @@ func pushExecveEvents(p procs) {
 		m.Unix.Msg.Namespaces.UtsInum = p.utsNs
 		m.Unix.Msg.Namespaces.IpcInum = p.ipcNs
 		m.Unix.Msg.Namespaces.MntInum = p.mntNs
-		m.Unix.Msg.Namespaces.PidInum = p.pidNs
-		m.Unix.Msg.Namespaces.PidChildInum = p.pidForChildrenNs
+		m.Unix.Msg.Namespaces.PIDInum = p.pidNs
+		m.Unix.Msg.Namespaces.PIDChildInum = p.pidForChildrenNs
 		m.Unix.Msg.Namespaces.NetInum = p.netNs
 		m.Unix.Msg.Namespaces.TimeInum = p.timeNs
 		m.Unix.Msg.Namespaces.TimeChildInum = p.timeForChildrenNs
@@ -243,12 +243,12 @@ func pushExecveEvents(p procs) {
 }
 
 func procToKeyValue(p procs, inInitTree map[uint32]struct{}) (*execvemap.ExecveKey, *execvemap.ExecveValue) {
-	k := &execvemap.ExecveKey{Pid: p.pid}
+	k := &execvemap.ExecveKey{PID: p.pid}
 	v := &execvemap.ExecveValue{}
 
-	v.Parent.Pid = p.ppid
+	v.Parent.PID = p.ppid
 	v.Parent.Ktime = p.pktime
-	v.Process.Pid = p.pid
+	v.Process.PID = p.pid
 	v.Process.Ktime = p.ktime
 	v.Flags = 0
 	v.Nspid = p.nspid
@@ -258,8 +258,8 @@ func procToKeyValue(p procs, inInitTree map[uint32]struct{}) (*execvemap.ExecveK
 	v.Namespaces.UtsInum = p.utsNs
 	v.Namespaces.IpcInum = p.ipcNs
 	v.Namespaces.MntInum = p.mntNs
-	v.Namespaces.PidInum = p.pidNs
-	v.Namespaces.PidChildInum = p.pidForChildrenNs
+	v.Namespaces.PIDInum = p.pidNs
+	v.Namespaces.PIDChildInum = p.pidForChildrenNs
 	v.Namespaces.NetInum = p.netNs
 	v.Namespaces.TimeInum = p.timeNs
 	v.Namespaces.TimeChildInum = p.timeForChildrenNs

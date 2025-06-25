@@ -36,14 +36,14 @@ func procKernel() procs {
 	kernelArgs := []byte("<kernel>\u0000")
 	return procs{
 		psize:       uint32(processapi.MSG_SIZEOF_EXECVE + len(kernelArgs) + processapi.MSG_SIZEOF_CWD),
-		ppid:        kernelPid,
+		ppid:        kernelPID,
 		pnspid:      0,
 		pflags:      api.EventProcFS,
 		pktime:      1,
 		pexe:        kernelArgs,
 		size:        uint32(processapi.MSG_SIZEOF_EXECVE + len(kernelArgs) + processapi.MSG_SIZEOF_CWD),
-		pid:         kernelPid,
-		tid:         kernelPid,
+		pid:         kernelPID,
+		tid:         kernelPID,
 		nspid:       0,
 		auid:        proc.InvalidUID,
 		flags:       api.EventProcFS,
@@ -110,12 +110,12 @@ func writeExecveMap(procs []procs) {
 		}
 	}
 	for _, p := range procs {
-		k := &execvemap.ExecveKey{Pid: p.pid}
+		k := &execvemap.ExecveKey{PID: p.pid}
 		v := &execvemap.ExecveValue{}
 
-		v.Parent.Pid = p.ppid
+		v.Parent.PID = p.ppid
 		v.Parent.Ktime = p.pktime
-		v.Process.Pid = p.pid
+		v.Process.PID = p.pid
 		v.Process.Ktime = p.ktime
 		v.Flags = 0
 		v.Nspid = p.nspid
@@ -125,8 +125,8 @@ func writeExecveMap(procs []procs) {
 		v.Namespaces.UtsInum = p.utsNs
 		v.Namespaces.IpcInum = p.ipcNs
 		v.Namespaces.MntInum = p.mntNs
-		v.Namespaces.PidInum = p.pidNs
-		v.Namespaces.PidChildInum = p.pidForChildrenNs
+		v.Namespaces.PIDInum = p.pidNs
+		v.Namespaces.PIDChildInum = p.pidForChildrenNs
 		v.Namespaces.NetInum = p.netNs
 		v.Namespaces.TimeInum = p.timeNs
 		v.Namespaces.TimeChildInum = p.timeForChildrenNs
@@ -144,12 +144,12 @@ func writeExecveMap(procs []procs) {
 	// execve lookup to map to a valid entry. So to simplify the kernel side
 	// and avoid having to add another branch of logic there to handle pid==0
 	// case we simply add it here.
-	m.Put(&execvemap.ExecveKey{Pid: kernelPid}, &execvemap.ExecveValue{
+	m.Put(&execvemap.ExecveKey{PID: kernelPID}, &execvemap.ExecveValue{
 		Parent: processapi.MsgExecveKey{
-			Pid:   kernelPid,
+			PID:   kernelPID,
 			Ktime: 1},
 		Process: processapi.MsgExecveKey{
-			Pid:   kernelPid,
+			PID:   kernelPID,
 			Ktime: 1,
 		},
 	})
@@ -204,7 +204,7 @@ func listRunningProcs(procPath string) ([]procs, error) {
 			kernelThread = true
 		}
 
-		pid, err := proc.GetProcPid(d.Name())
+		pid, err := proc.GetProcPID(d.Name())
 		if err != nil {
 			logger.GetLogger().Warn("pid read error", logfields.Error, err)
 			continue
@@ -254,49 +254,49 @@ func listRunningProcs(procPath string) ([]procs, error) {
 
 		nspid, permitted, effective, inheritable := caps.GetPIDCaps(filepath.Join(procPath, d.Name(), "status"))
 
-		utsNs, err := namespace.GetPidNsInode(uint32(pid), "uts")
+		utsNs, err := namespace.GetPIDNsInode(uint32(pid), "uts")
 		if err != nil {
 			logger.GetLogger().Warn("Reading uts namespace failed", logfields.Error, err)
 		}
-		ipcNs, err := namespace.GetPidNsInode(uint32(pid), "ipc")
+		ipcNs, err := namespace.GetPIDNsInode(uint32(pid), "ipc")
 		if err != nil {
 			logger.GetLogger().Warn("Reading ipc namespace failed", logfields.Error, err)
 		}
-		mntNs, err := namespace.GetPidNsInode(uint32(pid), "mnt")
+		mntNs, err := namespace.GetPIDNsInode(uint32(pid), "mnt")
 		if err != nil {
 			logger.GetLogger().Warn("Reading mnt namespace failed", logfields.Error, err)
 		}
-		pidNs, err := namespace.GetPidNsInode(uint32(pid), "pid")
+		pidNs, err := namespace.GetPIDNsInode(uint32(pid), "pid")
 		if err != nil {
 			logger.GetLogger().Warn("Reading pid namespace failed", logfields.Error, err)
 		}
-		pidForChildrenNs, err := namespace.GetPidNsInode(uint32(pid), "pid_for_children")
+		pidForChildrenNs, err := namespace.GetPIDNsInode(uint32(pid), "pid_for_children")
 		if err != nil && !pidForChildrenWarned {
 			logger.GetLogger().Warn("Reading pid_for_children namespace failed", logfields.Error, err)
 			pidForChildrenWarned = true
 		}
-		netNs, err := namespace.GetPidNsInode(uint32(pid), "net")
+		netNs, err := namespace.GetPIDNsInode(uint32(pid), "net")
 		if err != nil {
 			logger.GetLogger().Warn("Reading net namespace failed", logfields.Error, err)
 		}
 		timeNs := uint32(0)
 		timeForChildrenNs := uint32(0)
 		if namespace.TimeNsSupport {
-			timeNs, err = namespace.GetPidNsInode(uint32(pid), "time")
+			timeNs, err = namespace.GetPIDNsInode(uint32(pid), "time")
 			if err != nil {
 				logger.GetLogger().Warn("Reading time namespace failed", logfields.Error, err)
 			}
-			timeForChildrenNs, err = namespace.GetPidNsInode(uint32(pid), "time_for_children")
+			timeForChildrenNs, err = namespace.GetPIDNsInode(uint32(pid), "time_for_children")
 			if err != nil {
 				logger.GetLogger().Warn("Reading time_for_children namespace failed", logfields.Error, err)
 			}
 		}
-		cgroupNs, err := namespace.GetPidNsInode(uint32(pid), "cgroup")
+		cgroupNs, err := namespace.GetPIDNsInode(uint32(pid), "cgroup")
 		if err != nil && !cgroupNsWarned {
 			logger.GetLogger().Warn("Reading cgroup namespace failed", logfields.Error, err)
 			cgroupNsWarned = true
 		}
-		userNs, err := namespace.GetPidNsInode(uint32(pid), "user")
+		userNs, err := namespace.GetPIDNsInode(uint32(pid), "user")
 		if err != nil {
 			logger.GetLogger().Warn("Reading user namespace failed", logfields.Error, err)
 		}

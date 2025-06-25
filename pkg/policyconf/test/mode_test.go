@@ -194,7 +194,7 @@ func TestModeEnforcer(t *testing.T) {
 		require.Len(t, enfDump, 1)
 		require.Contains(t, cmdOut, "operation not permitted")
 		for key, val := range enfDump {
-			require.Equal(t, pid, int(key.PidTgid>>32))
+			require.Equal(t, pid, int(key.PIDTGID>>32))
 			require.Equal(t, int16(9), val.Sig)
 			break
 		}

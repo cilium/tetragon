@@ -68,7 +68,7 @@ func (fs FilterFuncs) MatchNone(ev *event.Event) bool {
 }
 
 // ParseFilterList parses a list of process filters in JSON format into protobuf messages.
-func ParseFilterList(filters string, enablePidSetFilters bool) ([]*tetragon.Filter, error) {
+func ParseFilterList(filters string, enablePIDSetFilters bool) ([]*tetragon.Filter, error) {
 	if filters == "" {
 		return nil, nil
 	}
@@ -82,7 +82,7 @@ func ParseFilterList(filters string, enablePidSetFilters bool) ([]*tetragon.Filt
 			}
 			return nil, err
 		}
-		if len(result.PidSet) != 0 && !enablePidSetFilters {
+		if len(result.PidSet) != 0 && !enablePIDSetFilters {
 			return nil, errors.New("pidSet filters use a best-effort approach for tracking PIDs and are intended for testing/development, not for production (pass the --enable-pid-set-filter to ignore)")
 		}
 		results = append(results, &result)
@@ -139,8 +139,8 @@ var Filters = []OnBuildFilter{
 	&AncestorBinaryRegexFilter{},
 	&HealthCheckFilter{},
 	&NamespaceFilter{},
-	&PidFilter{},
-	&PidSetFilter{},
+	&PIDFilter{},
+	&PIDSetFilter{},
 	&EventTypeFilter{},
 	&ArgumentsRegexFilter{},
 	&ParentArgumentsRegexFilter{},

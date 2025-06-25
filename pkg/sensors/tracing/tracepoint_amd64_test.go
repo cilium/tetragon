@@ -35,7 +35,7 @@ func testListSyscallsDups(t *testing.T, checker *ec.UnorderedEventChecker, confi
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -55,8 +55,8 @@ func TestTracepointListSyscallDups(t *testing.T) {
 		t.Skip("TestCopyFd requires at least 5.3.0 version")
 	}
 
-	myPid := observertesthelper.GetMyPid()
-	pidStr := strconv.Itoa(int(myPid))
+	myPID := observertesthelper.GetMyPID()
+	pidStr := strconv.Itoa(int(myPID))
 	configHook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy

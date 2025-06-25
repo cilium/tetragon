@@ -384,11 +384,11 @@ func TestParseMatchPid(t *testing.T) {
 		0x02, 0x00, 0x00, 0x00, // Values[1] == 2
 		0x03, 0x00, 0x00, 0x00, // Values[2] == 3
 	}
-	if err := ParseMatchPid(k, pid1); err != nil || bytes.Equal(expected1, d.e[0:d.off]) == false {
+	if err := ParseMatchPID(k, pid1); err != nil || bytes.Equal(expected1, d.e[0:d.off]) == false {
 		t.Errorf("parseMatchPid: error %v expected %v bytes %v parsing %v\n", err, expected1, d.e[0:d.off], pid1)
 	}
 
-	nextPid := d.off
+	nextPID := d.off
 	pid2 := &v1alpha1.PIDSelector{Operator: "NotIn", Values: []uint32{1, 2, 3, 4}, IsNamespacePID: false, FollowForks: false}
 	expected2 := []byte{
 		0x06, 0x00, 0x00, 0x00, // op == NotIn
@@ -399,8 +399,8 @@ func TestParseMatchPid(t *testing.T) {
 		0x03, 0x00, 0x00, 0x00, // Values[2] == 3
 		0x04, 0x00, 0x00, 0x00, // Values[2] == 3
 	}
-	if err := ParseMatchPid(k, pid2); err != nil || bytes.Equal(expected2, d.e[nextPid:d.off]) == false {
-		t.Errorf("parseMatchPid: error %v expected %v bytes %v parsing %v\n", err, expected2, d.e[nextPid:d.off], pid2)
+	if err := ParseMatchPID(k, pid2); err != nil || bytes.Equal(expected2, d.e[nextPID:d.off]) == false {
+		t.Errorf("parseMatchPid: error %v expected %v bytes %v parsing %v\n", err, expected2, d.e[nextPID:d.off], pid2)
 	}
 
 	length := []byte{56, 0x00, 0x00, 0x00}
@@ -430,7 +430,7 @@ func TestParseMatchNamespaces(t *testing.T) {
 		t.Errorf("parseMatchNamespace: error %v expected %v bytes %v parsing %v\n", err, expected1, d.e[0:d.off], ns1)
 	}
 
-	nextPid := d.off
+	nextPID := d.off
 	ns2 := &v1alpha1.NamespaceSelector{Namespace: "Mnt", Operator: "NotIn", Values: []string{"1", "2", "3", "4"}}
 	expected2 := []byte{
 		0x02, 0x00, 0x00, 0x00, // namespace == Mnt
@@ -441,8 +441,8 @@ func TestParseMatchNamespaces(t *testing.T) {
 		0x03, 0x00, 0x00, 0x00, // Values[2] == 3
 		0x04, 0x00, 0x00, 0x00, // Values[2] == 3
 	}
-	if err := ParseMatchNamespace(k, ns2); err != nil || bytes.Equal(expected2, d.e[nextPid:d.off]) == false {
-		t.Errorf("parseMatchNamespace: error %v expected %v bytes %v parsing %v\n", err, expected2, d.e[nextPid:d.off], ns2)
+	if err := ParseMatchNamespace(k, ns2); err != nil || bytes.Equal(expected2, d.e[nextPID:d.off]) == false {
+		t.Errorf("parseMatchNamespace: error %v expected %v bytes %v parsing %v\n", err, expected2, d.e[nextPID:d.off], ns2)
 	}
 
 	length := []byte{56, 0x00, 0x00, 0x00}
@@ -483,7 +483,7 @@ func TestParseMatchCapabilities(t *testing.T) {
 		t.Errorf("parseMatchCaps: error %v expected %v bytes %v parsing %v\n", err, expected1, d.e[0:d.off], cap1)
 	}
 
-	nextPid := d.off
+	nextPID := d.off
 	cap2 := &v1alpha1.CapabilitiesSelector{Type: "Inheritable", Operator: "NotIn", IsNamespaceCapability: false, Values: []string{"CAP_SETPCAP", "CAP_SYS_ADMIN"}}
 	expected2 := []byte{
 		0x02, 0x00, 0x00, 0x00, // Type == Inheritable
@@ -491,8 +491,8 @@ func TestParseMatchCapabilities(t *testing.T) {
 		0x00, 0x00, 0x00, 0x00, // IsNamespaceCapability = false
 		0x00, 0x01, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, // Values (uint64)
 	}
-	if err := ParseMatchCaps(k, cap2); err != nil || bytes.Equal(expected2, d.e[nextPid:d.off]) == false {
-		t.Errorf("parseMatchCaps: error %v expected %v bytes %v parsing %v\n", err, expected2, d.e[nextPid:d.off], cap2)
+	if err := ParseMatchCaps(k, cap2); err != nil || bytes.Equal(expected2, d.e[nextPID:d.off]) == false {
+		t.Errorf("parseMatchCaps: error %v expected %v bytes %v parsing %v\n", err, expected2, d.e[nextPID:d.off], cap2)
 	}
 
 	length := []byte{44, 0x00, 0x00, 0x00}

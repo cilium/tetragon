@@ -17,7 +17,7 @@ var (
 	).SetPolicy(basePolicy)
 
 	ProcessRingBufMap = program.MapBuilder("process_ringbuf", CreateProcess)
-	ProcessPidMap     = program.MapBuilder("process_map", CreateProcess)
+	ProcessPIDMap     = program.MapBuilder("process_map", CreateProcess)
 	ProcessCmdMap     = program.MapBuilder("command_map", CreateProcess)
 )
 
@@ -32,7 +32,7 @@ func GetDefaultMaps() []*program.Map {
 	maps := []*program.Map{
 		ProcessRingBufMap,
 		ProcessCmdMap,
-		ProcessPidMap,
+		ProcessPIDMap,
 	}
 	return maps
 

@@ -156,7 +156,7 @@ func TestNamespaces(t *testing.T) {
 			WithParent(ec.NewProcessChecker()),
 	)
 
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
@@ -174,7 +174,7 @@ func TestEventExitThreads(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("Failed to run observer: %s", err)
 	}
@@ -259,7 +259,7 @@ func TestEventExecve(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("Failed to run observer: %s", err)
 	}
@@ -303,7 +303,7 @@ func TestEventExecveWithUsername(t *testing.T) {
 		!ns.Mnt.IsHost || !ns.User.IsHost {
 		t.Skip()
 	}
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("Failed to run observer: %s", err)
 	}
@@ -401,7 +401,7 @@ func TestEventExecveLongPath(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("Failed to run observer: %s", err)
 	}
@@ -425,7 +425,7 @@ func TestEventExecveLongArgs(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("Failed to run observer: %s", err)
 	}
@@ -546,7 +546,7 @@ func TestEventExecveLongPathLongArgs(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("Failed to run observer: %s", err)
 	}
@@ -842,7 +842,7 @@ func TestExecParse(t *testing.T) {
 		// - no args
 		// - cwd (string)
 
-		id := dataapi.DataEventID{Pid: 1, Time: 1}
+		id := dataapi.DataEventID{PID: 1, Time: 1}
 		desc := dataapi.DataEventDesc{Error: 0, Pad: 0, Leftover: 0, Size: uint32(len(filename[:])), ID: id}
 		err = observer.DataAdd(id, filename)
 		require.NoError(t, err)
@@ -881,7 +881,7 @@ func TestExecParse(t *testing.T) {
 		var args []byte
 		args = append(args, 'a', 'r', 'g', '1', 0, 'a', 'r', 'g', '2', 0)
 
-		id := dataapi.DataEventID{Pid: 1, Time: 2}
+		id := dataapi.DataEventID{PID: 1, Time: 2}
 		desc := dataapi.DataEventDesc{Error: 0, Pad: 0, Leftover: 0, Size: uint32(len(args[:])), ID: id}
 		err = observer.DataAdd(id, args)
 		require.NoError(t, err)
@@ -919,7 +919,7 @@ func TestExecParse(t *testing.T) {
 		// - args (data event)
 		// - cwd (string)
 
-		id1 := dataapi.DataEventID{Pid: 1, Time: 1}
+		id1 := dataapi.DataEventID{PID: 1, Time: 1}
 		desc1 := dataapi.DataEventDesc{Error: 0, Pad: 0, Leftover: 0, Size: uint32(len(filename[:])), ID: id1}
 		err = observer.DataAdd(id1, filename)
 		require.NoError(t, err)
@@ -927,7 +927,7 @@ func TestExecParse(t *testing.T) {
 		var args []byte
 		args = append(args, 'a', 'r', 'g', '1', 0, 'a', 'r', 'g', '2', 0)
 
-		id2 := dataapi.DataEventID{Pid: 1, Time: 2}
+		id2 := dataapi.DataEventID{PID: 1, Time: 2}
 		desc2 := dataapi.DataEventDesc{Error: 0, Pad: 0, Leftover: 0, Size: uint32(len(args[:])), ID: id2}
 		err = observer.DataAdd(id2, args)
 		require.NoError(t, err)
@@ -967,7 +967,7 @@ func TestExecParse(t *testing.T) {
 		filename := []byte{'p', 'i', 'z', 'z', 'a', '-', '\xc3', '\x28'}
 		cwd := []byte{'/', 'h', 'o', 'm', 'e', '/', '\xc3', '\x28'}
 
-		id := dataapi.DataEventID{Pid: 1, Time: 2}
+		id := dataapi.DataEventID{PID: 1, Time: 2}
 		desc := dataapi.DataEventDesc{Error: 0, Pad: 0, Leftover: 0, Size: uint32(len(args[:])), ID: id}
 		err = observer.DataAdd(id, args)
 		require.NoError(t, err)
@@ -1008,7 +1008,7 @@ func TestExecProcessCredentials(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("Failed to run observer: %s", err)
 	}
@@ -1078,7 +1078,7 @@ func TestExecProcessCredentialsSuidRootNoPrivsChange(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("Failed to run observer: %s", err)
 	}
@@ -1146,7 +1146,7 @@ func TestExecProcessCredentialsSetgidChanges(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("Failed to run observer: %s", err)
 	}
@@ -1263,7 +1263,7 @@ func TestExecProcessCredentialsSetuidChanges(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("Failed to run observer: %s", err)
 	}
@@ -1356,7 +1356,7 @@ func TestExecProcessCredentialsFileCapChanges(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("Failed to run observer: %s", err)
 	}
@@ -1419,7 +1419,7 @@ func TestExecInodeNotDeleted(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -1451,7 +1451,7 @@ func TestExecDeletedBinaryMemfd(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -1519,7 +1519,7 @@ func TestExecDeletedBinary(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}

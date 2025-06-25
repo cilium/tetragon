@@ -58,25 +58,25 @@ func TestFork(t *testing.T) {
 		t.Fatalf("command failed with %s. Context error: %v", err, ctx.Err())
 	}
 
-	if fti.parentPid == 0 {
+	if fti.parentPID == 0 {
 		t.Fatalf("failed to parse parent PID")
 	}
-	if fti.child1Pid == 0 {
+	if fti.child1PID == 0 {
 		t.Fatalf("failed to parse child1 PID")
 	}
-	if fti.child2Pid == 0 {
+	if fti.child2PID == 0 {
 		t.Fatalf("failed to parse child2 PID")
 	}
-	if fti.child2ExitPpid == 0 {
+	if fti.child2ExitPPID == 0 {
 		t.Fatalf("failed to parse child2 PPID")
 	}
 
 	binCheck := ec.NewProcessChecker().
 		WithBinary(sm.Suffix("fork-tester")).
-		WithPid(fti.child2Pid)
+		WithPid(fti.child2PID)
 	exitCheck := ec.NewProcessExitChecker("").
 		WithProcess(binCheck).
-		WithParent(ec.NewProcessChecker().WithPid(fti.child1Pid))
+		WithParent(ec.NewProcessChecker().WithPid(fti.child1PID))
 	checker := ec.NewUnorderedEventChecker(exitCheck)
 
 	err = jsonchecker.JSONTestCheck(t, checker)
@@ -84,7 +84,7 @@ func TestFork(t *testing.T) {
 }
 
 type forkTesterInfo struct {
-	parentPid, child1Pid, child2Pid, child2ExitPpid uint32
+	parentPID, child1PID, child2PID, child2ExitPPID uint32
 }
 
 var (
@@ -100,21 +100,21 @@ func (fti *forkTesterInfo) ParseLine(l string) error {
 		v, err = strconv.ParseUint(match[1], 10, 32)
 
 		if err == nil {
-			fti.parentPid = uint32(v)
+			fti.parentPID = uint32(v)
 		}
 	} else if match := child1Re.FindStringSubmatch(l); len(match) > 0 {
 		v, err = strconv.ParseUint(match[1], 10, 32)
 		if err == nil {
-			fti.child1Pid = uint32(v)
+			fti.child1PID = uint32(v)
 		}
 	} else if match := child2Re.FindStringSubmatch(l); len(match) > 0 {
 		v, err = strconv.ParseUint(match[1], 10, 32)
 		if err == nil {
-			fti.child2Pid = uint32(v)
+			fti.child2PID = uint32(v)
 		}
 		ppid, err := strconv.ParseUint(match[2], 10, 32)
 		if err == nil {
-			fti.child2ExitPpid = uint32(ppid)
+			fti.child2ExitPPID = uint32(ppid)
 		}
 	}
 	return err
@@ -136,8 +136,8 @@ func TestForkTesterParser(t *testing.T) {
 		fti.ParseLine(l)
 	}
 
-	assert.Equal(t, uint32(118413), fti.parentPid)
-	assert.Equal(t, uint32(118414), fti.child1Pid)
-	assert.Equal(t, uint32(118415), fti.child2Pid)
-	assert.Equal(t, fti.parentPid, fti.child2ExitPpid)
+	assert.Equal(t, uint32(118413), fti.parentPID)
+	assert.Equal(t, uint32(118414), fti.child1PID)
+	assert.Equal(t, uint32(118415), fti.child2PID)
+	assert.Equal(t, fti.parentPID, fti.child2ExitPPID)
 }

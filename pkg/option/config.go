@@ -91,7 +91,7 @@ type config struct {
 	EnablePolicyFilterCgroupMap bool
 	EnablePolicyFilterDebug     bool
 
-	EnablePidSetFilter bool
+	EnablePIDSetFilter bool
 
 	EnableMsgHandlingLatency bool
 

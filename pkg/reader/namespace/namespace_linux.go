@@ -34,12 +34,12 @@ var (
 	TimeNsSupport bool
 )
 
-// GetPidNsInode() returns the inode of the target namespace pointed by pid.
+// GetPIDNsInode() returns the inode of the target namespace pointed by pid.
 // Returns:
 //
 //	namespace inode and nil on success
 //	0 and error on failures.
-func GetPidNsInode(pid uint32, nsStr string) (uint32, error) {
+func GetPIDNsInode(pid uint32, nsStr string) (uint32, error) {
 	pidStr := strconv.Itoa(int(pid))
 	netns := filepath.Join(option.Config.ProcFS, pidStr, "ns", nsStr)
 	netStr, err := os.Readlink(netns)
@@ -57,7 +57,7 @@ func GetPidNsInode(pid uint32, nsStr string) (uint32, error) {
 	return uint32(inodeEntry), nil
 }
 
-func GetMyPidG() uint32 {
+func GetMyPIDG() uint32 {
 	selfBinary := filepath.Base(os.Args[0])
 	if procfs := os.Getenv("TETRAGON_PROCFS"); procfs != "" {
 		procFS, _ := os.ReadDir(procfs)
@@ -82,11 +82,11 @@ func GetMyPidG() uint32 {
 }
 
 func GetHostNsInode(nsStr string) (uint32, error) {
-	return GetPidNsInode(1, nsStr)
+	return GetPIDNsInode(1, nsStr)
 }
 
 func GetSelfNsInode(nsStr string) (uint32, error) {
-	return GetPidNsInode(uint32(GetMyPidG()), nsStr)
+	return GetPIDNsInode(uint32(GetMyPIDG()), nsStr)
 }
 
 func GetCurrentNamespace() *tetragon.Namespaces {
@@ -190,12 +190,12 @@ func GetMsgNamespaces(ns processapi.MsgNamespaces) (*tetragon.Namespaces, error)
 			IsHost: hostNs.Mnt.Inum == ns.MntInum,
 		},
 		Pid: &tetragon.Namespace{
-			Inum:   ns.PidInum,
-			IsHost: hostNs.Pid.Inum == ns.PidInum,
+			Inum:   ns.PIDInum,
+			IsHost: hostNs.Pid.Inum == ns.PIDInum,
 		},
 		PidForChildren: &tetragon.Namespace{
-			Inum:   ns.PidChildInum,
-			IsHost: hostNs.PidForChildren.Inum == ns.PidChildInum,
+			Inum:   ns.PIDChildInum,
+			IsHost: hostNs.PidForChildren.Inum == ns.PIDChildInum,
 		},
 		Net: &tetragon.Namespace{
 			Inum:   ns.NetInum,
@@ -237,7 +237,7 @@ func initHostNamespace() (*tetragon.Namespaces, error) {
 
 	knownNamespaces := make(map[string]*tetragon.Namespace)
 	for _, n := range listNamespaces {
-		ino, err := GetPidNsInode(1, n)
+		ino, err := GetPIDNsInode(1, n)
 		if err != nil {
 			logger.GetLogger().Info(fmt.Sprintf("Kernel does not support %s namespaces", n), logfields.Error, err)
 			knownNamespaces[n] = &tetragon.Namespace{Inum: 0, IsHost: false}

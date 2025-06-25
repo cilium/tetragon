@@ -119,7 +119,7 @@ func (src traceBenchRw) Run(ctx context.Context, _ *Arguments, _ *Summary) error
 }
 
 func (src traceBenchRw) ConfigFilename(_ *Arguments) string {
-	matchPid := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	matchPID := strconv.Itoa(int(observertesthelper.GetMyPID()))
 
 	tmpl := `
 apiVersion: cilium.io/v1alpha1
@@ -168,9 +168,9 @@ spec:
 
 	templateArgs :=
 		struct {
-			MatchPid string
+			MatchPID string
 		}{
-			MatchPid: matchPid,
+			MatchPID: matchPID,
 		}
 
 	err = template.Must(template.New("crd").Parse(tmpl)).Execute(f, templateArgs)

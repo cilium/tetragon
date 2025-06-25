@@ -78,7 +78,7 @@ type MsgExec struct {
 }
 
 type MsgExecveKey struct {
-	Pid   uint32 `align:"pid"`
+	PID   uint32 `align:"pid"`
 	Pad   uint32 `align:"pad"`
 	Ktime uint64 `align:"ktime"`
 }
@@ -168,8 +168,8 @@ type MsgNamespaces struct {
 	UtsInum       uint32
 	IpcInum       uint32
 	MntInum       uint32
-	PidInum       uint32
-	PidChildInum  uint32
+	PIDInum       uint32
+	PIDChildInum  uint32
 	NetInum       uint32
 	TimeInum      uint32
 	TimeChildInum uint32

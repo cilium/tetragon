@@ -75,11 +75,11 @@ var (
 )
 
 func getExportFilters() ([]*tetragon.Filter, []*tetragon.Filter, error) {
-	allowList, err := filters.ParseFilterList(viper.GetString(option.KeyExportAllowlist), viper.GetBool(option.KeyEnablePidSetFilter))
+	allowList, err := filters.ParseFilterList(viper.GetString(option.KeyExportAllowlist), viper.GetBool(option.KeyEnablePIDSetFilter))
 	if err != nil {
 		return nil, nil, err
 	}
-	denyList, err := filters.ParseFilterList(viper.GetString(option.KeyExportDenylist), viper.GetBool(option.KeyEnablePidSetFilter))
+	denyList, err := filters.ParseFilterList(viper.GetString(option.KeyExportDenylist), viper.GetBool(option.KeyEnablePIDSetFilter))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -250,11 +250,11 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		// In most cases this will mean that another instance of Tetragon is up
 		// and running and may interfere on eBPF programs and/or maps and lead
 		// to unpredictable behavior.
-		return fmt.Errorf("failed to create pid file '%s', another Tetragon instance seems to be up and running: %w", defaults.DefaultPidFile, err)
+		return fmt.Errorf("failed to create pid file '%s', another Tetragon instance seems to be up and running: %w", defaults.DefaultPIDFile, err)
 	}
 	defer pidfile.Delete()
 
-	log.Info("Tetragon pid file creation succeeded", "pid", pid, "pidfile", defaults.DefaultPidFile)
+	log.Info("Tetragon pid file creation succeeded", "pid", pid, "pidfile", defaults.DefaultPIDFile)
 
 	if option.Config.ForceLargeProgs && option.Config.ForceSmallProgs {
 		logger.Fatal(log, "Can't specify --force-small-progs and --force-large-progs together")

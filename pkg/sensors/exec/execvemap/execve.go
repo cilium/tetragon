@@ -8,7 +8,7 @@ import (
 )
 
 type ExecveKey struct {
-	Pid uint32
+	PID uint32
 }
 
 type ExecveValue struct {

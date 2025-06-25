@@ -53,7 +53,7 @@ import (
 )
 
 type cacheKey struct {
-	Pid  uint32
+	PID  uint32
 	Path string
 }
 
@@ -210,7 +210,7 @@ func handleLoader(r *bytes.Reader) ([]observer.Event, error) {
 
 	// We can get multiple entries for given pid/path,
 	// check if we already processed it
-	if inCache(m.Pid, string(path[:])) {
+	if inCache(m.PID, string(path[:])) {
 		return nil, nil
 	}
 

@@ -112,10 +112,10 @@ func TestGenericTracepointSimple(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// doTestGenericTracepointPidFilter is a utility function for doing generic
+// doTestGenericTracepointPIDFilter is a utility function for doing generic
 // tracepoint tests. It filters events based on the test program's pid, so that
 // we get more predictable results.
-func doTestGenericTracepointPidFilter(t *testing.T, conf v1alpha1.TracepointSpec, selfOp func(), checkFn func(*tetragon.ProcessTracepoint) error) {
+func doTestGenericTracepointPIDFilter(t *testing.T, conf v1alpha1.TracepointSpec, selfOp func(), checkFn func(*tetragon.ProcessTracepoint) error) {
 	if _, err := os.Stat("/sys/kernel/debug/tracing/events/syscalls"); os.IsNotExist(err) {
 		t.Skip("cannot use syscall tracepoints (consider enabling CONFIG_FTRACE_SYSCALLS)")
 	}
@@ -126,7 +126,7 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf v1alpha1.TracepointSpec
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	pid := int(observertesthelper.GetMyPid())
+	pid := int(observertesthelper.GetMyPID())
 	t.Logf("filtering for my pid (%d)", pid)
 	pidSelector := v1alpha1.PIDSelector{
 		Operator:       "In",
@@ -174,9 +174,9 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf v1alpha1.TracepointSpec
 			if err := checkFn(tpEvent); err != nil {
 				return false, err
 			}
-			eventPid := tpEvent.Process.Pid.Value
-			if int(eventPid) != pid {
-				return false, fmt.Errorf("Unexpected pid=%d (filter is for pid %d)", eventPid, pid)
+			eventPID := tpEvent.Process.Pid.Value
+			if int(eventPID) != pid {
+				return false, fmt.Errorf("Unexpected pid=%d (filter is for pid %d)", eventPID, pid)
 			}
 			tpEventsNr++
 			return false, nil
@@ -222,7 +222,7 @@ func TestGenericTracepointPidFilterLseek(t *testing.T) {
 		return nil
 	}
 
-	doTestGenericTracepointPidFilter(t, tracepointConf, op, check)
+	doTestGenericTracepointPIDFilter(t, tracepointConf, op, check)
 }
 
 func TestGenericTracepointArgFilterLseek(t *testing.T) {
@@ -285,7 +285,7 @@ func TestGenericTracepointArgFilterLseek(t *testing.T) {
 		return nil
 	}
 
-	doTestGenericTracepointPidFilter(t, tracepointConf, op, check)
+	doTestGenericTracepointPIDFilter(t, tracepointConf, op, check)
 }
 
 func TestGenericTracepointMeta(t *testing.T) {
@@ -342,7 +342,7 @@ func TestGenericTracepointMeta(t *testing.T) {
 		return nil
 	}
 
-	doTestGenericTracepointPidFilter(t, tracepointConf, op, check)
+	doTestGenericTracepointPIDFilter(t, tracepointConf, op, check)
 }
 
 // TestRawSyscall checks raw_syscall tracepoints
@@ -428,7 +428,7 @@ func TestGenericTracepointRawSyscall(t *testing.T) {
 		return fmt.Errorf("unexpected lseek args: %+v", args)
 	}
 
-	doTestGenericTracepointPidFilter(t, tracepointConf, op, check)
+	doTestGenericTracepointPIDFilter(t, tracepointConf, op, check)
 }
 
 func TestLoadTracepointSensor(t *testing.T) {
@@ -577,7 +577,7 @@ func TestTracepointCloneThreads(t *testing.T) {
 
 	parentCheck := ec.NewProcessChecker().
 		WithBinary(stringmatcher.Suffix("threads-tester")).
-		WithPid(cti.ParentPid).
+		WithPid(cti.ParentPID).
 		WithTid(cti.ParentTid)
 
 	execCheck := ec.NewProcessExecChecker("").
@@ -588,7 +588,7 @@ func TestTracepointCloneThreads(t *testing.T) {
 
 	child1Checker := ec.NewProcessChecker().
 		WithBinary(stringmatcher.Suffix("threads-tester")).
-		WithPid(cti.Child1Pid).
+		WithPid(cti.Child1PID).
 		WithTid(cti.Child1Tid)
 
 	child1TpChecker := ec.NewProcessTracepointChecker("").
@@ -603,7 +603,7 @@ func TestTracepointCloneThreads(t *testing.T) {
 
 	thread1Checker := ec.NewProcessChecker().
 		WithBinary(stringmatcher.Suffix("threads-tester")).
-		WithPid(cti.Thread1Pid).
+		WithPid(cti.Thread1PID).
 		WithTid(cti.Thread1Tid)
 
 	thread1TpChecker := ec.NewProcessTracepointChecker("").
@@ -655,7 +655,7 @@ spec:
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -685,7 +685,7 @@ spec:
 
 	parentCheck := ec.NewProcessChecker().
 		WithBinary(stringmatcher.Suffix("threads-tester")).
-		WithPid(cti.ParentPid).
+		WithPid(cti.ParentPID).
 		WithTid(cti.ParentTid)
 
 	execCheck := ec.NewProcessExecChecker("").
@@ -696,7 +696,7 @@ spec:
 
 	child1Checker := ec.NewProcessChecker().
 		WithBinary(stringmatcher.Suffix("threads-tester")).
-		WithPid(cti.Child1Pid).
+		WithPid(cti.Child1PID).
 		WithTid(cti.Child1Tid)
 
 	child1TpChecker := ec.NewProcessTracepointChecker("").
@@ -712,7 +712,7 @@ spec:
 
 	thread1Checker := ec.NewProcessChecker().
 		WithBinary(stringmatcher.Suffix("threads-tester")).
-		WithPid(cti.Thread1Pid).
+		WithPid(cti.Thread1PID).
 		WithTid(cti.Thread1Tid)
 
 	thread1TpChecker := ec.NewProcessTracepointChecker("").
@@ -737,7 +737,7 @@ func TestStringTracepoint(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	mypid := int(observertesthelper.GetMyPid())
+	mypid := int(observertesthelper.GetMyPID())
 	t.Logf("filtering for my pid (%d)", mypid)
 
 	spec := &v1alpha1.TracingPolicySpec{
@@ -803,7 +803,7 @@ func testListSyscallsDupsRange(t *testing.T, checker *ec.UnorderedEventChecker, 
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -822,8 +822,8 @@ func TestTracepointListSyscallDupsRange(t *testing.T) {
 	if !kernels.MinKernelVersion("5.3.0") {
 		t.Skip("TestCopyFd requires at least 5.3.0 version")
 	}
-	myPid := observertesthelper.GetMyPid()
-	pidStr := strconv.Itoa(int(myPid))
+	myPID := observertesthelper.GetMyPID()
+	pidStr := strconv.Itoa(int(myPID))
 	configHook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy

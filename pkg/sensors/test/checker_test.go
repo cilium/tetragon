@@ -43,7 +43,7 @@ func TestTestChecker(t *testing.T) {
 	}
 	errorChecker := NewTestChecker(&dummyChecker)
 
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}

@@ -32,7 +32,7 @@ type IntTy struct {
 type BoolTy struct{}
 
 // pid_t type
-type PidTy struct{}
+type PIDTy struct{}
 
 // pid_t type
 type SizeTy struct{}
@@ -132,7 +132,7 @@ func parseTy(tyFields []string) (interface{}, error) {
 	case ty == "bool":
 		retTy = BoolTy{}
 	case ty == "pid_t":
-		retTy = PidTy{}
+		retTy = PIDTy{}
 	case ty == "size_t":
 		retTy = SizeTy{}
 	case ty == "void":

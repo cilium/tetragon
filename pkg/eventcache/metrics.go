@@ -40,11 +40,11 @@ func (t CacheEntryType) String() string {
 type CacheError int
 
 const (
-	NilProcessPid CacheError = iota
+	NilProcessPID CacheError = iota
 )
 
 var cacheErrorLabelValues = map[CacheError]string{
-	NilProcessPid: "nil_process_pid",
+	NilProcessPID: "nil_process_pid",
 }
 
 func (e CacheError) String() string {

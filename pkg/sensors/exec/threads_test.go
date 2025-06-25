@@ -42,14 +42,14 @@ func TestThreadTesterParser(t *testing.T) {
 		cti.ParseLine(l)
 	}
 
-	assert.Equal(t, uint32(143563), cti.ParentPid)
-	assert.Equal(t, cti.ParentPid, cti.ParentTid)
-	assert.Equal(t, uint32(143564), cti.Child1Pid)
-	assert.Equal(t, cti.Child1Pid, cti.Child1Tid)
-	assert.Equal(t, cti.ParentPid, cti.ParentChild1Pid)
-	assert.Equal(t, uint32(143564), cti.Thread1Pid)
+	assert.Equal(t, uint32(143563), cti.ParentPID)
+	assert.Equal(t, cti.ParentPID, cti.ParentTid)
+	assert.Equal(t, uint32(143564), cti.Child1PID)
+	assert.Equal(t, cti.Child1PID, cti.Child1Tid)
+	assert.Equal(t, cti.ParentPID, cti.ParentChild1PID)
+	assert.Equal(t, uint32(143564), cti.Thread1PID)
 	assert.Equal(t, uint32(143565), cti.Thread1Tid)
-	assert.Equal(t, cti.ParentPid, cti.ParentThread1Pid)
+	assert.Equal(t, cti.ParentPID, cti.ParentThread1PID)
 }
 
 func TestCloneThreadsTester(t *testing.T) {
@@ -69,7 +69,7 @@ func TestCloneThreadsTester(t *testing.T) {
 	defer testPipes.Close()
 
 	t.Logf("starting observer")
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -153,13 +153,13 @@ func TestMatchCloneThreadsIDs(t *testing.T) {
 	require.Equal(t, execPID, execTID)
 
 	// ensure exec events match
-	require.Equal(t, execPID, tti.ParentPid)
-	require.Equal(t, execPID, tti.ParentChild1Pid)
-	require.Equal(t, execPID, tti.ParentThread1Pid)
+	require.Equal(t, execPID, tti.ParentPID)
+	require.Equal(t, execPID, tti.ParentChild1PID)
+	require.Equal(t, execPID, tti.ParentThread1PID)
 
 	for _, ev := range cloneEvents {
 		// Get the clone event that orginates from the exec event
-		if execPID == ev.Parent.Pid {
+		if execPID == ev.Parent.PID {
 			clonePID = ev.PID
 			cloneTID = ev.TID
 		}
@@ -168,10 +168,10 @@ func TestMatchCloneThreadsIDs(t *testing.T) {
 	// ensure clone event match
 	require.NotZero(t, clonePID)
 	require.Equal(t, clonePID, cloneTID)
-	require.Equal(t, clonePID, tti.Child1Pid)
+	require.Equal(t, clonePID, tti.Child1PID)
 
 	// ensure that threads match on the thread group leader
-	require.Equal(t, tti.Child1Pid, tti.Thread1Pid)
+	require.Equal(t, tti.Child1PID, tti.Thread1PID)
 }
 
 func TestExecThreads(t *testing.T) {
@@ -190,7 +190,7 @@ func TestExecThreads(t *testing.T) {
 	defer testPipes.Close()
 
 	t.Logf("starting observer")
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -211,7 +211,7 @@ func TestExecThreads(t *testing.T) {
 
 	binCheck := ec.NewProcessChecker().
 		WithBinary(sm.Suffix("threads-tester")).
-		WithPid(cti.ParentPid).
+		WithPid(cti.ParentPID).
 		WithTid(cti.ParentTid)
 
 	execCheck := ec.NewProcessExecChecker("").

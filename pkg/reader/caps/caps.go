@@ -483,7 +483,7 @@ func GetMsgCapabilities(caps processapi.MsgCapabilities) *tetragon.Capabilities 
 }
 
 func GetCurrentCapabilities() *tetragon.Capabilities {
-	pidStr := strconv.Itoa(int(namespace.GetMyPidG()))
+	pidStr := strconv.Itoa(int(namespace.GetMyPIDG()))
 	procCaps := filepath.Join(option.Config.ProcFS, pidStr, "status")
 	_, permitted, effective, inheritable := GetPIDCaps(procCaps)
 
