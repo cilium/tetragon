@@ -23,8 +23,8 @@ import (
 
 var (
 	// Set default last capability based on upstream unix go library
-	cap_last_cap = int32(constants.CAP_LAST_CAP)
-	lastCapOnce  sync.Once
+	capLastCap  = int32(constants.CAP_LAST_CAP)
+	lastCapOnce sync.Once
 )
 
 // GetLastCap() Returns unix.CAP_LAST_CAP unless the kernel
@@ -33,19 +33,19 @@ func GetLastCap() int32 {
 	lastCapOnce.Do(func() {
 		d, err := os.ReadFile(filepath.Join(option.Config.ProcFS, "/sys/kernel/cap_last_cap"))
 		if err != nil {
-			logger.GetLogger().Warn(fmt.Sprintf("Could not read kernel cap_last_cap, using default '%d' as cap_last_cap", cap_last_cap), logfields.Error, err)
+			logger.GetLogger().Warn(fmt.Sprintf("Could not read kernel cap_last_cap, using default '%d' as cap_last_cap", capLastCap), logfields.Error, err)
 		}
 		val, err := strconv.ParseInt(strings.TrimRight(string(d), "\n"), 10, 32)
 		if err != nil {
-			logger.GetLogger().Warn(fmt.Sprintf("Could not parse cap_last_cap, using default '%d' as cap_last_cap", cap_last_cap), logfields.Error, err)
+			logger.GetLogger().Warn(fmt.Sprintf("Could not parse cap_last_cap, using default '%d' as cap_last_cap", capLastCap), logfields.Error, err)
 			return
 		}
 		// just silence some CodeQL
 		if val >= 0 && val < constants.CAP_LAST_CAP {
-			cap_last_cap = int32(val)
+			capLastCap = int32(val)
 		}
 	})
-	return cap_last_cap
+	return capLastCap
 }
 
 func isCapValid(capInt int32) bool {

@@ -27,7 +27,7 @@ const (
 	AF_X25               = unix.AF_X25
 	AF_INET6             = unix.AF_INET6
 	AF_ROSE              = unix.AF_ROSE
-	AF_DECnet            = unix.AF_DECnet
+	AF_DECnet            = unix.AF_DECnet //nolint:staticcheck
 	AF_NETBEUI           = unix.AF_NETBEUI
 	AF_SECURITY          = unix.AF_SECURITY
 	AF_KEY               = unix.AF_KEY

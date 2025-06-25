@@ -33,10 +33,10 @@ type TokenStatistics struct {
 	ModifiedID         windows.LUID
 }
 
-func getIDFromSID(str_sid string) (string, error) {
-	tokens := strings.Split(str_sid, "-")
+func getIDFromSID(strSID string) (string, error) {
+	tokens := strings.Split(strSID, "-")
 	if len(tokens) <= 1 {
-		return "", fmt.Errorf("could no parse SID %s", str_sid)
+		return "", fmt.Errorf("could no parse SID %s", strSID)
 	}
 	return tokens[len(tokens)-1], nil
 }
@@ -74,24 +74,24 @@ func fillStatus(hProc windows.Handle, status *Status) error {
 	}
 
 	defer token.Close()
-	str_uid, err := getStrLuidFromToken(token)
+	strUID, err := getStrLuidFromToken(token)
 	if err != nil {
 		return err
 	}
-	status.Uids = []string{str_uid, str_uid, str_uid, str_uid}
+	status.Uids = []string{strUID, strUID, strUID, strUID}
 	tokenGroup, err := token.GetTokenPrimaryGroup()
 	if err != nil {
 		return err
 	}
-	str_groupid := tokenGroup.PrimaryGroup.String()
+	strGroupID := tokenGroup.PrimaryGroup.String()
 	if err != nil {
 		return err
 	}
-	str_gid, err := getIDFromSID(str_groupid)
+	strGID, err := getIDFromSID(strGroupID)
 	if err != nil {
 		return err
 	}
-	status.GIDs = []string{str_gid, str_gid, str_gid, str_gid}
+	status.GIDs = []string{strGID, strGID, strGID, strGID}
 	return nil
 }
 
@@ -136,11 +136,11 @@ func fillLoginUID(hProc windows.Handle, status *Status) error {
 	if err != nil {
 		return err
 	}
-	str_sid, err := getIDFromSID(sid)
+	strSID, err := getIDFromSID(sid)
 	if err != nil {
 		return err
 	}
-	status.LoginUID = str_sid
+	status.LoginUID = strSID
 	return nil
 }
 

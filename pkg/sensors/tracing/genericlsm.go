@@ -581,15 +581,15 @@ func filterMapsForLsm(load *program.Program, lsmEntry *genericLsm) []*program.Ma
 		numSubMaps = selectors.StringMapsNumSubMapsSmall
 	}
 
-	for string_map_index := range numSubMaps {
-		stringFilterMap[string_map_index] = program.MapBuilderProgram(fmt.Sprintf("string_maps_%d", string_map_index), load)
+	for stringMapIndex := range numSubMaps {
+		stringFilterMap[stringMapIndex] = program.MapBuilderProgram(fmt.Sprintf("string_maps_%d", stringMapIndex), load)
 		if !kernels.MinKernelVersion("5.9") {
 			// Versions before 5.9 do not allow inner maps to have different sizes.
 			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-			maxEntries := lsmEntry.selectors.StringMapsMaxEntries(string_map_index)
-			stringFilterMap[string_map_index].SetInnerMaxEntries(maxEntries)
+			maxEntries := lsmEntry.selectors.StringMapsMaxEntries(stringMapIndex)
+			stringFilterMap[stringMapIndex].SetInnerMaxEntries(maxEntries)
 		}
-		maps = append(maps, stringFilterMap[string_map_index])
+		maps = append(maps, stringFilterMap[stringMapIndex])
 	}
 
 	stringPrefixFilterMaps := program.MapBuilderProgram("string_prefix_maps", load)

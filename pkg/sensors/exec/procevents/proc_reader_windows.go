@@ -429,12 +429,12 @@ func NewProcess(procEntry windows.ProcessEntry32) (procs, error) {
 	// found using GetTokenInformation with TokenPrivileges, and converted o string using LookupPrivilegeName.
 	// They are best expressed as an array of strings, and don't fit in current structure.
 	var permitted, effective, inheritable uint64
-	var nspid, uts_ns, ipc_ns, mnt_ns, pid_ns, pid_for_children_ns uint32
+	var nsPID, utsNs, ipcNs, mntNs, pidNs, pidForChildrenNs uint32
 
-	var net_ns, time_ns uint32
-	var time_for_children_ns uint32
+	var netNs, timeNs uint32
+	var timeForChildrenNs uint32
 
-	var cgroup_ns, user_ns uint32
+	var cgroupNs, userNs uint32
 	pcmdline = ""
 	pktime = 0
 	var pnspid uint32
@@ -461,36 +461,36 @@ func NewProcess(procEntry windows.ProcessEntry32) (procs, error) {
 	}
 
 	p := procs{
-		ppid:                 uint32(ppid),
-		pnspid:               pnspid,
-		pexe:                 stringToUTF8([]byte(pexecPath)),
-		pcmdline:             stringToUTF8([]byte(pcmdline)),
-		pflags:               api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
-		pktime:               pktime,
-		uids:                 uids,
-		gids:                 gids,
-		auid:                 auid,
-		pid:                  uint32(pid),
-		tid:                  uint32(pid), // Read dir does not return threads and we only track tgid
-		nspid:                nspid,
-		exe:                  stringToUTF8([]byte(execPath)),
-		cmdline:              stringToUTF8([]byte(cmdline)),
-		flags:                api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
-		ktime:                ktime,
-		permitted:            permitted,
-		effective:            effective,
-		inheritable:          inheritable,
-		uts_ns:               uts_ns,
-		ipc_ns:               ipc_ns,
-		mnt_ns:               mnt_ns,
-		pid_ns:               pid_ns,
-		pid_for_children_ns:  pid_for_children_ns,
-		net_ns:               net_ns,
-		time_ns:              time_ns,
-		time_for_children_ns: time_for_children_ns,
-		cgroup_ns:            cgroup_ns,
-		user_ns:              user_ns,
-		kernel_thread:        false,
+		ppid:              uint32(ppid),
+		pnspid:            pnspid,
+		pexe:              stringToUTF8([]byte(pexecPath)),
+		pcmdline:          stringToUTF8([]byte(pcmdline)),
+		pflags:            api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
+		pktime:            pktime,
+		uids:              uids,
+		gids:              gids,
+		auid:              auid,
+		pid:               uint32(pid),
+		tid:               uint32(pid), // Read dir does not return threads and we only track tgid
+		nspid:             nsPID,
+		exe:               stringToUTF8([]byte(execPath)),
+		cmdline:           stringToUTF8([]byte(cmdline)),
+		flags:             api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
+		ktime:             ktime,
+		permitted:         permitted,
+		effective:         effective,
+		inheritable:       inheritable,
+		utsNs:             utsNs,
+		ipcNs:             ipcNs,
+		mntNs:             mntNs,
+		pidNs:             pidNs,
+		pidForChildrenNs:  pidForChildrenNs,
+		netNs:             netNs,
+		timeNs:            timeNs,
+		timeForChildrenNs: timeForChildrenNs,
+		cgroupNs:          cgroupNs,
+		userNs:            userNs,
+		kernelThread:      false,
 	}
 
 	p.size = uint32(processapi.MSG_SIZEOF_EXECVE + len(p.args()) + processapi.MSG_SIZEOF_CWD)

@@ -218,15 +218,15 @@ func filterMaps(load *program.Program, kprobeEntry *genericKprobe) []*program.Ma
 		numSubMaps = selectors.StringMapsNumSubMapsSmall
 	}
 
-	for string_map_index := range numSubMaps {
-		stringFilterMap[string_map_index] = program.MapBuilderProgram(fmt.Sprintf("string_maps_%d", string_map_index), load)
+	for stringMapIndex := range numSubMaps {
+		stringFilterMap[stringMapIndex] = program.MapBuilderProgram(fmt.Sprintf("string_maps_%d", stringMapIndex), load)
 		if state != nil && !kernels.MinKernelVersion("5.9") {
 			// Versions before 5.9 do not allow inner maps to have different sizes.
 			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-			maxEntries := state.StringMapsMaxEntries(string_map_index)
-			stringFilterMap[string_map_index].SetInnerMaxEntries(maxEntries)
+			maxEntries := state.StringMapsMaxEntries(stringMapIndex)
+			stringFilterMap[stringMapIndex].SetInnerMaxEntries(maxEntries)
 		}
-		maps = append(maps, stringFilterMap[string_map_index])
+		maps = append(maps, stringFilterMap[stringMapIndex])
 	}
 
 	stringPrefixFilterMaps := program.MapBuilderProgram("string_prefix_maps", load)
@@ -1142,7 +1142,7 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Pro
 }
 
 func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir string, load *program.Program, maps []*program.Map, verbose int) error {
-	bin_buf := make([]bytes.Buffer, len(ids))
+	binBuf := make([]bytes.Buffer, len(ids))
 
 	data := &program.MultiKprobeAttachData{}
 
@@ -1154,11 +1154,11 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir string, load *program.P
 
 		load.MapLoad = append(load.MapLoad, getMapLoad(load, gk, uint32(index))...)
 
-		binary.Write(&bin_buf[index], binary.LittleEndian, gk.loadArgs.config)
+		binary.Write(&binBuf[index], binary.LittleEndian, gk.loadArgs.config)
 		config := &program.MapLoad{
 			Name: "config_map",
 			Load: func(m *ebpf.Map, _ string) error {
-				return m.Update(uint32(index), bin_buf[index].Bytes()[:], ebpf.UpdateAny)
+				return m.Update(uint32(index), binBuf[index].Bytes()[:], ebpf.UpdateAny)
 			},
 		}
 		load.MapLoad = append(load.MapLoad, config)

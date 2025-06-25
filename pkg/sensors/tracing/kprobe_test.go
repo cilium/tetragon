@@ -3062,7 +3062,7 @@ spec:
 	runKprobeOverrideMulti(t, multiHook, checker, file.Name(), link.Name(), syscall.EPERM, syscall.ENOENT, syscall.ESRCH)
 }
 
-func runKprobe_char_iovec(t *testing.T, configHook string,
+func runKprobeCharIovec(t *testing.T, configHook string,
 	checker *ec.UnorderedEventChecker, fdw, fdr int, buffer []byte) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
@@ -3163,7 +3163,7 @@ spec:
 			))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	runKprobe_char_iovec(t, configHook, checker, fdw, fdr, buffer)
+	runKprobeCharIovec(t, configHook, checker, fdw, fdr, buffer)
 }
 
 func TestKprobe_char_iovec_overflow(t *testing.T) {
@@ -3217,7 +3217,7 @@ spec:
 			))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	runKprobe_char_iovec(t, configHook, checker, fdw, fdr, buffer)
+	runKprobeCharIovec(t, configHook, checker, fdw, fdr, buffer)
 }
 
 func TestKprobe_char_iovec_returnCopy(t *testing.T) {
@@ -3272,7 +3272,7 @@ spec:
 			))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	runKprobe_char_iovec(t, configHook, checker, fdw, fdr, buffer)
+	runKprobeCharIovec(t, configHook, checker, fdw, fdr, buffer)
 }
 
 func getMatchArgsFileCrd(opStr string, vals []string) string {
@@ -5281,9 +5281,9 @@ spec:
 	}
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
-	test_cmd := exec.Command(testUserStacktrace)
+	testCmd := exec.Command(testUserStacktrace)
 
-	if err := test_cmd.Start(); err != nil {
+	if err := testCmd.Start(); err != nil {
 		t.Fatalf("failed to run %s: %s", testUserStacktrace, err)
 	}
 
@@ -5313,7 +5313,7 @@ spec:
 	err = jsonchecker.JSONTestCheck(t, checker)
 
 	// Kill test because of endless loop in the test for stable stack trace extraction
-	test_cmd.Process.Kill()
+	testCmd.Process.Kill()
 
 	require.NoError(t, err)
 }
@@ -5942,12 +5942,12 @@ spec:
 	syscall.Syscall(syscall.SYS_PRCTL, 8888, 0, 0)
 	syscall.Syscall(syscall.SYS_PRCTL, 9999, 0, 0)
 
-	kp_8888 := ec.NewProcessKprobeChecker("").
+	kp8888 := ec.NewProcessKprobeChecker("").
 		WithTags(ec.NewStringListMatcher().WithValues(sm.Full("prctl_8888")))
-	kp_9999 := ec.NewProcessKprobeChecker("").
+	kp9999 := ec.NewProcessKprobeChecker("").
 		WithTags(ec.NewStringListMatcher().WithValues(sm.Full("prctl_9999")))
 
-	checker := ec.NewUnorderedEventChecker(kp_8888, kp_9999)
+	checker := ec.NewUnorderedEventChecker(kp8888, kp9999)
 
 	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
@@ -6261,17 +6261,17 @@ func TestKprobeDentryPath(t *testing.T) {
 	// The we make sure we get proper expected path value in the event
 	// and that there's no event for dentry-unlink-2 file removal.
 
-	file_1, err := os.CreateTemp(t.TempDir(), "dentry-unlink-1")
+	file1, err := os.CreateTemp(t.TempDir(), "dentry-unlink-1")
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
-	defer require.NoError(t, file_1.Close())
+	defer require.NoError(t, file1.Close())
 
-	file_2, err := os.CreateTemp(t.TempDir(), "dentry-unlink-2")
+	file2, err := os.CreateTemp(t.TempDir(), "dentry-unlink-2")
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
-	defer require.NoError(t, file_2.Close())
+	defer require.NoError(t, file2.Close())
 
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
@@ -6284,12 +6284,12 @@ func TestKprobeDentryPath(t *testing.T) {
 	// We can extract dentry type until first mount point,
 	// so let's detect that and find final path portion for
 	// checking.
-	check_1 := file_1.Name()
-	check_2 := file_2.Name()
+	check1 := file1.Name()
+	check2 := file2.Name()
 	for _, info := range infos {
-		if len(info.MountPoint) > 1 && strings.HasPrefix(file_1.Name(), info.MountPoint) {
-			check_1 = check_1[len(info.MountPoint):]
-			check_2 = check_2[len(info.MountPoint):]
+		if len(info.MountPoint) > 1 && strings.HasPrefix(file1.Name(), info.MountPoint) {
+			check1 = check1[len(info.MountPoint):]
+			check2 = check2[len(info.MountPoint):]
 			break
 		}
 	}
@@ -6310,12 +6310,12 @@ spec:
       - index: 1
         operator: "Postfix"
         values:
-        - "` + check_1 + `"
+        - "` + check1 + `"
 `
 	createCrdFile(t, hook)
 
-	t.Logf("Removing file 1 %s, check %s\n", file_1.Name(), check_1)
-	t.Logf("Removing file 2 %s, check %s\n", file_2.Name(), check_2)
+	t.Logf("Removing file 1 %s, check %s\n", file1.Name(), check1)
+	t.Logf("Removing file 2 %s, check %s\n", file2.Name(), check2)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -6324,8 +6324,8 @@ spec:
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
-	syscall.Unlink(file_1.Name())
-	syscall.Unlink(file_2.Name())
+	syscall.Unlink(file1.Name())
+	syscall.Unlink(file2.Name())
 
 	getChecker := func(check string) *ec.UnorderedEventChecker {
 		kpChecker := ec.NewProcessKprobeChecker("").
@@ -6344,11 +6344,11 @@ spec:
 	}
 
 	// We filter for file_1 (check_1) so we should get event for that
-	err = jsonchecker.JSONTestCheck(t, getChecker(check_1))
+	err = jsonchecker.JSONTestCheck(t, getChecker(check1))
 	require.NoError(t, err)
 
 	// ... but not for file_2 (check_2).
-	err = jsonchecker.JSONTestCheck(t, getChecker(check_2))
+	err = jsonchecker.JSONTestCheck(t, getChecker(check2))
 	require.Error(t, err)
 }
 

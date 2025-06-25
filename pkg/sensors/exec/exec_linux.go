@@ -36,7 +36,7 @@ func msgToExecveUnix(m *processapi.MsgExecveEvent) *exec.MsgExecveEventUnix {
 	return unix
 }
 
-func msgToExecveKubeUnix(m *processapi.MsgExecveEvent, exec_id string, filename string) processapi.MsgK8sUnix {
+func msgToExecveKubeUnix(m *processapi.MsgExecveEvent, execID string, filename string) processapi.MsgK8sUnix {
 	kube := processapi.MsgK8sUnix{
 		Cgrpid:        m.Kube.Cgrpid,
 		CgrpTrackerID: m.Kube.CgrpTrackerID,
@@ -60,19 +60,19 @@ func msgToExecveKubeUnix(m *processapi.MsgExecveEvent, exec_id string, filename 
 				"cgroup.id", m.Kube.Cgrpid,
 				"cgroup.name", cgroup,
 				"docker", kube.Docker,
-				"process.exec_id", exec_id,
+				"process.exec_id", execID,
 				"process.binary", filename)
 		} else {
 			logger.Trace(logger.GetLogger(), "process_exec: no container ID due to cgroup name not being a compatible ID, ignoring.",
 				"cgroup.id", m.Kube.Cgrpid,
 				"cgroup.name", cgroup,
-				"process.exec_id", exec_id,
+				"process.exec_id", execID,
 				"process.binary", filename)
 		}
 	} else {
 		logger.Trace(logger.GetLogger(), "process_exec: no container ID due to cgroup name being empty, ignoring.",
 			"cgroup.id", m.Kube.Cgrpid,
-			"process.exec_id", exec_id,
+			"process.exec_id", execID,
 			"process.binary", filename)
 	}
 

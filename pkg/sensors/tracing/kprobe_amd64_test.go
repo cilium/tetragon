@@ -99,18 +99,18 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	io_delay := 0x80
+	ioDelay := 0x80
 	// probe IO_DELAY to trigger a CAP_SYS_RAWIO check, this is for x86
-	err = syscall.Ioperm(io_delay, 1, 1)
+	err = syscall.Ioperm(ioDelay, 1, 1)
 	if err != nil {
-		t.Logf("Failed to ioperm(0x%02x): %v\n", io_delay, err)
+		t.Logf("Failed to ioperm(0x%02x): %v\n", ioDelay, err)
 		t.Fatal()
 	}
 
-	t.Logf("ioperm() enabling 0x%02x succeeded", io_delay)
+	t.Logf("ioperm() enabling 0x%02x succeeded", ioDelay)
 
 	// disable port
-	syscall.Ioperm(io_delay, 1, 0)
+	syscall.Ioperm(ioDelay, 1, 0)
 
 	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)

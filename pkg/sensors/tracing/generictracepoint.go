@@ -595,12 +595,12 @@ func createGenericTracepointSensor(
 		if !kernels.MinKernelVersion("5.11") {
 			numSubMaps = selectors.StringMapsNumSubMapsSmall
 		}
-		for string_map_index := range numSubMaps {
-			stringFilterMap := program.MapBuilderProgram(fmt.Sprintf("string_maps_%d", string_map_index), prog0)
+		for stringMapIndex := range numSubMaps {
+			stringFilterMap := program.MapBuilderProgram(fmt.Sprintf("string_maps_%d", stringMapIndex), prog0)
 			if !kernels.MinKernelVersion("5.9") {
 				// Versions before 5.9 do not allow inner maps to have different sizes.
 				// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-				maxEntries := tp.selectors.StringMapsMaxEntries(string_map_index)
+				maxEntries := tp.selectors.StringMapsMaxEntries(stringMapIndex)
 				stringFilterMap.SetInnerMaxEntries(maxEntries)
 			}
 			maps = append(maps, stringFilterMap)

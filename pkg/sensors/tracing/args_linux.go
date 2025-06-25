@@ -601,7 +601,7 @@ func parseString(r io.Reader) (string, error) {
 }
 
 func ReadArgBytes(r *bytes.Reader, index int, hasMaxData bool) (*api.MsgGenericKprobeArgBytes, error) {
-	var bytes, bytes_rd, hasDataEvents int32
+	var bytes, bytesRd, hasDataEvents int32
 	var arg api.MsgGenericKprobeArgBytes
 
 	if hasMaxData {
@@ -642,14 +642,14 @@ func ReadArgBytes(r *bytes.Reader, index int, hasMaxData bool) (*api.MsgGenericK
 		return &arg, nil
 	}
 	arg.OrigSize = uint64(bytes)
-	if err := binary.Read(r, binary.LittleEndian, &bytes_rd); err != nil {
+	if err := binary.Read(r, binary.LittleEndian, &bytesRd); err != nil {
 		return nil, fmt.Errorf("failed to read size for buffer argument: %w", err)
 	}
 
-	if bytes_rd > 0 {
-		arg.Value = make([]byte, bytes_rd)
+	if bytesRd > 0 {
+		arg.Value = make([]byte, bytesRd)
 		if err := binary.Read(r, binary.LittleEndian, &arg.Value); err != nil {
-			return nil, fmt.Errorf("failed to read buffer (size: %d): %w", bytes_rd, err)
+			return nil, fmt.Errorf("failed to read buffer (size: %d): %w", bytesRd, err)
 		}
 	}
 

@@ -39,38 +39,38 @@ func stringToUTF8(s []byte) []byte {
 }
 
 type procs struct {
-	psize                uint32
-	ppid                 uint32
-	pnspid               uint32
-	pflags               uint32
-	pktime               uint64
-	pcmdline             []byte
-	pexe                 []byte
-	size                 uint32
-	uids                 []uint32
-	gids                 []uint32
-	pid                  uint32
-	tid                  uint32
-	nspid                uint32
-	auid                 uint32
-	flags                uint32
-	ktime                uint64
-	cmdline              []byte
-	exe                  []byte
-	effective            uint64
-	inheritable          uint64
-	permitted            uint64
-	uts_ns               uint32
-	ipc_ns               uint32
-	mnt_ns               uint32
-	pid_ns               uint32
-	pid_for_children_ns  uint32
-	net_ns               uint32
-	time_ns              uint32
-	time_for_children_ns uint32
-	cgroup_ns            uint32
-	user_ns              uint32
-	kernel_thread        bool
+	psize             uint32
+	ppid              uint32
+	pnspid            uint32
+	pflags            uint32
+	pktime            uint64
+	pcmdline          []byte
+	pexe              []byte
+	size              uint32
+	uids              []uint32
+	gids              []uint32
+	pid               uint32
+	tid               uint32
+	nspid             uint32
+	auid              uint32
+	flags             uint32
+	ktime             uint64
+	cmdline           []byte
+	exe               []byte
+	effective         uint64
+	inheritable       uint64
+	permitted         uint64
+	utsNs             uint32
+	ipcNs             uint32
+	mntNs             uint32
+	pidNs             uint32
+	pidForChildrenNs  uint32
+	netNs             uint32
+	timeNs            uint32
+	timeForChildrenNs uint32
+	cgroupNs          uint32
+	userNs            uint32
+	kernelThread      bool
 }
 
 func (p procs) args() []byte {
@@ -88,8 +88,8 @@ func pushExecveEvents(p procs) {
 	/* If we can't fit this in the buffer lets trim some parts and
 	 * make it fit.
 	 */
-	raw_args := p.args()
-	raw_pargs := p.pargs()
+	rawArgs := p.args()
+	rawPargs := p.pargs()
 
 	if p.size+p.psize > processapi.MSG_SIZEOF_BUFFER {
 		var deduct uint32
@@ -113,19 +113,19 @@ func pushExecveEvents(p procs) {
 		}
 
 		for range need {
-			if len(raw_pargs) > len(raw_args) {
+			if len(rawPargs) > len(rawArgs) {
 				p.pflags |= api.EventTruncArgs
-				raw_pargs = raw_pargs[:len(raw_pargs)-1]
+				rawPargs = rawPargs[:len(rawPargs)-1]
 				p.psize--
 			} else {
 				p.flags |= api.EventTruncArgs
-				raw_args = raw_args[:len(raw_args)-1]
+				rawArgs = rawArgs[:len(rawArgs)-1]
 				p.size--
 			}
 		}
 	}
 
-	args, filename := procsFilename(raw_args)
+	args, filename := procsFilename(rawArgs)
 	cwd, flags := getCWD(p.pid)
 	if (flags & api.EventRootCWD) == 0 {
 		args = args + " " + cwd
@@ -133,12 +133,12 @@ func pushExecveEvents(p procs) {
 
 	// If this is a kernel thread, we use its filename as process name
 	// similarly to what ps reports.
-	if p.kernel_thread {
+	if p.kernelThread {
 		filename = fmt.Sprintf("[%s]", filename)
 		args = ""
 	}
 
-	if p.kernel_thread {
+	if p.kernelThread {
 		m := exec.MsgKThreadInitUnix{}
 		m.Unix = &processapi.MsgExecveEventUnix{}
 		m.Unix.Msg = &processapi.MsgExecveEvent{}
@@ -200,16 +200,16 @@ func pushExecveEvents(p procs) {
 			Inheritable: p.inheritable,
 		}
 
-		m.Unix.Msg.Namespaces.UtsInum = p.uts_ns
-		m.Unix.Msg.Namespaces.IpcInum = p.ipc_ns
-		m.Unix.Msg.Namespaces.MntInum = p.mnt_ns
-		m.Unix.Msg.Namespaces.PidInum = p.pid_ns
-		m.Unix.Msg.Namespaces.PidChildInum = p.pid_for_children_ns
-		m.Unix.Msg.Namespaces.NetInum = p.net_ns
-		m.Unix.Msg.Namespaces.TimeInum = p.time_ns
-		m.Unix.Msg.Namespaces.TimeChildInum = p.time_for_children_ns
-		m.Unix.Msg.Namespaces.CgroupInum = p.cgroup_ns
-		m.Unix.Msg.Namespaces.UserInum = p.user_ns
+		m.Unix.Msg.Namespaces.UtsInum = p.utsNs
+		m.Unix.Msg.Namespaces.IpcInum = p.ipcNs
+		m.Unix.Msg.Namespaces.MntInum = p.mntNs
+		m.Unix.Msg.Namespaces.PidInum = p.pidNs
+		m.Unix.Msg.Namespaces.PidChildInum = p.pidForChildrenNs
+		m.Unix.Msg.Namespaces.NetInum = p.netNs
+		m.Unix.Msg.Namespaces.TimeInum = p.timeNs
+		m.Unix.Msg.Namespaces.TimeChildInum = p.timeForChildrenNs
+		m.Unix.Msg.Namespaces.CgroupInum = p.cgroupNs
+		m.Unix.Msg.Namespaces.UserInum = p.userNs
 
 		m.Unix.Process.Size = p.size
 		m.Unix.Process.PID = p.pid
@@ -255,16 +255,16 @@ func procToKeyValue(p procs, inInitTree map[uint32]struct{}) (*execvemap.ExecveK
 	v.Capabilities.Permitted = p.permitted
 	v.Capabilities.Effective = p.effective
 	v.Capabilities.Inheritable = p.inheritable
-	v.Namespaces.UtsInum = p.uts_ns
-	v.Namespaces.IpcInum = p.ipc_ns
-	v.Namespaces.MntInum = p.mnt_ns
-	v.Namespaces.PidInum = p.pid_ns
-	v.Namespaces.PidChildInum = p.pid_for_children_ns
-	v.Namespaces.NetInum = p.net_ns
-	v.Namespaces.TimeInum = p.time_ns
-	v.Namespaces.TimeChildInum = p.time_for_children_ns
-	v.Namespaces.CgroupInum = p.cgroup_ns
-	v.Namespaces.UserInum = p.user_ns
+	v.Namespaces.UtsInum = p.utsNs
+	v.Namespaces.IpcInum = p.ipcNs
+	v.Namespaces.MntInum = p.mntNs
+	v.Namespaces.PidInum = p.pidNs
+	v.Namespaces.PidChildInum = p.pidForChildrenNs
+	v.Namespaces.NetInum = p.netNs
+	v.Namespaces.TimeInum = p.timeNs
+	v.Namespaces.TimeChildInum = p.timeForChildrenNs
+	v.Namespaces.CgroupInum = p.cgroupNs
+	v.Namespaces.UserInum = p.userNs
 	pathLength := copy(v.Binary.Path[:], p.exe)
 	v.Binary.PathLength = int32(pathLength)
 
