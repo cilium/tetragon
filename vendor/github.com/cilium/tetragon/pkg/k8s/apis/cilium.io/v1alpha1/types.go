@@ -220,13 +220,13 @@ type ActionSelector struct {
 	Action string `json:"action"`
 	// +kubebuilder:validation:Optional
 	// An arg index for the fd for fdInstall action
-	ArgFd uint32 `json:"argFd"`
+	ArgFD uint32 `json:"argFd"`
 	// +kubebuilder:validation:Optional
 	// An arg index for the filename for fdInstall action
 	ArgName uint32 `json:"argName"`
 	// +kubebuilder:validation:Optional
 	// A URL for the getUrl action
-	ArgUrl string `json:"argUrl"`
+	ArgURL string `json:"argUrl"`
 	// +kubebuilder:validation:Optional
 	// A FQDN to lookup for the dnsLookup action
 	ArgFqdn string `json:"argFqdn"`

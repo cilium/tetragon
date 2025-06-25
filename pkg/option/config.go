@@ -35,7 +35,7 @@ type config struct {
 	EnableProcessKprobeAncestors     bool
 	EnableProcessTracepointAncestors bool
 	EnableProcessUprobeAncestors     bool
-	EnableProcessLsmAncestors        bool
+	EnableProcessLSMAncestors        bool
 
 	EnableProcessNs   bool
 	EnableProcessCred bool
@@ -48,7 +48,7 @@ type config struct {
 
 	// On start used to store bpf prefix for --bpf-dir option,
 	// then it's updated to cary the whole path
-	BpfDir string
+	BPFDir string
 
 	LogOpts map[string]string
 
@@ -79,7 +79,7 @@ type config struct {
 	ExportAggregationWindowSize time.Duration
 	ExportAggregationBufferSize uint64
 
-	CpuProfile string
+	CPUProfile string
 	MemProfile string
 	PprofAddr  string
 
@@ -91,7 +91,7 @@ type config struct {
 	EnablePolicyFilterCgroupMap bool
 	EnablePolicyFilterDebug     bool
 
-	EnablePidSetFilter bool
+	EnablePIDSetFilter bool
 
 	EnableMsgHandlingLatency bool
 
@@ -166,7 +166,7 @@ func AncestorsEnabled(eventType tetragon.EventType) bool {
 	case tetragon.EventType_PROCESS_UPROBE:
 		return Config.EnableProcessUprobeAncestors
 	case tetragon.EventType_PROCESS_LSM:
-		return Config.EnableProcessLsmAncestors
+		return Config.EnableProcessLSMAncestors
 	default:
 		return false
 	}

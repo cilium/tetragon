@@ -15,14 +15,14 @@ func Generate(gen *protogen.Plugin, files []*protogen.File) error {
 	if err != nil {
 		return err
 	}
-	g := common.NewFile(gen, f, "", filepath.Base(common.TetragonApiPackageName), "types")
+	g := common.NewFile(gen, f, "", filepath.Base(common.TetragonAPIPackageName), "types")
 
 	events, err := common.GetEvents(files)
 	if err != nil {
 		return err
 	}
 
-	processIdent := common.TetragonApiIdent(g, "Process")
+	processIdent := common.TetragonAPIIdent(g, "Process")
 
 	g.P(`// IsGetEventsResponse_Event encapulates isGetEventsResponse_Event
     type IsGetEventsResponse_Event = isGetEventsResponse_Event`)

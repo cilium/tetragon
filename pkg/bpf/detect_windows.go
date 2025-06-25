@@ -13,7 +13,7 @@ func HasSignalHelper() bool {
 	return false
 }
 
-func HasBuildId() bool {
+func HasBuildID() bool {
 	return false
 }
 
@@ -43,6 +43,6 @@ func HasBatchAPI() bool {
 
 func LogFeatures() string {
 	return fmt.Sprintf("override_return: %t, buildid: %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t, link_pin: %t",
-		HasOverrideHelper(), HasBuildId(), HasModifyReturn(), HasModifyReturnSyscall(), HasSignalHelper(), HasProgramLargeSize(),
+		HasOverrideHelper(), HasBuildID(), HasModifyReturn(), HasModifyReturnSyscall(), HasSignalHelper(), HasProgramLargeSize(),
 		HasLinkPin())
 }

@@ -19,7 +19,7 @@ import (
 // being used in production, this should be acceptable.
 type ChildCache = map[uint32]struct{}
 
-func checkPidSetMembership(pid uint32, pidSet []uint32, childCache ChildCache) bool {
+func checkPIDSetMembership(pid uint32, pidSet []uint32, childCache ChildCache) bool {
 	// Check the original pidSet. The reason for doing this separately is that we never
 	// want to drop the original pidSet from the cache. Keeping this separately in a slice
 	// is an easy way to achieve this.
@@ -33,7 +33,7 @@ func checkPidSetMembership(pid uint32, pidSet []uint32, childCache ChildCache) b
 	return ok
 }
 
-func doFilterByPidSet(ev *event.Event, pidSet []uint32, childCache ChildCache, childCacheWarning *int) bool {
+func doFilterByPIDSet(ev *event.Event, pidSet []uint32, childCache ChildCache, childCacheWarning *int) bool {
 	process := GetProcess(ev)
 	if process == nil {
 		return false
@@ -41,7 +41,7 @@ func doFilterByPidSet(ev *event.Event, pidSet []uint32, childCache ChildCache, c
 
 	// Check the process against our cache
 	pid := process.Pid.GetValue()
-	if checkPidSetMembership(pid, pidSet, childCache) {
+	if checkPIDSetMembership(pid, pidSet, childCache) {
 		return true
 	}
 
@@ -52,7 +52,7 @@ func doFilterByPidSet(ev *event.Event, pidSet []uint32, childCache ChildCache, c
 
 	// Check the parent against our cache
 	ppid := parent.Pid.GetValue()
-	if checkPidSetMembership(ppid, pidSet, childCache) {
+	if checkPIDSetMembership(ppid, pidSet, childCache) {
 		// Add our own PID to the children cache so that we can match our future children.
 		childCache[pid] = struct{}{}
 		// If we exceeded the pre-determined warning limit, log a warning message and
@@ -68,24 +68,24 @@ func doFilterByPidSet(ev *event.Event, pidSet []uint32, childCache ChildCache, c
 	return false
 }
 
-func filterByPidSet(pidSet []uint32, childCache ChildCache, childCacheWarning int) FilterFunc {
+func filterByPIDSet(pidSet []uint32, childCache ChildCache, childCacheWarning int) FilterFunc {
 	return func(ev *event.Event) bool {
-		return doFilterByPidSet(ev, pidSet, childCache, &childCacheWarning)
+		return doFilterByPIDSet(ev, pidSet, childCache, &childCacheWarning)
 	}
 }
 
-// PidSetFilter is a filter that matches on a process and all of its children by their
+// PIDSetFilter is a filter that matches on a process and all of its children by their
 // PID, up to maxChildCacheSize number of children.
-type PidSetFilter struct{}
+type PIDSetFilter struct{}
 
-func (f *PidSetFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]FilterFunc, error) {
+func (f *PIDSetFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]FilterFunc, error) {
 	var fs []FilterFunc
 	if ff.PidSet != nil {
 		childCache := make(ChildCache)
 		childCacheWarning := 8192
 
 		pidSet := ff.PidSet
-		fs = append(fs, filterByPidSet(pidSet, childCache, childCacheWarning))
+		fs = append(fs, filterByPIDSet(pidSet, childCache, childCacheWarning))
 	}
 	return fs, nil
 }

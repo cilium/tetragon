@@ -10,7 +10,7 @@ import (
 	"github.com/cilium/tetragon/pkg/event"
 )
 
-func filterByPid(pids []uint32) FilterFunc {
+func filterByPID(pids []uint32) FilterFunc {
 	return func(ev *event.Event) bool {
 		process := GetProcess(ev)
 		if process == nil {
@@ -25,12 +25,12 @@ func filterByPid(pids []uint32) FilterFunc {
 	}
 }
 
-type PidFilter struct{}
+type PIDFilter struct{}
 
-func (f *PidFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]FilterFunc, error) {
+func (f *PIDFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]FilterFunc, error) {
 	var fs []FilterFunc
 	if ff.Pid != nil {
-		fs = append(fs, filterByPid(ff.Pid))
+		fs = append(fs, filterByPID(ff.Pid))
 	}
 	return fs, nil
 }

@@ -89,7 +89,7 @@ spec:
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
-	sens, err = observertesthelper.GetDefaultSensorsWithFile(t, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	sens, err = observertesthelper.GetDefaultSensorsWithFile(t, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -135,7 +135,7 @@ spec:
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -146,11 +146,11 @@ spec:
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
-func uprobePidMatch(t *testing.T, pid uint32) error {
+func uprobePIDMatch(t *testing.T, pid uint32) error {
 	path, err := os.Executable()
 	require.NoError(t, err)
 
@@ -192,7 +192,7 @@ spec:
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -201,16 +201,16 @@ spec:
 
 	UprobeTestFunc()
 
-	return jsonchecker.JsonTestCheck(t, checker)
+	return jsonchecker.JSONTestCheck(t, checker)
 }
 
 func TestUprobePidMatch(t *testing.T) {
-	err := uprobePidMatch(t, observertesthelper.GetMyPid())
+	err := uprobePIDMatch(t, observertesthelper.GetMyPID())
 	require.NoError(t, err)
 }
 
 func TestUprobePidMatchNot(t *testing.T) {
-	err := uprobePidMatch(t, observertesthelper.GetMyPid()+1)
+	err := uprobePIDMatch(t, observertesthelper.GetMyPID()+1)
 	require.Error(t, err)
 }
 
@@ -253,7 +253,7 @@ spec:
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -264,7 +264,7 @@ spec:
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	return jsonchecker.JsonTestCheck(t, checker)
+	return jsonchecker.JSONTestCheck(t, checker)
 }
 
 func TestUprobeBinariesMatch(t *testing.T) {
@@ -345,8 +345,8 @@ spec:
 
 	parentCheck := ec.NewProcessChecker().
 		WithBinary(sm.Full(testBin)).
-		WithPid(cti.ParentPid).
-		WithTid(cti.ParentTid)
+		WithPid(cti.ParentPID).
+		WithTid(cti.ParentTID)
 
 	execCheck := ec.NewProcessExecChecker("").
 		WithProcess(parentCheck)
@@ -356,8 +356,8 @@ spec:
 
 	child1Checker := ec.NewProcessChecker().
 		WithBinary(sm.Full(testBin)).
-		WithPid(cti.Child1Pid).
-		WithTid(cti.Child1Tid)
+		WithPid(cti.Child1PID).
+		WithTid(cti.Child1TID)
 
 	child1UpChecker := ec.NewProcessUprobeChecker("").
 		WithMessage(sm.Full("Uprobe test")).
@@ -366,8 +366,8 @@ spec:
 
 	thread1Checker := ec.NewProcessChecker().
 		WithBinary(sm.Full(testBin)).
-		WithPid(cti.Thread1Pid).
-		WithTid(cti.Thread1Tid)
+		WithPid(cti.Thread1PID).
+		WithTid(cti.Thread1TID)
 
 	thread1UpChecker := ec.NewProcessUprobeChecker("").
 		WithMessage(sm.Full("Uprobe test")).
@@ -376,7 +376,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(execCheck, child1UpChecker, thread1UpChecker, exitCheck)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -594,7 +594,7 @@ func testUprobeArgs(t *testing.T, checkers [5]*ec.ProcessUprobeChecker, tp traci
 	defer cancel()
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile,
-		tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+		tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -605,7 +605,7 @@ func testUprobeArgs(t *testing.T, checkers [5]*ec.ProcessUprobeChecker, tp traci
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 

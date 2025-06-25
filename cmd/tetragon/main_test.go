@@ -39,7 +39,7 @@ func TestGeneratedExecEvents(t *testing.T) {
 	option.Config.ExportRateLimit = -1
 	option.Config.DataCacheSize = 1024
 	option.Config.ProcessCacheSize = 65536
-	option.Config.BpfDir = defaults.DefaultMapPrefix
+	option.Config.BPFDir = defaults.DefaultMapPrefix
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 	option.Config.TracingPolicyDir = defaults.DefaultTpDir
 
@@ -83,7 +83,7 @@ func TestGeneratedExecEvents(t *testing.T) {
 	// in case it lags for some reason like slow CI server.
 	cnt := 0
 	for cnt < 5 {
-		if err = jsonchecker.JsonTestCheck(t, checker); err == nil {
+		if err = jsonchecker.JSONTestCheck(t, checker); err == nil {
 			break
 		}
 		time.Sleep(time.Second)

@@ -190,7 +190,7 @@ var (
 	CLONE_NEWUTS    = 0x4000000
 )
 
-var nsId = map[int32]string{
+var nsID = map[int32]string{
 	int32(0):               "any",
 	int32(CLONE_NEWCGROUP): "cgroup",
 	int32(CLONE_NEWIPC):    "ipc",
@@ -203,7 +203,7 @@ var nsId = map[int32]string{
 }
 
 func PrintNS(ns int32) string {
-	return nsId[ns]
+	return nsID[ns]
 }
 
 func HumanStackTrace(response *tetragon.GetEventsResponse, colorer *Colorer) string {
@@ -466,8 +466,8 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 			event := p.Colorer.Blue.Sprintf("🐝 %-7s", "perf_event_alloc")
 			attr := ""
 			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil {
-				p_event := kprobe.Args[0].GetPerfEventArg()
-				attr = p.Colorer.Cyan.Sprintf("%s %s", p_event.Type, p_event.KprobeFunc)
+				pEvent := kprobe.Args[0].GetPerfEventArg()
+				attr = p.Colorer.Cyan.Sprintf("%s %s", pEvent.Type, pEvent.KprobeFunc)
 			}
 			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, attr), caps), nil
 		case "security_bpf_map_alloc":

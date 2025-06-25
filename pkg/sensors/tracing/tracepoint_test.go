@@ -108,14 +108,14 @@ func TestGenericTracepointSimple(t *testing.T) {
 	readyWG.Wait()
 	unix.Seek(-1, 0, whenceBogusValue)
 	time.Sleep(1000 * time.Millisecond)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
-// doTestGenericTracepointPidFilter is a utility function for doing generic
+// doTestGenericTracepointPIDFilter is a utility function for doing generic
 // tracepoint tests. It filters events based on the test program's pid, so that
 // we get more predictable results.
-func doTestGenericTracepointPidFilter(t *testing.T, conf v1alpha1.TracepointSpec, selfOp func(), checkFn func(*tetragon.ProcessTracepoint) error) {
+func doTestGenericTracepointPIDFilter(t *testing.T, conf v1alpha1.TracepointSpec, selfOp func(), checkFn func(*tetragon.ProcessTracepoint) error) {
 	if _, err := os.Stat("/sys/kernel/debug/tracing/events/syscalls"); os.IsNotExist(err) {
 		t.Skip("cannot use syscall tracepoints (consider enabling CONFIG_FTRACE_SYSCALLS)")
 	}
@@ -126,7 +126,7 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf v1alpha1.TracepointSpec
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	pid := int(observertesthelper.GetMyPid())
+	pid := int(observertesthelper.GetMyPID())
 	t.Logf("filtering for my pid (%d)", pid)
 	pidSelector := v1alpha1.PIDSelector{
 		Operator:       "In",
@@ -174,9 +174,9 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf v1alpha1.TracepointSpec
 			if err := checkFn(tpEvent); err != nil {
 				return false, err
 			}
-			eventPid := tpEvent.Process.Pid.Value
-			if int(eventPid) != pid {
-				return false, fmt.Errorf("Unexpected pid=%d (filter is for pid %d)", eventPid, pid)
+			eventPID := tpEvent.Process.Pid.Value
+			if int(eventPID) != pid {
+				return false, fmt.Errorf("Unexpected pid=%d (filter is for pid %d)", eventPID, pid)
 			}
 			tpEventsNr++
 			return false, nil
@@ -201,7 +201,7 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf v1alpha1.TracepointSpec
 	}
 	checker := testsensor.NewTestChecker(&checker_)
 
-	if err := jsonchecker.JsonTestCheck(t, checker); err != nil {
+	if err := jsonchecker.JSONTestCheck(t, checker); err != nil {
 		t.Logf("error: %s", err)
 		t.Fail()
 	}
@@ -222,13 +222,13 @@ func TestGenericTracepointPidFilterLseek(t *testing.T) {
 		return nil
 	}
 
-	doTestGenericTracepointPidFilter(t, tracepointConf, op, check)
+	doTestGenericTracepointPIDFilter(t, tracepointConf, op, check)
 }
 
 func TestGenericTracepointArgFilterLseek(t *testing.T) {
-	fd_u := int32(100)
+	fdU := int32(100)
 	fd := 100
-	whence_u := uint64(whenceBogusValue)
+	whenceU := uint64(whenceBogusValue)
 	whenceStr := strconv.Itoa(whenceBogusValue)
 	whence := whenceBogusValue
 
@@ -271,7 +271,7 @@ func TestGenericTracepointArgFilterLseek(t *testing.T) {
 			return fmt.Errorf("unexpected first arg: %s", event.Args[0])
 		}
 		xwhence := arg0.SizeArg
-		if xwhence != whence_u {
+		if xwhence != whenceU {
 			return fmt.Errorf("unexpected arg val. got:%d expecting:%d", xwhence, whence)
 		}
 		arg1, ok := event.Args[1].GetArg().(*tetragon.KprobeArgument_IntArg)
@@ -279,13 +279,13 @@ func TestGenericTracepointArgFilterLseek(t *testing.T) {
 			return fmt.Errorf("unexpected first arg: %s", event.Args[1])
 		}
 		xfd := arg1.IntArg
-		if xfd != fd_u {
+		if xfd != fdU {
 			return fmt.Errorf("unexpected arg val. got:%d expecting:%d", xfd, fd)
 		}
 		return nil
 	}
 
-	doTestGenericTracepointPidFilter(t, tracepointConf, op, check)
+	doTestGenericTracepointPIDFilter(t, tracepointConf, op, check)
 }
 
 func TestGenericTracepointMeta(t *testing.T) {
@@ -342,7 +342,7 @@ func TestGenericTracepointMeta(t *testing.T) {
 		return nil
 	}
 
-	doTestGenericTracepointPidFilter(t, tracepointConf, op, check)
+	doTestGenericTracepointPIDFilter(t, tracepointConf, op, check)
 }
 
 // TestRawSyscall checks raw_syscall tracepoints
@@ -428,7 +428,7 @@ func TestGenericTracepointRawSyscall(t *testing.T) {
 		return fmt.Errorf("unexpected lseek args: %+v", args)
 	}
 
-	doTestGenericTracepointPidFilter(t, tracepointConf, op, check)
+	doTestGenericTracepointPIDFilter(t, tracepointConf, op, check)
 }
 
 func TestLoadTracepointSensor(t *testing.T) {
@@ -577,8 +577,8 @@ func TestTracepointCloneThreads(t *testing.T) {
 
 	parentCheck := ec.NewProcessChecker().
 		WithBinary(stringmatcher.Suffix("threads-tester")).
-		WithPid(cti.ParentPid).
-		WithTid(cti.ParentTid)
+		WithPid(cti.ParentPID).
+		WithTid(cti.ParentTID)
 
 	execCheck := ec.NewProcessExecChecker("").
 		WithProcess(parentCheck)
@@ -588,8 +588,8 @@ func TestTracepointCloneThreads(t *testing.T) {
 
 	child1Checker := ec.NewProcessChecker().
 		WithBinary(stringmatcher.Suffix("threads-tester")).
-		WithPid(cti.Child1Pid).
-		WithTid(cti.Child1Tid)
+		WithPid(cti.Child1PID).
+		WithTid(cti.Child1TID)
 
 	child1TpChecker := ec.NewProcessTracepointChecker("").
 		WithSubsys(stringmatcher.Full("syscalls")).
@@ -603,8 +603,8 @@ func TestTracepointCloneThreads(t *testing.T) {
 
 	thread1Checker := ec.NewProcessChecker().
 		WithBinary(stringmatcher.Suffix("threads-tester")).
-		WithPid(cti.Thread1Pid).
-		WithTid(cti.Thread1Tid)
+		WithPid(cti.Thread1PID).
+		WithTid(cti.Thread1TID)
 
 	thread1TpChecker := ec.NewProcessTracepointChecker("").
 		WithSubsys(stringmatcher.Full("syscalls")).
@@ -618,7 +618,7 @@ func TestTracepointCloneThreads(t *testing.T) {
 
 	checker := ec.NewUnorderedEventChecker(execCheck, child1TpChecker, thread1TpChecker, exitCheck)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -655,7 +655,7 @@ spec:
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -685,8 +685,8 @@ spec:
 
 	parentCheck := ec.NewProcessChecker().
 		WithBinary(stringmatcher.Suffix("threads-tester")).
-		WithPid(cti.ParentPid).
-		WithTid(cti.ParentTid)
+		WithPid(cti.ParentPID).
+		WithTid(cti.ParentTID)
 
 	execCheck := ec.NewProcessExecChecker("").
 		WithProcess(parentCheck)
@@ -696,8 +696,8 @@ spec:
 
 	child1Checker := ec.NewProcessChecker().
 		WithBinary(stringmatcher.Suffix("threads-tester")).
-		WithPid(cti.Child1Pid).
-		WithTid(cti.Child1Tid)
+		WithPid(cti.Child1PID).
+		WithTid(cti.Child1TID)
 
 	child1TpChecker := ec.NewProcessTracepointChecker("").
 		WithSubsys(stringmatcher.Full("syscalls")).
@@ -712,8 +712,8 @@ spec:
 
 	thread1Checker := ec.NewProcessChecker().
 		WithBinary(stringmatcher.Suffix("threads-tester")).
-		WithPid(cti.Thread1Pid).
-		WithTid(cti.Thread1Tid)
+		WithPid(cti.Thread1PID).
+		WithTid(cti.Thread1TID)
 
 	thread1TpChecker := ec.NewProcessTracepointChecker("").
 		WithSubsys(stringmatcher.Full("syscalls")).
@@ -728,7 +728,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(execCheck, child1TpChecker, thread1TpChecker, exitCheck)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -737,7 +737,7 @@ func TestStringTracepoint(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	mypid := int(observertesthelper.GetMyPid())
+	mypid := int(observertesthelper.GetMyPID())
 	t.Logf("filtering for my pid (%d)", mypid)
 
 	spec := &v1alpha1.TracingPolicySpec{
@@ -803,7 +803,7 @@ func testListSyscallsDupsRange(t *testing.T, checker *ec.UnorderedEventChecker, 
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -814,7 +814,7 @@ func testListSyscallsDupsRange(t *testing.T, checker *ec.UnorderedEventChecker, 
 		syscall.Dup(i)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -822,8 +822,8 @@ func TestTracepointListSyscallDupsRange(t *testing.T) {
 	if !kernels.MinKernelVersion("5.3.0") {
 		t.Skip("TestCopyFd requires at least 5.3.0 version")
 	}
-	myPid := observertesthelper.GetMyPid()
-	pidStr := strconv.Itoa(int(myPid))
+	myPID := observertesthelper.GetMyPID()
+	pidStr := strconv.Itoa(int(myPID))
 	configHook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -936,6 +936,6 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(tpChecker)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }

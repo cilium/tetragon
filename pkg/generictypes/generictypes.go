@@ -31,9 +31,9 @@ const (
 
 	// GenericConstBuffer is a buffer type whose size is static (and known).
 	GenericConstBuffer   = 18
-	GenericBpfAttr       = 19
+	GenericBPFAttr       = 19
 	GenericPerfEvent     = 20
-	GenericBpfMap        = 21
+	GenericBPFMap        = 21
 	GenericUserNamespace = 22
 	GenericCapability    = 23
 
@@ -72,7 +72,7 @@ const (
 
 // Userspace pretty printer types.
 const (
-	GenericUserBpfCmdType = 1
+	GenericUserBPFCmdType = 1
 )
 
 var GenericStringToType = map[string]int{
@@ -99,9 +99,9 @@ var GenericStringToType = map[string]int{
 	"cred":            GenericCredType,
 	"const_buf":       GenericConstBuffer,
 	"nop":             GenericNopType,
-	"bpf_attr":        GenericBpfAttr,
+	"bpf_attr":        GenericBPFAttr,
 	"perf_event":      GenericPerfEvent,
-	"bpf_map":         GenericBpfMap,
+	"bpf_map":         GenericBPFMap,
 	"user_namespace":  GenericUserNamespace,
 	"capability":      GenericCapability,
 	"kiocb":           GenericKiocb,
@@ -146,9 +146,9 @@ var GenericTypeToStringTable = map[int]string{
 	GenericCredType:        "cred",
 	GenericConstBuffer:     "const_buf",
 	GenericNopType:         "nop",
-	GenericBpfAttr:         "bpf_attr",
+	GenericBPFAttr:         "bpf_attr",
 	GenericPerfEvent:       "perf_event",
-	GenericBpfMap:          "bpf_map",
+	GenericBPFMap:          "bpf_map",
 	GenericUserNamespace:   "user_namespace",
 	GenericCapability:      "capability",
 	GenericKiocb:           "kiocb",
@@ -173,15 +173,15 @@ var GenericTypeToStringTable = map[int]string{
 }
 
 var GenericUserStringToType = map[string]int{
-	"bpf_cmd": GenericUserBpfCmdType,
+	"bpf_cmd": GenericUserBPFCmdType,
 }
 
 var GenericUserToKernel = map[int]int{
-	GenericUserBpfCmdType: GenericIntType,
+	GenericUserBPFCmdType: GenericIntType,
 }
 
 var GenericUserTypeToStringTable = map[int]string{
-	GenericUserBpfCmdType: "bpf_cmd",
+	GenericUserBPFCmdType: "bpf_cmd",
 	GenericInvalidType:    "",
 }
 

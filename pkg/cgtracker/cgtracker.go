@@ -67,7 +67,7 @@ func (m *Map) Add(tracked, tracker uint64) error {
 }
 
 func (m *Map) AddCgroupTrackerPath(trackerPath string) error {
-	cgID, err := cgroups.GetCgroupIdFromPath(trackerPath)
+	cgID, err := cgroups.GetCgroupIDFromPath(trackerPath)
 	if err != nil {
 		return fmt.Errorf("failed to get cgroup tracker id: %w", err)
 	}
@@ -92,7 +92,7 @@ func (m *Map) AddCgroupTrackerPath(trackerPath string) error {
 			return nil
 		}
 
-		trackedID, err := cgroups.GetCgroupIdFromPath(p)
+		trackedID, err := cgroups.GetCgroupIDFromPath(p)
 		if err != nil {
 			walkErr = errors.Join(walkErr, fmt.Errorf("failed to read id from '%s': %w", p, err))
 			return nil

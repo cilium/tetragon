@@ -43,7 +43,7 @@ func TestTestChecker(t *testing.T) {
 	}
 	errorChecker := NewTestChecker(&dummyChecker)
 
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserver error: %s", err)
 	}
@@ -55,7 +55,7 @@ func TestTestChecker(t *testing.T) {
 
 	TestCheckerMarkEnd(t)
 
-	err = jsonchecker.JsonTestCheck(t, errorChecker)
+	err = jsonchecker.JSONTestCheck(t, errorChecker)
 	t.Logf("got error: %v", err)
 	if !errors.Is(err, dummyErr) {
 		t.Fatalf("unexpected error: %v", err)

@@ -92,7 +92,7 @@ func criResolve(m Map, id unmappedID) error {
 
 	var getCgroupID func(string) (uint64, error)
 	if option.Config.EnableCgTrackerID {
-		getCgroupID = cgroups.GetCgroupIdFromPath
+		getCgroupID = cgroups.GetCgroupIDFromPath
 	} else {
 		getCgroupID = cgroups.GetCgroupIDFromSubCgroup
 	}

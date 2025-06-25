@@ -40,24 +40,24 @@ func RawAttachWithFlags(_ int, _ uint32) AttachFunc {
 }
 
 func getAttachTypeForAttachTarget(attachTarget string) (ebpf.AttachType, error) {
-	var attachTypeGuid string
+	var attachTypeGUID string
 	switch attachTarget {
 	case "process":
-		attachTypeGuid = attachTypeProcessGUID.String()
+		attachTypeGUID = attachTypeProcessGUID.String()
 	case "cgroup/connect4":
-		attachTypeGuid = attachTypeCgroupInet4ConnectGUID.String()
+		attachTypeGUID = attachTypeCgroupInet4ConnectGUID.String()
 	case "cgroup/connect6":
-		attachTypeGuid = attachTypeCgroupInet6ConnectGUID.String()
+		attachTypeGUID = attachTypeCgroupInet6ConnectGUID.String()
 	case "cgroup/recv_accept4":
-		attachTypeGuid = attachTypeCgroupInet4RecvAcceptGUID.String()
+		attachTypeGUID = attachTypeCgroupInet4RecvAcceptGUID.String()
 	case "cgroup/recv_accept6":
-		attachTypeGuid = attachTypeCgroupInet6RecvAcceptGUID.String()
+		attachTypeGUID = attachTypeCgroupInet6RecvAcceptGUID.String()
 
 	default:
 		return ebpf.AttachNone, nil
 	}
 
-	return ebpf.WindowsAttachTypeForGUID(attachTypeGuid)
+	return ebpf.WindowsAttachTypeForGUID(attachTypeGUID)
 }
 
 func windowsAttach(_ *Program, prog *ebpf.Program, _ *ebpf.ProgramSpec,

@@ -26,6 +26,10 @@ linters:
     - testifylint
     - unused
   settings:
+    staticcheck:
+      initialisms: ["ACL", "TID", "API", "ASCII", "BPF", "CPU", "CSS", "DNS", "EOF", "GUID", "HTML", "HTTP", "HTTPS", "ID", "IP", "JSON", "LSM", "PID", "QPS", "RAM", "RPC", "SLA", "SMTP", "SQL", "SSH", "TCP", "TLS", "TTL", "UDP", "UI", "GID", "UID", "UUID", "URI", "URL", "UTF8", "VM", "XML", "XMPP", "XSRF", "XSS", "SIP", "RTP", "AMQP", "DB", "TS"]
+      checks:
+      - all
     dupword:
       keywords:
         - the
@@ -79,6 +83,9 @@ linters:
       - linters:
           - goheader
         path: pkg/sensors/tracing/genericuprobe_cgo.go
+      - linters:
+          - staticcheck
+        text: should not use ALL_CAPS in Go names; use CamelCase instead
     paths:
       - third_party$
       - builtin$

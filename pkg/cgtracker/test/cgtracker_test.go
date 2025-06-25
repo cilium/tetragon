@@ -353,7 +353,7 @@ func (fs *testCgroupFS) mkdirsCheck(
 			err := fs.cgTrackerMap.AddCgroupTrackerPath(d)
 			require.NoError(t, err)
 		}
-		cgID, err := cgroups.GetCgroupIdFromPath(d)
+		cgID, err := cgroups.GetCgroupIDFromPath(d)
 		require.NoError(t, err)
 		fs.cgIDs[path] = cgID
 		t.Logf("cgid for %s is %d", path, cgID)

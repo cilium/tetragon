@@ -37,6 +37,6 @@ func (f *FakeObserver) ListTracingPolicies(ctx context.Context) (*tetragon.ListT
 	return nil, nil
 }
 
-func (h *FakeObserver) ConfigureTracingPolicy(_ context.Context, _ *tetragon.ConfigureTracingPolicyRequest) error {
+func (f *FakeObserver) ConfigureTracingPolicy(_ context.Context, _ *tetragon.ConfigureTracingPolicyRequest) error {
 	return nil
 }

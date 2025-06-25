@@ -40,7 +40,7 @@ var (
 )
 
 type genericUprobe struct {
-	tableId      idtable.EntryID
+	tableID      idtable.EntryID
 	config       *api.EventConfig
 	path         string
 	symbol       string
@@ -58,7 +58,7 @@ type genericUprobe struct {
 }
 
 func (g *genericUprobe) SetID(id idtable.EntryID) {
-	g.tableId = id
+	g.tableID = id
 }
 
 func init() {
@@ -89,9 +89,9 @@ func handleGenericUprobe(r *bytes.Reader) ([]observer.Event, error) {
 		return nil, errors.New("failed to read process call msg")
 	}
 
-	uprobeEntry, err := genericUprobeTableGet(idtable.EntryID{ID: int(m.FuncId)})
+	uprobeEntry, err := genericUprobeTableGet(idtable.EntryID{ID: int(m.FuncID)})
 	if err != nil {
-		logger.GetLogger().Warn(fmt.Sprintf("Failed to match id:%d", m.FuncId), logfields.Error, err)
+		logger.GetLogger().Warn(fmt.Sprintf("Failed to match id:%d", m.FuncID), logfields.Error, err)
 		return nil, errors.New("failed to match id")
 	}
 
@@ -413,7 +413,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		}
 
 		uprobeEntry := &genericUprobe{
-			tableId:      idtable.UninitializedEntryID,
+			tableID:      idtable.UninitializedEntryID,
 			config:       config,
 			path:         spec.Path,
 			symbol:       sym,
@@ -427,9 +427,9 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		}
 
 		uprobeTable.AddEntry(uprobeEntry)
-		id := uprobeEntry.tableId
+		id := uprobeEntry.tableID
 
-		config.FuncId = uint32(id.ID)
+		config.FuncID = uint32(id.ID)
 
 		ids = append(ids, id)
 	}
@@ -517,7 +517,7 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 		path.Join(option.Config.HubbleLib, loadProgName),
 		fmt.Sprintf("%s %s", uprobeEntry.path, uprobeEntry.symbol),
 		"uprobe/generic_uprobe",
-		fmt.Sprintf("%d-%s", uprobeEntry.tableId.ID, uprobeEntry.symbol),
+		fmt.Sprintf("%d-%s", uprobeEntry.tableID.ID, uprobeEntry.symbol),
 		"generic_uprobe").
 		SetAttachData(attachData).
 		SetLoaderData(uprobeEntry).

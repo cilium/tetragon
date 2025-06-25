@@ -65,15 +65,15 @@ func HandleGenericInternal(ev notify.Event, pid uint32, tid *uint32, timestamp u
 		// of ancestors collected, we just need to try to resume the collection process from the last
 		// known ancestor.
 		tetragonAncestors := ev.GetAncestors()
-		var nextExecId string
+		var nextExecID string
 
 		if len(tetragonAncestors) == 0 {
-			nextExecId = internal.UnsafeGetProcess().ParentExecId
+			nextExecID = internal.UnsafeGetProcess().ParentExecId
 		} else {
-			nextExecId = tetragonAncestors[len(tetragonAncestors)-1].ExecId
+			nextExecID = tetragonAncestors[len(tetragonAncestors)-1].ExecId
 		}
 
-		if ancestors, perr := process.GetAncestorProcessesInternal(nextExecId); perr == nil {
+		if ancestors, perr := process.GetAncestorProcessesInternal(nextExecID); perr == nil {
 			for _, ancestor := range ancestors {
 				tetragonAncestors = append(tetragonAncestors, ancestor.UnsafeGetProcess())
 			}
@@ -100,7 +100,7 @@ func HandleGenericInternal(ev notify.Event, pid uint32, tid *uint32, timestamp u
 		// deep copy of all the fields of the thread leader from the cache in
 		// order to safely modify them, to not corrupt gRPC streams.
 		proc := internal.GetProcessCopy()
-		process.UpdateEventProcessTid(proc, tid)
+		process.UpdateEventProcessTID(proc, tid)
 		ev.SetProcess(proc)
 	} else {
 		CacheRetries(ProcessInfo).Inc()
@@ -132,7 +132,7 @@ func HandleGenericEvent(internal *process.ProcessInternal, ev notify.Event, tid 
 	// deep copy of all the fields of the thread leader from the cache in
 	// order to safely modify them, to not corrupt gRPC streams.
 	proc := internal.GetProcessCopy()
-	process.UpdateEventProcessTid(proc, tid)
+	process.UpdateEventProcessTID(proc, tid)
 	ev.SetProcess(proc)
 	return nil
 }

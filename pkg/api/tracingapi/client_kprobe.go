@@ -18,8 +18,8 @@ const (
 	ActionUnfollowFd                  = 3
 	ActionOverride                    = 4
 	ActionCopyFd                      = 5
-	ActionGetUrl                      = 6
-	ActionLookupDns                   = 7
+	ActionGetURL                      = 6
+	ActionLookupDNS                   = 7
 	ActionNoPost                      = 8
 	ActionSignal                      = 9
 	ActionTrackSock                   = 10
@@ -38,10 +38,10 @@ const (
 type MsgLoader struct {
 	Common      processapi.MsgCommon
 	ProcessKey  processapi.MsgExecveKey
-	Pid         uint32
-	BuildIdSize uint32
+	PID         uint32
+	BuildIDSize uint32
 	PathSize    uint32
-	BuildId     [20]byte
+	BuildID     [20]byte
 	Path        [4096]byte
 }
 
@@ -50,11 +50,11 @@ type MsgGenericKprobe struct {
 	ProcessKey    processapi.MsgExecveKey
 	Namespaces    processapi.MsgNamespaces
 	Capabilities  processapi.MsgCapabilities
-	FuncId        uint64
-	RetProbeId    uint64
-	ActionId      uint64
-	ActionArgId   uint32
-	Tid           uint32 // The recorded TID that triggered the event
+	FuncID        uint64
+	RetProbeID    uint64
+	ActionID      uint64
+	ActionArgID   uint32
+	TID           uint32 // The recorded TID that triggered the event
 	KernelStackID int64
 	UserStackID   int64
 }
@@ -304,8 +304,8 @@ func (m MsgGenericKprobeArgNetDev) IsReturnArg() bool {
 
 type MsgGenericKprobeArgCred struct {
 	Index      uint64
-	Uid        uint32
-	Gid        uint32
+	UID        uint32
+	GID        uint32
 	Suid       uint32
 	Sgid       uint32
 	Euid       uint32
@@ -441,16 +441,16 @@ func (m MsgGenericKprobeArgLinuxBinprm) IsReturnArg() bool {
 
 type MsgGenericUserNamespace struct {
 	Level  int32
-	Uid    uint32
-	Gid    uint32
+	UID    uint32
+	GID    uint32
 	NsInum uint32
 }
 
 type MsgGenericKprobeArgUserNamespace struct {
 	Index  uint64
 	Level  int32
-	Uid    uint32
-	Gid    uint32
+	UID    uint32
+	GID    uint32
 	NsInum uint32
 	Label  string
 }
@@ -501,13 +501,13 @@ func (m MsgGenericKprobeArgKernelModule) IsReturnArg() bool {
 	return m.Index == ReturnArgIndex
 }
 
-type MsgGenericKprobeBpfAttr struct {
+type MsgGenericKprobeBPFAttr struct {
 	ProgType uint32
 	InsnCnt  uint32
 	ProgName [BPF_OBJ_NAME_LEN]byte
 }
 
-type MsgGenericKprobeArgBpfAttr struct {
+type MsgGenericKprobeArgBPFAttr struct {
 	Index    uint64
 	ProgType uint32
 	InsnCnt  uint32
@@ -515,11 +515,11 @@ type MsgGenericKprobeArgBpfAttr struct {
 	Label    string
 }
 
-func (m MsgGenericKprobeArgBpfAttr) GetIndex() uint64 {
+func (m MsgGenericKprobeArgBPFAttr) GetIndex() uint64 {
 	return m.Index
 }
 
-func (m MsgGenericKprobeArgBpfAttr) IsReturnArg() bool {
+func (m MsgGenericKprobeArgBPFAttr) IsReturnArg() bool {
 	return m.Index == ReturnArgIndex
 }
 
@@ -547,7 +547,7 @@ func (m MsgGenericKprobeArgPerfEvent) IsReturnArg() bool {
 	return m.Index == ReturnArgIndex
 }
 
-type MsgGenericKprobeBpfMap struct {
+type MsgGenericKprobeBPFMap struct {
 	MapType    uint32
 	KeySize    uint32
 	ValueSize  uint32
@@ -555,7 +555,7 @@ type MsgGenericKprobeBpfMap struct {
 	MapName    [BPF_OBJ_NAME_LEN]byte
 }
 
-type MsgGenericKprobeArgBpfMap struct {
+type MsgGenericKprobeArgBPFMap struct {
 	MapType    uint32
 	Index      uint64
 	KeySize    uint32
@@ -565,11 +565,11 @@ type MsgGenericKprobeArgBpfMap struct {
 	Label      string
 }
 
-func (m MsgGenericKprobeArgBpfMap) GetIndex() uint64 {
+func (m MsgGenericKprobeArgBPFMap) GetIndex() uint64 {
 	return m.Index
 }
 
-func (m MsgGenericKprobeArgBpfMap) IsReturnArg() bool {
+func (m MsgGenericKprobeArgBPFMap) IsReturnArg() bool {
 	return m.Index == ReturnArgIndex
 }
 
@@ -583,7 +583,7 @@ type MsgGenericKprobeUnix struct {
 	ProcessKey   processapi.MsgExecveKey
 	Namespaces   processapi.MsgNamespaces
 	Capabilities processapi.MsgCapabilities
-	Id           uint64
+	ID           uint64
 	Action       uint64
 	FuncName     string
 	Args         []MsgGenericKprobeArg
@@ -599,7 +599,7 @@ const EventConfigMaxArgs = 5
 const MaxBTFArgDepth = 10 // Artificial value for compilation, may be extended
 
 type EventConfig struct {
-	FuncId          uint32                                           `align:"func_id"`
+	FuncID          uint32                                           `align:"func_id"`
 	Arg             [EventConfigMaxArgs]int32                        `align:"arg"`
 	ArgM            [EventConfigMaxArgs]uint32                       `align:"arm"`
 	ArgTpCtxOff     [EventConfigMaxArgs]uint32                       `align:"off"`

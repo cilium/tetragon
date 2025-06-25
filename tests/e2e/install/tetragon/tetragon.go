@@ -141,10 +141,10 @@ func Install(opts ...Option) env.Func {
 		manager := helm.New(cfg.KubeconfigFile())
 
 		// Only add and upate repo if helm url is specified
-		if o.HelmRepoUrl != "" {
+		if o.HelmRepoURL != "" {
 			repoName := strings.Split(o.HelmChart, "/")[0]
-			if err := manager.RunRepo(helm.WithArgs("add", "--force-update", repoName, o.HelmRepoUrl)); err != nil {
-				return ctx, fmt.Errorf("failed to add helm repo %s (%s): %w", repoName, o.HelmRepoUrl, err)
+			if err := manager.RunRepo(helm.WithArgs("add", "--force-update", repoName, o.HelmRepoURL)); err != nil {
+				return ctx, fmt.Errorf("failed to add helm repo %s (%s): %w", repoName, o.HelmRepoURL, err)
 			}
 
 			if err := manager.RunRepo(helm.WithArgs("update")); err != nil {
@@ -181,8 +181,8 @@ func Install(opts ...Option) env.Func {
 		// Handle BTF option for KinD cluster
 		if o.BTF != "" {
 			if clusterName := helpers.GetTempKindClusterName(ctx); clusterName != "" {
-				controlPlaneId := clusterName + "-control-plane"
-				cmd := exec.CommandContext(ctx, "docker", "cp", o.BTF, controlPlaneId+":/btf")
+				controlPlaneID := clusterName + "-control-plane"
+				cmd := exec.CommandContext(ctx, "docker", "cp", o.BTF, controlPlaneID+":/btf")
 				err := cmd.Run()
 				if err != nil {
 					return ctx, fmt.Errorf("failed to load BTF file into KinD cluster: %w", err)

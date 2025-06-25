@@ -122,7 +122,7 @@ spec:
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
-	_, err = observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	_, err = observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -139,7 +139,7 @@ func TestKprobeLseek(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	t.Logf("tester pid=%s\n", pidStr)
 
 	lseekConfigHook_ := `
@@ -172,7 +172,7 @@ spec:
 	kpChecker := ec.NewProcessKprobeChecker("lseek-checker").
 		WithFunctionName(sm.Suffix("sys_lseek"))
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -181,7 +181,7 @@ spec:
 	fmt.Printf("Calling lseek...\n")
 	unix.Seek(-1, 0, 4444)
 
-	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
+	err = jsonchecker.JSONTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
 	require.NoError(t, err)
 }
 
@@ -219,7 +219,7 @@ func runKprobeObjectWriteRead(t *testing.T, writeReadHook string) {
 
 	checker := getTestKprobeObjectWRChecker(t)
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -228,7 +228,7 @@ func runKprobeObjectWriteRead(t *testing.T, writeReadHook string) {
 	_, err = syscall.Write(1, []byte("hello world"))
 	require.NoError(t, err)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -238,8 +238,8 @@ func TestKprobeObjectWriteReadHostNs(t *testing.T) {
 	if _, err := os.Stat("/.dockerenv"); errors.Is(err, os.ErrNotExist) {
 		nsOp = "In"
 	}
-	myPid := observertesthelper.GetMyPid()
-	pidStr := strconv.Itoa(int(myPid))
+	myPID := observertesthelper.GetMyPID()
+	pidStr := strconv.Itoa(int(myPID))
 	writeReadHook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -284,9 +284,9 @@ spec:
 }
 
 func TestKprobeObjectWriteRead(t *testing.T) {
-	myPid := observertesthelper.GetMyPid()
-	pidStr := strconv.Itoa(int(myPid))
-	mntns, err := namespace.GetPidNsInode(myPid, "mnt")
+	myPID := observertesthelper.GetMyPID()
+	pidStr := strconv.Itoa(int(myPID))
+	mntns, err := namespace.GetPIDNsInode(myPID, "mnt")
 	require.NoError(t, err)
 	require.NotZero(t, mntns)
 	mntNsStr := strconv.FormatUint(uint64(mntns), 10)
@@ -370,8 +370,8 @@ spec:
 }
 
 func TestKprobeObjectWriteReadNsOnly(t *testing.T) {
-	myPid := observertesthelper.GetMyPid()
-	mntns, err := namespace.GetPidNsInode(myPid, "mnt")
+	myPID := observertesthelper.GetMyPID()
+	mntns, err := namespace.GetPIDNsInode(myPID, "mnt")
 	require.NoError(t, err)
 	require.NotZero(t, mntns)
 	mntNsStr := strconv.FormatUint(uint64(mntns), 10)
@@ -415,7 +415,7 @@ spec:
 }
 
 func TestKprobeObjectWriteReadPidOnly(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	writeReadHook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -481,7 +481,7 @@ func runKprobeObjectRead(t *testing.T, readHook string, checker ec.MultiEventChe
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -501,13 +501,13 @@ func runKprobeObjectRead(t *testing.T, readHook string, checker ec.MultiEventChe
 		t.Fatal()
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
 func TestKprobeObjectRead(t *testing.T) {
 	fd, fd2, fdString := createTestFile(t)
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	readHook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -553,7 +553,7 @@ spec:
 
 func TestKprobeObjectReadReturn(t *testing.T) {
 	fd, fd2, fdString := createTestFile(t)
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	readHook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -665,7 +665,7 @@ func testKprobeObjectFiltered(t *testing.T,
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -681,7 +681,7 @@ func testKprobeObjectFiltered(t *testing.T,
 	n, err := syscall.Write(fd2, []byte(data))
 	assert.Equal(t, len(data), n)
 	require.NoError(t, err)
-	err = jsonchecker.JsonTestCheckExpect(t, checker, expectFailure)
+	err = jsonchecker.JSONTestCheckExpect(t, checker, expectFailure)
 	require.NoError(t, err)
 }
 
@@ -728,28 +728,28 @@ func testKprobeObjectOpenHook(pidStr string, path string, withNull bool) string 
 }
 
 func TestKprobeObjectOpen(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectOpenHook(pidStr, dir, false)
 	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
 }
 
 func TestKprobeObjectOpenWithNull(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectOpenHook(pidStr, dir, true)
 	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
 }
 
 func TestKprobeObjectOpenMount(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectOpenHook(pidStr, dir, false)
 	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770)
 }
 
 func TestKprobeObjectOpenMountWithNull(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectOpenHook(pidStr, dir, true)
 	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770)
@@ -774,14 +774,14 @@ func testKprobeStringMatch(t *testing.T,
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 	syscall.Open(filePath, syscall.O_RDONLY, 0)
-	err = jsonchecker.JsonTestCheckExpect(t, checker, false)
+	err = jsonchecker.JSONTestCheckExpect(t, checker, false)
 	require.NoError(t, err)
 }
 
@@ -818,7 +818,7 @@ func testKprobeStringMatchHook(pidStr string, dir string) string {
 }
 
 func TestKprobeStringMatchHash0Max(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	pathLen := 24
 	fileLen := len("/testfile")
 	dir := strings.Repeat("A", pathLen-fileLen)
@@ -827,7 +827,7 @@ func TestKprobeStringMatchHash0Max(t *testing.T) {
 }
 
 func TestKprobeStringMatchHash1Min(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	pathLen := 25
 	fileLen := len("/testfile")
 	dir := strings.Repeat("A", pathLen-fileLen)
@@ -836,7 +836,7 @@ func TestKprobeStringMatchHash1Min(t *testing.T) {
 }
 
 func TestKprobeStringMatchHash1Max(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	pathLen := 48
 	fileLen := len("/testfile")
 	dir := strings.Repeat("A", pathLen-fileLen)
@@ -845,7 +845,7 @@ func TestKprobeStringMatchHash1Max(t *testing.T) {
 }
 
 func TestKprobeStringMatchHash2Min(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	pathLen := 49
 	fileLen := len("/testfile")
 	dir := strings.Repeat("A", pathLen-fileLen)
@@ -854,7 +854,7 @@ func TestKprobeStringMatchHash2Min(t *testing.T) {
 }
 
 func TestKprobeStringMatchHash2Max(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	pathLen := 72
 	fileLen := len("/testfile")
 	dir := strings.Repeat("A", pathLen-fileLen)
@@ -863,7 +863,7 @@ func TestKprobeStringMatchHash2Max(t *testing.T) {
 }
 
 func TestKprobeStringMatchHash3Min(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	pathLen := 73
 	fileLen := len("/testfile")
 	dir := strings.Repeat("A", pathLen-fileLen)
@@ -872,7 +872,7 @@ func TestKprobeStringMatchHash3Min(t *testing.T) {
 }
 
 func TestKprobeStringMatchHash3Max(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	pathLen := 96
 	fileLen := len("/testfile")
 	dir := strings.Repeat("A", pathLen-fileLen)
@@ -881,7 +881,7 @@ func TestKprobeStringMatchHash3Max(t *testing.T) {
 }
 
 func TestKprobeStringMatchHash4Min(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	pathLen := 97
 	fileLen := len("/testfile")
 	dir := strings.Repeat("A", pathLen-fileLen)
@@ -890,7 +890,7 @@ func TestKprobeStringMatchHash4Min(t *testing.T) {
 }
 
 func TestKprobeStringMatchHash4Max(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	pathLen := 120
 	fileLen := len("/testfile")
 	dir := strings.Repeat("A", pathLen-fileLen)
@@ -899,7 +899,7 @@ func TestKprobeStringMatchHash4Max(t *testing.T) {
 }
 
 func TestKprobeStringMatchHash5Min(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	pathLen := 121
 	fileLen := len("/testfile")
 	dir := strings.Repeat("A", pathLen-fileLen)
@@ -908,7 +908,7 @@ func TestKprobeStringMatchHash5Min(t *testing.T) {
 }
 
 func TestKprobeStringMatchHash5Max(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	pathLen := 144
 	fileLen := len("/testfile")
 	dir := strings.Repeat("A", pathLen-fileLen)
@@ -920,7 +920,7 @@ func TestKprobeStringMatchHash6Min(t *testing.T) {
 	if !kernels.MinKernelVersion("5.4") {
 		t.Skip("Test requires kernel 5.4+")
 	}
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	pathLen := 145
 	fileLen := len("/testfile")
 	dir := strings.Repeat("A", pathLen-fileLen)
@@ -932,7 +932,7 @@ func TestKprobeStringMatchHash6Max(t *testing.T) {
 	if !kernels.MinKernelVersion("5.4") {
 		t.Skip("Test requires kernel 5.4+")
 	}
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	pathLen := 256
 	fileLen := len("/testfile")
 	dir := strings.Repeat("A", pathLen-fileLen)
@@ -944,7 +944,7 @@ func TestKprobeStringMatchHash7Min(t *testing.T) {
 	if !kernels.MinKernelVersion("5.4") {
 		t.Skip("Test requires kernel 5.4+")
 	}
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	pathLen := 257
 	fileLen := len("/testfile")
 	dir := strings.Repeat("A", pathLen-fileLen)
@@ -956,7 +956,7 @@ func TestKprobeStringMatchHash7Max(t *testing.T) {
 	if !kernels.MinKernelVersion("5.4") {
 		t.Skip("Test requires kernel 5.4+")
 	}
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	pathLen := 512
 	if !kernels.MinKernelVersion("5.11") {
 		pathLen = 510
@@ -971,7 +971,7 @@ func TestKprobeStringMatchHash8Min(t *testing.T) {
 	if !kernels.MinKernelVersion("5.11") {
 		t.Skip("Test requires kernel 5.11+")
 	}
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	pathLen := 513
 	fileLen := len("/testfile")
 	dir := strings.Repeat("A", pathLen-fileLen)
@@ -983,7 +983,7 @@ func TestKprobeStringMatchHash8Max(t *testing.T) {
 	if !kernels.MinKernelVersion("5.11") {
 		t.Skip("Test requires kernel 5.11+")
 	}
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	pathLen := 1024
 	fileLen := len("/testfile")
 	dir := strings.Repeat("A", pathLen-fileLen)
@@ -995,7 +995,7 @@ func TestKprobeStringMatchHash9Min(t *testing.T) {
 	if !kernels.MinKernelVersion("5.11") {
 		t.Skip("Test requires kernel 5.11+")
 	}
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	pathLen := 1025
 	fileLen := len("/testfile")
 	dir := strings.Repeat("A", pathLen-fileLen)
@@ -1007,7 +1007,7 @@ func TestKprobeStringMatchHash9Max(t *testing.T) {
 	if !kernels.MinKernelVersion("5.11") {
 		t.Skip("Test requires kernel 5.11+")
 	}
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	pathLen := 2048
 	fileLen := len("/testfile")
 	dir := strings.Repeat("A", pathLen-fileLen)
@@ -1019,7 +1019,7 @@ func TestKprobeStringMatchHash10Min(t *testing.T) {
 	if !kernels.MinKernelVersion("5.11") {
 		t.Skip("Test requires kernel 5.11+")
 	}
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	pathLen := 2049
 	fileLen := len("/testfile")
 	dir := strings.Repeat("A", pathLen-fileLen)
@@ -1031,7 +1031,7 @@ func TestKprobeStringMatchHash10Max(t *testing.T) {
 	if !kernels.MinKernelVersion("5.11") {
 		t.Skip("Test requires kernel 5.11+")
 	}
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	pathLen := 4096
 	fileLen := len("/testfile")
 	dir := strings.Repeat("A", pathLen-fileLen)
@@ -1073,21 +1073,21 @@ func testKprobeObjectMultiValueOpenHook(pidStr string, path string) string {
 }
 
 func TestKprobeObjectMultiValueOpen(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectMultiValueOpenHook(pidStr, dir)
 	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
 }
 
 func TestKprobeObjectMultiValueOpenMount(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectMultiValueOpenHook(pidStr, dir)
 	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770)
 }
 
 func TestKprobeObjectFilterOpen(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	dir := t.TempDir()
 	readHook := `
 apiVersion: cilium.io/v1alpha1
@@ -1122,7 +1122,7 @@ spec:
 }
 
 func TestKprobeObjectMultiValueFilterOpen(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	dir := t.TempDir()
 	readHook := `
 apiVersion: cilium.io/v1alpha1
@@ -1190,14 +1190,14 @@ func testKprobeObjectFilterPrefixOpenHook(pidStr string, path string) string {
 }
 
 func TestKprobeObjectFilterPrefixOpen(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFilterPrefixOpenHook(pidStr, dir)
 	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
 }
 
 func TestKprobeObjectFilterPrefixOpenSuperLong(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFilterPrefixOpenHook(pidStr, dir)
 	firstDir := dir + "/testfoo"
@@ -1216,7 +1216,7 @@ func TestKprobeObjectFilterPrefixOpenSuperLong(t *testing.T) {
 }
 
 func TestKprobeObjectFilterPrefixOpenMount(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFilterPrefixOpenHook(pidStr, dir)
 	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770)
@@ -1255,14 +1255,14 @@ func testKprobeObjectFilterPrefixExactOpenHook(pidStr string, path string) strin
 }
 
 func TestKprobeObjectFilterPrefixExactOpen(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFilterPrefixExactOpenHook(pidStr, dir)
 	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
 }
 
 func TestKprobeObjectFilterPrefixExactOpenMount(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFilterPrefixExactOpenHook(pidStr, dir)
 	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770)
@@ -1301,21 +1301,21 @@ func testKprobeObjectFilterPrefixSubdirOpenHook(pidStr string, path string) stri
 }
 
 func TestKprobeObjectFilterPrefixSubdirOpen(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFilterPrefixSubdirOpenHook(pidStr, dir)
 	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
 }
 
 func TestKprobeObjectFilterPrefixSubdirOpenMount(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFilterPrefixSubdirOpenHook(pidStr, dir)
 	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770)
 }
 
 func TestKprobeObjectFilterPrefixMissOpen(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	dir := t.TempDir()
 	readHook := `
 apiVersion: cilium.io/v1alpha1
@@ -1360,7 +1360,7 @@ func testKprobeObjectPostfixOpenFileName(withNull bool) string {
 }
 
 func testKprobeObjectPostfixOpen(t *testing.T, withNull bool) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	dir := t.TempDir()
 	readHook := `
 apiVersion: cilium.io/v1alpha1
@@ -1403,7 +1403,7 @@ func TestKprobeObjectPostfixOpenWithNull(t *testing.T) {
 }
 
 func TestKprobeObjectPostfixOpenSuperLong(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	dir := t.TempDir()
 	readHook := `
 apiVersion: cilium.io/v1alpha1
@@ -1481,7 +1481,7 @@ func testKprobeObjectFilterModeOpenHook(pidStr string, mode int, valueFmt string
 }
 
 func testKprobeObjectFilterModeOpenMatch(t *testing.T, valueFmt string, modeCreate, modeCheck int) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 
 	checker := func(dir string) *ec.UnorderedEventChecker {
 		return ec.NewUnorderedEventChecker(
@@ -1515,7 +1515,7 @@ func TestKprobeObjectFilterModeOpenMatchOct(t *testing.T) {
 }
 
 func TestKprobeObjectFilterModeOpenFail(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	dir := t.TempDir()
 	openHook := testKprobeObjectFilterModeOpenHook(pidStr, syscall.O_TRUNC, "%d")
 	testKprobeObjectFiltered(t, openHook, getAnyChecker(), false, dir, true, syscall.O_RDWR, 0x770)
@@ -1619,7 +1619,7 @@ func testKprobeObjectFilteredReturnValue(t *testing.T,
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -1627,7 +1627,7 @@ func testKprobeObjectFilteredReturnValue(t *testing.T,
 	readyWG.Wait()
 	fd2, _ := syscall.Open(path, syscall.O_RDWR, 0x770)
 	t.Cleanup(func() { syscall.Close(fd2) })
-	err = jsonchecker.JsonTestCheckExpect(t, checker, expectFailure)
+	err = jsonchecker.JSONTestCheckExpect(t, checker, expectFailure)
 	require.NoError(t, err)
 }
 
@@ -1635,7 +1635,7 @@ func TestKprobeObjectFilterReturnValueGTOk(t *testing.T) {
 	if !config.EnableLargeProgs() {
 		t.Skip("Older kernels do not support GT/LT matching")
 	}
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	dir := t.TempDir()
 	path := dir + "/testfile"
 	openHook := testKprobeObjectFilterReturnValueGTHook(pidStr, path)
@@ -1671,7 +1671,7 @@ func TestKprobeObjectFilterReturnValueGTFail(t *testing.T) {
 	if !config.EnableLargeProgs() {
 		t.Skip("Older kernels do not support GT/LT matching")
 	}
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	dir := t.TempDir()
 	path := dir + "/testfile"
 	openHook := testKprobeObjectFilterReturnValueGTHook(pidStr, path)
@@ -1685,7 +1685,7 @@ func TestKprobeObjectFilterReturnValueLTOk(t *testing.T) {
 	if !config.EnableLargeProgs() {
 		t.Skip("Older kernels do not support GT/LT matching")
 	}
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	dir := t.TempDir()
 	path := dir + "/testfile"
 	openHook := testKprobeObjectFilterReturnValueLTHook(pidStr, path)
@@ -1712,7 +1712,7 @@ func TestKprobeObjectFilterReturnValueLTFail(t *testing.T) {
 	if !config.EnableLargeProgs() {
 		t.Skip("Older kernels do not support GT/LT matching")
 	}
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	dir := t.TempDir()
 	path := dir + "/testfile"
 	openHook := testKprobeObjectFilterReturnValueLTHook(pidStr, path)
@@ -1751,7 +1751,7 @@ func TestKprobeObjectWriteVRead(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 
 	writeReadHook := `
 apiVersion: cilium.io/v1alpha1
@@ -1799,7 +1799,7 @@ spec:
 			))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -1808,7 +1808,7 @@ spec:
 	err = helloIovecWorldWritev()
 	require.NoError(t, err)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -1826,7 +1826,7 @@ func getFilpOpenChecker(dir string) ec.MultiEventChecker {
 }
 
 func TestKprobeObjectFilenameOpen(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	dir := t.TempDir()
 	readHook := `
 apiVersion: cilium.io/v1alpha1
@@ -1854,7 +1854,7 @@ spec:
 }
 
 func TestKprobeObjectReturnFilenameOpen(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	dir := t.TempDir()
 	readHook := `
 apiVersion: cilium.io/v1alpha1
@@ -2002,28 +2002,28 @@ func getWriteChecker(t *testing.T, path, flags string) ec.MultiEventChecker {
 }
 
 func TestKprobeObjectFileWrite(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFileWriteHook(pidStr)
 	testKprobeObjectFiltered(t, readHook, getWriteChecker(t, filepath.Join(dir, "testfile"), ""), false, dir, false, syscall.O_RDWR, 0x770)
 }
 
 func TestKprobeObjectFileWriteFiltered(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, dir)
 	testKprobeObjectFiltered(t, readHook, getWriteChecker(t, filepath.Join(dir, "testfile"), ""), false, dir, false, syscall.O_RDWR, 0x770)
 }
 
 func TestKprobeObjectFileWriteMount(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFileWriteHook(pidStr)
 	testKprobeObjectFiltered(t, readHook, getWriteChecker(t, filepath.Join(dir, "testfile"), ""), true, dir, false, syscall.O_RDWR, 0x770)
 }
 
 func TestKprobeObjectFileWriteMountFiltered(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, dir)
 	testKprobeObjectFiltered(t, readHook, getWriteChecker(t, filepath.Join(dir, "testfile"), ""), true, dir, false, syscall.O_RDWR, 0x770)
@@ -2050,7 +2050,7 @@ func corePathTest(t *testing.T, filePath string, readHook string, writeChecker e
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -2067,7 +2067,7 @@ func corePathTest(t *testing.T, filePath string, readHook string, writeChecker e
 	n, err := syscall.Write(fd2, []byte(data))
 	assert.Equal(t, len(data), n)
 	require.NoError(t, err)
-	err = jsonchecker.JsonTestCheck(t, writeChecker)
+	err = jsonchecker.JSONTestCheck(t, writeChecker)
 	require.NoError(t, err)
 }
 
@@ -2198,25 +2198,25 @@ func testMultipleMountPathFiltered(t *testing.T, readHook string) {
 }
 
 func TestMultipleMountsFiltered(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, "/tmp2/tmp3/tmp4/tmp5")
 	testMultipleMountsFiltered(t, readHook)
 }
 
 func TestMultiplePathComponents(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	readHook := testKprobeObjectFileWriteHook(pidStr)
 	testMultiplePathComponentsFiltered(t, readHook)
 }
 
 func TestMultipleMountPath(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	readHook := testKprobeObjectFileWriteHook(pidStr)
 	testMultipleMountPathFiltered(t, readHook)
 }
 
 func TestMultipleMountPathFiltered(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, "/7/8/9/10/11/12/13/14/15/16")
 	if config.EnableLargeProgs() {
 		readHook = testKprobeObjectFileWriteFilteredHook(pidStr, "/tmp2/tmp3/tmp4/tmp5/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16")
@@ -2225,7 +2225,7 @@ func TestMultipleMountPathFiltered(t *testing.T) {
 }
 
 func TestKprobeArgValues(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	readHook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -2285,7 +2285,7 @@ spec:
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -2314,7 +2314,7 @@ spec:
 		uintptr(newFd), uintptr(unsafe.Pointer(newBytes)),
 		uintptr(flags), 0)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -2338,7 +2338,7 @@ func runKprobeOverride(t *testing.T, hook string, checker ec.MultiEventChecker,
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -2358,7 +2358,7 @@ func runKprobeOverride(t *testing.T, hook string, checker ec.MultiEventChecker,
 		t.Fatal()
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 
 	if nopost {
 		require.Error(t, err)
@@ -2368,7 +2368,7 @@ func runKprobeOverride(t *testing.T, hook string, checker ec.MultiEventChecker,
 }
 
 func TestKprobeOverride(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 
 	file, err := os.CreateTemp(t.TempDir(), "kprobe-override-")
 	if err != nil {
@@ -2433,7 +2433,7 @@ func TestKprobeOverrideSecurity(t *testing.T) {
 		t.Skip("skipping fmod_ret support is not available")
 	}
 
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 
 	file, err := os.CreateTemp(t.TempDir(), "kprobe-override-")
 	if err != nil {
@@ -2491,7 +2491,7 @@ spec:
 }
 
 func TestKprobeOverrideNopostAction(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 
 	file, err := os.CreateTemp(t.TempDir(), "kprobe-override-")
 	if err != nil {
@@ -2570,7 +2570,7 @@ func runKprobeOverrideSignal(t *testing.T, hook string, checker ec.MultiEventChe
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -2599,7 +2599,7 @@ func runKprobeOverrideSignal(t *testing.T, hook string, checker ec.MultiEventChe
 		t.Fatalf("got wrong signal number %d, expocted %d", sig, expectedSig)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 
 	if nopost {
 		require.Error(t, err)
@@ -2612,7 +2612,7 @@ func TestKprobeOverrideSignal(t *testing.T) {
 	if !config.EnableLargeProgs() {
 		t.Skip()
 	}
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 
 	file, err := os.CreateTemp(t.TempDir(), "kprobe-override-")
 	if err != nil {
@@ -2678,7 +2678,7 @@ func TestKprobeSignalOverride(t *testing.T) {
 	if !config.EnableLargeProgs() {
 		t.Skip()
 	}
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 
 	file, err := os.CreateTemp(t.TempDir(), "kprobe-override-")
 	if err != nil {
@@ -2744,7 +2744,7 @@ func TestKprobeSignalOverrideNopost(t *testing.T) {
 	if !config.EnableLargeProgs() {
 		t.Skip()
 	}
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 
 	file, err := os.CreateTemp(t.TempDir(), "kprobe-override-")
 	if err != nil {
@@ -2821,7 +2821,7 @@ func runKprobeOverrideMulti(t *testing.T, hook string, checker ec.MultiEventChec
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -2862,7 +2862,7 @@ func runKprobeOverrideMulti(t *testing.T, hook string, checker ec.MultiEventChec
 		t.Fatalf("syscall.Rename failed\n")
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -2875,7 +2875,7 @@ func TestKprobeOverrideMulti(t *testing.T) {
 		t.Skip("skipping override test, bpf_override_return helper not available")
 	}
 
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 
 	file, err := os.CreateTemp(t.TempDir(), "kprobe-override-")
 	if err != nil {
@@ -3062,7 +3062,7 @@ spec:
 	runKprobeOverrideMulti(t, multiHook, checker, file.Name(), link.Name(), syscall.EPERM, syscall.ENOENT, syscall.ESRCH)
 }
 
-func runKprobe_char_iovec(t *testing.T, configHook string,
+func runKprobeCharIovec(t *testing.T, configHook string,
 	checker *ec.UnorderedEventChecker, fdw, fdr int, buffer []byte) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
@@ -3077,7 +3077,7 @@ func runKprobe_char_iovec(t *testing.T, configHook string,
 	}
 
 	b := base.GetInitialSensorTest(t)
-	obs, err := observertesthelper.GetDefaultObserverWithWatchers(t, ctx, b, observertesthelper.WithConfig(testConfigFile), observertesthelper.WithLib(tus.Conf().TetragonLib), observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithWatchers(t, ctx, b, observertesthelper.WithConfig(testConfigFile), observertesthelper.WithLib(tus.Conf().TetragonLib), observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithWatchers error: %s", err)
 	}
@@ -3108,13 +3108,13 @@ func runKprobe_char_iovec(t *testing.T, configHook string,
 	_, err = unix.Readv(fdr, iovr)
 	require.NoError(t, err)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
 func TestKprobe_char_iovec(t *testing.T) {
 	fdw, fdr, _ := createTestFile(t)
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 
 	configHook := `
 apiVersion: cilium.io/v1alpha1
@@ -3163,12 +3163,12 @@ spec:
 			))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	runKprobe_char_iovec(t, configHook, checker, fdw, fdr, buffer)
+	runKprobeCharIovec(t, configHook, checker, fdw, fdr, buffer)
 }
 
 func TestKprobe_char_iovec_overflow(t *testing.T) {
 	fdw, fdr, _ := createTestFile(t)
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 
 	configHook := `
 apiVersion: cilium.io/v1alpha1
@@ -3217,12 +3217,12 @@ spec:
 			))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	runKprobe_char_iovec(t, configHook, checker, fdw, fdr, buffer)
+	runKprobeCharIovec(t, configHook, checker, fdw, fdr, buffer)
 }
 
 func TestKprobe_char_iovec_returnCopy(t *testing.T) {
 	fdw, fdr, _ := createTestFile(t)
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 
 	configHook := `
 apiVersion: cilium.io/v1alpha1
@@ -3272,7 +3272,7 @@ spec:
 			))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	runKprobe_char_iovec(t, configHook, checker, fdw, fdr, buffer)
+	runKprobeCharIovec(t, configHook, checker, fdw, fdr, buffer)
 }
 
 func getMatchArgsFileCrd(opStr string, vals []string) string {
@@ -3451,7 +3451,7 @@ func TestKprobeMatchArgsFileEqual(t *testing.T) {
 
 	createCrdFile(t, getMatchArgsFileCrd("Equal", argVals[:]))
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -3469,7 +3469,7 @@ func TestKprobeMatchArgsFileEqual(t *testing.T) {
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers...)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -3491,7 +3491,7 @@ func TestKprobeMatchArgsFilePostfix(t *testing.T) {
 
 	createCrdFile(t, getMatchArgsFileCrd("Postfix", argVals[:]))
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -3509,7 +3509,7 @@ func TestKprobeMatchArgsFilePostfix(t *testing.T) {
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers...)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -3531,7 +3531,7 @@ func TestKprobeMatchArgsFilePrefix(t *testing.T) {
 
 	createCrdFile(t, getMatchArgsFileCrd("Prefix", argVals[:]))
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -3549,7 +3549,7 @@ func TestKprobeMatchArgsFilePrefix(t *testing.T) {
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers...)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -3571,7 +3571,7 @@ func TestKprobeMatchArgsFdEqual(t *testing.T) {
 
 	createCrdFile(t, getMatchArgsFdCrd("Equal", argVals[:]))
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -3585,7 +3585,7 @@ func TestKprobeMatchArgsFdEqual(t *testing.T) {
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers...)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -3607,7 +3607,7 @@ func TestKprobeMatchArgsFdPostfix(t *testing.T) {
 
 	createCrdFile(t, getMatchArgsFdCrd("Postfix", argVals[:]))
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -3621,7 +3621,7 @@ func TestKprobeMatchArgsFdPostfix(t *testing.T) {
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers...)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -3643,7 +3643,7 @@ func TestKprobeMatchArgsFdPrefix(t *testing.T) {
 
 	createCrdFile(t, getMatchArgsFdCrd("Prefix", argVals[:]))
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -3657,7 +3657,7 @@ func TestKprobeMatchArgsFdPrefix(t *testing.T) {
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers...)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -3696,7 +3696,7 @@ func TestKprobeMatchArgsFileMonitoringPrefix(t *testing.T) {
 
 	createCrdFile(t, getMatchArgsFileFIMCrd([]string{"/etc/"}))
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -3717,7 +3717,7 @@ func TestKprobeMatchArgsFileMonitoringPrefix(t *testing.T) {
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers...)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -3760,7 +3760,7 @@ spec:
 
 	createCrdFile(t, configHook)
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -3787,7 +3787,7 @@ spec:
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers...)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 
 	// now check that there is no read event for "/etc/passwd" and "/etc/group"
@@ -3804,7 +3804,7 @@ spec:
 	}
 
 	errChecker := ec.NewUnorderedEventChecker(kpErrCheckers...)
-	err = jsonchecker.JsonTestCheck(t, errChecker)
+	err = jsonchecker.JSONTestCheck(t, errChecker)
 	require.Error(t, err)
 }
 
@@ -3854,7 +3854,7 @@ func matchBinariesTest(t *testing.T, operator string, values []string, kpChecker
 
 	createCrdFile(t, getMatchBinariesCrd(operator, values))
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -3870,7 +3870,7 @@ func matchBinariesTest(t *testing.T, operator string, values []string, kpChecker
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -3919,7 +3919,7 @@ func matchBinariesLargePathTest(t *testing.T, operator string, values []string, 
 
 	createCrdFile(t, getMatchBinariesCrd(operator, values))
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -3933,7 +3933,7 @@ func matchBinariesLargePathTest(t *testing.T, operator string, values []string, 
 	checker := ec.NewUnorderedEventChecker(ec.NewProcessKprobeChecker("").
 		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(binary))).
 		WithFunctionName(sm.Full("fd_install")))
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 
 }
@@ -4036,11 +4036,11 @@ func matchBinariesPerfringTest(t *testing.T, operator string, values []string) {
 	tailEventExist := false
 	for _, ev := range events {
 		if kprobe, ok := ev.(*tracing.MsgGenericKprobeUnix); ok {
-			if int(kprobe.Msg.ProcessKey.Pid) == tailPID {
+			if int(kprobe.Msg.ProcessKey.PID) == tailPID {
 				tailEventExist = true
 				continue
 			}
-			if int(kprobe.Msg.ProcessKey.Pid) == headPID {
+			if int(kprobe.Msg.ProcessKey.PID) == headPID {
 				t.Error("kprobe event triggered by /usr/bin/head should be filtered by the matchBinaries selector")
 				break
 			}
@@ -4136,7 +4136,7 @@ func TestKprobeMatchBinariesEarlyExec(t *testing.T) {
 
 	for _, ev := range events {
 		if kprobe, ok := ev.(*tracing.MsgGenericKprobeUnix); ok {
-			if int(kprobe.Msg.ProcessKey.Pid) == tailCommand.Process.Pid && kprobe.FuncName == arch.AddSyscallPrefixTestHelper(t, "sys_read") {
+			if int(kprobe.Msg.ProcessKey.PID) == tailCommand.Process.Pid && kprobe.FuncName == arch.AddSyscallPrefixTestHelper(t, "sys_read") {
 				return
 			}
 		}
@@ -4237,15 +4237,15 @@ func TestKprobeMatchBinariesPrefixMatchArgs(t *testing.T) {
 	tailEventExist := false
 	for _, ev := range events {
 		if kprobe, ok := ev.(*tracing.MsgGenericKprobeUnix); ok {
-			if int(kprobe.Msg.ProcessKey.Pid) == tailEtcPID {
+			if int(kprobe.Msg.ProcessKey.PID) == tailEtcPID {
 				tailEventExist = true
 				continue
 			}
-			if int(kprobe.Msg.ProcessKey.Pid) == tailProcPID {
+			if int(kprobe.Msg.ProcessKey.PID) == tailProcPID {
 				t.Error("kprobe event triggered by \"/usr/bin/tail /proc/uptime\" should be filtered by the matchArgs selector")
 				break
 			}
-			if int(kprobe.Msg.ProcessKey.Pid) == headPID {
+			if int(kprobe.Msg.ProcessKey.PID) == headPID {
 				t.Error("kprobe event triggered by /usr/bin/head should be filtered by the matchBinaries selector")
 				break
 			}
@@ -4276,7 +4276,7 @@ spec:
 	if err != nil {
 		return err
 	}
-	err = sens.Load(option.Config.BpfDir)
+	err = sens.Load(option.Config.BPFDir)
 	if err != nil {
 		return err
 	}
@@ -4304,7 +4304,7 @@ spec:
 `
 	createCrdFile(t, hook)
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -4328,7 +4328,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -4480,7 +4480,7 @@ spec:
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
-	sens, err := observertesthelper.GetDefaultSensorsWithFile(t, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	sens, err := observertesthelper.GetDefaultSensorsWithFile(t, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -4508,7 +4508,7 @@ spec:
    syscall: true
 `
 
-	_, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, "", tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	_, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, "", tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	require.NoError(t, err)
 
 	tp, err := tracingpolicy.FromYAML(testHook)
@@ -4537,7 +4537,7 @@ func testMaxData(t *testing.T, data []byte, checker *ec.UnorderedEventChecker, c
 
 	option.Config.RBSize = 1024 * 1024
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -4546,7 +4546,7 @@ func testMaxData(t *testing.T, data []byte, checker *ec.UnorderedEventChecker, c
 	_, err = syscall.Write(fd, data)
 	require.NoError(t, err)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -4555,8 +4555,8 @@ func TestKprobeWriteMaxDataTrunc(t *testing.T) {
 		t.Skip("TestCopyFd requires at least 5.3.0 version")
 	}
 	_, fd2, fdString := createTestFile(t)
-	myPid := observertesthelper.GetMyPid()
-	pidStr := strconv.Itoa(int(myPid))
+	myPID := observertesthelper.GetMyPID()
+	pidStr := strconv.Itoa(int(myPID))
 	writeHook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -4618,8 +4618,8 @@ func TestKprobeWriteMaxData(t *testing.T) {
 		t.Skip("TestCopyFd requires at least 5.3.0 version")
 	}
 	_, fd2, fdString := createTestFile(t)
-	myPid := observertesthelper.GetMyPid()
-	pidStr := strconv.Itoa(int(myPid))
+	myPID := observertesthelper.GetMyPID()
+	pidStr := strconv.Itoa(int(myPID))
 	writeHook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -4677,8 +4677,8 @@ func TestKprobeWriteMaxDataFull(t *testing.T) {
 		t.Skip("TestCopyFd requires at least 5.3.0 version")
 	}
 	_, fd2, fdString := createTestFile(t)
-	myPid := observertesthelper.GetMyPid()
-	pidStr := strconv.Itoa(int(myPid))
+	myPID := observertesthelper.GetMyPID()
+	pidStr := strconv.Itoa(int(myPID))
 	writeHook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -4828,9 +4828,9 @@ spec:
 	}
 	cmdServer.Process.Kill()
 
-	err = jsonchecker.JsonTestCheck(t, checkerSuccess)
+	err = jsonchecker.JSONTestCheck(t, checkerSuccess)
 	require.NoError(t, err)
-	err = jsonchecker.JsonTestCheckExpect(t, checkerFailure, true)
+	err = jsonchecker.JSONTestCheckExpect(t, checkerFailure, true)
 	require.NoError(t, err)
 }
 
@@ -4854,8 +4854,8 @@ func TestKprobeListSyscallDupsRange(t *testing.T) {
 	if !kernels.MinKernelVersion("5.3.0") {
 		t.Skip("TestCopyFd requires at least 5.3.0 version")
 	}
-	myPid := observertesthelper.GetMyPid()
-	pidStr := strconv.Itoa(int(myPid))
+	myPID := observertesthelper.GetMyPID()
+	pidStr := strconv.Itoa(int(myPID))
 	configHook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -5012,11 +5012,11 @@ func TestLinuxBinprmExtractPath(t *testing.T) {
 	wantedEventExist := false
 	for _, ev := range events {
 		if kprobe, ok := ev.(*tracing.MsgGenericKprobeUnix); ok {
-			if int(kprobe.Msg.ProcessKey.Pid) == targetCommand.Process.Pid {
+			if int(kprobe.Msg.ProcessKey.PID) == targetCommand.Process.Pid {
 				wantedEventExist = true
 				continue
 			}
-			if int(kprobe.Msg.ProcessKey.Pid) == filteredCommand.Process.Pid {
+			if int(kprobe.Msg.ProcessKey.PID) == filteredCommand.Process.Pid {
 				t.Error("kprobe event triggered by /usr/bin/uname should be filtered by the matchArgs selector")
 				break
 			}
@@ -5187,7 +5187,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker1, kpChecker2, kpChecker3, kpChecker4)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -5212,7 +5212,7 @@ spec:
 
 	createCrdFile(t, tracingPolicy)
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -5247,7 +5247,7 @@ spec:
 		))
 
 	checker := ec.NewUnorderedEventChecker(stackTraceChecker)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 func TestKprobeUserStackTrace(t *testing.T) {
@@ -5275,15 +5275,15 @@ spec:
 
 	createCrdFile(t, tracingPolicy)
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
-	test_cmd := exec.Command(testUserStacktrace)
+	testCmd := exec.Command(testUserStacktrace)
 
-	if err := test_cmd.Start(); err != nil {
+	if err := testCmd.Start(); err != nil {
 		t.Fatalf("failed to run %s: %s", testUserStacktrace, err)
 	}
 
@@ -5310,10 +5310,10 @@ spec:
 	}
 
 	checker := ec.NewUnorderedEventChecker(stackTraceChecker)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 
 	// Kill test because of endless loop in the test for stable stack trace extraction
-	test_cmd.Process.Kill()
+	testCmd.Process.Kill()
 
 	require.NoError(t, err)
 }
@@ -5390,7 +5390,7 @@ spec:
 
 	createCrdFile(t, tracingPolicy)
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -5426,7 +5426,7 @@ spec:
 			))
 
 	checker := ec.NewUnorderedEventChecker(kpCheckersRead, kpCheckersMmap)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -5473,7 +5473,7 @@ func TestKprobeArgs(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	t.Logf("tester pid=%s\n", pidStr)
 
 	hook := `
@@ -5628,7 +5628,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(check1, check2, check3, check4, check5)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -5701,7 +5701,7 @@ spec:
 	t.Logf("Test %s running with cap_permitted:%s  -  cap_effective:%s",
 		t.Name(), caps.GetCapabilitiesHex(currentPermitted), caps.GetCapabilitiesHex(currentEffective))
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -5756,7 +5756,7 @@ spec:
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers1, kpCheckers2)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -5846,7 +5846,7 @@ spec:
 `
 	createCrdFile(t, hook)
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -5885,7 +5885,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(mapCreate, progLoad, btfLoad)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -5942,14 +5942,14 @@ spec:
 	syscall.Syscall(syscall.SYS_PRCTL, 8888, 0, 0)
 	syscall.Syscall(syscall.SYS_PRCTL, 9999, 0, 0)
 
-	kp_8888 := ec.NewProcessKprobeChecker("").
+	kp8888 := ec.NewProcessKprobeChecker("").
 		WithTags(ec.NewStringListMatcher().WithValues(sm.Full("prctl_8888")))
-	kp_9999 := ec.NewProcessKprobeChecker("").
+	kp9999 := ec.NewProcessKprobeChecker("").
 		WithTags(ec.NewStringListMatcher().WithValues(sm.Full("prctl_9999")))
 
-	checker := ec.NewUnorderedEventChecker(kp_8888, kp_9999)
+	checker := ec.NewUnorderedEventChecker(kp8888, kp9999)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -5999,7 +5999,7 @@ spec:
 	processLongCWDChecker := ec.NewProcessExecChecker("longCWD").
 		WithProcess(ec.NewProcessChecker().WithBinary(sm.Suffix("ls")).WithCwd(sm.Full(longPath)))
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -6026,7 +6026,7 @@ spec:
 	require.NoError(t, err)
 
 	checker := ec.NewUnorderedEventChecker(kprobeLongFileArgChecker, processLongCWDChecker)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -6099,7 +6099,7 @@ spec:
 				),
 			))
 
-		obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+		obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 		if err != nil {
 			t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 		}
@@ -6112,7 +6112,7 @@ spec:
 		file.Close()
 
 		checker := ec.NewUnorderedEventChecker(kprobeCheck)
-		err = jsonchecker.JsonTestCheck(t, checker)
+		err = jsonchecker.JSONTestCheck(t, checker)
 		require.NoError(t, err)
 	})
 
@@ -6147,7 +6147,7 @@ spec:
 				),
 			))
 
-		obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+		obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 		if err != nil {
 			t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 		}
@@ -6158,7 +6158,7 @@ spec:
 		unix.Truncate(pathFull, 0)
 
 		checker := ec.NewUnorderedEventChecker(kprobeChecker)
-		err = jsonchecker.JsonTestCheck(t, checker)
+		err = jsonchecker.JSONTestCheck(t, checker)
 		require.NoError(t, err)
 	})
 
@@ -6247,7 +6247,7 @@ spec:
 
 		checker := ec.NewUnorderedEventChecker(kpChecker)
 
-		err = jsonchecker.JsonTestCheck(t, checker)
+		err = jsonchecker.JSONTestCheck(t, checker)
 		require.NoError(t, err)
 	})
 }
@@ -6261,17 +6261,17 @@ func TestKprobeDentryPath(t *testing.T) {
 	// The we make sure we get proper expected path value in the event
 	// and that there's no event for dentry-unlink-2 file removal.
 
-	file_1, err := os.CreateTemp(t.TempDir(), "dentry-unlink-1")
+	file1, err := os.CreateTemp(t.TempDir(), "dentry-unlink-1")
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
-	defer require.NoError(t, file_1.Close())
+	defer require.NoError(t, file1.Close())
 
-	file_2, err := os.CreateTemp(t.TempDir(), "dentry-unlink-2")
+	file2, err := os.CreateTemp(t.TempDir(), "dentry-unlink-2")
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
-	defer require.NoError(t, file_2.Close())
+	defer require.NoError(t, file2.Close())
 
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
@@ -6284,12 +6284,12 @@ func TestKprobeDentryPath(t *testing.T) {
 	// We can extract dentry type until first mount point,
 	// so let's detect that and find final path portion for
 	// checking.
-	check_1 := file_1.Name()
-	check_2 := file_2.Name()
+	check1 := file1.Name()
+	check2 := file2.Name()
 	for _, info := range infos {
-		if len(info.MountPoint) > 1 && strings.HasPrefix(file_1.Name(), info.MountPoint) {
-			check_1 = check_1[len(info.MountPoint):]
-			check_2 = check_2[len(info.MountPoint):]
+		if len(info.MountPoint) > 1 && strings.HasPrefix(file1.Name(), info.MountPoint) {
+			check1 = check1[len(info.MountPoint):]
+			check2 = check2[len(info.MountPoint):]
 			break
 		}
 	}
@@ -6310,12 +6310,12 @@ spec:
       - index: 1
         operator: "Postfix"
         values:
-        - "` + check_1 + `"
+        - "` + check1 + `"
 `
 	createCrdFile(t, hook)
 
-	t.Logf("Removing file 1 %s, check %s\n", file_1.Name(), check_1)
-	t.Logf("Removing file 2 %s, check %s\n", file_2.Name(), check_2)
+	t.Logf("Removing file 1 %s, check %s\n", file1.Name(), check1)
+	t.Logf("Removing file 2 %s, check %s\n", file2.Name(), check2)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -6324,8 +6324,8 @@ spec:
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
-	syscall.Unlink(file_1.Name())
-	syscall.Unlink(file_2.Name())
+	syscall.Unlink(file1.Name())
+	syscall.Unlink(file2.Name())
 
 	getChecker := func(check string) *ec.UnorderedEventChecker {
 		kpChecker := ec.NewProcessKprobeChecker("").
@@ -6344,11 +6344,11 @@ spec:
 	}
 
 	// We filter for file_1 (check_1) so we should get event for that
-	err = jsonchecker.JsonTestCheck(t, getChecker(check_1))
+	err = jsonchecker.JSONTestCheck(t, getChecker(check1))
 	require.NoError(t, err)
 
 	// ... but not for file_2 (check_2).
-	err = jsonchecker.JsonTestCheck(t, getChecker(check_2))
+	err = jsonchecker.JSONTestCheck(t, getChecker(check2))
 	require.Error(t, err)
 }
 
@@ -6402,7 +6402,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -6413,7 +6413,7 @@ func TestKprobeArgsReverse(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	t.Logf("tester pid=%s\n", pidStr)
 
 	lseekConfigHook_ := `
@@ -6460,7 +6460,7 @@ spec:
 				ec.NewKprobeArgumentChecker().WithIntArg(2).WithLabel(sm.Full("index 2")),
 			))
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -6469,7 +6469,7 @@ spec:
 	fmt.Printf("Calling lseek...\n")
 	unix.Seek(0, 1, 2)
 
-	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
+	err = jsonchecker.JSONTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
 	require.NoError(t, err)
 }
 
@@ -6522,7 +6522,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -6533,7 +6533,7 @@ func TestKprobeIgnore(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 	t.Logf("tester pid=%s\n", pidStr)
 
 	lseekConfigHook_ := `
@@ -6570,7 +6570,7 @@ spec:
 	kpChecker := ec.NewProcessKprobeChecker("lseek-checker").
 		WithFunctionName(sm.Suffix("sys_lseek"))
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -6579,6 +6579,6 @@ spec:
 	fmt.Printf("Calling lseek...\n")
 	unix.Seek(-1, 0, 4444)
 
-	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
+	err = jsonchecker.JSONTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
 	require.NoError(t, err)
 }

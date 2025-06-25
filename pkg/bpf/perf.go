@@ -109,7 +109,7 @@ const (
 	BPF_F_STACK_BUILD_ID = 1 << 5
 
 	// Build ID flags bit for perf_event_open
-	PerfBitBuildId = constants.CBitFieldMaskBit34
+	PerfBitBuildID = constants.CBitFieldMaskBit34
 )
 
 type PerfEventConfig struct {

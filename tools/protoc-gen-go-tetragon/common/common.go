@@ -19,8 +19,8 @@ var TetragonProtoPackageName = "tetragon"
 // TetragonPackageName is the import path for the Tetragon package
 var TetragonPackageName = "github.com/cilium/tetragon"
 
-// TetragonApiPackageName is the import path for the code generated package
-var TetragonApiPackageName = "api/v1/tetragon"
+// TetragonAPIPackageName is the import path for the code generated package
+var TetragonAPIPackageName = "api/v1/tetragon"
 
 // TetragonCopyrightHeader is the license header to prepend to all generated files
 var TetragonCopyrightHeader = `// SPDX-License-Identifier: Apache-2.0
@@ -63,10 +63,10 @@ func GoIdent(g *protogen.GeneratedFile, importPath string, name string) string {
 	})
 }
 
-// TetragonApiIdent is a convenience helper that calls GoIdent with the path to the
+// TetragonAPIIdent is a convenience helper that calls GoIdent with the path to the
 // Tetragon API package.
-func TetragonApiIdent(g *protogen.GeneratedFile, name string) string {
-	return TetragonIdent(g, TetragonApiPackageName, name)
+func TetragonAPIIdent(g *protogen.GeneratedFile, name string) string {
+	return TetragonIdent(g, TetragonAPIPackageName, name)
 }
 
 // TetragonIdent is a convenience helper that calls GoIdent with the path to the
@@ -79,7 +79,7 @@ func TetragonIdent(g *protogen.GeneratedFile, importPath string, name string) st
 // GeneratedIdent is a convenience helper that returns a qualified go ident as a string for
 // a given import package and name within the codegen package
 func GeneratedIdent(g *protogen.GeneratedFile, importPath string, name string) string {
-	importPath = filepath.Join(TetragonPackageName, TetragonApiPackageName, "codegen", importPath)
+	importPath = filepath.Join(TetragonPackageName, TetragonAPIPackageName, "codegen", importPath)
 	return GoIdent(g, importPath, name)
 }
 
@@ -306,11 +306,11 @@ func GetFields(files []*protogen.File) ([]*protogen.Message, error) {
 // getFieldsForMessage recursively looks up all the fields for a given message
 func getFieldsForMessage(msg *protogen.Message) []*protogen.Field {
 	seen := make(map[string]struct{})
-	return __getFieldsForMessage(msg, seen)
+	return getFieldsForMessageRec(msg, seen)
 }
 
-// __getFieldsForMessage is the underlying recusion logic of getFieldsForMessage
-func __getFieldsForMessage(msg *protogen.Message, seen map[string]struct{}) []*protogen.Field {
+// getFieldsForMessageRec is the underlying recusion logic of getFieldsForMessage
+func getFieldsForMessageRec(msg *protogen.Message, seen map[string]struct{}) []*protogen.Field {
 	var fields []*protogen.Field
 
 	for _, field := range msg.Fields {
@@ -323,7 +323,7 @@ func __getFieldsForMessage(msg *protogen.Message, seen map[string]struct{}) []*p
 		}
 		seen[fieldType] = struct{}{}
 		fields = append(fields, field)
-		fields = append(fields, __getFieldsForMessage(field.Message, seen)...)
+		fields = append(fields, getFieldsForMessageRec(field.Message, seen)...)
 	}
 
 	return fields

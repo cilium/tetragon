@@ -528,11 +528,11 @@ func FuzzProtojsonCompatibility(f *testing.F) {
 		msgProtojson := &tetragon.GetEventsResponse{}
 		err = protojson.Unmarshal(buf2.Bytes(), msgProtojson)
 		require.NoError(t, err)
-		msgJson := &tetragon.GetEventsResponse{}
-		err = json.Unmarshal(buf2.Bytes(), msgJson)
+		msgJSON := &tetragon.GetEventsResponse{}
+		err = json.Unmarshal(buf2.Bytes(), msgJSON)
 		require.NoError(t, err)
 
-		assert.True(t, proto.Equal(msgJson, msgProtojson))
+		assert.True(t, proto.Equal(msgJSON, msgProtojson))
 		assert.True(t, proto.Equal(msg, msgProtojson))
 	})
 }

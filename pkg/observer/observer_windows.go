@@ -15,7 +15,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 )
 
-func (observer *Observer) RunEvents(stopCtx context.Context, ready func()) error {
+func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 	coll, err := bpf.GetCollection("ProcessMonitor")
 	if coll == nil {
 		return errors.New("exec Preloaded collection is nil")
@@ -27,16 +27,16 @@ func (observer *Observer) RunEvents(stopCtx context.Context, ready func()) error
 		return fmt.Errorf("failed initializing ringbuf reader: %w", err)
 	}
 	// Inform caller that we're about to start processing events.
-	observer.observerListeners(&readyapi.MsgTetragonReady{})
+	k.observerListeners(&readyapi.MsgTetragonReady{})
 	ready()
 
 	// We spawn go routine to read and process perf events,
 	// connected with main app through winEventsQueue channel.
-	winEventsQueue := make(chan *bpf.Record, observer.getRBQueueSize())
+	winEventsQueue := make(chan *bpf.Record, k.getRBQueueSize())
 
 	// Listeners are ready and about to start reading from perf reader, tell
 	// user everything is ready.
-	observer.log.Info("Listening for events...")
+	k.log.Info("Listening for events...")
 
 	// Start reading records from the perf array. Reads until the reader is closed.
 	var wg sync.WaitGroup
@@ -54,7 +54,7 @@ func (observer *Observer) RunEvents(stopCtx context.Context, ready func()) error
 			var record bpf.Record
 			record, errCode := reader.GetNextRecord()
 			if (errCode == bpf.ERR_RINGBUF_OFFSET_MISMATCH) || (errCode == bpf.ERR_RINGBUF_UNKNOWN_ERROR) {
-				observer.log.Warn("Reading bpf events failed", "NewError", 0, logfields.Error, err)
+				k.log.Warn("Reading bpf events failed", "NewError", 0, logfields.Error, err)
 				break
 			}
 			if (errCode == bpf.ERR_RINGBUF_RECORD_DISCARDED) || (errCode == bpf.ERR_RINGBUF_TRY_AGAIN) {
@@ -82,11 +82,11 @@ func (observer *Observer) RunEvents(stopCtx context.Context, ready func()) error
 		for {
 			select {
 			case winEvent := <-winEventsQueue:
-				observer.receiveEvent(winEvent.RawSample)
+				k.receiveEvent(winEvent.RawSample)
 				queueReceived.Inc()
 			case <-stopCtx.Done():
-				observer.log.Info("Listening for events completed.", logfields.Error, stopCtx.Err())
-				observer.log.Debug(fmt.Sprintf("Unprocessed events in RB queue: %d", len(winEventsQueue)))
+				k.log.Info("Listening for events completed.", logfields.Error, stopCtx.Err())
+				k.log.Debug(fmt.Sprintf("Unprocessed events in RB queue: %d", len(winEventsQueue)))
 				return
 			}
 		}

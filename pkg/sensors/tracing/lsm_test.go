@@ -136,7 +136,7 @@ spec:
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
-	sens, err := observertesthelper.GetDefaultSensorsWithFile(t, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	sens, err := observertesthelper.GetDefaultSensorsWithFile(t, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -198,7 +198,7 @@ spec:
 			WithOperator(lc.Ordered).
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Full(tempFile)))))
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -211,7 +211,7 @@ spec:
 		t.Fatalf("failed to run %s: %s", testCmd, err)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(lsmChecker))
+	err = jsonchecker.JSONTestCheck(t, ec.NewUnorderedEventChecker(lsmChecker))
 	require.NoError(t, err)
 }
 
@@ -226,7 +226,7 @@ func TestLSMOverrideAction(t *testing.T) {
 	defer cancel()
 
 	testBin := testutils.RepoRootPath("contrib/tester-progs/nop")
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 
 	configHook := `
 apiVersion: cilium.io/v1alpha1
@@ -270,7 +270,7 @@ spec:
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithLinuxBinprmArg(ec.NewKprobeLinuxBinprmChecker().WithPath(sm.Full(testBin))))).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_OVERRIDE)
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -283,7 +283,7 @@ spec:
 
 	assert.Equal(t, -1, testCmd.ProcessState.ExitCode(), "Exit code should be -1")
 
-	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(lsmChecker))
+	err = jsonchecker.JSONTestCheck(t, ec.NewUnorderedEventChecker(lsmChecker))
 	require.NoError(t, err)
 }
 
@@ -298,7 +298,7 @@ func TestLSMIMAHash(t *testing.T) {
 	defer cancel()
 
 	testBin := testutils.RepoRootPath("contrib/tester-progs/nop")
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPID()))
 
 	configHook := `
 apiVersion: cilium.io/v1alpha1
@@ -346,7 +346,7 @@ spec:
 		WithProcess(ec.NewProcessChecker().
 			WithBinary(sm.Suffix(tus.Conf().SelfBinary))).
 		WithImaHash(sm.Full("sha1:" + hex.EncodeToString(hasherSha1.Sum(nil))))
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -359,8 +359,8 @@ spec:
 		t.Fatalf("failed to run %s: %s", testCmd, err)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(lsmCheckerSha256))
-	err2 := jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(lsmCheckerSha1))
+	err = jsonchecker.JSONTestCheck(t, ec.NewUnorderedEventChecker(lsmCheckerSha256))
+	err2 := jsonchecker.JSONTestCheck(t, ec.NewUnorderedEventChecker(lsmCheckerSha1))
 	checkFunc := func() bool {
 		if err != nil && err2 != nil {
 			return false

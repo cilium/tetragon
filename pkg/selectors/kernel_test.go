@@ -384,11 +384,11 @@ func TestParseMatchPid(t *testing.T) {
 		0x02, 0x00, 0x00, 0x00, // Values[1] == 2
 		0x03, 0x00, 0x00, 0x00, // Values[2] == 3
 	}
-	if err := ParseMatchPid(k, pid1); err != nil || bytes.Equal(expected1, d.e[0:d.off]) == false {
+	if err := ParseMatchPID(k, pid1); err != nil || bytes.Equal(expected1, d.e[0:d.off]) == false {
 		t.Errorf("parseMatchPid: error %v expected %v bytes %v parsing %v\n", err, expected1, d.e[0:d.off], pid1)
 	}
 
-	nextPid := d.off
+	nextPID := d.off
 	pid2 := &v1alpha1.PIDSelector{Operator: "NotIn", Values: []uint32{1, 2, 3, 4}, IsNamespacePID: false, FollowForks: false}
 	expected2 := []byte{
 		0x06, 0x00, 0x00, 0x00, // op == NotIn
@@ -399,8 +399,8 @@ func TestParseMatchPid(t *testing.T) {
 		0x03, 0x00, 0x00, 0x00, // Values[2] == 3
 		0x04, 0x00, 0x00, 0x00, // Values[2] == 3
 	}
-	if err := ParseMatchPid(k, pid2); err != nil || bytes.Equal(expected2, d.e[nextPid:d.off]) == false {
-		t.Errorf("parseMatchPid: error %v expected %v bytes %v parsing %v\n", err, expected2, d.e[nextPid:d.off], pid2)
+	if err := ParseMatchPID(k, pid2); err != nil || bytes.Equal(expected2, d.e[nextPID:d.off]) == false {
+		t.Errorf("parseMatchPid: error %v expected %v bytes %v parsing %v\n", err, expected2, d.e[nextPID:d.off], pid2)
 	}
 
 	length := []byte{56, 0x00, 0x00, 0x00}
@@ -430,7 +430,7 @@ func TestParseMatchNamespaces(t *testing.T) {
 		t.Errorf("parseMatchNamespace: error %v expected %v bytes %v parsing %v\n", err, expected1, d.e[0:d.off], ns1)
 	}
 
-	nextPid := d.off
+	nextPID := d.off
 	ns2 := &v1alpha1.NamespaceSelector{Namespace: "Mnt", Operator: "NotIn", Values: []string{"1", "2", "3", "4"}}
 	expected2 := []byte{
 		0x02, 0x00, 0x00, 0x00, // namespace == Mnt
@@ -441,8 +441,8 @@ func TestParseMatchNamespaces(t *testing.T) {
 		0x03, 0x00, 0x00, 0x00, // Values[2] == 3
 		0x04, 0x00, 0x00, 0x00, // Values[2] == 3
 	}
-	if err := ParseMatchNamespace(k, ns2); err != nil || bytes.Equal(expected2, d.e[nextPid:d.off]) == false {
-		t.Errorf("parseMatchNamespace: error %v expected %v bytes %v parsing %v\n", err, expected2, d.e[nextPid:d.off], ns2)
+	if err := ParseMatchNamespace(k, ns2); err != nil || bytes.Equal(expected2, d.e[nextPID:d.off]) == false {
+		t.Errorf("parseMatchNamespace: error %v expected %v bytes %v parsing %v\n", err, expected2, d.e[nextPID:d.off], ns2)
 	}
 
 	length := []byte{56, 0x00, 0x00, 0x00}
@@ -483,7 +483,7 @@ func TestParseMatchCapabilities(t *testing.T) {
 		t.Errorf("parseMatchCaps: error %v expected %v bytes %v parsing %v\n", err, expected1, d.e[0:d.off], cap1)
 	}
 
-	nextPid := d.off
+	nextPID := d.off
 	cap2 := &v1alpha1.CapabilitiesSelector{Type: "Inheritable", Operator: "NotIn", IsNamespaceCapability: false, Values: []string{"CAP_SETPCAP", "CAP_SYS_ADMIN"}}
 	expected2 := []byte{
 		0x02, 0x00, 0x00, 0x00, // Type == Inheritable
@@ -491,8 +491,8 @@ func TestParseMatchCapabilities(t *testing.T) {
 		0x00, 0x00, 0x00, 0x00, // IsNamespaceCapability = false
 		0x00, 0x01, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, // Values (uint64)
 	}
-	if err := ParseMatchCaps(k, cap2); err != nil || bytes.Equal(expected2, d.e[nextPid:d.off]) == false {
-		t.Errorf("parseMatchCaps: error %v expected %v bytes %v parsing %v\n", err, expected2, d.e[nextPid:d.off], cap2)
+	if err := ParseMatchCaps(k, cap2); err != nil || bytes.Equal(expected2, d.e[nextPID:d.off]) == false {
+		t.Errorf("parseMatchCaps: error %v expected %v bytes %v parsing %v\n", err, expected2, d.e[nextPID:d.off], cap2)
 	}
 
 	length := []byte{44, 0x00, 0x00, 0x00}
@@ -631,22 +631,22 @@ func TestMultipleSelectorsExample(t *testing.T) {
 }
 
 func TestInitKernelSelectors(t *testing.T) {
-	expected_header := []byte{
+	expectedHeader := []byte{
 		// spec header
 		0x01, 0x00, 0x00, 0x00, // single selector
 
 		0x04, 0x00, 0x00, 0x00, // selector offset list
 	}
 
-	expected_selsize_small := []byte{
+	expectedSelsizeSmall := []byte{
 		0x18, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + capabilities  + 4
 	}
 
-	expected_selsize_large := []byte{
+	expectedSelsizeLarge := []byte{
 		0x4c, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + namespacesChanges + capabilities + capabilityChanges + 4
 	}
 
-	expected_filters := []byte{
+	expectedFilters := []byte{
 		// pid header
 		56, 0x00, 0x00, 0x00, // size = sizeof(pid2) + sizeof(pid1) + 4
 
@@ -700,7 +700,7 @@ func TestInitKernelSelectors(t *testing.T) {
 		0x00, 0x01, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, // Values (uint64)
 	}
 
-	expected_changes_empty := []byte{
+	expectedChangesEmpty := []byte{
 		// namespace changes header
 		0x04, 0x00, 0x00, 0x00,
 
@@ -708,7 +708,7 @@ func TestInitKernelSelectors(t *testing.T) {
 		0x04, 0x00, 0x00, 0x00,
 	}
 
-	expected_changes := []byte{
+	expectedChanges := []byte{
 		// namespace changes header
 		12, 0x00, 0x00, 0x00, // size = sizeof(nc1) + sizeof(nc2) + 4
 
@@ -726,7 +726,7 @@ func TestInitKernelSelectors(t *testing.T) {
 		0x00, 0x20, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, // Values (uint64)
 	}
 
-	expected_last_large := []byte{
+	expectedLastLarge := []byte{
 		// arg header
 		108, 0x00, 0x00, 0x00, // size = sizeof(arg2) + sizeof(arg1) + 24
 		24, 0x00, 0x00, 0x00, // arg[0] offset
@@ -773,7 +773,7 @@ func TestInitKernelSelectors(t *testing.T) {
 		0x01, 0x00, 0x00, 0x00, // arg index of string filename
 	}
 
-	expected_last_small := []byte{
+	expectedLastSmall := []byte{
 		// arg header
 		84, 0x00, 0x00, 0x00, // size = sizeof(arg1) + 24
 		24, 0x00, 0x00, 0x00, // arg[0] offset
@@ -812,17 +812,17 @@ func TestInitKernelSelectors(t *testing.T) {
 		0x01, 0x00, 0x00, 0x00, // arg index of string filename
 	}
 
-	expected := expected_header
+	expected := expectedHeader
 	if config.EnableLargeProgs() {
-		expected = append(expected, expected_selsize_large...)
-		expected = append(expected, expected_filters...)
-		expected = append(expected, expected_changes...)
-		expected = append(expected, expected_last_large...)
+		expected = append(expected, expectedSelsizeLarge...)
+		expected = append(expected, expectedFilters...)
+		expected = append(expected, expectedChanges...)
+		expected = append(expected, expectedLastLarge...)
 	} else {
-		expected = append(expected, expected_selsize_small...)
-		expected = append(expected, expected_filters...)
-		expected = append(expected, expected_changes_empty...)
-		expected = append(expected, expected_last_small...)
+		expected = append(expected, expectedSelsizeSmall...)
+		expected = append(expected, expectedFilters...)
+		expected = append(expected, expectedChangesEmpty...)
+		expected = append(expected, expectedLastSmall...)
 	}
 
 	pid1 := &v1alpha1.PIDSelector{Operator: "In", Values: []uint32{1, 2, 3}, IsNamespacePID: true, FollowForks: true}
@@ -855,7 +855,7 @@ func TestInitKernelSelectors(t *testing.T) {
 	}
 	act1 := &v1alpha1.ActionSelector{Action: "post"}
 	act2 := &v1alpha1.ActionSelector{Action: "followfd",
-		ArgFd:   0,
+		ArgFD:   0,
 		ArgName: 1}
 	matchActions := []v1alpha1.ActionSelector{*act1, *act2}
 
@@ -964,7 +964,7 @@ func TestReturnSelectorArgIntActionFollowfd(t *testing.T) {
 
 	act1 := v1alpha1.ActionSelector{Action: "post"}
 	act2 := v1alpha1.ActionSelector{Action: "followfd",
-		ArgFd:   7,
+		ArgFD:   7,
 		ArgName: 8}
 
 	matchReturnActions := []v1alpha1.ActionSelector{act1, act2}
@@ -1002,7 +1002,7 @@ func TestReturnSelectorArgIntActionFollowfd(t *testing.T) {
 	expU32Push(0)  // off: 52      selector: userStackTrace
 	expU32Push(0)  // off: 56      selector: imaHash
 	expU32Push(1)  // off: 60      selector: selectors.ActionTypeFollowFd
-	expU32Push(7)  // off: 64      selector: action.ArgFd
+	expU32Push(7)  // off: 64      selector: action.ArgFD
 	expU32Push(8)  // off: 68      selector: action.ArgName
 
 	if bytes.Equal(expected[:expectedLen], b[:expectedLen]) == false {

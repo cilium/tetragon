@@ -30,7 +30,7 @@ func InitDataCache(size int) error {
 	return err
 }
 
-func DataAdd(id dataapi.DataEventId, msgData []byte) error {
+func DataAdd(id dataapi.DataEventID, msgData []byte) error {
 	size := len(msgData)
 	data, err := dataCache.get(id)
 	if err != nil {
@@ -56,11 +56,11 @@ func add(r *bytes.Reader, m *dataapi.MsgData) error {
 		return err
 	}
 
-	return DataAdd(m.Id, msgData)
+	return DataAdd(m.ID, msgData)
 }
 
 func DataGet(desc dataapi.DataEventDesc) ([]byte, error) {
-	data, err := dataCache.get(desc.Id)
+	data, err := dataCache.get(desc.ID)
 	if err != nil {
 		DataEventMetricInc(DataEventNotMatched)
 		return nil, err
@@ -72,12 +72,12 @@ func DataGet(desc dataapi.DataEventDesc) ([]byte, error) {
 	if len(data) != int(desc.Size-desc.Leftover) {
 		DataEventMetricInc(DataEventBad)
 		DataEventMetricSizeBad(desc.Size)
-		return nil, fmt.Errorf("failed to get correct data for id: %v", desc.Id)
+		return nil, fmt.Errorf("failed to get correct data for id: %v", desc.ID)
 	}
 
 	DataEventMetricSizeOk(desc.Size)
 
-	logger.GetLogger().Debug(fmt.Sprintf("Data message used id %v, data len %v", desc.Id, len(data)))
+	logger.GetLogger().Debug(fmt.Sprintf("Data message used id %v, data len %v", desc.ID, len(data)))
 	DataEventMetricInc(DataEventMatched)
 	return data, nil
 }

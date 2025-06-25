@@ -19,8 +19,8 @@ func TestGetProcStatStrings(t *testing.T) {
 	status, err := GetStatus(uint32(pid))
 	require.NoError(t, err)
 	t.Log("User = ", status.Uids)
-	t.Log("Group = ", status.Gids)
-	t.Log("LoginUId = ", status.LoginUid)
+	t.Log("Group = ", status.GIDs)
+	t.Log("LoginUId = ", status.LoginUID)
 }
 
 func TestFillLoginUid(t *testing.T) {

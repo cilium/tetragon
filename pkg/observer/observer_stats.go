@@ -45,7 +45,7 @@ func collect(ch chan<- prometheus.Metric) {
 			continue
 		}
 		processedMaps[name] = true
-		pin := filepath.Join(option.Config.BpfDir, name)
+		pin := filepath.Join(option.Config.BPFDir, name)
 		// Skip map names that end up with _stats.
 		// This will result in _stats_stats suffixes that we don't care about
 		if strings.HasSuffix(pin, statsSuffix) {

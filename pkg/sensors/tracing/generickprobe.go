@@ -74,7 +74,7 @@ type kprobeLoadArgs struct {
 }
 
 type pendingEventKey struct {
-	eventId    uint64
+	eventID    uint64
 	ktimeEnter uint64
 }
 
@@ -98,9 +98,9 @@ type genericKprobe struct {
 	// the retprobe_id (thread_id) and the enter ktime as the key.
 	pendingEvents *lru.Cache[pendingEventKey, pendingEvent]
 
-	tableId idtable.EntryID
+	tableID idtable.EntryID
 
-	// for kprobes that have a GetUrl or DnsLookup action, we store the table of arguments.
+	// for kprobes that have a GetURL or DnsLookup action, we store the table of arguments.
 	actionArgs idtable.Table
 
 	// policyName is the name of the policy that this tracepoint belongs to
@@ -141,7 +141,7 @@ type pendingEvent struct {
 }
 
 func (g *genericKprobe) SetID(id idtable.EntryID) {
-	g.tableId = id
+	g.tableID = id
 }
 
 var (
@@ -218,15 +218,15 @@ func filterMaps(load *program.Program, kprobeEntry *genericKprobe) []*program.Ma
 		numSubMaps = selectors.StringMapsNumSubMapsSmall
 	}
 
-	for string_map_index := range numSubMaps {
-		stringFilterMap[string_map_index] = program.MapBuilderProgram(fmt.Sprintf("string_maps_%d", string_map_index), load)
+	for stringMapIndex := range numSubMaps {
+		stringFilterMap[stringMapIndex] = program.MapBuilderProgram(fmt.Sprintf("string_maps_%d", stringMapIndex), load)
 		if state != nil && !kernels.MinKernelVersion("5.9") {
 			// Versions before 5.9 do not allow inner maps to have different sizes.
 			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-			maxEntries := state.StringMapsMaxEntries(string_map_index)
-			stringFilterMap[string_map_index].SetInnerMaxEntries(maxEntries)
+			maxEntries := state.StringMapsMaxEntries(stringMapIndex)
+			stringFilterMap[stringMapIndex].SetInnerMaxEntries(maxEntries)
 		}
-		maps = append(maps, stringFilterMap[string_map_index])
+		maps = append(maps, stringFilterMap[stringMapIndex])
 	}
 
 	stringPrefixFilterMaps := program.MapBuilderProgram("string_prefix_maps", load)
@@ -893,7 +893,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 		funcName:          funcName,
 		instance:          instance,
 		pendingEvents:     nil,
-		tableId:           idtable.UninitializedEntryID,
+		tableID:           idtable.UninitializedEntryID,
 		policyName:        in.policyName,
 		hasOverride:       selectors.HasOverride(f),
 		customHandler:     in.customHandler,
@@ -923,12 +923,12 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 	}
 
 	genericKprobeTable.AddEntry(&kprobeEntry)
-	eventConfig.FuncId = uint32(kprobeEntry.tableId.ID)
+	eventConfig.FuncID = uint32(kprobeEntry.tableID.ID)
 
 	logger.GetLogger().
 		Info("Added kprobe", "return", setRetprobe, "function", kprobeEntry.funcName, "override", kprobeEntry.hasOverride)
 
-	return kprobeEntry.tableId, nil
+	return kprobeEntry.tableID, nil
 }
 
 func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe,
@@ -948,7 +948,7 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 		"kprobe/generic_kprobe",
 		pinProg,
 		"generic_kprobe").
-		SetLoaderData(kprobeEntry.tableId).
+		SetLoaderData(kprobeEntry.tableID).
 		SetPolicy(kprobeEntry.policyName)
 	load.Override = kprobeEntry.hasOverride
 	if load.Override {
@@ -1045,7 +1045,7 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 			pinRetProg,
 			"generic_kprobe").
 			SetRetProbe(true).
-			SetLoaderData(kprobeEntry.tableId).
+			SetLoaderData(kprobeEntry.tableID).
 			SetPolicy(kprobeEntry.policyName)
 		progs = append(progs, loadret)
 
@@ -1142,7 +1142,7 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Pro
 }
 
 func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir string, load *program.Program, maps []*program.Map, verbose int) error {
-	bin_buf := make([]bytes.Buffer, len(ids))
+	binBuf := make([]bytes.Buffer, len(ids))
 
 	data := &program.MultiKprobeAttachData{}
 
@@ -1154,11 +1154,11 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir string, load *program.P
 
 		load.MapLoad = append(load.MapLoad, getMapLoad(load, gk, uint32(index))...)
 
-		binary.Write(&bin_buf[index], binary.LittleEndian, gk.loadArgs.config)
+		binary.Write(&binBuf[index], binary.LittleEndian, gk.loadArgs.config)
 		config := &program.MapLoad{
 			Name: "config_map",
 			Load: func(m *ebpf.Map, _ string) error {
-				return m.Update(uint32(index), bin_buf[index].Bytes()[:], ebpf.UpdateAny)
+				return m.Update(uint32(index), binBuf[index].Bytes()[:], ebpf.UpdateAny)
 			},
 		}
 		load.MapLoad = append(load.MapLoad, config)
@@ -1195,7 +1195,7 @@ func loadGenericKprobeSensor(bpfDir string, load *program.Program, maps []*progr
 		load.LoaderData, load.LoaderData)
 }
 
-func getUrl(url string) {
+func getURL(url string) {
 	// We fire and forget URLs, and we don't care if they hit or not.
 	http.Get(url)
 }
@@ -1220,9 +1220,9 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 		return nil, errors.New("failed to read process call msg")
 	}
 
-	gk, err := genericKprobeTableGet(idtable.EntryID{ID: int(m.FuncId)})
+	gk, err := genericKprobeTableGet(idtable.EntryID{ID: int(m.FuncID)})
 	if err != nil {
-		logger.GetLogger().Warn(fmt.Sprintf("Failed to match id:%d", m.FuncId), logfields.Error, err)
+		logger.GetLogger().Warn(fmt.Sprintf("Failed to match id:%d", m.FuncID), logfields.Error, err)
 		return nil, errors.New("failed to match id")
 	}
 
@@ -1236,19 +1236,19 @@ func handleGenericKprobe(r *bytes.Reader) ([]observer.Event, error) {
 func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes.Reader) ([]observer.Event, error) {
 	var err error
 
-	switch m.ActionId {
-	case selectors.ActionTypeGetUrl, selectors.ActionTypeDnsLookup:
-		actionArgEntry, err := gk.actionArgs.GetEntry(idtable.EntryID{ID: int(m.ActionArgId)})
+	switch m.ActionID {
+	case selectors.ActionTypeGetURL, selectors.ActionTypeDNSLookup:
+		actionArgEntry, err := gk.actionArgs.GetEntry(idtable.EntryID{ID: int(m.ActionArgID)})
 		if err != nil {
-			logger.GetLogger().Warn(fmt.Sprintf("Failed to find argument for id:%d", m.ActionArgId), logfields.Error, err)
+			logger.GetLogger().Warn(fmt.Sprintf("Failed to find argument for id:%d", m.ActionArgID), logfields.Error, err)
 			return nil, errors.New("failed to find argument for id")
 		}
 		actionArg := actionArgEntry.(*selectors.ActionArgEntry).GetArg()
-		switch m.ActionId {
-		case selectors.ActionTypeGetUrl:
+		switch m.ActionID {
+		case selectors.ActionTypeGetURL:
 			logger.Trace(logger.GetLogger(), "Get URL Action", "URL", actionArg)
-			getUrl(actionArg)
-		case selectors.ActionTypeDnsLookup:
+			getURL(actionArg)
+		case selectors.ActionTypeDNSLookup:
 			logger.Trace(logger.GetLogger(), "DNS lookup", "FQDN", actionArg)
 			dnsLookup(actionArg)
 		}
@@ -1324,7 +1324,7 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 		// if an event exist already, try to merge them. Otherwise, add
 		// the one we have in the map.
 		curr := pendingEvent{ev: unix, returnEvent: returnEvent}
-		key := pendingEventKey{eventId: m.RetProbeId, ktimeEnter: ktimeEnter}
+		key := pendingEventKey{eventID: m.RetProbeID, ktimeEnter: ktimeEnter}
 
 		if prev, exists := gk.pendingEvents.Get(key); exists {
 			gk.pendingEvents.Remove(key)
@@ -1400,7 +1400,7 @@ func retprobeMerge(prev pendingEvent, curr pendingEvent) *tracing.MsgGenericKpro
 			enterEv.Args = append(enterEv.Args, retArg)
 		}
 	}
-	enterEv.ReturnAction = retEv.Msg.ActionId
+	enterEv.ReturnAction = retEv.Msg.ActionID
 	return enterEv
 }
 

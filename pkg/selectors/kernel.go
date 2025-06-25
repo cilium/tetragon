@@ -35,8 +35,8 @@ const (
 	ActionTypeUnfollowFd                  = 3
 	ActionTypeOverride                    = 4
 	ActionTypeCopyFd                      = 5
-	ActionTypeGetUrl                      = 6
-	ActionTypeDnsLookup                   = 7
+	ActionTypeGetURL                      = 6
+	ActionTypeDNSLookup                   = 7
 	ActionTypeNoPost                      = 8
 	ActionTypeSignal                      = 9
 	ActionTypeTrackSock                   = 10
@@ -52,8 +52,8 @@ var actionTypeTable = map[string]uint32{
 	"sigkill":                     ActionTypeSigKill,
 	"override":                    ActionTypeOverride,
 	"copyfd":                      ActionTypeCopyFd,
-	"geturl":                      ActionTypeGetUrl,
-	"dnslookup":                   ActionTypeDnsLookup,
+	"geturl":                      ActionTypeGetURL,
+	"dnslookup":                   ActionTypeDNSLookup,
 	"nopost":                      ActionTypeNoPost,
 	"signal":                      ActionTypeSignal,
 	"tracksock":                   ActionTypeTrackSock,
@@ -69,8 +69,8 @@ var actionTypeStringTable = map[uint32]string{
 	ActionTypeSigKill:                     "sigkill",
 	ActionTypeOverride:                    "override",
 	ActionTypeCopyFd:                      "copyfd",
-	ActionTypeGetUrl:                      "geturl",
-	ActionTypeDnsLookup:                   "dnslookup",
+	ActionTypeGetURL:                      "geturl",
+	ActionTypeDNSLookup:                   "dnslookup",
 	ActionTypeNoPost:                      "nopost",
 	ActionTypeSignal:                      "signal",
 	ActionTypeTrackSock:                   "tracksock",
@@ -93,11 +93,11 @@ var actionRateLimitScope = map[string]uint32{
 // Action argument table entry (for URL and FQDN arguments)
 type ActionArgEntry struct {
 	arg     string
-	tableId idtable.EntryID
+	tableID idtable.EntryID
 }
 
 func (g *ActionArgEntry) SetID(id idtable.EntryID) {
-	g.tableId = id
+	g.tableID = id
 }
 
 func (g *ActionArgEntry) GetArg() string {
@@ -129,8 +129,8 @@ const (
 	namespaceTypeUts             = 0
 	namespaceTypeIpc             = 1
 	namespaceTypeMnt             = 2
-	namespaceTypePid             = 3
-	namespaceTypePidForChildren  = 4
+	namespaceTypePID             = 3
+	namespaceTypePIDForChildren  = 4
 	namespaceTypeNet             = 5
 	namespaceTypeTime            = 6
 	namespaceTypeTimeForChildren = 7
@@ -142,8 +142,8 @@ var namespaceTypeTable = map[string]uint32{
 	"uts":             namespaceTypeUts,
 	"ipc":             namespaceTypeIpc,
 	"mnt":             namespaceTypeMnt,
-	"pid":             namespaceTypePid,
-	"pidforchildren":  namespaceTypePidForChildren,
+	"pid":             namespaceTypePID,
+	"pidforchildren":  namespaceTypePIDForChildren,
 	"net":             namespaceTypeNet,
 	"time":            namespaceTypeTime,
 	"timeforchildren": namespaceTypeTimeForChildren,
@@ -297,7 +297,7 @@ func SelectorOp(op string) (uint32, error) {
 }
 
 const (
-	pidNamespacePid = 0x1
+	pidNamespacePID = 0x1
 	pidFollowForks  = 0x2
 )
 
@@ -305,7 +305,7 @@ func pidSelectorFlags(pid *v1alpha1.PIDSelector) uint32 {
 	flags := uint32(0)
 
 	if pid.IsNamespacePID {
-		flags |= pidNamespacePid
+		flags |= pidNamespacePID
 	}
 	if pid.FollowForks {
 		flags |= pidFollowForks
@@ -323,7 +323,7 @@ func pidSelectorValue(pid *v1alpha1.PIDSelector) ([]byte, uint32) {
 	return b, uint32(len(b))
 }
 
-func ParseMatchPid(k *KernelSelectorState, pid *v1alpha1.PIDSelector) error {
+func ParseMatchPID(k *KernelSelectorState, pid *v1alpha1.PIDSelector) error {
 	op, err := SelectorOp(pid.Operator)
 	if err != nil {
 		return fmt.Errorf("matchpid error: %w", err)
@@ -342,7 +342,7 @@ func ParseMatchPid(k *KernelSelectorState, pid *v1alpha1.PIDSelector) error {
 func ParseMatchPids(k *KernelSelectorState, matchPids []v1alpha1.PIDSelector) error {
 	loff := AdvanceSelectorLength(&k.data)
 	for _, p := range matchPids {
-		if err := ParseMatchPid(k, &p); err != nil {
+		if err := ParseMatchPID(k, &p); err != nil {
 			return err
 		}
 	}
@@ -402,7 +402,7 @@ func writeRangeInMap(v string, ty uint32, op uint32, m *ValueMap) error {
 				rangeStr = []string{familyStr, familyStr}
 			}
 		case SelectorOpState:
-			state, err := network.TcpStateNumber(v)
+			state, err := network.TCPStateNumber(v)
 			if err == nil {
 				stateStr := strconv.FormatUint(uint64(state), 10)
 				rangeStr = []string{stateStr, stateStr}
@@ -839,12 +839,12 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 }
 
 func ParseMatchArgs(k *KernelSelectorState, args []v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) error {
-	max_args := 1
+	maxArgs := 1
 	if config.EnableLargeProgs() {
-		max_args = 5 // we support up 5 argument filters under matchArgs with kernels >= 5.3, otherwise 1 argument
+		maxArgs = 5 // we support up 5 argument filters under matchArgs with kernels >= 5.3, otherwise 1 argument
 	}
-	if len(args) > max_args {
-		return fmt.Errorf("parseMatchArgs: supports up to %d filters (%d provided)", max_args, len(args))
+	if len(args) > maxArgs {
+		return fmt.Errorf("parseMatchArgs: supports up to %d filters (%d provided)", maxArgs, len(args))
 	}
 	actionOffset := GetCurrentOffset(&k.data)
 	loff := AdvanceSelectorLength(&k.data)
@@ -926,25 +926,25 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 
 	switch act {
 	case ActionTypeFollowFd, ActionTypeCopyFd:
-		WriteSelectorUint32(&k.data, action.ArgFd)
+		WriteSelectorUint32(&k.data, action.ArgFD)
 		WriteSelectorUint32(&k.data, action.ArgName)
 	case ActionTypeUnfollowFd:
-		WriteSelectorUint32(&k.data, action.ArgFd)
+		WriteSelectorUint32(&k.data, action.ArgFD)
 		WriteSelectorUint32(&k.data, action.ArgName)
 	case ActionTypeOverride:
 		WriteSelectorInt32(&k.data, action.ArgError)
-	case ActionTypeGetUrl, ActionTypeDnsLookup:
+	case ActionTypeGetURL, ActionTypeDNSLookup:
 		actionArg := ActionArgEntry{
-			tableId: idtable.UninitializedEntryID,
+			tableID: idtable.UninitializedEntryID,
 		}
 		switch act {
-		case ActionTypeGetUrl:
-			actionArg.arg = action.ArgUrl
-		case ActionTypeDnsLookup:
+		case ActionTypeGetURL:
+			actionArg.arg = action.ArgURL
+		case ActionTypeDNSLookup:
 			actionArg.arg = action.ArgFqdn
 		}
 		actionArgTable.AddEntry(&actionArg)
-		WriteSelectorUint32(&k.data, uint32(actionArg.tableId.ID))
+		WriteSelectorUint32(&k.data, uint32(actionArg.tableID.ID))
 	case ActionTypeSignal:
 		WriteSelectorUint32(&k.data, action.ArgSig)
 	case ActionTypeTrackSock, ActionTypeUntrackSock:
@@ -1062,12 +1062,12 @@ func ParseMatchNamespace(k *KernelSelectorState, action *v1alpha1.NamespaceSelec
 }
 
 func ParseMatchNamespaces(k *KernelSelectorState, actions []v1alpha1.NamespaceSelector) error {
-	max_nactions := 4 // 4 should match the value of the NUM_NS_FILTERS_SMALL in pfilter.h
+	maxNActions := 4 // 4 should match the value of the NUM_NS_FILTERS_SMALL in pfilter.h
 	if config.EnableLargeProgs() {
-		max_nactions = 10 // 10 should match the value of ns_max_types in hubble_msg.h
+		maxNActions = 10 // 10 should match the value of ns_max_types in hubble_msg.h
 	}
-	if len(actions) > max_nactions {
-		return fmt.Errorf("matchNamespace supports up to %d filters (current number of filters is %d)", max_nactions, len(actions))
+	if len(actions) > maxNActions {
+		return fmt.Errorf("matchNamespace supports up to %d filters (current number of filters is %d)", maxNActions, len(actions))
 	}
 	loff := AdvanceSelectorLength(&k.data)
 	// maybe write the number of namespace matches
@@ -1151,7 +1151,7 @@ func ParseMatchCaps(k *KernelSelectorState, action *v1alpha1.CapabilitiesSelecto
 		//     ignoring the user_namespace value.
 		// To implement this we pass the "/proc/1/ns/user" value as the host
 		// user namespace to compare with that inside the kernel.
-		isns, err = namespace.GetPidNsInode(1, "user")
+		isns, err = namespace.GetPIDNsInode(1, "user")
 		if err != nil {
 			return fmt.Errorf("matchCapabilities reading pid 1 user namespace failed: %w", err)
 		}

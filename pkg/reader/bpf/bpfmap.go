@@ -40,7 +40,7 @@ var bpfMapTypeString = map[uint32]string{
 	30: "BPF_MAP_TYPE_BLOOM_FILTER",
 }
 
-func GetBpfMapType(t uint32) string {
+func GetBPFMapType(t uint32) string {
 	if t, ok := bpfMapTypeString[t]; ok {
 		return t
 	}

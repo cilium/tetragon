@@ -36,16 +36,16 @@ func procKernel() procs {
 	kernelArgs := []byte("<kernel>\u0000")
 	return procs{
 		psize:       uint32(processapi.MSG_SIZEOF_EXECVE + len(kernelArgs) + processapi.MSG_SIZEOF_CWD),
-		ppid:        kernelPid,
+		ppid:        kernelPID,
 		pnspid:      0,
 		pflags:      api.EventProcFS,
 		pktime:      1,
 		pexe:        kernelArgs,
 		size:        uint32(processapi.MSG_SIZEOF_EXECVE + len(kernelArgs) + processapi.MSG_SIZEOF_CWD),
-		pid:         kernelPid,
-		tid:         kernelPid,
+		pid:         kernelPID,
+		tid:         kernelPID,
 		nspid:       0,
-		auid:        proc.InvalidUid,
+		auid:        proc.InvalidUID,
 		flags:       api.EventProcFS,
 		ktime:       1,
 		exe:         kernelArgs,
@@ -110,28 +110,28 @@ func writeExecveMap(procs []procs) {
 		}
 	}
 	for _, p := range procs {
-		k := &execvemap.ExecveKey{Pid: p.pid}
+		k := &execvemap.ExecveKey{PID: p.pid}
 		v := &execvemap.ExecveValue{}
 
-		v.Parent.Pid = p.ppid
+		v.Parent.PID = p.ppid
 		v.Parent.Ktime = p.pktime
-		v.Process.Pid = p.pid
+		v.Process.PID = p.pid
 		v.Process.Ktime = p.ktime
 		v.Flags = 0
 		v.Nspid = p.nspid
 		v.Capabilities.Permitted = p.permitted
 		v.Capabilities.Effective = p.effective
 		v.Capabilities.Inheritable = p.inheritable
-		v.Namespaces.UtsInum = p.uts_ns
-		v.Namespaces.IpcInum = p.ipc_ns
-		v.Namespaces.MntInum = p.mnt_ns
-		v.Namespaces.PidInum = p.pid_ns
-		v.Namespaces.PidChildInum = p.pid_for_children_ns
-		v.Namespaces.NetInum = p.net_ns
-		v.Namespaces.TimeInum = p.time_ns
-		v.Namespaces.TimeChildInum = p.time_for_children_ns
-		v.Namespaces.CgroupInum = p.cgroup_ns
-		v.Namespaces.UserInum = p.user_ns
+		v.Namespaces.UtsInum = p.utsNs
+		v.Namespaces.IpcInum = p.ipcNs
+		v.Namespaces.MntInum = p.mntNs
+		v.Namespaces.PIDInum = p.pidNs
+		v.Namespaces.PIDChildInum = p.pidForChildrenNs
+		v.Namespaces.NetInum = p.netNs
+		v.Namespaces.TimeInum = p.timeNs
+		v.Namespaces.TimeChildInum = p.timeForChildrenNs
+		v.Namespaces.CgroupInum = p.cgroupNs
+		v.Namespaces.UserInum = p.userNs
 		pathLength := copy(v.Binary.Path[:], p.exe)
 		v.Binary.PathLength = int32(pathLength)
 
@@ -144,12 +144,12 @@ func writeExecveMap(procs []procs) {
 	// execve lookup to map to a valid entry. So to simplify the kernel side
 	// and avoid having to add another branch of logic there to handle pid==0
 	// case we simply add it here.
-	m.Put(&execvemap.ExecveKey{Pid: kernelPid}, &execvemap.ExecveValue{
+	m.Put(&execvemap.ExecveKey{PID: kernelPID}, &execvemap.ExecveValue{
 		Parent: processapi.MsgExecveKey{
-			Pid:   kernelPid,
+			PID:   kernelPID,
 			Ktime: 1},
 		Process: processapi.MsgExecveKey{
-			Pid:   kernelPid,
+			PID:   kernelPID,
 			Ktime: 1,
 		},
 	})
@@ -204,7 +204,7 @@ func listRunningProcs(procPath string) ([]procs, error) {
 			kernelThread = true
 		}
 
-		pid, err := proc.GetProcPid(d.Name())
+		pid, err := proc.GetProcPID(d.Name())
 		if err != nil {
 			logger.GetLogger().Warn("pid read error", logfields.Error, err)
 			continue
@@ -228,9 +228,9 @@ func listRunningProcs(procPath string) ([]procs, error) {
 		}
 
 		// Initialize with invalid uid
-		uids := []uint32{proc.InvalidUid, proc.InvalidUid, proc.InvalidUid, proc.InvalidUid}
-		gids := []uint32{proc.InvalidUid, proc.InvalidUid, proc.InvalidUid, proc.InvalidUid}
-		auid := proc.InvalidUid
+		uids := []uint32{proc.InvalidUID, proc.InvalidUID, proc.InvalidUID, proc.InvalidUID}
+		gids := []uint32{proc.InvalidUID, proc.InvalidUID, proc.InvalidUID, proc.InvalidUID}
+		auid := proc.InvalidUID
 		// Get process status
 		status, err := proc.GetStatus(pathName)
 		if err != nil {
@@ -238,15 +238,15 @@ func listRunningProcs(procPath string) ([]procs, error) {
 		} else {
 			uids, err = status.GetUids()
 			if err != nil {
-				logger.GetLogger().Warn(fmt.Sprintf("Reading Uids of %s failed, falling back to uid: %d", pathName, proc.InvalidUid), logfields.Error, err)
+				logger.GetLogger().Warn(fmt.Sprintf("Reading Uids of %s failed, falling back to uid: %d", pathName, proc.InvalidUID), logfields.Error, err)
 			}
 
-			gids, err = status.GetGids()
+			gids, err = status.GetGIDs()
 			if err != nil {
-				logger.GetLogger().Warn(fmt.Sprintf("Reading Uids of %s failed, falling back to gid: %d", pathName, proc.InvalidUid), logfields.Error, err)
+				logger.GetLogger().Warn(fmt.Sprintf("Reading Uids of %s failed, falling back to gid: %d", pathName, proc.InvalidUID), logfields.Error, err)
 			}
 
-			auid, err = status.GetLoginUid()
+			auid, err = status.GetLoginUID()
 			if err != nil {
 				logger.GetLogger().Warn(fmt.Sprintf("Reading Loginuid of %s failed, falling back to loginuid: %d", pathName, uint32(auid)), logfields.Error, err)
 			}
@@ -254,56 +254,56 @@ func listRunningProcs(procPath string) ([]procs, error) {
 
 		nspid, permitted, effective, inheritable := caps.GetPIDCaps(filepath.Join(procPath, d.Name(), "status"))
 
-		uts_ns, err := namespace.GetPidNsInode(uint32(pid), "uts")
+		utsNs, err := namespace.GetPIDNsInode(uint32(pid), "uts")
 		if err != nil {
 			logger.GetLogger().Warn("Reading uts namespace failed", logfields.Error, err)
 		}
-		ipc_ns, err := namespace.GetPidNsInode(uint32(pid), "ipc")
+		ipcNs, err := namespace.GetPIDNsInode(uint32(pid), "ipc")
 		if err != nil {
 			logger.GetLogger().Warn("Reading ipc namespace failed", logfields.Error, err)
 		}
-		mnt_ns, err := namespace.GetPidNsInode(uint32(pid), "mnt")
+		mntNs, err := namespace.GetPIDNsInode(uint32(pid), "mnt")
 		if err != nil {
 			logger.GetLogger().Warn("Reading mnt namespace failed", logfields.Error, err)
 		}
-		pid_ns, err := namespace.GetPidNsInode(uint32(pid), "pid")
+		pidNs, err := namespace.GetPIDNsInode(uint32(pid), "pid")
 		if err != nil {
 			logger.GetLogger().Warn("Reading pid namespace failed", logfields.Error, err)
 		}
-		pid_for_children_ns, err := namespace.GetPidNsInode(uint32(pid), "pid_for_children")
+		pidForChildrenNs, err := namespace.GetPIDNsInode(uint32(pid), "pid_for_children")
 		if err != nil && !pidForChildrenWarned {
 			logger.GetLogger().Warn("Reading pid_for_children namespace failed", logfields.Error, err)
 			pidForChildrenWarned = true
 		}
-		net_ns, err := namespace.GetPidNsInode(uint32(pid), "net")
+		netNs, err := namespace.GetPIDNsInode(uint32(pid), "net")
 		if err != nil {
 			logger.GetLogger().Warn("Reading net namespace failed", logfields.Error, err)
 		}
-		time_ns := uint32(0)
-		time_for_children_ns := uint32(0)
+		timeNs := uint32(0)
+		timeForChildrenNs := uint32(0)
 		if namespace.TimeNsSupport {
-			time_ns, err = namespace.GetPidNsInode(uint32(pid), "time")
+			timeNs, err = namespace.GetPIDNsInode(uint32(pid), "time")
 			if err != nil {
 				logger.GetLogger().Warn("Reading time namespace failed", logfields.Error, err)
 			}
-			time_for_children_ns, err = namespace.GetPidNsInode(uint32(pid), "time_for_children")
+			timeForChildrenNs, err = namespace.GetPIDNsInode(uint32(pid), "time_for_children")
 			if err != nil {
 				logger.GetLogger().Warn("Reading time_for_children namespace failed", logfields.Error, err)
 			}
 		}
-		cgroup_ns, err := namespace.GetPidNsInode(uint32(pid), "cgroup")
+		cgroupNs, err := namespace.GetPIDNsInode(uint32(pid), "cgroup")
 		if err != nil && !cgroupNsWarned {
 			logger.GetLogger().Warn("Reading cgroup namespace failed", logfields.Error, err)
 			cgroupNsWarned = true
 		}
-		user_ns, err := namespace.GetPidNsInode(uint32(pid), "user")
+		userNs, err := namespace.GetPIDNsInode(uint32(pid), "user")
 		if err != nil {
 			logger.GetLogger().Warn("Reading user namespace failed", logfields.Error, err)
 		}
 
-		// On error procsDockerId zeros dockerId so we can ignore any errors.
-		dockerId, _ := procsDockerId(uint32(pid))
-		if dockerId == "" {
+		// On error procsDockerId zeros dockerID so we can ignore any errors.
+		dockerID, _ := procsDockerID(uint32(pid))
+		if dockerID == "" {
 			// If we do not have a container ID, then set nspid to zero.
 			// This field is used to construct the pod information to
 			// identify pids inside the container.
@@ -340,7 +340,7 @@ func listRunningProcs(procPath string) ([]procs, error) {
 				logger.GetLogger().Warn("parent ktime read error", logfields.Error, err)
 			}
 
-			if dockerId != "" {
+			if dockerID != "" {
 				// We have a container ID so let's get the nspid inside.
 				pnspid, _, _, _ = caps.GetPIDCaps(filepath.Join(procPath, ppid, "status"))
 			}
@@ -374,36 +374,36 @@ func listRunningProcs(procPath string) ([]procs, error) {
 		}
 
 		p := procs{
-			ppid:                 uint32(_ppid),
-			pnspid:               pnspid,
-			pexe:                 stringToUTF8([]byte(pexecPath)),
-			pcmdline:             stringToUTF8(pcmdline),
-			pflags:               api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
-			pktime:               pktime,
-			uids:                 uids,
-			gids:                 gids,
-			auid:                 auid,
-			pid:                  uint32(pid),
-			tid:                  uint32(pid), // Read dir does not return threads and we only track tgid
-			nspid:                nspid,
-			exe:                  stringToUTF8([]byte(execPath)),
-			cmdline:              stringToUTF8(cmdline),
-			flags:                api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
-			ktime:                ktime,
-			permitted:            permitted,
-			effective:            effective,
-			inheritable:          inheritable,
-			uts_ns:               uts_ns,
-			ipc_ns:               ipc_ns,
-			mnt_ns:               mnt_ns,
-			pid_ns:               pid_ns,
-			pid_for_children_ns:  pid_for_children_ns,
-			net_ns:               net_ns,
-			time_ns:              time_ns,
-			time_for_children_ns: time_for_children_ns,
-			cgroup_ns:            cgroup_ns,
-			user_ns:              user_ns,
-			kernel_thread:        kernelThread,
+			ppid:              uint32(_ppid),
+			pnspid:            pnspid,
+			pexe:              stringToUTF8([]byte(pexecPath)),
+			pcmdline:          stringToUTF8(pcmdline),
+			pflags:            api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
+			pktime:            pktime,
+			uids:              uids,
+			gids:              gids,
+			auid:              auid,
+			pid:               uint32(pid),
+			tid:               uint32(pid), // Read dir does not return threads and we only track tgid
+			nspid:             nspid,
+			exe:               stringToUTF8([]byte(execPath)),
+			cmdline:           stringToUTF8(cmdline),
+			flags:             api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
+			ktime:             ktime,
+			permitted:         permitted,
+			effective:         effective,
+			inheritable:       inheritable,
+			utsNs:             utsNs,
+			ipcNs:             ipcNs,
+			mntNs:             mntNs,
+			pidNs:             pidNs,
+			pidForChildrenNs:  pidForChildrenNs,
+			netNs:             netNs,
+			timeNs:            timeNs,
+			timeForChildrenNs: timeForChildrenNs,
+			cgroupNs:          cgroupNs,
+			userNs:            userNs,
+			kernelThread:      kernelThread,
 		}
 
 		p.size = uint32(processapi.MSG_SIZEOF_EXECVE + len(p.args()) + processapi.MSG_SIZEOF_CWD)

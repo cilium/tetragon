@@ -26,7 +26,7 @@ func GetKernelVersion(kernelVersion, procfs string) (int, string, error) {
 			dwMajorVersion      uint32
 			dwMinorVersion      uint32
 			dwBuildNumber       uint32
-			dwPlatformId        uint32
+			dwPlatformID        uint32
 			szCSDVersion        [128]uint16
 		}{
 			dwOSVersionInfoSize: 284,

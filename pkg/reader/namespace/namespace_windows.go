@@ -10,7 +10,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/processapi"
 )
 
-func GetMyPidG() uint32 {
+func GetMyPIDG() uint32 {
 	return uint32(os.Getpid())
 }
 

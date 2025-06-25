@@ -13,7 +13,7 @@ import (
 	"github.com/cilium/tetragon/pkg/defaults"
 )
 
-func TestCreatePidFile(t *testing.T) {
+func TestCreatePIDFile(t *testing.T) {
 	err := os.MkdirAll(defaults.DefaultRunDir, os.ModeDir)
 	require.NoError(t, err)
 
@@ -21,7 +21,7 @@ func TestCreatePidFile(t *testing.T) {
 	require.NoError(t, err)
 	require.NotZero(t, pid)
 
-	pid1, err := readPidFile()
+	pid1, err := readPIDFile()
 	require.NoError(t, err)
 	require.NotZero(t, pid1)
 
@@ -29,14 +29,14 @@ func TestCreatePidFile(t *testing.T) {
 	err = Delete()
 	require.NoError(t, err)
 
-	pid1, err = readPidFile()
-	require.ErrorIs(t, err, ErrPidFileAccess)
+	pid1, err = readPIDFile()
+	require.ErrorIs(t, err, ErrPIDFileAccess)
 	require.Zero(t, pid1)
 }
 
-func TestIsPidRunning(t *testing.T) {
+func TestIsPIDRunning(t *testing.T) {
 	pid := os.Getpid()
-	strPid := strconv.Itoa(pid)
-	isPidRunning := isPidAlive((strPid))
-	require.True(t, isPidRunning)
+	strPID := strconv.Itoa(pid)
+	isPIDRunning := isPIDAlive((strPID))
+	require.True(t, isPIDRunning)
 }

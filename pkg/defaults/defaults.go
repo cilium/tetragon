@@ -48,7 +48,7 @@ const (
 	DefaultLogsPermission = "600"
 
 	// Pid file where to write tetragon main PID
-	DefaultPidFile = DefaultRunDir + "tetragon.pid"
+	DefaultPIDFile = DefaultRunDir + "tetragon.pid"
 
 	// defaults for the event cache
 	DefaultEventCacheNumRetries = 15

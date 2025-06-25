@@ -27,8 +27,8 @@ type ProcessBasicInfo64 struct {
 	PebBaseAddress               uint64
 	AffinityMask                 uint64
 	BasePriority                 uint64
-	UniqueProcessId              uint64
-	InheritedFromUniqueProcessId uint64
+	UniqueProcessID              uint64
+	InheritedFromUniqueProcessID uint64
 }
 
 type PEB32 struct {
@@ -140,16 +140,16 @@ func procKernel() procs {
 	kernelArgs := []byte("<kernel>\u0000")
 	return procs{
 		psize:       uint32(processapi.MSG_SIZEOF_EXECVE + len(kernelArgs) + processapi.MSG_SIZEOF_CWD),
-		ppid:        kernelPid,
+		ppid:        kernelPID,
 		pnspid:      0,
 		pflags:      api.EventProcFS,
 		pktime:      1,
 		pexe:        kernelArgs,
 		size:        uint32(processapi.MSG_SIZEOF_EXECVE + len(kernelArgs) + processapi.MSG_SIZEOF_CWD),
-		pid:         kernelPid,
-		tid:         kernelPid,
+		pid:         kernelPID,
+		tid:         kernelPID,
 		nspid:       0,
-		auid:        proc.InvalidUid,
+		auid:        proc.InvalidUID,
 		flags:       api.EventProcFS,
 		ktime:       1,
 		exe:         kernelArgs,
@@ -401,9 +401,9 @@ func NewProcess(procEntry windows.ProcessEntry32) (procs, error) {
 	ct := times.CreationTime
 	ktime = uint64((int64(ct.HighDateTime) << 32) + int64(ct.LowDateTime))
 	// Initialize with invalid uid
-	uids := []uint32{proc.InvalidUid, proc.InvalidUid, proc.InvalidUid, proc.InvalidUid}
-	gids := []uint32{proc.InvalidUid, proc.InvalidUid, proc.InvalidUid, proc.InvalidUid}
-	auid := proc.InvalidUid
+	uids := []uint32{proc.InvalidUID, proc.InvalidUID, proc.InvalidUID, proc.InvalidUID}
+	gids := []uint32{proc.InvalidUID, proc.InvalidUID, proc.InvalidUID, proc.InvalidUID}
+	auid := proc.InvalidUID
 	// Get process status
 	status, err := proc.GetStatusFromHandle(hProc)
 	if err != nil {
@@ -411,15 +411,15 @@ func NewProcess(procEntry windows.ProcessEntry32) (procs, error) {
 	} else {
 		uids, err = status.GetUids()
 		if err != nil {
-			logger.GetLogger().Warn(fmt.Sprintf("Reading Uids of %d failed, falling back to uid: %d", pid, uint32(proc.InvalidUid)), logfields.Error, err)
+			logger.GetLogger().Warn(fmt.Sprintf("Reading UIDs of %d failed, falling back to uid: %d", pid, uint32(proc.InvalidUID)), logfields.Error, err)
 		}
 
-		gids, err = status.GetGids()
+		gids, err = status.GetGIDs()
 		if err != nil {
-			logger.GetLogger().Warn(fmt.Sprintf("Reading Uids of %d failed, falling back to gid: %d", pid, uint32(proc.InvalidUid)), logfields.Error, err)
+			logger.GetLogger().Warn(fmt.Sprintf("Reading UIDs of %d failed, falling back to gid: %d", pid, uint32(proc.InvalidUID)), logfields.Error, err)
 		}
 
-		auid, err = status.GetLoginUid()
+		auid, err = status.GetLoginUID()
 		if err != nil {
 			logger.GetLogger().Warn(fmt.Sprintf("Reading Loginuid of %d failed, falling back to loginuid: %d", pid, uint32(auid)), logfields.Error, err)
 		}
@@ -429,12 +429,12 @@ func NewProcess(procEntry windows.ProcessEntry32) (procs, error) {
 	// found using GetTokenInformation with TokenPrivileges, and converted o string using LookupPrivilegeName.
 	// They are best expressed as an array of strings, and don't fit in current structure.
 	var permitted, effective, inheritable uint64
-	var nspid, uts_ns, ipc_ns, mnt_ns, pid_ns, pid_for_children_ns uint32
+	var nsPID, utsNs, ipcNs, mntNs, pidNs, pidForChildrenNs uint32
 
-	var net_ns, time_ns uint32
-	var time_for_children_ns uint32
+	var netNs, timeNs uint32
+	var timeForChildrenNs uint32
 
-	var cgroup_ns, user_ns uint32
+	var cgroupNs, userNs uint32
 	pcmdline = ""
 	pktime = 0
 	var pnspid uint32
@@ -461,36 +461,36 @@ func NewProcess(procEntry windows.ProcessEntry32) (procs, error) {
 	}
 
 	p := procs{
-		ppid:                 uint32(ppid),
-		pnspid:               pnspid,
-		pexe:                 stringToUTF8([]byte(pexecPath)),
-		pcmdline:             stringToUTF8([]byte(pcmdline)),
-		pflags:               api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
-		pktime:               pktime,
-		uids:                 uids,
-		gids:                 gids,
-		auid:                 auid,
-		pid:                  uint32(pid),
-		tid:                  uint32(pid), // Read dir does not return threads and we only track tgid
-		nspid:                nspid,
-		exe:                  stringToUTF8([]byte(execPath)),
-		cmdline:              stringToUTF8([]byte(cmdline)),
-		flags:                api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
-		ktime:                ktime,
-		permitted:            permitted,
-		effective:            effective,
-		inheritable:          inheritable,
-		uts_ns:               uts_ns,
-		ipc_ns:               ipc_ns,
-		mnt_ns:               mnt_ns,
-		pid_ns:               pid_ns,
-		pid_for_children_ns:  pid_for_children_ns,
-		net_ns:               net_ns,
-		time_ns:              time_ns,
-		time_for_children_ns: time_for_children_ns,
-		cgroup_ns:            cgroup_ns,
-		user_ns:              user_ns,
-		kernel_thread:        false,
+		ppid:              uint32(ppid),
+		pnspid:            pnspid,
+		pexe:              stringToUTF8([]byte(pexecPath)),
+		pcmdline:          stringToUTF8([]byte(pcmdline)),
+		pflags:            api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
+		pktime:            pktime,
+		uids:              uids,
+		gids:              gids,
+		auid:              auid,
+		pid:               uint32(pid),
+		tid:               uint32(pid), // Read dir does not return threads and we only track tgid
+		nspid:             nsPID,
+		exe:               stringToUTF8([]byte(execPath)),
+		cmdline:           stringToUTF8([]byte(cmdline)),
+		flags:             api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
+		ktime:             ktime,
+		permitted:         permitted,
+		effective:         effective,
+		inheritable:       inheritable,
+		utsNs:             utsNs,
+		ipcNs:             ipcNs,
+		mntNs:             mntNs,
+		pidNs:             pidNs,
+		pidForChildrenNs:  pidForChildrenNs,
+		netNs:             netNs,
+		timeNs:            timeNs,
+		timeForChildrenNs: timeForChildrenNs,
+		cgroupNs:          cgroupNs,
+		userNs:            userNs,
+		kernelThread:      false,
 	}
 
 	p.size = uint32(processapi.MSG_SIZEOF_EXECVE + len(p.args()) + processapi.MSG_SIZEOF_CWD)

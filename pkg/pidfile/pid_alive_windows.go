@@ -8,7 +8,7 @@ import (
 	"strconv"
 )
 
-func isPidAlive(pid string) bool {
+func isPIDAlive(pid string) bool {
 	int32pid, err := strconv.ParseInt(pid, 0, 32)
 	if err == nil {
 		_, err = os.FindProcess(int(int32pid))

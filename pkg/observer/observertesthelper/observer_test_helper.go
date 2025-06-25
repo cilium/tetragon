@@ -72,16 +72,16 @@ type TestOptions struct {
 type TestOption func(*TestOptions)
 
 // Filter for the gotest process and its children in the export
-func WithMyPid() TestOption {
+func WithMyPID() TestOption {
 	return func(o *TestOptions) {
 		o.exporter.allowList = append(o.exporter.allowList, &tetragon.Filter{
-			PidSet: []uint32{GetMyPid()},
+			PidSet: []uint32{GetMyPID()},
 		})
 	}
 }
 
 // Filter for a container id by prefix in event export
-func WithContainerId(id string) TestOption {
+func WithContainerID(id string) TestOption {
 	return func(o *TestOptions) {
 		o.exporter.allowList = append(o.exporter.allowList, &tetragon.Filter{
 			ContainerId: []string{"^" + id},
@@ -179,7 +179,7 @@ func newDefaultTestOptions(opts ...TestOption) *TestOptions {
 }
 
 func newDefaultObserver() *observer.Observer {
-	option.Config.BpfDir = bpf.MapPrefixPath()
+	option.Config.BPFDir = bpf.MapPrefixPath()
 	return observer.NewObserver()
 }
 
@@ -287,7 +287,7 @@ func GetDefaultSensorsWithFile(tb testing.TB, file, lib string, opts ...TestOpti
 }
 
 func getDefaultSensors(tb testing.TB, initialSensor *sensors.Sensor, opts ...TestOption) ([]*sensors.Sensor, error) {
-	option.Config.BpfDir = bpf.MapPrefixPath()
+	option.Config.BPFDir = bpf.MapPrefixPath()
 
 	testutils.CaptureLog(tb, logger.GetLogger())
 
@@ -417,7 +417,7 @@ func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, op
 func loadObserver(tb testing.TB, ctx context.Context, base *sensors.Sensor,
 	tp tracingpolicy.TracingPolicy) error {
 
-	if err := base.Load(option.Config.BpfDir); err != nil {
+	if err := base.Load(option.Config.BPFDir); err != nil {
 		tb.Fatalf("Load base error: %s\n", err)
 	}
 	tb.Cleanup(func() {
@@ -441,7 +441,7 @@ func loadObserver(tb testing.TB, ctx context.Context, base *sensors.Sensor,
 }
 
 func loadSensors(tb testing.TB, base sensors.SensorIface, sens []sensors.SensorIface) error {
-	if err := base.Load(option.Config.BpfDir); err != nil {
+	if err := base.Load(option.Config.BPFDir); err != nil {
 		tb.Fatalf("Load base error: %s\n", err)
 	}
 
@@ -450,7 +450,7 @@ func loadSensors(tb testing.TB, base sensors.SensorIface, sens []sensors.SensorI
 	}
 
 	for _, s := range sens {
-		if err := s.Load(option.Config.BpfDir); err != nil {
+		if err := s.Load(option.Config.BPFDir); err != nil {
 			tb.Fatalf("LoadConfig error: %s\n", err)
 		}
 	}
@@ -543,6 +543,6 @@ func GetDefaultObserverWithConfig(tb testing.TB, ctx context.Context, config, li
 	return GetDefaultObserverWithWatchers(tb, ctx, b, opts...)
 }
 
-func GetMyPid() uint32 {
-	return namespace.GetMyPidG()
+func GetMyPID() uint32 {
+	return namespace.GetMyPIDG()
 }

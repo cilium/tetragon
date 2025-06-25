@@ -97,8 +97,8 @@ spec:
 
 	parentCheck := ec.NewProcessChecker().
 		WithBinary(sm.Suffix("threads-tester")).
-		WithPid(cti.ParentPid).
-		WithTid(cti.ParentTid).
+		WithPid(cti.ParentPID).
+		WithTid(cti.ParentTID).
 		WithCap(myCaps).
 		WithNs(myNs)
 
@@ -110,8 +110,8 @@ spec:
 
 	child1Checker := ec.NewProcessChecker().
 		WithBinary(sm.Suffix("threads-tester")).
-		WithPid(cti.Child1Pid).
-		WithTid(cti.Child1Tid).
+		WithPid(cti.Child1PID).
+		WithTid(cti.Child1TID).
 		WithCap(myCaps).
 		WithNs(myNs)
 
@@ -120,8 +120,8 @@ spec:
 
 	thread1Checker := ec.NewProcessChecker().
 		WithBinary(sm.Suffix("threads-tester")).
-		WithPid(cti.Thread1Pid).
-		WithTid(cti.Thread1Tid).
+		WithPid(cti.Thread1PID).
+		WithTid(cti.Thread1TID).
 		WithCap(myCaps).
 		WithNs(myNs)
 
@@ -130,6 +130,6 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(execCheck, child1KpChecker, thread1KpChecker, exitCheck)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }

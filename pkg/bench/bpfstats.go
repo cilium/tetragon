@@ -17,7 +17,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func EnableBpfStats() func() error {
+func EnableBPFStats() func() error {
 	// 5.8 and upwards have a reentrancy safe API to enable stats.
 	stats, err := ebpf.EnableStats(unix.BPF_STATS_RUN_TIME)
 	if err == nil {
@@ -34,8 +34,8 @@ func EnableBpfStats() func() error {
 	}
 }
 
-type BpfProgStats struct {
-	Id     int64  `json:"id"`
+type BPFProgStats struct {
+	ID     int64  `json:"id"`
 	Type   string `json:"type"`
 	Name   string `json:"name"`
 	RunNs  int64  `json:"run_time_ns"`
@@ -43,7 +43,7 @@ type BpfProgStats struct {
 	// ...
 }
 
-func (bps *BpfProgStats) String() string {
+func (bps *BPFProgStats) String() string {
 	duration := time.Duration(0)
 	if bps.RunCnt > 0 {
 		duration = time.Duration(bps.RunNs / bps.RunCnt)
@@ -53,14 +53,14 @@ func (bps *BpfProgStats) String() string {
 		name = "<unnamed>"
 	}
 
-	lbl := fmt.Sprintf("%-30s [%s/%d]", name, bps.Type, bps.Id)
+	lbl := fmt.Sprintf("%-30s [%s/%d]", name, bps.Type, bps.ID)
 
 	return fmt.Sprintf("%-50s:\t%.2fµs (%d)",
 		lbl, float64(duration)/float64(time.Microsecond), bps.RunCnt)
 }
 
-func GetBpfStatsSince(oldStats map[int64]*BpfProgStats) map[int64]*BpfProgStats {
-	newStats := GetBpfStats()
+func GetBPFStatsSince(oldStats map[int64]*BPFProgStats) map[int64]*BPFProgStats {
+	newStats := GetBPFStats()
 	for id, newStat := range newStats {
 		if oldStat, ok := oldStats[id]; ok {
 			newStat.RunNs -= oldStat.RunNs
@@ -70,24 +70,24 @@ func GetBpfStatsSince(oldStats map[int64]*BpfProgStats) map[int64]*BpfProgStats 
 	return newStats
 }
 
-func GetBpfStats() map[int64]*BpfProgStats {
+func GetBPFStats() map[int64]*BPFProgStats {
 	out, err := exec.Command("/bin/sh", "-c", "bpftool prog show -j").Output()
 	if err != nil {
 		log.Printf("Failed to query bpf stats: %s\n", err)
 		return nil
 	}
 
-	var stats []BpfProgStats
+	var stats []BPFProgStats
 	err = json.Unmarshal(out, &stats)
 	if err != nil {
 		log.Printf("Failed to parse bpf stats: %s\n", err)
 		return nil
 	}
 
-	m := make(map[int64]*BpfProgStats)
+	m := make(map[int64]*BPFProgStats)
 	for id := range stats {
 		var s = &stats[id]
-		m[s.Id] = s
+		m[s.ID] = s
 	}
 	return m
 }

@@ -57,7 +57,7 @@ type testData struct {
 
 func TestProcessCgroup(t *testing.T) {
 	key := processapi.CgroupRateKey{
-		Id: 123,
+		ID: 123,
 	}
 
 	cgroup := "cgroup"
@@ -242,7 +242,7 @@ func TestProcessCgroup(t *testing.T) {
 		NewTestCgroupRate(l, hash, &d.opts)
 
 		// setup cgrouprate cgroup
-		glSt.handle.cgroups[key.Id] = cgroup
+		glSt.handle.cgroups[key.ID] = cgroup
 		assert.NotNil(t, glSt.handle)
 
 		// store hash values
@@ -254,7 +254,7 @@ func TestProcessCgroup(t *testing.T) {
 		}
 
 		t.Logf("Test %d", idx)
-		ret := glSt.handle.processCgroup(key.Id, cgroup, d.last)
+		ret := glSt.handle.processCgroup(key.ID, cgroup, d.last)
 
 		assert.Equal(t, d.ret, ret)
 		assert.Equal(t, d.throttle, l.throttle)

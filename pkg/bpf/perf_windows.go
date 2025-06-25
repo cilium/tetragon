@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	EbpfApi = windows.NewLazyDLL("ebpfapi.dll")
-	BPF     = EbpfApi.NewProc("bpf")
+	EbpfAPI = windows.NewLazyDLL("ebpfapi.dll")
+	BPF     = EbpfAPI.NewProc("bpf")
 )
 
 func UpdateElementFromPointers(fd int, structPtr, sizeOfStruct uintptr) error {

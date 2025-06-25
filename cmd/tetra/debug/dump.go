@@ -193,12 +193,12 @@ func PolicyfilterState(fname string) {
 		fmt.Printf("(empty)\n")
 	}
 
-	for polId, cgIDs := range data.Policy {
+	for polID, cgIDs := range data.Policy {
 		ids := make([]string, 0, len(cgIDs))
 		for id := range cgIDs {
 			ids = append(ids, strconv.FormatUint(uint64(id), 10))
 		}
-		fmt.Printf("%d: %s\n", polId, strings.Join(ids, ","))
+		fmt.Printf("%d: %s\n", polID, strings.Join(ids, ","))
 	}
 
 	if data.Cgroup != nil {

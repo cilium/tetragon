@@ -55,7 +55,7 @@ const (
 	KeyEnableProcessKprobeAncestors     = "enable-process-kprobe-ancestors"
 	KeyEnableProcessTracepointAncestors = "enable-process-tracepoint-ancestors"
 	KeyEnableProcessUprobeAncestors     = "enable-process-uprobe-ancestors"
-	KeyEnableProcessLsmAncestors        = "enable-process-lsm-ancestors"
+	KeyEnableProcessLSMAncestors        = "enable-process-lsm-ancestors"
 
 	KeyEnableAncestors   = "enable-ancestors"
 	KeyEnableProcessCred = "enable-process-cred"
@@ -63,7 +63,7 @@ const (
 	KeyTracingPolicy     = "tracing-policy"
 	KeyTracingPolicyDir  = "tracing-policy-dir"
 
-	KeyCpuProfile = "cpuprofile"
+	KeyCPUProfile = "cpuprofile"
 	KeyMemProfile = "memprofile"
 	KeyPprofAddr  = "pprof-address"
 
@@ -102,7 +102,7 @@ const (
 	KeyEnablePolicyFilterCgroupMap = "enable-policy-filter-cgroup-map"
 	KeyEnablePolicyFilterDebug     = "enable-policy-filter-debug"
 
-	KeyEnablePidSetFilter = "enable-pid-set-filter"
+	KeyEnablePIDSetFilter = "enable-pid-set-filter"
 
 	KeyEnableMsgHandlingLatency = "enable-msg-handling-latency"
 
@@ -120,7 +120,7 @@ const (
 	KeyHealthServerAddress = "health-server-address"
 	KeyHealthTimeInterval  = "health-server-interval"
 
-	KeyBpfDir = "bpf-dir"
+	KeyBPFDir = "bpf-dir"
 
 	KeyKeepSensorsOnExit = "keep-sensors-on-exit"
 
@@ -194,7 +194,7 @@ func ReadAndSetFlags() error {
 		Config.EnableProcessKprobeAncestors = slices.Contains(enableAncestors, "kprobe")
 		Config.EnableProcessTracepointAncestors = slices.Contains(enableAncestors, "tracepoint")
 		Config.EnableProcessUprobeAncestors = slices.Contains(enableAncestors, "uprobe")
-		Config.EnableProcessLsmAncestors = slices.Contains(enableAncestors, "lsm")
+		Config.EnableProcessLSMAncestors = slices.Contains(enableAncestors, "lsm")
 	} else if len(enableAncestors) == 0 && viper.GetBool(KeyEnableProcessAncestors) {
 		// NOTE: enable-process-ancestors flags are marked as deprecated and
 		// planned to be removed in version 1.6
@@ -202,7 +202,7 @@ func ReadAndSetFlags() error {
 		Config.EnableProcessKprobeAncestors = viper.GetBool(KeyEnableProcessKprobeAncestors)
 		Config.EnableProcessTracepointAncestors = viper.GetBool(KeyEnableProcessTracepointAncestors)
 		Config.EnableProcessUprobeAncestors = viper.GetBool(KeyEnableProcessUprobeAncestors)
-		Config.EnableProcessLsmAncestors = viper.GetBool(KeyEnableProcessLsmAncestors)
+		Config.EnableProcessLSMAncestors = viper.GetBool(KeyEnableProcessLSMAncestors)
 	}
 
 	Config.GopsAddr = viper.GetString(KeyGopsAddr)
@@ -235,7 +235,7 @@ func ReadAndSetFlags() error {
 	Config.ExportAggregationWindowSize = viper.GetDuration(KeyExportAggregationWindowSize)
 	Config.ExportAggregationBufferSize = viper.GetUint64(KeyExportAggregationBufferSize)
 
-	Config.CpuProfile = viper.GetString(KeyCpuProfile)
+	Config.CPUProfile = viper.GetString(KeyCPUProfile)
 	Config.MemProfile = viper.GetString(KeyMemProfile)
 	Config.PprofAddr = viper.GetString(KeyPprofAddr)
 
@@ -247,7 +247,7 @@ func ReadAndSetFlags() error {
 	Config.EnablePolicyFilterDebug = viper.GetBool(KeyEnablePolicyFilterDebug)
 	Config.EnableMsgHandlingLatency = viper.GetBool(KeyEnableMsgHandlingLatency)
 
-	Config.EnablePidSetFilter = viper.GetBool(KeyEnablePidSetFilter)
+	Config.EnablePIDSetFilter = viper.GetBool(KeyEnablePIDSetFilter)
 
 	Config.TracingPolicyDir = viper.GetString(KeyTracingPolicyDir)
 
@@ -272,7 +272,7 @@ func ReadAndSetFlags() error {
 	Config.HealthServerAddress = viper.GetString(KeyHealthServerAddress)
 	Config.HealthServerInterval = viper.GetInt(KeyHealthTimeInterval)
 
-	Config.BpfDir = viper.GetString(KeyBpfDir)
+	Config.BPFDir = viper.GetString(KeyBPFDir)
 
 	Config.KeepSensorsOnExit = viper.GetBool(KeyKeepSensorsOnExit)
 
@@ -401,12 +401,12 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Bool(KeyEnableProcessKprobeAncestors, false, fmt.Sprintf("Deprecated, please, use --enable-ancestors=base,kprobe. Include ancestors in process_kprobe events. Only used if '%s' is set to 'true'", KeyEnableProcessAncestors))
 	flags.Bool(KeyEnableProcessTracepointAncestors, false, fmt.Sprintf("Deprecated, please, use --enable-ancestors=base,tracepoint. Include ancestors in process_tracepoint events. Only used if '%s' is set to 'true'", KeyEnableProcessAncestors))
 	flags.Bool(KeyEnableProcessUprobeAncestors, false, fmt.Sprintf("Deprecated, please, use --enable-ancestors=base,uprobe. Include ancestors in process_uprobe events. Only used if '%s' is set to 'true'", KeyEnableProcessAncestors))
-	flags.Bool(KeyEnableProcessLsmAncestors, false, fmt.Sprintf("Deprecated, please, use --enable-ancestors=base,lsm. Include ancestors in process_lsm events. Only used if '%s' is set to 'true'", KeyEnableProcessAncestors))
+	flags.Bool(KeyEnableProcessLSMAncestors, false, fmt.Sprintf("Deprecated, please, use --enable-ancestors=base,lsm. Include ancestors in process_lsm events. Only used if '%s' is set to 'true'", KeyEnableProcessAncestors))
 	flags.MarkDeprecated(KeyEnableProcessAncestors, "please use --enable-ancestors=base")
 	flags.MarkDeprecated(KeyEnableProcessKprobeAncestors, "please use --enable-ancestors=base,kprobe")
 	flags.MarkDeprecated(KeyEnableProcessTracepointAncestors, "please use --enable-ancestors=base,tracepoint")
 	flags.MarkDeprecated(KeyEnableProcessUprobeAncestors, "please use --enable-ancestors=base,uprobe")
-	flags.MarkDeprecated(KeyEnableProcessLsmAncestors, "please use --enable-ancestors=base,lsm")
+	flags.MarkDeprecated(KeyEnableProcessLSMAncestors, "please use --enable-ancestors=base,lsm")
 
 	// Tracing policy file
 	flags.String(KeyTracingPolicy, "", "Tracing policy file to load at startup")
@@ -414,8 +414,8 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.String(KeyTracingPolicyDir, defaults.DefaultTpDir, "Directory from where to load Tracing Policies")
 
 	// Options for debugging/development, not visible to users
-	flags.String(KeyCpuProfile, "", "Store CPU profile into provided file")
-	flags.MarkHidden(KeyCpuProfile)
+	flags.String(KeyCPUProfile, "", "Store CPU profile into provided file")
+	flags.MarkHidden(KeyCPUProfile)
 
 	flags.String(KeyMemProfile, "", "Store MEM profile into provided file")
 	flags.MarkHidden(KeyMemProfile)
@@ -459,7 +459,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Bool(KeyEnablePolicyFilterDebug, false, "Enable policy filter debug messages")
 
 	// Provide option to enable the pidSet export filters.
-	flags.Bool(KeyEnablePidSetFilter, false, "Enable pidSet export filters. Not recommended for production use")
+	flags.Bool(KeyEnablePIDSetFilter, false, "Enable pidSet export filters. Not recommended for production use")
 
 	flags.Bool(KeyEnableMsgHandlingLatency, false, "Enable metrics for message handling latency")
 
@@ -479,7 +479,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.String(KeyHealthServerAddress, ":6789", "Health server address (e.g. ':6789')(use '' to disabled it)")
 	flags.Int(KeyHealthTimeInterval, 10, "Health server interval in seconds")
 
-	flags.String(KeyBpfDir, defaults.DefaultMapPrefix, "Set tetragon bpf directory (default 'tetragon')")
+	flags.String(KeyBPFDir, defaults.DefaultMapPrefix, "Set tetragon bpf directory (default 'tetragon')")
 
 	flags.Bool(KeyKeepSensorsOnExit, false, "Do not unload sensors on exit")
 

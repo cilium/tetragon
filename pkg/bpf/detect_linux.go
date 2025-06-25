@@ -124,11 +124,11 @@ func HasUprobeMulti() bool {
 	return uprobeMulti.detected
 }
 
-func detectBuildId() bool {
+func detectBuildID() bool {
 	attr := &unix.PerfEventAttr{
 		Type:        unix.PERF_TYPE_SOFTWARE,
 		Config:      unix.PERF_COUNT_SW_BPF_OUTPUT,
-		Bits:        unix.PerfBitWatermark | unix.PerfBitMmap | unix.PerfBitMmap2 | PerfBitBuildId,
+		Bits:        unix.PerfBitWatermark | unix.PerfBitMmap | unix.PerfBitMmap2 | PerfBitBuildID,
 		Sample_type: unix.PERF_SAMPLE_RAW,
 		Wakeup:      1,
 	}
@@ -142,9 +142,9 @@ func detectBuildId() bool {
 	return false
 }
 
-func HasBuildId() bool {
+func HasBuildID() bool {
 	buildid.init.Do(func() {
-		buildid.detected = detectBuildId()
+		buildid.detected = detectBuildID()
 	})
 	return buildid.detected
 }
@@ -483,7 +483,7 @@ func LogFeatures() string {
 	// not load the BTF again
 	defer ebtf.FlushKernelSpec()
 	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, uprobe_multi %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t, link_pin: %t, lsm: %t, missed_stats_kprobe_multi: %t, missed_stats_kprobe: %t, batch_update: %t",
-		HasOverrideHelper(), HasBuildId(), HasKprobeMulti(), HasUprobeMulti(),
+		HasOverrideHelper(), HasBuildID(), HasKprobeMulti(), HasUprobeMulti(),
 		HasModifyReturn(), HasModifyReturnSyscall(), HasSignalHelper(), HasProgramLargeSize(),
 		HasLinkPin(), HasLSMPrograms(), HasMissedStatsKprobeMulti(), HasMissedStatsPerfEvent(),
 		HasBatchAPI())

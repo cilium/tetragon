@@ -63,7 +63,7 @@ func testSigkill(t *testing.T, makeSpecFile func(pid string) string, checker *ev
 	specFname := makeSpecFile(pidStr)
 	t.Logf("child pid is %s and spec file is %s", pidStr, specFname)
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, specFname, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, specFname, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -80,7 +80,7 @@ func testSigkill(t *testing.T, makeSpecFile func(pid string) string, checker *ev
 		t.Fatalf("command failed with %s. Context error: %s", err, ctx.Err())
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -276,7 +276,7 @@ func testUnprivilegedUsernsKill(t *testing.T, pidns bool) {
 	specFname := makeSpecFile(pidStr)
 	t.Logf("parent pid is %s and spec file is %s", pidStr, specFname)
 
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, specFname, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, specFname, tus.Conf().TetragonLib, observertesthelper.WithMyPID())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -299,7 +299,7 @@ func testUnprivilegedUsernsKill(t *testing.T, pidns bool) {
 
 	checker := eventchecker.NewUnorderedEventChecker(kpChecker)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JSONTestCheck(t, checker)
 	require.NoError(t, err)
 }
 

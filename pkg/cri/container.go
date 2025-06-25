@@ -98,8 +98,8 @@ func CgroupPath(ctx context.Context, cli criapi.RuntimeServiceClient, containerI
 	}
 
 	var path, json string
-	if infoJson, ok := info["info"]; ok {
-		json = infoJson
+	if infoJSON, ok := info["info"]; ok {
+		json = infoJSON
 		path = "runtimeSpec.linux.cgroupsPath"
 	} else {
 		return "", errors.New("could not find info")

@@ -173,11 +173,11 @@ func (pi *ProcessInternal) UpdateExecOutsideCache(cred bool) (*tetragon.Process,
 	// Check if we should augment the process
 	if cred && pi.apiBinaryProp != nil {
 		// Annotate privileged execution if it was successfully set
-		if pi.apiBinaryProp.Setuid.GetValue() != proc.InvalidUid {
+		if pi.apiBinaryProp.Setuid.GetValue() != proc.InvalidUID {
 			prop.Setuid = pi.apiBinaryProp.Setuid
 			update = true
 		}
-		if pi.apiBinaryProp.Setgid.GetValue() != proc.InvalidUid {
+		if pi.apiBinaryProp.Setgid.GetValue() != proc.InvalidUID {
 			prop.Setgid = pi.apiBinaryProp.Setgid
 			update = true
 		}
@@ -252,7 +252,7 @@ func (pi *ProcessInternal) NeededAncestors() bool {
 //
 // There is no point on calling this helper on clone or execve events,
 // however on all other events it is perfectly fine.
-func UpdateEventProcessTid(process *tetragon.Process, tid *uint32) {
+func UpdateEventProcessTID(process *tetragon.Process, tid *uint32) {
 	if process != nil && tid != nil {
 		process.Tid = &wrapperspb.UInt32Value{Value: *tid}
 	}
@@ -263,7 +263,7 @@ func GetExecID(proc *tetragonAPI.MsgProcess) string {
 }
 
 func GetExecIDFromKey(key *tetragonAPI.MsgExecveKey) string {
-	return GetProcessID(key.Pid, key.Ktime)
+	return GetProcessID(key.PID, key.Ktime)
 }
 
 // initProcessInternalExec() initialize and returns ProcessInternal and
@@ -275,7 +275,7 @@ func initProcessInternalExec(
 	process := event.Process
 	args, cwd := ArgsDecoder(process.Args, process.Flags)
 	var parentExecID string
-	if parent.Pid != 0 {
+	if parent.PID != 0 {
 		parentExecID = GetExecIDFromKey(&parent)
 	} else {
 		parentExecID = GetProcessID(0, 1)
@@ -297,29 +297,29 @@ func initProcessInternalExec(
 	}
 
 	apiCreds := &tetragon.ProcessCredentials{
-		Uid:        &wrapperspb.UInt32Value{Value: creds.Uid},
-		Gid:        &wrapperspb.UInt32Value{Value: creds.Gid},
-		Euid:       &wrapperspb.UInt32Value{Value: creds.Euid},
-		Egid:       &wrapperspb.UInt32Value{Value: creds.Egid},
-		Suid:       &wrapperspb.UInt32Value{Value: creds.Suid},
-		Sgid:       &wrapperspb.UInt32Value{Value: creds.Sgid},
-		Fsuid:      &wrapperspb.UInt32Value{Value: creds.FSuid},
-		Fsgid:      &wrapperspb.UInt32Value{Value: creds.FSgid},
+		Uid:        &wrapperspb.UInt32Value{Value: creds.UID},
+		Gid:        &wrapperspb.UInt32Value{Value: creds.GID},
+		Euid:       &wrapperspb.UInt32Value{Value: creds.EUID},
+		Egid:       &wrapperspb.UInt32Value{Value: creds.EGID},
+		Suid:       &wrapperspb.UInt32Value{Value: creds.SUID},
+		Sgid:       &wrapperspb.UInt32Value{Value: creds.SGID},
+		Fsuid:      &wrapperspb.UInt32Value{Value: creds.FSUID},
+		Fsgid:      &wrapperspb.UInt32Value{Value: creds.FSGID},
 		Securebits: caps.GetSecureBitsTypes(creds.SecureBits),
 	}
 
 	apiBinaryProp := &tetragon.BinaryProperties{
 		// Initialize with InvalidUid
-		Setuid: &wrapperspb.UInt32Value{Value: proc.InvalidUid},
-		Setgid: &wrapperspb.UInt32Value{Value: proc.InvalidUid},
+		Setuid: &wrapperspb.UInt32Value{Value: proc.InvalidUID},
+		Setgid: &wrapperspb.UInt32Value{Value: proc.InvalidUID},
 		File:   nil,
 	}
 
 	if (process.SecureExec & tetragonAPI.ExecveSetuid) != 0 {
-		apiBinaryProp.Setuid = &wrapperspb.UInt32Value{Value: creds.Euid}
+		apiBinaryProp.Setuid = &wrapperspb.UInt32Value{Value: creds.EUID}
 	}
 	if (process.SecureExec & tetragonAPI.ExecveSetgid) != 0 {
-		apiBinaryProp.Setgid = &wrapperspb.UInt32Value{Value: creds.Egid}
+		apiBinaryProp.Setgid = &wrapperspb.UInt32Value{Value: creds.EGID}
 	}
 
 	apiBinaryProp.PrivilegesChanged = caps.GetPrivilegesChangedReasons(process.SecureExec)
@@ -348,7 +348,7 @@ func initProcessInternalExec(
 			"event.parent.exec_id", parentExecID)
 		// Explicitly reset TID to be PID
 		process.TID = process.PID
-		errormetrics.ErrorTotalInc(errormetrics.ProcessPidTidMismatch)
+		errormetrics.ErrorTotalInc(errormetrics.ProcessPIDTidMismatch)
 	}
 
 	if fieldfilters.RedactionFilters != nil {
@@ -402,19 +402,19 @@ func initProcessInternalExec(
 // initProcessInternalClone() initialize and returns ProcessInternal from
 // a clone event
 func initProcessInternalClone(event *tetragonAPI.MsgCloneEvent,
-	parent *ProcessInternal, parentExecId string) (*ProcessInternal, error) {
+	parent *ProcessInternal, parentExecID string) (*ProcessInternal, error) {
 	pi := parent.cloneInternalProcessCopy()
 	if pi.process == nil {
 		err := errors.New("failed to clone parent process from cache")
 		logger.GetLogger().Debug("CloneEvent: parent process information is missing",
 			logfields.Error, err,
 			"event.name", "Clone",
-			"event.parent.pid", event.Parent.Pid,
-			"event.parent.exec_id", parentExecId)
+			"event.parent.pid", event.Parent.PID,
+			"event.parent.exec_id", parentExecID)
 		return nil, err
 	}
 
-	pi.process.ParentExecId = parentExecId
+	pi.process.ParentExecId = parentExecID
 	pi.process.ExecId = GetProcessID(event.PID, event.Ktime)
 	pi.process.Pid = &wrapperspb.UInt32Value{Value: event.PID}
 	// Per thread tracking rules PID == TID: ensure that we get TID equals PID.
@@ -426,8 +426,8 @@ func initProcessInternalClone(event *tetragonAPI.MsgCloneEvent,
 			"event.process.pid", event.PID,
 			"event.process.tid", event.TID,
 			"event.process.exec_id", pi.process.ExecId,
-			"event.parent.exec_id", parentExecId)
-		errormetrics.ErrorTotalInc(errormetrics.ProcessPidTidMismatch)
+			"event.parent.exec_id", parentExecID)
+		errormetrics.ErrorTotalInc(errormetrics.ProcessPIDTidMismatch)
 	}
 	// Set the TID here and if we have an exit without an exec we report
 	// directly this TID without copying again objects.
@@ -487,12 +487,12 @@ func GetParentProcessInternal(pid uint32, ktime uint64) (*ProcessInternal, *Proc
 
 // GetAncestorProcessesInternal returns a slice, representing a continuous sequence of ancestors
 // of the process up to init process (PID 1) or kthreadd (PID 2), including the immediate parent.
-func GetAncestorProcessesInternal(execId string) ([]*ProcessInternal, error) {
+func GetAncestorProcessesInternal(execID string) ([]*ProcessInternal, error) {
 	var ancestors []*ProcessInternal
 	var process *ProcessInternal
 	var err error
 
-	if process, err = procCache.get(execId); err != nil {
+	if process, err = procCache.get(execID); err != nil {
 		return nil, err
 	}
 
@@ -501,7 +501,7 @@ func GetAncestorProcessesInternal(execId string) ([]*ProcessInternal, error) {
 		if process, err = procCache.get(process.process.ParentExecId); err != nil {
 			logger.GetLogger().Debug("ancestor process not found in cache",
 				logfields.Error, err,
-				"id in event", execId)
+				"id in event", execID)
 			break
 		}
 		ancestors = append(ancestors, process)
@@ -527,18 +527,18 @@ func AddExecEvent(event *tetragonAPI.MsgExecveEventUnix) *ProcessInternal {
 
 // AddCloneEvent adds a new process into the cache from a CloneEvent
 func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) (*ProcessInternal, error) {
-	parentExecId := GetProcessID(event.Parent.Pid, event.Parent.Ktime)
-	parent, err := Get(parentExecId)
+	parentExecID := GetProcessID(event.Parent.PID, event.Parent.Ktime)
+	parent, err := Get(parentExecID)
 	if err != nil {
 		logger.GetLogger().Debug("CloneEvent: parent process not found in cache",
 			logfields.Error, err,
 			"event.name", "Clone",
-			"event.parent.pid", event.Parent.Pid,
-			"event.parent.exec_id", parentExecId)
+			"event.parent.pid", event.Parent.PID,
+			"event.parent.exec_id", parentExecID)
 		return nil, err
 	}
 
-	proc, err := initProcessInternalClone(event, parent, parentExecId)
+	proc, err := initProcessInternalClone(event, parent, parentExecID)
 	if err != nil {
 		return nil, err
 	}
@@ -548,8 +548,8 @@ func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) (*ProcessInternal, error) {
 	return proc, nil
 }
 
-func Get(execId string) (*ProcessInternal, error) {
-	return procCache.get(execId)
+func Get(execID string) (*ProcessInternal, error) {
+	return procCache.get(execID)
 }
 
 // GetK8s returns PodAccessor. You must call InitCache before calling this function to ensure

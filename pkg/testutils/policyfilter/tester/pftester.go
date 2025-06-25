@@ -72,7 +72,7 @@ func Start(t *testing.T, ctx context.Context) *Tester {
 
 	// create a cgroup path
 	ret.CgPath = cgt.CgfsMkTemp(t, cgfsRoot, fmt.Sprintf("test-%s-*", t.Name()))
-	ret.CgID, err = cgroups.GetCgroupIdFromPath(ret.CgPath)
+	ret.CgID, err = cgroups.GetCgroupIDFromPath(ret.CgPath)
 	require.NoError(t, err)
 	t.Logf("cgroup path:%s id:%d", ret.CgPath, ret.CgID)
 

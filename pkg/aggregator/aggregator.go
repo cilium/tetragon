@@ -72,7 +72,7 @@ func (a *Aggregator) handleEvent(event *tetragon.GetEventsResponse) {
 	}
 }
 
-func getNameOrIp(ip string, names []string) string {
+func getNameOrIP(ip string, names []string) string {
 	if len(names) > 0 {
 		sort.Strings(names)
 		return strings.Join(names, ",")

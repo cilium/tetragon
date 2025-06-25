@@ -217,7 +217,7 @@ func (pc *Cache) dump(opts *tetragon.DumpProcessCacheReqArgs) []*tetragon.Proces
 		}
 		if opts.ExcludeExecveMapProcesses {
 			var val execvemap.ExecveValue
-			if err := execveMap.Lookup(&execvemap.ExecveKey{Pid: v.process.Pid.Value}, &val); err == nil {
+			if err := execveMap.Lookup(&execvemap.ExecveKey{PID: v.process.Pid.Value}, &val); err == nil {
 				// pid exists in the execve_map, so skip this process
 				continue
 			}

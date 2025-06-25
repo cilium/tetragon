@@ -32,7 +32,7 @@ type IntTy struct {
 type BoolTy struct{}
 
 // pid_t type
-type PidTy struct{}
+type PIDTy struct{}
 
 // pid_t type
 type SizeTy struct{}
@@ -132,7 +132,7 @@ func parseTy(tyFields []string) (interface{}, error) {
 	case ty == "bool":
 		retTy = BoolTy{}
 	case ty == "pid_t":
-		retTy = PidTy{}
+		retTy = PIDTy{}
 	case ty == "size_t":
 		retTy = SizeTy{}
 	case ty == "void":
@@ -187,8 +187,8 @@ func parseField(s string) (*Field, error) {
 			return nil, &ParseError{r: "could not parse array structure"}
 		}
 		substrings := strings.Split(name, "[")
-		size_s := strings.TrimSuffix(substrings[1], "]")
-		size, err = strconv.ParseUint(size_s, 10, 32)
+		sizeS := strings.TrimSuffix(substrings[1], "]")
+		size, err = strconv.ParseUint(sizeS, 10, 32)
 		if err != nil {
 			return nil, &ParseError{r: fmt.Sprintf("failed to parse size: %s", err)}
 		}

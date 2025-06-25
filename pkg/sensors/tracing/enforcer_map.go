@@ -41,7 +41,7 @@ func OpenEnforcerMap(polName, polNamespace string) (EnforcerMap, error) {
 }
 
 type EnforcerMapKey struct {
-	PidTgid uint64 // pidtgid
+	PIDTGID uint64 // pidtgid
 }
 
 type EnforcerMapVal struct {

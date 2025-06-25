@@ -190,21 +190,21 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		}
 
 		arg.Index = uint64(a.index)
-		arg.Uid = cred.Uid
-		arg.Gid = cred.Gid
-		arg.Suid = cred.Suid
-		arg.Sgid = cred.Sgid
-		arg.Euid = cred.Euid
-		arg.Egid = cred.Egid
-		arg.FSuid = cred.FSuid
-		arg.FSgid = cred.FSgid
+		arg.UID = cred.UID
+		arg.GID = cred.GID
+		arg.Suid = cred.SUID
+		arg.Sgid = cred.SGID
+		arg.Euid = cred.EUID
+		arg.Egid = cred.EGID
+		arg.FSuid = cred.FSUID
+		arg.FSgid = cred.FSGID
 		arg.SecureBits = cred.SecureBits
 		arg.Cap.Permitted = cred.Cap.Permitted
 		arg.Cap.Effective = cred.Cap.Effective
 		arg.Cap.Inheritable = cred.Cap.Inheritable
 		arg.UserNs.Level = cred.UserNs.Level
-		arg.UserNs.Uid = cred.UserNs.Uid
-		arg.UserNs.Gid = cred.UserNs.Gid
+		arg.UserNs.UID = cred.UserNs.UID
+		arg.UserNs.GID = cred.UserNs.GID
 		arg.UserNs.NsInum = cred.UserNs.NsInum
 		arg.Label = a.label
 		return arg
@@ -304,9 +304,9 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		return arg
 	case gt.GenericNopType:
 		// do nothing
-	case gt.GenericBpfAttr:
-		var output api.MsgGenericKprobeBpfAttr
-		var arg api.MsgGenericKprobeArgBpfAttr
+	case gt.GenericBPFAttr:
+		var output api.MsgGenericKprobeBPFAttr
+		var arg api.MsgGenericKprobeArgBPFAttr
 
 		err := binary.Read(r, binary.LittleEndian, &output)
 		if err != nil {
@@ -333,9 +333,9 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		arg.ProbeOffset = output.ProbeOffset
 		arg.Label = a.label
 		return arg
-	case gt.GenericBpfMap:
-		var output api.MsgGenericKprobeBpfMap
-		var arg api.MsgGenericKprobeArgBpfMap
+	case gt.GenericBPFMap:
+		var output api.MsgGenericKprobeBPFMap
+		var arg api.MsgGenericKprobeArgBPFMap
 
 		err := binary.Read(r, binary.LittleEndian, &output)
 		if err != nil {
@@ -372,8 +372,8 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 			logger.GetLogger().Warn("user_namespace type error", logfields.Error, err)
 		}
 		arg.Level = output.Level
-		arg.Uid = output.Uid
-		arg.Gid = output.Gid
+		arg.UID = output.UID
+		arg.GID = output.GID
 		arg.NsInum = output.NsInum
 		arg.Label = a.label
 		return arg
@@ -601,7 +601,7 @@ func parseString(r io.Reader) (string, error) {
 }
 
 func ReadArgBytes(r *bytes.Reader, index int, hasMaxData bool) (*api.MsgGenericKprobeArgBytes, error) {
-	var bytes, bytes_rd, hasDataEvents int32
+	var bytes, bytesRd, hasDataEvents int32
 	var arg api.MsgGenericKprobeArgBytes
 
 	if hasMaxData {
@@ -642,14 +642,14 @@ func ReadArgBytes(r *bytes.Reader, index int, hasMaxData bool) (*api.MsgGenericK
 		return &arg, nil
 	}
 	arg.OrigSize = uint64(bytes)
-	if err := binary.Read(r, binary.LittleEndian, &bytes_rd); err != nil {
+	if err := binary.Read(r, binary.LittleEndian, &bytesRd); err != nil {
 		return nil, fmt.Errorf("failed to read size for buffer argument: %w", err)
 	}
 
-	if bytes_rd > 0 {
-		arg.Value = make([]byte, bytes_rd)
+	if bytesRd > 0 {
+		arg.Value = make([]byte, bytesRd)
 		if err := binary.Read(r, binary.LittleEndian, &arg.Value); err != nil {
-			return nil, fmt.Errorf("failed to read buffer (size: %d): %w", bytes_rd, err)
+			return nil, fmt.Errorf("failed to read buffer (size: %d): %w", bytesRd, err)
 		}
 	}
 

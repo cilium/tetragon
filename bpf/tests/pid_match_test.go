@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const programNamePidMatch = "test_pid_match"
+const programNamePIDMatch = "test_pid_match"
 
 type testContext struct {
 	coll     *ebpf.Collection
@@ -42,8 +42,8 @@ func setupTest(t *testing.T) (*testContext, error) {
 	ctx.coll = coll
 
 	var ok bool
-	ctx.prog, ok = coll.Programs[programNamePidMatch]
-	require.True(t, ok, "program %s not found", programNamePidMatch)
+	ctx.prog, ok = coll.Programs[programNamePIDMatch]
+	require.True(t, ok, "program %s not found", programNamePIDMatch)
 
 	ctx.execvMap, ok = coll.Maps["execve_map"]
 	require.True(t, ok, "execve_map not found")
@@ -58,9 +58,9 @@ func (ctx *testContext) cleanup() {
 }
 
 // runProg runs the test program with the given PID and returns the result.
-func (ctx *testContext) runProg(selfPid uint32) (uint32, error) {
+func (ctx *testContext) runProg(selfPID uint32) (uint32, error) {
 	err := ctx.execvMap.Update(uint32(0), &execvemap.ExecveValue{
-		Process: processapi.MsgExecveKey{Pid: selfPid},
+		Process: processapi.MsgExecveKey{PID: selfPID},
 	}, 0)
 	if err != nil {
 		return 0, fmt.Errorf("failed to update execve map: %w", err)
@@ -75,7 +75,7 @@ func (ctx *testContext) runProg(selfPid uint32) (uint32, error) {
 // initKernelStateData initializes the kernel state data with the given PIDs.
 func (ctx *testContext) initKernelStateData(pids []uint32) error {
 	k := &selectors.KernelSelectorState{}
-	err := selectors.ParseMatchPid(k, &v1alpha1.PIDSelector{
+	err := selectors.ParseMatchPID(k, &v1alpha1.PIDSelector{
 		Operator:       "In",
 		Values:         pids,
 		IsNamespacePID: false,
@@ -101,42 +101,42 @@ func Test_PidMatch(t *testing.T) {
 	tests := []struct {
 		name     string
 		pids     []uint32
-		testPid  uint32
+		testPID  uint32
 		expected uint32
 	}{
 		// Test case where the test PID is the only PID to match.
 		{
 			name:     "Match_1_PID",
 			pids:     []uint32{1},
-			testPid:  1,
+			testPID:  1,
 			expected: 1,
 		},
 		// Test case where the test PID is in the list of 2 PIDs to match.
 		{
 			name:     "Match_2_PID",
 			pids:     []uint32{1, 2},
-			testPid:  2,
+			testPID:  2,
 			expected: 1,
 		},
 		// Test case where the test PID is not in the list of 2 PIDs to match.
 		{
 			name:     "Match_2_PID_NOT_IN_LIST",
 			pids:     []uint32{1, 2},
-			testPid:  3,
+			testPID:  3,
 			expected: 0,
 		},
 		// Test case where the test PID is in the list of 4 PIDs to match.
 		{
 			name:     "Match_4_PID",
 			pids:     []uint32{1, 2, 3, 4},
-			testPid:  4,
+			testPID:  4,
 			expected: 1,
 		},
 		// Test case where the test PID is not in the list of 4 PIDs to match.
 		{
 			name:     "Match_4_PID_NOT_IN_LIST",
 			pids:     []uint32{1, 2, 3, 4},
-			testPid:  5,
+			testPID:  5,
 			expected: 0,
 		},
 	}
@@ -144,7 +144,7 @@ func Test_PidMatch(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			require.NoError(t, ctx.initKernelStateData(tt.pids))
-			result, err := ctx.runProg(tt.testPid)
+			result, err := ctx.runProg(tt.testPID)
 			require.NoError(t, err)
 			assert.Equal(t, tt.expected, result)
 		})

@@ -65,7 +65,7 @@ func cgroupGetIDCommand() *cobra.Command {
 		Short: "retrieve cgroup id from file",
 		Args:  cobra.ExactArgs(1),
 		Run: func(_ *cobra.Command, args []string) {
-			cgID, err := cgroups.GetCgroupIdFromPath(args[0])
+			cgID, err := cgroups.GetCgroupIDFromPath(args[0])
 			if err != nil {
 				logger.Fatal(logger.GetLogger(), "Failed to parse cgroup", logfields.Error, err)
 			}
@@ -111,7 +111,7 @@ func addCommand() *cobra.Command {
 			var cgID uint64
 			switch argType {
 			case "file":
-				cgID, err = cgroups.GetCgroupIdFromPath(args[1])
+				cgID, err = cgroups.GetCgroupIDFromPath(args[1])
 			case "id":
 				cgID, err = strconv.ParseUint(args[1], 10, 32)
 			default:
@@ -174,7 +174,7 @@ func listPoliciesForContainer() *cobra.Command {
 				logger.GetLogger().Info("cgroup", "path", fullCgroupPath)
 			}
 
-			cgID, err := cgroups.GetCgroupIdFromPath(fullCgroupPath)
+			cgID, err := cgroups.GetCgroupIDFromPath(fullCgroupPath)
 			if err != nil {
 				logger.Fatal(logger.GetLogger(), "Failed to parse cgroup", logfields.Error, err)
 			}

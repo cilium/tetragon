@@ -200,7 +200,7 @@ func (k *Observer) StartReady(ctx context.Context, ready func()) error {
 
 // InitSensorManager starts the sensor controller
 func (k *Observer) InitSensorManager() error {
-	mgr, err := sensors.StartSensorManager(option.Config.BpfDir)
+	mgr, err := sensors.StartSensorManager(option.Config.BPFDir)
 	if err != nil {
 		return err
 	}
@@ -265,7 +265,7 @@ func RemoveSensors(ctx context.Context) {
 }
 
 // Log Active pinned BPF resources
-func (k *Observer) LogPinnedBpf(observerDir string) {
+func (k *Observer) LogPinnedBPF(observerDir string) {
 	finfo, err := os.Stat(observerDir)
 	if err != nil {
 		k.log.Info("BPF: resources are empty", "bpf-dir", observerDir)

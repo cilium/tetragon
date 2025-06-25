@@ -37,7 +37,7 @@ func msgToExecveUnix(m *processapi.MsgCreateProcessEvent) *exec.MsgExecveEventUn
 		Common: m.Common,
 		Kube:   processapi.MsgK8s{},
 		Parent: processapi.MsgExecveKey{
-			Pid:   m.CreatingProcessID,
+			PID:   m.CreatingProcessID,
 			Ktime: 0,
 		},
 	}
@@ -83,12 +83,12 @@ func msgToExitUnix(m *processapi.MsgExitProcessEvent) *exec.MsgExitEventUnix {
 	msgExitEvent := processapi.MsgExitEvent{
 		Common: m.Common,
 		ProcessKey: processapi.MsgExecveKey{
-			Pid:   m.ProcessID,
+			PID:   m.ProcessID,
 			Ktime: m.Common.Ktime,
 		},
 		Info: processapi.MsgExitInfo{
 			Code: m.ProcessExitCode,
-			Tid:  m.ProcessID,
+			TID:  m.ProcessID,
 		},
 	}
 	return &exec.MsgExitEventUnix{MsgExitEvent: msgExitEvent}

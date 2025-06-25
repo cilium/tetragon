@@ -52,10 +52,10 @@ func (s *DummyPF) Close() error {
 	return nil
 }
 
-func (s *DummyPF) GetNsId(_ policyfilter.StateID) (*policyfilter.NSID, bool) {
+func (s *DummyPF) GetNsID(_ policyfilter.StateID) (*policyfilter.NSID, bool) {
 	return nil, false
 }
 
-func (s *DummyPF) GetIdNs(_ policyfilter.NSID) (policyfilter.StateID, bool) {
+func (s *DummyPF) GetIDNs(_ policyfilter.NSID) (policyfilter.StateID, bool) {
 	return policyfilter.StateID(0), false
 }

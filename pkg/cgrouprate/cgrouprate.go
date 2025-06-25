@@ -225,7 +225,7 @@ func (r *CgroupRate) cleanupCgroups(curr time.Duration) {
 
 func (r *CgroupRate) processCgroup(id uint64, cgroup string, last uint64) bool {
 	key := processapi.CgroupRateKey{
-		Id: id,
+		ID: id,
 	}
 	values := make([]processapi.CgroupRateValue, bpf.GetNumPossibleCPUs())
 

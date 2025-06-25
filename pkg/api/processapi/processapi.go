@@ -78,7 +78,7 @@ type MsgExec struct {
 }
 
 type MsgExecveKey struct {
-	Pid   uint32 `align:"pid"`
+	PID   uint32 `align:"pid"`
 	Pad   uint32 `align:"pad"`
 	Ktime uint64 `align:"ktime"`
 }
@@ -89,10 +89,10 @@ type MsgCommon struct {
 	// Flags is used to:
 	//  - distinguish between an entry and a return kprobe event
 	//  - indicate if a stack trace id was passed in the event
-	Flags  uint8
-	Pad_v2 [2]uint8
-	Size   uint32
-	Ktime  uint64
+	Flags uint8
+	PadV2 [2]uint8
+	Size  uint32
+	Ktime uint64
 }
 
 type MsgK8s struct {
@@ -108,14 +108,14 @@ type MsgK8sUnix struct {
 }
 
 type MsgGenericCred struct {
-	Uid        uint32
-	Gid        uint32
-	Suid       uint32
-	Sgid       uint32
-	Euid       uint32
-	Egid       uint32
-	FSuid      uint32
-	FSgid      uint32
+	UID        uint32
+	GID        uint32
+	SUID       uint32
+	SGID       uint32
+	EUID       uint32
+	EGID       uint32
+	FSUID      uint32
+	FSGID      uint32
 	SecureBits uint32
 	Pad        uint32
 	Cap        MsgCapabilities
@@ -159,7 +159,7 @@ type Binary struct {
 	Reversed   uint32
 	Path       [BINARY_PATH_MAX_LEN]byte
 	End        [STRING_POSTFIX_MAX_LENGTH]byte
-	End_r      [STRING_POSTFIX_MAX_LENGTH]byte
+	EndR       [STRING_POSTFIX_MAX_LENGTH]byte
 	Args       [MAX_ARG_LENGTH]byte
 	MBSet      uint64
 }
@@ -168,8 +168,8 @@ type MsgNamespaces struct {
 	UtsInum       uint32
 	IpcInum       uint32
 	MntInum       uint32
-	PidInum       uint32
-	PidChildInum  uint32
+	PIDInum       uint32
+	PIDChildInum  uint32
 	NetInum       uint32
 	TimeInum      uint32
 	TimeChildInum uint32
@@ -179,8 +179,8 @@ type MsgNamespaces struct {
 
 type MsgUserNamespace struct {
 	Level  int32
-	Uid    uint32
-	Gid    uint32
+	UID    uint32
+	GID    uint32
 	NsInum uint32
 }
 
@@ -208,7 +208,7 @@ type MsgProcess struct {
 
 type MsgExitInfo struct {
 	Code uint32 `align:"code"`
-	Tid  uint32 `align:"tid"`
+	TID  uint32 `align:"tid"`
 }
 
 type MsgExitEvent struct {
@@ -221,7 +221,7 @@ type MsgExitEvent struct {
 // BPF side on various cgroup events.
 type MsgCgroupData struct {
 	State       int32                    `align:"state"`        // State of cgroup
-	HierarchyId uint32                   `align:"hierarchy_id"` // Unique id for the hierarchy
+	HierarchyID uint32                   `align:"hierarchy_id"` // Unique id for the hierarchy
 	Level       uint32                   `align:"level"`        // The depth this cgroup is at
 	Pad         uint32                   `align:"pad"`
 	Name        [CGROUP_NAME_LENGTH]byte `align:"name"` // Cgroup kernfs_node name
@@ -253,7 +253,7 @@ type KernelStats struct {
 }
 
 type CgroupRateKey struct {
-	Id uint64
+	ID uint64
 }
 
 type CgroupRateValue struct {

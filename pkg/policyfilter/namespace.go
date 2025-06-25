@@ -28,8 +28,8 @@ type NSID struct {
 
 // NamespaceMap is a simple wrapper for ebpf.Map so that we can write methods for it
 type NamespaceMap struct {
-	cgroupIdMap *ebpf.Map
-	nsIdMap     *lru.Cache[StateID, NSID]
+	cgroupIDMap *ebpf.Map
+	nsIDMap     *lru.Cache[StateID, NSID]
 	nsNameMap   *lru.Cache[NSID, StateID]
 	id          StateID
 }
@@ -77,8 +77,8 @@ func newNamespaceMap() (*NamespaceMap, error) {
 	}
 
 	return &NamespaceMap{
-		cgroupIdMap: ret,
-		nsIdMap:     idCache,
+		cgroupIDMap: ret,
+		nsIDMap:     idCache,
 		nsNameMap:   nameCache,
 		id:          1,
 	}, err

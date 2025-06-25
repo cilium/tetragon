@@ -78,7 +78,7 @@ func generateEventToChecker(g *protogen.GeneratedFile, f []*protogen.File) error
 	doCases := func() string {
 		var ret string
 		for _, msg := range events {
-			msgIdent := common.TetragonApiIdent(g, msg.GoIdent.GoName)
+			msgIdent := common.TetragonAPIIdent(g, msg.GoIdent.GoName)
 			ret += `case *` + msgIdent + `:
             return New` + msg.checkerName(g) + `("").From` + msg.GoIdent.GoName + `(ev), nil
             `
@@ -95,7 +95,7 @@ func generateEventToChecker(g *protogen.GeneratedFile, f []*protogen.File) error
         }
     }`)
 
-	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
+	tetragonGER := common.TetragonAPIIdent(g, "GetEventsResponse")
 	g.P(`// ResponseToChecker converts a gRPC response into an EventChecker
     func CheckerFromResponse(response *` + tetragonGER + `) (EventChecker, error) {
         event, err := EventFromResponse(response)
@@ -128,8 +128,8 @@ func generateLogPrefix(g *protogen.GeneratedFile) error {
 }
 
 func generateInterfaces(g *protogen.GeneratedFile) error {
-	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
-	tetragonEvent := common.TetragonApiIdent(g, "Event")
+	tetragonGER := common.TetragonAPIIdent(g, "GetEventsResponse")
+	tetragonEvent := common.TetragonAPIIdent(g, "Event")
 
 	g.P(`// Event is an empty interface used for events like ProcessExec, etc.
     type Event ` + tetragonEvent)
@@ -151,13 +151,13 @@ func generateEventFromResponse(g *protogen.GeneratedFile, f []*protogen.File) er
 		return err
 	}
 
-	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
+	tetragonGER := common.TetragonAPIIdent(g, "GetEventsResponse")
 
 	g.P(`// EventFromResponse coerces an event from a Tetragon gRPC response
     func EventFromResponse(response *` + tetragonGER + `) (Event, error) {
         switch ev := response.Event.(type) {`)
 	for _, event := range events {
-		g.P(`case *` + common.TetragonApiIdent(g, "GetEventsResponse_"+event.GoIdent.GoName) + `:
+		g.P(`case *` + common.TetragonAPIIdent(g, "GetEventsResponse_"+event.GoIdent.GoName) + `:
             return ev.` + event.GoIdent.GoName + `, nil`)
 	}
 	g.P(`
