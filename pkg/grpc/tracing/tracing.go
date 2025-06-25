@@ -896,7 +896,7 @@ type MsgImaHash struct {
 	Hash [64]uint8 `align:"hash"`
 }
 
-type MsgGenericLsmUnix struct {
+type MsgGenericLSMUnix struct {
 	Msg        *tracingapi.MsgGenericKprobe
 	Hook       string
 	Args       []tracingapi.MsgGenericKprobeArg
@@ -906,20 +906,20 @@ type MsgGenericLsmUnix struct {
 	ImaHash    MsgImaHash
 }
 
-func (msg *MsgGenericLsmUnix) Notify() bool {
+func (msg *MsgGenericLSMUnix) Notify() bool {
 	return true
 }
 
-func (msg *MsgGenericLsmUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
+func (msg *MsgGenericLSMUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
 	return eventcache.HandleGenericInternal(ev, msg.Msg.ProcessKey.PID, &msg.Msg.TID, timestamp)
 }
 
-func (msg *MsgGenericLsmUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
+func (msg *MsgGenericLSMUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
 	return eventcache.HandleGenericEvent(internal, ev, &msg.Msg.TID)
 }
 
-func (msg *MsgGenericLsmUnix) HandleMessage() *tetragon.GetEventsResponse {
-	k := GetProcessLsm(msg)
+func (msg *MsgGenericLSMUnix) HandleMessage() *tetragon.GetEventsResponse {
+	k := GetProcessLSM(msg)
 	if k == nil {
 		return nil
 	}
@@ -929,19 +929,19 @@ func (msg *MsgGenericLsmUnix) HandleMessage() *tetragon.GetEventsResponse {
 	}
 }
 
-func (msg *MsgGenericLsmUnix) Cast(o interface{}) notify.Message {
-	t := o.(MsgGenericLsmUnix)
+func (msg *MsgGenericLSMUnix) Cast(o interface{}) notify.Message {
+	t := o.(MsgGenericLSMUnix)
 	return &t
 }
 
-func (msg *MsgGenericLsmUnix) PolicyInfo() tracingpolicy.PolicyInfo {
+func (msg *MsgGenericLSMUnix) PolicyInfo() tracingpolicy.PolicyInfo {
 	return tracingpolicy.PolicyInfo{
 		Name: msg.PolicyName,
 		Hook: "lsm:" + msg.Hook,
 	}
 }
 
-func GetProcessLsm(event *MsgGenericLsmUnix) *tetragon.ProcessLsm {
+func GetProcessLSM(event *MsgGenericLSMUnix) *tetragon.ProcessLsm {
 	var ancestors []*process.ProcessInternal
 	var tetragonAncestors []*tetragon.Process
 	var tetragonArgs []*tetragon.KprobeArgument
@@ -949,7 +949,7 @@ func GetProcessLsm(event *MsgGenericLsmUnix) *tetragon.ProcessLsm {
 	proc, parent, tetragonProcess, tetragonParent := getProcessParent(&event.Msg.ProcessKey, event.Msg.Common.Flags)
 
 	// Set the ancestors only if --enable-ancestors flag includes 'lsm'.
-	if option.Config.EnableProcessLsmAncestors && proc.NeededAncestors() {
+	if option.Config.EnableProcessLSMAncestors && proc.NeededAncestors() {
 		ancestors, _ = process.GetAncestorProcessesInternal(tetragonProcess.ParentExecId)
 		for _, ancestor := range ancestors {
 			tetragonAncestors = append(tetragonAncestors, ancestor.UnsafeGetProcess())
@@ -999,7 +999,7 @@ func GetProcessLsm(event *MsgGenericLsmUnix) *tetragon.ProcessLsm {
 	if ec := eventcache.Get(); ec != nil && !isUnknown(tetragonProcess) &&
 		(ec.Needed(tetragonProcess) ||
 			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent)) ||
-			(option.Config.EnableProcessLsmAncestors && ec.NeededAncestors(parent, ancestors))) {
+			(option.Config.EnableProcessLSMAncestors && ec.NeededAncestors(parent, ancestors))) {
 		ec.Add(nil, tetragonEvent, event.Msg.Common.Ktime, event.Msg.ProcessKey.Ktime, event)
 		return nil
 	}

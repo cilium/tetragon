@@ -35,25 +35,25 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
 
-type observerLsmSensor struct {
+type observerLSMSensor struct {
 	name string
 }
 
 func init() {
-	lsm := &observerLsmSensor{
+	lsm := &observerLSMSensor{
 		name: "lsm sensor",
 	}
 	sensors.RegisterProbeType("generic_lsm", lsm)
-	observer.RegisterEventHandlerAtInit(ops.MSG_OP_GENERIC_LSM, handleGenericLsm)
+	observer.RegisterEventHandlerAtInit(ops.MSG_OP_GENERIC_LSM, handleGenericLSM)
 }
 
 var (
-	// genericLsmTable is a global table that maintains information for
+	// genericLSMTable is a global table that maintains information for
 	// generic LSM hooks
-	genericLsmTable idtable.Table
+	genericLSMTable idtable.Table
 )
 
-type genericLsm struct {
+type genericLSM struct {
 	tableID   idtable.EntryID
 	config    *api.EventConfig
 	hook      string
@@ -70,25 +70,25 @@ type genericLsm struct {
 	imaProgLoad bool
 }
 
-func (g *genericLsm) SetID(id idtable.EntryID) {
+func (g *genericLSM) SetID(id idtable.EntryID) {
 	g.tableID = id
 }
 
-func genericLsmTableGet(id idtable.EntryID) (*genericLsm, error) {
-	entry, err := genericLsmTable.GetEntry(id)
+func genericLSMTableGet(id idtable.EntryID) (*genericLSM, error) {
+	entry, err := genericLSMTable.GetEntry(id)
 	if err != nil {
-		return nil, fmt.Errorf("getting entry from genericLsmTable failed with: %w", err)
+		return nil, fmt.Errorf("getting entry from genericLSMTable failed with: %w", err)
 	}
-	val, ok := entry.(*genericLsm)
+	val, ok := entry.(*genericLSM)
 	if !ok {
-		return nil, fmt.Errorf("getting entry from genericLsmTable failed with: got invalid type: %T (%v)", entry, entry)
+		return nil, fmt.Errorf("getting entry from genericLSMTable failed with: got invalid type: %T (%v)", entry, entry)
 	}
 	return val, nil
 }
 
-func (k *observerLsmSensor) LoadProbe(args sensors.LoadProbeArgs) error {
+func (k *observerLSMSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 	if id, ok := args.Load.LoaderData.(idtable.EntryID); ok {
-		gl, err := genericLsmTableGet(id)
+		gl, err := genericLSMTableGet(id)
 		if err != nil {
 			return err
 		}
@@ -115,7 +115,7 @@ func (k *observerLsmSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 	return nil
 }
 
-func handleGenericLsm(r *bytes.Reader) ([]observer.Event, error) {
+func handleGenericLSM(r *bytes.Reader) ([]observer.Event, error) {
 	m := api.MsgGenericKprobe{}
 	err := binary.Read(r, binary.LittleEndian, &m)
 	if err != nil {
@@ -123,13 +123,13 @@ func handleGenericLsm(r *bytes.Reader) ([]observer.Event, error) {
 		return nil, errors.New("failed to read process call msg")
 	}
 
-	gl, err := genericLsmTableGet(idtable.EntryID{ID: int(m.FuncID)})
+	gl, err := genericLSMTableGet(idtable.EntryID{ID: int(m.FuncID)})
 	if err != nil {
 		logger.GetLogger().Warn(fmt.Sprintf("Failed to match id:%d", m.FuncID), logfields.Error, err)
 		return nil, errors.New("failed to match id")
 	}
 
-	unix := &tracing.MsgGenericLsmUnix{}
+	unix := &tracing.MsgGenericLSMUnix{}
 	unix.Msg = &m
 	unix.Hook = gl.hook
 	unix.PolicyName = gl.policyName
@@ -177,7 +177,7 @@ func handleGenericLsm(r *bytes.Reader) ([]observer.Event, error) {
 	return []observer.Event{unix}, err
 }
 
-func isValidLsmSelectors(selectors []v1alpha1.KProbeSelector) error {
+func isValidLSMSelectors(selectors []v1alpha1.KProbeSelector) error {
 	for _, s := range selectors {
 		if len(s.MatchReturnArgs) > 0 {
 			return errors.New("MatchReturnArgs selector is not supported")
@@ -203,14 +203,14 @@ func isValidLsmSelectors(selectors []v1alpha1.KProbeSelector) error {
 	return nil
 }
 
-type addLsmIn struct {
+type addLSMIn struct {
 	sensorPath string
 	policyName string
 	policyID   policyfilter.PolicyID
 	selMaps    *selectors.KernelSelectorMaps
 }
 
-func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err error) {
+func addLSM(f *v1alpha1.LsmHookSpec, in *addLSMIn) (id idtable.EntryID, err error) {
 	var argSigPrinters []argPrinter
 	var argsBTFSet [api.MaxArgsSupported]bool
 	var allBTFArgs [api.EventConfigMaxArgs][api.MaxBTFArgDepth]api.ConfigBTFArg
@@ -219,7 +219,7 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 		return idtable.UninitializedEntryID, err
 	}
 
-	if err := isValidLsmSelectors(f.Selectors); err != nil {
+	if err := isValidLSMSelectors(f.Selectors); err != nil {
 		return errFn(err)
 	}
 
@@ -303,7 +303,7 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 
 	// create a new entry on the table, and pass its id to BPF-side
 	// so that we can do the matching at event-generation time
-	lsmEntry := genericLsm{
+	lsmEntry := genericLSM{
 		config:      eventConfig,
 		argPrinters: argSigPrinters,
 		hook:        f.Hook,
@@ -329,7 +329,7 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 		return errFn(err)
 	}
 
-	genericLsmTable.AddEntry(&lsmEntry)
+	genericLSMTable.AddEntry(&lsmEntry)
 	eventConfig.FuncID = uint32(lsmEntry.tableID.ID)
 
 	logger.GetLogger().Info("Added lsm Hook", "hook", lsmEntry.hook)
@@ -337,7 +337,7 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 	return lsmEntry.tableID, nil
 }
 
-func createGenericLsmSensor(
+func createGenericLSMSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
 	polInfo *policyInfo,
@@ -355,7 +355,7 @@ func createGenericLsmSensor(
 
 	lsmHooks := spec.LsmHooks
 
-	in := addLsmIn{
+	in := addLSMIn{
 		sensorPath: name,
 		policyID:   polInfo.policyID,
 		policyName: polInfo.name,
@@ -363,7 +363,7 @@ func createGenericLsmSensor(
 	}
 
 	for _, hook := range lsmHooks {
-		id, err := addLsm(&hook, &in)
+		id, err := addLSM(&hook, &in)
 		if err != nil {
 			return nil, err
 		}
@@ -371,11 +371,11 @@ func createGenericLsmSensor(
 	}
 
 	for _, id := range ids {
-		gl, err := genericLsmTableGet(id)
+		gl, err := genericLSMTableGet(id)
 		if err != nil {
 			return nil, err
 		}
-		progs, maps = createLsmSensorFromEntry(polInfo, gl, progs, maps)
+		progs, maps = createLSMSensorFromEntry(polInfo, gl, progs, maps)
 	}
 
 	if err != nil {
@@ -391,7 +391,7 @@ func createGenericLsmSensor(
 		DestroyHook: func() error {
 			var errs error
 			for _, id := range ids {
-				_, err := genericLsmTable.RemoveEntry(id)
+				_, err := genericLSMTable.RemoveEntry(id)
 				if err != nil {
 					errs = errors.Join(errs, err)
 				}
@@ -403,7 +403,7 @@ func createGenericLsmSensor(
 	}, nil
 }
 
-func imaProgName(lsmEntry *genericLsm) (string, string) {
+func imaProgName(lsmEntry *genericLSM) (string, string) {
 	pType := ""
 	pName := ""
 
@@ -441,7 +441,7 @@ func imaProgName(lsmEntry *genericLsm) (string, string) {
 	return pName, pType
 }
 
-func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
+func createLSMSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLSM,
 	progs []*program.Program, maps []*program.Map) ([]*program.Program, []*program.Map) {
 
 	loadProgCoreName := "bpf_generic_lsm_core.o"
@@ -515,7 +515,7 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 	filterMap := program.MapBuilderProgram("filter_map", load)
 	maps = append(maps, filterMap)
 
-	maps = append(maps, filterMapsForLsm(load, lsmEntry)...)
+	maps = append(maps, filterMapsForLSM(load, lsmEntry)...)
 
 	callHeap := program.MapBuilderProgram("process_call_heap", load)
 	maps = append(maps, callHeap)
@@ -545,7 +545,7 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 	return progs, maps
 }
 
-func filterMapsForLsm(load *program.Program, lsmEntry *genericLsm) []*program.Map {
+func filterMapsForLSM(load *program.Program, lsmEntry *genericLSM) []*program.Map {
 	var maps []*program.Map
 
 	argFilterMaps := program.MapBuilderProgram("argfilter_maps", load)

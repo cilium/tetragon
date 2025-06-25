@@ -55,7 +55,7 @@ const (
 	KeyEnableProcessKprobeAncestors     = "enable-process-kprobe-ancestors"
 	KeyEnableProcessTracepointAncestors = "enable-process-tracepoint-ancestors"
 	KeyEnableProcessUprobeAncestors     = "enable-process-uprobe-ancestors"
-	KeyEnableProcessLsmAncestors        = "enable-process-lsm-ancestors"
+	KeyEnableProcessLSMAncestors        = "enable-process-lsm-ancestors"
 
 	KeyEnableAncestors   = "enable-ancestors"
 	KeyEnableProcessCred = "enable-process-cred"
@@ -194,7 +194,7 @@ func ReadAndSetFlags() error {
 		Config.EnableProcessKprobeAncestors = slices.Contains(enableAncestors, "kprobe")
 		Config.EnableProcessTracepointAncestors = slices.Contains(enableAncestors, "tracepoint")
 		Config.EnableProcessUprobeAncestors = slices.Contains(enableAncestors, "uprobe")
-		Config.EnableProcessLsmAncestors = slices.Contains(enableAncestors, "lsm")
+		Config.EnableProcessLSMAncestors = slices.Contains(enableAncestors, "lsm")
 	} else if len(enableAncestors) == 0 && viper.GetBool(KeyEnableProcessAncestors) {
 		// NOTE: enable-process-ancestors flags are marked as deprecated and
 		// planned to be removed in version 1.6
@@ -202,7 +202,7 @@ func ReadAndSetFlags() error {
 		Config.EnableProcessKprobeAncestors = viper.GetBool(KeyEnableProcessKprobeAncestors)
 		Config.EnableProcessTracepointAncestors = viper.GetBool(KeyEnableProcessTracepointAncestors)
 		Config.EnableProcessUprobeAncestors = viper.GetBool(KeyEnableProcessUprobeAncestors)
-		Config.EnableProcessLsmAncestors = viper.GetBool(KeyEnableProcessLsmAncestors)
+		Config.EnableProcessLSMAncestors = viper.GetBool(KeyEnableProcessLSMAncestors)
 	}
 
 	Config.GopsAddr = viper.GetString(KeyGopsAddr)
@@ -401,12 +401,12 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Bool(KeyEnableProcessKprobeAncestors, false, fmt.Sprintf("Deprecated, please, use --enable-ancestors=base,kprobe. Include ancestors in process_kprobe events. Only used if '%s' is set to 'true'", KeyEnableProcessAncestors))
 	flags.Bool(KeyEnableProcessTracepointAncestors, false, fmt.Sprintf("Deprecated, please, use --enable-ancestors=base,tracepoint. Include ancestors in process_tracepoint events. Only used if '%s' is set to 'true'", KeyEnableProcessAncestors))
 	flags.Bool(KeyEnableProcessUprobeAncestors, false, fmt.Sprintf("Deprecated, please, use --enable-ancestors=base,uprobe. Include ancestors in process_uprobe events. Only used if '%s' is set to 'true'", KeyEnableProcessAncestors))
-	flags.Bool(KeyEnableProcessLsmAncestors, false, fmt.Sprintf("Deprecated, please, use --enable-ancestors=base,lsm. Include ancestors in process_lsm events. Only used if '%s' is set to 'true'", KeyEnableProcessAncestors))
+	flags.Bool(KeyEnableProcessLSMAncestors, false, fmt.Sprintf("Deprecated, please, use --enable-ancestors=base,lsm. Include ancestors in process_lsm events. Only used if '%s' is set to 'true'", KeyEnableProcessAncestors))
 	flags.MarkDeprecated(KeyEnableProcessAncestors, "please use --enable-ancestors=base")
 	flags.MarkDeprecated(KeyEnableProcessKprobeAncestors, "please use --enable-ancestors=base,kprobe")
 	flags.MarkDeprecated(KeyEnableProcessTracepointAncestors, "please use --enable-ancestors=base,tracepoint")
 	flags.MarkDeprecated(KeyEnableProcessUprobeAncestors, "please use --enable-ancestors=base,uprobe")
-	flags.MarkDeprecated(KeyEnableProcessLsmAncestors, "please use --enable-ancestors=base,lsm")
+	flags.MarkDeprecated(KeyEnableProcessLSMAncestors, "please use --enable-ancestors=base,lsm")
 
 	// Tracing policy file
 	flags.String(KeyTracingPolicy, "", "Tracing policy file to load at startup")

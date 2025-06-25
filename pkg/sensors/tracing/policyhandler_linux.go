@@ -137,7 +137,7 @@ func (h policyHandler) PolicyHandler(
 		return createGenericTracepointSensor(spec, "generic_tracepoint", polInfo)
 	}
 	if len(spec.LsmHooks) > 0 {
-		return createGenericLsmSensor(spec, "generic_lsm", polInfo)
+		return createGenericLSMSensor(spec, "generic_lsm", polInfo)
 	}
 	if len(spec.UProbes) > 0 {
 		return createGenericUprobeSensor(spec, "generic_uprobe", polInfo)
