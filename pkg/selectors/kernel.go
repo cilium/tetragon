@@ -604,7 +604,7 @@ func parseAddr(v string) ([]byte, uint32, error) {
 func capsStrToUint64(values []string) (uint64, error) {
 	caps := uint64(0)
 	for _, v := range values {
-		valstr := strings.ToUpper(v)
+		valstr := strings.ToUpper(strings.TrimSpace(v))
 		c, ok := tetragon.CapabilitiesType_value[valstr]
 		if !ok {
 			return 0, fmt.Errorf("value %s unknown", valstr)
@@ -646,11 +646,11 @@ func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) er
 		case gt.GenericSockType, gt.GenericSkbType, gt.GenericSockaddrType, gt.GenericSocketType, gt.GenericNetDev:
 			return fmt.Errorf("MatchArgs type sock, socket, skb, sockaddr and net_device do not support operator %s", selectorOpStringTable[op])
 		case gt.GenericKernelCap, gt.GenericCapInheritable, gt.GenericCapPermitted, gt.GenericCapEffective:
-			i, err := strconv.ParseUint(v, base, 64)
+			mask, err := parseCapabilitiesMask(v)
 			if err != nil {
-				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
+				return fmt.Errorf("MatchArgs capabilities mask value %s invalid: %w", v, err)
 			}
-			WriteSelectorUint64(&k.data, uint64(i))
+			WriteSelectorUint64(&k.data, uint64(mask))
 		default:
 			return fmt.Errorf("MatchArgs type %s unsupported", gt.GenericTypeString(int(ty)))
 		}
@@ -1429,4 +1429,19 @@ func HasFilter(selectors []v1alpha1.KProbeSelector, index uint32) bool {
 		}
 	}
 	return false
+}
+
+// parseCapabilitiesMask create a capabilities mask
+func parseCapabilitiesMask(s string) (uint64, error) {
+	base := getBase(s)
+	mask, err := strconv.ParseUint(s, base, 64)
+	if err == nil {
+		return mask, nil
+	}
+	caps := strings.Split(s, ",")
+	mask, err = capsStrToUint64(caps)
+	if err != nil {
+		return uint64(0), fmt.Errorf("parseCapabilitiesMask: %w", err)
+	}
+	return mask, nil
 }
