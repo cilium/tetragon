@@ -5,6 +5,7 @@ package generictypes
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/cilium/ebpf/btf"
 )
@@ -235,6 +236,14 @@ func GenericTypeFromString(arg string) int {
 // Returns empty string on non valid types.
 func GenericUserTypeToString(ty int) string {
 	return GenericUserTypeToStringTable[ty]
+}
+
+func GenericTypeString(ty int) string {
+	arg, ok := GenericTypeToStringTable[ty]
+	if !ok {
+		return fmt.Sprintf("unknown type [%d]", ty)
+	}
+	return arg
 }
 
 func GenericTypeToString(ty int) (string, error) {
