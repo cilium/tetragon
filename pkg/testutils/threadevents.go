@@ -12,9 +12,9 @@ import (
 )
 
 type ThreadTesterInfo struct {
-	ParentPID, ParentTid                     uint32
-	Child1PID, Child1Tid, ParentChild1PID    uint32
-	Thread1PID, Thread1Tid, ParentThread1PID uint32
+	ParentPID, ParentTID                     uint32
+	Child1PID, Child1TID, ParentChild1PID    uint32
+	Thread1PID, Thread1TID, ParentThread1PID uint32
 }
 
 var (
@@ -33,7 +33,7 @@ func (tti *ThreadTesterInfo) ParseLine(l string) error {
 		}
 		v, err = strconv.ParseUint(match[2], 10, 32)
 		if err == nil {
-			tti.ParentTid = uint32(v)
+			tti.ParentTID = uint32(v)
 		}
 	} else if match := Child1Re.FindStringSubmatch(l); len(match) > 0 {
 		v, err = strconv.ParseUint(match[1], 10, 32)
@@ -42,7 +42,7 @@ func (tti *ThreadTesterInfo) ParseLine(l string) error {
 		}
 		v, err = strconv.ParseUint(match[2], 10, 32)
 		if err == nil {
-			tti.Child1Tid = uint32(v)
+			tti.Child1TID = uint32(v)
 		}
 		v, err = strconv.ParseUint(match[3], 10, 32)
 		if err == nil {
@@ -55,7 +55,7 @@ func (tti *ThreadTesterInfo) ParseLine(l string) error {
 		}
 		v, err = strconv.ParseUint(match[2], 10, 32)
 		if err == nil {
-			tti.Thread1Tid = uint32(v)
+			tti.Thread1TID = uint32(v)
 		}
 		v, err = strconv.ParseUint(match[3], 10, 32)
 		if err == nil {
@@ -67,15 +67,15 @@ func (tti *ThreadTesterInfo) ParseLine(l string) error {
 
 func (tti *ThreadTesterInfo) AssertPidsTids(t *testing.T) {
 	require.NotZero(t, tti.ParentPID)
-	require.Equal(t, tti.ParentPID, tti.ParentTid)
+	require.Equal(t, tti.ParentPID, tti.ParentTID)
 
 	require.NotZero(t, tti.Child1PID)
-	require.NotZero(t, tti.Child1Tid)
-	require.Equal(t, tti.Child1PID, tti.Child1Tid)
+	require.NotZero(t, tti.Child1TID)
+	require.Equal(t, tti.Child1PID, tti.Child1TID)
 
 	require.NotZero(t, tti.Thread1PID)
-	require.NotZero(t, tti.Thread1Tid)
-	require.NotEqual(t, tti.Thread1PID, tti.Thread1Tid)
+	require.NotZero(t, tti.Thread1TID)
+	require.NotEqual(t, tti.Thread1PID, tti.Thread1TID)
 
 	require.Equal(t, tti.Child1PID, tti.Thread1PID)
 	require.Equal(t, tti.ParentChild1PID, tti.ParentPID)

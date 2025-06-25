@@ -208,7 +208,7 @@ type MsgProcess struct {
 
 type MsgExitInfo struct {
 	Code uint32 `align:"code"`
-	Tid  uint32 `align:"tid"`
+	TID  uint32 `align:"tid"`
 }
 
 type MsgExitEvent struct {

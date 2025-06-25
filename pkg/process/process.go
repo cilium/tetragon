@@ -252,7 +252,7 @@ func (pi *ProcessInternal) NeededAncestors() bool {
 //
 // There is no point on calling this helper on clone or execve events,
 // however on all other events it is perfectly fine.
-func UpdateEventProcessTid(process *tetragon.Process, tid *uint32) {
+func UpdateEventProcessTID(process *tetragon.Process, tid *uint32) {
 	if process != nil && tid != nil {
 		process.Tid = &wrapperspb.UInt32Value{Value: *tid}
 	}

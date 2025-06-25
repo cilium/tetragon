@@ -88,7 +88,7 @@ func msgToExitUnix(m *processapi.MsgExitProcessEvent) *exec.MsgExitEventUnix {
 		},
 		Info: processapi.MsgExitInfo{
 			Code: m.ProcessExitCode,
-			Tid:  m.ProcessID,
+			TID:  m.ProcessID,
 		},
 	}
 	return &exec.MsgExitEventUnix{MsgExitEvent: msgExitEvent}

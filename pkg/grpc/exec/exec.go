@@ -461,11 +461,11 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 	//
 	// Check must be against event.Info.Tid so we cover all the cases of
 	// the tetragonProcess.Pid against BPF.
-	if tetragonProcess.Pid.GetValue() != event.Info.Tid {
+	if tetragonProcess.Pid.GetValue() != event.Info.TID {
 		logger.GetLogger().Warn("ExitEvent: process PID and TID mismatch",
 			"event.name", "Exit",
 			"event.process.pid", event.ProcessKey.PID,
-			"event.process.tid", event.Info.Tid,
+			"event.process.tid", event.Info.TID,
 			"event.process.binary", tetragonProcess.Binary)
 		errormetrics.ErrorTotalInc(errormetrics.ProcessPIDTidMismatch)
 	}

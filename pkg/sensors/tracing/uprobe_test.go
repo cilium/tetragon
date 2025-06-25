@@ -346,7 +346,7 @@ spec:
 	parentCheck := ec.NewProcessChecker().
 		WithBinary(sm.Full(testBin)).
 		WithPid(cti.ParentPID).
-		WithTid(cti.ParentTid)
+		WithTid(cti.ParentTID)
 
 	execCheck := ec.NewProcessExecChecker("").
 		WithProcess(parentCheck)
@@ -357,7 +357,7 @@ spec:
 	child1Checker := ec.NewProcessChecker().
 		WithBinary(sm.Full(testBin)).
 		WithPid(cti.Child1PID).
-		WithTid(cti.Child1Tid)
+		WithTid(cti.Child1TID)
 
 	child1UpChecker := ec.NewProcessUprobeChecker("").
 		WithMessage(sm.Full("Uprobe test")).
@@ -367,7 +367,7 @@ spec:
 	thread1Checker := ec.NewProcessChecker().
 		WithBinary(sm.Full(testBin)).
 		WithPid(cti.Thread1PID).
-		WithTid(cti.Thread1Tid)
+		WithTid(cti.Thread1TID)
 
 	thread1UpChecker := ec.NewProcessUprobeChecker("").
 		WithMessage(sm.Full("Uprobe test")).

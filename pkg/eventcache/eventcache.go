@@ -100,7 +100,7 @@ func HandleGenericInternal(ev notify.Event, pid uint32, tid *uint32, timestamp u
 		// deep copy of all the fields of the thread leader from the cache in
 		// order to safely modify them, to not corrupt gRPC streams.
 		proc := internal.GetProcessCopy()
-		process.UpdateEventProcessTid(proc, tid)
+		process.UpdateEventProcessTID(proc, tid)
 		ev.SetProcess(proc)
 	} else {
 		CacheRetries(ProcessInfo).Inc()
@@ -132,7 +132,7 @@ func HandleGenericEvent(internal *process.ProcessInternal, ev notify.Event, tid 
 	// deep copy of all the fields of the thread leader from the cache in
 	// order to safely modify them, to not corrupt gRPC streams.
 	proc := internal.GetProcessCopy()
-	process.UpdateEventProcessTid(proc, tid)
+	process.UpdateEventProcessTID(proc, tid)
 	ev.SetProcess(proc)
 	return nil
 }

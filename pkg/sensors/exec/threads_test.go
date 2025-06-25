@@ -43,12 +43,12 @@ func TestThreadTesterParser(t *testing.T) {
 	}
 
 	assert.Equal(t, uint32(143563), cti.ParentPID)
-	assert.Equal(t, cti.ParentPID, cti.ParentTid)
+	assert.Equal(t, cti.ParentPID, cti.ParentTID)
 	assert.Equal(t, uint32(143564), cti.Child1PID)
-	assert.Equal(t, cti.Child1PID, cti.Child1Tid)
+	assert.Equal(t, cti.Child1PID, cti.Child1TID)
 	assert.Equal(t, cti.ParentPID, cti.ParentChild1PID)
 	assert.Equal(t, uint32(143564), cti.Thread1PID)
-	assert.Equal(t, uint32(143565), cti.Thread1Tid)
+	assert.Equal(t, uint32(143565), cti.Thread1TID)
 	assert.Equal(t, cti.ParentPID, cti.ParentThread1PID)
 }
 
@@ -212,7 +212,7 @@ func TestExecThreads(t *testing.T) {
 	binCheck := ec.NewProcessChecker().
 		WithBinary(sm.Suffix("threads-tester")).
 		WithPid(cti.ParentPID).
-		WithTid(cti.ParentTid)
+		WithTid(cti.ParentTID)
 
 	execCheck := ec.NewProcessExecChecker("").
 		WithProcess(binCheck)

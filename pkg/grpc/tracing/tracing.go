@@ -434,7 +434,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 		// deep copy of all the fields of the thread leader from the cache in
 		// order to safely modify them, to not corrupt gRPC streams.
 		tetragonEvent.Process = proc.GetProcessCopy()
-		process.UpdateEventProcessTid(tetragonEvent.Process, &event.Msg.TID)
+		process.UpdateEventProcessTID(tetragonEvent.Process, &event.Msg.TID)
 	}
 	if parent != nil {
 		tetragonEvent.Parent = tetragonParent
@@ -458,11 +458,11 @@ func (msg *MsgGenericTracepointUnix) Notify() bool {
 }
 
 func (msg *MsgGenericTracepointUnix) RetryInternal(ev notify.Event, timestamp uint64) (*process.ProcessInternal, error) {
-	return eventcache.HandleGenericInternal(ev, msg.Msg.ProcessKey.PID, &msg.Msg.Tid, timestamp)
+	return eventcache.HandleGenericInternal(ev, msg.Msg.ProcessKey.PID, &msg.Msg.TID, timestamp)
 }
 
 func (msg *MsgGenericTracepointUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
-	return eventcache.HandleGenericEvent(internal, ev, &msg.Msg.Tid)
+	return eventcache.HandleGenericEvent(internal, ev, &msg.Msg.TID)
 }
 
 func familyString(family uint16) string {
@@ -637,7 +637,7 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 		// deep copy of all the fields of the thread leader from the cache in
 		// order to safely modify them, to not corrupt gRPC streams.
 		tetragonEvent.Process = proc.GetProcessCopy()
-		process.UpdateEventProcessTid(tetragonEvent.Process, &msg.Msg.Tid)
+		process.UpdateEventProcessTID(tetragonEvent.Process, &msg.Msg.TID)
 	}
 
 	return &tetragon.GetEventsResponse{
@@ -870,7 +870,7 @@ func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
 		// deep copy of all the fields of the thread leader from the cache in
 		// order to safely modify them, to not corrupt gRPC streams.
 		tetragonEvent.Process = proc.GetProcessCopy()
-		process.UpdateEventProcessTid(tetragonEvent.Process, &event.Msg.TID)
+		process.UpdateEventProcessTID(tetragonEvent.Process, &event.Msg.TID)
 	}
 	return tetragonEvent
 }
@@ -1013,7 +1013,7 @@ func GetProcessLsm(event *MsgGenericLsmUnix) *tetragon.ProcessLsm {
 		// deep copy of all the fields of the thread leader from the cache in
 		// order to safely modify them, to not corrupt gRPC streams.
 		tetragonEvent.Process = proc.GetProcessCopy()
-		process.UpdateEventProcessTid(tetragonEvent.Process, &event.Msg.TID)
+		process.UpdateEventProcessTID(tetragonEvent.Process, &event.Msg.TID)
 	}
 	if parent != nil {
 		tetragonEvent.Parent = tetragonParent

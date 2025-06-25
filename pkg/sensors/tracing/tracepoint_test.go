@@ -578,7 +578,7 @@ func TestTracepointCloneThreads(t *testing.T) {
 	parentCheck := ec.NewProcessChecker().
 		WithBinary(stringmatcher.Suffix("threads-tester")).
 		WithPid(cti.ParentPID).
-		WithTid(cti.ParentTid)
+		WithTid(cti.ParentTID)
 
 	execCheck := ec.NewProcessExecChecker("").
 		WithProcess(parentCheck)
@@ -589,7 +589,7 @@ func TestTracepointCloneThreads(t *testing.T) {
 	child1Checker := ec.NewProcessChecker().
 		WithBinary(stringmatcher.Suffix("threads-tester")).
 		WithPid(cti.Child1PID).
-		WithTid(cti.Child1Tid)
+		WithTid(cti.Child1TID)
 
 	child1TpChecker := ec.NewProcessTracepointChecker("").
 		WithSubsys(stringmatcher.Full("syscalls")).
@@ -604,7 +604,7 @@ func TestTracepointCloneThreads(t *testing.T) {
 	thread1Checker := ec.NewProcessChecker().
 		WithBinary(stringmatcher.Suffix("threads-tester")).
 		WithPid(cti.Thread1PID).
-		WithTid(cti.Thread1Tid)
+		WithTid(cti.Thread1TID)
 
 	thread1TpChecker := ec.NewProcessTracepointChecker("").
 		WithSubsys(stringmatcher.Full("syscalls")).
@@ -686,7 +686,7 @@ spec:
 	parentCheck := ec.NewProcessChecker().
 		WithBinary(stringmatcher.Suffix("threads-tester")).
 		WithPid(cti.ParentPID).
-		WithTid(cti.ParentTid)
+		WithTid(cti.ParentTID)
 
 	execCheck := ec.NewProcessExecChecker("").
 		WithProcess(parentCheck)
@@ -697,7 +697,7 @@ spec:
 	child1Checker := ec.NewProcessChecker().
 		WithBinary(stringmatcher.Suffix("threads-tester")).
 		WithPid(cti.Child1PID).
-		WithTid(cti.Child1Tid)
+		WithTid(cti.Child1TID)
 
 	child1TpChecker := ec.NewProcessTracepointChecker("").
 		WithSubsys(stringmatcher.Full("syscalls")).
@@ -713,7 +713,7 @@ spec:
 	thread1Checker := ec.NewProcessChecker().
 		WithBinary(stringmatcher.Suffix("threads-tester")).
 		WithPid(cti.Thread1PID).
-		WithTid(cti.Thread1Tid)
+		WithTid(cti.Thread1TID)
 
 	thread1TpChecker := ec.NewProcessTracepointChecker("").
 		WithSubsys(stringmatcher.Full("syscalls")).
