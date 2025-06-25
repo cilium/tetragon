@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/cilium/tetragon/pkg/config"
@@ -1093,4 +1094,26 @@ func TestParseAddr(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestParseCapabilityMask(t *testing.T) {
+	v, err := parseCapabilitiesMask("100")
+	require.NoError(t, err)
+	assert.Equal(t, uint64(100), v)
+
+	v, err = parseCapabilitiesMask("CAP_SYS_ADMIN")
+	require.NoError(t, err)
+	assert.Equal(t, (uint64(1) << 21), v)
+
+	v, err = parseCapabilitiesMask("CAP_SYS_ADMIN,CAP_BPF")
+	require.NoError(t, err)
+	assert.Equal(t, (uint64(1)<<21)|(uint64(1)<<39), v)
+
+	// NB: spaces should be OK
+	v, err = parseCapabilitiesMask("CAP_SYS_ADMIN, CAP_BPF")
+	require.NoError(t, err)
+	assert.Equal(t, (uint64(1)<<21)|(uint64(1)<<39), v)
+
+	_, err = parseCapabilitiesMask("CAP_PIZZA")
+	assert.Error(t, err)
 }
