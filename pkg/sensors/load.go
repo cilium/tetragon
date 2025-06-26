@@ -171,8 +171,8 @@ func (s *Sensor) Load(bpfDir string) (err error) {
 	// cleanup the BTF once we have loaded all sensor's program
 	flushKernelSpec()
 
-	l.Info("Loaded BPF maps and events for sensor successfully",
-		"sensor", s.Name, "maps", loadedMaps, "progs", loadedProgs)
+	l.Info("Loaded sensor successfully", "sensor", s.Name)
+	l.Debug("Loaded sensor BPF maps and programs", "sensor", s.Name, "maps", loadedMaps, "progs", loadedProgs)
 	s.Loaded = true
 	return nil
 }
@@ -218,7 +218,8 @@ func (s *Sensor) Unload(unpin bool) error {
 	}
 
 	cleanupProgsAndMaps()
-	logger.GetLogger().Info("Sensor unloaded", "maps", mapsOk, "maps-error", mapsErr, "progs", progs)
+	logger.GetLogger().Info("Sensor unloaded", "sensor", s.Name, "maps-error", mapsErr)
+	logger.GetLogger().Debug("Sensor unloaded additional info", "maps", mapsOk, "maps-error", mapsErr, "progs", progs)
 	return nil
 }
 
