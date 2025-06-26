@@ -5,7 +5,7 @@ go 1.24.0
 
 require (
 	github.com/alecthomas/kong v1.11.0
-	github.com/cilium/ebpf v0.18.0
+	github.com/cilium/ebpf v0.19.0
 	github.com/cilium/little-vm-helper v0.0.23
 	github.com/cilium/lumberjack/v2 v2.4.1
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000

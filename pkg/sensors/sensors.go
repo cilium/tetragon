@@ -121,12 +121,10 @@ func (s *Sensor) Overhead() ([]ProgOverhead, bool) {
 		if p.Prog == nil {
 			continue
 		}
-		info, err := p.Prog.Info()
+		stats, err := p.Prog.Stats()
 		if err != nil {
 			continue
 		}
-		runTime, _ := info.Runtime()
-		runCnt, _ := info.RunCount()
 
 		list = append(list, ProgOverhead{
 			Prog: Prog{
@@ -134,8 +132,8 @@ func (s *Sensor) Overhead() ([]ProgOverhead, bool) {
 				Label:  p.Label,
 				Sensor: s.Name,
 			},
-			RunTime: uint64(runTime),
-			RunCnt:  runCnt,
+			RunTime: uint64(stats.Runtime),
+			RunCnt:  stats.RunCount,
 		})
 	}
 	return list, len(list) != 0
