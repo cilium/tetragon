@@ -6,7 +6,6 @@ package bugtool
 import (
 	"errors"
 	"fmt"
-	"io/fs"
 	"iter"
 	"maps"
 	"os"
@@ -89,31 +88,24 @@ func FindAllMaps() ([]bpf.ExtendedMapInfo, error) {
 // specified as argument.
 func FindPinnedMaps(path string) ([]bpf.ExtendedMapInfo, error) {
 	var infos []bpf.ExtendedMapInfo
-
-	err := pin.WalkDir(path, func(_ string, d fs.DirEntry, obj pin.Pinner, err error) error {
+	iter := pin.WalkDir(path, nil)
+	for pin, err := range iter {
 		if err != nil {
-			return err
-		}
-		if d.IsDir() {
-			return nil // skip directories
+			return nil, fmt.Errorf("failed walking the bpf fs %q: %w", path, err)
 		}
 
-		m, ok := obj.(*ebpf.Map)
+		m, ok := pin.Object.(*ebpf.Map)
 		if !ok {
-			return nil // skip non map
+			continue
 		}
-		defer m.Close()
 
 		xInfo, err := bpf.ExtendedInfoFromMap(m)
 		if err != nil {
-			return fmt.Errorf("failed to retrieve extended info from map %v: %w", m, err)
+			return nil, fmt.Errorf("failed to retrieve extended info from map %v: %w", m, err)
 		}
 		infos = append(infos, xInfo)
-		return nil
-	})
-	if err != nil {
-		return nil, err
 	}
+
 	return infos, nil
 }
 
@@ -145,21 +137,19 @@ func mapIDsFromProgs(prog *ebpf.Program) (iter.Seq[int], error) {
 func mapIDsFromPinnedProgs(path string) (iter.Seq[int], error) {
 	mapSet := map[int]bool{}
 	progArrays := []*ebpf.Map{}
-	err := pin.WalkDir(path, func(_ string, d fs.DirEntry, obj pin.Pinner, err error) error {
+
+	iter := pin.WalkDir(path, nil)
+	for pin, err := range iter {
 		if err != nil {
-			return err
-		}
-		if d.IsDir() {
-			return nil // skip directories
+			return nil, fmt.Errorf("failed walking the bpf fs %q: %w", path, err)
 		}
 
-		switch typedObj := obj.(type) {
+		switch typedObj := pin.Object.(type) {
 		case *ebpf.Program:
 			newIDs, err := mapIDsFromProgs(typedObj)
 			if err != nil {
-				return fmt.Errorf("failed to retrieve map IDs from prog: %w", err)
+				return nil, fmt.Errorf("failed to retrieve map IDs from prog: %w", err)
 			}
-			typedObj.Close()
 			for id := range newIDs {
 				mapSet[id] = true
 			}
@@ -167,15 +157,9 @@ func mapIDsFromPinnedProgs(path string) (iter.Seq[int], error) {
 			if typedObj.Type() == ebpf.ProgramArray {
 				progArrays = append(progArrays, typedObj)
 				// don't forget to close those files when used later on
-			} else {
-				typedObj.Close()
+				pin.Take()
 			}
 		}
-
-		return nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed walking the path %q: %w", path, err)
 	}
 
 	// retrieve all the program IDs from prog array maps
