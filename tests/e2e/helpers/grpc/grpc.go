@@ -20,12 +20,15 @@ import (
 
 // WaitForTracingPolicy checks that a tracing policy exists in all tetragon pods.
 func WaitForTracingPolicy(ctx context.Context, policyName string) error {
+	return WaitForTracingPolicyWithTime(ctx, policyName, 20, 1*time.Second)
+}
+
+func WaitForTracingPolicyWithTime(ctx context.Context, policyName string, maxTries int, timeout time.Duration) error {
 	tetraConns, ok := ctx.Value(state.GrpcForwardedConns).(map[string]*grpc.ClientConn)
 	if !ok {
 		return errors.New("failed to find tetragon grpc forwarded ports")
 	}
 
-	maxTries := 20
 	for podName, grpcConn := range tetraConns {
 		client := tetragon.NewFineGuidanceSensorsClient(grpcConn)
 		var err error
@@ -34,7 +37,7 @@ func WaitForTracingPolicy(ctx context.Context, policyName string) error {
 			if err == nil {
 				break
 			}
-			time.Sleep(1 * time.Second)
+			time.Sleep(timeout)
 		}
 
 		if err != nil {
