@@ -82,7 +82,7 @@ func (p procs) pargs() []byte {
 	return proc.PrependPath(string(p.pexe), p.pcmdline)
 }
 
-func pushExecveEvents(p procs) {
+func pushExecveEvents(p procs, inInitTreeMap map[uint32]struct{}) {
 	var err error
 
 	/* If we can't fit this in the buffer lets trim some parts and
@@ -229,6 +229,10 @@ func pushExecveEvents(p procs) {
 		m.Unix.Process.Filename = filename
 		m.Unix.Process.Args = args
 
+		if _, ok := inInitTreeMap[m.Unix.Process.PID]; ok {
+			m.Unix.Process.Flags |= api.EventInInitTree
+		}
+
 		err := userinfo.MsgToExecveAccountUnix(m.Unix)
 		if err != nil {
 			logger.Trace(logger.GetLogger(), "Resolving process uid to username record failed",
@@ -278,14 +282,14 @@ func procToKeyValue(p procs, inInitTree map[uint32]struct{}) (*execvemap.ExecveK
 }
 
 func pushEvents(ps []procs) {
-	writeExecveMap(ps)
+	inInitTreeMap := writeExecveMap(ps)
 
 	sort.Slice(ps, func(i, j int) bool {
 		return ps[i].ppid < ps[j].ppid
 	})
 	ps = append([]procs{procKernel()}, ps...)
 	for _, p := range ps {
-		pushExecveEvents(p)
+		pushExecveEvents(p, inInitTreeMap)
 	}
 }
 
