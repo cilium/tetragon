@@ -172,9 +172,26 @@ func (kd *KernelsDir) rawConfigureKernel(
 	if err != nil {
 		return err
 	}
+
+	// If the source directory does not exist, there is nothing to configure so let's fetch the
+	// kernel
+	if _, err := os.Stat(srcDir); os.IsNotExist(err) {
+		log.WithFields(logrus.Fields{
+			"kernel": kc.Name,
+			"srcDir": srcDir,
+		}).Info("src directory does not exist, fetching kernel")
+		kurl, err := kc.KernelURL()
+		if err != nil {
+			return err
+		}
+		if err := kurl.fetch(ctx, log, kd.Dir, kc.Name); err != nil {
+			return err
+		}
+	}
+
 	err = os.Chdir(srcDir)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to chdir into %q: %w", srcDir, err)
 	}
 	defer os.Chdir(oldPath)
 

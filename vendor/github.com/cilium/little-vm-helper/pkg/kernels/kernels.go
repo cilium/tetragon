@@ -145,7 +145,7 @@ func getKernelInfo(dir, kname string) (*KernelsDir, *KernelConf, KernelURL, erro
 		return nil, nil, nil, fmt.Errorf("kernel `%s` not found", kname)
 	}
 
-	kURL, err := ParseURL(kconf.URL)
+	kURL, err := kconf.KernelURL()
 	if err != nil {
 		return nil, nil, nil, err
 	}
