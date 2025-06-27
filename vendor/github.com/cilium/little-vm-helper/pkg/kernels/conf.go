@@ -25,6 +25,9 @@ type KernelConf struct {
 	Opts []ConfigOption `json:"opts,omitempty"`
 	// Extra make args
 	ExtraMakeArgs []string `json:"extra_make_args,omitempty"`
+
+	// parsed URL
+	url KernelURL
 }
 
 type Conf struct {
@@ -164,8 +167,21 @@ func (cnf *Conf) SaveTo(log logrus.FieldLogger, dir string, backup bool) error {
 }
 
 func (kc *KernelConf) Validate() error {
-	_, err := ParseURL(kc.URL)
+	_, err := kc.KernelURL()
 	return err
+}
+
+func (kc *KernelConf) KernelURL() (url KernelURL, err error) {
+	if kc.url != nil {
+		url = kc.url
+		return
+	}
+
+	url, err = ParseURL(kc.URL)
+	if err == nil {
+		kc.url = url
+	}
+	return
 }
 
 func (kc *KernelConf) AddGroupsOpts(gs ...string) error {
