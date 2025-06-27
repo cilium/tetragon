@@ -20,10 +20,21 @@ import (
 var (
 	attachTypeBindGUID                  = makeGUID(0xb9707e04, 0x8127, 0x4c72, [8]byte{0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96})
 	attachTypeProcessGUID               = makeGUID(0x66e20687, 0x9805, 0x4458, [8]byte{0xa0, 0xdb, 0x38, 0xe2, 0x20, 0xd3, 0x16, 0x85})
+	attachTypeCgroupSockOpsGUID         = makeGUID(0x837d02cd, 0x3251, 0x4632, [8]byte{0x8d, 0x94, 0x60, 0xd3, 0xb4, 0x57, 0x69, 0xf2})
 	attachTypeCgroupInet4ConnectGUID    = makeGUID(0xa82e37b1, 0xaee7, 0x11ec, [8]byte{0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee})
 	attachTypeCgroupInet6ConnectGUID    = makeGUID(0xa82e37b2, 0xaee7, 0x11ec, [8]byte{0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee})
 	attachTypeCgroupInet4RecvAcceptGUID = makeGUID(0xa82e37b3, 0xaee7, 0x11ec, [8]byte{0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee})
 	attachTypeCgroupInet6RecvAcceptGUID = makeGUID(0xa82e37b4, 0xaee7, 0x11ec, [8]byte{0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee})
+
+	attachTypeMap = map[string]string{
+		"process":             attachTypeProcessGUID.String(),
+		"cgroup/connect4":     attachTypeCgroupInet4ConnectGUID.String(),
+		"cgroup/connect6":     attachTypeCgroupInet6ConnectGUID.String(),
+		"cgroup/recv_accept4": attachTypeCgroupInet4RecvAcceptGUID.String(),
+		"cgroup/recv_accept6": attachTypeCgroupInet6RecvAcceptGUID.String(),
+		"bind":                attachTypeBindGUID.String(),
+		"sockops":             attachTypeCgroupSockOpsGUID.String(),
+	}
 )
 
 func makeGUID(data1 uint32, data2 uint16, data3 uint16, data4 [8]byte) windows.GUID {
@@ -41,25 +52,10 @@ func RawAttachWithFlags(_ int, _ uint32) AttachFunc {
 }
 
 func getAttachTypeForAttachTarget(attachTarget string) (ebpf.AttachType, error) {
-	var attachTypeGuid string
-	switch attachTarget {
-	case "process":
-		attachTypeGuid = attachTypeProcessGUID.String()
-	case "cgroup/connect4":
-		attachTypeGuid = attachTypeCgroupInet4ConnectGUID.String()
-	case "cgroup/connect6":
-		attachTypeGuid = attachTypeCgroupInet6ConnectGUID.String()
-	case "cgroup/recv_accept4":
-		attachTypeGuid = attachTypeCgroupInet4RecvAcceptGUID.String()
-	case "cgroup/recv_accept6":
-		attachTypeGuid = attachTypeCgroupInet6RecvAcceptGUID.String()
-	case "bind":
-		attachTypeGuid = attachTypeBindGUID.String()
-
-	default:
+	attachTypeGuid, ok := attachTypeMap[attachTarget]
+	if !ok {
 		return ebpf.AttachNone, nil
 	}
-
 	return ebpf.WindowsAttachTypeForGUID(attachTypeGuid)
 }
 
