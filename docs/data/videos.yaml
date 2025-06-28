@@ -1,4 +1,9 @@
 videoContent:
+  - title: "From Kernel To Kubernetes: Mapping eBPF-Detected Processes To Pods"
+    youtubeID: "wQfvjJQzNdQ"
+    authors: "Yuki Nakamura"
+    conference: "Kubecon JP"
+    date: "2025"
   - title: "What Agent to Trust with Your K8s: Falco, Tetragon or KubeArmor?"
     youtubeID: "jjjJPPX15Eo"
     authors: "Henrik Rexed"
