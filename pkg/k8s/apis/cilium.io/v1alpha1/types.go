@@ -147,6 +147,9 @@ type KProbeSelector struct {
 	// +kubebuilder:validation:Optional
 	// IDs for capabilities changes
 	MatchCapabilityChanges []CapabilitiesSelector `json:"matchCapabilityChanges,omitempty"`
+	// +kubebuilder:validation:Optional
+	// match Current Task credentials
+	MatchCurrentCred []CredentialsSelector `json:"matchCurrentCred,omitempty"`
 }
 
 type NamespaceChangesSelector struct {
@@ -183,6 +186,20 @@ type CapabilitiesSelector struct {
 	IsNamespaceCapability bool `json:"isNamespaceCapability"`
 	// Capabilities to match.
 	Values []string `json:"values"`
+}
+
+type CredIdValues struct {
+	// +kubebuilder:validation:Enum=eq;neq;Equal;NotEqual
+	// Values selector operator.
+	Operator string `json:"operator"`
+	// the values of gid/uid to match
+	Values []string `json:"values,omitempty"`
+}
+
+type CredentialsSelector struct {
+	// +kubebuilder:validation:Optional
+	// Real UIDs to match.
+	Ruid []CredIdValues `json:"ruid,omitempty"`
 }
 
 type PIDSelector struct {
