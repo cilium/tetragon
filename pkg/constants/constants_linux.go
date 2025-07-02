@@ -63,4 +63,5 @@ const (
 	S_IFMT               = syscall.S_IFMT
 	DEFAULT_TEMP_DIR     = "/tmp"
 	INIT_PROC_ID         = 1
+	OLDEST_ANCESTOR_PID  = 2
 )

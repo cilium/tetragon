@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/cilium/tetragon/pkg/constants"
 	"github.com/cilium/tetragon/pkg/fieldfilters"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
@@ -497,7 +498,7 @@ func GetAncestorProcessesInternal(execId string) ([]*ProcessInternal, error) {
 	}
 
 	// No need to include <kernel> process (PID 0)
-	for process.process.Pid.Value > 2 {
+	for process.process.Pid.Value > constants.OLDEST_ANCESTOR_PID {
 		if process, err = procCache.get(process.process.ParentExecId); err != nil {
 			logger.GetLogger().Debug("ancestor process not found in cache",
 				logfields.Error, err,

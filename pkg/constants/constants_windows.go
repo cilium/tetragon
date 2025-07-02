@@ -25,6 +25,7 @@ const (
 	S_IFMT               = 0xf000
 	DEFAULT_TEMP_DIR     = ""
 	INIT_PROC_ID         = 0
+	OLDEST_ANCESTOR_PID  = 4
 )
 
 var (
