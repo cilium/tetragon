@@ -13,6 +13,7 @@ import (
 	"unsafe"
 
 	"github.com/cilium/tetragon/pkg/logger/logfields"
+	"github.com/cilium/tetragon/pkg/pidfile"
 	"golang.org/x/sys/windows"
 
 	"github.com/cilium/tetragon/pkg/api"
@@ -79,7 +80,28 @@ var (
 	QueryFullProcessImageNameW       = ModuleKernel32.NewProc("QueryFullProcessImageNameW")
 	QueryDosDeviceW                  = ModuleKernel32.NewProc("QueryDosDeviceW")
 	GetSystemInfo                    = ModuleKernel32.NewProc("GetSystemInfo")
+	QueryPerformanceCounter          = ModuleKernel32.NewProc("QueryPerformanceCounter")
+	QueryPerformanceFrequency        = ModuleKernel32.NewProc("QueryPerformanceFrequency")
+	GetSysTimeAsFileTime             = ModuleKernel32.NewProc("GetSystemTimeAsFileTime")
+	GetTickCount64                   = ModuleKernel32.NewProc("GetTickCount64")
+	bootTimeEpoch                    = GetBootTimeInWindowsEpoch()
 
+	system = procs{
+		ppid:          4,
+		pnspid:        0,
+		pexe:          stringToUTF8([]byte("<kernel>")),
+		pcmdline:      stringToUTF8([]byte("<kernel>")),
+		pflags:        api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
+		pktime:        bootTimeEpoch,
+		pid:           4,
+		tid:           4,
+		nspid:         0,
+		exe:           stringToUTF8([]byte("system")),
+		cmdline:       stringToUTF8([]byte("system")),
+		flags:         api.EventProcFS | api.EventNeedsCWD | api.EventNeedsAUID,
+		ktime:         bootTimeEpoch,
+		kernel_thread: true,
+	}
 	processorArch uint
 )
 
@@ -121,6 +143,41 @@ type SystemInfo struct {
 	dwAllocationGranularity     uint32
 	wProcessorLevel             uint16
 	wProcessorRevision          uint16
+}
+
+func getBootTimeNanoseconds() uint64 {
+	var freq, counter uint64
+	QueryPerformanceFrequency.Call(uintptr(unsafe.Pointer(&freq)))
+	if freq == 0 {
+		ticks, _, _ := GetTickCount64.Call()
+		counter = uint64(ticks)
+		freq = 1000
+	} else {
+		QueryPerformanceCounter.Call(uintptr(unsafe.Pointer(&counter)))
+	}
+	multiplier := float64(10000000000) / float64(freq)
+	return uint64(float64(counter) * multiplier)
+}
+
+func GetSystemTimeAsFileTime() windows.Filetime {
+	var ft windows.Filetime
+	GetSysTimeAsFileTime.Call(uintptr(unsafe.Pointer(&ft)))
+	return ft
+}
+
+// This function returns the value of system boot in 100 NS since 1600
+func GetBootTimeInWindowsEpoch() uint64 {
+	ft := GetSystemTimeAsFileTime()
+	kTime := uint64((int64(ft.HighDateTime) << 32) + int64(ft.LowDateTime))
+	var bootTime uint64
+	QueryPerformanceCounter.Call(uintptr(unsafe.Pointer(&bootTime)))
+	bTime := getBootTimeNanoseconds()
+	return (kTime - (bTime / 1000))
+
+}
+
+func KTimeToWindowsEpoch(ktime uint64) uint64 {
+	return (ktime/100 + bootTimeEpoch)
 }
 
 func convertUTF16ToString(src []byte) string {
@@ -378,28 +435,47 @@ func NewProcess(procEntry windows.ProcessEntry32) (procs, error) {
 	var pid = procEntry.ProcessID
 	var ppid = procEntry.ParentProcessID
 	var execPath = windows.UTF16ToString(procEntry.ExeFile[:])
+	var origExecPath = execPath
 	var pexecPath string
 	hProc, err := windows.OpenProcess(windows.PROCESS_QUERY_INFORMATION|windows.PROCESS_VM_READ|windows.PROCESS_QUERY_LIMITED_INFORMATION, false, uint32(pid))
 	if err != nil {
 		logger.GetLogger().Warn(fmt.Sprintf("Failed Opening Process %d (%s)", pid, execPath), logfields.Error, err)
-		return empty, err
+		if pid == 0 {
+			// If pid is 0, we are looking at the kernel process, so we return empty
+			return empty, err
+		}
+		if pid == 4 {
+			// If pid is 4, we are looking at the system process, Opening which will fail, so we return hardcoded fields.
+			return system, nil
+		}
+		hProc, err = windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, uint32(pid))
+		if err != nil {
+			logger.GetLogger().Warn(fmt.Sprintf("Failed Opening Process with limited privileges %d (%s)", pid, execPath), logfields.Error, err)
+			return empty, err
+		}
 	}
 	defer windows.CloseHandle(hProc)
 	execPath, err = getProcessImagePathFromHandle(hProc)
 	if err != nil {
 		logger.GetLogger().Warn("Reading process path error", logfields.Error, err)
-		return empty, err
+		execPath = origExecPath
 	}
 	cmdline, err = fetchProcessCmdLineFromHandle(hProc)
 	if err != nil {
 		logger.GetLogger().Warn("Reading process cmdline error", logfields.Error, err)
+		cmdline = execPath
+
 	}
+
 	times, err := getProcessTimesFromHandle(hProc)
 	if err != nil {
 		logger.GetLogger().Warn("Reading process times error", logfields.Error, err)
+		ktime = bootTimeEpoch
+	} else {
+		ct := times.CreationTime
+		ktime = uint64((int64(ct.HighDateTime) << 32) + int64(ct.LowDateTime))
 	}
-	ct := times.CreationTime
-	ktime = uint64((int64(ct.HighDateTime) << 32) + int64(ct.LowDateTime))
+
 	// Initialize with invalid uid
 	uids := []uint32{proc.InvalidUid, proc.InvalidUid, proc.InvalidUid, proc.InvalidUid}
 	gids := []uint32{proc.InvalidUid, proc.InvalidUid, proc.InvalidUid, proc.InvalidUid}
@@ -413,7 +489,6 @@ func NewProcess(procEntry windows.ProcessEntry32) (procs, error) {
 		if err != nil {
 			logger.GetLogger().Warn(fmt.Sprintf("Reading Uids of %d failed, falling back to uid: %d", pid, uint32(proc.InvalidUid)), logfields.Error, err)
 		}
-
 		gids, err = status.GetGids()
 		if err != nil {
 			logger.GetLogger().Warn(fmt.Sprintf("Reading Uids of %d failed, falling back to gid: %d", pid, uint32(proc.InvalidUid)), logfields.Error, err)
@@ -423,6 +498,7 @@ func NewProcess(procEntry windows.ProcessEntry32) (procs, error) {
 		if err != nil {
 			logger.GetLogger().Warn(fmt.Sprintf("Reading Loginuid of %d failed, falling back to loginuid: %d", pid, uint32(auid)), logfields.Error, err)
 		}
+
 	}
 	// ToDo: In Windows, there is no namespace.
 	// The Capabilities are generally privileges which are LUIDs.
@@ -433,16 +509,19 @@ func NewProcess(procEntry windows.ProcessEntry32) (procs, error) {
 
 	var net_ns, time_ns uint32
 	var time_for_children_ns uint32
-
 	var cgroup_ns, user_ns uint32
-	pcmdline = ""
-	pktime = 0
+
+	pcmdline = "system"
+	pexecPath = "system"
+	pktime = bootTimeEpoch
 	var pnspid uint32
 	if ppid != 0 {
 		hPProc, err := windows.OpenProcess(windows.PROCESS_QUERY_INFORMATION|windows.PROCESS_VM_READ|windows.PROCESS_QUERY_LIMITED_INFORMATION, false, uint32(ppid))
 		if err != nil {
-			logger.GetLogger().Warn(fmt.Sprintf("Failed Opening Parent Process %d", ppid), logfields.Error, err)
-		} else {
+			hPProc, err = windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, uint32(ppid))
+		}
+		if (err == nil) && (pidfile.IsPidAliveByHandle(hPProc)) {
+
 			defer windows.CloseHandle(hPProc)
 			pcmdline, err = fetchProcessCmdLineFromHandle(hPProc)
 			if err != nil {
@@ -451,12 +530,16 @@ func NewProcess(procEntry windows.ProcessEntry32) (procs, error) {
 			ptimes, err := getProcessTimesFromHandle(hPProc)
 			if err != nil {
 				logger.GetLogger().Warn("Reading parent process times error", logfields.Error, err)
+			} else {
+				pktime = uint64(ptimes.CreationTime.Nanoseconds())
 			}
-			pktime = uint64(ptimes.CreationTime.Nanoseconds())
 			pexecPath, err = getProcessImagePathFromHandle(hPProc)
 			if err != nil {
 				logger.GetLogger().Warn("Reading parent process image path error", logfields.Error, err)
 			}
+		} else {
+			logger.GetLogger().Warn(fmt.Sprintf("Failed Opening Parent Process %d", ppid), logfields.Error, err)
+			ppid = 4
 		}
 	}
 
