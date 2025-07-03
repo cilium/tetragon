@@ -25,6 +25,12 @@ A `TracingPolicy` can contain from 0 to 5 selectors. A selector is composed of
 Arguments filters can be specified under the `matchArgs` field and provide
 filtering based on the value of the function's argument.
 
+You can specify the argument either by `index` or `arg` field. The `index` field
+denotes the argument position within the function arguments, while the  `arg`
+field denotes the argument position within the spec arguments. Both fields are
+zero based (1st argument has zero value). The `arg` field (if defined) takes
+precedence over `index` field.
+
 In the next example, a selector is defined with a `matchArgs` filter that tells
 the BPF code to process only the function call for which the second argument,
 index equal to 1, concerns the file under the path `/etc/passwd` or
@@ -43,6 +49,30 @@ selectors:
     - "/etc/passwd"
     - "/etc/shadow"
 ```
+In the next example, a selector is defined with a `matchArgs` filter that tells
+the BPF code to process only the function call for which the second spec argument,
+`arg` equals to 1 (which represents 1st function argument, `index` equals to 0),
+has value `0xcoffee`.
+
+```yaml
+- args:
+  - index: 2
+    type: "int"
+    label: "arg0-index2"
+  - index: 0
+    type: "int"
+    label: "arg1-index1"
+  - index: 1
+    type: "int"
+    label: "arg2-index0"
+  selectors:
+  - matchArgs:
+    - arg: 1
+      operator: "Equal"
+      values:
+      - "0xcoffee"
+```
+Note that you can mix `index` and `arg` fields within `matchArgs` selector definitions.
 
 The available operators for `matchArgs` are:
 - `Equal`
