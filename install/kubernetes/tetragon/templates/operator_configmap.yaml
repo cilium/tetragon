@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Release.Name }}-operator-config
+  name: {{ include "tetragon-operator.configMapName" . }}
   namespace: {{ .Release.Namespace }}
   labels:
   {{- include "tetragon-operator.labels" . | nindent 4 }}
