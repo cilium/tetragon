@@ -1,4 +1,36 @@
 {{/*
+Resources names
+*/}}
+{{- define "tetragon.name" -}}
+{{- default .Release.Name .Values.tetragon.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{- define "tetragon.configMapName" -}}
+{{- printf "%s-config" (include "tetragon.name" .) | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{- define "tetragon.clusterRole" -}}
+{{- include "tetragon.name" . }}
+{{- end }}
+
+{{- define "tetragon-operator.name" -}}
+{{- default (printf "%s-operator" .Release.Name) .Values.tetragonOperator.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{- define "tetragon-operator.clusterRole" -}}
+{{- include "tetragon-operator.name" . }}
+{{- end }}
+
+{{- define "tetragon-operator.roleBindingName" -}}
+{{- printf "%s-rolebinding" (include "tetragon-operator.name" .) | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{- define "tetragon-operator.configMapName" -}}
+{{- printf "%s-config" (include "tetragon-operator.name" .) | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+
+{{/*
 Common labels
 */}}
 {{- define "commonLabels" -}}
@@ -55,7 +87,7 @@ ServiceAccounts
 {{- if .Values.serviceAccount.name -}}
 {{- printf "%s" .Values.serviceAccount.name -}}
 {{- else -}}
-{{- printf "%s" .Release.Name -}}
+{{- include "tetragon.name" . -}}
 {{- end -}}
 {{- end }}
 
@@ -63,7 +95,7 @@ ServiceAccounts
 {{- if .Values.tetragonOperator.serviceAccount.name -}}
 {{- printf  "%s" .Values.tetragonOperator.serviceAccount.name -}}
 {{- else -}}
-{{- printf  "%s-operator-service-account" .Release.Name -}}
+{{- printf  "%s-service-account" (include "tetragon-operator.name" .) -}}
 {{- end -}}
 {{- end }}
 
