@@ -144,6 +144,9 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, bool, error) {
 			proc.Filename = strutils.UTF8FromBPFBytes(args[:])
 			args = nil
 		}
+	} else if exec.Flags&api.EventErrorFilename != 0 {
+		// Filename read error - buffer content is unreliable
+		args = nil
 	}
 
 	// At this point, 'args' holds the buffer containing [arguments_string]\0\0[environment_string]
