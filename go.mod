@@ -4,7 +4,7 @@ module github.com/cilium/tetragon
 go 1.24.0
 
 require (
-	github.com/alecthomas/kong v1.11.0
+	github.com/alecthomas/kong v1.12.0
 	github.com/cilium/ebpf v0.19.0
 	github.com/cilium/little-vm-helper v0.0.24
 	github.com/cilium/lumberjack/v2 v2.4.1
@@ -29,7 +29,7 @@ require (
 	github.com/opencontainers/runtime-spec v1.2.1
 	github.com/prometheus/client_golang v1.22.0
 	github.com/prometheus/client_model v0.6.2
-	github.com/prometheus/procfs v0.16.1
+	github.com/prometheus/procfs v0.17.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.6
