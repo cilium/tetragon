@@ -305,6 +305,8 @@ struct msg_execve_event {
 #endif
 }; // All fields aligned so no 'packed' attribute.
 
+#define MBSET_INVALID_ID 0xffffffff
+
 typedef __u64 mbset_t;
 
 // This structure stores the binary path that was recorded on execve.

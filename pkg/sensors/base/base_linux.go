@@ -13,6 +13,7 @@ func GetDefaultPrograms() []*program.Program {
 		Fork,
 		Execve,
 		ExecveBprmCommit,
+		ExecveMapUpdate,
 	}
 	return progs
 }
@@ -24,10 +25,12 @@ func GetDefaultMaps() []*program.Map {
 		ExecveStats,
 		ExecveJoinMapStats,
 		ExecveTailCallsMap,
+		ExecveMapUpdateData,
 		TCPMonMap,
 		TetragonConfMap,
 		StatsMap,
 		MatchBinariesSetMap,
+		MatchBinariesSetRemoval,
 		ErrMetricsMap,
 	}
 	return maps
