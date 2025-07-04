@@ -33,6 +33,7 @@ type TetragonConfValue struct {
 	TgCgrpHierarchy   uint32 `align:"tg_cgrp_hierarchy"`    // Tetragon Cgroup tracking hierarchy ID
 	TgCgrpv1SubsysIdx uint32 `align:"tg_cgrpv1_subsys_idx"` // Tracking Cgroupv1 css idx at compile time
 	TgCgrpLevel       uint32 `align:"tg_cgrp_level"`        // Tetragon cgroup level
+	EnvVarsEnabled    uint64 `align:"env_vars_enabled"`     // Whether to read environment variables
 	TgCgrpId          uint64 `align:"tg_cgrpid"`            // Tetragon cgroup ID
 	CgrpFsMagic       uint64 `align:"cgrp_fs_magic"`        // Cgroupv1 or cgroupv2
 }
@@ -115,6 +116,10 @@ func UpdateTgRuntimeConf(mapDir string, nspid int) error {
 		TgCgrpv1SubsysIdx: cgroups.GetCgrpv1SubsystemIdx(),
 		NSPID:             uint32(nspid),
 		CgrpFsMagic:       cgroupFsMagic,
+	}
+
+	if option.Config.EnableProcessEnvironmentVariables {
+		v.EnvVarsEnabled = 1 // Set to 1 if environment variable reading is enabled
 	}
 
 	if err := UpdateConfMap(mapDir, v); err != nil {
