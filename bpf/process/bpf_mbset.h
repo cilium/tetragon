@@ -15,6 +15,13 @@ struct {
 	__type(value, mbset_t);
 } tg_mbset_map SEC(".maps");
 
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, __u32);
+	__type(value, __u64);
+} tg_mbset_gen SEC(".maps");
+
 /* update bitset mark */
 FUNC_INLINE
 void update_mb_bitset(struct binary *bin)
@@ -36,4 +43,40 @@ void update_mb_bitset(struct binary *bin)
 		lock_or(&bin->mb_bitset, *bitsetp);
 }
 
+#ifdef __V612_BPF_PROG
+#define LOOPS 100000
+#else
+#define LOOPS 1024
+#endif
+
+#ifdef __V511_BPF_PROG
+FUNC_INLINE
+void update_mb_task(struct execve_map_value *task)
+{
+	struct execve_map_value *last = NULL, *parent = task;
+	__u64 *bitsetp, *gen;
+	__u32 idx = 0;
+
+	gen = map_lookup_elem(&tg_mbset_gen, &idx);
+	if (!gen)
+		return;
+	if (*gen == task->bin.mb_gen)
+		return;
+
+	bpf_repeat(LOOPS)
+	{
+		parent = execve_map_get_noinit(parent->pkey.pid);
+		if (!parent || parent == last)
+			break;
+		bitsetp = map_lookup_elem(&tg_mbset_map, parent->bin.path);
+		if (bitsetp && *bitsetp)
+			lock_or(&task->bin.mb_bitset, *bitsetp);
+		last = parent;
+	}
+
+	task->bin.mb_gen = *gen;
+}
+#else
+#define update_mb_task(task)
+#endif /* __V511_BPF_PROG */
 #endif /* __BPF_MBSET_H__ */
