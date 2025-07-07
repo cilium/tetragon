@@ -196,6 +196,7 @@ event_execve(struct exec_ctx_struct *ctx)
 	parent = event_find_parent();
 	if (parent) {
 		event->parent = parent->key;
+		update_mb_task(parent);
 	} else {
 		event_minimal_parent(event, task);
 	}
