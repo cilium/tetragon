@@ -287,11 +287,18 @@ func typesCompatible(specTy string, kernelTy string) bool {
 		case "size_t":
 			return true
 		}
-	case "char_buf", "string", "int8":
+	case "string", "int8":
 		switch kernelTy {
 		case "const char *", "char *", "char":
 			return true
 		}
+
+	case "char_buf":
+		switch kernelTy {
+		case "const char *", "char *", "void *":
+			return true
+		}
+
 	case "char_iovec":
 		switch kernelTy {
 		case "const struct iovec *", "struct iovec *":
