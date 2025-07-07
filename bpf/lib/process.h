@@ -334,6 +334,7 @@ struct binary {
 	// NB: everything after and including ->mb_bitset will not be zeroed on a new exec. See
 	// binary_reset().
 	mbset_t mb_bitset;
+	__u64 mb_gen;
 }; // All fields aligned so no 'packed' attribute
 
 FUNC_INLINE void
