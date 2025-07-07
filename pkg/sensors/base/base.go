@@ -88,6 +88,7 @@ var (
 	StatsMap           = program.MapBuilder("tg_stats_map", Execve)
 
 	MatchBinariesSetMap = program.MapBuilder(mbset.MapName, Execve)
+	MatchBinariesGenMap = program.MapBuilder(mbset.GenName, Execve)
 
 	ErrMetricsMap = program.MapBuilder(errmetrics.MapName, Execve)
 )

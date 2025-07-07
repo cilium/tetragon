@@ -27,6 +27,7 @@
 #include "../syscall64.h"
 #include "process/ratelimit_maps.h"
 #include "process/heap.h"
+#include "../bpf_mbset.h"
 
 /* Type IDs form API with user space generickprobe.go */
 enum {
@@ -1498,6 +1499,8 @@ FUNC_INLINE int match_binaries(__u32 selidx, struct execve_map_value *current)
 		switch (selector_options->op) {
 		case op_filter_in:
 		case op_filter_notin:
+			update_mb_task(current);
+
 			/* Check if we match the selector's bit in ->mb_bitset, which means that the
 			 * process matches a matchBinaries section with a followChidren:true
 			 * attribute either because the binary matches or because the binary of a
