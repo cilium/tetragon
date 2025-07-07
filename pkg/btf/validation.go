@@ -397,6 +397,11 @@ func typesCompatible(specTy string, kernelTy string) bool {
 		case "struct kernel_cap_t *":
 			return true
 		}
+	case "dentry":
+		switch kernelTy {
+		case "struct dentry *":
+			return true
+		}
 	}
 
 	return false
