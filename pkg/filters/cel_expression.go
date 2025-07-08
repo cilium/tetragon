@@ -42,8 +42,8 @@ func compile(env *cel.Env, expr string, celType *cel.Type) (*cel.Ast, error) {
 	return ast, nil
 }
 
-func EvalCEL(ctx context.Context, program cel.Program, event *tetragon.GetEventsResponse) (bool, error) {
-	out, _, err := program.ContextEval(ctx, helpers.ProcessEventMap(event))
+func EvalCEL(ctx context.Context, program cel.Program, eventMap map[string]any) (bool, error) {
+	out, _, err := program.ContextEval(ctx, eventMap)
 	if err != nil {
 		return false, fmt.Errorf("error running CEL program: %w", err)
 	}
@@ -76,8 +76,9 @@ func (c *CELExpressionFilter) filterByCELExpression(ctx context.Context, log log
 		if !ok {
 			return false
 		}
+		eventMap := helpers.ProcessEventMap(response)
 		for _, prg := range programs {
-			match, err := EvalCEL(ctx, prg, response)
+			match, err := EvalCEL(ctx, prg, eventMap)
 			if err != nil {
 				log.Error("EvalCEL Error", logfields.Error, err)
 				return false
