@@ -592,6 +592,7 @@ metadata:
 spec:
   kprobes:
   - call: "security_inode_copy_up"
+    syscall: false
     args:
     - index: 0 # struct dentry *src
       type: "int64"
