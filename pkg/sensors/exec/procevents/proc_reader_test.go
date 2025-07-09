@@ -46,6 +46,7 @@ func TestInInitTreeProcfs(t *testing.T) {
 
 	procs, err := listRunningProcs("/proc")
 	require.NoError(t, err)
+
 	require.NotNil(t, procs)
 	require.NotEmpty(t, procs)
 
