@@ -1586,6 +1586,8 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 		seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
 		/* skip the matchNamespaces section by reading its length*/
 		seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
+		/* skip the matchCurrentCred section by reading its length */
+		seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
 		/* skip matchCapabilitiess section by reading its length */
 		seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
 		/* skip the matchNamespaceChanges by reading its length */
