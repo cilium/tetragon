@@ -6,7 +6,9 @@ package filters
 import (
 	"context"
 	"fmt"
+	"maps"
 	"reflect"
+	"slices"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/api/v1/tetragon/codegen/helpers"
@@ -58,14 +60,19 @@ func EvalCEL(ctx context.Context, program cel.Program, eventMap map[string]any) 
 	return false, nil
 }
 
+type celProgEv struct {
+	program    cel.Program
+	eventNames []string
+}
+
 func (c *CELExpressionFilter) filterByCELExpression(ctx context.Context, log logger.FieldLogger, exprs []string) (FilterFunc, error) {
-	var programs []cel.Program
+	var programs []celProgEv
 	for _, expr := range exprs {
-		prg, err := c.CompileCEL(expr)
+		prog, eventNames, err := c.CompileCEL(expr)
 		if err != nil {
 			return nil, err
 		}
-		programs = append(programs, prg)
+		programs = append(programs, celProgEv{program: prog, eventNames: eventNames})
 	}
 
 	return func(ev *event.Event) bool {
@@ -78,13 +85,18 @@ func (c *CELExpressionFilter) filterByCELExpression(ctx context.Context, log log
 		}
 		eventMap := helpers.ProcessEventMap(response)
 		for _, prg := range programs {
-			match, err := EvalCEL(ctx, prg, eventMap)
-			if err != nil {
-				log.Error("EvalCEL Error", logfields.Error, err)
-				return false
-			}
-			if match {
-				return true
+			for _, n := range prg.eventNames { // list of events that are needed to evaluate that rule
+				if !reflect.ValueOf(eventMap[n]).IsNil() { // is the incoming event related to that alert?
+					match, err := EvalCEL(ctx, prg.program, eventMap)
+					if err != nil {
+						log.Error("EvalCEL Error", logfields.Error, err)
+						return false
+					}
+					if match {
+						return true
+					}
+					break
+				}
 			}
 		}
 		return false
@@ -94,12 +106,14 @@ func (c *CELExpressionFilter) filterByCELExpression(ctx context.Context, log log
 // CELExpressionFilter implements filtering based on CEL (common expression
 // language) expressions
 type CELExpressionFilter struct {
-	log    logger.FieldLogger
-	celEnv *cel.Env
+	log       logger.FieldLogger
+	evToProto map[string]string // i.e. "tetragon.ProcessExec" -> "process_exec" mappings
+	celEnv    *cel.Env
 }
 
 func NewCELExpressionFilter(log logger.FieldLogger) *CELExpressionFilter {
 	responseTypeMap := helpers.ResponseTypeMap()
+	evToProto := map[string]string{}
 	options := []cel.EnvOption{
 		cel.Container("tetragon"),
 		// Import IP and CIDR related helpers from k8s CEL library
@@ -108,6 +122,7 @@ func NewCELExpressionFilter(log logger.FieldLogger) *CELExpressionFilter {
 	}
 	for key, val := range responseTypeMap {
 		name := string(val.ProtoReflect().Descriptor().FullName())
+		evToProto[name] = key
 		options = append(options, cel.Variable(key, cel.ObjectType(name)))
 		options = append(options, cel.Types(val))
 	}
@@ -116,24 +131,35 @@ func NewCELExpressionFilter(log logger.FieldLogger) *CELExpressionFilter {
 		panic(fmt.Sprintf("error creating CEL env %s", err))
 	}
 	return &CELExpressionFilter{
-		log:    log,
-		celEnv: celEnv,
+		log:       log,
+		evToProto: evToProto,
+		celEnv:    celEnv,
 	}
 }
 
-func (c *CELExpressionFilter) CompileCEL(expr string) (cel.Program, error) {
+// The second return value '[]string' includes the events that are related to
+// the CEL expr that we compile (i.e. process_exec, process_kprobe etc.).
+func (c *CELExpressionFilter) CompileCEL(expr string) (cel.Program, []string, error) {
 	// we want filters to be boolean expressions, so check the type of the
 	// expression before proceeding
 	ast, err := compile(c.celEnv, expr, cel.BoolType)
 	if err != nil {
-		return nil, fmt.Errorf("error compiling CEL expression: %w", err)
+		return nil, nil, fmt.Errorf("error compiling CEL expression: %w", err)
 	}
+
+	uniqEvents := map[string]struct{}{}            // keeps all unique json names (i.e. process_exec) of the events that the ast includes
+	for _, tp := range ast.NativeRep().TypeMap() { // TypeMap() is a map that contains as values the proto names of the events related to that ast (i.e. tetragon.ProcessExec)
+		if ev, ok := c.evToProto[tp.TypeName()]; ok { // we get the json name (i.e. process_exec) from the proto event name (i.e. tetragon.ProcessExec)
+			uniqEvents[ev] = struct{}{}
+		}
+	}
+	// we use uniqEvents before calling EvalCEL to check if this program is related to the generated event
 
 	prg, err := c.celEnv.Program(ast)
 	if err != nil {
-		return nil, fmt.Errorf("error building CEL program: %w", err)
+		return nil, nil, fmt.Errorf("error building CEL program: %w", err)
 	}
-	return prg, nil
+	return prg, slices.Collect(maps.Keys(uniqEvents)), nil
 }
 
 // OnBuildFilter builds a CEL expression filter.
