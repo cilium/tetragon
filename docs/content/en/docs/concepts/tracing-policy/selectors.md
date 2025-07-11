@@ -25,11 +25,14 @@ A `TracingPolicy` can contain from 0 to 5 selectors. A selector is composed of
 Arguments filters can be specified under the `matchArgs` field and provide
 filtering based on the value of the function's argument.
 
-You can specify the argument either by `index` or `arg` field. The `index` field
-denotes the argument position within the function arguments, while the  `arg`
-field denotes the argument position within the spec arguments. Both fields are
-zero based (1st argument has zero value). The `arg` field (if defined) takes
+You can specify the argument either in the `index` or in `args` field. The `index` field
+denotes the argument position within the function arguments, while the  `args`
+field denotes the arguments position within the spec arguments. Both fields are
+zero based (1st argument has zero value). The `args` field (if defined) takes
 precedence over `index` field.
+
+The `args` field can support multiple arguments. Currently, the only operator that supports more
+than 1 argument is the `CapabilitiesGained` operator.
 
 In the next example, a selector is defined with a `matchArgs` filter that tells
 the BPF code to process only the function call for which the second argument,
@@ -51,7 +54,7 @@ selectors:
 ```
 In the next example, a selector is defined with a `matchArgs` filter that tells
 the BPF code to process only the function call for which the second spec argument,
-`arg` equals to 1 (which represents 1st function argument, `index` equals to 0),
+`args` equals to [1] (which represents 1st function argument, `index` equals to 0),
 has value `0xcoffee`.
 
 ```yaml
@@ -67,7 +70,7 @@ has value `0xcoffee`.
     label: "arg2-index0"
   selectors:
   - matchArgs:
-    - arg: 1
+    - args: [1]
       operator: "Equal"
       values:
       - "0xcoffee"

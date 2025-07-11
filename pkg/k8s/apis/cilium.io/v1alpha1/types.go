@@ -205,9 +205,9 @@ type ArgSelector struct {
 	// +kubebuilder:validation:Minimum=0
 	// Position of the argument (in function prototype) to apply fhe filter to.
 	Index uint32 `json:"index"`
-	// +kubebuilder:validation:Minimum=0
-	// Position of the argument (in spec file) to apply fhe filter to.
-	Arg *uint32 `json:"arg,omitempty"`
+	// +kubebuilder:validation:items:Minimum=0
+	// Position of the operator arguments (in spec file) to apply fhe filter to.
+	Args []uint32 `json:"args,omitempty"`
 	// +kubebuilder:validation:Enum=Equal;NotEqual;Prefix;NotPrefix;Postfix;NotPostfix;GreaterThan;LessThan;GT;LT;Mask;SPort;NotSPort;SPortPriv;NotSportPriv;DPort;NotDPort;DPortPriv;NotDPortPriv;SAddr;NotSAddr;DAddr;NotDAddr;Protocol;Family;State;InMap;NotInMap
 	// Filter operation.
 	Operator string `json:"operator"`

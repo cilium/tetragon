@@ -6765,15 +6765,18 @@ spec:
         values:
         - ` + pidStr + `
       matchArgs:
-      - arg: 4
+      - args:
+        - 4
         operator: Equal
         values:
         - "1"
-      - arg: 0
+      - args:
+        - 0
         operator: Equal
         values:
         - "2"
-      - arg: 2
+      - args:
+        - 2
         operator: Equal
         values:
         - "0"
