@@ -279,18 +279,21 @@ func generateProcessEventMap(g *protogen.GeneratedFile, files []*protogen.File) 
 		var ret string
 		for _, oneof := range oneofs {
 			msgGoIdent := strings.Split(common.TetragonApiIdent(g, oneof.TypeName), ".")
-			ret += fmt.Sprintf("\"%s\": response.Get%s(),\n", oneof.FieldName, msgGoIdent[len(msgGoIdent)-1])
+			goIdent := common.TetragonApiIdent(g, "GetEventsResponse_"+msgGoIdent[len(msgGoIdent)-1])
+			ret += fmt.Sprintf("case *%s:\n", goIdent)
+			ret += fmt.Sprintf("    return map[string]any{\"%s\": response.Get%s()}\n", oneof.FieldName, msgGoIdent[len(msgGoIdent)-1])
 		}
 		return ret
 	}
 
 	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
-	g.P(`// ProcessEventMap returns a map from event field names (e.g. "process_exec") to corresponding
-    // protobuf messages in a given tetragon.GetEventsResponse (e.g. response.GetProcessExec()).
+	g.P(`// ProcessEventMap returns a map from event field name (e.g. "process_exec") to corresponding
+    // protobuf messages for a given tetragon.GetEventsResponse (e.g. response.GetProcessExec()).
     func ProcessEventMap(response *` + tetragonGER + `) map[string]any {
-		return map[string]any {
+		switch response.Event.(type) {
             ` + doCases() + `
         }
+		return nil
     }`)
 
 	return nil

@@ -67,10 +67,14 @@ type celProgEv struct {
 
 func (c *CELExpressionFilter) filterByCELExpression(ctx context.Context, log logger.FieldLogger, exprs []string) (FilterFunc, error) {
 	var programs []celProgEv
+	needProcessEventMapUpdates := false
 	for _, expr := range exprs {
 		prog, eventNames, err := c.CompileCEL(expr)
 		if err != nil {
 			return nil, err
+		}
+		if len(eventNames) > 1 {
+			needProcessEventMapUpdates = true
 		}
 		programs = append(programs, celProgEv{program: prog, eventNames: eventNames})
 	}
@@ -84,9 +88,18 @@ func (c *CELExpressionFilter) filterByCELExpression(ctx context.Context, log log
 			return false
 		}
 		eventMap := helpers.ProcessEventMap(response)
+		if needProcessEventMapUpdates {
+			for _, prg := range programs {
+				for _, p := range prg.eventNames {
+					if _, ok := eventMap[p]; !ok {
+						eventMap[p] = nil
+					}
+				}
+			}
+		}
 		for _, prg := range programs {
 			for _, n := range prg.eventNames { // list of events that are needed to evaluate that rule
-				if !reflect.ValueOf(eventMap[n]).IsNil() { // is the incoming event related to that alert?
+				if _, ok := eventMap[n]; ok { // is the incoming event related to that alert?
 					match, err := EvalCEL(ctx, prg.program, eventMap)
 					if err != nil {
 						log.Error("EvalCEL Error", logfields.Error, err)

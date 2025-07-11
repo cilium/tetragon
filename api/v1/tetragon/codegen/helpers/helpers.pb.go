@@ -178,19 +178,31 @@ func ResponseTypeMap() map[string]proto.Message {
 	}
 }
 
-// ProcessEventMap returns a map from event field names (e.g. "process_exec") to corresponding
-// protobuf messages in a given tetragon.GetEventsResponse (e.g. response.GetProcessExec()).
+// ProcessEventMap returns a map from event field name (e.g. "process_exec") to corresponding
+// protobuf messages for a given tetragon.GetEventsResponse (e.g. response.GetProcessExec()).
 func ProcessEventMap(response *tetragon.GetEventsResponse) map[string]any {
-	return map[string]any{
-		"process_exec":       response.GetProcessExec(),
-		"process_exit":       response.GetProcessExit(),
-		"process_kprobe":     response.GetProcessKprobe(),
-		"process_tracepoint": response.GetProcessTracepoint(),
-		"process_loader":     response.GetProcessLoader(),
-		"process_uprobe":     response.GetProcessUprobe(),
-		"process_throttle":   response.GetProcessThrottle(),
-		"process_lsm":        response.GetProcessLsm(),
-		"test":               response.GetTest(),
-		"rate_limit_info":    response.GetRateLimitInfo(),
+	switch response.Event.(type) {
+	case *tetragon.GetEventsResponse_ProcessExec:
+		return map[string]any{"process_exec": response.GetProcessExec()}
+	case *tetragon.GetEventsResponse_ProcessExit:
+		return map[string]any{"process_exit": response.GetProcessExit()}
+	case *tetragon.GetEventsResponse_ProcessKprobe:
+		return map[string]any{"process_kprobe": response.GetProcessKprobe()}
+	case *tetragon.GetEventsResponse_ProcessTracepoint:
+		return map[string]any{"process_tracepoint": response.GetProcessTracepoint()}
+	case *tetragon.GetEventsResponse_ProcessLoader:
+		return map[string]any{"process_loader": response.GetProcessLoader()}
+	case *tetragon.GetEventsResponse_ProcessUprobe:
+		return map[string]any{"process_uprobe": response.GetProcessUprobe()}
+	case *tetragon.GetEventsResponse_ProcessThrottle:
+		return map[string]any{"process_throttle": response.GetProcessThrottle()}
+	case *tetragon.GetEventsResponse_ProcessLsm:
+		return map[string]any{"process_lsm": response.GetProcessLsm()}
+	case *tetragon.GetEventsResponse_Test:
+		return map[string]any{"test": response.GetTest()}
+	case *tetragon.GetEventsResponse_RateLimitInfo:
+		return map[string]any{"rate_limit_info": response.GetRateLimitInfo()}
+
 	}
+	return nil
 }
