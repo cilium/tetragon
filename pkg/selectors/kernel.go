@@ -200,6 +200,8 @@ const (
 	// more socket ops
 	SelectorOpFamily = 28
 	SelectorOpState  = 29
+	// capabilities
+	SelectorOpCapabilitiesGained = 30
 )
 
 var selectorOpStringTable = map[uint32]string{
@@ -291,6 +293,8 @@ func SelectorOp(op string) (uint32, error) {
 		return SelectorOpFamily, nil
 	case "state", "State":
 		return SelectorOpState, nil
+	case "CapabilitiesGained":
+		return SelectorOpCapabilitiesGained, nil
 	}
 
 	return 0, fmt.Errorf("unknown op '%s'", op)
@@ -758,14 +762,30 @@ func checkOp(op uint32) error {
 	return nil
 }
 
+func argIndexTypeFromArgs(
+	arg *v1alpha1.ArgSelector,
+	argsIndex int,
+	sig []v1alpha1.KProbeArg,
+) (uint32, uint32, error) {
+	index := arg.Args[argsIndex]
+	if index >= uint32(len(sig)) {
+		return 0, 0, fmt.Errorf("wrong ArgSelector.Arg value %d, max(%d)", index, uint32(len(sig)))
+	}
+	ty := sig[index].Type
+	return index, uint32(gt.GenericTypeFromString(ty)), nil
+}
+
+func isCapabilityType(ty uint32) bool {
+	switch ty {
+	case gt.GenericKernelCap, gt.GenericCapInheritable, gt.GenericCapPermitted, gt.GenericCapEffective:
+		return true
+	}
+	return false
+}
+
 func argIndexType(arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) (uint32, uint32, error) {
 	if len(arg.Args) > 0 {
-		index := arg.Args[0]
-		if index >= uint32(len(sig)) {
-			return 0, 0, fmt.Errorf("wrong ArgSelector.Arg value %d, max(%d)", index, uint32(len(sig)))
-		}
-		ty := sig[index].Type
-		return index, uint32(gt.GenericTypeFromString(ty)), nil
+		return argIndexTypeFromArgs(arg, 0, sig)
 	}
 	for idx, s := range sig {
 		if arg.Index == s.Index {
@@ -854,6 +874,20 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 		if ty == gt.GenericSockaddrType && (op == SelectorOpDportPriv || op == SelectorOpNotDportPriv) {
 			return errors.New("sockaddr only supports [not]saddr, [not]sport[priv], and family")
 		}
+	case SelectorOpCapabilitiesGained:
+		if len(arg.Args) != 2 {
+			return errors.New("CapabilitiesGained operator requires two args: the new and the old capability")
+		}
+		index2, ty2, err := argIndexTypeFromArgs(arg, 1, sig)
+		if err != nil {
+			return fmt.Errorf("failed to get second argument for CapabilitiesGained operator: %w", err)
+		}
+		if !isCapabilityType(ty) || !isCapabilityType(ty2) {
+			return errors.New("CapabilitiesGained operator requaries capability type arguments")
+		}
+		// write the index of the second argument in the data
+		WriteSelectorUint32(&k.data, index2)
+
 	default:
 		err = writeMatchValues(k, arg.Values, ty, op)
 		if err != nil {
