@@ -270,15 +270,7 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 		has.override = has.override || gk.hasOverride
 	}
 
-	loadProgName := "bpf_multi_kprobe_v53.o"
-	loadProgRetName := "bpf_multi_retkprobe_v53.o"
-	if config.EnableV61Progs() {
-		loadProgName = "bpf_multi_kprobe_v61.o"
-		loadProgRetName = "bpf_multi_retkprobe_v61.o"
-	} else if kernels.MinKernelVersion("5.11") {
-		loadProgName = "bpf_multi_kprobe_v511.o"
-		loadProgRetName = "bpf_multi_retkprobe_v511.o"
-	}
+	loadProgName, loadProgRetName := config.GenericKprobeObjs(true)
 
 	load := program.Builder(
 		path.Join(option.Config.HubbleLib, loadProgName),
@@ -935,7 +927,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe,
 	progs []*program.Program, maps []*program.Map, has hasMaps) ([]*program.Program, []*program.Map) {
 
-	loadProgName, loadProgRetName := config.GenericKprobeObjs()
+	loadProgName, loadProgRetName := config.GenericKprobeObjs(false)
 	isSecurityFunc := strings.HasPrefix(kprobeEntry.funcName, "security_")
 
 	pinProg := kprobeEntry.funcName
