@@ -759,8 +759,8 @@ func checkOp(op uint32) error {
 }
 
 func argIndexType(arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) (uint32, uint32, error) {
-	if arg.Arg != nil {
-		index := *arg.Arg
+	if len(arg.Args) > 0 {
+		index := arg.Args[0]
 		if index >= uint32(len(sig)) {
 			return 0, 0, fmt.Errorf("wrong ArgSelector.Arg value %d, max(%d)", index, uint32(len(sig)))
 		}
