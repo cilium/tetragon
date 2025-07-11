@@ -112,7 +112,169 @@ struct selector_filter {
 	__u64 flags;
 	__u64 len;
 	__u32 index;
+	__u32 pad;
+} __attribute__((packed));
+
+struct {
+	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, __u32);
+	__type(value, struct selector_filter);
+} tg_selector_filter_heap SEC(".maps");
+
+enum {
+	PF_CRED_UNKNOWN = 0x00, // No filter
+	PF_CRED_RUID = 0x01, // Real UIDs
+	PF_CRED_RGID = 0x02, // Real GIDs
+	PF_CRED_EUID = 0x04, // Effective UIDs
+	PF_CRED_EGID = 0x08, // Effective GIDs
 };
+
+struct cred_id {
+	__u32 start;
+	__u32 end;
+} __attribute__((packed));
+
+struct cred_filter {
+	__u64 ty; /* credentials type flags */
+	__u32 op; /* operator */
+	__u32 num; /* number of values */
+	struct cred_id val[];
+} __attribute__((packed));
+
+#define MAX_CRED_SELECTOR_FIELDS 2
+#define MAX_CRED_SELECTOR_VALUES 4
+
+#ifdef __LARGE_BPF_PROG
+
+FUNC_INLINE int
+next_cred_match_value()
+{
+	return sizeof(struct cred_id);
+}
+
+FUNC_INLINE int
+__match_cred_uids(__u32 *f, struct selector_filter *sel)
+{
+	struct task_struct *task;
+	__u32 off = sel->index;
+	__u32 uid, min, max;
+
+	task = (struct task_struct *)get_current_task();
+	if (unlikely(!task))
+		return PFILTER_REJECT;
+
+	if (sel->flags & PF_CRED_RUID)
+		uid = BPF_CORE_READ(task, cred, uid.val);
+	else if (sel->flags & PF_CRED_EUID)
+		uid = BPF_CORE_READ(task, cred, euid.val);
+	else
+		return PFILTER_REJECT;
+
+	min = *(__u32 *)((__u64)f + (off & INDEX_MASK));
+	max = *(__u32 *)((__u64)f + ((off + 4) & INDEX_MASK));
+	if (sel->ty == op_filter_eq && (uid < min || uid > max))
+		return PFILTER_REJECT;
+	else if (sel->ty == op_filter_neq && (uid >= min && uid <= max))
+		return PFILTER_REJECT;
+
+	return PFILTER_ACCEPT;
+}
+
+FUNC_INLINE int
+match_cred_uids(__u32 *f, __u32 *index, struct selector_filter *sel)
+{
+	int res[MAX_CRED_SELECTOR_VALUES] = { 0 };
+	int i;
+
+	if (!sel->flags)
+		return PFILTER_REJECT;
+
+	/* NotEqual we default to 1 to initialize all values */
+	if (sel->ty == op_filter_neq) {
+		for (i = 0; i < MAX_CRED_SELECTOR_VALUES; i++)
+			res[i] = 1;
+	}
+
+	for (i = 0; i < sel->len; i++) {
+		if (i > (MAX_CRED_SELECTOR_VALUES - 1)) // pass the verifier
+			break;
+
+		/* index points at current values */
+		sel->index = *index;
+		if (sel->ty == op_filter_eq)
+			res[i] = __match_cred_uids(f, sel);
+		else
+			res[i] &= __match_cred_uids(f, sel);
+
+		*index += next_cred_match_value();
+		/* now index points at the end of cred_filter filter */
+	}
+
+	if (sel->ty == op_filter_eq)
+		return res[0] | res[1] | res[2] | res[3];
+	else
+		return res[0] & res[1] & res[2] & res[3];
+}
+
+FUNC_INLINE int
+process_filter_current_cred(__u32 *f, __u32 *index, __u32 *len, struct msg_generic_kprobe *msg)
+{
+	struct cred_filter *cred_f;
+	struct selector_filter *sel;
+	__u32 flags, zero = 0, ret = 1;
+
+	/* len must be greater than cred_filter but also at max
+	 * equals total of all cred selectors.
+	 */
+	if (*len < sizeof(struct cred_filter) ||
+	    *len > ((sizeof(struct cred_filter) + (MAX_CRED_SELECTOR_VALUES * sizeof(struct cred_id))) * MAX_CRED_SELECTOR_FIELDS))
+		return PFILTER_ERROR;
+
+	sel = map_lookup_elem(&tg_selector_filter_heap, &zero);
+	if (!sel)
+		return PFILTER_ERROR;
+
+	flags = *(__u32 *)((__u64)f + (*index & INDEX_MASK));
+	*index += 4; /* 4: matchCurrentCred flags */
+	/* Are there any valid credentials filters? */
+	if (!flags)
+		return 0;
+
+	/* Here we are at the beginning of matching credentials */
+
+	if (flags & PF_CRED_RUID) {
+		cred_f = (struct cred_filter *)((u64)f + (*index & INDEX_MASK));
+		/* 16: type (8 bytes), op (4 bytes), number of values (4 bytes) */
+		*index += sizeof(struct cred_filter);
+
+		sel->ty = cred_f->op;
+		sel->flags = PF_CRED_RUID;
+		if (cred_f->num > MAX_CRED_SELECTOR_VALUES)
+			return PFILTER_ERROR;
+		sel->len = cred_f->num;
+		ret &= match_cred_uids(f, index, sel);
+	}
+
+	if (ret == PFILTER_REJECT)
+		return ret;
+
+	if (flags & PF_CRED_EUID) {
+		cred_f = (struct cred_filter *)((u64)f + (*index & INDEX_MASK));
+		/* 16: type (8 bytes), op (4 bytes), number of values (4 bytes) */
+		*index += sizeof(struct cred_filter);
+
+		sel->ty = cred_f->op;
+		sel->flags = PF_CRED_EUID;
+		if (cred_f->num > MAX_CRED_SELECTOR_VALUES)
+			return PFILTER_ERROR;
+		sel->len = cred_f->num;
+		ret &= match_cred_uids(f, index, sel);
+	}
+
+	return ret;
+}
+#endif
 
 FUNC_INLINE int
 process_filter_pid(struct selector_filter *sf, __u32 *f,
@@ -254,15 +416,23 @@ process_filter_capabilities(__u32 ty, __u32 op, __u32 ns, __u64 val,
 	return (caps & val) ? PFILTER_REJECT : PFILTER_ACCEPT;
 }
 
+struct caps_filter {
+	u32 ty; /* (i.e. effective, inheritable, or permitted) */
+	u32 op; /* op (i.e. op_filter_in or op_filter_notin) */
+	u32 ns; /* If ns == 0 <=> IsNamespaceCapability == false. Otheriwse it contains the value of host user namespace. */
+	u64 val; /* OR-ed capability values */
+} __attribute__((packed));
+
 #ifdef __CAP_CHANGES_FILTER
 FUNC_INLINE int
-process_filter_capability_change(__u32 ty, __u32 op, __u32 ns, __u64 val,
+process_filter_capability_change(struct caps_filter *caps,
 				 struct msg_ns *n, struct msg_capabilities *c,
 				 struct msg_selector_data *sel)
 {
 	struct execve_map_value *init;
 	bool match = false;
 	__u64 icaps, ccaps;
+	__u32 ty = caps->ty;
 	__u32 pid;
 
 	pid = (get_current_pid_tgid() >> 32);
@@ -272,7 +442,7 @@ process_filter_capability_change(__u32 ty, __u32 op, __u32 ns, __u64 val,
 		return PFILTER_REJECT;
 
 	/* if ns != 0 we care only for events in different than the host user namespace */
-	if (ns != 0 && n->user_inum == ns)
+	if (caps->ns != 0 && n->user_inum == caps->ns)
 		return PFILTER_REJECT;
 
 	if (ty >
@@ -290,10 +460,10 @@ process_filter_capability_change(__u32 ty, __u32 op, __u32 ns, __u64 val,
 	ccaps = c->c[ty];
 
 	/* we have a change in the capabilities that we care */
-	if ((icaps & val) != (ccaps & val))
-		match = (op == op_filter_in);
+	if ((icaps & caps->val) != (ccaps & caps->val))
+		match = (caps->op == op_filter_in);
 	else if (icaps != ccaps) /* we have a change in other capabilities */
-		match = (op == op_filter_notin);
+		match = (caps->op == op_filter_notin);
 
 	if (match) {
 		/* this will update our internal metadata of the processe's caps */
@@ -392,13 +562,6 @@ struct ns_filter {
 	u32 val[]; /* values */
 } __attribute__((packed));
 
-struct caps_filter {
-	u32 ty; /* (i.e. effective, inheritable, or permitted) */
-	u32 op; /* op (i.e. op_filter_in or op_filter_notin) */
-	u32 ns; /* If ns == 0 <=> IsNamespaceCapability == false. Otheriwse it contains the value of host user namespace. */
-	u64 val; /* OR-ed capability values */
-} __attribute__((packed));
-
 struct nc_filter {
 	u32 op; /* op (i.e. op_filter_in or op_filter_notin) */
 	u32 value; /* contains all namespaces to monitor (i.e. bit 0 is for ns_uts, bit 1 for ns_ipc etc.) */
@@ -422,6 +585,7 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 	struct nc_filter *nc;
 #endif
 	struct caps_filter *caps;
+
 	__u32 len;
 	__u64 i;
 
@@ -498,6 +662,29 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 			return res;
 	}
 
+	/* matchCurrentCred
+	 *
+	 * Depends on LARGE_BPF_PROG to be available, if not then userspace writes
+	 * 4 bytes size length and advances the offset index with same 4 bytes, this
+	 * makes it easy to filter credentials uids/gids before matchCapabilities
+	 * since they are broader anyway.
+	 *
+	 * (4 (length) + 4 (flags) + sizeof(ruid) + sizeof(rgid) + ...
+	 */
+	len = *(__u32 *)((__u64)f + (index & INDEX_MASK));
+	index += 4; /* 4: matchCurrentCred header */
+
+#ifdef __LARGE_BPF_PROG
+	/* Filter current task credentials */
+	if (len > 4) {
+		len -= 4;
+		res = process_filter_current_cred(f, &index, &len, msg);
+	}
+
+	if (res == PFILTER_REJECT)
+		return res;
+#endif
+
 	/* matchCapabilities */
 	/* (sizeof(cap1) + sizeof(cap2) + ... + 4) */
 	len = *(__u32 *)((__u64)f + (index & INDEX_MASK));
@@ -542,8 +729,8 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 	if (len > 0) {
 		caps = (struct caps_filter *)((u64)f + (index & INDEX_MASK));
 		index += sizeof(struct caps_filter); /* 20: ty, op, ns, val */
-		res = process_filter_capability_change(
-			caps->ty, caps->op, caps->ns, caps->val, &msg->ns, &msg->caps, &msg->sel);
+		res = process_filter_capability_change(caps,
+						       &msg->ns, &msg->caps, &msg->sel);
 	}
 	if (res == PFILTER_REJECT)
 		return res;

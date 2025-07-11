@@ -8,6 +8,7 @@ package tracing
 import (
 	"context"
 	"os"
+	"os/exec"
 	"strconv"
 	"sync"
 	"syscall"
@@ -15,14 +16,23 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
+	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/logger"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/caps"
+	testsensor "github.com/cilium/tetragon/pkg/sensors/test"
+	"github.com/cilium/tetragon/pkg/testutils"
+	tuo "github.com/cilium/tetragon/pkg/testutils/observer"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
+	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/unix"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
 )
@@ -334,6 +344,574 @@ spec:
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpChangeGidChecker, kpChangeUidChecker, kpPrivilegedChecker)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
+func TestKprobeMatchCurrentCredValidity(t *testing.T) {
+	testutils.CaptureLog(t, logger.GetLogger())
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+	tus.LoadInitialSensor(t)
+	tus.LoadSensor(t, testsensor.GetTestSensor())
+	sm := tuo.GetTestSensorManager(t)
+
+	ruid := []v1alpha1.CredIdValues{
+		{
+			Operator: "Equal",
+			Values:   []string{"0:0"},
+		},
+	}
+	notValidRuid := []v1alpha1.CredIdValues{
+		{
+			Operator: "NotEqual",
+			Values:   []string{"-1:4294967296"},
+		},
+	}
+	credUidMultiple := []v1alpha1.CredentialsSelector{
+		{
+			Ruid: ruid,
+			Euid: ruid,
+		},
+		{
+			Ruid: ruid,
+		},
+	}
+	credEUidMultiple := []v1alpha1.CredentialsSelector{
+		{
+			Ruid: ruid,
+			Euid: ruid,
+		},
+		{
+			Euid: ruid,
+		},
+	}
+
+	notValidCred := []v1alpha1.CredentialsSelector{
+		{
+			Ruid: notValidRuid,
+		},
+	}
+
+	validCred := []v1alpha1.CredentialsSelector{
+		{
+			Ruid: ruid,
+		},
+		{
+			Euid: ruid,
+		},
+	}
+
+	typeMeta := v1.TypeMeta{
+		APIVersion: "cilium.io/v1alpha1",
+		Kind:       "TracingPolicy",
+	}
+	Spec1 := v1alpha1.TracingPolicySpec{
+		KProbes: []v1alpha1.KProbeSpec{{
+			Call:    "commit_creds",
+			Syscall: false,
+		}},
+	}
+
+	Spec1.KProbes[0].Selectors = []v1alpha1.KProbeSelector{
+		{
+			MatchCurrentCred: credUidMultiple,
+		},
+	}
+
+	policy := tracingpolicy.GenericTracingPolicy{
+		TypeMeta: typeMeta,
+		Metadata: v1.ObjectMeta{Name: "match-current-cred"},
+		Spec: v1alpha1.TracingPolicySpec{
+			KProbes: Spec1.KProbes,
+		},
+	}
+
+	err := sm.Manager.AddTracingPolicy(ctx, &policy)
+	if err == nil {
+		t.Cleanup(func() {
+			sm.Manager.DeleteTracingPolicy(ctx, "match-current-cred", "")
+		})
+	}
+	require.Error(t, err)
+
+	Spec1.KProbes[0].Selectors = []v1alpha1.KProbeSelector{
+		{
+			MatchCurrentCred: credUidMultiple,
+		},
+	}
+	policy.Spec.KProbes[0].Selectors[0].MatchCurrentCred = credEUidMultiple
+	err = sm.Manager.AddTracingPolicy(ctx, &policy)
+	if err == nil {
+		t.Cleanup(func() {
+			sm.Manager.DeleteTracingPolicy(ctx, "match-current-cred", "")
+		})
+	}
+	require.Error(t, err)
+
+	policy.Spec.KProbes[0].Selectors[0].MatchCurrentCred = notValidCred
+	err = sm.Manager.AddTracingPolicy(ctx, &policy)
+	if err == nil {
+		t.Cleanup(func() {
+			sm.Manager.DeleteTracingPolicy(ctx, "match-current-cred", "")
+		})
+	}
+	require.Error(t, err)
+
+	policy.Spec.KProbes[0].Selectors[0].MatchCurrentCred = validCred
+	err = sm.Manager.AddTracingPolicy(ctx, &policy)
+	if err == nil {
+		t.Cleanup(func() {
+			sm.Manager.DeleteTracingPolicy(ctx, "match-current-cred", "")
+		})
+	}
+	if config.EnableLargeProgs() {
+		require.NoError(t, err)
+	} else {
+		require.Error(t, err)
+	}
+}
+
+/*  TestKprobeMatchCurrentCredRealUid() matches against current real uid.
+ *
+ *  ** Important **
+ *
+ *  1. Tests starts with root uid 0
+ *
+ *  2. Tests executes drop-privileges, in Tetragon userspace cached process credentials
+ *     are ruid/euid == 0
+ *
+ *  3. drop-privileges changes its reuid to 1879048188
+ *     but cached state is still uid/euid == 0 since execve snapshot.
+ *
+ *     But in kernel, current credentials are uid/euid == 1879048188. These
+ *     are the ones that we use for matching.
+ *
+ *  4. drop-privileges executes /usr/bin/echo
+ *     In tetragon userpace uid == 0, but in kernel current uid == 1879048188
+ *
+ *     In tracing policy we match against current credentials 1879048188
+ *     In Process json output checker we match against cached shadow state
+ *     credentials uid/euid == 0.
+ *
+ *  5. /usr/bin/echo starts with uid/euid == 1879048188
+ *     In tetragon uid == 1879048188 same in kernel current uid == 1879048188
+ */
+func TestKprobeMatchCurrentCredRealUid(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	if !config.EnableLargeProgs() {
+		t.Skipf("Skipping test since it needs kernel >= 5.3")
+	}
+
+	// The drop-privileges is a helper binary that drops privileges so we do not
+	// drop it inside this test which will break the test framework.
+	testDrop := testutils.RepoRootPath("contrib/tester-progs/drop-privileges")
+	testEcho, err := exec.LookPath("echo")
+	if err != nil {
+		t.Skipf("Skipping test could not find 'echo' binary: %v", err)
+	}
+
+	credshook_ := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "process-creds-changed"
+spec:
+  kprobes:
+  - call: "security_bprm_committed_creds"
+    syscall: false
+    args:
+    - index: 0
+      resolve: file
+      type: "file"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Postfix"
+        values:
+        - "` + testEcho + `"
+      matchCurrentCred:
+      - uid:
+        - operator: Equal
+          values:
+          - "1879048180:1879048188"
+`
+
+	testConfigFile := t.TempDir() + "/tetragon.gotest.yaml"
+	writeConfigHook := []byte(credshook_)
+	err = os.WriteFile(testConfigFile, writeConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	cachedTetragonCreds := ec.NewProcessCredentialsChecker().
+		WithUid(0).
+		WithGid(0).
+		WithEuid(0).
+		WithEgid(0).
+		WithSuid(0).
+		WithSgid(0).
+		WithFsuid(0).
+		WithFsgid(0)
+
+	processChecker := ec.NewProcessChecker().
+		WithUid(0).
+		WithBinary(sm.Full(testDrop)).
+		WithProcessCredentials(cachedTetragonCreds)
+
+	kpCurrentUid := ec.NewProcessKprobeChecker("").
+		WithProcess(processChecker).
+		WithFunctionName(sm.Full("security_bprm_committed_creds")).
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_POST)
+
+	testCmd := exec.CommandContext(ctx, testDrop, testEcho, "hello")
+	if err := testCmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	if err := testCmd.Wait(); err != nil {
+		t.Fatalf("command failed with %s. Context error: %v", err, ctx.Err())
+	}
+
+	if err := syscall.Setuid(0); err != nil {
+		t.Fatalf("setuid(0) error: %s", err)
+	}
+	if err := syscall.Setgid(0); err != nil {
+		t.Fatalf("setgid(0) error: %s", err)
+	}
+
+	checker := ec.NewUnorderedEventChecker(kpCurrentUid)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
+func TestKprobeMatchCurrentCredRealUidNotEqual(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	if !config.EnableLargeProgs() {
+		t.Skipf("Skipping test since it needs kernel >= 5.3")
+	}
+
+	// The drop-privileges is a helper binary that drops privileges so we do not
+	// drop it inside this test which will break the test framework.
+	testDrop := testutils.RepoRootPath("contrib/tester-progs/drop-privileges")
+	testEcho, err := exec.LookPath("echo")
+	if err != nil {
+		t.Skipf("Skipping test could not find 'echo' binary: %v", err)
+	}
+
+	credshook_ := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "process-creds-changed"
+spec:
+  kprobes:
+  - call: "security_bprm_committed_creds"
+    syscall: false
+    args:
+    - index: 0
+      resolve: file
+      type: "file"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Postfix"
+        values:
+        - "` + testEcho + `"
+      matchCurrentCred:
+      - uid:
+        - operator: "NotEqual" # we want to match real uid 1879048188
+          values:
+          - "0:187904818"
+          - "187904818:1879048187"
+          - "1879048187:1879048187"
+          - "1879048189:4294967295"
+`
+
+	testConfigFile := t.TempDir() + "/tetragon.gotest.yaml"
+	writeConfigHook := []byte(credshook_)
+	err = os.WriteFile(testConfigFile, writeConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	cachedTetragonCreds := ec.NewProcessCredentialsChecker().
+		WithUid(0).
+		WithGid(0).
+		WithEuid(0).
+		WithEgid(0).
+		WithSuid(0).
+		WithSgid(0).
+		WithFsuid(0).
+		WithFsgid(0)
+
+	processChecker := ec.NewProcessChecker().
+		WithUid(0).
+		WithBinary(sm.Full(testDrop)).
+		WithProcessCredentials(cachedTetragonCreds)
+
+	kpCurrentUid := ec.NewProcessKprobeChecker("").
+		WithProcess(processChecker).
+		WithFunctionName(sm.Full("security_bprm_committed_creds")).
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_POST)
+
+	testCmd := exec.CommandContext(ctx, testDrop, testEcho, "hello")
+	if err := testCmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	if err := testCmd.Wait(); err != nil {
+		t.Fatalf("command failed with %s. Context error: %v", err, ctx.Err())
+	}
+
+	if err := syscall.Setuid(0); err != nil {
+		t.Fatalf("setuid(0) error: %s", err)
+	}
+	if err := syscall.Setgid(0); err != nil {
+		t.Fatalf("setgid(0) error: %s", err)
+	}
+
+	checker := ec.NewUnorderedEventChecker(kpCurrentUid)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
+func TestKprobeMatchCurrentCredRealEffectiveUid(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	if !config.EnableLargeProgs() {
+		t.Skipf("Skipping test since it needs kernel >= 5.3")
+	}
+
+	// The drop-privileges is a helper binary that drops privileges so we do not
+	// drop it inside this test which will break the test framework.
+	testDrop := testutils.RepoRootPath("contrib/tester-progs/drop-privileges")
+	testEcho, err := exec.LookPath("echo")
+	if err != nil {
+		t.Skipf("Skipping test could not find 'echo' binary: %v", err)
+	}
+
+	credshook_ := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "process-creds-changed"
+spec:
+  kprobes:
+  - call: "security_bprm_committed_creds"
+    syscall: false
+    args:
+    - index: 0
+      resolve: file
+      type: "file"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Postfix"
+        values:
+        - "` + testEcho + `"
+      matchCurrentCred:
+      - uid:
+        - operator: Equal
+          values:
+          - "1879048180:1879048188"
+      - euid:
+        - operator: Equal
+          values:
+          - "1879048180:1879048188"
+`
+
+	testConfigFile := t.TempDir() + "/tetragon.gotest.yaml"
+	writeConfigHook := []byte(credshook_)
+	err = os.WriteFile(testConfigFile, writeConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	cachedTetragonCreds := ec.NewProcessCredentialsChecker().
+		WithUid(0).
+		WithGid(0).
+		WithEuid(0).
+		WithEgid(0).
+		WithSuid(0).
+		WithSgid(0).
+		WithFsuid(0).
+		WithFsgid(0)
+
+	processChecker := ec.NewProcessChecker().
+		WithUid(0).
+		WithBinary(sm.Full(testDrop)).
+		WithProcessCredentials(cachedTetragonCreds)
+
+	kpCurrentUid := ec.NewProcessKprobeChecker("").
+		WithProcess(processChecker).
+		WithFunctionName(sm.Full("security_bprm_committed_creds")).
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_POST)
+
+	testCmd := exec.CommandContext(ctx, testDrop, testEcho, "hello")
+	if err := testCmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	if err := testCmd.Wait(); err != nil {
+		t.Fatalf("command failed with %s. Context error: %v", err, ctx.Err())
+	}
+
+	if err := syscall.Setuid(0); err != nil {
+		t.Fatalf("setuid(0) error: %s", err)
+	}
+	if err := syscall.Setgid(0); err != nil {
+		t.Fatalf("setgid(0) error: %s", err)
+	}
+
+	checker := ec.NewUnorderedEventChecker(kpCurrentUid)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
+func TestKprobeMatchCurrentCredRealEffectiveUidNotEqual(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	if !config.EnableLargeProgs() {
+		t.Skipf("Skipping test since it needs kernel >= 5.3")
+	}
+
+	// The drop-privileges is a helper binary that drops privileges so we do not
+	// drop it inside this test which will break the test framework.
+	testDrop := testutils.RepoRootPath("contrib/tester-progs/drop-privileges")
+	testEcho, err := exec.LookPath("echo")
+	if err != nil {
+		t.Skipf("Skipping test could not find 'echo' binary: %v", err)
+	}
+
+	credshook_ := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "process-creds-changed"
+spec:
+  kprobes:
+  - call: "security_bprm_committed_creds"
+    syscall: false
+    args:
+    - index: 0
+      resolve: file
+      type: "file"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Postfix"
+        values:
+        - "` + testEcho + `"
+      matchCurrentCred:
+      - uid:
+        - operator: "NotEqual" # we want to match real uid 1879048188
+          values:
+          - "0:187904818"
+          - "187904818:1879048187"
+          - "1879048187:1879048187"
+          - "1879048189:4294967295"
+      - euid:
+        - operator: "neq" # we want to match effective uid 1879048188
+          values:
+          - "0:187904818"
+          - "187904818:1879048187"
+          - "1879048187:1879048187"
+          - "1879048189:4294967295"
+`
+
+	testConfigFile := t.TempDir() + "/tetragon.gotest.yaml"
+	writeConfigHook := []byte(credshook_)
+	err = os.WriteFile(testConfigFile, writeConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	cachedTetragonCreds := ec.NewProcessCredentialsChecker().
+		WithUid(0).
+		WithGid(0).
+		WithEuid(0).
+		WithEgid(0).
+		WithSuid(0).
+		WithSgid(0).
+		WithFsuid(0).
+		WithFsgid(0)
+
+	processChecker := ec.NewProcessChecker().
+		WithUid(0).
+		WithBinary(sm.Full(testDrop)).
+		WithProcessCredentials(cachedTetragonCreds)
+
+	kpCurrentUid := ec.NewProcessKprobeChecker("").
+		WithProcess(processChecker).
+		WithFunctionName(sm.Full("security_bprm_committed_creds")).
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_POST)
+
+	testCmd := exec.CommandContext(ctx, testDrop, testEcho, "hello")
+	if err := testCmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	if err := testCmd.Wait(); err != nil {
+		t.Fatalf("command failed with %s. Context error: %v", err, ctx.Err())
+	}
+
+	if err := syscall.Setuid(0); err != nil {
+		t.Fatalf("setuid(0) error: %s", err)
+	}
+	if err := syscall.Setgid(0); err != nil {
+		t.Fatalf("setgid(0) error: %s", err)
+	}
+
+	checker := ec.NewUnorderedEventChecker(kpCurrentUid)
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 }
