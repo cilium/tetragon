@@ -1031,6 +1031,7 @@ found.
 | process | [Process](#tetragon-Process) |  | Process that triggered the exec. |
 | parent | [Process](#tetragon-Process) |  | Immediate parent of the process. |
 | ancestors | [Process](#tetragon-Process) | repeated | Ancestors of the process beyond the immediate parent. |
+| environment_variables | [string](#string) |  | Environment variables passed to the binary at execution. |
 
 
 
