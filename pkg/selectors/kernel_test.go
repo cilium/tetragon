@@ -457,6 +457,161 @@ func TestParseMatchNamespaces(t *testing.T) {
 	}
 }
 
+func TestParseMatchCurrentCred(t *testing.T) {
+	ruid := []v1alpha1.CredIdValues{
+		{
+			Operator: "eq", Values: []string{"0", "1000:2000", "100000"},
+		},
+	}
+	euid := []v1alpha1.CredIdValues{
+		{
+			Operator: "eq", Values: []string{"0", "4000:8000"},
+		},
+	}
+	ruidnoteq := []v1alpha1.CredIdValues{
+		{
+			Operator: "neq", Values: []string{"0", "1000:2000", "100000", "1879048189:4294967295"},
+		},
+	}
+	cred1 := []v1alpha1.CredentialsSelector{
+		{
+			Ruid: ruid,
+		},
+	}
+	k := &KernelSelectorState{data: KernelSelectorData{off: 0}}
+	d := &k.data
+	if !config.EnableLargeProgs() {
+		credOldKernel := []v1alpha1.CredentialsSelector{}
+		expected0 := []byte{
+			0x04, 0x00, 0x00, 0x00, // Length
+		}
+		if err := ParseMatchCurrentCred(k, credOldKernel); err != nil || bytes.Equal(expected0, d.e[0:d.off]) == false {
+			t.Errorf("parseMatchCurrentCred: error %v expected %v bytes %v parsing %v\n", err, expected0, d.e[0:d.off], credOldKernel)
+		}
+		credOldKernel = []v1alpha1.CredentialsSelector{
+			{
+				Ruid: ruid,
+			},
+		}
+		/* on old kernels fail if matchCurrentCred is set */
+		err := ParseMatchCurrentCred(k, credOldKernel)
+		require.Error(t, err)
+		return
+	}
+
+	expected1 := []byte{
+		0x30, 0x00, 0x00, 0x00, // Length
+		0x01, 0x00, 0x00, 0x00, // flags & FILTER_CRED_RUID
+		0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // FILTER_CRED_RUID
+		0x03, 0x00, 0x00, 0x00, // Operator Equal
+		0x03, 0x00, 0x00, 0x00, // length == 0x3
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Values[0] == "0:0"
+		0xe8, 0x03, 0x00, 0x00, 0xd0, 0x07, 0x00, 0x00, // Values[1] == "1000:2000"
+		0xa0, 0x86, 0x01, 0x00, 0xa0, 0x86, 0x01, 0x00, // Values[2] == "100000:100000"
+	}
+	if err := ParseMatchCurrentCred(k, cred1); err != nil || bytes.Equal(expected1, d.e[0:d.off]) == false {
+		t.Errorf("parseMatchCurrentCred: error %v expected %v bytes %v parsing %v\n", err, expected1, d.e[0:d.off], cred1)
+	}
+
+	nextcred2 := d.off
+	cred2 := []v1alpha1.CredentialsSelector{
+		{
+			Ruid: ruid,
+			Euid: euid,
+		},
+	}
+	expected2 := []byte{
+		0x50, 0x00, 0x00, 0x00, // Length
+		0x05, 0x00, 0x00, 0x00, // flags & FILTER_CRED_RUID & FILTER_CRED_EUID
+		0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // FILTER_CRED_RUID
+		0x03, 0x00, 0x00, 0x00, // Operator Equal
+		0x03, 0x00, 0x00, 0x00, // length == 0x3
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Values[0] == "0:0"
+		0xe8, 0x03, 0x00, 0x00, 0xd0, 0x07, 0x00, 0x00, // Values[1] == "1000:2000"
+		0xa0, 0x86, 0x01, 0x00, 0xa0, 0x86, 0x01, 0x00, // Values[2] == "100000:100000"
+		0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // FILTER_CRED_EUID
+		0x03, 0x00, 0x00, 0x00, // Operator Equal
+		0x02, 0x00, 0x00, 0x00, // length == 0x2
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Values[0] == "0:0"
+		0xa0, 0x0f, 0x00, 0x00, 0x40, 0x1f, 0x00, 0x00, // Values[1] == "4000:8000"
+	}
+	if err := ParseMatchCurrentCred(k, cred2); err != nil || bytes.Equal(expected2, d.e[nextcred2:d.off]) == false {
+		t.Errorf("parseMatchCurrentCred: error %v expected %v bytes %v parsing %v\n", err, expected2, d.e[nextcred2:d.off], cred2)
+	}
+
+	cred1 = []v1alpha1.CredentialsSelector{
+		{
+			Ruid: ruidnoteq,
+		},
+	}
+	expected3 := []byte{
+		0x38, 0x00, 0x00, 0x00, // Length
+		0x01, 0x00, 0x00, 0x00, // flags & FILTER_CRED_RUID
+		0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // FILTER_CRED_RUID
+		0x04, 0x00, 0x00, 0x00, // Operator NotEqual
+		0x04, 0x00, 0x00, 0x00, // length == 0x4
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Values[0] == "0:0"
+		0xe8, 0x03, 0x00, 0x00, 0xd0, 0x07, 0x00, 0x00, // Values[1] == "1000:2000"
+		0xa0, 0x86, 0x01, 0x00, 0xa0, 0x86, 0x01, 0x00, // Values[2] == "100000:100000"
+		0xfd, 0xff, 0xff, 0x6f, 0xff, 0xff, 0xff, 0xff, // Values[3] == "1879048189:4294967295"
+	}
+	k = &KernelSelectorState{data: KernelSelectorData{off: 0}}
+	d = &k.data
+	if err := ParseMatchCurrentCred(k, cred1); err != nil || bytes.Equal(expected3, d.e[0:d.off]) == false {
+		t.Errorf("parseMatchCurrentCred: error %v expected %v bytes %v parsing %v\n", err, expected3, d.e[0:d.off], cred1)
+	}
+
+	/* Testing invalid matches */
+
+	cred3 := []v1alpha1.CredentialsSelector{}
+	cred3 = append(cred3, cred1[:]...)
+	cred3 = append(cred3, cred2[:]...)
+	k = &KernelSelectorState{data: KernelSelectorData{off: 0}}
+
+	/* Currently only one cred type per selector is supported, this should fail */
+	err := ParseMatchCurrentCred(k, cred3)
+	require.Error(t, err)
+
+	invalidRuid := []v1alpha1.CredIdValues{
+		{
+			Operator: "eq", Values: []string{"1:0"},
+		},
+	}
+	cred4 := []v1alpha1.CredentialsSelector{
+		{
+			Ruid: invalidRuid,
+		},
+	}
+	err = ParseMatchCurrentCred(k, cred4)
+	require.Error(t, err)
+
+	invalidRuid = []v1alpha1.CredIdValues{
+		{
+			Operator: "eq", Values: []string{"1:4294967296"},
+		},
+	}
+	cred5 := []v1alpha1.CredentialsSelector{
+		{
+			Ruid: invalidRuid,
+		},
+	}
+	err = ParseMatchCurrentCred(k, cred5)
+	require.Error(t, err)
+
+	invalidRuid = []v1alpha1.CredIdValues{
+		{
+			Operator: "eq", Values: []string{"-1:0"},
+		},
+	}
+	cred6 := []v1alpha1.CredentialsSelector{
+		{
+			Ruid: invalidRuid,
+		},
+	}
+	err = ParseMatchCurrentCred(k, cred6)
+	require.Error(t, err)
+}
+
 func TestParseMatchNamespaceChanges(t *testing.T) {
 	ns1 := &v1alpha1.NamespaceChangesSelector{Operator: "In", Values: []string{"Uts", "Mnt"}}
 	k := &KernelSelectorState{data: KernelSelectorData{off: 0}}

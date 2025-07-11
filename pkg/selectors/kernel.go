@@ -1263,7 +1263,7 @@ func credUidSelectorValues(uids *v1alpha1.CredIdValues) ([]byte, uint32, error) 
 			return nil, 0, fmt.Errorf("uids/gids values outside of range 0:%d", math.MaxUint32)
 		}
 		if minId > maxId {
-			minId = maxId
+			return nil, 0, fmt.Errorf("uids/gids values %q invalid: range should be 'min:max'", v)
 		}
 
 		// Safe conversion to uint32 is guaranteed by the bounds check above
