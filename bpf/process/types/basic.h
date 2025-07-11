@@ -1561,13 +1561,24 @@ FUNC_INLINE int match_binaries(__u32 selidx, struct execve_map_value *current)
 	return 1;
 }
 
+FUNC_INLINE char *
+get_arg(struct msg_generic_kprobe *e, __u32 index)
+{
+	long argoff;
+
+	asm volatile("%[index] &= 0x7;\n" : [index] "+r"(index));
+	argoff = e->argsoff[index];
+	asm volatile("%[argoff] &= 0x7ff;\n" : [argoff] "+r"(argoff));
+	return &e->args[argoff];
+}
+
 FUNC_INLINE int
 selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 		    bool is_entry)
 {
 	struct selector_arg_filters *filters;
 	struct selector_arg_filter *filter;
-	long seloff, argoff, argsoff, pass = 1, margsoff;
+	long seloff, argsoff, pass = 1, margsoff;
 	__u32 i = 0, index;
 	char *args;
 
@@ -1619,13 +1630,7 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 		if (index > 5)
 			return 0;
 
-		asm volatile("%[index] &= 0x7;\n"
-			     : [index] "+r"(index));
-		argoff = e->argsoff[index];
-		asm volatile("%[argoff] &= 0x7ff;\n"
-			     : [argoff] "+r"(argoff));
-		args = &e->args[argoff];
-
+		args = get_arg(e, index);
 		switch (filter->type) {
 		case fd_ty:
 			/* Advance args past fd */
@@ -1650,13 +1655,22 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 			 */
 			pass &= filter_char_buf(filter, args, 8);
 			break;
-		case syscall64_type:
-		case s64_ty:
-		case u64_ty:
-		case kernel_cap_ty:
 		case cap_inh_ty:
 		case cap_prm_ty:
 		case cap_eff_ty:
+		case kernel_cap_ty:
+			if (filter->op == op_capabilities_gained) {
+				__u64 cap_old = *(__u64 *)args;
+				__u32 index2 = *((__u32 *)&filter->value);
+				__u64 cap_new = *(__u64 *)get_arg(e, index2);
+
+				pass = !!((cap_old ^ cap_new) & cap_new);
+				break;
+			}
+			/* falltrough */
+		case syscall64_type:
+		case s64_ty:
+		case u64_ty:
 			pass &= filter_64ty(filter, args);
 			break;
 		case size_type:
