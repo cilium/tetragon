@@ -474,6 +474,7 @@ spec:
                                   - State
                                   - InMap
                                   - NotInMap
+                                  - CapabilitiesGained
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -807,6 +808,7 @@ spec:
                                   - State
                                   - InMap
                                   - NotInMap
+                                  - CapabilitiesGained
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1120,6 +1122,7 @@ spec:
                                   - State
                                   - InMap
                                   - NotInMap
+                                  - CapabilitiesGained
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1453,6 +1456,7 @@ spec:
                                   - State
                                   - InMap
                                   - NotInMap
+                                  - CapabilitiesGained
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1802,6 +1806,7 @@ spec:
                                   - State
                                   - InMap
                                   - NotInMap
+                                  - CapabilitiesGained
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2135,6 +2140,7 @@ spec:
                                   - State
                                   - InMap
                                   - NotInMap
+                                  - CapabilitiesGained
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2428,6 +2434,7 @@ spec:
                                   - State
                                   - InMap
                                   - NotInMap
+                                  - CapabilitiesGained
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2761,6 +2768,7 @@ spec:
                                   - State
                                   - InMap
                                   - NotInMap
+                                  - CapabilitiesGained
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
