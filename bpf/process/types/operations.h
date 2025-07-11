@@ -41,6 +41,8 @@ enum {
 	// more socket ops
 	op_filter_family = 28,
 	op_filter_state = 29,
+	// capability ops
+	op_capabilities_gained = 30,
 };
 
 #endif // __OPERATIONS_H__
