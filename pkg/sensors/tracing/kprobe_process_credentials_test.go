@@ -15,14 +15,23 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
+	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/logger"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/caps"
+	testsensor "github.com/cilium/tetragon/pkg/sensors/test"
+	"github.com/cilium/tetragon/pkg/testutils"
+	tuo "github.com/cilium/tetragon/pkg/testutils/observer"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
+	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/unix"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
 )
@@ -336,4 +345,130 @@ spec:
 	checker := ec.NewUnorderedEventChecker(kpChangeGidChecker, kpChangeUidChecker, kpPrivilegedChecker)
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
+}
+
+func TestKprobeMatchCurrentCredValidity(t *testing.T) {
+	testutils.CaptureLog(t, logger.GetLogger())
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+	tus.LoadInitialSensor(t)
+	tus.LoadSensor(t, testsensor.GetTestSensor())
+	sm := tuo.GetTestSensorManager(t)
+
+	ruid := []v1alpha1.CredIDValues{
+		{
+			Operator: "Equal",
+			Values:   []string{"0:0"},
+		},
+	}
+	notValidRUIDs := []v1alpha1.CredIDValues{
+		{
+			Operator: "NotEqual",
+			Values:   []string{"-1:4294967296"},
+		},
+	}
+	credUidMultiple := []v1alpha1.CredentialsSelector{
+		{
+			RUIDs: ruid,
+			EUIDs: ruid,
+		},
+		{
+			RUIDs: ruid,
+		},
+	}
+	credEUidMultiple := []v1alpha1.CredentialsSelector{
+		{
+			RUIDs: ruid,
+			EUIDs: ruid,
+		},
+		{
+			EUIDs: ruid,
+		},
+	}
+
+	notValidCred := []v1alpha1.CredentialsSelector{
+		{
+			RUIDs: notValidRUIDs,
+		},
+	}
+
+	validCred := []v1alpha1.CredentialsSelector{
+		{
+			RUIDs: ruid,
+		},
+		{
+			EUIDs: ruid,
+		},
+	}
+
+	typeMeta := v1.TypeMeta{
+		APIVersion: "cilium.io/v1alpha1",
+		Kind:       "TracingPolicy",
+	}
+	Spec1 := v1alpha1.TracingPolicySpec{
+		KProbes: []v1alpha1.KProbeSpec{{
+			Call:    "commit_creds",
+			Syscall: false,
+		}},
+	}
+
+	Spec1.KProbes[0].Selectors = []v1alpha1.KProbeSelector{
+		{
+			MatchCurrentCred: credUidMultiple,
+		},
+	}
+
+	policy := tracingpolicy.GenericTracingPolicy{
+		TypeMeta: typeMeta,
+		Metadata: v1.ObjectMeta{Name: "match-current-cred"},
+		Spec: v1alpha1.TracingPolicySpec{
+			KProbes: Spec1.KProbes,
+		},
+	}
+
+	err := sm.Manager.AddTracingPolicy(ctx, &policy)
+	if err == nil {
+		t.Cleanup(func() {
+			sm.Manager.DeleteTracingPolicy(ctx, "match-current-cred", "")
+		})
+	}
+	require.Error(t, err)
+
+	Spec1.KProbes[0].Selectors = []v1alpha1.KProbeSelector{
+		{
+			MatchCurrentCred: credUidMultiple,
+		},
+	}
+	policy.Spec.KProbes[0].Selectors[0].MatchCurrentCred = credEUidMultiple
+	err = sm.Manager.AddTracingPolicy(ctx, &policy)
+	if err == nil {
+		t.Cleanup(func() {
+			sm.Manager.DeleteTracingPolicy(ctx, "match-current-cred", "")
+		})
+	}
+	require.Error(t, err)
+
+	policy.Spec.KProbes[0].Selectors[0].MatchCurrentCred = notValidCred
+	err = sm.Manager.AddTracingPolicy(ctx, &policy)
+	if err == nil {
+		t.Cleanup(func() {
+			sm.Manager.DeleteTracingPolicy(ctx, "match-current-cred", "")
+		})
+	}
+	require.Error(t, err)
+
+	policy.Spec.KProbes[0].Selectors[0].MatchCurrentCred = validCred
+	err = sm.Manager.AddTracingPolicy(ctx, &policy)
+	if err == nil {
+		t.Cleanup(func() {
+			sm.Manager.DeleteTracingPolicy(ctx, "match-current-cred", "")
+		})
+	}
+	if config.EnableLargeProgs() {
+		require.NoError(t, err)
+	} else {
+		require.Error(t, err)
+	}
 }
