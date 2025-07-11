@@ -429,12 +429,14 @@ spec:
                               ANDed.
                             items:
                               properties:
-                                arg:
-                                  description: Position of the argument (in spec file)
-                                    to apply fhe filter to.
-                                  format: int32
-                                  minimum: 0
-                                  type: integer
+                                args:
+                                  description: Position of the operator arguments
+                                    (in spec file) to apply fhe filter to.
+                                  items:
+                                    format: int32
+                                    minimum: 0
+                                    type: integer
+                                  type: array
                                 index:
                                   description: Position of the argument (in function
                                     prototype) to apply fhe filter to.
@@ -472,6 +474,7 @@ spec:
                                   - State
                                   - InMap
                                   - NotInMap
+                                  - CapabilitiesGained
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -760,12 +763,14 @@ spec:
                               ANDed.
                             items:
                               properties:
-                                arg:
-                                  description: Position of the argument (in spec file)
-                                    to apply fhe filter to.
-                                  format: int32
-                                  minimum: 0
-                                  type: integer
+                                args:
+                                  description: Position of the operator arguments
+                                    (in spec file) to apply fhe filter to.
+                                  items:
+                                    format: int32
+                                    minimum: 0
+                                    type: integer
+                                  type: array
                                 index:
                                   description: Position of the argument (in function
                                     prototype) to apply fhe filter to.
@@ -803,6 +808,7 @@ spec:
                                   - State
                                   - InMap
                                   - NotInMap
+                                  - CapabilitiesGained
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1071,12 +1077,14 @@ spec:
                               ANDed.
                             items:
                               properties:
-                                arg:
-                                  description: Position of the argument (in spec file)
-                                    to apply fhe filter to.
-                                  format: int32
-                                  minimum: 0
-                                  type: integer
+                                args:
+                                  description: Position of the operator arguments
+                                    (in spec file) to apply fhe filter to.
+                                  items:
+                                    format: int32
+                                    minimum: 0
+                                    type: integer
+                                  type: array
                                 index:
                                   description: Position of the argument (in function
                                     prototype) to apply fhe filter to.
@@ -1114,6 +1122,7 @@ spec:
                                   - State
                                   - InMap
                                   - NotInMap
+                                  - CapabilitiesGained
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1402,12 +1411,14 @@ spec:
                               ANDed.
                             items:
                               properties:
-                                arg:
-                                  description: Position of the argument (in spec file)
-                                    to apply fhe filter to.
-                                  format: int32
-                                  minimum: 0
-                                  type: integer
+                                args:
+                                  description: Position of the operator arguments
+                                    (in spec file) to apply fhe filter to.
+                                  items:
+                                    format: int32
+                                    minimum: 0
+                                    type: integer
+                                  type: array
                                 index:
                                   description: Position of the argument (in function
                                     prototype) to apply fhe filter to.
@@ -1445,6 +1456,7 @@ spec:
                                   - State
                                   - InMap
                                   - NotInMap
+                                  - CapabilitiesGained
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1749,12 +1761,14 @@ spec:
                               ANDed.
                             items:
                               properties:
-                                arg:
-                                  description: Position of the argument (in spec file)
-                                    to apply fhe filter to.
-                                  format: int32
-                                  minimum: 0
-                                  type: integer
+                                args:
+                                  description: Position of the operator arguments
+                                    (in spec file) to apply fhe filter to.
+                                  items:
+                                    format: int32
+                                    minimum: 0
+                                    type: integer
+                                  type: array
                                 index:
                                   description: Position of the argument (in function
                                     prototype) to apply fhe filter to.
@@ -1792,6 +1806,7 @@ spec:
                                   - State
                                   - InMap
                                   - NotInMap
+                                  - CapabilitiesGained
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2080,12 +2095,14 @@ spec:
                               ANDed.
                             items:
                               properties:
-                                arg:
-                                  description: Position of the argument (in spec file)
-                                    to apply fhe filter to.
-                                  format: int32
-                                  minimum: 0
-                                  type: integer
+                                args:
+                                  description: Position of the operator arguments
+                                    (in spec file) to apply fhe filter to.
+                                  items:
+                                    format: int32
+                                    minimum: 0
+                                    type: integer
+                                  type: array
                                 index:
                                   description: Position of the argument (in function
                                     prototype) to apply fhe filter to.
@@ -2123,6 +2140,7 @@ spec:
                                   - State
                                   - InMap
                                   - NotInMap
+                                  - CapabilitiesGained
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2371,12 +2389,14 @@ spec:
                               ANDed.
                             items:
                               properties:
-                                arg:
-                                  description: Position of the argument (in spec file)
-                                    to apply fhe filter to.
-                                  format: int32
-                                  minimum: 0
-                                  type: integer
+                                args:
+                                  description: Position of the operator arguments
+                                    (in spec file) to apply fhe filter to.
+                                  items:
+                                    format: int32
+                                    minimum: 0
+                                    type: integer
+                                  type: array
                                 index:
                                   description: Position of the argument (in function
                                     prototype) to apply fhe filter to.
@@ -2414,6 +2434,7 @@ spec:
                                   - State
                                   - InMap
                                   - NotInMap
+                                  - CapabilitiesGained
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2702,12 +2723,14 @@ spec:
                               ANDed.
                             items:
                               properties:
-                                arg:
-                                  description: Position of the argument (in spec file)
-                                    to apply fhe filter to.
-                                  format: int32
-                                  minimum: 0
-                                  type: integer
+                                args:
+                                  description: Position of the operator arguments
+                                    (in spec file) to apply fhe filter to.
+                                  items:
+                                    format: int32
+                                    minimum: 0
+                                    type: integer
+                                  type: array
                                 index:
                                   description: Position of the argument (in function
                                     prototype) to apply fhe filter to.
@@ -2745,6 +2768,7 @@ spec:
                                   - State
                                   - InMap
                                   - NotInMap
+                                  - CapabilitiesGained
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
