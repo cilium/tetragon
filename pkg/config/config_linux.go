@@ -47,7 +47,15 @@ func ForkObj() string {
 }
 
 // GenericKprobeObjs returns the generic kprobe and generic retprobe objects
-func GenericKprobeObjs() (string, string) {
+func GenericKprobeObjs(multi bool) (string, string) {
+	if multi {
+		if EnableV61Progs() {
+			return "bpf_multi_kprobe_v61.o", "bpf_multi_retkprobe_v61.o"
+		} else if kernels.MinKernelVersion("5.11") {
+			return "bpf_multi_kprobe_v511.o", "bpf_multi_retkprobe_v511.o"
+		}
+		return "bpf_multi_kprobe_v53.o", "bpf_multi_retkprobe_v53.o"
+	}
 	if EnableV61Progs() {
 		return "bpf_generic_kprobe_v61.o", "bpf_generic_retkprobe_v61.o"
 	} else if kernels.MinKernelVersion("5.11") {

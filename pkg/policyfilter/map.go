@@ -61,7 +61,7 @@ func openMap(spec *ebpf.CollectionSpec, mapName string, innerMaxEntries uint32) 
 func newPfMap(enableCgroupMap bool) (PfMap, error) {
 	// use the generic kprobe program, to find the policy filter map spec
 
-	objName, _ := config.GenericKprobeObjs()
+	objName, _ := config.GenericKprobeObjs(false)
 	objPath, err := config.FindProgramFile(objName)
 	if err != nil {
 		return PfMap{}, fmt.Errorf("loading spec for %s failed: %w", objPath, err)
