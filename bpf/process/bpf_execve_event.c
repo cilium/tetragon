@@ -11,6 +11,7 @@
 #include "bpf_helpers.h"
 #include "bpf_rate.h"
 #include "bpf_errmetrics.h"
+#include "bpf_mbset.h"
 
 #include "policy_filter.h"
 
@@ -41,17 +42,6 @@ struct {
 	__type(key, __u32);
 	__type(value, struct msg_data);
 } data_heap SEC(".maps");
-
-/* tg_mbset_map holds a mapping from (binary) paths to a bitset of ids that it matches. The map is
- * written by user-space and read in the exec hook to determine the bitset of ids of a binary that
- * is executed.
- */
-struct {
-	__uint(type, BPF_MAP_TYPE_HASH);
-	__uint(max_entries, 1024);
-	__type(key, __u8[MATCH_BINARIES_PATH_MAX_LENGTH]);
-	__type(value, mbset_t);
-} tg_mbset_map SEC(".maps");
 
 FUNC_INLINE __u32
 read_args(void *ctx, struct msg_execve_event *event)
@@ -405,6 +395,7 @@ execve_send(void *ctx __arg_ctx)
 		}
 #endif
 
+		update_mb_task(curr);
 		update_mb_bitset(&curr->bin);
 	}
 
