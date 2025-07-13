@@ -82,7 +82,7 @@ tetragon:
   #   {"namespace":["default"],"event_set":["PROCESS_EXEC"]}
   exportAllowList: |-
     {"event_set":["PROCESS_EXEC", "PROCESS_EXIT", "PROCESS_KPROBE", "PROCESS_UPROBE", "PROCESS_TRACEPOINT", "PROCESS_LSM"]}
-  # -- Denylist for JSON export. For example, to exclude exec events that look similar to
+  # -- Denylist for JSON export **(for file sinks only; does not filter gRPC output)**. For example, to exclude exec events that look similar to
   # Kubernetes health checks and all the events from kube-system namespace and the host:
   #
   # exportDenyList: |

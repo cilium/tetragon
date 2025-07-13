@@ -146,6 +146,15 @@ in cases where two filter configurations match on the same event.
 You can configure export filters using the provided helm options, command line
 flags, or environment variables.
 
+{{< caution >}}
+The `denylist` and `allowlist` filters mentioned above only apply to events
+exported as JSON files (e.g., through a configured `file` sink). These filters
+do not affect events streamed via the gRPC API, which are consumed by tools
+like the `tetra` CLI. You will still see unfiltered events when using the
+`tetra` CLI, even if those events would be filtered out by `denylist` or
+`allowlist` for JSON export.
+{{< /caution >}}
+
 ##### List of Process Event Filters
 
 The type for each filter attribute can be determined by referring to the 
