@@ -755,9 +755,13 @@ func writePostfixStrings(k *KernelSelectorState, values []string, ty uint32) err
 
 func checkOp(op uint32) error {
 	switch op {
-	case SelectorOpGT, SelectorOpLT:
+	case SelectorOpGT, SelectorOpLT, SelectorOpCapabilitiesGained:
 		if !config.EnableLargeProgs() {
-			return errors.New("GT/LT operators are only supported in kernels >= 5.3")
+			opName := selectorOpStringTable[op]
+			return fmt.Errorf(
+				"operator %d (%s) is only supported in kernels supporting large programs (normally versions >= 5.3)",
+				op, opName,
+			)
 		}
 	}
 	return nil

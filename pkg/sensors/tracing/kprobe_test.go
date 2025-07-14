@@ -6825,6 +6825,10 @@ func TestCapabilitiesGained(t *testing.T) {
 
 	testCapabilitiesGained := testutils.RepoRootPath("contrib/tester-progs/capabilities-gained")
 
+	if !config.EnableLargeProgs() {
+		t.Skip("CapabilitiesGained is not supported in kernels without large program support")
+	}
+
 	spec := &v1alpha1.TracingPolicySpec{
 		KProbes: []v1alpha1.KProbeSpec{{
 			// int security_capset(struct cred *new, const struct cred *old,
