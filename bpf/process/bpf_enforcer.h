@@ -51,7 +51,7 @@ enforcer_update_missed_notifications(struct enforcer_missed_key *key)
 	__u32 *counter = map_lookup_elem(&enforcer_missed_notifications, key), one = 1;
 
 	if (counter) {
-		__sync_fetch_and_add(counter, one);
+		lock_add(counter, one);
 		return;
 	}
 
@@ -64,7 +64,7 @@ enforcer_update_missed_notifications(struct enforcer_missed_key *key)
 	 */
 	counter = map_lookup_elem(&enforcer_missed_notifications, key);
 	if (counter) {
-		__sync_fetch_and_add(counter, one);
+		lock_add(counter, one);
 	}
 }
 
