@@ -9,6 +9,7 @@
 #include "bpf_cred.h"
 #include "bpf_d_path.h"
 #include "../process/string_maps.h"
+#include "api.h"
 
 /* Applying 'packed' attribute to structs causes clang to write to the
  * members byte-by-byte, as offsets may not be aligned. This is bad for
@@ -593,22 +594,22 @@ perf_event_output_update_error_metric(u8 msg_op, long err)
 	if (valp) {
 		switch (err) {
 		case -2: // ENOENT
-			__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_ENOENT], 1);
+			lock_add(&valp->sent_failed[msg_op][SENT_FAILED_ENOENT], 1);
 			break;
 		case -7: // E2BIG
-			__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_E2BIG], 1);
+			lock_add(&valp->sent_failed[msg_op][SENT_FAILED_E2BIG], 1);
 			break;
 		case -16: // EBUSY
-			__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_EBUSY], 1);
+			lock_add(&valp->sent_failed[msg_op][SENT_FAILED_EBUSY], 1);
 			break;
 		case -22: // EINVAL
-			__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_EINVAL], 1);
+			lock_add(&valp->sent_failed[msg_op][SENT_FAILED_EINVAL], 1);
 			break;
 		case -28: // ENOSPC
-			__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_ENOSPC], 1);
+			lock_add(&valp->sent_failed[msg_op][SENT_FAILED_ENOSPC], 1);
 			break;
 		default:
-			__sync_fetch_and_add(&valp->sent_failed[msg_op][SENT_FAILED_UNKNOWN], 1);
+			lock_add(&valp->sent_failed[msg_op][SENT_FAILED_UNKNOWN], 1);
 		}
 	}
 }

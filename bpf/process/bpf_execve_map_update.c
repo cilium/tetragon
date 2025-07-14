@@ -44,7 +44,7 @@ __execve_map_update(struct update_data *data)
 		pid = data->pids[idx];
 		curr = execve_map_get_noinit(pid);
 		if (curr)
-			__sync_fetch_and_and(&curr->bin.mb_bitset, ~(1 << data->bit));
+			lock_and(&curr->bin.mb_bitset, ~(1 << data->bit));
 	}
 	bpf_iter_num_destroy(&it);
 }
@@ -65,11 +65,7 @@ __execve_map_update(struct update_data *data)
 		pid = data->pids[idx];
 		curr = execve_map_get_noinit(pid);
 		if (curr)
-#ifdef __V511_BPF_PROG
-			__sync_fetch_and_and(&curr->bin.mb_bitset, ~(1 << data->bit));
-#else
-			curr->bin.mb_bitset &= ~(1 << data->bit);
-#endif
+			lock_and(&curr->bin.mb_bitset, ~(1 << data->bit));
 	}
 }
 #else

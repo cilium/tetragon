@@ -278,10 +278,6 @@ static int BPF_FUNC(seq_write, struct seq_file *m, const void *data, uint32_t le
 
 /** LLVM built-ins, mem*() routines work for constant size */
 
-#ifndef lock_xadd
-# define lock_xadd(ptr, val)	((void) __sync_fetch_and_add(ptr, val))
-#endif
-
 #ifndef memset
 # define memset(s, c, n)	__builtin_memset((s), (c), (n))
 #endif
@@ -302,6 +298,27 @@ static int BPF_FUNC(seq_write, struct seq_file *m, const void *data, uint32_t le
 #ifndef memcmp
 # define memcmp(a, b, n)	__builtin_memcmp((a), (b), (n))
 #endif
+#endif
+
+/**
+ * atomic add is support from before 4.19 on both arm and x86,
+ * x86 has other atomics support from 5.11, arm from 5.17
+ */
+#if defined(__TARGET_ARCH_arm64) && defined(__V61_BPF_PROG)
+#define __HAS_ALL_ATOMICS 1
+#endif
+#if defined(__TARGET_ARCH_x86) && defined(__V511_BPF_PROG)
+#define __HAS_ALL_ATOMICS 1
+#endif
+
+#define lock_add(ptr, val)	((void)__sync_fetch_and_add(ptr, val))
+
+#ifdef __HAS_ALL_ATOMICS
+# define lock_or(ptr, val)	((void)__sync_fetch_and_or(ptr, val))
+# define lock_and(ptr, val)	((void)__sync_fetch_and_and(ptr, val))
+#else
+# define lock_or(ptr, val)	(*(ptr) |= val)
+# define lock_and(ptr, val)	(*(ptr) &= val)
 #endif
 
 #endif /* __BPF_API__ */
