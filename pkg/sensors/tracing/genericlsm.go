@@ -438,15 +438,7 @@ func imaProgName(lsmEntry *genericLsm) (string, string) {
 func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 	progs []*program.Program, maps []*program.Map) ([]*program.Program, []*program.Map) {
 
-	loadProgCoreName := "bpf_generic_lsm_core.o"
-	loadProgOutputName := "bpf_generic_lsm_output.o"
-	if config.EnableV61Progs() {
-		loadProgCoreName = "bpf_generic_lsm_core_v61.o"
-		loadProgOutputName = "bpf_generic_lsm_output_v61.o"
-	} else if kernels.MinKernelVersion("5.11") {
-		loadProgCoreName = "bpf_generic_lsm_core_v511.o"
-		loadProgOutputName = "bpf_generic_lsm_output_v511.o"
-	}
+	loadProgCoreName, loadProgOutputName := config.GenericLsmObjs()
 
 	/* We need to load LSM programs in the following order:
 	   1. bpf_generic_lsm_output
