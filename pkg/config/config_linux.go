@@ -99,6 +99,15 @@ func GenericTracepointObjs(raw bool) string {
 	return "bpf_generic_tracepoint.o"
 }
 
+func GenericLsmObjs() (string, string) {
+	if EnableV61Progs() {
+		return "bpf_generic_lsm_core_v61.o", "bpf_generic_lsm_output_v61.o"
+	} else if kernels.MinKernelVersion("5.11") {
+		return "bpf_generic_lsm_core_v511.o", "bpf_generic_lsm_output_v511.o"
+	}
+	return "bpf_generic_lsm_core.o", "bpf_generic_lsm_output.o"
+}
+
 func EnableRhel7Progs() bool {
 	kernelVer, _, _ := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
 	return (int64(kernelVer) < kernels.KernelStringToNumeric("3.11.0"))

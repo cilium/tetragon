@@ -33,6 +33,10 @@ func GenericTracepointObjs(_ bool) string {
 	return ""
 }
 
+func GenericLsmObjs() (string, string) {
+	return "", ""
+}
+
 func EnableV61Progs() bool {
 	return false
 }
