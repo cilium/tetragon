@@ -25,6 +25,10 @@ func GenericKprobeObjs(_ bool) (string, string) {
 	return "", ""
 }
 
+func GenericUprobeObjs(_ bool) string {
+	return ""
+}
+
 func EnableV61Progs() bool {
 	return false
 }
