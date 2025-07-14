@@ -500,27 +500,6 @@ func createGenericTracepointSensor(
 		tracepoints = append(tracepoints, tp)
 	}
 
-	progName := func(raw bool) string {
-		if raw {
-			if config.EnableV61Progs() {
-				return "bpf_generic_rawtp_v61.o"
-			} else if kernels.MinKernelVersion("5.11") {
-				return "bpf_generic_rawtp_v511.o"
-			} else if config.EnableLargeProgs() {
-				return "bpf_generic_rawtp_v53.o"
-			}
-			return "bpf_generic_rawtp.o"
-		}
-		if config.EnableV61Progs() {
-			return "bpf_generic_tracepoint_v61.o"
-		} else if kernels.MinKernelVersion("5.11") {
-			return "bpf_generic_tracepoint_v511.o"
-		} else if config.EnableLargeProgs() {
-			return "bpf_generic_tracepoint_v53.o"
-		}
-		return "bpf_generic_tracepoint.o"
-	}
-
 	has := hasMaps{
 		enforcer: len(spec.Enforcers) != 0,
 	}
@@ -535,7 +514,7 @@ func createGenericTracepointSensor(
 			label = "raw_tp/generic_tracepoint"
 		}
 		prog0 := program.Builder(
-			path.Join(option.Config.HubbleLib, progName(tp.raw)),
+			path.Join(option.Config.HubbleLib, config.GenericTracepointObjs(tp.raw)),
 			attach,
 			label,
 			pinProg,
