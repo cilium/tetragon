@@ -78,6 +78,27 @@ func GenericUprobeObjs(multi bool) string {
 	return "bpf_generic_uprobe.o"
 }
 
+func GenericTracepointObjs(raw bool) string {
+	if raw {
+		if EnableV61Progs() {
+			return "bpf_generic_rawtp_v61.o"
+		} else if kernels.MinKernelVersion("5.11") {
+			return "bpf_generic_rawtp_v511.o"
+		} else if EnableLargeProgs() {
+			return "bpf_generic_rawtp_v53.o"
+		}
+		return "bpf_generic_rawtp.o"
+	}
+	if EnableV61Progs() {
+		return "bpf_generic_tracepoint_v61.o"
+	} else if kernels.MinKernelVersion("5.11") {
+		return "bpf_generic_tracepoint_v511.o"
+	} else if EnableLargeProgs() {
+		return "bpf_generic_tracepoint_v53.o"
+	}
+	return "bpf_generic_tracepoint.o"
+}
+
 func EnableRhel7Progs() bool {
 	kernelVer, _, _ := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
 	return (int64(kernelVer) < kernels.KernelStringToNumeric("3.11.0"))

@@ -29,6 +29,10 @@ func GenericUprobeObjs(_ bool) string {
 	return ""
 }
 
+func GenericTracepointObjs(_ bool) string {
+	return ""
+}
+
 func EnableV61Progs() bool {
 	return false
 }
