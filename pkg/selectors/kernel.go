@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"math"
 	"net"
 	"net/netip"
 	"strconv"
@@ -304,6 +305,19 @@ func SelectorOp(op string) (uint32, error) {
 const (
 	pidNamespacePid = 0x1
 	pidFollowForks  = 0x2
+)
+
+const (
+	FILTER_CRED_UNKNOWN = 0x00
+	FILTER_CRED_RUID    = 0x01 // Real UIDs
+	FILTER_CRED_RGID    = 0x02 // Real GIDs
+	FILTER_CRED_EUID    = 0x04 // Effective UIDs
+)
+
+const (
+	InvalidUid             = ^uint32(0) // Invalid UID 4294967295 (2^32 - 1)
+	MaxCredSelectorFilters = 2          // Max filters per selector
+	MaxCredSelectorValues  = 3          // Max Selector values for Credentials
 )
 
 func pidSelectorFlags(pid *v1alpha1.PIDSelector) uint32 {
@@ -1262,6 +1276,174 @@ func ParseMatchCapabilityChanges(k *KernelSelectorState, actions []v1alpha1.Capa
 	return nil
 }
 
+func credUidSelectorValues(uids *v1alpha1.CredIDValues) ([]byte, uint32, error) {
+	b := make([]byte, len(uids.Values)*8)
+
+	if len(uids.Values) > MaxCredSelectorValues {
+		return nil, 0, fmt.Errorf("selector supports only %d uids/gids selector values", MaxCredSelectorValues)
+	}
+
+	for i, v := range uids.Values {
+		rangeStr := strings.Split(v, ":")
+		if len(rangeStr) > 2 {
+			return nil, 0, fmt.Errorf("uids/gids values %q invalid: range should be 'min:max'", v)
+		}
+
+		minId, err := strconv.ParseUint(rangeStr[0], 10, 64)
+		if err != nil {
+			return nil, 0, fmt.Errorf("uids/gids values %q invalid: %w", v, err)
+		}
+		maxId := minId
+		if len(rangeStr) > 1 {
+			maxId, err = strconv.ParseUint(rangeStr[1], 10, 64)
+			if err != nil {
+				return nil, 0, fmt.Errorf("uids/gids values %q invalid: %w", v, err)
+			}
+		}
+
+		// Ensure values are within the range of uint32 before conversion
+		// We should check against InvalidUID but let's make CodeQL happy and use standard math.MaxUint32
+		if minId > uint64(math.MaxUint32) || maxId > uint64(math.MaxUint32) {
+			return nil, 0, fmt.Errorf("uids/gids values %q outside of range 0:%d", v, math.MaxUint32)
+		}
+		if minId > maxId {
+			return nil, 0, fmt.Errorf("uids/gids values %q invalid: range should be 'min:max'", v)
+		}
+
+		// Safe conversion to uint32 is guaranteed by the bounds check above
+
+		off := i * 8
+		binary.LittleEndian.PutUint32(b[off:], uint32(minId))
+		binary.LittleEndian.PutUint32(b[off+4:], uint32(maxId))
+	}
+
+	return b, uint32(len(b)), nil
+}
+
+func credUidSelector(k *KernelSelectorState, uids *v1alpha1.CredIDValues, ty uint32) error {
+	if len(uids.Values) > MaxCredSelectorValues {
+		return fmt.Errorf("selector supports only %d values", MaxCredSelectorValues)
+	} else if len(uids.Values) == 0 {
+		return errors.New("selector must include at least one value")
+	}
+
+	op, err := SelectorOp(uids.Operator)
+	if err != nil {
+		return fmt.Errorf("operator %w", err)
+	}
+
+	if (op != SelectorOpEQ) && (op != SelectorOpNEQ) {
+		return errors.New("operator supports only 'eq' and 'neq'")
+	}
+
+	value, size, err := credUidSelectorValues(uids)
+	if err != nil {
+		return fmt.Errorf("values %w", err)
+	}
+
+	/* Credential type flags */
+	WriteSelectorUint64(&k.data, uint64(ty))
+
+	/* Operator */
+	WriteSelectorUint32(&k.data, op)
+
+	/* Write how many values */
+	WriteSelectorUint32(&k.data, size/8)
+
+	/* Values */
+	WriteSelectorByteArray(&k.data, value, size)
+
+	return nil
+}
+
+func ParseMatchCred(k *KernelSelectorState, matchCred *v1alpha1.CredentialsSelector, flags *int, count *int) error {
+
+	/* Parse real UIDs */
+	if len(matchCred.UIDs) > 0 {
+		/*
+		 * For now we support only one match operator per cred, but
+		 * in future we should be able to support a list of operators,
+		 * where we can do Equal and NotEqual.
+		 *
+		 * If already pushed let's error out.
+		 */
+		if len(matchCred.UIDs) > 1 || *flags&FILTER_CRED_RUID != 0 {
+			return errors.New("matchCurrentCred selector supports only one uid filter")
+		}
+		ruid := &matchCred.UIDs[0]
+		err := credUidSelector(k, ruid, FILTER_CRED_RUID)
+		if err != nil {
+			return fmt.Errorf("matchCurrentCred ruid %w", err)
+		}
+		*flags |= FILTER_CRED_RUID
+		*count++
+	}
+
+	/* Parse effective UIDs */
+	if len(matchCred.EUIDs) > 0 {
+		/*
+		 * For now we support only one match operator per cred, but
+		 * in future we should be able to support a list of operators,
+		 * where we can do Equal and NotEqual.
+		 *
+		 * If already pushed let's error out.
+		 */
+		if len(matchCred.EUIDs) > 1 || *flags&FILTER_CRED_EUID != 0 {
+			return errors.New("matchCurrentCred selector supports only one euid filter")
+		}
+		euid := &matchCred.EUIDs[0]
+		err := credUidSelector(k, euid, FILTER_CRED_EUID)
+		if err != nil {
+			return fmt.Errorf("matchCurrentCred euid %w", err)
+		}
+		*flags |= FILTER_CRED_EUID
+		*count++
+	}
+
+	return nil
+}
+
+/* ParseMatchCurrentCred() Parses matchCurrentCred selector and saves it for kernel side */
+func ParseMatchCurrentCred(k *KernelSelectorState, matchCreds []v1alpha1.CredentialsSelector) error {
+	credLen := len(matchCreds)
+	/*
+	 * For now we support only MaxCredSelectorFilters, if you change this
+	 * change also kernel part MAX_CRED_SELECTOR_FILTERS
+	 */
+	if credLen > MaxCredSelectorFilters {
+		return fmt.Errorf("matchCurrentCred supports only %d filters (current number of filters is %d)", MaxCredSelectorFilters, credLen)
+	}
+
+	if (credLen > 0) && !config.EnableLargeProgs() {
+		return errors.New("matchCurrentCred is only supported in kernels >= 5.3")
+	}
+
+	loff := AdvanceSelectorLength(&k.data)
+	off_cred_counts := GetCurrentOffset(&k.data)
+	cred_counts := 0
+	flags := FILTER_CRED_UNKNOWN
+	if credLen > 0 {
+		/* Initialize filter with zero flags to not trigger bpf code for nothing */
+		WriteSelectorUint32(&k.data, uint32(cred_counts))
+
+		for _, c := range matchCreds {
+			if err := ParseMatchCred(k, &c, &flags, &cred_counts); err != nil {
+				/* fail on errors */
+				return err
+			}
+		}
+	}
+
+	if cred_counts > 0 {
+		/* After successfully parsing overwrite available credential filters */
+		WriteSelectorOffsetUint32(&k.data, off_cred_counts, uint32(cred_counts))
+	}
+
+	WriteSelectorLength(&k.data, loff)
+
+	return nil
+}
+
 func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx int) error {
 	op, err := SelectorOp(b.Operator)
 	if err != nil {
@@ -1340,17 +1522,19 @@ func ParseMatchBinaries(k *KernelSelectorState, binarys []v1alpha1.BinarySelecto
 //
 // Sx := [length]
 //
-//	[matchPIDs]
-//	[matchNamespaces]
-//	[matchCapabilities]
-//	[matchNamespaceChanges]
-//	[matchCapabilityChanges]
-//	[matchArgs]
-//	[matchActions]
+//		[matchPIDs]
+//		[matchNamespaces]
+//		[matchCapabilities]
+//	        [matchCurrentCred]
+//		[matchNamespaceChanges]
+//		[matchCapabilityChanges]
+//		[matchArgs]
+//		[matchActions]
 //
 // matchPIDs := [length][PID1][PID2]...[PIDn]
 // matchNamespaces := [length][NSx][NSy]...[NSn]
 // matchCapabilities := [length][CAx][CAy]...[CAn]
+// matchCurrentCred := [length][counts][Ruid][Euid]
 // matchNamespaceChanges := [length][NCx][NCy]...[NCn]
 // matchCapabilityChanges := [length][CAx][CAy]...[CAn]
 // matchArgs := [length][ARGx][ARGy]...[ARGn]
@@ -1359,6 +1543,8 @@ func ParseMatchBinaries(k *KernelSelectorState, binarys []v1alpha1.BinarySelecto
 // NSn := [namespace][op][valueInt]
 // NCn := [op][valueInt]
 // CAn := [type][op][namespacecap][valueInt]
+// Ruid := [type_flag][op][nValues][vX0][vY0][vX1][vY1]...[vX3][vY3]
+// Xuid := [type_flag][op][nValues][vX0][vY0][vX1][vY1]...[vX3][vY3]
 // valueGen := [type][len][v]
 // valueInt := [len][v]
 //
@@ -1411,6 +1597,9 @@ func InitKernelSelectorState(selectors []v1alpha1.KProbeSelector, args []v1alpha
 		}
 		if err := ParseMatchCapabilities(k, selectors.MatchCapabilities); err != nil {
 			return fmt.Errorf("parseMatchCapabilities error: %w", err)
+		}
+		if err := ParseMatchCurrentCred(k, selectors.MatchCurrentCred); err != nil {
+			return fmt.Errorf("parseMatchCurrentCred error: %w", err)
 		}
 		if err := ParseMatchNamespaceChanges(k, selectors.MatchNamespaceChanges); err != nil {
 			return fmt.Errorf("parseMatchNamespaceChanges error: %w", err)
