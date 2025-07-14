@@ -1659,6 +1659,7 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 		case cap_prm_ty:
 		case cap_eff_ty:
 		case kernel_cap_ty:
+#ifdef __LARGE_BPF_PROG
 			if (filter->op == op_capabilities_gained) {
 				__u64 cap_old = *(__u64 *)args;
 				__u32 index2 = *((__u32 *)&filter->value);
@@ -1668,6 +1669,7 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 				break;
 			}
 			/* falltrough */
+#endif
 		case syscall64_type:
 		case s64_ty:
 		case u64_ty:
