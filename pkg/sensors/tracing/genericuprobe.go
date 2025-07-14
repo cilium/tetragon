@@ -457,7 +457,7 @@ func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID, poli
 	var progs []*program.Program
 	var maps []*program.Map
 
-	loadProgName := "bpf_multi_uprobe_v61.o"
+	loadProgName := config.GenericUprobeObjs(true)
 
 	pinPath := multiUprobePinPath(sensorPath)
 
@@ -501,12 +501,7 @@ func createSingleUprobeSensor(ids []idtable.EntryID) ([]*program.Program, []*pro
 func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 	progs []*program.Program, maps []*program.Map) ([]*program.Program, []*program.Map) {
 
-	loadProgName := "bpf_generic_uprobe.o"
-	if config.EnableV61Progs() {
-		loadProgName = "bpf_generic_uprobe_v61.o"
-	} else if config.EnableLargeProgs() {
-		loadProgName = "bpf_generic_uprobe_v53.o"
-	}
+	loadProgName := config.GenericUprobeObjs(false)
 
 	attachData := &program.UprobeAttachData{
 		Path:         uprobeEntry.path,

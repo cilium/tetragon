@@ -66,6 +66,18 @@ func GenericKprobeObjs(multi bool) (string, string) {
 	return "bpf_generic_kprobe.o", "bpf_generic_retkprobe.o"
 }
 
+func GenericUprobeObjs(multi bool) string {
+	if multi {
+		return "bpf_multi_uprobe_v61.o"
+	}
+	if EnableV61Progs() {
+		return "bpf_generic_uprobe_v61.o"
+	} else if EnableLargeProgs() {
+		return "bpf_generic_uprobe_v53.o"
+	}
+	return "bpf_generic_uprobe.o"
+}
+
 func EnableRhel7Progs() bool {
 	kernelVer, _, _ := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
 	return (int64(kernelVer) < kernels.KernelStringToNumeric("3.11.0"))
