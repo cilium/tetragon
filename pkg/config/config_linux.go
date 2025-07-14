@@ -13,6 +13,8 @@ import (
 func ExecObj() string {
 	if EnableRhel7Progs() {
 		return "bpf_execve_event_v310.o"
+	} else if EnableV612Progs() {
+		return "bpf_execve_event_v612.o"
 	} else if EnableV61Progs() {
 		return "bpf_execve_event_v61.o"
 	} else if kernels.MinKernelVersion("5.11") {
@@ -24,7 +26,9 @@ func ExecObj() string {
 }
 
 func ExecUpdateObj() string {
-	if kernels.MinKernelVersion("5.11") {
+	if kernels.MinKernelVersion("6.12") {
+		return "bpf_execve_map_update_v612.o"
+	} else if kernels.MinKernelVersion("5.11") {
 		return "bpf_execve_map_update_v511.o"
 	} else if EnableLargeProgs() {
 		return "bpf_execve_map_update_v53.o"
@@ -49,14 +53,18 @@ func ForkObj() string {
 // GenericKprobeObjs returns the generic kprobe and generic retprobe objects
 func GenericKprobeObjs(multi bool) (string, string) {
 	if multi {
-		if EnableV61Progs() {
+		if EnableV612Progs() {
+			return "bpf_multi_kprobe_v612.o", "bpf_multi_retkprobe_v612.o"
+		} else if EnableV61Progs() {
 			return "bpf_multi_kprobe_v61.o", "bpf_multi_retkprobe_v61.o"
 		} else if kernels.MinKernelVersion("5.11") {
 			return "bpf_multi_kprobe_v511.o", "bpf_multi_retkprobe_v511.o"
 		}
 		return "bpf_multi_kprobe_v53.o", "bpf_multi_retkprobe_v53.o"
 	}
-	if EnableV61Progs() {
+	if EnableV612Progs() {
+		return "bpf_generic_kprobe_v612.o", "bpf_generic_retkprobe_v612.o"
+	} else if EnableV61Progs() {
 		return "bpf_generic_kprobe_v61.o", "bpf_generic_retkprobe_v61.o"
 	} else if kernels.MinKernelVersion("5.11") {
 		return "bpf_generic_kprobe_v511.o", "bpf_generic_retkprobe_v511.o"
@@ -68,9 +76,14 @@ func GenericKprobeObjs(multi bool) (string, string) {
 
 func GenericUprobeObjs(multi bool) string {
 	if multi {
+		if EnableV612Progs() {
+			return "bpf_multi_uprobe_v612.o"
+		}
 		return "bpf_multi_uprobe_v61.o"
 	}
-	if EnableV61Progs() {
+	if EnableV612Progs() {
+		return "bpf_generic_uprobe_v612.o"
+	} else if EnableV61Progs() {
 		return "bpf_generic_uprobe_v61.o"
 	} else if EnableLargeProgs() {
 		return "bpf_generic_uprobe_v53.o"
@@ -80,7 +93,9 @@ func GenericUprobeObjs(multi bool) string {
 
 func GenericTracepointObjs(raw bool) string {
 	if raw {
-		if EnableV61Progs() {
+		if EnableV612Progs() {
+			return "bpf_generic_rawtp_v612.o"
+		} else if EnableV61Progs() {
 			return "bpf_generic_rawtp_v61.o"
 		} else if kernels.MinKernelVersion("5.11") {
 			return "bpf_generic_rawtp_v511.o"
@@ -89,7 +104,9 @@ func GenericTracepointObjs(raw bool) string {
 		}
 		return "bpf_generic_rawtp.o"
 	}
-	if EnableV61Progs() {
+	if EnableV612Progs() {
+		return "bpf_generic_tracepoint_v612.o"
+	} else if EnableV61Progs() {
 		return "bpf_generic_tracepoint_v61.o"
 	} else if kernels.MinKernelVersion("5.11") {
 		return "bpf_generic_tracepoint_v511.o"
@@ -100,7 +117,9 @@ func GenericTracepointObjs(raw bool) string {
 }
 
 func GenericLsmObjs() (string, string) {
-	if EnableV61Progs() {
+	if EnableV612Progs() {
+		return "bpf_generic_lsm_core_v612.o", "bpf_generic_lsm_output_v612.o"
+	} else if EnableV61Progs() {
 		return "bpf_generic_lsm_core_v61.o", "bpf_generic_lsm_output_v61.o"
 	} else if kernels.MinKernelVersion("5.11") {
 		return "bpf_generic_lsm_core_v511.o", "bpf_generic_lsm_output_v511.o"
@@ -119,6 +138,14 @@ func EnableV61Progs() bool {
 	}
 	kernelVer, _, _ := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
 	return (int64(kernelVer) >= kernels.KernelStringToNumeric("6.1.0"))
+}
+
+func EnableV612Progs() bool {
+	if option.Config.ForceSmallProgs {
+		return false
+	}
+	kernelVer, _, _ := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
+	return (int64(kernelVer) >= kernels.KernelStringToNumeric("6.12.0"))
 }
 
 func EnableLargeProgs() bool {
