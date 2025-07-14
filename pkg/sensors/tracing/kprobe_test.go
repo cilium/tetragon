@@ -51,6 +51,7 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
+	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tuo "github.com/cilium/tetragon/pkg/testutils/observer"
@@ -6815,4 +6816,79 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
 	require.NoError(t, err)
+}
+
+func TestCapabilitiesGained(t *testing.T) {
+	testutils.CaptureLog(t, logger.GetLogger())
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	testCapabilitiesGained := testutils.RepoRootPath("contrib/tester-progs/capabilities-gained")
+
+	spec := &v1alpha1.TracingPolicySpec{
+		KProbes: []v1alpha1.KProbeSpec{{
+			// int security_capset(struct cred *new, const struct cred *old,
+			//  const kernel_cap_t *effective,
+			//  const kernel_cap_t *inheritable,
+			//  const kernel_cap_t *permitted)
+			Call:    "security_capset",
+			Syscall: false,
+			Args: []v1alpha1.KProbeArg{{
+				Index:   1,
+				Type:    "cap_effective",
+				Resolve: "cap_effective",
+			}, {
+				Index: 2,
+				Type:  "cap_effective",
+			}},
+			Selectors: []v1alpha1.KProbeSelector{{
+				MatchBinaries: []v1alpha1.BinarySelector{{
+					Operator: "In",
+					Values:   []string{testCapabilitiesGained},
+				}},
+				MatchArgs: []v1alpha1.ArgSelector{{
+					Args:     []uint32{0, 1},
+					Operator: "CapabilitiesGained",
+				}},
+			}},
+		}},
+	}
+
+	loadGenericSensorTest(t, spec)
+	t0 := time.Now()
+	loadElapsed := time.Since(t0)
+	t.Logf("loading sensors took: %s\n", loadElapsed)
+
+	countEvents := 0
+	eventFn := func(ev notify.Message) error {
+		if kpEvent, ok := ev.(*tracing.MsgGenericKprobeUnix); ok {
+			if kpEvent.FuncName != "security_capset" {
+				return fmt.Errorf("unexpected kprobe event, func:%s", kpEvent.FuncName)
+			}
+			countEvents++
+		}
+		return nil
+	}
+
+	ops := func() {
+		cmd := exec.Command(testCapabilitiesGained)
+		var output, errput bytes.Buffer
+		cmd.Stdout = &output
+		cmd.Stderr = &errput
+		if err := cmd.Start(); err != nil {
+			t.Fatalf("failed to run %s: %s", testCapabilitiesGained, err)
+		}
+		if err := cmd.Wait(); err != nil {
+			t.Logf("%s failed: %s", testCapabilitiesGained, err)
+			t.Logf("stdout:")
+			t.Logf("%s", output.String())
+			t.Logf("stderr:")
+			t.Logf("%s", errput.String())
+			t.Logf("Failing test")
+			t.FailNow()
+		}
+	}
+
+	perfring.RunTest(t, ctx, ops, eventFn)
+	require.Equal(t, 1, countEvents, "expected single event")
 }
