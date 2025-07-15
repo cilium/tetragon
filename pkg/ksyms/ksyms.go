@@ -78,7 +78,7 @@ func NewKsyms(procfs string) (*Ksyms, error) {
 		var sym ksym
 
 		if len(fields) < 3 {
-			fmt.Fprintf(os.Stderr, "Failed to parse: '%s'\n", txt)
+			logger.GetLogger().Warn("failed to parse kallsyms line", "line", txt)
 			continue
 		}
 
@@ -129,8 +129,7 @@ func NewKsyms(procfs string) (*Ksyms, error) {
 	if err == nil {
 		ksyms.fnCache = fc
 	} else {
-
-		logger.GetLogger().Info("failed to initialize cache", logfields.Error, err)
+		logger.GetLogger().Warn("failed to initialize kallsyms cache", logfields.Error, err)
 	}
 
 	return &ksyms, nil
