@@ -230,6 +230,10 @@ func HasProgramLargeSize() bool {
 	return features.HaveLargeInstructions() == nil
 }
 
+// detectLSM must check for the presence of the 'bpf' flag in
+// /sys/kernel/security/lsm in addition to trying to attach a BPF LSM program
+// because if the BPF LSM is not loaded, the program can be loaded on the kernel
+// but will never be triggered.
 func detectLSM() bool {
 	if features.HaveProgramType(ebpf.LSM) != nil {
 		return false
