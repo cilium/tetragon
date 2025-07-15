@@ -11,6 +11,7 @@ package selectors
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"strings"
 	"testing"
 
@@ -457,6 +458,275 @@ func TestParseMatchNamespaces(t *testing.T) {
 	}
 }
 
+func TestParseMatchCurrentCred(t *testing.T) {
+	if !config.EnableLargeProgs() {
+		k := &KernelSelectorState{data: KernelSelectorData{off: 0}}
+		d := &k.data
+		credOldKernel := []v1alpha1.CredentialsSelector{}
+		expected := []byte{
+			0x04, 0x00, 0x00, 0x00, // Length
+		}
+		if err := ParseMatchCurrentCred(k, credOldKernel); err != nil || bytes.Equal(expected, d.e[0:d.off]) == false {
+			t.Errorf("parseMatchCurrentCred: error %v expected %v bytes %v parsing %v\n", err, expected, d.e[0:d.off], credOldKernel)
+		}
+		ruid := []v1alpha1.CredIDValues{
+			{
+				Operator: "Equal", Values: []string{"0", "1000:2000", "100000"},
+			},
+		}
+		credOldKernel = []v1alpha1.CredentialsSelector{
+			{
+				RUIDs: ruid,
+			},
+		}
+		/* on old kernels fail if matchCurrentCred is set */
+		err := ParseMatchCurrentCred(k, credOldKernel)
+		require.Error(t, err)
+		return
+	}
+
+	tests := map[string]struct {
+		cred     []v1alpha1.CredentialsSelector
+		expected []byte
+		err      error
+	}{
+		"cred1": {
+			cred: []v1alpha1.CredentialsSelector{
+				{
+					RUIDs: []v1alpha1.CredIDValues{
+						{
+							Operator: "Equal", Values: []string{"0", "1000:2000", "100000"},
+						},
+					},
+				},
+			},
+			expected: []byte{
+				0x30, 0x00, 0x00, 0x00, // Length
+				0x01, 0x00, 0x00, 0x00, // flags & FILTER_CRED_RUID
+				0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // FILTER_CRED_RUID
+				0x03, 0x00, 0x00, 0x00, // Operator Equal
+				0x03, 0x00, 0x00, 0x00, // length == 0x3
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Values[0] == "0:0"
+				0xe8, 0x03, 0x00, 0x00, 0xd0, 0x07, 0x00, 0x00, // Values[1] == "1000:2000"
+				0xa0, 0x86, 0x01, 0x00, 0xa0, 0x86, 0x01, 0x00, // Values[2] == "100000:100000"
+			},
+		},
+		"cred2": {
+			cred: []v1alpha1.CredentialsSelector{
+				{
+					RUIDs: []v1alpha1.CredIDValues{
+						{
+							Operator: "Equal", Values: []string{"0", "1000:2000", "100000"},
+						},
+					},
+					EUIDs: []v1alpha1.CredIDValues{
+						{
+							Operator: "eq", Values: []string{"0", "4000:8000"},
+						},
+					},
+				},
+			},
+			expected: []byte{
+				0x50, 0x00, 0x00, 0x00, // Length
+				0x05, 0x00, 0x00, 0x00, // flags & FILTER_CRED_RUID & FILTER_CRED_EUID
+				0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // FILTER_CRED_RUID
+				0x03, 0x00, 0x00, 0x00, // Operator Equal
+				0x03, 0x00, 0x00, 0x00, // length == 0x3
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Values[0] == "0:0"
+				0xe8, 0x03, 0x00, 0x00, 0xd0, 0x07, 0x00, 0x00, // Values[1] == "1000:2000"
+				0xa0, 0x86, 0x01, 0x00, 0xa0, 0x86, 0x01, 0x00, // Values[2] == "100000:100000"
+				0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // FILTER_CRED_EUID
+				0x03, 0x00, 0x00, 0x00, // Operator Equal
+				0x02, 0x00, 0x00, 0x00, // length == 0x2
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Values[0] == "0:0"
+				0xa0, 0x0f, 0x00, 0x00, 0x40, 0x1f, 0x00, 0x00, // Values[1] == "4000:8000"
+			},
+		},
+		"cred3": {
+			cred: []v1alpha1.CredentialsSelector{
+				{
+					RUIDs: []v1alpha1.CredIDValues{
+						{
+							Operator: "neq", Values: []string{"0", "1000:2000", "1879048189:4294967295"},
+						},
+					},
+				},
+			},
+			expected: []byte{
+				0x30, 0x00, 0x00, 0x00, // Length
+				0x01, 0x00, 0x00, 0x00, // flags & FILTER_CRED_RUID
+				0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // FILTER_CRED_RUID
+				0x04, 0x00, 0x00, 0x00, // Operator NotEqual
+				0x03, 0x00, 0x00, 0x00, // length == 0x3
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Values[0] == "0:0"
+				0xe8, 0x03, 0x00, 0x00, 0xd0, 0x07, 0x00, 0x00, // Values[1] == "1000:2000"
+				0xfd, 0xff, 0xff, 0x6f, 0xff, 0xff, 0xff, 0xff, // Values[3] == "1879048189:4294967295"
+			},
+		},
+		"cred4": {
+			cred: []v1alpha1.CredentialsSelector{
+				{
+					RUIDs: []v1alpha1.CredIDValues{
+						{
+							Operator: "NotEqual",
+							Values: []string{
+								"0:187904818",
+								"1879048187:1879048187",
+								"1879048189:4294967295",
+							},
+						},
+					},
+					EUIDs: []v1alpha1.CredIDValues{
+						{
+							Operator: "NotEqual",
+							Values: []string{
+								"0:187904818",
+								"1879048187:1879048187",
+								"1879048189:4294967295",
+							},
+						},
+					},
+				},
+			},
+			expected: []byte{
+				0x58, 0x00, 0x00, 0x00, // Length
+				0x05, 0x00, 0x00, 0x00, // flags & FILTER_CRED_RUID & FILTER_CRED_EUID
+				0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // FILTER_CRED_RUID
+				0x04, 0x00, 0x00, 0x00, // Operator NotEqual
+				0x03, 0x00, 0x00, 0x00, // length == 0x3
+				0x00, 0x00, 0x00, 0x00, 0x32, 0x33, 0x33, 0x0b, // Values[0] == "0:187904818"
+				0xfb, 0xff, 0xff, 0x6f, 0xfb, 0xff, 0xff, 0x6f, // Values[1] == "1879048187:1879048187"
+				0xfd, 0xff, 0xff, 0x6f, 0xff, 0xff, 0xff, 0xff, // Values[2] == "1879048189:4294967295"
+				0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // FILTER_CRED_EUID
+				0x04, 0x00, 0x00, 0x00, // Operator NotEqual
+				0x03, 0x00, 0x00, 0x00, // length == 0x3
+				0x00, 0x00, 0x00, 0x00, 0x32, 0x33, 0x33, 0x0b, // Values[0] == "0:187904818"
+				0xfb, 0xff, 0xff, 0x6f, 0xfb, 0xff, 0xff, 0x6f, // Values[1] == "1879048187:1879048187"
+				0xfd, 0xff, 0xff, 0x6f, 0xff, 0xff, 0xff, 0xff, // Values[2] == "1879048189:4294967295"
+			},
+		},
+		"cred5": {
+			cred: []v1alpha1.CredentialsSelector{
+				{
+					RUIDs: []v1alpha1.CredIDValues{
+						{
+							Operator: "Equal", Values: []string{"1:0"},
+						},
+					},
+				},
+			},
+			err: errors.New("invalid range"),
+		},
+		"cred6": {
+			cred: []v1alpha1.CredentialsSelector{
+				{
+					RUIDs: []v1alpha1.CredIDValues{
+						{
+							Operator: "Equal", Values: []string{"1:4294967296"},
+						},
+					},
+				},
+			},
+			err: errors.New("invalid range"),
+		},
+		"cred7": {
+			cred: []v1alpha1.CredentialsSelector{
+				{
+					RUIDs: []v1alpha1.CredIDValues{
+						{
+							Operator: "Equal", Values: []string{"-1:0"},
+						},
+					},
+				},
+			},
+			err: errors.New("invalid range"),
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			k := &KernelSelectorState{data: KernelSelectorData{off: 0}}
+			d := &k.data
+			err := ParseMatchCurrentCred(k, test.cred)
+			if test.err != nil {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.True(t, bytes.Equal(test.expected, d.e[0:d.off]))
+			}
+
+		})
+	}
+
+	/* Extra tests */
+	ruid := []v1alpha1.CredIDValues{
+		{
+			Operator: "Equal", Values: []string{"0", "1000:2000", "100000"},
+		},
+	}
+	euid := []v1alpha1.CredIDValues{
+		{
+			Operator: "Equal", Values: []string{"0", "4000:8000"},
+		},
+	}
+	cred1 := []v1alpha1.CredentialsSelector{
+		{
+			RUIDs: ruid,
+		},
+	}
+	k := &KernelSelectorState{data: KernelSelectorData{off: 0}}
+	d := &k.data
+	cred2 := []v1alpha1.CredentialsSelector{
+		{
+			RUIDs: ruid,
+			EUIDs: euid,
+		},
+	}
+	expected1 := []byte{
+		0x30, 0x00, 0x00, 0x00, // Length
+		0x01, 0x00, 0x00, 0x00, // flags
+		0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // FILTER_CRED_RUID
+		0x03, 0x00, 0x00, 0x00, // Operator Equal
+		0x03, 0x00, 0x00, 0x00, // length == 0x3
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Values[0] == "0:0"
+		0xe8, 0x03, 0x00, 0x00, 0xd0, 0x07, 0x00, 0x00, // Values[1] == "1000:2000"
+		0xa0, 0x86, 0x01, 0x00, 0xa0, 0x86, 0x01, 0x00, // Values[2] == "100000:100000"
+	}
+	expected2 := []byte{
+		0x50, 0x00, 0x00, 0x00, // Length
+		0x05, 0x00, 0x00, 0x00, // flags & FILTER_CRED_RUID & FILTER_CRED_EUID
+		0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // FILTER_CRED_RUID
+		0x03, 0x00, 0x00, 0x00, // Operator Equal
+		0x03, 0x00, 0x00, 0x00, // length == 0x3
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Values[0] == "0:0"
+		0xe8, 0x03, 0x00, 0x00, 0xd0, 0x07, 0x00, 0x00, // Values[1] == "1000:2000"
+		0xa0, 0x86, 0x01, 0x00, 0xa0, 0x86, 0x01, 0x00, // Values[2] == "100000:100000"
+		0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // FILTER_CRED_EUID
+		0x03, 0x00, 0x00, 0x00, // Operator Equal
+		0x02, 0x00, 0x00, 0x00, // length == 0x2
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Values[0] == "0:0"
+		0xa0, 0x0f, 0x00, 0x00, 0x40, 0x1f, 0x00, 0x00, // Values[1] == "4000:8000"
+	}
+	if err := ParseMatchCurrentCred(k, cred1); err != nil || bytes.Equal(expected1, d.e[0:d.off]) == false {
+		t.Errorf("parseMatchCurrentCred: error %v expected %v bytes %v parsing %v\n", err, expected1, d.e[0:d.off], cred1)
+	}
+	nextcred2 := d.off
+	if err := ParseMatchCurrentCred(k, cred2); err != nil || bytes.Equal(expected2, d.e[nextcred2:d.off]) == false {
+		t.Errorf("parseMatchCurrentCred: error %v expected %v bytes %v parsing %v\n", err, expected2, d.e[nextcred2:d.off], cred2)
+	}
+
+	/* More invalid matches */
+
+	cred3 := []v1alpha1.CredentialsSelector{}
+	cred3 = append(cred3, cred1[:]...)
+	cred3 = append(cred3, cred2[:]...)
+	k = &KernelSelectorState{data: KernelSelectorData{off: 0}}
+
+	/* Currently only one cred type per selector is supported, this should fail */
+	err := ParseMatchCurrentCred(k, cred3)
+	require.Error(t, err)
+}
+
 func TestParseMatchNamespaceChanges(t *testing.T) {
 	ns1 := &v1alpha1.NamespaceChangesSelector{Operator: "In", Values: []string{"Uts", "Mnt"}}
 	k := &KernelSelectorState{data: KernelSelectorData{off: 0}}
@@ -710,15 +980,15 @@ func TestInitKernelSelectors(t *testing.T) {
 	if !config.EnableLargeProgs() {
 		// matchCurrentCred header
 		expected_match_current_cred_body := []byte{
-			4, 0x00, 0x00, 0x00, // size = flags + sizeof(Ruid) + sizeof(Euid) + ... + 4
+			4, 0x00, 0x00, 0x00, // size = flags + sizeof(RUIDs) + sizeof(EUIDs) + ... + 4
 		}
 		expected_match_current_cred = append(expected_match_current_cred, expected_match_current_cred_body...)
 	} else {
 		// matchCurrentCred flags
 		expected_match_current_cred_body := []byte{
-			48, 0x00, 0x00, 0x00, // size = flags + sizeof(Ruid) + sizeof(Euid) + ... + 4
+			48, 0x00, 0x00, 0x00, // size = flags + sizeof(RUIDs) + sizeof(EUIDs) + ... + 4
 			0x01, 0x00, 0x00, 0x00, // flags
-			0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Ruid
+			0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // RUIDs
 			0x03, 0x00, 0x00, 0x00, // op == Equal
 			0x03, 0x00, 0x00, 0x00, // length == 0x3
 			0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, // 1:1
