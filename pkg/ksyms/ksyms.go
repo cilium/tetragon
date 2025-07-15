@@ -89,7 +89,6 @@ func NewKsyms(procfs string) (*Ksyms, error) {
 		sym.ty = fields[1]
 		sym.name = fields[2]
 
-		//fmt.Printf("%s => %d %s\n", txt, sym.addr, sym.name)
 		if sym.isFunction() && sym.addr == 0 {
 			err = fmt.Errorf("function %s reported at address 0. Insuffcient permissions?", sym.name)
 			break
