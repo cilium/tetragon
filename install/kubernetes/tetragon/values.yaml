@@ -1,5 +1,7 @@
 # Global settings
 enabled: true
+nameOverride: ""
+fullnameOverride: ""
 imagePullSecrets: []
 # Tetragon agent settings
 priorityClassName: ""
