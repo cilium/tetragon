@@ -1,6 +1,6 @@
 name: Feature Request
-description: Suggest a feature to Tetragon
-labels: ["kind/enhancement"]
+description: Suggest a feature or enhancement to Tetragon
+type: Enhancement
 body:
   - type: markdown
     attributes:
