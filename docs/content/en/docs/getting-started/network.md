@@ -105,6 +105,12 @@ And as expected no new events:
 💥 exit    default/xwing /usr/bin/curl https://ebpf.io/applications/#tetragon 60
 ```
 
+Finally, delete the applied TracingPolicy with:
+
+```shell
+envsubst < network_egress_cluster.yaml | kubectl delete -f -
+```
+
 ## Monitoring Docker or bare metal network access
 
 This example also works easily for local Docker users. However, since Docker
