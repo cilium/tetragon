@@ -267,7 +267,6 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 		gk.data = data
 
 		has.stackTrace = has.stackTrace || gk.hasStackTrace
-		has.rateLimit = has.rateLimit || gk.hasRatelimit
 		has.override = has.override || gk.hasOverride
 	}
 
@@ -585,6 +584,7 @@ func hasMapsSetup(spec *v1alpha1.TracingPolicySpec) hasMaps {
 	for _, kprobe := range spec.KProbes {
 		has.fdInstall = has.fdInstall || selectorsHaveFDInstall(kprobe.Selectors)
 		has.enforcer = has.enforcer || len(spec.Enforcers) != 0
+		has.rateLimit = has.rateLimit || selectorsHaveRateLimit(kprobe.Selectors)
 
 		// check for early break
 		if has.fdInstall && has.enforcer {
@@ -1098,7 +1098,6 @@ func createSingleKprobeSensor(polInfo *policyInfo, ids []idtable.EntryID, has ha
 
 		// setup per kprobe map config
 		has.stackTrace = gk.hasStackTrace
-		has.rateLimit = gk.hasRatelimit
 		has.override = gk.hasOverride
 
 		progs, maps = createKprobeSensorFromEntry(polInfo, gk, progs, maps, has)
