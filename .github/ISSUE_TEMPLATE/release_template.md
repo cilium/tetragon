@@ -30,7 +30,7 @@ assignees: ''
       sed -i "s/^version =.*/version = \"${RELEASE}\"/" docs/config/_default/hugo.toml
       git add docs/
 
-      # update upgrade notes
+      # update upgrade notes (and remove empty sections with TBD)
       ./contrib/update-upgrade-notes.sh $RELEASE
       git add contrib/upgrade-notes/
 
