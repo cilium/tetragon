@@ -178,19 +178,47 @@ func ResponseTypeMap() map[string]proto.Message {
 	}
 }
 
-// ProcessEventMap returns a map from event field names (e.g. "process_exec") to corresponding
-// protobuf messages in a given tetragon.GetEventsResponse (e.g. response.GetProcessExec()).
-func ProcessEventMap(response *tetragon.GetEventsResponse) map[string]any {
+// ProcessEventMapTuple returns a tuple from event field name (e.g. "process_exec") to corresponding
+// protobuf messages for a given tetragon.GetEventsResponse (e.g. response.GetProcessExec()).
+func ProcessEventMapTuple(response *tetragon.GetEventsResponse) (string, any, any) {
+	switch response.Event.(type) {
+	case *tetragon.GetEventsResponse_ProcessExec:
+		return "process_exec", response.GetProcessExec(), (*tetragon.ProcessExec)(nil)
+	case *tetragon.GetEventsResponse_ProcessExit:
+		return "process_exit", response.GetProcessExit(), (*tetragon.ProcessExit)(nil)
+	case *tetragon.GetEventsResponse_ProcessKprobe:
+		return "process_kprobe", response.GetProcessKprobe(), (*tetragon.ProcessKprobe)(nil)
+	case *tetragon.GetEventsResponse_ProcessTracepoint:
+		return "process_tracepoint", response.GetProcessTracepoint(), (*tetragon.ProcessTracepoint)(nil)
+	case *tetragon.GetEventsResponse_ProcessLoader:
+		return "process_loader", response.GetProcessLoader(), (*tetragon.ProcessLoader)(nil)
+	case *tetragon.GetEventsResponse_ProcessUprobe:
+		return "process_uprobe", response.GetProcessUprobe(), (*tetragon.ProcessUprobe)(nil)
+	case *tetragon.GetEventsResponse_ProcessThrottle:
+		return "process_throttle", response.GetProcessThrottle(), (*tetragon.ProcessThrottle)(nil)
+	case *tetragon.GetEventsResponse_ProcessLsm:
+		return "process_lsm", response.GetProcessLsm(), (*tetragon.ProcessLsm)(nil)
+	case *tetragon.GetEventsResponse_Test:
+		return "test", response.GetTest(), (*tetragon.Test)(nil)
+	case *tetragon.GetEventsResponse_RateLimitInfo:
+		return "rate_limit_info", response.GetRateLimitInfo(), (*tetragon.RateLimitInfo)(nil)
+
+	}
+	return "", nil, nil
+}
+
+// ProcessEventMapEmpty returns a map from event field names (e.g. "process_exec") with nil as value
+func ProcessEventMapEmpty() map[string]any {
 	return map[string]any{
-		"process_exec":       response.GetProcessExec(),
-		"process_exit":       response.GetProcessExit(),
-		"process_kprobe":     response.GetProcessKprobe(),
-		"process_tracepoint": response.GetProcessTracepoint(),
-		"process_loader":     response.GetProcessLoader(),
-		"process_uprobe":     response.GetProcessUprobe(),
-		"process_throttle":   response.GetProcessThrottle(),
-		"process_lsm":        response.GetProcessLsm(),
-		"test":               response.GetTest(),
-		"rate_limit_info":    response.GetRateLimitInfo(),
+		"process_exec":       (*tetragon.ProcessExec)(nil),
+		"process_exit":       (*tetragon.ProcessExit)(nil),
+		"process_kprobe":     (*tetragon.ProcessKprobe)(nil),
+		"process_tracepoint": (*tetragon.ProcessTracepoint)(nil),
+		"process_loader":     (*tetragon.ProcessLoader)(nil),
+		"process_uprobe":     (*tetragon.ProcessUprobe)(nil),
+		"process_throttle":   (*tetragon.ProcessThrottle)(nil),
+		"process_lsm":        (*tetragon.ProcessLsm)(nil),
+		"test":               (*tetragon.Test)(nil),
+		"rate_limit_info":    (*tetragon.RateLimitInfo)(nil),
 	}
 }
