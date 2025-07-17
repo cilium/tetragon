@@ -12,6 +12,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/errmetrics"
+	"github.com/cilium/tetragon/pkg/execvemapupdater"
 	"github.com/cilium/tetragon/pkg/ksyms"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/mbset"
@@ -170,7 +171,7 @@ func initBaseSensor() *sensors.Sensor {
 	}
 	setupSensor()
 	if config.EnableLargeProgs() {
-		mbset.SetMBSetUpdater(&execveMapUpdater{
+		mbset.SetMBSetUpdater(&execvemapupdater.ExecveMapUpdater{
 			Load: ExecveMapUpdate,
 			Map:  ExecveMapUpdateData,
 		})

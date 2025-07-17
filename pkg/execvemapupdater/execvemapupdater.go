@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
-package base
+package execvemapupdater
 
 import (
 	"errors"
@@ -16,7 +16,7 @@ const (
 	maxPids = 32768
 )
 
-type execveMapUpdater struct {
+type ExecveMapUpdater struct {
 	Load *program.Program
 	Map  *program.Map
 }
@@ -38,7 +38,7 @@ func getRoundCnt() uint32 {
 	return 0
 }
 
-func (upd *execveMapUpdater) MBSetBitClear(bit uint32, pids []uint32) error {
+func (upd *ExecveMapUpdater) MBSetBitClear(bit uint32, pids []uint32) error {
 	prog := upd.Load.Prog
 
 	// not used, but needed to pass program test run
