@@ -75,6 +75,9 @@ func (c *CELExpressionFilter) filterByCELExpression(ctx context.Context, log log
 		programs = append(programs, celProgEv{program: prog, eventNames: eventNames})
 	}
 
+	// Create a single empty (all values are nil) process event map
+	// this removes the need to do map allocations inside the loop
+	eventMap := helpers.ProcessEventMapEmpty()
 	return func(ev *event.Event) bool {
 		if ev == nil {
 			return false
@@ -83,7 +86,19 @@ func (c *CELExpressionFilter) filterByCELExpression(ctx context.Context, log log
 		if !ok {
 			return false
 		}
-		eventMap := helpers.ProcessEventMap(response)
+
+		// First we get the details about the event such as the name ("process_exec")
+		// and a casted pointer (*tetragon.ProcessExec) to the actual event. The third
+		// return value is always nil but casted to the appropriate type in order
+		// not to cause issues with the CEL evaluation.
+		evName, evData, evDefer := helpers.ProcessEventMapTuple(response)
+		// set to the empty map the appropriate value in the correct position
+		eventMap[evName] = evData
+		defer func() {
+			// when we are done make that nil again
+			eventMap[evName] = evDefer
+		}()
+
 		for _, prg := range programs {
 			for _, n := range prg.eventNames { // list of events that are needed to evaluate that rule
 				if !reflect.ValueOf(eventMap[n]).IsNil() { // is the incoming event related to that alert?
