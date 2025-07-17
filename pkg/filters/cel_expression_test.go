@@ -44,6 +44,48 @@ func TestProcessExecFilter(t *testing.T) {
 	assert.True(t, fl.MatchOne(&ev))
 }
 
+func TestProcessExecExitFilter(t *testing.T) {
+	f := []*tetragon.Filter{{CelExpression: []string{"(has(process_exec.process) && process_exec.process.pid > uint(1)) || (has(process_exit.process) && process_exit.process.pid > uint(1))"}}}
+	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{NewCELExpressionFilter(logger.GetLogger())})
+	require.NoError(t, err)
+
+	ev := event.Event{
+		Event: &tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessExec{
+				ProcessExec: &tetragon.ProcessExec{Process: &tetragon.Process{Pid: wrapperspb.UInt32(2)}},
+			},
+		},
+	}
+	assert.True(t, fl.MatchOne(&ev))
+
+	ev = event.Event{
+		Event: &tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessExec{
+				ProcessExec: &tetragon.ProcessExec{Process: &tetragon.Process{Pid: wrapperspb.UInt32(1)}},
+			},
+		},
+	}
+	assert.False(t, fl.MatchOne(&ev))
+
+	ev = event.Event{
+		Event: &tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessExit{
+				ProcessExit: &tetragon.ProcessExit{Process: &tetragon.Process{Pid: wrapperspb.UInt32(2)}},
+			},
+		},
+	}
+	assert.True(t, fl.MatchOne(&ev))
+
+	ev = event.Event{
+		Event: &tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessExit{
+				ProcessExit: &tetragon.ProcessExit{Process: &tetragon.Process{Pid: wrapperspb.UInt32(1)}},
+			},
+		},
+	}
+	assert.False(t, fl.MatchOne(&ev))
+}
+
 func TestProcessKprobeFilter(t *testing.T) {
 	f := []*tetragon.Filter{{CelExpression: []string{"process_kprobe.function_name == 'security_file_permission'"}}}
 	fl, err := BuildFilterList(context.Background(), f, []OnBuildFilter{NewCELExpressionFilter(logger.GetLogger())})
