@@ -269,7 +269,7 @@ func generateResponseTypeMap(g *protogen.GeneratedFile, files []*protogen.File) 
 	return nil
 }
 
-func generateProcessEventMap(g *protogen.GeneratedFile, files []*protogen.File) error {
+func generateProcessEventTuple(g *protogen.GeneratedFile, files []*protogen.File) error {
 	oneofs, err := common.GetEventsResponseOneofs(files)
 	if err != nil {
 		return err
@@ -279,15 +279,43 @@ func generateProcessEventMap(g *protogen.GeneratedFile, files []*protogen.File) 
 		var ret string
 		for _, oneof := range oneofs {
 			msgGoIdent := strings.Split(common.TetragonApiIdent(g, oneof.TypeName), ".")
-			ret += fmt.Sprintf("\"%s\": response.Get%s(),\n", oneof.FieldName, msgGoIdent[len(msgGoIdent)-1])
+			goIdent := common.TetragonApiIdent(g, "GetEventsResponse_"+msgGoIdent[len(msgGoIdent)-1])
+			ret += fmt.Sprintf("case *%s:\n", goIdent)
+			ret += fmt.Sprintf("    return \"%s\", response.Get%s(), (*tetragon.%s)(nil)\n", oneof.FieldName, msgGoIdent[len(msgGoIdent)-1], msgGoIdent[len(msgGoIdent)-1])
 		}
 		return ret
 	}
 
 	tetragonGER := common.TetragonApiIdent(g, "GetEventsResponse")
-	g.P(`// ProcessEventMap returns a map from event field names (e.g. "process_exec") to corresponding
-    // protobuf messages in a given tetragon.GetEventsResponse (e.g. response.GetProcessExec()).
-    func ProcessEventMap(response *` + tetragonGER + `) map[string]any {
+	g.P(`// ProcessEventMapTuple returns a tuple from event field name (e.g. "process_exec") to corresponding
+    // protobuf messages for a given tetragon.GetEventsResponse (e.g. response.GetProcessExec()).
+    func ProcessEventMapTuple(response *` + tetragonGER + `) (string, any, any) {
+		switch response.Event.(type) {
+            ` + doCases() + `
+        }
+		return "", nil, nil
+    }`)
+
+	return nil
+}
+
+func generateProcessEventMapEmpty(g *protogen.GeneratedFile, files []*protogen.File) error {
+	oneofs, err := common.GetEventsResponseOneofs(files)
+	if err != nil {
+		return err
+	}
+
+	doCases := func() string {
+		var ret string
+		for _, oneof := range oneofs {
+			msgGoIdent := strings.Split(common.TetragonApiIdent(g, oneof.TypeName), ".")
+			ret += fmt.Sprintf("\"%s\": (*tetragon.%s)(nil),\n", oneof.FieldName, msgGoIdent[len(msgGoIdent)-1])
+		}
+		return ret
+	}
+
+	g.P(`// ProcessEventMapEmpty returns a map from event field names (e.g. "process_exec") with nil as value
+    func ProcessEventMapEmpty() map[string]any {
 		return map[string]any {
             ` + doCases() + `
         }
@@ -342,7 +370,11 @@ func Generate(gen *protogen.Plugin, files []*protogen.File) error {
 		return err
 	}
 
-	if err := generateProcessEventMap(g, files); err != nil {
+	if err := generateProcessEventTuple(g, files); err != nil {
+		return err
+	}
+
+	if err := generateProcessEventMapEmpty(g, files); err != nil {
 		return err
 	}
 
