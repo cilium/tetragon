@@ -29,7 +29,8 @@ PROGS = sigkill-tester \
 	pause \
 	raisesigkill \
 	forks \
-	capabilities-gained
+	capabilities-gained \
+	follow_children_1
 
 
 all: $(PROGS)

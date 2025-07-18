@@ -18,6 +18,7 @@ import (
 
 const (
 	MapName       = "tg_mbset_map"
+	GenName       = "tg_mbset_gen"
 	ExecveMapName = "execve_map"
 	InvalidID     = ^uint32(0)
 	MaxIDs        = 64 // this value should correspond to the number of bits we can fit in mbset_t
@@ -42,6 +43,8 @@ type state struct {
 	mu sync.Mutex
 	// map of used IDs for mbset bits [0..MaxIDs]
 	ids map[uint32]struct{}
+	// generation value aka last mbset filter timestamp
+	gen uint64
 }
 
 func newState() (*state, error) {
@@ -186,6 +189,12 @@ func (s *state) UpdateMap(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byt
 	}
 	defer mbsetMap.Close()
 
+	mbsetGen, err := openMap(GenName)
+	if err != nil {
+		return fmt.Errorf("failed to open mbset gen: %w", err)
+	}
+	defer mbsetGen.Close()
+
 	bit := uint64(1) << id
 	for _, path := range paths {
 		var val bitSet
@@ -206,7 +215,8 @@ func (s *state) UpdateMap(id uint32, paths [][processapi.BINARY_PATH_MAX_LEN]byt
 		}
 	}
 
-	return nil
+	s.gen++
+	return mbsetGen.Update(uint32(0), s.gen, 0)
 }
 
 var (
