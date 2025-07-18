@@ -491,9 +491,12 @@ help: ## Display this help, based on https://www.thapaliya.com/en/writings/well-
 docs: ## Preview documentation website.
 	$(MAKE) -C docs
 
-.PHONY: version
+.PHONY: version chart-version
 version: ## Print Tetragon version.
 	@echo $(VERSION)
+
+chart-version: ## Print Tetragon OCI Helm chart version.
+	@echo $(VERSION) | sed 's/^v\(.*\)/\1/'
 
 .PHONY: gen-compile-commands
 BEAR_CLI := $(shell which bear 2> /dev/null)
