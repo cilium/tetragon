@@ -10,6 +10,7 @@ type TetragonConf struct {
 	TgCgrpHierarchy uint32 `align:"tg_cgrp_hierarchy"`  // Tetragon Cgroup tracking hierarchy ID
 	TgCgrpSubsysIdx uint32 `align:"tg_cgrp_subsys_idx"` // Tracking Cgroup css idx at compile time
 	TgCgrpLevel     uint32 `align:"tg_cgrp_level"`      // Tetragon cgroup level
+	EnvVarsEnabled  uint64 `align:"env_vars_enabled"`   // Whether to read environment variables
 	TgCgrpId        uint64 `align:"tg_cgrpid"`          // Tetragon cgroup ID
 	CgrpFsMagic     uint64 `align:"cgrp_fs_magic"`      // Cgroupv1 or cgroupv2
 }

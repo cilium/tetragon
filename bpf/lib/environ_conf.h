@@ -23,6 +23,7 @@ struct tetragon_conf {
 	__u32 tg_cgrp_hierarchy; /* Tetragon tracked hierarchy ID */
 	__u32 tg_cgrpv1_subsys_idx; /* Tetragon tracked cgroupv1 subsystem state index at compile time */
 	__u32 tg_cgrp_level; /* Tetragon cgroup level */
+	__u64 env_vars_enabled; /* Whether to read environment variables */
 	__u64 tg_cgrpid; /* Tetragon current cgroup ID to avoid filtering blocking itself */
 	__u64 cgrp_fs_magic; /* Cgroupv1 or Cgroupv2 */
 }; // All fields aligned so no 'packed' attribute.
