@@ -516,7 +516,7 @@ func (s *bugtoolInfo) addBpftoolInfo(tarWriter *tar.Writer) {
 	s.execCmd(tarWriter, "bpftool-cgroups.json", s.info.BpfToolPath, "cgroup", "tree", "-j")
 }
 
-func (s *bugtoolInfo) getPProf(tarWriter *tar.Writer, file string) error {
+func (s *bugtoolInfo) getPProf(tarWriter *tar.Writer, file string, gopsSignal byte) error {
 	if s.info.GopsAddr == "" {
 		s.multiLog.Info("Skipping gops dump info as daemon is running without gops, use --gops-address to enable gops")
 		return nil
@@ -530,15 +530,15 @@ func (s *bugtoolInfo) getPProf(tarWriter *tar.Writer, file string) error {
 		return err
 	}
 
-	buf := []byte{gopssignal.HeapProfile}
+	buf := []byte{gopsSignal}
 	if _, err := conn.Write(buf); err != nil {
-		s.multiLog.WithField("gops-address", s.info.GopsAddr).WithError(err).Warn("Failed to send gops pprof-heap command")
+		s.multiLog.WithField("gops-address", s.info.GopsAddr).WithField("file", file).WithError(err).Warn("Failed to send gops pprof command")
 		return err
 	}
 
 	buff := new(bytes.Buffer)
 	if _, err = buff.ReadFrom(conn); err != nil {
-		s.multiLog.WithField("gops-address", s.info.GopsAddr).WithError(err).Warn("Failed reading gops pprof-heap response")
+		s.multiLog.WithField("gops-address", s.info.GopsAddr).WithField("file", file).WithError(err).Warn("Failed reading gops pprof response")
 	}
 	return s.tarAddBuff(tarWriter, file, buff)
 }
@@ -565,11 +565,26 @@ func (s *bugtoolInfo) addGopsInfo(tarWriter *tar.Writer) {
 	s.execCmd(tarWriter, "gops.stack", s.info.GopsPath, "stack", s.info.GopsAddr)
 	s.execCmd(tarWriter, "gops.stats", s.info.GopsPath, "stats", s.info.GopsAddr)
 	s.execCmd(tarWriter, "gops.memstats", s.info.GopsPath, "memstats", s.info.GopsAddr)
-	err = s.getPProf(tarWriter, "gops.pprof-heap")
-	if err != nil {
-		s.multiLog.WithField("gops-address", s.info.GopsAddr).WithField("gops-path", s.info.GopsPath).WithError(err).Warn("Failed to dump gops pprof-heap")
-	} else {
-		s.multiLog.WithField("gops-address", s.info.GopsAddr).WithField("gops-path", s.info.GopsPath).Info("Successfully dumped gops pprof-heap")
+	profiles := map[string]byte{
+		"cpu":  gopssignal.CPUProfile,
+		"heap": gopssignal.HeapProfile,
+	}
+	for name, signal := range profiles {
+		err = s.getPProf(tarWriter, "gops.pprof-"+name, signal)
+		if err != nil {
+			s.multiLog.
+				WithField("gops-address", s.info.GopsAddr).
+				WithField("gops-path", s.info.GopsPath).
+				WithField("profile", name).
+				WithError(err).
+				Warn("Failed to dump gops pprof")
+		} else {
+			s.multiLog.
+				WithField("gops-address", s.info.GopsAddr).
+				WithField("gops-path", s.info.GopsPath).
+				WithField("profile", name).
+				Info("Successfully dumped gops pprof")
+		}
 	}
 }
 
