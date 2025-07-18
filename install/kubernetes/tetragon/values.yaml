@@ -272,14 +272,27 @@ tetragonOperator:
     create: true
     annotations: {}
     name: ""
-  # -- securityContext for the Tetragon Operator Deployment Pods.
+  # -- securityContext for the Tetragon Operator Deployment Pods. (commented out for backwards compatability)
   podSecurityContext: {}
-  # -- securityContext for the Tetragon Operator Deployment Pod container.
-  securityContext:
+  #  runAsNonRoot: true
+  #  runAsUser: 65532
+  #  runAsGroup: 65532
+  #  fsGroup: 65532
+  #  seccompProfile:
+  #    type: RuntimeDefault
+  # -- securityContext for the Tetragon Operator Deployment Pod container. (commented out for backwards compatability)
+  containerSecurityContext:
     allowPrivilegeEscalation: false
     capabilities:
       drop:
         - "ALL"
+  #  readOnlyRootFilesystem: true
+  #  runAsNonRoot: true
+  #  runAsUser: 65532
+  #  runAsGroup: 65532
+
+  # Deprecated: Use containerSecurityContext instead
+  # securityContext: {}
   # -- resources for the Tetragon Operator Deployment Pod container.
   resources:
     limits:
