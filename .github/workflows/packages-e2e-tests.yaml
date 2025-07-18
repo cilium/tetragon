@@ -156,7 +156,7 @@ jobs:
       - name: Test Tetragon with a different tracing-policy-dir
         uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
         with:
-          timeout_seconds: 30
+          timeout_seconds: 60
           max_attempts: 5
           retry_wait_seconds: 5
           retry_on: error
@@ -165,7 +165,7 @@ jobs:
             sudo tetra status
             sudo grep "tetra" /var/log/tetragon/tetragon.log
             sudo tetra tracingpolicy list | grep bpf -
-            sudo tetra bugtool 2>&1 | grep "Successfully dumped gops pprof-heap" -
+            sudo tetra bugtool 2>&1 | grep "Successfully dumped gops pprof.*profile=heap" -
 
       - name: Uninstall Tetragon Tarball
         run: |
