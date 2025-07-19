@@ -9,6 +9,8 @@
 # For help on Docker cross compilation see the following blogpost:
 # https://www.docker.com/blog/faster-multi-platform-builds-dockerfile-cross-compilation-guide/
 
+# hello
+
 # First builder (cross-)compile the BPF programs
 FROM --platform=$BUILDPLATFORM quay.io/cilium/clang:b97f5b3d5c38da62fb009f21a53cd42aefd54a2f@sha256:e1c8ed0acd2e24ed05377f2861d8174af28e09bef3bbc79649c8eba165207df0 AS bpf-builder
 WORKDIR /go/src/github.com/cilium/tetragon
