@@ -364,10 +364,10 @@ func TestGenericTracepointRawSyscall(t *testing.T) {
 		Subsystem: "raw_syscalls",
 		Event:     "sys_enter",
 		Args: []v1alpha1.KProbeArg{
-			v1alpha1.KProbeArg{
+			{
 				Index: 4, /* id */
 			},
-			v1alpha1.KProbeArg{
+			{
 				Index: 5, /* args */
 			},
 		},
@@ -433,32 +433,32 @@ func TestGenericTracepointRawSyscall(t *testing.T) {
 
 func TestLoadTracepointSensor(t *testing.T) {
 	var sensorProgs = []tus.SensorProg{
-		0: tus.SensorProg{Name: "generic_tracepoint_event", Type: ebpf.TracePoint},
-		1: tus.SensorProg{Name: "generic_tracepoint_arg", Type: ebpf.TracePoint},
-		2: tus.SensorProg{Name: "generic_tracepoint_process_event", Type: ebpf.TracePoint},
-		3: tus.SensorProg{Name: "generic_tracepoint_filter", Type: ebpf.TracePoint},
-		4: tus.SensorProg{Name: "generic_tracepoint_actions", Type: ebpf.TracePoint},
-		5: tus.SensorProg{Name: "generic_tracepoint_output", Type: ebpf.TracePoint},
+		0: {Name: "generic_tracepoint_event", Type: ebpf.TracePoint},
+		1: {Name: "generic_tracepoint_arg", Type: ebpf.TracePoint},
+		2: {Name: "generic_tracepoint_process_event", Type: ebpf.TracePoint},
+		3: {Name: "generic_tracepoint_filter", Type: ebpf.TracePoint},
+		4: {Name: "generic_tracepoint_actions", Type: ebpf.TracePoint},
+		5: {Name: "generic_tracepoint_output", Type: ebpf.TracePoint},
 	}
 
 	var sensorMaps = []tus.SensorMap{
 		// all programs
-		tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5}},
+		{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5}},
 
 		// all but generic_tracepoint_output
-		tus.SensorMap{Name: "tp_calls", Progs: []uint{0, 1, 2, 3, 4}},
+		{Name: "tp_calls", Progs: []uint{0, 1, 2, 3, 4}},
 
 		// all but generic_tracepoint_event,generic_tracepoint_filter
-		tus.SensorMap{Name: "retprobe_map", Progs: []uint{1, 2}},
+		{Name: "retprobe_map", Progs: []uint{1, 2}},
 
 		// generic_tracepoint_output
-		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{5}},
+		{Name: "tcpmon_map", Progs: []uint{5}},
 
 		// all kprobe but generic_tracepoint_filter
-		tus.SensorMap{Name: "config_map", Progs: []uint{0, 2}},
+		{Name: "config_map", Progs: []uint{0, 2}},
 
 		// generic_tracepoint_event
-		tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
+		{Name: "tg_conf_map", Progs: []uint{0}},
 	}
 
 	if config.EnableLargeProgs() {

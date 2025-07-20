@@ -335,7 +335,6 @@ func createGenericLsmSensor(
 	var maps []*program.Map
 	var ids []idtable.EntryID
 	var selMaps *selectors.KernelSelectorMaps
-	var err error
 
 	if !bpf.HasLSMPrograms() || !config.EnableLargeProgs() {
 		return nil, errors.New("does you kernel support the bpf LSM? You can enable LSM BPF by modifying" +
@@ -365,10 +364,6 @@ func createGenericLsmSensor(
 			return nil, err
 		}
 		progs, maps = createLsmSensorFromEntry(polInfo, gl, progs, maps)
-	}
-
-	if err != nil {
-		return nil, err
 	}
 
 	maps = append(maps, program.MapUserFrom(base.ExecveMap))

@@ -60,19 +60,19 @@ func newDefaultSpecOptions() *specOptions {
 
 // Allowed kprobe options
 var opts = map[string]opt{
-	option.KeyDisableKprobeMulti: opt{
+	option.KeyDisableKprobeMulti: {
 		set: func(str string, options *specOptions) (err error) {
 			options.DisableKprobeMulti, err = strconv.ParseBool(str)
 			return err
 		},
 	},
-	option.KeyDisableUprobeMulti: opt{
+	option.KeyDisableUprobeMulti: {
 		set: func(str string, options *specOptions) (err error) {
 			options.DisableUprobeMulti, err = strconv.ParseBool(str)
 			return err
 		},
 	},
-	keyOverrideMethod: opt{
+	keyOverrideMethod: {
 		set: func(str string, options *specOptions) (err error) {
 			m := overrideMethodParse(str)
 			if m == OverrideMethodInvalid {
@@ -82,7 +82,7 @@ var opts = map[string]opt{
 			return nil
 		},
 	},
-	keyPolicyMode: opt{
+	keyPolicyMode: {
 		set: func(str string, options *specOptions) (err error) {
 			mode, err := policyconf.ParseMode(str)
 			if err != nil {
