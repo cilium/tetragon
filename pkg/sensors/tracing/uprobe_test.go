@@ -35,30 +35,30 @@ import (
 func TestLoadUprobeSensor(t *testing.T) {
 	var sensorProgs = []tus.SensorProg{
 		// uprobe
-		0: tus.SensorProg{Name: "generic_uprobe_event", Type: ebpf.Kprobe},
-		1: tus.SensorProg{Name: "generic_uprobe_setup_event", Type: ebpf.Kprobe},
-		2: tus.SensorProg{Name: "generic_uprobe_process_event", Type: ebpf.Kprobe},
-		3: tus.SensorProg{Name: "generic_uprobe_filter_arg", Type: ebpf.Kprobe},
-		4: tus.SensorProg{Name: "generic_uprobe_process_filter", Type: ebpf.Kprobe},
-		5: tus.SensorProg{Name: "generic_uprobe_actions", Type: ebpf.Kprobe},
-		6: tus.SensorProg{Name: "generic_uprobe_output", Type: ebpf.Kprobe},
+		0: {Name: "generic_uprobe_event", Type: ebpf.Kprobe},
+		1: {Name: "generic_uprobe_setup_event", Type: ebpf.Kprobe},
+		2: {Name: "generic_uprobe_process_event", Type: ebpf.Kprobe},
+		3: {Name: "generic_uprobe_filter_arg", Type: ebpf.Kprobe},
+		4: {Name: "generic_uprobe_process_filter", Type: ebpf.Kprobe},
+		5: {Name: "generic_uprobe_actions", Type: ebpf.Kprobe},
+		6: {Name: "generic_uprobe_output", Type: ebpf.Kprobe},
 	}
 
 	var sensorMaps = []tus.SensorMap{
 		// all uprobe programs
-		tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6}},
+		{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6}},
 
 		// all but generic_uprobe_output
-		tus.SensorMap{Name: "uprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5}},
+		{Name: "uprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5}},
 
 		// generic_uprobe_process_filter,generic_uprobe_filter_arg*,generic_uprobe_actions
-		tus.SensorMap{Name: "filter_map", Progs: []uint{3, 4, 5}},
+		{Name: "filter_map", Progs: []uint{3, 4, 5}},
 
 		// generic_uprobe_output
-		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{6}},
+		{Name: "tcpmon_map", Progs: []uint{6}},
 
 		// generic_uprobe_event
-		tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
+		{Name: "tg_conf_map", Progs: []uint{0}},
 	}
 
 	if config.EnableLargeProgs() {
