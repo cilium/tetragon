@@ -622,6 +622,9 @@ func createGenericTracepointSensor(
 		selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", prog0)
 		maps = append(maps, selMatchBinariesMap)
 
+		configMap := program.MapBuilderProgram("config_map", prog0)
+		maps = append(maps, configMap)
+
 		maps = append(maps, polInfo.policyConfMap(prog0))
 	}
 
