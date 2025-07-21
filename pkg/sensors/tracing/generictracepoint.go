@@ -752,7 +752,7 @@ func LoadGenericTracepointSensor(bpfDir string, load *program.Program, maps []*p
 		return fmt.Errorf("could not find generic tracepoint information for %s: %w", load.Attach, err)
 	}
 
-	load.MapLoad = append(load.MapLoad, selectorsMaploads(tp.selectors, 0)...)
+	load.MapLoad = append(load.MapLoad, selectorsMaploads(tp.selectors, 0, true)...)
 
 	config, err := tp.EventConfig()
 	if err != nil {
