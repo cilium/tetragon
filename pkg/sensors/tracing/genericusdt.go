@@ -14,10 +14,12 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/api/ops"
+	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/elf"
+	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
@@ -235,6 +237,40 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID) ([]i
 		}
 
 		config := &api.EventConfig{}
+
+		if len(spec.Args) >= tracingapi.EventConfigMaxArgs {
+			return nil, fmt.Errorf("failed to configured usdt '%s/%s', too many arguments (%d) allowed %d",
+				spec.Provider, spec.Name, len(spec.Args), tracingapi.EventConfigMaxArgs)
+		}
+
+		for cfgIdx, arg := range spec.Args {
+			tgtIdx := arg.Index
+			if tgtIdx > target.Spec.ArgsCnt {
+				return nil, fmt.Errorf("failed to configured usdt '%s/%s', argument index %d out of bounds",
+					spec.Provider, spec.Name, tgtIdx)
+			}
+			tgtArg := &target.Spec.Args[tgtIdx]
+			cfgArg := &config.UsdtArg[cfgIdx]
+
+			cfgArg.ValOff = tgtArg.ValOff
+			cfgArg.RegOff = uint32(tgtArg.RegOff)
+			cfgArg.Shift = tgtArg.Shift
+			cfgArg.Type = tgtArg.Type
+
+			if tgtArg.Signed {
+				cfgArg.Signed = 1
+			} else {
+				cfgArg.Signed = 0
+			}
+
+			argType := gt.GenericTypeFromString(arg.Type)
+
+			config.ArgType[cfgIdx] = int32(argType)
+
+			argPrinters = append(argPrinters,
+				argPrinter{index: int(arg.Index), ty: argType, label: arg.Label},
+			)
+		}
 
 		usdtEntry := &genericUsdt{
 			tableId:     idtable.UninitializedEntryID,
