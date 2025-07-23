@@ -466,7 +466,7 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 	ty = config->arg[index];
 	am = config->arm[index];
 
-#ifdef GENERIC_TRACEPOINT
+#if defined(GENERIC_TRACEPOINT) || defined(GENERIC_USDT)
 	a = (&e->a0)[index];
 #else
 	arg_index = config->idx[index];
@@ -550,6 +550,74 @@ generic_process_init(struct msg_generic_kprobe *e, u8 op, struct event_config *c
 	e->tid = (__u32)get_current_pid_tgid();
 }
 
+#ifdef GENERIC_USDT
+FUNC_INLINE unsigned long
+read_usdt_arg(struct pt_regs *ctx, struct event_config *config, int idx)
+{
+	struct config_usdt_arg *arg;
+	unsigned long val, off;
+	int err;
+
+	idx &= 7;
+	arg = &config->usdt_arg[idx];
+
+	if (arg->type == USDT_ARG_TYPE_NONE)
+		return 0;
+
+	switch (arg->type) {
+	case USDT_ARG_TYPE_CONST:
+		/* Arg is just a constant ("-4@$-9" in USDT arg spec).
+		 * value is recorded in arg->val_off directly.
+		 */
+		val = arg->val_off;
+		break;
+	case USDT_ARG_TYPE_REG:
+		/* Arg is in a register (e.g, "8@%rax" in USDT arg spec),
+		 * so we read the contents of that register directly from
+		 * struct pt_regs. To keep things simple user-space parts
+		 * record offsetof(struct pt_regs, <regname>) in arg->reg_off.
+		 */
+		off = arg->reg_off & 0xfff;
+		err = probe_read_kernel(&val, sizeof(val), (void *)ctx + off);
+		if (err)
+			return 0;
+		break;
+	case USDT_ARG_TYPE_REG_DEREF:
+		/* Arg is in memory addressed by register, plus some offset
+		 * (e.g., "-4@-1204(%rbp)" in USDT arg spec). Register is
+		 * identified like with BPF_USDT_ARG_REG case, and the offset
+		 * is in arg->val_off. We first fetch register contents
+		 * from pt_regs, then do another user-space probe read to
+		 * fetch argument value itself.
+		 */
+		off = arg->reg_off & 0xfff;
+		err = probe_read_kernel(&val, sizeof(val), (void *)ctx + off);
+		if (err)
+			return err;
+		err = probe_read_user(&val, sizeof(val), (void *)val + arg->val_off);
+		if (err)
+			return err;
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+		val >>= arg->shift;
+#endif
+		break;
+	default:
+		return 0;
+	}
+
+	/* cast arg from 1, 2, or 4 bytes to final 8 byte size clearing
+	 * necessary upper arg_bitshift bits, with sign extension if argument
+	 * is signed
+	 */
+	val <<= arg->shift;
+	if (arg->sig)
+		val = ((long)val) >> arg->shift;
+	else
+		val = val >> arg->shift;
+	return val;
+}
+#endif /* GENERIC_USDT */
+
 FUNC_INLINE int
 generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcals)
 {
@@ -630,6 +698,14 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 	e->a3 = BPF_CORE_READ(raw_args, args[3]);
 	e->a4 = BPF_CORE_READ(raw_args, args[4]);
 	generic_process_init(e, MSG_OP_GENERIC_TRACEPOINT, config);
+#endif
+
+#ifdef GENERIC_USDT
+	e->a0 = read_usdt_arg(ctx, config, 0);
+	e->a1 = read_usdt_arg(ctx, config, 1);
+	e->a2 = read_usdt_arg(ctx, config, 2);
+	e->a3 = read_usdt_arg(ctx, config, 3);
+	e->a4 = read_usdt_arg(ctx, config, 4);
 #endif
 
 	/* No arguments, go send.. */
