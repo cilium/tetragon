@@ -6,4 +6,7 @@ spec:
   usdts:
   - path: "/home/jolsa/tetragon/contrib/tester-progs/usdt"
     provider: "test"
-    name: "usdt0"
+    name: "usdt3"
+    args:
+    - index: 0
+      type: "uint64"

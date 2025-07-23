@@ -348,6 +348,9 @@ type UsdtSpec struct {
 	// A short message of 256 characters max that will be included
 	// in the event output to inform users what is going on.
 	Message string `json:"message"`
+	// +kubebuilder:validation:Optional
+	// A list of function arguments to include in the trace output.
+	Args []KProbeArg `json:"args,omitempty"`
 }
 
 type LsmHookSpec struct {
