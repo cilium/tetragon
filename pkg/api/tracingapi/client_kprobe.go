@@ -595,6 +595,15 @@ type ConfigBTFArg struct {
 	IsInitialized uint16 `align:"is_initialized"`
 }
 
+type ConfigUsdtArg struct {
+	ValOff uint64 `align:"val_off"`
+	RegOff uint32 `align:"reg_off"`
+	Shift  uint8  `align:"shift"`
+	Type   uint8  `align:"type"`
+	Signed uint8  `align:"sig"`
+	Pad    uint8  `align:"pad1"`
+}
+
 const EventConfigMaxArgs = 5
 const MaxBTFArgDepth = 10 // Artificial value for compilation, may be extended
 
@@ -610,5 +619,7 @@ type EventConfig struct {
 	ArgReturnAction int32                                            `align:"argreturnaction"`
 	PolicyID        uint32                                           `align:"policy_id"`
 	Flags           uint32                                           `align:"flags"`
+	Pad             uint32                                           `align:"pad"`
 	BTFArg          [EventConfigMaxArgs][MaxBTFArgDepth]ConfigBTFArg `align:"btf_arg"`
+	UsdtArg         [EventConfigMaxArgs]ConfigUsdtArg                `align:"usdt_arg"`
 }
