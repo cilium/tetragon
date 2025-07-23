@@ -254,14 +254,21 @@ func typesCompatible(specTy string, kernelTy string) bool {
 
 	case "uint64":
 		switch kernelTy {
-		case "u64", "void *", "long unsigned int":
+		case "u64", "void *", "long unsigned int", "unsigned long":
 			return true
 		}
 	case "int64":
 		switch kernelTy {
-		case "s64":
+		case "s64", "long":
 			return true
 		}
+
+	case "uint32":
+		switch kernelTy {
+		case "unsigned int", "u32":
+			return true
+		}
+
 	case "int32":
 		switch kernelTy {
 		case "s32", "int":
