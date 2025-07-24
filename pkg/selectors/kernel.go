@@ -609,6 +609,12 @@ func capsStrToUint64(values []string) (uint64, error) {
 }
 
 func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) error {
+	// NB: maxMatchValues should match MAX_MATCH_VALUES in bpf/process/types/basic.h
+	maxMatchValues := 4
+	if len(values) > maxMatchValues {
+		return fmt.Errorf("selector does not support more than %d values: consider using InMap or NotInMap operators", maxMatchValues)
+	}
+
 	for _, v := range values {
 		base := getBase(v)
 		switch ty {
