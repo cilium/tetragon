@@ -2803,6 +2803,100 @@ spec:
                 description: A list of usdt specs.
                 items:
                   properties:
+                    args:
+                      description: A list of function arguments to include in the
+                        trace output.
+                      items:
+                        properties:
+                          index:
+                            description: Position of the argument.
+                            format: int32
+                            minimum: 0
+                            type: integer
+                          label:
+                            description: Label to output in the JSON
+                            type: string
+                          maxData:
+                            default: false
+                            description: |-
+                              Read maximum possible data (currently 327360). This field is only used
+                              for char_buff data. When this value is false (default), the bpf program
+                              will fetch at most 4096 bytes. In later kernels (>=5.4) tetragon
+                              supports fetching up to 327360 bytes if this flag is turned on
+                            type: boolean
+                          resolve:
+                            default: ""
+                            description: Resolve the path to a specific attribute
+                            type: string
+                          returnCopy:
+                            default: false
+                            description: |-
+                              This field is used only for char_buf and char_iovec types. It indicates
+                              that this argument should be read later (when the kretprobe for the
+                              symbol is triggered) because it might not be populated when the kprobe
+                              is triggered at the entrance of the function. For example, a buffer
+                              supplied to read(2) won't have content until kretprobe is triggered.
+                            type: boolean
+                          sizeArgIndex:
+                            description: |-
+                              Specifies the position of the corresponding size argument for this argument.
+                              This field is used only for char_buf and char_iovec types.
+                            format: int32
+                            minimum: 0
+                            type: integer
+                          type:
+                            default: auto
+                            description: Argument type.
+                            enum:
+                            - auto
+                            - int
+                            - int8
+                            - uint8
+                            - int16
+                            - uint16
+                            - uint32
+                            - int32
+                            - uint64
+                            - int64
+                            - char_buf
+                            - char_iovec
+                            - size_t
+                            - skb
+                            - sock
+                            - sockaddr
+                            - socket
+                            - string
+                            - fd
+                            - file
+                            - filename
+                            - path
+                            - nop
+                            - bpf_attr
+                            - perf_event
+                            - bpf_map
+                            - user_namespace
+                            - capability
+                            - kiocb
+                            - iov_iter
+                            - cred
+                            - load_info
+                            - module
+                            - syscall64
+                            - kernel_cap_t
+                            - cap_inheritable
+                            - cap_permitted
+                            - cap_effective
+                            - linux_binprm
+                            - data_loc
+                            - net_device
+                            - bpf_cmd
+                            - dentry
+                            type: string
+                        required:
+                        - index
+                        - type
+                        type: object
+                      type: array
                     message:
                       description: |-
                         A short message of 256 characters max that will be included
