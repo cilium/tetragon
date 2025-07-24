@@ -292,7 +292,7 @@ tetragonOperator:
   #  runAsGroup: 65532
 
   # Deprecated: Use containerSecurityContext instead
-  # securityContext: {}
+  securityContext: {}
   # -- resources for the Tetragon Operator Deployment Pod container.
   resources:
     limits:

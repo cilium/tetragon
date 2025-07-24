@@ -6,7 +6,8 @@ description: "Configure the Tetragon operator to run with non-root privileges"
 
 ## Running Tetragon Operator as Non-Root
 
-Starting with version X.Y.Z, the Tetragon operator supports running as a non-root user, enhancing the security posture of your Kubernetes deployments.
+Starting with version X.Y.Z, the Tetragon operator supports running as a
+non-root user, enhancing the security posture of your Kubernetes deployments.
 
 ## Configuration
 
@@ -50,6 +51,29 @@ kubectl exec -n kube-system deployment/tetragon-operator -- id
 
 Expected output:
 
-```txt
-uid=65532 gid=65532 groups=65532
+```
+uid=65532(operator) gid=65532(operator) groups=65532(operator)
+```
+
+## Migration from Previous Versions
+
+If you're upgrading from a version that used the deprecated `securityContext`
+field, note that it has been replaced with `containerSecurityContext` for
+clarity. The old field is still supported for backward compatibility but might
+be removed in a future release.
+
+To migrate, update your values from:
+
+```yaml
+tetragonOperator:
+  securityContext:
+    runAsUser: 65532
+```
+
+To:
+
+```yaml
+tetragonOperator:
+  containerSecurityContext:
+    runAsUser: 65532
 ```
