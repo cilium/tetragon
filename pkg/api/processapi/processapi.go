@@ -162,6 +162,7 @@ type Binary struct {
 	End_r      [STRING_POSTFIX_MAX_LENGTH]byte
 	Args       [MAX_ARG_LENGTH]byte
 	MBSet      uint64
+	MBGen      uint64
 }
 
 type MsgNamespaces struct {

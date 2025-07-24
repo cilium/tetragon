@@ -335,7 +335,6 @@ func createGenericLsmSensor(
 	var maps []*program.Map
 	var ids []idtable.EntryID
 	var selMaps *selectors.KernelSelectorMaps
-	var err error
 
 	if !bpf.HasLSMPrograms() || !config.EnableLargeProgs() {
 		return nil, errors.New("does you kernel support the bpf LSM? You can enable LSM BPF by modifying" +
@@ -365,10 +364,6 @@ func createGenericLsmSensor(
 			return nil, err
 		}
 		progs, maps = createLsmSensorFromEntry(polInfo, gl, progs, maps)
-	}
-
-	if err != nil {
-		return nil, err
 	}
 
 	maps = append(maps, program.MapUserFrom(base.ExecveMap))
@@ -443,15 +438,7 @@ func imaProgName(lsmEntry *genericLsm) (string, string) {
 func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 	progs []*program.Program, maps []*program.Map) ([]*program.Program, []*program.Map) {
 
-	loadProgCoreName := "bpf_generic_lsm_core.o"
-	loadProgOutputName := "bpf_generic_lsm_output.o"
-	if config.EnableV61Progs() {
-		loadProgCoreName = "bpf_generic_lsm_core_v61.o"
-		loadProgOutputName = "bpf_generic_lsm_output_v61.o"
-	} else if kernels.MinKernelVersion("5.11") {
-		loadProgCoreName = "bpf_generic_lsm_core_v511.o"
-		loadProgOutputName = "bpf_generic_lsm_output_v511.o"
-	}
+	loadProgCoreName, loadProgOutputName := config.GenericLsmObjs()
 
 	/* We need to load LSM programs in the following order:
 	   1. bpf_generic_lsm_output

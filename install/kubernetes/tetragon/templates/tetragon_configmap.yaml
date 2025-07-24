@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Release.Name }}-config
+  name: {{ include "tetragon.configMapName" . }}
   namespace: {{ .Release.Namespace }}
   labels:
   {{- include "tetragon.labels" . | nindent 4 }}

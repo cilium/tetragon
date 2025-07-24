@@ -21,7 +21,19 @@ func ForkObj() string {
 }
 
 // GenericKprobeObjs returns the generic kprobe and generic retprobe objects
-func GenericKprobeObjs() (string, string) {
+func GenericKprobeObjs(_ bool) (string, string) {
+	return "", ""
+}
+
+func GenericUprobeObjs(_ bool) string {
+	return ""
+}
+
+func GenericTracepointObjs(_ bool) string {
+	return ""
+}
+
+func GenericLsmObjs() (string, string) {
 	return "", ""
 }
 

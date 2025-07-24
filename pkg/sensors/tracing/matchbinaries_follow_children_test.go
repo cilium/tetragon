@@ -23,6 +23,7 @@ import (
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
@@ -317,6 +318,156 @@ func TestMatchBinariesFollowChildrenUpdate(t *testing.T) {
 	iter := hash.Iterate()
 	for iter.Next(&key, &val) {
 		if unix.ByteSliceToString(val.Binary.Path[:]) == forks {
+			require.Equal(t, uint64(0), val.Binary.MBSet, "Binary.MBSet_0")
+		}
+	}
+
+	// "forks" is terminated via .Cleanup above
+}
+
+// We verify that followChildren works also for process that was started before
+// the policy was loaded, we do following steps:
+//   - execute follow_children_1 binary, which forks a child and waits for
+//     SIGUSR1 to execute sys_prctl
+//   - load sys_prctl policy that has followChidren filter for follow_children_1 binary
+//   - kick follow_children_1 process to execute sys_prctl
+//   - verify we got the event
+func TestMatchBinariesFollowChildrenBeforePolicy(t *testing.T) {
+	testutils.CaptureLog(t, logger.GetLogger())
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	if !kernels.MinKernelVersion("5.11.0") {
+		t.Skip("Test requires 5.11 programs")
+	}
+
+	if err := observer.InitDataCache(1024); err != nil {
+		t.Fatalf("observertesthelper.InitDataCache: %s", err)
+	}
+
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+	tus.LoadInitialSensor(t)
+	tus.LoadSensor(t, testsensor.GetTestSensor())
+	sm := tuo.GetTestSensorManager(t)
+
+	fc_1 := testutils.RepoRootPath("contrib/tester-progs/follow_children_1")
+
+	tp := tracingpolicy.GenericTracingPolicy{
+		Metadata: v1.ObjectMeta{
+			Name: "match-binaries",
+		},
+		Spec: v1alpha1.TracingPolicySpec{
+			KProbes: []v1alpha1.KProbeSpec{
+				{
+					Call:    "sys_prctl",
+					Syscall: true,
+					Selectors: []v1alpha1.KProbeSelector{
+						{
+							MatchBinaries: []v1alpha1.BinarySelector{
+								{
+									Operator:       "In",
+									Values:         []string{fc_1},
+									FollowChildren: true,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// Execute follow_children_1
+	cmd := exec.Command(fc_1)
+	if err := cmd.Start(); err != nil {
+		t.Fatalf("failed to run command %s: %v", cmd, err)
+	}
+
+	var (
+		key   execvemap.ExecveKey
+		val   execvemap.ExecveValue
+		found int
+	)
+
+	hash, err := openMap("execve_map")
+	require.NoError(t, err, "failed to open execve_map")
+	defer hash.Close()
+
+	// Check that all "follow_children_1" processes are updated. Let's wait (maximum 2 seconds)
+	// before "follow_children_1" fork-ed the children to be sure all of them started.
+	for range 20 {
+		found = 0
+		iter := hash.Iterate()
+		for iter.Next(&key, &val) {
+			if unix.ByteSliceToString(val.Binary.Path[:]) == fc_1 {
+				found++
+			}
+		}
+		if found >= 2 {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	require.Equal(t, 2, found, "found")
+
+	// Add policy
+	err = sm.Manager.AddTracingPolicy(ctx, &tp)
+	require.NoError(t, err)
+
+	// Make sure it's properly terminated
+	t.Cleanup(func() {
+		cmd.Process.Signal(syscall.Signal(2))
+		cmd.Process.Wait()
+	})
+
+	fn, err := SyscallVal("sys_prctl").Symbol()
+	require.NoError(t, err)
+
+	cnt := 0
+	eventFn := func(ev notify.Message) error {
+		if kpEvent, ok := ev.(*tracing.MsgGenericKprobeUnix); ok {
+			fmt.Printf("KRAVA %s %s\n", kpEvent.FuncName, fn)
+			if kpEvent.FuncName == fn {
+				cnt++
+			}
+		}
+		return nil
+	}
+
+	ops := func() {
+		// Kick follow_children_1 to execute sys_prctl
+		cmd.Process.Signal(syscall.Signal(10))
+	}
+
+	perfring.RunTest(t, ctx, ops, eventFn)
+	require.Equal(t, 1, cnt, "single kprobe")
+
+	// Check that "follow_children_1" process is updated with new mbset bit.
+	for range 20 {
+		found = 0
+		iter := hash.Iterate()
+		for iter.Next(&key, &val) {
+			if unix.ByteSliceToString(val.Binary.Path[:]) == fc_1 && val.Binary.MBSet == 1 {
+				found++
+			}
+		}
+		if found != 0 {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	require.Equal(t, 1, found, "found")
+
+	// Remove policy
+	err = sm.Manager.DeleteTracingPolicy(ctx, "match-binaries", "")
+	require.NoError(t, err)
+
+	// Check that all "forks" processes are updated
+	iter := hash.Iterate()
+	for iter.Next(&key, &val) {
+		if unix.ByteSliceToString(val.Binary.Path[:]) == fc_1 {
 			require.Equal(t, uint64(0), val.Binary.MBSet, "Binary.MBSet_0")
 		}
 	}

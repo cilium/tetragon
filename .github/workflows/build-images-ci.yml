@@ -24,6 +24,8 @@ permissions:
 jobs:
   build-and-push:
     runs-on: ubuntu-24.04
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
     strategy:
       matrix:
         include:
@@ -146,3 +148,46 @@ jobs:
           echo "| **SHA256** | \`${{ steps.docker_build_ci_pr.outputs.digest }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Pull by tag** | \`$IMAGE:${{ steps.tag.outputs.tag }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Pull by digest** | \`$IMAGE@${{ steps.docker_build_ci_pr.outputs.digest }}\` |" >> $GITHUB_STEP_SUMMARY
+
+  helm-chart:
+    if: ${{ success() }}
+    name: Push OCI Helm Chart
+    runs-on: ubuntu-24.04
+    needs: build-and-push
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ needs.build-and-push.outputs.tag }}
+          submodules: true
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Get chart version
+        id: version
+        run: |
+          echo "chart_version=$(make chart-version)" >> $GITHUB_OUTPUT
+
+      - name: Push OCI Helm dev chart
+        uses: cilium/reusable-workflows/.github/actions/push-helm-chart@6ae27958f2f37545bf48e44106b73df05b1f6d12 # v0.1.0
+        with:
+          name: tetragon
+          path: install/kubernetes/tetragon
+          version: ${{ steps.version.outputs.chart_version }}
+          values_file_changes: |
+            {
+              "tetragon.image.repository": "quay.io/cilium/tetragon-ci",
+              "tetragon.image.tag": "${{ needs.build-and-push.outputs.tag }}",
+              "tetragonOperator.image.repository": "quay.io/cilium/tetragon-operator-ci",
+              "tetragonOperator.image.tag": "${{ needs.build-and-push.outputs.tag }}",
+            }
+          registry: quay.io
+          registry_namespace: cilium-charts-dev
+          registry_username: ${{ secrets.QUAY_CHARTS_DEV_USERNAME }}
+          registry_password: ${{ secrets.QUAY_CHARTS_DEV_PASSWORD }}
+
+      - name: Print helm command
+        run: |
+          echo "Example commands:"
+          echo helm template -n tetragon oci://quay.io/cilium-charts-dev/tetragon --version ${{ steps.version.outputs.chart_version }}
+          echo helm upgrade --install tetragon -n tetragon oci://quay.io/cilium-charts-dev/tetragon --version ${{ steps.version.outputs.chart_version }}

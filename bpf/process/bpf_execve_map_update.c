@@ -24,31 +24,12 @@ struct {
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 
-#ifdef __V63_BPF_PROG
-FUNC_INLINE void
-__execve_map_update(struct update_data *data)
-{
-	struct execve_map_value *curr;
-	struct bpf_iter_num it;
-	int *v;
-
-	bpf_iter_num_new(&it, 0, MAX_PIDS);
-	for (v = bpf_iter_num_next(&it); v; v = bpf_iter_num_next(&it)) {
-		__u32 pid, idx = (__u32)*v;
-
-		asm volatile("%[idx] &= 0x7fff;\n"
-			     : [idx] "+r"(idx));
-		if (data->cnt == idx)
-			break;
-
-		pid = data->pids[idx];
-		curr = execve_map_get_noinit(pid);
-		if (curr)
-			lock_and(&curr->bin.mb_bitset, ~(1 << data->bit));
-	}
-	bpf_iter_num_destroy(&it);
-}
+#ifdef __V612_BPF_PROG
+#define LOOPS MAX_PIDS
 #else
+#define LOOPS 1024
+#endif
+
 #ifdef __LARGE_BPF_PROG
 FUNC_INLINE void
 __execve_map_update(struct update_data *data)
@@ -56,7 +37,8 @@ __execve_map_update(struct update_data *data)
 	struct execve_map_value *curr;
 	__u32 idx, pid;
 
-	for (idx = 0; idx < 1024; idx++) {
+	bpf_for(idx, 0, LOOPS)
+	{
 		asm volatile("%[idx] &= 0x7fff;\n"
 			     : [idx] "+r"(idx));
 		if (data->cnt == idx)
@@ -74,7 +56,6 @@ __execve_map_update(struct update_data *data)
 {
 }
 #endif /* __LARGE_BPF_PROG */
-#endif /* __V63_BPF_PROG */
 
 __attribute__((section("seccomp"), used)) int
 execve_map_update(void *ctx)

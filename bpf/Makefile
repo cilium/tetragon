@@ -81,12 +81,24 @@ PROCESS += bpf_generic_kprobe_v61.o bpf_generic_retkprobe_v61.o \
 	   bpf_multi_uprobe_v61.o \
 	   bpf_generic_rawtp_v61.o
 
+# v6.12
+# base sensor
+PROCESS += bpf_execve_event_v612.o
+# generic probes
+PROCESS += bpf_generic_kprobe_v612.o bpf_generic_retkprobe_v612.o \
+	   bpf_multi_kprobe_v612.o bpf_multi_retkprobe_v612.o \
+	   bpf_generic_tracepoint_v612.o bpf_generic_uprobe_v612.o \
+	   bpf_multi_uprobe_v612.o \
+	   bpf_generic_rawtp_v612.o
 # lsm
 PROCESS += bpf_generic_lsm_core_v61.o bpf_generic_lsm_output_v61.o \
-	   bpf_generic_lsm_ima_file_v61.o bpf_generic_lsm_ima_bprm_v61.o
+	   bpf_generic_lsm_ima_file_v61.o bpf_generic_lsm_ima_bprm_v61.o \
+	   bpf_generic_lsm_core_v612.o bpf_generic_lsm_output_v612.o \
+	   bpf_generic_lsm_ima_file_v612.o bpf_generic_lsm_ima_bprm_v612.o
+
 
 # execve_map update
-PROCESS += bpf_execve_map_update_v61.o bpf_execve_map_update_v511.o \
+PROCESS += bpf_execve_map_update_v612.o bpf_execve_map_update_v61.o bpf_execve_map_update_v511.o \
 	   bpf_execve_map_update_v53.o bpf_execve_map_update.o
 
 
@@ -126,6 +138,7 @@ CFLAGS_v310 = -D__RHEL7_BPF_PROG
 CFLAGS_v53  = -D__LARGE_BPF_PROG
 CFLAGS_v511 = -D__LARGE_BPF_PROG -D__V511_BPF_PROG
 CFLAGS_v61  = -D__LARGE_BPF_PROG -D__V511_BPF_PROG -D__V61_BPF_PROG
+CFLAGS_v612 = -D__LARGE_BPF_PROG -D__V511_BPF_PROG -D__V61_BPF_PROG -D__V612_BPF_PROG
 
 # Define extra CFLAGS for objects
 CFLAGS_bpf_enforcer.o           = -D__BPF_OVERRIDE_RETURN
@@ -181,13 +194,16 @@ CFLAGS_bpf_multi_retkprobe_$$(VAR).o = -D__MULTI_KPROBE
 ifeq (v61,$$(VAR))
 CFLAGS_bpf_multi_uprobe_$$(VAR).o    = -D__MULTI_KPROBE
 endif
-
-endef
+ifeq (v612,$$(VAR))
+CFLAGS_bpf_multi_uprobe_$$(VAR).o    = -D__MULTI_KPROBE
+endif
+endef # DEFINE_VARIANT
 
 $(eval $(call DEFINE_VARIANT,v310))
 $(eval $(call DEFINE_VARIANT,v53))
 $(eval $(call DEFINE_VARIANT,v511))
 $(eval $(call DEFINE_VARIANT,v61))
+$(eval $(call DEFINE_VARIANT,v612))
 
 # Object build rule for non VARIANT objects
 objs/%.o:

@@ -44,77 +44,77 @@ func TestLSMObjectLoad(t *testing.T) {
 	if config.EnableV61Progs() {
 		sensorProgs = []tus.SensorProg{
 			// lsm
-			0: tus.SensorProg{Name: "generic_lsm_event", Type: ebpf.LSM},
-			1: tus.SensorProg{Name: "generic_lsm_setup_event", Type: ebpf.LSM},
-			2: tus.SensorProg{Name: "generic_lsm_process_event", Type: ebpf.LSM},
-			3: tus.SensorProg{Name: "generic_lsm_filter_arg", Type: ebpf.LSM},
-			4: tus.SensorProg{Name: "generic_lsm_process_filter", Type: ebpf.LSM},
-			5: tus.SensorProg{Name: "generic_lsm_actions", Type: ebpf.LSM},
-			6: tus.SensorProg{Name: "generic_lsm_output", Type: ebpf.LSM},
+			0: {Name: "generic_lsm_event", Type: ebpf.LSM},
+			1: {Name: "generic_lsm_setup_event", Type: ebpf.LSM},
+			2: {Name: "generic_lsm_process_event", Type: ebpf.LSM},
+			3: {Name: "generic_lsm_filter_arg", Type: ebpf.LSM},
+			4: {Name: "generic_lsm_process_filter", Type: ebpf.LSM},
+			5: {Name: "generic_lsm_actions", Type: ebpf.LSM},
+			6: {Name: "generic_lsm_output", Type: ebpf.LSM},
 		}
 		sensorMaps = []tus.SensorMap{
 			// all LSM programs
-			tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6}},
+			{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6}},
 
 			// all but generic_lsm_output
-			tus.SensorMap{Name: "lsm_calls", Progs: []uint{0, 1, 2, 3, 4, 5}},
+			{Name: "lsm_calls", Progs: []uint{0, 1, 2, 3, 4, 5}},
 
 			// generic_lsm_process_filter,generic_lsm_filter_arg,
 			// generic_lsm_actions
-			tus.SensorMap{Name: "filter_map", Progs: []uint{3, 4, 5}},
+			{Name: "filter_map", Progs: []uint{3, 4, 5}},
 
 			// generic_lsm_actions, generic_lsm_output
-			tus.SensorMap{Name: "override_tasks", Progs: []uint{5, 6}},
+			{Name: "override_tasks", Progs: []uint{5, 6}},
 
 			// all lsm but generic_lsm_process_filter
-			tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2}},
+			{Name: "config_map", Progs: []uint{0, 1, 2}},
 
 			// generic_lsm_event
-			tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
+			{Name: "tg_conf_map", Progs: []uint{0}},
 
 			// shared with base sensor
-			tus.SensorMap{Name: "execve_map", Progs: []uint{4, 5, 6}},
+			{Name: "execve_map", Progs: []uint{4, 5, 6}},
 
 			// generic_lsm_process_event*,generic_lsm_output
-			tus.SensorMap{Name: "tcpmon_map", Progs: []uint{2, 6}},
+			{Name: "tcpmon_map", Progs: []uint{2, 6}},
 		}
 	} else {
 		sensorProgs = []tus.SensorProg{
 			// lsm
-			0: tus.SensorProg{Name: "generic_lsm_event", Type: ebpf.LSM},
-			1: tus.SensorProg{Name: "generic_lsm_setup_event", Type: ebpf.LSM},
-			2: tus.SensorProg{Name: "generic_lsm_process_event", Type: ebpf.LSM},
-			3: tus.SensorProg{Name: "generic_lsm_filter_arg", Type: ebpf.LSM},
-			4: tus.SensorProg{Name: "generic_lsm_process_filter", Type: ebpf.LSM},
-			5: tus.SensorProg{Name: "generic_lsm_actions", Type: ebpf.LSM},
-			6: tus.SensorProg{Name: "generic_lsm_output", Type: ebpf.LSM},
-			7: tus.SensorProg{Name: "generic_lsm_path", Type: ebpf.LSM},
+			0: {Name: "generic_lsm_event", Type: ebpf.LSM},
+			1: {Name: "generic_lsm_setup_event", Type: ebpf.LSM},
+			2: {Name: "generic_lsm_process_event", Type: ebpf.LSM},
+			3: {Name: "generic_lsm_filter_arg", Type: ebpf.LSM},
+			4: {Name: "generic_lsm_process_filter", Type: ebpf.LSM},
+			5: {Name: "generic_lsm_actions", Type: ebpf.LSM},
+			6: {Name: "generic_lsm_output", Type: ebpf.LSM},
+			7: {Name: "generic_lsm_path", Type: ebpf.LSM},
 		}
 		sensorMaps = []tus.SensorMap{
 			// all LSM programs
-			tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7}},
+			{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7}},
 
 			// all but generic_lsm_output
-			tus.SensorMap{Name: "lsm_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7}},
+			{Name: "lsm_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7}},
 
 			// generic_lsm_process_filter,generic_lsm_filter_arg,
 			// generic_lsm_actions
-			tus.SensorMap{Name: "filter_map", Progs: []uint{3, 4, 5}},
+			{Name: "filter_map", Progs: []uint{3, 4, 5}},
 
 			// generic_lsm_actions, generic_lsm_output
-			tus.SensorMap{Name: "override_tasks", Progs: []uint{5, 6}},
+			{Name: "override_tasks", Progs: []uint{5, 6}},
 
 			// all lsm but generic_lsm_process_filter
-			tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2}},
+			{Name: "config_map", Progs: []uint{0, 1, 2}},
 
 			// generic_lsm_event
-			tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
+			{Name: "tg_conf_map", Progs: []uint{0}},
 
 			// shared with base sensor
-			tus.SensorMap{Name: "execve_map", Progs: []uint{4, 5, 6}},
+			{Name: "execve_map", Progs: []uint{4, 5, 6}},
 
 			// generic_lsm_process_event*,generic_lsm_output
-			tus.SensorMap{Name: "tcpmon_map", Progs: []uint{2, 6}},
+			{Name: "tcpmon_map", Progs: []uint{2, 6}},
 		}
 	}
 
