@@ -12,6 +12,7 @@
 #include "bpf_rate.h"
 #include "process.h"
 #include "bpf_process_event.h"
+#include "bpf_ktime.h"
 
 struct {
 	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
@@ -50,7 +51,7 @@ FUNC_INLINE void event_exit_send(void *ctx, __u32 tgid)
 		exit->common.pad[0] = 0;
 		exit->common.pad[1] = 0;
 		exit->common.size = size;
-		exit->common.ktime = ktime_get_ns();
+		exit->common.ktime = tg_get_ktime();
 
 		exit->current.pid = tgid;
 		exit->current.pad[0] = 0;

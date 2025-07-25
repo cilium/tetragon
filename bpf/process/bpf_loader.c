@@ -8,6 +8,7 @@
 #include "bpf_helpers.h"
 #include "bpf_event.h"
 #include "bpf_task.h"
+#include "bpf_ktime.h"
 
 struct msg_loader {
 	struct msg_common common;
@@ -127,7 +128,7 @@ loader_kprobe(struct pt_regs *ctx)
 
 	total = offsetof(struct msg_loader, pe);
 	msg->common.size = total;
-	msg->common.ktime = ktime_get_ns();
+	msg->common.ktime = tg_get_ktime();
 	msg->common.op = MSG_OP_LOADER;
 	msg->common.flags = 0;
 

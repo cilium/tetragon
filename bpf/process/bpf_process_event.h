@@ -10,6 +10,7 @@
 #include "bpf_cred.h"
 #include "bpf_d_path.h"
 #include "bpf_tracing.h"
+#include "bpf_ktime.h"
 
 #include "cgroup/cgtracker.h"
 
@@ -346,7 +347,7 @@ event_find_curr_probe(struct msg_generic_kprobe *msg)
 
 	curr = &msg->curr;
 	curr->key.pid = BPF_CORE_READ(task, tgid);
-	curr->key.ktime = ktime_get_ns();
+	curr->key.ktime = tg_get_ktime();
 	curr->nspid = get_task_pid_vnr_by_task(task);
 
 	get_current_subj_caps(&curr->caps, task);

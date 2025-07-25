@@ -28,6 +28,7 @@
 #include "process/ratelimit_maps.h"
 #include "process/heap.h"
 #include "../bpf_mbset.h"
+#include "bpf_ktime.h"
 
 /* Type IDs form API with user space generickprobe.go */
 enum {
@@ -1847,7 +1848,7 @@ FUNC_INLINE void do_action_signal(int signal)
 FUNC_INLINE bool
 rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_kprobe *e)
 {
-	__u64 curr_time = ktime_get_ns();
+	__u64 curr_time = tg_get_ktime();
 	__u64 *last_repeat_entry;
 	struct ratelimit_key *key;
 	void *ro_heap;

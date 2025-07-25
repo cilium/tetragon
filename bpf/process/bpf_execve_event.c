@@ -12,6 +12,7 @@
 #include "bpf_rate.h"
 #include "bpf_errmetrics.h"
 #include "bpf_mbset.h"
+#include "bpf_ktime.h"
 
 #include "policy_filter.h"
 
@@ -212,7 +213,7 @@ event_execve(struct exec_ctx_struct *ctx)
 	p->pid = pid >> 32;
 	p->tid = (__u32)pid;
 	p->nspid = get_task_pid_vnr_curr();
-	p->ktime = ktime_get_ns();
+	p->ktime = tg_get_ktime();
 	p->size = offsetof(struct msg_process, args);
 	p->auid = get_auid();
 	read_execve_shared_info(ctx, p, pid);
