@@ -7,6 +7,7 @@
 #include "compiler.h"
 #include "bpf_event.h"
 #include "bpf_task.h"
+#include "bpf_ktime.h"
 
 /*
  * # cat /sys/kernel/debug/tracing/events/syscalls/sys_enter_lseek/format
@@ -47,7 +48,7 @@ test_lseek(struct sys_enter_lseek_args *ctx)
 		struct msg_test msg = { 0 };
 		size_t size = sizeof(msg);
 		msg.common.op = MSG_OP_TEST;
-		msg.common.ktime = ktime_get_ns();
+		msg.common.ktime = tg_get_ktime();
 		msg.common.size = size;
 		msg.arg0 = get_smp_processor_id();
 		perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, &msg,

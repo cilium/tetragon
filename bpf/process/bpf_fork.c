@@ -13,6 +13,7 @@
 #include "bpf_process_event.h"
 #include "process.h"
 #include "bpf_rate.h"
+#include "bpf_ktime.h"
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 #ifdef VMLINUX_KERNEL_VERSION
@@ -54,7 +55,7 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 	/* Setup the execve_map entry. */
 	curr->flags = EVENT_COMMON_FLAG_CLONE;
 	curr->key.pid = tgid;
-	curr->key.ktime = ktime_get_ns();
+	curr->key.ktime = tg_get_ktime();
 	curr->nspid = get_task_pid_vnr_by_task(task);
 	memcpy(&curr->bin, &parent->bin, sizeof(curr->bin));
 	curr->pkey = parent->key;

@@ -11,6 +11,7 @@
 #include "vmlinux.h"
 #include "policy_conf.h"
 #include "generic_path.h"
+#include "bpf_ktime.h"
 
 #define MAX_TOTAL 9000
 
@@ -533,7 +534,7 @@ generic_process_init(struct msg_generic_kprobe *e, u8 op, struct event_config *c
 	e->common.pad[0] = 0;
 	e->common.pad[1] = 0;
 	e->common.size = 0;
-	e->common.ktime = ktime_get_ns();
+	e->common.ktime = tg_get_ktime();
 
 	e->current.pad[0] = 0;
 	e->current.pad[1] = 0;
@@ -972,7 +973,7 @@ FUNC_INLINE int generic_retkprobe(void *ctx, struct bpf_map_def *calls, unsigned
 	e->common.pad[0] = 0;
 	e->common.pad[1] = 0;
 	e->common.size = size;
-	e->common.ktime = ktime_get_ns();
+	e->common.ktime = tg_get_ktime();
 
 	if (enter) {
 		e->current.pid = enter->key.pid;

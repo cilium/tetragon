@@ -6,6 +6,7 @@
 
 #include "bpf_tracing.h"
 #include "data_msg.h"
+#include "bpf_ktime.h"
 
 FUNC_LOCAL long
 __do_bytes(void *ctx, struct msg_data *msg, unsigned long uptr, size_t bytes)
@@ -157,7 +158,7 @@ FUNC_INLINE size_t data_event(
 	if (msg->id.pid == (__u64)-22) // -EINVAL -- current == NULL
 		msg->id.pid = PT_REGS_FP_CORE((struct pt_regs *)ctx);
 
-	msg->id.time = ktime_get_ns();
+	msg->id.time = tg_get_ktime();
 	desc->id = msg->id;
 
 	/*
