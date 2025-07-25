@@ -136,9 +136,9 @@ tetragon-bpf-local:
 
 .PHONY: tetragon-bpf-container
 tetragon-bpf-container:
-	$(CONTAINER_ENGINE) rm tetragon-clang || true
+	$(CONTAINER_ENGINE) rm -f tetragon-clang || true
 	$(CONTAINER_ENGINE) run -v $(CURDIR):/tetragon:Z -u $$(id -u) -e BPF_TARGET_ARCH=$(BPF_TARGET_ARCH) --name tetragon-clang $(CLANG_IMAGE) make -C /tetragon/bpf -j$(JOBS) $(__BPF_DEBUG_FLAGS)
-	$(CONTAINER_ENGINE) rm tetragon-clang
+	$(CONTAINER_ENGINE) rm -f tetragon-clang
 
 .PHONY: tetragon-bench
 tetragon-bench: ## Compile tetragon-bench tool.
