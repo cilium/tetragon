@@ -180,6 +180,11 @@ spec:
 		t.Fatalf("setgid(%d) error: %s", gid+1, err)
 	}
 
+	// Restore all gids to 0
+	if err := syscall.Setgid(0); err != nil {
+		t.Fatalf("setgid(0) error: %s", err)
+	}
+
 	checker := ec.NewUnorderedEventChecker(kpChangeGidChecker, kpChangeUidChecker, kpPrivilegedChecker)
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
@@ -340,6 +345,11 @@ spec:
 	// Reset all gids to gid+1 so we match the event
 	if err := syscall.Setgid(gid + 1); err != nil {
 		t.Fatalf("setgid(%d) error: %s", gid+1, err)
+	}
+
+	// Restore all gids to 0
+	if err := syscall.Setgid(0); err != nil {
+		t.Fatalf("setgid(0) error: %s", err)
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpChangeGidChecker, kpChangeUidChecker, kpPrivilegedChecker)
