@@ -28,3 +28,4 @@ pause
 /raisesigkill
 /capabilities-gained
 forks
+follow_children_1

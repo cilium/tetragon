@@ -212,7 +212,11 @@ event_execve(struct exec_ctx_struct *ctx)
 	p->pid = pid >> 32;
 	p->tid = (__u32)pid;
 	p->nspid = get_task_pid_vnr_curr();
+#ifdef __LARGE_BPF_PROG
+	p->ktime = (bpf_core_type_exists(btf_bpf_ktime_get_boot_ns)) ? (ktime_get_boot_ns()) : (ktime_get_ns());
+#else
 	p->ktime = ktime_get_ns();
+#endif
 	p->size = offsetof(struct msg_process, args);
 	p->auid = get_auid();
 	read_execve_shared_info(ctx, p, pid);
