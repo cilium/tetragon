@@ -54,6 +54,7 @@
     - [ProcessLsm](#tetragon-ProcessLsm)
     - [ProcessTracepoint](#tetragon-ProcessTracepoint)
     - [ProcessUprobe](#tetragon-ProcessUprobe)
+    - [ProcessUsdt](#tetragon-ProcessUsdt)
     - [RuntimeHookRequest](#tetragon-RuntimeHookRequest)
     - [RuntimeHookResponse](#tetragon-RuntimeHookResponse)
     - [SecurityContext](#tetragon-SecurityContext)
@@ -1174,6 +1175,30 @@ loader sensor event triggered for loaded binary/library
 
 
 
+<a name="tetragon-ProcessUsdt"></a>
+
+### ProcessUsdt
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| process | [Process](#tetragon-Process) |  |  |
+| parent | [Process](#tetragon-Process) |  |  |
+| path | [string](#string) |  |  |
+| provider | [string](#string) |  |  |
+| name | [string](#string) |  |  |
+| policy_name | [string](#string) |  | Name of the policy that created that uprobe. |
+| message | [string](#string) |  | Short message of the Tracing Policy to inform users what is going on. |
+| args | [KprobeArgument](#tetragon-KprobeArgument) | repeated | Arguments definition of the observed uprobe. |
+| tags | [string](#string) | repeated | Tags of the Tracing Policy to categorize the event. |
+| ancestors | [Process](#tetragon-Process) | repeated | Ancestors of the process beyond the immediate parent. |
+
+
+
+
+
+
 <a name="tetragon-RuntimeHookRequest"></a>
 
 ### RuntimeHookRequest
@@ -1537,6 +1562,7 @@ Capability set to filter over. NOTE: you may specify only ONE set here.
 | process_uprobe | [ProcessUprobe](#tetragon-ProcessUprobe) |  |  |
 | process_throttle | [ProcessThrottle](#tetragon-ProcessThrottle) |  |  |
 | process_lsm | [ProcessLsm](#tetragon-ProcessLsm) |  |  |
+| process_usdt | [ProcessUsdt](#tetragon-ProcessUsdt) |  |  |
 | test | [Test](#tetragon-Test) |  |  |
 | rate_limit_info | [RateLimitInfo](#tetragon-RateLimitInfo) |  |  |
 | node_name | [string](#string) |  | Name of the node where this event was observed. |
@@ -1635,6 +1661,7 @@ GetEventsResponse event oneof.
 | PROCESS_UPROBE | 12 |  |
 | PROCESS_THROTTLE | 27 |  |
 | PROCESS_LSM | 28 |  |
+| PROCESS_USDT | 29 |  |
 | TEST | 40000 |  |
 | RATE_LIMIT_INFO | 40001 |  |
 

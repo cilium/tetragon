@@ -30,7 +30,8 @@ PROGS = sigkill-tester \
 	raisesigkill \
 	forks \
 	capabilities-gained \
-	follow_children_1
+	follow_children_1 \
+	usdt
 
 
 all: $(PROGS)
@@ -82,6 +83,9 @@ uprobe-test-2: uprobe-test-1
 
 capabilities-gained: capabilities-gained.c
 	$(GCC) -Wall $< -o $@ -lcap
+
+usdt: usdt.c
+	$(GCC) -Wall $< -o $@
 
 # NB: compile the 32 bit version of enforcer-tester statically so that we don't
 # need additional libraries in the VMs

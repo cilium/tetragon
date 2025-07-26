@@ -114,6 +114,7 @@ static int BPF_FUNC(map_delete_elem, void *map, const void *key);
 static int BPF_FUNC(probe_read, void *dst, uint32_t size, const void *src);
 static int BPF_FUNC(probe_read_str, void *dst, int size, const void *src);
 static int BPF_FUNC(probe_read_kernel, void *dst, uint32_t size, const void *src);
+static int BPF_FUNC(probe_read_user, void *dst, uint32_t size, const void *src);
 
 /* Time access */
 static uint64_t BPF_FUNC(ktime_get_ns);

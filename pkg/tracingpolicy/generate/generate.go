@@ -37,3 +37,9 @@ func AddUprobe(tp *v1alpha1.TracingPolicy) *v1alpha1.UProbeSpec {
 	tp.Spec.UProbes = append(tp.Spec.UProbes, v1alpha1.UProbeSpec{})
 	return &tp.Spec.UProbes[idx]
 }
+
+func AddUsdt(tp *v1alpha1.TracingPolicy) *v1alpha1.UsdtSpec {
+	idx := len(tp.Spec.Usdts)
+	tp.Spec.Usdts = append(tp.Spec.Usdts, v1alpha1.UsdtSpec{})
+	return &tp.Spec.Usdts[idx]
+}
