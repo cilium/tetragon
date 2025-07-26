@@ -6,16 +6,23 @@
 package tracing
 
 import (
+	"context"
 	"os"
+	"os/exec"
+	"sync"
 	"testing"
 
 	"github.com/cilium/ebpf"
+	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
+	"github.com/cilium/tetragon/pkg/jsonchecker"
+	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUsdtLoadSensor(t *testing.T) {
@@ -95,4 +102,57 @@ spec:
 		sensi = append(sensi, s)
 	}
 	sensors.UnloadSensors(sensi)
+}
+
+func TestUsdtGeneric(t *testing.T) {
+	if !config.EnableLargeProgs() || !bpf.HasUprobeRefCtrOffset() {
+		t.Skip("Need 5.3 or newer kernel for usdt and uprobe ref_ctr_off support for this test.")
+	}
+
+	usdt := testutils.RepoRootPath("contrib/tester-progs/usdt")
+	usdtHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "usdts"
+spec:
+  usdts:
+  - path: "` + usdt + `"
+    provider: "test"
+    name: "usdt0"
+`
+
+	usdtConfigHook := []byte(usdtHook)
+	err := os.WriteFile(testConfigFile, usdtConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	upChecker := ec.NewProcessUsdtChecker("USDT_GENERIC").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(usdt))).
+		WithProvider(sm.Full("test")).
+		WithName(sm.Full("usdt0"))
+
+	checker := ec.NewUnorderedEventChecker(upChecker)
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	if err := exec.Command(usdt).Run(); err != nil {
+		t.Fatalf("Failed to execute test binary: %s\n", err)
+	}
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
 }
