@@ -45,6 +45,7 @@ var (
 	missedStatsKprobe      Feature
 	missedStatsKprobeMulti Feature
 	batchUpdate            Feature
+	uprobeRefCtrOffset     Feature
 )
 
 func HasOverrideHelper() bool {
@@ -486,14 +487,34 @@ func HasBatchAPI() bool {
 	return batchUpdate.detected
 }
 
+var uprobeRefCtrOffsetPMUPath = "/sys/bus/event_source/devices/uprobe/format/ref_ctr_offset"
+
+func detectUprobeRefCtrOffset() bool {
+	if _, err := os.Stat(uprobeRefCtrOffsetPMUPath); err == nil {
+		return true
+	}
+	return false
+}
+
+func detectUprobeRefCtrOffsetOnce() {
+	batchUpdate.init.Do(func() {
+		uprobeRefCtrOffset.detected = detectUprobeRefCtrOffset()
+	})
+}
+
+func HasUprobeRefCtrOffset() bool {
+	detectUprobeRefCtrOffsetOnce()
+	return uprobeRefCtrOffset.detected
+}
+
 func LogFeatures() string {
 	// once we have detected all features, flush the BTF spec
 	// we cache all values so calling again a Has* function will
 	// not load the BTF again
 	defer ebtf.FlushKernelSpec()
-	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, uprobe_multi %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t, link_pin: %t, lsm: %t, missed_stats_kprobe_multi: %t, missed_stats_kprobe: %t, batch_update: %t",
+	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, uprobe_multi %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t, link_pin: %t, lsm: %t, missed_stats_kprobe_multi: %t, missed_stats_kprobe: %t, batch_update: %t, uprobe_refctroff: %t",
 		HasOverrideHelper(), HasBuildId(), HasKprobeMulti(), HasUprobeMulti(),
 		HasModifyReturn(), HasModifyReturnSyscall(), HasSignalHelper(), HasProgramLargeSize(),
 		HasLinkPin(), HasLSMPrograms(), HasMissedStatsKprobeMulti(), HasMissedStatsPerfEvent(),
-		HasBatchAPI())
+		HasBatchAPI(), HasUprobeRefCtrOffset())
 }
