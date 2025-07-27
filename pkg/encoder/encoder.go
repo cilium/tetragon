@@ -558,6 +558,14 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 		processInfo, caps := p.Colorer.ProcessInfo(response.NodeName, lsm.Process)
 		event := p.Colorer.Blue.Sprintf("🔒 %-7s", "LSM")
 		return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, lsm.FunctionName), caps), nil
+	case *tetragon.GetEventsResponse_ProcessUsdt:
+		usdt := response.GetProcessUsdt()
+		if usdt.Process == nil {
+			return "", ErrMissingProcessInfo
+		}
+		processInfo, caps := p.Colorer.ProcessInfo(response.NodeName, usdt.Process)
+		event := p.Colorer.Blue.Sprintf("🕵️ %-7s", "usdt")
+		return CapTrailorPrinter(fmt.Sprintf("%s %s %s %s %s", event, processInfo, usdt.Path, usdt.Provider, usdt.Name), caps), nil
 	}
 
 	return "", fmt.Errorf("%w: %s", ErrUnknownEventType, response.EventType())
