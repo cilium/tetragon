@@ -16,8 +16,8 @@ github.com/cilium/lumberjack/v2
 # github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000 => ../../api
 ## explicit; go 1.24.0
 github.com/cilium/tetragon/api/v1/tetragon
-# github.com/containerd/containerd v1.7.27
-## explicit; go 1.21
+# github.com/containerd/containerd v1.7.28
+## explicit; go 1.23.0
 github.com/containerd/containerd/errdefs
 github.com/containerd/containerd/events
 github.com/containerd/containerd/events/exchange
@@ -188,7 +188,7 @@ github.com/tetratelabs/wazero/sys
 # golang.org/x/exp v0.0.0-20250103183323-7d7fa50e5329
 ## explicit; go 1.22.0
 golang.org/x/exp/slices
-# golang.org/x/net v0.41.0
+# golang.org/x/net v0.42.0
 ## explicit; go 1.23.0
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2
