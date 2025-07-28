@@ -53,7 +53,7 @@ type KProbeSpec struct {
 	// Available actions are: Post;TrackSock;UntrackSock
 	ReturnArgAction string `json:"returnArgAction,omitempty"`
 	// +kubebuilder:validation:Optional
-	// Selectors to apply before producing trace output. Selectors are ORed.
+	// Selectors to apply before producing trace output. Selectors are ORed and short-circuited.
 	Selectors []KProbeSelector `json:"selectors,omitempty"`
 	// +kubebuilder:validation:optional
 	// +kubebuilder:validation:MaxItems=16

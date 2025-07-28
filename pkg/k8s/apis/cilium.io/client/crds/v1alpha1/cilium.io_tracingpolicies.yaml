@@ -330,7 +330,7 @@ spec:
                       type: string
                     selectors:
                       description: Selectors to apply before producing trace output.
-                        Selectors are ORed.
+                        Selectors are ORed and short-circuited.
                       items:
                         description: |-
                           KProbeSelector selects function calls for kprobe based on PIDs and function arguments. The

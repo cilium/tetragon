@@ -4,11 +4,13 @@ weight: 3
 description: "Perform in-kernel BPF filtering and actions on events"
 ---
 
-Selectors are a way to perform in-kernel BPF filtering on the events to
-export, or on the events on which to apply an action.
+Selectors enable per-hook in-kernel BPF filtering and actions. Each selector defines a set of
+filters as well as a set of (optional) actions to be performed if the selector filters match. Each
+hook can contain up to 5 selectors. If no selectors are defined on a hook, the default action
+(`Post`, i.e., post an event) will be used.
 
-A `TracingPolicy` can contain from 0 to 5 selectors. A selector is composed of
-1 or more filters. The available filters are the following:
+
+Each selector comprises a set of filters:
 - [`matchArgs`](#arguments-filter): filter on the value of arguments.
 - [`matchReturnArgs`](#return-args-filter): filter on the return value.
 - [`matchPIDs`](#pids-filter): filter on PID.
@@ -17,8 +19,41 @@ A `TracingPolicy` can contain from 0 to 5 selectors. A selector is composed of
 - [`matchCapabilities`](#capabilities-filter): filter on Linux capabilities.
 - [`matchNamespaceChanges`](#namespace-changes-filter): filter on Linux namespaces changes.
 - [`matchCapabilityChanges`](#capability-changes-filter): filter on Linux capabilities changes.
+
+And a set of actions that will be performed if the specified filters match:
 - [`matchActions`](#actions-filter): apply an action on selector matching.
 - [`matchReturnActions`](#return-actions-filter): apply an action on return selector matching.
+
+For a selector to match, all of its filters must match (AND operator). If a selector defines no
+filters, it matches. If multiple selectors are defined in a hook, only the action defined in the
+first matching selector will be applied (short-circuited OR). If a selector defines no action, the
+default action (`Post`) is applied.
+
+For example, the following policy will generate events when the `sys_mount` system call is executed
+by binaries other than `/usr/bin/mount`.
+
+```yaml
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "mount-example"
+spec:
+  kprobes:
+  - call: "sys_mount"
+    syscall: true
+    selectors:
+      # first selector
+      - matchBinaries:
+        - operator: In
+          values:
+          - "/usr/bin/mount"
+        matchActions:
+        - action: NoPost
+      # second selector
+      - matchActions:
+        - action: Post
+
+```
 
 ## Arguments filter
 
