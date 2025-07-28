@@ -1088,6 +1088,46 @@ FUNC_INLINE int filter_args(struct msg_generic_kprobe *e, int selidx, bool is_en
 	return 0;
 }
 
+_Static_assert(5 == MAX_SELECTORS, "update selidx_next()");
+FUNC_INLINE int next_selidx(struct msg_generic_kprobe *e, int selidx)
+{
+	int idx = selidx + 1;
+
+	switch (idx) {
+	case 0:
+		if (e->sel.active[idx & MAX_SELECTORS_MASK])
+			break;
+		idx++;
+		fallthrough;
+	case 1:
+		if (e->sel.active[idx & MAX_SELECTORS_MASK])
+			break;
+		idx++;
+		fallthrough;
+	case 2:
+		if (e->sel.active[idx & MAX_SELECTORS_MASK])
+			break;
+		idx++;
+		fallthrough;
+	case 3:
+		if (e->sel.active[idx & MAX_SELECTORS_MASK])
+			break;
+		idx++;
+		fallthrough;
+	case 4:
+		if (e->sel.active[idx & MAX_SELECTORS_MASK])
+			break;
+		idx++;
+		fallthrough;
+	case 5:
+		if (e->sel.active[idx & MAX_SELECTORS_MASK])
+			break;
+		idx++;
+	}
+
+	return idx;
+}
+
 FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
 				    bool is_entry)
 {
@@ -1100,8 +1140,8 @@ FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
 	selidx = e->tailcall_index_selector;
 	pass = filter_args(e, selidx & MAX_SELECTORS_MASK, is_entry);
 	if (!pass) {
-		selidx++;
-		if (selidx <= MAX_SELECTORS && e->sel.active[selidx & MAX_SELECTORS_MASK]) {
+		selidx = next_selidx(e, selidx);
+		if (selidx <= MAX_SELECTORS) {
 			e->tailcall_index_selector = selidx;
 			tail_call(ctx, tailcalls, TAIL_CALL_ARGS);
 		}
