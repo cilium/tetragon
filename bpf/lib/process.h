@@ -95,16 +95,16 @@
  *
  * Phew all clear now?
  */
-#define CWD_MAX	     4096
-#define BUFFER	     1024
-#define SIZEOF_EVENT 56
+#define CWD_MAX		   4096
+#define BUFFER		   1024
+#define SIZEOF_MSG_PROCESS sizeof(struct msg_process)
 #define PADDED_BUFFER \
-	(BUFFER + MAXARGLENGTH + SIZEOF_EVENT + SIZEOF_EVENT + CWD_MAX)
+	(BUFFER + MAXARGLENGTH + SIZEOF_MSG_PROCESS + SIZEOF_MSG_PROCESS + CWD_MAX)
 /* This is the usable buffer size for args and filenames. It is calculated
  * as the (BUFFER SIZE - sizeof(parent) - sizeof(curr) but unfortunately
  * preprocess doesn't know types so we do it manually without sizeof().
  */
-#define ARGSBUFFER	 (BUFFER - SIZEOF_EVENT - SIZEOF_EVENT)
+#define ARGSBUFFER	 (BUFFER - SIZEOF_MSG_PROCESS - SIZEOF_MSG_PROCESS)
 #define __ASM_ARGSBUFFER 976
 #define ARGSBUFFERMASK	 (ARGSBUFFER - 1)
 #define MAXARGMASK	 (MAXARG - 1)
@@ -187,9 +187,6 @@ struct execve_info {
 };
 
 /* process information
- *
- * Manually linked to ARGSBUFFER and PADDED_BUFFER if this changes then please
- * also change SIZEOF_EVENT.
  */
 struct msg_process {
 	__u32 size;
@@ -204,7 +201,7 @@ struct msg_process {
 	__u32 pad;
 	__u64 i_ino;
 	__u64 ktime;
-	char *args;
+	char args[0];
 }; // All fields aligned so no 'packed' attribute.
 
 /* msg_clone_event holds only the necessary fields to construct a new entry from
