@@ -33,6 +33,7 @@ import (
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/unix"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -371,5 +372,83 @@ func TestKprobeSelectors(t *testing.T) {
 			}
 		})
 	}
+
+}
+
+func TestMultipleInactiveSelectors(t *testing.T) {
+	testutils.CaptureLog(t, logger.GetLogger())
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	mypid := int(observertesthelper.GetMyPid())
+	t.Logf("filtering for my pid (%d)", mypid)
+	myPidMatchPIDs := []v1alpha1.PIDSelector{{
+		Operator:       "In",
+		IsNamespacePID: false,
+		FollowForks:    true,
+		Values:         []uint32{uint32(mypid)},
+	}}
+
+	unmatchedSelector := v1alpha1.KProbeSelector{
+		MatchPIDs: myPidMatchPIDs,
+		MatchBinaries: []v1alpha1.BinarySelector{{
+			Operator: "In",
+			Values:   []string{"nosuchbinaryexists"},
+		}},
+		MatchActions: []v1alpha1.ActionSelector{{
+			Action: "noPost",
+		}},
+	}
+
+	spec := &v1alpha1.TracingPolicySpec{
+		KProbes: []v1alpha1.KProbeSpec{{
+			Call:    "sys_lseek",
+			Syscall: true,
+			Args: []v1alpha1.KProbeArg{{
+				Index: 2,
+				Type:  "int",
+			}},
+			Selectors: []v1alpha1.KProbeSelector{
+				unmatchedSelector,
+				unmatchedSelector,
+				{MatchPIDs: myPidMatchPIDs},
+			},
+		}},
+	}
+
+	eventCounter := 0
+	loadGenericSensorTest(t, spec)
+	perfring.RunTest(t, ctx,
+		func() {
+			t.Logf("Calling lseek(-1,0,555)")
+			unix.Seek(-1, 0, 5555)
+		},
+		func(ev notify.Message) error {
+			if kpEvent, ok := ev.(*tracing.MsgGenericKprobeUnix); ok {
+				if kpEvent.FuncName != arch.AddSyscallPrefixTestHelper(t, "sys_lseek") {
+					return fmt.Errorf("unexpected kprobe event, func:%s", kpEvent.FuncName)
+				}
+				if len(kpEvent.Args) != 1 {
+					return fmt.Errorf("unexpected kprobe arguments: %+v", kpEvent.Args)
+				}
+				whenceArg, ok := kpEvent.Args[0].(tracingapi.MsgGenericKprobeArgInt)
+				if !ok {
+					return fmt.Errorf("unexpected kprobe arguments %+v", kpEvent.Args[0])
+				}
+
+				whence := uint64(whenceArg.Value)
+				// the test sensor also uses the same trick: an lseek call with a
+				// bogus whence value. Ignore those events
+				if whence == uint64(testsensor.BogusWhenceVal) {
+					return nil
+				}
+
+				eventCounter++
+			}
+			return nil
+		},
+	)
+
+	require.Equal(t, 1, eventCounter)
 
 }
