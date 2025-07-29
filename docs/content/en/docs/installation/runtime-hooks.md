@@ -197,7 +197,7 @@ helm install \
 {{< /tabpane >}}
 
 ```shel
-kubecl -n kube-system get pods | grep tetragon
+kubectl -n kube-system get pods | grep tetragon
 ```
 
 With output similar to:
