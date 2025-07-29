@@ -23,8 +23,11 @@ var (
 	CreateEventW        = ModuleKernel32.NewProc("CreateEventW")
 	ResetEvent          = ModuleKernel32.NewProc("ResetEvent")
 	getModuleHandleW    = ModuleKernel32.NewProc("GetModuleHandleW")
-	GetHandleFromFd     = EbpfApi.NewProc("ebpf_get_handle_from_fd")
-	log                 = logger.GetLogger()
+
+	EbpfApi         = windows.NewLazyDLL("ebpfapi.dll")
+	GetHandleFromFd = EbpfApi.NewProc("ebpf_get_handle_from_fd")
+
+	log = logger.GetLogger()
 )
 
 type operationHeader struct {
