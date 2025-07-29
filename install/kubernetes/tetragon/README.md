@@ -1,6 +1,6 @@
 # tetragon
 
-![Version: 1.4.1](https://img.shields.io/badge/Version-1.4.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 1.4.1](https://img.shields.io/badge/AppVersion-1.4.1-informational?style=flat-square)
+![Version: 1.5.0](https://img.shields.io/badge/Version-1.5.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 1.5.0](https://img.shields.io/badge/AppVersion-1.5.0-informational?style=flat-square)
 
 Helm chart for Tetragon
 
@@ -94,7 +94,7 @@ Helm chart for Tetragon
 | tetragon.hostProcPath | string | `"/proc"` | Location of the host proc filesystem in the runtime environment. If the runtime runs in the host, the path is /proc. Exceptions to this are environments like kind, where the runtime itself does not run on the host. |
 | tetragon.image.override | string | `nil` |  |
 | tetragon.image.repository | string | `"quay.io/cilium/tetragon"` |  |
-| tetragon.image.tag | string | `"v1.4.1"` |  |
+| tetragon.image.tag | string | `"v1.5.0"` |  |
 | tetragon.livenessProbe | object | `{}` | Overrides the default livenessProbe for the tetragon container. |
 | tetragon.nameOverride | string | `""` |  |
 | tetragon.podAnnotations.enabled | bool | `false` |  |
@@ -131,7 +131,7 @@ Helm chart for Tetragon
 | tetragonOperator.failoverLease.leaseRetryPeriod | string | `"2s"` | The timeout between retries if renewal fails |
 | tetragonOperator.failoverLease.namespace | string | `""` | Kubernetes Namespace in which the Lease resource is created. Defaults to the namespace where Tetragon is deployed in, if it's empty. |
 | tetragonOperator.forceUpdateCRDs | bool | `false` |  |
-| tetragonOperator.image | object | `{"override":null,"pullPolicy":"IfNotPresent","repository":"quay.io/cilium/tetragon-operator","tag":"v1.4.1"}` | tetragon-operator image. |
+| tetragonOperator.image | object | `{"override":null,"pullPolicy":"IfNotPresent","repository":"quay.io/cilium/tetragon-operator","tag":"v1.5.0"}` | tetragon-operator image. |
 | tetragonOperator.nameOverride | string | `""` | The name of the Tetragon Operator deployment. |
 | tetragonOperator.nodeSelector | object | `{}` | Steer the Tetragon Operator Deployment Pod placement via nodeSelector, tolerations and affinity rules. |
 | tetragonOperator.podAnnotations | object | `{}` | Annotations for the Tetragon Operator Deployment Pods. |
