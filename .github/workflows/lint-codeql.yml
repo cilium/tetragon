@@ -60,8 +60,8 @@ jobs:
         # renovate: datasource=golang-version depName=go
         go-version: '1.24.5'
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@fca7ace96b7d713c7035871441bd52efbe39e27e # v3.28.19
+      uses: github/codeql-action/init@51f77329afa6477de8c49fc9c7046c15b9a4e79d # v3.29.5
       with:
         languages: go
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@fca7ace96b7d713c7035871441bd52efbe39e27e # v3.28.19
+      uses: github/codeql-action/analyze@51f77329afa6477de8c49fc9c7046c15b9a4e79d # v3.29.5
