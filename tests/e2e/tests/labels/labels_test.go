@@ -9,7 +9,6 @@ package labels_test
 import (
 	"context"
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
@@ -98,10 +97,6 @@ func TestMain(m *testing.M) {
 }
 
 func TestLabelsDemoApp(t *testing.T) {
-	if os.Getenv("GHA_OS") == "ubuntu-22.04-arm64" {
-		t.Skip("Skipping, see: ://github.com/cilium/tetragon/issues/3060")
-	}
-
 	labelsChecker := labelsEventChecker().WithEventLimit(5000).WithTimeLimit(5 * time.Minute)
 
 	// This starts labelsChecker and uses it to run event checks.

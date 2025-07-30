@@ -114,8 +114,6 @@ jobs:
           docker pull ${{ needs.prepare.outputs.operatorImage }}
 
     - name: Run e2e Tests
-      env:
-        GHA_OS: ${{matrix.os}}
       run: |
         cd go/src/github.com/cilium/tetragon
         make e2e-test E2E_TESTS=${{matrix.package.f}} E2E_BUILD_IMAGES=0 E2E_AGENT=${{ needs.prepare.outputs.agentImage }} E2E_OPERATOR=${{ needs.prepare.outputs.operatorImage }} EXTRA_TESTFLAGS="-cluster-name=${{ env.clusterName }} -args -v=4 -tetragon.install-cilium=false"
