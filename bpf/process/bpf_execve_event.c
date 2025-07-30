@@ -347,7 +347,7 @@ execve_send(void *ctx __arg_ctx)
 			probe_read(curr->bin.end, revlen, event->exe.end);
 		}
 
-		off = event->exe.arg_start & 0xff;
+		off = event->exe.arg_start;
 		len = event->exe.arg_len & 0xff;
 		probe_read(curr->bin.args, len, (char *)&event->process + off);
 
