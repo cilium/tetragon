@@ -5,7 +5,6 @@ package rthooks
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/cilium/tetragon/pkg/logger"
@@ -79,13 +78,13 @@ func createContainerHook(_ context.Context, arg *rthooks.CreateContainerArg) err
 
 	containerName := arg.Req.ContainerName
 	if containerName == "" {
-		log.Warn(fmt.Sprintf("failed to find container information for %s, but will continue", containerID))
+		log.Warn("failed to find container information, but will continue", "container-id", containerID)
 		policyfiltermetrics.ContNameMissInc()
 	}
 
 	containerImage := arg.Req.ContainerImage
 	if containerImage == "" {
-		log.Warn(fmt.Sprintf("failed to find container image for %s, but will continue", containerID))
+		log.Warn("failed to find container image, but will continue", "container-id", containerID)
 		policyfiltermetrics.ContImageMissInc()
 	}
 
