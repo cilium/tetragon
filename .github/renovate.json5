@@ -388,21 +388,6 @@
       "enabled": false
     },
     {
-      // not an ignore but almost, please automate this if you have the energy
-      // require manual steps for minor and major cilium/cilium updates
-      "matchPackageNames": [
-        "github.com/cilium/cilium",
-      ],
-      "matchUpdateTypes": [
-        "major",
-        "minor",
-      ],
-      "draftPR": true,
-      "prBodyNotes": [
-        ":warning: Manual steps need to be performed (explaining why this PR is only a draft). First replace directives must be synchronized with cilium/cilium, see the `go.mod` and `pkg/k8s/go.mod` for more info. Then dependencies ignore in `.github/renovate.json5` for the replace directive must be updated accordingly. Finally, make sure that k8s and cel-go dependencies were also bumped along Cilium."
-      ]
-    },
-    {
       "enabled": false,
       "matchPackageNames": [
         // k8s dependencies will be updated manually along cilium updates
