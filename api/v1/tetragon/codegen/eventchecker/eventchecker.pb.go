@@ -2682,6 +2682,7 @@ type PodChecker struct {
 	Workload       *stringmatcher.StringMatcher           `json:"workload,omitempty"`
 	WorkloadKind   *stringmatcher.StringMatcher           `json:"workloadKind,omitempty"`
 	PodAnnotations map[string]stringmatcher.StringMatcher `json:"podAnnotations,omitempty"`
+	ServiceAccount *stringmatcher.StringMatcher           `json:"serviceAccount,omitempty"`
 }
 
 // NewPodChecker creates a new PodChecker
@@ -2776,6 +2777,11 @@ func (checker *PodChecker) Check(event *tetragon.Pod) error {
 				return fmt.Errorf("PodAnnotations unmatched: %v", unmatched)
 			}
 		}
+		if checker.ServiceAccount != nil {
+			if err := checker.ServiceAccount.Match(event.ServiceAccount); err != nil {
+				return fmt.Errorf("ServiceAccount check failed: %w", err)
+			}
+		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -2826,6 +2832,12 @@ func (checker *PodChecker) WithPodAnnotations(check map[string]stringmatcher.Str
 	return checker
 }
 
+// WithServiceAccount adds a ServiceAccount check to the PodChecker
+func (checker *PodChecker) WithServiceAccount(check *stringmatcher.StringMatcher) *PodChecker {
+	checker.ServiceAccount = check
+	return checker
+}
+
 //FromPod populates the PodChecker using data from a Pod field
 func (checker *PodChecker) FromPod(event *tetragon.Pod) *PodChecker {
 	if event == nil {
@@ -2840,6 +2852,7 @@ func (checker *PodChecker) FromPod(event *tetragon.Pod) *PodChecker {
 	checker.Workload = stringmatcher.Full(event.Workload)
 	checker.WorkloadKind = stringmatcher.Full(event.WorkloadKind)
 	// TODO: implement fromMap
+	checker.ServiceAccount = stringmatcher.Full(event.ServiceAccount)
 	return checker
 }
 
