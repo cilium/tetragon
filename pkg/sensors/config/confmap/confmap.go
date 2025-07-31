@@ -37,7 +37,8 @@ type TetragonConfValue struct {
 	TgCgrpId          uint64   `align:"tg_cgrpid"`            // Tetragon cgroup ID
 	CgrpFsMagic       uint64   `align:"cgrp_fs_magic"`        // Cgroupv1 or cgroupv2
 	UsePerfRingBuf    uint8    `align:"use_perf_ring_buf"`    // Use the perf ring buffer rather than the bpf ring buffer
-	Pad               [7]uint8 `align:"pad"`
+	EnvVarsEnabled    uint8    `align:"env_vars_enabled"`     // Whether to read environment variables
+	Pad               [6]uint8 `align:"pad"`
 }
 
 var (
@@ -123,6 +124,10 @@ func UpdateTgRuntimeConf(mapDir string, nspid int) error {
 		NSPID:             uint32(nspid),
 		CgrpFsMagic:       cgroupFsMagic,
 		UsePerfRingBuf:    usePerfRingBuffer,
+	}
+
+	if option.Config.EnableProcessEnvironmentVariables {
+		v.EnvVarsEnabled = 1 // Set to 1 if environment variable reading is enabled
 	}
 
 	if err := UpdateConfMap(mapDir, v); err != nil {
