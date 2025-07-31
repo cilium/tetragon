@@ -85,6 +85,10 @@ options:
     - name: enable-process-cred
       default_value: "false"
       usage: Enable process_cred events
+    - name: enable-process-environment-variables
+      default_value: "false"
+      usage: |
+        Include environment variables in process_exec events. Disabled by default. Note that this option can significantly increase the size of the events and may impact performance
     - name: enable-process-ns
       default_value: "false"
       usage: |
