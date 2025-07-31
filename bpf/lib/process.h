@@ -106,9 +106,9 @@
 /* Msg flags */
 #define EVENT_UNKNOWN		      0x00
 #define EVENT_EXECVE		      0x01
-#define EVENT_AVAIL_1		      0x02
+#define EVENT_ENVS_DATA		      0x02
 #define EVENT_PROCFS		      0x04
-#define EVENT_AVAIL_2		      0x08
+#define EVENT_ENVS_ERROR	      0x08
 #define EVENT_TRUNC_ARGS	      0x10
 #define EVENT_AVAIL_3		      0x20
 #define EVENT_MISS		      0x40
@@ -192,7 +192,7 @@ struct msg_process {
 	__u16 size_path;
 	__u16 size_args;
 	__u16 size_cwd;
-	__u16 pad2;
+	__u16 size_envs;
 	char args[0];
 }; // All fields aligned so no 'packed' attribute.
 
