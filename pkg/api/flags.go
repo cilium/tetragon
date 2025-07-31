@@ -10,15 +10,15 @@ const (
 	// EventProcFS for the other option. A correctly formatted event should
 	// either set EventExecve or EventProcFS.
 	EventExecve = 0x01
-	// Available for use
-	EventAvail1 = 0x02
+	// EventEnvsData indicates environment variables are received with data event.
+	EventDataEnvs = 0x02
 	// EventProcFS indicates the event is generated from a proc interface.
 	// This happens at Tetragon init when existing processes are being loaded
 	// into Tetragon event buffer. All events should have either EventExecve or
 	// EventProcFS set.
 	EventProcFS = 0x04
-	// Available for use
-	EventAvail2 = 0x08
+	// EventEnvsError indicates an error happened when storing environment variables.
+	EventErrorEnvs = 0x08
 	// EventTruncArgs indicates we truncated the processes arguments because
 	// the buffer size was too small to fit all exec args. Consider increasing
 	// buffer size to avoid this.
