@@ -356,10 +356,11 @@ func EventFromResponse(response *tetragon.GetEventsResponse) (Event, error) {
 
 // ProcessExecChecker implements a checker struct to check a ProcessExec event
 type ProcessExecChecker struct {
-	CheckerName string              `json:"checkerName"`
-	Process     *ProcessChecker     `json:"process,omitempty"`
-	Parent      *ProcessChecker     `json:"parent,omitempty"`
-	Ancestors   *ProcessListMatcher `json:"ancestors,omitempty"`
+	CheckerName          string                       `json:"checkerName"`
+	Process              *ProcessChecker              `json:"process,omitempty"`
+	Parent               *ProcessChecker              `json:"parent,omitempty"`
+	Ancestors            *ProcessListMatcher          `json:"ancestors,omitempty"`
+	EnvironmentVariables *stringmatcher.StringMatcher `json:"environmentVariables,omitempty"`
 }
 
 // CheckEvent checks a single event and implements the EventChecker interface
@@ -416,6 +417,11 @@ func (checker *ProcessExecChecker) Check(event *tetragon.ProcessExec) error {
 				return fmt.Errorf("Ancestors check failed: %w", err)
 			}
 		}
+		if checker.EnvironmentVariables != nil {
+			if err := checker.EnvironmentVariables.Match(event.EnvironmentVariables); err != nil {
+				return fmt.Errorf("EnvironmentVariables check failed: %w", err)
+			}
+		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -439,6 +445,12 @@ func (checker *ProcessExecChecker) WithParent(check *ProcessChecker) *ProcessExe
 // WithAncestors adds a Ancestors check to the ProcessExecChecker
 func (checker *ProcessExecChecker) WithAncestors(check *ProcessListMatcher) *ProcessExecChecker {
 	checker.Ancestors = check
+	return checker
+}
+
+// WithEnvironmentVariables adds a EnvironmentVariables check to the ProcessExecChecker
+func (checker *ProcessExecChecker) WithEnvironmentVariables(check *stringmatcher.StringMatcher) *ProcessExecChecker {
+	checker.EnvironmentVariables = check
 	return checker
 }
 
@@ -466,6 +478,7 @@ func (checker *ProcessExecChecker) FromProcessExec(event *tetragon.ProcessExec) 
 			WithValues(checks...)
 		checker.Ancestors = lm
 	}
+	checker.EnvironmentVariables = stringmatcher.Full(event.EnvironmentVariables)
 	return checker
 }
 
