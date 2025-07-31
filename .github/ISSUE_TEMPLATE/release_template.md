@@ -92,12 +92,12 @@ gitGraph
 
 - [ ] Publish Helm chart
    - Follow [cilium/charts RELEASE.md] to publish the Helm chart.
-   - Once the pull request is merged and the chart is published, go to [cilium/charts GKE workflow] and wait for the
+   - Once the pull request is merged and the chart is published, go to [cilium/charts Validate Tetragon Helm chart workflow] and wait for the
      CI run to pass.
 
 [release blockers]: https://github.com/cilium/tetragon/issues?q=is%3Aissue+is%3Aopen+label%3Arelease-blocker
 [Image CI Releases workflow]: https://github.com/cilium/tetragon/actions/workflows/build-images-releases.yml
 [cilium/charts RELEASE.md]: https://github.com/cilium/charts/blob/master/RELEASE.md
-[cilium/charts GKE workflow]: https://github.com/cilium/charts/actions/workflows/conformance-tetragon-gke.yaml
+[cilium/charts Validate Tetragon Helm chart workflow]: https://github.com/cilium/charts/actions/workflows/validate-tetragon-chart.yaml
 [releases page]: https://github.com/cilium/tetragon/releases
 [a Tetragon maintainer]: https://github.com/orgs/cilium/teams/tetragon-maintainers/members
