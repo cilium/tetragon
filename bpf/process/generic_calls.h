@@ -638,7 +638,7 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 
 #if defined GENERIC_KPROBE || defined GENERIC_LSM
 FUNC_INLINE void
-do_override_action(__s32 error)
+do_override_action(void *ctx __maybe_unused, __s32 error)
 {
 	__s32 *error_p;
 	__u64 id;
@@ -657,8 +657,23 @@ do_override_action(__s32 error)
 		map_update_elem(&override_tasks, &id, &error, BPF_ANY);
 }
 #else
-#define do_override_action(error)
-#endif
+#if defined GENERIC_UPROBE
+FUNC_INLINE void
+do_override_action(struct pt_regs *ctx, __s32 error)
+{
+	unsigned long ip, sp, ret;
+
+	probe_read(&sp, sizeof(sp), (const void *) &ctx->sp);
+	probe_read(&ip, sizeof(ip), (const void *) &ctx->ip);
+	probe_read(&ret, sizeof(ret), (const void *) sp);
+
+	ctx->ip = ret;
+	bpf_printk("override user error %d ip %lx sp %lx ret %lx ctx %lx\n", error, ip, sp, ret, ctx);
+}
+#else
+#define do_override_action(ctx, error)
+#endif /* GENERIC_UPROBE */
+#endif /* GENERIC_KPROBE || GENERIC_LSM */
 
 FUNC_LOCAL __u32
 do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool enforce_mode)
@@ -738,7 +753,7 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 	case ACTION_OVERRIDE:
 		error = actions->act[++i];
 		if (enforce_mode)
-			do_override_action(error);
+			do_override_action(ctx, error);
 		break;
 	case ACTION_GETURL:
 	case ACTION_DNSLOOKUP:

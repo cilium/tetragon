@@ -115,6 +115,10 @@ static int BPF_FUNC(probe_read, void *dst, uint32_t size, const void *src);
 static int BPF_FUNC(probe_read_str, void *dst, int size, const void *src);
 static int BPF_FUNC(probe_read_kernel, void *dst, uint32_t size, const void *src);
 
+
+static int BPF_FUNC(probe_read_user, void *dst, u32 size, const void *unsafe_ptr);
+static int BPF_FUNC(probe_write_user, void *dst, const void *src, u32 len);
+
 /* Time access */
 static uint64_t BPF_FUNC(ktime_get_ns);
 static uint64_t BPF_FUNC(ktime_get_boot_ns);

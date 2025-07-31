@@ -8,5 +8,6 @@ static int __attribute__ ((noinline)) test1(void)
 int main(int argc, char **argv)
 {
 	printf("test1 = %d\n", test1());
+	getchar();
 	return 0;
 }
