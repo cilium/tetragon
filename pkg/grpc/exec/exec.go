@@ -80,6 +80,10 @@ func GetProcessExec(event *MsgExecveEventUnix, useCache bool) *tetragon.ProcessE
 		Ancestors: tetragonAncestors,
 	}
 
+	if option.Config.EnableProcessEnvironmentVariables {
+		tetragonEvent.EnvironmentVariables = proc.GetEnvironmentVariables()
+	}
+
 	if tetragonProcess.Pid == nil {
 		eventcache.CacheErrors(eventcache.NilProcessPid, notify.EventType(tetragonEvent)).Inc()
 		return nil
