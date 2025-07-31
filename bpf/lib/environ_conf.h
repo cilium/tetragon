@@ -26,7 +26,8 @@ struct tetragon_conf {
 	__u64 tg_cgrpid; /* Tetragon current cgroup ID to avoid filtering blocking itself */
 	__u64 cgrp_fs_magic; /* Cgroupv1 or Cgroupv2 */
 	__u8 use_perf_ring_buf; /* Use perf ring buffer rather than the bpf ring buffer */
-	__u8 pad[7];
+	__u8 env_vars_enabled; /* Whether to read environment variables */
+	__u8 pad[6];
 }; // All fields aligned so no 'packed' attribute.
 
 /* Tetragon runtime configuration storage.
