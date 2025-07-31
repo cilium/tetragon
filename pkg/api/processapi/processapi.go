@@ -80,7 +80,7 @@ type MsgExec struct {
 	SizePath   uint16
 	SizeArgs   uint16
 	SizeCwd    uint16
-	Pad2       uint16
+	SizeEnvs   uint16
 }
 
 type MsgExecveKey struct {
@@ -210,6 +210,7 @@ type MsgProcess struct {
 	Ktime      uint64
 	Filename   string
 	Args       string
+	Envs       string
 	User       MsgUserRecord
 }
 

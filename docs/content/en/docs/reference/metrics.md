@@ -172,7 +172,7 @@ The total number of Tetragon flags. For internal use only.
 
 | label | values |
 | ----- | ------ |
-| `type ` | `clone, dataArgs, dataFilename, errorArgs, errorCWD, errorCgroupID, errorCgroupName, errorCgroupSubsys, errorCgroupSubsysCgrp, errorCgroups, errorFilename, errorPathResolutionCwd, execve, inInitTree, miss, nocwd, procFS, rootcwd, truncArgs, unknown` |
+| `type ` | `clone, dataArgs, dataFilename, errorArgs, errorCWD, errorCgroupID, errorCgroupName, errorCgroupSubsys, errorCgroupSubsysCgrp, errorCgroups, errorEnvs, errorFilename, errorPathResolutionCwd, execve, inInitTree, miss, nocwd, procFS, rootcwd, truncArgs, unknown` |
 
 ### `tetragon_generic_kprobe_merge_errors_total`
 

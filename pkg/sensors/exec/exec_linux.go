@@ -84,6 +84,7 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, error) {
 	proc := processapi.MsgProcess{
 		Filename: "<enomem>",
 		Args:     "<enomem>",
+		Envs:     "<enomem>",
 		Size:     processapi.MSG_SIZEOF_EXECVE,
 	}
 	exec := processapi.MsgExec{}
@@ -110,9 +111,9 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, error) {
 		return proc, err
 	}
 
-	if size != uint32(exec.SizePath+exec.SizeArgs+exec.SizeCwd) {
-		err := fmt.Errorf("msg exec size larger than argsbuffer, size %d != %d, SizePath %d, SizeArgs %d, SizeCwd %d",
-			size, exec.SizePath+exec.SizeArgs+exec.SizeCwd, exec.SizePath, exec.SizeArgs, exec.SizeCwd)
+	if size != uint32(exec.SizePath+exec.SizeArgs+exec.SizeCwd+exec.SizeEnvs) {
+		err := fmt.Errorf("msg exec size larger than argsbuffer, size %d != %d, SizePath %d, SizeArgs %d, SizeCwd %d, SizeEnvs %d",
+			size, exec.SizePath+exec.SizeArgs+exec.SizeCwd, exec.SizePath, exec.SizeArgs, exec.SizeCwd, exec.SizeEnvs)
 		return proc, err
 	}
 
@@ -174,6 +175,29 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, error) {
 			return proc, err
 		}
 		cmdArgs = append(cmdArgs, cwd)
+	}
+
+	if exec.SizeEnvs != 0 {
+		var data []byte
+		var err error
+
+		if exec.Flags&api.EventDataEnvs != 0 {
+			data, err = readData(exec.SizeEnvs)
+			if err != nil {
+				return proc, err
+			}
+			// cut the zero byte
+			data = data[:len(data)-1]
+		} else {
+			data = make([]byte, exec.SizeEnvs)
+			if err := binary.Read(reader, binary.LittleEndian, &data); err != nil {
+				return proc, err
+			}
+		}
+		proc.Envs = strutils.UTF8FromBPFBytes(bytes.ReplaceAll(data, []byte{0x00}, []byte{' '}))
+	} else if exec.SizeEnvs == 0 && exec.Flags&api.EventErrorEnvs == 0 {
+		// zero sized environment data
+		proc.Envs = ""
 	}
 
 	proc.Size = exec.Size
