@@ -143,6 +143,8 @@
 #define EVENT_DATA_FILENAME	      0x800000
 #define EVENT_DATA_ARGS		      0x1000000
 #define EVENT_IN_INIT_TREE	      0x2000000
+#define EVENT_DATA_ENVS		      0x10000000
+#define EVENT_ERROR_ENVS	      0x20000000
 
 #define EVENT_COMMON_FLAG_CLONE 0x01
 
@@ -201,7 +203,8 @@ struct msg_process {
 	__u32 pad;
 	__u64 i_ino;
 	__u64 ktime;
-	char args[0];
+	char *args;
+	char *envs;
 }; // All fields aligned so no 'packed' attribute.
 
 /* msg_clone_event holds only the necessary fields to construct a new entry from
