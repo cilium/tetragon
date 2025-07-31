@@ -11,6 +11,7 @@ import (
 var FlagStrings = map[uint32]string{
 	api.EventExecve:                "execve",
 	api.EventProcFS:                "procFS",
+	api.EventErrorEnvs:             "errorEnvs",
 	api.EventTruncArgs:             "truncArgs",
 	api.EventMiss:                  "miss",
 	api.EventErrorFilename:         "errorFilename",
@@ -33,6 +34,7 @@ var FlagStrings = map[uint32]string{
 var flagsOrdered = []uint32{
 	api.EventExecve,
 	api.EventProcFS,
+	api.EventErrorEnvs,
 	api.EventTruncArgs,
 	api.EventMiss,
 	api.EventErrorFilename,

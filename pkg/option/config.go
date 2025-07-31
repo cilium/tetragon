@@ -33,12 +33,13 @@ type config struct {
 
 	EnablePodAnnotations bool
 
-	EnableProcessAncestors           bool
-	EnableProcessKprobeAncestors     bool
-	EnableProcessTracepointAncestors bool
-	EnableProcessUprobeAncestors     bool
-	EnableProcessLsmAncestors        bool
-	EnableProcessUsdtAncestors       bool
+	EnableProcessAncestors            bool
+	EnableProcessKprobeAncestors      bool
+	EnableProcessTracepointAncestors  bool
+	EnableProcessUprobeAncestors      bool
+	EnableProcessLsmAncestors         bool
+	EnableProcessUsdtAncestors        bool
+	EnableProcessEnvironmentVariables bool
 
 	EnableProcessNs      bool
 	EnableProcessCred    bool
