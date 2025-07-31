@@ -13,6 +13,7 @@
 #include "errmetrics.h"
 #include "bpf_mbset.h"
 #include "bpf_ktime.h"
+#include "environ_conf.h"
 
 #include "policy_filter.h"
 
@@ -126,6 +127,71 @@ read_args(void *ctx, struct msg_execve_event *event)
 	return size;
 }
 
+#ifdef __LARGE_BPF_PROG
+volatile const __u8 ENV_VARS_ENABLED;
+
+FUNC_INLINE __u32 read_envs(void *ctx, struct msg_execve_event *event)
+{
+	struct msg_process *p = &event->process;
+	struct mm_struct *mm = NULL;
+	struct task_struct *task;
+	__u32 size = 0, flags = 0;
+	unsigned long free_size, envs_size;
+	unsigned long env_start, env_end;
+	char *envs;
+	int err;
+
+	if (!ENV_VARS_ENABLED)
+		return 0;
+
+	envs = (char *)p + p->size;
+	if (envs >= (char *)&event->process + BUFFER)
+		return 0;
+
+	task = (struct task_struct *)get_current_task();
+	probe_read(&mm, sizeof(mm), _(&task->mm));
+	if (!mm)
+		return 0;
+
+	with_errmetrics(probe_read, &env_start, sizeof(env_start), _(&mm->env_start));
+	with_errmetrics(probe_read, &env_end, sizeof(env_end), _(&mm->env_end));
+
+	if (!env_start || !env_end)
+		return 0;
+
+	free_size = (char *)&event->process + BUFFER - envs;
+	envs_size = env_end - env_start;
+
+	if (envs_size < BUFFER && envs_size < free_size) {
+		if (envs_size)
+			envs_size -= 1;
+		size = envs_size & 0x3ff; /* BUFFER - 1 */
+
+		err = probe_read(envs, size, (char *)env_start);
+		if (err < 0) {
+			flags |= EVENT_ENVS_ERROR;
+			size = 0;
+		}
+	} else {
+		size = data_event_bytes(ctx, (struct data_event_desc *)envs,
+					(unsigned long)env_start,
+					envs_size,
+					(struct bpf_map_def *)&data_heap);
+		if (size > 0)
+			flags |= EVENT_ENVS_DATA;
+	}
+
+	p->size_envs = size;
+	p->flags |= flags;
+	return size;
+}
+#else
+FUNC_INLINE __u32 read_envs(void *ctx, struct msg_execve_event *event)
+{
+	return 0;
+}
+#endif
+
 FUNC_INLINE __u32
 read_path(void *ctx, struct msg_execve_event *event, void *filename)
 {
@@ -232,6 +298,7 @@ event_execve(struct exec_ctx_struct *ctx)
 	p->size += read_path(ctx, event, filename);
 	p->size += read_args(ctx, event);
 	p->size += read_cwd(ctx, p);
+	p->size += read_envs(ctx, event);
 
 	event->common.op = MSG_OP_EXECVE;
 	event->common.ktime = p->ktime;
