@@ -149,38 +149,73 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, bool, error) {
 		args = nil
 	}
 
-	var cmdArgs [][]byte
+	// At this point, 'args' holds the buffer containing [arguments_string]
+	// or 'args' is nil if filename parsing consumed everything or an error occurred.
 
-	if exec.Flags&api.EventDataArgs != 0 {
-		var desc dataapi.DataEventDesc
+	var argsPayload []byte
 
-		dr := bytes.NewReader(args)
-
-		if err := binary.Read(dr, binary.LittleEndian, &desc); err != nil {
-			proc.Size = processapi.MSG_SIZEOF_EXECVE
-			proc.Args = "enomem enomem"
-			proc.Filename = "enomem"
-			return proc, false, err
+	if args != nil {
+		// If args are offloaded, read DataEventDesc struct for args
+		if exec.Flags&api.EventDataArgs != 0 && len(args) >= int(unsafe.Sizeof(dataapi.DataEventDesc{})) {
+			argsPayload = args[:unsafe.Sizeof(dataapi.DataEventDesc{})]
+			// The rest is the CWD and envs, possibly separated by delimiter
+			remainder := args[unsafe.Sizeof(dataapi.DataEventDesc{}):]
+			delimiter := []byte{0x00, 0x00}
+			parts := bytes.SplitN(remainder, delimiter, 2)
+			if len(parts) > 0 {
+				argsPayload = append(argsPayload, parts[0]...)
+			}
+		} else if exec.Flags&api.EventDataArgs == 0 {
+			// Inline: split on delimiter
+			delimiter := []byte{0x00, 0x00}
+			parts := bytes.SplitN(args, delimiter, 2)
+			if len(parts) > 0 {
+				argsPayload = parts[0]
+			}
 		}
-		data, err := observer.DataGet(desc)
-		if err != nil {
-			return proc, false, err
-		}
-		// cut the zero byte
-		if len(data) > 0 {
-			n := len(data) - 1
-			cmdArgs = bytes.Split(data[:n], []byte{0x00})
-		}
-
-		cwd := args[unsafe.Sizeof(desc):]
-		cmdArgs = append(cmdArgs, cwd)
-	} else {
-		// no arguments, args should have just cwd
-		// reading it with split to get [][]byte type
-		cmdArgs = bytes.Split(args, []byte{0x00})
 	}
 
-	proc.Args = strutils.UTF8FromBPFBytes(bytes.Join(cmdArgs[0:], []byte{0x00}))
+	// Process arguments: maintain original null-separated format for ArgsDecoder compatibility
+	if exec.Flags&api.EventDataArgs != 0 {
+		// Arguments are stored in separate data event
+		if argsPayload != nil && len(argsPayload) >= int(unsafe.Sizeof(dataapi.DataEventDesc{})) {
+			var descArgs dataapi.DataEventDesc
+			drArgs := bytes.NewReader(argsPayload)
+			if err := binary.Read(drArgs, binary.LittleEndian, &descArgs); err != nil {
+				proc.Args = "enomem args_data_event_desc_read_error"
+			} else {
+				actualArgsData, err := observer.DataGet(descArgs)
+				if err != nil {
+					proc.Args = "enomem args_data_event_get_error"
+				} else {
+					// Preserve original format: combine data event args with inline remainder
+					restOfArgsPayload := argsPayload[unsafe.Sizeof(descArgs):]
+
+					var combined []byte
+					if len(actualArgsData) > 0 {
+						combined = append(combined, actualArgsData...)
+						if len(restOfArgsPayload) > 0 && len(combined) > 0 && combined[len(combined)-1] != 0x00 {
+							combined = append(combined, 0x00)
+						}
+					}
+					if len(restOfArgsPayload) > 0 {
+						combined = append(combined, restOfArgsPayload...)
+					}
+					proc.Args = strutils.UTF8FromBPFBytes(combined)
+				}
+			}
+		} else {
+			proc.Args = ""
+		}
+	} else {
+		// Arguments and CWD are inline in buffer
+		if argsPayload != nil {
+			proc.Args = strutils.UTF8FromBPFBytes(argsPayload)
+		} else {
+			proc.Args = ""
+		}
+	}
+
 	return proc, false, nil
 }
 
