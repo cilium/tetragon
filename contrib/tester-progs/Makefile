@@ -30,7 +30,8 @@ PROGS = sigkill-tester \
 	raisesigkill \
 	forks \
 	capabilities-gained \
-	follow_children_1
+	follow_children_1 \
+	override_user
 
 
 all: $(PROGS)
