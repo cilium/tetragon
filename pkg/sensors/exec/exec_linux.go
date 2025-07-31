@@ -143,6 +143,10 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, error) {
 		if n != -1 {
 			proc.Filename = strutils.UTF8FromBPFBytes(args[:n])
 			args = args[n+1:]
+		} else {
+			// Filename not null-terminated or buffer consumed
+			proc.Filename = strutils.UTF8FromBPFBytes(args[:])
+			args = nil
 		}
 	}
 
