@@ -313,6 +313,78 @@ spec:
 This example shows how to use uprobes to hook into the readline function
 running in all the bash shells.
 
+## USDTs
+
+Tetragon allows to attach and monitor USDT (User Statically-Defined Tracing) probes.
+
+You can display available USDT probes directly by checking ELF binary `stapsdt` notes with:
+```bash
+readelf -n ..../contrib/tester-progs/usdt
+...
+  stapsdt              0x00000024       NT_STAPSDT (SystemTap probe descriptors)
+    Provider: test
+    Name: usdt0
+    Location: 0x000000000000115b, Base: 0x0000000000002004, Semaphore: 0x0000000000004030
+    Arguments:
+  stapsdt              0x00000043       NT_STAPSDT (SystemTap probe descriptors)
+    Provider: test
+    Name: usdt3
+    Location: 0x0000000000001177, Base: 0x0000000000002004, Semaphore: 0x0000000000004032
+    Arguments: -4@-12(%rbp) -8@-8(%rbp) 8@%rax
+  stapsdt              0x00000084       NT_STAPSDT (SystemTap probe descriptors)
+    Provider: test
+    Name: usdt12
+    Location: 0x000000000000120a, Base: 0x0000000000002004, Semaphore: 0x0000000000004034
+    Arguments: -4@-12(%rbp) -4@%edi -8@-8(%rbp) -8@%r8 -4@$5 -8@%r9 8@%rax 8@%r10 -4@$-9 -2@%dx -2@%cx -1@%sil
+```
+
+Or use `tetra` to generate tracing policy for available USDT probes with:
+```bash
+tetra tracingpolicy generate usdts --binary ..../contrib/tester-progs/usdt
+```
+
+that generates following tracing policy:
+```yaml
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  creationTimestamp: "2025-07-28T21:23:36Z"
+  name: usdts
+spec:
+  usdts:
+  - message: ""
+    name: usdt0
+    path: ./contrib/tester-progs/usdt
+    provider: test
+  - args:
+    - index: 0
+      label: -4@-12(%rbp)
+      maxData: false
+      resolve: ""
+      returnCopy: false
+      sizeArgIndex: 0
+      type: int32
+    - index: 1
+      label: -8@-8(%rbp)
+      maxData: false
+      resolve: ""
+      returnCopy: false
+      sizeArgIndex: 0
+      type: int64
+    - index: 2
+      label: 8@%rax
+      maxData: false
+      resolve: ""
+      returnCopy: false
+      sizeArgIndex: 0
+      type: uint64
+```
+
+Each USDT probe is defined with binary `Path` plus`Provider` and `Name` tags.
+
+Each probe can have up to 5 arguments (which is tetragon limitation) that
+follow standard argument definitions used for other probes.
+
 ## LSM BPF
 
 LSM BPF programs allow runtime instrumentation of the LSM hooks by privileged

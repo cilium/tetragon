@@ -103,3 +103,35 @@ func (se *SafeELFFile) Offset(name string) (uint64, error) {
 
 	return 0, fmt.Errorf("symbol not found %s", name)
 }
+
+// SectionsByType returns all sections in the file with the specified section type.
+func (se *SafeELFFile) SectionsByType(typ elf.SectionType) []*elf.Section {
+	sections := make([]*elf.Section, 0, 1)
+	for _, section := range se.Sections {
+		if section.Type == typ {
+			sections = append(sections, section)
+		}
+	}
+	return sections
+}
+
+// SectionsByName returns all sections in the file with the specified section name.
+func (se *SafeELFFile) SectionsByName(name string) []*elf.Section {
+	sections := make([]*elf.Section, 0, 1)
+	for _, section := range se.Sections {
+		if section.Name == name {
+			sections = append(sections, section)
+		}
+	}
+	return sections
+}
+
+// ProgByVaddr returns elf program header for the specified vaddr.
+func (se *SafeELFFile) ProgByVaddr(vaddr uint64) *elf.Prog {
+	for _, prog := range se.Progs {
+		if (prog.Vaddr <= vaddr) && (vaddr < (prog.Vaddr + prog.Memsz)) {
+			return prog
+		}
+	}
+	return nil
+}

@@ -107,6 +107,9 @@ func (h policyHandler) PolicyHandler(
 	if len(spec.UProbes) > 0 {
 		sections++
 	}
+	if len(spec.Usdts) > 0 {
+		sections++
+	}
 	if sections > 1 {
 		return nil, errors.New("tracing policies with multiple sections of kprobes, tracepoints, lsm hooks, or uprobes are currently not supported")
 	}
@@ -141,6 +144,9 @@ func (h policyHandler) PolicyHandler(
 	}
 	if len(spec.UProbes) > 0 {
 		return createGenericUprobeSensor(spec, "generic_uprobe", polInfo)
+	}
+	if len(spec.Usdts) > 0 {
+		return createGenericUsdtSensor(spec, "generic_usdt", polInfo)
 	}
 	return nil, nil
 }

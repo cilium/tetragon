@@ -161,6 +161,20 @@ struct config_btf_arg {
 	__u16 is_initialized;
 } __attribute__((packed));
 
+#define USDT_ARG_TYPE_NONE	0
+#define USDT_ARG_TYPE_CONST	1
+#define USDT_ARG_TYPE_REG	2
+#define USDT_ARG_TYPE_REG_DEREF 3
+
+struct config_usdt_arg {
+	__u64 val_off;
+	__u32 reg_off;
+	__u8 shift;
+	__u8 type;
+	__u8 sig;
+	__u8 pad;
+} __attribute__((packed));
+
 struct extract_arg_data {
 	struct config_btf_arg *btf_config;
 	unsigned long *arg;
@@ -188,7 +202,9 @@ struct event_config {
 	 */
 	__u32 policy_id;
 	__u32 flags;
+	__u32 pad;
 	struct config_btf_arg btf_arg[EVENT_CONFIG_MAX_ARG][MAX_BTF_ARG_DEPTH];
+	struct config_usdt_arg usdt_arg[EVENT_CONFIG_MAX_ARG];
 } __attribute__((packed));
 
 #define MAX_ARGS_SIZE	 80
