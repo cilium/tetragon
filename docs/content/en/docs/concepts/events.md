@@ -60,7 +60,8 @@ events encoded in JSON as shown here,
       },
       "docker": "551e161c47d8ff0eb665438a7bcd5b4",
       "parent_exec_id": "Z2tlLWpvaG4tNjMyLWRlZmF1bHQtcG9vbC03MDQxY2FjMC05czk1OjEzNTQ4NjcwODgzMjk5OjUyNjk5",
-      "tid": 52699
+      "tid": 52699,
+      "environment_variables": "SHELL=/bin/bash"
     },
     "parent": {
       "exec_id": "Z2tlLWpvaG4tNjMyLWRlZmF1bHQtcG9vbC03MDQxY2FjMC05czk1OjEzNTQ4NjcwODgzMjk5OjUyNjk5",
