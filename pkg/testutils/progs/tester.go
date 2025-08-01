@@ -97,7 +97,7 @@ func TestHelperMain() {
 				uintptr(unsafe.Pointer(&node)),
 				0,
 			)
-			fmt.Fprintf(os.Stdout, "getpcu returned: err:%v\n", err)
+			fmt.Fprintf(os.Stdout, "getcpu returned: err:%v\n", err)
 
 		case cmd == "exit":
 			fmt.Fprintf(os.Stderr, "Exiting...\n")
