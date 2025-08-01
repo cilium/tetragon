@@ -33,8 +33,6 @@
  * processing stops.
  */
 
-/* Max number of args to parse */
-#define MAXARGS 20
 /* Max length of any given arg */
 #define MAXARGLENGTH 256
 /* This is the absolute buffer size for args and filenames including some
@@ -100,20 +98,7 @@
 #define SIZEOF_MSG_PROCESS sizeof(struct msg_process)
 #define PADDED_BUFFER \
 	(BUFFER + MAXARGLENGTH + SIZEOF_MSG_PROCESS + SIZEOF_MSG_PROCESS + CWD_MAX)
-/* This is the usable buffer size for args and filenames. It is calculated
- * as the (BUFFER SIZE - sizeof(parent) - sizeof(curr) but unfortunately
- * preprocess doesn't know types so we do it manually without sizeof().
- */
-#define ARGSBUFFER	 (BUFFER - SIZEOF_MSG_PROCESS - SIZEOF_MSG_PROCESS)
-#define __ASM_ARGSBUFFER 976
-#define ARGSBUFFERMASK	 (ARGSBUFFER - 1)
-#define MAXARGMASK	 (MAXARG - 1)
-#define PATHNAME_SIZE	 256
-
-/* Task flags */
-#ifndef PF_KTHREAD
-#define PF_KTHREAD 0x00200000 /* I am a kernel thread */
-#endif
+#define PATHNAME_SIZE 256
 
 /* Msg flags */
 #define EVENT_UNKNOWN		      0x00
