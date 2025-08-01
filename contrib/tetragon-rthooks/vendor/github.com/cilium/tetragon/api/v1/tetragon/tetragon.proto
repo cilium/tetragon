@@ -63,6 +63,8 @@ message Pod {
   string workload_kind = 7;
   // Contains all the annotations of the pod.
   map<string, string> pod_annotations = 8;
+  // Service account of the Pod.
+  string service_account = 9;
 }
 
 message Capabilities {

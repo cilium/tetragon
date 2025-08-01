@@ -118,6 +118,7 @@ func getPodInfo(
 				Privileged: isPrivileged,
 			},
 		},
+		ServiceAccount: pod.Spec.ServiceAccountName,
 	}
 	if option.Config.EnablePodAnnotations {
 		podInfo.PodAnnotations = pod.Annotations
