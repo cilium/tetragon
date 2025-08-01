@@ -333,7 +333,7 @@ execve_send(void *ctx __arg_ctx)
 		/* zero out previous paths in ->bin */
 		binary_reset(&curr->bin);
 #ifdef __LARGE_BPF_PROG
-		__u32 nullone, nulltwo, off, len;
+		__u32 off, len;
 
 		// read from proc exe stored at execve time
 		if (event->exe.len <= BINARY_PATH_MAX_LEN) {
@@ -348,13 +348,16 @@ execve_send(void *ctx __arg_ctx)
 		}
 
 		off = event->exe.arg_start;
-		len = event->exe.arg_len & 0xff;
+		if (event->exe.arg_len > sizeof(curr->bin.args) - 2)
+			len = sizeof(curr->bin.args) - 2;
+		else
+			len = event->exe.arg_len;
 		probe_read(curr->bin.args, len, (char *)&event->process + off);
 
-		nullone = len + 1;
-		nulltwo = len + 2;
-		curr->bin.args[nullone & 0xff] = 0x00; // null terminate string
-		curr->bin.args[nulltwo & 0xff] = 0x00; // null terminate string
+		// there's a null byte between each argv element, so we terminate with
+		// two of them to make it possible to identify the end of the buffer
+		curr->bin.args[len] = 0x00;
+		curr->bin.args[len + 1] = 0x00;
 #else
 		// reuse p->args first string that contains the filename, this can't be
 		// above 256 in size (otherwise the complete will be send via data msg)
