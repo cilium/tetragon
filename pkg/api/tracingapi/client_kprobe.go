@@ -255,19 +255,31 @@ func (m MsgGenericKprobeArgSkb) IsReturnArg() bool {
 	return m.Index == ReturnArgIndex
 }
 
-type MsgGenericKprobeSockaddr struct {
+type SockaddrIn struct {
 	SinFamily uint16
 	SinPort   uint16
 	Pad       uint32
 	SinAddr   [2]uint64
 }
 
+type SockaddrUn struct {
+	SunFamily uint16
+	SunPath   [108]byte
+}
+
+type SockaddrEvent struct {
+	Family uint16
+
+	In SockaddrIn
+	Un SockaddrUn
+}
 type MsgGenericKprobeArgSockaddr struct {
-	Index     uint64
-	SinFamily uint16
-	SinPort   uint32
-	SinAddr   string
-	Label     string
+	Index   uint64
+	Family  uint16
+	SinPort uint32
+	SinAddr string
+	Label   string
+	Path    string
 }
 
 func (m MsgGenericKprobeArgSockaddr) GetIndex() uint64 {

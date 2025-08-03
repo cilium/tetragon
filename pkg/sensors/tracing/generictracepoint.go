@@ -10,6 +10,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"path"
 
 	"github.com/cilium/ebpf"
@@ -38,6 +39,7 @@ import (
 	"github.com/cilium/tetragon/pkg/tracepoint"
 
 	gt "github.com/cilium/tetragon/pkg/generictypes"
+	unixsys "golang.org/x/sys/unix"
 )
 
 const (
@@ -970,17 +972,42 @@ func handleMsgGenericTracepoint(
 			unix.Args = append(unix.Args, arg)
 
 		case gt.GenericSockaddrType:
-			var address tracingapi.MsgGenericKprobeSockaddr
-			var arg tracingapi.MsgGenericKprobeArgSockaddr
-
-			err := binary.Read(r, binary.LittleEndian, &address)
-			if err != nil {
-				logger.GetLogger().Warn("sockaddr type err", logfields.Error, err)
+			var family uint16
+			if err := binary.Read(r, binary.LittleEndian, &family); err != nil {
+				logger.GetLogger().Warn("failed to read sockaddr family", logfields.Error, err)
+				break
 			}
 
-			arg.SinFamily = address.SinFamily
-			arg.SinAddr = network.GetIP(address.SinAddr, address.SinFamily).String()
-			arg.SinPort = uint32(address.SinPort)
+			if _, err := r.Seek(6, io.SeekCurrent); err != nil {
+				logger.GetLogger().Warn("failed to seek padding", logfields.Error, err)
+				break
+			}
+
+			var arg tracingapi.MsgGenericKprobeArgSockaddr
+			arg.Family = family
+
+			switch family {
+			case unixsys.AF_INET, unixsys.AF_INET6:
+				var inet tracingapi.SockaddrIn
+				if err := binary.Read(r, binary.LittleEndian, &inet); err != nil {
+					logger.GetLogger().Warn("failed to read sockaddr_in", logfields.Error, err)
+					break
+				}
+				arg.SinAddr = network.GetIP(inet.SinAddr, family).String()
+				arg.SinPort = uint32(inet.SinPort)
+
+			case unixsys.AF_UNIX:
+				var un tracingapi.SockaddrUn
+				if err := binary.Read(r, binary.LittleEndian, &un); err != nil {
+					logger.GetLogger().Warn("failed to read sockaddr_un", logfields.Error, err)
+					break
+				}
+				arg.Path = string(bytes.Trim(un.SunPath[:], "\x00"))
+
+			default:
+				logger.GetLogger().Warn("unsupported sockaddr family", "family", family)
+			}
+
 			unix.Args = append(unix.Args, arg)
 
 		case gt.GenericSyscall64:
