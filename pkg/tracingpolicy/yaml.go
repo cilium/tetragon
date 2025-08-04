@@ -7,10 +7,11 @@ import (
 	"errors"
 	"fmt"
 
-	"gopkg.in/yaml.v2"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"sigs.k8s.io/yaml"
 )
 
-func specSetMode(spec map[interface{}]interface{}, mode string) error {
+func specSetMode(spec map[string]any, mode string) error {
 	optsRaw, hasOpts := spec["options"]
 	if !hasOpts { // if there are no options, just add them
 		spec["options"] = []map[string]string{
@@ -19,35 +20,25 @@ func specSetMode(spec map[interface{}]interface{}, mode string) error {
 		return nil
 	}
 
-	opts, optsOK := optsRaw.([]interface{})
+	opts, optsOK := optsRaw.([]any)
 	if !optsOK {
 		return fmt.Errorf("spec.options has unexpected type: %T", optsRaw)
 	}
 
-	var newOpts = []interface{}{}
+	var newOpts = []any{}
 	for i := range opts {
 		optRaw := opts[i]
-		opt, optOK := optRaw.(map[interface{}]interface{})
+		opt, optOK := optRaw.(map[string]any)
 		if !optOK {
 			return fmt.Errorf("spec.options[%d] has unexpected type: %T", i, optRaw)
 		}
 
-		optMap := make(map[string]interface{})
-		for optKeyRaw, optValRaw := range opt {
-			optKey, optKeyOk := optKeyRaw.(string)
-			if !optKeyOk {
-				return fmt.Errorf("spec.options[%d] key has unexpected type: %T", i, optKeyRaw)
-			}
-			optMap[optKey] = optValRaw
-		}
-
-		nameVal := optMap["name"]
-		if nameVal != "policy-mode" {
+		if opt["name"] != "policy-mode" {
 			newOpts = append(newOpts, optRaw)
 		}
 	}
 
-	spec["options"] = append(newOpts, map[interface{}]interface{}{
+	spec["options"] = append(newOpts, map[string]any{
 		"name":  "policy-mode",
 		"value": mode,
 	})
@@ -57,25 +48,25 @@ func specSetMode(spec map[interface{}]interface{}, mode string) error {
 
 // PolicyYAMLSetMode modifies a yaml file to set the mode of the policy
 func PolicyYAMLSetMode(data []byte, mode string) ([]byte, error) {
-	m := make(map[interface{}]interface{})
+	m := unstructured.Unstructured{}
 	if err := yaml.Unmarshal(data, &m); err != nil {
 		return nil, err
 	}
 
 	switch mode {
 	case "":
-		return yaml.Marshal(m)
+		return yaml.Marshal(m.Object)
 	case "enforce", "monitor":
 	default:
 		return nil, fmt.Errorf("invalid mode: %q", mode)
 	}
 
-	specRaw, hasSpec := m["spec"]
+	specRaw, hasSpec := m.Object["spec"]
 	if !hasSpec {
 		return nil, errors.New("yaml does not include spec section")
 	}
 
-	spec, specOK := specRaw.(map[interface{}]interface{})
+	spec, specOK := specRaw.(map[string]any)
 	if !specOK {
 		return nil, fmt.Errorf("spec has unexpected type: %T", specRaw)
 	}
@@ -84,5 +75,5 @@ func PolicyYAMLSetMode(data []byte, mode string) ([]byte, error) {
 		return nil, err
 	}
 
-	return yaml.Marshal(m)
+	return yaml.Marshal(m.Object)
 }

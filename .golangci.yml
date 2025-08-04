@@ -59,6 +59,14 @@ linters:
             recommendations:
             - sync/atomic
             reason: Go 1.19+ supports atomic types, see https://go.dev/doc/go1.19#atomic_types
+        - gopkg.in/yaml.v2:
+            recommendations:
+            - "sigs.k8s.io/yaml"
+            reason: This project is unmaintained.
+        - gopkg.in/yaml.v3:
+            recommendations:
+            - "sigs.k8s.io/yaml"
+            reason: This project is unmaintained.
   exclusions:
     generated: lax
     presets:
