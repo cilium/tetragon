@@ -111,7 +111,7 @@ func (h policyHandler) PolicyHandler(
 		sections++
 	}
 	if sections > 1 {
-		return nil, errors.New("tracing policies with multiple sections of kprobes, tracepoints, lsm hooks, or uprobes are currently not supported")
+		return nil, errors.New("tracing policies with multiple sections of kprobes, tracepoints, lsm hooks, uprobes or usdts are currently not supported")
 	}
 
 	polInfo, err := newPolicyInfo(policy, policyID)
