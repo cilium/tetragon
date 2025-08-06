@@ -110,9 +110,7 @@ func (fs *fsScannerState) FindContainerPath(podID uuid.UUID, containerID string)
 	}
 
 	// found a new pod directory, add it to the cached locations
-	parentPodDir := filepath.Dir(podDir)
-	fs.knownParentPodDirs = append(fs.knownParentPodDirs, parentPodDir)
-	logger.GetLogger().Info(fmt.Sprintf("adding %s to cgroup pod directories", parentPodDir))
+	fs.knownParentPodDirs = append(fs.knownParentPodDirs, filepath.Dir(podDir))
 
 	containerDir := findContainerDirectoryFromPod(podDir, containerID)
 	if containerDir == "" {
