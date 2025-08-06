@@ -26,10 +26,7 @@ var Opts = Flags{
 			"tetragon.exportAllowList": "",
 		},
 	},
-	KeepExportData: false,
-	InstallCilium:  true,
-	// renovate: datasource=go depName=github.com/cilium/cilium
-	CiliumVersion:     "v1.18.0",
+	KeepExportData:    false,
 	UninstallTetragon: true,
 }
 
@@ -78,20 +75,10 @@ func init() {
 		Opts.KeepExportData,
 		"Should we keep export files regardless of pass/fail?")
 
-	flag.BoolVar(&Opts.InstallCilium,
-		"tetragon.install-cilium",
-		Opts.InstallCilium,
-		"Should we install Cilium in the test?")
-
 	flag.StringVar(&Opts.Helm.BTF,
 		"tetragon.btf",
 		Opts.Helm.BTF,
 		"A BTF file on the host that should be loaded into the KinD cluster. Will override helm BTF settings. Only makes sense when testing on a KinD cluster.")
-
-	flag.StringVar(&Opts.CiliumVersion,
-		"tetragon.cilium-version",
-		Opts.CiliumVersion,
-		"Version of Cilium to install. Only makes sense if tetragon.install-cilium is true.")
 
 	flag.BoolVar(&Opts.UninstallTetragon,
 		"tetragon.uninstall-tetragon",
@@ -103,10 +90,6 @@ type Flags struct {
 	Helm HelmOptions
 	// Should we keep the export file for the tests regardless of pass/fail?
 	KeepExportData bool
-	// Should we install Cilium in the test?
-	InstallCilium bool
-	// Version of Cilium to use
-	CiliumVersion string
 	// UninstallTetragon specifies whether Tetragon should be uninstalled after the test run.
 	UninstallTetragon bool
 }
