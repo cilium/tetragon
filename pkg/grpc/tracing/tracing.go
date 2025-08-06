@@ -167,10 +167,9 @@ func getKprobeArgument(arg tracingapi.MsgGenericKprobeArg) *tetragon.KprobeArgum
 		a.Label = e.Label
 	case tracingapi.MsgGenericKprobeArgSockaddr:
 		sockaddrArg := &tetragon.KprobeSockaddr{
-			Family: network.InetFamily(e.Family),
+			Family: network.InetFamily(e.SinFamily),
 			Addr:   e.SinAddr,
 			Port:   e.SinPort,
-			Path:   e.Path,
 		}
 		a.Arg = &tetragon.KprobeArgument_SockaddrArg{SockaddrArg: sockaddrArg}
 		a.Label = e.Label
@@ -561,10 +560,9 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 
 		case tracingapi.MsgGenericKprobeArgSockaddr:
 			address := tetragon.KprobeSockaddr{
-				Family: familyString(v.Family),
+				Family: familyString(v.SinFamily),
 				Addr:   v.SinAddr,
 				Port:   v.SinPort,
-				Path:   v.Path,
 			}
 
 			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_SockaddrArg{

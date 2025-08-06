@@ -829,7 +829,6 @@ found.
 | family | [string](#string) |  |  |
 | addr | [string](#string) |  |  |
 | port | [uint32](#uint32) |  |  |
-| path | [string](#string) |  |  |
 
 
 

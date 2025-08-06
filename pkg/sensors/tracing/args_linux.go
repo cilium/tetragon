@@ -20,7 +20,6 @@ import (
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/reader/network"
 	"github.com/cilium/tetragon/pkg/strutils"
-	unixsys "golang.org/x/sys/unix"
 )
 
 type argPrinter struct {
@@ -264,43 +263,18 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		arg.Label = a.label
 		return arg
 	case gt.GenericSockaddrType:
-		var family uint16
-		if err := binary.Read(r, binary.LittleEndian, &family); err != nil {
-			logger.GetLogger().Warn("failed to read sockaddr family", logfields.Error, err)
-			return nil
-		}
-
-		if _, err := r.Seek(6, io.SeekCurrent); err != nil {
-			logger.GetLogger().Warn("failed to skip sockaddr padding", logfields.Error, err)
-			return nil
-		}
-
+		var address api.MsgGenericKprobeSockaddr
 		var arg api.MsgGenericKprobeArgSockaddr
-		arg.Family = family
 
-		switch family {
-		case unixsys.AF_INET, unixsys.AF_INET6:
-			var in api.SockaddrIn
-			if err := binary.Read(r, binary.LittleEndian, &in); err != nil {
-				logger.GetLogger().Warn("failed to read sockaddr_in", logfields.Error, err)
-				return nil
-			}
-			arg.SinAddr = network.GetIP(in.SinAddr, family).String()
-			arg.SinPort = uint32(in.SinPort)
-
-		case unixsys.AF_UNIX:
-			var un api.SockaddrUn
-			if err := binary.Read(r, binary.LittleEndian, &un); err != nil {
-				logger.GetLogger().Warn("failed to read sockaddr_un", logfields.Error, err)
-				return nil
-			}
-			arg.Path = string(bytes.Trim(un.SunPath[:], "\x00"))
-
-		default:
-			logger.GetLogger().Warn("unsupported sockaddr family", "family", family)
-			return nil
+		err := binary.Read(r, binary.LittleEndian, &address)
+		if err != nil {
+			logger.GetLogger().Warn("sockaddr type err", logfields.Error, err)
 		}
 
+		arg.Index = uint64(a.index)
+		arg.SinFamily = address.SinFamily
+		arg.SinAddr = network.GetIP(address.SinAddr, address.SinFamily).String()
+		arg.SinPort = uint32(address.SinPort)
 		return arg
 	case gt.GenericS64Type:
 		var output int64

@@ -5164,7 +5164,6 @@ type KprobeSockaddrChecker struct {
 	Family *stringmatcher.StringMatcher `json:"family,omitempty"`
 	Addr   *stringmatcher.StringMatcher `json:"addr,omitempty"`
 	Port   *uint32                      `json:"port,omitempty"`
-	Path   *stringmatcher.StringMatcher `json:"path,omitempty"`
 }
 
 // NewKprobeSockaddrChecker creates a new KprobeSockaddrChecker
@@ -5199,11 +5198,6 @@ func (checker *KprobeSockaddrChecker) Check(event *tetragon.KprobeSockaddr) erro
 				return fmt.Errorf("Port has value %d which does not match expected value %d", event.Port, *checker.Port)
 			}
 		}
-		if checker.Path != nil {
-			if err := checker.Path.Match(event.Path); err != nil {
-				return fmt.Errorf("Path check failed: %w", err)
-			}
-		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -5230,12 +5224,6 @@ func (checker *KprobeSockaddrChecker) WithPort(check uint32) *KprobeSockaddrChec
 	return checker
 }
 
-// WithPath adds a Path check to the KprobeSockaddrChecker
-func (checker *KprobeSockaddrChecker) WithPath(check *stringmatcher.StringMatcher) *KprobeSockaddrChecker {
-	checker.Path = check
-	return checker
-}
-
 //FromKprobeSockaddr populates the KprobeSockaddrChecker using data from a KprobeSockaddr field
 func (checker *KprobeSockaddrChecker) FromKprobeSockaddr(event *tetragon.KprobeSockaddr) *KprobeSockaddrChecker {
 	if event == nil {
@@ -5247,7 +5235,6 @@ func (checker *KprobeSockaddrChecker) FromKprobeSockaddr(event *tetragon.KprobeS
 		val := event.Port
 		checker.Port = &val
 	}
-	checker.Path = stringmatcher.Full(event.Path)
 	return checker
 }
 

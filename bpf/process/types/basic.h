@@ -449,12 +449,12 @@ FUNC_INLINE long copy_sock(char *args, unsigned long arg)
 
 FUNC_INLINE long copy_sockaddr(char *args, unsigned long arg)
 {
-	struct sockaddr_event *sockaddr_event = (struct sockaddr_event *)args;
+	struct sockaddr_in_type *sockaddr_event = (struct sockaddr_in_type *)args;
 	struct sockaddr *address = (struct sockaddr *)arg;
 
-	set_event_from_sockaddr(sockaddr_event, address);
+	set_event_from_sockaddr_in(sockaddr_event, address);
 
-	return sizeof(struct sockaddr_event);
+	return sizeof(struct sockaddr_in_type);
 }
 
 FUNC_INLINE long copy_socket(char *args, unsigned long arg)
