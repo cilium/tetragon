@@ -35,6 +35,8 @@ type FsScanner interface {
 	//
 	// Callers need to serialize concurrent access to this function on their own.
 	FindContainerPath(podID uuid.UUID, containerID string) (string, error)
+
+	FindPodPath(podID uuid.UUID) (string, error)
 }
 
 func New() FsScanner {
@@ -90,14 +92,9 @@ func (fs *fsScannerState) FindContainerPath(podID uuid.UUID, containerID string)
 		return "", fmt.Errorf("found pod dir=%s but failed to find container for id=%s", podDir, containerID)
 	}
 
-	if fs.root == "" && fs.rootErr == nil {
-		fs.root, fs.rootErr = cgroups.HostCgroupRoot()
-		if fs.rootErr != nil {
-			logger.GetLogger().Warn("failed to retrieve host cgroup root", logfields.Error, fs.rootErr)
-		}
-	}
-	if fs.rootErr != nil {
-		return "", errors.New("no cgroup root")
+	err := fs.findCgroupRoot()
+	if err != nil {
+		return "", err
 	}
 
 	podDir := findPodDirectoryFromRoot(fs.root, podID)
@@ -117,6 +114,40 @@ func (fs *fsScannerState) FindContainerPath(podID uuid.UUID, containerID string)
 		return "", fmt.Errorf("found pod dir=%s but failed to find container for id=%s", podDir, containerID)
 	}
 	return filepath.Join(podDir, containerDir), nil
+}
+
+func (fs *fsScannerState) FindPodPath(podID uuid.UUID) (string, error) {
+	for _, parentPodDir := range fs.knownParentPodDirs {
+		podDir := findPodDirectoryFromParent(parentPodDir, podID)
+		if podDir == "" {
+			continue
+		}
+		return podDir, nil
+	}
+
+	err := fs.findCgroupRoot()
+	if err != nil {
+		return "", err
+	}
+
+	podDir := findPodDirectoryFromRoot(fs.root, podID)
+	if podDir != "" {
+		fs.knownParentPodDirs = append(fs.knownParentPodDirs, filepath.Dir(podDir))
+	}
+	return podDir, nil
+}
+
+func (fs *fsScannerState) findCgroupRoot() error {
+	if fs.root == "" && fs.rootErr == nil {
+		fs.root, fs.rootErr = cgroups.HostCgroupRoot()
+		if fs.rootErr != nil {
+			logger.GetLogger().Warn("failed to retrieve host cgroup root", logfields.Error, fs.rootErr)
+		}
+	}
+	if fs.rootErr != nil {
+		return errors.New("no cgroup root")
+	}
+	return nil
 }
 
 func podDirMatcher(podID uuid.UUID) func(p string) bool {
