@@ -88,15 +88,24 @@ jobs:
         # renovate: datasource=golang-version depName=go
         go-version: '1.24.6'
 
-    - name: Install kubectl, kind and cilium CLI
-      uses: alexellis/arkade-get@master
+    - name: Install kubectl
+      uses: azure/setup-kubectl@776406bce94f63e41d621b960d78ee25c8b76ede # v4.0.1
       with:
         # renovate: datasource=github-releases depName=kubernetes/kubernetes
-        kubectl: v1.33.3
+        version: v1.33.3
+
+    - name: Install Helm
+      uses: azure/setup-helm@b9e51907a09c216f16ebe8536097933489208112 # v4.3.0
+      with:
         # renovate: datasource=github-releases depName=helm/helm
-        helm: v3.18.4
+        version: v3.18.4
+
+    - name: Install Kind
+      uses: helm/kind-action@a1b0e391336a6ee6713a0583f8c6240d70863de3 # v1.12.0
+      with:
+        install_only: true
         # renovate: datasource=github-releases depName=kubernetes-sigs/kind
-        kind: v0.29.0
+        version: v0.29.0
 
     - name: Pull Tetragon Images
       uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
