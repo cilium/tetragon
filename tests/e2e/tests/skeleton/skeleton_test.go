@@ -46,18 +46,14 @@ func TestMain(m *testing.M) {
 	// 2. After the cluster is configured and running, query the minimum kernel versions
 	//    supported by all nodes and set this as a variable in the test context.
 	//
-	// 3. Register a hook at the start of every test that installs Cilium into the
-	//    cluster with some default options (unless -tetragon.install-cilium=false is set
-	//    on thhe command line).
-	//
-	// 4. Register a hook at the start of every test that installs Tetragon into the
+	// 3. Register a hook at the start of every test that installs Tetragon into the
 	//    cluster with some default options.
 	//
-	// 5. Register a hook at the start of every test that port forwards Tetragon metrics
+	// 4. Register a hook at the start of every test that port forwards Tetragon metrics
 	//    and gRPC ports for all pods. These port forwards are registered in the test
 	//    context for later retrieval.
 	//
-	// 6. Register a hook at the end of every test that dumps information about the
+	// 5. Register a hook at the end of every test that dumps information about the
 	//    cluster and running event checkers. This information is only dumped if the test
 	//    fails or if -tetragon.keep-export=true is set on the command line.
 	//
