@@ -13,10 +13,7 @@ import (
 
 	"github.com/cilium/tetragon/tests/e2e/flags"
 	"github.com/cilium/tetragon/tests/e2e/helpers"
-	"github.com/cilium/tetragon/tests/e2e/install/cilium"
 	"github.com/cilium/tetragon/tests/e2e/install/tetragon"
-	appsv1 "k8s.io/api/apps/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/textlogger"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -36,7 +33,6 @@ type PortForwardFunc func(env.Environment) env.Func
 
 type Runner struct {
 	setupCluster        SetupClusterFunc
-	installCilium       env.Func
 	installTetragon     env.Func
 	uninstallTetragon   env.Func
 	tetragonPortForward PortForwardFunc
@@ -50,18 +46,6 @@ type Runner struct {
 var DefaultRunner = Runner{
 	setupCluster: func(testenv env.Environment) env.Func {
 		return helpers.MaybeCreateTempKindCluster(testenv, ClusterPrefix)
-	},
-	installCilium: func(ctx context.Context, c *envconf.Config) (context.Context, error) {
-		client, err := c.NewClient()
-		if err != nil {
-			return ctx, err
-		}
-		// Only install Cilium if it does not already exist
-		ciliumDs := &appsv1.DaemonSet{}
-		if err := client.Resources("kube-system").Get(ctx, "cilium", "kube-system", ciliumDs); err != nil && apierrors.IsNotFound(err) {
-			return cilium.Setup(cilium.WithNamespace("kube-system"), cilium.WithVersion(flags.Opts.CiliumVersion))(ctx, c)
-		}
-		return ctx, nil
 	},
 	installTetragon: tetragon.Install(tetragon.WithHelmOptions(map[string]string{
 		"tetragon.exportAllowList":    "",
@@ -112,26 +96,6 @@ func (r *Runner) WithInstallTetragon(options ...tetragon.Option) *Runner {
 	return r
 }
 
-func (r *Runner) WithInstallCiliumFn(install env.Func) *Runner {
-	r.installCilium = install
-	return r
-}
-
-func (r *Runner) WithInstallCilium(options ...cilium.Option) *Runner {
-	r.installCilium = func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
-		return cilium.Setup(options...)(ctx, cfg)
-	}
-	return r
-}
-
-func (r *Runner) NoInstallCilium() *Runner {
-	r.installCilium = func(ctx context.Context, _ *envconf.Config) (context.Context, error) {
-		klog.Info("Skipping Cilium install")
-		return ctx, nil
-	}
-	return r
-}
-
 // Initialize the configured runner. Must be called exactly once.
 func (r *Runner) Init() *Runner {
 	if r.hasCalledInit {
@@ -166,10 +130,6 @@ func (r *Runner) Init() *Runner {
 	r.Setup(r.setupCluster(r.Environment))
 
 	r.Setup(helpers.SetMinKernelVersion())
-
-	if r.installCilium != nil && flags.Opts.InstallCilium {
-		r.Setup(r.installCilium)
-	}
 
 	if r.installTetragon == nil {
 		klog.Fatalf("Runner.installTetragon cannot be nil")
