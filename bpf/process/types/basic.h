@@ -10,6 +10,7 @@
 #include "skb.h"
 #include "sock.h"
 #include "sockaddr.h"
+#include "sockaddr_un.h"
 #include "socket.h"
 #include "net_device.h"
 #include "../bpf_process_event.h"
@@ -91,6 +92,8 @@ enum {
 	socket_type = 41,
 
 	dentry_type = 42,
+
+	sockaddr_un_type = 43,
 
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
@@ -455,6 +458,16 @@ FUNC_INLINE long copy_sockaddr(char *args, unsigned long arg)
 	set_event_from_sockaddr_in(sockaddr_event, address);
 
 	return sizeof(struct sockaddr_in_type);
+}
+
+FUNC_INLINE long copy_sockaddr_un(char *args, unsigned long arg)
+{
+	struct sockaddr_un_type *sockaddr_un_event = (struct sockaddr_un_type *)args;
+	struct sockaddr *address = (struct sockaddr *)arg;
+
+	set_event_from_sockaddr_un(sockaddr_un_event, address);
+
+	return sizeof(struct sockaddr_un_type);
 }
 
 FUNC_INLINE long copy_socket(char *args, unsigned long arg)

@@ -361,6 +361,11 @@ message KprobeSockaddr {
   uint32 port = 3;
 }
 
+message KprobeSockaddrUn {
+  string family = 1;
+  string path = 2;
+}
+
 message KprobeNetDev {
   string name = 1;
 }
