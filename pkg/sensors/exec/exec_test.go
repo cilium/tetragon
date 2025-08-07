@@ -813,13 +813,14 @@ func TestExecParse(t *testing.T) {
 		// - cwd (string)
 
 		exec.Flags = 0
-		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + len(filename) + len(cwd) + 1)
+		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + len(filename) + len(cwd) + 3)
 
 		var buf bytes.Buffer
 		binary.Write(&buf, binary.LittleEndian, exec)
 		binary.Write(&buf, binary.LittleEndian, filename)
 		binary.Write(&buf, binary.LittleEndian, []byte{0})
 		binary.Write(&buf, binary.LittleEndian, cwd)
+		binary.Write(&buf, binary.LittleEndian, []byte{0, 0}) // two zero bytes to align the env variables
 
 		reader := bytes.NewReader(buf.Bytes())
 

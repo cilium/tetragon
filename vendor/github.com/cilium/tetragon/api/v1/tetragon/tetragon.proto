@@ -304,6 +304,8 @@ message ProcessExec {
   Process parent = 2;
   // Ancestors of the process beyond the immediate parent.
   repeated Process ancestors = 3;
+  // Environment variables passed to the binary at execution.
+  string environment_variables = 4;
 }
 
 message ProcessExit {
