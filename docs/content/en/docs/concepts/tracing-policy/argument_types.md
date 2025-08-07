@@ -234,13 +234,11 @@ See general path limitations in [path retrieval limits](#pathlimits))
 The `path` data type represents kernel `struct path` object retrieves
 the related path.
 
-See general path limitations in [path retrieval limits](#pathlimits))
+{{< caution >}}
+Full path retrieval is available only on kernels `v5.3` and later.
 
-<a name="pathlimits"></a>
-## path retrieval limits
+On older kernels, there's a limit of 256 path components, which means
+we can retrieve up to the maximum path length (4096 bytes), but only
+with 256 path entries (directories and file name).
+{{< /caution >}}
 
-We allow to retrieve full path when running on kernels v5.3 and later.
-
-When running on older kernels there's limit of 256 path components,
-which means we can retrieve maximum path (4096) but only with 256
-path entries (directories and file name).
