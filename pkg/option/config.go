@@ -36,6 +36,7 @@ type config struct {
 	EnableProcessTracepointAncestors bool
 	EnableProcessUprobeAncestors     bool
 	EnableProcessLsmAncestors        bool
+	EnableProcessUsdtAncestors       bool
 
 	EnableProcessNs   bool
 	EnableProcessCred bool
@@ -167,6 +168,8 @@ func AncestorsEnabled(eventType tetragon.EventType) bool {
 		return Config.EnableProcessUprobeAncestors
 	case tetragon.EventType_PROCESS_LSM:
 		return Config.EnableProcessLsmAncestors
+	case tetragon.EventType_PROCESS_USDT:
+		return Config.EnableProcessUsdtAncestors
 	default:
 		return false
 	}

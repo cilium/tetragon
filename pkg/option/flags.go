@@ -187,6 +187,7 @@ func ReadAndSetFlags() error {
 		Config.EnableProcessTracepointAncestors = slices.Contains(enableAncestors, "tracepoint")
 		Config.EnableProcessUprobeAncestors = slices.Contains(enableAncestors, "uprobe")
 		Config.EnableProcessLsmAncestors = slices.Contains(enableAncestors, "lsm")
+		Config.EnableProcessUsdtAncestors = slices.Contains(enableAncestors, "usdt")
 	}
 
 	Config.GopsAddr = viper.GetString(KeyGopsAddr)
@@ -377,7 +378,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Bool(KeyEnableProcessNs, false, "Enable namespace information in process_exec and process_kprobe events")
 	flags.Uint(KeyEventQueueSize, 10000, "Set the size of the internal event queue.")
 	flags.Bool(KeyEnablePodAnnotations, false, "Add pod annotations field to events.")
-	flags.StringSlice(KeyEnableAncestors, []string{}, "Comma-separated list of process event types to enable ancestors for. Supported event types are: base, kprobe, tracepoint, uprobe, lsm. Unknown event types will be ignored. Type 'base' enables ancestors for process_exec and process_exit events and is required by all other supported event types for correct reference counting. An empty string disables ancestors completely")
+	flags.StringSlice(KeyEnableAncestors, []string{}, "Comma-separated list of process event types to enable ancestors for. Supported event types are: base, kprobe, tracepoint, uprobe, lsm, usdt. Unknown event types will be ignored. Type 'base' enables ancestors for process_exec and process_exit events and is required by all other supported event types for correct reference counting. An empty string disables ancestors completely")
 
 	// Tracing policy file
 	flags.String(KeyTracingPolicy, "", "Tracing policy file to load at startup")
