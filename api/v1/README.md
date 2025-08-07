@@ -923,6 +923,7 @@ found.
 | workload | [string](#string) |  | Kubernetes workload of the Pod. |
 | workload_kind | [string](#string) |  | Kubernetes workload kind (e.g. &#34;Deployment&#34;, &#34;DaemonSet&#34;) of the Pod. |
 | pod_annotations | [Pod.PodAnnotationsEntry](#tetragon-Pod-PodAnnotationsEntry) | repeated | Contains all the annotations of the pod. |
+| service_account | [string](#string) |  | Service account of the Pod. |
 
 
 
