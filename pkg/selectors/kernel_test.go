@@ -632,22 +632,22 @@ func TestMultipleSelectorsExample(t *testing.T) {
 }
 
 func TestInitKernelSelectors(t *testing.T) {
-	expected_header := []byte{
+	expectedHeader := []byte{
 		// spec header
 		0x01, 0x00, 0x00, 0x00, // single selector
 
 		0x04, 0x00, 0x00, 0x00, // selector offset list
 	}
 
-	expected_selsize_small := []byte{
+	expectedSelsizeSmall := []byte{
 		0x18, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + capabilities  + 4
 	}
 
-	expected_selsize_large := []byte{
+	expectedSelsizeLarge := []byte{
 		0x4c, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + namespacesChanges + capabilities + capabilityChanges + 4
 	}
 
-	expected_filters := []byte{
+	expectedFilters := []byte{
 		// pid header
 		56, 0x00, 0x00, 0x00, // size = sizeof(pid2) + sizeof(pid1) + 4
 
@@ -701,7 +701,7 @@ func TestInitKernelSelectors(t *testing.T) {
 		0x00, 0x01, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, // Values (uint64)
 	}
 
-	expected_changes_empty := []byte{
+	expectedChangesEmpty := []byte{
 		// namespace changes header
 		0x04, 0x00, 0x00, 0x00,
 
@@ -709,7 +709,7 @@ func TestInitKernelSelectors(t *testing.T) {
 		0x04, 0x00, 0x00, 0x00,
 	}
 
-	expected_changes := []byte{
+	expectedChanges := []byte{
 		// namespace changes header
 		12, 0x00, 0x00, 0x00, // size = sizeof(nc1) + sizeof(nc2) + 4
 
@@ -727,7 +727,7 @@ func TestInitKernelSelectors(t *testing.T) {
 		0x00, 0x20, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, // Values (uint64)
 	}
 
-	expected_last_large := []byte{
+	expectedLastLarge := []byte{
 		// arg header
 		108, 0x00, 0x00, 0x00, // size = sizeof(arg2) + sizeof(arg1) + 24
 		24, 0x00, 0x00, 0x00, // arg[0] offset
@@ -774,7 +774,7 @@ func TestInitKernelSelectors(t *testing.T) {
 		0x01, 0x00, 0x00, 0x00, // arg index of string filename
 	}
 
-	expected_last_small := []byte{
+	expectedLastSmall := []byte{
 		// arg header
 		84, 0x00, 0x00, 0x00, // size = sizeof(arg1) + 24
 		24, 0x00, 0x00, 0x00, // arg[0] offset
@@ -813,17 +813,17 @@ func TestInitKernelSelectors(t *testing.T) {
 		0x01, 0x00, 0x00, 0x00, // arg index of string filename
 	}
 
-	expected := expected_header
+	expected := expectedHeader
 	if config.EnableLargeProgs() {
-		expected = append(expected, expected_selsize_large...)
-		expected = append(expected, expected_filters...)
-		expected = append(expected, expected_changes...)
-		expected = append(expected, expected_last_large...)
+		expected = append(expected, expectedSelsizeLarge...)
+		expected = append(expected, expectedFilters...)
+		expected = append(expected, expectedChanges...)
+		expected = append(expected, expectedLastLarge...)
 	} else {
-		expected = append(expected, expected_selsize_small...)
-		expected = append(expected, expected_filters...)
-		expected = append(expected, expected_changes_empty...)
-		expected = append(expected, expected_last_small...)
+		expected = append(expected, expectedSelsizeSmall...)
+		expected = append(expected, expectedFilters...)
+		expected = append(expected, expectedChangesEmpty...)
+		expected = append(expected, expectedLastSmall...)
 	}
 
 	pid1 := &v1alpha1.PIDSelector{Operator: "In", Values: []uint32{1, 2, 3}, IsNamespacePID: true, FollowForks: true}

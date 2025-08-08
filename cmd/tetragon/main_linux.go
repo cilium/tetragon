@@ -29,8 +29,8 @@ func checkProcFS() {
 	checkprocfs.Check()
 }
 
-func initCachedBTF(lib, btf_string string) error {
-	return btf.InitCachedBTF(lib, btf_string)
+func initCachedBTF(lib, btfString string) error {
+	return btf.InitCachedBTF(lib, btfString)
 }
 
 func checkStructAlignments() error {

@@ -131,8 +131,8 @@ func (n *SttNode) addChildren(nodes []*SttNode) {
 }
 
 func (n *SttNode) printNode(level int) {
-	indent_space := "    "
-	indent := strings.Repeat(indent_space, level)
+	indentSpace := "    "
+	indent := strings.Repeat(indentSpace, level)
 	fmt.Printf("%s0x%x (%s) count:%d\n", indent, n.Addr, n.Symbol, n.Count)
 
 	nchildren := len(n.Children)
@@ -142,8 +142,8 @@ func (n *SttNode) printNode(level int) {
 
 	// This is a leaf, so we also print label counters
 	if nchildren == 0 {
-		for lbl, lbl_count := range n.Labels {
-			fmt.Printf("%s%s%s count:%d\n", indent, indent_space, lbl, lbl_count)
+		for lbl, lblCount := range n.Labels {
+			fmt.Printf("%s%s%s count:%d\n", indent, indentSpace, lbl, lblCount)
 		}
 	}
 }

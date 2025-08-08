@@ -911,12 +911,12 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 }
 
 func ParseMatchArgs(k *KernelSelectorState, args []v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) error {
-	max_args := 1
+	maxArgs := 1
 	if config.EnableLargeProgs() {
-		max_args = 5 // we support up 5 argument filters under matchArgs with kernels >= 5.3, otherwise 1 argument
+		maxArgs = 5 // we support up 5 argument filters under matchArgs with kernels >= 5.3, otherwise 1 argument
 	}
-	if len(args) > max_args {
-		return fmt.Errorf("parseMatchArgs: supports up to %d filters (%d provided)", max_args, len(args))
+	if len(args) > maxArgs {
+		return fmt.Errorf("parseMatchArgs: supports up to %d filters (%d provided)", maxArgs, len(args))
 	}
 	actionOffset := GetCurrentOffset(&k.data)
 	loff := AdvanceSelectorLength(&k.data)
@@ -1134,12 +1134,12 @@ func ParseMatchNamespace(k *KernelSelectorState, action *v1alpha1.NamespaceSelec
 }
 
 func ParseMatchNamespaces(k *KernelSelectorState, actions []v1alpha1.NamespaceSelector) error {
-	max_nactions := 4 // 4 should match the value of the NUM_NS_FILTERS_SMALL in pfilter.h
+	maxNActions := 4 // 4 should match the value of the NUM_NS_FILTERS_SMALL in pfilter.h
 	if config.EnableLargeProgs() {
-		max_nactions = 10 // 10 should match the value of ns_max_types in hubble_msg.h
+		maxNActions = 10 // 10 should match the value of ns_max_types in hubble_msg.h
 	}
-	if len(actions) > max_nactions {
-		return fmt.Errorf("matchNamespace supports up to %d filters (current number of filters is %d)", max_nactions, len(actions))
+	if len(actions) > maxNActions {
+		return fmt.Errorf("matchNamespace supports up to %d filters (current number of filters is %d)", maxNActions, len(actions))
 	}
 	loff := AdvanceSelectorLength(&k.data)
 	// maybe write the number of namespace matches

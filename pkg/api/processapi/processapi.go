@@ -89,10 +89,10 @@ type MsgCommon struct {
 	// Flags is used to:
 	//  - distinguish between an entry and a return kprobe event
 	//  - indicate if a stack trace id was passed in the event
-	Flags  uint8
-	Pad_v2 [2]uint8
-	Size   uint32
-	Ktime  uint64
+	Flags uint8
+	PadV2 [2]uint8
+	Size  uint32
+	Ktime uint64
 }
 
 type MsgK8s struct {
@@ -159,7 +159,7 @@ type Binary struct {
 	Reversed   uint32
 	Path       [BINARY_PATH_MAX_LEN]byte
 	End        [STRING_POSTFIX_MAX_LENGTH]byte
-	End_r      [STRING_POSTFIX_MAX_LENGTH]byte
+	EndR       [STRING_POSTFIX_MAX_LENGTH]byte
 	Args       [MAX_ARG_LENGTH]byte
 	MBSet      uint64
 	MBGen      uint64

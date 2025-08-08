@@ -65,9 +65,9 @@ type operationMapAsyncQueryReply struct {
 }
 
 type RingBufferRecord struct {
-	length      uint32
-	page_offset uint32
-	data        [1]uint8
+	length     uint32
+	pageOffset uint32
+	data       [1]uint8
 }
 
 type MsgCommon struct {
@@ -75,10 +75,10 @@ type MsgCommon struct {
 	// Flags is used to:
 	//  - distinguish between an entry and a return kprobe event
 	//  - indicate if a stack trace id was passed in the event
-	Flags  uint8
-	Pad_v2 [2]uint8
-	Size   uint32
-	Ktime  uint64
+	Flags uint8
+	PadV2 [2]uint8
+	Size  uint32
+	Ktime uint64
 }
 
 type ProcessInfo struct {
@@ -306,11 +306,11 @@ func EbpfRingBufferNextRecord(buffer []byte, bufferLength, consumer, producer ui
 	return (*RingBufferRecord)(unsafe.Pointer(&buffer[consumer%bufferLength]))
 }
 
-func (reader *WindowsRingBufReader) Init(fd int, ring_buffer_size int) error {
+func (reader *WindowsRingBufReader) Init(fd int, ringBufferSize int) error {
 	if fd <= 0 {
 		return errors.New("invalid fd provided")
 	}
-	reader.ringBufferSize = uint64(ring_buffer_size)
+	reader.ringBufferSize = uint64(ringBufferSize)
 	handle, err := EbpfGetHandleFromFD(fd)
 	if err != nil {
 		return fmt.Errorf("cannot get handle from fd: %w", err)
@@ -330,7 +330,7 @@ func (reader *WindowsRingBufReader) Init(fd int, ring_buffer_size int) error {
 		return fmt.Errorf("failed to do device io control: %w", err)
 	}
 	var buffer = uintptr(reply.bufferAddress)
-	reader.byteBuf = unsafe.Slice((*byte)(unsafe.Pointer(buffer)), ring_buffer_size)
+	reader.byteBuf = unsafe.Slice((*byte)(unsafe.Pointer(buffer)), ringBufferSize)
 
 	reader.currRequest.header.length = uint16(unsafe.Sizeof(reader.currRequest))
 	reader.currRequest.header.id = EBPF_OP_MAP_ASYNC_QUERY
