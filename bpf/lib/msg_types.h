@@ -6,6 +6,7 @@
 
 /* Msg Types */
 enum msg_ops {
+	/* range below is reserved, place new ops in the next section */
 	MSG_OP_UNDEF = 0,
 	MSG_OP_EXECVE = 5,
 	MSG_OP_EXIT = 7,
@@ -13,7 +14,6 @@ enum msg_ops {
 	MSG_OP_GENERIC_TRACEPOINT = 14,
 	MSG_OP_GENERIC_UPROBE = 15,
 	MSG_OP_GENERIC_LSM = 16,
-	MSG_OP_GENERIC_USDT = 17,
 
 	MSG_OP_TEST = 254,
 
@@ -34,6 +34,8 @@ enum msg_ops {
 	MSG_OP_LOADER = 26,
 
 	MSG_OP_THROTTLE = 27,
+
+	MSG_OP_GENERIC_USDT = 28,
 
 	MSG_OP_MAX,
 };
