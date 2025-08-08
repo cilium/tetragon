@@ -18,7 +18,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
 
-func selectorsMaploads(ks *selectors.KernelSelectorState, index uint32) []*program.MapLoad {
+func selectorsMaploads(ks *selectors.KernelSelectorState, index uint32, isEntry bool) []*program.MapLoad {
 	selBuff := ks.Buffer()
 	maps := []*program.MapLoad{
 		{
@@ -40,16 +40,6 @@ func selectorsMaploads(ks *selectors.KernelSelectorState, index uint32) []*progr
 			Name: "addr6lpm_maps",
 			Load: func(outerMap *ebpf.Map, pinPathPrefix string) error {
 				return populateAddr6FilterMaps(ks, pinPathPrefix, outerMap)
-			},
-		}, {
-			Name: "tg_mb_sel_opts",
-			Load: func(outerMap *ebpf.Map, _ string) error {
-				return populateMatchBinariesMaps(ks, outerMap)
-			},
-		}, {
-			Name: "tg_mb_paths",
-			Load: func(outerMap *ebpf.Map, pinPathPrefix string) error {
-				return populateMatchBinariesPathsMaps(ks, pinPathPrefix, outerMap)
 			},
 		}, {
 			Name: "string_prefix_maps",
@@ -119,6 +109,21 @@ func selectorsMaploads(ks *selectors.KernelSelectorState, index uint32) []*progr
 				Name: "string_maps_10",
 				Load: func(outerMap *ebpf.Map, pinPathPrefix string) error {
 					return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 10)
+				},
+			},
+		}...)
+	}
+	if isEntry {
+		maps = append(maps, []*program.MapLoad{
+			{
+				Name: "tg_mb_sel_opts",
+				Load: func(outerMap *ebpf.Map, _ string) error {
+					return populateMatchBinariesMaps(ks, outerMap)
+				},
+			}, {
+				Name: "tg_mb_paths",
+				Load: func(outerMap *ebpf.Map, pinPathPrefix string) error {
+					return populateMatchBinariesPathsMaps(ks, pinPathPrefix, outerMap)
 				},
 			},
 		}...)
