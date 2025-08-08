@@ -6896,3 +6896,31 @@ func TestCapabilitiesGained(t *testing.T) {
 	perfring.RunTest(t, ctx, ops, eventFn)
 	require.Equal(t, 1, countEvents, "expected single event")
 }
+
+// Test some TTY ioctls on different kernels
+func TestTraceTTYIoctlStability(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	hookFull := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "monitor-tty-ioctl-operations-stability"
+spec:
+  kprobes:
+  - call: "tty_ioctl"
+    syscall: false
+  - call: "set_selection_user"
+    syscall: false
+  - call: "paste_selection"
+    syscall: false
+  - call: "sel_loadlut"
+    syscall: false
+`
+	createCrdFile(t, hookFull)
+
+	_, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+}
