@@ -6,12 +6,12 @@ package fsscan
 import (
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 func TestPodMatcher(t *testing.T) {
-	uuid := uuid.MustParse("1399d9c7-c86f-4371-8568-07b3d32258a4")
+	uuid := types.UID("1399d9c7-c86f-4371-8568-07b3d32258a4")
 	matcher := podDirMatcher(uuid)
 	require.False(t, matcher(""))
 	require.True(t, matcher("pod-1399d9c7-c86f-4371-8568-07b3d32258a4"))

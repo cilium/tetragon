@@ -14,7 +14,7 @@ import (
 	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
-	"github.com/google/uuid"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 var (
@@ -34,7 +34,9 @@ type FsScanner interface {
 	// matching the pod id did not existed in the fs.
 	//
 	// Callers need to serialize concurrent access to this function on their own.
-	FindContainerPath(podID uuid.UUID, containerID string) (string, error)
+	FindContainerPath(podID types.UID, containerID string) (string, error)
+
+	FindPodPath(podID types.UID) (string, error)
 }
 
 func New() FsScanner {
@@ -42,15 +44,19 @@ func New() FsScanner {
 }
 
 type fsScannerState struct {
-	knownPodDirs []string
-	root         string
-	rootErr      error
+	// Known parent directories containing sub directories of pods cgroup,
+	// typically like [...]/kubepods.slice/kubepods-burstable.slice/ or
+	// [...]/kubepods.slice/kubepods-besteffort.slice/
+	knownParentPodDirs []string
+
+	root    string
+	rootErr error
 }
 
-// We 've seen some cases, where the container cgroup file is not in a
-// directory that mathces the pod id. To handle these cases, do a full scan of
+// We've seen some cases, where the container cgroup file is not in a
+// directory that matches the pod id. To handle these cases, do a full scan of
 // the root to find a directory with the container id.
-func fsFullContainerScan(root string, containerID string) string {
+func findContainerDirectoryFromRoot(root string, containerID string) string {
 	found := errors.New("Found")
 	retPath := ""
 	// NB: there might be more efficient ways of searching the file-system than WalkDir, but
@@ -70,10 +76,9 @@ func fsFullContainerScan(root string, containerID string) string {
 }
 
 // FindContainer implements FindContainer method from FsScanner
-func (fs *fsScannerState) FindContainerPath(podID uuid.UUID, containerID string) (string, error) {
-
+func (fs *fsScannerState) FindContainerPath(podID types.UID, containerID string) (string, error) {
 	// first, check the known (cached) locations
-	for _, loc := range fs.knownPodDirs {
+	for _, loc := range fs.knownParentPodDirs {
 		podDir, containerDir := findPodAndContainerDirectory(loc, podID, containerID)
 		if podDir == "" {
 			continue
@@ -87,6 +92,52 @@ func (fs *fsScannerState) FindContainerPath(podID uuid.UUID, containerID string)
 		return "", fmt.Errorf("found pod dir=%s but failed to find container for id=%s", podDir, containerID)
 	}
 
+	err := fs.findCgroupRoot()
+	if err != nil {
+		return "", err
+	}
+
+	podDir := findPodDirectoryFromRoot(fs.root, podID)
+	if podDir == "" {
+		contPath := findContainerDirectoryFromRoot(fs.root, containerID)
+		if contPath == "" {
+			return "", fmt.Errorf("no directory found that matches container-id '%s'", containerID)
+		}
+		return contPath, ErrContainerPathWithoutMatchingPodID
+	}
+
+	// found a new pod directory, add it to the cached locations
+	fs.knownParentPodDirs = append(fs.knownParentPodDirs, filepath.Dir(podDir))
+
+	containerDir := findContainerDirectoryFromPod(podDir, containerID)
+	if containerDir == "" {
+		return "", fmt.Errorf("found pod dir=%s but failed to find container for id=%s", podDir, containerID)
+	}
+	return filepath.Join(podDir, containerDir), nil
+}
+
+func (fs *fsScannerState) FindPodPath(podID types.UID) (string, error) {
+	for _, parentPodDir := range fs.knownParentPodDirs {
+		podDir := findPodDirectoryFromParent(parentPodDir, podID)
+		if podDir == "" {
+			continue
+		}
+		return podDir, nil
+	}
+
+	err := fs.findCgroupRoot()
+	if err != nil {
+		return "", err
+	}
+
+	podDir := findPodDirectoryFromRoot(fs.root, podID)
+	if podDir != "" {
+		fs.knownParentPodDirs = append(fs.knownParentPodDirs, filepath.Dir(podDir))
+	}
+	return podDir, nil
+}
+
+func (fs *fsScannerState) findCgroupRoot() error {
 	if fs.root == "" && fs.rootErr == nil {
 		fs.root, fs.rootErr = cgroups.HostCgroupRoot()
 		if fs.rootErr != nil {
@@ -94,30 +145,13 @@ func (fs *fsScannerState) FindContainerPath(podID uuid.UUID, containerID string)
 		}
 	}
 	if fs.rootErr != nil {
-		return "", errors.New("no cgroup root")
+		return errors.New("no cgroup root")
 	}
-
-	podPath := fsFindPodPath(fs.root, podID)
-	if podPath == "" {
-		contPath := fsFullContainerScan(fs.root, containerID)
-		if contPath == "" {
-			return "", fmt.Errorf("no directory found that matches container-id '%s'", containerID)
-		}
-		return contPath, ErrContainerPathWithoutMatchingPodID
-	}
-	podDir := filepath.Dir(podPath)
-	// found a new pod directory, added it to the cached locations
-	fs.knownPodDirs = append(fs.knownPodDirs, podDir)
-	logger.GetLogger().Info(fmt.Sprintf("adding %s to cgroup pod directories", podDir))
-	containerDir := findContainerDirectory(podPath, containerID)
-	if containerDir == "" {
-		return "", fmt.Errorf("found pod dir=%s but failed to find container for id=%s", podPath, containerID)
-	}
-	return filepath.Join(podPath, containerDir), nil
+	return nil
 }
 
-func podDirMatcher(podID uuid.UUID) func(p string) bool {
-	s1 := podID.String()
+func podDirMatcher(podID types.UID) func(p string) bool {
+	s1 := string(podID)
 	// replace '-' with '_' in "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 	s2 := strings.Replace(s1, "-", "_", 4)
 	return func(p string) bool {
@@ -131,18 +165,18 @@ func podDirMatcher(podID uuid.UUID) func(p string) bool {
 	}
 }
 
-func findPodAndContainerDirectory(poddir string, podID uuid.UUID, containerID string) (string, string) {
-	podpath := findPodDirectory(poddir, podID)
-	if podpath == "" {
+func findPodAndContainerDirectory(parentPodDir string, podID types.UID, containerID string) (string, string) {
+	podDir := findPodDirectoryFromParent(parentPodDir, podID)
+	if podDir == "" {
 		return "", ""
 	}
-	podpath = filepath.Join(poddir, podpath)
-	contpath := findContainerDirectory(podpath, containerID)
-	return podpath, contpath
+	podDir = filepath.Join(parentPodDir, podDir)
+	containerDir := findContainerDirectoryFromPod(podDir, containerID)
+	return podDir, containerDir
 }
 
-func findContainerDirectory(podpath string, containerID string) string {
-	entries, err := os.ReadDir(podpath)
+func findContainerDirectoryFromPod(podDir string, containerID string) string {
+	entries, err := os.ReadDir(podDir)
 	if err != nil {
 		return ""
 	}
@@ -164,9 +198,9 @@ func findContainerDirectory(podpath string, containerID string) string {
 	return ""
 }
 
-func findPodDirectory(poddir string, podID uuid.UUID) string {
+func findPodDirectoryFromParent(parentPodDir string, podID types.UID) string {
 	podMatcher := podDirMatcher(podID)
-	entries, err := os.ReadDir(poddir)
+	entries, err := os.ReadDir(parentPodDir)
 	if err != nil {
 		return ""
 	}
@@ -184,7 +218,7 @@ func findPodDirectory(poddir string, podID uuid.UUID) string {
 	return ""
 }
 
-func fsFindPodPath(root string, podID uuid.UUID) string {
+func findPodDirectoryFromRoot(root string, podID types.UID) string {
 	found := errors.New("Found")
 	podMatcher := podDirMatcher(podID)
 	retPath := ""

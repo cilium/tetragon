@@ -9,7 +9,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/cgroups/fsscan"
-	"github.com/google/uuid"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type cgidFinder interface {
@@ -22,7 +22,7 @@ type cgfsFinder struct {
 }
 
 func (s *cgfsFinder) findCgroupID(podID PodID, containerID string) (CgroupID, error) {
-	path, err := s.FindContainerPath(uuid.UUID(podID), containerID)
+	path, err := s.FindContainerPath(types.UID(podID.String()), containerID)
 	if errors.Is(err, fsscan.ErrContainerPathWithoutMatchingPodID) {
 		s.log.Info("FindCgroupID: found path without matching pod id, continuing.", "pod-id", podID,
 			"container-id", containerID)
