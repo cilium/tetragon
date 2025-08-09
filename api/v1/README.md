@@ -605,6 +605,7 @@ found.
 | bpf_cmd_arg | [BpfCmd](#tetragon-BpfCmd) |  |  |
 | syscall_id | [SyscallId](#tetragon-SyscallId) |  |  |
 | sockaddr_arg | [KprobeSockaddr](#tetragon-KprobeSockaddr) |  |  |
+| sockaddrun_arg | [KprobeSockaddrUn](#tetragon-KprobeSockaddrUn) |  |  |
 | label | [string](#string) |  |  |
 
 
@@ -845,7 +846,7 @@ found.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | family | [string](#string) |  |  |
-| path | [string](#string) |  |  |
+| path | [bytes](#bytes) |  |  |
 
 
 

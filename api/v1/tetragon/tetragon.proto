@@ -363,7 +363,7 @@ message KprobeSockaddr {
 
 message KprobeSockaddrUn {
   string family = 1;
-  string path = 2;
+  bytes path = 2;
 }
 
 message KprobeNetDev {
@@ -470,6 +470,7 @@ message KprobeArgument {
     BpfCmd bpf_cmd_arg = 28;
     SyscallId syscall_id = 29;
     KprobeSockaddr sockaddr_arg = 30;
+    KprobeSockaddrUn sockaddrun_arg = 31;
   }
   string label = 18;
 }

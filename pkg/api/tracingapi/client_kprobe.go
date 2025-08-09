@@ -264,7 +264,7 @@ type MsgGenericKprobeSockaddr struct {
 
 type MsgGenericKprobeSockaddrUn struct {
 	Family uint16
-	Path   string
+	Path   [108]byte
 }
 
 type MsgGenericKprobeArgSockaddr struct {

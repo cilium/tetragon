@@ -282,12 +282,12 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 
 		err := binary.Read(r, binary.LittleEndian, &sockaddr)
 		if err != nil {
-			logger.GetLogger().Warn("sockaddr type err", logfields.Error, err)
+			logger.GetLogger().Warn("sockaddrun type err", logfields.Error, err)
 		}
 
 		arg.Index = uint64(a.index)
 		arg.Family = sockaddr.Family
-		arg.Path = sockaddr.Path
+		arg.Path = string(sockaddr.Path[:])
 		return arg
 	case gt.GenericS64Type:
 		var output int64
