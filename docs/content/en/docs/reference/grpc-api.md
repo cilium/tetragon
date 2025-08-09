@@ -352,6 +352,7 @@ found.
 | bpf_cmd_arg | [BpfCmd](#tetragon-BpfCmd) |  |  |
 | syscall_id | [SyscallId](#tetragon-SyscallId) |  |  |
 | sockaddr_arg | [KprobeSockaddr](#tetragon-KprobeSockaddr) |  |  |
+| sockaddrun_arg | [KprobeSockaddrUn](#tetragon-KprobeSockaddrUn) |  |  |
 | label | [string](#string) |  |  |
 
 <a name="tetragon-KprobeBpfAttr"></a>
@@ -493,6 +494,15 @@ found.
 | family | [string](#string) |  |  |
 | addr | [string](#string) |  |  |
 | port | [uint32](#uint32) |  |  |
+
+<a name="tetragon-KprobeSockaddrUn"></a>
+
+### KprobeSockaddrUn
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| family | [string](#string) |  |  |
+| path | [bytes](#bytes) |  |  |
 
 <a name="tetragon-KprobeTruncatedBytes"></a>
 

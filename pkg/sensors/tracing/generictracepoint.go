@@ -983,6 +983,19 @@ func handleMsgGenericTracepoint(
 			arg.SinPort = uint32(address.SinPort)
 			unix.Args = append(unix.Args, arg)
 
+		case gt.GenericSockaddrUnType:
+			var sockaddr tracingapi.MsgGenericKprobeSockaddrUn
+			var arg tracingapi.MsgGenericKprobeArgSockaddrUn
+
+			err := binary.Read(r, binary.LittleEndian, &sockaddr)
+			if err != nil {
+				logger.GetLogger().Warn("sockaddrun type err", logfields.Error, err)
+			}
+
+			arg.Family = sockaddr.Family
+			arg.Path = string(sockaddr.Path[:])
+			unix.Args = append(unix.Args, arg)
+
 		case gt.GenericSyscall64:
 			var val uint64
 			err := binary.Read(r, binary.LittleEndian, &val)

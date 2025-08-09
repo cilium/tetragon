@@ -173,6 +173,13 @@ func getKprobeArgument(arg tracingapi.MsgGenericKprobeArg) *tetragon.KprobeArgum
 		}
 		a.Arg = &tetragon.KprobeArgument_SockaddrArg{SockaddrArg: sockaddrArg}
 		a.Label = e.Label
+	case tracingapi.MsgGenericKprobeArgSockaddrUn:
+		sockaddrUnArg := &tetragon.KprobeSockaddrUn{
+			Family: network.InetFamily(e.Family),
+			Path:   []byte(e.Path),
+		}
+		a.Arg = &tetragon.KprobeArgument_SockaddrunArg{SockaddrunArg: sockaddrUnArg}
+		a.Label = e.Label
 	case tracingapi.MsgGenericKprobeArgCred:
 		credArg := &tetragon.ProcessCredentials{
 			Uid:        &wrapperspb.UInt32Value{Value: e.Uid},
@@ -567,6 +574,16 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 
 			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_SockaddrArg{
 				SockaddrArg: &address,
+			}})
+
+		case tracingapi.MsgGenericKprobeArgSockaddrUn:
+			address := tetragon.KprobeSockaddrUn{
+				Family: network.InetFamily(v.Family),
+				Path:   []byte(v.Path),
+			}
+
+			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_SockaddrunArg{
+				SockaddrunArg: &address,
 			}})
 
 		case tracingapi.MsgGenericSyscallID:
