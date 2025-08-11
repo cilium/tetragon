@@ -175,8 +175,8 @@ The type for each filter attribute can be determined by referring to the
 | `capabilities` | Filter events by Linux process capability. |
 | `cel_expression` | Filter using CEL expressions. CEL filters support IP and CIDR notiation extensions from the k8s project. See https://pkg.go.dev/k8s.io/apiserver/pkg/cel/library#IP and https://pkg.go.dev/k8s.io/apiserver/pkg/cel/library#CIDR for details. |
 | `parent_binary_regex` | Filter process events by a list of regular expressions of parent process binary names (e.g. `"^/home/kubernetes/bin/kubelet$"`). You can find the full syntax [here](https://github.com/google/re2/wiki/Syntax). | 
-| `parent_arguments_regex` | Filter by the container ID in the process.docker field using RE2 regular expression syntax: https://github.com/google/re2/wiki/Syntax | 
-| `container_id` | Filter by parent process arguments using a list of regular expressions. You can find the full syntax [here](https://github.com/google/re2/wiki/Syntax). | 
+| `parent_arguments_regex` | Filter by parent process arguments using a list of regular expressions. You can find the full syntax [here](https://github.com/google/re2/wiki/Syntax). | 
+| `container_id` | Filter by the container ID in the process.docker field using RE2 regular expression syntax: https://github.com/google/re2/wiki/Syntax | 
 | `in_init_tree` | Filter containerized processes based on whether they are descendants of the container's init process. This can be used, for example, to watch for processes injected into a container via docker exec, kubectl exec, or similar mechanisms. | 
 | `ancestor_binary_regex` | Filter process events by a list of regular expressions of ancestor processes' binary names (e.g. `"^/home/kubernetes/bin/kubelet$"`). You can find the full syntax [here](https://github.com/google/re2/wiki/Syntax). | 
 
