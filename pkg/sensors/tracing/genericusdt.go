@@ -27,6 +27,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
@@ -53,6 +54,8 @@ type genericUsdt struct {
 	argPrinters []argPrinter
 	// tags field of the Tracing Policy
 	tags []string
+	// selector
+	selectors *selectors.KernelSelectorState
 }
 
 func (g *genericUsdt) SetID(id idtable.EntryID) {
@@ -243,6 +246,12 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID) ([]i
 				spec.Provider, spec.Name, len(spec.Args), api.EventConfigMaxArgs)
 		}
 
+		// Parse Filters into kernel filter logic
+		state, err := selectors.InitKernelSelectorState(spec.Selectors, spec.Args, []v1alpha1.KProbeArg{}, nil, nil, nil)
+		if err != nil {
+			return nil, err
+		}
+
 		for cfgIdx, arg := range spec.Args {
 			tgtIdx := arg.Index
 			if tgtIdx > target.Spec.ArgsCnt {
@@ -281,6 +290,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID) ([]i
 			argPrinters: argPrinters,
 			tags:        tagsField,
 			message:     msgField,
+			selectors:   state,
 		}
 
 		usdtTable.AddEntry(usdtEntry)
@@ -313,11 +323,20 @@ func loadSingleUsdtSensor(usdtEntry *genericUsdt, args sensors.LoadProbeArgs) er
 	var configData bytes.Buffer
 	binary.Write(&configData, binary.LittleEndian, usdtEntry.config)
 
+	// filter_map data
+	selBuff := usdtEntry.selectors.Buffer()
+
 	mapLoad := []*program.MapLoad{
 		{
 			Name: "config_map",
 			Load: func(m *ebpf.Map, _ string) error {
 				return m.Update(uint32(0), configData.Bytes()[:], ebpf.UpdateAny)
+			},
+		},
+		{
+			Name: "filter_map",
+			Load: func(m *ebpf.Map, _ string) error {
+				return m.Update(uint32(0), selBuff[:], ebpf.UpdateAny)
 			},
 		},
 	}
@@ -349,11 +368,20 @@ func loadMultiUsdtSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) erro
 		var configData bytes.Buffer
 		binary.Write(&configData, binary.LittleEndian, usdtEntry.config)
 
+		// filter_map data
+		selBuff := usdtEntry.selectors.Buffer()
+
 		mapLoad := []*program.MapLoad{
 			{
 				Name: "config_map",
 				Load: func(m *ebpf.Map, _ string) error {
 					return m.Update(uint32(index), configData.Bytes()[:], ebpf.UpdateAny)
+				},
+			},
+			{
+				Name: "filter_map",
+				Load: func(m *ebpf.Map, _ string) error {
+					return m.Update(uint32(index), selBuff[:], ebpf.UpdateAny)
 				},
 			},
 		}
