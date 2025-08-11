@@ -116,20 +116,6 @@ Verify that Tetragon is installed by running:
 kubectl get pods -n tetragon
 ```
 
-## Local Development in Vagrant Box
-
-If you are on an intel Mac, use Vagrant to create a dev VM:
-
-```shell
-vagrant up
-vagrant ssh
-make
-```
-
-If you are getting an error, you can try to run `sudo launchctl load
-/Library/LaunchDaemons/org.virtualbox.startup.plist` (from [a Stackoverflow
-answer](https://stackoverflow.com/questions/18149546/macos-vagrant-up-failed-dev-vboxnetctl-no-such-file-or-directory)).
-
 ## Local Development with Apple Silicon Mac
 
 Use [Lima](https://lima-vm.io/) to create a Linux VM if you are using a Mac with
