@@ -114,6 +114,159 @@ struct selector_filter {
 	__u32 index;
 };
 
+enum {
+	PF_CRED_UNKNOWN = 0x00, // No filter
+	PF_CRED_RUID = 0x01, // Real UIDs
+	PF_CRED_RGID = 0x02, // Real GIDs
+	PF_CRED_EUID = 0x04, // Effective UIDs
+};
+
+struct cred_id {
+	__u32 start;
+	__u32 end;
+} __attribute__((packed));
+
+struct cred_filter {
+	__u64 ty; /* credentials type flags */
+	__u32 op; /* operator */
+	__u32 num; /* number of values */
+	struct cred_id val[];
+} __attribute__((packed));
+
+#define MAX_CRED_SELECTOR_FILTERS 2
+#define MAX_CRED_SELECTOR_VALUES  3
+
+/* counter field (4) + MAX_CRED_SELECTOR_FILTERS * size of cred_filter */
+#define MAX_CRED_SIZE (((sizeof(struct cred_filter) +                           \
+			 (MAX_CRED_SELECTOR_VALUES * sizeof(struct cred_id))) * \
+			MAX_CRED_SELECTOR_FILTERS) +                            \
+		       4)
+
+#ifdef __LARGE_BPF_PROG
+
+FUNC_INLINE int
+__match_cred_uids(__u32 *f, __u32 *index, struct cred_filter *cred_f, __u32 uid)
+{
+	__u32 min, max;
+
+	min = *(__u32 *)((__u64)f + (*index & INDEX_MASK));
+	max = *(__u32 *)((__u64)f + ((*index + 4) & INDEX_MASK));
+	if (cred_f->op == op_filter_eq && (uid >= min && uid <= max))
+		return PFILTER_ACCEPT;
+	else if (cred_f->op == op_filter_neq && (uid < min || uid > max))
+		return PFILTER_ACCEPT;
+
+	return PFILTER_REJECT;
+}
+
+/* match_cred_uids() parses passed cred_filter
+ * returns:
+ *   PFILTER_REJECT if filter does not apply.
+ *   PFILTER_ACCEPT on filter matches.
+ *   PFILTER_ERROR on errors.
+ */
+FUNC_INLINE int
+match_cred_uids(__u32 *f, __u32 *index, struct task_struct *task)
+{
+	__u32 uid;
+	int i, ret = PFILTER_REJECT;
+	struct cred_filter *cred_f;
+
+	cred_f = (struct cred_filter *)((u64)f + (*index & INDEX_MASK));
+	/* 16: type (8 bytes), op (4 bytes), number of values (4 bytes) */
+	/* now index points at cred_id of first cred_filter */
+	*index += sizeof(struct cred_filter);
+
+	/* error with PFILTER_ERROR */
+	if (cred_f->num > MAX_CRED_SELECTOR_VALUES)
+		return PFILTER_ERROR;
+
+	if (cred_f->ty == PF_CRED_RUID)
+		uid = BPF_CORE_READ(task, cred, uid.val);
+	else if (cred_f->ty == PF_CRED_EUID)
+		uid = BPF_CORE_READ(task, cred, euid.val);
+	else
+		return PFILTER_REJECT;
+
+	/* If NotEqual all filter values must return PFILTER_ACCEPT */
+	if (cred_f->op == op_filter_neq)
+		ret = PFILTER_ACCEPT;
+
+	for (i = 0; i < cred_f->num; i++) {
+		if (i > (MAX_CRED_SELECTOR_VALUES - 1)) // pass the verifier
+			break;
+
+		if (cred_f->op == op_filter_eq) {
+			ret |= __match_cred_uids(f, index, cred_f, uid);
+			if (ret == PFILTER_ACCEPT) {
+				/* break loop and return */
+				/* now index points at the end of cred_filter filter */
+				*index += sizeof(struct cred_id) * (cred_f->num - i);
+				return ret;
+			}
+		} else {
+			ret &= __match_cred_uids(f, index, cred_f, uid);
+			if (ret == PFILTER_REJECT) {
+				/* break loop and return */
+				/* now index points at the end of cred_filter filter */
+				*index += sizeof(struct cred_id) * (cred_f->num - i);
+				return ret;
+			}
+		}
+		*index += sizeof(struct cred_id);
+		/* now index points at the end of cred_filter filter */
+	}
+
+	return ret;
+}
+
+/* process_filter_current_cred() match current credentials based on passed filters.
+ * returns:
+ *   PFILTER_REJECT if filter does not apply.
+ *   PFILTER_ACCEPT on filter matches.
+ *   PFILTER_ERROR on errors.
+ */
+FUNC_INLINE int
+process_filter_current_cred(__u32 *f, __u32 *index, __u32 len)
+{
+	__u32 count;
+	int i, ret = PFILTER_REJECT;
+	struct task_struct *task;
+
+	/* if no current return early */
+	task = (struct task_struct *)get_current_task();
+	if (unlikely(!task))
+		return PFILTER_REJECT;
+
+	/* len must be greater than cred_filter but also at max
+	 * equals total of all cred selectors.
+	 */
+	if (len < sizeof(struct cred_filter) || len > MAX_CRED_SIZE)
+		return PFILTER_ERROR;
+
+	count = *(__u32 *)((__u64)f + (*index & INDEX_MASK));
+	*index += 4; /* 4: matchCurrentCred count */
+	/* Are there any valid credentials filters? */
+	if (!count)
+		return PFILTER_REJECT;
+
+	/* Here we are at the beginning of matching credentials */
+
+	for (i = 0; i < count; i++) {
+		if (i > (MAX_CRED_SELECTOR_FILTERS - 1))
+			break;
+
+		ret = match_cred_uids(f, index, task);
+
+		/* If PFILTER_REJECT or PFILTER_ERROR return, otherwise continue */
+		if (ret == PFILTER_REJECT || ret == PFILTER_ERROR)
+			return ret;
+	}
+
+	return ret;
+}
+#endif
+
 FUNC_INLINE int
 process_filter_pid(struct selector_filter *sf, __u32 *f,
 		   struct execve_map_value *enter, struct msg_ns *n,
@@ -512,6 +665,26 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 	}
 	if (res == PFILTER_REJECT)
 		return res;
+
+	/* matchCurrentCred
+	 *
+	 * Depends on LARGE_BPF_PROG to be available, if not then userspace writes
+	 * 4 bytes size length and advances the offset index with same 4 bytes.
+	 *
+	 * (4 (length) + 4 (counter) + sizeof(ruid) + sizeof(rgid) + ...
+	 */
+	len = *(__u32 *)((__u64)f + (index & INDEX_MASK));
+	index += 4; /* 4: matchCurrentCred header */
+	len -= 4;
+
+#ifdef __LARGE_BPF_PROG
+	/* Filter current task credentials */
+	if (len > 0)
+		res = process_filter_current_cred(f, &index, len);
+
+	if (res == PFILTER_REJECT)
+		return res;
+#endif
 
 #ifdef __NS_CHANGES_FILTER
 	/* matchNamespaceChanges */

@@ -11,6 +11,7 @@ package selectors
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"strings"
 	"testing"
 
@@ -457,6 +458,287 @@ func TestParseMatchNamespaces(t *testing.T) {
 	}
 }
 
+func TestParseMatchCurrentCred(t *testing.T) {
+	if !config.EnableLargeProgs() {
+		k := &KernelSelectorState{data: KernelSelectorData{off: 0}}
+		d := &k.data
+		credOldKernel := []v1alpha1.CredentialsSelector{}
+		expected := []byte{
+			0x04, 0x00, 0x00, 0x00, // Length
+		}
+		if err := ParseMatchCurrentCred(k, credOldKernel); err != nil || bytes.Equal(expected, d.e[0:d.off]) == false {
+			t.Errorf("parseMatchCurrentCred: error %v expected %v bytes %v parsing %v\n", err, expected, d.e[0:d.off], credOldKernel)
+		}
+		ruid := []v1alpha1.CredIDValues{
+			{
+				Operator: "Equal", Values: []string{"0", "1000:2000", "100000"},
+			},
+		}
+		credOldKernel = []v1alpha1.CredentialsSelector{
+			{
+				UIDs: ruid,
+			},
+		}
+		/* on old kernels fail if matchCurrentCred is set */
+		err := ParseMatchCurrentCred(k, credOldKernel)
+		require.Error(t, err)
+		return
+	}
+
+	tests := map[string]struct {
+		cred     []v1alpha1.CredentialsSelector
+		expected []byte
+		err      error
+	}{
+		"cred1": {
+			cred: []v1alpha1.CredentialsSelector{
+				{
+					UIDs: []v1alpha1.CredIDValues{
+						{
+							Operator: "Equal", Values: []string{"0", "1000:2000", "100000"},
+						},
+					},
+				},
+			},
+			expected: []byte{
+				0x30, 0x00, 0x00, 0x00, // Length
+				0x01, 0x00, 0x00, 0x00, // counter
+				0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // FILTER_CRED_RUID
+				0x03, 0x00, 0x00, 0x00, // Operator Equal
+				0x03, 0x00, 0x00, 0x00, // length == 0x3
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Values[0] == "0:0"
+				0xe8, 0x03, 0x00, 0x00, 0xd0, 0x07, 0x00, 0x00, // Values[1] == "1000:2000"
+				0xa0, 0x86, 0x01, 0x00, 0xa0, 0x86, 0x01, 0x00, // Values[2] == "100000:100000"
+			},
+		},
+		"cred2": {
+			cred: []v1alpha1.CredentialsSelector{
+				{
+					UIDs: []v1alpha1.CredIDValues{
+						{
+							Operator: "Equal", Values: []string{"0", "1000:2000", "100000"},
+						},
+					},
+					EUIDs: []v1alpha1.CredIDValues{
+						{
+							Operator: "eq", Values: []string{"0", "4000:8000"},
+						},
+					},
+				},
+			},
+			expected: []byte{
+				0x50, 0x00, 0x00, 0x00, // Length
+				0x02, 0x00, 0x00, 0x00, // counter
+				0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // FILTER_CRED_RUID
+				0x03, 0x00, 0x00, 0x00, // Operator Equal
+				0x03, 0x00, 0x00, 0x00, // length == 0x3
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Values[0] == "0:0"
+				0xe8, 0x03, 0x00, 0x00, 0xd0, 0x07, 0x00, 0x00, // Values[1] == "1000:2000"
+				0xa0, 0x86, 0x01, 0x00, 0xa0, 0x86, 0x01, 0x00, // Values[2] == "100000:100000"
+				0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // FILTER_CRED_EUID
+				0x03, 0x00, 0x00, 0x00, // Operator Equal
+				0x02, 0x00, 0x00, 0x00, // length == 0x2
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Values[0] == "0:0"
+				0xa0, 0x0f, 0x00, 0x00, 0x40, 0x1f, 0x00, 0x00, // Values[1] == "4000:8000"
+			},
+		},
+		"cred3": {
+			cred: []v1alpha1.CredentialsSelector{
+				{
+					UIDs: []v1alpha1.CredIDValues{
+						{
+							Operator: "neq", Values: []string{"0", "1000:2000", "1879048189:4294967295"},
+						},
+					},
+				},
+			},
+			expected: []byte{
+				0x30, 0x00, 0x00, 0x00, // Length
+				0x01, 0x00, 0x00, 0x00, // Counter
+				0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // FILTER_CRED_RUID
+				0x04, 0x00, 0x00, 0x00, // Operator NotEqual
+				0x03, 0x00, 0x00, 0x00, // length == 0x3
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Values[0] == "0:0"
+				0xe8, 0x03, 0x00, 0x00, 0xd0, 0x07, 0x00, 0x00, // Values[1] == "1000:2000"
+				0xfd, 0xff, 0xff, 0x6f, 0xff, 0xff, 0xff, 0xff, // Values[3] == "1879048189:4294967295"
+			},
+		},
+		"cred4": {
+			cred: []v1alpha1.CredentialsSelector{
+				{
+					UIDs: []v1alpha1.CredIDValues{
+						{
+							Operator: "NotEqual",
+							Values: []string{
+								"0:187904818",
+								"1879048187:1879048187",
+								"1879048189:4294967295",
+							},
+						},
+					},
+					EUIDs: []v1alpha1.CredIDValues{
+						{
+							Operator: "NotEqual",
+							Values: []string{
+								"0:187904818",
+								"1879048187:1879048187",
+								"1879048189:4294967295",
+							},
+						},
+					},
+				},
+			},
+			expected: []byte{
+				0x58, 0x00, 0x00, 0x00, // Length
+				0x02, 0x00, 0x00, 0x00, // Counter
+				0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // FILTER_CRED_RUID
+				0x04, 0x00, 0x00, 0x00, // Operator NotEqual
+				0x03, 0x00, 0x00, 0x00, // length == 0x3
+				0x00, 0x00, 0x00, 0x00, 0x32, 0x33, 0x33, 0x0b, // Values[0] == "0:187904818"
+				0xfb, 0xff, 0xff, 0x6f, 0xfb, 0xff, 0xff, 0x6f, // Values[1] == "1879048187:1879048187"
+				0xfd, 0xff, 0xff, 0x6f, 0xff, 0xff, 0xff, 0xff, // Values[2] == "1879048189:4294967295"
+				0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // FILTER_CRED_EUID
+				0x04, 0x00, 0x00, 0x00, // Operator NotEqual
+				0x03, 0x00, 0x00, 0x00, // length == 0x3
+				0x00, 0x00, 0x00, 0x00, 0x32, 0x33, 0x33, 0x0b, // Values[0] == "0:187904818"
+				0xfb, 0xff, 0xff, 0x6f, 0xfb, 0xff, 0xff, 0x6f, // Values[1] == "1879048187:1879048187"
+				0xfd, 0xff, 0xff, 0x6f, 0xff, 0xff, 0xff, 0xff, // Values[2] == "1879048189:4294967295"
+			},
+		},
+		"cred5": {
+			cred: []v1alpha1.CredentialsSelector{
+				{
+					UIDs: []v1alpha1.CredIDValues{
+						{
+							Operator: "Equal", Values: []string{"1:0"},
+						},
+					},
+				},
+			},
+			err: errors.New("invalid range"),
+		},
+		"cred6": {
+			cred: []v1alpha1.CredentialsSelector{
+				{
+					UIDs: []v1alpha1.CredIDValues{
+						{
+							Operator: "Equal", Values: []string{"1:4294967296"},
+						},
+					},
+				},
+			},
+			err: errors.New("invalid range"),
+		},
+		"cred7": {
+			cred: []v1alpha1.CredentialsSelector{
+				{
+					UIDs: []v1alpha1.CredIDValues{
+						{
+							Operator: "Equal", Values: []string{"-1:0"},
+						},
+					},
+				},
+			},
+			err: errors.New("invalid range"),
+		},
+		"cred8": {
+			cred: []v1alpha1.CredentialsSelector{
+				{
+					UIDs: []v1alpha1.CredIDValues{
+						{
+							Operator: "Equal", Values: []string{"-1:0"},
+						},
+					},
+				},
+				{
+					UIDs: []v1alpha1.CredIDValues{
+						{
+							Operator: "Equal", Values: []string{"-1:0"},
+						},
+					},
+				},
+			},
+			err: errors.New("for now only 1 match selector per matchCurrentCred is supported"),
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			k := &KernelSelectorState{data: KernelSelectorData{off: 0}}
+			d := &k.data
+			err := ParseMatchCurrentCred(k, test.cred)
+			if test.err != nil {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.True(t, bytes.Equal(test.expected, d.e[0:d.off]))
+			}
+
+		})
+	}
+}
+
+func TestParseMatchCurrentCredMultipleSelectors(t *testing.T) {
+	if !config.EnableLargeProgs() {
+		t.Skip("Test requires kernel >= 5.3")
+	}
+	ruid := []v1alpha1.CredIDValues{
+		{
+			Operator: "Equal", Values: []string{"0", "1000:2000", "100000"},
+		},
+	}
+	euid := []v1alpha1.CredIDValues{
+		{
+			Operator: "Equal", Values: []string{"0", "4000:8000"},
+		},
+	}
+	cred1 := []v1alpha1.CredentialsSelector{
+		{
+			UIDs: ruid,
+		},
+	}
+	k := &KernelSelectorState{data: KernelSelectorData{off: 0}}
+	d := &k.data
+	cred2 := []v1alpha1.CredentialsSelector{
+		{
+			UIDs:  ruid,
+			EUIDs: euid,
+		},
+	}
+	expected1 := []byte{
+		0x30, 0x00, 0x00, 0x00, // Length
+		0x01, 0x00, 0x00, 0x00, // counter
+		0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // FILTER_CRED_RUID
+		0x03, 0x00, 0x00, 0x00, // Operator Equal
+		0x03, 0x00, 0x00, 0x00, // length == 0x3
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Values[0] == "0:0"
+		0xe8, 0x03, 0x00, 0x00, 0xd0, 0x07, 0x00, 0x00, // Values[1] == "1000:2000"
+		0xa0, 0x86, 0x01, 0x00, 0xa0, 0x86, 0x01, 0x00, // Values[2] == "100000:100000"
+	}
+	expected2 := []byte{
+		0x50, 0x00, 0x00, 0x00, // Length
+		0x02, 0x00, 0x00, 0x00, // counter
+		0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // FILTER_CRED_RUID
+		0x03, 0x00, 0x00, 0x00, // Operator Equal
+		0x03, 0x00, 0x00, 0x00, // length == 0x3
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Values[0] == "0:0"
+		0xe8, 0x03, 0x00, 0x00, 0xd0, 0x07, 0x00, 0x00, // Values[1] == "1000:2000"
+		0xa0, 0x86, 0x01, 0x00, 0xa0, 0x86, 0x01, 0x00, // Values[2] == "100000:100000"
+		0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // FILTER_CRED_EUID
+		0x03, 0x00, 0x00, 0x00, // Operator Equal
+		0x02, 0x00, 0x00, 0x00, // length == 0x2
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Values[0] == "0:0"
+		0xa0, 0x0f, 0x00, 0x00, 0x40, 0x1f, 0x00, 0x00, // Values[1] == "4000:8000"
+	}
+	if err := ParseMatchCurrentCred(k, cred1); err != nil || bytes.Equal(expected1, d.e[0:d.off]) == false {
+		t.Errorf("parseMatchCurrentCred: error %v expected %v bytes %v parsing %v\n", err, expected1, d.e[0:d.off], cred1)
+	}
+	nextcred2 := d.off
+	if err := ParseMatchCurrentCred(k, cred2); err != nil || bytes.Equal(expected2, d.e[nextcred2:d.off]) == false {
+		t.Errorf("parseMatchCurrentCred: error %v expected %v bytes %v parsing %v\n", err, expected2, d.e[nextcred2:d.off], cred2)
+	}
+}
+
 func TestParseMatchNamespaceChanges(t *testing.T) {
 	ns1 := &v1alpha1.NamespaceChangesSelector{Operator: "In", Values: []string{"Uts", "Mnt"}}
 	k := &KernelSelectorState{data: KernelSelectorData{off: 0}}
@@ -598,8 +880,8 @@ func TestMultipleSelectorsExample(t *testing.T) {
 	// value               absolute offset    explanation
 	expU32Push(2)                 // off: 0       number of selectors
 	expU32Push(8)                 // off: 4       relative ofset of 1st selector (4 + 8 = 12)
-	expU32Push(100)               // off: 8       relative ofset of 2nd selector (8 + 124 = 132)
-	expU32Push(96)                // off: 12      selector1: length (76 + 12 = 96)
+	expU32Push(104)               // off: 8       relative ofset of 2nd selector (8 + 124 = 132)
+	expU32Push(100)               // off: 12      selector1: length (76 + 12 = 96)
 	expU32Push(24)                // off: 16      selector1: MatchPIDs: len
 	expU32Push(SelectorOpNotIn)   // off: 20      selector1: MatchPIDs[0]: op
 	expU32Push(0)                 // off: 24      selector1: MatchPIDs[0]: flags
@@ -608,22 +890,23 @@ func TestMultipleSelectorsExample(t *testing.T) {
 	expU32Push(44)                // off: 36      selector1: MatchPIDs[0]: val2
 	expU32Push(4)                 // off: 40      selector1: MatchNamespaces: len
 	expU32Push(4)                 // off: 44      selector1: MatchCapabilities: len
-	expU32Push(4)                 // off: 48      selector1: MatchNamespaceChanges: len
-	expU32Push(4)                 // off: 52      selector1: MatchCapabilityChanges: len
-	expU32Push(48)                // off: 80      selector1: matchArgs: len
-	expU32Push(24)                // off: 84      selector1: matchArgs[0]: offset
-	expU32Push(0)                 // off: 88      selector1: matchArgs[1]: offset
-	expU32Push(0)                 // off: 92      selector1: matchArgs[2]: offset
-	expU32Push(0)                 // off: 96      selector1: matchArgs[3]: offset
-	expU32Push(0)                 // off: 100     selector1: matchArgs[4]: offset
-	expU32Push(0)                 // off: 104     selector1: matchArgs: arg0: index
-	expU32Push(SelectorOpEQ)      // off: 108     selector1: matchArgs: arg0: operator
-	expU32Push(16)                // off: 112     selector1: matchArgs: arg0: len of vals
-	expU32Push(gt.GenericIntType) // off: 116     selector1: matchArgs: arg0: type
-	expU32Push(10)                // off: 120     selector1: matchArgs: arg0: val0: 10
-	expU32Push(20)                // off: 124     selector1: matchArgs: arg0: val1: 20
-	expU32Push(4)                 // off: 128     selector1: matchActions: length
-	expU32Push(96)                // off: 132     selector2: length
+	expU32Push(4)                 // off: 48      selecotr1: MatchCurrentCred: len
+	expU32Push(4)                 // off: 52      selector1: MatchNamespaceChanges: len
+	expU32Push(4)                 // off: 56      selector1: MatchCapabilityChanges: len
+	expU32Push(48)                // off: 84      selector1: matchArgs: len
+	expU32Push(24)                // off: 88      selector1: matchArgs[0]: offset
+	expU32Push(0)                 // off: 92      selector1: matchArgs[1]: offset
+	expU32Push(0)                 // off: 96      selector1: matchArgs[2]: offset
+	expU32Push(0)                 // off: 100     selector1: matchArgs[3]: offset
+	expU32Push(0)                 // off: 104     selector1: matchArgs[4]: offset
+	expU32Push(0)                 // off: 108     selector1: matchArgs: arg0: index
+	expU32Push(SelectorOpEQ)      // off: 112     selector1: matchArgs: arg0: operator
+	expU32Push(16)                // off: 116     selector1: matchArgs: arg0: len of vals
+	expU32Push(gt.GenericIntType) // off: 120     selector1: matchArgs: arg0: type
+	expU32Push(10)                // off: 124     selector1: matchArgs: arg0: val0: 10
+	expU32Push(20)                // off: 128     selector1: matchArgs: arg0: val1: 20
+	expU32Push(4)                 // off: 132     selector1: matchActions: length
+	expU32Push(100)               // off: 136     selector2: length
 	// ... everything else should be the same as selector1 ...
 
 	if bytes.Equal(expected[:expectedLen], b[:expectedLen]) == false {
@@ -640,14 +923,14 @@ func TestInitKernelSelectors(t *testing.T) {
 	}
 
 	expected_selsize_small := []byte{
-		0x18, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + capabilities  + 4
+		0x1c, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + capabilities +  matchCurrentCred + 4
 	}
 
 	expected_selsize_large := []byte{
-		0x4c, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + namespacesChanges + capabilities + capabilityChanges + 4
+		0x7c, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + capabilities + matchCurrentCred + namespacesChanges + capabilityChanges + 4
 	}
 
-	expected_filters := []byte{
+	expected_filters_1 := []byte{
 		// pid header
 		56, 0x00, 0x00, 0x00, // size = sizeof(pid2) + sizeof(pid1) + 4
 
@@ -685,6 +968,9 @@ func TestInitKernelSelectors(t *testing.T) {
 		0x01, 0x00, 0x00, 0x00, // length == 0x1
 		0x01, 0x00, 0x00, 0x00, // Values[0] == 1
 
+	}
+
+	expected_filters_2 := []byte{
 		// capabilities header
 		44, 0x00, 0x00, 0x00, // size = sizeof(cap1) + sizeof(cap2) + 4
 
@@ -699,6 +985,29 @@ func TestInitKernelSelectors(t *testing.T) {
 		0x06, 0x00, 0x00, 0x00, // op == In
 		0x00, 0x00, 0x00, 0x00, // IsNamespaceCapability = false
 		0x00, 0x01, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, // Values (uint64)
+	}
+
+	expected_match_current_cred := []byte{}
+
+	if !config.EnableLargeProgs() {
+		// matchCurrentCred header
+		expected_match_current_cred_body := []byte{
+			4, 0x00, 0x00, 0x00, // size = counter + sizeof(UIDs) + sizeof(EUIDs) + ... + 4
+		}
+		expected_match_current_cred = append(expected_match_current_cred, expected_match_current_cred_body...)
+	} else {
+		// matchCurrentCred data
+		expected_match_current_cred_body := []byte{
+			48, 0x00, 0x00, 0x00, // size = counter + sizeof(UIDs) + sizeof(EUIDs) + ... + 4
+			0x01, 0x00, 0x00, 0x00, // counter
+			0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // UIDs
+			0x03, 0x00, 0x00, 0x00, // op == Equal
+			0x03, 0x00, 0x00, 0x00, // length == 0x3
+			0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, // 1:1
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 0:0
+			0xe8, 0x03, 0x00, 0x00, 0xd0, 0x07, 0x00, 0x00, // 1000:2000
+		}
+		expected_match_current_cred = append(expected_match_current_cred, expected_match_current_cred_body...)
 	}
 
 	expected_changes_empty := []byte{
@@ -816,12 +1125,16 @@ func TestInitKernelSelectors(t *testing.T) {
 	expected := expected_header
 	if config.EnableLargeProgs() {
 		expected = append(expected, expected_selsize_large...)
-		expected = append(expected, expected_filters...)
+		expected = append(expected, expected_filters_1...)
+		expected = append(expected, expected_filters_2...)
+		expected = append(expected, expected_match_current_cred...)
 		expected = append(expected, expected_changes...)
 		expected = append(expected, expected_last_large...)
 	} else {
 		expected = append(expected, expected_selsize_small...)
-		expected = append(expected, expected_filters...)
+		expected = append(expected, expected_filters_1...)
+		expected = append(expected, expected_filters_2...)
+		expected = append(expected, expected_match_current_cred...)
 		expected = append(expected, expected_changes_empty...)
 		expected = append(expected, expected_last_small...)
 	}
@@ -832,6 +1145,15 @@ func TestInitKernelSelectors(t *testing.T) {
 	ns1 := &v1alpha1.NamespaceSelector{Namespace: "Pid", Operator: "In", Values: []string{"1", "2", "3"}}
 	ns2 := &v1alpha1.NamespaceSelector{Namespace: "Net", Operator: "NotIn", Values: []string{"1"}}
 	matchNamespaces := []v1alpha1.NamespaceSelector{*ns1, *ns2}
+
+	credIdVal := &v1alpha1.CredIDValues{Operator: "Equal", Values: []string{"1:1", "0:0", "1000:2000"}}
+	ruids := []v1alpha1.CredIDValues{*credIdVal}
+	matchCurrentCred := []v1alpha1.CredentialsSelector{}
+	if config.EnableLargeProgs() {
+		ruid := &v1alpha1.CredentialsSelector{UIDs: ruids}
+		matchCurrentCred = append(matchCurrentCred, *ruid)
+	}
+
 	cap1 := &v1alpha1.CapabilitiesSelector{Type: "Effective", Operator: "In", IsNamespaceCapability: false, Values: []string{"CAP_CHOWN", "CAP_NET_RAW"}}
 	cap2 := &v1alpha1.CapabilitiesSelector{Type: "Inheritable", Operator: "NotIn", IsNamespaceCapability: false, Values: []string{"CAP_SETPCAP", "CAP_SYS_ADMIN"}}
 	matchCapabilities := []v1alpha1.CapabilitiesSelector{*cap1, *cap2}
@@ -865,6 +1187,7 @@ func TestInitKernelSelectors(t *testing.T) {
 			MatchPIDs:              matchPids,
 			MatchNamespaces:        matchNamespaces,
 			MatchCapabilities:      matchCapabilities,
+			MatchCurrentCred:       matchCurrentCred,
 			MatchNamespaceChanges:  matchNamespaceChanges,
 			MatchCapabilityChanges: matchCapabilityChanges,
 			MatchArgs:              matchArgs,
