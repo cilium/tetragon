@@ -581,6 +581,58 @@ spec:
                               - values
                               type: object
                             type: array
+                          matchCurrentCred:
+                            description: match Current Task credentials
+                            items:
+                              description: |-
+                                CredentialsSelector selects tasks based on credentials.
+                                Results of UIDs and EUIDs are ANDed.
+                              properties:
+                                euid:
+                                  description: Effective UIDs to match. EUIDs are
+                                    ANDed.
+                                  items:
+                                    properties:
+                                      operator:
+                                        description: Values selector operator.
+                                        enum:
+                                        - Equal
+                                        - NotEqual
+                                        type: string
+                                      values:
+                                        description: |-
+                                          The UID or GID values to match
+                                          To match against a range use 'min:max'. Supported values are 0:4294967295.
+                                        items:
+                                          type: string
+                                        type: array
+                                    required:
+                                    - operator
+                                    type: object
+                                  type: array
+                                uid:
+                                  description: Real UIDs to match. UIDs are ANDed.
+                                  items:
+                                    properties:
+                                      operator:
+                                        description: Values selector operator.
+                                        enum:
+                                        - Equal
+                                        - NotEqual
+                                        type: string
+                                      values:
+                                        description: |-
+                                          The UID or GID values to match
+                                          To match against a range use 'min:max'. Supported values are 0:4294967295.
+                                        items:
+                                          type: string
+                                        type: array
+                                    required:
+                                    - operator
+                                    type: object
+                                  type: array
+                              type: object
+                            type: array
                           matchNamespaceChanges:
                             description: IDs for namespace changes
                             items:
@@ -1227,6 +1279,58 @@ spec:
                               required:
                               - operator
                               - values
+                              type: object
+                            type: array
+                          matchCurrentCred:
+                            description: match Current Task credentials
+                            items:
+                              description: |-
+                                CredentialsSelector selects tasks based on credentials.
+                                Results of UIDs and EUIDs are ANDed.
+                              properties:
+                                euid:
+                                  description: Effective UIDs to match. EUIDs are
+                                    ANDed.
+                                  items:
+                                    properties:
+                                      operator:
+                                        description: Values selector operator.
+                                        enum:
+                                        - Equal
+                                        - NotEqual
+                                        type: string
+                                      values:
+                                        description: |-
+                                          The UID or GID values to match
+                                          To match against a range use 'min:max'. Supported values are 0:4294967295.
+                                        items:
+                                          type: string
+                                        type: array
+                                    required:
+                                    - operator
+                                    type: object
+                                  type: array
+                                uid:
+                                  description: Real UIDs to match. UIDs are ANDed.
+                                  items:
+                                    properties:
+                                      operator:
+                                        description: Values selector operator.
+                                        enum:
+                                        - Equal
+                                        - NotEqual
+                                        type: string
+                                      values:
+                                        description: |-
+                                          The UID or GID values to match
+                                          To match against a range use 'min:max'. Supported values are 0:4294967295.
+                                        items:
+                                          type: string
+                                        type: array
+                                    required:
+                                    - operator
+                                    type: object
+                                  type: array
                               type: object
                             type: array
                           matchNamespaceChanges:
@@ -1913,6 +2017,58 @@ spec:
                               - values
                               type: object
                             type: array
+                          matchCurrentCred:
+                            description: match Current Task credentials
+                            items:
+                              description: |-
+                                CredentialsSelector selects tasks based on credentials.
+                                Results of UIDs and EUIDs are ANDed.
+                              properties:
+                                euid:
+                                  description: Effective UIDs to match. EUIDs are
+                                    ANDed.
+                                  items:
+                                    properties:
+                                      operator:
+                                        description: Values selector operator.
+                                        enum:
+                                        - Equal
+                                        - NotEqual
+                                        type: string
+                                      values:
+                                        description: |-
+                                          The UID or GID values to match
+                                          To match against a range use 'min:max'. Supported values are 0:4294967295.
+                                        items:
+                                          type: string
+                                        type: array
+                                    required:
+                                    - operator
+                                    type: object
+                                  type: array
+                                uid:
+                                  description: Real UIDs to match. UIDs are ANDed.
+                                  items:
+                                    properties:
+                                      operator:
+                                        description: Values selector operator.
+                                        enum:
+                                        - Equal
+                                        - NotEqual
+                                        type: string
+                                      values:
+                                        description: |-
+                                          The UID or GID values to match
+                                          To match against a range use 'min:max'. Supported values are 0:4294967295.
+                                        items:
+                                          type: string
+                                        type: array
+                                    required:
+                                    - operator
+                                    type: object
+                                  type: array
+                              type: object
+                            type: array
                           matchNamespaceChanges:
                             description: IDs for namespace changes
                             items:
@@ -2539,6 +2695,58 @@ spec:
                               required:
                               - operator
                               - values
+                              type: object
+                            type: array
+                          matchCurrentCred:
+                            description: match Current Task credentials
+                            items:
+                              description: |-
+                                CredentialsSelector selects tasks based on credentials.
+                                Results of UIDs and EUIDs are ANDed.
+                              properties:
+                                euid:
+                                  description: Effective UIDs to match. EUIDs are
+                                    ANDed.
+                                  items:
+                                    properties:
+                                      operator:
+                                        description: Values selector operator.
+                                        enum:
+                                        - Equal
+                                        - NotEqual
+                                        type: string
+                                      values:
+                                        description: |-
+                                          The UID or GID values to match
+                                          To match against a range use 'min:max'. Supported values are 0:4294967295.
+                                        items:
+                                          type: string
+                                        type: array
+                                    required:
+                                    - operator
+                                    type: object
+                                  type: array
+                                uid:
+                                  description: Real UIDs to match. UIDs are ANDed.
+                                  items:
+                                    properties:
+                                      operator:
+                                        description: Values selector operator.
+                                        enum:
+                                        - Equal
+                                        - NotEqual
+                                        type: string
+                                      values:
+                                        description: |-
+                                          The UID or GID values to match
+                                          To match against a range use 'min:max'. Supported values are 0:4294967295.
+                                        items:
+                                          type: string
+                                        type: array
+                                    required:
+                                    - operator
+                                    type: object
+                                  type: array
                               type: object
                             type: array
                           matchNamespaceChanges:
