@@ -98,6 +98,12 @@ issues:
 formatters:
   enable:
     - goimports
+  settings:
+    goimports:
+      local-prefixes:
+      - github.com/cilium/tetragon
+      - github.com/cilium/tetragon/api
+      - github.com/cilium/tetragon/pkg/k8s
   exclusions:
     generated: lax
     paths:

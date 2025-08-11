@@ -15,10 +15,6 @@ import (
 	"testing"
 	"time"
 
-	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
-	"github.com/cilium/tetragon/pkg/labels"
-	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/option"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
@@ -29,6 +25,11 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	clienttesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
+
+	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
+	"github.com/cilium/tetragon/pkg/labels"
+	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/option"
 )
 
 // Testing of policyfilter using a fake k8s clientset.

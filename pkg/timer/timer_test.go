@@ -7,8 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/cilium/tetragon/pkg/logger"
 )
 
 var (

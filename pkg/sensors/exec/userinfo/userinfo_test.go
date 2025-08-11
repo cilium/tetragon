@@ -8,9 +8,10 @@ package userinfo
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
-	"github.com/stretchr/testify/require"
 )
 
 func TestAccountUnix(t *testing.T) {

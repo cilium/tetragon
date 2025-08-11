@@ -4,9 +4,10 @@
 package eventchecker
 
 import (
-	"github.com/cilium/tetragon/tools/protoc-gen-go-tetragon/common"
 	"github.com/jpillora/longestcommon"
 	"google.golang.org/protobuf/compiler/protogen"
+
+	"github.com/cilium/tetragon/tools/protoc-gen-go-tetragon/common"
 )
 
 type Enum protogen.Enum

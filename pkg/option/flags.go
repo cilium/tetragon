@@ -12,13 +12,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-viper/mapstructure/v2"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
+
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/strutils"
-	"github.com/go-viper/mapstructure/v2"
-	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
 )
 
 const (

@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/spf13/cobra"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/cmd/tetra/debug"
@@ -20,7 +22,6 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/policyfilter"
-	"github.com/spf13/cobra"
 )
 
 func New() *cobra.Command {

@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/cilium/ebpf"
+
 	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/constants"

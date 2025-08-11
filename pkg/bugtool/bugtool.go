@@ -26,13 +26,14 @@ import (
 	"strings"
 	"time"
 
+	gopssignal "github.com/google/gops/signal"
+	"go.uber.org/multierr"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policyfilter"
-	gopssignal "github.com/google/gops/signal"
-	"go.uber.org/multierr"
 
 	"github.com/vishvananda/netlink"
 )

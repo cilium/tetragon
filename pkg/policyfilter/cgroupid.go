@@ -7,9 +7,10 @@ import (
 	"errors"
 	"log/slog"
 
+	"k8s.io/apimachinery/pkg/types"
+
 	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/cgroups/fsscan"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 type cgidFinder interface {

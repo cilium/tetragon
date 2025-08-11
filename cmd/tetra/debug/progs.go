@@ -26,12 +26,13 @@ import (
 	"github.com/cilium/ebpf/btf"
 	"github.com/cilium/ebpf/link"
 	"github.com/cilium/ebpf/pin"
-	"github.com/cilium/tetragon/pkg/bugtool"
-	"github.com/cilium/tetragon/pkg/config"
-	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/spf13/cobra"
 	"golang.org/x/sys/unix"
 	"golang.org/x/term"
+
+	"github.com/cilium/tetragon/pkg/bugtool"
+	"github.com/cilium/tetragon/pkg/config"
+	"github.com/cilium/tetragon/pkg/defaults"
 )
 
 type prog struct {

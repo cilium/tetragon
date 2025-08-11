@@ -22,11 +22,12 @@ import (
 	ebtf "github.com/cilium/ebpf/btf"
 	"github.com/cilium/ebpf/features"
 	"github.com/cilium/ebpf/link"
+	"golang.org/x/sys/unix"
+
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
-	"golang.org/x/sys/unix"
 )
 
 type Feature struct {

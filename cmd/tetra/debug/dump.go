@@ -13,6 +13,9 @@ import (
 	"text/tabwriter"
 
 	"github.com/cilium/ebpf"
+	"github.com/spf13/cobra"
+	"google.golang.org/grpc"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/defaults"
@@ -22,8 +25,6 @@ import (
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
-	"github.com/spf13/cobra"
-	"google.golang.org/grpc"
 )
 
 // NewDumpAlias return a hidden alias of the dump subcommand, dump used to be a

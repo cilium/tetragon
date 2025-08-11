@@ -6,8 +6,9 @@ package ktime
 import (
 	"time"
 
-	"github.com/cilium/tetragon/pkg/logger"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"github.com/cilium/tetragon/pkg/logger"
 )
 
 func ToProto(ktime uint64) *timestamppb.Timestamp {

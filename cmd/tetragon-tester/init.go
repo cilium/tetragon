@@ -11,8 +11,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/cilium/tetragon/pkg/vmtests"
 	"golang.org/x/sys/unix"
+
+	"github.com/cilium/tetragon/pkg/vmtests"
 )
 
 // NB(kkourt): this is meant for running this program as init. It kinda works,

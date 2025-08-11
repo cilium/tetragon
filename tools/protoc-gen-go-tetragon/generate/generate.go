@@ -6,10 +6,11 @@ package generate
 import (
 	"fmt"
 
+	"google.golang.org/protobuf/compiler/protogen"
+
 	"github.com/cilium/tetragon/tools/protoc-gen-go-tetragon/eventchecker"
 	"github.com/cilium/tetragon/tools/protoc-gen-go-tetragon/helpers"
 	"github.com/cilium/tetragon/tools/protoc-gen-go-tetragon/types"
-	"google.golang.org/protobuf/compiler/protogen"
 )
 
 type GeneratorFunc func(gen *protogen.Plugin, files []*protogen.File) error

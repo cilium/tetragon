@@ -8,13 +8,14 @@ import (
 	"sync/atomic"
 	"time"
 
+	"golang.org/x/time/rate"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/encoder"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/reader/node"
-	"golang.org/x/time/rate"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type RateLimiter struct {

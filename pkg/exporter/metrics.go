@@ -6,9 +6,10 @@ package exporter
 import (
 	"io"
 
+	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 var (

@@ -7,11 +7,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/prometheus/client_golang/prometheus/testutil"
+	"github.com/stretchr/testify/require"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api"
 	"github.com/cilium/tetragon/pkg/api/processapi"
-	"github.com/prometheus/client_golang/prometheus/testutil"
-	"github.com/stretchr/testify/require"
 )
 
 func TestHandleProcessedEvent(t *testing.T) {

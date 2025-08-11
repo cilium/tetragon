@@ -8,8 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/cilium/tetragon/tools/protoc-gen-go-tetragon/common"
 	"google.golang.org/protobuf/compiler/protogen"
+
+	"github.com/cilium/tetragon/tools/protoc-gen-go-tetragon/common"
 )
 
 type CheckedMessage protogen.Message

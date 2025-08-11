@@ -12,9 +12,10 @@ import (
 	"syscall"
 	"unsafe"
 
+	"golang.org/x/sys/windows"
+
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/pidfile"
-	"golang.org/x/sys/windows"
 
 	"github.com/cilium/tetragon/pkg/api"
 	"github.com/cilium/tetragon/pkg/api/processapi"

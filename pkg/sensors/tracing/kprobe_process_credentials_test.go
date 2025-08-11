@@ -13,6 +13,9 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+	"golang.org/x/sys/unix"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
@@ -21,8 +24,6 @@ import (
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
-	"github.com/stretchr/testify/require"
-	"golang.org/x/sys/unix"
 
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
 )

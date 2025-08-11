@@ -7,11 +7,12 @@ import (
 	"context"
 	"testing"
 
-	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/pkg/event"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/event"
 )
 
 func Test_canBeHealthCheck(t *testing.T) {

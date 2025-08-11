@@ -11,14 +11,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cilium/tetragon/tests/e2e/flags"
-	"github.com/cilium/tetragon/tests/e2e/helpers"
-	"github.com/cilium/tetragon/tests/e2e/install/tetragon"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/textlogger"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/e2e-framework/pkg/env"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
+
+	"github.com/cilium/tetragon/tests/e2e/flags"
+	"github.com/cilium/tetragon/tests/e2e/helpers"
+	"github.com/cilium/tetragon/tests/e2e/install/tetragon"
 
 	// Auth plugins
 	_ "k8s.io/client-go/plugin/pkg/client/auth"

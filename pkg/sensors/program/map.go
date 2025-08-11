@@ -68,6 +68,7 @@ import (
 	"sync"
 
 	"github.com/cilium/ebpf"
+
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 )

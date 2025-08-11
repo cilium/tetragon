@@ -11,8 +11,9 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/cilium/tetragon/pkg/constants"
 	"golang.org/x/sys/windows"
+
+	"github.com/cilium/tetragon/pkg/constants"
 )
 
 type TokenGroups struct {

@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/cilium/ebpf"
+
 	"github.com/cilium/tetragon/pkg/eventhandler"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"

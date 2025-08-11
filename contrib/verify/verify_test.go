@@ -17,8 +17,9 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/asm"
 	"github.com/cilium/ebpf/features"
-	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/stretchr/testify/require"
+
+	"github.com/cilium/tetragon/pkg/kernels"
 )
 
 const (

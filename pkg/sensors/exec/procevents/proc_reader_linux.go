@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/cilium/ebpf"
+
 	"github.com/cilium/tetragon/pkg/api"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/bpf"

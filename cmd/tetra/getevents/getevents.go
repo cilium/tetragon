@@ -12,13 +12,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/cmd/tetra/common"
-	"github.com/cilium/tetragon/pkg/encoder"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
+
+	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/cmd/tetra/common"
+	"github.com/cilium/tetragon/pkg/encoder"
 )
 
 type Opts struct {

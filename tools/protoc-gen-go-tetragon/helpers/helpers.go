@@ -7,8 +7,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cilium/tetragon/tools/protoc-gen-go-tetragon/common"
 	"google.golang.org/protobuf/compiler/protogen"
+
+	"github.com/cilium/tetragon/tools/protoc-gen-go-tetragon/common"
 )
 
 func generateResponseTypeString(g *protogen.GeneratedFile, files []*protogen.File) error {

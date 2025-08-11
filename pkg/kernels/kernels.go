@@ -9,8 +9,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/cilium/tetragon/pkg/option"
 	"golang.org/x/sys/unix"
+
+	"github.com/cilium/tetragon/pkg/option"
 )
 
 func GetKernelVersion(kernelVersion, procfs string) (int, string, error) {

@@ -11,10 +11,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/yaml"
 	"github.com/cilium/tetragon/pkg/crdutils"
 	"github.com/cilium/tetragon/pkg/eventcheckertests/yamlhelpers"
-	"github.com/stretchr/testify/require"
 )
 
 func TestExamplesSmoke(t *testing.T) {

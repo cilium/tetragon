@@ -6,6 +6,8 @@ package exec
 import (
 	"errors"
 
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
@@ -19,7 +21,6 @@ import (
 	"github.com/cilium/tetragon/pkg/process"
 	readerexec "github.com/cilium/tetragon/pkg/reader/exec"
 	"github.com/cilium/tetragon/pkg/reader/notify"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 const (

@@ -8,10 +8,11 @@ import (
 	"strconv"
 
 	"github.com/cilium/ebpf"
+	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/option"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 func NewBPFCollector() metrics.CollectorWithInit {

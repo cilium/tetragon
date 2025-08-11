@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/cilium/ebpf"
+
 	"github.com/cilium/tetragon/pkg/api/ops"
 	processapi "github.com/cilium/tetragon/pkg/api/processapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"

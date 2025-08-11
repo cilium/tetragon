@@ -10,10 +10,11 @@ import (
 	"log"
 	"path/filepath"
 
+	"github.com/spf13/cobra"
+
 	"github.com/cilium/tetragon/pkg/cgidarg"
 	"github.com/cilium/tetragon/pkg/cgtracker"
 	"github.com/cilium/tetragon/pkg/defaults"
-	"github.com/spf13/cobra"
 )
 
 func New() *cobra.Command {

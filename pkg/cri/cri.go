@@ -12,10 +12,11 @@ import (
 	"net/url"
 	"sync"
 
-	"github.com/cilium/tetragon/pkg/option"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	criapi "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cilium/tetragon/pkg/option"
 )
 
 var (

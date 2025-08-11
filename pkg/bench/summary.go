@@ -14,11 +14,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/cilium/tetragon/pkg/metrics/kprobemetrics"
-	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/fatih/color"
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
+
+	"github.com/cilium/tetragon/pkg/metrics/kprobemetrics"
+	"github.com/cilium/tetragon/pkg/observer"
 )
 
 // Summary gathers benchmark results. Serializes to JSON.

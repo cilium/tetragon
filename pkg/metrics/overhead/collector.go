@@ -4,12 +4,13 @@
 package overhead
 
 import (
+	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/sensors"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 func NewBPFCollector() prometheus.Collector {

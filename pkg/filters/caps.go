@@ -9,11 +9,12 @@ import (
 	"fmt"
 	"strings"
 
+	mapset "github.com/deckarep/golang-set/v2"
+	"google.golang.org/protobuf/reflect/protoreflect"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/event"
 	"github.com/cilium/tetragon/pkg/option"
-	mapset "github.com/deckarep/golang-set/v2"
-	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 func filterSingleCapSet(caps []tetragon.CapabilitiesType, filters *tetragon.CapFilterSet) bool {

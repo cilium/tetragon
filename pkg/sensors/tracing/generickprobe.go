@@ -19,6 +19,8 @@ import (
 
 	"github.com/cilium/ebpf"
 	ciliumbtf "github.com/cilium/ebpf/btf"
+	lru "github.com/hashicorp/golang-lru/v2"
+
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
@@ -43,7 +45,6 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
-	lru "github.com/hashicorp/golang-lru/v2"
 
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 )

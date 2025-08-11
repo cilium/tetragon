@@ -9,9 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/cilium/tetragon/pkg/logger"
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/reflect/protoreflect"
+
+	"github.com/cilium/tetragon/pkg/logger"
 )
 
 var TetragonProtoPackageName = "tetragon"

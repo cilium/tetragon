@@ -8,9 +8,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/cilium/tetragon/pkg/option"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/cilium/tetragon/pkg/option"
 )
 
 func TestGetProcStatStrings(t *testing.T) {

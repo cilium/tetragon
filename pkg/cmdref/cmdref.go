@@ -7,10 +7,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
+
+	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 )
 
 var log = logger.DefaultSlogLogger.With(logfields.LogSubsys, "cmdref")

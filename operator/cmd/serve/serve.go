@@ -8,12 +8,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cilium/tetragon/operator/cmd/common"
-	operatorOption "github.com/cilium/tetragon/operator/option"
-	"github.com/cilium/tetragon/operator/podinfo"
-	ciliumiov1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
-	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -23,6 +17,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	"github.com/cilium/tetragon/operator/cmd/common"
+	operatorOption "github.com/cilium/tetragon/operator/option"
+	"github.com/cilium/tetragon/operator/podinfo"
+	ciliumiov1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 )
 
 const (

@@ -7,12 +7,13 @@ package kprobemetrics
 
 import (
 	"github.com/cilium/ebpf/link"
+	"github.com/prometheus/client_golang/prometheus"
+	"golang.org/x/sys/unix"
+
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
-	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/sys/unix"
 )
 
 func NewBPFCollector() prometheus.Collector {

@@ -13,6 +13,7 @@ import (
 	"path"
 
 	"github.com/cilium/ebpf"
+
 	"github.com/cilium/tetragon/pkg/api/ops"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"

@@ -18,6 +18,9 @@ import (
 	"golang.org/x/sys/unix"
 
 	"github.com/cilium/ebpf"
+	"github.com/stretchr/testify/require"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/config"
@@ -36,8 +39,6 @@ import (
 	"github.com/cilium/tetragon/pkg/testutils/perfring"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
-	"github.com/stretchr/testify/require"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func testMatchBinariesFollowChildren(t *testing.T, op string, result, resultMyPid int) {

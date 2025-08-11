@@ -14,9 +14,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 
 	"github.com/cilium/tetragon/pkg/config"
 	gt "github.com/cilium/tetragon/pkg/generictypes"

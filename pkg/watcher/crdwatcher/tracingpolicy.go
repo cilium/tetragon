@@ -10,9 +10,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
+
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"

@@ -11,8 +11,9 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/spf13/cobra"
+
+	"github.com/cilium/tetragon/pkg/bpf"
 )
 
 func checkCapSysAdmin() (bool, error) {

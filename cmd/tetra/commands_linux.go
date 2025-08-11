@@ -4,6 +4,8 @@
 package main
 
 import (
+	"github.com/spf13/cobra"
+
 	"github.com/cilium/tetragon/cmd/tetra/bugtool"
 	"github.com/cilium/tetragon/cmd/tetra/cgtracker"
 	"github.com/cilium/tetragon/cmd/tetra/cri"
@@ -12,7 +14,6 @@ import (
 	"github.com/cilium/tetragon/cmd/tetra/policyfilter"
 	"github.com/cilium/tetragon/cmd/tetra/probe"
 	"github.com/cilium/tetragon/cmd/tetra/tracingpolicy"
-	"github.com/spf13/cobra"
 )
 
 func addCommands(rootCmd *cobra.Command) {

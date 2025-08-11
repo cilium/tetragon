@@ -8,9 +8,10 @@ package policyfilter
 import (
 	"testing"
 
-	"github.com/cilium/tetragon/pkg/podhelpers"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
+
+	"github.com/cilium/tetragon/pkg/podhelpers"
 )
 
 func TestState(t *testing.T) {

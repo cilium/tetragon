@@ -14,8 +14,9 @@ import (
 
 	"github.com/cilium/little-vm-helper/pkg/images"
 	"github.com/cilium/little-vm-helper/pkg/step"
-	"github.com/cilium/tetragon/pkg/vmtests"
 	"github.com/sirupsen/logrus"
+
+	"github.com/cilium/tetragon/pkg/vmtests"
 )
 
 var (

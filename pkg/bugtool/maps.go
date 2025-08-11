@@ -15,6 +15,7 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/pin"
+
 	"github.com/cilium/tetragon/pkg/bpf"
 )
 

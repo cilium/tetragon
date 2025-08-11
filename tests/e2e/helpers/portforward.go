@@ -14,9 +14,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/cilium/tetragon/pkg/multiplexer"
-	"github.com/cilium/tetragon/tests/e2e/flags"
-	"github.com/cilium/tetragon/tests/e2e/state"
 	"google.golang.org/grpc"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -29,6 +26,10 @@ import (
 	"sigs.k8s.io/e2e-framework/klient/k8s/resources"
 	"sigs.k8s.io/e2e-framework/pkg/env"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
+
+	"github.com/cilium/tetragon/pkg/multiplexer"
+	"github.com/cilium/tetragon/tests/e2e/flags"
+	"github.com/cilium/tetragon/tests/e2e/state"
 )
 
 // PortForwardTetragonPods forwards gRPC and metrics ports for Tetragon pods.

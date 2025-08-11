@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/cilium/lumberjack/v2"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/readyapi"
 	"github.com/cilium/tetragon/pkg/bpf"

@@ -4,8 +4,9 @@
 package eventchecker
 
 import (
-	"github.com/cilium/tetragon/tools/protoc-gen-go-tetragon/common"
 	"google.golang.org/protobuf/compiler/protogen"
+
+	"github.com/cilium/tetragon/tools/protoc-gen-go-tetragon/common"
 )
 
 // Generate generates boilerplate code for the eventcheckers

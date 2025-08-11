@@ -8,12 +8,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
-	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/logger/logfields"
-	"github.com/cilium/tetragon/pkg/podhooks"
-	"github.com/cilium/tetragon/pkg/reader/node"
-	"github.com/cilium/tetragon/pkg/watcher"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -27,6 +21,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlManager "sigs.k8s.io/controller-runtime/pkg/manager"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/logger/logfields"
+	"github.com/cilium/tetragon/pkg/podhooks"
+	"github.com/cilium/tetragon/pkg/reader/node"
+	"github.com/cilium/tetragon/pkg/watcher"
 )
 
 var (

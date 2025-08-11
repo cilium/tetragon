@@ -6,10 +6,11 @@ package metricsconfig
 import (
 	"regexp"
 
-	"github.com/cilium/tetragon/pkg/metrics/eventmetrics"
-	"github.com/cilium/tetragon/pkg/metrics/syscallmetrics"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
+
+	"github.com/cilium/tetragon/pkg/metrics/eventmetrics"
+	"github.com/cilium/tetragon/pkg/metrics/syscallmetrics"
 )
 
 func initResourcesMetrics(registry *prometheus.Registry) {

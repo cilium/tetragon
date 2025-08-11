@@ -13,11 +13,12 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/api/v1/tetragon/codegen/helpers"
 	"github.com/sryoya/protorand"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/api/v1/tetragon/codegen/helpers"
 )
 
 func TestCompactEncoder_InvalidEventToString(t *testing.T) {

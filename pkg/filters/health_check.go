@@ -7,9 +7,10 @@ import (
 	"context"
 	"path"
 
+	shell "github.com/kballard/go-shellquote"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/event"
-	shell "github.com/kballard/go-shellquote"
 )
 
 func MaybeExecProbe(binary string, args string, execProbe []string) bool {

@@ -11,8 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cilium/tetragon/pkg/reader/node"
-	"github.com/cilium/tetragon/pkg/watcher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -21,6 +19,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+
+	"github.com/cilium/tetragon/pkg/reader/node"
+	"github.com/cilium/tetragon/pkg/watcher"
 )
 
 const (

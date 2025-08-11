@@ -7,12 +7,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"github.com/cilium/tetragon/api/v1/tetragon"
 )
 
 func Test_getLimit(t *testing.T) {

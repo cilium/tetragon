@@ -7,16 +7,17 @@ import (
 	"fmt"
 	"os"
 
+	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+
 	"github.com/cilium/tetragon/operator/option"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/client"
 	"github.com/cilium/tetragon/pkg/k8s/version"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	version2 "github.com/cilium/tetragon/pkg/version"
-	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/cilium/tetragon/pkg/k8s/crdutils"
 )

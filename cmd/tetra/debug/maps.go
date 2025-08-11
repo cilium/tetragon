@@ -8,9 +8,10 @@ import (
 	"fmt"
 	"text/tabwriter"
 
+	"github.com/spf13/cobra"
+
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/bugtool"
-	"github.com/spf13/cobra"
 )
 
 func NewMapCmd() *cobra.Command {

@@ -21,6 +21,10 @@ import (
 	"time"
 
 	"github.com/cilium/ebpf"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/sys/unix"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/api"
@@ -50,9 +54,6 @@ import (
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/cilium/tetragon/pkg/testutils/perfring"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"golang.org/x/sys/unix"
 )
 
 func TestMain(m *testing.M) {

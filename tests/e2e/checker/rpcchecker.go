@@ -19,14 +19,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cilium/tetragon/api/v1/tetragon"
-	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
-	ecYaml "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/yaml"
-	eventHelpers "github.com/cilium/tetragon/api/v1/tetragon/codegen/helpers"
-	"github.com/cilium/tetragon/pkg/exporter"
-	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/multiplexer"
-	"github.com/cilium/tetragon/tests/e2e/state"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -35,6 +27,15 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
 	"sigs.k8s.io/yaml"
+
+	"github.com/cilium/tetragon/api/v1/tetragon"
+	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
+	ecYaml "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker/yaml"
+	eventHelpers "github.com/cilium/tetragon/api/v1/tetragon/codegen/helpers"
+	"github.com/cilium/tetragon/pkg/exporter"
+	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/multiplexer"
+	"github.com/cilium/tetragon/tests/e2e/state"
 )
 
 // RPCChecker checks gRPC events from one or more events streams.

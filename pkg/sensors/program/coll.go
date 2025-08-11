@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/cilium/ebpf"
+
 	"github.com/cilium/tetragon/pkg/logger"
 )
 

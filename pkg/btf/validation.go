@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/cilium/ebpf/btf"
+
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/ksyms"

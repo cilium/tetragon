@@ -7,9 +7,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/spf13/cobra"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/cmd/tetra/common"
-	"github.com/spf13/cobra"
 )
 
 type addContainerConf struct {

@@ -12,6 +12,9 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	grpcexec "github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
@@ -25,8 +28,6 @@ import (
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/cilium/tetragon/pkg/testutils/perfring"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const sampleThreadTesterOutput = `
