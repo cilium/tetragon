@@ -20,6 +20,9 @@ import (
 	"time"
 
 	"github.com/cilium/ebpf"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/sys/unix"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/config"
@@ -39,8 +42,6 @@ import (
 	tuo "github.com/cilium/tetragon/pkg/testutils/observer"
 	"github.com/cilium/tetragon/pkg/testutils/perfring"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
-	"github.com/stretchr/testify/require"
-	"golang.org/x/sys/unix"
 
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
 )

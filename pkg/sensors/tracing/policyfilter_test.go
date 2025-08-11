@@ -16,6 +16,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	tgcgroups "github.com/cilium/tetragon/pkg/cgroups"
@@ -35,8 +38,6 @@ import (
 	"github.com/cilium/tetragon/pkg/testutils/perfring"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
-	"github.com/google/uuid"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/containerd/cgroups"
 	cgroupsv2 "github.com/containerd/cgroups/v2"

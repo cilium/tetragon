@@ -10,9 +10,10 @@ import (
 	"path/filepath"
 
 	"github.com/cilium/ebpf"
+	lru "github.com/hashicorp/golang-lru/v2"
+
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
-	lru "github.com/hashicorp/golang-lru/v2"
 )
 
 const (

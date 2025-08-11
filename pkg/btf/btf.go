@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/cilium/ebpf/btf"
+
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/kernels"

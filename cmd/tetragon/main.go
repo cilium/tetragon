@@ -61,13 +61,14 @@ import (
 	_ "github.com/cilium/tetragon/pkg/sensors"
 
 	"github.com/cilium/lumberjack/v2"
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	gops "github.com/google/gops/agent"
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/durationpb"
+
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 )
 
 var (

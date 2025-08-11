@@ -13,9 +13,10 @@ import (
 	"fmt"
 	"time"
 
+	"google.golang.org/grpc"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/tests/e2e/state"
-	"google.golang.org/grpc"
 )
 
 // WaitForTracingPolicy checks that a tracing policy exists in all tetragon pods.

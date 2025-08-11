@@ -10,14 +10,15 @@ import (
 	"time"
 
 	"github.com/cilium/ebpf"
+	lru "github.com/hashicorp/golang-lru/v2"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
-	lru "github.com/hashicorp/golang-lru/v2"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type Cache struct {

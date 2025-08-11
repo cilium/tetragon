@@ -4,11 +4,12 @@
 package syscallmetrics
 
 import (
+	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 	"github.com/cilium/tetragon/pkg/option"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 var (

@@ -6,11 +6,12 @@ package common
 import (
 	"os"
 
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+
 	"github.com/cilium/tetragon/operator/crd"
 	operatorOption "github.com/cilium/tetragon/operator/option"
 	"github.com/cilium/tetragon/pkg/cmdref"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 func AddCommonFlags(cmd *cobra.Command) {

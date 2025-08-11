@@ -19,8 +19,9 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/cilium/tetragon/pkg/vmtests"
 	"golang.org/x/sys/unix"
+
+	"github.com/cilium/tetragon/pkg/vmtests"
 )
 
 type runTestsResults struct {

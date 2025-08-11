@@ -10,8 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/stretchr/testify/require"
+
+	"github.com/cilium/tetragon/pkg/testutils"
 )
 
 func TestPing(t *testing.T) {

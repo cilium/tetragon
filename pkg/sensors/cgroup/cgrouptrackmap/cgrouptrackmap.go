@@ -7,6 +7,7 @@ import (
 	"errors"
 
 	"github.com/cilium/ebpf"
+
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/logger"
 )

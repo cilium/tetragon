@@ -14,9 +14,10 @@ import (
 	"testing"
 
 	"github.com/cilium/ebpf/btf"
+	"github.com/stretchr/testify/require"
+
 	"github.com/cilium/tetragon/pkg/ksyms"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
-	"github.com/stretchr/testify/require"
 )
 
 func expectError(t *testing.T, err error) error {

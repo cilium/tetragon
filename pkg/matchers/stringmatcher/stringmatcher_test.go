@@ -6,8 +6,9 @@ package stringmatcher
 import (
 	"testing"
 
-	"github.com/cilium/tetragon/pkg/eventcheckertests/yamlhelpers"
 	"github.com/stretchr/testify/require"
+
+	"github.com/cilium/tetragon/pkg/eventcheckertests/yamlhelpers"
 )
 
 func TestStringMatcherFullSmoke(t *testing.T) {

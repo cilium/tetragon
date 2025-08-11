@@ -7,8 +7,9 @@ import (
 	"encoding/base64"
 	"testing"
 
-	"github.com/cilium/tetragon/pkg/eventcheckertests/yamlhelpers"
 	"github.com/stretchr/testify/require"
+
+	"github.com/cilium/tetragon/pkg/eventcheckertests/yamlhelpers"
 )
 
 func TestBytesMatcherFullSmoke(t *testing.T) {

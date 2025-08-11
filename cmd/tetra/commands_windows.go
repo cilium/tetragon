@@ -4,8 +4,9 @@
 package main
 
 import (
-	"github.com/cilium/tetragon/cmd/tetra/loglevel"
 	"github.com/spf13/cobra"
+
+	"github.com/cilium/tetragon/cmd/tetra/loglevel"
 )
 
 func addCommands(rootCmd *cobra.Command) {

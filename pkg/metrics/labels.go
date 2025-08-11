@@ -6,9 +6,10 @@ package metrics
 import (
 	"strconv"
 
+	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/ops"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 var (

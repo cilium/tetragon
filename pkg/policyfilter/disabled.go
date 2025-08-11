@@ -7,10 +7,11 @@ package policyfilter
 import (
 	"errors"
 
+	"k8s.io/client-go/tools/cache"
+
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/tetragon/pkg/labels"
 	"github.com/cilium/tetragon/pkg/podhelpers"
-	"k8s.io/client-go/tools/cache"
 )
 
 func DisabledState() State {

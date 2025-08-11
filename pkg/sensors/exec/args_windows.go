@@ -9,8 +9,9 @@ import (
 	"unsafe"
 
 	"github.com/cilium/ebpf"
-	"github.com/cilium/tetragon/pkg/bpf"
 	"golang.org/x/sys/windows"
+
+	"github.com/cilium/tetragon/pkg/bpf"
 )
 
 var (

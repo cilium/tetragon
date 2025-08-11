@@ -14,8 +14,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cilium/tetragon/pkg/kernels"
-	"github.com/cilium/tetragon/tests/e2e/state"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
@@ -24,6 +22,9 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/envfuncs"
 	"sigs.k8s.io/e2e-framework/pkg/features"
 	"sigs.k8s.io/e2e-framework/support/kind"
+
+	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/tests/e2e/state"
 )
 
 const configPath = "/tmp/tetragon-e2e-kind.yaml"

@@ -11,8 +11,6 @@ import (
 	random "math/rand"
 	"testing"
 
-	ciliumv1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
-	"github.com/cilium/tetragon/pkg/podhelpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -24,6 +22,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/uuid"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	ciliumv1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/podhelpers"
 )
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyz")

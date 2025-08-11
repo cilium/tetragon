@@ -20,15 +20,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cilium/tetragon/tests/e2e/checker"
-	"github.com/cilium/tetragon/tests/e2e/flags"
-	"github.com/cilium/tetragon/tests/e2e/helpers/gops"
-	"github.com/cilium/tetragon/tests/e2e/state"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/e2e-framework/klient"
 	"sigs.k8s.io/e2e-framework/klient/k8s/resources"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
+
+	"github.com/cilium/tetragon/tests/e2e/checker"
+	"github.com/cilium/tetragon/tests/e2e/flags"
+	"github.com/cilium/tetragon/tests/e2e/helpers/gops"
+	"github.com/cilium/tetragon/tests/e2e/state"
 )
 
 var (

@@ -8,9 +8,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/cilium/tetragon/pkg/cri"
 	"github.com/spf13/cobra"
 	criapi "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cilium/tetragon/pkg/cri"
 )
 
 type criFlags struct {

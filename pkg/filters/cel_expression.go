@@ -10,13 +10,14 @@ import (
 	"reflect"
 	"slices"
 
+	"github.com/google/cel-go/cel"
+	celk8s "k8s.io/apiserver/pkg/cel/library"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/api/v1/tetragon/codegen/helpers"
 	"github.com/cilium/tetragon/pkg/event"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
-	"github.com/google/cel-go/cel"
-	celk8s "k8s.io/apiserver/pkg/cel/library"
 )
 
 // compile will parse and check an expression `expr` against a given

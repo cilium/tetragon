@@ -8,10 +8,11 @@ import (
 	"fmt"
 	"sync"
 
+	"go.uber.org/multierr"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/policyconf"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
-	"go.uber.org/multierr"
 )
 
 type TracingPolicyState int

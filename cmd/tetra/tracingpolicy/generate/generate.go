@@ -12,12 +12,13 @@ import (
 	"log"
 	"os"
 
+	"github.com/spf13/cobra"
+	"sigs.k8s.io/yaml"
+
 	telf "github.com/cilium/tetragon/pkg/elf"
 	"github.com/cilium/tetragon/pkg/ftrace"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/tracingpolicy/generate"
-	"github.com/spf13/cobra"
-	"sigs.k8s.io/yaml"
 )
 
 func New() *cobra.Command {

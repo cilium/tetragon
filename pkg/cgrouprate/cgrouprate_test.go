@@ -12,6 +12,8 @@ import (
 	"unsafe"
 
 	"github.com/cilium/ebpf"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -19,7 +21,6 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {

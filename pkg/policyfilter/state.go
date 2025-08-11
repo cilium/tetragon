@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/cilium/ebpf"
+
 	"github.com/cilium/tetragon/pkg/cgroups/fsscan"
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/tetragon/pkg/labels"

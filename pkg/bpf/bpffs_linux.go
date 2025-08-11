@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"github.com/cilium/ebpf/rlimit"
+
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"

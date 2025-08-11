@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/cilium/ebpf"
+
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
 )
 

@@ -14,13 +14,14 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/kernels"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
-	"github.com/stretchr/testify/require"
 )
 
 func testListSyscallsDups(t *testing.T, checker *ec.UnorderedEventChecker, configHook string) {

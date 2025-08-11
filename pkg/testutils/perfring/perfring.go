@@ -18,6 +18,7 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/perf"
+
 	"github.com/cilium/tetragon/pkg/bpf"
 	testapi "github.com/cilium/tetragon/pkg/grpc/test"
 	"github.com/cilium/tetragon/pkg/logger"

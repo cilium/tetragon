@@ -10,11 +10,12 @@ import (
 	"testing"
 
 	"github.com/cilium/ebpf"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/sensors"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
-	"github.com/stretchr/testify/assert"
 )
 
 type testMap struct {

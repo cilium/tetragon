@@ -11,6 +11,7 @@ import (
 	"unsafe"
 
 	"github.com/cilium/ebpf"
+
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
 )

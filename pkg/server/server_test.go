@@ -7,9 +7,10 @@ import (
 	"log/slog"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/stretchr/testify/require"
 )
 
 func TestServer(t *testing.T) {

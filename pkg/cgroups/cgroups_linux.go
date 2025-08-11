@@ -19,9 +19,10 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"go.uber.org/multierr"
 	"golang.org/x/sys/unix"
+
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"

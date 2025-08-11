@@ -8,11 +8,12 @@ package tracing
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
-	"github.com/stretchr/testify/require"
 )
 
 func checkCrd(t *testing.T, crd string) error {

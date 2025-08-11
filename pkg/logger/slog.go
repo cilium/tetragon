@@ -11,8 +11,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/go-logr/logr"
+
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 )
 
 // logrErrorKey is the key used by the logr library for the error parameter.

@@ -6,8 +6,9 @@ package types
 import (
 	"path/filepath"
 
-	"github.com/cilium/tetragon/tools/protoc-gen-go-tetragon/common"
 	"google.golang.org/protobuf/compiler/protogen"
+
+	"github.com/cilium/tetragon/tools/protoc-gen-go-tetragon/common"
 )
 
 func Generate(gen *protogen.Plugin, files []*protogen.File) error {

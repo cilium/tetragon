@@ -8,14 +8,15 @@ import (
 	"os"
 	"testing"
 
-	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/pkg/event"
-	"github.com/cilium/tetragon/pkg/option"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/event"
+	"github.com/cilium/tetragon/pkg/option"
 )
 
 func TestMain(m *testing.M) {

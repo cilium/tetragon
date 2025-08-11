@@ -34,6 +34,9 @@ import (
 	"syscall"
 	"unsafe"
 
+	lru "github.com/hashicorp/golang-lru/v2"
+	"golang.org/x/sys/unix"
+
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -48,8 +51,6 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/strutils"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
-	lru "github.com/hashicorp/golang-lru/v2"
-	"golang.org/x/sys/unix"
 )
 
 type cacheKey struct {

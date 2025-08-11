@@ -6,8 +6,9 @@ package labels
 import (
 	"testing"
 
-	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/stretchr/testify/require"
+
+	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 )
 
 type testLabel struct {

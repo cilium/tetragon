@@ -10,12 +10,13 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/spf13/viper"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/metrics"
-	"github.com/spf13/viper"
 )
 
 type config struct {

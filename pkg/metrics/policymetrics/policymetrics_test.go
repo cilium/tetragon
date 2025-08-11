@@ -10,13 +10,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cilium/tetragon/pkg/observer"
-	tuo "github.com/cilium/tetragon/pkg/testutils/observer"
-	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/cilium/tetragon/pkg/observer"
+	tuo "github.com/cilium/tetragon/pkg/testutils/observer"
+	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
 func Test_policyStatusCollector_Collect(t *testing.T) {

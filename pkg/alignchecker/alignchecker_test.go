@@ -11,8 +11,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/stretchr/testify/require"
+
+	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 )
 
 var tetragonLib string

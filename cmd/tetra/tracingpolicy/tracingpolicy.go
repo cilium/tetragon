@@ -9,11 +9,12 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/spf13/cobra"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/cmd/tetra/tracingpolicy/generate"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
-	"github.com/spf13/cobra"
 )
 
 func tpConfigure(name, namespace string, enable *bool, mode *tetragon.TracingPolicyMode) error {

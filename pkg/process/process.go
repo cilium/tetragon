@@ -15,6 +15,9 @@ import (
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api"
 	tetragonAPI "github.com/cilium/tetragon/pkg/api/processapi"
@@ -27,8 +30,6 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/path"
 	"github.com/cilium/tetragon/pkg/reader/proc"
 	"github.com/cilium/tetragon/pkg/watcher"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // ProcessInternal is the internal representation of a process.

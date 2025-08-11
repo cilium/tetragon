@@ -8,6 +8,7 @@ import (
 	"runtime"
 
 	"github.com/cilium/ebpf"
+
 	"github.com/cilium/tetragon/pkg/constants"
 )
 

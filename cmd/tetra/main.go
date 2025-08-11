@@ -8,9 +8,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/spf13/cobra"
+
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/spf13/cobra"
 )
 
 var (

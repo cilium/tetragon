@@ -10,9 +10,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/cilium/tetragon/api/v1/tetragon"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+
+	"github.com/cilium/tetragon/api/v1/tetragon"
 )
 
 // gRGC A6 - gRPC Retry Design (a.k.a. built in backoff retry)

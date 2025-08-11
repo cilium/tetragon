@@ -9,12 +9,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/cilium/tetragon/pkg/defaults"
-	"github.com/cilium/tetragon/pkg/option"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 	"sigs.k8s.io/yaml"
+
+	"github.com/cilium/tetragon/pkg/defaults"
+	"github.com/cilium/tetragon/pkg/option"
 )
 
 type confInput struct {

@@ -12,8 +12,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"k8s.io/klog/v2"
+
+	"github.com/cilium/tetragon/pkg/logger/logfields"
 )
 
 var klogErrorOverrides = []logLevelOverride{

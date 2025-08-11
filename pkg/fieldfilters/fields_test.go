@@ -7,13 +7,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	"github.com/cilium/tetragon/api/v1/tetragon"
 )
 
 func TestEventFieldFilters(t *testing.T) {

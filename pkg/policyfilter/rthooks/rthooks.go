@@ -7,13 +7,14 @@ import (
 	"context"
 	"strings"
 
+	"github.com/google/uuid"
+
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/metrics/policyfiltermetrics"
 	"github.com/cilium/tetragon/pkg/podhelpers"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/rthooks"
-	"github.com/google/uuid"
 )
 
 // policy filter run-time hook

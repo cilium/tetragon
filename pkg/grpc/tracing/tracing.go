@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"strings"
 
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
@@ -29,7 +31,6 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/reader/path"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func getProcessParent(key *processapi.MsgExecveKey, flags uint8) (*process.ProcessInternal, *process.ProcessInternal, *tetragon.Process, *tetragon.Process) {

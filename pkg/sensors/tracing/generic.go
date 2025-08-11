@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	ebtf "github.com/cilium/ebpf/btf"
+
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/btf"
 	conf "github.com/cilium/tetragon/pkg/config"

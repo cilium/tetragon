@@ -7,9 +7,10 @@ import (
 	"context"
 	"fmt"
 
+	"go.uber.org/multierr"
+
 	v1 "github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/watcher"
-	"go.uber.org/multierr"
 )
 
 type Runner struct {

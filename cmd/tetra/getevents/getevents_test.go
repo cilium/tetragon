@@ -8,10 +8,11 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/cilium/tetragon/api/v1/tetragon"
-	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/testutils"
 )
 
 func Test_GetEvents_Namespaces(t *testing.T) {

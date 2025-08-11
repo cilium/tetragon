@@ -6,6 +6,9 @@ package metricsconfig
 import (
 	"sync"
 
+	grpcmetrics "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
+	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/cilium/tetragon/pkg/eventcache"
 	"github.com/cilium/tetragon/pkg/exporter"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
@@ -23,8 +26,6 @@ import (
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/version"
-	grpcmetrics "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 var (

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/cilium/ebpf"
+
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"

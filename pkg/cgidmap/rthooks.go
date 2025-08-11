@@ -8,12 +8,13 @@ package cgidmap
 import (
 	"context"
 
+	"github.com/google/uuid"
+
 	"github.com/cilium/tetragon/pkg/cgtracker"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/rthooks"
-	"github.com/google/uuid"
 )
 
 func init() {

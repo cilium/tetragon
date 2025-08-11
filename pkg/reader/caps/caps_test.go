@@ -6,9 +6,10 @@ package caps
 import (
 	"testing"
 
-	"github.com/cilium/tetragon/pkg/constants"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/cilium/tetragon/pkg/constants"
 )
 
 func TestIsCapValid(t *testing.T) {

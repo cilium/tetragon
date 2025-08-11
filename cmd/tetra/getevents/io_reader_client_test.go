@@ -9,9 +9,10 @@ import (
 	"os"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/testutils"
-	"github.com/stretchr/testify/require"
 )
 
 func Test_ioReaderClient_GetEvents(t *testing.T) {

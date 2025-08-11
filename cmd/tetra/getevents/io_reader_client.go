@@ -10,12 +10,13 @@ import (
 	"io"
 	"os"
 
+	"google.golang.org/grpc"
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/event"
 	"github.com/cilium/tetragon/pkg/fieldfilters"
 	"github.com/cilium/tetragon/pkg/filters"
-	"google.golang.org/grpc"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // ioReaderClient implements tetragon.FineGuidanceSensors_GetEventsClient.

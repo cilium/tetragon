@@ -7,9 +7,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/spf13/cobra"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/cmd/tetra/common"
-	"github.com/spf13/cobra"
 )
 
 // Let's deprecated and remove this sensor interface and use the tracing policy

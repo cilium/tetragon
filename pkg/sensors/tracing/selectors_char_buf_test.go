@@ -11,6 +11,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+	"golang.org/x/sys/unix"
+
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
@@ -21,8 +24,6 @@ import (
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/cilium/tetragon/pkg/testutils/perfring"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
-	"github.com/stretchr/testify/require"
-	"golang.org/x/sys/unix"
 )
 
 func TestCharBufKprobe(t *testing.T) {

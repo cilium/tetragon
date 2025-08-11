@@ -7,6 +7,7 @@ import (
 	"errors"
 
 	"github.com/cilium/ebpf"
+
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/sensors/program"

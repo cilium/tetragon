@@ -7,6 +7,8 @@ import (
 	"maps"
 	"slices"
 
+	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/api/v1/tetragon/codegen/helpers"
 	"github.com/cilium/tetragon/pkg/api/processapi"
@@ -20,7 +22,6 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/exec"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 var (

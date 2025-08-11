@@ -4,11 +4,12 @@
 package watcher
 
 import (
-	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/metrics/watchermetrics"
 	lru "github.com/hashicorp/golang-lru/v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/cache"
+
+	"github.com/cilium/tetragon/pkg/logger"
+	"github.com/cilium/tetragon/pkg/metrics/watchermetrics"
 )
 
 type deletedPodCacheEntry struct {

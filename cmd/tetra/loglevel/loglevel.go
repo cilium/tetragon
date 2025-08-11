@@ -8,10 +8,11 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/spf13/cobra"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/spf13/cobra"
 )
 
 func New() *cobra.Command {

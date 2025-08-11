@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/cilium/ebpf"
+
 	cfg "github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"

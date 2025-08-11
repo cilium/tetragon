@@ -9,8 +9,9 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/cilium/tetragon/pkg/syscallinfo"
 	"github.com/stretchr/testify/require"
+
+	"github.com/cilium/tetragon/pkg/syscallinfo"
 )
 
 func defABI(t *testing.T) string {

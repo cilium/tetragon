@@ -9,9 +9,10 @@ import (
 	"os"
 	"testing"
 
-	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 
 	// needed to register the probe type execve for the base sensor
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"

@@ -8,14 +8,15 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+
 	"github.com/cilium/tetragon/operator/cmd/common"
 	"github.com/cilium/tetragon/operator/cmd/serve"
 	operatorOption "github.com/cilium/tetragon/operator/option"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/option"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // New create a new root command.

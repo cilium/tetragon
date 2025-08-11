@@ -8,8 +8,9 @@ package cgroup
 import (
 	"fmt"
 
-	"github.com/cilium/tetragon/pkg/sensors/program"
 	"golang.org/x/sys/unix"
+
+	"github.com/cilium/tetragon/pkg/sensors/program"
 )
 
 const (

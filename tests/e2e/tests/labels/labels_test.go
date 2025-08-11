@@ -12,14 +12,15 @@ import (
 	"testing"
 	"time"
 
+	"sigs.k8s.io/e2e-framework/pkg/envconf"
+	"sigs.k8s.io/e2e-framework/pkg/features"
+	"sigs.k8s.io/e2e-framework/third_party/helm"
+
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/tests/e2e/checker"
 	"github.com/cilium/tetragon/tests/e2e/helpers"
 	"github.com/cilium/tetragon/tests/e2e/runners"
-	"sigs.k8s.io/e2e-framework/pkg/envconf"
-	"sigs.k8s.io/e2e-framework/pkg/features"
-	"sigs.k8s.io/e2e-framework/third_party/helm"
 )
 
 // This holds our test environment which we get from calling runners.NewRunner().Setup()

@@ -16,6 +16,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/sys/unix"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
@@ -32,10 +37,6 @@ import (
 	"github.com/cilium/tetragon/pkg/testutils/perfring"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
-	"github.com/google/go-cmp/cmp"
-	"github.com/stretchr/testify/require"
-	"golang.org/x/sys/unix"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // loadGenericSensorTest loads a tracing sensor for testing

@@ -7,10 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cilium/tetragon/pkg/eventcheckertests/yamlhelpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/durationpb"
+
+	"github.com/cilium/tetragon/pkg/eventcheckertests/yamlhelpers"
 )
 
 func TestDurationMatcherFullSmoke(t *testing.T) {
