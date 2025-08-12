@@ -264,3 +264,76 @@ spec:
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 }
+
+func TestUsdtSet(t *testing.T) {
+	if !config.EnableLargeProgs() || !bpf.HasUprobeRefCtrOffset() {
+		t.Skip("Need 5.3 or newer kernel for usdt and uprobe ref_ctr_off support for this test.")
+	}
+
+	usdt := testutils.RepoRootPath("contrib/tester-progs/usdt-override")
+	usdtHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "usdts"
+spec:
+  usdts:
+  - path: "` + usdt + `"
+    provider: "tetragon"
+    name: "test"
+    args:
+    - index: 0
+      type: "int32"
+    - index: 1
+      type: "int32"
+    - index: 2
+      type: "int32"
+    selectors:
+    - matchActions:
+      - action: Set
+        argIndex: 0
+        argValue: 240
+`
+
+	usdtConfigHook := []byte(usdtHook)
+	err := os.WriteFile(testConfigFile, usdtConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	upChecker := ec.NewProcessUsdtChecker("USDT").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(usdt))).
+		WithProvider(sm.Full("tetragon")).
+		WithName(sm.Full("test")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(0),
+				ec.NewKprobeArgumentChecker().WithIntArg(321),
+				ec.NewKprobeArgumentChecker().WithIntArg(123),
+			)).
+		WithAction(tetragon.KprobeAction_KPROBE_ACTION_SET)
+
+	checker := ec.NewUnorderedEventChecker(upChecker)
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	cmd := exec.Command(usdt, "321", "123")
+	require.Error(t, cmd.Run())
+	require.Equal(t, 240, cmd.ProcessState.ExitCode())
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
