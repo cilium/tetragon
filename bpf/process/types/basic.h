@@ -180,8 +180,9 @@ struct extract_arg_data {
 	unsigned long *arg;
 };
 
-#define MAX_BTF_ARG_DEPTH    10
-#define EVENT_CONFIG_MAX_ARG 5
+#define MAX_BTF_ARG_DEPTH	  10
+#define EVENT_CONFIG_MAX_ARG	  5
+#define EVENT_CONFIG_MAX_USDT_ARG 8
 
 struct event_config {
 	__u32 func_id;
@@ -204,7 +205,7 @@ struct event_config {
 	__u32 flags;
 	__u32 pad;
 	struct config_btf_arg btf_arg[EVENT_CONFIG_MAX_ARG][MAX_BTF_ARG_DEPTH];
-	struct config_usdt_arg usdt_arg[EVENT_CONFIG_MAX_ARG];
+	struct config_usdt_arg usdt_arg[EVENT_CONFIG_MAX_USDT_ARG];
 } __attribute__((packed));
 
 #define MAX_ARGS_SIZE	 80
