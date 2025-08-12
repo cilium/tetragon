@@ -13,10 +13,10 @@ import (
 var supportedArchPrefix = map[string]string{"amd64": "__x64_", "arm64": "__arm64_", "i386": "__ia32_"}
 
 func addSyscallPrefix(symbol string, arch string) (string, error) {
-	for prefix_arch, prefix := range supportedArchPrefix {
+	for prefixArch, prefix := range supportedArchPrefix {
 		if strings.HasPrefix(symbol, prefix) {
 			// check that the prefix found is the correct one
-			if prefix_arch != arch {
+			if prefixArch != arch {
 				return "", fmt.Errorf("expecting %s and got %s", supportedArchPrefix[arch], prefix)
 			}
 			return symbol, nil

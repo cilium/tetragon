@@ -466,8 +466,8 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 			event := p.Colorer.Blue.Sprintf("🐝 %-7s", "perf_event_alloc")
 			attr := ""
 			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil {
-				p_event := kprobe.Args[0].GetPerfEventArg()
-				attr = p.Colorer.Cyan.Sprintf("%s %s", p_event.Type, p_event.KprobeFunc)
+				pEvent := kprobe.Args[0].GetPerfEventArg()
+				attr = p.Colorer.Cyan.Sprintf("%s %s", pEvent.Type, pEvent.KprobeFunc)
 			}
 			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, attr), caps), nil
 		case "security_bpf_map_alloc":

@@ -246,7 +246,7 @@ func TestPodLabelFilters(t *testing.T) {
 		Assess("Wait for Checker", checker.Wait(30*time.Second)).
 		Assess("Start pods", func(ctx context.Context, _ *testing.T, c *envconf.Config) context.Context {
 			var err error
-			for _, pod := range []string{ubuntuPod_l1, ubuntuPod_l2} {
+			for _, pod := range []string{ubuntuPodL1, ubuntuPodL2} {
 				ctx, err = helpers.LoadCRDString(podlblNamespace, pod, true)(ctx, c)
 				if err != nil {
 					klog.ErrorS(err, "failed to load pod")
@@ -286,7 +286,7 @@ spec:
       type: "int64"
 `
 
-const ubuntuPod_l1 = `
+const ubuntuPodL1 = `
 kind: Deployment
 apiVersion: apps/v1
 metadata:
@@ -309,7 +309,7 @@ spec:
         args: ["-c", "while sleep 1; do cat /etc/hostname; done"]
 `
 
-const ubuntuPod_l2 = `
+const ubuntuPodL2 = `
 kind: Deployment
 apiVersion: apps/v1
 metadata:
@@ -459,7 +459,7 @@ spec:
       type: "int64"
 `
 
-const ubuntuPod_l3 = `
+const ubuntuPodL3 = `
 kind: Deployment
 apiVersion: apps/v1
 metadata:
@@ -531,7 +531,7 @@ func (cfc *containerFieldNameChecker) FinalCheck(_ *slog.Logger) error {
 
 func TestContainerFieldNameFilters(t *testing.T) {
 	checker := containerSelectorNameChecker().WithTimeLimit(30 * time.Second).WithEventLimit(20)
-	testContainerFieldFilters(t, checker, containerSelectorNamePolicy, "ubuntu-container-syscalls", ubuntuPod_l3)
+	testContainerFieldFilters(t, checker, containerSelectorNamePolicy, "ubuntu-container-syscalls", ubuntuPodL3)
 }
 
 const containerSelectorRepoPolicy = `
@@ -554,7 +554,7 @@ spec:
       type: "int64"
 `
 
-const ubuntuPod_l4 = `
+const ubuntuPodL4 = `
 kind: Deployment
 apiVersion: apps/v1
 metadata:
@@ -626,5 +626,5 @@ func (cfc *containerFieldRepoChecker) FinalCheck(_ *slog.Logger) error {
 
 func TestContainerFieldRepoFilters(t *testing.T) {
 	checker := containerSelectorRepoChecker().WithTimeLimit(30 * time.Second).WithEventLimit(20)
-	testContainerFieldFilters(t, checker, containerSelectorRepoPolicy, "debian-container-syscalls", ubuntuPod_l4)
+	testContainerFieldFilters(t, checker, containerSelectorRepoPolicy, "debian-container-syscalls", ubuntuPodL4)
 }
