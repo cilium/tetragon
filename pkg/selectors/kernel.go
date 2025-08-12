@@ -1497,6 +1497,18 @@ func HasFilter(selectors []v1alpha1.KProbeSelector, index uint32) bool {
 	return false
 }
 
+// HasNotifyEnforcerAction returns true if any selector in the KProbeSpec has a NotifyEnforcer action
+func HasNotifyEnforcerAction(kspec *v1alpha1.KProbeSpec) bool {
+	for _, s := range kspec.Selectors {
+		for _, action := range s.MatchActions {
+			if action.Action == "NotifyEnforcer" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // parseCapabilitiesMask create a capabilities mask
 func parseCapabilitiesMask(s string) (uint64, error) {
 	base := getBase(s)

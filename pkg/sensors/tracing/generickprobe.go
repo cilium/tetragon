@@ -522,8 +522,8 @@ func allKprobesIgnored(info []*kpValidateInfo) bool {
 
 // preValidateKprobes pre-validates the semantics and BTF information of a Kprobe spec
 // Furthermore, it does some preprocessing of the calls and returns one kpValidateInfo struct per
-// kprobe
-func preValidateKprobes(log logger.FieldLogger, kprobes []v1alpha1.KProbeSpec, lists []v1alpha1.ListSpec) ([]*kpValidateInfo, error) {
+// kprobe. It also validates that if any selector uses NotifyEnforcer action, the spec contains enforcers.
+func preValidateKprobes(log logger.FieldLogger, kprobes []v1alpha1.KProbeSpec, lists []v1alpha1.ListSpec, enforcers []v1alpha1.EnforcerSpec) ([]*kpValidateInfo, error) {
 	btfobj, err := btf.NewBTF()
 	if err != nil {
 		return nil, err
@@ -539,6 +539,15 @@ func preValidateKprobes(log logger.FieldLogger, kprobes []v1alpha1.KProbeSpec, l
 	ks, err := ksyms.KernelSymbols()
 	if err != nil {
 		return nil, fmt.Errorf("validateKprobeSpec: ksyms.KernelSymbols: %w", err)
+	}
+
+	// If the NotifyEnforcer action is specified, there must be at least one enforcer.
+	for _, kprobe := range kprobes {
+		if selectors.HasNotifyEnforcerAction(&kprobe) {
+			if len(enforcers) == 0 {
+				return nil, errors.New("NotifyEnforcer action specified, but spec contains no enforcers")
+			}
+		}
 	}
 
 	ret := make([]*kpValidateInfo, len(kprobes))
