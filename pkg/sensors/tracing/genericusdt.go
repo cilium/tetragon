@@ -255,6 +255,35 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID) ([]i
 			return nil, err
 		}
 
+		// Validate argument for set action
+		if ok, idx := selectors.HasSetArgIndex(spec); ok {
+			// argument index is within usdt args in spec
+			if idx > uint32(len(spec.Args)) {
+				return nil, fmt.Errorf("failed to configured usdt '%s/%s', set action argument spec index %d out of bounds",
+					spec.Provider, spec.Name, idx)
+			}
+
+			// usdt spec argument points to existing usdt defined in elf note
+			arg := spec.Args[idx]
+			if arg.Index > uint32(len(target.Spec.Args)) {
+				return nil, fmt.Errorf("failed to configured usdt '%s/%s', argument index %d out of bounds",
+					spec.Provider, spec.Name, arg.Index)
+			}
+
+			// output argument must be 'deref' type
+			tgtArg := &target.Spec.Args[arg.Index]
+			if tgtArg.Type != elf.USDT_ARG_TYPE_REG_DEREF {
+				return nil, fmt.Errorf("failed to configured usdt '%s/%s', set action argument is not 'deref' type: '%s'",
+					spec.Provider, spec.Name, tgtArg.Str)
+			}
+
+			// output argument is only allowed to be exactly 4 bytes
+			if tgtArg.Size != 4 {
+				return nil, fmt.Errorf("failed to configured usdt '%s/%s', set action argument must have size of 4 bytes, current is: %d",
+					spec.Provider, spec.Name, tgtArg.Size)
+			}
+		}
+
 		for cfgIdx, arg := range spec.Args {
 			tgtIdx := arg.Index
 			if tgtIdx > target.Spec.ArgsCnt {

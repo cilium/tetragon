@@ -26,6 +26,7 @@ const (
 	ActionUntrackSock                 = 11
 	ActionNotifyEnforcer              = 12
 	ActionCleanupEnforcerNotification = 13
+	ActionSet                         = 14
 )
 
 const (

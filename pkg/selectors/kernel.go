@@ -44,6 +44,7 @@ const (
 	ActionTypeUntrackSock                 = 11
 	ActionTypeNotifyEnforcer              = 12
 	ActionTypeCleanupEnforcerNotification = 13
+	ActionTypeSet                         = 14
 )
 
 var actionTypeTable = map[string]uint32{
@@ -61,6 +62,7 @@ var actionTypeTable = map[string]uint32{
 	"untracksock":                 ActionTypeUntrackSock,
 	"notifyenforcer":              ActionTypeNotifyEnforcer,
 	"cleanupenforcernotification": ActionTypeCleanupEnforcerNotification,
+	"set":                         ActionTypeSet,
 }
 
 var actionTypeStringTable = map[uint32]string{
@@ -77,6 +79,7 @@ var actionTypeStringTable = map[uint32]string{
 	ActionTypeTrackSock:                   "tracksock",
 	ActionTypeUntrackSock:                 "untracksock",
 	ActionTypeCleanupEnforcerNotification: "cleanupenforcernotification",
+	ActionTypeSet:                         "set",
 }
 
 const (
@@ -1142,6 +1145,9 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 		WriteSelectorUint32(&k.data, actionArgIndex)
 	case ActionTypeCleanupEnforcerNotification:
 		// no arguments
+	case ActionTypeSet:
+		WriteSelectorUint32(&k.data, action.ArgIndex)
+		WriteSelectorUint32(&k.data, action.ArgValue)
 	default:
 		return fmt.Errorf("ParseMatchAction: act %d (%s) is missing a handler", act, actionTypeStringTable[act])
 	}
@@ -1564,6 +1570,18 @@ func HasOverride(spec *v1alpha1.KProbeSpec) bool {
 		}
 	}
 	return false
+}
+
+func HasSetArgIndex(spec *v1alpha1.UsdtSpec) (bool, uint32) {
+	for _, s := range spec.Selectors {
+		for _, action := range s.MatchActions {
+			act := actionTypeTable[strings.ToLower(action.Action)]
+			if act == ActionTypeSet {
+				return true, action.ArgIndex
+			}
+		}
+	}
+	return false, 0
 }
 
 func HasSigkillAction(kspec *v1alpha1.KProbeSpec) bool {
