@@ -16,4 +16,5 @@ const (
 	fdInstallMapMaxEntries  = 32000
 	enforcerMapMaxEntries   = 32768
 	overrideMapMaxEntries   = 32768
+	writeOffloadMaxEntries  = 32768
 )
