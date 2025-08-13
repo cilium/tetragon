@@ -1584,6 +1584,11 @@ func HasSetArgIndex(spec *v1alpha1.UsdtSpec) (bool, uint32) {
 	return false, 0
 }
 
+func HasSet(spec *v1alpha1.UsdtSpec) bool {
+	ok, _ := HasSetArgIndex(spec)
+	return ok
+}
+
 func HasSigkillAction(kspec *v1alpha1.KProbeSpec) bool {
 	for i := range kspec.Selectors {
 		s := &kspec.Selectors[i]
