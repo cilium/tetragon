@@ -1479,6 +1479,18 @@ func HasOverride(spec *v1alpha1.KProbeSpec) bool {
 	return false
 }
 
+func HasSet(spec *v1alpha1.UsdtSpec) bool {
+	for _, s := range spec.Selectors {
+		for _, action := range s.MatchActions {
+			act := actionTypeTable[strings.ToLower(action.Action)]
+			if act == ActionTypeSet {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func HasSigkillAction(kspec *v1alpha1.KProbeSpec) bool {
 	for i := range kspec.Selectors {
 		s := &kspec.Selectors[i]
