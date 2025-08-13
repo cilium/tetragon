@@ -106,17 +106,20 @@ func createGenericUsdtSensor(
 		useMulti:   !polInfo.specOpts.DisableUprobeMulti && bpf.HasUprobeMulti(),
 	}
 
+	hasSetAction := false
+
 	for _, usdt := range spec.Usdts {
 		ids, err = addUsdt(&usdt, &in, ids)
 		if err != nil {
 			return nil, err
 		}
+		hasSetAction = hasSetAction || selectors.HasSet(&usdt)
 	}
 
 	if in.useMulti {
-		progs, maps, err = createMultiUsdtSensor(ids, polInfo.name)
+		progs, maps, err = createMultiUsdtSensor(ids, polInfo.name, hasSetAction)
 	} else {
-		progs, maps, err = createSingleUsdtSensor(ids)
+		progs, maps, err = createSingleUsdtSensor(ids, hasSetAction)
 	}
 
 	if err != nil {
@@ -134,7 +137,7 @@ func createGenericUsdtSensor(
 	}, nil
 }
 
-func createMultiUsdtSensor(multiIDs []idtable.EntryID, policyName string) ([]*program.Program, []*program.Map, error) {
+func createMultiUsdtSensor(multiIDs []idtable.EntryID, policyName string, hasSetAction bool) ([]*program.Program, []*program.Map, error) {
 	var progs []*program.Program
 	var maps []*program.Map
 
@@ -149,20 +152,27 @@ func createMultiUsdtSensor(multiIDs []idtable.EntryID, policyName string) ([]*pr
 		SetLoaderData(multiIDs).
 		SetPolicy(policyName)
 
+	load.WriteOffload = hasSetAction
+
 	progs = append(progs, load)
 
 	configMap := program.MapBuilderProgram("config_map", load)
 	tailCalls := program.MapBuilderProgram("usdt_calls", load)
 	filterMap := program.MapBuilderProgram("filter_map", load)
 
-	maps = append(maps, configMap, tailCalls, filterMap)
+	writeOffloadMap := program.MapBuilderProgram("write_offload", load)
+	if hasSetAction {
+		writeOffloadMap.SetMaxEntries(writeOffloadMaxEntries)
+	}
+
+	maps = append(maps, configMap, tailCalls, filterMap, writeOffloadMap)
 
 	filterMap.SetMaxEntries(len(multiIDs))
 	configMap.SetMaxEntries(len(multiIDs))
 	return progs, maps, nil
 }
 
-func createSingleUsdtSensor(ids []idtable.EntryID) ([]*program.Program, []*program.Map, error) {
+func createSingleUsdtSensor(ids []idtable.EntryID, hasSetAction bool) ([]*program.Program, []*program.Map, error) {
 	var progs []*program.Program
 	var maps []*program.Map
 
@@ -171,14 +181,14 @@ func createSingleUsdtSensor(ids []idtable.EntryID) ([]*program.Program, []*progr
 		if err != nil {
 			return nil, nil, err
 		}
-		progs, maps = createUsdtSensorFromEntry(usdtEntry, progs, maps)
+		progs, maps = createUsdtSensorFromEntry(usdtEntry, progs, maps, hasSetAction)
 	}
 
 	return progs, maps, nil
 }
 
 func createUsdtSensorFromEntry(usdtEntry *genericUsdt,
-	progs []*program.Program, maps []*program.Map) ([]*program.Program, []*program.Map) {
+	progs []*program.Program, maps []*program.Map, hasSetAction bool) ([]*program.Program, []*program.Map) {
 
 	loadProgName := config.GenericUsdtObjs(false)
 
@@ -198,13 +208,21 @@ func createUsdtSensorFromEntry(usdtEntry *genericUsdt,
 		SetLoaderData(usdtEntry).
 		SetPolicy(usdtEntry.policyName)
 
+	load.WriteOffload = hasSetAction
+
 	progs = append(progs, load)
 
 	configMap := program.MapBuilderProgram("config_map", load)
 	tailCalls := program.MapBuilderProgram("usdt_calls", load)
 	filterMap := program.MapBuilderProgram("filter_map", load)
+
+	writeOffloadMap := program.MapBuilderProgram("write_offload", load)
+	if hasSetAction {
+		writeOffloadMap.SetMaxEntries(writeOffloadMaxEntries)
+	}
+
 	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
-	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap)
+	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap, writeOffloadMap)
 	return progs, maps
 }
 

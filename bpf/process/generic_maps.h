@@ -55,4 +55,18 @@ struct {
 	__type(value, struct event_config);
 } config_map SEC(".maps");
 
+#ifdef GENERIC_USDT
+struct write_offload_data {
+	unsigned long addr;
+	unsigned int value;
+};
+
+struct {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(max_entries, 1); // will be resized by agent when needed
+	__type(key, __u64);
+	__type(value, struct write_offload_data);
+} write_offload SEC(".maps");
+#endif
+
 #endif // __GENERIC_MAPS_H__
