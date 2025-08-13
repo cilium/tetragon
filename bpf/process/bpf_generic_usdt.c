@@ -46,9 +46,11 @@ struct {
 #include "generic_calls.h"
 
 #ifdef __MULTI_KPROBE
-#define MAIN "uprobe.multi/generic_usdt"
+#define MAIN	"uprobe.multi/generic_usdt"
+#define OFFLOAD "uprobe.multi.s/generic_usdt"
 #else
-#define MAIN "uprobe/generic_usdt"
+#define MAIN	"uprobe/generic_usdt"
+#define OFFLOAD "uprobe.s/generic_usdt"
 #endif
 
 __attribute__((section((MAIN)), used)) int
@@ -111,3 +113,18 @@ generic_usdt_path(void *ctx)
 	return generic_path(ctx, (struct bpf_map_def *)&usdt_calls);
 }
 #endif
+
+__attribute__((section(OFFLOAD), used)) int
+generic_usdt_write_offload(void *ctx)
+{
+	struct write_offload_data *data;
+	__u64 id = get_current_pid_tgid();
+
+	data = map_lookup_elem(&write_offload, &id);
+	if (!data)
+		return 0;
+
+	probe_write_user((void *)data->addr, &data->value, sizeof(data->value));
+	map_delete_elem(&write_offload, &id);
+	return 0;
+}

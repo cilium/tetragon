@@ -779,6 +779,38 @@ do_override_action(__s32 error)
 #endif
 
 #if defined GENERIC_USDT
+#ifdef __V61_BPF_PROG
+FUNC_INLINE int
+write_user_arg(void *ctx, void *addr, __u32 value)
+{
+	struct write_offload_data *data, tmp = {
+		.addr = (unsigned long)addr,
+		.value = value,
+
+	};
+	__u64 id = get_current_pid_tgid();
+
+	/*
+	 * TODO: this should not happen, it means that the override
+	 * program was not executed for some reason, we should do
+	 * warning in here
+	 */
+	data = map_lookup_elem(&write_offload, &id);
+	if (data)
+		*data = tmp;
+	else
+		map_update_elem(&write_offload, &id, &tmp, BPF_ANY);
+
+	return 0;
+}
+#else
+FUNC_INLINE int
+write_user_arg(void *ctx, void *addr, __u32 value)
+{
+	return probe_write_user(addr, &value, sizeof(value));
+}
+#endif
+
 FUNC_INLINE void
 do_set_action(void *ctx, struct msg_generic_kprobe *e, __u32 arg_idx, __u32 arg_value)
 {
@@ -808,7 +840,7 @@ do_set_action(void *ctx, struct msg_generic_kprobe *e, __u32 arg_idx, __u32 arg_
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 		arg_value <<= arg->shift;
 #endif
-		err = probe_write_user((void *)val + arg->val_off, &arg_value, sizeof(arg_value));
+		err = write_user_arg(ctx, (void *)val + arg->val_off, arg_value);
 		break;
 	}
 
