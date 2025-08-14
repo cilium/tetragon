@@ -1,7 +1,7 @@
 module github.com/cilium/tetragon/api
 
 // renovate: datasource=golang-version depName=go
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/cilium/tetragon v0.0.0-00010101000000-000000000000
