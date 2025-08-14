@@ -101,6 +101,18 @@ func GetCachedBTFFile() string {
 	return btfFile
 }
 
+func FindBTFStruct(name string) (*btf.Struct, error) {
+	var ty *btf.Struct
+
+	spec, err := NewBTF()
+	if err != nil {
+		return nil, err
+	}
+
+	err = spec.TypeByName(name, &ty)
+	return ty, err
+}
+
 func FindBTFFuncParamFromHook(hook string, argIndex int) (*btf.FuncParam, error) {
 	spec, err := NewBTF()
 	if err != nil {
