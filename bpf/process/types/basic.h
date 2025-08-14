@@ -566,6 +566,7 @@ FUNC_INLINE long copy_kernel_module(char *args, unsigned long arg)
 #define ARGM_INDEX_MASK	 0xf
 #define ARGM_RETURN_COPY BIT(4)
 #define ARGM_MAX_DATA	 BIT(5)
+#define ARGM_CURRENT	 BIT(6)
 
 FUNC_INLINE bool has_return_copy(unsigned long argm)
 {

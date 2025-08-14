@@ -33,6 +33,7 @@ type argPrinter struct {
 const (
 	argReturnCopyBit = 1 << 4
 	argMaxDataBit    = 1 << 5
+	argCurrentBit    = 1 << 6
 )
 
 func argReturnCopy(meta int) bool {
@@ -45,6 +46,7 @@ func argReturnCopy(meta int) bool {
 //	0-3 : SizeArgIndex
 //	  4 : ReturnCopy
 //	  5 : MaxData
+//	  6 : Current
 func getMetaValue(arg *v1alpha1.KProbeArg) (int, error) {
 	var meta int
 
@@ -59,6 +61,9 @@ func getMetaValue(arg *v1alpha1.KProbeArg) (int, error) {
 	}
 	if arg.MaxData {
 		meta = meta | argMaxDataBit
+	}
+	if hasCurrentSource(arg) {
+		meta = meta | argCurrentBit
 	}
 	return meta, nil
 }
