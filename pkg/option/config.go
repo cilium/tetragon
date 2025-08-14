@@ -257,3 +257,10 @@ func ReadConfigDir(path string) error {
 
 	return nil
 }
+
+func K8SControlPlaneEnabled() bool {
+	// If K8s is enabled, we assume that the control plane is enabled.
+	// This is because the control plane is required to get the kubeconfig
+	// and other K8s related information.
+	return Config.EnableK8s || len(Config.K8sKubeConfigPath) > 0
+}

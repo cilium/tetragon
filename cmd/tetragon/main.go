@@ -401,7 +401,7 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	// waiting for metadata.
 	var controllerManager *manager.ControllerManager
 	var podAccessor watcher.PodAccessor
-	if option.Config.EnableK8s {
+	if option.K8SControlPlaneEnabled() {
 		log.Info("Enabling Kubernetes API")
 		// Start controller-runtime manager.
 		controllerManager = manager.Get()
@@ -502,7 +502,7 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	// Initialize a k8s watcher used to manage policies. This should happen
 	// after the sensors are loaded, otherwise existing policies will fail to
 	// load on the first attempt.
-	if option.Config.EnableK8s && option.Config.EnableTracingPolicyCRD {
+	if option.K8SControlPlaneEnabled() && option.Config.EnableTracingPolicyCRD {
 		// add informers for all resources
 		log.Info("Enabling policy informers")
 		err := crdwatcher.AddTracingPolicyInformer(ctx, controllerManager, observer.GetSensorManager())

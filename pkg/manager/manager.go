@@ -23,6 +23,8 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/watcher/conf"
+
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/podhooks"
@@ -77,7 +79,12 @@ func newControllerManager() (*ControllerManager, error) {
 	}
 	metricsOptions := metricsserver.Options{BindAddress: "0"}
 	controllerOptions := ctrl.Options{Scheme: scheme, Cache: cacheOptions, Metrics: metricsOptions}
-	controllerManager, err := ctrl.NewManager(ctrl.GetConfigOrDie(), controllerOptions)
+	cfg, err := conf.K8sConfig()
+	if err != nil {
+		logger.GetLogger().Warn("Unable to get Kubernetes config, using default controller-runtime config", logfields.Error, err)
+		cfg = ctrl.GetConfigOrDie()
+	}
+	controllerManager, err := ctrl.NewManager(cfg, controllerOptions)
 	if err != nil {
 		return nil, err
 	}
