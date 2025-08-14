@@ -984,6 +984,19 @@ func handleMsgGenericTracepoint(
 			arg.SinPort = uint32(address.SinPort)
 			unix.Args = append(unix.Args, arg)
 
+		case gt.GenericSockaddrUnType:
+			var sockaddr tracingapi.MsgGenericKprobeSockaddrUn
+			var arg tracingapi.MsgGenericKprobeArgSockaddrUn
+
+			err := binary.Read(r, binary.LittleEndian, &sockaddr)
+			if err != nil {
+				logger.GetLogger().Warn("sockaddrun type err", logfields.Error, err)
+			}
+
+			arg.Family = sockaddr.Family
+			arg.Path = string(NormalizeSockaddrUnPath(sockaddr.Path[:]))
+			unix.Args = append(unix.Args, arg)
+
 		case gt.GenericSyscall64:
 			var val uint64
 			err := binary.Read(r, binary.LittleEndian, &val)
@@ -1079,4 +1092,29 @@ func handleMsgGenericTracepoint(
 
 func (t *observerTracepointSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 	return LoadGenericTracepointSensor(args.BPFDir, args.Load, args.Maps, args.Verbose)
+}
+
+// NormalizeSockaddrUnPath returns a display-friendly byte slice:
+// "@name" for abstract UNIX sockets (trimming trailing NUL padding),
+// or the pathname up to the first NUL for filesystem sockets.
+func NormalizeSockaddrUnPath(raw []byte) []byte {
+	if len(raw) == 0 {
+		return nil
+	}
+
+	if raw[0] == 0 {
+		i := len(raw)
+		for i > 1 && raw[i-1] == 0 {
+			i--
+		}
+		out := make([]byte, 1, 1+(i-1))
+		out[0] = '@'
+		out = append(out, raw[1:i]...)
+		return out
+	}
+
+	if i := bytes.IndexByte(raw, 0); i >= 0 {
+		return append([]byte(nil), raw[:i]...)
+	}
+	return append([]byte(nil), raw...)
 }

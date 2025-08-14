@@ -67,6 +67,8 @@ const (
 
 	GenericDentryType = 42
 
+	GenericSockaddrUnType = 43
+
 	GenericNopType     = -1
 	GenericInvalidType = -2
 )
@@ -124,6 +126,7 @@ var genericStringToType = map[string]int{
 	"data_loc":        GenericDataLoc,
 	"net_device":      GenericNetDev,
 	"sockaddr":        GenericSockaddrType,
+	"sockaddr_un":     GenericSockaddrUnType,
 	"socket":          GenericSocketType,
 	"dentry":          GenericDentryType,
 }
@@ -169,6 +172,7 @@ var genericTypeToStringTable = map[int]string{
 	GenericDataLoc:         "data_loc",
 	GenericNetDev:          "net_device",
 	GenericSockaddrType:    "sockaddr",
+	GenericSockaddrUnType:  "sockaddr_un",
 	GenericSocketType:      "socket",
 	GenericDentryType:      "dentry",
 	GenericInvalidType:     "",
