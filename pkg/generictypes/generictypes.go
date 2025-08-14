@@ -170,6 +170,7 @@ var GenericTypeToStringTable = map[int]string{
 	GenericNetDev:          "net_device",
 	GenericSockaddrType:    "sockaddr",
 	GenericSocketType:      "socket",
+	GenericDentryType:      "dentry",
 	GenericInvalidType:     "",
 }
 
