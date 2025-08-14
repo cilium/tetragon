@@ -76,7 +76,7 @@ const (
 	GenericUserBpfCmdType = 1
 )
 
-var GenericStringToType = map[string]int{
+var genericStringToType = map[string]int{
 	"string":          GenericStringType,
 	"int":             GenericIntType,
 	"uint64":          GenericU64Type,
@@ -128,7 +128,7 @@ var GenericStringToType = map[string]int{
 	"dentry":          GenericDentryType,
 }
 
-var GenericTypeToStringTable = map[int]string{
+var genericTypeToStringTable = map[int]string{
 	GenericStringType:      "string",
 	GenericIntType:         "int",
 	GenericU64Type:         "uint64",
@@ -174,7 +174,7 @@ var GenericTypeToStringTable = map[int]string{
 	GenericInvalidType:     "",
 }
 
-var GenericUserStringToType = map[string]int{
+var genericUserStringToType = map[string]int{
 	"bpf_cmd": GenericUserBpfCmdType,
 }
 
@@ -188,7 +188,7 @@ var GenericUserTypeToStringTable = map[int]string{
 }
 
 func GenericUserTypeFromString(arg string) int {
-	ty, ok := GenericUserStringToType[arg]
+	ty, ok := genericUserStringToType[arg]
 	if !ok {
 		ty = GenericInvalidType
 	}
@@ -204,7 +204,7 @@ func GenericUserToKernelType(arg int) int {
 }
 
 func GenericTypeFromBTF(arg btf.Type) int {
-	ty, ok := GenericStringToType[arg.TypeName()]
+	ty, ok := genericStringToType[arg.TypeName()]
 	if !ok {
 		switch t := arg.(type) {
 		case *btf.Restrict:
@@ -225,7 +225,7 @@ func GenericTypeFromBTF(arg btf.Type) int {
 }
 
 func GenericTypeFromString(arg string) int {
-	ty, ok := GenericStringToType[arg]
+	ty, ok := genericStringToType[arg]
 	if !ok {
 		ty = GenericInvalidType
 	}
@@ -240,7 +240,7 @@ func GenericUserTypeToString(ty int) string {
 }
 
 func GenericTypeString(ty int) string {
-	arg, ok := GenericTypeToStringTable[ty]
+	arg, ok := genericTypeToStringTable[ty]
 	if !ok {
 		return fmt.Sprintf("unknown type [%d]", ty)
 	}
@@ -248,7 +248,7 @@ func GenericTypeString(ty int) string {
 }
 
 func GenericTypeToString(ty int) (string, error) {
-	arg, ok := GenericTypeToStringTable[ty]
+	arg, ok := genericTypeToStringTable[ty]
 	if !ok {
 		return "", errors.New("invalid argument type")
 	}
