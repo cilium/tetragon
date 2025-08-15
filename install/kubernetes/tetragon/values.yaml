@@ -274,12 +274,25 @@ tetragonOperator:
     name: ""
   # -- securityContext for the Tetragon Operator Deployment Pods.
   podSecurityContext: {}
+  #  runAsNonRoot: true
+  #  runAsUser: 65532
+  #  runAsGroup: 65532
+  #  fsGroup: 65532
+  #  seccompProfile:
+  #    type: RuntimeDefault
   # -- securityContext for the Tetragon Operator Deployment Pod container.
-  securityContext:
+  containerSecurityContext:
     allowPrivilegeEscalation: false
     capabilities:
       drop:
         - "ALL"
+  #  readOnlyRootFilesystem: true
+  #  runAsNonRoot: true
+  #  runAsUser: 65532
+  #  runAsGroup: 65532
+
+  # -- securityContext for the Tetragon Operator Deployment Pod container. (DEPRECATED: Use containerSecurityContext instead)
+  securityContext: {}
   # -- resources for the Tetragon Operator Deployment Pod container.
   resources:
     limits:
