@@ -35,6 +35,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
+	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
@@ -4735,6 +4736,10 @@ spec:
 }
 
 func testKprobeRateLimit(t *testing.T, rateLimit bool) {
+	testutils.CaptureLog(t, logger.GetLogger())
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
 	hook := `apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
@@ -4772,68 +4777,75 @@ spec:
 `
 	}
 
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	createCrdFile(t, hook)
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
-	if err != nil {
-		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
-	server := "nc.openbsd"
-	cmdServer := exec.Command(server, "-unvlp", "9468", "-s", "127.0.0.1")
-	require.NoError(t, cmdServer.Start())
-	time.Sleep(1 * time.Second)
-
-	// Generate 5 datagrams
-	socket, err := net.Dial("udp", "127.0.0.1:9468")
-	if err != nil {
-		t.Fatalf("failed dialing socket: %s", err)
+	if err := observer.InitDataCache(1024); err != nil {
+		t.Fatalf("observertesthelper.InitDataCache: %s", err)
 	}
 
-	for range 5 {
-		_, err := socket.Write([]byte("data"))
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+	tus.LoadInitialSensor(t)
+	tus.LoadSensor(t, testsensor.GetTestSensor())
+	sm := tuo.GetTestSensorManager(t)
+
+	tp, err := tracingpolicy.FromYAML(hook)
+	if err != nil {
+		t.Fatalf("failed to decode yaml: %s", err)
+	}
+
+	err = sm.Manager.AddTracingPolicy(ctx, tp)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		sm.Manager.DeleteTracingPolicy(ctx, "datagram", "")
+	})
+
+	ops := func() {
+		server := "nc.openbsd"
+		cmdServer := exec.Command(server, "-unvlp", "9468", "-s", "127.0.0.1")
+		require.NoError(t, cmdServer.Start())
+		time.Sleep(1 * time.Second)
+
+		// Generate 5 datagrams
+		socket, err := net.Dial("udp", "127.0.0.1:9468")
 		if err != nil {
-			t.Fatalf("failed writing to socket: %s", err)
+			t.Fatalf("failed dialing socket: %s", err)
 		}
+
+		for range 5 {
+			_, err := socket.Write([]byte("data"))
+			if err != nil {
+				t.Fatalf("failed writing to socket: %s", err)
+			}
+		}
+
+		cmdServer.Process.Kill()
 	}
 
-	kpChecker := ec.NewProcessKprobeChecker("datagram-checker").
-		WithFunctionName(sm.Full("ip_send_skb")).
-		WithArgs(ec.NewKprobeArgumentListMatcher().
-			WithOperator(lc.Ordered).
-			WithValues(
-				ec.NewKprobeArgumentChecker().WithLabel(sm.Full("datagram")).
-					WithSkbArg(ec.NewKprobeSkbChecker().
-						WithDaddr(sm.Full("127.0.0.1")).
-						WithDport(9468).
-						WithProtocol(sm.Full("IPPROTO_UDP")),
-					),
-			))
+	eventCounts := perfring.RunTestEventReduceCount(t, ctx, ops, perfring.FilterTestMessages,
+		func(ev notify.Message) string {
+			if kprobe, ok := ev.(*tracing.MsgGenericKprobeUnix); ok {
+				if strings.HasSuffix(kprobe.FuncName, "ip_send_skb") {
+					for _, arg := range kprobe.Args {
+						if skbArg, ok := arg.(tracingapi.MsgGenericKprobeArgSkb); ok {
+							if skbArg.Daddr == "127.0.0.1" &&
+								skbArg.Dport == 9468 &&
+								skbArg.Proto == 17 { // IPPROTO_UDP = 17
+								return "ip_send_skb_event"
+							}
+						}
+					}
+				}
+			}
+			return ""
+		})
 
-	var checkerSuccess *ec.UnorderedEventChecker
-	var checkerFailure *ec.UnorderedEventChecker
+	actualCount := eventCounts["ip_send_skb_event"]
+
 	if rateLimit {
-		// Rate limit. We should have 1. We shouldn't have 2 (or more)
-		checkerSuccess = ec.NewUnorderedEventChecker(kpChecker)
-		checkerFailure = ec.NewUnorderedEventChecker(kpChecker, kpChecker)
+		// With rate limit of 5, we should have exactly 1 event (first one passes, rest are rate limited)
+		require.Equal(t, 1, actualCount, "With rate limit enabled, expected exactly 1 event, got %d", actualCount)
 	} else {
-		// No rate limit. We should have 5. We shouldn't have 6.
-		checkerSuccess = ec.NewUnorderedEventChecker(kpChecker, kpChecker, kpChecker, kpChecker, kpChecker)
-		checkerFailure = ec.NewUnorderedEventChecker(kpChecker, kpChecker, kpChecker, kpChecker, kpChecker, kpChecker)
+		// Without rate limit, we should have exactly 5 events (one for each UDP packet)
+		require.Equal(t, 5, actualCount, "Without rate limit, expected exactly 5 events, got %d", actualCount)
 	}
-	cmdServer.Process.Kill()
-
-	err = jsonchecker.JsonTestCheck(t, checkerSuccess)
-	require.NoError(t, err)
-	err = jsonchecker.JsonTestCheckExpect(t, checkerFailure, true)
-	require.NoError(t, err)
 }
 
 func TestKprobeNoRateLimit(t *testing.T) {
