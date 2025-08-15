@@ -126,7 +126,7 @@ func (h policyHandler) PolicyHandler(
 			"policy", tracingpolicy.TpLongname(policy),
 			"sensor", name,
 		)
-		validateInfo, err := preValidateKprobes(log, spec.KProbes, spec.Lists)
+		validateInfo, err := preValidateKprobes(log, spec.KProbes, spec.Lists, spec.Enforcers)
 		if err != nil {
 			return nil, fmt.Errorf("validation failed: %w", err)
 		}
