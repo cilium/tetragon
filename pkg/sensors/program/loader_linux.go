@@ -282,7 +282,7 @@ func KprobeAttach(load *Program, bpfDir string) AttachFunc {
 	}
 }
 
-func UprobeAttach(load *Program) AttachFunc {
+func UprobeAttach(load *Program, bpfDir string) AttachFunc {
 	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 
@@ -307,6 +307,13 @@ func UprobeAttach(load *Program) AttachFunc {
 		if err != nil {
 			return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
 		}
+
+		err = linkPin(lnk, bpfDir, load)
+		if err != nil {
+			lnk.Close()
+			return nil, err
+		}
+
 		return &unloader.RelinkUnloader{
 			UnloadProg: unloader.ProgUnloader{Prog: prog}.Unload,
 			IsLinked:   true,
@@ -316,7 +323,7 @@ func UprobeAttach(load *Program) AttachFunc {
 	}
 }
 
-func MultiUprobeAttach(load *Program) AttachFunc {
+func MultiUprobeAttach(load *Program, bpfDir string) AttachFunc {
 	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 
@@ -341,6 +348,11 @@ func MultiUprobeAttach(load *Program) AttachFunc {
 				}
 				lnk, err = exec.UprobeMulti(attach.Symbols, prog, opts)
 				if err != nil {
+					return nil, err
+				}
+				err = linkPin(lnk, bpfDir, load)
+				if err != nil {
+					lnk.Close()
 					return nil, err
 				}
 				links = append(links, lnk)
@@ -565,7 +577,7 @@ func LoadKprobeProgramAttachMany(bpfDir string, load *Program, syms []string, ma
 
 func LoadUprobeProgram(bpfDir string, load *Program, maps []*Map, verbose int) error {
 	opts := &LoadOpts{
-		Attach: UprobeAttach(load),
+		Attach: UprobeAttach(load, bpfDir),
 		Maps:   maps,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
@@ -644,7 +656,7 @@ func LoadLSMProgramSimple(bpfDir string, load *Program, maps []*Map, verbose int
 
 func LoadMultiUprobeProgram(bpfDir string, load *Program, maps []*Map, verbose int) error {
 	opts := &LoadOpts{
-		Attach: MultiUprobeAttach(load),
+		Attach: MultiUprobeAttach(load, bpfDir),
 		Maps:   maps,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
