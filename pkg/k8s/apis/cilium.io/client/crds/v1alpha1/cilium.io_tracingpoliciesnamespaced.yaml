@@ -206,6 +206,7 @@ spec:
                             - net_device
                             - bpf_cmd
                             - dentry
+                            - current
                             type: string
                         required:
                         - index
@@ -318,6 +319,7 @@ spec:
                           - net_device
                           - bpf_cmd
                           - dentry
+                          - current
                           type: string
                       required:
                       - index
@@ -962,6 +964,7 @@ spec:
                             - net_device
                             - bpf_cmd
                             - dentry
+                            - current
                             type: string
                         required:
                         - index
@@ -1643,6 +1646,7 @@ spec:
                             - net_device
                             - bpf_cmd
                             - dentry
+                            - current
                             type: string
                         required:
                         - index
@@ -2262,6 +2266,7 @@ spec:
                             - net_device
                             - bpf_cmd
                             - dentry
+                            - current
                             type: string
                         required:
                         - index
@@ -2891,6 +2896,7 @@ spec:
                             - net_device
                             - bpf_cmd
                             - dentry
+                            - current
                             type: string
                         required:
                         - index

@@ -13,6 +13,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/dataapi"
 	processapi "github.com/cilium/tetragon/pkg/api/processapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
+	"github.com/cilium/tetragon/pkg/generictypes"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -33,6 +34,7 @@ type argPrinter struct {
 const (
 	argReturnCopyBit = 1 << 4
 	argMaxDataBit    = 1 << 5
+	argCurrentBit    = 1 << 6
 )
 
 func argReturnCopy(meta int) bool {
@@ -45,6 +47,7 @@ func argReturnCopy(meta int) bool {
 //	0-3 : SizeArgIndex
 //	  4 : ReturnCopy
 //	  5 : MaxData
+//	  6 : Current
 func getMetaValue(arg *v1alpha1.KProbeArg) (int, error) {
 	var meta int
 
@@ -59,6 +62,9 @@ func getMetaValue(arg *v1alpha1.KProbeArg) (int, error) {
 	}
 	if arg.MaxData {
 		meta = meta | argMaxDataBit
+	}
+	if gt.GenericTypeFromString(arg.Type) == generictypes.GenericCurrentType {
+		meta = meta | argCurrentBit
 	}
 	return meta, nil
 }

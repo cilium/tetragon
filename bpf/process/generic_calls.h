@@ -474,7 +474,15 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 		     : [arg_index] "+r"(arg_index)
 		     : "i"(MAX_SELECTORS_MASK));
 
-	a = (&e->a0)[arg_index];
+	/* current is special, takes address of current task instead
+	 * of argument value
+	 */
+	if (am & ARGM_CURRENT)
+		a = get_current_task();
+	else
+		a = (&e->a0)[arg_index];
+
+	bpf_printk("generic_read_arg a %lx ty %d\n", (unsigned long) a, ty);
 	extract_arg(config, index, &a);
 
 	if (should_offload_path(ty))
