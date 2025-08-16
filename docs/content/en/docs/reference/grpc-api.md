@@ -739,6 +739,8 @@ loader sensor event triggered for loaded binary/library
 | args | [KprobeArgument](#tetragon-KprobeArgument) | repeated | Arguments definition of the observed uprobe. |
 | tags | [string](#string) | repeated | Tags of the Tracing Policy to categorize the event. |
 | ancestors | [Process](#tetragon-Process) | repeated | Ancestors of the process beyond the immediate parent. |
+| action | [KprobeAction](#tetragon-KprobeAction) |  | Action performed when the LSM hook matched. |
+| flags | [string](#string) |  | Flags are for debugging purposes only and should not be considered a reliable source of information. |
 
 <a name="tetragon-RuntimeHookRequest"></a>
 
@@ -853,6 +855,7 @@ User records
 | KPROBE_ACTION_UNTRACKSOCK | 12 | UntrackSock action un-tracks socket. |
 | KPROBE_ACTION_NOTIFYENFORCER | 13 | NotifyEnforcer action notifies enforcer sensor. |
 | KPROBE_ACTION_CLEANUPENFORCERNOTIFICATION | 14 | CleanupEnforcerNotification action cleanups any state left by NotifyEnforcer |
+| KPROBE_ACTION_SET | 15 | Set action sets first USDT argument |
 
 <a name="tetragon-TaintedBitsType"></a>
 

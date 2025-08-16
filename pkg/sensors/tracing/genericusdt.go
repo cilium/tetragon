@@ -27,6 +27,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
@@ -53,6 +54,8 @@ type genericUsdt struct {
 	argPrinters []argPrinter
 	// tags field of the Tracing Policy
 	tags []string
+	// selector
+	selectors *selectors.KernelSelectorState
 }
 
 func (g *genericUsdt) SetID(id idtable.EntryID) {
@@ -103,17 +106,20 @@ func createGenericUsdtSensor(
 		useMulti:   !polInfo.specOpts.DisableUprobeMulti && bpf.HasUprobeMulti(),
 	}
 
+	hasSetAction := false
+
 	for _, usdt := range spec.Usdts {
 		ids, err = addUsdt(&usdt, &in, ids)
 		if err != nil {
 			return nil, err
 		}
+		hasSetAction = hasSetAction || selectors.HasSet(&usdt)
 	}
 
 	if in.useMulti {
-		progs, maps, err = createMultiUsdtSensor(ids, polInfo.name)
+		progs, maps, err = createMultiUsdtSensor(ids, polInfo.name, hasSetAction)
 	} else {
-		progs, maps, err = createSingleUsdtSensor(ids)
+		progs, maps, err = createSingleUsdtSensor(ids, hasSetAction)
 	}
 
 	if err != nil {
@@ -131,7 +137,7 @@ func createGenericUsdtSensor(
 	}, nil
 }
 
-func createMultiUsdtSensor(multiIDs []idtable.EntryID, policyName string) ([]*program.Program, []*program.Map, error) {
+func createMultiUsdtSensor(multiIDs []idtable.EntryID, policyName string, hasSetAction bool) ([]*program.Program, []*program.Map, error) {
 	var progs []*program.Program
 	var maps []*program.Map
 
@@ -146,20 +152,27 @@ func createMultiUsdtSensor(multiIDs []idtable.EntryID, policyName string) ([]*pr
 		SetLoaderData(multiIDs).
 		SetPolicy(policyName)
 
+	load.WriteOffload = hasSetAction
+
 	progs = append(progs, load)
 
 	configMap := program.MapBuilderProgram("config_map", load)
 	tailCalls := program.MapBuilderProgram("usdt_calls", load)
 	filterMap := program.MapBuilderProgram("filter_map", load)
 
-	maps = append(maps, configMap, tailCalls, filterMap)
+	writeOffloadMap := program.MapBuilderProgram("write_offload", load)
+	if hasSetAction {
+		writeOffloadMap.SetMaxEntries(writeOffloadMaxEntries)
+	}
+
+	maps = append(maps, configMap, tailCalls, filterMap, writeOffloadMap)
 
 	filterMap.SetMaxEntries(len(multiIDs))
 	configMap.SetMaxEntries(len(multiIDs))
 	return progs, maps, nil
 }
 
-func createSingleUsdtSensor(ids []idtable.EntryID) ([]*program.Program, []*program.Map, error) {
+func createSingleUsdtSensor(ids []idtable.EntryID, hasSetAction bool) ([]*program.Program, []*program.Map, error) {
 	var progs []*program.Program
 	var maps []*program.Map
 
@@ -168,14 +181,14 @@ func createSingleUsdtSensor(ids []idtable.EntryID) ([]*program.Program, []*progr
 		if err != nil {
 			return nil, nil, err
 		}
-		progs, maps = createUsdtSensorFromEntry(usdtEntry, progs, maps)
+		progs, maps = createUsdtSensorFromEntry(usdtEntry, progs, maps, hasSetAction)
 	}
 
 	return progs, maps, nil
 }
 
 func createUsdtSensorFromEntry(usdtEntry *genericUsdt,
-	progs []*program.Program, maps []*program.Map) ([]*program.Program, []*program.Map) {
+	progs []*program.Program, maps []*program.Map, hasSetAction bool) ([]*program.Program, []*program.Map) {
 
 	loadProgName := config.GenericUsdtObjs(false)
 
@@ -195,13 +208,21 @@ func createUsdtSensorFromEntry(usdtEntry *genericUsdt,
 		SetLoaderData(usdtEntry).
 		SetPolicy(usdtEntry.policyName)
 
+	load.WriteOffload = hasSetAction
+
 	progs = append(progs, load)
 
 	configMap := program.MapBuilderProgram("config_map", load)
 	tailCalls := program.MapBuilderProgram("usdt_calls", load)
 	filterMap := program.MapBuilderProgram("filter_map", load)
+
+	writeOffloadMap := program.MapBuilderProgram("write_offload", load)
+	if hasSetAction {
+		writeOffloadMap.SetMaxEntries(writeOffloadMaxEntries)
+	}
+
 	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
-	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap)
+	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap, writeOffloadMap)
 	return progs, maps
 }
 
@@ -243,6 +264,12 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID) ([]i
 				spec.Provider, spec.Name, len(spec.Args), api.EventConfigMaxArgs)
 		}
 
+		// Parse Filters into kernel filter logic
+		state, err := selectors.InitKernelSelectorState(spec.Selectors, spec.Args, nil, nil, nil)
+		if err != nil {
+			return nil, err
+		}
+
 		for cfgIdx, arg := range spec.Args {
 			tgtIdx := arg.Index
 			if tgtIdx > target.Spec.ArgsCnt {
@@ -281,6 +308,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID) ([]i
 			argPrinters: argPrinters,
 			tags:        tagsField,
 			message:     msgField,
+			selectors:   state,
 		}
 
 		usdtTable.AddEntry(usdtEntry)
@@ -313,11 +341,20 @@ func loadSingleUsdtSensor(usdtEntry *genericUsdt, args sensors.LoadProbeArgs) er
 	var configData bytes.Buffer
 	binary.Write(&configData, binary.LittleEndian, usdtEntry.config)
 
+	// filter_map data
+	selBuff := usdtEntry.selectors.Buffer()
+
 	mapLoad := []*program.MapLoad{
 		{
 			Name: "config_map",
 			Load: func(m *ebpf.Map, _ string) error {
 				return m.Update(uint32(0), configData.Bytes()[:], ebpf.UpdateAny)
+			},
+		},
+		{
+			Name: "filter_map",
+			Load: func(m *ebpf.Map, _ string) error {
+				return m.Update(uint32(0), selBuff[:], ebpf.UpdateAny)
 			},
 		},
 	}
@@ -349,11 +386,20 @@ func loadMultiUsdtSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) erro
 		var configData bytes.Buffer
 		binary.Write(&configData, binary.LittleEndian, usdtEntry.config)
 
+		// filter_map data
+		selBuff := usdtEntry.selectors.Buffer()
+
 		mapLoad := []*program.MapLoad{
 			{
 				Name: "config_map",
 				Load: func(m *ebpf.Map, _ string) error {
 					return m.Update(uint32(index), configData.Bytes()[:], ebpf.UpdateAny)
+				},
+			},
+			{
+				Name: "filter_map",
+				Load: func(m *ebpf.Map, _ string) error {
+					return m.Update(uint32(index), selBuff[:], ebpf.UpdateAny)
 				},
 			},
 		}
