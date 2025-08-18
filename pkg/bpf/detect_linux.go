@@ -26,6 +26,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/btf"
+	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 )
@@ -47,6 +48,7 @@ var (
 	missedStatsKprobeMulti Feature
 	batchUpdate            Feature
 	uprobeRefCtrOffset     Feature
+	auditLoginuid          Feature
 )
 
 func HasOverrideHelper() bool {
@@ -508,14 +510,36 @@ func HasUprobeRefCtrOffset() bool {
 	return uprobeRefCtrOffset.detected
 }
 
+func detectAuditLoginuid() bool {
+	if kernels.MinKernelVersion("5.1") && kernels.DetectConfig(kernels.CONFIG_AUDIT) {
+		return true
+	} else if kernels.DetectConfig(kernels.CONFIG_AUDITSYSCALL) {
+		return true
+	}
+
+	_, err := os.Stat("/proc/self/loginuid")
+	return err == nil
+}
+
+func detectAuditLoginuidOnce() {
+	auditLoginuid.init.Do(func() {
+		auditLoginuid.detected = detectAuditLoginuid()
+	})
+}
+
+func HasAuditLoginuid() bool {
+	detectAuditLoginuidOnce()
+	return auditLoginuid.detected
+}
+
 func LogFeatures() string {
 	// once we have detected all features, flush the BTF spec
 	// we cache all values so calling again a Has* function will
 	// not load the BTF again
 	defer ebtf.FlushKernelSpec()
-	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, uprobe_multi %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t, link_pin: %t, lsm: %t, missed_stats_kprobe_multi: %t, missed_stats_kprobe: %t, batch_update: %t, uprobe_refctroff: %t",
+	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, uprobe_multi %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t, link_pin: %t, lsm: %t, missed_stats_kprobe_multi: %t, missed_stats_kprobe: %t, batch_update: %t, uprobe_refctroff: %t, audit_loginuid: %t",
 		HasOverrideHelper(), HasBuildId(), HasKprobeMulti(), HasUprobeMulti(),
 		HasModifyReturn(), HasModifyReturnSyscall(), HasSignalHelper(), HasProgramLargeSize(),
 		HasLinkPin(), HasLSMPrograms(), HasMissedStatsKprobeMulti(), HasMissedStatsPerfEvent(),
-		HasBatchAPI(), HasUprobeRefCtrOffset())
+		HasBatchAPI(), HasUprobeRefCtrOffset(), HasAuditLoginuid())
 }
