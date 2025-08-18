@@ -1,0 +1,3 @@
+use special tetragon provider to declare usdt probes with first return argument
+limit usdt selector for matches that work (maps)
+make sure first USDT argument is int and ensure that in config
