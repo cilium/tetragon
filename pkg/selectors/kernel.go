@@ -1268,6 +1268,11 @@ func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx
 		return fmt.Errorf("matchBinary error: %w", err)
 	}
 
+	// ignore matchBinaries selectors with no values
+	if len(b.Values) == 0 {
+		return nil
+	}
+
 	// prepare the selector options
 	sel := MatchBinariesSelectorOptions{}
 	sel.Op = op
