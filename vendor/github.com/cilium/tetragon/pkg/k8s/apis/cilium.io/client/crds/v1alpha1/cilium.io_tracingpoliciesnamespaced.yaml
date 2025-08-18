@@ -159,6 +159,10 @@ spec:
                             format: int32
                             minimum: 0
                             type: integer
+                          source:
+                            description: Source of the data, if missing the default
+                              if function arguments
+                            type: string
                           type:
                             default: auto
                             description: Argument type.
@@ -271,6 +275,10 @@ spec:
                           format: int32
                           minimum: 0
                           type: integer
+                        source:
+                          description: Source of the data, if missing the default
+                            if function arguments
+                          type: string
                         type:
                           default: auto
                           description: Argument type.
@@ -915,6 +923,10 @@ spec:
                             format: int32
                             minimum: 0
                             type: integer
+                          source:
+                            description: Source of the data, if missing the default
+                              if function arguments
+                            type: string
                           type:
                             default: auto
                             description: Argument type.
@@ -1596,6 +1608,10 @@ spec:
                             format: int32
                             minimum: 0
                             type: integer
+                          source:
+                            description: Source of the data, if missing the default
+                              if function arguments
+                            type: string
                           type:
                             default: auto
                             description: Argument type.
@@ -2215,6 +2231,10 @@ spec:
                             format: int32
                             minimum: 0
                             type: integer
+                          source:
+                            description: Source of the data, if missing the default
+                              if function arguments
+                            type: string
                           type:
                             default: auto
                             description: Argument type.
@@ -2844,6 +2864,10 @@ spec:
                             format: int32
                             minimum: 0
                             type: integer
+                          source:
+                            description: Source of the data, if missing the default
+                              if function arguments
+                            type: string
                           type:
                             default: auto
                             description: Argument type.

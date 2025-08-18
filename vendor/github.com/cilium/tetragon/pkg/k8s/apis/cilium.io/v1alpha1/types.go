@@ -101,6 +101,9 @@ type KProbeArg struct {
 	// +kubebuilder:validation:Optional
 	// Label to output in the JSON
 	Label string `json:"label"`
+	// +kubebuilder:validation:Optional
+	// Source of the data, if missing the default if function arguments
+	Source string `json:"source"`
 }
 
 type BinarySelector struct {
