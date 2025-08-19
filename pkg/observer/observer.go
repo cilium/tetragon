@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -139,7 +140,7 @@ func (k *Observer) getRBQueueSize() int {
 	if size == 0 {
 		size = 65535
 	}
-	k.log.Info("Perf ring buffer events queue size (events)", "size", strutils.SizeWithSuffix(size))
+	k.log.Info("Events queue size (events)", "size", strutils.SizeWithSuffix(size))
 	return size
 }
 
@@ -149,8 +150,9 @@ func (k *Observer) getRBQueueSize() int {
 // notified of their corresponding events.
 type Observer struct {
 	/* Configuration */
-	listeners  map[Listener]struct{}
-	PerfConfig *bpf.PerfEventConfig
+	listeners      map[Listener]struct{}
+	PerfConfig     *bpf.PerfEventConfig
+	RingBufMapPath string
 	/* Statistics */
 	lostCntr   prometheus.Counter
 	errorCntr  prometheus.Counter
@@ -191,6 +193,7 @@ func (k *Observer) Start(ctx context.Context) error {
 
 func (k *Observer) StartReady(ctx context.Context, ready func()) error {
 	k.PerfConfig = bpf.DefaultPerfEventConfig()
+	k.RingBufMapPath = filepath.Join(bpf.MapPrefixPath(), bpf.RingBufEventsMapName)
 
 	var err error
 	if err = k.RunEvents(ctx, ready); err != nil {
