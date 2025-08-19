@@ -354,3 +354,66 @@ spec:
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 }
+
+func TestUsdtResolveCurrent(t *testing.T) {
+	if !config.EnableLargeProgs() || !bpf.HasUprobeRefCtrOffset() {
+		t.Skip("Need 5.3 or newer kernel for usdt and uprobe ref_ctr_off support for this test.")
+	}
+
+	usdt := testutils.RepoRootPath("contrib/tester-progs/usdt")
+	usdtHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "usdts"
+spec:
+  usdts:
+  - path: "` + usdt + `"
+    provider: "test"
+    name: "usdt0"
+    args:
+    - type: "file"
+      source: "current_task"
+      resolve: "mm.exe_file"
+`
+
+	usdtConfigHook := []byte(usdtHook)
+	err := os.WriteFile(testConfigFile, usdtConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	upChecker := ec.NewProcessUsdtChecker("USDT_GENERIC_0").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(usdt))).
+		WithProvider(sm.Full("test")).
+		WithName(sm.Full("usdt0")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().
+					WithPath(sm.Full(usdt))),
+			))
+
+	checker := ec.NewUnorderedEventChecker(upChecker)
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	if err := exec.Command(usdt).Run(); err != nil {
+		t.Fatalf("Failed to execute test binary: %s\n", err)
+	}
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
