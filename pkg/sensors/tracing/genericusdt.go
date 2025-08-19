@@ -236,7 +236,11 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID) ([]i
 			continue
 		}
 
-		config := &api.EventConfig{}
+		var (
+			argType    int
+			config     api.EventConfig
+			allBTFArgs [api.EventConfigMaxArgs][api.MaxBTFArgDepth]api.ConfigBTFArg
+		)
 
 		if len(spec.Args) > api.EventConfigMaxArgs {
 			return nil, fmt.Errorf("failed to configured usdt '%s/%s', too many arguments (%d) allowed %d",
@@ -244,37 +248,61 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID) ([]i
 		}
 
 		for cfgIdx, arg := range spec.Args {
-			tgtIdx := arg.Index
-			if tgtIdx > target.Spec.ArgsCnt {
-				return nil, fmt.Errorf("failed to configured usdt '%s/%s', argument index %d out of bounds",
-					spec.Provider, spec.Name, tgtIdx)
-			}
-			tgtArg := &target.Spec.Args[tgtIdx]
-			cfgArg := &config.UsdtArg[cfgIdx]
-
-			cfgArg.ValOff = tgtArg.ValOff
-			cfgArg.RegOff = uint32(tgtArg.RegOff)
-			cfgArg.Shift = tgtArg.Shift
-			cfgArg.Type = tgtArg.Type
-
-			if tgtArg.Signed {
-				cfgArg.Signed = 1
+			if hasCurrentTaskSource(&arg) {
+				if arg.Resolve == "" {
+					return nil, errors.New("error: source 'current' can't be used without resolve attribute")
+				}
+				if !bpf.HasProgramLargeSize() {
+					return nil, errors.New("error: resolve can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag")
+				}
+				lastBTFType, btfArg, err := resolveBTFArg("", arg, false)
+				if err != nil {
+					return nil, fmt.Errorf("error: failed to configure resolve: %w", err)
+				}
+				allBTFArgs[cfgIdx] = btfArg
+				argType = findTypeFromBTFType(arg, lastBTFType)
 			} else {
-				cfgArg.Signed = 0
+				tgtIdx := arg.Index
+				if tgtIdx > target.Spec.ArgsCnt {
+					return nil, fmt.Errorf("failed to configured usdt '%s/%s', argument index %d out of bounds",
+						spec.Provider, spec.Name, tgtIdx)
+				}
+				tgtArg := &target.Spec.Args[tgtIdx]
+				cfgArg := &config.UsdtArg[cfgIdx]
+
+				cfgArg.ValOff = tgtArg.ValOff
+				cfgArg.RegOff = uint32(tgtArg.RegOff)
+				cfgArg.Shift = tgtArg.Shift
+				cfgArg.Type = tgtArg.Type
+
+				if tgtArg.Signed {
+					cfgArg.Signed = 1
+				} else {
+					cfgArg.Signed = 0
+				}
+
+				argType = gt.GenericTypeFromString(arg.Type)
 			}
 
-			argType := gt.GenericTypeFromString(arg.Type)
+			argMValue, err := getMetaValue(&arg)
+			if err != nil {
+				return nil, err
+			}
 
+			config.ArgIndex[cfgIdx] = int32(cfgIdx)
 			config.ArgType[cfgIdx] = int32(argType)
+			config.ArgMeta[cfgIdx] = uint32(argMValue)
 
 			argPrinters = append(argPrinters,
 				argPrinter{index: int(arg.Index), ty: argType, label: arg.Label},
 			)
 		}
 
+		config.BTFArg = allBTFArgs
+
 		usdtEntry := &genericUsdt{
 			tableId:     idtable.UninitializedEntryID,
-			config:      config,
+			config:      &config,
 			path:        spec.Path,
 			target:      target,
 			policyName:  in.policyName,

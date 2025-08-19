@@ -466,7 +466,7 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 	ty = config->arg[index];
 	am = config->arm[index];
 
-#if defined(GENERIC_TRACEPOINT) || defined(GENERIC_USDT)
+#if defined(GENERIC_TRACEPOINT)
 	a = (&e->a0)[index];
 #else
 	arg_index = config->idx[index];
