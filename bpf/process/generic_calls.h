@@ -844,6 +844,37 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 		retprobe_map_set(e->func_id, e->retprobe_id, e->common.ktime, 1);
 #endif
 
+#ifdef GENERIC_FENTRY
+	struct bpf_raw_tracepoint_args *raw_args = (struct bpf_raw_tracepoint_args *)ctx;
+
+	if (config->syscall) {
+		struct pt_regs *_ctx = (struct pt_regs *)BPF_CORE_READ(raw_args, args[0]);
+
+		if (!_ctx)
+			return 0;
+		e->a0 = PT_REGS_PARM1_CORE_SYSCALL(_ctx);
+		e->a1 = PT_REGS_PARM2_CORE_SYSCALL(_ctx);
+		e->a2 = PT_REGS_PARM3_CORE_SYSCALL(_ctx);
+		e->a3 = PT_REGS_PARM4_CORE_SYSCALL(_ctx);
+		e->a4 = PT_REGS_PARM5_CORE_SYSCALL(_ctx);
+	} else {
+		e->a0 = BPF_CORE_READ(raw_args, args[0]);
+		e->a1 = BPF_CORE_READ(raw_args, args[1]);
+		e->a2 = BPF_CORE_READ(raw_args, args[2]);
+		e->a3 = BPF_CORE_READ(raw_args, args[3]);
+		e->a4 = BPF_CORE_READ(raw_args, args[4]);
+	}
+
+	generic_process_init(e, MSG_OP_GENERIC_KPROBE);
+
+	e->retprobe_id = retprobe_map_get_key(ctx);
+
+	/* If return arg is needed mark retprobe */
+	ty = config->argreturn;
+	if (ty > 0)
+		retprobe_map_set(e->func_id, e->retprobe_id, e->common.ktime, 1);
+#endif
+
 #ifdef GENERIC_LSM
 	struct bpf_raw_tracepoint_args *raw_args = (struct bpf_raw_tracepoint_args *)ctx;
 
