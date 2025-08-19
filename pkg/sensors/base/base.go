@@ -25,6 +25,7 @@ import (
 
 const (
 	execveMapMaxEntries = 32768
+	RingBufMapName      = "tg_rb_events"
 )
 
 var (
@@ -71,7 +72,8 @@ var (
 	).SetPolicy(basePolicy)
 
 	/* Event Ring map */
-	TCPMonMap = program.MapBuilder("tcpmon_map", Execve)
+	TCPMonMap     = program.MapBuilder("tcpmon_map", Execve)
+	RingBufEvents = program.MapBuilder(RingBufMapName, Execve)
 	/* Networking and Process Monitoring maps */
 	ExecveMap           = program.MapBuilder("execve_map", Execve, Exit, Fork, ExecveBprmCommit, ExecveMapUpdate)
 	ExecveTailCallsMap  = program.MapBuilderProgram("execve_calls", Execve)
