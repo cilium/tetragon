@@ -3,9 +3,6 @@
 
 package bpf
 
-import "path/filepath"
-
 var (
-	ringbufEventsMapName = "tg_rb_events"
-	RingBufEventsMapName = filepath.Join(MapPrefixPath(), ringbufEventsMapName)
+	RingBufEventsMapName = "tg_rb_events"
 )
