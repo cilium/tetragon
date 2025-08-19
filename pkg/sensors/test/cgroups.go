@@ -4,6 +4,7 @@
 package test
 
 import (
+	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
@@ -55,6 +56,9 @@ func getCgroupMaps() []*program.Map {
 	maps := []*program.Map{
 		GetCgroupsTrackingMap(),
 		program.MapUserFrom(base.ExecveMap),
+	}
+	if config.EnableV511Progs() {
+		maps = append(maps, program.MapUserFrom(base.RingBufEvents))
 	}
 	return maps
 }
