@@ -5,6 +5,7 @@
 #define _BPF_PROCESS_EVENT__
 
 #include "bpf_helpers.h"
+#include "debug.h"
 
 #include "bpf_cgroup.h"
 #include "bpf_cred.h"
@@ -324,23 +325,23 @@ __event_get_cgroup_info(struct task_struct *task, struct msg_k8s *kube)
 }
 
 FUNC_INLINE void
-set_in_init_tree(struct execve_map_value *curr, struct execve_map_value *parent)
+set_in_init_tree(void *ctx, struct execve_map_value *curr, struct execve_map_value *parent)
 {
 	if (parent && parent->flags & EVENT_IN_INIT_TREE) {
 		curr->flags |= EVENT_IN_INIT_TREE;
-		DEBUG("%s: parent in init tree", __func__);
+		DEBUG(ctx, "parent_in_init_tree=0, nspid=%d", curr->nspid);
 		return;
 	}
 
 	if (curr->nspid == 1) {
 		curr->flags |= EVENT_IN_INIT_TREE;
-		DEBUG("%s: nspid=1", __func__);
+		DEBUG(ctx, "parent_in_init_tree=1, nspid=%d", curr->nspid);
 	}
 }
 
 #ifdef __LARGE_BPF_PROG
 FUNC_INLINE struct execve_map_value *
-event_find_curr_probe(struct msg_generic_kprobe *msg)
+event_find_curr_probe(void *ctx, struct msg_generic_kprobe *msg)
 {
 	struct task_struct *task = (struct task_struct *)get_current_task();
 	struct execve_map_value *curr;
@@ -352,14 +353,14 @@ event_find_curr_probe(struct msg_generic_kprobe *msg)
 
 	get_current_subj_caps(&curr->caps, task);
 	get_namespaces(&curr->ns, task);
-	set_in_init_tree(curr, NULL);
+	set_in_init_tree(ctx, curr, NULL);
 
 	read_exe((struct task_struct *)get_current_task(), &msg->exe);
 	return curr;
 }
 #else
 FUNC_INLINE struct execve_map_value *
-event_find_curr_probe(struct msg_generic_kprobe *msg)
+event_find_curr_probe(void *ctx, struct msg_generic_kprobe *msg)
 {
 	return NULL;
 }

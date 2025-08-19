@@ -63,6 +63,9 @@ options:
     - name: enable-msg-handling-latency
       default_value: "false"
       usage: Enable metrics for message handling latency
+    - name: enable-perf-debug
+      default_value: "false"
+      usage: enable perf debug framework with structured debug messages
     - name: enable-pid-set-filter
       default_value: "false"
       usage: |

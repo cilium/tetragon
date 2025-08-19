@@ -1080,7 +1080,7 @@ FUNC_INLINE int generic_retkprobe(void *ctx, struct bpf_map_def *calls, unsigned
 //    current->ktime
 // for the memory located at index 0 of @msg_heap assuming the value follows the
 // msg_generic_hdr structure.
-FUNC_INLINE int generic_process_filter(void)
+FUNC_INLINE int generic_process_filter(void *ctx)
 {
 	int selectors, pass, zero = 0;
 	struct execve_map_value *enter;
@@ -1096,7 +1096,7 @@ FUNC_INLINE int generic_process_filter(void)
 
 	enter = event_find_curr(&ppid, &walker);
 	if (!enter) {
-		enter = event_find_curr_probe(msg);
+		enter = event_find_curr_probe(ctx, msg);
 		if (!enter)
 			return PFILTER_CURR_NOT_FOUND;
 		msg->common.flags |= MSG_COMMON_FLAG_PROCESS_NOT_FOUND;
