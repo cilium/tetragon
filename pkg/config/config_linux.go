@@ -4,9 +4,18 @@
 package config
 
 import (
+	"math"
+	"os"
+
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/strutils"
+)
+
+const (
+	perCPUBufferBytes = 64 * 1024
 )
 
 // ExecObj returns the exec object based on the kernel version
@@ -179,4 +188,26 @@ func EnableLargeProgs() bool {
 		return true
 	}
 	return bpf.HasProgramLargeSize() && bpf.HasSignalHelper()
+}
+
+func GetRBSize() int {
+	var size int
+
+	if option.Config.RBSize == 0 && option.Config.RBSizeTotal == 0 {
+		size = perCPUBufferBytes * bpf.GetNumPossibleCPUs()
+	} else if option.Config.RBSize != 0 {
+		size = option.Config.RBSize * bpf.GetNumPossibleCPUs()
+	} else {
+		size = option.Config.RBSizeTotal
+	}
+
+	pageSize := os.Getpagesize()
+	nPages := size / pageSize
+
+	// Round up to nearest power of two number of pages
+	nPages = int(math.Pow(2, math.Ceil(math.Log2(float64(nPages)))))
+	size = nPages * pageSize
+
+	logger.GetLogger().Info("BPF ring buffer size (bytes)", "total", strutils.SizeWithSuffix(size))
+	return size
 }

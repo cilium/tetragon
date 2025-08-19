@@ -48,3 +48,7 @@ func EnableV61Progs() bool {
 func EnableLargeProgs() bool {
 	return false
 }
+
+func GetRBSize() int {
+	return 0
+}

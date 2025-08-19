@@ -40,6 +40,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -71,8 +72,9 @@ var (
 		"loader",
 	)
 
-	idsMap    = program.MapBuilder("ids_map", loader)
-	execveMap = program.MapUserFrom(base.ExecveMap)
+	idsMap     = program.MapBuilder("ids_map", loader)
+	execveMap  = program.MapUserFrom(base.ExecveMap)
+	ringBufMap = program.MapUserFrom(base.RingBufEvents)
 
 	loaderEnabled bool
 
@@ -106,10 +108,14 @@ func init() {
 }
 
 func GetLoaderSensor() *sensors.Sensor {
+	maps := []*program.Map{idsMap, execveMap}
+	if config.EnableV511Progs() {
+		maps = append(maps, ringBufMap)
+	}
 	return &sensors.Sensor{
 		Name:  "__loader__",
 		Progs: []*program.Program{loader},
-		Maps:  []*program.Map{idsMap, execveMap},
+		Maps:  maps,
 	}
 }
 
