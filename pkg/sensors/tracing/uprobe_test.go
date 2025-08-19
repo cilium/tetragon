@@ -687,3 +687,65 @@ func TestUprobeArgsWithSymbol(t *testing.T) {
 
 	testUprobeArgs(t, checkers, tp)
 }
+
+func TestUprobeResolveCurrent(t *testing.T) {
+	if !config.EnableLargeProgs() {
+		t.Skip("Need 5.3 or newer kernel for this test.")
+	}
+
+	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
+	nopHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "` + testNop + `"
+    symbols:
+    - "main"
+    args:
+    - type: "file"
+      source: "current_task"
+      resolve: "mm.exe_file"
+`
+
+	nopConfigHook := []byte(nopHook)
+	err := os.WriteFile(testConfigFile, nopConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	upChecker := ec.NewProcessUprobeChecker("UPROBE_GENERIC").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(testNop))).
+		WithSymbol(sm.Full("main")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().
+					WithPath(sm.Full(testNop))),
+			))
+
+	checker := ec.NewUnorderedEventChecker(upChecker)
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	if err := exec.Command(testNop).Run(); err != nil {
+		t.Fatalf("Failed to execute test binary: %s\n", err)
+	}
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
