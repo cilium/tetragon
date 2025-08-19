@@ -663,6 +663,9 @@ func createGenericKprobeSensor(
 	}
 
 	maps = append(maps, program.MapUserFrom(base.ExecveMap))
+	if config.EnableV511Progs() {
+		maps = append(maps, program.MapUserFrom(base.RingBufEvents))
+	}
 
 	return &sensors.Sensor{
 		Name:      name,

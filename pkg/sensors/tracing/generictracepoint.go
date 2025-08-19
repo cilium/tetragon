@@ -627,6 +627,9 @@ func createGenericTracepointSensor(
 	}
 
 	maps = append(maps, program.MapUserFrom(base.ExecveMap))
+	if config.EnableV511Progs() {
+		maps = append(maps, program.MapUserFrom(base.RingBufEvents))
+	}
 
 	ret.Progs = progs
 	ret.Maps = maps

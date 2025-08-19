@@ -15,9 +15,11 @@ import (
 
 	"github.com/cilium/tetragon/pkg/api/ops"
 	api "github.com/cilium/tetragon/pkg/api/testapi"
+	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/grpc/test"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
 
@@ -66,7 +68,10 @@ func GetTestSensor() *sensors.Sensor {
 		sensors.PathJoin(sensorName, "test_lseek_prog"),
 		"tracepoint",
 	)}
-	maps := []*program.Map{}
+	var maps []*program.Map
+	if config.EnableV511Progs() {
+		maps = []*program.Map{program.MapUserFrom(base.RingBufEvents)}
+	}
 	sensor := &sensors.Sensor{Name: sensorName, Progs: progs, Maps: maps}
 	return sensor
 }
