@@ -387,3 +387,22 @@ spec:
 	err := checkCrd(t, crd)
 	require.Error(t, err)
 }
+
+func TestKprobeCurrentWithNoResolve(t *testing.T) {
+	crd := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "multiple-symbols"
+spec:
+  kprobes:
+  - call: "security_task_getscheduler"
+    syscall: false
+    args:
+    - type: "int"
+      source: "current_task"
+`
+
+	err := checkCrd(t, crd)
+	require.Error(t, err)
+}
