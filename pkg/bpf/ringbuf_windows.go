@@ -29,6 +29,8 @@ var (
 	GetHandleFromFd = EbpfApi.NewProc("ebpf_get_handle_from_fd")
 
 	log = logger.GetLogger()
+
+	RingBufEventsMapName = ""
 )
 
 type operationHeader struct {
