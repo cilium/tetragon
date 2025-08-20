@@ -28,14 +28,16 @@ type TetragonConfKey struct {
 }
 
 type TetragonConfValue struct {
-	LogLevel          uint32 `align:"loglevel"`             // Tetragon log level
-	PID               uint32 `align:"pid"`                  // Tetragon PID for debugging purpose
-	NSPID             uint32 `align:"nspid"`                // Tetragon PID in namespace for debugging purpose
-	TgCgrpHierarchy   uint32 `align:"tg_cgrp_hierarchy"`    // Tetragon Cgroup tracking hierarchy ID
-	TgCgrpv1SubsysIdx uint32 `align:"tg_cgrpv1_subsys_idx"` // Tracking Cgroupv1 css idx at compile time
-	TgCgrpLevel       uint32 `align:"tg_cgrp_level"`        // Tetragon cgroup level
-	TgCgrpId          uint64 `align:"tg_cgrpid"`            // Tetragon cgroup ID
-	CgrpFsMagic       uint64 `align:"cgrp_fs_magic"`        // Cgroupv1 or cgroupv2
+	LogLevel          uint32   `align:"loglevel"`             // Tetragon log level
+	PID               uint32   `align:"pid"`                  // Tetragon PID for debugging purpose
+	NSPID             uint32   `align:"nspid"`                // Tetragon PID in namespace for debugging purpose
+	TgCgrpHierarchy   uint32   `align:"tg_cgrp_hierarchy"`    // Tetragon Cgroup tracking hierarchy ID
+	TgCgrpv1SubsysIdx uint32   `align:"tg_cgrpv1_subsys_idx"` // Tracking Cgroupv1 css idx at compile time
+	TgCgrpLevel       uint32   `align:"tg_cgrp_level"`        // Tetragon cgroup level
+	TgCgrpId          uint64   `align:"tg_cgrpid"`            // Tetragon cgroup ID
+	CgrpFsMagic       uint64   `align:"cgrp_fs_magic"`        // Cgroupv1 or cgroupv2
+	UsePerfRingBuf    uint8    `align:"use_perf_ring_buf"`    // Use the perf ring buffer rather than the bpf ring buffer
+	Pad               [7]uint8 `align:"pad"`
 }
 
 var (
@@ -115,6 +117,7 @@ func UpdateTgRuntimeConf(mapDir string, nspid int) error {
 		TgCgrpv1SubsysIdx: cgroups.GetCgrpv1SubsystemIdx(),
 		NSPID:             uint32(nspid),
 		CgrpFsMagic:       cgroupFsMagic,
+		UsePerfRingBuf:    0,
 	}
 
 	if err := UpdateConfMap(mapDir, v); err != nil {
