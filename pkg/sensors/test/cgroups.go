@@ -12,7 +12,7 @@ import (
 
 var (
 	CgroupMkdir = program.Builder(
-		"bpf_cgroup_mkdir.o",
+		config.CGroupMkdirObj(),
 		"cgroup/cgroup_mkdir",
 		"raw_tracepoint/cgroup_mkdir",
 		"tg_tp_cgrp_mkdir",
@@ -20,7 +20,7 @@ var (
 	)
 
 	CgroupRmdir = program.Builder(
-		"bpf_cgroup_rmdir.o",
+		config.CGroupRmdirObj(),
 		"cgroup/cgroup_rmdir",
 		"raw_tracepoint/cgroup_rmdir",
 		"tg_tp_cgrp_rmdir",
@@ -28,7 +28,7 @@ var (
 	)
 
 	CgroupRelease = program.Builder(
-		"bpf_cgroup_release.o",
+		config.CGroupReleaseObj(),
 		"cgroup/cgroup_release",
 		"raw_tracepoint/cgroup_release",
 		"tg_tp_cgrp_release",

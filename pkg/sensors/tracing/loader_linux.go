@@ -65,7 +65,7 @@ const (
 
 var (
 	loader = program.Builder(
-		"bpf_loader.o",
+		config.LoaderObj(),
 		"perf_event_mmap_output",
 		"kprobe/perf_event_mmap_output",
 		"loader_kprobe",

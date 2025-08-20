@@ -37,11 +37,39 @@ func GenericLsmObjs() (string, string) {
 	return "", ""
 }
 
+func CGroupMkdirObj() string {
+	return ""
+}
+
+func CGroupReleaseObj() string {
+	return ""
+}
+
+func CGroupRmdirObj() string {
+	return ""
+}
+
+func LoaderObj() string {
+	return ""
+}
+
+func LseekObj() string {
+	return ""
+}
+
+func EnableRhel7Progs() bool {
+	return false
+}
+
 func EnableV511Progs() bool {
 	return false
 }
 
 func EnableV61Progs() bool {
+	return false
+}
+
+func EnableV612Progs() bool {
 	return false
 }
 

@@ -61,13 +61,17 @@ PROCESS += bpf_generic_kprobe_v53.o bpf_generic_retkprobe_v53.o \
 
 # v5.11
 # base sensor
-PROCESS += bpf_execve_event_v511.o
+PROCESS += bpf_execve_event_v511.o bpf_exit_v511.o bpf_fork_v511.o
+#generic sensors
+PROCESS += bpf_loader_v511.o
 # generic probes
 PROCESS += bpf_generic_kprobe_v511.o bpf_generic_retkprobe_v511.o \
 	   bpf_multi_kprobe_v511.o bpf_multi_retkprobe_v511.o \
 	   bpf_generic_tracepoint_v511.o bpf_generic_uprobe_v511.o \
+	   bpf_multi_uprobe_v511.o \
 	   bpf_generic_rawtp_v511.o \
-	   bpf_generic_usdt_v511.o
+	   bpf_generic_usdt_v511.o \
+	   bpf_multi_usdt_v511.o
 
 # lsm
 PROCESS += bpf_generic_lsm_core_v511.o bpf_generic_lsm_output_v511.o \
@@ -110,7 +114,9 @@ PROCESS += bpf_execve_map_update_v612.o bpf_execve_map_update_v61.o bpf_execve_m
 
 
 CGROUP = bpf_cgroup_mkdir.o bpf_cgroup_rmdir.o bpf_cgroup_release.o bpf_cgtracker.o
+CGROUP += bpf_cgroup_mkdir_v511.o bpf_cgroup_rmdir_v511.o bpf_cgroup_release_v511.o
 BPFTEST = bpf_lseek.o
+BPFTEST += bpf_lseek_v511.o
 
 OBJSDIR         := objs/
 DEPSDIR         := deps/
@@ -194,6 +200,12 @@ $(OBJSDIR)%_$$(VAR).ll:
 
 # Generic dependency files for VARIANT objects
 $(DEPSDIR)%_$$(VAR).d: $(PROCESSDIR)%.c
+	$$(call rule_d,$(VARIANT_CFLAGS))
+
+$(DEPSDIR)%_$$(VAR).d: $(CGROUPDIR)%.c
+	$$(call rule_d,$(VARIANT_CFLAGS))
+
+$(DEPSDIR)%_$$(VAR).d: $(BPFTESTDIR)%.c
 	$$(call rule_d,$(VARIANT_CFLAGS))
 
 # Define extra CFLAGS for variant objects
