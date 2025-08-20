@@ -3,7 +3,29 @@
   image: "{{ if .Values.export.stdout.image.override }}{{ .Values.export.stdout.image.override }}{{ else }}{{ .Values.export.stdout.image.repository }}:{{ .Values.export.stdout.image.tag }}{{ end }}"
   imagePullPolicy: {{ .Values.imagePullPolicy }}
   terminationMessagePolicy: FallbackToLogsOnError
-  env: {{- toYaml .Values.export.stdout.extraEnv | nindent 4 }}
+  {{- with .Values.export.stdout.extraEnv }}
+  env:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- $envFrom := list }}
+  {{- with .Values.export.stdout.extraEnvFrom }}
+    {{- $envFrom = concat $envFrom . }}
+  {{- end }}
+  {{- range $item := .Values.export.stdout.envFromSecrets }}
+    {{- if kindIs "map" $item }}
+      {{- $sr := dict "name" ($item.name | default "") }}
+      {{- if hasKey $item "optional" }}
+        {{- $_ := set $sr "optional" $item.optional }}
+      {{- end }}
+      {{- $envFrom = append $envFrom (dict "secretRef" $sr) }}
+    {{- else }}
+      {{- $envFrom = append $envFrom (dict "secretRef" (dict "name" $item)) }}
+    {{- end }}
+  {{- end }}
+  {{- if gt (len $envFrom) 0 }}
+  envFrom:
+    {{- toYaml $envFrom | nindent 4 }}
+  {{- end }}
   securityContext:
     {{- toYaml .Values.export.securityContext | nindent 4 }}
   resources:
