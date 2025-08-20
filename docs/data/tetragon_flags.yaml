@@ -211,11 +211,11 @@ options:
     - name: rb-size
       default_value: "0"
       usage: |
-        Set perf ring buffer size for single cpu (default 65k, allows K/M/G suffix)
+        Set ring buffer size for single cpu (default 65k, allows K/M/G suffix)
     - name: rb-size-total
       default_value: "0"
       usage: |
-        Set perf ring buffer size in total for all cpus (default 65k per cpu, allows K/M/G suffix)
+        Set ring buffer size in total for all cpus (default 65k per cpu, allows K/M/G suffix)
     - name: redaction-filters
       usage: Redaction filters for events
     - name: release-pinned-bpf
@@ -231,6 +231,9 @@ options:
     - name: tracing-policy-dir
       default_value: /etc/tetragon/tetragon.tp.d
       usage: Directory from where to load Tracing Policies
+    - name: use-perf-ring-buffer
+      default_value: "false"
+      usage: Use the perf ring buffer instead of the bpf ring buffer
     - name: username-metadata
       default_value: disabled
       usage: |
