@@ -16,7 +16,7 @@ import (
 	"github.com/cilium/ebpf/ringbuf"
 
 	"github.com/cilium/tetragon/pkg/api/readyapi"
-	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/strutils"
@@ -78,7 +78,7 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 
 	var ringBufReader *ringbuf.Reader
 	var ringBufMap *ebpf.Map
-	if kernels.MinKernelVersion("5.11") {
+	if config.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
 		ringBufMap, err = ebpf.LoadPinnedMap(k.RingBufMapName, &pinOpts)
 		if err != nil {
 			return fmt.Errorf("opening pinned map '%s' failed: %w", k.RingBufMapName, err)
@@ -137,7 +137,7 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 		}
 	}()
 
-	if kernels.MinKernelVersion("5.11") {
+	if config.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
 		// Service the BPF ring buffer as well.
 		wg.Add(1)
 		go func() {
@@ -193,7 +193,7 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 	<-stopCtx.Done()
 	err = perfReader.Close()
 	var errRingBufRdr error
-	if kernels.MinKernelVersion("5.11") {
+	if config.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
 		errRingBufRdr = ringBufReader.Close()
 	}
 	if err != nil {

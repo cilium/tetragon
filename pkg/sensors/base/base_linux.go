@@ -44,7 +44,7 @@ func GetDefaultMaps() []*program.Map {
 	// The BPF ring buffer is available from v5.8, but rather than add another set of
 	// kernel-version-specific objects, let's set the gate at v5.11 as we already have
 	// objects for that version number.
-	if config.EnableV511Progs() {
+	if config.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
 		RingBufEvents.SetMaxEntries(getRBSize())
 		maps = append(maps, RingBufEvents)
 	}
