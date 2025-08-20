@@ -603,7 +603,7 @@ perf_event_output_metric(void *ctx, u8 msg_op, void *data, u64 size)
 {
 	long err;
 
-	err = perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, data, size);
+	err = event_output(ctx, data, size);
 	if (err < 0)
 		perf_event_output_update_error_metric(msg_op, err);
 }
