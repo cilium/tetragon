@@ -78,7 +78,7 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 
 	var ringBufReader *ringbuf.Reader
 	var ringBufMap *ebpf.Map
-	if config.EnableV511Progs() {
+	if config.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
 		ringBufMap, err = ebpf.LoadPinnedMap(k.RingBufMapPath, &pinOpts)
 		if err != nil {
 			return fmt.Errorf("opening pinned map '%s' failed: %w", k.RingBufMapPath, err)
@@ -137,7 +137,7 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 		}
 	}()
 
-	if config.EnableV511Progs() {
+	if config.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
 		// Service the BPF ring buffer as well.
 		wg.Add(1)
 		go func() {
@@ -193,7 +193,7 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 	<-stopCtx.Done()
 	err = perfReader.Close()
 	var errRingBufRdr error
-	if config.EnableV511Progs() {
+	if config.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
 		errRingBufRdr = ringBufReader.Close()
 	}
 	if err != nil {

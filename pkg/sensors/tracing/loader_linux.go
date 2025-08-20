@@ -46,6 +46,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
@@ -109,7 +110,7 @@ func init() {
 
 func GetLoaderSensor() *sensors.Sensor {
 	maps := []*program.Map{idsMap, execveMap}
-	if config.EnableV511Progs() {
+	if config.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
 		maps = append(maps, ringBufMap)
 	}
 	return &sensors.Sensor{
