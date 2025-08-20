@@ -59,6 +59,7 @@ const (
 	SentFailedEbusy
 	SentFailedEinval
 	SentFailedEnospc
+	SentFailedEagain
 	SentFailedMax
 )
 

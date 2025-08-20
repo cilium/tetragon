@@ -12,6 +12,7 @@
 #include "api.h"
 #include "policy_stats.h"
 #include "errmetrics.h"
+#include "environ_conf.h"
 
 /* Applying 'packed' attribute to structs causes clang to write to the
  * members byte-by-byte, as offsets may not be aligned. This is bad for
@@ -557,7 +558,8 @@ _Static_assert(sizeof(struct execve_map_value) % 8 == 0,
 #define SENT_FAILED_EBUSY   3 // EBUSY
 #define SENT_FAILED_EINVAL  4 // EINVAL
 #define SENT_FAILED_ENOSPC  5 // ENOSPC
-#define SENT_FAILED_MAX	    6
+#define SENT_FAILED_EAGAIN  6 // EAGAIN
+#define SENT_FAILED_MAX	    7
 
 struct kernel_stats {
 	__u64 sent_failed[256][SENT_FAILED_MAX];
@@ -584,6 +586,9 @@ event_output_update_error_metric(u8 msg_op, long err)
 			break;
 		case -7: // E2BIG
 			lock_add(&valp->sent_failed[msg_op][SENT_FAILED_E2BIG], 1);
+			break;
+		case -11: // EAGAIN
+			lock_add(&valp->sent_failed[msg_op][SENT_FAILED_EAGAIN], 1);
 			break;
 		case -16: // EBUSY
 			lock_add(&valp->sent_failed[msg_op][SENT_FAILED_EBUSY], 1);
@@ -613,6 +618,55 @@ perf_event_output_metric(void *ctx, u8 msg_op, void *map, u64 flags, void *data,
 
 	policy_stats_update(POLICY_POST);
 }
+
+#ifdef __V511_BPF_PROG
+FUNC_INLINE long
+event_output(void *ctx, void *data, u64 size)
+{
+	struct tetragon_conf *conf;
+	int zero = 0;
+
+	conf = map_lookup_elem(&tg_conf_map, &zero);
+	if (conf && conf->use_perf_ring_buf)
+		return perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, data, size);
+	return ringbuf_output(&tg_rb_events, data, size, 0);
+}
+
+FUNC_INLINE void
+event_output_metric(void *ctx, u8 msg_op, void *data, u64 size)
+{
+	struct tetragon_conf *conf;
+	int zero = 0;
+	long err;
+
+	conf = map_lookup_elem(&tg_conf_map, &zero);
+	if (conf && conf->use_perf_ring_buf) {
+		perf_event_output_metric(ctx, msg_op, &tcpmon_map, BPF_F_CURRENT_CPU, data, size);
+		return;
+	}
+
+	err = ringbuf_output(&tg_rb_events, data, size, 0);
+
+	if (err < 0) {
+		event_output_update_error_metric(msg_op, err);
+		return;
+	}
+
+	policy_stats_update(POLICY_POST);
+}
+#else
+FUNC_INLINE long
+event_output(void *ctx, void *data, u64 size)
+{
+	return perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, data, size);
+}
+
+FUNC_INLINE void
+event_output_metric(void *ctx, u8 msg_op, void *data, u64 size)
+{
+	perf_event_output_metric(ctx, msg_op, &tcpmon_map, BPF_F_CURRENT_CPU, data, size);
+}
+#endif
 
 /**
  * read_exe() Reads the path from the backing executable file of the current
