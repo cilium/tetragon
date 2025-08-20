@@ -62,7 +62,7 @@ func handleTest(r *bytes.Reader) ([]observer.Event, error) {
 func GetTestSensor() *sensors.Sensor {
 	sensorName := fmt.Sprintf("test-sensor-%d", sensorCounter.Add(1))
 	progs := []*program.Program{program.Builder(
-		"bpf_lseek.o",
+		config.LseekObj(),
 		"syscalls/sys_enter_lseek",
 		"tracepoint/sys_enter_lseek",
 		sensors.PathJoin(sensorName, "test_lseek_prog"),

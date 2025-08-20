@@ -48,6 +48,8 @@ func ExecUpdateObj() string {
 func ExitObj() string {
 	if EnableRhel7Progs() {
 		return "bpf_exit_v310.o"
+	} else if EnableV511Progs() {
+		return "bpf_exit_v511.o"
 	}
 	return "bpf_exit.o"
 }
@@ -55,6 +57,8 @@ func ExitObj() string {
 func ForkObj() string {
 	if EnableRhel7Progs() {
 		return "bpf_fork_v310.o"
+	} else if EnableV511Progs() {
+		return "bpf_fork_v511.o"
 	}
 	return "bpf_fork.o"
 }
@@ -87,13 +91,17 @@ func GenericUprobeObjs(multi bool) string {
 	if multi {
 		if EnableV612Progs() {
 			return "bpf_multi_uprobe_v612.o"
+		} else if EnableV61Progs() {
+			return "bpf_multi_uprobe_v61.o"
 		}
-		return "bpf_multi_uprobe_v61.o"
+		return "bpf_multi_uprobe_v511.o"
 	}
 	if EnableV612Progs() {
 		return "bpf_generic_uprobe_v612.o"
 	} else if EnableV61Progs() {
 		return "bpf_generic_uprobe_v61.o"
+	} else if EnableV511Progs() {
+		return "bpf_generic_uprobe_v511.o"
 	} else if EnableLargeProgs() {
 		return "bpf_generic_uprobe_v53.o"
 	}
@@ -104,13 +112,17 @@ func GenericUsdtObjs(multi bool) string {
 	if multi {
 		if EnableV612Progs() {
 			return "bpf_multi_usdt_v612.o"
+		} else if EnableV61Progs() {
+			return "bpf_multi_usdt_v61.o"
 		}
-		return "bpf_multi_usdt_v61.o"
+		return "bpf_multi_usdt_v511.o"
 	}
 	if EnableV612Progs() {
 		return "bpf_generic_usdt_v612.o"
 	} else if EnableV61Progs() {
 		return "bpf_generic_usdt_v61.o"
+	} else if EnableV511Progs() {
+		return "bpf_generic_usdt_v511.o"
 	}
 	return "bpf_generic_usdt_v53.o"
 }
@@ -149,6 +161,41 @@ func GenericLsmObjs() (string, string) {
 		return "bpf_generic_lsm_core_v511.o", "bpf_generic_lsm_output_v511.o"
 	}
 	return "bpf_generic_lsm_core.o", "bpf_generic_lsm_output.o"
+}
+
+func CGroupMkdirObj() string {
+	if EnableV511Progs() {
+		return "bpf_cgroup_mkdir_v511.o"
+	}
+	return "bpf_cgroup_mkdir.o"
+}
+
+func CGroupReleaseObj() string {
+	if EnableV511Progs() {
+		return "bpf_cgroup_release_v511.o"
+	}
+	return "bpf_cgroup_release.o"
+}
+
+func CGroupRmdirObj() string {
+	if EnableV511Progs() {
+		return "bpf_cgroup_rmdir_v511.o"
+	}
+	return "bpf_cgroup_rmdir.o"
+}
+
+func LoaderObj() string {
+	if EnableV511Progs() {
+		return "bpf_loader_v511.o"
+	}
+	return "bpf_loader.o"
+}
+
+func LseekObj() string {
+	if EnableV511Progs() {
+		return "bpf_lseek_v511.o"
+	}
+	return "bpf_lseek.o"
 }
 
 func EnableRhel7Progs() bool {
