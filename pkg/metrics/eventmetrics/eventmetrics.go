@@ -32,6 +32,7 @@ var (
 		processapi.SentFailedEbusy:   "EBUSY",
 		processapi.SentFailedEinval:  "EINVAL",
 		processapi.SentFailedEnospc:  "ENOSPC",
+		processapi.SentFailedEagain:  "EAGAIN",
 	}
 	perfEventErrorLabel = metrics.ConstrainedLabel{
 		Name:   "error",
