@@ -599,11 +599,11 @@ perf_event_output_update_error_metric(u8 msg_op, long err)
 }
 
 FUNC_INLINE void
-perf_event_output_metric(void *ctx, u8 msg_op, void *map, u64 flags, void *data, u64 size)
+perf_event_output_metric(void *ctx, u8 msg_op, void *data, u64 size)
 {
 	long err;
 
-	err = perf_event_output(ctx, map, flags, data, size);
+	err = perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, data, size);
 	if (err < 0)
 		perf_event_output_update_error_metric(msg_op, err);
 }
