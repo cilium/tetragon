@@ -18,6 +18,7 @@ import (
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/grpc/test"
 	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
@@ -69,7 +70,7 @@ func GetTestSensor() *sensors.Sensor {
 		"tracepoint",
 	)}
 	var maps []*program.Map
-	if config.EnableV511Progs() {
+	if config.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
 		maps = []*program.Map{program.MapUserFrom(base.RingBufEvents)}
 	}
 	sensor := &sensors.Sensor{Name: sensorName, Progs: progs, Maps: maps}
