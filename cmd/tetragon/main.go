@@ -25,6 +25,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 
 	"github.com/cilium/tetragon/pkg/bugtool"
@@ -812,6 +813,13 @@ func execute() error {
 
 			if err := option.ReadAndSetFlags(); err != nil {
 				logger.Fatal(log, "Failed to parse command line flags", logfields.Error, err)
+			}
+			// Override perf ring buffer choice if only the perf ring is available.
+			// NB: can't do this in option.ReadAndSetFlags() as it causes an import cycle.
+			// It isn't the prettiest, but it is an important and unique part of Tetragon,
+			// so maybe we can live with this.
+			if !config.EnableV511Progs() {
+				option.Config.UsePerfRingBuffer = true
 			}
 			if err := startGopsServer(); err != nil {
 				logger.Fatal(log, "Failed to start gRPC server", logfields.Error, err)

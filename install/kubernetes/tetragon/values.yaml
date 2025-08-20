@@ -237,6 +237,7 @@ tetragon:
   # pod association. This feature depends on cri being enabled.
   cgidmap:
     enabled: false
+  usePerfRingBuffer: false
 # Tetragon Operator settings
 tetragonOperator:
   # -- Enables the Tetragon Operator.

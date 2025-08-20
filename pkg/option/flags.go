@@ -83,9 +83,10 @@ const (
 	KeyDisableKprobeMulti = "disable-kprobe-multi"
 	KeyDisableUprobeMulti = "disable-uprobe-multi"
 
-	KeyRBSize      = "rb-size"
-	KeyRBSizeTotal = "rb-size-total"
-	KeyRBQueueSize = "rb-queue-size"
+	KeyUsePerfRingBuffer = "use-perf-ring-buffer"
+	KeyRBSize            = "rb-size"
+	KeyRBSizeTotal       = "rb-size-total"
+	KeyRBQueueSize       = "rb-queue-size"
 
 	KeyEventQueueSize = "event-queue-size"
 
@@ -169,6 +170,7 @@ func ReadAndSetFlags() error {
 	var err error
 	var enableAncestors []string
 
+	Config.UsePerfRingBuffer = viper.GetBool(KeyUsePerfRingBuffer)
 	if Config.RBSize, err = strutils.ParseSize(viper.GetString(KeyRBSize)); err != nil {
 		return fmt.Errorf("failed to parse rb-size value: %w", err)
 	}
@@ -416,9 +418,11 @@ func AddFlags(flags *pflag.FlagSet) {
 	// Allow to disable kprobe multi interface
 	flags.Bool(KeyDisableKprobeMulti, false, "Allow to disable kprobe multi interface")
 
-	// Allow to specify perf ring buffer size
-	flags.String(KeyRBSizeTotal, "0", "Set perf ring buffer size in total for all cpus (default 65k per cpu, allows K/M/G suffix)")
-	flags.String(KeyRBSize, "0", "Set perf ring buffer size for single cpu (default 65k, allows K/M/G suffix)")
+	// Allow to specify ring buffer
+	flags.Bool(KeyUsePerfRingBuffer, false, "Use the perf ring buffer instead of the bpf ring buffer")
+	// Allow to specify ring buffer size
+	flags.String(KeyRBSizeTotal, "0", "Set ring buffer size in total for all cpus (default 65k per cpu, allows K/M/G suffix)")
+	flags.String(KeyRBSize, "0", "Set ring buffer size for single cpu (default 65k, allows K/M/G suffix)")
 
 	// Provide option to remove existing pinned BPF programs and maps in Tetragon's
 	// observer dir on startup. Useful for doing upgrades/downgrades. Set to false to
