@@ -111,13 +111,18 @@ func UpdateTgRuntimeConf(mapDir string, nspid int) error {
 			"deployment.mode", deployMode)
 	}
 
+	usePerfRingBuffer := uint8(0)
+	if option.Config.UsePerfRingBuffer {
+		usePerfRingBuffer = 1
+	}
+
 	v := &TetragonConfValue{
 		LogLevel:          uint32(logger.GetLogLevel(logger.GetLogger())),
 		TgCgrpHierarchy:   cgroups.GetCgrpHierarchyID(),
 		TgCgrpv1SubsysIdx: cgroups.GetCgrpv1SubsystemIdx(),
 		NSPID:             uint32(nspid),
 		CgrpFsMagic:       cgroupFsMagic,
-		UsePerfRingBuf:    0,
+		UsePerfRingBuf:    usePerfRingBuffer,
 	}
 
 	if err := UpdateConfMap(mapDir, v); err != nil {
