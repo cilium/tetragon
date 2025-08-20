@@ -108,7 +108,7 @@ __do_str(void *ctx, struct msg_data *msg, unsigned long arg, bool *done)
 	asm volatile("%[size] &= 0x7fff;\n"
 		     : [size] "+r"(size));
 	msg->common.size = size;
-	perf_event_output_metric(ctx, MSG_OP_DATA, &tcpmon_map, BPF_F_CURRENT_CPU, msg, size);
+	perf_event_output_metric(ctx, MSG_OP_DATA, msg, size);
 	return ret;
 }
 
