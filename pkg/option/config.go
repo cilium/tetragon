@@ -54,9 +54,10 @@ type config struct {
 
 	LogOpts map[string]string
 
-	RBSize      int
-	RBSizeTotal int
-	RBQueueSize int
+	UsePerfRingBuffer bool
+	RBSize            int
+	RBSizeTotal       int
+	RBQueueSize       int
 
 	ProcessCacheSize       int
 	DataCacheSize          int
