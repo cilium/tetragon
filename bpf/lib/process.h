@@ -555,7 +555,8 @@ _Static_assert(sizeof(struct execve_map_value) % 8 == 0,
 #define SENT_FAILED_EBUSY   3 // EBUSY
 #define SENT_FAILED_EINVAL  4 // EINVAL
 #define SENT_FAILED_ENOSPC  5 // ENOSPC
-#define SENT_FAILED_MAX	    6
+#define SENT_FAILED_EAGAIN  6 // EAGAIN
+#define SENT_FAILED_MAX	    7
 
 struct kernel_stats {
 	__u64 sent_failed[256][SENT_FAILED_MAX];
@@ -583,6 +584,9 @@ perf_event_output_update_error_metric(u8 msg_op, long err)
 		case -7: // E2BIG
 			lock_add(&valp->sent_failed[msg_op][SENT_FAILED_E2BIG], 1);
 			break;
+		case -11: // EAGAIN
+			lock_add(&valp->sent_failed[msg_op][SENT_FAILED_EAGAIN], 1);
+			break;
 		case -16: // EBUSY
 			lock_add(&valp->sent_failed[msg_op][SENT_FAILED_EBUSY], 1);
 			break;
@@ -603,7 +607,7 @@ perf_event_output_metric(void *ctx, u8 msg_op, void *data, u64 size)
 {
 	long err;
 
-	err = perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, data, size);
+	err = event_output(ctx, data, size);
 	if (err < 0)
 		perf_event_output_update_error_metric(msg_op, err);
 }

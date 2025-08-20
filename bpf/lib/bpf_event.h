@@ -5,6 +5,7 @@
 #define __BPF_EVENT_H
 
 #include "bpf_helpers.h"
+#include "environ_conf.h"
 
 struct event {
 	int event;
@@ -24,6 +25,23 @@ struct {
 	__uint(type, BPF_MAP_TYPE_RINGBUF);
 	__uint(max_entries, 4096);
 } tg_rb_events SEC(".maps");
+
+FUNC_INLINE long event_output(void *ctx, void *data, uint64_t size)
+{
+	struct tetragon_conf *conf;
+	int zero = 0;
+
+	conf = map_lookup_elem(&tg_conf_map, &zero);
+	if (conf && conf->use_perf_ring_buf)
+		return perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, data, size);
+	return ringbuf_output(&tg_rb_events, data, size, 0);
+}
+
+#else
+FUNC_INLINE long event_output(void *ctx, void *data, uint64_t size)
+{
+	return perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, data, size);
+}
 #endif
 
 #endif // __BPF_EVENT_H

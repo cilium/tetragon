@@ -33,7 +33,7 @@ a:
 		return err;
 
 	msg->common.size = offsetof(struct msg_data, arg) + bytes;
-	err = perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, msg, msg->common.size);
+	err = event_output(ctx, msg, msg->common.size);
 	if (err < 0)
 		return err;
 
