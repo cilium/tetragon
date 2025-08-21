@@ -32,42 +32,83 @@ func TestUsdtLoadSensor(t *testing.T) {
 		t.Skip("Need 5.3 or newer kernel for usdt and uprobe ref_ctr_off support for this test.")
 	}
 
-	var sensorProgs = []tus.SensorProg{
-		0: {Name: "generic_usdt_event", Type: ebpf.Kprobe},
-		1: {Name: "generic_usdt_setup_event", Type: ebpf.Kprobe},
-		2: {Name: "generic_usdt_process_event", Type: ebpf.Kprobe},
-		3: {Name: "generic_usdt_filter_arg", Type: ebpf.Kprobe},
-		4: {Name: "generic_usdt_process_filter", Type: ebpf.Kprobe},
-		5: {Name: "generic_usdt_actions", Type: ebpf.Kprobe},
-		6: {Name: "generic_usdt_output", Type: ebpf.Kprobe},
-	}
+	var (
+		sensorProgs []tus.SensorProg
+		sensorMaps  []tus.SensorMap
+	)
 
-	var sensorMaps = []tus.SensorMap{
-		// all usdt programs
-		{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6}},
+	if config.EnableV61Progs() {
+		sensorProgs = []tus.SensorProg{
+			0: {Name: "generic_usdt_event", Type: ebpf.Kprobe},
+			1: {Name: "generic_usdt_setup_event", Type: ebpf.Kprobe},
+			2: {Name: "generic_usdt_process_event", Type: ebpf.Kprobe},
+			3: {Name: "generic_usdt_filter_arg", Type: ebpf.Kprobe},
+			4: {Name: "generic_usdt_process_filter", Type: ebpf.Kprobe},
+			5: {Name: "generic_usdt_actions", Type: ebpf.Kprobe},
+			6: {Name: "generic_usdt_output", Type: ebpf.Kprobe},
+		}
 
-		// all but generic_usdt_output
-		{Name: "usdt_calls", Progs: []uint{0, 1, 2, 3, 4, 5}},
+		sensorMaps = []tus.SensorMap{
+			// all usdt programs
+			{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6}},
 
-		// generic_usdt_process_filter
-		// generic_usdt_filter_arg
-		// generic_usdt_actions
-		{Name: "filter_map", Progs: []uint{3, 4, 5}},
+			// all but generic_usdt_output
+			{Name: "usdt_calls", Progs: []uint{0, 1, 2, 3, 4, 5}},
 
-		// generic_usdt_process_event
-		// generic_usdt_output
-		{Name: "tcpmon_map", Progs: []uint{2, 6}},
+			// generic_usdt_process_filter
+			// generic_usdt_filter_arg
+			// generic_usdt_actions
+			{Name: "filter_map", Progs: []uint{3, 4, 5}},
 
-		// generic_usdt_event
-		{Name: "tg_conf_map", Progs: []uint{0}},
-	}
+			// generic_usdt_process_event
+			// generic_usdt_output
+			{Name: "tcpmon_map", Progs: []uint{2, 6}},
 
-	if config.EnableLargeProgs() {
-		// shared with base sensor
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 5, 6}})
+			// generic_usdt_event
+			{Name: "tg_conf_map", Progs: []uint{0}},
+
+			// shared with base sensor
+			{Name: "execve_map", Progs: []uint{4, 5, 6}},
+		}
 	} else {
-		// shared with base sensor
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4}})
+		sensorProgs = []tus.SensorProg{
+			0: {Name: "generic_usdt_event", Type: ebpf.Kprobe},
+			1: {Name: "generic_usdt_setup_event", Type: ebpf.Kprobe},
+			2: {Name: "generic_usdt_process_event", Type: ebpf.Kprobe},
+			3: {Name: "generic_usdt_filter_arg", Type: ebpf.Kprobe},
+			4: {Name: "generic_usdt_process_filter", Type: ebpf.Kprobe},
+			5: {Name: "generic_usdt_actions", Type: ebpf.Kprobe},
+			6: {Name: "generic_usdt_output", Type: ebpf.Kprobe},
+			7: {Name: "generic_usdt_path", Type: ebpf.Kprobe},
+		}
+
+		sensorMaps = []tus.SensorMap{
+			// all usdt programs
+			{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7}},
+
+			// all but generic_usdt_output
+			{Name: "usdt_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7}},
+
+			// generic_usdt_process_filter
+			// generic_usdt_filter_arg
+			// generic_usdt_actions
+			{Name: "filter_map", Progs: []uint{3, 4, 5}},
+
+			// generic_usdt_process_event
+			// generic_usdt_output
+			{Name: "tcpmon_map", Progs: []uint{2, 6}},
+
+			// generic_usdt_event
+			{Name: "tg_conf_map", Progs: []uint{0}},
+		}
+
+		if config.EnableLargeProgs() {
+			// shared with base sensor
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 5, 6}})
+		} else {
+			// shared with base sensor
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4}})
+		}
 	}
 
 	usdt := testutils.RepoRootPath("contrib/tester-progs/usdt")
