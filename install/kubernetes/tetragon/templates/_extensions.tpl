@@ -6,6 +6,8 @@
 
 {{- define "initcontainers.extra" -}}{{- end }}
 
+{{- define "containers.extra" -}}{{- end }}
+
 {{- define "clusterrole.extra" -}}{{- end }}
 
 {{- define "operatorconfigmap.extra" -}}{{- end }}
