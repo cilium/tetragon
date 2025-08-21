@@ -63,33 +63,32 @@ func perfBufferSize(perCPUBuffer int) int {
 
 func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 	pinOpts := ebpf.LoadPinOptions{}
-	perfMap, err := ebpf.LoadPinnedMap(k.PerfConfig.MapName, &pinOpts)
-	if err != nil {
-		return fmt.Errorf("opening pinned map '%s' failed: %w", k.PerfConfig.MapName, err)
-	}
-	defer perfMap.Close()
 
-	rbSize := k.getRBSize(int(perfMap.MaxEntries()))
-	perfReader, err := perf.NewReader(perfMap, rbSize)
-
-	if err != nil {
-		return fmt.Errorf("creating perf array reader failed: %w", err)
-	}
-
+	var ringBufMapName string
 	var ringBufReader *ringbuf.Reader
-	var ringBufMap *ebpf.Map
-	if config.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
-		ringBufMap, err = ebpf.LoadPinnedMap(k.RingBufMapName, &pinOpts)
-		if err != nil {
-			return fmt.Errorf("opening pinned map '%s' failed: %w", k.RingBufMapName, err)
-		}
-		defer ringBufMap.Close()
+	var perfReader *perf.Reader
+	useBpfRingBuffer := config.EnableV511Progs() && !option.Config.UsePerfRingBuffer
 
+	if useBpfRingBuffer {
+		ringBufMapName = k.RingBufMapName
+	} else {
+		ringBufMapName = k.PerfConfig.MapName
+	}
+
+	ringBufMap, err := ebpf.LoadPinnedMap(ringBufMapName, &pinOpts)
+	if err != nil {
+		return fmt.Errorf("opening pinned map '%s' failed: %w", ringBufMapName, err)
+	}
+	defer ringBufMap.Close()
+
+	if useBpfRingBuffer {
 		ringBufReader, err = ringbuf.NewReader(ringBufMap)
-
-		if err != nil {
-			return fmt.Errorf("creating ring buffer reader failed: %w", err)
-		}
+	} else {
+		rbSize := k.getRBSize(int(ringBufMap.MaxEntries()))
+		perfReader, err = perf.NewReader(ringBufMap, rbSize)
+	}
+	if err != nil {
+		return fmt.Errorf("creating ring buffer reader failed: %w", err)
 	}
 
 	// Inform caller that we're about to start processing events.
@@ -104,42 +103,12 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 	// user everything is ready.
 	k.log.Info("Listening for events...")
 
-	// Start reading records from the perf array. Reads until the reader is closed.
+	// Start reading records from the ring buffer. Reads until the reader is closed.
 	var wg sync.WaitGroup
 	wg.Add(1)
 	defer wg.Wait()
-	go func() {
-		defer wg.Done()
-		for stopCtx.Err() == nil {
-			record, err := perfReader.Read()
-			if err != nil {
-				// NOTE(JM and Djalal): count and log errors while excluding the stopping context
-				if stopCtx.Err() == nil {
-					RingbufErrors.Inc()
-					errorCnt := getCounterValue(RingbufErrors)
-					k.log.Warn("Reading bpf events failed", "errors", errorCnt, logfields.Error, err)
-				}
-			} else {
-				if len(record.RawSample) > 0 {
-					select {
-					case eventsQueue <- &record.RawSample:
-					default:
-						// eventsQueue channel is full, drop the event
-						queueLost.Inc()
-					}
-					RingbufReceived.Inc()
-				}
-
-				if record.LostSamples > 0 {
-					RingbufLost.Add(float64(record.LostSamples))
-				}
-			}
-		}
-	}()
-
-	if config.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
-		// Service the BPF ring buffer as well.
-		wg.Add(1)
+	if useBpfRingBuffer {
+		// Service the BPF ring buffer.
 		go func() {
 			defer wg.Done()
 			for stopCtx.Err() == nil {
@@ -160,6 +129,36 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 							queueLost.Inc()
 						}
 						RingbufReceived.Inc()
+					}
+				}
+			}
+		}()
+	} else {
+		// Service the perf ring buffer.
+		go func() {
+			defer wg.Done()
+			for stopCtx.Err() == nil {
+				record, err := perfReader.Read()
+				if err != nil {
+					// NOTE(JM and Djalal): count and log errors while excluding the stopping context
+					if stopCtx.Err() == nil {
+						RingbufErrors.Inc()
+						errorCnt := getCounterValue(RingbufErrors)
+						k.log.Warn("Reading bpf events failed", "errors", errorCnt, logfields.Error, err)
+					}
+				} else {
+					if len(record.RawSample) > 0 {
+						select {
+						case eventsQueue <- &record.RawSample:
+						default:
+							// eventsQueue channel is full, drop the event
+							queueLost.Inc()
+						}
+						RingbufReceived.Inc()
+					}
+
+					if record.LostSamples > 0 {
+						RingbufLost.Add(float64(record.LostSamples))
 					}
 				}
 			}
@@ -191,13 +190,10 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 
 	// Wait for context to be cancelled and then stop.
 	<-stopCtx.Done()
-	err = perfReader.Close()
-	var errRingBufRdr error
-	if config.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
-		errRingBufRdr = ringBufReader.Close()
+	if useBpfRingBuffer {
+		err = ringBufReader.Close()
+	} else {
+		err = perfReader.Close()
 	}
-	if err != nil {
-		return err
-	}
-	return errRingBufRdr
+	return err
 }
