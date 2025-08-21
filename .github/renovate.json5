@@ -251,6 +251,7 @@
       "matchFileNames": [
         "install/kubernetes/tetragon/values.yaml",
         "install/kubernetes/Makefile",
+        "install/kubernetes/tetragon/Chart.yaml"
       ],
       // Generate files for the Helm chart
       "postUpgradeTasks": {
@@ -548,6 +549,14 @@
       ],
       "matchStrings": [
         "\\/\\/ renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s+CiliumVersion:\\s*\"(?<currentValue>.*?)\""
+      ]
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["(^|/)Chart\\.ya?ml$"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s*\\nversion:\\s*(?<currentValue>.*)",
+        "# renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s*\\nappVersion:\\s*(?<currentValue>.*)"
       ]
     },
   ]
