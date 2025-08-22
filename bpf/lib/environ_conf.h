@@ -27,10 +27,14 @@ struct tetragon_conf {
 	__u64 cgrp_fs_magic; /* Cgroupv1 or Cgroupv2 */
 }; // All fields aligned so no 'packed' attribute.
 
+/* Tetragon runtime configuration storage.
+ * Set from userspace during startup and environment discovery
+ * only, bpf part is read-only.
+ */
 struct {
-	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(type, BPF_MAP_TYPE_ARRAY);
 	__uint(max_entries, 1);
-	__type(key, __s32);
+	__type(key, __u32);
 	__type(value, struct tetragon_conf);
 } tg_conf_map SEC(".maps");
 
