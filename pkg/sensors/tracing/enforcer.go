@@ -12,6 +12,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/metrics/enforcermetrics"
@@ -288,10 +289,10 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 		useMulti := !specOpts.DisableKprobeMulti && !option.Config.DisableKprobeMulti && bpf.HasKprobeMulti()
 		logger.GetLogger().Info(fmt.Sprintf("enforcer: using override return (multi-kprobe: %t)", useMulti))
 		label := "kprobe/enforcer"
-		prog := "bpf_enforcer.o"
+		prog := config.EnforcerObj()
 		if useMulti {
 			label = "kprobe.multi/enforcer"
-			prog = "bpf_multi_enforcer.o"
+			prog = config.MultiEnforcerObj()
 		}
 		attach := fmt.Sprintf("%d syscalls: %s", len(kh.syscallsSyms), kh.syscallsSyms)
 		load = program.Builder(
@@ -310,7 +311,7 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 		logger.GetLogger().Info("enforcer: using fmod_ret")
 		for _, syscallSym := range kh.syscallsSyms {
 			load = program.Builder(
-				path.Join(option.Config.HubbleLib, "bpf_fmodret_enforcer.o"),
+				path.Join(option.Config.HubbleLib, config.FmodRetEnforcerObj()),
 				syscallSym,
 				"fmod_ret/security_task_prctl",
 				"fmod_ret_"+syscallSym,

@@ -9,7 +9,8 @@
 #include "common.h"
 
 #ifdef TETRAGON_BPF_DEBUG
-#ifdef TETRAGON_PERF_DEBUG
+// Enable perf debug for 5.13+ kernels by default, or when explicitly enabled
+#if defined(__V513_BPF_PROG) || defined(TETRAGON_PERF_DEBUG)
 
 // Maximum size of the formatted message
 #define BPF_DEBUG_DATA_MAX_LEN 4096
@@ -78,12 +79,12 @@ FUNC_INLINE void send_debug_event(void *ctx, struct debug_event *event)
 		}                                                                          \
 	} while (0)
 
-#else // !TETRAGON_PERF_DEBUG
+#else // !(__V513_BPF_PROG || TETRAGON_PERF_DEBUG)
 
-// Fallback to traditional bpf_printk when perf debug is disabled
+// Fallback to traditional bpf_printk when perf debug is disabled or on older kernels
 #define DEBUG(__ctx, __fmt, ...) bpf_printk(__fmt, ##__VA_ARGS__)
 
-#endif // TETRAGON_PERF_DEBUG
+#endif // __V513_BPF_PROG || TETRAGON_PERF_DEBUG
 #else // !TETRAGON_BPF_DEBUG
 #define DEBUG(__ctx, __fmt, ...)
 #endif // !TETRAGON_BPF_DEBUG

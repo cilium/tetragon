@@ -31,6 +31,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/ktime"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -350,7 +351,7 @@ func RegisterCgroupRate(sensor *sensors.Sensor) (*sensors.Sensor, error) {
 	}
 
 	cgRmdirProg := program.Builder(
-		"bpf_cgroup.o",
+		config.CgroupObj(),
 		"cgroup/cgroup_rmdir",
 		"raw_tracepoint/cgroup_rmdir",
 		"tg_cgroup_rmdir",

@@ -73,9 +73,29 @@ PROCESS += bpf_generic_kprobe_v511.o bpf_generic_retkprobe_v511.o \
 PROCESS += bpf_generic_lsm_core_v511.o bpf_generic_lsm_output_v511.o \
 	   bpf_generic_lsm_ima_file_v511.o bpf_generic_lsm_ima_bprm_v511.o
 
+# v5.13
+# base sensor
+PROCESS += bpf_execve_event_v513.o bpf_exit_v513.o bpf_fork_v513.o
+# generic probes
+PROCESS += bpf_generic_kprobe_v513.o bpf_generic_retkprobe_v513.o \
+	   bpf_multi_kprobe_v513.o bpf_multi_retkprobe_v513.o \
+	   bpf_generic_tracepoint_v513.o bpf_generic_uprobe_v513.o \
+	   bpf_multi_uprobe_v513.o \
+	   bpf_generic_rawtp_v513.o \
+	   bpf_generic_usdt_v513.o \
+	   bpf_multi_usdt_v513.o
+
+# lsm
+PROCESS += bpf_generic_lsm_core_v513.o bpf_generic_lsm_output_v513.o \
+	   bpf_generic_lsm_ima_file_v513.o bpf_generic_lsm_ima_bprm_v513.o
+
+# additional sensors  
+PROCESS += bpf_execve_bprm_commit_creds_v513.o bpf_enforcer_v513.o bpf_multi_enforcer_v513.o \
+	   bpf_fmodret_enforcer_v513.o bpf_loader_v513.o
+
 # v6.1
 # base sensor
-PROCESS += bpf_execve_event_v61.o
+PROCESS += bpf_execve_event_v61.o bpf_exit_v61.o bpf_fork_v61.o
 # generic probes
 PROCESS += bpf_generic_kprobe_v61.o bpf_generic_retkprobe_v61.o \
 	   bpf_multi_kprobe_v61.o bpf_multi_retkprobe_v61.o \
@@ -87,7 +107,7 @@ PROCESS += bpf_generic_kprobe_v61.o bpf_generic_retkprobe_v61.o \
 
 # v6.12
 # base sensor
-PROCESS += bpf_execve_event_v612.o
+PROCESS += bpf_execve_event_v612.o bpf_exit_v612.o bpf_fork_v612.o
 # generic probes
 PROCESS += bpf_generic_kprobe_v612.o bpf_generic_retkprobe_v612.o \
 	   bpf_multi_kprobe_v612.o bpf_multi_retkprobe_v612.o \
@@ -103,13 +123,19 @@ PROCESS += bpf_generic_lsm_core_v61.o bpf_generic_lsm_output_v61.o \
 	   bpf_generic_lsm_core_v612.o bpf_generic_lsm_output_v612.o \
 	   bpf_generic_lsm_ima_file_v612.o bpf_generic_lsm_ima_bprm_v612.o
 
+# additional sensors (v6.1 and v6.12 variants)
+PROCESS += bpf_execve_bprm_commit_creds_v61.o bpf_enforcer_v61.o bpf_multi_enforcer_v61.o \
+	   bpf_fmodret_enforcer_v61.o bpf_loader_v61.o \
+	   bpf_execve_bprm_commit_creds_v612.o bpf_enforcer_v612.o bpf_multi_enforcer_v612.o \
+	   bpf_fmodret_enforcer_v612.o bpf_loader_v612.o
 
 # execve_map update
-PROCESS += bpf_execve_map_update_v612.o bpf_execve_map_update_v61.o bpf_execve_map_update_v511.o \
+PROCESS += bpf_execve_map_update_v612.o bpf_execve_map_update_v61.o bpf_execve_map_update_v513.o bpf_execve_map_update_v511.o \
 	   bpf_execve_map_update_v53.o bpf_execve_map_update.o
 
 
 CGROUP = bpf_cgroup_mkdir.o bpf_cgroup_rmdir.o bpf_cgroup_release.o bpf_cgtracker.o
+CGROUP += bpf_cgtracker_v513.o bpf_cgtracker_v61.o bpf_cgtracker_v612.o
 BPFTEST = bpf_lseek.o
 
 OBJSDIR         := objs/
@@ -144,8 +170,9 @@ $(DEPSDIR):
 CFLAGS_v310 = -D__RHEL7_BPF_PROG
 CFLAGS_v53  = -D__LARGE_BPF_PROG
 CFLAGS_v511 = -D__LARGE_BPF_PROG -D__V511_BPF_PROG
-CFLAGS_v61  = -D__LARGE_BPF_PROG -D__V511_BPF_PROG -D__V61_BPF_PROG
-CFLAGS_v612 = -D__LARGE_BPF_PROG -D__V511_BPF_PROG -D__V61_BPF_PROG -D__V612_BPF_PROG
+CFLAGS_v513 = -D__LARGE_BPF_PROG -D__V511_BPF_PROG -D__V513_BPF_PROG -DTETRAGON_PERF_DEBUG
+CFLAGS_v61  = -D__LARGE_BPF_PROG -D__V511_BPF_PROG -D__V61_BPF_PROG -DTETRAGON_PERF_DEBUG
+CFLAGS_v612 = -D__LARGE_BPF_PROG -D__V511_BPF_PROG -D__V61_BPF_PROG -D__V612_BPF_PROG -DTETRAGON_PERF_DEBUG
 
 # Define extra CFLAGS for objects
 CFLAGS_bpf_enforcer.o           = -D__BPF_OVERRIDE_RETURN
@@ -181,6 +208,9 @@ $(DEPSDIR)bpf_multi_kprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_kprobe.c
 $(DEPSDIR)bpf_multi_retkprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_retkprobe.c
 $(DEPSDIR)bpf_multi_uprobe_$$(VAR).d: $(PROCESSDIR)bpf_generic_uprobe.c
 $(DEPSDIR)bpf_multi_usdt_$$(VAR).d: $(PROCESSDIR)bpf_generic_usdt.c
+$(DEPSDIR)bpf_multi_enforcer_$$(VAR).d: $(PROCESSDIR)bpf_enforcer.c
+$(DEPSDIR)bpf_fmodret_enforcer_$$(VAR).d: $(PROCESSDIR)bpf_enforcer.c
+$(DEPSDIR)bpf_cgtracker_$$(VAR).d: $(CGROUPDIR)bpf_cgtracker.c
 
 # Object build rule for VARIANT objects
 $(OBJSDIR)%_$$(VAR).o:
@@ -197,8 +227,15 @@ $(DEPSDIR)%_$$(VAR).d: $(PROCESSDIR)%.c
 	$$(call rule_d,$(VARIANT_CFLAGS))
 
 # Define extra CFLAGS for variant objects
+CFLAGS_bpf_enforcer_$$(VAR).o        = -D__BPF_OVERRIDE_RETURN
+CFLAGS_bpf_multi_enforcer_$$(VAR).o  = -D__BPF_OVERRIDE_RETURN -D__MULTI_KPROBE
+CFLAGS_bpf_fmodret_enforcer_$$(VAR).o = -D__BPF_OVERRIDE_RETURN
 CFLAGS_bpf_multi_kprobe_$$(VAR).o    = -D__MULTI_KPROBE
 CFLAGS_bpf_multi_retkprobe_$$(VAR).o = -D__MULTI_KPROBE
+ifeq (v513,$$(VAR))
+CFLAGS_bpf_multi_uprobe_$$(VAR).o    = -D__MULTI_KPROBE
+CFLAGS_bpf_multi_usdt_$$(VAR).o      = -D__MULTI_KPROBE
+endif
 ifeq (v61,$$(VAR))
 CFLAGS_bpf_multi_uprobe_$$(VAR).o    = -D__MULTI_KPROBE
 CFLAGS_bpf_multi_usdt_$$(VAR).o      = -D__MULTI_KPROBE
@@ -212,6 +249,7 @@ endef # DEFINE_VARIANT
 $(eval $(call DEFINE_VARIANT,v310))
 $(eval $(call DEFINE_VARIANT,v53))
 $(eval $(call DEFINE_VARIANT,v511))
+$(eval $(call DEFINE_VARIANT,v513))
 $(eval $(call DEFINE_VARIANT,v61))
 $(eval $(call DEFINE_VARIANT,v612))
 
