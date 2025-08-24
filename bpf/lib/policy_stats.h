@@ -15,7 +15,8 @@
 	defined(GENERIC_KRETPROBE) ||  \
 	defined(ALIGNCHECKER) ||       \
 	defined(GENERIC_URETPROBE) ||  \
-	defined(GENERIC_FENTRY)
+	defined(GENERIC_FENTRY) ||     \
+	defined(GENERIC_FEXIT)
 #define HAS_POLICY_STATS
 #endif
 
