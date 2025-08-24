@@ -1157,7 +1157,7 @@ generic_output(void *ctx, u8 op)
 		return 0;
 
 /* We don't need this data in return kprobe event */
-#if !defined(GENERIC_KRETPROBE) && !defined(GENERIC_URETPROBE)
+#if !defined(GENERIC_KRETPROBE) && !defined(GENERIC_URETPROBE) && !defined(GENERIC_FEXIT)
 #ifdef __NS_CHANGES_FILTER
 	/* update the namespaces if we matched a change on that */
 	if (e->sel.match_ns) {
@@ -1232,7 +1232,7 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 	do_copy = config->argreturncopy;
 	if (ty_arg) {
 		size += read_arg(ctx, 0, ty_arg, size, ret, 0, __READ_ARG_ALL);
-#if defined(__LARGE_BPF_PROG) && defined(GENERIC_KRETPROBE)
+#if defined(__LARGE_BPF_PROG) && (defined(GENERIC_KRETPROBE) || defined(GENERIC_FEXIT))
 		struct socket_owner owner;
 
 		switch (config->argreturnaction) {
@@ -1271,7 +1271,7 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 
 	/* Complete message header and send */
 	enter = event_find_curr(&ppid, &walker);
-#ifdef GENERIC_KRETPROBE
+#if defined(GENERIC_KRETPROBE) || defined(GENERIC_FEXIT)
 	e->common.op = MSG_OP_GENERIC_KPROBE;
 #else
 	e->common.op = MSG_OP_GENERIC_UPROBE;
