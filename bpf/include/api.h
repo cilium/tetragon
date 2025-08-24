@@ -278,6 +278,10 @@ static long BPF_FUNC(ima_inode_hash, struct inode *inode, void *dst, uint32_t si
 
 static int BPF_FUNC(seq_write, struct seq_file *m, const void *data, uint32_t len);
 
+/* Tracing */
+static int BPF_FUNC(get_func_arg, void *ctx, __u32 n, __u64 *value);
+static int BPF_FUNC(get_func_ret, void *ctx, __u64 *value);
+
 /** LLVM built-ins, mem*() routines work for constant size */
 
 #ifndef memset
