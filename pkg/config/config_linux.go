@@ -77,6 +77,17 @@ func GenericKprobeObjs(multi bool) (string, string) {
 	return "bpf_generic_kprobe.o", "bpf_generic_retkprobe.o"
 }
 
+func GenericTracingObjs() (string, string) {
+	if EnableV61Progs() {
+		return "bpf_generic_fentry_v61.o", "bpf_generic_fexit_v61.o"
+	} else if kernels.MinKernelVersion("5.11") {
+		return "bpf_generic_fentry_v511.o", "bpf_generic_fexit_v511.o"
+	} else if EnableLargeProgs() {
+		return "bpf_generic_fentry_v53.o", "bpf_generic_fexit_v53.o"
+	}
+	return "bpf_generic_fentry.o", "bpf_generic_fexit.o"
+}
+
 // GenericUprobeObjs returns the generic uprobe and generic uretprobe objects
 func GenericUprobeObjs(multi bool) (string, string) {
 	if multi {
