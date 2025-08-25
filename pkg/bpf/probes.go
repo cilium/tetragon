@@ -22,4 +22,6 @@ const (
 	ProbeWriteUserProbe         = "probe_write_user"
 	UprobeRegsChangeProbe       = "uprobe_regs_change"
 	MixBPFAndTailCallsProbe     = "mix_bpf_and_tail_calls"
+	Fentry                      = "fentry"
+	GetFuncRet                  = "get_func_ret"
 )
