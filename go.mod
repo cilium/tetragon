@@ -1,9 +1,7 @@
 module github.com/cilium/tetragon
 
 // renovate: datasource=golang-version depName=go
-go 1.23.0
-
-toolchain go1.23.1
+go 1.24.6
 
 require (
 	github.com/alecthomas/kong v1.6.0
