@@ -498,7 +498,7 @@ func detectUprobeRefCtrOffset() bool {
 }
 
 func detectUprobeRefCtrOffsetOnce() {
-	batchUpdate.init.Do(func() {
+	uprobeRefCtrOffset.init.Do(func() {
 		uprobeRefCtrOffset.detected = detectUprobeRefCtrOffset()
 	})
 }
