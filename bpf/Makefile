@@ -95,7 +95,7 @@ PROCESS += bpf_execve_bprm_commit_creds_v513.o bpf_enforcer_v513.o bpf_multi_enf
 
 # v6.1
 # base sensor
-PROCESS += bpf_execve_event_v61.o bpf_exit_v61.o bpf_fork_v61.o
+PROCESS += bpf_execve_event_v61.o
 # generic probes
 PROCESS += bpf_generic_kprobe_v61.o bpf_generic_retkprobe_v61.o \
 	   bpf_multi_kprobe_v61.o bpf_multi_retkprobe_v61.o \
@@ -107,7 +107,7 @@ PROCESS += bpf_generic_kprobe_v61.o bpf_generic_retkprobe_v61.o \
 
 # v6.12
 # base sensor
-PROCESS += bpf_execve_event_v612.o bpf_exit_v612.o bpf_fork_v612.o
+PROCESS += bpf_execve_event_v612.o
 # generic probes
 PROCESS += bpf_generic_kprobe_v612.o bpf_generic_retkprobe_v612.o \
 	   bpf_multi_kprobe_v612.o bpf_multi_retkprobe_v612.o \
@@ -123,19 +123,14 @@ PROCESS += bpf_generic_lsm_core_v61.o bpf_generic_lsm_output_v61.o \
 	   bpf_generic_lsm_core_v612.o bpf_generic_lsm_output_v612.o \
 	   bpf_generic_lsm_ima_file_v612.o bpf_generic_lsm_ima_bprm_v612.o
 
-# additional sensors (v6.1 and v6.12 variants)
-PROCESS += bpf_execve_bprm_commit_creds_v61.o bpf_enforcer_v61.o bpf_multi_enforcer_v61.o \
-	   bpf_fmodret_enforcer_v61.o bpf_loader_v61.o \
-	   bpf_execve_bprm_commit_creds_v612.o bpf_enforcer_v612.o bpf_multi_enforcer_v612.o \
-	   bpf_fmodret_enforcer_v612.o bpf_loader_v612.o
-
 # execve_map update
-PROCESS += bpf_execve_map_update_v612.o bpf_execve_map_update_v61.o bpf_execve_map_update_v513.o bpf_execve_map_update_v511.o \
+PROCESS += bpf_execve_map_update_v612.o bpf_execve_map_update_v61.o \
+	   bpf_execve_map_update_v513.o bpf_execve_map_update_v511.o \
 	   bpf_execve_map_update_v53.o bpf_execve_map_update.o
 
 
 CGROUP = bpf_cgroup_mkdir.o bpf_cgroup_rmdir.o bpf_cgroup_release.o bpf_cgtracker.o
-CGROUP += bpf_cgtracker_v513.o bpf_cgtracker_v61.o bpf_cgtracker_v612.o
+CGROUP += bpf_cgtracker_v513.o
 BPFTEST = bpf_lseek.o
 
 OBJSDIR         := objs/
@@ -171,8 +166,8 @@ CFLAGS_v310 = -D__RHEL7_BPF_PROG
 CFLAGS_v53  = -D__LARGE_BPF_PROG
 CFLAGS_v511 = -D__LARGE_BPF_PROG -D__V511_BPF_PROG
 CFLAGS_v513 = -D__LARGE_BPF_PROG -D__V511_BPF_PROG -D__V513_BPF_PROG -DTETRAGON_PERF_DEBUG
-CFLAGS_v61  = -D__LARGE_BPF_PROG -D__V511_BPF_PROG -D__V61_BPF_PROG -DTETRAGON_PERF_DEBUG
-CFLAGS_v612 = -D__LARGE_BPF_PROG -D__V511_BPF_PROG -D__V61_BPF_PROG -D__V612_BPF_PROG -DTETRAGON_PERF_DEBUG
+CFLAGS_v61  = -D__LARGE_BPF_PROG -D__V511_BPF_PROG -D__V61_BPF_PROG
+CFLAGS_v612 = -D__LARGE_BPF_PROG -D__V511_BPF_PROG -D__V61_BPF_PROG -D__V612_BPF_PROG
 
 # Define extra CFLAGS for objects
 CFLAGS_bpf_enforcer.o           = -D__BPF_OVERRIDE_RETURN

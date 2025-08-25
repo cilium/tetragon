@@ -28,10 +28,8 @@ func ExecObj() string {
 }
 
 func ExecUpdateObj() string {
-	if EnableV612Progs() {
+	if kernels.MinKernelVersion("6.12") {
 		return "bpf_execve_map_update_v612.o"
-	} else if EnableV61Progs() {
-		return "bpf_execve_map_update_v61.o"
 	} else if EnableV513Progs() {
 		return "bpf_execve_map_update_v513.o"
 	} else if kernels.MinKernelVersion("5.11") {
@@ -43,12 +41,6 @@ func ExecUpdateObj() string {
 }
 
 func ExitObj() string {
-	if EnableV612Progs() {
-		return "bpf_exit_v612.o"
-	}
-	if EnableV61Progs() {
-		return "bpf_exit_v61.o"
-	}
 	if EnableV513Progs() {
 		return "bpf_exit_v513.o"
 	}
@@ -59,12 +51,6 @@ func ExitObj() string {
 }
 
 func ForkObj() string {
-	if EnableV612Progs() {
-		return "bpf_fork_v612.o"
-	}
-	if EnableV61Progs() {
-		return "bpf_fork_v61.o"
-	}
 	if EnableV513Progs() {
 		return "bpf_fork_v513.o"
 	}
@@ -75,12 +61,6 @@ func ForkObj() string {
 }
 
 func BprmCommitObj() string {
-	if EnableV612Progs() {
-		return "bpf_execve_bprm_commit_creds_v612.o"
-	}
-	if EnableV61Progs() {
-		return "bpf_execve_bprm_commit_creds_v61.o"
-	}
 	if EnableV513Progs() {
 		return "bpf_execve_bprm_commit_creds_v513.o"
 	}
@@ -88,12 +68,6 @@ func BprmCommitObj() string {
 }
 
 func EnforcerObj() string {
-	if EnableV612Progs() {
-		return "bpf_enforcer_v612.o"
-	}
-	if EnableV61Progs() {
-		return "bpf_enforcer_v61.o"
-	}
 	if EnableV513Progs() {
 		return "bpf_enforcer_v513.o"
 	}
@@ -101,12 +75,6 @@ func EnforcerObj() string {
 }
 
 func MultiEnforcerObj() string {
-	if EnableV612Progs() {
-		return "bpf_multi_enforcer_v612.o"
-	}
-	if EnableV61Progs() {
-		return "bpf_multi_enforcer_v61.o"
-	}
 	if EnableV513Progs() {
 		return "bpf_multi_enforcer_v513.o"
 	}
@@ -114,12 +82,6 @@ func MultiEnforcerObj() string {
 }
 
 func FmodRetEnforcerObj() string {
-	if EnableV612Progs() {
-		return "bpf_fmodret_enforcer_v612.o"
-	}
-	if EnableV61Progs() {
-		return "bpf_fmodret_enforcer_v61.o"
-	}
 	if EnableV513Progs() {
 		return "bpf_fmodret_enforcer_v513.o"
 	}
@@ -127,12 +89,6 @@ func FmodRetEnforcerObj() string {
 }
 
 func LoaderObj() string {
-	if EnableV612Progs() {
-		return "bpf_loader_v612.o"
-	}
-	if EnableV61Progs() {
-		return "bpf_loader_v61.o"
-	}
 	if EnableV513Progs() {
 		return "bpf_loader_v513.o"
 	}
@@ -140,25 +96,10 @@ func LoaderObj() string {
 }
 
 func CgroupObj() string {
-	if EnableV612Progs() {
-		return "bpf_cgroup_v612.o"
-	}
-	if EnableV61Progs() {
-		return "bpf_cgroup_v61.o"
-	}
-	if EnableV513Progs() {
-		return "bpf_cgroup_v513.o"
-	}
 	return "bpf_cgroup.o"
 }
 
 func CgtrackerObj() string {
-	if EnableV612Progs() {
-		return "bpf_cgtracker_v612.o"
-	}
-	if EnableV61Progs() {
-		return "bpf_cgtracker_v61.o"
-	}
 	if EnableV513Progs() {
 		return "bpf_cgtracker_v513.o"
 	}
