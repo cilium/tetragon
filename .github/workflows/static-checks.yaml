@@ -40,7 +40,7 @@ jobs:
         uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
         with:
           # renovate: datasource=golang-version depName=go
-          go-version: '1.23.12'
+          go-version: '1.24.6'
           # using golangci-lint cache instead
           cache: false
 
@@ -48,7 +48,7 @@ jobs:
         uses: golangci/golangci-lint-action@051d91933864810ecd5e2ea2cfd98f6a5bca5347 # v6.3.2
         with:
           # renovate: datasource=docker depName=docker.io/golangci/golangci-lint
-          version: v1.62.2
+          version: v1.64.8
           args: --config=.golangci.yml --verbose
 
   format:
@@ -61,7 +61,7 @@ jobs:
         uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
         with:
           # renovate: datasource=golang-version depName=go
-          go-version: '1.23.12'
+          go-version: '1.24.6'
 
       - name: Check gofmt formatting
         run: |
@@ -91,7 +91,7 @@ jobs:
         uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
         with:
           # renovate: datasource=golang-version depName=go
-          go-version: '1.23.12'
+          go-version: '1.24.6'
 
       - name: Check module vendoring
         run: |

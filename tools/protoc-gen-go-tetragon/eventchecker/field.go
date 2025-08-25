@@ -8,11 +8,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/cilium/tetragon/tools/protoc-gen-go-tetragon/common"
-	"github.com/cilium/tetragon/tools/protoc-gen-go-tetragon/imports"
 	"github.com/iancoleman/strcase"
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/reflect/protoreflect"
+
+	"github.com/cilium/tetragon/tools/protoc-gen-go-tetragon/common"
+	"github.com/cilium/tetragon/tools/protoc-gen-go-tetragon/imports"
 )
 
 const (
@@ -237,13 +238,14 @@ func doGetFieldFrom(field *Field, g *protogen.GeneratedFile, handleList, handleO
 	case protoreflect.MessageKind:
 		if field.Message.GoIdent.GoImportPath == imports.WrappersPath {
 			return doWrapperFrom(), nil
-		} else if field.Message.GoIdent.GoImportPath == imports.TimestampPath {
-			return doTimestampFrom(), nil
-		} else if field.Message.GoIdent.GoImportPath == imports.DurationPath {
-			return doDurationFrom(), nil
-		} else {
-			return doCheckerFrom(), nil
 		}
+		if field.Message.GoIdent.GoImportPath == imports.TimestampPath {
+			return doTimestampFrom(), nil
+		}
+		if field.Message.GoIdent.GoImportPath == imports.DurationPath {
+			return doDurationFrom(), nil
+		}
+		return doCheckerFrom(), nil
 
 	case protoreflect.EnumKind:
 		return doEnumFrom(), nil
@@ -453,13 +455,14 @@ func checkForKind(g *protogen.GeneratedFile, field *Field, checkerVar, eventVar 
 	case protoreflect.MessageKind:
 		if field.Message.GoIdent.GoImportPath == imports.WrappersPath {
 			return doWrapperCheck(), nil
-		} else if field.Message.GoIdent.GoImportPath == imports.TimestampPath {
-			return doTimestampCheck(), nil
-		} else if field.Message.GoIdent.GoImportPath == imports.DurationPath {
-			return doDurationCheck(), nil
-		} else {
-			return doCheckerCheck(), nil
 		}
+		if field.Message.GoIdent.GoImportPath == imports.TimestampPath {
+			return doTimestampCheck(), nil
+		}
+		if field.Message.GoIdent.GoImportPath == imports.DurationPath {
+			return doDurationCheck(), nil
+		}
+		return doCheckerCheck(), nil
 
 	case protoreflect.EnumKind:
 		return doEnumCheck(), nil
