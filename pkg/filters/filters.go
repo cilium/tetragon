@@ -151,6 +151,7 @@ var Filters = []OnBuildFilter{
 	&ContainerIDFilter{},
 	&InInitTreeFilter{},
 	NewCELExpressionFilter(logger.GetLogger()),
+	&ContainerNameFilter{},
 }
 
 func GetProcess(event *event.Event) *tetragon.Process {

@@ -34,6 +34,7 @@ type Opts struct {
 	Process       []string // deprecated: use Processes
 	Pods          []string
 	Pod           []string // deprecated: use Pods
+	Containers    []string
 	Host          bool
 	Timestamps    bool
 	TTYEncode     string
@@ -78,6 +79,10 @@ var GetFilter = func() *tetragon.Filter {
 	if len(Options.Pods) > 0 {
 		filter.PodRegex = Options.Pods
 	}
+	if len(Options.Containers) > 0 {
+		filter.ContainerNameRegex = Options.Containers
+	}
+
 	// Is used to filter on the event types i.e. PROCESS_EXEC, PROCESS_EXIT etc.
 	if len(Options.EventTypes) > 0 {
 		var eventType tetragon.EventType
@@ -238,6 +243,9 @@ redirection of events to the stdin. Examples:
 	flags.StringSliceVar(&Options.Process, "process", nil, "Get events by process name regex")
 	flags.StringSliceVar(&Options.Processes, "processes", nil, "Get events by processes name regex")
 	flags.MarkHidden("processes")
+
+	flags.StringSliceVar(&Options.Containers, "containers", nil, "Get events by container name regex")
+	flags.MarkHidden("containers")
 
 	flags.StringSliceVar(&Options.Pod, "pod", nil, "Get events by pod name regex")
 	flags.StringSliceVar(&Options.Pods, "pods", nil, "Get events by pods name regex")

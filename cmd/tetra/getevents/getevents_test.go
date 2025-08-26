@@ -67,10 +67,28 @@ func Test_GetEvents_Pods(t *testing.T) {
 		assert.Equal(t, 1, bytes.Count(output, []byte("\n")))
 	})
 
-	t.Run("FilterDeathstart", func(t *testing.T) {
+	t.Run("FilterDeathstar", func(t *testing.T) {
 		testutils.MockPipedFile(t, testutils.RepoRootPath("testdata/events.json"))
 		cmd := New()
 		cmd.SetArgs([]string{"--pods", "deathstar"})
+		output := testutils.RedirectStdoutExecuteCmd(t, cmd)
+		assert.Equal(t, 2, bytes.Count(output, []byte("\n")))
+	})
+}
+
+func Test_GetEvents_Containers(t *testing.T) {
+	t.Run("FilterTie", func(t *testing.T) {
+		testutils.MockPipedFile(t, testutils.RepoRootPath("testdata/events.json"))
+		cmd := New()
+		cmd.SetArgs([]string{"--containers", "spaceship"})
+		output := testutils.RedirectStdoutExecuteCmd(t, cmd)
+		assert.Equal(t, 1, bytes.Count(output, []byte("\n")))
+	})
+
+	t.Run("FilterDeath*", func(t *testing.T) {
+		testutils.MockPipedFile(t, testutils.RepoRootPath("testdata/events.json"))
+		cmd := New()
+		cmd.SetArgs([]string{"--containers", "death*"})
 		output := testutils.RedirectStdoutExecuteCmd(t, cmd)
 		assert.Equal(t, 2, bytes.Count(output, []byte("\n")))
 	})
