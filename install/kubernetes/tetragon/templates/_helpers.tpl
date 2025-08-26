@@ -13,6 +13,10 @@ Resources names
 {{- include "tetragon.name" . }}
 {{- end }}
 
+{{- define "tetragon.role" -}}
+{{- include "tetragon.name" . }}
+{{- end }}
+
 {{- define "tetragon-operator.name" -}}
 {{- default (printf "%s-operator" .Release.Name) .Values.tetragonOperator.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}

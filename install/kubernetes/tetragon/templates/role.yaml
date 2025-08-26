@@ -1,0 +1,11 @@
+{{- if .Values.serviceAccount.create }}
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ include "tetragon.role" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+  {{- include "tetragon.labels" . | nindent 4 }}
+rules:
+  {{- include "role.extra" . | nindent 2 }}
+{{- end }}
