@@ -80,10 +80,8 @@ PROCESS += bpf_execve_event_v513.o bpf_exit_v513.o bpf_fork_v513.o
 PROCESS += bpf_generic_kprobe_v513.o bpf_generic_retkprobe_v513.o \
 	   bpf_multi_kprobe_v513.o bpf_multi_retkprobe_v513.o \
 	   bpf_generic_tracepoint_v513.o bpf_generic_uprobe_v513.o \
-	   bpf_multi_uprobe_v513.o \
 	   bpf_generic_rawtp_v513.o \
-	   bpf_generic_usdt_v513.o \
-	   bpf_multi_usdt_v513.o
+	   bpf_generic_usdt_v513.o
 
 # lsm
 PROCESS += bpf_generic_lsm_core_v513.o bpf_generic_lsm_output_v513.o \
@@ -227,10 +225,6 @@ CFLAGS_bpf_multi_enforcer_$$(VAR).o  = -D__BPF_OVERRIDE_RETURN -D__MULTI_KPROBE
 CFLAGS_bpf_fmodret_enforcer_$$(VAR).o = -D__BPF_OVERRIDE_RETURN
 CFLAGS_bpf_multi_kprobe_$$(VAR).o    = -D__MULTI_KPROBE
 CFLAGS_bpf_multi_retkprobe_$$(VAR).o = -D__MULTI_KPROBE
-ifeq (v513,$$(VAR))
-CFLAGS_bpf_multi_uprobe_$$(VAR).o    = -D__MULTI_KPROBE
-CFLAGS_bpf_multi_usdt_$$(VAR).o      = -D__MULTI_KPROBE
-endif
 ifeq (v61,$$(VAR))
 CFLAGS_bpf_multi_uprobe_$$(VAR).o    = -D__MULTI_KPROBE
 CFLAGS_bpf_multi_usdt_$$(VAR).o      = -D__MULTI_KPROBE
