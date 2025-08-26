@@ -1527,6 +1527,17 @@ func HasFDInstall(sel []v1alpha1.KProbeSelector) bool {
 	return false
 }
 
+func HasRateLimit(selectors []v1alpha1.KProbeSelector) bool {
+	for _, selector := range selectors {
+		for _, matchAction := range selector.MatchActions {
+			if len(matchAction.RateLimit) > 0 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // parseCapabilitiesMask create a capabilities mask
 func parseCapabilitiesMask(s string) (uint64, error) {
 	base := getBase(s)
