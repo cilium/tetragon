@@ -80,6 +80,9 @@ message Filter {
   google.protobuf.BoolValue in_init_tree = 16;
   // Filter ancestor processes' binaries using RE2 regular expression syntax.
   repeated string ancestor_binary_regex = 17;
+  // Filter by the container name in the process.pod.container field using RE2 regular expression syntax:
+  // https://github.com/google/re2/wiki/Syntax
+  repeated string container_name_regex = 18;
 }
 
 // Filter over a set of Linux process capabilities. See `message Capabilities`

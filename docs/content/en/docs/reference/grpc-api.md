@@ -954,6 +954,7 @@ Capability set to filter over. NOTE: you may specify only ONE set here.
 | container_id | [string](#string) | repeated | Filter by the container ID in the process.docker field using RE2 regular expression syntax: https://github.com/google/re2/wiki/Syntax |
 | in_init_tree | [google.protobuf.BoolValue](#google-protobuf-BoolValue) |  | Filter containerized processes based on whether they are descendants of the container&#39;s init process. This can be used, for example, to watch for processes injected into a container via docker exec, kubectl exec, or similar mechanisms. |
 | ancestor_binary_regex | [string](#string) | repeated | Filter ancestor processes&#39; binaries using RE2 regular expression syntax. |
+| container_name_regex | [string](#string) | repeated | Filter by the container name in the process.pod.container field using RE2 regular expression syntax: https://github.com/google/re2/wiki/Syntax |
 
 <a name="tetragon-GetEventsRequest"></a>
 

@@ -71,3 +71,47 @@ func (f *InInitTreeFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter)
 	}
 	return fs, nil
 }
+
+func filterByContainerName(namePatterns []string) (FilterFunc, error) {
+	var names []*regexp.Regexp
+	for _, pattern := range namePatterns {
+		query, err := regexp.Compile(pattern)
+		if err != nil {
+			return nil, fmt.Errorf("failed to compile regexp: %w", err)
+		}
+		names = append(names, query)
+	}
+
+	return func(ev *event.Event) bool {
+		process := GetProcess(ev)
+		if process == nil {
+			return false
+		}
+		if process.Pod == nil {
+			return false
+		}
+		if process.Pod.Container == nil {
+			return false
+		}
+		for _, name := range names {
+			if name.MatchString(process.Pod.Container.Name) {
+				return true
+			}
+		}
+		return false
+	}, nil
+}
+
+type ContainerNameFilter struct{}
+
+func (f *ContainerNameFilter) OnBuildFilter(_ context.Context, ff *tetragon.Filter) ([]FilterFunc, error) {
+	var fs []FilterFunc
+	if ff.ContainerNameRegex != nil {
+		filters, err := filterByContainerName(ff.ContainerNameRegex)
+		if err != nil {
+			return nil, err
+		}
+		fs = append(fs, filters)
+	}
+	return fs, nil
+}
