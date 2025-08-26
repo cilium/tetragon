@@ -1514,6 +1514,19 @@ func HasNotifyEnforcerAction(kspec *v1alpha1.KProbeSpec) bool {
 	return false
 }
 
+func HasFDInstall(sel []v1alpha1.KProbeSelector) bool {
+	for _, selector := range sel {
+		for _, matchAction := range selector.MatchActions {
+			if a := ActionTypeFromString(matchAction.Action); a == ActionTypeFollowFd ||
+				a == ActionTypeUnfollowFd ||
+				a == ActionTypeCopyFd {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // parseCapabilitiesMask create a capabilities mask
 func parseCapabilitiesMask(s string) (uint64, error) {
 	base := getBase(s)
