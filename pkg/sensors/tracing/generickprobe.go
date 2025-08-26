@@ -587,11 +587,6 @@ func hasMapsSetup(spec *v1alpha1.TracingPolicySpec) hasMaps {
 		has.fdInstall = has.fdInstall || selectorsHaveFDInstall(kprobe.Selectors)
 		has.enforcer = has.enforcer || len(spec.Enforcers) != 0
 		has.rateLimit = has.rateLimit || selectorsHaveRateLimit(kprobe.Selectors)
-
-		// check for early break
-		if has.fdInstall && has.enforcer {
-			break
-		}
 	}
 	return has
 }
