@@ -527,7 +527,7 @@ func createGenericTracepointSensor(
 			return nil, fmt.Errorf("failed to initialize tracepoint kernel selectors: %w", err)
 		}
 
-		has.fdInstall = selectorsHaveFDInstall(tp.Spec.Selectors)
+		has.fdInstall = selectors.HasFDInstall(tp.Spec.Selectors)
 
 		prog0.LoaderData = tp.tableId
 		progs = append(progs, prog0)

@@ -584,7 +584,7 @@ type hasMaps struct {
 func hasMapsSetup(spec *v1alpha1.TracingPolicySpec) hasMaps {
 	has := hasMaps{}
 	for _, kprobe := range spec.KProbes {
-		has.fdInstall = has.fdInstall || selectorsHaveFDInstall(kprobe.Selectors)
+		has.fdInstall = has.fdInstall || selectors.HasFDInstall(kprobe.Selectors)
 		has.enforcer = has.enforcer || len(spec.Enforcers) != 0
 		has.rateLimit = has.rateLimit || selectorsHaveRateLimit(kprobe.Selectors)
 	}
@@ -1420,19 +1420,6 @@ func selectorsHaveStackTrace(selectors []v1alpha1.KProbeSelector) bool {
 	for _, selector := range selectors {
 		for _, matchAction := range selector.MatchActions {
 			if matchAction.KernelStackTrace || matchAction.UserStackTrace {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func selectorsHaveFDInstall(sel []v1alpha1.KProbeSelector) bool {
-	for _, selector := range sel {
-		for _, matchAction := range selector.MatchActions {
-			if a := selectors.ActionTypeFromString(matchAction.Action); a == selectors.ActionTypeFollowFd ||
-				a == selectors.ActionTypeUnfollowFd ||
-				a == selectors.ActionTypeCopyFd {
 				return true
 			}
 		}
