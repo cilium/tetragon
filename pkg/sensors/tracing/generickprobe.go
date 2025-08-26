@@ -502,6 +502,9 @@ func preValidateKprobe(
 		if err := validateKprobeType(arg.Type); err != nil {
 			return nil, fmt.Errorf("args[%d].type: %w", idxArg, err)
 		}
+		if err := validateArgSource(&arg); err != nil {
+			return nil, fmt.Errorf("kprobe arg %d has an invalid source: '%s' %w", idxArg, arg.Source, err)
+		}
 	}
 
 	return &kpValidateInfo{

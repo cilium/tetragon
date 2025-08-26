@@ -21,6 +21,7 @@ int generic_usdt_process_filter(void *ctx);
 int generic_usdt_filter_arg(void *ctx);
 int generic_usdt_actions(void *ctx);
 int generic_usdt_output(void *ctx);
+int generic_usdt_path(void *ctx);
 
 struct {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
@@ -35,6 +36,9 @@ struct {
 		[TAIL_CALL_ARGS] = (void *)&generic_usdt_filter_arg,
 		[TAIL_CALL_ACTIONS] = (void *)&generic_usdt_actions,
 		[TAIL_CALL_SEND] = (void *)&generic_usdt_output,
+#ifndef __V61_BPF_PROG
+		[TAIL_CALL_PATH] = (void *)&generic_usdt_path,
+#endif
 	},
 };
 
@@ -99,3 +103,11 @@ generic_usdt_output(void *ctx)
 {
 	return generic_output(ctx, MSG_OP_GENERIC_USDT);
 }
+
+#ifndef __V61_BPF_PROG
+__attribute__((section("uprobe"), used)) int
+generic_usdt_path(void *ctx)
+{
+	return generic_path(ctx, (struct bpf_map_def *)&usdt_calls);
+}
+#endif

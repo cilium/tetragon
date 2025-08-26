@@ -6897,3 +6897,63 @@ func TestCapabilitiesGained(t *testing.T) {
 	perfring.RunTest(t, ctx, ops, eventFn)
 	require.Equal(t, 1, countEvents, "expected single event")
 }
+
+func TestKprobeResolveCurrent(t *testing.T) {
+	if !kernels.MinKernelVersion("5.4") {
+		t.Skip("Test requires kernel 5.4+")
+	}
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	pid := os.Getpid()
+
+	hook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "resolve-parent-comm"
+spec:
+  kprobes:
+  - call: "security_task_getscheduler"
+    syscall: false
+    args:
+    - type: "int"
+      source: "current_task"
+      resolve: "mm.owner.pid"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - ` + strconv.Itoa(pid) + `
+`
+
+	createCrdFile(t, hook)
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	_ = unix.SchedGetaffinity(0, nil)
+
+	kpChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full("security_task_getscheduler")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(pid)),
+			)).
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Suffix(tus.Conf().SelfBinary)))
+
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}

@@ -366,9 +366,10 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 	}
 
 	var (
-		argTypes [api.EventConfigMaxArgs]int32
-		argMeta  [api.EventConfigMaxArgs]uint32
-		argIdx   [api.EventConfigMaxArgs]int32
+		argTypes   [api.EventConfigMaxArgs]int32
+		argMeta    [api.EventConfigMaxArgs]uint32
+		argIdx     [api.EventConfigMaxArgs]int32
+		allBTFArgs [api.EventConfigMaxArgs][api.MaxBTFArgDepth]api.ConfigBTFArg
 
 		argPrinters []argPrinter
 	)
@@ -384,6 +385,22 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		if argType == gt.GenericInvalidType {
 			return nil, fmt.Errorf("Arg(%d) type '%s' unsupported", i, a.Type)
 		}
+
+		if hasCurrentTaskSource(&a) {
+			if a.Resolve == "" {
+				return nil, errors.New("error: source 'current' can't be used without resolve attribute")
+			}
+			if !bpf.HasProgramLargeSize() {
+				return nil, errors.New("error: resolve can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag")
+			}
+			lastBTFType, btfArg, err := resolveBTFArg("", a, false)
+			if err != nil {
+				return nil, fmt.Errorf("error: failed to configure resolve: %w", err)
+			}
+			allBTFArgs[i] = btfArg
+			argType = findTypeFromBTFType(a, lastBTFType)
+		}
+
 		argMValue, err := getMetaValue(&a)
 		if err != nil {
 			return nil, err
@@ -393,9 +410,6 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 				a.Type, int(a.Index))
 		}
 
-		if a.Resolve != "" {
-			return nil, errors.New("resolving attributes for Uprobes is not supported")
-		}
 		argTypes[i] = int32(argType)
 		argMeta[i] = uint32(argMValue)
 		argIdx[i] = int32(a.Index)
@@ -414,6 +428,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		config.ArgType = argTypes
 		config.ArgMeta = argMeta
 		config.ArgIndex = argIdx
+		config.BTFArg = allBTFArgs
 
 		uprobeEntry := &genericUprobe{
 			tableId:      idtable.UninitializedEntryID,

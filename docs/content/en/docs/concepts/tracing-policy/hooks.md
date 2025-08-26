@@ -679,6 +679,38 @@ spec:
       - action: Post
 ```
 
+## Argument source
+
+There's a special type of argument that retrieves its data from current process
+object and is being treated as argument value when it comes to selector filters.
+
+Following example attaches to `sys_prctl` syscall and resolves `mm.owner.pid` field
+from current process object.
+
+```yaml
+- call: "sys_prctl"
+  syscall: true
+  args:
+  - type: "int"
+    source: "current_task"
+    resolve: "mm.owner.pid"
+  selectors:
+  - matchArgs:
+    - index: 0
+      operator: "Equal"
+        values: 1234
+```
+
+The argument value is then used in selector filter as standard argument value.
+
+By default (`source` attribute unset) the argument value is retrieved from
+function's arguments.
+
+If `source` attribute is set to `current` (currently the only possible configuration),
+tetragon get current process address and resolves specified field path.
+
+The `resolve` attribute is mandatory for `current` source.
+
 ## Return values
 
 A `TracingPolicy` spec can specify that the return value should be reported in
