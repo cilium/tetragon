@@ -125,9 +125,6 @@ type genericKprobe struct {
 	// for each kprobe when using single kprobes.
 	hasStackTrace bool
 
-	// is there ratelimit defined in the kprobe
-	hasRatelimit bool
-
 	customHandler eventhandler.Handler
 }
 
@@ -586,7 +583,7 @@ func hasMapsSetup(spec *v1alpha1.TracingPolicySpec) hasMaps {
 	for _, kprobe := range spec.KProbes {
 		has.fdInstall = has.fdInstall || selectors.HasFDInstall(kprobe.Selectors)
 		has.enforcer = has.enforcer || len(spec.Enforcers) != 0
-		has.rateLimit = has.rateLimit || selectorsHaveRateLimit(kprobe.Selectors)
+		has.rateLimit = has.rateLimit || selectors.HasRateLimit(kprobe.Selectors)
 	}
 	return has
 }
@@ -898,7 +895,6 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 		message:           msgField,
 		tags:              tagsField,
 		hasStackTrace:     selectorsHaveStackTrace(f.Selectors),
-		hasRatelimit:      selectorsHaveRateLimit(f.Selectors),
 	}
 
 	// Parse Filters into kernel filter logic
@@ -1403,17 +1399,6 @@ func retprobeMerge(prev pendingEvent, curr pendingEvent) *tracing.MsgGenericKpro
 
 func (k *observerKprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 	return loadGenericKprobeSensor(args.BPFDir, args.Load, args.Maps, args.Verbose)
-}
-
-func selectorsHaveRateLimit(selectors []v1alpha1.KProbeSelector) bool {
-	for _, selector := range selectors {
-		for _, matchAction := range selector.MatchActions {
-			if len(matchAction.RateLimit) > 0 {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 func selectorsHaveStackTrace(selectors []v1alpha1.KProbeSelector) bool {
