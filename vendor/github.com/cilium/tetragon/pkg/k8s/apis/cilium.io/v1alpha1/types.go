@@ -47,6 +47,9 @@ type KProbeSpec struct {
 	// A list of function arguments to include in the trace output.
 	Args []KProbeArg `json:"args,omitempty"`
 	// +kubebuilder:validation:Optional
+	// A list of data to include in the trace output.
+	Data []KProbeArg `json:"data,omitempty"`
+	// +kubebuilder:validation:Optional
 	// A return argument to include in the trace output.
 	ReturnArg *KProbeArg `json:"returnArg,omitempty"`
 	// +kubebuilder:validation:Optional
@@ -101,6 +104,9 @@ type KProbeArg struct {
 	// +kubebuilder:validation:Optional
 	// Label to output in the JSON
 	Label string `json:"label"`
+	// +kubebuilder:validation:Optional
+	// Source of the data, if missing the default if function arguments
+	Source string `json:"source"`
 }
 
 type BinarySelector struct {
@@ -124,6 +130,9 @@ type KProbeSelector struct {
 	// +kubebuilder:validation:Optional
 	// A list of argument filters. MatchArgs are ANDed.
 	MatchArgs []ArgSelector `json:"matchArgs,omitempty"`
+	// +kubebuilder:validation:Optional
+	// A list of argument filters. MatchData are ANDed.
+	MatchData []ArgSelector `json:"matchData,omitempty"`
 	// +kubebuilder:validation:Optional
 	// A list of actions to execute when this selector matches
 	MatchActions []ActionSelector `json:"matchActions,omitempty"`
