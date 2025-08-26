@@ -1538,6 +1538,17 @@ func HasRateLimit(selectors []v1alpha1.KProbeSelector) bool {
 	return false
 }
 
+func HasStackTrace(selectors []v1alpha1.KProbeSelector) bool {
+	for _, selector := range selectors {
+		for _, matchAction := range selector.MatchActions {
+			if matchAction.KernelStackTrace || matchAction.UserStackTrace {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // parseCapabilitiesMask create a capabilities mask
 func parseCapabilitiesMask(s string) (uint64, error) {
 	base := getBase(s)
