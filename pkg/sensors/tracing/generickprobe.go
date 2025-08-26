@@ -894,7 +894,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 		customHandler:     in.customHandler,
 		message:           msgField,
 		tags:              tagsField,
-		hasStackTrace:     selectorsHaveStackTrace(f.Selectors),
+		hasStackTrace:     selectors.HasStackTrace(f.Selectors),
 	}
 
 	// Parse Filters into kernel filter logic
@@ -1399,15 +1399,4 @@ func retprobeMerge(prev pendingEvent, curr pendingEvent) *tracing.MsgGenericKpro
 
 func (k *observerKprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 	return loadGenericKprobeSensor(args.BPFDir, args.Load, args.Maps, args.Verbose)
-}
-
-func selectorsHaveStackTrace(selectors []v1alpha1.KProbeSelector) bool {
-	for _, selector := range selectors {
-		for _, matchAction := range selector.MatchActions {
-			if matchAction.KernelStackTrace || matchAction.UserStackTrace {
-				return true
-			}
-		}
-	}
-	return false
 }
