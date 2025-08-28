@@ -12,13 +12,15 @@ and specifying actions. For more details, see
 [hook points page]({{< ref "/docs/concepts/tracing-policy/hooks" >}}) and the
 [selectors page]({{< ref "/docs/concepts/tracing-policy/selectors" >}}).
 
+For the complete custom resource definition (CRD) refer to
+[Tracing Policy API]({{< ref "/docs/reference/tracing-policy" >}})
+documentation.
+
 {{< caution >}}
 `TracingPolicy` allows for powerful, yet low-level configuration and, as such,
 requires knowledge about the Linux kernel and containers to avoid unexpected
 issues such as TOCTOU bugs.
 {{< /caution >}}
-
-For the complete custom resource definition (CRD) refer to [Tracing Policy API]({{< ref "/docs/reference/tracing-policy-api" >}}) documentation.
 
 Tracing Policies can be loaded and unloaded at runtime in Tetragon, or on
 startup using flags.

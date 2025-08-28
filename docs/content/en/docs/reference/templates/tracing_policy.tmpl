@@ -1,12 +1,27 @@
 ---
-title: "Tracing Policy API"
+title: "Tracing Policy"
 description: "This reference documentation is generated from the Tracing Policy CRD specification, detailing its fields and usage."
-weight: 1
+weight: 0
 ---
 
-A [TracingPolicy](#tracingpolicy) is a user-configurable Kubernetes custom resource (CR) that defines how Tetragon observes events in both the kernel and userspace using eBPF. It supports a variety of hook points including [kprobes](#tracingpolicyspeckprobesindex), [uprobes](#tracingpolicyspecuprobesindex), [tracepoints](#tracingpolicyspectracepointsindex), [LSM hooks](#tracingpolicyspeclsmhooksindex), and [USDTs](#tracingpolicyspecusdtsindex), giving users fine-grained control over what to trace and what actions to take. Policies consist of hook points, selectors for in-kernel filtering, and optional actions that can be executed when a match occurs.
+A [TracingPolicy](#tracingpolicy) is a user-configurable Kubernetes custom
+resource (CR) that defines how Tetragon observes events in both the kernel
+and userspace using eBPF. It supports a variety of hook points including
+[kprobes](#tracingpolicyspeckprobesindex), [uprobes](#tracingpolicyspecuprobesindex),
+[tracepoints](#tracingpolicyspectracepointsindex), [LSM hooks](#tracingpolicyspeclsmhooksindex),
+and [USDTs](#tracingpolicyspecusdtsindex), giving users fine-grained control
+over what to trace and what actions to take. Policies consist of hook points,
+selectors for in-kernel filtering, and optional actions that can be executed
+when a match occurs.
 
-Tracing policies can be loaded and unloaded dynamically at runtime or applied at startup using configuration flags. Although structured as Kubernetes CRs, they can also be used in non-Kubernetes environments via [Tetragon’s CLI](https://tetragon.io/docs/installation/tetra-cli/) or [daemon flags](https://tetragon.io/docs/reference/daemon-configuration/). In Kubernetes, policies can be managed using [kubectl](https://kubernetes.io/docs/reference/kubectl/) or tools like [Argo CD](https://argo-cd.readthedocs.io/en/stable/).
+Tracing policies can be loaded and unloaded dynamically at runtime or applied
+at startup using configuration flags. Although structured as Kubernetes CRs,
+they can also be used in non-Kubernetes environments via
+[Tetragon’s CLI](https://tetragon.io/docs/installation/tetra-cli/) or
+[daemon flags](https://tetragon.io/docs/reference/daemon-configuration/). In
+Kubernetes, policies can be managed using
+[kubectl](https://kubernetes.io/docs/reference/kubectl/) or tools like
+[Argo CD](https://argo-cd.readthedocs.io/en/stable/).
 
 ## Tracing Policy API Reference
 
