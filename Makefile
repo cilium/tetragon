@@ -21,6 +21,10 @@ BUILD_PKG_DIR ?= $(shell pwd)/build/$(TARGET_ARCH)
 VERSION ?= $(shell git describe --tags --always --exclude '*/*')
 CONTAINER_ENGINE_ARGS ?=
 
+# Path to crdoc binary (can be overridden by environment)
+# See https://github.com/fybrik/crdoc
+CRDOC ?= $(HOME)/go/bin/crdoc
+
 # Do a parallel build with multiple jobs, based on the number of CPUs online
 # in this system: 'make -j8' on a 8-CPU system, etc.
 #
@@ -440,6 +444,11 @@ generate-flags: tetragon ## Generate Tetragon daemon flags for documentation.
 
 METRICS_DOCS_PATH := docs/content/en/docs/reference/metrics.md
 
+# Tracing Policy API docs generation settings
+TRACING_POLICY_TEMPLATE := docs/content/en/docs/reference/templates/tracing_policy_api.tmpl
+TRACING_POLICY_OUTPUT := docs/content/en/docs/reference/tracing-policy-api.md
+TRACING_POLICY_CRDS_DIR := pkg/k8s/apis/cilium.io/client/crds/v1alpha1
+
 .PHONY: tetragon-metrics-docs
 tetragon-metrics-docs:
 	$(GO_BUILD) ./cmd/tetragon-metrics-docs/
@@ -458,6 +467,10 @@ metrics-docs: tetragon-metrics-docs ## Generate metrics reference documentation 
 	$(CONTAINER_ENGINE) run --rm -v $(PWD):$(PWD) -w $(PWD) $(GO_IMAGE) ./tetragon-metrics-docs health >> $(METRICS_DOCS_PATH)
 	$(CONTAINER_ENGINE) run --rm -v $(PWD):$(PWD) -w $(PWD) $(GO_IMAGE) ./tetragon-metrics-docs resources >> $(METRICS_DOCS_PATH)
 	$(CONTAINER_ENGINE) run --rm -v $(PWD):$(PWD) -w $(PWD) $(GO_IMAGE) ./tetragon-metrics-docs events >> $(METRICS_DOCS_PATH)
+
+.PHONY: tracing-policy-api-docs
+tracing-policy-api-docs: ## Generate Tracing Policy API reference page from CRDs.
+	$(CRDOC) --resources $(CURDIR)/$(TRACING_POLICY_CRDS_DIR) --output $(CURDIR)/$(TRACING_POLICY_OUTPUT) --template $(CURDIR)/$(TRACING_POLICY_TEMPLATE)
 
 .PHONY: validate
 validate: check format generate-flags metrics-docs ## Convenience target running linters, formatters and generators across the codebase.
