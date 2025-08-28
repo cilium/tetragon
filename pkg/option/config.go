@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
@@ -263,4 +264,9 @@ func K8SControlPlaneEnabled() bool {
 	// This is because the control plane is required to get the kubeconfig
 	// and other K8s related information.
 	return Config.EnableK8s || len(Config.K8sKubeConfigPath) > 0
+}
+
+func InClusterControlPlaneEnabled() bool {
+	// If K8s is enabled and no kubeconfig path is provided, we assume that the control plane is in-cluster.
+	return Config.EnableK8s && len(Config.K8sKubeConfigPath) == 0
 }
