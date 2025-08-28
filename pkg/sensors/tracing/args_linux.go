@@ -28,6 +28,7 @@ type argPrinter struct {
 	index    int
 	maxData  bool
 	label    string
+	data     bool
 }
 
 const (
