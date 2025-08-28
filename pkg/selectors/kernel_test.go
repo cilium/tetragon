@@ -368,7 +368,7 @@ func TestParseMatchArg(t *testing.T) {
 		arg12 := []v1alpha1.ArgSelector{*arg1, *arg2}
 		ks := NewKernelSelectorState(nil, nil)
 		d = &ks.data
-		if err := ParseMatchArgs(ks, arg12, sig); err != nil || bytes.Equal(expected3, d.e[0:d.off]) == false {
+		if err := ParseMatchArgs(ks, arg12, []v1alpha1.ArgSelector{}, sig, []v1alpha1.KProbeArg{}); err != nil || bytes.Equal(expected3, d.e[0:d.off]) == false {
 			t.Errorf("parseMatchArgs: error %v expected:\n%v\nbytes:\n%v\nparsing %v\n", err, expected3, d.e[0:d.off], arg3)
 		}
 	}
@@ -587,7 +587,7 @@ func TestMultipleSelectorsExample(t *testing.T) {
 		{MatchArgs: matchArgs, MatchPIDs: pidSelector},
 		{MatchArgs: matchArgs, MatchPIDs: pidSelector},
 	}
-	b, _ := InitKernelSelectors(selectors, args, &actionArgTable)
+	b, _ := InitKernelSelectors(selectors, args, []v1alpha1.KProbeArg{}, &actionArgTable)
 
 	expected := make([]byte, 4096)
 	expectedLen := 0
@@ -882,7 +882,7 @@ func TestInitKernelSelectors(t *testing.T) {
 	// Create URL and FQDN tables to store URLs and FQDNs for this kprobe
 	var actionArgTable idtable.Table
 
-	b, _ := InitKernelSelectors(selectors, args, &actionArgTable)
+	b, _ := InitKernelSelectors(selectors, args, []v1alpha1.KProbeArg{}, &actionArgTable)
 	if bytes.Equal(expected[0:], b[0:len(expected)]) == false {
 		t.Errorf("InitKernelSelectors:\nexpected %v\nbytes    %v\n", expected, b[0:len(expected)])
 	}
