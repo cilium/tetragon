@@ -829,11 +829,35 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 		return nil
 	}
 
+	if len(f.Args)+len(f.Data) >= api.EventConfigMaxArgs {
+		return errFn(fmt.Errorf("too many arguments, max %d: args(%d) data(%d)", api.EventConfigMaxArgs, len(f.Args), len(f.Data)))
+	}
+
+	var j int
+
 	// Parse Arguments
-	for j, arg := range f.Args {
+	for _, arg := range f.Args {
+		if arg.Source != "" {
+			return errFn(fmt.Errorf("standard argument is not allowed to have source configured, current value: '%s'", arg.Source))
+		}
 		if err := addArg(j, &arg); err != nil {
 			return errFn(err)
 		}
+		j = j + 1
+	}
+
+	// Parse Data
+	for _, data := range f.Data {
+		if !hasCurrentTaskSource(&data) {
+			return errFn(fmt.Errorf("data argument has wrong source '%s'", data.Source))
+		}
+		if data.Resolve == "" {
+			return errFn(errors.New("data argument missing 'resolve' setup"))
+		}
+		if err := addArg(j, &data); err != nil {
+			return errFn(err)
+		}
+		j = j + 1
 	}
 
 	// Parse ReturnArg, we have two types of return arg parsing. We
