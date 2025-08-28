@@ -716,7 +716,6 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 	var argReturnPrinters []argPrinter
 	var setRetprobe bool
 	var argRetprobe *v1alpha1.KProbeArg
-	var argsBTFSet [api.MaxArgsSupported]bool
 	var allBTFArgs [api.EventConfigMaxArgs][api.MaxBTFArgDepth]api.ConfigBTFArg
 
 	errFn := func(err error) (idtable.EntryID, error) {
@@ -824,7 +823,6 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 		eventConfig.ArgMeta[j] = uint32(argMValue)
 		eventConfig.ArgIndex[j] = int32(a.Index)
 
-		argsBTFSet[a.Index] = true
 		argP := argPrinter{index: int(a.Index), ty: argType, userType: userArgType, maxData: a.MaxData, label: a.Label}
 		argSigPrinters = append(argSigPrinters, argP)
 
@@ -852,7 +850,6 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 			return errFn(fmt.Errorf("ReturnArg type '%s' unsupported", f.ReturnArg.Type))
 		}
 		eventConfig.ArgReturn = int32(argType)
-		argsBTFSet[api.ReturnArgIndex] = true
 		argP := argPrinter{index: api.ReturnArgIndex, ty: argType}
 		argReturnPrinters = append(argReturnPrinters, argP)
 	} else {
@@ -860,7 +857,6 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 	}
 
 	if argRetprobe != nil {
-		argsBTFSet[api.ReturnArgIndex] = true
 		setRetprobe = true
 
 		argType := gt.GenericTypeFromString(argRetprobe.Type)
