@@ -33,7 +33,7 @@ func hasCurrentTaskSource(arg *v1alpha1.KProbeArg) bool {
 	return arg.Source == "current_task"
 }
 
-func resolveBTFArg(hook string, arg v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
+func resolveBTFArg(hook string, arg *v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
 	btfArg := [api.MaxBTFArgDepth]api.ConfigBTFArg{}
 
 	// tracepoints have extra first internal argument, so we need to adjust the index
@@ -47,7 +47,7 @@ func resolveBTFArg(hook string, arg v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [a
 	// Getting argument data based on the source attribute, so far it's either:
 	// - current task object
 	// - real argument value
-	if hasCurrentTaskSource(&arg) {
+	if hasCurrentTaskSource(arg) {
 		st, err := btf.FindBTFStruct("task_struct")
 		if err != nil && !errors.Is(err, ebtf.ErrMultipleMatches) {
 			return nil, btfArg, err
@@ -79,7 +79,7 @@ func resolveBTFPath(btfArg *[api.MaxBTFArgDepth]api.ConfigBTFArg, rootType ebtf.
 	return btf.ResolveBTFPath(btfArg, rootType, path, 0)
 }
 
-func findTypeFromBTFType(arg v1alpha1.KProbeArg, btfType *ebtf.Type) int {
+func findTypeFromBTFType(arg *v1alpha1.KProbeArg, btfType *ebtf.Type) int {
 	ty := generictypes.GenericTypeFromBTF(*btfType)
 	if ty == generictypes.GenericInvalidType {
 		return generictypes.GenericTypeFromString(arg.Type)

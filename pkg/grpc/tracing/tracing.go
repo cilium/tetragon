@@ -324,7 +324,7 @@ func getKprobeArgument(arg tracingapi.MsgGenericKprobeArg) *tetragon.KprobeArgum
 func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 	var ancestors []*process.ProcessInternal
 	var tetragonAncestors []*tetragon.Process
-	var tetragonArgs []*tetragon.KprobeArgument
+	var tetragonArgs, tetragonData []*tetragon.KprobeArgument
 	var tetragonReturnArg *tetragon.KprobeArgument
 
 	proc, parent, tetragonProcess, tetragonParent := getProcessParent(&event.Msg.ProcessKey, event.Msg.Common.Flags)
@@ -344,6 +344,10 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 		} else {
 			tetragonArgs = append(tetragonArgs, a)
 		}
+	}
+
+	for _, arg := range event.Data {
+		tetragonData = append(tetragonData, getKprobeArgument(arg))
 	}
 
 	var kernelStackTrace []*tetragon.StackTraceEntry
@@ -403,6 +407,7 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 		Ancestors:        tetragonAncestors,
 		FunctionName:     event.FuncName,
 		Args:             tetragonArgs,
+		Data:             tetragonData,
 		Return:           tetragonReturnArg,
 		Action:           kprobeAction(event.Msg.ActionId),
 		ReturnAction:     kprobeAction(event.ReturnAction),
@@ -664,6 +669,7 @@ type MsgGenericKprobeUnix struct {
 	ReturnAction     uint64
 	FuncName         string
 	Args             []tracingapi.MsgGenericKprobeArg
+	Data             []tracingapi.MsgGenericKprobeArg
 	PolicyName       string
 	Message          string
 	KernelStackTrace [constants.PERF_MAX_STACK_DEPTH]uint64

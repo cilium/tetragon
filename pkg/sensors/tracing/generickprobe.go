@@ -762,8 +762,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 
 	argRetprobe = nil // holds pointer to arg for return handler
 
-	// Parse Arguments
-	for j, a := range f.Args {
+	addArg := func(j int, a *v1alpha1.KProbeArg, data bool) error {
 		// First try userspace types
 		var argType int
 		userArgType := gt.GenericUserTypeFromString(a.Type)
@@ -777,18 +776,18 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 
 		if a.Resolve != "" && j < api.EventConfigMaxArgs {
 			if !bpf.HasProgramLargeSize() {
-				return errFn(errors.New("error: Resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag"))
+				return errors.New("error: Resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag")
 			}
 			lastBTFType, btfArg, err := resolveBTFArg(f.Call, a, false)
 			if err != nil {
-				return errFn(fmt.Errorf("error on hook %q for index %d : %w", f.Call, a.Index, err))
+				return fmt.Errorf("error on hook %q for index %d : %w", f.Call, a.Index, err)
 			}
 			allBTFArgs[j] = btfArg
 			argType = findTypeFromBTFType(a, lastBTFType)
 		}
 
 		if argType == gt.GenericInvalidType {
-			return errFn(fmt.Errorf("Arg(%d) type '%s' unsupported", j, a.Type))
+			return fmt.Errorf("Arg(%d) type '%s' unsupported", j, a.Type)
 		}
 
 		if a.MaxData {
@@ -799,26 +798,65 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 				logger.GetLogger().Warn("maxData flag is ignored (supported from large programs)")
 			}
 		}
-		argMValue, err := getMetaValue(&a)
+		argMValue, err := getMetaValue(a)
 		if err != nil {
-			return errFn(err)
+			return err
 		}
 		if argReturnCopy(argMValue) {
 			argRetprobe = &f.Args[j]
 		}
 		if a.Index > 4 {
-			return errFn(fmt.Errorf("error add arg: ArgType %s Index %d out of bounds",
-				a.Type, int(a.Index)))
+			return fmt.Errorf("error add arg: ArgType %s Index %d out of bounds",
+				a.Type, int(a.Index))
 		}
 		eventConfig.BTFArg = allBTFArgs
 		eventConfig.ArgType[j] = int32(argType)
 		eventConfig.ArgMeta[j] = uint32(argMValue)
 		eventConfig.ArgIndex[j] = int32(a.Index)
 
-		argP := argPrinter{index: int(a.Index), ty: argType, userType: userArgType, maxData: a.MaxData, label: a.Label}
+		argP := argPrinter{
+			index:    int(a.Index),
+			ty:       argType,
+			userType: userArgType,
+			maxData:  a.MaxData,
+			label:    a.Label,
+			data:     data,
+		}
 		argSigPrinters = append(argSigPrinters, argP)
 
 		pathArgWarning(a.Index, argType, f.Selectors)
+		return nil
+	}
+
+	if len(f.Args)+len(f.Data) > api.EventConfigMaxArgs {
+		return errFn(fmt.Errorf("too many arguments, max %d: args(%d) data(%d)", api.EventConfigMaxArgs, len(f.Args), len(f.Data)))
+	}
+
+	var j int
+
+	// Parse Arguments
+	for _, arg := range f.Args {
+		if arg.Source != "" {
+			return errFn(fmt.Errorf("standard argument is not allowed to have source configured, current value: '%s'", arg.Source))
+		}
+		if err := addArg(j, &arg, false); err != nil {
+			return errFn(err)
+		}
+		j = j + 1
+	}
+
+	// Parse Data
+	for _, data := range f.Data {
+		if !hasCurrentTaskSource(&data) {
+			return errFn(fmt.Errorf("data argument has wrong source '%s'", data.Source))
+		}
+		if data.Resolve == "" {
+			return errFn(errors.New("data argument missing 'resolve' setup"))
+		}
+		if err := addArg(j, &data, true); err != nil {
+			return errFn(err)
+		}
+		j = j + 1
 	}
 
 	// Parse ReturnArg, we have two types of return arg parsing. We
@@ -1302,7 +1340,11 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 		if arg == nil {
 			continue
 		}
-		unix.Args = append(unix.Args, arg)
+		if a.data {
+			unix.Data = append(unix.Data, arg)
+		} else {
+			unix.Args = append(unix.Args, arg)
+		}
 	}
 
 	// Cache return value on merge and run return filters below before
