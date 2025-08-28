@@ -352,7 +352,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 	}
 
 	// Parse Filters into kernel filter logic
-	uprobeSelectorState, err := selectors.InitKernelSelectorState(spec.Selectors, args, nil, nil, nil)
+	uprobeSelectorState, err := selectors.InitKernelSelectorState(spec.Selectors, args, []v1alpha1.KProbeArg{}, nil, nil, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -932,7 +932,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 	}
 
 	// Parse Filters into kernel filter logic
-	kprobeEntry.loadArgs.selectors.entry, err = selectors.InitKernelSelectorState(f.Selectors, f.Args, &kprobeEntry.actionArgs, nil, in.selMaps)
+	kprobeEntry.loadArgs.selectors.entry, err = selectors.InitKernelSelectorState(f.Selectors, f.Args, f.Data, &kprobeEntry.actionArgs, nil, in.selMaps)
 	if err != nil {
 		return errFn(err)
 	}

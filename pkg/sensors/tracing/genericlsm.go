@@ -314,7 +314,7 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 	}
 
 	// Parse Filters into kernel filter logic
-	lsmEntry.selectors, err = selectors.InitKernelSelectorState(f.Selectors, f.Args, nil, nil, in.selMaps)
+	lsmEntry.selectors, err = selectors.InitKernelSelectorState(f.Selectors, f.Args, []v1alpha1.KProbeArg{}, nil, nil, in.selMaps)
 	if err != nil {
 		return errFn(err)
 	}
