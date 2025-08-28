@@ -1,7 +1,7 @@
 ---
 title: "Tracing Policy"
 description: "This reference documentation is generated from the Tracing Policy CRD specification, detailing its fields and usage."
-weight: 0
+weight: 1
 ---
 
 A [TracingPolicy](#tracingpolicy) is a user-configurable Kubernetes custom
