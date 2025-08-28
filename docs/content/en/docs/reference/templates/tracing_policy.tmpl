@@ -1,0 +1,130 @@
+---
+title: "Tracing Policy"
+description: "This reference documentation is generated from the Tracing Policy CRD specification, detailing its fields and usage."
+weight: 5
+---
+
+A [TracingPolicy](#tracingpolicy) is a user-configurable Kubernetes custom
+resource (CR) that defines how Tetragon observes events in both the kernel
+and userspace using eBPF. It supports a variety of hook points including
+[kprobes](#tracingpolicyspeckprobesindex), [uprobes](#tracingpolicyspecuprobesindex),
+[tracepoints](#tracingpolicyspectracepointsindex), [LSM hooks](#tracingpolicyspeclsmhooksindex),
+and [USDTs](#tracingpolicyspecusdtsindex), giving users fine-grained control
+over what to trace and what actions to take. Policies consist of hook points,
+selectors for in-kernel filtering, and optional actions that can be executed
+when a match occurs.
+
+Tracing policies can be loaded and unloaded dynamically at runtime or applied
+at startup using configuration flags. Although structured as Kubernetes CRs,
+they can also be used in non-Kubernetes environments via
+[Tetragon’s CLI](https://tetragon.io/docs/installation/tetra-cli/) or
+[daemon flags](https://tetragon.io/docs/reference/daemon-configuration/). In
+Kubernetes, policies can be managed using
+[kubectl](https://kubernetes.io/docs/reference/kubectl/) or tools like
+[Argo CD](https://argo-cd.readthedocs.io/en/stable/).
+
+## Tracing Policy API Reference
+
+Packages:
+{{range .Groups}}
+- [{{.Group}}/{{.Version}}](#{{ anchorize (printf "%s/%s" .Group .Version) }})
+{{- end -}}{{/* range .Groups */}}
+
+{{- range .Groups }}
+{{- $group := . }}
+
+## {{.Group}}/{{.Version}}
+
+Resource Types:
+{{range .Kinds}}
+  {{- if ne .Name "PodInfo" }}   {{/* skip PodInfo */}}
+- [{{.Name}}](#{{ anchorize .Name }})
+  {{- end -}}
+{{end}}{{/* range .Kinds */}}
+
+{{range .Kinds}}
+  {{- if ne .Name "PodInfo" }}   {{/* skip PodInfo */}}
+{{$kind := .}}
+## {{.Name}}
+<sup><sup>[↩ Parent](#{{ anchorize (printf "%s/%s" $group.Group $group.Version) }} )</sup></sup>
+
+{{range .Types}}
+
+{{if not .IsTopLevel}}
+### {{.Name}}
+{{if .ParentKey}}<sup><sup>[↩ Parent](#{{.ParentKey}})</sup></sup>{{end}}
+{{end}}
+
+{{.Description}}
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody>
+      {{- if .IsTopLevel -}}
+      <tr>
+      <td><b>apiVersion</b></td>
+      <td>string</td>
+      <td>{{$group.Group}}/{{$group.Version}}</td>
+      <td>true</td>
+      </tr>
+      <tr>
+      <td><b>kind</b></td>
+      <td>string</td>
+      <td>{{$kind.Name}}</td>
+      <td>true</td>
+      </tr>
+      <tr>
+      <td><b><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta">metadata</a></b></td>
+      <td>object</td>
+      <td>Refer to the Kubernetes API documentation for the fields of the `metadata` field.</td>
+      <td>true</td>
+      </tr>
+      {{- end -}}
+      {{- range .Fields -}}
+      <tr>
+        <td><b>{{if .TypeKey}}<a href="#{{.TypeKey}}">{{.Name}}</a>{{else}}{{.Name}}{{end}}</b></td>
+        <td>{{.Type}}</td>
+        <td>
+          {{.Description}}<br/>
+          {{- if or .Schema.XValidations .Schema.Format .Schema.Enum .Schema.Default .Schema.Minimum .Schema.Maximum }}
+          <br/>
+          {{- end}}
+          {{- if .Schema.XValidations }}
+            <i>Validations</i>:
+            {{- range .Schema.XValidations -}}
+              <li>{{ .Rule }}: {{ .Message }}</li>
+            {{- end -}}
+          {{- end }}
+          {{- if .Schema.Format }}
+            <i>Format</i>: {{ .Schema.Format }}<br/>
+          {{- end }}
+          {{- if .Schema.Enum }}
+            <i>Enum</i>: {{ .Schema.Enum | toStrings | join ", " }}<br/>
+          {{- end }}
+          {{- if .Schema.Default }}
+            <i>Default</i>: {{ .Schema.Default }}<br/>
+          {{- end }}
+          {{- if .Schema.Minimum }}
+            <i>Minimum</i>: {{ .Schema.Minimum }}<br/>
+          {{- end }}
+          {{- if .Schema.Maximum }}
+            <i>Maximum</i>: {{ .Schema.Maximum }}<br/>
+          {{- end }}
+        </td>
+        <td>{{.Required}}</td>
+      </tr>
+      {{- end -}}
+    </tbody>
+</table>
+
+  {{- end }} {{/* end if not PodInfo */}}
+{{- end}}{{/* range .Types */}}
+{{- end}}{{/* range .Kinds */}}
+{{- end}}{{/* range .Groups */}}
