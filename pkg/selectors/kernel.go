@@ -808,13 +808,36 @@ func argIndexType(arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) (uint32, 
 	return 0, 0, errors.New("argFilter for unknown index")
 }
 
+func dataIndexType(arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) (uint32, uint32, error) {
+	if len(arg.Args) > 0 {
+		return argIndexTypeFromArgs(arg, 0, sig)
+	}
+	if arg.Index > uint32(len(sig)) {
+		return 0, 0, errors.New("argFilter for unknown index")
+	}
+	ty := sig[arg.Index].Type
+	return arg.Index, uint32(gt.GenericTypeFromString(ty)), nil
+}
+
 func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) error {
 	index, ty, err := argIndexType(arg, sig)
 	if err != nil {
 		return err
 	}
 	WriteSelectorUint32(&k.data, index)
+	return parseMatchArg(k, arg, sig, ty)
+}
 
+func ParseMatchData(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg, base uint32) error {
+	index, ty, err := dataIndexType(arg, sig)
+	if err != nil {
+		return err
+	}
+	WriteSelectorUint32(&k.data, index+base)
+	return parseMatchArg(k, arg, sig, ty)
+}
+
+func parseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg, ty uint32) error {
 	op, err := SelectorOp(arg.Operator)
 	if err != nil {
 		return fmt.Errorf("matcharg error: %w", err)
@@ -910,13 +933,14 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 	return nil
 }
 
-func ParseMatchArgs(k *KernelSelectorState, args []v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) error {
+func ParseMatchArgs(k *KernelSelectorState, matchArgs []v1alpha1.ArgSelector, matchData []v1alpha1.ArgSelector,
+	args []v1alpha1.KProbeArg, data []v1alpha1.KProbeArg) error {
 	maxArgs := 1
 	if config.EnableLargeProgs() {
 		maxArgs = 5 // we support up 5 argument filters under matchArgs with kernels >= 5.3, otherwise 1 argument
 	}
-	if len(args) > maxArgs {
-		return fmt.Errorf("parseMatchArgs: supports up to %d filters (%d provided)", maxArgs, len(args))
+	if len(matchArgs)+len(matchData) > maxArgs {
+		return fmt.Errorf("parseMatchArgs: supports up to %d filters (%d provided)", maxArgs, len(matchArgs)+len(matchData))
 	}
 	actionOffset := GetCurrentOffset(&k.data)
 	loff := AdvanceSelectorLength(&k.data)
@@ -925,11 +949,21 @@ func ParseMatchArgs(k *KernelSelectorState, args []v1alpha1.ArgSelector, sig []v
 		argOff[i] = AdvanceSelectorLength(&k.data)
 		WriteSelectorOffsetUint32(&k.data, argOff[i], 0)
 	}
-	for i, a := range args {
+	var i int
+	for _, a := range matchArgs {
 		WriteSelectorOffsetUint32(&k.data, argOff[i], GetCurrentOffset(&k.data)-actionOffset)
-		if err := ParseMatchArg(k, &a, sig); err != nil {
+		if err := ParseMatchArg(k, &a, args); err != nil {
 			return err
 		}
+		i = i + 1
+	}
+	base := uint32(len(args))
+	for _, d := range matchData {
+		WriteSelectorOffsetUint32(&k.data, argOff[i], GetCurrentOffset(&k.data)-actionOffset)
+		if err := ParseMatchData(k, &d, data, base); err != nil {
+			return err
+		}
+		i = i + 1
 	}
 	WriteSelectorLength(&k.data, loff)
 	return nil
@@ -1368,8 +1402,8 @@ func ParseMatchBinaries(k *KernelSelectorState, binarys []v1alpha1.BinarySelecto
 // valueInt := [len][v]
 //
 // For some examples, see kernel_test.go
-func InitKernelSelectors(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KProbeArg, actionArgTable *idtable.Table) ([4096]byte, error) {
-	state, err := InitKernelSelectorState(selectors, args, actionArgTable, nil, nil)
+func InitKernelSelectors(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KProbeArg, data []v1alpha1.KProbeArg, actionArgTable *idtable.Table) ([4096]byte, error) {
+	state, err := InitKernelSelectorState(selectors, args, data, actionArgTable, nil, nil)
 	if err != nil {
 		return [4096]byte{}, err
 	}
@@ -1404,7 +1438,7 @@ func createKernelSelectorState(selectors []v1alpha1.KProbeSelector, listReader V
 	return state, nil
 }
 
-func InitKernelSelectorState(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KProbeArg,
+func InitKernelSelectorState(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KProbeArg, data []v1alpha1.KProbeArg,
 	actionArgTable *idtable.Table, listReader ValueReader, maps *KernelSelectorMaps) (*KernelSelectorState, error) {
 
 	parse := func(k *KernelSelectorState, selectors *v1alpha1.KProbeSelector, selIdx int) error {
@@ -1426,7 +1460,7 @@ func InitKernelSelectorState(selectors []v1alpha1.KProbeSelector, args []v1alpha
 		if err := ParseMatchBinaries(k, selectors.MatchBinaries, selIdx); err != nil {
 			return fmt.Errorf("parseMatchBinaries error: %w", err)
 		}
-		if err := ParseMatchArgs(k, selectors.MatchArgs, args); err != nil {
+		if err := ParseMatchArgs(k, selectors.MatchArgs, selectors.MatchData, args, data); err != nil {
 			return fmt.Errorf("parseMatchArgs  error: %w", err)
 		}
 		if err := ParseMatchActions(k, selectors.MatchActions, actionArgTable); err != nil {
@@ -1442,7 +1476,7 @@ func InitKernelReturnSelectorState(selectors []v1alpha1.KProbeSelector, returnAr
 	actionArgTable *idtable.Table, listReader ValueReader, maps *KernelSelectorMaps) (*KernelSelectorState, error) {
 
 	parse := func(k *KernelSelectorState, selector *v1alpha1.KProbeSelector, _ int) error {
-		if err := ParseMatchArgs(k, selector.MatchReturnArgs, []v1alpha1.KProbeArg{*returnArg}); err != nil {
+		if err := ParseMatchArgs(k, selector.MatchReturnArgs, []v1alpha1.ArgSelector{}, []v1alpha1.KProbeArg{*returnArg}, []v1alpha1.KProbeArg{}); err != nil {
 			return fmt.Errorf("parseMatchArgs  error: %w", err)
 		}
 		if err := ParseMatchActions(k, selector.MatchReturnActions, actionArgTable); err != nil {
