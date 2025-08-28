@@ -28,7 +28,7 @@ func addPaddingOnNestedPtr(ty ebtf.Type, path []string) []string {
 	return path
 }
 
-func resolveBTFArg(hook string, arg v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
+func resolveBTFArg(hook string, arg *v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
 	btfArg := [api.MaxBTFArgDepth]api.ConfigBTFArg{}
 
 	// tracepoints have extra first internal argument, so we need to adjust the index
@@ -61,7 +61,7 @@ func resolveBTFPath(btfArg *[api.MaxBTFArgDepth]api.ConfigBTFArg, rootType ebtf.
 	return btf.ResolveBTFPath(btfArg, rootType, path, 0)
 }
 
-func findTypeFromBTFType(arg v1alpha1.KProbeArg, btfType *ebtf.Type) int {
+func findTypeFromBTFType(arg *v1alpha1.KProbeArg, btfType *ebtf.Type) int {
 	ty := generictypes.GenericTypeFromBTF(*btfType)
 	if ty == generictypes.GenericInvalidType {
 		return generictypes.GenericTypeFromString(arg.Type)

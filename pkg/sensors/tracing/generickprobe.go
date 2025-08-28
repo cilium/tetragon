@@ -770,8 +770,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 
 	argRetprobe = nil // holds pointer to arg for return handler
 
-	// Parse Arguments
-	for j, a := range f.Args {
+	addArg := func(j int, a *v1alpha1.KProbeArg) error {
 		// First try userspace types
 		var argType int
 		userArgType := gt.GenericUserTypeFromString(a.Type)
@@ -785,18 +784,18 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 
 		if a.Resolve != "" && j < api.EventConfigMaxArgs {
 			if !bpf.HasProgramLargeSize() {
-				return errFn(errors.New("error: Resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag"))
+				return errors.New("error: Resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag")
 			}
 			lastBTFType, btfArg, err := resolveBTFArg(f.Call, a, false)
 			if err != nil {
-				return errFn(fmt.Errorf("error on hook %q for index %d : %w", f.Call, a.Index, err))
+				return fmt.Errorf("error on hook %q for index %d : %w", f.Call, a.Index, err)
 			}
 			allBTFArgs[j] = btfArg
 			argType = findTypeFromBTFType(a, lastBTFType)
 		}
 
 		if argType == gt.GenericInvalidType {
-			return errFn(fmt.Errorf("Arg(%d) type '%s' unsupported", j, a.Type))
+			return fmt.Errorf("Arg(%d) type '%s' unsupported", j, a.Type)
 		}
 
 		if a.MaxData {
@@ -807,16 +806,16 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 				logger.GetLogger().Warn("maxData flag is ignored (supported from large programs)")
 			}
 		}
-		argMValue, err := getMetaValue(&a)
+		argMValue, err := getMetaValue(a)
 		if err != nil {
-			return errFn(err)
+			return err
 		}
 		if argReturnCopy(argMValue) {
 			argRetprobe = &f.Args[j]
 		}
 		if a.Index > 4 {
-			return errFn(fmt.Errorf("error add arg: ArgType %s Index %d out of bounds",
-				a.Type, int(a.Index)))
+			return fmt.Errorf("error add arg: ArgType %s Index %d out of bounds",
+				a.Type, int(a.Index))
 		}
 		eventConfig.BTFArg = allBTFArgs
 		eventConfig.ArgType[j] = int32(argType)
@@ -827,6 +826,14 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 		argSigPrinters = append(argSigPrinters, argP)
 
 		pathArgWarning(a.Index, argType, f.Selectors)
+		return nil
+	}
+
+	// Parse Arguments
+	for j, arg := range f.Args {
+		if err := addArg(j, &arg); err != nil {
+			return errFn(err)
+		}
 	}
 
 	// Parse ReturnArg, we have two types of return arg parsing. We

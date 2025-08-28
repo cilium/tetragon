@@ -53,7 +53,7 @@ spec:
 	successHook := policy.TpSpec().KProbes[:2]
 	for _, hook := range successHook {
 		for _, arg := range hook.Args {
-			lastBTFType, btfArg, err := resolveBTFArg(hook.Call, arg, false)
+			lastBTFType, btfArg, err := resolveBTFArg(hook.Call, &arg, false)
 
 			if err != nil {
 				t.Fatal(hook.Call, err)
@@ -61,14 +61,14 @@ spec:
 			require.NotNil(t, lastBTFType)
 			assert.NotNil(t, btfArg)
 
-			argType := findTypeFromBTFType(arg, lastBTFType)
+			argType := findTypeFromBTFType(&arg, lastBTFType)
 			require.NotEqual(t, gt.GenericInvalidType, argType, "Type %q is not supported", (*lastBTFType).TypeName())
 		}
 	}
 
 	failHook := policy.TpSpec().KProbes[2]
 	for _, arg := range failHook.Args {
-		_, _, err := resolveBTFArg(failHook.Call, arg, false)
+		_, _, err := resolveBTFArg(failHook.Call, &arg, false)
 
 		require.ErrorContains(t, err, "The maximum depth allowed is", "The path %q must have len < %d", arg.Resolve, api.MaxBTFArgDepth)
 	}
