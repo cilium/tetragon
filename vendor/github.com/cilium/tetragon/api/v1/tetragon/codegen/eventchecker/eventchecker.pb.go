@@ -2909,6 +2909,7 @@ func (checker *ContainerChecker) FromContainer(event *tetragon.Container) *Conta
 type PodChecker struct {
 	Namespace      *stringmatcher.StringMatcher           `json:"namespace,omitempty"`
 	Name           *stringmatcher.StringMatcher           `json:"name,omitempty"`
+	Uid            *stringmatcher.StringMatcher           `json:"uid,omitempty"`
 	Container      *ContainerChecker                      `json:"container,omitempty"`
 	PodLabels      map[string]stringmatcher.StringMatcher `json:"podLabels,omitempty"`
 	Workload       *stringmatcher.StringMatcher           `json:"workload,omitempty"`
@@ -2941,6 +2942,11 @@ func (checker *PodChecker) Check(event *tetragon.Pod) error {
 		if checker.Name != nil {
 			if err := checker.Name.Match(event.Name); err != nil {
 				return fmt.Errorf("Name check failed: %w", err)
+			}
+		}
+		if checker.Uid != nil {
+			if err := checker.Uid.Match(event.Uid); err != nil {
+				return fmt.Errorf("Uid check failed: %w", err)
 			}
 		}
 		if checker.Container != nil {
@@ -3028,6 +3034,12 @@ func (checker *PodChecker) WithName(check *stringmatcher.StringMatcher) *PodChec
 	return checker
 }
 
+// WithUid adds a Uid check to the PodChecker
+func (checker *PodChecker) WithUid(check *stringmatcher.StringMatcher) *PodChecker {
+	checker.Uid = check
+	return checker
+}
+
 // WithContainer adds a Container check to the PodChecker
 func (checker *PodChecker) WithContainer(check *ContainerChecker) *PodChecker {
 	checker.Container = check
@@ -3065,6 +3077,7 @@ func (checker *PodChecker) FromPod(event *tetragon.Pod) *PodChecker {
 	}
 	checker.Namespace = stringmatcher.Full(event.Namespace)
 	checker.Name = stringmatcher.Full(event.Name)
+	checker.Uid = stringmatcher.Full(event.Uid)
 	if event.Container != nil {
 		checker.Container = NewContainerChecker().FromContainer(event.Container)
 	}

@@ -57,6 +57,7 @@ func TestK8sWatcher_GetPodInfo(t *testing.T) {
 		Workload:     pod.OwnerReferences[0].Name,
 		WorkloadKind: pod.OwnerReferences[0].Kind,
 		Name:         pod.Name,
+		Uid:          string(pod.UID),
 		Container: &tetragon.Container{
 			Id:  pod.Status.ContainerStatuses[0].ContainerID,
 			Pid: &wrapperspb.UInt32Value{Value: pid},
