@@ -1,7 +1,7 @@
 ---
 title: "Daemon Configuration"
 description: "Explore Tetragon options and configuration mechanisms."
-weight: 1
+weight: 2
 ---
 
 Tetragon default controlling settings are set during compilation, so configuration
