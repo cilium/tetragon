@@ -8,7 +8,7 @@ require (
 	github.com/cilium/lumberjack/v2 v2.4.1
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/containerd/containerd v1.7.28
-	github.com/containerd/nri v0.9.0
+	github.com/containerd/nri v0.10.0
 	github.com/containers/common v0.64.1
 	github.com/google/cel-go v0.23.2
 	github.com/opencontainers/cgroups v0.0.4
@@ -34,7 +34,7 @@ require (
 	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
 	github.com/godbus/dbus/v5 v5.1.1-0.20230522191255-76236955d466 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/knqyf263/go-plugin v0.8.1-0.20240827022226-114c6257e441 // indirect
+	github.com/knqyf263/go-plugin v0.9.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/moby/sys/mountinfo v0.7.2 // indirect
 	github.com/moby/sys/userns v0.1.0 // indirect
@@ -42,9 +42,10 @@ require (
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
+	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/stoewer/go-strcase v1.2.0 // indirect
-	github.com/tetratelabs/wazero v1.8.2-0.20241030035603-dc08732e57d5 // indirect
+	github.com/tetratelabs/wazero v1.9.0 // indirect
 	golang.org/x/exp v0.0.0-20250103183323-7d7fa50e5329 // indirect
 	golang.org/x/net v0.42.0 // indirect
 	golang.org/x/sys v0.35.0 // indirect
@@ -53,7 +54,6 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250707201910-8d1bb00bc6a7 // indirect
 	google.golang.org/protobuf v1.36.8 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/cri-api v0.31.2 // indirect
 )
 
 replace (
