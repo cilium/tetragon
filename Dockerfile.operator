@@ -22,6 +22,11 @@ RUN --mount=type=bind,readwrite,target=/go/src/github.com/cilium/tetragon --moun
     make GOARCH=${TARGETARCH} VERSION=${TETRAGON_VERSION} tetragon-operator \
     && mkdir -p /out/${TARGETOS}/${TARGETARCH}/usr/bin && mv tetragon-operator /out/${TARGETOS}/${TARGETARCH}/usr/bin
 
+# User/group files for image
+RUN mkdir -p /out/etc && \
+    echo 'operator:x:65532:65532:operator:/home/operator:/sbin/nologin' > /out/etc/passwd && \
+    echo 'operator:x:65532:' > /out/etc/group
+
 # BUILDPLATFORM is an automatic platform ARG enabled by Docker BuildKit.
 # Represents the plataform where the build is happening, do not mix with
 # TARGETARCH
@@ -36,8 +41,12 @@ ARG TARGETARCH
 LABEL maintainer="maintainer@cilium.io"
 COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=builder /out/${TARGETOS}/${TARGETARCH}/usr/bin/tetragon-operator /usr/bin/tetragon-operator
+COPY --from=builder /out/etc/passwd /etc/passwd
+COPY --from=builder /out/etc/group /etc/group
+
 WORKDIR /
 ENV GOPS_CONFIG_DIR=/
+# Avoid root privileges
+USER operator:operator
 ENTRYPOINT ["/usr/bin/tetragon-operator"]
-
 FROM release

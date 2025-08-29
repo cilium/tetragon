@@ -11,7 +11,7 @@ Depending on your setup, changes listed here might require a manual intervention
 
 ### Helm Values
 
-* TBD
+* The `tetragonOperator.securityContext` field has been deprecated in favor of `tetragonOperator.containerSecurityContext` for clarity. The old field is still supported for backward compatibility but might be removed in a future release. Users should migrate their configurations to use the new field.
 
 ### TracingPolicy (k8s CRD)
 
