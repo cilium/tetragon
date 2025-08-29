@@ -1025,7 +1025,15 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 	loadProgName, loadProgRetName := config.GenericKprobeObjs(false)
 	isSecurityFunc := strings.HasPrefix(kprobeEntry.funcName, "security_")
 
-	useFentry := false
+	// We can use trampoline (fentry/fexit) in case:
+	// 1) it's not disabled (disable-kprobe-fentry option)
+	// 2) we do not do override or enforcer (FIXME)
+	// 3) we have fentry program support
+	// 4) fexit needs bpf_get_func_ret helper
+	useFentry := !polInfo.specOpts.DisableKprobeFentry && // 1
+		!kprobeEntry.hasOverride && !has.enforcer && // 2
+		bpf.HasFentryProgram() && // 3
+		bpf.HasGetFuncRetHelper() // 4
 
 	pinProg := kprobeEntry.funcName
 	if kprobeEntry.instance != 0 {
