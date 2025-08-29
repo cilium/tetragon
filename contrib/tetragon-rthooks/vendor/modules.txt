@@ -32,8 +32,8 @@ github.com/containerd/errdefs
 # github.com/containerd/log v0.1.0
 ## explicit; go 1.20
 github.com/containerd/log
-# github.com/containerd/nri v0.9.0
-## explicit; go 1.21
+# github.com/containerd/nri v0.10.0
+## explicit; go 1.24.3
 github.com/containerd/nri/pkg/api
 github.com/containerd/nri/pkg/log
 github.com/containerd/nri/pkg/net
@@ -68,10 +68,7 @@ github.com/docker/go-events
 github.com/godbus/dbus/v5
 # github.com/gogo/protobuf v1.3.2
 ## explicit; go 1.15
-github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/proto
-github.com/gogo/protobuf/protoc-gen-gogo/descriptor
-github.com/gogo/protobuf/sortkeys
 # github.com/google/cel-go v0.23.2
 ## explicit; go 1.21.1
 github.com/google/cel-go/cel
@@ -94,8 +91,8 @@ github.com/google/cel-go/common/types/traits
 github.com/google/cel-go/interpreter
 github.com/google/cel-go/parser
 github.com/google/cel-go/parser/gen
-# github.com/knqyf263/go-plugin v0.8.1-0.20240827022226-114c6257e441
-## explicit; go 1.20
+# github.com/knqyf263/go-plugin v0.9.0
+## explicit; go 1.24.0
 github.com/knqyf263/go-plugin/wasm
 # github.com/kr/text v0.2.0
 ## explicit
@@ -137,6 +134,8 @@ github.com/pelletier/go-toml/v2/unstable
 github.com/pmezard/go-difflib/difflib
 # github.com/prometheus/procfs v0.15.1
 ## explicit; go 1.20
+# github.com/rogpeppe/go-internal v1.12.0
+## explicit; go 1.20
 # github.com/sirupsen/logrus v1.9.3
 ## explicit; go 1.13
 github.com/sirupsen/logrus
@@ -148,8 +147,8 @@ github.com/stoewer/go-strcase
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/assert/yaml
 github.com/stretchr/testify/require
-# github.com/tetratelabs/wazero v1.8.2-0.20241030035603-dc08732e57d5
-## explicit; go 1.21
+# github.com/tetratelabs/wazero v1.9.0
+## explicit; go 1.22.0
 github.com/tetratelabs/wazero
 github.com/tetratelabs/wazero/api
 github.com/tetratelabs/wazero/experimental
@@ -322,9 +321,6 @@ google.golang.org/protobuf/types/known/wrapperspb
 # gopkg.in/yaml.v3 v3.0.1
 ## explicit
 gopkg.in/yaml.v3
-# k8s.io/cri-api v0.31.2
-## explicit; go 1.22.0
-k8s.io/cri-api/pkg/apis/runtime/v1
 # github.com/cilium/tetragon => ../../
 # github.com/cilium/tetragon/api => ../../api
 # github.com/cilium/tetragon/pkg/k8s => ../../pkg/k8s
