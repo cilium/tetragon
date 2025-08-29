@@ -247,12 +247,12 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 			if !bpf.HasProgramLargeSize() {
 				return errFn(errors.New("error: Resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag"))
 			}
-			lastBTFType, btfArg, err := resolveBTFArg("bpf_lsm_"+f.Hook, a, false)
+			lastBTFType, btfArg, err := resolveBTFArg("bpf_lsm_"+f.Hook, &a, false)
 			if err != nil {
 				return errFn(fmt.Errorf("error on hook %q for index %d : %w", f.Hook, a.Index, err))
 			}
 			allBTFArgs[j] = btfArg
-			argType = findTypeFromBTFType(a, lastBTFType)
+			argType = findTypeFromBTFType(&a, lastBTFType)
 		}
 
 		if argType == gt.GenericInvalidType {
@@ -314,7 +314,7 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 	}
 
 	// Parse Filters into kernel filter logic
-	lsmEntry.selectors, err = selectors.InitKernelSelectorState(f.Selectors, f.Args, nil, nil, in.selMaps)
+	lsmEntry.selectors, err = selectors.InitKernelSelectorState(f.Selectors, f.Args, []v1alpha1.KProbeArg{}, nil, nil, in.selMaps)
 	if err != nil {
 		return errFn(err)
 	}
