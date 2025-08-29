@@ -73,6 +73,10 @@ type MapLoad struct {
 	Load func(m *ebpf.Map, pinPathPrefix string) error
 }
 
+type TracingAttachData struct {
+	AttachTo string
+}
+
 type MultiKprobeAttachData struct {
 	Symbols   []string
 	Cookies   []uint64
