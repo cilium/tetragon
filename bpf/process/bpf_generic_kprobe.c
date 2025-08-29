@@ -100,7 +100,7 @@ generic_kprobe_process_filter(void *ctx)
 {
 	int ret;
 
-	ret = generic_process_filter();
+	ret = generic_process_filter(ctx);
 	if (ret == PFILTER_CONTINUE)
 		tail_call(ctx, &kprobe_calls, TAIL_CALL_FILTER);
 	else if (ret == PFILTER_ACCEPT)

@@ -56,13 +56,6 @@ struct bpf_map_def {
 #define BIT(nr)	    (1 << (nr))
 #define BIT_ULL(nr) (1ULL << (nr))
 
-#ifdef TETRAGON_BPF_DEBUG
-#include <bpf_tracing.h>
-#define DEBUG(__fmt, ...) bpf_printk(__fmt, ##__VA_ARGS__)
-#else
-#define DEBUG(__fmt, ...)
-#endif
-
 #ifdef __V612_BPF_PROG
 #define __arg_ctx      __attribute__((btf_decl_tag("arg:ctx")))
 #define __arg_nonnull  __attribute((btf_decl_tag("arg:nonnull")))

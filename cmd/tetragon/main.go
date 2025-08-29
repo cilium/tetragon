@@ -60,6 +60,8 @@ import (
 	// Imported to allow sensors to be initialized inside init().
 	_ "github.com/cilium/tetragon/pkg/sensors"
 
+	"github.com/cilium/tetragon/pkg/debug"
+
 	"github.com/cilium/lumberjack/v2"
 	gops "github.com/google/gops/agent"
 	"github.com/spf13/cobra"
@@ -540,6 +542,11 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	// k8s should have metrics, so periodically log only in a non k8s
 	if !option.Config.EnableK8s {
 		go logStatus(ctx, obs)
+	}
+
+	// Start debug framework if enabled
+	if err := debug.StartDebugReader(ctx); err != nil {
+		return fmt.Errorf("failed to start debug reader: %w", err)
 	}
 
 	return obs.StartReady(ctx, ready)
