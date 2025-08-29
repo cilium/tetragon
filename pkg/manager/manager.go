@@ -79,10 +79,11 @@ func newControllerManager() (*ControllerManager, error) {
 	}
 	metricsOptions := metricsserver.Options{BindAddress: "0"}
 	controllerOptions := ctrl.Options{Scheme: scheme, Cache: cacheOptions, Metrics: metricsOptions}
-	cfg, err := conf.K8sConfig()
+	cfg, inCluster, err := conf.K8sConfig()
 	if err != nil {
 		logger.GetLogger().Warn("Unable to get Kubernetes config, using default controller-runtime config", logfields.Error, err)
 		cfg = ctrl.GetConfigOrDie()
+		inCluster = true
 	}
 	controllerManager, err := ctrl.NewManager(cfg, controllerOptions)
 	if err != nil {
@@ -91,9 +92,11 @@ func newControllerManager() (*ControllerManager, error) {
 	manager = &ControllerManager{
 		Manager: controllerManager,
 	}
-	err = manager.addPodInformer()
-	if err != nil {
-		return nil, err
+	if inCluster {
+		err = manager.addPodInformer()
+		if err != nil {
+			return nil, err
+		}
 	}
 	return manager, nil
 }

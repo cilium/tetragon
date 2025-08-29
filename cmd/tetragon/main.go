@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 
@@ -414,18 +415,22 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		if option.Config.EnablePodInfo {
 			crds[v1alpha1.PIName] = struct{}{}
 		}
-		if len(crds) > 0 {
-			err = controllerManager.WaitCRDs(ctx, crds)
-			if err != nil {
-				return err
+		if option.InClusterControlPlaneEnabled() {
+			if len(crds) > 0 {
+				err = controllerManager.WaitCRDs(ctx, crds)
+				if err != nil {
+					return err
+				}
 			}
-		}
-		podAccessor = controllerManager
-		k8sNode, err := controllerManager.GetNode()
-		if err != nil {
-			log.Warn("Failed to get local Kubernetes node info. node_labels field will be empty", logfields.Error, err)
+			podAccessor = controllerManager
+			k8sNode, err := controllerManager.GetNode()
+			if err != nil {
+				log.Warn("Failed to get local Kubernetes node info. node_labels field will be empty", logfields.Error, err)
+			} else {
+				node.SetNodeLabels(k8sNode.Labels)
+			}
 		} else {
-			node.SetNodeLabels(k8sNode.Labels)
+			podAccessor = watcher.NewFakeK8sWatcher(nil)
 		}
 	} else {
 		log.Info("Disabling Kubernetes API")

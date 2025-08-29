@@ -10,9 +10,13 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 )
 
-func K8sConfig() (*rest.Config, error) {
+// K8sConfig returns Kubernetes client configuration. If running in-cluster, the
+// second return value is true, otherwise false.
+func K8sConfig() (*rest.Config, bool, error) {
 	if option.Config.K8sKubeConfigPath != "" {
-		return clientcmd.BuildConfigFromFlags("", option.Config.K8sKubeConfigPath)
+		cfg, err := clientcmd.BuildConfigFromFlags("", option.Config.K8sKubeConfigPath)
+		return cfg, false, err
 	}
-	return rest.InClusterConfig()
+	cfg, err := rest.InClusterConfig()
+	return cfg, true, err
 }
