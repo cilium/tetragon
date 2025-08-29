@@ -548,6 +548,7 @@ found.
 | ----- | ---- | ----- | ----------- |
 | namespace | [string](#string) |  | Kubernetes namespace of the Pod. |
 | name | [string](#string) |  | Name of the Pod. |
+| uid | [string](#string) |  | UID of the Pod. |
 | container | [Container](#tetragon-Container) |  | Container of the Pod from which the process that triggered the event originates. |
 | pod_labels | [Pod.PodLabelsEntry](#tetragon-Pod-PodLabelsEntry) | repeated | Contains all the labels of the pod. |
 | workload | [string](#string) |  | Kubernetes workload of the Pod. |

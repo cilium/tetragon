@@ -52,6 +52,8 @@ message Pod {
   string namespace = 1;
   // Name of the Pod.
   string name = 2;
+  // UID of the Pod.
+  string uid = 3;
   // Container of the Pod from which the process that triggered the event
   // originates.
   Container container = 4;

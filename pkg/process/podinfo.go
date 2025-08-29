@@ -103,6 +103,7 @@ func getPodInfo(
 		Workload:     workloadObject.Name,
 		WorkloadKind: workloadType.Kind,
 		Name:         pod.Name,
+		Uid:          string(pod.UID),
 		PodLabels:    pod.Labels,
 		Container: &tetragon.Container{
 			Id:   container.ContainerID,
