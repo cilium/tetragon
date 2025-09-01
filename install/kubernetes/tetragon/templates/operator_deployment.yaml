@@ -49,9 +49,12 @@ spec:
           {{- with .Values.tetragonOperator.extraVolumeMounts }}
             {{- toYaml . | nindent 10 }}
           {{- end }}
-        {{- with .Values.tetragonOperator.securityContext }}
+        {{- if .Values.tetragonOperator.containerSecurityContext }}
         securityContext:
-          {{- toYaml . | nindent 10 }}
+          {{- toYaml .Values.tetragonOperator.containerSecurityContext | nindent 10 }}
+        {{- else if .Values.tetragonOperator.securityContext }}
+        securityContext:
+          {{- toYaml .Values.tetragonOperator.securityContext | nindent 10 }}
         {{- end }}
         {{- if .Values.tetragonOperator.prometheus.enabled }}
         ports:
