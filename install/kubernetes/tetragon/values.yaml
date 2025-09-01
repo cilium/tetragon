@@ -275,11 +275,17 @@ tetragonOperator:
   # -- securityContext for the Tetragon Operator Deployment Pods.
   podSecurityContext: {}
   # -- securityContext for the Tetragon Operator Deployment Pod container.
-  securityContext:
+  containerSecurityContext:
+    runAsUser: 65532
+    runAsGroup: 65532
+    runAsNonRoot: true
     allowPrivilegeEscalation: false
     capabilities:
       drop:
         - "ALL"
+
+  # -- securityContext for the Tetragon Operator Deployment Pod container. (DEPRECATED: Use containerSecurityContext instead. TODO: Remove in v1.6.0)
+  securityContext: {}
   # -- resources for the Tetragon Operator Deployment Pod container.
   resources:
     limits:
