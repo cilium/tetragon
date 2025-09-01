@@ -137,6 +137,7 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | tetragonOperator.affinity.podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution[0].podAffinityTerm.topologyKey | string | `"kubernetes.io/hostname"` |  |
 | tetragonOperator.affinity.podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution[0].weight | int | `100` |  |
 | tetragonOperator.annotations | object | `{}` | Annotations for the Tetragon Operator Deployment. |
+| tetragonOperator.containerSecurityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"runAsGroup":65532,"runAsNonRoot":true,"runAsUser":65532}` | securityContext for the Tetragon Operator Deployment Pod container. |
 | tetragonOperator.enabled | bool | `true` | Enables the Tetragon Operator. |
 | tetragonOperator.extraLabels | object | `{}` | Extra labels to be added on the Tetragon Operator Deployment. |
 | tetragonOperator.extraPodLabels | object | `{}` | Extra labels to be added on the Tetragon Operator Deployment Pods. |
@@ -165,7 +166,7 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | tetragonOperator.prometheus.serviceMonitor.scrapeInterval | string | `"60s"` | Interval at which metrics should be scraped. If not specified, Prometheus' global scrape interval is used. |
 | tetragonOperator.replicas | int | `1` | Number of replicas to run for the tetragon-operator deployment |
 | tetragonOperator.resources | object | `{"limits":{"cpu":"500m","memory":"128Mi"},"requests":{"cpu":"10m","memory":"64Mi"}}` | resources for the Tetragon Operator Deployment Pod container. |
-| tetragonOperator.securityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}` | securityContext for the Tetragon Operator Deployment Pod container. |
+| tetragonOperator.securityContext | object | `{}` | securityContext for the Tetragon Operator Deployment Pod container. (DEPRECATED: Use containerSecurityContext instead. TODO: Remove in v1.6.0) |
 | tetragonOperator.serviceAccount | object | `{"annotations":{},"create":true,"name":""}` | tetragon-operator service account. |
 | tetragonOperator.strategy | object | `{"rollingUpdate":{"maxSurge":1,"maxUnavailable":0},"type":"RollingUpdate"}` | resources for the Tetragon Operator Deployment update strategy |
 | tetragonOperator.tolerations | list | `[]` |  |
