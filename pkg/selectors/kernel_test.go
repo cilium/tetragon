@@ -219,6 +219,142 @@ func TestNamespaceValueStr(t *testing.T) {
 	}
 }
 
+func TestParseMatchData(t *testing.T) {
+	sig := []v1alpha1.KProbeArg{
+		v1alpha1.KProbeArg{ /* index 0 */ Type: "string"},
+		v1alpha1.KProbeArg{ /* index 1 */ Type: "int"},
+		v1alpha1.KProbeArg{ /* index 2 */ Type: "char_buf"},
+		v1alpha1.KProbeArg{ /* index 3 */ Type: "char_iovec"},
+		v1alpha1.KProbeArg{ /* index 4 */ Type: "sock"},
+		v1alpha1.KProbeArg{ /* index 5 */ Type: "skb"},
+		v1alpha1.KProbeArg{ /* index 6 */ Type: "skb"},
+		v1alpha1.KProbeArg{ /* index 7 */ Type: "sock"},
+		v1alpha1.KProbeArg{ /* index 8 */ Type: "sockaddr"},
+		v1alpha1.KProbeArg{ /* index 9 */ Type: "socket"},
+	}
+
+	arg1 := &v1alpha1.ArgSelector{Index: 0, Operator: "Equal", Values: []string{"ex"}}
+	k := NewKernelSelectorState(nil, nil)
+	d := &k.data
+
+	expected1 := []byte{
+		0x02, 0x00, 0x00, 0x00, // Index == 2 (0 + base 2)
+		0x03, 0x00, 0x00, 0x00, // operator == equal
+		52, 0x00, 0x00, 0x00, // length == 32
+		0x06, 0x00, 0x00, 0x00, // value type == string
+		0x00, 0x00, 0x00, 0x00, // map ID for strings <25
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 25-48
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 49-72
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 73-96
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 97-120
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 121-144
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 145-256
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 257-512
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 513-1024
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 1025-2048
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 2049-4096
+	}
+	if err := ParseMatchData(k, arg1, sig, 2); err != nil || bytes.Equal(expected1, d.e[0:d.off]) == false {
+		t.Errorf("parseMatchArg: error %v expected:\n%v\nbytes:\n%v\nparsing %v\n", err, expected1, d.e[0:d.off], arg1)
+	}
+
+	nextArg := d.off
+	arg2 := &v1alpha1.ArgSelector{Index: 1, Operator: "Equal", Values: []string{"1", "2"}}
+	expected2 := []byte{
+		0x03, 0x00, 0x00, 0x00, // Index == 3 (1 + base 2)
+		0x03, 0x00, 0x00, 0x00, // operator == equal
+		16, 0x00, 0x00, 0x00, // length == 16
+		0x01, 0x00, 0x00, 0x00, // value type == int
+		0x01, 0x00, 0x00, 0x00, // value 1
+		0x02, 0x00, 0x00, 0x00, // value 2
+	}
+	if err := ParseMatchData(k, arg2, sig, 2); err != nil || bytes.Equal(expected2, d.e[nextArg:d.off]) == false {
+		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected2, d.e[nextArg:d.off], arg2)
+	}
+
+	nextArg = d.off
+	arg3 := &v1alpha1.ArgSelector{Index: 4, Operator: "SAddr", Values: []string{"127.0.0.1", "10.1.2.3/24", "192.168.254.254/20"}}
+	expected3 := []byte{
+		0x06, 0x00, 0x00, 0x00, // Index == 6 (4 + base 2)
+		13, 0x00, 0x00, 0x00, // operator == saddr
+		16, 0x00, 0x00, 0x00, // length == 16
+		0x07, 0x00, 0x00, 0x00, // value type == sock
+		0x00, 0x00, 0x00, 0x00, // Addr4LPM mapid = 0
+		0xff, 0xff, 0xff, 0xff, // Addr6LPM no map
+	}
+	if err := ParseMatchData(k, arg3, sig, 2); err != nil || bytes.Equal(expected3, d.e[nextArg:d.off]) == false {
+		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected3, d.e[nextArg:d.off], arg3)
+	}
+
+	nextArg = d.off
+	arg4 := &v1alpha1.ArgSelector{Index: 5, Operator: "SPort", Values: []string{"8081", "25", "31337"}}
+	expected4 := []byte{
+		0x07, 0x00, 0x00, 0x00, // Index == 7 (5 + base 2)
+		15, 0x00, 0x00, 0x00, // operator == sport
+		12, 0x00, 0x00, 0x00, // length == 12
+		0x05, 0x00, 0x00, 0x00, // value type == skb
+		0x00, 0x00, 0x00, 0x00, // argfilter mapid = 0
+	}
+	if err := ParseMatchData(k, arg4, sig, 2); err != nil || bytes.Equal(expected4, d.e[nextArg:d.off]) == false {
+		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected4, d.e[nextArg:d.off], arg4)
+	}
+
+	nextArg = d.off
+	arg5 := &v1alpha1.ArgSelector{Index: 6, Operator: "Protocol", Values: []string{"3", "IPPROTO_UDP", "IPPROTO_TCP"}}
+	expected5 := []byte{
+		0x08, 0x00, 0x00, 0x00, // Index == 8 (6 + base 2)
+		17, 0x00, 0x00, 0x00, // operator == protocol
+		12, 0x00, 0x00, 0x00, // length == 12
+		0x05, 0x00, 0x00, 0x00, // value type == skb
+		1, 0x00, 0x00, 0x00, // argfilter mapid = 1
+	}
+	if err := ParseMatchData(k, arg5, sig, 2); err != nil || bytes.Equal(expected5, d.e[nextArg:d.off]) == false {
+		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected5, d.e[nextArg:d.off], arg5)
+	}
+
+	nextArg = d.off
+	arg6 := &v1alpha1.ArgSelector{Index: 7, Operator: "SAddr", Values: []string{"127.0.0.1", "::1/128"}}
+	expected6 := []byte{
+		0x09, 0x00, 0x00, 0x00, // Index == 9 (7 + base 2)
+		13, 0x00, 0x00, 0x00, // operator == saddr
+		16, 0x00, 0x00, 0x00, // length == 16
+		0x07, 0x00, 0x00, 0x00, // value type == sock
+		1, 0x00, 0x00, 0x00, // Addr4LPM mapid = 1
+		0x00, 0x00, 0x00, 0x00, // Addr6LPM mapid = 0
+	}
+	if err := ParseMatchData(k, arg6, sig, 2); err != nil || bytes.Equal(expected6, d.e[nextArg:d.off]) == false {
+		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected6, d.e[nextArg:d.off], arg6)
+	}
+
+	nextArg = d.off
+	arg7 := &v1alpha1.ArgSelector{Index: 8, Operator: "SAddr", Values: []string{"127.0.0.1", "::1/128"}}
+	expected7 := []byte{
+		0x0a, 0x00, 0x00, 0x00, // Index == 10 (8 + base 2)
+		13, 0x00, 0x00, 0x00, // operator == saddr
+		16, 0x00, 0x00, 0x00, // length == 16
+		0x28, 0x00, 0x00, 0x00, // value type == sockaddr
+		2, 0x00, 0x00, 0x00, // Addr4LPM mapid = 2
+		1, 0x00, 0x00, 0x00, // Addr6LPM mapid = 1
+	}
+	if err := ParseMatchData(k, arg7, sig, 2); err != nil || bytes.Equal(expected7, d.e[nextArg:d.off]) == false {
+		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected7, d.e[nextArg:d.off], arg7)
+	}
+
+	nextArg = d.off
+	arg8 := &v1alpha1.ArgSelector{Index: 9, Operator: "SAddr", Values: []string{"127.0.0.1", "::1/128"}}
+	expected8 := []byte{
+		0x0b, 0x00, 0x00, 0x00, // Index == 11 (9 + base 2)
+		13, 0x00, 0x00, 0x00, // operator == saddr
+		16, 0x00, 0x00, 0x00, // length == 16
+		0x29, 0x00, 0x00, 0x00, // value type == socket
+		3, 0x00, 0x00, 0x00, // Addr4LPM mapid = 3
+		2, 0x00, 0x00, 0x00, // Addr6LPM mapid = 2
+	}
+	if err := ParseMatchData(k, arg8, sig, 2); err != nil || bytes.Equal(expected8, d.e[nextArg:d.off]) == false {
+		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected8, d.e[nextArg:d.off], arg8)
+	}
+}
+
 func TestParseMatchArg(t *testing.T) {
 	sig := []v1alpha1.KProbeArg{
 		v1alpha1.KProbeArg{Index: 1, Type: "string", SizeArgIndex: 0, ReturnCopy: false},
