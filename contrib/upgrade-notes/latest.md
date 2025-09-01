@@ -11,7 +11,16 @@ Depending on your setup, changes listed here might require a manual intervention
 
 ### Helm Values
 
-* TBD
+* The `tetragonOperator.securityContext` field has been deprecated in favor of
+  `tetragonOperator.containerSecurityContext` for clarity. The old field is
+  still supported for backward compatibility but might be removed in a future
+  release. Users should migrate their configurations to use the new field.
+
+* The Tetragon Operator now defaults to running as a non-root user (UID 65532)
+  for improved security. A new `tetragonOperator.runAsRoot` option has been
+  added to override this behavior and run as root when needed. Set
+  `tetragonOperator.runAsRoot: true` to maintain the previous root-based
+  behavior if required.
 
 ### TracingPolicy (k8s CRD)
 
