@@ -679,6 +679,31 @@ spec:
       - action: Post
 ```
 
+## Data
+
+Kprobes allow definition of `data` fields and following `matchData` selector
+that allows to retrieve data from kernel current task object and specify
+filter on it.
+
+Following example defines data field that retrieves `comm` field from
+kernel `current_task` object.
+
+```yaml
+data:
+- type: "string"
+  source: "current_task"
+  resolve: "comm"
+selectors:
+- matchData:
+  - index: 0
+    operator: "Equal"
+    values:
+    - "example"
+```
+
+Note all data field spec definitions need to define `source` (ATM only available value
+is `current_task`) and `resolve` string based on kernel `struct task_struct` object.
+
 ## Return values
 
 A `TracingPolicy` spec can specify that the return value should be reported in
