@@ -219,6 +219,102 @@ func TestNamespaceValueStr(t *testing.T) {
 	}
 }
 
+func TestParseMatchArgs(t *testing.T) {
+	if !config.EnableLargeProgs() { // multiple match args are supported only in kernels >= 5.4
+		t.Skip("Test requires kernel 5.4")
+	}
+
+	args := []v1alpha1.KProbeArg{
+		v1alpha1.KProbeArg{Index: 1, Type: "string", SizeArgIndex: 0, ReturnCopy: false},
+		v1alpha1.KProbeArg{Index: 2, Type: "int", SizeArgIndex: 0, ReturnCopy: false},
+	}
+
+	data := []v1alpha1.KProbeArg{
+		v1alpha1.KProbeArg{ /* index 0 */ Type: "string"},
+		v1alpha1.KProbeArg{ /* index 1 */ Type: "int"},
+	}
+
+	arg1 := &v1alpha1.ArgSelector{Index: 1, Operator: "Equal", Values: []string{"foobar"}}
+	arg1Expected := []byte{
+		0x00, 0x00, 0x00, 0x00, // Index == 0
+		0x03, 0x00, 0x00, 0x00, // operator == equal
+		52, 0x00, 0x00, 0x00, // length == 32
+		0x06, 0x00, 0x00, 0x00, // value type == string
+		0x00, 0x00, 0x00, 0x00, // map ID for strings <25
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 25-48
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 49-72
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 73-96
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 97-120
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 121-144
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 145-256
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 257-512
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 513-1024
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 1025-2048
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 2049-4096
+	}
+
+	arg2 := &v1alpha1.ArgSelector{Index: 2, Operator: "Equal", Values: []string{"1", "2"}}
+	arg2Expected := []byte{
+		0x01, 0x00, 0x00, 0x00, // Index == 1
+		0x03, 0x00, 0x00, 0x00, // operator == equal
+		16, 0x00, 0x00, 0x00, // length == 16
+		0x01, 0x00, 0x00, 0x00, // value type == int
+		0x01, 0x00, 0x00, 0x00, // value 1
+		0x02, 0x00, 0x00, 0x00, // value 2
+	}
+
+	data1 := &v1alpha1.ArgSelector{Index: 0, Operator: "Equal", Values: []string{"ex"}}
+	data1Expected := []byte{
+		0x02, 0x00, 0x00, 0x00, // Index == 2 (0 + base 2)
+		0x03, 0x00, 0x00, 0x00, // operator == equal
+		52, 0x00, 0x00, 0x00, // length == 32
+		0x06, 0x00, 0x00, 0x00, // value type == string
+		0x01, 0x00, 0x00, 0x00, // map ID for strings <25
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 25-48
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 49-72
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 73-96
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 97-120
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 121-144
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 145-256
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 257-512
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 513-1024
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 1025-2048
+		0xff, 0xff, 0xff, 0xff, // map ID for strings 2049-4096
+	}
+
+	data2 := &v1alpha1.ArgSelector{Index: 1, Operator: "Equal", Values: []string{"1", "2"}}
+	data2Expected := []byte{
+		0x03, 0x00, 0x00, 0x00, // Index == 3 (1 + base 2)
+		0x03, 0x00, 0x00, 0x00, // operator == equal
+		16, 0x00, 0x00, 0x00, // length == 16
+		0x01, 0x00, 0x00, 0x00, // value type == int
+		0x01, 0x00, 0x00, 0x00, // value 1
+		0x02, 0x00, 0x00, 0x00, // value 2
+	}
+
+	argsSel := []v1alpha1.ArgSelector{*arg1, *arg2}
+	dataSel := []v1alpha1.ArgSelector{*data1, *data2}
+
+	length := []byte{
+		192, 0x00, 0x00, 0x00, // total length
+		24, 0x00, 0x00, 0x00, // selector 1 offset
+		84, 0x00, 0x00, 0x00, // selector 2 offset
+		108, 0x00, 0x00, 0x00, // selector 3 offset
+		168, 0x00, 0x00, 0x00, // selector 4 offset
+		0x00, 0x00, 0x00, 0x00,
+	}
+	expected := append(length, arg1Expected[:]...)
+	expected = append(expected, arg2Expected[:]...)
+	expected = append(expected, data1Expected[:]...)
+	expected = append(expected, data2Expected[:]...)
+
+	ks := NewKernelSelectorState(nil, nil)
+	d := &ks.data
+	if err := ParseMatchArgs(ks, argsSel, dataSel, args, data); err != nil || bytes.Equal(expected, d.e[0:d.off]) == false {
+		t.Errorf("parseMatchArgs: error %v expected:\n%v\nbytes:\n%v\n", err, expected, d.e[0:d.off])
+	}
+}
+
 func TestParseMatchData(t *testing.T) {
 	sig := []v1alpha1.KProbeArg{
 		v1alpha1.KProbeArg{ /* index 0 */ Type: "string"},
