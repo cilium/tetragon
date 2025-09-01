@@ -532,6 +532,8 @@ message ProcessKprobe {
   repeated StackTraceEntry user_stack_trace = 12;
   // Ancestors of the process beyond the immediate parent.
   repeated Process ancestors = 13;
+  // Data definition of the observed kprobe.
+  repeated KprobeArgument data = 14;
 }
 
 message ProcessTracepoint {
