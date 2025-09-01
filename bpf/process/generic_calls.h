@@ -474,7 +474,17 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 		     : [arg_index] "+r"(arg_index)
 		     : "i"(MAX_SELECTORS_MASK));
 
-	a = (&e->a0)[arg_index];
+	/* Getting argument data based on the source attribute, which is encoded
+	 * in argument meta data, so far it's either:
+	 *
+	 *   - current task object
+	 *   - real argument value
+	 */
+	if (am & ARGM_CURRENT_TASK)
+		a = get_current_task();
+	else
+		a = (&e->a0)[arg_index];
+
 	extract_arg(config, index, &a);
 
 	if (should_offload_path(ty))
