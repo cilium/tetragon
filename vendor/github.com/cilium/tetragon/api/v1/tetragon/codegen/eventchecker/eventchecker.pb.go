@@ -747,6 +747,7 @@ type ProcessKprobeChecker struct {
 	Tags             *StringListMatcher           `json:"tags,omitempty"`
 	UserStackTrace   *StackTraceEntryListMatcher  `json:"userStackTrace,omitempty"`
 	Ancestors        *ProcessListMatcher          `json:"ancestors,omitempty"`
+	Data             *KprobeArgumentListMatcher   `json:"data,omitempty"`
 }
 
 // CheckEvent checks a single event and implements the EventChecker interface
@@ -853,6 +854,11 @@ func (checker *ProcessKprobeChecker) Check(event *tetragon.ProcessKprobe) error 
 				return fmt.Errorf("Ancestors check failed: %w", err)
 			}
 		}
+		if checker.Data != nil {
+			if err := checker.Data.Check(event.Data); err != nil {
+				return fmt.Errorf("Data check failed: %w", err)
+			}
+		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -941,6 +947,12 @@ func (checker *ProcessKprobeChecker) WithAncestors(check *ProcessListMatcher) *P
 	return checker
 }
 
+// WithData adds a Data check to the ProcessKprobeChecker
+func (checker *ProcessKprobeChecker) WithData(check *KprobeArgumentListMatcher) *ProcessKprobeChecker {
+	checker.Data = check
+	return checker
+}
+
 //FromProcessKprobe populates the ProcessKprobeChecker using data from a ProcessKprobe event
 func (checker *ProcessKprobeChecker) FromProcessKprobe(event *tetragon.ProcessKprobe) *ProcessKprobeChecker {
 	if event == nil {
@@ -1022,6 +1034,19 @@ func (checker *ProcessKprobeChecker) FromProcessKprobe(event *tetragon.ProcessKp
 		lm := NewProcessListMatcher().WithOperator(listmatcher.Ordered).
 			WithValues(checks...)
 		checker.Ancestors = lm
+	}
+	{
+		var checks []*KprobeArgumentChecker
+		for _, check := range event.Data {
+			var convertedCheck *KprobeArgumentChecker
+			if check != nil {
+				convertedCheck = NewKprobeArgumentChecker().FromKprobeArgument(check)
+			}
+			checks = append(checks, convertedCheck)
+		}
+		lm := NewKprobeArgumentListMatcher().WithOperator(listmatcher.Ordered).
+			WithValues(checks...)
+		checker.Data = lm
 	}
 	return checker
 }

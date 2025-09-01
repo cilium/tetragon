@@ -660,6 +660,7 @@ found.
 | tags | [string](#string) | repeated | Tags of the Tracing Policy to categorize the event. |
 | user_stack_trace | [StackTraceEntry](#tetragon-StackTraceEntry) | repeated | User-mode stack trace to the call. |
 | ancestors | [Process](#tetragon-Process) | repeated | Ancestors of the process beyond the immediate parent. |
+| data | [KprobeArgument](#tetragon-KprobeArgument) | repeated | Data definition of the observed kprobe. |
 
 <a name="tetragon-ProcessLoader"></a>
 
