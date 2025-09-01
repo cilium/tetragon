@@ -12,6 +12,7 @@ hook can contain up to 5 selectors. If no selectors are defined on a hook, the d
 
 Each selector comprises a set of filters:
 - [`matchArgs`](#arguments-filter): filter on the value of arguments.
+- [`matchData`](#data-filter): filter on the value of data fields.
 - [`matchReturnArgs`](#return-args-filter): filter on the return value.
 - [`matchPIDs`](#pids-filter): filter on PID.
 - [`matchBinaries`](#binaries-filter): filter on binary path.
@@ -149,6 +150,30 @@ with the previous example.
     operator: "Prefix"
     values:
     - "/etc"
+```
+
+## Data filter
+
+Data filters can be specified under the `matchData` field and provide
+filtering based on the value of the specified `data` field.
+
+You can specify the argument either in the `index` or in `args` field. Both `index` and
+`args` field denote the argument position within the spec file.
+
+In the following example we extra pid value from `current_task` and filter
+on all values except for `1`.
+
+```yaml
+data:
+- type: "string"
+  source: "current_task"
+  resolve: "pid"
+selectors:
+- matchData:
+  - index: 0
+    operator: "NotEqual"
+    values:
+    - "1"
 ```
 
 ## Return args filter
