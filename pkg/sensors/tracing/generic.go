@@ -6,6 +6,7 @@
 package tracing
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -28,6 +29,10 @@ func addPaddingOnNestedPtr(ty ebtf.Type, path []string) []string {
 	return path
 }
 
+func hasCurrentTaskSource(arg *v1alpha1.KProbeArg) bool {
+	return arg.Source == "current_task"
+}
+
 func resolveBTFArg(hook string, arg v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
 	btfArg := [api.MaxBTFArgDepth]api.ConfigBTFArg{}
 
@@ -37,23 +42,36 @@ func resolveBTFArg(hook string, arg v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [a
 		index++
 	}
 
-	param, err := btf.FindBTFFuncParamFromHook(hook, index)
-	if err != nil {
-		return nil, btfArg, err
-	}
+	var ty ebtf.Type
 
-	rootType := param.Type
-	if rootTy, isPointer := param.Type.(*ebtf.Pointer); isPointer {
-		rootType = rootTy.Target
+	// Getting argument data based on the source attribute, so far it's either:
+	// - current task object
+	// - real argument value
+	if hasCurrentTaskSource(&arg) {
+		st, err := btf.FindBTFStruct("task_struct")
+		if err != nil && !errors.Is(err, ebtf.ErrMultipleMatches) {
+			return nil, btfArg, err
+		}
+		ty = ebtf.Type(st)
+	} else {
+		param, err := btf.FindBTFFuncParamFromHook(hook, index)
+		if err != nil {
+			return nil, btfArg, err
+		}
+
+		ty = param.Type
+		if ptr, isPointer := param.Type.(*ebtf.Pointer); isPointer {
+			ty = ptr.Target
+		}
 	}
 
 	pathBase := strings.Split(arg.Resolve, ".")
-	path := addPaddingOnNestedPtr(rootType, pathBase)
+	path := addPaddingOnNestedPtr(ty, pathBase)
 	if len(path) > api.MaxBTFArgDepth {
 		return nil, btfArg, fmt.Errorf("unable to resolve %q. The maximum depth allowed is %d", arg.Resolve, api.MaxBTFArgDepth)
 	}
 
-	lastBTFType, err := resolveBTFPath(&btfArg, btf.ResolveNestedTypes(rootType), path)
+	lastBTFType, err := resolveBTFPath(&btfArg, btf.ResolveNestedTypes(ty), path)
 	return lastBTFType, btfArg, err
 }
 
