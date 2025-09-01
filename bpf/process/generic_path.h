@@ -5,6 +5,7 @@
 #define __GENERIC_PATH_H__
 
 #include "bpf_d_path.h"
+#include "bpf_misc.h"
 #include "compiler.h"
 
 enum {
@@ -21,7 +22,7 @@ FUNC_INLINE int get_off(char *buffer, char *buf)
 
 FUNC_INLINE char *get_buf(char *buffer, int off)
 {
-	asm volatile("%[off] &= 0xfff;\n" : [off] "+r"(off));
+	asm volatile("%[off] &= %[mask];\n" : [off] "+r"(off) : __imm_const(mask, MAX_BUF_LEN_MASK));
 	return buffer + off;
 }
 
