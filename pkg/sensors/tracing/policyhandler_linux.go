@@ -71,7 +71,7 @@ func (pi *policyInfo) policyConfMap(prog *program.Program) *program.Map {
 	if pi.policyConf != nil {
 		return program.MapUserFrom(pi.policyConf)
 	}
-	pi.policyConf = program.MapBuilderPolicy("policy_conf", prog)
+	pi.policyConf = program.MapBuilderPolicy(policyconf.PolicyConfMapName, prog)
 	prog.MapLoad = append(prog.MapLoad, &program.MapLoad{
 		Name: policyconf.PolicyConfMapName,
 		Load: func(m *ebpf.Map, _ string) error {
