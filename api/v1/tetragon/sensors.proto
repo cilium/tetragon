@@ -55,6 +55,27 @@ enum TracingPolicyMode {
   TP_MODE_MONITOR = 2;
 }
 
+message TracingPolicyActionCounters {
+  // number of post events generated from the policy
+  uint64 post = 1;
+  // number of signals sent from the policy
+  uint64 signal = 2;
+  // number of signals that were not sent because the policy was in monitor mode
+  uint64 monitor_signal = 3;
+  // number of return overrides
+  uint64 override = 4;
+  // number of return overrides that did not occur because the policy was in monitor mode
+  uint64 monitor_override = 5;
+  // number of enforcer notifications triggered from the policy
+  uint64 notify_enforcer = 6;
+  // number of enforcer notifications that did not occur because the policy was in monitor mode
+  uint64 monitor_notify_enforcer = 7;
+}
+
+message TracingPolicyStats {
+  TracingPolicyActionCounters action_counters = 1;
+}
+
 message TracingPolicyStatus {
   // id is the id of the policy
   uint64 id = 1;
@@ -78,6 +99,8 @@ message TracingPolicyStatus {
   uint64 kernel_memory_bytes = 10;
   // current mode of the tracing policy
   TracingPolicyMode mode = 11;
+  // stats of the tracing policy
+  optional TracingPolicyStats stats = 12;
 }
 
 message ListTracingPoliciesResponse {
