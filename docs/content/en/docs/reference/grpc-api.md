@@ -741,6 +741,8 @@ loader sensor event triggered for loaded binary/library
 | args | [KprobeArgument](#tetragon-KprobeArgument) | repeated | Arguments definition of the observed uprobe. |
 | tags | [string](#string) | repeated | Tags of the Tracing Policy to categorize the event. |
 | ancestors | [Process](#tetragon-Process) | repeated | Ancestors of the process beyond the immediate parent. |
+| action | [KprobeAction](#tetragon-KprobeAction) |  | Action performed when the USDT hook matched. |
+| flags | [string](#string) |  | Flags are for debugging purposes only and should not be considered a reliable source of information. |
 
 <a name="tetragon-RuntimeHookRequest"></a>
 

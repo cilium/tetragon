@@ -597,6 +597,11 @@ message ProcessUsdt {
   repeated string tags = 9;
   // Ancestors of the process beyond the immediate parent.
   repeated Process ancestors = 10;
+  // Action performed when the USDT hook matched.
+  KprobeAction action = 11;
+  // Flags are for debugging purposes only and should not be considered a
+  // reliable source of information.
+  string flags = 12;
 }
 
 message ProcessLsm {
