@@ -23,6 +23,7 @@ import (
 	"github.com/cilium/tetragon/pkg/elf"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
@@ -63,9 +64,10 @@ func TestLoadUprobeSensor(t *testing.T) {
 
 			// generic_uprobe_output
 			{Name: "tcpmon_map", Progs: []uint{6}},
+			{Name: "tg_rb_events", Progs: []uint{6}},
 
 			// generic_uprobe_event
-			{Name: "tg_conf_map", Progs: []uint{0}},
+			{Name: "tg_conf_map", Progs: []uint{0, 6}},
 
 			// shared with base sensor
 			{Name: "execve_map", Progs: []uint{4, 5, 6}},
@@ -95,17 +97,22 @@ func TestLoadUprobeSensor(t *testing.T) {
 
 			// generic_uprobe_output
 			{Name: "tcpmon_map", Progs: []uint{6}},
-
-			// generic_uprobe_event
-			{Name: "tg_conf_map", Progs: []uint{0}},
 		}
 
 		if config.EnableLargeProgs() {
 			// shared with base sensor
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 5, 6}})
+
+			if kernels.MinKernelVersion("5.11") {
+				sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0, 6}})
+				sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_rb_events", Progs: []uint{6}})
+			} else {
+				sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}})
+			}
 		} else {
 			// shared with base sensor
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4}})
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}})
 		}
 	}
 
