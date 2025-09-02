@@ -14,6 +14,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policyconf"
 	"github.com/cilium/tetragon/pkg/policyfilter"
+	"github.com/cilium/tetragon/pkg/policystats"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
@@ -25,6 +26,7 @@ type policyInfo struct {
 	policyID      policyfilter.PolicyID
 	customHandler eventhandler.Handler
 	policyConf    *program.Map
+	policyStats   *program.Map
 	specOpts      *specOptions
 }
 
@@ -63,8 +65,17 @@ func newPolicyInfoFromSpec(
 		policyID:      policyID,
 		customHandler: customHandler,
 		policyConf:    nil,
+		policyStats:   nil,
 		specOpts:      opts,
 	}, nil
+}
+
+func (pi *policyInfo) policyStatsMap(prog *program.Program) *program.Map {
+	if pi.policyStats != nil {
+		return program.MapUserFrom(pi.policyStats)
+	}
+	pi.policyStats = program.MapBuilderPolicy(policystats.PolicyStatsMapName, prog)
+	return pi.policyStats
 }
 
 func (pi *policyInfo) policyConfMap(prog *program.Program) *program.Map {
