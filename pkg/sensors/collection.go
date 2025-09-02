@@ -11,6 +11,7 @@ import (
 	"go.uber.org/multierr"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policyconf"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
@@ -100,6 +101,7 @@ func (c *collection) mode() tetragon.TracingPolicyMode {
 	}
 	mode, err := policyconf.PolicyMode(c.tracingpolicy)
 	if err != nil {
+		logger.GetLogger().Warn("failed to retrieve policy mode", "err", err)
 		return tetragon.TracingPolicyMode_TP_MODE_UNKNOWN
 	}
 
@@ -110,6 +112,7 @@ func (c *collection) mode() tetragon.TracingPolicyMode {
 		return tetragon.TracingPolicyMode_TP_MODE_MONITOR
 	}
 
+	logger.GetLogger().Warn("unknown policy mode", "mode", mode)
 	return tetragon.TracingPolicyMode_TP_MODE_UNKNOWN
 }
 
