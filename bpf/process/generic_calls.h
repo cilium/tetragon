@@ -10,6 +10,7 @@
 #include "types/basic.h"
 #include "vmlinux.h"
 #include "policy_conf.h"
+#include "policy_stats.h"
 #include "generic_path.h"
 #include "bpf_ktime.h"
 
@@ -753,11 +754,14 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 	int argi __maybe_unused;
 	int err = 0;
 	int zero = 0;
+	struct policy_stats *pstats;
+	u32 polacct;
 
 	e = map_lookup_elem(&process_call_heap, &zero);
 	if (!e)
 		return 0;
 
+	polacct = POLICY_INVALID_ACT_;
 	switch (action) {
 	case ACTION_NOPOST:
 		*post = false;
@@ -812,13 +816,21 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 	case ACTION_SIGNAL:
 		signal = actions->act[++i];
 	case ACTION_SIGKILL:
-		if (enforce_mode)
+		if (enforce_mode) {
 			do_action_signal(signal);
+			polacct = POLICY_SIGNAL;
+		} else {
+			polacct = POLICY_MONITOR_SIGNAL;
+		}
 		break;
 	case ACTION_OVERRIDE:
 		error = actions->act[++i];
-		if (enforce_mode)
+		if (enforce_mode) {
 			do_override_action(error);
+			polacct = POLICY_OVERRIDE;
+		} else {
+			polacct = POLICY_MONITOR_OVERRIDE;
+		}
 		break;
 	case ACTION_GETURL:
 	case ACTION_DNSLOOKUP:
@@ -834,14 +846,25 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 		error = actions->act[++i];
 		signal = actions->act[++i];
 		argi = actions->act[++i];
-		if (enforce_mode)
+		if (enforce_mode) {
 			do_action_notify_enforcer(e, error, signal, argi);
+			polacct = POLICY_NOTIFY_ENFORCER;
+		} else {
+			polacct = POLICY_MONITOR_NOTIFY_ENFORCER;
+		}
 		break;
 	case ACTION_CLEANUP_ENFORCER_NOTIFICATION:
 		do_enforcer_cleanup();
 	default:
 		break;
 	}
+
+	if (polacct != POLICY_INVALID_ACT_) {
+		pstats = map_lookup_elem(&policy_stats, &zero);
+		if (pstats)
+			lock_add(&pstats->act_cnt[polacct], 1);
+	}
+
 	if (!err) {
 		e->action = action;
 		return ++i;
