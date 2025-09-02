@@ -1840,6 +1840,8 @@ type ProcessUsdtChecker struct {
 	Args        *KprobeArgumentListMatcher   `json:"args,omitempty"`
 	Tags        *StringListMatcher           `json:"tags,omitempty"`
 	Ancestors   *ProcessListMatcher          `json:"ancestors,omitempty"`
+	Action      *KprobeActionChecker         `json:"action,omitempty"`
+	Flags       *stringmatcher.StringMatcher `json:"flags,omitempty"`
 }
 
 // CheckEvent checks a single event and implements the EventChecker interface
@@ -1931,6 +1933,16 @@ func (checker *ProcessUsdtChecker) Check(event *tetragon.ProcessUsdt) error {
 				return fmt.Errorf("Ancestors check failed: %w", err)
 			}
 		}
+		if checker.Action != nil {
+			if err := checker.Action.Check(&event.Action); err != nil {
+				return fmt.Errorf("Action check failed: %w", err)
+			}
+		}
+		if checker.Flags != nil {
+			if err := checker.Flags.Match(event.Flags); err != nil {
+				return fmt.Errorf("Flags check failed: %w", err)
+			}
+		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -1999,6 +2011,19 @@ func (checker *ProcessUsdtChecker) WithAncestors(check *ProcessListMatcher) *Pro
 	return checker
 }
 
+// WithAction adds a Action check to the ProcessUsdtChecker
+func (checker *ProcessUsdtChecker) WithAction(check tetragon.KprobeAction) *ProcessUsdtChecker {
+	wrappedCheck := KprobeActionChecker(check)
+	checker.Action = &wrappedCheck
+	return checker
+}
+
+// WithFlags adds a Flags check to the ProcessUsdtChecker
+func (checker *ProcessUsdtChecker) WithFlags(check *stringmatcher.StringMatcher) *ProcessUsdtChecker {
+	checker.Flags = check
+	return checker
+}
+
 //FromProcessUsdt populates the ProcessUsdtChecker using data from a ProcessUsdt event
 func (checker *ProcessUsdtChecker) FromProcessUsdt(event *tetragon.ProcessUsdt) *ProcessUsdtChecker {
 	if event == nil {
@@ -2052,6 +2077,8 @@ func (checker *ProcessUsdtChecker) FromProcessUsdt(event *tetragon.ProcessUsdt) 
 			WithValues(checks...)
 		checker.Ancestors = lm
 	}
+	checker.Action = NewKprobeActionChecker(event.Action)
+	checker.Flags = stringmatcher.Full(event.Flags)
 	return checker
 }
 

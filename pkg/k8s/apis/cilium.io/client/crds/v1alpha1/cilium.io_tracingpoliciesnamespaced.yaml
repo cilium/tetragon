@@ -3280,6 +3280,562 @@ spec:
                     provider:
                       description: Usdt provider name
                       type: string
+                    selectors:
+                      description: Selectors to apply before producing trace output.
+                        Selectors are ORed.
+                      items:
+                        description: |-
+                          KProbeSelector selects function calls for kprobe based on PIDs and function arguments. The
+                          results of MatchPIDs and MatchArgs are ANDed.
+                        properties:
+                          matchActions:
+                            description: A list of actions to execute when this selector
+                              matches
+                            items:
+                              properties:
+                                action:
+                                  description: |-
+                                    Action to execute.
+                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
+                                    be removed in version 1.5.
+                                  enum:
+                                  - Post
+                                  - FollowFD
+                                  - UnfollowFD
+                                  - Sigkill
+                                  - CopyFD
+                                  - Override
+                                  - GetUrl
+                                  - DnsLookup
+                                  - NoPost
+                                  - Signal
+                                  - TrackSock
+                                  - UntrackSock
+                                  - NotifyEnforcer
+                                  - CleanupEnforcerNotification
+                                  type: string
+                                argError:
+                                  description: error value for override action
+                                  format: int32
+                                  type: integer
+                                argFd:
+                                  description: An arg index for the fd for fdInstall
+                                    action
+                                  format: int32
+                                  type: integer
+                                argFqdn:
+                                  description: A FQDN to lookup for the dnsLookup
+                                    action
+                                  type: string
+                                argName:
+                                  description: An arg index for the filename for fdInstall
+                                    action
+                                  format: int32
+                                  type: integer
+                                argSig:
+                                  description: A signal number for signal action
+                                  format: int32
+                                  type: integer
+                                argSock:
+                                  description: An arg index for the sock for trackSock
+                                    and untrackSock actions
+                                  format: int32
+                                  type: integer
+                                argUrl:
+                                  description: A URL for the getUrl action
+                                  type: string
+                                imaHash:
+                                  description: |-
+                                    Enable collection of file hashes from integrity subsystem.
+                                    Only valid with the post action.
+                                  type: boolean
+                                kernelStackTrace:
+                                  description: Enable kernel stack trace export. Only
+                                    valid with the post action.
+                                  type: boolean
+                                rateLimit:
+                                  description: |-
+                                    A time period within which repeated messages will not be posted. Can be
+                                    specified in seconds (default or with 's' suffix), minutes ('m' suffix)
+                                    or hours ('h' suffix). Only valid with the post action.
+                                  type: string
+                                rateLimitScope:
+                                  description: |-
+                                    The scope of the provided rate limit argument. Can be "thread" (default),
+                                    "process" (all threads for the same process), or "global". If "thread" is
+                                    selected then rate limiting applies per thread; if "process" is selected
+                                    then rate limiting applies per process; if "global" is selected then rate
+                                    limiting applies regardless of which process or thread caused the action.
+                                    Only valid with the post action and with a rateLimit specified.
+                                  type: string
+                                userStackTrace:
+                                  description: Enable user stack trace export. Only
+                                    valid with the post action.
+                                  type: boolean
+                              required:
+                              - action
+                              type: object
+                            type: array
+                          matchArgs:
+                            description: A list of argument filters. MatchArgs are
+                              ANDed.
+                            items:
+                              properties:
+                                args:
+                                  description: Position of the operator arguments
+                                    (in spec file) to apply fhe filter to.
+                                  items:
+                                    format: int32
+                                    minimum: 0
+                                    type: integer
+                                  type: array
+                                index:
+                                  description: Position of the argument (in function
+                                    prototype) to apply fhe filter to.
+                                  format: int32
+                                  minimum: 0
+                                  type: integer
+                                operator:
+                                  description: Filter operation.
+                                  enum:
+                                  - Equal
+                                  - NotEqual
+                                  - Prefix
+                                  - NotPrefix
+                                  - Postfix
+                                  - NotPostfix
+                                  - GreaterThan
+                                  - LessThan
+                                  - GT
+                                  - LT
+                                  - Mask
+                                  - SPort
+                                  - NotSPort
+                                  - SPortPriv
+                                  - NotSportPriv
+                                  - DPort
+                                  - NotDPort
+                                  - DPortPriv
+                                  - NotDPortPriv
+                                  - SAddr
+                                  - NotSAddr
+                                  - DAddr
+                                  - NotDAddr
+                                  - Protocol
+                                  - Family
+                                  - State
+                                  - InMap
+                                  - NotInMap
+                                  - CapabilitiesGained
+                                  type: string
+                                values:
+                                  description: Value to compare the argument against.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - index
+                              - operator
+                              type: object
+                            type: array
+                          matchBinaries:
+                            description: A list of binary exec name filters.
+                            items:
+                              properties:
+                                followChildren:
+                                  default: false
+                                  description: In addition to binaries, match children
+                                    processes of specified binaries.
+                                  type: boolean
+                                operator:
+                                  description: Filter operation.
+                                  enum:
+                                  - In
+                                  - NotIn
+                                  - Prefix
+                                  - NotPrefix
+                                  - Postfix
+                                  - NotPostfix
+                                  type: string
+                                values:
+                                  description: Value to compare the argument against.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - operator
+                              - values
+                              type: object
+                            type: array
+                          matchCapabilities:
+                            description: A list of capabilities and IDs
+                            items:
+                              properties:
+                                isNamespaceCapability:
+                                  default: false
+                                  description: Indicates whether these caps are namespace
+                                    caps.
+                                  type: boolean
+                                operator:
+                                  description: Namespace selector operator.
+                                  enum:
+                                  - In
+                                  - NotIn
+                                  type: string
+                                type:
+                                  default: Effective
+                                  description: Type of capabilities
+                                  enum:
+                                  - Effective
+                                  - Inheritable
+                                  - Permitted
+                                  type: string
+                                values:
+                                  description: Capabilities to match.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - operator
+                              - values
+                              type: object
+                            type: array
+                          matchCapabilityChanges:
+                            description: IDs for capabilities changes
+                            items:
+                              properties:
+                                isNamespaceCapability:
+                                  default: false
+                                  description: Indicates whether these caps are namespace
+                                    caps.
+                                  type: boolean
+                                operator:
+                                  description: Namespace selector operator.
+                                  enum:
+                                  - In
+                                  - NotIn
+                                  type: string
+                                type:
+                                  default: Effective
+                                  description: Type of capabilities
+                                  enum:
+                                  - Effective
+                                  - Inheritable
+                                  - Permitted
+                                  type: string
+                                values:
+                                  description: Capabilities to match.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - operator
+                              - values
+                              type: object
+                            type: array
+                          matchData:
+                            description: A list of argument filters. MatchData are
+                              ANDed.
+                            items:
+                              properties:
+                                args:
+                                  description: Position of the operator arguments
+                                    (in spec file) to apply fhe filter to.
+                                  items:
+                                    format: int32
+                                    minimum: 0
+                                    type: integer
+                                  type: array
+                                index:
+                                  description: Position of the argument (in function
+                                    prototype) to apply fhe filter to.
+                                  format: int32
+                                  minimum: 0
+                                  type: integer
+                                operator:
+                                  description: Filter operation.
+                                  enum:
+                                  - Equal
+                                  - NotEqual
+                                  - Prefix
+                                  - NotPrefix
+                                  - Postfix
+                                  - NotPostfix
+                                  - GreaterThan
+                                  - LessThan
+                                  - GT
+                                  - LT
+                                  - Mask
+                                  - SPort
+                                  - NotSPort
+                                  - SPortPriv
+                                  - NotSportPriv
+                                  - DPort
+                                  - NotDPort
+                                  - DPortPriv
+                                  - NotDPortPriv
+                                  - SAddr
+                                  - NotSAddr
+                                  - DAddr
+                                  - NotDAddr
+                                  - Protocol
+                                  - Family
+                                  - State
+                                  - InMap
+                                  - NotInMap
+                                  - CapabilitiesGained
+                                  type: string
+                                values:
+                                  description: Value to compare the argument against.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - index
+                              - operator
+                              type: object
+                            type: array
+                          matchNamespaceChanges:
+                            description: IDs for namespace changes
+                            items:
+                              properties:
+                                operator:
+                                  description: Namespace selector operator.
+                                  enum:
+                                  - In
+                                  - NotIn
+                                  type: string
+                                values:
+                                  description: Namespace types (e.g., Mnt, Pid) to
+                                    match.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - operator
+                              - values
+                              type: object
+                            type: array
+                          matchNamespaces:
+                            description: A list of namespaces and IDs
+                            items:
+                              properties:
+                                namespace:
+                                  description: Namespace selector name.
+                                  enum:
+                                  - Uts
+                                  - Ipc
+                                  - Mnt
+                                  - Pid
+                                  - PidForChildren
+                                  - Net
+                                  - Time
+                                  - TimeForChildren
+                                  - Cgroup
+                                  - User
+                                  type: string
+                                operator:
+                                  description: Namespace selector operator.
+                                  enum:
+                                  - In
+                                  - NotIn
+                                  type: string
+                                values:
+                                  description: Namespace IDs (or host_ns for host
+                                    namespace) of namespaces to match.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - namespace
+                              - operator
+                              - values
+                              type: object
+                            type: array
+                          matchPIDs:
+                            description: A list of process ID filters. MatchPIDs are
+                              ANDed.
+                            items:
+                              properties:
+                                followForks:
+                                  default: false
+                                  description: Matches any descendant processes of
+                                    the matching PIDs.
+                                  type: boolean
+                                isNamespacePID:
+                                  default: false
+                                  description: Indicates whether PIDs are namespace
+                                    PIDs.
+                                  type: boolean
+                                operator:
+                                  description: PID selector operator.
+                                  enum:
+                                  - In
+                                  - NotIn
+                                  type: string
+                                values:
+                                  description: Process IDs to match.
+                                  items:
+                                    format: int32
+                                    type: integer
+                                  type: array
+                              required:
+                              - operator
+                              - values
+                              type: object
+                            type: array
+                          matchReturnActions:
+                            description: A list of actions to execute when MatchReturnArgs
+                              selector matches
+                            items:
+                              properties:
+                                action:
+                                  description: |-
+                                    Action to execute.
+                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
+                                    be removed in version 1.5.
+                                  enum:
+                                  - Post
+                                  - FollowFD
+                                  - UnfollowFD
+                                  - Sigkill
+                                  - CopyFD
+                                  - Override
+                                  - GetUrl
+                                  - DnsLookup
+                                  - NoPost
+                                  - Signal
+                                  - TrackSock
+                                  - UntrackSock
+                                  - NotifyEnforcer
+                                  - CleanupEnforcerNotification
+                                  type: string
+                                argError:
+                                  description: error value for override action
+                                  format: int32
+                                  type: integer
+                                argFd:
+                                  description: An arg index for the fd for fdInstall
+                                    action
+                                  format: int32
+                                  type: integer
+                                argFqdn:
+                                  description: A FQDN to lookup for the dnsLookup
+                                    action
+                                  type: string
+                                argName:
+                                  description: An arg index for the filename for fdInstall
+                                    action
+                                  format: int32
+                                  type: integer
+                                argSig:
+                                  description: A signal number for signal action
+                                  format: int32
+                                  type: integer
+                                argSock:
+                                  description: An arg index for the sock for trackSock
+                                    and untrackSock actions
+                                  format: int32
+                                  type: integer
+                                argUrl:
+                                  description: A URL for the getUrl action
+                                  type: string
+                                imaHash:
+                                  description: |-
+                                    Enable collection of file hashes from integrity subsystem.
+                                    Only valid with the post action.
+                                  type: boolean
+                                kernelStackTrace:
+                                  description: Enable kernel stack trace export. Only
+                                    valid with the post action.
+                                  type: boolean
+                                rateLimit:
+                                  description: |-
+                                    A time period within which repeated messages will not be posted. Can be
+                                    specified in seconds (default or with 's' suffix), minutes ('m' suffix)
+                                    or hours ('h' suffix). Only valid with the post action.
+                                  type: string
+                                rateLimitScope:
+                                  description: |-
+                                    The scope of the provided rate limit argument. Can be "thread" (default),
+                                    "process" (all threads for the same process), or "global". If "thread" is
+                                    selected then rate limiting applies per thread; if "process" is selected
+                                    then rate limiting applies per process; if "global" is selected then rate
+                                    limiting applies regardless of which process or thread caused the action.
+                                    Only valid with the post action and with a rateLimit specified.
+                                  type: string
+                                userStackTrace:
+                                  description: Enable user stack trace export. Only
+                                    valid with the post action.
+                                  type: boolean
+                              required:
+                              - action
+                              type: object
+                            type: array
+                          matchReturnArgs:
+                            description: A list of argument filters. MatchArgs are
+                              ANDed.
+                            items:
+                              properties:
+                                args:
+                                  description: Position of the operator arguments
+                                    (in spec file) to apply fhe filter to.
+                                  items:
+                                    format: int32
+                                    minimum: 0
+                                    type: integer
+                                  type: array
+                                index:
+                                  description: Position of the argument (in function
+                                    prototype) to apply fhe filter to.
+                                  format: int32
+                                  minimum: 0
+                                  type: integer
+                                operator:
+                                  description: Filter operation.
+                                  enum:
+                                  - Equal
+                                  - NotEqual
+                                  - Prefix
+                                  - NotPrefix
+                                  - Postfix
+                                  - NotPostfix
+                                  - GreaterThan
+                                  - LessThan
+                                  - GT
+                                  - LT
+                                  - Mask
+                                  - SPort
+                                  - NotSPort
+                                  - SPortPriv
+                                  - NotSportPriv
+                                  - DPort
+                                  - NotDPort
+                                  - DPortPriv
+                                  - NotDPortPriv
+                                  - SAddr
+                                  - NotSAddr
+                                  - DAddr
+                                  - NotDAddr
+                                  - Protocol
+                                  - Family
+                                  - State
+                                  - InMap
+                                  - NotInMap
+                                  - CapabilitiesGained
+                                  type: string
+                                values:
+                                  description: Value to compare the argument against.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - index
+                              - operator
+                              type: object
+                            type: array
+                        type: object
+                      type: array
                     tags:
                       description: |-
                         Tags to categorize the event, will be include in the event output.
