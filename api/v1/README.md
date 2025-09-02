@@ -127,6 +127,8 @@
     - [SensorStatus](#tetragon-SensorStatus)
     - [SetDebugRequest](#tetragon-SetDebugRequest)
     - [SetDebugResponse](#tetragon-SetDebugResponse)
+    - [TracingPolicyActionCounters](#tetragon-TracingPolicyActionCounters)
+    - [TracingPolicyStats](#tetragon-TracingPolicyStats)
     - [TracingPolicyStatus](#tetragon-TracingPolicyStatus)
   
     - [ConfigFlag](#tetragon-ConfigFlag)
@@ -2250,6 +2252,42 @@ Determines the behavior of a field filter
 
 
 
+<a name="tetragon-TracingPolicyActionCounters"></a>
+
+### TracingPolicyActionCounters
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| post | [uint64](#uint64) |  | number of post events generated from the policy |
+| signal | [uint64](#uint64) |  | number of signals sent from the policy |
+| monitor_signal | [uint64](#uint64) |  | number of signals that were not sent because the policy was in monitor mode |
+| override | [uint64](#uint64) |  | number of return overrides |
+| monitor_override | [uint64](#uint64) |  | number of return overrides that did not occur because the policy was in monitor mode |
+| notify_enforcer | [uint64](#uint64) |  | number of enforcer notifications triggered from the policy |
+| monitor_notify_enforcer | [uint64](#uint64) |  | number of enforcer notifications that did not occur because the policy was in monitor mode |
+
+
+
+
+
+
+<a name="tetragon-TracingPolicyStats"></a>
+
+### TracingPolicyStats
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| action_counters | [TracingPolicyActionCounters](#tetragon-TracingPolicyActionCounters) |  |  |
+
+
+
+
+
+
 <a name="tetragon-TracingPolicyStatus"></a>
 
 ### TracingPolicyStatus
@@ -2269,6 +2307,7 @@ Determines the behavior of a field filter
 | state | [TracingPolicyState](#tetragon-TracingPolicyState) |  | current state of the tracing policy |
 | kernel_memory_bytes | [uint64](#uint64) |  | the amount of kernel memory in bytes used by policy&#39;s sensors non-shared BPF maps (memlock) |
 | mode | [TracingPolicyMode](#tetragon-TracingPolicyMode) |  | current mode of the tracing policy |
+| stats | [TracingPolicyStats](#tetragon-TracingPolicyStats) | optional | stats of the tracing policy |
 
 
 
