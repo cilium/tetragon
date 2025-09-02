@@ -71,13 +71,14 @@ func TestLSMObjectLoad(t *testing.T) {
 			{Name: "config_map", Progs: []uint{0, 1, 2}},
 
 			// generic_lsm_event
-			{Name: "tg_conf_map", Progs: []uint{0}},
+			{Name: "tg_conf_map", Progs: []uint{0, 2, 6}},
 
 			// shared with base sensor
 			{Name: "execve_map", Progs: []uint{4, 5, 6}},
 
 			// generic_lsm_process_event*,generic_lsm_output
 			{Name: "tcpmon_map", Progs: []uint{2, 6}},
+			{Name: "tg_rb_events", Progs: []uint{2, 6}},
 		}
 	} else {
 		sensorProgs = []tus.SensorProg{
@@ -108,14 +109,18 @@ func TestLSMObjectLoad(t *testing.T) {
 			// all lsm but generic_lsm_process_filter
 			{Name: "config_map", Progs: []uint{0, 1, 2}},
 
-			// generic_lsm_event
-			{Name: "tg_conf_map", Progs: []uint{0}},
-
 			// shared with base sensor
 			{Name: "execve_map", Progs: []uint{4, 5, 6}},
 
 			// generic_lsm_process_event*,generic_lsm_output
 			{Name: "tcpmon_map", Progs: []uint{2, 6}},
+		}
+		// generic_lsm_event
+		if config.EnableV511Progs() {
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0, 2, 6}})
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_rb_events", Progs: []uint{2, 6}})
+		} else {
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}})
 		}
 	}
 
