@@ -6,6 +6,9 @@
 
 #include "policy_conf.h"
 
+/* NB: if you are modifying this enum, you might want to change the proto descriptions for
+ * TracingPolicyActionCounters.
+ */
 enum policy_actions {
 	POLICY_INVALID_ACT_ = 0,
 	POLICY_POST = 1, /* policy posted an event */
