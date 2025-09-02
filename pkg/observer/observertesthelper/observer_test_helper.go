@@ -249,6 +249,7 @@ func getDefaultObserver(tb testing.TB, ctx context.Context, initialSensor *senso
 
 	obs.PerfConfig = bpf.DefaultPerfEventConfig()
 	obs.PerfConfig.MapName = filepath.Join(bpf.MapPrefixPath(), "tcpmon_map")
+	obs.RingBufMapPath = filepath.Join(bpf.MapPrefixPath(), bpf.RingBufEventsMapName)
 	return obs, nil
 }
 
