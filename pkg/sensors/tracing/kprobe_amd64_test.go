@@ -8,9 +8,9 @@ package tracing
 
 import (
 	"context"
+	"os/exec"
 	"strconv"
 	"sync"
-	"syscall"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -24,6 +24,7 @@ import (
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/reader/caps"
+	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"
@@ -41,6 +42,7 @@ func TestKprobeTraceCapabilityChecks(t *testing.T) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	t.Logf("tester pid=%s\n", pidStr)
 
+	testCapIoperm := testutils.RepoRootPath("contrib/tester-progs/capabilities-ioperm")
 	capabilityhook_ := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -62,11 +64,11 @@ spec:
       index: 0
       type: "int"
     selectors:
-    - matchPIDs:
-      - operator: In
+    - matchBinaries:
+      - operator: "In"
         values:
-        - ` + pidStr
-
+        - "` + testCapIoperm + `"
+`
 	createCrdFile(t, capabilityhook_)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
@@ -100,18 +102,7 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	ioDelay := 0x80
-	// probe IO_DELAY to trigger a CAP_SYS_RAWIO check, this is for x86
-	err = syscall.Ioperm(ioDelay, 1, 1)
-	if err != nil {
-		t.Logf("Failed to ioperm(0x%02x): %v\n", ioDelay, err)
-		t.Fatal()
-	}
-
-	t.Logf("ioperm() enabling 0x%02x succeeded", ioDelay)
-
-	// disable port
-	syscall.Ioperm(ioDelay, 1, 0)
+	exec.Command(testCapIoperm).Run()
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
