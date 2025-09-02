@@ -952,6 +952,7 @@ func GetProcessUsdt(event *MsgGenericUsdtUnix) *tetragon.ProcessUsdt {
 		Message:    event.Message,
 		Args:       tetragonArgs,
 		Tags:       event.Tags,
+		Action:     kprobeAction(event.Msg.ActionId),
 	}
 
 	if tetragonProcess.Pid == nil {
