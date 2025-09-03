@@ -228,7 +228,7 @@ type ArgSelector struct {
 }
 
 type ActionSelector struct {
-	// +kubebuilder:validation:Enum=Post;FollowFD;UnfollowFD;Sigkill;CopyFD;Override;GetUrl;DnsLookup;NoPost;Signal;TrackSock;UntrackSock;NotifyEnforcer;CleanupEnforcerNotification
+	// +kubebuilder:validation:Enum=Post;FollowFD;UnfollowFD;Sigkill;CopyFD;Override;GetUrl;DnsLookup;NoPost;Signal;TrackSock;UntrackSock;NotifyEnforcer;CleanupEnforcerNotification;Set
 	// Action to execute.
 	// NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 	// be removed in version 1.5.
@@ -254,6 +254,12 @@ type ActionSelector struct {
 	// +kubebuilder:validation:Optional
 	// An arg index for the sock for trackSock and untrackSock actions
 	ArgSock uint32 `json:"argSock"`
+	// +kubebuilder:validation:Optional
+	// An arg index for the set action
+	ArgIndex uint32 `json:"argIndex"`
+	// +kubebuilder:validation:Optional
+	// An arg value for the set action
+	ArgValue uint32 `json:"argValue"`
 	// +kubebuilder:validation:Optional
 	// A time period within which repeated messages will not be posted. Can be
 	// specified in seconds (default or with 's' suffix), minutes ('m' suffix)
