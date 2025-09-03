@@ -361,6 +361,7 @@ spec:
                                   - UntrackSock
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
+                                  - Set
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -375,6 +376,10 @@ spec:
                                   description: A FQDN to lookup for the dnsLookup
                                     action
                                   type: string
+                                argIndex:
+                                  description: An arg index for the set action
+                                  format: int32
+                                  type: integer
                                 argName:
                                   description: An arg index for the filename for fdInstall
                                     action
@@ -392,6 +397,10 @@ spec:
                                 argUrl:
                                   description: A URL for the getUrl action
                                   type: string
+                                argValue:
+                                  description: An arg value for the set action
+                                  format: int32
+                                  type: integer
                                 imaHash:
                                   description: |-
                                     Enable collection of file hashes from integrity subsystem.
@@ -422,6 +431,7 @@ spec:
                                   type: boolean
                               required:
                               - action
+                              - argIndex
                               type: object
                             type: array
                           matchArgs:
@@ -695,6 +705,7 @@ spec:
                                   - UntrackSock
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
+                                  - Set
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -709,6 +720,10 @@ spec:
                                   description: A FQDN to lookup for the dnsLookup
                                     action
                                   type: string
+                                argIndex:
+                                  description: An arg index for the set action
+                                  format: int32
+                                  type: integer
                                 argName:
                                   description: An arg index for the filename for fdInstall
                                     action
@@ -726,6 +741,10 @@ spec:
                                 argUrl:
                                   description: A URL for the getUrl action
                                   type: string
+                                argValue:
+                                  description: An arg value for the set action
+                                  format: int32
+                                  type: integer
                                 imaHash:
                                   description: |-
                                     Enable collection of file hashes from integrity subsystem.
@@ -756,6 +775,7 @@ spec:
                                   type: boolean
                               required:
                               - action
+                              - argIndex
                               type: object
                             type: array
                           matchReturnArgs:
@@ -1009,6 +1029,7 @@ spec:
                                   - UntrackSock
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
+                                  - Set
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -1023,6 +1044,10 @@ spec:
                                   description: A FQDN to lookup for the dnsLookup
                                     action
                                   type: string
+                                argIndex:
+                                  description: An arg index for the set action
+                                  format: int32
+                                  type: integer
                                 argName:
                                   description: An arg index for the filename for fdInstall
                                     action
@@ -1040,6 +1065,10 @@ spec:
                                 argUrl:
                                   description: A URL for the getUrl action
                                   type: string
+                                argValue:
+                                  description: An arg value for the set action
+                                  format: int32
+                                  type: integer
                                 imaHash:
                                   description: |-
                                     Enable collection of file hashes from integrity subsystem.
@@ -1070,6 +1099,7 @@ spec:
                                   type: boolean
                               required:
                               - action
+                              - argIndex
                               type: object
                             type: array
                           matchArgs:
@@ -1343,6 +1373,7 @@ spec:
                                   - UntrackSock
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
+                                  - Set
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -1357,6 +1388,10 @@ spec:
                                   description: A FQDN to lookup for the dnsLookup
                                     action
                                   type: string
+                                argIndex:
+                                  description: An arg index for the set action
+                                  format: int32
+                                  type: integer
                                 argName:
                                   description: An arg index for the filename for fdInstall
                                     action
@@ -1374,6 +1409,10 @@ spec:
                                 argUrl:
                                   description: A URL for the getUrl action
                                   type: string
+                                argValue:
+                                  description: An arg value for the set action
+                                  format: int32
+                                  type: integer
                                 imaHash:
                                   description: |-
                                     Enable collection of file hashes from integrity subsystem.
@@ -1404,6 +1443,7 @@ spec:
                                   type: boolean
                               required:
                               - action
+                              - argIndex
                               type: object
                             type: array
                           matchReturnArgs:
@@ -1693,6 +1733,7 @@ spec:
                                   - UntrackSock
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
+                                  - Set
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -1707,6 +1748,10 @@ spec:
                                   description: A FQDN to lookup for the dnsLookup
                                     action
                                   type: string
+                                argIndex:
+                                  description: An arg index for the set action
+                                  format: int32
+                                  type: integer
                                 argName:
                                   description: An arg index for the filename for fdInstall
                                     action
@@ -1724,6 +1769,10 @@ spec:
                                 argUrl:
                                   description: A URL for the getUrl action
                                   type: string
+                                argValue:
+                                  description: An arg value for the set action
+                                  format: int32
+                                  type: integer
                                 imaHash:
                                   description: |-
                                     Enable collection of file hashes from integrity subsystem.
@@ -1754,6 +1803,7 @@ spec:
                                   type: boolean
                               required:
                               - action
+                              - argIndex
                               type: object
                             type: array
                           matchArgs:
@@ -2027,6 +2077,7 @@ spec:
                                   - UntrackSock
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
+                                  - Set
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -2041,6 +2092,10 @@ spec:
                                   description: A FQDN to lookup for the dnsLookup
                                     action
                                   type: string
+                                argIndex:
+                                  description: An arg index for the set action
+                                  format: int32
+                                  type: integer
                                 argName:
                                   description: An arg index for the filename for fdInstall
                                     action
@@ -2058,6 +2113,10 @@ spec:
                                 argUrl:
                                   description: A URL for the getUrl action
                                   type: string
+                                argValue:
+                                  description: An arg value for the set action
+                                  format: int32
+                                  type: integer
                                 imaHash:
                                   description: |-
                                     Enable collection of file hashes from integrity subsystem.
@@ -2088,6 +2147,7 @@ spec:
                                   type: boolean
                               required:
                               - action
+                              - argIndex
                               type: object
                             type: array
                           matchReturnArgs:
@@ -2321,6 +2381,7 @@ spec:
                                   - UntrackSock
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
+                                  - Set
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -2335,6 +2396,10 @@ spec:
                                   description: A FQDN to lookup for the dnsLookup
                                     action
                                   type: string
+                                argIndex:
+                                  description: An arg index for the set action
+                                  format: int32
+                                  type: integer
                                 argName:
                                   description: An arg index for the filename for fdInstall
                                     action
@@ -2352,6 +2417,10 @@ spec:
                                 argUrl:
                                   description: A URL for the getUrl action
                                   type: string
+                                argValue:
+                                  description: An arg value for the set action
+                                  format: int32
+                                  type: integer
                                 imaHash:
                                   description: |-
                                     Enable collection of file hashes from integrity subsystem.
@@ -2382,6 +2451,7 @@ spec:
                                   type: boolean
                               required:
                               - action
+                              - argIndex
                               type: object
                             type: array
                           matchArgs:
@@ -2655,6 +2725,7 @@ spec:
                                   - UntrackSock
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
+                                  - Set
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -2669,6 +2740,10 @@ spec:
                                   description: A FQDN to lookup for the dnsLookup
                                     action
                                   type: string
+                                argIndex:
+                                  description: An arg index for the set action
+                                  format: int32
+                                  type: integer
                                 argName:
                                   description: An arg index for the filename for fdInstall
                                     action
@@ -2686,6 +2761,10 @@ spec:
                                 argUrl:
                                   description: A URL for the getUrl action
                                   type: string
+                                argValue:
+                                  description: An arg value for the set action
+                                  format: int32
+                                  type: integer
                                 imaHash:
                                   description: |-
                                     Enable collection of file hashes from integrity subsystem.
@@ -2716,6 +2795,7 @@ spec:
                                   type: boolean
                               required:
                               - action
+                              - argIndex
                               type: object
                             type: array
                           matchReturnArgs:
@@ -2944,6 +3024,7 @@ spec:
                                   - UntrackSock
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
+                                  - Set
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -2958,6 +3039,10 @@ spec:
                                   description: A FQDN to lookup for the dnsLookup
                                     action
                                   type: string
+                                argIndex:
+                                  description: An arg index for the set action
+                                  format: int32
+                                  type: integer
                                 argName:
                                   description: An arg index for the filename for fdInstall
                                     action
@@ -2975,6 +3060,10 @@ spec:
                                 argUrl:
                                   description: A URL for the getUrl action
                                   type: string
+                                argValue:
+                                  description: An arg value for the set action
+                                  format: int32
+                                  type: integer
                                 imaHash:
                                   description: |-
                                     Enable collection of file hashes from integrity subsystem.
@@ -3005,6 +3094,7 @@ spec:
                                   type: boolean
                               required:
                               - action
+                              - argIndex
                               type: object
                             type: array
                           matchArgs:
@@ -3278,6 +3368,7 @@ spec:
                                   - UntrackSock
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
+                                  - Set
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -3292,6 +3383,10 @@ spec:
                                   description: A FQDN to lookup for the dnsLookup
                                     action
                                   type: string
+                                argIndex:
+                                  description: An arg index for the set action
+                                  format: int32
+                                  type: integer
                                 argName:
                                   description: An arg index for the filename for fdInstall
                                     action
@@ -3309,6 +3404,10 @@ spec:
                                 argUrl:
                                   description: A URL for the getUrl action
                                   type: string
+                                argValue:
+                                  description: An arg value for the set action
+                                  format: int32
+                                  type: integer
                                 imaHash:
                                   description: |-
                                     Enable collection of file hashes from integrity subsystem.
@@ -3339,6 +3438,7 @@ spec:
                                   type: boolean
                               required:
                               - action
+                              - argIndex
                               type: object
                             type: array
                           matchReturnArgs:
