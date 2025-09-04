@@ -44,23 +44,24 @@ func Builder(
 	ty string,
 ) *Program {
 	return &Program{
-		Name:       objFile,
-		Attach:     attach,
-		Label:      label,
-		PinPath:    "",
-		PinName:    pinName,
-		RetProbe:   false,
-		ErrorFatal: true,
-		Override:   false,
-		Type:       ty,
-		LoadState:  Idle(),
-		LoaderData: struct{}{},
-		MapLoad:    nil,
-		unloader:   nil,
-		PinMap:     make(map[string]*Map),
-		Link:       nil,
-		Prog:       nil,
-		Policy:     "",
+		Name:             objFile,
+		Attach:           attach,
+		Label:            label,
+		PinPath:          "",
+		PinName:          pinName,
+		RetProbe:         false,
+		ErrorFatal:       true,
+		Override:         false,
+		Type:             ty,
+		LoadState:        Idle(),
+		LoaderData:       struct{}{},
+		MapLoad:          nil,
+		unloader:         nil,
+		PinMap:           make(map[string]*Map),
+		Link:             nil,
+		Prog:             nil,
+		Policy:           "",
+		RewriteConstants: make(map[string]any),
 	}
 }
 
@@ -147,7 +148,9 @@ type Program struct {
 	// available when program.KeepCollection is true
 	LC *LoadedCollection
 
-	RewriteConstants map[string]interface{}
+	// Initialized map of constants to be populated in the program at
+	// loading time.
+	RewriteConstants map[string]any
 
 	// Type information used for CO-RE relocations.
 	KernelTypes *btf.Spec
