@@ -282,45 +282,97 @@ func KprobeAttach(load *Program, bpfDir string) AttachFunc {
 	}
 }
 
+func UprobeOpen(load *Program) OpenFunc {
+	return func(coll *ebpf.CollectionSpec) error {
+		if !load.WriteOffload {
+			disableProg(coll, "generic_usdt_write_offload")
+		}
+		return nil
+	}
+}
+
 func UprobeAttach(load *Program, bpfDir string) AttachFunc {
-	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
+	return func(coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 
-		data, ok := load.AttachData.(*UprobeAttachData)
-		if !ok {
-			return nil, fmt.Errorf("attaching '%s' failed: wrong attach data", spec.Name)
-		}
-
-		linkFn := func() (link.Link, error) {
-			exec, err := link.OpenExecutable(data.Path)
-			if err != nil {
+		if load.WriteOffload {
+			if err := uprobeAttachWriteOffload(load, bpfDir, coll, collSpec); err != nil {
 				return nil, err
 			}
-			opts := &link.UprobeOptions{
-				Address:      data.Address,
-				RefCtrOffset: data.RefCtrOffset,
-			}
-			return exec.Uprobe(data.Symbol, prog, opts)
 		}
+		return uprobeAttach(load, prog, spec, bpfDir)
+	}
+}
 
-		lnk, err := linkFn()
-		if err != nil {
-			return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
-		}
+func uprobeAttach(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec,
+	bpfDir string, extra ...string) (unloader.Unloader, error) {
 
-		err = linkPin(lnk, bpfDir, load)
+	data, ok := load.AttachData.(*UprobeAttachData)
+	if !ok {
+		return nil, fmt.Errorf("attaching '%s' failed: wrong attach data", spec.Name)
+	}
+
+	linkFn := func() (link.Link, error) {
+		exec, err := link.OpenExecutable(data.Path)
 		if err != nil {
-			lnk.Close()
 			return nil, err
 		}
-
-		return &unloader.RelinkUnloader{
-			UnloadProg: unloader.ProgUnloader{Prog: prog}.Unload,
-			IsLinked:   true,
-			Link:       lnk,
-			RelinkFn:   linkFn,
-		}, nil
+		opts := &link.UprobeOptions{
+			Address:      data.Address,
+			RefCtrOffset: data.RefCtrOffset,
+		}
+		return exec.Uprobe(data.Symbol, prog, opts)
 	}
+
+	lnk, err := linkFn()
+	if err != nil {
+		return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
+	}
+
+	err = linkPin(lnk, bpfDir, load, extra...)
+	if err != nil {
+		lnk.Close()
+		return nil, err
+	}
+
+	return &unloader.RelinkUnloader{
+		UnloadProg: unloader.ProgUnloader{Prog: prog}.Unload,
+		IsLinked:   true,
+		Link:       lnk,
+		RelinkFn:   linkFn,
+	}, nil
+}
+
+func uprobeAttachWriteOffload(load *Program, bpfDir string,
+	coll *ebpf.Collection, collSpec *ebpf.CollectionSpec) error {
+
+	spec, ok := collSpec.Programs["generic_usdt_write_offload"]
+	if !ok {
+		return errors.New("spec for generic_usdt_write_offload  program not found")
+	}
+
+	prog, ok := coll.Programs["generic_usdt_write_offload"]
+	if !ok {
+		return errors.New("program generic_usdt_write_offload  not found")
+	}
+
+	prog, err := prog.Clone()
+	if err != nil {
+		return fmt.Errorf("failed to clone generic_usdt_write_offload program: %w", err)
+	}
+
+	pinPath := filepath.Join(bpfDir, load.PinPath, "prog_write_offload")
+
+	if err := prog.Pin(pinPath); err != nil {
+		return fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
+	}
+
+	load.unloaderWriteOffload, err = uprobeAttach(load, prog, spec, bpfDir, "write_offload")
+	if err != nil {
+		logger.GetLogger().Warn("Failed to attach override program", logfields.Error, err)
+	}
+
+	return nil
 }
 
 func MultiUprobeAttach(load *Program, bpfDir string) AttachFunc {
@@ -577,6 +629,7 @@ func LoadKprobeProgramAttachMany(bpfDir string, load *Program, syms []string, ma
 
 func LoadUprobeProgram(bpfDir string, load *Program, maps []*Map, verbose int) error {
 	opts := &LoadOpts{
+		Open:   UprobeOpen(load),
 		Attach: UprobeAttach(load, bpfDir),
 		Maps:   maps,
 	}
