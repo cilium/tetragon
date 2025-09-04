@@ -147,6 +147,14 @@ func EnableRhel7Progs() bool {
 	return (int64(kernelVer) < kernels.KernelStringToNumeric("3.11.0"))
 }
 
+func EnableV511Progs() bool {
+	if option.Config.ForceSmallProgs {
+		return false
+	}
+	kernelVer, _, _ := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
+	return (int64(kernelVer) >= kernels.KernelStringToNumeric("5.11.0"))
+}
+
 func EnableV61Progs() bool {
 	if option.Config.ForceSmallProgs {
 		return false
