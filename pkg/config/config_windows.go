@@ -37,6 +37,10 @@ func GenericLsmObjs() (string, string) {
 	return "", ""
 }
 
+func EnableV511Progs() bool {
+	return false
+}
+
 func EnableV61Progs() bool {
 	return false
 }

@@ -430,7 +430,7 @@ func imaProgName(lsmEntry *genericLsm) (string, string) {
 	}
 	if config.EnableV61Progs() {
 		pName = "bpf_generic_lsm_ima_" + pType + "_v61.o"
-	} else if kernels.MinKernelVersion("5.11") {
+	} else if config.EnableV511Progs() {
 		pName = "bpf_generic_lsm_ima_" + pType + "_v511.o"
 	}
 	return pName, pType
