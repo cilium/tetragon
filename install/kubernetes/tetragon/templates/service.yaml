@@ -23,5 +23,8 @@ spec:
     {{- else }}
     {{- include "tetragon.labels" . | nindent 4 }}
     {{- end }}
+    {{- with .Values.serviceLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
   type: ClusterIP
 {{- end }}

@@ -20,6 +20,7 @@ daemonSetAnnotations: {}
 extraVolumes: []
 updateStrategy: {}
 podLabels: {}
+serviceLabels: {}
 daemonSetLabelsOverride: {}
 selectorLabelsOverride: {}
 podLabelsOverride: {}
