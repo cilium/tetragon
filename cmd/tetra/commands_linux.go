@@ -18,7 +18,7 @@ import (
 
 func addCommands(rootCmd *cobra.Command) {
 	addBaseCommands(rootCmd)
-	rootCmd.AddCommand(bugtool.New())
+	rootCmd.AddCommand(bugtool.New().Command())
 	rootCmd.AddCommand(tracingpolicy.New())
 	rootCmd.AddCommand(debug.New())
 	rootCmd.AddCommand(debug.NewDumpAlias())

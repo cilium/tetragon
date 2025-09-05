@@ -152,7 +152,7 @@ func (s *bugtoolInfo) tarAddBuff(tarWriter *tar.Writer, fname string, buff *byte
 	return doTarAddBuff(tarWriter, name, buff)
 }
 
-func (s *bugtoolInfo) tarAddJson(tarWriter *tar.Writer, fname string, obj interface{}) error {
+func (s *bugtoolInfo) TarAddJson(tarWriter *tar.Writer, fname string, obj interface{}) error {
 	b, err := json.Marshal(obj)
 	if err != nil {
 		return err
@@ -195,8 +195,19 @@ func (s *bugtoolInfo) tarAddFile(tarWriter *tar.Writer, fnameSrc string, fnameDs
 	return nil
 }
 
+type Commander interface {
+	ExecCmd(tarWriter *tar.Writer, dstFname string, cmdName string, cmdArgs ...string) error
+}
+
+type GRPCer interface {
+	TarAddJson(tarWriter *tar.Writer, fname string, obj interface{}) error
+}
+
+type CommandAction func(Commander, *tar.Writer) error
+type GRPCAction func(GRPCer, *tar.Writer) error
+
 // Bugtool gathers information and writes it as a tar archive in the given filename
-func Bugtool(outFname string, bpftool string, gops string) error {
+func Bugtool(outFname string, bpftool string, gops string, commandActions []CommandAction, grpcActions []GRPCAction) error {
 	info, err := LoadInitInfo()
 	if err != nil {
 		return err
@@ -210,10 +221,10 @@ func Bugtool(outFname string, bpftool string, gops string) error {
 		info.GopsPath = gops
 	}
 
-	return doBugtool(info, outFname)
+	return doBugtool(info, outFname, commandActions, grpcActions)
 }
 
-func doBugtool(info *InitInfo, outFname string) error {
+func doBugtool(info *InitInfo, outFname string, commandActions []CommandAction, grpcActions []GRPCAction) error {
 	// we log into two logs, one is the standard one and another one is a
 	// buffer that we are going to include as a file into the bugtool archive.
 	logBuff := new(bytes.Buffer)
@@ -255,7 +266,7 @@ func doBugtool(info *InitInfo, outFname string) error {
 	si.addBTFFile(tarWriter)
 	si.addTetragonLog(tarWriter)
 	si.addMetrics(tarWriter)
-	si.execCmd(tarWriter, "dmesg.out", "dmesg")
+	si.ExecCmd(tarWriter, "dmesg.out", "dmesg")
 	si.addTcInfo(tarWriter)
 	si.addBpftoolInfo(tarWriter)
 	si.addGopsInfo(tarWriter)
@@ -265,6 +276,17 @@ func doBugtool(info *InitInfo, outFname string) error {
 	si.addMemCgroupStats(tarWriter)
 	si.addBPFMapsStats(tarWriter)
 	si.addTracefsTraceFile(tarWriter)
+
+	// Additional command actions
+	for _, action := range commandActions {
+		action(&si, tarWriter)
+	}
+
+	// Additional grpc actions
+	for _, action := range grpcActions {
+		action(&si, tarWriter)
+	}
+
 	return nil
 }
 
@@ -420,8 +442,8 @@ func (s *bugtoolInfo) addMetrics(tarWriter *tar.Writer) error {
 	return s.tarAddBuff(tarWriter, "metrics", buff)
 }
 
-// execCmd executes a command and saves its output (both stdout and stderr) to a file in the tar archive
-func (s *bugtoolInfo) execCmd(tarWriter *tar.Writer, dstFname string, cmdName string, cmdArgs ...string) error {
+// ExecCmd executes a command and saves its output (both stdout and stderr) to a file in the tar archive
+func (s *bugtoolInfo) ExecCmd(tarWriter *tar.Writer, dstFname string, cmdName string, cmdArgs ...string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, cmdName, cmdArgs...)
@@ -494,8 +516,8 @@ func (s *bugtoolInfo) addTcInfo(tarWriter *tar.Writer) error {
 	// and also provides additional information that may be useful.
 	for _, link := range links {
 		linkName := link.Attrs().Name
-		s.execCmd(tarWriter, fmt.Sprintf("tc-info.%s.ingress", linkName), "tc", "filter", "show", "dev", linkName, "ingress")
-		s.execCmd(tarWriter, fmt.Sprintf("tc-info.%s.egress", linkName), "tc", "filter", "show", "dev", linkName, "egress")
+		s.ExecCmd(tarWriter, fmt.Sprintf("tc-info.%s.ingress", linkName), "tc", "filter", "show", "dev", linkName, "ingress")
+		s.ExecCmd(tarWriter, fmt.Sprintf("tc-info.%s.egress", linkName), "tc", "filter", "show", "dev", linkName, "egress")
 	}
 
 	return err
@@ -513,9 +535,9 @@ func (s *bugtoolInfo) addBpftoolInfo(tarWriter *tar.Writer) {
 		s.multiLog.WithError(err).Warn("Failed to locate bpftool. Please install it or specify its path, see 'bugtool --help'")
 		return
 	}
-	s.execCmd(tarWriter, "bpftool-maps.json", s.info.BpfToolPath, "map", "show", "-j")
-	s.execCmd(tarWriter, "bpftool-progs.json", s.info.BpfToolPath, "prog", "show", "-j")
-	s.execCmd(tarWriter, "bpftool-cgroups.json", s.info.BpfToolPath, "cgroup", "tree", "-j")
+	s.ExecCmd(tarWriter, "bpftool-maps.json", s.info.BpfToolPath, "map", "show", "-j")
+	s.ExecCmd(tarWriter, "bpftool-progs.json", s.info.BpfToolPath, "prog", "show", "-j")
+	s.ExecCmd(tarWriter, "bpftool-cgroups.json", s.info.BpfToolPath, "cgroup", "tree", "-j")
 }
 
 func (s *bugtoolInfo) getPProf(tarWriter *tar.Writer, file string, gopsSignal byte) error {
@@ -564,9 +586,9 @@ func (s *bugtoolInfo) addGopsInfo(tarWriter *tar.Writer) {
 
 	s.multiLog.WithField("gops-address", s.info.GopsAddr).WithField("gops-path", s.info.GopsPath).Info("Dumping gops information")
 
-	s.execCmd(tarWriter, "gops.stack", s.info.GopsPath, "stack", s.info.GopsAddr)
-	s.execCmd(tarWriter, "gops.stats", s.info.GopsPath, "stats", s.info.GopsAddr)
-	s.execCmd(tarWriter, "gops.memstats", s.info.GopsPath, "memstats", s.info.GopsAddr)
+	s.ExecCmd(tarWriter, "gops.stack", s.info.GopsPath, "stack", s.info.GopsAddr)
+	s.ExecCmd(tarWriter, "gops.stats", s.info.GopsPath, "stats", s.info.GopsAddr)
+	s.ExecCmd(tarWriter, "gops.memstats", s.info.GopsPath, "memstats", s.info.GopsAddr)
 	profiles := map[string]byte{
 		"cpu":  gopssignal.CPUProfile,
 		"heap": gopssignal.HeapProfile,
@@ -603,7 +625,7 @@ func (s *bugtoolInfo) dumpPolicyFilterMap(tarWriter *tar.Writer) error {
 		s.multiLog.WithError(err).Warnf("failed to dump policyfilter map")
 		return err
 	}
-	return s.tarAddJson(tarWriter, policyfilter.MapName+".json", obj)
+	return s.TarAddJson(tarWriter, policyfilter.MapName+".json", obj)
 }
 
 func (s *bugtoolInfo) addGrpcInfo(tarWriter *tar.Writer) {
@@ -621,7 +643,7 @@ func (s *bugtoolInfo) addGrpcInfo(tarWriter *tar.Writer) {
 	}
 
 	fname := "tracing-policies.json"
-	err = s.tarAddJson(tarWriter, fname, res)
+	err = s.TarAddJson(tarWriter, fname, res)
 	if err != nil {
 		s.multiLog.Warnf("failed to dump tracing policies: %v", err)
 		return
@@ -637,7 +659,7 @@ func (s bugtoolInfo) addPmapOut(tarWriter *tar.Writer) error {
 		return fmt.Errorf("failed to locate pmap: %w", err)
 	}
 
-	s.execCmd(tarWriter, "pmap.out", pmap, "-x", strconv.Itoa(s.info.PID))
+	s.ExecCmd(tarWriter, "pmap.out", pmap, "-x", strconv.Itoa(s.info.PID))
 	return nil
 }
 
@@ -783,7 +805,7 @@ func (s bugtoolInfo) addBPFMapsStats(tarWriter *tar.Writer) error {
 	}
 
 	const file = "debugmaps.json"
-	err = s.tarAddJson(tarWriter, file, out)
+	err = s.TarAddJson(tarWriter, file, out)
 	if err != nil {
 		s.multiLog.WithError(err).Warn("failed to add the BPF maps checks to the tar archive")
 		return err
@@ -793,7 +815,7 @@ func (s bugtoolInfo) addBPFMapsStats(tarWriter *tar.Writer) error {
 }
 
 func (s *bugtoolInfo) addTracefsTraceFile(tarWriter *tar.Writer) {
-	err := s.execCmd(tarWriter, "trace", "cat", "/sys/kernel/tracing/trace")
+	err := s.ExecCmd(tarWriter, "trace", "cat", "/sys/kernel/tracing/trace")
 	if err != nil {
 		s.multiLog.Warnf("failed to get trace file: %v", err)
 	}
