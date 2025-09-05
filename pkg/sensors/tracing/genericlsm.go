@@ -525,7 +525,7 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 	overrideTasksMapOutput := program.MapBuilderProgram("override_tasks", loadOutput)
 	maps = append(maps, overrideTasksMapOutput)
 
-	maps = append(maps, polInfo.policyConfMap(load))
+	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load))
 
 	logger.GetLogger().
 		Info(fmt.Sprintf("Added generic lsm sensor: %s -> %s", load.Name, load.Attach))

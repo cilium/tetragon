@@ -407,6 +407,7 @@ func (h *handler) listPolicies() []*tetragon.TracingPolicyStatus {
 			FilterId: col.policyfilterID,
 			State:    col.state.ToTetragonState(),
 			Mode:     col.mode(),
+			Stats:    col.stats(),
 		}
 
 		if col.err != nil {
