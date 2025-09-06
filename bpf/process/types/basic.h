@@ -165,14 +165,17 @@ struct config_btf_arg {
 #define USDT_ARG_TYPE_CONST	1
 #define USDT_ARG_TYPE_REG	2
 #define USDT_ARG_TYPE_REG_DEREF 3
+#define USDT_ARG_TYPE_SIB	4
 
 struct config_usdt_arg {
 	__u64 val_off;
 	__u32 reg_off;
+	__u32 reg_idx_off;
 	__u8 shift;
 	__u8 type;
 	__u8 sig;
-	__u8 pad;
+	__u8 scale;
+	__u32 pad1;
 } __attribute__((packed));
 
 struct extract_arg_data {

@@ -563,14 +563,14 @@ generic_process_init(struct msg_generic_kprobe *e, u8 op, struct event_config *c
 
 #ifdef GENERIC_USDT
 FUNC_INLINE unsigned long
-read_usdt_arg(struct pt_regs *ctx, struct event_config *config, int idx)
+read_usdt_arg(struct pt_regs *ctx, struct event_config *config, int index)
 {
 	struct config_usdt_arg *arg;
-	unsigned long val, off;
+	unsigned long val, off, idx;
 	int err;
 
-	idx &= 7;
-	arg = &config->usdt_arg[idx];
+	index &= 7;
+	arg = &config->usdt_arg[index];
 
 	if (arg->type == USDT_ARG_TYPE_NONE)
 		return 0;
@@ -610,6 +610,29 @@ read_usdt_arg(struct pt_regs *ctx, struct event_config *config, int idx)
 			return err;
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 		val >>= arg->shift;
+#endif
+		break;
+	case USDT_ARG_TYPE_SIB:
+		/* Arg is in memory addressed by SIB (Scale-Index-Base) mode
+		 * (e.g., "-1@-96(%rbp,%rax,8)" in USDT arg spec). We first
+		 * fetch the base register contents and the index register
+		 * contents from pt_regs. Then we calculate the final address
+		 * as base + (index * scale) + offset, and do a user-space
+		 * probe read to fetch the argument value.
+		 */
+		off = arg->reg_off & 0xfff;
+		err = probe_read_kernel(&val, sizeof(val), (void *)ctx + off);
+		if (err)
+			return err;
+		off = arg->reg_idx_off & 0xfff;
+		err = probe_read_kernel(&idx, sizeof(idx), (void *)ctx + off);
+		if (err)
+			return err;
+		err = probe_read_user(&val, sizeof(val), (void *)(val + (idx << arg->scale) + arg->val_off));
+		if (err)
+			return err;
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+		val >>= arg_spec->arg_bitshift;
 #endif
 		break;
 	default:

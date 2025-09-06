@@ -263,8 +263,10 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID) ([]i
 
 			cfgArg.ValOff = tgtArg.ValOff
 			cfgArg.RegOff = uint32(tgtArg.RegOff)
+			cfgArg.RegIdxOff = uint32(tgtArg.RegIdxOff)
 			cfgArg.Shift = tgtArg.Shift
 			cfgArg.Type = tgtArg.Type
+			cfgArg.Scale = tgtArg.Scale
 
 			if tgtArg.Signed {
 				cfgArg.Signed = 1
