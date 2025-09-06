@@ -62,6 +62,11 @@ type RegScanner struct {
 	name string
 }
 
+func (sc *RegScanner) Reset() *RegScanner {
+	sc.name = ""
+	return sc
+}
+
 func (sc *RegScanner) Scan(state fmt.ScanState, _ rune) error {
 
 	for {
@@ -95,6 +100,57 @@ func parseCommon(sz int, arg *UsdtArg) error {
 		return fmt.Errorf("wrong sz %d", sz)
 	}
 	return nil
+}
+
+func parseSIB(str string, arg *UsdtArg) error {
+	var (
+		sz     int
+		off    int64
+		reg    RegScanner
+		regIdx RegScanner
+		n      int
+		ok     bool
+		scale  = 1
+	)
+
+	// 1@-96(%rbp,%rax,8)
+	if n, _ = fmt.Sscanf(str, "%d@%d(%%%s,%%%s,%d)", &sz, &off, &reg, &regIdx, &scale); n != 5 {
+		// 1@(%rbp,%rax,8)
+		if n, _ = fmt.Sscanf(str, "%d@(%%%s,%%%s,%d)", &sz, reg.Reset(), regIdx.Reset(), &scale); n != 4 {
+			// 1@-96(%rbp,%rax)
+			if n, _ = fmt.Sscanf(str, "%d@%d(%%%s,%%%s)", &sz, &off, reg.Reset(), regIdx.Reset()); n != 4 {
+				// 1@(%rbp,%rax)
+				if n, _ = fmt.Sscanf(str, "%d@(%%%s,%%%s)", &sz, reg.Reset(), regIdx.Reset()); n != 3 {
+					return errNext
+				}
+			}
+		}
+	}
+
+	arg.Type = USDT_ARG_TYPE_SIB
+	arg.ValOff = uint64(off)
+	arg.RegOff, ok = resolveReg(reg.name)
+	if !ok {
+		return fmt.Errorf("failed to parse register '%s'", reg.name)
+	}
+
+	arg.RegIdxOff, ok = resolveReg(regIdx.name)
+	if !ok {
+		return fmt.Errorf("failed to parse index register '%s'", regIdx.name)
+	}
+
+	switch scale {
+	case 1:
+		arg.Scale = 0
+	case 2:
+		arg.Scale = 1
+	case 4:
+		arg.Scale = 2
+	case 8:
+		arg.Scale = 3
+	}
+
+	return parseCommon(sz, arg)
 }
 
 func parseRegDeref(str string, arg *UsdtArg) error {
@@ -165,6 +221,7 @@ func parseConst(str string, arg *UsdtArg) error {
 func parseArgs(spec *UsdtSpec) error {
 
 	parsers := []fn{
+		parseSIB,
 		parseRegDeref,
 		parseReg,
 		parseConst,

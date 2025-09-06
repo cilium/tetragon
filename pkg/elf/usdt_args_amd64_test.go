@@ -15,13 +15,13 @@ import (
 
 func TestParseArgs(t *testing.T) {
 	spec := UsdtSpec{
-		ArgsStr: "-4@-1372(%rbp) -8@(%rbp) 8@%rax -4@$-9",
+		ArgsStr: "-4@-1372(%rbp) -8@(%rbp) 8@%rax -4@$-9 1@-96(%rbp,%rax,8) 1@(%rbp,%rax,8) 1@-96(%rbp,%rax) 1@(%rbp,%rax)",
 	}
 
 	err := parseArgs(&spec)
 
 	require.NoError(t, err)
-	assert.Equal(t, uint32(4), spec.ArgsCnt)
+	assert.Equal(t, uint32(8), spec.ArgsCnt)
 
 	var arg *UsdtArg
 
@@ -56,4 +56,40 @@ func TestParseArgs(t *testing.T) {
 	assert.Equal(t, uint64(0xfffffffffffffff7) /* -9 */, arg.ValOff)
 	assert.True(t, arg.Signed)
 	assert.Equal(t, uint8(32), arg.Shift)
+
+	/* 1@-96(%rbp,%rax,8) */
+	arg = &spec.Args[4]
+	assert.Equal(t, USDT_ARG_TYPE_SIB, arg.Type)
+	assert.Equal(t, uint16(32), arg.RegOff)
+	assert.Equal(t, uint64(0xffffffffffffffa0) /* -96 */, arg.ValOff)
+	assert.False(t, arg.Signed)
+	assert.Equal(t, uint8(56), arg.Shift)
+	assert.Equal(t, uint8(3), arg.Scale)
+
+	/* 1@(%rbp,%rax,8) */
+	arg = &spec.Args[5]
+	assert.Equal(t, USDT_ARG_TYPE_SIB, arg.Type)
+	assert.Equal(t, uint16(32), arg.RegOff)
+	assert.Equal(t, uint64(0), arg.ValOff)
+	assert.False(t, arg.Signed)
+	assert.Equal(t, uint8(56), arg.Shift)
+	assert.Equal(t, uint8(3), arg.Scale)
+
+	/* 1@-96(%rbp,%rax) */
+	arg = &spec.Args[6]
+	assert.Equal(t, USDT_ARG_TYPE_SIB, arg.Type)
+	assert.Equal(t, uint16(32), arg.RegOff)
+	assert.Equal(t, uint64(0xffffffffffffffa0) /* -96 */, arg.ValOff)
+	assert.False(t, arg.Signed)
+	assert.Equal(t, uint8(56), arg.Shift)
+	assert.Equal(t, uint8(0), arg.Scale)
+
+	/* 1@(%rbp,%rax) */
+	arg = &spec.Args[7]
+	assert.Equal(t, USDT_ARG_TYPE_SIB, arg.Type)
+	assert.Equal(t, uint16(32), arg.RegOff)
+	assert.Equal(t, uint64(0), arg.ValOff)
+	assert.False(t, arg.Signed)
+	assert.Equal(t, uint8(56), arg.Shift)
+	assert.Equal(t, uint8(0), arg.Scale)
 }
