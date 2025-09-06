@@ -40,6 +40,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -64,7 +65,7 @@ const (
 
 var (
 	loader = program.Builder(
-		"bpf_loader.o",
+		config.LoaderObj(),
 		"perf_event_mmap_output",
 		"kprobe/perf_event_mmap_output",
 		"loader_kprobe",
