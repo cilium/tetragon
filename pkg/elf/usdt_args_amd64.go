@@ -9,6 +9,7 @@ package elf
 import (
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 	"unsafe"
 
@@ -57,8 +58,27 @@ var errNext = errors.New("next")
 
 type fn func(str string, arg *UsdtArg) error
 
-func cut(r string) string {
-	return r[:len(r)-1]
+type RegScanner struct {
+	name string
+}
+
+func (sc *RegScanner) Scan(state fmt.ScanState, _ rune) error {
+
+	for {
+		r, _, err := state.ReadRune()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		if r == ',' || r == ' ' || r == ')' {
+			state.UnreadRune()
+			break
+		}
+		sc.name = sc.name + string(r)
+	}
+	return nil
 }
 
 func parseCommon(sz int, arg *UsdtArg) error {
@@ -81,7 +101,7 @@ func parseRegDeref(str string, arg *UsdtArg) error {
 	var (
 		sz  int
 		off int64
-		reg string
+		reg RegScanner
 		n   int
 		ok  bool
 	)
@@ -94,9 +114,9 @@ func parseRegDeref(str string, arg *UsdtArg) error {
 
 	arg.Type = USDT_ARG_TYPE_REG_DEREF
 	arg.ValOff = uint64(off)
-	arg.RegOff, ok = resolveReg(cut(reg))
+	arg.RegOff, ok = resolveReg(reg.name)
 	if !ok {
-		return fmt.Errorf("failed to parse register '%s'", reg)
+		return fmt.Errorf("failed to parse register '%s'", reg.name)
 	}
 
 	return parseCommon(sz, arg)
@@ -105,7 +125,7 @@ func parseRegDeref(str string, arg *UsdtArg) error {
 func parseReg(str string, arg *UsdtArg) error {
 	var (
 		sz  int
-		reg string
+		reg RegScanner
 		n   int
 		ok  bool
 	)
@@ -116,9 +136,9 @@ func parseReg(str string, arg *UsdtArg) error {
 
 	arg.Type = USDT_ARG_TYPE_REG
 	arg.ValOff = 0
-	arg.RegOff, ok = resolveReg(reg)
+	arg.RegOff, ok = resolveReg(reg.name)
 	if !ok {
-		return fmt.Errorf("failed to parse register '%s'", reg)
+		return fmt.Errorf("failed to parse register '%s'", reg.name)
 	}
 
 	return parseCommon(sz, arg)
