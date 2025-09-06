@@ -4324,8 +4324,8 @@ spec:
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithValues(
 				ec.NewKprobeArgumentChecker().WithBpfAttrArg(ec.NewKprobeBpfAttrChecker().
-					WithProgName(sm.Full("generic_kprobe_")).
-					WithProgType(sm.Full("BPF_PROG_TYPE_KPROBE")),
+					WithProgName(sm.Regex("generic_kprobe_|generic_fentry_")).
+					WithProgType(sm.Regex("BPF_PROG_TYPE_KPROBE|BPF_PROG_TYPE_TRACING")),
 				),
 			))
 
@@ -4460,6 +4460,9 @@ kind: TracingPolicy
 metadata:
   name: "sys-read"
 spec:
+  options:
+  - name: "disable-kprobe-fentry"
+    value: "1"
   kprobes:
   - call: "sys_read"
     syscall: true
