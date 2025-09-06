@@ -7,6 +7,7 @@
 package elf
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"unsafe"
@@ -52,59 +53,115 @@ func resolveReg(name string) (uint16, bool) {
 	return 0, false
 }
 
+var errNext = errors.New("next")
+
+type fn func(str string, arg *UsdtArg) error
+
+func cut(r string) string {
+	return r[:len(r)-1]
+}
+
+func parseCommon(sz int, arg *UsdtArg) error {
+	arg.Signed = sz < 0
+	if sz < 0 {
+		sz = -sz
+	}
+	arg.Size = sz
+
+	switch sz {
+	case 1, 2, 4, 8:
+		arg.Shift = 64 - uint8(sz)*8
+	default:
+		return fmt.Errorf("wrong sz %d", sz)
+	}
+	return nil
+}
+
+func parseRegDeref(str string, arg *UsdtArg) error {
+	var (
+		sz  int
+		off int64
+		reg string
+		n   int
+		ok  bool
+	)
+
+	if n, _ = fmt.Sscanf(str, "%d@%d(%%%s)", &sz, &off, &reg); n != 3 {
+		if n, _ = fmt.Sscanf(str, "%d@(%%%s)", &sz, &reg); n != 2 {
+			return errNext
+		}
+	}
+
+	arg.Type = USDT_ARG_TYPE_REG_DEREF
+	arg.ValOff = uint64(off)
+	arg.RegOff, ok = resolveReg(cut(reg))
+	if !ok {
+		return fmt.Errorf("failed to parse register '%s'", reg)
+	}
+
+	return parseCommon(sz, arg)
+}
+
+func parseReg(str string, arg *UsdtArg) error {
+	var (
+		sz  int
+		reg string
+		n   int
+		ok  bool
+	)
+
+	if n, _ = fmt.Sscanf(str, "%d@%%%s", &sz, &reg); n != 2 {
+		return errNext
+	}
+
+	arg.Type = USDT_ARG_TYPE_REG
+	arg.ValOff = 0
+	arg.RegOff, ok = resolveReg(reg)
+	if !ok {
+		return fmt.Errorf("failed to parse register '%s'", reg)
+	}
+
+	return parseCommon(sz, arg)
+}
+
+func parseConst(str string, arg *UsdtArg) error {
+	var (
+		sz  int
+		n   int
+		off int
+	)
+
+	if n, _ = fmt.Sscanf(str, "%d@$%d", &sz, &off); n != 2 {
+		return errNext
+	}
+
+	arg.Type = USDT_ARG_TYPE_CONST
+	arg.ValOff = uint64(off)
+	arg.RegOff = 0
+
+	return parseCommon(sz, arg)
+}
+
 func parseArgs(spec *UsdtSpec) error {
+
+	parsers := []fn{
+		parseRegDeref,
+		parseReg,
+		parseConst,
+	}
+
 	for idx, str := range strings.Split(spec.ArgsStr, " ") {
-		var (
-			arg = &spec.Args[idx]
-			sz  int
-			off int64
-			reg string
-			n   int
-			ok  bool
-		)
+		arg := &spec.Args[idx]
 
-		cut := func(r string) string { return r[:len(r)-1] }
-
-		if n, _ = fmt.Sscanf(str, "%d@%d(%%%s)", &sz, &off, &reg); n == 3 {
-			arg.Type = USDT_ARG_TYPE_REG_DEREF
-			arg.ValOff = uint64(off)
-			arg.RegOff, ok = resolveReg(cut(reg))
-			if !ok {
-				return fmt.Errorf("failed to parse register '%s'", reg)
+		for _, parse := range parsers {
+			err := parse(str, arg)
+			if err == nil {
+				break
 			}
-		} else if n, _ = fmt.Sscanf(str, "%d@(%%%s)", &sz, &reg); n == 2 {
-			arg.Type = USDT_ARG_TYPE_REG_DEREF
-			arg.ValOff = 0
-			arg.RegOff, ok = resolveReg(cut(reg))
-			if !ok {
-				return fmt.Errorf("failed to parse register '%s'", reg)
+			if !errors.Is(err, errNext) {
+				return err
 			}
-		} else if n, _ = fmt.Sscanf(str, "%d@%%%s", &sz, &reg); n == 2 {
-			arg.Type = USDT_ARG_TYPE_REG
-			arg.ValOff = 0
-			arg.RegOff, ok = resolveReg(reg)
-			if !ok {
-				return fmt.Errorf("failed to parse register '%s'", reg)
-			}
-		} else if n, _ = fmt.Sscanf(str, "%d@$%d", &sz, &off); n == 2 {
-			arg.Type = USDT_ARG_TYPE_CONST
-			arg.ValOff = uint64(off)
-			arg.RegOff = 0
-		} else {
-			return fmt.Errorf("failed to parse argument '%s'", str)
 		}
-
-		arg.Signed = sz < 0
-		if sz < 0 {
-			sz = -sz
-		}
-		arg.Size = sz
-
-		switch sz {
-		case 1, 2, 4, 8:
-			arg.Shift = 64 - uint8(sz)*8
-		}
-
 		arg.Str = str
 		spec.ArgsCnt++
 	}
