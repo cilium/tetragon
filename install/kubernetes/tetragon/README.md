@@ -14,7 +14,7 @@ Helm chart for Tetragon
 | daemonSetLabelsOverride | object | `{}` |  |
 | dnsPolicy | string | `"Default"` | DNS policy for Tetragon pods.  https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy |
 | enabled | bool | `true` |  |
-| export | object | `{"filenames":["tetragon.log"],"mode":"stdout","resources":{},"securityContext":{},"stdout":{"argsOverride":[],"commandOverride":[],"enabledArgs":true,"enabledCommand":true,"extraEnv":[],"extraVolumeMounts":[],"image":{"override":null,"repository":"quay.io/cilium/hubble-export-stdout","tag":"v1.1.0"}}}` | Tetragon events export settings |
+| export | object | `{"filenames":["tetragon.log"],"mode":"stdout","resources":{},"securityContext":{},"stdout":{"argsOverride":[],"commandOverride":[],"enabledArgs":true,"enabledCommand":true,"extraEnv":[],"extraEnvFrom":[],"envFromSecrets":[],"extraVolumeMounts":[],"image":{"override":null,"repository":"quay.io/cilium/hubble-export-stdout","tag":"v1.1.0"}}}` | Tetragon events export settings |
 | exportDirectory | string | `"/var/run/cilium/tetragon"` | Directory to put Tetragon JSON export files. |
 | extraConfigmapMounts | list | `[]` |  |
 | extraHostPathMounts | list | `[]` |  |
