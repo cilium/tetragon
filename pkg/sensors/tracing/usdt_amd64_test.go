@@ -89,6 +89,12 @@ spec:
       type: "int32"
     - index: 11
       type: "int32"
+  - path: "` + usdt + `"
+    provider: "test"
+    name: "usdt_sib"
+    args:
+    - index: 0
+      type: "int16"
 `
 
 	usdtConfigHook := []byte(usdtHook)
@@ -158,8 +164,19 @@ spec:
 				ec.NewKprobeArgumentChecker().WithIntArg(-127),
 			))
 
+	upChecker_sib := ec.NewProcessUsdtChecker("USDT_GENERIC_SIB").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(usdt))).
+		WithProvider(sm.Full("test")).
+		WithName(sm.Full("usdt_sib")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(-3),
+			))
+
 	checker := ec.NewUnorderedEventChecker(upChecker_0, upChecker_3,
-		upChecker_12_1, upChecker_12_2, upChecker_12_3)
+		upChecker_12_1, upChecker_12_2, upChecker_12_3, upChecker_sib)
 
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
