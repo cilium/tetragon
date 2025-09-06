@@ -509,3 +509,7 @@ else
 	@echo "Generating compile_commands.json using bear..."
 	@$(BEAR_CLI) $(MAKE) tetragon-bpf LOCAL_CLANG=1 LOCAL_CLANG_FORMAT=1
 endif
+
+.PHONY: tracing-policy-docs
+tracing-policy-docs:
+	$(MAKE) -C docs tracing-policy-docs

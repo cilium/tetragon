@@ -66,3 +66,14 @@ jobs:
             echo "Generated metrics reference is outdated."
             echo "Please run 'make metrics-docs' and submit your changes."; exit 1
           fi
+      - name: Check tracing policy docs
+        run: |
+          set -ex
+          make tracing-policy-docs
+          test -z "$(git status --porcelain)"
+          if [ $? != 0 ]; then
+            git status
+            git diff
+            echo "Generated tracing policy reference is outdated."
+            echo "Please run 'make tracing-policy-docs' and submit your changes."; exit 1
+          fi
