@@ -857,6 +857,7 @@ User records
 | KPROBE_ACTION_UNTRACKSOCK | 12 | UntrackSock action un-tracks socket. |
 | KPROBE_ACTION_NOTIFYENFORCER | 13 | NotifyEnforcer action notifies enforcer sensor. |
 | KPROBE_ACTION_CLEANUPENFORCERNOTIFICATION | 14 | CleanupEnforcerNotification action cleanups any state left by NotifyEnforcer |
+| KPROBE_ACTION_SET | 15 | Set action sets first USDT argument |
 
 <a name="tetragon-TaintedBitsType"></a>
 
