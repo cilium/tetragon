@@ -1482,13 +1482,13 @@ To explain deeper the structure and the logic behind it, let's consider first
 the following example:
 ```yaml
 selectors:
- - matchPIDs:
-   - operator: In
-     followForks: true
-     values:
-     - pid1
-     - pid2
-     - pid3
+- matchPIDs:
+  - operator: In
+    followForks: true
+    values:
+    - pid1
+    - pid2
+    - pid3
   matchArgs:
   - index: 0
     operator: "Equal"
@@ -1517,12 +1517,12 @@ the container initialization and the main pod process and tried to read from
 the `/etc/passwd` file by using:
 ```yaml
 selectors:
- - matchPIDs:
-   - operator: NotIn
-     followForks: true
-     values:
-     - 0
-     - 1
+- matchPIDs:
+  - operator: NotIn
+    followForks: true
+    values:
+    - 0
+    - 1
   matchArgs:
   - index: 0
     operator: "Equal"
@@ -1541,12 +1541,12 @@ For example, we can monitor `sys_read()` syscalls accessing both the
 `/etc/passwd` or the `/etc/shadow` files:
 ```yaml
 selectors:
- - matchPIDs:
-   - operator: NotIn
-     followForks: true
-     values:
-     - 0
-     - 1
+- matchPIDs:
+  - operator: NotIn
+    followForks: true
+    values:
+    - 0
+    - 1
   matchArgs:
   - index: 0
     operator: "Equal"
@@ -1581,13 +1581,13 @@ then we would build the following expression on the BPF side:
 In case of having multiple `matchArgs`:
 ```yaml
 selectors:
- - matchPIDs:
-   - operator: In
-     followForks: true
-     values:
-     - pid1
-     - pid2
-     - pid3
+- matchPIDs:
+  - operator: In
+    followForks: true
+    values:
+    - pid1
+    - pid2
+    - pid3
   matchArgs:
   - index: 0
     operator: "Equal"
@@ -1790,13 +1790,13 @@ of `{binary0, binary1, binary2}`:
 When multiple selectors are configured they are logically `OR`d together.
 ```yaml
 selectors:
- - matchPIDs:
-   - operator: In
-     followForks: true
-     values:
-     - pid1
-     - pid2
-     - pid3
+- matchPIDs:
+  - operator: In
+    followForks: true
+    values:
+    - pid1
+    - pid2
+    - pid3
   matchArgs:
   - index: 0
     operator: "Equal"
@@ -1806,13 +1806,13 @@ selectors:
     operator: "lt"
     values:
     -  500
- - matchPIDs:
-   - operator: In
-     followForks: true
-     values:
-     - pid1
-     - pid2
-     - pid3
+- matchPIDs:
+  - operator: In
+    followForks: true
+    values:
+    - pid1
+    - pid2
+    - pid3
   matchArgs:
   - index: 0
     operator: "Equal"
