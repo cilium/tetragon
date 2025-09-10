@@ -18,6 +18,8 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
 
+	"github.com/cilium/tetragon/tests/e2e/metricschecker"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/tests/e2e/checker"
@@ -85,6 +87,7 @@ func TestMain(m *testing.M) {
 
 func TestNamespacedPolicy(t *testing.T) {
 	checker := nsChecker().WithTimeLimit(30 * time.Second).WithEventLimit(20)
+	metricsChecker := metricschecker.NewMetricsChecker("policyMetricsChecker")
 
 	runEventChecker := features.New("Run Event Checks").
 		Assess("Run Event Checks", checker.CheckWithFilters(
@@ -127,6 +130,7 @@ func TestNamespacedPolicy(t *testing.T) {
 			}
 			return ctx
 		}).
+		Assess("Run Metrics Checks", metricsChecker.Greater("tetragon_policy_events_total", 0)).
 		Assess("Uninstall policy", func(ctx context.Context, _ *testing.T, c *envconf.Config) context.Context {
 			ctx, err := helpers.UnloadCRDString(policyNamespace, namespacedPolicy, false)(ctx, c)
 			if err != nil {
