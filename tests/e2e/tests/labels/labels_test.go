@@ -16,6 +16,8 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/features"
 	"sigs.k8s.io/e2e-framework/third_party/helm"
 
+	"github.com/cilium/tetragon/tests/e2e/metricschecker"
+
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/tests/e2e/checker"
@@ -115,8 +117,13 @@ func TestLabelsDemoApp(t *testing.T) {
 	uninstall := features.New("Uninstall Demo App").
 		Assess("Uninstall", uninstallDemoApp()).Feature()
 
+	metricsChecker := metricschecker.NewMetricsChecker("labelsMetricsChecker")
+	metrics := features.New("Run Metrics Checks").
+		Assess("Run Metrics Checks", metricsChecker.Greater("tetragon_events_total", 0)).Feature()
+
 	// Spawn workload and run checker
 	runner.TestInParallel(t, runEventChecker, runWorkload)
+	runner.Test(t, metrics)
 	runner.Test(t, uninstall)
 }
 
