@@ -1138,7 +1138,7 @@ func getMapLoad(load *program.Program, kprobeEntry *genericKprobe, index uint32)
 	if state == nil {
 		return []*program.MapLoad{}
 	}
-	return selectorsMaploads(state, index)
+	return selectorsMaploads(state, index, !kprobeEntry.loadArgs.retprobe)
 }
 
 func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Program, maps []*program.Map, verbose int) error {
