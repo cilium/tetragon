@@ -80,12 +80,12 @@ type structInfo struct {
 func getStructInfosFromBTF(types *btf.Spec, toCheck map[string][]any) (map[string]*structInfo, error) {
 	structs := make(map[string]*structInfo)
 	for name := range toCheck {
-		t, err := types.AnyTypeByName(name)
+		ts, err := types.AnyTypesByName(name)
 		if err != nil {
 			return nil, fmt.Errorf("looking up type %s by name: %w", name, err)
 		}
 
-		si, err := getStructInfoFromBTF(t)
+		si, err := getStructInfoFromBTF(ts)
 		if err != nil {
 			return nil, err
 		}
@@ -96,32 +96,47 @@ func getStructInfosFromBTF(types *btf.Spec, toCheck map[string][]any) (map[strin
 	return structs, nil
 }
 
-func getStructInfoFromBTF(t btf.Type) (*structInfo, error) {
-	switch typ := t.(type) {
-	case *btf.Typedef:
-		// Resolve Typedefs to their target types.
-		return getStructInfoFromBTF(typ.Type)
+// getStructInfoFromBTF: returns the structInfo from a list of btf types.
+func getStructInfoFromBTF(ts []btf.Type) (*structInfo, error) {
+	var infos []*structInfo
+	for _, t := range ts {
+		switch typ := t.(type) {
+		case *btf.Typedef:
+			// Resolve Typedefs to their target types.
+			si, err := getStructInfoFromBTF([]btf.Type{typ.Type})
+			if err != nil {
+				return nil, err
+			}
+			infos = append(infos, si)
 
-	case *btf.Int:
-		return &structInfo{
-			size:         typ.Size,
-			fieldOffsets: nil,
-		}, nil
+		case *btf.Int:
+			infos = append(infos, &structInfo{
+				size:         typ.Size,
+				fieldOffsets: nil,
+			})
 
-	case *btf.Struct:
-		return &structInfo{
-			size:         typ.Size,
-			fieldOffsets: memberOffsets(typ.Members),
-		}, nil
+		case *btf.Struct:
+			infos = append(infos, &structInfo{
+				size:         typ.Size,
+				fieldOffsets: memberOffsets(typ.Members),
+			})
 
-	case *btf.Union:
-		return &structInfo{
-			size:         typ.Size,
-			fieldOffsets: memberOffsets(typ.Members),
-		}, nil
+		case *btf.Union:
+			infos = append(infos, &structInfo{
+				size:         typ.Size,
+				fieldOffsets: memberOffsets(typ.Members),
+			})
+		}
 	}
 
-	return nil, fmt.Errorf("unsupported type: %s", t)
+	switch len(infos) {
+	case 0:
+		return nil, fmt.Errorf("unsupported types: %+v", ts)
+	case 1:
+		return infos[0], nil
+	default:
+		return nil, fmt.Errorf("multiple types, cannot extract single structInfo for types: %+v", ts)
+	}
 }
 
 func dotConcat(x, y string) string {
