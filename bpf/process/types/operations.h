@@ -43,6 +43,9 @@ enum {
 	op_filter_state = 29,
 	// capability ops
 	op_capabilities_gained = 30,
+	// range
+	op_in_range = 31,
+	op_notin_range = 32,
 };
 
 #endif // __OPERATIONS_H__
