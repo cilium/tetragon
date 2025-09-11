@@ -10,6 +10,7 @@ import (
 	"github.com/cilium/ebpf"
 
 	cfg "github.com/cilium/tetragon/pkg/config"
+	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
@@ -155,9 +156,6 @@ func CheckSensorLoad(sensors []*sensors.Sensor, sensorMaps []SensorMap, sensorPr
 		// all but event_execve
 		SensorMap{Name: "execve_map_stats", Progs: []uint{1, 2}},
 
-		// event_execve
-		SensorMap{Name: "tg_conf_map", Progs: []uint{0, 2}},
-
 		// event_wake_up_new_task
 		SensorMap{Name: "execve_val", Progs: []uint{2}},
 
@@ -183,6 +181,13 @@ func CheckSensorLoad(sensors []*sensors.Sensor, sensorMaps []SensorMap, sensorPr
 	} else {
 		// all programs except for execve_map_update, execve_rate
 		baseMaps = append(baseMaps, SensorMap{Name: "execve_map", Progs: []uint{0, 1, 2, 3, 4}})
+	}
+
+	if kernels.MinKernelVersion("5.11") {
+		baseMaps = append(baseMaps, SensorMap{Name: "tg_rb_events", Progs: []uint{0, 1, 2, 3, 5}})
+		baseMaps = append(baseMaps, SensorMap{Name: "tg_conf_map", Progs: []uint{0, 1, 2, 3, 5}})
+	} else {
+		baseMaps = append(baseMaps, SensorMap{Name: "tg_conf_map", Progs: []uint{0, 2}})
 	}
 
 	CheckSensorLoadBase(t, sensors, sensorMaps, sensorProgs, baseMaps, baseProgs)

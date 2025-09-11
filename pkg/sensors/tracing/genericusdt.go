@@ -124,6 +124,9 @@ func createGenericUsdtSensor(
 	}
 
 	maps = append(maps, program.MapUserFrom(base.ExecveMap))
+	if config.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
+		maps = append(maps, program.MapUserFrom(base.RingBufEvents))
+	}
 
 	return &sensors.Sensor{
 		Name:      name,
