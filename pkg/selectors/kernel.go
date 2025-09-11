@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"math"
 	"net"
 	"net/netip"
 	"strconv"
@@ -202,6 +203,9 @@ const (
 	SelectorOpState  = 29
 	// capabilities
 	SelectorOpCapabilitiesGained = 30
+	// range
+	SelectorOpInRange    = 31
+	SelectorOpNotInRange = 32
 )
 
 var selectorOpStringTable = map[uint32]string{
@@ -234,6 +238,8 @@ var selectorOpStringTable = map[uint32]string{
 	SelectorOpFamily:             "Family",
 	SelectorOpState:              "State",
 	SelectorOpCapabilitiesGained: "CapabilitiesGained",
+	SelectorOpInRange:            "InRange",
+	SelectorOpNotInRange:         "NoInRange",
 }
 
 func SelectorOp(op string) (uint32, error) {
@@ -296,6 +302,10 @@ func SelectorOp(op string) (uint32, error) {
 		return SelectorOpState, nil
 	case "CapabilitiesGained":
 		return SelectorOpCapabilitiesGained, nil
+	case "InRange":
+		return SelectorOpInRange, nil
+	case "NotInRange":
+		return SelectorOpNotInRange, nil
 	}
 
 	return 0, fmt.Errorf("unknown op '%s'", op)
@@ -479,6 +489,49 @@ func writeListValuesInMap(k *KernelSelectorState, v string, ty uint32, m *ValueM
 			return fmt.Errorf("unknown type: %d", ty)
 		}
 		m.Data[val] = struct{}{}
+	}
+	return nil
+}
+
+func writeMatchValuesRange(k *KernelSelectorState, values []string, ty uint32) error {
+	// NB: maxMatchValues should match MAX_MATCH_VALUES in bpf/process/types/basic.h
+	maxMatchValues := 4
+
+	if len(values) > maxMatchValues {
+		return fmt.Errorf("selector does not support more than %d values", maxMatchValues)
+	}
+
+	for _, v := range values {
+		rangeStr := strings.Split(v, ":")
+		if len(rangeStr) != 2 {
+			return fmt.Errorf("MatchArgs value %s invalid: range should be 'min:max'", v)
+		}
+
+		rangeMin, err := strconv.ParseInt(rangeStr[0], 0, 64)
+		if err != nil {
+			return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
+		}
+
+		rangeMax, err := strconv.ParseInt(rangeStr[1], 0, 64)
+		if err != nil {
+			return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
+		}
+
+		switch ty {
+		case gt.GenericIntType, gt.GenericS32Type, gt.GenericSizeType, gt.GenericU32Type:
+			if rangeMax > math.MaxUint32 || rangeMin > math.MaxUint32 {
+				return fmt.Errorf("range out of range (%d:%d) allowed max %d", rangeMin, rangeMax, math.MaxUint32)
+			}
+			WriteSelectorUint32(&k.data, uint32(rangeMin))
+			WriteSelectorUint32(&k.data, uint32(rangeMax))
+
+		case gt.GenericS64Type, gt.GenericSyscall64, gt.GenericU64Type:
+			WriteSelectorUint64(&k.data, uint64(rangeMin))
+			WriteSelectorUint64(&k.data, uint64(rangeMax))
+
+		default:
+			return fmt.Errorf("MatchArgs type %s unsupported for range operators", gt.GenericTypeString(int(ty)))
+		}
 	}
 	return nil
 }
@@ -850,6 +903,11 @@ func parseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 	moff := AdvanceSelectorLength(&k.data)
 	WriteSelectorUint32(&k.data, ty)
 	switch op {
+	case SelectorOpInRange, SelectorOpNotInRange:
+		err := writeMatchValuesRange(k, arg.Values, ty)
+		if err != nil {
+			return fmt.Errorf("writeMatchValuesIntervals error: %w", err)
+		}
 	case SelectorInMap, SelectorNotInMap:
 		err := writeMatchValuesInMap(k, arg.Values, ty, op)
 		if err != nil {
