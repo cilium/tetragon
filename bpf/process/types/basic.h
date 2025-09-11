@@ -1280,6 +1280,78 @@ filter_64ty_map(struct selector_arg_filter *filter, char *args)
 	return 0;
 }
 
+#ifdef __LARGE_BPF_PROG
+FUNC_LOCAL long
+filter_64ty_range(struct selector_arg_filter *filter, char *args)
+{
+	__u64 *v = (__u64 *)&filter->value;
+	int all = 0, i, j = 0;
+
+#pragma unroll
+	for (i = 0; i < MAX_MATCH_VALUES; i++) {
+		__u64 start = v[i * 2], end = v[i * 2 + 1];
+		bool res;
+
+		if (is_signed_type(filter->type))
+			res = ((__s64)start <= *(s64 *)args) && (*(s64 *)args <= (__s64)end);
+		else
+			res = (start <= *(u64 *)args) && (*(u64 *)args <= end);
+
+		if (filter->op == op_in_range && res)
+			return 1;
+		all |= res;
+
+		j += sizeof(*v) * 2;
+		if (j + 8 /* vallen+type */ >= filter->vallen)
+			break;
+	}
+	if (filter->op == op_notin_range && !all)
+		return 1;
+	return 0;
+}
+
+FUNC_LOCAL long
+filter_32ty_range(struct selector_arg_filter *filter, char *args)
+{
+	__u32 *v = (__u32 *)&filter->value;
+	int all = 0, i, j = 0;
+
+#pragma unroll
+	for (i = 0; i < MAX_MATCH_VALUES; i++) {
+		__u32 start = v[i * 2], end = v[i * 2 + 1];
+		bool res;
+
+		if (is_signed_type(filter->type))
+			res = ((__s32)start <= *(s32 *)args) && (*(s32 *)args <= (__s32)end);
+		else
+			res = (start <= *(u32 *)args) && (*(u32 *)args <= end);
+
+		if (filter->op == op_in_range && res)
+			return 1;
+		all |= res;
+
+		j += sizeof(*v) * 2;
+		if (j + 8 /* vallen+type */ >= filter->vallen)
+			break;
+	}
+	if (filter->op == op_notin_range && !all)
+		return 1;
+	return 0;
+}
+#else
+FUNC_INLINE long
+filter_64ty_range(struct selector_arg_filter *filter, char *args)
+{
+	return 0;
+}
+
+FUNC_INLINE long
+filter_32ty_range(struct selector_arg_filter *filter, char *args)
+{
+	return 0;
+}
+#endif // __LARGE_BPF_PROG
+
 FUNC_LOCAL long
 filter_64ty(struct selector_arg_filter *filter, char *args)
 {
@@ -1293,6 +1365,9 @@ filter_64ty(struct selector_arg_filter *filter, char *args)
 	case op_filter_inmap:
 	case op_filter_notinmap:
 		return filter_64ty_map(filter, args);
+	case op_in_range:
+	case op_notin_range:
+		return filter_64ty_range(filter, args);
 	}
 
 	return 0;
@@ -1397,6 +1472,9 @@ filter_32ty(struct selector_arg_filter *filter, char *args)
 	case op_filter_inmap:
 	case op_filter_notinmap:
 		return filter_32ty_map(filter, args);
+	case op_in_range:
+	case op_notin_range:
+		return filter_32ty_range(filter, args);
 	}
 
 	return 0;
