@@ -13,6 +13,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/api/testapi"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
+	"github.com/cilium/tetragon/pkg/policystats"
 	"github.com/cilium/tetragon/pkg/sensors/cgroup/cgrouptrackmap"
 	"github.com/cilium/tetragon/pkg/sensors/config/confmap"
 	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
@@ -36,6 +37,9 @@ var defaultChecks = map[string][]any{
 
 	// metrics
 	"kernel_stats": {processapi.KernelStats{}},
+
+	// policy stats
+	"policy_stats": {policystats.PolicyStats{}},
 }
 
 // CheckStructAlignmentsDefault calls CheckStructAlignments with the default alignment defaultChecks.
