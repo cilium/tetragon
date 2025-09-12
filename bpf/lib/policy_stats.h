@@ -6,6 +6,10 @@
 
 #include "policy_conf.h"
 
+#if defined(GENERIC_KPROBE) || defined(GENERIC_TRACEPOINT) || defined(GENERIC_LSM) || defined(GENERIC_RAWTP) || defined(GENERIC_UPROBE) || defined(GENERIC_USDT) || defined(GENERIC_KRETPROBE) || defined(ALIGNCHECKER)
+#define HAS_POLICY_STATS
+#endif
+
 /* NB: if you are modifying this enum, you might want to change the proto descriptions for
  * TracingPolicyActionCounters.
  */
@@ -25,11 +29,29 @@ struct policy_stats {
 	u64 act_cnt[POLICY_NACTIONS_];
 };
 
+#if defined(HAS_POLICY_STATS)
 struct {
 	__uint(type, BPF_MAP_TYPE_ARRAY);
 	__uint(max_entries, 1);
 	__type(key, __u32);
 	__type(value, struct policy_stats);
 } policy_stats SEC(".maps");
+
+FUNC_INLINE void
+policy_stats_update(int act)
+{
+	struct policy_stats *pstats;
+	u32 zero = 0;
+
+	pstats = map_lookup_elem(&policy_stats, &zero);
+	if (pstats)
+		lock_add(&pstats->act_cnt[act], 1);
+}
+#else
+FUNC_INLINE void
+policy_stats_update(int acct)
+{
+}
+#endif
 
 #endif /* BPF_POLICYSTATS_H__ */

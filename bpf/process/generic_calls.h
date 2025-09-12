@@ -764,7 +764,6 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 	int argi __maybe_unused;
 	int err = 0;
 	int zero = 0;
-	struct policy_stats *pstats;
 	u32 polacct;
 
 	e = map_lookup_elem(&process_call_heap, &zero);
@@ -870,9 +869,7 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 	}
 
 	if (polacct != POLICY_INVALID_ACT_) {
-		pstats = map_lookup_elem(&policy_stats, &zero);
-		if (pstats)
-			lock_add(&pstats->act_cnt[polacct], 1);
+		policy_stats_update(polacct);
 	}
 
 	if (!err) {
