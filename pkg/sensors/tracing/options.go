@@ -41,10 +41,11 @@ func overrideMethodParse(s string) OverrideMethod {
 }
 
 type specOptions struct {
-	DisableKprobeMulti bool
-	DisableUprobeMulti bool
-	OverrideMethod     OverrideMethod
-	policyMode         policyconf.Mode
+	DisableKprobeFentry bool
+	DisableKprobeMulti  bool
+	DisableUprobeMulti  bool
+	OverrideMethod      OverrideMethod
+	policyMode          policyconf.Mode
 }
 
 type opt struct {
@@ -90,6 +91,12 @@ var opts = map[string]opt{
 			}
 			options.policyMode = mode
 			return nil
+		},
+	},
+	"disable-kprobe-fentry": {
+		set: func(str string, options *specOptions) (err error) {
+			options.DisableKprobeFentry, err = strconv.ParseBool(str)
+			return err
 		},
 	},
 }

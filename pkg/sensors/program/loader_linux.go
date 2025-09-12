@@ -378,6 +378,19 @@ func MultiUprobeAttach(load *Program, bpfDir string) AttachFunc {
 	}
 }
 
+func TracingOpen(load *Program) OpenFunc {
+	return func(coll *ebpf.CollectionSpec) error {
+		data, ok := load.AttachData.(*TracingAttachData)
+		if !ok {
+			return nil
+		}
+		for _, spec := range coll.Programs {
+			spec.AttachTo = data.AttachTo
+		}
+		return nil
+	}
+}
+
 func TracingAttach(load *Program, bpfDir string) AttachFunc {
 	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
@@ -632,6 +645,7 @@ func LoadFmodRetProgram(bpfDir string, load *Program, maps []*Map, progName stri
 func LoadTracingProgram(bpfDir string, load *Program, maps []*Map, verbose int) error {
 	opts := &LoadOpts{
 		Attach: TracingAttach(load, bpfDir),
+		Open:   TracingOpen(load),
 		Maps:   maps,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)

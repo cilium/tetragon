@@ -64,6 +64,12 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 			continue
 		}
 
+		// Can't load fentry/fext objects without loader setup
+		if strings.HasPrefix(fileName, "bpf_generic_fentry") ||
+			strings.HasPrefix(fileName, "bpf_generic_fexit") {
+			continue
+		}
+
 		// Skip v6.1 objects check for kernel < 6.1
 		if strings.HasSuffix(fileName, "61.o") && !kernels.MinKernelVersion("6.1") {
 			continue

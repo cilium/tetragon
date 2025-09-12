@@ -47,6 +47,7 @@ var (
 	missedStatsKprobeMulti Feature
 	batchUpdate            Feature
 	uprobeRefCtrOffset     Feature
+	getFuncRetHelper       Feature
 )
 
 func HasOverrideHelper() bool {
@@ -55,6 +56,10 @@ func HasOverrideHelper() bool {
 
 func HasSignalHelper() bool {
 	return features.HaveProgramHelper(ebpf.Kprobe, asm.FnSendSignal) == nil
+}
+
+func HasFentryProgram() bool {
+	return features.HaveProgramType(ebpf.Tracing) == nil
 }
 
 func detectKprobeMulti() bool {
@@ -508,14 +513,51 @@ func HasUprobeRefCtrOffset() bool {
 	return uprobeRefCtrOffset.detected
 }
 
+func detectGetFuncRetHelper() bool {
+	sysGetcpu, err := arch.AddSyscallPrefix("sys_getcpu")
+	if err != nil {
+		return false
+	}
+	prog, err := ebpf.NewProgram(&ebpf.ProgramSpec{
+		Name:       "probe_get_func_ret",
+		Type:       ebpf.Tracing,
+		AttachType: ebpf.AttachTraceFExit,
+		Instructions: asm.Instructions{
+			asm.Mov.Reg(asm.R2, asm.R10),
+			asm.Add.Imm(asm.R2, -8),
+			asm.FnGetFuncRet.Call(),
+			asm.Mov.Imm(asm.R0, 0),
+			asm.Return(),
+		},
+		License:  "GPL",
+		AttachTo: sysGetcpu,
+	})
+	if err != nil {
+		return false
+	}
+	prog.Close()
+	return true
+}
+
+func detectGetFuncRetHelperOnce() {
+	getFuncRetHelper.init.Do(func() {
+		getFuncRetHelper.detected = detectGetFuncRetHelper()
+	})
+}
+
+func HasGetFuncRetHelper() bool {
+	detectGetFuncRetHelperOnce()
+	return getFuncRetHelper.detected
+}
+
 func LogFeatures() string {
 	// once we have detected all features, flush the BTF spec
 	// we cache all values so calling again a Has* function will
 	// not load the BTF again
 	defer ebtf.FlushKernelSpec()
-	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, uprobe_multi %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t, link_pin: %t, lsm: %t, missed_stats_kprobe_multi: %t, missed_stats_kprobe: %t, batch_update: %t, uprobe_refctroff: %t",
+	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, uprobe_multi %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t, link_pin: %t, lsm: %t, missed_stats_kprobe_multi: %t, missed_stats_kprobe: %t, batch_update: %t, uprobe_refctroff: %t, fentry %t, get_func_ret %t",
 		HasOverrideHelper(), HasBuildId(), HasKprobeMulti(), HasUprobeMulti(),
 		HasModifyReturn(), HasModifyReturnSyscall(), HasSignalHelper(), HasProgramLargeSize(),
 		HasLinkPin(), HasLSMPrograms(), HasMissedStatsKprobeMulti(), HasMissedStatsPerfEvent(),
-		HasBatchAPI(), HasUprobeRefCtrOffset())
+		HasBatchAPI(), HasUprobeRefCtrOffset(), HasFentryProgram(), HasGetFuncRetHelper())
 }
