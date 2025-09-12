@@ -45,26 +45,34 @@ func tryDecompressGz(gzFname, dst string) error {
 
 // FindProgramFileUnderLocations
 func FindProgramFileUnderLocations(name string, locations ...string) (string, error) {
-	var checkedPaths []string
+	var checkedPathsErrs []string
 	for _, loc := range locations {
 		pathname := name
 		if len(loc) > 0 {
 			pathname = path.Join(loc, filepath.Base(name))
 		}
 
-		if _, err := os.Stat(pathname); err == nil {
+		_, err := os.Stat(pathname)
+		if err == nil {
 			return pathname, nil
 		}
-		checkedPaths = append(checkedPaths, pathname)
+		checkedPathsErrs = append(checkedPathsErrs, fmt.Sprintf("%s: %s", pathname, err))
 
 		gzFname := pathname + ".gz"
-		if _, err := os.Stat(gzFname); err == nil && tryDecompressGz(gzFname, pathname) == nil {
+		_, err = os.Stat(gzFname)
+		if err != nil {
+			checkedPathsErrs = append(checkedPathsErrs, fmt.Sprintf("%s: %s", gzFname, err))
+			continue
+		}
+
+		err = tryDecompressGz(gzFname, pathname)
+		if err == nil {
 			return pathname, nil
 		}
-		checkedPaths = append(checkedPaths, gzFname)
+		checkedPathsErrs = append(checkedPathsErrs, fmt.Sprintf("%s: decompressing failed: %s", pathname, err))
 
 	}
-	return "", fmt.Errorf("program %q can not be found (checked paths: %s)", name, strings.Join(checkedPaths, ","))
+	return "", fmt.Errorf("program %q cannot be found (errors: %s)", name, strings.Join(checkedPathsErrs, ";"))
 }
 
 // FindProgramFile attempts to find the program file based on its path
