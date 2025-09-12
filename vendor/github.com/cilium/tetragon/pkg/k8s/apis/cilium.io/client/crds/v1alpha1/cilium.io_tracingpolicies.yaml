@@ -580,6 +580,8 @@ spec:
                                   - InMap
                                   - NotInMap
                                   - CapabilitiesGained
+                                  - InRange
+                                  - NotInRange
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -737,6 +739,8 @@ spec:
                                   - InMap
                                   - NotInMap
                                   - CapabilitiesGained
+                                  - InRange
+                                  - NotInRange
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -976,6 +980,8 @@ spec:
                                   - InMap
                                   - NotInMap
                                   - CapabilitiesGained
+                                  - InRange
+                                  - NotInRange
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1294,6 +1300,8 @@ spec:
                                   - InMap
                                   - NotInMap
                                   - CapabilitiesGained
+                                  - InRange
+                                  - NotInRange
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1451,6 +1459,8 @@ spec:
                                   - InMap
                                   - NotInMap
                                   - CapabilitiesGained
+                                  - InRange
+                                  - NotInRange
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1690,6 +1700,8 @@ spec:
                                   - InMap
                                   - NotInMap
                                   - CapabilitiesGained
+                                  - InRange
+                                  - NotInRange
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2044,6 +2056,8 @@ spec:
                                   - InMap
                                   - NotInMap
                                   - CapabilitiesGained
+                                  - InRange
+                                  - NotInRange
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2201,6 +2215,8 @@ spec:
                                   - InMap
                                   - NotInMap
                                   - CapabilitiesGained
+                                  - InRange
+                                  - NotInRange
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2440,6 +2456,8 @@ spec:
                                   - InMap
                                   - NotInMap
                                   - CapabilitiesGained
+                                  - InRange
+                                  - NotInRange
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2738,6 +2756,8 @@ spec:
                                   - InMap
                                   - NotInMap
                                   - CapabilitiesGained
+                                  - InRange
+                                  - NotInRange
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2895,6 +2915,8 @@ spec:
                                   - InMap
                                   - NotInMap
                                   - CapabilitiesGained
+                                  - InRange
+                                  - NotInRange
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -3134,6 +3156,8 @@ spec:
                                   - InMap
                                   - NotInMap
                                   - CapabilitiesGained
+                                  - InRange
+                                  - NotInRange
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -3427,6 +3451,8 @@ spec:
                                   - InMap
                                   - NotInMap
                                   - CapabilitiesGained
+                                  - InRange
+                                  - NotInRange
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -3584,6 +3610,8 @@ spec:
                                   - InMap
                                   - NotInMap
                                   - CapabilitiesGained
+                                  - InRange
+                                  - NotInRange
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -3823,6 +3851,8 @@ spec:
                                   - InMap
                                   - NotInMap
                                   - CapabilitiesGained
+                                  - InRange
+                                  - NotInRange
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
