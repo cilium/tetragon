@@ -74,7 +74,7 @@ generic_uprobe_process_filter(void *ctx)
 {
 	int ret;
 
-	ret = generic_process_filter();
+	ret = generic_process_filter(ctx);
 	if (ret == PFILTER_CONTINUE)
 		tail_call(ctx, &uprobe_calls, TAIL_CALL_FILTER);
 	else if (ret == PFILTER_ACCEPT)

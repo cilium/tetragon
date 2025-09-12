@@ -47,7 +47,7 @@ var (
 	).SetPolicy(basePolicy)
 
 	ExecveBprmCommit = program.Builder(
-		"bpf_execve_bprm_commit_creds.o",
+		config.BprmCommitObj(),
 		"security_bprm_committing_creds",
 		"kprobe/security_bprm_committing_creds",
 		"tg_kp_bprm_committing_creds",
