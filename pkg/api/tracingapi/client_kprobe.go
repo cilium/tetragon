@@ -596,12 +596,14 @@ type ConfigBTFArg struct {
 }
 
 type ConfigUsdtArg struct {
-	ValOff uint64 `align:"val_off"`
-	RegOff uint32 `align:"reg_off"`
-	Shift  uint8  `align:"shift"`
-	Type   uint8  `align:"type"`
-	Signed uint8  `align:"sig"`
-	Pad    uint8  `align:"pad1"`
+	ValOff    uint64 `align:"val_off"`
+	RegOff    uint32 `align:"reg_off"`
+	RegIdxOff uint32 `align:"reg_idx_off"`
+	Shift     uint8  `align:"shift"`
+	Type      uint8  `align:"type"`
+	Signed    uint8  `align:"sig"`
+	Scale     uint8  `align:"scale"`
+	Pad1      uint32 `align:"pad1"`
 }
 
 const EventConfigMaxArgs = 5
