@@ -603,8 +603,6 @@ FUNC_INLINE void
 perf_event_output_metric(void *ctx, u8 msg_op, void *map, u64 flags, void *data, u64 size)
 {
 	long err;
-	u32 zero = 0;
-	struct policy_stats *pstats;
 
 	err = perf_event_output(ctx, map, flags, data, size);
 	if (err < 0) {
@@ -612,9 +610,7 @@ perf_event_output_metric(void *ctx, u8 msg_op, void *map, u64 flags, void *data,
 		return;
 	}
 
-	pstats = map_lookup_elem(&policy_stats, &zero);
-	if (pstats)
-		lock_add(&pstats->act_cnt[POLICY_POST], 1);
+	policy_stats_update(POLICY_POST);
 }
 
 /**

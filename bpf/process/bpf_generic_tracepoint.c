@@ -4,11 +4,11 @@
 #include "vmlinux.h"
 #include "api.h"
 
+#define GENERIC_TRACEPOINT
+
 #include "compiler.h"
 #include "bpf_event.h"
 #include "bpf_task.h"
-
-#define GENERIC_TRACEPOINT
 
 #include "retprobe_map.h"
 #include "types/operations.h"
