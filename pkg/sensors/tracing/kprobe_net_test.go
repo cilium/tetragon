@@ -1425,6 +1425,16 @@ spec:
       - index: 1
         operator: "Family"
         values: ["AF_UNIX"]
+      - index: 1
+        operator: "Prefix"
+        values: ["tetragon"]
+    - matchArgs:
+      - index: 1
+        operator: "Family"
+        values: ["AF_UNIX"]
+      - index: 1
+        operator: "Prefix"
+        values: ["/tmp"]
 `
 
 	hook := hookFull

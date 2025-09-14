@@ -404,7 +404,7 @@ func typesCompatible(specTy string, kernelTy string) bool {
 		}
 	case "sockaddr_un":
 		switch kernelTy {
-		case "struct sockaddr_un *":
+		case "struct sockaddr_un *", "struct sockaddr *":
 			return true
 		}
 	case "net_device":
