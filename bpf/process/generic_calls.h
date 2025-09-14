@@ -320,6 +320,9 @@ read_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 	case sockaddr_type:
 		size = copy_sockaddr(args, arg);
 		break;
+	case sockaddr_un_type:
+		size = copy_sockaddr_un(args, arg);
+		break;
 	case socket_type:
 		size = copy_socket(args, arg);
 		// Look up socket in our sock->pid_tgid map
