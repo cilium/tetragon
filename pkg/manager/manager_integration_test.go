@@ -105,7 +105,7 @@ func (suite *ManagerTestSuite) TestFindContainer() {
 	// FindContainer should return the pod and container.
 	podFromCache, container, found := suite.manager.FindContainer(containerID)
 	assert.True(suite.T(), found)
-	assert.Equal(suite.T(), pod.Name, podFromCache.Name)
+	require.Equal(suite.T(), pod.Name, podFromCache.Name)
 	assert.Equal(suite.T(), pod.Spec.Containers[0].Name, container.Name)
 
 	// Delete the pod.
