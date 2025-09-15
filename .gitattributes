@@ -10,6 +10,7 @@
 /docs/content/en/docs/reference/grpc-api.md linguist-generated
 /docs/content/en/docs/reference/metrics.md linguist-generated
 /docs/data/tetragon_flags.yaml linguist-generated
+/docs/content/en/docs/reference/tracing-policy.md linguist-generated
 
 # Pick the "ours" merge strategy for code generated files. This avoids the
 # changes showing up in git mergetool since we would need to re-run the code
