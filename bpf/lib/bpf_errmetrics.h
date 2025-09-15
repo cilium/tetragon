@@ -51,13 +51,12 @@ errmetrics_update(__u16 error, __u8 file_id, __u16 line_nr)
 		compile_time_error();                                                        \
 	} while (0)
 
-#define map_update_elem__errmetrics(m, k, v, f) ({         \
+#define with_errmetrics(bpf_helper, ...) ({                \
 	int err;                                           \
 	__u16 fileid = get_fileid__(__FILE__);             \
-                                                           \
 	if (!__builtin_constant_p(fileid) || !fileid)      \
 		compile_error(__FILE__);                   \
-	err = map_update_elem(m, k, v, f);                 \
+	err = bpf_helper(__VA_ARGS__);                     \
 	if (err)                                           \
 		errmetrics_update(-err, fileid, __LINE__); \
 	err;                                               \
