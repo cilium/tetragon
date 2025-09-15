@@ -14,6 +14,7 @@ on:
       - "!**.yaml"
       - docs/content/en/docs/reference/metrics.md
       - docs/data/tetragon_flags.yaml
+      - docs/content/en/docs/reference/templates/tracing_policy.tmpl
       - .github/workflows/generated-docs.yaml
   pull_request:
     paths:
@@ -26,6 +27,7 @@ on:
       - "!**.yaml"
       - docs/content/en/docs/reference/metrics.md
       - docs/data/tetragon_flags.yaml
+      - docs/content/en/docs/reference/templates/tracing_policy.tmpl
       - .github/workflows/generated-docs.yaml
 
 jobs:
