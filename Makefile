@@ -91,7 +91,7 @@ GO_BUILD = CGO_ENABLED=0 GOARCH=$(GOARCH) $(GO) build $(GO_BUILD_FLAGS)
 GO_BUILD_HOOK = CGO_ENABLED=0 GOARCH=$(GOARCH) $(GO) -C contrib/tetragon-rthooks build $(GO_BUILD_FLAGS)
 
 .PHONY: all
-all: tetragon-bpf tetragon tetra generate-flags test-compile tester-progs protoc-gen-go-tetragon tetragon-bench
+all: tetragon-bpf tetragon tetra test-compile tester-progs protoc-gen-go-tetragon tetragon-bench
 
 -include Makefile.cli
 
@@ -446,8 +446,32 @@ go-format: ## Run code formatter on Go code.
 .PHONY: format
 format: go-format clang-format ## Convenience alias for clang-format and go-format.
 
+.PHONY: validate
+validate: check format generate-flags metrics-docs ## Convenience target running linters, formatters and generators across the codebase.
+	# FIXME: add api linting once we fix the lints
+	$(MAKE) -C api vendor format proto
+	$(MAKE) -C pkg/k8s vendor generate
+	# Vendoring includes api and pkg/k8s vendoring. To avoid running vendor
+	# million times, run the global vendor target after api and pkg/k8s builds.
+	$(MAKE) vendor
+	$(MAKE) -C install/kubernetes
+	$(MAKE) -C install/kubernetes validation
+
+##@ Documentation
+
+.PHONY: docs
+docs: ## Build and preview documentation website.
+	$(MAKE) -C docs
+
+.PHONY: gen-docs-references
+gen-docs-references: generate-flags metrics-docs tracing-policy-docs ## Convenience alias to generate all docs references.
+
+.PHONY: tracing-policy-docs
+tracing-policy-docs: ## Generate TracingPolicy reference for documentation.
+	$(MAKE) -C docs tracing-policy-docs
+
 .PHONY: generate-flags
-generate-flags: tetragon ## Generate Tetragon daemon flags for documentation.
+generate-flags: tetragon ## Generate daemon flags reference for documentation.
 	echo "$$(./tetragon --generate-docs)" > docs/data/tetragon_flags.yaml
 
 METRICS_DOCS_PATH := docs/content/en/docs/reference/metrics.md
@@ -456,7 +480,7 @@ METRICS_DOCS_PATH := docs/content/en/docs/reference/metrics.md
 tetragon-metrics-docs:
 	$(GO_BUILD) ./cmd/tetragon-metrics-docs/
 
-.PHONY: metrics-docs
+.PHONY: metrics-docs ## Generate metrics reference for documentation.
 metrics-docs: tetragon-metrics-docs ## Generate metrics reference documentation page.
 	echo '---' > $(METRICS_DOCS_PATH)
 	echo 'title: "Metrics"' >> $(METRICS_DOCS_PATH)
@@ -471,18 +495,8 @@ metrics-docs: tetragon-metrics-docs ## Generate metrics reference documentation 
 	$(CONTAINER_ENGINE) run --rm -v $(PWD):$(PWD) -w $(PWD) $(GO_IMAGE) ./tetragon-metrics-docs resources >> $(METRICS_DOCS_PATH)
 	$(CONTAINER_ENGINE) run --rm -v $(PWD):$(PWD) -w $(PWD) $(GO_IMAGE) ./tetragon-metrics-docs events >> $(METRICS_DOCS_PATH)
 
-.PHONY: validate
-validate: check format generate-flags metrics-docs ## Convenience target running linters, formatters and generators across the codebase.
-	# FIXME: add api linting once we fix the lints
-	$(MAKE) -C api vendor format proto
-	$(MAKE) -C pkg/k8s vendor generate
-	# Vendoring includes api and pkg/k8s vendoring. To avoid running vendor
-	# million times, run the global vendor target after api and pkg/k8s builds.
-	$(MAKE) vendor
-	$(MAKE) -C install/kubernetes
-	$(MAKE) -C install/kubernetes validation
 
-##@ Documentation
+##@ Others
 
 .PHONY: help
 help: ## Display this help, based on https://www.thapaliya.com/en/writings/well-documented-makefiles/
@@ -500,10 +514,6 @@ help: ## Display this help, based on https://www.thapaliya.com/en/writings/well-
 	$(call print_help_option,EXTRA_GO_BUILD_FLAGS,extra flags to pass to the Go builder)
 	$(call print_help_option,EXTRA_TESTFLAGS,extra flags to pass to the test binary)
 
-.PHONY: docs
-docs: ## Preview documentation website.
-	$(MAKE) -C docs
-
 .PHONY: version chart-version
 version: ## Print Tetragon version.
 	@echo $(VERSION)
@@ -511,6 +521,3 @@ version: ## Print Tetragon version.
 chart-version: ## Print Tetragon OCI Helm chart version.
 	@echo $(VERSION) | sed 's/^v\(.*\)/\1/'
 
-.PHONY: tracing-policy-docs
-tracing-policy-docs:
-	$(MAKE) -C docs tracing-policy-docs
