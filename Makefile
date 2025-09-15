@@ -345,6 +345,18 @@ cscope: ## Generate cscope for bpf files.
 	find bpf -name "*.[chxsS]" -print > cscope.files
 	cscope -b -q -k
 
+.PHONY: gen-compile-commands
+BEAR_CLI := $(shell which bear 2> /dev/null)
+gen-compile-commands: ## Generates compile_commands.json
+ifeq ($(BEAR_CLI),)
+	@echo "Error: 'bear' must be installed and available in \$\$PATH to generate the compile_commands.json"
+	@exit 1
+else
+	@echo "Generating compile_commands.json using bear..."
+	@$(BEAR_CLI) $(MAKE) tetragon-bpf LOCAL_CLANG=1 LOCAL_CLANG_FORMAT=1
+endif
+
+
 .PHONY: kind
 kind: ## Create a kind cluster for Tetragon development.
 	./contrib/kind/bootstrap-kind-cluster.sh
@@ -498,17 +510,6 @@ version: ## Print Tetragon version.
 
 chart-version: ## Print Tetragon OCI Helm chart version.
 	@echo $(VERSION) | sed 's/^v\(.*\)/\1/'
-
-.PHONY: gen-compile-commands
-BEAR_CLI := $(shell which bear 2> /dev/null)
-gen-compile-commands: ## Generates compile_commands.json
-ifeq ($(BEAR_CLI),)
-	@echo "Error: 'bear' must be installed and available in \$\$PATH to generate the compile_commands.json"
-	@exit 1
-else
-	@echo "Generating compile_commands.json using bear..."
-	@$(BEAR_CLI) $(MAKE) tetragon-bpf LOCAL_CLANG=1 LOCAL_CLANG_FORMAT=1
-endif
 
 .PHONY: tracing-policy-docs
 tracing-policy-docs:
