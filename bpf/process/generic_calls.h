@@ -566,7 +566,7 @@ FUNC_INLINE unsigned long
 read_usdt_arg(struct pt_regs *ctx, struct event_config *config, int index)
 {
 	struct config_usdt_arg *arg;
-	unsigned long val, off, idx;
+	unsigned long val, idx;
 	int err;
 
 	index &= 7;
@@ -588,8 +588,7 @@ read_usdt_arg(struct pt_regs *ctx, struct event_config *config, int index)
 		 * struct pt_regs. To keep things simple user-space parts
 		 * record offsetof(struct pt_regs, <regname>) in arg->reg_off.
 		 */
-		off = arg->reg_off & 0xfff;
-		err = probe_read_kernel(&val, sizeof(val), (void *)ctx + off);
+		err = probe_read_kernel(&val, sizeof(val), (void *)ctx + arg->reg_off);
 		if (err)
 			return 0;
 		break;
@@ -601,8 +600,7 @@ read_usdt_arg(struct pt_regs *ctx, struct event_config *config, int index)
 		 * from pt_regs, then do another user-space probe read to
 		 * fetch argument value itself.
 		 */
-		off = arg->reg_off & 0xfff;
-		err = probe_read_kernel(&val, sizeof(val), (void *)ctx + off);
+		err = probe_read_kernel(&val, sizeof(val), (void *)ctx + arg->reg_off);
 		if (err)
 			return err;
 		err = probe_read_user(&val, sizeof(val), (void *)val + arg->val_off);
@@ -620,12 +618,10 @@ read_usdt_arg(struct pt_regs *ctx, struct event_config *config, int index)
 		 * as base + (index * scale) + offset, and do a user-space
 		 * probe read to fetch the argument value.
 		 */
-		off = arg->reg_off & 0xfff;
-		err = probe_read_kernel(&val, sizeof(val), (void *)ctx + off);
+		err = probe_read_kernel(&val, sizeof(val), (void *)ctx + arg->reg_off);
 		if (err)
 			return err;
-		off = arg->reg_idx_off & 0xfff;
-		err = probe_read_kernel(&idx, sizeof(idx), (void *)ctx + off);
+		err = probe_read_kernel(&idx, sizeof(idx), (void *)ctx + arg->reg_idx_off);
 		if (err)
 			return err;
 		err = probe_read_user(&val, sizeof(val), (void *)(val + (idx << arg->scale) + arg->val_off));
