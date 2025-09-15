@@ -61,7 +61,7 @@ tg_cgtracker_cgroup_mkdir(struct bpf_raw_tracepoint_args *ctx)
 		return 0;
 	cgid_tracker = map_lookup_elem(&tg_cgtracker_map, &cgid_parent);
 	if (cgid_tracker)
-		map_update_elem__errmetrics(&tg_cgtracker_map, &cgid, cgid_tracker, BPF_ANY);
+		with_errmetrics(map_update_elem, &tg_cgtracker_map, &cgid, cgid_tracker, BPF_ANY);
 
 	return 0;
 }
