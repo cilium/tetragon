@@ -42,5 +42,7 @@ func New() *cobra.Command {
 			cmd.Println(strings.ReplaceAll(bpf.LogFeatures(), ", ", "\n"))
 		},
 	}
+
+	cmd.AddCommand(NewConfigCmd())
 	return &cmd
 }
