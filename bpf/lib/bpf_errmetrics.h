@@ -13,6 +13,7 @@ struct errmetrics_key {
 	__u8 pad1;
 	__u16 line_nr;
 	__u16 pad2;
+	__u32 helper_id;
 } __attribute__((packed));
 
 struct {
@@ -23,13 +24,14 @@ struct {
 } tg_errmetrics_map SEC(".maps");
 
 FUNC_INLINE void
-errmetrics_update(__u16 error, __u8 file_id, __u16 line_nr)
+errmetrics_update(__u16 error, __u8 file_id, __u16 line_nr, __u64 helper_id)
 {
 	__u32 *count;
 	struct errmetrics_key key = {
 		.error = error,
 		.file_id = file_id,
 		.line_nr = line_nr,
+		.helper_id = (__u32)helper_id,
 	};
 
 	count = map_lookup_elem(&tg_errmetrics_map, &key);
@@ -51,15 +53,16 @@ errmetrics_update(__u16 error, __u8 file_id, __u16 line_nr)
 		compile_time_error();                                                        \
 	} while (0)
 
-#define with_errmetrics(bpf_helper, ...) ({                \
-	int err;                                           \
-	__u16 fileid = get_fileid__(__FILE__);             \
-	if (!__builtin_constant_p(fileid) || !fileid)      \
-		compile_error(__FILE__);                   \
-	err = bpf_helper(__VA_ARGS__);                     \
-	if (err)                                           \
-		errmetrics_update(-err, fileid, __LINE__); \
-	err;                                               \
+// To be used for bpf helpers that return a 0 -> OK, non-zero KO.
+#define with_errmetrics(bpf_helper, ...) ({                                   \
+	int err;                                                              \
+	__u16 fileid = get_fileid__(__FILE__);                                \
+	if (!__builtin_constant_p(fileid) || !fileid)                         \
+		compile_error(__FILE__);                                      \
+	err = bpf_helper(__VA_ARGS__);                                        \
+	if (err)                                                              \
+		errmetrics_update(-err, fileid, __LINE__, (__u64)bpf_helper); \
+	err;                                                                  \
 })
 
 #endif // BPF_ERRMETRICS_H__
