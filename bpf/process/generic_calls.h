@@ -473,6 +473,7 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 
 #if defined(GENERIC_TRACEPOINT) || defined(GENERIC_USDT)
 	a = (&e->a0)[index];
+	extract_arg(config, index, &a);
 #else
 	arg_index = config->idx[index];
 	asm volatile("%[arg_index] &= %1 ;\n"
