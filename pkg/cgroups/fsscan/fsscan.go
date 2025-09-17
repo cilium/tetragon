@@ -123,7 +123,7 @@ func (fs *fsScannerState) FindPodPath(podID types.UID) (string, error) {
 		if podDir == "" {
 			continue
 		}
-		return podDir, nil
+		return filepath.Join(parentPodDir, podDir), nil
 	}
 
 	err := fs.findCgroupRoot()
