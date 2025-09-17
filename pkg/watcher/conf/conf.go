@@ -10,9 +10,12 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 )
 
+// K8sConfig alias is mainly for testing and extension if required.
+var K8sConfig = k8sConfig
+
 // K8sConfig returns Kubernetes client configuration. If running in-cluster, the
 // second return value is true, otherwise false.
-func K8sConfig() (*rest.Config, bool, error) {
+func k8sConfig() (*rest.Config, bool, error) {
 	if option.Config.K8sKubeConfigPath != "" {
 		cfg, err := clientcmd.BuildConfigFromFlags("", option.Config.K8sKubeConfigPath)
 		return cfg, false, err
