@@ -33,10 +33,35 @@ func hasCurrentTaskSource(arg *v1alpha1.KProbeArg) bool {
 	return arg.Source == "current_task"
 }
 
+func resolveUserBTFArg(tyName string, btfFile string, resolvePath string) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
+	btfArg := [api.MaxBTFArgDepth]api.ConfigBTFArg{}
+	spec, err := ebtf.LoadSpec(btfFile)
+	if err != nil {
+		return nil, btfArg, err
+	}
+
+	var st *ebtf.Struct
+	err = spec.TypeByName(tyName, &st)
+	if err != nil {
+		return nil, btfArg, err
+	}
+	ty := ebtf.Type(st)
+
+	pathBase := strings.Split(resolvePath, ".")
+	path := addPaddingOnNestedPtr(ty, pathBase)
+	if len(path) > api.MaxBTFArgDepth {
+		return nil, btfArg, fmt.Errorf("unable to resolve %q. The maximum depth allowed is %d", resolvePath, api.MaxBTFArgDepth)
+	}
+
+	lastBTFType, err := resolveBTFPath(&btfArg, btf.ResolveNestedTypes(ty), path)
+	return lastBTFType, btfArg, err
+}
+
 func resolveBTFArg(hook string, arg *v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
 	btfArg := [api.MaxBTFArgDepth]api.ConfigBTFArg{}
 
 	// tracepoints have extra first internal argument, so we need to adjust the index
+	// NB(kkourt): this seems wrong
 	index := int(arg.Index)
 	if tp {
 		index++

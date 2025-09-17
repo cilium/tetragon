@@ -272,6 +272,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID) ([]i
 			}
 		}
 
+		var allBTFArgs [api.EventConfigMaxArgs][api.MaxBTFArgDepth]api.ConfigBTFArg
 		for cfgIdx, arg := range spec.Args {
 			tgtIdx := arg.Index
 			if tgtIdx > target.Spec.ArgsCnt {
@@ -286,13 +287,27 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID) ([]i
 			cfgArg.Shift = tgtArg.Shift
 			cfgArg.Type = tgtArg.Type
 
+			argType := gt.GenericTypeFromString(arg.Type)
+			if arg.Resolve != "" {
+				lastBTFType, btfArg, err := resolveUserBTFArg(
+					arg.ArgType,
+					spec.BTFFile,
+					arg.Resolve,
+				)
+				if err != nil {
+					return nil, err
+				}
+
+				allBTFArgs[cfgIdx] = btfArg
+				argType = findTypeFromBTFType(&arg, lastBTFType)
+
+			}
+
 			if tgtArg.Signed {
 				cfgArg.Signed = 1
 			} else {
 				cfgArg.Signed = 0
 			}
-
-			argType := gt.GenericTypeFromString(arg.Type)
 
 			config.ArgType[cfgIdx] = int32(argType)
 
@@ -300,6 +315,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID) ([]i
 				argPrinter{index: int(arg.Index), ty: argType, label: arg.Label},
 			)
 		}
+		config.BTFArg = allBTFArgs
 
 		usdtEntry := &genericUsdt{
 			tableId:     idtable.UninitializedEntryID,
