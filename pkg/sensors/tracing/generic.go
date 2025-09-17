@@ -33,9 +33,34 @@ func hasCurrentTaskSource(arg *v1alpha1.KProbeArg) bool {
 	return arg.Source == "current_task"
 }
 
-func resolveBTFArg(hook string, arg *v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
+func resolveBTFType(arg *v1alpha1.KProbeArg, ty ebtf.Type) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
 	btfArg := [api.MaxBTFArgDepth]api.ConfigBTFArg{}
+	pathBase := strings.Split(arg.Resolve, ".")
+	path := addPaddingOnNestedPtr(ty, pathBase)
+	if len(path) > api.MaxBTFArgDepth {
+		return nil, btfArg, fmt.Errorf("unable to resolve %q. The maximum depth allowed is %d", arg.Resolve, api.MaxBTFArgDepth)
+	}
 
+	lastBTFType, err := resolveBTFPath(&btfArg, btf.ResolveNestedTypes(ty), path)
+	return lastBTFType, btfArg, err
+}
+
+func resolveUserBTFArg(arg *v1alpha1.KProbeArg, btfPath string) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
+	spec, err := ebtf.LoadSpec(btfPath)
+	if err != nil {
+		return nil, [api.MaxBTFArgDepth]api.ConfigBTFArg{}, err
+	}
+
+	var st *ebtf.Struct
+	err = spec.TypeByName(arg.BTFType, &st)
+	if err != nil {
+		return nil, [api.MaxBTFArgDepth]api.ConfigBTFArg{}, err
+	}
+	ty := ebtf.Type(st)
+	return resolveBTFType(arg, ty)
+}
+
+func resolveBTFArg(hook string, arg *v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
 	// tracepoints have extra first internal argument, so we need to adjust the index
 	index := int(arg.Index)
 	if tp {
@@ -50,13 +75,13 @@ func resolveBTFArg(hook string, arg *v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [
 	if hasCurrentTaskSource(arg) {
 		st, err := btf.FindBTFStruct("task_struct")
 		if err != nil && !errors.Is(err, ebtf.ErrMultipleMatches) {
-			return nil, btfArg, err
+			return nil, [api.MaxBTFArgDepth]api.ConfigBTFArg{}, err
 		}
 		ty = ebtf.Type(st)
 	} else {
 		param, err := btf.FindBTFFuncParamFromHook(hook, index)
 		if err != nil {
-			return nil, btfArg, err
+			return nil, [api.MaxBTFArgDepth]api.ConfigBTFArg{}, err
 		}
 
 		ty = param.Type
@@ -64,15 +89,7 @@ func resolveBTFArg(hook string, arg *v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [
 			ty = ptr.Target
 		}
 	}
-
-	pathBase := strings.Split(arg.Resolve, ".")
-	path := addPaddingOnNestedPtr(ty, pathBase)
-	if len(path) > api.MaxBTFArgDepth {
-		return nil, btfArg, fmt.Errorf("unable to resolve %q. The maximum depth allowed is %d", arg.Resolve, api.MaxBTFArgDepth)
-	}
-
-	lastBTFType, err := resolveBTFPath(&btfArg, btf.ResolveNestedTypes(ty), path)
-	return lastBTFType, btfArg, err
+	return resolveBTFType(arg, ty)
 }
 
 func resolveBTFPath(btfArg *[api.MaxBTFArgDepth]api.ConfigBTFArg, rootType ebtf.Type, path []string) (*ebtf.Type, error) {
