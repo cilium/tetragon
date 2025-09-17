@@ -1,6 +1,6 @@
 [
   {
     "id": 112,
-    "filename": "cgroup/bpf_cgtracker.c"
+    "filename": "bpf_cgtracker.c"
   }
 ]

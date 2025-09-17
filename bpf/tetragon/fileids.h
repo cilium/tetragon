@@ -5,4 +5,4 @@
 // inspired by cilium's bpf metrics. See: https://github.com/cilium/cilium/pull/30972
 // NB: keep this file simple: only single-line comments and fileid__ entries
 
-fileid__("cgroup/bpf_cgtracker.c", 112)
+fileid__("bpf_cgtracker.c", 112)

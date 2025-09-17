@@ -53,13 +53,12 @@ errmetrics_update(__u16 error, __u8 file_id, __u16 line_nr, __u64 helper_id)
 		compile_time_error();                                                        \
 	} while (0)
 
-// To be used for bpf helpers that return a 0 -> OK, non-zero KO.
+// To be used for bpf helpers that on failure return <0 errno-style return code.
 #define with_errmetrics(bpf_helper, ...) ({                                   \
-	int err;                                                              \
-	__u16 fileid = get_fileid__(__FILE__);                                \
+	__u16 fileid = get_fileid__(__FILE_NAME__);                           \
 	if (!__builtin_constant_p(fileid) || !fileid)                         \
-		compile_error(__FILE__);                                      \
-	err = bpf_helper(__VA_ARGS__);                                        \
+		compile_error(__FILE_NAME__);                                 \
+	__auto_type err = bpf_helper(__VA_ARGS__);                            \
 	if (err)                                                              \
 		errmetrics_update(-err, fileid, __LINE__, (__u64)bpf_helper); \
 	err;                                                                  \
