@@ -47,21 +47,24 @@ errmetrics_update(__u16 error, __u8 file_id, __u16 line_nr, __u64 helper_id)
 #define xerrstr(x) errstr(x)
 #define errstr(s)  "add " #s " to the ids list (fileids.h)"
 
-#define compile_error(f)                                                                     \
-	do {                                                                                 \
-		extern __attribute__((__error__(xerrstr(f)))) void compile_time_error(void); \
-		compile_time_error();                                                        \
+#define concat1(a, b) a##b
+#define concat(a, b)  concat1(a, b)
+
+#define compile_error(f, ctr)                                                                             \
+	do {                                                                                              \
+		extern __attribute__((__error__(xerrstr(f)))) void concat(compile_time_error, ctr)(void); \
+		concat(compile_time_error, ctr)();                                                        \
 	} while (0)
 
 // To be used for bpf helpers that on failure return <0 errno-style return code.
-#define with_errmetrics(bpf_helper, ...) ({                                   \
-	__u16 fileid = get_fileid__(__FILE_NAME__);                           \
-	if (!__builtin_constant_p(fileid) || !fileid)                         \
-		compile_error(__FILE_NAME__);                                 \
-	__auto_type err = bpf_helper(__VA_ARGS__);                            \
-	if (err)                                                              \
-		errmetrics_update(-err, fileid, __LINE__, (__u64)bpf_helper); \
-	err;                                                                  \
+#define with_errmetrics(bpf_helper, ...) ({                                    \
+	__u16 fileid = get_fileid__(__FILE_NAME__);                            \
+	if (!__builtin_constant_p(fileid) || !fileid)                          \
+		compile_error(__FILE_NAME__, __COUNTER__);                     \
+	__auto_type _err = bpf_helper(__VA_ARGS__);                            \
+	if (_err)                                                              \
+		errmetrics_update(-_err, fileid, __LINE__, (__u64)bpf_helper); \
+	_err;                                                                  \
 })
 
 #endif // BPF_ERRMETRICS_H__
