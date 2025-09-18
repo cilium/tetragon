@@ -6997,3 +6997,104 @@ spec:
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 }
+
+func testKprobeRangeOp(t *testing.T, in bool) {
+
+	if !config.EnableLargeProgs() {
+		t.Skipf("Skipping test since it needs kernel >= 5.3")
+	}
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	op := "InRange"
+	if !in {
+		op = "NotInRange"
+	}
+
+	hook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "resolve-parent-comm"
+spec:
+  kprobes:
+  - call: "sys_prctl"
+    syscall: true
+    args:
+    - index: 0
+      type: "int"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "` + op + `"
+        values:
+        - 0xffff0:0xffff1
+        - 0xffff5:0xffff6
+        - 0xffff8:0xffff9
+        - 0xffffe:0xfffff
+`
+
+	createCrdFile(t, hook)
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	for i := range 0x10 {
+		unix.Prctl(0xffff0+i, 0, 0, 0, 0)
+	}
+
+	getChecker := func(list []int) *ec.UnorderedEventChecker {
+		checkers := []ec.EventChecker{}
+
+		for _, v := range list {
+			kpChecker := ec.NewProcessKprobeChecker("").
+				WithFunctionName(sm.Suffix("sys_prctl")).
+				WithArgs(ec.NewKprobeArgumentListMatcher().
+					WithOperator(lc.Ordered).
+					WithValues(
+						ec.NewKprobeArgumentChecker().WithIntArg(int32(0xffff0 + v)),
+					))
+			checkers = append(checkers, kpChecker)
+		}
+		return ec.NewUnorderedEventChecker(checkers...)
+	}
+
+	// for InRange (in == true):
+	// matched_1 is matched
+	// matched_2 is NOT matched
+
+	// for NotInRange (in == false):
+	// matched_1 is NOT matched
+	// matched_2 is matched
+
+	matched_1 := []int{0, 1, 5, 6, 8, 9, 0xe, 0xf}
+	err = jsonchecker.JsonTestCheck(t, getChecker(matched_1))
+	if in {
+		require.NoError(t, err)
+	} else {
+		require.Error(t, err)
+	}
+
+	matched_2 := []int{2, 3, 4, 7, 0xa, 0xb, 0xc, 0xd}
+	err = jsonchecker.JsonTestCheck(t, getChecker(matched_2))
+	if in {
+		require.Error(t, err)
+	} else {
+		require.NoError(t, err)
+	}
+}
+
+func TestKprobeRangeIn(t *testing.T) {
+	testKprobeRangeOp(t, true)
+}
+
+func TestKprobeRangeNotIn(t *testing.T) {
+	testKprobeRangeOp(t, false)
+}
