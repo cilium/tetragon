@@ -125,6 +125,9 @@ type Program struct {
 	Override        bool
 	OverrideFmodRet bool
 
+	// Needs write offload bpf program
+	WriteOffload bool
+
 	// Type is the type of BPF program. For example, tc, skb, tracepoint,
 	// etc.
 	Type      string
@@ -140,8 +143,9 @@ type Program struct {
 	MapLoad []*MapLoad
 
 	// unloader for the program. nil if not loaded.
-	unloader         unloader.Unloader
-	unloaderOverride unloader.Unloader
+	unloader             unloader.Unloader
+	unloaderOverride     unloader.Unloader
+	unloaderWriteOffload unloader.Unloader
 
 	PinMap map[string]*Map
 
@@ -212,8 +216,14 @@ func (p *Program) Unload(unpin bool) error {
 			return fmt.Errorf("failed to unload override: %w", err)
 		}
 	}
+	if p.unloaderWriteOffload != nil {
+		if err := p.unloaderWriteOffload.Unload(unpin); err != nil {
+			return fmt.Errorf("failed to unload override: %w", err)
+		}
+	}
 	p.unloader = nil
 	p.unloaderOverride = nil
+	p.unloaderWriteOffload = nil
 	// The above unloader can succeed while not removing a pin to the program
 	// because of option.Config.KeepSensorsOnExit, and thus the maps remain.
 	if !p.Prog.IsPinned() {
