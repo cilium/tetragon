@@ -154,6 +154,7 @@ static struct socket *BPF_FUNC(sock_from_file, struct file *file);
 __attribute__((__format__(__printf__, 1, 0)))
 static void BPF_FUNC(trace_printk, const char *fmt, int fmt_size, ...);
 static long BPF_FUNC(trace_vprintk, const char *fmt, __u32 fmt_size, const void *data, __u32 data_len);
+static long BPF_FUNC(snprintf, char *str, __u32 str_size, const char *fmt, ...);
 
 
 /* Random numbers */

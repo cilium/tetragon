@@ -71,7 +71,7 @@ generic_lsm_process_filter(void *ctx)
 {
 	int ret;
 
-	ret = generic_process_filter();
+	ret = generic_process_filter(ctx);
 	if (ret == PFILTER_CONTINUE)
 		tail_call(ctx, &lsm_calls, TAIL_CALL_FILTER);
 	else if (ret == PFILTER_ACCEPT)

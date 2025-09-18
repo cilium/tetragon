@@ -4,6 +4,7 @@
 #include "vmlinux.h"
 #include "api.h"
 
+#include "debug.h"
 #include "compiler.h"
 #include "bpf_event.h"
 #include "bpf_task.h"
@@ -314,7 +315,7 @@ execve_send(void *ctx __arg_ctx)
 		curr->flags &= ~EVENT_COMMON_FLAG_CLONE;
 		/* Set EVENT_IN_INIT_TREE flag on the process if nspid=1.
 		 */
-		set_in_init_tree(curr, NULL);
+		set_in_init_tree(ctx, curr, NULL);
 		if (curr->flags & EVENT_IN_INIT_TREE) {
 			event->process.flags |= EVENT_IN_INIT_TREE;
 		}
