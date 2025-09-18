@@ -9,6 +9,7 @@
 #include "bpf_cgroup.h"
 #include "bpf_task.h"
 #include "bpf_cgroup_events.h"
+#include "bpf_errmetrics.h"
 
 char _license[] __attribute__((section(("license")), used)) = "GPL";
 #ifdef VMLINUX_KERNEL_VERSION
@@ -66,7 +67,7 @@ tg_tp_cgrp_mkdir(struct bpf_raw_tracepoint_args *ctx)
 		/* We track only for now cgroups that are at same or above tetragon
 		 * level (ancestors level)
 		 */
-		map_update_elem(&tg_cgrps_tracking_map, &cgrpid, cgrp_heap,
+		with_errmetrics(map_update_elem, &tg_cgrps_tracking_map, &cgrpid, cgrp_heap,
 				BPF_ANY);
 
 		/* We forward bpf events only under TraceLevel */
