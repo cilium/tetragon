@@ -1350,3 +1350,71 @@ func TestParseCapabilityMask(t *testing.T) {
 	_, err = parseCapabilitiesMask("CAP_PIZZA")
 	assert.Error(t, err)
 }
+
+func TestHasAction(t *testing.T) {
+	tests := []struct {
+		name           string
+		spec           *v1alpha1.KProbeSpec
+		actionName     string
+		actionType     int32
+		expectedResult bool
+	}{
+		{
+			name: "has sigkill action - string match",
+			spec: &v1alpha1.KProbeSpec{
+				Selectors: []v1alpha1.KProbeSelector{
+					{
+						MatchActions: []v1alpha1.ActionSelector{
+							{Action: "sigkill"},
+						},
+					},
+				},
+			},
+			actionName:     "sigkill",
+			actionType:     ActionTypeSigKill,
+			expectedResult: true,
+		},
+		{
+			name: "has sigkill action - case insensitive",
+			spec: &v1alpha1.KProbeSpec{
+				Selectors: []v1alpha1.KProbeSelector{
+					{
+						MatchActions: []v1alpha1.ActionSelector{
+							{Action: "SIGKILL"},
+						},
+					},
+				},
+			},
+			actionName:     "sigkill",
+			actionType:     ActionTypeSigKill,
+			expectedResult: true,
+		},
+		{
+			name: "does not have action",
+			spec: &v1alpha1.KProbeSpec{
+				Selectors: []v1alpha1.KProbeSelector{
+					{
+						MatchActions: []v1alpha1.ActionSelector{
+							{Action: "post"},
+						},
+					},
+				},
+			},
+			actionName:     "sigkill",
+			actionType:     ActionTypeSigKill,
+			expectedResult: false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			// Test string-based HasAction
+			result := HasAction(test.spec, test.actionName)
+			assert.Equal(t, test.expectedResult, result, "HasAction should match expected result")
+
+			// Test type-based HasActionType
+			result = HasActionType(test.spec, test.actionType)
+			assert.Equal(t, test.expectedResult, result, "HasActionType should match expected result")
+		})
+	}
+}
