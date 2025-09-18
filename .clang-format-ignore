@@ -4,3 +4,4 @@ bpf/include/vmlinux_generated_x86.h
 bpf/include/api.h
 bpf/libbpf/*
 bpf/lib/bpf_helpers.h
+bpf/tetragon/fileids.h
