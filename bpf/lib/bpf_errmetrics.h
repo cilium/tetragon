@@ -13,6 +13,7 @@ struct errmetrics_key {
 	__u8 pad1;
 	__u16 line_nr;
 	__u16 pad2;
+	__u32 helper_id;
 } __attribute__((packed));
 
 struct {
@@ -23,13 +24,14 @@ struct {
 } tg_errmetrics_map SEC(".maps");
 
 FUNC_INLINE void
-errmetrics_update(__u16 error, __u8 file_id, __u16 line_nr)
+errmetrics_update(__u16 error, __u8 file_id, __u16 line_nr, __u64 helper_id)
 {
 	__u32 *count;
 	struct errmetrics_key key = {
 		.error = error,
 		.file_id = file_id,
 		.line_nr = line_nr,
+		.helper_id = (__u32)helper_id,
 	};
 
 	count = map_lookup_elem(&tg_errmetrics_map, &key);
@@ -45,22 +47,24 @@ errmetrics_update(__u16 error, __u8 file_id, __u16 line_nr)
 #define xerrstr(x) errstr(x)
 #define errstr(s)  "add " #s " to the ids list (fileids.h)"
 
-#define compile_error(f)                                                                     \
-	do {                                                                                 \
-		extern __attribute__((__error__(xerrstr(f)))) void compile_time_error(void); \
-		compile_time_error();                                                        \
+#define concat1(a, b) a##b
+#define concat(a, b)  concat1(a, b)
+
+#define compile_error(f, ctr)                                                                             \
+	do {                                                                                              \
+		extern __attribute__((__error__(xerrstr(f)))) void concat(compile_time_error, ctr)(void); \
+		concat(compile_time_error, ctr)();                                                        \
 	} while (0)
 
-#define map_update_elem__errmetrics(m, k, v, f) ({         \
-	int err;                                           \
-	__u16 fileid = get_fileid__(__FILE__);             \
-                                                           \
-	if (!__builtin_constant_p(fileid) || !fileid)      \
-		compile_error(__FILE__);                   \
-	err = map_update_elem(m, k, v, f);                 \
-	if (err)                                           \
-		errmetrics_update(-err, fileid, __LINE__); \
-	err;                                               \
+// To be used for bpf helpers that on failure return <0 errno-style return code.
+#define with_errmetrics(bpf_helper, ...) ({                                    \
+	__u16 fileid = get_fileid__(__FILE_NAME__);                            \
+	if (!__builtin_constant_p(fileid) || !fileid)                          \
+		compile_error(__FILE_NAME__, __COUNTER__);                     \
+	__auto_type _err = bpf_helper(__VA_ARGS__);                            \
+	if (_err)                                                              \
+		errmetrics_update(-_err, fileid, __LINE__, (__u64)bpf_helper); \
+	_err;                                                                  \
 })
 
 #endif // BPF_ERRMETRICS_H__

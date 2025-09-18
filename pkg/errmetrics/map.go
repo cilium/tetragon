@@ -5,8 +5,10 @@ package errmetrics
 
 import (
 	"fmt"
+	"runtime"
 
 	"github.com/cilium/ebpf"
+	"github.com/cilium/ebpf/asm"
 )
 
 const UnknownFname = "<unknown>"
@@ -29,11 +31,12 @@ func OpenMap(fname string) (Map, error) {
 
 // NB: should match bpf/lib/bpf_errmetrics.h:errmetrics_key
 type MapKey struct {
-	Err    uint16
-	FileID uint8
-	Pad1   uint8
-	LineNR uint16
-	Pad2   uint16
+	Err      uint16
+	FileID   uint8
+	Pad1     uint8
+	LineNR   uint16
+	Pad2     uint16
+	HelperID uint32
 }
 
 type MapVal = uint32
@@ -59,12 +62,16 @@ func (m Map) Dump() ([]DumpEntry, error) {
 		if !ok {
 			fname = UnknownFname
 		}
+		helperFunc, err := asm.BuiltinFuncForPlatform(runtime.GOOS, key.HelperID)
+		if err != nil {
+			helperFunc = asm.FnUnspec
+		}
 		count := 0
 		for _, v := range val {
 			count += int(v)
 		}
 		ret = append(ret, DumpEntry{
-			Location: fmt.Sprintf("bpf/%s:%d", fname, key.LineNR),
+			Location: fmt.Sprintf("%s@bpf/%s:%d", helperFunc.String(), fname, key.LineNR),
 			Error:    fmt.Sprintf("%s (%d)", GetErrorMessage(key.Err), key.Err),
 			Count:    count,
 		})

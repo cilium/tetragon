@@ -6,6 +6,7 @@
 
 #include "vmlinux.h"
 #include "bpf_helpers.h"
+#include "bpf_errmetrics.h"
 
 /* information to track how an enforcer notify action was triggered */
 struct enforcer_act_info {
@@ -55,7 +56,7 @@ enforcer_update_missed_notifications(struct enforcer_missed_key *key)
 		return;
 	}
 
-	err = map_update_elem(&enforcer_missed_notifications, key, &one, BPF_NOEXIST);
+	err = with_errmetrics(map_update_elem, &enforcer_missed_notifications, key, &one, BPF_NOEXIST);
 	if (!err)
 		return;
 
@@ -103,7 +104,7 @@ FUNC_INLINE void do_enforcer_action(int error, int signal, struct enforcer_act_i
 		enforcer_update_missed_notifications(&missed_key);
 		*ptr = data;
 	} else {
-		map_update_elem(&enforcer_data, &id, &data, BPF_ANY);
+		with_errmetrics(map_update_elem, &enforcer_data, &id, &data, BPF_ANY);
 	}
 }
 
