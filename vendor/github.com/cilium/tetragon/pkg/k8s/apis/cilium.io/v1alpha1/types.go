@@ -107,6 +107,8 @@ type KProbeArg struct {
 	// +kubebuilder:validation:Optional
 	// Source of the data, if missing the default if function arguments
 	Source string `json:"source"`
+	// Type of original argument (only used when Resolve is set)
+	ArgType string `json:"argType"`
 }
 
 type BinarySelector struct {
@@ -226,7 +228,7 @@ type ArgSelector struct {
 }
 
 type ActionSelector struct {
-	// +kubebuilder:validation:Enum=Post;FollowFD;UnfollowFD;Sigkill;CopyFD;Override;GetUrl;DnsLookup;NoPost;Signal;TrackSock;UntrackSock;NotifyEnforcer;CleanupEnforcerNotification
+	// +kubebuilder:validation:Enum=Post;FollowFD;UnfollowFD;Sigkill;CopyFD;Override;GetUrl;DnsLookup;NoPost;Signal;TrackSock;UntrackSock;NotifyEnforcer;CleanupEnforcerNotification;Set
 	// Action to execute.
 	// NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 	// be removed in version 1.5.
@@ -252,6 +254,11 @@ type ActionSelector struct {
 	// +kubebuilder:validation:Optional
 	// An arg index for the sock for trackSock and untrackSock actions
 	ArgSock uint32 `json:"argSock"`
+	// An arg index for the set action
+	ArgIndex uint32 `json:"argIndex"`
+	// +kubebuilder:validation:Optional
+	// An arg value for the set action
+	ArgValue uint32 `json:"argValue"`
 	// +kubebuilder:validation:Optional
 	// A time period within which repeated messages will not be posted. Can be
 	// specified in seconds (default or with 's' suffix), minutes ('m' suffix)
@@ -345,6 +352,8 @@ type UProbeSpec struct {
 type UsdtSpec struct {
 	// Name of the traced binary
 	Path string `json:"path"`
+	// BTF file for the binary
+	BTFFile string `json:"btfFile"`
 	// Usdt provider name
 	Provider string `json:"provider"`
 	// Usdt name
