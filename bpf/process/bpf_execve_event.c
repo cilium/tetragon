@@ -58,26 +58,40 @@ read_args(void *ctx, struct msg_execve_event *event)
 	long off;
 	int err;
 
+	DEBUG("read_args: starting to read process arguments");
+
 	probe_read(&mm, sizeof(mm), _(&task->mm));
-	if (!mm)
+	if (!mm) {
+		DEBUG("read_args: no mm struct found, returning 0");
 		return 0;
+	}
 
 	probe_read(&start_stack, sizeof(start_stack),
 		   _(&mm->arg_start));
 	probe_read(&end_stack, sizeof(start_stack), _(&mm->arg_end));
 
-	if (!start_stack || !end_stack)
+	if (!start_stack || !end_stack) {
+		DEBUG("read_args: no stack bounds found, returning 0");
 		return 0;
+	}
+
+	DEBUG("read_args: stack bounds start=%lx end=%lx", start_stack, end_stack);
 
 	/* skip first argument - binary path */
 	heap = map_lookup_elem(&execve_heap, &zero);
-	if (!heap)
+	if (!heap) {
+		DEBUG("read_args: failed to get execve_heap, returning 0");
 		return 0;
+	}
 
 	/* poor man's strlen */
 	off = probe_read_str(&heap->maxpath, 4096, (char *)start_stack);
-	if (off < 0)
+	if (off < 0) {
+		DEBUG("read_args: failed to read binary path, returning 0");
 		return 0;
+	}
+
+	DEBUG("read_args: binary path length=%ld path=\"%s\"", off, heap->maxpath);
 
 	start_stack += off;
 
@@ -100,16 +114,24 @@ read_args(void *ctx, struct msg_execve_event *event)
 		size = args_size & 0x3ff /* BUFFER - 1 */;
 		err = probe_read(args, size, (char *)start_stack);
 		if (err < 0) {
+			DEBUG("read_args: failed to read args, setting error flag");
 			p->flags |= EVENT_ERROR_ARGS;
 			size = 0;
+		} else {
+			DEBUG("read_args: successfully read %d bytes of args", size);
 		}
 	} else {
+		DEBUG("read_args: using data event for large args, args_size=%lu", args_size);
 		size = data_event_bytes(ctx, (struct data_event_desc *)args,
 					(unsigned long)start_stack,
 					args_size,
 					(struct bpf_map_def *)&data_heap);
-		if (size > 0)
+		if (size > 0) {
+			DEBUG("read_args: data event successfully processed %d bytes", size);
 			p->flags |= EVENT_DATA_ARGS;
+		} else {
+			DEBUG("read_args: data event failed to process args");
+		}
 	}
 #ifdef __LARGE_BPF_PROG
 	event->exe.arg_len = size;
@@ -125,20 +147,29 @@ read_path(void *ctx, struct msg_execve_event *event, void *filename)
 	__u32 flags = 0;
 	char *earg;
 
+	DEBUG("read_path: starting to read filename path");
+
 	earg = (void *)p + offsetof(struct msg_process, args);
 
 	size = probe_read_str(earg, MAXARGLENGTH - 1, filename);
 	if (size < 0) {
+		DEBUG("read_path: failed to read filename, setting error flag");
 		flags |= EVENT_ERROR_FILENAME;
 		size = 0;
 	} else if (size == MAXARGLENGTH - 1) {
+		DEBUG("read_path: filename too long (truncated): \"%.127s...\"", earg);
+		DEBUG("read_path: using data event for full filename");
 		size = data_event_str(ctx, (struct data_event_desc *)earg,
 				      (unsigned long)filename,
 				      (struct bpf_map_def *)&data_heap);
-		if (size == 0)
+		if (size == 0) {
+			DEBUG("read_path: data event failed, setting error flag");
 			flags |= EVENT_ERROR_FILENAME;
-		else
+		} else {
 			flags |= EVENT_DATA_FILENAME;
+		}
+	} else {
+		DEBUG("read_path: successfully read filename (size=%d): \"%s\"", size, earg);
 	}
 
 	p->flags |= flags;
@@ -189,16 +220,23 @@ event_execve(struct exec_ctx_struct *ctx)
 	__u32 zero = 0;
 	__u64 pid;
 
+	pid = get_current_pid_tgid();
+	DEBUG("event_execve: starting execve for pid=%d filename=%s", pid >> 32, filename);
+
 	event = map_lookup_elem(&execve_msg_heap_map, &zero);
-	if (!event)
+	if (!event) {
+		DEBUG("event_execve: failed to get execve_msg_heap_map, returning early");
 		return 0;
+	}
 
 	pid = get_current_pid_tgid();
 	parent = event_find_parent();
 	if (parent) {
+		DEBUG("event_execve: found parent pid=%d", parent->key.pid);
 		event->parent = parent->key;
 		update_mb_task(parent);
 	} else {
+		DEBUG("event_execve: no parent found, using minimal parent info");
 		event_minimal_parent(event, task);
 	}
 
@@ -221,6 +259,9 @@ event_execve(struct exec_ctx_struct *ctx)
 	p->size += read_path(ctx, event, filename);
 	p->size += read_args(ctx, event);
 	p->size += read_cwd(ctx, p);
+
+	DEBUG("event_execve: process info - pid=%d tid=%d nspid=%d uid=%d", p->pid, p->tid, p->nspid, p->uid);
+	DEBUG("event_execve: process args length=%d", p->size - offsetof(struct msg_process, args));
 
 	event->common.op = MSG_OP_EXECVE;
 	event->common.ktime = p->ktime;
@@ -249,12 +290,21 @@ execve_rate(void *ctx __arg_ctx)
 	struct msg_execve_event *msg;
 	__u32 zero = 0;
 
-	msg = map_lookup_elem(&execve_msg_heap_map, &zero);
-	if (!msg)
-		return 0;
+	DEBUG("execve_rate: entering rate check");
 
-	if (cgroup_rate(ctx, &msg->kube, msg->common.ktime))
+	msg = map_lookup_elem(&execve_msg_heap_map, &zero);
+	if (!msg) {
+		DEBUG("execve_rate: failed to get execve_msg_heap_map, returning early");
+		return 0;
+	}
+
+	DEBUG("execve_rate: checking rate limit for pid=%d", msg->process.pid);
+	if (cgroup_rate(ctx, &msg->kube, msg->common.ktime)) {
+		DEBUG("execve_rate: rate limit passed, proceeding to send");
 		tail_call(ctx, &execve_calls, 1);
+	} else {
+		DEBUG("execve_rate: rate limit exceeded, dropping event");
+	}
 	return 0;
 }
 
@@ -278,9 +328,13 @@ execve_send(void *ctx __arg_ctx)
 	bool init_curr = 0;
 #endif
 
+	DEBUG("execve_send: entering send function");
+
 	event = map_lookup_elem(&execve_msg_heap_map, &zero);
-	if (!event)
+	if (!event) {
+		DEBUG("execve_send: failed to get execve_msg_heap_map, returning early");
 		return 0;
+	}
 
 #ifdef __LARGE_BPF_PROG
 	// Reading the absolute path of the process exe for matchBinaries.
@@ -293,9 +347,11 @@ execve_send(void *ctx __arg_ctx)
 	p = &event->process;
 
 	pid = (get_current_pid_tgid() >> 32);
+	DEBUG("execve_send: processing send for pid=%d", pid);
 
 	curr = execve_map_get_noinit(pid);
 	if (curr) {
+		DEBUG("execve_send: found existing execve_map entry for pid=%d", pid);
 		event->cleanup_key = curr->key;
 #if defined(__NS_CHANGES_FILTER) || defined(__CAP_CHANGES_FILTER)
 		/* if this exec event preceds a clone, initialize  capabilities
@@ -370,8 +426,11 @@ execve_send(void *ctx __arg_ctx)
 #endif
 
 		update_mb_bitset(&curr->bin);
+	} else {
+		DEBUG("execve_send: no existing execve_map entry found for pid=%d", pid);
 	}
 
+	DEBUG("execve_send: sending execve event for pid=%d", pid);
 	event->common.flags = 0;
 	size = validate_msg_execve_size(
 		sizeof(struct msg_common) + sizeof(struct msg_k8s) +
@@ -379,5 +438,6 @@ execve_send(void *ctx __arg_ctx)
 		sizeof(struct msg_cred) + sizeof(struct msg_ns) +
 		sizeof(struct msg_execve_key) + p->size);
 	perf_event_output_metric(ctx, MSG_OP_EXECVE, &tcpmon_map, BPF_F_CURRENT_CPU, event, size);
+	DEBUG("execve_send: execve event sent successfully for pid=%d", pid);
 	return 0;
 }
