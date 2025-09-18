@@ -6,3 +6,8 @@
 // NB: keep this file simple: only single-line comments and fileid__ entries
 
 fileid__("bpf_cgtracker.c", 112)
+fileid__("bpf_cgroup_mkdir.c", 113)
+fileid__("bpf_enforcer.h", 114)
+fileid__("bpf_alignchecker.c", 115)
+fileid__("retprobe_map.h", 116)
+
