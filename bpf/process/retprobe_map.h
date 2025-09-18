@@ -5,6 +5,7 @@
 #define __RETPROBE_MAP_H__
 
 #include "bpf_tracing.h"
+#include "bpf_errmetrics.h"
 
 struct retprobe_key {
 	u64 id;
@@ -66,7 +67,7 @@ retprobe_map_set(__u64 id, __u64 tid, __u64 ktime, unsigned long ptr)
 		.tid = tid,
 	};
 
-	map_update_elem(&retprobe_map, &key, &info, BPF_ANY);
+	with_errmetrics(map_update_elem, &retprobe_map, &key, &info, BPF_ANY);
 }
 
 FUNC_INLINE void
@@ -83,7 +84,7 @@ retprobe_map_set_iovec(__u64 id, __u64 tid, __u64 ktime, unsigned long ptr,
 		.tid = tid,
 	};
 
-	map_update_elem(&retprobe_map, &key, &info, BPF_ANY);
+	with_errmetrics(map_update_elem, &retprobe_map, &key, &info, BPF_ANY);
 }
 
 /**
