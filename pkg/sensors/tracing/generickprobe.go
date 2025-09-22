@@ -466,7 +466,7 @@ func preValidateKprobe(
 		}
 	}
 
-	if selectors.HasSigkillAction(f) && !config.EnableLargeProgs() {
+	if selectors.HasActionType(f, selectors.ActionTypeSigKill) && !config.EnableLargeProgs() {
 		return nil, errors.New("sigkill action requires kernel >= 5.3.0")
 	}
 
@@ -540,7 +540,7 @@ func preValidateKprobes(log logger.FieldLogger, kprobes []v1alpha1.KProbeSpec, l
 
 	// If the NotifyEnforcer action is specified, there must be at least one enforcer.
 	for _, kprobe := range kprobes {
-		if selectors.HasNotifyEnforcerAction(&kprobe) {
+		if selectors.HasActionType(&kprobe, selectors.ActionTypeNotifyEnforcer) {
 			if len(enforcers) == 0 {
 				return nil, errors.New("NotifyEnforcer action specified, but spec contains no enforcers")
 			}
