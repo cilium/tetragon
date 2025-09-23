@@ -457,6 +457,27 @@ validate: check format generate-flags metrics-docs ## Convenience target running
 	$(MAKE) -C install/kubernetes
 	$(MAKE) -C install/kubernetes validation
 
+.PHONY: checkpatch
+# renovate: datasource=docker
+CHECKPATCH_IMAGE := quay.io/cilium/cilium-checkpatch:1755701578-b97bd7a@sha256:f1332fa6edbbd40882a59ceae4a7843a4095bd62288363740e84b82708624c50
+CHECKPATCH_IGNORE := --ignore PREFER_DEFINED_ATTRIBUTE_MACRO,C99_COMMENTS,OPEN_ENDED_LINE,PREFER_KERNEL_TYPES,REPEATED_WORD,SPDX_LICENSE_TAG,LONG_LINE,LONG_LINE_STRING,LONG_LINE_COMMENT,TRACE_PRINTK,AVOID_EXTERNS
+ifneq ($(CHECKPATCH_DEBUG),)
+  # Run script with "bash -x"
+  CHECKPATCH_IMAGE_AND_ENTRY := \
+	--entrypoint /bin/bash $(CHECKPATCH_IMAGE) -x /checkpatch/checkpatch.sh -- $(CHECKPATCH_IGNORE)
+else
+  # Use default entrypoint
+  CHECKPATCH_IMAGE_AND_ENTRY := \
+	--entrypoint /bin/bash $(CHECKPATCH_IMAGE) /checkpatch/checkpatch.sh -- $(CHECKPATCH_IGNORE)
+endif
+checkpatch: ## Run checkpatch on your current branch commits.
+	$(QUIET) $(CONTAINER_ENGINE) container run --rm \
+		--workdir /workspace \
+		--volume $(CURDIR):/workspace \
+		--user "$(shell id -u):$(shell id -g)" \
+		-e GITHUB_REF=$(GITHUB_REF) -e GITHUB_REPOSITORY=$(GITHUB_REPOSITORY) -e GITHUB_TOKEN=$(GITHUB_TOKEN) \
+		$(CHECKPATCH_IMAGE_AND_ENTRY) $(CHECKPATCH_ARGS)
+
 ##@ Documentation
 
 .PHONY: docs
