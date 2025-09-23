@@ -416,6 +416,12 @@ message KprobeBpfAttr {
   string ProgName = 3;
 }
 
+message KprobeBpfProg {
+  string ProgType = 1;
+  uint32 InsnCnt = 2;
+  string ProgName = 3;
+}
+
 message KprobePerfEvent {
   string KprobeFunc = 1;
   string Type = 2;
@@ -467,6 +473,7 @@ message KprobeArgument {
     BpfCmd bpf_cmd_arg = 28;
     SyscallId syscall_id = 29;
     KprobeSockaddr sockaddr_arg = 30;
+    KprobeBpfProg bpf_prog_arg = 31;
   }
   string label = 18;
 }

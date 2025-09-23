@@ -6036,6 +6036,85 @@ func (checker *KprobeBpfAttrChecker) FromKprobeBpfAttr(event *tetragon.KprobeBpf
 	return checker
 }
 
+// KprobeBpfProgChecker implements a checker struct to check a KprobeBpfProg field
+type KprobeBpfProgChecker struct {
+	ProgType *stringmatcher.StringMatcher `json:"ProgType,omitempty"`
+	InsnCnt  *uint32                      `json:"InsnCnt,omitempty"`
+	ProgName *stringmatcher.StringMatcher `json:"ProgName,omitempty"`
+}
+
+// NewKprobeBpfProgChecker creates a new KprobeBpfProgChecker
+func NewKprobeBpfProgChecker() *KprobeBpfProgChecker {
+	return &KprobeBpfProgChecker{}
+}
+
+// Get the type of the checker as a string
+func (checker *KprobeBpfProgChecker) GetCheckerType() string {
+	return "KprobeBpfProgChecker"
+}
+
+// Check checks a KprobeBpfProg field
+func (checker *KprobeBpfProgChecker) Check(event *tetragon.KprobeBpfProg) error {
+	if event == nil {
+		return fmt.Errorf("%s: KprobeBpfProg field is nil", CheckerLogPrefix(checker))
+	}
+
+	fieldChecks := func() error {
+		if checker.ProgType != nil {
+			if err := checker.ProgType.Match(event.ProgType); err != nil {
+				return fmt.Errorf("ProgType check failed: %w", err)
+			}
+		}
+		if checker.InsnCnt != nil {
+			if *checker.InsnCnt != event.InsnCnt {
+				return fmt.Errorf("InsnCnt has value %d which does not match expected value %d", event.InsnCnt, *checker.InsnCnt)
+			}
+		}
+		if checker.ProgName != nil {
+			if err := checker.ProgName.Match(event.ProgName); err != nil {
+				return fmt.Errorf("ProgName check failed: %w", err)
+			}
+		}
+		return nil
+	}
+	if err := fieldChecks(); err != nil {
+		return fmt.Errorf("%s: %w", CheckerLogPrefix(checker), err)
+	}
+	return nil
+}
+
+// WithProgType adds a ProgType check to the KprobeBpfProgChecker
+func (checker *KprobeBpfProgChecker) WithProgType(check *stringmatcher.StringMatcher) *KprobeBpfProgChecker {
+	checker.ProgType = check
+	return checker
+}
+
+// WithInsnCnt adds a InsnCnt check to the KprobeBpfProgChecker
+func (checker *KprobeBpfProgChecker) WithInsnCnt(check uint32) *KprobeBpfProgChecker {
+	checker.InsnCnt = &check
+	return checker
+}
+
+// WithProgName adds a ProgName check to the KprobeBpfProgChecker
+func (checker *KprobeBpfProgChecker) WithProgName(check *stringmatcher.StringMatcher) *KprobeBpfProgChecker {
+	checker.ProgName = check
+	return checker
+}
+
+//FromKprobeBpfProg populates the KprobeBpfProgChecker using data from a KprobeBpfProg field
+func (checker *KprobeBpfProgChecker) FromKprobeBpfProg(event *tetragon.KprobeBpfProg) *KprobeBpfProgChecker {
+	if event == nil {
+		return checker
+	}
+	checker.ProgType = stringmatcher.Full(event.ProgType)
+	{
+		val := event.InsnCnt
+		checker.InsnCnt = &val
+	}
+	checker.ProgName = stringmatcher.Full(event.ProgName)
+	return checker
+}
+
 // KprobePerfEventChecker implements a checker struct to check a KprobePerfEvent field
 type KprobePerfEventChecker struct {
 	KprobeFunc  *stringmatcher.StringMatcher `json:"KprobeFunc,omitempty"`
@@ -6339,6 +6418,7 @@ type KprobeArgumentChecker struct {
 	BpfCmdArg             *BpfCmdChecker               `json:"bpfCmdArg,omitempty"`
 	SyscallId             *SyscallIdChecker            `json:"syscallId,omitempty"`
 	SockaddrArg           *KprobeSockaddrChecker       `json:"sockaddrArg,omitempty"`
+	BpfProgArg            *KprobeBpfProgChecker        `json:"bpfProgArg,omitempty"`
 	Label                 *stringmatcher.StringMatcher `json:"label,omitempty"`
 }
 
@@ -6649,6 +6729,16 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 				return fmt.Errorf("KprobeArgumentChecker: SockaddrArg check failed: %T is not a SockaddrArg", event)
 			}
 		}
+		if checker.BpfProgArg != nil {
+			switch event := event.Arg.(type) {
+			case *tetragon.KprobeArgument_BpfProgArg:
+				if err := checker.BpfProgArg.Check(event.BpfProgArg); err != nil {
+					return fmt.Errorf("BpfProgArg check failed: %w", err)
+				}
+			default:
+				return fmt.Errorf("KprobeArgumentChecker: BpfProgArg check failed: %T is not a BpfProgArg", event)
+			}
+		}
 		if checker.Label != nil {
 			if err := checker.Label.Match(event.Label); err != nil {
 				return fmt.Errorf("Label check failed: %w", err)
@@ -6837,6 +6927,12 @@ func (checker *KprobeArgumentChecker) WithSockaddrArg(check *KprobeSockaddrCheck
 	return checker
 }
 
+// WithBpfProgArg adds a BpfProgArg check to the KprobeArgumentChecker
+func (checker *KprobeArgumentChecker) WithBpfProgArg(check *KprobeBpfProgChecker) *KprobeArgumentChecker {
+	checker.BpfProgArg = check
+	return checker
+}
+
 // WithLabel adds a Label check to the KprobeArgumentChecker
 func (checker *KprobeArgumentChecker) WithLabel(check *stringmatcher.StringMatcher) *KprobeArgumentChecker {
 	checker.Label = check
@@ -7010,6 +7106,12 @@ func (checker *KprobeArgumentChecker) FromKprobeArgument(event *tetragon.KprobeA
 	case *tetragon.KprobeArgument_SockaddrArg:
 		if event.SockaddrArg != nil {
 			checker.SockaddrArg = NewKprobeSockaddrChecker().FromKprobeSockaddr(event.SockaddrArg)
+		}
+	}
+	switch event := event.Arg.(type) {
+	case *tetragon.KprobeArgument_BpfProgArg:
+		if event.BpfProgArg != nil {
+			checker.BpfProgArg = NewKprobeBpfProgChecker().FromKprobeBpfProg(event.BpfProgArg)
 		}
 	}
 	checker.Label = stringmatcher.Full(event.Label)
