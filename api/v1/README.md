@@ -28,6 +28,7 @@
     - [KprobeArgument](#tetragon-KprobeArgument)
     - [KprobeBpfAttr](#tetragon-KprobeBpfAttr)
     - [KprobeBpfMap](#tetragon-KprobeBpfMap)
+    - [KprobeBpfProg](#tetragon-KprobeBpfProg)
     - [KprobeCapability](#tetragon-KprobeCapability)
     - [KprobeCred](#tetragon-KprobeCred)
     - [KprobeFile](#tetragon-KprobeFile)
@@ -606,6 +607,7 @@ found.
 | bpf_cmd_arg | [BpfCmd](#tetragon-BpfCmd) |  |  |
 | syscall_id | [SyscallId](#tetragon-SyscallId) |  |  |
 | sockaddr_arg | [KprobeSockaddr](#tetragon-KprobeSockaddr) |  |  |
+| bpf_prog_arg | [KprobeBpfProg](#tetragon-KprobeBpfProg) |  |  |
 | label | [string](#string) |  |  |
 
 
@@ -643,6 +645,23 @@ found.
 | ValueSize | [uint32](#uint32) |  |  |
 | MaxEntries | [uint32](#uint32) |  |  |
 | MapName | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="tetragon-KprobeBpfProg"></a>
+
+### KprobeBpfProg
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| ProgType | [string](#string) |  |  |
+| InsnCnt | [uint32](#uint32) |  |  |
+| ProgName | [string](#string) |  |  |
 
 
 
