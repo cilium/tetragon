@@ -240,6 +240,14 @@ func getKprobeArgument(arg tracingapi.MsgGenericKprobeArg) *tetragon.KprobeArgum
 		}
 		a.Arg = &tetragon.KprobeArgument_BpfAttrArg{BpfAttrArg: bpfAttrArg}
 		a.Label = e.Label
+	case tracingapi.MsgGenericKprobeArgBpfProg:
+		bpfProgAuxArg := &tetragon.KprobeBpfProg{
+			ProgType: bpf.GetProgType(e.ProgType),
+			InsnCnt:  e.InsnCnt,
+			ProgName: e.ProgName,
+		}
+		a.Arg = &tetragon.KprobeArgument_BpfProgArg{BpfProgArg: bpfProgAuxArg}
+		a.Label = e.Label
 	case tracingapi.MsgGenericKprobeArgPerfEvent:
 		perfEventArg := &tetragon.KprobePerfEvent{
 			KprobeFunc:  e.KprobeFunc,

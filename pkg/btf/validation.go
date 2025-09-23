@@ -342,6 +342,11 @@ func typesCompatible(specTy string, kernelTy string) bool {
 		case "union bpf_attr *":
 			return true
 		}
+	case "bpf_prog":
+		switch kernelTy {
+		case "struct bpf_prog *":
+			return true
+		}
 	case "perf_event":
 		switch kernelTy {
 		case "struct perf_event *":

@@ -92,6 +92,8 @@ enum {
 
 	dentry_type = 42,
 
+	bpf_prog_type = 43,
+
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
 	nop_u32_ty = -12,
@@ -1157,6 +1159,19 @@ FUNC_INLINE long copy_bpf_attr(char *args, unsigned long arg)
 	return sizeof(struct bpf_info_type);
 }
 
+FUNC_INLINE long copy_bpf_prog(char *args, unsigned long arg)
+{
+	struct bpf_prog *ba = (struct bpf_prog *)arg;
+	struct bpf_info_type *bpf_info = (struct bpf_info_type *)args;
+
+	/* struct values */
+	bpf_info->prog_type = BPF_CORE_READ(ba, type);
+	bpf_info->insn_cnt = BPF_CORE_READ(ba, len);
+	BPF_CORE_READ_STR_INTO(&bpf_info->prog_name, ba, aux, name);
+
+	return sizeof(struct bpf_info_type);
+}
+
 FUNC_INLINE long copy_perf_event(char *args, unsigned long arg)
 {
 	struct perf_event *p_event = (struct perf_event *)arg;
@@ -1438,6 +1453,7 @@ FUNC_INLINE size_t type_to_min_size(int type, int argm)
 	case const_buf_type:
 		return argm;
 	case bpf_attr_type:
+	case bpf_prog_type:
 		return sizeof(struct bpf_info_type);
 	case perf_event_type:
 		return sizeof(struct perf_event_info_type);

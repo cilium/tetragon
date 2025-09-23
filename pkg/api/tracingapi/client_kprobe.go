@@ -523,6 +523,28 @@ func (m MsgGenericKprobeArgBpfAttr) IsReturnArg() bool {
 	return m.Index == ReturnArgIndex
 }
 
+type MsgGenericKprobeBpfProg struct {
+	ProgType uint32
+	InsnCnt  uint32
+	ProgName [BPF_OBJ_NAME_LEN]byte
+}
+
+type MsgGenericKprobeArgBpfProg struct {
+	Index    uint64
+	ProgType uint32
+	InsnCnt  uint32
+	ProgName string
+	Label    string
+}
+
+func (m MsgGenericKprobeArgBpfProg) GetIndex() uint64 {
+	return m.Index
+}
+
+func (m MsgGenericKprobeArgBpfProg) IsReturnArg() bool {
+	return m.Index == ReturnArgIndex
+}
+
 type MsgGenericKprobePerfEvent struct {
 	KprobeFunc  [KSYM_NAME_LEN]byte
 	Config      uint64

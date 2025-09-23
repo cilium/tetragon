@@ -324,6 +324,20 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		arg.ProgName = string(output.ProgName[:length])
 		arg.Label = a.label
 		return arg
+	case gt.GenericBpfProgType:
+		var output api.MsgGenericKprobeBpfProg
+		var arg api.MsgGenericKprobeArgBpfProg
+
+		err := binary.Read(r, binary.LittleEndian, &output)
+		if err != nil {
+			logger.GetLogger().Warn("bpf_attr type error", logfields.Error, err)
+		}
+		arg.ProgType = output.ProgType
+		arg.InsnCnt = output.InsnCnt
+		length := bytes.IndexByte(output.ProgName[:], 0) // trim tailing null bytes
+		arg.ProgName = string(output.ProgName[:length])
+		arg.Label = a.label
+		return arg
 	case gt.GenericPerfEvent:
 		var output api.MsgGenericKprobePerfEvent
 		var arg api.MsgGenericKprobeArgPerfEvent
