@@ -1,6 +1,5 @@
 name: Check pull request commits
 on:
-  push:
   pull_request:
 
 jobs:
@@ -15,8 +14,10 @@ jobs:
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
+          persist-credentials: false
           fetch-depth: 0
       - name: Run checkpatch.pl
-        uses: docker://quay.io/cilium/cilium-checkpatch:2f0f4f512e795d5668ea4e7ef0ba85abc75eb225@sha256:f307bf0315954e8b8c31edc1864d949bf211b0c6522346359317d757b5a6cea0
-        with:
-          args: "-- --ignore PREFER_DEFINED_ATTRIBUTE_MACRO,C99_COMMENTS,OPEN_ENDED_LINE,PREFER_KERNEL_TYPES,REPEATED_WORD,SPDX_LICENSE_TAG,LONG_LINE,LONG_LINE_STRING,LONG_LINE_COMMENT,TRACE_PRINTK,AVOID_EXTERNS"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          make checkpatch || (echo "Run 'make checkpatch' locally to investigate reports"; exit 1)
