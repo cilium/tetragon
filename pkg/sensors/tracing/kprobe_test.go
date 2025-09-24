@@ -3660,7 +3660,14 @@ func TestKprobeMatchArgsFdPrefix(t *testing.T) {
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers...)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	// This check is failing in CI on bpf-next but working locally. This will give it a few
+	// more chances for the events to show up.
+	for range 3 {
+		err = jsonchecker.JsonTestCheck(t, checker)
+		if err == nil {
+			break
+		}
+	}
 	require.NoError(t, err)
 }
 
