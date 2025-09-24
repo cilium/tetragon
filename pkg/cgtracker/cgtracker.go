@@ -18,6 +18,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/cgroups"
+	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/option"
@@ -27,9 +28,8 @@ import (
 )
 
 const (
-	MapEntries  = 16 * 1024
-	MapName     = "tg_cgtracker_map"
-	objFilename = "bpf_cgtracker.o"
+	MapEntries = 16 * 1024
+	MapName    = "tg_cgtracker_map"
 )
 
 // cgtracker map
@@ -133,14 +133,14 @@ func RegisterCgroupTracker(sensor *sensors.Sensor) (*sensors.Sensor, error) {
 	}
 
 	mkdirProg := program.Builder(
-		objFilename,
+		config.CgtrackerObj(),
 		"cgroup/cgroup_mkdir",
 		"raw_tracepoint/cgroup_mkdir",
 		"tg_cgtracker_cgroup_mkdir",
 		"raw_tracepoint",
 	).SetPolicy(basePolicy)
 	releaseProg := program.Builder(
-		objFilename,
+		config.CgtrackerObj(),
 		"cgroup/cgroup_release",
 		"raw_tracepoint/cgroup_release",
 		"tg_cgtracker_cgroup_release",

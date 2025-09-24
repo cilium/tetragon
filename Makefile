@@ -60,6 +60,11 @@ ifeq ($(DEBUG),1)
 	NOSTRIP=1
 	__BPF_DEBUG_FLAGS += DEBUG=1
 endif
+ifeq ($(PERF_DEBUG),1)
+	NOOPT=1
+	NOSTRIP=1
+	__BPF_DEBUG_FLAGS += PERF_DEBUG=1
+endif
 
 # GO_BUILD_LDFLAGS is initialized to empty use EXTRA_GO_BUILD_LDFLAGS to add link flags
 GO_BUILD_LDFLAGS =
