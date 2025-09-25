@@ -18,6 +18,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/cmd/tetra/common"
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/errmetrics"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -245,8 +246,7 @@ func NamespaceState(fname string) error {
 }
 
 func bpfErrMetricsCmd() *cobra.Command {
-
-	mapFname := filepath.Join(defaults.DefaultMapRoot, defaults.DefaultMapPrefix, errmetrics.MapName)
+	mapFname := bpf.MapPath(errmetrics.MapName)
 	var output string
 
 	ret := &cobra.Command{
