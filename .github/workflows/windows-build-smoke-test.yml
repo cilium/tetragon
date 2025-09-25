@@ -13,7 +13,7 @@ jobs:
   windows-ebpf-prog-build:
     name: Build Windows process ebpf program
     runs-on: windows-2022
-    timeout-minutes: 15
+    timeout-minutes: 25
 
     env:
       GOCACHE: D:\gocache
@@ -32,19 +32,8 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           path: go/src/github.com/cilium/tetragon/
-      
-
-      - name: Cache chocolatey packages
-        if: steps.skip_check.outputs.should_skip != 'true'
-        uses: actions/cache@638ed79f9dc94c1de1baef91bcab5edaa19451f4
-        env:
-          cache-name: cache-choco-packages
-        with:
-          path: C:\ProgramData\chocolatey
-          key: ${{ runner.os }}-choco-llvm-18.1.8
 
       - name: Install LLVM 18.1.8
-        if: steps.skip_check.outputs.should_skip != 'true'
         run: |
           # Install LLVM 18.1.8 to ensure consistent version across runners
           try {
@@ -101,14 +90,14 @@ jobs:
         shell: powershell
 
       - name: Configuring repo for first build
-        if: steps.skip_check.outputs.should_skip != 'true'
         working-directory: ${{ env.TEMP }}\ntosebpfext
         env:
           CXXFLAGS: /ZH:SHA_256 ${{ env.CXX_FLAGS }}
           LDFLAGS: ${{ env.LD_FLAGS }}
         run: |
             .\scripts\initialize_repo.ps1
-      - name: Build
+ 
+      - name: Build Process monitor ebpf program
         working-directory: ${{ env.TEMP }}\ntosebpfext
         run: msbuild -target:Tools\process_monitor_bpf:Rebuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} /bl:${{env.BUILD_PLATFORM}}_${{env.BUILD_CONFIGURATION}}\build_logs\build.binlog ${{env.BUILD_OPTIONS}} ${{env.SOLUTION_FILE_PATH}}
 
@@ -120,33 +109,40 @@ jobs:
       - name: Upload Build Output
         uses: actions/upload-artifact@de65e23aa2b7e23d713bb51fbfcb6d502f8667d8
         with:
-          working-directory: ${{ env.TEMP }}\ntosebpfext
           name: ntosebpfext-build-output
           path: ${{ env.TEMP }}\ntosebpfext\build-${{env.BUILD_PLATFORM}}.${{env.BUILD_CONFIGURATION}}.zip
           retention-days: 5
 
   windows-tetragon-build:
-    name: Build and Uplod Windows Tetragon and Tetra Binaries
+    name: Build and Upload Windows Tetragon and Tetra Binaries
     runs-on: windows-2022
+    needs: windows-ebpf-prog-build
     timeout-minutes: 15
     env:
       TEMP: D:\temp
+      GOARCH: amd64
+      GOOS: windows
 
     steps:
-      - name: Create Temp Directory
-        run: mkdir D:\temp
-        shell: pwsh
-
-      - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-        with:
-          path: go/src/github.com/cilium/tetragon/
+      - name: Check versions
+        shell: powershell
+        run: |
+          $PSVersionTable
 
       - name: Install Go
         uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
           # renovate: datasource=golang-version depName=go
           go-version: '1.25.1'
+
+      - name: Create Temp Directory
+        run: mkdir D:\temp
+        shell: powershell
+
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          path: go/src/github.com/cilium/tetragon/
       
       - name: Build and Zip tetragon Windows binaries
         working-directory: ${{ github.workspace }}\go\src\github.com\cilium\tetragon
@@ -190,22 +186,159 @@ jobs:
         run: mkdir D:\temp\test
         shell: powershell
 
+      - name: Cache eBPF for Windows installer
+        id: cache-ebpf-installer
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: D:\temp\efw.zip
+          key: ${{ runner.os }}-ebpf-installer-v0.21.0
+
       - name: Download and Install eBPF for Windows
         shell: powershell
         run: |
-          Invoke-WebRequest -Uri "https://github.com/microsoft/ebpf-for-windows/releases/download/Release-v0.21.0/Build-native-only.NativeOnlyRelease.x64.zip" -OutFile "$env:TEMP\efw.zip"
-          Expand-Archive -Path "$env:TEMP\efw.zip" -DestinationPath "$env:TEMP"
-          Rename-Item -Path "$env:TEMP\Build-native-only NativeOnlyRelease x64" -NewName "$env:TEMP\ebpf"
-          $setupScript = Get-ChildItem -Path "$env:TEMP\ebpf" -Filter "setup-ebpf.ps1" -Recurse | Select-Object -First 1
-          if ($setupScript) {
-            Write-Host "Found setup script: $($setupScript.FullName)"
-            Set-Location -Path $setupScript.DirectoryName
-            Write-Host "Changed directory to: $(Get-Location)"
-            & $setupScript.FullName
-          } else {
-            Write-Error "Setup script not found in the extracted package"
-            exit 1
+          function Test-ZipFile {
+              param([string]$FilePath)
+              try {
+                  Add-Type -AssemblyName System.IO.Compression.FileSystem
+                  $zip = [System.IO.Compression.ZipFile]::OpenRead($FilePath)
+                  $isValid = $zip.Entries.Count -ge 0
+                  $zip.Dispose()
+                  return $isValid
+              }
+              catch {
+                  return $false
+              }
           }
+
+          $zipPath = "D:\temp\efw.zip"
+          $zipCached = $false
+
+          if (Test-Path $zipPath) {
+              $fileInfo = Get-Item $zipPath
+              Write-Host "Cached ZIP file found, size: $($fileInfo.Length) bytes"
+              
+              if (Test-ZipFile $zipPath) {
+                  $zipCached = $true
+              } else {
+                  Write-Warning "Invalid or corrupted cached ZIP file found, removing"
+                  Remove-Item $zipPath -Force
+              }
+          }
+
+          $maxRetries = 3
+          $retryCount = 0
+          $downloadUrl = "https://github.com/microsoft/ebpf-for-windows/releases/download/Release-v0.21.0/Build-native-only.NativeOnlyRelease.x64.zip"
+          $extractPath = "D:\temp"
+          $ebpfPath = "D:\temp\ebpf"
+
+          while (-not $zipCached -and ($retryCount -lt $maxRetries)) {
+              try {
+                  Write-Host "Download attempt $($retryCount + 1) of $maxRetries..."
+                  
+                  # Use WebClient instead of Invoke-WebRequest
+                  $webClient = New-Object System.Net.WebClient
+                  $webClient.Headers.Add("User-Agent", "PowerShell/5.1")
+                  $webClient.DownloadFile($downloadUrl, $zipPath)
+                  $webClient.Dispose()
+                  
+                  # Validate the download
+                  if (Test-Path $zipPath) {
+                      $fileInfo = Get-Item $zipPath
+                      Write-Host "Downloaded file size: $($fileInfo.Length) bytes"
+                      
+                      if (Test-ZipFile $zipPath) {
+                          $zipCached = $true
+                          break
+                      } else {
+                          Write-Warning "Invalid or corrupted ZIP file detected"
+                          Remove-Item $zipPath -Force
+                      }
+                  } else {
+                      Write-Warning "Download file not found after download attempt"
+                  }
+              }
+              catch {
+                  Write-Warning "Download attempt failed: $($_.Exception.Message)"
+                  if ($webClient) { $webClient.Dispose() }
+                  if (Test-Path $zipPath) {
+                      Remove-Item $zipPath -Force
+                  }
+              }
+              
+              $retryCount++
+              if ($retryCount -lt $maxRetries) {
+                  Write-Host "Waiting 5 seconds before retry..."
+                  Start-Sleep -Seconds 5
+              }
+          }
+
+          # Final validation before proceeding
+          if (-not (Test-Path $zipPath)) {
+              throw "Download failed after $maxRetries attempts."
+          }
+
+          try {
+              Write-Host "Extracting archive to $extractPath..."
+              Expand-Archive -Path $zipPath -DestinationPath $extractPath -Force -ErrorAction Stop
+          }
+          catch {
+              Write-Error "Failed to extract archive: $($_.Exception.Message)"
+              throw
+          }
+
+          # Rename the extracted directory
+          $originalPath = "D:\temp\Build-native-only NativeOnlyRelease x64"
+          if (Test-Path $originalPath) {
+              try {
+                  Rename-Item -Path $originalPath -NewName $ebpfPath -ErrorAction Stop
+              }
+              catch {
+                  Write-Error "Failed to rename directory: $($_.Exception.Message)"
+                  throw
+              }
+          } else {
+              Write-Error "Expected directory not found: $originalPath"
+              Get-ChildItem -Path $extractPath -Directory | ForEach-Object { Write-Host "Found directory: $($_.FullName)" }
+              throw "Extraction directory structure is not as expected"
+          }
+
+          # Find and execute the setup script
+          Write-Host "Searching for setup script..."
+          $setupScript = Get-ChildItem -Path $ebpfPath -Filter "setup-ebpf.ps1" -Recurse | Select-Object -First 1
+
+          if ($setupScript) {
+              Write-Host "Found setup script: $($setupScript.FullName)"
+              
+              # Change to the script directory
+              $originalLocation = Get-Location
+              try {
+                  Set-Location -Path $setupScript.DirectoryName
+                  Write-Host "Changed directory to: $(Get-Location)"
+                  
+                  # Execute the setup script
+                  Write-Host "Executing setup script..."
+                  & $setupScript.FullName
+                  
+                  Write-Host "Setup script execution completed"
+              }
+              catch {
+                  Write-Error "Failed to execute setup script: $($_.Exception.Message)"
+                  throw
+              }
+              finally {
+                  # Restore original location
+                  Set-Location -Path $originalLocation
+              }
+          } else {
+              Write-Error "Setup script 'setup-ebpf.ps1' not found in the extracted package"
+              Write-Host "Directory contents:"
+              Get-ChildItem -Path $ebpfPath -Recurse | ForEach-Object { 
+                  Write-Host "  $($_.FullName)" 
+              }
+              throw
+          }
+
+          Write-Host "Script execution completed successfully"
 
       - name: Add eBPF for Windows to PATH
         shell: pwsh
@@ -240,7 +373,6 @@ jobs:
         working-directory: C:\Program Files\Tetragon\cmd
         shell: powershell
         run: |
-          # Define the path to the JSON file
           $jsonFilePath = "C:\Program Files\Tetragon\events.json"
 
           # Define the path to the executable
@@ -248,14 +380,12 @@ jobs:
 
           # Start the process in the background and capture its PID
           $tetragonBackgroundProcess = Start-Process -FilePath "$tetragonProcess" -ArgumentList "--export-filename ""$jsonFilePath""" -RedirectStandardOutput "C:\Program Files\Tetragon\tetragon.log" -NoNewWindow -PassThru
-
           Start-Sleep -Seconds 5
-
           if(Get-Process -id $tetragonBackgroundProcess.Id) {
-            Write-Host "Tetragon Running "
+            Write-Host "Tetragon is Running "
           }
           else {
-            throw "Tetragon is Not Running"
+            throw "Tetragon Could not be started"
           }
 
           $notepad = Start-Process -FilePath "C:\Windows\System32\notepad.exe" -PassThru
@@ -275,11 +405,3 @@ jobs:
               Write-Host "PID $notepadPID not found in event file: $jsonContent "
               throw "PID not found in event JSON file."
           }
-
-      
-      
-
-
-
-        
-
