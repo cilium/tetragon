@@ -8,9 +8,10 @@
 
 struct perf_event_info_type {
 	char kprobe_func[KSYM_NAME_LEN];
-	__u32 type;
 	__u64 config;
 	__u64 probe_offset;
+	__u32 type;
+	__u32 pad;
 };
 
 #endif
