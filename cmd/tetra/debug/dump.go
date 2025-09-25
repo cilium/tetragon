@@ -288,7 +288,11 @@ func ErrMetrics(fname string, out io.Writer, output string) error {
 		w := tabwriter.NewWriter(out, 0, 0, 3, ' ', 0)
 		fmt.Fprintln(w, "Location\tError\tCount")
 		for _, entry := range ret {
-			fmt.Fprintf(w, "%s\t%s\t%d\n", entry.Location, entry.Error, entry.Count)
+			location := fmt.Sprintf("%s:%d", entry.FileName, entry.LineNumber)
+			if entry.HelperFunc != "" {
+				location = entry.HelperFunc + "@" + location
+			}
+			fmt.Fprintf(w, "%s\t%s(%d)\t%d\n", location, entry.ErrorName, entry.Error, entry.Count)
 		}
 		w.Flush()
 	default:
