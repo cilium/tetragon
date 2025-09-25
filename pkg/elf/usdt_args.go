@@ -5,6 +5,6 @@
 
 package elf
 
-func parseArgs(spec *UsdtSpec) error {
+func parseArgs(_ *UsdtSpec) error {
 	return nil
 }
