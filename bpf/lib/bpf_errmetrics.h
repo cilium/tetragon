@@ -67,4 +67,13 @@ errmetrics_update(__u16 error, __u8 file_id, __u16 line_nr, __u64 helper_id)
 	_err;                                                                  \
 })
 
+// To be used on error paths with a >=0 error value.
+#define errmetrics(error) ({                                   \
+	__u16 fileid = get_fileid__(__FILE_NAME__);            \
+	if (!__builtin_constant_p(fileid) || !fileid)          \
+		compile_error(__FILE_NAME__, __COUNTER__);     \
+	if (error)                                             \
+		errmetrics_update(error, fileid, __LINE__, 0); \
+})
+
 #endif // BPF_ERRMETRICS_H__
