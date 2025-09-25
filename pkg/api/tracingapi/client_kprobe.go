@@ -525,9 +525,10 @@ func (m MsgGenericKprobeArgBpfAttr) IsReturnArg() bool {
 
 type MsgGenericKprobePerfEvent struct {
 	KprobeFunc  [KSYM_NAME_LEN]byte
-	Type        uint32
 	Config      uint64
 	ProbeOffset uint64
+	Type        uint32
+	Pad         uint32
 }
 
 type MsgGenericKprobeArgPerfEvent struct {
