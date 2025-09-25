@@ -4,7 +4,6 @@
 package errmetrics
 
 import (
-	"fmt"
 	"runtime"
 
 	"github.com/cilium/ebpf"
@@ -42,9 +41,12 @@ type MapKey struct {
 type MapVal = uint32
 
 type DumpEntry struct {
-	Location string
-	Error    string
-	Count    int
+	HelperFunc string `json:"helper_func,omitempty"`
+	FileName   string `json:"file_name,omitempty"`
+	LineNumber uint16 `json:"line_numer,omitempty"`
+	ErrorName  string `json:"error_name,omitempty"`
+	Error      uint16 `json:"error,omitempty"`
+	Count      int    `json:"count,omitempty"`
 }
 
 func (m Map) Dump() ([]DumpEntry, error) {
@@ -62,18 +64,22 @@ func (m Map) Dump() ([]DumpEntry, error) {
 		if !ok {
 			fname = UnknownFname
 		}
-		helperFunc, err := asm.BuiltinFuncForPlatform(runtime.GOOS, key.HelperID)
-		if err != nil {
-			helperFunc = asm.FnUnspec
+		helperFunc, _ := asm.BuiltinFuncForPlatform(runtime.GOOS, key.HelperID)
+		var helperFuncName string
+		if helperFunc != asm.FnUnspec {
+			helperFuncName = helperFunc.String()
 		}
 		count := 0
 		for _, v := range val {
 			count += int(v)
 		}
 		ret = append(ret, DumpEntry{
-			Location: fmt.Sprintf("%s@bpf/%s:%d", helperFunc.String(), fname, key.LineNR),
-			Error:    fmt.Sprintf("%s (%d)", GetErrorMessage(key.Err), key.Err),
-			Count:    count,
+			HelperFunc: helperFuncName,
+			FileName:   fname,
+			LineNumber: key.LineNR,
+			Error:      key.Err,
+			ErrorName:  GetErrorMessage(key.Err),
+			Count:      count,
 		})
 	}
 
