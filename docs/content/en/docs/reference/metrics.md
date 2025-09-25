@@ -84,6 +84,18 @@ The number of missed notifications by the enforcer.
 | `policy` | `policy-name` |
 | `reason` | `reason` |
 
+### `tetragon_error_metrics_error_total`
+
+The total and type of errors encountered exposed via the error metrics. Internal use only.
+
+| label | values |
+| ----- | ------ |
+| `error` | `   22` |
+| `error_name` | `EINVAL` |
+| `file_name` | `bpf_d_path.h` |
+| `helper_func` | `FnProbeRead` |
+| `line_number` | `  166` |
+
 ### `tetragon_errors_total`
 
 The total number of Tetragon errors. For internal use only.
