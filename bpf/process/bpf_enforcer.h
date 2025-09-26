@@ -6,7 +6,7 @@
 
 #include "vmlinux.h"
 #include "bpf_helpers.h"
-#include "bpf_errmetrics.h"
+#include "errmetrics.h"
 
 /* information to track how an enforcer notify action was triggered */
 struct enforcer_act_info {

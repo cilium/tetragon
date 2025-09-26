@@ -15,7 +15,7 @@
 #include "types/basic.h"
 #include "policy_filter.h"
 #include "syscall64.h"
-#include "bpf_errmetrics.h"
+#include "errmetrics.h"
 
 int generic_tracepoint_process_event(void *ctx);
 int generic_tracepoint_filter(void *ctx);

@@ -11,7 +11,7 @@
 #include "../process/string_maps.h"
 #include "api.h"
 #include "policy_stats.h"
-#include "bpf_errmetrics.h"
+#include "errmetrics.h"
 
 /* Applying 'packed' attribute to structs causes clang to write to the
  * members byte-by-byte, as offsets may not be aligned. This is bad for
