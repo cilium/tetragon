@@ -79,16 +79,19 @@ func msgToExecveKubeUnix(m *processapi.MsgExecveEvent, execID string, filename s
 	return kube
 }
 
-func execParse(reader *bytes.Reader) (processapi.MsgProcess, bool, error) {
-	proc := processapi.MsgProcess{}
+func execParse(reader *bytes.Reader) (processapi.MsgProcess, error) {
+	proc := processapi.MsgProcess{
+		Filename: "<enomem>",
+		Args:     "<enomem>",
+		Size:     processapi.MSG_SIZEOF_EXECVE,
+	}
 	exec := processapi.MsgExec{}
 
 	if err := binary.Read(reader, binary.LittleEndian, &exec); err != nil {
 		logger.GetLogger().Debug("Failed to read exec event", logfields.Error, err)
-		return proc, true, err
+		return proc, err
 	}
 
-	proc.Size = exec.Size
 	proc.PID = exec.PID
 	proc.TID = exec.TID
 	proc.NSPID = exec.NSPID
@@ -103,18 +106,12 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, bool, error) {
 	size := exec.Size - processapi.MSG_SIZEOF_EXECVE
 	if size > processapi.MSG_SIZEOF_BUFFER-processapi.MSG_SIZEOF_EXECVE {
 		err := errors.New("msg exec size larger than argsbuffer")
-		proc.Size = processapi.MSG_SIZEOF_EXECVE
-		proc.Args = "enomem enomem"
-		proc.Filename = "enomem"
-		return proc, false, err
+		return proc, err
 	}
 
 	args := make([]byte, size) //+2)
 	if err := binary.Read(reader, binary.LittleEndian, &args); err != nil {
-		proc.Size = processapi.MSG_SIZEOF_EXECVE
-		proc.Args = "enomem enomem"
-		proc.Filename = "enomem"
-		return proc, false, err
+		return proc, err
 	}
 
 	if exec.Flags&api.EventDataFilename != 0 {
@@ -123,14 +120,11 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, bool, error) {
 		dr := bytes.NewReader(args)
 
 		if err := binary.Read(dr, binary.LittleEndian, &desc); err != nil {
-			proc.Size = processapi.MSG_SIZEOF_EXECVE
-			proc.Args = "enomem enomem"
-			proc.Filename = "enomem"
-			return proc, false, err
+			return proc, err
 		}
 		data, err := observer.DataGet(desc)
 		if err != nil {
-			return proc, false, err
+			return proc, err
 		}
 		proc.Filename = strutils.UTF8FromBPFBytes(data[:])
 		args = args[unsafe.Sizeof(desc):]
@@ -150,14 +144,11 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, bool, error) {
 		dr := bytes.NewReader(args)
 
 		if err := binary.Read(dr, binary.LittleEndian, &desc); err != nil {
-			proc.Size = processapi.MSG_SIZEOF_EXECVE
-			proc.Args = "enomem enomem"
-			proc.Filename = "enomem"
-			return proc, false, err
+			return proc, err
 		}
 		data, err := observer.DataGet(desc)
 		if err != nil {
-			return proc, false, err
+			return proc, err
 		}
 		// cut the zero byte
 		if len(data) > 0 {
@@ -173,31 +164,20 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, bool, error) {
 		cmdArgs = bytes.Split(args, []byte{0x00})
 	}
 
+	proc.Size = exec.Size
 	proc.Args = strutils.UTF8FromBPFBytes(bytes.Join(cmdArgs[0:], []byte{0x00}))
-	return proc, false, nil
-}
-
-func nopMsgProcess() processapi.MsgProcess {
-	return processapi.MsgProcess{
-		Filename: "<enomem>",
-		Args:     "<enomem>",
-	}
+	return proc, nil
 }
 
 func handleExecve(r *bytes.Reader) ([]observer.Event, error) {
-	var empty bool
-
 	m := processapi.MsgExecveEvent{}
 	err := binary.Read(r, binary.LittleEndian, &m)
 	if err != nil {
 		return nil, err
 	}
 	msgUnix := msgToExecveUnix(&m)
-	msgUnix.Unix.Process, empty, err = execParse(r)
-	if err != nil && empty {
-		msgUnix.Unix.Process = nopMsgProcess()
-	}
-	if err == nil && !empty {
+	msgUnix.Unix.Process, err = execParse(r)
+	if err == nil {
 		err = userinfo.MsgToExecveAccountUnix(msgUnix.Unix)
 		if err != nil {
 			logger.Trace(logger.GetLogger(), "Resolving process uid to username record failed",
