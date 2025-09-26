@@ -344,6 +344,10 @@ read_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
 		size = copy_bpf_attr(args, arg);
 		break;
 	}
+	case bpf_prog_type: {
+		size = copy_bpf_prog(args, arg);
+		break;
+	}
 	case perf_event_type: {
 		size = copy_perf_event(args, arg);
 		break;

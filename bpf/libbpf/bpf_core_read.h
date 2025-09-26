@@ -163,7 +163,7 @@ enum bpf_type_info_kind {
  * argument.
  */
 #define bpf_core_read_str(dst, sz, src)					    \
-	bpf_probe_read_str(dst, sz,					    \
+	probe_read_str(dst, sz,					    \
 			   (const void *)__builtin_preserve_access_index(src))
 
 #define ___concat(a, b) a ## b
