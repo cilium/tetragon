@@ -103,7 +103,7 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, bool, error) {
 	size := exec.Size - processapi.MSG_SIZEOF_EXECVE
 	if size > processapi.MSG_SIZEOF_BUFFER-processapi.MSG_SIZEOF_EXECVE {
 		err := errors.New("msg exec size larger than argsbuffer")
-		exec.Size = processapi.MSG_SIZEOF_EXECVE
+		proc.Size = processapi.MSG_SIZEOF_EXECVE
 		proc.Args = "enomem enomem"
 		proc.Filename = "enomem"
 		return proc, false, err
