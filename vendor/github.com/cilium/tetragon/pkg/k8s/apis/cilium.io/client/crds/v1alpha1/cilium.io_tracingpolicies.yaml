@@ -184,6 +184,7 @@ spec:
                             - sock
                             - sockaddr
                             - socket
+                            - sockaddr_un
                             - string
                             - fd
                             - file
@@ -284,6 +285,7 @@ spec:
                             - sock
                             - sockaddr
                             - socket
+                            - sockaddr_un
                             - string
                             - fd
                             - file
@@ -397,6 +399,7 @@ spec:
                           - sock
                           - sockaddr
                           - socket
+                          - sockaddr_un
                           - string
                           - fd
                           - file
@@ -1107,6 +1110,7 @@ spec:
                             - sock
                             - sockaddr
                             - socket
+                            - sockaddr_un
                             - string
                             - fd
                             - file
@@ -1854,6 +1858,7 @@ spec:
                             - sock
                             - sockaddr
                             - socket
+                            - sockaddr_un
                             - string
                             - fd
                             - file
@@ -2539,6 +2544,7 @@ spec:
                             - sock
                             - sockaddr
                             - socket
+                            - sockaddr_un
                             - string
                             - fd
                             - file
@@ -3234,6 +3240,7 @@ spec:
                             - sock
                             - sockaddr
                             - socket
+                            - sockaddr_un
                             - string
                             - fd
                             - file
