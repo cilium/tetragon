@@ -834,6 +834,33 @@ func TestExecParse(t *testing.T) {
 		assert.Equal(t, string(cwd), decCwd)
 	})
 
+	t.Run("Empty args and cwd", func(t *testing.T) {
+		observer.DataPurge()
+
+		// - filename (string)
+		// - no args
+		// - no cwd
+
+		exec.Flags = 0
+		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + len(filename))
+
+		var buf bytes.Buffer
+		binary.Write(&buf, binary.LittleEndian, exec)
+		binary.Write(&buf, binary.LittleEndian, filename)
+
+		reader := bytes.NewReader(buf.Bytes())
+
+		process, err := execParse(reader)
+		require.NoError(t, err)
+
+		assert.Equal(t, string(filename), process.Filename)
+		assert.Empty(t, process.Args)
+
+		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
+		assert.Empty(t, decArgs)
+		assert.Empty(t, decCwd)
+	})
+
 	t.Run("Filename as data event", func(t *testing.T) {
 		observer.DataPurge()
 
