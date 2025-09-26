@@ -823,12 +823,11 @@ func TestExecParse(t *testing.T) {
 
 		reader := bytes.NewReader(buf.Bytes())
 
-		process, empty, err := execParse(reader)
+		process, err := execParse(reader)
 		require.NoError(t, err)
 
 		assert.Equal(t, string(filename), process.Filename)
 		assert.Equal(t, string(cwd), process.Args)
-		assert.False(t, empty)
 
 		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
 		assert.Empty(t, decArgs)
@@ -857,13 +856,12 @@ func TestExecParse(t *testing.T) {
 
 		reader := bytes.NewReader(buf.Bytes())
 
-		process, empty, err := execParse(reader)
+		process, err := execParse(reader)
 		require.NoError(t, err)
 
 		// execParse check
 		assert.Equal(t, string(filename), process.Filename)
 		assert.Equal(t, string(cwd), process.Args)
-		assert.False(t, empty)
 
 		// ArgsDecoder check
 		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
@@ -898,13 +896,12 @@ func TestExecParse(t *testing.T) {
 
 		reader := bytes.NewReader(buf.Bytes())
 
-		process, empty, err := execParse(reader)
+		process, err := execParse(reader)
 		require.NoError(t, err)
 
 		// execParse check
 		assert.Equal(t, string(filename), process.Filename)
 		assert.Equal(t, string(args)+string(cwd), process.Args)
-		assert.False(t, empty)
 
 		// ArgsDecoder check
 		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
@@ -943,13 +940,12 @@ func TestExecParse(t *testing.T) {
 
 		reader := bytes.NewReader(buf.Bytes())
 
-		process, empty, err := execParse(reader)
+		process, err := execParse(reader)
 		require.NoError(t, err)
 
 		// execParse check
 		assert.Equal(t, string(filename), process.Filename)
 		assert.Equal(t, string(args)+string(cwd), process.Args)
-		assert.False(t, empty)
 
 		// ArgsDecoder check
 		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
@@ -986,13 +982,12 @@ func TestExecParse(t *testing.T) {
 
 		reader := bytes.NewReader(buf.Bytes())
 
-		process, empty, err := execParse(reader)
+		process, err := execParse(reader)
 		require.NoError(t, err)
 
 		// execParse check
 		assert.Equal(t, strutils.UTF8FromBPFBytes(filename), process.Filename)
 		assert.Equal(t, strutils.UTF8FromBPFBytes(args)+strutils.UTF8FromBPFBytes(cwd), process.Args)
-		assert.False(t, empty)
 
 		// ArgsDecoder check
 		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
