@@ -104,7 +104,7 @@ clean: cli-clean tarball-clean
 
 ##@ Build and install
 
-pkg/errmetrics/fileids.json: bpf/tetragon/fileids.h
+pkg/errmetrics/fileids.json: bpf/errmetrics/fileids.h
 	go run ./cmd/bpf-fileids pkg/errmetrics/fileids.json
 
 .PHONY: fileids
