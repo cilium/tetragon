@@ -788,10 +788,7 @@ func TestExecParse(t *testing.T) {
 		t.Fatalf("observer.InitDataCache: %s", err)
 	}
 
-	exec := processapi.MsgExec{
-		Size: processapi.MSG_SIZEOF_EXECVE,
-	}
-
+	exec := processapi.MsgExec{}
 	filename := []byte("/bin/krava")
 	cwd := []byte("/home/krava")
 
@@ -808,7 +805,9 @@ func TestExecParse(t *testing.T) {
 
 	var err error
 
-	{
+	t.Run("1", func(t *testing.T) {
+		observer.DataPurge()
+
 		// - filename (string)
 		// - no args
 		// - cwd (string)
@@ -833,11 +832,11 @@ func TestExecParse(t *testing.T) {
 		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
 		assert.Empty(t, decArgs)
 		assert.Equal(t, string(cwd), decCwd)
-	}
+	})
 
-	observer.DataPurge()
+	t.Run("2", func(t *testing.T) {
+		observer.DataPurge()
 
-	{
 		// - filename (data event)
 		// - no args
 		// - cwd (string)
@@ -868,11 +867,11 @@ func TestExecParse(t *testing.T) {
 		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
 		assert.Empty(t, decArgs)
 		assert.Equal(t, string(cwd), decCwd)
-	}
+	})
 
-	observer.DataPurge()
+	t.Run("3", func(t *testing.T) {
+		observer.DataPurge()
 
-	{
 		// - filename (string)
 		// - args (data event)
 		// - cwd (string)
@@ -908,11 +907,11 @@ func TestExecParse(t *testing.T) {
 		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
 		assert.Equal(t, "arg1 arg2", decArgs)
 		assert.Equal(t, string(cwd), decCwd)
-	}
+	})
 
-	observer.DataPurge()
+	t.Run("4", func(t *testing.T) {
+		observer.DataPurge()
 
-	{
 		// - filename (data event)
 		// - args (data event)
 		// - cwd (string)
@@ -952,9 +951,11 @@ func TestExecParse(t *testing.T) {
 		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
 		assert.Equal(t, "arg1 arg2", decArgs)
 		assert.Equal(t, string(cwd), decCwd)
-	}
+	})
 
-	{
+	t.Run("5", func(t *testing.T) {
+		observer.DataPurge()
+
 		// - filename (non-utf8)
 		// - args (data event, non-utf8)
 		// - cwd (string)
@@ -992,7 +993,8 @@ func TestExecParse(t *testing.T) {
 		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
 		assert.Equal(t, "�( arg2", decArgs)
 		assert.Equal(t, strutils.UTF8FromBPFBytes(cwd), decCwd)
-	}
+	})
+
 	observer.DataPurge()
 }
 
