@@ -18,6 +18,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/cmd/tetra/common"
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/errmetrics"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -245,8 +246,7 @@ func NamespaceState(fname string) error {
 }
 
 func bpfErrMetricsCmd() *cobra.Command {
-
-	mapFname := filepath.Join(defaults.DefaultMapRoot, defaults.DefaultMapPrefix, errmetrics.MapName)
+	mapFname := bpf.MapPath(errmetrics.MapName)
 	var output string
 
 	ret := &cobra.Command{
@@ -288,7 +288,11 @@ func ErrMetrics(fname string, out io.Writer, output string) error {
 		w := tabwriter.NewWriter(out, 0, 0, 3, ' ', 0)
 		fmt.Fprintln(w, "Location\tError\tCount")
 		for _, entry := range ret {
-			fmt.Fprintf(w, "%s\t%s\t%d\n", entry.Location, entry.Error, entry.Count)
+			location := fmt.Sprintf("%s:%d", entry.FileName, entry.LineNumber)
+			if entry.HelperFunc != "" {
+				location = entry.HelperFunc + "@" + location
+			}
+			fmt.Fprintf(w, "%s\t%s(%d)\t%d\n", location, entry.ErrorName, entry.Error, entry.Count)
 		}
 		w.Flush()
 	default:

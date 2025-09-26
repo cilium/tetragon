@@ -9,6 +9,7 @@ import (
 	grpcmetrics "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/cilium/tetragon/pkg/errmetrics"
 	"github.com/cilium/tetragon/pkg/eventcache"
 	"github.com/cilium/tetragon/pkg/exporter"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
@@ -101,4 +102,6 @@ func registerHealthMetrics(group metrics.Group) {
 	group.MustRegister(overhead.NewBPFCollector())
 	// cri metrics
 	crimetrics.RegisterMetrics(group)
+	// error metrics BPF metrics
+	group.MustRegister(errmetrics.NewErrorMetricsCollector())
 }
