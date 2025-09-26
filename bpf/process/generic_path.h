@@ -6,6 +6,7 @@
 
 #include "bpf_d_path.h"
 #include "compiler.h"
+#include "bpf_errmetrics.h"
 
 enum {
 	STATE_INIT,
@@ -40,22 +41,22 @@ FUNC_INLINE long path_init(void *ctx, struct generic_path *gp, struct bpf_map_de
 		return 0;
 
 	buf = buffer + MAX_BUF_LEN - 1;
-	probe_read(&dentry, sizeof(dentry), _(&path->dentry));
+	with_errmetrics(probe_read, &dentry, sizeof(dentry), _(&path->dentry));
 	if (d_unlinked(dentry)) {
 		// prepend will never return a value != 0
 		prepend(&buf, &buflen, " (deleted)", 10);
 	}
 
 	task = (struct task_struct *)get_current_task();
-	probe_read(&fs, sizeof(fs), _(&task->fs));
+	with_errmetrics(probe_read, &fs, sizeof(fs), _(&task->fs));
 
 	root = _(&fs->root);
 	path = gp->path;
 
-	probe_read(&gp->root_dentry, sizeof(gp->root_dentry), _(&root->dentry));
-	probe_read(&gp->root_mnt, sizeof(gp->root_mnt), _(&root->mnt));
-	probe_read(&gp->dentry, sizeof(gp->dentry), _(&path->dentry));
-	probe_read(&gp->vfsmnt, sizeof(gp->vfsmnt), _(&path->mnt));
+	with_errmetrics(probe_read, &gp->root_dentry, sizeof(gp->root_dentry), _(&root->dentry));
+	with_errmetrics(probe_read, &gp->root_mnt, sizeof(gp->root_mnt), _(&root->mnt));
+	with_errmetrics(probe_read, &gp->dentry, sizeof(gp->dentry), _(&path->dentry));
+	with_errmetrics(probe_read, &gp->vfsmnt, sizeof(gp->vfsmnt), _(&path->mnt));
 	gp->mnt = real_mount(gp->vfsmnt);
 
 	gp->cnt = 0;
