@@ -10,7 +10,7 @@
 #include "bpf_process_event.h"
 #include "bpf_helpers.h"
 #include "bpf_rate.h"
-#include "bpf_errmetrics.h"
+#include "errmetrics.h"
 #include "bpf_mbset.h"
 #include "bpf_ktime.h"
 

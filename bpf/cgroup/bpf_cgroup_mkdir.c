@@ -9,7 +9,7 @@
 #include "bpf_cgroup.h"
 #include "bpf_task.h"
 #include "bpf_cgroup_events.h"
-#include "bpf_errmetrics.h"
+#include "errmetrics.h"
 
 char _license[] __attribute__((section(("license")), used)) = "GPL";
 #ifdef VMLINUX_KERNEL_VERSION

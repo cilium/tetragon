@@ -5,7 +5,7 @@
 #define __RETPROBE_MAP_H__
 
 #include "bpf_tracing.h"
-#include "bpf_errmetrics.h"
+#include "errmetrics.h"
 
 struct retprobe_key {
 	u64 id;

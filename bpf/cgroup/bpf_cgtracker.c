@@ -6,7 +6,7 @@
 #include "bpf_helpers.h"
 #include "bpf_cgroup.h"
 #include "bpf_tracing.h"
-#include "bpf_errmetrics.h"
+#include "errmetrics.h"
 #include "cgtracker.h"
 
 char _license[] __attribute__((section(("license")), used)) = "GPL";

@@ -104,13 +104,6 @@ clean: cli-clean tarball-clean
 
 ##@ Build and install
 
-pkg/errmetrics/fileids.json: bpf/tetragon/fileids.h
-	go run -a ./cmd/bpf-fileids pkg/errmetrics/fileids.json
-
-.PHONY: fileids
-fileids: pkg/errmetrics/fileids.json
-
-
 .PHONY: tetragon
 tetragon: ## Compile the Tetragon agent.
 	$(GO_BUILD) ./cmd/tetragon/
@@ -120,7 +113,7 @@ tetragon-operator: ## Compile the Tetragon operator.
 	$(GO_BUILD) -o $@ ./operator
 
 .PHONY: tetra
-tetra: fileids ## Compile the Tetragon gRPC client.
+tetra: ## Compile the Tetragon gRPC client.
 	$(GO_BUILD) ./cmd/tetra/
 
 .PHONY: tetragon-bpf

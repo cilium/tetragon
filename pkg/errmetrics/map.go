@@ -10,7 +10,9 @@ import (
 	"github.com/cilium/ebpf/asm"
 )
 
-const UnknownFname = "<unknown>"
+var (
+	MapName = "tg_errmetrics_map"
+)
 
 type Map struct {
 	*ebpf.Map
@@ -54,16 +56,8 @@ func (m Map) Dump() ([]DumpEntry, error) {
 	var val []MapVal
 	var ret []DumpEntry
 
-	fileIDs, err := GetFileIDs()
-	if err != nil {
-		return nil, err
-	}
 	iter := m.Iterate()
 	for iter.Next(&key, &val) {
-		fname, ok := fileIDs[int(key.FileID)]
-		if !ok {
-			fname = UnknownFname
-		}
 		helperFunc, _ := asm.BuiltinFuncForPlatform(runtime.GOOS, key.HelperID)
 		var helperFuncName string
 		if helperFunc != asm.FnUnspec {
@@ -75,7 +69,7 @@ func (m Map) Dump() ([]DumpEntry, error) {
 		}
 		ret = append(ret, DumpEntry{
 			HelperFunc: helperFuncName,
-			FileName:   fname,
+			FileName:   BPFFileName(key.FileID),
 			LineNumber: key.LineNR,
 			Error:      key.Err,
 			ErrorName:  GetErrorMessage(key.Err),

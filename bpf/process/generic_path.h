@@ -6,7 +6,7 @@
 
 #include "bpf_d_path.h"
 #include "compiler.h"
-#include "bpf_errmetrics.h"
+#include "errmetrics.h"
 
 enum {
 	STATE_INIT,
