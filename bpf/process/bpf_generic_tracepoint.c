@@ -15,6 +15,7 @@
 #include "types/basic.h"
 #include "policy_filter.h"
 #include "syscall64.h"
+#include "bpf_errmetrics.h"
 
 int generic_tracepoint_process_event(void *ctx);
 int generic_tracepoint_filter(void *ctx);
@@ -59,7 +60,7 @@ FUNC_INLINE unsigned long get_ctx_ul(void *src, int type)
 	case u64_ty: {
 		u64 ret;
 
-		probe_read(&ret, sizeof(u64), src);
+		with_errmetrics(probe_read, &ret, sizeof(u64), src);
 		if (type == syscall64_type)
 			ret = syscall64_set_32bit(ret);
 		return ret;
@@ -68,7 +69,7 @@ FUNC_INLINE unsigned long get_ctx_ul(void *src, int type)
 	case size_type: {
 		size_t ret;
 
-		probe_read(&ret, sizeof(size_t), src);
+		with_errmetrics(probe_read, &ret, sizeof(size_t), src);
 		return (unsigned long)ret;
 	}
 
@@ -76,7 +77,7 @@ FUNC_INLINE unsigned long get_ctx_ul(void *src, int type)
 	case s32_ty: {
 		s32 ret;
 
-		probe_read(&ret, sizeof(u32), src);
+		with_errmetrics(probe_read, &ret, sizeof(u32), src);
 		return ret;
 	}
 
@@ -84,21 +85,21 @@ FUNC_INLINE unsigned long get_ctx_ul(void *src, int type)
 	case u32_ty: {
 		u32 ret;
 
-		probe_read(&ret, sizeof(u32), src);
+		with_errmetrics(probe_read, &ret, sizeof(u32), src);
 		return ret;
 	}
 
 	case char_buf:
 	case string_type: {
 		char *buff;
-		probe_read(&buff, sizeof(char *), src);
+		with_errmetrics(probe_read, &buff, sizeof(char *), src);
 		return (unsigned long)buff;
 	}
 
 	case data_loc_type: {
 		u32 ret;
 
-		probe_read(&ret, sizeof(ret), src);
+		with_errmetrics(probe_read, &ret, sizeof(ret), src);
 		return ret;
 	}
 
@@ -109,28 +110,28 @@ FUNC_INLINE unsigned long get_ctx_ul(void *src, int type)
 	case skb_type: {
 		struct sk_buff *skb;
 
-		probe_read(&skb, sizeof(struct sk_buff *), src);
+		with_errmetrics(probe_read, &skb, sizeof(struct sk_buff *), src);
 		return (unsigned long)skb;
 	}
 
 	case sock_type: {
 		struct sock *sk;
 
-		probe_read(&sk, sizeof(struct sock *), src);
+		with_errmetrics(probe_read, &sk, sizeof(struct sock *), src);
 		return (unsigned long)sk;
 	}
 
 	case sockaddr_type: {
 		struct sockaddr *address;
 
-		probe_read(&address, sizeof(struct sockaddr *), src);
+		with_errmetrics(probe_read, &address, sizeof(struct sockaddr *), src);
 		return (unsigned long)address;
 	}
 
 	case socket_type: {
 		struct socket *sock;
 
-		probe_read(&sock, sizeof(struct socket *), src);
+		with_errmetrics(probe_read, &sock, sizeof(struct socket *), src);
 		return (unsigned long)sock;
 	}
 

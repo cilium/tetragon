@@ -58,13 +58,13 @@ read_args(void *ctx, struct msg_execve_event *event)
 	long off;
 	int err;
 
-	probe_read(&mm, sizeof(mm), _(&task->mm));
+	with_errmetrics(probe_read, &mm, sizeof(mm), _(&task->mm));
 	if (!mm)
 		return 0;
 
-	probe_read(&start_stack, sizeof(start_stack),
-		   _(&mm->arg_start));
-	probe_read(&end_stack, sizeof(start_stack), _(&mm->arg_end));
+	with_errmetrics(probe_read, &start_stack, sizeof(start_stack),
+			_(&mm->arg_start));
+	with_errmetrics(probe_read, &end_stack, sizeof(start_stack), _(&mm->arg_end));
 
 	if (!start_stack || !end_stack)
 		return 0;
@@ -98,7 +98,7 @@ read_args(void *ctx, struct msg_execve_event *event)
 
 	if (args_size < BUFFER && args_size < free_size) {
 		size = args_size & 0x3ff /* BUFFER - 1 */;
-		err = probe_read(args, size, (char *)start_stack);
+		err = with_errmetrics(probe_read, args, size, (char *)start_stack);
 		if (err < 0) {
 			p->flags |= EVENT_ERROR_ARGS;
 			size = 0;
@@ -337,14 +337,14 @@ execve_send(void *ctx __arg_ctx)
 
 		// read from proc exe stored at execve time
 		if (event->exe.len <= BINARY_PATH_MAX_LEN) {
-			curr->bin.path_length = probe_read(curr->bin.path, event->exe.len, event->exe.buf);
+			curr->bin.path_length = with_errmetrics(probe_read, curr->bin.path, event->exe.len, event->exe.buf);
 			if (curr->bin.path_length == 0)
 				curr->bin.path_length = event->exe.len;
 			__u64 revlen = event->exe.len;
 
 			if (event->exe.len > STRING_POSTFIX_MAX_LENGTH - 1)
 				revlen = STRING_POSTFIX_MAX_LENGTH - 1;
-			probe_read(curr->bin.end, revlen, event->exe.end);
+			with_errmetrics(probe_read, curr->bin.end, revlen, event->exe.end);
 		}
 
 		off = event->exe.arg_start;
@@ -352,7 +352,7 @@ execve_send(void *ctx __arg_ctx)
 			len = sizeof(curr->bin.args) - 2;
 		else
 			len = event->exe.arg_len;
-		probe_read(curr->bin.args, len, (char *)&event->process + off);
+		with_errmetrics(probe_read, curr->bin.args, len, (char *)&event->process + off);
 
 		// there's a null byte between each argv element, so we terminate with
 		// two of them to make it possible to identify the end of the buffer

@@ -18,5 +18,21 @@
   {
     "id": 116,
     "filename": "retprobe_map.h"
+  },
+  {
+    "id": 117,
+    "filename": "generic_path.h"
+  },
+  {
+    "id": 118,
+    "filename": "bpf_generic_tracepoint.c"
+  },
+  {
+    "id": 119,
+    "filename": "process.h"
+  },
+  {
+    "id": 120,
+    "filename": "bpf_execve_event.c"
   }
 ]

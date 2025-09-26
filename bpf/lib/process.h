@@ -11,6 +11,7 @@
 #include "../process/string_maps.h"
 #include "api.h"
 #include "policy_stats.h"
+#include "bpf_errmetrics.h"
 
 /* Applying 'packed' attribute to structs causes clang to write to the
  * members byte-by-byte, as offsets may not be aligned. This is bad for
@@ -650,10 +651,9 @@ read_exe(struct task_struct *task, struct heap_exe *exe)
 		exe->len = BINARY_PATH_MAX_LEN - 1;
 	asm volatile("%[len] &= 0xff;\n"
 		     : [len] "+r"(exe->len));
-	probe_read(exe->buf, exe->len, buffer);
+	with_errmetrics(probe_read, exe->buf, exe->len, buffer);
 	if (revlen < STRING_POSTFIX_MAX_LENGTH)
-		probe_read(exe->end, revlen, (char *)(buffer + offset));
-
+		with_errmetrics(probe_read, exe->end, revlen, (char *)(buffer + offset));
 	return exe->len;
 }
 #endif
