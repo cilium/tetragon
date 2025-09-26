@@ -3660,7 +3660,14 @@ func TestKprobeMatchArgsFdPrefix(t *testing.T) {
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpCheckers...)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	// This check is failing in CI on bpf-next but working locally. This will give it a few
+	// more chances for the events to show up.
+	for range 3 {
+		err = jsonchecker.JsonTestCheck(t, checker)
+		if err == nil {
+			break
+		}
+	}
 	require.NoError(t, err)
 }
 
@@ -4379,13 +4386,16 @@ func TestLoadKprobeSensor(t *testing.T) {
 			{Name: "fdinstall_map", Progs: []uint{2, 5, 7, 9}},
 
 			// generic_kprobe_event
-			{Name: "tg_conf_map", Progs: []uint{0}},
+			{Name: "tg_conf_map", Progs: []uint{0, 2, 6, 10}},
 
 			// shared with base sensor
 			{Name: "execve_map", Progs: []uint{4, 5, 6, 7, 9}},
 
 			// generic_kprobe_process_event*,generic_kprobe_output,generic_retkprobe_output
 			{Name: "tcpmon_map", Progs: []uint{2, 6, 10}},
+
+			// generic_kprobe_process_event*,generic_kprobe_output,generic_retkprobe_output
+			{Name: "tg_rb_events", Progs: []uint{2, 6, 10}},
 
 			// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
 			{Name: "socktrack_map", Progs: []uint{2, 5, 7, 9}},
@@ -4431,9 +4441,6 @@ func TestLoadKprobeSensor(t *testing.T) {
 
 			// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
 			{Name: "fdinstall_map", Progs: []uint{2, 5, 8, 10}},
-
-			// generic_kprobe_event
-			{Name: "tg_conf_map", Progs: []uint{0}},
 		}
 
 		if config.EnableLargeProgs() {
@@ -4445,12 +4452,26 @@ func TestLoadKprobeSensor(t *testing.T) {
 
 			// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "socktrack_map", Progs: []uint{2, 5, 8, 10}})
+
+			if config.EnableV511Progs() {
+				// generic_kprobe_process_event*,generic_kprobe_output,generic_retkprobe_output
+				sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_rb_events", Progs: []uint{2, 6, 11}})
+
+				// generic_kprobe_event
+				sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0, 2, 6, 11}})
+			} else {
+				// generic_kprobe_event
+				sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}})
+			}
 		} else {
 			// shared with base sensor
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 8}})
 
 			// generic_kprobe_output,generic_retkprobe_output
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tcpmon_map", Progs: []uint{6, 11}})
+
+			// generic_kprobe_event
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}})
 		}
 	}
 

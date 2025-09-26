@@ -457,9 +457,6 @@ func TestLoadTracepointSensor(t *testing.T) {
 
 		// all kprobe but generic_tracepoint_filter
 		{Name: "config_map", Progs: []uint{0, 2}},
-
-		// generic_tracepoint_event
-		{Name: "tg_conf_map", Progs: []uint{0}},
 	}
 
 	if config.EnableLargeProgs() {
@@ -468,12 +465,21 @@ func TestLoadTracepointSensor(t *testing.T) {
 
 		// generic_tracepoint_event*,generic_tracepoint_filter
 		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "buffer_heap_map", Progs: []uint{2, 3}})
+
+		if config.EnableV511Progs() {
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0, 5}})
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_rb_events", Progs: []uint{5}})
+		} else {
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}})
+		}
 	} else {
 		// shared with base sensor
 		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{3}})
 
 		// only generic_tracepoint_event*
 		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "buffer_heap_map", Progs: []uint{2}})
+
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}})
 	}
 
 	readHook := `

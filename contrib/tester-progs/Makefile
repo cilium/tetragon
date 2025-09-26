@@ -31,7 +31,8 @@ PROGS = sigkill-tester \
 	forks \
 	capabilities-gained \
 	follow_children_1 \
-	usdt
+	usdt \
+	capabilities-ioperm
 
 
 all: $(PROGS)
@@ -85,6 +86,9 @@ capabilities-gained: capabilities-gained.c
 	$(GCC) -Wall $< -o $@ -lcap
 
 usdt: usdt.c
+	$(GCC) -Wall $< -o $@
+
+capabilities-ioperm: capabilities-ioperm.c
 	$(GCC) -Wall $< -o $@
 
 # NB: compile the 32 bit version of enforcer-tester statically so that we don't

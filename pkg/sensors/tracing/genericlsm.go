@@ -368,6 +368,9 @@ func createGenericLsmSensor(
 	}
 
 	maps = append(maps, program.MapUserFrom(base.ExecveMap))
+	if config.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
+		maps = append(maps, program.MapUserFrom(base.RingBufEvents))
+	}
 
 	return &sensors.Sensor{
 		Name:  name,
@@ -430,7 +433,7 @@ func imaProgName(lsmEntry *genericLsm) (string, string) {
 	}
 	if config.EnableV61Progs() {
 		pName = "bpf_generic_lsm_ima_" + pType + "_v61.o"
-	} else if kernels.MinKernelVersion("5.11") {
+	} else if config.EnableV511Progs() {
 		pName = "bpf_generic_lsm_ima_" + pType + "_v511.o"
 	}
 	return pName, pType

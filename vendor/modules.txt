@@ -50,6 +50,7 @@ github.com/cilium/ebpf/internal/unix
 github.com/cilium/ebpf/link
 github.com/cilium/ebpf/perf
 github.com/cilium/ebpf/pin
+github.com/cilium/ebpf/ringbuf
 github.com/cilium/ebpf/rlimit
 # github.com/cilium/little-vm-helper v0.0.26
 ## explicit; go 1.24.0
