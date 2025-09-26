@@ -77,7 +77,7 @@ jobs:
       if: failure()
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
-        name: tetragon-json
+        name: tetragon-json-${{ matrix.os }}
         path: /tmp/tetragon.gotest*
         retention-days: 5
 
@@ -85,7 +85,7 @@ jobs:
       if: failure()
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
-        name: tetragon-bugtool
+        name: tetragon-bugtool-${{ matrix.os }}
         path: /tmp/tetragon-bugtool*
         retention-days: 5
 
