@@ -1007,6 +1007,36 @@ func TestExecParse(t *testing.T) {
 		assert.Equal(t, strutils.UTF8FromBPFBytes(cwd), decCwd)
 	})
 
+	t.Run("Filename with api.EventErrorFilename", func(t *testing.T) {
+		observer.DataPurge()
+
+		// - filename (api.EventErrorFilename)
+		// - no args
+		// - cwd (string)
+
+		exec.Flags = api.EventErrorFilename
+		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + len(cwd))
+		exec.SizePath = 0
+		exec.SizeArgs = 0
+		exec.SizeCwd = uint16(len(cwd))
+
+		var buf bytes.Buffer
+		binary.Write(&buf, binary.LittleEndian, exec)
+		binary.Write(&buf, binary.LittleEndian, cwd)
+
+		reader := bytes.NewReader(buf.Bytes())
+
+		process, err := execParse(reader)
+		require.NoError(t, err)
+
+		assert.Equal(t, "<enomem>", process.Filename)
+		assert.Equal(t, string(cwd), process.Args)
+
+		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
+		assert.Empty(t, decArgs)
+		assert.Equal(t, string(cwd), decCwd)
+	})
+
 	observer.DataPurge()
 }
 
