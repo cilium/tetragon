@@ -388,6 +388,8 @@ crds:
 rthooks:
   # -- Enable the Tetragon rthooks daemonset
   enabled: false
+  # -- tetragon-rthooks name override
+  nameOverride: ""
   # -- Method to use for installing  rthooks. Values:
   #
   #    "oci-hooks":
