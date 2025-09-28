@@ -1630,6 +1630,8 @@ There are different types supported for each operator. In case of `matchArgs`:
 * Protocol
 * Family
 * State
+* InRange - In interval range
+* NotInRange - Not in interval range
 
 The operator types `Equal` and `NotEqual` are used to test whether the certain
 argument of a system call is equal to the defined value in the CR.
@@ -1724,6 +1726,20 @@ can be specified as either `AF_INET6` or 10.
 The `State` operator can accept integer values to match against or the equivalent
 TCP_ enumeration. For example, an established socket can be matched with
 `TCP_ESTABLISHED` or 1; a closed socket with `TCP_CLOSE` or 7.
+
+The `InRange` and `NotInRange` operators accept integer values that are within the
+specified range or NOT respectively. The range interval is specified with `:` separating
+minimum and maximum value and includes both values as part of range.
+
+For example following YAML snippet we match all values that are NOT `1,2,3,4 or 5`.
+
+```yaml
+matchArgs:
+- index: 2
+  operator: "NotInRange"
+  values:
+  - 1:5
+```
 
 In case of `matchPIDs`:
 
