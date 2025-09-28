@@ -33,6 +33,10 @@ Resources names
 {{- printf "%s-config" (include "tetragon-operator.name" .) | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
+{{- define "tetragon-rthooks.name" -}}
+{{- default (printf "%s-rthooks" .Release.Name) .Values.rthooks.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
 
 {{/*
 Common labels
