@@ -6,7 +6,9 @@ package manager
 import (
 	"context"
 	"fmt"
+	"math"
 	"sync"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -15,7 +17,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	cmCache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -85,12 +89,10 @@ func newControllerManager() (*ControllerManager, error) {
 		cfg = ctrl.GetConfigOrDie()
 		inCluster = true
 	}
-	controllerManager, err := ctrl.NewManager(cfg, controllerOptions)
+	// Try to initialize the controller manager with retries
+	manager, err := newControllerManagerWithRetry(cfg, controllerOptions)
 	if err != nil {
 		return nil, err
-	}
-	manager = &ControllerManager{
-		Manager: controllerManager,
 	}
 	if inCluster {
 		err = manager.addPodInformer()
@@ -215,4 +217,67 @@ func (cm *ControllerManager) FindPod(podID string) (*corev1.Pod, error) {
 
 func (cm *ControllerManager) FindMirrorPod(hash string) (*corev1.Pod, error) {
 	return watcher.FindMirrorPod(hash, cm.podInformer)
+}
+
+// newControllerManagerWithRetry attempts to create a new ControllerManager instance with retry logic.
+// It uses the provided Kubernetes REST config and controller options. The number of retry attempts is
+// determined by conf.K8sConfigRetry(): a negative value means infinite retries, zero is invalid, and
+// a positive value specifies the maximum number of retries. The function applies exponential backoff
+// between retries. If the ControllerManager is created successfully, it returns the instance; otherwise,
+// it returns an error after exhausting all retries or encountering a fatal error.
+//
+// Parameters:
+//   - cfg: Kubernetes REST configuration.
+//   - controllerOptions: Options for the controller manager.
+//
+// Returns:
+//   - *ControllerManager: The created controller manager instance, or nil on failure.
+//   - error: An error if the controller manager could not be created.
+func newControllerManagerWithRetry(cfg *rest.Config, controllerOptions ctrl.Options) (cm *ControllerManager, err error) {
+
+	retryCount := conf.K8sConfigRetry()
+	if retryCount < 0 {
+		// max int32 retries, until connection succeeds.
+		logger.GetLogger().Info("setting retryCount to max int32 retries")
+		retryCount = math.MaxInt32
+	} else if retryCount == 0 {
+		// 1 means no retries, just one connection attempt.
+		logger.GetLogger().Info("retryCount is zero, which is invalid. Defaulting to 1")
+		retryCount = 1
+	}
+
+	var (
+		attempts  = 0
+		startTime = time.Now()
+	)
+
+	backoff := retry.DefaultBackoff
+	// localBackoff is a copy of backoff for retries.
+	localBackoff := backoff
+	localBackoff.Steps = retryCount
+	err = retry.RetryOnConflict(localBackoff, func() error {
+		attempts++
+		mgr, mgrErr := ctrl.NewManager(cfg, controllerOptions)
+		if mgrErr != nil {
+			logger.GetLogger().Warn("failed to create controller manager", logfields.Error, mgrErr,
+				"attempt", attempts)
+			// retry upon error
+			return mgrErr
+		}
+		cm = &ControllerManager{
+			Manager: mgr,
+		}
+		// success
+		return nil
+	})
+
+	duration := time.Since(startTime)
+	if err != nil {
+		logger.GetLogger().Error("failed to create controller manager", logfields.Error, err,
+			"attempts", attempts, "duration", duration.String(), "retryCount", retryCount)
+		return nil, err
+	}
+	logger.GetLogger().Info("created controller manager", "attempts", attempts,
+		"duration", duration.String())
+	return cm, nil
 }

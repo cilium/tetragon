@@ -40,8 +40,9 @@ const (
 	KeyLogLevel  = "log-level"
 	KeyLogFormat = "log-format"
 
-	KeyEnableK8sAPI      = "enable-k8s-api"
-	KeyK8sKubeConfigPath = "k8s-kubeconfig-path"
+	KeyEnableK8sAPI         = "enable-k8s-api"
+	KeyK8sKubeConfigPath    = "k8s-kubeconfig-path"
+	KeyK8sControlPlaneRetry = "k8s-controlplane-retry"
 
 	KeyEnablePodAnnotations = "enable-pod-annotations"
 
@@ -164,6 +165,7 @@ func ReadAndSetFlags() error {
 	Config.EnableProcessNs = viper.GetBool(KeyEnableProcessNs)
 	Config.EnableK8s = viper.GetBool(KeyEnableK8sAPI)
 	Config.K8sKubeConfigPath = viper.GetString(KeyK8sKubeConfigPath)
+	Config.K8sControlPlaneRetry = viper.GetInt(KeyK8sControlPlaneRetry)
 
 	Config.DisableKprobeMulti = viper.GetBool(KeyDisableKprobeMulti)
 
@@ -373,6 +375,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.String(KeyLogFormat, "text", "Set log format")
 	flags.Bool(KeyEnableK8sAPI, false, "Access Kubernetes API to associate Tetragon events with Kubernetes pods")
 	flags.String(KeyK8sKubeConfigPath, "", "Absolute path of the kubernetes kubeconfig file")
+	flags.Int(KeyK8sControlPlaneRetry, 1, "Number of attempts for Kubernetes control plane connection (negative for infinite, zero is invalid, positive for max attempts)")
 	flags.String(KeyMetricsServer, "", "Metrics server address (e.g. ':2112'). Disabled by default")
 	flags.String(KeyMetricsLabelFilter, "namespace,workload,pod,binary", "Comma-separated list of enabled metrics labels. Unknown labels will be ignored.")
 	flags.String(KeyServerAddress, "localhost:54321", "gRPC server address (e.g. 'localhost:54321' or 'unix:///var/run/tetragon/tetragon.sock'). An empty address disables the gRPC server")
