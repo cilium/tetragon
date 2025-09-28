@@ -168,6 +168,10 @@ options:
       shorthand: h
       default_value: "false"
       usage: help for tetragon
+    - name: k8s-controlplane-retry
+      default_value: "1"
+      usage: |
+        Number of attempts for Kubernetes control plane connection (negative for infinite, zero is invalid, positive for max attempts)
     - name: k8s-kubeconfig-path
       usage: Absolute path of the kubernetes kubeconfig file
     - name: keep-sensors-on-exit

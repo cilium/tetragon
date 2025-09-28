@@ -40,10 +40,11 @@ type config struct {
 	EnableProcessLsmAncestors        bool
 	EnableProcessUsdtAncestors       bool
 
-	EnableProcessNs   bool
-	EnableProcessCred bool
-	EnableK8s         bool
-	K8sKubeConfigPath string
+	EnableProcessNs      bool
+	EnableProcessCred    bool
+	EnableK8s            bool
+	K8sKubeConfigPath    string
+	K8sControlPlaneRetry int
 
 	DisableKprobeMulti bool
 
