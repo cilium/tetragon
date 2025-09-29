@@ -9,9 +9,7 @@ import (
 
 // TODO: Harmonize these with the API docs (Flags field in tetragon.Process)
 var FlagStrings = map[uint32]string{
-	api.EventExecve: "execve",
-	// nolint We still want to support this even though it's deprecated
-	api.EventExecveAt:              "execveat",
+	api.EventExecve:                "execve",
 	api.EventProcFS:                "procFS",
 	api.EventTruncFilename:         "truncFilename",
 	api.EventTruncArgs:             "truncArgs",
@@ -38,8 +36,6 @@ var FlagStrings = map[uint32]string{
 
 var flagsOrdered = []uint32{
 	api.EventExecve,
-	// nolint We still want to support this even though it's deprecated
-	api.EventExecveAt,
 	api.EventProcFS,
 	api.EventTruncFilename,
 	api.EventTruncArgs,
