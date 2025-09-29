@@ -44,7 +44,7 @@ func ParseMode(s string) (Mode, error) {
 func ModeFromBPFMap(fname string) (Mode, error) {
 	m, err := ebpf.LoadPinnedMap(fname, &ebpf.LoadPinOptions{ReadOnly: true})
 	if err != nil {
-		return InvalidMode, err
+		return InvalidMode, fmt.Errorf("failed to open bpf map %s: %w", fname, err)
 	}
 	defer m.Close()
 
