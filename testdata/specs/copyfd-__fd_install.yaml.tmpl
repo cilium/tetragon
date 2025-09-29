@@ -14,11 +14,10 @@ spec:
     - index: 2
       type: "file"
     selectors:
-    - matchPIDs:
+    - matchBinaries:
       - operator: In
-        followForks: true
         values:
-        - {{.MatchedPID}}
+        - {{.MatchedBinary}}
       matchArgs:
       - index: 2
         operator: "Postfix"
@@ -36,11 +35,10 @@ spec:
     - index: 1
       type: "int"
     selectors:
-    - matchPIDs:
+    - matchBinaries:
       - operator: In
-        followForks: true
         values:
-        - {{.MatchedPID}}
+        - {{.MatchedBinary}}
       matchArgs:
       - index: 0
         operator: "Postfix"
@@ -60,11 +58,10 @@ spec:
     - index: 2
       type: "int"
     selectors:
-    - matchPIDs:
+    - matchBinaries:
       - operator: In
-        followForks: true
         values:
-        - {{.MatchedPID}}
+        - {{.MatchedBinary}}
       matchArgs:
       - index: 0
         operator: "Postfix"
@@ -80,11 +77,10 @@ spec:
     - index: 0
       type: "int"
     selectors:
-    - matchPIDs:
+    - matchBinaries:
       - operator: In
-        followForks: true
         values:
-        - {{.MatchedPID}}
+        - {{.MatchedBinary}}
       matchActions:
       - action: UnfollowFD
         argFd: 0
@@ -100,11 +96,10 @@ spec:
     - index: 2
       type: "size_t"
     selectors:
-    - matchPIDs:
+    - matchBinaries:
       - operator: In
-        followForks: true
         values:
-        - {{.MatchedPID}}
+        - {{.MatchedBinary}}
       matchArgs:
       - index: 0
         operator: "Postfix"
