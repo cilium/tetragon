@@ -23,14 +23,8 @@ const (
 	// the buffer size was too small to fit all exec args. Consider increasing
 	// buffer size to avoid this.
 	EventTruncArgs = 0x10
-	// EventTaskWalk indicates we walked the process hierarchy to find a
-	// parent process in the Tetragon buffer. This may happen when we did not
-	// receive an exec event for the immediate parent of a process.
-	// Typically means we are looking at a fork that in turn did another
-	// fork we don't currently track fork events exactly and instead push
-	// an event with the original parent exec data. This flag can provide
-	// this insight into the event if needed. Primarily useful for debugging.
-	EventTaskWalk = 0x20
+	// Available for use
+	EventAvail3 = 0x20
 	// EventMiss is an *error flag* indicating we could not find parent info
 	// in the Tetragon event buffer. If this is set it should be reported to Tetragon
 	// developers for debugging. Tetragon will do its best to recover information

@@ -110,7 +110,7 @@
 #define EVENT_PROCFS		      0x04
 #define EVENT_AVAIL_2		      0x08
 #define EVENT_TRUNC_ARGS	      0x10
-#define EVENT_TASK_WALK		      0x20
+#define EVENT_AVAIL_3		      0x20
 #define EVENT_MISS		      0x40
 #define EVENT_NEEDS_AUID	      0x80
 #define EVENT_ERROR_FILENAME	      0x100
