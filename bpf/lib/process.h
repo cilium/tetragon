@@ -108,7 +108,7 @@
 #define EVENT_EXECVE		      0x01
 #define EVENT_AVAIL_1		      0x02
 #define EVENT_PROCFS		      0x04
-#define EVENT_TRUNC_FILENAME	      0x08
+#define EVENT_AVAIL_2		      0x08
 #define EVENT_TRUNC_ARGS	      0x10
 #define EVENT_TASK_WALK		      0x20
 #define EVENT_MISS		      0x40
