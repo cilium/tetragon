@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"sync/atomic"
 
 	"go.uber.org/multierr"
 
@@ -75,6 +76,9 @@ type collection struct {
 	policyfilterID uint64
 	// state indicates the state of the collection
 	state TracingPolicyState
+
+	warnedOnModeRetrievalFailure  atomic.Bool
+	warnedOnStatsRetrievalFailure atomic.Bool
 }
 
 type collectionMap struct {
@@ -102,7 +106,10 @@ func (c *collection) mode() tetragon.TracingPolicyMode {
 	}
 	mode, err := policyconf.PolicyMode(c.tracingpolicy)
 	if err != nil {
-		logger.GetLogger().Warn("failed to retrieve policy mode", "err", err)
+		if !c.warnedOnModeRetrievalFailure.Load() {
+			logger.GetLogger().Warn("failed to retrieve policy mode", "err", err, "policy", c.name)
+			c.warnedOnModeRetrievalFailure.Store(true)
+		}
 		return tetragon.TracingPolicyMode_TP_MODE_UNKNOWN
 	}
 
@@ -124,7 +131,10 @@ func (c *collection) stats() *tetragon.TracingPolicyStats {
 
 	stats, err := policystats.GetPolicyStats(c.tracingpolicy)
 	if err != nil {
-		logger.GetLogger().Warn("failed to retrieve policy stats", "err", err)
+		if !c.warnedOnStatsRetrievalFailure.Load() {
+			c.warnedOnStatsRetrievalFailure.Store(true)
+			logger.GetLogger().Warn("failed to retrieve policy stats", "err", err, "policy", c.name)
+		}
 		return nil
 	}
 	return &tetragon.TracingPolicyStats{

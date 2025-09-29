@@ -4,6 +4,7 @@
 package policystats
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"github.com/cilium/ebpf"
@@ -38,14 +39,14 @@ type PolicyStats struct {
 func StatsFromBPFMap(fname string) (*PolicyStats, error) {
 	m, err := ebpf.LoadPinnedMap(fname, &ebpf.LoadPinOptions{ReadOnly: true})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to open bpf map %s: %w", fname, err)
 	}
 	defer m.Close()
 
 	var ret PolicyStats
 	zero := uint32(0)
 	if err = m.Lookup(&zero, &ret); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("lookup failed: %w", err)
 	}
 	return &ret, nil
 }
