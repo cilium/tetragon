@@ -51,9 +51,9 @@ func TestCopyFd(t *testing.T) {
 	defer testPipes.Close()
 
 	// makeSpecFile creates a new spec file bsed on the template, and the provided arguments
-	makeSpecFile := func(pid string) string {
+	makeSpecFile := func() string {
 		data := map[string]string{
-			"MatchedPID": pid,
+			"MatchedBinary": testBin,
 		}
 		// For kernels <= 5.10, dup syscall calls fd_install, which calls
 		// __fd_install. fd_install is inlined and if we hook there we miss
@@ -70,7 +70,7 @@ func TestCopyFd(t *testing.T) {
 	}
 
 	pidStr := strconv.Itoa(os.Getpid())
-	specFname := makeSpecFile(pidStr)
+	specFname := makeSpecFile()
 	t.Logf("pid is %s and spec file is %s", pidStr, specFname)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, specFname, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
