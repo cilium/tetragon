@@ -31,10 +31,8 @@ const (
 	// about the process from available kernel data structures instead of
 	// using cached info in this case. However, args will not be available.
 	EventMiss = 0x40
-	// EventNeedsAUID is an *internal flag* for Tetragon to indicate the audit
-	// has not yet been resolved. The BPF hooks look at this flag to
-	// determine if probing the audit system is necessary.
-	EventNeedsAUID = 0x80
+	// Available for use
+	EventAvail4 = 0x80
 	// EventErrorFilename is an *error flag* indicating an error happened
 	// while reading the filename. If this is set it should be reported to
 	// Tetragon developers for debugging.
