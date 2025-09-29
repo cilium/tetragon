@@ -17,10 +17,8 @@ const (
 	// into Tetragon event buffer. All events should have either EventExecve or
 	// EventProcFS set.
 	EventProcFS = 0x04
-	// EventTruncFilename indicates we truncated the processes filename
-	// because the buffer size is too small. Consider increasing buffer
-	// size to avoid this.
-	EventTruncFilename = 0x08
+	// Available for use
+	EventAvail2 = 0x08
 	// EventTruncArgs indicates we truncated the processes arguments because
 	// the buffer size was too small to fit all exec args. Consider increasing
 	// buffer size to avoid this.
