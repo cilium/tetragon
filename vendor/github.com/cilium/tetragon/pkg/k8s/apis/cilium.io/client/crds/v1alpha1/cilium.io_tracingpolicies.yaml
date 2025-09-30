@@ -542,7 +542,6 @@ spec:
                                     (in spec file) to apply fhe filter to.
                                   items:
                                     format: int32
-                                    minimum: 0
                                     type: integer
                                   type: array
                                 index:
@@ -701,7 +700,6 @@ spec:
                                     (in spec file) to apply fhe filter to.
                                   items:
                                     format: int32
-                                    minimum: 0
                                     type: integer
                                   type: array
                                 index:
@@ -942,7 +940,6 @@ spec:
                                     (in spec file) to apply fhe filter to.
                                   items:
                                     format: int32
-                                    minimum: 0
                                     type: integer
                                   type: array
                                 index:
@@ -1263,7 +1260,6 @@ spec:
                                     (in spec file) to apply fhe filter to.
                                   items:
                                     format: int32
-                                    minimum: 0
                                     type: integer
                                   type: array
                                 index:
@@ -1422,7 +1418,6 @@ spec:
                                     (in spec file) to apply fhe filter to.
                                   items:
                                     format: int32
-                                    minimum: 0
                                     type: integer
                                   type: array
                                 index:
@@ -1663,7 +1658,6 @@ spec:
                                     (in spec file) to apply fhe filter to.
                                   items:
                                     format: int32
-                                    minimum: 0
                                     type: integer
                                   type: array
                                 index:
@@ -2020,7 +2014,6 @@ spec:
                                     (in spec file) to apply fhe filter to.
                                   items:
                                     format: int32
-                                    minimum: 0
                                     type: integer
                                   type: array
                                 index:
@@ -2179,7 +2172,6 @@ spec:
                                     (in spec file) to apply fhe filter to.
                                   items:
                                     format: int32
-                                    minimum: 0
                                     type: integer
                                   type: array
                                 index:
@@ -2420,7 +2412,6 @@ spec:
                                     (in spec file) to apply fhe filter to.
                                   items:
                                     format: int32
-                                    minimum: 0
                                     type: integer
                                   type: array
                                 index:
@@ -2721,7 +2712,6 @@ spec:
                                     (in spec file) to apply fhe filter to.
                                   items:
                                     format: int32
-                                    minimum: 0
                                     type: integer
                                   type: array
                                 index:
@@ -2880,7 +2870,6 @@ spec:
                                     (in spec file) to apply fhe filter to.
                                   items:
                                     format: int32
-                                    minimum: 0
                                     type: integer
                                   type: array
                                 index:
@@ -3121,7 +3110,6 @@ spec:
                                     (in spec file) to apply fhe filter to.
                                   items:
                                     format: int32
-                                    minimum: 0
                                     type: integer
                                   type: array
                                 index:
@@ -3417,7 +3405,6 @@ spec:
                                     (in spec file) to apply fhe filter to.
                                   items:
                                     format: int32
-                                    minimum: 0
                                     type: integer
                                   type: array
                                 index:
@@ -3576,7 +3563,6 @@ spec:
                                     (in spec file) to apply fhe filter to.
                                   items:
                                     format: int32
-                                    minimum: 0
                                     type: integer
                                   type: array
                                 index:
@@ -3817,7 +3803,6 @@ spec:
                                     (in spec file) to apply fhe filter to.
                                   items:
                                     format: int32
-                                    minimum: 0
                                     type: integer
                                   type: array
                                 index:
