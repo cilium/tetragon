@@ -1577,12 +1577,24 @@ func HasOverride(spec *v1alpha1.KProbeSpec) bool {
 	return false
 }
 
-func HasSigkillAction(kspec *v1alpha1.KProbeSpec) bool {
-	for i := range kspec.Selectors {
-		s := &kspec.Selectors[i]
-		for j := range s.MatchActions {
-			act := strings.ToLower(s.MatchActions[j].Action)
-			if act == "sigkill" {
+// HasAction returns true if any selector in the KProbeSpec has the specified action
+func HasAction(kspec *v1alpha1.KProbeSpec, actionName string) bool {
+	act := strings.ToLower(actionName)
+	for _, s := range kspec.Selectors {
+		for _, action := range s.MatchActions {
+			if strings.ToLower(action.Action) == act {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// HasActionType returns true if any selector in the KProbeSpec has the specified action type
+func HasActionType(kspec *v1alpha1.KProbeSpec, actionType int32) bool {
+	for _, s := range kspec.Selectors {
+		for _, action := range s.MatchActions {
+			if ActionTypeFromString(action.Action) == actionType {
 				return true
 			}
 		}
@@ -1594,18 +1606,6 @@ func HasFilter(selectors []v1alpha1.KProbeSelector, index uint32) bool {
 	for _, s := range selectors {
 		for _, a := range s.MatchArgs {
 			if a.Index == index {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-// HasNotifyEnforcerAction returns true if any selector in the KProbeSpec has a NotifyEnforcer action
-func HasNotifyEnforcerAction(kspec *v1alpha1.KProbeSpec) bool {
-	for _, s := range kspec.Selectors {
-		for _, action := range s.MatchActions {
-			if action.Action == "NotifyEnforcer" {
 				return true
 			}
 		}
