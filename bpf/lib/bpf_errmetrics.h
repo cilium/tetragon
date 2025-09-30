@@ -3,6 +3,7 @@
 #ifndef BPF_ERRMETRICS_H__
 #define BPF_ERRMETRICS_H__
 
+#include "errno.h"
 #include "compiler.h"
 #include "get_fileid.h"
 
