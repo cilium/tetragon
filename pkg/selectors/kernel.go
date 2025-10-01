@@ -615,16 +615,6 @@ func writeMatchAddrsInMap(k *KernelSelectorState, values []string) error {
 	return nil
 }
 
-func getBase(v string) int {
-	if strings.HasPrefix(v, "0x") {
-		return 16
-	}
-	if strings.HasPrefix(v, "0") {
-		return 8
-	}
-	return 10
-}
-
 func parseAddr(v string) ([]byte, uint32, error) {
 	if strings.Contains(v, "/") {
 		ipAddr, ipNet, err := net.ParseCIDR(v)
@@ -669,29 +659,28 @@ func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) er
 	}
 
 	for _, v := range values {
-		base := getBase(v)
 		switch ty {
 
 		case gt.GenericIntType, gt.GenericS32Type, gt.GenericSizeType:
-			i, err := strconv.ParseInt(v, base, 32)
+			i, err := strconv.ParseInt(v, 0, 32)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
 			WriteSelectorInt32(&k.data, int32(i))
 		case gt.GenericU32Type:
-			i, err := strconv.ParseUint(v, base, 32)
+			i, err := strconv.ParseUint(v, 0, 32)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
 			WriteSelectorUint32(&k.data, uint32(i))
 		case gt.GenericS64Type, gt.GenericSyscall64:
-			i, err := strconv.ParseInt(v, base, 64)
+			i, err := strconv.ParseInt(v, 0, 64)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
 			WriteSelectorInt64(&k.data, int64(i))
 		case gt.GenericU64Type:
-			i, err := strconv.ParseUint(v, base, 64)
+			i, err := strconv.ParseUint(v, 0, 64)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
@@ -1650,8 +1639,7 @@ func HasStackTrace(selectors []v1alpha1.KProbeSelector) bool {
 
 // parseCapabilitiesMask create a capabilities mask
 func parseCapabilitiesMask(s string) (uint64, error) {
-	base := getBase(s)
-	mask, err := strconv.ParseUint(s, base, 64)
+	mask, err := strconv.ParseUint(s, 0, 64)
 	if err == nil {
 		return mask, nil
 	}
