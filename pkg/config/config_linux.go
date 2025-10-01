@@ -17,7 +17,9 @@ func ExecObj() string {
 		return "bpf_execve_event_v612.o"
 	} else if EnableV61Progs() {
 		return "bpf_execve_event_v61.o"
-	} else if kernels.MinKernelVersion("5.11") {
+	} else if EnableV513Progs() {
+		return "bpf_execve_event_v513.o"
+	} else if EnableV511Progs() {
 		return "bpf_execve_event_v511.o"
 	} else if EnableLargeProgs() {
 		return "bpf_execve_event_v53.o"
@@ -26,9 +28,11 @@ func ExecObj() string {
 }
 
 func ExecUpdateObj() string {
-	if kernels.MinKernelVersion("6.12") {
+	if EnableV612Progs() {
 		return "bpf_execve_map_update_v612.o"
-	} else if kernels.MinKernelVersion("5.11") {
+	} else if EnableV513Progs() {
+		return "bpf_execve_map_update_v513.o"
+	} else if EnableV511Progs() {
 		return "bpf_execve_map_update_v511.o"
 	} else if EnableLargeProgs() {
 		return "bpf_execve_map_update_v53.o"
@@ -37,6 +41,9 @@ func ExecUpdateObj() string {
 }
 
 func ExitObj() string {
+	if EnableV513Progs() {
+		return "bpf_exit_v513.o"
+	}
 	if EnableRhel7Progs() {
 		return "bpf_exit_v310.o"
 	}
@@ -44,10 +51,59 @@ func ExitObj() string {
 }
 
 func ForkObj() string {
+	if EnableV513Progs() {
+		return "bpf_fork_v513.o"
+	}
 	if EnableRhel7Progs() {
 		return "bpf_fork_v310.o"
 	}
 	return "bpf_fork.o"
+}
+
+func BprmCommitObj() string {
+	if EnableV513Progs() {
+		return "bpf_execve_bprm_commit_creds_v513.o"
+	}
+	return "bpf_execve_bprm_commit_creds.o"
+}
+
+func EnforcerObj() string {
+	if EnableV513Progs() {
+		return "bpf_enforcer_v513.o"
+	}
+	return "bpf_enforcer.o"
+}
+
+func MultiEnforcerObj() string {
+	if EnableV513Progs() {
+		return "bpf_multi_enforcer_v513.o"
+	}
+	return "bpf_multi_enforcer.o"
+}
+
+func FmodRetEnforcerObj() string {
+	if EnableV513Progs() {
+		return "bpf_fmodret_enforcer_v513.o"
+	}
+	return "bpf_fmodret_enforcer.o"
+}
+
+func LoaderObj() string {
+	if EnableV513Progs() {
+		return "bpf_loader_v513.o"
+	}
+	return "bpf_loader.o"
+}
+
+func CgroupObj() string {
+	return "bpf_cgroup.o"
+}
+
+func CgtrackerObj() string {
+	if EnableV513Progs() {
+		return "bpf_cgtracker_v513.o"
+	}
+	return "bpf_cgtracker.o"
 }
 
 // GenericKprobeObjs returns the generic kprobe and generic retprobe objects
@@ -57,7 +113,9 @@ func GenericKprobeObjs(multi bool) (string, string) {
 			return "bpf_multi_kprobe_v612.o", "bpf_multi_retkprobe_v612.o"
 		} else if EnableV61Progs() {
 			return "bpf_multi_kprobe_v61.o", "bpf_multi_retkprobe_v61.o"
-		} else if kernels.MinKernelVersion("5.11") {
+		} else if EnableV513Progs() {
+			return "bpf_multi_kprobe_v513.o", "bpf_multi_retkprobe_v513.o"
+		} else if EnableV511Progs() {
 			return "bpf_multi_kprobe_v511.o", "bpf_multi_retkprobe_v511.o"
 		}
 		return "bpf_multi_kprobe_v53.o", "bpf_multi_retkprobe_v53.o"
@@ -66,7 +124,9 @@ func GenericKprobeObjs(multi bool) (string, string) {
 		return "bpf_generic_kprobe_v612.o", "bpf_generic_retkprobe_v612.o"
 	} else if EnableV61Progs() {
 		return "bpf_generic_kprobe_v61.o", "bpf_generic_retkprobe_v61.o"
-	} else if kernels.MinKernelVersion("5.11") {
+	} else if EnableV513Progs() {
+		return "bpf_generic_kprobe_v513.o", "bpf_generic_retkprobe_v513.o"
+	} else if EnableV511Progs() {
 		return "bpf_generic_kprobe_v511.o", "bpf_generic_retkprobe_v511.o"
 	} else if EnableLargeProgs() {
 		return "bpf_generic_kprobe_v53.o", "bpf_generic_retkprobe_v53.o"
@@ -85,6 +145,8 @@ func GenericUprobeObjs(multi bool) string {
 		return "bpf_generic_uprobe_v612.o"
 	} else if EnableV61Progs() {
 		return "bpf_generic_uprobe_v61.o"
+	} else if EnableV513Progs() {
+		return "bpf_generic_uprobe_v513.o"
 	} else if EnableLargeProgs() {
 		return "bpf_generic_uprobe_v53.o"
 	}
@@ -112,7 +174,9 @@ func GenericTracepointObjs(raw bool) string {
 			return "bpf_generic_rawtp_v612.o"
 		} else if EnableV61Progs() {
 			return "bpf_generic_rawtp_v61.o"
-		} else if kernels.MinKernelVersion("5.11") {
+		} else if EnableV513Progs() {
+			return "bpf_generic_rawtp_v513.o"
+		} else if EnableV511Progs() {
 			return "bpf_generic_rawtp_v511.o"
 		} else if EnableLargeProgs() {
 			return "bpf_generic_rawtp_v53.o"
@@ -123,7 +187,9 @@ func GenericTracepointObjs(raw bool) string {
 		return "bpf_generic_tracepoint_v612.o"
 	} else if EnableV61Progs() {
 		return "bpf_generic_tracepoint_v61.o"
-	} else if kernels.MinKernelVersion("5.11") {
+	} else if EnableV513Progs() {
+		return "bpf_generic_tracepoint_v513.o"
+	} else if EnableV511Progs() {
 		return "bpf_generic_tracepoint_v511.o"
 	} else if EnableLargeProgs() {
 		return "bpf_generic_tracepoint_v53.o"
@@ -136,7 +202,9 @@ func GenericLsmObjs() (string, string) {
 		return "bpf_generic_lsm_core_v612.o", "bpf_generic_lsm_output_v612.o"
 	} else if EnableV61Progs() {
 		return "bpf_generic_lsm_core_v61.o", "bpf_generic_lsm_output_v61.o"
-	} else if kernels.MinKernelVersion("5.11") {
+	} else if EnableV513Progs() {
+		return "bpf_generic_lsm_core_v513.o", "bpf_generic_lsm_output_v513.o"
+	} else if EnableV511Progs() {
 		return "bpf_generic_lsm_core_v511.o", "bpf_generic_lsm_output_v511.o"
 	}
 	return "bpf_generic_lsm_core.o", "bpf_generic_lsm_output.o"
@@ -145,6 +213,22 @@ func GenericLsmObjs() (string, string) {
 func EnableRhel7Progs() bool {
 	kernelVer, _, _ := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
 	return (int64(kernelVer) < kernels.KernelStringToNumeric("3.11.0"))
+}
+
+func EnableV513Progs() bool {
+	if option.Config.ForceSmallProgs {
+		return false
+	}
+	kernelVer, _, _ := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
+	return (int64(kernelVer) >= kernels.KernelStringToNumeric("5.13.0"))
+}
+
+func EnableV511Progs() bool {
+	if option.Config.ForceSmallProgs {
+		return false
+	}
+	kernelVer, _, _ := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
+	return (int64(kernelVer) >= kernels.KernelStringToNumeric("5.11.0"))
 }
 
 func EnableV61Progs() bool {

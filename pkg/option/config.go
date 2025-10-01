@@ -119,6 +119,9 @@ type config struct {
 	EnableCgIDmapDebug bool
 	EnableCgTrackerID  bool
 
+	// Perf debug framework
+	EnablePerfDebug bool
+
 	EventCacheNumRetries int
 	EventCacheRetryDelay int
 
