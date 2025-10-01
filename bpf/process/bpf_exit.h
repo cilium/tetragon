@@ -70,8 +70,7 @@ FUNC_INLINE void event_exit_send(void *ctx, __u32 tgid)
 		probe_read(&exit->info.code, sizeof(exit->info.code),
 			   _(&task->exit_code));
 
-		perf_event_output_metric(ctx, MSG_OP_EXIT, &tcpmon_map,
-					 BPF_F_CURRENT_CPU, exit, size);
+		event_output_metric(ctx, MSG_OP_EXIT, exit, size);
 	}
 	execve_map_delete(tgid);
 }

@@ -33,7 +33,7 @@ a:
 		return err;
 
 	msg->common.size = offsetof(struct msg_data, arg) + bytes;
-	err = perf_event_output(ctx, &tcpmon_map, BPF_F_CURRENT_CPU, msg, msg->common.size);
+	err = event_output(ctx, msg, msg->common.size);
 	if (err < 0)
 		return err;
 
@@ -108,7 +108,7 @@ __do_str(void *ctx, struct msg_data *msg, unsigned long arg, bool *done)
 	asm volatile("%[size] &= 0x7fff;\n"
 		     : [size] "+r"(size));
 	msg->common.size = size;
-	perf_event_output_metric(ctx, MSG_OP_DATA, &tcpmon_map, BPF_F_CURRENT_CPU, msg, size);
+	event_output_metric(ctx, MSG_OP_DATA, msg, size);
 	return ret;
 }
 

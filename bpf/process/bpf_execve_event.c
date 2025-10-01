@@ -378,6 +378,6 @@ execve_send(void *ctx __arg_ctx)
 		sizeof(struct msg_execve_key) + sizeof(__u64) +
 		sizeof(struct msg_cred) + sizeof(struct msg_ns) +
 		sizeof(struct msg_execve_key) + p->size);
-	perf_event_output_metric(ctx, MSG_OP_EXECVE, &tcpmon_map, BPF_F_CURRENT_CPU, event, size);
+	event_output_metric(ctx, MSG_OP_EXECVE, event, size);
 	return 0;
 }

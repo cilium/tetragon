@@ -132,6 +132,6 @@ loader_kprobe(struct pt_regs *ctx)
 	msg->common.op = MSG_OP_LOADER;
 	msg->common.flags = 0;
 
-	perf_event_output_metric(ctx, MSG_OP_LOADER, &tcpmon_map, BPF_F_CURRENT_CPU, msg, total);
+	event_output_metric(ctx, MSG_OP_LOADER, msg, total);
 	return 0;
 }

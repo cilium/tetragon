@@ -51,7 +51,7 @@ send_cgrp_event(struct bpf_raw_tracepoint_args *ctx,
 	memcpy(&msg->cgrp_data.name, &cgrp_track->name, KN_NAME_LENGTH);
 	probe_read_str(&msg->path, PATH_MAP_SIZE - 1, path);
 
-	perf_event_output_metric(ctx, MSG_OP_CGROUP, &tcpmon_map, BPF_F_CURRENT_CPU, msg, size);
+	event_output_metric(ctx, MSG_OP_CGROUP, msg, size);
 
 	return 0;
 }
