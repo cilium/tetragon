@@ -252,6 +252,27 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID) ([]i
 			return nil, err
 		}
 
+		// Validate argument for set action
+		if ok, idx := selectors.HasSetArgIndex(spec); ok {
+			if idx > uint32(len(spec.Args)) {
+				return nil, fmt.Errorf("failed to configured usdt '%s/%s', set action argument spec index %d out of bounds",
+					spec.Provider, spec.Name, idx)
+			}
+
+			arg := spec.Args[idx]
+			if arg.Index > uint32(len(target.Spec.Args)) {
+				return nil, fmt.Errorf("failed to configured usdt '%s/%s', argument index %d out of bounds",
+					spec.Provider, spec.Name, arg.Index)
+			}
+
+			tgtArg := &target.Spec.Args[arg.Index]
+			if tgtArg.Type != elf.USDT_ARG_TYPE_REG_DEREF {
+				return nil, fmt.Errorf("failed to configured usdt '%s/%s', set action argument is not 'deref' type: '%s'",
+					spec.Provider, spec.Name, tgtArg.Str)
+			}
+		}
+
+		var allBTFArgs [api.EventConfigMaxArgs][api.MaxBTFArgDepth]api.ConfigBTFArg
 		for cfgIdx, arg := range spec.Args {
 			tgtIdx := arg.Index
 			if tgtIdx > target.Spec.ArgsCnt {
@@ -268,13 +289,27 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID) ([]i
 			cfgArg.Type = tgtArg.Type
 			cfgArg.Scale = tgtArg.Scale
 
+			argType := gt.GenericTypeFromString(arg.Type)
+			if arg.Resolve != "" {
+				lastBTFType, btfArg, err := resolveUserBTFArg(
+					arg.ArgType,
+					spec.BTFFile,
+					arg.Resolve,
+				)
+				if err != nil {
+					return nil, err
+				}
+
+				allBTFArgs[cfgIdx] = btfArg
+				argType = findTypeFromBTFType(&arg, lastBTFType)
+
+			}
+
 			if tgtArg.Signed {
 				cfgArg.Signed = 1
 			} else {
 				cfgArg.Signed = 0
 			}
-
-			argType := gt.GenericTypeFromString(arg.Type)
 
 			config.ArgType[cfgIdx] = int32(argType)
 
@@ -282,6 +317,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID) ([]i
 				argPrinter{index: int(arg.Index), ty: argType, label: arg.Label},
 			)
 		}
+		config.BTFArg = allBTFArgs
 
 		usdtEntry := &genericUsdt{
 			tableId:     idtable.UninitializedEntryID,
