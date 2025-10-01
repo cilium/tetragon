@@ -21,8 +21,8 @@ spec:
       - index: 1
         operator: "Equal"
         values:
-        - 2
-        - 10
+        - "2"
+        - "10"
       matchActions:
       - action: "NoPost"
   - call: "__sk_free"
@@ -35,8 +35,8 @@ spec:
       - index: 0
         operator: "Family"
         values:
-        - 2
-        - 10
+        - "2"
+        - "10"
       matchActions:
       - action: "UntrackSock"
         argSock: 0
@@ -51,5 +51,5 @@ spec:
       - index: 0
         operator: "SPort"
         values:
-        - 1337
-        - 31337
+        - "1337"
+        - "31337"
