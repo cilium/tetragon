@@ -1026,7 +1026,7 @@ generic_output(void *ctx, u8 op)
 		     "if %[total] < 9000 goto +1\n;"
 		     "%[total] = 9000;\n"
 		     : [total] "+r"(total));
-	perf_event_output_metric(ctx, op, &tcpmon_map, BPF_F_CURRENT_CPU, e, total);
+	event_output_metric(ctx, op, e, total);
 	return 0;
 }
 

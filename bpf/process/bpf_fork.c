@@ -99,8 +99,7 @@ BPF_KPROBE(event_wake_up_new_task, struct task_struct *task)
 
 	if (cgroup_rate(ctx, &kube, msg.ktime))
 #endif
-		perf_event_output_metric(ctx, MSG_OP_CLONE, &tcpmon_map,
-					 BPF_F_CURRENT_CPU, &msg, msg_size);
+		event_output_metric(ctx, MSG_OP_CLONE, &msg, msg_size);
 
 	return 0;
 }
