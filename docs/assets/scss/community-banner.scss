@@ -6,18 +6,20 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 9px 14px;
+    padding: 8px 14px;
     color: #253737;
     background-color: #E2F7F7;
     border-bottom: 1px solid #42D7D74F;
-
 
     &:hover,
     &:focus-visible {
       background-color: #B0EDED80;
     }
 
-    @media screen and (max-width: 767px) {}
+    @media screen and (max-width: 767px) {
+      font-size: 12px;
+      padding: 6px 12px;
+    }
   }
 
   svg {
@@ -43,5 +45,10 @@
   a:hover &,
   a:focus-visible & {
     color: #5C6D70;
+  }
+
+  @media screen and (max-width: 767px) {
+    margin-left: 6px;
+    padding-left: 6px;
   }
 }
