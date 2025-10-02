@@ -77,7 +77,7 @@ do_bytes(void *ctx, struct msg_data *msg, unsigned long arg, size_t bytes)
 	/* leftover */
 	return rd_bytes;
 error:
-	perf_event_output_update_error_metric(MSG_OP_DATA, err);
+	event_output_update_error_metric(MSG_OP_DATA, err);
 	return err;
 }
 

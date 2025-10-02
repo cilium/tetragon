@@ -571,7 +571,7 @@ struct {
 } tg_stats_map SEC(".maps");
 
 FUNC_INLINE void
-perf_event_output_update_error_metric(u8 msg_op, long err)
+event_output_update_error_metric(u8 msg_op, long err)
 {
 	struct kernel_stats *valp;
 	__u32 zero = 0;
@@ -607,7 +607,7 @@ perf_event_output_metric(void *ctx, u8 msg_op, void *map, u64 flags, void *data,
 
 	err = perf_event_output(ctx, map, flags, data, size);
 	if (err < 0) {
-		perf_event_output_update_error_metric(msg_op, err);
+		event_output_update_error_metric(msg_op, err);
 		return;
 	}
 
