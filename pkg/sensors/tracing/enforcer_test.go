@@ -391,9 +391,14 @@ spec:
     syscall: true
     args:
     - index: 0
-      type: "int"
+      type: "fd"
     selectors:
-    - matchActions:
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "` + tempFile + `"
+      matchActions:
       - action: UnfollowFD
         argFd: 0
         argName: 0
@@ -478,9 +483,14 @@ spec:
     syscall: true
     args:
     - index: 0
-      type: "int"
+      type: "fd"
     selectors:
-    - matchActions:
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "` + tempFile + `"
+      matchActions:
       - action: UnfollowFD
         argFd: 0
         argName: 0
