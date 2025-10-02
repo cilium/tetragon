@@ -212,9 +212,11 @@ type PIDSelector struct {
 }
 
 type ArgSelector struct {
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:Minimum=0
 	// Position of the argument (in function prototype) to apply fhe filter to.
 	Index uint32 `json:"index"`
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:items:Minimum=0
 	// Position of the operator arguments (in spec file) to apply fhe filter to.
 	Args []uint32 `json:"args,omitempty"`
