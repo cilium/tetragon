@@ -322,6 +322,9 @@ func uprobeAttach(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec,
 			RefCtrOffset: data.RefCtrOffset,
 			Offset:       data.Offset,
 		}
+		if load.RetProbe {
+			return exec.Uretprobe(data.Symbol, prog, opts)
+		}
 		return exec.Uprobe(data.Symbol, prog, opts)
 	}
 
@@ -413,7 +416,11 @@ func multiUprobeAttach(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec
 				RefCtrOffsets: attach.RefCtrOffsets,
 				Cookies:       attach.Cookies,
 			}
-			lnk, err = exec.UprobeMulti(attach.Symbols, prog, opts)
+			if load.RetProbe {
+				lnk, err = exec.UretprobeMulti(attach.Symbols, prog, opts)
+			} else {
+				lnk, err = exec.UprobeMulti(attach.Symbols, prog, opts)
+			}
 			if err != nil {
 				return nil, err
 			}
