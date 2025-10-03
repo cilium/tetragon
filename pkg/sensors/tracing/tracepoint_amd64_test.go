@@ -94,7 +94,7 @@ spec:
       - index: 1
         operator: "Equal"
         values:
-        - 9999
+        - "9999"
 `
 
 	// The test hooks raw tracepoint and uses InMap operator with list
