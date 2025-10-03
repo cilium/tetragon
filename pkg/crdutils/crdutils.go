@@ -105,7 +105,7 @@ func (c *CRDContext[P]) Validate(obj CRDObject, unstr *unstructured.Unstructured
 	)
 
 	// validate spec
-	validationResult := c.validator.Validate(obj)
+	validationResult := c.validator.Validate(unstr.Object)
 	// validate lists
 	listErrs := structurallisttype.ValidateListSetsAndMaps(
 		nil,

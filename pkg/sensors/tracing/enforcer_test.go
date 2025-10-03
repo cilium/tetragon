@@ -567,7 +567,7 @@ spec:
       - index: 1
         operator: "Equal"
         values:
-        - 0xffff
+        - "0xffff"
       matchBinaries:
       - operator: "In"
         values:
@@ -609,7 +609,7 @@ spec:
       - index: 1
         operator: "Equal"
         values:
-        - 0xfffe
+        - "0xfffe"
       matchBinaries:
       - operator: "In"
         values:
@@ -621,14 +621,10 @@ spec:
 `
 
 	policy1, err := tracingpolicy.FromYAML(policyYAML1)
-	if err != nil {
-		t.Errorf("FromYAML policyYAML1 error %s", err)
-	}
+	require.NoError(t, err, "FromYAML policyYAML1 error")
 
 	policy2, err := tracingpolicy.FromYAML(policyYAML2)
-	if err != nil {
-		t.Errorf("FromYAML policyYAML2 error %s", err)
-	}
+	require.NoError(t, err, "FromYAML policyYAML2 error")
 
 	if err := observer.InitDataCache(1024); err != nil {
 		t.Fatalf("observertesthelper.InitDataCache: %s", err)

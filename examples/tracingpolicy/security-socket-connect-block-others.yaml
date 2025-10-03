@@ -31,7 +31,7 @@ spec:
       - index: 1
         operator: "SPort"
         values:
-        - 80
+        - "80"
       matchBinaries:
       - operator: "In"
         values:

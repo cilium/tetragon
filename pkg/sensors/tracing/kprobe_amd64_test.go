@@ -143,7 +143,7 @@ spec:
       - index: 0
         operator: "Equal"
         values:
-        - 9999
+        - "9999"
 `
 
 	// The test hooks sys_dup[23] syscalls through the list and
