@@ -4897,7 +4897,6 @@ kind: TracingPolicy
 metadata:
   name: "sys-write"
 spec:
-  lists:
   kprobes:
   - call: "sys_dup"
     syscall: true
