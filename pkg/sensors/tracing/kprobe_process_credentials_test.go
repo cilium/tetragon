@@ -411,6 +411,7 @@ spec:
       type: "file"
     data:
     - type: "int"
+      index: 0
       source: "current_task"
       resolve: "cred.uid.val"
     selectors:
@@ -520,6 +521,7 @@ spec:
       type: "file"
     data:
     - type: "int"
+      index: 0
       source: "current_task"
       resolve: "cred.uid.val"
     selectors:
@@ -630,9 +632,11 @@ spec:
       type: "file"
     data:
     - type: "int"
+      index: 0
       source: "current_task"
       resolve: "cred.uid.val"
     - type: "int"
+      index: 1
       source: "current_task"
       resolve: "cred.euid.val"
     selectors:
@@ -745,9 +749,11 @@ spec:
       type: "file"
     data:
     - type: "int"
+      index: 0
       source: "current_task"
       resolve: "cred.uid.val"
     - type: "int"
+      index: 1
       source: "current_task"
       resolve: "cred.euid.val"
     selectors:
