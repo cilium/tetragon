@@ -837,7 +837,16 @@ results of MatchPIDs and MatchArgs are ANDed.
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>argIndex</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -897,6 +906,15 @@ be removed in version 1.5.<br/>
         <td>string</td>
         <td>
           A URL for the getUrl action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argValue</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1357,7 +1375,16 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>argIndex</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -1417,6 +1444,15 @@ be removed in version 1.5.<br/>
         <td>string</td>
         <td>
           A URL for the getUrl action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argValue</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1848,7 +1884,16 @@ results of MatchPIDs and MatchArgs are ANDed.
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>argIndex</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -1908,6 +1953,15 @@ be removed in version 1.5.<br/>
         <td>string</td>
         <td>
           A URL for the getUrl action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argValue</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2368,7 +2422,16 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>argIndex</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -2428,6 +2491,15 @@ be removed in version 1.5.<br/>
         <td>string</td>
         <td>
           A URL for the getUrl action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argValue</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2932,7 +3004,16 @@ results of MatchPIDs and MatchArgs are ANDed.
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>argIndex</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -2992,6 +3073,15 @@ be removed in version 1.5.<br/>
         <td>string</td>
         <td>
           A URL for the getUrl action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argValue</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3452,7 +3542,16 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>argIndex</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -3512,6 +3611,15 @@ be removed in version 1.5.<br/>
         <td>string</td>
         <td>
           A URL for the getUrl action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argValue</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3908,7 +4016,16 @@ results of MatchPIDs and MatchArgs are ANDed.
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>argIndex</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -3968,6 +4085,15 @@ be removed in version 1.5.<br/>
         <td>string</td>
         <td>
           A URL for the getUrl action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argValue</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4428,7 +4554,16 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>argIndex</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -4488,6 +4623,15 @@ be removed in version 1.5.<br/>
         <td>string</td>
         <td>
           A URL for the getUrl action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argValue</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4877,7 +5021,16 @@ results of MatchPIDs and MatchArgs are ANDed.
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>argIndex</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -4937,6 +5090,15 @@ be removed in version 1.5.<br/>
         <td>string</td>
         <td>
           A URL for the getUrl action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argValue</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5397,7 +5559,16 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>argIndex</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -5457,6 +5628,15 @@ be removed in version 1.5.<br/>
         <td>string</td>
         <td>
           A URL for the getUrl action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argValue</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6356,7 +6536,16 @@ results of MatchPIDs and MatchArgs are ANDed.
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>argIndex</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -6416,6 +6605,15 @@ be removed in version 1.5.<br/>
         <td>string</td>
         <td>
           A URL for the getUrl action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argValue</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6876,7 +7074,16 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>argIndex</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -6936,6 +7143,15 @@ be removed in version 1.5.<br/>
         <td>string</td>
         <td>
           A URL for the getUrl action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argValue</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -7367,7 +7583,16 @@ results of MatchPIDs and MatchArgs are ANDed.
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>argIndex</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -7427,6 +7652,15 @@ be removed in version 1.5.<br/>
         <td>string</td>
         <td>
           A URL for the getUrl action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argValue</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -7887,7 +8121,16 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>argIndex</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -7947,6 +8190,15 @@ be removed in version 1.5.<br/>
         <td>string</td>
         <td>
           A URL for the getUrl action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argValue</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8451,7 +8703,16 @@ results of MatchPIDs and MatchArgs are ANDed.
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>argIndex</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -8511,6 +8772,15 @@ be removed in version 1.5.<br/>
         <td>string</td>
         <td>
           A URL for the getUrl action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argValue</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8971,7 +9241,16 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>argIndex</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -9031,6 +9310,15 @@ be removed in version 1.5.<br/>
         <td>string</td>
         <td>
           A URL for the getUrl action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argValue</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -9427,7 +9715,16 @@ results of MatchPIDs and MatchArgs are ANDed.
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>argIndex</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -9487,6 +9784,15 @@ be removed in version 1.5.<br/>
         <td>string</td>
         <td>
           A URL for the getUrl action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argValue</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -9947,7 +10253,16 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>argIndex</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -10007,6 +10322,15 @@ be removed in version 1.5.<br/>
         <td>string</td>
         <td>
           A URL for the getUrl action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argValue</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10396,7 +10720,16 @@ results of MatchPIDs and MatchArgs are ANDed.
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>argIndex</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -10456,6 +10789,15 @@ be removed in version 1.5.<br/>
         <td>string</td>
         <td>
           A URL for the getUrl action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argValue</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10916,7 +11258,16 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>argIndex</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -10976,6 +11327,15 @@ be removed in version 1.5.<br/>
         <td>string</td>
         <td>
           A URL for the getUrl action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argValue</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
         </td>
         <td>false</td>
       </tr><tr>
