@@ -778,9 +778,82 @@ do_override_action(__s32 error)
 #define do_override_action(error)
 #endif
 
+#if defined GENERIC_USDT
+#ifdef __V61_BPF_PROG
+FUNC_INLINE int
+write_user_arg(void *ctx, void *addr, __u32 value)
+{
+	struct write_offload_data *data, tmp = {
+		.addr = (unsigned long)addr,
+		.value = value,
+
+	};
+	__u64 id = get_current_pid_tgid();
+
+	/*
+	 * TODO: this should not happen, it means that the override
+	 * program was not executed for some reason, we should do
+	 * warning in here
+	 */
+	data = map_lookup_elem(&write_offload, &id);
+	if (data)
+		*data = tmp;
+	else
+		map_update_elem(&write_offload, &id, &tmp, BPF_ANY);
+
+	return 0;
+}
+#else
+FUNC_INLINE int
+write_user_arg(void *ctx, void *addr, __u32 value)
+{
+	return probe_write_user(addr, &value, sizeof(value));
+}
+#endif
+
+FUNC_INLINE void
+do_set_action(void *ctx, struct msg_generic_kprobe *e, __u32 arg_idx, __u32 arg_value)
+{
+	struct config_usdt_arg *arg;
+	struct event_config *config;
+	unsigned long val, off;
+	int err = -1;
+
+	config = map_lookup_elem(&config_map, &e->idx);
+	if (!config)
+		return;
+
+	arg_idx &= 7;
+	arg = &config->usdt_arg[arg_idx];
+
+	switch (arg->type) {
+	case USDT_ARG_TYPE_NONE:
+	case USDT_ARG_TYPE_CONST:
+	case USDT_ARG_TYPE_REG:
+		break;
+	case USDT_ARG_TYPE_REG_DEREF:
+		off = arg->reg_off & 0xfff;
+		err = probe_read_kernel(&val, sizeof(val), (void *)ctx + off);
+		if (err)
+			return;
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+		arg_value <<= arg->shift;
+#endif
+		err = write_user_arg(ctx, (void *)val + arg->val_off, arg_value);
+		break;
+	}
+
+	if (err)
+		e->common.flags |= MSG_COMMON_FLAG_ACTION_FAILED;
+}
+#else
+#define do_set_action(ctx, idx, arg_idx, arg_value)
+#endif
+
 FUNC_LOCAL __u32
 do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool enforce_mode)
 {
+	__u32 index __maybe_unused, value __maybe_unused;
 	int signal __maybe_unused = FGS_SIGKILL;
 	int action = actions->act[i];
 	struct msg_generic_kprobe *e;
@@ -891,6 +964,10 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 		break;
 	case ACTION_CLEANUP_ENFORCER_NOTIFICATION:
 		do_enforcer_cleanup();
+	case ACTION_SET:
+		index = actions->act[++i];
+		value = actions->act[++i];
+		do_set_action(ctx, e, index, value);
 	default:
 		break;
 	}
