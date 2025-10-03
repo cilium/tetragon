@@ -322,7 +322,7 @@ spec:
       - namespace: Mnt
         operator: In
         values:
-        - ` + mntNsStr + `
+        - "` + mntNsStr + `"
       matchCapabilities:
       - type: Permitted
         operator: In
@@ -401,7 +401,7 @@ spec:
       - namespace: Mnt
         operator: In
         values:
-        - ` + mntNsStr + `
+        - "` + mntNsStr + `"
       matchCapabilities:
       - type: Permitted
         operator: In
