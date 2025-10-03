@@ -843,7 +843,7 @@ spec:
       - index: 1
         operator: "Equal"
         values:
-        - 1
+        - "1"
 `
 	hookPart := `apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
