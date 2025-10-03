@@ -322,7 +322,7 @@ spec:
       - namespace: Mnt
         operator: In
         values:
-        - ` + mntNsStr + `
+        - "` + mntNsStr + `"
       matchCapabilities:
       - type: Permitted
         operator: In
@@ -401,7 +401,7 @@ spec:
       - namespace: Mnt
         operator: In
         values:
-        - ` + mntNsStr + `
+        - "` + mntNsStr + `"
       matchCapabilities:
       - type: Permitted
         operator: In
@@ -538,7 +538,7 @@ spec:
       - index: 0
         operator: "Equal"
         values:
-        - ` + fdString
+        - "` + fdString + `"`
 
 	kpChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_read"))).
@@ -588,7 +588,7 @@ spec:
       - index: 0
         operator: "Equal"
         values:
-        - ` + fdString
+        - "` + fdString + `"`
 
 	kpChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_read"))).
@@ -1782,7 +1782,7 @@ spec:
       - index: 0
         operator: Equal
         values:
-        - 1
+        - "1"
 `
 	writeConfigHook := []byte(writeReadHook)
 	err := os.WriteFile(testConfigFile, writeConfigHook, 0644)
