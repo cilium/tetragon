@@ -538,7 +538,7 @@ spec:
       - index: 0
         operator: "Equal"
         values:
-        - ` + fdString
+        - "` + fdString + `"`
 
 	kpChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_read"))).
@@ -588,7 +588,7 @@ spec:
       - index: 0
         operator: "Equal"
         values:
-        - ` + fdString
+        - "` + fdString + `"`
 
 	kpChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_read"))).
