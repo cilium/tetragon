@@ -106,13 +106,13 @@
 /* Msg flags */
 #define EVENT_UNKNOWN		      0x00
 #define EVENT_EXECVE		      0x01
-#define EVENT_EXECVEAT		      0x02
+#define EVENT_AVAIL_1		      0x02
 #define EVENT_PROCFS		      0x04
-#define EVENT_TRUNC_FILENAME	      0x08
+#define EVENT_AVAIL_2		      0x08
 #define EVENT_TRUNC_ARGS	      0x10
-#define EVENT_TASK_WALK		      0x20
+#define EVENT_AVAIL_3		      0x20
 #define EVENT_MISS		      0x40
-#define EVENT_NEEDS_AUID	      0x80
+#define EVENT_AVAIL_4		      0x80
 #define EVENT_ERROR_FILENAME	      0x100
 #define EVENT_ERROR_ARGS	      0x200
 #define EVENT_NEEDS_CWD		      0x400
@@ -120,9 +120,9 @@
 #define EVENT_ROOT_CWD		      0x1000
 #define EVENT_ERROR_CWD		      0x2000
 #define EVENT_CLONE		      0x4000
-#define EVENT_ERROR_SOCK	      0x8000
+#define EVENT_AVAIL_5		      0x8000
 #define EVENT_ERROR_CGROUP_NAME	      0x010000
-#define EVENT_ERROR_CGROUP_KN	      0x020000
+#define EVENT_AVAIL_6		      0x020000
 #define EVENT_ERROR_CGROUP_SUBSYSCGRP 0x040000
 #define EVENT_ERROR_CGROUP_SUBSYS     0x080000
 #define EVENT_ERROR_CGROUPS	      0x100000

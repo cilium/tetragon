@@ -9,15 +9,10 @@ import (
 
 // TODO: Harmonize these with the API docs (Flags field in tetragon.Process)
 var FlagStrings = map[uint32]string{
-	api.EventExecve: "execve",
-	// nolint We still want to support this even though it's deprecated
-	api.EventExecveAt:              "execveat",
+	api.EventExecve:                "execve",
 	api.EventProcFS:                "procFS",
-	api.EventTruncFilename:         "truncFilename",
 	api.EventTruncArgs:             "truncArgs",
-	api.EventTaskWalk:              "taskWalk",
 	api.EventMiss:                  "miss",
-	api.EventNeedsAUID:             "auid",
 	api.EventErrorFilename:         "errorFilename",
 	api.EventErrorArgs:             "errorArgs",
 	api.EventNoCWDSupport:          "nocwd",
@@ -26,7 +21,6 @@ var FlagStrings = map[uint32]string{
 	api.EventClone:                 "clone",
 	api.EventErrorCgroupName:       "errorCgroupName",
 	api.EventErrorCgroupId:         "errorCgroupID",
-	api.EventErrorCgroupKn:         "errorCgroupKn",
 	api.EventErrorCgroupSubsysCgrp: "errorCgroupSubsysCgrp",
 	api.EventErrorCgroupSubsys:     "errorCgroupSubsys",
 	api.EventErrorCgroups:          "errorCgroups",
@@ -38,14 +32,9 @@ var FlagStrings = map[uint32]string{
 
 var flagsOrdered = []uint32{
 	api.EventExecve,
-	// nolint We still want to support this even though it's deprecated
-	api.EventExecveAt,
 	api.EventProcFS,
-	api.EventTruncFilename,
 	api.EventTruncArgs,
-	api.EventTaskWalk,
 	api.EventMiss,
-	api.EventNeedsAUID,
 	api.EventErrorFilename,
 	api.EventErrorArgs,
 	api.EventNoCWDSupport,
@@ -54,7 +43,6 @@ var flagsOrdered = []uint32{
 	api.EventClone,
 	api.EventErrorCgroupName,
 	api.EventErrorCgroupId,
-	api.EventErrorCgroupKn,
 	api.EventErrorCgroupSubsysCgrp,
 	api.EventErrorCgroupSubsys,
 	api.EventErrorCgroups,
