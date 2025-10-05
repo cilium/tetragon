@@ -664,13 +664,19 @@ func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) er
 	for _, v := range values {
 		switch ty {
 
-		case gt.GenericIntType, gt.GenericS32Type, gt.GenericSizeType:
+		case gt.GenericIntType, gt.GenericS32Type, gt.GenericSizeType, gt.GenericS16Type:
+			if ty == gt.GenericS16Type && !config.EnableLargeProgs() {
+				return fmt.Errorf("MatchArgs type %s is only supported in kernels supporting large programs (normally versions >= 5.3)", gt.GenericTypeString(int(ty)))
+			}
 			i, err := strconv.ParseInt(v, 0, 32)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
 			WriteSelectorInt32(&k.data, int32(i))
-		case gt.GenericU32Type:
+		case gt.GenericU32Type, gt.GenericU16Type:
+			if ty == gt.GenericU16Type && !config.EnableLargeProgs() {
+				return fmt.Errorf("MatchArgs type %s is only supported in kernels supporting large programs (normally versions >= 5.3)", gt.GenericTypeString(int(ty)))
+			}
 			i, err := strconv.ParseUint(v, 0, 32)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
