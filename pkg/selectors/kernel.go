@@ -857,7 +857,7 @@ func dataIndexType(arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) (uint32,
 	if len(arg.Args) > 0 {
 		return argIndexTypeFromArgs(arg, 0, sig)
 	}
-	if arg.Index > uint32(len(sig)) {
+	if arg.Index >= uint32(len(sig)) {
 		return 0, 0, errors.New("argFilter for unknown index")
 	}
 	ty := sig[arg.Index].Type
