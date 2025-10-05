@@ -10,6 +10,7 @@
 #include "skb.h"
 #include "sock.h"
 #include "sockaddr.h"
+#include "sockaddr_un.h"
 #include "socket.h"
 #include "net_device.h"
 #include "../bpf_process_event.h"
@@ -96,6 +97,8 @@ enum {
 	dentry_type = 42,
 
 	bpf_prog_type = 43,
+
+	sockaddr_un_type = 44,
 
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
@@ -409,6 +412,16 @@ FUNC_INLINE long copy_sockaddr(char *args, unsigned long arg)
 	set_event_from_sockaddr_in(sockaddr_event, address);
 
 	return sizeof(struct sockaddr_in_type);
+}
+
+FUNC_INLINE long copy_sockaddr_un(char *args, unsigned long arg)
+{
+	struct sockaddr_un_type *sockaddr_un_event = (struct sockaddr_un_type *)args;
+	struct sockaddr *address = (struct sockaddr *)arg;
+
+	set_event_from_sockaddr_un(sockaddr_un_event, address);
+
+	return sizeof(struct sockaddr_un_type);
 }
 
 FUNC_INLINE long copy_socket(char *args, unsigned long arg)
@@ -1151,6 +1164,43 @@ filter_inet(struct selector_arg_filter *filter, char *args)
 	return 0;
 }
 
+FUNC_LOCAL long
+filter_sockaddr_un(struct selector_arg_filter *filter, char *args)
+{
+	struct sockaddr_un_type *address = (struct sockaddr_un_type *)args;
+	int start_idx = address->is_abstract ? 1 : 0;
+	char *path = (char *)&address->sun_path[start_idx];
+	__u8 path_len = address->path_len;
+
+	switch (filter->op) {
+	case op_filter_str_prefix:
+	case op_filter_str_notprefix: {
+		long match = filter_char_buf_prefix(filter, path, path_len);
+
+		if (is_not_operator(filter->op))
+			return !match;
+		return match;
+	}
+	case op_filter_eq:
+	case op_filter_neq: {
+		long match = filter_char_buf_equal(filter, path, path_len);
+
+		if (is_not_operator(filter->op))
+			return !match;
+		return match;
+	}
+	case op_filter_family: {
+		__u32 value = address->family;
+
+		return filter_32ty_map(filter, (char *)&value);
+	}
+	default:
+		break;
+	}
+
+	return 0;
+}
+
 FUNC_INLINE long
 __copy_char_iovec(long off, unsigned long arg, unsigned long cnt,
 		  unsigned long max, struct msg_generic_kprobe *e)
@@ -1832,6 +1882,10 @@ FUNC_INLINE size_t type_to_min_size(int type, int argm)
 		return sizeof(struct sk_type);
 	case sockaddr_type:
 		return sizeof(struct sockaddr_in_type);
+#ifdef __LARGE_BPF_PROG
+	case sockaddr_un_type:
+		return sizeof(struct sockaddr_un_type);
+#endif
 	case cred_type:
 		return sizeof(struct msg_cred);
 	case size_type:
@@ -2121,6 +2175,10 @@ filter_arg_2(struct msg_generic_kprobe *e, struct selector_arg_filter *filter, c
 	case socket_type:
 	case sockaddr_type:
 		return filter_inet(filter, args);
+#ifdef __LARGE_BPF_PROG
+	case sockaddr_un_type:
+		return filter_sockaddr_un(filter, args);
+#endif
 	default:
 		return 1;
 	}
