@@ -364,6 +364,7 @@ Environment variable
 | syscall_id | [SyscallId](#tetragon-SyscallId) |  |  |
 | sockaddr_arg | [KprobeSockaddr](#tetragon-KprobeSockaddr) |  |  |
 | bpf_prog_arg | [KprobeBpfProg](#tetragon-KprobeBpfProg) |  |  |
+| sockaddrun_arg | [KprobeSockaddrUn](#tetragon-KprobeSockaddrUn) |  |  |
 | label | [string](#string) |  |  |
 
 <a name="tetragon-KprobeBpfAttr"></a>
@@ -515,6 +516,15 @@ Environment variable
 | family | [string](#string) |  |  |
 | addr | [string](#string) |  |  |
 | port | [uint32](#uint32) |  |  |
+
+<a name="tetragon-KprobeSockaddrUn"></a>
+
+### KprobeSockaddrUn
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| family | [string](#string) |  |  |
+| path | [string](#string) |  |  |
 
 <a name="tetragon-KprobeTruncatedBytes"></a>
 

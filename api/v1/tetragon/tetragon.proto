@@ -371,6 +371,11 @@ message KprobeSockaddr {
   uint32 port = 3;
 }
 
+message KprobeSockaddrUn {
+  string family = 1;
+  string path = 2;
+}
+
 message KprobeNetDev {
   string name = 1;
 }
@@ -482,6 +487,7 @@ message KprobeArgument {
     SyscallId syscall_id = 29;
     KprobeSockaddr sockaddr_arg = 30;
     KprobeBpfProg bpf_prog_arg = 31;
+    KprobeSockaddrUn sockaddrun_arg = 32;
   }
   string label = 18;
 }
