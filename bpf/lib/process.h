@@ -189,6 +189,10 @@ struct msg_process {
 	__u32 pad;
 	__u64 i_ino;
 	__u64 ktime;
+	__u16 size_path;
+	__u16 size_args;
+	__u16 size_cwd;
+	__u16 pad2;
 	char args[0];
 }; // All fields aligned so no 'packed' attribute.
 
