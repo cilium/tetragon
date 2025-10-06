@@ -3146,7 +3146,7 @@ spec:
       - index: 0
         operator: "Equal"
         values:
-        - ` + strconv.Itoa(fdw)
+        - "` + strconv.Itoa(fdw) + `"`
 
 	size := 4094
 	buffer := make([]byte, size)
@@ -3200,7 +3200,7 @@ spec:
       - index: 0
         operator: "Equal"
         values:
-        - ` + strconv.Itoa(fdw)
+        - "` + strconv.Itoa(fdw) + `"`
 
 	size := 5000
 	buffer := make([]byte, size)
@@ -3255,7 +3255,7 @@ spec:
       - index: 0
         operator: "Equal"
         values:
-        - ` + strconv.Itoa(fdr)
+        - "` + strconv.Itoa(fdr) + `"`
 
 	size := 4000
 	buffer := make([]byte, size)
@@ -4610,7 +4610,7 @@ spec:
       - index: 0
         operator: "Equal"
         values:
-        - ` + fdString + `
+        - "` + fdString + `"
 `
 
 	data := make([]byte, 6000)
@@ -4674,7 +4674,7 @@ spec:
       - index: 0
         operator: "Equal"
         values:
-        - ` + fdString + `
+        - "` + fdString + `"
 `
 
 	data := make([]byte, 6000)
@@ -4733,7 +4733,7 @@ spec:
       - index: 0
         operator: "Equal"
         values:
-        - ` + fdString + `
+        - "` + fdString + `"
 `
 
 	// 10 times 32736 buffer is the max now
@@ -6971,7 +6971,7 @@ spec:
       - index: 0
         operator: "Equal"
         values:
-        - ` + strconv.Itoa(pid) + `
+        - "` + strconv.Itoa(pid) + `"
     - matchData:
       - index: 0
         operator: "Equal"
