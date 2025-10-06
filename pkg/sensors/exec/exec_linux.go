@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"unsafe"
 
 	"github.com/cilium/tetragon/pkg/api"
@@ -109,59 +110,76 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, error) {
 		return proc, err
 	}
 
-	args := make([]byte, size) //+2)
-	if err := binary.Read(reader, binary.LittleEndian, &args); err != nil {
+	if size != uint32(exec.SizePath+exec.SizeArgs+exec.SizeCwd) {
+		err := fmt.Errorf("msg exec size larger than argsbuffer, size %d != %d, SizePath %d, SizeArgs %d, SizeCwd %d",
+			size, exec.SizePath+exec.SizeArgs+exec.SizeCwd, exec.SizePath, exec.SizeArgs, exec.SizeCwd)
 		return proc, err
 	}
 
-	if exec.Flags&api.EventDataFilename != 0 {
-		var desc dataapi.DataEventDesc
+	if exec.SizePath != 0 {
+		if exec.Flags&api.EventDataFilename != 0 {
+			var desc dataapi.DataEventDesc
 
-		dr := bytes.NewReader(args)
+			if uint16(unsafe.Sizeof(desc)) != exec.SizePath {
+				err := errors.New("msg exec mismatched size")
+				return proc, err
+			}
+			if err := binary.Read(reader, binary.LittleEndian, &desc); err != nil {
+				return proc, err
+			}
+			data, err := observer.DataGet(desc)
+			if err != nil {
+				return proc, err
+			}
+			proc.Filename = strutils.UTF8FromBPFBytes(data[:])
+		} else {
+			path := make([]byte, exec.SizePath)
 
-		if err := binary.Read(dr, binary.LittleEndian, &desc); err != nil {
-			return proc, err
-		}
-		data, err := observer.DataGet(desc)
-		if err != nil {
-			return proc, err
-		}
-		proc.Filename = strutils.UTF8FromBPFBytes(data[:])
-		args = args[unsafe.Sizeof(desc):]
-	} else if exec.Flags&api.EventErrorFilename == 0 {
-		n := bytes.Index(args, []byte{0x00})
-		if n != -1 {
-			proc.Filename = strutils.UTF8FromBPFBytes(args[:n])
-			args = args[n+1:]
+			if err := binary.Read(reader, binary.LittleEndian, &path); err != nil {
+				return proc, err
+			}
+			proc.Filename = strutils.UTF8FromBPFBytes(path[:exec.SizePath])
 		}
 	}
 
 	var cmdArgs [][]byte
 
-	if exec.Flags&api.EventDataArgs != 0 {
-		var desc dataapi.DataEventDesc
+	if exec.SizeArgs != 0 {
+		if exec.Flags&api.EventDataArgs != 0 {
+			var desc dataapi.DataEventDesc
 
-		dr := bytes.NewReader(args)
+			if uint16(unsafe.Sizeof(desc)) != exec.SizeArgs {
+				err := errors.New("msg exec mismatched size")
+				return proc, err
+			}
+			if err := binary.Read(reader, binary.LittleEndian, &desc); err != nil {
+				return proc, err
+			}
+			data, err := observer.DataGet(desc)
+			if err != nil {
+				return proc, err
+			}
+			// cut the zero byte
+			if len(data) > 0 {
+				n := len(data) - 1
+				cmdArgs = bytes.Split(data[:n], []byte{0x00})
+			}
+		} else {
+			data := make([]byte, exec.SizeArgs)
+			if err := binary.Read(reader, binary.LittleEndian, &data); err != nil {
+				return proc, err
+			}
+			cmdArgs = bytes.Split(data[:exec.SizeArgs], []byte{0x00})
+		}
+	}
 
-		if err := binary.Read(dr, binary.LittleEndian, &desc); err != nil {
+	if exec.SizeCwd != 0 {
+		cwd := make([]byte, exec.SizeCwd)
+
+		if err := binary.Read(reader, binary.LittleEndian, &cwd); err != nil {
 			return proc, err
 		}
-		data, err := observer.DataGet(desc)
-		if err != nil {
-			return proc, err
-		}
-		// cut the zero byte
-		if len(data) > 0 {
-			n := len(data) - 1
-			cmdArgs = bytes.Split(data[:n], []byte{0x00})
-		}
-
-		cwd := args[unsafe.Sizeof(desc):]
 		cmdArgs = append(cmdArgs, cwd)
-	} else {
-		// no arguments, args should have just cwd
-		// reading it with split to get [][]byte type
-		cmdArgs = bytes.Split(args, []byte{0x00})
 	}
 
 	proc.Size = exec.Size

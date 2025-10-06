@@ -82,6 +82,7 @@ getcwd(struct msg_process *curr, __u32 offset, __u32 proc_pid)
 	if (flags & UNRESOLVED_PATH_COMPONENTS)
 		curr->flags |= EVENT_ERROR_PATH_COMPONENTS;
 	curr->flags = curr->flags & ~(EVENT_NEEDS_CWD | EVENT_ERROR_CWD);
+	curr->size_cwd = (__u16)size;
 	return (__u32)size;
 }
 
