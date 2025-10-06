@@ -227,15 +227,15 @@ spec:
       - index: 0
         operator: "Equal"
         values:
-        - 1
+        - "1"
       - index: 1
         operator: "Equal"
         values:
-        - 42
+        - "42"
       - index: 2
         operator: "Equal"
         values:
-        - 0xdeadbeef
+        - "0xdeadbeef"
       matchActions:
       - action: Sigkill
 `
