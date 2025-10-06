@@ -276,7 +276,7 @@ spec:
       - index: 0
         operator: "LT"
         values:
-        - 0
+        - "0"
 `
 
 	err := checkCrd(t, crd)
@@ -307,7 +307,7 @@ spec:
       - index: 0
         operator: "GT"
         values:
-        - 0
+        - "0"
 `
 
 	err := checkCrd(t, crd)
