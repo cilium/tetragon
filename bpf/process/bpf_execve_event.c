@@ -103,6 +103,8 @@ read_args(void *ctx, struct msg_execve_event *event)
 	args_size = end_stack - start_stack;
 
 	if (args_size < BUFFER && args_size < free_size) {
+		if (args_size)
+			args_size -= 1;
 		size = args_size & 0x3ff /* BUFFER - 1 */;
 		err = with_errmetrics(probe_read, args, size, (char *)start_stack);
 		if (err < 0) {
@@ -120,6 +122,7 @@ read_args(void *ctx, struct msg_execve_event *event)
 #ifdef __LARGE_BPF_PROG
 	event->exe.arg_len = size;
 #endif
+	p->size_args = (__u16)size;
 	return size;
 }
 
@@ -145,8 +148,12 @@ read_path(void *ctx, struct msg_execve_event *event, void *filename)
 			flags |= EVENT_ERROR_FILENAME;
 		else
 			flags |= EVENT_DATA_FILENAME;
+	} else if (size > 0) {
+		/* remove null byte */
+		size -= 1;
 	}
 
+	p->size_path = (__u16)size;
 	p->flags |= flags;
 	return size;
 }
@@ -204,6 +211,10 @@ event_execve(struct exec_ctx_struct *ctx)
 
 	p = &event->process;
 	p->flags = EVENT_EXECVE;
+	p->size_path = 0;
+	p->size_args = 0;
+	p->size_cwd = 0;
+
 	/**
 	 * Per thread tracking rules TID == PID :
 	 *  At exec all threads other than the calling one are destroyed, so
