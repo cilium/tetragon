@@ -1479,7 +1479,7 @@ func testKprobeObjectFilterModeOpenHook(pidStr string, mode int, valueFmt string
         - index: 2
           operator: "Mask"
           values:
-          - ` + fmt.Sprintf(valueFmt, mode) + `
+          - "` + fmt.Sprintf(valueFmt, mode) + `"
   `
 }
 
@@ -1514,7 +1514,7 @@ func TestKprobeObjectFilterModeOpenMatchHex(t *testing.T) {
 }
 
 func TestKprobeObjectFilterModeOpenMatchOct(t *testing.T) {
-	testKprobeObjectFilterModeOpenMatch(t, "0%d", syscall.O_RDWR|syscall.O_TRUNC|syscall.O_CLOEXEC, syscall.O_CLOEXEC)
+	testKprobeObjectFilterModeOpenMatch(t, "0%o", syscall.O_RDWR|syscall.O_TRUNC|syscall.O_CLOEXEC, syscall.O_CLOEXEC)
 }
 
 func TestKprobeObjectFilterModeOpenFail(t *testing.T) {
