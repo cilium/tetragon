@@ -6961,9 +6961,11 @@ spec:
       resolve: "mm.owner.pid"
     data:
     - type: "string"
+      index: 0
       source: "current_task"
       resolve: "comm"
     - type: "int"
+      index: 1
       source: "current_task"
       resolve: "mm.owner.pid"
     selectors:
@@ -6976,13 +6978,13 @@ spec:
       - index: 0
         operator: "Equal"
         values:
-        - ` + comm_1 + `
-        - ` + comm_2 + `
+        - "` + comm_1 + `"
+        - "` + comm_2 + `"
       - args:
         - 1
         operator: "Equal"
         values:
-        - ` + strconv.Itoa(pid) + `
+        - "` + strconv.Itoa(pid) + `"
 `
 
 	createCrdFile(t, hook)
