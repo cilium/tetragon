@@ -9,12 +9,16 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
+	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
+	"github.com/cilium/tetragon/pkg/kernels"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer"
@@ -43,6 +47,53 @@ func miniTcpNopServerWithPort(c chan<- bool, port int, ipv6 bool) {
 	ses, _ := conn.Accept()
 	ses.Close()
 	conn.Close()
+}
+
+func startUnixServer(t *testing.T, name string) (cleanup func()) {
+	t.Helper()
+
+	if strings.HasPrefix(name, "/") {
+		_ = os.Remove(name)
+	}
+	addr := &net.UnixAddr{Name: name, Net: "unix"}
+	ln, err := net.ListenUnix("unix", addr)
+	if err != nil {
+		t.Fatalf("listen unix err %q: %v", name, err)
+	}
+
+	stop := make(chan struct{})
+	go func() {
+		for {
+			_ = ln.SetDeadline(time.Now().Add(1 * time.Second))
+			c, err := ln.AcceptUnix()
+			if err != nil {
+				select {
+				case <-stop:
+					return
+				default:
+					continue
+				}
+			}
+			_ = c.Close()
+		}
+	}()
+
+	return func() {
+		close(stop)
+		_ = ln.Close()
+		if strings.HasPrefix(name, "/") {
+			_ = os.Remove(name)
+		}
+	}
+}
+
+func dialUnix(t *testing.T, name string) {
+	t.Helper()
+	c, err := net.DialUnix("unix", nil, &net.UnixAddr{Name: name, Net: "unix"})
+	if err != nil {
+		t.Fatalf("dial unix %q: %v", name, err)
+	}
+	_ = c.Close()
 }
 
 func (suite *KprobeNet) addTracingPolicy(tpYaml string) tracingpolicy.TracingPolicy {
@@ -1323,6 +1374,317 @@ spec:
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
+	err := jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	suite.Require().NoError(err)
+}
+
+func (suite *KprobeNet) TestKprobeSocketAndSockaddrUn() {
+	if !config.EnableLargeProgs() {
+		suite.T().Skip("skipping test as older kernels may not support Prefix selector argument processing")
+	}
+	// Kernel <5.5 lacks bpf_probe_read_user; see TestKprobeSockaddrUnPathEquals.
+	if !kernels.MinKernelVersion("5.5") {
+		suite.T().Skip("skipping test: kernel <5.5 lacks bpf_probe_read_user (required for sockaddr_un); see bpf-helpers(7)")
+	}
+	hook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "security-socket-connect-unix"
+spec:
+  kprobes:
+  - call: "security_socket_connect"
+    syscall: false
+    args:
+    - index: 0
+      type: "socket"
+    - index: 1
+      type: "sockaddr_un"
+    selectors:
+    - matchArgs:
+      - index: 1
+        operator: "Family"
+        values: ["AF_UNIX"]
+      - index: 1
+        operator: "Prefix"
+        values: ["tetragon"]
+    - matchArgs:
+      - index: 1
+        operator: "Family"
+        values: ["AF_UNIX"]
+      - index: 1
+        operator: "Prefix"
+        values: ["/tmp"]
+`
+
+	suite.readyWG.Wait()
+
+	tp := suite.addTracingPolicy(hook)
+	defer suite.deleteTracingPolicy(tp)
+
+	const fsSock = "/tmp/tg.sock"
+	const absSock = "@tetragon-abs"
+
+	cleanupFS := startUnixServer(suite.T(), fsSock)
+	defer cleanupFS()
+	cleanupAbs := startUnixServer(suite.T(), absSock)
+	defer cleanupAbs()
+
+	dialUnix(suite.T(), fsSock)
+	dialUnix(suite.T(), absSock)
+
+	kpFS := ec.NewProcessKprobeChecker("uds-fs-checker").
+		WithFunctionName(sm.Full("security_socket_connect")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithSockaddrunArg(
+					ec.NewKprobeSockaddrUnChecker().
+						WithFamily(sm.Full("AF_UNIX")).
+						WithPath(sm.Prefix(fsSock)),
+				),
+			),
+		)
+
+	kpAbs := ec.NewProcessKprobeChecker("uds-abstract-checker").
+		WithFunctionName(sm.Full("security_socket_connect")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithSockaddrunArg(
+					ec.NewKprobeSockaddrUnChecker().
+						WithFamily(sm.Full("AF_UNIX")).
+						WithPath(sm.Prefix("@")),
+				),
+			),
+		)
+
+	checker := ec.NewUnorderedEventChecker(kpFS, kpAbs)
+	err := jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	suite.Require().NoError(err)
+
+}
+
+func (suite *KprobeNet) TestKprobeSockaddrUnPathEquals() {
+	if !config.EnableLargeProgs() {
+		suite.T().Skip("skipping test as older kernels may not support Equal selector argument processing")
+	}
+	// Kernel <5.5 lacks bpf_probe_read_user/bpf_probe_read_kernel. The legacy bpf_probe_read
+	// can fault with "General protection fault in user access. Non-canonical address?" when
+	// reading sockaddr_un from syscall args (user pointer). See bpf-helpers(7):
+	// https://man7.org/linux/man-pages/man7/bpf-helpers.7.html
+	if !kernels.MinKernelVersion("5.5") {
+		suite.T().Skip("skipping test: kernel <5.5 lacks bpf_probe_read_user (required for sockaddr_un); see bpf-helpers(7)")
+	}
+	hook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "security-socket-connect-unix-equals"
+spec:
+  kprobes:
+  - call: "security_socket_connect"
+    syscall: false
+    args:
+    - index: 0
+      type: "socket"
+    - index: 1
+      type: "sockaddr_un"
+    selectors:
+    - matchArgs:
+      - index: 1
+        operator: "Family"
+        values: ["AF_UNIX"]
+      - index: 1
+        operator: "Equal"
+        values: ["/tmp/tg-equals.sock"]
+    - matchArgs:
+      - index: 1
+        operator: "Family"
+        values: ["AF_UNIX"]
+      - index: 1
+        operator: "Equal"
+        values: ["tetragon-equals"]
+`
+
+	suite.readyWG.Wait()
+
+	tp := suite.addTracingPolicy(hook)
+	defer suite.deleteTracingPolicy(tp)
+
+	const fsSock = "/tmp/tg-equals.sock"
+	const absSock = "@tetragon-equals"
+
+	cleanupFS := startUnixServer(suite.T(), fsSock)
+	defer cleanupFS()
+	cleanupAbs := startUnixServer(suite.T(), absSock)
+	defer cleanupAbs()
+
+	dialUnix(suite.T(), fsSock)
+	dialUnix(suite.T(), absSock)
+
+	kpFS := ec.NewProcessKprobeChecker("uds-fs-equals-checker").
+		WithFunctionName(sm.Full("security_socket_connect")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithSockaddrunArg(
+					ec.NewKprobeSockaddrUnChecker().
+						WithFamily(sm.Full("AF_UNIX")).
+						WithPath(sm.Full(fsSock)),
+				),
+			),
+		)
+
+	kpAbs := ec.NewProcessKprobeChecker("uds-abstract-equals-checker").
+		WithFunctionName(sm.Full("security_socket_connect")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithSockaddrunArg(
+					ec.NewKprobeSockaddrUnChecker().
+						WithFamily(sm.Full("AF_UNIX")).
+						WithPath(sm.Full(absSock)),
+				),
+			),
+		)
+
+	checker := ec.NewUnorderedEventChecker(kpFS, kpAbs)
+	err := jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	suite.Require().NoError(err)
+}
+
+func (suite *KprobeNet) TestKprobeSockaddrUnPathNotEqual() {
+	if !config.EnableLargeProgs() {
+		suite.T().Skip("skipping test as older kernels may not support Equal selector argument processing")
+	}
+	// Kernel <5.5 lacks bpf_probe_read_user; see TestKprobeSockaddrUnPathEquals.
+	if !kernels.MinKernelVersion("5.5") {
+		suite.T().Skip("skipping test: kernel <5.5 lacks bpf_probe_read_user (required for sockaddr_un); see bpf-helpers(7)")
+	}
+	hook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "security-socket-connect-unix-notequal"
+spec:
+  kprobes:
+  - call: "security_socket_connect"
+    syscall: false
+    args:
+    - index: 0
+      type: "socket"
+    - index: 1
+      type: "sockaddr_un"
+    selectors:
+    - matchArgs:
+      - index: 1
+        operator: "Family"
+        values: ["AF_UNIX"]
+      - index: 1
+        operator: "NotEqual"
+        values: ["/tmp/excluded.sock"]
+`
+
+	suite.readyWG.Wait()
+
+	tp := suite.addTracingPolicy(hook)
+	defer suite.deleteTracingPolicy(tp)
+
+	const fsSock = "/tmp/tg-ne.sock"
+	const absSock = "@tetragon-ne"
+
+	cleanupFS := startUnixServer(suite.T(), fsSock)
+	defer cleanupFS()
+	cleanupAbs := startUnixServer(suite.T(), absSock)
+	defer cleanupAbs()
+
+	dialUnix(suite.T(), fsSock)
+	dialUnix(suite.T(), absSock)
+
+	kpFS := ec.NewProcessKprobeChecker("uds-fs-notequal-checker").
+		WithFunctionName(sm.Full("security_socket_connect")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithSockaddrunArg(
+					ec.NewKprobeSockaddrUnChecker().
+						WithFamily(sm.Full("AF_UNIX")).
+						WithPath(sm.Full(fsSock)),
+				),
+			),
+		)
+
+	kpAbs := ec.NewProcessKprobeChecker("uds-abstract-notequal-checker").
+		WithFunctionName(sm.Full("security_socket_connect")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithSockaddrunArg(
+					ec.NewKprobeSockaddrUnChecker().
+						WithFamily(sm.Full("AF_UNIX")).
+						WithPath(sm.Full(absSock)),
+				),
+			),
+		)
+
+	checker := ec.NewUnorderedEventChecker(kpFS, kpAbs)
+	err := jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	suite.Require().NoError(err)
+}
+
+func (suite *KprobeNet) TestKprobeSockaddrUnPathNotPrefix() {
+	if !config.EnableLargeProgs() {
+		suite.T().Skip("skipping test as older kernels may not support Prefix selector argument processing")
+	}
+	// Kernel <5.5 lacks bpf_probe_read_user; see TestKprobeSockaddrUnPathEquals.
+	if !kernels.MinKernelVersion("5.5") {
+		suite.T().Skip("skipping test: kernel <5.5 lacks bpf_probe_read_user (required for sockaddr_un); see bpf-helpers(7)")
+	}
+
+	hook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "security-socket-connect-unix-notprefix"
+spec:
+  kprobes:
+  - call: "security_socket_connect"
+    syscall: false
+    args:
+    - index: 0
+      type: "socket"
+    - index: 1
+      type: "sockaddr_un"
+    selectors:
+    - matchArgs:
+      - index: 1
+        operator: "Family"
+        values: ["AF_UNIX"]
+      - index: 1
+        operator: "NotPrefix"
+        values: ["/tmp"]
+`
+
+	suite.readyWG.Wait()
+
+	tp := suite.addTracingPolicy(hook)
+	defer suite.deleteTracingPolicy(tp)
+
+	const fsSock = "/tmp/tg-np.sock"
+	const absSock = "@tetragon-np"
+
+	cleanupFS := startUnixServer(suite.T(), fsSock)
+	defer cleanupFS()
+	cleanupAbs := startUnixServer(suite.T(), absSock)
+	defer cleanupAbs()
+
+	dialUnix(suite.T(), fsSock)
+	dialUnix(suite.T(), absSock)
+
+	kpAbs := ec.NewProcessKprobeChecker("uds-abstract-notprefix-checker").
+		WithFunctionName(sm.Full("security_socket_connect")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithSockaddrunArg(
+					ec.NewKprobeSockaddrUnChecker().
+						WithFamily(sm.Full("AF_UNIX")).
+						WithPath(sm.Full(absSock)),
+				),
+			),
+		)
+
+	checker := ec.NewUnorderedEventChecker(kpAbs)
 	err := jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
 }
