@@ -1560,7 +1560,7 @@ func testKprobeObjectFilterReturnValueGTHook(pidStr, path string) string {
         - index: 0
           operator: "GT"
           values:
-          - 0
+          - "0"
   `
 }
 
@@ -1600,7 +1600,7 @@ func testKprobeObjectFilterReturnValueLTHook(pidStr, path string) string {
         - index: 0
           operator: "LT"
           values:
-          - 0
+          - "0"
   `
 }
 
