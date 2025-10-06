@@ -9,8 +9,11 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
+	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/config"
@@ -43,6 +46,53 @@ func miniTcpNopServerWithPort(c chan<- bool, port int, ipv6 bool) {
 	ses, _ := conn.Accept()
 	ses.Close()
 	conn.Close()
+}
+
+func startUnixServer(t *testing.T, name string) (cleanup func()) {
+	t.Helper()
+
+	if strings.HasPrefix(name, "/") {
+		_ = os.Remove(name)
+	}
+	addr := &net.UnixAddr{Name: name, Net: "unix"}
+	ln, err := net.ListenUnix("unix", addr)
+	if err != nil {
+		t.Fatalf("listen unix err %q: %v", name, err)
+	}
+
+	stop := make(chan struct{})
+	go func() {
+		for {
+			_ = ln.SetDeadline(time.Now().Add(1 * time.Second))
+			c, err := ln.AcceptUnix()
+			if err != nil {
+				select {
+				case <-stop:
+					return
+				default:
+					continue
+				}
+			}
+			_ = c.Close()
+		}
+	}()
+
+	return func() {
+		close(stop)
+		_ = ln.Close()
+		if strings.HasPrefix(name, "/") {
+			_ = os.Remove(name)
+		}
+	}
+}
+
+func dialUnix(t *testing.T, name string) {
+	t.Helper()
+	c, err := net.DialUnix("unix", nil, &net.UnixAddr{Name: name, Net: "unix"})
+	if err != nil {
+		t.Fatalf("dial unix %q: %v", name, err)
+	}
+	_ = c.Close()
 }
 
 func (suite *KprobeNet) addTracingPolicy(tpYaml string) tracingpolicy.TracingPolicy {
@@ -1325,4 +1375,84 @@ spec:
 
 	err := jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
 	suite.Require().NoError(err)
+}
+
+func (suite *KprobeNet) TestKprobeSocketAndSockaddrUn() {
+	if !config.EnableLargeProgs() {
+		suite.T().Skip("skipping test as older kernels may not support Prefix selector argument processing")
+	}
+	hook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "security-socket-connect-unix"
+spec:
+  kprobes:
+  - call: "security_socket_connect"
+    syscall: false
+    args:
+    - index: 0
+      type: "socket"
+    - index: 1
+      type: "sockaddr_un"
+    selectors:
+    - matchArgs:
+      - index: 1
+        operator: "Family"
+        values: ["AF_UNIX"]
+      - index: 1
+        operator: "Prefix"
+        values: ["tetragon"]
+    - matchArgs:
+      - index: 1
+        operator: "Family"
+        values: ["AF_UNIX"]
+      - index: 1
+        operator: "Prefix"
+        values: ["/tmp"]
+`
+
+	suite.readyWG.Wait()
+
+	tp := suite.addTracingPolicy(hook)
+	defer suite.deleteTracingPolicy(tp)
+
+	const fsSock = "/tmp/tg.sock"
+	const absSock = "@tetragon-abs"
+
+	cleanupFS := startUnixServer(suite.T(), fsSock)
+	defer cleanupFS()
+	cleanupAbs := startUnixServer(suite.T(), absSock)
+	defer cleanupAbs()
+
+	dialUnix(suite.T(), fsSock)
+	dialUnix(suite.T(), absSock)
+
+	kpFS := ec.NewProcessKprobeChecker("uds-fs-checker").
+		WithFunctionName(sm.Full("security_socket_connect")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithSockaddrunArg(
+					ec.NewKprobeSockaddrUnChecker().
+						WithFamily(sm.Full("AF_UNIX")).
+						WithPath(sm.Prefix(fsSock)),
+				),
+			),
+		)
+
+	kpAbs := ec.NewProcessKprobeChecker("uds-abstract-checker").
+		WithFunctionName(sm.Full("security_socket_connect")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithSockaddrunArg(
+					ec.NewKprobeSockaddrUnChecker().
+						WithFamily(sm.Full("AF_UNIX")).
+						WithPath(sm.Prefix("@")),
+				),
+			),
+		)
+
+	checker := ec.NewUnorderedEventChecker(kpFS, kpAbs)
+	err := jsonchecker.JsonTestCheckExpectWithKeep(suite.T(), checker, false, false)
+	suite.Require().NoError(err)
+
 }
