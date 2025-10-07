@@ -78,8 +78,12 @@ func detectKprobeMulti() bool {
 	syms := []string{"vprintk"}
 	opts := link.KprobeMultiOptions{Symbols: syms}
 
-	_, err = link.KprobeMulti(prog, opts)
-	return err == nil
+	link, err := link.KprobeMulti(prog, opts)
+	if err != nil {
+		return false
+	}
+	link.Close()
+	return true
 }
 
 func HasKprobeMulti() bool {
