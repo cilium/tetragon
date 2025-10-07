@@ -39,6 +39,7 @@ func New() *cobra.Command {
 			}
 		},
 		Run: func(cmd *cobra.Command, _ []string) {
+			//cmd.Printf("KRAVA %t\n", bpf.HasUprobeRegsChange())
 			cmd.Println(strings.ReplaceAll(bpf.LogFeatures(), ", ", "\n"))
 		},
 	}
