@@ -49,6 +49,7 @@ var (
 	batchUpdate            Feature
 	uprobeRefCtrOffset     Feature
 	auditLoginuid          Feature
+	uprobeRegsChange       Feature
 )
 
 func HasOverrideHelper() bool {
@@ -536,14 +537,43 @@ func HasAuditLoginuid() bool {
 	return auditLoginuid.detected
 }
 
+func detectUprobeRegsChange() bool {
+	prog, err := ebpf.NewProgram(&ebpf.ProgramSpec{
+		Name: "uprobe_regs",
+		Type: ebpf.Kprobe,
+		Instructions: asm.Instructions{
+			asm.StoreImm(asm.R1, 0x50 /* rax */, 0xdead, 8),
+			asm.Mov.Imm(asm.R0, 0),
+			asm.Return(),
+		},
+		License: "MIT",
+	})
+	if err != nil {
+		return false
+	}
+	prog.Close()
+	return true
+}
+
+func detectUprobeRegsChangeOnce() {
+	uprobeRegsChange.init.Do(func() {
+		uprobeRegsChange.detected = detectUprobeRegsChange()
+	})
+}
+
+func HasUprobeRegsChange() bool {
+	detectUprobeRegsChangeOnce()
+	return uprobeRegsChange.detected
+}
+
 func LogFeatures() string {
 	// once we have detected all features, flush the BTF spec
 	// we cache all values so calling again a Has* function will
 	// not load the BTF again
 	defer ebtf.FlushKernelSpec()
-	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, uprobe_multi %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t, link_pin: %t, lsm: %t, missed_stats_kprobe_multi: %t, missed_stats_kprobe: %t, batch_update: %t, uprobe_refctroff: %t, audit_loginuid: %t",
+	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, uprobe_multi %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t, link_pin: %t, lsm: %t, missed_stats_kprobe_multi: %t, missed_stats_kprobe: %t, batch_update: %t, uprobe_refctroff: %t, audit_loginuid: %t, uprobe_regs_change: %t",
 		HasOverrideHelper(), HasBuildId(), HasKprobeMulti(), HasUprobeMulti(),
 		HasModifyReturn(), HasModifyReturnSyscall(), HasSignalHelper(), HasProgramLargeSize(),
 		HasLinkPin(), HasLSMPrograms(), HasMissedStatsKprobeMulti(), HasMissedStatsPerfEvent(),
-		HasBatchAPI(), HasUprobeRefCtrOffset(), HasAuditLoginuid())
+		HasBatchAPI(), HasUprobeRefCtrOffset(), HasAuditLoginuid(), HasUprobeRegsChange())
 }
