@@ -621,6 +621,7 @@ matches. They are defined under `matchActions` and currently, the following
 - [TrackSock action](#tracksock-action)
 - [UntrackSock action](#untracksock-action)
 - [Notify Enforcer action](#notify-enforcer-action)
+- [USDT Set action](#usdt-set-action)
 
 {{< warning >}}
 The FollowFD and related (UnfollowFD, CopyFD) actions have been deprecated due to being unsafe and
@@ -1471,6 +1472,84 @@ spec:
       matchActions:
       - action: "Sigkill"
 ```
+
+### USDT Set action
+
+The `Set` action is specific for USDT probes and allows tetragon to write
+value to configured USDT probe argument. This argument needs to meet few
+conditions:
+
+- It's stored in memory as `USDT deref` argument
+- It has size of 4 bytes
+
+Following command displays binary's ELF notes which includes all defined USDT probes.
+
+```bash
+$ readelf -n ./usdt-override
+...
+Displaying notes found in: .note.stapsdt
+  Owner                Data size        Description
+  stapsdt              0x0000003e       NT_STAPSDT (SystemTap probe descriptors)
+    Provider: tetragon
+    Name: test
+    Location: 0x0000000000001135, Base: 0x0000000000002004, Semaphore: 0x0000000000000000
+    Arguments: -4@-4(%rsp) -4@$1 -4@$2
+```
+
+- Please check `-4@-4(%rsp)` for first argument load, which is `USDT deref`.
+- The `-4` in `-4@-4(%rsp)` stands for signed 4 bytes type.
+
+Following C example is source for `usdt-override` from above. It defines USDT
+probe with 3 arguments and first one meets the criteria for USDT return.
+
+```c
+int main(int argc, char **argv)
+{
+    volatile int ret = 0;
+    int arg_1, arg_2;
+
+    ...
+
+    USDT(tetragon, test, ret, arg_1, arg_2);
+
+    if (ret)
+        return -1;
+
+    ...
+
+```
+
+Note the `volatile` used for `ret` variable that ensures it will be used
+via memory dereferencing in USDT probe.
+
+We can then use following tetragon policy to trace this USDT probe and
+force value `1` for output argument in case the `Set` action is executed.
+
+
+```yaml
+spec:
+  usdts:
+  - path: ".../usdt-override"
+    provider: "tetragon"
+    name: "test"
+    args:
+    - index: 0
+      type: "int32"
+    - index: 1
+      type: "int32"
+    - index: 2
+      type: "int32"
+    selectors:
+      - matchActions:
+        - action: Set
+          argIndex: 0
+          argValue: 1
+```
+
+The `Set` action uses following arguments:
+
+- The `argIndex` defines position of the return argument.
+- The `argValue` defined the actual value to write.
 
 ## Selector Semantics
 
