@@ -116,18 +116,21 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, error) {
 		return proc, err
 	}
 
+	readData := func(size uint16) ([]byte, error) {
+		var desc dataapi.DataEventDesc
+
+		if uint16(unsafe.Sizeof(desc)) != size {
+			return nil, errors.New("msg exec mismatched size")
+		}
+		if err := binary.Read(reader, binary.LittleEndian, &desc); err != nil {
+			return nil, err
+		}
+		return observer.DataGet(desc)
+	}
+
 	if exec.SizePath != 0 {
 		if exec.Flags&api.EventDataFilename != 0 {
-			var desc dataapi.DataEventDesc
-
-			if uint16(unsafe.Sizeof(desc)) != exec.SizePath {
-				err := errors.New("msg exec mismatched size")
-				return proc, err
-			}
-			if err := binary.Read(reader, binary.LittleEndian, &desc); err != nil {
-				return proc, err
-			}
-			data, err := observer.DataGet(desc)
+			data, err := readData(exec.SizePath)
 			if err != nil {
 				return proc, err
 			}
@@ -146,16 +149,7 @@ func execParse(reader *bytes.Reader) (processapi.MsgProcess, error) {
 
 	if exec.SizeArgs != 0 {
 		if exec.Flags&api.EventDataArgs != 0 {
-			var desc dataapi.DataEventDesc
-
-			if uint16(unsafe.Sizeof(desc)) != exec.SizeArgs {
-				err := errors.New("msg exec mismatched size")
-				return proc, err
-			}
-			if err := binary.Read(reader, binary.LittleEndian, &desc); err != nil {
-				return proc, err
-			}
-			data, err := observer.DataGet(desc)
+			data, err := readData(exec.SizeArgs)
 			if err != nil {
 				return proc, err
 			}
