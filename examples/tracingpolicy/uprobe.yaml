@@ -8,3 +8,11 @@ spec:
     symbols:
     - "readline"
     - "main"
+    selectors:
+    - matchActions:
+      - action: Regs
+        argReg:
+          - "rax:0x123"
+          - "rbp:0x321"
+      - action: Override
+        argError: -1
