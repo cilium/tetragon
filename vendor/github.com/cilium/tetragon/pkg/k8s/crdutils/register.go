@@ -161,15 +161,16 @@ func constructV1CRD(
 	name string,
 	template apiextensionsv1.CustomResourceDefinition,
 ) *apiextensionsv1.CustomResourceDefinition {
+	crdSchemaVersionKey := template.Spec.Group + ".k8s.crd.schema.version"
 	return &apiextensionsv1.CustomResourceDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 			Labels: map[string]string{
-				CustomResourceDefinitionSchemaVersionKey: v1alpha1.CustomResourceDefinitionSchemaVersion,
+				crdSchemaVersionKey: v1alpha1.CustomResourceDefinitionSchemaVersion,
 			},
 		},
 		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
-			Group: ciliumio.GroupName,
+			Group: template.Spec.Group,
 			Names: apiextensionsv1.CustomResourceDefinitionNames{
 				Kind:       template.Spec.Names.Kind,
 				Plural:     template.Spec.Names.Plural,
