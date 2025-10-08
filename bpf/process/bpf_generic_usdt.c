@@ -49,10 +49,12 @@ struct {
 #define MAIN	"uprobe.multi/generic_usdt"
 #define COMMON	"uprobe.multi"
 #define OFFLOAD "uprobe.multi.s/generic_usdt"
+#define COMMON	"uprobe.multi"
 #else
 #define MAIN	"uprobe/generic_usdt"
 #define COMMON	"uprobe"
 #define OFFLOAD "uprobe.s/generic_usdt"
+#define COMMON	"uprobe"
 #endif
 
 __attribute__((section((MAIN)), used)) int
