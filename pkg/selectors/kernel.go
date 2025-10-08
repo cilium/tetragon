@@ -926,8 +926,8 @@ func parseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 			return fmt.Errorf("writePostfixStrings error: %w", err)
 		}
 	case SelectorOpSport, SelectorOpDport, SelectorOpNotSport, SelectorOpNotDport, SelectorOpProtocol, SelectorOpFamily, SelectorOpState:
-		if ty != gt.GenericSockType && ty != gt.GenericSkbType && ty != gt.GenericSockaddrType && ty != gt.GenericSocketType {
-			return errors.New("sock/socket/skb/sockaddr operators specified for non-sock/socket/skb/sockaddr type")
+		if ty != gt.GenericSockType && ty != gt.GenericSkbType && ty != gt.GenericSockaddrType && ty != gt.GenericSocketType && ty != gt.GenericSockaddrUnType {
+			return errors.New("sock/socket/skb/sockaddr/sockaddr_un operators specified for non-sock/socket/skb/sockaddr/sockaddr_un type")
 		}
 		if ty == gt.GenericSockaddrType && (op == SelectorOpDport || op == SelectorOpNotDport || op == SelectorOpProtocol || op == SelectorOpState) {
 			return errors.New("sockaddr only supports [not]saddr, [not]sport[priv], and family")

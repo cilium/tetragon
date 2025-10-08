@@ -35,6 +35,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
+	"github.com/cilium/tetragon/pkg/strutils"
 	"github.com/cilium/tetragon/pkg/syscallinfo"
 	"github.com/cilium/tetragon/pkg/tracepoint"
 
@@ -987,6 +988,19 @@ func handleMsgGenericTracepoint(
 			arg.SinPort = uint32(address.SinPort)
 			unix.Args = append(unix.Args, arg)
 
+		case gt.GenericSockaddrUnType:
+			var sockaddr tracingapi.MsgGenericKprobeSockaddrUn
+			var arg tracingapi.MsgGenericKprobeArgSockaddrUn
+
+			err := binary.Read(r, binary.LittleEndian, &sockaddr)
+			if err != nil {
+				logger.GetLogger().Warn("sockaddrun type err", logfields.Error, err)
+			}
+
+			arg.Family = sockaddr.Family
+			arg.Path = string(NormalizeSockaddrUnPath(sockaddr.Path[:]))
+			unix.Args = append(unix.Args, arg)
+
 		case gt.GenericSyscall64:
 			var val uint64
 			err := binary.Read(r, binary.LittleEndian, &val)
@@ -1082,4 +1096,36 @@ func handleMsgGenericTracepoint(
 
 func (t *observerTracepointSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 	return LoadGenericTracepointSensor(args.BPFDir, args.Load, args.Maps, args.Verbose)
+}
+
+// NormalizeSockaddrUnPath returns a display-friendly byte slice:
+// "@name" for abstract UNIX sockets (trimming trailing NUL padding),
+// or the pathname up to the first NUL for filesystem sockets.
+func NormalizeSockaddrUnPath(raw []byte) []byte {
+	if len(raw) == 0 {
+		return nil
+	}
+
+	var normalized []byte
+
+	if raw[0] == 0 {
+		// Abstract socket
+		i := len(raw)
+		for i > 1 && raw[i-1] == 0 {
+			i--
+		}
+		// Create "@name" format for abstract sockets
+		normalized = make([]byte, 1, 1+(i-1))
+		normalized[0] = '@'
+		normalized = append(normalized, raw[1:i]...)
+	} else {
+		// Filesystem socket
+		if i := bytes.IndexByte(raw, 0); i >= 0 {
+			normalized = append([]byte(nil), raw[:i]...)
+		} else {
+			normalized = append([]byte(nil), raw...)
+		}
+	}
+
+	return []byte(strutils.UTF8FromBPFBytes(normalized))
 }
