@@ -11,48 +11,9 @@ import (
 	"fmt"
 	"io"
 	"strings"
-	"unsafe"
 
-	"golang.org/x/sys/unix"
+	"github.com/cilium/tetragon/pkg/asm"
 )
-
-type reg struct {
-	name [4]string
-	off  uint16
-}
-
-var ptregs unix.PtraceRegs
-
-var regs = []reg{
-	reg{[4]string{"rip", "eip", "", ""}, uint16(unsafe.Offsetof(ptregs.Rip))},
-	reg{[4]string{"rax", "eax", "ax", "al"}, uint16(unsafe.Offsetof(ptregs.Rax))},
-	reg{[4]string{"rbx", "ebx", "bx", "bl"}, uint16(unsafe.Offsetof(ptregs.Rbx))},
-	reg{[4]string{"rcx", "ecx", "cx", "cl"}, uint16(unsafe.Offsetof(ptregs.Rcx))},
-	reg{[4]string{"rdx", "edx", "dx", "dl"}, uint16(unsafe.Offsetof(ptregs.Rdx))},
-	reg{[4]string{"rsi", "esi", "si", "sil"}, uint16(unsafe.Offsetof(ptregs.Rsi))},
-	reg{[4]string{"rdi", "edi", "di", "dil"}, uint16(unsafe.Offsetof(ptregs.Rdi))},
-	reg{[4]string{"rbp", "ebp", "bp", "bpl"}, uint16(unsafe.Offsetof(ptregs.Rbp))},
-	reg{[4]string{"rsp", "esp", "sp", "spl"}, uint16(unsafe.Offsetof(ptregs.Rsp))},
-	reg{[4]string{"r8", "r8d", "r8w", "r8b"}, uint16(unsafe.Offsetof(ptregs.R8))},
-	reg{[4]string{"r9", "r9d", "r9w", "r9b"}, uint16(unsafe.Offsetof(ptregs.R9))},
-	reg{[4]string{"r10", "r10d", "r10w", "r10b"}, uint16(unsafe.Offsetof(ptregs.R10))},
-	reg{[4]string{"r11", "r11d", "r11w", "r11b"}, uint16(unsafe.Offsetof(ptregs.R11))},
-	reg{[4]string{"r12", "r12d", "r12w", "r12b"}, uint16(unsafe.Offsetof(ptregs.R12))},
-	reg{[4]string{"r13", "r13d", "r13w", "r13b"}, uint16(unsafe.Offsetof(ptregs.R13))},
-	reg{[4]string{"r14", "r14d", "r14w", "r14b"}, uint16(unsafe.Offsetof(ptregs.R14))},
-	reg{[4]string{"r15", "r15d", "r15w", "r15b"}, uint16(unsafe.Offsetof(ptregs.R15))},
-}
-
-func resolveReg(name string) (uint16, bool) {
-	for _, reg := range regs {
-		for _, n := range reg.name {
-			if n == name {
-				return reg.off, true
-			}
-		}
-	}
-	return 0, false
-}
 
 var errNext = errors.New("next")
 
@@ -129,12 +90,12 @@ func parseSIB(str string, arg *UsdtArg) error {
 
 	arg.Type = USDT_ARG_TYPE_SIB
 	arg.ValOff = uint64(off)
-	arg.RegOff, ok = resolveReg(reg.name)
+	arg.RegOff, ok = asm.RegOffset(reg.name)
 	if !ok {
 		return fmt.Errorf("failed to parse register '%s'", reg.name)
 	}
 
-	arg.RegIdxOff, ok = resolveReg(regIdx.name)
+	arg.RegIdxOff, ok = asm.RegOffset(regIdx.name)
 	if !ok {
 		return fmt.Errorf("failed to parse index register '%s'", regIdx.name)
 	}
@@ -170,7 +131,7 @@ func parseRegDeref(str string, arg *UsdtArg) error {
 
 	arg.Type = USDT_ARG_TYPE_REG_DEREF
 	arg.ValOff = uint64(off)
-	arg.RegOff, ok = resolveReg(reg.name)
+	arg.RegOff, ok = asm.RegOffset(reg.name)
 	if !ok {
 		return fmt.Errorf("failed to parse register '%s'", reg.name)
 	}
@@ -192,7 +153,7 @@ func parseReg(str string, arg *UsdtArg) error {
 
 	arg.Type = USDT_ARG_TYPE_REG
 	arg.ValOff = 0
-	arg.RegOff, ok = resolveReg(reg.name)
+	arg.RegOff, ok = asm.RegOffset(reg.name)
 	if !ok {
 		return fmt.Errorf("failed to parse register '%s'", reg.name)
 	}
