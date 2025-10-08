@@ -262,6 +262,16 @@ func (k *KernelSelectorState) StringPostfixMapsMaxEntries() int {
 	return maxEntries
 }
 
+func WriteSelectorInt8(k *KernelSelectorData, v int8) {
+	k.e[k.off:][0] = uint8(v)
+	k.off++
+}
+
+func WriteSelectorUint8(k *KernelSelectorData, v uint8) {
+	k.e[k.off:][0] = v
+	k.off++
+}
+
 func WriteSelectorInt16(k *KernelSelectorData, v int16) {
 	binary.LittleEndian.PutUint16(k.e[k.off:], uint16(v))
 	k.off += 2

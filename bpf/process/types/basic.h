@@ -1275,6 +1275,92 @@ filter_64ty_selector_val(struct selector_arg_filter *filter, char *args)
 
 // filter on values provided in the selector itself
 FUNC_LOCAL long
+filter_8ty_selector_val(struct selector_arg_filter *filter, char *args)
+{
+	__u8 *v = (__u8 *)&filter->value;
+	int i, j = 0;
+
+#pragma unroll
+	for (i = 0; i < MAX_MATCH_VALUES; i++) {
+		__u8 w = v[i];
+		bool res;
+
+		switch (filter->op) {
+		case op_filter_lt:
+			if (is_signed_type(filter->type)) {
+				if (*(s8 *)args < (s8)w)
+					return 1;
+			} else {
+				if (*(u8 *)args < w)
+					return 1;
+			}
+			break;
+		case op_filter_gt:
+			if (is_signed_type(filter->type)) {
+				if (*(s8 *)args > (s8)w)
+					return 1;
+			} else {
+				if (*(u8 *)args < w)
+					return 1;
+			}
+			break;
+		case op_filter_eq:
+		case op_filter_neq:
+			res = (*(u8 *)args == w);
+			if (filter->op == op_filter_eq && res)
+				return 1;
+			if (filter->op == op_filter_neq && !res)
+				return 1;
+			break;
+		case op_filter_mask:
+			if (*(u8 *)args & w)
+				return 1;
+		default:
+			break;
+		}
+		// placed here to allow llvm unroll this loop
+		j += 1;
+		// + 8 because the the members vallen (uint32) and type (uint32) are included
+		// in the total stored in filter->vallen. see func parseMatchArg()
+		if (j + 8 >= filter->vallen)
+			break;
+	}
+	return 0;
+}
+
+// use the selector value to determine a hash map, and do a lookup to determine whether the argument
+// is in the defined set.
+FUNC_LOCAL long
+filter_8ty_map(struct selector_arg_filter *filter, char *args)
+{
+	void *argmap;
+	__u32 map_idx = filter->value;
+
+	argmap = map_lookup_elem(&argfilter_maps, &map_idx);
+	if (!argmap)
+		return 0;
+
+	__u64 arg = *((__u8 *)args);
+	__u8 *pass = map_lookup_elem(argmap, &arg);
+
+	switch (filter->op) {
+	case op_filter_inmap:
+	case op_filter_sport:
+	case op_filter_dport:
+	case op_filter_protocol:
+	case op_filter_family:
+	case op_filter_state:
+		return !!pass;
+	case op_filter_notinmap:
+	case op_filter_notsport:
+	case op_filter_notdport:
+		return !pass;
+	}
+	return 0;
+}
+
+// filter on values provided in the selector itself
+FUNC_LOCAL long
 filter_16ty_selector_val(struct selector_arg_filter *filter, char *args)
 {
 	__u16 *v = (__u16 *)&filter->value;
@@ -1470,6 +1556,35 @@ filter_16ty_range(struct selector_arg_filter *filter, char *args)
 		return 1;
 	return 0;
 }
+
+FUNC_LOCAL long
+filter_8ty_range(struct selector_arg_filter *filter, char *args)
+{
+	__u8 *v = (__u8 *)&filter->value;
+	int all = 0, i, j = 0;
+
+#pragma unroll
+	for (i = 0; i < MAX_MATCH_VALUES; i++) {
+		__u8 start = v[i * 2], end = v[i * 2 + 1];
+		bool res;
+
+		if (is_signed_type(filter->type))
+			res = ((__s8)start <= *(s8 *)args) && (*(s8 *)args <= (__s8)end);
+		else
+			res = (start <= *(u8 *)args) && (*(u8 *)args <= end);
+
+		if (filter->op == op_in_range && res)
+			return 1;
+		all |= res;
+
+		j += sizeof(*v) * 2;
+		if (j + 8 /* vallen+type */ >= filter->vallen)
+			break;
+	}
+	if (filter->op == op_notin_range && !all)
+		return 1;
+	return 0;
+}
 #else
 FUNC_INLINE long
 filter_64ty_range(struct selector_arg_filter *filter, char *args)
@@ -1485,6 +1600,12 @@ filter_32ty_range(struct selector_arg_filter *filter, char *args)
 
 FUNC_INLINE long
 filter_16ty_range(struct selector_arg_filter *filter, char *args)
+{
+	return 0;
+}
+
+FUNC_INLINE long
+filter_8ty_range(struct selector_arg_filter *filter, char *args)
 {
 	return 0;
 }
@@ -1639,6 +1760,27 @@ filter_16ty(struct selector_arg_filter *filter, char *args)
 	return 0;
 }
 
+FUNC_LOCAL long
+filter_8ty(struct selector_arg_filter *filter, char *args)
+{
+	switch (filter->op) {
+	case op_filter_lt:
+	case op_filter_gt:
+	case op_filter_eq:
+	case op_filter_neq:
+	case op_filter_mask:
+		return filter_8ty_selector_val(filter, args);
+	case op_filter_inmap:
+	case op_filter_notinmap:
+		return filter_8ty_map(filter, args);
+	case op_in_range:
+	case op_notin_range:
+		return filter_8ty_range(filter, args);
+	}
+
+	return 0;
+}
+
 FUNC_INLINE size_t type_to_min_size(int type, int argm)
 {
 	switch (type) {
@@ -1655,6 +1797,9 @@ FUNC_INLINE size_t type_to_min_size(int type, int argm)
 	case s16_ty:
 	case u16_ty:
 		return 2;
+	case s8_ty:
+	case u8_ty:
+		return 1;
 	case skb_type:
 		return sizeof(struct skb_type);
 	case sock_type:
@@ -1950,6 +2095,10 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 		case s16_ty:
 		case u16_ty:
 			pass &= filter_16ty(filter, args);
+			break;
+		case s8_ty:
+		case u8_ty:
+			pass &= filter_8ty(filter, args);
 			break;
 #endif // __LARGE_BPF_PROG
 		case skb_type:
