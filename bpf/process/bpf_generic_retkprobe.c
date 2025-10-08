@@ -39,8 +39,10 @@ struct {
 
 #ifdef __MULTI_KPROBE
 #define MAIN "kprobe.multi/generic_retkprobe"
+#define COMMON "kprobe.multi"
 #else
 #define MAIN "kprobe/generic_retkprobe"
+#define COMMON "kprobe"
 #endif
 
 __attribute__((section((MAIN)), used)) int
@@ -49,20 +51,20 @@ BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 	return generic_retkprobe(ctx, (struct bpf_map_def *)&retkprobe_calls, ret);
 }
 
-__attribute__((section("kprobe"), used)) int
+__attribute__((section(COMMON), used)) int
 BPF_KRETPROBE(generic_retkprobe_filter_arg)
 {
 	return generic_filter_arg(ctx, (struct bpf_map_def *)&retkprobe_calls, false);
 }
 
-__attribute__((section("kprobe"), used)) int
+__attribute__((section(COMMON), used)) int
 BPF_KRETPROBE(generic_retkprobe_actions)
 {
 	generic_actions(ctx, (struct bpf_map_def *)&retkprobe_calls);
 	return 0;
 }
 
-__attribute__((section("kprobe"), used)) int
+__attribute__((section(COMMON), used)) int
 BPF_KRETPROBE(generic_retkprobe_output)
 {
 	return generic_output(ctx, MSG_OP_GENERIC_KPROBE);
