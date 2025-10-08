@@ -47,9 +47,11 @@ struct {
 
 #ifdef __MULTI_KPROBE
 #define MAIN	"uprobe.multi/generic_usdt"
+#define COMMON	"uprobe.multi"
 #define OFFLOAD "uprobe.multi.s/generic_usdt"
 #else
 #define MAIN	"uprobe/generic_usdt"
+#define COMMON	"uprobe"
 #define OFFLOAD "uprobe.s/generic_usdt"
 #endif
 
@@ -59,19 +61,19 @@ generic_usdt_event(struct pt_regs *ctx)
 	return generic_start_process_filter(ctx, (struct bpf_map_def *)&usdt_calls);
 }
 
-__attribute__((section("uprobe"), used)) int
+__attribute__((section(COMMON), used)) int
 generic_usdt_setup_event(void *ctx)
 {
 	return generic_process_event_and_setup(ctx, (struct bpf_map_def *)&usdt_calls);
 }
 
-__attribute__((section("uprobe"), used)) int
+__attribute__((section(COMMON), used)) int
 generic_usdt_process_event(void *ctx)
 {
 	return generic_process_event(ctx, (struct bpf_map_def *)&usdt_calls);
 }
 
-__attribute__((section("uprobe"), used)) int
+__attribute__((section(COMMON), used)) int
 generic_usdt_process_filter(void *ctx)
 {
 	int ret;
@@ -87,27 +89,27 @@ generic_usdt_process_filter(void *ctx)
 	return PFILTER_REJECT;
 }
 
-__attribute__((section("uprobe"), used)) int
+__attribute__((section(COMMON), used)) int
 generic_usdt_filter_arg(void *ctx)
 {
 	return generic_filter_arg(ctx, (struct bpf_map_def *)&usdt_calls, true);
 }
 
-__attribute__((section("uprobe"), used)) int
+__attribute__((section(COMMON), used)) int
 generic_usdt_actions(void *ctx)
 {
 	generic_actions(ctx, (struct bpf_map_def *)&usdt_calls);
 	return 0;
 }
 
-__attribute__((section("uprobe"), used)) int
+__attribute__((section(COMMON), used)) int
 generic_usdt_output(void *ctx)
 {
 	return generic_output(ctx, MSG_OP_GENERIC_USDT);
 }
 
 #ifndef __V61_BPF_PROG
-__attribute__((section("uprobe"), used)) int
+__attribute__((section(COMMON), used)) int
 generic_usdt_path(void *ctx)
 {
 	return generic_path(ctx, (struct bpf_map_def *)&usdt_calls);
