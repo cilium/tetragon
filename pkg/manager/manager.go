@@ -232,7 +232,7 @@ func (cm *ControllerManager) FindMirrorPod(hash string) (*corev1.Pod, error) {
 //
 // Returns:
 //   - *ControllerManager: The created controller manager instance, or nil on failure.
-//   - error: An error if the controller manager could not be created.
+//   - error: An error if the controller manager could not be created or api_server connectivity failed.
 func newControllerManagerWithRetry(cfg *rest.Config, controllerOptions ctrl.Options) (cm *ControllerManager, err error) {
 
 	retryCount := conf.K8sConfigRetry()
@@ -251,25 +251,50 @@ func newControllerManagerWithRetry(cfg *rest.Config, controllerOptions ctrl.Opti
 		startTime = time.Now()
 	)
 
-	backoff := retry.DefaultBackoff
+	defaultRetry := retry.DefaultRetry
+	// Create a copy of the default retry with modified steps.
+	// This is to ensure that we do not modify the global default retry.
+	// We only want to change the number of steps (i.e., retries).
+	localRetry := defaultRetry
+	localRetry.Steps = retryCount
+
+	defaultBackoff := retry.DefaultBackoff
 	// localBackoff is a copy of backoff for retries.
-	localBackoff := backoff
-	localBackoff.Steps = retryCount
-	err = retry.RetryOnConflict(localBackoff, func() error {
-		attempts++
-		mgr, mgrErr := ctrl.NewManager(cfg, controllerOptions)
-		if mgrErr != nil {
-			logger.GetLogger().Warn("failed to create controller manager", logfields.Error, mgrErr,
-				"attempt", attempts)
-			// retry upon error
-			return mgrErr
-		}
-		cm = &ControllerManager{
-			Manager: mgr,
-		}
-		// success
-		return nil
-	})
+	localBackoff := defaultBackoff
+	localBackoff.Steps = localRetry.Steps - 1
+	logger.GetLogger().Debug("Using local retry and backoff settings",
+		"retrySteps", localRetry.Steps,
+		"backoffSteps", localBackoff.Steps,
+		"backoffDuration", localBackoff.Duration)
+
+	// Rate limiter for API server connection warnings
+	var lastAPILogTime time.Time
+	const apiLogInterval = 30 * time.Second
+
+	err = retry.OnError(
+		localRetry,
+		func(_ error) bool { return true },
+		func() error {
+			attempts++
+			mgr, mgrErr := ctrl.NewManager(cfg, controllerOptions)
+			if mgrErr != nil {
+				now := time.Now()
+				if now.Sub(lastAPILogTime) > apiLogInterval {
+					logger.GetLogger().Warn("failed to create controller manager",
+						logfields.Error, mgrErr,
+						"attempt", attempts)
+					lastAPILogTime = now
+				}
+				// retry upon error
+				return mgrErr
+			}
+			cm = &ControllerManager{
+				Manager: mgr,
+			}
+			// success
+			return nil
+		},
+	)
 
 	duration := time.Since(startTime)
 	if err != nil {
