@@ -49,9 +49,11 @@ struct {
 #ifdef __MULTI_KPROBE
 #define MAIN	 "kprobe.multi/generic_kprobe"
 #define OVERRIDE "kprobe.multi/generic_kprobe_override"
+#define COMMON	 "kprobe.multi"
 #else
 #define MAIN	 "kprobe/generic_kprobe"
 #define OVERRIDE "kprobe/generic_kprobe_override"
+#define COMMON	 "kprobe"
 #endif
 
 /* Generic kprobe pseudocode is the following
@@ -83,19 +85,19 @@ generic_kprobe_event(struct pt_regs *ctx)
 	return generic_start_process_filter(ctx, (struct bpf_map_def *)&kprobe_calls);
 }
 
-__attribute__((section("kprobe"), used)) int
+__attribute__((section(COMMON), used)) int
 generic_kprobe_setup_event(void *ctx)
 {
 	return generic_process_event_and_setup(ctx, (struct bpf_map_def *)&kprobe_calls);
 }
 
-__attribute__((section("kprobe"), used)) int
+__attribute__((section(COMMON), used)) int
 generic_kprobe_process_event(void *ctx)
 {
 	return generic_process_event(ctx, (struct bpf_map_def *)&kprobe_calls);
 }
 
-__attribute__((section("kprobe"), used)) int
+__attribute__((section(COMMON), used)) int
 generic_kprobe_process_filter(void *ctx)
 {
 	int ret;
@@ -111,27 +113,27 @@ generic_kprobe_process_filter(void *ctx)
 	return PFILTER_REJECT;
 }
 
-__attribute__((section("kprobe"), used)) int
+__attribute__((section(COMMON), used)) int
 generic_kprobe_filter_arg(void *ctx)
 {
 	return generic_filter_arg(ctx, (struct bpf_map_def *)&kprobe_calls, true);
 }
 
-__attribute__((section("kprobe"), used)) int
+__attribute__((section(COMMON), used)) int
 generic_kprobe_actions(void *ctx)
 {
 	generic_actions(ctx, (struct bpf_map_def *)&kprobe_calls);
 	return 0;
 }
 
-__attribute__((section("kprobe"), used)) int
+__attribute__((section(COMMON), used)) int
 generic_kprobe_output(void *ctx)
 {
 	return generic_output(ctx, MSG_OP_GENERIC_KPROBE);
 }
 
 #ifndef __V61_BPF_PROG
-__attribute__((section("kprobe"), used)) int
+__attribute__((section(COMMON), used)) int
 generic_kprobe_path(void *ctx)
 {
 	return generic_path(ctx, (struct bpf_map_def *)&kprobe_calls);
