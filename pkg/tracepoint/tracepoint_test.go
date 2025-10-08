@@ -58,62 +58,84 @@ func TestTracepointLoadFormat(t *testing.T) {
 		},
 	}
 
-	for loop := range 4 {
-		fields := []FieldFormat{
-			FieldFormat{
-				FieldStr: "unsigned short common_type",
-				Offset:   0,
-				Size:     2,
-				IsSigned: false,
-			},
-			FieldFormat{
-				FieldStr: "unsigned char common_flags",
-				Offset:   2,
-				Size:     1,
-				IsSigned: false,
-			},
-			FieldFormat{
-				FieldStr: "unsigned char common_preempt_count",
-				Offset:   3,
-				Size:     1,
-				IsSigned: false,
-			},
-			FieldFormat{
-				FieldStr: "int common_pid",
-				Offset:   4,
-				Size:     4,
-				IsSigned: true,
-			},
-			FieldFormat{
-				FieldStr: "pid_t pid",
-				Offset:   8,
-				Size:     4,
-				IsSigned: true,
-			},
-			commField[loop],
-			FieldFormat{
-				FieldStr: "unsigned long clone_flags",
-				Offset:   32,
-				Size:     8,
-				IsSigned: false,
-			},
-			FieldFormat{
-				FieldStr: "short oom_score_adj",
-				Offset:   40,
-				Size:     2,
-				IsSigned: true,
-			},
-		}
+	// Due to kernel commit [1] clone_flags got u64 type, let's check for both
+	// [1] edd3cb05c00a copy_process: pass clone_flags as u64 across calltree
 
-		// NB: ID does not seem to be the same across systems, so we check only fields
-		if reflect.DeepEqual(&fields, &gt.Format.Fields) {
-			break
-		} else if loop == 3 {
-			t.Logf("Unexpected result:\nexpected (something like):\n%v\ngot:\n%v\n", &fields, &gt.Format.Fields)
-			t.Logf("The comm field could have signed equal to 0 or 1.\n")
-			t.Logf("The comm field length could be 16 or TASK_COMM_LEN.\n")
-			t.Fail()
+	cloneField := [4]FieldFormat{
+		{
+			FieldStr: "unsigned long clone_flags",
+			Offset:   32,
+			Size:     8,
+			IsSigned: false,
+		},
+		{
+			FieldStr: "u64 clone_flags",
+			Offset:   32,
+			Size:     8,
+			IsSigned: false,
+		},
+	}
+
+	fields := []FieldFormat{}
+
+	findMatch := func() bool {
+		for loopComm := range 4 {
+			for loopClone := range 2 {
+				fields = []FieldFormat{
+					FieldFormat{
+						FieldStr: "unsigned short common_type",
+						Offset:   0,
+						Size:     2,
+						IsSigned: false,
+					},
+					FieldFormat{
+						FieldStr: "unsigned char common_flags",
+						Offset:   2,
+						Size:     1,
+						IsSigned: false,
+					},
+					FieldFormat{
+						FieldStr: "unsigned char common_preempt_count",
+						Offset:   3,
+						Size:     1,
+						IsSigned: false,
+					},
+					FieldFormat{
+						FieldStr: "int common_pid",
+						Offset:   4,
+						Size:     4,
+						IsSigned: true,
+					},
+					FieldFormat{
+						FieldStr: "pid_t pid",
+						Offset:   8,
+						Size:     4,
+						IsSigned: true,
+					},
+					commField[loopComm],
+					cloneField[loopClone],
+					FieldFormat{
+						FieldStr: "short oom_score_adj",
+						Offset:   40,
+						Size:     2,
+						IsSigned: true,
+					},
+				}
+
+				// NB: ID does not seem to be the same across systems, so we check only fields
+				if reflect.DeepEqual(&fields, &gt.Format.Fields) {
+					return true
+				}
+			}
 		}
+		return false
+	}
+
+	if !findMatch() {
+		t.Logf("Unexpected result:\nexpected (something like):\n%v\ngot:\n%v\n", &fields, &gt.Format.Fields)
+		t.Logf("The comm field could have signed equal to 0 or 1.\n")
+		t.Logf("The comm field length could be 16 or TASK_COMM_LEN.\n")
+		t.Fail()
 	}
 }
 
