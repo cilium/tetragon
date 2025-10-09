@@ -454,13 +454,19 @@ func preValidateKprobe(
 	}
 
 	if selectors.HasOverride(f) {
-		if !bpf.HasOverrideHelper() {
-			return nil, errors.New("error override action not supported, bpf_override_return helper not available")
-		}
-		if !f.Syscall {
-			for idx := range calls {
-				if !strings.HasPrefix(calls[idx], "security_") {
+		for idx := range calls {
+			if !strings.HasPrefix(calls[idx], "security_") {
+				if !bpf.HasOverrideHelper() {
+					return nil, errors.New("error override action not supported on syscalls, bpf_override_return helper not available")
+				}
+
+				if !f.Syscall {
 					return nil, errors.New("error override action can be used only with syscalls and security_ hooks")
+				}
+			} else {
+				// LSM functions
+				if !bpf.HasModifyReturn() {
+					return nil, errors.New("error override action not supported on security_ hooks, fmod_ret not available")
 				}
 			}
 		}
