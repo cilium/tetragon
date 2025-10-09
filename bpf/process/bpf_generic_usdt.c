@@ -119,7 +119,7 @@ generic_usdt_path(void *ctx)
 #endif
 
 __attribute__((section(OFFLOAD), used)) int
-generic_usdt_write_offload(void *ctx)
+generic_write_offload(void *ctx)
 {
 	struct write_offload_data *data;
 	__u64 id = get_current_pid_tgid();
