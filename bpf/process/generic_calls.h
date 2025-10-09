@@ -851,6 +851,27 @@ do_set_action(void *ctx, struct msg_generic_kprobe *e, __u32 arg_idx, __u32 arg_
 #define do_set_action(ctx, idx, arg_idx, arg_value)
 #endif
 
+#if defined GENERIC_UPROBE
+FUNC_INLINE void do_override_regs_action(void *ctx, __u32 idx)
+{
+	__u64 id = get_current_pid_tgid();
+	__u32 *idxp;
+
+	/*
+	 * TODO: this should not happen, it means that the override
+	 * program was not executed for some reason, we should do
+	 * warning in here
+	 */
+	idxp = map_lookup_elem(&sleepable_offload, &id);
+	if (idxp)
+		*idxp = idx;
+	else
+		map_update_elem(&sleepable_offload, &id, &idx, BPF_ANY);
+}
+#else
+#define do_override_regs_action(ctx, idx)
+#endif
+
 FUNC_LOCAL __u32
 do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool enforce_mode)
 {
@@ -969,6 +990,9 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 		index = actions->act[++i];
 		value = actions->act[++i];
 		do_set_action(ctx, e, index, value);
+	case ACTION_OVERRIDE_REGS:
+		index = actions->act[++i];
+		do_override_regs_action(ctx, index);
 	default:
 		break;
 	}

@@ -271,3 +271,22 @@ type CgroupRateOptions struct {
 	Events   uint64
 	Interval uint64
 }
+
+const (
+	UPROBE_REGS_MAX = 18
+)
+
+type RegAssignment struct {
+	Type uint8
+	Pad1 uint8
+	Src  uint16
+	Dst  uint16
+	Pad2 uint16
+	Off  uint64
+}
+
+type UprobeRegs struct {
+	Ass [UPROBE_REGS_MAX]RegAssignment
+	Cnt uint32
+	Pad uint32
+}
