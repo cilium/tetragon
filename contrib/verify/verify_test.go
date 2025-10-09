@@ -19,6 +19,7 @@ import (
 	"github.com/cilium/ebpf/features"
 	"github.com/stretchr/testify/require"
 
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/kernels"
 )
 
@@ -94,6 +95,11 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 			if err := features.HaveProgramHelper(ebpf.Kprobe, asm.FnOverrideReturn); err != nil {
 				continue
 			}
+		}
+
+		// Check if uprobe regs change is available
+		if strings.HasPrefix(fileName, "bpf_generic_uprobe") && !bpf.HasUprobeRegsChange() {
+			continue
 		}
 
 		spec, err := ebpf.LoadCollectionSpec(tetragonDir + "/" + fileName)
