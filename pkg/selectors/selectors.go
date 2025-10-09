@@ -125,9 +125,13 @@ type KernelSelectorState struct {
 	listReader ValueReader
 
 	maps *KernelSelectorMaps
+
+	regs []processapi.RegAssignment
+
+	isUprobe bool
 }
 
-func NewKernelSelectorState(listReader ValueReader, maps *KernelSelectorMaps) *KernelSelectorState {
+func NewKernelSelectorState(listReader ValueReader, maps *KernelSelectorMaps, isUprobe bool) *KernelSelectorState {
 	if maps == nil {
 		maps = &KernelSelectorMaps{}
 	}
@@ -136,6 +140,7 @@ func NewKernelSelectorState(listReader ValueReader, maps *KernelSelectorMaps) *K
 		matchBinariesPaths: make(map[int][][processapi.BINARY_PATH_MAX_LEN]byte),
 		listReader:         listReader,
 		maps:               maps,
+		isUprobe:           isUprobe,
 	}
 }
 
@@ -194,6 +199,10 @@ func (k *KernelSelectorState) StringPrefixMaps() []map[KernelLPMTrieStringPrefix
 
 func (k *KernelSelectorState) StringPostfixMaps() []map[KernelLPMTrieStringPostfix]struct{} {
 	return k.maps.stringPostfixMaps
+}
+
+func (k *KernelSelectorState) Regs() []processapi.RegAssignment {
+	return k.regs
 }
 
 // ValueMapsMaxEntries returns the maximum entries over all maps
