@@ -470,6 +470,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - Regs
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -493,6 +494,11 @@ spec:
                                     action
                                   format: int32
                                   type: integer
+                                argRegs:
+                                  description: An arg value for the regs action
+                                  items:
+                                    type: string
+                                  type: array
                                 argSig:
                                   description: A signal number for signal action
                                   format: int32
@@ -877,6 +883,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - Regs
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -900,6 +907,11 @@ spec:
                                     action
                                   format: int32
                                   type: integer
+                                argRegs:
+                                  description: An arg value for the regs action
+                                  items:
+                                    type: string
+                                  type: array
                                 argSig:
                                   description: A signal number for signal action
                                   format: int32
@@ -1206,6 +1218,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - Regs
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -1229,6 +1242,11 @@ spec:
                                     action
                                   format: int32
                                   type: integer
+                                argRegs:
+                                  description: An arg value for the regs action
+                                  items:
+                                    type: string
+                                  type: array
                                 argSig:
                                   description: A signal number for signal action
                                   format: int32
@@ -1613,6 +1631,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - Regs
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -1636,6 +1655,11 @@ spec:
                                     action
                                   format: int32
                                   type: integer
+                                argRegs:
+                                  description: An arg value for the regs action
+                                  items:
+                                    type: string
+                                  type: array
                                 argSig:
                                   description: A signal number for signal action
                                   format: int32
@@ -1978,6 +2002,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - Regs
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -2001,6 +2026,11 @@ spec:
                                     action
                                   format: int32
                                   type: integer
+                                argRegs:
+                                  description: An arg value for the regs action
+                                  items:
+                                    type: string
+                                  type: array
                                 argSig:
                                   description: A signal number for signal action
                                   format: int32
@@ -2385,6 +2415,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - Regs
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -2408,6 +2439,11 @@ spec:
                                     action
                                   format: int32
                                   type: integer
+                                argRegs:
+                                  description: An arg value for the regs action
+                                  items:
+                                    type: string
+                                  type: array
                                 argSig:
                                   description: A signal number for signal action
                                   format: int32
@@ -2694,6 +2730,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - Regs
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -2717,6 +2754,11 @@ spec:
                                     action
                                   format: int32
                                   type: integer
+                                argRegs:
+                                  description: An arg value for the regs action
+                                  items:
+                                    type: string
+                                  type: array
                                 argSig:
                                   description: A signal number for signal action
                                   format: int32
@@ -3101,6 +3143,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - Regs
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -3124,6 +3167,11 @@ spec:
                                     action
                                   format: int32
                                   type: integer
+                                argRegs:
+                                  description: An arg value for the regs action
+                                  items:
+                                    type: string
+                                  type: array
                                 argSig:
                                   description: A signal number for signal action
                                   format: int32
@@ -3405,6 +3453,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - Regs
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -3428,6 +3477,11 @@ spec:
                                     action
                                   format: int32
                                   type: integer
+                                argRegs:
+                                  description: An arg value for the regs action
+                                  items:
+                                    type: string
+                                  type: array
                                 argSig:
                                   description: A signal number for signal action
                                   format: int32
@@ -3812,6 +3866,7 @@ spec:
                                   - NotifyEnforcer
                                   - CleanupEnforcerNotification
                                   - Set
+                                  - Regs
                                   type: string
                                 argError:
                                   description: error value for override action
@@ -3835,6 +3890,11 @@ spec:
                                     action
                                   format: int32
                                   type: integer
+                                argRegs:
+                                  description: An arg value for the regs action
+                                  items:
+                                    type: string
+                                  type: array
                                 argSig:
                                   description: A signal number for signal action
                                   format: int32
