@@ -116,12 +116,12 @@ func createGenericUsdtSensor(
 		hasSetAction = hasSetAction || selectors.HasSet(&usdt)
 	}
 
-	hasWriteOffload := hasSetAction && config.EnableV61Progs()
+	hasSleepableOffload := hasSetAction && config.EnableV61Progs()
 
 	if in.useMulti {
-		progs, maps, err = createMultiUsdtSensor(ids, polInfo.name, hasWriteOffload)
+		progs, maps, err = createMultiUsdtSensor(ids, polInfo.name, hasSleepableOffload)
 	} else {
-		progs, maps, err = createSingleUsdtSensor(ids, hasWriteOffload)
+		progs, maps, err = createSingleUsdtSensor(ids, hasSleepableOffload)
 	}
 
 	if err != nil {
@@ -142,7 +142,7 @@ func createGenericUsdtSensor(
 	}, nil
 }
 
-func createMultiUsdtSensor(multiIDs []idtable.EntryID, policyName string, hasWriteOffload bool) ([]*program.Program, []*program.Map, error) {
+func createMultiUsdtSensor(multiIDs []idtable.EntryID, policyName string, hasSleepableOffload bool) ([]*program.Program, []*program.Map, error) {
 	var progs []*program.Program
 	var maps []*program.Map
 
@@ -157,7 +157,7 @@ func createMultiUsdtSensor(multiIDs []idtable.EntryID, policyName string, hasWri
 		SetLoaderData(multiIDs).
 		SetPolicy(policyName)
 
-	load.WriteOffload = hasWriteOffload
+	load.SleepableOffload = hasSleepableOffload
 
 	progs = append(progs, load)
 
@@ -170,16 +170,16 @@ func createMultiUsdtSensor(multiIDs []idtable.EntryID, policyName string, hasWri
 	filterMap.SetMaxEntries(len(multiIDs))
 	configMap.SetMaxEntries(len(multiIDs))
 
-	if hasWriteOffload {
-		writeOffloadMap := program.MapBuilderProgram("write_offload", load)
-		writeOffloadMap.SetMaxEntries(writeOffloadMaxEntries)
-		maps = append(maps, writeOffloadMap)
+	if hasSleepableOffload {
+		sleepableOffloadMap := program.MapBuilderProgram("write_offload", load)
+		sleepableOffloadMap.SetMaxEntries(sleepableOffloadMaxEntries)
+		maps = append(maps, sleepableOffloadMap)
 	}
 
 	return progs, maps, nil
 }
 
-func createSingleUsdtSensor(ids []idtable.EntryID, hasWriteOffload bool) ([]*program.Program, []*program.Map, error) {
+func createSingleUsdtSensor(ids []idtable.EntryID, hasSleepableOffload bool) ([]*program.Program, []*program.Map, error) {
 	var progs []*program.Program
 	var maps []*program.Map
 
@@ -188,14 +188,14 @@ func createSingleUsdtSensor(ids []idtable.EntryID, hasWriteOffload bool) ([]*pro
 		if err != nil {
 			return nil, nil, err
 		}
-		progs, maps = createUsdtSensorFromEntry(usdtEntry, progs, maps, hasWriteOffload)
+		progs, maps = createUsdtSensorFromEntry(usdtEntry, progs, maps, hasSleepableOffload)
 	}
 
 	return progs, maps, nil
 }
 
 func createUsdtSensorFromEntry(usdtEntry *genericUsdt,
-	progs []*program.Program, maps []*program.Map, hasWriteOffload bool) ([]*program.Program, []*program.Map) {
+	progs []*program.Program, maps []*program.Map, hasSleepableOffload bool) ([]*program.Program, []*program.Map) {
 
 	loadProgName := config.GenericUsdtObjs(false)
 
@@ -215,7 +215,7 @@ func createUsdtSensorFromEntry(usdtEntry *genericUsdt,
 		SetLoaderData(usdtEntry).
 		SetPolicy(usdtEntry.policyName)
 
-	load.WriteOffload = hasWriteOffload
+	load.SleepableOffload = hasSleepableOffload
 
 	progs = append(progs, load)
 
@@ -226,10 +226,10 @@ func createUsdtSensorFromEntry(usdtEntry *genericUsdt,
 	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
 	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap)
 
-	if hasWriteOffload {
-		writeOffloadMap := program.MapBuilderProgram("write_offload", load)
-		writeOffloadMap.SetMaxEntries(writeOffloadMaxEntries)
-		maps = append(maps, writeOffloadMap)
+	if hasSleepableOffload {
+		sleepableOffloadMap := program.MapBuilderProgram("write_offload", load)
+		sleepableOffloadMap.SetMaxEntries(sleepableOffloadMaxEntries)
+		maps = append(maps, sleepableOffloadMap)
 	}
 
 	return progs, maps
