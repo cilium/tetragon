@@ -12,6 +12,7 @@
 #include "retprobe_map.h"
 #include "types/operations.h"
 #include "types/basic.h"
+#include "regs.h"
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 
@@ -46,11 +47,13 @@ struct {
 #include "generic_calls.h"
 
 #ifdef __MULTI_KPROBE
-#define MAIN   "uprobe.multi/generic_uprobe"
-#define COMMON "uprobe.multi"
+#define MAIN	"uprobe.multi/generic_uprobe"
+#define COMMON	"uprobe.multi"
+#define OFFLOAD "uprobe.multi.s/generic_uprobe"
 #else
-#define MAIN   "uprobe/generic_uprobe"
-#define COMMON "uprobe"
+#define MAIN	"uprobe/generic_uprobe"
+#define COMMON	"uprobe"
+#define OFFLOAD "uprobe.s/generic_uprobe"
 #endif
 
 __attribute__((section((MAIN)), used)) int
@@ -113,3 +116,22 @@ generic_uprobe_path(void *ctx)
 	return generic_path(ctx, (struct bpf_map_def *)&uprobe_calls);
 }
 #endif
+
+__attribute__((section(OFFLOAD), used)) int
+generic_write_offload(void *ctx)
+{
+	__u64 id = get_current_pid_tgid();
+	struct uprobe_regs *regs;
+	__u32 *idx;
+
+	idx = map_lookup_elem(&write_offload, &id);
+	if (!idx)
+		return 0;
+	map_delete_elem(&write_offload, &id);
+
+	regs = map_lookup_elem(&regs_map, idx);
+	if (!regs)
+		return 0;
+
+	return 0;
+}

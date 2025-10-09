@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/asm"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 
 	"github.com/cilium/tetragon/pkg/api/processapi"
@@ -45,6 +46,7 @@ const (
 	ActionTypeNotifyEnforcer              = 12
 	ActionTypeCleanupEnforcerNotification = 13
 	ActionTypeSet                         = 14
+	ActionTypeRegs                        = 15
 )
 
 var actionTypeTable = map[string]uint32{
@@ -63,6 +65,7 @@ var actionTypeTable = map[string]uint32{
 	"notifyenforcer":              ActionTypeNotifyEnforcer,
 	"cleanupenforcernotification": ActionTypeCleanupEnforcerNotification,
 	"set":                         ActionTypeSet,
+	"regs":                        ActionTypeRegs,
 }
 
 var actionTypeStringTable = map[uint32]string{
@@ -80,6 +83,7 @@ var actionTypeStringTable = map[uint32]string{
 	ActionTypeUntrackSock:                 "untracksock",
 	ActionTypeCleanupEnforcerNotification: "cleanupenforcernotification",
 	ActionTypeSet:                         "set",
+	ActionTypeRegs:                        "regs",
 }
 
 const (
@@ -1067,6 +1071,31 @@ func parseRateLimit(str string, scopeStr string) (uint32, uint32, error) {
 	return uint32(rateLimit), scope, nil
 }
 
+func parseRegs(k *KernelSelectorState, values []string) (uint32, error) {
+	if len(k.regs) > 0 {
+		return uint32(0xffffffff), errors.New("only single instance of regs action is allowed")
+	}
+
+	regs := []processapi.RegAssignment{}
+
+	for _, val := range values {
+		ass, err := asm.ParseAssignment(val)
+		if err != nil {
+			return uint32(0xffffffff), err
+		}
+
+		regs = append(regs, processapi.RegAssignment{
+			Type: ass.Type,
+			Src:  ass.Src,
+			Dst:  ass.Dst,
+			Off:  ass.Off,
+		})
+	}
+
+	k.regs = regs
+	return uint32(0), nil
+}
+
 func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, actionArgTable *idtable.Table) error {
 	act, ok := actionTypeTable[strings.ToLower(action.Action)]
 	if !ok {
@@ -1148,6 +1177,12 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 	case ActionTypeSet:
 		WriteSelectorUint32(&k.data, action.ArgIndex)
 		WriteSelectorUint32(&k.data, action.ArgValue)
+	case ActionTypeRegs:
+		id, err := parseRegs(k, action.ArgRegs)
+		if err != nil {
+			return err
+		}
+		WriteSelectorUint32(&k.data, id)
 	default:
 		return fmt.Errorf("ParseMatchAction: act %d (%s) is missing a handler", act, actionTypeStringTable[act])
 	}
@@ -1587,6 +1622,18 @@ func HasSetArgIndex(spec *v1alpha1.UsdtSpec) (bool, uint32) {
 func HasSet(spec *v1alpha1.UsdtSpec) bool {
 	ok, _ := HasSetArgIndex(spec)
 	return ok
+}
+
+func HasRegs(spec *v1alpha1.UProbeSpec) bool {
+	for _, s := range spec.Selectors {
+		for _, action := range s.MatchActions {
+			act := actionTypeTable[strings.ToLower(action.Action)]
+			if act == ActionTypeRegs {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func HasSigkillAction(kspec *v1alpha1.KProbeSpec) bool {
