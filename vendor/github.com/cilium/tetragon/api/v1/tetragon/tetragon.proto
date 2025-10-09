@@ -512,6 +512,8 @@ enum KprobeAction {
   KPROBE_ACTION_CLEANUPENFORCERNOTIFICATION = 14;
   // Set action sets first USDT argument
   KPROBE_ACTION_SET = 15;
+  // Override regs action sets uprobe registers
+  KPROBE_ACTION_OVERRIDE_REGS = 16;
 }
 
 message ProcessKprobe {
