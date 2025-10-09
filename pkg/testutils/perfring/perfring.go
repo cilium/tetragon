@@ -12,7 +12,9 @@ package perfring
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -70,30 +72,30 @@ func ProcessEvents(t *testing.T, ctx context.Context, eventFn EventFn, wgStarted
 	pinOpts := ebpf.LoadPinOptions{}
 	config := bpf.DefaultPerfEventConfig()
 
-	var ringBufMapName string
-	var ringBufReader *ringbuf.Reader
-	var perfReader *perf.Reader
-	useBPFRingBuffer := cfg.EnableV511Progs() && !option.Config.UsePerfRingBuffer
-
-	if useBPFRingBuffer {
-		ringBufMapName = filepath.Join(bpf.MapPrefixPath(), base.RingBufMapName)
-	} else {
-		ringBufMapName = config.MapName
-	}
-
-	ringBufMap, err := ebpf.LoadPinnedMap(ringBufMapName, &pinOpts)
+	perfMap, err := ebpf.LoadPinnedMap(config.MapName, &pinOpts)
 	if err != nil {
 		t.Fatalf("opening pinned map '%s' failed: %v", config.MapName, err)
 	}
-	defer ringBufMap.Close()
-
-	if useBPFRingBuffer {
-		ringBufReader, err = ringbuf.NewReader(ringBufMap)
-	} else {
-		perfReader, err = perf.NewReader(ringBufMap, 65535)
-	}
+	defer perfMap.Close()
+	perfReader, err := perf.NewReader(perfMap, 65535)
 	if err != nil {
 		t.Fatalf("creating perf array reader failed: %v", err)
+	}
+
+	useBPFRingBuffer := cfg.EnableV511Progs() && !option.Config.UsePerfRingBuffer
+	ringBufMapName := filepath.Join(bpf.MapPrefixPath(), base.RingBufMapName)
+	var ringBufMap *ebpf.Map
+	var ringBufReader *ringbuf.Reader
+	if useBPFRingBuffer {
+		ringBufMap, err = ebpf.LoadPinnedMap(ringBufMapName, &pinOpts)
+		if err != nil {
+			t.Fatalf("opening pinned map '%s' failed: %v", ringBufMapName, err)
+		}
+		defer ringBufMap.Close()
+		ringBufReader, err = ringbuf.NewReader(ringBufMap)
+		if err != nil {
+			t.Fatalf("creating bpf ring buf reader failed: %v", err)
+		}
 	}
 
 	wgStarted.Done()
@@ -108,8 +110,42 @@ func ProcessEvents(t *testing.T, ctx context.Context, eventFn EventFn, wgStarted
 	wg.Add(1)
 	defer wg.Wait()
 
+	go func() {
+		defer wg.Done()
+
+		complChecker := testsensor.NewCompletionChecker()
+
+		for ctx.Err() == nil {
+
+			record, err := perfReader.Read()
+			if err != nil {
+				if ctx.Err() == nil && !errors.Is(err, os.ErrClosed) {
+					errChan <- fmt.Errorf("error reading perfring data: %w", err)
+				}
+				break
+			}
+
+			_, events, handlerErr := observer.HandlePerfData(record.RawSample)
+			if handlerErr != nil {
+				errChan <- fmt.Errorf("error handling perfring data: %w", handlerErr)
+				break
+			}
+			err = loopEvents(events, eventFn, complChecker)
+			if err != nil {
+				errChan <- fmt.Errorf("error loop event function returned: %w", err)
+				break
+			}
+
+			if complChecker.Done() {
+				complChan <- true
+				break
+			}
+		}
+	}()
+
 	if useBPFRingBuffer {
 		// Service the BPF ring buffer.
+		wg.Add(1)
 		go func() {
 			defer wg.Done()
 
@@ -119,7 +155,7 @@ func ProcessEvents(t *testing.T, ctx context.Context, eventFn EventFn, wgStarted
 
 				record, err := ringBufReader.Read()
 				if err != nil {
-					if ctx.Err() == nil {
+					if ctx.Err() == nil && !errors.Is(err, os.ErrClosed) {
 						errChan <- fmt.Errorf("error reading ringbuf data: %w", err)
 					}
 					break
@@ -142,39 +178,6 @@ func ProcessEvents(t *testing.T, ctx context.Context, eventFn EventFn, wgStarted
 				}
 			}
 		}()
-	} else {
-		go func() {
-			defer wg.Done()
-
-			complChecker := testsensor.NewCompletionChecker()
-
-			for ctx.Err() == nil {
-
-				record, err := perfReader.Read()
-				if err != nil {
-					if ctx.Err() == nil {
-						errChan <- fmt.Errorf("error reading perfring data: %w", err)
-					}
-					break
-				}
-
-				_, events, handlerErr := observer.HandlePerfData(record.RawSample)
-				if handlerErr != nil {
-					errChan <- fmt.Errorf("error handling perfring data: %w", handlerErr)
-					break
-				}
-				err = loopEvents(events, eventFn, complChecker)
-				if err != nil {
-					errChan <- fmt.Errorf("error loop event function returned: %w", err)
-					break
-				}
-
-				if complChecker.Done() {
-					complChan <- true
-					break
-				}
-			}
-		}()
 	}
 
 	for {
@@ -182,18 +185,16 @@ func ProcessEvents(t *testing.T, ctx context.Context, eventFn EventFn, wgStarted
 		case err := <-errChan:
 			t.Fatal(err)
 		case <-complChan:
+			perfReader.Close()
 			if useBPFRingBuffer {
 				ringBufReader.Close()
-			} else {
-				perfReader.Close()
 			}
 			return
 		case <-ctx.Done():
 			// Wait for context cancel.
+			perfReader.Close()
 			if useBPFRingBuffer {
 				ringBufReader.Close()
-			} else {
-				perfReader.Close()
 			}
 			return
 		}
