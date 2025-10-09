@@ -1095,7 +1095,15 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 		WriteSelectorUint32(&k.data, action.ArgFd)
 		WriteSelectorUint32(&k.data, action.ArgName)
 	case ActionTypeOverride:
-		WriteSelectorInt32(&k.data, action.ArgError)
+		if k.isUprobe {
+			id, err := parseOverrideRegs(k, action.ArgRegs, uint64(action.ArgError))
+			if err != nil {
+				return err
+			}
+			WriteSelectorUint32(&k.data, id)
+		} else {
+			WriteSelectorInt32(&k.data, action.ArgError)
+		}
 	case ActionTypeGetUrl, ActionTypeDnsLookup:
 		actionArg := ActionArgEntry{
 			tableId: idtable.UninitializedEntryID,
