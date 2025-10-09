@@ -271,3 +271,12 @@ type CgroupRateOptions struct {
 	Events   uint64
 	Interval uint64
 }
+
+type RegAssignment struct {
+	Type uint8
+	Pad1 uint8
+	Src  uint16
+	Dst  uint16
+	Pad2 uint16
+	Off  uint64
+}

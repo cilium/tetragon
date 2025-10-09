@@ -937,7 +937,11 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 	case ACTION_OVERRIDE:
 		error = actions->act[++i];
 		if (enforce_mode) {
+#if defined(GENERIC_UPROBE) && defined(__TARGET_ARCH_x86)
+			do_uprobe_override(ctx, error);
+#else
 			do_override_action(error);
+#endif
 			polacct = POLICY_OVERRIDE;
 		} else {
 			polacct = POLICY_MONITOR_OVERRIDE;
