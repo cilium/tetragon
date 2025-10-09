@@ -27,6 +27,7 @@ const (
 	ActionNotifyEnforcer              = 12
 	ActionCleanupEnforcerNotification = 13
 	ActionSet                         = 14
+	ActionOverrideRegs                = 15
 )
 
 const (
