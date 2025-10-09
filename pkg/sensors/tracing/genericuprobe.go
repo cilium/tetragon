@@ -390,11 +390,16 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		return nil, err
 	}
 
+	if selectors.HasOverride(spec.Selectors) && !bpf.HasUprobeRegsChange() {
+		return nil, errors.New("can't use override regs action, no kernel support")
+	}
+
 	// Parse Filters into kernel filter logic
 	uprobeSelectorState, err := selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
 		Selectors: spec.Selectors,
 		Args:      args,
 		Data:      []v1alpha1.KProbeArg{},
+		IsUprobe:  true,
 	})
 	if err != nil {
 		return nil, err

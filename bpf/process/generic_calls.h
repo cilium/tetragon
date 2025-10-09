@@ -935,6 +935,11 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 		}
 		break;
 	case ACTION_OVERRIDE:
+#if defined(GENERIC_UPROBE) && defined(__TARGET_ARCH_x86)
+		index = actions->act[++i];
+		do_uprobe_override(ctx, index);
+		polacct = POLICY_OVERRIDE;
+#else
 		error = actions->act[++i];
 		if (enforce_mode) {
 			do_override_action(error);
@@ -942,6 +947,7 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 		} else {
 			polacct = POLICY_MONITOR_OVERRIDE;
 		}
+#endif
 		break;
 	case ACTION_GETURL:
 	case ACTION_DNSLOOKUP:
