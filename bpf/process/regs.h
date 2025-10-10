@@ -6,6 +6,12 @@
 
 #define REGS_MAX 18
 
+#define ASM_ASSIGNMENT_TYPE_NONE	0
+#define ASM_ASSIGNMENT_TYPE_CONST	1
+#define ASM_ASSIGNMENT_TYPE_REG		2
+#define ASM_ASSIGNMENT_TYPE_REG_OFF	3
+#define ASM_ASSIGNMENT_TYPE_REG_DEREF	4
+
 struct reg_assignment {
 	__u8 type;
 	__u8 pad1;
