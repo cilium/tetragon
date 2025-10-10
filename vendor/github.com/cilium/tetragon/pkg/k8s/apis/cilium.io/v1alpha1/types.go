@@ -331,6 +331,9 @@ type UProbeSpec struct {
 	// List of the traced offsets
 	Offsets []uint64 `json:"offsets,omitempty"`
 	// +kubebuilder:validation:Optional
+	// List of the traced addresses
+	Addrs []uint64 `json:"addrs,omitempty"`
+	// +kubebuilder:validation:Optional
 	// List of the traced ref_ctr_offsets
 	RefCtrOffsets []uint64 `json:"refCtrOffsets,omitempty"`
 	// +kubebuilder:validation:Optional
