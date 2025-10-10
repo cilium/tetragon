@@ -1,6 +1,10 @@
 
 GCC ?= gcc
 
+ifeq ($(shell uname -m),x86_64)
+	PROGS_ARCH = regs-override
+endif
+
 PROGS = sigkill-tester \
 	capabilities-tester \
 	namespace-tester \
@@ -36,6 +40,7 @@ PROGS = sigkill-tester \
 	usdt-override \
 	usdt-resolve
 
+PROGS += $(PROGS_ARCH)
 
 all: $(PROGS)
 
@@ -103,6 +108,11 @@ usdt-resolve: usdt-resolve.c
 	llvm-objcopy --dump-section .BTF=$@.btf.tmp $@
 	llvm-objcopy -I binary -O elf64-x86-64 --rename-section .data=.BTF $@.btf.tmp $@.btf
 	rm $@.btf.tmp
+
+ifeq ($(shell uname -m),x86_64)
+regs-override: regs-override.c
+	$(GCC) -Wall -fcf-protection=none $< -o $@
+endif
 
 # NB: compile the 32 bit version of enforcer-tester statically so that we don't
 # need additional libraries in the VMs
