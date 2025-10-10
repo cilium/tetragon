@@ -10,6 +10,7 @@ static __naked int test_1()
 		"push   %rbp\n"
 		"mov    %rsp,%rbp\n"
 		"mov    $0x1,%eax\n"
+		"mov    $0x3,%eax\n"
 		"pop    %rbp\n"
 		"ret\n"
 	);
