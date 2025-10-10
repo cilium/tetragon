@@ -18,6 +18,7 @@ import (
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
+	"github.com/cilium/tetragon/pkg/elf"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/idtable"
@@ -330,14 +331,15 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 
 	symbols := len(spec.Symbols)
 	offsets := len(spec.Offsets)
+	addrs := len(spec.Addrs)
 	refCtrOffsets := len(spec.RefCtrOffsets)
 
 	// uprobe definition spec usanity checks
-	if symbols == 0 && offsets == 0 {
-		return nil, errors.New("uprobe need either Symbols or Offsets defined")
+	if symbols == 0 && offsets == 0 && addrs == 0 {
+		return nil, errors.New("uprobe need either Symbols, Offsets or Addrs defined")
 	}
-	if symbols != 0 && offsets != 0 {
-		return nil, errors.New("uprobe is defined either only with Symbols or Offsets")
+	if symbols != 0 && offsets != 0 && addrs != 0 {
+		return nil, errors.New("uprobe is defined either only with Symbols, Offsets or Addrs")
 	}
 	if refCtrOffsets != 0 {
 		if symbols != 0 && symbols != refCtrOffsets {
@@ -444,8 +446,22 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		for idx, sym := range spec.Symbols {
 			addUprobeEntry(sym, 0, idx)
 		}
-	} else {
+	} else if offsets != 0 {
 		for idx, off := range spec.Offsets {
+			addUprobeEntry("", off, idx)
+		}
+	} else if addrs != 0 {
+		f, err := elf.OpenSafeELFFile(spec.Path)
+		if err != nil {
+			return nil, err
+		}
+		defer f.Close()
+
+		for idx, addr := range spec.Addrs {
+			off, err := f.OffsetFromAddr(addr)
+			if err != nil {
+				return nil, err
+			}
 			addUprobeEntry("", off, idx)
 		}
 	}
