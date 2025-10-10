@@ -34,3 +34,4 @@ capabilities-ioperm
 usdt-override
 usdt-resolve
 usdt-resolve.btf
+regs-override
