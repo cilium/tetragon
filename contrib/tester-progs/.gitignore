@@ -32,3 +32,4 @@ follow_children_1
 usdt
 capabilities-ioperm
 usdt-override
+regs-override

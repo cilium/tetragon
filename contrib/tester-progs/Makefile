@@ -1,6 +1,10 @@
 
 GCC ?= gcc
 
+ifeq ($(shell uname -m),x86_64)
+	PROGS_ARCH = regs-override
+endif
+
 PROGS = sigkill-tester \
 	capabilities-tester \
 	namespace-tester \
@@ -35,6 +39,7 @@ PROGS = sigkill-tester \
 	capabilities-ioperm \
 	usdt-override
 
+PROGS += $(PROGS_ARCH)
 
 all: $(PROGS)
 
@@ -95,6 +100,11 @@ capabilities-ioperm: capabilities-ioperm.c
 usdt-override: usdt-override.c
 	$(GCC) -Wall $< -O2 -o $@
 	strip $@
+
+ifeq ($(shell uname -m),x86_64)
+regs-override: regs-override.c
+	$(GCC) -Wall -fcf-protection=none $< -o $@
+endif
 
 # NB: compile the 32 bit version of enforcer-tester statically so that we don't
 # need additional libraries in the VMs
