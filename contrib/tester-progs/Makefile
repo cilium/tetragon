@@ -33,7 +33,8 @@ PROGS = sigkill-tester \
 	follow_children_1 \
 	usdt \
 	capabilities-ioperm \
-	usdt-override
+	usdt-override \
+	regs-override
 
 
 all: $(PROGS)
@@ -95,6 +96,13 @@ capabilities-ioperm: capabilities-ioperm.c
 usdt-override: usdt-override.c
 	$(GCC) -Wall $< -O2 -o $@
 	strip $@
+
+ifeq ($(shell uname -m),x86_64)
+regs-override: regs-override.c
+	$(GCC) -Wall $< -o $@
+else
+regs-override:
+endif
 
 # NB: compile the 32 bit version of enforcer-tester statically so that we don't
 # need additional libraries in the VMs
