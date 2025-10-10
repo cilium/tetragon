@@ -32,7 +32,10 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | daemonSetLabelsOverride | object | `{}` |  |
 | dnsPolicy | string | `"Default"` | DNS policy for Tetragon pods.  https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy |
 | enabled | bool | `true` |  |
-| export | object | `{"filenames":["tetragon.log"],"mode":"stdout","resources":{},"securityContext":{},"stdout":{"argsOverride":[],"commandOverride":[],"enabledArgs":true,"enabledCommand":true,"extraEnv":[],"extraVolumeMounts":[],"image":{"override":null,"repository":"quay.io/cilium/hubble-export-stdout","tag":"v1.1.0"}}}` | Tetragon events export settings |
+| export | object | `{"filenames":["tetragon.log"],"mode":"stdout","resources":{},"securityContext":{},"stdout":{"argsOverride":[],"commandOverride":[],"enabledArgs":true,"enabledCommand":true,"envFromSecrets":[],"extraEnv":[],"extraEnvFrom":[],"extraVolumeMounts":[],"image":{"override":null,"repository":"quay.io/cilium/hubble-export-stdout","tag":"v1.1.0"}}}` | Tetragon events export settings |
+| export.stdout.envFromSecrets | list | `[]` | A simplified way to add secret references to envFrom. Can be specified either as a string (just the secret name) or as an object with additional parameters. Example: envFromSecrets:   - my-simple-secret   - name: my-optional-secret     optional: true |
+| export.stdout.extraEnv | list | `[]` | Extra environment variables to add to the export-stdout container. Example: extraEnv:   - name: FOO     value: bar   - name: SECRET_KEY     valueFrom:       secretKeyRef:         name: my-secret         key: secret-key |
+| export.stdout.extraEnvFrom | list | `[]` | Extra envFrom sources to add to the export-stdout container. This allows adding any type of envFrom source (configMapRef, secretRef, etc.). Example: extraEnvFrom:   - configMapRef:       name: my-config-map   - secretRef:       name: my-secret       optional: true |
 | exportDirectory | string | `"/var/run/cilium/tetragon"` | Directory to put Tetragon JSON export files. |
 | extraConfigmapMounts | list | `[]` |  |
 | extraHostPathMounts | list | `[]` |  |
