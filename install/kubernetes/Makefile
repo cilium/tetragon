@@ -13,7 +13,7 @@ KUBECONFORM_IMAGE = ghcr.io/yannh/kubeconform:v0.7.0-alpine@sha256:8f0eeaaa96ba2
 # renovate: datasource=docker
 HELMDOCS_IMAGE = docker.io/jnorwood/helm-docs:v1.14.2@sha256:7e562b49ab6b1dbc50c3da8f2dd6ffa8a5c6bba327b1c6335cc15ce29267979c
 # renovate: datasource=docker
-PYTHON_IMAGE = docker.io/python:3.13-slim-bookworm
+PYTHON_IMAGE = docker.io/python:3.14-slim-bookworm
 
 #
 # -- Versions
