@@ -117,12 +117,24 @@ generic_uprobe_path(void *ctx)
 }
 #endif
 
+
+FUNC_INLINE int
+write_reg(struct pt_regs *ctx, __u32 dst, __u64 val)
+{
+	switch (dst) {
+	case offsetof(struct pt_regs, ax): ctx->ax = (unsigned long) val; break;
+	}
+
+	return 0;
+}
+
 __attribute__((section(OFFLOAD), used)) int
-generic_write_offload(void *ctx)
+generic_write_offload(struct pt_regs *ctx)
 {
 	__u64 id = get_current_pid_tgid();
+	struct reg_assignment *ass;
 	struct uprobe_regs *regs;
-	__u32 *idx;
+	__u32 *idx, i;
 
 	idx = map_lookup_elem(&write_offload, &id);
 	if (!idx)
@@ -133,5 +145,22 @@ generic_write_offload(void *ctx)
 	if (!regs)
 		return 0;
 
+	for (i = 0; i < REGS_MAX; i++) {
+		ass = &regs->ass[i];
+
+		switch (ass->type) {
+		case ASM_ASSIGNMENT_TYPE_CONST:
+			write_reg(ctx, ass->dst, ass->off);
+			break;
+		case ASM_ASSIGNMENT_TYPE_REG:
+		case ASM_ASSIGNMENT_TYPE_REG_OFF:
+		case ASM_ASSIGNMENT_TYPE_REG_DEREF:
+		case ASM_ASSIGNMENT_TYPE_NONE:
+		default:
+			break;
+		}
+		if (i == regs->cnt)
+			break;
+	}
 	return 0;
 }
