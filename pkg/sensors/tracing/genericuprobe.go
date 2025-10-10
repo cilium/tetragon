@@ -48,6 +48,7 @@ type genericUprobe struct {
 	path         string
 	symbol       string
 	address      uint64
+	offset       uint64
 	refCtrOffset uint64
 	selectors    *selectors.KernelSelectorState
 	// policyName is the name of the policy that this uprobe belongs to
@@ -224,6 +225,8 @@ func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) er
 		} else {
 			attach.Addresses = append(attach.Addresses, uprobeEntry.address)
 		}
+
+		attach.Offsets = append(attach.Offsets, uprobeEntry.offset)
 
 		if uprobeEntry.refCtrOffset != 0 {
 			attach.RefCtrOffsets = append(attach.RefCtrOffsets, uprobeEntry.refCtrOffset)
@@ -438,7 +441,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		argPrinters = append(argPrinters, argPrinter{index: i, ty: argType})
 	}
 
-	addUprobeEntry := func(sym string, offset uint64, idx int) {
+	addUprobeEntry := func(sym string, address uint64, offset uint64, idx int) {
 		var refCtrOffset uint64
 
 		if refCtrOffsets != 0 {
@@ -455,7 +458,8 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 			config:       config,
 			path:         spec.Path,
 			symbol:       sym,
-			address:      offset,
+			address:      address,
+			offset:       offset,
 			refCtrOffset: refCtrOffset,
 			selectors:    uprobeSelectorState,
 			policyName:   in.policyName,
@@ -474,6 +478,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 
 	if symbols != 0 {
 		for idx, sym := range spec.Symbols {
+
 			addUprobeEntry(sym, 0, idx)
 		}
 	} else if offsets != 0 {
@@ -566,6 +571,7 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 		Path:         uprobeEntry.path,
 		Symbol:       uprobeEntry.symbol,
 		Address:      uprobeEntry.address,
+		Offset:       uprobeEntry.offset,
 		RefCtrOffset: uprobeEntry.refCtrOffset,
 	}
 

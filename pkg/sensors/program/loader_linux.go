@@ -408,6 +408,7 @@ func multiUprobeAttach(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec
 			}
 			opts := &link.UprobeMultiOptions{
 				Addresses:     attach.Addresses,
+				Offsets:       attach.Offsets,
 				RefCtrOffsets: attach.RefCtrOffsets,
 				Cookies:       attach.Cookies,
 			}
