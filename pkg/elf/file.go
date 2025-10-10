@@ -104,6 +104,30 @@ func (se *SafeELFFile) Offset(name string) (uint64, error) {
 	return 0, fmt.Errorf("symbol not found %s", name)
 }
 
+func (se *SafeELFFile) OffsetFromAddr(addr uint64) (uint64, error) {
+	offset := uint64(0)
+
+	// Loop over ELF segments.
+	for _, prog := range se.Progs {
+		// Skip uninteresting segments.
+		if prog.Type != elf.PT_LOAD || (prog.Flags&elf.PF_X) == 0 {
+			continue
+		}
+
+		if prog.Vaddr <= addr && addr < (prog.Vaddr+prog.Memsz) {
+			// If the symbol value is contained in the segment, calculate
+			// the symbol offset.
+			//
+			// fn symbol offset = fn symbol VA - .text VA + .text offset
+			//
+			// stackoverflow.com/a/40249502
+			offset = addr - prog.Vaddr + prog.Off
+			break
+		}
+	}
+	return offset, nil
+}
+
 // SectionsByType returns all sections in the file with the specified section type.
 func (se *SafeELFFile) SectionsByType(typ elf.SectionType) []*elf.Section {
 	sections := make([]*elf.Section, 0, 1)
