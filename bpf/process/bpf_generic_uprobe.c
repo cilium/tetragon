@@ -59,6 +59,7 @@ struct {
 __attribute__((section((MAIN)), used)) int
 generic_uprobe_event(struct pt_regs *ctx)
 {
+	bpf_printk("generic_uprobe_event\n");
 	return generic_start_process_filter(ctx, (struct bpf_map_def *)&uprobe_calls);
 }
 
@@ -121,8 +122,12 @@ generic_uprobe_path(void *ctx)
 FUNC_INLINE int
 write_reg(struct pt_regs *ctx, __u32 dst, __u64 val)
 {
+	bpf_printk("write_reg dst %x val %lx\n", dst, (unsigned long) val);
 	switch (dst) {
-	case offsetof(struct pt_regs, ax): ctx->ax = (unsigned long) val; break;
+	case offsetof(struct pt_regs, ax):
+		ctx->ax = (unsigned long) val;
+		bpf_printk("write_reg2 ctx->ax %lx\n", (unsigned long) ctx->ax);
+		break;
 	}
 
 	return 0;
@@ -137,16 +142,22 @@ generic_write_offload(struct pt_regs *ctx)
 	__u32 *idx, i;
 
 	idx = map_lookup_elem(&write_offload, &id);
+
+	bpf_printk("generic_write_offload1 idx %lx\n", (unsigned long) idx);
 	if (!idx)
 		return 0;
+	bpf_printk("generic_write_offload2 *idx %u\n", *idx);
 	map_delete_elem(&write_offload, &id);
 
 	regs = map_lookup_elem(&regs_map, idx);
+	bpf_printk("generic_write_offload3 regs %lx\n", (unsigned long) regs);
 	if (!regs)
 		return 0;
 
 	for (i = 0; i < REGS_MAX; i++) {
 		ass = &regs->ass[i];
+
+	bpf_printk("generic_write_offload4 i %u type %d\n", i, ass->type);
 
 		switch (ass->type) {
 		case ASM_ASSIGNMENT_TYPE_CONST:
@@ -159,7 +170,7 @@ generic_write_offload(struct pt_regs *ctx)
 		default:
 			break;
 		}
-		if (i == regs->cnt)
+		if (i == regs->cnt - 1)
 			break;
 	}
 	return 0;
