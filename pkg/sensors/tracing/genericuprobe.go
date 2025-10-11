@@ -11,6 +11,8 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"strconv"
+	"strings"
 
 	"github.com/cilium/ebpf"
 
@@ -155,6 +157,36 @@ func loadSingleUprobeSensor(uprobeEntry *genericUprobe, args sensors.LoadProbeAr
 	return nil
 }
 
+func checkSymbol(sym string) error {
+	_, _, err := parseSymbol(sym)
+	return err
+}
+
+func resolveSymbol(sym string) (string, uint64) {
+	sym, off, err := parseSymbol(sym)
+	if err != nil {
+		logger.GetLogger().Warn(fmt.Sprintf("Failed to parse symbol (should not happen) %v", err))
+	}
+	return sym, off
+}
+
+func parseSymbol(sym string) (string, uint64, error) {
+	parts := strings.Split(sym, "+")
+	if len(parts) == 1 {
+		return sym, 0, nil
+	}
+	if len(parts) != 2 {
+		return parts[0], 0, fmt.Errorf("Wrong symbol '%s'", sym)
+	}
+	sym = parts[0]
+	str := parts[1]
+	offset, err := strconv.ParseUint(str, 0, 0)
+	if err != nil {
+		return sym, 0, fmt.Errorf("Wrong offset '%s'", str)
+	}
+	return sym, offset, nil
+}
+
 func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) error {
 	load := args.Load
 	data := &program.MultiUprobeAttachData{}
@@ -196,7 +228,9 @@ func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) er
 		}
 
 		if uprobeEntry.symbol != "" {
-			attach.Symbols = append(attach.Symbols, uprobeEntry.symbol)
+			symbol, offset := resolveSymbol(uprobeEntry.symbol)
+			attach.Symbols = append(attach.Symbols, symbol)
+			attach.Offsets = append(attach.Offsets, offset)
 		} else {
 			attach.Addresses = append(attach.Addresses, uprobeEntry.address)
 		}
@@ -444,6 +478,9 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 
 	if symbols != 0 {
 		for idx, sym := range spec.Symbols {
+			if err := checkSymbol(sym); err != nil {
+				return nil, fmt.Errorf("Failed to parse symbol: %w", err)
+			}
 			addUprobeEntry(sym, 0, idx)
 		}
 	} else if offsets != 0 {
@@ -523,9 +560,12 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 
 	loadProgName := config.GenericUprobeObjs(false)
 
+	symbol, offset := resolveSymbol(uprobeEntry.symbol)
+
 	attachData := &program.UprobeAttachData{
 		Path:         uprobeEntry.path,
-		Symbol:       uprobeEntry.symbol,
+		Symbol:       symbol,
+		Offset:       offset,
 		Address:      uprobeEntry.address,
 		RefCtrOffset: uprobeEntry.refCtrOffset,
 	}
