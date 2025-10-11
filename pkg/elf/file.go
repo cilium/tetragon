@@ -63,6 +63,23 @@ func OpenSafeELFFile(path string) (safe *SafeELFFile, err error) {
 	return &SafeELFFile{file}, nil
 }
 
+func (se *SafeELFFile) Address(name string) (uint64, error) {
+	symbols, err := se.Symbols()
+	if err != nil {
+		return 0, err
+	}
+
+	for _, sym := range symbols {
+		if elf.ST_TYPE(sym.Info) != elf.STT_FUNC {
+			continue
+		}
+		if name == sym.Name {
+			return sym.Value, nil
+		}
+	}
+	return 0, fmt.Errorf("failed to resolve %q", name)
+}
+
 func (se *SafeELFFile) Offset(name string) (uint64, error) {
 	symbols, err := se.Symbols()
 	if err != nil {
