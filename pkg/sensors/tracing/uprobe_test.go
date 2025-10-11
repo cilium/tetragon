@@ -693,3 +693,30 @@ func TestUprobeArgsWithSymbol(t *testing.T) {
 
 	testUprobeArgs(t, checkers, tp)
 }
+
+func TestUprobeArgsWithAddress(t *testing.T) {
+	f, err := elf.OpenSafeELFFile(uprobeArgsLib)
+	if err != nil {
+		t.Fatalf("telf.OpenSafeELFFile failed with %v", err)
+	}
+	defer f.Close()
+
+	addresses := [5]uint64{}
+	for idx, s := range uprobeArgsSymbols {
+		address, err := f.Address(s)
+		if err != nil {
+			t.Fatalf("f.Offset failed with %v", err)
+		}
+		addresses[idx] = address
+	}
+
+	checkers := getUprobeArgsCheckers()
+	tp := getUprobeArgsPolicy()
+
+	for idx := range tp.Spec.UProbes {
+		tp.Spec.UProbes[idx].Offsets = []uint64{addresses[idx]}
+		checkers[idx] = checkers[idx].WithOffset(addresses[idx])
+	}
+
+	testUprobeArgs(t, checkers, tp)
+}
