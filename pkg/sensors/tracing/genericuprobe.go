@@ -11,6 +11,8 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"strconv"
+	"strings"
 
 	"github.com/cilium/ebpf"
 
@@ -18,6 +20,7 @@ import (
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
+	"github.com/cilium/tetragon/pkg/elf"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/idtable"
@@ -154,6 +157,36 @@ func loadSingleUprobeSensor(uprobeEntry *genericUprobe, args sensors.LoadProbeAr
 	return nil
 }
 
+func checkSymbol(sym string) error {
+	_, _, err := parseSymbol(sym)
+	return err
+}
+
+func resolveSymbol(sym string) (string, uint64) {
+	sym, off, err := parseSymbol(sym)
+	if err != nil {
+		logger.GetLogger().Warn(fmt.Sprintf("Failed to parse symbol (should not happen) %v", err))
+	}
+	return sym, off
+}
+
+func parseSymbol(sym string) (string, uint64, error) {
+	parts := strings.Split(sym, "+")
+	if len(parts) == 1 {
+		return sym, 0, nil
+	}
+	if len(parts) != 2 {
+		return parts[0], 0, fmt.Errorf("wrong symbol '%s'", sym)
+	}
+	sym = parts[0]
+	str := parts[1]
+	offset, err := strconv.ParseUint(str, 0, 0)
+	if err != nil {
+		return sym, 0, fmt.Errorf("wrong offset '%s'", str)
+	}
+	return sym, offset, nil
+}
+
 func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) error {
 	load := args.Load
 	data := &program.MultiUprobeAttachData{}
@@ -195,7 +228,9 @@ func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) er
 		}
 
 		if uprobeEntry.symbol != "" {
-			attach.Symbols = append(attach.Symbols, uprobeEntry.symbol)
+			symbol, offset := resolveSymbol(uprobeEntry.symbol)
+			attach.Symbols = append(attach.Symbols, symbol)
+			attach.Offsets = append(attach.Offsets, offset)
 		} else {
 			attach.Addresses = append(attach.Addresses, uprobeEntry.address)
 		}
@@ -330,14 +365,15 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 
 	symbols := len(spec.Symbols)
 	offsets := len(spec.Offsets)
+	addrs := len(spec.Addrs)
 	refCtrOffsets := len(spec.RefCtrOffsets)
 
 	// uprobe definition spec usanity checks
-	if symbols == 0 && offsets == 0 {
-		return nil, errors.New("uprobe need either Symbols or Offsets defined")
+	if symbols == 0 && offsets == 0 && addrs == 0 {
+		return nil, errors.New("uprobe need either Symbols, Offsets or Addrs defined")
 	}
-	if symbols != 0 && offsets != 0 {
-		return nil, errors.New("uprobe is defined either only with Symbols or Offsets")
+	if symbols != 0 && offsets != 0 && addrs != 0 {
+		return nil, errors.New("uprobe is defined either only with Symbols, Offsets or Addrs")
 	}
 	if refCtrOffsets != 0 {
 		if symbols != 0 && symbols != refCtrOffsets {
@@ -442,10 +478,27 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 
 	if symbols != 0 {
 		for idx, sym := range spec.Symbols {
+			if err := checkSymbol(sym); err != nil {
+				return nil, fmt.Errorf("failed to parse symbol: %w", err)
+			}
 			addUprobeEntry(sym, 0, idx)
 		}
-	} else {
+	} else if offsets != 0 {
 		for idx, off := range spec.Offsets {
+			addUprobeEntry("", off, idx)
+		}
+	} else if addrs != 0 {
+		f, err := elf.OpenSafeELFFile(spec.Path)
+		if err != nil {
+			return nil, err
+		}
+		defer f.Close()
+
+		for idx, addr := range spec.Addrs {
+			off, err := f.OffsetFromAddr(addr)
+			if err != nil {
+				return nil, err
+			}
 			addUprobeEntry("", off, idx)
 		}
 	}
@@ -507,9 +560,12 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 
 	loadProgName := config.GenericUprobeObjs(false)
 
+	symbol, offset := resolveSymbol(uprobeEntry.symbol)
+
 	attachData := &program.UprobeAttachData{
 		Path:         uprobeEntry.path,
-		Symbol:       uprobeEntry.symbol,
+		Symbol:       symbol,
+		Offset:       offset,
 		Address:      uprobeEntry.address,
 		RefCtrOffset: uprobeEntry.refCtrOffset,
 	}

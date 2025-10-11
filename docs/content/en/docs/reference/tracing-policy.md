@@ -3744,6 +3744,13 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>true</td>
       </tr><tr>
+        <td><b>addrs</b></td>
+        <td>[]integer</td>
+        <td>
+          List of the traced addresses<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspecuprobesindexargsindex">args</a></b></td>
         <td>[]object</td>
         <td>
@@ -9442,6 +9449,13 @@ Only valid with the post action and with a rateLimit specified.<br/>
           Name of the traced binary<br/>
         </td>
         <td>true</td>
+      </tr><tr>
+        <td><b>addrs</b></td>
+        <td>[]integer</td>
+        <td>
+          List of the traced addresses<br/>
+        </td>
+        <td>false</td>
       </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspecuprobesindexargsindex">args</a></b></td>
         <td>[]object</td>

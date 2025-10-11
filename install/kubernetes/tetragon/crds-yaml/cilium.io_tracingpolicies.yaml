@@ -2541,6 +2541,12 @@ spec:
                 description: A list of uprobe specs.
                 items:
                   properties:
+                    addrs:
+                      description: List of the traced addresses
+                      items:
+                        format: int64
+                        type: integer
+                      type: array
                     args:
                       description: A list of function arguments to include in the
                         trace output.
