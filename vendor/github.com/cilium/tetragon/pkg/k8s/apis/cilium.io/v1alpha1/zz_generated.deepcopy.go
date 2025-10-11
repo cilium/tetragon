@@ -769,6 +769,11 @@ func (in *UProbeSpec) DeepCopyInto(out *UProbeSpec) {
 		*out = make([]uint64, len(*in))
 		copy(*out, *in)
 	}
+	if in.Addrs != nil {
+		in, out := &in.Addrs, &out.Addrs
+		*out = make([]uint64, len(*in))
+		copy(*out, *in)
+	}
 	if in.RefCtrOffsets != nil {
 		in, out := &in.RefCtrOffsets, &out.RefCtrOffsets
 		*out = make([]uint64, len(*in))
