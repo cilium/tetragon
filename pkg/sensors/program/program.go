@@ -84,12 +84,14 @@ type UprobeAttachData struct {
 	Path         string
 	Symbol       string
 	Address      uint64
+	Offset       uint64
 	RefCtrOffset uint64
 }
 
 type MultiUprobeAttachSymbolsCookies struct {
 	Symbols       []string
 	Addresses     []uint64
+	Offsets       []uint64
 	RefCtrOffsets []uint64
 	Cookies       []uint64
 }

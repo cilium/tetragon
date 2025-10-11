@@ -320,6 +320,7 @@ func uprobeAttach(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec,
 		opts := &link.UprobeOptions{
 			Address:      data.Address,
 			RefCtrOffset: data.RefCtrOffset,
+			Offset:       data.Offset,
 		}
 		return exec.Uprobe(data.Symbol, prog, opts)
 	}
@@ -408,6 +409,7 @@ func multiUprobeAttach(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec
 			}
 			opts := &link.UprobeMultiOptions{
 				Addresses:     attach.Addresses,
+				Offsets:       attach.Offsets,
 				RefCtrOffsets: attach.RefCtrOffsets,
 				Cookies:       attach.Cookies,
 			}
