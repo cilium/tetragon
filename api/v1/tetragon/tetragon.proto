@@ -188,8 +188,8 @@ message UserRecord {
 
 // Environment variable
 message EnvVar {
-   string Key = 1;
-   string Value = 2;
+  string Key = 1;
+  string Value = 2;
 }
 
 message Process {
