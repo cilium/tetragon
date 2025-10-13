@@ -62,6 +62,25 @@ func TestWriteSelectorUint16(t *testing.T) {
 	}
 }
 
+func TestWriteSelectorUint8(t *testing.T) {
+	k := &KernelSelectorState{data: KernelSelectorData{off: 0}}
+	d := &k.data
+	v := uint8(0x12)
+
+	WriteSelectorUint8(d, v)
+	if d.e[0] != 0x12 {
+		t.Errorf("SelectorStateWrite failed: %x\n",
+			d.e[0])
+	}
+
+	d.off = 1024
+	WriteSelectorUint8(d, v)
+	if d.e[1024] != 0x12 {
+		t.Errorf("SelectorStateWrite offset(1024) failed: %x\n",
+			d.e[1024])
+	}
+}
+
 func TestWriteSelectorLength(t *testing.T) {
 	k := &KernelSelectorState{data: KernelSelectorData{off: 0}}
 	d := &k.data
@@ -349,7 +368,8 @@ func TestParseMatchData(t *testing.T) {
 	}
 
 	if config.EnableLargeProgs() {
-		sig = append(sig, v1alpha1.KProbeArg{ /* index 10 */ Type: "uint16"})
+		sig = append(sig, v1alpha1.KProbeArg{ /* index 10 */ Type: "uint16"},
+			v1alpha1.KProbeArg{ /* index 11 */ Type: "uint8"})
 	}
 
 	arg1 := &v1alpha1.ArgSelector{Index: 0, Operator: "Equal", Values: []string{"ex"}}
@@ -486,6 +506,19 @@ func TestParseMatchData(t *testing.T) {
 		if err := ParseMatchData(k, arg9, sig, 2); err != nil || bytes.Equal(expected9, d.e[nextArg:d.off]) == false {
 			t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected9, d.e[nextArg:d.off], arg9)
 		}
+
+		nextArg = d.off
+		arg10 := &v1alpha1.ArgSelector{Index: 11, Operator: "Equal", Values: []string{"1", "2"}}
+		expected10 := []byte{
+			0x0d, 0x00, 0x00, 0x00, // Index == 13 (11 + base 2)
+			0x03, 0x00, 0x00, 0x00, // operator == equal
+			10, 0x00, 0x00, 0x00, // length == 10
+			0x20, 0x00, 0x00, 0x00, // value type == uint8
+			0x01, 0x02, // values 1, 2
+		}
+		if err := ParseMatchData(k, arg10, sig, 2); err != nil || bytes.Equal(expected10, d.e[nextArg:d.off]) == false {
+			t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected10, d.e[nextArg:d.off], arg10)
+		}
 	}
 }
 
@@ -504,7 +537,8 @@ func TestParseMatchArg(t *testing.T) {
 	}
 
 	if config.EnableLargeProgs() {
-		sig = append(sig, v1alpha1.KProbeArg{Index: 11, Type: "uint16", SizeArgIndex: 0, ReturnCopy: false})
+		sig = append(sig, v1alpha1.KProbeArg{Index: 11, Type: "uint16", SizeArgIndex: 0, ReturnCopy: false},
+			v1alpha1.KProbeArg{Index: 12, Type: "uint8", SizeArgIndex: 0, ReturnCopy: false})
 	}
 
 	arg1 := &v1alpha1.ArgSelector{Index: 1, Operator: "Equal", Values: []string{"foobar"}}
@@ -628,7 +662,7 @@ func TestParseMatchArg(t *testing.T) {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected8, d.e[nextArg:d.off], arg8)
 	}
 
-	if config.EnableLargeProgs() { // multiple match args are supported only in kernels >= 5.4
+	if config.EnableLargeProgs() { // (u)int8/16 and multiple match args are supported only in kernels >= 5.4
 		nextArg = d.off
 		arg9 := &v1alpha1.ArgSelector{Index: 11, Operator: "Equal", Values: []string{"1", "2"}}
 		expected9 := []byte{
@@ -640,6 +674,19 @@ func TestParseMatchArg(t *testing.T) {
 		}
 		if err := ParseMatchArg(k, arg9, sig); err != nil || bytes.Equal(expected9, d.e[nextArg:d.off]) == false {
 			t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected9, d.e[nextArg:d.off], arg9)
+		}
+
+		nextArg = d.off
+		arg10 := &v1alpha1.ArgSelector{Index: 12, Operator: "Equal", Values: []string{"1", "2"}}
+		expected10 := []byte{
+			0x0b, 0x00, 0x00, 0x00, // Index == 11
+			0x03, 0x00, 0x00, 0x00, // operator == equal
+			10, 0x00, 0x00, 0x00, // length == 10
+			0x20, 0x00, 0x00, 0x00, // value type == uint8
+			0x01, 0x02, // values 1, 2
+		}
+		if err := ParseMatchArg(k, arg10, sig); err != nil || bytes.Equal(expected10, d.e[nextArg:d.off]) == false {
+			t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected10, d.e[nextArg:d.off], arg10)
 		}
 
 		length := []byte{
