@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
+//go:build k8s
+
 package policyfilter
 
 import (
@@ -12,10 +14,6 @@ import (
 	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/cgroups/fsscan"
 )
-
-type cgidFinder interface {
-	findCgroupID(podID PodID, containerID string) (CgroupID, error)
-}
 
 type cgfsFinder struct {
 	fsscan.FsScanner
@@ -32,4 +30,8 @@ func (s *cgfsFinder) findCgroupID(podID PodID, containerID string) (CgroupID, er
 	}
 	cgid, err := cgroups.GetCgroupIDFromSubCgroup(path)
 	return CgroupID(cgid), err
+}
+
+func newCgfsFinder(log *slog.Logger) *cgfsFinder {
+	return &cgfsFinder{fsscan.New(), log}
 }
