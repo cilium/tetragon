@@ -18,9 +18,15 @@
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 
+#ifdef __RHEL7_BPF_PROG
+#define exec_ctx_struct ftrace_raw_sched_process_exec
+#else
+#define exec_ctx_struct trace_event_raw_sched_process_exec
+#endif
+
 #ifndef OVERRIDE_TAILCALL
 int execve_rate(void *ctx);
-int execve_send(void *ctx);
+int execve_send(struct exec_ctx_struct *ctx);
 
 struct {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
@@ -172,12 +178,6 @@ read_execve_shared_info(void *ctx, struct msg_process *p, __u64 pid)
 	execve_joined_info_map_clear(pid);
 }
 
-#ifdef __RHEL7_BPF_PROG
-#define exec_ctx_struct ftrace_raw_sched_process_exec
-#else
-#define exec_ctx_struct trace_event_raw_sched_process_exec
-#endif
-
 __attribute__((section("tracepoint/sys_execve"), used)) int
 event_execve(struct exec_ctx_struct *ctx)
 {
@@ -266,7 +266,7 @@ execve_rate(void *ctx __arg_ctx)
  * has already been collected, then send it to the perf buffer.
  */
 __attribute__((section("tracepoint"), used)) int
-execve_send(void *ctx __arg_ctx)
+execve_send(struct exec_ctx_struct *ctx __arg_ctx)
 {
 	struct msg_execve_event *event;
 	struct execve_map_value *curr;
@@ -359,10 +359,9 @@ execve_send(void *ctx __arg_ctx)
 		curr->bin.args[len] = 0x00;
 		curr->bin.args[len + 1] = 0x00;
 #else
-		// reuse p->args first string that contains the filename, this can't be
-		// above 256 in size (otherwise the complete will be send via data msg)
-		// which is okay because we need the 256 first bytes.
-		curr->bin.path_length = probe_read_str(curr->bin.path, BINARY_PATH_MAX_LEN, &p->args);
+		char *filename = (char *)ctx + (_(ctx->__data_loc_filename) & 0xFFFF);
+
+		curr->bin.path_length = probe_read_str(curr->bin.path, BINARY_PATH_MAX_LEN, (void *)filename);
 		if (curr->bin.path_length > 1) {
 			// don't include the NULL byte in the length
 			curr->bin.path_length--;
