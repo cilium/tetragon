@@ -14,7 +14,7 @@ List of described data types:
 - [`sint16, int16`](#int16)
 - [`uint16`](#uint16)
 - [`int, sint32, int32`](#int)
-- [`uint32`]($uint32)
+- [`uint32`](#uint32)
 - [`long, sint64, int64`](#long)
 - [`ulong, uint64, size_t`](#ulong)
 - [`string`](#string)
