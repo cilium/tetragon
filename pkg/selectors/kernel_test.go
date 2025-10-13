@@ -329,6 +329,10 @@ func TestParseMatchData(t *testing.T) {
 		v1alpha1.KProbeArg{ /* index 9 */ Type: "socket"},
 	}
 
+	if config.EnableLargeProgs() {
+		sig = append(sig, v1alpha1.KProbeArg{ /* index 10 */ Type: "uint16"})
+	}
+
 	arg1 := &v1alpha1.ArgSelector{Index: 0, Operator: "Equal", Values: []string{"ex"}}
 	k := NewKernelSelectorState(nil, nil, false)
 	d := &k.data
@@ -449,6 +453,22 @@ func TestParseMatchData(t *testing.T) {
 	if err := ParseMatchData(k, arg8, sig, 2); err != nil || bytes.Equal(expected8, d.e[nextArg:d.off]) == false {
 		t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected8, d.e[nextArg:d.off], arg8)
 	}
+
+	if config.EnableLargeProgs() {
+		nextArg = d.off
+		arg9 := &v1alpha1.ArgSelector{Index: 10, Operator: "Equal", Values: []string{"1", "2"}}
+		expected9 := []byte{
+			0x0c, 0x00, 0x00, 0x00, // Index == 12 (10 + base 2)
+			0x03, 0x00, 0x00, 0x00, // operator == equal
+			16, 0x00, 0x00, 0x00, // length == 16
+			0x1e, 0x00, 0x00, 0x00, // value type == uint16
+			0x01, 0x00, 0x00, 0x00, // value 1
+			0x02, 0x00, 0x00, 0x00, // value 2
+		}
+		if err := ParseMatchData(k, arg9, sig, 2); err != nil || bytes.Equal(expected9, d.e[nextArg:d.off]) == false {
+			t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected9, d.e[nextArg:d.off], arg9)
+		}
+	}
 }
 
 func TestParseMatchArg(t *testing.T) {
@@ -463,6 +483,10 @@ func TestParseMatchArg(t *testing.T) {
 		v1alpha1.KProbeArg{Index: 8, Type: "sock", SizeArgIndex: 0, ReturnCopy: false},
 		v1alpha1.KProbeArg{Index: 9, Type: "sockaddr", SizeArgIndex: 0, ReturnCopy: false},
 		v1alpha1.KProbeArg{Index: 10, Type: "socket", SizeArgIndex: 0, ReturnCopy: false},
+	}
+
+	if config.EnableLargeProgs() {
+		sig = append(sig, v1alpha1.KProbeArg{Index: 11, Type: "uint16", SizeArgIndex: 0, ReturnCopy: false})
 	}
 
 	arg1 := &v1alpha1.ArgSelector{Index: 1, Operator: "Equal", Values: []string{"foobar"}}
@@ -587,6 +611,20 @@ func TestParseMatchArg(t *testing.T) {
 	}
 
 	if config.EnableLargeProgs() { // multiple match args are supported only in kernels >= 5.4
+		nextArg = d.off
+		arg9 := &v1alpha1.ArgSelector{Index: 11, Operator: "Equal", Values: []string{"1", "2"}}
+		expected9 := []byte{
+			0x0a, 0x00, 0x00, 0x00, // Index == 10
+			0x03, 0x00, 0x00, 0x00, // operator == equal
+			16, 0x00, 0x00, 0x00, // length == 16
+			0x1e, 0x00, 0x00, 0x00, // value type == uint16
+			0x01, 0x00, 0x00, 0x00, // value 1
+			0x02, 0x00, 0x00, 0x00, // value 2
+		}
+		if err := ParseMatchArg(k, arg9, sig); err != nil || bytes.Equal(expected9, d.e[nextArg:d.off]) == false {
+			t.Errorf("parseMatchArg: error %v expected %v bytes %v parsing %v\n", err, expected9, d.e[nextArg:d.off], arg9)
+		}
+
 		length := []byte{
 			108, 0x00, 0x00, 0x00,
 			24, 0x00, 0x00, 0x00,
