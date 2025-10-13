@@ -186,6 +186,12 @@ message UserRecord {
   string name = 1;
 }
 
+// Environment variable
+message EnvVar {
+  string Key = 1;
+  string Value = 2;
+}
+
 message Process {
   // Exec ID uniquely identifies the process over time across all the nodes in the cluster.
   string exec_id = 1;
@@ -297,6 +303,8 @@ message Process {
   // for example, you wish to discern whether a process was spawned using a
   // tool like nsenter or kubectl exec.
   google.protobuf.BoolValue in_init_tree = 20;
+  // Environment variables passed to the binary at execution.
+  repeated EnvVar environment_variables = 21;
 }
 
 message ProcessExec {
