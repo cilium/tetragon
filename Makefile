@@ -488,6 +488,9 @@ help: ## Display this help, based on https://www.thapaliya.com/en/writings/well-
 docs: ## Preview documentation website.
 	$(MAKE) -C docs
 
+.PHONY: gen-docs-references
+gen-docs-references: generate-flags metrics-docs ## Convenience alias to generate all docs references.
+
 .PHONY: version
 version: ## Print Tetragon version.
 	@echo $(VERSION)
