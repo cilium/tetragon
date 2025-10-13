@@ -58,7 +58,7 @@ jobs:
       uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
       with:
         # renovate: datasource=golang-version depName=go
-        go-version: '1.24.7'
+        go-version: '1.24.8'
     - name: Initialize CodeQL
       uses: github/codeql-action/init@fca7ace96b7d713c7035871441bd52efbe39e27e # v3.28.19
       with:
