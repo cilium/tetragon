@@ -911,6 +911,13 @@ be removed in version 1.5.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argRegs</b></td>
+        <td>[]string</td>
+        <td>
+          An arg value for the regs action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argSig</b></td>
         <td>integer</td>
         <td>
@@ -1449,6 +1456,13 @@ be removed in version 1.5.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argRegs</b></td>
+        <td>[]string</td>
+        <td>
+          An arg value for the regs action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argSig</b></td>
         <td>integer</td>
         <td>
@@ -1964,6 +1978,13 @@ be removed in version 1.5.<br/>
           An arg index for the filename for fdInstall action<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argRegs</b></td>
+        <td>[]string</td>
+        <td>
+          An arg value for the regs action<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2502,6 +2523,13 @@ be removed in version 1.5.<br/>
           An arg index for the filename for fdInstall action<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argRegs</b></td>
+        <td>[]string</td>
+        <td>
+          An arg value for the regs action<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3096,6 +3124,13 @@ be removed in version 1.5.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argRegs</b></td>
+        <td>[]string</td>
+        <td>
+          An arg value for the regs action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argSig</b></td>
         <td>integer</td>
         <td>
@@ -3634,6 +3669,13 @@ be removed in version 1.5.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argRegs</b></td>
+        <td>[]string</td>
+        <td>
+          An arg value for the regs action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argSig</b></td>
         <td>integer</td>
         <td>
@@ -4121,6 +4163,13 @@ be removed in version 1.5.<br/>
           An arg index for the filename for fdInstall action<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argRegs</b></td>
+        <td>[]string</td>
+        <td>
+          An arg value for the regs action<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4662,6 +4711,13 @@ be removed in version 1.5.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argRegs</b></td>
+        <td>[]string</td>
+        <td>
+          An arg value for the regs action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argSig</b></td>
         <td>integer</td>
         <td>
@@ -5142,6 +5198,13 @@ be removed in version 1.5.<br/>
           An arg index for the filename for fdInstall action<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argRegs</b></td>
+        <td>[]string</td>
+        <td>
+          An arg value for the regs action<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5680,6 +5743,13 @@ be removed in version 1.5.<br/>
           An arg index for the filename for fdInstall action<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argRegs</b></td>
+        <td>[]string</td>
+        <td>
+          An arg value for the regs action<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6687,6 +6757,13 @@ be removed in version 1.5.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argRegs</b></td>
+        <td>[]string</td>
+        <td>
+          An arg value for the regs action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argSig</b></td>
         <td>integer</td>
         <td>
@@ -7225,6 +7302,13 @@ be removed in version 1.5.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argRegs</b></td>
+        <td>[]string</td>
+        <td>
+          An arg value for the regs action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argSig</b></td>
         <td>integer</td>
         <td>
@@ -7740,6 +7824,13 @@ be removed in version 1.5.<br/>
           An arg index for the filename for fdInstall action<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argRegs</b></td>
+        <td>[]string</td>
+        <td>
+          An arg value for the regs action<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8278,6 +8369,13 @@ be removed in version 1.5.<br/>
           An arg index for the filename for fdInstall action<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argRegs</b></td>
+        <td>[]string</td>
+        <td>
+          An arg value for the regs action<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8872,6 +8970,13 @@ be removed in version 1.5.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argRegs</b></td>
+        <td>[]string</td>
+        <td>
+          An arg value for the regs action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argSig</b></td>
         <td>integer</td>
         <td>
@@ -9410,6 +9515,13 @@ be removed in version 1.5.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argRegs</b></td>
+        <td>[]string</td>
+        <td>
+          An arg value for the regs action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argSig</b></td>
         <td>integer</td>
         <td>
@@ -9897,6 +10009,13 @@ be removed in version 1.5.<br/>
           An arg index for the filename for fdInstall action<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argRegs</b></td>
+        <td>[]string</td>
+        <td>
+          An arg value for the regs action<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -10438,6 +10557,13 @@ be removed in version 1.5.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>argRegs</b></td>
+        <td>[]string</td>
+        <td>
+          An arg value for the regs action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>argSig</b></td>
         <td>integer</td>
         <td>
@@ -10918,6 +11044,13 @@ be removed in version 1.5.<br/>
           An arg index for the filename for fdInstall action<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argRegs</b></td>
+        <td>[]string</td>
+        <td>
+          An arg value for the regs action<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -11456,6 +11589,13 @@ be removed in version 1.5.<br/>
           An arg index for the filename for fdInstall action<br/>
           <br/>
             <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argRegs</b></td>
+        <td>[]string</td>
+        <td>
+          An arg value for the regs action<br/>
         </td>
         <td>false</td>
       </tr><tr>
