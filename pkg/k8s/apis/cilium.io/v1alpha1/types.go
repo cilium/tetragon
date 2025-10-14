@@ -359,6 +359,13 @@ type UProbeSpec struct {
 	// Tags to categorize the event, will be include in the event output.
 	// Maximum of 16 Tags are supported.
 	Tags []string `json:"tags,omitempty"`
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=false
+	// Indicates whether to collect return value of the traced function.
+	Return bool `json:"return"`
+	// +kubebuilder:validation:Optional
+	// A return argument to include in the trace output.
+	ReturnArg *KProbeArg `json:"returnArg,omitempty"`
 }
 
 type UsdtSpec struct {
