@@ -274,7 +274,11 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID) ([]i
 		}
 
 		// Parse Filters into kernel filter logic
-		state, err := selectors.InitKernelSelectorState(spec.Selectors, spec.Args, []v1alpha1.KProbeArg{}, nil, nil, nil)
+		state, err := selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
+			Selectors: spec.Selectors,
+			Args:      spec.Args,
+			Data:      []v1alpha1.KProbeArg{},
+		})
 		if err != nil {
 			return nil, err
 		}
