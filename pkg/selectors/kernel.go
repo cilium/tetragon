@@ -1501,29 +1501,29 @@ func createKernelSelectorState(selectors []v1alpha1.KProbeSelector, listReader V
 func InitKernelSelectorState(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KProbeArg, data []v1alpha1.KProbeArg,
 	actionArgTable *idtable.Table, listReader ValueReader, maps *KernelSelectorMaps) (*KernelSelectorState, error) {
 
-	parse := func(k *KernelSelectorState, selectors *v1alpha1.KProbeSelector, selIdx int) error {
-		if err := ParseMatchPids(k, selectors.MatchPIDs); err != nil {
+	parse := func(k *KernelSelectorState, selector *v1alpha1.KProbeSelector, selIdx int) error {
+		if err := ParseMatchPids(k, selector.MatchPIDs); err != nil {
 			return fmt.Errorf("parseMatchPids error: %w", err)
 		}
-		if err := ParseMatchNamespaces(k, selectors.MatchNamespaces); err != nil {
+		if err := ParseMatchNamespaces(k, selector.MatchNamespaces); err != nil {
 			return fmt.Errorf("parseMatchNamespaces error: %w", err)
 		}
-		if err := ParseMatchCapabilities(k, selectors.MatchCapabilities); err != nil {
+		if err := ParseMatchCapabilities(k, selector.MatchCapabilities); err != nil {
 			return fmt.Errorf("parseMatchCapabilities error: %w", err)
 		}
-		if err := ParseMatchNamespaceChanges(k, selectors.MatchNamespaceChanges); err != nil {
+		if err := ParseMatchNamespaceChanges(k, selector.MatchNamespaceChanges); err != nil {
 			return fmt.Errorf("parseMatchNamespaceChanges error: %w", err)
 		}
-		if err := ParseMatchCapabilityChanges(k, selectors.MatchCapabilityChanges); err != nil {
+		if err := ParseMatchCapabilityChanges(k, selector.MatchCapabilityChanges); err != nil {
 			return fmt.Errorf("parseMatchCapabilityChanges error: %w", err)
 		}
-		if err := ParseMatchBinaries(k, selectors.MatchBinaries, selIdx); err != nil {
+		if err := ParseMatchBinaries(k, selector.MatchBinaries, selIdx); err != nil {
 			return fmt.Errorf("parseMatchBinaries error: %w", err)
 		}
-		if err := ParseMatchArgs(k, selectors.MatchArgs, selectors.MatchData, args, data); err != nil {
+		if err := ParseMatchArgs(k, selector.MatchArgs, selector.MatchData, args, data); err != nil {
 			return fmt.Errorf("parseMatchArgs  error: %w", err)
 		}
-		if err := ParseMatchActions(k, selectors.MatchActions, actionArgTable); err != nil {
+		if err := ParseMatchActions(k, selector.MatchActions, actionArgTable); err != nil {
 			return fmt.Errorf("parseMatchActions error: %w", err)
 		}
 		return nil
