@@ -721,6 +721,13 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 	e->a3 = PT_REGS_PARM4_CORE(ctx);
 	e->a4 = PT_REGS_PARM5_CORE(ctx);
 	generic_process_init(e, MSG_OP_GENERIC_UPROBE, config);
+
+	e->retprobe_id = retprobe_map_get_key(ctx);
+
+	/* If return arg is needed mark retprobe */
+	ty = config->argreturn;
+	if (ty > 0)
+		retprobe_map_set(e->func_id, e->retprobe_id, e->common.ktime, 1);
 #endif
 
 #ifdef GENERIC_USDT
@@ -1071,7 +1078,7 @@ generic_output(void *ctx, u8 op)
 		return 0;
 
 /* We don't need this data in return kprobe event */
-#ifndef GENERIC_KRETPROBE
+#if !defined(GENERIC_KRETPROBE) && !defined(GENERIC_URETPROBE)
 #ifdef __NS_CHANGES_FILTER
 	/* update the namespaces if we matched a change on that */
 	if (e->sel.match_ns) {
@@ -1096,7 +1103,7 @@ generic_output(void *ctx, u8 op)
 			get_current_subj_caps(&enter->caps, task);
 	}
 #endif
-#endif // !GENERIC_KRETPROBE
+#endif // !GENERIC_KRETPROBE && !GENERIC_URETPROBE
 
 	total = e->common.size + generic_kprobe_common_size();
 	/* Code movement from clang forces us to inline bounds checks here */
@@ -1184,6 +1191,88 @@ FUNC_INLINE int generic_retkprobe(void *ctx, struct bpf_map_def *calls, unsigned
 	enter = event_find_curr(&ppid, &walker);
 
 	e->common.op = MSG_OP_GENERIC_KPROBE;
+	e->common.flags = MSG_COMMON_FLAG_RETURN;
+	e->common.pad[0] = 0;
+	e->common.pad[1] = 0;
+	e->common.size = size;
+	e->common.ktime = tg_get_ktime();
+
+	if (enter) {
+		e->current.pid = enter->key.pid;
+		e->current.ktime = enter->key.ktime;
+	}
+	e->current.pad[0] = 0;
+	e->current.pad[1] = 0;
+	e->current.pad[2] = 0;
+	e->current.pad[3] = 0;
+
+	e->func_id = config->func_id;
+	e->common.size = size;
+
+	tail_call(ctx, calls, TAIL_CALL_ARGS);
+	return 1;
+}
+
+FUNC_INLINE int generic_retuprobe(void *ctx, struct bpf_map_def *calls, unsigned long ret)
+{
+	struct execve_map_value *enter;
+	struct msg_generic_kprobe *e;
+	struct retprobe_info info;
+	struct event_config *config;
+	bool walker = false;
+	int zero = 0;
+	__u32 ppid;
+	long size = 0;
+	long ty_arg, do_copy;
+	__u64 pid_tgid;
+
+	e = map_lookup_elem(&process_call_heap, &zero);
+	if (!e)
+		return 0;
+
+	e->idx = get_index(ctx);
+
+	config = map_lookup_elem(&config_map, &e->idx);
+	if (!config)
+		return 0;
+
+	e->func_id = config->func_id;
+	e->retprobe_id = retprobe_map_get_key(ctx);
+	pid_tgid = get_current_pid_tgid();
+	e->tid = (__u32)pid_tgid;
+
+	if (!retprobe_map_get(e->func_id, e->retprobe_id, &info))
+		return 0;
+
+	*(unsigned long *)e->args = info.ktime_enter;
+	size += sizeof(info.ktime_enter);
+
+	ty_arg = config->argreturn;
+	do_copy = config->argreturncopy;
+	if (ty_arg)
+		size += read_arg(ctx, e, 0, ty_arg, size, ret, 0);
+
+	/*
+	 * 0x1000 should be maximum argument length, so masking
+	 * with 0x1fff is safe and verifier will be happy.
+	 */
+	asm volatile("%[size] &= 0x1fff;\n"
+		     : [size] "+r"(size));
+
+	switch (do_copy) {
+	case char_buf:
+		size += __copy_char_buf(ctx, size, info.ptr, ret, false, e);
+		break;
+	case char_iovec:
+		size += __copy_char_iovec(size, info.ptr, info.cnt, ret, e);
+	default:
+		break;
+	}
+
+	/* Complete message header and send */
+	enter = event_find_curr(&ppid, &walker);
+
+	e->common.op = MSG_OP_GENERIC_UPROBE;
 	e->common.flags = MSG_COMMON_FLAG_RETURN;
 	e->common.pad[0] = 0;
 	e->common.pad[1] = 0;
