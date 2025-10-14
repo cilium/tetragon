@@ -89,6 +89,34 @@ FUNC_INLINE unsigned long get_ctx_ul(void *src, int type)
 		return ret;
 	}
 
+	case u16_ty: {
+		u16 ret;
+
+		with_errmetrics(probe_read, &ret, sizeof(u16), src);
+		return ret;
+	}
+
+	case s16_ty: {
+		s16 ret;
+
+		with_errmetrics(probe_read, &ret, sizeof(s16), src);
+		return ret;
+	}
+
+	case u8_ty: {
+		u8 ret;
+
+		with_errmetrics(probe_read, &ret, sizeof(u8), src);
+		return ret;
+	}
+
+	case s8_ty: {
+		s8 ret;
+
+		with_errmetrics(probe_read, &ret, sizeof(s8), src);
+		return ret;
+	}
+
 	case char_buf:
 	case string_type: {
 		char *buff;
