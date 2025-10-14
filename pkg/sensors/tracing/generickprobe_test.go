@@ -236,3 +236,140 @@ func Test_DisableEnablePolicy_KernelMemoryBytes(t *testing.T) {
 	assert.Equal(t, tetragon.TracingPolicyState_TP_STATE_ENABLED, list.Policies[0].State)
 	assert.NotZero(t, list.Policies[0].KernelMemoryBytes)
 }
+
+func Test_validateOverride(t *testing.T) {
+	tests := []struct {
+		name     string
+		f        *v1alpha1.KProbeSpec
+		funcName string
+		useMulti bool
+		wantErr  bool
+	}{
+		{
+			name: "override on syscalls",
+			f: &v1alpha1.KProbeSpec{
+				Call:    "sys_execve",
+				Return:  false,
+				Syscall: true,
+				Message: "",
+				Args: []v1alpha1.KProbeArg{
+					{
+						Index: 0,
+						Type:  "string",
+					},
+				},
+				Selectors: []v1alpha1.KProbeSelector{
+					{
+						MatchActions: []v1alpha1.ActionSelector{
+							{
+								Action:   "Override",
+								ArgError: -1,
+							},
+						},
+					},
+				},
+			},
+			funcName: "sys_execve",
+			useMulti: false,
+			wantErr:  !bpf.HasOverrideHelper(),
+		},
+		{
+			name: "override on lsm funcs",
+			f: &v1alpha1.KProbeSpec{
+				Call:    "security_bprm_creds_for_exec",
+				Return:  false,
+				Syscall: false,
+				Message: "",
+				Args: []v1alpha1.KProbeArg{
+					{
+						Index: 0,
+						Type:  "linux_binprm",
+					},
+				},
+				Selectors: []v1alpha1.KProbeSelector{
+					{
+						MatchActions: []v1alpha1.ActionSelector{
+							{
+								Action:   "Override",
+								ArgError: -1,
+							},
+						},
+					},
+				},
+			},
+			funcName: "security_bprm_creds_for_exec",
+			useMulti: false,
+			wantErr:  !bpf.HasModifyReturn(),
+		},
+		{
+			name: "override on lsm funcs with multi-kprobe enabled should be denied",
+			f: &v1alpha1.KProbeSpec{
+				Call:    "security_bprm_creds_for_exec",
+				Return:  false,
+				Syscall: false,
+				Message: "",
+				Args: []v1alpha1.KProbeArg{
+					{
+						Index: 0,
+						Type:  "linux_binprm",
+					},
+				},
+				Selectors: []v1alpha1.KProbeSelector{
+					{
+						MatchActions: []v1alpha1.ActionSelector{
+							{
+								Action:   "Override",
+								ArgError: -1,
+							},
+						},
+					},
+				},
+			},
+			funcName: "security_bprm_creds_for_exec",
+			useMulti: true,
+			wantErr:  true,
+		},
+		{
+			name: "override on non-lsm and non-syscall functions should be denied",
+			f: &v1alpha1.KProbeSpec{
+				Call:    "dentry_open",
+				Return:  false,
+				Syscall: false,
+				Message: "",
+				Args: []v1alpha1.KProbeArg{
+					{
+						Index: 0,
+						Type:  "linux_binprm",
+					},
+				},
+				Selectors: []v1alpha1.KProbeSelector{
+					{
+						MatchActions: []v1alpha1.ActionSelector{
+							{
+								Action:   "Override",
+								ArgError: -1,
+							},
+						},
+					},
+				},
+			},
+			funcName: "dentry_open",
+			useMulti: true,
+			wantErr:  true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotErr := validateOverride(tt.f, tt.funcName, tt.useMulti)
+			if gotErr != nil {
+				if !tt.wantErr {
+					t.Errorf("validateOverride() failed: %v", gotErr)
+				}
+				return
+			}
+			if tt.wantErr {
+				t.Fatal("validateOverride() succeeded unexpectedly")
+			}
+		})
+	}
+}
