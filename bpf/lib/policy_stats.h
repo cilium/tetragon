@@ -6,7 +6,7 @@
 
 #include "policy_conf.h"
 
-#if defined(GENERIC_KPROBE) || defined(GENERIC_TRACEPOINT) || defined(GENERIC_LSM) || defined(GENERIC_RAWTP) || defined(GENERIC_UPROBE) || defined(GENERIC_USDT) || defined(GENERIC_KRETPROBE) || defined(ALIGNCHECKER)
+#if defined(GENERIC_KPROBE) || defined(GENERIC_TRACEPOINT) || defined(GENERIC_LSM) || defined(GENERIC_RAWTP) || defined(GENERIC_UPROBE) || defined(GENERIC_USDT) || defined(GENERIC_KRETPROBE) || defined(ALIGNCHECKER) || defined(GENERIC_URETPROBE)
 #define HAS_POLICY_STATS
 #endif
 
