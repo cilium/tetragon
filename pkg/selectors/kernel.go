@@ -1427,6 +1427,15 @@ func ParseMatchBinaries(k *KernelSelectorState, binarys []v1alpha1.BinarySelecto
 	return nil
 }
 
+type KernelSelectorArgs struct {
+	Selectors      []v1alpha1.KProbeSelector
+	Args           []v1alpha1.KProbeArg
+	Data           []v1alpha1.KProbeArg
+	ActionArgTable *idtable.Table
+	ListReader     ValueReader
+	Maps           *KernelSelectorMaps
+}
+
 // The byte array storing the selector configuration has the following format
 // array := [N][S1_off][S2_off]...[SN_off][S1][S2][...][SN]
 //
@@ -1463,7 +1472,12 @@ func ParseMatchBinaries(k *KernelSelectorState, binarys []v1alpha1.BinarySelecto
 //
 // For some examples, see kernel_test.go
 func InitKernelSelectors(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KProbeArg, data []v1alpha1.KProbeArg, actionArgTable *idtable.Table) ([4096]byte, error) {
-	state, err := InitKernelSelectorState(selectors, args, data, actionArgTable, nil, nil)
+	state, err := InitKernelSelectorState(&KernelSelectorArgs{
+		Selectors:      selectors,
+		Args:           args,
+		Data:           data,
+		ActionArgTable: actionArgTable,
+	})
 	if err != nil {
 		return [4096]byte{}, err
 	}
@@ -1498,8 +1512,7 @@ func createKernelSelectorState(selectors []v1alpha1.KProbeSelector, listReader V
 	return state, nil
 }
 
-func InitKernelSelectorState(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KProbeArg, data []v1alpha1.KProbeArg,
-	actionArgTable *idtable.Table, listReader ValueReader, maps *KernelSelectorMaps) (*KernelSelectorState, error) {
+func InitKernelSelectorState(args *KernelSelectorArgs) (*KernelSelectorState, error) {
 
 	parse := func(k *KernelSelectorState, selector *v1alpha1.KProbeSelector, selIdx int) error {
 		if err := ParseMatchPids(k, selector.MatchPIDs); err != nil {
@@ -1520,16 +1533,16 @@ func InitKernelSelectorState(selectors []v1alpha1.KProbeSelector, args []v1alpha
 		if err := ParseMatchBinaries(k, selector.MatchBinaries, selIdx); err != nil {
 			return fmt.Errorf("parseMatchBinaries error: %w", err)
 		}
-		if err := ParseMatchArgs(k, selector.MatchArgs, selector.MatchData, args, data); err != nil {
+		if err := ParseMatchArgs(k, selector.MatchArgs, selector.MatchData, args.Args, args.Data); err != nil {
 			return fmt.Errorf("parseMatchArgs  error: %w", err)
 		}
-		if err := ParseMatchActions(k, selector.MatchActions, actionArgTable); err != nil {
+		if err := ParseMatchActions(k, selector.MatchActions, args.ActionArgTable); err != nil {
 			return fmt.Errorf("parseMatchActions error: %w", err)
 		}
 		return nil
 	}
 
-	return createKernelSelectorState(selectors, listReader, maps, parse)
+	return createKernelSelectorState(args.Selectors, args.ListReader, args.Maps, parse)
 }
 
 func InitKernelReturnSelectorState(selectors []v1alpha1.KProbeSelector, returnArg *v1alpha1.KProbeArg,

@@ -689,7 +689,13 @@ func (tp *genericTracepoint) InitKernelSelectors(lists []v1alpha1.ListSpec) erro
 		}
 	}
 
-	selectors, err := selectors.InitKernelSelectorState(selSelectors, selArgs, []v1alpha1.KProbeArg{}, &tp.actionArgs, &listReader{lists}, nil)
+	selectors, err := selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
+		Selectors:      selSelectors,
+		Args:           selArgs,
+		Data:           []v1alpha1.KProbeArg{},
+		ActionArgTable: &tp.actionArgs,
+		ListReader:     &listReader{lists},
+	})
 	if err != nil {
 		return err
 	}
