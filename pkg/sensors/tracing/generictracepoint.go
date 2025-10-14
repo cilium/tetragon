@@ -10,6 +10,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"path"
 
 	"github.com/cilium/ebpf"
@@ -878,6 +879,62 @@ func handleMsgGenericTracepoint(
 			if err != nil {
 				logger.GetLogger().Warn(fmt.Sprintf("Size type error sizeof %d", m.Common.Size), logfields.Error, err)
 			}
+			unix.Args = append(unix.Args, val)
+
+		case gt.GenericU16Type:
+			var val uint16
+			err := binary.Read(r, binary.LittleEndian, &val)
+			if err != nil {
+				logger.GetLogger().Warn(fmt.Sprintf("Size type error sizeof %d", m.Common.Size), logfields.Error, err)
+			}
+			// 4 bytes were sent for uint16 to achieve alignment. See read_arg()
+			_, err = io.CopyN(io.Discard, r, 2)
+			if err != nil {
+				logger.GetLogger().Warn("Size type error for alignment: 2", logfields.Error, err)
+			}
+
+			unix.Args = append(unix.Args, val)
+
+		case gt.GenericS16Type:
+			var val int16
+			err := binary.Read(r, binary.LittleEndian, &val)
+			if err != nil {
+				logger.GetLogger().Warn(fmt.Sprintf("Size type error sizeof %d", m.Common.Size), logfields.Error, err)
+			}
+			// 4 bytes were sent for int16 to achieve alignment. See read_arg()
+			_, err = io.CopyN(io.Discard, r, 2)
+			if err != nil {
+				logger.GetLogger().Warn("Size type error for alignment: 2", logfields.Error, err)
+			}
+
+			unix.Args = append(unix.Args, val)
+
+		case gt.GenericU8Type:
+			var val uint8
+			err := binary.Read(r, binary.LittleEndian, &val)
+			if err != nil {
+				logger.GetLogger().Warn(fmt.Sprintf("Size type error sizeof %d", m.Common.Size), logfields.Error, err)
+			}
+			// 4 bytes were sent for uint8 to achieve alignment. See read_arg()
+			_, err = io.CopyN(io.Discard, r, 3)
+			if err != nil {
+				logger.GetLogger().Warn("Size type error for alignment: 3", logfields.Error, err)
+			}
+
+			unix.Args = append(unix.Args, val)
+
+		case gt.GenericS8Type:
+			var val int8
+			err := binary.Read(r, binary.LittleEndian, &val)
+			if err != nil {
+				logger.GetLogger().Warn(fmt.Sprintf("Size type error sizeof %d", m.Common.Size), logfields.Error, err)
+			}
+			// 4 bytes were sent for int8 to achieve alignment. See read_arg()
+			_, err = io.CopyN(io.Discard, r, 3)
+			if err != nil {
+				logger.GetLogger().Warn("Size type error for alignment: 3", logfields.Error, err)
+			}
+
 			unix.Args = append(unix.Args, val)
 
 		case gt.GenericSizeType:
