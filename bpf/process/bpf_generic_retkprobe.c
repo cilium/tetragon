@@ -48,7 +48,7 @@ struct {
 __attribute__((section((MAIN)), used)) int
 BPF_KRETPROBE(generic_retkprobe_event, unsigned long ret)
 {
-	return generic_retkprobe(ctx, (struct bpf_map_def *)&retkprobe_calls, ret);
+	return generic_retprobe(ctx, (struct bpf_map_def *)&retkprobe_calls, ret);
 }
 
 __attribute__((section(COMMON), used)) int
