@@ -308,7 +308,7 @@ func TestParseMatchArgs(t *testing.T) {
 	expected = append(expected, data1Expected[:]...)
 	expected = append(expected, data2Expected[:]...)
 
-	ks := NewKernelSelectorState(nil, nil)
+	ks := NewKernelSelectorState(nil, nil, false)
 	d := &ks.data
 	if err := ParseMatchArgs(ks, argsSel, dataSel, args, data); err != nil || bytes.Equal(expected, d.e[0:d.off]) == false {
 		t.Errorf("parseMatchArgs: error %v expected:\n%v\nbytes:\n%v\n", err, expected, d.e[0:d.off])
@@ -330,7 +330,7 @@ func TestParseMatchData(t *testing.T) {
 	}
 
 	arg1 := &v1alpha1.ArgSelector{Index: 0, Operator: "Equal", Values: []string{"ex"}}
-	k := NewKernelSelectorState(nil, nil)
+	k := NewKernelSelectorState(nil, nil, false)
 	d := &k.data
 
 	expected1 := []byte{
@@ -466,7 +466,7 @@ func TestParseMatchArg(t *testing.T) {
 	}
 
 	arg1 := &v1alpha1.ArgSelector{Index: 1, Operator: "Equal", Values: []string{"foobar"}}
-	k := NewKernelSelectorState(nil, nil)
+	k := NewKernelSelectorState(nil, nil, false)
 	d := &k.data
 
 	expected1 := []byte{
@@ -598,7 +598,7 @@ func TestParseMatchArg(t *testing.T) {
 		expected3 := append(length, expected1[:]...)
 		expected3 = append(expected3, expected2[:]...)
 		arg12 := []v1alpha1.ArgSelector{*arg1, *arg2}
-		ks := NewKernelSelectorState(nil, nil)
+		ks := NewKernelSelectorState(nil, nil, false)
 		d = &ks.data
 		if err := ParseMatchArgs(ks, arg12, []v1alpha1.ArgSelector{}, sig, []v1alpha1.KProbeArg{}); err != nil || bytes.Equal(expected3, d.e[0:d.off]) == false {
 			t.Errorf("parseMatchArgs: error %v expected:\n%v\nbytes:\n%v\nparsing %v\n", err, expected3, d.e[0:d.off], arg3)
