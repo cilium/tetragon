@@ -1573,8 +1573,8 @@ func CleanupKernelSelectorState(state *KernelSelectorState) error {
 	return errs
 }
 
-func HasOverride(spec *v1alpha1.KProbeSpec) bool {
-	for _, s := range spec.Selectors {
+func HasOverride(selectors []v1alpha1.KProbeSelector) bool {
+	for _, s := range selectors {
 		for _, action := range s.MatchActions {
 			act := actionTypeTable[strings.ToLower(action.Action)]
 			if act == ActionTypeOverride {
