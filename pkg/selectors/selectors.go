@@ -125,9 +125,11 @@ type KernelSelectorState struct {
 	listReader ValueReader
 
 	maps *KernelSelectorMaps
+
+	isUprobe bool
 }
 
-func NewKernelSelectorState(listReader ValueReader, maps *KernelSelectorMaps) *KernelSelectorState {
+func NewKernelSelectorState(listReader ValueReader, maps *KernelSelectorMaps, isUprobe bool) *KernelSelectorState {
 	if maps == nil {
 		maps = &KernelSelectorMaps{}
 	}
@@ -136,6 +138,7 @@ func NewKernelSelectorState(listReader ValueReader, maps *KernelSelectorMaps) *K
 		matchBinariesPaths: make(map[int][][processapi.BINARY_PATH_MAX_LEN]byte),
 		listReader:         listReader,
 		maps:               maps,
+		isUprobe:           isUprobe,
 	}
 }
 
