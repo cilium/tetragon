@@ -453,7 +453,7 @@ func preValidateKprobe(
 		}
 	}
 
-	if selectors.HasOverride(f) {
+	if selectors.HasOverride(f.Selectors) {
 		if !bpf.HasOverrideHelper() {
 			return nil, errors.New("error override action not supported, bpf_override_return helper not available")
 		}
@@ -735,7 +735,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 
 	isSecurityFunc := strings.HasPrefix(funcName, "security_")
 
-	if selectors.HasOverride(f) {
+	if selectors.HasOverride(f.Selectors) {
 		if isSecurityFunc && in.useMulti {
 			return errFn(fmt.Errorf("error: can't override '%s' function with kprobe_multi, use --disable-kprobe-multi option",
 				funcName))
@@ -927,7 +927,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 		pendingEvents:     nil,
 		tableId:           idtable.UninitializedEntryID,
 		policyName:        in.policyName,
-		hasOverride:       selectors.HasOverride(f),
+		hasOverride:       selectors.HasOverride(f.Selectors),
 		customHandler:     in.customHandler,
 		message:           msgField,
 		tags:              tagsField,
