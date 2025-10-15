@@ -35,3 +35,4 @@ usdt-override
 usdt-resolve
 usdt-resolve.btf
 regs-override
+uretprobe
