@@ -18,6 +18,8 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 
+	bc "github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
+
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/elf"
@@ -191,6 +193,116 @@ spec:
 	if err := exec.Command(testNop).Run(); err != nil {
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
+func TestUretprobeGeneric(t *testing.T) {
+	testUretprobe := testutils.RepoRootPath("contrib/tester-progs/uretprobe")
+	uretprobeHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: uretprobe
+spec:
+  uprobes:
+  - path: "` + testUretprobe + `"
+    symbols:
+    - "return_string"
+    return: true
+    returnArg:
+      index: 0
+      type: "string"
+`
+
+	uretprobeConfigHook := []byte(uretprobeHook)
+	err := os.WriteFile(testConfigFile, uretprobeConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	upChecker := ec.NewProcessUprobeChecker("URETPROBE_GENERIC").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(testUretprobe))).
+		WithSymbol(sm.Full("return_string")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Full("ret input")),
+			))
+	checker := ec.NewUnorderedEventChecker(upChecker)
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	err = exec.Command(testUretprobe).Run()
+	require.NoError(t, err)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
+func TestUretprobeRetCopy(t *testing.T) {
+	testUretprobe := testutils.RepoRootPath("contrib/tester-progs/uretprobe")
+	uretprobeHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: uretprobe
+spec:
+  uprobes:
+  - path: "` + testUretprobe + `"
+    symbols:
+    - "fill_string"
+    args:
+    - index: 0
+      type: "char_buf"
+      returnCopy: true
+`
+
+	uretprobeConfigHook := []byte(uretprobeHook)
+	err := os.WriteFile(testConfigFile, uretprobeConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	upChecker := ec.NewProcessUprobeChecker("URETPROBE_RETCOPY").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(testUretprobe))).
+		WithSymbol(sm.Full("fill_string")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full([]byte("filled\000"))),
+			))
+	checker := ec.NewUnorderedEventChecker(upChecker)
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	err = exec.Command(testUretprobe).Run()
+	require.NoError(t, err)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)

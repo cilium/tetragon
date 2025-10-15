@@ -38,7 +38,8 @@ PROGS = sigkill-tester \
 	usdt \
 	capabilities-ioperm \
 	usdt-override \
-	usdt-resolve
+	usdt-resolve \
+	uretprobe
 
 PROGS += $(PROGS_ARCH)
 
@@ -113,6 +114,9 @@ ifeq ($(shell uname -m),x86_64)
 regs-override: regs-override.c
 	$(GCC) -Wall -fcf-protection=none $< -o $@
 endif
+
+uretprobe: uretprobe.c
+	$(GCC) -Wall $< -O2 -o $@
 
 # NB: compile the 32 bit version of enforcer-tester statically so that we don't
 # need additional libraries in the VMs
