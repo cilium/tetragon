@@ -15,6 +15,9 @@ import (
 	"strings"
 
 	"github.com/cilium/ebpf"
+	lru "github.com/hashicorp/golang-lru/v2"
+
+	"github.com/cilium/tetragon/pkg/metrics/kprobemetrics"
 
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
@@ -62,6 +65,21 @@ type genericUprobe struct {
 	retprobe          bool
 	// tags field of the Tracing Policy
 	tags []string
+
+	// for uprobes that have a retprobe, we maintain the enter events in
+	// the map, so that we can merge them when the return event is
+	// generated. The events are maintained in the map below, using
+	// the retprobe_id (thread_id) and the enter ktime as the key.
+	pendingEvents *lru.Cache[pendingEventKey, uprobePendingEvent]
+}
+
+// pendingEvent is an event waiting to be merged with another event.
+// This is needed for retprobe probes that generate two events: one at the
+// function entry, and one at the function return. We merge these events into
+// one, before returning it to the user.
+type uprobePendingEvent struct {
+	ev          *tracing.MsgGenericUprobeUnix
+	returnEvent bool
 }
 
 func (g *genericUprobe) SetID(id idtable.EntryID) {
@@ -136,6 +154,26 @@ func handleGenericUprobe(r *bytes.Reader) ([]observer.Event, error) {
 			continue
 		}
 		unix.Args = append(unix.Args, arg)
+	}
+
+	// Cache return value on merge and run return filters below before
+	// passing up to notify hooks.
+	if uprobeEntry.retprobe {
+		// if an event exist already, try to merge them. Otherwise, add
+		// the one we have in the map.
+		curr := uprobePendingEvent{ev: unix, returnEvent: returnEvent}
+		key := pendingEventKey{eventId: m.RetProbeId, ktimeEnter: ktimeEnter}
+
+		if prev, exists := uprobeEntry.pendingEvents.Get(key); exists {
+			uprobeEntry.pendingEvents.Remove(key)
+			unix = uretprobeMerge(prev, curr)
+		} else {
+			uprobeEntry.pendingEvents.Add(key, curr)
+			unix = nil
+		}
+	}
+	if unix == nil {
+		return []observer.Event{}, err
 	}
 
 	return []observer.Event{unix}, err
@@ -580,7 +618,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		config.ArgReturnCopy = int32(0)
 	}
 
-	addUprobeEntry := func(sym string, offset uint64, idx int) {
+	addUprobeEntry := func(sym string, offset uint64, idx int) error {
 		var refCtrOffset uint64
 
 		if refCtrOffsets != 0 {
@@ -608,6 +646,12 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 			argReturnPrinters: argReturnPrinters,
 			retprobe:          setRetprobe,
 			tags:              tagsField,
+			pendingEvents:     nil,
+		}
+
+		uprobeEntry.pendingEvents, err = lru.New[pendingEventKey, uprobePendingEvent](4096)
+		if err != nil {
+			return err
 		}
 
 		uprobeTable.AddEntry(uprobeEntry)
@@ -616,6 +660,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		config.FuncId = uint32(id.ID)
 
 		ids = append(ids, id)
+		return nil
 	}
 
 	if symbols != 0 {
@@ -623,11 +668,17 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 			if err := checkSymbol(sym); err != nil {
 				return nil, fmt.Errorf("failed to parse symbol: %w", err)
 			}
-			addUprobeEntry(sym, 0, idx)
+			err = addUprobeEntry(sym, 0, idx)
+			if err != nil {
+				return nil, err
+			}
 		}
 	} else if offsets != 0 {
 		for idx, off := range spec.Offsets {
-			addUprobeEntry("", off, idx)
+			err = addUprobeEntry("", off, idx)
+			if err != nil {
+				return nil, err
+			}
 		}
 	} else if addrs != 0 {
 		f, err := elf.OpenSafeELFFile(spec.Path)
@@ -641,7 +692,10 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 			if err != nil {
 				return nil, err
 			}
-			addUprobeEntry("", off, idx)
+			err = addUprobeEntry("", off, idx)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -806,4 +860,57 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 	}
 
 	return progs, maps
+}
+
+func reportUprobeMergeError(curr uprobePendingEvent, prev uprobePendingEvent) {
+	currSymbol := "UNKNOWN"
+	if curr.ev != nil {
+		currSymbol = curr.ev.Symbol
+	}
+	currType := kprobemetrics.MergeErrorTypeEnter
+	if curr.returnEvent {
+		currType = kprobemetrics.MergeErrorTypeExit
+	}
+
+	prevSymbol := "UNKNOWN"
+	if prev.ev != nil {
+		prevSymbol = prev.ev.Symbol
+	}
+	prevType := kprobemetrics.MergeErrorTypeEnter
+	if prev.returnEvent {
+		prevType = kprobemetrics.MergeErrorTypeExit
+	}
+
+	logger.GetLogger().Debug("failed to merge events",
+		"currSymbol", currSymbol,
+		"currType", currType.String(),
+		"prevSymbol", prevSymbol,
+		"prevType", prevType.String())
+}
+
+// uretprobeMerge merges the two events: the one from the entry probe with the one from the return probe
+// TODO: find a way to merge this with kretprobeMerge
+func uretprobeMerge(prev uprobePendingEvent, curr uprobePendingEvent) *tracing.MsgGenericUprobeUnix {
+	var retEv, enterEv *tracing.MsgGenericUprobeUnix
+
+	if prev.returnEvent && !curr.returnEvent {
+		retEv = prev.ev
+		enterEv = curr.ev
+	} else if !prev.returnEvent && curr.returnEvent {
+		retEv = curr.ev
+		enterEv = prev.ev
+	} else {
+		reportUprobeMergeError(curr, prev)
+		return nil
+	}
+
+	for _, retArg := range retEv.Args {
+		index := retArg.GetIndex()
+		if uint64(len(enterEv.Args)) > index {
+			enterEv.Args[index] = retArg
+		} else {
+			enterEv.Args = append(enterEv.Args, retArg)
+		}
+	}
+	return enterEv
 }

@@ -1389,7 +1389,7 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 
 		if prev, exists := gk.pendingEvents.Get(key); exists {
 			gk.pendingEvents.Remove(key)
-			unix = retprobeMerge(prev, curr)
+			unix = kretprobeMerge(prev, curr)
 		} else {
 			gk.pendingEvents.Add(key, curr)
 			kprobemetrics.MergePushedInc()
@@ -1436,8 +1436,8 @@ func reportMergeError(curr pendingEvent, prev pendingEvent) {
 		"prevType", prevType.String())
 }
 
-// retprobeMerge merges the two events: the one from the entry probe with the one from the return probe
-func retprobeMerge(prev pendingEvent, curr pendingEvent) *tracing.MsgGenericKprobeUnix {
+// kretprobeMerge merges the two events: the one from the entry probe with the one from the return probe
+func kretprobeMerge(prev pendingEvent, curr pendingEvent) *tracing.MsgGenericKprobeUnix {
 	var retEv, enterEv *tracing.MsgGenericKprobeUnix
 
 	if prev.returnEvent && !curr.returnEvent {
