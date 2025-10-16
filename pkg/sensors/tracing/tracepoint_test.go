@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"os"
 	"os/exec"
 	"strconv"
@@ -796,6 +797,70 @@ func TestStringTracepoint(t *testing.T) {
 
 	perfring.RunTest(t, ctx, ops, eventFn)
 	require.Equal(t, 1, countPizza, "expected events with 'pizzaisthebest'")
+}
+
+func TestUInt16Tracepoint(t *testing.T) {
+	if !config.EnableLargeProgs() {
+		t.Skip("skipping test due to lack of large prog support which is required for uint16")
+	}
+
+	testutils.CaptureLog(t, logger.GetLogger())
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	spec := &v1alpha1.TracingPolicySpec{
+		Tracepoints: []v1alpha1.TracepointSpec{{
+			Subsystem: "tcp",
+			Event:     "tcp_destroy_sock",
+			Args: []v1alpha1.KProbeArg{{
+				Index: 5,
+				Type:  "uint16",
+			}, {
+				Index: 6,
+				Type:  "uint16",
+			}, {
+				Index: 8,
+				Type:  "uint32",
+			}, {
+				Index: 9,
+				Type:  "uint32",
+			}},
+			Selectors: []v1alpha1.KProbeSelector{{
+				MatchArgs: []v1alpha1.ArgSelector{{
+					Args:     []uint32{uint32(0)},
+					Operator: "Equal",
+					Values:   []string{"7777"},
+				}},
+			}},
+		}},
+	}
+
+	loadGenericSensorTest(t, spec)
+	t0 := time.Now()
+	loadElapsed := time.Since(t0)
+	t.Logf("loading sensors took: %s\n", loadElapsed)
+
+	count := 0
+	eventFn := func(ev notify.Message) error {
+		if tpEvent, ok := ev.(*tracing.MsgGenericTracepointUnix); ok {
+			if tpEvent.Event != "tcp_destroy_sock" {
+				return fmt.Errorf("unexpected tracepoint event, %s:%s", tpEvent.Subsys, tpEvent.Event)
+			}
+			count++
+		}
+		return nil
+	}
+
+	ops := func() {
+		listener, err := net.Listen("tcp", ":7777")
+		if err != nil {
+			panic(err)
+		}
+		listener.Close()
+	}
+
+	perfring.RunTest(t, ctx, ops, eventFn)
+	require.Equal(t, 1, count, "expected single event")
 }
 
 func testListSyscallsDupsRange(t *testing.T, checker *ec.UnorderedEventChecker, configHook string) {
