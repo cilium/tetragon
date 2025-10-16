@@ -1,8 +1,8 @@
 FROM docker.io/library/ubuntu:24.04@sha256:2e863c44b718727c860746568e1d54afd13b2fa71b160f5cd9058fc436217b30
 RUN apt-get update && apt-get install -y --no-install-recommends  \
-    clang-18 libclang-common-18-dev libclang-cpp18    	          \
-    libllvm18 llvm-18-linker-tools libclang1-18                   \
-    llvm-18 llvm-18-runtime llvm-18-linker-tools make             \
+    clang-20 libclang-common-20-dev libclang-cpp20    	          \
+    libllvm20 llvm-20-linker-tools libclang1-20                   \
+    llvm-20 llvm-20-runtime llvm-20-linker-tools make             \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
-RUN ln -vsnf /usr/lib/llvm-18/bin/clang /usr/bin/clang
-RUN ln -vsnf /usr/lib/llvm-18/bin/llc /usr/bin/llc
+RUN ln -vsnf /usr/lib/llvm-20/bin/clang /usr/bin/clang
+RUN ln -vsnf /usr/lib/llvm-20/bin/llc /usr/bin/llc
