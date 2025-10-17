@@ -536,14 +536,18 @@ func HasAuditLoginuid() bool {
 	return auditLoginuid.detected
 }
 
+func HasProbeWriteUser() bool {
+	return features.HaveProgramHelper(ebpf.Kprobe, asm.FnProbeWriteUser) == nil
+}
+
 func LogFeatures() string {
 	// once we have detected all features, flush the BTF spec
 	// we cache all values so calling again a Has* function will
 	// not load the BTF again
 	defer ebtf.FlushKernelSpec()
-	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, uprobe_multi %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t, link_pin: %t, lsm: %t, missed_stats_kprobe_multi: %t, missed_stats_kprobe: %t, batch_update: %t, uprobe_refctroff: %t, audit_loginuid: %t",
+	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, uprobe_multi %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t, link_pin: %t, lsm: %t, missed_stats_kprobe_multi: %t, missed_stats_kprobe: %t, batch_update: %t, uprobe_refctroff: %t, audit_loginuid: %t probe_write_user: %t",
 		HasOverrideHelper(), HasBuildId(), HasKprobeMulti(), HasUprobeMulti(),
 		HasModifyReturn(), HasModifyReturnSyscall(), HasSignalHelper(), HasProgramLargeSize(),
 		HasLinkPin(), HasLSMPrograms(), HasMissedStatsKprobeMulti(), HasMissedStatsPerfEvent(),
-		HasBatchAPI(), HasUprobeRefCtrOffset(), HasAuditLoginuid())
+		HasBatchAPI(), HasUprobeRefCtrOffset(), HasAuditLoginuid(), HasProbeWriteUser())
 }

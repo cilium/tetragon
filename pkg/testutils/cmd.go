@@ -130,6 +130,21 @@ func (cbp *CmdBufferedPipes) ParseAndLogCmdOutput(
 	return &wg
 }
 
+func RunCmdAndLogOutput(t *testing.T, cmd *exec.Cmd) error {
+	cbp, err := NewCmdBufferedPipes(cmd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = cmd.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cbp.Close()
+	wg := cbp.ParseAndLogCmdOutput(t, nil, nil)
+	wg.Wait()
+	return cmd.Wait()
+}
+
 // MockPipedFile mocks the file being piped into stdin, similarly as what you
 // can do with `cat file | cmd`. It restores the original os.Stdin in t.Cleanup.
 // It's using a goroutine to copy the file content to the writer of the pipe.
