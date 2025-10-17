@@ -43,6 +43,7 @@ type EventHandlerError int
 // TODO: Recognize different errors returned by individual handlers
 const (
 	HandlePerfUnknownOp EventHandlerError = iota
+	HandlePerfEmptyData
 	HandlePerfHandlerError
 )
 

@@ -87,6 +87,13 @@ func (e *HandlePerfError) Unwrap() error {
 // HandlePerfData returns the events from raw bytes
 // NB: It is made public so that it can be used in testing.
 func HandlePerfData(data []byte) (byte, []Event, *HandlePerfError) {
+	if len(data) == 0 {
+		return ops.MSG_OP_UNDEF, nil, &HandlePerfError{
+			kind:   errormetrics.HandlePerfEmptyData,
+			err:    errors.New("empty perf data"),
+			opcode: ops.MSG_OP_UNDEF,
+		}
+	}
 	op := data[0]
 	r := bytes.NewReader(data)
 	// These ops handlers are registered by RegisterEventHandlerAtInit().
