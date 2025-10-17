@@ -19,6 +19,7 @@ import (
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
@@ -235,4 +236,136 @@ func Test_DisableEnablePolicy_KernelMemoryBytes(t *testing.T) {
 	require.Len(t, list.Policies, 1)
 	assert.Equal(t, tetragon.TracingPolicyState_TP_STATE_ENABLED, list.Policies[0].State)
 	assert.NotZero(t, list.Policies[0].KernelMemoryBytes)
+}
+
+// Test_preValidateKprobes checks if preValidateKprobes() correctly validates v1alpha1.KProbeSpec.
+// Both preValidateKprobes() and this test relies on "github.com/cilium/tetragon/pkg/bpf".HasXXX to check
+// if a kernel feature is available,
+func Test_preValidateKprobes(t *testing.T) {
+	tests := []struct {
+		name    string
+		kprobes []v1alpha1.KProbeSpec
+		wantErr bool
+	}{
+		{
+			name: "verify kprobe_override",
+			kprobes: []v1alpha1.KProbeSpec{
+				{
+					Call:    "sys_execve",
+					Return:  false,
+					Syscall: true,
+					Message: "",
+					Args: []v1alpha1.KProbeArg{
+						{
+							Index: 0,
+							Type:  "string",
+						},
+					},
+					Selectors: []v1alpha1.KProbeSelector{
+						{
+							MatchActions: []v1alpha1.ActionSelector{
+								{
+									Action:   "Override",
+									ArgError: -1,
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: !bpf.HasOverrideHelper(),
+		},
+		{
+			name: "verify fmod_ret",
+			kprobes: []v1alpha1.KProbeSpec{
+				{
+					Call:    "security_bprm_creds_for_exec",
+					Return:  false,
+					Syscall: false,
+					Message: "",
+					Args: []v1alpha1.KProbeArg{
+						{
+							Index: 0,
+							Type:  "linux_binprm",
+						},
+					},
+					Selectors: []v1alpha1.KProbeSelector{
+						{
+							MatchActions: []v1alpha1.ActionSelector{
+								{
+									Action:   "Override",
+									ArgError: -1,
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: !bpf.HasModifyReturn(),
+		},
+		{
+			name: "both kprobe_override fmod_ret",
+			kprobes: []v1alpha1.KProbeSpec{
+				{
+					Call:    "sys_execve",
+					Return:  false,
+					Syscall: true,
+					Message: "",
+					Args: []v1alpha1.KProbeArg{
+						{
+							Index: 0,
+							Type:  "string",
+						},
+					},
+					Selectors: []v1alpha1.KProbeSelector{
+						{
+							MatchActions: []v1alpha1.ActionSelector{
+								{
+									Action:   "Override",
+									ArgError: -1,
+								},
+							},
+						},
+					},
+				},
+				{
+					Call:    "security_bprm_creds_for_exec",
+					Return:  false,
+					Syscall: false,
+					Message: "",
+					Args: []v1alpha1.KProbeArg{
+						{
+							Index: 0,
+							Type:  "linux_binprm",
+						},
+					},
+					Selectors: []v1alpha1.KProbeSelector{
+						{
+							MatchActions: []v1alpha1.ActionSelector{
+								{
+									Action:   "Override",
+									ArgError: -1,
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: !bpf.HasModifyReturn() || !bpf.HasOverrideHelper(),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := preValidateKprobes(logger.DefaultSlogLogger, tt.kprobes, nil, nil)
+			if err != nil {
+				if !tt.wantErr {
+					t.Errorf("preValidateKprobes() failed: %v", err)
+				}
+				return
+			}
+			if tt.wantErr {
+				t.Error("preValidateKprobes() succeeded unexpectedly")
+			}
+		})
+	}
 }
