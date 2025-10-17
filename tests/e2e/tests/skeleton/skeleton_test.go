@@ -18,6 +18,8 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
 
+	"github.com/cilium/tetragon/tests/e2e/metricschecker"
+
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/tests/e2e/checker"
@@ -88,6 +90,8 @@ func TestSkeletonBasic(t *testing.T) {
 	// Create an curl event checker with a limit or 10 events or 30 seconds, whichever comes first
 	curlChecker := curlEventChecker(kversion).WithEventLimit(100).WithTimeLimit(30 * time.Second)
 
+	metricsChecker := metricschecker.NewMetricsChecker("skeletonMetricsChecker")
+
 	// Define test features here. These can be used to perform actions like:
 	// - Spawning an event checker and running checks
 	// - Modifying resources in the cluster
@@ -110,6 +114,7 @@ func TestSkeletonBasic(t *testing.T) {
 			}
 			return ctx
 		}).
+		Assess("Run Metrics Checks", metricsChecker.Greater("tetragon_events_total", 0)).
 		Assess("Uninstall policy", func(ctx context.Context, _ *testing.T, c *envconf.Config) context.Context {
 			ctx, err := helpers.UnloadCRDString(namespace, curlPod, true)(ctx, c)
 			if err != nil {
