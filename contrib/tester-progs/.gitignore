@@ -32,3 +32,5 @@ follow_children_1
 usdt
 capabilities-ioperm
 usdt-override
+usdt-resolve
+usdt-resolve.btf
