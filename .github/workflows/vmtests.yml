@@ -32,7 +32,7 @@ jobs:
     - name: Install build dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libelf-dev netcat-traditional libcap-dev gcc libc6-dev-i386
+        sudo apt-get install -y libelf-dev netcat-traditional libcap-dev gcc libc6-dev-i386 pahole llvm
         echo `which clang`
         echo `which llc`
         echo `clang --version`
