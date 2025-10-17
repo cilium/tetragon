@@ -31,7 +31,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get -y install libelf-dev netcat-traditional libcap-dev gcc
+        sudo apt-get -y install libelf-dev netcat-traditional libcap-dev gcc pahole llvm
 
         sudo sed -i '/secure_path/d' /etc/sudoers
         sudo sed -i '/env_reset/d' /etc/sudoers
