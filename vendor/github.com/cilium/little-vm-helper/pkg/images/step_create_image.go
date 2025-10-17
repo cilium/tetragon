@@ -52,11 +52,15 @@ var (
 
 type CreateImage struct {
 	*StepConf
+	// PkgRepo is from which release branch (ex: sid, buster, bookworm, stable)
+	// to use for installing packages during bootstrap
+	PkgRepo string
 }
 
-func NewCreateImage(cnf *StepConf) *CreateImage {
+func NewCreateImage(cnf *StepConf, pkgRepository string) *CreateImage {
 	return &CreateImage{
 		StepConf: cnf,
+		PkgRepo:  pkgRepository,
 	}
 }
 
@@ -89,7 +93,7 @@ func (s *CreateImage) makeRootImage(ctx context.Context) error {
 	packages = append(packages, s.imgCnf.Packages...)
 
 	cmd := exec.CommandContext(ctx, Mmdebstrap,
-		"sid",
+		s.PkgRepo,
 		"--include", strings.Join(packages, ","),
 		tarFname,
 	)

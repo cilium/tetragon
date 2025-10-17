@@ -48,6 +48,7 @@ func (f *ImageForest) doBuildImage(
 	log *logrus.Logger,
 	image string,
 	merge bool,
+	pkgRepository string,
 ) error {
 	cnf, ok := f.confs[image]
 	if !ok {
@@ -62,7 +63,7 @@ func (f *ImageForest) doBuildImage(
 
 	steps := make([]step.Step, 2, 2+len(cnf.Actions))
 
-	steps[0] = NewCreateImage(stepConf)
+	steps[0] = NewCreateImage(stepConf, pkgRepository)
 	// NB: We might need an --chdir option or similar, but for now just
 	// chdir to the the base dir.
 	baseDir, path := filepath.Split(f.imagesDir)
