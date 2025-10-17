@@ -433,6 +433,15 @@ Maximum of 16 Tags are supported.<br/>
         </td>
         <td>true</td>
       </tr><tr>
+        <td><b>btfType</b></td>
+        <td>string</td>
+        <td>
+          Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
+type.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>label</b></td>
         <td>string</td>
         <td>
@@ -530,6 +539,15 @@ This field is used only for char_buf and char_iovec types.<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
+      </tr><tr>
+        <td><b>btfType</b></td>
+        <td>string</td>
+        <td>
+          Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
+type.<br/>
+        </td>
+        <td>false</td>
       </tr><tr>
         <td><b>label</b></td>
         <td>string</td>
@@ -654,6 +672,15 @@ A return argument to include in the trace output.
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
+      </tr><tr>
+        <td><b>btfType</b></td>
+        <td>string</td>
+        <td>
+          Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
+type.<br/>
+        </td>
+        <td>false</td>
       </tr><tr>
         <td><b>label</b></td>
         <td>string</td>
@@ -1701,6 +1728,15 @@ Maximum of 16 Tags are supported.<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
+      </tr><tr>
+        <td><b>btfType</b></td>
+        <td>string</td>
+        <td>
+          Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
+type.<br/>
+        </td>
+        <td>false</td>
       </tr><tr>
         <td><b>label</b></td>
         <td>string</td>
@@ -2822,6 +2858,15 @@ Maximum of 16 Tags are supported.<br/>
         </td>
         <td>true</td>
       </tr><tr>
+        <td><b>btfType</b></td>
+        <td>string</td>
+        <td>
+          Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
+type.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>label</b></td>
         <td>string</td>
         <td>
@@ -3841,6 +3886,15 @@ Maximum of 16 Tags are supported.<br/>
         </td>
         <td>true</td>
       </tr><tr>
+        <td><b>btfType</b></td>
+        <td>string</td>
+        <td>
+          Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
+type.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>label</b></td>
         <td>string</td>
         <td>
@@ -4784,6 +4838,13 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>btfPath</b></td>
+        <td>string</td>
+        <td>
+          path for a BTF file for the traced binary<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>message</b></td>
         <td>string</td>
         <td>
@@ -4845,6 +4906,15 @@ Maximum of 16 Tags are supported.<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
+      </tr><tr>
+        <td><b>btfType</b></td>
+        <td>string</td>
+        <td>
+          Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
+type.<br/>
+        </td>
+        <td>false</td>
       </tr><tr>
         <td><b>label</b></td>
         <td>string</td>
@@ -6139,6 +6209,15 @@ Maximum of 16 Tags are supported.<br/>
         </td>
         <td>true</td>
       </tr><tr>
+        <td><b>btfType</b></td>
+        <td>string</td>
+        <td>
+          Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
+type.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>label</b></td>
         <td>string</td>
         <td>
@@ -6236,6 +6315,15 @@ This field is used only for char_buf and char_iovec types.<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
+      </tr><tr>
+        <td><b>btfType</b></td>
+        <td>string</td>
+        <td>
+          Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
+type.<br/>
+        </td>
+        <td>false</td>
       </tr><tr>
         <td><b>label</b></td>
         <td>string</td>
@@ -6360,6 +6448,15 @@ A return argument to include in the trace output.
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
+      </tr><tr>
+        <td><b>btfType</b></td>
+        <td>string</td>
+        <td>
+          Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
+type.<br/>
+        </td>
+        <td>false</td>
       </tr><tr>
         <td><b>label</b></td>
         <td>string</td>
@@ -7407,6 +7504,15 @@ Maximum of 16 Tags are supported.<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
+      </tr><tr>
+        <td><b>btfType</b></td>
+        <td>string</td>
+        <td>
+          Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
+type.<br/>
+        </td>
+        <td>false</td>
       </tr><tr>
         <td><b>label</b></td>
         <td>string</td>
@@ -8528,6 +8634,15 @@ Maximum of 16 Tags are supported.<br/>
         </td>
         <td>true</td>
       </tr><tr>
+        <td><b>btfType</b></td>
+        <td>string</td>
+        <td>
+          Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
+type.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>label</b></td>
         <td>string</td>
         <td>
@@ -9547,6 +9662,15 @@ Maximum of 16 Tags are supported.<br/>
         </td>
         <td>true</td>
       </tr><tr>
+        <td><b>btfType</b></td>
+        <td>string</td>
+        <td>
+          Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
+type.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>label</b></td>
         <td>string</td>
         <td>
@@ -10490,6 +10614,13 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>btfPath</b></td>
+        <td>string</td>
+        <td>
+          path for a BTF file for the traced binary<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>message</b></td>
         <td>string</td>
         <td>
@@ -10551,6 +10682,15 @@ Maximum of 16 Tags are supported.<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
+      </tr><tr>
+        <td><b>btfType</b></td>
+        <td>string</td>
+        <td>
+          Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
+type.<br/>
+        </td>
+        <td>false</td>
       </tr><tr>
         <td><b>label</b></td>
         <td>string</td>
