@@ -454,8 +454,8 @@ func preValidateKprobe(
 	}
 
 	if selectors.HasOverride(f) {
-		if !bpf.HasOverrideHelper() {
-			return nil, errors.New("error override action not supported, bpf_override_return helper not available")
+		if !bpf.HasOverrideHelper() && !bpf.HasModifyReturn() {
+			return nil, errors.New("error override action not supported, bpf_override_return helper and fmodret are not available")
 		}
 		if !f.Syscall {
 			for idx := range calls {
