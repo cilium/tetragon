@@ -22,6 +22,10 @@ type BuildConf struct {
 	ForceRebuild bool
 	// if MergeSteps is set, image build steps will be merged when possible (better performance at the cost making operations more complicated)
 	MergeSteps bool
+
+	// PkgRepo is from which release branch (ex: sid, buster, bookworm, stable)
+	// to use for installing packages during bootstrap
+	PkgRepo string
 }
 
 // BuildImageResult describes the result of building a single image
@@ -149,7 +153,7 @@ func (b *buildState) doBuildImage(image string) BuildImageResult {
 	}
 
 	buildImage := func(image string) error {
-		return b.f.doBuildImage(context.Background(), b.bldConf.Log, image, b.bldConf.MergeSteps)
+		return b.f.doBuildImage(context.Background(), b.bldConf.Log, image, b.bldConf.MergeSteps, b.bldConf.PkgRepo)
 	}
 	if b.bldConf.DryRun {
 		buildImage = b.f.doBuildImageDryRun
