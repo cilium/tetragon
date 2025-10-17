@@ -287,6 +287,10 @@ func TestUsdtSet(t *testing.T) {
 		t.Skip("Need 5.3 or newer kernel for usdt and uprobe ref_ctr_off support for this test.")
 	}
 
+	if !bpf.HasProbeWriteUserHelper() {
+		t.Skip("need bpf_probe_write_user() for this test")
+	}
+
 	usdt := testutils.RepoRootPath("contrib/tester-progs/usdt-override")
 	usdtHook := `
 apiVersion: cilium.io/v1alpha1
@@ -350,6 +354,96 @@ spec:
 	cmd := exec.Command(usdt, "321", "123")
 	require.Error(t, cmd.Run())
 	require.Equal(t, 240, cmd.ProcessState.ExitCode())
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
+func TestUsdtResolve(t *testing.T) {
+	if !config.EnableLargeProgs() || !bpf.HasUprobeRefCtrOffset() {
+		t.Skip("Need 5.3 or newer kernel for usdt and uprobe ref_ctr_off support for this test.")
+	}
+
+	if !bpf.HasProbeWriteUserHelper() {
+		t.Skip("need bpf_probe_write_user() for this test")
+	}
+
+	usdt := testutils.RepoRootPath("contrib/tester-progs/usdt-resolve")
+	usdtBtf := testutils.RepoRootPath("contrib/tester-progs/usdt-resolve.btf")
+
+	usdtHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "usdts"
+spec:
+  usdts:
+  - path: "` + usdt + `"
+    btfPath: "` + usdtBtf + `"
+    provider: "tetragon"
+    name: "test"
+    args:
+    - index: 0
+      type: "int32"
+    - index: 1
+      type: "uint64"
+      btfType: "mystruct"
+      resolve: "b"
+    selectors:
+    - matchArgs:
+      - index: 1
+        operator: "Equal"
+        values:
+        - "10"
+      matchActions:
+      - action: Set
+        argIndex: 0
+        argValue: 120
+`
+
+	usdtConfigHook := []byte(usdtHook)
+	err := os.WriteFile(testConfigFile, usdtConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	checker := ec.NewUnorderedEventChecker(
+		ec.NewProcessUsdtChecker("usdt-resolve").
+			WithProcess(ec.NewProcessChecker().
+				WithBinary(sm.Full(usdt))).
+			WithProvider(sm.Full("tetragon")).
+			WithName(sm.Full("test")).
+			WithArgs(ec.NewKprobeArgumentListMatcher().
+				WithOperator(lc.Ordered).
+				WithValues(
+					ec.NewKprobeArgumentChecker().WithIntArg(0),
+					ec.NewKprobeArgumentChecker().WithSizeArg(10),
+				)).
+			WithAction(tetragon.KprobeAction_KPROBE_ACTION_SET))
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	// if the argument is 10, the program should fail
+	cmd := exec.Command(usdt, "10")
+	cmdErr := testutils.RunCmdAndLogOutput(t, cmd)
+	require.Error(t, cmdErr)
+	require.Equal(t, 120, cmd.ProcessState.ExitCode())
+
+	// if hte argument is not 10, then the program should succeed
+	cmd = exec.Command(usdt, "20")
+	cmdErr = testutils.RunCmdAndLogOutput(t, cmd)
+	require.NoError(t, cmdErr)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)

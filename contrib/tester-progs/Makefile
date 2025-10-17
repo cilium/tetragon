@@ -33,7 +33,8 @@ PROGS = sigkill-tester \
 	follow_children_1 \
 	usdt \
 	capabilities-ioperm \
-	usdt-override
+	usdt-override \
+	usdt-resolve
 
 
 all: $(PROGS)
@@ -95,6 +96,13 @@ capabilities-ioperm: capabilities-ioperm.c
 usdt-override: usdt-override.c
 	$(GCC) -Wall $< -O2 -o $@
 	strip $@
+
+usdt-resolve: usdt-resolve.c
+	$(GCC) -ggdb3 -O2 -Wall $< -o $@
+	pahole -J $@
+	llvm-objcopy --dump-section .BTF=$@.btf.tmp $@
+	llvm-objcopy -I binary -O elf64-x86-64 --rename-section .data=.BTF $@.btf.tmp $@.btf
+	rm $@.btf.tmp
 
 # NB: compile the 32 bit version of enforcer-tester statically so that we don't
 # need additional libraries in the VMs
