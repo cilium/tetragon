@@ -1095,7 +1095,15 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 		WriteSelectorUint32(&k.data, action.ArgFd)
 		WriteSelectorUint32(&k.data, action.ArgName)
 	case ActionTypeOverride:
-		WriteSelectorInt32(&k.data, action.ArgError)
+		if k.isUprobe {
+			id, err := parseOverrideRegs(k, action.ArgRegs, uint64(action.ArgError))
+			if err != nil {
+				return err
+			}
+			WriteSelectorUint32(&k.data, id)
+		} else {
+			WriteSelectorInt32(&k.data, action.ArgError)
+		}
 	case ActionTypeGetUrl, ActionTypeDnsLookup:
 		actionArg := ActionArgEntry{
 			tableId: idtable.UninitializedEntryID,
@@ -1427,6 +1435,16 @@ func ParseMatchBinaries(k *KernelSelectorState, binarys []v1alpha1.BinarySelecto
 	return nil
 }
 
+type KernelSelectorArgs struct {
+	Selectors      []v1alpha1.KProbeSelector
+	Args           []v1alpha1.KProbeArg
+	Data           []v1alpha1.KProbeArg
+	ActionArgTable *idtable.Table
+	ListReader     ValueReader
+	Maps           *KernelSelectorMaps
+	IsUprobe       bool
+}
+
 // The byte array storing the selector configuration has the following format
 // array := [N][S1_off][S2_off]...[SN_off][S1][S2][...][SN]
 //
@@ -1463,7 +1481,12 @@ func ParseMatchBinaries(k *KernelSelectorState, binarys []v1alpha1.BinarySelecto
 //
 // For some examples, see kernel_test.go
 func InitKernelSelectors(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KProbeArg, data []v1alpha1.KProbeArg, actionArgTable *idtable.Table) ([4096]byte, error) {
-	state, err := InitKernelSelectorState(selectors, args, data, actionArgTable, nil, nil)
+	state, err := InitKernelSelectorState(&KernelSelectorArgs{
+		Selectors:      selectors,
+		Args:           args,
+		Data:           data,
+		ActionArgTable: actionArgTable,
+	})
 	if err != nil {
 		return [4096]byte{}, err
 	}
@@ -1478,9 +1501,9 @@ func InitKernelReturnSelectors(selectors []v1alpha1.KProbeSelector, returnArg *v
 	return state.data.e, nil
 }
 
-func createKernelSelectorState(selectors []v1alpha1.KProbeSelector, listReader ValueReader, maps *KernelSelectorMaps,
+func createKernelSelectorState(selectors []v1alpha1.KProbeSelector, listReader ValueReader, maps *KernelSelectorMaps, isUprobe bool,
 	parseSelector func(k *KernelSelectorState, selectors *v1alpha1.KProbeSelector, selIdx int) error) (*KernelSelectorState, error) {
-	state := NewKernelSelectorState(listReader, maps)
+	state := NewKernelSelectorState(listReader, maps, isUprobe)
 
 	WriteSelectorUint32(&state.data, uint32(len(selectors)))
 	soff := make([]uint32, len(selectors))
@@ -1498,38 +1521,37 @@ func createKernelSelectorState(selectors []v1alpha1.KProbeSelector, listReader V
 	return state, nil
 }
 
-func InitKernelSelectorState(selectors []v1alpha1.KProbeSelector, args []v1alpha1.KProbeArg, data []v1alpha1.KProbeArg,
-	actionArgTable *idtable.Table, listReader ValueReader, maps *KernelSelectorMaps) (*KernelSelectorState, error) {
+func InitKernelSelectorState(args *KernelSelectorArgs) (*KernelSelectorState, error) {
 
-	parse := func(k *KernelSelectorState, selectors *v1alpha1.KProbeSelector, selIdx int) error {
-		if err := ParseMatchPids(k, selectors.MatchPIDs); err != nil {
+	parse := func(k *KernelSelectorState, selector *v1alpha1.KProbeSelector, selIdx int) error {
+		if err := ParseMatchPids(k, selector.MatchPIDs); err != nil {
 			return fmt.Errorf("parseMatchPids error: %w", err)
 		}
-		if err := ParseMatchNamespaces(k, selectors.MatchNamespaces); err != nil {
+		if err := ParseMatchNamespaces(k, selector.MatchNamespaces); err != nil {
 			return fmt.Errorf("parseMatchNamespaces error: %w", err)
 		}
-		if err := ParseMatchCapabilities(k, selectors.MatchCapabilities); err != nil {
+		if err := ParseMatchCapabilities(k, selector.MatchCapabilities); err != nil {
 			return fmt.Errorf("parseMatchCapabilities error: %w", err)
 		}
-		if err := ParseMatchNamespaceChanges(k, selectors.MatchNamespaceChanges); err != nil {
+		if err := ParseMatchNamespaceChanges(k, selector.MatchNamespaceChanges); err != nil {
 			return fmt.Errorf("parseMatchNamespaceChanges error: %w", err)
 		}
-		if err := ParseMatchCapabilityChanges(k, selectors.MatchCapabilityChanges); err != nil {
+		if err := ParseMatchCapabilityChanges(k, selector.MatchCapabilityChanges); err != nil {
 			return fmt.Errorf("parseMatchCapabilityChanges error: %w", err)
 		}
-		if err := ParseMatchBinaries(k, selectors.MatchBinaries, selIdx); err != nil {
+		if err := ParseMatchBinaries(k, selector.MatchBinaries, selIdx); err != nil {
 			return fmt.Errorf("parseMatchBinaries error: %w", err)
 		}
-		if err := ParseMatchArgs(k, selectors.MatchArgs, selectors.MatchData, args, data); err != nil {
+		if err := ParseMatchArgs(k, selector.MatchArgs, selector.MatchData, args.Args, args.Data); err != nil {
 			return fmt.Errorf("parseMatchArgs  error: %w", err)
 		}
-		if err := ParseMatchActions(k, selectors.MatchActions, actionArgTable); err != nil {
+		if err := ParseMatchActions(k, selector.MatchActions, args.ActionArgTable); err != nil {
 			return fmt.Errorf("parseMatchActions error: %w", err)
 		}
 		return nil
 	}
 
-	return createKernelSelectorState(selectors, listReader, maps, parse)
+	return createKernelSelectorState(args.Selectors, args.ListReader, args.Maps, args.IsUprobe, parse)
 }
 
 func InitKernelReturnSelectorState(selectors []v1alpha1.KProbeSelector, returnArg *v1alpha1.KProbeArg,
@@ -1545,7 +1567,7 @@ func InitKernelReturnSelectorState(selectors []v1alpha1.KProbeSelector, returnAr
 		return nil
 	}
 
-	return createKernelSelectorState(selectors, listReader, maps, parse)
+	return createKernelSelectorState(selectors, listReader, maps, false, parse)
 }
 
 func CleanupKernelSelectorState(state *KernelSelectorState) error {
@@ -1560,8 +1582,8 @@ func CleanupKernelSelectorState(state *KernelSelectorState) error {
 	return errs
 }
 
-func HasOverride(spec *v1alpha1.KProbeSpec) bool {
-	for _, s := range spec.Selectors {
+func HasOverride(selectors []v1alpha1.KProbeSelector) bool {
+	for _, s := range selectors {
 		for _, action := range s.MatchActions {
 			act := actionTypeTable[strings.ToLower(action.Action)]
 			if act == ActionTypeOverride {

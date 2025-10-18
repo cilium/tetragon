@@ -863,6 +863,7 @@ func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
 		Tags:         event.Tags,
 		Offset:       event.Offset,
 		RefCtrOffset: event.RefCtrOffset,
+		Action:       kprobeAction(event.Msg.ActionId),
 	}
 
 	if tetragonProcess.Pid == nil {

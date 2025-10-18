@@ -453,7 +453,7 @@ func preValidateKprobe(
 		}
 	}
 
-	if selectors.HasOverride(f) {
+	if selectors.HasOverride(f.Selectors) {
 		if !bpf.HasOverrideHelper() {
 			return nil, errors.New("error override action not supported, bpf_override_return helper not available")
 		}
@@ -735,7 +735,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 
 	isSecurityFunc := strings.HasPrefix(funcName, "security_")
 
-	if selectors.HasOverride(f) {
+	if selectors.HasOverride(f.Selectors) {
 		if isSecurityFunc && in.useMulti {
 			return errFn(fmt.Errorf("error: can't override '%s' function with kprobe_multi, use --disable-kprobe-multi option",
 				funcName))
@@ -927,7 +927,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 		pendingEvents:     nil,
 		tableId:           idtable.UninitializedEntryID,
 		policyName:        in.policyName,
-		hasOverride:       selectors.HasOverride(f),
+		hasOverride:       selectors.HasOverride(f.Selectors),
 		customHandler:     in.customHandler,
 		message:           msgField,
 		tags:              tagsField,
@@ -935,7 +935,13 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 	}
 
 	// Parse Filters into kernel filter logic
-	kprobeEntry.loadArgs.selectors.entry, err = selectors.InitKernelSelectorState(f.Selectors, f.Args, f.Data, &kprobeEntry.actionArgs, nil, in.selMaps)
+	kprobeEntry.loadArgs.selectors.entry, err = selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
+		Selectors:      f.Selectors,
+		Args:           f.Args,
+		Data:           f.Data,
+		ActionArgTable: &kprobeEntry.actionArgs,
+		Maps:           in.selMaps,
+	})
 	if err != nil {
 		return errFn(err)
 	}
