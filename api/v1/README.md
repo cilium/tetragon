@@ -1192,6 +1192,7 @@ loader sensor event triggered for loaded binary/library
 | ancestors | [Process](#tetragon-Process) | repeated | Ancestors of the process beyond the immediate parent. |
 | offset | [uint64](#uint64) |  | uprobe offset (mutualy exclusive with symbol) |
 | ref_ctr_offset | [uint64](#uint64) |  | uprobe ref_ctr_offset |
+| action | [KprobeAction](#tetragon-KprobeAction) |  | Action performed when the uprobe hook matched. |
 
 
 
