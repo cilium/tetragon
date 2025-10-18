@@ -15,6 +15,14 @@ for up to date information. Not all Tetragon features work with older kernel
 versions. BPF evolves rapidly and we recommend you use the most recent stable
 kernel possible to get the most out of Tetragon's features.
 
+{{< caution >}}
+For arm64 kernels 4.19 and 5.4, some features, like reading exec arguments,
+might not work properly because of a
+[kernel bug](https://lore.kernel.org/stable/20230522203352.738576-1-jolsa@kernel.org/).
+The bug fix was rejected from stable kernels by maintainers. For full
+functionality on arm64, we recommend using kernel 5.10 or later.
+{{< /caution >}}
+
 Note that Tetragon needs [BTF support]({{< ref "/docs/installation/faq#tetragon-failed-to-start-complaining-about-a-missing-btf-file">}})
 which might take some work on older kernels.
 
