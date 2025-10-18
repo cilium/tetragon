@@ -720,6 +720,10 @@ this action for enforcement.
 
 ### Override action
 
+Override action is defined for kprobe and uprobe selectors.
+
+#### Override action for kprobe
+
 `Override` action allows to modify the return value of call. While `Sigkill`
 will terminate the entire process responsible for making the call, `Override`
 will run in place of the original kprobed function and return the value
@@ -769,6 +773,64 @@ Starting from kernel version `5.7` overriding `security_` hooks is also possible
 For kernel developers: if you want to override your kernel functions then
 ensure they properly follow the [Error Injectable Functions](https://docs.kernel.org/fault-injection/fault-injection.html#error-injectable-functions) guide.
 {{< /caution >}}
+
+#### Override action for uprobe
+
+{{< warning >}}
+Beware, here be dragons!!! Use with caution, it could easily crash traced application.
+{{< /warning >}}
+
+Note that `Override` action can be used only on `x86_64` architecture.
+
+Similar to kprobe, the uprobe `Override` action allows to modify the return value
+of user space call with `argError` argument, like:
+
+```yaml
+uprobes:
+- path: "test"
+  symbols:
+  - "func"
+  selectors:
+  - matchActions:
+    - action: Override
+      argError: 123
+```
+
+Note that it can be successfully used only when following conditions are met:
+- uprobe is attached to the beggining of the user space function;
+- user space function is called via `call` instruction;
+- user space function returns `int` type.
+
+It's possible to override specific registers with arbitrary value with `argRegs`
+argument, like:
+
+```yaml
+uprobes:
+- path: "test"
+  symbols:
+  - "func"
+  selectors:
+  - matchActions:
+    - action: Override
+      argRegs:
+      - "rax=11"
+      - "rbp=(%rsp)"
+      - "rip=8(%rsp)"
+      - "rsp=8%rsp"
+```
+
+The `argRegs` argument is an array of strings where each string start with destination
+register name followed by `=` and an assignment expression, which can be one of the
+following types:
+
+- constant `rax=11`
+- register `rbp=(%rsp)`
+- register plus offset `rip=8(%rsp)`
+- dereference of register plus offset `rsp=8%rsp`
+
+{{< note >}}
+This interface is likely to be changed in the future.
+{{< /note >}}
 
 ### FollowFD action
 
