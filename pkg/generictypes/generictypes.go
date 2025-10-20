@@ -69,6 +69,7 @@ const (
 
 	GenericBpfProgType = 43
 
+	GenericUnsetType   = 0
 	GenericNopType     = -1
 	GenericInvalidType = -2
 )
