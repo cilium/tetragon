@@ -47,14 +47,19 @@ var (
 	uprobeTable idtable.Table
 )
 
+type uprobeLoadArgs struct {
+	selectors kprobeSelectors
+	retprobe  bool
+	config    *api.EventConfig
+}
+
 type genericUprobe struct {
+	loadArgs     uprobeLoadArgs
 	tableId      idtable.EntryID
-	config       *api.EventConfig
 	path         string
 	symbol       string
 	address      uint64
 	refCtrOffset uint64
-	selectors    kprobeSelectors
 	// policyName is the name of the policy that this uprobe belongs to
 	policyName string
 	// message field of the Tracing Policy
@@ -62,7 +67,6 @@ type genericUprobe struct {
 	// argument data printers
 	argPrinters       []argPrinter
 	argReturnPrinters []argPrinter
-	retprobe          bool
 	// tags field of the Tracing Policy
 	tags []string
 
@@ -158,7 +162,7 @@ func handleGenericUprobe(r *bytes.Reader) ([]observer.Event, error) {
 
 	// Cache return value on merge and run return filters below before
 	// passing up to notify hooks.
-	if uprobeEntry.retprobe {
+	if uprobeEntry.loadArgs.retprobe {
 		// if an event exist already, try to merge them. Otherwise, add
 		// the one we have in the map.
 		curr := uprobePendingEvent{ev: unix, returnEvent: returnEvent}
@@ -184,7 +188,7 @@ func loadSingleUprobeSensor(uprobeEntry *genericUprobe, args sensors.LoadProbeAr
 
 	// config_map data
 	var configData bytes.Buffer
-	binary.Write(&configData, binary.LittleEndian, uprobeEntry.config)
+	binary.Write(&configData, binary.LittleEndian, uprobeEntry.loadArgs.config)
 
 	mapLoad := []*program.MapLoad{
 		{
@@ -198,9 +202,9 @@ func loadSingleUprobeSensor(uprobeEntry *genericUprobe, args sensors.LoadProbeAr
 	// filter_map data
 	var selector *selectors.KernelSelectorState
 	if load.RetProbe {
-		selector = uprobeEntry.selectors.retrn
+		selector = uprobeEntry.loadArgs.selectors.retrn
 	} else {
-		selector = uprobeEntry.selectors.entry
+		selector = uprobeEntry.loadArgs.selectors.entry
 	}
 	if selector != nil {
 		mapLoad = append(mapLoad, &program.MapLoad{
@@ -286,7 +290,7 @@ func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) er
 
 		// config_map data
 		var configData bytes.Buffer
-		binary.Write(&configData, binary.LittleEndian, uprobeEntry.config)
+		binary.Write(&configData, binary.LittleEndian, uprobeEntry.loadArgs.config)
 
 		mapLoad := []*program.MapLoad{
 			{
@@ -300,9 +304,9 @@ func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) er
 		// filter_map data
 		var selector *selectors.KernelSelectorState
 		if load.RetProbe {
-			selector = uprobeEntry.selectors.retrn
+			selector = uprobeEntry.loadArgs.selectors.retrn
 		} else {
-			selector = uprobeEntry.selectors.entry
+			selector = uprobeEntry.loadArgs.selectors.entry
 		}
 		if selector != nil {
 			mapLoad = append(mapLoad, &program.MapLoad{
@@ -456,7 +460,7 @@ func createGenericUprobeSensor(
 					continue
 				}
 
-				if err = selectors.CleanupKernelSelectorState(uprobeEntry.selectors.entry); err != nil {
+				if err = selectors.CleanupKernelSelectorState(uprobeEntry.loadArgs.selectors.entry); err != nil {
 					errs = errors.Join(errs, err)
 				}
 
@@ -630,21 +634,23 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		config.ArgIndex = argIdx
 
 		uprobeEntry := &genericUprobe{
-			tableId:      idtable.UninitializedEntryID,
-			config:       config,
-			path:         spec.Path,
-			symbol:       sym,
-			address:      offset,
-			refCtrOffset: refCtrOffset,
-			selectors: kprobeSelectors{
-				entry: uprobeSelectorState,
-				retrn: uprobeRetSelectorState,
+			loadArgs: uprobeLoadArgs{
+				retprobe: setRetprobe,
+				config:   config,
+				selectors: kprobeSelectors{
+					entry: uprobeSelectorState,
+					retrn: uprobeRetSelectorState,
+				},
 			},
+			tableId:           idtable.UninitializedEntryID,
+			path:              spec.Path,
+			symbol:            sym,
+			address:           offset,
+			refCtrOffset:      refCtrOffset,
 			policyName:        in.policyName,
 			message:           msgField,
 			argPrinters:       argPrinters,
 			argReturnPrinters: argReturnPrinters,
-			retprobe:          setRetprobe,
 			tags:              tagsField,
 			pendingEvents:     nil,
 		}
@@ -716,7 +722,7 @@ func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID, poli
 		if err != nil {
 			return nil, nil, err
 		}
-		if gu.retprobe {
+		if gu.loadArgs.retprobe {
 			multiRetIDs = append(multiRetIDs, id)
 		}
 	}
@@ -833,7 +839,7 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 		maps = append(maps, regsMap, sleepableOffloadMap)
 	}
 
-	if uprobeEntry.retprobe {
+	if uprobeEntry.loadArgs.retprobe {
 		pinRetProg := fmt.Sprintf("%d-%s_return", uprobeEntry.tableId.ID, uprobeEntry.symbol)
 		loadret := program.Builder(
 			path.Join(option.Config.HubbleLib, loadProgRetName),
