@@ -2049,7 +2049,7 @@ struct socket_owner {
 // socktrack_map maintains a mapping of sock to pid_tgid
 struct {
 	__uint(type, BPF_MAP_TYPE_LRU_HASH);
-	__uint(max_entries, 32000);
+	__uint(max_entries, 1); // will be resized by agent when needed
 	__type(key, __u64);
 	__type(value, struct socket_owner);
 } socktrack_map SEC(".maps");

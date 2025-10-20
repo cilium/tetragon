@@ -1673,6 +1673,33 @@ func HasStackTrace(selectors []v1alpha1.KProbeSelector) bool {
 	return false
 }
 
+func HasSockTrack(spec *v1alpha1.KProbeSpec) bool {
+	// Check ReturnArgAction
+	if spec.ReturnArgAction != "" {
+		if a := ActionTypeFromString(spec.ReturnArgAction); a == ActionTypeTrackSock ||
+			a == ActionTypeUntrackSock {
+			return true
+		}
+	}
+
+	// Check selectors MatchActions and MatchReturnActions
+	for _, selector := range spec.Selectors {
+		for _, matchAction := range selector.MatchActions {
+			if a := ActionTypeFromString(matchAction.Action); a == ActionTypeTrackSock ||
+				a == ActionTypeUntrackSock {
+				return true
+			}
+		}
+		for _, matchReturnAction := range selector.MatchReturnActions {
+			if a := ActionTypeFromString(matchReturnAction.Action); a == ActionTypeTrackSock ||
+				a == ActionTypeUntrackSock {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // parseCapabilitiesMask create a capabilities mask
 func parseCapabilitiesMask(s string) (uint64, error) {
 	mask, err := strconv.ParseUint(s, 0, 64)

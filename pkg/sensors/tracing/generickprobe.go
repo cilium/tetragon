@@ -319,6 +319,9 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 
 	if config.EnableLargeProgs() {
 		socktrack := program.MapBuilderSensor("socktrack_map", load)
+		if has.sockTrack {
+			socktrack.SetMaxEntries(socktrackMapMaxEntries)
+		}
 		maps = append(maps, socktrack)
 	}
 
@@ -382,6 +385,9 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 		maps = append(maps, fdinstall)
 
 		socktrack := program.MapBuilderSensor("socktrack_map", loadret)
+		if has.sockTrack {
+			socktrack.SetMaxEntries(socktrackMapMaxEntries)
+		}
 		maps = append(maps, socktrack)
 
 		tailCalls := program.MapBuilderSensor("retkprobe_calls", loadret)
@@ -574,6 +580,7 @@ type hasMaps struct {
 	fdInstall  bool
 	enforcer   bool
 	override   bool
+	sockTrack  bool
 }
 
 // hasMapsSetup setups the has maps for the per policy maps. The per kprobe maps
@@ -584,6 +591,7 @@ func hasMapsSetup(spec *v1alpha1.TracingPolicySpec) hasMaps {
 		has.fdInstall = has.fdInstall || selectors.HasFDInstall(kprobe.Selectors)
 		has.enforcer = has.enforcer || len(spec.Enforcers) != 0
 		has.rateLimit = has.rateLimit || selectors.HasRateLimit(kprobe.Selectors)
+		has.sockTrack = has.sockTrack || selectors.HasSockTrack(&kprobe)
 	}
 	return has
 }
@@ -1041,6 +1049,9 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 
 	if config.EnableLargeProgs() {
 		socktrack := program.MapBuilderSensor("socktrack_map", load)
+		if has.sockTrack {
+			socktrack.SetMaxEntries(socktrackMapMaxEntries)
+		}
 		maps = append(maps, socktrack)
 	}
 
@@ -1112,6 +1123,9 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 
 		if config.EnableLargeProgs() {
 			socktrack := program.MapBuilderSensor("socktrack_map", loadret)
+			if has.sockTrack {
+				socktrack.SetMaxEntries(socktrackMapMaxEntries)
+			}
 			maps = append(maps, socktrack)
 		}
 	}
