@@ -10,6 +10,7 @@ import (
 	"context"
 	"os"
 	"os/exec"
+	"strconv"
 	"sync"
 	"testing"
 
@@ -371,6 +372,33 @@ func TestUsdtResolve(t *testing.T) {
 	usdt := testutils.RepoRootPath("contrib/tester-progs/usdt-resolve")
 	usdtBtf := testutils.RepoRootPath("contrib/tester-progs/usdt-resolve.btf")
 
+	tt := []struct {
+		specTy    string
+		filterVal int
+		returnVal int
+		field     string
+		kpArgs    []*ec.KprobeArgumentChecker
+	}{
+		{"uint64", 10, 120, "v64", []*ec.KprobeArgumentChecker{
+			ec.NewKprobeArgumentChecker().WithIntArg(0),
+			ec.NewKprobeArgumentChecker().WithSizeArg(10), // uint64(10)
+			ec.NewKprobeArgumentChecker().WithUintArg(0),
+			ec.NewKprobeArgumentChecker().WithUintArg(0),
+		}},
+		{"uint32", 11, 130, "v32", []*ec.KprobeArgumentChecker{
+			ec.NewKprobeArgumentChecker().WithIntArg(0),
+			ec.NewKprobeArgumentChecker().WithSizeArg(0),
+			ec.NewKprobeArgumentChecker().WithUintArg(11), // uint32(11)
+			ec.NewKprobeArgumentChecker().WithUintArg(0),
+		}},
+		{"uint32", 12, 140, "sub.v32", []*ec.KprobeArgumentChecker{
+			ec.NewKprobeArgumentChecker().WithIntArg(0),
+			ec.NewKprobeArgumentChecker().WithSizeArg(0),
+			ec.NewKprobeArgumentChecker().WithUintArg(0),
+			ec.NewKprobeArgumentChecker().WithUintArg(12), // uint32(12)
+		}},
+	}
+
 	usdtHook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -386,19 +414,45 @@ spec:
     - index: 0
       type: "int32"
     - index: 1
-      type: "uint64"
+      type: "` + tt[0].specTy + `"
       btfType: "mystruct"
-      resolve: "b"
+      resolve: "` + tt[0].field + `"
+    - index: 1
+      type: "` + tt[1].specTy + `"
+      btfType: "mystruct"
+      resolve: "` + tt[1].field + `"
+    - index: 1
+      type: "` + tt[2].specTy + `"
+      btfType: "mystruct"
+      resolve: "` + tt[2].field + `"
     selectors:
     - matchArgs:
-      - index: 1
+      - args: [1]
         operator: "Equal"
         values:
-        - "10"
+        - "` + strconv.Itoa(tt[0].filterVal) + `"
       matchActions:
       - action: Set
         argIndex: 0
-        argValue: 120
+        argValue: ` + strconv.Itoa(tt[0].returnVal) + `
+    - matchArgs:
+      - args: [2]
+        operator: "Equal"
+        values:
+        - "` + strconv.Itoa(tt[1].filterVal) + `"
+      matchActions:
+      - action: Set
+        argIndex: 0
+        argValue: ` + strconv.Itoa(tt[1].returnVal) + `
+    - matchArgs:
+      - args: [3]
+        operator: "Equal"
+        values:
+        - "` + strconv.Itoa(tt[2].filterVal) + `"
+      matchActions:
+      - action: Set
+        argIndex: 0
+        argValue: ` + strconv.Itoa(tt[2].returnVal) + `
 `
 
 	usdtConfigHook := []byte(usdtHook)
@@ -407,19 +461,21 @@ spec:
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
 
-	checker := ec.NewUnorderedEventChecker(
-		ec.NewProcessUsdtChecker("usdt-resolve").
+	var checkers []ec.EventChecker
+	for i := range tt {
+		checkers = append(checkers, ec.NewProcessUsdtChecker("usdt-resolve").
 			WithProcess(ec.NewProcessChecker().
-				WithBinary(sm.Full(usdt))).
-			WithProvider(sm.Full("tetragon")).
+				WithBinary(sm.Full(usdt)).
+				WithArguments(
+					sm.Full(tt[i].field+" "+strconv.Itoa(tt[i].filterVal)),
+				),
+			).WithProvider(sm.Full("tetragon")).
 			WithName(sm.Full("test")).
 			WithArgs(ec.NewKprobeArgumentListMatcher().
 				WithOperator(lc.Ordered).
-				WithValues(
-					ec.NewKprobeArgumentChecker().WithIntArg(0),
-					ec.NewKprobeArgumentChecker().WithSizeArg(10),
-				)).
+				WithValues(tt[i].kpArgs...)).
 			WithAction(tetragon.KprobeAction_KPROBE_ACTION_SET))
+	}
 
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
@@ -434,17 +490,19 @@ spec:
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
-	// if the argument is 10, the program should fail
-	cmd := exec.Command(usdt, "10")
-	cmdErr := testutils.RunCmdAndLogOutput(t, cmd)
-	require.Error(t, cmdErr)
-	require.Equal(t, 120, cmd.ProcessState.ExitCode())
+	for i := range tt {
+		// if the argument is 10, the program should fail
+		cmd := exec.Command(usdt, tt[i].field, strconv.Itoa(tt[i].filterVal))
+		cmdErr := testutils.RunCmdAndLogOutput(t, cmd)
+		require.Error(t, cmdErr)
+		require.Equal(t, tt[i].returnVal, cmd.ProcessState.ExitCode())
 
-	// if hte argument is not 10, then the program should succeed
-	cmd = exec.Command(usdt, "20")
-	cmdErr = testutils.RunCmdAndLogOutput(t, cmd)
-	require.NoError(t, cmdErr)
+		// if the argument is not 10, then the program should succeed
+		cmd = exec.Command(usdt, tt[i].field, strconv.Itoa(tt[i].filterVal+1000))
+		cmdErr = testutils.RunCmdAndLogOutput(t, cmd)
+		require.NoError(t, cmdErr)
+	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(checkers...))
 	require.NoError(t, err)
 }
