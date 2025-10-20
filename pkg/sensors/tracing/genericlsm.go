@@ -287,8 +287,8 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 	}
 
 	eventConfig.BTFArg = allBTFArgs
-	eventConfig.ArgReturn = int32(0)
-	eventConfig.ArgReturnCopy = int32(0)
+	eventConfig.ArgReturn = int32(gt.GenericUnsetType)
+	eventConfig.ArgReturnCopy = int32(gt.GenericUnsetType)
 	eventConfig.Syscall = 0
 
 	// create a new entry on the table, and pass its id to BPF-side

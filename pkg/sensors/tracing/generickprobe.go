@@ -894,7 +894,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 		argP := argPrinter{index: api.ReturnArgIndex, ty: argType}
 		argReturnPrinters = append(argReturnPrinters, argP)
 	} else {
-		eventConfig.ArgReturn = int32(0)
+		eventConfig.ArgReturn = int32(gt.GenericUnsetType)
 	}
 
 	if argRetprobe != nil {
@@ -906,7 +906,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 		argP := argPrinter{index: int(argRetprobe.Index), ty: argType, label: argRetprobe.Label}
 		argReturnPrinters = append(argReturnPrinters, argP)
 	} else {
-		eventConfig.ArgReturnCopy = int32(0)
+		eventConfig.ArgReturnCopy = int32(gt.GenericUnsetType)
 	}
 
 	// Write attributes into BTF ptr for use with load
