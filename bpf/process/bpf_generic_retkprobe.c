@@ -13,8 +13,6 @@
 #include "retprobe_map.h"
 #include "types/basic.h"
 
-#define MAX_FILENAME 8096
-
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 
 int generic_retkprobe_filter_arg(struct pt_regs *ctx);
