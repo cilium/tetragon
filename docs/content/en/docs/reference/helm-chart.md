@@ -69,6 +69,8 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | serviceAccount.annotations | object | `{}` |  |
 | serviceAccount.create | bool | `true` |  |
 | serviceAccount.name | string | `""` |  |
+| serviceAnnotations | object | `{}` |  |
+| serviceLabels | object | `{}` |  |
 | serviceLabelsOverride | object | `{}` |  |
 | tetragon.argsOverride | list | `[]` | Override the arguments. For advanced users only. |
 | tetragon.btf | string | `""` |  |
