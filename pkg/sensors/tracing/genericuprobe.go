@@ -602,7 +602,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		argP := argPrinter{index: api.ReturnArgIndex, ty: argType}
 		argReturnPrinters = append(argReturnPrinters, argP)
 	} else {
-		config.ArgReturn = int32(0)
+		config.ArgReturn = int32(gt.GenericUnsetType)
 	}
 
 	setRetprobe = spec.Return
@@ -615,7 +615,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		argP := argPrinter{index: int(argRetprobe.Index), ty: argType, label: argRetprobe.Label}
 		argReturnPrinters = append(argReturnPrinters, argP)
 	} else {
-		config.ArgReturnCopy = int32(0)
+		config.ArgReturnCopy = int32(gt.GenericUnsetType)
 	}
 
 	addUprobeEntry := func(sym string, offset uint64, idx int) error {
