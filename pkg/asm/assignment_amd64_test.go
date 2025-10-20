@@ -12,6 +12,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func FuzzAssignment(f *testing.F) {
+	f.Add("rax=1")
+	f.Add("rbp=128%rax")
+	f.Add("rbp=0x20(%rsp)")
+	f.Add("rsp=-1372(%rbp)")
+	f.Fuzz(func(t *testing.T, exp string) {
+		ass, err := ParseAssignment(exp)
+		if err != nil && ass != nil {
+			t.Errorf("ass:%v, err:%v", ass, err)
+		}
+	})
+}
+
 func TestAssignment(t *testing.T) {
 	var (
 		ass *Assignment
