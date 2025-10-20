@@ -3,6 +3,7 @@
 #ifndef BPF_ERRMETRICS_H__
 #define BPF_ERRMETRICS_H__
 
+#include "err.h"
 #include "errno.h"
 #include "compiler.h"
 #include "get_fileid.h"
@@ -66,6 +67,16 @@ errmetrics_update(__u16 error, __u8 file_id, __u16 line_nr, __u64 helper_id)
 	if (_err)                                                              \
 		errmetrics_update(-_err, fileid, __LINE__, (__u64)bpf_helper); \
 	_err;                                                                  \
+})
+
+#define with_errmetrics_ptr(bpf_helper, ...) ({                                        \
+	__u16 fileid = get_fileid__(__FILE_NAME__);                                    \
+	if (!__builtin_constant_p(fileid) || !fileid)                                  \
+		compile_error(__FILE_NAME__, __COUNTER__);                             \
+	__auto_type _err = bpf_helper(__VA_ARGS__);                                    \
+	if (IS_ERR(_err))                                                              \
+		errmetrics_update(PTR_ERR(_err), fileid, __LINE__, (__u64)bpf_helper); \
+	_err;                                                                          \
 })
 
 // To be used on error paths with a >=0 error value.
