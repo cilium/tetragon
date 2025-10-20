@@ -186,6 +186,16 @@ func loadSingleUprobeSensor(uprobeEntry *genericUprobe, args sensors.LoadProbeAr
 
 	load.MapLoad = append(load.MapLoad, mapLoad...)
 
+	symbol, offset := resolveSymbol(uprobeEntry.symbol)
+	attachData := &program.UprobeAttachData{
+		Path:         uprobeEntry.path,
+		Symbol:       symbol,
+		Offset:       offset,
+		Address:      uprobeEntry.address,
+		RefCtrOffset: uprobeEntry.refCtrOffset,
+	}
+	load.SetAttachData(attachData)
+
 	if err := program.LoadUprobeProgram(args.BPFDir, args.Load, args.Maps, args.Verbose); err != nil {
 		return err
 	}
@@ -742,23 +752,12 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 
 	loadProgName, loadProgRetName := config.GenericUprobeObjs(false)
 
-	symbol, offset := resolveSymbol(uprobeEntry.symbol)
-
-	attachData := &program.UprobeAttachData{
-		Path:         uprobeEntry.path,
-		Symbol:       symbol,
-		Offset:       offset,
-		Address:      uprobeEntry.address,
-		RefCtrOffset: uprobeEntry.refCtrOffset,
-	}
-
 	load := program.Builder(
 		path.Join(option.Config.HubbleLib, loadProgName),
 		fmt.Sprintf("%s %s", uprobeEntry.path, uprobeEntry.symbol),
 		"uprobe/generic_uprobe",
 		fmt.Sprintf("%d-%s", uprobeEntry.tableId.ID, uprobeEntry.symbol),
 		"generic_uprobe").
-		SetAttachData(attachData).
 		SetLoaderData(uprobeEntry).
 		SetPolicy(uprobeEntry.policyName)
 
