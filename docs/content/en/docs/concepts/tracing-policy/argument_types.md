@@ -187,6 +187,8 @@ TBD
 The `linux_binprm` data type represents kernel `struct linux_binprm` object
 and retrieves the `struct linux_binprm::file` full path.
 
+See general path limitations in [path retrieval limits](#pathlimits).
+
 ## `data_loc`
 
 TBD
@@ -208,6 +210,8 @@ TBD
 The `file` data type represents kernel `struct file` object and retrieves
 the file's full path.
 
+See general path limitations in [path retrieval limits](#pathlimits).
+
 ## `dentry`
 
 The `dentry` data type represents kernel `struct dentry` object retrieves
@@ -217,10 +221,14 @@ This stems from the fact that with just `struct dentry` tetragon does not have
 mount information and does not have enough data to pass through main point within
 the path.
 
+See general path limitations in [path retrieval limits](#pathlimits).
+
 ## `path`
 
 The `path` data type represents kernel `struct path` object retrieves
 the related path.
+
+<a name="pathlimits"></a>
 
 {{< caution >}}
 Full path retrieval is available only on kernels `v5.3` and later.
@@ -229,4 +237,3 @@ On older kernels, there's a limit of 256 path components, which means
 we can retrieve up to the maximum path length (4096 bytes), but only
 with 256 path entries (directories and file name).
 {{< /caution >}}
-
