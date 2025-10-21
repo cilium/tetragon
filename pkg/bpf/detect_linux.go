@@ -2,7 +2,6 @@
 // Copyright Authors of Tetragon
 
 //go:build linux
-// +build linux
 
 package bpf
 

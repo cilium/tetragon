@@ -2,7 +2,6 @@
 // Copyright Authors of Tetragon
 
 //go:build amd64 && linux
-// +build amd64,linux
 
 package elf
 

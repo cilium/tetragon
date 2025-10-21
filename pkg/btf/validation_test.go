@@ -2,7 +2,6 @@
 // Copyright Authors of Tetragon
 
 //go:build !windows
-// +build !windows
 
 package btf
 
