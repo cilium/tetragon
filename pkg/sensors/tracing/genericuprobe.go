@@ -580,7 +580,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		argPrinters = append(argPrinters, argPrinter{index: i, ty: argType})
 	}
 
-	config := initEventConfig()
+	eventConfig := initEventConfig()
 
 	// Parse ReturnArg, we have two types of return arg parsing. We
 	// support populating an uprobe buffer from uretprobe hooks. This
@@ -602,11 +602,11 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 			}
 			return nil, fmt.Errorf("ReturnArg type '%s' unsupported", spec.ReturnArg.Type)
 		}
-		config.ArgReturn = int32(argType)
+		eventConfig.ArgReturn = int32(argType)
 		argP := argPrinter{index: api.ReturnArgIndex, ty: argType}
 		argReturnPrinters = append(argReturnPrinters, argP)
 	} else {
-		config.ArgReturn = int32(gt.GenericUnsetType)
+		eventConfig.ArgReturn = int32(gt.GenericUnsetType)
 	}
 
 	setRetprobe = spec.Return
@@ -614,12 +614,12 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		setRetprobe = true
 
 		argType := gt.GenericTypeFromString(argRetprobe.Type)
-		config.ArgReturnCopy = int32(argType)
+		eventConfig.ArgReturnCopy = int32(argType)
 
 		argP := argPrinter{index: int(argRetprobe.Index), ty: argType, label: argRetprobe.Label}
 		argReturnPrinters = append(argReturnPrinters, argP)
 	} else {
-		config.ArgReturnCopy = int32(gt.GenericUnsetType)
+		eventConfig.ArgReturnCopy = int32(gt.GenericUnsetType)
 	}
 
 	addUprobeEntry := func(sym string, offset uint64, idx int) error {
@@ -629,14 +629,14 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 			refCtrOffset = spec.RefCtrOffsets[idx]
 		}
 
-		config.ArgType = argTypes
-		config.ArgMeta = argMeta
-		config.ArgIndex = argIdx
+		eventConfig.ArgType = argTypes
+		eventConfig.ArgMeta = argMeta
+		eventConfig.ArgIndex = argIdx
 
 		uprobeEntry := &genericUprobe{
 			loadArgs: uprobeLoadArgs{
 				retprobe: setRetprobe,
-				config:   config,
+				config:   eventConfig,
 				selectors: kprobeSelectors{
 					entry: uprobeSelectorState,
 					retrn: uprobeRetSelectorState,
@@ -663,7 +663,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		uprobeTable.AddEntry(uprobeEntry)
 		id := uprobeEntry.tableId
 
-		config.FuncId = uint32(id.ID)
+		eventConfig.FuncId = uint32(id.ID)
 
 		ids = append(ids, id)
 		return nil
