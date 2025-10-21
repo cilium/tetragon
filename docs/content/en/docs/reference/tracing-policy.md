@@ -428,7 +428,7 @@ Maximum of 16 Tags are supported.<br/>
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, int8, uint8, int16, uint16, uint32, int32, uint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -535,7 +535,7 @@ This field is used only for char_buf and char_iovec types.<br/>
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, int8, uint8, int16, uint16, uint32, int32, uint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -668,7 +668,7 @@ A return argument to include in the trace output.
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, int8, uint8, int16, uint16, uint32, int32, uint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -1738,7 +1738,7 @@ Maximum of 16 Tags are supported.<br/>
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, int8, uint8, int16, uint16, uint32, int32, uint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -2881,7 +2881,7 @@ Maximum of 16 Tags are supported.<br/>
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, int8, uint8, int16, uint16, uint32, int32, uint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -3939,7 +3939,7 @@ Maximum of 16 Tags are supported.<br/>
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, int8, uint8, int16, uint16, uint32, int32, uint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -4046,7 +4046,7 @@ A return argument to include in the trace output.
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, int8, uint8, int16, uint16, uint32, int32, uint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -5081,7 +5081,7 @@ Maximum of 16 Tags are supported.<br/>
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, int8, uint8, int16, uint16, uint32, int32, uint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -6397,7 +6397,7 @@ Maximum of 16 Tags are supported.<br/>
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, int8, uint8, int16, uint16, uint32, int32, uint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -6504,7 +6504,7 @@ This field is used only for char_buf and char_iovec types.<br/>
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, int8, uint8, int16, uint16, uint32, int32, uint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -6637,7 +6637,7 @@ A return argument to include in the trace output.
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, int8, uint8, int16, uint16, uint32, int32, uint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -7707,7 +7707,7 @@ Maximum of 16 Tags are supported.<br/>
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, int8, uint8, int16, uint16, uint32, int32, uint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -8850,7 +8850,7 @@ Maximum of 16 Tags are supported.<br/>
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, int8, uint8, int16, uint16, uint32, int32, uint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -9908,7 +9908,7 @@ Maximum of 16 Tags are supported.<br/>
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, int8, uint8, int16, uint16, uint32, int32, uint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -10015,7 +10015,7 @@ A return argument to include in the trace output.
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, int8, uint8, int16, uint16, uint32, int32, uint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>
@@ -11050,7 +11050,7 @@ Maximum of 16 Tags are supported.<br/>
         <td>
           Argument type.<br/>
           <br/>
-            <i>Enum</i>: auto, int, int8, uint8, int16, uint16, uint32, int32, uint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
             <i>Default</i>: auto<br/>
         </td>
         <td>true</td>

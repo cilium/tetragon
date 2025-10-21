@@ -175,13 +175,20 @@ spec:
                             enum:
                             - auto
                             - int
+                            - sint8
                             - int8
                             - uint8
+                            - sint16
                             - int16
                             - uint16
                             - uint32
+                            - sint32
                             - int32
+                            - ulong
                             - uint64
+                            - size_t
+                            - long
+                            - sint64
                             - int64
                             - char_buf
                             - char_iovec
@@ -204,6 +211,7 @@ spec:
                             - kiocb
                             - iov_iter
                             - cred
+                            - const_buf
                             - load_info
                             - module
                             - syscall64
@@ -282,13 +290,20 @@ spec:
                             enum:
                             - auto
                             - int
+                            - sint8
                             - int8
                             - uint8
+                            - sint16
                             - int16
                             - uint16
                             - uint32
+                            - sint32
                             - int32
+                            - ulong
                             - uint64
+                            - size_t
+                            - long
+                            - sint64
                             - int64
                             - char_buf
                             - char_iovec
@@ -311,6 +326,7 @@ spec:
                             - kiocb
                             - iov_iter
                             - cred
+                            - const_buf
                             - load_info
                             - module
                             - syscall64
@@ -402,13 +418,20 @@ spec:
                           enum:
                           - auto
                           - int
+                          - sint8
                           - int8
                           - uint8
+                          - sint16
                           - int16
                           - uint16
                           - uint32
+                          - sint32
                           - int32
+                          - ulong
                           - uint64
+                          - size_t
+                          - long
+                          - sint64
                           - int64
                           - char_buf
                           - char_iovec
@@ -431,6 +454,7 @@ spec:
                           - kiocb
                           - iov_iter
                           - cred
+                          - const_buf
                           - load_info
                           - module
                           - syscall64
@@ -1150,13 +1174,20 @@ spec:
                             enum:
                             - auto
                             - int
+                            - sint8
                             - int8
                             - uint8
+                            - sint16
                             - int16
                             - uint16
                             - uint32
+                            - sint32
                             - int32
+                            - ulong
                             - uint64
+                            - size_t
+                            - long
+                            - sint64
                             - int64
                             - char_buf
                             - char_iovec
@@ -1179,6 +1210,7 @@ spec:
                             - kiocb
                             - iov_iter
                             - cred
+                            - const_buf
                             - load_info
                             - module
                             - syscall64
@@ -1935,13 +1967,20 @@ spec:
                             enum:
                             - auto
                             - int
+                            - sint8
                             - int8
                             - uint8
+                            - sint16
                             - int16
                             - uint16
                             - uint32
+                            - sint32
                             - int32
+                            - ulong
                             - uint64
+                            - size_t
+                            - long
+                            - sint64
                             - int64
                             - char_buf
                             - char_iovec
@@ -1964,6 +2003,7 @@ spec:
                             - kiocb
                             - iov_iter
                             - cred
+                            - const_buf
                             - load_info
                             - module
                             - syscall64
@@ -2664,13 +2704,20 @@ spec:
                             enum:
                             - auto
                             - int
+                            - sint8
                             - int8
                             - uint8
+                            - sint16
                             - int16
                             - uint16
                             - uint32
+                            - sint32
                             - int32
+                            - ulong
                             - uint64
+                            - size_t
+                            - long
+                            - sint64
                             - int64
                             - char_buf
                             - char_iovec
@@ -2693,6 +2740,7 @@ spec:
                             - kiocb
                             - iov_iter
                             - cred
+                            - const_buf
                             - load_info
                             - module
                             - syscall64
@@ -2792,13 +2840,20 @@ spec:
                           enum:
                           - auto
                           - int
+                          - sint8
                           - int8
                           - uint8
+                          - sint16
                           - int16
                           - uint16
                           - uint32
+                          - sint32
                           - int32
+                          - ulong
                           - uint64
+                          - size_t
+                          - long
+                          - sint64
                           - int64
                           - char_buf
                           - char_iovec
@@ -2821,6 +2876,7 @@ spec:
                           - kiocb
                           - iov_iter
                           - cred
+                          - const_buf
                           - load_info
                           - module
                           - syscall64
@@ -3504,13 +3560,20 @@ spec:
                             enum:
                             - auto
                             - int
+                            - sint8
                             - int8
                             - uint8
+                            - sint16
                             - int16
                             - uint16
                             - uint32
+                            - sint32
                             - int32
+                            - ulong
                             - uint64
+                            - size_t
+                            - long
+                            - sint64
                             - int64
                             - char_buf
                             - char_iovec
@@ -3533,6 +3596,7 @@ spec:
                             - kiocb
                             - iov_iter
                             - cred
+                            - const_buf
                             - load_info
                             - module
                             - syscall64
