@@ -4,19 +4,22 @@
 package tracing
 
 import (
-	"github.com/prometheus/client_golang/prometheus"
+	"maps"
+	"slices"
 
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 )
 
 var (
-	LoaderStats = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace:   consts.MetricsNamespace,
-		Name:        "process_loader_stats",
-		Help:        "Process Loader event statistics. For internal use only.",
-		ConstLabels: nil,
-	}, []string{"count"})
+	LoaderStats = metrics.MustNewCounter(
+		metrics.NewOpts(
+			consts.MetricsNamespace, "", "process_loader_stats",
+			"Process Loader event statistics. For internal use only.",
+			nil, []metrics.ConstrainedLabel{{Name: "count", Values: slices.Collect(maps.Values(LoaderTypeStrings))}}, nil,
+		),
+		nil,
+	)
 )
 
 func RegisterMetrics(group metrics.Group) {

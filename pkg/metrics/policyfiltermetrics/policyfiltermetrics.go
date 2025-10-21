@@ -7,8 +7,6 @@ import (
 	"maps"
 	"slices"
 
-	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 )
@@ -91,19 +89,17 @@ var (
 		nil, []metrics.ConstrainedLabel{subsysLabel, operationLabel, errorLabel}, nil,
 	), nil)
 
-	PolicyFilterHookContainerNameMissingMetrics = prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace:   consts.MetricsNamespace,
-		Name:        "policyfilter_hook_container_name_missing_total",
-		Help:        "The total number of operations when the container name was missing in the OCI hook",
-		ConstLabels: nil,
-	})
+	PolicyFilterHookContainerNameMissingMetrics = metrics.MustNewCounter(metrics.NewOpts(
+		consts.MetricsNamespace, "", "policyfilter_hook_container_name_missing_total",
+		"The total number of operations when the container name was missing in the OCI hook",
+		nil, nil, nil,
+	), nil)
 
-	PolicyFilterHookContainerImageMissingMetrics = prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace:   consts.MetricsNamespace,
-		Name:        "policyfilter_hook_container_image_missing_total",
-		Help:        "The total number of operations when the container image was missing in the OCI hook",
-		ConstLabels: nil,
-	})
+	PolicyFilterHookContainerImageMissingMetrics = metrics.MustNewCounter(metrics.NewOpts(
+		consts.MetricsNamespace, "", "policyfilter_hook_container_image_missing_total",
+		"The total number of operations when the container image was missing in the OCI hook",
+		nil, nil, nil,
+	), nil)
 )
 
 func RegisterMetrics(group metrics.Group) {
@@ -115,9 +111,9 @@ func OpInc(subsys Subsys, op Operation, err string) {
 }
 
 func ContNameMissInc() {
-	PolicyFilterHookContainerNameMissingMetrics.Inc()
+	PolicyFilterHookContainerNameMissingMetrics.WithLabelValues().Inc()
 }
 
 func ContImageMissInc() {
-	PolicyFilterHookContainerImageMissingMetrics.Inc()
+	PolicyFilterHookContainerImageMissingMetrics.WithLabelValues().Inc()
 }

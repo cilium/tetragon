@@ -41,42 +41,53 @@ var (
 )
 
 var (
-	EventsProcessed = metrics.MustNewGranularCounter[metrics.ProcessLabels](prometheus.CounterOpts{
-		Namespace:   consts.MetricsNamespace,
-		Name:        "events_total",
-		Help:        "The total number of Tetragon events",
-		ConstLabels: nil,
-	}, []string{"type"})
+	// Preserve label name "type" while using constrained values from EventTypeLabel.
+	eventTypeLabel = metrics.ConstrainedLabel{
+		Name:   "type",
+		Values: append(slices.Clone(metrics.EventTypeLabel.Values), "unknown"),
+	}
+
+	EventsProcessed = metrics.MustNewGranularCounterWithInit[metrics.ProcessLabels](
+		metrics.NewOpts(
+			consts.MetricsNamespace, "", "events_total",
+			"The total number of Tetragon events",
+			nil, []metrics.ConstrainedLabel{eventTypeLabel}, nil,
+		),
+		nil,
+	)
 	MissedEvents = metrics.MustNewCustomCounter(metrics.NewOpts(
 		consts.MetricsNamespace, "bpf", "missed_events_total",
 		"Number of Tetragon perf events that are failed to be sent from the kernel.",
 		nil, []metrics.ConstrainedLabel{metrics.OpCodeLabel, perfEventErrorLabel}, nil,
 	))
-	FlagCount = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace:   consts.MetricsNamespace,
-		Name:        "flags_total",
-		Help:        "The total number of Tetragon flags. For internal use only.",
-		ConstLabels: nil,
-	}, []string{"type"})
-	NotifyOverflowedEvents = prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace:   consts.MetricsNamespace,
-		Name:        "notify_overflowed_events_total",
-		Help:        "The total number of events dropped because listener buffer was full",
-		ConstLabels: nil,
-	})
+	FlagCount = metrics.MustNewCounter(
+		metrics.NewOpts(
+			consts.MetricsNamespace, "", "flags_total",
+			"The total number of Tetragon flags. For internal use only.",
+			nil, nil, []metrics.UnconstrainedLabel{{Name: "type", ExampleValue: "unknown"}},
+		),
+		nil,
+	)
+	NotifyOverflowedEvents = metrics.MustNewCounter(metrics.NewOpts(
+		consts.MetricsNamespace, "", "notify_overflowed_events_total",
+		"The total number of events dropped because listener buffer was full",
+		nil, nil, nil,
+	), nil)
 
-	policyStats = metrics.MustNewGranularCounter[metrics.ProcessLabels](prometheus.CounterOpts{
-		Namespace:   consts.MetricsNamespace,
-		Name:        "policy_events_total",
-		Help:        "Policy events calls observed.",
-		ConstLabels: nil,
-	}, []string{"policy", "hook"})
+	policyStats = metrics.MustNewGranularCounterWithInit[metrics.ProcessLabels](
+		metrics.NewOpts(
+			consts.MetricsNamespace, "", "policy_events_total",
+			"Policy events calls observed.",
+			nil, nil, []metrics.UnconstrainedLabel{{Name: "policy", ExampleValue: consts.ExamplePolicyLabel}, {Name: "hook", ExampleValue: consts.ExampleKprobeLabel}},
+		),
+		nil,
+	)
 
-	missingProcessInfo = prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: consts.MetricsNamespace,
-		Name:      "events_missing_process_info_total",
-		Help:      "Number of events missing process info.",
-	})
+	missingProcessInfo = metrics.MustNewCounter(metrics.NewOpts(
+		consts.MetricsNamespace, "", "events_missing_process_info_total",
+		"Number of events missing process info.",
+		nil, nil, nil,
+	), nil)
 )
 
 func RegisterHealthMetrics(group metrics.Group) {
@@ -122,7 +133,7 @@ func GetProcessInfo(process *tetragon.Process) (binary, pod, workload, namespace
 			pod = process.Pod.Name
 		}
 	} else {
-		missingProcessInfo.Inc()
+		missingProcessInfo.WithLabelValues().Inc()
 	}
 	return binary, pod, workload, namespace
 }
