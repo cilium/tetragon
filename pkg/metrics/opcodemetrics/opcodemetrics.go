@@ -14,20 +14,44 @@ import (
 )
 
 var (
-	MsgOpsCount = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace:   consts.MetricsNamespace,
-		Name:        "msg_op_total",
-		Help:        "The total number of times we encounter a given message opcode. For internal use only.",
-		ConstLabels: nil,
-	}, []string{"msg_op"})
+	MsgOpsCount = metrics.MustNewCounter(
+		metrics.NewOpts(
+			consts.MetricsNamespace, "", "msg_op_total",
+			"The total number of times we encounter a given message opcode. For internal use only.",
+			nil, []metrics.ConstrainedLabel{{Name: "msg_op", Values: func() []string {
+				res := make([]string, 0, len(ops.OpCodeStrings))
+				for opcode := range ops.OpCodeStrings {
+					// Exclude MSG_OP_UNDEF (0) as it's not a valid operational opcode - only used for error tracking.
+					// Also exclude MSG_OP_TEST as it's only used for testing purposes.
+					if opcode != ops.MSG_OP_UNDEF && opcode != ops.MSG_OP_TEST {
+						res = append(res, strconv.Itoa(int(int32(opcode))))
+					}
+				}
+				return res
+			}()}}, nil,
+		),
+		nil,
+	)
 
-	LatencyStats = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace:   consts.MetricsNamespace,
-		Name:        "handling_latency",
-		Help:        "The latency of handling messages in us.",
-		Buckets:     []float64{50, 100, 500, 1000, 10000, 100000}, // 50us, 100us, 500us, 1ms, 10ms, 100ms
-		ConstLabels: nil,
-	}, []string{"op"})
+	LatencyStats = metrics.MustNewHistogram(
+		metrics.HistogramOpts{
+			Opts: metrics.NewOpts(
+				consts.MetricsNamespace, "", "handling_latency",
+				"The latency of handling messages in us.",
+				nil, []metrics.ConstrainedLabel{{Name: "op", Values: func() []string {
+					res := make([]string, 0, len(ops.OpCodeStrings))
+					for opcode := range ops.OpCodeStrings {
+						if opcode != ops.MSG_OP_UNDEF && opcode != ops.MSG_OP_TEST {
+							res = append(res, strconv.Itoa(int(int32(opcode))))
+						}
+					}
+					return res
+				}()}}, nil,
+			),
+			Buckets: []float64{50, 100, 500, 1000, 10000, 100000}, // 50us, 100us, 500us, 1ms, 10ms, 100ms
+		},
+		nil,
+	)
 )
 
 func RegisterMetrics(group metrics.Group) {

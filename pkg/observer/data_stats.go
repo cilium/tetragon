@@ -4,6 +4,9 @@
 package observer
 
 import (
+	"maps"
+	"slices"
+
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/cilium/tetragon/pkg/metrics"
@@ -27,21 +30,37 @@ func (e DataEventOp) String() string {
 }
 
 var (
-	// Define a counter metric for data event statistics
-	DataEventStats = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace:   consts.MetricsNamespace,
-		Name:        "data_events_total",
-		Help:        "The number of data events by type. For internal use only.",
-		ConstLabels: nil,
-	}, []string{"event"})
+	// Constrained labels for event and op
+	eventLabel = metrics.ConstrainedLabel{
+		Name:   "event",
+		Values: slices.Collect(maps.Values(DataEventTypeStrings)),
+	}
+	opLabel = metrics.ConstrainedLabel{
+		Name:   "op",
+		Values: []string{DataEventOpOk.String(), DataEventOpBad.String()},
+	}
 
-	DataEventSizeHist = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace:   consts.MetricsNamespace,
-		Name:        "data_event_size",
-		Help:        "The size of received data events.",
-		Buckets:     prometheus.LinearBuckets(1000, 2000, 20),
-		ConstLabels: nil,
-	}, []string{"op"})
+	// Define a counter metric for data event statistics
+	DataEventStats = metrics.MustNewCounter(
+		metrics.NewOpts(
+			consts.MetricsNamespace, "", "data_events_total",
+			"The number of data events by type. For internal use only.",
+			nil, []metrics.ConstrainedLabel{eventLabel}, nil,
+		),
+		nil,
+	)
+
+	DataEventSizeHist = metrics.MustNewHistogram(
+		metrics.HistogramOpts{
+			Opts: metrics.NewOpts(
+				consts.MetricsNamespace, "", "data_event_size",
+				"The size of received data events.",
+				nil, []metrics.ConstrainedLabel{opLabel}, nil,
+			),
+			Buckets: prometheus.LinearBuckets(1000, 2000, 20),
+		},
+		nil,
+	)
 )
 
 func RegisterMetrics(group metrics.Group) {

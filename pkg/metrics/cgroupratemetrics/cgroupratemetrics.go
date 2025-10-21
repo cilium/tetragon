@@ -4,6 +4,9 @@
 package cgroupratemetrics
 
 import (
+	"maps"
+	"slices"
+
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/cilium/tetragon/pkg/metrics"
@@ -39,12 +42,14 @@ func (e CgroupRateType) String() string {
 }
 
 var (
-	CgroupRateTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace:   consts.MetricsNamespace,
-		Name:        "cgroup_rate_total",
-		Help:        "The total number of Tetragon cgroup rate counters. For internal use only.",
-		ConstLabels: nil,
-	}, []string{"type"})
+	CgroupRateTotal = metrics.MustNewCounter(
+		metrics.NewOpts(
+			consts.MetricsNamespace, "", "cgroup_rate_total",
+			"The total number of Tetragon cgroup rate counters. For internal use only.",
+			nil, []metrics.ConstrainedLabel{{Name: "type", Values: slices.Collect(maps.Values(totalLabelValues))}}, nil,
+		),
+		nil,
+	)
 )
 
 func RegisterMetrics(group metrics.Group) {

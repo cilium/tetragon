@@ -4,6 +4,9 @@
 package watchermetrics
 
 import (
+	"maps"
+	"slices"
+
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/cilium/tetragon/pkg/metrics"
@@ -33,25 +36,31 @@ const (
 )
 
 var (
-	WatcherErrors = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace:   consts.MetricsNamespace,
-		Name:        "watcher_errors_total",
-		Help:        "The total number of errors for a given watcher type.",
-		ConstLabels: nil,
-	}, []string{"watcher", "error"})
-	WatcherEvents = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace:   consts.MetricsNamespace,
-		Name:        "watcher_events_total",
-		Help:        "The total number of events for a given watcher type.",
-		ConstLabels: nil,
-	}, []string{"watcher"})
+	WatcherErrors = metrics.MustNewCounter(
+		metrics.NewOpts(
+			consts.MetricsNamespace, "", "watcher_errors_total",
+			"The total number of errors for a given watcher type.",
+			nil, []metrics.ConstrainedLabel{
+				{Name: "watcher", Values: slices.Collect(maps.Values(watcherTypeLabelValues))},
+				{Name: "error", Values: []string{string(FailedToGetPodError)}},
+			}, nil,
+		),
+		nil,
+	)
+	WatcherEvents = metrics.MustNewCounter(
+		metrics.NewOpts(
+			consts.MetricsNamespace, "", "watcher_events_total",
+			"The total number of events for a given watcher type.",
+			nil, []metrics.ConstrainedLabel{{Name: "watcher", Values: slices.Collect(maps.Values(watcherTypeLabelValues))}}, nil,
+		),
+		nil,
+	)
 
-	WatcherDeletedPodCacheHits = prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace:   consts.MetricsNamespace,
-		Name:        "watcher_delete_pod_cache_hits",
-		Help:        "The total hits for pod information in the deleted pod cache.",
-		ConstLabels: nil,
-	})
+	WatcherDeletedPodCacheHits = metrics.MustNewCounter(metrics.NewOpts(
+		consts.MetricsNamespace, "", "watcher_delete_pod_cache_hits",
+		"The total hits for pod information in the deleted pod cache.",
+		nil, nil, nil,
+	), nil)
 )
 
 func RegisterMetrics(group metrics.Group) {
@@ -78,5 +87,5 @@ func GetWatcherErrors(watcherType Watcher, watcherError ErrorType) prometheus.Co
 }
 
 func GetWatcherDeletedPodCacheHits() prometheus.Counter {
-	return WatcherDeletedPodCacheHits
+	return WatcherDeletedPodCacheHits.WithLabelValues()
 }
