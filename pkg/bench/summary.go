@@ -84,8 +84,8 @@ func (s *Summary) PrettyPrint() {
 			getCounterValue(observer.RingbufLost),
 			getCounterValue(observer.RingbufErrors))
 
-		mergePushed := getCounterValue(kprobemetrics.MergePushed)
-		mergeOkTotal := getCounterValue(kprobemetrics.MergeOkTotal)
+		mergePushed := getCounterValue(kprobemetrics.MergePushed.WithLabelValues())
+		mergeOkTotal := getCounterValue(kprobemetrics.MergeOkTotal.WithLabelValues())
 		fmt.Printf("Merged events:      pushed=%d, ok=%d, errors=%d\n",
 			mergePushed, mergeOkTotal, mergePushed-mergeOkTotal)
 	}
