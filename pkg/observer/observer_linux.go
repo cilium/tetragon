@@ -26,6 +26,10 @@ const (
 	perCPUBufferBytes = 65535
 )
 
+type eventChannelRecord struct {
+	data []byte
+}
+
 func (k *Observer) getRBSize(cpus int) int {
 	var size int
 
@@ -98,7 +102,7 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 
 	// We spawn go routine to read and process perf events,
 	// connected with main app through eventsQueue channel.
-	eventsQueue := make(chan *[]byte, k.getRBQueueSize())
+	eventsQueue := make(chan *eventChannelRecord, k.getRBQueueSize())
 
 	// Listeners are ready and about to start reading from perf reader, tell
 	// user everything is ready.
@@ -122,7 +126,7 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 			} else {
 				if len(record.RawSample) > 0 {
 					select {
-					case eventsQueue <- &record.RawSample:
+					case eventsQueue <- &eventChannelRecord{data: record.RawSample}:
 					default:
 						// eventsQueue channel is full, drop the event
 						queueLost.Inc()
@@ -154,7 +158,7 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 				} else {
 					if len(record.RawSample) > 0 {
 						select {
-						case eventsQueue <- &record.RawSample:
+						case eventsQueue <- &eventChannelRecord{data: record.RawSample}:
 						default:
 							// eventsQueue channel is full, drop the event
 							queueLost.Inc()
@@ -173,7 +177,7 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 		for {
 			select {
 			case eventRawSample := <-eventsQueue:
-				k.receiveEvent(*eventRawSample)
+				k.receiveEvent(eventRawSample.data)
 				queueReceived.Inc()
 			case <-stopCtx.Done():
 				k.log.Info("Listening for events completed.", logfields.Error, stopCtx.Err())
