@@ -97,12 +97,13 @@ The output should be similar to:
 Ship landed
 ```
 
-And as expected no new events:
+You will observe that no new `connect` events are generated for in-cluster traffic.  
+However, `process` and `exit` events for the `curl` command will still be reported  
+due to active execution monitoring.
 
 ```
-🚀 process default/xwing /usr/bin/curl https://ebpf.io/applications/#tetragon
-🔌 connect default/xwing /usr/bin/curl tcp 10.32.0.19:33978 -> 104.198.14.52:443
-💥 exit    default/xwing /usr/bin/curl https://ebpf.io/applications/#tetragon 60
+🚀 process default/xwing /usr/bin/curl -s -XPOST deathstar.default.svc.cluster.local/v1/request-landing 
+💥 exit    default/xwing /usr/bin/curl -s -XPOST deathstar.default.svc.cluster.local/v1/request-landing 0 
 ```
 
 Finally, delete the applied TracingPolicy with:
