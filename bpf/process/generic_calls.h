@@ -970,6 +970,7 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 		break;
 	case ACTION_CLEANUP_ENFORCER_NOTIFICATION:
 		do_enforcer_cleanup();
+		break;
 	case ACTION_SET:
 		index = actions->act[++i];
 		value = actions->act[++i];
