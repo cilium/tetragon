@@ -975,6 +975,7 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 		index = actions->act[++i];
 		value = actions->act[++i];
 		do_set_action(ctx, e, index, value);
+		break;
 	default:
 		break;
 	}
@@ -1182,6 +1183,7 @@ FUNC_INLINE int generic_retkprobe(void *ctx, struct bpf_map_def *calls, unsigned
 		break;
 	case char_iovec:
 		size += __copy_char_iovec(size, info.ptr, info.cnt, ret, e);
+		break;
 	default:
 		break;
 	}

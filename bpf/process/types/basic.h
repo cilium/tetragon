@@ -1263,6 +1263,7 @@ filter_64ty_selector_val(struct selector_arg_filter *filter, char *args)
 		case op_filter_mask:
 			if (*(u64 *)args & w)
 				return 1;
+			break;
 		default:
 			break;
 		}
@@ -1434,6 +1435,7 @@ filter_32ty_selector_val(struct selector_arg_filter *filter, char *args)
 		case op_filter_mask:
 			if (*(u32 *)args & w)
 				return 1;
+			break;
 		default:
 			break;
 		}
