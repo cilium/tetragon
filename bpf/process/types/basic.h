@@ -1472,7 +1472,6 @@ filter_64ty_map(struct selector_arg_filter *filter, char *args)
 	return 0;
 }
 
-#ifdef __LARGE_BPF_PROG
 FUNC_LOCAL long
 filter_64ty_range(struct selector_arg_filter *filter, char *args)
 {
@@ -1588,31 +1587,6 @@ filter_8ty_range(struct selector_arg_filter *filter, char *args)
 		return 1;
 	return 0;
 }
-#else
-FUNC_INLINE long
-filter_64ty_range(struct selector_arg_filter *filter, char *args)
-{
-	return 0;
-}
-
-FUNC_INLINE long
-filter_32ty_range(struct selector_arg_filter *filter, char *args)
-{
-	return 0;
-}
-
-FUNC_INLINE long
-filter_16ty_range(struct selector_arg_filter *filter, char *args)
-{
-	return 0;
-}
-
-FUNC_INLINE long
-filter_8ty_range(struct selector_arg_filter *filter, char *args)
-{
-	return 0;
-}
-#endif // __LARGE_BPF_PROG
 
 FUNC_LOCAL long
 filter_64ty(struct selector_arg_filter *filter, char *args)
@@ -1627,9 +1601,11 @@ filter_64ty(struct selector_arg_filter *filter, char *args)
 	case op_filter_inmap:
 	case op_filter_notinmap:
 		return filter_64ty_map(filter, args);
+#ifdef __LARGE_BPF_PROG
 	case op_in_range:
 	case op_notin_range:
 		return filter_64ty_range(filter, args);
+#endif
 	}
 
 	return 0;
@@ -1735,9 +1711,11 @@ filter_32ty(struct selector_arg_filter *filter, char *args)
 	case op_filter_inmap:
 	case op_filter_notinmap:
 		return filter_32ty_map(filter, args);
+#ifdef __LARGE_BPF_PROG
 	case op_in_range:
 	case op_notin_range:
 		return filter_32ty_range(filter, args);
+#endif
 	}
 
 	return 0;
@@ -1756,9 +1734,11 @@ filter_16ty(struct selector_arg_filter *filter, char *args)
 	case op_filter_inmap:
 	case op_filter_notinmap:
 		return filter_16ty_map(filter, args);
+#ifdef __LARGE_BPF_PROG
 	case op_in_range:
 	case op_notin_range:
 		return filter_16ty_range(filter, args);
+#endif
 	}
 
 	return 0;
@@ -1777,9 +1757,11 @@ filter_8ty(struct selector_arg_filter *filter, char *args)
 	case op_filter_inmap:
 	case op_filter_notinmap:
 		return filter_8ty_map(filter, args);
+#ifdef __LARGE_BPF_PROG
 	case op_in_range:
 	case op_notin_range:
 		return filter_8ty_range(filter, args);
+#endif
 	}
 
 	return 0;
