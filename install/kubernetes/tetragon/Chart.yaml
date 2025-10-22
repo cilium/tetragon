@@ -3,10 +3,10 @@ name: tetragon
 description: Helm chart for Tetragon
 type: application
 # renovate: datasource=docker depName=quay.io/cilium/tetragon
-version: 1.6.0-rc.1
+version: 1.6.0
 icon: https://tetragon.io/images/tetragon-shield.png
 # This is the version number of the application being deployed. This version number should be
 # incremented each time you make changes to the application. Versions are not expected to
 # follow Semantic Versioning. They should reflect the version the application is using.
 # renovate: datasource=docker depName=quay.io/cilium/tetragon
-appVersion: 1.6.0-rc.1
+appVersion: 1.6.0
