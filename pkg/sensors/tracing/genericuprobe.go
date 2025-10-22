@@ -544,7 +544,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 }
 
 func multiUprobePinPath(sensorPath string) string {
-	return sensors.PathJoin(sensorPath, "multi_kprobe")
+	return sensors.PathJoin(sensorPath, "multi_uprobe")
 }
 
 func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID, policyName string, hasSleepableOffload bool) ([]*program.Program, []*program.Map, error) {
