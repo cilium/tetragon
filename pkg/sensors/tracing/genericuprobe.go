@@ -578,7 +578,7 @@ func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID, poli
 		regsMap := program.MapBuilderProgram("regs_map", load)
 		sleepableOffloadMap := program.MapBuilderProgram("sleepable_offload", load)
 		sleepableOffloadMap.SetMaxEntries(sleepableOffloadMaxEntries)
-		maps = append(maps, regsMap)
+		maps = append(maps, regsMap, sleepableOffloadMap)
 	}
 
 	filterMap.SetMaxEntries(len(multiIDs))
