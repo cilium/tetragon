@@ -60,9 +60,9 @@
   "pruneStaleBranches": true,
   "baseBranches": [
     "main",
-    "v1.3",
     "v1.4",
     "v1.5",
+    "v1.6",
   ],
   "vulnerabilityAlerts": {
     "enabled": true
@@ -223,9 +223,9 @@
         "docker.io/library/golang"
       ],
       "matchBaseBranches": [
-        "v1.3",
         "v1.4",
         "v1.5",
+        "v1.6",
       ],
       // postUpgradeTasks is only for when the Go module directives are bumped
       "postUpgradeTasks": {
@@ -292,9 +292,9 @@
       "enabled": false,
       "matchPackageNames": ["*"],
       "matchBaseBranches": [
-        "v1.3",
         "v1.4",
         "v1.5",
+        "v1.6",
       ]
     },
     {
@@ -302,9 +302,9 @@
       "enabled": true,
       "matchPackageNames": ["docker.io/library/alpine"],
       "matchBaseBranches": [
-        "v1.3",
         "v1.4",
         "v1.5",
+        "v1.6",
       ]
     },
     {
@@ -316,9 +316,9 @@
       ],
       "allowedVersions": "/^1\\.24\\.[0-9]+-?(alpine)?$/",
       "matchBaseBranches": [
-        "v1.3",
         "v1.4",
         "v1.5",
+        "v1.6",
       ]
     },
     // ignore deps section
