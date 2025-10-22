@@ -23,7 +23,7 @@ ERRMETRICS_DIR = $(ROOT_DIR)errmetrics/
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
 FLAGS := -I$(ROOT_DIR) \
-	 -Wall -Werror \
+	 -Wall -Werror -Wimplicit-fallthrough \
 	 -Wno-address-of-packed-member -Wno-compare-distinct-pointer-types -Wno-unknown-warning-option \
 	 -O2
 

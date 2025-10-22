@@ -926,6 +926,7 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 		break;
 	case ACTION_SIGNAL:
 		signal = actions->act[++i];
+		fallthrough;
 	case ACTION_SIGKILL:
 		if (enforce_mode) {
 			do_action_signal(signal);
