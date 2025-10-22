@@ -521,7 +521,7 @@ func writeMatchValuesRange(k *KernelSelectorState, values []string, ty uint32) e
 		}
 
 		switch ty {
-		case gt.GenericIntType, gt.GenericS32Type, gt.GenericSizeType, gt.GenericU32Type:
+		case gt.GenericIntType, gt.GenericS32Type, gt.GenericSizeType, gt.GenericU32Type, gt.GenericU16Type, gt.GenericU8Type, gt.GenericS16Type, gt.GenericS8Type:
 			if rangeMax > math.MaxUint32 || rangeMin > math.MaxUint32 {
 				return fmt.Errorf("range out of range (%d:%d) allowed max %d", rangeMin, rangeMax, math.MaxUint32)
 			}
