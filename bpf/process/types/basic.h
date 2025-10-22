@@ -1757,6 +1757,7 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 		case fd_ty:
 			/* Advance args past fd */
 			args += 4;
+			fallthrough;
 		case file_ty:
 		case path_ty:
 		case dentry_type:
@@ -1790,7 +1791,7 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 				pass = !!((cap_old ^ cap_new) & cap_new);
 				break;
 			}
-			/* falltrough */
+			fallthrough;
 #endif
 		case syscall64_type:
 		case s64_ty:

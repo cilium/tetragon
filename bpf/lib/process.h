@@ -601,6 +601,7 @@ event_output_update_error_metric(u8 msg_op, long err)
 			break;
 		default:
 			lock_add(&valp->sent_failed[msg_op][SENT_FAILED_UNKNOWN], 1);
+			break;
 		}
 	}
 }
