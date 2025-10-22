@@ -25,7 +25,7 @@ Key information collected by bugtool:
 You can collect information in a Kubernetes cluster using the Cilium CLI:
 
 ```shell
-cilium-cli sysdump
+cilium sysdump
 ```
 
 More details can be found in the [Cilium docs](https://docs.cilium.io/en/stable/operations/troubleshooting/#automatic-log-state-collection).
