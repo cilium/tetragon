@@ -41,7 +41,7 @@ tetragon:
   image:
     override: ~
     repository: quay.io/cilium/tetragon
-    tag: v1.5.0
+    tag: v1.6.0-rc.1
   resources: {}
   extraArgs: {}
   extraEnv: []
@@ -284,7 +284,6 @@ tetragonOperator:
     capabilities:
       drop:
         - "ALL"
-
   # -- securityContext for the Tetragon Operator Deployment Pod container. (DEPRECATED: Use containerSecurityContext instead. TODO: Remove in v1.6.0)
   securityContext: {}
   # -- resources for the Tetragon Operator Deployment Pod container.
@@ -317,7 +316,7 @@ tetragonOperator:
   image:
     override: ~
     repository: quay.io/cilium/tetragon-operator
-    tag: v1.5.0
+    tag: v1.6.0-rc.1
     pullPolicy: IfNotPresent
   # -- Extra volumes for the Tetragon Operator Deployment.
   extraVolumes: []
@@ -368,7 +367,6 @@ export:
     #         name: my-secret
     #         key: secret-key
     extraEnv: []
-    
     # -- Extra envFrom sources to add to the export-stdout container.
     # This allows adding any type of envFrom source (configMapRef, secretRef, etc.).
     # Example:
@@ -379,7 +377,6 @@ export:
     #       name: my-secret
     #       optional: true
     extraEnvFrom: []
-    
     # -- A simplified way to add secret references to envFrom.
     # Can be specified either as a string (just the secret name) or as an object with additional parameters.
     # Example:
@@ -388,7 +385,6 @@ export:
     #   - name: my-optional-secret
     #     optional: true
     envFromSecrets: []
-
     # * When enabledCommand=true and commandOverride is not set, the command inserted will be hubble-export-stdout.
     #   This supports the default for the current deployment instructions to deploy stdout-export sidecar container.
     # * When enabledCommand=true and commandOverride override is set, the command inserted will be the value of commandOverride.
