@@ -1,4 +1,4 @@
-// Copyright 2019 The Prometheus Authors
+// Copyright The Prometheus Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -147,8 +147,7 @@ func mountOptionsParseOptionalFields(o []string) (map[string]string, error) {
 // mountOptionsParser parses the mount options, superblock options.
 func mountOptionsParser(mountOptions string) map[string]string {
 	opts := make(map[string]string)
-	options := strings.Split(mountOptions, ",")
-	for _, opt := range options {
+	for opt := range strings.SplitSeq(mountOptions, ",") {
 		splitOption := strings.Split(opt, "=")
 		if len(splitOption) < 2 {
 			key := splitOption[0]
