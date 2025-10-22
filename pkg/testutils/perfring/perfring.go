@@ -125,15 +125,17 @@ func ProcessEvents(t *testing.T, ctx context.Context, eventFn EventFn, wgStarted
 				break
 			}
 
-			_, events, handlerErr := observer.HandlePerfData(record.RawSample)
-			if handlerErr != nil {
-				errChan <- fmt.Errorf("error handling perfring data: %w", handlerErr)
-				break
-			}
-			err = loopEvents(events, eventFn, complChecker)
-			if err != nil {
-				errChan <- fmt.Errorf("error loop event function returned: %w", err)
-				break
+			if len(record.RawSample) > 0 {
+				_, events, handlerErr := observer.HandlePerfData(record.RawSample)
+				if handlerErr != nil {
+					errChan <- fmt.Errorf("error handling perfring data: %w", handlerErr)
+					break
+				}
+				err = loopEvents(events, eventFn, complChecker)
+				if err != nil {
+					errChan <- fmt.Errorf("error loop event function returned: %w", err)
+					break
+				}
 			}
 
 			if complChecker.Done() {
@@ -161,15 +163,17 @@ func ProcessEvents(t *testing.T, ctx context.Context, eventFn EventFn, wgStarted
 					break
 				}
 
-				_, events, handlerErr := observer.HandlePerfData(record.RawSample)
-				if handlerErr != nil {
-					errChan <- fmt.Errorf("error handling ringbuf data: %w", handlerErr)
-					break
-				}
-				err = loopEvents(events, eventFn, complChecker)
-				if err != nil {
-					errChan <- fmt.Errorf("error loop event function returned: %w", err)
-					break
+				if len(record.RawSample) > 0 {
+					_, events, handlerErr := observer.HandlePerfData(record.RawSample)
+					if handlerErr != nil {
+						errChan <- fmt.Errorf("error handling ringbuf data: %w", handlerErr)
+						break
+					}
+					err = loopEvents(events, eventFn, complChecker)
+					if err != nil {
+						errChan <- fmt.Errorf("error loop event function returned: %w", err)
+						break
+					}
 				}
 
 				if complChecker.Done() {
