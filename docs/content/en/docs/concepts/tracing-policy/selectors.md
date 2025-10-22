@@ -295,6 +295,7 @@ following:
   - operator: "In"
     values:
     - "/usr/sbin/sshd"
+    followChildren: true
 ```
 
 while the whole `kprobe` call is the following:
@@ -315,6 +316,7 @@ while the whole `kprobe` call is the following:
     - operator: "In"
       values:
       - "/usr/sbin/sshd"
+      followChildren: true
   # match to stdin/stdout/stderr
     matchArgs:
     - index: 0
