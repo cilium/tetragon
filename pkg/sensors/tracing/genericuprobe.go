@@ -74,16 +74,7 @@ type genericUprobe struct {
 	// the map, so that we can merge them when the return event is
 	// generated. The events are maintained in the map below, using
 	// the retprobe_id (thread_id) and the enter ktime as the key.
-	pendingEvents *lru.Cache[pendingEventKey, uprobePendingEvent]
-}
-
-// pendingEvent is an event waiting to be merged with another event.
-// This is needed for retprobe probes that generate two events: one at the
-// function entry, and one at the function return. We merge these events into
-// one, before returning it to the user.
-type uprobePendingEvent struct {
-	ev          *tracing.MsgGenericUprobeUnix
-	returnEvent bool
+	pendingEvents *lru.Cache[pendingEventKey, pendingEvent[*tracing.MsgGenericUprobeUnix]]
 }
 
 func (g *genericUprobe) SetID(id idtable.EntryID) {
@@ -163,18 +154,13 @@ func handleGenericUprobe(r *bytes.Reader) ([]observer.Event, error) {
 	// Cache return value on merge and run return filters below before
 	// passing up to notify hooks.
 	if uprobeEntry.loadArgs.retprobe {
-		// if an event exist already, try to merge them. Otherwise, add
-		// the one we have in the map.
-		curr := uprobePendingEvent{ev: unix, returnEvent: returnEvent}
-		key := pendingEventKey{eventId: m.RetProbeId, ktimeEnter: ktimeEnter}
-
-		if prev, exists := uprobeEntry.pendingEvents.Get(key); exists {
-			uprobeEntry.pendingEvents.Remove(key)
-			unix = uretprobeMerge(prev, curr)
-		} else {
-			uprobeEntry.pendingEvents.Add(key, curr)
-			unix = nil
-		}
+		_, unix, _ = retprobeMergeEvents[*tracing.MsgGenericUprobeUnix](
+			unix,
+			uprobeEntry.pendingEvents,
+			returnEvent,
+			m.RetProbeId,
+			ktimeEnter,
+			reportUprobeMergeError)
 	}
 	if unix == nil {
 		return []observer.Event{}, err
@@ -655,7 +641,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 			pendingEvents:     nil,
 		}
 
-		uprobeEntry.pendingEvents, err = lru.New[pendingEventKey, uprobePendingEvent](4096)
+		uprobeEntry.pendingEvents, err = lru.New[pendingEventKey, pendingEvent[*tracing.MsgGenericUprobeUnix]](4096)
 		if err != nil {
 			return err
 		}
@@ -868,7 +854,7 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 	return progs, maps
 }
 
-func reportUprobeMergeError(curr uprobePendingEvent, prev uprobePendingEvent) {
+func reportUprobeMergeError(curr pendingEvent[*tracing.MsgGenericUprobeUnix], prev pendingEvent[*tracing.MsgGenericUprobeUnix]) {
 	currSymbol := "UNKNOWN"
 	if curr.ev != nil {
 		currSymbol = curr.ev.Symbol
@@ -892,31 +878,4 @@ func reportUprobeMergeError(curr uprobePendingEvent, prev uprobePendingEvent) {
 		"currType", currType.String(),
 		"prevSymbol", prevSymbol,
 		"prevType", prevType.String())
-}
-
-// uretprobeMerge merges the two events: the one from the entry probe with the one from the return probe
-// TODO: find a way to merge this with kretprobeMerge
-func uretprobeMerge(prev uprobePendingEvent, curr uprobePendingEvent) *tracing.MsgGenericUprobeUnix {
-	var retEv, enterEv *tracing.MsgGenericUprobeUnix
-
-	if prev.returnEvent && !curr.returnEvent {
-		retEv = prev.ev
-		enterEv = curr.ev
-	} else if !prev.returnEvent && curr.returnEvent {
-		retEv = curr.ev
-		enterEv = prev.ev
-	} else {
-		reportUprobeMergeError(curr, prev)
-		return nil
-	}
-
-	for _, retArg := range retEv.Args {
-		index := retArg.GetIndex()
-		if uint64(len(enterEv.Args)) > index {
-			enterEv.Args[index] = retArg
-		} else {
-			enterEv.Args = append(enterEv.Args, retArg)
-		}
-	}
-	return enterEv
 }
