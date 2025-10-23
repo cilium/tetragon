@@ -132,21 +132,10 @@ func KprobeOpen(load *Program) OpenFunc {
 		// The generic_kprobe_override program is part of bpf_generic_kprobe.o object,
 		// so let's disable it if the override is not configured. Otherwise it gets
 		// loaded and bpftool will show it.
-		if !load.Override {
+		if !load.Override || load.OverrideFmodRet {
 			disableProg(coll, "generic_kprobe_override")
-			disableProg(coll, "generic_fmodret_override")
-		} else {
-			if load.OverrideFmodRet {
-				spec, ok := coll.Programs["generic_fmodret_override"]
-				if !ok {
-					return errors.New("failed to find generic_fmodret_override")
-				}
-				spec.AttachTo = load.Attach
-				disableProg(coll, "generic_kprobe_override")
-			} else {
-				disableProg(coll, "generic_fmodret_override")
-			}
 		}
+		disableProg(coll, "generic_fmodret_override")
 		return nil
 	}
 }
@@ -266,15 +255,9 @@ func KprobeAttach(load *Program, bpfDir string) AttachFunc {
 	return func(coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 
-		if load.Override {
-			if load.OverrideFmodRet {
-				if err := fmodretAttachOverride(load, bpfDir, coll, collSpec); err != nil {
-					return nil, err
-				}
-			} else {
-				if err := kprobeAttachOverride(load, bpfDir, coll, collSpec); err != nil {
-					return nil, err
-				}
+		if load.Override && !load.OverrideFmodRet {
+			if err := kprobeAttachOverride(load, bpfDir, coll, collSpec); err != nil {
+				return nil, err
 			}
 		}
 
@@ -691,7 +674,7 @@ func LoadMultiKprobeProgram(bpfDir string, load *Program, maps []*Map, verbose i
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
-func LoadFmodRetProgram(bpfDir string, load *Program, maps []*Map, progName string, verbose int) error {
+func LoadFmodRetProgram(bpfDir string, load *Program, maps []*Map, progName string, verbose int, unloadProg func()) error {
 	opts := &LoadOpts{
 		Attach: func(
 			_ *ebpf.Collection,
@@ -709,10 +692,15 @@ func LoadFmodRetProgram(bpfDir string, load *Program, maps []*Map, progName stri
 				return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
 			}
 			return &unloader.RelinkUnloader{
-				UnloadProg: unloader.ProgUnloader{Prog: prog}.Unload,
-				IsLinked:   true,
-				Link:       lnk,
-				RelinkFn:   linkFn,
+				UnloadProg: func(unpin bool) error {
+					if unloadProg != nil {
+						unloadProg()
+					}
+					return unloader.ProgUnloader{Prog: prog}.Unload(unpin)
+				},
+				IsLinked: true,
+				Link:     lnk,
+				RelinkFn: linkFn,
 			}, nil
 		},
 		Open: func(coll *ebpf.CollectionSpec) error {
