@@ -120,6 +120,7 @@ func (kp *enforcerPolicy) loadSingleEnforcerSensor(
 	return nil
 }
 
+// SAM: check if load.Override is set.
 func (kp *enforcerPolicy) loadMultiEnforcerSensor(
 	kh *enforcerHandler,
 	bpfDir string, load *program.Program, maps []*program.Map, verbose int,
@@ -156,7 +157,7 @@ func (kp *enforcerPolicy) LoadProbe(args sensors.LoadProbeArgs) error {
 	}
 
 	if strings.HasPrefix(args.Load.Label, "fmod_ret/") {
-		return program.LoadFmodRetProgram(args.BPFDir, args.Load, args.Maps, "fmodret_enforcer", args.Verbose)
+		return program.LoadFmodRetProgram(args.BPFDir, args.Load, args.Maps, "fmodret_enforcer", args.Verbose, nil)
 	}
 
 	return fmt.Errorf("enforcer loader: unknown label: %s", args.Load.Label)
