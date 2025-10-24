@@ -153,6 +153,47 @@ Please follow the checklist in the pull request template and write anything that
 pull request description. After you create a pull request, a reviewer will be automatically assigned. They will provide
 feedback, add relevant labels and run the CI workflows if needed.
 
+### Changelog and breaking changes
+
+1. **Document any user-facing or breaking changes** in `contrib/upgrade-notes/latest.md`.
+2. **Verify the release note text.** If not explicitly changed, the title of the PR
+   will be used for the release notes. If you want to change this, you can add
+   a special section to the description of the PR. These release notes are
+   primarily going to be read by users, so it is important that release notes
+   for bugs, major and minor features do not contain internal details of Cilium
+   functionality which sometimes are irrelevant for users.
+
+   Example of a bad release note
+   ````
+   ```release-note
+   Fix concurrent access in k8s watchers structures
+   ```
+   ````
+
+   Example of a good release note
+   ````
+   ```release-note
+   Fix panic when Tetragon received an invalid Tracing Policy from Kubernetes
+   ```
+   ````
+
+   {{< note >}}
+   If multiple lines are provided, the PR title will be used and the lines will
+   be added as sub items.
+   {{< /note >}}
+3. If you have permissions to do so, **pick the right release-note label**.
+   These labels will be used to generate the release notes which will primarily
+   be read by users.
+
+   | Labels             | When to set                                                                                           |
+   |--------------------|-------------------------------------------------------------------------------------------------------|
+   | release-note/bug   | This is a non-trivial bugfix and is a user-facing bug                                                 |
+   | release-note/major | This is a major feature addition, e.g. Add MongoDB support                                            |
+   | release-note/minor | This is a minor feature addition, e.g. Add support for a Kubernetes version                           |
+   | release-note/misc  | This is a not user-facing change, e.g. Refactor endpoint package, a bug fix of a non-released feature |
+   | release-note/docs  | This is a documentation change.                                                                       |
+   | release-note/ci    | This is a CI feature or bug fix.                                                                      |
+
 ## Frequently Asked Questions
 
 ### CI is complaining about Go module vendoring, what do I do?
