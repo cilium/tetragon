@@ -2,10 +2,7 @@
 // Copyright Authors of Tetragon
 
 // Implementation freely taken by https://github.com/iovisor/bcc/blob/b63d7e38e8a0f6339fbd57f3a1ae7297e1993d92/src/cc/usdt/usdt_args.cc#L224
-// and arranged to be similar to usdt_args_amd64 one.
-
-//go:build arm64 && linux
-// +build arm64,linux
+// and arranged to be similar to usdtargs_linux_amd64 one.
 
 package elf
 
