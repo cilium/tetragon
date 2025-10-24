@@ -28,6 +28,12 @@ which might take some work on older kernels.
 
 ### What are the Linux kernel configuration options needed to run Tetragon?
 
+As a first step to verify your kernel configuration, you can use the `tetra probe config` command. This will output a list of detected kernel features relevant to Tetragon. Missing features can indicate that your kernel is not configured correctly.
+
+```shell
+sudo tetra probe config
+```
+
 This is the list of needed configuration options, note that this might evolve
 quickly with new Tetragon features:
 
