@@ -42,6 +42,14 @@ Build information about tetragon
 | `time ` | `2022-05-13T15:54:45Z` |
 | `version` | `v1.2.0` |
 
+### `tetragon_cgroup_rate_total`
+
+The total number of Tetragon cgroup rate counters. For internal use only.
+
+| label | values |
+| ----- | ------ |
+| `type ` | `check, delete, delete_fail, lookup_fail, process, throttle_start, throttle_stop, update_fail` |
+
 ### `tetragon_cri_cgidmap_resolutions_errors_total`
 
 number of cgroup id map (cgidmap) CRI resolutions that failed
@@ -164,7 +172,7 @@ The total number of Tetragon flags. For internal use only.
 
 | label | values |
 | ----- | ------ |
-| `type ` | `clone, dataArgs, dataFilename, errorArgs, errorCWD, errorCgroupID, errorCgroupName, errorCgroupSubsys, errorCgroupSubsysCgrp, errorCgroups, errorFilename, errorPathResolutionCwd, execve, inInitTree, miss, nocwd, procFS, rootcwd, truncArgs` |
+| `type ` | `clone, dataArgs, dataFilename, errorArgs, errorCWD, errorCgroupID, errorCgroupName, errorCgroupSubsys, errorCgroupSubsysCgrp, errorCgroups, errorFilename, errorPathResolutionCwd, execve, inInitTree, miss, nocwd, procFS, rootcwd, truncArgs, unknown` |
 
 ### `tetragon_generic_kprobe_merge_errors_total`
 
