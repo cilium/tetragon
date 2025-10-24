@@ -58,25 +58,90 @@ All commits must contain a well-written commit message:
 4. All commits **must be signed off** `(git commit -s)`.
    See the section [Developer's Certificate of Origin]({{< ref "/docs/contribution-guide/developer-certificate-of-origin" >}}).
 
-### Example commit message
+### Example commit messages
 
 ```
-doc: add contribution guideline and how to submit pull requests
+tetragon: Fix struct perf_event_info_type layout
 
-Tetragon Open Source project was just released and it does not include
-default contributing guidelines.
+We have a hole in perf_event_info_type which results in wrong number in
+its go counterpart MsgGenericKprobePerfEvent which is aligned differently.
 
-This patch fixes this by adding:
+Make sure the C object does not have any holes.
 
-1. CONTRIBUTING.md file in the root directory as suggested by github documentation: https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/setting-guidelines-for-repository-contributors
+Fixes: #4119
+Signed-off-by: Jiri Olsa <jolsa@kernel.org>
+```
 
-2. Development guide under docs directory with a section on how to submit pull requests.
+Commit can contain previous output of commands, and the result after the patch
+to explicit the benefit to the reviewer, it can also be logs output, benchmark
+results, etc.
 
-3. Moves the DEVELOP.md file from root directory to the `docs/contributing/development/` one.
+```
+cmd/tetra: use text/tabwriter to format tp list output
 
-Fixes: #33
+Also add the support of load error by reusing the metric state recap.
 
-Signed-off-by: Djalal Harouni <djalal@cilium.io>
+Previously, the output of `tetra tp list` was a bit chaotic, for
+example, with 2 policies, with one with a loading error, it looked like
+the following:
+
+    [1] invalid enabled:false filterID:0 namespace:(global) sensors:
+        loadError: "policy handler 'tracing' failed loading policy 'invalid': tracing [...]
+    [2] block-binary enabled:true filterID:0 namespace:(global) sensors:gkp-sensor-1
+
+Now, using text/tabwriter, we redact the errors (use -o json for full
+output) and put everything in columns:
+
+    ID   NAME           STATE        FILTERID   NAMESPACE   SENSORS
+    1    invalid        load_error   0          (global)
+    2    block-binary   enabled      0          (global)    gkp-sensor-1
+
+Signed-off-by: Mahe Tardy <mahe.tardy@gmail.com>
+```
+
+Commit message can contain the `Reported-by`, `Suggested-by`, etc., tags from
+[the kernel documentation](https://www.kernel.org/doc/html/v6.17/process/submitting-patches.html#using-reported-by-tested-by-reviewed-by-suggested-by-and-fixes).
+You can also use the [`Co-authored-by` tag](https://docs.github.com/en/pull-requests/committing-changes-to-your-project/creating-and-editing-commits/creating-a-commit-with-multiple-authors)
+to create commits with multiple authors.
+
+```
+bpf: fix tail call program types for usdt sensor
+
+As reported by Mahe newest kernels check properly on programs using
+(some) maps being same type[^1]. We violate that with usdt tail called
+programs having just 'uprobe' type.
+
+[^1]: 4540aed51b12 ("bpf: Enforce expected_attach_type for tailcall compatibility")
+
+Reported-by: Mahe Tardy <mahe.tardy@gmail.com>
+Signed-off-by: Jiri Olsa <jolsa@kernel.org>
+```
+
+Include a `Fixes:` tag and try to explain a bug you found out.
+
+```
+pkg/crdutils: fix standalone custom resources validation
+
+This fixes commit 29b76c4 ("Refactor CRD defaulting and validation
+as generic") that was enhancing commit a9c9a0b ("pkg/tracingpolicy:
+add k8s validation for meta and spec").
+
+I think it's a typo that was introduced because when we do the validation
+of the object, we give the function two versions of that object, cr that
+is typed and was created by yaml.UnmarshalStrict the JSON object with
+K8s default, and unstr that is the unstructured object version of what
+was passed as input, but with K8s default. We need these two objects to
+do the validation respectively on the ObjectMeta and the Spec.
+
+When Unmarshaling the JSON object to the GenericTracingPolicy (or
+others) types, all fields are set to their Golang defaults (!) in
+addition to the K8s default that were already applied. So some missing
+fields, that were defaulted by the K8s default were injected in the
+process and thus only partial validation was done.
+
+Fixes: 29b76c402b68 ("Refactor CRD defaulting and validation as generic")
+
+Signed-off-by: Mahe Tardy <mahe.tardy@gmail.com>
 ```
 
 ## Submit a pull request
