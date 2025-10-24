@@ -414,6 +414,33 @@ type kpValidateInfo struct {
 	ignore  bool
 }
 
+func validateOverride(
+	f *v1alpha1.KProbeSpec,
+	funcName string,
+	useMulti bool,
+) error {
+	isSecurityFunc := strings.HasPrefix(funcName, "security_")
+
+	if isSecurityFunc {
+		// LSM functions
+		if !bpf.HasModifyReturn() {
+			return errors.New("override action not supported on security_ hooks, fmod_ret not available")
+		}
+
+		if useMulti {
+			return fmt.Errorf("can't override '%s' function with kprobe_multi, use --%s option", funcName, option.KeyDisableKprobeMulti)
+		}
+	} else if f.Syscall {
+		if !bpf.HasOverrideHelper() {
+			return errors.New("override action not supported on syscalls, bpf_override_return helper not available")
+		}
+	} else {
+		return errors.New("override action can be used only with syscalls and security_ hooks")
+	}
+
+	return nil
+}
+
 func preValidateKprobe(
 	log logger.FieldLogger,
 	f *v1alpha1.KProbeSpec,
@@ -455,19 +482,6 @@ func preValidateKprobe(
 		for mid, matchAction := range selector.MatchActions {
 			if (matchAction.KernelStackTrace || matchAction.UserStackTrace) && matchAction.Action != "Post" {
 				return nil, fmt.Errorf("kernelStackTrace or userStackTrace can only be used along Post action: got (kernelStackTrace/userStackTrace) enabled in selectors[%d].matchActions[%d] with action '%s'", sid, mid, matchAction.Action)
-			}
-		}
-	}
-
-	if selectors.HasOverride(f.Selectors) {
-		if !bpf.HasOverrideHelper() {
-			return nil, errors.New("error override action not supported, bpf_override_return helper not available")
-		}
-		if !f.Syscall {
-			for idx := range calls {
-				if !strings.HasPrefix(calls[idx], "security_") {
-					return nil, errors.New("error override action can be used only with syscalls and security_ hooks")
-				}
 			}
 		}
 	}
@@ -741,16 +755,9 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 		}
 	}
 
-	isSecurityFunc := strings.HasPrefix(funcName, "security_")
-
 	if selectors.HasOverride(f.Selectors) {
-		if isSecurityFunc && in.useMulti {
-			return errFn(fmt.Errorf("error: can't override '%s' function with kprobe_multi, use --disable-kprobe-multi option",
-				funcName))
-		}
-		if isSecurityFunc && !bpf.HasModifyReturn() {
-			return errFn(fmt.Errorf("error: can't override '%s' function without fmodret support",
-				funcName))
+		if err := validateOverride(f, funcName, in.useMulti); err != nil {
+			return errFn(fmt.Errorf("override validation failed: %w", err))
 		}
 	}
 
