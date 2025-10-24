@@ -9,14 +9,14 @@ argument. The list contains simple POD types and several complex kernel
 objects that are represented by extracted data type.
 
 List of described data types:
-- [`sint8, int8`](#int8)
+- [`int8`](#int8)
 - [`uint8`](#uint8)
-- [`sint16, int16`](#int16)
+- [`int16`](#int16)
 - [`uint16`](#uint16)
-- [`int, sint32, int32`](#int)
+- [`int, int32`](#int)
 - [`uint32`](#uint32)
-- [`long, sint64, int64`](#long)
-- [`ulong, uint64, size_t`](#ulong)
+- [`int64`](#int64)
+- [`ulong, size_t`](#uint64)
 - [`string`](#string)
 - [`skb`](#skb)
 - [`sock`](#sock)
@@ -26,11 +26,11 @@ List of described data types:
 - [`path`](#path)
 - [`fd`](#fd)
 - [`cred`](#cred)
-- [`const_buf`](#const_buf)
 - [`nop`](#nop)
 - [`bpf_attr`](#bpf_attr)
 - [`perf_event`](#perf_event)
 - [`bpf_map`](#bpf_map)
+- [`bpf_prog`](#bpf_prog)
 - [`user_namespace`](#user_namespace)
 - [`capability`](#capability)
 - [`kiocb`](#kiocb)
@@ -50,9 +50,7 @@ List of described data types:
 - [`file`](#file)
 - [`dentry`](#dentry)
 
-<a name="int8"></a>
-
-## `sint8, int8`
+## `int8`
 
 The data type extracts 8-bit signed value.
 
@@ -60,9 +58,7 @@ The data type extracts 8-bit signed value.
 
 The data type extracts 8-bit unsigned value.
 
-<a name="int16"></a>
-
-## `sint16, int16`
+## `int16`
 
 The data type extracts 16-bit signed value.
 
@@ -72,7 +68,7 @@ The data type extracts 16-bit unsigned value.
 
 <a name="int"></a>
 
-## `int, sint32, int32`
+## `int, int32`
 
 The data type extracts 32-bit signed value.
 
@@ -80,15 +76,13 @@ The data type extracts 32-bit signed value.
 
 The data type extracts 32-bit unsigned value.
 
-<a name="long"></a>
-
-## `long, sint64, int64`
+## `int64`
 
 The data type extracts 64-bit signed value.
 
-<a name="ulong"></a>
+<a name="uint64"></a>
 
-## `ulong, uint64, size_t`
+## `uint64, size_t`
 
 The data type extracts  64-bit unsigned value.
 
@@ -124,10 +118,6 @@ TBD
 
 TBD
 
-## `const_buf`
-
-TBD
-
 ## `nop`
 
 TBD
@@ -141,6 +131,10 @@ TBD
 TBD
 
 ## `bpf_map`
+
+TBD
+
+## `bpf_prog`
 
 TBD
 
@@ -193,7 +187,7 @@ TBD
 The `linux_binprm` data type represents kernel `struct linux_binprm` object
 and retrieves the `struct linux_binprm::file` full path.
 
-See general path limitations in [path retrieval limits](#pathlimits))
+See general path limitations in [path retrieval limits](#pathlimits).
 
 ## `data_loc`
 
@@ -216,7 +210,7 @@ TBD
 The `file` data type represents kernel `struct file` object and retrieves
 the file's full path.
 
-See general path limitations in [path retrieval limits](#pathlimits))
+See general path limitations in [path retrieval limits](#pathlimits).
 
 ## `dentry`
 
@@ -227,12 +221,14 @@ This stems from the fact that with just `struct dentry` tetragon does not have
 mount information and does not have enough data to pass through main point within
 the path.
 
-See general path limitations in [path retrieval limits](#pathlimits))
+See general path limitations in [path retrieval limits](#pathlimits).
 
 ## `path`
 
 The `path` data type represents kernel `struct path` object retrieves
 the related path.
+
+<a name="pathlimits"></a>
 
 {{< caution >}}
 Full path retrieval is available only on kernels `v5.3` and later.
@@ -241,4 +237,3 @@ On older kernels, there's a limit of 256 path components, which means
 we can retrieve up to the maximum path length (4096 bytes), but only
 with 256 path entries (directories and file name).
 {{< /caution >}}
-
