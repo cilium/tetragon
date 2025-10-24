@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
-//go:build arm64 && linux
-
 package asm
 
 import (
