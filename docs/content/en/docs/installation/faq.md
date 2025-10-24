@@ -28,6 +28,22 @@ which might take some work on older kernels.
 
 ### What are the Linux kernel configuration options needed to run Tetragon?
 
+Tetragon requires specific kernel configuration options to function properly. 
+You can verify your kernel configuration and runtime capabilities using the 
+following approaches:
+
+#### 1. Check Kernel Configuration (tetra probe config)
+
+As a first step to verify your kernel configuration, you can use the 
+`tetra probe config` command. This will output a list of detected kernel 
+features relevant to Tetragon. Missing features can indicate that your kernel 
+is not configured correctly.
+
+```shell
+sudo tetra probe config
+```
+
+
 This is the list of needed configuration options, note that this might evolve
 quickly with new Tetragon features:
 
@@ -71,8 +87,8 @@ CGROUP_FAVOR_DYNMODS=y  (optional)  >= 6.0
   association issues.
 ```
 
-If the system is still on the old Cgroupv1 interface and the running kernel version
-is >= 6.11 then these kernel config options are required:
+If the system is still on the old Cgroupv1 interface and the running kernel 
+version is >= 6.11 then these kernel config options are required:
 ```
 # CGROUPv1 Process tracking on kernels >= 6.11
 CONFIG_MEMCG_V1=y
