@@ -28,6 +28,84 @@ which might take some work on older kernels.
 
 ### What are the Linux kernel configuration options needed to run Tetragon?
 
+Tetragon requires specific kernel configuration options to function properly.
+You can verify your kernel configuration and runtime capabilities using the
+following approaches.
+
+#### Check kernel configuration with `tetra probe config`
+
+As a first step to verify your kernel configuration, you can use the
+`tetra probe config` command. This will output a list of detected kernel
+features relevant to Tetragon. Missing features can indicate that your kernel
+is not configured correctly.
+
+```shell
+tetra probe config
+```
+
+The output should be similar to this:
+
+```
+ONFIG_AUDIT:y
+CONFIG_AUDITSYSCALL:y
+CONFIG_BPF:y
+CONFIG_BPF_EVENTS:y
+CONFIG_BPF_JIT:y
+CONFIG_BPF_JIT_DEFAULT_ON:y
+CONFIG_BPF_KPROBE_OVERRIDE:y
+CONFIG_BPF_SYSCALL:y
+CONFIG_CGROUPS:y
+CONFIG_DEBUG_INFO_BTF:y
+CONFIG_DEBUG_INFO_BTF_MODULES:y
+CONFIG_FTRACE_SYSCALLS:y
+CONFIG_HAVE_BPF_JIT:n
+CONFIG_HAVE_EBPF_JIT:y
+CONFIG_SECURITY:y
+```
+
+#### Probe features at runtime with `tetra probe`
+
+To probe if your kernel has sufficient features turned on at runtime, you can
+run `tetra probe`, this command requires root privileges, notably to load probe
+BPF programs:
+
+```shell
+sudo tetra probe
+```
+
+You can also run this command directly from the tetragon container image on a
+Kubernetes cluster node. For example:
+
+```shell
+kubectl run bpf-probe --image=quay.io/cilium/tetragon-ci:latest \
+    --privileged --restart=Never -it --rm --command -- tetra probe
+```
+
+The output should be similar to this (with boolean values depending on your
+actual configuration):
+
+```
+override_return: true
+buildid: true
+kprobe_multi: false
+uprobe_multi false
+fmodret: true
+fmodret_syscall: true
+signal: true
+large: true
+link_pin: true
+lsm: false
+missed_stats_kprobe_multi: false
+missed_stats_kprobe: false
+batch_update: true
+uprobe_refctroff: true
+audit_loginuid: true
+probe_write_user: true
+uprobe_regs_change: false
+```
+
+#### List of required kernel configurations
+
 This is the list of needed configuration options, note that this might evolve
 quickly with new Tetragon features:
 
@@ -77,33 +155,6 @@ is >= 6.11 then these kernel config options are required:
 # CGROUPv1 Process tracking on kernels >= 6.11
 CONFIG_MEMCG_V1=y
 CONFIG_CPUSETS_V1=y
-```
-
-At runtime, to probe if your kernel has sufficient features turned on, you can
-run `tetra` with root privileges with the `probe` command:
-
-```shell
-sudo tetra probe
-```
-
-You can also run this command directly from the tetragon container image on a
-Kubernetes cluster node. For example:
-
-```shell
-kubectl run bpf-probe --image=quay.io/cilium/tetragon-ci:latest --privileged --restart=Never -it --rm --command -- tetra probe
-```
-
-The output should be similar to this (with boolean values depending on your
-actual configuration):
-
-```
-override_return: true
-buildid: true
-kprobe_multi: false
-fmodret: true
-fmodret_syscall: true
-signal: true
-large: true
 ```
 
 ### Tetragon failed to start complaining about a missing BTF file
