@@ -115,7 +115,7 @@ type Program struct {
 	// PinName
 	PinName string
 
-	// RetProbe indicates whether a kprobe is a kretprobe.
+	// RetProbe indicates whether a kprobe/uprobe is a kretprobe/uretprobe
 	RetProbe bool
 	// ErrorFatal indicates whether a program must load and fatal otherwise.
 	// Most program will set this to true. For example, kernel functions hooks
