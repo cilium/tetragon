@@ -53,12 +53,23 @@ type observerKprobeSensor struct {
 	name string
 }
 
+type fmodRetProgram struct {
+	name string
+}
+
 func init() {
 	kprobe := &observerKprobeSensor{
 		name: "kprobe sensor",
 	}
+
+	fmodRet := &fmodRetProgram{
+		name: "fmod_ret program",
+	}
+
 	sensors.RegisterProbeType("generic_kprobe", kprobe)
 	observer.RegisterEventHandlerAtInit(ops.MSG_OP_GENERIC_KPROBE, handleGenericKprobe)
+
+	sensors.RegisterProbeType("generic_fmod_ret", fmodRet)
 }
 
 type kprobeSelectors struct {
@@ -1073,11 +1084,25 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 		maps = append(maps, program.MapUser(cgtracker.MapName, load))
 	}
 
-	overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
-	if has.override {
-		overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
+	if load.Override && load.OverrideFmodRet {
+		// setup fmodret program and its input
+		fmodRetProg, fmodRetMap := getFmodRetProg(kprobeEntry.funcName)
+		progs = append(progs, fmodRetProg)
+		maps = append(maps, fmodRetMap)
+
+		// setup the output of kprobe
+		overrideTasksMap := program.MapBuilder("override_tasks", load)
+		overrideTasksMap.PinPath = path.Join("fmod_ret/", kprobeEntry.funcName, "override_tasks")
+
+		maps = append(maps, overrideTasksMap)
+	} else {
+		// kprobe override
+		overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
+		if has.override {
+			overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
+		}
+		maps = append(maps, overrideTasksMap)
 	}
-	maps = append(maps, overrideTasksMap)
 
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load))
 
@@ -1232,6 +1257,21 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir string, load *program.P
 	}
 
 	return nil
+}
+
+func loadGenericFmodRetProgram(bpfDir string, load *program.Program, maps []*program.Map, verbose int) error {
+	if load.LoadState.IsLoaded() {
+		logger.GetLogger().Info(fmt.Sprintf("The generic fmodify return program on %s has been loaded", load.Attach))
+		return nil
+	}
+
+	logger.GetLogger().Info("loading generic fmod ret program", "prog", load)
+
+	unload := func() {
+		deleteFmodRetProg(load.Attach)
+	}
+
+	return program.LoadFmodRetProgram(bpfDir, load, maps, "generic_fmodret_override", verbose, unload)
 }
 
 func loadGenericKprobeSensor(bpfDir string, load *program.Program, maps []*program.Map, verbose int) error {
@@ -1460,4 +1500,8 @@ func retprobeMerge(prev pendingEvent, curr pendingEvent) *tracing.MsgGenericKpro
 
 func (k *observerKprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 	return loadGenericKprobeSensor(args.BPFDir, args.Load, args.Maps, args.Verbose)
+}
+
+func (k *fmodRetProgram) LoadProbe(args sensors.LoadProbeArgs) error {
+	return loadGenericFmodRetProgram(args.BPFDir, args.Load, args.Maps, args.Verbose)
 }
