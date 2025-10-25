@@ -1134,17 +1134,19 @@ FUNC_INLINE long
 copy_char_iovec(void *ctx, long off, unsigned long arg, int argm,
 		struct msg_generic_kprobe *e)
 {
-	int *s = (int *)args_off(e, off);
 	unsigned long meta;
 
 	meta = get_arg_meta(argm, e);
 
+#ifndef GENERIC_TRACEPOINT
 	if (has_return_copy(argm)) {
+		int *s = (int *)args_off(e, off);
 		u64 retid = retprobe_map_get_key(ctx);
 
 		retprobe_map_set_iovec(e->func_id, retid, e->common.ktime, arg, meta);
 		return return_error(s, char_buf_saved_for_retprobe);
 	}
+#endif
 	return __copy_char_iovec(off, arg, meta, 0, e);
 }
 
