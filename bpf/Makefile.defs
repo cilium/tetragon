@@ -32,4 +32,4 @@ ifeq ($(DEBUG),1)
 	__DEBUG_FLAGS = -DTETRAGON_BPF_DEBUG
 endif
 
-CLANG_FLAGS += $(FLAGS) -I $(LIBBPF) -I $(IDIR) -I $(LDIR) -I $(ERRMETRICS_DIR) -target bpf -mcpu=v2 -g -D__TARGET_ARCH_$(BPF_TARGET_ARCH) -fdebug-default-version=4 $(__DEBUG_FLAGS)
+CLANG_FLAGS += $(FLAGS) -I $(LIBBPF) -I $(IDIR) -I $(LDIR) -I $(ERRMETRICS_DIR) -target bpf -mcpu=v3 -g -D__TARGET_ARCH_$(BPF_TARGET_ARCH) -fdebug-default-version=4 $(__DEBUG_FLAGS)
