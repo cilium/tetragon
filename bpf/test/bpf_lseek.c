@@ -10,7 +10,7 @@
 #include "bpf_ktime.h"
 
 /*
- * # cat /sys/kernel/debug/tracing/events/syscalls/sys_enter_lseek/format
+ * # cat /sys/kernel/tracing/events/syscalls/sys_enter_lseek/format
  * name: sys_enter_lseek
  * ID: 682
  * format:

@@ -117,7 +117,7 @@ func TestGenericTracepointSimple(t *testing.T) {
 // tracepoint tests. It filters events based on the test program's pid, so that
 // we get more predictable results.
 func doTestGenericTracepointPidFilter(t *testing.T, conf v1alpha1.TracepointSpec, selfOp func(), checkFn func(*tetragon.ProcessTracepoint) error) {
-	if _, err := os.Stat("/sys/kernel/debug/tracing/events/syscalls"); os.IsNotExist(err) {
+	if _, err := os.Stat("/sys/kernel/tracing/events/syscalls"); os.IsNotExist(err) {
 		t.Skip("cannot use syscall tracepoints (consider enabling CONFIG_FTRACE_SYSCALLS)")
 	}
 
