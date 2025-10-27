@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	tracepointsPath = "/sys/kernel/debug/tracing/events"
+	tracepointsPath = "/sys/kernel/tracing/events"
 )
 
 // Tracepoint represents the information of a Linux tracepoint
@@ -52,7 +52,7 @@ func (tff *FieldFormat) ParseField() error {
 	return nil
 }
 
-// LoadFormat loads the format of a tracepoint from /sys/kernel/debug
+// LoadFormat loads the format of a tracepoint from /sys/kernel/tracing
 func (gt *Tracepoint) LoadFormat() error {
 	gtf, err := tracepointLoadFormat(gt.Subsys, gt.Event)
 	if err == nil {
@@ -64,7 +64,7 @@ func (gt *Tracepoint) LoadFormat() error {
 // tracepointLoadFormat is the low-level function for loading the format of the given tracepoint
 //
 // For reference:
-// # cat /sys/kernel/debug/tracing/events/syscalls/sys_enter_lseek/format
+// # cat /sys/kernel/tracing/events/syscalls/sys_enter_lseek/format
 // name: sys_enter_lseek
 // ID: 682
 // format:
