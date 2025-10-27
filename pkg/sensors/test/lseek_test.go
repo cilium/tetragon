@@ -14,6 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/unix"
 
+	"github.com/cilium/tetragon/pkg/testutils"
+
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
@@ -30,7 +32,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestSensorLseekLoad(t *testing.T) {
-	if _, err := os.Stat("/sys/kernel/tracing/events/syscalls"); os.IsNotExist(err) {
+	if !testutils.CheckKernelTracingExists() {
 		t.Skip("cannot use syscall tracepoints (consider enabling CONFIG_FTRACE_SYSCALLS)")
 	}
 
@@ -59,7 +61,7 @@ func TestSensorLseekLoad(t *testing.T) {
 }
 
 func TestSensorLseekEnable(t *testing.T) {
-	if _, err := os.Stat("/sys/kernel/tracing/events/syscalls"); os.IsNotExist(err) {
+	if !testutils.CheckKernelTracingExists() {
 		t.Skip("cannot use syscall tracepoints (consider enabling CONFIG_FTRACE_SYSCALLS)")
 	}
 
