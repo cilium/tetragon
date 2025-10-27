@@ -7,9 +7,12 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
+
+	"github.com/cilium/tetragon/pkg/tracepoint"
 )
 
 func readLines(path string) ([]string, error) {
@@ -28,7 +31,11 @@ func readLines(path string) ([]string, error) {
 }
 
 func ReadAvailFuncs(pattern string) ([]string, error) {
-	list, err := readLines("/sys/kernel/tracing/available_filter_functions")
+	tracefs, err := tracepoint.GetTraceFSPath()
+	if err != nil {
+		return nil, err
+	}
+	list, err := readLines(filepath.Join(tracefs, "available_filter_functions"))
 	if err != nil {
 		return []string{}, err
 	}
