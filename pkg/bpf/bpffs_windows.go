@@ -13,6 +13,10 @@ func CheckOrMountDebugFS() error {
 	return constants.ErrWindowsNotSupported
 }
 
+func CheckOrMountTraceFS() error {
+	return constants.ErrWindowsNotSupported
+}
+
 func CheckOrMountCgroup2() error {
 	return constants.ErrWindowsNotSupported
 }

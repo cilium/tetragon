@@ -22,6 +22,8 @@ var (
 	mountOnce sync.Once
 	// Path to where debugfs is mounted
 	debugFSRoot = "/sys/kernel/debug"
+	// Path to where tracefs is mounted
+	traceFSRoot = "/sys/kernel/tracing"
 	// Path to where cgroup2 is mounted
 	cgroup2Root = defaults.Cgroup2Dir
 )
@@ -111,7 +113,26 @@ func checkOrMountDebugFSDefaultLocations() error {
 		return mountFS(debugFSRoot, mountinfo.FilesystemTypeDebugFS)
 	}
 	if !debugfsInstance {
-		return errors.New("instance exists with othe type")
+		return errors.New("instance exists with other type")
+	}
+	return nil
+}
+
+func checkOrMountTraceFSDefaultLocations() error {
+	infos, err := mountinfo.GetMountInfo()
+	if err != nil {
+		return err
+	}
+
+	mounted, tracefsInstance := mountinfo.IsMountFS(infos, mountinfo.FilesystemTypeTraceFS, traceFSRoot)
+
+	// If /sys/kernel/tracing is not mounted at all, we should mount
+	// traceFS there.
+	if !mounted {
+		return mountFS(traceFSRoot, mountinfo.FilesystemTypeTraceFS)
+	}
+	if !tracefsInstance {
+		return errors.New("instance exists with other type")
 	}
 	return nil
 }
@@ -236,6 +257,20 @@ func CheckOrMountFS(bpfRoot string) {
 
 func CheckOrMountDebugFS() error {
 	return checkOrMountDebugFSDefaultLocations()
+}
+
+// CheckOrMountTraceFS tries to mount tracefs.
+// TraceFS is available since linux 4.1.
+// In case it isn't available, fallbacks at mounting debugfs.
+// By 2030, debugfs tracing automount will be killed upstream:
+// https://github.com/torvalds/linux/commit/9ba817fb7c6afd3c86a6d4c3b822924b87ef0348
+func CheckOrMountTraceFS() error {
+	err := checkOrMountTraceFSDefaultLocations()
+	if err != nil {
+		logger.GetLogger().Warn("TraceFS not available; fallback at using debugFS. Please file an issue on cilium/tetragon sharing your OS info", "tracefs", traceFSRoot, "debugfs", debugFSRoot)
+		err = checkOrMountDebugFSDefaultLocations()
+	}
+	return err
 }
 
 func CheckOrMountCgroup2() error {
