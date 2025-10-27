@@ -312,7 +312,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID) ([]i
 			}
 		}
 
-		var allBTFArgs [api.EventConfigMaxArgs][api.MaxBTFArgDepth]api.ConfigBTFArg
+		var allBTFArgs [api.EventConfigMaxArgsReal][api.MaxBTFArgDepth]api.ConfigBTFArg
 		for cfgIdx, arg := range spec.Args {
 			tgtIdx := arg.Index
 			if tgtIdx > target.Spec.ArgsCnt {

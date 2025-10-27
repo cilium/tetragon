@@ -631,24 +631,28 @@ type ConfigUsdtArg struct {
 }
 
 const (
+	/* Maximum for code logic */
 	EventConfigMaxArgs     = 5
 	EventConfigMaxUsdtArgs = 8
-	MaxBTFArgDepth         = 10 // Artificial value for compilation, may be extended
+	/* Maximum for storage to keep verifier happy. */
+	EventConfigMaxArgsReal = 8
+
+	MaxBTFArgDepth = 10 // Artificial value for compilation, may be extended
 )
 
 type EventConfig struct {
-	FuncId          uint32                                           `align:"func_id"`
-	ArgType         [EventConfigMaxArgs]int32                        `align:"arg"`
-	ArgMeta         [EventConfigMaxArgs]uint32                       `align:"arm"`
-	ArgTpCtxOff     [EventConfigMaxArgs]uint32                       `align:"off"`
-	ArgIndex        [EventConfigMaxArgs]int32                        `align:"idx"`
-	Syscall         uint32                                           `align:"syscall"`
-	ArgReturnCopy   int32                                            `align:"argreturncopy"`
-	ArgReturn       int32                                            `align:"argreturn"`
-	ArgReturnAction int32                                            `align:"argreturnaction"`
-	PolicyID        uint32                                           `align:"policy_id"`
-	Flags           uint32                                           `align:"flags"`
-	Pad             uint32                                           `align:"pad"`
-	BTFArg          [EventConfigMaxArgs][MaxBTFArgDepth]ConfigBTFArg `align:"btf_arg"`
-	UsdtArg         [EventConfigMaxUsdtArgs]ConfigUsdtArg            `align:"usdt_arg"`
+	FuncId          uint32                                               `align:"func_id"`
+	ArgType         [EventConfigMaxArgs]int32                            `align:"arg"`
+	ArgMeta         [EventConfigMaxArgs]uint32                           `align:"arm"`
+	ArgTpCtxOff     [EventConfigMaxArgs]uint32                           `align:"off"`
+	ArgIndex        [EventConfigMaxArgs]int32                            `align:"idx"`
+	Syscall         uint32                                               `align:"syscall"`
+	ArgReturnCopy   int32                                                `align:"argreturncopy"`
+	ArgReturn       int32                                                `align:"argreturn"`
+	ArgReturnAction int32                                                `align:"argreturnaction"`
+	PolicyID        uint32                                               `align:"policy_id"`
+	Flags           uint32                                               `align:"flags"`
+	Pad             uint32                                               `align:"pad"`
+	BTFArg          [EventConfigMaxArgsReal][MaxBTFArgDepth]ConfigBTFArg `align:"btf_arg"`
+	UsdtArg         [EventConfigMaxUsdtArgs]ConfigUsdtArg                `align:"usdt_arg"`
 }
