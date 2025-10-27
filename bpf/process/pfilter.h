@@ -329,13 +329,14 @@ selector_match(__u32 *f, struct selector_filter *sel,
 			res[i] = 1;
 	}
 
+       asm volatile("%[len] &= 0x3;\n"
+                    : [len] "+r"(len));
+
 	/* Updating the number of iterations below, you should also
 	 * update the function namespaceSelectorValue() in kernel.go
 	 */
 #ifdef __LARGE_BPF_PROG
 	for (i = 0; i < len; i++) {
-		if (i > (MAX_SELECTOR_VALUES - 1)) // we need to make the verifier happy
-			break;
 		res[i] = process_filter(sel, f, enter, &msg->ns, &msg->caps);
 		index = next_pid_value(index, f, ty);
 		sel->index = index;
