@@ -49,8 +49,7 @@ func (pc *Cache) cacheGarbageCollector(intervalGC time.Duration) {
 	pc.stopChan = make(chan bool)
 
 	go func() {
-		var deleteQueue, newQueue []*ProcessInternal
-
+		var deleteQueue []*ProcessInternal
 		for {
 			select {
 			case <-pc.stopChan:
@@ -58,7 +57,7 @@ func (pc *Cache) cacheGarbageCollector(intervalGC time.Duration) {
 				pc.cache.Purge()
 				return
 			case <-ticker.C:
-				newQueue = newQueue[:0]
+				newQueue := []*ProcessInternal{}
 				for _, p := range deleteQueue {
 					/* If the ref != 0 this means we have bounced
 					 * through !refcnt and now have a refcnt. This
