@@ -22,7 +22,7 @@ import (
 
 // TestTestChecker tests the test checker
 func TestTestChecker(t *testing.T) {
-	if _, err := os.Stat("/sys/kernel/debug/tracing/events/syscalls"); os.IsNotExist(err) {
+	if _, err := os.Stat("/sys/kernel/tracing/events/syscalls"); os.IsNotExist(err) {
 		t.Skip("cannot use syscall tracepoints (consider enabling CONFIG_FTRACE_SYSCALLS)")
 	}
 

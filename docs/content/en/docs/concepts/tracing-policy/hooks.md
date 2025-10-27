@@ -87,7 +87,7 @@ Tracepoints are statically defined in the kernel and have the advantage of being
 kernel versions and thus more portable than kprobes.
 
 To see the list of tracepoints available on your kernel, you can list them
-using `sudo ls /sys/kernel/debug/tracing/events`, the output should be similar
+using `sudo ls /sys/kernel/tracing/events`, the output should be similar
 to this.
 
 ```
@@ -118,7 +118,7 @@ error_report  iomap           page_isolation  smbus         xhci-hcd
 You can then choose the subsystem that you want to trace, and look the
 tracepoint you want to use and its format. For example, if we choose the
 `netif_receive_skb` tracepoints from the `net` subsystem, we can read its
-format with `sudo cat /sys/kernel/debug/tracing/events/net/netif_receive_skb/format`,
+format with `sudo cat /sys/kernel/tracing/events/net/netif_receive_skb/format`,
 the output should be similar to the following.
 
 ```

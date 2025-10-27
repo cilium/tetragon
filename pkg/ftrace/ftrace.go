@@ -28,7 +28,7 @@ func readLines(path string) ([]string, error) {
 }
 
 func ReadAvailFuncs(pattern string) ([]string, error) {
-	list, err := readLines("/sys/kernel/debug/tracing/available_filter_functions")
+	list, err := readLines("/sys/kernel/tracing/available_filter_functions")
 	if err != nil {
 		return []string{}, err
 	}
