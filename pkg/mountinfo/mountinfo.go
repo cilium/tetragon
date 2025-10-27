@@ -17,6 +17,7 @@ const (
 	FilesystemTypeBPFFS   = "bpf"
 	FilesystemTypeCgroup2 = "cgroup2"
 	FilesystemTypeDebugFS = "debugfs"
+	FilesystemTypeTraceFS = "tracefs"
 
 	mountInfoFilepath = "/proc/self/mountinfo"
 )
