@@ -17,10 +17,6 @@ import (
 	"sync"
 )
 
-const (
-	tracepointsPath = "/sys/kernel/tracing/events"
-)
-
 // Tracepoint represents the information of a Linux tracepoint
 type Tracepoint struct {
 	Subsys string
@@ -80,6 +76,14 @@ func GetTraceFSPath() (string, error) {
 	return tracefs, nil
 }
 
+func tracepointsPath() (string, error) {
+	traceFs, err := GetTraceFSPath()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(traceFs, "events"), nil
+}
+
 // tracepointLoadFormat is the low-level function for loading the format of the given tracepoint
 //
 // For reference:
@@ -98,7 +102,11 @@ func GetTraceFSPath() (string, error) {
 //	field:off_t offset;     offset:24;      size:8; signed:0;
 //	field:unsigned int whence;      offset:32;      size:8; signed:0;
 func tracepointLoadFormat(subsys string, event string) (*Format, error) {
-	fname := fmt.Sprintf("%s/%s/%s/format", tracepointsPath, subsys, event)
+	tpPath, err := tracepointsPath()
+	if err != nil {
+		return nil, err
+	}
+	fname := fmt.Sprintf("%s/%s/%s/format", tpPath, subsys, event)
 	f, err := os.Open(fname)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse tracepoint format: %w", err)
@@ -207,9 +215,13 @@ FieldsLoop:
 // The Format field for this events is going to be empty. Callers can call LoadFormat() to fill it.
 func GetAllTracepoints() ([]Tracepoint, error) {
 	ret := []Tracepoint{}
-	err := filepath.Walk(tracepointsPath, func(path string, info fs.FileInfo, _ error) error {
+	tpPath, err := tracepointsPath()
+	if err != nil {
+		return nil, err
+	}
+	err = filepath.Walk(tpPath, func(path string, info fs.FileInfo, _ error) error {
 		if info.IsDir() {
-			name := strings.TrimPrefix(path, tracepointsPath+"/")
+			name := strings.TrimPrefix(path, tpPath+"/")
 			arr := strings.Split(name, "/")
 			if len(arr) == 2 {
 				ret = append(ret, Tracepoint{
