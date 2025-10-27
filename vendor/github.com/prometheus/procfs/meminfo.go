@@ -307,7 +307,7 @@ func parseMemInfo(r io.Reader) (*Meminfo, error) {
 			m.ZswapBytes = &valBytes
 		case "Zswapped:":
 			m.Zswapped = &val
-			m.ZswapBytes = &valBytes
+			m.ZswappedBytes = &valBytes
 		case "Dirty:":
 			m.Dirty = &val
 			m.DirtyBytes = &valBytes

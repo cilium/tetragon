@@ -177,3 +177,21 @@ func GetProcMounts(pid int) ([]*MountInfo, error) {
 	}
 	return parseMountInfo(data)
 }
+
+// GetMounts retrieves mountinfo information from `/proc/self/mountinfo`.
+func (fs FS) GetMounts() ([]*MountInfo, error) {
+	data, err := util.ReadFileNoStat(fs.proc.Path("self/mountinfo"))
+	if err != nil {
+		return nil, err
+	}
+	return parseMountInfo(data)
+}
+
+// GetProcMounts retrieves mountinfo information from a processes' `/proc/<pid>/mountinfo`.
+func (fs FS) GetProcMounts(pid int) ([]*MountInfo, error) {
+	data, err := util.ReadFileNoStat(fs.proc.Path(fmt.Sprintf("%d/mountinfo", pid)))
+	if err != nil {
+		return nil, err
+	}
+	return parseMountInfo(data)
+}
