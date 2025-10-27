@@ -6,6 +6,7 @@
 package verify
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -114,6 +115,16 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 		}
 
 		collection, err := ebpf.NewCollection(spec)
+		if err != nil {
+			var ve *ebpf.VerifierError
+			if errors.As(err, &ve) {
+				fmt.Printf("%+v\n", ve)
+
+				_, kver, _ := kernels.GetKernelVersion("", "/proc")
+				fmt.Printf("failed object %s, kernel %s\n", fileName, kver)
+			}
+		}
+
 		require.NoError(t, err, "failed to load resources into the kernel")
 
 		collection.Close()
