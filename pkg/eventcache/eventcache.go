@@ -138,6 +138,10 @@ func HandleGenericEvent(internal *process.ProcessInternal, ev notify.Event, tid 
 }
 
 func (ec *Cache) handleEvents() {
+	// We reuse the same underlying array for the slice as it's efficient
+	// for this hot path.  This pattern is risky as the downside is that the
+	// slice capacity can only grow and never shrink back.  See after slice
+	// modification how we use slices.Clip to reduce the capacity.
 	tmp := ec.cache[:0]
 	for _, event := range ec.cache {
 		var err error
@@ -179,7 +183,18 @@ func (ec *Cache) handleEvents() {
 			ec.notifier.NotifyListener(event.msg, processedEvent)
 		}
 	}
-	ec.cache = tmp
+	if len(tmp)*2 < cap(tmp) {
+		// This is the slow path, allocate a new underlying array with
+		// less capacity and thus make the old backing memory a
+		// candidate for garbage collection. This allows the slice to
+		// shrink to size 0 again and let the GC collected what might
+		// remain in the "capacity" of the slice.
+		newSlice := make([]CacheObj, len(tmp))
+		copy(newSlice, tmp)
+		ec.cache = newSlice
+	} else {
+		ec.cache = tmp
+	}
 }
 
 func (ec *Cache) loop() {
