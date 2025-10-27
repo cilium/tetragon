@@ -167,7 +167,7 @@ func TestTracepointSelectors(t *testing.T) {
 	defer cancel()
 
 	// The whence argument has a 7 index, see:
-	// # cat /sys/kernel/debug/tracing/events/syscalls/sys_enter_lseek/format
+	// # cat /sys/kernel/tracing/events/syscalls/sys_enter_lseek/format
 	// name: sys_enter_lseek
 	// ID: 698
 	// format:
