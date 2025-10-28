@@ -53,10 +53,6 @@ func LoaderObj() string {
 	return ""
 }
 
-func LseekObj() string {
-	return ""
-}
-
 func EnableRhel7Progs() bool {
 	return false
 }
