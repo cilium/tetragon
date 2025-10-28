@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 const (
@@ -59,6 +60,24 @@ func (gt *Tracepoint) LoadFormat() error {
 		gt.Format = gtf
 	}
 	return err
+}
+
+// GetTraceFSPath returns tracefs path if available,
+// otherwise it tries debugfs tracing folder.
+func GetTraceFSPath() (string, error) {
+	tracefs := sync.OnceValue(func() string {
+		if _, err := os.Stat("/sys/kernel/tracing"); err == nil {
+			return "/sys/kernel/tracing"
+		}
+		if _, err := os.Stat("/sys/kernel/debug/tracing"); err == nil {
+			return "/sys/kernel/debug/tracing"
+		}
+		return ""
+	})()
+	if tracefs == "" {
+		return tracefs, errors.New("neither tracefs nor debugfs are available")
+	}
+	return tracefs, nil
 }
 
 // tracepointLoadFormat is the low-level function for loading the format of the given tracepoint
