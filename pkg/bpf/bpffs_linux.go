@@ -256,10 +256,6 @@ func CheckOrMountFS(bpfRoot string) {
 	})
 }
 
-func CheckOrMountDebugFS() error {
-	return checkOrMountDebugFSDefaultLocations()
-}
-
 // CheckOrMountTraceFS tries to mount tracefs.
 // TraceFS is available since linux 4.1.
 // In case it isn't available, fallbacks at mounting debugfs.
