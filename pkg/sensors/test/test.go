@@ -59,16 +59,29 @@ func handleTest(r *bytes.Reader) ([]observer.Event, error) {
 	return []observer.Event{msgUnix}, nil
 }
 
+func lseekProg(sensorName string, usePerfRingBuffer bool) *program.Program {
+	obj := "bpf_lseek.o"
+	progName := "test_lseek_prog"
+	if usePerfRingBuffer {
+		obj = "bpf_lseek_v511.o"
+		progName = "test_lseek_prog_v511"
+	}
+	return program.Builder(
+		obj,
+		"syscalls/sys_enter_lseek",
+		"tracepoint/sys_enter_lseek",
+		sensors.PathJoin(sensorName, progName),
+		"tracepoint",
+	)
+}
+
 // GetTestSensor creates a new test sensor.
 func GetTestSensor() *sensors.Sensor {
 	sensorName := fmt.Sprintf("test-sensor-%d", sensorCounter.Add(1))
-	progs := []*program.Program{program.Builder(
-		config.LseekObj(),
-		"syscalls/sys_enter_lseek",
-		"tracepoint/sys_enter_lseek",
-		sensors.PathJoin(sensorName, "test_lseek_prog"),
-		"tracepoint",
-	)}
+	progs := []*program.Program{lseekProg(sensorName, false)}
+	if config.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
+		progs = append(progs, lseekProg(sensorName, true))
+	}
 	var maps []*program.Map
 	if config.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
 		maps = []*program.Map{program.MapUserFrom(base.RingBufEvents)}

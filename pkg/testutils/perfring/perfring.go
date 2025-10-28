@@ -184,16 +184,26 @@ func ProcessEvents(t *testing.T, ctx context.Context, eventFn EventFn, wgStarted
 		}()
 	}
 
+	complChanCount := 0
+	maxComplChan := 1
+	if useBPFRingBuffer {
+		maxComplChan = 2
+	}
 	for {
 		select {
 		case err := <-errChan:
 			t.Fatal(err)
 		case <-complChan:
-			perfReader.Close()
-			if useBPFRingBuffer {
-				ringBufReader.Close()
+			// Count how many ring buffer readers have completed and only close
+			// down when all have done so.
+			complChanCount++
+			if complChanCount >= maxComplChan {
+				perfReader.Close()
+				if useBPFRingBuffer {
+					ringBufReader.Close()
+				}
+				return
 			}
-			return
 		case <-ctx.Done():
 			// Wait for context cancel.
 			perfReader.Close()
