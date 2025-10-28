@@ -297,7 +297,7 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	checkProcFS()
 	// Setup file system mounts
 	bpf.CheckOrMountFS("")
-	bpf.CheckOrMountDebugFS()
+	bpf.CheckOrMountTraceFS()
 	bpf.CheckOrMountCgroup2()
 	bpf.SetMapPrefix(option.Config.BpfDir)
 

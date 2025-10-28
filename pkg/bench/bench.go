@@ -64,7 +64,7 @@ func (args *Arguments) String() string {
 func runTetragon(ctx context.Context, configFile string, args *Arguments, summary *Summary, ready chan bool) {
 	bpf.ConfigureResourceLimits()
 	bpf.CheckOrMountFS("")
-	bpf.CheckOrMountDebugFS()
+	bpf.CheckOrMountTraceFS()
 	bpf.CheckOrMountCgroup2()
 
 	if args.Debug {
