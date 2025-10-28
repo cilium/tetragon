@@ -9,6 +9,7 @@ serviceAccount:
   annotations: {}
   name: ""
 podAnnotations: {}
+serviceAnnotations: {}
 podSecurityContext: {}
 nodeSelector: {}
 tolerations:
