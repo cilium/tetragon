@@ -17,8 +17,7 @@ import (
 	"github.com/cilium/tetragon/pkg/mountinfo"
 )
 
-var (
-	mountOnce sync.Once
+const (
 	// Path to where debugfs is mounted
 	debugFSRoot = "/sys/kernel/debug"
 	// Path to where tracefs is mounted
@@ -26,6 +25,8 @@ var (
 	// Path to where cgroup2 is mounted
 	cgroup2Root = defaults.Cgroup2Dir
 )
+
+var mountOnce sync.Once
 
 // mountFS mounts the BPFFS filesystem into the desired mapRoot directory.
 func mountFS(root, kind string) error {
