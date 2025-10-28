@@ -189,13 +189,6 @@ func LoaderObj() string {
 	return "bpf_loader.o"
 }
 
-func LseekObj() string {
-	if EnableV511Progs() {
-		return "bpf_lseek_v511.o"
-	}
-	return "bpf_lseek.o"
-}
-
 func EnableRhel7Progs() bool {
 	kernelVer, _, _ := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
 	return (int64(kernelVer) < kernels.KernelStringToNumeric("3.11.0"))
