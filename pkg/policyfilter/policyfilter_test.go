@@ -26,7 +26,7 @@ func repoRootPath() string {
 
 func initBpffs() string {
 	bpf.CheckOrMountFS("")
-	bpf.CheckOrMountDebugFS()
+	bpf.CheckOrMountTraceFS()
 	bpf.ConfigureResourceLimits()
 	dirPath, err := os.MkdirTemp(defaults.DefaultMapRoot, "test-policy-filter-*")
 	if err != nil {
