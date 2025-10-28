@@ -108,7 +108,7 @@ func TestSensorsRun(m *testing.M, sensorName string) int {
 	testMapDir := fmt.Sprintf("test%s", sensorName)
 
 	bpf.CheckOrMountFS("")
-	bpf.CheckOrMountDebugFS()
+	bpf.CheckOrMountTraceFS()
 	bpf.ConfigureResourceLimits()
 
 	if config.TetragonLib != "" {
