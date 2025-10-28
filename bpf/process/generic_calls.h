@@ -715,7 +715,6 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 #endif
 
 #ifdef GENERIC_UPROBE
-	/* no arguments for uprobes for now */
 	e->a0 = PT_REGS_PARM1_CORE(ctx);
 	e->a1 = PT_REGS_PARM2_CORE(ctx);
 	e->a2 = PT_REGS_PARM3_CORE(ctx);
