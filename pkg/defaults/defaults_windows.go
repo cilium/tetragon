@@ -48,4 +48,7 @@ const (
 
 	// defaults for the process cache
 	DefaultProcessCacheGCInterval = 30 * time.Second
+
+	// defaults for the {k,u}retprobes lru cache
+	DefaultRetprobesCacheSize = 4096
 )

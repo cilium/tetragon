@@ -133,6 +133,8 @@ const (
 
 	KeyExecveMapEntries = "execve-map-entries"
 	KeyExecveMapSize    = "execve-map-size"
+
+	KeyRetprobesCacheSize = "retprobes-cache-size"
 )
 
 type UsernameMetadaCode int
@@ -285,6 +287,8 @@ func ReadAndSetFlags() error {
 
 	Config.ExecveMapEntries = viper.GetInt(KeyExecveMapEntries)
 	Config.ExecveMapSize = viper.GetString(KeyExecveMapSize)
+
+	Config.RetprobesCacheSize = viper.GetInt(KeyRetprobesCacheSize)
 	return nil
 }
 
@@ -477,4 +481,6 @@ func AddFlags(flags *pflag.FlagSet) {
 
 	flags.Int(KeyExecveMapEntries, 0, "Set entries for execve_map table (default 32768)")
 	flags.String(KeyExecveMapSize, "", "Set size for execve_map table (allows K/M/G suffix)")
+
+	flags.Int(KeyRetprobesCacheSize, defaults.DefaultRetprobesCacheSize, "Set {k,u}retprobes events cache maximum size")
 }
