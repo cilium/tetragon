@@ -192,6 +192,13 @@ func updateResultsDetailed(w io.Writer, res *vmtests.Result, out *runTestsResult
 		return
 	}
 
+	// In case a panic happens, we will never receive a "fail" TestEvent line.
+	// In that case, force-add the test and set it to a failed one.
+	if nrTests == 0 && res.Error {
+		nrTests++
+		nrFailedTests++
+	}
+
 	out.totalDuration += res.Duration
 	out.nrTests += nrTests
 	out.nrSkipedTests += nrSkippedTests
