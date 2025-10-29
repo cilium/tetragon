@@ -108,8 +108,48 @@ func FindBTFStruct(name string) (*btf.Struct, error) {
 		return nil, err
 	}
 
-	err = spec.TypeByName(name, &ty)
+	err = firstTypeByName(spec, name, &ty)
 	return ty, err
+}
+
+// firstStructTypeByName mimics spec.TypeByName(), but returns first match found.
+func firstTypeByName(spec *btf.Spec, name string, typ interface{}) error {
+	typeInterface := reflect.TypeOf((*btf.Type)(nil)).Elem()
+
+	// typ may be **T or *Type
+	typValue := reflect.ValueOf(typ)
+	if typValue.Kind() != reflect.Ptr {
+		return fmt.Errorf("%T is not a pointer", typ)
+	}
+
+	typPtr := typValue.Elem()
+	if !typPtr.CanSet() {
+		return fmt.Errorf("%T cannot be set", typ)
+	}
+
+	wanted := typPtr.Type()
+	if wanted == typeInterface {
+		// This is *Type. Unwrap the value's type.
+		wanted = typPtr.Elem().Type()
+	}
+
+	if !wanted.AssignableTo(typeInterface) {
+		return fmt.Errorf("%T does not satisfy Type interface", typ)
+	}
+
+	types, err := spec.AnyTypesByName(name)
+	if err != nil {
+		return err
+	}
+
+	for _, typ := range types {
+		if reflect.TypeOf(typ) != wanted {
+			continue
+		}
+		typPtr.Set(reflect.ValueOf(typ))
+		return nil
+	}
+	return btf.ErrNotFound
 }
 
 func FindBTFFuncParamFromHook(hook string, argIndex int) (*btf.FuncParam, error) {

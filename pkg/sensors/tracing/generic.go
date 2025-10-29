@@ -6,7 +6,6 @@
 package tracing
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -74,7 +73,7 @@ func resolveBTFArg(hook string, arg *v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [
 	// - real argument value
 	if hasCurrentTaskSource(arg) {
 		st, err := btf.FindBTFStruct("task_struct")
-		if err != nil && !errors.Is(err, ebtf.ErrMultipleMatches) {
+		if err != nil {
 			return nil, [api.MaxBTFArgDepth]api.ConfigBTFArg{}, err
 		}
 		ty = ebtf.Type(st)
