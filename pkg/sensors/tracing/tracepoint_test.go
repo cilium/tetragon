@@ -831,6 +831,12 @@ func TestUInt16Tracepoint(t *testing.T) {
 					Operator: "Equal",
 					Values:   []string{"7777"},
 				}},
+			}, {
+				MatchArgs: []v1alpha1.ArgSelector{{
+					Args:     []uint32{uint32(0)},
+					Operator: "InRange",
+					Values:   []string{"7779:7780"},
+				}},
 			}},
 		}},
 	}
@@ -852,15 +858,17 @@ func TestUInt16Tracepoint(t *testing.T) {
 	}
 
 	ops := func() {
-		listener, err := net.Listen("tcp", ":7777")
-		if err != nil {
-			panic(err)
+		for port := 7776; port <= 7781; port++ {
+			listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+			if err != nil {
+				panic(err)
+			}
+			listener.Close()
 		}
-		listener.Close()
 	}
 
 	perfring.RunTest(t, ctx, ops, eventFn)
-	require.Equal(t, 1, count, "expected single event")
+	require.Equal(t, 3, count, "expected three events: one for each of 7777, 7779 and 7780")
 }
 
 func testListSyscallsDupsRange(t *testing.T, checker *ec.UnorderedEventChecker, configHook string) {
