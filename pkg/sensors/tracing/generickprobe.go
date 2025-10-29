@@ -733,7 +733,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 	var argReturnPrinters []argPrinter
 	var setRetprobe bool
 	var argRetprobe *v1alpha1.KProbeArg
-	var allBTFArgs [api.EventConfigMaxArgs][api.MaxBTFArgDepth]api.ConfigBTFArg
+	var allBTFArgs [api.EventConfigMaxArgsReal][api.MaxBTFArgDepth]api.ConfigBTFArg
 
 	errFn := func(err error) (idtable.EntryID, error) {
 		return idtable.UninitializedEntryID, err

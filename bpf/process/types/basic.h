@@ -189,6 +189,7 @@ struct extract_arg_data {
 #define MAX_BTF_ARG_DEPTH	  10
 #define EVENT_CONFIG_MAX_ARG	  5
 #define EVENT_CONFIG_MAX_USDT_ARG 8
+#define EVENT_CONFIG_MAX_ARG_REAL 8
 
 struct event_config {
 	__u32 func_id;
@@ -210,7 +211,7 @@ struct event_config {
 	__u32 policy_id;
 	__u32 flags;
 	__u32 pad;
-	struct config_btf_arg btf_arg[EVENT_CONFIG_MAX_ARG][MAX_BTF_ARG_DEPTH];
+	struct config_btf_arg btf_arg[EVENT_CONFIG_MAX_ARG_REAL][MAX_BTF_ARG_DEPTH];
 	struct config_usdt_arg usdt_arg[EVENT_CONFIG_MAX_USDT_ARG];
 } __attribute__((packed));
 
@@ -1134,17 +1135,19 @@ FUNC_INLINE long
 copy_char_iovec(void *ctx, long off, unsigned long arg, int argm,
 		struct msg_generic_kprobe *e)
 {
-	int *s = (int *)args_off(e, off);
 	unsigned long meta;
 
 	meta = get_arg_meta(argm, e);
 
+#ifndef GENERIC_TRACEPOINT
 	if (has_return_copy(argm)) {
+		int *s = (int *)args_off(e, off);
 		u64 retid = retprobe_map_get_key(ctx);
 
 		retprobe_map_set_iovec(e->func_id, retid, e->common.ktime, arg, meta);
 		return return_error(s, char_buf_saved_for_retprobe);
 	}
+#endif
 	return __copy_char_iovec(off, arg, meta, 0, e);
 }
 
