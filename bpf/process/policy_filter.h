@@ -48,13 +48,34 @@ struct {
 		});
 } policy_filter_cgroup_maps SEC(".maps");
 
+#define CGROUP_TO_POLICY_MAX_ENTRIES 1
+struct {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(max_entries, CGROUP_TO_POLICY_MAX_ENTRIES);
+	__uint(map_flags, BPF_F_NO_PREALLOC); 
+	__type(key, __u64); /* Key is the cgrpid */
+	__type(value, __u32); /* Value is the policy id */
+} cg_to_policy_map SEC(".maps");
+
 // policy_filter_check checks whether the policy applies on the current process.
 // Returns true if it does, false otherwise.
+
+FUNC_INLINE __u64 get_cgroup_id_from_curr_task()
+{
+	__u64 cgroupid = tg_get_current_cgroup_id();
+	if (!cgroupid)
+		return 0;
+
+	__u64 trackerid = cgrp_get_tracker_id(cgroupid);
+	if (trackerid)
+		cgroupid = trackerid;
+
+	return cgroupid;
+}
 
 FUNC_INLINE bool policy_filter_check(u32 policy_id)
 {
 	void *policy_map;
-	__u64 cgroupid, trackerid;
 
 	if (!policy_id)
 		return true;
@@ -63,15 +84,23 @@ FUNC_INLINE bool policy_filter_check(u32 policy_id)
 	if (!policy_map)
 		return false;
 
-	cgroupid = tg_get_current_cgroup_id();
+	__u64 cgroupid = get_cgroup_id_from_curr_task();
 	if (!cgroupid)
 		return false;
 
-	trackerid = cgrp_get_tracker_id(cgroupid);
-	if (trackerid)
-		cgroupid = trackerid;
-
 	return map_lookup_elem(policy_map, &cgroupid);
+}
+
+// cgroup_filter_check checks whether the current cgroup has a policy applied.
+// Returns policy_id if it does, 0 otherwise.
+FUNC_INLINE __u32 get_policy_from_cgroup()
+{
+	__u64 cgroupid = get_cgroup_id_from_curr_task();
+	if (!cgroupid)
+		return 0;
+
+	__u32* policy_id = (__u32*)map_lookup_elem(&cg_to_policy_map, &cgroupid);
+	return policy_id ? *policy_id : 0;
 }
 
 #endif /* POLICY_FILTER_MAPS_H__ */

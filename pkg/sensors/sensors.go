@@ -7,8 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 
+	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policyfilter"
@@ -26,6 +28,11 @@ var (
 	allMaps = []*program.Map{}
 	// protects allPrograms and allMaps
 	allProgramsAndMapsMutex sync.Mutex
+)
+
+const (
+	CgroupToPolicyMapName     = "cg_to_policy_map"
+	PolicyStringHashMapPrefix = "pol_str_maps"
 )
 
 // Sensors
@@ -112,6 +119,32 @@ type SensorIface interface {
 	// the sensor's programs.
 	TotalMemlock() int
 	Overhead() ([]ProgOverhead, bool)
+	GetCgroupToPolicyMapHandle() *ebpf.Map
+	GetPolicyStringMapHandles() []*ebpf.Map
+}
+
+func (s *Sensor) GetCgroupToPolicyMapHandle() *ebpf.Map {
+	for _, m := range s.Maps {
+		if m.Name == CgroupToPolicyMapName {
+			// We just get a reference here the cleanup phase is delegated to the sensor unload
+			return m.MapHandle
+		}
+	}
+	return nil
+}
+
+func (s *Sensor) GetPolicyStringMapHandles() []*ebpf.Map {
+	policyStrings := make([]*ebpf.Map, 0)
+	for _, m := range s.Maps {
+		if strings.HasPrefix(m.Name, PolicyStringHashMapPrefix) {
+			// We just get a reference here the cleanup phase is delegated to the sensor unload
+			policyStrings = append(policyStrings, m.MapHandle)
+		}
+	}
+	sort.Slice(policyStrings, func(i, j int) bool {
+		return policyStrings[i].String() < policyStrings[j].String()
+	})
+	return policyStrings
 }
 
 func (s *Sensor) Overhead() ([]ProgOverhead, bool) {

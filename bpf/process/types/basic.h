@@ -29,6 +29,7 @@
 #include "process/heap.h"
 #include "../bpf_mbset.h"
 #include "bpf_ktime.h"
+#include "../policy_filter.h"
 
 /* Type IDs form API with user space generickprobe.go */
 enum {
@@ -209,7 +210,7 @@ struct event_config {
 	 */
 	__u32 policy_id;
 	__u32 flags;
-	__u32 pad;
+	__u32 cgroup_filter;
 	struct config_btf_arg btf_arg[EVENT_CONFIG_MAX_ARG][MAX_BTF_ARG_DEPTH];
 	struct config_usdt_arg usdt_arg[EVENT_CONFIG_MAX_USDT_ARG];
 } __attribute__((packed));
@@ -691,14 +692,54 @@ FUNC_INLINE void *get_string_map(int index, __u32 map_idx)
 	return 0;
 }
 
+FUNC_INLINE void *get_policy_string_map(int index, __u32* map_idx)
+{
+	switch (index) {
+	case 0:
+		return map_lookup_elem(&pol_str_maps_0, map_idx);
+	case 1:
+		return map_lookup_elem(&pol_str_maps_1, map_idx);
+	case 2:
+		return map_lookup_elem(&pol_str_maps_2, map_idx);
+	case 3:
+		return map_lookup_elem(&pol_str_maps_3, map_idx);
+	case 4:
+		return map_lookup_elem(&pol_str_maps_4, map_idx);
+	case 5:
+		return map_lookup_elem(&pol_str_maps_5, map_idx);
+#ifdef __LARGE_BPF_PROG
+	case 6:
+		return map_lookup_elem(&pol_str_maps_6, map_idx);
+	case 7:
+		return map_lookup_elem(&pol_str_maps_7, map_idx);
+#ifdef __V511_BPF_PROG
+	case 8:
+		return map_lookup_elem(&pol_str_maps_8, map_idx);
+	case 9:
+		return map_lookup_elem(&pol_str_maps_9, map_idx);
+	case 10:
+		return map_lookup_elem(&pol_str_maps_10, map_idx);
+#endif
+#endif
+	}
+	return 0;
+}
+
+// This the value that `filter->vallen` will have when the filter doesn't use 
+// static values but dynamic ones. 8 because it is the number of bytes required
+// to skip the the filter header.
+// [index:u32]
+// [op:u32]
+// [section_len:u32] -> 4 bytes
+// [type:u32]        -> 4 bytes
+// so starting after `op` we need to skip 8 bytes to skip the filter header.
+#define HAS_DYNAMIC_VALUES 8
+
 FUNC_LOCAL long
 filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint orig_len)
 {
-	__u32 *map_ids = (__u32 *)&filter->value;
 	char *heap, *zero_heap;
-	void *string_map;
 	__u16 padded_len;
-	__u32 map_idx;
 	int zero = 0;
 	__u16 len;
 	int index;
@@ -723,9 +764,6 @@ filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint or
 	// Check if we have entries for this padded length.
 	// Do this before we copy data for efficiency.
 	index = string_map_index(padded_len);
-	map_idx = map_ids[index & 0xf];
-	if (map_idx == 0xffffffff)
-		return 0;
 
 	heap = (char *)map_lookup_elem(&string_maps_heap, &zero);
 	zero_heap = (char *)map_lookup_elem(&heap_ro_zero, &zero);
@@ -769,14 +807,30 @@ filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint or
 		probe_read(heap + len + 1, (padded_len - len) & STRING_MAPS_COPY_MASK, zero_heap);
 #endif
 	}
+	void *string_map = 0;
+	// todo: ideally we should prune this code in the verifier with some ebpf constants.
+	if (filter->vallen == HAS_DYNAMIC_VALUES) {
+		__u32 policy_id = get_policy_from_cgroup();
+		if (!policy_id) {
+			// this should never happen since we check it before
+			return 0;
+		}
+		// bpf_printk("Dynamic value for policy %d, index %d", policy_id, index);
+		string_map = get_policy_string_map(index, &policy_id);
+	} else {
+		__u32 *map_ids = (__u32 *)&filter->value;
+		__u32 map_idx = map_ids[index & 0xf];
+		if (map_idx == 0xffffffff)
+			return 0;
+		// Get map for this string length
+		string_map = get_string_map(index, map_idx);
+	}
 
-	// Get map for this string length
-	string_map = get_string_map(index, map_idx);
 	if (!string_map)
 		return 0;
 
 	__u8 *pass = map_lookup_elem(string_map, heap);
-
+	// bpf_printk("lookup for string %s, pass %d", heap, !!pass);
 	return !!pass;
 }
 

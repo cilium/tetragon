@@ -1,0 +1,15 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "block-process-template-values-1"
+spec:
+  podSelector:
+    matchLabels:
+      app: "my-deployment-1"
+  options:
+  - name: binding
+    value: "targetExecPaths"
+  - name: values
+    value: "/usr/bin/nmap"
+  - name: policy-template-ref
+    value: "block-process-template"

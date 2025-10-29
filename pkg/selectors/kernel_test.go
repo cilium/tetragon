@@ -472,7 +472,7 @@ func TestParseMatchArg(t *testing.T) {
 	expected1 := []byte{
 		0x00, 0x00, 0x00, 0x00, // Index == 0
 		0x03, 0x00, 0x00, 0x00, // operator == equal
-		52, 0x00, 0x00, 0x00, // length == 32
+		52, 0x00, 0x00, 0x00, // length == 52
 		0x06, 0x00, 0x00, 0x00, // value type == string
 		0x00, 0x00, 0x00, 0x00, // map ID for strings <25
 		0xff, 0xff, 0xff, 0xff, // map ID for strings 25-48
@@ -603,6 +603,26 @@ func TestParseMatchArg(t *testing.T) {
 		if err := ParseMatchArgs(ks, arg12, []v1alpha1.ArgSelector{}, sig, []v1alpha1.KProbeArg{}); err != nil || bytes.Equal(expected3, d.e[0:d.off]) == false {
 			t.Errorf("parseMatchArgs: error %v expected:\n%v\nbytes:\n%v\nparsing %v\n", err, expected3, d.e[0:d.off], arg3)
 		}
+	}
+}
+
+func TestParseMatchArgForEach(t *testing.T) {
+	sig := []v1alpha1.KProbeArg{
+		v1alpha1.KProbeArg{Index: 1, Type: "linux_binprm", SizeArgIndex: 0, ReturnCopy: false},
+	}
+
+	arg1 := &v1alpha1.ArgSelector{Index: 1, Operator: "Equal", Values: []string{templateValue}}
+	k := NewKernelSelectorState(nil, nil, false)
+	d := &k.data
+
+	expected1 := []byte{
+		0x00, 0x00, 0x00, 0x00, // Index == 0
+		0x03, 0x00, 0x00, 0x00, // operator == equal
+		8, 0x00, 0x00, 0x00, // length == 8
+		0x25, 0x00, 0x00, 0x00, // value type == linux_binprm
+	}
+	if err := ParseMatchArg(k, arg1, sig); err != nil || bytes.Equal(expected1, d.e[0:d.off]) == false {
+		t.Errorf("parseMatchArg: error %v expected:\n%v\nbytes:\n%v\nparsing %v\n", err, expected1, d.e[0:d.off], arg1)
 	}
 }
 

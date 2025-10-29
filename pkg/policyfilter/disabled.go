@@ -9,6 +9,7 @@ import (
 
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/cilium/ebpf"
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/tetragon/pkg/labels"
 	"github.com/cilium/tetragon/pkg/podhelpers"
@@ -21,16 +22,37 @@ func DisabledState() State {
 type disabled struct {
 }
 
-func (s *disabled) AddPolicy(polID PolicyID, namespace string, podSelector *slimv1.LabelSelector,
-	containerSelector *slimv1.LabelSelector) error {
+func disabledError() error {
 	return errors.New("policyfilter is disabled")
 }
 
-func (s *disabled) DelPolicy(polID PolicyID) error {
+func (s *disabled) AddGenericPolicy(polID PolicyID, namespace string, podSelector *slimv1.LabelSelector,
+	containerSelector *slimv1.LabelSelector) error {
+	return disabledError()
+}
+
+func (s *disabled) AddTracingPolicyBinding(polID PolicyID, refPolID PolicyID, namespace string, podLabelSelector *slimv1.LabelSelector,
+	containerLabelSelector *slimv1.LabelSelector) error {
+	return disabledError()
+}
+
+func (s *disabled) DeleteGenericPolicy(polID PolicyID) error {
 	if polID == NoFilterPolicyID {
 		return nil
 	}
-	return errors.New("policyfilter is disabled")
+	return disabledError()
+}
+
+func (s *disabled) DeleteTracingPolicyBinding(polID PolicyID) error {
+	return disabledError()
+}
+
+func (s *disabled) AddTracingPolicyTemplate(polID PolicyID, cgroupToPolicy *ebpf.Map) error {
+	return disabledError()
+}
+
+func (s *disabled) DeleteTracingPolicyTemplate(polID PolicyID) error {
+	return disabledError()
 }
 
 func (s *disabled) AddPodContainer(podID PodID, namespace, workload, kind string, podLabels labels.Labels,
