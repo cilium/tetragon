@@ -226,6 +226,9 @@ options:
       default_value: "true"
       usage: |
         Release all pinned BPF programs and maps in Tetragon BPF directory. Enabled by default. Set to false to disable
+    - name: retprobes-cache-size
+      default_value: "4096"
+      usage: Set {k,u}retprobes events cache maximum size
     - name: server-address
       default_value: localhost:54321
       usage: |

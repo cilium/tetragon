@@ -981,7 +981,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 		}
 	}
 
-	kprobeEntry.pendingEvents, err = lru.New[pendingEventKey, pendingEvent[*tracing.MsgGenericKprobeUnix]](4096)
+	kprobeEntry.pendingEvents, err = lru.New[pendingEventKey, pendingEvent[*tracing.MsgGenericKprobeUnix]](option.Config.RetprobesCacheSize)
 	if err != nil {
 		return errFn(err)
 	}

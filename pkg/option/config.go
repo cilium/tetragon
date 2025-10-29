@@ -128,6 +128,8 @@ type config struct {
 
 	ExecveMapEntries int
 	ExecveMapSize    string
+
+	RetprobesCacheSize int
 }
 
 var (
@@ -146,10 +148,13 @@ var (
 		// Enable all metrics labels by default
 		MetricsLabelFilter: DefaultLabelFilter(),
 
-		// set default valus for the event cache
+		// set default values for the event cache
 		// mainly used in the case of testing
 		EventCacheNumRetries: defaults.DefaultEventCacheNumRetries,
 		EventCacheRetryDelay: defaults.DefaultEventCacheRetryDelay,
+
+		// Set default value for {k,u}retprobes lru events cache
+		RetprobesCacheSize: defaults.DefaultRetprobesCacheSize,
 	}
 )
 
