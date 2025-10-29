@@ -11,6 +11,8 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
+	"github.com/cilium/tetragon/pkg/config"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/testutils"
 )
 
@@ -39,8 +41,9 @@ import (
 // any events, they are not there because events cannot be reordered on the same CPU.
 type TestEventChecker struct {
 	// eventChecker is the underlying event checker
-	eventChecker      ec.MultiEventChecker
-	completionChecker *CompletionChecker
+	eventChecker              ec.MultiEventChecker
+	completionCheckerPerfRing *CompletionChecker
+	completionCheckerBPFRing  *CompletionChecker
 }
 
 // TestCheckerMarkEnd executes the necessary operations to mark the end of event stream on all CPUs
@@ -57,27 +60,37 @@ func TestCheckerMarkEnd(t *testing.T) {
 
 func NewTestChecker(c ec.MultiEventChecker) *TestEventChecker {
 	ret := TestEventChecker{
-		eventChecker:      c,
-		completionChecker: NewCompletionChecker(),
+		eventChecker:              c,
+		completionCheckerPerfRing: NewCompletionChecker(),
+		completionCheckerBPFRing:  NewCompletionChecker(),
 	}
 
 	return &ret
 }
 
-// update updates the state bsaed on the given event
+// update updates the state based on the given event
 func (tc *TestEventChecker) update(ev ec.Event) {
 	switch ev := ev.(type) {
 	case *tetragon.Test:
 		cpu := ev.Arg0
-		tc.completionChecker.Update(cpu)
+		// If we are running both the perf ring buffer and the BPF ring buffer, then
+		// we need to attribute observations to the right completion checker.
+		if ev.Arg1 == 0 {
+			tc.completionCheckerPerfRing.Update(cpu)
+		} else {
+			tc.completionCheckerBPFRing.Update(cpu)
+		}
 	default:
 	}
 }
 
 func (tc *TestEventChecker) NextEventCheck(ev ec.Event, l *slog.Logger) (bool, error) {
-	if tc.completionChecker.Done() {
-		l.Info("seen events on all CPUs, finalizing test")
-		return true, tc.eventChecker.FinalCheck(l)
+	if tc.completionCheckerPerfRing.Done() {
+		// If we are running both ring buffers, then check for completion on both.
+		if !config.EnableV511Progs() || option.Config.UsePerfRingBuffer || tc.completionCheckerBPFRing.Done() {
+			l.Info("seen events on all CPUs, finalizing test")
+			return true, tc.eventChecker.FinalCheck(l)
+		}
 	}
 
 	done, err := tc.eventChecker.NextEventCheck(ev, l)
@@ -96,7 +109,8 @@ func (tc *TestEventChecker) NextEventCheck(ev ec.Event, l *slog.Logger) (bool, e
 func (tc *TestEventChecker) FinalCheck(l *slog.Logger) error {
 	// this means that we run out of events before seeing all test events.
 	// Just return what the underlying checker returns
-	tc.completionChecker.Reset()
+	tc.completionCheckerPerfRing.Reset()
+	tc.completionCheckerBPFRing.Reset()
 	return tc.eventChecker.FinalCheck(l)
 }
 
