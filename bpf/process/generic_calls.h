@@ -1249,7 +1249,6 @@ FUNC_INLINE int generic_process_filter(void)
 
 	enter = event_find_curr(&ppid, &walker);
 	if (!enter) {
-	    enter_found = 0;
 		enter = event_find_curr_probe(msg);
 		if (!enter)
 			return PFILTER_CURR_NOT_FOUND;
