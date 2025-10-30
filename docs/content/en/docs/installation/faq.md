@@ -43,8 +43,39 @@ is not configured correctly.
 sudo tetra probe config
 ```
 
+#### 2. Probe Runtime Features (tetra probe)
 
-This is the list of needed configuration options, note that this might evolve
+To probe if your kernel has sufficient features turned on at runtime, you can 
+run `tetra` with root privileges with the `probe` command:
+
+```shell
+sudo tetra probe
+```
+
+You can also run this command directly from the tetragon container image on a 
+Kubernetes cluster node. For example:
+
+```shell
+kubectl run bpf-probe --image=quay.io/cilium/tetragon-ci:latest \
+    --privileged --restart=Never -it --rm --command -- tetra probe
+```
+
+The output should be similar to this (with boolean values depending on your 
+actual configuration):
+
+```
+override_return: true
+buildid: true
+kprobe_multi: false
+fmodret: true
+fmodret_syscall: true
+signal: true
+large: true
+```
+
+#### 3. Required Kernel Configuration Options
+
+This is the list of needed configuration options, note that this might evolve 
 quickly with new Tetragon features:
 
 ```
@@ -87,39 +118,12 @@ CGROUP_FAVOR_DYNMODS=y  (optional)  >= 6.0
   association issues.
 ```
 
-If the system is still on the old Cgroupv1 interface and the running kernel 
-version is >= 6.11 then these kernel config options are required:
+If the system is still on the old Cgroupv1 interface and the running kernel version
+is >= 6.11 then these kernel config options are required:
 ```
 # CGROUPv1 Process tracking on kernels >= 6.11
 CONFIG_MEMCG_V1=y
 CONFIG_CPUSETS_V1=y
-```
-
-At runtime, to probe if your kernel has sufficient features turned on, you can
-run `tetra` with root privileges with the `probe` command:
-
-```shell
-sudo tetra probe
-```
-
-You can also run this command directly from the tetragon container image on a
-Kubernetes cluster node. For example:
-
-```shell
-kubectl run bpf-probe --image=quay.io/cilium/tetragon-ci:latest --privileged --restart=Never -it --rm --command -- tetra probe
-```
-
-The output should be similar to this (with boolean values depending on your
-actual configuration):
-
-```
-override_return: true
-buildid: true
-kprobe_multi: false
-fmodret: true
-fmodret_syscall: true
-signal: true
-large: true
 ```
 
 ### Tetragon failed to start complaining about a missing BTF file
