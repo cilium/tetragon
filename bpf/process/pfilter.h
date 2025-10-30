@@ -426,8 +426,9 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 	__u64 i;
 
 	/* Do binary filter first for selector index */
-	if (!match_binaries(index, enter))
-		return 0;
+	if (!match_binaries(index, enter)) {
+			return 0;
+	}
 
 	/* Find selector offset byte index */
 	index *= 4;
