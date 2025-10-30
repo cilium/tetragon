@@ -108,7 +108,7 @@ type KProbeArg struct {
 	// Source of the data, if missing the default if function arguments
 	Source string `json:"source"`
 	// +kubebuilder:validation:Optional
-	// Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+	// Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
 	// the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
 	// type.
 	BTFType string `json:"btfType,omitempty"`
@@ -332,6 +332,9 @@ type TracepointSpec struct {
 type UProbeSpec struct {
 	// Name of the traced binary
 	Path string `json:"path"`
+	// +kubebuilder:validation:optional
+	// path for a BTF file for the traced binary
+	BTFPath string `json:"btfPath,omitempty"`
 	// +kubebuilder:validation:Optional
 	// List of the traced symbols
 	Symbols []string `json:"symbols,omitempty"`
