@@ -61,7 +61,7 @@ FUNC_INLINE void do_uprobe_override(void *ctx, __u32 idx)
 }
 
 FUNC_INLINE int
-write_reg(struct pt_regs *ctx, __u32 dst, __u64 val)
+write_reg(struct pt_regs *ctx, __u32 dst, __u8 size, __u64 val)
 {
 	/*
 	 * Using inlined asm to make sure we access context via 'ctx-reg + offset'.
@@ -71,9 +71,19 @@ write_reg(struct pt_regs *ctx, __u32 dst, __u64 val)
 	 * Using clang-20 seems to work, but we need to upgrade first ;-)
 	 */
 #define WRITE_REG(reg)                                                   \
-	asm volatile("if %[dst] != %[off] goto +1\n"                     \
+	asm volatile("if %[dst] != %[off] goto +11\n"                    \
+		     "if %[size] != 8 goto +2\n"                         \
 		     "*(u64 *)(%[ctx] + %[off]) = %[val]\n"              \
-		     : [ctx] "+r"(ctx), [dst] "+r"(dst), [val] "+r"(val) \
+		     "goto +8\n"                                         \
+		     "if %[size] != 4 goto +2\n"                         \
+		     "*(u32 *)(%[ctx] + %[off]) = %[val]\n"              \
+		     "goto +5\n"                                         \
+		     "if %[size] != 2 goto +2\n"                         \
+		     "*(u16 *)(%[ctx] + %[off]) = %[val]\n"              \
+		     "goto +2\n"                                         \
+		     "if %[size] != 1 goto +1\n"                         \
+		     "*(u8 *)(%[ctx] + %[off]) = %[val]\n"               \
+		     : [ctx] "+r"(ctx), [dst] "+r"(dst), [val] "+r"(val), [size] "+r" (size) \
 		     : [off] "i"(offsetof(struct pt_regs, reg))          \
 		     :);
 
@@ -174,33 +184,35 @@ uprobe_offload_x86(struct pt_regs *ctx)
 	if (!regs)
 		return 0;
 
+	bpf_printk("IN  rax %lx\n", ctx->ax);
 	for (i = 0; i < REGS_MAX && i < regs->cnt; i++) {
 		ass = &regs->ass[i];
 
 		switch (ass->type) {
 		case ASM_ASSIGNMENT_TYPE_CONST:
-			write_reg(ctx, ass->dst, ass->off);
+			write_reg(ctx, ass->dst, ass->dst_size, ass->off);
 			break;
 		case ASM_ASSIGNMENT_TYPE_REG:
 			val = read_reg(ctx, ass);
-			write_reg(ctx, ass->dst, val);
+			write_reg(ctx, ass->dst, ass->dst_size, val);
 			break;
 		case ASM_ASSIGNMENT_TYPE_REG_OFF:
 			val = read_reg(ctx, ass);
 			val += ass->off;
-			write_reg(ctx, ass->dst, val);
+			write_reg(ctx, ass->dst, ass->dst_size, val);
 			break;
 		case ASM_ASSIGNMENT_TYPE_REG_DEREF:
 			val = read_reg(ctx, ass);
 			err = probe_read_user(&val, sizeof(val), (void *)val + ass->off);
 			if (!err)
-				write_reg(ctx, ass->dst, val);
+				write_reg(ctx, ass->dst, ass->dst_size, val);
 			break;
 		case ASM_ASSIGNMENT_TYPE_NONE:
 		default:
 			break;
 		}
 	}
+	bpf_printk("OUT rax %lx\n", ctx->ax);
 	return 0;
 }
 #endif /* GENERIC_UPROBE && __TARGET_ARCH_x86 */
