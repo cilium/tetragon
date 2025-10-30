@@ -413,7 +413,7 @@ struct nc_filter {
 
 FUNC_INLINE int
 selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
-			struct msg_generic_kprobe *msg)
+			struct execve_map_value *parent, struct msg_generic_kprobe *msg)
 {
 	int res = PFILTER_ACCEPT;
 	struct pid_filter *pid;
@@ -425,10 +425,12 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 	__u32 len;
 	__u64 i;
 
-	/* Do binary filter first for selector index */
-	if (!match_binaries(index, enter)) {
-			return 0;
-	}
+	/* Do binary and parent filter first for selector index */
+	if (!match_binaries(index, enter))
+		return 0;
+
+	if (!match_parents(index, parent))
+		return 0;
 
 	/* Find selector offset byte index */
 	index *= 4;

@@ -1588,10 +1588,30 @@ struct {
 		});
 } tg_mb_paths SEC(".maps");
 
-FUNC_INLINE int match_binaries(__u32 selidx, struct execve_map_value *current)
+// This map is used by the matchParents selectors to retrieve their options
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__uint(max_entries, MAX_SELECTORS);
+	__type(key, __u32); /* selector id */
+	__type(value, struct match_binaries_sel_opts);
+} tg_mp_sel_opts SEC(".maps");
+
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
+	__uint(max_entries, MAX_SELECTORS); // only one matchParents per selector
+	__type(key, __u32);
+	__array(
+		values, struct {
+			__uint(type, BPF_MAP_TYPE_HASH);
+			__uint(max_entries, 1);
+			__type(key, __u8[MATCH_BINARIES_PATH_MAX_LENGTH]);
+			__type(value, __u8);
+		});
+} tg_mp_paths SEC(".maps");
+
+FUNC_INLINE int __match_binaries(struct execve_map_value *current, struct match_binaries_sel_opts *selector_options, void *path_map)
 {
 	bool match = 0;
-	void *path_map;
 	__u8 *found_key;
 #ifdef __LARGE_BPF_PROG
 	struct string_prefix_lpm_trie prefix_key;
@@ -1601,11 +1621,7 @@ FUNC_INLINE int match_binaries(__u32 selidx, struct execve_map_value *current)
 	int zero = 0;
 #endif /* __LARGE_BPF_PROG */
 
-	struct match_binaries_sel_opts *selector_options;
-
-	// retrieve the selector_options for the matchBinaries, if it's NULL it
-	// means there is not matchBinaries in this selector.
-	selector_options = map_lookup_elem(&tg_mb_sel_opts, &selidx);
+	// If selector_options is NULL, then there is no matchBinaries/matchParents in this selector.
 	if (selector_options) {
 		if (selector_options->op == op_filter_none)
 			return 1; // matchBinaries selector is empty <=> match
@@ -1631,7 +1647,6 @@ FUNC_INLINE int match_binaries(__u32 selidx, struct execve_map_value *current)
 				break;
 			}
 
-			path_map = map_lookup_elem(&tg_mb_paths, &selidx);
 			if (!path_map)
 				return 0;
 			found_key = map_lookup_elem(path_map, current->bin.path);
@@ -1679,8 +1694,29 @@ FUNC_INLINE int match_binaries(__u32 selidx, struct execve_map_value *current)
 		return is_not_operator(selector_options->op) ? !match : match;
 	}
 
-	// no matchBinaries selector <=> match
+	// no selector <=> match
 	return 1;
+}
+
+FUNC_INLINE int match_binaries(__u32 selidx, struct execve_map_value *current)
+{
+	struct match_binaries_sel_opts *selector_options = map_lookup_elem(&tg_mb_sel_opts, &selidx);
+	void *path_map = map_lookup_elem(&tg_mb_paths, &selidx);
+
+	return __match_binaries(current, selector_options, path_map);
+}
+
+FUNC_INLINE int match_parents(__u32 selidx, struct execve_map_value *parent)
+{
+	struct match_binaries_sel_opts *selector_options = map_lookup_elem(&tg_mp_sel_opts, &selidx);
+	void *path_map = map_lookup_elem(&tg_mp_paths, &selidx);
+
+	// If parent not found, but no selectors specified, consider it as match.
+	// Otherwise, consider as not match.
+	if (!parent)
+		return !selector_options;
+
+	return __match_binaries(parent, selector_options, path_map);
 }
 
 FUNC_INLINE char *
