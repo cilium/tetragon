@@ -9,32 +9,6 @@ import (
 
 type initCounterFunc func(*prometheus.CounterVec)
 
-// NewCounterVecWithPod is a wrapper around prometheus.NewCounterVec that also
-// registers the metric to be cleaned up when a pod is deleted.
-//
-// It should be used only to register metrics that have "pod" and "namespace"
-// labels. Using it for metrics without these labels won't break anything, but
-// might add an unnecessary overhead.
-func NewCounterVecWithPod(opts prometheus.CounterOpts, labels []string) *prometheus.CounterVec {
-	metric := prometheus.NewCounterVec(opts, labels)
-	metricsWithPodMutex.Lock()
-	metricsWithPod = append(metricsWithPod, metric.MetricVec)
-	metricsWithPodMutex.Unlock()
-	return metric
-}
-
-// NewCounterVecWithPodV2 is a wrapper around prometheus.V2.NewCounterVec that also
-// registers the metric to be cleaned up when a pod is deleted.
-//
-// See NewCounterVecWithPod for usage notes.
-func NewCounterVecWithPodV2(opts prometheus.CounterVecOpts) *prometheus.CounterVec {
-	metric := prometheus.V2.NewCounterVec(opts)
-	metricsWithPodMutex.Lock()
-	metricsWithPod = append(metricsWithPod, metric.MetricVec)
-	metricsWithPodMutex.Unlock()
-	return metric
-}
-
 // GranularCounter wraps prometheus.CounterVec and implements CollectorWithInit.
 type GranularCounter[L FilteredLabels] struct {
 	metric      *prometheus.CounterVec
