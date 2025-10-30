@@ -1236,7 +1236,7 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 FUNC_INLINE int generic_process_filter(void)
 {
 	int selectors, pass, zero = 0;
-	struct execve_map_value *enter, *parent;
+	struct execve_map_value *enter, *parent = NULL;
 	struct msg_generic_kprobe *msg;
 	struct msg_execve_key *current;
 	struct msg_selector_data *sel;
@@ -1247,8 +1247,10 @@ FUNC_INLINE int generic_process_filter(void)
 	if (!msg)
 		return 0;
 
+    bool enter_found = 1;
 	enter = event_find_curr(&ppid, &walker);
 	if (!enter) {
+	    enter_found = 0;
 		enter = event_find_curr_probe(msg);
 		if (!enter)
 			return PFILTER_CURR_NOT_FOUND;
@@ -1257,8 +1259,8 @@ FUNC_INLINE int generic_process_filter(void)
 
 	// Don't return error if no parent found, because
 	// it's ok in case we don't have selector for parents.
-	//parent = event_find_parent();
-	parent = NULL;
+	if (enter_found)
+	    parent = event_find_parent();
 
 	f = map_lookup_elem(&filter_map, &msg->idx);
 	if (!f)
