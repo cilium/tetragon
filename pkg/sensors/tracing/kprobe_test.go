@@ -3336,9 +3336,17 @@ spec:
     syscall: true
     args:
     - index: 0
-      type: "int"
+      type: "fd"
     selectors:
-    - matchActions:
+    - matchArgs:
+      - index: 0
+        operator: "` + opStr + `"
+        values: `
+	for i := range vals {
+		configHook += fmt.Sprintf("\n        - \"%s\"", vals[i])
+	}
+	configHook += "\n"
+	configHook += `      matchActions:
       - action: UnfollowFD
         argFd: 0
         argName: 0
