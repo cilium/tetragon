@@ -1236,7 +1236,7 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 FUNC_INLINE int generic_process_filter(void)
 {
 	int selectors, pass, zero = 0;
-	struct execve_map_value *enter, *parent = NULL;
+	struct execve_map_value *enter, *parent;
 	struct msg_generic_kprobe *msg;
 	struct msg_execve_key *current;
 	struct msg_selector_data *sel;

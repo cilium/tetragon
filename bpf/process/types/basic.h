@@ -1708,12 +1708,12 @@ FUNC_INLINE int match_binaries(__u32 selidx, struct execve_map_value *current)
 
 FUNC_INLINE int match_parents(__u32 selidx, struct execve_map_value *parent)
 {
-	struct match_binaries_sel_opts *selector_options = NULL;
-	void *path_map = NULL;
+	struct match_binaries_sel_opts *selector_options = map_lookup_elem(&tg_mp_sel_opts, &selidx);
+	void *path_map = map_lookup_elem(&tg_mp_paths, &selidx);
 
 	// If parent not found, but no selectors specified, consider it as match.
 	// Otherwise, consider as not match.
-    if (!parent)
+	if (!parent)
 		return !selector_options;
 
 	return __match_binaries(parent, selector_options, path_map);
