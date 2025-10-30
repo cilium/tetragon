@@ -1257,7 +1257,8 @@ FUNC_INLINE int generic_process_filter(void)
 
 	// Don't return error if no parent found, because
 	// it's ok in case we don't have selector for parents.
-	parent = event_find_parent();
+	//parent = event_find_parent();
+    parent = 0;
 
 	f = map_lookup_elem(&filter_map, &msg->idx);
 	if (!f)
