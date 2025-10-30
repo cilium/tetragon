@@ -2793,7 +2793,7 @@ spec:
                       properties:
                         btfType:
                           description: |-
-                            Type of original argument. This is currently only used in UsdtSpecs for arguments with
+                            Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
                             the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
                             type.
                           type: string
