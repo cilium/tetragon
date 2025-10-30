@@ -9,7 +9,8 @@ struct reg_assignment {
 	__u8 pad1;
 	__u16 src;
 	__u16 dst;
-	__u16 pad2;
+	__u8 src_size;
+	__u8 dst_size;
 	__u64 off;
 };
 
@@ -97,8 +98,11 @@ write_reg(struct pt_regs *ctx, __u32 dst, __u64 val)
 }
 
 FUNC_INLINE __u64
-read_reg(struct pt_regs *ctx, __u32 src)
+read_reg(struct pt_regs *ctx, struct reg_assignment *ass)
 {
+	__u32 src = ass->src;
+	__u8 shift = 64 - ass->src_size*8;
+
 	/* Using inlined asm for same reason we use WRITE_REG above. */
 #define READ_REG(reg) ({                                        \
 	__u64 val;                                              \
@@ -106,6 +110,8 @@ read_reg(struct pt_regs *ctx, __u32 src)
 		     : [ctx] "+r"(ctx), [val] "+r"(val)         \
 		     : [off] "i"(offsetof(struct pt_regs, reg)) \
 		     :);                                        \
+	val <<= shift;						\
+	val >>= shift;						\
 	val;                                                    \
 })
 
@@ -176,16 +182,16 @@ uprobe_offload_x86(struct pt_regs *ctx)
 			write_reg(ctx, ass->dst, ass->off);
 			break;
 		case ASM_ASSIGNMENT_TYPE_REG:
-			val = read_reg(ctx, ass->src);
+			val = read_reg(ctx, ass);
 			write_reg(ctx, ass->dst, val);
 			break;
 		case ASM_ASSIGNMENT_TYPE_REG_OFF:
-			val = read_reg(ctx, ass->src);
+			val = read_reg(ctx, ass);
 			val += ass->off;
 			write_reg(ctx, ass->dst, val);
 			break;
 		case ASM_ASSIGNMENT_TYPE_REG_DEREF:
-			val = read_reg(ctx, ass->src);
+			val = read_reg(ctx, ass);
 			err = probe_read_user(&val, sizeof(val), (void *)val + ass->off);
 			if (!err)
 				write_reg(ctx, ass->dst, val);

@@ -46,3 +46,28 @@ func RegOffset(name string) (uint16, bool) {
 	}
 	return 0, false
 }
+
+func size(idx int) uint8 {
+	switch idx {
+	case 0:
+		return 8
+	case 1:
+		return 4
+	case 2:
+		return 2
+	case 3:
+		return 1
+	}
+	return 0
+}
+
+func RegOffsetSize(name string) (uint16, uint8, bool) {
+	for _, off := range offsets {
+		for idx, n := range off.name {
+			if n == name {
+				return off.val, size(idx), true
+			}
+		}
+	}
+	return 0, 0, false
+}
