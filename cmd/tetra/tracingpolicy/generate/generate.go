@@ -15,9 +15,10 @@ import (
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/yaml"
 
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+
 	telf "github.com/cilium/tetragon/pkg/elf"
 	"github.com/cilium/tetragon/pkg/ftrace"
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/tracingpolicy/generate"
 )
 
@@ -27,7 +28,7 @@ func New() *cobra.Command {
 	addSelectors := func(kprobe *v1alpha1.KProbeSpec) {
 		if matchBinary != "" {
 			sel := v1alpha1.KProbeSelector{
-				MatchBinaries: []v1alpha1.BinarySelector{
+				MatchBinaries: []v1alpha1.GenericBinarySelector{
 					{
 						Operator: "In",
 						Values:   []string{matchBinary},

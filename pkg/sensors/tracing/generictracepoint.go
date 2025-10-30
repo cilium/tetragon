@@ -14,6 +14,8 @@ import (
 
 	"github.com/cilium/ebpf"
 
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -22,7 +24,6 @@ import (
 	"github.com/cilium/tetragon/pkg/eventhandler"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/idtable"
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
@@ -622,6 +623,17 @@ func createGenericTracepointSensor(
 
 		selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", prog0)
 		maps = append(maps, selMatchBinariesMap)
+
+		matchParentsPaths := program.MapBuilderProgram("tg_mp_paths", prog0)
+		if !kernels.MinKernelVersion("5.9") {
+			// Versions before 5.9 do not allow inner maps to have different sizes.
+			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+			matchParentsPaths.SetInnerMaxEntries(tp.selectors.MatchParentsPathsMaxEntries())
+		}
+		maps = append(maps, matchParentsPaths)
+
+		selMatchParentsMap := program.MapBuilderProgram("tg_mp_sel_opts", prog0)
+		maps = append(maps, selMatchParentsMap)
 
 		maps = append(maps, polInfo.policyConfMap(prog0), polInfo.policyStatsMap(prog0))
 	}

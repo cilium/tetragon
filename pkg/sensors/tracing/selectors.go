@@ -53,6 +53,16 @@ func selectorsMaploads(ks *selectors.KernelSelectorState, index uint32) []*progr
 				return populateMatchBinariesPathsMaps(ks, pinPathPrefix, outerMap)
 			},
 		}, {
+			Name: "tg_mp_sel_opts",
+			Load: func(outerMap *ebpf.Map, _ string) error {
+				return populateMatchParentsMaps(ks, outerMap)
+			},
+		}, {
+			Name: "tg_mp_paths",
+			Load: func(outerMap *ebpf.Map, pinPathPrefix string) error {
+				return populateMatchParentsPathsMaps(ks, pinPathPrefix, outerMap)
+			},
+		}, {
 			Name: "string_prefix_maps",
 			Load: func(outerMap *ebpf.Map, pinPathPrefix string) error {
 				return populateStringPrefixFilterMaps(ks, pinPathPrefix, outerMap)
@@ -427,6 +437,70 @@ func populateMatchBinariesPathsMaps(
 		}
 
 		mbSelector := matchBinaries[selectorID]
+		if mbSelector.MBSetID != mbset.InvalidID {
+			if err := mbset.UpdateMap(mbSelector.MBSetID, paths); err != nil {
+				return fmt.Errorf("updating mbset map failed: %w", err)
+			}
+		}
+	}
+	return nil
+}
+
+func populateMatchParentsMaps(
+	ks *selectors.KernelSelectorState,
+	bpfMap *ebpf.Map,
+) error {
+	for selID, sel := range ks.MatchParents() {
+		if err := bpfMap.Update(uint32(selID), sel, ebpf.UpdateAny); err != nil {
+			return fmt.Errorf("failed to insert %v: %w", sel, err)
+		}
+	}
+	return nil
+}
+
+func populateMatchParentsPathsMaps(
+	k *selectors.KernelSelectorState,
+	pinPathPrefix string,
+	outerMap *ebpf.Map,
+) error {
+	maxEntriesFromAllSelector := k.MatchParentsPathsMaxEntries()
+	matchParents := k.MatchParents()
+	for selectorID, paths := range k.MatchParentsPaths() {
+		maxEntries := len(paths)
+		// Versions before 5.9 do not allow inner maps to have different sizes.
+		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+		if !kernels.MinKernelVersion("5.9") {
+			maxEntries = maxEntriesFromAllSelector
+		}
+
+		innerName := fmt.Sprintf("tg_mp_path_%d", selectorID)
+		innerSpec := &ebpf.MapSpec{
+			Name:       innerName,
+			Type:       ebpf.Hash,
+			KeySize:    uint32(processapi.BINARY_PATH_MAX_LEN),
+			ValueSize:  uint32(1),
+			MaxEntries: uint32(maxEntries),
+		}
+		innerMap, err := ebpf.NewMapWithOptions(innerSpec, ebpf.MapOptions{
+			PinPath: sensors.PathJoin(pinPathPrefix, innerName),
+		})
+		if err != nil {
+			return fmt.Errorf("creating innerMap %s failed: %w", innerName, err)
+		}
+		defer innerMap.Close()
+
+		for _, path := range paths {
+			err := innerMap.Update(path, uint8(1), 0)
+			if err != nil {
+				return fmt.Errorf("failed to insert value into %s: %w", innerName, err)
+			}
+		}
+
+		if err := outerMap.Update(uint32(selectorID), uint32(innerMap.FD()), 0); err != nil {
+			return fmt.Errorf("failed to insert %s: %w", innerName, err)
+		}
+
+		mbSelector := matchParents[selectorID]
 		if mbSelector.MBSetID != mbset.InvalidID {
 			if err := mbset.UpdateMap(mbSelector.MBSetID, paths); err != nil {
 				return fmt.Errorf("updating mbset map failed: %w", err)

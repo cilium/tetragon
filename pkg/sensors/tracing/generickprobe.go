@@ -21,6 +21,8 @@ import (
 	ciliumbtf "github.com/cilium/ebpf/btf"
 	lru "github.com/hashicorp/golang-lru/v2"
 
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
@@ -32,7 +34,6 @@ import (
 	"github.com/cilium/tetragon/pkg/eventhandler"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/idtable"
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/ksyms"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -308,6 +309,12 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 
 	matchBinariesPaths := program.MapBuilderProgram("tg_mb_paths", load)
 	maps = append(maps, matchBinariesPaths)
+
+	selMatchParentsMap := program.MapBuilderProgram("tg_mp_sel_opts", load)
+	maps = append(maps, selMatchParentsMap)
+
+	matchParentsPaths := program.MapBuilderProgram("tg_mp_paths", load)
+	maps = append(maps, matchParentsPaths)
 
 	stackTraceMap := program.MapBuilderProgram("stack_trace_map", load)
 	if has.stackTrace {
@@ -1041,6 +1048,17 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 		matchBinariesPaths.SetInnerMaxEntries(kprobeEntry.loadArgs.selectors.entry.MatchBinariesPathsMaxEntries())
 	}
 	maps = append(maps, matchBinariesPaths)
+
+	selMatchParentsMap := program.MapBuilderProgram("tg_mp_sel_opts", load)
+	maps = append(maps, selMatchParentsMap)
+
+	matchParentsPaths := program.MapBuilderProgram("tg_mp_paths", load)
+	if !kernels.MinKernelVersion("5.9") {
+		// Versions before 5.9 do not allow inner maps to have different sizes.
+		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+		matchParentsPaths.SetInnerMaxEntries(kprobeEntry.loadArgs.selectors.entry.MatchParentsPathsMaxEntries())
+	}
+	maps = append(maps, matchParentsPaths)
 
 	// loading the stack trace map in any case so that it does not end up as an
 	// anonymous map (as it's always used by the BPF prog) and is clearly linked

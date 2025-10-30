@@ -816,7 +816,8 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 	filterMap := program.MapBuilderProgram("filter_map", load)
 	retProbe := program.MapBuilderSensor("retprobe_map", load)
 	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
-	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap, retProbe)
+	selMatchParentsMap := program.MapBuilderProgram("tg_mp_sel_opts", load)
+	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap, selMatchParentsMap, retProbe)
 
 	if hasSleepableOffload {
 		regsMap := program.MapBuilderProgram("regs_map", load)

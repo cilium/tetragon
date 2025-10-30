@@ -114,7 +114,7 @@ type KProbeArg struct {
 	BTFType string `json:"btfType,omitempty"`
 }
 
-type BinarySelector struct {
+type GenericBinarySelector struct {
 	// +kubebuilder:validation:Enum=In;NotIn;Prefix;NotPrefix;Postfix;NotPostfix
 	// Filter operation.
 	Operator string `json:"operator"`
@@ -149,7 +149,10 @@ type KProbeSelector struct {
 	MatchReturnActions []ActionSelector `json:"matchReturnActions,omitempty"`
 	// +kubebuilder:validation:Optional
 	// A list of binary exec name filters.
-	MatchBinaries []BinarySelector `json:"matchBinaries,omitempty"`
+	MatchBinaries []GenericBinarySelector `json:"matchBinaries,omitempty"`
+	// +kubebuilder:validation:Optional
+	// A list of process parent exec name filters.
+	MatchParentBinaries []GenericBinarySelector `json:"matchParentBinaries,omitempty"`
 	// +kubebuilder:validation:Optional
 	// A list of namespaces and IDs
 	MatchNamespaces []NamespaceSelector `json:"matchNamespaces,omitempty"`
