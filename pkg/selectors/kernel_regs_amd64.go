@@ -37,10 +37,12 @@ func parseOverrideRegs(k *KernelSelectorState, values []string, errValue uint64)
 		}
 
 		regs = append(regs, processapi.RegAssignment{
-			Type: ass.Type,
-			Src:  ass.Src,
-			Dst:  ass.Dst,
-			Off:  ass.Off,
+			Type:    ass.Type,
+			Src:     ass.Src,
+			Dst:     ass.Dst,
+			SrcSize: ass.SrcSize,
+			DstSize: ass.DstSize,
+			Off:     ass.Off,
 		})
 	}
 

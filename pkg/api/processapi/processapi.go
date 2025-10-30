@@ -273,10 +273,11 @@ type CgroupRateOptions struct {
 }
 
 type RegAssignment struct {
-	Type uint8
-	Pad1 uint8
-	Src  uint16
-	Dst  uint16
-	Pad2 uint16
-	Off  uint64
+	Type    uint8
+	Pad1    uint8
+	Src     uint16
+	Dst     uint16
+	SrcSize uint8
+	DstSize uint8
+	Off     uint64
 }

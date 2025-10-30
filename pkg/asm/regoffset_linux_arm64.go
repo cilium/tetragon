@@ -28,3 +28,7 @@ func RegOffset(name string) (uint16, bool) {
 	}
 	return 0, false
 }
+
+func RegOffsetSize(name string) (uint16, uint8, bool) {
+	return 0, 0, false
+}
