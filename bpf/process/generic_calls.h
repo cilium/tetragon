@@ -1247,7 +1247,6 @@ FUNC_INLINE int generic_process_filter(void)
 	if (!msg)
 		return 0;
 
-    bool enter_found = 1;
 	enter = event_find_curr(&ppid, &walker);
 	if (!enter) {
 	    enter_found = 0;
@@ -1259,8 +1258,7 @@ FUNC_INLINE int generic_process_filter(void)
 
 	// Don't return error if no parent found, because
 	// it's ok in case we don't have selector for parents.
-	if (enter_found)
-	    parent = event_find_parent();
+	parent = event_find_parent();
 
 	f = map_lookup_elem(&filter_map, &msg->idx);
 	if (!f)
