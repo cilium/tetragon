@@ -21,12 +21,13 @@ const (
 var errNext = errors.New("next")
 
 type Assignment struct {
-	Type uint8
-	Pad1 uint8
-	Src  uint16
-	Dst  uint16
-	Pad2 uint16
-	Off  uint64
+	Type    uint8
+	Pad     uint8
+	Src     uint16
+	Dst     uint16
+	SrcSize uint8
+	DstSize uint8
+	Off     uint64
 }
 
 type fn func(str string, ass *Assignment) error
@@ -77,7 +78,7 @@ func parseRegDeref(str string, ass *Assignment) error {
 
 	ass.Type = ASM_ASSIGNMENT_TYPE_REG_DEREF
 	ass.Off = uint64(off)
-	ass.Src, ok = RegOffset(reg.name)
+	ass.Src, ass.SrcSize, ok = RegOffsetSize(reg.name)
 	if !ok {
 		return fmt.Errorf("failed to parse register '%s'", reg.name)
 	}
@@ -100,7 +101,7 @@ func parseRegOff(str string, ass *Assignment) error {
 
 	ass.Type = ASM_ASSIGNMENT_TYPE_REG_OFF
 	ass.Off = uint64(off)
-	ass.Src, ok = RegOffset(reg.name)
+	ass.Src, ass.SrcSize, ok = RegOffsetSize(reg.name)
 	if !ok {
 		return fmt.Errorf("failed to parse register '%s'", reg.name)
 	}
@@ -120,7 +121,7 @@ func parseReg(str string, ass *Assignment) error {
 
 	ass.Type = ASM_ASSIGNMENT_TYPE_REG
 	ass.Off = 0
-	ass.Src, ok = RegOffset(reg.name)
+	ass.Src, ass.SrcSize, ok = RegOffsetSize(reg.name)
 	if !ok {
 		return fmt.Errorf("failed to parse register '%s'", reg.name)
 	}
@@ -162,7 +163,7 @@ func ParseAssignment(str string) (*Assignment, error) {
 
 	var ok bool
 
-	ass.Dst, ok = RegOffset(s[0] /* dst */)
+	ass.Dst, ass.DstSize, ok = RegOffsetSize(s[0] /* dst */)
 	if !ok {
 		return nil, fmt.Errorf("failed to parse register '%s'", s[0])
 	}
