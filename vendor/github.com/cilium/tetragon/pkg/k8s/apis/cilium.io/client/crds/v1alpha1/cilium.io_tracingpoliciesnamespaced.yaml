@@ -125,7 +125,7 @@ spec:
                         properties:
                           btfType:
                             description: |-
-                              Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+                              Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
                               the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
                               type.
                             type: string
@@ -232,7 +232,7 @@ spec:
                         properties:
                           btfType:
                             description: |-
-                              Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+                              Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
                               the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
                               type.
                             type: string
@@ -352,7 +352,7 @@ spec:
                       properties:
                         btfType:
                           description: |-
-                            Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+                            Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
                             the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
                             type.
                           type: string
@@ -1100,7 +1100,7 @@ spec:
                         properties:
                           btfType:
                             description: |-
-                              Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+                              Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
                               the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
                               type.
                             type: string
@@ -1885,7 +1885,7 @@ spec:
                         properties:
                           btfType:
                             description: |-
-                              Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+                              Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
                               the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
                               type.
                             type: string
@@ -2614,7 +2614,7 @@ spec:
                         properties:
                           btfType:
                             description: |-
-                              Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+                              Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
                               the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
                               type.
                             type: string
@@ -2712,6 +2712,9 @@ spec:
                         - type
                         type: object
                       type: array
+                    btfPath:
+                      description: path for a BTF file for the traced binary
+                      type: string
                     message:
                       description: |-
                         A short message of 256 characters max that will be included
@@ -3347,7 +3350,7 @@ spec:
                         properties:
                           btfType:
                             description: |-
-                              Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+                              Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
                               the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
                               type.
                             type: string
