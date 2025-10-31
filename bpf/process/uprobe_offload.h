@@ -69,28 +69,50 @@ write_reg(struct pt_regs *ctx, __u32 dst, __u64 val)
 	 *
 	 * Using clang-20 seems to work, but we need to upgrade first ;-)
 	 */
-#define WRITE_REG(reg)                                                   \
-	asm volatile("if %[dst] != %[off] goto +1\n"                     \
-		     "*(u64 *)(%[ctx] + %[off]) = %[val]\n"              \
-		     : [ctx] "+r"(ctx), [dst] "+r"(dst), [val] "+r"(val) \
-		     : [off] "i"(offsetof(struct pt_regs, reg))          \
-		     :);
+#define WRITE_REG(reg) ({                                       \
+	asm volatile("*(u64 *)(%[ctx] + %[off]) = %[val]\n"     \
+		     : [ctx] "+r"(ctx), [val] "+r"(val)         \
+		     : [off] "i"(offsetof(struct pt_regs, reg)) \
+		     :);                                        \
+	0;                                                      \
+})
 
-	WRITE_REG(r15);
-	WRITE_REG(r14);
-	WRITE_REG(r13);
-	WRITE_REG(r12);
-	WRITE_REG(r11);
-	WRITE_REG(r10);
-	WRITE_REG(r9);
-	WRITE_REG(r8);
-	WRITE_REG(ax);
-	WRITE_REG(cx);
-	WRITE_REG(dx);
-	WRITE_REG(si);
-	WRITE_REG(di);
-	WRITE_REG(ip);
-	WRITE_REG(sp);
+	switch (dst) {
+	case offsetof(struct pt_regs, r15):
+		return WRITE_REG(r15);
+	case offsetof(struct pt_regs, r14):
+		return WRITE_REG(r14);
+	case offsetof(struct pt_regs, r13):
+		return WRITE_REG(r13);
+	case offsetof(struct pt_regs, r12):
+		return WRITE_REG(r12);
+	case offsetof(struct pt_regs, bp):
+		return WRITE_REG(bp);
+	case offsetof(struct pt_regs, bx):
+		return WRITE_REG(bx);
+	case offsetof(struct pt_regs, r11):
+		return WRITE_REG(r11);
+	case offsetof(struct pt_regs, r10):
+		return WRITE_REG(r10);
+	case offsetof(struct pt_regs, r9):
+		return WRITE_REG(r9);
+	case offsetof(struct pt_regs, r8):
+		return WRITE_REG(r8);
+	case offsetof(struct pt_regs, ax):
+		return WRITE_REG(ax);
+	case offsetof(struct pt_regs, cx):
+		return WRITE_REG(cx);
+	case offsetof(struct pt_regs, dx):
+		return WRITE_REG(dx);
+	case offsetof(struct pt_regs, si):
+		return WRITE_REG(si);
+	case offsetof(struct pt_regs, di):
+		return WRITE_REG(di);
+	case offsetof(struct pt_regs, ip):
+		return WRITE_REG(ip);
+	case offsetof(struct pt_regs, sp):
+		return WRITE_REG(sp);
+	}
 
 #undef WRITE_REG
 	return 0;
