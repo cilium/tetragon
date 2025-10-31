@@ -121,6 +121,52 @@ func main() {
 
 This will result in a map that contains the fields that need to be updated with their respective values.
 
+#### Converter hooks
+
+When trying to assign a source field to a destination using different types, one can use the Option `WithConverterHook`.
+All provided converter functions will be tried in order until src is assignable to dst or an error occured.
+
+Below you will find an example of how to convert from string to int64 when applying a mask by specifying such converter:
+
+```go
+type A struct {
+    Field1 string
+}
+type B struct {
+    Field1 int64
+}
+
+func main() {
+	src := &A{
+		Field1: "   42   ",
+	}
+	dst := &B{}
+	mask := fieldmask_utils.MaskFromString("Field1")
+
+    err = fieldmask_utils.StructToStruct(mask, src, dst,
+		fieldmask_utils.WithConverterHook(func(src, dst *reflect.Value) (interface{}, error) {
+			data := src.Interface()
+
+            // only care for this conversion
+			if src.Kind() != reflect.String ||
+				dst.Kind() != reflect.Int64 {
+				return data, nil
+			}
+
+            // cast it
+			raw, ok := data.(string)
+			if !ok {
+				return data, nil
+			}
+
+            // parse it
+			return strconv.ParseInt(strings.TrimSpace(raw), 10, 64)
+		}))
+
+	fmt.Println("src:", src)
+	fmt.Println("dst:", dst)
+}
+```
 
 ### Limitations
 
@@ -132,7 +178,7 @@ This will result in a map that contains the fields that need to be updated with 
 3.  When copying from a struct to struct the destination struct must have the same fields (or a subset)
     as the source struct. Either of source or destination fields can be a pointer as long as it is a pointer to
     the type of the corresponding field.
-4. `oneof` fields are represented differently in `fieldmaskpb.FieldMask` compared to `fieldmask_util.Mask`. In 
+4. `oneof` fields are represented differently in `fieldmaskpb.FieldMask` compared to `fieldmask_util.Mask`. In
     [FieldMask](https://pkg.go.dev/google.golang.org/protobuf/types/known/fieldmaskpb#:~:text=%23%20Field%20Masks%20and%20Oneof%20Fields)
     the fields are represented using their property name, in this library they are prefixed with the `oneof` name
     matching how Go generated code is laid out. This can lead to issues when converting between the two, for example
