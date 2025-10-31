@@ -52,7 +52,28 @@ func ensureCompatible(src, dst *reflect.Value) error {
 
 func structToStruct(filter FieldFilter, src, dst *reflect.Value, userOptions *options) error {
 	if err := ensureCompatible(src, dst); err != nil {
-		return err
+		// incompatible, try using converters:
+		converted := false
+		for _, fn := range userOptions.ConverterHooks {
+			data, err := fn(src, dst)
+			if err != nil {
+				// error during conversion, pass upwards
+				return err
+			}
+			rdata := reflect.ValueOf(data)
+			if err := ensureCompatible(&rdata, dst); err != nil {
+				// no change using conversion, try next
+				continue
+			}
+
+			// it is convertable, replace src
+			src = &rdata
+			converted = true
+			break
+		}
+		if !converted {
+			return err
+		}
 	}
 
 	switch src.Kind() {
@@ -262,6 +283,16 @@ type options struct {
 	// If an any field is encountered and this flag is not set, it will only Unmarshal it if there is a subfilter for that field.
 	// If set it will always Unmarshal all any fields
 	UnmarshalAllAny bool
+
+	// ConverterHooks stores converter functions to be used when calling [StructToStruct].
+	//
+	// All converters will be tried in order to convert a src to dst in cases
+	// where src cannot be directly assigned to dst.
+	// Any value returned by converters will be used for src if it is assignable
+	// after conversion.
+	// If a converter returns an error that error is propagated to the
+	// initial call of StructToStruct.
+	ConverterHooks []func(src, dst *reflect.Value) (interface{}, error)
 }
 
 // mapVisitor is called for every filtered field in structToMap.
@@ -308,6 +339,13 @@ func WithMapVisitor(visitor mapVisitor) Option {
 func WithUnmarshalAllAny(unmarshal bool) Option {
 	return func(o *options) {
 		o.UnmarshalAllAny = unmarshal
+	}
+}
+
+// WithConverterHook adds a converter hook to convert from src to dst.
+func WithConverterHook(converter func(src, dst *reflect.Value) (interface{}, error)) Option {
+	return func(o *options) {
+		o.ConverterHooks = append(o.ConverterHooks, converter)
 	}
 }
 
