@@ -9,9 +9,10 @@ import (
 	"errors"
 
 	"github.com/cilium/ebpf"
+
 	processapi "github.com/cilium/tetragon/pkg/api/processapi"
 )
 
-func populateUprobeRegs(m *ebpf.Map, regs []processapi.RegAssignment) error {
+func populateUprobeRegs(_ *ebpf.Map, _ []processapi.RegAssignment) error {
 	return errors.New("register override is not supported")
 }
