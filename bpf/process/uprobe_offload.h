@@ -9,7 +9,8 @@ struct reg_assignment {
 	__u8 pad1;
 	__u16 src;
 	__u16 dst;
-	__u16 pad2;
+	__u8 src_size;
+	__u8 dst_size;
 	__u64 off;
 };
 
@@ -59,8 +60,8 @@ FUNC_INLINE void do_uprobe_override(void *ctx, __u32 idx)
 		map_update_elem(&sleepable_offload, &id, &idx, BPF_ANY);
 }
 
-FUNC_INLINE int
-write_reg(struct pt_regs *ctx, __u32 dst, __u64 val)
+FUNC_LOCAL int
+write_reg(struct pt_regs *ctx, __u32 dst, __u8 size, __u64 val)
 {
 	/*
 	 * Using inlined asm to make sure we access context via 'ctx-reg + offset'.
@@ -69,36 +70,72 @@ write_reg(struct pt_regs *ctx, __u32 dst, __u64 val)
 	 *
 	 * Using clang-20 seems to work, but we need to upgrade first ;-)
 	 */
-#define WRITE_REG(reg)                                                   \
-	asm volatile("if %[dst] != %[off] goto +1\n"                     \
-		     "*(u64 *)(%[ctx] + %[off]) = %[val]\n"              \
-		     : [ctx] "+r"(ctx), [dst] "+r"(dst), [val] "+r"(val) \
-		     : [off] "i"(offsetof(struct pt_regs, reg))          \
-		     :);
 
-	WRITE_REG(r15);
-	WRITE_REG(r14);
-	WRITE_REG(r13);
-	WRITE_REG(r12);
-	WRITE_REG(r11);
-	WRITE_REG(r10);
-	WRITE_REG(r9);
-	WRITE_REG(r8);
-	WRITE_REG(ax);
-	WRITE_REG(cx);
-	WRITE_REG(dx);
-	WRITE_REG(si);
-	WRITE_REG(di);
-	WRITE_REG(ip);
-	WRITE_REG(sp);
+#define WRITE_REG(reg) ({                                                       \
+	asm volatile("if %[size] != 8 goto +2\n"                                \
+		     "*(u64 *)(%[ctx] + %[off]) = %[val]\n"                     \
+		     "goto +8\n"                                                \
+		     "if %[size] != 4 goto +2\n"                                \
+		     "*(u32 *)(%[ctx] + %[off]) = %[val]\n"                     \
+		     "goto +5\n"                                                \
+		     "if %[size] != 2 goto +2\n"                                \
+		     "*(u16 *)(%[ctx] + %[off]) = %[val]\n"                     \
+		     "goto +2\n"                                                \
+		     "if %[size] != 1 goto +1\n"                                \
+		     "*(u8 *)(%[ctx] + %[off]) = %[val]\n"                      \
+		     : [ctx] "+r"(ctx), [val] "+r"(val), [size] "+r"(size)      \
+		     : [off] "i"(offsetof(struct pt_regs, reg))                 \
+		     :);                                                        \
+	0;                                                                      \
+})
+
+	switch (dst) {
+	case offsetof(struct pt_regs, r15):
+		return WRITE_REG(r15);
+	case offsetof(struct pt_regs, r14):
+		return WRITE_REG(r14);
+	case offsetof(struct pt_regs, r13):
+		return WRITE_REG(r13);
+	case offsetof(struct pt_regs, r12):
+		return WRITE_REG(r12);
+	case offsetof(struct pt_regs, bp):
+		return WRITE_REG(bp);
+	case offsetof(struct pt_regs, bx):
+		return WRITE_REG(bx);
+	case offsetof(struct pt_regs, r11):
+		return WRITE_REG(r11);
+	case offsetof(struct pt_regs, r10):
+		return WRITE_REG(r10);
+	case offsetof(struct pt_regs, r9):
+		return WRITE_REG(r9);
+	case offsetof(struct pt_regs, r8):
+		return WRITE_REG(r8);
+	case offsetof(struct pt_regs, ax):
+		return WRITE_REG(ax);
+	case offsetof(struct pt_regs, cx):
+		return WRITE_REG(cx);
+	case offsetof(struct pt_regs, dx):
+		return WRITE_REG(dx);
+	case offsetof(struct pt_regs, si):
+		return WRITE_REG(si);
+	case offsetof(struct pt_regs, di):
+		return WRITE_REG(di);
+	case offsetof(struct pt_regs, ip):
+		return WRITE_REG(ip);
+	case offsetof(struct pt_regs, sp):
+		return WRITE_REG(sp);
+	}
 
 #undef WRITE_REG
 	return 0;
 }
 
 FUNC_INLINE __u64
-read_reg(struct pt_regs *ctx, __u32 src)
+read_reg(struct pt_regs *ctx, struct reg_assignment *ass)
 {
+	__u32 src = ass->src;
+	__u8 shift = 64 - ass->src_size*8;
+
 	/* Using inlined asm for same reason we use WRITE_REG above. */
 #define READ_REG(reg) ({                                        \
 	__u64 val;                                              \
@@ -106,6 +143,8 @@ read_reg(struct pt_regs *ctx, __u32 src)
 		     : [ctx] "+r"(ctx), [val] "+r"(val)         \
 		     : [off] "i"(offsetof(struct pt_regs, reg)) \
 		     :);                                        \
+	val <<= shift;						\
+	val >>= shift;						\
 	val;                                                    \
 })
 
@@ -173,22 +212,22 @@ uprobe_offload_x86(struct pt_regs *ctx)
 
 		switch (ass->type) {
 		case ASM_ASSIGNMENT_TYPE_CONST:
-			write_reg(ctx, ass->dst, ass->off);
+			write_reg(ctx, ass->dst, ass->dst_size, ass->off);
 			break;
 		case ASM_ASSIGNMENT_TYPE_REG:
-			val = read_reg(ctx, ass->src);
-			write_reg(ctx, ass->dst, val);
+			val = read_reg(ctx, ass);
+			write_reg(ctx, ass->dst, ass->dst_size, val);
 			break;
 		case ASM_ASSIGNMENT_TYPE_REG_OFF:
-			val = read_reg(ctx, ass->src);
+			val = read_reg(ctx, ass);
 			val += ass->off;
-			write_reg(ctx, ass->dst, val);
+			write_reg(ctx, ass->dst, ass->dst_size, val);
 			break;
 		case ASM_ASSIGNMENT_TYPE_REG_DEREF:
-			val = read_reg(ctx, ass->src);
+			val = read_reg(ctx, ass);
 			err = probe_read_user(&val, sizeof(val), (void *)val + ass->off);
 			if (!err)
-				write_reg(ctx, ass->dst, val);
+				write_reg(ctx, ass->dst, ass->dst_size, val);
 			break;
 		case ASM_ASSIGNMENT_TYPE_NONE:
 		default:
