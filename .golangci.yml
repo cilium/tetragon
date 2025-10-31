@@ -87,6 +87,9 @@ linters:
       - linters:
           - goheader
         path: pkg/sensors/tracing/genericuprobe_cgo.go
+      - linters:
+          - perfsprint
+        text: "concat-loop: string concatenation in a loop"
     paths:
       - third_party$
       - builtin$
