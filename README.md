@@ -35,6 +35,7 @@ Refer to the [official documentation of Tetragon](https://tetragon.io/docs/).
 
 To get started with Tetragon, take a look at the [getting started
 guides](https://tetragon.io/docs/getting-started/) to:
+
 - [Try Tetragon on Kubernetes](https://tetragon.io/docs/getting-started/install-k8s/)
 - [Try Tetragon on Linux](https://tetragon.io/docs/getting-started/install-docker/)
 - [Deploy Tetragon](https://tetragon.io/docs/installation/)
@@ -42,6 +43,7 @@ guides](https://tetragon.io/docs/getting-started/) to:
 
 Tetragon is able to observe critical hooks in the kernel through its sensors
 and generates events enriched with Linux and Kubernetes metadata:
+
 1. **Process lifecycle**: generating `process_exec` and `process_exit` events
    by default, enabling full process lifecycle observability. Learn more about
    these events on the [process lifecycle use case page](https://tetragon.io/docs/use-cases/process-lifecycle/).
@@ -55,6 +57,7 @@ and generates events enriched with Linux and Kubernetes metadata:
    - [🔓 privileged execution](https://tetragon.io/docs/use-cases/process-lifecycle/privileged-execution/)
 
 See further resources:
+
 - [Conference Talks, Books, Blog Posts, and Labs](https://tetragon.io/docs/resources/)
 - [Frequently Asked Question](https://tetragon.io/docs/installation/faq/)
 - [References](https://tetragon.io/docs/reference/)
@@ -72,3 +75,8 @@ For getting started with local development, you can refer to the
 [Contribution Guide](https://tetragon.io/docs/contribution-guide/). If
 you plan to submit a PR, please ["sign-off"](https://tetragon.io/docs/contribution-guide/developer-certificate-of-origin/)
 your commits.
+
+## Adopters
+
+A list of adopters of the Tetragon project and who is deploying it in production, and of their use cases,
+can be found in the [USERS.md](https://github.com/cilium/tetragon/blob/main/USERS.md) file.
