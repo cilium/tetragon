@@ -543,7 +543,7 @@ generic_process_event(void *ctx, struct bpf_map_def *tailcals)
 }
 
 FUNC_INLINE void
-generic_process_init(struct msg_generic_kprobe *e, u8 op, struct event_config *config)
+generic_process_init(struct msg_generic_kprobe *e, u8 op)
 {
 	e->common.op = op;
 
@@ -693,7 +693,7 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 		e->a4 = PT_REGS_PARM5_CORE(ctx);
 	}
 
-	generic_process_init(e, MSG_OP_GENERIC_KPROBE, config);
+	generic_process_init(e, MSG_OP_GENERIC_KPROBE);
 
 	e->retprobe_id = retprobe_map_get_key(ctx);
 
@@ -711,7 +711,7 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 	e->a2 = BPF_CORE_READ(raw_args, args[2]);
 	e->a3 = BPF_CORE_READ(raw_args, args[3]);
 	e->a4 = BPF_CORE_READ(raw_args, args[4]);
-	generic_process_init(e, MSG_OP_GENERIC_LSM, config);
+	generic_process_init(e, MSG_OP_GENERIC_LSM);
 #endif
 
 #ifdef GENERIC_UPROBE
@@ -720,7 +720,7 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 	e->a2 = PT_REGS_PARM3_CORE(ctx);
 	e->a3 = PT_REGS_PARM4_CORE(ctx);
 	e->a4 = PT_REGS_PARM5_CORE(ctx);
-	generic_process_init(e, MSG_OP_GENERIC_UPROBE, config);
+	generic_process_init(e, MSG_OP_GENERIC_UPROBE);
 
 	e->retprobe_id = retprobe_map_get_key(ctx);
 
@@ -731,7 +731,7 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 #endif
 
 #ifdef GENERIC_USDT
-	generic_process_init(e, MSG_OP_GENERIC_USDT, config);
+	generic_process_init(e, MSG_OP_GENERIC_USDT);
 #endif
 
 #ifdef GENERIC_RAWTP
@@ -742,7 +742,7 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 	e->a2 = BPF_CORE_READ(raw_args, args[2]);
 	e->a3 = BPF_CORE_READ(raw_args, args[3]);
 	e->a4 = BPF_CORE_READ(raw_args, args[4]);
-	generic_process_init(e, MSG_OP_GENERIC_TRACEPOINT, config);
+	generic_process_init(e, MSG_OP_GENERIC_TRACEPOINT);
 #endif
 
 #ifdef GENERIC_USDT
