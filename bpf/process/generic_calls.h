@@ -35,6 +35,10 @@ generic_start_process_filter(void *ctx, struct bpf_map_def *calls)
 		return 0;
 	if (!policy_filter_check(config->policy_id))
 		return 0;
+	// todo: this should replace the policy filter check above
+	if (config->cgroup_filter && !get_policy_from_cgroup())
+		return 0;
+	// bpf_printk("passed the check on the cgroup");
 	msg->func_id = config->func_id;
 	msg->retprobe_id = 0;
 

@@ -1,0 +1,24 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "block-process-template"
+spec:
+  kprobes:
+  - call: "security_bprm_creds_for_exec"
+    syscall: false
+    args:
+    - index: 0
+      type: "linux_binprm"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "*"
+  options:
+  - name: disable-kprobe-multi
+    value: "1"
+  - name: binding
+    value: "targetExecPaths"
+  - name: arg-type
+    value: "linux_binprm"

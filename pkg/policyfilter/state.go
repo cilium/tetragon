@@ -193,62 +193,6 @@ func (m *state) containerExists(pod *podInfo, containerID string, cgIDp *CgroupI
 	return false
 }
 
-type policy struct {
-	id PolicyID
-
-	// if namespace is "", policy applies to all namespaces
-	namespace string
-
-	containerSelector labels.Selector
-
-	podSelector labels.Selector
-
-	// polMap is the (inner) policy map for this policy
-	polMap polMap
-}
-
-func (pol *policy) podMatches(podNs string, podLabels labels.Labels) bool {
-	if pol.namespace != "" && podNs != pol.namespace {
-		return false
-	}
-	var podLabels1 labels.Labels
-	if podLabels != nil {
-		podLabels1 = podLabels
-	} else {
-		podLabels1 = make(labels.Labels)
-	}
-
-	if _, ok := podLabels1[labels.K8sPodNamespace]; !ok {
-		podLabels1[labels.K8sPodNamespace] = podNs
-	}
-
-	return pol.podSelector.Match(podLabels1)
-}
-
-func (pol *policy) podInfoMatches(pod *podInfo) bool {
-	return pol.podMatches(pod.namespace, pod.labels)
-}
-
-func (pol *policy) containerMatches(container *containerInfo) bool {
-	containerFilterFields := labels.Labels{
-		"name": container.name,
-		"repo": container.repo,
-	}
-	return pol.containerSelector.Match(containerFilterFields)
-}
-
-// get a slice of container cgroupIDs that match the policy
-func (pol *policy) matchingContainersCgroupIDs(containers []containerInfo) []CgroupID {
-	var cgroupIDs []CgroupID
-	for i := range containers {
-		container := containers[i]
-		if pol.containerMatches(&container) {
-			cgroupIDs = append(cgroupIDs, container.cgID)
-		}
-	}
-	return cgroupIDs
-}
-
 // State holds the necessary state for policyfilter
 type state struct {
 	log *slog.Logger
@@ -259,13 +203,15 @@ type state struct {
 	policies []policy
 	pods     []podInfo
 
-	// polify filters (outer) map handle
+	// policy filters (outer) map handle
 	pfMap PfMap
 
 	// global policy map handle
 	nsMap *NamespaceMap
 
 	cgidFinder cgidFinder
+
+	tracingPolicyTemplates []*tracingPolicyTemplate
 }
 
 // New creates a new State of the policy filter code. Callers should call Close() to release
@@ -392,21 +338,21 @@ func (m *state) Close() error {
 	return m.pfMap.release()
 }
 
-func (m *state) findPolicy(id PolicyID) *policy {
+func (m *state) findPolicy(id PolicyID) policy {
 	for i := range m.policies {
-		if m.policies[i].id == id {
-			return &m.policies[i]
+		if m.policies[i].getID() == id {
+			return m.policies[i]
 		}
 	}
 	return nil
 }
 
 // delPolicy removes a policy and returns it, or returns nil if policy is not found
-func (m *state) delPolicy(id PolicyID) *policy {
+func (m *state) delPolicy(id PolicyID) policy {
 	for i, pol := range m.policies {
-		if pol.id == id {
+		if pol.getID() == id {
 			m.policies = append(m.policies[:i], m.policies[i+1:]...)
-			return &pol
+			return pol
 		}
 	}
 	return nil
@@ -432,12 +378,12 @@ func (m *state) delPod(id PodID) *podInfo {
 	return nil
 }
 
-// AddPolicy adds a policy
-func (m *state) AddPolicy(polID PolicyID, namespace string, podLabelSelector *slimv1.LabelSelector,
+func (m *state) addPolicyCommon(policy policy, namespace string, podLabelSelector *slimv1.LabelSelector,
 	containerLabelSelector *slimv1.LabelSelector) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	polID := policy.getID()
 	if p := m.findPolicy(polID); p != nil {
 		return fmt.Errorf("policy with id %d already exists: not adding new one", polID)
 	}
@@ -452,12 +398,7 @@ func (m *state) AddPolicy(polID PolicyID, namespace string, podLabelSelector *sl
 		return err
 	}
 
-	policy := policy{
-		id:                polID,
-		namespace:         namespace,
-		podSelector:       podSelector,
-		containerSelector: containerSelector,
-	}
+	policy.setFilters(namespace, podSelector, containerSelector)
 
 	cgroupIDs := make([]CgroupID, 0)
 	// scan pods to find the ones that match this policy to set initial state for policy
@@ -472,14 +413,13 @@ func (m *state) AddPolicy(polID PolicyID, namespace string, podLabelSelector *sl
 		cgroupIDs = append(cgroupIDs, matchedContainerCgroupIDs...)
 
 		matchedPods = append(matchedPods, pod)
-		pod.addCachedPolicy(policy.id)
+		pod.addCachedPolicy(policy.getID())
 	}
 
 	// update state for policy
-	policy.polMap, err = m.pfMap.newPolicyMap(polID, cgroupIDs)
-	if err != nil {
+	if err := policy.AddInitialCgroupIDs(m, cgroupIDs); err != nil {
 		for _, pod := range matchedPods {
-			pod.delCachedPolicy(policy.id)
+			pod.delCachedPolicy(policy.getID())
 		}
 		return fmt.Errorf("adding policy data to map failed: %w", err)
 	}
@@ -489,34 +429,22 @@ func (m *state) AddPolicy(polID PolicyID, namespace string, podLabelSelector *sl
 	return nil
 }
 
-// DelPolicy will destroy all information for the provided policy
-func (m *state) DelPolicy(polID PolicyID) error {
-
-	if polID == NoFilterPolicyID {
-		return nil
-	}
-
+// delPolicyCommon will destroy all information for the provided policy
+func (m *state) delPolicyCommon(polID PolicyID) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	policy := m.delPolicy(polID)
-	if policy != nil {
-		policy.polMap.Inner.Close()
-	} else {
-		m.log.Warn("DelPolicy: policy internal map not found", "policy-id", polID)
-	}
-
-	if err := m.pfMap.policyMap.Delete(polID); err != nil {
-		m.log.Warn("DelPolicy: failed to remove policy from external map", "policy-id", polID)
-	}
-
-	// update cgroup map
-	m.pfMap.deletePolicyIDInCgroupMap(polID)
 
 	for i := range m.pods {
 		pod := &m.pods[i]
-		pod.delCachedPolicy(policy.id)
+		pod.delCachedPolicy(polID)
 	}
 
+	policy := m.delPolicy(polID)
+	if policy == nil {
+		m.log.Warn("policy internal map not found", "policy-id", polID)
+		return nil
+	}
+	policy.Close(m.log)
 	return nil
 }
 
@@ -646,21 +574,11 @@ func (m *state) addPodContainers(pod *podInfo, containerIDs []string,
 
 		// cgroup IDs of containers that match the policy
 		matchingCgIDs := pol.matchingContainersCgroupIDs(pod.containers)
-
-		if err := pol.polMap.addCgroupIDs(matchingCgIDs); err != nil {
-			m.log.Warn("failed to update policy map",
-				logfields.Error, err,
-				"policy-id", pol.id,
+		if err := pol.AddCgroupIDs(m.log, matchingCgIDs); err != nil {
+			m.log.Warn(err.Error(),
+				"policy-id", pol.getID(),
 				"pod-id", pod.id,
 				"cgroup-ids", matchingCgIDs)
-		} else {
-			if err := pol.polMap.addPolicyIDs(pol.id, matchingCgIDs); err != nil {
-				m.log.Warn("failed to update cgroup map",
-					logfields.Error, err,
-					"policy-id", pol.id,
-					"pod-id", pod.id,
-					"cgroup-ids", matchingCgIDs)
-			}
 		}
 	}
 }
@@ -676,9 +594,9 @@ func (m *state) addNewPod(podID PodID, namespace, workload, kind string, podLabe
 	})
 	pod := &m.pods[len(m.pods)-1]
 	for i := range m.policies {
-		pol := &m.policies[i]
+		pol := m.policies[i]
 		if pol.podInfoMatches(pod) {
-			pod.addCachedPolicy(pol.id)
+			pod.addCachedPolicy(pol.getID())
 		}
 	}
 	return pod
@@ -733,11 +651,11 @@ func (m *state) delPodCgroupIDsFromPolicyMaps(pod *podInfo, containers []contain
 		// try to find containers in the pod matching this policy
 		// this way, we only remove containers that are actually present in the policy
 		cgroupIDs := pol.matchingContainersCgroupIDs(containers)
-		if err := pol.polMap.delCgroupIDs(pol.id, cgroupIDs); err != nil {
+		if err := pol.DelCgroupIDs(m.log, cgroupIDs); err != nil {
 			// NB: depending on the error, we might want to schedule some retries here
 			m.log.Warn("delPodCgroupIDsFromPolicyMaps: failed to delete cgroup ids from policy map",
 				logfields.Error, err,
-				"policy-id", pol.id,
+				"policy-id", pol.getID(),
 				"pod-id", pod.id,
 				"cgroup-ids", cgroupIDs)
 		}
@@ -780,23 +698,23 @@ func (m *state) DelPod(podID PodID) error {
 // policiesDiffRes is the result returned by policiesDiff
 type policiesDiffRes struct {
 	// addedPolicies is a slice of the policies that were added
-	addedPolicies []*policy
+	addedPolicies []policy
 	// deletedPolicies is a slice of the policies that were removed
-	deletedPolicies []*policy
+	deletedPolicies []policy
 	// newMatchedPolicies is a slice of the policy ids that now match the pod
 	newMatchedPolicies []PolicyID
 }
 
 func (m *state) policiesDiff(pod *podInfo, newLabels labels.Labels) *policiesDiffRes {
-	addedPolicies := []*policy{}
-	deletedPolicies := []*policy{}
+	addedPolicies := []policy{}
+	deletedPolicies := []policy{}
 
 	newMatchedPolicies := []PolicyID{}
 	for i := range m.policies {
-		pol := &m.policies[i]
-		podHasPolicy := pod.hasPolicy(pol.id)
+		pol := m.policies[i]
+		podHasPolicy := pod.hasPolicy(pol.getID())
 		if pol.podMatches(pod.namespace, newLabels) {
-			newMatchedPolicies = append(newMatchedPolicies, pol.id)
+			newMatchedPolicies = append(newMatchedPolicies, pol.getID())
 			if !podHasPolicy {
 				// policy matches, but pod does not have it in its matched policies.
 				addedPolicies = append(addedPolicies, pol)
@@ -829,32 +747,21 @@ func (m *state) applyPodPolicyDiff(pod *podInfo, polDiff *policiesDiffRes) {
 	var cgroupIDs []CgroupID
 	for _, addPol := range polDiff.addedPolicies {
 		cgroupIDs = addPol.matchingContainersCgroupIDs(pod.containers)
-		if err := addPol.polMap.addCgroupIDs(cgroupIDs); err != nil {
-			m.log.Warn("failed to update policy map",
-				logfields.Error, err,
-				"policy-id", addPol.id,
+		if err := addPol.AddCgroupIDs(m.log, cgroupIDs); err != nil {
+			m.log.Warn(err.Error(),
+				"policy-id", addPol.getID(),
 				"pod-id", pod.id,
 				"cgroup-ids", cgroupIDs,
 				"reason", "labels change caused policy to match")
-		} else {
-			// update cgroup map if addCgroupIDs succeeds
-			if err := addPol.polMap.addPolicyIDs(addPol.id, cgroupIDs); err != nil {
-				m.log.Warn("failed to update cgroup map",
-					logfields.Error, err,
-					"policy-id", addPol.id,
-					"pod-id", pod.id,
-					"cgroup-ids", cgroupIDs,
-					"reason", "labels change caused policy to match")
-			}
 		}
 	}
 
 	for _, delPol := range polDiff.deletedPolicies {
 		cgroupIDs = delPol.matchingContainersCgroupIDs(pod.containers)
-		if err := delPol.polMap.delCgroupIDs(delPol.id, cgroupIDs); err != nil {
+		if err := delPol.DelCgroupIDs(m.log, cgroupIDs); err != nil {
 			m.log.Warn("failed to update policy map",
 				logfields.Error, err,
-				"policy-id", delPol.id,
+				"policy-id", delPol.getID(),
 				"pod-id", pod.id,
 				"cgroup-ids", cgroupIDs,
 				"reason", "labels change caused policy to unmatch")

@@ -120,6 +120,12 @@ type TracingPolicy interface {
 // NB: if tp implements tracingpolicy.TracingPolicyNamespaced, it will be
 // treated as a namespaced policy
 func (h *Manager) AddTracingPolicy(ctx context.Context, tp tracingpolicy.TracingPolicy) error {
+	// Here we validate the tracing policy before adding it
+	err := validateTracingPolicy(tp)
+	if err != nil {
+		return err
+	}
+
 	var namespace string
 	if tpNs, ok := tp.(tracingpolicy.TracingPolicyNamespaced); ok {
 		namespace = tpNs.TpNamespace()

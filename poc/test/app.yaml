@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-1
+  labels:
+    app: "my-deployment-1"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-deployment-1
+  template:
+    metadata:
+      labels:
+        app: my-deployment-1
+    spec:
+      containers:
+      - name: netshoot-1
+        image: andreater/netshoot:v1
+        command: ["sleep", "10d"]

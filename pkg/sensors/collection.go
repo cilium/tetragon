@@ -11,6 +11,7 @@ import (
 
 	"go.uber.org/multierr"
 
+	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policyconf"
@@ -62,6 +63,11 @@ func (ck *collectionKey) String() string {
 	return ck.name
 }
 
+type TemplateState struct {
+	ArgType          uint32
+	PolicyStringMaps []*ebpf.Map
+}
+
 // collection is a collection of sensors
 // This can either be creating from a tracing policy, or by loading sensors indepenently for sensors
 // that are not loaded via a tracing policy (e.g., base sensor) and testing.
@@ -77,6 +83,8 @@ type collection struct {
 	// state indicates the state of the collection
 	state TracingPolicyState
 
+	templateState                 *TemplateState
+	refCollection                 *collection
 	warnedOnModeRetrievalFailure  atomic.Bool
 	warnedOnStatsRetrievalFailure atomic.Bool
 }
@@ -91,6 +99,14 @@ func newCollectionMap() *collectionMap {
 	return &collectionMap{
 		c: map[collectionKey]*collection{},
 	}
+}
+
+func (c *collection) isCollectionTemplate() bool {
+	return c.templateState != nil
+}
+
+func (c *collection) isCollectionBinding() bool {
+	return c.refCollection != nil
 }
 
 func (c *collection) info() string {

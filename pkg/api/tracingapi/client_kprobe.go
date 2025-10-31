@@ -648,7 +648,7 @@ type EventConfig struct {
 	ArgReturnAction int32                                            `align:"argreturnaction"`
 	PolicyID        uint32                                           `align:"policy_id"`
 	Flags           uint32                                           `align:"flags"`
-	Pad             uint32                                           `align:"pad"`
+	CgroupFilter    uint32                                           `align:"cgroup_filter"`
 	BTFArg          [EventConfigMaxArgs][MaxBTFArgDepth]ConfigBTFArg `align:"btf_arg"`
 	UsdtArg         [EventConfigMaxUsdtArgs]ConfigUsdtArg            `align:"usdt_arg"`
 }

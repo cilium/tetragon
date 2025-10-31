@@ -586,6 +586,7 @@ type addKprobeIn struct {
 	policyID      policyfilter.PolicyID
 	customHandler eventhandler.Handler
 	selMaps       *selectors.KernelSelectorMaps
+	cgroupFilter  bool
 }
 
 type hasMaps struct {
@@ -643,6 +644,7 @@ func createGenericKprobeSensor(
 		policyName:    polInfo.name,
 		customHandler: polInfo.customHandler,
 		selMaps:       selMaps,
+		cgroupFilter:  polInfo.isTemplate,
 	}
 
 	has := hasMapsSetup(spec)
@@ -745,6 +747,14 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 
 	eventConfig := initEventConfig()
 	eventConfig.PolicyID = uint32(in.policyID)
+
+	// todo: support also other hooks lsm, tracepoints, uprobes, etc...
+	if in.cgroupFilter {
+		eventConfig.CgroupFilter = 1
+	} else {
+		eventConfig.CgroupFilter = 0
+	}
+
 	if len(f.ReturnArgAction) > 0 {
 		if !config.EnableLargeProgs() {
 			return errFn(errors.New("ReturnArgAction requires kernel >=5.3"))
@@ -1086,7 +1096,8 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 	}
 	maps = append(maps, overrideTasksMap)
 
-	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load))
+	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load), polInfo.cgroupToPolicyMap(load))
+	maps = append(maps, polInfo.policyStringHashMaps(load)...)
 
 	if kprobeEntry.loadArgs.retprobe {
 		pinRetProg := sensors.PathJoin(kprobeEntry.funcName + "_return")

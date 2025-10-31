@@ -21,11 +21,11 @@ func TestState(t *testing.T) {
 	}
 	defer s.Close()
 
-	err = s.AddPolicy(PolicyID(1), "ns1", nil, nil)
+	err = s.AddGenericPolicy(PolicyID(1), "ns1", nil, nil)
 	require.NoError(t, err)
-	err = s.AddPolicy(PolicyID(2), "ns2", nil, nil)
+	err = s.AddGenericPolicy(PolicyID(2), "ns2", nil, nil)
 	require.NoError(t, err)
-	err = s.AddPolicy(PolicyID(3), "ns3", nil, nil)
+	err = s.AddGenericPolicy(PolicyID(3), "ns3", nil, nil)
 	require.NoError(t, err)
 
 	pod1 := PodID(uuid.New())
@@ -67,14 +67,14 @@ func TestState(t *testing.T) {
 		3: {3001, 3002, 3003},
 	})
 
-	err = s.DelPolicy(PolicyID(1))
+	err = s.DeleteGenericPolicy(PolicyID(1))
 	require.NoError(t, err)
 	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
 		2: {2001, 2002},
 		3: {3001, 3002, 3003},
 	})
 
-	err = s.DelPolicy(PolicyID(2))
+	err = s.DeleteGenericPolicy(PolicyID(2))
 	require.NoError(t, err)
 	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
 		3: {3001, 3002, 3003},
@@ -86,7 +86,7 @@ func TestState(t *testing.T) {
 		3: {3001},
 	})
 
-	err = s.DelPolicy(PolicyID(3))
+	err = s.DeleteGenericPolicy(PolicyID(3))
 	require.NoError(t, err)
 	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{})
 
