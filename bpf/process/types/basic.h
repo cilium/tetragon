@@ -1714,7 +1714,7 @@ FUNC_INLINE int match_parents(__u32 selidx, struct execve_map_value *parent)
 	// If parent not found, but no selectors specified, consider it as match.
 	// Otherwise, consider as not match.
 	if (!parent)
-		return 1;
+		return selector_options == NULL || selector_options->op == op_filter_none;
 
 	return __match_binaries(parent, selector_options, path_map);
 }
