@@ -13,6 +13,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+
 	"github.com/cilium/tetragon/pkg/option"
 )
 
@@ -106,7 +107,7 @@ func (ksb *EnforcerSpecBuilder) Build() (*v1alpha1.TracingPolicy, error) {
 	var listNames []string
 	var lists []v1alpha1.ListSpec
 	var enforcers []v1alpha1.EnforcerSpec
-	var matchBinaries []v1alpha1.BinarySelector
+	var matchBinaries []v1alpha1.GenericBinarySelector
 	var options []v1alpha1.OptionSpec
 
 	for i, syscallList := range ksb.syscalls {
@@ -143,7 +144,7 @@ func (ksb *EnforcerSpecBuilder) Build() (*v1alpha1.TracingPolicy, error) {
 	}
 
 	if len(ksb.binaries) > 0 {
-		matchBinaries = []v1alpha1.BinarySelector{{
+		matchBinaries = []v1alpha1.GenericBinarySelector{{
 			Operator: "In",
 			Values:   ksb.binaries,
 		}}

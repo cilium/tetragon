@@ -553,7 +553,7 @@ var (
 func getUprobeArgsPolicy() tracingpolicy.GenericTracingPolicy {
 	sel := []v1alpha1.KProbeSelector{
 		{
-			MatchBinaries: []v1alpha1.BinarySelector{
+			MatchBinaries: []v1alpha1.GenericBinarySelector{
 				{
 					Operator: "In",
 					Values:   []string{uprobeArgsBinary},

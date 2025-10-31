@@ -14,6 +14,8 @@ import (
 
 	"github.com/cilium/ebpf"
 
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+
 	"github.com/cilium/tetragon/pkg/api/ops"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -22,7 +24,6 @@ import (
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/idtable"
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/observer"
@@ -224,7 +225,9 @@ func createUsdtSensorFromEntry(usdtEntry *genericUsdt,
 	filterMap := program.MapBuilderProgram("filter_map", load)
 
 	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
-	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap)
+	selMatchParentsMap := program.MapBuilderProgram("tg_mp_sel_opts", load)
+
+	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap, selMatchParentsMap)
 
 	if hasSleepableOffload {
 		sleepableOffloadMap := program.MapBuilderProgram("write_offload", load)

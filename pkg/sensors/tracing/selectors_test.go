@@ -392,7 +392,7 @@ func TestMultipleInactiveSelectors(t *testing.T) {
 
 	unmatchedSelector := v1alpha1.KProbeSelector{
 		MatchPIDs: myPidMatchPIDs,
-		MatchBinaries: []v1alpha1.BinarySelector{{
+		MatchBinaries: []v1alpha1.GenericBinarySelector{{
 			Operator: "In",
 			Values:   []string{"nosuchbinaryexists"},
 		}},

@@ -122,6 +122,9 @@ type KernelSelectorState struct {
 	matchBinaries      map[int]MatchBinariesSelectorOptions
 	matchBinariesPaths map[int][][processapi.BINARY_PATH_MAX_LEN]byte
 
+	matchParents      map[int]MatchBinariesSelectorOptions
+	matchParentsPaths map[int][][processapi.BINARY_PATH_MAX_LEN]byte
+
 	listReader ValueReader
 
 	maps *KernelSelectorMaps
@@ -138,9 +141,31 @@ func NewKernelSelectorState(listReader ValueReader, maps *KernelSelectorMaps, is
 	return &KernelSelectorState{
 		matchBinaries:      make(map[int]MatchBinariesSelectorOptions),
 		matchBinariesPaths: make(map[int][][processapi.BINARY_PATH_MAX_LEN]byte),
+		matchParents:       make(map[int]MatchBinariesSelectorOptions),
+		matchParentsPaths:  make(map[int][][processapi.BINARY_PATH_MAX_LEN]byte),
 		listReader:         listReader,
 		maps:               maps,
 		isUprobe:           isUprobe,
+	}
+}
+
+func (k *KernelSelectorState) AddGenericMatchBinaries(i int, sel MatchBinariesSelectorOptions, selector genericMatchBinariesSelector) {
+	switch selector {
+	case matchBinaries:
+		k.matchBinaries[i] = sel
+	case matchParentBinaries:
+		k.matchParents[i] = sel
+	}
+}
+
+func (k *KernelSelectorState) WriteGenericMatchBinariesPath(selectorID int, path string, selector genericMatchBinariesSelector) {
+	var bytePath [processapi.BINARY_PATH_MAX_LEN]byte
+	copy(bytePath[:], path)
+	switch selector {
+	case matchBinaries:
+		k.matchBinariesPaths[selectorID] = append(k.matchBinariesPaths[selectorID], bytePath)
+	case matchParentBinaries:
+		k.matchParentsPaths[selectorID] = append(k.matchParentsPaths[selectorID], bytePath)
 	}
 }
 
@@ -148,24 +173,33 @@ func (k KernelSelectorState) MatchBinaries() map[int]MatchBinariesSelectorOption
 	return k.matchBinaries
 }
 
-func (k *KernelSelectorState) AddMatchBinaries(i int, sel MatchBinariesSelectorOptions) {
-	k.matchBinaries[i] = sel
-}
-
 func (k KernelSelectorState) MatchBinariesPaths() map[int][][processapi.BINARY_PATH_MAX_LEN]byte {
 	return k.matchBinariesPaths
-}
-
-func (k *KernelSelectorState) WriteMatchBinariesPath(selectorID int, path string) {
-	var bytePath [processapi.BINARY_PATH_MAX_LEN]byte
-	copy(bytePath[:], path)
-	k.matchBinariesPaths[selectorID] = append(k.matchBinariesPaths[selectorID], bytePath)
 }
 
 // MatchBinariesPathsMaxEntries returns the maximum entries over all maps
 func (k *KernelSelectorState) MatchBinariesPathsMaxEntries() int {
 	maxEntries := 1
 	for _, vm := range k.matchBinariesPaths {
+		if l := len(vm); l > maxEntries {
+			maxEntries = l
+		}
+	}
+	return maxEntries
+}
+
+func (k KernelSelectorState) MatchParents() map[int]MatchBinariesSelectorOptions {
+	return k.matchParents
+}
+
+func (k KernelSelectorState) MatchParentsPaths() map[int][][processapi.BINARY_PATH_MAX_LEN]byte {
+	return k.matchParentsPaths
+}
+
+// MatchParentsPathsMaxEntries returns the maximum entries over all maps
+func (k *KernelSelectorState) MatchParentsPathsMaxEntries() int {
+	maxEntries := 1
+	for _, vm := range k.matchParentsPaths {
 		if l := len(vm); l > maxEntries {
 			maxEntries = l
 		}

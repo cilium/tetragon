@@ -55,7 +55,7 @@ func testMatchBinariesFollowChildren(t *testing.T, op string, result, resultMyPi
 			Event:     event,
 			Args:      []v1alpha1.KProbeArg{},
 			Selectors: []v1alpha1.KProbeSelector{{
-				MatchBinaries: []v1alpha1.BinarySelector{{
+				MatchBinaries: []v1alpha1.GenericBinarySelector{{
 					Operator: op,
 					Values: []string{
 						tmpShPath,
@@ -162,7 +162,7 @@ func TestMatchBinariesFollowChildrenIDs(t *testing.T) {
 
 	sel := []v1alpha1.KProbeSelector{
 		{
-			MatchBinaries: []v1alpha1.BinarySelector{
+			MatchBinaries: []v1alpha1.GenericBinarySelector{
 				{
 					Operator:       "In",
 					Values:         []string{"/usr/bin/tail"},
@@ -249,7 +249,7 @@ func TestMatchBinariesFollowChildrenUpdate(t *testing.T) {
 					Syscall: true,
 					Selectors: []v1alpha1.KProbeSelector{
 						{
-							MatchBinaries: []v1alpha1.BinarySelector{
+							MatchBinaries: []v1alpha1.GenericBinarySelector{
 								{
 									Operator:       "In",
 									Values:         []string{forks},
@@ -364,7 +364,7 @@ func TestMatchBinariesFollowChildrenBeforePolicy(t *testing.T) {
 					Syscall: true,
 					Selectors: []v1alpha1.KProbeSelector{
 						{
-							MatchBinaries: []v1alpha1.BinarySelector{
+							MatchBinaries: []v1alpha1.GenericBinarySelector{
 								{
 									Operator:       "In",
 									Values:         []string{fc_1},

@@ -15,15 +15,16 @@ import (
 
 	"github.com/cilium/ebpf"
 
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+
 	"github.com/cilium/tetragon/pkg/api/ops"
-	processapi "github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/api/processapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/idtable"
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
@@ -527,6 +528,17 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 		matchBinariesPaths.SetInnerMaxEntries(lsmEntry.selectors.MatchBinariesPathsMaxEntries())
 	}
 	maps = append(maps, matchBinariesPaths)
+
+	selMatchParentsMap := program.MapBuilderProgram("tg_mp_sel_opts", load)
+	maps = append(maps, selMatchParentsMap)
+
+	matchParentsPaths := program.MapBuilderProgram("tg_mp_paths", load)
+	if !kernels.MinKernelVersion("5.9") {
+		// Versions before 5.9 do not allow inner maps to have different sizes.
+		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+		matchParentsPaths.SetInnerMaxEntries(lsmEntry.selectors.MatchParentsPathsMaxEntries())
+	}
+	maps = append(maps, matchParentsPaths)
 
 	overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
 	maps = append(maps, overrideTasksMap)
