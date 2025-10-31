@@ -31,6 +31,7 @@ List of described data types:
 - [`bpf_attr`](#bpf_attr)
 - [`perf_event`](#perf_event)
 - [`bpf_map`](#bpf_map)
+- [`bpf_prog`](#bpf_prog)
 - [`user_namespace`](#user_namespace)
 - [`capability`](#capability)
 - [`kiocb`](#kiocb)
@@ -144,6 +145,10 @@ TBD
 
 TBD
 
+## `bpf_prog`
+
+TBD
+
 ## `user_namespace`
 
 TBD
@@ -193,7 +198,7 @@ TBD
 The `linux_binprm` data type represents kernel `struct linux_binprm` object
 and retrieves the `struct linux_binprm::file` full path.
 
-See general path limitations in [path retrieval limits](#pathlimits))
+See general path limitations in [path retrieval limits](#pathlimits).
 
 ## `data_loc`
 
@@ -216,7 +221,7 @@ TBD
 The `file` data type represents kernel `struct file` object and retrieves
 the file's full path.
 
-See general path limitations in [path retrieval limits](#pathlimits))
+See general path limitations in [path retrieval limits](#pathlimits).
 
 ## `dentry`
 
@@ -227,12 +232,14 @@ This stems from the fact that with just `struct dentry` tetragon does not have
 mount information and does not have enough data to pass through main point within
 the path.
 
-See general path limitations in [path retrieval limits](#pathlimits))
+See general path limitations in [path retrieval limits](#pathlimits).
 
 ## `path`
 
 The `path` data type represents kernel `struct path` object retrieves
 the related path.
+
+<a name="pathlimits"></a>
 
 {{< caution >}}
 Full path retrieval is available only on kernels `v5.3` and later.
@@ -241,4 +248,3 @@ On older kernels, there's a limit of 256 path components, which means
 we can retrieve up to the maximum path length (4096 bytes), but only
 with 256 path entries (directories and file name).
 {{< /caution >}}
-
