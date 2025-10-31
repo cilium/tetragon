@@ -122,9 +122,8 @@ func hasFunctionReferences(insns asm.Instructions) bool {
 
 // applyRelocations collects and applies any CO-RE relocations in insns.
 //
-// Passing a nil target will relocate against the running kernel. insns are
-// modified in place.
-func applyRelocations(insns asm.Instructions, bo binary.ByteOrder, b *btf.Builder, c *btf.Cache) error {
+// insns are modified in place.
+func applyRelocations(insns asm.Instructions, bo binary.ByteOrder, b *btf.Builder, c *btf.Cache, kernelOverride *btf.Spec, extraTargets []*btf.Spec) error {
 	var relos []*btf.CORERelocation
 	var reloInsns []*asm.Instruction
 	iter := insns.Iterate()
@@ -143,29 +142,38 @@ func applyRelocations(insns asm.Instructions, bo binary.ByteOrder, b *btf.Builde
 		bo = internal.NativeEndian
 	}
 
-	kernelTarget, err := c.Kernel()
-	if err != nil {
-		return fmt.Errorf("load kernel spec: %w", err)
-	}
-
-	modules, err := c.Modules()
-	// Ignore ErrNotExists to cater to kernels which have CONFIG_DEBUG_INFO_BTF_MODULES
-	// or CONFIG_DEBUG_INFO_BTF disabled.
-	if err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return err
-	}
-
-	targets := make([]*btf.Spec, 0, 1+len(modules))
-	targets = append(targets, kernelTarget)
-
-	for _, kmod := range modules {
-		spec, err := c.Module(kmod)
+	var targets []*btf.Spec
+	if kernelOverride == nil {
+		kernel, err := c.Kernel()
 		if err != nil {
-			return fmt.Errorf("load BTF for kmod %s: %w", kmod, err)
+			return fmt.Errorf("load kernel spec: %w", err)
 		}
 
-		targets = append(targets, spec)
+		modules, err := c.Modules()
+		// Ignore ErrNotExists to cater to kernels which have CONFIG_DEBUG_INFO_BTF_MODULES
+		// or CONFIG_DEBUG_INFO_BTF disabled.
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+
+		targets = make([]*btf.Spec, 0, 1+len(modules)+len(extraTargets))
+		targets = append(targets, kernel)
+
+		for _, kmod := range modules {
+			spec, err := c.Module(kmod)
+			if err != nil {
+				return fmt.Errorf("load BTF for kmod %s: %w", kmod, err)
+			}
+
+			targets = append(targets, spec)
+		}
+	} else {
+		// We expect kernelOverride to contain the merged types
+		// of vmlinux and kernel modules, as distributed by btfhub.
+		targets = []*btf.Spec{kernelOverride}
 	}
+
+	targets = append(targets, extraTargets...)
 
 	fixups, err := btf.CORERelocate(relos, targets, bo, b.Add)
 	if err != nil {
@@ -287,7 +295,7 @@ const kfuncCallPoisonBase = 0xdedc0de
 // fixupKfuncs loops over all instructions in search for kfunc calls.
 // If at least one is found, the current kernels BTF and module BTFis are searched to set Instruction.Constant
 // and Instruction.Offset to the correct values.
-func fixupKfuncs(insns asm.Instructions) (_ handles, err error) {
+func fixupKfuncs(insns asm.Instructions, cache *btf.Cache) (_ handles, err error) {
 	closeOnError := func(c io.Closer) {
 		if err != nil {
 			c.Close()
@@ -308,7 +316,7 @@ fixups:
 	// Only load kernel BTF if we found at least one kfunc call. kernelSpec can be
 	// nil if the kernel does not have BTF, in which case we poison all kfunc
 	// calls.
-	kernelSpec, err := btf.LoadKernelSpec()
+	_, err = cache.Kernel()
 	// ErrNotSupportedOnOS wraps ErrNotSupported, check for it first.
 	if errors.Is(err, internal.ErrNotSupportedOnOS) {
 		return nil, fmt.Errorf("kfuncs are not supported on this platform: %w", err)
@@ -340,7 +348,7 @@ fixups:
 
 		// findTargetInKernel returns btf.ErrNotFound if the input btf.Spec is nil.
 		target := btf.Type((*btf.Func)(nil))
-		spec, module, err := findTargetInKernel(kernelSpec, kfm.Func.Name, &target)
+		spec, module, err := findTargetInKernel(kfm.Func.Name, &target, cache)
 		if errors.Is(err, btf.ErrNotFound) {
 			if kfm.Binding == elf.STB_WEAK {
 				if ins.IsKfuncCall() {
@@ -485,7 +493,13 @@ func resolveKconfigReferences(insns asm.Instructions) (_ *Map, err error) {
 }
 
 func resolveKsymReferences(insns asm.Instructions) error {
-	var missing []string
+	type fixup struct {
+		*asm.Instruction
+		*ksymMeta
+	}
+
+	var symbols map[string]uint64
+	var fixups []fixup
 
 	iter := insns.Iterate()
 	for iter.Next() {
@@ -495,28 +509,47 @@ func resolveKsymReferences(insns asm.Instructions) error {
 			continue
 		}
 
-		addr, err := kallsyms.Address(meta.Name)
-		if err != nil {
-			return fmt.Errorf("resolve ksym %s: %w", meta.Name, err)
+		if symbols == nil {
+			symbols = make(map[string]uint64)
 		}
-		if addr != 0 {
-			ins.Constant = int64(addr)
+
+		symbols[meta.Name] = 0
+		fixups = append(fixups, fixup{
+			iter.Ins, meta,
+		})
+	}
+
+	if len(symbols) == 0 {
+		return nil
+	}
+
+	err := kallsyms.AssignAddresses(symbols)
+	// Tolerate ErrRestrictedKernel during initial lookup, user may have all weak
+	// ksyms and a fallback path.
+	if err != nil && !errors.Is(err, ErrRestrictedKernel) {
+		return fmt.Errorf("resolve ksyms: %w", err)
+	}
+
+	var missing []string
+	for _, fixup := range fixups {
+		addr := symbols[fixup.Name]
+		// A weak ksym variable in eBPF C means its resolution is optional.
+		if addr == 0 && fixup.Binding != elf.STB_WEAK {
+			if !slices.Contains(missing, fixup.Name) {
+				missing = append(missing, fixup.Name)
+			}
 			continue
 		}
 
-		if meta.Binding == elf.STB_WEAK {
-			// A weak ksym variable in eBPF C means its resolution is optional.
-			// Set a zero constant explicitly for clarity.
-			ins.Constant = 0
-			continue
-		}
-
-		if !slices.Contains(missing, meta.Name) {
-			missing = append(missing, meta.Name)
-		}
+		fixup.Constant = int64(addr)
 	}
 
 	if len(missing) > 0 {
+		if err != nil {
+			// Program contains required ksyms, return the error from above.
+			return fmt.Errorf("resolve required ksyms: %s: %w", strings.Join(missing, ","), err)
+		}
+
 		return fmt.Errorf("kernel is missing symbol: %s", strings.Join(missing, ","))
 	}
 
