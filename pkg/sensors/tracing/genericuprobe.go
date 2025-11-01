@@ -538,9 +538,21 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		return nil, err
 	}
 
+	var allBTFArgs [api.EventConfigMaxArgs][api.MaxBTFArgDepth]api.ConfigBTFArg
+
 	// Parse Arguments
 	for i, a := range spec.Args {
 		argType := gt.GenericTypeFromString(a.Type)
+		if a.Resolve != "" {
+			lastBTFType, btfArg, err := resolveUserBTFArg(&a, spec.BTFPath)
+			if err != nil {
+				return nil, err
+			}
+
+			allBTFArgs[i] = btfArg
+			argType = findTypeFromBTFType(&a, lastBTFType)
+		}
+
 		if argType == gt.GenericInvalidType {
 			return nil, fmt.Errorf("Arg(%d) type '%s' unsupported", i, a.Type)
 		}
@@ -556,9 +568,6 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 				a.Type, int(a.Index))
 		}
 
-		if a.Resolve != "" {
-			return nil, errors.New("resolving attributes for Uprobes is not supported")
-		}
 		argTypes[i] = int32(argType)
 		argMeta[i] = uint32(argMValue)
 		argIdx[i] = int32(a.Index)
@@ -618,6 +627,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		eventConfig.ArgType = argTypes
 		eventConfig.ArgMeta = argMeta
 		eventConfig.ArgIndex = argIdx
+		eventConfig.BTFArg = allBTFArgs
 
 		uprobeEntry := &genericUprobe{
 			loadArgs: uprobeLoadArgs{
