@@ -9,6 +9,7 @@ import (
 	"context"
 	"os"
 	"os/exec"
+	"strconv"
 	"sync"
 	"testing"
 
@@ -16,7 +17,9 @@ import (
 
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
+	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/testutils"
@@ -151,5 +154,114 @@ spec:
 	require.Equal(t, 11, cmd.ProcessState.ExitCode())
 
 	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
+func TestUprobeResolve(t *testing.T) {
+	if !config.EnableLargeProgs() || !bpf.HasUprobeRefCtrOffset() {
+		t.Skip("Need 5.3 or newer kernel for uprobe ref_ctr_off support for this test.")
+	}
+
+	if !bpf.HasProbeWriteUserHelper() {
+		t.Skip("need bpf_probe_write_user() for this test")
+	}
+
+	uprobe := testutils.RepoRootPath("contrib/tester-progs/uprobe-resolve")
+	uprobeBtf := testutils.RepoRootPath("contrib/tester-progs/uprobe-resolve.btf")
+
+	tt := []struct {
+		specTy    string
+		filterVal int
+		returnVal int
+		field     string
+		kpArgs    []*ec.KprobeArgumentChecker
+	}{
+		{"uint64", 10, 120, "v64", []*ec.KprobeArgumentChecker{
+			ec.NewKprobeArgumentChecker().WithIntArg(0),
+			ec.NewKprobeArgumentChecker().WithSizeArg(10), // uint64(10)
+			ec.NewKprobeArgumentChecker().WithUintArg(0),
+			ec.NewKprobeArgumentChecker().WithUintArg(0),
+		}},
+		{"uint32", 11, 130, "v32", []*ec.KprobeArgumentChecker{
+			ec.NewKprobeArgumentChecker().WithIntArg(0),
+			ec.NewKprobeArgumentChecker().WithSizeArg(0),
+			ec.NewKprobeArgumentChecker().WithUintArg(11), // uint32(11)
+			ec.NewKprobeArgumentChecker().WithUintArg(0),
+		}},
+		{"uint32", 12, 140, "sub.v32", []*ec.KprobeArgumentChecker{
+			ec.NewKprobeArgumentChecker().WithIntArg(0),
+			ec.NewKprobeArgumentChecker().WithSizeArg(0),
+			ec.NewKprobeArgumentChecker().WithUintArg(0),
+			ec.NewKprobeArgumentChecker().WithUintArg(12), // uint32(12)
+		}},
+	}
+
+	uprobeHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "` + uprobe + `"
+    btfPath: "` + uprobeBtf + `"
+    symbols:
+    - "func"
+    args:
+    - index: 0
+      type: "int32"
+    - index: 1
+      type: "` + tt[0].specTy + `"
+      btfType: "mystruct"
+      resolve: "` + tt[0].field + `"
+    - index: 1
+      type: "` + tt[1].specTy + `"
+      btfType: "mystruct"
+      resolve: "` + tt[1].field + `"
+    - index: 1
+      type: "` + tt[2].specTy + `"
+      btfType: "mystruct"
+      resolve: "` + tt[2].field + `"
+`
+
+	uprobeConfigHook := []byte(uprobeHook)
+	err := os.WriteFile(testConfigFile, uprobeConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	var checkers []ec.EventChecker
+	for i := range tt {
+		checkers = append(checkers, ec.NewProcessUprobeChecker("uprobe-resolve").
+			WithProcess(ec.NewProcessChecker().
+				WithBinary(sm.Full(uprobe)).
+				WithArguments(
+					sm.Full(tt[i].field+" "+strconv.Itoa(tt[i].filterVal)),
+				),
+			).WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(tt[i].kpArgs...)))
+	}
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	for i := range tt {
+		cmd := exec.Command(uprobe, tt[i].field, strconv.Itoa(tt[i].filterVal))
+		cmdErr := testutils.RunCmdAndLogOutput(t, cmd)
+		require.NoError(t, cmdErr)
+	}
+
+	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(checkers...))
 	require.NoError(t, err)
 }
