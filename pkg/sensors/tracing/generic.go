@@ -32,6 +32,10 @@ func hasCurrentTaskSource(arg *v1alpha1.KProbeArg) bool {
 	return arg.Source == "current_task"
 }
 
+func hasPtRegsSource(arg *v1alpha1.KProbeArg) bool {
+	return arg.Source == "pt_regs"
+}
+
 func resolveBTFType(arg *v1alpha1.KProbeArg, ty ebtf.Type) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
 	btfArg := [api.MaxBTFArgDepth]api.ConfigBTFArg{}
 	pathBase := strings.Split(arg.Resolve, ".")

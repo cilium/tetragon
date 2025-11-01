@@ -181,6 +181,12 @@ struct config_usdt_arg {
 	__u32 pad1;
 } __attribute__((packed));
 
+struct config_reg_arg {
+	__u16 offset;
+	__u8 size;
+	__u8 pad;
+} __attribute__((packed));
+
 struct extract_arg_data {
 	struct config_btf_arg *btf_config;
 	unsigned long *arg;
@@ -189,6 +195,7 @@ struct extract_arg_data {
 #define MAX_BTF_ARG_DEPTH	  10
 #define EVENT_CONFIG_MAX_ARG	  5
 #define EVENT_CONFIG_MAX_USDT_ARG 8
+#define EVENT_CONFIG_MAX_REG_ARG  8
 
 struct event_config {
 	__u32 func_id;
@@ -212,6 +219,7 @@ struct event_config {
 	__u32 pad;
 	struct config_btf_arg btf_arg[EVENT_CONFIG_MAX_ARG][MAX_BTF_ARG_DEPTH];
 	struct config_usdt_arg usdt_arg[EVENT_CONFIG_MAX_USDT_ARG];
+	struct config_reg_arg reg_arg[EVENT_CONFIG_MAX_REG_ARG];
 } __attribute__((packed));
 
 #define MAX_ARGS_SIZE	 80
@@ -574,6 +582,7 @@ FUNC_INLINE long copy_kernel_module(char *args, unsigned long arg)
 #define ARGM_RETURN_COPY  BIT(4)
 #define ARGM_MAX_DATA	  BIT(5)
 #define ARGM_CURRENT_TASK BIT(6)
+#define ARGM_PT_REGS	  BIT(7)
 
 FUNC_INLINE bool has_return_copy(unsigned long argm)
 {
