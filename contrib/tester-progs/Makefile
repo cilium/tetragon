@@ -39,7 +39,8 @@ PROGS = sigkill-tester \
 	capabilities-ioperm \
 	usdt-override \
 	usdt-resolve \
-	uretprobe
+	uretprobe \
+	uprobe-resolve
 
 PROGS += $(PROGS_ARCH)
 
@@ -104,6 +105,13 @@ usdt-override: usdt-override.c
 	strip $@
 
 usdt-resolve: usdt-resolve.c
+	$(GCC) -ggdb3 -O2 -Wall $< -o $@
+	pahole -J $@
+	llvm-objcopy --dump-section .BTF=$@.btf.tmp $@
+	llvm-objcopy -I binary -O elf64-x86-64 --rename-section .data=.BTF $@.btf.tmp $@.btf
+	rm $@.btf.tmp
+
+uprobe-resolve: uprobe-resolve.c
 	$(GCC) -ggdb3 -O2 -Wall $< -o $@
 	pahole -J $@
 	llvm-objcopy --dump-section .BTF=$@.btf.tmp $@
