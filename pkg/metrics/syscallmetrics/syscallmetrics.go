@@ -13,12 +13,14 @@ import (
 )
 
 var (
-	syscallStats = metrics.MustNewGranularCounter[metrics.ProcessLabels](prometheus.CounterOpts{
-		Namespace:   consts.MetricsNamespace,
-		Name:        "syscalls_total",
-		Help:        "System calls observed.",
-		ConstLabels: nil,
-	}, []string{"syscall"})
+	syscallStats = metrics.MustNewGranularCounterWithInit[metrics.ProcessLabels](
+		metrics.NewOpts(
+			consts.MetricsNamespace, "", "syscalls_total",
+			"System calls observed.",
+			nil, nil, []metrics.UnconstrainedLabel{{Name: "syscall", ExampleValue: consts.ExampleSyscallLabel}},
+		),
+		nil,
+	)
 )
 
 func InitMetrics(registry *prometheus.Registry) {
