@@ -521,7 +521,7 @@ func writeMatchValuesRange(k *KernelSelectorState, values []string, ty uint32) e
 		}
 
 		switch ty {
-		case gt.GenericIntType, gt.GenericS32Type, gt.GenericSizeType, gt.GenericU32Type:
+		case gt.GenericIntType, gt.GenericS32Type, gt.GenericSizeType, gt.GenericU32Type, gt.GenericU16Type, gt.GenericU8Type, gt.GenericS16Type, gt.GenericS8Type:
 			if rangeMax > math.MaxUint32 || rangeMin > math.MaxUint32 {
 				return fmt.Errorf("range out of range (%d:%d) allowed max %d", rangeMin, rangeMax, math.MaxUint32)
 			}
@@ -664,13 +664,19 @@ func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) er
 	for _, v := range values {
 		switch ty {
 
-		case gt.GenericIntType, gt.GenericS32Type, gt.GenericSizeType:
+		case gt.GenericIntType, gt.GenericS32Type, gt.GenericSizeType, gt.GenericS16Type, gt.GenericS8Type:
+			if (ty == gt.GenericS16Type || ty == gt.GenericS8Type) && !config.EnableLargeProgs() {
+				return fmt.Errorf("MatchArgs type %s is only supported in kernels supporting large programs (normally versions >= 5.3)", gt.GenericTypeString(int(ty)))
+			}
 			i, err := strconv.ParseInt(v, 0, 32)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
 			}
 			WriteSelectorInt32(&k.data, int32(i))
-		case gt.GenericU32Type:
+		case gt.GenericU32Type, gt.GenericU16Type, gt.GenericU8Type:
+			if (ty == gt.GenericU16Type || ty == gt.GenericU8Type) && !config.EnableLargeProgs() {
+				return fmt.Errorf("MatchArgs type %s is only supported in kernels supporting large programs (normally versions >= 5.3)", gt.GenericTypeString(int(ty)))
+			}
 			i, err := strconv.ParseUint(v, 0, 32)
 			if err != nil {
 				return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
