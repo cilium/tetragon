@@ -203,14 +203,19 @@ nodata:
  * Returns the size of data appended to @args.
  */
 FUNC_INLINE long
-read_arg(void *ctx, struct msg_generic_kprobe *e, int index, int type,
-	 long orig_off, unsigned long arg, int argm)
+read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int argm)
 {
 	size_t min_size = type_to_min_size(type, argm);
-	char *args = e->args;
+	struct msg_generic_kprobe *e;
+	char *args;
 	long size = -1;
 	const struct path *path_arg = 0;
 	struct path path_buf;
+	int zero = 0;
+
+	e = map_lookup_elem(&process_call_heap, &zero);
+	if (!e)
+		return 0;
 
 	if (orig_off >= 16383 - min_size)
 		return 0;
@@ -449,6 +454,95 @@ FUNC_INLINE int arg_idx(int index)
 	return config->idx[index];
 }
 
+FUNC_INLINE long get_pt_regs_arg_syscall(struct pt_regs *ctx, __u16 offset, __u8 shift)
+{
+	void *_ctx;
+	long val;
+
+	_ctx = PT_REGS_SYSCALL_REGS(ctx);
+	if (!_ctx)
+		return 0;
+
+	probe_read(&val, sizeof(val), _ctx + offset);
+	val <<= shift;
+	val >>= shift;
+	return val;
+}
+
+// TODO let's unite this with read_reg in bpf/process/uprobe_offload.h
+#if defined(__TARGET_ARCH_x86) && (defined GENERIC_KPROBE || defined GENERIC_UPROBE)
+FUNC_INLINE long get_pt_regs_arg(struct pt_regs *ctx, struct event_config *config, int index)
+{
+	struct config_reg_arg *reg;
+	__u8 shift;
+
+	asm volatile("%[index] &= %1 ;\n"
+		     : [index] "+r"(index)
+		     : "i"(MAX_SELECTORS_MASK));
+	reg = &config->reg_arg[index];
+	shift = 64 - reg->size * 8;
+
+	if (config->syscall)
+		return get_pt_regs_arg_syscall(ctx, reg->offset, shift);
+
+#define READ_REG(reg) ({                                        \
+	__u64 val;                                              \
+	asm volatile("%[val] = *(u64 *)(%[ctx] + %[off])\n"     \
+		     : [ctx] "+r"(ctx), [val] "+r"(val)         \
+		     : [off] "i"(offsetof(struct pt_regs, reg)) \
+		     :);                                        \
+	val <<= shift;                                          \
+	val >>= shift;                                          \
+	val;                                                    \
+})
+
+	switch (reg->offset) {
+	case offsetof(struct pt_regs, r15):
+		return READ_REG(r15);
+	case offsetof(struct pt_regs, r14):
+		return READ_REG(r14);
+	case offsetof(struct pt_regs, r13):
+		return READ_REG(r13);
+	case offsetof(struct pt_regs, r12):
+		return READ_REG(r12);
+	case offsetof(struct pt_regs, bp):
+		return READ_REG(bp);
+	case offsetof(struct pt_regs, bx):
+		return READ_REG(bx);
+	case offsetof(struct pt_regs, r11):
+		return READ_REG(r11);
+	case offsetof(struct pt_regs, r10):
+		return READ_REG(r10);
+	case offsetof(struct pt_regs, r9):
+		return READ_REG(r9);
+	case offsetof(struct pt_regs, r8):
+		return READ_REG(r8);
+	case offsetof(struct pt_regs, ax):
+		return READ_REG(ax);
+	case offsetof(struct pt_regs, cx):
+		return READ_REG(cx);
+	case offsetof(struct pt_regs, dx):
+		return READ_REG(dx);
+	case offsetof(struct pt_regs, si):
+		return READ_REG(si);
+	case offsetof(struct pt_regs, di):
+		return READ_REG(di);
+	case offsetof(struct pt_regs, ip):
+		return READ_REG(ip);
+	case offsetof(struct pt_regs, sp):
+		return READ_REG(sp);
+	}
+
+#undef READ_REG
+	return 0;
+}
+#else
+FUNC_INLINE long get_pt_regs_arg(struct pt_regs *ctx, struct event_config *config, int index)
+{
+	return 0;
+}
+#endif /* __TARGET_ARCH_x86 && (GENERIC_KPROBE || GENERIC_UPROBE) */
+
 FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map_def *tailcals)
 {
 	struct msg_generic_kprobe *e;
@@ -483,10 +577,13 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 	/* Getting argument data based on the source attribute, which is encoded
 	 * in argument meta data, so far it's either:
 	 *
+	 *   - pt_regs register
 	 *   - current task object
 	 *   - real argument value
 	 */
-	if (am & ARGM_CURRENT_TASK)
+	if (am & ARGM_PT_REGS)
+		a = get_pt_regs_arg(ctx, config, arg_index);
+	else if (am & ARGM_CURRENT_TASK)
 		a = get_current_task();
 	else
 		a = (&e->a0)[arg_index];
@@ -497,7 +594,7 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 		return generic_path_offload(ctx, ty, a, index, off, tailcals);
 #endif
 
-	return read_arg(ctx, e, index, ty, off, a, am);
+	return read_arg(ctx, index, ty, off, a, am);
 }
 
 FUNC_INLINE int
@@ -1159,7 +1256,7 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 	ty_arg = config->argreturn;
 	do_copy = config->argreturncopy;
 	if (ty_arg) {
-		size += read_arg(ctx, e, 0, ty_arg, size, ret, 0);
+		size += read_arg(ctx, 0, ty_arg, size, ret, 0);
 #if defined(__LARGE_BPF_PROG) && defined(GENERIC_KRETPROBE)
 		struct socket_owner owner;
 

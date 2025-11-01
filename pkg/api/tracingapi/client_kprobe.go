@@ -630,9 +630,16 @@ type ConfigUsdtArg struct {
 	Pad1      uint32 `align:"pad1"`
 }
 
+type ConfigRegArg struct {
+	Offset uint16 `align:"offset"`
+	Size   uint8  `align:"size"`
+	Pad    uint8  `align:"pad"`
+}
+
 const (
 	EventConfigMaxArgs     = 5
 	EventConfigMaxUsdtArgs = 8
+	EventConfigMaxRegArgs  = 8
 	MaxBTFArgDepth         = 10 // Artificial value for compilation, may be extended
 )
 
@@ -651,4 +658,5 @@ type EventConfig struct {
 	Pad             uint32                                           `align:"pad"`
 	BTFArg          [EventConfigMaxArgs][MaxBTFArgDepth]ConfigBTFArg `align:"btf_arg"`
 	UsdtArg         [EventConfigMaxUsdtArgs]ConfigUsdtArg            `align:"usdt_arg"`
+	RegArg          [EventConfigMaxRegArgs]ConfigRegArg              `align:"reg_arg"`
 }
