@@ -436,7 +436,7 @@ Maximum of 16 Tags are supported.<br/>
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
 the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
 type.<br/>
         </td>
@@ -543,7 +543,7 @@ This field is used only for char_buf and char_iovec types.<br/>
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
 the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
 type.<br/>
         </td>
@@ -676,7 +676,7 @@ A return argument to include in the trace output.
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
 the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
 type.<br/>
         </td>
@@ -1746,7 +1746,7 @@ Maximum of 16 Tags are supported.<br/>
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
 the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
 type.<br/>
         </td>
@@ -2889,7 +2889,7 @@ Maximum of 16 Tags are supported.<br/>
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
 the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
 type.<br/>
         </td>
@@ -3845,6 +3845,13 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>btfPath</b></td>
+        <td>string</td>
+        <td>
+          path for a BTF file for the traced binary<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>message</b></td>
         <td>string</td>
         <td>
@@ -3947,7 +3954,7 @@ Maximum of 16 Tags are supported.<br/>
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
 the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
 type.<br/>
         </td>
@@ -4054,7 +4061,7 @@ A return argument to include in the trace output.
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
 the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
 type.<br/>
         </td>
@@ -5089,7 +5096,7 @@ Maximum of 16 Tags are supported.<br/>
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
 the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
 type.<br/>
         </td>
@@ -6405,7 +6412,7 @@ Maximum of 16 Tags are supported.<br/>
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
 the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
 type.<br/>
         </td>
@@ -6512,7 +6519,7 @@ This field is used only for char_buf and char_iovec types.<br/>
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
 the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
 type.<br/>
         </td>
@@ -6645,7 +6652,7 @@ A return argument to include in the trace output.
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
 the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
 type.<br/>
         </td>
@@ -7715,7 +7722,7 @@ Maximum of 16 Tags are supported.<br/>
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
 the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
 type.<br/>
         </td>
@@ -8858,7 +8865,7 @@ Maximum of 16 Tags are supported.<br/>
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
 the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
 type.<br/>
         </td>
@@ -9814,6 +9821,13 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>btfPath</b></td>
+        <td>string</td>
+        <td>
+          path for a BTF file for the traced binary<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>message</b></td>
         <td>string</td>
         <td>
@@ -9916,7 +9930,7 @@ Maximum of 16 Tags are supported.<br/>
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
 the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
 type.<br/>
         </td>
@@ -10023,7 +10037,7 @@ A return argument to include in the trace output.
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
 the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
 type.<br/>
         </td>
@@ -11058,7 +11072,7 @@ Maximum of 16 Tags are supported.<br/>
         <td><b>btfType</b></td>
         <td>string</td>
         <td>
-          Type of original argument. This is currenlty only used in UsdtSpecs for arguments with
+          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
 the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
 type.<br/>
         </td>
