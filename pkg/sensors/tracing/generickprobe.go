@@ -1448,6 +1448,168 @@ type evArgsRetriever interface {
 	*tracing.MsgGenericKprobeUnix | *tracing.MsgGenericUprobeUnix
 }
 
+// createCrossPolicyMultiKprobeSensor creates a consolidated BPF program that handles
+// multiple policies hooking the same kernel function
+func createCrossPolicyMultiKprobeSensor(
+	funcName string,
+	policies []sensors.PolicyInfo,
+	has hasMaps,
+) ([]*program.Program, []*program.Map, error) {
+	var multiIDs []idtable.EntryID
+	var progs []*program.Program
+	var maps []*program.Map
+
+	data := &genericKprobeData{}
+
+	// Collect all kprobe entries from all policies for this function
+	for _, policyInfo := range policies {
+		for _, kprobeSpec := range policyInfo.KprobeSpecs {
+			if kprobeSpec.FunctionName == funcName {
+				// Create a kprobe entry for this policy's hook
+				id, err := createCrossPolicyKprobeEntry(funcName, kprobeSpec, policyInfo)
+				if err != nil {
+					return nil, nil, fmt.Errorf("failed to create cross-policy kprobe entry: %w", err)
+				}
+				multiIDs = append(multiIDs, id)
+
+				// Get the generic kprobe and update data
+				gk, err := genericKprobeTableGet(id)
+				if err != nil {
+					return nil, nil, err
+				}
+				gk.data = data
+
+				// Aggregate capabilities from all policies
+				has.stackTrace = has.stackTrace || gk.hasStackTrace
+				has.override = has.override || gk.hasOverride
+			}
+		}
+	}
+
+	if len(multiIDs) == 0 {
+		return nil, nil, fmt.Errorf("no kprobe entries found for function %s", funcName)
+	}
+
+	loadProgName, _ := config.GenericKprobeObjs(true)
+
+	// Create the consolidated program with a descriptive name
+	policyNames := make([]string, len(policies))
+	for i, p := range policies {
+		policyNames[i] = p.Name
+	}
+
+	load := program.Builder(
+		path.Join(option.Config.HubbleLib, loadProgName),
+		fmt.Sprintf("cross_policy_kprobe_%s (%d policies)", funcName, len(policies)),
+		"kprobe.multi/generic_kprobe",
+		fmt.Sprintf("cross_policy_%s", funcName),
+		"generic_kprobe").
+		SetLoaderData(multiIDs).
+		SetPolicy(fmt.Sprintf("consolidated_%s", funcName))
+	progs = append(progs, load)
+
+	// Create maps for the consolidated program
+	fdinstall := program.MapBuilderSensor("fdinstall_map", load)
+	if has.fdInstall {
+		fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
+	}
+	maps = append(maps, fdinstall)
+
+	configMap := program.MapBuilderProgram("config_map", load)
+	maps = append(maps, configMap)
+
+	tailCalls := program.MapBuilderProgram("kprobe_calls", load)
+	maps = append(maps, tailCalls)
+
+	filterMap := program.MapBuilderProgram("filter_map", load)
+	maps = append(maps, filterMap)
+
+	maps = append(maps, filterMaps(load, nil)...)
+
+	retProbe := program.MapBuilderSensor("retprobe_map", load)
+	maps = append(maps, retProbe)
+
+	callHeap := program.MapBuilderSensor("process_call_heap", load)
+	maps = append(maps, callHeap)
+
+	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
+	maps = append(maps, selMatchBinariesMap)
+
+	matchBinariesPaths := program.MapBuilderProgram("tg_mb_paths", load)
+	maps = append(maps, matchBinariesPaths)
+
+	stackTraceMap := program.MapBuilderProgram("stack_trace_map", load)
+	if has.stackTrace {
+		stackTraceMap.SetMaxEntries(stackTraceMapMaxEntries)
+	}
+	maps = append(maps, stackTraceMap)
+	data.stackTraceMap = stackTraceMap
+
+	if config.EnableLargeProgs() {
+		socktrack := program.MapBuilderSensor("socktrack_map", load)
+		maps = append(maps, socktrack)
+	}
+
+	if config.EnableLargeProgs() {
+		ratelimitMap := program.MapBuilderSensor("ratelimit_map", load)
+		if has.rateLimit {
+			ratelimitMap.SetMaxEntries(ratelimitMapMaxEntries)
+		}
+		maps = append(maps, ratelimitMap)
+	}
+
+	if has.enforcer {
+		maps = append(maps, enforcerMapsUser(load)...)
+	}
+
+	if option.Config.EnableCgTrackerID {
+		maps = append(maps, program.MapUser(cgtracker.MapName, load))
+	}
+
+	// Size maps based on number of policies
+	filterMap.SetMaxEntries(len(multiIDs))
+	configMap.SetMaxEntries(len(multiIDs))
+
+	overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
+	if has.override {
+		overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
+	}
+	maps = append(maps, overrideTasksMap)
+
+	// Add policy configuration maps for each policy
+	for _, policyInfo := range policies {
+		policyConfMap := program.MapBuilderPolicy(fmt.Sprintf("policy_conf_%d", policyInfo.PolicyID), load)
+		maps = append(maps, policyConfMap)
+
+		policyStatsMap := program.MapBuilderPolicy(fmt.Sprintf("policy_stats_%d", policyInfo.PolicyID), load)
+		maps = append(maps, policyStatsMap)
+	}
+
+	logger.GetLogger().Info(fmt.Sprintf("Created cross-policy multi-kprobe sensor for %s with %d policies", 
+		funcName, len(policies)))
+
+	return progs, maps, nil
+}
+
+// createCrossPolicyKprobeEntry creates a kprobe entry for cross-policy consolidation
+func createCrossPolicyKprobeEntry(
+	funcName string,
+	kprobeSpec sensors.KprobeSpec,
+	policyInfo sensors.PolicyInfo,
+) (idtable.EntryID, error) {
+	// This is a simplified version - in a full implementation, we would need to
+	// create proper kprobe entries with all the necessary configuration
+	
+	// For now, we'll create a basic entry and return a placeholder ID
+	// In the real implementation, this would involve:
+	// 1. Creating proper selectors
+	// 2. Setting up event configuration
+	// 3. Handling policy-specific settings
+	
+	// TODO: Implement full kprobe entry creation logic
+	return idtable.UninitializedEntryID, fmt.Errorf("cross-policy kprobe entry creation not yet implemented")
+}
+
 // retprobeMerge merges the two events: the one from the entry probe with the one from the return probe
 func retprobeMerge[T evArgsRetriever](prev pendingEvent[T], curr pendingEvent[T],
 	onMergeError reportMergeErorrFn[T]) (T, T) {

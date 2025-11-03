@@ -21,6 +21,9 @@ type handler struct {
 	nextPolicyID uint64
 	pfState      policyfilter.State
 	muLoad       sync.Mutex
+	
+	// consolidationManager handles cross-policy BPF program consolidation
+	consolidationManager *FunctionAttachmentManager
 }
 
 func newHandler(
@@ -36,7 +39,8 @@ func newHandler(
 		// indicate that there is no filtering in the bpf side.
 		// FirstValidFilterPolicyID is 1, but this might change if we
 		// introduce more special values in the future.
-		nextPolicyID: policyfilter.FirstValidFilterPolicyID,
+		nextPolicyID:         policyfilter.FirstValidFilterPolicyID,
+		consolidationManager: NewFunctionAttachmentManager(),
 	}, nil
 }
 
@@ -143,6 +147,13 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 	}
 	col.policyfilterID = uint64(filterID)
 
+	// Register policy with consolidation manager for cross-policy optimization
+	if err := h.consolidationManager.AddPolicy(op.tp, filterID); err != nil {
+		col.err = err
+		col.state = LoadErrorState
+		return err
+	}
+
 	sensors, err := sensorsFromPolicyHandlers(op.tp, filterID)
 	if err != nil {
 		col.err = err
@@ -181,6 +192,11 @@ func (h *handler) deleteTracingPolicy(op *tracingPolicyDelete) error {
 	h.collections.mu.Unlock()
 
 	col.destroy(true)
+
+	// Remove policy from consolidation manager
+	if err := h.consolidationManager.RemovePolicy(op.ck.name); err != nil {
+		return fmt.Errorf("failed to remove from consolidation manager: %w", err)
+	}
 
 	filterID := policyfilter.PolicyID(col.policyfilterID)
 	err := h.pfState.DelPolicy(filterID)
