@@ -34,7 +34,7 @@ func RegisterPodDeleteHandler() {
 		PodCallbacks: func(podInformer cache.SharedIndexInformer) {
 			podInformer.AddEventHandler(
 				cache.ResourceEventHandlerFuncs{
-					DeleteFunc: func(obj interface{}) {
+					DeleteFunc: func(obj any) {
 						var pod *corev1.Pod
 						switch concreteObj := obj.(type) {
 						case *corev1.Pod:

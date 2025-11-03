@@ -117,15 +117,15 @@ func (ts *testState) waitForCallbacks(t *testing.T) {
 func (ts *testState) eventHandler(m *state) cache.ResourceEventHandler {
 	h := m.getPodEventHandlers()
 	return cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj interface{}) {
+		AddFunc: func(obj any) {
 			h.OnAdd(obj, false)
 			ts.cbAdds.Add(1)
 		},
-		UpdateFunc: func(oldObj, newObj interface{}) {
+		UpdateFunc: func(oldObj, newObj any) {
 			h.OnUpdate(oldObj, newObj)
 			ts.cbUpds.Add(1)
 		},
-		DeleteFunc: func(obj interface{}) {
+		DeleteFunc: func(obj any) {
 			h.OnDelete(obj)
 			ts.cbDels.Add(1)
 		},

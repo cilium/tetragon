@@ -43,6 +43,6 @@ func (msg *MsgKThreadInitUnix) Notify() bool {
 	return false
 }
 
-func (msg *MsgKThreadInitUnix) Cast(_ interface{}) notify.Message {
+func (msg *MsgKThreadInitUnix) Cast(_ any) notify.Message {
 	return &MsgKThreadInitUnix{}
 }

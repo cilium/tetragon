@@ -23,7 +23,7 @@ func (e *ParseError) Error() string {
 	return "parsing error: " + e.msg
 }
 
-func ParseErrorFmt(s string, args ...interface{}) *ParseError {
+func ParseErrorFmt(s string, args ...any) *ParseError {
 	return &ParseError{
 		msg: fmt.Sprintf(s, args...),
 	}

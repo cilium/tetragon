@@ -346,10 +346,10 @@ func checkertypeString(checker ec.EventChecker) string {
 }
 
 func dumpChecks(ctx context.Context, checkerName string, checks []ec.EventChecker) error {
-	var unmatchedChecks []map[string]interface{}
+	var unmatchedChecks []map[string]any
 
 	for _, check := range checks {
-		unmatchedChecks = append(unmatchedChecks, map[string]interface{}{checkertypeString(check): check})
+		unmatchedChecks = append(unmatchedChecks, map[string]any{checkertypeString(check): check})
 	}
 
 	exportDir, err := getExportDir(ctx)

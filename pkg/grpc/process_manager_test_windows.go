@@ -21,7 +21,7 @@ func TestProcessManagerGetProcessID(t *testing.T) {
 	require.NoError(t, os.Setenv("NODE_NAME", "my-node"))
 	node.SetExportNodeName()
 
-	err := process.InitCache(watcher.NewFakeK8sWatcher([]interface{}{}), 10, defaults.DefaultProcessCacheGCInterval)
+	err := process.InitCache(watcher.NewFakeK8sWatcher([]any{}), 10, defaults.DefaultProcessCacheGCInterval)
 	require.NoError(t, err)
 	defer process.FreeCache()
 	id := process.GetProcessID(1, 2)

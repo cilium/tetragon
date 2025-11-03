@@ -13,17 +13,17 @@ import (
 // FakeK8sWatcher is used as an "empty" PodAccessor when --enable-k8s-api flag is not set.
 // It is also used for testing, allowing users to specify a static list of pods.
 type FakeK8sWatcher struct {
-	pods     []interface{}
-	services []interface{}
+	pods     []any
+	services []any
 }
 
 // NewFakeK8sWatcher returns a pointer to an initialized FakeK8sWatcher struct.
-func NewFakeK8sWatcher(pods []interface{}) *FakeK8sWatcher {
+func NewFakeK8sWatcher(pods []any) *FakeK8sWatcher {
 	return NewFakeK8sWatcherWithPodsAndServices(pods, nil)
 }
 
 // NewFakeK8sWatcherWithPodsAndServices returns a pointer to an initialized FakeK8sWatcher struct
-func NewFakeK8sWatcherWithPodsAndServices(pods []interface{}, services []interface{}) *FakeK8sWatcher {
+func NewFakeK8sWatcherWithPodsAndServices(pods []any, services []any) *FakeK8sWatcher {
 	return &FakeK8sWatcher{pods, services}
 }
 

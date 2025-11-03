@@ -44,18 +44,18 @@ type VoidTy struct{}
 type DmaAddrTy struct{}
 
 type PointerTy struct {
-	Ty    interface{}
+	Ty    any
 	Const bool
 }
 
 type ArrayTy struct {
-	Ty   interface{}
+	Ty   any
 	Size uint
 }
 
 type Field struct {
 	Name string
-	Type interface{}
+	Type any
 }
 
 type ParseError struct {
@@ -66,7 +66,7 @@ func (e *ParseError) Error() string {
 	return "failed to parse field: " + e.r
 }
 
-func parseTy(tyFields []string) (interface{}, error) {
+func parseTy(tyFields []string) (any, error) {
 
 	fidx := 0
 	nfields := len(tyFields)
@@ -103,7 +103,7 @@ func parseTy(tyFields []string) (interface{}, error) {
 		ty = nextField()
 	}
 
-	var retTy interface{}
+	var retTy any
 	switch {
 	case ty == "char":
 		retTy = IntTy{Base: IntTyChar, Unsigned: unsigned}

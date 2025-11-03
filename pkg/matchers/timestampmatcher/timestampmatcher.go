@@ -54,11 +54,12 @@ type timestampFormat struct {
 	Timestamp *Time  `json:"time"`
 }
 
-type timestampValue interface {
-	// *Time
-	// *timestampBetween
-	// *timestampFormat
-}
+//	{
+//		*Time
+//		*timestampBetween
+//		*timestampFormat
+//	}
+type timestampValue any
 
 func (m *TimestampMatcher) checkDay(ts *time.Time) error {
 	value, ok := m.Value.(*Time)

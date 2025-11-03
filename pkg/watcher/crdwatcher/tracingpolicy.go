@@ -31,7 +31,7 @@ func init() {
 }
 
 // k8sErrorHandler logs errors from k8s API to the tetragon logger for consistent log format.
-func k8sErrorHandler(_ context.Context, e error, _ string, _ ...interface{}) {
+func k8sErrorHandler(_ context.Context, e error, _ string, _ ...any) {
 	if e == nil {
 		return
 	}
@@ -48,7 +48,7 @@ func k8sErrorHandler(_ context.Context, e error, _ string, _ ...interface{}) {
 }
 
 func addTracingPolicy(ctx context.Context, log logger.FieldLogger, s *sensors.Manager,
-	obj interface{},
+	obj any,
 ) {
 	var err error
 	switch tp := obj.(type) {
@@ -69,7 +69,7 @@ func addTracingPolicy(ctx context.Context, log logger.FieldLogger, s *sensors.Ma
 }
 
 func deleteTracingPolicy(ctx context.Context, log logger.FieldLogger, s *sensors.Manager,
-	obj interface{}) {
+	obj any) {
 
 	if dfsu, ok := obj.(cache.DeletedFinalStateUnknown); ok {
 		obj = dfsu.Obj
@@ -92,7 +92,7 @@ func deleteTracingPolicy(ctx context.Context, log logger.FieldLogger, s *sensors
 }
 
 func updateTracingPolicy(ctx context.Context, log logger.FieldLogger, s *sensors.Manager,
-	oldObj interface{}, newObj interface{}) {
+	oldObj any, newObj any) {
 
 	update := func(oldTp, newTp tracingpolicy.TracingPolicy) {
 		var namespace string
@@ -163,13 +163,13 @@ func AddTracingPolicyInformer(ctx context.Context, m *manager.ControllerManager,
 	}
 	_, err = tpInformer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
+			AddFunc: func(obj any) {
 				addTracingPolicy(ctx, log, s, obj)
 			},
-			DeleteFunc: func(obj interface{}) {
+			DeleteFunc: func(obj any) {
 				deleteTracingPolicy(ctx, log, s, obj)
 			},
-			UpdateFunc: func(oldObj interface{}, newObj interface{}) {
+			UpdateFunc: func(oldObj any, newObj any) {
 				updateTracingPolicy(ctx, log, s, oldObj, newObj)
 			}})
 	if err != nil {
@@ -182,13 +182,13 @@ func AddTracingPolicyInformer(ctx context.Context, m *manager.ControllerManager,
 	}
 	_, err = tpnInformer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
+			AddFunc: func(obj any) {
 				addTracingPolicy(ctx, log, s, obj)
 			},
-			DeleteFunc: func(obj interface{}) {
+			DeleteFunc: func(obj any) {
 				deleteTracingPolicy(ctx, log, s, obj)
 			},
-			UpdateFunc: func(oldObj interface{}, newObj interface{}) {
+			UpdateFunc: func(oldObj any, newObj any) {
 				updateTracingPolicy(ctx, log, s, oldObj, newObj)
 			}})
 	if err != nil {

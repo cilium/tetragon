@@ -53,7 +53,7 @@ func (d *DebugLogger) DebugLogWithCallers(nCallers int) FieldLogger {
 	return log
 }
 
-func (d *DebugLogger) Debug(msg string, args ...interface{}) {
+func (d *DebugLogger) Debug(msg string, args ...any) {
 	if d.debugEnabled {
 		d.logger.Info(msg, args...)
 	} else {
@@ -61,7 +61,7 @@ func (d *DebugLogger) Debug(msg string, args ...interface{}) {
 	}
 }
 
-func (d *DebugLogger) Debugf(format string, args ...interface{}) {
+func (d *DebugLogger) Debugf(format string, args ...any) {
 	if d.debugEnabled {
 		d.logger.Info(fmt.Sprintf(format, args...))
 	} else {

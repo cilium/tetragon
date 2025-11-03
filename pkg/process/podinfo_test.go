@@ -18,7 +18,7 @@ import (
 
 func TestK8sWatcher_GetPodInfo(t *testing.T) {
 	controller := true
-	var pods []interface{}
+	var pods []any
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "test-pod",

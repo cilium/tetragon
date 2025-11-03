@@ -19,7 +19,7 @@ import (
 )
 
 type ExportEncoder interface {
-	Encode(v interface{}) error
+	Encode(v any) error
 }
 
 type Exporter struct {
@@ -85,10 +85,10 @@ func (e *Exporter) Context() context.Context {
 	return e.ctx
 }
 
-func (e *Exporter) SendMsg(_ interface{}) error {
+func (e *Exporter) SendMsg(_ any) error {
 	return nil
 }
 
-func (e *Exporter) RecvMsg(_ interface{}) error {
+func (e *Exporter) RecvMsg(_ any) error {
 	return nil
 }

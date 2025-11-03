@@ -108,7 +108,7 @@ func (g *ActionArgEntry) GetArg() string {
 	return g.arg
 }
 
-func MatchActionSigKill(spec interface{}) bool {
+func MatchActionSigKill(spec any) bool {
 	var sels []v1alpha1.KProbeSelector
 	switch s := spec.(type) {
 	case *v1alpha1.KProbeSpec:

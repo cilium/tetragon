@@ -47,7 +47,7 @@ func ContainerIDKey(contID string) (string, error) {
 }
 
 // ContainerIndexFunc index pod by container IDs.
-func ContainerIndexFunc(obj interface{}) ([]string, error) {
+func ContainerIndexFunc(obj any) ([]string, error) {
 	var containerIDs []string
 	putContainer := func(fullContainerID string) error {
 		if fullContainerID == "" {
@@ -89,7 +89,7 @@ func ContainerIndexFunc(obj interface{}) ([]string, error) {
 	return nil, fmt.Errorf("%w - found %T", errNoPod, obj)
 }
 
-func PodIndexFunc(obj interface{}) ([]string, error) {
+func PodIndexFunc(obj any) ([]string, error) {
 	switch t := obj.(type) {
 	case *corev1.Pod:
 		return []string{string(t.UID)}, nil
@@ -120,7 +120,7 @@ func FindContainer(containerID string, podInformer cache.SharedIndexInformer, de
 }
 
 // TODO(michi) Not the most efficient implementation. Optimize as needed.
-func findContainer(containerID string, pods []interface{}) (*corev1.Pod, *corev1.ContainerStatus, bool) {
+func findContainer(containerID string, pods []any) (*corev1.Pod, *corev1.ContainerStatus, bool) {
 	if containerID == "" {
 		return nil, nil, false
 	}
@@ -186,7 +186,7 @@ func FindPod(podID string, podInformer cache.SharedIndexInformer) (*corev1.Pod, 
 	return nil, fmt.Errorf("unable to find pod with ID %s (index pods=%d all pods=%d)", podID, len(objs), len(allPods))
 }
 
-func findPod(podID string, pods []interface{}) (*corev1.Pod, bool) {
+func findPod(podID string, pods []any) (*corev1.Pod, bool) {
 	for i := range pods {
 		if pod, ok := pods[i].(*corev1.Pod); ok {
 			if string(pod.UID) == podID {

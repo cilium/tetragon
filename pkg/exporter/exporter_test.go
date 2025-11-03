@@ -74,7 +74,7 @@ func (f *fakeNotifier) RemoveListener(listener server.Listener) {
 	f.mux.Unlock()
 }
 
-func (f *fakeNotifier) NotifyListener(_ interface{}, processed *tetragon.GetEventsResponse) {
+func (f *fakeNotifier) NotifyListener(_ any, processed *tetragon.GetEventsResponse) {
 	f.mux.Lock()
 	defer f.mux.Unlock()
 	for l := range f.listeners {

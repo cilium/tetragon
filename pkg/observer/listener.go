@@ -38,7 +38,7 @@ func NewChannel(conn net.Conn) *Channel {
 }
 
 // Notify implements Listener.Notify.
-func (o Channel) Notify(msg interface{}) error {
+func (o Channel) Notify(msg any) error {
 	return o.encoder.Encode(msg)
 }
 

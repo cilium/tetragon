@@ -148,7 +148,7 @@ func (cm *ControllerManager) WaitCRDs(ctx context.Context, crds map[string]struc
 		return err
 	}
 	_, err = crdInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj interface{}) {
+		AddFunc: func(obj any) {
 			crdObject, ok := obj.(*apiextensionsv1.CustomResourceDefinition)
 			if !ok {
 				log.Warn("Received an invalid object", "obj", obj)

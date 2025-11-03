@@ -183,7 +183,7 @@ type timingEncoder struct {
 	inner         exporter.ExportEncoder
 }
 
-func (te *timingEncoder) Encode(v interface{}) error {
+func (te *timingEncoder) Encode(v any) error {
 	t0 := time.Now()
 	err := te.inner.Encode(v)
 	te.totalDuration.Add(uint64(time.Since(t0)))
