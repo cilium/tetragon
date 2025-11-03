@@ -5,6 +5,7 @@ package labels
 
 import (
 	"fmt"
+	"slices"
 
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 )
@@ -31,12 +32,7 @@ type selectorOp struct {
 }
 
 func (s selectorOp) hasValue(val string) bool {
-	for i := range s.values {
-		if val == s.values[i] {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(s.values, val)
 }
 
 func (s *selectorOp) match(labels Labels) bool {

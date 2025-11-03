@@ -1060,10 +1060,7 @@ func parseRateLimit(str string, scopeStr string) (uint32, uint32, error) {
 		}
 	}
 
-	rateLimit = rateLimit * uint64(multiplier) * 1000
-	if rateLimit > 0xffffffff {
-		rateLimit = 0xffffffff
-	}
+	rateLimit = min(rateLimit*uint64(multiplier)*1000, 0xffffffff)
 	return uint32(rateLimit), scope, nil
 }
 

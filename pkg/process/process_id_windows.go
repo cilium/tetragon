@@ -9,5 +9,5 @@ import (
 )
 
 func GetProcessID(pid uint32, _ uint64) string {
-	return base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%d:%d:%d", pid, pid, pid)))
+	return base64.StdEncoding.EncodeToString(fmt.Appendf(nil, "%d:%d:%d", pid, pid, pid))
 }

@@ -80,11 +80,11 @@ func dumpSyscalls(fname string) (map[string][]SyscallArg, error) {
 
 	for i := range elfSyms {
 		s := &elfSyms[i]
-		if strings.HasPrefix(s.Name, "types__") {
-			syscall := strings.TrimPrefix(s.Name, "types__")
+		if after, ok := strings.CutPrefix(s.Name, "types__"); ok {
+			syscall := after
 			typs[syscall] = s
-		} else if strings.HasPrefix(s.Name, "args__") {
-			syscall := strings.TrimPrefix(s.Name, "args__")
+		} else if after, ok := strings.CutPrefix(s.Name, "args__"); ok {
+			syscall := after
 			args[syscall] = s
 		}
 	}
@@ -162,10 +162,7 @@ func updateArgs(l *slog.Logger, oldArgs []SyscallArg, newArgs []SyscallArg) []Sy
 		return ok && v == ty2
 	}
 
-	nArgs := len(oldArgs)
-	if len(newArgs) > len(oldArgs) {
-		nArgs = len(newArgs)
-	}
+	nArgs := max(len(newArgs), len(oldArgs))
 	args := make([]SyscallArg, 0, nArgs)
 	for i := range nArgs {
 		li := l.With("i", i)

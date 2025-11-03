@@ -147,9 +147,7 @@ func ProcessEvents(t *testing.T, ctx context.Context, eventFn EventFn, wgStarted
 
 	if useBPFRingBuffer {
 		// Service the BPF ring buffer.
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 
 			complChecker := testsensor.NewCompletionChecker()
 
@@ -181,7 +179,7 @@ func ProcessEvents(t *testing.T, ctx context.Context, eventFn EventFn, wgStarted
 					break
 				}
 			}
-		}()
+		})
 	}
 
 	complChanCount := 0

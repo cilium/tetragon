@@ -5,6 +5,7 @@ package filters
 
 import (
 	"context"
+	"slices"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/event"
@@ -16,12 +17,7 @@ func filterByPid(pids []uint32) FilterFunc {
 		if process == nil {
 			return false
 		}
-		for _, pid := range pids {
-			if pid == process.Pid.GetValue() {
-				return true
-			}
-		}
-		return false
+		return slices.Contains(pids, process.Pid.GetValue())
 	}
 }
 

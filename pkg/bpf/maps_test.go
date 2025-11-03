@@ -22,7 +22,7 @@ map_extra:      0x0
 memlock:        74056`)
 
 func Benchmark_parseMemlockFromFDInfoReader(b *testing.B) {
-	for range b.N {
+	for b.Loop() {
 		parseMemlockFromFDInfoReader(mapFDinfo)
 	}
 }

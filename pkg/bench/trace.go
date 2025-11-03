@@ -9,6 +9,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"slices"
 	"strings"
 	"time"
 )
@@ -31,10 +32,8 @@ func TraceBenchSupported() []string {
 }
 
 func TraceBenchNameOrPanic(s string) string {
-	for _, k := range traceBenches {
-		if k == s {
-			return s
-		}
+	if slices.Contains(traceBenches, s) {
+		return s
 	}
 	log.Fatalf("Unknown bench '%s', use one of: %s", s, strings.Join(TraceBenchSupported(), ", "))
 	return string("")

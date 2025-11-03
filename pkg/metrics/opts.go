@@ -94,10 +94,8 @@ func getVariableLabels[L FilteredLabels](opts *Opts) (prometheus.ConstrainedLabe
 		current[i] = prometheus.ConstrainedLabel{
 			Name: label.Name,
 			Constraint: func(value string) string {
-				for _, v := range label.Values {
-					if value == v {
-						return value
-					}
+				if slices.Contains(label.Values, value) {
+					return value
 				}
 				// If the value is not in the list of possible values,
 				// replace it with an empty string.

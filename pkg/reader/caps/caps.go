@@ -441,8 +441,8 @@ func GetPIDCaps(filename string) (uint32, uint64, uint64, uint64) {
 		logger.GetLogger().Warn("ReadFile failed"+filename, logfields.Error, err)
 		return 0, 0, 0, 0
 	}
-	statuslines := strings.Split(string(file), "\n")
-	for _, line := range statuslines {
+	statuslines := strings.SplitSeq(string(file), "\n")
+	for line := range statuslines {
 		err = nil
 		if strings.Contains(line, "NStgid:") {
 			pid, err = getValue32Int(line)

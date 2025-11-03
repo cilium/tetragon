@@ -20,6 +20,7 @@ linters:
     - makezero
     - misspell
     - mirror
+    - modernize
     - perfsprint
     - revive
     - staticcheck
@@ -87,9 +88,13 @@ linters:
       - linters:
           - goheader
         path: pkg/sensors/tracing/genericuprobe_cgo.go
+      # Modernize also checks for this but more gently
       - linters:
           - perfsprint
         text: "concat-loop: string concatenation in a loop"
+      - linters:
+          - modernize
+        text: "interface{}"
     paths:
       - third_party$
       - builtin$

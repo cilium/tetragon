@@ -133,7 +133,7 @@ parent (pid:118413) no more descendants
 
 func TestForkTesterParser(t *testing.T) {
 	fti := &forkTesterInfo{}
-	for _, l := range strings.Split(sampleForkTesterOutput, "\n") {
+	for l := range strings.SplitSeq(sampleForkTesterOutput, "\n") {
 		fti.ParseLine(l)
 	}
 

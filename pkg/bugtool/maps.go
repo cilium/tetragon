@@ -228,7 +228,7 @@ type MapsChecksOutput struct {
 		AllMaps         int `json:"all_maps,omitempty"`
 		PinnedProgsMaps int `json:"pinned_progs_maps,omitempty"`
 		PinnedMaps      int `json:"pinned_maps,omitempty"`
-	} `json:"total_memlock_bytes,omitempty"`
+	} `json:"total_memlock_bytes"`
 
 	MapsStats struct {
 		PinnedProgsMaps int `json:"pinned_progs_maps,omitempty"`
@@ -237,7 +237,7 @@ type MapsChecksOutput struct {
 		Exter           int `json:"exter,omitempty"`
 		Union           int `json:"union,omitempty"`
 		Diff            int `json:"diff,omitempty"`
-	} `json:"maps_stats,omitempty"`
+	} `json:"maps_stats"`
 
 	DiffMaps []DiffMap `json:"diff_maps,omitempty"`
 

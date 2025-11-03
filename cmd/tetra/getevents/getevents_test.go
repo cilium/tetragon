@@ -120,8 +120,8 @@ func Test_GetEvents_FilterFields(t *testing.T) {
 		output := testutils.RedirectStdoutExecuteCmd(t, cmd)
 		// remove last trailing newline for splitting
 		output = bytes.TrimSpace(output)
-		lines := bytes.Split(output, []byte("\n"))
-		for _, line := range lines {
+		lines := bytes.SplitSeq(output, []byte("\n"))
+		for line := range lines {
 			var res tetragon.GetEventsResponse
 			err := json.Unmarshal(line, &res)
 			if err != nil {
@@ -139,8 +139,8 @@ func Test_GetEvents_FilterFields(t *testing.T) {
 		output := testutils.RedirectStdoutExecuteCmd(t, cmd)
 		// remove last trailing newline for splitting
 		output = bytes.TrimSpace(output)
-		lines := bytes.Split(output, []byte("\n"))
-		for _, line := range lines {
+		lines := bytes.SplitSeq(output, []byte("\n"))
+		for line := range lines {
 			var res tetragon.GetEventsResponse
 			err := json.Unmarshal(line, &res)
 			if err != nil {
