@@ -109,11 +109,9 @@ func startParseAndLog(
 	logPrefix string,
 	lp LineParser,
 ) {
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		parseAndLog(t, rd, logPrefix, lp)
-	}()
+	})
 }
 
 // ParseAndLogCmdOutput will log command output using t.Log, and also call the

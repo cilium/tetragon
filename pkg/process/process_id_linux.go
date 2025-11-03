@@ -11,5 +11,5 @@ import (
 )
 
 func GetProcessID(pid uint32, ktime uint64) string {
-	return base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%d:%d", node.GetNodeNameForExport(), ktime, pid)))
+	return base64.StdEncoding.EncodeToString(fmt.Appendf(nil, "%s:%d:%d", node.GetNodeNameForExport(), ktime, pid))
 }

@@ -4,6 +4,8 @@
 package eventchecker
 
 import (
+	"strings"
+
 	"google.golang.org/protobuf/compiler/protogen"
 
 	"github.com/cilium/tetragon/tools/protoc-gen-go-tetragon/common"
@@ -77,14 +79,14 @@ func generateEventToChecker(g *protogen.GeneratedFile, f []*protogen.File) error
 	}
 
 	doCases := func() string {
-		var ret string
+		var ret strings.Builder
 		for _, msg := range events {
 			msgIdent := common.TetragonApiIdent(g, msg.GoIdent.GoName)
-			ret += `case *` + msgIdent + `:
+			ret.WriteString(`case *` + msgIdent + `:
             return New` + msg.checkerName(g) + `("").From` + msg.GoIdent.GoName + `(ev), nil
-            `
+            `)
 		}
-		return ret
+		return ret.String()
 	}
 
 	g.P(`// CheckerFromEvent converts an event into an EventChecker

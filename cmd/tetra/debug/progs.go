@@ -70,7 +70,7 @@ var (
 func detectBpffs() (string, error) {
 	// Try to read /proc/mounts and find bpf mount
 	if lines, err := os.ReadFile("/proc/mounts"); err == nil {
-		for _, line := range strings.Split(string(lines), "\n") {
+		for line := range strings.SplitSeq(string(lines), "\n") {
 			parts := strings.Split(line, " ")
 			if len(parts) == 6 {
 				if parts[2] == "bpf" {

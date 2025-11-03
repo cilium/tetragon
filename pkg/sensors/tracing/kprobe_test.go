@@ -3279,7 +3279,8 @@ spec:
 }
 
 func getMatchArgsFileCrd(opStr string, vals []string) string {
-	configHook := `apiVersion: cilium.io/v1alpha1
+	var configHook strings.Builder
+	configHook.WriteString(`apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
   name: "testing-file-match-args"
@@ -3297,15 +3298,16 @@ spec:
     - matchArgs:
       - index: 1
         operator: "` + opStr + `"
-        values: `
+        values: `)
 	for i := range vals {
-		configHook += fmt.Sprintf("\n        - \"%s\"", vals[i])
+		configHook.WriteString(fmt.Sprintf("\n        - \"%s\"", vals[i]))
 	}
-	return configHook
+	return configHook.String()
 }
 
 func getMatchArgsFdCrd(opStr string, vals []string) string {
-	configHook := `apiVersion: cilium.io/v1alpha1
+	var configHook strings.Builder
+	configHook.WriteString(`apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
   name: "testing-file-match-args"
@@ -3323,12 +3325,12 @@ spec:
     - matchArgs:
       - index: 1
         operator: "` + opStr + `"
-        values: `
+        values: `)
 	for i := range vals {
-		configHook += fmt.Sprintf("\n        - \"%s\"", vals[i])
+		configHook.WriteString(fmt.Sprintf("\n        - \"%s\"", vals[i]))
 	}
-	configHook += "\n"
-	configHook += `      matchActions:
+	configHook.WriteString("\n")
+	configHook.WriteString(`      matchActions:
       - action: FollowFD
         argFd: 0
         argName: 1
@@ -3341,12 +3343,12 @@ spec:
     - matchArgs:
       - index: 0
         operator: "` + opStr + `"
-        values: `
+        values: `)
 	for i := range vals {
-		configHook += fmt.Sprintf("\n        - \"%s\"", vals[i])
+		configHook.WriteString(fmt.Sprintf("\n        - \"%s\"", vals[i]))
 	}
-	configHook += "\n"
-	configHook += `      matchActions:
+	configHook.WriteString("\n")
+	configHook.WriteString(`      matchActions:
       - action: UnfollowFD
         argFd: 0
         argName: 0
@@ -3364,11 +3366,11 @@ spec:
     - matchArgs:
       - index: 0
         operator: "` + opStr + `"
-        values: `
+        values: `)
 	for i := range vals {
-		configHook += fmt.Sprintf("\n        - \"%s\"", vals[i])
+		configHook.WriteString(fmt.Sprintf("\n        - \"%s\"", vals[i]))
 	}
-	return configHook
+	return configHook.String()
 }
 
 // this will trigger an fd_install event
@@ -3680,7 +3682,8 @@ func TestKprobeMatchArgsFdPrefix(t *testing.T) {
 }
 
 func getMatchArgsFileFIMCrd(vals []string) string {
-	configHook := `apiVersion: cilium.io/v1alpha1
+	var configHook strings.Builder
+	configHook.WriteString(`apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
   name: "file-monitoring"
@@ -3698,11 +3701,11 @@ spec:
     - matchArgs:
       - index: 0
         operator: "Prefix"
-        values: `
+        values: `)
 	for _, f := range vals {
-		configHook += fmt.Sprintf("\n        - \"%s\"", f)
+		configHook.WriteString(fmt.Sprintf("\n        - \"%s\"", f))
 	}
-	return configHook
+	return configHook.String()
 }
 
 func TestKprobeMatchArgsFileMonitoringPrefix(t *testing.T) {
@@ -3827,7 +3830,8 @@ spec:
 }
 
 func getMatchBinariesCrd(opStr string, vals []string) string {
-	configHook := `apiVersion: cilium.io/v1alpha1
+	var configHook strings.Builder
+	configHook.WriteString(`apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
   name: "testing-file-match-binaries"
@@ -3844,11 +3848,11 @@ spec:
     selectors:
     - matchBinaries:
       - operator: "` + opStr + `"
-        values: `
+        values: `)
 	for i := range vals {
-		configHook += fmt.Sprintf("\n        - \"%s\"", vals[i])
+		configHook.WriteString(fmt.Sprintf("\n        - \"%s\"", vals[i]))
 	}
-	return configHook
+	return configHook.String()
 }
 
 func createBinariesChecker(binary, filename string) *ec.ProcessKprobeChecker {
@@ -4623,7 +4627,7 @@ spec:
 
 	data := make([]byte, 6000)
 
-	for i := 0; i < len(data); i++ {
+	for i := range data {
 		data[i] = 'a'
 	}
 
@@ -4687,7 +4691,7 @@ spec:
 
 	data := make([]byte, 6000)
 
-	for i := 0; i < len(data); i++ {
+	for i := range data {
 		data[i] = 'a' + byte(i%26)
 	}
 
@@ -4747,7 +4751,7 @@ spec:
 	// 10 times 32736 buffer is the max now
 	data := make([]byte, 327360)
 
-	for i := 0; i < len(data); i++ {
+	for i := range data {
 		data[i] = 'a' + byte(i%26)
 	}
 

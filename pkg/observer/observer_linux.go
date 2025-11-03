@@ -139,9 +139,7 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 
 	if config.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
 		// Service the BPF ring buffer as well.
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for stopCtx.Err() == nil {
 				record, err := ringBufReader.Read()
 				if err != nil {
@@ -163,13 +161,11 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 					}
 				}
 			}
-		}()
+		})
 	}
 
 	// Start processing records from perf.
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		for {
 			select {
 			case eventRawSample := <-eventsQueue:
@@ -181,7 +177,7 @@ func (k *Observer) RunEvents(stopCtx context.Context, ready func()) error {
 				return
 			}
 		}
-	}()
+	})
 
 	// Loading default program consumes some memory lets kick GC to give
 	// this back to the OS (K8s).

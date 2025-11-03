@@ -39,7 +39,7 @@ parent:		(pid:143563, tid:143563, ppid:7860)	child1 (143564) exited with: 0
 
 func TestThreadTesterParser(t *testing.T) {
 	cti := &testutils.ThreadTesterInfo{}
-	for _, l := range strings.Split(sampleThreadTesterOutput, "\n") {
+	for l := range strings.SplitSeq(sampleThreadTesterOutput, "\n") {
 		cti.ParseLine(l)
 	}
 

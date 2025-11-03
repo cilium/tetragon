@@ -261,15 +261,15 @@ func Test_PrependName(t *testing.T) {
 		maxDentry := strings.Repeat("a", NAME_MAX)
 		state.ResetStateWithBuflen(MAX_BUF_LEN)
 
-		var expectedState string
+		var expectedState strings.Builder
 		// (len("/") + 255) * 16 = 4096
 		for range 16 {
 			err = state.UpdateDentry(maxDentry)
 			require.NoError(t, err)
 			code := runPrependName()
 			assert.Equal(t, 0, code)
-			expectedState += "/" + maxDentry
-			assert.Equal(t, expectedState, state.BufferToString())
+			expectedState.WriteString("/" + maxDentry)
+			assert.Equal(t, expectedState.String(), state.BufferToString())
 		}
 	})
 

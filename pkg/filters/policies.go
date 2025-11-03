@@ -5,6 +5,7 @@ package filters
 
 import (
 	"context"
+	"slices"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/event"
@@ -18,12 +19,7 @@ func filterByPolicyName(values []string) FilterFunc {
 		if policyName == "" {
 			return false
 		}
-		for _, v := range values {
-			if policyName == v {
-				return true
-			}
-		}
-		return false
+		return slices.Contains(values, policyName)
 	}
 }
 

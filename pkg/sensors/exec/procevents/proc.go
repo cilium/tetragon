@@ -123,8 +123,8 @@ func procsFilename(args []byte) (string, string) {
 }
 
 func procsFindDockerId(cgroups string) (string, int) {
-	cgrpPaths := strings.Split(cgroups, "\n")
-	for _, s := range cgrpPaths {
+	cgrpPaths := strings.SplitSeq(cgroups, "\n")
+	for s := range cgrpPaths {
 		if strings.Contains(s, "pods") || strings.Contains(s, "docker") ||
 			strings.Contains(s, "libpod") {
 			// Get the container ID and the offset

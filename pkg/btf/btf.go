@@ -114,7 +114,7 @@ func FindBTFStruct(name string) (*btf.Struct, error) {
 
 // firstStructTypeByName mimics spec.TypeByName(), but returns first match found.
 func firstTypeByName(spec *btf.Spec, name string, typ interface{}) error {
-	typeInterface := reflect.TypeOf((*btf.Type)(nil)).Elem()
+	typeInterface := reflect.TypeFor[btf.Type]()
 
 	// typ may be **T or *Type
 	typValue := reflect.ValueOf(typ)

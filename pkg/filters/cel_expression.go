@@ -50,7 +50,7 @@ func EvalCEL(ctx context.Context, program cel.Program, eventMap map[string]any) 
 	if err != nil {
 		return false, fmt.Errorf("error running CEL program: %w", err)
 	}
-	v, err := out.ConvertToNative(reflect.TypeOf(false))
+	v, err := out.ConvertToNative(reflect.TypeFor[bool]())
 	if err != nil {
 		return false, fmt.Errorf("invalid conversion in CEL program: %w", err)
 	}

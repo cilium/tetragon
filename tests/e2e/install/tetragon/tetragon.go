@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"os/exec"
 	"strings"
 
@@ -72,9 +73,7 @@ func WithHelmOptions(options map[string]string) Option {
 		if o.HelmValues == nil {
 			o.HelmValues = make(map[string]string)
 		}
-		for k, v := range options {
-			o.HelmValues[k] = v
-		}
+		maps.Copy(o.HelmValues, options)
 	}
 }
 

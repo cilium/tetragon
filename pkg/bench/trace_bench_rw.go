@@ -108,11 +108,9 @@ func (src traceBenchRw) Run(ctx context.Context, _ *Arguments, _ *Summary) error
 	defer wg.Wait()
 
 	for range uint(*rwThreads) {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			src.benchRwWorker(ctx)
-		}()
+		})
 	}
 
 	return nil

@@ -341,7 +341,7 @@ func stringToSliceHookFunc(sep string) mapstructure.DecodeHookFunc {
 		}
 
 		outSlice := []string{}
-		for _, s := range strings.Split(data.(string), sep) {
+		for s := range strings.SplitSeq(data.(string), sep) {
 			s = strings.TrimSpace(s)
 			outSlice = append(outSlice, s)
 		}

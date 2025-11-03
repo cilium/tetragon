@@ -6,6 +6,7 @@ package filters
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/event"
@@ -23,10 +24,8 @@ func checkPidSetMembership(pid uint32, pidSet []uint32, childCache ChildCache) b
 	// Check the original pidSet. The reason for doing this separately is that we never
 	// want to drop the original pidSet from the cache. Keeping this separately in a slice
 	// is an easy way to achieve this.
-	for _, p := range pidSet {
-		if pid == p {
-			return true
-		}
+	if slices.Contains(pidSet, pid) {
+		return true
 	}
 	// Fall back to childCache to check children.
 	_, ok := childCache[pid]

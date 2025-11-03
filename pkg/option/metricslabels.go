@@ -20,7 +20,7 @@ func DefaultLabelFilter() metrics.LabelFilter {
 
 func ParseMetricsLabelFilter(labelsString string) []string {
 	labels := []string{}
-	for _, l := range strings.Split(labelsString, ",") {
+	for l := range strings.SplitSeq(labelsString, ",") {
 		l = strings.TrimSpace(l)
 		labels = append(labels, l)
 	}

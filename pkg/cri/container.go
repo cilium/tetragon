@@ -40,7 +40,7 @@ func systemdExpandSlice(slice string) (string, error) {
 	if sliceName == "-" {
 		return "/", nil
 	}
-	for _, component := range strings.Split(sliceName, "-") {
+	for component := range strings.SplitSeq(sliceName, "-") {
 		// test--a.slice isn't permitted, nor is -test.slice.
 		if component == "" {
 			return "", fmt.Errorf("invalid slice name: %s", slice)

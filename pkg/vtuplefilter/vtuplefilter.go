@@ -33,7 +33,7 @@ func ParseErrorFmt(s string, args ...interface{}) *ParseError {
 func FromLine(s string) (Filter, error) {
 	var fs []Filter
 
-	for _, ss := range strings.Split(s, ",") {
+	for ss := range strings.SplitSeq(s, ",") {
 		var f Filter
 		opts := strings.Split(ss, "=")
 		if len(opts) != 2 {

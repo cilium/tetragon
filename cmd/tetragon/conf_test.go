@@ -1027,7 +1027,7 @@ var (
 
 func writeDropInConf(fullDir string, options map[string]interface{}) error {
 	for k, v := range options {
-		data := []byte(fmt.Sprint(v))
+		data := fmt.Append(nil, v)
 		file := filepath.Join(fullDir, k)
 		err := os.WriteFile(file, data, 0644)
 		if err != nil {

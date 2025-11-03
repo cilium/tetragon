@@ -4,6 +4,7 @@
 package sensors
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -39,10 +40,8 @@ func findMapForProg(coll *program.LoadedCollection, nam string, p *program.Loade
 		if nam != name {
 			continue
 		}
-		for _, id := range p.MapIDs {
-			if m.ID == id {
-				return m
-			}
+		if slices.Contains(p.MapIDs, m.ID) {
+			return m
 		}
 	}
 	return nil

@@ -76,9 +76,7 @@ func (observer *Observer) RunEvents(stopCtx context.Context, ready func()) error
 	}()
 
 	// Start processing records from ringbuffer
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		for {
 			select {
 			case winEvent := <-winEventsQueue:
@@ -90,7 +88,7 @@ func (observer *Observer) RunEvents(stopCtx context.Context, ready func()) error
 				return
 			}
 		}
-	}()
+	})
 
 	// Loading default program consumes some memory lets kick GC to give
 	// this back to the OS (K8s).

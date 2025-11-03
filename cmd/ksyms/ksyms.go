@@ -45,8 +45,8 @@ func main() {
 
 	arg := os.Args[1]
 	base := 10
-	if strings.HasPrefix(arg, "0x") {
-		arg = strings.TrimPrefix(arg, "0x")
+	if after, ok := strings.CutPrefix(arg, "0x"); ok {
+		arg = after
 		base = 16
 	}
 

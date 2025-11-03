@@ -159,7 +159,7 @@ func (msg *CheckedMessage) checkerName(g *protogen.GeneratedFile) string {
 }
 
 func (msg *CheckedMessage) fieldsBody(g *protogen.GeneratedFile) (string, error) {
-	var fieldsStr string
+	var fieldsStr strings.Builder
 	for _, field := range msg.Fields {
 		f := &Field{Field: field, IsInnerField: false}
 		typeName, err := f.typeName(g)
@@ -167,12 +167,12 @@ func (msg *CheckedMessage) fieldsBody(g *protogen.GeneratedFile) (string, error)
 			return "", err
 		}
 		if !f.isList() && !f.isMap() {
-			fieldsStr += fmt.Sprintf("%s *%s `%s`\n", f.name(), typeName, f.jsonTag())
+			fieldsStr.WriteString(fmt.Sprintf("%s *%s `%s`\n", f.name(), typeName, f.jsonTag()))
 		} else if f.isList() {
-			fieldsStr += fmt.Sprintf("%s *%s `%s`\n", f.name(), f.listCheckerName(g), f.jsonTag())
+			fieldsStr.WriteString(fmt.Sprintf("%s *%s `%s`\n", f.name(), f.listCheckerName(g), f.jsonTag()))
 		} else {
-			fieldsStr += fmt.Sprintf("%s %s `%s`\n", f.name(), typeName, f.jsonTag())
+			fieldsStr.WriteString(fmt.Sprintf("%s %s `%s`\n", f.name(), typeName, f.jsonTag()))
 		}
 	}
-	return fieldsStr, nil
+	return fieldsStr.String(), nil
 }
