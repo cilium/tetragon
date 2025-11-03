@@ -1,4 +1,4 @@
-{{- if .Values.tetragon.prometheus.enabled -}}
+{{- if and .Values.tetragon.enabled .Values.tetragon.prometheus.enabled -}}
 ---
 apiVersion: v1
 kind: Service
