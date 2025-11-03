@@ -11,7 +11,7 @@ import (
 func TestTracepointFieldParsing(t *testing.T) {
 	tests := []struct {
 		s  string
-		ty interface{}
+		ty any
 	}{
 		{
 			"unsigned short common_type",

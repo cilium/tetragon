@@ -49,7 +49,7 @@ func (msg *MsgTestEventUnix) HandleMessage() *tetragon.GetEventsResponse {
 	return res
 }
 
-func (msg *MsgTestEventUnix) Cast(o interface{}) notify.Message {
+func (msg *MsgTestEventUnix) Cast(o any) notify.Message {
 	t := o.(testapi.MsgTestEvent)
 	return &MsgTestEventUnix{Msg: &t}
 }

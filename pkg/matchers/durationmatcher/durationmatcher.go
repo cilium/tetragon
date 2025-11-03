@@ -44,10 +44,11 @@ type durationBetween struct {
 	Upper *Duration `json:"upper"`
 }
 
-type durationValue interface {
-	// *Duration
-	// *durationBetween
-}
+//	{
+//		*Duration
+//		*durationBetween
+//	}
+type durationValue any
 
 func (m *DurationMatcher) checkFull(duration *time.Duration) error {
 	value, ok := m.Value.(*Duration)

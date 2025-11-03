@@ -153,7 +153,7 @@ func (s *bugtoolInfo) tarAddBuff(fname string, buff *bytes.Buffer) error {
 	return doTarAddBuff(s.tarWriter, name, buff)
 }
 
-func (s *bugtoolInfo) TarAddJson(fname string, obj interface{}) error {
+func (s *bugtoolInfo) TarAddJson(fname string, obj any) error {
 	b, err := json.Marshal(obj)
 	if err != nil {
 		return err
@@ -201,7 +201,7 @@ type Commander interface {
 }
 
 type GRPCer interface {
-	TarAddJson(fname string, obj interface{}) error
+	TarAddJson(fname string, obj any) error
 }
 
 type CommandAction func(Commander) error

@@ -78,7 +78,7 @@ func (pm *ProcessManager) RemoveListener(listener server.Listener) {
 	delete(pm.listeners, listener)
 }
 
-func (pm *ProcessManager) NotifyListener(original interface{}, processed *tetragon.GetEventsResponse) {
+func (pm *ProcessManager) NotifyListener(original any, processed *tetragon.GetEventsResponse) {
 	pm.mux.Lock()
 	defer pm.mux.Unlock()
 	node.SetCommonFields(processed)

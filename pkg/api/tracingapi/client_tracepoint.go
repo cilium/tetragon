@@ -5,7 +5,7 @@ package tracingapi
 
 import "github.com/cilium/tetragon/pkg/api/processapi"
 
-type MsgGenericTracepointArg interface{}
+type MsgGenericTracepointArg any
 
 type MsgGenericTracepoint struct {
 	Common        processapi.MsgCommon

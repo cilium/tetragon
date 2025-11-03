@@ -40,7 +40,7 @@ func registerPodCallbacks(podInformer cache.SharedIndexInformer) {
 
 	podInformer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
+			AddFunc: func(obj any) {
 				pod, ok := obj.(*corev1.Pod)
 				if !ok {
 					logger.GetLogger().Warn(fmt.Sprintf("cgidmap, add-pod handler: unexpected object type: %T", pod))
@@ -48,7 +48,7 @@ func registerPodCallbacks(podInformer cache.SharedIndexInformer) {
 				}
 				updatePodHandler(m, pod)
 			},
-			UpdateFunc: func(_, newObj interface{}) {
+			UpdateFunc: func(_, newObj any) {
 				pod, ok := newObj.(*corev1.Pod)
 				if !ok {
 					logger.GetLogger().Warn(fmt.Sprintf("cgidmap, update-pod handler: unexpected object type(s): new:%T", pod))
@@ -56,7 +56,7 @@ func registerPodCallbacks(podInformer cache.SharedIndexInformer) {
 				}
 				updatePodHandler(m, pod)
 			},
-			DeleteFunc: func(obj interface{}) {
+			DeleteFunc: func(obj any) {
 				var pod *corev1.Pod
 				switch concreteObj := obj.(type) {
 				case *corev1.Pod:

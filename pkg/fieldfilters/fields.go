@@ -70,7 +70,7 @@ func fixupFieldFilterString(s string) string {
 	enc := json.NewEncoder(builder)
 
 	for {
-		var dat map[string]interface{}
+		var dat map[string]any
 		err := dec.Decode(&dat)
 		if err != nil {
 			break

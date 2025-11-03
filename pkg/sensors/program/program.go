@@ -136,10 +136,10 @@ type Program struct {
 	LoadState State
 
 	// LoaderData represents per-type specific fields.
-	LoaderData interface{}
+	LoaderData any
 
 	// AttachData represents specific data for attaching probe
-	AttachData interface{}
+	AttachData any
 
 	// Functions to call after loading maps to populate them
 	MapLoad []*MapLoad
@@ -185,12 +185,12 @@ func (p *Program) SetRetProbe(ret bool) *Program {
 	return p
 }
 
-func (p *Program) SetLoaderData(d interface{}) *Program {
+func (p *Program) SetLoaderData(d any) *Program {
 	p.LoaderData = d
 	return p
 }
 
-func (p *Program) SetAttachData(d interface{}) *Program {
+func (p *Program) SetAttachData(d any) *Program {
 	p.AttachData = d
 	return p
 }

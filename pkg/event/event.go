@@ -12,5 +12,5 @@ type Event struct {
 	// Timestamp when event was observed in Hubble
 	Timestamp *timestamppb.Timestamp
 	// Event contains the actual event
-	Event interface{}
+	Event any
 }

@@ -860,7 +860,7 @@ func installTailCalls(bpfDir string, spec *ebpf.CollectionSpec, coll *ebpf.Colle
 	return nil
 }
 
-func rewriteConstants(spec *ebpf.CollectionSpec, consts map[string]interface{}) error {
+func rewriteConstants(spec *ebpf.CollectionSpec, consts map[string]any) error {
 	var missing []string
 
 	for n, c := range consts {

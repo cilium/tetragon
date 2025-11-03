@@ -28,7 +28,7 @@ var (
 
 // EventEncoder is an interface for encoding tetragon.GetEventsResponse.
 type EventEncoder interface {
-	Encode(v interface{}) error
+	Encode(v any) error
 }
 
 // ColorMode defines color mode flags for compact output.
@@ -53,7 +53,7 @@ func NewTtyEncoder(w io.Writer, tty string) *TtyEncoder {
 }
 
 // Encode implements EventEncoder.Encode.
-func (p *TtyEncoder) Encode(v interface{}) error {
+func (p *TtyEncoder) Encode(v any) error {
 	event, ok := v.(*tetragon.GetEventsResponse)
 	if !ok {
 		return ErrInvalidEvent
@@ -103,7 +103,7 @@ func NewCompactEncoder(w io.Writer, colorMode ColorMode, timestamps bool, stackT
 }
 
 // Encode implements EventEncoder.Encode.
-func (p *CompactEncoder) Encode(v interface{}) error {
+func (p *CompactEncoder) Encode(v any) error {
 	event, ok := v.(*tetragon.GetEventsResponse)
 	if !ok {
 		return ErrInvalidEvent
@@ -144,7 +144,7 @@ func NewProtojsonEncoder(w io.Writer) *ProtojsonEncoder {
 	}
 }
 
-func (p *ProtojsonEncoder) Encode(v interface{}) error {
+func (p *ProtojsonEncoder) Encode(v any) error {
 	// TODO(WF): We may want to implement a streaming API here, similar to what they do in
 	// encoding/json. For now, I think this is probably fine though.
 	event, ok := v.(*tetragon.GetEventsResponse)

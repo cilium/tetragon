@@ -35,7 +35,7 @@ type Listener interface {
 type Notifier interface {
 	AddListener(listener Listener)
 	RemoveListener(listener Listener)
-	NotifyListener(original interface{}, processed *tetragon.GetEventsResponse)
+	NotifyListener(original any, processed *tetragon.GetEventsResponse)
 }
 
 type observer interface {

@@ -92,9 +92,6 @@ linters:
       - linters:
           - perfsprint
         text: "concat-loop: string concatenation in a loop"
-      - linters:
-          - modernize
-        text: "interface{}"
     paths:
       - third_party$
       - builtin$

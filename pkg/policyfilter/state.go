@@ -339,7 +339,7 @@ func (m *state) updatePodHandler(pod *v1.Pod) error {
 
 func (m *state) getPodEventHandlers() cache.ResourceEventHandlerFuncs {
 	return cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj interface{}) {
+		AddFunc: func(obj any) {
 			pod, ok := obj.(*v1.Pod)
 			if !ok {
 				logger.GetLogger().Warn(fmt.Sprintf("policyfilter, add-pod handler: unexpected object type: %T", pod))
@@ -348,7 +348,7 @@ func (m *state) getPodEventHandlers() cache.ResourceEventHandlerFuncs {
 			err := m.updatePodHandler(pod)
 			policyfiltermetrics.OpInc(policyfiltermetrics.PodHandlersSubsys, policyfiltermetrics.AddPodOperation, ErrorLabel(err))
 		},
-		UpdateFunc: func(_, newObj interface{}) {
+		UpdateFunc: func(_, newObj any) {
 			pod, ok := newObj.(*v1.Pod)
 			if !ok {
 				logger.GetLogger().Warn(fmt.Sprintf("policyfilter, update-pod handler: unexpected object type(s): new:%T", pod))
@@ -357,7 +357,7 @@ func (m *state) getPodEventHandlers() cache.ResourceEventHandlerFuncs {
 			err := m.updatePodHandler(pod)
 			policyfiltermetrics.OpInc(policyfiltermetrics.PodHandlersSubsys, policyfiltermetrics.UpdatePodOperation, ErrorLabel(err))
 		},
-		DeleteFunc: func(obj interface{}) {
+		DeleteFunc: func(obj any) {
 			// Remove all containers for this pod
 			pod, ok := obj.(*v1.Pod)
 			if !ok {

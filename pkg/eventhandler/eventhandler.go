@@ -19,7 +19,7 @@ type HasCustomHandler interface {
 	Handler() Handler
 }
 
-func GetCustomEventhandler(obj interface{}) Handler {
+func GetCustomEventhandler(obj any) Handler {
 	if ceh, ok := obj.(HasCustomHandler); ok {
 		return ceh.Handler()
 	}

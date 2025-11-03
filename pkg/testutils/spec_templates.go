@@ -14,7 +14,7 @@ import (
 // GetSpecFromTemplate creates a file bsed on the given template
 func GetSpecFromTemplate(
 	tmplname string,
-	data interface{},
+	data any,
 ) (string, error) {
 	_, testFname, _, _ := runtime.Caller(0)
 	fname := filepath.Join(filepath.Dir(testFname), "..", "..", "testdata", "specs", tmplname)

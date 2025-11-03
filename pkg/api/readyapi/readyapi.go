@@ -29,6 +29,6 @@ func (msg *MsgTetragonReady) HandleMessage() *tetragon.GetEventsResponse {
 	return nil
 }
 
-func (msg *MsgTetragonReady) Cast(_ interface{}) notify.Message {
+func (msg *MsgTetragonReady) Cast(_ any) notify.Message {
 	return &MsgTetragonReady{}
 }

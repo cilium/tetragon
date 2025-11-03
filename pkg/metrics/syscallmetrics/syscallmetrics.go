@@ -36,7 +36,7 @@ func InitMetricsForDocs(registry *prometheus.Registry) {
 	syscallStats.WithLabelValues(processLabels, consts.ExampleSyscallLabel).Inc()
 }
 
-func Handle(event interface{}) {
+func Handle(event any) {
 	ev, ok := event.(*tetragon.GetEventsResponse)
 	if !ok {
 		return

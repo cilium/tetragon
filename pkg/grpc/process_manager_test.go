@@ -59,7 +59,7 @@ func TestProcessManager_getPodInfo(t *testing.T) {
 		},
 	}
 
-	pods := []interface{}{&podA}
+	pods := []any{&podA}
 	err := process.InitCache(watcher.NewFakeK8sWatcher(pods), 10, defaults.DefaultProcessCacheGCInterval)
 	require.NoError(t, err)
 	defer process.FreeCache()
@@ -125,7 +125,7 @@ func TestProcessManager_getPodInfoMaybeExecProbe(t *testing.T) {
 			},
 		},
 	}
-	pods := []interface{}{&podA}
+	pods := []any{&podA}
 	err := process.InitCache(watcher.NewFakeK8sWatcher(pods), 10, defaults.DefaultProcessCacheGCInterval)
 	require.NoError(t, err)
 	defer process.FreeCache()

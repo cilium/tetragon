@@ -127,7 +127,7 @@ func GetProcessInfo(process *tetragon.Process) (binary, pod, workload, namespace
 	return binary, pod, workload, namespace
 }
 
-func handleOriginalEvent(originalEvent interface{}) {
+func handleOriginalEvent(originalEvent any) {
 	var flags uint32
 	switch msg := originalEvent.(type) {
 	case *processapi.MsgExecveEventUnix:
@@ -138,7 +138,7 @@ func handleOriginalEvent(originalEvent interface{}) {
 	}
 }
 
-func handleProcessedEvent(pInfo *tracingpolicy.PolicyInfo, processedEvent interface{}) {
+func handleProcessedEvent(pInfo *tracingpolicy.PolicyInfo, processedEvent any) {
 	var eventType, namespace, workload, pod, binary string
 	switch ev := processedEvent.(type) {
 	case *tetragon.GetEventsResponse:
@@ -160,7 +160,7 @@ func handleProcessedEvent(pInfo *tracingpolicy.PolicyInfo, processedEvent interf
 	}
 }
 
-func ProcessEvent(originalEvent interface{}, processedEvent interface{}) {
+func ProcessEvent(originalEvent any, processedEvent any) {
 	handleOriginalEvent(originalEvent)
 
 	var policyInfo tracingpolicy.PolicyInfo
