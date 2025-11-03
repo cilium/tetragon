@@ -1,3 +1,4 @@
+{{- if .Values.tetragon.enabled }}
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -56,9 +57,7 @@ spec:
 {{- if eq .Values.export.mode "stdout" }}
       {{- include "container.export.stdout" . | nindent 6 -}}
 {{- end }}
-{{- if .Values.tetragon.enabled }}
       {{- include "container.tetragon" . | nindent 6 -}}
-{{- end }}
       {{- include "containers.extra" . | nindent 6 -}}
       {{- with .Values.nodeSelector }}
       nodeSelector:
@@ -84,7 +83,6 @@ spec:
         hostPath:
           path: {{ .Values.exportDirectory }}
           type: DirectoryOrCreate
-{{- if .Values.tetragon.enabled }}
       - name: tetragon-config
         configMap:
           name: {{ include "tetragon.configMapName" . }}
@@ -102,7 +100,6 @@ spec:
           path: {{ quote .Values.tetragon.cri.socketHostPath }}
           type: Socket
 {{- end }}
-{{- end }}
       {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 6 }}
       {{- end }}
@@ -115,4 +112,5 @@ spec:
 {{- with .Values.updateStrategy }}
   updateStrategy:
     {{- toYaml . | nindent 4 }}
+{{- end }}
 {{- end }}

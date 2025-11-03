@@ -1,3 +1,4 @@
+{{- if .Values.tetragon.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -89,3 +90,4 @@ data:
   enable-cgidmap: {{ .Values.tetragon.cgidmap.enabled | quote }}
   enable-pod-annotations: {{ .Values.tetragon.podAnnotations.enabled | default "false" | quote }}
   use-perf-ring-buffer: {{ .Values.tetragon.usePerfRingBuffer | default "false" | quote }}
+{{- end }}
