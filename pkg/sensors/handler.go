@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
@@ -400,6 +401,7 @@ func (h *handler) listPolicies() []*tetragon.TracingPolicyStatus {
 			continue
 		}
 
+		col.tracingpolicy.TpSpec()
 		pol := tetragon.TracingPolicyStatus{
 			Id:       col.tracingpolicyID,
 			Name:     ck.name,
@@ -424,6 +426,43 @@ func (h *handler) listPolicies() []*tetragon.TracingPolicyStatus {
 		ret = append(ret, &pol)
 	}
 
+	return ret
+}
+
+func (h *handler) listCollections(policyOnly bool) []*Collection {
+	h.collections.mu.RLock()
+	defer h.collections.mu.RUnlock()
+	collections := h.collections.c
+
+	ret := make([]*Collection, 0)
+	for _, col := range collections {
+		var (
+			tpName string
+			err    string
+			tpSpec *v1alpha1.TracingPolicySpec
+		)
+		// deep copy fields to avoid locking issues
+		if col.tracingpolicy != nil {
+			tpSpec = col.tracingpolicy.TpSpec().DeepCopy()
+			tpName = col.tracingpolicy.TpName()
+		} else if policyOnly {
+			continue
+		}
+		mode := col.mode()
+		if col.err != nil {
+			err = col.err.Error()
+		}
+		ret = append(ret, &Collection{
+			Name:              col.name,
+			TracingpolicyName: tpName,
+			TracingpolicySpec: tpSpec,
+			TracingpolicyMode: mode,
+			TracingpolicyID:   col.tracingpolicyID,
+			PolicyfilterID:    col.policyfilterID,
+			State:             col.state,
+			Err:               err,
+		})
+	}
 	return ret
 }
 

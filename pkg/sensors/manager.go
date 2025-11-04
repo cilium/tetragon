@@ -219,6 +219,13 @@ func (h *Manager) LogSensorsAndProbes(ctx context.Context) {
 	log.Info("Registered probe types", "types", strings.Join(names, ", "))
 }
 
+// ListCollections is not exposed via grpc;
+// can be used internally to access the list of Collection
+// (deep copied to avoid sync issues).
+func (h *Manager) ListCollections(_ context.Context, policiesOnly bool) []*Collection {
+	return h.handler.listCollections(policiesOnly)
+}
+
 // Manager handles dynamic sensor management, such as adding / removing sensors
 // at runtime.
 type Manager struct {

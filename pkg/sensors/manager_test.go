@@ -270,6 +270,38 @@ func TestPolicyLoadErrorOverride(t *testing.T) {
 	assert.Equal(t, EnabledState.ToTetragonState(), l.Policies[0].State)
 }
 
+func TestPolicyListCollections(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	RegisterPolicyHandlerAtInit("dummy", &dummyHandler{s: &Sensor{Name: "dummy-sensor"}})
+	t.Cleanup(func() {
+		delete(registeredPolicyHandlers, "dummy")
+	})
+
+	kprobes := []v1alpha1.KProbeSpec{
+		{
+			Call:    "dummy",
+			Message: "dummy",
+		},
+	}
+	policy := v1alpha1.TracingPolicy{Spec: v1alpha1.TracingPolicySpec{KProbes: kprobes}}
+	mgr, err := StartSensorManager("")
+	require.NoError(t, err)
+	policy.Name = "test-policy"
+	err = mgr.AddTracingPolicy(ctx, &policy)
+	require.NoError(t, err)
+
+	l, err := mgr.ListTracingPolicies(ctx)
+	require.NoError(t, err)
+	assert.Len(t, l.Policies, 1)
+	assert.Equal(t, EnabledState.ToTetragonState(), l.Policies[0].State)
+
+	collections := mgr.ListCollections(ctx, true)
+	assert.Len(t, collections, 1)
+	assert.Equal(t, kprobes, collections[0].TracingpolicySpec.KProbes)
+}
+
 func TestPolicyListingWhileLoadUnload(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

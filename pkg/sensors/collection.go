@@ -11,6 +11,8 @@ import (
 
 	"go.uber.org/multierr"
 
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policyconf"
@@ -60,6 +62,18 @@ func (ck *collectionKey) String() string {
 		return fmt.Sprintf("%s/%s", ck.namespace, ck.name)
 	}
 	return ck.name
+}
+
+// Exposed via ListCollections()
+type Collection struct {
+	Name              string
+	TracingpolicyName string
+	TracingpolicySpec *v1alpha1.TracingPolicySpec
+	TracingpolicyMode tetragon.TracingPolicyMode
+	TracingpolicyID   uint64
+	PolicyfilterID    uint64
+	State             TracingPolicyState
+	Err               string
 }
 
 // collection is a collection of sensors
