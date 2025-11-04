@@ -8,6 +8,7 @@ import (
 
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 
+	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/labels"
 	"github.com/cilium/tetragon/pkg/podhelpers"
 	"github.com/cilium/tetragon/pkg/policyfilter"
@@ -15,16 +16,33 @@ import (
 
 // DummyPF implements policyfilter.State.
 // It's very similar to the disabled state, with the difference that it doesn't
-// return an error on AddPolicy and DelPolicy. It can be used in tests where
+// return an error on AddGenericPolicy and DeleteGenericPolicy. It can be used in tests where
 // a namespaced policy must be loaded, but the policyfilter doesn't matter.
 type DummyPF struct{}
 
-func (s *DummyPF) AddPolicy(_ policyfilter.PolicyID, _ string, _ *slimv1.LabelSelector,
+func (s *DummyPF) AddGenericPolicy(_ policyfilter.PolicyID, _ string, _ *slimv1.LabelSelector,
 	_ *slimv1.LabelSelector) error {
 	return nil
 }
 
-func (s *DummyPF) DelPolicy(_ policyfilter.PolicyID) error {
+func (s *DummyPF) AddTracingPolicyBinding(polID policyfilter.PolicyID, refPolID policyfilter.PolicyID, namespace string, podLabelSelector *slimv1.LabelSelector,
+	containerLabelSelector *slimv1.LabelSelector) error {
+	return nil
+}
+
+func (s *DummyPF) DeleteGenericPolicy(_ policyfilter.PolicyID) error {
+	return nil
+}
+
+func (s *DummyPF) DeleteTracingPolicyBinding(polID policyfilter.PolicyID) error {
+	return nil
+}
+
+func (s *DummyPF) AddTracingPolicyTemplate(polID policyfilter.PolicyID, cgroupToPolicy *ebpf.Map) error {
+	return nil
+}
+
+func (s *DummyPF) DeleteTracingPolicyTemplate(polID policyfilter.PolicyID) error {
 	return nil
 }
 

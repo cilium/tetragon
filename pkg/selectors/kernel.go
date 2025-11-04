@@ -709,14 +709,13 @@ func writeMatchValues(k *KernelSelectorState, values []string, ty, op uint32) er
 	return nil
 }
 
-func writeMatchStrings(k *KernelSelectorState, values []string, ty uint32) error {
-	maps := k.createStringMaps()
-
+func ConvertValuesToMaps(values []string, ty uint32) (SelectorStringMaps, error) {
+	maps := createStringMaps()
 	for _, v := range values {
 		trimNulSuffix := ty == gt.GenericStringType
 		value, size, err := ArgStringSelectorValue(v, trimNulSuffix)
 		if err != nil {
-			return fmt.Errorf("MatchArgs value %s invalid: %w", v, err)
+			return maps, fmt.Errorf("value %s invalid: %w", v, err)
 		}
 		numSubMaps := StringMapsNumSubMaps
 		if !kernels.MinKernelVersion("5.11") {
@@ -734,6 +733,14 @@ func writeMatchStrings(k *KernelSelectorState, values []string, ty uint32) error
 				break
 			}
 		}
+	}
+	return maps, nil
+}
+
+func writeMatchStrings(k *KernelSelectorState, values []string, ty uint32) error {
+	maps, err := ConvertValuesToMaps(values, ty)
+	if err != nil {
+		return err
 	}
 	// write the map ids into the selector
 	mapDetails := k.insertStringMaps(maps)
@@ -888,6 +895,34 @@ func ParseMatchData(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1a
 	return parseMatchArg(k, arg, sig, ty)
 }
 
+const templateValue = "*"
+
+func checkTemplateValueIsValid(arg *v1alpha1.ArgSelector, op uint32, ty uint32) error {
+	switch op {
+	case SelectorOpEQ, SelectorOpNEQ:
+	default:
+		return fmt.Errorf("operator %s not supported with template value", selectorOpStringTable[op])
+	}
+
+	switch ty {
+	case gt.GenericFdType, gt.GenericFileType, gt.GenericPathType, gt.GenericStringType, gt.GenericCharBuffer, gt.GenericLinuxBinprmType, gt.GenericDataLoc, gt.GenericNetDev:
+	default:
+		return fmt.Errorf("type %s not supported with template value", gt.GenericTypeString(int(ty)))
+	}
+	return nil
+}
+
+func isTemplateValue(arg *v1alpha1.ArgSelector) bool {
+	if len(arg.Values) != 1 {
+		return false
+	}
+
+	if arg.Values[0] != templateValue {
+		return false
+	}
+	return true
+}
+
 func parseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg, ty uint32) error {
 	op, err := SelectorOp(arg.Operator)
 	if err != nil {
@@ -900,6 +935,19 @@ func parseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 	WriteSelectorUint32(&k.data, op)
 	moff := AdvanceSelectorLength(&k.data)
 	WriteSelectorUint32(&k.data, ty)
+
+	// just for now until we decide a UX
+	if isTemplateValue(arg) {
+		if err := checkTemplateValueIsValid(arg, op, ty); err != nil {
+			return fmt.Errorf("template value error: %w", err)
+		}
+
+		// we don't populate the selector in case of a template because values will be populated at runtime
+		// the selector length is always 8 in this case (selector_len + type)
+		WriteSelectorLength(&k.data, moff)
+		return nil
+	}
+
 	switch op {
 	case SelectorOpInRange, SelectorOpNotInRange:
 		err := writeMatchValuesRange(k, arg.Values, ty)

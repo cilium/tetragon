@@ -434,7 +434,7 @@ func (k *KernelSelectorState) insertAddr6Map(addr6map map[KernelLPMTrie6]struct{
 	return uint32(mapid)
 }
 
-func (k *KernelSelectorState) createStringMaps() SelectorStringMaps {
+func createStringMaps() SelectorStringMaps {
 	return SelectorStringMaps{
 		{},
 		{},

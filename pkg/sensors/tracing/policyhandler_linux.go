@@ -11,13 +11,24 @@ import (
 
 	"github.com/cilium/tetragon/pkg/eventhandler"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policyconf"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/policystats"
+	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
+)
+
+const (
+	// should be enough for most use cases
+	cgroupToPolicyMapMaxEntries = 32768
+	// should be enough for most use cases
+	policyStringHashMapsMaxEntries = 32768
+	// seems a reasonable default for now
+	innerPolicyStringMapMaxEntries = 200
 )
 
 type policyInfo struct {
@@ -28,6 +39,10 @@ type policyInfo struct {
 	policyConf    *program.Map
 	policyStats   *program.Map
 	specOpts      *specOptions
+
+	cgroupToPolicy   *program.Map
+	policyStringHash []*program.Map
+	isTemplate       bool
 }
 
 func newPolicyInfo(
@@ -67,6 +82,7 @@ func newPolicyInfoFromSpec(
 		policyConf:    nil,
 		policyStats:   nil,
 		specOpts:      opts,
+		isTemplate:    sensors.IsTracingPolicyTemplate(spec.Options),
 	}, nil
 }
 
@@ -76,6 +92,56 @@ func (pi *policyInfo) policyStatsMap(prog *program.Program) *program.Map {
 	}
 	pi.policyStats = program.MapBuilderPolicy(policystats.PolicyStatsMapName, prog)
 	return pi.policyStats
+}
+
+func (pi *policyInfo) cgroupToPolicyMap(prog *program.Program) *program.Map {
+	if pi.cgroupToPolicy != nil {
+		return program.MapUserFrom(pi.cgroupToPolicy)
+	}
+
+	pi.cgroupToPolicy = program.MapBuilderPolicy(sensors.CgroupToPolicyMapName, prog)
+	// we bump the entry only if the policy is a template since this is the only case in which this map is used.
+	if pi.isTemplate {
+		pi.cgroupToPolicy.SetMaxEntries(cgroupToPolicyMapMaxEntries)
+	}
+	return pi.cgroupToPolicy
+}
+
+func (pi *policyInfo) policyStringHashMaps(prog *program.Program) []*program.Map {
+	if len(pi.policyStringHash) != 0 {
+		userMaps := make([]*program.Map, 0, len(pi.policyStringHash))
+		for _, m := range pi.policyStringHash {
+			userMaps = append(userMaps, program.MapUserFrom(m))
+		}
+		return userMaps
+	}
+
+	numSubMaps := selectors.StringMapsNumSubMaps
+	if !kernels.MinKernelVersion("5.11") {
+		numSubMaps = selectors.StringMapsNumSubMapsSmall
+	}
+	pi.policyStringHash = make([]*program.Map, 0, numSubMaps)
+
+	for stringMapIndex := range numSubMaps {
+		policyStrMap := program.MapBuilderPolicy(fmt.Sprintf("%s_%d", sensors.PolicyStringHashMapPrefix, stringMapIndex), prog)
+		pi.policyStringHash = append(pi.policyStringHash, policyStrMap)
+
+		// there is no reason to bump dimensions, these maps will be never used. So we leave max_entries to 1.
+		if !pi.isTemplate {
+			continue
+		}
+
+		policyStrMap.SetMaxEntries(policyStringHashMapsMaxEntries)
+		if !kernels.MinKernelVersion("5.9") {
+			// Versions before 5.9 do not allow inner maps to have different sizes.
+			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+			//
+			// In this case we put a fixed size for internal maps and we will use BPF_F_NO_PREALLOC when we create them.
+			// Otherwise internal maps will have real sizes according to the number of entries we need.
+			policyStrMap.SetInnerMaxEntries(innerPolicyStringMapMaxEntries)
+		}
+	}
+	return pi.policyStringHash
 }
 
 func (pi *policyInfo) policyConfMap(prog *program.Program) *program.Map {

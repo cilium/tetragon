@@ -343,9 +343,9 @@ func (ts *testState) containersCgroupIDs(t *testing.T, podContainerMap map[strin
 }
 
 func testNamespacePods(t *testing.T, st *state, ts *testState) {
-	err := st.AddPolicy(PolicyID(1), "ns1", nil, nil)
+	err := st.AddGenericPolicy(PolicyID(1), "ns1", nil, nil)
 	require.NoError(t, err)
-	err = st.AddPolicy(PolicyID(2), "ns2", nil, nil)
+	err = st.AddGenericPolicy(PolicyID(2), "ns2", nil, nil)
 	require.NoError(t, err)
 
 	emptyLabels := labels.Labels{}
@@ -380,7 +380,7 @@ func testNamespacePods(t *testing.T, st *state, ts *testState) {
 		},
 	)
 
-	err = st.DelPolicy(PolicyID(2))
+	err = st.DeleteGenericPolicy(PolicyID(2))
 	require.NoError(t, err)
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
@@ -388,7 +388,7 @@ func testNamespacePods(t *testing.T, st *state, ts *testState) {
 		},
 	)
 
-	err = st.DelPolicy(PolicyID(1))
+	err = st.DeleteGenericPolicy(PolicyID(1))
 	require.NoError(t, err)
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{},
@@ -406,9 +406,9 @@ func testPodLabelFilters(t *testing.T, st *state, ts *testState) {
 	matchesAllID := uint32(1)
 	matchesWebID := uint32(2)
 	matchesAppsID := uint32(3)
-	err := st.AddPolicy(PolicyID(matchesAllID), "", nil, nil)
+	err := st.AddGenericPolicy(PolicyID(matchesAllID), "", nil, nil)
 	require.NoError(t, err)
-	err = st.AddPolicy(PolicyID(matchesWebID), "", &slimv1.LabelSelector{
+	err = st.AddGenericPolicy(PolicyID(matchesWebID), "", &slimv1.LabelSelector{
 		MatchExpressions: []slimv1.LabelSelectorRequirement{{
 			Key:      "app",
 			Operator: slimv1.LabelSelectorOpIn,
@@ -416,7 +416,7 @@ func testPodLabelFilters(t *testing.T, st *state, ts *testState) {
 		}},
 	}, nil)
 	require.NoError(t, err)
-	err = st.AddPolicy(PolicyID(matchesAppsID), "", &slimv1.LabelSelector{
+	err = st.AddGenericPolicy(PolicyID(matchesAppsID), "", &slimv1.LabelSelector{
 		MatchExpressions: []slimv1.LabelSelectorRequirement{{
 			Key:      "app",
 			Operator: slimv1.LabelSelectorOpExists,
@@ -469,7 +469,7 @@ func testPodLabelFilters(t *testing.T, st *state, ts *testState) {
 		},
 	)
 
-	err = st.DelPolicy(PolicyID(matchesAllID))
+	err = st.DeleteGenericPolicy(PolicyID(matchesAllID))
 	require.NoError(t, err)
 	ts.waitForCallbacks(t)
 	requirePfmEqualTo(t, st.pfMap,
@@ -481,9 +481,9 @@ func testPodLabelFilters(t *testing.T, st *state, ts *testState) {
 
 	ts.deletePod(t, "web")
 	ts.deletePod(t, "db")
-	err = st.DelPolicy(PolicyID(matchesAppsID))
+	err = st.DeleteGenericPolicy(PolicyID(matchesAppsID))
 	require.NoError(t, err)
-	err = st.DelPolicy(PolicyID(matchesWebID))
+	err = st.DeleteGenericPolicy(PolicyID(matchesWebID))
 	require.NoError(t, err)
 	ts.waitForCallbacks(t)
 	requirePfmEqualTo(t, st.pfMap,
@@ -496,9 +496,9 @@ func testContainerFieldFilters(t *testing.T, st *state, ts *testState) {
 	matchesAllContainers := uint32(1)
 	matchesWebContainers := uint32(2)
 	matchesNotInitContainers := uint32(3)
-	err := st.AddPolicy(PolicyID(matchesAllContainers), "", nil, nil)
+	err := st.AddGenericPolicy(PolicyID(matchesAllContainers), "", nil, nil)
 	require.NoError(t, err)
-	err = st.AddPolicy(PolicyID(matchesWebContainers), "", nil,
+	err = st.AddGenericPolicy(PolicyID(matchesWebContainers), "", nil,
 		&slimv1.LabelSelector{
 			MatchExpressions: []slimv1.LabelSelectorRequirement{{
 				Key:      "name",
@@ -507,7 +507,7 @@ func testContainerFieldFilters(t *testing.T, st *state, ts *testState) {
 			}},
 		})
 	require.NoError(t, err)
-	err = st.AddPolicy(PolicyID(matchesNotInitContainers), "", &slimv1.LabelSelector{
+	err = st.AddGenericPolicy(PolicyID(matchesNotInitContainers), "", &slimv1.LabelSelector{
 		MatchExpressions: []slimv1.LabelSelectorRequirement{{
 			Key:      "app",
 			Operator: slimv1.LabelSelectorOpIn,
@@ -591,7 +591,7 @@ func testContainerFieldFilters(t *testing.T, st *state, ts *testState) {
 		},
 	)
 
-	err = st.DelPolicy(PolicyID(matchesAllContainers))
+	err = st.DeleteGenericPolicy(PolicyID(matchesAllContainers))
 	require.NoError(t, err)
 	ts.deletePod(t, "log")
 	ts.waitForCallbacks(t)
@@ -609,9 +609,9 @@ func testContainerFieldFilters(t *testing.T, st *state, ts *testState) {
 
 	ts.deletePod(t, "web")
 	ts.deletePod(t, "db")
-	err = st.DelPolicy(PolicyID(matchesNotInitContainers))
+	err = st.DeleteGenericPolicy(PolicyID(matchesNotInitContainers))
 	require.NoError(t, err)
-	err = st.DelPolicy(PolicyID(matchesWebContainers))
+	err = st.DeleteGenericPolicy(PolicyID(matchesWebContainers))
 	require.NoError(t, err)
 	ts.waitForCallbacks(t)
 	requirePfmEqualTo(t, st.pfMap,
@@ -627,7 +627,7 @@ func testPreExistingPods(t *testing.T, st *state, ts *testState) {
 
 	// create policy
 	matchesWebID := uint32(2)
-	err := st.AddPolicy(PolicyID(matchesWebID), "", &slimv1.LabelSelector{
+	err := st.AddGenericPolicy(PolicyID(matchesWebID), "", &slimv1.LabelSelector{
 		MatchExpressions: []slimv1.LabelSelectorRequirement{{
 			Key:      "app",
 			Operator: slimv1.LabelSelectorOpIn,
@@ -645,7 +645,7 @@ func testPreExistingPods(t *testing.T, st *state, ts *testState) {
 
 	ts.deletePod(t, "web")
 	ts.deletePod(t, "db")
-	err = st.DelPolicy(PolicyID(matchesWebID))
+	err = st.DeleteGenericPolicy(PolicyID(matchesWebID))
 	require.NoError(t, err)
 	ts.waitForCallbacks(t)
 	requirePfmEqualTo(t, st.pfMap,
@@ -661,7 +661,7 @@ func testContainersChange(t *testing.T, st *state, ts *testState) {
 
 	// create policy
 	policyID := uint32(2)
-	err := st.AddPolicy(PolicyID(policyID), "", &slimv1.LabelSelector{},
+	err := st.AddGenericPolicy(PolicyID(policyID), "", &slimv1.LabelSelector{},
 		&slimv1.LabelSelector{
 			MatchExpressions: []slimv1.LabelSelectorRequirement{
 				{
@@ -695,7 +695,7 @@ func testContainersChange(t *testing.T, st *state, ts *testState) {
 	ts.deletePod(t, "web")
 	ts.deletePod(t, "db")
 	ts.deletePod(t, "log")
-	err = st.DelPolicy(PolicyID(policyID))
+	err = st.DeleteGenericPolicy(PolicyID(policyID))
 	require.NoError(t, err)
 	ts.waitForCallbacks(t)
 	requirePfmEqualTo(t, st.pfMap,
