@@ -17,6 +17,7 @@ import (
 	"github.com/cilium/ebpf"
 	lru "github.com/hashicorp/golang-lru/v2"
 
+	"github.com/cilium/tetragon/pkg/asm"
 	"github.com/cilium/tetragon/pkg/metrics/kprobemetrics"
 
 	"github.com/cilium/tetragon/pkg/api/ops"
@@ -148,7 +149,11 @@ func handleGenericUprobe(r *bytes.Reader) ([]observer.Event, error) {
 		if arg == nil {
 			continue
 		}
-		unix.Args = append(unix.Args, arg)
+		if a.data {
+			unix.Data = append(unix.Data, arg)
+		} else {
+			unix.Args = append(unix.Args, arg)
+		}
 	}
 
 	// Cache return value on merge and run return filters below before
@@ -529,6 +534,8 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 
 		argPrinters       []argPrinter
 		argReturnPrinters []argPrinter
+
+		regArg [api.EventConfigMaxRegArgs]api.ConfigRegArg
 	)
 
 	tagsField, err := GetPolicyTags(spec.Tags)
@@ -538,31 +545,44 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 
 	var allBTFArgs [api.EventConfigMaxArgs][api.MaxBTFArgDepth]api.ConfigBTFArg
 
-	// Parse Arguments
-	for i, a := range spec.Args {
+	addArg := func(i int, a *v1alpha1.KProbeArg, data bool) error {
 		argType := gt.GenericTypeFromString(a.Type)
-		if a.Resolve != "" {
-			lastBTFType, btfArg, err := resolveUserBTFArg(&a, spec.BTFPath)
-			if err != nil {
-				return nil, err
-			}
 
-			allBTFArgs[i] = btfArg
-			argType = findTypeFromBTFType(&a, lastBTFType)
+		if data {
+			// Data specific config
+			if hasPtRegsSource(a) {
+				var ok bool
+
+				regArg[i].Offset, regArg[i].Size, ok = asm.RegOffsetSize(a.Resolve)
+				if !ok {
+					return fmt.Errorf("error: Failed to retrieve register argument '%s'", a.Resolve)
+				}
+			}
+		} else {
+			// Args specific config
+			if a.Resolve != "" {
+				lastBTFType, btfArg, err := resolveUserBTFArg(a, spec.BTFPath)
+				if err != nil {
+					return err
+				}
+
+				allBTFArgs[i] = btfArg
+				argType = findTypeFromBTFType(a, lastBTFType)
+			}
 		}
 
 		if argType == gt.GenericInvalidType {
-			return nil, fmt.Errorf("Arg(%d) type '%s' unsupported", i, a.Type)
+			return fmt.Errorf("Arg(%d) type '%s' unsupported", i, a.Type)
 		}
-		argMValue, err := getMetaValue(&a)
+		argMValue, err := getMetaValue(a)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		if argReturnCopy(argMValue) {
 			argRetprobe = &spec.Args[i]
 		}
 		if a.Index > 4 {
-			return nil, fmt.Errorf("error add arg: ArgType %s Index %d out of bounds",
+			return fmt.Errorf("error add arg: ArgType %s Index %d out of bounds",
 				a.Type, int(a.Index))
 		}
 
@@ -570,7 +590,35 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		argMeta[i] = uint32(argMValue)
 		argIdx[i] = int32(a.Index)
 
-		argPrinters = append(argPrinters, argPrinter{index: i, ty: argType})
+		argPrinters = append(argPrinters, argPrinter{index: i, ty: argType, data: data})
+		return nil
+	}
+
+	var i int
+
+	// Parse Arguments
+	for _, arg := range spec.Args {
+		if arg.Source != "" {
+			return nil, fmt.Errorf("standard argument can't have source set '%s'", arg.Source)
+		}
+		if err := addArg(i, &arg, false); err != nil {
+			return nil, err
+		}
+		i = i + 1
+	}
+
+	// Parse Data
+	for _, data := range spec.Data {
+		if !hasPtRegsSource(&data) {
+			return nil, fmt.Errorf("data argument has wrong source '%s'", data.Source)
+		}
+		if data.Resolve == "" {
+			return nil, errors.New("data argument missing 'resolve' setup")
+		}
+		if err := addArg(i, &data, true); err != nil {
+			return nil, err
+		}
+		i = i + 1
 	}
 
 	eventConfig := initEventConfig()
@@ -626,6 +674,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		eventConfig.ArgMeta = argMeta
 		eventConfig.ArgIndex = argIdx
 		eventConfig.BTFArg = allBTFArgs
+		eventConfig.RegArg = regArg
 
 		uprobeEntry := &genericUprobe{
 			loadArgs: uprobeLoadArgs{

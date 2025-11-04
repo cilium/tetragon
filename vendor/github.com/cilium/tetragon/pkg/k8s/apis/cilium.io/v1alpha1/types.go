@@ -357,6 +357,9 @@ type UProbeSpec struct {
 	// +kubebuilder:validation:Optional
 	// A list of function arguments to include in the trace output.
 	Args []KProbeArg `json:"args,omitempty"`
+	// +kubebuilder:validation:Optional
+	// A list of data to include in the trace output.
+	Data []KProbeArg `json:"data,omitempty"`
 	// +kubebuilder:validation:optional
 	// +kubebuilder:validation:MaxItems=16
 	// Tags to categorize the event, will be include in the event output.
