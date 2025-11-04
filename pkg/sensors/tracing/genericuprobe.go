@@ -364,8 +364,7 @@ func (k *observerUprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 
 func isValidUprobeSelectors(selectors []v1alpha1.KProbeSelector) error {
 	for _, s := range selectors {
-		if len(s.MatchArgs) > 0 ||
-			len(s.MatchReturnArgs) > 0 ||
+		if len(s.MatchReturnArgs) > 0 ||
 			len(s.MatchNamespaces) > 0 ||
 			len(s.MatchNamespaceChanges) > 0 ||
 			len(s.MatchCapabilities) > 0 ||
@@ -461,7 +460,6 @@ func createGenericUprobeSensor(
 }
 
 func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn) ([]idtable.EntryID, error) {
-	var args []v1alpha1.KProbeArg
 	var argRetprobe *v1alpha1.KProbeArg
 	var setRetprobe bool
 
@@ -499,7 +497,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 	// Parse Filters into kernel filter logic
 	uprobeSelectorState, err := selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
 		Selectors: spec.Selectors,
-		Args:      args,
+		Args:      spec.Args,
 		Data:      []v1alpha1.KProbeArg{},
 		IsUprobe:  true,
 	})
