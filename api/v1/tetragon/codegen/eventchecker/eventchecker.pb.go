@@ -1595,6 +1595,7 @@ type ProcessUprobeChecker struct {
 	Offset       *uint64                      `json:"offset,omitempty"`
 	RefCtrOffset *uint64                      `json:"refCtrOffset,omitempty"`
 	Action       *KprobeActionChecker         `json:"action,omitempty"`
+	Data         *KprobeArgumentListMatcher   `json:"data,omitempty"`
 }
 
 // CheckEvent checks a single event and implements the EventChecker interface
@@ -1696,6 +1697,11 @@ func (checker *ProcessUprobeChecker) Check(event *tetragon.ProcessUprobe) error 
 				return fmt.Errorf("Action check failed: %w", err)
 			}
 		}
+		if checker.Data != nil {
+			if err := checker.Data.Check(event.Data); err != nil {
+				return fmt.Errorf("Data check failed: %w", err)
+			}
+		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -1777,6 +1783,12 @@ func (checker *ProcessUprobeChecker) WithAction(check tetragon.KprobeAction) *Pr
 	return checker
 }
 
+// WithData adds a Data check to the ProcessUprobeChecker
+func (checker *ProcessUprobeChecker) WithData(check *KprobeArgumentListMatcher) *ProcessUprobeChecker {
+	checker.Data = check
+	return checker
+}
+
 //FromProcessUprobe populates the ProcessUprobeChecker using data from a ProcessUprobe event
 func (checker *ProcessUprobeChecker) FromProcessUprobe(event *tetragon.ProcessUprobe) *ProcessUprobeChecker {
 	if event == nil {
@@ -1838,6 +1850,19 @@ func (checker *ProcessUprobeChecker) FromProcessUprobe(event *tetragon.ProcessUp
 		checker.RefCtrOffset = &val
 	}
 	checker.Action = NewKprobeActionChecker(event.Action)
+	{
+		var checks []*KprobeArgumentChecker
+		for _, check := range event.Data {
+			var convertedCheck *KprobeArgumentChecker
+			if check != nil {
+				convertedCheck = NewKprobeArgumentChecker().FromKprobeArgument(check)
+			}
+			checks = append(checks, convertedCheck)
+		}
+		lm := NewKprobeArgumentListMatcher().WithOperator(listmatcher.Ordered).
+			WithValues(checks...)
+		checker.Data = lm
+	}
 	return checker
 }
 

@@ -590,6 +590,8 @@ message ProcessUprobe {
   uint64 ref_ctr_offset = 11;
   // Action performed when the uprobe hook matched.
   KprobeAction action = 12;
+  // Data definition of the observed uprobe.
+  repeated KprobeArgument data = 13;
 }
 
 message ProcessUsdt {
