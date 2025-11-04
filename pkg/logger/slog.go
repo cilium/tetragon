@@ -51,9 +51,10 @@ var slogLeveler = func() *slog.LevelVar {
 // phase.
 func initializeSlog(logOpts LogOptions, useStdout bool) {
 	opts := *slogHandlerOpts
-	opts.Level = logOpts.GetLogLevel()
+	lv := logOpts.GetLogLevel()
+	SetLogLevel(lv)
 
-	if opts.Level == slog.LevelDebug {
+	if lv == slog.LevelDebug {
 		opts.AddSource = true
 	}
 
