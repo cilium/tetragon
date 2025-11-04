@@ -830,6 +830,7 @@ type MsgGenericUprobeUnix struct {
 	PolicyName   string
 	Message      string
 	Args         []tracingapi.MsgGenericKprobeArg
+	Data         []tracingapi.MsgGenericKprobeArg
 	Tags         []string
 }
 
@@ -859,7 +860,7 @@ func (msg *MsgGenericUprobeUnix) Retry(internal *process.ProcessInternal, ev not
 func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
 	var ancestors []*process.ProcessInternal
 	var tetragonAncestors []*tetragon.Process
-	var tetragonArgs []*tetragon.KprobeArgument
+	var tetragonArgs, tetragonData []*tetragon.KprobeArgument
 
 	proc, parent, tetragonProcess, tetragonParent := getProcessParent(&event.Msg.ProcessKey, event.Msg.Common.Flags)
 
@@ -875,6 +876,10 @@ func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
 		tetragonArgs = append(tetragonArgs, getKprobeArgument(arg))
 	}
 
+	for _, data := range event.Data {
+		tetragonData = append(tetragonData, getKprobeArgument(data))
+	}
+
 	tetragonEvent := &tetragon.ProcessUprobe{
 		Process:      tetragonProcess,
 		Parent:       tetragonParent,
@@ -884,6 +889,7 @@ func GetProcessUprobe(event *MsgGenericUprobeUnix) *tetragon.ProcessUprobe {
 		PolicyName:   event.PolicyName,
 		Message:      event.Message,
 		Args:         tetragonArgs,
+		Data:         tetragonData,
 		Tags:         event.Tags,
 		Offset:       event.Offset,
 		RefCtrOffset: event.RefCtrOffset,
