@@ -179,8 +179,8 @@ which defines `sched:sched_process_exec` tracepoint with arguments.
 
 Raw tracepoints are configured by setting with `raw` spec tag.
 ```yaml
-apiversion: cilium.io/v1alpha1
-kind: tracingpolicy
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "rawtp"
 spec:
@@ -195,8 +195,8 @@ directly.
 
 Following example stores 3rd argument:
 ```yaml
-apiversion: cilium.io/v1alpha1
-kind: tracingpolicy
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
 metadata:
   name: "rawtp"
 spec:
