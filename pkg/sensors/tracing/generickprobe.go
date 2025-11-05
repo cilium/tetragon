@@ -14,6 +14,7 @@ import (
 	"net"
 	"net/http"
 	"path"
+	"runtime"
 	"slices"
 	"strings"
 
@@ -610,6 +611,10 @@ func hasMapsSetup(spec *v1alpha1.TracingPolicySpec) hasMaps {
 	return has
 }
 
+func isArm() bool {
+	return runtime.GOARCH == "arm64"
+}
+
 func createGenericKprobeSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
@@ -624,12 +629,19 @@ func createGenericKprobeSensor(
 
 	kprobes := spec.KProbes
 
+	has := hasMapsSetup(spec)
+
 	// use multi kprobe only if:
 	// - it's not disabled by spec option
 	// - it's not disabled by command line option
 	// - there's support detected
 	if !polInfo.specOpts.DisableKprobeMulti {
 		useMulti = !option.Config.DisableKprobeMulti && bpf.HasKprobeMulti()
+
+		// arm does not override on top of kprobe.multi
+		if isArm() && (has.enforcer || has.override) {
+			useMulti = false
+		}
 	}
 
 	if useMulti {
@@ -645,7 +657,6 @@ func createGenericKprobeSensor(
 		selMaps:       selMaps,
 	}
 
-	has := hasMapsSetup(spec)
 	dups := make(map[string]int)
 
 	for i := range kprobes {
