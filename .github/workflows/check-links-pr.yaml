@@ -5,6 +5,7 @@ on:
     paths:
       - 'README.md'
       - 'docs/content/**.md'
+      - '.github/lychee.toml'
       - '.github/workflows/check-links-pr.yaml'
     branches: 
       - 'main'
