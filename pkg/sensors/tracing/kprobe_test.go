@@ -5244,11 +5244,20 @@ func TestKprobeKernelStackTrace(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
+	disableKprobeMulti := ""
+
+	if isArm() {
+		disableKprobeMulti = `
+  options:
+    - name: "disable-kprobe-multi"
+      value: "1"`
+	}
+
 	tracingPolicy := `apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
   name: uname
-spec:
+spec: ` + disableKprobeMulti + `
   kprobes:
     - call: sys_newuname
       selectors:
@@ -5300,6 +5309,14 @@ func TestKprobeUserStackTrace(t *testing.T) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
+	disableKprobeMulti := ""
+	if isArm() {
+		disableKprobeMulti = `
+  options:
+    - name: "disable-kprobe-multi"
+      value: "1"`
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 	testUserStacktrace := testutils.RepoRootPath("contrib/tester-progs/user-stacktrace")
@@ -5307,7 +5324,7 @@ func TestKprobeUserStackTrace(t *testing.T) {
 kind: TracingPolicy
 metadata:
   name: "test-user-stacktrace"
-spec:
+spec: ` + disableKprobeMulti + `
   kprobes:
   - call: "sys_getcpu"
     selectors:
