@@ -3852,6 +3852,13 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecuprobesindexdataindex">data</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of data to include in the trace output.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>message</b></td>
         <td>string</td>
         <td>
@@ -3916,6 +3923,113 @@ Maximum of 16 Tags are supported.<br/>
 
 
 ### TracingPolicy.spec.uprobes[index].args[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecuprobesindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the argument.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>enum</td>
+        <td>
+          Argument type.<br/>
+          <br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Default</i>: auto<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>btfType</b></td>
+        <td>string</td>
+        <td>
+          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
+the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
+type.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>label</b></td>
+        <td>string</td>
+        <td>
+          Label to output in the JSON<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>maxData</b></td>
+        <td>boolean</td>
+        <td>
+          Read maximum possible data (currently 327360). This field is only used
+for char_buff data. When this value is false (default), the bpf program
+will fetch at most 4096 bytes. In later kernels (>=5.4) tetragon
+supports fetching up to 327360 bytes if this flag is turned on<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>resolve</b></td>
+        <td>string</td>
+        <td>
+          Resolve the path to a specific attribute<br/>
+          <br/>
+            <i>Default</i>: <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>returnCopy</b></td>
+        <td>boolean</td>
+        <td>
+          This field is used only for char_buf and char_iovec types. It indicates
+that this argument should be read later (when the kretprobe for the
+symbol is triggered) because it might not be populated when the kprobe
+is triggered at the entrance of the function. For example, a buffer
+supplied to read(2) won't have content until kretprobe is triggered.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sizeArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>source</b></td>
+        <td>string</td>
+        <td>
+          Source of the data, if missing the default if function arguments<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.uprobes[index].data[index]
 <sup><sup>[↩ Parent](#tracingpolicyspecuprobesindex)</sup></sup>
 
 
@@ -9828,6 +9942,13 @@ Only valid with the post action and with a rateLimit specified.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecuprobesindexdataindex">data</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of data to include in the trace output.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>message</b></td>
         <td>string</td>
         <td>
@@ -9892,6 +10013,113 @@ Maximum of 16 Tags are supported.<br/>
 
 
 ### TracingPolicyNamespaced.spec.uprobes[index].args[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecuprobesindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the argument.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>enum</td>
+        <td>
+          Argument type.<br/>
+          <br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, size_t, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Default</i>: auto<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>btfType</b></td>
+        <td>string</td>
+        <td>
+          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
+the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
+type.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>label</b></td>
+        <td>string</td>
+        <td>
+          Label to output in the JSON<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>maxData</b></td>
+        <td>boolean</td>
+        <td>
+          Read maximum possible data (currently 327360). This field is only used
+for char_buff data. When this value is false (default), the bpf program
+will fetch at most 4096 bytes. In later kernels (>=5.4) tetragon
+supports fetching up to 327360 bytes if this flag is turned on<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>resolve</b></td>
+        <td>string</td>
+        <td>
+          Resolve the path to a specific attribute<br/>
+          <br/>
+            <i>Default</i>: <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>returnCopy</b></td>
+        <td>boolean</td>
+        <td>
+          This field is used only for char_buf and char_iovec types. It indicates
+that this argument should be read later (when the kretprobe for the
+symbol is triggered) because it might not be populated when the kprobe
+is triggered at the entrance of the function. For example, a buffer
+supplied to read(2) won't have content until kretprobe is triggered.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sizeArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>source</b></td>
+        <td>string</td>
+        <td>
+          Source of the data, if missing the default if function arguments<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.uprobes[index].data[index]
 <sup><sup>[↩ Parent](#tracingpolicynamespacedspecuprobesindex)</sup></sup>
 
 
