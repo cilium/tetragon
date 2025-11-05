@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
+      - '.github/lychee.toml'
       - '.github/workflows/check-links-cron.yaml'
 
 jobs:
