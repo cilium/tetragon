@@ -265,7 +265,6 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 		gk.data = data
 
 		has.stackTrace = has.stackTrace || gk.hasStackTrace
-		has.override = has.override || gk.hasOverride
 	}
 
 	loadProgName, loadProgRetName := config.GenericKprobeObjs(true)
@@ -606,6 +605,7 @@ func hasMapsSetup(spec *v1alpha1.TracingPolicySpec) hasMaps {
 		has.enforcer = has.enforcer || len(spec.Enforcers) != 0
 		has.rateLimit = has.rateLimit || selectors.HasRateLimit(kprobe.Selectors)
 		has.sockTrack = has.sockTrack || selectors.HasSockTrack(&kprobe)
+		has.override = has.override || selectors.HasOverride(kprobe.Selectors)
 	}
 	return has
 }
