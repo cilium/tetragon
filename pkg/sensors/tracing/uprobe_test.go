@@ -832,3 +832,70 @@ func TestUprobeArgsWithAddress(t *testing.T) {
 
 	testUprobeArgs(t, checkers, tp)
 }
+
+func uprobeArgsMatch(t *testing.T, argOneVal int, expectCheckerFailure bool) error {
+	uprobeTest1 := testutils.RepoRootPath("contrib/tester-progs/uprobe-test-1")
+	libUprobe := testutils.RepoRootPath("contrib/tester-progs/libuprobe.so")
+
+	pathHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "` + libUprobe + `"
+    symbols:
+    - "uprobe_test_lib_arg1"
+    args:
+    - index: 0
+      type: "int"
+    selectors:
+    - matchArgs:
+      - args: [0]
+        operator: "Equal"
+        values:
+        - "` + strconv.Itoa(argOneVal) + `"
+`
+
+	pathConfigHook := []byte(pathHook)
+	err := os.WriteFile(testConfigFile, pathConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	upChecker := ec.NewProcessUprobeChecker("UPROBE_BINARIES_MATCH").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(uprobeTest1))).
+		WithSymbol(sm.Full("uprobe_test_lib_arg1"))
+	checker := ec.NewUnorderedEventChecker(upChecker)
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	if err := exec.Command(uprobeTest1).Run(); err != nil {
+		t.Fatalf("Failed to execute test binary: %s\n", err)
+	}
+
+	return jsonchecker.JsonTestCheckExpect(t, checker, expectCheckerFailure)
+}
+
+func TestUprobeArgsMatch(t *testing.T) {
+	err := uprobeArgsMatch(t, 123, false)
+	require.NoError(t, err)
+}
+
+func TestUprobeArgsMatchNot(t *testing.T) {
+	err := uprobeArgsMatch(t, 124, true)
+	require.NoError(t, err)
+}
