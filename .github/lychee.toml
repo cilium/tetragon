@@ -1,4 +1,7 @@
 verbose = "info"
+# In our use case, we do not care about certificate-related issue
+# https://lychee.cli.rs/troubleshooting/network-errors/
+insecure = true
 
 exclude = [
   # this application is down from time to time
