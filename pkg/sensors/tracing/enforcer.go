@@ -295,7 +295,7 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 
 	switch overrideMethod {
 	case OverrideMethodReturn:
-		useMulti := !specOpts.DisableKprobeMulti && !option.Config.DisableKprobeMulti && bpf.HasKprobeMulti()
+		useMulti := !specOpts.DisableKprobeMulti && !option.Config.DisableKprobeMulti && bpf.HasKprobeMulti() && !isArm()
 		logger.GetLogger().Infof("enforcer: using override return (multi-kprobe: %t)", useMulti)
 		label := "kprobe/enforcer"
 		prog := "bpf_enforcer.o"
