@@ -419,3 +419,88 @@ spec:
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 }
+
+func testUprobePtRegsMatch(t *testing.T, value int, expectFail bool) {
+	testBinary := testutils.RepoRootPath("contrib/tester-progs/regs-override")
+
+	// Put uprobe in test_1 function at:
+	//
+	//     "push   %rbp\n"         /* +0  55             */
+	//     "mov    %rsp,%rbp\n"    /* +1  48 89 e5       */
+	// --> "mov    $0x1,%eax\n"    /* +4  b8 01 00 00 00 */
+	//     "mov    $0x3,%eax\n"    /* +9  b8 03 00 00 00 */
+	//     "pop    %rbp\n"         /* +14 5d             */
+	//     "ret\n"                 /* +15 c3             */
+	//
+	// Make sure we retrieve data with eax value (1) as int argument
+	// and match the expected value via matchData.
+
+	pathHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "` + testBinary + `"
+    symbols:
+    - "test_1+9"
+    data:
+    - index: 0
+      type: "int"
+      source: "pt_regs"
+      resolve: "eax"
+    selectors:
+    - matchData:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "` + strconv.Itoa(value) + `"
+`
+
+	pathConfigHook := []byte(pathHook)
+	err := os.WriteFile(testConfigFile, pathConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	upChecker := ec.NewProcessUprobeChecker("UPROBE_DATA_MATCH").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(testBinary))).
+		WithSymbol(sm.Full("test_1+9")).
+		WithData(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(value)),
+			))
+
+	checker := ec.NewUnorderedEventChecker(upChecker)
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	cmd := exec.Command(testBinary, "1")
+	require.Error(t, cmd.Run())
+	require.Equal(t, 3, cmd.ProcessState.ExitCode())
+
+	err = jsonchecker.JsonTestCheckExpect(t, checker, expectFail)
+	require.NoError(t, err)
+}
+
+func TestUprobePtRegsDataMatch(t *testing.T) {
+	testUprobePtRegsMatch(t, 1, false)
+}
+
+func TestUprobePtRegsDataNotMatch(t *testing.T) {
+	testUprobePtRegsMatch(t, 10, true)
+}
