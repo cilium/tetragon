@@ -503,7 +503,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 	uprobeSelectorState, err := selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
 		Selectors: spec.Selectors,
 		Args:      spec.Args,
-		Data:      []v1alpha1.KProbeArg{},
+		Data:      spec.Data,
 		IsUprobe:  true,
 	})
 	if err != nil {

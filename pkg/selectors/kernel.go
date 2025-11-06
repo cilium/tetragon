@@ -859,14 +859,14 @@ func argIndexType(arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) (uint32, 
 	return 0, 0, errors.New("argFilter for unknown index")
 }
 
-func dataIndexType(arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) (uint32, uint32, error) {
+func dataIndexType(arg *v1alpha1.ArgSelector, data []v1alpha1.KProbeArg) (uint32, uint32, error) {
 	if len(arg.Args) > 0 {
-		return argIndexTypeFromArgs(arg, 0, sig)
+		return argIndexTypeFromArgs(arg, 0, data)
 	}
-	if arg.Index >= uint32(len(sig)) {
-		return 0, 0, errors.New("argFilter for unknown index")
+	if arg.Index >= uint32(len(data)) {
+		return 0, 0, fmt.Errorf("matchData index out of bonds (0,%d)", len(data))
 	}
-	ty := sig[arg.Index].Type
+	ty := data[arg.Index].Type
 	return arg.Index, uint32(gt.GenericTypeFromString(ty)), nil
 }
 
@@ -879,13 +879,13 @@ func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 	return parseMatchArg(k, arg, sig, ty)
 }
 
-func ParseMatchData(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg, base uint32) error {
-	index, ty, err := dataIndexType(arg, sig)
+func ParseMatchData(k *KernelSelectorState, arg *v1alpha1.ArgSelector, data []v1alpha1.KProbeArg, base uint32) error {
+	index, ty, err := dataIndexType(arg, data)
 	if err != nil {
 		return err
 	}
 	WriteSelectorUint32(&k.data, index+base)
-	return parseMatchArg(k, arg, sig, ty)
+	return parseMatchArg(k, arg, data, ty)
 }
 
 func parseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg, ty uint32) error {
