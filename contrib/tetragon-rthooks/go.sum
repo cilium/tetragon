@@ -15,8 +15,8 @@ github.com/antlr4-go/antlr/v4 v4.13.0 h1:lxCg3LAv+EUK6t1i0y1V6/SLeUi0eKEKdhQAlS8
 github.com/antlr4-go/antlr/v4 v4.13.0/go.mod h1:pfChB/xh/Unjila75QW7+VU4TSnWnnk9UTnmpPaOR2g=
 github.com/cilium/lumberjack/v2 v2.4.1 h1:tU92KFJmLQ4Uls5vTgok5b5RbfxpawRia7L14y2qDBs=
 github.com/cilium/lumberjack/v2 v2.4.1/go.mod h1:yfbtPGmg4i//5oEqzaMxDqSWqgfZFmMoV70Mc2k6v0A=
-github.com/containerd/containerd v1.7.28 h1:Nsgm1AtcmEh4AHAJ4gGlNSaKgXiNccU270Dnf81FQ3c=
-github.com/containerd/containerd v1.7.28/go.mod h1:azUkWcOvHrWvaiUjSQH0fjzuHIwSPg1WL5PshGP4Szs=
+github.com/containerd/containerd v1.7.29 h1:90fWABQsaN9mJhGkoVnuzEY+o1XDPbg9BTC9QTAHnuE=
+github.com/containerd/containerd v1.7.29/go.mod h1:azUkWcOvHrWvaiUjSQH0fjzuHIwSPg1WL5PshGP4Szs=
 github.com/containerd/containerd/api v1.8.0 h1:hVTNJKR8fMc/2Tiw60ZRijntNMd1U+JVMyTRdsD2bS0=
 github.com/containerd/containerd/api v1.8.0/go.mod h1:dFv4lt6S20wTu/hMcP4350RL87qPWLVa/OHOwmmdnYc=
 github.com/containerd/errdefs v1.0.0 h1:tg5yIfIlQIrxYtu9ajqY42W3lpS19XqdxRQeEwYG8PI=
