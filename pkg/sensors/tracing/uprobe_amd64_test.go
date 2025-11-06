@@ -265,3 +265,87 @@ spec:
 	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(checkers...))
 	require.NoError(t, err)
 }
+
+func testUprobeOverrideRegsActionSize(t *testing.T, ass, num string) {
+	if !bpf.HasUprobeRegsChange() {
+		t.Skip("skipping regs override action test, regs override is not supported in kernel")
+	}
+
+	testBinary := testutils.RepoRootPath("contrib/tester-progs/regs-override")
+
+	// Put uprobe in test_2 function at:
+	//
+	//       "push   %rbp\n"                        /* +0  55                            */
+	//       "mov    %rsp,%rbp\n"                   /* +1  48 89 e5                      */
+	//       "mov    $0xdeadbeef00000000,%rax\n"    /* +4  48 b8 00 00 00 00 ef be ad de */
+	//  -->  "pop    %rbp\n"                        /* +14 5d                            */
+	//       "ret\n"                                /* +15 c3                            */
+	//
+	// Make sure uprobe overrides test_1 return value (with 11)
+	// and the rest of the function is not executed.
+
+	pathHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "` + testBinary + `"
+    symbols:
+    - "test_2+14"
+    selectors:
+    - matchActions:
+      - action: Override
+        argRegs:
+        - "` + ass + `"
+`
+
+	pathConfigHook := []byte(pathHook)
+	err := os.WriteFile(testConfigFile, pathConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	upChecker := ec.NewProcessUprobeChecker("UPROBE_BINARIES_MATCH").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(testBinary))).
+		WithSymbol(sm.Full("test_2+14"))
+	checker := ec.NewUnorderedEventChecker(upChecker)
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	cmd := exec.Command(testBinary, "2", num)
+	require.NoError(t, cmd.Run())
+	require.Equal(t, 0, cmd.ProcessState.ExitCode())
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
+func TestUprobeOverrideRegsAction_8bytes(t *testing.T) {
+	testUprobeOverrideRegsActionSize(t, "rax=0x1234567887654321", "0x1234567887654321")
+}
+
+func TestUprobeOverrideRegsAction_4bytes(t *testing.T) {
+	testUprobeOverrideRegsActionSize(t, "eax=0x12345678", "0xdeadbeef12345678")
+}
+
+func TestUprobeOverrideRegsAction_2bytes(t *testing.T) {
+	testUprobeOverrideRegsActionSize(t, "ax=0x1234", "0xdeadbeefdead1234")
+}
+
+func TestUprobeOverrideRegsAction_1byte(t *testing.T) {
+	testUprobeOverrideRegsActionSize(t, "al=0x12", "0xdeadbeefdeadbe12")
+}
