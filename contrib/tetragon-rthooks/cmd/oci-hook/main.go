@@ -227,6 +227,19 @@ func podNamespaceFromAnnotations(annotations map[string]string) string {
 	return ""
 }
 
+func getMountsFromSpec(spec *specs.Spec) []*tetragon.Mount {
+	var containerMounts []*tetragon.Mount
+	for _, m := range spec.Mounts {
+		containerMounts = append(containerMounts, &tetragon.Mount{
+			Destination: m.Destination,
+			Type:        m.Type,
+			Source:      m.Source,
+			Options:     m.Options,
+		})
+	}
+	return containerMounts
+}
+
 // NB: the second argument is only used in case of an error, so disable revive's complains
 // revive:disable:error-return
 func createContainerHook(log *slog.Logger) (error, map[string]string) {
@@ -293,6 +306,7 @@ func createContainerHook(log *slog.Logger) (error, map[string]string) {
 		PodUID:         podUIDFromAnnotations(spec.Annotations),
 		PodNamespace:   podNamespaceFromAnnotations(spec.Annotations),
 		Annotations:    spec.Annotations,
+		Mounts:         getMountsFromSpec(spec),
 	}
 
 	req := &tetragon.RuntimeHookRequest{

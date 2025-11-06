@@ -244,6 +244,7 @@ found.
 | podUID | [string](#string) |  | podUID is the pod uid |
 | podNamespace | [string](#string) |  | podNamespace is the namespace of the pod |
 | containerImage | [string](#string) |  | containerImage is the full image location (repo &#43; image) |
+| mounts | [Mount](#tetragon-Mount) | repeated | Mounts configures additional mounts (on top of Root). |
 
 <a name="tetragon-CreateContainer-AnnotationsEntry"></a>
 
@@ -524,6 +525,17 @@ found.
 | owner | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
 | group | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  |  |
 | ns | [Namespace](#tetragon-Namespace) |  |  |
+
+<a name="tetragon-Mount"></a>
+
+### Mount
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| destination | [string](#string) |  | Destination is the absolute path where the mount will be placed in the container. |
+| type | [string](#string) |  | Type specifies the mount kind. |
+| source | [string](#string) |  | Source specifies the source path of the mount. |
+| options | [string](#string) | repeated | Options are fstab style mount options. |
 
 <a name="tetragon-Namespace"></a>
 

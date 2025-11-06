@@ -724,6 +724,17 @@ message RuntimeHookRequest {
 
 message RuntimeHookResponse {}
 
+message Mount {
+  // Destination is the absolute path where the mount will be placed in the container.
+  string destination = 1;
+  // Type specifies the mount kind.
+  string type = 2;
+  // Source specifies the source path of the mount.
+  string source = 3;
+  // Options are fstab style mount options.
+  repeated string options = 4;
+}
+
 // CreateContainer informs the agent that a container was created
 // This is intented to be used by OCI hooks (but not limited to them) and corresponds to the
 // CreateContainer hook:
@@ -754,6 +765,8 @@ message CreateContainer {
   string podNamespace = 8;
   // containerImage is the full image location (repo + image)
   string containerImage = 9;
+  // Mounts configures additional mounts (on top of Root).
+  repeated Mount mounts = 10;
 }
 
 message StackTraceEntry {
