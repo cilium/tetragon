@@ -242,7 +242,7 @@ var selectorOpStringTable = map[uint32]string{
 	SelectorOpState:              "State",
 	SelectorOpCapabilitiesGained: "CapabilitiesGained",
 	SelectorOpInRange:            "InRange",
-	SelectorOpNotInRange:         "NoInRange",
+	SelectorOpNotInRange:         "NotInRange",
 }
 
 func SelectorOp(op string) (uint32, error) {
