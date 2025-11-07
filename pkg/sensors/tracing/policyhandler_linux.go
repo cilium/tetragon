@@ -15,6 +15,7 @@ import (
 	"github.com/cilium/tetragon/pkg/policyconf"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/policystats"
+	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
@@ -49,6 +50,40 @@ func newPolicyInfo(
 
 }
 
+func hasEnforcementActions(spec *v1alpha1.TracingPolicySpec) bool {
+	for _, kprobe := range spec.KProbes {
+		if selectors.HasEnforcementAction(kprobe.Selectors) || selectors.HasOverride(kprobe.Selectors) {
+			return true
+		}
+	}
+
+	for _, uprobe := range spec.UProbes {
+		if selectors.HasEnforcementAction(uprobe.Selectors) || selectors.HasOverride(uprobe.Selectors) {
+			return true
+		}
+	}
+
+	for _, tp := range spec.Tracepoints {
+		if selectors.HasEnforcementAction(tp.Selectors) || selectors.HasOverride(tp.Selectors) {
+			return true
+		}
+	}
+
+	for _, lsm := range spec.LsmHooks {
+		if selectors.HasEnforcementAction(lsm.Selectors) || selectors.HasOverride(lsm.Selectors) {
+			return true
+		}
+	}
+
+	for _, usdt := range spec.Usdts {
+		if selectors.HasEnforcementAction(usdt.Selectors) || selectors.HasOverride(usdt.Selectors) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func newPolicyInfoFromSpec(
 	namespace, name string,
 	policyID policyfilter.PolicyID,
@@ -59,6 +94,12 @@ func newPolicyInfoFromSpec(
 	if err != nil {
 		return nil, err
 	}
+
+	// If enforcement is not allowed, force monitor only
+	if !hasEnforcementActions(spec) {
+		opts.policyMode = policyconf.MonitorOnlyMode
+	}
+
 	return &policyInfo{
 		name:          name,
 		namespace:     namespace,
