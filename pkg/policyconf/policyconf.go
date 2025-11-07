@@ -15,11 +15,16 @@ import (
 
 type Mode uint8
 
+func (m Mode) SupportEnforcement() bool {
+	return m != MonitorOnlyMode
+}
+
 const (
 	InvalidMode Mode = Mode(^uint8(0))
 	// NB: values below should match the ones in bpf/lib/policy_conf.h
-	EnforceMode Mode = 0
-	MonitorMode Mode = 1
+	EnforceMode     Mode = 0
+	MonitorMode     Mode = 1
+	MonitorOnlyMode Mode = 2 // monitor and cannot be updated to enforce. Not visible to bpf.
 
 	PolicyConfMapName = "policy_conf"
 )
