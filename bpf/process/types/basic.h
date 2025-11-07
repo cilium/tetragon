@@ -2033,7 +2033,7 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 		filter = (struct selector_arg_filter *)&f[margsoff];
 
 		index = filter->index;
-		if (index > 5)
+		if (index >= 5)
 			return 0;
 
 		args = get_arg(e, index);
