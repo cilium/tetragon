@@ -151,6 +151,9 @@ type KProbeSelector struct {
 	// A list of binary exec name filters.
 	MatchBinaries []BinarySelector `json:"matchBinaries,omitempty"`
 	// +kubebuilder:validation:Optional
+	// A list of process parent exec name filters.
+	MatchParentBinaries []BinarySelector `json:"matchParentBinaries,omitempty"`
+	// +kubebuilder:validation:Optional
 	// A list of namespaces and IDs
 	MatchNamespaces []NamespaceSelector `json:"matchNamespaces,omitempty"`
 	// +kubebuilder:validation:Optional
