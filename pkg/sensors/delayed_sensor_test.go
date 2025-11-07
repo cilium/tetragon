@@ -47,6 +47,10 @@ func (tds *TestDelayedSensor) IsLoaded() bool {
 	return tds.loaded
 }
 
+func (tds *TestDelayedSensor) HasEnforcement() bool {
+	return true
+}
+
 func (tds *TestDelayedSensor) Load(_ string) error {
 	select {
 	case <-tds.ch:
