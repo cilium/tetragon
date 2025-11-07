@@ -1370,10 +1370,33 @@ func ParseMatchCapabilityChanges(k *KernelSelectorState, actions []v1alpha1.Capa
 	return nil
 }
 
-func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx int) error {
+type genericMatchBinariesSelector int
+
+const (
+	matchBinaries genericMatchBinariesSelector = iota
+)
+
+func (s genericMatchBinariesSelector) String() string {
+	switch s {
+	case matchBinaries:
+		return "matchBinaries"
+	}
+	return ""
+}
+
+func (s genericMatchBinariesSelector) keyFromSelectorID(selectorID int) int {
+	var offset int
+	return selectorID + offset
+}
+
+func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx int, selectorType genericMatchBinariesSelector) error {
+	if selectorType != matchBinaries {
+		return errors.New("selector must be either matchBinaries")
+	}
+
 	op, err := SelectorOp(b.Operator)
 	if err != nil {
-		return fmt.Errorf("matchBinary error: %w", err)
+		return fmt.Errorf("%s error: %w", selectorType, err)
 	}
 
 	// ignore matchBinaries selectors with no values
@@ -1387,12 +1410,12 @@ func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx
 	sel.MBSetID = mbset.InvalidID
 	if b.FollowChildren {
 		if op != SelectorOpIn && op != SelectorOpNotIn {
-			return fmt.Errorf("matchBinary: followChildren not yet implemented for operation '%s'", b.Operator)
+			return fmt.Errorf("%s: followChildren not yet implemented for operation '%s'", selectorType, b.Operator)
 		}
 
 		sel.MBSetID, err = mbset.AllocID()
 		if err != nil {
-			return fmt.Errorf("matchBinary followChildren: failed to allocate ID: %w", err)
+			return fmt.Errorf("%s followChildren: failed to allocate ID: %w", selectorType, err)
 		}
 	}
 
@@ -1400,41 +1423,41 @@ func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx
 	case SelectorOpIn, SelectorOpNotIn:
 		for _, s := range b.Values {
 			if len(s) > processapi.BINARY_PATH_MAX_LEN-1 {
-				return fmt.Errorf("matchBinary error: Binary names > %d chars do not supported", processapi.BINARY_PATH_MAX_LEN-1)
+				return fmt.Errorf("%s error: Binary names > %d chars not supported", selectorType, processapi.BINARY_PATH_MAX_LEN-1)
 			}
-			k.WriteMatchBinariesPath(selIdx, s)
+			k.WriteMatchBinariesPath(selectorType.keyFromSelectorID(selIdx), s)
 		}
 	case SelectorOpPrefix, SelectorOpNotPrefix:
 		if !config.EnableLargeProgs() {
-			return errors.New("matchBinary error: \"Prefix\" and \"NotPrefix\" operators need large BPF progs (kernel>5.3)")
+			return fmt.Errorf("%s error: \"Prefix\" and \"NotPrefix\" operators need large BPF progs (kernel>5.3)", selectorType)
 		}
 		sel.MapID, err = writePrefixBinaries(k, b.Values)
 		if err != nil {
-			return fmt.Errorf("failed to write the prefix operator for the matchBinaries selector: %w", err)
+			return fmt.Errorf("failed to write the prefix operator for the %s selector: %w", selectorType, err)
 		}
 	case SelectorOpPostfix, SelectorOpNotPostfix:
 		if !config.EnableLargeProgs() {
-			return errors.New("matchBinary error: \"Postfix\" and \"NotPostfix\" operators need large BPF progs (kernel>5.3)")
+			return fmt.Errorf("%s error: \"Postfix\" and \"NotPostfix\" operators need large BPF progs (kernel>5.3)", selectorType)
 		}
 		sel.MapID, err = writePostfixBinaries(k, b.Values)
 		if err != nil {
-			return fmt.Errorf("failed to write the prefix operator for the matchBinaries selector: %w", err)
+			return fmt.Errorf("failed to write the prefix operator for the %s selector: %w", selectorType, err)
 		}
 	default:
-		return errors.New("matchBinary error: Only \"In\", \"NotIn\", \"Prefix\", \"NotPrefix\", \"Postfix\" and \"NotPostfix\" operators are supported")
+		return fmt.Errorf("%s error: Only \"In\", \"NotIn\", \"Prefix\", \"NotPrefix\", \"Postfix\" and \"NotPostfix\" operators are supported", selectorType)
 	}
 
-	k.AddMatchBinaries(selIdx, sel)
+	k.AddMatchBinaries(selectorType.keyFromSelectorID(selIdx), sel)
 
 	return nil
 }
 
-func ParseMatchBinaries(k *KernelSelectorState, binarys []v1alpha1.BinarySelector, selIdx int) error {
-	if len(binarys) > 1 {
+func ParseMatchBinaries(k *KernelSelectorState, binaries []v1alpha1.BinarySelector, selIdx int, selector genericMatchBinariesSelector) error {
+	if len(binaries) > 1 {
 		return errors.New("only support a single matchBinaries per selector")
 	}
-	for _, s := range binarys {
-		if err := ParseMatchBinary(k, &s, selIdx); err != nil {
+	for _, s := range binaries {
+		if err := ParseMatchBinary(k, &s, selIdx, selector); err != nil {
 			return err
 		}
 	}
@@ -1553,7 +1576,7 @@ func InitKernelSelectorState(args *KernelSelectorArgs) (*KernelSelectorState, er
 		if err := ParseMatchCapabilityChanges(k, selector.MatchCapabilityChanges); err != nil {
 			return fmt.Errorf("parseMatchCapabilityChanges error: %w", err)
 		}
-		if err := ParseMatchBinaries(k, selector.MatchBinaries, selIdx); err != nil {
+		if err := ParseMatchBinaries(k, selector.MatchBinaries, selIdx, matchBinaries); err != nil {
 			return fmt.Errorf("parseMatchBinaries error: %w", err)
 		}
 		if err := ParseMatchArgs(k, selector.MatchArgs, selector.MatchData, args.Args, args.Data); err != nil {
