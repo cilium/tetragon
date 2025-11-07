@@ -16,6 +16,7 @@ Each selector comprises a set of filters:
 - [`matchReturnArgs`](#return-args-filter): filter on the return value.
 - [`matchPIDs`](#pids-filter): filter on PID.
 - [`matchBinaries`](#binaries-filter): filter on binary path.
+- [`matchParentBinaries`](#parent-binaries-filter): filter on parent binary path.
 - [`matchNamespaces`](#namespaces-filter): filter on Linux namespaces.
 - [`matchCapabilities`](#capabilities-filter): filter on Linux capabilities.
 - [`matchNamespaceChanges`](#namespace-changes-filter): filter on Linux namespaces changes.
@@ -264,7 +265,7 @@ is `followForks: true`, so all the child processes are followed.
 
 ### Follow children
 
-the `matchBinaries` filter can be configured to also apply to children of matching processes. To do
+The `matchBinaries` filter can be configured to also apply to children of matching processes. To do
 this, set `followChildren` to `true`. For example:
 
 ```yaml
@@ -326,6 +327,63 @@ while the whole `kprobe` call is the following:
       - "2"
       - "3"
 ```
+
+## Parent binaries filter
+
+{{< warning >}}
+`matchParentBinaries` selector can be used only with BPF map `parents_map` enabled (option `--parents-map-enabled`), which adds
+additional memory overhead. 
+{{< /warning >}}
+
+Parent binaries filter provides filtering based on current process parent
+binary path, which works similarly to the `matchBinaries` filter. It can be
+specified with the `matchParentBinaries` field. For instance, the following
+`matchParentBinaries` selector will match only if binary `cat` was executed
+from interactive shell like `zsh`, `bash`, `sh`:
+
+```yaml
+- matchParentBinaries:
+  - operator: "In"
+    values:
+    - "/usr/bin/bash"
+    - "/usr/bin/sh"
+    - "/usr/bin/zsh"
+  matchBinaries:
+  - operator: "In"
+    values:
+    - "/usr/bin/cat"
+```
+
+The available operators for `matchParentBinaries` are:
+- `In`
+- `NotIn`
+- `Prefix`
+- `NotPrefix`
+- `Postfix`
+- `NotPostfix`
+
+The `values` field has to be a map of `strings`. The default behaviour
+is `followForks: true`, so all the child processes are followed.
+
+### Follow children
+
+The `matchParentBinaries` filter can be configured to also apply to children of
+matching parent processes. To do this, set `followChildren` to `true`. For example:
+
+```yaml
+- matchParentBinaries:
+  - operator: "In"
+    values:
+    - "/usr/bin/bash"
+    followChildren: true
+```
+
+This policy will match any process, which direct or transitive parent process binary is `bash`.
+
+There are a number of limitations when using `followChildren`:
+- Children created before the policy was installed will not be matched.
+- The number of `matchParentBinaries` sections with `followChildren: true` cannot exceed 64.
+- Operators other than `In/NotIn` are not supported.
 
 ## Namespaces filter
 

@@ -203,6 +203,14 @@ options:
     - name: netns-dir
       default_value: /var/run/docker/netns/
       usage: Network namespace dir
+    - name: parents-map-enabled
+      default_value: "false"
+      usage: Enable parents_map for matchParentBinaries selector
+    - name: parents-map-entries
+      default_value: "0"
+      usage: Set entries for parents_map table (default 32768)
+    - name: parents-map-size
+      usage: Set size for parents_map table (allows K/M/G suffix)
     - name: pprof-address
       usage: |
         Serves runtime profile data via HTTP (e.g. 'localhost:6060'). Disabled by default
