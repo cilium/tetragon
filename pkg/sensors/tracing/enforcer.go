@@ -346,5 +346,6 @@ func (kp *enforcerPolicy) createEnforcerSensor(
 			}
 			return nil
 		},
+		SupportsEnforcement: true,
 	}, nil
 }
