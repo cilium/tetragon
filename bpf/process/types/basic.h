@@ -1839,17 +1839,21 @@ struct match_binaries_sel_opts {
 	__u32 mbset_id;
 };
 
-// This map is used by the matchBinaries selectors to retrieve their options
+// We need data for:
+// - matchBinaries, keys [0, MAX_SELECTORS)
+// - matchParentBinaries, keys [MAX_SELECTORS, MAX_SELECTORS * 2)
+#define MB_MAX_ENTRIES (MAX_SELECTORS * 2)
+
 struct {
 	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__uint(max_entries, MAX_SELECTORS);
+	__uint(max_entries, MB_MAX_ENTRIES);
 	__type(key, __u32); /* selector id */
 	__type(value, struct match_binaries_sel_opts);
 } tg_mb_sel_opts SEC(".maps");
 
 struct {
 	__uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
-	__uint(max_entries, MAX_SELECTORS); // only one matchBinaries per selector
+	__uint(max_entries, MB_MAX_ENTRIES);
 	__type(key, __u32);
 	__array(
 		values, struct {
@@ -1860,7 +1864,7 @@ struct {
 		});
 } tg_mb_paths SEC(".maps");
 
-FUNC_INLINE int match_binaries(__u32 selidx, struct execve_map_value *current)
+FUNC_INLINE int match_binaries(__u32 key, struct execve_map_value *current)
 {
 	bool match = 0;
 	void *path_map;
@@ -1877,7 +1881,10 @@ FUNC_INLINE int match_binaries(__u32 selidx, struct execve_map_value *current)
 
 	// retrieve the selector_options for the matchBinaries, if it's NULL it
 	// means there is not matchBinaries in this selector.
-	selector_options = map_lookup_elem(&tg_mb_sel_opts, &selidx);
+	selector_options = map_lookup_elem(&tg_mb_sel_opts, &key);
+	if (!current)
+		return !selector_options || selector_options->op == op_filter_none;
+
 	if (selector_options) {
 		if (selector_options->op == op_filter_none)
 			return 1; // matchBinaries selector is empty <=> match
@@ -1903,7 +1910,7 @@ FUNC_INLINE int match_binaries(__u32 selidx, struct execve_map_value *current)
 				break;
 			}
 
-			path_map = map_lookup_elem(&tg_mb_paths, &selidx);
+			path_map = map_lookup_elem(&tg_mb_paths, &key);
 			if (!path_map)
 				return 0;
 			found_key = map_lookup_elem(path_map, current->bin.path);
@@ -1951,7 +1958,7 @@ FUNC_INLINE int match_binaries(__u32 selidx, struct execve_map_value *current)
 		return is_not_operator(selector_options->op) ? !match : match;
 	}
 
-	// no matchBinaries selector <=> match
+	// no selector <=> match
 	return 1;
 }
 

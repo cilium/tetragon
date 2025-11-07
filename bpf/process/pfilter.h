@@ -425,8 +425,12 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 	__u32 len;
 	__u64 i;
 
-	/* Do binary filter first for selector index */
+	/* Do binary and parent filter first for selector index */
 	if (!match_binaries(index, enter))
+		return 0;
+
+	/* matchParentBinaries key is in rage [MAX_SELECTORS; MAX_SELECTORS * 2) */
+	if (!match_binaries(index + MAX_SELECTORS, event_find_parent()))
 		return 0;
 
 	/* Find selector offset byte index */
