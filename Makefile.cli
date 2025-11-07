@@ -4,7 +4,22 @@
 CLI_GO_BUILD = CGO_ENABLED=0 $(GO) build
 # renovate: datasource=docker
 GO_IMAGE = docker.io/library/golang:1.25.4-alpine@sha256:d3f0cf7723f3429e3f9ed846243970b20a2de7bae6a5b66fc5914e228d831bbb
-TARGET=tetra
+TARGET = tetra
+
+RELEASE_FOLDER = release
+# Avoid shooting yourself in the foot with rm in cli-clean or
+# creating/overwriting files from the root folder
+ifeq ($(strip $(RELEASE_FOLDER)),)
+$(error RELEASE_FOLDER is not set or is empty)
+endif
+
+RELEASES := \
+	$(RELEASE_FOLDER)/$(TARGET)-darwin-arm64.tar.gz \
+	$(RELEASE_FOLDER)/$(TARGET)-darwin-amd64.tar.gz \
+	$(RELEASE_FOLDER)/$(TARGET)-linux-arm64.tar.gz \
+	$(RELEASE_FOLDER)/$(TARGET)-linux-amd64.tar.gz \
+	$(RELEASE_FOLDER)/$(TARGET)-windows-arm64.tar.gz \
+	$(RELEASE_FOLDER)/$(TARGET)-windows-amd64.tar.gz
 
 RELEASE_UID ?= $(shell id -u)
 RELEASE_GID ?= $(shell id -g)
@@ -12,43 +27,31 @@ RELEASE_GID ?= $(shell id -g)
 ##@ CLI
 
 .PHONY: cli-release
-cli-release: ## Compile tetra CLI release binaries.
+cli-release: ## Compile tetra CLI release binaries with Docker
 	docker run \
 		--rm \
 		--workdir /tetragon \
 		--volume `pwd`:/tetragon $(GO_IMAGE) \
 		sh -c "apk add --no-cache make git setpriv && \
 		        /bin/setpriv --reuid=$(RELEASE_UID) --regid=$(RELEASE_GID) --clear-groups \
-			make GOCACHE=/tmp/cache cli-local-release VERSION=${VERSION}"
+			make -j$$(nproc) GOCACHE=/tmp/cache cli-local-release VERSION=${VERSION}"
+
 
 .PHONY: cli-local-release
-cli-local-release: cli-clean
-	set -o errexit; \
-	for OS in darwin linux windows; do \
-		EXT=; \
-		ARCHS=; \
-		case $$OS in \
-			darwin) \
-				ARCHS='arm64 amd64'; \
-				;; \
-			linux) \
-				ARCHS='arm64 amd64'; \
-				;; \
-			windows) \
-				ARCHS='arm64 amd64'; \
-				EXT='.exe'; \
-				;; \
-		esac; \
-		for ARCH in $$ARCHS; do \
-			echo Building release binary for $$OS/$$ARCH...; \
-			test -d release/$$OS/$$ARCH|| mkdir -p release/$$OS/$$ARCH; \
-			env GOOS=$$OS GOARCH=$$ARCH $(CLI_GO_BUILD) -ldflags="$(GO_BUILD_LDFLAGS)" -o release/$$OS/$$ARCH/$(TARGET)$$EXT ./cmd/tetra; \
-			tar -czf release/$(TARGET)-$$OS-$$ARCH.tar.gz -C release/$$OS/$$ARCH $(TARGET)$$EXT; \
-			(cd release && sha256sum $(TARGET)-$$OS-$$ARCH.tar.gz > $(TARGET)-$$OS-$$ARCH.tar.gz.sha256sum); \
-		done; \
-		rm -r release/$$OS; \
-	done; \
+cli-local-release: $(RELEASES) ## Compile tetra CLI release binaries locally
+
+$(RELEASE_FOLDER)/$(TARGET)-%.tar.gz: cli-clean
+	@{ \
+		OS=$(word 1,$(subst -, ,$*)); \
+		ARCH=$(word 2,$(subst -, ,$*)); \
+		EXT=""; if [ "$$OS" = "windows" ]; then EXT=".exe"; fi; \
+		mkdir -p $(RELEASE_FOLDER)/$$OS/$$ARCH; \
+		echo "Building for $$OS/$$ARCH..."; \
+		env GOOS=$$OS GOARCH=$$ARCH $(CLI_GO_BUILD) -ldflags="$(GO_BUILD_LDFLAGS)" -o $(RELEASE_FOLDER)/$$OS/$$ARCH/$(TARGET)$$EXT ./cmd/tetra; \
+		tar -czf $@ -C $(RELEASE_FOLDER)/$$OS/$$ARCH $(TARGET)$$EXT; \
+		sha256sum $@ > $@.sha256sum; \
+	}
 
 .PHONY: cli-clean
-cli-clean:
-	rm -rf ./release
+cli-clean: ## Clean CLI release binaries
+	rm -rf ./$(RELEASE_FOLDER)
