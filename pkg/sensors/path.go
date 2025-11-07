@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// something
 // PathJoin creates a path meant for sensor filenames in /sys/fs/bpf.
 //
 // At some point, we would like to have a file hierarchy under /sys/fs/bpf for each sensor.
