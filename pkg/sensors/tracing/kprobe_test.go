@@ -35,6 +35,8 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -42,7 +44,6 @@ import (
 	"github.com/cilium/tetragon/pkg/ftrace"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	bc "github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
@@ -3861,6 +3862,187 @@ spec:
 	errChecker := ec.NewUnorderedEventChecker(kpErrCheckers...)
 	err = jsonchecker.JsonTestCheckExpect(t, errChecker, true)
 	require.NoError(t, err)
+}
+
+func getMatchParentBinariesCrd(opStr string, vals []string) string {
+	var configHook strings.Builder
+	configHook.WriteString(`apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "testing-file-match-binaries"
+spec:
+  kprobes:
+  - call: "fd_install"
+    syscall: false
+    return: false
+    args:
+    - index: 0
+      type: int
+    - index: 1
+      type: "file"
+    selectors:
+    - matchParentBinaries:
+      - operator: "` + opStr + `"
+        values: `)
+	for i := range vals {
+		configHook.WriteString(fmt.Sprintf("\n        - \"%s\"", vals[i]))
+	}
+	return configHook.String()
+}
+
+func createParentsChecker(parent, binary string) *ec.ProcessKprobeChecker {
+	kpChecker := ec.NewProcessKprobeChecker("").
+		WithParent(ec.NewProcessChecker().WithBinary(sm.Full(parent))).
+		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(binary))).
+		WithFunctionName(sm.Full("fd_install"))
+	return kpChecker
+}
+
+func matchParentBinariesTest(t *testing.T, operator string, values []string, kpChecker *ec.ProcessKprobeChecker, newProcess bool) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	createCrdFile(t, getMatchParentBinariesCrd(operator, values))
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	bashArgs := []string{"-c"}
+	if newProcess {
+		// running bash with piped stdin forces bash to fork process and call execve('/usr/bin/tail')
+		// in separate process, so parent and child process pids will be different
+		bashArgs = append(bashArgs, "echo '/usr/bin/tail /etc/passwd' | /usr/bin/bash")
+	} else {
+		// when bash just runs binary with '-c' option, it calls execve syscall in the same process
+		// without fork, so pid of parent process and current process will be same
+		bashArgs = append(bashArgs, "/usr/bin/tail /etc/passwd")
+	}
+	if err := exec.Command("/usr/bin/bash", bashArgs...).Run(); err != nil {
+		t.Fatalf("failed to run tail /etc/passwd with /bin/bash: %s", err)
+	}
+
+	if err := exec.Command("/usr/bin/sh", "-c", "/usr/bin/tail /etc/passwd").Run(); err != nil {
+		t.Fatalf("failed to run tail /etc/passwd with /bin/sh: %s", err)
+	}
+
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
+const skipMatchParentBinaries = "kernels without large progs do not support matchParentBinaries selector"
+
+func TestKprobeMatchParentBinaries(t *testing.T) {
+	if !config.EnableLargeProgs() {
+		t.Skip(skipMatchParentBinaries)
+	}
+
+	tests := map[string]struct {
+		operator                string
+		values                  []string
+		expectedParent          string
+		binary                  string
+		parentCreatesNewProcess bool
+	}{
+		"In, different processes": {
+			operator:                "In",
+			values:                  []string{"/usr/bin/bash"},
+			expectedParent:          "/usr/bin/bash",
+			binary:                  "/usr/bin/tail",
+			parentCreatesNewProcess: true,
+		},
+		"In, same processes": {
+			operator:                "In",
+			values:                  []string{"/usr/bin/bash"},
+			expectedParent:          "/usr/bin/bash",
+			binary:                  "/usr/bin/tail",
+			parentCreatesNewProcess: false,
+		},
+		"NotIn, different processes": {
+			operator:                "NotIn",
+			values:                  []string{"/usr/bin/bash"},
+			expectedParent:          "/usr/bin/sh",
+			binary:                  "/usr/bin/tail",
+			parentCreatesNewProcess: true,
+		},
+		"NotIn, same processes": {
+			operator:                "NotIn",
+			values:                  []string{"/usr/bin/bash"},
+			expectedParent:          "/usr/bin/sh",
+			binary:                  "/usr/bin/tail",
+			parentCreatesNewProcess: false,
+		},
+		"Prefix, different processes": {
+			operator:                "Prefix",
+			values:                  []string{"/usr/bin/ba"},
+			expectedParent:          "/usr/bin/bash",
+			binary:                  "/usr/bin/tail",
+			parentCreatesNewProcess: true,
+		},
+		"Prefix, same processes": {
+			operator:                "Prefix",
+			values:                  []string{"/usr/bin/ba"},
+			expectedParent:          "/usr/bin/bash",
+			binary:                  "/usr/bin/tail",
+			parentCreatesNewProcess: false,
+		},
+		"NotPrefix, different processes": {
+			operator:                "NotPrefix",
+			values:                  []string{"/usr/bin/ba"},
+			expectedParent:          "/usr/bin/sh",
+			binary:                  "/usr/bin/tail",
+			parentCreatesNewProcess: true,
+		},
+		"NotPrefix, same processes": {
+			operator:                "NotPrefix",
+			values:                  []string{"/usr/bin/ba"},
+			expectedParent:          "/usr/bin/sh",
+			binary:                  "/usr/bin/tail",
+			parentCreatesNewProcess: false,
+		},
+		"Postfix, different processes": {
+			operator:                "Postfix",
+			values:                  []string{"in/bash"},
+			expectedParent:          "/usr/bin/bash",
+			binary:                  "/usr/bin/tail",
+			parentCreatesNewProcess: true,
+		},
+		"Postfix, same processes": {
+			operator:                "Postfix",
+			values:                  []string{"in/bash"},
+			expectedParent:          "/usr/bin/bash",
+			binary:                  "/usr/bin/tail",
+			parentCreatesNewProcess: false,
+		},
+		"NotPostfix, different processes": {
+			operator:                "NotPostfix",
+			values:                  []string{"in/bash"},
+			expectedParent:          "/usr/bin/sh",
+			binary:                  "/usr/bin/tail",
+			parentCreatesNewProcess: true,
+		},
+		"NotPostfix, same processes": {
+			operator:                "NotPostfix",
+			values:                  []string{"in/bash"},
+			expectedParent:          "/usr/bin/sh",
+			binary:                  "/usr/bin/tail",
+			parentCreatesNewProcess: false,
+		},
+	}
+
+	option.Config.ParentsMapEnabled = true
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			matchParentBinariesTest(t, test.operator, test.values, createParentsChecker(test.expectedParent, test.binary), test.parentCreatesNewProcess)
+		})
+	}
 }
 
 func getMatchBinariesCrd(opStr string, vals []string) string {
