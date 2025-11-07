@@ -824,6 +824,13 @@ results of MatchPIDs and MatchArgs are ANDed.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspeckprobesindexselectorsindexmatchparentbinariesindex">matchParentBinaries</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of process parent exec name filters.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspeckprobesindexselectorsindexmatchreturnactionsindex">matchReturnActions</a></b></td>
         <td>[]object</td>
         <td>
@@ -1386,6 +1393,50 @@ Only valid with the post action and with a rateLimit specified.<br/>
 </table>
 
 
+### TracingPolicy.spec.kprobes[index].selectors[index].matchParentBinaries[index]
+<sup><sup>[↩ Parent](#tracingpolicyspeckprobesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Value to compare the argument against.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>followChildren</b></td>
+        <td>boolean</td>
+        <td>
+          In addition to binaries, match children processes of specified binaries.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicy.spec.kprobes[index].selectors[index].matchReturnActions[index]
 <sup><sup>[↩ Parent](#tracingpolicyspeckprobesindexselectorsindex)</sup></sup>
 
@@ -1891,6 +1942,13 @@ results of MatchPIDs and MatchArgs are ANDed.
         <td>[]object</td>
         <td>
           A list of process ID filters. MatchPIDs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspeclsmhooksindexselectorsindexmatchparentbinariesindex">matchParentBinaries</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of process parent exec name filters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2448,6 +2506,50 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td>boolean</td>
         <td>
           Indicates whether PIDs are namespace PIDs.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.lsmhooks[index].selectors[index].matchParentBinaries[index]
+<sup><sup>[↩ Parent](#tracingpolicyspeclsmhooksindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Value to compare the argument against.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>followChildren</b></td>
+        <td>boolean</td>
+        <td>
+          In addition to binaries, match children processes of specified binaries.<br/>
           <br/>
             <i>Default</i>: false<br/>
         </td>
@@ -3037,6 +3139,13 @@ results of MatchPIDs and MatchArgs are ANDed.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspectracepointsindexselectorsindexmatchparentbinariesindex">matchParentBinaries</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of process parent exec name filters.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspectracepointsindexselectorsindexmatchreturnactionsindex">matchReturnActions</a></b></td>
         <td>[]object</td>
         <td>
@@ -3591,6 +3700,50 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td>boolean</td>
         <td>
           Indicates whether PIDs are namespace PIDs.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.tracepoints[index].selectors[index].matchParentBinaries[index]
+<sup><sup>[↩ Parent](#tracingpolicyspectracepointsindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Value to compare the argument against.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>followChildren</b></td>
+        <td>boolean</td>
+        <td>
+          In addition to binaries, match children processes of specified binaries.<br/>
           <br/>
             <i>Default</i>: false<br/>
         </td>
@@ -4323,6 +4476,13 @@ results of MatchPIDs and MatchArgs are ANDed.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecuprobesindexselectorsindexmatchparentbinariesindex">matchParentBinaries</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of process parent exec name filters.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspecuprobesindexselectorsindexmatchreturnactionsindex">matchReturnActions</a></b></td>
         <td>[]object</td>
         <td>
@@ -4885,6 +5045,50 @@ Only valid with the post action and with a rateLimit specified.<br/>
 </table>
 
 
+### TracingPolicy.spec.uprobes[index].selectors[index].matchParentBinaries[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecuprobesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Value to compare the argument against.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>followChildren</b></td>
+        <td>boolean</td>
+        <td>
+          In addition to binaries, match children processes of specified binaries.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicy.spec.uprobes[index].selectors[index].matchReturnActions[index]
 <sup><sup>[↩ Parent](#tracingpolicyspecuprobesindexselectorsindex)</sup></sup>
 
@@ -5355,6 +5559,13 @@ results of MatchPIDs and MatchArgs are ANDed.
         <td>[]object</td>
         <td>
           A list of process ID filters. MatchPIDs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecusdtsindexselectorsindexmatchparentbinariesindex">matchParentBinaries</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of process parent exec name filters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5912,6 +6123,50 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td>boolean</td>
         <td>
           Indicates whether PIDs are namespace PIDs.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.usdts[index].selectors[index].matchParentBinaries[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecusdtsindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Value to compare the argument against.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>followChildren</b></td>
+        <td>boolean</td>
+        <td>
+          In addition to binaries, match children processes of specified binaries.<br/>
           <br/>
             <i>Default</i>: false<br/>
         </td>
@@ -6914,6 +7169,13 @@ results of MatchPIDs and MatchArgs are ANDed.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspeckprobesindexselectorsindexmatchparentbinariesindex">matchParentBinaries</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of process parent exec name filters.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspeckprobesindexselectorsindexmatchreturnactionsindex">matchReturnActions</a></b></td>
         <td>[]object</td>
         <td>
@@ -7476,6 +7738,50 @@ Only valid with the post action and with a rateLimit specified.<br/>
 </table>
 
 
+### TracingPolicyNamespaced.spec.kprobes[index].selectors[index].matchParentBinaries[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeckprobesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Value to compare the argument against.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>followChildren</b></td>
+        <td>boolean</td>
+        <td>
+          In addition to binaries, match children processes of specified binaries.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicyNamespaced.spec.kprobes[index].selectors[index].matchReturnActions[index]
 <sup><sup>[↩ Parent](#tracingpolicynamespacedspeckprobesindexselectorsindex)</sup></sup>
 
@@ -7981,6 +8287,13 @@ results of MatchPIDs and MatchArgs are ANDed.
         <td>[]object</td>
         <td>
           A list of process ID filters. MatchPIDs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchparentbinariesindex">matchParentBinaries</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of process parent exec name filters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8538,6 +8851,50 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td>boolean</td>
         <td>
           Indicates whether PIDs are namespace PIDs.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.lsmhooks[index].selectors[index].matchParentBinaries[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspeclsmhooksindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Value to compare the argument against.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>followChildren</b></td>
+        <td>boolean</td>
+        <td>
+          In addition to binaries, match children processes of specified binaries.<br/>
           <br/>
             <i>Default</i>: false<br/>
         </td>
@@ -9127,6 +9484,13 @@ results of MatchPIDs and MatchArgs are ANDed.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspectracepointsindexselectorsindexmatchparentbinariesindex">matchParentBinaries</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of process parent exec name filters.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspectracepointsindexselectorsindexmatchreturnactionsindex">matchReturnActions</a></b></td>
         <td>[]object</td>
         <td>
@@ -9681,6 +10045,50 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td>boolean</td>
         <td>
           Indicates whether PIDs are namespace PIDs.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.tracepoints[index].selectors[index].matchParentBinaries[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspectracepointsindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Value to compare the argument against.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>followChildren</b></td>
+        <td>boolean</td>
+        <td>
+          In addition to binaries, match children processes of specified binaries.<br/>
           <br/>
             <i>Default</i>: false<br/>
         </td>
@@ -10413,6 +10821,13 @@ results of MatchPIDs and MatchArgs are ANDed.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecuprobesindexselectorsindexmatchparentbinariesindex">matchParentBinaries</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of process parent exec name filters.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspecuprobesindexselectorsindexmatchreturnactionsindex">matchReturnActions</a></b></td>
         <td>[]object</td>
         <td>
@@ -10975,6 +11390,50 @@ Only valid with the post action and with a rateLimit specified.<br/>
 </table>
 
 
+### TracingPolicyNamespaced.spec.uprobes[index].selectors[index].matchParentBinaries[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecuprobesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Value to compare the argument against.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>followChildren</b></td>
+        <td>boolean</td>
+        <td>
+          In addition to binaries, match children processes of specified binaries.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicyNamespaced.spec.uprobes[index].selectors[index].matchReturnActions[index]
 <sup><sup>[↩ Parent](#tracingpolicynamespacedspecuprobesindexselectorsindex)</sup></sup>
 
@@ -11445,6 +11904,13 @@ results of MatchPIDs and MatchArgs are ANDed.
         <td>[]object</td>
         <td>
           A list of process ID filters. MatchPIDs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecusdtsindexselectorsindexmatchparentbinariesindex">matchParentBinaries</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of process parent exec name filters.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -12002,6 +12468,50 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td>boolean</td>
         <td>
           Indicates whether PIDs are namespace PIDs.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.usdts[index].selectors[index].matchParentBinaries[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecusdtsindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Value to compare the argument against.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>followChildren</b></td>
+        <td>boolean</td>
+        <td>
+          In addition to binaries, match children processes of specified binaries.<br/>
           <br/>
             <i>Default</i>: false<br/>
         </td>
