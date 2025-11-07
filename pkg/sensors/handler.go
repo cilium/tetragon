@@ -153,6 +153,12 @@ func (h *handler) addTracingPolicy(op *tracingPolicyAdd) error {
 	col.sensors = make([]SensorIface, 0, len(sensors))
 	col.sensors = append(col.sensors, sensors...)
 	col.state = LoadingState
+	for _, sensor := range col.sensors {
+		if sensor.HasEnforcement() {
+			col.allowModeUpdate = true
+			break
+		}
+	}
 
 	// unlock so that policyLister can access the collections (read-only) while we are loading.
 	h.collections.mu.Unlock()
