@@ -743,28 +743,22 @@ func writeMatchStrings(k *KernelSelectorState, values []string, ty uint32) error
 	return nil
 }
 
-func writePrefix(k *KernelSelectorState, values []string, selector string) (uint32, error) {
+func writePrefix(k *KernelSelectorState, values []string) (uint32, error) {
 	mid, m := k.newStringPrefixMap()
 	for _, v := range values {
 		value, size := ArgSelectorValue(v)
 		if size > StringPrefixMaxLength {
-			return 0, fmt.Errorf("%s value %s invalid: string is longer than %d characters", selector, v, StringPrefixMaxLength)
+			return 0, fmt.Errorf("value %s invalid: string is longer than %d characters", v, StringPrefixMaxLength)
 		}
 		val := KernelLPMTrieStringPrefix{prefixLen: size * 8} // prefix is in bits, but size is in bytes
 		copy(val.data[:], value)
 		m[val] = struct{}{}
 	}
 	return mid, nil
-	// write the map id into the selector
-
-}
-
-func writePrefixBinaries(k *KernelSelectorState, values []string) (uint32, error) {
-	return writePrefix(k, values, "MatchBinaries")
 }
 
 func writePrefixStrings(k *KernelSelectorState, values []string) error {
-	mid, err := writePrefix(k, values, "MatchArgs")
+	mid, err := writePrefix(k, values)
 	if err != nil {
 		return err
 	}
@@ -772,7 +766,7 @@ func writePrefixStrings(k *KernelSelectorState, values []string) error {
 	return nil
 }
 
-func writePostfix(k *KernelSelectorState, values []string, ty uint32, selector string) (uint32, error) {
+func writePostfix(k *KernelSelectorState, values []string, ty uint32) (uint32, error) {
 	mid, m := k.newStringPostfixMap()
 	for _, v := range values {
 		var value []byte
@@ -785,7 +779,7 @@ func writePostfix(k *KernelSelectorState, values []string, ty uint32, selector s
 		// Due to the constraints of the reverse copy in BPF, we will not be able to match a postfix
 		// longer than 127 characters, so throw an error if the user specified one.
 		if size >= StringPostfixMaxLength {
-			return 0, fmt.Errorf("%s value %s invalid: string is longer than %d characters", selector, v, StringPostfixMaxLength-1)
+			return 0, fmt.Errorf("value %s invalid: string is longer than %d characters", v, StringPostfixMaxLength-1)
 		}
 		val := KernelLPMTrieStringPostfix{prefixLen: size * 8} // postfix is in bits, but size is in bytes
 		// Copy postfix in reverse order, so that it can be used in LPM map
@@ -797,12 +791,8 @@ func writePostfix(k *KernelSelectorState, values []string, ty uint32, selector s
 	return mid, nil
 }
 
-func writePostfixBinaries(k *KernelSelectorState, values []string) (uint32, error) {
-	return writePostfix(k, values, gt.GenericCharBuffer, "MatchBinaries")
-}
-
 func writePostfixStrings(k *KernelSelectorState, values []string, ty uint32) error {
-	mid, err := writePostfix(k, values, ty, "MatchArgs")
+	mid, err := writePostfix(k, values, ty)
 	if err != nil {
 		return err
 	}
@@ -1371,24 +1361,32 @@ type genericMatchBinariesSelector int
 
 const (
 	matchBinaries genericMatchBinariesSelector = iota
+	matchParentBinaries
 )
 
 func (s genericMatchBinariesSelector) String() string {
 	switch s {
 	case matchBinaries:
 		return "matchBinaries"
+	case matchParentBinaries:
+		return "matchParentBinaries"
 	}
 	return ""
 }
 
 func (s genericMatchBinariesSelector) keyFromSelectorID(selectorID int) int {
 	var offset int
+	if s == matchParentBinaries {
+		// matchParentBinaries selector options and paths are stored with MaxSelectors
+		// offset in matchBinaries maps.
+		offset = MaxSelectors
+	}
 	return selectorID + offset
 }
 
 func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx int, selectorType genericMatchBinariesSelector) error {
-	if selectorType != matchBinaries {
-		return errors.New("selector must be either matchBinaries")
+	if selectorType != matchBinaries && selectorType != matchParentBinaries {
+		return errors.New("selector must be either matchBinaries or matchParentBinaries")
 	}
 
 	op, err := SelectorOp(b.Operator)
@@ -1428,7 +1426,7 @@ func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx
 		if !config.EnableLargeProgs() {
 			return fmt.Errorf("%s error: \"Prefix\" and \"NotPrefix\" operators need large BPF progs (kernel>5.3)", selectorType)
 		}
-		sel.MapID, err = writePrefixBinaries(k, b.Values)
+		sel.MapID, err = writePrefix(k, b.Values)
 		if err != nil {
 			return fmt.Errorf("failed to write the prefix operator for the %s selector: %w", selectorType, err)
 		}
@@ -1436,7 +1434,7 @@ func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx
 		if !config.EnableLargeProgs() {
 			return fmt.Errorf("%s error: \"Postfix\" and \"NotPostfix\" operators need large BPF progs (kernel>5.3)", selectorType)
 		}
-		sel.MapID, err = writePostfixBinaries(k, b.Values)
+		sel.MapID, err = writePostfix(k, b.Values, gt.GenericCharBuffer)
 		if err != nil {
 			return fmt.Errorf("failed to write the prefix operator for the %s selector: %w", selectorType, err)
 		}
@@ -1567,6 +1565,9 @@ func InitKernelSelectorState(args *KernelSelectorArgs) (*KernelSelectorState, er
 		}
 		if err := ParseMatchBinaries(k, selector.MatchBinaries, selIdx, matchBinaries); err != nil {
 			return fmt.Errorf("parseMatchBinaries error: %w", err)
+		}
+		if err := ParseMatchBinaries(k, selector.MatchParentBinaries, selIdx, matchParentBinaries); err != nil {
+			return fmt.Errorf("parseMatchParentBinaries error: %w", err)
 		}
 		if err := ParseMatchArgs(k, selector.MatchArgs, selector.MatchData, args.Args, args.Data); err != nil {
 			return fmt.Errorf("parseMatchArgs  error: %w", err)
