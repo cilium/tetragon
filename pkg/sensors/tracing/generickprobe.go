@@ -838,7 +838,6 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 			return fmt.Errorf("error add arg: ArgType %s Index %d out of bounds",
 				a.Type, int(a.Index))
 		}
-		eventConfig.BTFArg = allBTFArgs
 		eventConfig.ArgType[j] = int32(argType)
 		eventConfig.ArgMeta[j] = uint32(argMValue)
 		eventConfig.ArgIndex[j] = int32(a.Index)
@@ -887,6 +886,8 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 		}
 		j = j + 1
 	}
+
+	eventConfig.BTFArg = allBTFArgs
 
 	// Parse ReturnArg, we have two types of return arg parsing. We
 	// support populating a kprobe buffer from kretprobe hooks. This
