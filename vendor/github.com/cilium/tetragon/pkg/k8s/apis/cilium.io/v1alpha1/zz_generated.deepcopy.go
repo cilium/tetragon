@@ -189,6 +189,13 @@ func (in *KProbeSelector) DeepCopyInto(out *KProbeSelector) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.MatchParentBinaries != nil {
+		in, out := &in.MatchParentBinaries, &out.MatchParentBinaries
+		*out = make([]BinarySelector, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	if in.MatchNamespaces != nil {
 		in, out := &in.MatchNamespaces, &out.MatchNamespaces
 		*out = make([]NamespaceSelector, len(*in))
