@@ -826,9 +826,10 @@ register name followed by `=` and an assignment expression, which can be one of 
 following types:
 
 - constant `rax=11`
-- register `rbp=(%rsp)`
-- register plus offset `rip=8(%rsp)`
-- dereference of register plus offset `rsp=8%rsp`
+- register `rbp=%rsp`
+- register plus offset `rip=8%rsp`
+- dereference of register `rbp=(%rsp)`
+- dereference of register plus offset `rsp=8(%rsp)`
 
 {{< note >}}
 This interface is likely to be changed in the future.
