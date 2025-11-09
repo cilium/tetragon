@@ -23,6 +23,7 @@ import (
 	"github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 )
@@ -94,6 +95,16 @@ func TestLoader(t *testing.T) {
 	if !hasLoaderEvents() {
 		t.Skip("no support for loader events")
 	}
+
+	// Vmtests runs on 2 cpus system with ringbuffer size of 128K (which is
+	// 64K per cpu) which might not be enough when all the high volume
+	// loader traffic gets stuck on single cpu so we might lose the test
+	// loader event.. 10M per cpu seems to be plenty for the test to pass.
+	rbSize := option.Config.RBSize
+	option.Config.RBSize = 10 * 1024 * 1024 // 10M
+	t.Cleanup(func() {
+		option.Config.RBSize = rbSize
+	})
 
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
