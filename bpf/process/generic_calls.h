@@ -226,6 +226,14 @@ FUNC_INLINE bool is_read_arg_1(long type)
 	return false;
 }
 
+FUNC_INLINE long write_arg_status(struct msg_generic_kprobe *e, unsigned long offset,
+				  arg_status_t status)
+{
+	char *args = args_off(e, offset);
+	*(arg_status_t *)args = status;
+	return offset + sizeof(arg_status_t);
+}
+
 FUNC_INLINE long
 __read_arg_1(void *ctx, int type, long orig_off, unsigned long arg, int argm, char *args)
 {
@@ -336,7 +344,7 @@ __read_arg_1(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 		size = 0;
 		break;
 	}
-	return size;
+	return size + sizeof(arg_status_t);
 }
 
 FUNC_INLINE long
@@ -414,7 +422,7 @@ __read_arg_2(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 		size = 0;
 		break;
 	}
-	return size;
+	return size + sizeof(arg_status_t);
 }
 
 /**
@@ -433,7 +441,9 @@ __read_arg_2(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 FUNC_INLINE long
 read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int argm, int process)
 {
-	size_t min_size = type_to_min_size(type, argm);
+	// min size of type plus the size of the header which indicates arg read status
+	size_t min_size = type_to_min_size(type, argm) + sizeof(arg_status_t);
+
 	struct msg_generic_kprobe *e;
 	char *args;
 	const struct path *path_arg = 0;
@@ -447,16 +457,17 @@ read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int a
 	if (orig_off >= 16383 - min_size)
 		return 0;
 
-	orig_off &= 16383;
-	args = args_off(e, orig_off);
-
+	orig_off = write_arg_status(e, orig_off, e->arg_status[index & MAX_SELECTORS_MASK]);
 	/* Cache args offset for filter use later */
 	e->argsoff[index & MAX_SELECTORS_MASK] = orig_off;
+	if (!is_arg_ok(e, index))
+		return sizeof(arg_status_t);
+
+	args = args_off(e, orig_off);
 
 	path_arg = get_path(type, arg, &path_buf);
 	if (path_arg)
-		return copy_path(args, path_arg);
-
+		return copy_path(args, path_arg) + sizeof(arg_status_t);
 	/*
 	 * Separate argument processing based on the process const
 	 * for 4.19 kernels..
@@ -514,12 +525,20 @@ FUNC_INLINE long get_pt_regs_arg(struct pt_regs *ctx, struct event_config *confi
 #endif /* __TARGET_ARCH_x86 && (GENERIC_KPROBE || GENERIC_UPROBE) */
 
 #if defined(GENERIC_UPROBE) || defined(GENERIC_USDT)
-FUNC_INLINE unsigned long get_preload_arg(struct pt_regs *ctx, long ty)
+FUNC_INLINE unsigned long get_preload_arg(struct pt_regs *ctx, long ty, arg_status_t *status)
 {
 	unsigned long arg = 0;
+	__u64 id = get_current_pid_tgid();
+
+	struct preload_data *data = map_lookup_elem(&sleepable_preload, &id);
+
+	if (data)
+		*status = data->status;
+	else
+		return arg;
 
 	if (ty == string_type) {
-		arg = preload_string_arg(ctx);
+		arg = (unsigned long)data->data;
 
 		// Make verifier to believe it's just an ordinary number and not
 		// a pointer to the map. The rest of the argument code might do
@@ -531,7 +550,7 @@ FUNC_INLINE unsigned long get_preload_arg(struct pt_regs *ctx, long ty)
 	return arg;
 }
 #else
-FUNC_INLINE long get_preload_arg(struct pt_regs *ctx, long ty)
+FUNC_INLINE long get_preload_arg(struct pt_regs *ctx, long ty, arg_status_t *status)
 {
 	return 0;
 }
@@ -559,6 +578,7 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 		     : "i"(MAX_SELECTORS_MASK));
 	ty = config->arg[index];
 	am = config->arm[index];
+	e->arg_status[index] = 0;
 
 #ifndef __LARGE_BPF_PROG
 #if defined(GENERIC_KPROBE) || defined(GENERIC_UPROBE) || defined(GENERIC_TRACEPOINT)
@@ -568,16 +588,16 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 #endif
 
 #if defined(GENERIC_TRACEPOINT) || defined(GENERIC_USDT)
+	asm volatile("%[index] &= %1 ;\n"
+		     : [index] "+r"(index)
+		     : "i"(MAX_SELECTORS_MASK));
+
 	a = (&e->a0)[index];
 	if (am & ARGM_PRELOAD)
-		a = get_preload_arg(ctx, ty);
+		a = get_preload_arg(ctx, ty, &e->arg_status[index]);
 	else
-		extract_arg(config, index, &a, false);
+		extract_arg(config, index, &a, false, &e->arg_status[index]);
 #else
-	arg_index = config->idx[index];
-	asm volatile("%[arg_index] &= %1 ;\n"
-		     : [arg_index] "+r"(arg_index)
-		     : "i"(MAX_SELECTORS_MASK));
 
 	/* Getting argument data based on the source attribute, which is encoded
 	 * in argument meta data, so far it's either:
@@ -588,15 +608,19 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 	 *   - real argument value
 	 */
 	if (am & ARGM_PRELOAD) {
-		a = get_preload_arg(ctx, ty);
+		a = get_preload_arg(ctx, ty, &e->arg_status[index & MAX_SELECTORS_MASK]);
 	} else {
+		asm volatile("%[index] &= %1 ;\n"
+			     : [index] "+r"(index)
+			     : "i"(MAX_SELECTORS_MASK));
+		arg_index = config->idx[index];
 		if (am & ARGM_PT_REGS)
 			a = get_pt_regs_arg(ctx, config, index);
 		else if (am & ARGM_CURRENT_TASK)
 			a = get_current_task();
 		else
-			a = (&e->a0)[arg_index];
-		extract_arg(config, index, &a, false);
+			a = (&e->a0)[arg_index & MAX_SELECTORS_MASK];
+		extract_arg(config, index, &a, false, &e->arg_status[index]);
 	}
 
 	if (should_offload_path(ty))
@@ -1198,9 +1222,11 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 
 	switch (do_copy) {
 	case char_buf:
+		size = write_arg_status(e, size, 0);
 		size += __copy_char_buf(ctx, size, info.ptr, ret, false, e);
 		break;
 	case char_iovec:
+		size = write_arg_status(e, size, 0);
 		size += __copy_char_iovec(size, info.ptr, info.cnt, ret, e);
 		break;
 	default:

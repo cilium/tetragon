@@ -49,6 +49,8 @@ struct generic_path {
 	struct mount *mnt;
 };
 
+typedef __u32 arg_status_t;
+
 struct msg_generic_kprobe {
 	struct msg_common common;
 	struct msg_execve_key current;
@@ -65,6 +67,7 @@ struct msg_generic_kprobe {
 	char args[24000];
 	unsigned long a0, a1, a2, a3, a4;
 	long argsoff[MAX_POSSIBLE_ARGS];
+	arg_status_t arg_status[MAX_POSSIBLE_ARGS];
 	struct msg_selector_data sel;
 	__u32 idx; // attach cookie index
 	__u32 tailcall_index_process; // recursion index for generic_process_event
@@ -81,6 +84,11 @@ struct msg_generic_kprobe {
 	struct generic_path path;
 #endif
 };
+
+FUNC_INLINE bool is_arg_ok(struct msg_generic_kprobe *e, int idx)
+{
+	return !e->arg_status[idx & 0x7];
+}
 
 FUNC_INLINE size_t generic_kprobe_common_size(void)
 {
