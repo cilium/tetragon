@@ -17,6 +17,8 @@
 #define FILTER_SIZE 4096
 
 #define MAX_POSSIBLE_ARGS	 5
+#define NUM_RESOLVE_ERR_DEPTH	 8 // for 32 bit alignment
+_Static_assert(NUM_RESOLVE_ERR_DEPTH >= MAX_POSSIBLE_ARGS, "NUM_RESOLVE_ERR_DEPTH must be at least as large as MAX_POSSIBLE_ARGS");
 #define MAX_POSSIBLE_SELECTORS	 31
 #define SELECTORS_ACTIVE	 31
 #define MAX_CONFIGURED_SELECTORS MAX_POSSIBLE_SELECTORS + 1
@@ -61,6 +63,7 @@ struct msg_generic_kprobe {
 	__u32 tid; // Thread ID that triggered the event
 	__u64 kernel_stack_id; // Kernel stack trace ID on u32 and potential error, see flag in msg_common.flags
 	__u64 user_stack_id; // User Stack trace ID
+	__s8 resolve_err_depth[NUM_RESOLVE_ERR_DEPTH];
 	/* anything above is shared with the userspace so it should match structs MsgGenericKprobe and MsgGenericTracepoint in Go */
 	char args[24000];
 	unsigned long a0, a1, a2, a3, a4;

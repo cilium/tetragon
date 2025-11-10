@@ -396,14 +396,22 @@ extract_arg_depth(u32 i, struct extract_arg_data *data)
 {
 	if (i >= MAX_BTF_ARG_DEPTH || !data->btf_config[i].is_initialized)
 		return 1;
+
 	*data->arg = *data->arg + data->btf_config[i].offset;
-	if (data->btf_config[i].is_pointer)
-		probe_read((void *)data->arg, sizeof(char *), (void *)*data->arg);
+
+	if (data->btf_config[i].is_pointer) {
+		if (probe_read((void *)data->arg, sizeof(char *), (void *)*data->arg) < 0) {
+			*data->resolve_err_depth = i + 1;
+			return 1;
+		}
+	}
+
 	return 0;
 }
 
 #ifdef __LARGE_BPF_PROG
-FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long *a)
+FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long *a,
+			     __s8 *resolve_err_depth)
 {
 	struct config_btf_arg *btf_config;
 
@@ -418,6 +426,7 @@ FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned lo
 		struct extract_arg_data extract_data = {
 			.btf_config = btf_config,
 			.arg = a,
+			.resolve_err_depth = resolve_err_depth,
 		};
 #ifndef __V61_BPF_PROG
 #pragma unroll
@@ -431,7 +440,10 @@ FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned lo
 	}
 }
 #else
-FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long *a) {}
+FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long *a,
+			     __s8 *resolve_err_depth)
+{
+}
 #endif /* __LARGE_BPF_PROG */
 
 FUNC_INLINE int arg_idx(int index)
@@ -565,9 +577,11 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 	ty = config->arg[index];
 	am = config->arm[index];
 
+	e->resolve_err_depth[index] = 0;
+
 #if defined(GENERIC_TRACEPOINT) || defined(GENERIC_USDT)
 	a = (&e->a0)[index];
-	extract_arg(config, index, &a);
+	extract_arg(config, index, &a, &e->resolve_err_depth[index]);
 #else
 	arg_index = config->idx[index];
 	asm volatile("%[arg_index] &= %1 ;\n"
@@ -588,7 +602,7 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 	else
 		a = (&e->a0)[arg_index];
 
-	extract_arg(config, index, &a);
+	extract_arg(config, index, &a, &e->resolve_err_depth[index]);
 
 	if (should_offload_path(ty))
 		return generic_path_offload(ctx, ty, a, index, off, tailcals);
