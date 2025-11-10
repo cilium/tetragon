@@ -7,6 +7,7 @@ package tracing
 
 import (
 	"context"
+	"os"
 	"os/exec"
 	"strconv"
 	"sync"
@@ -175,4 +176,82 @@ spec:
 	checker := ec.NewUnorderedEventChecker(kpCheckerDup, kpCheckerDup2, kpCheckerDup3)
 
 	testListSyscallsDups(t, checker, configHook)
+}
+
+func TestKprobePtRegsDataMatch(t *testing.T) {
+	pathHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "kprobe"
+spec:
+  kprobes:
+  - call: sys_prctl
+    syscall: true
+    data:
+    - index: 0
+      type: "uint64"
+      source: "pt_regs"
+      resolve: "rdi"
+    - index: 1
+      type: "uint64"
+      source: "pt_regs"
+      resolve: "rsi"
+    - index: 2
+      type: "uint64"
+      source: "pt_regs"
+      resolve: "rdx"
+    - index: 3
+      type: "uint64"
+      source: "pt_regs"
+      resolve: "r10"
+    - index: 4
+      type: "uint64"
+      source: "pt_regs"
+      resolve: "r8"
+    selectors:
+    - matchData:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "0xffff0"
+`
+
+	pathConfigHook := []byte(pathHook)
+	err := os.WriteFile(testConfigFile, pathConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	kpChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Suffix("sys_prctl")).
+		WithData(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithSizeArg(0xffff0),
+				ec.NewKprobeArgumentChecker().WithSizeArg(1),
+				ec.NewKprobeArgumentChecker().WithSizeArg(2),
+				ec.NewKprobeArgumentChecker().WithSizeArg(3),
+				ec.NewKprobeArgumentChecker().WithSizeArg(4),
+			))
+
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	unix.Prctl(0xffff0, 1, 2, 3, 4)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
 }
