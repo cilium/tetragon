@@ -10,6 +10,7 @@
 #include "usdt_arg.h"
 
 struct preload_data {
+	arg_status_t status;
 	unsigned char data[4096];
 };
 
@@ -22,16 +23,9 @@ struct {
 
 #if defined(GENERIC_UPROBE) || defined(GENERIC_USDT)
 
-FUNC_INLINE unsigned long
-preload_string_arg(struct pt_regs *ctx)
-{
-	__u64 id = get_current_pid_tgid();
-
-	return (unsigned long)map_lookup_elem(&sleepable_preload, &id);
-}
-
 FUNC_INLINE int
-preload_string_type(struct pt_regs *ctx, struct event_config *config, unsigned long val)
+preload_string_type(struct pt_regs *ctx, struct event_config *config, unsigned long val,
+		    arg_status_t status)
 {
 	__u64 id = get_current_pid_tgid();
 	struct preload_data *data;
@@ -47,7 +41,9 @@ preload_string_type(struct pt_regs *ctx, struct event_config *config, unsigned l
 	if (!data)
 		return 0;
 
-	bpf_copy_from_user_str(data, sizeof(*data), (const void *)val, 0);
+	data->status = status;
+	if (!status)
+		bpf_copy_from_user_str(data->data, sizeof(data->data), (const void *)val, 0);
 	return 0;
 }
 
@@ -58,6 +54,7 @@ preload_pt_regs_arg(struct pt_regs *ctx, struct event_config *config, int index)
 	unsigned long val;
 	__u8 shift;
 	__s32 ty;
+	arg_status_t status = 0;
 
 	asm volatile("%[index] &= %1 ;\n"
 		     : [index] "+r"(index)
@@ -73,11 +70,11 @@ preload_pt_regs_arg(struct pt_regs *ctx, struct event_config *config, int index)
 	// found in registers via pt_regs source. So the following extract_arg
 	// call is not required, because config->btf_arg won't be populated
 	// for the pt_regs case.
-	extract_arg(config, index, &val, true);
+	extract_arg(config, index, &val, true, &status);
 
 	switch (ty) {
 	case string_type:
-		return preload_string_type(ctx, config, val);
+		return preload_string_type(ctx, config, val, status);
 	}
 
 	return 0;
@@ -88,6 +85,7 @@ preload_arg(struct pt_regs *ctx, struct event_config *config, int index)
 {
 	unsigned long a;
 	__s32 ty;
+	arg_status_t status = 0;
 
 #if defined(GENERIC_USDT)
 	a = read_usdt_arg(ctx, config, index, true);
@@ -116,7 +114,8 @@ preload_arg(struct pt_regs *ctx, struct event_config *config, int index)
 		break;
 	}
 #endif
-	extract_arg(config, index, &a, true);
+
+	extract_arg(config, index, &a, true, &status);
 
 	ty = config->arg[index];
 
@@ -124,7 +123,7 @@ preload_arg(struct pt_regs *ctx, struct event_config *config, int index)
 
 	switch (ty) {
 	case string_type:
-		return preload_string_type(ctx, config, a);
+		return preload_string_type(ctx, config, a, status);
 	}
 
 	return 0;

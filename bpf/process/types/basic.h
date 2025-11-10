@@ -2007,6 +2007,9 @@ filter_arg_1(struct msg_generic_kprobe *e, struct selector_arg_filter *filter, c
 		if (filter->op == op_capabilities_gained) {
 			__u64 cap_old = *(__u64 *)args;
 			__u32 index2 = *((__u32 *)&filter->value);
+
+			if (!is_arg_ok(e, index2))
+				return 0;
 			__u64 cap_new = *(__u64 *)get_arg(e, index2);
 
 			return !!((cap_old ^ cap_new) & cap_new);
@@ -2168,6 +2171,9 @@ selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
 		if (index >= 5)
 			return 0;
 
+		if (!is_arg_ok(e, index))
+			return 0;
+
 		args = get_arg(e, index);
 		if (!filter_arg(e, filter, args, arg))
 			return 0;
@@ -2220,6 +2226,10 @@ installfd(struct msg_generic_kprobe *e, int fd, int name, bool follow)
 	if (fd > 5) {
 		return 0;
 	}
+
+	if (!is_arg_ok(e, fd))
+		return 0;
+
 	fdoff = e->argsoff[fd];
 	asm volatile("%[fdoff] &= 0x7ff;\n"
 		     : [fdoff] "+r"(fdoff)
@@ -2236,6 +2246,10 @@ installfd(struct msg_generic_kprobe *e, int fd, int name, bool follow)
 			     :);
 		if (name > 5)
 			return 0;
+
+		if (!is_arg_ok(e, name))
+			return 0;
+
 		nameoff = e->argsoff[name];
 		asm volatile("%[nameoff] &= 0x7ff;\n"
 			     : [nameoff] "+r"(nameoff)
@@ -2264,6 +2278,10 @@ msg_generic_arg_value_u64(struct msg_generic_kprobe *e, unsigned int arg_id, __u
 
 	if (arg_id > MAX_POSSIBLE_ARGS)
 		return err_val;
+
+	if (!is_arg_ok(e, arg_id))
+		return err_val;
+
 	argoff = e->argsoff[arg_id];
 	argoff &= GENERIC_MSG_ARGS_MASK;
 	ret = (__u64 *)&e->args[argoff];
@@ -2283,6 +2301,8 @@ copyfd(struct msg_generic_kprobe *e, int oldfd, int newfd)
 		     :);
 	if (oldfd > 5)
 		return 0;
+	if (!is_arg_ok(e, oldfd))
+		return 0;
 	oldfdoff = e->argsoff[oldfd];
 	asm volatile("%[oldfdoff] &= 0x7ff;\n"
 		     : [oldfdoff] "+r"(oldfdoff)
@@ -2297,6 +2317,8 @@ copyfd(struct msg_generic_kprobe *e, int oldfd, int newfd)
 			     : [newfd] "+r"(newfd)
 			     :);
 		if (newfd > 5)
+			return 0;
+		if (!is_arg_ok(e, newfd))
 			return 0;
 		newfdoff = e->argsoff[newfd];
 		asm volatile("%[newfdoff] &= 0x7ff;\n"
@@ -2372,9 +2394,9 @@ rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_k
 		if (i < MAX_POSSIBLE_ARGS - 1 && arg_idx(i + 1) != -1)
 			arg_size = e->argsoff[i + 1] - e->argsoff[i];
 		else
-			arg_size = e->common.size - e->argsoff[i];
+			arg_size = e->common.size - e->argsoff[i] + sizeof(arg_status_t);
 		if (arg_size > 0) {
-			key_index = e->argsoff[i] & 16383;
+			key_index = (e->argsoff[i] - sizeof(arg_status_t)) & 16383;
 			if (arg_size > KEY_BYTES_PER_ARG)
 				arg_size = KEY_BYTES_PER_ARG;
 			asm volatile("%[arg_size] &= 0x3f;\n" // ensure this mask is greater than KEY_BYTES_PER_ARG
@@ -2435,6 +2457,9 @@ tracksock(struct msg_generic_kprobe *e, int socki, bool track)
 		     : [socki] "+r"(socki)
 		     :);
 	if (socki > 5)
+		return 0;
+
+	if (!is_arg_ok(e, socki))
 		return 0;
 
 	sockoff = e->argsoff[socki];
