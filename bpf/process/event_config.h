@@ -42,6 +42,7 @@ struct config_reg_arg {
 struct extract_arg_data {
 	struct config_btf_arg *btf_config;
 	unsigned long *arg;
+	arg_status_t *arg_status;
 };
 
 #define MAX_BTF_ARG_DEPTH	  10
