@@ -9,6 +9,7 @@
 #include "errmetrics.h"
 
 struct preload_data {
+	arg_status_t status;
 	unsigned char data[4096];
 };
 
@@ -21,16 +22,9 @@ struct {
 
 #if defined(GENERIC_UPROBE)
 
-FUNC_INLINE unsigned long
-preload_string_arg(struct pt_regs *ctx)
-{
-	__u64 id = get_current_pid_tgid();
-
-	return (unsigned long)map_lookup_elem(&sleepable_preload, &id);
-}
-
 FUNC_INLINE int
-preload_string_type(struct pt_regs *ctx, struct event_config *config, unsigned long val)
+preload_string_type(struct pt_regs *ctx, struct event_config *config, unsigned long val,
+		    arg_status_t status)
 {
 	__u64 id = get_current_pid_tgid();
 	struct preload_data *data;
@@ -46,7 +40,9 @@ preload_string_type(struct pt_regs *ctx, struct event_config *config, unsigned l
 	if (!data)
 		return 0;
 
-	bpf_copy_from_user_str(data, sizeof(*data), (const void *)val, 0);
+	data->status = status;
+	if (!status)
+		bpf_copy_from_user_str(data->data, sizeof(data->data), (const void *)val, 0);
 	return 0;
 }
 
@@ -57,6 +53,7 @@ preload_pt_regs_arg(struct pt_regs *ctx, struct event_config *config, int index)
 	unsigned long val;
 	__u8 shift;
 	__s32 ty;
+	arg_status_t status = 0;
 
 	asm volatile("%[index] &= %1 ;\n"
 		     : [index] "+r"(index)
@@ -68,11 +65,11 @@ preload_pt_regs_arg(struct pt_regs *ctx, struct event_config *config, int index)
 	val = read_reg(ctx, reg->offset, shift);
 	ty = config->arg[index];
 
-	extract_arg(config, index, &val, true);
+	extract_arg(config, index, &val, true, &status);
 
 	switch (ty) {
 	case string_type:
-		return preload_string_type(ctx, config, val);
+		return preload_string_type(ctx, config, val, status);
 	}
 
 	return 0;
@@ -84,6 +81,7 @@ preload_arg(struct pt_regs *ctx, struct event_config *config, int index)
 	int arg_index;
 	unsigned long a;
 	__s32 ty;
+	arg_status_t status = 0;
 
 	arg_index = config->idx[index];
 	asm volatile("%[arg_index] &= %1 ;\n"
@@ -108,7 +106,7 @@ preload_arg(struct pt_regs *ctx, struct event_config *config, int index)
 		break;
 	}
 
-	extract_arg(config, index, &a, true);
+	extract_arg(config, index, &a, true, &status);
 
 	ty = config->arg[arg_index];
 
@@ -116,7 +114,7 @@ preload_arg(struct pt_regs *ctx, struct event_config *config, int index)
 
 	switch (ty) {
 	case string_type:
-		return preload_string_type(ctx, config, a);
+		return preload_string_type(ctx, config, a, status);
 	}
 
 	return 0;

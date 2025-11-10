@@ -140,6 +140,9 @@ FUNC_INLINE void generic_path_init(struct msg_generic_kprobe *e)
 	e->path.state = STATE_INIT;
 }
 
+FUNC_INLINE long write_arg_status(struct msg_generic_kprobe *e, unsigned long offset,
+				  arg_status_t status);
+
 /*
  * The path offload is plugged in roughly as follows:
  *
@@ -196,10 +199,15 @@ FUNC_INLINE long generic_path_offload(void *ctx, long ty, unsigned long arg,
 	if (!buffer)
 		return 0;
 
+	orig_off = write_arg_status(e, orig_off, e->arg_status[index & MAX_SELECTORS_MASK]);
 	e->argsoff[index & MAX_SELECTORS_MASK] = orig_off;
+
+	if (!is_arg_ok(e, index))
+		return sizeof(arg_status_t);
+
 	args = args_off(e, orig_off);
 	buf = get_buf(buffer, gp->off);
-	return store_path(args, buf, gp->path, MAX_BUF_LEN - gp->off - 1, 0);
+	return store_path(args, buf, gp->path, MAX_BUF_LEN - gp->off - 1, 0) + sizeof(arg_status_t);
 }
 
 FUNC_INLINE bool should_offload_path(long type)
