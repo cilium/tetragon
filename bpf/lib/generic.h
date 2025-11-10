@@ -65,6 +65,7 @@ struct msg_generic_kprobe {
 	char args[24000];
 	unsigned long a0, a1, a2, a3, a4;
 	long argsoff[MAX_POSSIBLE_ARGS];
+	__u32 arg_error_status[MAX_POSSIBLE_ARGS];
 	struct msg_selector_data sel;
 	__u32 idx; // attach cookie index
 	__u32 tailcall_index_process; // recursion index for generic_process_event

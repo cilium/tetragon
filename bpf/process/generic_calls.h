@@ -190,6 +190,13 @@ nodata:
 #define copy_iov_iter(ctx, orig_off, arg, argm, e) 0
 #endif /* __LARGE_BPF_PROG */
 
+FUNC_INLINE long write_arg_status(struct msg_generic_kprobe *e, unsigned long offset, __u32 status)
+{
+	char *args = args_off(e, offset);
+	*(__u32 *)args = status;
+	return (offset + sizeof(__u32)) & 16383;
+}
+
 /**
  * Read a generic argument
  *
@@ -206,7 +213,8 @@ nodata:
 FUNC_INLINE long
 read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int argm)
 {
-	size_t min_size = type_to_min_size(type, argm);
+	// min size of type plus the size of the header which indicates arg read status
+	size_t min_size = type_to_min_size(type, argm) + sizeof(__u32);
 	struct msg_generic_kprobe *e;
 	char *args;
 	long size = -1;
@@ -222,14 +230,20 @@ read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int a
 		return 0;
 
 	orig_off &= 16383;
-	args = args_off(e, orig_off);
+
+	orig_off = write_arg_status(e, orig_off, e->arg_error_status[index]);
 
 	/* Cache args offset for filter use later */
 	e->argsoff[index & MAX_SELECTORS_MASK] = orig_off;
 
+	if (e->arg_error_status[index])
+		return sizeof(__u32);
+
+	args = args_off(e, orig_off);
+
 	path_arg = get_path(type, arg, &path_buf);
 	if (path_arg)
-		return copy_path(args, path_arg);
+		return copy_path(args, path_arg) + sizeof(__u32);
 
 	switch (type) {
 	case iov_iter_type:
@@ -389,7 +403,7 @@ read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int a
 		size = 0;
 		break;
 	}
-	return size;
+	return size + sizeof(__u32);
 }
 
 FUNC_INLINE int
@@ -397,28 +411,38 @@ extract_arg_depth(u32 i, struct extract_arg_data *data)
 {
 	if (i >= MAX_BTF_ARG_DEPTH || !data->btf_config[i].is_initialized)
 		return 1;
+
 	*data->arg = *data->arg + data->btf_config[i].offset;
-	if (data->btf_config[i].is_pointer)
-		probe_read((void *)data->arg, sizeof(char *), (void *)*data->arg);
+
+	if (data->btf_config[i].is_pointer) {
+		if (probe_read((void *)data->arg, sizeof(char *), (void *)*data->arg) < 0) {
+			*data->arg_error_status = i + 1;
+			return 1;
+		}
+	}
+
 	return 0;
 }
 
 #ifdef __LARGE_BPF_PROG
-FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long *a)
+FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long *a,
+			     __u32 *arg_error_status)
 {
 	struct config_btf_arg *btf_config;
-
-	if (index >= EVENT_CONFIG_MAX_ARG)
-		return;
 
 	asm volatile("%[index] &= %1 ;\n"
 		     : [index] "+r"(index)
 		     : "i"(MAX_SELECTORS_MASK));
+
+	if (index >= EVENT_CONFIG_MAX_ARG)
+		return;
+
 	btf_config = config->btf_arg[index];
 	if (btf_config->is_initialized) {
 		struct extract_arg_data extract_data = {
 			.btf_config = btf_config,
 			.arg = a,
+			.arg_error_status = arg_error_status,
 		};
 #ifndef __V61_BPF_PROG
 #pragma unroll
@@ -432,7 +456,10 @@ FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned lo
 	}
 }
 #else
-FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long *a) {}
+FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long *a,
+			     __u32 *arg_error_status)
+{
+}
 #endif /* __LARGE_BPF_PROG */
 
 FUNC_INLINE int arg_idx(int index)
@@ -517,9 +544,13 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 	ty = config->arg[index];
 	am = config->arm[index];
 
+#ifdef __LARGE_BPF_PROG
+	e->arg_error_status[index] = 0;
+#endif
+
 #if defined(GENERIC_TRACEPOINT) || defined(GENERIC_USDT)
 	a = (&e->a0)[index];
-	extract_arg(config, index, &a);
+	extract_arg(config, index, &a, &e->arg_error_status[index]);
 #else
 	arg_index = config->idx[index];
 	asm volatile("%[arg_index] &= %1 ;\n"
@@ -540,7 +571,7 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 	else
 		a = (&e->a0)[arg_index];
 
-	extract_arg(config, index, &a);
+	extract_arg(config, index, &a, &e->arg_error_status[index]);
 
 	if (should_offload_path(ty))
 		return generic_path_offload(ctx, ty, a, index, off, tailcals);
@@ -1235,9 +1266,11 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 
 	switch (do_copy) {
 	case char_buf:
+		size = write_arg_status(e, size, 0);
 		size += __copy_char_buf(ctx, size, info.ptr, ret, false, e);
 		break;
 	case char_iovec:
+		size = write_arg_status(e, size, 0);
 		size += __copy_char_iovec(size, info.ptr, info.cnt, ret, e);
 		break;
 	default:
