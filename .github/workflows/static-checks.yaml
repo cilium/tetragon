@@ -11,9 +11,8 @@ on:
       - 'docs/**'
       - '**.md'
   pull_request:
-    paths-ignore:
-      - 'docs/**'
-      - '**.md'
+    # Until https://github.com/orgs/community/discussions/44490
+    # is not resolved, run on all paths, even "**.md".
 
 permissions:
   # For golangci/golangci-lint to have read access to pull request for `only-new-issues` option.
