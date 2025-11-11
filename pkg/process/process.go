@@ -353,8 +353,9 @@ func initProcessInternalExec(
 		errormetrics.ErrorTotalInc(errormetrics.ProcessPidTidMismatch)
 	}
 
+	envs := process.Envs
 	if fieldfilters.RedactionFilters != nil {
-		args = fieldfilters.RedactionFilters.Redact(binary, args)
+		args, envs = fieldfilters.RedactionFilters.Redact(binary, args, envs)
 	}
 
 	var user *tetragon.UserRecord
@@ -382,7 +383,7 @@ func initProcessInternalExec(
 			ParentExecId:         parentExecID,
 			Refcnt:               0,
 			User:                 user,
-			EnvironmentVariables: process.Envs,
+			EnvironmentVariables: envs,
 		},
 		capabilities:  apiCaps,
 		apiCreds:      apiCreds,

@@ -89,18 +89,18 @@ func redactionFilterFromProto(protoFilter *tetragon.RedactionFilter) (*Redaction
 }
 
 // Redact redacts a string based on redaction filters.
-func (f RedactionFilterList) Redact(binary, args string) string {
+func (f RedactionFilterList) Redact(binary, args, envs string) (string, string) {
 	for _, filter := range f.list {
-		args = filter.Redact(binary, args)
+		args, envs = filter.Redact(binary, args, envs)
 	}
-	return args
+	return args, envs
 }
 
 // Redact resursively checks any string fields in the event for matches to
 // redaction regexes and replaces any capture groups with `*****`.
 //
 // NOTE: If you're using multiple redaction filters, reach for RedactionFilterList.Redact() instead.
-func (f RedactionFilter) Redact(binary, args string) string {
+func (f RedactionFilter) Redact(binary, args, envs string) (string, string) {
 	// Default match to true if we have no binary regexes
 	binaryMatch := len(f.binaryRegex) == 0
 	for _, re := range f.binaryRegex {
@@ -109,12 +109,13 @@ func (f RedactionFilter) Redact(binary, args string) string {
 		}
 	}
 	if !binaryMatch {
-		return args
+		return args, envs
 	}
 	for _, re := range f.redact {
 		args, _ = redactString(re, args)
+		envs, _ = redactString(re, envs)
 	}
-	return args
+	return args, envs
 }
 
 func redactString(re *regexp.Regexp, s string) (string, bool) {

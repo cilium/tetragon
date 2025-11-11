@@ -194,7 +194,7 @@ func BenchmarkSerialize_RedactionFilters(b *testing.B) {
 		getProcess, ok := ev.Event.(interface{ GetProcess() *tetragon.Process })
 		if ok {
 			process := getProcess.GetProcess()
-			process.Arguments = ff.Redact(process.Binary, process.Arguments)
+			process.Arguments, process.EnvironmentVariables = ff.Redact(process.Binary, process.Arguments, process.EnvironmentVariables)
 		}
 		err := encoder.Encode(ev)
 		require.NoError(b, err, "event must encode")

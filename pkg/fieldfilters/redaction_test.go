@@ -75,7 +75,7 @@ func TestRedact_Simple(t *testing.T) {
 	filters, err := ParseRedactionFilterList(filterList)
 	require.NoError(t, err)
 
-	redacted := filters.Redact("", args)
+	redacted, _ := filters.Redact("", args, "")
 	assert.Equal(t, "--verbose=true --password "+REDACTION_STR+" --username foobar", redacted)
 }
 func TestRedact_BinaryFilter(t *testing.T) {
@@ -85,10 +85,10 @@ func TestRedact_BinaryFilter(t *testing.T) {
 	filters, err := ParseRedactionFilterList(filterList)
 	require.NoError(t, err)
 
-	redacted := filters.Redact("", args)
+	redacted, _ := filters.Redact("", args, "")
 	assert.Equal(t, args, redacted, "redaction without binary match")
 
-	redacted = filters.Redact("/bin/mysql", args)
+	redacted, _ = filters.Redact("/bin/mysql", args, "")
 	assert.Equal(t, "--verbose=true --password "+REDACTION_STR+" --username foobar", redacted, "redaction with binary match")
 }
 
@@ -99,6 +99,6 @@ func TestRedact_Multi(t *testing.T) {
 	filters, err := ParseRedactionFilterList(filterList)
 	require.NoError(t, err)
 
-	redacted := filters.Redact("", args)
+	redacted, _ := filters.Redact("", args, "")
 	assert.Equal(t, "--verbose=true --password "+REDACTION_STR+" --username foobar "+REDACTION_STR+"cake "+REDACTION_STR+" innocent", redacted)
 }
