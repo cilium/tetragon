@@ -14,6 +14,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
+	"github.com/cilium/tetragon/pkg/option"
 )
 
 const (
@@ -70,6 +71,10 @@ func newPfMap(enableCgroupMap bool) (PfMap, error) {
 	spec, err := ebpf.LoadCollectionSpec(objPath)
 	if err != nil {
 		return PfMap{}, fmt.Errorf("loading spec for %s failed: %w", objPath, err)
+	}
+
+	if _, ok := spec.Maps["policy_filter_maps"]; ok {
+		spec.Maps["policy_filter_maps"].MaxEntries = uint32(option.Config.PolicyFilterMapEntries)
 	}
 
 	var ret PfMap
