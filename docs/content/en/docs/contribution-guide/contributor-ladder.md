@@ -16,7 +16,7 @@ as their involvement deepens. Becoming a Cilium organization member grants
 additional privileges across the project ecosystem, such as the ability to
 review pull requests or trigger CI runs. If you are contributing regularly to
 Tetragon, we encourage you to join the 
-[Tetragon team](https://github.com/cilium/community/blob/main/ladder/teams/tetragon.yaml)
+[Tetragon Reviewers team](https://github.com/cilium/community/blob/main/ladder/teams/tetragon-reviewers.yaml)
 to help review code and accelerate development.
 
 Your contributions play a vital role in improving the project, and the
