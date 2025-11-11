@@ -241,6 +241,7 @@ func tpSetModeCmd() *cobra.Command {
 				mode = tetragon.TracingPolicyMode_TP_MODE_ENFORCE
 			case "monitor":
 				mode = tetragon.TracingPolicyMode_TP_MODE_MONITOR
+			// TracingPolicyMode_TP_MODE_MONITOR_ONLY unmanaged here
 			default:
 				return fmt.Errorf("invalid mode %q", args[1])
 			}

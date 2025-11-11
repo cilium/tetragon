@@ -18,8 +18,9 @@ type Mode uint8
 const (
 	InvalidMode Mode = Mode(^uint8(0))
 	// NB: values below should match the ones in bpf/lib/policy_conf.h
-	EnforceMode Mode = 0
-	MonitorMode Mode = 1
+	EnforceMode     Mode = 0
+	MonitorMode     Mode = 1
+	MonitorOnlyMode Mode = 2 // monitor and cannot be updated to enforce
 
 	PolicyConfMapName = "policy_conf"
 )
