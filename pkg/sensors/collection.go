@@ -128,6 +128,13 @@ func (c *collection) mode() tetragon.TracingPolicyMode {
 		return tetragon.TracingPolicyMode_TP_MODE_UNKNOWN
 	}
 
+	if !c.allowModeUpdate {
+		if mode != policyconf.MonitorMode {
+			logger.GetLogger().Warn("monitor-only bit is set but bpf map is not in monitor mode", "policy", c.name)
+		}
+		return tetragon.TracingPolicyMode_TP_MODE_MONITOR_ONLY
+	}
+
 	switch mode {
 	case policyconf.EnforceMode:
 		return tetragon.TracingPolicyMode_TP_MODE_ENFORCE
