@@ -7,11 +7,11 @@ require (
 	github.com/alecthomas/kong v1.8.1
 	github.com/cilium/lumberjack/v2 v2.4.1
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
-	github.com/containerd/containerd v1.7.27
+	github.com/containerd/containerd v1.7.29
 	github.com/containerd/nri v0.9.0
 	github.com/containers/common v0.62.2
 	github.com/google/cel-go v0.23.2
-	github.com/opencontainers/runc v1.2.5
+	github.com/opencontainers/runc v1.2.8
 	github.com/opencontainers/runtime-spec v1.2.1
 	github.com/pelletier/go-toml v1.9.5
 	github.com/pelletier/go-toml/v2 v2.2.3
@@ -29,7 +29,7 @@ require (
 	github.com/containerd/typeurl/v2 v2.2.3 // indirect
 	github.com/containers/storage v1.57.2 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09 // indirect
-	github.com/cyphar/filepath-securejoin v0.4.1 // indirect
+	github.com/cyphar/filepath-securejoin v0.5.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
 	github.com/godbus/dbus/v5 v5.1.1-0.20230522191255-76236955d466 // indirect
@@ -46,9 +46,9 @@ require (
 	github.com/stoewer/go-strcase v1.2.0 // indirect
 	github.com/tetratelabs/wazero v1.8.2-0.20241030035603-dc08732e57d5 // indirect
 	golang.org/x/exp v0.0.0-20250103183323-7d7fa50e5329 // indirect
-	golang.org/x/net v0.38.0 // indirect
-	golang.org/x/sys v0.32.0 // indirect
-	golang.org/x/text v0.23.0 // indirect
+	golang.org/x/net v0.42.0 // indirect
+	golang.org/x/sys v0.34.0 // indirect
+	golang.org/x/text v0.27.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250106144421-5f5ef82da422 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250407143221-ac9807e6c755 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
