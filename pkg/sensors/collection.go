@@ -132,6 +132,8 @@ func (c *collection) mode() tetragon.TracingPolicyMode {
 		return tetragon.TracingPolicyMode_TP_MODE_ENFORCE
 	case policyconf.MonitorMode:
 		return tetragon.TracingPolicyMode_TP_MODE_MONITOR
+	case policyconf.MonitorOnlyMode:
+		return tetragon.TracingPolicyMode_TP_MODE_MONITOR_ONLY
 	}
 
 	logger.GetLogger().Warn("unknown policy mode", "mode", mode)
@@ -170,6 +172,7 @@ func policyconfMode(mode tetragon.TracingPolicyMode) (policyconf.Mode, error) {
 		return policyconf.EnforceMode, nil
 	case tetragon.TracingPolicyMode_TP_MODE_MONITOR:
 		return policyconf.MonitorMode, nil
+		// we don't need to manage tetragon.TracingPolicyMode_TP_MODE_MONITOR_ONLY here.
 	}
 
 	return policyconf.InvalidMode, fmt.Errorf("unexpected mode: %v", mode)
