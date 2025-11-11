@@ -157,115 +157,6 @@ spec:
 	require.NoError(t, err)
 }
 
-func TestUprobeResolve(t *testing.T) {
-	if !config.EnableLargeProgs() || !bpf.HasUprobeRefCtrOffset() {
-		t.Skip("Need 5.3 or newer kernel for uprobe ref_ctr_off support for this test.")
-	}
-
-	if !bpf.HasProbeWriteUserHelper() {
-		t.Skip("need bpf_probe_write_user() for this test")
-	}
-
-	uprobe := testutils.RepoRootPath("contrib/tester-progs/uprobe-resolve")
-	uprobeBtf := testutils.RepoRootPath("contrib/tester-progs/uprobe-resolve.btf")
-
-	tt := []struct {
-		specTy    string
-		filterVal int
-		returnVal int
-		field     string
-		kpArgs    []*ec.KprobeArgumentChecker
-	}{
-		{"uint64", 10, 120, "v64", []*ec.KprobeArgumentChecker{
-			ec.NewKprobeArgumentChecker().WithIntArg(0),
-			ec.NewKprobeArgumentChecker().WithSizeArg(10), // uint64(10)
-			ec.NewKprobeArgumentChecker().WithUintArg(0),
-			ec.NewKprobeArgumentChecker().WithUintArg(0),
-		}},
-		{"uint32", 11, 130, "v32", []*ec.KprobeArgumentChecker{
-			ec.NewKprobeArgumentChecker().WithIntArg(0),
-			ec.NewKprobeArgumentChecker().WithSizeArg(0),
-			ec.NewKprobeArgumentChecker().WithUintArg(11), // uint32(11)
-			ec.NewKprobeArgumentChecker().WithUintArg(0),
-		}},
-		{"uint32", 12, 140, "sub.v32", []*ec.KprobeArgumentChecker{
-			ec.NewKprobeArgumentChecker().WithIntArg(0),
-			ec.NewKprobeArgumentChecker().WithSizeArg(0),
-			ec.NewKprobeArgumentChecker().WithUintArg(0),
-			ec.NewKprobeArgumentChecker().WithUintArg(12), // uint32(12)
-		}},
-	}
-
-	uprobeHook := `
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "uprobe"
-spec:
-  uprobes:
-  - path: "` + uprobe + `"
-    btfPath: "` + uprobeBtf + `"
-    symbols:
-    - "func"
-    args:
-    - index: 0
-      type: "int32"
-    - index: 1
-      type: "` + tt[0].specTy + `"
-      btfType: "mystruct"
-      resolve: "` + tt[0].field + `"
-    - index: 1
-      type: "` + tt[1].specTy + `"
-      btfType: "mystruct"
-      resolve: "` + tt[1].field + `"
-    - index: 1
-      type: "` + tt[2].specTy + `"
-      btfType: "mystruct"
-      resolve: "` + tt[2].field + `"
-`
-
-	uprobeConfigHook := []byte(uprobeHook)
-	err := os.WriteFile(testConfigFile, uprobeConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
-
-	var checkers []ec.EventChecker
-	for i := range tt {
-		checkers = append(checkers, ec.NewProcessUprobeChecker("uprobe-resolve").
-			WithProcess(ec.NewProcessChecker().
-				WithBinary(sm.Full(uprobe)).
-				WithArguments(
-					sm.Full(tt[i].field+" "+strconv.Itoa(tt[i].filterVal)),
-				),
-			).WithArgs(ec.NewKprobeArgumentListMatcher().
-			WithOperator(lc.Ordered).
-			WithValues(tt[i].kpArgs...)))
-	}
-
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
-	for i := range tt {
-		cmd := exec.Command(uprobe, tt[i].field, strconv.Itoa(tt[i].filterVal))
-		cmdErr := testutils.RunCmdAndLogOutput(t, cmd)
-		require.NoError(t, cmdErr)
-	}
-
-	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(checkers...))
-	require.NoError(t, err)
-}
-
 func testUprobeOverrideRegsActionSize(t *testing.T, ass, num string) {
 	if !bpf.HasUprobeRegsChange() {
 		t.Skip("skipping regs override action test, regs override is not supported in kernel")
@@ -503,4 +394,187 @@ func TestUprobePtRegsDataMatch(t *testing.T) {
 
 func TestUprobePtRegsDataNotMatch(t *testing.T) {
 	testUprobePtRegsMatch(t, 10, true)
+}
+
+type TestInvocation struct {
+	specTy  string
+	arg1    string
+	arg2    string
+	resolve string
+	kpArgs  []*ec.KprobeArgumentChecker
+}
+
+func get_checker(ti TestInvocation, binary_name string) *ec.ProcessUprobeChecker {
+	return ec.NewProcessUprobeChecker("uprobe-resolve").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(binary_name)).
+			WithArguments(
+				sm.Full(ti.arg1 + " " + ti.arg2),
+			),
+		).WithArgs(ec.NewKprobeArgumentListMatcher().
+		WithOperator(lc.Ordered).
+		WithValues(ti.kpArgs...))
+}
+
+func RunResolveTest(t *testing.T, tt []TestInvocation, expect_failure bool, selectors string) {
+	if !config.EnableLargeProgs() || !bpf.HasUprobeRefCtrOffset() {
+		t.Skip("Need 5.3 or newer kernel for uprobe ref_ctr_off support for this test.")
+	}
+
+	if !bpf.HasProbeWriteUserHelper() {
+		t.Skip("need bpf_probe_write_user() for this test")
+	}
+
+	uprobe := testutils.RepoRootPath("contrib/tester-progs/uprobe-resolve")
+	uprobeBtf := testutils.RepoRootPath("contrib/tester-progs/uprobe-resolve.btf")
+
+	uprobeHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "` + uprobe + `"
+    btfPath: "` + uprobeBtf + `"
+    symbols:
+    - "func"
+    args:
+    - index: 0
+      type: "int32"`
+
+	for _, ti := range tt {
+		uprobeHook = uprobeHook + `
+    - index: 1
+      type: "` + ti.specTy + `"
+      btfType: "mystruct"
+      resolve: "` + ti.resolve + `"`
+	}
+
+	uprobeHook = uprobeHook + selectors
+
+	uprobeConfigHook := []byte(uprobeHook)
+	err := os.WriteFile(testConfigFile, uprobeConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	var checkers []ec.EventChecker
+	for _, ti := range tt {
+		checkers = append(checkers, get_checker(ti, uprobe))
+	}
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	for _, ti := range tt {
+		cmd := exec.Command(uprobe, ti.arg1, ti.arg2)
+		cmdErr := testutils.RunCmdAndLogOutput(t, cmd)
+		require.NoError(t, cmdErr)
+	}
+
+	err = jsonchecker.JsonTestCheckExpect(t, ec.NewUnorderedEventChecker(checkers...), expect_failure)
+	require.NoError(t, err)
+}
+
+func TestUprobeResolve(t *testing.T) {
+	tt := []TestInvocation{
+		{"uint64", "v64", "10", "v64", []*ec.KprobeArgumentChecker{
+			ec.NewKprobeArgumentChecker().WithIntArg(0).WithResolveErrDepth(0),
+			ec.NewKprobeArgumentChecker().WithSizeArg(10).WithResolveErrDepth(0), // uint64(10)
+			ec.NewKprobeArgumentChecker().WithUintArg(0).WithResolveErrDepth(0),
+			ec.NewKprobeArgumentChecker().WithUintArg(0).WithResolveErrDepth(0),
+		}},
+		{"uint32", "v32", "11", "v32", []*ec.KprobeArgumentChecker{
+			ec.NewKprobeArgumentChecker().WithIntArg(0).WithResolveErrDepth(0),
+			ec.NewKprobeArgumentChecker().WithSizeArg(0).WithResolveErrDepth(0),
+			ec.NewKprobeArgumentChecker().WithUintArg(11).WithResolveErrDepth(0), // uint32(11)
+			ec.NewKprobeArgumentChecker().WithUintArg(0).WithResolveErrDepth(0),
+		}},
+		{"uint32", "sub.v32", "12", "sub.v32", []*ec.KprobeArgumentChecker{
+			ec.NewKprobeArgumentChecker().WithIntArg(0).WithResolveErrDepth(0),
+			ec.NewKprobeArgumentChecker().WithSizeArg(0).WithResolveErrDepth(0),
+			ec.NewKprobeArgumentChecker().WithUintArg(0).WithResolveErrDepth(0),
+			ec.NewKprobeArgumentChecker().WithUintArg(12).WithResolveErrDepth(0), // uint32(12)
+		}},
+	}
+
+	RunResolveTest(t, tt, false, "")
+}
+
+func TestUprobeResolveErr(t *testing.T) {
+	/* This test confirms that we properly relay dereferencing issues when resolving an arg.
+	 * The first invocation of the uprobe-resolve tester program will not be able to resolve the argument
+	 * beause the pointer to mystruct is NULL. This resolve derefernce issue occurs at depth 1 as a result.
+	 * The second invocation of the uprobe-resolve tester program will not be able to resolve the
+	 * the argument because mystruct's subp member is a NULL pointer. As such resolution fails at depth 2.
+	 */
+	tt := []TestInvocation{
+		{"uint8", "null", "7", "v8", []*ec.KprobeArgumentChecker{
+			ec.NewKprobeArgumentChecker().WithIntArg(0).WithResolveErrDepth(0),
+			ec.NewKprobeArgumentChecker().WithUintArg(0).WithResolveErrDepth(1), // 0, because couldn't resolve at depth 1
+			ec.NewKprobeArgumentChecker().WithUintArg(0).WithResolveErrDepth(1), // 0, because couldn't resolve at depth 1
+		}},
+		{"uint8", "v8", "7", "subp.v8", []*ec.KprobeArgumentChecker{
+			ec.NewKprobeArgumentChecker().WithIntArg(0).WithResolveErrDepth(0),
+			ec.NewKprobeArgumentChecker().WithUintArg(7).WithResolveErrDepth(0),
+			ec.NewKprobeArgumentChecker().WithUintArg(0).WithResolveErrDepth(2),
+		}},
+	}
+
+	RunResolveTest(t, tt, false, "")
+}
+
+func TestUprobeResolveErrMatch(t *testing.T) {
+	/* A positive test that we con match on resolved arguments */
+	tt := []TestInvocation{
+		{"uint8", "v8", "7", "v8", []*ec.KprobeArgumentChecker{
+			ec.NewKprobeArgumentChecker().WithIntArg(0).WithResolveErrDepth(0),
+			ec.NewKprobeArgumentChecker().WithUintArg(7).WithResolveErrDepth(0), // 0, because couldn't resolve at depth 1
+		}},
+	}
+
+	selectors := `
+    selectors:
+      - matchArgs:
+        - args: [1]
+          operator: "Equal"
+          values:
+            - "7"`
+
+	RunResolveTest(t, tt, false, selectors)
+}
+
+func TestUprobeResolveErrNoMatch(t *testing.T) {
+	/* Passing "null" as the first command line parameter to the test program uprobe-resolve make the program to pass NULL as the second parameter to the probed function.
+	 * As such, resolving the argument value will fail as a result, but a dummy argument value will still be seen. The dummy argument will probably be 0, and this would cause a
+	 * match for the matchArgs selector, if the selector is not aware that resolution failed. This test confirms that the selector will understand that the argument is not resolved,
+	 * and as such prevent the event from firing.
+	 */
+	tt := []TestInvocation{
+		{"uint8", "null", "0", "v8", []*ec.KprobeArgumentChecker{
+			ec.NewKprobeArgumentChecker(),
+			ec.NewKprobeArgumentChecker(),
+		}},
+	}
+
+	selectors := `
+    selectors:
+      - matchArgs:
+        - args: [1]
+          operator: "Equal"
+          values:
+            - "0"`
+
+	RunResolveTest(t, tt, true, selectors)
 }

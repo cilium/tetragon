@@ -17,16 +17,19 @@ struct mystruct {
 	uint32_t v32;
 	uint64_t v64;
 	struct mysubstruct sub;
+	struct mysubstruct *subp;
 };
 
 void usage(char *argv0)
 {
 	fprintf(stderr, "Usage: %s <field> <val>\n", argv0);
-	fprintf(stderr, "field can be one of: v8, v16, v32, v64, sub.v32\n");
+	fprintf(stderr, "field can be one of: v8, v16, v32, v64, sub.v32, null\n");
 }
 
 // without noinline, the symbol is found, but no event fires
 __attribute__((noinline)) int func(int ret, struct mystruct *ms) {
+	if (ms == NULL)
+		return ret;
 	// without doing something with ms, all the resolved args have
 	// value 0, presumably due to optimization
 	printf("v64:%lu\n", ms->v64);
@@ -35,14 +38,17 @@ __attribute__((noinline)) int func(int ret, struct mystruct *ms) {
 
 int main(int argc, char *argv[])
 {
+	char *end;
+
 	if (argc < 3) {
 		usage(argv[0]);
 		exit(1);
 	}
 
 	char *field = argv[1];
-	long val = atol(argv[2]);
-	if (!val) {
+	long val = strtol(argv[2], &end, 0);
+
+	if (end == argv[1]) {
 		usage(argv[0]);
 		exit(1);
 	}
@@ -58,6 +64,9 @@ int main(int argc, char *argv[])
 		s.v64 = val;
 	} else if (!strcmp(field, "sub.v32")) {
 		s.sub.v32 = val;
+	} else if (!strcmp(field, "null")) {
+		return func(0, NULL);
+
 	} else {
 		usage(argv[0]);
 		exit(1);
