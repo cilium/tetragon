@@ -1,18 +1,21 @@
 # Request a review from the Tetragon team on any PR
-* @cilium/tetragon
+* @cilium/tetragon-reviewers
 
 # Request a review from William when codegen is edited
-/cmd/protoc-gen-go-tetragon/ @willfindlay
+/cmd/protoc-gen-go-tetragon/ @will-isovalent
 
 # Request a review from William when CI is edited
-/.github/workflows/ @willfindlay @cilium/tetragon
+/.github/workflows/ @will-isovalent @cilium/tetragon-reviewers
 
 # Request a review from kkourt when core sensor files are modified
-/pkg/src/sensors/ @kkourt
+/pkg/src/sensors/ @kkourt @cilium/tetragon-reviewers
 
 # Request a review from mtardy when anything from docs is modified but do not
 # block on approval from anyone in the tetragon team
-/docs/ @mtardy @cilium/tetragon
+/docs/ @mtardy @cilium/tetragon-reviewers
 # Exclude some docs generated files from mtardy ownership
-/docs/content/en/docs/reference/grpc-api.md @cilium/tetragon
-/docs/content/en/docs/reference/helm-chart.md @cilium/tetragon
+/docs/content/en/docs/reference/helm-chart.md @cilium/tetragon-reviewers
+/docs/content/en/docs/reference/grpc-api.md @cilium/tetragon-reviewers
+/docs/content/en/docs/reference/metrics.md @cilium/tetragon-reviewers
+/docs/data/tetragon_flags.yaml @cilium/tetragon-reviewers
+/docs/content/en/docs/reference/tracing-policy.md @cilium/tetragon-reviewers
