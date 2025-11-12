@@ -317,6 +317,9 @@ func SelectorOp(op string) (uint32, error) {
 const (
 	pidNamespacePid = 0x1
 	pidFollowForks  = 0x2
+
+	// see bpf/process/types/basic.h MAX_SELECTORS
+	maxSelectors = 5
 )
 
 func pidSelectorFlags(pid *v1alpha1.PIDSelector) uint32 {
@@ -1504,8 +1507,16 @@ func InitKernelReturnSelectors(selectors []v1alpha1.KProbeSelector, returnArg *v
 	return state.data.e, nil
 }
 
-func createKernelSelectorState(selectors []v1alpha1.KProbeSelector, listReader ValueReader, maps *KernelSelectorMaps, isUprobe bool,
-	parseSelector func(k *KernelSelectorState, selectors *v1alpha1.KProbeSelector, selIdx int) error) (*KernelSelectorState, error) {
+func createKernelSelectorState(
+	selectors []v1alpha1.KProbeSelector,
+	listReader ValueReader,
+	maps *KernelSelectorMaps,
+	isUprobe bool,
+	parseSelector func(k *KernelSelectorState, selectors *v1alpha1.KProbeSelector, selIdx int) error,
+) (*KernelSelectorState, error) {
+	if len(selectors) > maxSelectors {
+		return nil, fmt.Errorf("no more than %d selectors supported (%d provided)", maxSelectors, len(selectors))
+	}
 	state := NewKernelSelectorState(listReader, maps, isUprobe)
 
 	WriteSelectorUint32(&state.data, uint32(len(selectors)))
