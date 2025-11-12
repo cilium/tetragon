@@ -638,6 +638,7 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - CelExpr
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -796,6 +797,7 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - CelExpr
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1079,6 +1081,7 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - CelExpr
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1426,6 +1429,7 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - CelExpr
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1584,6 +1588,7 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - CelExpr
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1867,6 +1872,7 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - CelExpr
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2250,6 +2256,7 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - CelExpr
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2408,6 +2415,7 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - CelExpr
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2691,6 +2699,7 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - CelExpr
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -3252,6 +3261,7 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - CelExpr
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -3410,6 +3420,7 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - CelExpr
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -3693,6 +3704,7 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - CelExpr
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -4018,6 +4030,7 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - CelExpr
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -4176,6 +4189,7 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - CelExpr
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -4459,6 +4473,7 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - CelExpr
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
