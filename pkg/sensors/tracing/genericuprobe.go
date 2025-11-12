@@ -531,7 +531,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		argReturnPrinters []argPrinter
 	)
 
-	tagsField, err := getPolicyTags(spec.Tags)
+	tagsField, err := GetPolicyTags(spec.Tags)
 	if err != nil {
 		return nil, err
 	}

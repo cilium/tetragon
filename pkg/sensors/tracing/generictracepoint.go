@@ -384,7 +384,7 @@ func createGenericTracepoint(
 		logger.GetLogger().Warn(fmt.Sprintf("TracingPolicy 'message' field too long, truncated to %d characters", TpMaxMessageLen), "policy-name", polInfo.name)
 	}
 
-	tagsField, err := getPolicyTags(conf.Tags)
+	tagsField, err := GetPolicyTags(conf.Tags)
 	if err != nil {
 		return nil, err
 	}

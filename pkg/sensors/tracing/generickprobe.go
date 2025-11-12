@@ -784,7 +784,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 		logger.GetLogger().Warn(fmt.Sprintf("TracingPolicy 'message' field too long, truncated to %d characters", TpMaxMessageLen), "policy-name", in.policyName)
 	}
 
-	tagsField, err := getPolicyTags(f.Tags)
+	tagsField, err := GetPolicyTags(f.Tags)
 	if err != nil {
 		return errFn(fmt.Errorf("error: '%w'", err))
 	}
