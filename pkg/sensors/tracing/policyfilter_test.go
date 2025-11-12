@@ -39,9 +39,8 @@ import (
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 
-	"github.com/containerd/cgroups/v3"
-	cgroupsv1 "github.com/containerd/cgroups/v3/cgroup1"
-	cgroupsv2 "github.com/containerd/cgroups/v3/cgroup2"
+	"github.com/containerd/cgroups"
+	cgroupsv2 "github.com/containerd/cgroups/v2"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/require"
 )
@@ -72,7 +71,7 @@ func createCgroup(t *testing.T, dir string, pids ...uint64) policyfilter.CgroupI
 		// NB(kkourt): this is just for our vmtests VM
 		cmd := exec.Command("sudo", "mount", "-o", "remount,rw", cgroupFs)
 		cmd.Run()
-		control, err := cgroupsv1.New(cgroupsv1.Slice(slice, dir), &specs.LinuxResources{
+		control, err := cgroups.New(cgroups.V1, cgroups.Slice(slice, dir), &specs.LinuxResources{
 			Devices: []specs.LinuxDeviceCgroup{},
 			Memory:  &specs.LinuxMemory{},
 			CPU:     &specs.LinuxCPU{},
@@ -83,7 +82,7 @@ func createCgroup(t *testing.T, dir string, pids ...uint64) policyfilter.CgroupI
 			control.Delete()
 		})
 		for _, pid := range pids {
-			err = control.Add(cgroupsv1.Process{Pid: int(pid)})
+			err = control.Add(cgroups.Process{Pid: int(pid)})
 			require.NoError(t, err)
 		}
 		require.NoError(t, err)
