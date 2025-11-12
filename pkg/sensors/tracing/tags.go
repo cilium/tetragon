@@ -33,10 +33,10 @@ func escapeTag(tag string) (string, error) {
 	return escapedTag[1 : len(escapedTag)-1], nil
 }
 
-// getPolicyTags() Validates and escapes the passed tags.
+// GetPolicyTags() Validates and escapes the passed tags.
 // Returns: On success the validated tags of max length TpMaxTags
 // On failures an error is set.
-func getPolicyTags(tags []string) ([]string, error) {
+func GetPolicyTags(tags []string) ([]string, error) {
 	if len(tags) == 0 {
 		return nil, nil
 	} else if len(tags) > TpMaxTags {

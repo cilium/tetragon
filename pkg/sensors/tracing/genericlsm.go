@@ -234,7 +234,7 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 		logger.GetLogger().Warn(fmt.Sprintf("TracingPolicy 'message' field too long, truncated to %d characters", TpMaxMessageLen), "policy-name", in.policyName)
 	}
 
-	tagsField, err := getPolicyTags(f.Tags)
+	tagsField, err := GetPolicyTags(f.Tags)
 	if err != nil {
 		return errFn(fmt.Errorf("error: '%w'", err))
 	}

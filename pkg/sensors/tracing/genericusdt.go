@@ -246,7 +246,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID) ([]i
 		return nil, err
 	}
 
-	tagsField, err := getPolicyTags(spec.Tags)
+	tagsField, err := GetPolicyTags(spec.Tags)
 	if err != nil {
 		return nil, err
 	}
