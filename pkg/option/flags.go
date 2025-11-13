@@ -96,6 +96,8 @@ const (
 	KeyEnablePolicyFilter          = "enable-policy-filter"
 	KeyEnablePolicyFilterCgroupMap = "enable-policy-filter-cgroup-map"
 	KeyEnablePolicyFilterDebug     = "enable-policy-filter-debug"
+	KeyBpfMapsPrealloc             = "bpf-maps-prealloc"
+	KeyBpfMapsDisablePrealloc      = "bpf-maps-disable-prealloc"
 
 	KeyEnablePidSetFilter = "enable-pid-set-filter"
 
@@ -136,6 +138,12 @@ const (
 
 	KeyRetprobesCacheSize = "retprobes-cache-size"
 )
+
+// SupportedBpfMapsForNoPrealloc lists the BPF maps that support BPF_F_NO_PREALLOC flag.
+var SupportedBpfMapsForNoPrealloc = []string{
+	"policy_filter_maps", // Applies to inner maps (policy_%d_map)
+	"override_tasks",
+}
 
 type UsernameMetadaCode int
 
@@ -237,6 +245,24 @@ func ReadAndSetFlags() error {
 	Config.EnablePolicyFilter = viper.GetBool(KeyEnablePolicyFilter)
 	Config.EnablePolicyFilterCgroupMap = viper.GetBool(KeyEnablePolicyFilterCgroupMap)
 	Config.EnablePolicyFilterDebug = viper.GetBool(KeyEnablePolicyFilterDebug)
+
+	// Default to true (preallocation enabled, no-prealloc disabled)
+	if viper.IsSet(KeyBpfMapsPrealloc) {
+		Config.BpfMapsPrealloc = viper.GetBool(KeyBpfMapsPrealloc)
+	} else {
+		Config.BpfMapsPrealloc = true
+	}
+	var bpfMapsDisablePrealloc []string
+	if err = viper.UnmarshalKey(KeyBpfMapsDisablePrealloc, &bpfMapsDisablePrealloc, viper.DecodeHook(stringToSliceHookFunc(","))); err != nil {
+		return fmt.Errorf("failed to parse bpf-maps-disable-prealloc value: %w", err)
+	}
+	Config.BpfMapsDisablePrealloc = bpfMapsDisablePrealloc
+
+	// Warn if both flags are set and conflict
+	if !Config.BpfMapsPrealloc && len(Config.BpfMapsDisablePrealloc) > 0 {
+		logger.GetLogger().Warn("--bpf-maps-prealloc=false and --bpf-maps-disable-prealloc are both set. The disable-prealloc list will be ignored since preallocation is already disabled for all supported maps.")
+	}
+
 	Config.EnableMsgHandlingLatency = viper.GetBool(KeyEnableMsgHandlingLatency)
 
 	Config.EnablePidSetFilter = viper.GetBool(KeyEnablePidSetFilter)
@@ -441,6 +467,9 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Bool(KeyEnablePolicyFilter, false, "Enable policy filter code")
 	flags.Bool(KeyEnablePolicyFilterCgroupMap, false, "Enable cgroup mappings for policy filter maps")
 	flags.Bool(KeyEnablePolicyFilterDebug, false, "Enable policy filter debug messages")
+	supportedMapsStr := strings.Join(SupportedBpfMapsForNoPrealloc, ", ")
+	flags.Bool(KeyBpfMapsPrealloc, true, fmt.Sprintf("Enable preallocation for all supported BPF maps (set to false to disable preallocation). Supported maps: %s (note: policy_filter_maps apply to its inner maps like policy_%%d_map)", supportedMapsStr))
+	flags.String(KeyBpfMapsDisablePrealloc, "", fmt.Sprintf("Comma-separated list of BPF map names to disable preallocation. Only used when --bpf-maps-prealloc=true. Supported maps: %s (note: policy_filter_maps apply to its inner maps like policy_%%d_map)", supportedMapsStr))
 
 	// Provide option to enable the pidSet export filters.
 	flags.Bool(KeyEnablePidSetFilter, false, "Enable pidSet export filters. Not recommended for production use")

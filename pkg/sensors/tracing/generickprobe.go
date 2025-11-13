@@ -348,6 +348,8 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 	if has.override {
 		overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
 	}
+	// Set BPF_F_NO_PREALLOC flag based on configuration
+	overrideTasksMap.SetNoPrealloc(option.ShouldUseNoPrealloc("override_tasks"))
 	maps = append(maps, overrideTasksMap)
 
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load))
@@ -1096,6 +1098,8 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 	if has.override {
 		overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
 	}
+	// Set BPF_F_NO_PREALLOC flag based on configuration
+	overrideTasksMap.SetNoPrealloc(option.ShouldUseNoPrealloc("override_tasks"))
 	maps = append(maps, overrideTasksMap)
 
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load))

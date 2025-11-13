@@ -9,6 +9,13 @@ options:
     - name: bpf-lib
       default_value: /var/lib/tetragon/
       usage: Location of Tetragon libs (btf and bpf files)
+    - name: bpf-maps-disable-prealloc
+      usage: |
+        Comma-separated list of BPF map names to disable preallocation. Only used when --bpf-maps-prealloc=true. Supported maps: policy_filter_maps, override_tasks (note: policy_filter_maps apply to its inner maps like policy_%d_map)
+    - name: bpf-maps-prealloc
+      default_value: "true"
+      usage: |
+        Enable preallocation for all supported BPF maps (set to false to disable preallocation). Supported maps: policy_filter_maps, override_tasks (note: policy_filter_maps apply to its inner maps like policy_%d_map)
     - name: btf
       usage: Location of btf
     - name: cgroup-rate

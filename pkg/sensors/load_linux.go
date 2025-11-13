@@ -11,6 +11,7 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/btf"
 
+	"github.com/cilium/tetragon/pkg/bpf"
 	cachedbtf "github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -79,6 +80,14 @@ func (s *Sensor) loadMap(bpfDir string, loaderCache *loaderCache, m *program.Map
 			if innerMs := mapSpec.InnerMap; innerMs != nil {
 				mapSpec.InnerMap.MaxEntries = innerMax
 			}
+		}
+
+		// Apply BPF_F_NO_PREALLOC flag if configured
+		if m.GetNoPrealloc() {
+			mapSpec.Flags |= bpf.BPF_F_NO_PREALLOC
+		} else {
+			// Explicitly clear BPF_F_NO_PREALLOC if not configured
+			mapSpec.Flags &^= bpf.BPF_F_NO_PREALLOC
 		}
 	} else {
 		// If map is NOT the owner we follow the maximum entries
