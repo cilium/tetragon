@@ -529,9 +529,9 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 	}
 	maps = append(maps, matchBinariesPaths)
 
-	overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
+	overrideTasksMap := program.MapBuilderProgram("override_tasks", load).SetNoPreAlloc()
 	maps = append(maps, overrideTasksMap)
-	overrideTasksMapOutput := program.MapBuilderProgram("override_tasks", loadOutput)
+	overrideTasksMapOutput := program.MapBuilderProgram("override_tasks", loadOutput).SetNoPreAlloc()
 	maps = append(maps, overrideTasksMapOutput)
 
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load))

@@ -69,8 +69,10 @@ import (
 
 	"github.com/cilium/ebpf"
 
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
+	"github.com/cilium/tetragon/pkg/option"
 )
 
 type MaxEntries struct {
@@ -103,6 +105,7 @@ type Map struct {
 	InnerEntries MaxEntries
 	Type         MapType
 	Owner        bool
+	NoPreAlloc   bool // Whether to apply BPF_F_NO_PREALLOC flag
 }
 
 func (m *Map) String() string {
@@ -164,7 +167,7 @@ func mapBuilder(name string, ty MapType, owner bool, lds ...*Program) *Map {
 	if len(lds) != 0 {
 		prog = lds[0]
 	}
-	m := &Map{name, "", prog, Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}, ty, owner}
+	m := &Map{name, "", prog, Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}, ty, owner, false}
 	for _, ld := range lds {
 		ld.PinMap[name] = m
 	}
@@ -196,7 +199,7 @@ func MapBuilderOpts(name string, opts MapOpts, lds ...*Program) *Map {
 }
 
 func mapUser(name string, ty MapType, prog *Program) *Map {
-	return &Map{name, "", prog, Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}, ty, false}
+	return &Map{name, "", prog, Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}, ty, false, false}
 }
 
 func MapUser(name string, prog *Program) *Map {
@@ -256,6 +259,11 @@ func (m *Map) New(spec *ebpf.MapSpec) error {
 	var err error
 	m.MapHandle, err = ebpf.NewMap(spec)
 	return err
+}
+
+func (m *Map) SetNoPreAlloc() *Map {
+	m.NoPreAlloc = true
+	return m
 }
 
 func (m *Map) Pin(path string) error {
@@ -385,4 +393,13 @@ func (m *Map) GetMaxEntries() (uint32, bool) {
 
 func (m *Map) GetMaxInnerEntries() (uint32, bool) {
 	return m.InnerEntries.Val, m.InnerEntries.Set
+}
+
+// GetPreallocFlags returns a copy of the given flags with the BPF_F_NO_PREALLOC
+// bit set or cleared based on the map's NoPrealloc setting.
+func (m *Map) GetPreallocFlags(flags uint32) uint32 {
+	if m.NoPreAlloc && option.ShouldUseNoPrealloc(m.Name) {
+		return flags | bpf.BPF_F_NO_PREALLOC
+	}
+	return flags &^ bpf.BPF_F_NO_PREALLOC
 }

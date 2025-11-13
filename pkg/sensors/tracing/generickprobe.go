@@ -345,7 +345,7 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 	filterMap.SetMaxEntries(len(multiIDs))
 	configMap.SetMaxEntries(len(multiIDs))
 
-	overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
+	overrideTasksMap := program.MapBuilderProgram("override_tasks", load).SetNoPreAlloc()
 	if has.override {
 		overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
 	}
@@ -1104,7 +1104,7 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 		maps = append(maps, program.MapUser(cgtracker.MapName, load))
 	}
 
-	overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
+	overrideTasksMap := program.MapBuilderProgram("override_tasks", load).SetNoPreAlloc()
 	if has.override {
 		overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
 	}

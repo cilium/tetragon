@@ -14,6 +14,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
+	"github.com/cilium/tetragon/pkg/option"
 )
 
 const (
@@ -29,6 +30,15 @@ type PfMap struct {
 	cgroupMap *ebpf.Map // policy_filter_cgroup_maps
 }
 
+func prealloc(name string, flags uint32) uint32 {
+	if option.ShouldUseNoPrealloc(name) {
+		flags |= bpf.BPF_F_NO_PREALLOC
+	} else {
+		flags &^= bpf.BPF_F_NO_PREALLOC
+	}
+	return flags
+}
+
 func openMap(spec *ebpf.CollectionSpec, mapName string, innerMaxEntries uint32) (*ebpf.Map, error) {
 	policyMapSpec, ok := spec.Maps[mapName]
 	if !ok {
@@ -39,6 +49,10 @@ func openMap(spec *ebpf.CollectionSpec, mapName string, innerMaxEntries uint32) 
 	// inserting a different size of inner-map, but for older kernels, we
 	// fix the spec here.
 	policyMapSpec.InnerMap.MaxEntries = innerMaxEntries
+
+	if mapName == MapName {
+		policyMapSpec.InnerMap.Flags = prealloc(mapName, policyMapSpec.InnerMap.Flags)
+	}
 
 	ret, err := ebpf.NewMap(policyMapSpec)
 	if err != nil {
@@ -184,6 +198,8 @@ func (m PfMap) newPolicyMap(polID PolicyID, cgIDs []CgroupID) (polMap, error) {
 		ValueSize:  uint32(1),
 		MaxEntries: uint32(polMapSize),
 	}
+
+	innerSpec.Flags = prealloc(MapName, innerSpec.Flags)
 
 	inner, err := ebpf.NewMap(innerSpec)
 	if err != nil {

@@ -67,6 +67,14 @@ data:
 {{- if .Values.tetragon.enablePolicyFilterDebug }}
   enable-policy-filter-debug: "true"
 {{- end }}
+{{- if .Values.tetragon.bpfMapsPrealloc }}
+  bpf-maps-prealloc: "true"
+{{- else }}
+  bpf-maps-prealloc: "false"
+{{- end }}
+{{- if .Values.tetragon.bpfMapsDisablePrealloc }}
+  bpf-maps-disable-prealloc: {{ .Values.tetragon.bpfMapsDisablePrealloc | quote }}
+{{- end }}
 {{- if .Values.tetragon.enableMsgHandlingLatency }}
   enable-msg-handling-latency: "true"
 {{- end }}

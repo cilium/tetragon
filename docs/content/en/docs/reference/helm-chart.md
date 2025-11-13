@@ -75,6 +75,8 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | serviceAccount.name | string | `""` |  |
 | serviceLabelsOverride | object | `{}` |  |
 | tetragon.argsOverride | list | `[]` | Override the arguments. For advanced users only. |
+| tetragon.bpfMapsDisablePrealloc | string | `""` | Comma-separated list of BPF map names to disable preallocation. Only used when bpfMapsPrealloc=true. |
+| tetragon.bpfMapsPrealloc | bool | `true` | Enable preallocation for BPF maps (set to false to disable preallocation). |
 | tetragon.btf | string | `""` |  |
 | tetragon.cgidmap | object | `{"enabled":false}` | Enabling cgidmap instructs the Tetragon agent to use cgroup ids (instead of cgroup names) for pod association. This feature depends on cri being enabled. |
 | tetragon.clusterName | string | `""` | Name of the cluster where Tetragon is installed. Tetragon uses this value to set the cluster_name field in GetEventsResponse messages. |

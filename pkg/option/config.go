@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"time"
 
 	"github.com/spf13/viper"
@@ -99,6 +100,8 @@ type config struct {
 	EnablePolicyFilter          bool
 	EnablePolicyFilterCgroupMap bool
 	EnablePolicyFilterDebug     bool
+	BpfMapsPrealloc             bool // If false, disables preallocation
+	BpfMapsDisablePrealloc      []string
 
 	EnablePidSetFilter bool
 
@@ -282,4 +285,14 @@ func K8SControlPlaneEnabled() bool {
 func InClusterControlPlaneEnabled() bool {
 	// If K8s is enabled and no kubeconfig path is provided, we assume that the control plane is in-cluster.
 	return Config.EnableK8s && len(Config.K8sKubeConfigPath) == 0
+}
+
+// ShouldUseNoPrealloc checks if a map should have BPF_F_NO_PREALLOC flag enabled.
+func ShouldUseNoPrealloc(mapName string) bool {
+	// If preallocation is disabled, apply BPF_F_NO_PREALLOC flag
+	if !Config.BpfMapsPrealloc {
+		return true
+	}
+	// Otherwise, check the disable-prealloc list (only used when preallocation is enabled)
+	return slices.Contains(Config.BpfMapsDisablePrealloc, mapName)
 }
