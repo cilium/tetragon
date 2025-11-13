@@ -281,7 +281,7 @@ func typesCompatible(specTy string, kernelTy string) bool {
 		}
 	case "uint16":
 		switch kernelTy {
-		case "u16", "short unsigned int":
+		case "u16", "short unsigned int", "umode_t":
 			return true
 		}
 	case "uint8":
