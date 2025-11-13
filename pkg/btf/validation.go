@@ -318,7 +318,7 @@ func typesCompatible(specTy string, kernelTy string) bool {
 		}
 	case "int":
 		switch kernelTy {
-		case "unsigned int", "int", "unsigned long", "long", "uid_t", "gid_t", "u32", "s32":
+		case "unsigned int", "int", "unsigned long", "long", "uid_t", "gid_t", "u32", "s32", "umode_t":
 			return true
 		}
 	case "filename":
