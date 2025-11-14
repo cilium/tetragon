@@ -52,7 +52,7 @@ github.com/cilium/ebpf/perf
 github.com/cilium/ebpf/pin
 github.com/cilium/ebpf/ringbuf
 github.com/cilium/ebpf/rlimit
-# github.com/cilium/little-vm-helper v0.0.27
+# github.com/cilium/little-vm-helper v0.0.28
 ## explicit; go 1.24.0
 github.com/cilium/little-vm-helper/pkg/arch
 github.com/cilium/little-vm-helper/pkg/images
@@ -110,7 +110,7 @@ github.com/deckarep/golang-set/v2
 # github.com/distribution/reference v0.6.0
 ## explicit; go 1.20
 github.com/distribution/reference
-# github.com/docker/docker v28.5.1+incompatible
+# github.com/docker/docker v28.5.2+incompatible
 ## explicit
 github.com/docker/docker/api
 github.com/docker/docker/api/types
@@ -510,7 +510,7 @@ go.yaml.in/yaml/v3
 golang.org/x/exp/constraints
 golang.org/x/exp/maps
 golang.org/x/exp/slices
-# golang.org/x/mod v0.29.0
+# golang.org/x/mod v0.30.0
 ## explicit; go 1.24.0
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/module
@@ -538,7 +538,7 @@ golang.org/x/oauth2/internal
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
 golang.org/x/sync/singleflight
-# golang.org/x/sys v0.37.0
+# golang.org/x/sys v0.38.0
 ## explicit; go 1.24.0
 golang.org/x/sys/plan9
 golang.org/x/sys/unix
