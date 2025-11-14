@@ -3829,6 +3829,109 @@ spec:
 	require.Error(t, err)
 }
 
+func getMatchParentBinariesCrd(opStr string, vals []string) string {
+	var configHook strings.Builder
+	configHook.WriteString(`apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "testing-file-match-binaries"
+spec:
+  kprobes:
+  - call: "fd_install"
+    syscall: false
+    return: false
+    args:
+    - index: 0
+      type: int
+    - index: 1
+      type: "file"
+    selectors:
+    - matchParentBinaries:
+      - operator: "` + opStr + `"
+        values: `)
+	for i := range vals {
+		configHook.WriteString(fmt.Sprintf("\n        - \"%s\"", vals[i]))
+	}
+	return configHook.String()
+}
+
+func createParentsChecker(parent, binary, filename string) *ec.ProcessKprobeChecker {
+	kpChecker := ec.NewProcessKprobeChecker("").
+		WithParent(ec.NewProcessChecker().WithBinary(sm.Full(parent))).
+		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(binary))).
+		WithFunctionName(sm.Full("fd_install")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Subset).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Full(filename))),
+			))
+	return kpChecker
+}
+
+func matchParentBinariesTest(t *testing.T, operator string, values []string, kpChecker *ec.ProcessKprobeChecker) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	createCrdFile(t, getMatchParentBinariesCrd(operator, values))
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	if err := exec.Command("/usr/bin/bash", "-c", "echo '/usr/bin/tail /etc/passwd' | /usr/bin/bash").Run(); err != nil {
+		t.Fatalf("failed to run tail /etc/passwd with /bin/bash: %s", err)
+	}
+
+	if err := exec.Command("/usr/bin/sh", "-c", "echo '/usr/bin/tail /etc/passwd' | /usr/bin/sh").Run(); err != nil {
+		t.Fatalf("failed to run tail /etc/passwd with /bin/sh: %s", err)
+	}
+
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
+const skipMatchParentBinaries = "kernels without large progs do not support matchParentBinaries Prefix/NotPrefix/Postfix/NotPostfix"
+
+func TestKprobeMatchParentBinaries(t *testing.T) {
+	t.Run("In", func(t *testing.T) {
+		matchParentBinariesTest(t, "In", []string{"/usr/bin/bash"}, createParentsChecker("/usr/bin/bash", "/usr/bin/tail", "/etc/passwd"))
+	})
+	t.Run("NotIn", func(t *testing.T) {
+		matchParentBinariesTest(t, "NotIn", []string{"/usr/bin/bash"}, createParentsChecker("/usr/bin/sh", "/usr/bin/tail", "/etc/passwd"))
+	})
+	t.Run("Prefix", func(t *testing.T) {
+		if !config.EnableLargeProgs() {
+			t.Skip(skipMatchParentBinaries)
+		}
+		matchParentBinariesTest(t, "Prefix", []string{"/usr/bin/ba"}, createParentsChecker("/usr/bin/bash", "/usr/bin/tail", "/etc/passwd"))
+	})
+	t.Run("NotPrefix", func(t *testing.T) {
+		if !config.EnableLargeProgs() {
+			t.Skip(skipMatchParentBinaries)
+		}
+		matchParentBinariesTest(t, "NotPrefix", []string{"/usr/bin/bas"}, createParentsChecker("/usr/bin/sh", "/usr/bin/tail", "/etc/passwd"))
+	})
+	t.Run("Postfix", func(t *testing.T) {
+		if !config.EnableLargeProgs() {
+			t.Skip(skipMatchParentBinaries)
+		}
+		matchParentBinariesTest(t, "Postfix", []string{"in/bash"}, createParentsChecker("/usr/bin/bash", "/usr/bin/tail", "/etc/passwd"))
+	})
+	t.Run("NotPostfix", func(t *testing.T) {
+		if !config.EnableLargeProgs() {
+			t.Skip(skipMatchParentBinaries)
+		}
+		matchParentBinariesTest(t, "NotPostfix", []string{"n/bash"}, createParentsChecker("/usr/bin/sh", "/usr/bin/tail", "/etc/passwd"))
+	})
+}
+
 func getMatchBinariesCrd(opStr string, vals []string) string {
 	var configHook strings.Builder
 	configHook.WriteString(`apiVersion: cilium.io/v1alpha1
