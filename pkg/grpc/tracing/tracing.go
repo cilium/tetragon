@@ -113,6 +113,8 @@ func getKprobeArgInt(arg tracingapi.MsgGenericKprobeArgInt, a *tetragon.KprobeAr
 
 func getKprobeArgument(arg tracingapi.MsgGenericKprobeArg) *tetragon.KprobeArgument {
 	a := &tetragon.KprobeArgument{}
+	a.ResolveErrDepth = int32(arg.ResolveErrorDepth())
+
 	switch e := arg.(type) {
 	case tracingapi.MsgGenericKprobeArgInt:
 		getKprobeArgInt(e, a)

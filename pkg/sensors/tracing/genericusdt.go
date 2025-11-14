@@ -516,8 +516,8 @@ func handleGenericUsdt(r *bytes.Reader) ([]observer.Event, error) {
 	unix.Tags = uprobeUsdt.tags
 
 	// Get argument objects for specific printers/types
-	for _, a := range uprobeUsdt.argPrinters {
-		arg := getArg(r, a)
+	for i, a := range uprobeUsdt.argPrinters {
+		arg := getArg(r, a, m.ResolveErrDepth[i])
 		// nop or unknown type (already logged)
 		if arg == nil {
 			continue
