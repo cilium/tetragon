@@ -47,20 +47,30 @@ type MsgLoader struct {
 }
 
 type MsgGenericKprobe struct {
-	Common        processapi.MsgCommon
-	ProcessKey    processapi.MsgExecveKey
-	Namespaces    processapi.MsgNamespaces
-	Capabilities  processapi.MsgCapabilities
-	FuncId        uint64
-	RetProbeId    uint64
-	ActionId      uint64
-	ActionArgId   uint32
-	Tid           uint32 // The recorded TID that triggered the event
-	KernelStackID int64
-	UserStackID   int64
+	Common          processapi.MsgCommon
+	ProcessKey      processapi.MsgExecveKey
+	Namespaces      processapi.MsgNamespaces
+	Capabilities    processapi.MsgCapabilities
+	FuncId          uint64
+	RetProbeId      uint64
+	ActionId        uint64
+	ActionArgId     uint32
+	Tid             uint32 // The recorded TID that triggered the event
+	KernelStackID   int64
+	UserStackID     int64
+	ResolveErrDepth [EventConfigMaxArgs]int32
+}
+
+type MsgGenericKprobeArgCommon struct {
+	ResolveErrDepth int32
+}
+
+func (m MsgGenericKprobeArgCommon) ResolveErrorDepth() int32 {
+	return m.ResolveErrDepth
 }
 
 type MsgGenericKprobeArgPath struct {
+	MsgGenericKprobeArgCommon
 	Index      uint64
 	Value      string
 	Flags      uint32
@@ -77,6 +87,7 @@ func (m MsgGenericKprobeArgPath) IsReturnArg() bool {
 }
 
 type MsgGenericKprobeArgFile struct {
+	MsgGenericKprobeArgCommon
 	Index      uint64
 	Value      string
 	Flags      uint32
@@ -93,6 +104,7 @@ func (m MsgGenericKprobeArgFile) IsReturnArg() bool {
 }
 
 type MsgGenericKprobeArgString struct {
+	MsgGenericKprobeArgCommon
 	Index uint64
 	Value string
 	Label string
@@ -107,6 +119,7 @@ func (m MsgGenericKprobeArgString) IsReturnArg() bool {
 }
 
 type MsgGenericKprobeArgBytes struct {
+	MsgGenericKprobeArgCommon
 	Index    uint64
 	OrigSize uint64 // if len(Value) < OrigSize, then the result was truncated
 	Value    []byte
@@ -122,6 +135,7 @@ func (m MsgGenericKprobeArgBytes) IsReturnArg() bool {
 }
 
 type MsgGenericKprobeArgInt struct {
+	MsgGenericKprobeArgCommon
 	Index         uint64
 	Value         int32
 	UserSpaceType int32
@@ -137,6 +151,7 @@ func (m MsgGenericKprobeArgInt) IsReturnArg() bool {
 }
 
 type MsgGenericKprobeArgUInt struct {
+	MsgGenericKprobeArgCommon
 	Index uint64
 	Value uint32
 	Label string
@@ -151,6 +166,7 @@ func (m MsgGenericKprobeArgUInt) IsReturnArg() bool {
 }
 
 type MsgGenericKprobeArgSize struct {
+	MsgGenericKprobeArgCommon
 	Index uint64
 	Value uint64
 	Label string
@@ -165,6 +181,7 @@ func (m MsgGenericKprobeArgSize) IsReturnArg() bool {
 }
 
 type MsgGenericKprobeArgLong struct {
+	MsgGenericKprobeArgCommon
 	Index uint64
 	Value int64
 	Label string
@@ -198,6 +215,7 @@ type MsgGenericKprobeSock struct {
 }
 
 type MsgGenericKprobeArgSock struct {
+	MsgGenericKprobeArgCommon
 	Index    uint64
 	Family   uint16
 	Type     uint16
@@ -232,6 +250,7 @@ type MsgGenericKprobeSkb struct {
 }
 
 type MsgGenericKprobeArgSkb struct {
+	MsgGenericKprobeArgCommon
 	Index       uint64
 	Family      uint16
 	Hash        uint32
@@ -264,6 +283,7 @@ type MsgGenericKprobeSockaddr struct {
 }
 
 type MsgGenericKprobeArgSockaddr struct {
+	MsgGenericKprobeArgCommon
 	Index     uint64
 	SinFamily uint16
 	SinPort   uint32
@@ -290,6 +310,7 @@ type MsgGenericKprobeNetDev struct {
 }
 
 type MsgGenericKprobeArgNetDev struct {
+	MsgGenericKprobeArgCommon
 	Index uint64
 	Name  string
 	Label string
@@ -304,6 +325,7 @@ func (m MsgGenericKprobeArgNetDev) IsReturnArg() bool {
 }
 
 type MsgGenericKprobeArgCred struct {
+	MsgGenericKprobeArgCommon
 	Index      uint64
 	Uid        uint32
 	Gid        uint32
@@ -334,6 +356,7 @@ type MsgGenericKprobeCapability struct {
 }
 
 type MsgGenericKprobeArgCapability struct {
+	MsgGenericKprobeArgCommon
 	Index uint64
 	Value int32
 	Pad   int32
@@ -353,6 +376,7 @@ type MsgGenericKernelCapType struct {
 }
 
 type MsgGenericKprobeArgKernelCapType struct {
+	MsgGenericKprobeArgCommon
 	Index uint64
 	Caps  uint64
 	Label string
@@ -371,6 +395,7 @@ type MsgGenericCapInheritable struct {
 }
 
 type MsgGenericKprobeArgCapInheritable struct {
+	MsgGenericKprobeArgCommon
 	Index uint64
 	Caps  uint64
 	Label string
@@ -389,6 +414,7 @@ type MsgGenericCapPermitted struct {
 }
 
 type MsgGenericKprobeArgCapPermitted struct {
+	MsgGenericKprobeArgCommon
 	Index uint64
 	Caps  uint64
 	Label string
@@ -407,6 +433,7 @@ type MsgGenericCapEffective struct {
 }
 
 type MsgGenericKprobeArgCapEffective struct {
+	MsgGenericKprobeArgCommon
 	Index uint64
 	Caps  uint64
 	Label string
@@ -425,6 +452,7 @@ type MsgGenericKprobeLinuxBinprm struct {
 }
 
 type MsgGenericKprobeArgLinuxBinprm struct {
+	MsgGenericKprobeArgCommon
 	Index      uint64
 	Value      string
 	Flags      uint32
@@ -448,6 +476,7 @@ type MsgGenericUserNamespace struct {
 }
 
 type MsgGenericKprobeArgUserNamespace struct {
+	MsgGenericKprobeArgCommon
 	Index  uint64
 	Level  int32
 	Uid    uint32
@@ -472,6 +501,7 @@ type MsgGenericLoadModule struct {
 }
 
 type MsgGenericKprobeArgLoadModule struct {
+	MsgGenericKprobeArgCommon
 	Index  uint64
 	SigOk  uint32
 	Taints uint64
@@ -488,6 +518,7 @@ func (m MsgGenericKprobeArgLoadModule) IsReturnArg() bool {
 }
 
 type MsgGenericKprobeArgKernelModule struct {
+	MsgGenericKprobeArgCommon
 	Index  uint64
 	Name   string
 	Taints uint64
@@ -509,6 +540,7 @@ type MsgGenericKprobeBpfAttr struct {
 }
 
 type MsgGenericKprobeArgBpfAttr struct {
+	MsgGenericKprobeArgCommon
 	Index    uint64
 	ProgType uint32
 	InsnCnt  uint32
@@ -531,6 +563,7 @@ type MsgGenericKprobeBpfProg struct {
 }
 
 type MsgGenericKprobeArgBpfProg struct {
+	MsgGenericKprobeArgCommon
 	Index    uint64
 	ProgType uint32
 	InsnCnt  uint32
@@ -555,6 +588,7 @@ type MsgGenericKprobePerfEvent struct {
 }
 
 type MsgGenericKprobeArgPerfEvent struct {
+	MsgGenericKprobeArgCommon
 	Index       uint64
 	KprobeFunc  string
 	Type        uint32
@@ -580,6 +614,7 @@ type MsgGenericKprobeBpfMap struct {
 }
 
 type MsgGenericKprobeArgBpfMap struct {
+	MsgGenericKprobeArgCommon
 	MapType    uint32
 	Index      uint64
 	KeySize    uint32
@@ -600,6 +635,7 @@ func (m MsgGenericKprobeArgBpfMap) IsReturnArg() bool {
 type MsgGenericKprobeArg interface {
 	GetIndex() uint64
 	IsReturnArg() bool
+	ResolveErrorDepth() int32
 }
 
 type MsgGenericKprobeUnix struct {

@@ -85,7 +85,7 @@ func getTracepointMetaValue(arg *v1alpha1.KProbeArg) int {
 	return 0
 }
 
-func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
+func getArg(r *bytes.Reader, a argPrinter, resolve_err_depth int32) api.MsgGenericKprobeArg {
 	var err error
 
 	switch a.ty {
@@ -105,6 +105,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		arg.Index = uint64(a.index)
 		arg.Value = output
 		arg.Label = a.label
+		arg.ResolveErrDepth = resolve_err_depth
 		return arg
 	case gt.GenericFileType, gt.GenericFdType, gt.GenericKiocb:
 		var arg api.MsgGenericKprobeArgFile
@@ -148,6 +149,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 
 		arg.Flags = flags
 		arg.Label = a.label
+		arg.ResolveErrDepth = resolve_err_depth
 		return arg
 	case gt.GenericPathType, gt.GenericDentryType:
 		var arg api.MsgGenericKprobeArgPath
@@ -178,6 +180,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		arg.Flags = flags
 		arg.Permission = mode
 		arg.Label = a.label
+		arg.ResolveErrDepth = resolve_err_depth
 		return arg
 	case gt.GenericFilenameType, gt.GenericStringType, gt.GenericNetDev:
 		var arg api.MsgGenericKprobeArgString
@@ -189,6 +192,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		}
 
 		arg.Label = a.label
+		arg.ResolveErrDepth = resolve_err_depth
 		return arg
 	case gt.GenericCredType:
 		var cred processapi.MsgGenericCred
@@ -217,11 +221,13 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		arg.UserNs.Gid = cred.UserNs.Gid
 		arg.UserNs.NsInum = cred.UserNs.NsInum
 		arg.Label = a.label
+		arg.ResolveErrDepth = resolve_err_depth
 		return arg
 	case gt.GenericCharBuffer, gt.GenericCharIovec, gt.GenericIovIter:
 		arg, err := ReadArgBytes(r, a.index, a.maxData)
 		if err == nil {
 			arg.Label = a.label
+			arg.ResolveErrDepth = resolve_err_depth
 			return *arg
 		}
 		logger.GetLogger().Warn("failed to read bytes argument", logfields.Error, err)
@@ -248,6 +254,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		arg.SecPathLen = skb.SecPathLen
 		arg.SecPathOLen = skb.SecPathOLen
 		arg.Label = a.label
+		arg.ResolveErrDepth = resolve_err_depth
 		return arg
 	case gt.GenericSockType, gt.GenericSocketType:
 		var sock api.MsgGenericKprobeSock
@@ -271,6 +278,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		arg.Dport = uint32(sock.Tuple.Dport)
 		arg.Sockaddr = sock.Sockaddr
 		arg.Label = a.label
+		arg.ResolveErrDepth = resolve_err_depth
 		return arg
 	case gt.GenericSockaddrType:
 		var address api.MsgGenericKprobeSockaddr
@@ -285,6 +293,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		arg.SinFamily = address.SinFamily
 		arg.SinAddr = network.GetIP(address.SinAddr, address.SinFamily).String()
 		arg.SinPort = uint32(address.SinPort)
+		arg.ResolveErrDepth = resolve_err_depth
 		return arg
 	case gt.GenericS64Type:
 		var output int64
@@ -298,6 +307,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		arg.Index = uint64(a.index)
 		arg.Value = output
 		arg.Label = a.label
+		arg.ResolveErrDepth = resolve_err_depth
 		return arg
 	case gt.GenericSizeType, gt.GenericU64Type:
 		var output uint64
@@ -311,6 +321,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		arg.Index = uint64(a.index)
 		arg.Value = output
 		arg.Label = a.label
+		arg.ResolveErrDepth = resolve_err_depth
 		return arg
 	case gt.GenericNopType:
 		// do nothing
@@ -327,6 +338,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		length := bytes.IndexByte(output.ProgName[:], 0) // trim tailing null bytes
 		arg.ProgName = string(output.ProgName[:length])
 		arg.Label = a.label
+		arg.ResolveErrDepth = resolve_err_depth
 		return arg
 	case gt.GenericBpfProgType:
 		var output api.MsgGenericKprobeBpfProg
@@ -341,6 +353,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		length := bytes.IndexByte(output.ProgName[:], 0) // trim tailing null bytes
 		arg.ProgName = string(output.ProgName[:length])
 		arg.Label = a.label
+		arg.ResolveErrDepth = resolve_err_depth
 		return arg
 	case gt.GenericPerfEvent:
 		var output api.MsgGenericKprobePerfEvent
@@ -356,6 +369,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		arg.Config = output.Config
 		arg.ProbeOffset = output.ProbeOffset
 		arg.Label = a.label
+		arg.ResolveErrDepth = resolve_err_depth
 		return arg
 	case gt.GenericBpfMap:
 		var output api.MsgGenericKprobeBpfMap
@@ -373,6 +387,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		length := bytes.IndexByte(output.MapName[:], 0) // trim tailing null bytes
 		arg.MapName = string(output.MapName[:length])
 		arg.Label = a.label
+		arg.ResolveErrDepth = resolve_err_depth
 		return arg
 	case gt.GenericU32Type:
 		var output uint32
@@ -386,6 +401,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		arg.Index = uint64(a.index)
 		arg.Value = output
 		arg.Label = a.label
+		arg.ResolveErrDepth = resolve_err_depth
 		return arg
 	case gt.GenericUserNamespace:
 		var output api.MsgGenericUserNamespace
@@ -400,6 +416,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		arg.Gid = output.Gid
 		arg.NsInum = output.NsInum
 		arg.Label = a.label
+		arg.ResolveErrDepth = resolve_err_depth
 		return arg
 	case gt.GenericCapability:
 		var output api.MsgGenericKprobeCapability
@@ -411,6 +428,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		}
 		arg.Value = output.Value
 		arg.Label = a.label
+		arg.ResolveErrDepth = resolve_err_depth
 		return arg
 	case gt.GenericLoadModule:
 		var output api.MsgGenericLoadModule
@@ -429,6 +447,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 			arg.Taints = output.Taints
 		}
 		arg.Label = a.label
+		arg.ResolveErrDepth = resolve_err_depth
 		return arg
 	case gt.GenericKernelModule:
 		var output api.MsgGenericLoadModule
@@ -446,6 +465,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 			arg.Taints = output.Taints
 		}
 		arg.Label = a.label
+		arg.ResolveErrDepth = resolve_err_depth
 		return arg
 	case gt.GenericU16Type:
 		var output uint32
@@ -459,6 +479,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		arg.Index = uint64(a.index)
 		arg.Value = uint32(uint16(output))
 		arg.Label = a.label
+		arg.ResolveErrDepth = resolve_err_depth
 		return arg
 	case gt.GenericU8Type:
 		var output uint32
@@ -472,6 +493,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		arg.Index = uint64(a.index)
 		arg.Value = uint32(uint8(output))
 		arg.Label = a.label
+		arg.ResolveErrDepth = resolve_err_depth
 		return arg
 	case gt.GenericS16Type:
 		var output uint32
@@ -485,6 +507,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		arg.Index = uint64(a.index)
 		arg.Value = int32(int16(output))
 		arg.Label = a.label
+		arg.ResolveErrDepth = resolve_err_depth
 		return arg
 	case gt.GenericS8Type:
 		var output uint32
@@ -498,6 +521,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		arg.Index = uint64(a.index)
 		arg.Value = int32(int8(output))
 		arg.Label = a.label
+		arg.ResolveErrDepth = resolve_err_depth
 		return arg
 	case gt.GenericKernelCap:
 		var output uint64
@@ -512,6 +536,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 
 		arg.Index = uint64(a.index)
 		arg.Label = a.label
+		arg.ResolveErrDepth = resolve_err_depth
 		return arg
 	case gt.GenericCapInheritable:
 		var output uint64
@@ -526,6 +551,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 
 		arg.Index = uint64(a.index)
 		arg.Label = a.label
+		arg.ResolveErrDepth = resolve_err_depth
 		return arg
 	case gt.GenericCapPermitted:
 		var output uint64
@@ -540,6 +566,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 
 		arg.Index = uint64(a.index)
 		arg.Label = a.label
+		arg.ResolveErrDepth = resolve_err_depth
 		return arg
 	case gt.GenericCapEffective:
 		var output uint64
@@ -554,6 +581,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 
 		arg.Index = uint64(a.index)
 		arg.Label = a.label
+		arg.ResolveErrDepth = resolve_err_depth
 		return arg
 	case gt.GenericLinuxBinprmType:
 		var arg api.MsgGenericKprobeArgLinuxBinprm
@@ -582,6 +610,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		arg.Flags = flags
 		arg.Permission = mode
 		arg.Label = a.label
+		arg.ResolveErrDepth = resolve_err_depth
 		return arg
 	default:
 		logger.GetLogger().Warn("Unknown event type", "event-type", a.ty, logfields.Error, err)
