@@ -1374,7 +1374,11 @@ FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
 	selidx = e->tailcall_index_selector;
 	pass = filter_args(e, selidx & MAX_SELECTORS_MASK, is_entry);
 	if (!pass) {
+#ifdef __LARGE_BPF_PROG
 		selidx = next_selidx(e, selidx);
+#else
+		selidx += 1;
+#endif
 		if (selidx <= MAX_SELECTORS) {
 			e->tailcall_index_selector = selidx;
 			tail_call(ctx, tailcalls, TAIL_CALL_ARGS);
