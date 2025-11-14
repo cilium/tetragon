@@ -476,6 +476,7 @@ message KprobeArgument {
     KprobeBpfProg bpf_prog_arg = 31;
   }
   string label = 18;
+  int32 resolve_err_depth = 32;
 }
 
 enum KprobeAction {

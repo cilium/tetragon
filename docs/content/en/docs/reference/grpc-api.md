@@ -355,6 +355,7 @@ found.
 | sockaddr_arg | [KprobeSockaddr](#tetragon-KprobeSockaddr) |  |  |
 | bpf_prog_arg | [KprobeBpfProg](#tetragon-KprobeBpfProg) |  |  |
 | label | [string](#string) |  |  |
+| resolve_err_depth | [int32](#int32) |  |  |
 
 <a name="tetragon-KprobeBpfAttr"></a>
 
