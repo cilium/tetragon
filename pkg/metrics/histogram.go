@@ -9,30 +9,6 @@ import (
 
 type initHistogramFunc func(*prometheus.HistogramVec)
 
-// NewHistogramVecWithPod is a wrapper around prometheus.NewHistogramVec that also
-// registers the metric to be cleaned up when a pod is deleted.
-//
-// See NewCounterVecWithPod for usage notes.
-func NewHistogramVecWithPod(opts prometheus.HistogramOpts, labels []string) *prometheus.HistogramVec {
-	metric := prometheus.NewHistogramVec(opts, labels)
-	metricsWithPodMutex.Lock()
-	metricsWithPod = append(metricsWithPod, metric.MetricVec)
-	metricsWithPodMutex.Unlock()
-	return metric
-}
-
-// NewHistogramVecWithPodV2 is a wrapper around prometheus.V2.NewHistogramVec that also
-// registers the metric to be cleaned up when a pod is deleted.
-//
-// See NewCounterVecWithPod for usage notes.
-func NewHistogramVecWithPodV2(opts prometheus.HistogramVecOpts) *prometheus.HistogramVec {
-	metric := prometheus.V2.NewHistogramVec(opts)
-	metricsWithPodMutex.Lock()
-	metricsWithPod = append(metricsWithPod, metric.MetricVec)
-	metricsWithPodMutex.Unlock()
-	return metric
-}
-
 // GranularHistogram wraps prometheus.HistogramVec and implements CollectorWithInit.
 type GranularHistogram[L FilteredLabels] struct {
 	metric      *prometheus.HistogramVec
