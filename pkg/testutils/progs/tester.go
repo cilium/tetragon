@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"unsafe"
 
@@ -30,6 +31,7 @@ type Tester struct {
 	progStdout   io.ReadCloser
 	progStdin    io.WriteCloser
 	stdoutReader *bufio.Reader
+	stderrWg     *sync.WaitGroup
 }
 
 // This is what tester (the binary) will execute.
@@ -143,18 +145,20 @@ func StartTester(t *testing.T, ctx context.Context) *Tester {
 	}
 
 	// print stderr in the logs
-	go func() {
+	wg := sync.WaitGroup{}
+	wg.Go(func() {
 		scanner := bufio.NewScanner(progStderr)
 		for scanner.Scan() {
 			t.Logf("tester stderr> %s", scanner.Text())
 		}
-	}()
+	})
 
 	return &Tester{
 		Cmd:          cmd,
 		progStdout:   progStdout,
 		progStdin:    progStdin,
 		stdoutReader: bufio.NewReader(progStdout),
+		stderrWg:     &wg,
 	}
 }
 
@@ -220,6 +224,7 @@ func (pt *Tester) Stop() error {
 	if err != nil {
 		return err
 	}
+	pt.stderrWg.Wait()
 	return pt.Cmd.Wait()
 }
 
