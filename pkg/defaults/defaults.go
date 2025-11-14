@@ -59,6 +59,9 @@ const (
 
 	// defaults for the {k,u}retprobes lru cache
 	DefaultRetprobesCacheSize = 4096
+
+	// defaults for the policy filter map
+	DefaultPolicyFilterMapEntries = 128
 )
 
 var (

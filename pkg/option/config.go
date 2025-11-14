@@ -130,6 +130,8 @@ type config struct {
 	ExecveMapSize    string
 
 	RetprobesCacheSize int
+
+	PolicyFilterMapEntries int
 }
 
 var (
@@ -155,6 +157,9 @@ var (
 
 		// Set default value for {k,u}retprobes lru events cache
 		RetprobesCacheSize: defaults.DefaultRetprobesCacheSize,
+
+		// set default value for the policy filter map
+		PolicyFilterMapEntries: defaults.DefaultPolicyFilterMapEntries,
 	}
 )
 
