@@ -235,7 +235,7 @@ tarball-clean:
 ##@ Test
 
 # renovate: datasource=docker
-GOLANGCILINT_IMAGE=docker.io/golangci/golangci-lint:v2.6.1@sha256:5f3233d598921b58acef310807332ae5e5ea98130c9ea4c97a9190837de75bca
+GOLANGCILINT_IMAGE=docker.io/golangci/golangci-lint:v2.6.2@sha256:d9469fcf8fdb1cd3790c5d0de2bb95640c4cd00c6670f541c3cb49edb744de49
 GOLANGCILINT_WANT_VERSION := $(subst @sha256,,$(patsubst v%,%,$(word 2,$(subst :, ,$(lastword $(subst /, ,$(GOLANGCILINT_IMAGE)))))))
 GOLANGCILINT_VERSION = $(shell golangci-lint version 2>/dev/null)
 .PHONY: check
