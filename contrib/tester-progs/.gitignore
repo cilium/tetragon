@@ -40,3 +40,5 @@ uprobe-resolve
 uprobe-resolve.btf
 libtester.so
 usdt-args
+uprobe-null
+uprobe-null.btf
