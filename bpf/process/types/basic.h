@@ -190,6 +190,7 @@ struct config_reg_arg {
 struct extract_arg_data {
 	struct config_btf_arg *btf_config;
 	unsigned long *arg;
+	__s8 *resolve_err_depth;
 };
 
 #define MAX_BTF_ARG_DEPTH	  10
@@ -2031,6 +2032,9 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 
 		index = filter->index;
 		if (index > 5)
+			return 0;
+
+		if (e->resolve_err_depth[index])
 			return 0;
 
 		args = get_arg(e, index);

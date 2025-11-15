@@ -1388,8 +1388,8 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 	}
 
 	// Get argument objects for specific printers/types
-	for _, a := range printers {
-		arg := getArg(r, a)
+	for i, a := range printers {
+		arg := getArg(r, a, m.ResolveErrDepth[i])
 		// nop or unknown type (already logged)
 		if arg == nil {
 			continue
