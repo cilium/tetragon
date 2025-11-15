@@ -813,26 +813,57 @@ func TestExecParse(t *testing.T) {
 		// - cwd (string)
 
 		exec.Flags = 0
-		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + len(filename) + len(cwd) + 1)
+		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + len(filename) + len(cwd))
+		exec.SizePath = uint16(len(filename))
+		exec.SizeArgs = 0
+		exec.SizeCwd = uint16(len(cwd))
 
 		var buf bytes.Buffer
 		binary.Write(&buf, binary.LittleEndian, exec)
 		binary.Write(&buf, binary.LittleEndian, filename)
-		binary.Write(&buf, binary.LittleEndian, []byte{0})
 		binary.Write(&buf, binary.LittleEndian, cwd)
 
 		reader := bytes.NewReader(buf.Bytes())
 
-		process, empty, err := execParse(reader)
+		process, err := execParse(reader)
 		require.NoError(t, err)
 
 		assert.Equal(t, string(filename), process.Filename)
 		assert.Equal(t, string(cwd), process.Args)
-		assert.False(t, empty)
 
 		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
 		assert.Empty(t, decArgs)
 		assert.Equal(t, string(cwd), decCwd)
+	})
+
+	t.Run("Empty args and cwd", func(t *testing.T) {
+		observer.DataPurge()
+
+		// - filename (string)
+		// - no args
+		// - no cwd
+
+		exec.Flags = 0
+		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + len(filename))
+		exec.SizePath = uint16(len(filename))
+		exec.SizeArgs = 0
+		exec.SizeCwd = 0
+
+		var buf bytes.Buffer
+		binary.Write(&buf, binary.LittleEndian, exec)
+		binary.Write(&buf, binary.LittleEndian, filename)
+
+		reader := bytes.NewReader(buf.Bytes())
+
+		process, err := execParse(reader)
+		require.NoError(t, err)
+
+		assert.Equal(t, string(filename), process.Filename)
+		assert.Empty(t, process.Args)
+
+		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
+		assert.Empty(t, decArgs)
+		assert.Empty(t, decCwd)
 	})
 
 	t.Run("Filename as data event", func(t *testing.T) {
@@ -849,6 +880,9 @@ func TestExecParse(t *testing.T) {
 
 		exec.Flags = api.EventDataFilename
 		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + binary.Size(desc) + len(cwd))
+		exec.SizePath = uint16(binary.Size(desc))
+		exec.SizeArgs = 0
+		exec.SizeCwd = uint16(len(cwd))
 
 		var buf bytes.Buffer
 		binary.Write(&buf, binary.LittleEndian, exec)
@@ -857,13 +891,12 @@ func TestExecParse(t *testing.T) {
 
 		reader := bytes.NewReader(buf.Bytes())
 
-		process, empty, err := execParse(reader)
+		process, err := execParse(reader)
 		require.NoError(t, err)
 
 		// execParse check
 		assert.Equal(t, string(filename), process.Filename)
 		assert.Equal(t, string(cwd), process.Args)
-		assert.False(t, empty)
 
 		// ArgsDecoder check
 		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
@@ -887,24 +920,25 @@ func TestExecParse(t *testing.T) {
 		require.NoError(t, err)
 
 		exec.Flags = api.EventDataArgs
-		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + len(filename) + binary.Size(desc) + len(cwd) + 1)
+		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + len(filename) + binary.Size(desc) + len(cwd))
+		exec.SizePath = uint16(len(filename))
+		exec.SizeArgs = uint16(binary.Size(desc))
+		exec.SizeCwd = uint16(len(cwd))
 
 		var buf bytes.Buffer
 		binary.Write(&buf, binary.LittleEndian, exec)
 		binary.Write(&buf, binary.LittleEndian, filename)
-		binary.Write(&buf, binary.LittleEndian, []byte{0})
 		binary.Write(&buf, binary.LittleEndian, desc)
 		binary.Write(&buf, binary.LittleEndian, cwd)
 
 		reader := bytes.NewReader(buf.Bytes())
 
-		process, empty, err := execParse(reader)
+		process, err := execParse(reader)
 		require.NoError(t, err)
 
 		// execParse check
 		assert.Equal(t, string(filename), process.Filename)
 		assert.Equal(t, string(args)+string(cwd), process.Args)
-		assert.False(t, empty)
 
 		// ArgsDecoder check
 		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
@@ -934,6 +968,9 @@ func TestExecParse(t *testing.T) {
 
 		exec.Flags = api.EventDataFilename | api.EventDataArgs
 		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + binary.Size(desc1) + binary.Size(desc2) + len(cwd))
+		exec.SizePath = uint16(binary.Size(desc1))
+		exec.SizeArgs = uint16(binary.Size(desc2))
+		exec.SizeCwd = uint16(len(cwd))
 
 		var buf bytes.Buffer
 		binary.Write(&buf, binary.LittleEndian, exec)
@@ -943,13 +980,12 @@ func TestExecParse(t *testing.T) {
 
 		reader := bytes.NewReader(buf.Bytes())
 
-		process, empty, err := execParse(reader)
+		process, err := execParse(reader)
 		require.NoError(t, err)
 
 		// execParse check
 		assert.Equal(t, string(filename), process.Filename)
 		assert.Equal(t, string(args)+string(cwd), process.Args)
-		assert.False(t, empty)
 
 		// ArgsDecoder check
 		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
@@ -975,24 +1011,25 @@ func TestExecParse(t *testing.T) {
 		require.NoError(t, err)
 
 		exec.Flags = api.EventDataArgs
-		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + len(filename) + binary.Size(desc) + len(cwd) + 1)
+		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + len(filename) + binary.Size(desc) + len(cwd))
+		exec.SizePath = uint16(len(filename))
+		exec.SizeArgs = uint16(binary.Size(desc))
+		exec.SizeCwd = uint16(len(cwd))
 
 		var buf bytes.Buffer
 		binary.Write(&buf, binary.LittleEndian, exec)
 		binary.Write(&buf, binary.LittleEndian, filename)
-		binary.Write(&buf, binary.LittleEndian, []byte{0})
 		binary.Write(&buf, binary.LittleEndian, desc)
 		binary.Write(&buf, binary.LittleEndian, cwd)
 
 		reader := bytes.NewReader(buf.Bytes())
 
-		process, empty, err := execParse(reader)
+		process, err := execParse(reader)
 		require.NoError(t, err)
 
 		// execParse check
 		assert.Equal(t, strutils.UTF8FromBPFBytes(filename), process.Filename)
 		assert.Equal(t, strutils.UTF8FromBPFBytes(args)+strutils.UTF8FromBPFBytes(cwd), process.Args)
-		assert.False(t, empty)
 
 		// ArgsDecoder check
 		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
@@ -1000,6 +1037,76 @@ func TestExecParse(t *testing.T) {
 		assert.Equal(t, strutils.UTF8FromBPFBytes(cwd), decCwd)
 	})
 
+	t.Run("Filename with api.EventErrorFilename", func(t *testing.T) {
+		observer.DataPurge()
+
+		// - filename (api.EventErrorFilename)
+		// - no args
+		// - cwd (string)
+
+		exec.Flags = api.EventErrorFilename
+		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + len(cwd))
+		exec.SizePath = 0
+		exec.SizeArgs = 0
+		exec.SizeCwd = uint16(len(cwd))
+
+		var buf bytes.Buffer
+		binary.Write(&buf, binary.LittleEndian, exec)
+		binary.Write(&buf, binary.LittleEndian, cwd)
+
+		reader := bytes.NewReader(buf.Bytes())
+
+		process, err := execParse(reader)
+		require.NoError(t, err)
+
+		assert.Equal(t, "<enomem>", process.Filename)
+		assert.Equal(t, string(cwd), process.Args)
+
+		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
+		assert.Empty(t, decArgs)
+		assert.Equal(t, string(cwd), decCwd)
+	})
+
+	t.Run("Filename, args, cwd and envs", func(t *testing.T) {
+		observer.DataPurge()
+
+		// - filename (string)
+		// - args (string)
+		// - cwd (string)
+		// - envs (string)
+
+		var args []byte
+		args = append(args, 'a', 'r', 'g', '1', 0, 'a', 'r', 'g', '2')
+
+		var envs []byte
+		envs = append(envs, 'A', '=', '1', 0, 'B', '=', '2')
+
+		exec.Flags = api.EventErrorFilename
+		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + len(filename) + len(args) + len(cwd) + len(envs))
+		exec.SizePath = uint16(len(filename))
+		exec.SizeArgs = uint16(len(args))
+		exec.SizeCwd = uint16(len(cwd))
+		exec.SizeEnvs = uint16(len(envs))
+
+		var buf bytes.Buffer
+		binary.Write(&buf, binary.LittleEndian, exec)
+		binary.Write(&buf, binary.LittleEndian, filename)
+		binary.Write(&buf, binary.LittleEndian, args)
+		binary.Write(&buf, binary.LittleEndian, cwd)
+		binary.Write(&buf, binary.LittleEndian, envs)
+
+		reader := bytes.NewReader(buf.Bytes())
+
+		process, err := execParse(reader)
+		require.NoError(t, err)
+
+		assert.Equal(t, string(filename), process.Filename)
+		assert.Equal(t, "A=1 B=2", process.Envs)
+
+		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
+		assert.Equal(t, "arg1 arg2", decArgs)
+		assert.Equal(t, string(cwd), decCwd)
+	})
 	observer.DataPurge()
 }
 

@@ -75,9 +75,10 @@ func TestRedact_Simple(t *testing.T) {
 	filters, err := ParseRedactionFilterList(filterList)
 	require.NoError(t, err)
 
-	redacted := filters.Redact("", args)
+	redacted, _ := filters.Redact("", args, "")
 	assert.Equal(t, "--verbose=true --password "+REDACTION_STR+" --username foobar", redacted)
 }
+
 func TestRedact_BinaryFilter(t *testing.T) {
 	args := "--verbose=true --password ybx511!ackt544 --username foobar"
 
@@ -85,10 +86,10 @@ func TestRedact_BinaryFilter(t *testing.T) {
 	filters, err := ParseRedactionFilterList(filterList)
 	require.NoError(t, err)
 
-	redacted := filters.Redact("", args)
+	redacted, _ := filters.Redact("", args, "")
 	assert.Equal(t, args, redacted, "redaction without binary match")
 
-	redacted = filters.Redact("/bin/mysql", args)
+	redacted, _ = filters.Redact("/bin/mysql", args, "")
 	assert.Equal(t, "--verbose=true --password "+REDACTION_STR+" --username foobar", redacted, "redaction with binary match")
 }
 
@@ -99,6 +100,30 @@ func TestRedact_Multi(t *testing.T) {
 	filters, err := ParseRedactionFilterList(filterList)
 	require.NoError(t, err)
 
-	redacted := filters.Redact("", args)
+	redacted, _ := filters.Redact("", args, "")
 	assert.Equal(t, "--verbose=true --password "+REDACTION_STR+" --username foobar "+REDACTION_STR+"cake "+REDACTION_STR+" innocent", redacted)
+}
+
+func TestRedact_Envs(t *testing.T) {
+	envs := "VAR1=XXX SSH_PASSWORD=verysecretpassword VAR2=YYY"
+
+	filterList := `{"redact": ["(?:SSH_PASSWORD)[\\s=]+(\\S+)"]}`
+	filters, err := ParseRedactionFilterList(filterList)
+	require.NoError(t, err)
+
+	_, redacted := filters.Redact("", "", envs)
+	assert.Equal(t, "VAR1=XXX SSH_PASSWORD="+REDACTION_STR+" VAR2=YYY", redacted)
+}
+
+func TestRedact_ArgsWithEnvs(t *testing.T) {
+	args := "--verbose=true --password ybx511!ackt544 --username foobar cheesecake TOPSECRET innocent"
+	envs := "VAR1=XXX SSH_PASSWORD=verysecretpassword VAR2=YYY"
+
+	filterList := `{"redact": ["(?:--password|-p)[\\s=]+(\\S+)", "\\W(TOPSECRET)\\W", "(cheese)cake", "(?:SSH_PASSWORD)[\\s=]+(\\S+)"]}`
+	filters, err := ParseRedactionFilterList(filterList)
+	require.NoError(t, err)
+
+	args, envs = filters.Redact("", args, envs)
+	assert.Equal(t, "--verbose=true --password "+REDACTION_STR+" --username foobar "+REDACTION_STR+"cake "+REDACTION_STR+" innocent", args)
+	assert.Equal(t, "VAR1=XXX SSH_PASSWORD="+REDACTION_STR+" VAR2=YYY", envs)
 }

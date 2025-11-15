@@ -353,8 +353,9 @@ func initProcessInternalExec(
 		errormetrics.ErrorTotalInc(errormetrics.ProcessPidTidMismatch)
 	}
 
+	envs := process.Envs
 	if fieldfilters.RedactionFilters != nil {
-		args = fieldfilters.RedactionFilters.Redact(binary, args)
+		args, envs = fieldfilters.RedactionFilters.Redact(binary, args, envs)
 	}
 
 	var user *tetragon.UserRecord
@@ -367,21 +368,22 @@ func initProcessInternalExec(
 
 	pi := &ProcessInternal{
 		process: &tetragon.Process{
-			Pid:          &wrapperspb.UInt32Value{Value: process.PID},
-			Tid:          &wrapperspb.UInt32Value{Value: process.TID},
-			Uid:          &wrapperspb.UInt32Value{Value: process.UID},
-			Cwd:          cwd,
-			Binary:       binary,
-			Arguments:    args,
-			Flags:        strings.Join(exec.DecodeCommonFlags(process.Flags), " "),
-			StartTime:    ktime.ToProtoOpt(process.Ktime, (process.Flags&api.EventProcFS) == 0),
-			Auid:         &wrapperspb.UInt32Value{Value: process.AUID},
-			Pod:          protoPod,
-			ExecId:       execID,
-			Docker:       event.Kube.Docker,
-			ParentExecId: parentExecID,
-			Refcnt:       0,
-			User:         user,
+			Pid:                  &wrapperspb.UInt32Value{Value: process.PID},
+			Tid:                  &wrapperspb.UInt32Value{Value: process.TID},
+			Uid:                  &wrapperspb.UInt32Value{Value: process.UID},
+			Cwd:                  cwd,
+			Binary:               binary,
+			Arguments:            args,
+			Flags:                strings.Join(exec.DecodeCommonFlags(process.Flags), " "),
+			StartTime:            ktime.ToProtoOpt(process.Ktime, (process.Flags&api.EventProcFS) == 0),
+			Auid:                 &wrapperspb.UInt32Value{Value: process.AUID},
+			Pod:                  protoPod,
+			ExecId:               execID,
+			Docker:               event.Kube.Docker,
+			ParentExecId:         parentExecID,
+			Refcnt:               0,
+			User:                 user,
+			EnvironmentVariables: envs,
 		},
 		capabilities:  apiCaps,
 		apiCreds:      apiCreds,
