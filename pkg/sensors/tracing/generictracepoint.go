@@ -848,6 +848,11 @@ func handleMsgGenericTracepoint(
 	unix.Message = tp.message
 	unix.Tags = tp.tags
 
+	appendArg := func(val tracingapi.MsgGenericTracepointArg, idx int) {
+		unix.Args = append(unix.Args, val)
+		unix.ArgsIndex = append(unix.ArgsIndex, idx)
+	}
+
 	for idx, out := range tp.args {
 
 		if out.nopTy {
@@ -861,7 +866,7 @@ func handleMsgGenericTracepoint(
 			if err != nil {
 				logger.GetLogger().Warn(fmt.Sprintf("Size type error sizeof %d", m.Common.Size), logfields.Error, err)
 			}
-			unix.Args = append(unix.Args, val)
+			appendArg(val, idx)
 
 		case gt.GenericS64Type:
 			var val int64
@@ -869,7 +874,7 @@ func handleMsgGenericTracepoint(
 			if err != nil {
 				logger.GetLogger().Warn(fmt.Sprintf("Size type error sizeof %d", m.Common.Size), logfields.Error, err)
 			}
-			unix.Args = append(unix.Args, val)
+			appendArg(val, idx)
 
 		case gt.GenericU32Type:
 			var val uint32
@@ -877,7 +882,7 @@ func handleMsgGenericTracepoint(
 			if err != nil {
 				logger.GetLogger().Warn(fmt.Sprintf("Size type error sizeof %d", m.Common.Size), logfields.Error, err)
 			}
-			unix.Args = append(unix.Args, val)
+			appendArg(val, idx)
 
 		case gt.GenericIntType, gt.GenericS32Type:
 			var val int32
@@ -885,7 +890,7 @@ func handleMsgGenericTracepoint(
 			if err != nil {
 				logger.GetLogger().Warn(fmt.Sprintf("Size type error sizeof %d", m.Common.Size), logfields.Error, err)
 			}
-			unix.Args = append(unix.Args, val)
+			appendArg(val, idx)
 
 		case gt.GenericU16Type:
 			var val uint16
@@ -899,7 +904,7 @@ func handleMsgGenericTracepoint(
 				logger.GetLogger().Warn("Size type error for alignment: 2", logfields.Error, err)
 			}
 
-			unix.Args = append(unix.Args, val)
+			appendArg(val, idx)
 
 		case gt.GenericS16Type:
 			var val int16
@@ -913,7 +918,7 @@ func handleMsgGenericTracepoint(
 				logger.GetLogger().Warn("Size type error for alignment: 2", logfields.Error, err)
 			}
 
-			unix.Args = append(unix.Args, val)
+			appendArg(val, idx)
 
 		case gt.GenericU8Type:
 			var val uint8
@@ -927,7 +932,7 @@ func handleMsgGenericTracepoint(
 				logger.GetLogger().Warn("Size type error for alignment: 3", logfields.Error, err)
 			}
 
-			unix.Args = append(unix.Args, val)
+			appendArg(val, idx)
 
 		case gt.GenericS8Type:
 			var val int8
@@ -941,7 +946,7 @@ func handleMsgGenericTracepoint(
 				logger.GetLogger().Warn("Size type error for alignment: 3", logfields.Error, err)
 			}
 
-			unix.Args = append(unix.Args, val)
+			appendArg(val, idx)
 
 		case gt.GenericSizeType:
 			var val uint64
@@ -950,11 +955,11 @@ func handleMsgGenericTracepoint(
 			if err != nil {
 				logger.GetLogger().Warn(fmt.Sprintf("Size type error sizeof %d", m.Common.Size), logfields.Error, err)
 			}
-			unix.Args = append(unix.Args, val)
+			appendArg(val, idx)
 
 		case gt.GenericCharBuffer, gt.GenericCharIovec:
 			if arg, err := ReadArgBytes(r, idx, false); err == nil {
-				unix.Args = append(unix.Args, arg.Value)
+				appendArg(arg.Value, idx)
 			} else {
 				logger.GetLogger().Warn("failed to read bytes argument", logfields.Error, err)
 			}
@@ -980,7 +985,7 @@ func handleMsgGenericTracepoint(
 							logger.GetLogger().Warn(fmt.Sprintf("failed to read element %d from array", i), logfields.Error, err)
 							return nil, err
 						}
-						unix.Args = append(unix.Args, val)
+						appendArg(val, idx)
 					}
 				default:
 					logger.GetLogger().Warn(fmt.Sprintf("failed to read array argument: unexpected base type: %d", intTy.Base))
@@ -990,7 +995,7 @@ func handleMsgGenericTracepoint(
 			if arg, err := parseString(r); err != nil {
 				logger.GetLogger().Warn("error parsing arg type string", logfields.Error, err)
 			} else {
-				unix.Args = append(unix.Args, arg)
+				appendArg(arg, idx)
 			}
 		case gt.GenericSkbType:
 			var skb tracingapi.MsgGenericKprobeSkb
@@ -1013,7 +1018,7 @@ func handleMsgGenericTracepoint(
 			arg.Proto = uint32(skb.Tuple.Protocol)
 			arg.SecPathLen = skb.SecPathLen
 			arg.SecPathOLen = skb.SecPathOLen
-			unix.Args = append(unix.Args, arg)
+			appendArg(arg, idx)
 		case gt.GenericSockType, gt.GenericSocketType:
 			var sock tracingapi.MsgGenericKprobeSock
 			var arg tracingapi.MsgGenericKprobeArgSock
@@ -1034,7 +1039,7 @@ func handleMsgGenericTracepoint(
 			arg.Sport = uint32(sock.Tuple.Sport)
 			arg.Dport = uint32(sock.Tuple.Dport)
 			arg.Sockaddr = sock.Sockaddr
-			unix.Args = append(unix.Args, arg)
+			appendArg(arg, idx)
 
 		case gt.GenericSockaddrType:
 			var address tracingapi.MsgGenericKprobeSockaddr
@@ -1048,7 +1053,7 @@ func handleMsgGenericTracepoint(
 			arg.SinFamily = address.SinFamily
 			arg.SinAddr = network.GetIP(address.SinAddr, address.SinFamily).String()
 			arg.SinPort = uint32(address.SinPort)
-			unix.Args = append(unix.Args, arg)
+			appendArg(arg, idx)
 
 		case gt.GenericSyscall64:
 			var val uint64
@@ -1059,10 +1064,10 @@ func handleMsgGenericTracepoint(
 			if option.Config.CompatibilitySyscall64SizeType {
 				// NB: clear Is32Bit to mantain previous behaviour
 				val = val & (^uint64(Is32Bit))
-				unix.Args = append(unix.Args, val)
+				appendArg(val, idx)
 			} else {
 				val := parseSyscall64Value(val)
-				unix.Args = append(unix.Args, val)
+				appendArg(val, idx)
 			}
 
 		case gt.GenericLinuxBinprmType:
@@ -1091,7 +1096,7 @@ func handleMsgGenericTracepoint(
 			}
 			arg.Flags = flags
 			arg.Permission = mode
-			unix.Args = append(unix.Args, arg)
+			appendArg(arg, idx)
 
 		case gt.GenericFileType, gt.GenericFdType, gt.GenericKiocb:
 			var arg tracingapi.MsgGenericKprobeArgFile
@@ -1134,7 +1139,7 @@ func handleMsgGenericTracepoint(
 			}
 
 			arg.Flags = flags
-			unix.Args = append(unix.Args, arg)
+			appendArg(arg, idx)
 
 		default:
 			logger.GetLogger().Warn(fmt.Sprintf("handleGenericTracepoint: ignoring:  %+v", out))

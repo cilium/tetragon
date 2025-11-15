@@ -467,6 +467,7 @@ type MsgGenericTracepointUnix struct {
 	PolicyName string
 	Message    string
 	Tags       []string
+	ArgsIndex  []int
 }
 
 func (msg *MsgGenericTracepointUnix) Notify() bool {
@@ -506,49 +507,51 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 	}
 
 	var tetragonArgs []*tetragon.KprobeArgument
-	for _, arg := range msg.Args {
+	for i, arg := range msg.Args {
+		var tetragonArg *tetragon.KprobeArgument
+		var type_known = true
 		switch v := arg.(type) {
 		case uint64:
-			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_SizeArg{
+			tetragonArg = &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_SizeArg{
 				SizeArg: v,
-			}})
+			}}
 		case int64:
-			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_LongArg{
+			tetragonArg = &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_LongArg{
 				LongArg: v,
-			}})
+			}}
 		case uint32:
-			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_UintArg{
+			tetragonArg = &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_UintArg{
 				UintArg: v,
-			}})
+			}}
 		case uint16:
-			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_UintArg{
+			tetragonArg = &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_UintArg{
 				UintArg: uint32(v),
-			}})
+			}}
 		case uint8:
-			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_UintArg{
+			tetragonArg = &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_UintArg{
 				UintArg: uint32(v),
-			}})
+			}}
 		case int32:
-			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_IntArg{
+			tetragonArg = &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_IntArg{
 				IntArg: v,
-			}})
+			}}
 		case int16:
-			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_IntArg{
+			tetragonArg = &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_IntArg{
 				IntArg: int32(v),
-			}})
+			}}
 		case int8:
-			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_IntArg{
+			tetragonArg = &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_IntArg{
 				IntArg: int32(v),
-			}})
+			}}
 		case string:
-			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_StringArg{
+			tetragonArg = &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_StringArg{
 				StringArg: v,
-			}})
+			}}
 
 		case []byte:
-			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_BytesArg{
+			tetragonArg = &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_BytesArg{
 				BytesArg: v,
-			}})
+			}}
 
 		case tracingapi.MsgGenericKprobeArgSkb:
 			skb := tetragon.KprobeSkb{
@@ -567,9 +570,9 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 				SecPathOlen: v.SecPathOLen,
 			}
 
-			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_SkbArg{
+			tetragonArg = &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_SkbArg{
 				SkbArg: &skb,
-			}})
+			}}
 
 		case tracingapi.MsgGenericKprobeArgSock:
 			sk := tetragon.KprobeSock{
@@ -586,9 +589,9 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 				State:    network.TcpState(v.State),
 			}
 
-			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_SockArg{
+			tetragonArg = &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_SockArg{
 				SockArg: &sk,
-			}})
+			}}
 
 		case tracingapi.MsgGenericKprobeArgSockaddr:
 			address := tetragon.KprobeSockaddr{
@@ -597,17 +600,17 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 				Port:   v.SinPort,
 			}
 
-			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_SockaddrArg{
+			tetragonArg = &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_SockaddrArg{
 				SockaddrArg: &address,
-			}})
+			}}
 
 		case tracingapi.MsgGenericSyscallID:
-			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_SyscallId{
+			tetragonArg = &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_SyscallId{
 				SyscallId: &tetragon.SyscallId{
 					Id:  v.ID,
 					Abi: v.ABI,
 				},
-			}})
+			}}
 		case tracingapi.MsgGenericKprobeArgLinuxBinprm:
 			bprm := &tetragon.KprobeLinuxBinprm{
 				Path:       v.Value,
@@ -615,9 +618,9 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 				Permission: path.FilePathModeToStr(v.Permission),
 			}
 
-			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_LinuxBinprmArg{
+			tetragonArg = &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_LinuxBinprmArg{
 				LinuxBinprmArg: bprm,
-			}})
+			}}
 
 		case tracingapi.MsgGenericKprobeArgFile:
 			fileArg := &tetragon.KprobeFile{
@@ -626,11 +629,17 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 				Permission: path.FilePathModeToStr(v.Permission),
 			}
 
-			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_FileArg{
+			tetragonArg = &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_FileArg{
 				FileArg: fileArg,
-			}})
+			}}
 		default:
 			logger.GetLogger().Warn(fmt.Sprintf("handleGenericTracepointMessage: unhandled value: %+v (%T)", arg, arg))
+			type_known = false
+		}
+
+		if type_known {
+			tetragonArg.ResolveErrDepth = msg.Msg.ResolveErrDepth[msg.ArgsIndex[i]]
+			tetragonArgs = append(tetragonArgs, tetragonArg)
 		}
 	}
 
