@@ -183,6 +183,7 @@ func (m PfMap) newPolicyMap(polID PolicyID, cgIDs []CgroupID) (polMap, error) {
 		KeySize:    uint32(unsafe.Sizeof(CgroupID(0))),
 		ValueSize:  uint32(1),
 		MaxEntries: uint32(polMapSize),
+		Flags:      bpf.BPF_F_NO_PREALLOC,
 	}
 
 	inner, err := ebpf.NewMap(innerSpec)

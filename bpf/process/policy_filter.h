@@ -28,6 +28,7 @@ struct {
 			__uint(max_entries, 1);
 			__type(key, __u64); /* cgroup id */
 			__type(value, __u8); /* empty  */
+			__uint(map_flags, BPF_F_NO_PREALLOC);
 		});
 } policy_filter_maps SEC(".maps");
 
