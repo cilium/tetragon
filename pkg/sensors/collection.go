@@ -89,7 +89,8 @@ type collection struct {
 	// if this is not zero, then the policy is filtered
 	policyfilterID uint64
 	// state indicates the state of the collection
-	state TracingPolicyState
+	state           TracingPolicyState
+	allowModeUpdate bool
 
 	warnedOnModeRetrievalFailure  atomic.Bool
 	warnedOnStatsRetrievalFailure atomic.Bool
@@ -125,6 +126,13 @@ func (c *collection) mode() tetragon.TracingPolicyMode {
 			c.warnedOnModeRetrievalFailure.Store(true)
 		}
 		return tetragon.TracingPolicyMode_TP_MODE_UNKNOWN
+	}
+
+	if !c.allowModeUpdate {
+		if mode != policyconf.MonitorMode {
+			logger.GetLogger().Warn("monitor-only bit is set but bpf map is not in monitor mode", "policy", c.name)
+		}
+		return tetragon.TracingPolicyMode_TP_MODE_MONITOR_ONLY
 	}
 
 	switch mode {
@@ -178,6 +186,10 @@ func policyconfMode(mode tetragon.TracingPolicyMode) (policyconf.Mode, error) {
 func (c *collection) setMode(mode tetragon.TracingPolicyMode) error {
 	if c.tracingpolicy == nil {
 		return errors.New("unexpected error: setMode called in a collection that is not a tracing policy")
+	}
+
+	if !c.allowModeUpdate {
+		return errors.New("setMode called in a collection that does not support enforcement mode")
 	}
 
 	m, err := policyconfMode(mode)

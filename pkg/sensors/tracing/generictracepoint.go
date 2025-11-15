@@ -650,6 +650,7 @@ func createGenericTracepointSensor(
 		}
 		return errs
 	}
+	ret.SupportsEnforcement = polInfo.specOpts.policyMode.SupportEnforcement()
 
 	return ret, nil
 }

@@ -56,6 +56,8 @@ type Sensor struct {
 	Loaded bool
 	// Destroyed indicates whether the sensor had been destroyed.
 	Destroyed bool
+	// SupportsEnforcement indicates whether the sensor supports enforcement mode.
+	SupportsEnforcement bool
 	// PostLoadHook can optionally contain a pointer to a function to be
 	// called during sensor loading, after the programs and maps being
 	// loaded.
@@ -113,6 +115,7 @@ type SensorIface interface {
 	// the sensor's programs.
 	TotalMemlock() int
 	Overhead() ([]ProgOverhead, bool)
+	HasEnforcement() bool
 }
 
 func (s *Sensor) Overhead() ([]ProgOverhead, bool) {
@@ -146,6 +149,10 @@ func (s *Sensor) GetName() string {
 
 func (s *Sensor) IsLoaded() bool {
 	return s.Loaded
+}
+
+func (s *Sensor) HasEnforcement() bool {
+	return s.SupportsEnforcement
 }
 
 func (s Sensor) TotalMemlock() int {

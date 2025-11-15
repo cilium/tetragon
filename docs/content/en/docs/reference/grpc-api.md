@@ -1456,6 +1456,7 @@ For now, we only want to support debug-related config flags to be configurable.
 | TP_MODE_UNKNOWN | 0 |  |
 | TP_MODE_ENFORCE | 1 |  |
 | TP_MODE_MONITOR | 2 |  |
+| TP_MODE_MONITOR_ONLY | 3 |  |
 
 <a name="tetragon-TracingPolicyState"></a>
 

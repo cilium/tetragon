@@ -401,8 +401,9 @@ func createGenericLsmSensor(
 			}
 			return errs
 		},
-		Policy:    polInfo.name,
-		Namespace: polInfo.namespace,
+		Policy:              polInfo.name,
+		Namespace:           polInfo.namespace,
+		SupportsEnforcement: polInfo.specOpts.policyMode.SupportEnforcement(),
 	}, nil
 }
 

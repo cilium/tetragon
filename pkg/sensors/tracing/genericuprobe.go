@@ -461,6 +461,7 @@ func createGenericUprobeSensor(
 			}
 			return errs
 		},
+		SupportsEnforcement: polInfo.specOpts.policyMode.SupportEnforcement(),
 	}, nil
 }
 

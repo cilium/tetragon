@@ -702,11 +702,12 @@ func createGenericKprobeSensor(
 	}
 
 	return &sensors.Sensor{
-		Name:      name,
-		Progs:     progs,
-		Maps:      maps,
-		Policy:    polInfo.name,
-		Namespace: polInfo.namespace,
+		Name:                name,
+		Progs:               progs,
+		Maps:                maps,
+		Policy:              polInfo.name,
+		Namespace:           polInfo.namespace,
+		SupportsEnforcement: polInfo.specOpts.policyMode.SupportEnforcement(),
 		DestroyHook: func() error {
 			var errs error
 
