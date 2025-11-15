@@ -4,7 +4,7 @@ cel.dev/expr
 # dario.cat/mergo v1.0.2
 ## explicit; go 1.13
 dario.cat/mergo
-# github.com/alecthomas/kong v1.12.1
+# github.com/alecthomas/kong v1.13.0
 ## explicit; go 1.20
 github.com/alecthomas/kong
 # github.com/antlr4-go/antlr/v4 v4.13.0
@@ -118,7 +118,7 @@ github.com/opencontainers/go-digest
 ## explicit; go 1.18
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
-# github.com/opencontainers/runtime-spec v1.2.1
+# github.com/opencontainers/runtime-spec v1.3.0
 ## explicit
 github.com/opencontainers/runtime-spec/specs-go
 # github.com/pelletier/go-toml v1.9.5
