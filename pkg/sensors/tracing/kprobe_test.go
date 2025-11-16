@@ -2361,13 +2361,9 @@ func runKprobeOverride(t *testing.T, hook string, checker ec.MultiEventChecker,
 		t.Fatal()
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JsonTestCheckExpect(t, checker, nopost)
 
-	if nopost {
-		require.Error(t, err)
-	} else {
-		require.NoError(t, err)
-	}
+	require.NoError(t, err)
 }
 
 func TestKprobeOverride(t *testing.T) {
@@ -2602,13 +2598,9 @@ func runKprobeOverrideSignal(t *testing.T, hook string, checker ec.MultiEventChe
 		t.Fatalf("got wrong signal number %d, expocted %d", sig, expectedSig)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JsonTestCheckExpect(t, checker, nopost)
 
-	if nopost {
-		require.Error(t, err)
-	} else {
-		require.NoError(t, err)
-	}
+	require.NoError(t, err)
 }
 
 func TestKprobeOverrideSignal(t *testing.T) {
@@ -3825,8 +3817,8 @@ spec:
 	}
 
 	errChecker := ec.NewUnorderedEventChecker(kpErrCheckers...)
-	err = jsonchecker.JsonTestCheck(t, errChecker)
-	require.Error(t, err)
+	err = jsonchecker.JsonTestCheckExpect(t, errChecker, true)
+	require.NoError(t, err)
 }
 
 func getMatchBinariesCrd(opStr string, vals []string) string {
@@ -6412,8 +6404,8 @@ spec:
 	require.NoError(t, err)
 
 	// ... but not for file_2 (check_2).
-	err = jsonchecker.JsonTestCheck(t, getChecker(check2))
-	require.Error(t, err)
+	err = jsonchecker.JsonTestCheckExpect(t, getChecker(check2), true)
+	require.NoError(t, err)
 }
 
 func TestKprobeResolvePid(t *testing.T) {
@@ -7118,28 +7110,20 @@ spec:
 	}
 
 	// for InRange (in == true):
-	// matched_1 is matched
-	// matched_2 is NOT matched
+	// matched_1 is matched , expectCheckerFailure == false
+	// matched_2 is NOT matched , expectCheckerFailure == true
 
 	// for NotInRange (in == false):
-	// matched_1 is NOT matched
-	// matched_2 is matched
+	// matched_1 is NOT matched , expectCheckerFailure == true
+	// matched_2 is matched , expectCheckerFailure == false
 
 	matched_1 := []int{0, 1, 5, 6, 8, 9, 0xe, 0xf}
-	err = jsonchecker.JsonTestCheck(t, getChecker(matched_1))
-	if in {
-		require.NoError(t, err)
-	} else {
-		require.Error(t, err)
-	}
+	err = jsonchecker.JsonTestCheckExpect(t, getChecker(matched_1), !in)
+	require.NoError(t, err)
 
 	matched_2 := []int{2, 3, 4, 7, 0xa, 0xb, 0xc, 0xd}
-	err = jsonchecker.JsonTestCheck(t, getChecker(matched_2))
-	if in {
-		require.Error(t, err)
-	} else {
-		require.NoError(t, err)
-	}
+	err = jsonchecker.JsonTestCheckExpect(t, getChecker(matched_2), in)
+	require.NoError(t, err)
 }
 
 func TestKprobeRangeIn(t *testing.T) {
