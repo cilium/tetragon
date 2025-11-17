@@ -10,29 +10,34 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/cilium/ebpf/ringbuf"
+
 	"github.com/cilium/tetragon/pkg/api/readyapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 )
 
 func (observer *Observer) RunEvents(stopCtx context.Context, ready func()) error {
-	coll, err := bpf.GetCollection("ProcessMonitor")
+	coll, _ := bpf.GetCollection("ProcessMonitor")
 	if coll == nil {
 		return errors.New("exec Preloaded collection is nil")
 	}
 	ringBufMap := coll.Maps["process_ringbuf"]
-	reader := bpf.GetNewWindowsRingBufReader()
-	err = reader.Init(ringBufMap.FD(), int(ringBufMap.MaxEntries()))
+	defer ringBufMap.Close()
+	var ringBufReader *ringbuf.Reader
+	ringBufReader, err := ringbuf.NewReader(ringBufMap)
+
 	if err != nil {
-		return fmt.Errorf("failed initializing ringbuf reader: %w", err)
+		return fmt.Errorf("creating ring buffer reader failed: %w", err)
 	}
+
 	// Inform caller that we're about to start processing events.
 	observer.observerListeners(&readyapi.MsgTetragonReady{})
 	ready()
 
 	// We spawn go routine to read and process perf events,
 	// connected with main app through winEventsQueue channel.
-	winEventsQueue := make(chan *bpf.Record, observer.getRBQueueSize())
+	eventsQueue := make(chan *[]byte, observer.getRBQueueSize())
 
 	// Listeners are ready and about to start reading from perf reader, tell
 	// user everything is ready.
@@ -51,26 +56,24 @@ func (observer *Observer) RunEvents(stopCtx context.Context, ready func()) error
 		defer wg.Done()
 
 		for stopCtx.Err() == nil {
-			var record bpf.Record
-			record, errCode := reader.GetNextRecord()
-			if (errCode == bpf.ERR_RINGBUF_OFFSET_MISMATCH) || (errCode == bpf.ERR_RINGBUF_UNKNOWN_ERROR) {
-				observer.log.Warn("Reading bpf events failed", "NewError", 0, logfields.Error, err)
-				break
-			}
-			if (errCode == bpf.ERR_RINGBUF_RECORD_DISCARDED) || (errCode == bpf.ERR_RINGBUF_TRY_AGAIN) {
-				continue
-			}
-			if len(record.RawSample) > 0 {
-				select {
-				case winEventsQueue <- &record:
-				default:
-					// drop the event, since channel is full
-					queueLost.Inc()
+			record, err := ringBufReader.Read()
+			if err != nil {
+				// NOTE(JM and Djalal): count and log errors while excluding the stopping context
+				if stopCtx.Err() == nil {
+					RingbufErrors.Inc()
+					errorCnt := getCounterValue(RingbufErrors)
+					observer.log.Warn("Reading bpf events from BPF ring buffer failed", "errors", errorCnt, logfields.Error, err)
 				}
-				RingbufReceived.Inc()
-			}
-			if record.LostSamples > 0 {
-				RingbufLost.Add(float64(record.LostSamples))
+			} else {
+				if len(record.RawSample) > 0 {
+					select {
+					case eventsQueue <- &record.RawSample:
+					default:
+						// drop the event, since channel is full
+						queueLost.Inc()
+					}
+					RingbufReceived.Inc()
+				}
 			}
 		}
 	}()
@@ -79,12 +82,12 @@ func (observer *Observer) RunEvents(stopCtx context.Context, ready func()) error
 	wg.Go(func() {
 		for {
 			select {
-			case winEvent := <-winEventsQueue:
-				observer.receiveEvent(winEvent.RawSample)
+			case winEvent := <-eventsQueue:
+				observer.receiveEvent(*winEvent)
 				queueReceived.Inc()
 			case <-stopCtx.Done():
 				observer.log.Info("Listening for events completed.", logfields.Error, stopCtx.Err())
-				observer.log.Debug(fmt.Sprintf("Unprocessed events in RB queue: %d", len(winEventsQueue)))
+				observer.log.Debug(fmt.Sprintf("Unprocessed events in RB queue: %d", len(eventsQueue)))
 				return
 			}
 		}
