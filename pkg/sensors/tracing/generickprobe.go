@@ -1219,6 +1219,11 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Pro
 		return err
 	}
 
+	if entry := gk.loadArgs.selectors.entry; entry != nil {
+		// functions generated for CEL expressions
+		load.RegisterRewriteProgFn("generic_kprobe_filter_arg", entry.CelExprFunctions.RewriteProg)
+	}
+
 	load.MapLoad = append(load.MapLoad, getMapLoad(load, gk, 0)...)
 
 	var configData bytes.Buffer

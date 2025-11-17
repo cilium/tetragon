@@ -209,6 +209,8 @@ const (
 	// range
 	SelectorOpInRange    = 31
 	SelectorOpNotInRange = 32
+	// CEL expressions translated to BPF
+	SelectorOpCelExpr = 33
 )
 
 var selectorOpStringTable = map[uint32]string{
@@ -243,6 +245,7 @@ var selectorOpStringTable = map[uint32]string{
 	SelectorOpCapabilitiesGained: "CapabilitiesGained",
 	SelectorOpInRange:            "InRange",
 	SelectorOpNotInRange:         "NotInRange",
+	SelectorOpCelExpr:            "CelExpr",
 }
 
 func SelectorOp(op string) (uint32, error) {
@@ -309,6 +312,8 @@ func SelectorOp(op string) (uint32, error) {
 		return SelectorOpInRange, nil
 	case "NotInRange":
 		return SelectorOpNotInRange, nil
+	case "CelExpr":
+		return SelectorOpCelExpr, nil
 	}
 
 	return 0, fmt.Errorf("unknown op '%s'", op)
@@ -874,6 +879,12 @@ func dataIndexType(arg *v1alpha1.ArgSelector, data []v1alpha1.KProbeArg) (uint32
 }
 
 func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) error {
+	if op, err := SelectorOp(arg.Operator); err != nil {
+		return fmt.Errorf("ParseMatchArg: %w", err)
+	} else if op == SelectorOpCelExpr {
+		return parseMatchCelExpr(k, arg, sig)
+	}
+
 	index, ty, err := argIndexType(arg, sig)
 	if err != nil {
 		return err
