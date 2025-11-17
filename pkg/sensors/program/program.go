@@ -176,6 +176,11 @@ type Program struct {
 	// Information of all maps used and loaded by this program by map ID. This
 	// is populated after load and used for map memlock accounting.
 	LoadedMapsInfo map[int]bpf.ExtendedMapInfo
+
+	// RewriteProg allows rewriting bpf programs before they are loaded.
+	// This is currently used for generated code for cel expressions, but can be extended to
+	// other uses.
+	RewriteProg map[string]func(prog *ebpf.ProgramSpec) error
 }
 
 func (p *Program) String() string {

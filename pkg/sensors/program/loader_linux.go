@@ -941,6 +941,17 @@ func doLoadProgram(
 		return nil, fmt.Errorf("loading collection spec failed: %w", err)
 	}
 
+	// add functions
+	for name, prog := range spec.Programs {
+		rewriteFn := load.RewriteProg[name]
+		if rewriteFn != nil {
+			err := rewriteFn(prog)
+			if err != nil {
+				return nil, fmt.Errorf("failed to rewrite program %s: %w", prog.Name, err)
+			}
+		}
+	}
+
 	if load.RewriteConstants != nil {
 		if err := rewriteConstants(spec, load.RewriteConstants); err != nil {
 			return nil, fmt.Errorf("rewritting constants in spec failed: %w", err)
