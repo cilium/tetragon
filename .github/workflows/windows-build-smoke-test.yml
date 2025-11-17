@@ -80,7 +80,7 @@ jobs:
         run: | 
           git clone --recursive https://github.com/microsoft/ntosebpfext.git
           cd ${{ env.TEMP }}\ntosebpfext
-          git checkout e7dc209a8be0da2ff5d75f5772a0ee0bf4a10383
+          git checkout b4b240c99321f43b073d792a2f8c194e46a1b6ce
       
       - name: Copy Process_monitor.c file
         run: |
@@ -227,7 +227,7 @@ jobs:
 
           $maxRetries = 3
           $retryCount = 0
-          $downloadUrl = "https://github.com/microsoft/ebpf-for-windows/releases/download/Release-v0.21.0/Build-native-only.NativeOnlyRelease.x64.zip"
+          $downloadUrl = "https://github.com/microsoft/ebpf-for-windows/releases/download/Release-v1.0.0-rc1/Build-native-only.NativeOnlyRelease.x64.zip"
           $extractPath = "D:\temp"
           $ebpfPath = "D:\temp\ebpf"
 
