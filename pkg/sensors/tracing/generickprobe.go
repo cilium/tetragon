@@ -1260,6 +1260,12 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir string, load *program.P
 			return err
 		}
 
+		if entry := gk.loadArgs.selectors.entry; entry != nil {
+			if len(entry.CelExprFunctions) > 0 {
+				return errors.New("celExpr not supported in multi-kprobes")
+			}
+		}
+
 		load.MapLoad = append(load.MapLoad, getMapLoad(load, gk, uint32(index))...)
 
 		binary.Write(&binBuf[index], binary.LittleEndian, gk.loadArgs.config)
