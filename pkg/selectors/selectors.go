@@ -136,6 +136,8 @@ type KernelSelectorState struct {
 	regs []processapi.RegAssignment
 
 	subStrs []string
+
+	celExprFunctions CelExprFunctions
 }
 
 func NewKernelSelectorState(listReader ValueReader, maps *KernelSelectorMaps, isUprobe bool) *KernelSelectorState {
@@ -512,4 +514,8 @@ func (k *KernelSelectorState) newStringPostfixMap() (uint32, map[KernelLPMTrieSt
 	mapid := len(k.maps.stringPostfixMaps)
 	k.maps.stringPostfixMaps = append(k.maps.stringPostfixMaps, map[KernelLPMTrieStringPostfix]struct{}{})
 	return uint32(mapid), k.maps.stringPostfixMaps[mapid]
+}
+
+func (k *KernelSelectorState) CelExprFunctions() CelExprFunctions {
+	return k.celExprFunctions
 }
