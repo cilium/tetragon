@@ -49,6 +49,8 @@ enum {
 	// match substring
 	op_substring = 33,
 	op_substring_igncase = 34,
+	// CEL expression
+	op_cel_expr = 35,
 };
 
 #endif // __OPERATIONS_H__
