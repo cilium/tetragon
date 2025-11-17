@@ -11,7 +11,9 @@ package selectors
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -214,7 +216,12 @@ func TestNamespaceValueStr(t *testing.T) {
 	nstype := "Pid"
 	ns := &v1alpha1.NamespaceSelector{Namespace: nstype, Operator: "In", Values: []string{"host_ns"}}
 	expected := []byte{252, 255, 255, 239}
-	if b, l, _ := namespaceSelectorValue(ns, strings.ToLower(nstype)); bytes.Equal(b, expected) == false || l != 4 {
+	b, l, err := namespaceSelectorValue(ns, strings.ToLower(nstype))
+	if err != nil && errors.Is(err, syscall.EACCES) {
+		// we probably did not run as root, skip the test (do not fail)
+		t.Skip("permission denied error, skipping test", err)
+	}
+	if bytes.Equal(b, expected) == false || l != 4 {
 		t.Errorf("namespaceSelectorValue: expected %v actual %v\n", expected, b)
 	}
 }
