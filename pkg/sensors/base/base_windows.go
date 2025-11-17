@@ -12,7 +12,7 @@ var (
 		"process_monitor.sys",
 		"process",
 		"ProcessMonitor",
-		"process::program",
+		"process__program",
 		"windows",
 	).SetPolicy(basePolicy)
 
