@@ -29,6 +29,7 @@
 #include "process/heap.h"
 #include "../bpf_mbset.h"
 #include "bpf_ktime.h"
+#include "../cel_expr.h"
 
 /* Type IDs form API with user space generickprobe.go */
 enum {
@@ -2032,6 +2033,14 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 		margsoff = (seloff + argsoff) & INDEX_MASK;
 		filter = (struct selector_arg_filter *)&f[margsoff];
 
+		if (filter->op == op_cel_expr) {
+			int ret = cel_expr(filter->index, e->argsoff, e->args);
+
+			pass &= ret;
+#ifdef __LARGE_BPF_PROG
+			continue;
+#endif
+		}
 		index = filter->index;
 		if (index >= 5)
 			return 0;
