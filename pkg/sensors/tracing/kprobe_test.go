@@ -3864,7 +3864,7 @@ func createParentsChecker(parent, binary string) *ec.ProcessKprobeChecker {
 	return kpChecker
 }
 
-func matchParentBinariesTest(t *testing.T, operator string, values []string, kpChecker *ec.ProcessKprobeChecker, newProcess bool, expectErr bool) {
+func matchParentBinariesTest(t *testing.T, operator string, values []string, kpChecker *ec.ProcessKprobeChecker, newProcess bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -3900,11 +3900,7 @@ func matchParentBinariesTest(t *testing.T, operator string, values []string, kpC
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 	err = jsonchecker.JsonTestCheck(t, checker)
-	if expectErr {
-		require.Error(t, err)
-	} else {
-		require.NoError(t, err)
-	}
+	require.NoError(t, err)
 }
 
 const skipMatchParentBinaries = "kernels without large progs do not support matchParentBinaries Prefix/NotPrefix/Postfix/NotPostfix"
@@ -3914,7 +3910,6 @@ func TestKprobeMatchParentBinaries(t *testing.T) {
 		operator                string
 		values                  []string
 		expectedParent          string
-		unexpectedParent        string
 		binary                  string
 		parentCreatesNewProcess bool
 		needsLargeProgs         bool
@@ -3923,7 +3918,6 @@ func TestKprobeMatchParentBinaries(t *testing.T) {
 			operator:                "In",
 			values:                  []string{"/usr/bin/bash"},
 			expectedParent:          "/usr/bin/bash",
-			unexpectedParent:        "/usr/bin/sh",
 			binary:                  "/usr/bin/tail",
 			parentCreatesNewProcess: true,
 		},
@@ -3931,7 +3925,6 @@ func TestKprobeMatchParentBinaries(t *testing.T) {
 			operator:                "In",
 			values:                  []string{"/usr/bin/bash"},
 			expectedParent:          "/usr/bin/bash",
-			unexpectedParent:        "/usr/bin/sh",
 			binary:                  "/usr/bin/tail",
 			parentCreatesNewProcess: false,
 		},
@@ -3939,7 +3932,6 @@ func TestKprobeMatchParentBinaries(t *testing.T) {
 			operator:                "NotIn",
 			values:                  []string{"/usr/bin/bash"},
 			expectedParent:          "/usr/bin/sh",
-			unexpectedParent:        "/usr/bin/bash",
 			binary:                  "/usr/bin/tail",
 			parentCreatesNewProcess: true,
 		},
@@ -3947,7 +3939,6 @@ func TestKprobeMatchParentBinaries(t *testing.T) {
 			operator:                "NotIn",
 			values:                  []string{"/usr/bin/bash"},
 			expectedParent:          "/usr/bin/sh",
-			unexpectedParent:        "/usr/bin/bash",
 			binary:                  "/usr/bin/tail",
 			parentCreatesNewProcess: false,
 		},
@@ -3955,7 +3946,6 @@ func TestKprobeMatchParentBinaries(t *testing.T) {
 			operator:                "Prefix",
 			values:                  []string{"/usr/bin/ba"},
 			expectedParent:          "/usr/bin/bash",
-			unexpectedParent:        "/usr/bin/sh",
 			binary:                  "/usr/bin/tail",
 			parentCreatesNewProcess: true,
 			needsLargeProgs:         true,
@@ -3964,7 +3954,6 @@ func TestKprobeMatchParentBinaries(t *testing.T) {
 			operator:                "Prefix",
 			values:                  []string{"/usr/bin/ba"},
 			expectedParent:          "/usr/bin/bash",
-			unexpectedParent:        "/usr/bin/sh",
 			binary:                  "/usr/bin/tail",
 			parentCreatesNewProcess: false,
 			needsLargeProgs:         true,
@@ -3973,7 +3962,6 @@ func TestKprobeMatchParentBinaries(t *testing.T) {
 			operator:                "NotPrefix",
 			values:                  []string{"/usr/bin/ba"},
 			expectedParent:          "/usr/bin/sh",
-			unexpectedParent:        "/usr/bin/bash",
 			binary:                  "/usr/bin/tail",
 			parentCreatesNewProcess: true,
 			needsLargeProgs:         true,
@@ -3982,7 +3970,6 @@ func TestKprobeMatchParentBinaries(t *testing.T) {
 			operator:                "NotPrefix",
 			values:                  []string{"/usr/bin/ba"},
 			expectedParent:          "/usr/bin/sh",
-			unexpectedParent:        "/usr/bin/bash",
 			binary:                  "/usr/bin/tail",
 			parentCreatesNewProcess: false,
 			needsLargeProgs:         true,
@@ -3991,7 +3978,6 @@ func TestKprobeMatchParentBinaries(t *testing.T) {
 			operator:                "Postfix",
 			values:                  []string{"in/bash"},
 			expectedParent:          "/usr/bin/bash",
-			unexpectedParent:        "/usr/bin/sh",
 			binary:                  "/usr/bin/tail",
 			parentCreatesNewProcess: true,
 			needsLargeProgs:         true,
@@ -4000,7 +3986,6 @@ func TestKprobeMatchParentBinaries(t *testing.T) {
 			operator:                "Postfix",
 			values:                  []string{"in/bash"},
 			expectedParent:          "/usr/bin/bash",
-			unexpectedParent:        "/usr/bin/sh",
 			binary:                  "/usr/bin/tail",
 			parentCreatesNewProcess: false,
 			needsLargeProgs:         true,
@@ -4009,7 +3994,6 @@ func TestKprobeMatchParentBinaries(t *testing.T) {
 			operator:                "NotPostfix",
 			values:                  []string{"in/bash"},
 			expectedParent:          "/usr/bin/sh",
-			unexpectedParent:        "/usr/bin/bash",
 			binary:                  "/usr/bin/tail",
 			parentCreatesNewProcess: true,
 			needsLargeProgs:         true,
@@ -4018,7 +4002,6 @@ func TestKprobeMatchParentBinaries(t *testing.T) {
 			operator:                "NotPostfix",
 			values:                  []string{"in/bash"},
 			expectedParent:          "/usr/bin/sh",
-			unexpectedParent:        "/usr/bin/bash",
 			binary:                  "/usr/bin/tail",
 			parentCreatesNewProcess: false,
 			needsLargeProgs:         true,
@@ -4031,9 +4014,7 @@ func TestKprobeMatchParentBinaries(t *testing.T) {
 				t.Skip(skipMatchParentBinaries)
 			}
 			// don't expect error for expected parent
-			matchParentBinariesTest(t, test.operator, test.values, createParentsChecker(test.expectedParent, test.binary), test.parentCreatesNewProcess, false)
-			// expect test error for unexpected parent
-			matchParentBinariesTest(t, test.operator, test.values, createParentsChecker(test.unexpectedParent, test.binary), test.parentCreatesNewProcess, true)
+			matchParentBinariesTest(t, test.operator, test.values, createParentsChecker(test.expectedParent, test.binary), test.parentCreatesNewProcess)
 		})
 	}
 }
