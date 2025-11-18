@@ -3855,20 +3855,15 @@ spec:
 	return configHook.String()
 }
 
-func createParentsChecker(parent, binary, filename string) *ec.ProcessKprobeChecker {
+func createParentsChecker(parent, binary string) *ec.ProcessKprobeChecker {
 	kpChecker := ec.NewProcessKprobeChecker("").
 		WithParent(ec.NewProcessChecker().WithBinary(sm.Full(parent))).
 		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(binary))).
-		WithFunctionName(sm.Full("fd_install")).
-		WithArgs(ec.NewKprobeArgumentListMatcher().
-			WithOperator(lc.Subset).
-			WithValues(
-				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Full(filename))),
-			))
+		WithFunctionName(sm.Full("fd_install"))
 	return kpChecker
 }
 
-func matchParentBinariesTest(t *testing.T, operator string, values []string, kpChecker *ec.ProcessKprobeChecker) {
+func matchParentBinariesTest(t *testing.T, operator string, values []string, kpChecker *ec.ProcessKprobeChecker, newProcess bool, expectErr bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -3884,52 +3879,162 @@ func matchParentBinariesTest(t *testing.T, operator string, values []string, kpC
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
-	if err := exec.Command("/usr/bin/bash", "-c", "echo '/usr/bin/tail /etc/passwd' | /usr/bin/bash").Run(); err != nil {
+	bashArgs := []string{"-c"}
+	if newProcess {
+		// running bash with piped stdin forces bash to fork process and call execve('/usr/bin/tail')
+		// in separate process, so parent and child process pids will be different
+		bashArgs = append(bashArgs, "echo '/usr/bin/tail /etc/passwd' | /usr/bin/bash")
+	} else {
+		// when bash just runs binary with '-c' option, it calls execve syscall in the same process
+		// without fork, so pid of parent process and current process will be same
+		bashArgs = append(bashArgs, "'/usr/bin/tail /etc/passwd'")
+	}
+	if err := exec.Command("/usr/bin/bash", bashArgs...).Run(); err != nil {
 		t.Fatalf("failed to run tail /etc/passwd with /bin/bash: %s", err)
 	}
 
-	if err := exec.Command("/usr/bin/sh", "-c", "echo '/usr/bin/tail /etc/passwd' | /usr/bin/sh").Run(); err != nil {
+	if err := exec.Command("/usr/bin/sh", "-c", "'/usr/bin/tail /etc/passwd'").Run(); err != nil {
 		t.Fatalf("failed to run tail /etc/passwd with /bin/sh: %s", err)
 	}
 
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 	err = jsonchecker.JsonTestCheck(t, checker)
-	require.NoError(t, err)
+	if expectErr {
+		require.Error(t, err)
+	} else {
+		require.NoError(t, err)
+	}
 }
 
 const skipMatchParentBinaries = "kernels without large progs do not support matchParentBinaries Prefix/NotPrefix/Postfix/NotPostfix"
 
 func TestKprobeMatchParentBinaries(t *testing.T) {
-	t.Run("In", func(t *testing.T) {
-		matchParentBinariesTest(t, "In", []string{"/usr/bin/bash"}, createParentsChecker("/usr/bin/bash", "/usr/bin/tail", "/etc/passwd"))
-	})
-	t.Run("NotIn", func(t *testing.T) {
-		matchParentBinariesTest(t, "NotIn", []string{"/usr/bin/bash"}, createParentsChecker("/usr/bin/sh", "/usr/bin/tail", "/etc/passwd"))
-	})
-	t.Run("Prefix", func(t *testing.T) {
-		if !config.EnableLargeProgs() {
-			t.Skip(skipMatchParentBinaries)
-		}
-		matchParentBinariesTest(t, "Prefix", []string{"/usr/bin/ba"}, createParentsChecker("/usr/bin/bash", "/usr/bin/tail", "/etc/passwd"))
-	})
-	t.Run("NotPrefix", func(t *testing.T) {
-		if !config.EnableLargeProgs() {
-			t.Skip(skipMatchParentBinaries)
-		}
-		matchParentBinariesTest(t, "NotPrefix", []string{"/usr/bin/bas"}, createParentsChecker("/usr/bin/sh", "/usr/bin/tail", "/etc/passwd"))
-	})
-	t.Run("Postfix", func(t *testing.T) {
-		if !config.EnableLargeProgs() {
-			t.Skip(skipMatchParentBinaries)
-		}
-		matchParentBinariesTest(t, "Postfix", []string{"in/bash"}, createParentsChecker("/usr/bin/bash", "/usr/bin/tail", "/etc/passwd"))
-	})
-	t.Run("NotPostfix", func(t *testing.T) {
-		if !config.EnableLargeProgs() {
-			t.Skip(skipMatchParentBinaries)
-		}
-		matchParentBinariesTest(t, "NotPostfix", []string{"n/bash"}, createParentsChecker("/usr/bin/sh", "/usr/bin/tail", "/etc/passwd"))
-	})
+	tests := map[string]struct {
+		operator                string
+		values                  []string
+		expectedParent          string
+		unexpectedParent        string
+		binary                  string
+		parentCreatesNewProcess bool
+		needsLargeProgs         bool
+	}{
+		"In, different processes": {
+			operator:                "In",
+			values:                  []string{"/usr/bin/bash"},
+			expectedParent:          "/usr/bin/bash",
+			unexpectedParent:        "/usr/bin/sh",
+			binary:                  "/usr/bin/tail",
+			parentCreatesNewProcess: true,
+		},
+		"In, same processes": {
+			operator:                "In",
+			values:                  []string{"/usr/bin/bash"},
+			expectedParent:          "/usr/bin/bash",
+			unexpectedParent:        "/usr/bin/sh",
+			binary:                  "/usr/bin/tail",
+			parentCreatesNewProcess: false,
+		},
+		"NotIn, different processes": {
+			operator:                "NotIn",
+			values:                  []string{"/usr/bin/bash"},
+			expectedParent:          "/usr/bin/sh",
+			unexpectedParent:        "/usr/bin/bash",
+			binary:                  "/usr/bin/tail",
+			parentCreatesNewProcess: true,
+		},
+		"NotIn, same processes": {
+			operator:                "NotIn",
+			values:                  []string{"/usr/bin/bash"},
+			expectedParent:          "/usr/bin/sh",
+			unexpectedParent:        "/usr/bin/bash",
+			binary:                  "/usr/bin/tail",
+			parentCreatesNewProcess: false,
+		},
+		"Prefix, different processes": {
+			operator:                "Prefix",
+			values:                  []string{"/usr/bin/ba"},
+			expectedParent:          "/usr/bin/bash",
+			unexpectedParent:        "/usr/bin/sh",
+			binary:                  "/usr/bin/tail",
+			parentCreatesNewProcess: true,
+			needsLargeProgs:         true,
+		},
+		"Prefix, same processes": {
+			operator:                "Prefix",
+			values:                  []string{"/usr/bin/ba"},
+			expectedParent:          "/usr/bin/bash",
+			unexpectedParent:        "/usr/bin/sh",
+			binary:                  "/usr/bin/tail",
+			parentCreatesNewProcess: false,
+			needsLargeProgs:         true,
+		},
+		"NotPrefix, different processes": {
+			operator:                "NotPrefix",
+			values:                  []string{"/usr/bin/ba"},
+			expectedParent:          "/usr/bin/sh",
+			unexpectedParent:        "/usr/bin/bash",
+			binary:                  "/usr/bin/tail",
+			parentCreatesNewProcess: true,
+			needsLargeProgs:         true,
+		},
+		"NotPrefix, same processes": {
+			operator:                "NotPrefix",
+			values:                  []string{"/usr/bin/ba"},
+			expectedParent:          "/usr/bin/sh",
+			unexpectedParent:        "/usr/bin/bash",
+			binary:                  "/usr/bin/tail",
+			parentCreatesNewProcess: false,
+			needsLargeProgs:         true,
+		},
+		"Postfix, different processes": {
+			operator:                "Postfix",
+			values:                  []string{"in/bash"},
+			expectedParent:          "/usr/bin/bash",
+			unexpectedParent:        "/usr/bin/sh",
+			binary:                  "/usr/bin/tail",
+			parentCreatesNewProcess: true,
+			needsLargeProgs:         true,
+		},
+		"Postfix, same processes": {
+			operator:                "Postfix",
+			values:                  []string{"in/bash"},
+			expectedParent:          "/usr/bin/bash",
+			unexpectedParent:        "/usr/bin/sh",
+			binary:                  "/usr/bin/tail",
+			parentCreatesNewProcess: false,
+			needsLargeProgs:         true,
+		},
+		"NotPostfix, different processes": {
+			operator:                "NotPostfix",
+			values:                  []string{"in/bash"},
+			expectedParent:          "/usr/bin/sh",
+			unexpectedParent:        "/usr/bin/bash",
+			binary:                  "/usr/bin/tail",
+			parentCreatesNewProcess: true,
+			needsLargeProgs:         true,
+		},
+		"NotPostfix, same processes": {
+			operator:                "NotPostfix",
+			values:                  []string{"in/bash"},
+			expectedParent:          "/usr/bin/sh",
+			unexpectedParent:        "/usr/bin/bash",
+			binary:                  "/usr/bin/tail",
+			parentCreatesNewProcess: false,
+			needsLargeProgs:         true,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			if test.needsLargeProgs && !config.EnableLargeProgs() {
+				t.Skip(skipMatchParentBinaries)
+			}
+			// don't expect error for expected parent
+			matchParentBinariesTest(t, test.operator, test.values, createParentsChecker(test.expectedParent, test.binary), test.parentCreatesNewProcess, false)
+			// expect test error for unexpected parent
+			matchParentBinariesTest(t, test.operator, test.values, createParentsChecker(test.unexpectedParent, test.binary), test.parentCreatesNewProcess, true)
+		})
+	}
 }
 
 func getMatchBinariesCrd(opStr string, vals []string) string {
