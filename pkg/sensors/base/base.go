@@ -24,8 +24,9 @@ import (
 )
 
 const (
-	execveMapMaxEntries = 32768
-	RingBufMapName      = "tg_rb_events"
+	execveMapMaxEntries           = 32768
+	parentBinariesMaxEntriesRatio = 32
+	RingBufMapName                = "tg_rb_events"
 )
 
 var (
@@ -80,6 +81,8 @@ var (
 	ExecveMapUpdateData = program.MapBuilder("execve_map_update_data", ExecveMapUpdate)
 
 	ExecveJoinMap = program.MapBuilder("tg_execve_joined_info_map", ExecveBprmCommit)
+
+	ParentBinariesMap = program.MapBuilder("parent_binaries_map", Execve, Exit)
 
 	/* Tetragon runtime configuration */
 	TetragonConfMap = program.MapBuilder("tg_conf_map", Execve)
@@ -151,6 +154,12 @@ func setupSensor() {
 
 	entries := GetExecveEntries(option.Config.ExecveMapEntries, option.Config.ExecveMapSize)
 	ExecveMap.SetMaxEntries(entries)
+
+	parentBinariesEntries := entries
+	if entries >= parentBinariesMaxEntriesRatio {
+		parentBinariesEntries /= parentBinariesMaxEntriesRatio
+	}
+	ParentBinariesMap.SetMaxEntries(parentBinariesEntries)
 
 	logger.GetLogger().Info(fmt.Sprintf("Set execve_map entries %d", entries),
 		"size", strutils.SizeWithSuffix(entries*int(unsafe.Sizeof(execvemap.ExecveValue{}))))

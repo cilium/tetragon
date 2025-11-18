@@ -15,6 +15,8 @@ import (
 
 	"github.com/cilium/ebpf"
 
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+
 	"github.com/cilium/tetragon/pkg/api/ops"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -23,7 +25,6 @@ import (
 	"github.com/cilium/tetragon/pkg/eventhandler"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/idtable"
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
@@ -631,6 +632,8 @@ func createGenericTracepointSensor(
 	if config.EnableV511Progs() && !option.Config.UsePerfRingBuffer {
 		maps = append(maps, program.MapUserFrom(base.RingBufEvents))
 	}
+
+	maps = append(maps, program.MapUserFrom(base.ParentBinariesMap))
 
 	ret.Progs = progs
 	ret.Maps = maps
