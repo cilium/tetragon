@@ -429,17 +429,17 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 	if (!match_binaries(index, enter, &enter->bin))
 		return 0;
 
-    struct execve_map_value *parent = event_find_parent();
+	struct execve_map_value *parent = event_find_parent();
 
-    /* If multiple exec were called in one process, we lose information about actual parent
+	/* If multiple exec were called in one process, we lose information about actual parent
      * binary, because execve map entry is overwritten with other value with same pid key.
      * If there is entry in parent_binaries_map, it means that current process was created with
      * same pid as parent process, so use this binary instead of parent->bin.
      */
-    struct binary *parent_bin = map_lookup_elem(&parent_binaries_map, &enter->key.pid);
-    if (!parent_bin && parent) {
-        parent_bin = &parent->bin;
-    }
+	struct binary *parent_bin = map_lookup_elem(&parent_binaries_map, &enter->key.pid);
+	if (!parent_bin && parent) {
+		parent_bin = &parent->bin;
+	}
 
 	/* matchParentBinaries key is in rage [MAX_SELECTORS; MAX_SELECTORS * 2) */
 	if (!match_binaries(index + MAX_SELECTORS, parent, parent_bin))

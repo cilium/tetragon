@@ -4013,7 +4013,6 @@ func TestKprobeMatchParentBinaries(t *testing.T) {
 			if test.needsLargeProgs && !config.EnableLargeProgs() {
 				t.Skip(skipMatchParentBinaries)
 			}
-			// don't expect error for expected parent
 			matchParentBinariesTest(t, test.operator, test.values, createParentsChecker(test.expectedParent, test.binary), test.parentCreatesNewProcess)
 		})
 	}

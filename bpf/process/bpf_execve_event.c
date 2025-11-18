@@ -331,16 +331,16 @@ execve_send(void *ctx __arg_ctx)
 		}
 #endif
 
-        // preserve parent binary if cleanup pid is equal to current pid,
-        // i.e. exec call was invoked in the same process.
-        if (curr->key.pid == event->cleanup_key.pid) {
-            __u32 zero = 0;
-            struct binary *bin = map_lookup_elem(&binary_heap_map, &zero);
-            if (bin) {
-                memcpy(bin, &curr->bin, sizeof(curr->bin));
-                map_update_elem(&parent_binaries_map, &curr->key.pid, bin, BPF_ANY);
-            }
-        }
+		// preserve parent binary if cleanup pid is equal to current pid,
+		// i.e. exec call was invoked in the same process.
+		if (curr->key.pid == event->cleanup_key.pid) {
+			__u32 zero = 0;
+			struct binary *bin = map_lookup_elem(&binary_heap_map, &zero);
+			if (bin) {
+				memcpy(bin, &curr->bin, sizeof(curr->bin));
+				map_update_elem(&parent_binaries_map, &curr->key.pid, bin, BPF_ANY);
+			}
+		}
 
 		/* zero out previous paths in ->bin */
 		binary_reset(&curr->bin);
