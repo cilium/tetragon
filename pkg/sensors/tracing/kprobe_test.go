@@ -35,6 +35,8 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -42,7 +44,6 @@ import (
 	"github.com/cilium/tetragon/pkg/ftrace"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	bc "github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
@@ -3887,13 +3888,13 @@ func matchParentBinariesTest(t *testing.T, operator string, values []string, kpC
 	} else {
 		// when bash just runs binary with '-c' option, it calls execve syscall in the same process
 		// without fork, so pid of parent process and current process will be same
-		bashArgs = append(bashArgs, "'/usr/bin/tail /etc/passwd'")
+		bashArgs = append(bashArgs, "/usr/bin/tail /etc/passwd")
 	}
 	if err := exec.Command("/usr/bin/bash", bashArgs...).Run(); err != nil {
 		t.Fatalf("failed to run tail /etc/passwd with /bin/bash: %s", err)
 	}
 
-	if err := exec.Command("/usr/bin/sh", "-c", "'/usr/bin/tail /etc/passwd'").Run(); err != nil {
+	if err := exec.Command("/usr/bin/sh", "-c", "/usr/bin/tail /etc/passwd").Run(); err != nil {
 		t.Fatalf("failed to run tail /etc/passwd with /bin/sh: %s", err)
 	}
 
