@@ -197,7 +197,7 @@ event_execve(struct exec_ctx_struct *ctx)
 	parent = event_find_parent();
 	if (parent) {
 		event->parent = parent->key;
-		update_mb_task(parent);
+		update_mb_task(parent, &parent->bin);
 	} else {
 		event_minimal_parent(event, task);
 	}
@@ -330,6 +330,18 @@ execve_send(void *ctx __arg_ctx)
 			curr->caps.inheritable = event->creds.caps.inheritable;
 		}
 #endif
+
+        // preserve parent binary if cleanup pid is equal to current pid,
+        // i.e. exec call was invoked in the same process.
+        if (curr->key.pid == event->cleanup_key.pid) {
+            __u32 zero = 0;
+            struct binary *bin = map_lookup_elem(&binary_heap_map, &zero);
+            if (bin) {
+                memcpy(bin, &curr->bin, sizeof(curr->bin));
+                map_update_elem(&parent_binaries_map, &curr->key.pid, bin, BPF_ANY);
+            }
+        }
+
 		/* zero out previous paths in ->bin */
 		binary_reset(&curr->bin);
 #ifdef __LARGE_BPF_PROG
