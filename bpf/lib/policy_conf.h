@@ -8,6 +8,7 @@
 enum {
 	POLICY_MODE_ENFORCE = 0,
 	POLICY_MODE_MONITOR = 1,
+	POLICY_MODE_MONITOR_ONLY = 2,
 };
 
 struct policy_conf {

@@ -1116,7 +1116,7 @@ do_actions(void *ctx, struct selector_action *actions)
 	 * actions
 	 */
 	pcnf = map_lookup_elem(&policy_conf, &zero);
-	if (pcnf && pcnf->mode == POLICY_MODE_MONITOR)
+	if (pcnf && pcnf->mode != POLICY_MODE_ENFORCE)
 		enforce_mode = false;
 
 #ifndef __LARGE_BPF_PROG
