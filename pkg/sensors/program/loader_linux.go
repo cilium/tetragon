@@ -683,7 +683,51 @@ func LoadMultiKprobeProgram(bpfDir string, load *Program, maps []*Map, verbose i
 	return loadProgram(bpfDir, load, opts, verbose)
 }
 
-func LoadFmodRetProgram(bpfDir string, load *Program, maps []*Map, progName string, verbose int) error {
+func LoadKProbeOverrideProgram(bpfDir string, load *Program, maps []*Map, progName string, verbose int, unloadFunc func(bool) error) error {
+	opts := &LoadOpts{
+		Attach: func(
+			_ *ebpf.Collection,
+			_ *ebpf.CollectionSpec,
+			prog *ebpf.Program,
+			spec *ebpf.ProgramSpec,
+		) (unloader.Unloader, error) {
+
+			pinPath := filepath.Join(bpfDir, load.PinPath, "prog_override")
+
+			var err error
+			var unload unloader.Unloader
+
+			if err := prog.Pin(pinPath); err != nil {
+				return nil, fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
+			}
+
+			unload, err = kprobeAttach(load, prog, spec, load.Attach, bpfDir, "override")
+			if err != nil {
+				return nil, fmt.Errorf("failed to attach override program '%s' to '%s': %w", load.Label, pinPath, err)
+			}
+
+			if unloadFunc != nil {
+				load.unloaderOverride = &unloader.CustomUnloader{
+					UnloadFunc: unloadFunc,
+				}
+			}
+
+			return unload, err
+		},
+		Open: func(coll *ebpf.CollectionSpec) error {
+			progSpec, ok := coll.Programs[progName]
+			if !ok {
+				return fmt.Errorf("progName %s not in collecition spec programs: %+v", progName, coll.Programs)
+			}
+			progSpec.AttachTo = load.Attach
+			return nil
+		},
+		Maps: maps,
+	}
+	return loadProgram(bpfDir, load, opts, verbose)
+}
+
+func LoadFmodRetProgram(bpfDir string, load *Program, maps []*Map, progName string, verbose int, unloadFunc func(bool) error) error {
 	opts := &LoadOpts{
 		Attach: func(
 			_ *ebpf.Collection,
@@ -699,6 +743,11 @@ func LoadFmodRetProgram(bpfDir string, load *Program, maps []*Map, progName stri
 			lnk, err := linkFn()
 			if err != nil {
 				return nil, fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
+			}
+			if unloadFunc != nil {
+				load.unloaderOverride = &unloader.CustomUnloader{
+					UnloadFunc: unloadFunc,
+				}
 			}
 			return &unloader.RelinkUnloader{
 				UnloadProg: unloader.ProgUnloader{Prog: prog}.Unload,

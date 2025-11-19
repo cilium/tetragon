@@ -72,3 +72,11 @@ func (lu LinkUnloader) Unload(unpin bool) error {
 	}
 	return lu.Link.Close()
 }
+
+type CustomUnloader struct {
+	UnloadFunc func(bool) error
+}
+
+func (cu CustomUnloader) Unload(unpin bool) error {
+	return cu.UnloadFunc(unpin)
+}
