@@ -55,12 +55,32 @@ type observerKprobeSensor struct {
 	name string
 }
 
+type fmodRetProgram struct {
+	name string
+}
+
+type kprobeOverrideProgram struct {
+	name string
+}
+
 func init() {
 	kprobe := &observerKprobeSensor{
 		name: "kprobe sensor",
 	}
+
+	fmodRet := &fmodRetProgram{
+		name: "fmod_ret program",
+	}
+
+	kprobeOverrideProgram := &kprobeOverrideProgram{
+		name: "kprobe_override program",
+	}
+
 	sensors.RegisterProbeType("generic_kprobe", kprobe)
 	observer.RegisterEventHandlerAtInit(ops.MSG_OP_GENERIC_KPROBE, handleGenericKprobe)
+
+	sensors.RegisterProbeType("generic_fmod_ret", fmodRet)
+	sensors.RegisterProbeType("generic_kprobe_override", kprobeOverrideProgram)
 }
 
 type kprobeSelectors struct {
@@ -345,11 +365,23 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 	filterMap.SetMaxEntries(len(multiIDs))
 	configMap.SetMaxEntries(len(multiIDs))
 
-	overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
 	if has.override {
-		overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
+		for _, id := range multiIDs {
+			gk, err := genericKprobeTableGet(id)
+			if err != nil {
+				return nil, nil, err
+			}
+			gk.data = &genericKprobeData{}
+
+			progs, maps = createKProbeOverrideProgramFromEntry(load, gk.funcName, progs, maps)
+		}
+	} else {
+		overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
+		if has.override {
+			overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
+		}
+		maps = append(maps, overrideTasksMap)
 	}
-	maps = append(maps, overrideTasksMap)
 
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load))
 
@@ -1007,6 +1039,38 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 	return kprobeEntry.tableId, nil
 }
 
+func createKProbeOverrideProgramFromEntry(load *program.Program, attachFunc string, progs []*program.Program, maps []*program.Map) ([]*program.Program, []*program.Map) {
+	// setup kprobe override program and its input
+	kprobeOverrideProg, kprobeOverrideMap := getOverrideProg(OverrideTypeKProbe, attachFunc)
+	progs = append(progs, kprobeOverrideProg)
+	maps = append(maps, kprobeOverrideMap)
+
+	// setup the output of kprobe
+	overrideTasksMap := program.MapBuilder("override_tasks", load)
+	overrideTasksMap.PinPath = kprobeOverrideMap.PinPath
+	overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
+
+	maps = append(maps, overrideTasksMap)
+
+	return progs, maps
+}
+
+func createFmodRetOverrideProgramFromEntry(load *program.Program, attachFunc string, progs []*program.Program, maps []*program.Map) ([]*program.Program, []*program.Map) {
+	// setup fmodret program and its input
+	fmodRetProg, fmodRetMap := getOverrideProg(OverrideTypeFmodRet, attachFunc)
+	progs = append(progs, fmodRetProg)
+	maps = append(maps, fmodRetMap)
+
+	// setup the output of kprobe
+	overrideTasksMap := program.MapBuilder("override_tasks", load)
+	overrideTasksMap.PinPath = fmodRetMap.PinPath
+	overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
+
+	maps = append(maps, overrideTasksMap)
+
+	return progs, maps
+}
+
 func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe,
 	progs []*program.Program, maps []*program.Map, has hasMaps) ([]*program.Program, []*program.Map) {
 
@@ -1104,11 +1168,16 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 		maps = append(maps, program.MapUser(cgtracker.MapName, load))
 	}
 
-	overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
-	if has.override {
-		overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
+	if load.Override {
+		if load.OverrideFmodRet {
+			progs, maps = createFmodRetOverrideProgramFromEntry(load, kprobeEntry.funcName, progs, maps)
+		} else {
+			progs, maps = createKProbeOverrideProgramFromEntry(load, kprobeEntry.funcName, progs, maps)
+		}
+	} else {
+		overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
+		maps = append(maps, overrideTasksMap)
 	}
-	maps = append(maps, overrideTasksMap)
 
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load))
 
@@ -1263,6 +1332,38 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir string, load *program.P
 	}
 
 	return nil
+}
+
+func loadGenericFmodRetProgram(bpfDir string, load *program.Program, maps []*program.Map, verbose int) error {
+	if load.LoadState.IsLoaded() {
+		logger.GetLogger().Info(fmt.Sprintf("The generic fmodify return program on %s has been loaded", load.Attach))
+		return nil
+	}
+
+	logger.GetLogger().Info("loading generic fmod ret program", "prog", load)
+
+	unload := func(_ bool) error {
+		deleteOverrideProg(OverrideTypeFmodRet, load.Attach)
+		return nil
+	}
+
+	return program.LoadFmodRetProgram(bpfDir, load, maps, "generic_fmodret_override", verbose, unload)
+}
+
+func loadGenericKProbeOverrideProgram(bpfDir string, load *program.Program, maps []*program.Map, verbose int) error {
+	if load.LoadState.IsLoaded() {
+		logger.GetLogger().Info(fmt.Sprintf("The generic kprobe override program on %s has been loaded", load.Attach))
+		return nil
+	}
+
+	logger.GetLogger().Info("loading generic kprobe override program", "prog", load)
+
+	unload := func(_ bool) error {
+		deleteOverrideProg(OverrideTypeKProbe, load.Attach)
+		return nil
+	}
+
+	return program.LoadKProbeOverrideProgram(bpfDir, load, maps, "generic_kprobe_override", verbose, unload)
 }
 
 func loadGenericKprobeSensor(bpfDir string, load *program.Program, maps []*program.Map, verbose int) error {
@@ -1519,4 +1620,12 @@ func retprobeMergeEvents[T evArgsRetriever](unix T, pendingEvents *lru.Cache[pen
 
 func (k *observerKprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 	return loadGenericKprobeSensor(args.BPFDir, args.Load, args.Maps, args.Verbose)
+}
+
+func (k *fmodRetProgram) LoadProbe(args sensors.LoadProbeArgs) error {
+	return loadGenericFmodRetProgram(args.BPFDir, args.Load, args.Maps, args.Verbose)
+}
+
+func (k *kprobeOverrideProgram) LoadProbe(args sensors.LoadProbeArgs) error {
+	return loadGenericKProbeOverrideProgram(args.BPFDir, args.Load, args.Maps, args.Verbose)
 }
