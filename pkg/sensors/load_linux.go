@@ -19,6 +19,10 @@ import (
 )
 
 func (s *Sensor) setMapPinPath(m *program.Map) {
+	if m.PinPath != "" {
+		// Use the specified one when m.PinPath is already available.
+		return
+	}
 	policy := s.policyDir()
 	switch m.Type {
 	case program.MapTypeGlobal:
