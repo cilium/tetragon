@@ -504,3 +504,174 @@ func TestUprobePtRegsDataMatch(t *testing.T) {
 func TestUprobePtRegsDataNotMatch(t *testing.T) {
 	testUprobePtRegsMatch(t, 10, true)
 }
+
+func TestUprobeResolveNull(t *testing.T) {
+	if !config.EnableLargeProgs() || !bpf.HasUprobeRefCtrOffset() {
+		t.Skip("Need 5.3 or newer kernel for uprobe ref_ctr_off support for this test.")
+	}
+
+	if !bpf.HasProbeWriteUserHelper() {
+		t.Skip("need bpf_probe_write_user() for this test")
+	}
+
+	uprobe := testutils.RepoRootPath("contrib/tester-progs/uprobe-null")
+	uprobeBtf := testutils.RepoRootPath("contrib/tester-progs/uprobe-null.btf")
+
+	tt := []struct {
+		arg    string
+		kpArgs []*ec.KprobeArgumentChecker
+	}{
+		{"first", []*ec.KprobeArgumentChecker{
+			ec.NewKprobeArgumentChecker().WithResolveErrDepth(1),
+		}},
+		{"middle", []*ec.KprobeArgumentChecker{
+			ec.NewKprobeArgumentChecker().WithResolveErrDepth(2),
+		}},
+		{"nonull", []*ec.KprobeArgumentChecker{
+			ec.NewKprobeArgumentChecker().WithIntArg(0).WithResolveErrDepth(0),
+		}},
+	}
+
+	uprobeHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-null"
+spec:
+  uprobes:
+  - path: "` + uprobe + `"
+    btfPath: "` + uprobeBtf + `"
+    symbols:
+    - "func"
+    args:
+    - index: 0
+      type: "int32"
+      btfType: "mystruct"
+      resolve: "subp.val"
+`
+
+	uprobeConfigHook := []byte(uprobeHook)
+	err := os.WriteFile(testConfigFile, uprobeConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	var checkers []ec.EventChecker
+	for i := range tt {
+		checkers = append(checkers, ec.NewProcessUprobeChecker("uprobe-null").
+			WithProcess(ec.NewProcessChecker().
+				WithBinary(sm.Full(uprobe)).
+				WithArguments(
+					sm.Full(tt[i].arg)),
+			).WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(tt[i].kpArgs...)))
+	}
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	for i := range tt {
+		cmd := exec.Command(uprobe, tt[i].arg)
+		cmdErr := testutils.RunCmdAndLogOutput(t, cmd)
+		require.NoError(t, cmdErr)
+	}
+
+	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(checkers...))
+	require.NoError(t, err)
+}
+
+func UprobeResolveNullMatch(t *testing.T, expectCheckerFailure bool, arg string) {
+	if !config.EnableLargeProgs() || !bpf.HasUprobeRefCtrOffset() {
+		t.Skip("Need 5.3 or newer kernel for uprobe ref_ctr_off support for this test.")
+	}
+
+	if !bpf.HasProbeWriteUserHelper() {
+		t.Skip("need bpf_probe_write_user() for this test")
+	}
+
+	uprobe := testutils.RepoRootPath("contrib/tester-progs/uprobe-null")
+	uprobeBtf := testutils.RepoRootPath("contrib/tester-progs/uprobe-null.btf")
+
+	uprobeHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-null"
+spec:
+  uprobes:
+  - path: "` + uprobe + `"
+    btfPath: "` + uprobeBtf + `"
+    symbols:
+    - "func"
+    args:
+    - index: 0
+      type: "int32"
+      btfType: "mystruct"
+      resolve: "subp.val"
+    selectors:
+    - matchArgs:
+      - args: [0]
+        operator: "Equal"
+        values:
+          - "0"
+`
+
+	uprobeConfigHook := []byte(uprobeHook)
+	err := os.WriteFile(testConfigFile, uprobeConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	kpArgs := []*ec.KprobeArgumentChecker{
+		ec.NewKprobeArgumentChecker(),
+	}
+
+	var checkers []ec.EventChecker
+	checkers = append(checkers, ec.NewProcessUprobeChecker("uprobe-null").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(uprobe)).
+			WithArguments(
+				sm.Full(arg)),
+		).WithArgs(ec.NewKprobeArgumentListMatcher().
+		WithOperator(lc.Ordered).
+		WithValues(kpArgs...)))
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	cmd := exec.Command(uprobe, arg)
+	cmdErr := testutils.RunCmdAndLogOutput(t, cmd)
+	require.NoError(t, cmdErr)
+
+	err = jsonchecker.JsonTestCheckExpect(t, ec.NewUnorderedEventChecker(checkers...), expectCheckerFailure)
+	require.NoError(t, err)
+}
+
+func TestUprobeResolveNullMatchPositive(t *testing.T) {
+	UprobeResolveNullMatch(t, false, "nonull")
+}
+
+func TestUprobeResolveNullMatchNegative(t *testing.T) {
+	UprobeResolveNullMatch(t, true, "first")
+}
