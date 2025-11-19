@@ -192,7 +192,6 @@ spec:
                             - int64
                             - char_buf
                             - char_iovec
-                            - size_t
                             - skb
                             - sock
                             - sockaddr
@@ -307,7 +306,6 @@ spec:
                             - int64
                             - char_buf
                             - char_iovec
-                            - size_t
                             - skb
                             - sock
                             - sockaddr
@@ -435,7 +433,6 @@ spec:
                           - int64
                           - char_buf
                           - char_iovec
-                          - size_t
                           - skb
                           - sock
                           - sockaddr
@@ -1191,7 +1188,6 @@ spec:
                             - int64
                             - char_buf
                             - char_iovec
-                            - size_t
                             - skb
                             - sock
                             - sockaddr
@@ -1984,7 +1980,6 @@ spec:
                             - int64
                             - char_buf
                             - char_iovec
-                            - size_t
                             - skb
                             - sock
                             - sockaddr
@@ -2721,7 +2716,6 @@ spec:
                             - int64
                             - char_buf
                             - char_iovec
-                            - size_t
                             - skb
                             - sock
                             - sockaddr
@@ -2836,7 +2830,6 @@ spec:
                             - int64
                             - char_buf
                             - char_iovec
-                            - size_t
                             - skb
                             - sock
                             - sockaddr
@@ -2972,7 +2965,6 @@ spec:
                           - int64
                           - char_buf
                           - char_iovec
-                          - size_t
                           - skb
                           - sock
                           - sockaddr
@@ -3692,7 +3684,6 @@ spec:
                             - int64
                             - char_buf
                             - char_iovec
-                            - size_t
                             - skb
                             - sock
                             - sockaddr
