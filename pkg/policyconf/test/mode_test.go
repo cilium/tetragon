@@ -11,6 +11,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
@@ -24,9 +28,6 @@ import (
 	pft "github.com/cilium/tetragon/pkg/testutils/policyfilter/tester"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
-
-	"github.com/stretchr/testify/require"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestMain(m *testing.M) {
@@ -232,4 +233,83 @@ func TestModeEnforcer(t *testing.T) {
 	resetEnforcerMap()
 	policyconf.SetPolicyMode(tp, policyconf.EnforceMode)
 	checkEnforce()
+}
+
+func TestModeMonitorOnly(t *testing.T) {
+	testutils.CaptureLog(t, logger.GetLogger())
+
+	ctx := t.Context()
+	pft := pft.Start(t, ctx)
+
+	polName := "tp-test"
+	polNamespace := "namespace"
+	tp := &tracingpolicy.GenericTracingPolicyNamespaced{
+		Metadata: v1.ObjectMeta{
+			Name:      polName,
+			Namespace: polNamespace,
+		},
+		Spec: v1alpha1.TracingPolicySpec{
+			KProbes: []v1alpha1.KProbeSpec{{
+				Call:    "sys_getcpu",
+				Return:  true,
+				Syscall: true,
+				ReturnArg: &v1alpha1.KProbeArg{
+					Index: 0,
+					Type:  "int",
+				},
+			}},
+		},
+	}
+
+	pft.AddPolicy(t, ctx, tp)
+
+	// Check that bpf map value is monitor only
+	mode, err := policyconf.PolicyMode(tp)
+	require.NoError(t, err)
+	require.Equal(t, policyconf.MonitorOnlyMode, mode)
+
+	// Test that monitor_only cannot be set
+	newMode := tetragon.TracingPolicyMode_TP_MODE_MONITOR_ONLY
+	err = pft.SensorMgr.ConfigureTracingPolicy(ctx, &tetragon.ConfigureTracingPolicyRequest{
+		Name:      polName,
+		Namespace: polNamespace,
+		Mode:      &newMode,
+	})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "unexpected mode")
+	// Same as above, but directly using low level policyconf.SetPolicyMode
+	err = policyconf.SetPolicyMode(tp, policyconf.MonitorOnlyMode)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "monitor only")
+
+	// Test that, since the policy is in monitor_only mode, mode cannot be updated to MONITOR
+	newMode = tetragon.TracingPolicyMode_TP_MODE_MONITOR
+	err = pft.SensorMgr.ConfigureTracingPolicy(ctx, &tetragon.ConfigureTracingPolicyRequest{
+		Name:      polName,
+		Namespace: polNamespace,
+		Mode:      &newMode,
+	})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "monitor only")
+	// Same as above but directly calling policyconf.SetPolicyMode
+	err = policyconf.SetPolicyMode(tp, policyconf.MonitorMode)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "monitor only")
+
+	// Test that, since the policy is in monitor_only mode, mode cannot be updated to ENFORCE
+	newMode = tetragon.TracingPolicyMode_TP_MODE_ENFORCE
+	err = pft.SensorMgr.ConfigureTracingPolicy(ctx, &tetragon.ConfigureTracingPolicyRequest{
+		Name:      polName,
+		Namespace: polNamespace,
+		Mode:      &newMode,
+	})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "monitor only")
+	// Same as above but directly calling policyconf.SetPolicyMode
+	err = policyconf.SetPolicyMode(tp, policyconf.MonitorMode)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "monitor only")
+	err = policyconf.SetPolicyMode(tp, policyconf.EnforceMode)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "monitor only")
 }
