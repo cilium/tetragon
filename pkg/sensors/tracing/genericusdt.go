@@ -368,7 +368,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID) ([]i
 			config.ArgType[cfgIdx] = int32(argType)
 
 			argPrinters = append(argPrinters,
-				argPrinter{index: int(arg.Index), ty: argType, label: arg.Label},
+				argPrinter{index: cfgIdx, ty: argType, label: arg.Label},
 			)
 		}
 		config.BTFArg = allBTFArgs
