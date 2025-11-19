@@ -13,13 +13,6 @@ struct {
 	__type(value, struct msg_generic_kprobe);
 } process_call_heap SEC(".maps");
 
-struct {
-	__uint(type, BPF_MAP_TYPE_HASH);
-	__uint(max_entries, 1); // will be resized by agent when needed
-	__type(key, __u64);
-	__type(value, __s32);
-} override_tasks SEC(".maps");
-
 #ifdef __LARGE_BPF_PROG
 #if defined(GENERIC_TRACEPOINT) || defined(GENERIC_UPROBE)
 #define data_heap_ptr 0

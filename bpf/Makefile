@@ -44,7 +44,7 @@ PROCESS += bpf_execve_event_v310.o bpf_exit_v310.o bpf_fork_v310.o
 PROCESS += bpf_execve_event.o bpf_fork.o bpf_exit.o bpf_execve_bprm_commit_creds.o
 # generic probes
 PROCESS += bpf_generic_kprobe.o bpf_generic_retkprobe.o bpf_generic_tracepoint.o \
-	   bpf_generic_uprobe.o bpf_generic_retuprobe.o bpf_generic_rawtp.o bpf_generic_usdt.o
+	   bpf_generic_uprobe.o bpf_generic_retuprobe.o bpf_generic_rawtp.o bpf_generic_usdt.o bpf_generic_override.o
 
 # lsm
 PROCESS += bpf_generic_lsm_core.o bpf_generic_lsm_output.o
