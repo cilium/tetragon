@@ -44,6 +44,8 @@ PROGS = sigkill-tester \
 
 PROGS += $(PROGS_ARCH)
 
+LIBS = libuprobe.so
+
 all: $(PROGS)
 
 %: %.c
@@ -154,6 +156,6 @@ test-helper: FORCE
 
 .PHONY: clean
 clean:
-	rm -f $(PROGS)
+	rm -f $(PROGS) $(LIBS)
 
 FORCE:
