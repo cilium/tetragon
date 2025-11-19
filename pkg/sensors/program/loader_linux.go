@@ -129,30 +129,6 @@ func disableProg(coll *ebpf.CollectionSpec, name string) {
 	}
 }
 
-func KprobeOpen(load *Program) OpenFunc {
-	return func(coll *ebpf.CollectionSpec) error {
-		// The generic_kprobe_override program is part of bpf_generic_kprobe.o object,
-		// so let's disable it if the override is not configured. Otherwise it gets
-		// loaded and bpftool will show it.
-		if !load.Override {
-			disableProg(coll, "generic_kprobe_override")
-			disableProg(coll, "generic_fmodret_override")
-		} else {
-			if load.OverrideFmodRet {
-				spec, ok := coll.Programs["generic_fmodret_override"]
-				if !ok {
-					return errors.New("failed to find generic_fmodret_override")
-				}
-				spec.AttachTo = load.Attach
-				disableProg(coll, "generic_kprobe_override")
-			} else {
-				disableProg(coll, "generic_fmodret_override")
-			}
-		}
-		return nil
-	}
-}
-
 func kprobeAttach(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec,
 	symbol string, bpfDir string, extra ...string) (unloader.Unloader, error) {
 	var linkFn func() (link.Link, error)
@@ -181,104 +157,9 @@ func kprobeAttach(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec,
 	}, nil
 }
 
-func kprobeAttachOverride(load *Program, bpfDir string,
-	coll *ebpf.Collection, collSpec *ebpf.CollectionSpec) error {
-
-	spec, ok := collSpec.Programs["generic_kprobe_override"]
-	if !ok {
-		return errors.New("spec for generic_kprobe_override program not found")
-	}
-
-	prog, ok := coll.Programs["generic_kprobe_override"]
-	if !ok {
-		return errors.New("program generic_kprobe_override not found")
-	}
-
-	prog, err := prog.Clone()
-	if err != nil {
-		return fmt.Errorf("failed to clone generic_kprobe_override program: %w", err)
-	}
-
-	pinPath := filepath.Join(bpfDir, load.PinPath, "prog_override")
-
-	if err := prog.Pin(pinPath); err != nil {
-		return fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
-	}
-
-	load.unloaderOverride, err = kprobeAttach(load, prog, spec, load.Attach, bpfDir, "override")
-	if err != nil {
-		logger.GetLogger().Warn("Failed to attach override program", logfields.Error, err)
-	}
-
-	return nil
-}
-
-func fmodretAttachOverride(load *Program, bpfDir string,
-	coll *ebpf.Collection, collSpec *ebpf.CollectionSpec) error {
-
-	spec, ok := collSpec.Programs["generic_fmodret_override"]
-	if !ok {
-		return errors.New("spec for generic_fmodret_override program not found")
-	}
-
-	prog, ok := coll.Programs["generic_fmodret_override"]
-	if !ok {
-		return errors.New("program generic_fmodret_override not found")
-	}
-
-	prog, err := prog.Clone()
-	if err != nil {
-		return fmt.Errorf("failed to clone generic_fmodret_override program: %w", err)
-	}
-
-	pinPath := filepath.Join(bpfDir, filepath.Join(load.PinPath, "prog_override"))
-
-	if err := prog.Pin(pinPath); err != nil {
-		return fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
-	}
-
-	linkFn := func() (link.Link, error) {
-		return link.AttachTracing(link.TracingOptions{
-			Program: prog,
-		})
-	}
-
-	lnk, err := linkFn()
-	if err != nil {
-		return fmt.Errorf("attaching '%s' failed: %w", spec.Name, err)
-	}
-
-	err = linkPin(lnk, bpfDir, load, "override")
-	if err != nil {
-		lnk.Close()
-		return err
-	}
-
-	load.unloaderOverride = &unloader.RelinkUnloader{
-		UnloadProg: unloader.ProgUnloader{Prog: prog}.Unload,
-		IsLinked:   true,
-		Link:       lnk,
-		RelinkFn:   linkFn,
-	}
-
-	return nil
-}
-
 func KprobeAttach(load *Program, bpfDir string) AttachFunc {
-	return func(coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
+	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
-
-		if load.Override {
-			if load.OverrideFmodRet {
-				if err := fmodretAttachOverride(load, bpfDir, coll, collSpec); err != nil {
-					return nil, err
-				}
-			} else {
-				if err := kprobeAttachOverride(load, bpfDir, coll, collSpec); err != nil {
-					return nil, err
-				}
-			}
-		}
 
 		return kprobeAttach(load, prog, spec, load.Attach, bpfDir)
 	}
@@ -561,44 +442,12 @@ func multiKprobeAttach(load *Program, prog *ebpf.Program,
 }
 
 func MultiKprobeAttach(load *Program, bpfDir string) AttachFunc {
-	return func(coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
+	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 
 		data, ok := load.AttachData.(*MultiKprobeAttachData)
 		if !ok {
 			return nil, fmt.Errorf("attaching '%s' failed: wrong attach data", spec.Name)
-		}
-
-		if load.Override {
-			progOverrideSpec, ok := collSpec.Programs["generic_kprobe_override"]
-			if ok {
-				progOverrideSpec.Type = ebpf.UnspecifiedProgram
-			}
-
-			progOverride, ok := coll.Programs["generic_kprobe_override"]
-			if !ok {
-				return nil, fmt.Errorf("program for section '%s' not found", load.Label)
-			}
-
-			progOverride, err := progOverride.Clone()
-			if err != nil {
-				return nil, fmt.Errorf("failed to clone program '%s': %w", load.Label, err)
-			}
-
-			pinPath := filepath.Join(bpfDir, filepath.Join(load.PinPath, "prog_override"))
-
-			if err := progOverride.Pin(pinPath); err != nil {
-				return nil, fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
-			}
-
-			opts := link.KprobeMultiOptions{
-				Symbols: data.Overrides,
-			}
-
-			load.unloaderOverride, err = multiKprobeAttach(load, progOverride, progOverrideSpec, opts, bpfDir, "override")
-			if err != nil {
-				logger.GetLogger().Warn("Failed to attach override program", logfields.Error, err)
-			}
 		}
 
 		opts := link.KprobeMultiOptions{
@@ -629,8 +478,10 @@ func LoadRawTracepointProgram(bpfDir string, load *Program, maps []*Map, verbose
 func LoadKprobeProgram(bpfDir string, load *Program, maps []*Map, verbose int) error {
 	opts := &LoadOpts{
 		Attach: KprobeAttach(load, bpfDir),
-		Open:   KprobeOpen(load),
-		Maps:   maps,
+		Open: func(coll *ebpf.CollectionSpec) error {
+			return nil
+		},
+		Maps: maps,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
@@ -677,8 +528,10 @@ func LoadUprobeProgram(bpfDir string, load *Program, maps []*Map, verbose int) e
 func LoadMultiKprobeProgram(bpfDir string, load *Program, maps []*Map, verbose int) error {
 	opts := &LoadOpts{
 		Attach: MultiKprobeAttach(load, bpfDir),
-		Open:   KprobeOpen(load),
-		Maps:   maps,
+		Open: func(coll *ebpf.CollectionSpec) error {
+			return nil
+		},
+		Maps: maps,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
 }
