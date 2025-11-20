@@ -6,17 +6,30 @@
 package celbpf
 
 import (
+	"fmt"
+
 	"github.com/cilium/ebpf/asm"
 )
 
+var scratchRegs = []asm.Register{asm.R1, asm.R2, asm.R3, asm.R4, asm.R5}
+
 type codeGenerator struct {
-	insts    asm.Instructions
-	stackTop int16
+	insts       asm.Instructions
+	stackTop    int16
+	labelPrefix string
+	labelID     uint
 }
 
-func newCodeGenerator() *codeGenerator {
+func (g *codeGenerator) generateLabel() string {
+	ret := fmt.Sprintf("%s_l%03d", g.labelPrefix, g.labelID)
+	g.labelID++
+	return ret
+}
+
+func newCodeGenerator(labelPrefix string) *codeGenerator {
 	return &codeGenerator{
-		insts: asm.Instructions{},
+		insts:       asm.Instructions{},
+		labelPrefix: labelPrefix,
 	}
 }
 
@@ -29,15 +42,45 @@ func (g *codeGenerator) emitRaw(insts ...asm.Instruction) {
 }
 
 func (g *codeGenerator) emitPushBool(val bool) {
-	imm := int64(0)
+	imm := int32(0)
 	if val {
 		imm = 1
 	}
 	g.stackTop -= 8
-	g.emitRaw(asm.StoreImm(asm.R10, g.stackTop, imm, asm.DWord))
+	g.emitRaw(
+		asm.Mov.Imm(scratchRegs[0], imm),
+		asm.StoreMem(asm.R10, g.stackTop, scratchRegs[0], asm.DWord),
+	)
 }
 
 func (g *codeGenerator) emitPopBool(reg asm.Register) {
 	g.emitRaw(asm.LoadMem(reg, asm.R10, g.stackTop, asm.DWord))
 	g.stackTop += 8
+}
+
+func (g *codeGenerator) emitPushInt64(val int64) {
+	g.stackTop -= 8
+	g.emitRaw(
+		asm.LoadImm(asm.R3, val, asm.DWord),
+		asm.StoreMem(asm.R10, g.stackTop, asm.R3, asm.DWord),
+	)
+}
+
+func (g *codeGenerator) emitPopInt64(reg asm.Register) {
+	g.emitRaw(asm.LoadMem(reg, asm.R10, g.stackTop, asm.DWord))
+	g.stackTop += 8
+}
+
+func (g *codeGenerator) emitBranchEquals(reg0 asm.Register, reg1 asm.Register) {
+	// make space to push a boolean (8 bytes)
+	g.stackTop -= 8
+	label := g.generateLabel()
+	g.emitRaw(
+		asm.JEq.Reg(reg0, reg1, label),
+		asm.LoadImm(asm.R3, 0, asm.DWord),
+		asm.Instruction{OpCode: asm.Ja.Op(asm.ImmSource), Offset: 2},
+		asm.LoadImm(asm.R3, 1, asm.DWord).WithSymbol(label),
+		asm.StoreMem(asm.R10, g.stackTop, asm.R3, asm.DWord),
+	)
+
 }
