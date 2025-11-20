@@ -10,7 +10,35 @@ import (
 
 	cgChecker "github.com/google/cel-go/checker"
 	cgContainers "github.com/google/cel-go/common/containers"
+	cgDecls "github.com/google/cel-go/common/decls"
+	cgOperators "github.com/google/cel-go/common/operators"
+	cgOverloads "github.com/google/cel-go/common/overloads"
+	cgTypes "github.com/google/cel-go/common/types"
 )
+
+func checkerAddFunctions(env *cgChecker.Env) error {
+	paramA := cgTypes.NewTypeParamType("A")
+
+	fnsOpts := []struct {
+		name string
+		opts []cgDecls.FunctionOpt
+	}{
+		{name: cgOperators.Equals, opts: []cgDecls.FunctionOpt{
+			cgDecls.Overload(cgOverloads.Equals, []*cgTypes.Type{paramA, paramA}, cgTypes.BoolType),
+		}},
+	}
+
+	fns := make([]*cgDecls.FunctionDecl, 0, len(fnsOpts))
+	for _, fnOpts := range fnsOpts {
+		fn, err := cgDecls.NewFunction(fnOpts.name, fnOpts.opts...)
+		if err != nil {
+			return err
+		}
+		fns = append(fns, fn)
+	}
+
+	return env.AddFunctions(fns...)
+}
 
 func newCheckerEnv() (*cgChecker.Env, error) {
 	tyProvider, err := NewProvider()
@@ -22,8 +50,11 @@ func newCheckerEnv() (*cgChecker.Env, error) {
 		return nil, fmt.Errorf("failed to initialize environment: %w", err)
 	}
 
+	if err := checkerAddFunctions(checkerEnv); err != nil {
+		return nil, err
+	}
+
 	//TODO:
-	// checkerEnv.AddFunctions()
 	//checkerEnv.AddIdents()
 
 	return checkerEnv, nil
