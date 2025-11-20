@@ -22,18 +22,26 @@ func TestExprs(t *testing.T) {
 	}{
 		{"true", 1},
 		{"false", 0},
+		{"10 == 10", 1},
+		{"10 == 5", 0},
+		{"(10 == 10) == (10 == 10)", 1},
+		{"(5 == 10) == (10 == 5)", 1},
+		{"(5 == 10) == (10 == 10)", 0},
+		{"10u == 10u", 1},
+		{"10u == 5u", 0},
 	}
 
 	for _, tc := range testCase {
-		insts, err := Compile(tc.expr)
-		require.NoError(t, err)
+		insts, err := Compile(tc.expr, "tc")
+		require.NoError(t, err, "Compiling expression %q failed", tc.expr)
+		insts[0] = insts[0].WithSource(s{tc.expr})
 		// t.Logf("expr:%q\ninsts[%d]:\n%s", tc.expr, len(insts), insts)
 		prog, err := ebpf.NewProgramWithOptions(&ebpf.ProgramSpec{
 			Type:         ebpf.RawTracepoint,
 			Instructions: insts,
 			License:      "Dual BSD/GPL",
 		}, ebpf.ProgramOptions{LogLevel: ebpf.LogLevelInstruction})
-		require.NoError(t, err)
+		require.NoError(t, err, "Loading program for expr %q failed", tc.expr)
 		defer prog.Close()
 		val, err := prog.Run(&ebpf.RunOptions{})
 		require.NoError(t, err)
