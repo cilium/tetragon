@@ -17,7 +17,7 @@ import (
 
 type Env struct{}
 
-func Compile(celExpr string) (asm.Instructions, error) {
+func Compile(celExpr string, labelPrefix string) (asm.Instructions, error) {
 	source := cgCommon.NewTextSource(celExpr)
 	parser, err := cgParser.NewParser()
 	if err != nil {
@@ -39,7 +39,7 @@ func Compile(celExpr string) (asm.Instructions, error) {
 		return nil, fmt.Errorf("check failed on CEL expresion %q: %s", celExpr, errs.ToDisplayString())
 	}
 
-	compiler := newCompiler(ast, source)
+	compiler := newCompiler(ast, source, labelPrefix)
 	return compiler.compile()
 }
 
@@ -77,7 +77,7 @@ func CompileEmptyFunction(fnName string) asm.Instructions {
 }
 
 func CompileFn(fnName, celExpr string) (asm.Instructions, error) {
-	insns, err := Compile(celExpr)
+	insns, err := Compile(celExpr, fnName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to compile CEL expression %q: %w", celExpr, err)
 	}
