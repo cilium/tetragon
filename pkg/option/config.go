@@ -41,6 +41,8 @@ type config struct {
 	EnableProcessUsdtAncestors        bool
 	EnableProcessEnvironmentVariables bool
 
+	FilterEnvironmentVariables map[string]struct{}
+
 	EnableProcessNs      bool
 	EnableProcessCred    bool
 	EnableK8s            bool

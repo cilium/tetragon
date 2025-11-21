@@ -53,6 +53,8 @@ const (
 
 	KeyEnableProcessEnvironmentVariables = "enable-process-environment-variables"
 
+	KeyFilterEnvironmentVariables = "filter-environment-variables"
+
 	KeyEnableAncestors   = "enable-ancestors"
 	KeyEnableProcessCred = "enable-process-cred"
 	KeyEnableProcessNs   = "enable-process-ns"
@@ -200,6 +202,15 @@ func ReadAndSetFlags() error {
 	}
 
 	Config.EnableProcessEnvironmentVariables = viper.GetBool(KeyEnableProcessEnvironmentVariables)
+
+	vars := viper.GetStringSlice(KeyFilterEnvironmentVariables)
+	if len(vars) != 0 {
+		filter := make(map[string]struct{})
+		for _, v := range vars {
+			filter[v] = struct{}{}
+		}
+		Config.FilterEnvironmentVariables = filter
+	}
 
 	Config.GopsAddr = viper.GetString(KeyGopsAddr)
 
@@ -395,6 +406,9 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.StringSlice(KeyEnableAncestors, []string{}, "Comma-separated list of process event types to enable ancestors for. Supported event types are: base, kprobe, tracepoint, uprobe, lsm, usdt. Unknown event types will be ignored. Type 'base' enables ancestors for process_exec and process_exit events and is required by all other supported event types for correct reference counting. An empty string disables ancestors completely")
 
 	flags.Bool(KeyEnableProcessEnvironmentVariables, false, "Include environment variables in process_exec events. Disabled by default. Note that this option can significantly increase the size of the events and may impact performance, as well as capture sensitive information such as passwords in the events (you can use --redaction-filters to redact the data).")
+
+	// filter option for allowed envs
+	flags.StringSliceP(KeyFilterEnvironmentVariables, "", nil, "Filter for specific environment variables")
 
 	// Tracing policy file
 	flags.String(KeyTracingPolicy, "", "Tracing policy file to load at startup")

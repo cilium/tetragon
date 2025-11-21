@@ -148,6 +148,9 @@ options:
       usage: Expose real linear addresses in events stack traces
     - name: field-filters
       usage: Field filters for event exports
+    - name: filter-environment-variables
+      default_value: '[]'
+      usage: Filter for specific environment variables
     - name: force-large-progs
       default_value: "false"
       usage: |
