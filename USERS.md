@@ -70,6 +70,11 @@ Example entry:
       L: https://www.parseable.io/blog/ebpf-log-analytics
       Q: @nitisht
 
+    * N: Reddit
+      D: Reddit uses Tetragon to identify security risks and policy violations
+      U: Visibility into linux system calls, use of kernel modules, process events, file access behavior, and network behavior
+      L: https://www.reddit.com/r/RedditEng/comments/1hv3sc7/tetragon_configuration_gotchas/
+
     * N: SINAD
       D: SINAD uses Cilium and integrates Tetragon into their application EzyKube 
       U: Runtime security
