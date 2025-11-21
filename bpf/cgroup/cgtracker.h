@@ -6,7 +6,7 @@
 
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
-	__uint(max_entries, 1);
+	__uint(max_entries, 16384);
 	__type(key, __u64); /* cgroup id */
 	__type(value, __u64); /* tracker cgroup id */
 } tg_cgtracker_map SEC(".maps");
