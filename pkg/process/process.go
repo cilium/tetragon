@@ -5,6 +5,7 @@ package process
 
 import (
 	"errors"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -374,6 +375,16 @@ func initProcessInternalExec(
 	}
 
 	envs := process.Envs
+
+	// Apply user filter on environment variables before redaction.
+	if option.Config.FilterEnvironmentVariables != nil {
+		envs = slices.DeleteFunc(envs, func(v string) bool {
+			idx := strings.Index(v, "=")
+			_, ok := option.Config.FilterEnvironmentVariables[v[0:idx]]
+			return !ok
+		})
+	}
+
 	if fieldfilters.RedactionFilters != nil {
 		args, envs = fieldfilters.RedactionFilters.Redact(binary, args, envs)
 	}
