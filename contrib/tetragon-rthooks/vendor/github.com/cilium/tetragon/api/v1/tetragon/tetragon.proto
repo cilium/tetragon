@@ -712,9 +712,16 @@ message GetHealthStatusResponse {
 
 // loader sensor event triggered for loaded binary/library
 message ProcessLoader {
+  // Process that triggered the loader.
   Process process = 1;
+  // File path that is being loaded.
   string path = 2;
+  // Buildid of the file that is being loaded.
   bytes buildid = 3;
+  // Immediate parent of the process.
+  Process parent = 4;
+  // Ancestors of the process beyond the immediate parent.
+  repeated Process ancestors = 5;
 }
 
 // RuntimeHookRequest synchronously propagates information to the agent about run-time state.

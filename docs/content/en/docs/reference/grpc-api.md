@@ -692,9 +692,11 @@ loader sensor event triggered for loaded binary/library
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| process | [Process](#tetragon-Process) |  |  |
-| path | [string](#string) |  |  |
-| buildid | [bytes](#bytes) |  |  |
+| process | [Process](#tetragon-Process) |  | Process that triggered the loader. |
+| path | [string](#string) |  | File path that is being loaded. |
+| buildid | [bytes](#bytes) |  | Buildid of the file that is being loaded. |
+| parent | [Process](#tetragon-Process) |  | Immediate parent of the process. |
+| ancestors | [Process](#tetragon-Process) | repeated | Ancestors of the process beyond the immediate parent. |
 
 <a name="tetragon-ProcessLsm"></a>
 

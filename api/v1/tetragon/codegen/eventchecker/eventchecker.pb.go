@@ -2480,6 +2480,8 @@ type ProcessLoaderChecker struct {
 	Process     *ProcessChecker              `json:"process,omitempty"`
 	Path        *stringmatcher.StringMatcher `json:"path,omitempty"`
 	Buildid     *bytesmatcher.BytesMatcher   `json:"buildid,omitempty"`
+	Parent      *ProcessChecker              `json:"parent,omitempty"`
+	Ancestors   *ProcessListMatcher          `json:"ancestors,omitempty"`
 }
 
 // CheckEvent checks a single event and implements the EventChecker interface
@@ -2536,6 +2538,16 @@ func (checker *ProcessLoaderChecker) Check(event *tetragon.ProcessLoader) error 
 				return fmt.Errorf("Buildid check failed: %w", err)
 			}
 		}
+		if checker.Parent != nil {
+			if err := checker.Parent.Check(event.Parent); err != nil {
+				return fmt.Errorf("Parent check failed: %w", err)
+			}
+		}
+		if checker.Ancestors != nil {
+			if err := checker.Ancestors.Check(event.Ancestors); err != nil {
+				return fmt.Errorf("Ancestors check failed: %w", err)
+			}
+		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -2562,6 +2574,18 @@ func (checker *ProcessLoaderChecker) WithBuildid(check *bytesmatcher.BytesMatche
 	return checker
 }
 
+// WithParent adds a Parent check to the ProcessLoaderChecker
+func (checker *ProcessLoaderChecker) WithParent(check *ProcessChecker) *ProcessLoaderChecker {
+	checker.Parent = check
+	return checker
+}
+
+// WithAncestors adds a Ancestors check to the ProcessLoaderChecker
+func (checker *ProcessLoaderChecker) WithAncestors(check *ProcessListMatcher) *ProcessLoaderChecker {
+	checker.Ancestors = check
+	return checker
+}
+
 //FromProcessLoader populates the ProcessLoaderChecker using data from a ProcessLoader event
 func (checker *ProcessLoaderChecker) FromProcessLoader(event *tetragon.ProcessLoader) *ProcessLoaderChecker {
 	if event == nil {
@@ -2572,6 +2596,22 @@ func (checker *ProcessLoaderChecker) FromProcessLoader(event *tetragon.ProcessLo
 	}
 	checker.Path = stringmatcher.Full(event.Path)
 	checker.Buildid = bytesmatcher.Full(event.Buildid)
+	if event.Parent != nil {
+		checker.Parent = NewProcessChecker().FromProcess(event.Parent)
+	}
+	{
+		var checks []*ProcessChecker
+		for _, check := range event.Ancestors {
+			var convertedCheck *ProcessChecker
+			if check != nil {
+				convertedCheck = NewProcessChecker().FromProcess(check)
+			}
+			checks = append(checks, convertedCheck)
+		}
+		lm := NewProcessListMatcher().WithOperator(listmatcher.Ordered).
+			WithValues(checks...)
+		checker.Ancestors = lm
+	}
 	return checker
 }
 

@@ -748,47 +748,42 @@ type MsgProcessLoaderUnix struct {
 	Buildid []byte
 }
 
-type ProcessLoaderNotify struct {
-	tetragon.ProcessLoader
-}
-
-func (event *ProcessLoaderNotify) GetParent() *tetragon.Process {
-	return nil
-}
-
-func (event *ProcessLoaderNotify) SetParent(*tetragon.Process) {
-}
-
-func (event *ProcessLoaderNotify) GetAncestors() []*tetragon.Process {
-	return nil
-}
-
-func (event *ProcessLoaderNotify) SetAncestors([]*tetragon.Process) {
-}
-
 func GetProcessLoader(msg *MsgProcessLoaderUnix) *tetragon.ProcessLoader {
-	_, _, tetragonProcess, _ := getProcessParent(&msg.Msg.ProcessKey, 0)
+	var ancestors []*process.ProcessInternal
+	var tetragonAncestors []*tetragon.Process
 
-	notifyEvent := &ProcessLoaderNotify{
-		ProcessLoader: tetragon.ProcessLoader{
-			Process: tetragonProcess,
-			Path:    msg.Path,
-			Buildid: msg.Buildid,
-		},
+	proc, parent, tetragonProcess, tetragonParent := getProcessParent(&msg.Msg.ProcessKey, 0)
+
+	// Set the ancestors only if --enable-ancestors flag includes 'uprobe'.
+	if option.Config.EnableProcessUprobeAncestors && proc.NeededAncestors() {
+		ancestors, _ = process.GetAncestorProcessesInternal(tetragonProcess.ParentExecId)
+		for _, ancestor := range ancestors {
+			tetragonAncestors = append(tetragonAncestors, ancestor.UnsafeGetProcess())
+		}
+	}
+
+	tetragonEvent := &tetragon.ProcessLoader{
+		Process:   tetragonProcess,
+		Path:      msg.Path,
+		Buildid:   msg.Buildid,
+		Parent:    tetragonParent,
+		Ancestors: tetragonAncestors,
 	}
 
 	if tetragonProcess.Pid == nil {
-		eventcache.CacheErrors(eventcache.NilProcessPid, notify.EventType(notifyEvent)).Inc()
+		eventcache.CacheErrors(eventcache.NilProcessPid, notify.EventType(tetragonEvent)).Inc()
 		return nil
 	}
 
 	if ec := eventcache.Get(); ec != nil &&
-		(ec.Needed(tetragonProcess) || (tetragonProcess.Pid.Value > 1)) {
-		ec.Add(nil, notifyEvent, msg.Msg.Common.Ktime, msg.Msg.ProcessKey.Ktime, msg)
+		(ec.Needed(tetragonProcess) ||
+			((tetragonProcess.Pid.Value > 1) && ec.Needed(tetragonParent)) ||
+			(option.Config.EnableProcessUprobeAncestors && ec.NeededAncestors(parent, ancestors))) {
+		ec.Add(nil, tetragonEvent, msg.Msg.Common.Ktime, msg.Msg.ProcessKey.Ktime, msg)
 		return nil
 	}
 
-	return &notifyEvent.ProcessLoader
+	return tetragonEvent
 }
 
 func (msg *MsgProcessLoaderUnix) Notify() bool {
