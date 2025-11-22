@@ -15,6 +15,7 @@
 #include "bpf_ktime.h"
 #include "regs.h"
 #include "config.h"
+#include "uprobe_preload.h"
 
 #define MAX_TOTAL 9000
 
@@ -579,6 +580,30 @@ FUNC_INLINE long get_pt_regs_arg(struct pt_regs *ctx, struct event_config *confi
 }
 #endif /* __TARGET_ARCH_x86 && (GENERIC_KPROBE || GENERIC_UPROBE) */
 
+#if defined(GENERIC_UPROBE) && defined(__TARGET_ARCH_x86)
+FUNC_INLINE unsigned long get_pt_regs_preload_arg(struct pt_regs *ctx, long ty)
+{
+	unsigned long arg = 0;
+
+	if (ty == string_type) {
+		arg = preload_string_arg(ctx);
+
+		// Make verifier to believe it's just an ordinary number and not
+		// a pointer to the map. The rest of the argument code might do
+		// some arithmetics on it which would fail for pointer, but it's
+		// always using probe_read, so it's safe.
+		probe_read(&arg, sizeof(arg), &arg);
+	}
+
+	return arg;
+}
+#else
+FUNC_INLINE long get_pt_regs_preload_arg(struct pt_regs *ctx, long ty)
+{
+	return 0;
+}
+#endif
+
 FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map_def *tailcals,
 				  int process)
 {
@@ -621,11 +646,14 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 	/* Getting argument data based on the source attribute, which is encoded
 	 * in argument meta data, so far it's either:
 	 *
+	 *   - pt_regs preloaded register
 	 *   - pt_regs register
 	 *   - current task object
 	 *   - real argument value
 	 */
-	if (am & ARGM_PT_REGS)
+	if (am & ARGM_PT_REGS_PRELOAD)
+		a = get_pt_regs_preload_arg(ctx, ty);
+	else if (am & ARGM_PT_REGS)
 		a = get_pt_regs_arg(ctx, config, arg_index);
 	else if (am & ARGM_CURRENT_TASK)
 		a = get_current_task();
