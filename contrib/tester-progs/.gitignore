@@ -38,3 +38,5 @@ regs-override
 uretprobe
 uprobe-resolve
 uprobe-resolve.btf
+uprobe-null
+uprobe-null.btf
