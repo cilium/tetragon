@@ -239,6 +239,18 @@ func (event *ProcessLoader) SetProcess(p *Process) {
 	event.Process = p
 }
 
+// SetParent implements the ParentEvent interface.
+// Sets the Parent field of an event.
+func (event *ProcessLoader) SetParent(p *Process) {
+	event.Parent = p
+}
+
+// SetAncestors implements the AncestorEvent interface.
+// Sets the Ancestor field of an event.
+func (event *ProcessLoader) SetAncestors(ps []*Process) {
+	event.Ancestors = ps
+}
+
 // Encapsulate implements the Event interface.
 // Returns the event wrapped by its GetEventsResponse_* type.
 func (event *RateLimitInfo) Encapsulate() IsGetEventsResponse_Event {
