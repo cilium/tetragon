@@ -92,9 +92,10 @@ type config struct {
 
 	ReleasePinned bool
 
-	EnablePolicyFilter          bool
-	EnablePolicyFilterCgroupMap bool
-	EnablePolicyFilterDebug     bool
+	EnablePolicyFilter           bool
+	EnablePolicyFilterCgroupMap  bool
+	EnablePolicyFilterDebug      bool
+	EnablePolicyFilterNoPrealloc bool
 
 	EnablePidSetFilter bool
 

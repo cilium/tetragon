@@ -67,6 +67,9 @@ data:
 {{- if .Values.tetragon.enablePolicyFilterDebug }}
   enable-policy-filter-debug: "true"
 {{- end }}
+{{- if .Values.tetragon.enablePolicyFilterNoPrealloc }}
+  enable-policy-filter-no-prealloc: "true"
+{{- end }}
 {{- if .Values.tetragon.enableMsgHandlingLatency }}
   enable-msg-handling-latency: "true"
 {{- end }}

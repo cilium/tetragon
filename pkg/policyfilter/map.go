@@ -14,6 +14,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
+	"github.com/cilium/tetragon/pkg/option"
 )
 
 const (
@@ -39,6 +40,11 @@ func openMap(spec *ebpf.CollectionSpec, mapName string, innerMaxEntries uint32) 
 	// inserting a different size of inner-map, but for older kernels, we
 	// fix the spec here.
 	policyMapSpec.InnerMap.MaxEntries = innerMaxEntries
+	if option.Config.EnablePolicyFilterNoPrealloc {
+		policyMapSpec.InnerMap.Flags |= bpf.BPF_F_NO_PREALLOC
+	} else {
+		policyMapSpec.InnerMap.Flags &^= bpf.BPF_F_NO_PREALLOC
+	}
 
 	ret, err := ebpf.NewMap(policyMapSpec)
 	if err != nil {
@@ -183,6 +189,10 @@ func (m PfMap) newPolicyMap(polID PolicyID, cgIDs []CgroupID) (polMap, error) {
 		KeySize:    uint32(unsafe.Sizeof(CgroupID(0))),
 		ValueSize:  uint32(1),
 		MaxEntries: uint32(polMapSize),
+	}
+
+	if option.Config.EnablePolicyFilterNoPrealloc {
+		innerSpec.Flags = bpf.BPF_F_NO_PREALLOC
 	}
 
 	inner, err := ebpf.NewMap(innerSpec)

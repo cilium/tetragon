@@ -206,6 +206,8 @@ tetragon:
   enablePolicyFilterCgroupMap: false
   # -- Enable policy filter debug messages.
   enablePolicyFilterDebug: false
+  # -- Enable BPF_F_NO_PREALLOC flag for policy filter inner maps.
+  enablePolicyFilterNoPrealloc: false
   # -- Enable latency monitoring in message handling
   enableMsgHandlingLatency: false
   healthGrpc:

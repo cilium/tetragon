@@ -82,6 +82,9 @@ options:
     - name: enable-policy-filter-debug
       default_value: "false"
       usage: Enable policy filter debug messages
+    - name: enable-policy-filter-no-prealloc
+      default_value: "false"
+      usage: Enable BPF_F_NO_PREALLOC flag for policy filter inner maps
     - name: enable-process-cred
       default_value: "false"
       usage: Enable process_cred events
