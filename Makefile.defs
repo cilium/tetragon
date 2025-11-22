@@ -13,6 +13,6 @@ GO ?= go
 CONTAINER_ENGINE ?= docker
 
 BUF ?= buf
-BUF_BREAKING_AGAINST_BRANCH ?= origin/main
+BUF_BREAKING_AGAINST_BRANCH ?= origin/v1.4
 # renovate: datasource=docker
 BUILDER_IMAGE=quay.io/cilium/cilium-builder:cd04ac813fb4763f840911c88beae99efc4aa457
