@@ -14,6 +14,7 @@
 #include "generic_path.h"
 #include "bpf_ktime.h"
 #include "regs.h"
+#include "uprobe_preload.h"
 
 #define MAX_TOTAL 9000
 
@@ -495,6 +496,20 @@ FUNC_INLINE long get_pt_regs_arg(struct pt_regs *ctx, struct event_config *confi
 }
 #endif /* __TARGET_ARCH_x86 && (GENERIC_KPROBE || GENERIC_UPROBE) */
 
+#if defined(GENERIC_UPROBE) && defined(__TARGET_ARCH_x86)
+FUNC_INLINE unsigned long get_pt_regs_preload_arg(struct pt_regs *ctx, long ty)
+{
+	if (ty == string_type)
+		return (unsigned long) preload_string_arg(ctx);
+	return 0;
+}
+#else
+FUNC_INLINE long get_pt_regs_preload_arg(struct pt_regs *ctx, long ty)
+{
+	return 0;
+}
+#endif
+
 FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map_def *tailcals)
 {
 	struct msg_generic_kprobe *e;
@@ -529,10 +544,13 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 	/* Getting argument data based on the source attribute, which is encoded
 	 * in argument meta data, so far it's either:
 	 *
+	 *   - pt_regs preloaded register
 	 *   - pt_regs register
 	 *   - current task object
 	 *   - real argument value
 	 */
+	if (am & ARGM_PT_REGS_PRELOAD)
+		a = get_pt_regs_preload_arg(ctx, ty);
 	if (am & ARGM_PT_REGS)
 		a = get_pt_regs_arg(ctx, config, arg_index);
 	else if (am & ARGM_CURRENT_TASK)
