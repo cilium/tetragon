@@ -378,6 +378,7 @@ type addUprobeIn struct {
 
 type uprobeHas struct {
 	sleepableOffload bool
+	sleepablePreload bool
 }
 
 func createGenericUprobeSensor(
@@ -542,13 +543,15 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 
 		if data {
 			// Data specific config
-			if hasPtRegsSource(a) {
+			if hasPtRegsSource(a) || hasPtRegsPreloadSource(a) {
 				var ok bool
 
 				regArg[i].Offset, regArg[i].Size, ok = asm.RegOffsetSize(a.Resolve)
 				if !ok {
 					return fmt.Errorf("error: Failed to retrieve register argument '%s'", a.Resolve)
 				}
+
+				has.sleepablePreload = has.sleepablePreload || hasPtRegsPreloadSource(a)
 			}
 		} else {
 			// Args specific config
@@ -601,7 +604,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 
 	// Parse Data
 	for _, data := range spec.Data {
-		if !hasPtRegsSource(&data) {
+		if !hasPtRegsSource(&data) && !hasPtRegsPreloadSource(&data) {
 			return nil, fmt.Errorf("data argument has wrong source '%s'", data.Source)
 		}
 		if data.Resolve == "" {
@@ -776,6 +779,7 @@ func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID, poli
 		SetPolicy(policyName)
 
 	load.SleepableOffload = has.sleepableOffload
+	load.SleepablePreload = has.sleepablePreload
 
 	progs = append(progs, load)
 
@@ -857,6 +861,7 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 		SetPolicy(uprobeEntry.policyName)
 
 	load.SleepableOffload = has.sleepableOffload
+	load.SleepablePreload = has.sleepablePreload
 
 	progs = append(progs, load)
 
@@ -872,6 +877,12 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 		sleepableOffloadMap := program.MapBuilderProgram("sleepable_offload", load)
 		sleepableOffloadMap.SetMaxEntries(sleepableOffloadMaxEntries)
 		maps = append(maps, regsMap, sleepableOffloadMap)
+	}
+
+	if has.sleepablePreload {
+		sleepablePreloadMap := program.MapBuilderProgram("sleepable_preload", load)
+		sleepablePreloadMap.SetMaxEntries(sleepablePreloadMaxEntries)
+		maps = append(maps, sleepablePreloadMap)
 	}
 
 	if uprobeEntry.loadArgs.retprobe {

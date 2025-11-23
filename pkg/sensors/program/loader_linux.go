@@ -303,7 +303,21 @@ func UprobeAttach(load *Program, bpfDir string) AttachFunc {
 				return nil, err
 			}
 		}
-		return uprobeAttach(load, prog, spec, bpfDir)
+
+		unloader, err := uprobeAttach(load, prog, spec, bpfDir)
+		if err != nil {
+			return nil, err
+		}
+
+		if load.SleepablePreload {
+			if load.unloaderSleepablePreload, err = uprobeAttachExtra(load, bpfDir, coll, collSpec,
+				"generic_sleepable_preload", "sleepable_preload"); err != nil {
+				// TODO cleanup unloader
+				return nil, err
+			}
+		}
+
+		return unloader, nil
 	}
 }
 
