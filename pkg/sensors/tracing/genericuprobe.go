@@ -386,6 +386,10 @@ type addUprobeIn struct {
 	useMulti   bool
 }
 
+type uprobeHas struct {
+	sleepableOffload bool
+}
+
 func createGenericUprobeSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
@@ -395,6 +399,7 @@ func createGenericUprobeSensor(
 	var maps []*program.Map
 	var ids []idtable.EntryID
 	var err error
+	var has uprobeHas
 
 	in := addUprobeIn{
 		sensorPath: name,
@@ -406,23 +411,17 @@ func createGenericUprobeSensor(
 		useMulti: !polInfo.specOpts.DisableUprobeMulti && bpf.HasUprobeMulti(),
 	}
 
-	hasRegsOverrideAction := false
-
 	for _, uprobe := range spec.UProbes {
-		ids, err = addUprobe(&uprobe, ids, &in)
+		ids, err = addUprobe(&uprobe, ids, &in, &has)
 		if err != nil {
 			return nil, err
 		}
-
-		hasRegsOverrideAction = hasRegsOverrideAction || selectors.HasOverride(uprobe.Selectors)
 	}
 
-	hasSleepableOffload := hasRegsOverrideAction && bpf.HasUprobeRegsChange()
-
 	if in.useMulti {
-		progs, maps, err = createMultiUprobeSensor(name, ids, polInfo.name, hasSleepableOffload)
+		progs, maps, err = createMultiUprobeSensor(name, ids, polInfo.name, has)
 	} else {
-		progs, maps, err = createSingleUprobeSensor(ids, hasSleepableOffload)
+		progs, maps, err = createSingleUprobeSensor(ids, has)
 	}
 
 	if err != nil {
@@ -464,7 +463,7 @@ func createGenericUprobeSensor(
 	}, nil
 }
 
-func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn) ([]idtable.EntryID, error) {
+func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn, has *uprobeHas) ([]idtable.EntryID, error) {
 	var argRetprobe *v1alpha1.KProbeArg
 	var setRetprobe bool
 
@@ -495,8 +494,11 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		return nil, err
 	}
 
-	if selectors.HasOverride(spec.Selectors) && !bpf.HasUprobeRegsChange() {
-		return nil, errors.New("can't use override regs action, no kernel support")
+	if selectors.HasOverride(spec.Selectors) {
+		if !bpf.HasUprobeRegsChange() {
+			return nil, errors.New("can't use override regs action, no kernel support")
+		}
+		has.sleepableOffload = true
 	}
 
 	// Parse Filters into kernel filter logic
@@ -755,7 +757,7 @@ func multiUprobePinPath(sensorPath string) string {
 	return sensors.PathJoin(sensorPath, "multi_uprobe")
 }
 
-func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID, policyName string, hasSleepableOffload bool) ([]*program.Program, []*program.Map, error) {
+func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID, policyName string, has uprobeHas) ([]*program.Program, []*program.Map, error) {
 	var multiRetIDs []idtable.EntryID
 	var progs []*program.Program
 	var maps []*program.Map
@@ -783,7 +785,7 @@ func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID, poli
 		SetLoaderData(multiIDs).
 		SetPolicy(policyName)
 
-	load.SleepableOffload = hasSleepableOffload
+	load.SleepableOffload = has.sleepableOffload
 
 	progs = append(progs, load)
 
@@ -794,7 +796,7 @@ func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID, poli
 
 	maps = append(maps, configMap, tailCalls, filterMap, retProbe)
 
-	if hasSleepableOffload {
+	if has.sleepableOffload {
 		regsMap := program.MapBuilderProgram("regs_map", load)
 		sleepableOffloadMap := program.MapBuilderProgram("sleepable_offload", load)
 		sleepableOffloadMap.SetMaxEntries(sleepableOffloadMaxEntries)
@@ -835,7 +837,7 @@ func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID, poli
 	return progs, maps, nil
 }
 
-func createSingleUprobeSensor(ids []idtable.EntryID, hasSleepableOffload bool) ([]*program.Program, []*program.Map, error) {
+func createSingleUprobeSensor(ids []idtable.EntryID, has uprobeHas) ([]*program.Program, []*program.Map, error) {
 	var progs []*program.Program
 	var maps []*program.Map
 
@@ -844,14 +846,14 @@ func createSingleUprobeSensor(ids []idtable.EntryID, hasSleepableOffload bool) (
 		if err != nil {
 			return nil, nil, err
 		}
-		progs, maps = createUprobeSensorFromEntry(uprobeEntry, progs, maps, hasSleepableOffload)
+		progs, maps = createUprobeSensorFromEntry(uprobeEntry, progs, maps, has)
 	}
 
 	return progs, maps, nil
 }
 
 func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
-	progs []*program.Program, maps []*program.Map, hasSleepableOffload bool) ([]*program.Program, []*program.Map) {
+	progs []*program.Program, maps []*program.Map, has uprobeHas) ([]*program.Program, []*program.Map) {
 
 	loadProgName, loadProgRetName := config.GenericUprobeObjs(false)
 
@@ -864,7 +866,7 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 		SetLoaderData(uprobeEntry).
 		SetPolicy(uprobeEntry.policyName)
 
-	load.SleepableOffload = hasSleepableOffload
+	load.SleepableOffload = has.sleepableOffload
 
 	progs = append(progs, load)
 
@@ -875,7 +877,7 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
 	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap, retProbe)
 
-	if hasSleepableOffload {
+	if has.sleepableOffload {
 		regsMap := program.MapBuilderProgram("regs_map", load)
 		sleepableOffloadMap := program.MapBuilderProgram("sleepable_offload", load)
 		sleepableOffloadMap.SetMaxEntries(sleepableOffloadMaxEntries)
