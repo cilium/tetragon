@@ -289,6 +289,10 @@ func UprobeOpen(load *Program) OpenFunc {
 		if !load.SleepableOffload {
 			disableProg(coll, "generic_sleepable_offload")
 		}
+		if !load.SleepablePreload {
+			disableProg(coll, "generic_sleepable_preload")
+			disableProg(coll, "generic_sleepable_preload_cleanup")
+		}
 		return nil
 	}
 }
@@ -440,13 +444,27 @@ func uprobeAttachExtra(load *Program, bpfDir string,
 
 func uprobeAttach(load *Program, bpfDir string,
 	coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
-	prog *ebpf.Program, spec *ebpf.ProgramSpec, attach uprobeAttachFunc) (unloader.Unloader, error) {
+	prog *ebpf.Program, spec *ebpf.ProgramSpec, attach uprobeAttachFunc) (un unloader.Unloader, err error) {
 
 	var (
-		err              error
 		main             unloader.Unloader
 		sleepableOffload unloader.Unloader
+		sleepablePreload unloader.Unloader
+		sleepableCleanup unloader.Unloader
 	)
+
+	defer func() {
+		un = unloader.ChainUnloader{
+			main,
+			sleepableOffload,
+			sleepablePreload,
+			sleepableCleanup,
+		}
+		if err != nil {
+			un.Unload(true)
+			un = nil
+		}
+	}()
 
 	if load.SleepableOffload {
 		if sleepableOffload, err = uprobeAttachExtra(load, bpfDir, coll, collSpec,
@@ -455,17 +473,25 @@ func uprobeAttach(load *Program, bpfDir string,
 		}
 	}
 
-	if main, err = attach(load, prog, spec, bpfDir); err != nil {
-		if sleepableOffload != nil {
-			sleepableOffload.Unload(true)
+	if load.SleepablePreload {
+		if sleepableCleanup, err = uprobeAttachExtra(load, bpfDir, coll, collSpec,
+			"generic_sleepable_preload_cleanup", "sleepable_preload_cleanup", attach); err != nil {
+			return nil, err
 		}
+	}
+
+	if main, err = attach(load, prog, spec, bpfDir); err != nil {
 		return nil, err
 	}
 
-	return unloader.ChainUnloader{
-		main,
-		sleepableOffload,
-	}, nil
+	if load.SleepablePreload {
+		if sleepablePreload, err = uprobeAttachExtra(load, bpfDir, coll, collSpec,
+			"generic_sleepable_preload", "sleepable_preload", attach); err != nil {
+			return nil, err
+		}
+	}
+
+	return un, err
 }
 
 func TracingAttach(load *Program, bpfDir string) AttachFunc {

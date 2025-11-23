@@ -127,8 +127,11 @@ type Program struct {
 	Override        bool
 	OverrideFmodRet bool
 
-	// Needs write offload bpf program
+	// Needs sleepable offload bpf program
 	SleepableOffload bool
+
+	// Needs sleepable preload bpf program
+	SleepablePreload bool
 
 	// Type is the type of BPF program. For example, tc, skb, tracepoint,
 	// etc.

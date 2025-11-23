@@ -32,10 +32,11 @@ type argPrinter struct {
 }
 
 const (
-	argReturnCopyBit  = 1 << 4
-	argMaxDataBit     = 1 << 5
-	argCurrentTaskBit = 1 << 6
-	argPtRegsBit      = 1 << 7
+	argReturnCopyBit    = 1 << 4
+	argMaxDataBit       = 1 << 5
+	argCurrentTaskBit   = 1 << 6
+	argPtRegsBit        = 1 << 7
+	argPtRegsPreloadBit = 1 << 8
 )
 
 func argReturnCopy(meta int) bool {
@@ -49,6 +50,8 @@ func argReturnCopy(meta int) bool {
 //	  4 : ReturnCopy
 //	  5 : MaxData
 //	  6 : CurrentTask
+//	  7 : PtRegs
+//	  8 : PtRegsPreload
 func getMetaValue(arg *v1alpha1.KProbeArg) (int, error) {
 	var meta int
 
@@ -69,6 +72,20 @@ func getMetaValue(arg *v1alpha1.KProbeArg) (int, error) {
 	}
 	if hasPtRegsSource(arg) {
 		meta = meta | argPtRegsBit
+	}
+	return meta, nil
+}
+
+func getUprobeMetaValue(arg *v1alpha1.KProbeArg, preload bool) (int, error) {
+	// common meta bits
+	meta, err := getMetaValue(arg)
+	if err != nil {
+		return 0, err
+	}
+
+	// uprobe specific bits
+	if meta&argPtRegsBit != 0 && preload {
+		meta = meta | argPtRegsPreloadBit
 	}
 	return meta, nil
 }
