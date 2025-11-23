@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -400,6 +401,7 @@ type addUprobeIn struct {
 
 type uprobeHas struct {
 	sleepableOffload bool
+	sleepablePreload bool
 }
 
 func createGenericUprobeSensor(
@@ -566,6 +568,8 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 	addArg := func(i int, a *v1alpha1.KProbeArg, data bool) error {
 		argType := gt.GenericTypeFromString(a.Type)
 
+		var preload bool
+
 		if data {
 			// Data specific config
 			if hasPtRegsSource(a) {
@@ -574,6 +578,16 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 				regArg[i].Offset, regArg[i].Size, ok = asm.RegOffsetSize(a.Resolve)
 				if !ok {
 					return fmt.Errorf("error: Failed to retrieve register argument '%s'", a.Resolve)
+				}
+
+				// If we are getting string type from pt_regs register we can safely assume
+				// it's from user address, so we need to read it through preload.
+				if argType == gt.GenericStringType {
+					if bpf.HasKfunc("bpf_copy_from_user_str") && runtime.GOARCH == "amd64" {
+						preload = true
+					} else {
+						logger.GetLogger().Warn("can't preload string argument, might be wrong")
+					}
 				}
 			}
 		} else {
@@ -589,10 +603,12 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 			}
 		}
 
+		has.sleepablePreload = has.sleepablePreload || preload
+
 		if argType == gt.GenericInvalidType {
 			return fmt.Errorf("Arg(%d) type '%s' unsupported", i, a.Type)
 		}
-		argMValue, err := getMetaValue(a)
+		argMValue, err := getUprobeMetaValue(a, preload)
 		if err != nil {
 			return err
 		}
@@ -802,6 +818,7 @@ func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID, poli
 		SetPolicy(policyName)
 
 	load.SleepableOffload = has.sleepableOffload
+	load.SleepablePreload = has.sleepablePreload
 
 	progs = append(progs, load)
 
@@ -817,6 +834,12 @@ func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID, poli
 		sleepableOffloadMap := program.MapBuilderProgram("sleepable_offload", load)
 		sleepableOffloadMap.SetMaxEntries(sleepableOffloadMaxEntries)
 		maps = append(maps, regsMap, sleepableOffloadMap)
+	}
+
+	if has.sleepablePreload {
+		sleepablePreloadMap := program.MapBuilderProgram("sleepable_preload", load)
+		sleepablePreloadMap.SetMaxEntries(sleepablePreloadMaxEntries)
+		maps = append(maps, sleepablePreloadMap)
 	}
 
 	filterMap.SetMaxEntries(len(multiIDs))
@@ -883,6 +906,7 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 		SetPolicy(uprobeEntry.policyName)
 
 	load.SleepableOffload = has.sleepableOffload
+	load.SleepablePreload = has.sleepablePreload
 
 	progs = append(progs, load)
 
@@ -898,6 +922,12 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 		sleepableOffloadMap := program.MapBuilderProgram("sleepable_offload", load)
 		sleepableOffloadMap.SetMaxEntries(sleepableOffloadMaxEntries)
 		maps = append(maps, regsMap, sleepableOffloadMap)
+	}
+
+	if has.sleepablePreload {
+		sleepablePreloadMap := program.MapBuilderProgram("sleepable_preload", load)
+		sleepablePreloadMap.SetMaxEntries(sleepablePreloadMaxEntries)
+		maps = append(maps, sleepablePreloadMap)
 	}
 
 	if uprobeEntry.loadArgs.retprobe {
