@@ -6,6 +6,7 @@
 
 #define AF_INET	 2
 #define AF_INET6 10
+#define AF_UNIX	 1
 
 #define IPV4LEN 4
 #define IPV6LEN 16

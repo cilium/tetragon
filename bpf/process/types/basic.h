@@ -10,6 +10,7 @@
 #include "skb.h"
 #include "sock.h"
 #include "sockaddr.h"
+#include "sockaddr_un.h"
 #include "socket.h"
 #include "net_device.h"
 #include "../bpf_process_event.h"
@@ -93,6 +94,8 @@ enum {
 	dentry_type = 42,
 
 	bpf_prog_type = 43,
+
+	sockaddr_un_type = 44,
 
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
@@ -470,6 +473,16 @@ FUNC_INLINE long copy_sockaddr(char *args, unsigned long arg)
 	set_event_from_sockaddr_in(sockaddr_event, address);
 
 	return sizeof(struct sockaddr_in_type);
+}
+
+FUNC_INLINE long copy_sockaddr_un(char *args, unsigned long arg)
+{
+	struct sockaddr_un_type *sockaddr_un_event = (struct sockaddr_un_type *)args;
+	struct sockaddr *address = (struct sockaddr *)arg;
+
+	set_event_from_sockaddr_un(sockaddr_un_event, address);
+
+	return sizeof(struct sockaddr_un_type);
 }
 
 FUNC_INLINE long copy_socket(char *args, unsigned long arg)
@@ -1116,6 +1129,52 @@ filter_inet(struct selector_arg_filter *filter, char *args)
 		if (filter->type == sock_type || filter->type == socket_type)
 			return filter_32ty_map(filter, (char *)&value);
 	}
+	return 0;
+}
+
+FUNC_LOCAL long
+filter_sockaddr_un(struct selector_arg_filter *filter, char *args)
+{
+	struct sockaddr_un_type *address = (struct sockaddr_un_type *)args;
+	char path_buffer[UNIX_SOCKET_PATH_MAX];
+	int err;
+
+	err = probe_read(path_buffer, UNIX_SOCKET_PATH_MAX, address->sun_path);
+	if (err != 0)
+		return 0;
+
+	switch (filter->op) {
+	case op_filter_str_prefix:
+	case op_filter_str_notprefix: {
+		int start_idx = address->is_abstract ? 1 : 0;
+		char *path_to_check = &path_buffer[start_idx];
+		__u8 path_len = address->path_len;
+		long match = filter_char_buf_prefix(filter, path_to_check, path_len);
+
+		if (is_not_operator(filter->op))
+			return !match;
+		return match;
+	}
+	case op_filter_eq:
+	case op_filter_neq: {
+		int start_idx = address->is_abstract ? 1 : 0;
+		char *path_to_check = &path_buffer[start_idx];
+		__u8 path_len = address->path_len;
+		long match = filter_char_buf_equal(filter, path_to_check, path_len);
+
+		if (is_not_operator(filter->op))
+			return !match;
+		return match;
+	}
+	case op_filter_family: {
+		__u32 value = address->family;
+
+		return filter_32ty_map(filter, (char *)&value);
+	}
+	default:
+		break;
+	}
+
 	return 0;
 }
 
@@ -2100,6 +2159,11 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 		case socket_type:
 		case sockaddr_type:
 			pass &= filter_inet(filter, args);
+			break;
+		case sockaddr_un_type:
+#ifdef __LARGE_BPF_PROG
+			pass &= filter_sockaddr_un(filter, args);
+#endif
 			break;
 		default:
 			break;

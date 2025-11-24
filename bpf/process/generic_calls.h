@@ -325,6 +325,9 @@ read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int a
 	case sockaddr_type:
 		size = copy_sockaddr(args, arg);
 		break;
+	case sockaddr_un_type:
+		size = copy_sockaddr_un(args, arg);
+		break;
 	case socket_type:
 		size = copy_socket(args, arg);
 		// Look up socket in our sock->pid_tgid map
