@@ -247,3 +247,31 @@ $ docker run -it --rm --privileged --pid=host ubuntu \
     nsenter -t 1 -m -u -n -i sh -c 'ls -la /sys/kernel/btf/vmlinux'
 -r--r--r--    1 root     root       4988627 Nov 21 20:33 /sys/kernel/btf/vmlinux
 ```
+
+### Why Tetragon fails with "operation not permitted" when loading BPF programs {#kernel-lockdown}
+
+This error indicates that Linux Kernel Lockdown is preventing BPF programs from loading.
+Kernel Lockdown is a security feature designed to prevent even the root user from modifying
+the kernel or reading its internal secrets. It operates in two distinct modes:
+
+- Integrity: Prevents the user from modifying the running kernel. For example, it blocks
+  writing to `/dev/mem` or loading unsigned kernel modules.
+- Confidentiality: Includes all integrity protections but goes further by preventing the user
+  from reading information from the kernel that could reveal secrets.
+
+On systems with Kernel Lockdown enabled in `confidentiality` mode, Tetragon will fail with `EPERM`.
+To fix this, use `integrity` mode.
+
+You can verify the Lockdown status in the Tetragon startup logs.
+A warning is printed when `confidentiality` mode is active:
+
+```
+level=warn msg="Kernel Lockdown is in 'confidentiality' mode; Tetragon will fail to load BPF programs. See https://tetragon.io/docs/installation/faq/#kernel-lockdown for details."
+level=info msg="Tetragon current security context" SELinux=unconfined AppArmor=unconfined Smack="" Lockdown=confidentiality
+```
+
+You can also check the status of the Kernel Lockdown by running:
+
+```shell
+cat /sys/kernel/security/lockdown
+```

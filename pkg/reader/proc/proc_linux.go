@@ -178,7 +178,7 @@ func LogCurrentSecurityContext() {
 			logLSM = true
 		}
 		if lockdown == "confidentiality" {
-			logger.GetLogger().Warn("Kernel Lockdown is in 'confidentiality' mode, Tetragon will fail to load BPF programs")
+			logger.GetLogger().Warn("Kernel Lockdown is in 'confidentiality' mode; Tetragon will fail to load BPF programs. See https://tetragon.io/docs/installation/faq/#kernel-lockdown for details.")
 		}
 	}
 
