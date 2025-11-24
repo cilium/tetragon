@@ -98,7 +98,7 @@ jobs:
       uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
       with:
         # renovate: datasource=github-releases depName=helm/helm
-        version: v4.0.0
+        version: v4.0.1
 
     - name: Install Kind
       uses: helm/kind-action@a1b0e391336a6ee6713a0583f8c6240d70863de3 # v1.12.0
