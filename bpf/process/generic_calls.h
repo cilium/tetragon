@@ -13,6 +13,7 @@
 #include "policy_stats.h"
 #include "generic_path.h"
 #include "bpf_ktime.h"
+#include "regs.h"
 
 #define MAX_TOTAL 9000
 
@@ -485,56 +486,7 @@ FUNC_INLINE long get_pt_regs_arg(struct pt_regs *ctx, struct event_config *confi
 	if (config->syscall)
 		return get_pt_regs_arg_syscall(ctx, reg->offset, shift);
 
-#define READ_REG(reg) ({                                        \
-	__u64 val;                                              \
-	asm volatile("%[val] = *(u64 *)(%[ctx] + %[off])\n"     \
-		     : [ctx] "+r"(ctx), [val] "+r"(val)         \
-		     : [off] "i"(offsetof(struct pt_regs, reg)) \
-		     :);                                        \
-	val <<= shift;                                          \
-	val >>= shift;                                          \
-	val;                                                    \
-})
-
-	switch (reg->offset) {
-	case offsetof(struct pt_regs, r15):
-		return READ_REG(r15);
-	case offsetof(struct pt_regs, r14):
-		return READ_REG(r14);
-	case offsetof(struct pt_regs, r13):
-		return READ_REG(r13);
-	case offsetof(struct pt_regs, r12):
-		return READ_REG(r12);
-	case offsetof(struct pt_regs, bp):
-		return READ_REG(bp);
-	case offsetof(struct pt_regs, bx):
-		return READ_REG(bx);
-	case offsetof(struct pt_regs, r11):
-		return READ_REG(r11);
-	case offsetof(struct pt_regs, r10):
-		return READ_REG(r10);
-	case offsetof(struct pt_regs, r9):
-		return READ_REG(r9);
-	case offsetof(struct pt_regs, r8):
-		return READ_REG(r8);
-	case offsetof(struct pt_regs, ax):
-		return READ_REG(ax);
-	case offsetof(struct pt_regs, cx):
-		return READ_REG(cx);
-	case offsetof(struct pt_regs, dx):
-		return READ_REG(dx);
-	case offsetof(struct pt_regs, si):
-		return READ_REG(si);
-	case offsetof(struct pt_regs, di):
-		return READ_REG(di);
-	case offsetof(struct pt_regs, ip):
-		return READ_REG(ip);
-	case offsetof(struct pt_regs, sp):
-		return READ_REG(sp);
-	}
-
-#undef READ_REG
-	return 0;
+	return read_reg(ctx, reg->offset, shift);
 }
 #else
 FUNC_INLINE long get_pt_regs_arg(struct pt_regs *ctx, struct event_config *config, int index)
