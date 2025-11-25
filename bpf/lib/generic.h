@@ -61,6 +61,7 @@ struct msg_generic_kprobe {
 	__u32 tid; // Thread ID that triggered the event
 	__u64 kernel_stack_id; // Kernel stack trace ID on u32 and potential error, see flag in msg_common.flags
 	__u64 user_stack_id; // User Stack trace ID
+	__s32 resolve_err_depth[MAX_POSSIBLE_ARGS];
 	/* anything above is shared with the userspace so it should match structs MsgGenericKprobe and MsgGenericTracepoint in Go */
 	char args[24000];
 	unsigned long a0, a1, a2, a3, a4;

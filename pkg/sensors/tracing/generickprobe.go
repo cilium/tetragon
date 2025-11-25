@@ -744,7 +744,8 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 	var argSigPrinters []argPrinter
 	var argReturnPrinters []argPrinter
 	var setRetprobe bool
-	var argRetprobe *v1alpha1.KProbeArg
+	var argRetprobe *v1alpha1.KProbeArg // holds pointer to arg for return handler
+	var argRetprobeIdx int
 	var allBTFArgs [api.EventConfigMaxArgs][api.MaxBTFArgDepth]api.ConfigBTFArg
 
 	errFn := func(err error) (idtable.EntryID, error) {
@@ -789,8 +790,6 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 	if err != nil {
 		return errFn(fmt.Errorf("error: '%w'", err))
 	}
-
-	argRetprobe = nil // holds pointer to arg for return handler
 
 	addArg := func(j int, a *v1alpha1.KProbeArg, data bool) error {
 		// First try userspace types
@@ -844,6 +843,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 		}
 		if argReturnCopy(argMValue) {
 			argRetprobe = &f.Args[j]
+			argRetprobeIdx = j
 		}
 		if a.Index > 4 {
 			return fmt.Errorf("error add arg: ArgType %s Index %d out of bounds",
@@ -855,7 +855,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 		eventConfig.RegArg[j] = regArg
 
 		argP := argPrinter{
-			index:    int(a.Index),
+			index:    j,
 			ty:       argType,
 			userType: userArgType,
 			maxData:  a.MaxData,
@@ -934,7 +934,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 		argType := gt.GenericTypeFromString(argRetprobe.Type)
 		eventConfig.ArgReturnCopy = int32(argType)
 
-		argP := argPrinter{index: int(argRetprobe.Index), ty: argType, label: argRetprobe.Label}
+		argP := argPrinter{index: argRetprobeIdx, ty: argType, label: argRetprobe.Label}
 		argReturnPrinters = append(argReturnPrinters, argP)
 	} else {
 		eventConfig.ArgReturnCopy = int32(gt.GenericUnsetType)
@@ -1388,8 +1388,12 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 	}
 
 	// Get argument objects for specific printers/types
-	for _, a := range printers {
-		arg := getArg(r, a)
+	for i, a := range printers {
+		var resolve_err_depth int32
+		if !returnEvent {
+			resolve_err_depth = m.ResolveErrDepth[i]
+		}
+		arg := getArg(r, a, resolve_err_depth)
 		// nop or unknown type (already logged)
 		if arg == nil {
 			continue

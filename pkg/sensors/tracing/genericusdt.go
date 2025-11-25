@@ -353,7 +353,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID) ([]i
 			config.ArgType[cfgIdx] = int32(argType)
 
 			argPrinters = append(argPrinters,
-				argPrinter{index: int(arg.Index), ty: argType, label: arg.Label},
+				argPrinter{index: cfgIdx, ty: argType, label: arg.Label},
 			)
 		}
 		config.BTFArg = allBTFArgs
@@ -516,8 +516,8 @@ func handleGenericUsdt(r *bytes.Reader) ([]observer.Event, error) {
 	unix.Tags = uprobeUsdt.tags
 
 	// Get argument objects for specific printers/types
-	for _, a := range uprobeUsdt.argPrinters {
-		arg := getArg(r, a)
+	for i, a := range uprobeUsdt.argPrinters {
+		arg := getArg(r, a, m.ResolveErrDepth[i])
 		// nop or unknown type (already logged)
 		if arg == nil {
 			continue
