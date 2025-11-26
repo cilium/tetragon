@@ -32,6 +32,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/cgroups"
+	"github.com/cilium/tetragon/pkg/config"
 	grpcexec "github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/kernels"
@@ -1783,4 +1784,50 @@ func TestThrottle1(t *testing.T) {
 // Run throttle twice to test the CgroupRate setup code
 func TestThrottle2(t *testing.T) {
 	testThrottle(t)
+}
+
+// Verify that we get all the process environment variables
+func TestEventExecveEnvs(t *testing.T) {
+	if !config.EnableLargeProgs() {
+		t.Skip("Older kernels do not support environment variables in exec events.")
+	}
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	// Enable nevironment variables
+	option.Config.EnableProcessEnvironmentVariables = true
+
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("Failed to run observer: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
+
+	procChecker := ec.NewProcessChecker().
+		WithBinary(sm.Full(testNop)).
+		WithEnvironmentVariables(ec.NewEnvVarListMatcher().WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewEnvVarChecker().WithKey(sm.Full("TEST_VAR1")).WithValue(sm.Full("1")),
+				ec.NewEnvVarChecker().WithKey(sm.Full("TEST_VAR2")).WithValue(sm.Full("2")),
+			))
+
+	execChecker := ec.NewProcessExecChecker("").WithProcess(procChecker)
+	checker := ec.NewUnorderedEventChecker(execChecker)
+
+	cmd := exec.Command(testNop)
+	cmd.Env = []string{"TEST_VAR1=1", "TEST_VAR2=2"}
+
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to execute test binary: %s\n", err)
+	}
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
 }
