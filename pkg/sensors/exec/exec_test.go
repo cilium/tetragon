@@ -33,6 +33,7 @@ import (
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/config"
+	"github.com/cilium/tetragon/pkg/fieldfilters"
 	grpcexec "github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/kernels"
@@ -1881,4 +1882,62 @@ func TestEventExecveEnvsFilter(t *testing.T) {
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
+}
+
+// Verify that we get only filtered environment variable
+// with redacted value.
+func TestEventExecveEnvsFilterRedact(t *testing.T) {
+	if !config.EnableLargeProgs() {
+		t.Skip("Older kernels do not support environment variables in exec events.")
+	}
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	// Enable nevironment variables
+	option.Config.EnableProcessEnvironmentVariables = true
+
+	// Set filter for TEST_VAR1 variable
+	option.Config.FilterEnvironmentVariables = make(map[string]struct{})
+	option.Config.FilterEnvironmentVariables["TEST_VAR1"] = struct{}{}
+
+	var err error
+
+	// Set redaction for TEST_VAR1 variable
+	fieldfilters.RedactionFilters, err = fieldfilters.ParseRedactionFilterList(`{"redact": ["(?:TEST_VAR1)[\\s=]+(\\S+)"]}`)
+	require.NoError(t, err)
+
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("Failed to run observer: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
+
+	procChecker := ec.NewProcessChecker().
+		WithBinary(sm.Full(testNop)).
+		WithEnvironmentVariables(ec.NewEnvVarListMatcher().WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewEnvVarChecker().WithKey(sm.Full("TEST_VAR1")).WithValue(sm.Full("*****")),
+			))
+
+	execChecker := ec.NewProcessExecChecker("").WithProcess(procChecker)
+	checker := ec.NewUnorderedEventChecker(execChecker)
+
+	cmd := exec.Command(testNop)
+	cmd.Env = []string{"TEST_VAR1=1", "TEST_VAR2=2", "TEST_VAR3=3", "TEST_VAR4=4"}
+
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to execute test binary: %s\n", err)
+	}
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+
+	fieldfilters.RedactionFilters = nil
 }
