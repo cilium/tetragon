@@ -4,55 +4,13 @@
 package policyfilter
 
 import (
-	"sync"
 	"testing"
-
-	"k8s.io/client-go/tools/cache"
 
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/tetragon/pkg/labels"
-	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/podhelpers"
 )
-
-var (
-	glblState   State
-	glblError   error // nolint:errname
-	setGlobalPf sync.Once
-)
-
-// GetState returns global state for policyfilter
-func GetState() (State, error) {
-	setGlobalPf.Do(func() {
-		if option.Config.EnablePolicyFilter {
-			logger.GetLogger().Info("Enabling policy filtering")
-			glblState, glblError = New(option.Config.EnablePolicyFilterCgroupMap)
-		} else {
-			glblState = &disabled{}
-			glblError = nil
-		}
-	})
-	return glblState, glblError
-}
-
-// ResetStateOnlyForTesting resets the global policyfilter state.
-// As the name states, it should only be used for testing.
-// We need this because GetState() depends on the
-// option.Config.EnablePolicyFilter global and this is only initialized once.
-// Callers for this should ensure that no race happens.
-func resetStateOnlyForTesting() {
-	if glblState != nil {
-		glblState.Close()
-	}
-	if option.Config.EnablePolicyFilter {
-		logger.GetLogger().Info("Enabling policy filtering")
-		glblState, glblError = New(true)
-	} else {
-		glblState = &disabled{}
-		glblError = nil
-	}
-}
 
 // TestingEnableAndReset enables policy filter for tests (see ResetStateOnlyForTesting)
 func TestingEnableAndReset(t *testing.T) {
@@ -109,7 +67,8 @@ type State interface {
 
 	// RegisterPodHandlers can be used to register appropriate pod handlers to a pod informer
 	// that for keeping the policy filter state up-to-date.
-	RegisterPodHandlers(podInformer cache.SharedIndexInformer)
+	//XXX: Is this needed?
+	//RegisterPodHandlers(podInformer cache.SharedIndexInformer)
 
 	// Close releases resources allocated by the Manager. Specifically, we close and unpin the
 	// policy filter map.
