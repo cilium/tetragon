@@ -572,6 +572,7 @@ The total number of Tetragon events
 | ----- | ------ |
 | `binary` | `example-binary` |
 | `namespace` | `example-namespace` |
+| `node_name` | `example-node-name` |
 | `pod  ` | `example-pod` |
 | `type ` | `PROCESS_EXEC, PROCESS_EXIT, PROCESS_KPROBE, PROCESS_LOADER, PROCESS_LSM, PROCESS_THROTTLE, PROCESS_TRACEPOINT, PROCESS_UPROBE, PROCESS_USDT, RATE_LIMIT_INFO` |
 | `workload` | `example-workload` |
@@ -585,6 +586,7 @@ Policy events calls observed.
 | `binary` | `example-binary` |
 | `hook ` | `example_kprobe` |
 | `namespace` | `example-namespace` |
+| `node_name` | `example-node-name` |
 | `pod  ` | `example-pod` |
 | `policy` | `example-tracingpolicy` |
 | `workload` | `example-workload` |
@@ -597,6 +599,7 @@ System calls observed.
 | ----- | ------ |
 | `binary` | `example-binary` |
 | `namespace` | `example-namespace` |
+| `node_name` | `example-node-name` |
 | `pod  ` | `example-pod` |
 | `syscall` | `example_syscall` |
 | `workload` | `example-workload` |

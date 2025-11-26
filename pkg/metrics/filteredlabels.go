@@ -29,23 +29,25 @@ type ProcessLabels struct {
 	Workload  string
 	Pod       string
 	Binary    string
+	NodeName  string
 }
 
-func NewProcessLabels(namespace, workload, pod, binary string) *ProcessLabels {
+func NewProcessLabels(namespace, workload, pod, binary, nodeName string) *ProcessLabels {
 	return &ProcessLabels{
 		Namespace: namespace,
 		Workload:  workload,
 		Pod:       pod,
 		Binary:    binary,
+		NodeName:  nodeName,
 	}
 }
 
 func (l ProcessLabels) Keys() []string {
-	return []string{"namespace", "workload", "pod", "binary"}
+	return []string{"namespace", "workload", "pod", "binary", "node_name"}
 }
 
 func (l ProcessLabels) Values() []string {
-	return []string{l.Namespace, l.Workload, l.Pod, l.Binary}
+	return []string{l.Namespace, l.Workload, l.Pod, l.Binary, l.NodeName}
 }
 
 func (l ProcessLabels) Example() FilteredLabels {
@@ -53,5 +55,6 @@ func (l ProcessLabels) Example() FilteredLabels {
 	l.Workload = consts.ExampleWorkload
 	l.Pod = consts.ExamplePod
 	l.Binary = consts.ExampleBinary
+	l.NodeName = consts.ExampleNodeName
 	return l
 }
