@@ -120,6 +120,35 @@ type jsonEvent struct {
 
 const nodeName = "test-node-name"
 
+// countEvents counts the number of events and rate-limit-info messages in the given slice.
+// It returns (gotEvents, gotRateLimitInfo, gotDropped).
+func countEvents(eventsJSON []string) (int, int, uint64) {
+	gotEvents, gotRateLimitInfo, gotDropped := 0, 0, uint64(0)
+	for _, event := range eventsJSON {
+		if event == "" {
+			continue
+		}
+
+		var ev jsonEvent
+		if err := json.Unmarshal([]byte(event), &ev); err != nil {
+			continue
+		}
+
+		if len(ev.Event) > 0 {
+			gotEvents++
+		}
+		if len(ev.RateLimitInfo) > 0 {
+			var res tetragon.GetEventsResponse
+			if err := json.Unmarshal([]byte(event), &res); err != nil {
+				continue
+			}
+			gotRateLimitInfo++
+			gotDropped += res.GetRateLimitInfo().GetNumberOfDroppedProcessEvents()
+		}
+	}
+	return gotEvents, gotRateLimitInfo, gotDropped
+}
+
 func checkEvents(t *testing.T, eventsJSON []string, wantEvents, wantRateLimitInfo int, wantDropped uint64) {
 	t.Helper()
 
@@ -214,9 +243,28 @@ func Test_rateLimitExport(t *testing.T) {
 					}})
 			}
 
-			reportInterval := 100 * time.Millisecond
-			// wait for ~2 report intervals to make sure we get a rate-limit-info event
-			time.Sleep(2 * reportInterval)
+			// Wait until we receive the expected number of events and rate-limit-info messages.
+			// Use polling instead of fixed sleep to avoid timing-dependent race conditions.
+			timeout := time.After(500 * time.Millisecond)
+			ticker := time.NewTicker(10 * time.Millisecond)
+			defer ticker.Stop()
+
+		pollLoop:
+			for {
+				gotEvents, gotRateLimitInfo, _ := countEvents(results.items)
+				if gotEvents >= tt.wantEvents && gotRateLimitInfo >= tt.wantRateLimitInfo {
+					// We have all the expected output, proceed to cleanup and assertions.
+					break pollLoop
+				}
+				select {
+				case <-timeout:
+					t.Fatalf("timeout waiting for events: got %d events and %d rate-limit-info, want %d events and %d rate-limit-info",
+						gotEvents, gotRateLimitInfo, tt.wantEvents, tt.wantRateLimitInfo)
+				case <-ticker.C:
+					// Continue polling
+				}
+			}
+
 			cancel()
 
 			checkEvents(t, results.items, tt.wantEvents, tt.wantRateLimitInfo, tt.wantDropped)
