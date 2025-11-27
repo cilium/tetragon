@@ -36,6 +36,25 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
 
+var lsmMapsDeps = mapDeps[*genericLsm]{
+	"lsm_calls":         {},
+	"process_call_heap": {},
+	"tg_mb_sel_opts":    {},
+	"tg_mb_paths": {
+		process: func(p *program.Map, _ []idtable.EntryID, lsm *genericLsm) {
+			if !kernels.MinKernelVersion("5.9") {
+				p.SetInnerMaxEntries(lsm.selectors.MatchBinariesPathsMaxEntries())
+			}
+		},
+	},
+	"override_tasks": {},
+}.withConfigMap().withFilterMap()
+
+var lsmOutputMapsDeps = mapDeps[*genericLsm]{
+	"process_call_heap": {},
+	"override_tasks":    {},
+}
+
 type observerLsmSensor struct {
 	name string
 }
@@ -501,38 +520,9 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 
 	progs = append(progs, load)
 
-	configMap := program.MapBuilderProgram("config_map", load)
-	maps = append(maps, configMap)
-
-	tailCalls := program.MapBuilderProgram("lsm_calls", load)
-	maps = append(maps, tailCalls)
-
-	filterMap := program.MapBuilderProgram("filter_map", load)
-	maps = append(maps, filterMap)
-
+	maps = append(maps, lsmMapsDeps.depsToMaps(load, nil, lsmEntry)...)
+	maps = append(maps, lsmOutputMapsDeps.depsToMaps(loadOutput, nil, lsmEntry)...)
 	maps = append(maps, filterMapsForLsm(load, lsmEntry)...)
-
-	callHeap := program.MapBuilderProgram("process_call_heap", load)
-	maps = append(maps, callHeap)
-	callHeapOutput := program.MapBuilderProgram("process_call_heap", loadOutput)
-	maps = append(maps, callHeapOutput)
-
-	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
-	maps = append(maps, selMatchBinariesMap)
-
-	matchBinariesPaths := program.MapBuilderProgram("tg_mb_paths", load)
-	if !kernels.MinKernelVersion("5.9") {
-		// Versions before 5.9 do not allow inner maps to have different sizes.
-		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-		matchBinariesPaths.SetInnerMaxEntries(lsmEntry.selectors.MatchBinariesPathsMaxEntries())
-	}
-	maps = append(maps, matchBinariesPaths)
-
-	overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
-	maps = append(maps, overrideTasksMap)
-	overrideTasksMapOutput := program.MapBuilderProgram("override_tasks", loadOutput)
-	maps = append(maps, overrideTasksMapOutput)
-
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load))
 
 	logger.GetLogger().
