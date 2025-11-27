@@ -394,6 +394,7 @@ type addUprobeIn struct {
 type uprobeHas struct {
 	sleepableOffload bool
 	sleepablePreload bool
+	substring        bool
 }
 
 func createGenericUprobeSensor(
@@ -510,6 +511,20 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 			return nil, errors.New("can't use override regs action, no kernel support")
 		}
 		has.sleepableOffload = true
+	}
+
+	if selectors.HasOperator(spec.Selectors, selectors.SelectorOpSubString) {
+		if !bpf.HasKfunc("bpf_strnstr") {
+			return nil, errors.New("can't use SubString operator, no kernel support")
+		}
+		has.substring = true
+	}
+
+	if selectors.HasOperator(spec.Selectors, selectors.SelectorOpSubStringIgnCase) {
+		if !bpf.HasKfunc("bpf_strncasestr") {
+			return nil, errors.New("can't use SubStringIgnCase operator, no kernel support")
+		}
+		has.substring = true
 	}
 
 	// Parse Filters into kernel filter logic
@@ -797,6 +812,7 @@ func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID, poli
 	var multiRetIDs []idtable.EntryID
 	var progs []*program.Program
 	var maps []*program.Map
+	var substringMapEntries int
 
 	for _, id := range multiIDs {
 		gu, err := genericUprobeTableGet(id)
@@ -805,6 +821,10 @@ func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID, poli
 		}
 		if gu.loadArgs.retprobe {
 			multiRetIDs = append(multiRetIDs, id)
+		}
+
+		if has.substring && substringMapEntries == 0 {
+			substringMapEntries = len(gu.loadArgs.selectors.entry.SubStrings())
 		}
 	}
 
@@ -832,6 +852,12 @@ func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID, poli
 	retProbe := program.MapBuilderSensor("retprobe_map", load)
 
 	maps = append(maps, configMap, tailCalls, filterMap, retProbe)
+
+	if has.substring {
+		substringMap := program.MapBuilderSensor("substring_map", load)
+		substringMap.SetMaxEntries(substringMapEntries)
+		maps = append(maps, substringMap)
+	}
 
 	if has.sleepableOffload {
 		regsMap := program.MapBuilderProgram("regs_map", load)
@@ -902,6 +928,12 @@ func createSingleUprobeSensor(ids []idtable.EntryID, has uprobeHas) ([]*program.
 func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 	progs []*program.Program, maps []*program.Map, has uprobeHas) ([]*program.Program, []*program.Map) {
 
+	var substringMapEntries int
+
+	if has.substring {
+		substringMapEntries = len(uprobeEntry.loadArgs.selectors.entry.SubStrings())
+	}
+
 	loadProgName, loadProgRetName := config.GenericUprobeObjs(false)
 
 	load := program.Builder(
@@ -923,7 +955,14 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 	filterMap := program.MapBuilderProgram("filter_map", load)
 	retProbe := program.MapBuilderSensor("retprobe_map", load)
 	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
+
 	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap, retProbe)
+
+	if has.substring {
+		substringMap := program.MapBuilderSensor("substring_map", load)
+		substringMap.SetMaxEntries(substringMapEntries)
+		maps = append(maps, substringMap)
+	}
 
 	if has.sleepableOffload {
 		regsMap := program.MapBuilderProgram("regs_map", load)
