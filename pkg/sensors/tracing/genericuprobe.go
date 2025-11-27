@@ -198,12 +198,7 @@ func loadSingleUprobeSensor(uprobeEntry *genericUprobe, args sensors.LoadProbeAr
 		selector = uprobeEntry.loadArgs.selectors.entry
 	}
 	if selector != nil {
-		mapLoad = append(mapLoad, &program.MapLoad{
-			Name: "filter_map",
-			Load: func(m *ebpf.Map, _ string) error {
-				return m.Update(uint32(0), selector.Buffer(), ebpf.UpdateAny)
-			},
-		})
+		mapLoad = append(mapLoad, selectorsMaploads(selector, 0)...)
 
 		if load.SleepableOffload {
 			mapLoad = append(mapLoad,
@@ -300,12 +295,7 @@ func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) er
 			selector = uprobeEntry.loadArgs.selectors.entry
 		}
 		if selector != nil {
-			mapLoad = append(mapLoad, &program.MapLoad{
-				Name: "filter_map",
-				Load: func(m *ebpf.Map, _ string) error {
-					return m.Update(uint32(index), selector.Buffer(), ebpf.UpdateAny)
-				},
-			})
+			mapLoad = append(mapLoad, selectorsMaploads(selector, uint32(index))...)
 
 			if load.SleepableOffload {
 				mapLoad = append(mapLoad,
