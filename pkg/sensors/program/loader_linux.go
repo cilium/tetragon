@@ -898,6 +898,13 @@ func rewriteConstants(spec *ebpf.CollectionSpec, consts map[string]any) error {
 			}
 			return nil
 		},
+		"CONFIG_SUBSTRING": func(v *ebpf.VariableSpec) error {
+			enabled := bpf.HasKfunc("bpf_strnstr")
+			if err := v.Set(enabled); err != nil {
+				return fmt.Errorf("failed  to set config variable '%s': %w", v, err)
+			}
+			return nil
+		},
 	}
 
 	for n, c := range spec.Variables {

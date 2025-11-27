@@ -29,6 +29,7 @@
 }))
 
 DECLARE_CONFIG(bool, LOOP);
+DECLARE_CONFIG(bool, SUBSTRING);
 
 #else
 
