@@ -113,7 +113,7 @@ func LoadMultiKprobeProgram(_ string, _ *Program, _ []*Map, _ int) error {
 	return constants.ErrWindowsNotSupported
 }
 
-func LoadFmodRetProgram(_ string, _ *Program, _ []*Map, _ string, _ int, _ func()) error {
+func LoadFmodRetProgram(_ string, _ *Program, _ []*Map, _ string, _ int) error {
 	return constants.ErrWindowsNotSupported
 }
 

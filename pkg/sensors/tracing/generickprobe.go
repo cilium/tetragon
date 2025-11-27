@@ -373,12 +373,12 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 			}
 			gk.data = &genericKprobeData{}
 
-			progs, maps = createKProbeOverrideProgramFromEntry(load, gk.funcName, progs, maps)
+			progs, maps = createOverrideProgramFromEntry(load, gk.funcName, progs, maps)
 		}
 	} else {
 		overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
 		if has.override {
-			overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
+			overrideTasksMap.SetMaxEntries(program.OverrideMapMaxEntries)
 		}
 		maps = append(maps, overrideTasksMap)
 	}
@@ -1039,32 +1039,25 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 	return kprobeEntry.tableId, nil
 }
 
-func createKProbeOverrideProgramFromEntry(load *program.Program, attachFunc string, progs []*program.Program, maps []*program.Map) ([]*program.Program, []*program.Map) {
+func createOverrideProgramFromEntry(load *program.Program, attachFunc string, progs []*program.Program, maps []*program.Map) ([]*program.Program, []*program.Map) {
+	var overrideProg *program.Program
+	var overrideMap *program.Map
+
+	if load.OverrideFmodRet {
+		overrideProg, overrideMap = program.GetOverrideProg(program.OverrideTypeFmodRet, attachFunc)
+
+	} else {
+		overrideProg, overrideMap = program.GetOverrideProg(program.OverrideTypeKProbe, attachFunc)
+	}
+
 	// setup kprobe override program and its input
-	kprobeOverrideProg, kprobeOverrideMap := getOverrideProg(OverrideTypeKProbe, attachFunc)
-	progs = append(progs, kprobeOverrideProg)
-	maps = append(maps, kprobeOverrideMap)
+	progs = append(progs, overrideProg)
+	maps = append(maps, overrideMap)
 
 	// setup the output of kprobe
 	overrideTasksMap := program.MapBuilder("override_tasks", load)
-	overrideTasksMap.PinPath = kprobeOverrideMap.PinPath
-	overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
-
-	maps = append(maps, overrideTasksMap)
-
-	return progs, maps
-}
-
-func createFmodRetOverrideProgramFromEntry(load *program.Program, attachFunc string, progs []*program.Program, maps []*program.Map) ([]*program.Program, []*program.Map) {
-	// setup fmodret program and its input
-	fmodRetProg, fmodRetMap := getOverrideProg(OverrideTypeFmodRet, attachFunc)
-	progs = append(progs, fmodRetProg)
-	maps = append(maps, fmodRetMap)
-
-	// setup the output of kprobe
-	overrideTasksMap := program.MapBuilder("override_tasks", load)
-	overrideTasksMap.PinPath = fmodRetMap.PinPath
-	overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
+	overrideTasksMap.PinPath = overrideMap.PinPath
+	overrideTasksMap.SetMaxEntries(program.OverrideMapMaxEntries)
 
 	maps = append(maps, overrideTasksMap)
 
@@ -1169,11 +1162,7 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 	}
 
 	if load.Override {
-		if load.OverrideFmodRet {
-			progs, maps = createFmodRetOverrideProgramFromEntry(load, kprobeEntry.funcName, progs, maps)
-		} else {
-			progs, maps = createKProbeOverrideProgramFromEntry(load, kprobeEntry.funcName, progs, maps)
-		}
+		progs, maps = createOverrideProgramFromEntry(load, kprobeEntry.funcName, progs, maps)
 	} else {
 		overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
 		maps = append(maps, overrideTasksMap)
@@ -1342,12 +1331,7 @@ func loadGenericFmodRetProgram(bpfDir string, load *program.Program, maps []*pro
 
 	logger.GetLogger().Info("loading generic fmod ret program", "prog", load)
 
-	unload := func(_ bool) error {
-		deleteOverrideProg(OverrideTypeFmodRet, load.Attach)
-		return nil
-	}
-
-	return program.LoadFmodRetProgram(bpfDir, load, maps, "generic_fmodret_override", verbose, unload)
+	return program.LoadFmodRetProgram(bpfDir, load, maps, "generic_fmodret_override", verbose)
 }
 
 func loadGenericKProbeOverrideProgram(bpfDir string, load *program.Program, maps []*program.Map, verbose int) error {
@@ -1358,12 +1342,7 @@ func loadGenericKProbeOverrideProgram(bpfDir string, load *program.Program, maps
 
 	logger.GetLogger().Info("loading generic kprobe override program", "prog", load)
 
-	unload := func(_ bool) error {
-		deleteOverrideProg(OverrideTypeKProbe, load.Attach)
-		return nil
-	}
-
-	return program.LoadKProbeOverrideProgram(bpfDir, load, maps, "generic_kprobe_override", verbose, unload)
+	return program.LoadKprobeProgram(bpfDir, load, maps, verbose)
 }
 
 func loadGenericKprobeSensor(bpfDir string, load *program.Program, maps []*program.Map, verbose int) error {

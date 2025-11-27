@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
-package tracing
+package program
 
 import (
 	"path"
 
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/sensors/program"
+	"github.com/cilium/tetragon/pkg/sensors/unloader"
 )
+
+const OverrideMapMaxEntries = 32768
 
 type OverrideType string
 
@@ -17,14 +19,14 @@ const (
 	OverrideTypeFmodRet = "fmod_ret"
 )
 
-var overrideProgMap map[string]*program.Program
+var overrideProgMap map[string]*Program
 
 func getOverrideProgMapKey(overrideType OverrideType, attachFunc string) string {
 	return string(overrideType) + attachFunc
 }
 
-func createFmodRetOverrideProg(attachFunc string) *program.Program {
-	overrideProg := program.Builder(
+func createFmodRetOverrideProg(attachFunc string) *Program {
+	overrideProg := Builder(
 		"bpf_generic_override.o",
 		attachFunc,
 		"fmod_ret/security_task_prctl",
@@ -32,16 +34,22 @@ func createFmodRetOverrideProg(attachFunc string) *program.Program {
 		"generic_fmod_ret")
 
 	overrideProg.PinPath = path.Join("__override__", "fmod_ret", attachFunc)
+	overrideProg.unloaderOverride = &unloader.CustomUnloader{
+		UnloadFunc: func(_ bool) error {
+			deleteOverrideProg(OverrideTypeKProbe, attachFunc)
+			return nil
+		},
+	}
 
-	overrideTasksMap := program.MapBuilder("override_tasks", overrideProg)
+	overrideTasksMap := MapBuilder("override_tasks", overrideProg)
 	overrideTasksMap.PinPath = path.Join("__override__", "override_tasks")
-	overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
+	overrideTasksMap.SetMaxEntries(OverrideMapMaxEntries)
 
 	return overrideProg
 }
 
-func createKProbeOverrideProg(attachFunc string) *program.Program {
-	overrideProg := program.Builder(
+func createKProbeOverrideProg(attachFunc string) *Program {
+	overrideProg := Builder(
 		"bpf_generic_override.o",
 		attachFunc,
 		"kprobe/generic_kprobe_override",
@@ -49,20 +57,26 @@ func createKProbeOverrideProg(attachFunc string) *program.Program {
 		"generic_kprobe_override")
 
 	overrideProg.PinPath = path.Join("__override__", "kprobe", attachFunc)
+	overrideProg.unloaderOverride = &unloader.CustomUnloader{
+		UnloadFunc: func(_ bool) error {
+			deleteOverrideProg(OverrideTypeKProbe, attachFunc)
+			return nil
+		},
+	}
 
-	overrideTasksMap := program.MapBuilder("override_tasks", overrideProg)
+	overrideTasksMap := MapBuilder("override_tasks", overrideProg)
 	overrideTasksMap.PinPath = path.Join("__override__", "override_tasks")
-	overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
+	overrideTasksMap.SetMaxEntries(OverrideMapMaxEntries)
 
 	return overrideProg
 }
 
-func getOverrideProg(overrideType OverrideType, attachFunc string) (*program.Program, *program.Map) {
-	var overrideProg *program.Program
+func GetOverrideProg(overrideType OverrideType, attachFunc string) (*Program, *Map) {
+	var overrideProg *Program
 	var ok bool
 
 	if overrideProgMap == nil {
-		overrideProgMap = make(map[string]*program.Program)
+		overrideProgMap = make(map[string]*Program)
 	}
 
 	key := getOverrideProgMapKey(overrideType, attachFunc)
@@ -85,7 +99,7 @@ func getOverrideProg(overrideType OverrideType, attachFunc string) (*program.Pro
 }
 
 func deleteOverrideProg(overrideType OverrideType, attachFunc string) {
-	var prog *program.Program
+	var prog *Program
 	var ok bool
 
 	key := getOverrideProgMapKey(overrideType, attachFunc)
