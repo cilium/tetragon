@@ -40,6 +40,35 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
 
+var uprobeMapsDeps = mapDeps[uprobeHas]{
+	"uprobe_calls": {},
+	"regs_map": {
+		enabled: func(_ []idtable.EntryID, has uprobeHas) bool {
+			return has.sleepableOffload
+		},
+	},
+	"sleepable_offload": {
+		enabled: func(_ []idtable.EntryID, has uprobeHas) bool {
+			return has.sleepableOffload
+		},
+		process: func(p *program.Map, _ []idtable.EntryID, _ uprobeHas) {
+			p.SetMaxEntries(sleepableOffloadMaxEntries)
+		},
+	},
+	"tg_mb_sel_opts": {
+		enabled: func(ids []idtable.EntryID, _ uprobeHas) bool {
+			// only for single sensors (non multi)
+			return ids == nil
+		},
+	},
+}.withConfigMap().withFilterMap().withRetprobeMap()
+
+var retuprobeMapsDeps = mapDeps[uprobeHas]{
+	"retuprobe_calls": {
+		flags: sensorMap,
+	},
+}.withConfigMap().withFilterMap().withRetprobeMap()
+
 type observerUprobeSensor struct {
 	name string
 }
@@ -788,23 +817,7 @@ func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID, poli
 	load.SleepableOffload = has.sleepableOffload
 
 	progs = append(progs, load)
-
-	configMap := program.MapBuilderProgram("config_map", load)
-	tailCalls := program.MapBuilderProgram("uprobe_calls", load)
-	filterMap := program.MapBuilderProgram("filter_map", load)
-	retProbe := program.MapBuilderSensor("retprobe_map", load)
-
-	maps = append(maps, configMap, tailCalls, filterMap, retProbe)
-
-	if has.sleepableOffload {
-		regsMap := program.MapBuilderProgram("regs_map", load)
-		sleepableOffloadMap := program.MapBuilderProgram("sleepable_offload", load)
-		sleepableOffloadMap.SetMaxEntries(sleepableOffloadMaxEntries)
-		maps = append(maps, regsMap, sleepableOffloadMap)
-	}
-
-	filterMap.SetMaxEntries(len(multiIDs))
-	configMap.SetMaxEntries(len(multiIDs))
+	maps = append(maps, uprobeMapsDeps.depsToMaps(load, multiIDs, has)...)
 
 	if len(multiRetIDs) != 0 {
 		loadret := program.Builder(
@@ -818,20 +831,7 @@ func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID, poli
 			SetPolicy(policyName)
 
 		progs = append(progs, loadret)
-
-		retProbe := program.MapBuilderSensor("retprobe_map", loadret)
-		maps = append(maps, retProbe)
-
-		retConfigMap := program.MapBuilderProgram("config_map", loadret)
-		maps = append(maps, retConfigMap)
-
-		retFilterMap := program.MapBuilderProgram("filter_map", loadret)
-		maps = append(maps, retFilterMap)
-
-		retTailCalls := program.MapBuilderSensor("retuprobe_calls", loadret)
-		maps = append(maps, retTailCalls)
-		retConfigMap.SetMaxEntries(len(multiRetIDs))
-		retFilterMap.SetMaxEntries(len(multiRetIDs))
+		maps = append(maps, retuprobeMapsDeps.depsToMaps(loadret, multiRetIDs, has)...)
 	}
 
 	return progs, maps, nil
@@ -869,20 +869,7 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 	load.SleepableOffload = has.sleepableOffload
 
 	progs = append(progs, load)
-
-	configMap := program.MapBuilderProgram("config_map", load)
-	tailCalls := program.MapBuilderProgram("uprobe_calls", load)
-	filterMap := program.MapBuilderProgram("filter_map", load)
-	retProbe := program.MapBuilderSensor("retprobe_map", load)
-	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
-	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap, retProbe)
-
-	if has.sleepableOffload {
-		regsMap := program.MapBuilderProgram("regs_map", load)
-		sleepableOffloadMap := program.MapBuilderProgram("sleepable_offload", load)
-		sleepableOffloadMap.SetMaxEntries(sleepableOffloadMaxEntries)
-		maps = append(maps, regsMap, sleepableOffloadMap)
-	}
+	maps = append(maps, uprobeMapsDeps.depsToMaps(load, nil, has)...)
 
 	if uprobeEntry.loadArgs.retprobe {
 		pinRetProg := fmt.Sprintf("%d-%s_return", uprobeEntry.tableId.ID, uprobeEntry.symbol)
@@ -896,18 +883,7 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 			SetLoaderData(uprobeEntry).
 			SetPolicy(uprobeEntry.policyName)
 		progs = append(progs, loadret)
-
-		retProbe := program.MapBuilderSensor("retprobe_map", loadret)
-		maps = append(maps, retProbe)
-
-		retConfigMap := program.MapBuilderProgram("config_map", loadret)
-		maps = append(maps, retConfigMap)
-
-		retTailCalls := program.MapBuilderProgram("retuprobe_calls", loadret)
-		maps = append(maps, retTailCalls)
-
-		retFilterMap := program.MapBuilderProgram("filter_map", loadret)
-		maps = append(maps, retFilterMap)
+		maps = append(maps, retuprobeMapsDeps.depsToMaps(loadret, nil, has)...)
 	}
 
 	return progs, maps
