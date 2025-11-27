@@ -102,6 +102,11 @@ func selectorsMaploads(ks *selectors.KernelSelectorState, index uint32) []*progr
 			Load: func(outerMap *ebpf.Map, pinPathPrefix string) error {
 				return populateStringFilterMaps(ks, pinPathPrefix, outerMap, 7)
 			},
+		}, {
+			Name: "substring_map",
+			Load: func(outerMap *ebpf.Map, pinPathPrefix string) error {
+				return populateSubStringMap(outerMap, ks)
+			},
 		},
 	}
 	if kernels.MinKernelVersion("5.11") {
@@ -125,6 +130,18 @@ func selectorsMaploads(ks *selectors.KernelSelectorState, index uint32) []*progr
 		}...)
 	}
 	return maps
+}
+
+func populateSubStringMap(m *ebpf.Map, k *selectors.KernelSelectorState) error {
+	for idx, ss := range k.SubStrings() {
+		dst := make([]byte, 100)
+		copy(dst, ss[:])
+
+		if err := m.Update(uint32(idx), dst, ebpf.UpdateAny); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func populateArgFilterMaps(
