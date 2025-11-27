@@ -209,6 +209,8 @@ const (
 	// range
 	SelectorOpInRange    = 31
 	SelectorOpNotInRange = 32
+	// match string
+	SelectorOpSubString = 33
 )
 
 var selectorOpStringTable = map[uint32]string{
@@ -243,6 +245,7 @@ var selectorOpStringTable = map[uint32]string{
 	SelectorOpCapabilitiesGained: "CapabilitiesGained",
 	SelectorOpInRange:            "InRange",
 	SelectorOpNotInRange:         "NoInRange",
+	SelectorOpSubString:          "SubString",
 }
 
 func SelectorOp(op string) (uint32, error) {
@@ -309,6 +312,8 @@ func SelectorOp(op string) (uint32, error) {
 		return SelectorOpInRange, nil
 	case "NotInRange":
 		return SelectorOpNotInRange, nil
+	case "SubString":
+		return SelectorOpSubString, nil
 	}
 
 	return 0, fmt.Errorf("unknown op '%s'", op)
@@ -888,6 +893,15 @@ func ParseMatchData(k *KernelSelectorState, arg *v1alpha1.ArgSelector, data []v1
 	return parseMatchArg(k, arg, data, ty)
 }
 
+func writeMatchSubString(k *KernelSelectorState, values []string) error {
+	for _, v := range values {
+		id := len(k.subStrs)
+		k.subStrs = append(k.subStrs, v)
+		WriteSelectorUint32(&k.data, uint32(id))
+	}
+	return nil
+}
+
 func parseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg, ty uint32) error {
 	op, err := SelectorOp(arg.Operator)
 	if err != nil {
@@ -910,6 +924,13 @@ func parseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 		err := writeMatchValuesInMap(k, arg.Values, ty, op)
 		if err != nil {
 			return fmt.Errorf("writeMatchRangesInMap error: %w", err)
+		}
+	case SelectorOpSubString:
+		switch ty {
+		case gt.GenericStringType, gt.GenericCharBuffer:
+			if err := writeMatchSubString(k, arg.Values); err != nil {
+				return fmt.Errorf("writeMatchSubString error: %w", err)
+			}
 		}
 	case SelectorOpEQ, SelectorOpNEQ:
 		switch ty {

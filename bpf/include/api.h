@@ -323,4 +323,7 @@ static int BPF_FUNC(seq_write, struct seq_file *m, const void *data, uint32_t le
 # define lock_and(ptr, val)	(*(ptr) &= val)
 #endif
 
+// kfuncs
+extern int bpf_strnstr(const char *s1__ign, const char *s2__ign, size_t len) __weak __ksym;
+
 #endif /* __BPF_API__ */
