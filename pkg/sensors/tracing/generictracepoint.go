@@ -139,6 +139,11 @@ type genericTracepointArg struct {
 	btf [tracingapi.MaxBTFArgDepth]tracingapi.ConfigBTFArg
 }
 
+type tpHasMaps struct {
+	fdInstall bool
+	enforcer  bool
+}
+
 func genericTracepointTableGet(id idtable.EntryID) (*genericTracepoint, error) {
 	entry, err := genericTracepointTable.GetEntry(id)
 	if err != nil {
@@ -502,7 +507,7 @@ func createGenericTracepointSensor(
 		tracepoints = append(tracepoints, tp)
 	}
 
-	has := hasMaps{
+	has := tpHasMaps{
 		enforcer: len(spec.Enforcers) != 0,
 	}
 
