@@ -46,6 +46,9 @@ enum {
 	// range
 	op_in_range = 31,
 	op_notin_range = 32,
+	// match substring
+	op_substring = 33,
+	op_substring_igncase = 34,
 };
 
 #endif // __OPERATIONS_H__
