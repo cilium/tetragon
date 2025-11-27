@@ -33,6 +33,24 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
 
+var usdtMapsDeps = mapDeps[usdtHasMaps]{
+	"usdt_calls": {},
+	"write_offload": {
+		enabled: func(_ []idtable.EntryID, has usdtHasMaps) bool {
+			return has.sleepableOffload
+		},
+		process: func(p *program.Map, _ []idtable.EntryID, _ usdtHasMaps) {
+			p.SetMaxEntries(sleepableOffloadMaxEntries)
+		},
+	},
+	"tg_mb_sel_opts": {
+		enabled: func(multiIDs []idtable.EntryID, _ usdtHasMaps) bool {
+			// only for single sensor
+			return multiIDs == nil
+		},
+	},
+}.withConfigMap().withFilterMap()
+
 type observerUsdtSensor struct {
 	name string
 }
@@ -149,7 +167,6 @@ func createGenericUsdtSensor(
 
 func createMultiUsdtSensor(multiIDs []idtable.EntryID, policyName string, has usdtHasMaps) ([]*program.Program, []*program.Map, error) {
 	var progs []*program.Program
-	var maps []*program.Map
 
 	loadProgName := config.GenericUsdtObjs(true)
 
@@ -165,21 +182,7 @@ func createMultiUsdtSensor(multiIDs []idtable.EntryID, policyName string, has us
 	load.SleepableOffload = has.sleepableOffload
 
 	progs = append(progs, load)
-
-	configMap := program.MapBuilderProgram("config_map", load)
-	tailCalls := program.MapBuilderProgram("usdt_calls", load)
-	filterMap := program.MapBuilderProgram("filter_map", load)
-
-	maps = append(maps, configMap, tailCalls, filterMap)
-
-	filterMap.SetMaxEntries(len(multiIDs))
-	configMap.SetMaxEntries(len(multiIDs))
-
-	if has.sleepableOffload {
-		sleepableOffloadMap := program.MapBuilderProgram("write_offload", load)
-		sleepableOffloadMap.SetMaxEntries(sleepableOffloadMaxEntries)
-		maps = append(maps, sleepableOffloadMap)
-	}
+	maps := usdtMapsDeps.depsToMaps(load, multiIDs, has)
 
 	return progs, maps, nil
 }
@@ -223,19 +226,7 @@ func createUsdtSensorFromEntry(usdtEntry *genericUsdt,
 	load.SleepableOffload = has.sleepableOffload
 
 	progs = append(progs, load)
-
-	configMap := program.MapBuilderProgram("config_map", load)
-	tailCalls := program.MapBuilderProgram("usdt_calls", load)
-	filterMap := program.MapBuilderProgram("filter_map", load)
-
-	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
-	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap)
-
-	if has.sleepableOffload {
-		sleepableOffloadMap := program.MapBuilderProgram("write_offload", load)
-		sleepableOffloadMap.SetMaxEntries(sleepableOffloadMaxEntries)
-		maps = append(maps, sleepableOffloadMap)
-	}
+	maps = append(maps, usdtMapsDeps.depsToMaps(load, nil, has)...)
 
 	return progs, maps
 }
