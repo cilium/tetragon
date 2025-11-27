@@ -392,6 +392,7 @@ type addUprobeIn struct {
 type uprobeHas struct {
 	sleepableOffload bool
 	sleepablePreload bool
+	substring        bool
 }
 
 func createGenericUprobeSensor(
@@ -507,6 +508,20 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 			return nil, errors.New("can't use override regs action, no kernel support")
 		}
 		has.sleepableOffload = true
+	}
+
+	if selectors.HasOperator(spec.Selectors, selectors.SelectorOpSubString) {
+		if !bpf.HasKfunc("bpf_strnstr") {
+			return nil, errors.New("can't use SubString operator, no kernel support")
+		}
+		has.substring = true
+	}
+
+	if selectors.HasOperator(spec.Selectors, selectors.SelectorOpSubStringIgnCase) {
+		if !bpf.HasKfunc("bpf_strncasestr") {
+			return nil, errors.New("can't use SubStringIgnCase operator, no kernel support")
+		}
+		has.substring = true
 	}
 
 	// Parse Filters into kernel filter logic
@@ -829,6 +844,12 @@ func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID, poli
 
 	maps = append(maps, configMap, tailCalls, filterMap, retProbe)
 
+	if has.substring {
+		substringMap := program.MapBuilderSensor("substring_map", load)
+		substringMap.SetMaxEntries(selectors.SubstringMapEntries)
+		maps = append(maps, substringMap)
+	}
+
 	if has.sleepableOffload {
 		regsMap := program.MapBuilderProgram("regs_map", load)
 		sleepableOffloadMap := program.MapBuilderProgram("sleepable_offload", load)
@@ -915,7 +936,14 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 	filterMap := program.MapBuilderProgram("filter_map", load)
 	retProbe := program.MapBuilderSensor("retprobe_map", load)
 	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
+
 	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap, retProbe)
+
+	if has.substring {
+		substringMap := program.MapBuilderSensor("substring_map", load)
+		substringMap.SetMaxEntries(selectors.SubstringMapEntries)
+		maps = append(maps, substringMap)
+	}
 
 	if has.sleepableOffload {
 		regsMap := program.MapBuilderProgram("regs_map", load)
