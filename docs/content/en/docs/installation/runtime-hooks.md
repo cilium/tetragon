@@ -14,13 +14,6 @@ the topic.
 We use `minikube` as the example platform because it supports both `cri-o` and `containerd`, but the
 same steps can be applied to other platforms.
 
-### Setup Helm
-
-```shell
-helm repo add cilium https://helm.cilium.io
-helm repo update
-```
-
 ### Setup cluster
 
 {{< tabpane text=true >}}
@@ -57,38 +50,13 @@ This requires a section such as:
 
 To be present in containerd's configuration (e.g., `/etc/containerd/config.toml`).
 
-
-You can use the `tetragon-oci-hook-setup` to patch the configuration file:
+You can use the `minikube-install-hook` script to patch the configuration file:
 ```shell
-minikube ssh cat /etc/containerd/config.toml > /tmp/old-config.toml
-./contrib/tetragon-rthooks/tetragon-oci-hook-setup patch-containerd-conf enable-nri --config-file=/tmp/old-config.toml --output=/tmp/new-config.toml
-diff -u /tmp/old-config.toml /tmp/new-config.toml
+./contrib/tetragon-rthooks/scripts/minikube-install-hook.sh --nri
 ```
 
-Output should be something like:
+This script updates the configuration and restarts containerd.
 
-```diff
---- /tmp/old-config.toml        2024-07-02 11:51:23.893382357 +0200
-+++ /tmp/new-config.toml        2024-07-02 11:51:52.841533035 +0200
-@@ -67,3 +67,11 @@
-     mutation_threshold = 100
-     schedule_delay = "0s"
-     startup_delay = "100ms"
-+  [plugins."io.containerd.nri.v1.nri"]
-+    disable = false
-+    disable_connections = false
-+    plugin_config_path = "/etc/nri/conf.d"
-+    plugin_path = "/opt/nri/plugins"
-+    plugin_registration_timeout = "5s"
-+    plugin_request_timeout = "2s"
-+    socket_path = "/var/run/nri/nri.sock"
-```
-
-Install the new configuration file and restart containerd
-```shell
-minikube cp /tmp/new-config.toml /etc/containerd/config.toml
-minikube ssh sudo systemctl restart containerd
-```
 {{% /tab %}}
 
 {{% tab "kind (with Containerd)" %}}
@@ -196,7 +164,7 @@ helm install \
 {{< /tab >}}
 {{< /tabpane >}}
 
-```shel
+```shell
 kubectl -n kube-system get pods | grep tetragon
 ```
 
