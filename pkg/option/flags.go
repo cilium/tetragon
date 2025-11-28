@@ -93,9 +93,10 @@ const (
 
 	KeyReleasePinnedBPF = "release-pinned-bpf"
 
-	KeyEnablePolicyFilter          = "enable-policy-filter"
-	KeyEnablePolicyFilterCgroupMap = "enable-policy-filter-cgroup-map"
-	KeyEnablePolicyFilterDebug     = "enable-policy-filter-debug"
+	KeyEnablePolicyFilter           = "enable-policy-filter"
+	KeyEnablePolicyFilterCgroupMap  = "enable-policy-filter-cgroup-map"
+	KeyEnablePolicyFilterDebug      = "enable-policy-filter-debug"
+	KeyEnablePolicyFilterNoPrealloc = "enable-policy-filter-no-prealloc"
 
 	KeyEnablePidSetFilter = "enable-pid-set-filter"
 
@@ -237,6 +238,7 @@ func ReadAndSetFlags() error {
 	Config.EnablePolicyFilter = viper.GetBool(KeyEnablePolicyFilter)
 	Config.EnablePolicyFilterCgroupMap = viper.GetBool(KeyEnablePolicyFilterCgroupMap)
 	Config.EnablePolicyFilterDebug = viper.GetBool(KeyEnablePolicyFilterDebug)
+	Config.EnablePolicyFilterNoPrealloc = viper.GetBool(KeyEnablePolicyFilterNoPrealloc)
 	Config.EnableMsgHandlingLatency = viper.GetBool(KeyEnableMsgHandlingLatency)
 
 	Config.EnablePidSetFilter = viper.GetBool(KeyEnablePidSetFilter)
@@ -441,6 +443,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Bool(KeyEnablePolicyFilter, false, "Enable policy filter code")
 	flags.Bool(KeyEnablePolicyFilterCgroupMap, false, "Enable cgroup mappings for policy filter maps")
 	flags.Bool(KeyEnablePolicyFilterDebug, false, "Enable policy filter debug messages")
+	flags.Bool(KeyEnablePolicyFilterNoPrealloc, false, "Enable BPF_F_NO_PREALLOC flag for policy filter inner maps")
 
 	// Provide option to enable the pidSet export filters.
 	flags.Bool(KeyEnablePidSetFilter, false, "Enable pidSet export filters. Not recommended for production use")

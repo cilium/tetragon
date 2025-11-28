@@ -88,6 +88,7 @@ To use [the values available](#values), with `helm install` or `helm upgrade`, u
 | tetragon.enablePolicyFilter | bool | `true` | Enable policy filter. This is required for K8s namespace and pod-label filtering. |
 | tetragon.enablePolicyFilterCgroupMap | bool | `false` | Enable policy filter cgroup map. |
 | tetragon.enablePolicyFilterDebug | bool | `false` | Enable policy filter debug messages. |
+| tetragon.enablePolicyFilterNoPrealloc | bool | `false` | Enable BPF_F_NO_PREALLOC flag for policy filter inner maps. |
 | tetragon.enableProcessCred | bool | `false` | Enable Capabilities visibility in exec and kprobe events. |
 | tetragon.enableProcessNs | bool | `false` | Enable Namespaces visibility in exec and kprobe events. |
 | tetragon.enabled | bool | `true` |  |
