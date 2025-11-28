@@ -18,6 +18,7 @@ read_reg(struct pt_regs *ctx, __u32 src, __u8 shift)
 		     :);                                        \
 	val <<= shift;                                          \
 	val >>= shift;                                          \
+	bpf_printk("read_reg src %u shift %u val %lx\n", src, shift, val); \
 	val;                                                    \
 })
 
@@ -65,6 +66,7 @@ read_reg(struct pt_regs *ctx, __u32 src, __u8 shift)
 FUNC_LOCAL int
 write_reg(struct pt_regs *ctx, __u32 dst, __u8 size, __u64 val)
 {
+	bpf_printk("write_reg dst %u size %u val %lx\n", dst, size, val);
 	/*
 	 * Using inlined asm to make sure we access context via 'ctx-reg + offset'.
 	 * When using switch on all registers offset values, clang-18 uses * modified

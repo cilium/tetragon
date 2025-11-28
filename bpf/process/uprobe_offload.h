@@ -51,6 +51,8 @@ FUNC_INLINE void do_uprobe_override(void *ctx, __u32 idx)
 	__u64 id = get_current_pid_tgid();
 	__u32 *idxp;
 
+	bpf_printk("do_uprobe_override id %lu idx %u\n", id, idx);
+
 	/*
 	 * This should not happen, it means that the override program was
 	 * not executed for some reason.
@@ -80,7 +82,9 @@ uprobe_offload_x86(struct pt_regs *ctx)
 	__u32 *idx, i;
 	int err;
 
+
 	idx = map_lookup_elem(&sleepable_offload, &id);
+	bpf_printk("uprobe_offload_x86_1 id %lu idx %u\n", id, idx);
 	if (!idx)
 		return 0;
 	map_delete_elem(&sleepable_offload, &id);

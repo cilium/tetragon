@@ -60,6 +60,7 @@ struct {
 __attribute__((section((MAIN)), used)) int
 generic_uprobe_event(struct pt_regs *ctx)
 {
+	bpf_printk("UPROBE\n");
 	return generic_start_process_filter(ctx, (struct bpf_map_def *)&uprobe_calls);
 }
 
@@ -122,12 +123,14 @@ generic_uprobe_path(void *ctx)
 __attribute__((section(OFFLOAD), used)) int
 generic_sleepable_preload(struct pt_regs *ctx)
 {
+	bpf_printk("PRELOAD\n");
 	return uprobe_preload_x86(ctx);
 }
 
 __attribute__((section(OFFLOAD), used)) int
 generic_sleepable_offload(struct pt_regs *ctx)
 {
+	bpf_printk("OFFLOAD\n");
 	return uprobe_offload_x86(ctx);
 }
 #endif
