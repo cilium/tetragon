@@ -18,6 +18,7 @@
     - [Container](#tetragon-Container)
     - [CreateContainer](#tetragon-CreateContainer)
     - [CreateContainer.AnnotationsEntry](#tetragon-CreateContainer-AnnotationsEntry)
+    - [EnvVar](#tetragon-EnvVar)
     - [FileProperties](#tetragon-FileProperties)
     - [GetHealthStatusRequest](#tetragon-GetHealthStatusRequest)
     - [GetHealthStatusResponse](#tetragon-GetHealthStatusResponse)
@@ -454,6 +455,22 @@ found.
 | ----- | ---- | ----- | ----------- |
 | key | [string](#string) |  |  |
 | value | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="tetragon-EnvVar"></a>
+
+### EnvVar
+Environment variable
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| Key | [string](#string) |  |  |
+| Value | [string](#string) |  |  |
 
 
 
@@ -1032,6 +1049,7 @@ found.
 | binary_properties | [BinaryProperties](#tetragon-BinaryProperties) |  | Executed binary properties. This field is only available on ProcessExec events. |
 | user | [UserRecord](#tetragon-UserRecord) |  | UserRecord contains user information about the event. It is only supported when i) Tetragon is running as a systemd service or directly on the host, and ii) when the flag `--username-metadata` is set to &#34;unix&#34;. In this case, the information is retrieved from the traditional user database `/etc/passwd` and no name services lookups are performed. The resolution will only be attempted for processes in the host namespace. Note that this resolution happens in user-space, which means that mapping might have changed between the in-kernel BPF hook being executed and the username resolution. |
 | in_init_tree | [google.protobuf.BoolValue](#google-protobuf-BoolValue) |  | If set to true, this process is containerized and is a member of the process tree rooted at pid=1 in its PID namespace. This is useful if, for example, you wish to discern whether a process was spawned using a tool like nsenter or kubectl exec. |
+| environment_variables | [EnvVar](#tetragon-EnvVar) | repeated | Environment variables passed to the binary at execution. |
 
 
 

@@ -32,6 +32,8 @@ import (
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/cgroups"
+	"github.com/cilium/tetragon/pkg/config"
+	"github.com/cilium/tetragon/pkg/fieldfilters"
 	grpcexec "github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/kernels"
@@ -813,26 +815,57 @@ func TestExecParse(t *testing.T) {
 		// - cwd (string)
 
 		exec.Flags = 0
-		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + len(filename) + len(cwd) + 1)
+		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + len(filename) + len(cwd))
+		exec.SizePath = uint16(len(filename))
+		exec.SizeArgs = 0
+		exec.SizeCwd = uint16(len(cwd))
 
 		var buf bytes.Buffer
 		binary.Write(&buf, binary.LittleEndian, exec)
 		binary.Write(&buf, binary.LittleEndian, filename)
-		binary.Write(&buf, binary.LittleEndian, []byte{0})
 		binary.Write(&buf, binary.LittleEndian, cwd)
 
 		reader := bytes.NewReader(buf.Bytes())
 
-		process, empty, err := execParse(reader)
+		process, err := execParse(reader)
 		require.NoError(t, err)
 
 		assert.Equal(t, string(filename), process.Filename)
 		assert.Equal(t, string(cwd), process.Args)
-		assert.False(t, empty)
 
 		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
 		assert.Empty(t, decArgs)
 		assert.Equal(t, string(cwd), decCwd)
+	})
+
+	t.Run("Empty args and cwd", func(t *testing.T) {
+		observer.DataPurge()
+
+		// - filename (string)
+		// - no args
+		// - no cwd
+
+		exec.Flags = 0
+		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + len(filename))
+		exec.SizePath = uint16(len(filename))
+		exec.SizeArgs = 0
+		exec.SizeCwd = 0
+
+		var buf bytes.Buffer
+		binary.Write(&buf, binary.LittleEndian, exec)
+		binary.Write(&buf, binary.LittleEndian, filename)
+
+		reader := bytes.NewReader(buf.Bytes())
+
+		process, err := execParse(reader)
+		require.NoError(t, err)
+
+		assert.Equal(t, string(filename), process.Filename)
+		assert.Empty(t, process.Args)
+
+		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
+		assert.Empty(t, decArgs)
+		assert.Empty(t, decCwd)
 	})
 
 	t.Run("Filename as data event", func(t *testing.T) {
@@ -849,6 +882,9 @@ func TestExecParse(t *testing.T) {
 
 		exec.Flags = api.EventDataFilename
 		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + binary.Size(desc) + len(cwd))
+		exec.SizePath = uint16(binary.Size(desc))
+		exec.SizeArgs = 0
+		exec.SizeCwd = uint16(len(cwd))
 
 		var buf bytes.Buffer
 		binary.Write(&buf, binary.LittleEndian, exec)
@@ -857,13 +893,12 @@ func TestExecParse(t *testing.T) {
 
 		reader := bytes.NewReader(buf.Bytes())
 
-		process, empty, err := execParse(reader)
+		process, err := execParse(reader)
 		require.NoError(t, err)
 
 		// execParse check
 		assert.Equal(t, string(filename), process.Filename)
 		assert.Equal(t, string(cwd), process.Args)
-		assert.False(t, empty)
 
 		// ArgsDecoder check
 		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
@@ -887,24 +922,25 @@ func TestExecParse(t *testing.T) {
 		require.NoError(t, err)
 
 		exec.Flags = api.EventDataArgs
-		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + len(filename) + binary.Size(desc) + len(cwd) + 1)
+		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + len(filename) + binary.Size(desc) + len(cwd))
+		exec.SizePath = uint16(len(filename))
+		exec.SizeArgs = uint16(binary.Size(desc))
+		exec.SizeCwd = uint16(len(cwd))
 
 		var buf bytes.Buffer
 		binary.Write(&buf, binary.LittleEndian, exec)
 		binary.Write(&buf, binary.LittleEndian, filename)
-		binary.Write(&buf, binary.LittleEndian, []byte{0})
 		binary.Write(&buf, binary.LittleEndian, desc)
 		binary.Write(&buf, binary.LittleEndian, cwd)
 
 		reader := bytes.NewReader(buf.Bytes())
 
-		process, empty, err := execParse(reader)
+		process, err := execParse(reader)
 		require.NoError(t, err)
 
 		// execParse check
 		assert.Equal(t, string(filename), process.Filename)
 		assert.Equal(t, string(args)+string(cwd), process.Args)
-		assert.False(t, empty)
 
 		// ArgsDecoder check
 		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
@@ -934,6 +970,9 @@ func TestExecParse(t *testing.T) {
 
 		exec.Flags = api.EventDataFilename | api.EventDataArgs
 		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + binary.Size(desc1) + binary.Size(desc2) + len(cwd))
+		exec.SizePath = uint16(binary.Size(desc1))
+		exec.SizeArgs = uint16(binary.Size(desc2))
+		exec.SizeCwd = uint16(len(cwd))
 
 		var buf bytes.Buffer
 		binary.Write(&buf, binary.LittleEndian, exec)
@@ -943,13 +982,12 @@ func TestExecParse(t *testing.T) {
 
 		reader := bytes.NewReader(buf.Bytes())
 
-		process, empty, err := execParse(reader)
+		process, err := execParse(reader)
 		require.NoError(t, err)
 
 		// execParse check
 		assert.Equal(t, string(filename), process.Filename)
 		assert.Equal(t, string(args)+string(cwd), process.Args)
-		assert.False(t, empty)
 
 		// ArgsDecoder check
 		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
@@ -975,29 +1013,138 @@ func TestExecParse(t *testing.T) {
 		require.NoError(t, err)
 
 		exec.Flags = api.EventDataArgs
-		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + len(filename) + binary.Size(desc) + len(cwd) + 1)
+		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + len(filename) + binary.Size(desc) + len(cwd))
+		exec.SizePath = uint16(len(filename))
+		exec.SizeArgs = uint16(binary.Size(desc))
+		exec.SizeCwd = uint16(len(cwd))
 
 		var buf bytes.Buffer
 		binary.Write(&buf, binary.LittleEndian, exec)
 		binary.Write(&buf, binary.LittleEndian, filename)
-		binary.Write(&buf, binary.LittleEndian, []byte{0})
 		binary.Write(&buf, binary.LittleEndian, desc)
 		binary.Write(&buf, binary.LittleEndian, cwd)
 
 		reader := bytes.NewReader(buf.Bytes())
 
-		process, empty, err := execParse(reader)
+		process, err := execParse(reader)
 		require.NoError(t, err)
 
 		// execParse check
 		assert.Equal(t, strutils.UTF8FromBPFBytes(filename), process.Filename)
 		assert.Equal(t, strutils.UTF8FromBPFBytes(args)+strutils.UTF8FromBPFBytes(cwd), process.Args)
-		assert.False(t, empty)
 
 		// ArgsDecoder check
 		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
 		assert.Equal(t, "�( arg2", decArgs)
 		assert.Equal(t, strutils.UTF8FromBPFBytes(cwd), decCwd)
+	})
+
+	t.Run("Filename with api.EventErrorFilename", func(t *testing.T) {
+		observer.DataPurge()
+
+		// - filename (api.EventErrorFilename)
+		// - no args
+		// - cwd (string)
+
+		exec.Flags = api.EventErrorFilename
+		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + len(cwd))
+		exec.SizePath = 0
+		exec.SizeArgs = 0
+		exec.SizeCwd = uint16(len(cwd))
+
+		var buf bytes.Buffer
+		binary.Write(&buf, binary.LittleEndian, exec)
+		binary.Write(&buf, binary.LittleEndian, cwd)
+
+		reader := bytes.NewReader(buf.Bytes())
+
+		process, err := execParse(reader)
+		require.NoError(t, err)
+
+		assert.Equal(t, "<enomem>", process.Filename)
+		assert.Equal(t, string(cwd), process.Args)
+
+		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
+		assert.Empty(t, decArgs)
+		assert.Equal(t, string(cwd), decCwd)
+	})
+
+	t.Run("Filename, args, cwd and envs", func(t *testing.T) {
+		observer.DataPurge()
+
+		// - filename (string)
+		// - args (string)
+		// - cwd (string)
+		// - envs (string)
+
+		var args []byte
+		args = append(args, 'a', 'r', 'g', '1', 0, 'a', 'r', 'g', '2')
+
+		var envs []byte
+		envs = append(envs, 'A', '=', '1', 0, 'B', '=', '2')
+
+		exec.Flags = api.EventErrorFilename
+		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + len(filename) + len(args) + len(cwd) + len(envs))
+		exec.SizePath = uint16(len(filename))
+		exec.SizeArgs = uint16(len(args))
+		exec.SizeCwd = uint16(len(cwd))
+		exec.SizeEnvs = uint16(len(envs))
+
+		var buf bytes.Buffer
+		binary.Write(&buf, binary.LittleEndian, exec)
+		binary.Write(&buf, binary.LittleEndian, filename)
+		binary.Write(&buf, binary.LittleEndian, args)
+		binary.Write(&buf, binary.LittleEndian, cwd)
+		binary.Write(&buf, binary.LittleEndian, envs)
+
+		reader := bytes.NewReader(buf.Bytes())
+
+		process, err := execParse(reader)
+		require.NoError(t, err)
+
+		assert.Equal(t, string(filename), process.Filename)
+		assert.Equal(t, []string{"A=1", "B=2"}, process.Envs)
+
+		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
+		assert.Equal(t, "arg1 arg2", decArgs)
+		assert.Equal(t, string(cwd), decCwd)
+	})
+
+	t.Run("Filename, args, cwd and zero envs", func(t *testing.T) {
+		observer.DataPurge()
+
+		// - filename (string)
+		// - args (string)
+		// - cwd (string)
+		// - empty envs
+
+		var args []byte
+		args = append(args, 'a', 'r', 'g', '1', 0, 'a', 'r', 'g', '2')
+
+		exec.Flags = api.EventErrorFilename
+		exec.Size = uint32(processapi.MSG_SIZEOF_EXECVE + len(filename) + len(args) + len(cwd))
+		exec.SizePath = uint16(len(filename))
+		exec.SizeArgs = uint16(len(args))
+		exec.SizeCwd = uint16(len(cwd))
+		exec.SizeEnvs = 0
+
+		var buf bytes.Buffer
+		binary.Write(&buf, binary.LittleEndian, exec)
+		binary.Write(&buf, binary.LittleEndian, filename)
+		binary.Write(&buf, binary.LittleEndian, args)
+		binary.Write(&buf, binary.LittleEndian, cwd)
+
+		reader := bytes.NewReader(buf.Bytes())
+
+		process, err := execParse(reader)
+		require.NoError(t, err)
+
+		assert.Equal(t, string(filename), process.Filename)
+		assert.Equal(t, []string(nil), process.Envs)
+
+		decArgs, decCwd := proc.ArgsDecoder(process.Args, process.Flags)
+		assert.Equal(t, "arg1 arg2", decArgs)
+		assert.Equal(t, string(cwd), decCwd)
 	})
 
 	observer.DataPurge()
@@ -1638,4 +1785,159 @@ func TestThrottle1(t *testing.T) {
 // Run throttle twice to test the CgroupRate setup code
 func TestThrottle2(t *testing.T) {
 	testThrottle(t)
+}
+
+// Verify that we get all the process environment variables
+func TestEventExecveEnvs(t *testing.T) {
+	if !config.EnableLargeProgs() {
+		t.Skip("Older kernels do not support environment variables in exec events.")
+	}
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	// Enable nevironment variables
+	option.Config.EnableProcessEnvironmentVariables = true
+
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("Failed to run observer: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
+
+	procChecker := ec.NewProcessChecker().
+		WithBinary(sm.Full(testNop)).
+		WithEnvironmentVariables(ec.NewEnvVarListMatcher().WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewEnvVarChecker().WithKey(sm.Full("TEST_VAR1")).WithValue(sm.Full("1")),
+				ec.NewEnvVarChecker().WithKey(sm.Full("TEST_VAR2")).WithValue(sm.Full("2")),
+			))
+
+	execChecker := ec.NewProcessExecChecker("").WithProcess(procChecker)
+	checker := ec.NewUnorderedEventChecker(execChecker)
+
+	cmd := exec.Command(testNop)
+	cmd.Env = []string{"TEST_VAR1=1", "TEST_VAR2=2"}
+
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to execute test binary: %s\n", err)
+	}
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
+// Verify that we get only filtered environment variables
+func TestEventExecveEnvsFilter(t *testing.T) {
+	if !config.EnableLargeProgs() {
+		t.Skip("Older kernels do not support environment variables in exec events.")
+	}
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	// Enable nevironment variables
+	option.Config.EnableProcessEnvironmentVariables = true
+
+	// Set filter for TEST_VAR1 and TEST_VAR2 variables
+	option.Config.FilterEnvironmentVariables = make(map[string]struct{})
+	option.Config.FilterEnvironmentVariables["TEST_VAR1"] = struct{}{}
+	option.Config.FilterEnvironmentVariables["TEST_VAR2"] = struct{}{}
+
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("Failed to run observer: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
+
+	procChecker := ec.NewProcessChecker().
+		WithBinary(sm.Full(testNop)).
+		WithEnvironmentVariables(ec.NewEnvVarListMatcher().WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewEnvVarChecker().WithKey(sm.Full("TEST_VAR1")).WithValue(sm.Full("1")),
+				ec.NewEnvVarChecker().WithKey(sm.Full("TEST_VAR2")).WithValue(sm.Full("2")),
+			))
+
+	execChecker := ec.NewProcessExecChecker("").WithProcess(procChecker)
+	checker := ec.NewUnorderedEventChecker(execChecker)
+
+	cmd := exec.Command(testNop)
+	cmd.Env = []string{"TEST_VAR1=1", "TEST_VAR2=2", "TEST_VAR3=3", "TEST_VAR4=4"}
+
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to execute test binary: %s\n", err)
+	}
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
+// Verify that we get only filtered environment variable
+// with redacted value.
+func TestEventExecveEnvsFilterRedact(t *testing.T) {
+	if !config.EnableLargeProgs() {
+		t.Skip("Older kernels do not support environment variables in exec events.")
+	}
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	// Enable nevironment variables
+	option.Config.EnableProcessEnvironmentVariables = true
+
+	// Set filter for TEST_VAR1 variable
+	option.Config.FilterEnvironmentVariables = make(map[string]struct{})
+	option.Config.FilterEnvironmentVariables["TEST_VAR1"] = struct{}{}
+
+	var err error
+
+	// Set redaction for TEST_VAR1 variable
+	fieldfilters.RedactionFilters, err = fieldfilters.ParseRedactionFilterList(`{"redact": ["(?:TEST_VAR1)[\\s=]+(\\S+)"]}`)
+	require.NoError(t, err)
+
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("Failed to run observer: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
+
+	procChecker := ec.NewProcessChecker().
+		WithBinary(sm.Full(testNop)).
+		WithEnvironmentVariables(ec.NewEnvVarListMatcher().WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewEnvVarChecker().WithKey(sm.Full("TEST_VAR1")).WithValue(sm.Full("*****")),
+			))
+
+	execChecker := ec.NewProcessExecChecker("").WithProcess(procChecker)
+	checker := ec.NewUnorderedEventChecker(execChecker)
+
+	cmd := exec.Command(testNop)
+	cmd.Env = []string{"TEST_VAR1=1", "TEST_VAR2=2", "TEST_VAR3=3", "TEST_VAR4=4"}
+
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to execute test binary: %s\n", err)
+	}
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+
+	fieldfilters.RedactionFilters = nil
 }

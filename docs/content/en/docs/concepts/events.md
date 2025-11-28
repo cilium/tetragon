@@ -223,9 +223,9 @@ Since Tetragon traces the entire system, event exports might sometimes contain
 sensitive information (for example, a secret passed via a command line argument
 to a process). To prevent this information from being exfiltrated via Tetragon
 JSON export, Tetragon provides a mechanism called Redaction Filters which can be
-used to string patterns to redact from exported process arguments. These filters are written
-in JSON and passed to the Tetragon agent via the `--redaction-filters` command
-line flag or the `redactionFilters` Helm value.
+used to string patterns to redact from exported process arguments and environment
+variables. These filters are written in JSON and passed to the Tetragon agent via
+the `--redaction-filters` command line flag or the `redactionFilters` Helm value.
 
 To perform redactions, redaction filters define RE2 regular expressions in the
 `redact` field. Any capture groups in these RE2 regular expressions are redacted and
@@ -243,7 +243,7 @@ characters. For instance `\Wpasswd\W?` would be written as `{"redact": "\\Wpassw
 {{< /warning >}}
 
 For more control, you can select which binary or binaries should have their
-arguments redacted with the `binary_regex` field.
+arguments or environment variables redacted with the `binary_regex` field.
 
 As a concrete example, the following will redact all passwords passed to
 processes with the `"--password"` argument:
@@ -264,6 +264,18 @@ We can also redact these as follows:
 
 With both of the above redaction filters in place, we are now redacting all
 password arguments.
+
+Another example is to redact `SSHPASS` environment variable with:
+
+```json
+{"redact": ["(?:SSHPASS=)+(\\S+)"]}
+```
+
+Now, an event that contains the string `"SSHPASS=password"` would have that string
+replaced with `"SSHPASS=*****"`.
+
+It's also possible to store only requested environment variables with
+'--filter-environment-variables VAR1[,VAR2..]` option.
 
 ### `tetra` CLI
 

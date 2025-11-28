@@ -20,7 +20,7 @@ const (
 	CGROUP_PATH_LENGTH = 4096
 
 	MSG_SIZEOF_MAXARG = 100
-	MSG_SIZEOF_EXECVE = 56
+	MSG_SIZEOF_EXECVE = 64
 	MSG_SIZEOF_CWD    = 4096
 	MSG_SIZEOF_ARGS   = 1024
 	MSG_SIZEOF_BUFFER = MSG_SIZEOF_ARGS +
@@ -77,6 +77,10 @@ type MsgExec struct {
 	Pad        uint32
 	Ino        uint64
 	Ktime      uint64
+	SizePath   uint16
+	SizeArgs   uint16
+	SizeCwd    uint16
+	SizeEnvs   uint16
 }
 
 type MsgExecveKey struct {
@@ -206,6 +210,7 @@ type MsgProcess struct {
 	Ktime      uint64
 	Filename   string
 	Args       string
+	Envs       []string
 	User       MsgUserRecord
 }
 

@@ -13,14 +13,21 @@
 #include "errmetrics.h"
 #include "bpf_mbset.h"
 #include "bpf_ktime.h"
+#include "environ_conf.h"
 
 #include "policy_filter.h"
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 
+#ifdef __RHEL7_BPF_PROG
+#define exec_ctx_struct ftrace_raw_sched_process_exec
+#else
+#define exec_ctx_struct trace_event_raw_sched_process_exec
+#endif
+
 #ifndef OVERRIDE_TAILCALL
 int execve_rate(void *ctx);
-int execve_send(void *ctx);
+int execve_send(struct exec_ctx_struct *ctx);
 
 struct {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
@@ -97,6 +104,8 @@ read_args(void *ctx, struct msg_execve_event *event)
 	args_size = end_stack - start_stack;
 
 	if (args_size < BUFFER && args_size < free_size) {
+		if (args_size)
+			args_size -= 1;
 		size = args_size & 0x3ff /* BUFFER - 1 */;
 		err = with_errmetrics(probe_read, args, size, (char *)start_stack);
 		if (err < 0) {
@@ -114,8 +123,74 @@ read_args(void *ctx, struct msg_execve_event *event)
 #ifdef __LARGE_BPF_PROG
 	event->exe.arg_len = size;
 #endif
+	p->size_args = (__u16)size;
 	return size;
 }
+
+#ifdef __LARGE_BPF_PROG
+volatile const __u8 ENV_VARS_ENABLED;
+
+FUNC_INLINE __u32 read_envs(void *ctx, struct msg_execve_event *event)
+{
+	struct msg_process *p = &event->process;
+	struct mm_struct *mm = NULL;
+	struct task_struct *task;
+	__u32 size = 0, flags = 0;
+	unsigned long free_size, envs_size;
+	unsigned long env_start, env_end;
+	char *envs;
+	int err;
+
+	if (!ENV_VARS_ENABLED)
+		return 0;
+
+	envs = (char *)p + p->size;
+	if (envs >= (char *)&event->process + BUFFER)
+		return 0;
+
+	task = (struct task_struct *)get_current_task();
+	probe_read(&mm, sizeof(mm), _(&task->mm));
+	if (!mm)
+		return 0;
+
+	with_errmetrics(probe_read, &env_start, sizeof(env_start), _(&mm->env_start));
+	with_errmetrics(probe_read, &env_end, sizeof(env_end), _(&mm->env_end));
+
+	if (!env_start || !env_end)
+		return 0;
+
+	free_size = (char *)&event->process + BUFFER - envs;
+	envs_size = env_end - env_start;
+
+	if (envs_size < BUFFER && envs_size < free_size) {
+		if (envs_size)
+			envs_size -= 1;
+		size = envs_size & 0x3ff; /* BUFFER - 1 */
+
+		err = probe_read(envs, size, (char *)env_start);
+		if (err < 0) {
+			flags |= EVENT_ENVS_ERROR;
+			size = 0;
+		}
+	} else {
+		size = data_event_bytes(ctx, (struct data_event_desc *)envs,
+					(unsigned long)env_start,
+					envs_size,
+					(struct bpf_map_def *)&data_heap);
+		if (size > 0)
+			flags |= EVENT_ENVS_DATA;
+	}
+
+	p->size_envs = size;
+	p->flags |= flags;
+	return size;
+}
+#else
+FUNC_INLINE __u32 read_envs(void *ctx, struct msg_execve_event *event)
+{
+	return 0;
+}
+#endif
 
 FUNC_INLINE __u32
 read_path(void *ctx, struct msg_execve_event *event, void *filename)
@@ -139,8 +214,12 @@ read_path(void *ctx, struct msg_execve_event *event, void *filename)
 			flags |= EVENT_ERROR_FILENAME;
 		else
 			flags |= EVENT_DATA_FILENAME;
+	} else if (size > 0) {
+		/* remove null byte */
+		size -= 1;
 	}
 
+	p->size_path = (__u16)size;
 	p->flags |= flags;
 	return size;
 }
@@ -172,12 +251,6 @@ read_execve_shared_info(void *ctx, struct msg_process *p, __u64 pid)
 	execve_joined_info_map_clear(pid);
 }
 
-#ifdef __RHEL7_BPF_PROG
-#define exec_ctx_struct ftrace_raw_sched_process_exec
-#else
-#define exec_ctx_struct trace_event_raw_sched_process_exec
-#endif
-
 __attribute__((section("tracepoint/sys_execve"), used)) int
 event_execve(struct exec_ctx_struct *ctx)
 {
@@ -204,6 +277,10 @@ event_execve(struct exec_ctx_struct *ctx)
 
 	p = &event->process;
 	p->flags = EVENT_EXECVE;
+	p->size_path = 0;
+	p->size_args = 0;
+	p->size_cwd = 0;
+
 	/**
 	 * Per thread tracking rules TID == PID :
 	 *  At exec all threads other than the calling one are destroyed, so
@@ -221,6 +298,7 @@ event_execve(struct exec_ctx_struct *ctx)
 	p->size += read_path(ctx, event, filename);
 	p->size += read_args(ctx, event);
 	p->size += read_cwd(ctx, p);
+	p->size += read_envs(ctx, event);
 
 	event->common.op = MSG_OP_EXECVE;
 	event->common.ktime = p->ktime;
@@ -266,7 +344,7 @@ execve_rate(void *ctx __arg_ctx)
  * has already been collected, then send it to the perf buffer.
  */
 __attribute__((section("tracepoint"), used)) int
-execve_send(void *ctx __arg_ctx)
+execve_send(struct exec_ctx_struct *ctx __arg_ctx)
 {
 	struct msg_execve_event *event;
 	struct execve_map_value *curr;
@@ -359,10 +437,9 @@ execve_send(void *ctx __arg_ctx)
 		curr->bin.args[len] = 0x00;
 		curr->bin.args[len + 1] = 0x00;
 #else
-		// reuse p->args first string that contains the filename, this can't be
-		// above 256 in size (otherwise the complete will be send via data msg)
-		// which is okay because we need the 256 first bytes.
-		curr->bin.path_length = probe_read_str(curr->bin.path, BINARY_PATH_MAX_LEN, &p->args);
+		char *filename = (char *)ctx + (_(ctx->__data_loc_filename) & 0xFFFF);
+
+		curr->bin.path_length = probe_read_str(curr->bin.path, BINARY_PATH_MAX_LEN, (void *)filename);
 		if (curr->bin.path_length > 1) {
 			// don't include the NULL byte in the length
 			curr->bin.path_length--;

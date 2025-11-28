@@ -85,6 +85,10 @@ options:
     - name: enable-process-cred
       default_value: "false"
       usage: Enable process_cred events
+    - name: enable-process-environment-variables
+      default_value: "false"
+      usage: |
+        Include environment variables in process_exec events. Disabled by default. Note that this option can significantly increase the size of the events and may impact performance, as well as capture sensitive information such as passwords in the events (you can use --redaction-filters to redact the data).
     - name: enable-process-ns
       default_value: "false"
       usage: |
@@ -144,6 +148,9 @@ options:
       usage: Expose real linear addresses in events stack traces
     - name: field-filters
       usage: Field filters for event exports
+    - name: filter-environment-variables
+      default_value: '[]'
+      usage: Filter for specific environment variables
     - name: force-large-progs
       default_value: "false"
       usage: |

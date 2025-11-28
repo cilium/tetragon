@@ -4532,28 +4532,92 @@ func (checker *UserRecordChecker) FromUserRecord(event *tetragon.UserRecord) *Us
 	return checker
 }
 
+// EnvVarChecker implements a checker struct to check a EnvVar field
+type EnvVarChecker struct {
+	Key   *stringmatcher.StringMatcher `json:"Key,omitempty"`
+	Value *stringmatcher.StringMatcher `json:"Value,omitempty"`
+}
+
+// NewEnvVarChecker creates a new EnvVarChecker
+func NewEnvVarChecker() *EnvVarChecker {
+	return &EnvVarChecker{}
+}
+
+// Get the type of the checker as a string
+func (checker *EnvVarChecker) GetCheckerType() string {
+	return "EnvVarChecker"
+}
+
+// Check checks a EnvVar field
+func (checker *EnvVarChecker) Check(event *tetragon.EnvVar) error {
+	if event == nil {
+		return fmt.Errorf("%s: EnvVar field is nil", CheckerLogPrefix(checker))
+	}
+
+	fieldChecks := func() error {
+		if checker.Key != nil {
+			if err := checker.Key.Match(event.Key); err != nil {
+				return fmt.Errorf("Key check failed: %w", err)
+			}
+		}
+		if checker.Value != nil {
+			if err := checker.Value.Match(event.Value); err != nil {
+				return fmt.Errorf("Value check failed: %w", err)
+			}
+		}
+		return nil
+	}
+	if err := fieldChecks(); err != nil {
+		return fmt.Errorf("%s: %w", CheckerLogPrefix(checker), err)
+	}
+	return nil
+}
+
+// WithKey adds a Key check to the EnvVarChecker
+func (checker *EnvVarChecker) WithKey(check *stringmatcher.StringMatcher) *EnvVarChecker {
+	checker.Key = check
+	return checker
+}
+
+// WithValue adds a Value check to the EnvVarChecker
+func (checker *EnvVarChecker) WithValue(check *stringmatcher.StringMatcher) *EnvVarChecker {
+	checker.Value = check
+	return checker
+}
+
+//FromEnvVar populates the EnvVarChecker using data from a EnvVar field
+func (checker *EnvVarChecker) FromEnvVar(event *tetragon.EnvVar) *EnvVarChecker {
+	if event == nil {
+		return checker
+	}
+	checker.Key = stringmatcher.Full(event.Key)
+	checker.Value = stringmatcher.Full(event.Value)
+	return checker
+}
+
 // ProcessChecker implements a checker struct to check a Process field
 type ProcessChecker struct {
-	ExecId             *stringmatcher.StringMatcher       `json:"execId,omitempty"`
-	Pid                *uint32                            `json:"pid,omitempty"`
-	Uid                *uint32                            `json:"uid,omitempty"`
-	Cwd                *stringmatcher.StringMatcher       `json:"cwd,omitempty"`
-	Binary             *stringmatcher.StringMatcher       `json:"binary,omitempty"`
-	Arguments          *stringmatcher.StringMatcher       `json:"arguments,omitempty"`
-	Flags              *stringmatcher.StringMatcher       `json:"flags,omitempty"`
-	StartTime          *timestampmatcher.TimestampMatcher `json:"startTime,omitempty"`
-	Auid               *uint32                            `json:"auid,omitempty"`
-	Pod                *PodChecker                        `json:"pod,omitempty"`
-	Docker             *stringmatcher.StringMatcher       `json:"docker,omitempty"`
-	ParentExecId       *stringmatcher.StringMatcher       `json:"parentExecId,omitempty"`
-	Refcnt             *uint32                            `json:"refcnt,omitempty"`
-	Cap                *CapabilitiesChecker               `json:"cap,omitempty"`
-	Ns                 *NamespacesChecker                 `json:"ns,omitempty"`
-	Tid                *uint32                            `json:"tid,omitempty"`
-	ProcessCredentials *ProcessCredentialsChecker         `json:"processCredentials,omitempty"`
-	BinaryProperties   *BinaryPropertiesChecker           `json:"binaryProperties,omitempty"`
-	User               *UserRecordChecker                 `json:"user,omitempty"`
-	InInitTree         *bool                              `json:"inInitTree,omitempty"`
+	ExecId               *stringmatcher.StringMatcher       `json:"execId,omitempty"`
+	Pid                  *uint32                            `json:"pid,omitempty"`
+	Uid                  *uint32                            `json:"uid,omitempty"`
+	Cwd                  *stringmatcher.StringMatcher       `json:"cwd,omitempty"`
+	Binary               *stringmatcher.StringMatcher       `json:"binary,omitempty"`
+	Arguments            *stringmatcher.StringMatcher       `json:"arguments,omitempty"`
+	Flags                *stringmatcher.StringMatcher       `json:"flags,omitempty"`
+	StartTime            *timestampmatcher.TimestampMatcher `json:"startTime,omitempty"`
+	Auid                 *uint32                            `json:"auid,omitempty"`
+	Pod                  *PodChecker                        `json:"pod,omitempty"`
+	Docker               *stringmatcher.StringMatcher       `json:"docker,omitempty"`
+	ParentExecId         *stringmatcher.StringMatcher       `json:"parentExecId,omitempty"`
+	Refcnt               *uint32                            `json:"refcnt,omitempty"`
+	Cap                  *CapabilitiesChecker               `json:"cap,omitempty"`
+	Ns                   *NamespacesChecker                 `json:"ns,omitempty"`
+	Tid                  *uint32                            `json:"tid,omitempty"`
+	ProcessCredentials   *ProcessCredentialsChecker         `json:"processCredentials,omitempty"`
+	BinaryProperties     *BinaryPropertiesChecker           `json:"binaryProperties,omitempty"`
+	User                 *UserRecordChecker                 `json:"user,omitempty"`
+	InInitTree           *bool                              `json:"inInitTree,omitempty"`
+	EnvironmentVariables *EnvVarListMatcher                 `json:"environmentVariables,omitempty"`
 }
 
 // NewProcessChecker creates a new ProcessChecker
@@ -4688,6 +4752,11 @@ func (checker *ProcessChecker) Check(event *tetragon.Process) error {
 				return fmt.Errorf("InInitTree has value %v which does not match expected value %v", event.InInitTree.Value, *checker.InInitTree)
 			}
 		}
+		if checker.EnvironmentVariables != nil {
+			if err := checker.EnvironmentVariables.Check(event.EnvironmentVariables); err != nil {
+				return fmt.Errorf("EnvironmentVariables check failed: %w", err)
+			}
+		}
 		return nil
 	}
 	if err := fieldChecks(); err != nil {
@@ -4816,6 +4885,12 @@ func (checker *ProcessChecker) WithInInitTree(check bool) *ProcessChecker {
 	return checker
 }
 
+// WithEnvironmentVariables adds a EnvironmentVariables check to the ProcessChecker
+func (checker *ProcessChecker) WithEnvironmentVariables(check *EnvVarListMatcher) *ProcessChecker {
+	checker.EnvironmentVariables = check
+	return checker
+}
+
 //FromProcess populates the ProcessChecker using data from a Process field
 func (checker *ProcessChecker) FromProcess(event *tetragon.Process) *ProcessChecker {
 	if event == nil {
@@ -4872,7 +4947,120 @@ func (checker *ProcessChecker) FromProcess(event *tetragon.Process) *ProcessChec
 		val := event.InInitTree.Value
 		checker.InInitTree = &val
 	}
+	{
+		var checks []*EnvVarChecker
+		for _, check := range event.EnvironmentVariables {
+			var convertedCheck *EnvVarChecker
+			if check != nil {
+				convertedCheck = NewEnvVarChecker().FromEnvVar(check)
+			}
+			checks = append(checks, convertedCheck)
+		}
+		lm := NewEnvVarListMatcher().WithOperator(listmatcher.Ordered).
+			WithValues(checks...)
+		checker.EnvironmentVariables = lm
+	}
 	return checker
+}
+
+// EnvVarListMatcher checks a list of *tetragon.EnvVar fields
+type EnvVarListMatcher struct {
+	Operator listmatcher.Operator `json:"operator"`
+	Values   []*EnvVarChecker     `json:"values"`
+}
+
+// NewEnvVarListMatcher creates a new EnvVarListMatcher. The checker defaults to a subset checker unless otherwise specified using WithOperator()
+func NewEnvVarListMatcher() *EnvVarListMatcher {
+	return &EnvVarListMatcher{
+		Operator: listmatcher.Subset,
+	}
+}
+
+// WithOperator sets the match kind for the EnvVarListMatcher
+func (checker *EnvVarListMatcher) WithOperator(operator listmatcher.Operator) *EnvVarListMatcher {
+	checker.Operator = operator
+	return checker
+}
+
+// WithValues sets the checkers that the EnvVarListMatcher should use
+func (checker *EnvVarListMatcher) WithValues(values ...*EnvVarChecker) *EnvVarListMatcher {
+	checker.Values = values
+	return checker
+}
+
+// Check checks a list of *tetragon.EnvVar fields
+func (checker *EnvVarListMatcher) Check(values []*tetragon.EnvVar) error {
+	switch checker.Operator {
+	case listmatcher.Ordered:
+		return checker.orderedCheck(values)
+	case listmatcher.Unordered:
+		return checker.unorderedCheck(values)
+	case listmatcher.Subset:
+		return checker.subsetCheck(values)
+	default:
+		return fmt.Errorf("Unhandled ListMatcher operator %s", checker.Operator)
+	}
+}
+
+// orderedCheck checks a list of ordered *tetragon.EnvVar fields
+func (checker *EnvVarListMatcher) orderedCheck(values []*tetragon.EnvVar) error {
+	innerCheck := func(check *EnvVarChecker, value *tetragon.EnvVar) error {
+		if err := check.Check(value); err != nil {
+			return fmt.Errorf("EnvironmentVariables check failed: %w", err)
+		}
+		return nil
+	}
+
+	if len(checker.Values) != len(values) {
+		return fmt.Errorf("EnvVarListMatcher: Wanted %d elements, got %d", len(checker.Values), len(values))
+	}
+
+	for i, check := range checker.Values {
+		value := values[i]
+		if err := innerCheck(check, value); err != nil {
+			return fmt.Errorf("EnvVarListMatcher: Check failed on element %d: %w", i, err)
+		}
+	}
+
+	return nil
+}
+
+// unorderedCheck checks a list of unordered *tetragon.EnvVar fields
+func (checker *EnvVarListMatcher) unorderedCheck(values []*tetragon.EnvVar) error {
+	if len(checker.Values) != len(values) {
+		return fmt.Errorf("EnvVarListMatcher: Wanted %d elements, got %d", len(checker.Values), len(values))
+	}
+
+	return checker.subsetCheck(values)
+}
+
+// subsetCheck checks a subset of *tetragon.EnvVar fields
+func (checker *EnvVarListMatcher) subsetCheck(values []*tetragon.EnvVar) error {
+	innerCheck := func(check *EnvVarChecker, value *tetragon.EnvVar) error {
+		if err := check.Check(value); err != nil {
+			return fmt.Errorf("EnvironmentVariables check failed: %w", err)
+		}
+		return nil
+	}
+
+	numDesired := len(checker.Values)
+	numMatched := 0
+
+nextCheck:
+	for _, check := range checker.Values {
+		for _, value := range values {
+			if err := innerCheck(check, value); err == nil {
+				numMatched += 1
+				continue nextCheck
+			}
+		}
+	}
+
+	if numMatched < numDesired {
+		return fmt.Errorf("EnvVarListMatcher: Check failed, only matched %d elements but wanted %d", numMatched, numDesired)
+	}
+
+	return nil
 }
 
 // KprobeSockChecker implements a checker struct to check a KprobeSock field
