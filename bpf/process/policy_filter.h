@@ -20,7 +20,7 @@ struct {
 
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH_OF_MAPS);
-	__uint(max_entries, POLICY_FILTER_MAX_POLICIES);
+	__uint(max_entries, 1); // will be resized by agent when needed
 	__type(key, u32); /* policy id */
 	__array(
 		values, struct {

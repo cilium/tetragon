@@ -14,6 +14,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
+	"github.com/cilium/tetragon/pkg/option"
 )
 
 const (
@@ -72,6 +73,10 @@ func newPfMap(enableCgroupMap bool) (PfMap, error) {
 		return PfMap{}, fmt.Errorf("loading spec for %s failed: %w", objPath, err)
 	}
 
+	if _, ok := spec.Maps["policy_filter_maps"]; ok {
+		spec.Maps["policy_filter_maps"].MaxEntries = uint32(option.Config.PolicyFilterMapEntries)
+	}
+
 	var ret PfMap
 	if ret.policyMap, err = openMap(spec, MapName, polMapSize); err != nil {
 		return PfMap{}, fmt.Errorf("opening map %s failed: %w", MapName, err)
@@ -80,7 +85,7 @@ func newPfMap(enableCgroupMap bool) (PfMap, error) {
 	if enableCgroupMap {
 		if ret.cgroupMap, err = openMap(spec, CgroupMapName, polMaxPolicies); err != nil {
 			releaseMap(ret.policyMap)
-			return PfMap{}, fmt.Errorf("opening cgroup map %s failed: %w", MapName, err)
+			return PfMap{}, fmt.Errorf("opening cgroup map %s failed: %w", CgroupMapName, err)
 		}
 	}
 
