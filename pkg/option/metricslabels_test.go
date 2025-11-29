@@ -16,28 +16,28 @@ func TestParseMetricsLabelFilter(t *testing.T) {
 	}{
 		{
 			name:     "all labels (default)",
-			input:    "namespace,workload,pod,binary",
+			input:    "namespace,workload,pod,binary,node_name",
 			expected: DefaultLabelFilter(),
 		},
 		{
 			name:     "no labels",
 			input:    "",
-			expected: map[string]bool{"namespace": false, "workload": false, "pod": false, "binary": false},
+			expected: map[string]bool{"namespace": false, "workload": false, "pod": false, "binary": false, "node_name": false},
 		},
 		{
 			name:     "without pod",
 			input:    "namespace,workload,binary",
-			expected: map[string]bool{"namespace": true, "workload": true, "pod": false, "binary": true},
+			expected: map[string]bool{"namespace": true, "workload": true, "pod": false, "binary": true, "node_name": false},
 		},
 		{
 			name:     "spaces + empty",
 			input:    "namespace , workload , ,, binary",
-			expected: map[string]bool{"namespace": true, "workload": true, "pod": false, "binary": true},
+			expected: map[string]bool{"namespace": true, "workload": true, "pod": false, "binary": true, "node_name": false},
 		},
 		{
 			name:     "unknown + misspelled",
 			input:    "namespace,workload,unknown,ppod,podd,binary",
-			expected: map[string]bool{"namespace": true, "workload": true, "pod": false, "binary": true},
+			expected: map[string]bool{"namespace": true, "workload": true, "pod": false, "binary": true, "node_name": false},
 		},
 	}
 

@@ -13,5 +13,6 @@ var (
 	ExampleWorkload      = "example-workload"
 	ExamplePod           = "example-pod"
 	ExampleBinary        = "example-binary"
-	ExampleProcessLabels = []string{ExampleNamespace, ExampleWorkload, ExamplePod, ExampleBinary}
+	ExampleNodeName      = "example-node-name"
+	ExampleProcessLabels = []string{ExampleNamespace, ExampleWorkload, ExamplePod, ExampleBinary, ExampleNodeName}
 )

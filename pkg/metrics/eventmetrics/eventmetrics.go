@@ -115,7 +115,7 @@ func InitEventsMetricsForDocs(registry *prometheus.Registry) {
 	InitEventsMetrics(registry)
 
 	// Initialize metrics with example labels
-	processLabels := option.CreateProcessLabels(consts.ExampleNamespace, consts.ExampleWorkload, consts.ExamplePod, consts.ExampleBinary)
+	processLabels := option.CreateProcessLabels(consts.ExampleNamespace, consts.ExampleWorkload, consts.ExamplePod, consts.ExampleBinary, consts.ExampleNodeName)
 	for ev, evString := range tetragon.EventType_name {
 		if tetragon.EventType(ev) != tetragon.EventType_UNDEF && tetragon.EventType(ev) != tetragon.EventType_TEST {
 			EventsProcessed.WithLabelValues(processLabels, evString).Add(0)
@@ -150,7 +150,7 @@ func handleOriginalEvent(originalEvent any) {
 }
 
 func handleProcessedEvent(pInfo *tracingpolicy.PolicyInfo, processedEvent any) {
-	var eventType, namespace, workload, pod, binary string
+	var eventType, namespace, workload, pod, binary, nodeName string
 	switch ev := processedEvent.(type) {
 	case *tetragon.GetEventsResponse:
 		binary, pod, workload, namespace = GetProcessInfo(filters.GetProcess(&event.Event{Event: ev}))
@@ -160,10 +160,11 @@ func handleProcessedEvent(pInfo *tracingpolicy.PolicyInfo, processedEvent any) {
 			logger.GetLogger().Warn("metrics: handleProcessedEvent: unhandled event", "event", processedEvent, logfields.Error, err)
 			eventType = "unhandled"
 		}
+		nodeName = ev.NodeName
 	default:
 		eventType = "unknown"
 	}
-	processLabels := option.CreateProcessLabels(namespace, workload, pod, binary)
+	processLabels := option.CreateProcessLabels(namespace, workload, pod, binary, nodeName)
 	EventsProcessed.WithLabelValues(processLabels, eventType).Inc()
 	if pInfo != nil && pInfo.Name != "" {
 		policyStats.

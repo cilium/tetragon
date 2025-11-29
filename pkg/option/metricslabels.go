@@ -15,6 +15,7 @@ func DefaultLabelFilter() metrics.LabelFilter {
 		"workload":  true,
 		"pod":       true,
 		"binary":    true,
+		"node_name": true,
 	}
 }
 
@@ -31,7 +32,7 @@ func ParseMetricsLabelFilter(labelsString string) []string {
 // filter applied. To have a metric respect the labels filter, we have to:
 //  1. Define a granular metric with ProcessLabels type parameter (see pkg/metrics/granularmetric.go).
 //  2. When calling WithLabelValues, pass a ProcessLabels struct created with CreateProcessLabels.
-func CreateProcessLabels(namespace, workload, pod, binary string) *metrics.ProcessLabels {
+func CreateProcessLabels(namespace, workload, pod, binary, nodeName string) *metrics.ProcessLabels {
 	if !Config.MetricsLabelFilter["namespace"] {
 		namespace = ""
 	}
@@ -44,5 +45,8 @@ func CreateProcessLabels(namespace, workload, pod, binary string) *metrics.Proce
 	if !Config.MetricsLabelFilter["binary"] {
 		binary = ""
 	}
-	return metrics.NewProcessLabels(namespace, workload, pod, binary)
+	if !Config.MetricsLabelFilter["node_name"] {
+		nodeName = ""
+	}
+	return metrics.NewProcessLabels(namespace, workload, pod, binary, nodeName)
 }
