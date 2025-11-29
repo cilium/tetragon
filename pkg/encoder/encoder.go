@@ -296,8 +296,8 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 		var status string
 		if exit.Signal != "" {
 			status = p.Colorer.Red.Sprint(exit.Signal)
-		} else {
-			status = p.Colorer.Red.Sprint(exit.Status)
+		} else if exit.Status != nil {
+			status = p.Colorer.Red.Sprint(exit.Status.Value)
 		}
 		return CapTrailorPrinter(fmt.Sprintf("%s %s %s %s", event, processInfo, args, status), caps), nil
 	case *tetragon.GetEventsResponse_ProcessThrottle:
