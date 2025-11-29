@@ -12,6 +12,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/sryoya/protorand"
 	"github.com/stretchr/testify/assert"
@@ -97,7 +98,7 @@ func TestCompactEncoder_ExitEventToString(t *testing.T) {
 						Name:      "tetragon",
 					},
 				},
-				Status: 1,
+				Status: &wrapperspb.UInt32Value{Value: 1},
 			},
 		},
 	})

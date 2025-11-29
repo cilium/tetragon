@@ -320,7 +320,7 @@ message ProcessExit {
   string signal = 3;
   // Status code on process exit. For example, the status code can indicate
   // if an error was encountered or the program exited successfully.
-  uint32 status = 4;
+  google.protobuf.UInt32Value status = 4;
   // Date and time of the event.
   google.protobuf.Timestamp time = 5;
   // Ancestors of the process beyond the immediate parent.

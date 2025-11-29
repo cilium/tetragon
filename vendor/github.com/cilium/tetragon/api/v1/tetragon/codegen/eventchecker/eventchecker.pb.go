@@ -639,8 +639,11 @@ func (checker *ProcessExitChecker) Check(event *tetragon.ProcessExit) error {
 			}
 		}
 		if checker.Status != nil {
-			if *checker.Status != event.Status {
-				return fmt.Errorf("Status has value %d which does not match expected value %d", event.Status, *checker.Status)
+			if event.Status == nil {
+				return fmt.Errorf("Status is nil and does not match expected value %v", *checker.Status)
+			}
+			if *checker.Status != event.Status.Value {
+				return fmt.Errorf("Status has value %v which does not match expected value %v", event.Status.Value, *checker.Status)
 			}
 		}
 		if checker.Time != nil {
@@ -709,8 +712,8 @@ func (checker *ProcessExitChecker) FromProcessExit(event *tetragon.ProcessExit) 
 		checker.Parent = NewProcessChecker().FromProcess(event.Parent)
 	}
 	checker.Signal = stringmatcher.Full(event.Signal)
-	{
-		val := event.Status
+	if event.Status != nil {
+		val := event.Status.Value
 		checker.Status = &val
 	}
 	// NB: We don't want to match timestamps for now
