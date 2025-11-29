@@ -94,6 +94,8 @@ enum {
 
 	bpf_prog_type = 43,
 
+	string_type_user = 44,
+
 	nop_s64_ty = -10,
 	nop_u64_ty = -11,
 	nop_u32_ty = -12,
@@ -417,15 +419,19 @@ FUNC_INLINE long copy_path(char *args, const struct path *arg)
 	return store_path(args, buffer, arg, size, flags);
 }
 
-FUNC_INLINE long copy_strings(char *args, char *arg, int max_size)
+FUNC_INLINE long copy_strings(char *args, char *arg, int max_size, bool user)
 {
 	int *s = (int *)args;
 	long size;
 
-	// probe_read_str() always nul-terminates the string.
-	// So add one to the length to allow for it. This should
-	// result in us honouring our max_size correctly.
-	size = probe_read_str(&args[4], max_size + 1, arg);
+	if (user) {
+		size = bpf_copy_from_user_str(&args[4], max_size + 1, (const void *) arg, 0);
+	} else {
+		// probe_read_str() always nul-terminates the string.
+		// So add one to the length to allow for it. This should
+		// result in us honouring our max_size correctly.
+		size = probe_read_str(&args[4], max_size + 1, arg);
+	}
 	if (size <= 1)
 		return invalid_ty;
 	// Remove the nul character from end.
@@ -1784,6 +1790,7 @@ FUNC_INLINE size_t type_to_min_size(int type, int argm)
 	case path_ty:
 	case dentry_type:
 	case string_type:
+	case string_type_user:
 		return MAX_STRING;
 	case int_type:
 	case s32_ty:
@@ -2048,6 +2055,7 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 			pass &= filter_file_buf(filter, (struct string_buf *)args);
 			break;
 		case string_type:
+		case string_type_user:
 		case net_dev_ty:
 		case data_loc_type:
 			/* for strings, we just encode the length */

@@ -274,20 +274,21 @@ read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int a
 		probe_read(&arg, sizeof(arg), &file->name);
 	}
 		fallthrough;
+	case string_type_user:
 	case string_type:
-		size = copy_strings(args, (char *)arg, MAX_STRING);
+		size = copy_strings(args, (char *)arg, MAX_STRING, type == string_type_user);
 		break;
 	case net_dev_ty: {
 		struct net_device *dev = (struct net_device *)arg;
 
-		size = copy_strings(args, dev->name, IFNAMSIZ);
+		size = copy_strings(args, dev->name, IFNAMSIZ, false);
 	} break;
 	case data_loc_type: {
 		// data_loc: lower 16 bits is offset from ctx; upper 16 bits is length
 		long dl_len = (arg >> 16) & 0xfff; // masked to 4095 chars
 		char *dl_loc = ctx + (arg & 0xffff);
 
-		size = copy_strings(args, dl_loc, dl_len);
+		size = copy_strings(args, dl_loc, dl_len, false);
 	} break;
 	case syscall64_type:
 	case size_type:

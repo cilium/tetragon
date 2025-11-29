@@ -69,6 +69,8 @@ const (
 
 	GenericBpfProgType = 43
 
+	GenericStringUserType = 44
+
 	GenericUnsetType   = 0
 	GenericNopType     = -1
 	GenericInvalidType = -2
@@ -81,6 +83,7 @@ const (
 
 var genericStringToType = map[string]int{
 	"string":          GenericStringType,
+	"string_user":     GenericStringUserType,
 	"int":             GenericIntType,
 	"uint64":          GenericU64Type,
 	"unsigned long":   GenericU64Type,
@@ -134,6 +137,7 @@ var genericStringToType = map[string]int{
 
 var genericTypeToStringTable = map[int]string{
 	GenericStringType:      "string",
+	GenericStringUserType:  "string_user",
 	GenericIntType:         "int",
 	GenericU64Type:         "uint64",
 	GenericU32Type:         "uint32",

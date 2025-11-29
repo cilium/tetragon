@@ -179,7 +179,7 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		arg.Permission = mode
 		arg.Label = a.label
 		return arg
-	case gt.GenericFilenameType, gt.GenericStringType, gt.GenericNetDev:
+	case gt.GenericFilenameType, gt.GenericStringType, gt.GenericStringUserType, gt.GenericNetDev:
 		var arg api.MsgGenericKprobeArgString
 
 		arg.Index = uint64(a.index)
