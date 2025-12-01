@@ -6,7 +6,7 @@ spec:
   usdts:
   - path: "/home/jolsa/tetragon/contrib/tester-progs/usdt-override"
     provider: "tetragon"
-    name: "test"
+    name: "test_4B"
     args:
     - index: 0
       type: "int32"
