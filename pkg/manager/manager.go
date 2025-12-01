@@ -90,7 +90,7 @@ func newControllerManager() (*ControllerManager, error) {
 		inCluster = true
 	}
 	// Try to initialize the controller manager with retries
-	manager, err := newControllerManagerWithRetry(cfg, controllerOptions)
+	manager, err := newControllerManagerWithRetry(context.Background(), cfg, controllerOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -233,7 +233,7 @@ func (cm *ControllerManager) FindMirrorPod(hash string) (*corev1.Pod, error) {
 // Returns:
 //   - *ControllerManager: The created controller manager instance, or nil on failure.
 //   - error: An error if the controller manager could not be created or api_server connectivity failed.
-func newControllerManagerWithRetry(cfg *rest.Config, controllerOptions ctrl.Options) (cm *ControllerManager, err error) {
+func newControllerManagerWithRetry(ctx context.Context, cfg *rest.Config, controllerOptions ctrl.Options) (cm *ControllerManager, err error) {
 
 	retryCount := conf.K8sConfigRetry()
 	if retryCount < 0 {
@@ -262,10 +262,16 @@ func newControllerManagerWithRetry(cfg *rest.Config, controllerOptions ctrl.Opti
 	// localBackoff is a copy of backoff for retries.
 	localBackoff := defaultBackoff
 	localBackoff.Steps = localRetry.Steps - 1
+	// Set exponential backoff with cap at 2 seconds
+	localBackoff.Duration = 10 * time.Millisecond // Start with 10ms
+	localBackoff.Factor = 2.0                     // Double each time
+	localBackoff.Cap = 2 * time.Second            // Cap at 2 seconds
 	logger.GetLogger().Debug("Using local retry and backoff settings",
 		"retrySteps", localRetry.Steps,
 		"backoffSteps", localBackoff.Steps,
-		"backoffDuration", localBackoff.Duration)
+		"backoffDuration", localBackoff.Duration,
+		"backoffFactor", localBackoff.Factor,
+		"backoffCap", localBackoff.Cap)
 
 	// Rate limiter for API server connection warnings
 	var lastAPILogTime time.Time
@@ -275,7 +281,19 @@ func newControllerManagerWithRetry(cfg *rest.Config, controllerOptions ctrl.Opti
 		localRetry,
 		func(_ error) bool { return true },
 		func() error {
+			// Check if context is cancelled before attempting retry
+			select {
+			case <-ctx.Done():
+				logger.GetLogger().Warn("retry operation cancelled", logfields.Error, ctx.Err())
+				return ctx.Err()
+			default:
+			}
+
 			attempts++
+			// Wrap attempts counter to prevent integer overflow
+			if attempts > math.MaxInt32 {
+				attempts = 0
+			}
 			mgr, mgrErr := ctrl.NewManager(cfg, controllerOptions)
 			if mgrErr != nil {
 				now := time.Now()
@@ -284,6 +302,22 @@ func newControllerManagerWithRetry(cfg *rest.Config, controllerOptions ctrl.Opti
 						logfields.Error, mgrErr,
 						"attempt", attempts)
 					lastAPILogTime = now
+				}
+				// Apply exponential backoff before retry
+				if attempts > 1 {
+					backoffDuration := localBackoff.Step()
+					logger.GetLogger().Info("Backing off before retry",
+						"duration", backoffDuration,
+						"attempt", attempts)
+
+					// Use context-aware sleep
+					select {
+					case <-ctx.Done():
+						logger.GetLogger().Warn("controller manager creation cancelled", logfields.Error, ctx.Err())
+						return ctx.Err()
+					case <-time.After(backoffDuration):
+						// Continue with retry
+					}
 				}
 				// retry upon error
 				return mgrErr
