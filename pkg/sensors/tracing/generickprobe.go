@@ -29,7 +29,6 @@ import (
 	"github.com/cilium/tetragon/pkg/asm"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
-	"github.com/cilium/tetragon/pkg/cgtracker"
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/eventhandler"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
@@ -50,6 +49,87 @@ import (
 
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 )
+
+var kprobeMapsDeps = mapDeps[hasMaps]{
+	"fdinstall_map": {
+		process: func(p *program.Map, _ []idtable.EntryID, has hasMaps) {
+			if has.fdInstall {
+				p.SetMaxEntries(fdInstallMapMaxEntries)
+			}
+		},
+		flags: sensorMap,
+	},
+	"kprobe_calls": {},
+	"process_call_heap": {
+		flags: sensorMap,
+	},
+	"tg_mb_sel_opts": {},
+	"tg_mb_paths":    {},
+	"stack_trace_map": {
+		process: func(p *program.Map, _ []idtable.EntryID, has hasMaps) {
+			if has.stackTrace {
+				p.SetMaxEntries(stackTraceMapMaxEntries)
+			}
+		},
+	},
+	"socktrack_map": {
+		enabled: func(_ []idtable.EntryID, _ hasMaps) bool {
+			return config.EnableLargeProgs()
+		},
+		process: func(p *program.Map, _ []idtable.EntryID, has hasMaps) {
+			if has.sockTrack {
+				p.SetMaxEntries(socktrackMapMaxEntries)
+			}
+		},
+		flags: sensorMap,
+	},
+	"ratelimit_map": {
+		enabled: func(_ []idtable.EntryID, _ hasMaps) bool {
+			return config.EnableLargeProgs()
+		},
+		process: func(p *program.Map, _ []idtable.EntryID, has hasMaps) {
+			if has.rateLimit {
+				p.SetMaxEntries(ratelimitMapMaxEntries)
+			}
+		},
+		flags: sensorMap,
+	},
+	"override_tasks": {
+		process: func(p *program.Map, _ []idtable.EntryID, has hasMaps) {
+			if has.override {
+				p.SetMaxEntries(overrideMapMaxEntries)
+			}
+		},
+	},
+}.withCGtrackerMap().withConfigMap().withFilterMap().withRetprobeMap()
+
+var retkprobeMapsDeps = mapDeps[hasMaps]{
+	"process_call_heap": {
+		flags: sensorMap,
+	},
+	"fdinstall_map": {
+		process: func(p *program.Map, _ []idtable.EntryID, has hasMaps) {
+			if has.fdInstall {
+				p.SetMaxEntries(fdInstallMapMaxEntries)
+			}
+		},
+		flags: sensorMap,
+	},
+	"socktrack_map": {
+		enabled: func(_ []idtable.EntryID, _ hasMaps) bool {
+			return config.EnableLargeProgs()
+		},
+		process: func(p *program.Map, _ []idtable.EntryID, has hasMaps) {
+			if has.sockTrack {
+				p.SetMaxEntries(socktrackMapMaxEntries)
+			}
+		},
+		flags: sensorMap,
+	},
+	"retkprobe_calls": {
+		flags: sensorMap,
+	},
+}.withConfigMap().withFilterMap().withRetprobeMap()
 
 type observerKprobeSensor struct {
 	name string
@@ -252,7 +332,6 @@ func filterMaps(load *program.Program, kprobeEntry *genericKprobe) []*program.Ma
 func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, has hasMaps) ([]*program.Program, []*program.Map, error) {
 	var multiRetIDs []idtable.EntryID
 	var progs []*program.Program
-	var maps []*program.Map
 
 	data := &genericKprobeData{}
 
@@ -281,76 +360,18 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 		SetPolicy(polInfo.name)
 	progs = append(progs, load)
 
-	fdinstall := program.MapBuilderSensor("fdinstall_map", load)
-	if has.fdInstall {
-		fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
+	maps := kprobeMapsDeps.depsToMaps(load, multiIDs, has)
+	// Further processing for `strack_trace_map` to store data.stackTraceMap
+	for _, m := range maps {
+		if m.Name == "stack_trace_map" {
+			data.stackTraceMap = m
+			break
+		}
 	}
-	maps = append(maps, fdinstall)
-
-	configMap := program.MapBuilderProgram("config_map", load)
-	maps = append(maps, configMap)
-
-	tailCalls := program.MapBuilderProgram("kprobe_calls", load)
-	maps = append(maps, tailCalls)
-
-	filterMap := program.MapBuilderProgram("filter_map", load)
-	maps = append(maps, filterMap)
-
 	maps = append(maps, filterMaps(load, nil)...)
-
-	retProbe := program.MapBuilderSensor("retprobe_map", load)
-	maps = append(maps, retProbe)
-
-	callHeap := program.MapBuilderSensor("process_call_heap", load)
-	maps = append(maps, callHeap)
-
-	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
-	maps = append(maps, selMatchBinariesMap)
-
-	matchBinariesPaths := program.MapBuilderProgram("tg_mb_paths", load)
-	maps = append(maps, matchBinariesPaths)
-
-	stackTraceMap := program.MapBuilderProgram("stack_trace_map", load)
-	if has.stackTrace {
-		stackTraceMap.SetMaxEntries(stackTraceMapMaxEntries)
-	}
-
-	maps = append(maps, stackTraceMap)
-	data.stackTraceMap = stackTraceMap
-
-	if config.EnableLargeProgs() {
-		socktrack := program.MapBuilderSensor("socktrack_map", load)
-		if has.sockTrack {
-			socktrack.SetMaxEntries(socktrackMapMaxEntries)
-		}
-		maps = append(maps, socktrack)
-	}
-
-	if config.EnableLargeProgs() {
-		ratelimitMap := program.MapBuilderSensor("ratelimit_map", load)
-		if has.rateLimit {
-			ratelimitMap.SetMaxEntries(ratelimitMapMaxEntries)
-		}
-		maps = append(maps, ratelimitMap)
-	}
-
 	if has.enforcer {
 		maps = append(maps, enforcerMapsUser(load)...)
 	}
-
-	if option.Config.EnableCgTrackerID {
-		maps = append(maps, program.MapUser(cgtracker.MapName, load))
-	}
-
-	filterMap.SetMaxEntries(len(multiIDs))
-	configMap.SetMaxEntries(len(multiIDs))
-
-	overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
-	if has.override {
-		overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
-	}
-	maps = append(maps, overrideTasksMap)
-
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load))
 
 	if len(multiRetIDs) != 0 {
@@ -365,37 +386,8 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 			SetPolicy(polInfo.name)
 		progs = append(progs, loadret)
 
-		retProbe := program.MapBuilderSensor("retprobe_map", loadret)
-		maps = append(maps, retProbe)
-
-		retConfigMap := program.MapBuilderProgram("config_map", loadret)
-		maps = append(maps, retConfigMap)
-
-		retFilterMap := program.MapBuilderProgram("filter_map", loadret)
-		maps = append(maps, retFilterMap)
-
+		maps = append(maps, retkprobeMapsDeps.depsToMaps(loadret, multiRetIDs, has)...)
 		maps = append(maps, filterMaps(loadret, nil)...)
-
-		callHeap := program.MapBuilderSensor("process_call_heap", loadret)
-		maps = append(maps, callHeap)
-
-		fdinstall := program.MapBuilderSensor("fdinstall_map", loadret)
-		if has.fdInstall {
-			fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
-		}
-		maps = append(maps, fdinstall)
-
-		socktrack := program.MapBuilderSensor("socktrack_map", loadret)
-		if has.sockTrack {
-			socktrack.SetMaxEntries(socktrackMapMaxEntries)
-		}
-		maps = append(maps, socktrack)
-
-		tailCalls := program.MapBuilderSensor("retkprobe_calls", loadret)
-		maps = append(maps, tailCalls)
-
-		retConfigMap.SetMaxEntries(len(multiRetIDs))
-		retFilterMap.SetMaxEntries(len(multiRetIDs))
 	}
 
 	return progs, maps, nil
@@ -1032,84 +1024,25 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 	}
 	progs = append(progs, load)
 
-	fdinstall := program.MapBuilderSensor("fdinstall_map", load)
-	if has.fdInstall {
-		fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
+	deps := kprobeMapsDeps.depsToMaps(load, nil, has)
+	// Further processing for `strack_trace_map` and tg_mb_paths
+	for _, m := range deps {
+		switch m.Name {
+		case "stack_trace_map":
+			kprobeEntry.data.stackTraceMap = m
+		case "tg_mb_paths":
+			if !kernels.MinKernelVersion("5.9") {
+				// Versions before 5.9 do not allow inner maps to have different sizes.
+				// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+				m.SetInnerMaxEntries(kprobeEntry.loadArgs.selectors.entry.MatchBinariesPathsMaxEntries())
+			}
+		}
 	}
-	maps = append(maps, fdinstall)
-
-	configMap := program.MapBuilderProgram("config_map", load)
-	maps = append(maps, configMap)
-
-	tailCalls := program.MapBuilderProgram("kprobe_calls", load)
-	maps = append(maps, tailCalls)
-
-	filterMap := program.MapBuilderProgram("filter_map", load)
-	maps = append(maps, filterMap)
-
+	maps = append(maps, deps...)
 	maps = append(maps, filterMaps(load, kprobeEntry)...)
-
-	retProbe := program.MapBuilderSensor("retprobe_map", load)
-	maps = append(maps, retProbe)
-
-	callHeap := program.MapBuilderSensor("process_call_heap", load)
-	maps = append(maps, callHeap)
-
-	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
-	maps = append(maps, selMatchBinariesMap)
-
-	matchBinariesPaths := program.MapBuilderProgram("tg_mb_paths", load)
-	if !kernels.MinKernelVersion("5.9") {
-		// Versions before 5.9 do not allow inner maps to have different sizes.
-		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-		matchBinariesPaths.SetInnerMaxEntries(kprobeEntry.loadArgs.selectors.entry.MatchBinariesPathsMaxEntries())
-	}
-	maps = append(maps, matchBinariesPaths)
-
-	// loading the stack trace map in any case so that it does not end up as an
-	// anonymous map (as it's always used by the BPF prog) and is clearly linked
-	// to tetragon
-	stackTraceMap := program.MapBuilderProgram("stack_trace_map", load)
-	if has.stackTrace {
-		// to reduce memory footprint however, the stack map is created with a
-		// max entry of 1, we need to expand that at loading.
-		stackTraceMap.SetMaxEntries(stackTraceMapMaxEntries)
-	}
-	maps = append(maps, stackTraceMap)
-	kprobeEntry.data.stackTraceMap = stackTraceMap
-
-	if config.EnableLargeProgs() {
-		socktrack := program.MapBuilderSensor("socktrack_map", load)
-		if has.sockTrack {
-			socktrack.SetMaxEntries(socktrackMapMaxEntries)
-		}
-		maps = append(maps, socktrack)
-	}
-
-	if config.EnableLargeProgs() {
-		ratelimitMap := program.MapBuilderSensor("ratelimit_map", load)
-		if has.rateLimit {
-			// similarly as for stacktrace, we expand the max size only if
-			// needed to reduce the memory footprint when unused
-			ratelimitMap.SetMaxEntries(ratelimitMapMaxEntries)
-		}
-		maps = append(maps, ratelimitMap)
-	}
-
 	if has.enforcer {
 		maps = append(maps, enforcerMapsUser(load)...)
 	}
-
-	if option.Config.EnableCgTrackerID {
-		maps = append(maps, program.MapUser(cgtracker.MapName, load))
-	}
-
-	overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
-	if has.override {
-		overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
-	}
-	maps = append(maps, overrideTasksMap)
-
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load))
 
 	if kprobeEntry.loadArgs.retprobe {
@@ -1127,38 +1060,7 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 			SetLoaderData(kprobeEntry.tableId).
 			SetPolicy(kprobeEntry.policyName)
 		progs = append(progs, loadret)
-
-		retProbe := program.MapBuilderSensor("retprobe_map", loadret)
-		maps = append(maps, retProbe)
-
-		retConfigMap := program.MapBuilderProgram("config_map", loadret)
-		maps = append(maps, retConfigMap)
-
-		tailCalls := program.MapBuilderProgram("retkprobe_calls", loadret)
-		maps = append(maps, tailCalls)
-
-		filterMap := program.MapBuilderProgram("filter_map", loadret)
-		maps = append(maps, filterMap)
-
-		maps = append(maps, filterMaps(loadret, kprobeEntry)...)
-
-		// add maps with non-default paths (pins) to the retprobe
-		callHeap := program.MapBuilderSensor("process_call_heap", loadret)
-		maps = append(maps, callHeap)
-
-		fdinstall := program.MapBuilderSensor("fdinstall_map", loadret)
-		if has.fdInstall {
-			fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
-		}
-		maps = append(maps, fdinstall)
-
-		if config.EnableLargeProgs() {
-			socktrack := program.MapBuilderSensor("socktrack_map", loadret)
-			if has.sockTrack {
-				socktrack.SetMaxEntries(socktrackMapMaxEntries)
-			}
-			maps = append(maps, socktrack)
-		}
+		maps = append(maps, retkprobeMapsDeps.depsToMaps(loadret, nil, has)...)
 	}
 
 	logger.GetLogger().Info(fmt.Sprintf("Added generic kprobe sensor: %s -> %s", load.Name, load.Attach),
