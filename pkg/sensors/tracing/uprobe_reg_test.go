@@ -207,35 +207,35 @@ func TestUprobeResolve(t *testing.T) {
 			ec.NewKprobeArgumentChecker().WithSizeArg(10), // uint64(10)
 			ec.NewKprobeArgumentChecker().WithUintArg(0),
 			ec.NewKprobeArgumentChecker().WithUintArg(0),
-			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("3"))),
-			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("2"))),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("failed to dereference arr[2]"))),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("failed to dereference dyn"))),
 		}},
 		{"uint32", 11, "v32", []*ec.KprobeArgumentChecker{
 			ec.NewKprobeArgumentChecker().WithSizeArg(0),
 			ec.NewKprobeArgumentChecker().WithUintArg(11), // uint32(11)
 			ec.NewKprobeArgumentChecker().WithUintArg(0),
-			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("3"))),
-			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("2"))),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("failed to dereference arr[2]"))),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("failed to dereference dyn"))),
 		}},
 		{"uint32", 12, "sub.v32", []*ec.KprobeArgumentChecker{
 			ec.NewKprobeArgumentChecker().WithSizeArg(0),
 			ec.NewKprobeArgumentChecker().WithUintArg(0),
 			ec.NewKprobeArgumentChecker().WithUintArg(12), // uint32(12)
-			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("3"))),
-			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("2"))),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("failed to dereference arr[2]"))),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("failed to dereference dyn"))),
 		}},
 		{"uint64", 13, "arr[2].v64", []*ec.KprobeArgumentChecker{
 			ec.NewKprobeArgumentChecker().WithSizeArg(0),
 			ec.NewKprobeArgumentChecker().WithUintArg(0),
 			ec.NewKprobeArgumentChecker().WithUintArg(0),
 			ec.NewKprobeArgumentChecker().WithSizeArg(13), // uint64(13)
-			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("3"))),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("failed to dereference dyn[6]"))),
 		}},
 		{"uint64", 14, "dyn[6].v64", []*ec.KprobeArgumentChecker{
 			ec.NewKprobeArgumentChecker().WithSizeArg(0),
 			ec.NewKprobeArgumentChecker().WithUintArg(0),
 			ec.NewKprobeArgumentChecker().WithUintArg(0),
-			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("3"))),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("failed to dereference arr[2]"))),
 			ec.NewKprobeArgumentChecker().WithSizeArg(14), // uint64(14)
 		}},
 	}
@@ -760,13 +760,13 @@ func TestUprobeResolveNull(t *testing.T) {
 		kpArgs []*ec.KprobeArgumentChecker
 	}{
 		{"first", []*ec.KprobeArgumentChecker{
-			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("1"))),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("failed to dereference pointer"))),
 		}},
 		{"second", []*ec.KprobeArgumentChecker{
-			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("2"))),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("failed to dereference second"))),
 		}},
 		{"third", []*ec.KprobeArgumentChecker{
-			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("3"))),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("failed to dereference second.third"))),
 		}},
 		{"nonull", []*ec.KprobeArgumentChecker{
 			ec.NewKprobeArgumentChecker().WithIntArg(0),
