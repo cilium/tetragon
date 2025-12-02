@@ -560,6 +560,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 	var allBTFArgs [api.EventConfigMaxArgs][api.MaxBTFArgDepth]api.ConfigBTFArg
 
 	addArg := func(i int, a *v1alpha1.KProbeArg, data bool) error {
+		var BTFPtrNames [api.MaxBTFArgDepth]string
 		argType := gt.GenericTypeFromString(a.Type)
 
 		if data {
@@ -575,12 +576,13 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		} else {
 			// Args specific config
 			if a.Resolve != "" {
-				lastBTFType, btfArg, err := resolveUserBTFArg(a, spec.BTFPath)
+				lastBTFType, btfArg, btfPtrNames, err := resolveUserBTFArg(a, spec.BTFPath)
 				if err != nil {
 					return err
 				}
 
 				allBTFArgs[i] = btfArg
+				BTFPtrNames = btfPtrNames
 				argType = findTypeFromBTFType(a, lastBTFType)
 			}
 		}
@@ -605,7 +607,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		argMeta[i] = uint32(argMValue)
 		argIdx[i] = int32(a.Index)
 
-		argPrinters = append(argPrinters, argPrinter{index: i, ty: argType, data: data})
+		argPrinters = append(argPrinters, argPrinter{index: i, ty: argType, data: data, BTFPtrNames: BTFPtrNames})
 		return nil
 	}
 
