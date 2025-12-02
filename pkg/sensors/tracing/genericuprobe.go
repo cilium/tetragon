@@ -828,7 +828,7 @@ func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID, poli
 		retFilterMap := program.MapBuilderProgram("filter_map", loadret)
 		maps = append(maps, retFilterMap)
 
-		retTailCalls := program.MapBuilderSensor("retuprobe_calls", loadret)
+		retTailCalls := program.MapBuilderProgram("retuprobe_calls", loadret)
 		maps = append(maps, retTailCalls)
 		retConfigMap.SetMaxEntries(len(multiRetIDs))
 		retFilterMap.SetMaxEntries(len(multiRetIDs))
