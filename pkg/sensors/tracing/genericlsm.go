@@ -242,17 +242,19 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 
 	// Parse Arguments
 	for j, a := range f.Args {
+		var BTFPtrNames [api.MaxBTFArgDepth]string
 		argType := gt.GenericTypeFromString(a.Type)
 
 		if a.Resolve != "" && j < api.EventConfigMaxArgs {
 			if !bpf.HasProgramLargeSize() {
 				return errFn(errors.New("error: Resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag"))
 			}
-			lastBTFType, btfArg, err := resolveBTFArg("bpf_lsm_"+f.Hook, &a, false)
+			lastBTFType, btfArg, btfPtrName, err := resolveBTFArg("bpf_lsm_"+f.Hook, &a, false)
 			if err != nil {
 				return errFn(fmt.Errorf("error on hook %q for index %d : %w", f.Hook, a.Index, err))
 			}
 			allBTFArgs[j] = btfArg
+			BTFPtrNames = btfPtrName
 			argType = findTypeFromBTFType(&a, lastBTFType)
 		}
 
@@ -281,7 +283,7 @@ func addLsm(f *v1alpha1.LsmHookSpec, in *addLsmIn) (id idtable.EntryID, err erro
 		eventConfig.ArgIndex[j] = int32(a.Index)
 
 		argsBTFSet[a.Index] = true
-		argP := argPrinter{index: j, ty: argType, maxData: a.MaxData, label: a.Label}
+		argP := argPrinter{index: j, ty: argType, maxData: a.MaxData, label: a.Label, BTFPtrNames: BTFPtrNames}
 		argSigPrinters = append(argSigPrinters, argP)
 
 		pathArgWarning(a.Index, argType, f.Selectors)

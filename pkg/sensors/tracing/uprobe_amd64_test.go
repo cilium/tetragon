@@ -518,13 +518,13 @@ func TestUprobeResolveNull(t *testing.T) {
 		kpArgs []*ec.KprobeArgumentChecker
 	}{
 		{"first", []*ec.KprobeArgumentChecker{
-			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("1"))),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("failed to dereference pointer"))),
 		}},
 		{"second", []*ec.KprobeArgumentChecker{
-			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("2"))),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("failed to dereference second"))),
 		}},
 		{"third", []*ec.KprobeArgumentChecker{
-			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("3"))),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("failed to dereference second.third"))),
 		}},
 		{"nonull", []*ec.KprobeArgumentChecker{
 			ec.NewKprobeArgumentChecker().WithIntArg(0),

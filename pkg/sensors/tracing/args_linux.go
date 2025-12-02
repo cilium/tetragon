@@ -23,12 +23,13 @@ import (
 )
 
 type argPrinter struct {
-	ty       int
-	userType int
-	index    int
-	maxData  bool
-	label    string
-	data     bool
+	ty          int
+	userType    int
+	index       int
+	maxData     bool
+	label       string
+	data        bool
+	BTFPtrNames [api.MaxBTFArgDepth]string
 }
 
 const (
@@ -97,7 +98,11 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 
 	if status != 0 {
 		var arg api.MsgGenericKprobeArgError
-		arg.Message = fmt.Sprintf("%d", status)
+		ptr_name := "pointer"
+		if len(a.BTFPtrNames[status-1]) != 0 {
+			ptr_name = a.BTFPtrNames[status-1]
+		}
+		arg.Message = "failed to dereference " + ptr_name
 		arg.Index = uint64(a.index)
 		arg.Label = a.label
 		return arg
