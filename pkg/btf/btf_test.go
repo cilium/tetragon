@@ -420,9 +420,10 @@ func buildPathFromString(t *testing.T, rootType btf.Type, pathStr string) []stri
 
 func buildResolveBTFConfig(t *testing.T, rootType btf.Type, pathStr string) [api.MaxBTFArgDepth]api.ConfigBTFArg {
 	var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
+	var btfPtrNames [api.MaxBTFArgDepth]string
 
 	path := buildPathFromString(t, rootType, pathStr)
-	_, err := ResolveBTFPath(&btfArgs, rootType, path, 0)
+	_, err := ResolveBTFPath(&btfArgs, &btfPtrNames, rootType, path, 0)
 	fatalOnError(t, err)
 
 	return btfArgs
@@ -435,9 +436,10 @@ func buildExpectedBTFConfig(t *testing.T, rootType btf.Type, pathStr string) [ap
 
 func testPathIsAccessible(rootType btf.Type, strPath string) (*[api.MaxBTFArgDepth]api.ConfigBTFArg, *btf.Type, error) {
 	var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
+	var btfPtrNames [api.MaxBTFArgDepth]string
 	path := strings.Split(strPath, ".")
 
-	lastBTFType, err := ResolveBTFPath(&btfArgs, ResolveNestedTypes(rootType), path, 0)
+	lastBTFType, err := ResolveBTFPath(&btfArgs, &btfPtrNames, ResolveNestedTypes(rootType), path, 0)
 	if err != nil {
 		return nil, nil, err
 	}
