@@ -391,7 +391,7 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 		}
 		maps = append(maps, socktrack)
 
-		tailCalls := program.MapBuilderSensor("retkprobe_calls", loadret)
+		tailCalls := program.MapBuilderProgram("retkprobe_calls", loadret)
 		maps = append(maps, tailCalls)
 
 		retConfigMap.SetMaxEntries(len(multiRetIDs))
