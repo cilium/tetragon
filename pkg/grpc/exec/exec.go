@@ -476,7 +476,7 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 		Parent:    tetragonParent,
 		Ancestors: tetragonAncestors,
 		Signal:    signal,
-		Status:    code,
+		Status:    &wrapperspb.UInt32Value{Value: code},
 		Time:      ktime.ToProto(event.Common.Ktime),
 	}
 
