@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
 
 	"github.com/cilium/tetragon/pkg/api/dataapi"
 	processapi "github.com/cilium/tetragon/pkg/api/processapi"
@@ -102,8 +103,32 @@ func getTracepointMetaValue(arg *v1alpha1.KProbeArg) int {
 	return 0
 }
 
+func getArgStatus(r *bytes.Reader) (*api.MsgGenericKprobeArgError, error) {
+	var status uint32
+	var arg api.MsgGenericKprobeArgError
+
+	if err := binary.Read(r, binary.LittleEndian, &status); err != nil {
+		return nil, err
+	}
+
+	if status != 0 {
+		arg.Message = strconv.FormatUint(uint64(status), 10)
+		return &arg, nil
+	}
+	return nil, nil
+}
+
 func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 	var err error
+
+	if errorArg, err := getArgStatus(r); err != nil {
+		logger.GetLogger().Warn("Arg status header error", logfields.Error, err)
+		return nil
+	} else if errorArg != nil {
+		errorArg.Index = uint64(a.index)
+		errorArg.Label = a.label
+		return *errorArg
+	}
 
 	switch a.ty {
 	case gt.GenericIntType, gt.GenericS32Type:
