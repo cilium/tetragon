@@ -32,7 +32,7 @@ github.com/containerd/errdefs
 # github.com/containerd/log v0.1.0
 ## explicit; go 1.20
 github.com/containerd/log
-# github.com/containerd/nri v0.10.1-0.20251120153915-7d8611f87ad7
+# github.com/containerd/nri v0.10.1-0.20251204160813-8f3e69e159d1
 ## explicit; go 1.24.0
 github.com/containerd/nri/pkg/api
 github.com/containerd/nri/pkg/log

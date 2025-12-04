@@ -8,7 +8,7 @@ require (
 	github.com/cilium/lumberjack/v2 v2.4.1
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/containerd/containerd v1.7.29
-	github.com/containerd/nri v0.10.1-0.20251120153915-7d8611f87ad7
+	github.com/containerd/nri v0.10.1-0.20251204160813-8f3e69e159d1
 	github.com/containers/common v0.64.2
 	github.com/google/cel-go v0.23.2
 	github.com/opencontainers/cgroups v0.0.6
