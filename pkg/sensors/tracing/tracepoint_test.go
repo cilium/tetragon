@@ -457,7 +457,7 @@ func TestLoadTracepointSensor(t *testing.T) {
 		{Name: "tcpmon_map", Progs: []uint{5}},
 
 		// all kprobe but generic_tracepoint_filter
-		{Name: "config_map", Progs: []uint{0, 2}},
+		{Name: "config_map", Progs: []uint{0, 2, 4}},
 	}
 
 	if config.EnableLargeProgs() {

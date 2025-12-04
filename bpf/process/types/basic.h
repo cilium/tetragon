@@ -29,6 +29,7 @@
 #include "process/heap.h"
 #include "../bpf_mbset.h"
 #include "bpf_ktime.h"
+#include "process/generic_maps.h"
 
 /* Type IDs form API with user space generickprobe.go */
 enum {
@@ -2268,8 +2269,13 @@ rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_k
 	int arg_size;
 	int i;
 	__u8 *dst;
+	struct event_config *config;
 
 	if (!ratelimit_interval)
+		return false;
+
+	config = map_lookup_elem(&config_map, &e->idx);
+	if (!config)
 		return false;
 
 	key = map_lookup_elem(&ratelimit_heap, &zero);
@@ -2298,9 +2304,11 @@ rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_k
 	dst = key->data;
 
 	for (i = 0; i < MAX_POSSIBLE_ARGS; i++) {
+		if (config->idx[i] == -1)
+			break;
 		if (e->argsoff[i] >= e->common.size)
 			break;
-		if (i < MAX_POSSIBLE_ARGS - 1)
+		if (config->idx[i + 1] != -1)
 			arg_size = e->argsoff[i + 1] - e->argsoff[i];
 		else
 			arg_size = e->common.size - e->argsoff[i];

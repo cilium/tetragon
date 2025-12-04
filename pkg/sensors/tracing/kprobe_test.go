@@ -4384,7 +4384,7 @@ func TestLoadKprobeSensor(t *testing.T) {
 			{Name: "override_tasks", Progs: []uint{5}},
 
 			// all kprobe but generic_kprobe_process_filter,generic_retkprobe_event
-			{Name: "config_map", Progs: []uint{0, 1, 2}},
+			{Name: "config_map", Progs: []uint{0, 1, 2, 5}},
 
 			// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
 			{Name: "fdinstall_map", Progs: []uint{2, 5, 7, 9}},
@@ -4441,7 +4441,7 @@ func TestLoadKprobeSensor(t *testing.T) {
 			{Name: "override_tasks", Progs: []uint{5}},
 
 			// all kprobe but generic_kprobe_process_filter,generic_retkprobe_event
-			{Name: "config_map", Progs: []uint{0, 1, 2}},
+			{Name: "config_map", Progs: []uint{0, 1, 2, 5}},
 
 			// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
 			{Name: "fdinstall_map", Progs: []uint{2, 5, 8, 10}},
