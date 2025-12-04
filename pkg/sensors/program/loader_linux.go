@@ -305,12 +305,12 @@ func UprobeAttach(load *Program, bpfDir string) AttachFunc {
 
 		if load.SleepableOffload {
 			if sleepableOffload, err = uprobeAttachExtra(load, bpfDir, coll, collSpec,
-				"generic_sleepable_offload", "sleepable_offload", uprobeAttach); err != nil {
+				"generic_sleepable_offload", "sleepable_offload", uprobeAttachSingle); err != nil {
 				return nil, err
 			}
 		}
 
-		if main, err = uprobeAttach(load, prog, spec, bpfDir); err != nil {
+		if main, err = uprobeAttachSingle(load, prog, spec, bpfDir); err != nil {
 			if sleepableOffload != nil {
 				sleepableOffload.Unload(true)
 			}
@@ -324,7 +324,7 @@ func UprobeAttach(load *Program, bpfDir string) AttachFunc {
 	}
 }
 
-func uprobeAttach(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec,
+func uprobeAttachSingle(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec,
 	bpfDir string, extra ...string) (unloader.Unloader, error) {
 
 	data, ok := load.AttachData.(*UprobeAttachData)
@@ -379,12 +379,12 @@ func MultiUprobeAttach(load *Program, bpfDir string) AttachFunc {
 
 		if load.SleepableOffload {
 			if sleepableOffload, err = uprobeAttachExtra(load, bpfDir, coll, collSpec,
-				"generic_sleepable_offload", "sleepable_offload", multiUprobeAttach); err != nil {
+				"generic_sleepable_offload", "sleepable_offload", uprobeAttachMulti); err != nil {
 				return nil, err
 			}
 		}
 
-		if main, err = multiUprobeAttach(load, prog, spec, bpfDir); err != nil {
+		if main, err = uprobeAttachMulti(load, prog, spec, bpfDir); err != nil {
 			if sleepableOffload != nil {
 				sleepableOffload.Unload(true)
 			}
@@ -398,7 +398,7 @@ func MultiUprobeAttach(load *Program, bpfDir string) AttachFunc {
 	}
 }
 
-func multiUprobeAttach(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec,
+func uprobeAttachMulti(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec,
 	bpfDir string, extra ...string) (unloader.Unloader, error) {
 
 	data, ok := load.AttachData.(*MultiUprobeAttachData)
