@@ -16,6 +16,7 @@
 #include "regs.h"
 #include "config.h"
 #include "uprobe_preload.h"
+#include "event_config.h"
 
 #define MAX_TOTAL 9000
 
@@ -519,26 +520,6 @@ FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned lo
 #else
 FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long *a) {}
 #endif /* __LARGE_BPF_PROG */
-
-FUNC_INLINE int arg_idx(int index)
-{
-	struct msg_generic_kprobe *e;
-	struct event_config *config;
-	int zero = 0;
-
-	e = map_lookup_elem(&process_call_heap, &zero);
-	if (!e)
-		return -1;
-
-	config = map_lookup_elem(&config_map, &e->idx);
-	if (!config)
-		return -1;
-
-	asm volatile("%[index] &= %1 ;\n"
-		     : [index] "+r"(index)
-		     : "i"(MAX_SELECTORS_MASK));
-	return config->idx[index];
-}
 
 FUNC_INLINE long get_pt_regs_arg_syscall(struct pt_regs *ctx, __u16 offset, __u8 shift)
 {
