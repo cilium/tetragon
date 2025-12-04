@@ -35,6 +35,10 @@ func (cue chainUnloaderError) Error() string {
 func (cu ChainUnloader) Unload(unpin bool) error {
 	var cue chainUnloaderError
 	for i := len(cu) - 1; i >= 0; i-- {
+		// Allow nil unloader, we just skip it..
+		if (cu)[i] == nil {
+			continue
+		}
 		if err := (cu)[i].Unload(unpin); err != nil {
 			cue.errors = append(cue.errors, err)
 		}
