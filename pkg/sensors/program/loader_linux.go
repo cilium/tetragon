@@ -297,30 +297,7 @@ func UprobeAttach(load *Program, bpfDir string) AttachFunc {
 	return func(coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 
-		var (
-			err              error
-			main             unloader.Unloader
-			sleepableOffload unloader.Unloader
-		)
-
-		if load.SleepableOffload {
-			if sleepableOffload, err = uprobeAttachExtra(load, bpfDir, coll, collSpec,
-				"generic_sleepable_offload", "sleepable_offload", uprobeAttachSingle); err != nil {
-				return nil, err
-			}
-		}
-
-		if main, err = uprobeAttachSingle(load, prog, spec, bpfDir); err != nil {
-			if sleepableOffload != nil {
-				sleepableOffload.Unload(true)
-			}
-			return nil, err
-		}
-
-		return unloader.ChainUnloader{
-			main,
-			sleepableOffload,
-		}, nil
+		return uprobeAttach(load, bpfDir, coll, collSpec, prog, spec, uprobeAttachSingle)
 	}
 }
 
@@ -371,30 +348,7 @@ func MultiUprobeAttach(load *Program, bpfDir string) AttachFunc {
 	return func(coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 
-		var (
-			err              error
-			main             unloader.Unloader
-			sleepableOffload unloader.Unloader
-		)
-
-		if load.SleepableOffload {
-			if sleepableOffload, err = uprobeAttachExtra(load, bpfDir, coll, collSpec,
-				"generic_sleepable_offload", "sleepable_offload", uprobeAttachMulti); err != nil {
-				return nil, err
-			}
-		}
-
-		if main, err = uprobeAttachMulti(load, prog, spec, bpfDir); err != nil {
-			if sleepableOffload != nil {
-				sleepableOffload.Unload(true)
-			}
-			return nil, err
-		}
-
-		return unloader.ChainUnloader{
-			main,
-			sleepableOffload,
-		}, nil
+		return uprobeAttach(load, bpfDir, coll, collSpec, prog, spec, uprobeAttachMulti)
 	}
 }
 
@@ -482,6 +436,36 @@ func uprobeAttachExtra(load *Program, bpfDir string,
 	}
 
 	return attach(load, prog, spec, bpfDir, pin)
+}
+
+func uprobeAttach(load *Program, bpfDir string,
+	coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
+	prog *ebpf.Program, spec *ebpf.ProgramSpec, attach uprobeAttachFunc) (unloader.Unloader, error) {
+
+	var (
+		err              error
+		main             unloader.Unloader
+		sleepableOffload unloader.Unloader
+	)
+
+	if load.SleepableOffload {
+		if sleepableOffload, err = uprobeAttachExtra(load, bpfDir, coll, collSpec,
+			"generic_sleepable_offload", "sleepable_offload", attach); err != nil {
+			return nil, err
+		}
+	}
+
+	if main, err = attach(load, prog, spec, bpfDir); err != nil {
+		if sleepableOffload != nil {
+			sleepableOffload.Unload(true)
+		}
+		return nil, err
+	}
+
+	return unloader.ChainUnloader{
+		main,
+		sleepableOffload,
+	}, nil
 }
 
 func TracingAttach(load *Program, bpfDir string) AttachFunc {
