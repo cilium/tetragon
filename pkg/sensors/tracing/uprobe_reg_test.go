@@ -207,35 +207,35 @@ func TestUprobeResolve(t *testing.T) {
 			ec.NewKprobeArgumentChecker().WithSizeArg(10), // uint64(10)
 			ec.NewKprobeArgumentChecker().WithUintArg(0),
 			ec.NewKprobeArgumentChecker().WithUintArg(0),
-			ec.NewKprobeArgumentChecker().WithSizeArg(0),
-			ec.NewKprobeArgumentChecker().WithSizeArg(0),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("3"))),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("2"))),
 		}},
 		{"uint32", 11, "v32", []*ec.KprobeArgumentChecker{
 			ec.NewKprobeArgumentChecker().WithSizeArg(0),
 			ec.NewKprobeArgumentChecker().WithUintArg(11), // uint32(11)
 			ec.NewKprobeArgumentChecker().WithUintArg(0),
-			ec.NewKprobeArgumentChecker().WithSizeArg(0),
-			ec.NewKprobeArgumentChecker().WithSizeArg(0),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("3"))),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("2"))),
 		}},
 		{"uint32", 12, "sub.v32", []*ec.KprobeArgumentChecker{
 			ec.NewKprobeArgumentChecker().WithSizeArg(0),
 			ec.NewKprobeArgumentChecker().WithUintArg(0),
 			ec.NewKprobeArgumentChecker().WithUintArg(12), // uint32(12)
-			ec.NewKprobeArgumentChecker().WithSizeArg(0),
-			ec.NewKprobeArgumentChecker().WithSizeArg(0),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("3"))),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("2"))),
 		}},
 		{"uint64", 13, "arr[2].v64", []*ec.KprobeArgumentChecker{
 			ec.NewKprobeArgumentChecker().WithSizeArg(0),
 			ec.NewKprobeArgumentChecker().WithUintArg(0),
 			ec.NewKprobeArgumentChecker().WithUintArg(0),
 			ec.NewKprobeArgumentChecker().WithSizeArg(13), // uint64(13)
-			ec.NewKprobeArgumentChecker().WithSizeArg(0),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("3"))),
 		}},
 		{"uint64", 14, "dyn[6].v64", []*ec.KprobeArgumentChecker{
 			ec.NewKprobeArgumentChecker().WithSizeArg(0),
 			ec.NewKprobeArgumentChecker().WithUintArg(0),
 			ec.NewKprobeArgumentChecker().WithUintArg(0),
-			ec.NewKprobeArgumentChecker().WithSizeArg(0),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("3"))),
 			ec.NewKprobeArgumentChecker().WithSizeArg(14), // uint64(14)
 		}},
 	}
