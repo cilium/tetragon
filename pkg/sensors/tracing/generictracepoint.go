@@ -785,9 +785,25 @@ func handleMsgGenericTracepoint(
 	unix.Message = tp.message
 	unix.Tags = tp.tags
 
+	var status uint32
+
 	for idx, out := range tp.args {
 
 		if out.nopTy {
+			continue
+		}
+
+		err := binary.Read(r, binary.LittleEndian, &status)
+
+		if err != nil {
+			logger.GetLogger().Warn(fmt.Sprintf("Arg status size type error sizeof %d", m.Common.Size), logfields.Error, err)
+			break
+		}
+
+		if status != 0 {
+			var arg tracingapi.MsgGenericKprobeArgError
+			arg.Message = fmt.Sprintf("%d", status)
+			unix.Args = append(unix.Args, arg)
 			continue
 		}
 
