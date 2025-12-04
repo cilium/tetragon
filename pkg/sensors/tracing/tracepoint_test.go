@@ -454,7 +454,7 @@ func TestLoadTracepointSensor(t *testing.T) {
 		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "retprobe_map", Progs: []uint{1, 2}})
 
 		// all kprobe but generic_tracepoint_filter
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{0, 2}})
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{0, 2, 4}})
 
 		// shared with base sensor
 		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{3, 4, 5}})

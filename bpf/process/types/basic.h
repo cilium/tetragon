@@ -31,6 +31,7 @@
 #include "bpf_ktime.h"
 #include "config.h"
 #include "../cel_expr.h"
+#include "process/event_config.h"
 
 /* Type IDs form API with user space generickprobe.go */
 enum {
@@ -162,71 +163,6 @@ struct selector_arg_filters {
 	__u32 argoff[5];
 } __attribute__((packed));
 
-struct config_btf_arg {
-	__u32 offset;
-	__u16 is_pointer;
-	__u16 is_initialized;
-} __attribute__((packed));
-
-#define USDT_ARG_TYPE_NONE	0
-#define USDT_ARG_TYPE_CONST	1
-#define USDT_ARG_TYPE_REG	2
-#define USDT_ARG_TYPE_REG_DEREF 3
-#define USDT_ARG_TYPE_SIB	4
-
-struct config_usdt_arg {
-	__u64 val_off;
-	__u32 reg_off;
-	__u32 reg_idx_off;
-	__u8 shift;
-	__u8 type;
-	__u8 sig;
-	__u8 scale;
-	__u32 pad1;
-} __attribute__((packed));
-
-struct config_reg_arg {
-	__u16 offset;
-	__u8 size;
-	__u8 pad;
-} __attribute__((packed));
-
-struct extract_arg_data {
-	struct config_btf_arg *btf_config;
-	unsigned long *arg;
-	bool can_sleep;
-};
-
-#define MAX_BTF_ARG_DEPTH	  10
-#define EVENT_CONFIG_MAX_ARG	  5
-#define EVENT_CONFIG_MAX_USDT_ARG 8
-#define EVENT_CONFIG_MAX_REG_ARG  8
-
-struct event_config {
-	__u32 func_id;
-	__s32 arg[EVENT_CONFIG_MAX_ARG];
-	__u32 arm[EVENT_CONFIG_MAX_ARG];
-	__u32 off[EVENT_CONFIG_MAX_ARG];
-	__s32 idx[EVENT_CONFIG_MAX_ARG];
-	__u32 syscall;
-	__s32 argreturncopy;
-	__s32 argreturn;
-	/* arg return action specifies to act on the return value; currently
-	 * supported actions include: TrackSock and UntrackSock.
-	 */
-	__u32 argreturnaction;
-	/* policy id identifies the policy of this generic hook and is used to
-	 * apply policies only on certain processes. A value of 0 indicates
-	 * that the hook always applies and no check will be performed.
-	 */
-	__u32 policy_id;
-	__u32 flags;
-	__u32 pad;
-	struct config_btf_arg btf_arg[EVENT_CONFIG_MAX_ARG][MAX_BTF_ARG_DEPTH];
-	struct config_usdt_arg usdt_arg[EVENT_CONFIG_MAX_USDT_ARG];
-	struct config_reg_arg reg_arg[EVENT_CONFIG_MAX_REG_ARG];
-} __attribute__((packed));
-
 #define MAX_ARGS_SIZE	 80
 #define MAX_ARGS_ENTRIES 8
 #define MAX_MATCH_VALUES 4
@@ -274,10 +210,6 @@ FUNC_INLINE __u32 get_index(void *ctx)
 #else
 #define get_index(ctx) 0
 #endif
-
-// We do one tail-call per selector, we can have up to 5 selectors.
-#define MAX_SELECTORS	   5
-#define MAX_SELECTORS_MASK 7
 
 FUNC_INLINE long
 filter_32ty_map(struct selector_arg_filter *filter, char *args);
@@ -2433,9 +2365,11 @@ rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_k
 	dst = key->data;
 
 	for (i = 0; i < MAX_POSSIBLE_ARGS; i++) {
+		if (arg_idx(i) == -1)
+			break;
 		if (e->argsoff[i] >= e->common.size)
 			break;
-		if (i < MAX_POSSIBLE_ARGS - 1)
+		if (i < MAX_POSSIBLE_ARGS - 1 && arg_idx(i + 1) != -1)
 			arg_size = e->argsoff[i + 1] - e->argsoff[i];
 		else
 			arg_size = e->common.size - e->argsoff[i];
