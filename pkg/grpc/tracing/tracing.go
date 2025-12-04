@@ -571,6 +571,14 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 				BytesArg: v,
 			}})
 
+		case tracingapi.MsgGenericKprobeArgError:
+			error_arg := tetragon.KprobeError{
+				Message: v.Message,
+			}
+			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_ErrorArg{
+				ErrorArg: &error_arg,
+			}})
+
 		case tracingapi.MsgGenericKprobeArgSkb:
 			skb := tetragon.KprobeSkb{
 				Family:      familyString(v.Family),
