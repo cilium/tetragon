@@ -17,6 +17,7 @@
 #include "config.h"
 #include "user_preload.h"
 #include "generic_arg.h"
+#include "event_config.h"
 
 #ifdef GENERIC_USDT
 #include "usdt_arg.h"
@@ -470,26 +471,6 @@ read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int a
 		return __read_arg_1(ctx, type, orig_off, arg, argm, args);
 	else
 		return __read_arg_2(ctx, type, orig_off, arg, argm, args);
-}
-
-FUNC_INLINE int arg_idx(int index)
-{
-	struct msg_generic_kprobe *e;
-	struct event_config *config;
-	int zero = 0;
-
-	e = map_lookup_elem(&process_call_heap, &zero);
-	if (!e)
-		return -1;
-
-	config = map_lookup_elem(&config_map, &e->idx);
-	if (!config)
-		return -1;
-
-	asm volatile("%[index] &= %1 ;\n"
-		     : [index] "+r"(index)
-		     : "i"(MAX_SELECTORS_MASK));
-	return config->idx[index];
 }
 
 FUNC_INLINE long get_pt_regs_arg_syscall(struct pt_regs *ctx, __u16 offset, __u8 shift)
