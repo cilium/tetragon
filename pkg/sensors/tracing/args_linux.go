@@ -102,8 +102,32 @@ func getTracepointMetaValue(arg *v1alpha1.KProbeArg) int {
 	return 0
 }
 
+func getArgStatus(r *bytes.Reader) (*api.MsgGenericKprobeArgError, bool) {
+	var status uint32
+	var arg api.MsgGenericKprobeArgError
+
+	if err := binary.Read(r, binary.LittleEndian, &status); err != nil {
+		logger.GetLogger().Warn("Arg status header error", logfields.Error, err)
+		return nil, true
+	}
+
+	if status != 0 {
+		arg.Message = fmt.Sprintf("%d", status)
+		return &arg, false
+	}
+	return nil, false
+}
+
 func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 	var err error
+
+	if errorArg, isReadErr := getArgStatus(r); isReadErr {
+		return nil
+	} else if errorArg != nil {
+		errorArg.Index = uint64(a.index)
+		errorArg.Label = a.label
+		return *errorArg
+	}
 
 	switch a.ty {
 	case gt.GenericIntType, gt.GenericS32Type:
