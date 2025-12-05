@@ -16,6 +16,11 @@ import (
 	cgTypes "github.com/google/cel-go/common/types"
 )
 
+var (
+	int32Fn  = "int32"
+	uint32Fn = "uint32"
+)
+
 func checkerAddFunctions(env *cgChecker.Env) error {
 	paramA := cgTypes.NewTypeParamType("A")
 
@@ -25,6 +30,12 @@ func checkerAddFunctions(env *cgChecker.Env) error {
 	}{
 		{name: cgOperators.Equals, opts: []cgDecls.FunctionOpt{
 			cgDecls.Overload(cgOverloads.Equals, []*cgTypes.Type{paramA, paramA}, cgTypes.BoolType),
+		}},
+		{name: int32Fn, opts: []cgDecls.FunctionOpt{
+			cgDecls.Overload("s32fromint", []*cgTypes.Type{cgTypes.IntType}, s32Ty),
+		}},
+		{name: uint32Fn, opts: []cgDecls.FunctionOpt{
+			cgDecls.Overload("u32fromuint", []*cgTypes.Type{cgTypes.UintType}, u32Ty),
 		}},
 	}
 
