@@ -21,6 +21,8 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
 )
 
+type uprobeAttachFunc func(*Program, *ebpf.Program, *ebpf.ProgramSpec, string, ...string) (unloader.Unloader, error)
+
 func linkPin(lnk link.Link, bpfDir string, load *Program, extra ...string) error {
 	// pinned link is not supported
 	if !bpf.HasLinkPin() {
@@ -295,16 +297,11 @@ func UprobeAttach(load *Program, bpfDir string) AttachFunc {
 	return func(coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 
-		if load.SleepableOffload {
-			if err := uprobeAttachSleepableOffload(load, bpfDir, coll, collSpec); err != nil {
-				return nil, err
-			}
-		}
-		return uprobeAttach(load, prog, spec, bpfDir)
+		return uprobeAttach(load, bpfDir, coll, collSpec, prog, spec, uprobeAttachSingle)
 	}
 }
 
-func uprobeAttach(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec,
+func uprobeAttachSingle(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec,
 	bpfDir string, extra ...string) (unloader.Unloader, error) {
 
 	data, ok := load.AttachData.(*UprobeAttachData)
@@ -347,53 +344,15 @@ func uprobeAttach(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec,
 	}, nil
 }
 
-func uprobeAttachSleepableOffload(load *Program, bpfDir string,
-	coll *ebpf.Collection, collSpec *ebpf.CollectionSpec) error {
-
-	spec, ok := collSpec.Programs["generic_sleepable_offload"]
-	if !ok {
-		return errors.New("spec for generic_sleepable_offload program not found")
-	}
-
-	prog, ok := coll.Programs["generic_sleepable_offload"]
-	if !ok {
-		return errors.New("program generic_sleepable_offload not found")
-	}
-
-	prog, err := prog.Clone()
-	if err != nil {
-		return fmt.Errorf("failed to clone generic_sleepable_offload program: %w", err)
-	}
-
-	pinPath := filepath.Join(bpfDir, load.PinPath, "prog_write_offload")
-
-	if err := prog.Pin(pinPath); err != nil {
-		return fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
-	}
-
-	load.unloaderSleepableOffload, err = uprobeAttach(load, prog, spec, bpfDir, "write_offload")
-	if err != nil {
-		logger.GetLogger().Warn("Failed to attach override program", logfields.Error, err)
-	}
-
-	return nil
-}
-
 func MultiUprobeAttach(load *Program, bpfDir string) AttachFunc {
 	return func(coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
 
-		if load.SleepableOffload {
-			if err := multiUprobeAttachSleepableOffload(load, bpfDir, coll, collSpec); err != nil {
-				return nil, err
-			}
-		}
-
-		return multiUprobeAttach(load, prog, spec, bpfDir)
+		return uprobeAttach(load, bpfDir, coll, collSpec, prog, spec, uprobeAttachMulti)
 	}
 }
 
-func multiUprobeAttach(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec,
+func uprobeAttachMulti(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec,
 	bpfDir string, extra ...string) (unloader.Unloader, error) {
 
 	data, ok := load.AttachData.(*MultiUprobeAttachData)
@@ -451,36 +410,62 @@ func multiUprobeAttach(load *Program, prog *ebpf.Program, spec *ebpf.ProgramSpec
 	}, nil
 }
 
-func multiUprobeAttachSleepableOffload(load *Program, bpfDir string,
-	coll *ebpf.Collection, collSpec *ebpf.CollectionSpec) error {
+func uprobeAttachExtra(load *Program, bpfDir string,
+	coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
+	progName, pin string, attach uprobeAttachFunc) (unloader.Unloader, error) {
 
-	spec, ok := collSpec.Programs["generic_sleepable_offload"]
+	spec, ok := collSpec.Programs[progName]
 	if !ok {
-		return errors.New("spec for generic_sleepable_offload program not found")
+		return nil, fmt.Errorf("spec for %s program not found", progName)
 	}
 
-	prog, ok := coll.Programs["generic_sleepable_offload"]
+	prog, ok := coll.Programs[progName]
 	if !ok {
-		return errors.New("program generic_sleepable_offload not found")
+		return nil, fmt.Errorf("program %s not found", progName)
 	}
 
 	prog, err := prog.Clone()
 	if err != nil {
-		return fmt.Errorf("failed to clone generic_sleepable_offload program: %w", err)
+		return nil, fmt.Errorf("failed to clone %s program: %w", progName, err)
 	}
 
-	pinPath := filepath.Join(bpfDir, load.PinPath, "prog_write_offload")
+	pinPath := filepath.Join(bpfDir, load.PinPath, fmt.Sprint("prog_", pin))
 
 	if err := prog.Pin(pinPath); err != nil {
-		return fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
+		return nil, fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
 	}
 
-	load.unloaderSleepableOffload, err = multiUprobeAttach(load, prog, spec, bpfDir, "write_offload")
-	if err != nil {
-		logger.GetLogger().Warn("Failed to attach write offload program", logfields.Error, err)
+	return attach(load, prog, spec, bpfDir, pin)
+}
+
+func uprobeAttach(load *Program, bpfDir string,
+	coll *ebpf.Collection, collSpec *ebpf.CollectionSpec,
+	prog *ebpf.Program, spec *ebpf.ProgramSpec, attach uprobeAttachFunc) (unloader.Unloader, error) {
+
+	var (
+		err              error
+		main             unloader.Unloader
+		sleepableOffload unloader.Unloader
+	)
+
+	if load.SleepableOffload {
+		if sleepableOffload, err = uprobeAttachExtra(load, bpfDir, coll, collSpec,
+			"generic_sleepable_offload", "sleepable_offload", attach); err != nil {
+			return nil, err
+		}
 	}
 
-	return nil
+	if main, err = attach(load, prog, spec, bpfDir); err != nil {
+		if sleepableOffload != nil {
+			sleepableOffload.Unload(true)
+		}
+		return nil, err
+	}
+
+	return unloader.ChainUnloader{
+		main,
+		sleepableOffload,
+	}, nil
 }
 
 func TracingAttach(load *Program, bpfDir string) AttachFunc {
