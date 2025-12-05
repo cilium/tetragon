@@ -52,27 +52,40 @@ func (c *compiler) compileCall(expr cgAst.Expr) error {
 
 	call := expr.AsCall()
 
+	callArgs := call.Args()
+	argTypes := make([]*cgTypes.Type, 0, len(callArgs))
+	for _, arg := range callArgs {
+		ty := c.ast.GetType(arg.ID())
+		argTypes = append(argTypes, ty)
+	}
+
 	// setup emit call
-	var emitCall func()
+	var emitCall func() error
 	switch call.FunctionName() {
 	case cgOperators.Equals:
-		emitCall = func() {
+		emitCall = func() error {
 			c.cg.emitBranchEquals(scratchRegs[0], scratchRegs[1])
+			return nil
+		}
+	case int32Fn:
+		emitCall = func() error {
+			return c.cg.emitS32(scratchRegs[0], argTypes[0])
+		}
+	case uint32Fn:
+		emitCall = func() error {
+			c.cg.emitU32(scratchRegs[0], argTypes[0])
+			return nil
 		}
 	default:
 		return fmt.Errorf("compileCall: call %+v not supported", call)
 	}
 
-	// push argument
-	callArgs := call.Args()
-	argTypes := make([]*cgTypes.Type, 0, len(callArgs))
+	// push arguments
 	for _, arg := range callArgs {
-		ty := c.ast.GetType(arg.ID())
 		err := c.compileExpr(arg)
 		if err != nil {
 			return err
 		}
-		argTypes = append(argTypes, ty)
 	}
 
 	// pop arguments (reverse order)
@@ -84,13 +97,16 @@ func (c *compiler) compileCall(expr cgAst.Expr) error {
 			c.cg.emitPopInt64(scratchRegs[i])
 		case "bool":
 			c.cg.emitPopBool(scratchRegs[i])
+		case "s32":
+			c.cg.emitPopS32(scratchRegs[i])
+		case "u32":
+			c.cg.emitPopU32(scratchRegs[i])
 		default:
 			return fmt.Errorf("unsupported argument type: %s", ty.TypeName())
 		}
 	}
 
-	emitCall()
-	return nil
+	return emitCall()
 }
 
 func (c *compiler) compileExpr(expr cgAst.Expr) error {
