@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
@@ -256,23 +257,13 @@ func newControllerManagerWithRetry(ctx context.Context, cfg *rest.Config, contro
 		backoffDuration = 10 * time.Millisecond
 	)
 
-	defaultRetry := retry.DefaultRetry
-	// Create a copy of the default retry with modified steps.
-	// This is to ensure that we do not modify the global default retry.
-	// Change the number of steps (i.e., retries) and Duration.
-	localRetry := defaultRetry
-	localRetry.Steps = retryCount
-	localRetry.Duration = 0 // Avoid default backoff time
-
-	defaultBackoff := retry.DefaultBackoff
-	// localBackoff is a copy of backoff for retries.
-	localBackoff := defaultBackoff
-	localBackoff.Steps = localRetry.Steps - 1
+	localBackoff := retry.DefaultBackoff
+	localBackoff.Steps = retryCount - 1
 	localBackoff.Duration = backoffDuration // Start with backoffDuration
 	localBackoff.Factor = backoffFactor     // Multiply each time with backoffFactor
 	localBackoff.Cap = backoffInterval      // Max retry interval of backoffCap
 	logger.GetLogger().Debug("Using local retry and backoff settings",
-		"retrySteps", localRetry.Steps,
+		"retrySteps", retryCount,
 		"backoffSteps", localBackoff.Steps,
 		"backoffDuration", localBackoff.Duration,
 		"backoffFactor", localBackoff.Factor,
@@ -282,55 +273,28 @@ func newControllerManagerWithRetry(ctx context.Context, cfg *rest.Config, contro
 	var lastAPILogTime time.Time
 	const apiLogInterval = 30 * time.Second
 
-	err = retry.OnError(
-		localRetry,
-		func(_ error) bool { return true },
-		func() error {
-			// Check if context is cancelled before attempting retry
-			select {
-			case <-ctx.Done():
-				logger.GetLogger().Info("retry operation cancelled", logfields.Error, ctx.Err())
-				return ctx.Err()
-			default:
+	for err = wait.ExponentialBackoffWithContext(ctx, localBackoff, func(ctx context.Context) (done bool, err error) {
+		attempts++
+		mgr, mgrErr := ctrl.NewManager(cfg, controllerOptions)
+		if mgrErr != nil {
+			now := time.Now()
+			if now.Sub(lastAPILogTime) > apiLogInterval {
+				logger.GetLogger().Warn("failed to create controller manager",
+					logfields.Error, mgrErr,
+					"attempt", attempts)
+				lastAPILogTime = now
 			}
-
-			attempts++
-			mgr, mgrErr := ctrl.NewManager(cfg, controllerOptions)
-			if mgrErr != nil {
-				now := time.Now()
-				if now.Sub(lastAPILogTime) > apiLogInterval {
-					logger.GetLogger().Warn("failed to create controller manager",
-						logfields.Error, mgrErr,
-						"attempt", attempts)
-					lastAPILogTime = now
-				}
-				// Apply exponential backoff before retry
-				if attempts > 1 {
-					backoffDuration := localBackoff.Step()
-					logger.GetLogger().Debug("Backoff before retry",
-						"duration", backoffDuration,
-						"attempt", attempts)
-
-					// Use context-aware sleep
-					select {
-					case <-ctx.Done():
-						logger.GetLogger().Info("retry operation cancelled", logfields.Error, ctx.Err())
-						return ctx.Err()
-					case <-time.After(backoffDuration):
-						// Continue with retry
-					}
-				}
-				// retry upon error
-				return mgrErr
-			}
-
-			cm = &ControllerManager{
-				Manager: mgr,
-			}
-			// success
-			return nil
-		},
-	)
+			// retry upon error
+			return false, nil
+		}
+		cm = &ControllerManager{
+			Manager: mgr,
+		}
+		// success
+		return true, nil
+	}); err == wait.ErrWaitTimeout; {
+		// Do nothing, we just re-run the cycle
+	}
 
 	duration := time.Since(startTime)
 	if err != nil {
