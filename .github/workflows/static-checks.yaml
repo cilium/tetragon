@@ -82,7 +82,7 @@ jobs:
           GOOS: ${{ matrix.os }}
         with:
           # renovate: datasource=docker depName=docker.io/golangci/golangci-lint
-          version: v2.6.2
+          version: v2.7.1
           args: --config=.golangci.yml --verbose
 
   format:
