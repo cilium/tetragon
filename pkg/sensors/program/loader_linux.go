@@ -974,6 +974,14 @@ func doLoadProgram(
 			}
 			ms.InnerMap.MaxEntries = innerMax
 		}
+
+		// Apply BPF_F_NO_PREALLOC flag if configured
+		if m.GetNoPrealloc() {
+			ms.Flags = bpf.BPF_F_NO_PREALLOC
+		} else {
+			// Explicitly clear BPF_F_NO_PREALLOC if not configured
+			ms.Flags &^= bpf.BPF_F_NO_PREALLOC
+		}
 	}
 
 	// Find all the maps referenced by the program, so we'll rewrite only

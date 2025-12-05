@@ -103,6 +103,7 @@ type Map struct {
 	InnerEntries MaxEntries
 	Type         MapType
 	Owner        bool
+	NoPrealloc   bool // Whether to apply BPF_F_NO_PREALLOC flag
 }
 
 func (m *Map) String() string {
@@ -164,7 +165,18 @@ func mapBuilder(name string, ty MapType, owner bool, lds ...*Program) *Map {
 	if len(lds) != 0 {
 		prog = lds[0]
 	}
-	m := &Map{name, "", prog, Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}, ty, owner}
+	m := &Map{
+		Name:         name,
+		PinPath:      "",
+		Prog:         prog,
+		PinState:     Idle(),
+		MapHandle:    nil,
+		Entries:      MaxEntries{0, false},
+		InnerEntries: MaxEntries{0, false},
+		Type:         ty,
+		Owner:        owner,
+		NoPrealloc:   false,
+	}
 	for _, ld := range lds {
 		ld.PinMap[name] = m
 	}
@@ -196,7 +208,18 @@ func MapBuilderOpts(name string, opts MapOpts, lds ...*Program) *Map {
 }
 
 func mapUser(name string, ty MapType, prog *Program) *Map {
-	return &Map{name, "", prog, Idle(), nil, MaxEntries{0, false}, MaxEntries{0, false}, ty, false}
+	return &Map{
+		Name:         name,
+		PinPath:      "",
+		Prog:         prog,
+		PinState:     Idle(),
+		MapHandle:    nil,
+		Entries:      MaxEntries{0, false},
+		InnerEntries: MaxEntries{0, false},
+		Type:         ty,
+		Owner:        false,
+		NoPrealloc:   false,
+	}
 }
 
 func MapUser(name string, prog *Program) *Map {
@@ -385,4 +408,12 @@ func (m *Map) GetMaxEntries() (uint32, bool) {
 
 func (m *Map) GetMaxInnerEntries() (uint32, bool) {
 	return m.InnerEntries.Val, m.InnerEntries.Set
+}
+
+func (m *Map) SetNoPrealloc(enable bool) {
+	m.NoPrealloc = enable
+}
+
+func (m *Map) GetNoPrealloc() bool {
+	return m.NoPrealloc
 }
