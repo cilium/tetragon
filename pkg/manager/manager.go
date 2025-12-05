@@ -90,7 +90,7 @@ func newControllerManager() (*ControllerManager, error) {
 		inCluster = true
 	}
 	// Try to initialize the controller manager with retries
-	manager, err := newControllerManagerWithRetry(cfg, controllerOptions)
+	manager, err := newControllerManagerWithRetry(context.Background(), cfg, controllerOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -233,13 +233,13 @@ func (cm *ControllerManager) FindMirrorPod(hash string) (*corev1.Pod, error) {
 // Returns:
 //   - *ControllerManager: The created controller manager instance, or nil on failure.
 //   - error: An error if the controller manager could not be created or api_server connectivity failed.
-func newControllerManagerWithRetry(cfg *rest.Config, controllerOptions ctrl.Options) (cm *ControllerManager, err error) {
+func newControllerManagerWithRetry(ctx context.Context, cfg *rest.Config, controllerOptions ctrl.Options) (cm *ControllerManager, err error) {
 
 	retryCount := conf.K8sConfigRetry()
 	if retryCount < 0 {
-		// max int32 retries, until connection succeeds.
-		logger.GetLogger().Info("setting retryCount to max int32 retries")
-		retryCount = math.MaxInt32
+		// max int retries, until connection succeeds.
+		logger.GetLogger().Info("setting retryCount to max int retries")
+		retryCount = math.MaxInt
 	} else if retryCount == 0 {
 		// 1 means no retries, just one connection attempt.
 		logger.GetLogger().Info("retryCount is zero, which is invalid. Defaulting to 1")
@@ -250,22 +250,33 @@ func newControllerManagerWithRetry(cfg *rest.Config, controllerOptions ctrl.Opti
 		attempts  = 0
 		startTime = time.Now()
 	)
+	const (
+		backoffFactor   = 2.0
+		backoffInterval = 2 * time.Second
+		backoffDuration = 10 * time.Millisecond
+	)
 
 	defaultRetry := retry.DefaultRetry
 	// Create a copy of the default retry with modified steps.
 	// This is to ensure that we do not modify the global default retry.
-	// We only want to change the number of steps (i.e., retries).
+	// Change the number of steps (i.e., retries) and Duration.
 	localRetry := defaultRetry
 	localRetry.Steps = retryCount
+	localRetry.Duration = 0 // Avoid default backoff time
 
 	defaultBackoff := retry.DefaultBackoff
 	// localBackoff is a copy of backoff for retries.
 	localBackoff := defaultBackoff
 	localBackoff.Steps = localRetry.Steps - 1
+	localBackoff.Duration = backoffDuration // Start with backoffDuration
+	localBackoff.Factor = backoffFactor     // Multiply each time with backoffFactor
+	localBackoff.Cap = backoffInterval      // Max retry interval of backoffCap
 	logger.GetLogger().Debug("Using local retry and backoff settings",
 		"retrySteps", localRetry.Steps,
 		"backoffSteps", localBackoff.Steps,
-		"backoffDuration", localBackoff.Duration)
+		"backoffDuration", localBackoff.Duration,
+		"backoffFactor", localBackoff.Factor,
+		"backoffCap", localBackoff.Cap)
 
 	// Rate limiter for API server connection warnings
 	var lastAPILogTime time.Time
@@ -275,6 +286,14 @@ func newControllerManagerWithRetry(cfg *rest.Config, controllerOptions ctrl.Opti
 		localRetry,
 		func(_ error) bool { return true },
 		func() error {
+			// Check if context is cancelled before attempting retry
+			select {
+			case <-ctx.Done():
+				logger.GetLogger().Info("retry operation cancelled", logfields.Error, ctx.Err())
+				return ctx.Err()
+			default:
+			}
+
 			attempts++
 			mgr, mgrErr := ctrl.NewManager(cfg, controllerOptions)
 			if mgrErr != nil {
@@ -285,9 +304,26 @@ func newControllerManagerWithRetry(cfg *rest.Config, controllerOptions ctrl.Opti
 						"attempt", attempts)
 					lastAPILogTime = now
 				}
+				// Apply exponential backoff before retry
+				if attempts > 1 {
+					backoffDuration := localBackoff.Step()
+					logger.GetLogger().Debug("Backoff before retry",
+						"duration", backoffDuration,
+						"attempt", attempts)
+
+					// Use context-aware sleep
+					select {
+					case <-ctx.Done():
+						logger.GetLogger().Info("retry operation cancelled", logfields.Error, ctx.Err())
+						return ctx.Err()
+					case <-time.After(backoffDuration):
+						// Continue with retry
+					}
+				}
 				// retry upon error
 				return mgrErr
 			}
+
 			cm = &ControllerManager{
 				Manager: mgr,
 			}
