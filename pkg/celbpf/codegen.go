@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/cilium/ebpf/asm"
+	cgTypes "github.com/google/cel-go/common/types"
 )
 
 var scratchRegs = []asm.Register{asm.R1, asm.R2, asm.R3, asm.R4, asm.R5}
@@ -85,4 +86,51 @@ func (g *codeGenerator) emitBranchEquals(reg0 asm.Register, reg1 asm.Register) {
 		asm.StoreMem(asm.R10, g.stackTop, reg0, asm.DWord),
 	)
 
+}
+
+func (g *codeGenerator) emitPopS32(reg asm.Register) {
+	g.emitRaw(asm.LoadMem(reg, asm.R10, g.stackTop, asm.DWord))
+	g.stackTop += 8
+}
+
+func (g *codeGenerator) emitS32(reg asm.Register, regTy *cgTypes.Type) error {
+	switch regTy {
+	case s64Ty:
+		g.emitRaw(
+			asm.LSh.Imm(reg, 0x20),
+			asm.ArSh.Imm(reg, 0x20),
+		)
+	default:
+		return fmt.Errorf("emitS32: unknown/unsupported type %s", regTy)
+	}
+
+	g.stackTop -= 8
+	g.emitRaw(
+		asm.StoreMem(asm.R10, g.stackTop, reg, asm.DWord),
+	)
+	return nil
+}
+
+func (g *codeGenerator) emitPopU32(reg asm.Register) {
+	g.emitRaw(asm.LoadMem(reg, asm.R10, g.stackTop, asm.DWord))
+	g.stackTop += 8
+}
+
+func (g *codeGenerator) emitU32(reg asm.Register, regTy *cgTypes.Type) error {
+
+	switch regTy {
+	case u64Ty:
+		g.emitRaw(
+			asm.LSh.Imm(reg, 0x20),
+			asm.RSh.Imm(reg, 0x20),
+		)
+	default:
+		return fmt.Errorf("emitU32: unknown/unsupported type %s", regTy)
+	}
+
+	g.stackTop -= 8
+	g.emitRaw(
+		asm.StoreMem(asm.R10, g.stackTop, reg, asm.DWord),
+	)
+	return nil
 }
