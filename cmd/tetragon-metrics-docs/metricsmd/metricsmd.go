@@ -23,7 +23,7 @@ func New(targets map[string]string, init initMetricsFunc) *cobra.Command {
 				{
 					Label: "version",
 					// renovate: datasource=golang-version
-					Values: []string{"go1.25.4"},
+					Values: []string{"go1.25.5"},
 				},
 			},
 		},
@@ -37,7 +37,7 @@ func New(targets map[string]string, init initMetricsFunc) *cobra.Command {
 				{
 					Label: "go_version",
 					// renovate: datasource=golang-version
-					Values: []string{"go1.25.4"},
+					Values: []string{"go1.25.5"},
 				},
 				{
 					Label:  "modified",
