@@ -51,8 +51,14 @@ struct {
 #define COMMON	"uprobe.multi"
 #define OFFLOAD "uprobe.multi.s/generic_uprobe"
 #else
+/* We can have sleepable uprobe with per cpu map since 5.11. */
+#ifdef __V511_BPF_PROG
+#define MAIN	"uprobe.s/generic_uprobe"
+#define COMMON	"uprobe.s"
+#else
 #define MAIN	"uprobe/generic_uprobe"
 #define COMMON	"uprobe"
+#endif
 #define OFFLOAD "uprobe.s/generic_uprobe"
 #endif
 
