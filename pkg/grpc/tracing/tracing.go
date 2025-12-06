@@ -116,6 +116,10 @@ func getKprobeArgument(arg tracingapi.MsgGenericKprobeArg) *tetragon.KprobeArgum
 	switch e := arg.(type) {
 	case tracingapi.MsgGenericKprobeArgInt:
 		getKprobeArgInt(e, a)
+	case tracingapi.MsgGenericKprobeArgError:
+		errorArg := &tetragon.KprobeError{Message: e.Message}
+		a.Arg = &tetragon.KprobeArgument_ErrorArg{ErrorArg: errorArg}
+		a.Label = e.Label
 	case tracingapi.MsgGenericKprobeArgUInt:
 		a.Arg = &tetragon.KprobeArgument_UintArg{UintArg: e.Value}
 		a.Label = e.Label
@@ -548,6 +552,14 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 		case []byte:
 			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_BytesArg{
 				BytesArg: v,
+			}})
+
+		case tracingapi.MsgGenericKprobeArgError:
+			error_arg := tetragon.KprobeError{
+				Message: v.Message,
+			}
+			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_ErrorArg{
+				ErrorArg: &error_arg,
 			}})
 
 		case tracingapi.MsgGenericKprobeArgSkb:

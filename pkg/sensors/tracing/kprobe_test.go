@@ -554,6 +554,52 @@ spec:
 	runKprobeObjectRead(t, readHook, checker, fd, fd2)
 }
 
+func TestKprobeObjectReadIdxMismatch(t *testing.T) {
+	fd, fd2, fdString := createTestFile(t)
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	readHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "sys-read"
+spec:
+  kprobes:
+  - call: "sys_read"
+    syscall: true
+    args:
+    - index: 1
+      type: "char_buf"
+      returnCopy: true
+    - index: 2
+      type: "size_t"
+    - index: 0
+      type: "int"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "` + fdString + `"`
+
+	kpChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_read"))).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full([]byte("hello world"))),
+				ec.NewKprobeArgumentChecker().WithSizeArg(100),
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(fd2)),
+			))
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	runKprobeObjectRead(t, readHook, checker, fd, fd2)
+}
+
 func TestKprobeObjectReadReturn(t *testing.T) {
 	fd, fd2, fdString := createTestFile(t)
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
@@ -4384,7 +4430,7 @@ func TestLoadKprobeSensor(t *testing.T) {
 			{Name: "override_tasks", Progs: []uint{5}},
 
 			// all kprobe but generic_kprobe_process_filter,generic_retkprobe_event
-			{Name: "config_map", Progs: []uint{0, 1, 2}},
+			{Name: "config_map", Progs: []uint{0, 1, 2, 5}},
 
 			// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
 			{Name: "fdinstall_map", Progs: []uint{2, 5, 7, 9}},
@@ -4441,7 +4487,7 @@ func TestLoadKprobeSensor(t *testing.T) {
 			{Name: "override_tasks", Progs: []uint{5}},
 
 			// all kprobe but generic_kprobe_process_filter,generic_retkprobe_event
-			{Name: "config_map", Progs: []uint{0, 1, 2}},
+			{Name: "config_map", Progs: []uint{0, 1, 2, 5}},
 
 			// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
 			{Name: "fdinstall_map", Progs: []uint{2, 5, 8, 10}},
