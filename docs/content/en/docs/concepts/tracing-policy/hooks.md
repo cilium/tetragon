@@ -679,6 +679,15 @@ spec:
       - action: Post
 ```
 
+It is also possible to resolve arrays (`int arr[100]`) and dynamic arrays
+(`int **dyn_arr`) by using square bracket notations, similarly as follows:
+
+```yaml
+- index: 0
+  resolve: some.field[12].some.subfield
+  type: uint32
+```
+
 ## Data
 
 Kprobes allow definition of `data` fields and following `matchData` selector
