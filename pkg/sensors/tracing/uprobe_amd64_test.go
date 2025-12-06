@@ -172,27 +172,43 @@ func TestUprobeResolve(t *testing.T) {
 	tt := []struct {
 		specTy    string
 		filterVal int
-		returnVal int
 		field     string
 		kpArgs    []*ec.KprobeArgumentChecker
 	}{
-		{"uint64", 10, 120, "v64", []*ec.KprobeArgumentChecker{
-			ec.NewKprobeArgumentChecker().WithIntArg(0),
+		{"uint64", 10, "v64", []*ec.KprobeArgumentChecker{
 			ec.NewKprobeArgumentChecker().WithSizeArg(10), // uint64(10)
 			ec.NewKprobeArgumentChecker().WithUintArg(0),
 			ec.NewKprobeArgumentChecker().WithUintArg(0),
+			ec.NewKprobeArgumentChecker().WithSizeArg(0),
+			ec.NewKprobeArgumentChecker().WithSizeArg(0),
 		}},
-		{"uint32", 11, 130, "v32", []*ec.KprobeArgumentChecker{
-			ec.NewKprobeArgumentChecker().WithIntArg(0),
+		{"uint32", 11, "v32", []*ec.KprobeArgumentChecker{
 			ec.NewKprobeArgumentChecker().WithSizeArg(0),
 			ec.NewKprobeArgumentChecker().WithUintArg(11), // uint32(11)
 			ec.NewKprobeArgumentChecker().WithUintArg(0),
+			ec.NewKprobeArgumentChecker().WithSizeArg(0),
+			ec.NewKprobeArgumentChecker().WithSizeArg(0),
 		}},
-		{"uint32", 12, 140, "sub.v32", []*ec.KprobeArgumentChecker{
-			ec.NewKprobeArgumentChecker().WithIntArg(0),
+		{"uint32", 12, "sub.v32", []*ec.KprobeArgumentChecker{
 			ec.NewKprobeArgumentChecker().WithSizeArg(0),
 			ec.NewKprobeArgumentChecker().WithUintArg(0),
 			ec.NewKprobeArgumentChecker().WithUintArg(12), // uint32(12)
+			ec.NewKprobeArgumentChecker().WithSizeArg(0),
+			ec.NewKprobeArgumentChecker().WithSizeArg(0),
+		}},
+		{"uint64", 13, "arr[2].v64", []*ec.KprobeArgumentChecker{
+			ec.NewKprobeArgumentChecker().WithSizeArg(0),
+			ec.NewKprobeArgumentChecker().WithUintArg(0),
+			ec.NewKprobeArgumentChecker().WithUintArg(0),
+			ec.NewKprobeArgumentChecker().WithSizeArg(13), // uint64(13)
+			ec.NewKprobeArgumentChecker().WithSizeArg(0),
+		}},
+		{"uint64", 14, "dyn[6].v64", []*ec.KprobeArgumentChecker{
+			ec.NewKprobeArgumentChecker().WithSizeArg(0),
+			ec.NewKprobeArgumentChecker().WithUintArg(0),
+			ec.NewKprobeArgumentChecker().WithUintArg(0),
+			ec.NewKprobeArgumentChecker().WithSizeArg(0),
+			ec.NewKprobeArgumentChecker().WithSizeArg(14), // uint64(14)
 		}},
 	}
 
@@ -208,8 +224,6 @@ spec:
     symbols:
     - "func"
     args:
-    - index: 0
-      type: "int32"
     - index: 1
       type: "` + tt[0].specTy + `"
       btfType: "mystruct"
@@ -222,6 +236,14 @@ spec:
       type: "` + tt[2].specTy + `"
       btfType: "mystruct"
       resolve: "` + tt[2].field + `"
+    - index: 1
+      type: "` + tt[3].specTy + `"
+      btfType: "mystruct"
+      resolve: "` + tt[3].field + `"
+    - index: 1
+      type: "` + tt[4].specTy + `"
+      btfType: "mystruct"
+      resolve: "` + tt[4].field + `"
 `
 
 	uprobeConfigHook := []byte(uprobeHook)
