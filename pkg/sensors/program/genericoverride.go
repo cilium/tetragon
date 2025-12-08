@@ -4,8 +4,11 @@
 package program
 
 import (
+	"errors"
+	"fmt"
 	"path"
 
+	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
 )
@@ -19,13 +22,28 @@ const (
 	OverrideTypeFmodRet = "fmod_ret"
 )
 
-var overrideProgMap map[string]*Program
+var (
+	overrideProgMap map[string]*genericOverride
+	overrideIDTable idtable.Table
+)
+
+type genericOverride struct {
+	tableId idtable.EntryID
+	prog    *Program
+}
+
+func (g *genericOverride) SetID(id idtable.EntryID) {
+	g.tableId = id
+}
 
 func getOverrideProgMapKey(overrideType OverrideType, attachFunc string) string {
 	return string(overrideType) + attachFunc
 }
 
-func createFmodRetOverrideProg(attachFunc string) *Program {
+func createFmodRetOverrideProg(attachFunc string) *genericOverride {
+	var ret genericOverride
+	overrideIDTable.AddEntry(&ret)
+
 	overrideProg := Builder(
 		"bpf_generic_override.o",
 		attachFunc,
@@ -36,8 +54,7 @@ func createFmodRetOverrideProg(attachFunc string) *Program {
 	overrideProg.PinPath = path.Join("__override__", "fmod_ret", attachFunc)
 	overrideProg.unloaderOverride = &unloader.CustomUnloader{
 		UnloadFunc: func(_ bool) error {
-			deleteOverrideProg(OverrideTypeKProbe, attachFunc)
-			return nil
+			return deleteOverrideProg(OverrideTypeFmodRet, attachFunc, &ret)
 		},
 	}
 
@@ -45,10 +62,14 @@ func createFmodRetOverrideProg(attachFunc string) *Program {
 	overrideTasksMap.PinPath = path.Join("__override__", "override_tasks")
 	overrideTasksMap.SetMaxEntries(OverrideMapMaxEntries)
 
-	return overrideProg
+	ret.prog = overrideProg
+	return &ret
 }
 
-func createKProbeOverrideProg(attachFunc string) *Program {
+func createKProbeOverrideProg(attachFunc string) *genericOverride {
+	var ret genericOverride
+	overrideIDTable.AddEntry(&ret)
+
 	overrideProg := Builder(
 		"bpf_generic_override.o",
 		attachFunc,
@@ -59,8 +80,7 @@ func createKProbeOverrideProg(attachFunc string) *Program {
 	overrideProg.PinPath = path.Join("__override__", "kprobe", attachFunc)
 	overrideProg.unloaderOverride = &unloader.CustomUnloader{
 		UnloadFunc: func(_ bool) error {
-			deleteOverrideProg(OverrideTypeKProbe, attachFunc)
-			return nil
+			return deleteOverrideProg(OverrideTypeKProbe, attachFunc, &ret)
 		},
 	}
 
@@ -68,15 +88,16 @@ func createKProbeOverrideProg(attachFunc string) *Program {
 	overrideTasksMap.PinPath = path.Join("__override__", "override_tasks")
 	overrideTasksMap.SetMaxEntries(OverrideMapMaxEntries)
 
-	return overrideProg
+	ret.prog = overrideProg
+	return &ret
 }
 
 func GetOverrideProg(overrideType OverrideType, attachFunc string) (*Program, *Map) {
-	var overrideProg *Program
+	var overrideProg *genericOverride
 	var ok bool
 
 	if overrideProgMap == nil {
-		overrideProgMap = make(map[string]*Program)
+		overrideProgMap = make(map[string]*genericOverride)
 	}
 
 	key := getOverrideProgMapKey(overrideType, attachFunc)
@@ -93,24 +114,31 @@ func GetOverrideProg(overrideType OverrideType, attachFunc string) (*Program, *M
 		overrideProgMap[key] = overrideProg
 	}
 
-	logger.GetLogger().Info("Getting a new override prog", "prog", overrideProg, "map", overrideProg.PinMap["override_tasks"])
+	prog := overrideProg.prog
 
-	return overrideProg, overrideProg.PinMap["override_tasks"]
+	logger.GetLogger().Info("Getting a new override prog", "prog", prog, "map", prog.PinMap["override_tasks"])
+
+	return prog, prog.PinMap["override_tasks"]
 }
 
-func deleteOverrideProg(overrideType OverrideType, attachFunc string) {
-	var prog *Program
+func deleteOverrideProg(overrideType OverrideType, attachFunc string, override *genericOverride) error {
 	var ok bool
+
+	if overrideProgMap == nil {
+		return errors.New("override program map is not initialized")
+	}
 
 	key := getOverrideProgMapKey(overrideType, attachFunc)
 
-	if overrideProgMap == nil {
-		return
+	if _, ok = overrideProgMap[key]; !ok {
+		return errors.New("override program is not found")
 	}
-	if prog, ok = overrideProgMap[key]; !ok {
-		return
+	delete(overrideProgMap, key)
+
+	_, err := overrideIDTable.RemoveEntry(override.tableId)
+
+	if err != nil {
+		return fmt.Errorf("failed to remove entry: %w", err)
 	}
-	if !prog.LoadState.IsLoaded() {
-		delete(overrideProgMap, key)
-	}
+	return nil
 }
