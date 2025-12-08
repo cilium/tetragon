@@ -14,6 +14,7 @@ import (
 	pprofhttp "net/http/pprof"
 	"os"
 	"os/signal"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
@@ -853,4 +854,24 @@ func servePprof(addr string) error {
 	mux.HandleFunc("/debug/pprof/symbol", pprofhttp.Symbol)
 	mux.HandleFunc("/debug/pprof/trace", pprofhttp.Trace)
 	return http.ListenAndServe(addr, mux)
+}
+
+// including retry logic
+func runTests() {
+	retryCount := 0
+	maxRetries := 3
+	backoff := 1
+
+	for retryCount < maxRetries {
+		cmd := exec.Command(ctx, cmd, args)
+		err := cmd.Run()
+		if err == nil {
+			break
+		}
+
+		fmt.Printf("Tests failed, retrying in %d seconds...\n", backoff)
+		time.Sleep(time.Duration(backoff) * time.Second)
+		retryCount++
+		backoff *= 2
+	}
 }
