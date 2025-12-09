@@ -42,7 +42,7 @@ func MsgToExecveAccountUnix(unix *processapi.MsgExecveEventUnix) error {
 		}
 
 		if errors.Is(err, ErrNotInHostNs) {
-			errormetrics.ErrorTotalInc(errormetrics.ProcessMetadataUsernameIgnoredNotInHost)
+			errormetrics.DebugTotalInc(errormetrics.ProcessMetadataUsernameIgnoredNotInHost)
 		} else {
 			errormetrics.ErrorTotalInc(errormetrics.ProcessMetadataUsernameFailed)
 		}
