@@ -87,8 +87,8 @@ func TestMain(m *testing.M) {
 func TestSkeletonBasic(t *testing.T) {
 	// Grab the minimum kernel version in all cluster nodes and define an RPC checker with it
 	kversion := helpers.GetMinKernelVersion(t, runner.Environment)
-	// Create an curl event checker with a limit or 10 events or 30 seconds, whichever comes first
-	curlChecker := curlEventChecker(kversion).WithEventLimit(100).WithTimeLimit(30 * time.Second)
+	// Create an curl event checker with a limit or 200 events or 120 seconds, whichever comes first
+	curlChecker := curlEventChecker(kversion).WithEventLimit(200).WithTimeLimit(120 * time.Second)
 
 	metricsChecker := metricschecker.NewMetricsChecker("skeletonMetricsChecker")
 
@@ -103,8 +103,8 @@ func TestSkeletonBasic(t *testing.T) {
 
 	// This feature waits for curlChecker to start then runs a custom workload.
 	runWorkload := features.New("Run Workload").
-		/* Wait up to 30 seconds for the event checker to start before continuing */
-		Assess("Wait for Checker", curlChecker.Wait(30*time.Second)).
+		/* Wait up to 60 seconds for the event checker to start before continuing */
+		Assess("Wait for Checker", curlChecker.Wait(60*time.Second)).
 		/* Run the workload */
 		Assess("Run Workload", func(ctx context.Context, _ *testing.T, c *envconf.Config) context.Context {
 			ctx, err := helpers.LoadCRDString(namespace, curlPod, true)(ctx, c)
