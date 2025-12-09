@@ -94,6 +94,14 @@ The number of data events by type. For internal use only.
 | ----- | ------ |
 | `event` | `Added, Appended, Bad, Matched, NotMatched, Received` |
 
+### `tetragon_debug_events_total`
+
+The total number of Tetragon debug events. For internal use only.
+
+| label | values |
+| ----- | ------ |
+| `type ` | `process_metadata_username_ignored_not_in_host_namespaces` |
+
 ### `tetragon_enforcer_missed_notifications_total`
 
 The number of missed notifications by the enforcer.
@@ -110,7 +118,7 @@ The total number of Tetragon errors. For internal use only.
 
 | label | values |
 | ----- | ------ |
-| `type ` | `event_finalize_process_info_failed, process_metadata_username_failed, process_metadata_username_ignored_not_in_host_namespaces, process_pid_tid_mismatch` |
+| `type ` | `event_finalize_process_info_failed, process_metadata_username_failed, process_pid_tid_mismatch` |
 
 ### `tetragon_event_cache_entries`
 
