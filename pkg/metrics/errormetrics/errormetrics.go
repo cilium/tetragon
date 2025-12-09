@@ -24,16 +24,12 @@ const (
 	EventFinalizeProcessInfoFailed
 	// Failed to resolve Process uid to username
 	ProcessMetadataUsernameFailed
-	// The username resolution was skipped since the process is not in host
-	// namespaces.
-	ProcessMetadataUsernameIgnoredNotInHost
 )
 
 var errorTypeLabelValues = map[ErrorType]string{
-	ProcessPidTidMismatch:                   "process_pid_tid_mismatch",
-	EventFinalizeProcessInfoFailed:          "event_finalize_process_info_failed",
-	ProcessMetadataUsernameFailed:           "process_metadata_username_failed",
-	ProcessMetadataUsernameIgnoredNotInHost: "process_metadata_username_ignored_not_in_host_namespaces",
+	ProcessPidTidMismatch:          "process_pid_tid_mismatch",
+	EventFinalizeProcessInfoFailed: "event_finalize_process_info_failed",
+	ProcessMetadataUsernameFailed:  "process_metadata_username_failed",
 }
 
 func (e ErrorType) String() string {
@@ -103,24 +99,9 @@ var (
 	)
 )
 
-func RegisterMetrics(group metrics.Group) {
-	group.MustRegister(ErrorTotal)
-	group.MustRegister(HandlerErrors)
-}
-
-func InitMetrics() {
-	// Initialize metrics with labels
-	for er := range errorTypeLabelValues {
-		GetErrorTotal(er).Add(0)
-	}
-	for opcode := range ops.OpCodeStrings {
-		if opcode != ops.MSG_OP_UNDEF && opcode != ops.MSG_OP_TEST {
-			GetHandlerErrors(opcode, HandlePerfHandlerError).Add(0)
-		}
-	}
-	// NB: We initialize only ops.MSG_OP_UNDEF here, but unknown_opcode can occur for any opcode
-	// that is not explicitly handled.
-	GetHandlerErrors(ops.MSG_OP_UNDEF, HandlePerfUnknownOp).Add(0)
+// Increment the HandlerErrors metric
+func HandlerErrorsInc(opcode ops.OpCode, er EventHandlerError) {
+	GetHandlerErrors(opcode, er).Inc()
 }
 
 // Get a new handle on an ErrorTotal metric for an ErrorType
@@ -138,7 +119,70 @@ func GetHandlerErrors(opcode ops.OpCode, er EventHandlerError) prometheus.Counte
 	return HandlerErrors.WithLabelValues(strconv.Itoa(int(int32(opcode))), er.String())
 }
 
-// Increment the HandlerErrors metric
-func HandlerErrorsInc(opcode ops.OpCode, er EventHandlerError) {
-	GetHandlerErrors(opcode, er).Inc()
+type WarningType int
+
+const (
+	// The username resolution was skipped since the process is not in host
+	// namespaces.
+	ProcessMetadataUsernameIgnoredNotInHost WarningType = iota
+)
+
+var warningTypeLabelValues = map[WarningType]string{
+	ProcessMetadataUsernameIgnoredNotInHost: "process_metadata_username_ignored_not_in_host_namespaces",
+}
+
+func (e WarningType) String() string {
+	return warningTypeLabelValues[e]
+}
+
+var (
+	// Constrained label for warning type
+	warningTypeLabel = metrics.ConstrainedLabel{
+		Name:   "type",
+		Values: slices.Collect(maps.Values(warningTypeLabelValues)),
+	}
+
+	WarningTotal = metrics.MustNewCounter(
+		metrics.NewOpts(
+			consts.MetricsNamespace, "", "warnings_total",
+			"The total number of Tetragon warnings. For internal use only.",
+			nil, []metrics.ConstrainedLabel{warningTypeLabel}, nil,
+		),
+		nil,
+	)
+)
+
+func RegisterMetrics(group metrics.Group) {
+	group.MustRegister(ErrorTotal)
+	group.MustRegister(HandlerErrors)
+	group.MustRegister(WarningTotal)
+}
+
+func InitMetrics() {
+	// Initialize metrics with labels
+	for er := range errorTypeLabelValues {
+		GetErrorTotal(er).Add(0)
+	}
+	for opcode := range ops.OpCodeStrings {
+		if opcode != ops.MSG_OP_UNDEF && opcode != ops.MSG_OP_TEST {
+			GetHandlerErrors(opcode, HandlePerfHandlerError).Add(0)
+		}
+	}
+	// NB: We initialize only ops.MSG_OP_UNDEF here, but unknown_opcode can occur for any opcode
+	// that is not explicitly handled.
+	GetHandlerErrors(ops.MSG_OP_UNDEF, HandlePerfUnknownOp).Add(0)
+
+	for er := range warningTypeLabelValues {
+		GetWarningTotal(er).Add(0)
+	}
+}
+
+// Get a new handle on an WarningTotal metric for an WarningType
+func GetWarningTotal(er WarningType) prometheus.Counter {
+	return WarningTotal.WithLabelValues(er.String())
+}
+
+// Increment an WarningTotal for an WarningType
+func WarningTotalInc(er WarningType) {
+	GetWarningTotal(er).Inc()
 }

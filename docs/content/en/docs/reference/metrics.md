@@ -110,7 +110,7 @@ The total number of Tetragon errors. For internal use only.
 
 | label | values |
 | ----- | ------ |
-| `type ` | `event_finalize_process_info_failed, process_metadata_username_failed, process_metadata_username_ignored_not_in_host_namespaces, process_pid_tid_mismatch` |
+| `type ` | `event_finalize_process_info_failed, process_metadata_username_failed, process_pid_tid_mismatch` |
 
 ### `tetragon_event_cache_entries`
 
@@ -378,6 +378,14 @@ The number of loaded tracing policy by state.
 | label | values |
 | ----- | ------ |
 | `state` | `disabled, enabled, error, load_error` |
+
+### `tetragon_warnings_total`
+
+The total number of Tetragon warnings. For internal use only.
+
+| label | values |
+| ----- | ------ |
+| `type ` | `process_metadata_username_ignored_not_in_host_namespaces` |
 
 ### `tetragon_watcher_delete_pod_cache_hits`
 
