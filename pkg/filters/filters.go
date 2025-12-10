@@ -219,6 +219,7 @@ func CheckAncestorsEnabled(types []tetragon.EventType) error {
 			tetragon.EventType_PROCESS_EXIT,
 			tetragon.EventType_PROCESS_KPROBE,
 			tetragon.EventType_PROCESS_TRACEPOINT,
+			tetragon.EventType_PROCESS_LOADER,
 			tetragon.EventType_PROCESS_UPROBE,
 			tetragon.EventType_PROCESS_LSM,
 			tetragon.EventType_PROCESS_USDT,
