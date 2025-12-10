@@ -8,12 +8,15 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"os"
 	"path"
 	"path/filepath"
+	"sync"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
@@ -29,8 +32,11 @@ const (
 )
 
 var (
-	overrideProgMap map[string]*genericOverride
-	overrideIDTable idtable.Table
+	overrideProgMap          map[string]*genericOverride
+	overrideIDTable          idtable.Table
+	setGlobalOverrideTaskMap sync.Once
+	overrideTaskMap          *ebpf.Map
+	overrideTaskMapError     error
 )
 
 type genericOverride struct {
@@ -40,6 +46,45 @@ type genericOverride struct {
 
 func (g *genericOverride) SetID(id idtable.EntryID) {
 	g.tableId = id
+}
+
+func newOverrideTaskMap() (*ebpf.Map, error) {
+	var ret *ebpf.Map
+	var err error
+
+	objName, _ := config.GenericKprobeObjs(false)
+	objPath, err := config.FindProgramFile(objName)
+	if err != nil {
+		return nil, fmt.Errorf("loading spec for %s failed: %w", objPath, err)
+	}
+	spec, err := ebpf.LoadCollectionSpec(objPath)
+	if err != nil {
+		return nil, fmt.Errorf("loading spec for %s failed: %w", objPath, err)
+	}
+
+	mapSpec, ok := spec.Maps["override_tasks"]
+	if !ok {
+		return nil, errors.New("override_tasks map is not found")
+	}
+
+	mapSpec.MaxEntries = OverrideMapMaxEntries
+
+	ret, err = ebpf.NewMap(mapSpec)
+	if err != nil {
+		return nil, err
+	}
+
+	mapDir := filepath.Join(bpf.MapPrefixPath(), "__override__")
+	pinPath := filepath.Join(mapDir, "override_tasks")
+	os.Remove(pinPath)
+	os.MkdirAll(mapDir, os.ModeDir)
+
+	if err := ret.Pin(pinPath); err != nil {
+		ret.Close()
+		return nil, fmt.Errorf("failed to pin map in %s: %w", pinPath, err)
+	}
+
+	return ret, nil
 }
 
 func getOverrideProgMapKey(overrideType OverrideType, attachFunc string) string {
@@ -64,7 +109,10 @@ func createFmodRetOverrideProg(attachFunc string) *genericOverride {
 		},
 	}
 
-	overrideTasksMap := MapBuilder("override_tasks", overrideProg)
+	overrideTasksMap := MapBuilderOpts("override_tasks", MapOpts{
+		Type:  MapTypeGlobal,
+		Owner: false,
+	}, overrideProg)
 	overrideTasksMap.PinPath = path.Join("__override__", "override_tasks")
 	overrideTasksMap.SetMaxEntries(OverrideMapMaxEntries)
 
@@ -101,7 +149,10 @@ func createKProbeOverrideProg(attachFunc string) *genericOverride {
 		},
 	}
 
-	overrideTasksMap := MapBuilder("override_tasks", overrideProg)
+	overrideTasksMap := MapBuilderOpts("override_tasks", MapOpts{
+		Type:  MapTypeGlobal,
+		Owner: false,
+	}, overrideProg)
 	overrideTasksMap.PinPath = path.Join("__override__", "override_tasks")
 	overrideTasksMap.SetMaxEntries(OverrideMapMaxEntries)
 
@@ -125,9 +176,11 @@ func GetOverrideProg(overrideType OverrideType, attachFunc string) (*Program, *M
 	var overrideProg *genericOverride
 	var ok bool
 
-	if overrideProgMap == nil {
+	setGlobalOverrideTaskMap.Do(func() {
 		overrideProgMap = make(map[string]*genericOverride)
-	}
+		overrideTaskMap, overrideTaskMapError = newOverrideTaskMap()
+		logger.GetLogger().Info("Creating override_tasks map", "error", overrideTaskMapError)
+	})
 
 	key := getOverrideProgMapKey(overrideType, attachFunc)
 
@@ -182,6 +235,8 @@ func cleanupPendingDeletionOverrideMap(id int) error {
 	var errs error
 	fname := filepath.Join(bpf.MapPrefixPath(), "__override__", "override_tasks")
 
+	logger.GetLogger().Info("cleaning up override prog", "fname", fname, "id", id)
+
 	m, err := ebpf.LoadPinnedMap(fname, &ebpf.LoadPinOptions{})
 	if err != nil {
 		errors.Join(errs, fmt.Errorf("failed to load map %q: %w", fname, err))
@@ -200,5 +255,6 @@ func cleanupPendingDeletionOverrideMap(id int) error {
 			}
 		}
 	}
-	return errs
+
+	return errors.Join(errs, entries.Err())
 }

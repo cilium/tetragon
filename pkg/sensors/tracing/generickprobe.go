@@ -1059,7 +1059,10 @@ func createOverrideProgramFromEntry(load *program.Program, attachFunc string, pr
 	maps = append(maps, overrideMap)
 
 	// setup the output of kprobe
-	overrideTasksMap := program.MapBuilder("override_tasks", load)
+	overrideTasksMap := program.MapBuilderOpts("override_tasks", program.MapOpts{
+		Type:  program.MapTypeGlobal,
+		Owner: false,
+	}, load)
 	overrideTasksMap.PinPath = overrideMap.PinPath
 	overrideTasksMap.SetMaxEntries(program.OverrideMapMaxEntries)
 
