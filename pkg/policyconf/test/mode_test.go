@@ -20,6 +20,7 @@ import (
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policyconf"
+	ps "github.com/cilium/tetragon/pkg/policystats"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	_ "github.com/cilium/tetragon/pkg/sensors/exec"           // NB: needed so that the exec sensor can load the execve probe on its init
 	stracing "github.com/cilium/tetragon/pkg/sensors/tracing" // NB: needed so that the exec tracing sensor can load its policy handlers on init
@@ -79,7 +80,18 @@ func TestModeSigKill(t *testing.T) {
 		t.Logf("prog:%s out:%q err:%v", getcpuProg, progOut, progErr)
 	}
 
+	getStats := func() *ps.PolicyStats {
+		stats, err := ps.GetPolicyStats(tp)
+		require.NoError(t, err)
+		return stats
+	}
+
+	assertDelta := func(before, after *ps.PolicyStats, action ps.PolicyAction, delta uint64) {
+		require.Equal(t, before.ActionsCount[action]+delta, after.ActionsCount[action], "action=%v", action)
+	}
+
 	checkEnforce := func() {
+		before := getStats()
 		cnt := perfring.RunTestEventReduceCount(t, ctx, ops, perfring.FilterTestMessages,
 			func(x notify.Message) int {
 				if kprobe, ok := x.(*tracing.MsgGenericKprobeUnix); ok {
@@ -90,12 +102,22 @@ func TestModeSigKill(t *testing.T) {
 				}
 				return 0
 			})
+		after := getStats()
 		require.NoError(t, progErr)
 		require.Contains(t, progOut, "signal: killed")
 		require.Equal(t, 1, cnt[1], "count=%v", cnt)
+
+		assertDelta(before, after, ps.PolicyPost, 1)
+		assertDelta(before, after, ps.PolicySignal, 1)
+		assertDelta(before, after, ps.PolicyMonitorSignal, 0)
+		assertDelta(before, after, ps.PolicyOverride, 0)
+		assertDelta(before, after, ps.PolicyMonitorOverride, 0)
+		assertDelta(before, after, ps.PolicyNotifyEnforcer, 0)
+		assertDelta(before, after, ps.PolicyMonitorNotifyEnforcer, 0)
 	}
 
 	checkMonitor := func() {
+		before := getStats()
 		cnt := perfring.RunTestEventReduceCount(t, ctx, ops, perfring.FilterTestMessages,
 			func(x notify.Message) int {
 				if kprobe, ok := x.(*tracing.MsgGenericKprobeUnix); ok {
@@ -106,10 +128,19 @@ func TestModeSigKill(t *testing.T) {
 				}
 				return 0
 			})
+		after := getStats()
 		require.NoError(t, progErr)
 		require.NotContains(t, progOut, "signal: killed")
 		require.Contains(t, progOut, "returned without an error")
 		require.Equal(t, 1, cnt[1], "count=%v", cnt)
+
+		assertDelta(before, after, ps.PolicyPost, 1)
+		assertDelta(before, after, ps.PolicySignal, 0)
+		assertDelta(before, after, ps.PolicyMonitorSignal, 1)
+		assertDelta(before, after, ps.PolicyOverride, 0)
+		assertDelta(before, after, ps.PolicyMonitorOverride, 0)
+		assertDelta(before, after, ps.PolicyNotifyEnforcer, 0)
+		assertDelta(before, after, ps.PolicyMonitorNotifyEnforcer, 0)
 	}
 
 	// finally, we can do the test
@@ -177,7 +208,18 @@ func TestModeEnforcer(t *testing.T) {
 		t.Logf("command getcpu out:%q err:%v", cmdOut, cmdErr)
 	}
 
+	getStats := func() *ps.PolicyStats {
+		stats, err := ps.GetPolicyStats(tp)
+		require.NoError(t, err)
+		return stats
+	}
+
+	assertDelta := func(before, after *ps.PolicyStats, action ps.PolicyAction, delta uint64) {
+		require.Equal(t, before.ActionsCount[action]+delta, after.ActionsCount[action], "action=%v", action)
+	}
+
 	checkEnforce := func() {
+		before := getStats()
 		cnt := perfring.RunTestEventReduceCount(t, ctx, ops, perfring.FilterTestMessages,
 			func(x notify.Message) int {
 				if kprobe, ok := x.(*tracing.MsgGenericKprobeUnix); ok {
@@ -188,6 +230,7 @@ func TestModeEnforcer(t *testing.T) {
 				}
 				return 0
 			})
+		after := getStats()
 		require.NoError(t, cmdErr)
 		require.Equal(t, 1, cnt[1], "count=%v", cnt)
 		enfDump, enfDumpErr := stracing.DumpEnforcerMap(polName, polNamespace)
@@ -199,6 +242,14 @@ func TestModeEnforcer(t *testing.T) {
 			require.Equal(t, int16(9), val.Sig)
 			break
 		}
+
+		assertDelta(before, after, ps.PolicyPost, 1)
+		assertDelta(before, after, ps.PolicySignal, 0)
+		assertDelta(before, after, ps.PolicyMonitorSignal, 0)
+		assertDelta(before, after, ps.PolicyOverride, 1)
+		assertDelta(before, after, ps.PolicyMonitorOverride, 0)
+		assertDelta(before, after, ps.PolicyNotifyEnforcer, 1)
+		assertDelta(before, after, ps.PolicyMonitorNotifyEnforcer, 0)
 	}
 
 	resetEnforcerMap := func() {
@@ -207,6 +258,7 @@ func TestModeEnforcer(t *testing.T) {
 	}
 
 	checkMonitor := func() {
+		before := getStats()
 		cnt := perfring.RunTestEventReduceCount(t, ctx, ops, perfring.FilterTestMessages,
 			func(x notify.Message) int {
 				if kprobe, ok := x.(*tracing.MsgGenericKprobeUnix); ok {
@@ -217,12 +269,21 @@ func TestModeEnforcer(t *testing.T) {
 				}
 				return 0
 			})
+		after := getStats()
 		require.NoError(t, cmdErr)
 		require.Equal(t, 1, cnt[1], "count=%v", cnt)
 		require.NotContains(t, cmdOut, "operation not permitted")
 		enfDump, enfDumpErr := stracing.DumpEnforcerMap(polName, polNamespace)
 		require.NoError(t, enfDumpErr)
 		require.Empty(t, enfDump)
+
+		assertDelta(before, after, ps.PolicyPost, 1)
+		assertDelta(before, after, ps.PolicySignal, 0)
+		assertDelta(before, after, ps.PolicyMonitorSignal, 0)
+		assertDelta(before, after, ps.PolicyOverride, 0)
+		assertDelta(before, after, ps.PolicyMonitorOverride, 1)
+		assertDelta(before, after, ps.PolicyNotifyEnforcer, 0)
+		assertDelta(before, after, ps.PolicyMonitorNotifyEnforcer, 1)
 	}
 
 	// finally, we can do the test
