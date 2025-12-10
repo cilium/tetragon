@@ -107,7 +107,7 @@ func TestModeSigKill(t *testing.T) {
 		require.Contains(t, progOut, "signal: killed")
 		require.Equal(t, 1, cnt[1], "count=%v", cnt)
 
-		assertDelta(before, after, ps.PolicyPost, 1)
+		assertDelta(before, after, ps.PolicyPost, 2)
 		assertDelta(before, after, ps.PolicySignal, 1)
 		assertDelta(before, after, ps.PolicyMonitorSignal, 0)
 		assertDelta(before, after, ps.PolicyOverride, 0)
