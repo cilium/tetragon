@@ -9,9 +9,11 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"path/filepath"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
@@ -163,10 +165,40 @@ func deleteOverrideProg(overrideType OverrideType, attachFunc string, override *
 	}
 	delete(overrideProgMap, key)
 
+	err = cleanupPendingDeletionOverrideMap(override.tableId.ID)
+	if err != nil {
+		return fmt.Errorf("failed to cleanup ebpf map: %w", err)
+	}
+
 	_, err = overrideIDTable.RemoveEntry(override.tableId)
 
 	if err != nil {
 		return fmt.Errorf("failed to remove entry: %w", err)
 	}
 	return nil
+}
+
+func cleanupPendingDeletionOverrideMap(id int) error {
+	var errs error
+	fname := filepath.Join(bpf.MapPrefixPath(), "__override__", "override_tasks")
+
+	m, err := ebpf.LoadPinnedMap(fname, &ebpf.LoadPinOptions{})
+	if err != nil {
+		errors.Join(errs, fmt.Errorf("failed to load map %q: %w", fname, err))
+		return errs
+	}
+	defer m.Close()
+
+	key := tracingapi.OverrideTarget{}
+	value := int32(0)
+
+	entries := m.Iterate()
+	for entries.Next(&key, &value) {
+		if int(key.ID) == id {
+			if err := m.Delete(&key); err != nil {
+				errors.Join(errs, fmt.Errorf("failed to delete map item %w", err))
+			}
+		}
+	}
+	return errs
 }
