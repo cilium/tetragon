@@ -35,7 +35,7 @@ options:
     - name: enable-ancestors
       default_value: '[]'
       usage: |
-        Comma-separated list of process event types to enable ancestors for. Supported event types are: base, kprobe, tracepoint, uprobe, lsm, usdt. Unknown event types will be ignored. Type 'base' enables ancestors for process_exec and process_exit events and is required by all other supported event types for correct reference counting. An empty string disables ancestors completely
+        Comma-separated list of process event types to enable ancestors for. Supported event types are: base, kprobe, tracepoint, loader, uprobe, lsm, usdt. Unknown event types will be ignored. Type 'base' enables ancestors for process_exec and process_exit events and is required by all other supported event types for correct reference counting. An empty string disables ancestors completely
     - name: enable-cgidmap
       default_value: "false"
       usage: enable pod resolution via cgroup ids
