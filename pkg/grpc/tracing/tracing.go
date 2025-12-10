@@ -754,8 +754,8 @@ func GetProcessLoader(msg *MsgProcessLoaderUnix) *tetragon.ProcessLoader {
 
 	proc, parent, tetragonProcess, tetragonParent := getProcessParent(&msg.Msg.ProcessKey, 0)
 
-	// Set the ancestors only if --enable-ancestors flag includes 'uprobe'.
-	if option.Config.EnableProcessUprobeAncestors && proc.NeededAncestors() {
+	// Set the ancestors only if --enable-ancestors flag includes 'loader'.
+	if option.Config.EnableProcessLoaderAncestors && proc.NeededAncestors() {
 		ancestors, _ = process.GetAncestorProcessesInternal(tetragonProcess.ParentExecId)
 		for _, ancestor := range ancestors {
 			tetragonAncestors = append(tetragonAncestors, ancestor.UnsafeGetProcess())
@@ -778,7 +778,7 @@ func GetProcessLoader(msg *MsgProcessLoaderUnix) *tetragon.ProcessLoader {
 	if ec := eventcache.Get(); ec != nil &&
 		(ec.Needed(tetragonProcess) ||
 			((tetragonProcess.Pid.Value > 1) && ec.Needed(tetragonParent)) ||
-			(option.Config.EnableProcessUprobeAncestors && ec.NeededAncestors(parent, ancestors))) {
+			(option.Config.EnableProcessLoaderAncestors && ec.NeededAncestors(parent, ancestors))) {
 		ec.Add(nil, tetragonEvent, msg.Msg.Common.Ktime, msg.Msg.ProcessKey.Ktime, msg)
 		return nil
 	}

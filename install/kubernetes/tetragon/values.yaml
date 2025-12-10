@@ -151,7 +151,7 @@ tetragon:
   enableProcessNs: false
   processAncestors:
     # -- Comma-separated list of process event types to enable ancestors for.
-    # Supported event types are: base, kprobe, tracepoint, uprobe, lsm, usdt. Unknown event types will be ignored.
+    # Supported event types are: base, kprobe, tracepoint, loader, uprobe, lsm, usdt. Unknown event types will be ignored.
     # Type "base" is required by all other supported event types for correct reference counting.
     # Set it to "" to disable ancestors completely.
     enabled: ""

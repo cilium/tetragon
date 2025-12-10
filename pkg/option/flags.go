@@ -196,6 +196,7 @@ func ReadAndSetFlags() error {
 		Config.EnableProcessAncestors = true
 		Config.EnableProcessKprobeAncestors = slices.Contains(enableAncestors, "kprobe")
 		Config.EnableProcessTracepointAncestors = slices.Contains(enableAncestors, "tracepoint")
+		Config.EnableProcessLoaderAncestors = slices.Contains(enableAncestors, "loader")
 		Config.EnableProcessUprobeAncestors = slices.Contains(enableAncestors, "uprobe")
 		Config.EnableProcessLsmAncestors = slices.Contains(enableAncestors, "lsm")
 		Config.EnableProcessUsdtAncestors = slices.Contains(enableAncestors, "usdt")
@@ -403,7 +404,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Bool(KeyEnableProcessNs, false, "Enable namespace information in process_exec and process_kprobe events")
 	flags.Uint(KeyEventQueueSize, 10000, "Set the size of the internal event queue.")
 	flags.Bool(KeyEnablePodAnnotations, false, "Add pod annotations field to events.")
-	flags.StringSlice(KeyEnableAncestors, []string{}, "Comma-separated list of process event types to enable ancestors for. Supported event types are: base, kprobe, tracepoint, uprobe, lsm, usdt. Unknown event types will be ignored. Type 'base' enables ancestors for process_exec and process_exit events and is required by all other supported event types for correct reference counting. An empty string disables ancestors completely")
+	flags.StringSlice(KeyEnableAncestors, []string{}, "Comma-separated list of process event types to enable ancestors for. Supported event types are: base, kprobe, tracepoint, loader, uprobe, lsm, usdt. Unknown event types will be ignored. Type 'base' enables ancestors for process_exec and process_exit events and is required by all other supported event types for correct reference counting. An empty string disables ancestors completely")
 
 	flags.Bool(KeyEnableProcessEnvironmentVariables, false, "Include environment variables in process_exec events. Disabled by default. Note that this option can significantly increase the size of the events and may impact performance, as well as capture sensitive information such as passwords in the events (you can use --redaction-filters to redact the data).")
 
