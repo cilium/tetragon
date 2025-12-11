@@ -6,7 +6,7 @@
 // 64k bytes is the max byte count that fits in a UNICODE_STRING (because Length is a USHORT).  Exactly 64k seems
 // to be a little too high for eBPF, so we subtract a few bytes and the likelihood this actually truncates anything
 // important is pretty low.
-#define COMMAND_SCRATCH_SIZE ((64 * 1024) - 16)
+#define COMMAND_SCRATCH_SIZE ((64 * 1024) - 32)
 
 #define MSG_OP_EXECVE 5
 #define MSG_OP_EXIT   7
@@ -110,6 +110,33 @@ get_scratch_space()
 	return scratch;
 }
 
+inline __attribute__((always_inline)) void str_to_lower_and_copy(void *dst, void *src, int len)
+{
+	char *d = (char *)dst;
+	char *s = (char *)src;
+
+	for (int i = 0; (i < len); i++) {
+		char p = s[i];
+
+		if (p >= 'A' && p <= 'Z')
+			p += 0x20;
+		d[i] = p;
+	}
+}
+
+inline __attribute__((always_inline)) void str_to_lower(void *src, int len)
+{
+	char *s = (char *)src;
+
+	for (int i = 0; (i < len); i++) {
+		char p = s[i];
+
+		if (p >= 'A' && p <= 'Z')
+			p += 0x20;
+		s[i] = p;
+	}
+}
+
 SEC("process")
 int ProcessMonitor(process_md_t *ctx)
 {
@@ -137,8 +164,7 @@ int ProcessMonitor(process_md_t *ctx)
 		if (command_length > COMMAND_SCRATCH_SIZE)
 			command_length = COMMAND_SCRATCH_SIZE;
 
-		// Use COMMAND_SCRATCH_SIZE -1 to ensure the last byte stays a 0 for null termination
-		memcpy_s(buffer, COMMAND_SCRATCH_SIZE - 1, ctx->command_start, command_length);
+		str_to_lower_and_copy(buffer, ctx->command_start, command_length);
 
 		bpf_map_update_elem(&command_map, &process_create_info.process_id, buffer, BPF_ANY);
 
@@ -146,13 +172,23 @@ int ProcessMonitor(process_md_t *ctx)
 		memset(buffer, 0, COMMAND_SCRATCH_SIZE);
 
 		// Copy image path into the LRU hash.  Note we use IMAGE_PATH_SIZE - 1 to leave a guaranteed null terminator
-		bpf_process_get_image_path(ctx, buffer, IMAGE_PATH_SIZE - 1);
+		int path_len = bpf_process_get_image_path(ctx, buffer, IMAGE_PATH_SIZE - 1);
+
+		if (path_len > IMAGE_PATH_SIZE - 1)
+			path_len = IMAGE_PATH_SIZE - 1;
+		str_to_lower(buffer, path_len);
 		bpf_map_update_elem(&process_map, &process_create_info.process_id, buffer, BPF_ANY);
 		bpf_ringbuf_output(&process_ringbuf, &process_create_info, sizeof(process_create_info), 0);
 
 	} else if (ctx->operation == PROCESS_OPERATION_DELETE) {
 		struct process_exit_info_t process_exit_info;
 		int size = sizeof(process_exit_info);
+		uint32_t *pid = NULL;
+
+		if ((ctx) && ctx->process_id)
+			*pid = ctx->process_id;
+		else
+			return 0;
 
 		memset(&process_exit_info, 0, size);
 		process_exit_info.process_id = ctx->process_id;
@@ -161,6 +197,8 @@ int ProcessMonitor(process_md_t *ctx)
 		process_exit_info.common.size = size;
 		process_exit_info.exit_time = ctx->exit_time;
 		process_exit_info.process_exit_code = ctx->process_exit_code;
+		bpf_map_delete_elem(&process_map, pid);
+		bpf_map_delete_elem(&command_map, pid);
 		bpf_ringbuf_output(&process_ringbuf, &process_exit_info, sizeof(process_exit_info), 0);
 	}
 	return 0;

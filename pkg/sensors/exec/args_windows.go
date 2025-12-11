@@ -37,17 +37,12 @@ func getArgsFromPID(PID uint32) (string, string, error) {
 		}
 	}
 	var wideCmd [2048]uint16
-	err := cmdMap.Lookup(PID, &wideCmd)
-	if err == nil {
-		cmdMap.Delete(PID)
-	}
+	cmdMap.Lookup(PID, &wideCmd)
 	strCmd := windows.UTF16ToString(wideCmd[:])
 
 	var wideImagePath [1024]byte
-	err = imageMap.Lookup(PID, &wideImagePath)
-	if err == nil {
-		imageMap.Delete(PID)
-	}
+	imageMap.Lookup(PID, &wideImagePath)
+
 	var s = (*uint16)(unsafe.Pointer(&wideImagePath[0]))
 	strImagePath := windows.UTF16PtrToString(s)
 
