@@ -14,6 +14,7 @@ import (
 	"sync"
 
 	"github.com/cilium/ebpf"
+
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
@@ -91,22 +92,41 @@ func getOverrideProgMapKey(overrideType OverrideType, attachFunc string) string 
 	return string(overrideType) + attachFunc
 }
 
-func createFmodRetOverrideProg(attachFunc string) *genericOverride {
+func createOverrideProg(overrideType OverrideType, attachFunc string) *genericOverride {
 	var ret genericOverride
+	var overrideProg *Program
+
 	overrideIDTable.AddEntry(&ret)
 
-	overrideProg := Builder(
-		"bpf_generic_override.o",
-		attachFunc,
-		"fmod_ret/security_task_prctl",
-		"fmod_ret/"+attachFunc,
-		"generic_fmod_ret")
+	switch overrideType {
+	case OverrideTypeFmodRet:
+		overrideProg = Builder(
+			"bpf_generic_override.o",
+			attachFunc,
+			"fmod_ret/security_task_prctl",
+			"fmod_ret/"+attachFunc,
+			"generic_fmod_ret")
 
-	overrideProg.PinPath = path.Join("__override__", "fmod_ret", attachFunc)
-	overrideProg.unloaderOverride = &unloader.CustomUnloader{
-		UnloadFunc: func(_ bool) error {
-			return deleteOverrideProg(OverrideTypeFmodRet, attachFunc, &ret)
-		},
+		overrideProg.PinPath = path.Join("__override__", "fmod_ret", attachFunc)
+		overrideProg.unloaderOverride = &unloader.CustomUnloader{
+			UnloadFunc: func(_ bool) error {
+				return deleteOverrideProg(OverrideTypeFmodRet, attachFunc, &ret)
+			},
+		}
+	case OverrideTypeKProbe:
+		overrideProg = Builder(
+			"bpf_generic_override.o",
+			attachFunc,
+			"kprobe/generic_kprobe_override",
+			"kprobe/"+attachFunc,
+			"generic_kprobe_override")
+
+		overrideProg.PinPath = path.Join("__override__", "kprobe", attachFunc)
+		overrideProg.unloaderOverride = &unloader.CustomUnloader{
+			UnloadFunc: func(_ bool) error {
+				return deleteOverrideProg(OverrideTypeKProbe, attachFunc, &ret)
+			},
+		}
 	}
 
 	overrideTasksMap := MapBuilderOpts("override_tasks", MapOpts{
@@ -128,47 +148,6 @@ func createFmodRetOverrideProg(attachFunc string) *genericOverride {
 	}
 	overrideProg.MapLoad = append(overrideProg.MapLoad, config)
 	ret.prog = overrideProg
-	return &ret
-}
-
-func createKProbeOverrideProg(attachFunc string) *genericOverride {
-	var ret genericOverride
-	overrideIDTable.AddEntry(&ret)
-
-	overrideProg := Builder(
-		"bpf_generic_override.o",
-		attachFunc,
-		"kprobe/generic_kprobe_override",
-		"kprobe/"+attachFunc,
-		"generic_kprobe_override")
-
-	overrideProg.PinPath = path.Join("__override__", "kprobe", attachFunc)
-	overrideProg.unloaderOverride = &unloader.CustomUnloader{
-		UnloadFunc: func(_ bool) error {
-			return deleteOverrideProg(OverrideTypeKProbe, attachFunc, &ret)
-		},
-	}
-
-	overrideTasksMap := MapBuilderOpts("override_tasks", MapOpts{
-		Type:  MapTypeGlobal,
-		Owner: false,
-	}, overrideProg)
-	overrideTasksMap.PinPath = path.Join("__override__", "override_tasks")
-	overrideTasksMap.SetMaxEntries(OverrideMapMaxEntries)
-
-	var configData bytes.Buffer
-	binary.Write(&configData, binary.LittleEndian, &tracingapi.OverrideConfig{
-		OverrideID: uint32(ret.tableId.ID),
-	})
-	config := &MapLoad{
-		Name: "override_config_map",
-		Load: func(m *ebpf.Map, _ string) error {
-			return m.Update(uint32(0), configData.Bytes()[:], ebpf.UpdateAny)
-		},
-	}
-	overrideProg.MapLoad = append(overrideProg.MapLoad, config)
-	ret.prog = overrideProg
-
 	return &ret
 }
 
@@ -185,14 +164,7 @@ func GetOverrideProg(overrideType OverrideType, attachFunc string) (*Program, *M
 	key := getOverrideProgMapKey(overrideType, attachFunc)
 
 	if overrideProg, ok = overrideProgMap[key]; !ok {
-
-		switch overrideType {
-		case OverrideTypeKProbe:
-			overrideProg = createKProbeOverrideProg(attachFunc)
-		case OverrideTypeFmodRet:
-			overrideProg = createFmodRetOverrideProg(attachFunc)
-		}
-
+		overrideProg = createOverrideProg(overrideType, attachFunc)
 		overrideProgMap[key] = overrideProg
 	}
 
