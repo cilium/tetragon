@@ -1099,7 +1099,7 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 		WriteSelectorUint32(&k.data, action.ArgName)
 	case ActionTypeOverride:
 		if k.isUprobe {
-			id, err := parseOverrideRegs(k, action.ArgRegs, uint64(action.ArgError))
+			id, err := parseOverrideRegs(k, action.ArgRegs, action.ArgError)
 			if err != nil {
 				return err
 			}
