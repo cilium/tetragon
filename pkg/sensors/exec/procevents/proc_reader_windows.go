@@ -9,11 +9,13 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
 
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/pidfile"
 
@@ -66,6 +68,7 @@ const (
 	PROCESSOR_ARCHITECTURE_IA64    = 6      //Intel Itanium-based
 	PROCESSOR_ARCHITECTURE_INTEL   = 0      //x86
 	PROCESSOR_ARCHITECTURE_UNKNOWN = 0xffff //Unknown arc
+	COMMAND_MAX_SIZE               = ((64 * 1024) - 32)
 )
 
 var (
@@ -240,11 +243,58 @@ func getCWD(pid uint32) (string, uint32) {
 	return cwd, flags
 }
 
-func writeExecveMap(_ []procs) map[uint32]struct{} {
-	//ToDo: WIP
-	// Currently we do not share the infor gathered in usermode with execve map in kernel in Windows,
-	// This method is currently stubbed out but will be implemented
-	return make(map[uint32]struct{})
+func U16ToBytes(u []uint16) []byte {
+	b := make([]byte, len(u)*2)
+	for i, v := range u {
+		b[2*i] = byte(v)
+		b[2*i+1] = byte(v >> 8)
+	}
+	return b
+}
+
+func writeExecveMap(procs []procs) map[uint32]struct{} {
+
+	retMap := make(map[uint32]struct{})
+	// on Windows we use a different map atructure.
+	// There are two maps, one for commandline and another for image path
+	// We update both for existing processes here.
+	coll, _ := bpf.GetCollection("ProcessMonitor")
+
+	if coll == nil {
+		return retMap
+	}
+	var ok bool
+	cmdMap, ok := coll.Maps["command_map"]
+	if !ok {
+		return retMap
+	}
+	imageMap, ok := coll.Maps["process_map"]
+	if !ok {
+		return retMap
+	}
+	var err error
+	for _, p := range procs {
+		if p.exe != nil {
+			var imagePathBuf [1024]byte
+			imagePath := "\\??\\" + string(p.exe)
+			wideImagePath, _ := windows.UTF16FromString(imagePath)
+			copy(imagePathBuf[:], U16ToBytes(wideImagePath))
+			err = imageMap.Put(p.pid, imagePathBuf)
+			if err != nil {
+				logger.GetLogger().Warn("Failed writing imagePath to cmdMap", logfields.Error, err)
+			}
+		}
+		if p.cmdline != nil {
+			var cmdLineBuf [COMMAND_MAX_SIZE]byte
+			wideCmdLine, _ := windows.UTF16FromString(string(p.cmdline))
+			copy(cmdLineBuf[:], U16ToBytes(wideCmdLine))
+			err = cmdMap.Put(p.pid, cmdLineBuf)
+			if err != nil {
+				logger.GetLogger().Warn("Failed writing cmdLine to cmdMap", logfields.Error, err)
+			}
+		}
+	}
+	return retMap
 }
 
 func getProcessParamsFromHandle64(handle windows.Handle) (RtlUserProcessParams64, error) {
@@ -388,7 +438,7 @@ func getProcessImagePathFromHandle(hProc windows.Handle) (string, error) {
 		if ret == 0 {
 			return "", err
 		}
-		return windows.UTF16ToString(buf[:]), nil
+		return strings.ToLower(windows.UTF16ToString(buf[:])), nil
 	}
 	return "", errors.New("could not find function QueryFullProcessImageNameW")
 }
