@@ -4,6 +4,7 @@
 #include "vmlinux.h"
 #include "api.h"
 #include "bpf_helpers.h"
+#include "bpf_tracing.h"
 #include "generic.h"
 #include "bpf_override_maps.h"
 
@@ -12,7 +13,15 @@ char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 __attribute__((section("kprobe/generic_kprobe_override"), used)) int
 generic_kprobe_override(void *ctx)
 {
-	__u64 id = get_current_pid_tgid();
+	__u32 zero = 0;
+	struct override_config *config = map_lookup_elem(&override_config_map, &zero);
+	if (!config) return 0;
+
+	struct override_target id = {
+		.pid_tgid = get_current_pid_tgid(),
+		.id = config->override_id,
+	};
+
 	__s32 *error;
 
 	error = map_lookup_elem(&override_tasks, &id);
@@ -30,7 +39,15 @@ generic_kprobe_override(void *ctx)
 __attribute__((section("fmod_ret/security_task_prctl"), used)) long
 generic_fmodret_override(void *ctx)
 {
-	__u64 id = get_current_pid_tgid();
+	__u32 zero = 0;
+	struct override_config *config = map_lookup_elem(&override_config_map, &zero);
+
+	if (!config) return 0;
+
+	struct override_target id = {
+		.pid_tgid = get_current_pid_tgid(),
+		.id = config->override_id,
+	};
 	__s32 *error;
 
 	error = map_lookup_elem(&override_tasks, &id);

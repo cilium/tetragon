@@ -811,14 +811,36 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 	return 0;
 }
 
+#ifdef __MULTI_KPROBE
+FUNC_INLINE __u32 get_override_id(void *ctx)
+{
+	return (__u32)(get_attach_cookie(ctx) >> 4 & 0xff);
+}
+#else
+FUNC_INLINE __u32 get_override_id(void *ctx)
+{
+	__u32 zero = 0;
+	struct event_config *config = map_lookup_elem(&config_map, &zero);
+	if (!config) return 0; 
+	return config->override_id;
+}
+#endif
+
 #if defined GENERIC_KPROBE || defined GENERIC_LSM
 FUNC_INLINE void
-do_override_action(__s32 error)
+do_override_action(void *ctx, __s32 error)
 {
+	__u32 override_id = 0;
 	__s32 *error_p;
-	__u64 id;
 
-	id = get_current_pid_tgid();
+#ifdef GENERIC_KPROBE
+	override_id = get_override_id(ctx);
+#endif
+
+	struct override_target id = {
+		.pid_tgid = get_current_pid_tgid(),
+		.id = override_id,
+	};
 
 	/*
 	 * TODO: this should not happen, it means that the override
@@ -832,7 +854,7 @@ do_override_action(__s32 error)
 		map_update_elem(&override_tasks, &id, &error, BPF_ANY);
 }
 #else
-#define do_override_action(error)
+#define do_override_action(ctx, error) 0
 #endif
 
 #if defined GENERIC_USDT
@@ -997,7 +1019,7 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 #if defined(GENERIC_UPROBE) && defined(__TARGET_ARCH_x86)
 			do_uprobe_override(ctx, error);
 #else
-			do_override_action(error);
+			do_override_action(ctx, error);
 #endif
 			polacct = POLICY_OVERRIDE;
 		} else {
@@ -1442,5 +1464,25 @@ FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
 
 	tail_call(ctx, tailcalls, TAIL_CALL_SEND);
 	return 0;
+}
+
+
+FUNC_INLINE int try_override(void *ctx, struct bpf_map_def *override_tasks)
+{
+	struct override_target id = {
+		.pid_tgid = get_current_pid_tgid(),
+		.id = 0,
+	};
+	__s32 *error, ret;
+
+	error = map_lookup_elem(override_tasks, &id);
+	if (!error)
+		return 0;
+
+	map_delete_elem(override_tasks, &id);
+	ret = *error;
+	/* Let's make verifier happy and 'force' proper bounds. */
+	set_if_not_errno_or_zero(ret, -1);
+	return ret;
 }
 #endif /* __GENERIC_CALLS_H__ */
