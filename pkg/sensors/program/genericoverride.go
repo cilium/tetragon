@@ -4,10 +4,14 @@
 package program
 
 import (
+	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"path"
 
+	"github.com/cilium/ebpf"
+	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
@@ -62,6 +66,17 @@ func createFmodRetOverrideProg(attachFunc string) *genericOverride {
 	overrideTasksMap.PinPath = path.Join("__override__", "override_tasks")
 	overrideTasksMap.SetMaxEntries(OverrideMapMaxEntries)
 
+	var configData bytes.Buffer
+	binary.Write(&configData, binary.LittleEndian, &tracingapi.OverrideConfig{
+		OverrideID: uint32(ret.tableId.ID),
+	})
+	config := &MapLoad{
+		Name: "override_config_map",
+		Load: func(m *ebpf.Map, _ string) error {
+			return m.Update(uint32(0), configData.Bytes()[:], ebpf.UpdateAny)
+		},
+	}
+	overrideProg.MapLoad = append(overrideProg.MapLoad, config)
 	ret.prog = overrideProg
 	return &ret
 }
@@ -88,11 +103,23 @@ func createKProbeOverrideProg(attachFunc string) *genericOverride {
 	overrideTasksMap.PinPath = path.Join("__override__", "override_tasks")
 	overrideTasksMap.SetMaxEntries(OverrideMapMaxEntries)
 
+	var configData bytes.Buffer
+	binary.Write(&configData, binary.LittleEndian, &tracingapi.OverrideConfig{
+		OverrideID: uint32(ret.tableId.ID),
+	})
+	config := &MapLoad{
+		Name: "override_config_map",
+		Load: func(m *ebpf.Map, _ string) error {
+			return m.Update(uint32(0), configData.Bytes()[:], ebpf.UpdateAny)
+		},
+	}
+	overrideProg.MapLoad = append(overrideProg.MapLoad, config)
 	ret.prog = overrideProg
+
 	return &ret
 }
 
-func GetOverrideProg(overrideType OverrideType, attachFunc string) (*Program, *Map) {
+func GetOverrideProg(overrideType OverrideType, attachFunc string) (*Program, *Map, int) {
 	var overrideProg *genericOverride
 	var ok bool
 
@@ -116,12 +143,13 @@ func GetOverrideProg(overrideType OverrideType, attachFunc string) (*Program, *M
 
 	prog := overrideProg.prog
 
-	logger.GetLogger().Info("Getting a new override prog", "prog", prog, "map", prog.PinMap["override_tasks"])
+	logger.GetLogger().Info("Getting a new override prog", "id", overrideProg.tableId.ID, "prog", prog, "map", prog.PinMap["override_tasks"])
 
-	return prog, prog.PinMap["override_tasks"]
+	return prog, prog.PinMap["override_tasks"], overrideProg.tableId.ID
 }
 
 func deleteOverrideProg(overrideType OverrideType, attachFunc string, override *genericOverride) error {
+	var err error
 	var ok bool
 
 	if overrideProgMap == nil {
@@ -135,7 +163,7 @@ func deleteOverrideProg(overrideType OverrideType, attachFunc string, override *
 	}
 	delete(overrideProgMap, key)
 
-	_, err := overrideIDTable.RemoveEntry(override.tableId)
+	_, err = overrideIDTable.RemoveEntry(override.tableId)
 
 	if err != nil {
 		return fmt.Errorf("failed to remove entry: %w", err)

@@ -89,10 +89,11 @@ type kprobeSelectors struct {
 }
 
 type kprobeLoadArgs struct {
-	selectors kprobeSelectors
-	retprobe  bool
-	syscall   bool
-	config    *api.EventConfig
+	selectors  kprobeSelectors
+	retprobe   bool
+	syscall    bool
+	config     *api.EventConfig
+	overrideID int
 }
 
 type pendingEventKey struct {
@@ -367,13 +368,15 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 
 	if has.override {
 		for _, id := range multiIDs {
+			var overrideID int
 			gk, err := genericKprobeTableGet(id)
 			if err != nil {
 				return nil, nil, err
 			}
 			gk.data = &genericKprobeData{}
 
-			progs, maps = createOverrideProgramFromEntry(load, gk.funcName, progs, maps)
+			progs, maps, overrideID = createOverrideProgramFromEntry(load, gk.funcName, progs, maps)
+			gk.loadArgs.overrideID = overrideID
 		}
 	} else {
 		overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
@@ -1039,15 +1042,16 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 	return kprobeEntry.tableId, nil
 }
 
-func createOverrideProgramFromEntry(load *program.Program, attachFunc string, progs []*program.Program, maps []*program.Map) ([]*program.Program, []*program.Map) {
+func createOverrideProgramFromEntry(load *program.Program, attachFunc string, progs []*program.Program, maps []*program.Map) ([]*program.Program, []*program.Map, int) {
 	var overrideProg *program.Program
 	var overrideMap *program.Map
+	var id int
 
 	if load.OverrideFmodRet {
-		overrideProg, overrideMap = program.GetOverrideProg(program.OverrideTypeFmodRet, attachFunc)
+		overrideProg, overrideMap, id = program.GetOverrideProg(program.OverrideTypeFmodRet, attachFunc)
 
 	} else {
-		overrideProg, overrideMap = program.GetOverrideProg(program.OverrideTypeKProbe, attachFunc)
+		overrideProg, overrideMap, id = program.GetOverrideProg(program.OverrideTypeKProbe, attachFunc)
 	}
 
 	// setup kprobe override program and its input
@@ -1061,7 +1065,7 @@ func createOverrideProgramFromEntry(load *program.Program, attachFunc string, pr
 
 	maps = append(maps, overrideTasksMap)
 
-	return progs, maps
+	return progs, maps, id
 }
 
 func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe,
@@ -1162,7 +1166,9 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 	}
 
 	if load.Override {
-		progs, maps = createOverrideProgramFromEntry(load, kprobeEntry.funcName, progs, maps)
+		var overrideID int
+		progs, maps, overrideID = createOverrideProgramFromEntry(load, kprobeEntry.funcName, progs, maps)
+		kprobeEntry.loadArgs.overrideID = overrideID
 	} else {
 		overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
 		maps = append(maps, overrideTasksMap)
@@ -1261,6 +1267,7 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Pro
 
 	load.MapLoad = append(load.MapLoad, getMapLoad(load, gk, 0)...)
 
+	gk.loadArgs.config.OverrideID = uint32(gk.loadArgs.overrideID)
 	var configData bytes.Buffer
 	binary.Write(&configData, binary.LittleEndian, gk.loadArgs.config)
 	config := &program.MapLoad{
@@ -1302,8 +1309,11 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir string, load *program.P
 		}
 		load.MapLoad = append(load.MapLoad, config)
 
+		// 0-3: index, 4-11: override_id, others: reserved
+		cookies := index&0x0f | (gk.loadArgs.overrideID << 4)
+
 		data.Symbols = append(data.Symbols, gk.funcName)
-		data.Cookies = append(data.Cookies, uint64(index))
+		data.Cookies = append(data.Cookies, uint64(cookies))
 
 		if gk.hasOverride && !load.RetProbe {
 			data.Overrides = append(data.Overrides, gk.funcName)
