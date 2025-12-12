@@ -26,6 +26,7 @@ import (
 	"github.com/cilium/tetragon/pkg/testutils"
 	"github.com/cilium/tetragon/pkg/testutils/perfring"
 	pft "github.com/cilium/tetragon/pkg/testutils/policyfilter/tester"
+	tups "github.com/cilium/tetragon/pkg/testutils/policystats"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
@@ -80,6 +81,11 @@ func TestModeSigKill(t *testing.T) {
 	}
 
 	checkEnforce := func() {
+		statsChecker := tups.NewChecker(t, tp, tups.ExpectedPolicyActions{
+			Post:   1,
+			Signal: 1,
+		})
+
 		cnt := perfring.RunTestEventReduceCount(t, ctx, ops, perfring.FilterTestMessages,
 			func(x notify.Message) int {
 				if kprobe, ok := x.(*tracing.MsgGenericKprobeUnix); ok {
@@ -90,12 +96,18 @@ func TestModeSigKill(t *testing.T) {
 				}
 				return 0
 			})
+		statsChecker.Check()
 		require.NoError(t, progErr)
 		require.Contains(t, progOut, "signal: killed")
 		require.Equal(t, 1, cnt[1], "count=%v", cnt)
 	}
 
 	checkMonitor := func() {
+		statsChecker := tups.NewChecker(t, tp, tups.ExpectedPolicyActions{
+			Post:          1,
+			MonitorSignal: 1,
+		})
+
 		cnt := perfring.RunTestEventReduceCount(t, ctx, ops, perfring.FilterTestMessages,
 			func(x notify.Message) int {
 				if kprobe, ok := x.(*tracing.MsgGenericKprobeUnix); ok {
@@ -106,6 +118,7 @@ func TestModeSigKill(t *testing.T) {
 				}
 				return 0
 			})
+		statsChecker.Check()
 		require.NoError(t, progErr)
 		require.NotContains(t, progOut, "signal: killed")
 		require.Contains(t, progOut, "returned without an error")
@@ -178,6 +191,12 @@ func TestModeEnforcer(t *testing.T) {
 	}
 
 	checkEnforce := func() {
+		statsChecker := tups.NewChecker(t, tp, tups.ExpectedPolicyActions{
+			Post:           1,
+			Override:       1,
+			NotifyEnforcer: 1,
+		})
+
 		cnt := perfring.RunTestEventReduceCount(t, ctx, ops, perfring.FilterTestMessages,
 			func(x notify.Message) int {
 				if kprobe, ok := x.(*tracing.MsgGenericKprobeUnix); ok {
@@ -188,6 +207,7 @@ func TestModeEnforcer(t *testing.T) {
 				}
 				return 0
 			})
+		statsChecker.Check()
 		require.NoError(t, cmdErr)
 		require.Equal(t, 1, cnt[1], "count=%v", cnt)
 		enfDump, enfDumpErr := stracing.DumpEnforcerMap(polName, polNamespace)
@@ -207,6 +227,12 @@ func TestModeEnforcer(t *testing.T) {
 	}
 
 	checkMonitor := func() {
+		statsChecker := tups.NewChecker(t, tp, tups.ExpectedPolicyActions{
+			Post:                  1,
+			MonitorOverride:       1,
+			MonitorNotifyEnforcer: 1,
+		})
+
 		cnt := perfring.RunTestEventReduceCount(t, ctx, ops, perfring.FilterTestMessages,
 			func(x notify.Message) int {
 				if kprobe, ok := x.(*tracing.MsgGenericKprobeUnix); ok {
@@ -217,6 +243,7 @@ func TestModeEnforcer(t *testing.T) {
 				}
 				return 0
 			})
+		statsChecker.Check()
 		require.NoError(t, cmdErr)
 		require.Equal(t, 1, cnt[1], "count=%v", cnt)
 		require.NotContains(t, cmdOut, "operation not permitted")
