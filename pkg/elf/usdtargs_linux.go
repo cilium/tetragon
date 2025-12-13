@@ -10,9 +10,30 @@ import (
 	"strings"
 )
 
+// Removes spaces inside brackets, because <size>@[<reg>,<index_reg>]
+// might have a space between reg and index_reg
+func compactDeref(ArgsStr string) string {
+	var ret strings.Builder
+	inside := false
+	for _, letter := range ArgsStr {
+		switch letter {
+		case '[':
+			inside = true
+		case ']':
+			inside = false
+		}
+		if inside && letter == ' ' {
+			continue
+		}
+		ret.WriteRune(letter)
+	}
+	return ret.String()
+
+}
+
 // Arg parsing entrypoint
 func parseArgs(spec *UsdtSpec) error {
-	for idx, str := range strings.Split(spec.ArgsStr, " ") {
+	for idx, str := range strings.Split(compactDeref(spec.ArgsStr), " ") {
 		arg := &spec.Args[idx]
 
 		for _, parse := range parsers {
