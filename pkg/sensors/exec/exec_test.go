@@ -84,6 +84,7 @@ func TestObserverSingle(t *testing.T) {
 	t.Run("TestEventExecveLongPath", testEventExecveLongPath)
 	t.Run("TestEventExecveLongArgs", testEventExecveLongArgs)
 	t.Run("TestEventExecveLongPathLongArgs", testEventExecveLongPathLongArgs)
+	t.Run("TestExecProcessCredentials", testExecProcessCredentials)
 }
 
 func Test_msgToExecveKubeUnix(t *testing.T) {
@@ -1098,20 +1099,7 @@ func TestExecParse(t *testing.T) {
 }
 
 // Tests process.process_credentials
-func TestExecProcessCredentials(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("Failed to run observer: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
+func testExecProcessCredentials(t *testing.T) {
 	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
 
 	if err := exec.Command(testNop).Run(); err != nil {
@@ -1123,12 +1111,12 @@ func TestExecProcessCredentials(t *testing.T) {
 	if err := syscall.Setegid(int(gid)); err != nil {
 		t.Fatalf("setegid(%d) error: %s", gid, err)
 	}
-	t.Cleanup(func() {
+	defer func() {
 		// Restores all gids since we retain capabilities
-		if err = syscall.Setgid(oldGid); err != nil {
+		if err := syscall.Setgid(oldGid); err != nil {
 			t.Fatalf("Failed to restore gid to %d :  %s\n", oldGid, err)
 		}
-	})
+	}()
 
 	myCaps := ec.NewCapabilitiesChecker().FromCapabilities(caps.GetCurrentCapabilities())
 	myNs := ec.NewNamespacesChecker().FromNamespaces(namespace.GetCurrentNamespace())
@@ -1162,7 +1150,7 @@ func TestExecProcessCredentials(t *testing.T) {
 
 	checker := ec.NewUnorderedEventChecker(execChecker, execGidChecker, exitChecker, exitGidChecker)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
