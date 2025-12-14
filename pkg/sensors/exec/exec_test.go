@@ -63,6 +63,24 @@ func TestMain(m *testing.M) {
 	os.Exit(ec)
 }
 
+func TestObserverSingle(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserver error: %s", err)
+	}
+
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	t.Run("TestEventExitThreads", testEventExitThreads)
+}
+
 func Test_msgToExecveKubeUnix(t *testing.T) {
 	event := processapi.MsgExecveEvent{}
 	idLength := procevents.BpfContainerIdLength
@@ -170,20 +188,7 @@ func TestNamespaces(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestEventExitThreads(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("Failed to run observer: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
+func testEventExitThreads(t *testing.T) {
 	testThreadsExit := testutils.RepoRootPath("contrib/tester-progs/threads-exit")
 
 	// array of all pids we shuold receive in exet events
@@ -249,7 +254,7 @@ func TestEventExitThreads(t *testing.T) {
 
 	checker := testsensor.NewTestChecker(&checker_)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 
 	require.True(t, seenAll, "did not see all exit events")
