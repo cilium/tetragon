@@ -48,20 +48,7 @@ func testExit(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestExitLeader(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
-	if err != nil {
-		t.Fatalf("Failed to run observer: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
+func testExitLeader(t *testing.T) {
 	testExitLeader := testutils.RepoRootPath("contrib/tester-progs/exit-leader")
 
 	var startTime, exitTime time.Time
