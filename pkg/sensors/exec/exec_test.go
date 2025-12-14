@@ -118,6 +118,7 @@ func TestObserverEnvs(t *testing.T) {
 
 	t.Run("TestEventExecveEnvs", testEventExecveEnvs)
 	t.Run("TestEventExecveEnvsFilter", testEventExecveEnvsFilter)
+	t.Run("TestEventExecveEnvsFilterRedact", testEventExecveEnvsFilterRedact)
 }
 
 func Test_msgToExecveKubeUnix(t *testing.T) {
@@ -1716,20 +1717,7 @@ func testEventExecveEnvsFilter(t *testing.T) {
 
 // Verify that we get only filtered environment variable
 // with redacted value.
-func TestEventExecveEnvsFilterRedact(t *testing.T) {
-	if !config.EnableLargeProgs() {
-		t.Skip("Older kernels do not support environment variables in exec events.")
-	}
-
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	// Enable nevironment variables
-	option.Config.EnableProcessEnvironmentVariables = true
-
+func testEventExecveEnvsFilterRedact(t *testing.T) {
 	// Set filter for TEST_VAR1 variable
 	option.Config.FilterEnvironmentVariables = make(map[string]struct{})
 	option.Config.FilterEnvironmentVariables["TEST_VAR1"] = struct{}{}
@@ -1739,13 +1727,6 @@ func TestEventExecveEnvsFilterRedact(t *testing.T) {
 	// Set redaction for TEST_VAR1 variable
 	fieldfilters.RedactionFilters, err = fieldfilters.ParseRedactionFilterList(`{"redact": ["(?:TEST_VAR1)[\\s=]+(\\S+)"]}`)
 	require.NoError(t, err)
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("Failed to run observer: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
 
 	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
 
