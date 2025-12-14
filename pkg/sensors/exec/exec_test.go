@@ -89,6 +89,7 @@ func TestObserverSingle(t *testing.T) {
 	t.Run("TestExecProcessCredentialsSetgidChanges", testExecProcessCredentialsSetgidChanges)
 	t.Run("TestExecProcessCredentialsSetuidChanges", testExecProcessCredentialsSetuidChanges)
 	t.Run("TestExecProcessCredentialsFileCapChanges", testExecProcessCredentialsFileCapChanges)
+	t.Run("TestExecInodeNotDeleted", testExecInodeNotDeleted)
 }
 
 func Test_msgToExecveKubeUnix(t *testing.T) {
@@ -1445,21 +1446,7 @@ func testExecProcessCredentialsFileCapChanges(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestExecInodeNotDeleted(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
-	}
-
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
+func testExecInodeNotDeleted(t *testing.T) {
 	strId := "tetragon-test-memfd"
 	if err := exec.Command("/bin/true", strId).Run(); err != nil {
 		t.Fatalf("command failed: %s", err)
@@ -1473,7 +1460,7 @@ func TestExecInodeNotDeleted(t *testing.T) {
 				WithBinaryProperties(nil)),
 	)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
