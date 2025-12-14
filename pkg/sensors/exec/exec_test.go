@@ -86,6 +86,7 @@ func TestObserverSingle(t *testing.T) {
 	t.Run("TestEventExecveLongPathLongArgs", testEventExecveLongPathLongArgs)
 	t.Run("TestExecProcessCredentials", testExecProcessCredentials)
 	t.Run("TestExecProcessCredentialsSuidRootNoPrivsChange", testExecProcessCredentialsSuidRootNoPrivsChange)
+	t.Run("TestExecProcessCredentialsSetgidChanges", testExecProcessCredentialsSetgidChanges)
 }
 
 func Test_msgToExecveKubeUnix(t *testing.T) {
@@ -1211,18 +1212,7 @@ func testExecProcessCredentialsSuidRootNoPrivsChange(t *testing.T) {
 //     to assert that binary execution detects the setgid bit but we do
 //     not report as a privilege changed execution as the target group
 //     is not root.
-func TestExecProcessCredentialsSetgidChanges(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("Failed to run observer: %s", err)
-	}
-
+func testExecProcessCredentialsSetgidChanges(t *testing.T) {
 	testBin := testutils.RepoRootPath("contrib/tester-progs/nop")
 	// We should be able to create suid on local mount point
 	testSuid := testutils.RepoRootPath("contrib/tester-progs/suidnop")
@@ -1230,25 +1220,22 @@ func TestExecProcessCredentialsSetgidChanges(t *testing.T) {
 		t.Fatalf("Failed to copy binary: %s", err)
 	}
 
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
 	oldGid := syscall.Getgid()
 	/* Executing a setgid to root with current gid as normal not root */
 	gid := 1879048188
 	if err := syscall.Setgid(gid); err != nil {
 		t.Fatalf("setgid(%d) error: %s", gid, err)
 	}
-	t.Cleanup(func() {
+	defer func() {
 		// Restore old gid
-		if err = syscall.Setgid(oldGid); err != nil {
+		if err := syscall.Setgid(oldGid); err != nil {
 			t.Fatalf("Failed to restore gid to %d :  %s\n", oldGid, err)
 		}
 		err := os.Remove(testSuid)
 		if err != nil {
 			t.Logf("Error failed to cleanup '%s'", testSuid)
 		}
-	})
+	}()
 
 	noGidCredsChanged := ec.NewProcessCredentialsChecker().
 		WithUid(0).WithEuid(0).WithSuid(0).WithFsuid(0).
@@ -1316,7 +1303,7 @@ func TestExecProcessCredentialsSetgidChanges(t *testing.T) {
 	}
 
 	checker := ec.NewUnorderedEventChecker(execNoGidsCredsChangedChecker, execSetgidRootChecker, exitSetgidRootChecker, execSetgidNoRootChecker, exitSetgidNoRootChecker)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
