@@ -79,6 +79,7 @@ func TestObserverSingle(t *testing.T) {
 	readyWG.Wait()
 
 	t.Run("TestEventExitThreads", testEventExitThreads)
+	t.Run("TestEventExecve", testEventExecve)
 }
 
 func Test_msgToExecveKubeUnix(t *testing.T) {
@@ -260,20 +261,7 @@ func testEventExitThreads(t *testing.T) {
 	require.True(t, seenAll, "did not see all exit events")
 }
 
-func TestEventExecve(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("Failed to run observer: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
+func testEventExecve(t *testing.T) {
 	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
 
 	myCaps := ec.NewCapabilitiesChecker().FromCapabilities(caps.GetCurrentCapabilities())
@@ -291,7 +279,7 @@ func TestEventExecve(t *testing.T) {
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
