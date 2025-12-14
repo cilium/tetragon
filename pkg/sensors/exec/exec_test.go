@@ -85,6 +85,7 @@ func TestObserverSingle(t *testing.T) {
 	t.Run("TestEventExecveLongArgs", testEventExecveLongArgs)
 	t.Run("TestEventExecveLongPathLongArgs", testEventExecveLongPathLongArgs)
 	t.Run("TestExecProcessCredentials", testExecProcessCredentials)
+	t.Run("TestExecProcessCredentialsSuidRootNoPrivsChange", testExecProcessCredentialsSuidRootNoPrivsChange)
 }
 
 func Test_msgToExecveKubeUnix(t *testing.T) {
@@ -1156,33 +1157,19 @@ func testExecProcessCredentials(t *testing.T) {
 
 // Test ensures that running as fully privileged root and executing a setuid or
 // setgid to root does not generate a binary_properties setuid field nor privs_changed fields.
-func TestExecProcessCredentialsSuidRootNoPrivsChange(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("Failed to run observer: %s", err)
-	}
-
+func testExecProcessCredentialsSuidRootNoPrivsChange(t *testing.T) {
 	testBin := testutils.RepoRootPath("contrib/tester-progs/nop")
 	// We should be able to create suid on local mount point
 	testSuid := testutils.RepoRootPath("contrib/tester-progs/suidnop")
 	if err := testutils.CopyFile(testSuid, testBin, 0754|os.ModeSetuid|os.ModeSetgid); err != nil {
 		t.Fatalf("Failed to copy binary: %s", err)
 	}
-	t.Cleanup(func() {
+	defer func() {
 		err := os.Remove(testSuid)
 		if err != nil {
 			t.Logf("Error failed to cleanup '%s'", testSuid)
 		}
-	})
-
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
+	}()
 
 	noCredsChange := ec.NewProcessCredentialsChecker().
 		WithUid(0).WithEuid(0).WithSuid(0).WithFsuid(0).
@@ -1210,7 +1197,7 @@ func TestExecProcessCredentialsSuidRootNoPrivsChange(t *testing.T) {
 	}
 
 	checker := ec.NewUnorderedEventChecker(execNoPrivilegesChangedChecker, execSetuidRootNoPrivilegesChangedChecker)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
