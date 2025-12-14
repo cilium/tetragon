@@ -87,6 +87,7 @@ func TestObserverSingle(t *testing.T) {
 	t.Run("TestExecProcessCredentials", testExecProcessCredentials)
 	t.Run("TestExecProcessCredentialsSuidRootNoPrivsChange", testExecProcessCredentialsSuidRootNoPrivsChange)
 	t.Run("TestExecProcessCredentialsSetgidChanges", testExecProcessCredentialsSetgidChanges)
+	t.Run("TestExecProcessCredentialsSetuidChanges", testExecProcessCredentialsSetuidChanges)
 }
 
 func Test_msgToExecveKubeUnix(t *testing.T) {
@@ -1315,18 +1316,7 @@ func testExecProcessCredentialsSetgidChanges(t *testing.T) {
 //  2. executes a set-user-ID to root binary asserting that we detect
 //     the setuid bit set + the privileges changed due to the setuid bit
 //     being set to root.
-func TestExecProcessCredentialsSetuidChanges(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("Failed to run observer: %s", err)
-	}
-
+func testExecProcessCredentialsSetuidChanges(t *testing.T) {
 	testBin := testutils.RepoRootPath("contrib/tester-progs/nop")
 	// The drop-privileges is a helper binary that drops privileges so we do not
 	// drop it inside this test which will break the test framework.
@@ -1341,15 +1331,12 @@ func TestExecProcessCredentialsSetuidChanges(t *testing.T) {
 	if err := testutils.CopyFile(testSuid, testBin, 0755|os.ModeSetuid|os.ModeSetgid); err != nil {
 		t.Fatalf("Failed to copy binary: %s", err)
 	}
-	t.Cleanup(func() {
+	defer func() {
 		err := os.Remove(testSuid)
 		if err != nil {
 			t.Logf("Error failed to cleanup '%s'", testSuid)
 		}
-	})
-
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
+	}()
 
 	gid := 1879048188
 	if err := os.Chown(testSuid, gid, gid); err != nil {
@@ -1394,12 +1381,12 @@ func TestExecProcessCredentialsSetuidChanges(t *testing.T) {
 	// chaning the uid here. The testDrop binary will execute su binary as we are sure
 	// its path allows to exec into directory but also execute the su binary.
 	// The result is based on the su binary being detected as a privilege_changed execution.
-	testCmd := exec.CommandContext(ctx, testDrop, testSu, "--help")
+	testCmd := exec.Command(testDrop, testSu, "--help")
 	if err := testCmd.Start(); err != nil {
 		t.Fatal(err)
 	}
 	if err := testCmd.Wait(); err != nil {
-		t.Fatalf("command failed with %s. Context error: %v", err, ctx.Err())
+		t.Fatalf("command failed with %s", err)
 	}
 
 	checker := ec.NewUnorderedEventChecker(execSetuidNoRootChecker, exitSetuidNoRootChecker, execSetuidRootChecker, exitSetuidRootChecker)
