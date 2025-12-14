@@ -4386,9 +4386,6 @@ func TestLoadKprobeSensor(t *testing.T) {
 			// all kprobe but generic_kprobe_process_filter,generic_retkprobe_event
 			{Name: "config_map", Progs: []uint{0, 1, 2}},
 
-			// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
-			{Name: "fdinstall_map", Progs: []uint{2, 5, 7, 9}},
-
 			// generic_kprobe_event
 			{Name: "tg_conf_map", Progs: []uint{0, 2, 6, 10}},
 
@@ -4442,9 +4439,6 @@ func TestLoadKprobeSensor(t *testing.T) {
 
 			// all kprobe but generic_kprobe_process_filter,generic_retkprobe_event
 			{Name: "config_map", Progs: []uint{0, 1, 2}},
-
-			// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
-			{Name: "fdinstall_map", Progs: []uint{2, 5, 8, 10}},
 		}
 
 		if config.EnableLargeProgs() {
