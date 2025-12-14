@@ -80,6 +80,7 @@ func TestObserverSingle(t *testing.T) {
 
 	t.Run("TestEventExitThreads", testEventExitThreads)
 	t.Run("TestEventExecve", testEventExecve)
+	t.Run("TestEventExecveWithUsername", testEventExecveWithUsername)
 }
 
 func Test_msgToExecveKubeUnix(t *testing.T) {
@@ -283,12 +284,7 @@ func testEventExecve(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestEventExecveWithUsername(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
+func testEventExecveWithUsername(t *testing.T) {
 	option.Config.UsernameMetadata = int(option.USERNAME_METADATA_UNIX)
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 	err := confmap.UpdateTgRuntimeConf(bpf.MapPrefixPath(), os.Getpid())
@@ -299,12 +295,6 @@ func TestEventExecveWithUsername(t *testing.T) {
 		!ns.Mnt.IsHost || !ns.User.IsHost {
 		t.Skip()
 	}
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("Failed to run observer: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
 
 	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
 
