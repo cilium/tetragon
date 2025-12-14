@@ -92,6 +92,7 @@ func TestObserverSingle(t *testing.T) {
 	t.Run("TestExecInodeNotDeleted", testExecInodeNotDeleted)
 	t.Run("TestExecDeletedBinaryMemfd", testExecDeletedBinaryMemfd)
 	t.Run("TestExecDeletedBinary", testExecDeletedBinary)
+	t.Run("TestExit", testExit)
 }
 
 func TestObserverEnvs(t *testing.T) {

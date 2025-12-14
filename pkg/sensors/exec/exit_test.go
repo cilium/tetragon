@@ -29,20 +29,7 @@ import (
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 )
 
-func TestExit(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("Failed to run observer: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
+func testExit(t *testing.T) {
 	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
 
 	procChecker := ec.NewProcessChecker().
@@ -57,7 +44,7 @@ func TestExit(t *testing.T) {
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
