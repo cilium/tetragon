@@ -281,11 +281,11 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 		SetPolicy(polInfo.name)
 	progs = append(progs, load)
 
-	fdinstall := program.MapBuilderSensor("fdinstall_map", load)
 	if has.fdInstall {
+		fdinstall := program.MapBuilderSensor("fdinstall_map", load)
 		fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
+		maps = append(maps, fdinstall)
 	}
-	maps = append(maps, fdinstall)
 
 	configMap := program.MapBuilderProgram("config_map", load)
 	maps = append(maps, configMap)
@@ -298,8 +298,10 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 
 	maps = append(maps, filterMaps(load, nil)...)
 
-	retProbe := program.MapBuilderSensor("retprobe_map", load)
-	maps = append(maps, retProbe)
+	if len(multiRetIDs) != 0 {
+		retProbe := program.MapBuilderSensor("retprobe_map", load)
+		maps = append(maps, retProbe)
+	}
 
 	callHeap := program.MapBuilderSensor("process_call_heap", load)
 	maps = append(maps, callHeap)
@@ -378,11 +380,11 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 		callHeap := program.MapBuilderSensor("process_call_heap", loadret)
 		maps = append(maps, callHeap)
 
-		fdinstall := program.MapBuilderSensor("fdinstall_map", loadret)
 		if has.fdInstall {
+			fdinstall := program.MapBuilderSensor("fdinstall_map", loadret)
 			fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
+			maps = append(maps, fdinstall)
 		}
-		maps = append(maps, fdinstall)
 
 		socktrack := program.MapBuilderSensor("socktrack_map", loadret)
 		if has.sockTrack {
@@ -1031,11 +1033,11 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 	}
 	progs = append(progs, load)
 
-	fdinstall := program.MapBuilderSensor("fdinstall_map", load)
 	if has.fdInstall {
+		fdinstall := program.MapBuilderSensor("fdinstall_map", load)
 		fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
+		maps = append(maps, fdinstall)
 	}
-	maps = append(maps, fdinstall)
 
 	configMap := program.MapBuilderProgram("config_map", load)
 	maps = append(maps, configMap)
@@ -1048,8 +1050,10 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 
 	maps = append(maps, filterMaps(load, kprobeEntry)...)
 
-	retProbe := program.MapBuilderSensor("retprobe_map", load)
-	maps = append(maps, retProbe)
+	if kprobeEntry.loadArgs.retprobe {
+		retProbe := program.MapBuilderSensor("retprobe_map", load)
+		maps = append(maps, retProbe)
+	}
 
 	callHeap := program.MapBuilderSensor("process_call_heap", load)
 	maps = append(maps, callHeap)
@@ -1145,11 +1149,11 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 		callHeap := program.MapBuilderSensor("process_call_heap", loadret)
 		maps = append(maps, callHeap)
 
-		fdinstall := program.MapBuilderSensor("fdinstall_map", loadret)
 		if has.fdInstall {
+			fdinstall := program.MapBuilderSensor("fdinstall_map", loadret)
 			fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
+			maps = append(maps, fdinstall)
 		}
-		maps = append(maps, fdinstall)
 
 		if config.EnableLargeProgs() {
 			socktrack := program.MapBuilderSensor("socktrack_map", loadret)
