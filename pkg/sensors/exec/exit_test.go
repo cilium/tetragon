@@ -6,13 +6,11 @@
 package exec
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"log/slog"
 	"os/exec"
 	"strconv"
-	"sync"
 	"syscall"
 	"testing"
 	"time"
@@ -24,9 +22,7 @@ import (
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
-	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/testutils"
-	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 )
 
 func testExit(t *testing.T) {
@@ -203,27 +199,14 @@ func testExitCode(t *testing.T) {
 //   - Pause until it receives a signal
 //
 // In our test we check whether the observed exit signal equals the real exit signal.
-func TestExitSignal(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("Failed to run observer: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
+func testExitSignal(t *testing.T) {
 	checker := ec.NewUnorderedEventChecker()
 	testExitSignalBinary := testutils.RepoRootPath("contrib/tester-progs/pause")
 
 	for sig := 1; sig <= 15; sig++ {
 		signal := syscall.Signal(sig)
 		expectedSignal := unix.SignalName(signal)
-		cmd := exec.CommandContext(ctx, testExitSignalBinary)
+		cmd := exec.Command(testExitSignalBinary)
 
 		if err := cmd.Start(); err != nil {
 			t.Fatalf("failed to execute the test binary with signal %q: %s", expectedSignal, err)
@@ -246,6 +229,6 @@ func TestExitSignal(t *testing.T) {
 		)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 }
