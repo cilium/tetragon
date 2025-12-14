@@ -91,6 +91,7 @@ func TestObserverSingle(t *testing.T) {
 	t.Run("TestExecProcessCredentialsFileCapChanges", testExecProcessCredentialsFileCapChanges)
 	t.Run("TestExecInodeNotDeleted", testExecInodeNotDeleted)
 	t.Run("TestExecDeletedBinaryMemfd", testExecDeletedBinaryMemfd)
+	t.Run("TestExecDeletedBinary", testExecDeletedBinary)
 }
 
 func Test_msgToExecveKubeUnix(t *testing.T) {
@@ -1519,18 +1520,7 @@ func testExecDeletedBinaryMemfd(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestExecDeletedBinary(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
-	}
-
+func testExecDeletedBinary(t *testing.T) {
 	testDir := t.TempDir()
 	// Copy /bin/true
 	truePath := "/bin/true"
@@ -1562,9 +1552,6 @@ func TestExecDeletedBinary(t *testing.T) {
 	if err := syscall.Stat(execPath, &stat); err != nil {
 		t.Fatalf("Error stat() file %s: %v", execPath, err)
 	}
-
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
 
 	// Execute from fd
 	strId := "tetragon-test-execfd-deleted-inode"
