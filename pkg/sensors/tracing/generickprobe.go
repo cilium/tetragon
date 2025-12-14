@@ -310,13 +310,12 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 	matchBinariesPaths := program.MapBuilderProgram("tg_mb_paths", load)
 	maps = append(maps, matchBinariesPaths)
 
-	stackTraceMap := program.MapBuilderProgram("stack_trace_map", load)
 	if has.stackTrace {
+		stackTraceMap := program.MapBuilderProgram("stack_trace_map", load)
 		stackTraceMap.SetMaxEntries(stackTraceMapMaxEntries)
+		maps = append(maps, stackTraceMap)
+		data.stackTraceMap = stackTraceMap
 	}
-
-	maps = append(maps, stackTraceMap)
-	data.stackTraceMap = stackTraceMap
 
 	if config.EnableLargeProgs() {
 		socktrack := program.MapBuilderSensor("socktrack_map", load)
@@ -1069,14 +1068,14 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 	// loading the stack trace map in any case so that it does not end up as an
 	// anonymous map (as it's always used by the BPF prog) and is clearly linked
 	// to tetragon
-	stackTraceMap := program.MapBuilderProgram("stack_trace_map", load)
 	if has.stackTrace {
+		stackTraceMap := program.MapBuilderProgram("stack_trace_map", load)
 		// to reduce memory footprint however, the stack map is created with a
 		// max entry of 1, we need to expand that at loading.
 		stackTraceMap.SetMaxEntries(stackTraceMapMaxEntries)
+		maps = append(maps, stackTraceMap)
+		kprobeEntry.data.stackTraceMap = stackTraceMap
 	}
-	maps = append(maps, stackTraceMap)
-	kprobeEntry.data.stackTraceMap = stackTraceMap
 
 	if config.EnableLargeProgs() {
 		socktrack := program.MapBuilderSensor("socktrack_map", load)
