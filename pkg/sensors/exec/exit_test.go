@@ -111,23 +111,9 @@ func testExitLeader(t *testing.T) {
 //   - once this happens, the thread (which continues to run) will exec a /bin/echo command
 //
 // In our test we check that the parent of the /bin/echo command is the exit-tester program.
-func TestExitZombie(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	t.Logf("starting observer")
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
+func testExitZombie(t *testing.T) {
 	testBin := testutils.RepoRootPath("contrib/tester-progs/exit-tester")
-	testCmd := exec.CommandContext(ctx, testBin)
+	testCmd := exec.Command(testBin)
 	testPipes, err := testutils.NewCmdBufferedPipes(testCmd)
 	if err != nil {
 		t.Fatal(err)
@@ -142,7 +128,7 @@ func TestExitZombie(t *testing.T) {
 	logWG.Wait()
 
 	if err := testCmd.Wait(); err != nil {
-		t.Fatalf("command failed with %s. Context error: %v", err, ctx.Err())
+		t.Fatalf("command failed with %s", err)
 	}
 
 	exitTesterCheck := ec.NewProcessChecker().WithBinary(sm.Suffix("tester-progs/exit-tester"))
