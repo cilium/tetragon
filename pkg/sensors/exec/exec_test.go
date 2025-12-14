@@ -82,6 +82,7 @@ func TestObserverSingle(t *testing.T) {
 	t.Run("TestEventExecve", testEventExecve)
 	t.Run("TestEventExecveWithUsername", testEventExecveWithUsername)
 	t.Run("TestEventExecveLongPath", testEventExecveLongPath)
+	t.Run("TestEventExecveLongArgs", testEventExecveLongArgs)
 }
 
 func Test_msgToExecveKubeUnix(t *testing.T) {
@@ -392,20 +393,7 @@ func testEventExecveLongPath(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestEventExecveLongArgs(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("Failed to run observer: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
+func testEventExecveLongArgs(t *testing.T) {
 	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
 
 	// prepare args
@@ -435,7 +423,7 @@ func TestEventExecveLongArgs(t *testing.T) {
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
