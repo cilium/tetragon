@@ -90,6 +90,7 @@ func TestObserverSingle(t *testing.T) {
 	t.Run("TestExecProcessCredentialsSetuidChanges", testExecProcessCredentialsSetuidChanges)
 	t.Run("TestExecProcessCredentialsFileCapChanges", testExecProcessCredentialsFileCapChanges)
 	t.Run("TestExecInodeNotDeleted", testExecInodeNotDeleted)
+	t.Run("TestExecDeletedBinaryMemfd", testExecDeletedBinaryMemfd)
 }
 
 func Test_msgToExecveKubeUnix(t *testing.T) {
@@ -1464,18 +1465,7 @@ func testExecInodeNotDeleted(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestExecDeletedBinaryMemfd(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
-	}
-
+func testExecDeletedBinaryMemfd(t *testing.T) {
 	// Get an anonymous shm
 	strId := "tetragon-test-memfd"
 	fd, err := unix.MemfdCreate(strId, 0)
@@ -1503,9 +1493,6 @@ func TestExecDeletedBinaryMemfd(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error write() to memfd file: %v", err)
 	}
-
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
 
 	// Execute from memory
 	if err := exec.Command(execPath, strId).Run(); err != nil {
