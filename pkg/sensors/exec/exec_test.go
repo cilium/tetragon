@@ -81,6 +81,7 @@ func TestObserverSingle(t *testing.T) {
 	t.Run("TestEventExitThreads", testEventExitThreads)
 	t.Run("TestEventExecve", testEventExecve)
 	t.Run("TestEventExecveWithUsername", testEventExecveWithUsername)
+	t.Run("TestEventExecveLongPath", testEventExecveLongPath)
 }
 
 func Test_msgToExecveKubeUnix(t *testing.T) {
@@ -322,10 +323,7 @@ func testEventExecveWithUsername(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestEventExecveLongPath(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
+func testEventExecveLongPath(t *testing.T) {
 	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
 
 	// create dir portion of path
@@ -366,11 +364,11 @@ func TestEventExecveLongPath(t *testing.T) {
 		}
 	}
 
-	t.Cleanup(func() {
+	defer func() {
 		if err := os.RemoveAll(baseDir); err != nil {
 			t.Fatalf("Failed to remove test dir: %s", err)
 		}
-	})
+	}()
 
 	// and link nop binary into the testBin
 	if err := testutils.CopyFile(testBin, testNop, 0755); err != nil {
@@ -384,23 +382,13 @@ func TestEventExecveLongPath(t *testing.T) {
 	execChecker := ec.NewProcessExecChecker("").WithProcess(procChecker)
 	checker := ec.NewUnorderedEventChecker(execChecker)
 
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("Failed to run observer: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
 	fmt.Printf("Exec: '%s arg1 arg2 arg3'\n", testBin)
 
 	if err := exec.Command(testBin, "arg1", "arg2", "arg3").Run(); err != nil {
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
