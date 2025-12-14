@@ -94,6 +94,31 @@ func TestObserverSingle(t *testing.T) {
 	t.Run("TestExecDeletedBinary", testExecDeletedBinary)
 }
 
+func TestObserverEnvs(t *testing.T) {
+	if !config.EnableLargeProgs() {
+		t.Skip("Older kernels do not support environment variables in exec events.")
+	}
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	// Enable nevironment variables
+	option.Config.EnableProcessEnvironmentVariables = true
+
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserver error: %s", err)
+	}
+
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	t.Run("TestEventExecveEnvs", testEventExecveEnvs)
+}
+
 func Test_msgToExecveKubeUnix(t *testing.T) {
 	event := processapi.MsgExecveEvent{}
 	idLength := procevents.BpfContainerIdLength
@@ -1632,27 +1657,7 @@ func TestThrottle2(t *testing.T) {
 }
 
 // Verify that we get all the process environment variables
-func TestEventExecveEnvs(t *testing.T) {
-	if !config.EnableLargeProgs() {
-		t.Skip("Older kernels do not support environment variables in exec events.")
-	}
-
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	// Enable nevironment variables
-	option.Config.EnableProcessEnvironmentVariables = true
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("Failed to run observer: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
+func testEventExecveEnvs(t *testing.T) {
 	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
 
 	procChecker := ec.NewProcessChecker().
@@ -1673,7 +1678,7 @@ func TestEventExecveEnvs(t *testing.T) {
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
