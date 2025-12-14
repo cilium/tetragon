@@ -149,20 +149,7 @@ func testExitZombie(t *testing.T) {
 //   - return a exit code
 //
 // In our test we check whether the observed exit code equals the real exit code.
-func TestExitCode(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("Failed to run observer: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
+func testExitCode(t *testing.T) {
 	testExitCodeBinary := testutils.RepoRootPath("contrib/tester-progs/exit-code")
 
 	// Test different exit codes
@@ -205,7 +192,7 @@ func TestExitCode(t *testing.T) {
 		)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
