@@ -88,6 +88,7 @@ func TestObserverSingle(t *testing.T) {
 	t.Run("TestExecProcessCredentialsSuidRootNoPrivsChange", testExecProcessCredentialsSuidRootNoPrivsChange)
 	t.Run("TestExecProcessCredentialsSetgidChanges", testExecProcessCredentialsSetgidChanges)
 	t.Run("TestExecProcessCredentialsSetuidChanges", testExecProcessCredentialsSetuidChanges)
+	t.Run("TestExecProcessCredentialsFileCapChanges", testExecProcessCredentialsFileCapChanges)
 }
 
 func Test_msgToExecveKubeUnix(t *testing.T) {
@@ -1395,18 +1396,7 @@ func testExecProcessCredentialsSetuidChanges(t *testing.T) {
 }
 
 // Detect execution of binaries with file capability sets
-func TestExecProcessCredentialsFileCapChanges(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("Failed to run observer: %s", err)
-	}
-
+func testExecProcessCredentialsFileCapChanges(t *testing.T) {
 	// The drop-privileges is a helper binary that drops privileges so we do not
 	// drop it inside this test which will break the test framework.
 	testDrop := testutils.RepoRootPath("contrib/tester-progs/drop-privileges")
@@ -1423,9 +1413,6 @@ func TestExecProcessCredentialsFileCapChanges(t *testing.T) {
 	if ret == 0 {
 		t.Skipf("Skipping test 'security.capability' xattr is not set on binary '%s'", testPing)
 	}
-
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
 
 	gid := 1879048188
 	privsChangedRaiseFscaps := ec.NewProcessPrivilegesChangedListMatcher().WithOperator(lc.Ordered).
@@ -1445,12 +1432,12 @@ func TestExecProcessCredentialsFileCapChanges(t *testing.T) {
 	// changing the uid here. The testDrop binary will execute ping binary as we are sure
 	// its path allows to exec into directory but also execute the ping binary.
 	// The result is based on the ping binary being detected as a privilege_changed execution.
-	testCmd := exec.CommandContext(ctx, testDrop, testPing, "-V")
+	testCmd := exec.Command(testDrop, testPing, "-V")
 	if err := testCmd.Start(); err != nil {
 		t.Fatal(err)
 	}
 	if err := testCmd.Wait(); err != nil {
-		t.Fatalf("command failed with %s. Context error: %v", err, ctx.Err())
+		t.Fatalf("command failed with %s", err)
 	}
 
 	checker := ec.NewUnorderedEventChecker(execChecker, exitChecker)
