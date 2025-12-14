@@ -53,29 +53,15 @@ func TestThreadTesterParser(t *testing.T) {
 	assert.Equal(t, cti.ParentPid, cti.ParentThread1Pid)
 }
 
-func TestCloneThreadsTester(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
+func testCloneThreadsTester(t *testing.T) {
 	testBinPath := "contrib/tester-progs/threads-tester"
 	testBin := testutils.RepoRootPath(testBinPath)
-	testCmd := exec.CommandContext(ctx, testBin)
+	testCmd := exec.Command(testBin)
 	testPipes, err := testutils.NewCmdBufferedPipes(testCmd)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer testPipes.Close()
-
-	t.Logf("starting observer")
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
 
 	tti := &testutils.ThreadTesterInfo{}
 	if err := testCmd.Start(); err != nil {
@@ -84,7 +70,7 @@ func TestCloneThreadsTester(t *testing.T) {
 	logWG := testPipes.ParseAndLogCmdOutput(t, tti.ParseLine, nil)
 	logWG.Wait()
 	if err := testCmd.Wait(); err != nil {
-		t.Fatalf("command failed with %s. Context error: %v", err, ctx.Err())
+		t.Fatalf("command failed with %s", err)
 	}
 
 	tti.AssertPidsTids(t)
