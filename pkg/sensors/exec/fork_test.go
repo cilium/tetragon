@@ -6,12 +6,10 @@
 package exec
 
 import (
-	"context"
 	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -20,34 +18,18 @@ import (
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
-	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/testutils"
-	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 )
 
 // TestFork checks that tetragon properly handles processes that fork() but do not exec()
-func TestFork(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
+func testFork(t *testing.T) {
 	testBin := testutils.RepoRootPath("contrib/tester-progs/fork-tester")
-	testCmd := exec.CommandContext(ctx, testBin)
+	testCmd := exec.Command(testBin)
 	testPipes, err := testutils.NewCmdBufferedPipes(testCmd)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer testPipes.Close()
-
-	t.Logf("starting observer")
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib)
-	if err != nil {
-		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
 
 	fti := &forkTesterInfo{}
 	if err := testCmd.Start(); err != nil {
@@ -56,7 +38,7 @@ func TestFork(t *testing.T) {
 	logWG := testPipes.ParseAndLogCmdOutput(t, fti.ParseLine, nil)
 	logWG.Wait()
 	if err := testCmd.Wait(); err != nil {
-		t.Fatalf("command failed with %s. Context error: %v", err, ctx.Err())
+		t.Fatalf("command failed with %s", err)
 	}
 
 	if fti.parentPid == 0 {
