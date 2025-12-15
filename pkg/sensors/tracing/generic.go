@@ -20,6 +20,43 @@ import (
 	"github.com/cilium/tetragon/pkg/selectors"
 )
 
+// Takes arg.Resolve as input and return the path in []string
+// Input   : my.super.field[123].my.sub.field
+// Output  : []string{"my", "super", "field", "[123]", "my", "sub", "field"}
+func formatBTFPath(resolvePath string) []string {
+	var path []string
+	var buffer strings.Builder
+	inBracket := false
+
+	for _, r := range resolvePath {
+		switch r {
+		case '.':
+			if !inBracket && buffer.Len() > 0 {
+				path = append(path, buffer.String())
+				buffer.Reset()
+			}
+		case '[':
+			if buffer.Len() > 0 {
+				path = append(path, buffer.String())
+				buffer.Reset()
+			}
+			inBracket = true
+			buffer.WriteRune(r)
+		case ']':
+			buffer.WriteRune(r)
+			inBracket = false
+			path = append(path, buffer.String())
+			buffer.Reset()
+		default:
+			buffer.WriteRune(r)
+		}
+	}
+	if buffer.Len() > 0 {
+		path = append(path, buffer.String())
+	}
+	return path
+}
+
 func addPaddingOnNestedPtr(ty ebtf.Type, path []string) []string {
 	if t, ok := ty.(*ebtf.Pointer); ok {
 		updatedPath := append([]string{""}, path...)
@@ -38,7 +75,7 @@ func hasPtRegsSource(arg *v1alpha1.KProbeArg) bool {
 
 func resolveBTFType(arg *v1alpha1.KProbeArg, ty ebtf.Type) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
 	btfArg := [api.MaxBTFArgDepth]api.ConfigBTFArg{}
-	pathBase := strings.Split(arg.Resolve, ".")
+	pathBase := formatBTFPath(arg.Resolve)
 	path := addPaddingOnNestedPtr(ty, pathBase)
 	if len(path) > api.MaxBTFArgDepth {
 		return nil, btfArg, fmt.Errorf("unable to resolve %q. The maximum depth allowed is %d", arg.Resolve, api.MaxBTFArgDepth)
