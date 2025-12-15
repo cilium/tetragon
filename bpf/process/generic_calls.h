@@ -821,7 +821,8 @@ FUNC_INLINE __u32 get_override_id(void *ctx)
 {
 	__u32 zero = 0;
 	struct event_config *config = map_lookup_elem(&config_map, &zero);
-	if (!config) return 0; 
+
+	if (!config) return 0;
 	return config->override_id;
 }
 #endif
@@ -1465,7 +1466,6 @@ FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
 	tail_call(ctx, tailcalls, TAIL_CALL_SEND);
 	return 0;
 }
-
 
 FUNC_INLINE int try_override(void *ctx, struct bpf_map_def *override_tasks)
 {
