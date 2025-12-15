@@ -85,7 +85,7 @@ func newPfMap(enableCgroupMap bool) (PfMap, error) {
 	if enableCgroupMap {
 		if ret.cgroupMap, err = openMap(spec, CgroupMapName, polMaxPolicies); err != nil {
 			releaseMap(ret.policyMap)
-			return PfMap{}, fmt.Errorf("opening cgroup map %s failed: %w", MapName, err)
+			return PfMap{}, fmt.Errorf("opening cgroup map %s failed: %w", CgroupMapName, err)
 		}
 	}
 
