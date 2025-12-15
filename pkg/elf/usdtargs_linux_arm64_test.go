@@ -12,13 +12,13 @@ import (
 
 func TestParseArgs(t *testing.T) {
 	spec := UsdtSpec{
-		ArgsStr: "-1@x0 4@5 8@[x12] -4@[x30,-40] -4@[x31,-40] 8@[sp,120] -1@[x0,x1]",
+		ArgsStr: "-1@x0 4@5 8@[x12] -4@[x30,-40] -4@[x31,-40] 8@[sp,120] -1@[x0,x1] -4@[sp, 12]",
 	}
 
 	err := parseArgs(&spec)
 
 	require.NoError(t, err)
-	assert.Equal(t, uint32(7), spec.ArgsCnt)
+	assert.Equal(t, uint32(8), spec.ArgsCnt)
 
 	var arg *UsdtArg
 
@@ -78,4 +78,12 @@ func TestParseArgs(t *testing.T) {
 	assert.Equal(t, uint64(0), arg.ValOff)
 	assert.True(t, arg.Signed)
 	assert.Equal(t, uint8(56), arg.Shift)
+
+	/* -4@[sp, 12] */
+	arg = &spec.Args[7]
+	assert.Equal(t, USDT_ARG_TYPE_REG_DEREF, arg.Type)
+	assert.Equal(t, uint16(248), arg.RegOff)
+	assert.Equal(t, uint64(12), arg.ValOff)
+	assert.True(t, arg.Signed)
+	assert.Equal(t, uint8(32), arg.Shift)
 }
