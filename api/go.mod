@@ -7,7 +7,7 @@ require (
 	github.com/cilium/tetragon v0.0.0-00010101000000-000000000000
 	github.com/stretchr/testify v1.11.1
 	google.golang.org/grpc v1.77.0
-	google.golang.org/protobuf v1.36.10
+	google.golang.org/protobuf v1.36.11
 	sigs.k8s.io/yaml v1.4.0
 )
 
