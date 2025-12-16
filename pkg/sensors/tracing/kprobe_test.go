@@ -4421,12 +4421,6 @@ func TestLoadKprobeSensor(t *testing.T) {
 		}
 
 		sensorMaps = []tus.SensorMap{
-			// all kprobe programs
-			{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}},
-
-			// all but generic_kprobe_output
-			{Name: "kprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7}},
-
 			// generic_retkprobe_event
 			{Name: "retkprobe_calls", Progs: []uint{8, 9, 10}},
 
@@ -4436,12 +4430,18 @@ func TestLoadKprobeSensor(t *testing.T) {
 
 			// generic_kprobe_actions
 			{Name: "override_tasks", Progs: []uint{5}},
-
-			// all kprobe but generic_kprobe_process_filter,generic_retkprobe_event
-			{Name: "config_map", Progs: []uint{0, 1, 2}},
 		}
 
 		if config.EnableLargeProgs() {
+			// all kprobe programs
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}})
+
+			// all but generic_kprobe_output
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "kprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7}})
+
+			// all kprobe but generic_kprobe_process_filter,generic_retkprobe_event
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2}})
+
 			// shared with base sensor
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 5, 6, 8, 10}})
 
@@ -4462,6 +4462,17 @@ func TestLoadKprobeSensor(t *testing.T) {
 				sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}})
 			}
 		} else {
+			sensorProgs = append(sensorProgs, tus.SensorProg{Name: "generic_kprobe_process_event_2", Type: ebpf.Kprobe})
+
+			// all kprobe programs
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}})
+
+			// all but generic_kprobe_output
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "kprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7, 12}})
+
+			// all kprobe but generic_kprobe_process_filter,generic_retkprobe_event
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2, 12}})
+
 			// shared with base sensor
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 8}})
 
