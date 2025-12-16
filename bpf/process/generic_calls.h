@@ -190,8 +190,36 @@ nodata:
 #define copy_iov_iter(ctx, orig_off, arg, argm, e) 0
 #endif /* __LARGE_BPF_PROG */
 
+FUNC_INLINE bool is_read_arg_1(long type)
+{
+	switch (type) {
+	case iov_iter_type:
+	case fd_ty:
+	case filename_ty:
+	case string_type:
+	case net_dev_ty:
+	case data_loc_type:
+	case syscall64_type:
+	case size_type:
+	case s64_ty:
+	case u64_ty:
+	case int_type:
+	case s32_ty:
+	case u32_ty:
+	case s16_ty:
+	case u16_ty:
+	case s8_ty:
+	case u8_ty:
+	case skb_type:
+	case sock_type:
+	case sockaddr_type:
+		return true;
+	}
+	return false;
+}
+
 FUNC_INLINE long
-__read_arg(void *ctx, int type, long orig_off, unsigned long arg, int argm, char *args)
+__read_arg_1(void *ctx, int type, long orig_off, unsigned long arg, int argm, char *args)
 {
 	struct msg_generic_kprobe *e;
 	long size = -1;
@@ -296,6 +324,25 @@ __read_arg(void *ctx, int type, long orig_off, unsigned long arg, int argm, char
 	case sockaddr_type:
 		size = copy_sockaddr(args, arg);
 		break;
+	default:
+		size = 0;
+		break;
+	}
+	return size;
+}
+
+FUNC_INLINE long
+__read_arg_2(void *ctx, int type, long orig_off, unsigned long arg, int argm, char *args)
+{
+	struct msg_generic_kprobe *e;
+	long size = -1;
+	int zero = 0;
+
+	e = map_lookup_elem(&process_call_heap, &zero);
+	if (!e)
+		return 0;
+
+	switch (type) {
 	case socket_type:
 		size = copy_socket(args, arg);
 		// Look up socket in our sock->pid_tgid map
@@ -402,7 +449,10 @@ read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int a
 	if (path_arg)
 		return copy_path(args, path_arg);
 
-	return __read_arg(ctx, type, orig_off, arg, argm, args);
+	if (is_read_arg_1(type))
+		return __read_arg_1(ctx, type, orig_off, arg, argm, args);
+	else
+		return __read_arg_2(ctx, type, orig_off, arg, argm, args);
 }
 
 FUNC_INLINE int
