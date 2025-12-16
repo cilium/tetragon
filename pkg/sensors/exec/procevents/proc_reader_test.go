@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
+//go:build !windows
+
 package procevents
 
 import (
 	"os/exec"
-	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -31,7 +32,7 @@ func TestListRunningProcs(t *testing.T) {
 }
 
 func TestInInitTreeProcfs(t *testing.T) {
-	if err := exec.Command("docker", "version").Run(); (err != nil) || (runtime.GOOS == "windows") {
+	if err := exec.Command("docker", "version").Run(); err != nil {
 		t.Skipf("docker not available. skipping test: %s", err)
 	}
 

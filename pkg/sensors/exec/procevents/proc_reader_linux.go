@@ -23,6 +23,7 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/caps"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/reader/proc"
+	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
@@ -396,4 +397,46 @@ func listRunningProcs(procPath string) ([]procs, error) {
 	logger.GetLogger().Info(fmt.Sprintf("Read ProcFS %s appended %d/%d entries", option.Config.ProcFS, len(processes), len(procFS)))
 
 	return processes, nil
+}
+
+func procToKeyValue(p procs, inInitTree map[uint32]struct{}) (*execvemap.ExecveKey, *execvemap.ExecveValue) {
+	k := &execvemap.ExecveKey{Pid: p.pid}
+	v := &execvemap.ExecveValue{}
+
+	v.Parent.Pid = p.ppid
+	v.Parent.Ktime = p.pktime
+	v.Process.Pid = p.pid
+	v.Process.Ktime = p.ktime
+	v.Flags = 0
+	v.Nspid = p.nspid
+	v.Capabilities.Permitted = p.permitted
+	v.Capabilities.Effective = p.effective
+	v.Capabilities.Inheritable = p.inheritable
+	v.Namespaces.UtsInum = p.utsNs
+	v.Namespaces.IpcInum = p.ipcNs
+	v.Namespaces.MntInum = p.mntNs
+	v.Namespaces.PidInum = p.pidNs
+	v.Namespaces.PidChildInum = p.pidForChildrenNs
+	v.Namespaces.NetInum = p.netNs
+	v.Namespaces.TimeInum = p.timeNs
+	v.Namespaces.TimeChildInum = p.timeForChildrenNs
+	v.Namespaces.CgroupInum = p.cgroupNs
+	v.Namespaces.UserInum = p.userNs
+	pathLength := copy(v.Binary.Path[:], p.exe)
+	v.Binary.PathLength = int32(pathLength)
+
+	// set v.Binary.End in a similar way to https://github.com/cilium/tetragon/blob/c8c74c5e73c28de0f76498190c576ce7f602c4b9/bpf/process/bpf_execve_event.c#L423-L425
+	if v.Binary.PathLength > selectors.StringPostfixMaxLength-1 {
+		copy(v.Binary.End[:], v.Binary.Path[v.Binary.PathLength-selectors.StringPostfixMaxLength-1:])
+	} else {
+		copy(v.Binary.End[:], v.Binary.Path[:])
+	}
+
+	_, parentInInitTree := inInitTree[p.ppid]
+	if v.Nspid == 1 || parentInInitTree {
+		v.Flags |= api.EventInInitTree
+		inInitTree[p.pid] = struct{}{}
+	}
+
+	return k, v
 }
