@@ -191,7 +191,7 @@ nodata:
 #endif /* __LARGE_BPF_PROG */
 
 FUNC_INLINE long
-__read_arg(void *ctx, int type, long orig_off, unsigned long arg, int argm, char *args)
+__read_arg_1(void *ctx, int type, long orig_off, unsigned long arg, int argm, char *args)
 {
 	struct msg_generic_kprobe *e;
 	long size = -1;
@@ -296,6 +296,25 @@ __read_arg(void *ctx, int type, long orig_off, unsigned long arg, int argm, char
 	case sockaddr_type:
 		size = copy_sockaddr(args, arg);
 		break;
+	default:
+		size = 0;
+		break;
+	}
+	return size;
+}
+
+FUNC_INLINE long
+__read_arg_2(void *ctx, int type, long orig_off, unsigned long arg, int argm, char *args)
+{
+	struct msg_generic_kprobe *e;
+	long size = -1;
+	int zero = 0;
+
+	e = map_lookup_elem(&process_call_heap, &zero);
+	if (!e)
+		return 0;
+
+	switch (type) {
 	case socket_type:
 		size = copy_socket(args, arg);
 		// Look up socket in our sock->pid_tgid map
@@ -383,6 +402,7 @@ read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int a
 	char *args;
 	const struct path *path_arg = 0;
 	struct path path_buf;
+	long size = -1;
 	int zero = 0;
 
 	e = map_lookup_elem(&process_call_heap, &zero);
@@ -402,7 +422,10 @@ read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int a
 	if (path_arg)
 		return copy_path(args, path_arg);
 
-	return __read_arg(ctx, type, orig_off, arg, argm, args);
+	size = __read_arg_1(ctx, type, orig_off, arg, argm, args);
+	if (!size)
+		size = __read_arg_2(ctx, type, orig_off, arg, argm, args);
+	return size;
 }
 
 FUNC_INLINE int
