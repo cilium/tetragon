@@ -84,7 +84,7 @@ generic_rawtp_setup_event(void *ctx)
 __attribute__((section("raw_tp"), used)) int
 generic_rawtp_process_event(void *ctx)
 {
-	return generic_process_event(ctx, (struct bpf_map_def *)&tp_calls);
+	return generic_process_event(ctx, (struct bpf_map_def *)&tp_calls, __READ_ARG_ALL);
 }
 
 __attribute__((section("raw_tp"), used)) int
