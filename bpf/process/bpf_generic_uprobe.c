@@ -117,10 +117,8 @@ generic_uprobe_path(void *ctx)
 }
 #endif
 
-#if defined(__TARGET_ARCH_x86)
 __attribute__((section(OFFLOAD), used)) int
 generic_sleepable_offload(struct pt_regs *ctx)
 {
-	return uprobe_offload_x86(ctx);
+	return uprobe_offload(ctx);
 }
-#endif
