@@ -190,46 +190,16 @@ nodata:
 #define copy_iov_iter(ctx, orig_off, arg, argm, e) 0
 #endif /* __LARGE_BPF_PROG */
 
-/**
- * Read a generic argument
- *
- * @args: destination buffer for the generic argument
- * @type: type of the argument
- * @off: offset of the argument within @args
- * @arg: argument location (generally, address of the argument)
- * @argm: argument metadata. The meaning of this depends on the @type. Some
- *        types use a -1 to designate saving @arg into the retprobe map
- * @filter_map:
- *
- * Returns the size of data appended to @args.
- */
 FUNC_INLINE long
-read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int argm)
+__read_arg(void *ctx, int type, long orig_off, unsigned long arg, int argm, char *args)
 {
-	size_t min_size = type_to_min_size(type, argm);
 	struct msg_generic_kprobe *e;
-	char *args;
 	long size = -1;
-	const struct path *path_arg = 0;
-	struct path path_buf;
 	int zero = 0;
 
 	e = map_lookup_elem(&process_call_heap, &zero);
 	if (!e)
 		return 0;
-
-	if (orig_off >= 16383 - min_size)
-		return 0;
-
-	orig_off &= 16383;
-	args = args_off(e, orig_off);
-
-	/* Cache args offset for filter use later */
-	e->argsoff[index & MAX_SELECTORS_MASK] = orig_off;
-
-	path_arg = get_path(type, arg, &path_buf);
-	if (path_arg)
-		return copy_path(args, path_arg);
 
 	switch (type) {
 	case iov_iter_type:
@@ -390,6 +360,49 @@ read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int a
 		break;
 	}
 	return size;
+}
+
+/**
+ * Read a generic argument
+ *
+ * @args: destination buffer for the generic argument
+ * @type: type of the argument
+ * @off: offset of the argument within @args
+ * @arg: argument location (generally, address of the argument)
+ * @argm: argument metadata. The meaning of this depends on the @type. Some
+ *        types use a -1 to designate saving @arg into the retprobe map
+ * @filter_map:
+ *
+ * Returns the size of data appended to @args.
+ */
+FUNC_INLINE long
+read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int argm)
+{
+	size_t min_size = type_to_min_size(type, argm);
+	struct msg_generic_kprobe *e;
+	char *args;
+	const struct path *path_arg = 0;
+	struct path path_buf;
+	int zero = 0;
+
+	e = map_lookup_elem(&process_call_heap, &zero);
+	if (!e)
+		return 0;
+
+	if (orig_off >= 16383 - min_size)
+		return 0;
+
+	orig_off &= 16383;
+	args = args_off(e, orig_off);
+
+	/* Cache args offset for filter use later */
+	e->argsoff[index & MAX_SELECTORS_MASK] = orig_off;
+
+	path_arg = get_path(type, arg, &path_buf);
+	if (path_arg)
+		return copy_path(args, path_arg);
+
+	return __read_arg(ctx, type, orig_off, arg, argm, args);
 }
 
 FUNC_INLINE int
