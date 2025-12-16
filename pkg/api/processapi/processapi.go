@@ -286,3 +286,13 @@ type RegAssignment struct {
 	DstSize uint8
 	Off     uint64
 }
+
+const (
+	UPROBE_REGS_MAX = 18
+)
+
+type UprobeRegs struct {
+	Ass [UPROBE_REGS_MAX]RegAssignment
+	Cnt uint32
+	Pad uint32
+}

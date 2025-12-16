@@ -78,6 +78,17 @@ type genericUprobe struct {
 	pendingEvents *lru.Cache[pendingEventKey, pendingEvent[*tracing.MsgGenericUprobeUnix]]
 }
 
+func populateUprobeRegs(m *ebpf.Map, regs []processapi.RegAssignment) error {
+	uprobeRegs := processapi.UprobeRegs{}
+
+	n := copy(uprobeRegs.Ass[:], regs)
+	if n != len(regs) {
+		logger.GetLogger().Warn("register assignments count mismatch", "#regs", len(regs))
+	}
+	uprobeRegs.Cnt = uint32(n)
+	return m.Update(uint32(0), uprobeRegs, ebpf.UpdateAny)
+}
+
 func (g *genericUprobe) SetID(id idtable.EntryID) {
 	g.tableId = id
 }
