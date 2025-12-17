@@ -24,6 +24,7 @@ import (
 	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/mbset"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/reader/network"
 )
@@ -1461,6 +1462,11 @@ func ParseMatchBinaries(k *KernelSelectorState, binaries []v1alpha1.BinarySelect
 	if len(binaries) > 1 {
 		return errors.New("only support a single matchBinaries per selector")
 	}
+
+	if len(binaries) > 0 && selector == matchParentBinaries && !option.Config.ParentsMapEnabled {
+		return errors.New("matchParentBinaries selector can be used only with parents map enabled")
+	}
+
 	for _, s := range binaries {
 		if err := ParseMatchBinary(k, &s, selIdx, selector); err != nil {
 			return err
