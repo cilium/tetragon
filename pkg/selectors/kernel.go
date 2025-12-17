@@ -317,9 +317,6 @@ func SelectorOp(op string) (uint32, error) {
 const (
 	pidNamespacePid = 0x1
 	pidFollowForks  = 0x2
-
-	// see bpf/process/types/basic.h MAX_SELECTORS
-	maxSelectors = 5
 )
 
 func pidSelectorFlags(pid *v1alpha1.PIDSelector) uint32 {
@@ -1374,24 +1371,32 @@ type genericMatchBinariesSelector int
 
 const (
 	matchBinaries genericMatchBinariesSelector = iota
+	matchParentBinaries
 )
 
 func (s genericMatchBinariesSelector) String() string {
 	switch s {
 	case matchBinaries:
 		return "matchBinaries"
+	case matchParentBinaries:
+		return "matchParentBinaries"
 	}
 	return ""
 }
 
 func (s genericMatchBinariesSelector) keyFromSelectorID(selectorID int) int {
 	var offset int
+	if s == matchParentBinaries {
+		// matchParentBinaries selector options and paths are stored with MaxSelectors
+		// offset in matchBinaries maps.
+		offset = MaxSelectors
+	}
 	return selectorID + offset
 }
 
 func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx int, selectorType genericMatchBinariesSelector) error {
-	if selectorType != matchBinaries {
-		return errors.New("selector must be either matchBinaries")
+	if selectorType != matchBinaries && selectorType != matchParentBinaries {
+		return errors.New("selector must be either matchBinaries or matchParentBinaries")
 	}
 
 	op, err := SelectorOp(b.Operator)
@@ -1537,8 +1542,8 @@ func createKernelSelectorState(
 	isUprobe bool,
 	parseSelector func(k *KernelSelectorState, selectors *v1alpha1.KProbeSelector, selIdx int) error,
 ) (*KernelSelectorState, error) {
-	if len(selectors) > maxSelectors {
-		return nil, fmt.Errorf("no more than %d selectors supported (%d provided)", maxSelectors, len(selectors))
+	if len(selectors) > MaxSelectors {
+		return nil, fmt.Errorf("no more than %d selectors supported (%d provided)", MaxSelectors, len(selectors))
 	}
 	state := NewKernelSelectorState(listReader, maps, isUprobe)
 
@@ -1578,6 +1583,9 @@ func InitKernelSelectorState(args *KernelSelectorArgs) (*KernelSelectorState, er
 		}
 		if err := ParseMatchBinaries(k, selector.MatchBinaries, selIdx, matchBinaries); err != nil {
 			return fmt.Errorf("parseMatchBinaries error: %w", err)
+		}
+		if err := ParseMatchBinaries(k, selector.MatchParentBinaries, selIdx, matchParentBinaries); err != nil {
+			return fmt.Errorf("parseMatchParentBinaries error: %w", err)
 		}
 		if err := ParseMatchArgs(k, selector.MatchArgs, selector.MatchData, args.Args, args.Data); err != nil {
 			return fmt.Errorf("parseMatchArgs  error: %w", err)
