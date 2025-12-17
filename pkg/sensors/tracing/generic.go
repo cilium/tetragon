@@ -75,7 +75,7 @@ func formatBTFPath(resolvePath string) ([]string, error) {
 
 func addPaddingOnNestedPtr(ty ebtf.Type, path []string) []string {
 	if t, ok := ty.(*ebtf.Pointer); ok {
-		updatedPath := append([]string{""}, path...)
+		updatedPath := append([]string{"[0]"}, path...)
 		return addPaddingOnNestedPtr(t.Target, updatedPath)
 	}
 	return path

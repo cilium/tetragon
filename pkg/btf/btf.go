@@ -7,9 +7,12 @@ package btf
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"path"
 	"reflect"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/cilium/ebpf/btf"
@@ -201,6 +204,26 @@ func ResolveNestedTypes(ty btf.Type) btf.Type {
 	return ty
 }
 
+func parseArrayIdxStr(s string) (uint32, error) {
+	re := regexp.MustCompile(`^\[(\d+)\]$`)
+
+	matches := re.FindStringSubmatch(s)
+	if len(matches) < 2 {
+		return 0, fmt.Errorf("invalid format %q (must be: \"[value]\")", s)
+	}
+
+	n, err := strconv.Atoi(matches[1])
+	if err != nil {
+		return 0, fmt.Errorf("invalid value %q: %w", matches[1], err)
+	}
+
+	if n < 0 || n > math.MaxUint32 {
+		return 0, fmt.Errorf("value %d out of range for uint32", n)
+	}
+
+	return uint32(n), nil
+}
+
 // ResolveBTFPath function recursively search in a btf structure in order to
 // found a specific path until it reach the target or fail.
 
@@ -228,7 +251,7 @@ func ResolveBTFPath(
 	case *btf.Union:
 		return processMembers(btfArgs, currentType, t.Members, pathToFound, i)
 	case *btf.Pointer:
-		if len(pathToFound[i]) == 0 {
+		if _, err := parseArrayIdxStr(pathToFound[i]); err == nil {
 			(*btfArgs)[i].IsPointer = uint16(1)
 			(*btfArgs)[i].IsInitialized = uint16(1)
 			return ResolveBTFPath(btfArgs, ResolveNestedTypes(t.Target), pathToFound, i+1)

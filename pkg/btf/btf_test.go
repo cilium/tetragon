@@ -8,6 +8,7 @@ package btf
 import (
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path"
 	"path/filepath"
@@ -359,7 +360,7 @@ func getConfigAndNextStruct(structTy *btf.Struct, memberName string) (*btf.Struc
 
 func addPaddingOnNestedPtr(ty btf.Type, path []string) []string {
 	if t, ok := ty.(*btf.Pointer); ok {
-		updatedPath := append([]string{""}, path...)
+		updatedPath := append([]string{"[0]"}, path...)
 		return addPaddingOnNestedPtr(t.Target, updatedPath)
 	}
 	return path
@@ -579,5 +580,90 @@ func TestResolveBTFPath(t *testing.T) {
 
 	for _, btfFile := range btfFiles {
 		t.Run(btfFile, testResolveBTFPath(btfFile))
+	}
+}
+
+func TestParseArrayIdxStr(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		want    uint32
+		wantErr bool
+	}{
+		{
+			name:    "Valid input - small number",
+			input:   "[123]",
+			want:    123,
+			wantErr: false,
+		},
+		{
+			name:    "Valid input - zero",
+			input:   "[0]",
+			want:    0,
+			wantErr: false,
+		},
+		{
+			name:    "Valid input - max uint32",
+			input:   fmt.Sprintf("[%d]", math.MaxUint32),
+			want:    math.MaxUint32,
+			wantErr: false,
+		},
+		{
+			name:    "Invalid input - value too large (MaxUint32 + 1)",
+			input:   fmt.Sprintf("[%d]", uint64(math.MaxUint32)+1),
+			want:    0,
+			wantErr: true,
+		},
+		{
+			name:    "Invalid format - no brackets",
+			input:   "123",
+			want:    0,
+			wantErr: true,
+		},
+		{
+			name:    "Invalid format - empty brackets",
+			input:   "[]",
+			want:    0,
+			wantErr: true,
+		},
+		{
+			name:    "Invalid format - non-numeric inside brackets",
+			input:   "[abc]",
+			want:    0,
+			wantErr: true,
+		},
+		{
+			name:    "Invalid format - empty string",
+			input:   "",
+			want:    0,
+			wantErr: true,
+		},
+		{
+			name:    "Invalid format - brackets with space",
+			input:   "[ 123 ]",
+			want:    0,
+			wantErr: true,
+		},
+		{
+			name:    "Invalid format - negative number (regex prevents, but good to test)",
+			input:   "[-1]",
+			want:    0,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseArrayIdxStr(tt.input)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("parseArrayIdxStr() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if !tt.wantErr && got != tt.want {
+				t.Errorf("parseArrayIdxStr() got = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
