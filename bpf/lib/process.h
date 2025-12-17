@@ -360,6 +360,24 @@ struct {
 } execve_msg_heap_map SEC(".maps");
 
 struct {
+	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, __u32);
+	__type(value, struct binary);
+} tg_binary_heap SEC(".maps");
+
+// Parent binaries map is used for saving actual immediate parents
+// for processes to get check them in matchParentBinaries selector.
+// If multiple execs are called in same process without fork, the map
+// stores process binary itself instead of its parent binary.
+struct {
+	__uint(type, BPF_MAP_TYPE_LRU_HASH);
+	__uint(max_entries, 1);
+	__type(key, __u32);
+	__type(value, struct binary);
+} tg_parents_bin SEC(".maps");
+
+struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__uint(max_entries, 1);
 	__type(key, __u32);

@@ -1849,17 +1849,21 @@ struct match_binaries_sel_opts {
 	__u32 mbset_id;
 };
 
-// This map is used by the matchBinaries selectors to retrieve their options
+// We need data for:
+// - matchBinaries, keys [0, MAX_SELECTORS)
+// - matchParentBinaries, keys [MAX_SELECTORS, MAX_SELECTORS * 2)
+#define MB_MAX_ENTRIES (MAX_SELECTORS * 2)
+
 struct {
 	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__uint(max_entries, MAX_SELECTORS);
+	__uint(max_entries, MB_MAX_ENTRIES);
 	__type(key, __u32); /* selector id */
 	__type(value, struct match_binaries_sel_opts);
 } tg_mb_sel_opts SEC(".maps");
 
 struct {
 	__uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
-	__uint(max_entries, MAX_SELECTORS); // only one matchBinaries per selector
+	__uint(max_entries, MB_MAX_ENTRIES);
 	__type(key, __u32);
 	__array(
 		values, struct {
@@ -1870,7 +1874,7 @@ struct {
 		});
 } tg_mb_paths SEC(".maps");
 
-FUNC_INLINE int match_binaries(__u32 selidx, struct execve_map_value *current)
+FUNC_INLINE int match_binaries(__u32 key, struct execve_map_value *current, struct binary *bin)
 {
 	bool match = 0;
 	void *path_map;
@@ -1886,12 +1890,19 @@ FUNC_INLINE int match_binaries(__u32 selidx, struct execve_map_value *current)
 
 	// retrieve the selector_options for the matchBinaries, if it's NULL it
 	// means there is not matchBinaries in this selector.
-	selector_options = map_lookup_elem(&tg_mb_sel_opts, &selidx);
+	selector_options = map_lookup_elem(&tg_mb_sel_opts, &key);
+
+	// if we failed to get process or its binary (i.e. one of them is NULL),
+	// we have match only if there are no selector options or if selector
+	// operator is none.
+	if (!current || !bin)
+		return !selector_options || selector_options->op == op_filter_none;
+
 	if (selector_options) {
 		if (selector_options->op == op_filter_none)
 			return 1; // matchBinaries selector is empty <=> match
 
-		if (current->bin.path_length < 0) {
+		if (bin->path_length < 0) {
 			// something wrong happened when copying the filename to execve_map
 			return 0;
 		}
@@ -1899,7 +1910,7 @@ FUNC_INLINE int match_binaries(__u32 selidx, struct execve_map_value *current)
 		switch (selector_options->op) {
 		case op_filter_in:
 		case op_filter_notin:
-			update_mb_task(current);
+			update_mb_task(current, bin);
 
 			/* Check if we match the selector's bit in ->mb_bitset, which means that the
 			 * process matches a matchBinaries section with a followChidren:true
@@ -1907,15 +1918,15 @@ FUNC_INLINE int match_binaries(__u32 selidx, struct execve_map_value *current)
 			 * parent matched.
 			 */
 			if (selector_options->mbset_id != MBSET_INVALID_ID &&
-			    (current->bin.mb_bitset & (1UL << selector_options->mbset_id))) {
+			    (bin->mb_bitset & (1UL << selector_options->mbset_id))) {
 				found_key = (u8 *)0xbadc0ffee;
 				break;
 			}
 
-			path_map = map_lookup_elem(&tg_mb_paths, &selidx);
+			path_map = map_lookup_elem(&tg_mb_paths, &key);
 			if (!path_map)
 				return 0;
-			found_key = map_lookup_elem(path_map, current->bin.path);
+			found_key = map_lookup_elem(path_map, bin->path);
 			break;
 #ifdef __LARGE_BPF_PROG
 		case op_filter_str_prefix:
@@ -1928,8 +1939,8 @@ FUNC_INLINE int match_binaries(__u32 selidx, struct execve_map_value *current)
 			if (!prefix_key)
 				return 0;
 			memset(prefix_key, 0, sizeof(*prefix_key));
-			prefix_key->prefixlen = current->bin.path_length * 8; // prefixlen is in bits
-			if (probe_read(prefix_key->data, current->bin.path_length & (STRING_PREFIX_MAX_LENGTH - 1), current->bin.path) < 0)
+			prefix_key->prefixlen = bin->path_length * 8; // prefixlen is in bits
+			if (probe_read(prefix_key->data, bin->path_length & (STRING_PREFIX_MAX_LENGTH - 1), bin->path) < 0)
 				return 0;
 			found_key = map_lookup_elem(path_map, prefix_key);
 			break;
@@ -1938,18 +1949,18 @@ FUNC_INLINE int match_binaries(__u32 selidx, struct execve_map_value *current)
 			path_map = map_lookup_elem(&string_postfix_maps, &selector_options->map_id);
 			if (!path_map)
 				return 0;
-			if (current->bin.path_length < STRING_POSTFIX_MAX_MATCH_LENGTH)
-				postfix_len = current->bin.path_length;
+			if (bin->path_length < STRING_POSTFIX_MAX_MATCH_LENGTH)
+				postfix_len = bin->path_length;
 			postfix_key = (struct string_postfix_lpm_trie *)map_lookup_elem(&string_postfix_maps_heap, &zero);
 			if (!postfix_key)
 				return 0;
 			postfix_key->prefixlen = postfix_len * 8; // prefixlen is in bits
-			if (!current->bin.reversed) {
-				file_copy_reverse((__u8 *)current->bin.end_r, postfix_len, (__u8 *)current->bin.end, current->bin.path_length - postfix_len);
-				current->bin.reversed = true;
+			if (!bin->reversed) {
+				file_copy_reverse((__u8 *)bin->end_r, postfix_len, (__u8 *)bin->end, bin->path_length - postfix_len);
+				bin->reversed = true;
 			}
 			if (postfix_len < STRING_POSTFIX_MAX_MATCH_LENGTH)
-				if (probe_read(postfix_key->data, postfix_len, current->bin.end_r) < 0)
+				if (probe_read(postfix_key->data, postfix_len, bin->end_r) < 0)
 					return 0;
 			found_key = map_lookup_elem(path_map, postfix_key);
 			break;
@@ -1963,7 +1974,7 @@ FUNC_INLINE int match_binaries(__u32 selidx, struct execve_map_value *current)
 		return is_not_operator(selector_options->op) ? !match : match;
 	}
 
-	// no matchBinaries selector <=> match
+	// no selector <=> match
 	return 1;
 }
 

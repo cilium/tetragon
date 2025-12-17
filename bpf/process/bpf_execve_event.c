@@ -270,7 +270,7 @@ event_execve(struct exec_ctx_struct *ctx)
 	parent = event_find_parent();
 	if (parent) {
 		event->parent = parent->key;
-		update_mb_task(parent);
+		update_mb_task(parent, &parent->bin);
 		event->parent_flags = 0;
 	} else {
 		event_minimal_parent(event, task);
@@ -414,6 +414,9 @@ execve_send(struct exec_ctx_struct *ctx __arg_ctx)
 			curr->caps.inheritable = event->creds.caps.inheritable;
 		}
 #endif
+
+		update_parents_map(event, curr);
+
 		/* zero out previous paths in ->bin */
 		binary_reset(&curr->bin);
 #ifdef __LARGE_BPF_PROG

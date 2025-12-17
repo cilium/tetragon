@@ -48,7 +48,7 @@ void update_mb_bitset(struct binary *bin)
 #ifdef __V511_BPF_PROG
 
 FUNC_INLINE
-struct execve_map_value *__update_mb_task(struct execve_map_value *task)
+struct execve_map_value *__update_mb_task(struct execve_map_value *task, struct binary *bin)
 {
 	struct execve_map_value *parent;
 	__u64 *bitsetp;
@@ -58,12 +58,12 @@ struct execve_map_value *__update_mb_task(struct execve_map_value *task)
 		return NULL;
 	bitsetp = map_lookup_elem(&tg_mbset_map, parent->bin.path);
 	if (bitsetp && *bitsetp)
-		lock_or(&task->bin.mb_bitset, *bitsetp);
+		lock_or(&bin->mb_bitset, *bitsetp);
 	return parent;
 }
 
 FUNC_INLINE
-void update_mb_task(struct execve_map_value *task)
+void update_mb_task(struct execve_map_value *task, struct binary *bin)
 {
 	struct execve_map_value *last = NULL, *parent = task;
 	__u32 idx = 0;
@@ -72,29 +72,29 @@ void update_mb_task(struct execve_map_value *task)
 	gen = map_lookup_elem(&tg_mbset_gen, &idx);
 	if (!gen)
 		return;
-	if (*gen == task->bin.mb_gen)
+	if (*gen == bin->mb_gen)
 		return;
 
 	if (CONFIG(ITER_NUM)) {
 		bpf_repeat(100000)
 		{
-			parent = __update_mb_task(task);
+			parent = __update_mb_task(task, bin);
 			if (!parent || parent == last)
 				break;
 			last = parent;
 		}
 	} else {
 		for (int i = 0; i < 1024; i++) {
-			parent = __update_mb_task(task);
+			parent = __update_mb_task(task, bin);
 			if (!parent || parent == last)
 				break;
 			last = parent;
 		}
 	}
 
-	task->bin.mb_gen = *gen;
+	bin->mb_gen = *gen;
 }
 #else
-#define update_mb_task(task)
+#define update_mb_task(task, bin)
 #endif /* __V511_BPF_PROG */
 #endif /* __BPF_MBSET_H__ */
