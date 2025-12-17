@@ -229,6 +229,10 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		logger.Fatal(log, "Can't specify --execve-map-entries and --execve-map-size together")
 	}
 
+	if option.Config.ParentsMapEntries != 0 && len(option.Config.ParentsMapSize) != 0 {
+		logger.Fatal(log, "Can't specify --parents-map-entries and --parents-map-size together")
+	}
+
 	if option.Config.EnableProcessEnvironmentVariables && !config.EnableLargeProgs() {
 		logger.Fatal(log, "Can't specify --enable-process-environment-variables on early kernels (<v5.3)")
 	}
