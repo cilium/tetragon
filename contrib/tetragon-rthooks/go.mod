@@ -8,7 +8,7 @@ require (
 	github.com/cilium/lumberjack/v2 v2.4.1
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/containerd/containerd v1.7.29
-	github.com/containerd/nri v0.10.1-0.20251120153915-7d8611f87ad7
+	github.com/containerd/nri v0.11.0
 	github.com/containers/common v0.64.2
 	github.com/google/cel-go v0.23.2
 	github.com/opencontainers/cgroups v0.0.6
@@ -45,7 +45,7 @@ require (
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/stoewer/go-strcase v1.2.0 // indirect
-	github.com/tetratelabs/wazero v1.9.0 // indirect
+	github.com/tetratelabs/wazero v1.10.1 // indirect
 	golang.org/x/exp v0.0.0-20250103183323-7d7fa50e5329 // indirect
 	golang.org/x/net v0.46.1-0.20251013234738-63d1a5100f82 // indirect
 	golang.org/x/sys v0.38.0 // indirect
