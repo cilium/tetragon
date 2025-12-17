@@ -32,6 +32,9 @@ type ValueReader interface {
 }
 
 const (
+	// see bpf/process/types/basic.h MAX_SELECTORS
+	MaxSelectors = 5
+
 	stringMapsKeyIncSize      = 24
 	StringMapsNumSubMaps      = 11
 	StringMapsNumSubMapsSmall = 8
