@@ -365,4 +365,34 @@ event_find_curr_probe(struct msg_generic_kprobe *msg)
 	return NULL;
 }
 #endif
+
+#ifdef __LARGE_BPF_PROG
+volatile const __u8 PARENTS_MAP_ENABLED;
+
+FUNC_INLINE void update_parents_map(struct msg_execve_event *event, struct execve_map_value *curr)
+{
+	if (PARENTS_MAP_ENABLED) {
+		__u32 zero = 0;
+		struct binary *bin = map_lookup_elem(&tg_binary_heap, &zero);
+
+		if (bin) {
+			// use current binary as parent binary if exec events is not preceded
+			// by clone, i.e. exec call was invoked in the same process.
+			if (!(event->process.flags & EVENT_CLONE)) {
+				memcpy(bin, &curr->bin, sizeof(curr->bin));
+				map_update_elem(&tg_parents_bin, &curr->key.pid, bin, BPF_ANY);
+			} else {
+				struct execve_map_value *parent = event_find_parent();
+
+				if (parent)
+					map_update_elem(&tg_parents_bin, &curr->key.pid, &parent->bin, BPF_ANY);
+			}
+		}
+	}
+}
+#else
+FUNC_INLINE void update_parents_map(struct msg_execve_event *event, struct execve_map_value *curr)
+{
+}
+#endif
 #endif
