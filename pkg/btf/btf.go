@@ -224,6 +224,25 @@ func parseArrayIdxStr(s string) (uint32, error) {
 	return uint32(n), nil
 }
 
+func getSizeofType(t btf.Type) uint32 {
+	switch t := t.(type) {
+	case *btf.Pointer:
+		return 8
+	case *btf.Int:
+		return t.Size
+	case *btf.Union:
+		return t.Size
+	case *btf.Struct:
+		return t.Size
+	case *btf.Void:
+		return 0
+	case *btf.Float:
+		return t.Size
+	default:
+		return 0
+	}
+}
+
 // ResolveBTFPath function recursively search in a btf structure in order to
 // found a specific path until it reach the target or fail.
 
@@ -251,13 +270,20 @@ func ResolveBTFPath(
 	case *btf.Union:
 		return processMembers(btfArgs, currentType, t.Members, pathToFound, i)
 	case *btf.Pointer:
-		if _, err := parseArrayIdxStr(pathToFound[i]); err == nil {
-			(*btfArgs)[i].IsPointer = uint16(1)
-			(*btfArgs)[i].IsInitialized = uint16(1)
-			return ResolveBTFPath(btfArgs, ResolveNestedTypes(t.Target), pathToFound, i+1)
+		if idx, err := parseArrayIdxStr(pathToFound[i]); err == nil {
+			return processArray(btfArgs, currentType, pathToFound, i, idx)
 		}
 		(*btfArgs)[i-1].IsPointer = uint16(1)
 		return ResolveBTFPath(btfArgs, ResolveNestedTypes(t.Target), pathToFound, i)
+	case *btf.Array:
+		idx, err := parseArrayIdxStr(pathToFound[i])
+		if err != nil {
+			return nil, fmt.Errorf("fail parsing array index : %w", err)
+		}
+		if idx >= t.Nelems {
+			return nil, fmt.Errorf("array index out of bound. Nelems=%d, got=%d", t.Nelems, idx)
+		}
+		return processArray(btfArgs, currentType, pathToFound, i, idx)
 	default:
 		ty := currentType.TypeName()
 		if len(ty) == 0 {
@@ -328,4 +354,31 @@ func processMembers(
 		(*btfArgs)[i].IsPointer = uint16(1)
 	}
 	return &currentType, nil
+}
+
+func processArray(
+	btfArgs *[api.MaxBTFArgDepth]api.ConfigBTFArg,
+	currentType btf.Type,
+	pathToFound []string,
+	i int,
+	idx uint32,
+) (*btf.Type, error) {
+	var target btf.Type
+	if t, ok := currentType.(*btf.Array); ok {
+		target = ResolveNestedTypes(t.Type)
+	} else if t, ok := currentType.(*btf.Pointer); ok {
+		target = ResolveNestedTypes(t.Target)
+		(*btfArgs)[i].IsPointer = uint16(1)
+		if i > 0 {
+			(*btfArgs)[i-1].IsPointer = uint16(1)
+		}
+	} else {
+		return &currentType, fmt.Errorf("processArray not supported for this btf type : %v", currentType)
+	}
+	(*btfArgs)[i].IsInitialized = uint16(1)
+	(*btfArgs)[i].Offset = getSizeofType(target) * idx
+	if len(pathToFound) > i+1 {
+		return ResolveBTFPath(btfArgs, target, pathToFound, i+1)
+	}
+	return &target, nil
 }
