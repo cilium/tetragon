@@ -138,6 +138,10 @@ const (
 	KeyExecveMapEntries = "execve-map-entries"
 	KeyExecveMapSize    = "execve-map-size"
 
+	KeyParentsMapEnabled = "parents-map-enabled"
+	KeyParentsMapEntries = "parents-map-entries"
+	KeyParentsMapSize    = "parents-map-size"
+
 	KeyRetprobesCacheSize = "retprobes-cache-size"
 )
 
@@ -303,6 +307,10 @@ func ReadAndSetFlags() error {
 
 	Config.ExecveMapEntries = viper.GetInt(KeyExecveMapEntries)
 	Config.ExecveMapSize = viper.GetString(KeyExecveMapSize)
+
+	Config.ParentsMapEnabled = viper.GetBool(KeyParentsMapEnabled)
+	Config.ParentsMapEntries = viper.GetInt(KeyParentsMapEntries)
+	Config.ParentsMapSize = viper.GetString(KeyParentsMapSize)
 
 	Config.RetprobesCacheSize = viper.GetInt(KeyRetprobesCacheSize)
 	return nil
@@ -502,6 +510,10 @@ func AddFlags(flags *pflag.FlagSet) {
 
 	flags.Int(KeyExecveMapEntries, 0, "Set entries for execve_map table (default 32768)")
 	flags.String(KeyExecveMapSize, "", "Set size for execve_map table (allows K/M/G suffix)")
+
+	flags.Bool(KeyParentsMapEnabled, false, "Enable parents_map for matchParentBinaries selector")
+	flags.Int(KeyParentsMapEntries, 0, "Set entries for parents_map table (default 32768)")
+	flags.String(KeyParentsMapSize, "", "Set size for parents_map table (allows K/M/G suffix)")
 
 	flags.Int(KeyRetprobesCacheSize, defaults.DefaultRetprobesCacheSize, "Set {k,u}retprobes events cache maximum size")
 }
