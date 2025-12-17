@@ -276,9 +276,9 @@ this, set `followChildren` to `true`. For example:
 ```
 
 There are a number of limitations when using followChildren:
-- Children created before the policy was installed will not be matched
+- Children created before the policy was installed will not be matched.
 - The number of `matchBinaries` sections with `followChildren: true` cannot exceed 64.
-- Operators other than `In` are not supported.
+- `operator` can be `In` or `NotIn`.
 
 
 **Further examples**
