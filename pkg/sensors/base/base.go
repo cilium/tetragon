@@ -81,6 +81,8 @@ var (
 
 	ExecveJoinMap = program.MapBuilder("tg_execve_joined_info_map", ExecveBprmCommit)
 
+	ParentBinariesMap = program.MapBuilder("parent_binaries_map", Execve, Exit)
+
 	/* Tetragon runtime configuration */
 	TetragonConfMap = program.MapBuilder("tg_conf_map", Execve)
 
@@ -157,6 +159,13 @@ func setupSensor() {
 
 	if option.Config.EnableProcessEnvironmentVariables {
 		Execve.RewriteConstants["ENV_VARS_ENABLED"] = uint8(1)
+	}
+
+	if option.Config.ParentsMapEnabled {
+		entries = GetExecveEntries(option.Config.ParentsMapEntries, option.Config.ParentsMapSize)
+		ParentBinariesMap.SetMaxEntries(entries)
+		logger.GetLogger().Info(fmt.Sprintf("Set parents_map entries %d", entries),
+			"size", strutils.SizeWithSuffix(entries*int(unsafe.Sizeof(execvemap.ExecveValue{}))))
 	}
 }
 
