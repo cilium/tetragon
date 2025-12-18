@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
+//go:build k8s
+
 // Copyright Istio Authors
 // Part of this file was copied from
 // https://github.com/istio/istio/blob/483f3466eca1de70164dd3af33fb411d9e311c23/pkg/kube/util.go

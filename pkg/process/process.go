@@ -65,7 +65,6 @@ type ProcessInternal struct {
 
 var (
 	procCache *Cache
-	k8s       watcher.PodAccessor
 )
 
 var (
@@ -585,12 +584,6 @@ func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) (*ProcessInternal, error) {
 
 func Get(execId string) (*ProcessInternal, error) {
 	return procCache.get(execId)
-}
-
-// GetK8s returns PodAccessor. You must call InitCache before calling this function to ensure
-// that k8s has been initialized.
-func GetK8s() watcher.PodAccessor {
-	return k8s
 }
 
 func DumpProcessCache(opts *tetragon.DumpProcessCacheReqArgs) []*tetragon.ProcessInternal {
