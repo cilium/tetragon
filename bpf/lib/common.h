@@ -64,7 +64,7 @@ struct bpf_map_def {
 #define DEBUG(__fmt, ...)
 #endif
 
-#ifdef __V612_BPF_PROG
+#if __has_attribute(btf_decl_tag)
 #define __arg_ctx      __attribute__((btf_decl_tag("arg:ctx")))
 #define __arg_nonnull  __attribute((btf_decl_tag("arg:nonnull")))
 #define __arg_nullable __attribute((btf_decl_tag("arg:nullable")))
@@ -76,6 +76,6 @@ struct bpf_map_def {
 #define __arg_nullable
 #define __arg_trusted
 #define __arg_arena
-#endif // __V612_BPF_PROG
+#endif
 
 #endif // _MSG_COMMON__
