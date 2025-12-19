@@ -105,7 +105,7 @@ jobs:
       with:
         install_only: true
         # renovate: datasource=github-releases depName=kubernetes-sigs/kind
-        version: v0.30.0
+        version: v0.31.0
 
     - name: Pull Tetragon Images
       uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
