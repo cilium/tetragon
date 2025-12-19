@@ -73,6 +73,7 @@ FUNC_INLINE void event_exit_send(void *ctx, __u32 tgid)
 		event_output_metric(ctx, MSG_OP_EXIT, exit, size);
 	}
 	execve_map_delete(tgid);
+	map_delete_elem(&parent_binaries_map, &enter->key.pid);
 }
 
 #endif /* __EXIT_H__ */

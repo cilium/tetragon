@@ -30,6 +30,7 @@ func GetDefaultMaps() []*program.Map {
 		ExecveJoinMapStats,
 		ExecveTailCallsMap,
 		ExecveMapUpdateData,
+		ParentBinariesMap,
 		TCPMonMap,
 		TetragonConfMap,
 		StatsMap,

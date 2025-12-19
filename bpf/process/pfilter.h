@@ -425,9 +425,16 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 	__u32 len;
 	__u64 i;
 
-	/* Do binary filter first for selector index */
-	if (!match_binaries(index, enter))
+	/* Do binary and parent filter first for selector index */
+	if (!match_binaries(index, enter, &enter->bin))
 		return 0;
+
+	struct binary *parent_bin = map_lookup_elem(&parent_binaries_map, &enter->key.pid);
+
+	if (parent_bin)
+		/* matchParentBinaries key is in rage [MAX_SELECTORS; MAX_SELECTORS * 2) */
+		if (!match_binaries(index + MAX_SELECTORS, enter, parent_bin))
+			return 0;
 
 	/* Find selector offset byte index */
 	index *= 4;
