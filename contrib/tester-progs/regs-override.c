@@ -4,6 +4,7 @@
 #define __naked __attribute__((naked))
 #define noinline __attribute__((noinline))
 
+#if defined(__x86_64__)
 static __naked int test_1()
 {
 	asm(
@@ -14,8 +15,25 @@ static __naked int test_1()
 		"pop    %rbp\n"         /* +14 5d             */
 		"ret\n"                 /* +15 c3             */
 	);
-}
 
+
+}
+#elif defined(__aarch64__)
+int test_1();
+__asm__ (
+    ".global test_1\n"
+    ".type test_1, %function\n"
+    "test_1:\n"
+  	"stp     x29, x30, [sp, #-16]!\n"
+	"mov     x29, sp\n"
+	"mov     w0, #0x1\n"
+	"mov     w0, #0x3\n"
+	"ldp     x29, x30, [sp], #16\n"
+	"ret\n"
+);
+#endif
+
+#if defined(__x86_64__)
 static __naked unsigned long test_2()
 {
 	asm(
@@ -26,6 +44,19 @@ static __naked unsigned long test_2()
 		"ret\n"                                /* +15 c3                            */
 	);
 }
+#elif defined(__aarch64__)
+unsigned long test_2();
+__asm__ (
+    ".global test_2\n"
+    ".type test_2, %function\n"
+    "test_2:\n"
+  	"stp	x29, x30, [sp, #-16]!\n"
+	"mov	x29, sp\n"
+	"ldr	x0, =0xdeadbeefdeadbeef\n"
+	"ldp	x29, x30, [sp], #16\n"
+	"ret\n"
+);
+#endif
 
 int main(int argc, char **argv)
 {
