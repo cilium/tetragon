@@ -65,10 +65,6 @@ func EnableV61Progs() bool {
 	return false
 }
 
-func EnableV612Progs() bool {
-	return false
-}
-
 func EnableLargeProgs() bool {
 	return false
 }
