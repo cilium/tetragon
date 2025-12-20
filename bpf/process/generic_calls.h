@@ -16,6 +16,7 @@
 #include "regs.h"
 #include "msg.h"
 #include "execve_map.h"
+#include "config.h"
 
 #define MAX_TOTAL 9000
 
@@ -491,15 +492,16 @@ FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned lo
 			.btf_config = btf_config,
 			.arg = a,
 		};
-#ifndef __V61_BPF_PROG
+
+		if (CONFIG(LOOP)) {
+			loop(MAX_BTF_ARG_DEPTH, extract_arg_depth, &extract_data, 0);
+		} else {
 #pragma unroll
-		for (int i = 0; i < MAX_BTF_ARG_DEPTH; ++i) {
-			if (extract_arg_depth(i, &extract_data))
-				break;
+			for (int i = 0; i < MAX_BTF_ARG_DEPTH; ++i) {
+				if (extract_arg_depth(i, &extract_data))
+					break;
+			}
 		}
-#else
-		loop(MAX_BTF_ARG_DEPTH, extract_arg_depth, &extract_data, 0);
-#endif /* __V61_BPF_PROG */
 	}
 }
 #else
