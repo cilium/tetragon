@@ -51,6 +51,27 @@ func TestAssignment(t *testing.T) {
 	assert.Equal(t, uint16(0x58), ass.Dst)
 	assert.Equal(t, uint16(0), ass.Src)
 
+	ass, err = ParseAssignment("rax=0xffffffffffffffff")
+	require.NoError(t, err)
+	assert.Equal(t, ASM_ASSIGNMENT_TYPE_CONST, ass.Type)
+	assert.Equal(t, uint64(0xffffffffffffffff), ass.Off)
+	assert.Equal(t, uint16(0x50), ass.Dst)
+	assert.Equal(t, uint16(0), ass.Src)
+
+	ass, err = ParseAssignment("rax=0x8000000000000002")
+	require.NoError(t, err)
+	assert.Equal(t, ASM_ASSIGNMENT_TYPE_CONST, ass.Type)
+	assert.Equal(t, uint64(0x8000000000000002), ass.Off)
+	assert.Equal(t, uint16(0x50), ass.Dst)
+	assert.Equal(t, uint16(0), ass.Src)
+
+	ass, err = ParseAssignment("rax=18446744073709551615")
+	require.NoError(t, err)
+	assert.Equal(t, ASM_ASSIGNMENT_TYPE_CONST, ass.Type)
+	assert.Equal(t, uint64(0xffffffffffffffff), ass.Off)
+	assert.Equal(t, uint16(0x50), ass.Dst)
+	assert.Equal(t, uint16(0), ass.Src)
+
 	// register
 	ass, err = ParseAssignment("rsp=%rax")
 	require.NoError(t, err)
