@@ -12,6 +12,7 @@
 #include "bpf_tracing.h"
 #include "bpf_ktime.h"
 
+#include "msg.h"
 #include "cgroup/cgtracker.h"
 #include "lib/errmetrics.h"
 

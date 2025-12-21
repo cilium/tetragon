@@ -1,25 +1,13 @@
 // SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
 /* Copyright Authors of Cilium */
 
-#ifndef _GENERIC__
-#define _GENERIC__
-
-#include "common.h"
-#include "msg_types.h"
-#include "process.h"
+#pragma once
 
 /* The namespace and capability changes filters require later kernels */
 #ifdef __LARGE_BPF_PROG
 #define __NS_CHANGES_FILTER
 #define __CAP_CHANGES_FILTER
 #endif
-
-#define FILTER_SIZE 4096
-
-#define MAX_POSSIBLE_ARGS	 5
-#define MAX_POSSIBLE_SELECTORS	 31
-#define SELECTORS_ACTIVE	 31
-#define MAX_CONFIGURED_SELECTORS MAX_POSSIBLE_SELECTORS + 1
 
 struct msg_selector_data {
 	__u64 curr;
@@ -32,9 +20,6 @@ struct msg_selector_data {
 	__u64 match_cap;
 #endif
 };
-
-/* value to mask an offsset into msg_generic_kprobe->args */
-#define GENERIC_MSG_ARGS_MASK 0x7ff
 
 struct generic_path {
 	int state;
@@ -86,5 +71,3 @@ FUNC_INLINE size_t generic_kprobe_common_size(void)
 {
 	return offsetof(struct msg_generic_kprobe, args);
 }
-
-#endif // _GENERIC__

@@ -4,9 +4,11 @@
 #ifndef _BPF_TASK_H
 #define _BPF_TASK_H
 
+#include "common.h"
+#include "msg_types.h"
+#include "process.h"
 #include "bpf_event.h"
 #include "bpf_helpers.h"
-#include "generic.h"
 #include "vmlinux.h"
 
 FUNC_INLINE struct task_struct *get_parent(struct task_struct *t)
