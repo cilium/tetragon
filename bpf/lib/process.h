@@ -352,13 +352,6 @@ struct execve_map_value {
 } __attribute__((packed)) __attribute__((aligned(8)));
 
 struct {
-	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
-	__uint(max_entries, 1);
-	__type(key, __u32);
-	__type(value, struct msg_execve_event);
-} execve_msg_heap_map SEC(".maps");
-
-struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__uint(max_entries, 1);
 	__type(key, __u32);
