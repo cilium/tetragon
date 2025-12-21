@@ -88,4 +88,6 @@ struct bpf_map_def {
 /* value to mask an offsset into msg_generic_kprobe->args */
 #define GENERIC_MSG_ARGS_MASK 0x7ff
 
+#define BINARY_PATH_MAX_LEN 256
+
 #endif // _MSG_COMMON__

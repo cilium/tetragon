@@ -409,4 +409,12 @@ event_find_curr_probe(struct msg_generic_kprobe *msg)
 	return NULL;
 }
 #endif
+
+FUNC_INLINE void
+event_minimal_parent(struct msg_execve_event *event, struct task_struct *task)
+{
+	event->parent.pid = event_find_parent_pid(task);
+	event->parent.ktime = 0;
+	event->parent_flags = EVENT_MISS;
+}
 #endif

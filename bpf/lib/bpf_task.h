@@ -131,14 +131,6 @@ FUNC_INLINE struct execve_map_value *event_find_parent(void)
 	return __event_find_parent(task);
 }
 
-FUNC_INLINE void
-event_minimal_parent(struct msg_execve_event *event, struct task_struct *task)
-{
-	event->parent.pid = event_find_parent_pid(task);
-	event->parent.ktime = 0;
-	event->parent_flags = EVENT_MISS;
-}
-
 FUNC_INLINE void event_minimal_curr(struct execve_map_value *event)
 {
 	event->key.pid = (get_current_pid_tgid() >> 32);
