@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "execve_map.h"
+
 /* The namespace and capability changes filters require later kernels */
 #ifdef __LARGE_BPF_PROG
 #define __NS_CHANGES_FILTER
