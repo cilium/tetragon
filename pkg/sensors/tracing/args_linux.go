@@ -58,6 +58,13 @@ func getMetaValue(arg *v1alpha1.KProbeArg) (int, error) {
 		}
 		meta = int(arg.SizeArgIndex)
 	}
+	if arg.Size > 0 {
+		if arg.Size > 0xFFFF {
+			return 0, fmt.Errorf("invalid Size value (>65535): %v", arg.Size)
+		}
+		// Pack Size into bits 8-23
+		meta = meta | (int(arg.Size) << 8)
+	}
 	if arg.ReturnCopy {
 		meta = meta | argReturnCopyBit
 	}
@@ -147,6 +154,33 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		}
 
 		arg.Flags = flags
+		arg.Label = a.label
+		return arg
+	case gt.GenericInt32ArrType:
+		var count uint32
+		var arg api.MsgGenericKprobeArgInt32List
+		err := binary.Read(r, binary.LittleEndian, &count)
+		if err != nil {
+			logger.GetLogger().Warn("Int32Arr type error (reading count)", logfields.Error, err)
+		} else {
+			if count == 0xFFFFFFFC {
+				// count == -4 (0xFFFFFFFC) indicates CHAR_BUF_SAVED_FOR_RETPROBE.
+				// This means the argument is an output parameter (return copy), so the data
+				// is not yet available at kprobe entry. It will be sent in a subsequent
+				// event from the retprobe.
+			} else if count > 2048 {
+				logger.GetLogger().Warn("Int32Arr size too large", "size", count)
+			} else {
+				values := make([]int32, count)
+				if err := binary.Read(r, binary.LittleEndian, &values); err != nil {
+					logger.GetLogger().Warn("Int32Arr type error (reading values)", "count", count, logfields.Error, err)
+				} else {
+					arg.Value = values
+				}
+			}
+		}
+
+		arg.Index = uint64(a.index)
 		arg.Label = a.label
 		return arg
 	case gt.GenericPathType, gt.GenericDentryType:
