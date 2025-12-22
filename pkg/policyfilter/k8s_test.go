@@ -723,7 +723,7 @@ func TestK8s(t *testing.T) {
 
 	watcherStarted := make(chan struct{})
 	// Create the fake client.
-	client := fake.NewSimpleClientset()
+	client := fake.NewClientset()
 	// A catch-all watch reactor that allows us to inject the watcherStarted channel.
 	client.PrependWatchReactor("*", func(action clienttesting.Action) (handled bool, ret watch.Interface, err error) {
 		gvr := action.GetResource()
