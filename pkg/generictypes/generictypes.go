@@ -68,6 +68,7 @@ const (
 	GenericDentryType = 42
 
 	GenericBpfProgType = 43
+	GenericInt32ArrType = 44
 
 	GenericUnsetType   = 0
 	GenericNopType     = -1
@@ -130,6 +131,7 @@ var genericStringToType = map[string]int{
 	"socket":          GenericSocketType,
 	"dentry":          GenericDentryType,
 	"bpf_prog":        GenericBpfProgType,
+	"int32_arr":       GenericInt32ArrType,
 }
 
 var genericTypeToStringTable = map[int]string{
