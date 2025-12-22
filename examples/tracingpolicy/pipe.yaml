@@ -1,0 +1,20 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "pipe-monitoring"
+spec:
+  lists:
+  - name: "pipes"
+    type: "syscalls"
+    values:
+    - "sys_pipe"
+    - "sys_pipe2"
+  kprobes:
+  - call: "list:pipes"
+    syscall: true
+    args:
+    - index: 0
+      type: "int32_arr"
+      size: 2
+      returnCopy: true
+      label: "pipefd"
