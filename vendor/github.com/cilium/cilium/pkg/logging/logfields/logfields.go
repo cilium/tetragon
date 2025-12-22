@@ -127,6 +127,9 @@ const (
 	// PolicyID is the identifier of a L3, L4 or L7 Policy. Ideally the .NumericIdentity
 	PolicyID = "policyID"
 
+	// IsDeny is 'true' for a deny rule
+	IsDeny = "isDeny"
+
 	// AddedPolicyID is the .NumericIdentity, or set or them
 	AddedPolicyID = "policyID.Added"
 
@@ -777,6 +780,9 @@ const (
 	// Expected is an expected value
 	Expected = "expected"
 
+	// Config is a configuration object.
+	Config = "config"
+
 	// ConfigSource is a configuration source (for process options, e.g. agent)
 	ConfigSource = "configSource"
 
@@ -829,4 +835,9 @@ const (
 
 	// Target identifies a target value
 	Target = "target"
+
+	// L7Parser is the L7 parser used for L7 network traffic
+	L7Parser = "l7parser"
+
+	ParentResource = "parentResource"
 )
