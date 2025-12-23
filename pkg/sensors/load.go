@@ -65,8 +65,10 @@ func (s *Sensor) policyDir() string {
 
 func (s *Sensor) createDirs(bpfDir string) {
 	for _, p := range s.Progs {
-		// setup sensor based program pin path
-		p.PinPath = filepath.Join(s.policyDir(), s.Name, p.PinName)
+		// setup sensor based program pin path if it's not specified
+		if p.PinPath == "" {
+			p.PinPath = filepath.Join(s.policyDir(), s.Name, p.PinName)
+		}
 		// and make the path
 		if err := os.MkdirAll(filepath.Join(bpfDir, p.PinPath), os.ModeDir); err != nil {
 			logger.GetLogger().Warn("Failed to create program dir",

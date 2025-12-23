@@ -216,7 +216,7 @@ struct event_config {
 	 */
 	__u32 policy_id;
 	__u32 flags;
-	__u32 pad;
+	__u32 override_id;
 	struct config_btf_arg btf_arg[EVENT_CONFIG_MAX_ARG][MAX_BTF_ARG_DEPTH];
 	struct config_usdt_arg usdt_arg[EVENT_CONFIG_MAX_USDT_ARG];
 	struct config_reg_arg reg_arg[EVENT_CONFIG_MAX_REG_ARG];
@@ -264,7 +264,7 @@ struct msg_linux_binprm {
 #ifdef __MULTI_KPROBE
 FUNC_INLINE __u32 get_index(void *ctx)
 {
-	return (__u32)get_attach_cookie(ctx);
+	return (__u32)(get_attach_cookie(ctx) & 0x0f);
 }
 #else
 #define get_index(ctx) 0
@@ -2502,21 +2502,5 @@ FUNC_INLINE const struct path *get_path(long type, unsigned long arg, struct pat
 			     "%0 = " __STR(y) "\n"      \
 			     : "+r"(x));                \
 	})
-
-FUNC_INLINE int try_override(void *ctx, struct bpf_map_def *override_tasks)
-{
-	__u64 id = get_current_pid_tgid();
-	__s32 *error, ret;
-
-	error = map_lookup_elem(override_tasks, &id);
-	if (!error)
-		return 0;
-
-	map_delete_elem(override_tasks, &id);
-	ret = *error;
-	/* Let's make verifier happy and 'force' proper bounds. */
-	set_if_not_errno_or_zero(ret, -1);
-	return ret;
-}
 
 #endif /* __BASIC_H__ */
