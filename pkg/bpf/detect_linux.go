@@ -35,6 +35,11 @@ type Feature struct {
 	detected bool
 }
 
+type FeatureKfuncs struct {
+	mu sync.Mutex
+	md map[string]bool
+}
+
 var (
 	kprobeMulti            Feature
 	uprobeMulti            Feature
@@ -49,6 +54,7 @@ var (
 	uprobeRefCtrOffset     Feature
 	auditLoginuid          Feature
 	uprobeRegsChange       Feature
+	kfuncs                 FeatureKfuncs
 )
 
 func HasOverrideHelper() bool {
@@ -567,6 +573,37 @@ func detectUprobeRegsChangeOnce() {
 func HasUprobeRegsChange() bool {
 	detectUprobeRegsChangeOnce()
 	return uprobeRegsChange.detected
+}
+
+func detectKfunc(name string) bool {
+	spec, err := btf.NewBTF()
+	if err != nil {
+		return false
+	}
+
+	var fn *ebtf.Func
+	if err := spec.TypeByName(name, &fn); err != nil {
+		return false
+	}
+
+	// kfunc has bpf_kfunc tag attached
+	return len(fn.Tags) == 1 && fn.Tags[0] == "bpf_kfunc"
+}
+
+func HasKfunc(name string) bool {
+	kfuncs.mu.Lock()
+	defer kfuncs.mu.Unlock()
+
+	if kfuncs.md == nil {
+		kfuncs.md = make(map[string]bool)
+	}
+
+	detected, ok := kfuncs.md[name]
+	if !ok {
+		detected = detectKfunc(name)
+		kfuncs.md[name] = detected
+	}
+	return detected
 }
 
 func LogFeatures() string {
