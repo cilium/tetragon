@@ -133,4 +133,17 @@ write_reg(struct pt_regs *ctx, __u32 dst, __u8 size, __u64 val)
 }
 
 #endif /* __TARGET_ARCH_x86 */
+
+#if defined(__TARGET_ARCH_arm64)
+FUNC_INLINE __u64
+read_reg(struct pt_regs *ctx, __u32 src, __u8 shift)
+{
+	unsigned long val = (unsigned long)-1UL, off = src & 0xfff;
+
+	probe_read_kernel(&val, sizeof(val), (void *)ctx + off);
+	return val;
+}
+
+#endif /* __TARGET_ARCH_arm64 */
+
 #endif /* __REGS_H__*/

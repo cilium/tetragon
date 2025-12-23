@@ -18,12 +18,3 @@ spec:
       type: "int"
     - index: 2
       type: "string"
-    selectors:
-    - matchArgs:
-      - index: 0
-        operator: "Equal"
-        values:
-        - "/etc/passwd"
-      matchActions:
-      - action: Override
-        argError: -1
