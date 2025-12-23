@@ -679,6 +679,16 @@ spec:
       - action: Post
 ```
 
+It is also possible to resolve arrays (`int arr[100]`) and dynamic arrays (`int **dyn_arr`) by resolving like so :
+
+```yaml
+- index: 0
+  resolve: some.field[12].some.subfield
+  type: uint32
+```
+
+It will work exactly the same way for both `arr` and `dyn_arr`.
+
 ## Data
 
 Kprobes allow definition of `data` fields and following `matchData` selector

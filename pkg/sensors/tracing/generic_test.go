@@ -16,6 +16,36 @@ import (
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
+func TestFormatBTFPath(t *testing.T) {
+	tests := []struct {
+		name   string
+		input  string
+		output []string
+	}{
+		{
+			name:   "simple resolve path",
+			input:  "path.to.my.field",
+			output: []string{"path", "to", "my", "field"},
+		},
+		{
+			name:   "array as first resolve",
+			input:  "[1].path.to.my.field",
+			output: []string{"[1]", "path", "to", "my", "field"},
+		},
+		{
+			name:   "array in the resolve path",
+			input:  "path.to[123].my.field",
+			output: []string{"path", "to", "[123]", "my", "field"},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ret := formatBTFPath(test.input)
+			require.Equal(t, test.output, ret)
+		})
+	}
+}
+
 // This test attempt to test the Resolve flag in tracing policies.
 //   - The 2 first hooks assert no error occures when searching for the BTF config
 //   - The last test is used to assert an error occures when path length is
