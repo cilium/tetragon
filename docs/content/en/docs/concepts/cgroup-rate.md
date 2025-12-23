@@ -166,7 +166,7 @@ This example shows how to generate throttle events when cgroup rate monitoring i
 ##  Limitations
 
 - The cgroup rate is monitored per CPU
-- At the moment we only monitor and limit base sensor and kprobe events:
+- At the moment we only monitor and limit base sensor:
   - `PROCESS_EXEC`
   - `PROCESS_EXIT`
 
