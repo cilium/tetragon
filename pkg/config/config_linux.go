@@ -20,8 +20,6 @@ const (
 func ExecObj() string {
 	if EnableRhel7Progs() {
 		return "bpf_execve_event_v310.o"
-	} else if EnableV612Progs() {
-		return "bpf_execve_event_v612.o"
 	} else if EnableV61Progs() {
 		return "bpf_execve_event_v61.o"
 	} else if EnableV511Progs() {
@@ -33,9 +31,7 @@ func ExecObj() string {
 }
 
 func ExecUpdateObj() string {
-	if EnableV612Progs() {
-		return "bpf_execve_map_update_v612.o"
-	} else if EnableV511Progs() {
+	if EnableV511Progs() {
 		return "bpf_execve_map_update_v511.o"
 	} else if EnableLargeProgs() {
 		return "bpf_execve_map_update_v53.o"
@@ -64,18 +60,14 @@ func ForkObj() string {
 // GenericKprobeObjs returns the generic kprobe and generic kretprobe objects
 func GenericKprobeObjs(multi bool) (string, string) {
 	if multi {
-		if EnableV612Progs() {
-			return "bpf_multi_kprobe_v612.o", "bpf_multi_retkprobe_v612.o"
-		} else if EnableV61Progs() {
+		if EnableV61Progs() {
 			return "bpf_multi_kprobe_v61.o", "bpf_multi_retkprobe_v61.o"
 		} else if EnableV511Progs() {
 			return "bpf_multi_kprobe_v511.o", "bpf_multi_retkprobe_v511.o"
 		}
 		return "bpf_multi_kprobe_v53.o", "bpf_multi_retkprobe_v53.o"
 	}
-	if EnableV612Progs() {
-		return "bpf_generic_kprobe_v612.o", "bpf_generic_retkprobe_v612.o"
-	} else if EnableV61Progs() {
+	if EnableV61Progs() {
 		return "bpf_generic_kprobe_v61.o", "bpf_generic_retkprobe_v61.o"
 	} else if EnableV511Progs() {
 		return "bpf_generic_kprobe_v511.o", "bpf_generic_retkprobe_v511.o"
@@ -88,16 +80,12 @@ func GenericKprobeObjs(multi bool) (string, string) {
 // GenericUprobeObjs returns the generic uprobe and generic uretprobe objects
 func GenericUprobeObjs(multi bool) (string, string) {
 	if multi {
-		if EnableV612Progs() {
-			return "bpf_multi_uprobe_v612.o", "bpf_multi_retuprobe_v612.o"
-		} else if EnableV61Progs() {
+		if EnableV61Progs() {
 			return "bpf_multi_uprobe_v61.o", "bpf_multi_retuprobe_v61.o"
 		}
 		return "bpf_multi_uprobe_v511.o", "bpf_multi_retuprobe_v511.o"
 	}
-	if EnableV612Progs() {
-		return "bpf_generic_uprobe_v612.o", "bpf_generic_retuprobe_v612.o"
-	} else if EnableV61Progs() {
+	if EnableV61Progs() {
 		return "bpf_generic_uprobe_v61.o", "bpf_generic_retuprobe_v61.o"
 	} else if EnableV511Progs() {
 		return "bpf_generic_uprobe_v511.o", "bpf_generic_retuprobe_v511.o"
@@ -109,16 +97,12 @@ func GenericUprobeObjs(multi bool) (string, string) {
 
 func GenericUsdtObjs(multi bool) string {
 	if multi {
-		if EnableV612Progs() {
-			return "bpf_multi_usdt_v612.o"
-		} else if EnableV61Progs() {
+		if EnableV61Progs() {
 			return "bpf_multi_usdt_v61.o"
 		}
 		return "bpf_multi_usdt_v511.o"
 	}
-	if EnableV612Progs() {
-		return "bpf_generic_usdt_v612.o"
-	} else if EnableV61Progs() {
+	if EnableV61Progs() {
 		return "bpf_generic_usdt_v61.o"
 	} else if EnableV511Progs() {
 		return "bpf_generic_usdt_v511.o"
@@ -128,9 +112,7 @@ func GenericUsdtObjs(multi bool) string {
 
 func GenericTracepointObjs(raw bool) string {
 	if raw {
-		if EnableV612Progs() {
-			return "bpf_generic_rawtp_v612.o"
-		} else if EnableV61Progs() {
+		if EnableV61Progs() {
 			return "bpf_generic_rawtp_v61.o"
 		} else if EnableV511Progs() {
 			return "bpf_generic_rawtp_v511.o"
@@ -139,9 +121,7 @@ func GenericTracepointObjs(raw bool) string {
 		}
 		return "bpf_generic_rawtp.o"
 	}
-	if EnableV612Progs() {
-		return "bpf_generic_tracepoint_v612.o"
-	} else if EnableV61Progs() {
+	if EnableV61Progs() {
 		return "bpf_generic_tracepoint_v61.o"
 	} else if EnableV511Progs() {
 		return "bpf_generic_tracepoint_v511.o"
@@ -152,9 +132,7 @@ func GenericTracepointObjs(raw bool) string {
 }
 
 func GenericLsmObjs() (string, string) {
-	if EnableV612Progs() {
-		return "bpf_generic_lsm_core_v612.o", "bpf_generic_lsm_output_v612.o"
-	} else if EnableV61Progs() {
+	if EnableV61Progs() {
 		return "bpf_generic_lsm_core_v61.o", "bpf_generic_lsm_output_v61.o"
 	} else if EnableV511Progs() {
 		return "bpf_generic_lsm_core_v511.o", "bpf_generic_lsm_output_v511.o"
@@ -209,14 +187,6 @@ func EnableV61Progs() bool {
 	}
 	kernelVer, _, _ := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
 	return (int64(kernelVer) >= kernels.KernelStringToNumeric("6.1.0"))
-}
-
-func EnableV612Progs() bool {
-	if option.Config.ForceSmallProgs {
-		return false
-	}
-	kernelVer, _, _ := kernels.GetKernelVersion(option.Config.KernelVersion, option.Config.ProcFS)
-	return (int64(kernelVer) >= kernels.KernelStringToNumeric("6.12.0"))
 }
 
 func EnableLargeProgs() bool {
