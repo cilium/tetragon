@@ -959,6 +959,9 @@ func doLoadProgram(
 			}
 			ms.InnerMap.MaxEntries = innerMax
 		}
+
+		// Apply or clear BPF_F_NO_PREALLOC flag based on map configuration.
+		ms.Flags = m.GetPreallocFlags(ms.Flags)
 	}
 
 	// Find all the maps referenced by the program, so we'll rewrite only

@@ -80,6 +80,9 @@ func (s *Sensor) loadMap(bpfDir string, loaderCache *loaderCache, m *program.Map
 				mapSpec.InnerMap.MaxEntries = innerMax
 			}
 		}
+
+		// Apply or clear BPF_F_NO_PREALLOC flag based on map configuration.
+		mapSpec.Flags = m.GetPreallocFlags(mapSpec.Flags)
 	} else {
 		// If map is NOT the owner we follow the maximum entries
 		// of the pinned map and update the spec with that.
@@ -109,7 +112,7 @@ func (s *Sensor) loadMap(bpfDir string, loaderCache *loaderCache, m *program.Map
 		return fmt.Errorf("failed to load map '%s' for sensor '%s': %w", m.Name, s.Name, err)
 	}
 
-	l.Debug("tetragon, map loaded.", "sensor", s.Name, "map", m.Name, "path", pinPath, "max", m.Entries)
+	l.Debug("tetragon, map loaded.", "sensor", s.Name, "map", m.Name, "path", pinPath, "max", m.Entries, "noprealloc", m.NoPrealloc)
 
 	return nil
 }
