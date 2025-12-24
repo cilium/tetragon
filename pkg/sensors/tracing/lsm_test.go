@@ -29,6 +29,7 @@ import (
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
@@ -154,6 +155,98 @@ spec:
 		sensi = append(sensi, s)
 	}
 	sensors.UnloadSensors(sensi)
+}
+
+func TestLSMCgTrackerMap(t *testing.T) {
+	if !bpf.HasLSMPrograms() || !config.EnableLargeProgs() {
+		t.Skip()
+	}
+
+	// Store original setting to restore later
+	originalCgTrackerID := option.Config.EnableCgTrackerID
+	defer func() {
+		option.Config.EnableCgTrackerID = originalCgTrackerID
+	}()
+
+	// Define our test policy
+	configHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "lsm-cgtracker-test"
+spec:
+  lsmhooks:
+  - hook: "file_open"
+    args:
+      - index: 0
+        type: "file"
+`
+	configHookRaw := []byte(configHook)
+	err := os.WriteFile(testConfigFile, configHookRaw, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	// Test both cases: disabled and enabled cgtracker
+	testCases := []struct {
+		name            string
+		enableCgTracker bool
+		expectMapFound  bool
+	}{
+		{
+			name:            "With EnableCgTrackerID = false",
+			enableCgTracker: false,
+			expectMapFound:  false,
+		},
+		{
+			name:            "With EnableCgTrackerID = true",
+			enableCgTracker: true,
+			expectMapFound:  true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Apply the test case configuration
+			option.Config.EnableCgTrackerID = tc.enableCgTracker
+			t.Logf("Running with EnableCgTrackerID = %v", option.Config.EnableCgTrackerID)
+
+			// Load sensors with current config
+			sens, err := observertesthelper.GetDefaultSensorsWithFile(
+				t, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+			if err != nil {
+				t.Fatalf("GetDefaultSensorsWithFile error: %s", err)
+			}
+
+			// Verify map presence matches expectations
+			mapFound := false
+			for _, sensor := range sens {
+				for _, m := range sensor.Maps {
+					if m.Name == "tg_cgtracker_map" {
+						mapFound = true
+						t.Logf("Found tg_cgtracker_map in sensor %s", sensor.Name)
+						break
+					}
+				}
+				if mapFound {
+					break
+				}
+			}
+
+			if tc.expectMapFound {
+				require.True(t, mapFound, "tg_cgtracker_map should be present when EnableCgTrackerID is true")
+			} else {
+				require.False(t, mapFound, "tg_cgtracker_map should NOT be present when EnableCgTrackerID is false")
+			}
+
+			// Clean up sensors before next test case
+			sensi := make([]sensors.SensorIface, 0, len(sens))
+			for _, s := range sens {
+				sensi = append(sensi, s)
+			}
+			sensors.UnloadSensors(sensi)
+		})
+	}
 }
 
 func TestLSMOpenFile(t *testing.T) {
