@@ -2005,6 +2005,12 @@ func getWriteChecker(t *testing.T, path, flags string) ec.MultiEventChecker {
 }
 
 func TestKprobeObjectFileWrite(t *testing.T) {
+	rbSize := option.Config.RBSize
+	option.Config.RBSize = 10 * 1024 * 1024 // 10M
+	t.Cleanup(func() {
+		option.Config.RBSize = rbSize
+	})
+
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFileWriteHook(pidStr)
@@ -2019,6 +2025,12 @@ func TestKprobeObjectFileWriteFiltered(t *testing.T) {
 }
 
 func TestKprobeObjectFileWriteMount(t *testing.T) {
+	rbSize := option.Config.RBSize
+	option.Config.RBSize = 10 * 1024 * 1024 // 10M
+	t.Cleanup(func() {
+		option.Config.RBSize = rbSize
+	})
+
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFileWriteHook(pidStr)
@@ -2207,12 +2219,24 @@ func TestMultipleMountsFiltered(t *testing.T) {
 }
 
 func TestMultiplePathComponents(t *testing.T) {
+	rbSize := option.Config.RBSize
+	option.Config.RBSize = 10 * 1024 * 1024 // 10M
+	t.Cleanup(func() {
+		option.Config.RBSize = rbSize
+	})
+
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	hook := testKprobeObjectFileWriteHook(pidStr)
 	testMultiplePathComponentsFiltered(t, hook)
 }
 
 func TestMultipleMountPath(t *testing.T) {
+	rbSize := option.Config.RBSize
+	option.Config.RBSize = 10 * 1024 * 1024 // 10M
+	t.Cleanup(func() {
+		option.Config.RBSize = rbSize
+	})
+
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	readHook := testKprobeObjectFileWriteHook(pidStr)
 	testMultipleMountPathFiltered(t, readHook)
