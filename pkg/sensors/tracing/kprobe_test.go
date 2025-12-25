@@ -2032,7 +2032,7 @@ func TestKprobeObjectFileWriteMountFiltered(t *testing.T) {
 	testKprobeObjectFiltered(t, readHook, getWriteChecker(t, filepath.Join(dir, "testfile"), ""), true, dir, false, syscall.O_RDWR, 0x770)
 }
 
-func corePathTest(t *testing.T, filePath string, readHook string, writeChecker ec.MultiEventChecker) {
+func corePathTest(t *testing.T, filePath string, hook string, writeChecker ec.MultiEventChecker) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -2047,7 +2047,7 @@ func corePathTest(t *testing.T, filePath string, readHook string, writeChecker e
 	}
 	syscall.Close(fd)
 
-	readConfigHook := []byte(readHook)
+	readConfigHook := []byte(hook)
 	err := os.WriteFile(testConfigFile, readConfigHook, 0644)
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
@@ -2074,7 +2074,7 @@ func corePathTest(t *testing.T, filePath string, readHook string, writeChecker e
 	require.NoError(t, err)
 }
 
-func testMultipleMountsFiltered(t *testing.T, readHook string) {
+func testMultipleMountsFiltered(t *testing.T, hook string) {
 	var pathStack []string
 
 	// let's create /tmp2/tmp3/tmp4/tmp5 where each dir is a mount point
@@ -2110,10 +2110,10 @@ func testMultipleMountsFiltered(t *testing.T, readHook string) {
 
 	writeChecker := getWriteChecker(t, "/tmp2/tmp3/tmp4/tmp5/testfile", "")
 
-	corePathTest(t, filePath, readHook, writeChecker)
+	corePathTest(t, filePath, hook, writeChecker)
 }
 
-func testMultiplePathComponentsFiltered(t *testing.T, readHook string) {
+func testMultiplePathComponentsFiltered(t *testing.T, hook string) {
 	path := "/tmp"
 
 	// let's create /tmp/0/.. 32*8 where each dir is a directory
@@ -2137,10 +2137,10 @@ func testMultiplePathComponentsFiltered(t *testing.T, readHook string) {
 	if config.EnableLargeProgs() {
 		writeChecker = getWriteChecker(t, filePath, "")
 	}
-	corePathTest(t, filePath, readHook, writeChecker)
+	corePathTest(t, filePath, hook, writeChecker)
 }
 
-func testMultipleMountPathFiltered(t *testing.T, readHook string) {
+func testMultipleMountPathFiltered(t *testing.T, hook string) {
 	var pathStack []string
 	var dirStack []string
 	path := "/"
@@ -2197,7 +2197,7 @@ func testMultipleMountPathFiltered(t *testing.T, readHook string) {
 
 	filePath := path + "/testfile"
 	writeChecker := getWriteChecker(t, "/tmp2/tmp3/tmp4/tmp5/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/testfile", "")
-	corePathTest(t, filePath, readHook, writeChecker)
+	corePathTest(t, filePath, hook, writeChecker)
 }
 
 func TestMultipleMountsFiltered(t *testing.T) {
@@ -2208,8 +2208,8 @@ func TestMultipleMountsFiltered(t *testing.T) {
 
 func TestMultiplePathComponents(t *testing.T) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
-	readHook := testKprobeObjectFileWriteHook(pidStr)
-	testMultiplePathComponentsFiltered(t, readHook)
+	hook := testKprobeObjectFileWriteHook(pidStr)
+	testMultiplePathComponentsFiltered(t, hook)
 }
 
 func TestMultipleMountPath(t *testing.T) {
