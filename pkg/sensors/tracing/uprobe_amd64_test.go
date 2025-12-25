@@ -589,7 +589,7 @@ spec:
 }
 
 func testUprobePtRegsPreloadSubstring(t *testing.T, str string, fail bool) {
-	if !bpf.HasKfunc("bpf_copy_from_user_str") {
+	if !bpf.HasKfunc("bpf_copy_from_user_str") || !bpf.HasKfunc("bpf_strnstr") {
 		t.Skip("skipping")
 	}
 
@@ -683,7 +683,7 @@ func TestUprobePtRegsPreloadSubstringNotMatch(t *testing.T) {
 }
 
 func testUprobePtRegsPreloadSubstringOverride(t *testing.T, single bool) {
-	if !bpf.HasKfunc("bpf_copy_from_user_str") {
+	if !bpf.HasKfunc("bpf_copy_from_user_str") || !bpf.HasKfunc("bpf_strnstr") {
 		t.Skip("skipping")
 	}
 
