@@ -63,6 +63,72 @@ func TestMain(m *testing.M) {
 	os.Exit(ec)
 }
 
+func TestObserverSingle(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserver error: %s", err)
+	}
+
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	t.Run("TestEventExitThreads", testEventExitThreads)
+	t.Run("TestEventExecve", testEventExecve)
+	t.Run("TestEventExecveWithUsername", testEventExecveWithUsername)
+	t.Run("TestEventExecveLongPath", testEventExecveLongPath)
+	t.Run("TestEventExecveLongArgs", testEventExecveLongArgs)
+	t.Run("TestEventExecveLongPathLongArgs", testEventExecveLongPathLongArgs)
+	t.Run("TestExecProcessCredentials", testExecProcessCredentials)
+	t.Run("TestExecProcessCredentialsSuidRootNoPrivsChange", testExecProcessCredentialsSuidRootNoPrivsChange)
+	t.Run("TestExecProcessCredentialsSetgidChanges", testExecProcessCredentialsSetgidChanges)
+	t.Run("TestExecProcessCredentialsSetuidChanges", testExecProcessCredentialsSetuidChanges)
+	t.Run("TestExecProcessCredentialsFileCapChanges", testExecProcessCredentialsFileCapChanges)
+	t.Run("TestExecInodeNotDeleted", testExecInodeNotDeleted)
+	t.Run("TestExecDeletedBinaryMemfd", testExecDeletedBinaryMemfd)
+	t.Run("TestExecDeletedBinary", testExecDeletedBinary)
+	t.Run("TestExit", testExit)
+	t.Run("TestExitLeader", testExitLeader)
+	t.Run("TestExitZombie", testExitZombie)
+	t.Run("TestExitCode", testExitCode)
+	t.Run("TestExitSignal", testExitSignal)
+	t.Run("TestFork", testFork)
+	t.Run("TestCloneThreadsTester", testCloneThreadsTester)
+	t.Run("TestExecThreads", testExecThreads)
+}
+
+func TestObserverEnvs(t *testing.T) {
+	if !config.EnableLargeProgs() {
+		t.Skip("Older kernels do not support environment variables in exec events.")
+	}
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	// Enable nevironment variables
+	option.Config.EnableProcessEnvironmentVariables = true
+
+	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserver error: %s", err)
+	}
+
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	t.Run("TestEventExecveEnvs", testEventExecveEnvs)
+	t.Run("TestEventExecveEnvsFilter", testEventExecveEnvsFilter)
+	t.Run("TestEventExecveEnvsFilterRedact", testEventExecveEnvsFilterRedact)
+}
+
 func Test_msgToExecveKubeUnix(t *testing.T) {
 	event := processapi.MsgExecveEvent{}
 	idLength := procevents.BpfContainerIdLength
@@ -170,20 +236,7 @@ func TestNamespaces(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestEventExitThreads(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("Failed to run observer: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
+func testEventExitThreads(t *testing.T) {
 	testThreadsExit := testutils.RepoRootPath("contrib/tester-progs/threads-exit")
 
 	// array of all pids we shuold receive in exet events
@@ -249,26 +302,13 @@ func TestEventExitThreads(t *testing.T) {
 
 	checker := testsensor.NewTestChecker(&checker_)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 
 	require.True(t, seenAll, "did not see all exit events")
 }
 
-func TestEventExecve(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("Failed to run observer: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
+func testEventExecve(t *testing.T) {
 	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
 
 	myCaps := ec.NewCapabilitiesChecker().FromCapabilities(caps.GetCurrentCapabilities())
@@ -286,16 +326,11 @@ func TestEventExecve(t *testing.T) {
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
-func TestEventExecveWithUsername(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
+func testEventExecveWithUsername(t *testing.T) {
 	option.Config.UsernameMetadata = int(option.USERNAME_METADATA_UNIX)
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 	err := confmap.UpdateTgRuntimeConf(bpf.MapPrefixPath(), os.Getpid())
@@ -306,12 +341,6 @@ func TestEventExecveWithUsername(t *testing.T) {
 		!ns.Mnt.IsHost || !ns.User.IsHost {
 		t.Skip()
 	}
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("Failed to run observer: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
 
 	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
 
@@ -339,10 +368,7 @@ func TestEventExecveWithUsername(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestEventExecveLongPath(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
+func testEventExecveLongPath(t *testing.T) {
 	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
 
 	// create dir portion of path
@@ -383,11 +409,11 @@ func TestEventExecveLongPath(t *testing.T) {
 		}
 	}
 
-	t.Cleanup(func() {
+	defer func() {
 		if err := os.RemoveAll(baseDir); err != nil {
 			t.Fatalf("Failed to remove test dir: %s", err)
 		}
-	})
+	}()
 
 	// and link nop binary into the testBin
 	if err := testutils.CopyFile(testBin, testNop, 0755); err != nil {
@@ -401,40 +427,17 @@ func TestEventExecveLongPath(t *testing.T) {
 	execChecker := ec.NewProcessExecChecker("").WithProcess(procChecker)
 	checker := ec.NewUnorderedEventChecker(execChecker)
 
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("Failed to run observer: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
 	fmt.Printf("Exec: '%s arg1 arg2 arg3'\n", testBin)
 
 	if err := exec.Command(testBin, "arg1", "arg2", "arg3").Run(); err != nil {
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
-func TestEventExecveLongArgs(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("Failed to run observer: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
+func testEventExecveLongArgs(t *testing.T) {
 	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
 
 	// prepare args
@@ -464,14 +467,11 @@ func TestEventExecveLongArgs(t *testing.T) {
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
-func TestEventExecveLongPathLongArgs(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
+func testEventExecveLongPathLongArgs(t *testing.T) {
 	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
 
 	// create dir portion of path
@@ -512,11 +512,11 @@ func TestEventExecveLongPathLongArgs(t *testing.T) {
 		}
 	}
 
-	t.Cleanup(func() {
+	defer func() {
 		if err := os.RemoveAll(baseDir); err != nil {
 			t.Fatalf("Failed to remove test dir: %s", err)
 		}
-	})
+	}()
 
 	// and link nop binary into the testBin
 	if err := testutils.CopyFile(testBin, testNop, 0755); err != nil {
@@ -546,23 +546,13 @@ func TestEventExecveLongPathLongArgs(t *testing.T) {
 	execChecker := ec.NewProcessExecChecker("").WithProcess(procChecker)
 	checker := ec.NewUnorderedEventChecker(execChecker)
 
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("Failed to run observer: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
 	fmt.Printf("Exec: '%s %s %s %s'\n", testBin, testArg1, testArg2, testArg3)
 
 	if err := exec.Command(testBin, testArg1, testArg2, testArg3).Run(); err != nil {
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -1151,20 +1141,7 @@ func TestExecParse(t *testing.T) {
 }
 
 // Tests process.process_credentials
-func TestExecProcessCredentials(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("Failed to run observer: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
+func testExecProcessCredentials(t *testing.T) {
 	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
 
 	if err := exec.Command(testNop).Run(); err != nil {
@@ -1176,12 +1153,12 @@ func TestExecProcessCredentials(t *testing.T) {
 	if err := syscall.Setegid(int(gid)); err != nil {
 		t.Fatalf("setegid(%d) error: %s", gid, err)
 	}
-	t.Cleanup(func() {
+	defer func() {
 		// Restores all gids since we retain capabilities
-		if err = syscall.Setgid(oldGid); err != nil {
+		if err := syscall.Setgid(oldGid); err != nil {
 			t.Fatalf("Failed to restore gid to %d :  %s\n", oldGid, err)
 		}
-	})
+	}()
 
 	myCaps := ec.NewCapabilitiesChecker().FromCapabilities(caps.GetCurrentCapabilities())
 	myNs := ec.NewNamespacesChecker().FromNamespaces(namespace.GetCurrentNamespace())
@@ -1215,39 +1192,25 @@ func TestExecProcessCredentials(t *testing.T) {
 
 	checker := ec.NewUnorderedEventChecker(execChecker, execGidChecker, exitChecker, exitGidChecker)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
 // Test ensures that running as fully privileged root and executing a setuid or
 // setgid to root does not generate a binary_properties setuid field nor privs_changed fields.
-func TestExecProcessCredentialsSuidRootNoPrivsChange(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("Failed to run observer: %s", err)
-	}
-
+func testExecProcessCredentialsSuidRootNoPrivsChange(t *testing.T) {
 	testBin := testutils.RepoRootPath("contrib/tester-progs/nop")
 	// We should be able to create suid on local mount point
 	testSuid := testutils.RepoRootPath("contrib/tester-progs/suidnop")
 	if err := testutils.CopyFile(testSuid, testBin, 0754|os.ModeSetuid|os.ModeSetgid); err != nil {
 		t.Fatalf("Failed to copy binary: %s", err)
 	}
-	t.Cleanup(func() {
+	defer func() {
 		err := os.Remove(testSuid)
 		if err != nil {
 			t.Logf("Error failed to cleanup '%s'", testSuid)
 		}
-	})
-
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
+	}()
 
 	noCredsChange := ec.NewProcessCredentialsChecker().
 		WithUid(0).WithEuid(0).WithSuid(0).WithFsuid(0).
@@ -1275,7 +1238,7 @@ func TestExecProcessCredentialsSuidRootNoPrivsChange(t *testing.T) {
 	}
 
 	checker := ec.NewUnorderedEventChecker(execNoPrivilegesChangedChecker, execSetuidRootNoPrivilegesChangedChecker)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -1289,18 +1252,7 @@ func TestExecProcessCredentialsSuidRootNoPrivsChange(t *testing.T) {
 //     to assert that binary execution detects the setgid bit but we do
 //     not report as a privilege changed execution as the target group
 //     is not root.
-func TestExecProcessCredentialsSetgidChanges(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("Failed to run observer: %s", err)
-	}
-
+func testExecProcessCredentialsSetgidChanges(t *testing.T) {
 	testBin := testutils.RepoRootPath("contrib/tester-progs/nop")
 	// We should be able to create suid on local mount point
 	testSuid := testutils.RepoRootPath("contrib/tester-progs/suidnop")
@@ -1308,25 +1260,22 @@ func TestExecProcessCredentialsSetgidChanges(t *testing.T) {
 		t.Fatalf("Failed to copy binary: %s", err)
 	}
 
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
 	oldGid := syscall.Getgid()
 	/* Executing a setgid to root with current gid as normal not root */
 	gid := 1879048188
 	if err := syscall.Setgid(gid); err != nil {
 		t.Fatalf("setgid(%d) error: %s", gid, err)
 	}
-	t.Cleanup(func() {
+	defer func() {
 		// Restore old gid
-		if err = syscall.Setgid(oldGid); err != nil {
+		if err := syscall.Setgid(oldGid); err != nil {
 			t.Fatalf("Failed to restore gid to %d :  %s\n", oldGid, err)
 		}
 		err := os.Remove(testSuid)
 		if err != nil {
 			t.Logf("Error failed to cleanup '%s'", testSuid)
 		}
-	})
+	}()
 
 	noGidCredsChanged := ec.NewProcessCredentialsChecker().
 		WithUid(0).WithEuid(0).WithSuid(0).WithFsuid(0).
@@ -1394,7 +1343,7 @@ func TestExecProcessCredentialsSetgidChanges(t *testing.T) {
 	}
 
 	checker := ec.NewUnorderedEventChecker(execNoGidsCredsChangedChecker, execSetgidRootChecker, exitSetgidRootChecker, execSetgidNoRootChecker, exitSetgidNoRootChecker)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
@@ -1406,18 +1355,7 @@ func TestExecProcessCredentialsSetgidChanges(t *testing.T) {
 //  2. executes a set-user-ID to root binary asserting that we detect
 //     the setuid bit set + the privileges changed due to the setuid bit
 //     being set to root.
-func TestExecProcessCredentialsSetuidChanges(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("Failed to run observer: %s", err)
-	}
-
+func testExecProcessCredentialsSetuidChanges(t *testing.T) {
 	testBin := testutils.RepoRootPath("contrib/tester-progs/nop")
 	// The drop-privileges is a helper binary that drops privileges so we do not
 	// drop it inside this test which will break the test framework.
@@ -1432,15 +1370,12 @@ func TestExecProcessCredentialsSetuidChanges(t *testing.T) {
 	if err := testutils.CopyFile(testSuid, testBin, 0755|os.ModeSetuid|os.ModeSetgid); err != nil {
 		t.Fatalf("Failed to copy binary: %s", err)
 	}
-	t.Cleanup(func() {
+	defer func() {
 		err := os.Remove(testSuid)
 		if err != nil {
 			t.Logf("Error failed to cleanup '%s'", testSuid)
 		}
-	})
-
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
+	}()
 
 	gid := 1879048188
 	if err := os.Chown(testSuid, gid, gid); err != nil {
@@ -1485,12 +1420,12 @@ func TestExecProcessCredentialsSetuidChanges(t *testing.T) {
 	// chaning the uid here. The testDrop binary will execute su binary as we are sure
 	// its path allows to exec into directory but also execute the su binary.
 	// The result is based on the su binary being detected as a privilege_changed execution.
-	testCmd := exec.CommandContext(ctx, testDrop, testSu, "--help")
+	testCmd := exec.Command(testDrop, testSu, "--help")
 	if err := testCmd.Start(); err != nil {
 		t.Fatal(err)
 	}
 	if err := testCmd.Wait(); err != nil {
-		t.Fatalf("command failed with %s. Context error: %v", err, ctx.Err())
+		t.Fatalf("command failed with %s", err)
 	}
 
 	checker := ec.NewUnorderedEventChecker(execSetuidNoRootChecker, exitSetuidNoRootChecker, execSetuidRootChecker, exitSetuidRootChecker)
@@ -1499,18 +1434,7 @@ func TestExecProcessCredentialsSetuidChanges(t *testing.T) {
 }
 
 // Detect execution of binaries with file capability sets
-func TestExecProcessCredentialsFileCapChanges(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("Failed to run observer: %s", err)
-	}
-
+func testExecProcessCredentialsFileCapChanges(t *testing.T) {
 	// The drop-privileges is a helper binary that drops privileges so we do not
 	// drop it inside this test which will break the test framework.
 	testDrop := testutils.RepoRootPath("contrib/tester-progs/drop-privileges")
@@ -1527,9 +1451,6 @@ func TestExecProcessCredentialsFileCapChanges(t *testing.T) {
 	if ret == 0 {
 		t.Skipf("Skipping test 'security.capability' xattr is not set on binary '%s'", testPing)
 	}
-
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
 
 	gid := 1879048188
 	privsChangedRaiseFscaps := ec.NewProcessPrivilegesChangedListMatcher().WithOperator(lc.Ordered).
@@ -1549,12 +1470,12 @@ func TestExecProcessCredentialsFileCapChanges(t *testing.T) {
 	// changing the uid here. The testDrop binary will execute ping binary as we are sure
 	// its path allows to exec into directory but also execute the ping binary.
 	// The result is based on the ping binary being detected as a privilege_changed execution.
-	testCmd := exec.CommandContext(ctx, testDrop, testPing, "-V")
+	testCmd := exec.Command(testDrop, testPing, "-V")
 	if err := testCmd.Start(); err != nil {
 		t.Fatal(err)
 	}
 	if err := testCmd.Wait(); err != nil {
-		t.Fatalf("command failed with %s. Context error: %v", err, ctx.Err())
+		t.Fatalf("command failed with %s", err)
 	}
 
 	checker := ec.NewUnorderedEventChecker(execChecker, exitChecker)
@@ -1562,21 +1483,7 @@ func TestExecProcessCredentialsFileCapChanges(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestExecInodeNotDeleted(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
-	}
-
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
+func testExecInodeNotDeleted(t *testing.T) {
 	strId := "tetragon-test-memfd"
 	if err := exec.Command("/bin/true", strId).Run(); err != nil {
 		t.Fatalf("command failed: %s", err)
@@ -1590,22 +1497,11 @@ func TestExecInodeNotDeleted(t *testing.T) {
 				WithBinaryProperties(nil)),
 	)
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
-func TestExecDeletedBinaryMemfd(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
-	}
-
+func testExecDeletedBinaryMemfd(t *testing.T) {
 	// Get an anonymous shm
 	strId := "tetragon-test-memfd"
 	fd, err := unix.MemfdCreate(strId, 0)
@@ -1634,9 +1530,6 @@ func TestExecDeletedBinaryMemfd(t *testing.T) {
 		t.Fatalf("Error write() to memfd file: %v", err)
 	}
 
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
 	// Execute from memory
 	if err := exec.Command(execPath, strId).Run(); err != nil {
 		t.Fatalf("command failed: %s", err)
@@ -1662,18 +1555,7 @@ func TestExecDeletedBinaryMemfd(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestExecDeletedBinary(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
-	}
-
+func testExecDeletedBinary(t *testing.T) {
 	testDir := t.TempDir()
 	// Copy /bin/true
 	truePath := "/bin/true"
@@ -1705,9 +1587,6 @@ func TestExecDeletedBinary(t *testing.T) {
 	if err := syscall.Stat(execPath, &stat); err != nil {
 		t.Fatalf("Error stat() file %s: %v", execPath, err)
 	}
-
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
 
 	// Execute from fd
 	strId := "tetragon-test-execfd-deleted-inode"
@@ -1788,27 +1667,7 @@ func TestThrottle2(t *testing.T) {
 }
 
 // Verify that we get all the process environment variables
-func TestEventExecveEnvs(t *testing.T) {
-	if !config.EnableLargeProgs() {
-		t.Skip("Older kernels do not support environment variables in exec events.")
-	}
-
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	// Enable nevironment variables
-	option.Config.EnableProcessEnvironmentVariables = true
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("Failed to run observer: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
+func testEventExecveEnvs(t *testing.T) {
 	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
 
 	procChecker := ec.NewProcessChecker().
@@ -1829,36 +1688,16 @@ func TestEventExecveEnvs(t *testing.T) {
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
 // Verify that we get only filtered environment variables
-func TestEventExecveEnvsFilter(t *testing.T) {
-	if !config.EnableLargeProgs() {
-		t.Skip("Older kernels do not support environment variables in exec events.")
-	}
-
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	// Enable nevironment variables
-	option.Config.EnableProcessEnvironmentVariables = true
-
+func testEventExecveEnvsFilter(t *testing.T) {
 	// Set filter for TEST_VAR1 and TEST_VAR2 variables
 	option.Config.FilterEnvironmentVariables = make(map[string]struct{})
 	option.Config.FilterEnvironmentVariables["TEST_VAR1"] = struct{}{}
 	option.Config.FilterEnvironmentVariables["TEST_VAR2"] = struct{}{}
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("Failed to run observer: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
 
 	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
 
@@ -1880,26 +1719,13 @@ func TestEventExecveEnvsFilter(t *testing.T) {
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
 
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err := jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 }
 
 // Verify that we get only filtered environment variable
 // with redacted value.
-func TestEventExecveEnvsFilterRedact(t *testing.T) {
-	if !config.EnableLargeProgs() {
-		t.Skip("Older kernels do not support environment variables in exec events.")
-	}
-
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	// Enable nevironment variables
-	option.Config.EnableProcessEnvironmentVariables = true
-
+func testEventExecveEnvsFilterRedact(t *testing.T) {
 	// Set filter for TEST_VAR1 variable
 	option.Config.FilterEnvironmentVariables = make(map[string]struct{})
 	option.Config.FilterEnvironmentVariables["TEST_VAR1"] = struct{}{}
@@ -1909,13 +1735,6 @@ func TestEventExecveEnvsFilterRedact(t *testing.T) {
 	// Set redaction for TEST_VAR1 variable
 	fieldfilters.RedactionFilters, err = fieldfilters.ParseRedactionFilterList(`{"redact": ["(?:TEST_VAR1)[\\s=]+(\\S+)"]}`)
 	require.NoError(t, err)
-
-	obs, err := observertesthelper.GetDefaultObserver(t, ctx, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("Failed to run observer: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
 
 	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
 
