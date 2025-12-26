@@ -14,6 +14,10 @@
 #include "generic_path.h"
 #include "bpf_ktime.h"
 #include "regs.h"
+#include "msg.h"
+#include "execve_map.h"
+#include "config.h"
+#include "uprobe_preload.h"
 
 #define MAX_TOTAL 9000
 
@@ -190,46 +194,44 @@ nodata:
 #define copy_iov_iter(ctx, orig_off, arg, argm, e) 0
 #endif /* __LARGE_BPF_PROG */
 
-/**
- * Read a generic argument
- *
- * @args: destination buffer for the generic argument
- * @type: type of the argument
- * @off: offset of the argument within @args
- * @arg: argument location (generally, address of the argument)
- * @argm: argument metadata. The meaning of this depends on the @type. Some
- *        types use a -1 to designate saving @arg into the retprobe map
- * @filter_map:
- *
- * Returns the size of data appended to @args.
- */
-FUNC_INLINE long
-read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int argm)
+FUNC_INLINE bool is_read_arg_1(long type)
 {
-	size_t min_size = type_to_min_size(type, argm);
+	switch (type) {
+	case iov_iter_type:
+	case fd_ty:
+	case filename_ty:
+	case string_type:
+	case net_dev_ty:
+	case data_loc_type:
+	case syscall64_type:
+	case size_type:
+	case s64_ty:
+	case u64_ty:
+	case int_type:
+	case s32_ty:
+	case u32_ty:
+	case s16_ty:
+	case u16_ty:
+	case s8_ty:
+	case u8_ty:
+	case skb_type:
+	case sock_type:
+	case sockaddr_type:
+		return true;
+	}
+	return false;
+}
+
+FUNC_INLINE long
+__read_arg_1(void *ctx, int type, long orig_off, unsigned long arg, int argm, char *args)
+{
 	struct msg_generic_kprobe *e;
-	char *args;
 	long size = -1;
-	const struct path *path_arg = 0;
-	struct path path_buf;
 	int zero = 0;
 
 	e = map_lookup_elem(&process_call_heap, &zero);
 	if (!e)
 		return 0;
-
-	if (orig_off >= 16383 - min_size)
-		return 0;
-
-	orig_off &= 16383;
-	args = args_off(e, orig_off);
-
-	/* Cache args offset for filter use later */
-	e->argsoff[index & MAX_SELECTORS_MASK] = orig_off;
-
-	path_arg = get_path(type, arg, &path_buf);
-	if (path_arg)
-		return copy_path(args, path_arg);
 
 	switch (type) {
 	case iov_iter_type:
@@ -326,6 +328,25 @@ read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int a
 	case sockaddr_type:
 		size = copy_sockaddr(args, arg);
 		break;
+	default:
+		size = 0;
+		break;
+	}
+	return size;
+}
+
+FUNC_INLINE long
+__read_arg_2(void *ctx, int type, long orig_off, unsigned long arg, int argm, char *args)
+{
+	struct msg_generic_kprobe *e;
+	long size = -1;
+	int zero = 0;
+
+	e = map_lookup_elem(&process_call_heap, &zero);
+	if (!e)
+		return 0;
+
+	switch (type) {
 	case socket_type:
 		size = copy_socket(args, arg);
 		// Look up socket in our sock->pid_tgid map
@@ -392,6 +413,58 @@ read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int a
 	return size;
 }
 
+/**
+ * Read a generic argument
+ *
+ * @args: destination buffer for the generic argument
+ * @type: type of the argument
+ * @off: offset of the argument within @args
+ * @arg: argument location (generally, address of the argument)
+ * @argm: argument metadata. The meaning of this depends on the @type. Some
+ *        types use a -1 to designate saving @arg into the retprobe map
+ * @filter_map:
+ *
+ * Returns the size of data appended to @args.
+ */
+FUNC_INLINE long
+read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int argm, int process)
+{
+	size_t min_size = type_to_min_size(type, argm);
+	struct msg_generic_kprobe *e;
+	char *args;
+	const struct path *path_arg = 0;
+	struct path path_buf;
+	long size = -1;
+	int zero = 0;
+
+	e = map_lookup_elem(&process_call_heap, &zero);
+	if (!e)
+		return 0;
+
+	if (orig_off >= 16383 - min_size)
+		return 0;
+
+	orig_off &= 16383;
+	args = args_off(e, orig_off);
+
+	/* Cache args offset for filter use later */
+	e->argsoff[index & MAX_SELECTORS_MASK] = orig_off;
+
+	path_arg = get_path(type, arg, &path_buf);
+	if (path_arg)
+		return copy_path(args, path_arg);
+
+	if (process == __READ_ARG_1)
+		return __read_arg_1(ctx, type, orig_off, arg, argm, args);
+	if (process == __READ_ARG_2)
+		return __read_arg_2(ctx, type, orig_off, arg, argm, args);
+
+	size = __read_arg_1(ctx, type, orig_off, arg, argm, args);
+	if (!size)
+		size = __read_arg_2(ctx, type, orig_off, arg, argm, args);
+	return size;
+}
+
 FUNC_INLINE int
 extract_arg_depth(u32 i, struct extract_arg_data *data)
 {
@@ -420,15 +493,16 @@ FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned lo
 			.btf_config = btf_config,
 			.arg = a,
 		};
-#ifndef __V61_BPF_PROG
+
+		if (CONFIG(LOOP)) {
+			loop(MAX_BTF_ARG_DEPTH, extract_arg_depth, &extract_data, 0);
+		} else {
 #pragma unroll
-		for (int i = 0; i < MAX_BTF_ARG_DEPTH; ++i) {
-			if (extract_arg_depth(i, &extract_data))
-				break;
+			for (int i = 0; i < MAX_BTF_ARG_DEPTH; ++i) {
+				if (extract_arg_depth(i, &extract_data))
+					break;
+			}
 		}
-#else
-		loop(MAX_BTF_ARG_DEPTH, extract_arg_depth, &extract_data, 0);
-#endif /* __V61_BPF_PROG */
 	}
 }
 #else
@@ -495,7 +569,32 @@ FUNC_INLINE long get_pt_regs_arg(struct pt_regs *ctx, struct event_config *confi
 }
 #endif /* __TARGET_ARCH_x86 && (GENERIC_KPROBE || GENERIC_UPROBE) */
 
-FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map_def *tailcals)
+#if defined(GENERIC_UPROBE) && defined(__TARGET_ARCH_x86)
+FUNC_INLINE unsigned long get_pt_regs_preload_arg(struct pt_regs *ctx, long ty)
+{
+	unsigned long arg = 0;
+
+	if (ty == string_type) {
+		arg = preload_string_arg(ctx);
+
+		// Make verifier to believe it's just an ordinary number and not
+		// a pointer to the map. The rest of the argument code might do
+		// some arithmetics on it which would fail for pointer, but it's
+		// always using probe_read, so it's safe.
+		probe_read(&arg, sizeof(arg), &arg);
+	}
+
+	return arg;
+}
+#else
+FUNC_INLINE long get_pt_regs_preload_arg(struct pt_regs *ctx, long ty)
+{
+	return 0;
+}
+#endif
+
+FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map_def *tailcals,
+				  int process)
 {
 	struct msg_generic_kprobe *e;
 	struct event_config *config;
@@ -517,6 +616,13 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 	ty = config->arg[index];
 	am = config->arm[index];
 
+#ifndef __LARGE_BPF_PROG
+#if defined(GENERIC_KPROBE) || defined(GENERIC_UPROBE)
+	if (!is_read_arg_1(ty) && process == __READ_ARG_1)
+		tail_call(ctx, tailcals, TAIL_CALL_PROCESS_2);
+#endif
+#endif
+
 #if defined(GENERIC_TRACEPOINT) || defined(GENERIC_USDT)
 	a = (&e->a0)[index];
 	extract_arg(config, index, &a);
@@ -529,11 +635,14 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 	/* Getting argument data based on the source attribute, which is encoded
 	 * in argument meta data, so far it's either:
 	 *
+	 *   - pt_regs preloaded register
 	 *   - pt_regs register
 	 *   - current task object
 	 *   - real argument value
 	 */
-	if (am & ARGM_PT_REGS)
+	if (am & ARGM_PT_REGS_PRELOAD)
+		a = get_pt_regs_preload_arg(ctx, ty);
+	else if (am & ARGM_PT_REGS)
 		a = get_pt_regs_arg(ctx, config, arg_index);
 	else if (am & ARGM_CURRENT_TASK)
 		a = get_current_task();
@@ -546,11 +655,11 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 		return generic_path_offload(ctx, ty, a, index, off, tailcals);
 #endif
 
-	return read_arg(ctx, index, ty, off, a, am);
+	return read_arg(ctx, index, ty, off, a, am, process);
 }
 
 FUNC_INLINE int
-generic_process_event(void *ctx, struct bpf_map_def *tailcals)
+generic_process_event(void *ctx, struct bpf_map_def *tailcals, int process)
 {
 	struct msg_generic_kprobe *e;
 	int index, zero = 0;
@@ -567,7 +676,7 @@ generic_process_event(void *ctx, struct bpf_map_def *tailcals)
 	if (total < MAX_TOTAL) {
 		long errv;
 
-		errv = generic_read_arg(ctx, index, total, tailcals);
+		errv = generic_read_arg(ctx, index, total, tailcals, process);
 		if (errv > 0)
 			total += errv;
 		/* Follow filter lookup failed so lets abort the event.
@@ -1208,7 +1317,7 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 	ty_arg = config->argreturn;
 	do_copy = config->argreturncopy;
 	if (ty_arg) {
-		size += read_arg(ctx, 0, ty_arg, size, ret, 0);
+		size += read_arg(ctx, 0, ty_arg, size, ret, 0, __READ_ARG_ALL);
 #if defined(__LARGE_BPF_PROG) && defined(GENERIC_KRETPROBE)
 		struct socket_owner owner;
 

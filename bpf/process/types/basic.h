@@ -29,6 +29,7 @@
 #include "process/heap.h"
 #include "../bpf_mbset.h"
 #include "bpf_ktime.h"
+#include "config.h"
 
 /* Type IDs form API with user space generickprobe.go */
 enum {
@@ -138,6 +139,7 @@ enum {
 	TAIL_CALL_ACTIONS = 4,
 	TAIL_CALL_SEND = 5,
 	TAIL_CALL_PATH = 6,
+	TAIL_CALL_PROCESS_2 = 7,
 };
 
 struct selector_action {
@@ -578,11 +580,12 @@ FUNC_INLINE long copy_kernel_module(char *args, unsigned long arg)
 	return sizeof(struct tg_kernel_module);
 }
 
-#define ARGM_INDEX_MASK	  0xf
-#define ARGM_RETURN_COPY  BIT(4)
-#define ARGM_MAX_DATA	  BIT(5)
-#define ARGM_CURRENT_TASK BIT(6)
-#define ARGM_PT_REGS	  BIT(7)
+#define ARGM_INDEX_MASK	 	0xf
+#define ARGM_RETURN_COPY	BIT(4)
+#define ARGM_MAX_DATA		BIT(5)
+#define ARGM_CURRENT_TASK	BIT(6)
+#define ARGM_PT_REGS		BIT(7)
+#define ARGM_PT_REGS_PRELOAD	BIT(8)
 
 FUNC_INLINE bool has_return_copy(unsigned long argm)
 {
@@ -890,6 +893,33 @@ filter_char_buf_postfix(struct selector_arg_filter *filter, char *arg_str, uint 
 	return !!pass;
 }
 
+FUNC_LOCAL long
+filter_char_substring(struct selector_arg_filter *filter, char *arg_str, uint arg_len)
+{
+	__u32 *v = (__u32 *)&filter->value;
+	int i, j = 0;
+
+	for (i = 0; i < MAX_MATCH_VALUES; i++) {
+		__u32 id = v[i];
+		char *sub_str;
+		int idx;
+
+		sub_str = map_lookup_elem(&substring_map, &id);
+		if (!sub_str)
+			return 0;
+
+		idx = bpf_strnstr(arg_str, sub_str, arg_len);
+		if (idx > 0)
+			return 1;
+
+		// placed here to allow llvm unroll this loop
+		j += 4;
+		if (j + 8 >= filter->vallen)
+			break;
+	}
+	return 0;
+}
+
 FUNC_INLINE bool is_not_operator(__u32 op)
 {
 	return (op == op_filter_neq || op == op_filter_str_notprefix || op == op_filter_str_notpostfix || op == op_filter_notin);
@@ -904,6 +934,11 @@ filter_char_buf(struct selector_arg_filter *filter, char *args, int value_off)
 	char *arg_str = &args[value_off];
 
 	switch (filter->op) {
+	case op_substring:
+		if (CONFIG(SUBSTRING)) {
+			match = filter_char_substring(filter, arg_str, len);
+		}
+		break;
 	case op_filter_eq:
 	case op_filter_neq:
 		match = filter_char_buf_equal(filter, arg_str, len);

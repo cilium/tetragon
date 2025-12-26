@@ -7,6 +7,7 @@
 #include "bpf_helpers.h"
 #include "bpf_task.h"
 #include "environ_conf.h"
+#include "../process/execve_map.h"
 
 /* This function will send the cgroup events to the ring buffer */
 FUNC_INLINE int

@@ -63,7 +63,7 @@ generic_lsm_setup_event(void *ctx)
 __attribute__((section("lsm"), used)) int
 generic_lsm_process_event(void *ctx)
 {
-	return generic_process_event(ctx, (struct bpf_map_def *)&lsm_calls);
+	return generic_process_event(ctx, (struct bpf_map_def *)&lsm_calls, __READ_ARG_ALL);
 }
 
 __attribute__((section("lsm"), used)) int

@@ -46,6 +46,8 @@ enum {
 	// range
 	op_in_range = 31,
 	op_notin_range = 32,
+	// match substring
+	op_substring = 33,
 };
 
 #endif // __OPERATIONS_H__
