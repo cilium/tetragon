@@ -7,6 +7,6 @@ package selectors
 
 import "errors"
 
-func parseOverrideRegs(_ *KernelSelectorState, _ []string, _ uint64) (uint32, error) {
+func parseOverrideRegs(_ *KernelSelectorState, _ []string, _ int32) (uint32, error) {
 	return uint32(0xffffffff), errors.New("register override is not supported")
 }

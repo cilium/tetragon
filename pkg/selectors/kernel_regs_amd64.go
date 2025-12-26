@@ -13,7 +13,7 @@ import (
 	"github.com/cilium/tetragon/pkg/asm"
 )
 
-func parseOverrideRegs(k *KernelSelectorState, values []string, errValue uint64) (uint32, error) {
+func parseOverrideRegs(k *KernelSelectorState, values []string, errValue int32) (uint32, error) {
 	if len(k.regs) > 0 {
 		return uint32(0xffffffff), errors.New("only single instance of regs action is allowed")
 	}
