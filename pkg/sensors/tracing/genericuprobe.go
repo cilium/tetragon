@@ -465,6 +465,7 @@ func createGenericUprobeSensor(
 
 func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn, has *uprobeHas) ([]idtable.EntryID, error) {
 	var argRetprobe *v1alpha1.KProbeArg
+	var argRetprobeIdx int
 	var setRetprobe bool
 
 	symbols := len(spec.Symbols)
@@ -548,6 +549,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 	var allBTFArgs [api.EventConfigMaxArgs][api.MaxBTFArgDepth]api.ConfigBTFArg
 
 	addArg := func(i int, a *v1alpha1.KProbeArg, data bool) error {
+		var BTFPtrNames [api.MaxBTFArgDepth]string
 		argType := gt.GenericTypeFromString(a.Type)
 
 		if data {
@@ -563,12 +565,13 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		} else {
 			// Args specific config
 			if a.Resolve != "" {
-				lastBTFType, btfArg, err := resolveUserBTFArg(a, spec.BTFPath)
+				lastBTFType, btfArg, btfPtrNames, err := resolveUserBTFArg(a, spec.BTFPath)
 				if err != nil {
 					return err
 				}
 
 				allBTFArgs[i] = btfArg
+				BTFPtrNames = btfPtrNames
 				argType = findTypeFromBTFType(a, lastBTFType)
 			}
 		}
@@ -582,6 +585,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		}
 		if argReturnCopy(argMValue) {
 			argRetprobe = &spec.Args[i]
+			argRetprobeIdx = i
 		}
 		if a.Index > 4 {
 			return fmt.Errorf("error add arg: ArgType %s Index %d out of bounds",
@@ -592,7 +596,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		argMeta[i] = uint32(argMValue)
 		argIdx[i] = int32(a.Index)
 
-		argPrinters = append(argPrinters, argPrinter{index: i, ty: argType, data: data})
+		argPrinters = append(argPrinters, argPrinter{index: i, ty: argType, data: data, BTFPtrNames: BTFPtrNames})
 		return nil
 	}
 
@@ -659,7 +663,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		argType := gt.GenericTypeFromString(argRetprobe.Type)
 		eventConfig.ArgReturnCopy = int32(argType)
 
-		argP := argPrinter{index: int(argRetprobe.Index), ty: argType, label: argRetprobe.Label}
+		argP := argPrinter{index: argRetprobeIdx, ty: argType, label: argRetprobe.Label}
 		argReturnPrinters = append(argReturnPrinters, argP)
 	} else {
 		eventConfig.ArgReturnCopy = int32(gt.GenericUnsetType)

@@ -29,6 +29,7 @@
 #include "process/heap.h"
 #include "../bpf_mbset.h"
 #include "bpf_ktime.h"
+#include "process/event_config.h"
 
 /* Type IDs form API with user space generickprobe.go */
 enum {
@@ -158,70 +159,6 @@ struct selector_arg_filters {
 	__u32 argoff[5];
 } __attribute__((packed));
 
-struct config_btf_arg {
-	__u32 offset;
-	__u16 is_pointer;
-	__u16 is_initialized;
-} __attribute__((packed));
-
-#define USDT_ARG_TYPE_NONE	0
-#define USDT_ARG_TYPE_CONST	1
-#define USDT_ARG_TYPE_REG	2
-#define USDT_ARG_TYPE_REG_DEREF 3
-#define USDT_ARG_TYPE_SIB	4
-
-struct config_usdt_arg {
-	__u64 val_off;
-	__u32 reg_off;
-	__u32 reg_idx_off;
-	__u8 shift;
-	__u8 type;
-	__u8 sig;
-	__u8 scale;
-	__u32 pad1;
-} __attribute__((packed));
-
-struct config_reg_arg {
-	__u16 offset;
-	__u8 size;
-	__u8 pad;
-} __attribute__((packed));
-
-struct extract_arg_data {
-	struct config_btf_arg *btf_config;
-	unsigned long *arg;
-};
-
-#define MAX_BTF_ARG_DEPTH	  10
-#define EVENT_CONFIG_MAX_ARG	  5
-#define EVENT_CONFIG_MAX_USDT_ARG 8
-#define EVENT_CONFIG_MAX_REG_ARG  8
-
-struct event_config {
-	__u32 func_id;
-	__s32 arg[EVENT_CONFIG_MAX_ARG];
-	__u32 arm[EVENT_CONFIG_MAX_ARG];
-	__u32 off[EVENT_CONFIG_MAX_ARG];
-	__s32 idx[EVENT_CONFIG_MAX_ARG];
-	__u32 syscall;
-	__s32 argreturncopy;
-	__s32 argreturn;
-	/* arg return action specifies to act on the return value; currently
-	 * supported actions include: TrackSock and UntrackSock.
-	 */
-	__u32 argreturnaction;
-	/* policy id identifies the policy of this generic hook and is used to
-	 * apply policies only on certain processes. A value of 0 indicates
-	 * that the hook always applies and no check will be performed.
-	 */
-	__u32 policy_id;
-	__u32 flags;
-	__u32 pad;
-	struct config_btf_arg btf_arg[EVENT_CONFIG_MAX_ARG][MAX_BTF_ARG_DEPTH];
-	struct config_usdt_arg usdt_arg[EVENT_CONFIG_MAX_USDT_ARG];
-	struct config_reg_arg reg_arg[EVENT_CONFIG_MAX_REG_ARG];
-} __attribute__((packed));
-
 #define MAX_ARGS_SIZE	 80
 #define MAX_ARGS_ENTRIES 8
 #define MAX_MATCH_VALUES 4
@@ -269,10 +206,6 @@ FUNC_INLINE __u32 get_index(void *ctx)
 #else
 #define get_index(ctx) 0
 #endif
-
-// We do one tail-call per selector, we can have up to 5 selectors.
-#define MAX_SELECTORS	   5
-#define MAX_SELECTORS_MASK 7
 
 FUNC_INLINE long
 filter_32ty_map(struct selector_arg_filter *filter, char *args);
@@ -387,6 +320,10 @@ FUNC_INLINE long store_path(char *args, char *buffer, const struct path *arg,
 	probe_read(curr, size, buffer);
 	*s = size;
 	size += 4;
+
+	/* to appease the 5.4 verifier */
+	if (size > MAX_BUF_LEN - 1 + 4)
+		return 0;
 
 	BPF_CORE_READ_INTO(&i_mode, arg, dentry, d_inode, i_mode);
 
@@ -2033,6 +1970,10 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 		if (index > 5)
 			return 0;
 
+#ifdef __LARGE_BPF_PROG
+		if (e->arg_error_status[index])
+			return 0;
+#endif
 		args = get_arg(e, index);
 		switch (filter->type) {
 		case fd_ty:
@@ -2067,6 +2008,11 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 			if (filter->op == op_capabilities_gained) {
 				__u64 cap_old = *(__u64 *)args;
 				__u32 index2 = *((__u32 *)&filter->value);
+#ifdef __LARGE_BPF_PROG
+				asm volatile("%[index2] &= 0x7;\n" : [index2] "+r"(index2));
+				if (e->arg_error_status[index2])
+					return 0;
+#endif
 				__u64 cap_new = *(__u64 *)get_arg(e, index2);
 
 				pass = !!((cap_old ^ cap_new) & cap_new);
@@ -2153,6 +2099,10 @@ installfd(struct msg_generic_kprobe *e, int fd, int name, bool follow)
 	if (fd > 5) {
 		return 0;
 	}
+
+	if (e->arg_error_status[fd])
+		return 0;
+
 	fdoff = e->argsoff[fd];
 	asm volatile("%[fdoff] &= 0x7ff;\n"
 		     : [fdoff] "+r"(fdoff)
@@ -2169,6 +2119,10 @@ installfd(struct msg_generic_kprobe *e, int fd, int name, bool follow)
 			     :);
 		if (name > 5)
 			return 0;
+
+		if (e->arg_error_status[name])
+			return 0;
+
 		nameoff = e->argsoff[name];
 		asm volatile("%[nameoff] &= 0x7ff;\n"
 			     : [nameoff] "+r"(nameoff)
@@ -2197,6 +2151,10 @@ msg_generic_arg_value_u64(struct msg_generic_kprobe *e, unsigned int arg_id, __u
 
 	if (arg_id > MAX_POSSIBLE_ARGS)
 		return err_val;
+
+	if (e->arg_error_status[arg_id])
+		return err_val;
+
 	argoff = e->argsoff[arg_id];
 	argoff &= GENERIC_MSG_ARGS_MASK;
 	ret = (__u64 *)&e->args[argoff];
@@ -2216,6 +2174,8 @@ copyfd(struct msg_generic_kprobe *e, int oldfd, int newfd)
 		     :);
 	if (oldfd > 5)
 		return 0;
+	if (e->arg_error_status[oldfd])
+		return 0;
 	oldfdoff = e->argsoff[oldfd];
 	asm volatile("%[oldfdoff] &= 0x7ff;\n"
 		     : [oldfdoff] "+r"(oldfdoff)
@@ -2230,6 +2190,8 @@ copyfd(struct msg_generic_kprobe *e, int oldfd, int newfd)
 			     : [newfd] "+r"(newfd)
 			     :);
 		if (newfd > 5)
+			return 0;
+		if (e->arg_error_status[newfd])
 			return 0;
 		newfdoff = e->argsoff[newfd];
 		asm volatile("%[newfdoff] &= 0x7ff;\n"
@@ -2298,14 +2260,24 @@ rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_k
 	dst = key->data;
 
 	for (i = 0; i < MAX_POSSIBLE_ARGS; i++) {
+		if (arg_idx(i) == -1)
+			break;
 		if (e->argsoff[i] >= e->common.size)
 			break;
-		if (i < MAX_POSSIBLE_ARGS - 1)
+		if (i < MAX_POSSIBLE_ARGS - 1 && arg_idx(i + 1) != -1)
 			arg_size = e->argsoff[i + 1] - e->argsoff[i];
 		else
+#ifdef __LARGE_BPF_PROG
+			arg_size = e->common.size - e->argsoff[i] + sizeof(__u32);
+#else
 			arg_size = e->common.size - e->argsoff[i];
+#endif
 		if (arg_size > 0) {
+#ifdef __LARGE_BPF_PROG
+			key_index = (e->argsoff[i] - sizeof(__u32)) & 16383;
+#else
 			key_index = e->argsoff[i] & 16383;
+#endif
 			if (arg_size > KEY_BYTES_PER_ARG)
 				arg_size = KEY_BYTES_PER_ARG;
 			asm volatile("%[arg_size] &= 0x3f;\n" // ensure this mask is greater than KEY_BYTES_PER_ARG
@@ -2366,6 +2338,9 @@ tracksock(struct msg_generic_kprobe *e, int socki, bool track)
 		     : [socki] "+r"(socki)
 		     :);
 	if (socki > 5)
+		return 0;
+
+	if (e->arg_error_status[socki])
 		return 0;
 
 	sockoff = e->argsoff[socki];
