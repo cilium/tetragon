@@ -16,7 +16,7 @@ struct reg_assignment {
 	__u64 off;
 };
 
-#if defined(GENERIC_UPROBE) && defined(__TARGET_ARCH_x86)
+#if defined(GENERIC_UPROBE)
 
 #define REGS_MAX 18
 
@@ -72,7 +72,7 @@ read_reg_ass(struct pt_regs *ctx, struct reg_assignment *ass)
 }
 
 FUNC_INLINE int
-uprobe_offload_x86(struct pt_regs *ctx)
+uprobe_offload(struct pt_regs *ctx)
 {
 	__u64 val = 0, id = get_current_pid_tgid();
 	struct reg_assignment *ass;
@@ -118,5 +118,5 @@ uprobe_offload_x86(struct pt_regs *ctx)
 	}
 	return 0;
 }
-#endif /* GENERIC_UPROBE && __TARGET_ARCH_x86 */
+#endif /* GENERIC_UPROBE */
 #endif /* __UPROBE_OFFLOAD_H__ */
