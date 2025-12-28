@@ -1875,10 +1875,9 @@ FUNC_INLINE int match_binaries(__u32 selidx, struct execve_map_value *current)
 	void *path_map;
 	__u8 *found_key;
 #ifdef __LARGE_BPF_PROG
-	struct string_prefix_lpm_trie prefix_key;
+	struct string_prefix_lpm_trie *prefix_key;
 	struct string_postfix_lpm_trie *postfix_key;
 	__u64 postfix_len = STRING_POSTFIX_MAX_MATCH_LENGTH - 1;
-
 	int zero = 0;
 #endif /* __LARGE_BPF_PROG */
 
@@ -1924,11 +1923,14 @@ FUNC_INLINE int match_binaries(__u32 selidx, struct execve_map_value *current)
 			if (!path_map)
 				return 0;
 			// prepare the key on the stack to perform lookup in the LPM_TRIE
-			memset(&prefix_key, 0, sizeof(prefix_key));
-			prefix_key.prefixlen = current->bin.path_length * 8; // prefixlen is in bits
-			if (probe_read(prefix_key.data, current->bin.path_length & (STRING_PREFIX_MAX_LENGTH - 1), current->bin.path) < 0)
+			prefix_key = (struct string_prefix_lpm_trie *)map_lookup_elem(&string_maps_heap, &zero);
+			if (!prefix_key)
 				return 0;
-			found_key = map_lookup_elem(path_map, &prefix_key);
+			memset(prefix_key, 0, sizeof(*prefix_key));
+			prefix_key->prefixlen = current->bin.path_length * 8; // prefixlen is in bits
+			if (probe_read(prefix_key->data, current->bin.path_length & (STRING_PREFIX_MAX_LENGTH - 1), current->bin.path) < 0)
+				return 0;
+			found_key = map_lookup_elem(path_map, prefix_key);
 			break;
 		case op_filter_str_postfix:
 		case op_filter_str_notpostfix:
