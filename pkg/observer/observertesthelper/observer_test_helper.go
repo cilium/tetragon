@@ -56,6 +56,7 @@ type testObserverOptions struct {
 	config              string
 	lib                 string
 	procCacheGCInterval time.Duration
+	keepCollection      bool
 }
 
 type testExporterOptions struct {
@@ -77,6 +78,13 @@ func WithMyPid() TestOption {
 		o.exporter.allowList = append(o.exporter.allowList, &tetragon.Filter{
 			PidSet: []uint32{GetMyPid()},
 		})
+	}
+}
+
+// Enable KeepCollection config flag
+func WithKeepCollection() TestOption {
+	return func(o *TestOptions) {
+		o.observer.keepCollection = true
 	}
 }
 
@@ -161,8 +169,9 @@ func newDefaultTestOptions(opts ...TestOption) *TestOptions {
 	// default values
 	options := &TestOptions{
 		observer: testObserverOptions{
-			config: "",
-			lib:    "",
+			config:         "",
+			lib:            "",
+			keepCollection: false,
 		},
 		exporter: testExporterOptions{
 			podAccessor: watcher.NewFakeK8sWatcher(nil),
@@ -298,6 +307,9 @@ func getDefaultSensors(tb testing.TB, initialSensor *sensors.Sensor, opts ...Tes
 	if option.Config.HubbleLib == "" {
 		option.Config.HubbleLib = o.observer.lib
 	}
+
+	option.Config.KeepCollection = o.observer.keepCollection
+	defer func() { option.Config.KeepCollection = false }()
 
 	procfs := os.Getenv("TETRAGON_PROCFS")
 	if procfs != "" {

@@ -51,7 +51,6 @@ import (
 	"github.com/cilium/tetragon/pkg/rthooks"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
-	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/server"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/cilium/tetragon/pkg/unixlisten"
@@ -236,7 +235,7 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 
 	// enable extra programs/maps loading debug output
 	if logger.GetLogger().Enabled(ctx, slog.LevelDebug) {
-		program.KeepCollection = true
+		option.Config.KeepCollection = true
 	}
 
 	log.Info("Starting tetragon", "version", version.Version)
