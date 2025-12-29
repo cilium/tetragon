@@ -134,6 +134,8 @@ type config struct {
 	ExecveMapSize    string
 
 	RetprobesCacheSize int
+
+	KeepCollection bool
 }
 
 var (

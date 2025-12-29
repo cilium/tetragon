@@ -150,7 +150,7 @@ type Program struct {
 
 	PinMap map[string]*Map
 
-	// available when program.KeepCollection is true
+	// available when option.Config.KeepCollection is true
 	LC *LoadedCollection
 
 	// Initialized map of constants to be populated in the program at

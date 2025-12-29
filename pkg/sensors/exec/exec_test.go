@@ -575,6 +575,9 @@ func TestLoadInitialSensor(t *testing.T) {
 
 	option.Config.HubbleLib = tus.Conf().TetragonLib
 
+	option.Config.KeepCollection = true
+	defer func() { option.Config.KeepCollection = false }()
+
 	t.Logf("Loading sensor %v\n", sensor.Name)
 	if err := sensor.Load(bpf.MapPrefixPath()); err != nil {
 		t.Fatalf("sensor.Load failed: %v\n", err)
