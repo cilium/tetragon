@@ -17,15 +17,11 @@ import (
 	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
-	"github.com/cilium/tetragon/pkg/sensors/program"
 )
 
 func TestSensorsRun(m *testing.M, sensorName string) int {
 	c := ConfigDefaults
 	config = &c
-
-	// instruct loader to keep the loaded collection for TestLoad* tests
-	program.KeepCollection = true
 
 	// some tests require the name of the current binary.
 	config.SelfBinary = filepath.Base(os.Args[0])

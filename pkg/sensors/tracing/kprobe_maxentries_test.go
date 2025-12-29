@@ -32,7 +32,7 @@ func runConfig(t *testing.T, config string, fn func(string, int)) {
 	}
 
 	sens, err := observertesthelper.GetDefaultSensorsWithFile(t, testConfigFile,
-		tus.Conf().TetragonLib)
+		tus.Conf().TetragonLib, observertesthelper.WithKeepCollection())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
