@@ -44,7 +44,7 @@ func resolveBTFType(arg *v1alpha1.KProbeArg, ty ebtf.Type) (*ebtf.Type, [api.Max
 		return nil, btfArg, fmt.Errorf("unable to resolve %q. The maximum depth allowed is %d", arg.Resolve, api.MaxBTFArgDepth)
 	}
 
-	lastBTFType, err := resolveBTFPath(&btfArg, btf.ResolveNestedTypes(ty), path)
+	lastBTFType, err := btf.ResolveBTFPath(&btfArg, btf.ResolveNestedTypes(ty), path)
 	return lastBTFType, btfArg, err
 }
 
@@ -93,10 +93,6 @@ func resolveBTFArg(hook string, arg *v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [
 		}
 	}
 	return resolveBTFType(arg, ty)
-}
-
-func resolveBTFPath(btfArg *[api.MaxBTFArgDepth]api.ConfigBTFArg, rootType ebtf.Type, path []string) (*ebtf.Type, error) {
-	return btf.ResolveBTFPath(btfArg, rootType, path, 0)
 }
 
 func findTypeFromBTFType(arg *v1alpha1.KProbeArg, btfType *ebtf.Type) int {

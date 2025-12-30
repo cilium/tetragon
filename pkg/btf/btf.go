@@ -201,6 +201,10 @@ func ResolveNestedTypes(ty btf.Type) btf.Type {
 	return ty
 }
 
+func ResolveBTFPath(btfArg *[api.MaxBTFArgDepth]api.ConfigBTFArg, rootType btf.Type, path []string) (*btf.Type, error) {
+	return resolveBTFPath(btfArg, rootType, path, 0)
+}
+
 // ResolveBTFPath function recursively search in a btf structure in order to
 // found a specific path until it reach the target or fail.
 
@@ -216,7 +220,7 @@ func ResolveNestedTypes(ty btf.Type) btf.Type {
 // @i: The current depth, until last element of pathToFound.
 
 // Return: The last type found matching the path, or error.
-func ResolveBTFPath(
+func resolveBTFPath(
 	btfArgs *[api.MaxBTFArgDepth]api.ConfigBTFArg,
 	currentType btf.Type,
 	pathToFound []string,
@@ -231,10 +235,10 @@ func ResolveBTFPath(
 		if len(pathToFound[i]) == 0 {
 			(*btfArgs)[i].IsPointer = uint16(1)
 			(*btfArgs)[i].IsInitialized = uint16(1)
-			return ResolveBTFPath(btfArgs, ResolveNestedTypes(t.Target), pathToFound, i+1)
+			return resolveBTFPath(btfArgs, ResolveNestedTypes(t.Target), pathToFound, i+1)
 		}
 		(*btfArgs)[i-1].IsPointer = uint16(1)
-		return ResolveBTFPath(btfArgs, ResolveNestedTypes(t.Target), pathToFound, i)
+		return resolveBTFPath(btfArgs, ResolveNestedTypes(t.Target), pathToFound, i)
 	default:
 		ty := currentType.TypeName()
 		if len(ty) == 0 {
@@ -261,7 +265,7 @@ func processMembers(
 		if len(member.Name) == 0 { // If anonymous struct, fallthrough
 			(*btfArgs)[i].Offset = member.Offset.Bytes()
 			(*btfArgs)[i].IsInitialized = uint16(1)
-			lastTy, err := ResolveBTFPath(btfArgs, ResolveNestedTypes(member.Type), pathToFound, i)
+			lastTy, err := resolveBTFPath(btfArgs, ResolveNestedTypes(member.Type), pathToFound, i)
 			if err != nil {
 				if lastError != nil {
 					idx := i + 1
@@ -281,7 +285,7 @@ func processMembers(
 			(*btfArgs)[i].IsInitialized = uint16(1)
 			isNotLastChild := i < len(pathToFound)-1 && i < api.MaxBTFArgDepth
 			if isNotLastChild {
-				return ResolveBTFPath(btfArgs, ResolveNestedTypes(member.Type), pathToFound, i+1)
+				return resolveBTFPath(btfArgs, ResolveNestedTypes(member.Type), pathToFound, i+1)
 			}
 			currentType = ResolveNestedTypes(member.Type)
 			break
