@@ -872,7 +872,7 @@ do_set_action(void *ctx, struct msg_generic_kprobe *e, __u32 arg_idx, __u32 arg_
 {
 	struct config_usdt_arg *arg;
 	struct event_config *config;
-	unsigned long val, off;
+	unsigned long val;
 	int err = -1;
 
 	config = map_lookup_elem(&config_map, &e->idx);
@@ -889,9 +889,8 @@ do_set_action(void *ctx, struct msg_generic_kprobe *e, __u32 arg_idx, __u32 arg_
 	case USDT_ARG_TYPE_SIB:
 		break;
 	case USDT_ARG_TYPE_REG_DEREF:
-		off = arg->reg_off & 0xfff;
-		err = probe_read_kernel(&val, sizeof(val), (void *)ctx + off);
-		if (err)
+		val = read_reg(ctx, arg->reg_off, 0);
+		if (!val)
 			return;
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 		arg_value <<= arg->shift;

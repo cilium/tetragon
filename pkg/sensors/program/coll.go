@@ -40,12 +40,8 @@ import (
 // This way we have only programs/maps realted to our test and with
 // original long names.
 //
-// All this is happening only when program.KeepCollection is set true,
+// All this is happening only when option.Config.KeepCollection is set true,
 // so it's enabled only for testing code.
-
-var (
-	KeepCollection bool
-)
 
 type LoadedMap struct {
 	ID ebpf.MapID

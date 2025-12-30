@@ -9,6 +9,7 @@ import (
 
 	"github.com/cilium/ebpf"
 
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
 )
 
@@ -70,7 +71,7 @@ func (m *MissingConstantsError) Error() string {
 //   - load maps with values    |
 //   - pin main program         |
 //   - attach callback          | loadOpts.attach(coll, spec, prog, progSpec)
-//   - print loaded progs/maps  | if KeepCollection == true
+//   - print loaded progs/maps  | if option.Config.KeepCollection == true
 //
 // The  @loadOpts.open callback can be used to customize ebpf.CollectionSpec
 // before it's loaded into kernel (like disable/enable programs).
@@ -92,11 +93,13 @@ func loadProgram(
 		return errors.New("attach function is not provided")
 	}
 
-	lc, err := doLoadProgram(bpfDir, load, opts, verbose)
+	keepCollection := option.Config.KeepCollection
+
+	lc, err := doLoadProgram(bpfDir, load, opts, verbose, keepCollection)
 	if err != nil {
 		return err
 	}
-	if KeepCollection {
+	if keepCollection {
 		load.LC = filterLoadedCollection(lc)
 		printLoadedCollection(load.Name, load.LC)
 	}

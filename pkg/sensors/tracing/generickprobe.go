@@ -117,6 +117,9 @@ type genericKprobe struct {
 	// is there override defined for the kprobe
 	hasOverride bool
 
+	// is there selector defined for the kprobe
+	hasSelector bool
+
 	// sensor specific data that we need when we process event, so it's
 	// unique for each kprobeEntry when we use single kprobes and it's
 	// ont global instance when we use kprobe multi
@@ -281,11 +284,11 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 		SetPolicy(polInfo.name)
 	progs = append(progs, load)
 
-	fdinstall := program.MapBuilderSensor("fdinstall_map", load)
 	if has.fdInstall {
+		fdinstall := program.MapBuilderSensor("fdinstall_map", load)
 		fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
+		maps = append(maps, fdinstall)
 	}
-	maps = append(maps, fdinstall)
 
 	configMap := program.MapBuilderProgram("config_map", load)
 	maps = append(maps, configMap)
@@ -296,27 +299,30 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 	filterMap := program.MapBuilderProgram("filter_map", load)
 	maps = append(maps, filterMap)
 
-	maps = append(maps, filterMaps(load, nil)...)
+	if has.selector {
+		maps = append(maps, filterMaps(load, nil)...)
 
-	retProbe := program.MapBuilderSensor("retprobe_map", load)
-	maps = append(maps, retProbe)
+		selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
+		maps = append(maps, selMatchBinariesMap)
+
+		matchBinariesPaths := program.MapBuilderProgram("tg_mb_paths", load)
+		maps = append(maps, matchBinariesPaths)
+	}
+
+	if len(multiRetIDs) != 0 {
+		retProbe := program.MapBuilderSensor("retprobe_map", load)
+		maps = append(maps, retProbe)
+	}
 
 	callHeap := program.MapBuilderSensor("process_call_heap", load)
 	maps = append(maps, callHeap)
 
-	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
-	maps = append(maps, selMatchBinariesMap)
-
-	matchBinariesPaths := program.MapBuilderProgram("tg_mb_paths", load)
-	maps = append(maps, matchBinariesPaths)
-
-	stackTraceMap := program.MapBuilderProgram("stack_trace_map", load)
 	if has.stackTrace {
+		stackTraceMap := program.MapBuilderProgram("stack_trace_map", load)
 		stackTraceMap.SetMaxEntries(stackTraceMapMaxEntries)
+		maps = append(maps, stackTraceMap)
+		data.stackTraceMap = stackTraceMap
 	}
-
-	maps = append(maps, stackTraceMap)
-	data.stackTraceMap = stackTraceMap
 
 	if config.EnableLargeProgs() {
 		socktrack := program.MapBuilderSensor("socktrack_map", load)
@@ -345,11 +351,11 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 	filterMap.SetMaxEntries(len(multiIDs))
 	configMap.SetMaxEntries(len(multiIDs))
 
-	overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
 	if has.override {
+		overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
 		overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
+		maps = append(maps, overrideTasksMap)
 	}
-	maps = append(maps, overrideTasksMap)
 
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load))
 
@@ -374,16 +380,18 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 		retFilterMap := program.MapBuilderProgram("filter_map", loadret)
 		maps = append(maps, retFilterMap)
 
-		maps = append(maps, filterMaps(loadret, nil)...)
+		if has.selector {
+			maps = append(maps, filterMaps(loadret, nil)...)
+		}
 
 		callHeap := program.MapBuilderSensor("process_call_heap", loadret)
 		maps = append(maps, callHeap)
 
-		fdinstall := program.MapBuilderSensor("fdinstall_map", loadret)
 		if has.fdInstall {
+			fdinstall := program.MapBuilderSensor("fdinstall_map", loadret)
 			fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
+			maps = append(maps, fdinstall)
 		}
-		maps = append(maps, fdinstall)
 
 		socktrack := program.MapBuilderSensor("socktrack_map", loadret)
 		if has.sockTrack {
@@ -596,6 +604,7 @@ type hasMaps struct {
 	enforcer   bool
 	override   bool
 	sockTrack  bool
+	selector   bool
 }
 
 // hasMapsSetup setups the has maps for the per policy maps. The per kprobe maps
@@ -608,6 +617,7 @@ func hasMapsSetup(spec *v1alpha1.TracingPolicySpec) hasMaps {
 		has.rateLimit = has.rateLimit || selectors.HasRateLimit(kprobe.Selectors)
 		has.sockTrack = has.sockTrack || selectors.HasSockTrack(&kprobe)
 		has.override = has.override || selectors.HasOverride(kprobe.Selectors)
+		has.selector = has.selector || selectors.HasSelector(&kprobe)
 	}
 	return has
 }
@@ -967,6 +977,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 		tableId:           idtable.UninitializedEntryID,
 		policyName:        in.policyName,
 		hasOverride:       selectors.HasOverride(f.Selectors),
+		hasSelector:       selectors.HasSelector(f),
 		customHandler:     in.customHandler,
 		message:           msgField,
 		tags:              tagsField,
@@ -1032,11 +1043,11 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 	}
 	progs = append(progs, load)
 
-	fdinstall := program.MapBuilderSensor("fdinstall_map", load)
 	if has.fdInstall {
+		fdinstall := program.MapBuilderSensor("fdinstall_map", load)
 		fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
+		maps = append(maps, fdinstall)
 	}
-	maps = append(maps, fdinstall)
 
 	configMap := program.MapBuilderProgram("config_map", load)
 	maps = append(maps, configMap)
@@ -1047,36 +1058,40 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 	filterMap := program.MapBuilderProgram("filter_map", load)
 	maps = append(maps, filterMap)
 
-	maps = append(maps, filterMaps(load, kprobeEntry)...)
+	if has.selector {
+		maps = append(maps, filterMaps(load, kprobeEntry)...)
 
-	retProbe := program.MapBuilderSensor("retprobe_map", load)
-	maps = append(maps, retProbe)
+		selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
+		maps = append(maps, selMatchBinariesMap)
+
+		if !kernels.MinKernelVersion("5.9") {
+			matchBinariesPaths := program.MapBuilderProgram("tg_mb_paths", load)
+			// Versions before 5.9 do not allow inner maps to have different sizes.
+			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+			matchBinariesPaths.SetInnerMaxEntries(kprobeEntry.loadArgs.selectors.entry.MatchBinariesPathsMaxEntries())
+			maps = append(maps, matchBinariesPaths)
+		}
+	}
+
+	if kprobeEntry.loadArgs.retprobe {
+		retProbe := program.MapBuilderSensor("retprobe_map", load)
+		maps = append(maps, retProbe)
+	}
 
 	callHeap := program.MapBuilderSensor("process_call_heap", load)
 	maps = append(maps, callHeap)
 
-	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
-	maps = append(maps, selMatchBinariesMap)
-
-	matchBinariesPaths := program.MapBuilderProgram("tg_mb_paths", load)
-	if !kernels.MinKernelVersion("5.9") {
-		// Versions before 5.9 do not allow inner maps to have different sizes.
-		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-		matchBinariesPaths.SetInnerMaxEntries(kprobeEntry.loadArgs.selectors.entry.MatchBinariesPathsMaxEntries())
-	}
-	maps = append(maps, matchBinariesPaths)
-
 	// loading the stack trace map in any case so that it does not end up as an
 	// anonymous map (as it's always used by the BPF prog) and is clearly linked
 	// to tetragon
-	stackTraceMap := program.MapBuilderProgram("stack_trace_map", load)
 	if has.stackTrace {
+		stackTraceMap := program.MapBuilderProgram("stack_trace_map", load)
 		// to reduce memory footprint however, the stack map is created with a
 		// max entry of 1, we need to expand that at loading.
 		stackTraceMap.SetMaxEntries(stackTraceMapMaxEntries)
+		maps = append(maps, stackTraceMap)
+		kprobeEntry.data.stackTraceMap = stackTraceMap
 	}
-	maps = append(maps, stackTraceMap)
-	kprobeEntry.data.stackTraceMap = stackTraceMap
 
 	if config.EnableLargeProgs() {
 		socktrack := program.MapBuilderSensor("socktrack_map", load)
@@ -1104,11 +1119,11 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 		maps = append(maps, program.MapUser(cgtracker.MapName, load))
 	}
 
-	overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
 	if has.override {
+		overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
 		overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
+		maps = append(maps, overrideTasksMap)
 	}
-	maps = append(maps, overrideTasksMap)
 
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load))
 
@@ -1140,17 +1155,19 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 		filterMap := program.MapBuilderProgram("filter_map", loadret)
 		maps = append(maps, filterMap)
 
-		maps = append(maps, filterMaps(loadret, kprobeEntry)...)
+		if has.selector {
+			maps = append(maps, filterMaps(loadret, kprobeEntry)...)
+		}
 
 		// add maps with non-default paths (pins) to the retprobe
 		callHeap := program.MapBuilderSensor("process_call_heap", loadret)
 		maps = append(maps, callHeap)
 
-		fdinstall := program.MapBuilderSensor("fdinstall_map", loadret)
 		if has.fdInstall {
+			fdinstall := program.MapBuilderSensor("fdinstall_map", loadret)
 			fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
+			maps = append(maps, fdinstall)
 		}
-		maps = append(maps, fdinstall)
 
 		if config.EnableLargeProgs() {
 			socktrack := program.MapBuilderSensor("socktrack_map", loadret)
@@ -1180,6 +1197,7 @@ func createSingleKprobeSensor(polInfo *policyInfo, ids []idtable.EntryID, has ha
 		// setup per kprobe map config
 		has.stackTrace = gk.hasStackTrace
 		has.override = gk.hasOverride
+		has.selector = gk.hasSelector
 
 		progs, maps = createKprobeSensorFromEntry(polInfo, gk, progs, maps, has)
 	}

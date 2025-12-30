@@ -1724,6 +1724,10 @@ func HasSockTrack(spec *v1alpha1.KProbeSpec) bool {
 	return false
 }
 
+func HasSelector(spec *v1alpha1.KProbeSpec) bool {
+	return len(spec.Selectors) != 0
+}
+
 // parseCapabilitiesMask create a capabilities mask
 func parseCapabilitiesMask(s string) (uint64, error) {
 	mask, err := strconv.ParseUint(s, 0, 64)
