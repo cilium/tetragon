@@ -420,9 +420,10 @@ func buildPathFromString(t *testing.T, rootType btf.Type, pathStr string) []stri
 
 func buildResolveBTFConfig(t *testing.T, rootType btf.Type, pathStr string) [api.MaxBTFArgDepth]api.ConfigBTFArg {
 	var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
+	i := 0
 
 	path := buildPathFromString(t, rootType, pathStr)
-	_, err := resolveBTFPath(&btfArgs, rootType, path, 0)
+	_, err := resolveBTFPath(&btfArgs, rootType, path, &i)
 	fatalOnError(t, err)
 
 	return btfArgs
