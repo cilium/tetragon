@@ -129,6 +129,8 @@ type KernelSelectorState struct {
 	isUprobe bool
 
 	regs []processapi.RegAssignment
+
+	subStrs []string
 }
 
 func NewKernelSelectorState(listReader ValueReader, maps *KernelSelectorMaps, isUprobe bool) *KernelSelectorState {
@@ -203,6 +205,10 @@ func (k *KernelSelectorState) StringPostfixMaps() []map[KernelLPMTrieStringPostf
 
 func (k *KernelSelectorState) Regs() []processapi.RegAssignment {
 	return k.regs
+}
+
+func (k *KernelSelectorState) SubStrings() []string {
+	return k.subStrs
 }
 
 // ValueMapsMaxEntries returns the maximum entries over all maps

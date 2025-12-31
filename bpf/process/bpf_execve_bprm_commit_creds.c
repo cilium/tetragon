@@ -8,6 +8,7 @@
 #include "compiler.h"
 #include "common.h"
 #include "process.h"
+#include "execve_map.h"
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 

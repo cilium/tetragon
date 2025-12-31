@@ -13,11 +13,13 @@
 #include "types/operations.h"
 #include "types/basic.h"
 #include "uprobe_offload.h"
+#include "uprobe_preload.h"
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 
 int generic_uprobe_setup_event(void *ctx);
 int generic_uprobe_process_event(void *ctx);
+int generic_uprobe_process_event_2(void *ctx);
 int generic_uprobe_process_filter(void *ctx);
 int generic_uprobe_filter_arg(void *ctx);
 int generic_uprobe_actions(void *ctx);
@@ -39,6 +41,9 @@ struct {
 		[TAIL_CALL_SEND] = (void *)&generic_uprobe_output,
 #ifndef __V61_BPF_PROG
 		[TAIL_CALL_PATH] = (void *)&generic_uprobe_path,
+#endif
+#ifndef __LARGE_BPF_PROG
+		[TAIL_CALL_PROCESS_2] = (void *)&generic_uprobe_process_event_2,
 #endif
 	},
 };
@@ -68,11 +73,25 @@ generic_uprobe_setup_event(void *ctx)
 	return generic_process_event_and_setup(ctx, (struct bpf_map_def *)&uprobe_calls);
 }
 
+#ifdef __LARGE_BPF_PROG
 __attribute__((section(COMMON), used)) int
 generic_uprobe_process_event(void *ctx)
 {
-	return generic_process_event(ctx, (struct bpf_map_def *)&uprobe_calls);
+	return generic_process_event(ctx, (struct bpf_map_def *)&uprobe_calls, __READ_ARG_ALL);
 }
+#else
+__attribute__((section(COMMON), used)) int
+generic_uprobe_process_event(void *ctx)
+{
+	return generic_process_event(ctx, (struct bpf_map_def *)&uprobe_calls, __READ_ARG_1);
+}
+
+__attribute__((section(COMMON), used)) int
+generic_uprobe_process_event_2(void *ctx)
+{
+	return generic_process_event(ctx, (struct bpf_map_def *)&uprobe_calls, __READ_ARG_2);
+}
+#endif
 
 __attribute__((section(COMMON), used)) int
 generic_uprobe_process_filter(void *ctx)
@@ -118,6 +137,18 @@ generic_uprobe_path(void *ctx)
 #endif
 
 #if defined(__TARGET_ARCH_x86)
+__attribute__((section(OFFLOAD), used)) int
+generic_sleepable_preload(struct pt_regs *ctx)
+{
+	return uprobe_preload_x86(ctx);
+}
+
+__attribute__((section(OFFLOAD), used)) int
+generic_sleepable_preload_cleanup(struct pt_regs *ctx)
+{
+	return uprobe_preload_cleanup(ctx);
+}
+
 __attribute__((section(OFFLOAD), used)) int
 generic_sleepable_offload(struct pt_regs *ctx)
 {
