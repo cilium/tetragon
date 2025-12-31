@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
-//go:build amd64 && linux
+//go:build linux
 
 package tracing
 
@@ -9,6 +9,7 @@ import (
 	"context"
 	"os"
 	"os/exec"
+	"runtime"
 	"strconv"
 	"sync"
 	"testing"
@@ -92,17 +93,7 @@ func TestUprobeOverrideRegsAction(t *testing.T) {
 
 	testBinary := testutils.RepoRootPath("contrib/tester-progs/regs-override")
 
-	// Put uprobe in test_1 function at:
-	//
-	//     "push   %rbp\n"         /* +0  55             */
-	//     "mov    %rsp,%rbp\n"    /* +1  48 89 e5       */
-	//     "mov    $0x1,%eax\n"    /* +4  b8 01 00 00 00 */
-	// --> "mov    $0x3,%eax\n"    /* +9  b8 03 00 00 00 */
-	//     "pop    %rbp\n"         /* +14 5d             */
-	//     "ret\n"                 /* +15 c3             */
-	//
-	// Make sure uprobe overrides test_1 return value (with 11)
-	// and the rest of the function is not executed.
+	var symbol string
 
 	pathHook := `
 apiVersion: cilium.io/v1alpha1
@@ -112,8 +103,24 @@ metadata:
 spec:
   uprobes:
   - path: "` + testBinary + `"
+`
+	switch runtime.GOARCH {
+	case "amd64":
+		// Put uprobe in test_1 function at:
+		//
+		//     "push   %rbp\n"         /* +0  55             */
+		//     "mov    %rsp,%rbp\n"    /* +1  48 89 e5       */
+		//     "mov    $0x1,%eax\n"    /* +4  b8 01 00 00 00 */
+		// --> "mov    $0x3,%eax\n"    /* +9  b8 03 00 00 00 */
+		//     "pop    %rbp\n"         /* +14 5d             */
+		//     "ret\n"                 /* +15 c3             */
+		//
+		// Make sure uprobe overrides test_1 return value (with 11)
+		// and the rest of the function is not executed.
+		symbol = "test_1+9"
+		pathHook += `
     symbols:
-    - "test_1+9"
+    - "` + symbol + `"
     selectors:
     - matchActions:
       - action: Override
@@ -123,6 +130,27 @@ spec:
         - "rip=8(%rsp)"
         - "rsp=8%rsp"
 `
+	case "arm64":
+		//   a9bf7bfd        stp     x29, x30, [sp, #-16]!
+		//   910003fd        mov     x29, sp
+		//   52800020        mov     w0, #0x1                        // #1
+		//   52800060   -->  mov     w0, #0x3                        // #3
+		//   a8c17bfd        ldp     x29, x30, [sp], #16
+		//   d65f03c0        ret
+		symbol = "test_1+12"
+		pathHook += `
+    symbols:
+    - "` + symbol + `"
+    selectors:
+    - matchActions:
+      - action: Override
+        argRegs:
+        - "w0=11"
+        - "x29=(%sp)"
+        - "pc=8(%sp)"
+        - "sp=16%sp"
+`
+	}
 
 	pathConfigHook := []byte(pathHook)
 	err := os.WriteFile(testConfigFile, pathConfigHook, 0644)
@@ -133,7 +161,7 @@ spec:
 	upChecker := ec.NewProcessUprobeChecker("UPROBE_BINARIES_MATCH").
 		WithProcess(ec.NewProcessChecker().
 			WithBinary(sm.Full(testBinary))).
-		WithSymbol(sm.Full("test_1+9"))
+		WithSymbol(sm.Full(symbol))
 	checker := ec.NewUnorderedEventChecker(upChecker)
 
 	var doneWG, readyWG sync.WaitGroup
@@ -273,16 +301,30 @@ func testUprobeOverrideRegsActionSize(t *testing.T, ass, num string) {
 
 	testBinary := testutils.RepoRootPath("contrib/tester-progs/regs-override")
 
-	// Put uprobe in test_2 function at:
-	//
-	//       "push   %rbp\n"                        /* +0  55                            */
-	//       "mov    %rsp,%rbp\n"                   /* +1  48 89 e5                      */
-	//       "mov    $0xdeadbeef00000000,%rax\n"    /* +4  48 b8 00 00 00 00 ef be ad de */
-	//  -->  "pop    %rbp\n"                        /* +14 5d                            */
-	//       "ret\n"                                /* +15 c3                            */
-	//
-	// Make sure uprobe overrides test_1 return value (with 11)
-	// and the rest of the function is not executed.
+	var symbol string
+
+	switch runtime.GOARCH {
+	case "amd64":
+
+		// Put uprobe in test_2 function at:
+		//
+		//       "push   %rbp\n"                        /* +0  55                            */
+		//       "mov    %rsp,%rbp\n"                   /* +1  48 89 e5                      */
+		//       "mov    $0xdeadbeef00000000,%rax\n"    /* +4  48 b8 00 00 00 00 ef be ad de */
+		//  -->  "pop    %rbp\n"                        /* +14 5d                            */
+		//       "ret\n"                                /* +15 c3                            */
+		//
+		// Make sure uprobe overrides test_1 return value (with 11)
+		// and the rest of the function is not executed.
+		symbol = "test_2+14"
+	case "arm64":
+		//   a9bf7bfd        stp     x29, x30, [sp, #-16]!
+		//   910003fd        mov     x29, sp
+		//   58000640        ldr     x0, 8d0 <main+0xbc>
+		//   a8c17bfd -->    ldp     x29, x30, [sp], #16
+		//   d65f03c0        ret
+		symbol = "test_2+12"
+	}
 
 	pathHook := `
 apiVersion: cilium.io/v1alpha1
@@ -293,7 +335,7 @@ spec:
   uprobes:
   - path: "` + testBinary + `"
     symbols:
-    - "test_2+14"
+    - "` + symbol + `"
     selectors:
     - matchActions:
       - action: Override
@@ -310,7 +352,7 @@ spec:
 	upChecker := ec.NewProcessUprobeChecker("UPROBE_BINARIES_MATCH").
 		WithProcess(ec.NewProcessChecker().
 			WithBinary(sm.Full(testBinary))).
-		WithSymbol(sm.Full("test_2+14"))
+		WithSymbol(sm.Full(symbol))
 	checker := ec.NewUnorderedEventChecker(upChecker)
 
 	var doneWG, readyWG sync.WaitGroup
@@ -335,34 +377,43 @@ spec:
 }
 
 func TestUprobeOverrideRegsAction_8bytes(t *testing.T) {
-	testUprobeOverrideRegsActionSize(t, "rax=0x1234567887654321", "0x1234567887654321")
+	switch runtime.GOARCH {
+	case "amd64":
+		testUprobeOverrideRegsActionSize(t, "rax=0x1234567887654321", "0x1234567887654321")
+	case "arm64":
+		testUprobeOverrideRegsActionSize(t, "x0=0x1234567887654321", "0x1234567887654321")
+	}
 }
 
 func TestUprobeOverrideRegsAction_4bytes(t *testing.T) {
-	testUprobeOverrideRegsActionSize(t, "eax=0x12345678", "0xdeadbeef12345678")
+	switch runtime.GOARCH {
+	case "amd64":
+		testUprobeOverrideRegsActionSize(t, "eax=0x12345678", "0xdeadbeef12345678")
+	case "arm64":
+		testUprobeOverrideRegsActionSize(t, "w0=0x12345678", "0xdeadbeef12345678")
+	}
 }
 
 func TestUprobeOverrideRegsAction_2bytes(t *testing.T) {
-	testUprobeOverrideRegsActionSize(t, "ax=0x1234", "0xdeadbeefdead1234")
+	switch runtime.GOARCH {
+	case "amd64":
+		testUprobeOverrideRegsActionSize(t, "ax=0x1234", "0xdeadbeefdead1234")
+	default:
+		t.Skip("arm64 doesn't have 2 byte registers")
+	}
 }
 
 func TestUprobeOverrideRegsAction_1byte(t *testing.T) {
-	testUprobeOverrideRegsActionSize(t, "al=0x12", "0xdeadbeefdeadbe12")
+	switch runtime.GOARCH {
+	case "amd64":
+		testUprobeOverrideRegsActionSize(t, "al=0x12", "0xdeadbeefdeadbe12")
+	default:
+		t.Skip("arm64 doesn't have 1 byte registers")
+	}
 }
 
 func TestUprobePtRegsData(t *testing.T) {
 	testBinary := testutils.RepoRootPath("contrib/tester-progs/regs-override")
-
-	// Put uprobe in test_1 function at:
-	//
-	//     "push   %rbp\n"         /* +0  55             */
-	//     "mov    %rsp,%rbp\n"    /* +1  48 89 e5       */
-	//     "mov    $0x1,%eax\n"    /* +4  b8 01 00 00 00 */
-	// --> "mov    $0x3,%eax\n"    /* +9  b8 03 00 00 00 */
-	//     "pop    %rbp\n"         /* +14 5d             */
-	//     "ret\n"                 /* +15 c3             */
-	//
-	// Make sure we retrieve data with eax value (1) as int argument.
 
 	pathHook := `
 apiVersion: cilium.io/v1alpha1
@@ -371,15 +422,50 @@ metadata:
   name: "uprobe"
 spec:
   uprobes:
-  - path: "` + testBinary + `"
+  - path: "` + testBinary + `"`
+
+	var symbol string
+
+	switch runtime.GOARCH {
+	case "amd64":
+		// Put uprobe in test_1 function at:
+		//
+		//     "push   %rbp\n"         /* +0  55             */
+		//     "mov    %rsp,%rbp\n"    /* +1  48 89 e5       */
+		//     "mov    $0x1,%eax\n"    /* +4  b8 01 00 00 00 */
+		// --> "mov    $0x3,%eax\n"    /* +9  b8 03 00 00 00 */
+		//     "pop    %rbp\n"         /* +14 5d             */
+		//     "ret\n"                 /* +15 c3             */
+		//
+		// Make sure we retrieve data with eax value (1) as int argument.
+		symbol = "test_1+14"
+		pathHook += `
     symbols:
-    - "test_1+14"
+    - "` + symbol + `"
     data:
     - index: 0
       type: "int"
       source: "pt_regs"
-      resolve: "eax"
-`
+      resolve: "eax"`
+	case "arm64":
+		// unlike x86, general purpose registers are stored in an array
+		t.Skip("unable to resolve general purpose registers on arm64")
+		//   a9bf7bfd        stp     x29, x30, [sp, #-16]!
+		//   910003fd        mov     x29, sp
+		//   52800020        mov     w0, #0x1                        // #1
+		//   52800060   -->  mov     w0, #0x3                        // #3
+		//   a8c17bfd        ldp     x29, x30, [sp], #16
+		//   d65f03c0        ret
+		symbol = "test_1+12"
+		pathHook += `
+    symbols:
+    - "` + symbol + `"
+    data:
+    - index: 0
+      type: "int"
+      source: "pt_regs"
+      resolve: "w0"`
+	}
 
 	pathConfigHook := []byte(pathHook)
 	err := os.WriteFile(testConfigFile, pathConfigHook, 0644)
@@ -390,7 +476,7 @@ spec:
 	upChecker := ec.NewProcessUprobeChecker("UPROBE_DATA_MATCH").
 		WithProcess(ec.NewProcessChecker().
 			WithBinary(sm.Full(testBinary))).
-		WithSymbol(sm.Full("test_1+14")).
+		WithSymbol(sm.Full(symbol)).
 		WithData(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
@@ -421,6 +507,10 @@ spec:
 }
 
 func testUprobePtRegsMatch(t *testing.T, value int, expectFail bool) {
+	if runtime.GOARCH == "arm64" {
+		// unlike x86, general purpose registers are stored in an array
+		t.Skip("unable to resolve general purpose registers on arm64")
+	}
 	testBinary := testutils.RepoRootPath("contrib/tester-progs/regs-override")
 
 	// Put uprobe in test_1 function at:
