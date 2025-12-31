@@ -6,10 +6,12 @@
 package btf
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"
 	"reflect"
+	"slices"
 	"strings"
 
 	"github.com/cilium/ebpf/btf"
@@ -203,9 +205,62 @@ func ResolveNestedTypes(ty btf.Type) btf.Type {
 	return ty
 }
 
+// Reduce de amount of BTFArg entry needed to reach the data.
+//
+// For example, for the following input :
+//
+//	[
+//	 { IsInitialized: 1, IsPointer: 1, Offset: 20 },
+//	 { IsInitialized: 1, IsPointer: 0, Offset: 10 },
+//	 { IsInitialized: 1, IsPointer: 1, Offset: 100 }
+//	]
+//
+// You will have the following output
+// [{ IsInitialized: 1, IsPointer: 1, Offset: 20 }, { IsInitialized: 1, IsPointer: 1, Offset: 110 }]
+func optimiseBTFArg(btfArg *[api.MaxBTFArgDepth]api.ConfigBTFArg, lenPath int) int {
+	var tmp [api.MaxBTFArgDepth]api.ConfigBTFArg
+	j := 0
+
+	for _, arg := range btfArg {
+		if arg.IsInitialized == 0 {
+			break
+		}
+		tmp[j].IsInitialized = uint16(1)
+		tmp[j].Offset += arg.Offset
+		if arg.IsPointer > 0 {
+			tmp[j].IsPointer = uint16(1)
+			j++
+		}
+	}
+	*btfArg = tmp
+	if j > lenPath {
+		// No remaining arguments
+		return lenPath
+	}
+	return j
+}
+
+func optimisationComplete(btfArg *[api.MaxBTFArgDepth]api.ConfigBTFArg, remainingArgs int) bool {
+	return btfArg[0].IsInitialized > 0 && remainingArgs == 0
+}
+
 func ResolveBTFPath(btfArg *[api.MaxBTFArgDepth]api.ConfigBTFArg, rootType btf.Type, path []string) (*btf.Type, error) {
+	var err error
 	i := 0
-	return resolveBTFPath(btfArg, rootType, path, &i)
+	remainingArgs := 0
+	lastType := &rootType
+
+	for !optimisationComplete(btfArg, remainingArgs) {
+		lastType, err = resolveBTFPath(btfArg, *lastType, path, &i)
+		if err != nil && !errors.Is(err, ErrMaxBTFDepth) {
+			return lastType, err
+		}
+		j := optimiseBTFArg(btfArg, len(path)-1)
+		remainingArgs = i - j
+		path = slices.Clone(append(path[:j], path[i:]...))
+		i = j
+	}
+	return lastType, err
 }
 
 // ResolveBTFPath function recursively search in a btf structure in order to
