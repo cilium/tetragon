@@ -6588,6 +6588,56 @@ func (checker *KprobeBpfMapChecker) FromKprobeBpfMap(event *tetragon.KprobeBpfMa
 	return checker
 }
 
+// KprobeErrorChecker implements a checker struct to check a KprobeError field
+type KprobeErrorChecker struct {
+	Message *stringmatcher.StringMatcher `json:"Message,omitempty"`
+}
+
+// NewKprobeErrorChecker creates a new KprobeErrorChecker
+func NewKprobeErrorChecker() *KprobeErrorChecker {
+	return &KprobeErrorChecker{}
+}
+
+// Get the type of the checker as a string
+func (checker *KprobeErrorChecker) GetCheckerType() string {
+	return "KprobeErrorChecker"
+}
+
+// Check checks a KprobeError field
+func (checker *KprobeErrorChecker) Check(event *tetragon.KprobeError) error {
+	if event == nil {
+		return fmt.Errorf("%s: KprobeError field is nil", CheckerLogPrefix(checker))
+	}
+
+	fieldChecks := func() error {
+		if checker.Message != nil {
+			if err := checker.Message.Match(event.Message); err != nil {
+				return fmt.Errorf("Message check failed: %w", err)
+			}
+		}
+		return nil
+	}
+	if err := fieldChecks(); err != nil {
+		return fmt.Errorf("%s: %w", CheckerLogPrefix(checker), err)
+	}
+	return nil
+}
+
+// WithMessage adds a Message check to the KprobeErrorChecker
+func (checker *KprobeErrorChecker) WithMessage(check *stringmatcher.StringMatcher) *KprobeErrorChecker {
+	checker.Message = check
+	return checker
+}
+
+//FromKprobeError populates the KprobeErrorChecker using data from a KprobeError field
+func (checker *KprobeErrorChecker) FromKprobeError(event *tetragon.KprobeError) *KprobeErrorChecker {
+	if event == nil {
+		return checker
+	}
+	checker.Message = stringmatcher.Full(event.Message)
+	return checker
+}
+
 // SyscallIdChecker implements a checker struct to check a SyscallId field
 type SyscallIdChecker struct {
 	Id  *uint32                      `json:"id,omitempty"`
@@ -6686,6 +6736,7 @@ type KprobeArgumentChecker struct {
 	SyscallId             *SyscallIdChecker            `json:"syscallId,omitempty"`
 	SockaddrArg           *KprobeSockaddrChecker       `json:"sockaddrArg,omitempty"`
 	BpfProgArg            *KprobeBpfProgChecker        `json:"bpfProgArg,omitempty"`
+	ErrorArg              *KprobeErrorChecker          `json:"errorArg,omitempty"`
 	Label                 *stringmatcher.StringMatcher `json:"label,omitempty"`
 }
 
@@ -7006,6 +7057,16 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 				return fmt.Errorf("KprobeArgumentChecker: BpfProgArg check failed: %T is not a BpfProgArg", event)
 			}
 		}
+		if checker.ErrorArg != nil {
+			switch event := event.Arg.(type) {
+			case *tetragon.KprobeArgument_ErrorArg:
+				if err := checker.ErrorArg.Check(event.ErrorArg); err != nil {
+					return fmt.Errorf("ErrorArg check failed: %w", err)
+				}
+			default:
+				return fmt.Errorf("KprobeArgumentChecker: ErrorArg check failed: %T is not a ErrorArg", event)
+			}
+		}
 		if checker.Label != nil {
 			if err := checker.Label.Match(event.Label); err != nil {
 				return fmt.Errorf("Label check failed: %w", err)
@@ -7200,6 +7261,12 @@ func (checker *KprobeArgumentChecker) WithBpfProgArg(check *KprobeBpfProgChecker
 	return checker
 }
 
+// WithErrorArg adds a ErrorArg check to the KprobeArgumentChecker
+func (checker *KprobeArgumentChecker) WithErrorArg(check *KprobeErrorChecker) *KprobeArgumentChecker {
+	checker.ErrorArg = check
+	return checker
+}
+
 // WithLabel adds a Label check to the KprobeArgumentChecker
 func (checker *KprobeArgumentChecker) WithLabel(check *stringmatcher.StringMatcher) *KprobeArgumentChecker {
 	checker.Label = check
@@ -7379,6 +7446,12 @@ func (checker *KprobeArgumentChecker) FromKprobeArgument(event *tetragon.KprobeA
 	case *tetragon.KprobeArgument_BpfProgArg:
 		if event.BpfProgArg != nil {
 			checker.BpfProgArg = NewKprobeBpfProgChecker().FromKprobeBpfProg(event.BpfProgArg)
+		}
+	}
+	switch event := event.Arg.(type) {
+	case *tetragon.KprobeArgument_ErrorArg:
+		if event.ErrorArg != nil {
+			checker.ErrorArg = NewKprobeErrorChecker().FromKprobeError(event.ErrorArg)
 		}
 	}
 	checker.Label = stringmatcher.Full(event.Label)

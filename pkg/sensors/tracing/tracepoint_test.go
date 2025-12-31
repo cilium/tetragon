@@ -455,12 +455,10 @@ func TestLoadTracepointSensor(t *testing.T) {
 
 		// generic_tracepoint_output
 		{Name: "tcpmon_map", Progs: []uint{5}},
-
-		// all kprobe but generic_tracepoint_filter
-		{Name: "config_map", Progs: []uint{0, 2}},
 	}
 
 	if config.EnableLargeProgs() {
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{0, 2, 4}})
 		// shared with base sensor
 		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{3, 4, 5}})
 
@@ -474,6 +472,7 @@ func TestLoadTracepointSensor(t *testing.T) {
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}})
 		}
 	} else {
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{0, 2}})
 		// shared with base sensor
 		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{3}})
 
