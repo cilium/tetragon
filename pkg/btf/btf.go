@@ -255,7 +255,7 @@ func resolveBTFPath(
 		if *i > 0 {
 			currentPath = pathToFound[*i-1]
 		}
-		return nil, fmt.Errorf("unexpected type : %q has type %q", currentPath, ty)
+		return &currentType, fmt.Errorf("unexpected type : %q has type %q", currentPath, ty)
 	}
 }
 
@@ -267,12 +267,14 @@ func processMembers(
 	i *int,
 ) (*btf.Type, error) {
 	var lastError error
+	var err error
+	var lastTy *btf.Type
 	memberWasFound := false
 	for _, member := range members {
 		if len(member.Name) == 0 { // If anonymous struct, fallthrough
 			(*btfArgs)[*i].Offset = member.Offset.Bytes()
 			(*btfArgs)[*i].IsInitialized = uint16(1)
-			lastTy, err := resolveBTFPath(btfArgs, ResolveNestedTypes(member.Type), pathToFound, i)
+			lastTy, err = resolveBTFPath(btfArgs, ResolveNestedTypes(member.Type), pathToFound, i)
 			if err != nil {
 				if lastError != nil {
 					idx := *i + 1
@@ -301,9 +303,9 @@ func processMembers(
 	}
 	if !memberWasFound {
 		if lastError != nil {
-			return nil, lastError
+			return lastTy, lastError
 		}
-		return nil, fmt.Errorf(
+		return lastTy, fmt.Errorf(
 			"attribute %q not found in structure %q found %v",
 			pathToFound[*i],
 			currentType.TypeName(),
