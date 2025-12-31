@@ -23,6 +23,8 @@ import (
 
 var (
 	btfFile string
+
+	ErrMaxBTFDepth = fmt.Errorf("maximum BTF depth of %d reached", api.MaxBTFArgDepth)
 )
 
 func btfFileExists(file string) error {
@@ -227,6 +229,9 @@ func resolveBTFPath(
 	pathToFound []string,
 	i *int,
 ) (*btf.Type, error) {
+	if *i >= api.MaxBTFArgDepth {
+		return &currentType, fmt.Errorf("unable to resolve %q : %w", strings.Join(pathToFound, "."), ErrMaxBTFDepth)
+	}
 	switch t := currentType.(type) {
 	case *btf.Struct:
 		return processMembers(btfArgs, currentType, t.Members, pathToFound, i)

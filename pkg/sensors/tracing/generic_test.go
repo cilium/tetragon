@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
+	"github.com/cilium/tetragon/pkg/btf"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
@@ -70,6 +71,6 @@ spec:
 	for _, arg := range failHook.Args {
 		_, _, err := resolveBTFArg(failHook.Call, &arg, false)
 
-		require.ErrorContains(t, err, "The maximum depth allowed is", "The path %q must have len < %d", arg.Resolve, api.MaxBTFArgDepth)
+		require.ErrorContains(t, err, btf.ErrMaxBTFDepth.Error(), "The path %q must have len < %d", arg.Resolve, api.MaxBTFArgDepth)
 	}
 }
