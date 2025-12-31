@@ -55,12 +55,32 @@ type observerKprobeSensor struct {
 	name string
 }
 
+type fmodRetProgram struct {
+	name string
+}
+
+type kprobeOverrideProgram struct {
+	name string
+}
+
 func init() {
 	kprobe := &observerKprobeSensor{
 		name: "kprobe sensor",
 	}
+
+	fmodRet := &fmodRetProgram{
+		name: "fmod_ret program",
+	}
+
+	kprobeOverrideProgram := &kprobeOverrideProgram{
+		name: "kprobe_override program",
+	}
+
 	sensors.RegisterProbeType("generic_kprobe", kprobe)
 	observer.RegisterEventHandlerAtInit(ops.MSG_OP_GENERIC_KPROBE, handleGenericKprobe)
+
+	sensors.RegisterProbeType("generic_fmod_ret", fmodRet)
+	sensors.RegisterProbeType("generic_kprobe_override", kprobeOverrideProgram)
 }
 
 type kprobeSelectors struct {
@@ -69,10 +89,11 @@ type kprobeSelectors struct {
 }
 
 type kprobeLoadArgs struct {
-	selectors kprobeSelectors
-	retprobe  bool
-	syscall   bool
-	config    *api.EventConfig
+	selectors  kprobeSelectors
+	retprobe   bool
+	syscall    bool
+	config     *api.EventConfig
+	overrideID int
 }
 
 type pendingEventKey struct {
@@ -345,11 +366,25 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 	filterMap.SetMaxEntries(len(multiIDs))
 	configMap.SetMaxEntries(len(multiIDs))
 
-	overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
 	if has.override {
-		overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
+		for _, id := range multiIDs {
+			var overrideID int
+			gk, err := genericKprobeTableGet(id)
+			if err != nil {
+				return nil, nil, err
+			}
+			gk.data = &genericKprobeData{}
+
+			progs, maps, overrideID = createOverrideProgramFromEntry(load, gk.funcName, progs, maps)
+			gk.loadArgs.overrideID = overrideID
+		}
+	} else {
+		overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
+		if has.override {
+			overrideTasksMap.SetMaxEntries(program.OverrideMapMaxEntries)
+		}
+		maps = append(maps, overrideTasksMap)
 	}
-	maps = append(maps, overrideTasksMap)
 
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load))
 
@@ -1007,6 +1042,35 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 	return kprobeEntry.tableId, nil
 }
 
+func createOverrideProgramFromEntry(load *program.Program, attachFunc string, progs []*program.Program, maps []*program.Map) ([]*program.Program, []*program.Map, int) {
+	var overrideProg *program.Program
+	var overrideMap *program.Map
+	var id int
+
+	if load.OverrideFmodRet {
+		overrideProg, overrideMap, id = program.GetOverrideProg(program.OverrideTypeFmodRet, attachFunc)
+
+	} else {
+		overrideProg, overrideMap, id = program.GetOverrideProg(program.OverrideTypeKProbe, attachFunc)
+	}
+
+	// setup kprobe override program and its input
+	progs = append(progs, overrideProg)
+	maps = append(maps, overrideMap)
+
+	// setup the output of kprobe
+	overrideTasksMap := program.MapBuilderOpts("override_tasks", program.MapOpts{
+		Type:  program.MapTypeGlobal,
+		Owner: false,
+	}, load)
+	overrideTasksMap.PinPath = overrideMap.PinPath
+	overrideTasksMap.SetMaxEntries(program.OverrideMapMaxEntries)
+
+	maps = append(maps, overrideTasksMap)
+
+	return progs, maps, id
+}
+
 func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe,
 	progs []*program.Program, maps []*program.Map, has hasMaps) ([]*program.Program, []*program.Map) {
 
@@ -1104,11 +1168,14 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 		maps = append(maps, program.MapUser(cgtracker.MapName, load))
 	}
 
-	overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
-	if has.override {
-		overrideTasksMap.SetMaxEntries(overrideMapMaxEntries)
+	if load.Override {
+		var overrideID int
+		progs, maps, overrideID = createOverrideProgramFromEntry(load, kprobeEntry.funcName, progs, maps)
+		kprobeEntry.loadArgs.overrideID = overrideID
+	} else {
+		overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
+		maps = append(maps, overrideTasksMap)
 	}
-	maps = append(maps, overrideTasksMap)
 
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load))
 
@@ -1203,6 +1270,7 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Pro
 
 	load.MapLoad = append(load.MapLoad, getMapLoad(load, gk, 0)...)
 
+	gk.loadArgs.config.OverrideID = uint32(gk.loadArgs.overrideID)
 	var configData bytes.Buffer
 	binary.Write(&configData, binary.LittleEndian, gk.loadArgs.config)
 	config := &program.MapLoad{
@@ -1244,8 +1312,11 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir string, load *program.P
 		}
 		load.MapLoad = append(load.MapLoad, config)
 
+		// 0-3: index, 4-11: override_id, others: reserved
+		cookies := index&0x0f | (gk.loadArgs.overrideID << 4)
+
 		data.Symbols = append(data.Symbols, gk.funcName)
-		data.Cookies = append(data.Cookies, uint64(index))
+		data.Cookies = append(data.Cookies, uint64(cookies))
 
 		if gk.hasOverride && !load.RetProbe {
 			data.Overrides = append(data.Overrides, gk.funcName)
@@ -1263,6 +1334,28 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir string, load *program.P
 	}
 
 	return nil
+}
+
+func loadGenericFmodRetProgram(bpfDir string, load *program.Program, maps []*program.Map, verbose int) error {
+	if load.LoadState.IsLoaded() {
+		logger.GetLogger().Info(fmt.Sprintf("The generic fmodify return program on %s has been loaded", load.Attach))
+		return nil
+	}
+
+	logger.GetLogger().Info("loading generic fmod ret program", "prog", load)
+
+	return program.LoadFmodRetProgram(bpfDir, load, maps, "generic_fmodret_override", verbose)
+}
+
+func loadGenericKProbeOverrideProgram(bpfDir string, load *program.Program, maps []*program.Map, verbose int) error {
+	if load.LoadState.IsLoaded() {
+		logger.GetLogger().Info(fmt.Sprintf("The generic kprobe override program on %s has been loaded", load.Attach))
+		return nil
+	}
+
+	logger.GetLogger().Info("loading generic kprobe override program", "prog", load)
+
+	return program.LoadKprobeProgram(bpfDir, load, maps, verbose)
 }
 
 func loadGenericKprobeSensor(bpfDir string, load *program.Program, maps []*program.Map, verbose int) error {
@@ -1519,4 +1612,12 @@ func retprobeMergeEvents[T evArgsRetriever](unix T, pendingEvents *lru.Cache[pen
 
 func (k *observerKprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 	return loadGenericKprobeSensor(args.BPFDir, args.Load, args.Maps, args.Verbose)
+}
+
+func (k *fmodRetProgram) LoadProbe(args sensors.LoadProbeArgs) error {
+	return loadGenericFmodRetProgram(args.BPFDir, args.Load, args.Maps, args.Verbose)
+}
+
+func (k *kprobeOverrideProgram) LoadProbe(args sensors.LoadProbeArgs) error {
+	return loadGenericKProbeOverrideProgram(args.BPFDir, args.Load, args.Maps, args.Verbose)
 }
