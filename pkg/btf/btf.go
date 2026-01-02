@@ -271,9 +271,7 @@ func processMembers(
 	var lastTy *btf.Type
 	memberWasFound := false
 	for _, member := range members {
-		if len(member.Name) == 0 { // If anonymous struct, fallthrough
-			(*btfArgs)[*i].Offset = member.Offset.Bytes()
-			(*btfArgs)[*i].IsInitialized = uint16(1)
+		if len(member.Name) == 0 { // If anonymous struct/union, fallthrough
 			lastTy, err = resolveBTFPath(btfArgs, ResolveNestedTypes(member.Type), pathToFound, i)
 			if err != nil {
 				if lastError != nil {
@@ -290,13 +288,8 @@ func processMembers(
 		}
 		if member.Name == pathToFound[*i] {
 			memberWasFound = true
-			(*btfArgs)[*i].Offset = member.Offset.Bytes()
+			(*btfArgs)[*i].Offset += member.Offset.Bytes()
 			(*btfArgs)[*i].IsInitialized = uint16(1)
-			isNotLastChild := *i < len(pathToFound)-1 && *i < api.MaxBTFArgDepth
-			if isNotLastChild {
-				*i++
-				return resolveBTFPath(btfArgs, ResolveNestedTypes(member.Type), pathToFound, i)
-			}
 			currentType = ResolveNestedTypes(member.Type)
 			break
 		}
@@ -314,9 +307,13 @@ func processMembers(
 	}
 	if t, ok := currentType.(*btf.Pointer); ok {
 		(*btfArgs)[*i].IsPointer = uint16(1)
-		currentType = t.Target
+		currentType = ResolveNestedTypes(t.Target)
 	} else if _, ok := currentType.(*btf.Int); ok {
 		(*btfArgs)[*i].IsPointer = uint16(1)
+	}
+	if *i < len(pathToFound)-1 {
+		*i += 1
+		return resolveBTFPath(btfArgs, currentType, pathToFound, i)
 	}
 	return &currentType, nil
 }
