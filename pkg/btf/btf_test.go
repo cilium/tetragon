@@ -562,6 +562,44 @@ func testAssertErrorOnInvalidPath(spec *btf.Spec) func(*testing.T) {
 	}
 }
 
+func testAssertBTFArgIsOptimised(spec *btf.Spec) func(*testing.T) {
+	return func(t *testing.T) {
+		hook := "security_bprm_check"
+		argIndex := 0 // struct linux_binprm *bprm
+		funcParamTy, err := findBTFFuncParamFromHookWithSpec(spec, hook, argIndex)
+		fatalOnError(t, err)
+
+		rootType := funcParamTy.Type
+		if rootTy, ok := rootType.(*btf.Pointer); ok {
+			rootType = rootTy.Target
+		}
+
+		// 12 args - Last element is a ptr
+		btfArg1, _, err := testPathIsAccessible(
+			rootType,
+			"mm.owner.real_parent.real_parent.real_parent.real_parent.mm.exe_file.f_path.dentry.d_name.name",
+		)
+		fatalOnError(t, err)
+		for _, entry := range btfArg1 {
+			if entry.IsPointer == 0 {
+				t.Fatalf("Expect to have all elements as pointer")
+			}
+		}
+
+		// 10 args - Last element is a not ptr
+		btfArg2, _, err := testPathIsAccessible(
+			rootType,
+			"mm.owner.real_parent.real_parent.real_parent.real_parent.real_parent.real_parent.real_parent.comm",
+		)
+		fatalOnError(t, err)
+		for i, entry := range btfArg2 {
+			if (entry.IsPointer == 0 && i < len(btfArg2)-1) || (entry.IsPointer > 0 && i == len(btfArg2)-1) {
+				t.Fatalf("Expect only the last entry to not be a ptr")
+			}
+		}
+	}
+}
+
 func testResolveBTFPath(btfFName string) func(t *testing.T) {
 	return func(t *testing.T) {
 		spec, err := btf.LoadSpec(btfFName)
@@ -571,6 +609,7 @@ func testResolveBTFPath(btfFName string) func(t *testing.T) {
 		t.Run("PathIsAccessible", testAssertPathIsAccessible(spec))
 		t.Run("AssertErrorOnInvalidPath", testAssertErrorOnInvalidPath(spec))
 		t.Run("AssertEqualPath", testAssertEqualPath(spec))
+		t.Run("AssertBTFArgIsOptimised", testAssertBTFArgIsOptimised(spec))
 	}
 }
 
