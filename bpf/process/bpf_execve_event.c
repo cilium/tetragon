@@ -271,6 +271,7 @@ event_execve(struct exec_ctx_struct *ctx)
 	if (parent) {
 		event->parent = parent->key;
 		update_mb_task(parent);
+		event->parent_flags = 0;
 	} else {
 		event_minimal_parent(event, task);
 	}
@@ -280,6 +281,7 @@ event_execve(struct exec_ctx_struct *ctx)
 	p->size_path = 0;
 	p->size_args = 0;
 	p->size_cwd = 0;
+	p->size_envs = 0;
 
 	/**
 	 * Per thread tracking rules TID == PID :
@@ -301,6 +303,7 @@ event_execve(struct exec_ctx_struct *ctx)
 	p->size += read_envs(ctx, event);
 
 	event->common.op = MSG_OP_EXECVE;
+	event->common.flags = 0;
 	event->common.ktime = p->ktime;
 	event->common.size = offsetof(struct msg_execve_event, process) + p->size;
 
