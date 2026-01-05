@@ -249,12 +249,11 @@ func Test_rateLimitExport(t *testing.T) {
 			ticker := time.NewTicker(10 * time.Millisecond)
 			defer ticker.Stop()
 
-		pollLoop:
 			for {
 				gotEvents, gotRateLimitInfo, _ := countEvents(results.items)
 				if gotEvents >= tt.wantEvents && gotRateLimitInfo >= tt.wantRateLimitInfo {
 					// We have all the expected output, proceed to cleanup and assertions.
-					break pollLoop
+					break
 				}
 				select {
 				case <-timeout:
