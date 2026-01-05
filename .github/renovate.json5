@@ -378,20 +378,6 @@
       "enabled": false
     },
     {
-      "enabled": false,
-      "matchPackageNames": [
-        // k8s dependencies will be updated manually along cilium updates
-        "k8s\\.io/*",
-        "sigs\\.k8s\\.io/*",
-        "github.com/google/cel-go", // cel-go is a dependency of k8s apiserver
-      ],
-      "matchUpdateTypes": [
-        "major",
-        "minor",
-        "digest",
-      ],
-    },
-    {
       // These major updates are breaking the build and should be done manually
       // if needed.
       "enabled": false,
