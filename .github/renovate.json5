@@ -528,7 +528,7 @@
     },
     {
       "customType": "regex",
-      "fileMatch": ["(^|/)Chart\\.ya?ml$"],
+      "managerFilePatterns": ["(^|/)Chart\\.ya?ml$"],
       "matchStrings": [
         "# renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s*\\nversion:\\s*(?<currentValue>.*)",
         "# renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s*\\nappVersion:\\s*(?<currentValue>.*)"
