@@ -200,6 +200,7 @@ event_execve(struct trace_event_raw_sched_process_exec *ctx)
 	parent = event_find_parent();
 	if (parent) {
 		event->parent = parent->key;
+		event->parent_flags = 0;
 	} else {
 		event_minimal_parent(event, task);
 	}
@@ -225,6 +226,7 @@ event_execve(struct trace_event_raw_sched_process_exec *ctx)
 	p->size += read_cwd(ctx, p);
 
 	event->common.op = MSG_OP_EXECVE;
+	event->common.flags = 0;
 	event->common.ktime = p->ktime;
 	event->common.size = offsetof(struct msg_execve_event, process) + p->size;
 
