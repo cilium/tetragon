@@ -122,8 +122,7 @@ const nodeName = "test-node-name"
 
 // countEvents counts the number of events and rate-limit-info messages in the given slice.
 // It returns (gotEvents, gotRateLimitInfo, gotDropped).
-func countEvents(eventsJSON []string) (int, int, uint64) {
-	gotEvents, gotRateLimitInfo, gotDropped := 0, 0, uint64(0)
+func countEvents(eventsJSON []string) (gotEvents int, gotRateLimitInfo int, gotDropped uint64) {
 	for _, event := range eventsJSON {
 		if event == "" {
 			continue
