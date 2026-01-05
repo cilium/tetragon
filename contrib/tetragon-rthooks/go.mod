@@ -10,7 +10,7 @@ require (
 	github.com/containerd/containerd v1.7.30
 	github.com/containerd/nri v0.11.0
 	github.com/containers/common v0.64.2
-	github.com/google/cel-go v0.23.2
+	github.com/google/cel-go v0.26.1
 	github.com/opencontainers/cgroups v0.0.6
 	github.com/opencontainers/runtime-spec v1.3.0
 	github.com/pelletier/go-toml v1.9.5
