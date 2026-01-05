@@ -67,7 +67,7 @@ const (
 
 	GenericDentryType = 42
 
-	GenericBpfProgType = 43
+	GenericBpfProgType  = 43
 	GenericInt32ArrType = 44
 
 	GenericUnsetType   = 0

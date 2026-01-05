@@ -10,9 +10,11 @@ import (
 	"encoding/binary"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestGetArgInt32Arr(t *testing.T) {
@@ -59,11 +61,11 @@ func TestGetArgInt32Arr(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			buf := new(bytes.Buffer)
 			err := binary.Write(buf, binary.LittleEndian, tt.inputCount)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			if tt.inputCount != 0xFFFFFFFC {
 				err = binary.Write(buf, binary.LittleEndian, tt.inputValues)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 
 			r := bytes.NewReader(buf.Bytes())

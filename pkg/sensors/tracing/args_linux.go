@@ -163,19 +163,20 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		if err != nil {
 			logger.GetLogger().Warn("Int32Arr type error (reading count)", logfields.Error, err)
 		} else {
-			if count == 0xFFFFFFFC {
-				// count == -4 (0xFFFFFFFC) indicates CHAR_BUF_SAVED_FOR_RETPROBE.
-				// This means the argument is an output parameter (return copy), so the data
-				// is not yet available at kprobe entry. It will be sent in a subsequent
-				// event from the retprobe.
-			} else if count > 2048 {
-				logger.GetLogger().Warn("Int32Arr size too large", "size", count)
-			} else {
-				values := make([]int32, count)
-				if err := binary.Read(r, binary.LittleEndian, &values); err != nil {
-					logger.GetLogger().Warn("Int32Arr type error (reading values)", "count", count, logfields.Error, err)
+			// count == -4 (0xFFFFFFFC) indicates CHAR_BUF_SAVED_FOR_RETPROBE.
+			// This means the argument is an output parameter (return copy), so the data
+			// is not yet available at kprobe entry. It will be sent in a subsequent
+			// event from the retprobe.
+			if count != 0xFFFFFFFC {
+				if count > 2048 {
+					logger.GetLogger().Warn("Int32Arr size too large", "size", count)
 				} else {
-					arg.Value = values
+					values := make([]int32, count)
+					if err := binary.Read(r, binary.LittleEndian, &values); err != nil {
+						logger.GetLogger().Warn("Int32Arr type error (reading values)", "count", count, logfields.Error, err)
+					} else {
+						arg.Value = values
+					}
 				}
 			}
 		}

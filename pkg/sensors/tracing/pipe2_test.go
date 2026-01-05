@@ -15,12 +15,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+	"golang.org/x/sys/unix"
+
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
-	"github.com/stretchr/testify/require"
-	"golang.org/x/sys/unix"
 )
 
 func validatePipe2Event(t *testing.T, fds [2]int, expectedCount int) {
@@ -161,7 +162,7 @@ spec:
 			testConfigFile := tmpFile.Name()
 			defer os.Remove(testConfigFile)
 
-			if _, err := tmpFile.Write([]byte(pipe2ConfigHook)); err != nil {
+			if _, err := tmpFile.WriteString(pipe2ConfigHook); err != nil {
 				t.Fatalf("write temp file: err %s", err)
 			}
 			if err := tmpFile.Close(); err != nil {
