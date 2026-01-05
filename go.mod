@@ -57,7 +57,7 @@ require (
 	sigs.k8s.io/controller-runtime v0.20.4
 	sigs.k8s.io/controller-tools v0.18.0
 	sigs.k8s.io/e2e-framework v0.6.0
-	sigs.k8s.io/yaml v1.4.0
+	sigs.k8s.io/yaml v1.6.0
 )
 
 require (

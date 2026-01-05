@@ -8,12 +8,13 @@ require (
 	github.com/stretchr/testify v1.11.1
 	google.golang.org/grpc v1.78.0
 	google.golang.org/protobuf v1.36.11
-	sigs.k8s.io/yaml v1.4.0
+	sigs.k8s.io/yaml v1.6.0
 )
 
 require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
+	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	golang.org/x/net v0.48.0 // indirect
 	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/text v0.32.0 // indirect
