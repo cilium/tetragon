@@ -317,6 +317,9 @@ event_execve(struct exec_ctx_struct *ctx)
 	p->flags |= __event_get_cgroup_info(task, &event->kube);
 #endif
 
+	// Zero the cleanup key to prevent user space confusion.
+	event->cleanup_key = (struct msg_execve_key){ 0 };
+
 	tail_call(ctx, &execve_calls, 0);
 	return 0;
 }
