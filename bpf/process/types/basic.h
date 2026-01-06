@@ -286,8 +286,7 @@ FUNC_INLINE int return_error(int *s, int err)
 FUNC_INLINE char *
 args_off(struct msg_generic_kprobe *e, unsigned long off)
 {
-	asm volatile("%[off] &= 0x3fff;\n"
-		     : [off] "+r"(off));
+	VERIFIER_BOUND_14BIT(off);
 	return e->args + off;
 }
 
@@ -326,8 +325,7 @@ parse_iovec_array(long off, unsigned long arg, int i, unsigned long max,
 		size = max;
 	if (size > 4094)
 		return char_buf_toolarge;
-	asm volatile("%[size] &= 0xfff;\n"
-		     : [size] "+r"(size));
+	VERIFIER_BOUND_12BIT(size);
 	err = probe_read(args_off(e, off), size, (char *)iov.iov_base);
 	if (err < 0)
 		return char_buf_pagefault;
@@ -382,8 +380,7 @@ FUNC_INLINE long store_path(char *args, char *buffer, const struct path *arg,
 	void *curr = &args[4];
 	umode_t i_mode;
 
-	asm volatile("%[size] &= 0xfff;\n"
-		     : [size] "+r"(size));
+	VERIFIER_BOUND_12BIT(size);
 	probe_read(curr, size, buffer);
 	*s = size;
 	size += 4;
@@ -1969,9 +1966,9 @@ get_arg(struct msg_generic_kprobe *e, __u32 index)
 {
 	long argoff;
 
-	asm volatile("%[index] &= 0x7;\n" : [index] "+r"(index));
+	VERIFIER_BOUND_3BIT(index);
 	argoff = e->argsoff[index];
-	asm volatile("%[argoff] &= 0x7ff;\n" : [argoff] "+r"(argoff));
+	VERIFIER_BOUND_11BIT(argoff);
 	return &e->args[argoff];
 }
 
@@ -2020,8 +2017,7 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 #endif
 	{
 		argsoff = filters->argoff[i];
-		asm volatile("%[argsoff] &= 0x3ff;\n"
-			     : [argsoff] "+r"(argsoff));
+		VERIFIER_BOUND_10BIT(argsoff);
 
 		if (argsoff <= 0)
 			return pass ? seloff : 0;
@@ -2147,16 +2143,12 @@ installfd(struct msg_generic_kprobe *e, int fd, int name, bool follow)
 	/* Satisfies verifier but is a bit ugly, ideally we
 	 * can just '&' and drop the '>' case.
 	 */
-	asm volatile("%[fd] &= 0xf;\n"
-		     : [fd] "+r"(fd)
-		     :);
+	VERIFIER_BOUND_4BIT(fd);
 	if (fd > 5) {
 		return 0;
 	}
 	fdoff = e->argsoff[fd];
-	asm volatile("%[fdoff] &= 0x7ff;\n"
-		     : [fdoff] "+r"(fdoff)
-		     :);
+	VERIFIER_BOUND_11BIT(fdoff);
 	key.pad = 0;
 	key.fd = *(__u32 *)&e->args[fdoff];
 	key.tid = get_current_pid_tgid() >> 32;
@@ -2164,20 +2156,14 @@ installfd(struct msg_generic_kprobe *e, int fd, int name, bool follow)
 	if (follow) {
 		__u32 size;
 
-		asm volatile("%[name] &= 0xf;\n"
-			     : [name] "+r"(name)
-			     :);
+		VERIFIER_BOUND_4BIT(name);
 		if (name > 5)
 			return 0;
 		nameoff = e->argsoff[name];
-		asm volatile("%[nameoff] &= 0x7ff;\n"
-			     : [nameoff] "+r"(nameoff)
-			     :);
+		VERIFIER_BOUND_11BIT(nameoff);
 
 		size = *(__u32 *)&e->args[nameoff];
-		asm volatile("%[size] &= 0xfff;\n"
-			     : [size] "+r"(size)
-			     :);
+		VERIFIER_BOUND_12BIT(size);
 
 		probe_read(&val->file[0], size + 4 /* size */ + 4 /* flags */,
 			   &e->args[nameoff]);
@@ -2211,30 +2197,22 @@ copyfd(struct msg_generic_kprobe *e, int oldfd, int newfd)
 	int oldfdoff, newfdoff;
 	int err = 0;
 
-	asm volatile("%[oldfd] &= 0xf;\n"
-		     : [oldfd] "+r"(oldfd)
-		     :);
+	VERIFIER_BOUND_4BIT(oldfd);
 	if (oldfd > 5)
 		return 0;
 	oldfdoff = e->argsoff[oldfd];
-	asm volatile("%[oldfdoff] &= 0x7ff;\n"
-		     : [oldfdoff] "+r"(oldfdoff)
-		     :);
+	VERIFIER_BOUND_11BIT(oldfdoff);
 	key.pad = 0;
 	key.fd = *(__u32 *)&e->args[oldfdoff];
 	key.tid = get_current_pid_tgid() >> 32;
 
 	val = map_lookup_elem(&fdinstall_map, &key);
 	if (val) {
-		asm volatile("%[newfd] &= 0xf;\n"
-			     : [newfd] "+r"(newfd)
-			     :);
+		VERIFIER_BOUND_4BIT(newfd);
 		if (newfd > 5)
 			return 0;
 		newfdoff = e->argsoff[newfd];
-		asm volatile("%[newfdoff] &= 0x7ff;\n"
-			     : [newfdoff] "+r"(newfdoff)
-			     :);
+		VERIFIER_BOUND_11BIT(newfdoff);
 		key.pad = 0;
 		key.fd = *(__u32 *)&e->args[newfdoff];
 		key.tid = get_current_pid_tgid() >> 32;
@@ -2308,12 +2286,9 @@ rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_k
 			key_index = e->argsoff[i] & 16383;
 			if (arg_size > KEY_BYTES_PER_ARG)
 				arg_size = KEY_BYTES_PER_ARG;
-			asm volatile("%[arg_size] &= 0x3f;\n" // ensure this mask is greater than KEY_BYTES_PER_ARG
-				     : [arg_size] "+r"(arg_size)
-				     :);
-			asm volatile("%[index] &= 0xff;\n"
-				     : [index] "+r"(index)
-				     :);
+			// Ensure this mask is greater than KEY_BYTES_PER_ARG
+			VERIFIER_BOUND_6BIT(arg_size);
+			VERIFIER_BOUND_8BIT(index);
 			probe_read(&dst[index], arg_size, &e->args[key_index]);
 			index += arg_size;
 		}
@@ -2362,16 +2337,12 @@ tracksock(struct msg_generic_kprobe *e, int socki, bool track)
 	/* Satisfies verifier but is a bit ugly, ideally we
 	 * can just '&' and drop the '>' case.
 	 */
-	asm volatile("%[socki] &= 0xf;\n"
-		     : [socki] "+r"(socki)
-		     :);
+	VERIFIER_BOUND_4BIT(socki);
 	if (socki > 5)
 		return 0;
 
 	sockoff = e->argsoff[socki];
-	asm volatile("%[sockoff] &= 0x7ff;\n"
-		     : [sockoff] "+r"(sockoff)
-		     :);
+	VERIFIER_BOUND_11BIT(sockoff);
 	skt = (struct sk_type *)&e->args[sockoff];
 	sockaddr = skt->sockaddr;
 	if (!sockaddr)

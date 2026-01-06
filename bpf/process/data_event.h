@@ -23,10 +23,7 @@ __do_bytes(void *ctx, struct msg_data *msg, unsigned long uptr, size_t bytes)
 a:
 	// < 5.3 verifier still requires value masking like 'val &= xxx'
 #ifndef __LARGE_BPF_PROG
-	asm volatile("%[bytes] &= 0x3fff;\n"
-		     :
-		     : [bytes] "+r"(bytes)
-		     :);
+	VERIFIER_BOUND_14BIT(bytes);
 #endif
 	err = probe_read(&msg->arg[0], bytes, (char *)uptr);
 	if (err < 0)
@@ -88,8 +85,8 @@ __do_str(void *ctx, struct msg_data *msg, unsigned long arg, bool *done)
 	long ret;
 
 	/* Code movement from clang forces us to inline bounds checks here */
-	asm volatile("%[max] &= 0x7fff;\n"
-		     "if %[max] < 32736 goto +1\n;"
+	VERIFIER_BOUND_15BIT(max);
+	asm volatile("if %[max] < 32736 goto +1\n;"
 		     "%[max] = 32736;\n"
 		     : [max] "+r"(max));
 
@@ -105,8 +102,7 @@ __do_str(void *ctx, struct msg_data *msg, unsigned long arg, bool *done)
 
 	size = ret + offsetof(struct msg_data, arg);
 	/* Code movement from clang forces us to inline bounds checks here */
-	asm volatile("%[size] &= 0x7fff;\n"
-		     : [size] "+r"(size));
+	VERIFIER_BOUND_15BIT(size);
 	msg->common.size = size;
 	event_output_metric(ctx, MSG_OP_DATA, msg, size);
 	return ret;

@@ -39,8 +39,7 @@ __execve_map_update(struct update_data *data)
 
 	bpf_for(idx, 0, LOOPS)
 	{
-		asm volatile("%[idx] &= 0x7fff;\n"
-			     : [idx] "+r"(idx));
+		VERIFIER_BOUND_15BIT(idx);
 		if (data->cnt == idx)
 			break;
 

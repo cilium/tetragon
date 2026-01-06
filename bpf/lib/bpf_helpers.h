@@ -71,6 +71,7 @@ enum bpf_enum_value_kind {
 };
 
 #include "bpf_core_read.h"
+#include "verifier_helpers.h"
 
 /* relax_verifier is a dummy helper call to introduce a pruning checkpoint
  * to help relax the verifier to avoid reaching complexity limits.
