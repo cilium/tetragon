@@ -25,7 +25,7 @@ jobs:
       operatorImage: ${{ steps.vars.outputs.operatorImage }}
     steps:
     - name: Checkout Code
-      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
     - name: Install Go
       uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
@@ -78,7 +78,7 @@ jobs:
         package: ${{fromJson(needs.prepare.outputs.packages)}}
     steps:
     - name: Checkout Code
-      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       with:
         path: go/src/github.com/cilium/tetragon/
 
