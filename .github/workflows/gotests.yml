@@ -75,7 +75,7 @@ jobs:
 
     - name: Upload Tetragon logs
       if: failure()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
       with:
         name: tetragon-json-${{ matrix.os }}
         path: /tmp/tetragon.gotest*
@@ -83,7 +83,7 @@ jobs:
 
     - name: Upload bugtool dumps
       if: failure()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
       with:
         name: tetragon-bugtool-${{ matrix.os }}
         path: /tmp/tetragon-bugtool*
@@ -91,7 +91,7 @@ jobs:
 
     - name: Upload vmlinux file
       if: failure()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
       with:
         name: btf-vmlinux-${{ matrix.os }}
         path: /sys/kernel/btf/vmlinux
