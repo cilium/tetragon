@@ -10,6 +10,7 @@ import (
 	"math/big"
 	random "math/rand"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -310,7 +311,7 @@ func TestReconcile(t *testing.T) {
 	namespacedName := types.NamespacedName{Namespace: pod.Namespace, Name: pod.Name}
 	res, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namespacedName})
 	require.NoError(t, err)
-	assert.False(t, res.Requeue)
+	assert.Equal(t, time.Duration(0), res.RequeueAfter)
 	require.NoError(t, client.Get(context.Background(), namespacedName, &ciliumv1alpha1.PodInfo{}))
 }
 
@@ -324,7 +325,7 @@ func TestReconcileWithDeletionTimestamp(t *testing.T) {
 	namespacedName := types.NamespacedName{Namespace: pod.Namespace, Name: pod.Name}
 	res, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namespacedName})
 	require.NoError(t, err)
-	assert.False(t, res.Requeue)
+	assert.Equal(t, time.Duration(0), res.RequeueAfter)
 	err = client.Get(context.Background(), namespacedName, &ciliumv1alpha1.PodInfo{})
 	assert.True(t, errors.IsNotFound(err))
 }
