@@ -223,7 +223,7 @@ args_off(struct msg_generic_kprobe *e, unsigned long off)
 {
 	asm volatile("%[off] &= 0x3fff;\n"
 		     : [off] "+r"(off));
-	return e->args + off;
+	return e->args + ((unsigned int)off & 0x3fff);
 }
 
 /* Error writer for use when pointer *s is lost to stack and can not
