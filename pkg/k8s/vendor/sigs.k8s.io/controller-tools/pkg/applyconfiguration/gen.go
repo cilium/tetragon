@@ -17,6 +17,7 @@ limitations under the License.
 package applyconfiguration
 
 import (
+	"errors"
 	"fmt"
 	"go/ast"
 	"os"
@@ -33,6 +34,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	crdmarkers "sigs.k8s.io/controller-tools/pkg/crd/markers"
 	"sigs.k8s.io/controller-tools/pkg/genall"
+	"sigs.k8s.io/controller-tools/pkg/internal/crd"
 	"sigs.k8s.io/controller-tools/pkg/loader"
 	"sigs.k8s.io/controller-tools/pkg/markers"
 )
@@ -67,6 +69,10 @@ func (Generator) CheckFilter() loader.NodeFilter {
 func (Generator) RegisterMarkers(into *markers.Registry) error {
 	if err := markers.RegisterAll(into,
 		isCRDMarker, enablePkgMarker, enableTypeMarker, outputPkgMarker); err != nil {
+		return err
+	}
+
+	if err := crdmarkers.Register(into); err != nil {
 		return err
 	}
 
@@ -204,6 +210,18 @@ func (ctx *ObjectGenCtx) generateForPackage(root *loader.Package) error {
 	if !ok {
 		return fmt.Errorf("package %q not found in universe", root.Name)
 	}
+
+	pkgMarkers, err := markers.PackageMarkers(ctx.Collector, root)
+	if err != nil {
+		return fmt.Errorf("failed to get package markers: %w", err)
+	}
+
+	gv := crd.GroupVersionForPackage(pkgMarkers, root)
+	if gv.Empty() {
+		return errors.New("could not infer groupVersion for package - Is the `// +groupName` marker set?")
+	}
+
+	pkg.Comments = append(pkg.Comments, "+groupName="+gv.Group)
 
 	// For each type we think should be generated, make sure it has a genclient
 	// marker else the apply generator will not generate it.
