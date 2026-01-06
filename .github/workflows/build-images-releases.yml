@@ -50,7 +50,7 @@ jobs:
           echo "tag=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
 
       - name: Checkout Source Code
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
@@ -194,7 +194,7 @@ jobs:
         uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
 
       - name: Checkout Source Code
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
@@ -231,7 +231,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
       - name: Set up Go
         uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
