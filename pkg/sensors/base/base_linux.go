@@ -30,7 +30,6 @@ func GetDefaultMaps() []*program.Map {
 		ExecveJoinMapStats,
 		ExecveTailCallsMap,
 		ExecveMapUpdateData,
-		ParentBinariesMap,
 		TCPMonMap,
 		TetragonConfMap,
 		StatsMap,
@@ -38,6 +37,11 @@ func GetDefaultMaps() []*program.Map {
 		MatchBinariesGenMap,
 		ErrMetricsMap,
 	}
+
+	if option.Config.ParentsMapEnabled {
+		maps = append(maps, ParentBinariesMap)
+	}
+
 	// The BPF ring buffer is available from v5.8, but rather than add another set of
 	// kernel-version-specific objects, let's set the gate at v5.11 as we already have
 	// objects for that version number.

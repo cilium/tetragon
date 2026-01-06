@@ -366,6 +366,10 @@ struct {
 	__type(value, struct binary);
 } binary_heap_map SEC(".maps");
 
+// Parent binaries map is used for saving actual immediate parents
+// for processes to get check them in matchParentBinaries selector.
+// If multiple execs are called in same process without fork, the map
+// stores process binary itself instead of its parent binary.
 struct {
 	__uint(type, BPF_MAP_TYPE_LRU_HASH);
 	__uint(max_entries, 1);

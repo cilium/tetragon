@@ -701,7 +701,9 @@ func createGenericKprobeSensor(
 		maps = append(maps, program.MapUserFrom(base.RingBufEvents))
 	}
 
-	maps = append(maps, program.MapUserFrom(base.ParentBinariesMap))
+	if option.Config.ParentsMapEnabled {
+		maps = append(maps, program.MapUserFrom(base.ParentBinariesMap))
+	}
 
 	return &sensors.Sensor{
 		Name:      name,

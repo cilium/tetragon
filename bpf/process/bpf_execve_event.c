@@ -342,6 +342,8 @@ execve_rate(void *ctx __arg_ctx)
 	return 0;
 }
 
+volatile const __u8 PARENTS_MAP_ENABLED;
+
 /**
  * execve_send() sends the collected execve event data.
  *
@@ -415,20 +417,21 @@ execve_send(struct exec_ctx_struct *ctx __arg_ctx)
 		}
 #endif
 
-		__u32 zero = 0;
-		struct binary *bin = map_lookup_elem(&binary_heap_map, &zero);
-
-		if (bin) {
-			// use current binary as parent binary if cleanup pid is equal to current pid,
-			// i.e. exec call was invoked in the same process.
-			if (curr->key.pid == event->cleanup_key.pid) {
-				memcpy(bin, &curr->bin, sizeof(curr->bin));
-				map_update_elem(&parent_binaries_map, &curr->key.pid, bin, BPF_ANY);
-			} else {
-				struct execve_map_value *parent = event_find_parent();
-
-				if (parent)
-					map_update_elem(&parent_binaries_map, &curr->key.pid, &parent->bin, BPF_ANY);
+		if (PARENTS_MAP_ENABLED) {
+			__u32 zero = 0;
+			struct binary *bin = map_lookup_elem(&binary_heap_map, &zero);
+			if (bin) {
+				// use current binary as parent binary if exec events is not proceded
+				// by clone, i.e. exec call was invoked in the same process.
+				if (!(event->process.flags & EVENT_CLONE)) {
+					memcpy(bin, &curr->bin, sizeof(curr->bin));
+					map_update_elem(&parent_binaries_map, &curr->key.pid, bin, BPF_ANY);
+				} else {
+					struct execve_map_value *parent = event_find_parent();
+					if (parent) {
+						map_update_elem(&parent_binaries_map, &curr->key.pid, &parent->bin, BPF_ANY);
+					}
+				}
 			}
 		}
 

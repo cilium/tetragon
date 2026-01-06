@@ -162,6 +162,10 @@ func setupSensor() {
 	}
 
 	if option.Config.ParentsMapEnabled {
+		Execve.RewriteConstants["PARENTS_MAP_ENABLED"] = uint8(1)
+	}
+
+	if option.Config.ParentsMapEnabled {
 		entries = GetExecveEntries(option.Config.ParentsMapEntries, option.Config.ParentsMapSize)
 		ParentBinariesMap.SetMaxEntries(entries)
 		logger.GetLogger().Info(fmt.Sprintf("Set parents_map entries %d", entries),
