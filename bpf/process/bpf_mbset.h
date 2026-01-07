@@ -51,7 +51,7 @@ void update_mb_bitset(struct binary *bin)
 
 #ifdef __V511_BPF_PROG
 FUNC_INLINE
-void update_mb_task(struct execve_map_value *task)
+void update_mb_task(struct execve_map_value *task, struct binary *bin)
 {
 	struct execve_map_value *last = NULL, *parent = task;
 	__u64 *bitsetp, *gen;
@@ -70,13 +70,13 @@ void update_mb_task(struct execve_map_value *task)
 			break;
 		bitsetp = map_lookup_elem(&tg_mbset_map, parent->bin.path);
 		if (bitsetp && *bitsetp)
-			lock_or(&task->bin.mb_bitset, *bitsetp);
+			lock_or(&bin->mb_bitset, *bitsetp);
 		last = parent;
 	}
 
 	task->bin.mb_gen = *gen;
 }
 #else
-#define update_mb_task(task)
+#define update_mb_task(task, bin)
 #endif /* __V511_BPF_PROG */
 #endif /* __BPF_MBSET_H__ */
