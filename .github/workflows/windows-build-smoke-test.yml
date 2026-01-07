@@ -107,7 +107,7 @@ jobs:
           Compress-Archive -Path ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -DestinationPath .\build-${{env.BUILD_PLATFORM}}.${{env.BUILD_CONFIGURATION}}.zip
 
       - name: Upload Build Output
-        uses: actions/upload-artifact@de65e23aa2b7e23d713bb51fbfcb6d502f8667d8
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: ntosebpfext-build-output
           path: ${{ env.TEMP }}\ntosebpfext\build-${{env.BUILD_PLATFORM}}.${{env.BUILD_CONFIGURATION}}.zip
@@ -130,7 +130,7 @@ jobs:
           $PSVersionTable
 
       - name: Install Go
-        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
         with:
           # renovate: datasource=golang-version depName=go
           go-version: '1.25.5'
@@ -157,7 +157,7 @@ jobs:
           Get-ChildItem -Recurse ${{ env.TEMP }} 
 
       - name: Upload Tetragon Windows binaries
-        uses: actions/upload-artifact@de65e23aa2b7e23d713bb51fbfcb6d502f8667d8
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: tetragon-windows-build-output
           path: ${{ env.TEMP }}\Tetragon-Windows.zip
