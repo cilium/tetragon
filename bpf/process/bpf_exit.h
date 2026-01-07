@@ -11,8 +11,8 @@
 #include "bpf_task.h"
 #include "bpf_rate.h"
 #include "process.h"
-#include "bpf_process_event.h"
 #include "bpf_ktime.h"
+#include "execve_map.h"
 
 struct {
 	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);

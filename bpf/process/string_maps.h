@@ -160,4 +160,11 @@ struct {
 	__type(value, struct string_postfix_lpm_trie);
 } string_postfix_maps_heap SEC(".maps");
 
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, __u32);
+	__type(value, char[100]);
+} substring_map SEC(".maps");
+
 #endif // STRING_MAPS_H__

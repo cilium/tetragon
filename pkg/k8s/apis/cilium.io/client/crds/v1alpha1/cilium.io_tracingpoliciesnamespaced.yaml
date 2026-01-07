@@ -638,6 +638,7 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - SubString
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -796,6 +797,7 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - SubString
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1050,6 +1052,7 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - SubString
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1397,6 +1400,7 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - SubString
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1555,6 +1559,7 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - SubString
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1809,6 +1814,7 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - SubString
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2192,6 +2198,7 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - SubString
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2350,6 +2357,7 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - SubString
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2604,6 +2612,7 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - SubString
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -3165,6 +3174,7 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - SubString
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -3323,6 +3333,7 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - SubString
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -3577,6 +3588,7 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - SubString
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -3902,6 +3914,7 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - SubString
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -4060,6 +4073,7 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - SubString
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -4314,6 +4328,7 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - SubString
                                   type: string
                                 values:
                                   description: Value to compare the argument against.

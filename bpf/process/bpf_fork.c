@@ -14,6 +14,7 @@
 #include "process.h"
 #include "bpf_rate.h"
 #include "bpf_ktime.h"
+#include "execve_map.h"
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 #ifdef VMLINUX_KERNEL_VERSION

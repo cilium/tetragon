@@ -6,6 +6,7 @@
 #include "bpf_tracing.h"
 #include "common.h"
 #include "process.h"
+#include "execve_map.h"
 
 #define MAX_PIDS 32768
 

@@ -9,6 +9,7 @@
 #include "bpf_event.h"
 #include "bpf_task.h"
 #include "bpf_ktime.h"
+#include "execve_map.h"
 
 struct msg_loader {
 	struct msg_common common;

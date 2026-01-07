@@ -51,6 +51,13 @@ struct {
 	__type(value, struct msg_data);
 } data_heap SEC(".maps");
 
+struct {
+	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, __u32);
+	__type(value, struct msg_execve_event);
+} execve_msg_heap_map SEC(".maps");
+
 FUNC_INLINE __u32
 read_args(void *ctx, struct msg_execve_event *event)
 {

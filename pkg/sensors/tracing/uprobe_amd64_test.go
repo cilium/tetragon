@@ -526,3 +526,286 @@ func TestUprobePtRegsDataMatch(t *testing.T) {
 func TestUprobePtRegsDataNotMatch(t *testing.T) {
 	testUprobePtRegsMatch(t, 10, true)
 }
+
+func TestUprobePtRegsPreload(t *testing.T) {
+	if !bpf.HasKfunc("bpf_copy_from_user_str") {
+		t.Skip("skipping")
+	}
+
+	testBinary := testutils.RepoRootPath("contrib/tester-progs/regs-override")
+
+	// Put uprobe in test_3 function at:
+	//
+	//      static const char *test_3_string = "test_3_string";
+	//
+	//      "push   %%rbp\n"          /* +0  55                            */
+	//      "mov    %%rsp, %%rbp\n"   /* +1  48 89 e5                      */
+	//      "mov    %[str], %%rdi\n"  /* +4  48 8b 3d 96 2e 00 00          */
+	//      "pop    %%rbp\n"          /* +11 5d                            */
+	// -->  "mov    $0x0,%%rax\n"     /* +12 48 c7 c0 00 00 00 00          */
+	//      "mov    $0xff,%%rax\n"    /* +19 48 c7 c0 ff 00 00 00          */
+	//      "ret\n"                   /* +26 c3                            */
+	//      :
+	//      : [str] "m" (test_3_string)
+	//
+	// Make sure we retrieve data with eax value (1) as int argument
+	// and match the expected value via matchData.
+
+	pathHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  options:
+  - name: "disable-uprobe-multi"
+    value: "1"
+  uprobes:
+  - path: "` + testBinary + `"
+    symbols:
+    - "test_3+12"
+    data:
+    - index: 0
+      type: "string"
+      source: "pt_regs"
+      resolve: "rdi"
+`
+
+	pathConfigHook := []byte(pathHook)
+	err := os.WriteFile(testConfigFile, pathConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	upChecker := ec.NewProcessUprobeChecker("UPROBE_DATA_MATCH").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(testBinary))).
+		WithSymbol(sm.Full("test_3+12")).
+		WithData(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Full("test_3_string")),
+			))
+
+	checker := ec.NewUnorderedEventChecker(upChecker)
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	cmd := exec.Command(testBinary, "3")
+	require.Error(t, cmd.Run())
+	require.Equal(t, 255, cmd.ProcessState.ExitCode())
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
+func testUprobePtRegsPreloadSubstring(t *testing.T, str string, fail bool) {
+	if !bpf.HasKfunc("bpf_copy_from_user_str") || !bpf.HasKfunc("bpf_strnstr") {
+		t.Skip("skipping")
+	}
+
+	testBinary := testutils.RepoRootPath("contrib/tester-progs/regs-override")
+
+	// Put uprobe in test_3 function at:
+	//
+	//      static const char *test_3_string = "test_3_string";
+	//
+	//      "push   %%rbp\n"          /* +0  55                            */
+	//      "mov    %%rsp, %%rbp\n"   /* +1  48 89 e5                      */
+	//      "mov    %[str], %%rdi\n"  /* +4  48 8b 3d 96 2e 00 00          */
+	//      "pop    %%rbp\n"          /* +11 5d                            */
+	// -->  "mov    $0x0,%%rax\n"     /* +12 48 c7 c0 00 00 00 00          */
+	//      "mov    $0xff,%%rax\n"    /* +19 48 c7 c0 ff 00 00 00          */
+	//      "ret\n"                   /* +26 c3                            */
+	//      :
+	//      : [str] "m" (test_3_string)
+	//
+	// Make sure we retrieve data with eax value (1) as int argument
+	// and match the expected value via matchData.
+
+	pathHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "` + testBinary + `"
+    symbols:
+    - "test_3+12"
+    data:
+    - index: 0
+      type: "string"
+      source: "pt_regs"
+      resolve: "rdi"
+    selectors:
+    - matchData:
+      - index: 0
+        operator: "SubString"
+        values:
+        - "` + str + `"
+`
+
+	pathConfigHook := []byte(pathHook)
+	err := os.WriteFile(testConfigFile, pathConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	upChecker := ec.NewProcessUprobeChecker("UPROBE_DATA_MATCH").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(testBinary))).
+		WithSymbol(sm.Full("test_3+12")).
+		WithData(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Full("test_3_string")),
+			))
+
+	checker := ec.NewUnorderedEventChecker(upChecker)
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	cmd := exec.Command(testBinary, "3")
+	require.Error(t, cmd.Run())
+	require.Equal(t, 255, cmd.ProcessState.ExitCode())
+
+	err = jsonchecker.JsonTestCheckExpect(t, checker, fail)
+	require.NoError(t, err)
+}
+
+func TestUprobePtRegsPreloadSubstringMatch(t *testing.T) {
+	testUprobePtRegsPreloadSubstring(t, "_3_", false)
+}
+
+func TestUprobePtRegsPreloadSubstringNotMatch(t *testing.T) {
+	testUprobePtRegsPreloadSubstring(t, "garbage", true)
+}
+
+func testUprobePtRegsPreloadSubstringOverride(t *testing.T, single bool) {
+	if !bpf.HasKfunc("bpf_copy_from_user_str") || !bpf.HasKfunc("bpf_strnstr") {
+		t.Skip("skipping")
+	}
+
+	testBinary := testutils.RepoRootPath("contrib/tester-progs/regs-override")
+
+	// Put uprobe in test_3 function at:
+	//
+	//      static const char *test_3_string = "test_3_string";
+	//
+	//      "push   %%rbp\n"          /* +0  55                            */
+	//      "mov    %%rsp, %%rbp\n"   /* +1  48 89 e5                      */
+	//      "mov    %[str], %%rdi\n"  /* +4  48 8b 3d 96 2e 00 00          */
+	//      "pop    %%rbp\n"          /* +11 5d                            */
+	//      "mov    $0x0,%%rax\n"     /* +12 48 c7 c0 00 00 00 00          */
+	// -->  "mov    $0xff,%%rax\n"    /* +19 48 c7 c0 ff 00 00 00          */
+	//      "ret\n"                   /* +26 c3                            */
+	//      :
+	//      : [str] "m" (test_3_string)
+	//
+	// Make sure we retrieve data with eax value (1) as int argument
+	// and match the expected value via matchData.
+
+	options := ""
+	if single {
+		options = `  options:
+  - name: "disable-uprobe-multi"
+    value: "1"`
+	}
+
+	pathHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+` + options + `
+  uprobes:
+  - path: "` + testBinary + `"
+    symbols:
+    - "test_3+19"
+    data:
+    - index: 0
+      type: "string"
+      source: "pt_regs"
+      resolve: "rdi"
+    selectors:
+    - matchData:
+      - index: 0
+        operator: "SubString"
+        values:
+        - "_3_"
+      matchActions:
+      - action: Override
+        argRegs:
+        - "rip=7%rip"
+`
+
+	pathConfigHook := []byte(pathHook)
+	err := os.WriteFile(testConfigFile, pathConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	upChecker := ec.NewProcessUprobeChecker("UPROBE_DATA_MATCH").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(testBinary))).
+		WithSymbol(sm.Full("test_3+19")).
+		WithData(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Full("test_3_string")),
+			))
+
+	checker := ec.NewUnorderedEventChecker(upChecker)
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	cmd := exec.Command(testBinary, "3")
+	require.NoError(t, cmd.Run())
+	require.Equal(t, 0, cmd.ProcessState.ExitCode())
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
+func TestUprobePtRegsPreloadSubstringOverrideSingle(t *testing.T) {
+	testUprobePtRegsPreloadSubstringOverride(t, true)
+}
+
+func TestUprobePtRegsPreloadSubstringOverrideMulti(t *testing.T) {
+	testUprobePtRegsPreloadSubstringOverride(t, false)
+}

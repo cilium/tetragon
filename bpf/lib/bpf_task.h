@@ -4,9 +4,11 @@
 #ifndef _BPF_TASK_H
 #define _BPF_TASK_H
 
+#include "common.h"
+#include "msg_types.h"
+#include "process.h"
 #include "bpf_event.h"
 #include "bpf_helpers.h"
-#include "generic.h"
 #include "vmlinux.h"
 
 FUNC_INLINE struct task_struct *get_parent(struct task_struct *t)
@@ -100,70 +102,5 @@ FUNC_INLINE __u32 event_find_parent_pid(struct task_struct *t)
 		return 0;
 	probe_read_kernel(&pid, sizeof(pid), _(&task->tgid));
 	return pid;
-}
-
-FUNC_INLINE struct execve_map_value *
-__event_find_parent(struct task_struct *task)
-{
-	__u32 pid;
-	struct execve_map_value *value = 0;
-	int i;
-
-#pragma unroll
-	for (i = 0; i < 4; i++) {
-		probe_read_kernel(&task, sizeof(task), _(&task->real_parent));
-		if (!task)
-			break;
-		probe_read_kernel(&pid, sizeof(pid), _(&task->tgid));
-		value = execve_map_get_noinit(pid);
-		if (value && value->key.ktime != 0)
-			return value;
-	}
-	return 0;
-}
-
-FUNC_INLINE struct execve_map_value *event_find_parent(void)
-{
-	struct task_struct *task = (struct task_struct *)get_current_task();
-
-	return __event_find_parent(task);
-}
-
-FUNC_INLINE void
-event_minimal_parent(struct msg_execve_event *event, struct task_struct *task)
-{
-	event->parent.pid = event_find_parent_pid(task);
-	event->parent.ktime = 0;
-	event->parent_flags = EVENT_MISS;
-}
-
-FUNC_INLINE void event_minimal_curr(struct execve_map_value *event)
-{
-	event->key.pid = (get_current_pid_tgid() >> 32);
-	event->key.ktime = 0; // should we insert a time?
-	event->flags = EVENT_MISS;
-}
-
-FUNC_INLINE struct execve_map_value *event_find_curr(__u32 *ppid, bool *walked)
-{
-	struct task_struct *task = (struct task_struct *)get_current_task();
-	struct execve_map_value *value = 0;
-	int i;
-	__u32 pid;
-
-#pragma unroll
-	for (i = 0; i < 4; i++) {
-		probe_read_kernel(&pid, sizeof(pid), _(&task->tgid));
-		value = execve_map_get_noinit(pid);
-		if (value && value->key.ktime != 0)
-			break;
-		value = 0;
-		*walked = 1;
-		probe_read_kernel(&task, sizeof(task), _(&task->real_parent));
-		if (!task)
-			break;
-	}
-	*ppid = pid;
-	return value;
 }
 #endif // _BPF_TASK_H
