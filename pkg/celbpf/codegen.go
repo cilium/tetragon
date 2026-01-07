@@ -7,12 +7,16 @@ package celbpf
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/cilium/ebpf/asm"
 	cgTypes "github.com/google/cel-go/common/types"
 )
 
-var scratchRegs = []asm.Register{asm.R1, asm.R2, asm.R3, asm.R4, asm.R5}
+var scratchRegs = []asm.Register{asm.R3, asm.R4, asm.R5}
+
+var argArgsOff = asm.R1 // first argument
+var argArgs = asm.R2    // second argument
 
 type codeGenerator struct {
 	insts       asm.Instructions
@@ -132,5 +136,44 @@ func (g *codeGenerator) emitU32(reg asm.Register, regTy *cgTypes.Type) error {
 	g.emitRaw(
 		asm.StoreMem(asm.R10, g.stackTop, reg, asm.DWord),
 	)
+	return nil
+}
+
+func (g *codeGenerator) pushArg(argTy *cgTypes.Type, argOffset int, tmp1, tmp2 asm.Register) error {
+	off := argOffset * 8
+	if off > math.MaxInt16 {
+		return fmt.Errorf("offset %d overflows 16-bits", off)
+	}
+	off16 := int16(off)
+
+	switch argTy {
+	case u32Ty, s32Ty:
+		g.stackTop -= 8
+		g.emitRaw(
+			// tmp1 = *(u64 *)(argArgsOff + idx)
+			asm.LoadMem(tmp1, argArgsOff, off16, asm.DWord),
+			asm.And.Imm(tmp1, 0x7ff),
+			// tmp1 += args
+			asm.Add.Reg(tmp1, argArgs),
+			// tmp2 = *(u32 *)(tmp1)
+			asm.LoadMem(tmp2, tmp1, 0, asm.Word),
+			asm.StoreMem(asm.R10, g.stackTop, tmp2, asm.DWord),
+		)
+	case u64Ty, s64Ty:
+		g.stackTop -= 8
+		g.emitRaw(
+			// tmp1 = *(u64 *)(argArgsOff + idx)
+			asm.LoadMem(tmp1, argArgsOff, off16, asm.DWord),
+			asm.And.Imm(tmp1, 0x7ff),
+			// tmp1 += args
+			asm.Add.Reg(tmp1, argArgs),
+			// tmp2 = *(u64 *)(tmp1)
+			asm.LoadMem(tmp2, tmp1, 0, asm.DWord),
+			asm.StoreMem(asm.R10, g.stackTop, tmp2, asm.DWord),
+		)
+	default:
+		return fmt.Errorf("unsupported type: %s", argTy.TypeName())
+	}
+
 	return nil
 }
