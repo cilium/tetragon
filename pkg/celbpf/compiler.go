@@ -81,6 +81,22 @@ func (c *compiler) compileCall(expr cgAst.Expr) error {
 			return nil
 		}
 
+	case cgOperators.Add:
+		emitCall = func() error {
+			return c.cg.emitAdd(
+				scratchRegs[0], argTypes[0],
+				scratchRegs[1], argTypes[1],
+			)
+		}
+
+	case cgOperators.Subtract:
+		emitCall = func() error {
+			return c.cg.emitSub(
+				scratchRegs[0], argTypes[0],
+				scratchRegs[1], argTypes[1],
+			)
+		}
+
 	default:
 		emitCall = func() error {
 			return fmt.Errorf("compileCall: call %q (%+v) not supported", call.FunctionName(), call)

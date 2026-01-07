@@ -177,3 +177,51 @@ func (g *codeGenerator) pushArg(argTy *cgTypes.Type, argOffset int, tmp1, tmp2 a
 
 	return nil
 }
+
+// emit subtraction
+func (g *codeGenerator) emitSub(
+	r1 asm.Register, ty1 *cgTypes.Type,
+	r2 asm.Register, ty2 *cgTypes.Type,
+) error {
+	switch {
+	case ty1.TypeName() == s64Ty.TypeName() && ty2.TypeName() == s64Ty.TypeName(),
+		ty1.TypeName() == s32Ty.TypeName() && ty2.TypeName() == s32Ty.TypeName(),
+		ty1.TypeName() == u64Ty.TypeName() && ty2.TypeName() == u64Ty.TypeName(),
+		ty1.TypeName() == u32Ty.TypeName() && ty2.TypeName() == u32Ty.TypeName():
+
+		g.stackTop -= 8
+		g.emitRaw(
+			asm.Sub.Reg(r1, r2),
+			asm.StoreMem(asm.R10, g.stackTop, r1, asm.DWord),
+		)
+
+	default:
+		return fmt.Errorf("subtraction between types %s and %s is not supported", ty1.TypeName(), ty2.TypeName())
+	}
+
+	return nil
+}
+
+// emit addition
+func (g *codeGenerator) emitAdd(
+	r1 asm.Register, ty1 *cgTypes.Type,
+	r2 asm.Register, ty2 *cgTypes.Type,
+) error {
+	switch {
+	case ty1.TypeName() == s64Ty.TypeName() && ty2.TypeName() == s64Ty.TypeName(),
+		ty1.TypeName() == s32Ty.TypeName() && ty2.TypeName() == s32Ty.TypeName(),
+		ty1.TypeName() == u64Ty.TypeName() && ty2.TypeName() == u64Ty.TypeName(),
+		ty1.TypeName() == u32Ty.TypeName() && ty2.TypeName() == u32Ty.TypeName():
+
+		g.stackTop -= 8
+		g.emitRaw(
+			asm.Add.Reg(r1, r2),
+			asm.StoreMem(asm.R10, g.stackTop, r1, asm.DWord),
+		)
+
+	default:
+		return fmt.Errorf("addition between types %s and %s is not supported", ty1.TypeName(), ty2.TypeName())
+	}
+
+	return nil
+}
