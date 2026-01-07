@@ -119,7 +119,14 @@ generic_rawtp_actions(void *ctx)
 __attribute__((section("raw_tp"), used)) int
 generic_rawtp_output(void *ctx)
 {
-	return generic_output(ctx, MSG_OP_GENERIC_TRACEPOINT);
+	struct msg_generic_kprobe *e;
+	int zero = 0;
+
+	e = map_lookup_elem(&process_call_heap, &zero);
+	if (!e)
+		return 0;
+
+	return generic_output(e, ctx, MSG_OP_GENERIC_TRACEPOINT);
 }
 
 #ifndef __V61_BPF_PROG
