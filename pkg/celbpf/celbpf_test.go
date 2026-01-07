@@ -12,6 +12,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"math"
+	"os/exec"
+	"strconv"
 	"testing"
 	"unsafe"
 
@@ -22,6 +24,25 @@ import (
 
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 )
+
+func dumpProg(t *testing.T, prog *ebpf.Program) {
+	info, err := prog.Info()
+	if err != nil {
+		return
+	}
+
+	id, ok := info.ID()
+	if !ok {
+		return
+	}
+
+	cmd := exec.Command("bpftool", "prog", "dump", "xlated", "id", strconv.Itoa(int(id)))
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return
+	}
+	t.Logf("%s\n", string(out))
+}
 
 func TestExprs(t *testing.T) {
 	testCase := []struct {
@@ -72,6 +93,10 @@ func TestExprs(t *testing.T) {
 		defer prog.Close()
 		val, err := prog.Run(&ebpf.RunOptions{})
 		require.NoError(t, err)
+		if tc.ret != val {
+			t.Logf("insns:\n%s\n", insts)
+			dumpProg(t, prog)
+		}
 		require.Equal(t, tc.ret, val, "result of %q was %d and not %d", tc.expr, val, tc.ret)
 	}
 }
@@ -286,5 +311,9 @@ func TestArgExprs(t *testing.T) {
 		val, err := prog.Run(&ebpf.RunOptions{})
 		require.NoError(t, err)
 		require.Equal(t, tc.ret, val, "result of %q was %d and not %d", tc.expr, val, tc.ret)
+		if tc.ret != val {
+			t.Logf("insns:\n%s\n", insns)
+			dumpProg(t, prog)
+		}
 	}
 }
