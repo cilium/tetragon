@@ -1990,31 +1990,36 @@ get_arg(struct msg_generic_kprobe *e, __u32 index)
 	return &e->args[argoff];
 }
 
+FUNC_INLINE bool is_filter_arg_1(long type)
+{
+	switch (type) {
+	case cap_inh_ty:
+	case cap_prm_ty:
+	case cap_eff_ty:
+	case kernel_cap_ty:
+	case syscall64_type:
+	case s64_ty:
+	case u64_ty:
+	case size_type:
+	case int_type:
+	case s32_ty:
+	case u32_ty:
+#ifdef __LARGE_BPF_PROG
+	case s16_ty:
+	case u16_ty:
+	case s8_ty:
+	case u8_ty:
+#endif // __LARGE_BPF_PROG
+		return true;
+	default:
+		return false;
+	}
+}
+
 FUNC_INLINE long
-filter_arg(struct msg_generic_kprobe *e, struct selector_arg_filter *filter, char *args)
+filter_arg_1(struct msg_generic_kprobe *e, struct selector_arg_filter *filter, char *args)
 {
 	switch (filter->type) {
-	case fd_ty:
-		/* Advance args past fd */
-		args += 4;
-		fallthrough;
-	case file_ty:
-	case path_ty:
-	case dentry_type:
-#ifdef __LARGE_BPF_PROG
-	case linux_binprm_type:
-#endif
-		return filter_file_buf(filter, (struct string_buf *)args);
-	case string_type:
-	case net_dev_ty:
-	case data_loc_type:
-		/* for strings, we just encode the length */
-		return filter_char_buf(filter, args, 4);
-	case char_buf:
-		/* for buffers, we just encode the expected length and the
-		 * length that was actually read (see: __copy_char_buf)
-		 */
-		return filter_char_buf(filter, args, 8);
 	case cap_inh_ty:
 	case cap_prm_ty:
 	case cap_eff_ty:
@@ -2046,6 +2051,36 @@ filter_arg(struct msg_generic_kprobe *e, struct selector_arg_filter *filter, cha
 	case u8_ty:
 		return filter_8ty(filter, args);
 #endif // __LARGE_BPF_PROG
+	default:
+		return 1;
+	}
+}
+
+FUNC_INLINE long
+filter_arg_2(struct msg_generic_kprobe *e, struct selector_arg_filter *filter, char *args)
+{
+	switch (filter->type) {
+	case fd_ty:
+		/* Advance args past fd */
+		args += 4;
+		fallthrough;
+	case file_ty:
+	case path_ty:
+	case dentry_type:
+#ifdef __LARGE_BPF_PROG
+	case linux_binprm_type:
+#endif
+		return filter_file_buf(filter, (struct string_buf *)args);
+	case string_type:
+	case net_dev_ty:
+	case data_loc_type:
+		/* for strings, we just encode the length */
+		return filter_char_buf(filter, args, 4);
+	case char_buf:
+		/* for buffers, we just encode the expected length and the
+		 * length that was actually read (see: __copy_char_buf)
+		 */
+		return filter_char_buf(filter, args, 8);
 	case skb_type:
 	case sock_type:
 	case socket_type:
@@ -2054,6 +2089,15 @@ filter_arg(struct msg_generic_kprobe *e, struct selector_arg_filter *filter, cha
 	default:
 		return 1;
 	}
+}
+
+FUNC_INLINE long
+filter_arg(struct msg_generic_kprobe *e, struct selector_arg_filter *filter, char *args)
+{
+	if (is_filter_arg_1(filter->type))
+		return filter_arg_1(e, filter, args);
+	else
+		return filter_arg_2(e, filter, args);
 }
 
 FUNC_INLINE int
