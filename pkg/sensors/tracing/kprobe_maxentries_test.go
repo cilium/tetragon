@@ -15,6 +15,7 @@ import (
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/sensors"
+	"github.com/cilium/tetragon/pkg/sensors/program"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 )
 
@@ -244,7 +245,7 @@ spec:
 			{"enforcer_data", 1},
 			{"stack_trace_map", 1},
 			{"ratelimit_map", 1},
-			{"override_tasks", overrideMapMaxEntries},
+			{"override_tasks", program.OverrideMapMaxEntries},
 		}, `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy

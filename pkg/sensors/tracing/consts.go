@@ -17,7 +17,6 @@ const (
 	ratelimitMapMaxEntries     = 32768
 	fdInstallMapMaxEntries     = 32000
 	enforcerMapMaxEntries      = 32768
-	overrideMapMaxEntries      = 32768
 	sleepableOffloadMaxEntries = 32768
 	socktrackMapMaxEntries     = 32000
 )

@@ -655,8 +655,17 @@ type EventConfig struct {
 	ArgReturnAction int32                                            `align:"argreturnaction"`
 	PolicyID        uint32                                           `align:"policy_id"`
 	Flags           uint32                                           `align:"flags"`
-	Pad             uint32                                           `align:"pad"`
+	OverrideID      uint32                                           `align:"override_id"`
 	BTFArg          [EventConfigMaxArgs][MaxBTFArgDepth]ConfigBTFArg `align:"btf_arg"`
 	UsdtArg         [EventConfigMaxUsdtArgs]ConfigUsdtArg            `align:"usdt_arg"`
 	RegArg          [EventConfigMaxRegArgs]ConfigRegArg              `align:"reg_arg"`
+}
+
+type OverrideConfig struct {
+	OverrideID uint32 `align:"override_id"`
+}
+
+type OverrideTarget struct {
+	ID      uint64 `align:"id"`
+	PidTgid uint64 `align:"pid_tgid"`
 }

@@ -48,11 +48,9 @@ struct {
 
 #ifdef __MULTI_KPROBE
 #define MAIN	 "kprobe.multi/generic_kprobe"
-#define OVERRIDE "kprobe.multi/generic_kprobe_override"
 #define COMMON	 "kprobe.multi"
 #else
 #define MAIN	 "kprobe/generic_kprobe"
-#define OVERRIDE "kprobe/generic_kprobe_override"
 #define COMMON	 "kprobe"
 #endif
 
@@ -139,35 +137,3 @@ generic_kprobe_path(void *ctx)
 	return generic_path(ctx, (struct bpf_map_def *)&kprobe_calls);
 }
 #endif
-
-__attribute__((section(OVERRIDE), used)) int
-generic_kprobe_override(void *ctx)
-{
-	__u64 id = get_current_pid_tgid();
-	__s32 *error;
-
-	error = map_lookup_elem(&override_tasks, &id);
-	if (!error)
-		return 0;
-
-	override_return(ctx, *error);
-	map_delete_elem(&override_tasks, &id);
-	return 0;
-}
-
-/* Putting security_task_prctl in here to pass contrib/verify/verify.sh test,
- * in normal run the function is set by tetragon dynamically.
- */
-__attribute__((section("fmod_ret/security_task_prctl"), used)) long
-generic_fmodret_override(void *ctx)
-{
-	__u64 id = get_current_pid_tgid();
-	__s32 *error;
-
-	error = map_lookup_elem(&override_tasks, &id);
-	if (!error)
-		return 0;
-
-	map_delete_elem(&override_tasks, &id);
-	return (long)*error;
-}

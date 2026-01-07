@@ -15,8 +15,6 @@
 #include "retprobe_map.h"
 #include "types/basic.h"
 #include "generic_maps.h"
-
-#include "generic_maps.h"
 #include "generic_calls.h"
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
