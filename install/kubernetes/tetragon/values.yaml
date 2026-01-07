@@ -206,6 +206,10 @@ tetragon:
   enablePolicyFilterCgroupMap: false
   # -- Enable policy filter debug messages.
   enablePolicyFilterDebug: false
+  # -- Enable preallocation for BPF maps (set to false to disable preallocation).
+  bpfMapsPrealloc: true
+  # -- Comma-separated list of BPF map names to disable preallocation. Only used when bpfMapsPrealloc=true.
+  bpfMapsDisablePrealloc: ""
   # -- Enable latency monitoring in message handling
   enableMsgHandlingLatency: false
   healthGrpc:

@@ -530,8 +530,12 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 	maps = append(maps, matchBinariesPaths)
 
 	overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
+	// Set BPF_F_NO_PREALLOC flag based on configuration
+	overrideTasksMap.SetNoPrealloc(option.ShouldUseNoPrealloc("override_tasks"))
 	maps = append(maps, overrideTasksMap)
 	overrideTasksMapOutput := program.MapBuilderProgram("override_tasks", loadOutput)
+	// Set BPF_F_NO_PREALLOC flag based on configuration
+	overrideTasksMapOutput.SetNoPrealloc(option.ShouldUseNoPrealloc("override_tasks"))
 	maps = append(maps, overrideTasksMapOutput)
 
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load))
