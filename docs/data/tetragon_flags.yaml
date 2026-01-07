@@ -203,6 +203,10 @@ options:
     - name: netns-dir
       default_value: /var/run/docker/netns/
       usage: Network namespace dir
+    - name: policy-filter-map-entries
+      default_value: "128"
+      usage: |
+        Set maximum number of policies in policy_filter_maps. This map restricts tracing policies to specific pods/containers. Increase if you have many policies, decrease to save memory if you have few policies.
     - name: pprof-address
       usage: |
         Serves runtime profile data via HTTP (e.g. 'localhost:6060'). Disabled by default

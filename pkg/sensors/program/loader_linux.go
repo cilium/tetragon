@@ -18,6 +18,7 @@ import (
 	cachedbtf "github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
+	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
 )
 
@@ -959,6 +960,11 @@ func doLoadProgram(
 			}
 			ms.InnerMap.MaxEntries = innerMax
 		}
+	}
+
+	// TODO: remove this special case handling (see #4398)
+	if ms, ok := spec.Maps["policy_filter_maps"]; ok {
+		ms.MaxEntries = uint32(option.Config.PolicyFilterMapEntries)
 	}
 
 	// Find all the maps referenced by the program, so we'll rewrite only

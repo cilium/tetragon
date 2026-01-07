@@ -139,6 +139,8 @@ const (
 	KeyExecveMapSize    = "execve-map-size"
 
 	KeyRetprobesCacheSize = "retprobes-cache-size"
+
+	KeyPolicyFilterMapEntries = "policy-filter-map-entries"
 )
 
 type UsernameMetadaCode int
@@ -305,6 +307,8 @@ func ReadAndSetFlags() error {
 	Config.ExecveMapSize = viper.GetString(KeyExecveMapSize)
 
 	Config.RetprobesCacheSize = viper.GetInt(KeyRetprobesCacheSize)
+
+	Config.PolicyFilterMapEntries = viper.GetInt(KeyPolicyFilterMapEntries)
 	return nil
 }
 
@@ -504,4 +508,6 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.String(KeyExecveMapSize, "", "Set size for execve_map table (allows K/M/G suffix)")
 
 	flags.Int(KeyRetprobesCacheSize, defaults.DefaultRetprobesCacheSize, "Set {k,u}retprobes events cache maximum size")
+
+	flags.Int(KeyPolicyFilterMapEntries, defaults.DefaultPolicyFilterMapEntries, "Set maximum number of policies in policy_filter_maps. This map restricts tracing policies to specific pods/containers. Increase if you have many policies, decrease to save memory if you have few policies.")
 }
