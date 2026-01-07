@@ -1978,6 +1978,72 @@ get_arg(struct msg_generic_kprobe *e, __u32 index)
 	return &e->args[argoff];
 }
 
+FUNC_INLINE long
+filter_arg(struct msg_generic_kprobe *e, struct selector_arg_filter *filter, char *args)
+{
+	switch (filter->type) {
+	case fd_ty:
+		/* Advance args past fd */
+		args += 4;
+		fallthrough;
+	case file_ty:
+	case path_ty:
+	case dentry_type:
+#ifdef __LARGE_BPF_PROG
+	case linux_binprm_type:
+#endif
+		return filter_file_buf(filter, (struct string_buf *)args);
+	case string_type:
+	case net_dev_ty:
+	case data_loc_type:
+		/* for strings, we just encode the length */
+		return filter_char_buf(filter, args, 4);
+	case char_buf:
+		/* for buffers, we just encode the expected length and the
+		 * length that was actually read (see: __copy_char_buf)
+		 */
+		return filter_char_buf(filter, args, 8);
+	case cap_inh_ty:
+	case cap_prm_ty:
+	case cap_eff_ty:
+	case kernel_cap_ty:
+#ifdef __LARGE_BPF_PROG
+		if (filter->op == op_capabilities_gained) {
+			__u64 cap_old = *(__u64 *)args;
+			__u32 index2 = *((__u32 *)&filter->value);
+			__u64 cap_new = *(__u64 *)get_arg(e, index2);
+
+			return !!((cap_old ^ cap_new) & cap_new);
+		}
+		fallthrough;
+#endif
+	case syscall64_type:
+	case s64_ty:
+	case u64_ty:
+		return filter_64ty(filter, args);
+	case size_type:
+	case int_type:
+	case s32_ty:
+	case u32_ty:
+		return filter_32ty(filter, args);
+#ifdef __LARGE_BPF_PROG
+	case s16_ty:
+	case u16_ty:
+		return filter_16ty(filter, args);
+	case s8_ty:
+	case u8_ty:
+		return filter_8ty(filter, args);
+#endif // __LARGE_BPF_PROG
+	case skb_type:
+	case sock_type:
+	case socket_type:
+	case sockaddr_type:
+		return filter_inet(filter, args);
+	default:
+		return 1;
+	}
+}
+
 FUNC_INLINE int
 selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 		    bool is_entry)
@@ -2037,76 +2103,7 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 			return 0;
 
 		args = get_arg(e, index);
-		switch (filter->type) {
-		case fd_ty:
-			/* Advance args past fd */
-			args += 4;
-			fallthrough;
-		case file_ty:
-		case path_ty:
-		case dentry_type:
-#ifdef __LARGE_BPF_PROG
-		case linux_binprm_type:
-#endif
-			pass &= filter_file_buf(filter, (struct string_buf *)args);
-			break;
-		case string_type:
-		case net_dev_ty:
-		case data_loc_type:
-			/* for strings, we just encode the length */
-			pass &= filter_char_buf(filter, args, 4);
-			break;
-		case char_buf:
-			/* for buffers, we just encode the expected length and the
-			 * length that was actually read (see: __copy_char_buf)
-			 */
-			pass &= filter_char_buf(filter, args, 8);
-			break;
-		case cap_inh_ty:
-		case cap_prm_ty:
-		case cap_eff_ty:
-		case kernel_cap_ty:
-#ifdef __LARGE_BPF_PROG
-			if (filter->op == op_capabilities_gained) {
-				__u64 cap_old = *(__u64 *)args;
-				__u32 index2 = *((__u32 *)&filter->value);
-				__u64 cap_new = *(__u64 *)get_arg(e, index2);
-
-				pass &= !!((cap_old ^ cap_new) & cap_new);
-				break;
-			}
-			fallthrough;
-#endif
-		case syscall64_type:
-		case s64_ty:
-		case u64_ty:
-			pass &= filter_64ty(filter, args);
-			break;
-		case size_type:
-		case int_type:
-		case s32_ty:
-		case u32_ty:
-			pass &= filter_32ty(filter, args);
-			break;
-#ifdef __LARGE_BPF_PROG
-		case s16_ty:
-		case u16_ty:
-			pass &= filter_16ty(filter, args);
-			break;
-		case s8_ty:
-		case u8_ty:
-			pass &= filter_8ty(filter, args);
-			break;
-#endif // __LARGE_BPF_PROG
-		case skb_type:
-		case sock_type:
-		case socket_type:
-		case sockaddr_type:
-			pass &= filter_inet(filter, args);
-			break;
-		default:
-			break;
-		}
+		pass &= filter_arg(e, filter, args);
 	}
 	return pass ? seloff : 0;
 }
