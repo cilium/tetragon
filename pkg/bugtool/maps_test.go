@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/cilium/tetragon/pkg/bpf"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 
 	// needed to register the probe type execve for the base sensor
@@ -32,6 +33,14 @@ func TestFindMaps(t *testing.T) {
 		require.Error(t, err)
 	})
 
+	sumMemlock := func(mapInfos []bpf.ExtendedMapInfo) int {
+		sumMemlock := 0
+		for _, mapInfo := range mapInfos {
+			sumMemlock += mapInfo.Memlock
+		}
+		return sumMemlock
+	}
+
 	t.Run("BaseSensorMemlock", func(t *testing.T) {
 		tus.LoadInitialSensor(t)
 
@@ -39,19 +48,19 @@ func TestFindMaps(t *testing.T) {
 		pinnedMaps, err := FindPinnedMaps(path)
 		require.NoError(t, err)
 		if assert.NotEmpty(t, pinnedMaps) {
-			assert.NotZero(t, pinnedMaps[0].Memlock)
+			assert.NotZero(t, sumMemlock(pinnedMaps))
 		}
 
 		mapsUsedByProgs, err := FindMapsUsedByPinnedProgs(path)
 		require.NoError(t, err)
 		if assert.NotEmpty(t, mapsUsedByProgs) {
-			assert.NotZero(t, mapsUsedByProgs[0].Memlock)
+			assert.NotZero(t, sumMemlock(mapsUsedByProgs))
 		}
 
 		allMaps, err := FindAllMaps()
 		require.NoError(t, err)
 		if assert.NotEmpty(t, allMaps) {
-			assert.NotZero(t, allMaps[0].Memlock)
+			assert.NotZero(t, sumMemlock(allMaps))
 		}
 	})
 
