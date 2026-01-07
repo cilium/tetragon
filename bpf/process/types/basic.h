@@ -2072,7 +2072,7 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 				__u32 index2 = *((__u32 *)&filter->value);
 				__u64 cap_new = *(__u64 *)get_arg(e, index2);
 
-				pass = !!((cap_old ^ cap_new) & cap_new);
+				pass &= !!((cap_old ^ cap_new) & cap_new);
 				break;
 			}
 			fallthrough;
