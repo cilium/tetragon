@@ -8,6 +8,8 @@ package celbpf
 import (
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/cilium/ebpf/asm"
 	cgCommon "github.com/google/cel-go/common"
@@ -18,16 +20,18 @@ import (
 )
 
 type compiler struct {
-	ast *cgAst.AST
-	src cgCommon.Source
-	cg  *codeGenerator
+	ast  *cgAst.AST
+	src  cgCommon.Source
+	cg   *codeGenerator
+	args []exprArg
 }
 
-func newCompiler(ast *cgAst.AST, src cgCommon.Source, labelPrefix string) *compiler {
+func newCompiler(ast *cgAst.AST, src cgCommon.Source, args []exprArg, labelPrefix string) *compiler {
 	return &compiler{
-		ast: ast,
-		src: src,
-		cg:  newCodeGenerator(labelPrefix),
+		ast:  ast,
+		src:  src,
+		cg:   newCodeGenerator(labelPrefix),
+		args: args,
 	}
 }
 
@@ -76,8 +80,11 @@ func (c *compiler) compileCall(expr cgAst.Expr) error {
 			c.cg.emitU32(scratchRegs[0], argTypes[0])
 			return nil
 		}
+
 	default:
-		return fmt.Errorf("compileCall: call %+v not supported", call)
+		emitCall = func() error {
+			return fmt.Errorf("compileCall: call %q (%+v) not supported", call.FunctionName(), call)
+		}
 	}
 
 	// push arguments
@@ -109,6 +116,29 @@ func (c *compiler) compileCall(expr cgAst.Expr) error {
 	return emitCall()
 }
 
+func (c *compiler) compileArg(argIdx int) error {
+	if argIdx >= len(c.args) {
+		return fmt.Errorf("invalid argument (arg%d): undefined", argIdx)
+	}
+
+	arg := c.args[argIdx]
+	if err := c.cg.pushArg(arg.ty, arg.argOffset, scratchRegs[0], scratchRegs[1]); err != nil {
+		return fmt.Errorf("invalid argument (arg%d): %w", argIdx, err)
+	}
+	return nil
+}
+
+func (c *compiler) compileIdent(s string) error {
+	if strings.HasPrefix(s, "arg") {
+		idx, err := strconv.Atoi(s[3:])
+		if err != nil {
+			return fmt.Errorf("invalid argument (%s): %w", s, err)
+		}
+		return c.compileArg(idx)
+	}
+	return fmt.Errorf("BUG: ident %q unknown", s)
+}
+
 func (c *compiler) compileExpr(expr cgAst.Expr) error {
 	switch expr.Kind() {
 	case cgAst.LiteralKind:
@@ -118,7 +148,7 @@ func (c *compiler) compileExpr(expr cgAst.Expr) error {
 	case cgAst.ComprehensionKind:
 		return errors.New("expression Kind 'ComprehensionKind' not supported")
 	case cgAst.IdentKind:
-		return errors.New("expression Kind 'IdentKind' not supported")
+		return c.compileIdent(expr.AsIdent())
 	case cgAst.ListKind:
 		return errors.New("expression Kind 'ListKind' not supported")
 	case cgAst.MapKind:
