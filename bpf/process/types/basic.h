@@ -2062,7 +2062,7 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 {
 	struct selector_arg_filters *filters;
 	struct selector_arg_filter *filter;
-	long seloff, argsoff, pass = 1, margsoff;
+	long seloff, argsoff, margsoff;
 	__u32 i = 0, index;
 	char *args;
 
@@ -2105,7 +2105,7 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 			     : [argsoff] "+r"(argsoff));
 
 		if (argsoff <= 0)
-			return pass ? seloff : 0;
+			return seloff;
 
 		margsoff = (seloff + argsoff) & INDEX_MASK;
 		filter = (struct selector_arg_filter *)&f[margsoff];
@@ -2115,9 +2115,10 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 			return 0;
 
 		args = get_arg(e, index);
-		pass &= filter_arg(e, filter, args);
+		if (!filter_arg(e, filter, args))
+			return 0;
 	}
-	return pass ? seloff : 0;
+	return seloff;
 }
 
 FUNC_INLINE int filter_args_reject(u64 id)
