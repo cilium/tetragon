@@ -37,6 +37,10 @@ func TestExprs(t *testing.T) {
 		{"(5 == 10) == (10 == 10)", 0},
 		{"10u == 10u", 1},
 		{"10u == 5u", 0},
+		{"5 - 10 == -5", 1},
+		{"5u - 10u == 18446744073709551611u", 1},
+		{"5 + 10 == 15", 1},
+		{"18446744073709551611u + 6u == 1u", 1},
 		{"int32(-10) == int32(-10)", 1},
 		{"int32(-10) == int32(10)", 0},
 		{"int32(-1) == int32(4294967295)", 1},
@@ -44,6 +48,10 @@ func TestExprs(t *testing.T) {
 		{"int32(-1) == int32(4294967295)", 1},
 		{"uint32(6u) == uint32(17179869190u)", 1},
 		{"uint32(6u) == uint32(0u)", 0},
+		{"uint32(10u) == uint32(5u) + uint32(5u)", 1},
+		{"uint32(3u) == uint32(5u) - uint32(2u)", 1},
+		{"int32(10) == int32(5) + int32(5)", 1},
+		{"int32(-2) == int32(5) - int32(7)", 1},
 	}
 
 	for _, tc := range testCase {
@@ -201,6 +209,18 @@ func TestArgExprs(t *testing.T) {
 			expr:     "arg0 == arg1",
 			ret:      1,
 			hookArgs: []any{int32(42), uint64(0), int32(42)},
+			exprArgs: []int{2, 0},
+		},
+		{
+			expr:     "arg0 - int32(10) == int32(32)",
+			ret:      1,
+			hookArgs: []any{int32(30), uint64(0), int32(42)},
+			exprArgs: []int{2},
+		},
+		{
+			expr:     "arg0 - int32(10) == int32(2) + arg1",
+			ret:      1,
+			hookArgs: []any{int32(30), uint64(0), int32(42)},
 			exprArgs: []int{2, 0},
 		},
 	}

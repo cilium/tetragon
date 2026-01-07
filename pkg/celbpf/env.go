@@ -32,6 +32,8 @@ func checkerAddFunctions(env *cgChecker.Env) error {
 		{name: cgOperators.Equals, opts: []cgDecls.FunctionOpt{
 			cgDecls.Overload(cgOverloads.Equals, []*cgTypes.Type{paramA, paramA}, cgTypes.BoolType),
 		}},
+		{name: cgOperators.Add, opts: addOperatorFunctionOpts()},
+		{name: cgOperators.Subtract, opts: subOperatorFunctionOpts()},
 		{name: int32Fn, opts: []cgDecls.FunctionOpt{
 			cgDecls.Overload("s32fromint", []*cgTypes.Type{cgTypes.IntType}, s32Ty),
 		}},
