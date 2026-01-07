@@ -12,7 +12,10 @@ import (
 	cgTypes "github.com/google/cel-go/common/types"
 )
 
-var scratchRegs = []asm.Register{asm.R1, asm.R2, asm.R3, asm.R4, asm.R5}
+var scratchRegs = []asm.Register{asm.R3, asm.R4, asm.R5}
+
+var argArgsOff = asm.R1 // first argument
+var argArgs = asm.R2    // second argument
 
 type codeGenerator struct {
 	insts       asm.Instructions
@@ -130,5 +133,38 @@ func (g *codeGenerator) emitU32(reg asm.Register, regTy *cgTypes.Type) error {
 	g.emitRaw(
 		asm.StoreMem(asm.R10, g.stackTop, reg, asm.DWord),
 	)
+	return nil
+}
+
+func (g *codeGenerator) pushArg(argTy *cgTypes.Type, argOffset int) error {
+	switch argTy {
+	case u32Ty, s32Ty:
+		g.stackTop -= 8
+		g.emitRaw(
+			// r3 = *(u64 *)(argArgsOff + idx)
+			asm.LoadMem(asm.R3, argArgsOff, int16(argOffset*8), asm.DWord),
+			asm.And.Imm(asm.R3, 0x7ff),
+			// r3 += args
+			asm.Add.Reg(asm.R3, argArgs),
+			// r4 = *(u32 *)(r3)
+			asm.LoadMem(asm.R4, asm.R3, 0, asm.Word),
+			asm.StoreMem(asm.R10, g.stackTop, asm.R4, asm.DWord),
+		)
+	case u64Ty, s64Ty:
+		g.stackTop -= 8
+		g.emitRaw(
+			// r3 = *(u64 *)(argArgsOff + idx)
+			asm.LoadMem(asm.R3, argArgsOff, int16(argOffset*8), asm.DWord),
+			asm.And.Imm(asm.R3, 0x7ff),
+			// r3 += args
+			asm.Add.Reg(asm.R3, argArgs),
+			// r4 = *(u64 *)(r3)
+			asm.LoadMem(asm.R4, asm.R3, 0, asm.DWord),
+			asm.StoreMem(asm.R10, g.stackTop, asm.R4, asm.DWord),
+		)
+	default:
+		return fmt.Errorf("unsupported type: %s", argTy.TypeName())
+	}
+
 	return nil
 }

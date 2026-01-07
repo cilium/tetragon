@@ -17,7 +17,12 @@ import (
 
 type Env struct{}
 
-func Compile(celExpr string, labelPrefix string) (asm.Instructions, error) {
+type ExprArg struct {
+	GenTy     int
+	ArgOffset int
+}
+
+func Compile(celExpr string, args []ExprArg, labelPrefix string) (asm.Instructions, error) {
 	source := cgCommon.NewTextSource(celExpr)
 	parser, err := cgParser.NewParser()
 	if err != nil {
@@ -29,7 +34,16 @@ func Compile(celExpr string, labelPrefix string) (asm.Instructions, error) {
 		return nil, fmt.Errorf("failed to parse CEL expresion %q: %s", celExpr, errs.ToDisplayString())
 	}
 
-	checkerEnv, err := newCheckerEnv()
+	eargs := make([]exprArg, 0, len(args))
+	for i := range args {
+		earg, err := newExprArg(args[i])
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert argument %d: %w", i, err)
+		}
+		eargs = append(eargs, earg)
+	}
+
+	checkerEnv, err := newCheckerEnv(eargs)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +53,7 @@ func Compile(celExpr string, labelPrefix string) (asm.Instructions, error) {
 		return nil, fmt.Errorf("check failed on CEL expresion %q: %s", celExpr, errs.ToDisplayString())
 	}
 
-	compiler := newCompiler(ast, source, labelPrefix)
+	compiler := newCompiler(ast, source, eargs, labelPrefix)
 	return compiler.compile()
 }
 
@@ -76,8 +90,8 @@ func CompileEmptyFunction(fnName string) asm.Instructions {
 	return insns
 }
 
-func CompileFn(fnName, celExpr string) (asm.Instructions, error) {
-	insns, err := Compile(celExpr, fnName)
+func CompileFn(fnName, celExpr string, args []ExprArg) (asm.Instructions, error) {
+	insns, err := Compile(celExpr, args, fnName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to compile CEL expression %q: %w", celExpr, err)
 	}
