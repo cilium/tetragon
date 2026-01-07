@@ -2510,6 +2510,7 @@ rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_k
 {
 	__u64 curr_time = tg_get_ktime();
 	__u64 *last_repeat_entry;
+	struct event_config *config;
 	struct ratelimit_key *key;
 	void *ro_heap;
 	__u32 zero = 0;
@@ -2520,6 +2521,10 @@ rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_k
 	__u8 *dst;
 
 	if (!ratelimit_interval)
+		return false;
+
+	config = map_lookup_elem(&config_map, &e->idx);
+	if (!config)
 		return false;
 
 	key = ratelimit_heap_get();
@@ -2548,11 +2553,11 @@ rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_k
 	dst = key->data;
 
 	for (i = 0; i < MAX_POSSIBLE_ARGS; i++) {
-		if (arg_idx(i) == -1)
+		if (arg_idx(config, i) == -1)
 			break;
 		if (e->argsoff[i] >= e->common.size)
 			break;
-		if (i < MAX_POSSIBLE_ARGS - 1 && arg_idx(i + 1) != -1)
+		if (i < MAX_POSSIBLE_ARGS - 1 && arg_idx(config, i + 1) != -1)
 			arg_size = e->argsoff[i + 1] - e->argsoff[i];
 		else
 			arg_size = e->common.size - e->argsoff[i] + sizeof(arg_status_t);

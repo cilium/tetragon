@@ -80,20 +80,8 @@ struct event_config {
 	struct config_reg_arg reg_arg[EVENT_CONFIG_MAX_REG_ARG];
 } __attribute__((packed));
 
-FUNC_INLINE int arg_idx(int index)
+FUNC_INLINE int arg_idx(struct event_config *config, int index)
 {
-	struct msg_generic_kprobe *e;
-	struct event_config *config;
-	heap_key_t key = heap_key();
-
-	e = map_lookup_elem(&process_call_heap, &key);
-	if (!e)
-		return -1;
-
-	config = map_lookup_elem(&config_map, &e->idx);
-	if (!config)
-		return -1;
-
 	asm volatile("%[index] &= %1 ;\n"
 		     : [index] "+r"(index)
 		     : "i"(MAX_POSSIBLE_ARGS_MASK));

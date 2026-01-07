@@ -86,5 +86,12 @@ BPF_KRETPROBE(generic_retuprobe_actions)
 __attribute__((section(COMMON), used)) int
 BPF_KRETPROBE(generic_retuprobe_output)
 {
-	return heap_dtor(generic_output(ctx, MSG_OP_GENERIC_UPROBE));
+	struct msg_generic_kprobe *e;
+	heap_key_t key = heap_key();
+
+	e = map_lookup_elem(&process_call_heap, &key);
+	if (!e)
+		return heap_dtor(0);
+
+	return heap_dtor(generic_output(e, ctx, MSG_OP_GENERIC_UPROBE));
 }
