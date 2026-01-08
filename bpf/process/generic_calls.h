@@ -204,19 +204,14 @@ nodata:
  * Returns the size of data appended to @args.
  */
 FUNC_INLINE long
-read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int argm)
+read_arg(struct msg_generic_kprobe *e, void *ctx, int index, int type,
+	 long orig_off, unsigned long arg, int argm)
 {
 	size_t min_size = type_to_min_size(type, argm);
-	struct msg_generic_kprobe *e;
 	char *args;
 	long size = -1;
 	const struct path *path_arg = 0;
 	struct path path_buf;
-	int zero = 0;
-
-	e = map_lookup_elem(&process_call_heap, &zero);
-	if (!e)
-		return 0;
 
 	if (orig_off >= 16383 - min_size)
 		return 0;
@@ -435,20 +430,8 @@ FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned lo
 FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long *a) {}
 #endif /* __LARGE_BPF_PROG */
 
-FUNC_INLINE int arg_idx(int index)
+FUNC_INLINE int arg_idx(struct event_config *config, int index)
 {
-	struct msg_generic_kprobe *e;
-	struct event_config *config;
-	int zero = 0;
-
-	e = map_lookup_elem(&process_call_heap, &zero);
-	if (!e)
-		return -1;
-
-	config = map_lookup_elem(&config_map, &e->idx);
-	if (!config)
-		return -1;
-
 	asm volatile("%[index] &= %1 ;\n"
 		     : [index] "+r"(index)
 		     : "i"(MAX_SELECTORS_MASK));
@@ -495,21 +478,13 @@ FUNC_INLINE long get_pt_regs_arg(struct pt_regs *ctx, struct event_config *confi
 }
 #endif /* __TARGET_ARCH_x86 && (GENERIC_KPROBE || GENERIC_UPROBE) */
 
-FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map_def *tailcals)
+FUNC_INLINE long generic_read_arg(struct msg_generic_kprobe *e,
+				  struct event_config *config, void *ctx,
+				  int index, long off, struct bpf_map_def *tailcals)
 {
-	struct msg_generic_kprobe *e;
-	struct event_config *config;
-	int am, zero = 0, arg_index __maybe_unused;
+	int am, arg_index __maybe_unused;
 	unsigned long a;
 	long ty;
-
-	e = map_lookup_elem(&process_call_heap, &zero);
-	if (!e)
-		return 0;
-
-	config = map_lookup_elem(&config_map, &e->idx);
-	if (!config)
-		return 0;
 
 	asm volatile("%[index] &= %1 ;\n"
 		     : [index] "+r"(index)
@@ -546,18 +521,23 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 		return generic_path_offload(ctx, ty, a, index, off, tailcals);
 #endif
 
-	return read_arg(ctx, index, ty, off, a, am);
+	return read_arg(e, ctx, index, ty, off, a, am);
 }
 
 FUNC_INLINE int
 generic_process_event(void *ctx, struct bpf_map_def *tailcals)
 {
 	struct msg_generic_kprobe *e;
+	struct event_config *config;
 	int index, zero = 0;
 	long total;
 
 	e = map_lookup_elem(&process_call_heap, &zero);
 	if (!e)
+		return 0;
+
+	config = map_lookup_elem(&config_map, &e->idx);
+	if (!config)
 		return 0;
 
 	index = e->tailcall_index_process;
@@ -567,7 +547,7 @@ generic_process_event(void *ctx, struct bpf_map_def *tailcals)
 	if (total < MAX_TOTAL) {
 		long errv;
 
-		errv = generic_read_arg(ctx, index, total, tailcals);
+		errv = generic_read_arg(e, config, ctx, index, total, tailcals);
 		if (errv > 0)
 			total += errv;
 		/* Follow filter lookup failed so lets abort the event.
@@ -580,7 +560,7 @@ generic_process_event(void *ctx, struct bpf_map_def *tailcals)
 	}
 	e->common.size = total;
 	/* Continue to process other arguments. */
-	if (index < 4 && arg_idx(index + 1) != -1) {
+	if (index < 4 && arg_idx(config, index + 1) != -1) {
 		e->tailcall_index_process = index + 1;
 		tail_call(ctx, tailcals, TAIL_CALL_PROCESS);
 	}
@@ -803,7 +783,7 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 #endif
 
 	/* No arguments, go send.. */
-	if (arg_idx(0) == -1)
+	if (arg_idx(config, 0) == -1)
 		tail_call(ctx, tailcals, TAIL_CALL_ARGS);
 
 	tail_call(ctx, tailcals, TAIL_CALL_PROCESS);
@@ -1123,15 +1103,9 @@ generic_actions(void *ctx, struct bpf_map_def *calls)
 }
 
 FUNC_INLINE long
-generic_output(void *ctx, u8 op)
+generic_output(struct msg_generic_kprobe *e, void *ctx, u8 op)
 {
-	struct msg_generic_kprobe *e;
-	int zero = 0;
 	size_t total;
-
-	e = map_lookup_elem(&process_call_heap, &zero);
-	if (!e)
-		return 0;
 
 /* We don't need this data in return kprobe event */
 #if !defined(GENERIC_KRETPROBE) && !defined(GENERIC_URETPROBE)
@@ -1208,7 +1182,7 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 	ty_arg = config->argreturn;
 	do_copy = config->argreturncopy;
 	if (ty_arg) {
-		size += read_arg(ctx, 0, ty_arg, size, ret, 0);
+		size += read_arg(e, ctx, 0, ty_arg, size, ret, 0);
 #if defined(__LARGE_BPF_PROG) && defined(GENERIC_KRETPROBE)
 		struct socket_owner owner;
 
@@ -1342,12 +1316,9 @@ FUNC_INLINE int generic_process_filter(void)
 	return PFILTER_CONTINUE; /* will iterate to the next selector */
 }
 
-FUNC_INLINE int filter_args(struct msg_generic_kprobe *e, int selidx, bool is_entry)
+FUNC_INLINE int filter_args(struct msg_generic_kprobe *e, __u8 *f, int selidx, bool is_entry)
 {
-	__u8 *f;
-
 	/* No filters and no selectors so just accepts */
-	f = map_lookup_elem(&filter_map, &e->idx);
 	if (!f)
 		return 1;
 
@@ -1416,12 +1387,16 @@ FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
 {
 	struct msg_generic_kprobe *e;
 	int selidx, pass, zero = 0;
+	__u8 *f;
 
 	e = map_lookup_elem(&process_call_heap, &zero);
 	if (!e)
 		return 0;
+
+	f = map_lookup_elem(&filter_map, &e->idx);
+
 	selidx = e->tailcall_index_selector;
-	pass = filter_args(e, selidx & MAX_SELECTORS_MASK, is_entry);
+	pass = filter_args(e, f, selidx & MAX_SELECTORS_MASK, is_entry);
 	if (!pass) {
 		selidx = next_selidx(e, selidx);
 		if (selidx <= MAX_SELECTORS) {

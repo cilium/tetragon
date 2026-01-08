@@ -46,6 +46,6 @@ generic_lsm_output(void *ctx)
 	}
 #endif
 	if (e->lsm.post)
-		generic_output(ctx, MSG_OP_GENERIC_LSM);
+		generic_output(e, ctx, MSG_OP_GENERIC_LSM);
 	return try_override(ctx, (struct bpf_map_def *)&override_tasks);
 }
