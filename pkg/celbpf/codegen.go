@@ -225,3 +225,36 @@ func (g *codeGenerator) emitAdd(
 
 	return nil
 }
+
+// emit AND
+func (g *codeGenerator) emitAND(r1 asm.Register, r2 asm.Register) error {
+	g.stackTop -= 8
+	g.emitRaw(
+		asm.And.Reg(r1, r2),
+		asm.StoreMem(asm.R10, g.stackTop, r1, asm.DWord),
+	)
+	return nil
+}
+
+// emit OR
+func (g *codeGenerator) emitOR(r1 asm.Register, r2 asm.Register) error {
+	g.stackTop -= 8
+	g.emitRaw(
+		asm.Or.Reg(r1, r2),
+		asm.StoreMem(asm.R10, g.stackTop, r1, asm.DWord),
+	)
+	return nil
+}
+
+// emit Not
+func (g *codeGenerator) emitNot(r1 asm.Register, tmp asm.Register) error {
+	g.stackTop -= 8
+	label := g.generateLabel()
+	g.emitRaw(
+		asm.LoadImm(tmp, 1, asm.DWord),
+		asm.JEq.Imm(r1, 0, label),
+		asm.LoadImm(tmp, 0, asm.DWord),
+		asm.StoreMem(asm.R10, g.stackTop, tmp, asm.DWord).WithSymbol(label),
+	)
+	return nil
+}
