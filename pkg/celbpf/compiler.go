@@ -97,6 +97,23 @@ func (c *compiler) compileCall(expr cgAst.Expr) error {
 			)
 		}
 
+	case cgOperators.LogicalAnd:
+		emitCall = func() error {
+			return c.cg.emitAND(scratchRegs[0], scratchRegs[1])
+		}
+
+	case cgOperators.LogicalOr:
+		emitCall = func() error {
+			return c.cg.emitOR(scratchRegs[0], scratchRegs[1])
+		}
+
+	case cgOperators.LogicalNot:
+		emitCall = func() error {
+			// NB: scratchRegs[1] is not used but we pass it so that the implementation
+			// can use it for an intemediate value.
+			return c.cg.emitNot(scratchRegs[0], scratchRegs[1])
+		}
+
 	default:
 		emitCall = func() error {
 			return fmt.Errorf("compileCall: call %q (%+v) not supported", call.FunctionName(), call)
