@@ -139,6 +139,7 @@ enum {
 	TAIL_CALL_SEND = 5,
 	TAIL_CALL_PATH = 6,
 	TAIL_CALL_PROCESS_2 = 7,
+	TAIL_CALL_ARGS_2 = 8,
 };
 
 struct selector_action {
@@ -2092,8 +2093,18 @@ filter_arg_2(struct msg_generic_kprobe *e, struct selector_arg_filter *filter, c
 }
 
 FUNC_INLINE long
-filter_arg(struct msg_generic_kprobe *e, struct selector_arg_filter *filter, char *args)
+filter_arg(struct msg_generic_kprobe *e, struct selector_arg_filter *filter, char *args, int arg)
 {
+	/*
+	 * Separate argument filtering based on the process const
+	 * for 4.19 kernels..
+	 */
+	if (arg == __FILTER_ARG_1)
+		return filter_arg_1(e, filter, args);
+	if (arg == __FILTER_ARG_2)
+		return filter_arg_2(e, filter, args);
+
+	/* .. and the rest of the world (i.e., process == __FILTER_ARG_ALL) */
 	if (is_filter_arg_1(filter->type))
 		return filter_arg_1(e, filter, args);
 	else
@@ -2101,8 +2112,9 @@ filter_arg(struct msg_generic_kprobe *e, struct selector_arg_filter *filter, cha
 }
 
 FUNC_INLINE int
-selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
-		    bool is_entry)
+selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
+		    __u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
+		    bool is_entry, int arg)
 {
 	struct selector_arg_filters *filters;
 	struct selector_arg_filter *filter;
@@ -2154,12 +2166,20 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 		margsoff = (seloff + argsoff) & INDEX_MASK;
 		filter = (struct selector_arg_filter *)&f[margsoff];
 
+#ifndef __LARGE_BPF_PROG
+		// if, in the future, 4.19 supports multiple filters, we
+		// will need to adjust this to cope with resuming this loop
+		// on the iteration where we left off prior to tail call
+		if (!is_filter_arg_1(filter->type) && arg == __FILTER_ARG_1)
+			tail_call(ctx, tailcalls, TAIL_CALL_ARGS_2);
+#endif
+
 		index = filter->index;
 		if (index >= 5)
 			return 0;
 
 		args = get_arg(e, index);
-		if (!filter_arg(e, filter, args))
+		if (!filter_arg(e, filter, args, arg))
 			return 0;
 	}
 	return seloff;

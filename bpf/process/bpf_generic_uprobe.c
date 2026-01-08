@@ -22,6 +22,7 @@ int generic_uprobe_process_event(void *ctx);
 int generic_uprobe_process_event_2(void *ctx);
 int generic_uprobe_process_filter(void *ctx);
 int generic_uprobe_filter_arg(void *ctx);
+int generic_uprobe_filter_arg_2(void *ctx);
 int generic_uprobe_actions(void *ctx);
 int generic_uprobe_output(void *ctx);
 int generic_uprobe_path(void *ctx);
@@ -44,6 +45,7 @@ struct {
 #endif
 #ifndef __LARGE_BPF_PROG
 		[TAIL_CALL_PROCESS_2] = (void *)&generic_uprobe_process_event_2,
+		[TAIL_CALL_ARGS_2] = (void *)&generic_uprobe_filter_arg_2,
 #endif
 	},
 };
@@ -109,11 +111,28 @@ generic_uprobe_process_filter(void *ctx)
 	return PFILTER_REJECT;
 }
 
+#ifdef __LARGE_BPF_PROG
 __attribute__((section(COMMON), used)) int
 generic_uprobe_filter_arg(void *ctx)
 {
-	return generic_filter_arg(ctx, (struct bpf_map_def *)&uprobe_calls, true);
+	return generic_filter_arg(ctx, (struct bpf_map_def *)&uprobe_calls, true,
+				  __FILTER_ARG_ALL);
 }
+#else
+__attribute__((section(COMMON), used)) int
+generic_uprobe_filter_arg(void *ctx)
+{
+	return generic_filter_arg(ctx, (struct bpf_map_def *)&uprobe_calls, true,
+				  __FILTER_ARG_1);
+}
+
+__attribute__((section(COMMON), used)) int
+generic_uprobe_filter_arg_2(void *ctx)
+{
+	return generic_filter_arg(ctx, (struct bpf_map_def *)&uprobe_calls, true,
+				  __FILTER_ARG_2);
+}
+#endif
 
 __attribute__((section(COMMON), used)) int
 generic_uprobe_actions(void *ctx)
