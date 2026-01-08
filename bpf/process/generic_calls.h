@@ -1401,7 +1401,9 @@ FUNC_INLINE int generic_process_filter(void)
 	return PFILTER_CONTINUE; /* will iterate to the next selector */
 }
 
-FUNC_INLINE int filter_args(struct msg_generic_kprobe *e, int selidx, bool is_entry)
+FUNC_INLINE int filter_args(void *ctx, struct bpf_map_def *tailcalls,
+			    struct msg_generic_kprobe *e, int selidx, bool is_entry,
+			    int process)
 {
 	__u8 *f;
 
@@ -1422,7 +1424,7 @@ FUNC_INLINE int filter_args(struct msg_generic_kprobe *e, int selidx, bool is_en
 		return filter_args_reject(e->func_id);
 
 	if (e->sel.active[selidx]) {
-		int pass = selector_arg_offset(f, e, selidx, is_entry);
+		int pass = selector_arg_offset(ctx, tailcalls, f, e, selidx, is_entry, process);
 
 		if (pass)
 			return pass;
@@ -1471,7 +1473,7 @@ FUNC_INLINE int next_selidx(struct msg_generic_kprobe *e, int selidx)
 }
 
 FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
-				    bool is_entry)
+				    bool is_entry, int process)
 {
 	struct msg_generic_kprobe *e;
 	int selidx, pass, zero = 0;
@@ -1480,7 +1482,8 @@ FUNC_INLINE long generic_filter_arg(void *ctx, struct bpf_map_def *tailcalls,
 	if (!e)
 		return 0;
 	selidx = e->tailcall_index_selector;
-	pass = filter_args(e, selidx & MAX_SELECTORS_MASK, is_entry);
+	pass = filter_args(ctx, tailcalls, e, selidx & MAX_SELECTORS_MASK,
+			   is_entry, process);
 	if (!pass) {
 		selidx = next_selidx(e, selidx);
 		if (selidx <= MAX_SELECTORS) {
