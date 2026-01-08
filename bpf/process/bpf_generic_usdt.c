@@ -19,6 +19,7 @@ int generic_usdt_setup_event(void *ctx);
 int generic_usdt_process_event(void *ctx);
 int generic_usdt_process_filter(void *ctx);
 int generic_usdt_filter_arg(void *ctx);
+int generic_usdt_filter_arg_2(void *ctx);
 int generic_usdt_actions(void *ctx);
 int generic_usdt_output(void *ctx);
 int generic_usdt_path(void *ctx);
@@ -38,6 +39,9 @@ struct {
 		[TAIL_CALL_SEND] = (void *)&generic_usdt_output,
 #ifndef __V61_BPF_PROG
 		[TAIL_CALL_PATH] = (void *)&generic_usdt_path,
+#endif
+#ifndef __LARGE_BPF_PROG
+		[TAIL_CALL_ARGS_2] = (void *)&generic_usdt_filter_arg_2,
 #endif
 	},
 };
@@ -91,11 +95,28 @@ generic_usdt_process_filter(void *ctx)
 	return PFILTER_REJECT;
 }
 
+#ifdef __LARGE_BPF_PROG
 __attribute__((section(COMMON), used)) int
 generic_usdt_filter_arg(void *ctx)
 {
-	return generic_filter_arg(ctx, (struct bpf_map_def *)&usdt_calls, true);
+	return generic_filter_arg(ctx, (struct bpf_map_def *)&usdt_calls, true,
+				  __FILTER_ARG_ALL);
 }
+#else
+__attribute__((section(COMMON), used)) int
+generic_usdt_filter_arg(void *ctx)
+{
+	return generic_filter_arg(ctx, (struct bpf_map_def *)&usdt_calls, true,
+				  __FILTER_ARG_1);
+}
+
+__attribute__((section(COMMON), used)) int
+generic_usdt_filter_arg_2(void *ctx)
+{
+	return generic_filter_arg(ctx, (struct bpf_map_def *)&usdt_calls, true,
+				  __FILTER_ARG_2);
+}
+#endif
 
 __attribute__((section(COMMON), used)) int
 generic_usdt_actions(void *ctx)

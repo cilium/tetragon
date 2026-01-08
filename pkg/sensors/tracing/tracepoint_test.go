@@ -475,15 +475,16 @@ func TestLoadTracepointSensor(t *testing.T) {
 		}
 	} else {
 		sensorProgs = append(sensorProgs, tus.SensorProg{Name: "generic_tracepoint_process_event_2", Type: ebpf.TracePoint})
+		sensorProgs = append(sensorProgs, tus.SensorProg{Name: "generic_tracepoint_arg_2", Type: ebpf.TracePoint})
 
 		// all programs
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6}})
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7}})
 
 		// all but generic_tracepoint_output
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tp_calls", Progs: []uint{0, 1, 2, 3, 4, 6}})
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tp_calls", Progs: []uint{0, 1, 2, 3, 4, 6, 7}})
 
 		// all but generic_tracepoint_event,generic_tracepoint_filter
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "retprobe_map", Progs: []uint{1, 2, 6}})
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "retprobe_map", Progs: []uint{1, 2, 6, 7}})
 
 		// all kprobe but generic_tracepoint_filter
 		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{0, 2, 6}})

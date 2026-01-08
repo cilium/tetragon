@@ -329,4 +329,10 @@ enum {
 	__READ_ARG_ALL,
 };
 
+enum {
+	__FILTER_ARG_1,
+	__FILTER_ARG_2,
+	__FILTER_ARG_ALL,
+};
+
 #endif /* __BPF_API__ */
