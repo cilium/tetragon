@@ -31,7 +31,7 @@ FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.25.5-alpine@sha256:261
 ARG TARGETARCH
 RUN apk add --no-cache git \
 # renovate: datasource=github-releases depName=google/gops
- && git clone --depth 1 --branch v0.3.28 https://github.com/google/gops /gops \
+ && git clone --depth 1 --branch v0.3.29 https://github.com/google/gops /gops \
  && cd /gops \
  && GOARCH=$TARGETARCH go build -ldflags="-s -w" .
 
