@@ -605,6 +605,48 @@ spec:
 	runKprobeObjectRead(t, readHook, checker, fd, fd2)
 }
 
+// Differently from other tests using returnCopy,
+// this one skips index 0 element to avoid future regressions
+// like https://github.com/cilium/tetragon/issues/4488.
+func TestKprobeObjectReturnCopy(t *testing.T) {
+	fd, fd2, _ := createTestFile(t)
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	readHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "sys-read"
+spec:
+  kprobes:
+  - call: "sys_read"
+    syscall: true
+    args:
+    - index: 1
+      type: "char_buf"
+      returnCopy: true
+    - index: 2
+      type: "size_t"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - ` + pidStr + `
+`
+
+	kpChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_read"))).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full([]byte("hello world"))),
+				ec.NewKprobeArgumentChecker().WithSizeArg(100),
+			))
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	runKprobeObjectRead(t, readHook, checker, fd, fd2)
+}
+
 // sys_openat trace
 func getOpenatChecker(t *testing.T, dir string) ec.MultiEventChecker {
 	kpChecker := ec.NewProcessKprobeChecker("").
