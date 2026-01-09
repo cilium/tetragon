@@ -23,12 +23,13 @@ import (
 )
 
 type argPrinter struct {
-	ty       int
-	userType int
-	index    int
-	maxData  bool
-	label    string
-	data     bool
+	ty          int
+	userType    int
+	index       int
+	maxData     bool
+	label       string
+	data        bool
+	BTFPtrNames [api.MaxBTFArgDepth]string
 }
 
 const (
@@ -87,6 +88,25 @@ func getTracepointMetaValue(arg *v1alpha1.KProbeArg) int {
 
 func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 	var err error
+	var status uint32
+
+	err = binary.Read(r, binary.LittleEndian, &status)
+	if err != nil {
+		logger.GetLogger().Warn("Status header error", "arg.usertype", gt.GenericUserTypeToString(a.userType), logfields.Error, err)
+		return nil
+	}
+
+	if status != 0 {
+		var arg api.MsgGenericKprobeArgError
+		ptr_name := "pointer"
+		if len(a.BTFPtrNames[status-1]) != 0 {
+			ptr_name = a.BTFPtrNames[status-1]
+		}
+		arg.Message = "failed to dereference " + ptr_name
+		arg.Index = uint64(a.index)
+		arg.Label = a.label
+		return arg
+	}
 
 	switch a.ty {
 	case gt.GenericIntType, gt.GenericS32Type:

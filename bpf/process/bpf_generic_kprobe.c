@@ -21,6 +21,7 @@ int generic_kprobe_process_event(void *ctx);
 int generic_kprobe_process_event_2(void *ctx);
 int generic_kprobe_process_filter(void *ctx);
 int generic_kprobe_filter_arg(void *ctx);
+int generic_kprobe_filter_arg_2(void *ctx);
 int generic_kprobe_actions(void *ctx);
 int generic_kprobe_output(void *ctx);
 int generic_kprobe_path(void *ctx);
@@ -43,6 +44,7 @@ struct {
 #endif
 #ifndef __LARGE_BPF_PROG
 		[TAIL_CALL_PROCESS_2] = (void *)&generic_kprobe_process_event_2,
+		[TAIL_CALL_ARGS_2] = (void *)&generic_kprobe_filter_arg_2,
 #endif
 	},
 };
@@ -131,11 +133,25 @@ generic_kprobe_process_filter(void *ctx)
 	return PFILTER_REJECT;
 }
 
+#ifdef __LARGE_BPF_PROG
 __attribute__((section(COMMON), used)) int
 generic_kprobe_filter_arg(void *ctx)
 {
-	return generic_filter_arg(ctx, (struct bpf_map_def *)&kprobe_calls, true);
+	return generic_filter_arg(ctx, (struct bpf_map_def *)&kprobe_calls, true, __FILTER_ARG_ALL);
 }
+#else
+__attribute__((section(COMMON), used)) int
+generic_kprobe_filter_arg(void *ctx)
+{
+	return generic_filter_arg(ctx, (struct bpf_map_def *)&kprobe_calls, true, __FILTER_ARG_1);
+}
+
+__attribute__((section(COMMON), used)) int
+generic_kprobe_filter_arg_2(void *ctx)
+{
+	return generic_filter_arg(ctx, (struct bpf_map_def *)&kprobe_calls, true, __FILTER_ARG_2);
+}
+#endif
 
 __attribute__((section(COMMON), used)) int
 generic_kprobe_actions(void *ctx)

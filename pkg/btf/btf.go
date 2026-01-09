@@ -229,6 +229,31 @@ func getSizeofType(t btf.Type) uint32 {
 	return uint32(ret)
 }
 
+func GetPtrName(parts []string) string {
+	filtered := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if p != "" { // ignore "" elements
+			filtered = append(filtered, p)
+		}
+	}
+
+	if len(filtered) == 0 {
+		return ""
+	}
+
+	var ret strings.Builder
+	ret.WriteString(filtered[0])
+	// avoid using dots for array indexes
+	for _, f := range filtered[1:] {
+		if f[0] == '[' {
+			ret.WriteString(f)
+		} else {
+			ret.WriteString("." + f)
+		}
+	}
+	return ret.String()
+}
+
 // ResolveBTFPath function recursively search in a btf structure in order to
 // found a specific path until it reach the target or fail.
 
@@ -246,27 +271,30 @@ func getSizeofType(t btf.Type) uint32 {
 // Return: The last type found matching the path, or error.
 func ResolveBTFPath(
 	btfArgs *[api.MaxBTFArgDepth]api.ConfigBTFArg,
+	btfPtrNames *[api.MaxBTFArgDepth]string,
 	currentType btf.Type,
 	pathToFound []string,
 	i int,
 ) (*btf.Type, error) {
 	switch t := currentType.(type) {
 	case *btf.Struct:
-		return processMembers(btfArgs, currentType, t.Members, pathToFound, i)
+		return processMembers(btfArgs, btfPtrNames, currentType, t.Members, pathToFound, i)
 	case *btf.Union:
-		return processMembers(btfArgs, currentType, t.Members, pathToFound, i)
+		return processMembers(btfArgs, btfPtrNames, currentType, t.Members, pathToFound, i)
 	case *btf.Pointer:
 		if i > 0 {
 			// To avoid adding an extra BTFArg entry only for doing this
 			// dereferencing, we mark the previous element as pointer.
 			btfArgs[i-1].IsPointer = uint16(1)
+			(*btfPtrNames)[i-1] = GetPtrName(pathToFound[:i-1])
 		}
 		if idx, err := parseArrayIdxStr(pathToFound[i]); err == nil {
 			// To stay ahead on the dereferecing, we mark the current btfArg as pointer
 			btfArgs[i].IsPointer = uint16(1)
-			return processArray(btfArgs, ResolveNestedTypes(t.Target), pathToFound, i, idx)
+			(*btfPtrNames)[i] = GetPtrName(pathToFound[:i])
+			return processArray(btfArgs, btfPtrNames, ResolveNestedTypes(t.Target), pathToFound, i, idx)
 		}
-		return ResolveBTFPath(btfArgs, ResolveNestedTypes(t.Target), pathToFound, i)
+		return ResolveBTFPath(btfArgs, btfPtrNames, ResolveNestedTypes(t.Target), pathToFound, i)
 	case *btf.Array:
 		idx, err := parseArrayIdxStr(pathToFound[i])
 		if err != nil {
@@ -275,7 +303,7 @@ func ResolveBTFPath(
 		if idx >= t.Nelems {
 			return nil, fmt.Errorf("array index out of bound. Nelems=%d, got=%d", t.Nelems, idx)
 		}
-		return processArray(btfArgs, ResolveNestedTypes(t.Type), pathToFound, i, idx)
+		return processArray(btfArgs, btfPtrNames, ResolveNestedTypes(t.Type), pathToFound, i, idx)
 	default:
 		ty := currentType.TypeName()
 		if len(ty) == 0 {
@@ -291,6 +319,7 @@ func ResolveBTFPath(
 
 func processMembers(
 	btfArgs *[api.MaxBTFArgDepth]api.ConfigBTFArg,
+	btfPtrNames *[api.MaxBTFArgDepth]string,
 	currentType btf.Type,
 	members []btf.Member,
 	pathToFound []string,
@@ -302,7 +331,7 @@ func processMembers(
 		if len(member.Name) == 0 { // If anonymous struct, fallthrough
 			btfArgs[i].Offset = member.Offset.Bytes()
 			btfArgs[i].IsInitialized = uint16(1)
-			lastTy, err := ResolveBTFPath(btfArgs, ResolveNestedTypes(member.Type), pathToFound, i)
+			lastTy, err := ResolveBTFPath(btfArgs, btfPtrNames, ResolveNestedTypes(member.Type), pathToFound, i)
 			if err != nil {
 				if lastError != nil {
 					idx := i + 1
@@ -322,7 +351,7 @@ func processMembers(
 			btfArgs[i].IsInitialized = uint16(1)
 			isNotLastChild := i < len(pathToFound)-1 && i < api.MaxBTFArgDepth
 			if isNotLastChild {
-				return ResolveBTFPath(btfArgs, ResolveNestedTypes(member.Type), pathToFound, i+1)
+				return ResolveBTFPath(btfArgs, btfPtrNames, ResolveNestedTypes(member.Type), pathToFound, i+1)
 			}
 			currentType = ResolveNestedTypes(member.Type)
 			break
@@ -341,15 +370,18 @@ func processMembers(
 	}
 	if t, ok := currentType.(*btf.Pointer); ok {
 		btfArgs[i].IsPointer = uint16(1)
+		(*btfPtrNames)[i] = GetPtrName(pathToFound[:i])
 		currentType = t.Target
 	} else if _, ok := currentType.(*btf.Int); ok {
 		btfArgs[i].IsPointer = uint16(1)
+		(*btfPtrNames)[i] = GetPtrName(pathToFound[:i])
 	}
 	return &currentType, nil
 }
 
 func processArray(
 	btfArgs *[api.MaxBTFArgDepth]api.ConfigBTFArg,
+	btfPtrNames *[api.MaxBTFArgDepth]string,
 	targetType btf.Type,
 	pathToFound []string,
 	i int,
@@ -358,7 +390,7 @@ func processArray(
 	btfArgs[i].IsInitialized = uint16(1)
 	btfArgs[i].Offset = getSizeofType(targetType) * idx
 	if len(pathToFound) > i+1 {
-		return ResolveBTFPath(btfArgs, targetType, pathToFound, i+1)
+		return ResolveBTFPath(btfArgs, btfPtrNames, targetType, pathToFound, i+1)
 	}
 	return &targetType, nil
 }

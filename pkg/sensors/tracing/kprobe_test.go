@@ -554,6 +554,52 @@ spec:
 	runKprobeObjectRead(t, readHook, checker, fd, fd2)
 }
 
+func TestKprobeObjectReadIdxMismatch(t *testing.T) {
+	fd, fd2, fdString := createTestFile(t)
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	readHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "sys-read"
+spec:
+  kprobes:
+  - call: "sys_read"
+    syscall: true
+    args:
+    - index: 1
+      type: "char_buf"
+      returnCopy: true
+    - index: 2
+      type: "size_t"
+    - index: 0
+      type: "int"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "` + fdString + `"`
+
+	kpChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_read"))).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full([]byte("hello world"))),
+				ec.NewKprobeArgumentChecker().WithSizeArg(100),
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(fd2)),
+			))
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	runKprobeObjectRead(t, readHook, checker, fd, fd2)
+}
+
 func TestKprobeObjectReadReturn(t *testing.T) {
 	fd, fd2, fdString := createTestFile(t)
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
@@ -4384,7 +4430,7 @@ func TestLoadKprobeSensor(t *testing.T) {
 			{Name: "override_tasks", Progs: []uint{5}},
 
 			// all kprobe but generic_kprobe_process_filter,generic_retkprobe_event
-			{Name: "config_map", Progs: []uint{0, 1, 2}},
+			{Name: "config_map", Progs: []uint{0, 1, 2, 5}},
 
 			// generic_kprobe_event
 			{Name: "tg_conf_map", Progs: []uint{0, 2, 6, 10}},
@@ -4421,13 +4467,6 @@ func TestLoadKprobeSensor(t *testing.T) {
 		}
 
 		sensorMaps = []tus.SensorMap{
-			// generic_retkprobe_event
-			{Name: "retkprobe_calls", Progs: []uint{8, 9, 10}},
-
-			// generic_kprobe_process_filter,generic_kprobe_filter_arg,
-			// generic_kprobe_actions,generic_kprobe_output
-			{Name: "filter_map", Progs: []uint{3, 4, 5}},
-
 			// generic_kprobe_actions
 			{Name: "override_tasks", Progs: []uint{5}},
 		}
@@ -4440,7 +4479,7 @@ func TestLoadKprobeSensor(t *testing.T) {
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "kprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7}})
 
 			// all kprobe but generic_kprobe_process_filter,generic_retkprobe_event
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2}})
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2, 5}})
 
 			// shared with base sensor
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 5, 6, 8, 10}})
@@ -4450,6 +4489,13 @@ func TestLoadKprobeSensor(t *testing.T) {
 
 			// generic_kprobe_process_event*,generic_kprobe_actions,retkprobe
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "socktrack_map", Progs: []uint{2, 5, 8, 10}})
+
+			// generic_retkprobe_event
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "retkprobe_calls", Progs: []uint{8, 9, 10}})
+
+			// generic_kprobe_process_filter,generic_kprobe_filter_arg,
+			// generic_kprobe_actions,generic_kprobe_output
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "filter_map", Progs: []uint{3, 4, 5}})
 
 			if config.EnableV511Progs() {
 				// generic_kprobe_process_event*,generic_kprobe_output,generic_retkprobe_output
@@ -4463,12 +4509,14 @@ func TestLoadKprobeSensor(t *testing.T) {
 			}
 		} else {
 			sensorProgs = append(sensorProgs, tus.SensorProg{Name: "generic_kprobe_process_event_2", Type: ebpf.Kprobe})
+			sensorProgs = append(sensorProgs, tus.SensorProg{Name: "generic_kprobe_filter_arg_2", Type: ebpf.Kprobe})
+			sensorProgs = append(sensorProgs, tus.SensorProg{Name: "generic_retkprobe_filter_arg_2", Type: ebpf.Kprobe})
 
 			// all kprobe programs
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}})
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14}})
 
 			// all but generic_kprobe_output
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "kprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7, 12}})
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "kprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7, 12, 13}})
 
 			// all kprobe but generic_kprobe_process_filter,generic_retkprobe_event
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2, 12}})
@@ -4481,6 +4529,13 @@ func TestLoadKprobeSensor(t *testing.T) {
 
 			// generic_kprobe_event
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}})
+
+			// generic_retkprobe_event
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "retkprobe_calls", Progs: []uint{8, 9, 10, 14}})
+
+			// generic_kprobe_process_filter,generic_kprobe_filter_arg,
+			// generic_kprobe_actions,generic_kprobe_output
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "filter_map", Progs: []uint{3, 4, 5, 13}})
 		}
 	}
 
