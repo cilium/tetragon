@@ -13,6 +13,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api"
 	"github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/metrics"
 )
 
 func TestHandleProcessedEvent(t *testing.T) {
@@ -109,4 +110,16 @@ tetragon_flags_total{type="clone"} 1
 tetragon_flags_total{type="execve"} 1
 `)
 	require.NoError(t, testutil.CollectAndCompare(FlagCount, expected))
+}
+
+func TestDeleteMetricsForPolicy(t *testing.T) {
+	before := testutil.CollectAndCount(policyStats)
+
+	processLabels := metrics.NewProcessLabels("namespace", "workload", "pod", "binary", "node")
+	policyStats.WithLabelValues(processLabels, "policy-a", "kprobe:sys_open").Inc()
+	policyStats.WithLabelValues(processLabels, "policy-b", "kprobe:sys_open").Inc()
+	require.Equal(t, before+2, testutil.CollectAndCount(policyStats))
+
+	metrics.DeleteMetricsForPolicy("policy-a")
+	require.Equal(t, before+1, testutil.CollectAndCount(policyStats))
 }
