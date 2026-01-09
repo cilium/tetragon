@@ -1509,10 +1509,13 @@ func retprobeMerge[T evArgsRetriever](prev pendingEvent[T], curr pendingEvent[T]
 	retArgs := retEv.GetArgs()
 	enterArgs := enterEv.GetArgs()
 	for _, retArg := range *retArgs {
-		index := retArg.GetIndex()
-		if uint64(len(*enterArgs)) > index {
-			(*enterArgs)[index] = retArg
+		enterIdx := slices.IndexFunc(*enterArgs, func(arg api.MsgGenericKprobeArg) bool {
+			return arg.GetIndex() == retArg.GetIndex()
+		})
+		if enterIdx != -1 {
+			(*enterArgs)[enterIdx] = retArg
 		} else {
+			// Append it since we did not find the matching index in the enter event arguments
 			*enterArgs = append(*enterArgs, retArg)
 		}
 	}
