@@ -1385,10 +1385,13 @@ func retprobeMerge(prev pendingEvent, curr pendingEvent) *tracing.MsgGenericKpro
 	kprobemetrics.MergeOkTotalInc()
 
 	for _, retArg := range retEv.Args {
-		index := retArg.GetIndex()
-		if uint64(len(enterEv.Args)) > index {
-			enterEv.Args[index] = retArg
+		enterIdx := slices.IndexFunc(enterEv.Args, func(arg api.MsgGenericKprobeArg) bool {
+			return arg.GetIndex() == retArg.GetIndex()
+		})
+		if enterIdx != -1 {
+			enterEv.Args[enterIdx] = retArg
 		} else {
+			// Append it since we did not find the matching index in the enter event arguments
 			enterEv.Args = append(enterEv.Args, retArg)
 		}
 	}
