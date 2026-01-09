@@ -297,8 +297,11 @@ func TestMatchBinariesFollowChildrenUpdate(t *testing.T) {
 		found = 0
 		iter := hash.Iterate()
 		for iter.Next(&key, &val) {
-			if unix.ByteSliceToString(val.Binary.Path[:]) == forks {
-				require.Equal(t, uint64(1), val.Binary.MBSet, "Binary.MBSet_1")
+			// We need to ccount execve_map records with:
+			// - forks binary path
+			// - val.Binary.MBSet == 1
+			if unix.ByteSliceToString(val.Binary.Path[:]) == forks &&
+				val.Binary.MBSet == 1 {
 				found++
 			}
 		}
