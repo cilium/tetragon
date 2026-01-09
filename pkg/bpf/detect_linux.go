@@ -35,6 +35,11 @@ type Feature struct {
 	detected bool
 }
 
+type FeatureKfuncs struct {
+	mu sync.Mutex
+	md map[string]bool
+}
+
 var (
 	kprobeMulti            Feature
 	uprobeMulti            Feature
@@ -49,6 +54,7 @@ var (
 	uprobeRefCtrOffset     Feature
 	auditLoginuid          Feature
 	uprobeRegsChange       Feature
+	kfuncs                 FeatureKfuncs
 )
 
 func HasOverrideHelper() bool {
@@ -61,6 +67,10 @@ func HasSignalHelper() bool {
 
 func HasProbeWriteUserHelper() bool {
 	return features.HaveProgramHelper(ebpf.Kprobe, asm.FnProbeWriteUser) == nil
+}
+
+func HasLoopHelper() bool {
+	return features.HaveProgramHelper(ebpf.Kprobe, asm.FnLoop) == nil
 }
 
 func detectKprobeMulti() bool {
@@ -569,15 +579,46 @@ func HasUprobeRegsChange() bool {
 	return uprobeRegsChange.detected
 }
 
+func detectKfunc(name string) bool {
+	spec, err := btf.NewBTF()
+	if err != nil {
+		return false
+	}
+
+	var fn *ebtf.Func
+	if err := spec.TypeByName(name, &fn); err != nil {
+		return false
+	}
+
+	// kfunc has bpf_kfunc tag attached
+	return len(fn.Tags) == 1 && fn.Tags[0] == "bpf_kfunc"
+}
+
+func HasKfunc(name string) bool {
+	kfuncs.mu.Lock()
+	defer kfuncs.mu.Unlock()
+
+	if kfuncs.md == nil {
+		kfuncs.md = make(map[string]bool)
+	}
+
+	detected, ok := kfuncs.md[name]
+	if !ok {
+		detected = detectKfunc(name)
+		kfuncs.md[name] = detected
+	}
+	return detected
+}
+
 func LogFeatures() string {
 	// once we have detected all features, flush the BTF spec
 	// we cache all values so calling again a Has* function will
 	// not load the BTF again
 	defer ebtf.FlushKernelSpec()
-	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, uprobe_multi: %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t, link_pin: %t, lsm: %t, missed_stats_kprobe_multi: %t, missed_stats_kprobe: %t, batch_update: %t, uprobe_refctroff: %t, audit_loginuid: %t, probe_write_user: %t, uprobe_regs_change: %t",
+	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, uprobe_multi: %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t, link_pin: %t, lsm: %t, missed_stats_kprobe_multi: %t, missed_stats_kprobe: %t, batch_update: %t, uprobe_refctroff: %t, audit_loginuid: %t, probe_write_user: %t, uprobe_regs_change: %t, loop: %t",
 		HasOverrideHelper(), HasBuildId(), HasKprobeMulti(), HasUprobeMulti(),
 		HasModifyReturn(), HasModifyReturnSyscall(), HasSignalHelper(), HasProgramLargeSize(),
 		HasLinkPin(), HasLSMPrograms(), HasMissedStatsKprobeMulti(), HasMissedStatsPerfEvent(),
 		HasBatchAPI(), HasUprobeRefCtrOffset(), HasAuditLoginuid(), HasProbeWriteUserHelper(),
-		HasUprobeRegsChange())
+		HasUprobeRegsChange(), HasLoopHelper())
 }
