@@ -10,6 +10,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -21,7 +22,6 @@ import (
 	"runtime/pprof"
 	"runtime/trace"
 	"strconv"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -78,47 +78,38 @@ func Listen(opts Options) error {
 	mu.Lock()
 	defer mu.Unlock()
 
-	if portfile != "" {
+	if listener != nil {
 		return fmt.Errorf("gops: agent already listening at: %v", listener.Addr())
-	}
-
-	// new
-	gopsdir := opts.ConfigDir
-	if gopsdir == "" {
-		cfgDir, err := internal.ConfigDir()
-		if err != nil {
-			return err
-		}
-		gopsdir = cfgDir
-	}
-
-	err := os.MkdirAll(gopsdir, os.ModePerm)
-	if err != nil {
-		return err
-	}
-	if opts.ShutdownCleanup {
-		gracefulShutdown()
 	}
 
 	addr := opts.Addr
 	if addr == "" {
 		addr = defaultAddr
 	}
+
 	var lc net.ListenConfig
 	if opts.ReuseSocketAddrAndPort {
 		lc.Control = setReuseAddrAndPortSockopts
 	}
+
+	var err error
 	listener, err = lc.Listen(context.Background(), "tcp", addr)
 	if err != nil {
 		return err
 	}
+
 	port := listener.Addr().(*net.TCPAddr).Port
-	portfile = filepath.Join(gopsdir, strconv.Itoa(os.Getpid()))
-	err = os.WriteFile(portfile, []byte(strconv.Itoa(port)), os.ModePerm)
+	err = saveConfig(opts, port)
 	if err != nil {
-		return err
+		// ignore and work in remote mode only
+		if !errors.Is(err, syscall.EROFS) && !errors.Is(err, syscall.EPERM) {
+			return err
+		}
 	}
 
+	if opts.ShutdownCleanup {
+		gracefulShutdown()
+	}
 	go listen(listener)
 	return nil
 }
@@ -128,8 +119,7 @@ func listen(l net.Listener) {
 	for {
 		fd, err := l.Accept()
 		if err != nil {
-			// No great way to check for this, see https://golang.org/issues/4373.
-			if !strings.Contains(err.Error(), "use of closed network connection") {
+			if !errors.Is(err, net.ErrClosed) {
 				fmt.Fprintf(os.Stderr, "gops: %v\n", err)
 			}
 			if netErr, ok := err.(net.Error); ok && !netErr.Temporary() {
@@ -147,6 +137,25 @@ func listen(l net.Listener) {
 		}
 		fd.Close()
 	}
+}
+
+func saveConfig(opts Options, port int) error {
+	gopsdir := opts.ConfigDir
+	if gopsdir == "" {
+		cfgDir, err := internal.ConfigDir()
+		if err != nil {
+			return err
+		}
+		gopsdir = cfgDir
+	}
+
+	err := os.MkdirAll(gopsdir, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	portfile = filepath.Join(gopsdir, strconv.Itoa(os.Getpid()))
+	return os.WriteFile(portfile, []byte(strconv.Itoa(port)), os.ModePerm)
 }
 
 func gracefulShutdown() {
@@ -176,6 +185,7 @@ func Close() {
 	}
 	if listener != nil {
 		listener.Close()
+		listener = nil
 	}
 }
 
@@ -219,10 +229,11 @@ func handle(conn io.ReadWriter, msg []byte) error {
 		fmt.Fprintf(conn, "heap-objects: %v\n", s.HeapObjects)
 		fmt.Fprintf(conn, "stack-in-use: %v\n", formatBytes(s.StackInuse))
 		fmt.Fprintf(conn, "stack-sys: %v\n", formatBytes(s.StackSys))
-		fmt.Fprintf(conn, "stack-mspan-inuse: %v\n", formatBytes(s.MSpanInuse))
-		fmt.Fprintf(conn, "stack-mspan-sys: %v\n", formatBytes(s.MSpanSys))
-		fmt.Fprintf(conn, "stack-mcache-inuse: %v\n", formatBytes(s.MCacheInuse))
-		fmt.Fprintf(conn, "stack-mcache-sys: %v\n", formatBytes(s.MCacheSys))
+		fmt.Fprintf(conn, "mspan-in-use: %v\n", formatBytes(s.MSpanInuse))
+		fmt.Fprintf(conn, "mspan-sys: %v\n", formatBytes(s.MSpanSys))
+		fmt.Fprintf(conn, "mcache-in-use: %v\n", formatBytes(s.MCacheInuse))
+		fmt.Fprintf(conn, "mcache-sys: %v\n", formatBytes(s.MCacheSys))
+		fmt.Fprintf(conn, "buck-hash-sys: %v\n", formatBytes(s.BuckHashSys))
 		fmt.Fprintf(conn, "other-sys: %v\n", formatBytes(s.OtherSys))
 		fmt.Fprintf(conn, "gc-sys: %v\n", formatBytes(s.GCSys))
 		fmt.Fprintf(conn, "next-gc: when heap-alloc >= %v\n", formatBytes(s.NextGC))
