@@ -22,6 +22,9 @@
 //     not stop
 //   - if any callback fails with an error, the gRPC server will return an error to the client (see
 //     pkg/server/server.go)
+
+//go:build k8s
+
 package rthooks
 
 import (
