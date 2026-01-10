@@ -505,7 +505,7 @@ func (m *state) DelPolicy(polID PolicyID) error {
 		m.log.Warn("DelPolicy: policy internal map not found", "policy-id", polID)
 	}
 
-	if err := m.pfMap.policyMap.Delete(polID); err != nil {
+	if err := m.pfMap.policyMapHandle().Delete(polID); err != nil {
 		m.log.Warn("DelPolicy: failed to remove policy from external map", "policy-id", polID)
 	}
 
