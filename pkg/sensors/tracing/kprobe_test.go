@@ -5320,27 +5320,46 @@ spec: ` + disableKprobeMulti + `
 		t.Fatalf("failed to run %s: %s", unameBin, err)
 	}
 
+	// We check that the stack trace is enabled, works and exports something coherent.
+	// Stack traces look different on different archs and kernel versions.
+	//
+	// On kernel 6.18+, the probed function (sys_newuname)  may not appear
+	// in the stack trace. Instead, the stack trace starts from the syscall
+	// entry point. This could be a regression due to the below commit.
+	// 6d08340d1e35 Revert "perf/x86: Always store regs->ip in perf_callchain_kernel()"
+	//
+	// syscall  /usr/bin/uname __x64_sys_newuname (pre-6.18)
+	//   0x0: __x64_sys_newuname+0x5
+	//   0x0: entry_SYSCALL_64_after_hwframe+0x72
+	//
+	// syscall  /usr/bin/uname __x64_sys_newuname (6.18+)
+	//   0x0: entry_SYSCALL_64_after_hwframe+0x72
+	//
+	// syscall  /usr/bin/uname __arm64_sys_newuname
+	//   0x0: __do_sys_newuname+0x2f0
+	//   0x0: el0_svc_common.constprop.0+0x180
+	//   0x0: do_el0_svc+0x30
+	//   0x0: el0_svc+0x48
+	//   0x0: el0t_64_sync_handler+0xa4
+	//   0x0: el0t_64_sync+0x1a4
+	var symbolMatcher *sm.StringMatcher
+	if kernels.MinKernelVersion("6.18") {
+		// On 6.18+ x86, the probed function may not appear due to perf_callchain_kernel() changes
+		// Check for syscall entry points instead
+		if isArm() {
+			symbolMatcher = sm.Prefix("el0_svc")
+		} else {
+			symbolMatcher = sm.Prefix("entry_SYSCALL_64")
+		}
+	} else {
+		symbolMatcher = sm.Suffix("sys_newuname")
+	}
+
 	stackTraceChecker := ec.NewProcessKprobeChecker("kernel-stack-trace").
 		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(unameBin))).
 		WithKernelStackTrace(ec.NewStackTraceEntryListMatcher().WithValues(
-			ec.NewStackTraceEntryChecker().WithSymbol(sm.Suffix(("sys_newuname"))),
-			// we could technically check for more but stack traces look
-			// different on different archs, at least we check that the stack
-			// trace is enabled, works and exports something coherent
-			//
-			// syscall  /usr/bin/uname __x64_sys_newuname
-			//   0x0: __x64_sys_newuname+0x5
-			//   0x0: entry_SYSCALL_64_after_hwframe+0x72
-			//
-			// syscall  /usr/bin/uname __arm64_sys_newuname
-			//   0x0: __do_sys_newuname+0x2f0
-			//   0x0: el0_svc_common.constprop.0+0x180
-			//   0x0: do_el0_svc+0x30
-			//   0x0: el0_svc+0x48
-			//   0x0: el0t_64_sync_handler+0xa4
-			//   0x0: el0t_64_sync+0x1a4
+			ec.NewStackTraceEntryChecker().WithSymbol(symbolMatcher),
 		))
-
 	checker := ec.NewUnorderedEventChecker(stackTraceChecker)
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
