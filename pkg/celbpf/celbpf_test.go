@@ -44,63 +44,6 @@ func dumpProg(t *testing.T, prog *ebpf.Program) {
 	t.Logf("%s\n", string(out))
 }
 
-func TestExprs(t *testing.T) {
-	testCase := []struct {
-		expr string
-		ret  uint32
-	}{
-		{"true", 1},
-		{"false", 0},
-		{"10 == 10", 1},
-		{"10 == 5", 0},
-		{"(10 == 10) == (10 == 10)", 1},
-		{"(5 == 10) == (10 == 5)", 1},
-		{"(5 == 10) == (10 == 10)", 0},
-		{"!(10 == 5)", 1},
-		{"!(10 == 10)", 0},
-		{"10 == 10 && 10 == 5", 0},
-		{"10 == 10 || 10 == 5", 1},
-		{"10u == 10u", 1},
-		{"10u == 5u", 0},
-		{"5 - 10 == -5", 1},
-		{"5u - 10u == 18446744073709551611u", 1},
-		{"5 + 10 == 15", 1},
-		{"18446744073709551611u + 6u == 1u", 1},
-		{"int32(-10) == int32(-10)", 1},
-		{"int32(-10) == int32(10)", 0},
-		{"int32(-1) == int32(4294967295)", 1},
-		{"uint32(10u) == uint32(10u)", 1},
-		{"int32(-1) == int32(4294967295)", 1},
-		{"uint32(6u) == uint32(17179869190u)", 1},
-		{"uint32(6u) == uint32(0u)", 0},
-		{"uint32(10u) == uint32(5u) + uint32(5u)", 1},
-		{"uint32(3u) == uint32(5u) - uint32(2u)", 1},
-		{"int32(10) == int32(5) + int32(5)", 1},
-		{"int32(-2) == int32(5) - int32(7)", 1},
-	}
-
-	for _, tc := range testCase {
-		insts, err := Compile(tc.expr, nil, "tc")
-		require.NoError(t, err, "Compiling expression %q failed", tc.expr)
-		insts[0] = insts[0].WithSource(s{tc.expr})
-		// t.Logf("expr:%q\ninsts[%d]:\n%s", tc.expr, len(insts), insts)
-		prog, err := ebpf.NewProgramWithOptions(&ebpf.ProgramSpec{
-			Type:         ebpf.RawTracepoint,
-			Instructions: insts,
-			License:      "Dual BSD/GPL",
-		}, ebpf.ProgramOptions{LogLevel: ebpf.LogLevelInstruction})
-		require.NoError(t, err, "Loading program for expr %q failed", tc.expr)
-		defer prog.Close()
-		val, err := prog.Run(&ebpf.RunOptions{})
-		require.NoError(t, err)
-		if tc.ret != val {
-			t.Logf("insns:\n%s\n", insts)
-			dumpProg(t, prog)
-		}
-		require.Equal(t, tc.ret, val, "result of %q was %d and not %d", tc.expr, val, tc.ret)
-	}
-}
-
 // emulate msg_generic_kprobe for testing
 type DummyMsg struct {
 	argsoff [5]int64

@@ -27,6 +27,15 @@ var (
 	addU32 = "add_u32"
 	subS32 = "sub_s32"
 	subU32 = "sub_u32"
+
+	ltS32 = "lt_s32"
+	ltU32 = "lt_u32"
+	lqS32 = "lq_s32"
+	lqU32 = "lq_u32"
+	gtS32 = "gt_s32"
+	gtU32 = "gt_u32"
+	gqS32 = "gq_s32"
+	gqU32 = "gq_u32"
 )
 
 type intType struct {
