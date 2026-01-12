@@ -11,6 +11,8 @@ exclude = [
   'docs/assets/icons/logo.*\.svg', 
   # the virtualbox website sends 500 regularly
   'virtualbox.org',
+  # this blog has transient certificate issues
+  'nakryiko.com',
   # this is for the documentation contributor guide
   '^http://localhost:1313/docs$',
   # this is a form POST link in the index.html
