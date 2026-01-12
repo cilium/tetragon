@@ -176,3 +176,46 @@ func TestProcsFindContainerId(t *testing.T) {
 	assert.Empty(t, d, "Expect output '' empty string")
 	assert.Equal(t, 0, i, "Expect ContainerId offset should be zero")
 }
+
+func TestLookupContainerIdPlainDocker(t *testing.T) {
+	// 1. Plain Docker with cgroup v2 (bare hex ID)
+	// Example: "0::/5aaf9eb7648eeb1459d86eaa0ace8bcfa93089642e5c3113a14250dae3238aaf"
+	p := "0::/5aaf9eb7648eeb1459d86eaa0ace8bcfa93089642e5c3113a14250dae3238aaf"
+
+	d, i := procsFindDockerId(p)
+	assert.Equal(t, 4, i, "ContainerId offset wrong for bare hex ID")
+	assert.Equal(t, "5aaf9eb7648eeb1459d86eaa0ace8bc", d, "ContainerId wrong for bare hex ID")
+
+	// 2. Verify LookupContainerId logic directly for bare hex ID
+	d, i = LookupContainerId(p, false, false)
+	assert.Equal(t, "5aaf9eb7648eeb1459d86eaa0ace8bc", d, "LookupContainerId failed for bare hex ID")
+	assert.Equal(t, 0, i, "LookupContainerId offset wrong for bare hex ID")
+
+	// 3. Docker cgroupfs format
+	// "/docker/5aaf9eb7648eeb1459d86eaa0ace8bcfa93089642e5c3113a14250dae3238aaf"
+	p = "/docker/5aaf9eb7648eeb1459d86eaa0ace8bcfa93089642e5c3113a14250dae3238aaf"
+	d, i = LookupContainerId(p, false, false)
+	assert.Equal(t, "5aaf9eb7648eeb1459d86eaa0ace8bc", d, "LookupContainerId failed for cgroupfs format")
+	assert.Equal(t, 0, i, "LookupContainerId offset wrong for cgroupfs format")
+
+	// 4. Docker systemd format
+	// "/system.slice/docker-ee40841f79d52f66f4958c8a484bd2dfb453228874dcca1a3f2ec6e8420ec87c.scope"
+	p = "/system.slice/docker-ee40841f79d52f66f4958c8a484bd2dfb453228874dcca1a3f2ec6e8420ec87c.scope"
+	d, i = LookupContainerId(p, false, false)
+	assert.Equal(t, "ee40841f79d52f66f4958c8a484bd2d", d, "LookupContainerId failed for systemd format")
+	assert.Equal(t, 7, i)
+
+	// 5. Nested systemd path where ID is in parent
+	// "/system.slice/docker-ee40841f79d52f66f4958c8a484bd2dfb453228874dcca1a3f2ec6e8420ec87c.scope/init.scope"
+	p = "/system.slice/docker-ee40841f79d52f66f4958c8a484bd2dfb453228874dcca1a3f2ec6e8420ec87c.scope/init.scope"
+	d, i = LookupContainerId(p, false, true) // walkParent=true
+	assert.Equal(t, "ee40841f79d52f66f4958c8a484bd2d", d, "LookupContainerId walkParent failed for systemd")
+	assert.Equal(t, 7, i)
+
+	// 6. Nested path where ID is in parent and is bare hex (rare but possible in some manual setups?)
+	// "/docker/5aaf9eb7648eeb1459d86eaa0ace8bcfa93089642e5c3113a14250dae3238aaf/ns"
+	p = "/docker/5aaf9eb7648eeb1459d86eaa0ace8bcfa93089642e5c3113a14250dae3238aaf/ns"
+	d, i = LookupContainerId(p, false, true)
+	assert.Equal(t, "5aaf9eb7648eeb1459d86eaa0ace8bc", d, "LookupContainerId walkParent failed for bare hex parent")
+	assert.Equal(t, 0, i)
+}
