@@ -93,7 +93,8 @@ func TestExporter_Send(t *testing.T) {
 	results := newArrayWriter(numRecords)
 	encoder := encoder.NewProtojsonEncoder(results)
 	request := tetragon.GetEventsRequest{DenyList: []*tetragon.Filter{{BinaryRegex: []string{"b"}}}}
-	exporter := NewExporter(ctx, &request, grpcServer, encoder, results, nil)
+	exporter, err := NewExporter(ctx, &request, grpcServer, encoder, results, nil)
+	require.NoError(t, err)
 	require.NoError(t, exporter.Start(), "exporter must start without errors")
 	eventNotifier.NotifyListener(nil, &tetragon.GetEventsResponse{
 		Event: &tetragon.GetEventsResponse_ProcessExec{
@@ -226,7 +227,7 @@ func Test_rateLimitExport(t *testing.T) {
 			results := newArrayWriter(tt.totalEvents)
 			encoder := encoder.NewProtojsonEncoder(results)
 			request := &tetragon.GetEventsRequest{}
-			exporter := NewExporter(
+			exporter, err := NewExporter(
 				ctx,
 				request,
 				grpcServer,
@@ -234,6 +235,7 @@ func Test_rateLimitExport(t *testing.T) {
 				results,
 				ratelimit.NewRateLimiter(ctx, 50*time.Millisecond, tt.rateLimit, encoder),
 			)
+			require.NoError(t, err)
 			require.NoError(t, exporter.Start(), "exporter must start without errors")
 			for i := range tt.totalEvents {
 				eventNotifier.NotifyListener(nil, &tetragon.GetEventsResponse{

@@ -413,7 +413,7 @@ func loadExporter(tb testing.TB, ctx context.Context, obs *observer.Observer, op
 	encoder := encoder.NewProtojsonEncoder(outF)
 
 	req := tetragon.GetEventsRequest{AllowList: opts.allowList, DenyList: opts.denyList}
-	exporter := exporter.NewExporter(ctx, &req, processManager.Server, encoder, outF, nil)
+	exporter, _ := exporter.NewExporter(ctx, &req, processManager.Server, encoder, outF, nil)
 	logger.GetLogger().Info("Starting JSON exporter")
 	if err := exporter.Start(); err != nil {
 		return err
