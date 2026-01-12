@@ -253,7 +253,10 @@ func startBenchmarkExporter(ctx context.Context, obs *observer.Observer, summary
 	}()
 
 	req := tetragon.GetEventsRequest{AllowList: nil, DenyList: nil, AggregationOptions: nil}
-	exporter := exporter.NewExporter(ctx, &req, processManager.Server, &timingEncoder, writer, nil)
+	exporter, err := exporter.NewExporter(ctx, &req, processManager.Server, &timingEncoder, writer, nil)
+	if err != nil {
+		return err
+	}
 	if err := exporter.Start(); err != nil {
 		return err
 	}
