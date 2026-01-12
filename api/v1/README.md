@@ -12,6 +12,14 @@
     - [ProcessPrivilegesChanged](#tetragon-ProcessPrivilegesChanged)
     - [SecureBitsType](#tetragon-SecureBitsType)
   
+- [tetragon/eventlogservice.proto](#tetragon_eventlogservice-proto)
+    - [GetEventLogParamsRequest](#tetragon-GetEventLogParamsRequest)
+    - [GetEventLogParamsResponse](#tetragon-GetEventLogParamsResponse)
+    - [SetEventLogParamsRequest](#tetragon-SetEventLogParamsRequest)
+    - [SetEventLogParamsResponse](#tetragon-SetEventLogParamsResponse)
+  
+    - [EventLogService](#tetragon-EventLogService)
+  
 - [tetragon/tetragon.proto](#tetragon_tetragon-proto)
     - [BinaryProperties](#tetragon-BinaryProperties)
     - [Capabilities](#tetragon-Capabilities)
@@ -352,6 +360,87 @@ Reasons of why the process privileges changed.
  
 
  
+
+ 
+
+
+
+<a name="tetragon_eventlogservice-proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## tetragon/eventlogservice.proto
+
+
+
+<a name="tetragon-GetEventLogParamsRequest"></a>
+
+### GetEventLogParamsRequest
+
+
+
+
+
+
+
+<a name="tetragon-GetEventLogParamsResponse"></a>
+
+### GetEventLogParamsResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| max_size | [int32](#int32) |  |  |
+| rotation_interval | [string](#string) |  |  |
+| max_backups | [int32](#int32) |  |  |
+
+
+
+
+
+
+<a name="tetragon-SetEventLogParamsRequest"></a>
+
+### SetEventLogParamsRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| max_size | [int32](#int32) | optional |  |
+| rotation_interval | [string](#string) | optional |  |
+| max_backups | [int32](#int32) | optional |  |
+
+
+
+
+
+
+<a name="tetragon-SetEventLogParamsResponse"></a>
+
+### SetEventLogParamsResponse
+
+
+
+
+
+
+ 
+
+ 
+
+ 
+
+
+<a name="tetragon-EventLogService"></a>
+
+### EventLogService
+
+
+| Method Name | Request Type | Response Type | Description |
+| ----------- | ------------ | ------------- | ------------|
+| SetEventLogParams | [SetEventLogParamsRequest](#tetragon-SetEventLogParamsRequest) | [SetEventLogParamsResponse](#tetragon-SetEventLogParamsResponse) |  |
+| GetEventLogParams | [GetEventLogParamsRequest](#tetragon-GetEventLogParamsRequest) | [GetEventLogParamsResponse](#tetragon-GetEventLogParamsResponse) |  |
 
  
 
