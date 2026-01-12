@@ -65,7 +65,7 @@ func (c *compiler) compileCall(expr cgAst.Expr) error {
 
 	// setup emit call
 	var emitCall func() error
-	switch call.FunctionName() {
+	switch op := call.FunctionName(); op {
 	case cgOperators.Equals:
 		emitCall = func() error {
 			c.cg.emitBranchEquals(scratchRegs[0], scratchRegs[1])
@@ -112,6 +112,20 @@ func (c *compiler) compileCall(expr cgAst.Expr) error {
 			// NB: scratchRegs[1] is not used but we pass it so that the implementation
 			// can use it for an intemediate value.
 			return c.cg.emitNot(scratchRegs[0], scratchRegs[1])
+		}
+
+	case cgOperators.Less, cgOperators.LessEquals,
+		cgOperators.Greater, cgOperators.GreaterEquals,
+		cgOperators.NotEquals:
+		emitCall = func() error {
+			// NB: scratchRegs[2] is not used but we pass it so that the implementation
+			// can use it for an intemediate value.
+			return c.cg.emitInequality(
+				scratchRegs[0], argTypes[0],
+				scratchRegs[1], argTypes[1],
+				op,
+				scratchRegs[2])
+
 		}
 
 	default:

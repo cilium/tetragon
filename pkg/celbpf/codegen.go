@@ -10,6 +10,7 @@ import (
 	"math"
 
 	"github.com/cilium/ebpf/asm"
+	cgOperators "github.com/google/cel-go/common/operators"
 	cgTypes "github.com/google/cel-go/common/types"
 )
 
@@ -253,6 +254,68 @@ func (g *codeGenerator) emitNot(r1 asm.Register, tmp asm.Register) error {
 	g.emitRaw(
 		asm.LoadImm(tmp, 1, asm.DWord),
 		asm.JEq.Imm(r1, 0, label),
+		asm.LoadImm(tmp, 0, asm.DWord),
+		asm.StoreMem(asm.R10, g.stackTop, tmp, asm.DWord).WithSymbol(label),
+	)
+	return nil
+}
+
+func (g *codeGenerator) emitInequality(
+	reg1 asm.Register, ty1 *cgTypes.Type,
+	reg2 asm.Register, ty2 *cgTypes.Type,
+	op string,
+	tmp asm.Register,
+) error {
+
+	var signed bool
+	switch {
+	case ty1.TypeName() == s32Ty.TypeName() && ty2.TypeName() == s32Ty.TypeName(),
+		ty1.TypeName() == s64Ty.TypeName() && ty2.TypeName() == s64Ty.TypeName():
+		signed = true
+	case ty1.TypeName() == u64Ty.TypeName() && ty2.TypeName() == u64Ty.TypeName(),
+		ty1.TypeName() == u32Ty.TypeName() && ty2.TypeName() == u32Ty.TypeName():
+		signed = false
+	default:
+		return fmt.Errorf("inequality (%q) between types %s and %s is not supported", op, ty1.TypeName(), ty2.TypeName())
+	}
+
+	opcode := asm.InvalidJumpOp
+	switch op {
+	case cgOperators.NotEquals:
+		opcode = asm.JNE
+	case cgOperators.Less:
+		if signed {
+			opcode = asm.JSLT
+		} else {
+			opcode = asm.JLT
+		}
+	case cgOperators.LessEquals:
+		if signed {
+			opcode = asm.JSLE
+		} else {
+			opcode = asm.JLE
+		}
+	case cgOperators.Greater:
+		if signed {
+			opcode = asm.JSGT
+		} else {
+			opcode = asm.JGT
+		}
+	case cgOperators.GreaterEquals:
+		if signed {
+			opcode = asm.JSGE
+		} else {
+			opcode = asm.JGE
+		}
+	default:
+		return fmt.Errorf("inequality (%q) is not supported", op)
+	}
+
+	g.stackTop -= 8
+	label := g.generateLabel()
+	g.emitRaw(
+		asm.LoadImm(tmp, 1, asm.DWord),
+		opcode.Reg(reg1, reg2, label),
 		asm.LoadImm(tmp, 0, asm.DWord),
 		asm.StoreMem(asm.R10, g.stackTop, tmp, asm.DWord).WithSymbol(label),
 	)
