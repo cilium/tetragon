@@ -6,6 +6,8 @@ package main
 import (
 	"github.com/spf13/cobra"
 
+	"github.com/cilium/tetragon/cmd/tetra/eventlog"
+
 	"github.com/cilium/tetragon/cmd/tetra/explain"
 	"github.com/cilium/tetragon/cmd/tetra/getevents"
 	"github.com/cilium/tetragon/cmd/tetra/info"
@@ -27,6 +29,7 @@ func addBaseCommands(rootCmd *cobra.Command) {
 	rootCmd.AddCommand(rthooks.New())
 	rootCmd.AddCommand(explain.New())
 	rootCmd.AddCommand(info.New())
+	rootCmd.AddCommand(eventlog.New())
 
 	// bugtool technically builds on darwin and windows but makes no sense since
 	// it's supposed to be run on the machine running Tetragon, using
