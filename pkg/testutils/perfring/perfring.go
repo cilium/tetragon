@@ -148,9 +148,11 @@ func ProcessEvents(t *testing.T, ctx context.Context, eventFn EventFn, wgStarted
 		}
 	}()
 
+	var ctxBPFRing context.Context
+	var cancelBPFRing context.CancelFunc
 	if useBPFRingBuffer {
 		// Service the BPF ring buffer.
-		ctxBPFRing, cancelBPFRing := context.WithCancel(ctx)
+		ctxBPFRing, cancelBPFRing = context.WithCancel(ctx)
 		wg.Go(func() {
 
 			complChecker := testsensor.NewCompletionChecker()
@@ -199,6 +201,10 @@ func ProcessEvents(t *testing.T, ctx context.Context, eventFn EventFn, wgStarted
 				complChan <- true
 			}
 		case err := <-errChan:
+			cancelPerfRing()
+			if useBPFRingBuffer {
+				cancelBPFRing()
+			}
 			t.Fatal(err)
 		case <-complChan:
 			// Count how many ring buffer readers have completed and only close
@@ -233,13 +239,13 @@ func RunTest(t *testing.T, ctx context.Context, selfOperations func(), eventFn E
 	wgDone.Add(1)
 	wgStarted.Add(1)
 	go func() {
-		defer wgDone.Done()
-		ProcessEvents(t, ctx, eventFn, &wgStarted)
+		wgStarted.Wait()
+		selfOperations()
+		testsensor.TestCheckerMarkEnd(t)
+		wgDone.Wait()
 	}()
-	wgStarted.Wait()
-	selfOperations()
-	testsensor.TestCheckerMarkEnd(t)
-	wgDone.Wait()
+	defer wgDone.Done()
+	ProcessEvents(t, ctx, eventFn, &wgStarted)
 }
 
 func FilterTestMessages(n notify.Message) bool {
