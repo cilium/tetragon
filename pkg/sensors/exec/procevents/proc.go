@@ -37,6 +37,16 @@ func ProcsContainerIdOffset(subdir string) (string, int) {
 	return s[len(s)-1], off + p
 }
 
+// isHexString checks if a string contains only valid hexadecimal characters
+// using the standard library's hex.DecodeString which validates the input
+func isHexString(s string) bool {
+	if len(s) == 0 || len(s)%2 != 0 {
+		return false
+	}
+	_, err := hex.DecodeString(s)
+	return err == nil
+}
+
 // LookupContainerId returns the container ID as a 31 character string length from the full cgroup path
 // cgroup argument is the full cgroup path
 // bpfSource is set to true if cgroup was obtained from BPF, otherwise false.
@@ -90,6 +100,13 @@ func LookupContainerId(cgroup string, bpfSource bool, walkParent bool) (string, 
 		return container[:BpfContainerIdLength], i
 	}
 
+	// Plain Docker: Check if the last path component is a valid 64-char hex ID
+	// This handles cgroup paths like "/docker/<hex-id>" or cgroup v2 paths
+	// that end with just the container ID without any prefix
+	if len(container) >= ContainerIdLength && isHexString(container[:ContainerIdLength]) {
+		return container[:BpfContainerIdLength], i
+	}
+
 	// Podman may set the last subdir to 'container' so let's walk parent subdir
 	if strings.Contains(cgroup, "libpod") && container == "container" {
 		walkParent = true
@@ -108,6 +125,10 @@ func LookupContainerId(cgroup string, bpfSource bool, walkParent bool) (string, 
 			// Return first 31 chars. If the string is less than 31 chars
 			// it's not a docker ID so skip it. For example docker.server
 			// will get here.
+			return container[:BpfContainerIdLength], i
+		}
+		// Plain Docker: Check if the parent component is a valid 64-char hex ID
+		if len(container) >= ContainerIdLength && isHexString(container[:ContainerIdLength]) {
 			return container[:BpfContainerIdLength], i
 		}
 	}
