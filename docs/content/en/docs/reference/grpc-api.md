@@ -182,6 +182,47 @@ Reasons of why the process privileges changed.
 | SecBitNoCapAmbientRaise | 64 | When set, a process cannot add new capabilities to its ambient set. |
 | SecBitNoCapAmbientRaiseLocked | 128 | Make bit-6 SecBitNoCapAmbientRaise immutable |
 
+<a name="tetragon_eventlogservice-proto"></a>
+
+## tetragon/eventlogservice.proto
+
+<a name="tetragon-GetEventLogParamsRequest"></a>
+
+### GetEventLogParamsRequest
+
+<a name="tetragon-GetEventLogParamsResponse"></a>
+
+### GetEventLogParamsResponse
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| max_size | [int32](#int32) |  |  |
+| rotation_interval | [string](#string) |  |  |
+| max_backups | [int32](#int32) |  |  |
+
+<a name="tetragon-SetEventLogParamsRequest"></a>
+
+### SetEventLogParamsRequest
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| max_size | [int32](#int32) | optional |  |
+| rotation_interval | [string](#string) | optional |  |
+| max_backups | [int32](#int32) | optional |  |
+
+<a name="tetragon-SetEventLogParamsResponse"></a>
+
+### SetEventLogParamsResponse
+
+<a name="tetragon-EventLogService"></a>
+
+### EventLogService
+
+| Method Name | Request Type | Response Type | Description |
+| ----------- | ------------ | ------------- | ------------|
+| SetEventLogParams | [SetEventLogParamsRequest](#tetragon-SetEventLogParamsRequest) | [SetEventLogParamsResponse](#tetragon-SetEventLogParamsResponse) |  |
+| GetEventLogParams | [GetEventLogParamsRequest](#tetragon-GetEventLogParamsRequest) | [GetEventLogParamsResponse](#tetragon-GetEventLogParamsResponse) |  |
+
 <a name="tetragon_tetragon-proto"></a>
 
 ## tetragon/tetragon.proto
