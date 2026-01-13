@@ -118,11 +118,11 @@ func (se *SafeELFFile) UsdtTargets() ([]*UsdtTarget, error) {
 			}
 
 			parseStr := func(arr []byte) (string, []byte, error) {
-				idx := bytes.IndexByte(arr, 0)
-				if idx == -1 {
+				before, after, ok := bytes.Cut(arr, []byte{0})
+				if !ok {
 					return "", nil, errors.New("failed to parse usdt string")
 				}
-				return string(arr[:idx]), arr[idx+1:], nil
+				return string(before), after, nil
 			}
 
 			spec.Provider, data, err = parseStr(data)

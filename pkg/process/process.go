@@ -275,14 +275,14 @@ func getEnvironmentVariables(envs []string) []*tetragon.EnvVar {
 	for _, v := range envs {
 		var key, val string
 
-		idx := strings.Index(v, "=")
-		if idx == -1 {
+		before, after, ok := strings.Cut(v, "=")
+		if !ok {
 			// unlikely, but let's not just ignore
 			key = "invalid"
 			val = v
 		} else {
-			key = v[0:idx]
-			val = v[idx+1:]
+			key = before
+			val = after
 		}
 		res = append(res, &tetragon.EnvVar{Key: key, Value: val})
 	}
@@ -379,8 +379,8 @@ func initProcessInternalExec(
 	// Apply user filter on environment variables before redaction.
 	if option.Config.FilterEnvironmentVariables != nil {
 		envs = slices.DeleteFunc(envs, func(v string) bool {
-			idx := strings.Index(v, "=")
-			_, ok := option.Config.FilterEnvironmentVariables[v[0:idx]]
+			before, _, _ := strings.Cut(v, "=")
+			_, ok := option.Config.FilterEnvironmentVariables[before]
 			return !ok
 		})
 	}

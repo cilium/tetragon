@@ -353,8 +353,7 @@ func getValidCgroupv1Path(cgroupPaths []string) (string, error) {
 
 		for _, s := range cgroupPaths {
 			if strings.Contains(s, fmt.Sprintf(":%s:", controller.Name)) {
-				idx := strings.Index(s, "/")
-				path := s[idx+1:]
+				_, path, _ := strings.Cut(s, "/")
 				cgroupPath := filepath.Join(cgroupFSPath, controller.Name, path)
 				finalpath := filepath.Join(cgroupPath, "cgroup.procs")
 				logger.GetLogger().Debug("Cgroupv1 probing environment and deployment detection",
@@ -439,8 +438,7 @@ func checkCgroupv2Controllers(cgroupPath string) error {
 func getValidCgroupv2Path(cgroupPaths []string) (string, error) {
 	for _, s := range cgroupPaths {
 		if strings.Contains(s, cgroupv2Hierarchy) {
-			idx := strings.Index(s, "/")
-			path := s[idx+1:]
+			_, path, _ := strings.Cut(s, "/")
 			cgroupPath := filepath.Join(cgroupFSPath, path)
 			finalpath := filepath.Join(cgroupPath, "cgroup.procs")
 			_, err := os.Stat(finalpath)
