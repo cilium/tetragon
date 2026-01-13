@@ -70,8 +70,11 @@ func parseMatchCelExpr(
 	arg *v1alpha1.ArgSelector,
 	sig []v1alpha1.KProbeArg,
 ) error {
-	exprs, err := addMatchCelExpr(k.celExprFunctions, arg, sig)
+	if !celbpf.Supported() {
+		return errors.New("celbpf not supported in this kernel")
+	}
 
+	exprs, err := addMatchCelExpr(k.celExprFunctions, arg, sig)
 	if err != nil {
 		return err
 	}
@@ -86,7 +89,37 @@ func parseMatchCelExpr(
 	return nil
 }
 
+func removeCelFunction(prog *ebpf.ProgramSpec) {
+	newInstructions := make(asm.Instructions, 0, len(prog.Instructions))
+	skip := false
+	for _, ins := range prog.Instructions {
+		sym := ins.Symbol()
+		if sym == "cel_expr" {
+			skip = true
+			// skip cel_expr()
+			continue
+		} else if skip && sym == "" {
+			// continue skipping cel_expr()
+			continue
+		}
+
+		// found new symbol (new func), stop skipping if we were
+		skip = false
+
+		if ins.IsFunctionCall() && ins.Reference() == "cel_expr" {
+			ins = asm.Mov.Imm(asm.R0, 0)
+		}
+		newInstructions = append(newInstructions, ins)
+	}
+	prog.Instructions = newInstructions
+}
+
 func (cefs CelExprFunctions) RewriteProg(prog *ebpf.ProgramSpec) error {
+	if !celbpf.Supported() {
+		removeCelFunction(prog)
+		return nil
+	}
+
 	// add the generated functions as new instructions
 	for _, insns := range cefs.functions() {
 		prog.Instructions = append(prog.Instructions, insns...)
