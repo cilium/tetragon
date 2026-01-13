@@ -116,11 +116,13 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 		}
 
 		if strings.HasPrefix(fileName, "bpf_generic_kprobe") {
-			for _, prog := range spec.Programs {
-				var exprs selectors.CelExprFunctions
-				if prog.Name == "generic_kprobe_filter_arg" {
-					err := exprs.RewriteProg(prog)
-					require.NoError(t, err, "failed to rewrite program for empty CEL expressions")
+			if fileName != "bpf_generic_kprobe.o" { // 4.19 version does not need to be rewritten
+				for _, prog := range spec.Programs {
+					var exprs selectors.CelExprFunctions
+					if prog.Name == "generic_kprobe_filter_arg" {
+						err := exprs.RewriteProg(prog)
+						require.NoError(t, err, "failed to rewrite program for empty CEL expressions")
+					}
 				}
 			}
 		}

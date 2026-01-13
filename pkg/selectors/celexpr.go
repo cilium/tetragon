@@ -8,6 +8,7 @@ package selectors
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/asm"
@@ -70,6 +71,10 @@ func parseMatchCelExpr(
 	arg *v1alpha1.ArgSelector,
 	sig []v1alpha1.KProbeArg,
 ) error {
+	if !celbpf.Supported() {
+		return errors.New("celbpf not supported in this kernel")
+	}
+
 	exprs, err := addMatchCelExpr(k.CelExprFunctions, arg, sig)
 	if err != nil {
 		return err
@@ -85,7 +90,35 @@ func parseMatchCelExpr(
 	return nil
 }
 
+func removeCelFunction(prog *ebpf.ProgramSpec) {
+	newInstructions := make(asm.Instructions, 0, len(prog.Instructions))
+	skip := false
+	for _, ins := range prog.Instructions {
+		sym := ins.Symbol()
+		if strings.HasPrefix(sym, "cel_expr") {
+			skip = true
+		} else if skip && sym == "" {
+			// skip old function instructions
+			continue
+		} else {
+			// found new symbol (new func), stop skipping
+			skip = false
+		}
+
+		if ins.IsFunctionCall() && ins.Reference() == "cel_expr" {
+			ins = asm.Mov.Imm(asm.R0, 0)
+		}
+		newInstructions = append(newInstructions, ins)
+	}
+	prog.Instructions = newInstructions
+}
+
 func (cefs CelExprFunctions) RewriteProg(prog *ebpf.ProgramSpec) error {
+	if !celbpf.Supported() {
+		removeCelFunction(prog)
+		return nil
+	}
+
 	// add the generated functions as new instructions
 	for _, insns := range cefs.functions() {
 		prog.Instructions = append(prog.Instructions, insns...)
