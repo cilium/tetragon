@@ -123,6 +123,9 @@ func btfTestArgExprFnTy(fnName string) *btf.Func {
 }
 
 func TestArgExprs(t *testing.T) {
+	if !Supported() {
+		t.Skip()
+	}
 	testCase := []struct {
 		expr     string
 		ret      uint32

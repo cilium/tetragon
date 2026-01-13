@@ -29,6 +29,7 @@ import (
 	"github.com/cilium/tetragon/pkg/asm"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/btf"
+	"github.com/cilium/tetragon/pkg/celbpf"
 	"github.com/cilium/tetragon/pkg/cgtracker"
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/eventhandler"
@@ -1225,8 +1226,9 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Pro
 
 	rewriteProg := make(map[string]func(prog *ebpf.ProgramSpec) error)
 	if entry := gk.loadArgs.selectors.entry; entry != nil {
-		// functions generated for CEL expressions
-		rewriteProg["generic_kprobe_filter_arg"] = entry.CelExprFunctions().RewriteProg
+		if celbpf.EnabledInBPF() {
+			rewriteProg["generic_kprobe_filter_arg"] = entry.CelExprFunctions().RewriteProg
+		}
 	}
 	load.RewriteProg = rewriteProg
 
