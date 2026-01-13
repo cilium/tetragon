@@ -50,8 +50,10 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/rthooks"
 	"github.com/cilium/tetragon/pkg/sensors/base"
+	"github.com/cilium/tetragon/pkg/sensors/exec"
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 	"github.com/cilium/tetragon/pkg/sensors/program"
+	"github.com/cilium/tetragon/pkg/sensors/tracing"
 	"github.com/cilium/tetragon/pkg/server"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/cilium/tetragon/pkg/unixlisten"
@@ -363,7 +365,14 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	}
 
 	// Get observer from configFile
-	obs := observer.NewObserver()
+	var obs observer.EventObserver
+	if option.Config.SyntheticEventsSource != "" {
+		exec.RegisterSyntheticEvents()
+		tracing.RegisterSyntheticEvents()
+		obs = observer.NewFileObserver()
+	} else {
+		obs = observer.NewObserver()
+	}
 	defer func() {
 		obs.PrintStats()
 	}()
@@ -629,7 +638,7 @@ func addTracingPolicy(ctx context.Context, file string) error {
 // Periodically log current status every 24 hours. For lost or error
 // events we ratelimit statistics to 1 message per every 1hour and
 // only if they increase, to inform users that events are being lost.
-func logStatus(ctx context.Context, obs *observer.Observer) {
+func logStatus(ctx context.Context, obs observer.EventObserver) {
 	prevLost := uint64(0)
 	prevErrors := uint64(0)
 	lostTicker := time.NewTicker(1 * time.Hour)

@@ -33,8 +33,22 @@ import (
 var (
 	eventHandler = make(map[uint8]func(r *bytes.Reader) ([]Event, error))
 
-	observerList []*Observer
+	observerList []EventObserver
 )
+
+type EventObserver interface {
+	Start(ctx context.Context) error
+	StartReady(ctx context.Context, ready func()) error
+	InitSensorManager() error
+	UpdateRuntimeConf(bpfDir string) error
+	AddListener(listener Listener)
+	RemoveListener(listener Listener)
+	PrintStats()
+	LogPinnedBpf(observerDir string)
+	ReadLostEvents() uint64
+	ReadErrorEvents() uint64
+	NotifyListeners(msg notify.Message)
+}
 
 type Event notify.Message
 
@@ -42,7 +56,7 @@ func RegisterEventHandlerAtInit(ev uint8, handler func(r *bytes.Reader) ([]Event
 	eventHandler[ev] = handler
 }
 
-func (k *Observer) observerListeners(msg notify.Message) {
+func (k *Observer) NotifyListeners(msg notify.Message) {
 	for listener := range k.listeners {
 		if err := listener.Notify(msg); err != nil {
 			k.log.Debug("Write failure removing Listener")
@@ -53,7 +67,7 @@ func (k *Observer) observerListeners(msg notify.Message) {
 
 func AllListeners(msg notify.Message) {
 	for _, o := range observerList {
-		o.observerListeners(msg)
+		o.NotifyListeners(msg)
 	}
 }
 
@@ -135,7 +149,7 @@ func (k *Observer) receiveEvent(data []byte) {
 		}
 	}
 	for _, event := range events {
-		k.observerListeners(event)
+		k.NotifyListeners(event)
 	}
 	if option.Config.EnableMsgHandlingLatency {
 		opcodemetrics.LatencyStats.WithLabelValues(strconv.FormatUint(uint64(op), 10)).Observe(float64(time.Since(timer).Microseconds()))

@@ -139,6 +139,8 @@ const (
 	KeyExecveMapSize    = "execve-map-size"
 
 	KeyRetprobesCacheSize = "retprobes-cache-size"
+
+	KeySyntheticEventsSource = "synthetic-events-source"
 )
 
 type UsernameMetadaCode int
@@ -305,6 +307,8 @@ func ReadAndSetFlags() error {
 	Config.ExecveMapSize = viper.GetString(KeyExecveMapSize)
 
 	Config.RetprobesCacheSize = viper.GetInt(KeyRetprobesCacheSize)
+
+	Config.SyntheticEventsSource = viper.GetString(KeySyntheticEventsSource)
 	return nil
 }
 
@@ -504,4 +508,6 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.String(KeyExecveMapSize, "", "Set size for execve_map table (allows K/M/G suffix)")
 
 	flags.Int(KeyRetprobesCacheSize, defaults.DefaultRetprobesCacheSize, "Set {k,u}retprobes events cache maximum size")
+
+	flags.String(KeySyntheticEventsSource, "", "File path for synthetic events source")
 }

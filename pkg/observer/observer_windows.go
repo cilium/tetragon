@@ -32,7 +32,7 @@ func (observer *Observer) RunEvents(stopCtx context.Context, ready func()) error
 	}
 
 	// Inform caller that we're about to start processing events.
-	observer.observerListeners(&readyapi.MsgTetragonReady{})
+	observer.NotifyListeners(&readyapi.MsgTetragonReady{})
 	ready()
 
 	// We spawn go routine to read and process perf events,
