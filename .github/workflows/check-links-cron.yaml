@@ -27,7 +27,7 @@ jobs:
         id: lychee
         uses: lycheeverse/lychee-action@a8c4c7cb88f0c7386610c35eb25108e448569cb0 # v2.7.0
         with:
-          args: --config .github/lychee.toml --base https://tetragon.io docs/content README.md
+          args: --config .github/lychee.toml --base-url https://tetragon.io/ docs/content README.md
           fail: false
 
       # to avoid automated spam, try to find an existing open issue before opening a new one
