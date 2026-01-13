@@ -8,7 +8,7 @@
  * The code for the cel_expr_N functions will be generated and linked when the policy is loaded
  */
 
-#if defined(GENERIC_KPROBE) && !defined(__MULTI_KPROBE)
+#if defined(__LARGE_BPF_PROG) && (defined(GENERIC_KPROBE) && !defined(__MULTI_KPROBE))
 int cel_expr_0(long *argsoff, char *args);
 int cel_expr_1(long *argsoff, char *args);
 int cel_expr_2(long *argsoff, char *args);
@@ -18,8 +18,7 @@ int cel_expr_5(long *argsoff, char *args);
 int cel_expr_6(long *argsoff, char *args);
 int cel_expr_7(long *argsoff, char *args);
 
-FUNC_LOCAL int
-cel_expr(int id, long *argsoff, char *args)
+static __attribute__((noinline)) __attribute__((__unused__)) int cel_expr(int id, long *argsoff, char *args)
 {
 	switch (id) {
 	case 0:
@@ -44,7 +43,7 @@ cel_expr(int id, long *argsoff, char *args)
 	}
 }
 #else
-FUNC_LOCAL int
+FUNC_INLINE int
 cel_expr(int id, long *argsoff, char *args)
 {
 	return 0;

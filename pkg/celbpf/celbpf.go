@@ -13,6 +13,9 @@ import (
 	cgChecker "github.com/google/cel-go/checker"
 	cgCommon "github.com/google/cel-go/common"
 	cgParser "github.com/google/cel-go/parser"
+
+	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/config"
 )
 
 type Env struct{}
@@ -20,6 +23,19 @@ type Env struct{}
 type ExprArg struct {
 	GenTy     int
 	ArgOffset int
+}
+
+// EnabledInBPF returns true if celbpf is supported in the BPF programs
+func EnabledInBPF() bool {
+	return config.EnableLargeProgs()
+}
+
+// Supported returns true if celbpf is supported at runtime
+// NB: The cel_expr code uses bpf-to-bpf calls, so we need to detect whether mixing bpf-to-bpf calls
+// and tail-calls is allowed.
+// See: https://lore.kernel.org/bpf/20200829231925.GB31692@ranger.igk.intel.com/T/
+func Supported() bool {
+	return bpf.DetectMixBpfAndTailCalls()
 }
 
 func Compile(celExpr string, args []ExprArg, labelPrefix string) (asm.Instructions, error) {
