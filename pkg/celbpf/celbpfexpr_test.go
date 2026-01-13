@@ -95,6 +95,10 @@ type exprTest struct {
 }
 
 func TestExprs(t *testing.T) {
+	if !Supported() {
+		t.Skip()
+	}
+
 	testCases := []exprTest{
 		{"true", 1},
 		{"false", 0},

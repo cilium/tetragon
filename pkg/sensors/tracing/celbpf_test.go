@@ -17,6 +17,7 @@ import (
 	"github.com/cilium/tetragon/pkg/arch"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
@@ -28,6 +29,10 @@ import (
 )
 
 func TestCelExpr(t *testing.T) {
+	if !kernels.MinKernelVersion("5.10.0") {
+		t.Skip("TestCelExpr requires at least a 5.10 kernel")
+	}
+
 	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
