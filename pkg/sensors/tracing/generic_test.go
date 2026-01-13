@@ -125,6 +125,16 @@ spec:
     - index: 1
       type: "int"
       resolve: 'user.uid.val'
+  - call: "do_pipe2"
+    args:
+    - index: 0
+      resolve: "[0]"
+      type: int
+      label: "pipefd[0]"
+    - index: 0
+      resolve: "[1]"
+      type: int
+      label: "pipefd[1]"
   - call: "security_bprm_check"
     args:
     - index: 0
@@ -134,7 +144,7 @@ spec:
 	policy, err := tracingpolicy.FromYAML(rawPolicy)
 	require.NoError(t, err, "FromYAML rawPolicy error %q", err)
 
-	successHook := policy.TpSpec().KProbes[:2]
+	successHook := policy.TpSpec().KProbes[:3]
 	for _, hook := range successHook {
 		for _, arg := range hook.Args {
 			lastBTFType, btfArg, err := resolveBTFArg(hook.Call, &arg, false)
@@ -150,7 +160,7 @@ spec:
 		}
 	}
 
-	failHook := policy.TpSpec().KProbes[2]
+	failHook := policy.TpSpec().KProbes[3]
 	for _, arg := range failHook.Args {
 		_, _, err := resolveBTFArg(failHook.Call, &arg, false)
 
