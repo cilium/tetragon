@@ -769,7 +769,30 @@ See [`TrackSock`](/docs/concepts/tracing-policy/selectors/#tracksock-action) and
   returnArgAction: TrackSock
 ```
 
-Socket tracking is only available on kernels >=5.3.
+#### Limitations
+
+Socket tracking has the following limitations:
+
+- Kernel version: socket tracking is only available on kernels >=5.3.
+
+- LRU map overflow: socket mappings are stored in an LRU (Least Recently Used)
+  hash map in the kernel with a fixed upper limit for entries. When the map is
+  full, old entries are evicted to make space for new ones. If many sockets are
+  created in a short period, older socket mappings may be lost and network
+  events may be attributed to the wrong process.
+
+- Socket sharing between processes: sockets are not strictly owned by a single
+  process—they can be shared via `fork()` (when both parent and child keep the
+  file descriptor open) or via IPC file descriptor passing. Tetragon attributes
+  all socket activity to the process that originally created the socket. If that
+  process exits while another continues using the socket, the mapping references
+  a process that no longer exists.
+
+{{< warning >}}
+The LRU map overflow and socket sharing limitations have security implications.
+An adversary could overflow the map to evade attribution, or exploit socket
+sharing to obscure the true source of network activity.
+{{< /warning >}}
 
 
 ## Lists
