@@ -1,0 +1,122 @@
+name: "Download file with caching"
+description: "Download a file from URL with retry logic and cache support"
+
+inputs:
+  file-url:
+    description: "URL of file to download"
+    required: true
+
+  download-dir:
+    description: "Directory to download file to"
+    required: true
+
+outputs:
+  downloaded-file:
+    description: "Full path to the downloaded file"
+    value: ${{ steps.output-path.outputs.FILE_PATH }}
+
+  cache-hit:
+    description: "Whether the file was restored from cache"
+    value: ${{ steps.cache.outputs.cache-hit }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Setup paths and cache key"
+      id: setup
+      shell: pwsh
+      run: |
+        $url = "${{ inputs.file-url }}"
+        $fileName = [System.IO.Path]::GetFileName($url)
+
+        # Generate URL hash for cache key
+        $urlBytes = [System.Text.Encoding]::UTF8.GetBytes($url)
+        $hashBytes = [System.Security.Cryptography.SHA256]::Create().ComputeHash($urlBytes)
+        $urlHash = [System.BitConverter]::ToString($hashBytes).Replace("-", "").ToLowerInvariant()
+
+        $downloadPath = "${{ inputs.download-dir }}"
+        $filePath = Join-Path $downloadPath $fileName
+        $cacheKey = "download-cache-${{ runner.os }}-${urlHash}"
+
+        echo "CACHE_KEY=$cacheKey" >> $env:GITHUB_OUTPUT
+        echo "DOWNLOAD_PATH=$downloadPath" >> $env:GITHUB_OUTPUT
+        echo "FILE_PATH=$filePath" >> $env:GITHUB_OUTPUT
+        echo "FILE_NAME=$fileName" >> $env:GITHUB_OUTPUT
+
+        Write-Output "Cache key: $cacheKey"
+        Write-Output "Download path: $downloadPath"
+        Write-Output "File path: $filePath"
+
+    - name: "Restore cache"
+      id: cache
+      uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: ${{ steps.setup.outputs.DOWNLOAD_PATH }}
+        key: ${{ steps.setup.outputs.CACHE_KEY }}
+
+    - name: "Download file"
+      id: download
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: pwsh
+      run: |
+        $url = "${{ inputs.file-url }}"
+        $downloadPath = "${{ steps.setup.outputs.DOWNLOAD_PATH }}"
+        $filePath = "${{ steps.setup.outputs.FILE_PATH }}"
+
+        Write-Output "Cache miss. Downloading from $url..."
+        New-Item -ItemType Directory -Path $downloadPath -Force | Out-Null
+
+        $maxAttempts = 4
+        for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+          try {
+            Write-Output "Download attempt $attempt/$maxAttempts..."
+            $webClient = New-Object System.Net.WebClient
+            $webClient.DownloadFile($url, $filePath)
+            Write-Output "✓ Download successful"
+            break
+          } catch {
+            if ($attempt -eq $maxAttempts) {
+              Write-Error "Failed to download after $maxAttempts attempts: $_"
+              throw $_
+            }
+            $waitSeconds = 5 * [math]::Pow(2, $attempt - 1)
+            Write-Warning "Attempt $attempt failed. Retrying in $waitSeconds seconds..."
+            Start-Sleep -Seconds $waitSeconds
+          } finally {
+            if ($webClient) { $webClient.Dispose() }
+          }
+        }
+
+        if (-not (Test-Path $filePath)) {
+          throw "Downloaded file not found at $filePath"
+        }
+
+        $fileSize = (Get-Item $filePath).Length
+        Write-Output "Downloaded file size: $([math]::Round($fileSize / 1MB, 2)) MB"
+
+    - name: "Set output path"
+      id: output-path
+      shell: pwsh
+      run: |
+        $filePath = "${{ steps.setup.outputs.FILE_PATH }}"
+        $cacheHit = "${{ steps.cache.outputs.cache-hit }}" -eq "true"
+
+        if ($cacheHit) {
+          Write-Output "✓ Cache hit - using cached file at: $filePath"
+        } else {
+          Write-Output "✓ Download complete - file at: $filePath"
+        }
+
+        # Verify file exists
+        if (-not (Test-Path $filePath)) {
+          throw "File not found at expected path: $filePath"
+        }
+
+        echo "FILE_PATH=$filePath" >> $env:GITHUB_OUTPUT
+
+    - name: "Save cache"
+      if: steps.cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: ${{ steps.setup.outputs.DOWNLOAD_PATH }}
+        key: ${{ steps.setup.outputs.CACHE_KEY }}

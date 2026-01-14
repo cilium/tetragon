@@ -1,0 +1,58 @@
+name: "Extract ZIP archive"
+description: "Extract a ZIP file to a target directory"
+
+inputs:
+  zip-file:
+    description: "Path to the ZIP file to extract"
+    required: true
+
+  extract-dir:
+    description: "Directory to extract files to"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Validate ZIP file"
+      id: validate
+      shell: pwsh
+      run: |
+        $zipFile = "${{ inputs.zip-file }}"
+
+        if (-not (Test-Path $zipFile)) {
+          throw "ZIP file not found: ${$zipFile}"
+        }
+
+        $extension = [System.IO.Path]::GetExtension($zipFile).ToLower()
+        if ($extension -ne '.zip') {
+          throw "File is not a ZIP archive: $zipFile (extension: $extension)"
+        }
+
+        $fileSize = (Get-Item $zipFile).Length
+        Write-Output "ZIP file: $zipFile"
+        Write-Output "Size: $([math]::Round($fileSize / 1MB, 2)) MB"
+
+    - name: "Extract ZIP archive"
+      id: extract
+      shell: pwsh
+      run: |
+        $zipFile = "${{ inputs.zip-file }}"
+        $extractDir = "${{ inputs.extract-dir }}"
+        $overwrite = "${{ inputs.overwrite }}" -eq "true"
+
+        Write-Output "Extracting ZIP archive to $extractDir..."
+        New-Item -ItemType Directory -Path $extractDir -Force | Out-Null
+
+        try {
+          Expand-Archive -Path $zipFile -DestinationPath $extractDir -Force
+          $extractedFiles = Get-ChildItem -Path $extractDir -Recurse -File
+          $filesCount = $extractedFiles.Count
+          Write-Output "✓ Extracted $filesCount file(s)"
+
+          Write-Output "::group::Contents:"
+          $extractedFiles | Select-Object Length, FullName | Format-Table
+          Write-Output "::endgroup::"
+        } catch {
+          Write-Error "Failed to extract ZIP: $_"
+          throw $_
+        }
