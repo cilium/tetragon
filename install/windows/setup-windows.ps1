@@ -16,9 +16,10 @@ function Extract-ZipFile {
     }
 
     New-Item -ItemType Directory -Path $destinationPath
+    Expand-Archive -Path $zipPath -DestinationPath $destinationPath -Force
     
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
-    [System.IO.Compression.ZipFile]::ExtractToDirectory($zipPath, $destinationPath)
+    # Add-Type -AssemblyName System.IO.Compression.FileSystem
+    # [System.IO.Compression.ZipFile]::ExtractToDirectory($zipPath, $destinationPath)
 }
 
 $buildZip = $ntosebpfextZip
@@ -35,6 +36,7 @@ Write-Host "Tetragon archive extracted to: $tetragonBinaries"
 New-Item -ItemType Directory -Path "C:\Program Files\Tetragon\cmd" -Force
 New-Item -ItemType Directory -Path "C:\Program Files\Tetragon\BPF" -Force
 New-Item -ItemType Directory -Path "C:\Program Files\Tetragon\tetragon.tp.d" -Force
+New-Item -ItemType Directory -Path "C:\Program Files\Tetragon\tetragon.policies.d" -Force
 
 Copy-Item -Path $tetragonBinaries\*.exe -destination "C:\Program Files\tetragon\cmd\" -Force
 
@@ -42,8 +44,10 @@ Copy-Item -Path "$ntosebpfextZipBinaries\Release\process_monitor_km\process_moni
 
 
 Start-Process -FilePath "$ntosebpfextZipBinaries\Release\ntos_ebpf_ext_export_program_info.exe" -ArgumentList "--clear" -Wait
+Start-Process -FilePath "C:\Program Files\ebpf-for-windows\export_program_info.exe" -ArgumentList "--clear" -Wait
 
 Start-Process -FilePath "$ntosebpfextZipBinaries\Release\ntos_ebpf_ext_export_program_info.exe" -Wait
+Start-Process -FilePath "C:\Program Files\ebpf-for-windows\export_program_info.exe" -Wait
 
 sc.exe delete "ntosebpfext"
 

@@ -1,0 +1,125 @@
+name: "Extract MSI via admin install"
+description: "Perform MSI administrative installation to extract files"
+
+inputs:
+  msi-file:
+    description: "Path to the MSI file"
+    required: true
+
+  extract-dir:
+    description: "Target directory for extracted files (TARGETDIR)"
+    required: true
+
+  log-file:
+    description: "Path to MSI log file"
+    required: true
+
+  additional-properties:
+    description: "Additional MSI properties (e.g., 'PROPERTY1=VALUE1 PROPERTY2=VALUE2')"
+    required: false
+    default: ""
+
+outputs:
+  exit-code:
+    description: "MSI exit code"
+    value: ${{ steps.extract.outputs.EXIT_CODE }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Validate MSI file"
+      id: validate
+      shell: pwsh
+      run: |
+        $msiFile = "${{ inputs.msi-file }}"
+
+        if (-not (Test-Path $msiFile)) {
+          throw "MSI file not found: $msiFile"
+        }
+
+        $extension = [System.IO.Path]::GetExtension($msiFile).ToLower()
+        if ($extension -ne '.msi') {
+          throw "File is not an MSI installer: $msiFile (extension: $extension)"
+        }
+
+        $fileSize = (Get-Item $msiFile).Length
+        Write-Output "MSI file: $msiFile"
+        Write-Output "Size: $([math]::Round($fileSize / 1MB, 2)) MB"
+
+    - name: "Perform administrative installation"
+      id: extract
+      shell: pwsh
+      run: |
+        $msiFile = "${{ inputs.msi-file }}"
+        $extractDir = "${{ inputs.extract-dir }}"
+        $logFile = "${{ inputs.log-file }}"
+        $additionalProps = "${{ inputs.additional-properties }}"
+
+        Write-Output "Performing administrative installation..."
+        Write-Output "MSI: $msiFile"
+        Write-Output "Target: $extractDir"
+
+        # Build msiexec command
+        $msiexecArgs = @(
+          '/a',
+          "`"$msiFile`"",
+          '/qn',
+          "TARGETDIR=`"$extractDir`""
+        )
+
+        $logDir = Split-Path $logFile -Parent
+        if ($logDir) {
+          New-Item -ItemType Directory -Path $logDir -Force | Out-Null
+        }
+        $msiexecArgs += "/l*vx"
+        $msiexecArgs += "`"$logFile`""
+        Write-Output "Log file: $logFile"
+
+        # Add additional properties if specified
+        if ($additionalProps) {
+          $msiexecArgs += $additionalProps.Split(' ')
+          Write-Output "Additional properties: $additionalProps"
+        }
+
+        # Execute msiexec
+        $process = Start-Process -FilePath "msiexec.exe" `
+                                  -ArgumentList $msiexecArgs `
+                                  -Wait `
+                                  -PassThru `
+                                  -NoNewWindow
+
+        $exitCode = $process.ExitCode
+        echo "EXIT_CODE=$exitCode" >> $env:GITHUB_OUTPUT
+
+        Write-Output "MSI exit code: $exitCode"
+
+        Write-Output "::group::msiexec log file"
+        if ($logFile -and (Test-Path $logFile)) {
+          Get-Content $logFile
+        } else {
+          Write-Output "Error reading '$logFile'"
+        }
+        Write-Output "::endgroup::"
+
+        # -------------------------------
+        # Check exit code
+        # 0 = Success
+        # 3010 = Success, reboot required
+        # -------------------------------
+        if ($exitCode -eq 0 -or $exitCode -eq 3010) {
+          Write-Output "✓ Administrative installation completed successfully"
+          
+          # Verify extracted files
+          if (Test-Path $extractDir) {
+            $extractedFiles = Get-ChildItem -Path $extractDir -Recurse -File
+            $filesCount = $extractedFiles.Count
+            Write-Output "✓ Extracted $filesCount file(s) to $extractDir"
+
+            Write-Output "::group::Contents:"
+            $extractedFiles | Select-Object Length, FullName | Format-Table
+            Write-Output "::endgroup::"
+          }
+        } else {
+          $errorMsg = "MSI administrative installation failed with exit code: $exitCode"
+          throw $errorMsg
+        }

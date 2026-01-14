@@ -1,0 +1,87 @@
+name: "Download GitHub artifact"
+description: "Download artifact from GitHub Actions workflow run"
+
+inputs:
+  artifact-name:
+    description: "Name of the artifact to download"
+    required: true
+
+  download-dir:
+    description: "Directory to download artifact to"
+    required: true
+
+  run-id:
+    description: "Workflow run ID (defaults to current run)"
+    required: false
+    default: ""
+
+  repository:
+    description: "Repository in format owner/repo (defaults to current repo)"
+    required: false
+    default: ""
+
+outputs:
+  artifact-path:
+    description: "Path where the artifact was downloaded"
+    value: ${{ steps.setup.outputs.ARTIFACT_PATH }}
+
+  artifact-single:
+    description: "Contains FullName of the file in the single-file artifact package"
+    value: ${{ steps.verify.outputs.ARTIFACT_SINGLE }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Setup download path"
+      id: setup
+      shell: pwsh
+      run: |
+        $artifactName = "${{ inputs.artifact-name }}"
+        $downloadDir = "${{ inputs.download-dir }}"
+        $runId = if ("${{ inputs.run-id }}") { "${{ inputs.run-id }}" } else { "${{ github.run_id }}" }
+        $repo = if ("${{ inputs.repository }}") { "${{ inputs.repository }}" } else { "${{ github.repository }}" }
+
+        $artifactPath = Join-Path $downloadDir $artifactName
+        echo "ARTIFACT_PATH=$artifactPath" >> $env:GITHUB_OUTPUT
+
+        Write-Output "Artifact: $artifactName"
+        Write-Output "From: $repo (run $runId)"
+        Write-Output "Download path: $artifactPath"
+
+    - name: "Download artifact"
+      id: download
+      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ steps.setup.outputs.ARTIFACT_PATH }}
+        run-id: ${{ inputs.run-id }}
+        repository: ${{ inputs.repository }}
+        # github-token: ${{ secrets.<PAT-with-actions-read> }} # required for other repositories
+
+    - name: "Verify artifact download"
+      id: verify
+      shell: pwsh
+      run: |
+        $artifactPath = "${{ steps.setup.outputs.ARTIFACT_PATH }}"
+
+        if (-not (Test-Path $artifactPath)) {
+          throw "Artifact directory not found: $artifactPath"
+        }
+
+        $files = Get-ChildItem -Path $artifactPath -Recurse -File
+        $filesCount = $files.Count
+
+        if ($filesCount -eq 0) {
+          throw "No files found in downloaded artifact"
+        }
+
+        if ($filesCount -eq 1) {
+          $fullName = $files[0].FullName
+          echo "ARTIFACT_SINGLE=$fullName" >> $env:GITHUB_OUTPUT
+        }
+
+        Write-Output "✓ Artifact downloaded successfully"
+        Write-Output "Files downloaded: $filesCount"
+        Write-Output "::group::Contents:"
+        $files | Select-Object Length, FullName | Format-Table
+        Write-Output "::endgroup::"

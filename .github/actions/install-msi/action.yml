@@ -1,0 +1,157 @@
+name: "Install MSI silently"
+description: "Perform MSI silent installation"
+
+inputs:
+  msi-file:
+    description: "Path to the MSI file"
+    required: true
+
+  log-file:
+    description: "Path to MSI log file"
+    required: true
+
+  additional-properties:
+    description: "Additional MSI properties (e.g., 'PROPERTY1=VALUE1 PROPERTY2=VALUE2')"
+    required: false
+    default: ""
+
+outputs:
+  exit-code:
+    description: "MSI exit code"
+    value: ${{ steps.install.outputs.EXIT_CODE }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Validate MSI file"
+      id: validate
+      shell: pwsh
+      run: |
+        $msiFile = "${{ inputs.msi-file }}"
+
+        if (-not (Test-Path $msiFile)) {
+          throw "MSI file not found: $msiFile"
+        }
+
+        $extension = [System.IO.Path]::GetExtension($msiFile).ToLower()
+        if ($extension -ne '.msi') {
+          throw "File is not an MSI installer: $msiFile (extension: $extension)"
+        }
+
+        $fileSize = (Get-Item $msiFile).Length
+        Write-Output "MSI file: $msiFile"
+        Write-Output "Size: $([math]::Round($fileSize / 1MB, 2)) MB"
+
+    - name: "Perform silent installation"
+      id: install
+      shell: pwsh
+      run: |
+        $msiFile = "${{ inputs.msi-file }}"
+        $logFile = "${{ inputs.log-file }}"
+        $additionalProps = "${{ inputs.additional-properties }}"
+
+        Write-Output "Performing silent installation..."
+        Write-Output "MSI: $msiFile"
+
+        # Build msiexec command
+        $msiexecArgs = @(
+          '/i',
+          "`"$msiFile`"",
+          '/qn'
+        )
+
+        $logDir = Split-Path $logFile -Parent
+        if ($logDir) {
+          New-Item -ItemType Directory -Path $logDir -Force | Out-Null
+        }
+
+        $msiexecArgs += "/l*vx"
+        $msiexecArgs += "`"$logFile`""
+        Write-Output "Log file: $logFile"
+
+        # Add additional properties if specified
+        if ($additionalProps) {
+          $msiexecArgs += $additionalProps.Split(' ')
+          Write-Output "Additional properties: $additionalProps"
+        }
+
+        # Execute msiexec
+        $process = Start-Process -FilePath "msiexec.exe" `
+          -ArgumentList $msiexecArgs `
+          -Wait `
+          -PassThru `
+          -NoNewWindow
+
+        $exitCode = $process.ExitCode
+        echo "EXIT_CODE=$exitCode" >> $env:GITHUB_OUTPUT
+
+        Write-Output "MSI exit code: $exitCode"
+
+        Write-Output "::group::msiexec log file"
+        if ($logFile -and (Test-Path $logFile)) {
+          Get-Content $logFile
+        }
+        else {
+          Write-Output "Error reading '$logFile'"
+        }
+        Write-Output "::endgroup::"
+
+        # -------------------------------
+        # Check exit code
+        # 0 = Success
+        # 3010 = Success, reboot required
+        # -------------------------------
+        if ($exitCode -eq 0 -or $exitCode -eq 3010) {
+          Write-Output "✓ Silent installation completed successfully"
+        }
+        else {
+          $errorMsg = "MSI Silent installation failed with exit code: $exitCode"
+          throw $errorMsg
+        }
+
+    - name: "Upload install log"
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+      if: always()
+      with:
+        name: msi-silent-install-log
+        path: ${{ inputs.log-file }}
+        retention-days: 5
+
+    - name: "Verify installation"
+      id: verify
+      shell: pwsh
+      run: |
+        # Verify services running
+        $failed = $false
+        @('eBPFCore', 'NetEbpfExt', 'NtosEbpfExt', 'TetragonEnterprise') | ForEach-Object {
+            $svcName = $_
+
+            try {
+                $svc = Get-Service $_ -ErrorAction Stop
+
+                if ($svc.Status -eq 'Running') {
+                    Write-Output "✓ $_ is running"
+                }
+                else {
+                    Write-Output "✗ $_ is $($svc.Status)"
+                    $failed = $true
+                }
+            }
+            catch {
+                if ($_.Exception.Message -match 'Cannot find.*service') {
+                    Write-Output "⚠ $svcName is not installed"
+                }
+                else {
+                    Write-Output "✗ $_ error: $($_.Exception.Message)"
+                    $failed = $true
+                }
+            }
+        }
+                    
+        if ($failed) {
+            Write-Output "✗ Something went wront"
+            exit 1
+        }
+        else {
+            Write-Output "✓ All services are running"
+        }
