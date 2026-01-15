@@ -6,6 +6,7 @@
 #include "bpf_tracing.h"
 #include "common.h"
 #include "process.h"
+#include "config.h"
 
 #define MAX_PIDS 32768
 
@@ -24,30 +25,41 @@ struct {
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 
-#ifdef __V612_BPF_PROG
-#define LOOPS MAX_PIDS
-#else
-#define LOOPS 1024
-#endif
-
 #ifdef __LARGE_BPF_PROG
+FUNC_INLINE int
+__execve_map_update_idx(struct update_data *data, int idx)
+{
+	struct execve_map_value *curr;
+	__u32 pid;
+
+	asm volatile("%[idx] &= 0x7fff;\n"
+		     : [idx] "+r"(idx));
+	if (data->cnt == idx)
+		return 1;
+
+	pid = data->pids[idx];
+	curr = execve_map_get_noinit(pid);
+	if (curr)
+		lock_and(&curr->bin.mb_bitset, ~(1 << data->bit));
+	return 0;
+}
+
 FUNC_INLINE void
 __execve_map_update(struct update_data *data)
 {
-	struct execve_map_value *curr;
-	__u32 idx, pid;
+	__u32 idx;
 
-	bpf_for(idx, 0, LOOPS)
-	{
-		asm volatile("%[idx] &= 0x7fff;\n"
-			     : [idx] "+r"(idx));
-		if (data->cnt == idx)
-			break;
-
-		pid = data->pids[idx];
-		curr = execve_map_get_noinit(pid);
-		if (curr)
-			lock_and(&curr->bin.mb_bitset, ~(1 << data->bit));
+	if (CONFIG(ITER_NUM)) {
+		bpf_for(idx, 0, MAX_PIDS)
+		{
+			if (__execve_map_update_idx(data, idx))
+				break;
+		}
+	} else {
+		for (idx = 0; idx < 1024; idx++) {
+			if (__execve_map_update_idx(data, idx))
+				break;
+		}
 	}
 }
 #else
