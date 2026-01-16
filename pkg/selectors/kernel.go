@@ -209,6 +209,8 @@ const (
 	// range
 	SelectorOpInRange    = 31
 	SelectorOpNotInRange = 32
+	// CEL expressions translated to BPF
+	SelectorOpCelExpr = 33
 )
 
 var selectorOpStringTable = map[uint32]string{
@@ -242,7 +244,8 @@ var selectorOpStringTable = map[uint32]string{
 	SelectorOpState:              "State",
 	SelectorOpCapabilitiesGained: "CapabilitiesGained",
 	SelectorOpInRange:            "InRange",
-	SelectorOpNotInRange:         "NoInRange",
+	SelectorOpNotInRange:         "NotInRange",
+	SelectorOpCelExpr:            "CelExpr",
 }
 
 func SelectorOp(op string) (uint32, error) {
@@ -309,6 +312,8 @@ func SelectorOp(op string) (uint32, error) {
 		return SelectorOpInRange, nil
 	case "NotInRange":
 		return SelectorOpNotInRange, nil
+	case "CelExpr":
+		return SelectorOpCelExpr, nil
 	}
 
 	return 0, fmt.Errorf("unknown op '%s'", op)
@@ -317,6 +322,9 @@ func SelectorOp(op string) (uint32, error) {
 const (
 	pidNamespacePid = 0x1
 	pidFollowForks  = 0x2
+
+	// see bpf/process/types/basic.h MAX_SELECTORS
+	maxSelectors = 5
 )
 
 func pidSelectorFlags(pid *v1alpha1.PIDSelector) uint32 {
@@ -871,6 +879,12 @@ func dataIndexType(arg *v1alpha1.ArgSelector, data []v1alpha1.KProbeArg) (uint32
 }
 
 func ParseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg) error {
+	if op, err := SelectorOp(arg.Operator); err != nil {
+		return fmt.Errorf("ParseMatchArg: %w", err)
+	} else if op == SelectorOpCelExpr {
+		return parseMatchCelExpr(k, arg, sig)
+	}
+
 	index, ty, err := argIndexType(arg, sig)
 	if err != nil {
 		return err
@@ -1504,9 +1518,17 @@ func InitKernelReturnSelectors(selectors []v1alpha1.KProbeSelector, returnArg *v
 	return state.data.e, nil
 }
 
-func createKernelSelectorState(selectors []v1alpha1.KProbeSelector, listReader ValueReader, maps *KernelSelectorMaps, isUprobe bool,
-	parseSelector func(k *KernelSelectorState, selectors *v1alpha1.KProbeSelector, selIdx int) error) (*KernelSelectorState, error) {
+func createKernelSelectorState(
+	selectors []v1alpha1.KProbeSelector,
+	listReader ValueReader,
+	maps *KernelSelectorMaps,
+	isUprobe bool,
+	parseSelector func(k *KernelSelectorState, selectors *v1alpha1.KProbeSelector, selIdx int) error,
+) (*KernelSelectorState, error) {
 	state := NewKernelSelectorState(listReader, maps, isUprobe)
+	if len(selectors) > maxSelectors {
+		return nil, fmt.Errorf("no more than %d selectors supported (%d provided)", maxSelectors, len(selectors))
+	}
 
 	WriteSelectorUint32(&state.data, uint32(len(selectors)))
 	soff := make([]uint32, len(selectors))
