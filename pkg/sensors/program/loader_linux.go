@@ -864,6 +864,24 @@ func rewriteConstants(spec *ebpf.CollectionSpec, consts map[string]any) error {
 		}
 	}
 
+	confs := map[string]func(v *ebpf.VariableSpec) error{
+		"CONFIG_ITER_NUM": func(v *ebpf.VariableSpec) error {
+			enabled := bpf.HasKfunc("bpf_iter_num_new")
+			if err := v.Set(enabled); err != nil {
+				return fmt.Errorf("failed  to set config variable '%s': %w", v, err)
+			}
+			return nil
+		},
+	}
+
+	for n, c := range spec.Variables {
+		if conf, ok := confs[n]; ok {
+			if err := conf(c); err != nil {
+				return err
+			}
+		}
+	}
+
 	if len(missing) != 0 {
 		return fmt.Errorf("rewrite constants: %w", &MissingConstantsError{Constants: missing})
 	}
