@@ -9,6 +9,12 @@ import (
 
 type initCounterFunc func(*prometheus.CounterVec)
 
+func RegisterCounterVecForPodCleanup(metric *prometheus.CounterVec) {
+	metricsWithPodMutex.Lock()
+	metricsWithPod = append(metricsWithPod, metric.MetricVec)
+	metricsWithPodMutex.Unlock()
+}
+
 // NewCounterVecWithPod is a wrapper around prometheus.NewCounterVec that also
 // registers the metric to be cleaned up when a pod is deleted.
 //
@@ -17,9 +23,7 @@ type initCounterFunc func(*prometheus.CounterVec)
 // might add an unnecessary overhead.
 func NewCounterVecWithPod(opts prometheus.CounterOpts, labels []string) *prometheus.CounterVec {
 	metric := prometheus.NewCounterVec(opts, labels)
-	metricsWithPodMutex.Lock()
-	metricsWithPod = append(metricsWithPod, metric.MetricVec)
-	metricsWithPodMutex.Unlock()
+	RegisterCounterVecForPodCleanup(metric)
 	return metric
 }
 
@@ -29,9 +33,7 @@ func NewCounterVecWithPod(opts prometheus.CounterOpts, labels []string) *prometh
 // See NewCounterVecWithPod for usage notes.
 func NewCounterVecWithPodV2(opts prometheus.CounterVecOpts) *prometheus.CounterVec {
 	metric := prometheus.V2.NewCounterVec(opts)
-	metricsWithPodMutex.Lock()
-	metricsWithPod = append(metricsWithPod, metric.MetricVec)
-	metricsWithPodMutex.Unlock()
+	RegisterCounterVecForPodCleanup(metric)
 	return metric
 }
 
@@ -61,6 +63,10 @@ type GranularCounter[L FilteredLabels] struct {
 //   - you want to disable default initialization - pass
 //     func(*prometheus.CounterVec) {} in such case
 func NewGranularCounter[L FilteredLabels](opts Opts, init initCounterFunc) (*GranularCounter[L], error) {
+	return newGranularCounter[L](opts, init, false)
+}
+
+func newGranularCounter[L FilteredLabels](opts Opts, init initCounterFunc, registerPolicy bool) (*GranularCounter[L], error) {
 	labels, constrained, err := getVariableLabels[L](&opts)
 	if err != nil {
 		return nil, err
@@ -76,12 +82,12 @@ func NewGranularCounter[L FilteredLabels](opts Opts, init initCounterFunc) (*Gra
 		},
 		VariableLabels: labels,
 	}
-	var metric *prometheus.CounterVec
+	metric := prometheus.V2.NewCounterVec(promOpts)
 	if promContainsLabel(labels, "pod") && promContainsLabel(labels, "namespace") {
-		// set up metric to be deleted when a pod is deleted
-		metric = NewCounterVecWithPodV2(promOpts)
-	} else {
-		metric = prometheus.V2.NewCounterVec(promOpts)
+		RegisterCounterVecForPodCleanup(metric)
+	}
+	if registerPolicy {
+		registerCounterVecForPolicyCleanup(metric)
 	}
 
 	initMetric := func(lvs ...string) {
@@ -106,6 +112,12 @@ func NewGranularCounter[L FilteredLabels](opts Opts, init initCounterFunc) (*Gra
 			initForDocs[L](initMetric, opts.ConstrainedLabels, opts.UnconstrainedLabels)
 		},
 	}, nil
+}
+
+// NewGranularCounterWithPolicy creates a new GranularCounter and registers it for
+// policy label cleanup.
+func NewGranularCounterWithPolicy[L FilteredLabels](opts Opts, init initCounterFunc) (*GranularCounter[L], error) {
+	return newGranularCounter[L](opts, init, true)
 }
 
 // MustNewGranularCounter is a convenience function that wraps
@@ -133,6 +145,16 @@ func MustNewGranularCounter[L FilteredLabels](promOpts prometheus.CounterOpts, e
 // NewGranularCounter and panics on error.
 func MustNewGranularCounterWithInit[L FilteredLabels](opts Opts, init initCounterFunc) *GranularCounter[L] {
 	metric, err := NewGranularCounter[L](opts, init)
+	if err != nil {
+		panic(err)
+	}
+	return metric
+}
+
+// MustNewGranularCounterWithInitAndPolicy is a convenience function that wraps
+// NewGranularCounterWithPolicy and panics on error.
+func MustNewGranularCounterWithInitAndPolicy[L FilteredLabels](opts Opts, init initCounterFunc) *GranularCounter[L] {
+	metric, err := NewGranularCounterWithPolicy[L](opts, init)
 	if err != nil {
 		panic(err)
 	}
