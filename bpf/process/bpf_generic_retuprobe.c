@@ -16,12 +16,13 @@
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 
 int generic_retuprobe_filter_arg(struct pt_regs *ctx);
+int generic_retuprobe_filter_arg_2(struct pt_regs *ctx);
 int generic_retuprobe_actions(struct pt_regs *ctx);
 int generic_retuprobe_output(struct pt_regs *ctx);
 
 struct {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
-	__uint(max_entries, 6);
+	__uint(max_entries, 13);
 	__type(key, __u32);
 	__array(values, int(struct pt_regs *));
 } retuprobe_calls SEC(".maps") = {
@@ -29,6 +30,9 @@ struct {
 		[TAIL_CALL_ARGS] = (void *)&generic_retuprobe_filter_arg,
 		[TAIL_CALL_ACTIONS] = (void *)&generic_retuprobe_actions,
 		[TAIL_CALL_SEND] = (void *)&generic_retuprobe_output,
+#ifndef __LARGE_BPF_PROG
+		[TAIL_CALL_ARGS_2] = (void *)&generic_retuprobe_filter_arg_2,
+#endif
 	},
 };
 
@@ -49,11 +53,28 @@ BPF_KRETPROBE(generic_retuprobe_event, unsigned long ret)
 	return generic_retprobe(ctx, (struct bpf_map_def *)&retuprobe_calls, ret);
 }
 
+#ifdef __LARGE_BPF_PROG
 __attribute__((section(COMMON), used)) int
 BPF_KRETPROBE(generic_retuprobe_filter_arg)
 {
-	return generic_filter_arg(ctx, (struct bpf_map_def *)&retuprobe_calls, false);
+	return generic_filter_arg(ctx, (struct bpf_map_def *)&retuprobe_calls, false,
+				  __FILTER_ARG_ALL);
 }
+#else
+__attribute__((section(COMMON), used)) int
+BPF_KRETPROBE(generic_retuprobe_filter_arg)
+{
+	return generic_filter_arg(ctx, (struct bpf_map_def *)&retuprobe_calls, false,
+				  __FILTER_ARG_1);
+}
+
+__attribute__((section(COMMON), used)) int
+BPF_KRETPROBE(generic_retuprobe_filter_arg_2)
+{
+	return generic_filter_arg(ctx, (struct bpf_map_def *)&retuprobe_calls, false,
+				  __FILTER_ARG_2);
+}
+#endif
 
 __attribute__((section(COMMON), used)) int
 BPF_KRETPROBE(generic_retuprobe_actions)
