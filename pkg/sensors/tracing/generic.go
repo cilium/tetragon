@@ -156,9 +156,12 @@ func resolveBTFArg(hook string, arg *v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [
 
 		ty = param.Type
 		if ptr, isPointer := param.Type.(*ebtf.Pointer); isPointer {
-			if !isPointerToIndexedArray(ptr, arg.Resolve) {
-				// If we are going to dereference the pointer by index,
-				// there is no need to force-dereference it.
+			// Dereference pointer type only for complex data structures,
+			// avoid doing this for plain int*, float*...,
+			// ie: when resolve is used to access arrays.
+			_, isStruct := ptr.Target.(*ebtf.Struct)
+			_, isUnion := ptr.Target.(*ebtf.Union)
+			if isStruct || isUnion {
 				ty = ptr.Target
 			}
 		}
