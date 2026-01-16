@@ -69,23 +69,23 @@ jobs:
               # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
               - 'rhel8.9-20240806.173325'
               # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-              - 'bpf-next-20260112.013353'
+              - 'bpf-next-20260113.214341'
               # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-              - '6.18-20260112.013353'
+              - '6.18-20260113.214341'
               # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-              - '6.12-20260112.013353'
+              - '6.12-20260113.214341'
               # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-              - '6.6-20260112.013353'
+              - '6.6-20260113.214341'
               # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-              - '6.1-20260112.013353'
+              - '6.1-20260113.214341'
               # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-              - '5.15-20260112.013353'
+              - '5.15-20260113.214341'
               # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-              - '5.10-20260112.013353'
+              - '5.10-20260113.214341'
               # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-              - '5.4-20260112.013353'
+              - '5.4-20260113.214341'
               # renovate: datasource=docker depName=quay.io/lvh-images/kernel-images
-              - '4.19-20260112.013353'
+              - '4.19-20260113.214341'
            group:
               - 0
     concurrency:
