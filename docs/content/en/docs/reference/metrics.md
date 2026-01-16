@@ -118,7 +118,7 @@ The total number of Tetragon errors. For internal use only.
 
 | label | values |
 | ----- | ------ |
-| `type ` | `event_finalize_process_info_failed, process_metadata_username_failed, process_pid_tid_mismatch_clone, process_pid_tid_mismatch_exec, process_pid_tid_mismatch_exit` |
+| `error` | `event_finalize_process_info_failed, process_metadata_username_failed, process_pid_tid_mismatch_clone, process_pid_tid_mismatch_exec, process_pid_tid_mismatch_exit` |
 
 ### `tetragon_event_cache_entries`
 
@@ -207,7 +207,7 @@ The total number of event handler errors. For internal use only.
 
 | label | values |
 | ----- | ------ |
-| `error_type` | `event_handler_failed, unknown_opcode` |
+| `error` | `event_handler_failed, unknown_opcode` |
 | `opcode` | `0, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28, 5, 7` |
 
 ### `tetragon_handling_latency`
