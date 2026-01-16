@@ -371,7 +371,7 @@ func initProcessInternalExec(
 			"event.parent.exec_id", parentExecID)
 		// Explicitly reset TID to be PID
 		process.TID = process.PID
-		errormetrics.ErrorTotalInc(errormetrics.ProcessPidTidMismatch)
+		errormetrics.ErrorTotalInc(errormetrics.ProcessPidTidMismatchExec)
 	}
 
 	envs := process.Envs
@@ -462,7 +462,7 @@ func initProcessInternalClone(event *tetragonAPI.MsgCloneEvent,
 			"event.process.tid", event.TID,
 			"event.process.exec_id", pi.process.ExecId,
 			"event.parent.exec_id", parentExecId)
-		errormetrics.ErrorTotalInc(errormetrics.ProcessPidTidMismatch)
+		errormetrics.ErrorTotalInc(errormetrics.ProcessPidTidMismatchClone)
 	}
 	// Set the TID here and if we have an exit without an exec we report
 	// directly this TID without copying again objects.

@@ -468,7 +468,7 @@ func GetProcessExit(event *MsgExitEventUnix) *tetragon.ProcessExit {
 			"event.process.pid", event.ProcessKey.Pid,
 			"event.process.tid", event.Info.Tid,
 			"event.process.binary", tetragonProcess.Binary)
-		errormetrics.ErrorTotalInc(errormetrics.ProcessPidTidMismatch)
+		errormetrics.ErrorTotalInc(errormetrics.ProcessPidTidMismatchExit)
 	}
 
 	tetragonEvent := &tetragon.ProcessExit{
