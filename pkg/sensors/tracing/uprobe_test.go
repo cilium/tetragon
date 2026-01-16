@@ -87,9 +87,6 @@ func TestLoadUprobeSensor(t *testing.T) {
 		}
 
 		sensorMaps = []tus.SensorMap{
-			// generic_uprobe_process_filter,generic_uprobe_filter_arg*,generic_uprobe_actions
-			{Name: "filter_map", Progs: []uint{3, 4, 5}},
-
 			// generic_uprobe_output
 			{Name: "tcpmon_map", Progs: []uint{6}},
 		}
@@ -104,6 +101,9 @@ func TestLoadUprobeSensor(t *testing.T) {
 			// shared with base sensor
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4, 5, 6}})
 
+			// generic_uprobe_process_filter,generic_uprobe_filter_arg*,generic_uprobe_actions
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "filter_map", Progs: []uint{3, 4, 5}})
+
 			if config.EnableV511Progs() {
 				sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0, 6}})
 				sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_rb_events", Progs: []uint{6}})
@@ -112,16 +112,20 @@ func TestLoadUprobeSensor(t *testing.T) {
 			}
 		} else {
 			sensorProgs = append(sensorProgs, tus.SensorProg{Name: "generic_uprobe_process_event_2", Type: ebpf.Kprobe})
+			sensorProgs = append(sensorProgs, tus.SensorProg{Name: "generic_uprobe_filter_arg_2", Type: ebpf.Kprobe})
 
 			// all uprobe programs
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8}})
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "process_call_heap", Progs: []uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}})
 
 			// all but generic_uprobe_output
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "uprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7, 8}})
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "uprobe_calls", Progs: []uint{0, 1, 2, 3, 4, 5, 7, 8, 9}})
 
 			// shared with base sensor
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{4}})
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}})
+
+			// generic_uprobe_process_filter,generic_uprobe_filter_arg*,generic_uprobe_actions
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "filter_map", Progs: []uint{3, 4, 5, 9}})
 		}
 	}
 
