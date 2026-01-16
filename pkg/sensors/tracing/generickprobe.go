@@ -14,6 +14,7 @@ import (
 	"net"
 	"net/http"
 	"path"
+	"runtime"
 	"slices"
 	"sort"
 	"strings"
@@ -269,7 +270,6 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 
 		has.stackTrace = has.stackTrace || gk.hasStackTrace
 		has.rateLimit = has.rateLimit || gk.hasRatelimit
-		has.override = has.override || gk.hasOverride
 	}
 
 	loadProgName := "bpf_multi_kprobe_v53.o"
@@ -476,7 +476,7 @@ func preValidateKprobes(name string, kprobes []v1alpha1.KProbeSpec, lists []v1al
 			}
 		}
 
-		if selectors.HasOverride(f) {
+		if selectors.HasOverride(f.Selectors) {
 			if !bpf.HasOverrideHelper() {
 				return fmt.Errorf("Error override action not supported, bpf_override_return helper not available")
 			}
@@ -563,13 +563,13 @@ func hasMapsSetup(spec *v1alpha1.TracingPolicySpec) hasMaps {
 	for _, kprobe := range spec.KProbes {
 		has.fdInstall = has.fdInstall || selectorsHaveFDInstall(kprobe.Selectors)
 		has.enforcer = has.enforcer || len(spec.Enforcers) != 0
-
-		// check for early break
-		if has.fdInstall && has.enforcer {
-			break
-		}
+		has.override = has.override || selectors.HasOverride(kprobe.Selectors)
 	}
 	return has
+}
+
+func isArm() bool {
+	return runtime.GOARCH == "arm64"
 }
 
 func createGenericKprobeSensor(
@@ -586,12 +586,19 @@ func createGenericKprobeSensor(
 	kprobes := spec.KProbes
 	lists := spec.Lists
 
+	has := hasMapsSetup(spec)
+
 	// use multi kprobe only if:
 	// - it's not disabled by spec option
 	// - it's not disabled by command line option
 	// - there's support detected
 	if !polInfo.specOpts.DisableKprobeMulti {
 		useMulti = !option.Config.DisableKprobeMulti && bpf.HasKprobeMulti()
+
+		// arm does not override on top of kprobe.multi
+		if isArm() && (has.enforcer || has.override) {
+			useMulti = false
+		}
 	}
 
 	if useMulti {
@@ -607,7 +614,6 @@ func createGenericKprobeSensor(
 		selMaps:       selMaps,
 	}
 
-	has := hasMapsSetup(spec)
 	dups := make(map[string]int)
 
 	for i := range kprobes {
@@ -700,7 +706,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 
 	isSecurityFunc := strings.HasPrefix(funcName, "security_")
 
-	if selectors.HasOverride(f) {
+	if selectors.HasOverride(f.Selectors) {
 		if isSecurityFunc && in.useMulti {
 			return errFn(fmt.Errorf("Error: can't override '%s' function with kprobe_multi, use --disable-kprobe-multi option",
 				funcName))
@@ -871,7 +877,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 		pendingEvents:     nil,
 		tableId:           idtable.UninitializedEntryID,
 		policyName:        in.policyName,
-		hasOverride:       selectors.HasOverride(f),
+		hasOverride:       selectors.HasOverride(f.Selectors),
 		customHandler:     in.customHandler,
 		message:           msgField,
 		tags:              tagsField,
