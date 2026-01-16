@@ -133,6 +133,10 @@ type config struct {
 	ExecveMapEntries int
 	ExecveMapSize    string
 
+	ParentsMapEnabled bool
+	ParentsMapEntries int
+	ParentsMapSize    string
+
 	RetprobesCacheSize int
 
 	KeepCollection bool

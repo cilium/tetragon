@@ -632,6 +632,10 @@ func createGenericTracepointSensor(
 		maps = append(maps, program.MapUserFrom(base.RingBufEvents))
 	}
 
+	if option.Config.ParentsMapEnabled {
+		maps = append(maps, program.MapUserFrom(base.ParentBinariesMap))
+	}
+
 	ret.Progs = progs
 	ret.Maps = maps
 
