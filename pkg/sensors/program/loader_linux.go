@@ -468,6 +468,19 @@ func uprobeAttach(load *Program, bpfDir string,
 	}, nil
 }
 
+func TracingOpen(load *Program) OpenFunc {
+	return func(coll *ebpf.CollectionSpec) error {
+		data, ok := load.AttachData.(*TracingAttachData)
+		if !ok {
+			return nil
+		}
+		for _, spec := range coll.Programs {
+			spec.AttachTo = data.AttachTo
+		}
+		return nil
+	}
+}
+
 func TracingAttach(load *Program, bpfDir string) AttachFunc {
 	return func(_ *ebpf.Collection, _ *ebpf.CollectionSpec,
 		prog *ebpf.Program, spec *ebpf.ProgramSpec) (unloader.Unloader, error) {
@@ -723,6 +736,7 @@ func LoadFmodRetProgram(bpfDir string, load *Program, maps []*Map, progName stri
 func LoadTracingProgram(bpfDir string, load *Program, maps []*Map, verbose int) error {
 	opts := &LoadOpts{
 		Attach: TracingAttach(load, bpfDir),
+		Open:   TracingOpen(load),
 		Maps:   maps,
 	}
 	return loadProgram(bpfDir, load, opts, verbose)
@@ -861,6 +875,24 @@ func rewriteConstants(spec *ebpf.CollectionSpec, consts map[string]any) error {
 
 		if err := v.Set(c); err != nil {
 			return fmt.Errorf("rewriting constant %s: %w", n, err)
+		}
+	}
+
+	confs := map[string]func(v *ebpf.VariableSpec) error{
+		"CONFIG_ITER_NUM": func(v *ebpf.VariableSpec) error {
+			enabled := bpf.HasKfunc("bpf_iter_num_new")
+			if err := v.Set(enabled); err != nil {
+				return fmt.Errorf("failed  to set config variable '%s': %w", v, err)
+			}
+			return nil
+		},
+	}
+
+	for n, c := range spec.Variables {
+		if conf, ok := confs[n]; ok {
+			if err := conf(c); err != nil {
+				return err
+			}
 		}
 	}
 

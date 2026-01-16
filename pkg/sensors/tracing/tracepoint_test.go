@@ -52,11 +52,6 @@ var (
 	fdBogusValue     = uint64(18446744073709551615) // -1
 )
 
-func TestMain(m *testing.M) {
-	ec := tus.TestSensorsRun(m, "SensorTracing")
-	os.Exit(ec)
-}
-
 // TestGenericTracepointSimple is a simple generic tracepoint test that creates a tracepoint for lseek()
 func TestGenericTracepointSimple(t *testing.T) {
 	var doneWG, readyWG sync.WaitGroup

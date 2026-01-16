@@ -5,6 +5,7 @@
 #define __D_PATH__
 
 #include "bpf_helpers.h"
+#include "config.h"
 
 #define ENAMETOOLONG 36 /* File name too long */
 
@@ -217,7 +218,7 @@ prepend_path(const struct path *path, const struct path *root, char *bf,
 		.bptr = *buffer,
 		.blen = *buflen,
 	};
-	int error = 0;
+	int idx, error = 0;
 
 	probe_read(&data.root_dentry, sizeof(data.root_dentry),
 		   _(&root->dentry));
@@ -226,15 +227,23 @@ prepend_path(const struct path *path, const struct path *root, char *bf,
 	probe_read(&data.vfsmnt, sizeof(data.vfsmnt), _(&path->mnt));
 	data.mnt = real_mount(data.vfsmnt);
 
+	if (CONFIG(ITER_NUM)) {
+		bpf_for(idx, 0, PROBE_CWD_READ_ITERATIONS)
+		{
+			if (cwd_read(&data))
+				break;
+		}
+	} else {
 #ifndef __V61_BPF_PROG
 #pragma unroll
-	for (int i = 0; i < PROBE_CWD_READ_ITERATIONS; ++i) {
-		if (cwd_read(&data))
-			break;
-	}
+		for (int i = 0; i < PROBE_CWD_READ_ITERATIONS; ++i) {
+			if (cwd_read(&data))
+				break;
+		}
 #else
-	loop(PROBE_CWD_READ_ITERATIONS, cwd_read_v61, (void *)&data, 0);
+		loop(PROBE_CWD_READ_ITERATIONS, cwd_read_v61, (void *)&data, 0);
 #endif /* __V61_BPF_PROG */
+	}
 
 	if (data.bptr == *buffer) {
 		*buflen = 0;

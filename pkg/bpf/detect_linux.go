@@ -35,6 +35,11 @@ type Feature struct {
 	detected bool
 }
 
+type FeatureKfuncs struct {
+	mu sync.Mutex
+	md map[string]bool
+}
+
 var (
 	kprobeMulti            Feature
 	uprobeMulti            Feature
@@ -49,6 +54,8 @@ var (
 	uprobeRefCtrOffset     Feature
 	auditLoginuid          Feature
 	uprobeRegsChange       Feature
+	kfuncs                 FeatureKfuncs
+	getFuncRetHelper       Feature
 )
 
 func HasOverrideHelper() bool {
@@ -61,6 +68,10 @@ func HasSignalHelper() bool {
 
 func HasProbeWriteUserHelper() bool {
 	return features.HaveProgramHelper(ebpf.Kprobe, asm.FnProbeWriteUser) == nil
+}
+
+func HasFentryProgram() bool {
+	return features.HaveProgramType(ebpf.Tracing) == nil
 }
 
 func detectKprobeMulti() bool {
@@ -558,6 +569,32 @@ func detectUprobeRegsChange() bool {
 	return true
 }
 
+func detectGetFuncRetHelper() bool {
+	sysGetcpu, err := arch.AddSyscallPrefix("sys_getcpu")
+	if err != nil {
+		return false
+	}
+	prog, err := ebpf.NewProgram(&ebpf.ProgramSpec{
+		Name:       "probe_get_func_ret",
+		Type:       ebpf.Tracing,
+		AttachType: ebpf.AttachTraceFExit,
+		Instructions: asm.Instructions{
+			asm.Mov.Reg(asm.R2, asm.R10),
+			asm.Add.Imm(asm.R2, -8),
+			asm.FnGetFuncRet.Call(),
+			asm.Mov.Imm(asm.R0, 0),
+			asm.Return(),
+		},
+		License:  "GPL",
+		AttachTo: sysGetcpu,
+	})
+	if err != nil {
+		return false
+	}
+	prog.Close()
+	return true
+}
+
 func detectUprobeRegsChangeOnce() {
 	uprobeRegsChange.init.Do(func() {
 		uprobeRegsChange.detected = detectUprobeRegsChange()
@@ -569,15 +606,57 @@ func HasUprobeRegsChange() bool {
 	return uprobeRegsChange.detected
 }
 
+func detectKfunc(name string) bool {
+	spec, err := btf.NewBTF()
+	if err != nil {
+		return false
+	}
+
+	var fn *ebtf.Func
+	if err := spec.TypeByName(name, &fn); err != nil {
+		return false
+	}
+
+	// kfunc has bpf_kfunc tag attached
+	return len(fn.Tags) == 1 && fn.Tags[0] == "bpf_kfunc"
+}
+
+func HasKfunc(name string) bool {
+	kfuncs.mu.Lock()
+	defer kfuncs.mu.Unlock()
+
+	if kfuncs.md == nil {
+		kfuncs.md = make(map[string]bool)
+	}
+
+	detected, ok := kfuncs.md[name]
+	if !ok {
+		detected = detectKfunc(name)
+		kfuncs.md[name] = detected
+	}
+	return detected
+}
+
+func detectGetFuncRetHelperOnce() {
+	getFuncRetHelper.init.Do(func() {
+		getFuncRetHelper.detected = detectGetFuncRetHelper()
+	})
+}
+
+func HasGetFuncRetHelper() bool {
+	detectGetFuncRetHelperOnce()
+	return getFuncRetHelper.detected
+}
+
 func LogFeatures() string {
 	// once we have detected all features, flush the BTF spec
 	// we cache all values so calling again a Has* function will
 	// not load the BTF again
 	defer ebtf.FlushKernelSpec()
-	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, uprobe_multi: %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t, link_pin: %t, lsm: %t, missed_stats_kprobe_multi: %t, missed_stats_kprobe: %t, batch_update: %t, uprobe_refctroff: %t, audit_loginuid: %t, probe_write_user: %t, uprobe_regs_change: %t",
+	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, uprobe_multi: %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t, link_pin: %t, lsm: %t, missed_stats_kprobe_multi: %t, missed_stats_kprobe: %t, batch_update: %t, uprobe_refctroff: %t, audit_loginuid: %t, probe_write_user: %t, uprobe_regs_change: %t, fentry %t, get_func_ret %t",
 		HasOverrideHelper(), HasBuildId(), HasKprobeMulti(), HasUprobeMulti(),
 		HasModifyReturn(), HasModifyReturnSyscall(), HasSignalHelper(), HasProgramLargeSize(),
 		HasLinkPin(), HasLSMPrograms(), HasMissedStatsKprobeMulti(), HasMissedStatsPerfEvent(),
 		HasBatchAPI(), HasUprobeRefCtrOffset(), HasAuditLoginuid(), HasProbeWriteUserHelper(),
-		HasUprobeRegsChange())
+		HasUprobeRegsChange(), HasFentryProgram(), HasGetFuncRetHelper())
 }
