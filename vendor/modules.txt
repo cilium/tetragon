@@ -52,13 +52,14 @@ github.com/cilium/ebpf/perf
 github.com/cilium/ebpf/pin
 github.com/cilium/ebpf/ringbuf
 github.com/cilium/ebpf/rlimit
-# github.com/cilium/little-vm-helper v0.0.28
+# github.com/cilium/little-vm-helper v0.0.29-0.20260118112734-08d16157e542
 ## explicit; go 1.24.0
 github.com/cilium/little-vm-helper/pkg/arch
 github.com/cilium/little-vm-helper/pkg/images
 github.com/cilium/little-vm-helper/pkg/kernels
 github.com/cilium/little-vm-helper/pkg/logcmd
 github.com/cilium/little-vm-helper/pkg/runner
+github.com/cilium/little-vm-helper/pkg/slogger
 github.com/cilium/little-vm-helper/pkg/step
 # github.com/cilium/lumberjack/v2 v2.4.1
 ## explicit; go 1.13
@@ -508,7 +509,7 @@ go.yaml.in/yaml/v3
 golang.org/x/exp/constraints
 golang.org/x/exp/maps
 golang.org/x/exp/slices
-# golang.org/x/mod v0.31.0
+# golang.org/x/mod v0.32.0
 ## explicit; go 1.24.0
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/module

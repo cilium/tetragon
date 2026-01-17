@@ -13,7 +13,7 @@ import (
 	"strconv"
 
 	"github.com/cilium/little-vm-helper/pkg/logcmd"
-	"github.com/sirupsen/logrus"
+	"github.com/cilium/little-vm-helper/pkg/slogger"
 )
 
 // By default, we use a single directory (MainGitDir) for all git URLs (first
@@ -79,7 +79,7 @@ func newGitURL(repo string, branch string) *GitURL {
 
 func (gu *GitURL) syncWorktree(
 	ctx context.Context,
-	log logrus.FieldLogger,
+	log slogger.Logger,
 	idDir string,
 ) error {
 	oldPath, err := os.Getwd()
@@ -97,7 +97,7 @@ func (gu *GitURL) syncWorktree(
 	return logcmd.RunAndLogCommand(cmd, log)
 }
 
-func makeGitDir(ctx context.Context, log logrus.FieldLogger, gitDir string) error {
+func makeGitDir(ctx context.Context, log slogger.Logger, gitDir string) error {
 	err := os.MkdirAll(gitDir, 0755)
 	if err != nil {
 		return err
@@ -115,7 +115,7 @@ func makeGitDir(ctx context.Context, log logrus.FieldLogger, gitDir string) erro
 // fetch will fetches the code pointed by gu, into dir/id
 func (gu *GitURL) fetch(
 	ctx context.Context,
-	log logrus.FieldLogger,
+	log slogger.Logger,
 	dir string,
 	id string,
 ) error {
@@ -170,7 +170,7 @@ func (gu *GitURL) fetch(
 
 func (gu *GitURL) remove(
 	ctx context.Context,
-	log logrus.FieldLogger,
+	log slogger.Logger,
 	dir string,
 	id string,
 ) error {

@@ -11,8 +11,7 @@ import (
 	"path/filepath"
 
 	"github.com/cilium/little-vm-helper/pkg/logcmd"
-
-	"github.com/sirupsen/logrus"
+	"github.com/cilium/little-vm-helper/pkg/slogger"
 )
 
 type gitCloneOrFetchDirArg struct {
@@ -22,7 +21,7 @@ type gitCloneOrFetchDirArg struct {
 	depth        int
 }
 
-func gitCloneOrFetchDir(ctx context.Context, log logrus.FieldLogger, arg *gitCloneOrFetchDirArg) error {
+func gitCloneOrFetchDir(ctx context.Context, log slogger.Logger, arg *gitCloneOrFetchDirArg) error {
 
 	var args []string
 	if exists, err := directoryExists(arg.dir); err != nil {
@@ -63,7 +62,7 @@ type gitAddWorkdirArg struct {
 	localBranch  string
 }
 
-func gitAddWorkdir(ctx context.Context, log logrus.FieldLogger, arg *gitAddWorkdirArg) error {
+func gitAddWorkdir(ctx context.Context, log slogger.Logger, arg *gitAddWorkdirArg) error {
 	remoteAddArgs := []string{
 		"--git-dir", arg.bareDir,
 		"remote", "add",
@@ -89,7 +88,7 @@ func gitLocalBranch(kname string) string {
 	return fmt.Sprintf("lvh-%s", kname)
 }
 
-func removeGitWorkDir(ctx context.Context, log logrus.FieldLogger, dir, kName string) error {
+func removeGitWorkDir(ctx context.Context, log slogger.Logger, dir, kName string) error {
 	return gitRemoveWorkdir(context.Background(), log,
 		&gitRemoveWorkdirArg{
 			workDir:     kName,
@@ -107,7 +106,7 @@ type gitRemoveWorkdirArg struct {
 	localBranch string
 }
 
-func gitRemoveWorkdir(ctx context.Context, log logrus.FieldLogger, arg *gitRemoveWorkdirArg) error {
+func gitRemoveWorkdir(ctx context.Context, log slogger.Logger, arg *gitRemoveWorkdirArg) error {
 	var res error
 
 	worktreeRemoveArgs := []string{

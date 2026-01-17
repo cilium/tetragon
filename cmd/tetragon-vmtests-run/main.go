@@ -16,7 +16,7 @@ import (
 
 	"github.com/cilium/little-vm-helper/pkg/arch"
 	"github.com/cilium/little-vm-helper/pkg/runner"
-	"github.com/sirupsen/logrus"
+	"github.com/cilium/little-vm-helper/pkg/slogger"
 	"github.com/spf13/cobra"
 	"golang.org/x/sys/unix"
 )
@@ -30,7 +30,7 @@ func main() {
 		Short:        "vmtest-run: helper to run tetragon unit tests on VMs",
 		SilenceUsage: true,
 		RunE: func(_ *cobra.Command, _ []string) error {
-			log := logrus.New()
+			log := slogger.New()
 			t0 := time.Now()
 
 			var err error
