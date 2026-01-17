@@ -9,12 +9,12 @@ import (
 	"path/filepath"
 
 	"github.com/cilium/little-vm-helper/pkg/runner"
-	"github.com/sirupsen/logrus"
+	"github.com/cilium/little-vm-helper/pkg/slogger"
 )
 
 // buildQemuArgs is a wrapper around LVH's runner.BuildQemuArgs and also handles
 // custom configuration from vmtests
-func buildQemuArgs(log *logrus.Logger, rcnf RunConf) ([]string, error) {
+func buildQemuArgs(log slogger.Logger, rcnf RunConf) ([]string, error) {
 	if rcnf.KernelFname != "" {
 		if rcnf.disableUnifiedCgroups {
 			rcnf.KernelAppendArgs = append(rcnf.KernelAppendArgs, "systemd.unified_cgroup_hierarchy=0")

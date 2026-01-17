@@ -9,8 +9,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/cilium/little-vm-helper/pkg/slogger"
 	"github.com/cilium/little-vm-helper/pkg/step"
-	"github.com/sirupsen/logrus"
 )
 
 // doBuildImageDryRun just creates an empty file for the image.
@@ -45,7 +45,7 @@ func mergeSteps(step1, step2 step.Step) error {
 
 func (f *ImageForest) doBuildImage(
 	ctx context.Context,
-	log *logrus.Logger,
+	log slogger.Logger,
 	image string,
 	merge bool,
 	pkgRepository string,

@@ -16,8 +16,8 @@ import (
 
 	"github.com/cilium/little-vm-helper/pkg/arch"
 	"github.com/cilium/little-vm-helper/pkg/logcmd"
+	"github.com/cilium/little-vm-helper/pkg/slogger"
 	"github.com/cilium/little-vm-helper/pkg/step"
-	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -175,7 +175,7 @@ func (s *CreateImage) makeRootImage(ctx context.Context) error {
 }
 
 func resizeImage(ctx context.Context,
-	log logrus.FieldLogger,
+	log slogger.Logger,
 	imgFname string, size string,
 ) error {
 
