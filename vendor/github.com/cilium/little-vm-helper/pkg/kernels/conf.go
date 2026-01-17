@@ -10,7 +10,7 @@ import (
 	"path"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"github.com/cilium/little-vm-helper/pkg/slogger"
 )
 
 // ConfigOption are switches passed to scripts/config in a kernel dir
@@ -137,7 +137,7 @@ func GetConfigGroupNames() []string {
 	return ret
 }
 
-func (cnf *Conf) SaveTo(log logrus.FieldLogger, dir string, backup bool) error {
+func (cnf *Conf) SaveTo(log slogger.Logger, dir string, backup bool) error {
 	fname := path.Join(dir, ConfigFname)
 	confb, err := json.MarshalIndent(cnf, "", "    ")
 	if err != nil {

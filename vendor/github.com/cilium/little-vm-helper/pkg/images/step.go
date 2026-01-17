@@ -3,11 +3,11 @@
 
 package images
 
-import "github.com/sirupsen/logrus"
+import "github.com/cilium/little-vm-helper/pkg/slogger"
 
 // StepConf is common step configuration
 type StepConf struct {
 	imagesDir string
 	imgCnf    *ImgConf
-	log       *logrus.Logger
+	log       slogger.Logger
 }

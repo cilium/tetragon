@@ -15,7 +15,7 @@ import (
 
 	"github.com/cilium/little-vm-helper/pkg/arch"
 	"github.com/cilium/little-vm-helper/pkg/logcmd"
-	"github.com/sirupsen/logrus"
+	"github.com/cilium/little-vm-helper/pkg/slogger"
 )
 
 type KernelsDir struct {
@@ -46,7 +46,7 @@ func (kd *KernelsDir) RemoveKernelConfig(name string) *KernelConf {
 	return nil
 }
 
-func (kd *KernelsDir) ConfigureKernel(ctx context.Context, log *logrus.Logger, kernName string, targetArch string) error {
+func (kd *KernelsDir) ConfigureKernel(ctx context.Context, log slogger.Logger, kernName string, targetArch string) error {
 	kc := kd.KernelConfig(kernName)
 	if kc == nil {
 		return fmt.Errorf("kernel '%s' not found", kernName)
@@ -54,7 +54,7 @@ func (kd *KernelsDir) ConfigureKernel(ctx context.Context, log *logrus.Logger, k
 	return kd.configureKernel(ctx, log, kc, targetArch)
 }
 
-func (kd *KernelsDir) RawConfigure(ctx context.Context, log *logrus.Logger, kernDir, kernName string, targetArch string) error {
+func (kd *KernelsDir) RawConfigure(ctx context.Context, log slogger.Logger, kernDir, kernName string, targetArch string) error {
 	kc := kd.KernelConfig(kernName)
 	return kd.rawConfigureKernel(ctx, log, kc, kernDir, targetArch)
 }
@@ -153,7 +153,7 @@ func kConfigValidate(opts []ConfigOption) error {
 
 func runAndLogMake(
 	ctx context.Context,
-	log *logrus.Logger,
+	log slogger.Logger,
 	kc *KernelConf,
 	makeArgs ...string,
 ) error {
@@ -164,7 +164,7 @@ func runAndLogMake(
 }
 
 func (kd *KernelsDir) rawConfigureKernel(
-	ctx context.Context, log *logrus.Logger,
+	ctx context.Context, log slogger.Logger,
 	kc *KernelConf, srcDir string, targetArch string,
 	makePrepareArgs ...string,
 ) error {
@@ -176,7 +176,7 @@ func (kd *KernelsDir) rawConfigureKernel(
 	// If the source directory does not exist, there is nothing to configure so let's fetch the
 	// kernel
 	if _, err := os.Stat(srcDir); os.IsNotExist(err) {
-		log.WithFields(logrus.Fields{
+		log.WithFields(map[string]any{
 			"kernel": kc.Name,
 			"srcDir": srcDir,
 		}).Info("src directory does not exist, fetching kernel")
@@ -247,7 +247,7 @@ func (kd *KernelsDir) rawConfigureKernel(
 	return nil
 }
 
-func (kd *KernelsDir) configureKernel(ctx context.Context, log *logrus.Logger, kc *KernelConf, targetArch string) error {
+func (kd *KernelsDir) configureKernel(ctx context.Context, log slogger.Logger, kc *KernelConf, targetArch string) error {
 	srcDir := filepath.Join(kd.Dir, kc.Name)
 	tarch, err := arch.NewArch(targetArch)
 	if err != nil {
@@ -261,7 +261,7 @@ func (kd *KernelsDir) configureKernel(ctx context.Context, log *logrus.Logger, k
 
 }
 
-func (kd *KernelsDir) buildKernel(ctx context.Context, log *logrus.Logger, kc *KernelConf, targetArch string) error {
+func (kd *KernelsDir) buildKernel(ctx context.Context, log slogger.Logger, kc *KernelConf, targetArch string) error {
 	if err := CheckEnvironment(); err != nil {
 		return err
 	}

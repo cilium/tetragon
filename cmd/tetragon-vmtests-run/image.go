@@ -13,8 +13,8 @@ import (
 	"path/filepath"
 
 	"github.com/cilium/little-vm-helper/pkg/images"
+	"github.com/cilium/little-vm-helper/pkg/slogger"
 	"github.com/cilium/little-vm-helper/pkg/step"
-	"github.com/sirupsen/logrus"
 
 	"github.com/cilium/tetragon/pkg/vmtests"
 )
@@ -215,7 +215,7 @@ func (rc *NoNetworkCommand) ToSteps(s *images.StepConf) ([]step.Step, error) {
 	}}, nil
 }
 
-func buildTestImage(log *logrus.Logger, rcnf *RunConf) error {
+func buildTestImage(log slogger.Logger, rcnf *RunConf) error {
 
 	imagesDir, baseImage := filepath.Split(rcnf.baseImageFilename)
 

@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/cilium/little-vm-helper/pkg/arch"
-	"github.com/sirupsen/logrus"
+	"github.com/cilium/little-vm-helper/pkg/slogger"
 	"golang.org/x/sys/unix"
 )
 
@@ -24,7 +24,7 @@ func getArch(rcnf *RunConf) (arch.Arch, error) {
 	return arch.NewArch(a)
 }
 
-func BuildQemuArgs(log *logrus.Logger, rcnf *RunConf) ([]string, error) {
+func BuildQemuArgs(log slogger.Logger, rcnf *RunConf) ([]string, error) {
 	qemuArgs := []string{
 		// no need for all the default devices
 		"-nodefaults",

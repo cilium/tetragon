@@ -9,12 +9,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/sirupsen/logrus"
+	"github.com/cilium/little-vm-helper/pkg/slogger"
 )
 
 // BuildConf configures how a set of images are build
 type BuildConf struct {
-	Log *logrus.Logger
+	Log slogger.Logger
 
 	// if DryRun set, no actual images will be build. Instead, empty files will be created
 	DryRun bool
@@ -62,7 +62,7 @@ func (f *ImageForest) BuildImage(bldConf *BuildConf, image string) (*BuilderResu
 	images := append(deps, image)
 	for i := range images {
 		imgRes := st.buildImage(images[i])
-		xlog := log.WithFields(logrus.Fields{
+		xlog := log.WithFields(map[string]any{
 			"image":    image[i],
 			"all-deps": images,
 			"result":   fmt.Sprintf("%+v", imgRes),
@@ -89,7 +89,7 @@ func (f *ImageForest) BuildAllImages(bldConf *BuildConf) *BuilderResult {
 func (f *ImageForest) BuildImages(bldConf *BuildConf, queue []string) *BuilderResult {
 	log := bldConf.Log
 	st := newBuildState(f, bldConf)
-	log.WithFields(logrus.Fields{
+	log.WithFields(map[string]any{
 		"queue": strings.Join(queue, ","),
 	}).Info("starting to build images")
 	for {
@@ -104,7 +104,7 @@ func (f *ImageForest) BuildImages(bldConf *BuildConf, queue []string) *BuilderRe
 			queue = append(queue, children...)
 		}
 
-		xlog := log.WithFields(logrus.Fields{
+		xlog := log.WithFields(map[string]any{
 			"image":  image,
 			"queue":  strings.Join(queue, ","),
 			"result": fmt.Sprintf("%+v", imgRes),

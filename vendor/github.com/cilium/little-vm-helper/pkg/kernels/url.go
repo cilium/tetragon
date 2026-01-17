@@ -8,14 +8,14 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/sirupsen/logrus"
+	"github.com/cilium/little-vm-helper/pkg/slogger"
 )
 
 type KernelURL interface {
 	// fetches the kernel named <name> in <dir>/<name>
-	fetch(ctx context.Context, log logrus.FieldLogger, dir string, name string) error
+	fetch(ctx context.Context, log slogger.Logger, dir string, name string) error
 	// removes the kernel named <name>
-	remove(ctx context.Context, log logrus.FieldLogger, dir string, name string) error
+	remove(ctx context.Context, log slogger.Logger, dir string, name string) error
 }
 
 func ParseURL(s string) (KernelURL, error) {

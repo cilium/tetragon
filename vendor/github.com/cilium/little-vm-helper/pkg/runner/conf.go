@@ -4,7 +4,7 @@
 package runner
 
 import (
-	"github.com/sirupsen/logrus"
+	"github.com/cilium/little-vm-helper/pkg/slogger"
 )
 
 type RunConf struct {
@@ -30,7 +30,7 @@ type RunConf struct {
 	DisableNetwork bool
 	ForwardedPorts PortForwards
 
-	Logger *logrus.Logger
+	Logger slogger.Logger
 
 	HostMount string
 

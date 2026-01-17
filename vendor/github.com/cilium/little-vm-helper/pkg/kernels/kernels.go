@@ -11,7 +11,7 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/sirupsen/logrus"
+	"github.com/cilium/little-vm-helper/pkg/slogger"
 )
 
 var (
@@ -28,7 +28,7 @@ type InitDirFlags struct {
 //
 // the provided conf will be saved in the directory.
 // if conf is nil, an empty configuration will be used.
-func InitDir(log *logrus.Logger, dir string, conf *Conf, flags InitDirFlags) error {
+func InitDir(log slogger.Logger, dir string, conf *Conf, flags InitDirFlags) error {
 	err := os.MkdirAll(dir, 0755)
 	if err != nil && !os.IsExist(err) {
 		return fmt.Errorf("failed to create directory '%s': %w", dir, err)
@@ -71,7 +71,7 @@ type AddKernelFlags struct {
 	Fetch      bool
 }
 
-func AddKernel(ctx context.Context, log *logrus.Logger, dir string, cnf *KernelConf, flags AddKernelFlags) error {
+func AddKernel(ctx context.Context, log slogger.Logger, dir string, cnf *KernelConf, flags AddKernelFlags) error {
 	kd, err := LoadDir(dir)
 	if err != nil {
 		return err
@@ -102,7 +102,7 @@ func AddKernel(ctx context.Context, log *logrus.Logger, dir string, cnf *KernelC
 
 // RemoveKernel will remove a kernel.
 // It will typically try to continue, even if it encounters an error
-func RemoveKernel(ctx context.Context, log_ *logrus.Logger, dir string, name string, backupConf bool) error {
+func RemoveKernel(ctx context.Context, log_ slogger.Logger, dir string, name string, backupConf bool) error {
 	kd, err := LoadDir(dir)
 	if err != nil {
 		return err
@@ -154,7 +154,7 @@ func getKernelInfo(dir, kname string) (*KernelsDir, *KernelConf, KernelURL, erro
 
 }
 
-func FetchKernel(ctx context.Context, log *logrus.Logger, dir, kname string) error {
+func FetchKernel(ctx context.Context, log slogger.Logger, dir, kname string) error {
 	kd, kc, kurl, err := getKernelInfo(dir, kname)
 	if err != nil {
 		return err
@@ -163,7 +163,7 @@ func FetchKernel(ctx context.Context, log *logrus.Logger, dir, kname string) err
 	return kurl.fetch(ctx, log, kd.Dir, kc.Name)
 }
 
-func BuildKernel(ctx context.Context, log *logrus.Logger, dir, kname string, fetch bool, arch string) error {
+func BuildKernel(ctx context.Context, log slogger.Logger, dir, kname string, fetch bool, arch string) error {
 	kd, kc, kurl, err := getKernelInfo(dir, kname)
 	if err != nil {
 		return err
