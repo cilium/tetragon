@@ -13,26 +13,20 @@ import (
 	"os/exec"
 	"sync"
 
-	"github.com/sirupsen/logrus"
+	"github.com/cilium/little-vm-helper/pkg/slogger"
 )
 
 type Logf = func(format string, args ...interface{})
 
-func getLogfForLevel(log logrus.FieldLogger, lvl logrus.Level) Logf {
+func getLogfForLevel(log slogger.Logger, lvl slogger.Level) Logf {
 	switch lvl {
-	case logrus.PanicLevel:
-		return log.Panicf
-	case logrus.FatalLevel:
-		return log.Fatalf
-	case logrus.ErrorLevel:
+	case slogger.LevelError:
 		return log.Errorf
-	case logrus.WarnLevel:
+	case slogger.LevelWarn:
 		return log.Warnf
-	case logrus.InfoLevel:
+	case slogger.LevelInfo:
 		return log.Infof
-	case logrus.DebugLevel:
-		return log.Debugf
-	case logrus.TraceLevel:
+	case slogger.LevelDebug:
 		return log.Debugf
 	default:
 		// should not happen, but just return something anyway
@@ -141,13 +135,13 @@ func runAndLogCommand(
 
 func RunAndLogCommand(
 	cmd *exec.Cmd,
-	log logrus.FieldLogger,
+	log slogger.Logger,
 ) error {
 	logStart(log, cmd)
-	return runAndLogCommand(nil, cmd, getLogfForLevel(log, logrus.InfoLevel), getLogfForLevel(log, logrus.WarnLevel))
+	return runAndLogCommand(nil, cmd, getLogfForLevel(log, slogger.LevelInfo), getLogfForLevel(log, slogger.LevelWarn))
 }
 
-func logStart(log logrus.FieldLogger, cmd *exec.Cmd) {
+func logStart(log slogger.Logger, cmd *exec.Cmd) {
 	// start command
 	xlog := log.WithField("path", cmd.Path).WithField("args", cmd.Args)
 	if cwd, err := os.Getwd(); err == nil {
@@ -158,22 +152,22 @@ func logStart(log logrus.FieldLogger, cmd *exec.Cmd) {
 
 func RunAndLogCommandContext(
 	ctx context.Context,
-	log logrus.FieldLogger,
+	log slogger.Logger,
 	cmd0 string,
 	cmdArgs ...string,
 ) error {
 	cmd := exec.CommandContext(ctx, cmd0, cmdArgs...)
 	logStart(log, cmd)
-	return runAndLogCommand(ctx, cmd, getLogfForLevel(log, logrus.InfoLevel), getLogfForLevel(log, logrus.WarnLevel))
+	return runAndLogCommand(ctx, cmd, getLogfForLevel(log, slogger.LevelInfo), getLogfForLevel(log, slogger.LevelWarn))
 }
 
 func RunAndLogCommandsContext(
 	ctx context.Context,
-	log logrus.FieldLogger, // we should have something more flexible/generic here
+	log slogger.Logger, // we should have something more flexible/generic here
 	commands ...[]string,
 ) error {
-	stdoutLog := getLogfForLevel(log, logrus.InfoLevel)
-	stderrLog := getLogfForLevel(log, logrus.WarnLevel)
+	stdoutLog := getLogfForLevel(log, slogger.LevelInfo)
+	stderrLog := getLogfForLevel(log, slogger.LevelWarn)
 	for i := range commands {
 		args := commands[i]
 		if len(args) == 0 {
