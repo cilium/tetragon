@@ -427,7 +427,7 @@ func procToKeyValue(p procs, inInitTree map[uint32]struct{}) (*execvemap.ExecveK
 
 	// set v.Binary.End in a similar way to https://github.com/cilium/tetragon/blob/c8c74c5e73c28de0f76498190c576ce7f602c4b9/bpf/process/bpf_execve_event.c#L423-L425
 	if v.Binary.PathLength > selectors.StringPostfixMaxLength-1 {
-		copy(v.Binary.End[:], v.Binary.Path[v.Binary.PathLength-selectors.StringPostfixMaxLength-1:])
+		copy(v.Binary.End[:], v.Binary.Path[v.Binary.PathLength-(selectors.StringPostfixMaxLength-1):])
 	} else {
 		copy(v.Binary.End[:], v.Binary.Path[:])
 	}
