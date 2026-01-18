@@ -350,9 +350,13 @@ else
 endif
 
 
+KIND_CONFIG ?= contrib/kind/kind-config.yaml
+
+## kind: ## Create a kind cluster for Tetragon development.
+## kind KIND_CONFIG=custom-config.yaml: ## Create a kind cluster using a custom kind config file.
 .PHONY: kind
 kind: ## Create a kind cluster for Tetragon development.
-	./contrib/kind/bootstrap-kind-cluster.sh
+	./contrib/kind/bootstrap-kind-cluster.sh --config $(KIND_CONFIG)
 
 KIND_BUILD_IMAGES ?= 1
 VALUES ?=

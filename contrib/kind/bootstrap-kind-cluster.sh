@@ -16,12 +16,14 @@ if ! command -v kind &>/dev/null; then
 fi
 
 FORCE=0
+KIND_CONFIG="./contrib/kind/kind-config.yaml"
 
 usage() {
 	echo "usage: bootstrap-kind-cluster.sh [OPTIONS]" 1>&2
 	echo "OPTIONS:" 1>&2
     echo "    -f,--force    force bootstrapping even if cluster already exists" 1>&2
     echo "       --cluster  override cluster name" 1>&2
+    echo "       --config   path to kind config file (default: ./contrib/kind/kind-config.yaml)" 1>&2
 }
 
 while [ $# -ge 1 ]; do
@@ -30,6 +32,9 @@ while [ $# -ge 1 ]; do
 		shift 1
     elif [ "$1" == "--cluster" ]; then
         CLUSTER_NAME="$2"
+		shift 2
+    elif [ "$1" == "--config" ]; then
+        KIND_CONFIG="$2"
 		shift 2
     else
         usage
@@ -40,7 +45,7 @@ done
 bootstrap_cluster() {
     if ! kind get clusters | grep "$CLUSTER_NAME" &>/dev/null; then
         echo "Creating a new cluster \"$CLUSTER_NAME\"..." 1>&2
-        kind create cluster --name "$CLUSTER_NAME" --config ./contrib/kind/kind-config.yaml --wait=2m
+        kind create cluster --name "$CLUSTER_NAME" --config "$KIND_CONFIG" --wait=2m
     else
         if [ "$FORCE" != 1 ]; then
             echo "Cluster already exists... Exiting... (Re-run with -f to force.)" 1>&2
@@ -48,7 +53,7 @@ bootstrap_cluster() {
         else
             echo "Recreating cluster..." 1>&2
             kind delete cluster --name "$CLUSTER_NAME"
-            kind create cluster --name "$CLUSTER_NAME" --config ./contrib/kind/kind-config.yaml --wait=5m
+            kind create cluster --name "$CLUSTER_NAME" --config "$KIND_CONFIG" --wait=5m
         fi
     fi
 
