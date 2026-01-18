@@ -197,7 +197,7 @@ get_namespaces(struct msg_ns *msg, struct task_struct *task)
 	} else {
 		struct mnt_namespace___rhel7 *ns = (struct mnt_namespace___rhel7 *)_(nsp.mnt_ns);
 
-		probe_read(&msg->ipc_inum, sizeof(msg->ipc_inum),
+		probe_read(&msg->mnt_inum, sizeof(msg->mnt_inum),
 			   _(&ns->proc_inum));
 	}
 
