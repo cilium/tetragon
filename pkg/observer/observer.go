@@ -6,6 +6,8 @@ package observer
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -34,7 +36,44 @@ var (
 	eventHandler = make(map[uint8]func(r *bytes.Reader) ([]Event, error))
 
 	observerList []EventObserver
+
+	// Event logger for synthetic events testing
+	eventLogFile *os.File
 )
+
+// InitEventLogger initializes event logging to a file for synthetic events testing
+func InitEventLogger(path string) error {
+	// If file exists, rename it with creation/modification time prefix
+	if info, err := os.Stat(path); err == nil {
+		modTime := info.ModTime().Format("2006-01-02_15-04-05")
+		dir := filepath.Dir(path)
+		base := filepath.Base(path)
+		newName := filepath.Join(dir, modTime+"_"+base)
+		if err := os.Rename(path, newName); err != nil {
+			return fmt.Errorf("failed to rename existing log file: %w", err)
+		}
+	}
+
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	eventLogFile = f
+	return nil
+}
+
+// CloseEventLogger closes the event log file
+func CloseEventLogger() {
+	if eventLogFile != nil {
+		eventLogFile.Close()
+		eventLogFile = nil
+	}
+}
+
+type loggedEvent struct {
+	Events json.RawMessage `json:"events"` // human-readable JSON (for debugging only)
+	Data string `json:"data"` // base64-encoded raw binary event data
+}
 
 type EventObserver interface {
 	Start(ctx context.Context) error
@@ -47,7 +86,7 @@ type EventObserver interface {
 	LogPinnedBpf(observerDir string)
 	ReadLostEvents() uint64
 	ReadErrorEvents() uint64
-	NotifyListeners(msg notify.Message)
+	observerListeners(msg notify.Message)
 }
 
 type Event notify.Message
@@ -56,7 +95,7 @@ func RegisterEventHandlerAtInit(ev uint8, handler func(r *bytes.Reader) ([]Event
 	eventHandler[ev] = handler
 }
 
-func (k *Observer) NotifyListeners(msg notify.Message) {
+func (k *Observer) observerListeners(msg notify.Message) {
 	for listener := range k.listeners {
 		if err := listener.Notify(msg); err != nil {
 			k.log.Debug("Write failure removing Listener")
@@ -67,7 +106,7 @@ func (k *Observer) NotifyListeners(msg notify.Message) {
 
 func AllListeners(msg notify.Message) {
 	for _, o := range observerList {
-		o.NotifyListeners(msg)
+		o.observerListeners(msg)
 	}
 }
 
@@ -148,8 +187,21 @@ func (k *Observer) receiveEvent(data []byte) {
 			k.log.Debug("error occurred in event handler", "opcode", err.opcode, logfields.Error, err)
 		}
 	}
+
+	// Log original event data to file if logger is initialized
+	if eventLogFile != nil {
+		eventsBytes, _ := json.Marshal(events)
+		logEntry := loggedEvent{
+			Data:   base64.StdEncoding.EncodeToString(data),
+			Events: eventsBytes,
+		}
+		logBytes, _ := json.Marshal(logEntry)
+		eventLogFile.Write(append(logBytes, '\n'))
+	}
 	for _, event := range events {
-		k.NotifyListeners(event)
+		// jsonBytes, _ := json.Marshal(event)
+		// fmt.Println(string(jsonBytes))
+		k.observerListeners(event)
 	}
 	if option.Config.EnableMsgHandlingLatency {
 		opcodemetrics.LatencyStats.WithLabelValues(strconv.FormatUint(uint64(op), 10)).Observe(float64(time.Since(timer).Microseconds()))

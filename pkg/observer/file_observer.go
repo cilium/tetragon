@@ -5,13 +5,12 @@ package observer
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"io"
 	"os"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/cilium/tetragon/pkg/api/readyapi"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -21,28 +20,17 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors"
 )
 
-type SyntheticEvent struct {
-	Type  string          `json:"type"`
-	Ktime uint64          `json:"ktime"`
-	Event json.RawMessage `json:"event"`
-}
-
-type SyntheticUnmarshaler func(json.RawMessage) (notify.Message, error)
-
-var (
-	syntheticUnmarshalers = make(map[string]SyntheticUnmarshaler)
-)
-
-func RegisterSyntheticUnmarshaler(eventType string, u SyntheticUnmarshaler) {
-	syntheticUnmarshalers[eventType] = u
-}
-
 type FileObserver struct {
 	listeners map[Listener]struct{}
 	mu        sync.RWMutex
 	log       logger.FieldLogger
 	events    uint64
 	errors    uint64
+}
+
+// SyntheticEvent represents a logged event with base64-encoded raw binary data
+type SyntheticEvent struct {
+	Data string `json:"data"` // base64-encoded raw binary event data
 }
 
 func NewFileObserver() *FileObserver {
@@ -60,7 +48,7 @@ func (k *FileObserver) Start(ctx context.Context) error {
 
 func (k *FileObserver) StartReady(ctx context.Context, ready func()) error {
 	// Notify ready
-	k.NotifyListeners(&readyapi.MsgTetragonReady{})
+	k.observerListeners(&readyapi.MsgTetragonReady{})
 	ready()
 
 	k.log.Info("Starting synthetic event injection", "source", option.Config.SyntheticEventsSource)
@@ -72,74 +60,44 @@ func (k *FileObserver) StartReady(ctx context.Context, ready func()) error {
 	defer f.Close()
 
 	dec := json.NewDecoder(f)
-
-	// Check if it's an array start
-	t, err := dec.Token()
-	if err != nil {
-		return err
-	}
-	if delim, ok := t.(json.Delim); !ok || delim != '[' {
-		return fmt.Errorf("expected JSON array start")
-	}
-
-	var firstKtime uint64
-	var startTime time.Time
-
-	for dec.More() {
+	for {
 		if ctx.Err() != nil {
 			break
 		}
 
-		var wrapper SyntheticEvent
-		if err := dec.Decode(&wrapper); err != nil {
+		var synev SyntheticEvent
+		if err := dec.Decode(&synev); err != nil {
 			if err == io.EOF {
 				break
 			}
-			return err
-		}
-
-		unmarshaler, ok := syntheticUnmarshalers[wrapper.Type]
-		if !ok {
-			logger.GetLogger().Warn("Unknown synthetic event type", "type", wrapper.Type)
+			k.log.Warn("Failed to decode JSON event", "error", err)
 			atomic.AddUint64(&k.errors, 1)
 			continue
 		}
 
-		msg, err := unmarshaler(wrapper.Event)
+		// Decode base64 to get raw binary event data
+		data, err := base64.StdEncoding.DecodeString(synev.Data)
 		if err != nil {
-			k.log.Warn("Failed to unmarshal event", "type", wrapper.Type, "error", err)
+			k.log.Warn("Failed to decode base64 data", "error", err)
 			atomic.AddUint64(&k.errors, 1)
 			continue
 		}
 
-		if msg != nil {
-			ktime := wrapper.Ktime
-			if ktime != 0 {
-				if firstKtime == 0 {
-					firstKtime = ktime
-					startTime = time.Now()
-				} else {
-					// Calculate how much time should have passed since the first event
-					targetDuration := time.Duration(ktime - firstKtime)
-					// Calculate how much time has actually passed
-					elapsed := time.Since(startTime)
-					// Sleep the difference if we are ahead of schedule
-					if targetDuration > elapsed {
-						select {
-						case <-time.After(targetDuration - elapsed):
-						case <-ctx.Done():
-							return nil
-						}
-					}
-				}
+		// Use HandlePerfData to parse binary data into events (same as real observer)
+		_, events, perr := HandlePerfData(data)
+		if perr != nil {
+			k.log.Warn("Failed to handle perf data", "error", perr)
+			atomic.AddUint64(&k.errors, 1)
+			continue
+		}
+
+		for _, msg := range events {
+			if msg != nil {
+				atomic.AddUint64(&k.events, 1)
+				k.observerListeners(msg)
 			}
-			atomic.AddUint64(&k.events, 1)
-			k.NotifyListeners(msg)
 		}
 	}
-
-	// Token closing array
-	_, _ = dec.Token()
 
 	k.log.Info("Finished synthetic event injection", "events", atomic.LoadUint64(&k.events))
 
@@ -148,7 +106,7 @@ func (k *FileObserver) StartReady(ctx context.Context, ready func()) error {
 	return nil
 }
 
-func (k *FileObserver) NotifyListeners(msg notify.Message) {
+func (k *FileObserver) observerListeners(msg notify.Message) {
 	k.mu.RLock()
 	listeners := make([]Listener, 0, len(k.listeners))
 	for listener := range k.listeners {

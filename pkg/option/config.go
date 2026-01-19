@@ -136,6 +136,7 @@ type config struct {
 	RetprobesCacheSize int
 
 	SyntheticEventsSource string
+	SyntheticEventsLog    string
 }
 
 var (

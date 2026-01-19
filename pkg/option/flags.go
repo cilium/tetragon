@@ -141,6 +141,7 @@ const (
 	KeyRetprobesCacheSize = "retprobes-cache-size"
 
 	KeySyntheticEventsSource = "synthetic-events-source"
+	KeySyntheticEventsLog    = "synthetic-events-log"
 )
 
 type UsernameMetadaCode int
@@ -309,6 +310,7 @@ func ReadAndSetFlags() error {
 	Config.RetprobesCacheSize = viper.GetInt(KeyRetprobesCacheSize)
 
 	Config.SyntheticEventsSource = viper.GetString(KeySyntheticEventsSource)
+	Config.SyntheticEventsLog = viper.GetString(KeySyntheticEventsLog)
 	return nil
 }
 
@@ -510,4 +512,5 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Int(KeyRetprobesCacheSize, defaults.DefaultRetprobesCacheSize, "Set {k,u}retprobes events cache maximum size")
 
 	flags.String(KeySyntheticEventsSource, "", "File path for synthetic events source")
+	flags.String(KeySyntheticEventsLog, "", "File path to log events for synthetic events testing")
 }

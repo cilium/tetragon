@@ -50,10 +50,8 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/node"
 	"github.com/cilium/tetragon/pkg/rthooks"
 	"github.com/cilium/tetragon/pkg/sensors/base"
-	"github.com/cilium/tetragon/pkg/sensors/exec"
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 	"github.com/cilium/tetragon/pkg/sensors/program"
-	"github.com/cilium/tetragon/pkg/sensors/tracing"
 	"github.com/cilium/tetragon/pkg/server"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/cilium/tetragon/pkg/unixlisten"
@@ -367,8 +365,6 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	// Get observer from configFile
 	var obs observer.EventObserver
 	if option.Config.SyntheticEventsSource != "" {
-		exec.RegisterSyntheticEvents()
-		tracing.RegisterSyntheticEvents()
 		obs = observer.NewFileObserver()
 	} else {
 		obs = observer.NewObserver()
@@ -376,6 +372,14 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	defer func() {
 		obs.PrintStats()
 	}()
+
+	// Initialize event logger for synthetic events testing
+	if option.Config.SyntheticEventsLog != "" {
+		if err := observer.InitEventLogger(option.Config.SyntheticEventsLog); err != nil {
+			return fmt.Errorf("failed to init event logger: %w", err)
+		}
+		defer observer.CloseEventLogger()
+	}
 
 	go func() {
 		s := <-sigs
