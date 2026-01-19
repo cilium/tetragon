@@ -80,6 +80,7 @@ var OpCodeStrings = map[OpCode]string{
 	MSG_OP_CGROUP:             "Cgroup",
 	MSG_OP_LOADER:             "Loader",
 	MSG_OP_THROTTLE:           "Throttle",
+	MSG_OP_GENERIC_USDT:       "GenericUSDT",
 	MSG_OP_TEST:               "Test",
 }
 
