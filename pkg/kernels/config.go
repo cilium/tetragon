@@ -131,10 +131,9 @@ func initKernelConfig() error {
 
 // DetectConfig checks if a kernel config option is enabled
 // It first tries /proc/config.gz, then looks for config file in /boot for the current kernel
-func DetectConfig(conf Config) bool {
+func DetectConfig(conf Config) (bool, error) {
 	if err := getKernelConfig(); err != nil {
-		logger.GetLogger().Error("Detecting kernel config failed", logfields.Error, err)
-		return false
+		return false, fmt.Errorf("getting kernel config failed: %w", err)
 	}
 
 	if val, ok := kernelConfigMap[conf]; ok {
@@ -142,11 +141,11 @@ func DetectConfig(conf Config) bool {
 		// it's mostly treated as a kernel parameter rather than a feature switch,
 		// so we temporarily filter these out.
 		if val == "y" || val == "m" {
-			return true
+			return true, nil
 		}
 	}
 
-	return false
+	return false, nil
 }
 
 func LogConfigs() string {

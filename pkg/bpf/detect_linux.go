@@ -518,20 +518,23 @@ func HasUprobeRefCtrOffset() bool {
 	return uprobeRefCtrOffset.detected
 }
 
-func detectAuditLoginuid() bool {
-	if kernels.MinKernelVersion("5.1") && kernels.DetectConfig(kernels.CONFIG_AUDIT) {
-		return true
-	} else if kernels.DetectConfig(kernels.CONFIG_AUDITSYSCALL) {
-		return true
-	}
-
-	_, err := os.Stat("/proc/self/loginuid")
-	return err == nil
-}
-
 func detectAuditLoginuidOnce() {
 	auditLoginuid.init.Do(func() {
-		auditLoginuid.detected = detectAuditLoginuid()
+		cfg := kernels.CONFIG_AUDITSYSCALL
+		if kernels.MinKernelVersion("5.1") {
+			cfg = kernels.CONFIG_AUDIT
+		}
+		if ok, errConfig := kernels.DetectConfig(cfg); ok {
+			auditLoginuid.detected = true
+		} else if _, errStat := os.Stat("/proc/self/loginuid"); errStat == nil {
+			auditLoginuid.detected = true
+		} else {
+			if errConfig != nil {
+				logger.GetLogger().Info("failed to detect config and to stat loginuid", "config_error", errConfig, "config", string(cfg), "stat_error", errStat)
+			} else {
+				logger.GetLogger().Info("failed to stat loginuid", logfields.Error, errStat)
+			}
+		}
 	})
 }
 
