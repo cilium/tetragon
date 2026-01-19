@@ -4,6 +4,8 @@
 #ifndef __BPF_MBSET_H__
 #define __BPF_MBSET_H__
 
+#include "config.h"
+
 /* tg_mbset_map holds a mapping from (binary) paths to a bitset of ids that it matches. The map is
  * written by user-space and read in the exec hook to determine the bitset of ids of a binary that
  * is executed.
@@ -43,19 +45,29 @@ void update_mb_bitset(struct binary *bin)
 		lock_or(&bin->mb_bitset, *bitsetp);
 }
 
-#ifdef __V612_BPF_PROG
-#define LOOPS 100000
-#else
-#define LOOPS 1024
-#endif
-
 #ifdef __V511_BPF_PROG
+
+FUNC_INLINE
+struct execve_map_value *__update_mb_task(struct execve_map_value *task)
+{
+	struct execve_map_value *parent;
+	__u64 *bitsetp;
+
+	parent = execve_map_get_noinit(task->pkey.pid);
+	if (!parent)
+		return NULL;
+	bitsetp = map_lookup_elem(&tg_mbset_map, parent->bin.path);
+	if (bitsetp && *bitsetp)
+		lock_or(&task->bin.mb_bitset, *bitsetp);
+	return parent;
+}
+
 FUNC_INLINE
 void update_mb_task(struct execve_map_value *task)
 {
 	struct execve_map_value *last = NULL, *parent = task;
-	__u64 *bitsetp, *gen;
 	__u32 idx = 0;
+	__u64 *gen;
 
 	gen = map_lookup_elem(&tg_mbset_gen, &idx);
 	if (!gen)
@@ -63,15 +75,21 @@ void update_mb_task(struct execve_map_value *task)
 	if (*gen == task->bin.mb_gen)
 		return;
 
-	bpf_repeat(LOOPS)
-	{
-		parent = execve_map_get_noinit(parent->pkey.pid);
-		if (!parent || parent == last)
-			break;
-		bitsetp = map_lookup_elem(&tg_mbset_map, parent->bin.path);
-		if (bitsetp && *bitsetp)
-			lock_or(&task->bin.mb_bitset, *bitsetp);
-		last = parent;
+	if (CONFIG(ITER_NUM)) {
+		bpf_repeat(100000)
+		{
+			parent = __update_mb_task(task);
+			if (!parent || parent == last)
+				break;
+			last = parent;
+		}
+	} else {
+		for (int i = 0; i < 1024; i++) {
+			parent = __update_mb_task(task);
+			if (!parent || parent == last)
+				break;
+			last = parent;
+		}
 	}
 
 	task->bin.mb_gen = *gen;

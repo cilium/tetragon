@@ -118,7 +118,6 @@ FUNC_INLINE void compiler_barrier(void)
 		((type *)(__mptr - offsetof(type, member))); \
 	})
 
-#ifdef __V612_BPF_PROG
 #ifndef bpf_for_each
 /* bpf_for_each(iter_type, cur_elem, args...) provides generic construct for
  * using BPF open-coded iterators without having to write mundane explicit
@@ -215,18 +214,5 @@ FUNC_INLINE void compiler_barrier(void)
 	/* nothing here  */									\
 )
 #endif /* bpf_repeat */
-#else
-/*
- * Fallback to standard iteration for everybody else.
- */
 
-#ifndef bpf_for
-#define bpf_for(i, start, end) for ((i) = (start); (i) < (end); (i)++)
-#endif /* bpf_for */
-
-#ifndef bpf_repeat
-#define bpf_repeat(N) for (int i = 0; i < (N); i++)
-#endif /* bpf_repeat */
-
-#endif /* __V612_BPF_PROG */
 #endif //__BPF_HELPERS_

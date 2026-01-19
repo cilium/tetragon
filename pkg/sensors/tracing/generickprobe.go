@@ -687,7 +687,7 @@ func createGenericKprobeSensor(
 			}
 			dups[sym] = instance
 
-			id, err := addKprobe(sym, instance, &kprobes[i], &in)
+			id, err := addKprobe(sym, instance, &kprobes[i], &in, has)
 			if err != nil {
 				return nil, err
 			}
@@ -750,7 +750,7 @@ func initEventConfig() *api.EventConfig {
 // addKprobe will, amongst other things, create a generic kprobe entry and add
 // it to the genericKprobeTable. The caller should make sure that this entry is
 // properly removed on kprobe removal.
-func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idtable.EntryID, err error) {
+func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKprobeIn, has hasMaps) (id idtable.EntryID, err error) {
 	var argSigPrinters []argPrinter
 	var argReturnPrinters []argPrinter
 	var setRetprobe bool
@@ -1013,7 +1013,8 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 	eventConfig.FuncId = uint32(kprobeEntry.tableId.ID)
 
 	logger.GetLogger().
-		Info("Added kprobe", "return", setRetprobe, "function", kprobeEntry.funcName, "override", kprobeEntry.hasOverride)
+		Info("Added kprobe", "return", setRetprobe, "function", kprobeEntry.funcName,
+			"override", kprobeEntry.hasOverride, "enforcer", has.enforcer)
 
 	return kprobeEntry.tableId, nil
 }
@@ -1024,20 +1025,56 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 	loadProgName, loadProgRetName := config.GenericKprobeObjs(false)
 	isSecurityFunc := strings.HasPrefix(kprobeEntry.funcName, "security_")
 
+	// We can use trampoline (fentry/fexit) in case:
+	// 1) it's not disabled (disable-kprobe-fentry option)
+	// 2) we do not do override or enforcer (FIXME)
+	// 3) we have fentry program support
+	// 4) fexit needs bpf_get_func_ret helper
+	useFentry := !polInfo.specOpts.DisableKprobeFentry && // 1
+		!kprobeEntry.hasOverride && !has.enforcer && // 2
+		bpf.HasFentryProgram() && // 3
+		bpf.HasGetFuncRetHelper() // 4
+
 	pinProg := kprobeEntry.funcName
 	if kprobeEntry.instance != 0 {
 		pinProg = fmt.Sprintf("%s:%d", kprobeEntry.funcName, kprobeEntry.instance)
 	}
 
-	load := program.Builder(
-		path.Join(option.Config.HubbleLib, loadProgName),
-		kprobeEntry.funcName,
-		"kprobe/generic_kprobe",
-		pinProg,
-		"generic_kprobe").
-		SetLoaderData(kprobeEntry.tableId).
-		SetPolicy(kprobeEntry.policyName)
+	var load *program.Program
+
+	if useFentry {
+		data := &program.TracingAttachData{
+			AttachTo: kprobeEntry.funcName,
+		}
+
+		loadProgName, loadProgRetName = config.GenericTracingObjs()
+
+		load = program.Builder(
+			path.Join(option.Config.HubbleLib, loadProgName),
+			kprobeEntry.funcName,
+			"fentry/generic_fentry",
+			pinProg,
+			"generic_kprobe").
+			SetAttachData(data)
+
+		tailCalls := program.MapBuilderProgram("fentry_calls", load)
+		maps = append(maps, tailCalls)
+	} else {
+		load = program.Builder(
+			path.Join(option.Config.HubbleLib, loadProgName),
+			kprobeEntry.funcName,
+			"kprobe/generic_kprobe",
+			pinProg,
+			"generic_kprobe")
+
+		tailCalls := program.MapBuilderProgram("kprobe_calls", load)
+		maps = append(maps, tailCalls)
+	}
+
+	load.SetPolicy(kprobeEntry.policyName)
+	load.SetLoaderData(kprobeEntry.tableId)
 	load.Override = kprobeEntry.hasOverride
+
 	if load.Override {
 		load.OverrideFmodRet = isSecurityFunc && bpf.HasModifyReturn()
 	}
@@ -1051,9 +1088,6 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 
 	configMap := program.MapBuilderProgram("config_map", load)
 	maps = append(maps, configMap)
-
-	tailCalls := program.MapBuilderProgram("kprobe_calls", load)
-	maps = append(maps, tailCalls)
 
 	filterMap := program.MapBuilderProgram("filter_map", load)
 	maps = append(maps, filterMap)
@@ -1132,15 +1166,40 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 		if kprobeEntry.instance != 0 {
 			pinRetProg = sensors.PathJoin(fmt.Sprintf("%s_return:%d", kprobeEntry.funcName, kprobeEntry.instance))
 		}
-		loadret := program.Builder(
-			path.Join(option.Config.HubbleLib, loadProgRetName),
-			kprobeEntry.funcName,
-			"kprobe/generic_retkprobe",
-			pinRetProg,
-			"generic_kprobe").
-			SetRetProbe(true).
-			SetLoaderData(kprobeEntry.tableId).
-			SetPolicy(kprobeEntry.policyName)
+
+		var loadret *program.Program
+
+		if useFentry {
+			data := &program.TracingAttachData{
+				AttachTo: kprobeEntry.funcName,
+			}
+
+			loadret = program.Builder(
+				path.Join(option.Config.HubbleLib, loadProgRetName),
+				kprobeEntry.funcName,
+				"fexit/generic_fexit",
+				pinRetProg,
+				"generic_kprobe").
+				SetAttachData(data)
+
+			tailCalls := program.MapBuilderProgram("fexit_calls", loadret)
+			maps = append(maps, tailCalls)
+		} else {
+			loadret = program.Builder(
+				path.Join(option.Config.HubbleLib, loadProgRetName),
+				kprobeEntry.funcName,
+				"kprobe/generic_retkprobe",
+				pinRetProg,
+				"generic_kprobe")
+
+			tailCalls := program.MapBuilderProgram("retkprobe_calls", loadret)
+			maps = append(maps, tailCalls)
+		}
+
+		loadret.SetRetProbe(true)
+		loadret.SetLoaderData(kprobeEntry.tableId)
+		loadret.SetPolicy(kprobeEntry.policyName)
+
 		progs = append(progs, loadret)
 
 		retProbe := program.MapBuilderSensor("retprobe_map", loadret)
@@ -1148,9 +1207,6 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 
 		retConfigMap := program.MapBuilderProgram("config_map", loadret)
 		maps = append(maps, retConfigMap)
-
-		tailCalls := program.MapBuilderProgram("retkprobe_calls", loadret)
-		maps = append(maps, tailCalls)
 
 		filterMap := program.MapBuilderProgram("filter_map", loadret)
 		maps = append(maps, filterMap)
@@ -1231,10 +1287,14 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Pro
 	}
 	load.MapLoad = append(load.MapLoad, config)
 
-	if err := program.LoadKprobeProgram(bpfDir, load, maps, verbose); err == nil {
-		logger.GetLogger().Info(fmt.Sprintf("Loaded generic kprobe program: %s -> %s", load.Name, load.Attach))
+	if load.Label == "fentry/generic_fentry" || load.Label == "fexit/generic_fexit" {
+		if err = program.LoadTracingProgram(bpfDir, load, maps, verbose); err == nil {
+			logger.GetLogger().Info(fmt.Sprintf("Loaded generic fentry program: %s -> %s", load.Name, load.Attach))
+		}
 	} else {
-		return err
+		if err = program.LoadKprobeProgram(bpfDir, load, maps, verbose); err == nil {
+			logger.GetLogger().Info(fmt.Sprintf("Loaded generic kprobe program: %s -> %s", load.Name, load.Attach))
+		}
 	}
 
 	return err

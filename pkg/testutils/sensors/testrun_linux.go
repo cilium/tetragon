@@ -73,6 +73,9 @@ func TestSensorsRun(m *testing.M, sensorName string) int {
 		option.Config.HubbleLib = config.TetragonLib
 	}
 
+	// Set ring buffer size for all tests.
+	option.Config.RBSize = 10 * 1024 * 1024 // 10M
+
 	bpf.SetMapPrefix(testMapDir)
 	defer func() {
 		log := logger.GetLogger()
