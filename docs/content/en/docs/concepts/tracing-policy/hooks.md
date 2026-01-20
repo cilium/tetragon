@@ -1062,3 +1062,164 @@ spec:
         values:
         - "list:dups"
 ```
+
+## Selectors macros
+
+It's possible to define selectors macros in `TracingPolicy` specification that
+contain selectors definitions, which can be used in `kprobes`, `tracepoints`,
+`uprobes`, `usdts`, and `lsmhooks` as a part of their selectors by macro name.
+The content of the macro will be  substituted in target selectors.
+
+{{< caution >}}
+The same field cannot be present in a macro definition and in a policy selector
+that uses the macro. See more info in [macros
+limitations](/docs/concepts/tracing-policy/hooks/#macros-limitations).
+{{< /caution >}}
+
+Consider we have tracing policy, where we want to intercept kernel functions
+`call_1`, `call_2`, `call_3`, but target binary must not be located in
+directory `dir`. For that we define the following policy:
+    
+ ```yaml
+ spec:
+   kprobes:
+   - call: <call_1>
+     selectors:
+     - matchBinaries:
+       - operator: "NotPrefix"
+         values:
+         - "dir"
+   - call: <call_2>
+     selectors:
+     - matchBinaries:
+       - operator: "NotPrefix"
+         values:
+         - "dir"
+   - call: <call_3>
+     selectors:
+     - matchBinaries:
+       - operator: "NotPrefix"
+         values:
+         - "dir"
+ ```
+
+With macros, we can rewrite this policy in more convenient way:
+
+```yaml
+spec:
+  selectorsMacros:
+    dir:
+      matchBinaries:
+      - operator: "NotPrefix"
+        values:
+        - "dir"
+  kprobes:
+  - call: <call_1>
+    selectors:
+    - macros: [ dir ]
+  - call: <call_2>
+    selectors:
+    - macros: [ dir ]
+  - call: <call_3>
+    selectors:
+    - macros: [ dir ]
+```
+
+For a more realistic example, consider we want to intercept system calls `open`
+and `openat`, which have different signatures: `open` system call has
+`pathname` as a first argument, and `openat` has `pathname` as a second
+argument. We want to catch event when `pathname` ends with `passwd`, but we
+want to filter out events where binary has prefix `/opt/myapp`, because we
+consider that our application can read `passwd` file safely. Because these
+system calls signatures are different, we cannot create a list and have same
+`matchArgs` selector, because indices of `pathname` are different.
+
+With macros, the policy would look like this:
+
+```yaml
+spec:
+  selectorsMacros:
+    myappExclusion:
+      matchBinaries:
+      - operator: "NotPrefix"
+        values: "/opt/myapp"
+  kprobes:
+  - call: "sys_open"
+    args:
+    - index: 0
+      type: "string"
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: "Postfix"
+        values:
+        - "passwd"
+      macros: ["myappExclusion"]
+  - call: "sys_openat"
+    args:
+    - index: 1
+      type: "string"
+    selectors:
+    - matchArgs:
+      - index: 1
+        operator: "Postfix"
+        values:
+        - "passwd"
+      macros: ["myappExclusion"]
+```
+
+### Limitations {#macros-limitations}
+
+Having a same field in a hook selector and in a macro definition, or using
+different macros with same fields defined will result in an error.
+
+The following policy will be considered as **incorrect**, because there is
+`matchArgs` field in both macro and policy selector:
+```yaml
+spec:
+  selectorsMacros:
+    argMacro:
+      matchArgs:
+        - index: 0
+          operator: "NotEqual"
+          values:
+            - <value-1>
+  kprobes:
+  - call: <call>
+    args:
+      - index: 0
+        type: int
+    selectors:
+    - macros: [ argMacro ]
+      matchArgs:
+        - index: 0
+          operator: "NotEqual"
+          values:
+            - <value-1>
+```
+
+The following policy will be considered as **incorrect**, because different
+macros contain `matchArgs` field and used in same selector:
+```yaml
+spec:
+  selectorsMacros:
+    argMacro1:
+      matchArgs:
+        - index: 0
+          operator: "NotEqual"
+          values:
+            - <value-1>
+    argMacro2:
+      matchArgs:
+        - index: 0
+          operator: "NotEqual"
+          values:
+            - <value-2>
+  kprobes:
+  - call: <call>
+    args:
+      - index: 0
+        type: int
+    selectors:
+    - macros: [ argMacro1, argMacro2 ]
+```
