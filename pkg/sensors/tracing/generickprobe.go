@@ -593,6 +593,10 @@ func createGenericKprobeSensor(
 	dups := make(map[string]int)
 
 	for i := range kprobes {
+		if err := appendMacrosSelectors(kprobes[i].Selectors, spec.SelectorsMacros); err != nil {
+			return nil, fmt.Errorf("append macros selectors: %w", err)
+		}
+
 		if valInfo[i].ignore {
 			continue
 		}

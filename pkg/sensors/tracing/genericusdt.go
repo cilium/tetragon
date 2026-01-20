@@ -118,6 +118,10 @@ func createGenericUsdtSensor(
 	hasSetAction := false
 
 	for _, usdt := range spec.Usdts {
+		if err = appendMacrosSelectors(usdt.Selectors, spec.SelectorsMacros); err != nil {
+			return nil, fmt.Errorf("append macros selectors: %w", err)
+		}
+
 		ids, err = addUsdt(&usdt, &in, ids, &has)
 		if err != nil {
 			return nil, err
