@@ -508,6 +508,10 @@ func createGenericTracepointSensor(
 	maps := []*program.Map{}
 	progs := make([]*program.Program, 0, len(tracepoints))
 	for _, tp := range tracepoints {
+		if err := appendMacrosSelectors(tp.Spec.Selectors, spec.SelectorsMacros); err != nil {
+			return nil, fmt.Errorf("append macros selectos: %w", err)
+		}
+
 		pinProg := sensors.PathJoin(fmt.Sprintf("%s:%s", tp.Info.Subsys, tp.Info.Event))
 		attach := fmt.Sprintf("%s/%s", tp.Info.Subsys, tp.Info.Event)
 		label := "tracepoint/generic_tracepoint"
