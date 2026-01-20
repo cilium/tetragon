@@ -16,7 +16,7 @@ import (
 	"github.com/cilium/ebpf"
 
 	"github.com/cilium/tetragon/pkg/api/ops"
-	processapi "github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/api/processapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/cgtracker"
@@ -358,6 +358,10 @@ func createGenericLsmSensor(
 	}
 
 	for _, hook := range lsmHooks {
+		if err := appendMacrosSelectors(hook.Selectors, spec.SelectorsMacros); err != nil {
+			return nil, fmt.Errorf("append macros selectors: %w", err)
+		}
+
 		id, err := addLsm(&hook, &in)
 		if err != nil {
 			return nil, err
