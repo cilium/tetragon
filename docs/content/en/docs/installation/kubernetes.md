@@ -59,6 +59,17 @@ kubectl edit cm tetragon-config -n kube-system
 kubectl rollout restart ds/tetragon -n kube-system
 ```
 
+<details><summary>Requirements for Talos Linux (v1.12.0+)</summary>
+
+The following Helm values configuration is required to install Tetragon on Talos Linux:
+
+```yaml
+extraHostPathMounts:
+  - name: sys-kernel-tracing
+    mountPath: /sys/kernel/tracing
+```
+</details>
+
 ## Upgrade
 
 Upgrade Tetragon using a new specific version of the helm chart.
