@@ -159,6 +159,14 @@ Currently, only the "name" field is supported.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecselectorsmacroskey">selectorsMacros</a></b></td>
+        <td>map[string]object</td>
+        <td>
+          SelectorsMacros is used to define selectors macros, which can be used
+in probes/hooks selectors by their names.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspectracepointsindex">tracepoints</a></b></td>
         <td>[]object</td>
         <td>
@@ -761,6 +769,14 @@ results of MatchPIDs and MatchArgs are ANDed.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>macros</b></td>
+        <td>[]string</td>
+        <td>
+          A list of macros names, defined in spec.selectorsMacros.
+Filters specified in macros will be appended to corresponding filters of the selector.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspeckprobesindexselectorsindexmatchactionsindex">matchActions</a></b></td>
         <td>[]object</td>
         <td>
@@ -1882,6 +1898,14 @@ results of MatchPIDs and MatchArgs are ANDed.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>macros</b></td>
+        <td>[]string</td>
+        <td>
+          A list of macros names, defined in spec.selectorsMacros.
+Filters specified in macros will be appended to corresponding filters of the selector.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspeclsmhooksindexselectorsindexmatchactionsindex">matchActions</a></b></td>
         <td>[]object</td>
         <td>
@@ -2882,6 +2906,916 @@ merge patch.<br/>
 </table>
 
 
+### TracingPolicy.spec.selectorsMacros[key]
+<sup><sup>[↩ Parent](#tracingpolicyspec)</sup></sup>
+
+
+KProbeSelector selects function calls for kprobe based on PIDs and function arguments. The
+results of MatchPIDs and MatchArgs are ANDed.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>macros</b></td>
+        <td>[]string</td>
+        <td>
+          A list of macros names, defined in spec.selectorsMacros.
+Filters specified in macros will be appended to corresponding filters of the selector.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchactionsindex">matchActions</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of actions to execute when this selector matches<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchargsindex">matchArgs</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of argument filters. MatchArgs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchbinariesindex">matchBinaries</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of binary exec name filters.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchcapabilitiesindex">matchCapabilities</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of capabilities and IDs<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchcapabilitychangesindex">matchCapabilityChanges</a></b></td>
+        <td>[]object</td>
+        <td>
+          IDs for capabilities changes<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchdataindex">matchData</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of argument filters. MatchData are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchnamespacechangesindex">matchNamespaceChanges</a></b></td>
+        <td>[]object</td>
+        <td>
+          IDs for namespace changes<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchnamespacesindex">matchNamespaces</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of namespaces and IDs<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchpidsindex">matchPIDs</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of process ID filters. MatchPIDs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchparentbinariesindex">matchParentBinaries</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of process parent exec name filters.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchreturnactionsindex">matchReturnActions</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of actions to execute when MatchReturnArgs selector matches<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecselectorsmacroskeymatchreturnargsindex">matchReturnArgs</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of argument filters. MatchArgs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.selectorsMacros[key].matchActions[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>action</b></td>
+        <td>enum</td>
+        <td>
+          Action to execute.
+NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
+be removed in version 1.5.<br/>
+          <br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>argError</b></td>
+        <td>integer</td>
+        <td>
+          error value for override action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argFd</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the fd for fdInstall action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argFqdn</b></td>
+        <td>string</td>
+        <td>
+          A FQDN to lookup for the dnsLookup action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argIndex</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argName</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the filename for fdInstall action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argRegs</b></td>
+        <td>[]string</td>
+        <td>
+          An arg value for the regs action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argSig</b></td>
+        <td>integer</td>
+        <td>
+          A signal number for signal action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argSock</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the sock for trackSock and untrackSock actions<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argUrl</b></td>
+        <td>string</td>
+        <td>
+          A URL for the getUrl action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argValue</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>imaHash</b></td>
+        <td>boolean</td>
+        <td>
+          Enable collection of file hashes from integrity subsystem.
+Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>kernelStackTrace</b></td>
+        <td>boolean</td>
+        <td>
+          Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>rateLimit</b></td>
+        <td>string</td>
+        <td>
+          A time period within which repeated messages will not be posted. Can be
+specified in seconds (default or with 's' suffix), minutes ('m' suffix)
+or hours ('h' suffix). Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>rateLimitScope</b></td>
+        <td>string</td>
+        <td>
+          The scope of the provided rate limit argument. Can be "thread" (default),
+"process" (all threads for the same process), or "global". If "thread" is
+selected then rate limiting applies per thread; if "process" is selected
+then rate limiting applies per process; if "global" is selected then rate
+limiting applies regardless of which process or thread caused the action.
+Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>userStackTrace</b></td>
+        <td>boolean</td>
+        <td>
+          Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.selectorsMacros[key].matchArgs[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>args</b></td>
+        <td>[]integer</td>
+        <td>
+          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Value to compare the argument against.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.selectorsMacros[key].matchBinaries[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Value to compare the argument against.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>followChildren</b></td>
+        <td>boolean</td>
+        <td>
+          In addition to binaries, match children processes of specified binaries.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.selectorsMacros[key].matchCapabilities[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Namespace selector operator.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Capabilities to match.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>isNamespaceCapability</b></td>
+        <td>boolean</td>
+        <td>
+          Indicates whether these caps are namespace caps.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>enum</td>
+        <td>
+          Type of capabilities<br/>
+          <br/>
+            <i>Enum</i>: Effective, Inheritable, Permitted<br/>
+            <i>Default</i>: Effective<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.selectorsMacros[key].matchCapabilityChanges[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Namespace selector operator.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Capabilities to match.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>isNamespaceCapability</b></td>
+        <td>boolean</td>
+        <td>
+          Indicates whether these caps are namespace caps.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>enum</td>
+        <td>
+          Type of capabilities<br/>
+          <br/>
+            <i>Enum</i>: Effective, Inheritable, Permitted<br/>
+            <i>Default</i>: Effective<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.selectorsMacros[key].matchData[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>args</b></td>
+        <td>[]integer</td>
+        <td>
+          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Value to compare the argument against.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.selectorsMacros[key].matchNamespaceChanges[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Namespace selector operator.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Namespace types (e.g., Mnt, Pid) to match.<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.selectorsMacros[key].matchNamespaces[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>namespace</b></td>
+        <td>enum</td>
+        <td>
+          Namespace selector name.<br/>
+          <br/>
+            <i>Enum</i>: Uts, Ipc, Mnt, Pid, PidForChildren, Net, Time, TimeForChildren, Cgroup, User<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Namespace selector operator.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Namespace IDs (or host_ns for host namespace) of namespaces to match.<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.selectorsMacros[key].matchPIDs[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          PID selector operator.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]integer</td>
+        <td>
+          Process IDs to match.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>followForks</b></td>
+        <td>boolean</td>
+        <td>
+          Matches any descendant processes of the matching PIDs.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>isNamespacePID</b></td>
+        <td>boolean</td>
+        <td>
+          Indicates whether PIDs are namespace PIDs.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.selectorsMacros[key].matchParentBinaries[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Value to compare the argument against.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>followChildren</b></td>
+        <td>boolean</td>
+        <td>
+          In addition to binaries, match children processes of specified binaries.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.selectorsMacros[key].matchReturnActions[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>action</b></td>
+        <td>enum</td>
+        <td>
+          Action to execute.
+NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
+be removed in version 1.5.<br/>
+          <br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>argError</b></td>
+        <td>integer</td>
+        <td>
+          error value for override action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argFd</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the fd for fdInstall action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argFqdn</b></td>
+        <td>string</td>
+        <td>
+          A FQDN to lookup for the dnsLookup action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argIndex</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argName</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the filename for fdInstall action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argRegs</b></td>
+        <td>[]string</td>
+        <td>
+          An arg value for the regs action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argSig</b></td>
+        <td>integer</td>
+        <td>
+          A signal number for signal action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argSock</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the sock for trackSock and untrackSock actions<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argUrl</b></td>
+        <td>string</td>
+        <td>
+          A URL for the getUrl action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argValue</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>imaHash</b></td>
+        <td>boolean</td>
+        <td>
+          Enable collection of file hashes from integrity subsystem.
+Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>kernelStackTrace</b></td>
+        <td>boolean</td>
+        <td>
+          Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>rateLimit</b></td>
+        <td>string</td>
+        <td>
+          A time period within which repeated messages will not be posted. Can be
+specified in seconds (default or with 's' suffix), minutes ('m' suffix)
+or hours ('h' suffix). Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>rateLimitScope</b></td>
+        <td>string</td>
+        <td>
+          The scope of the provided rate limit argument. Can be "thread" (default),
+"process" (all threads for the same process), or "global". If "thread" is
+selected then rate limiting applies per thread; if "process" is selected
+then rate limiting applies per process; if "global" is selected then rate
+limiting applies regardless of which process or thread caused the action.
+Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>userStackTrace</b></td>
+        <td>boolean</td>
+        <td>
+          Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.selectorsMacros[key].matchReturnArgs[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>args</b></td>
+        <td>[]integer</td>
+        <td>
+          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Value to compare the argument against.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicy.spec.tracepoints[index]
 <sup><sup>[↩ Parent](#tracingpolicyspec)</sup></sup>
 
@@ -3076,6 +4010,14 @@ results of MatchPIDs and MatchArgs are ANDed.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>macros</b></td>
+        <td>[]string</td>
+        <td>
+          A list of macros names, defined in spec.selectorsMacros.
+Filters specified in macros will be appended to corresponding filters of the selector.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspectracepointsindexselectorsindexmatchactionsindex">matchActions</a></b></td>
         <td>[]object</td>
         <td>
@@ -4413,6 +5355,14 @@ results of MatchPIDs and MatchArgs are ANDed.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>macros</b></td>
+        <td>[]string</td>
+        <td>
+          A list of macros names, defined in spec.selectorsMacros.
+Filters specified in macros will be appended to corresponding filters of the selector.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspecuprobesindexselectorsindexmatchactionsindex">matchActions</a></b></td>
         <td>[]object</td>
         <td>
@@ -5499,6 +6449,14 @@ results of MatchPIDs and MatchArgs are ANDed.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>macros</b></td>
+        <td>[]string</td>
+        <td>
+          A list of macros names, defined in spec.selectorsMacros.
+Filters specified in macros will be appended to corresponding filters of the selector.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspecusdtsindexselectorsindexmatchactionsindex">matchActions</a></b></td>
         <td>[]object</td>
         <td>
@@ -6504,6 +7462,14 @@ Currently, only the "name" field is supported.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskey">selectorsMacros</a></b></td>
+        <td>map[string]object</td>
+        <td>
+          SelectorsMacros is used to define selectors macros, which can be used
+in probes/hooks selectors by their names.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspectracepointsindex">tracepoints</a></b></td>
         <td>[]object</td>
         <td>
@@ -7106,6 +8072,14 @@ results of MatchPIDs and MatchArgs are ANDed.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>macros</b></td>
+        <td>[]string</td>
+        <td>
+          A list of macros names, defined in spec.selectorsMacros.
+Filters specified in macros will be appended to corresponding filters of the selector.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspeckprobesindexselectorsindexmatchactionsindex">matchActions</a></b></td>
         <td>[]object</td>
         <td>
@@ -8227,6 +9201,14 @@ results of MatchPIDs and MatchArgs are ANDed.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>macros</b></td>
+        <td>[]string</td>
+        <td>
+          A list of macros names, defined in spec.selectorsMacros.
+Filters specified in macros will be appended to corresponding filters of the selector.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspeclsmhooksindexselectorsindexmatchactionsindex">matchActions</a></b></td>
         <td>[]object</td>
         <td>
@@ -9227,6 +10209,916 @@ merge patch.<br/>
 </table>
 
 
+### TracingPolicyNamespaced.spec.selectorsMacros[key]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspec)</sup></sup>
+
+
+KProbeSelector selects function calls for kprobe based on PIDs and function arguments. The
+results of MatchPIDs and MatchArgs are ANDed.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>macros</b></td>
+        <td>[]string</td>
+        <td>
+          A list of macros names, defined in spec.selectorsMacros.
+Filters specified in macros will be appended to corresponding filters of the selector.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchactionsindex">matchActions</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of actions to execute when this selector matches<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchargsindex">matchArgs</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of argument filters. MatchArgs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchbinariesindex">matchBinaries</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of binary exec name filters.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchcapabilitiesindex">matchCapabilities</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of capabilities and IDs<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchcapabilitychangesindex">matchCapabilityChanges</a></b></td>
+        <td>[]object</td>
+        <td>
+          IDs for capabilities changes<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchdataindex">matchData</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of argument filters. MatchData are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchnamespacechangesindex">matchNamespaceChanges</a></b></td>
+        <td>[]object</td>
+        <td>
+          IDs for namespace changes<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchnamespacesindex">matchNamespaces</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of namespaces and IDs<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchpidsindex">matchPIDs</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of process ID filters. MatchPIDs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchparentbinariesindex">matchParentBinaries</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of process parent exec name filters.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchreturnactionsindex">matchReturnActions</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of actions to execute when MatchReturnArgs selector matches<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecselectorsmacroskeymatchreturnargsindex">matchReturnArgs</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of argument filters. MatchArgs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.selectorsMacros[key].matchActions[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>action</b></td>
+        <td>enum</td>
+        <td>
+          Action to execute.
+NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
+be removed in version 1.5.<br/>
+          <br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>argError</b></td>
+        <td>integer</td>
+        <td>
+          error value for override action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argFd</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the fd for fdInstall action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argFqdn</b></td>
+        <td>string</td>
+        <td>
+          A FQDN to lookup for the dnsLookup action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argIndex</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argName</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the filename for fdInstall action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argRegs</b></td>
+        <td>[]string</td>
+        <td>
+          An arg value for the regs action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argSig</b></td>
+        <td>integer</td>
+        <td>
+          A signal number for signal action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argSock</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the sock for trackSock and untrackSock actions<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argUrl</b></td>
+        <td>string</td>
+        <td>
+          A URL for the getUrl action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argValue</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>imaHash</b></td>
+        <td>boolean</td>
+        <td>
+          Enable collection of file hashes from integrity subsystem.
+Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>kernelStackTrace</b></td>
+        <td>boolean</td>
+        <td>
+          Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>rateLimit</b></td>
+        <td>string</td>
+        <td>
+          A time period within which repeated messages will not be posted. Can be
+specified in seconds (default or with 's' suffix), minutes ('m' suffix)
+or hours ('h' suffix). Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>rateLimitScope</b></td>
+        <td>string</td>
+        <td>
+          The scope of the provided rate limit argument. Can be "thread" (default),
+"process" (all threads for the same process), or "global". If "thread" is
+selected then rate limiting applies per thread; if "process" is selected
+then rate limiting applies per process; if "global" is selected then rate
+limiting applies regardless of which process or thread caused the action.
+Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>userStackTrace</b></td>
+        <td>boolean</td>
+        <td>
+          Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.selectorsMacros[key].matchArgs[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>args</b></td>
+        <td>[]integer</td>
+        <td>
+          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Value to compare the argument against.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.selectorsMacros[key].matchBinaries[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Value to compare the argument against.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>followChildren</b></td>
+        <td>boolean</td>
+        <td>
+          In addition to binaries, match children processes of specified binaries.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.selectorsMacros[key].matchCapabilities[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Namespace selector operator.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Capabilities to match.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>isNamespaceCapability</b></td>
+        <td>boolean</td>
+        <td>
+          Indicates whether these caps are namespace caps.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>enum</td>
+        <td>
+          Type of capabilities<br/>
+          <br/>
+            <i>Enum</i>: Effective, Inheritable, Permitted<br/>
+            <i>Default</i>: Effective<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.selectorsMacros[key].matchCapabilityChanges[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Namespace selector operator.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Capabilities to match.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>isNamespaceCapability</b></td>
+        <td>boolean</td>
+        <td>
+          Indicates whether these caps are namespace caps.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>enum</td>
+        <td>
+          Type of capabilities<br/>
+          <br/>
+            <i>Enum</i>: Effective, Inheritable, Permitted<br/>
+            <i>Default</i>: Effective<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.selectorsMacros[key].matchData[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>args</b></td>
+        <td>[]integer</td>
+        <td>
+          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Value to compare the argument against.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.selectorsMacros[key].matchNamespaceChanges[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Namespace selector operator.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Namespace types (e.g., Mnt, Pid) to match.<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.selectorsMacros[key].matchNamespaces[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>namespace</b></td>
+        <td>enum</td>
+        <td>
+          Namespace selector name.<br/>
+          <br/>
+            <i>Enum</i>: Uts, Ipc, Mnt, Pid, PidForChildren, Net, Time, TimeForChildren, Cgroup, User<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Namespace selector operator.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Namespace IDs (or host_ns for host namespace) of namespaces to match.<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.selectorsMacros[key].matchPIDs[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          PID selector operator.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]integer</td>
+        <td>
+          Process IDs to match.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>followForks</b></td>
+        <td>boolean</td>
+        <td>
+          Matches any descendant processes of the matching PIDs.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>isNamespacePID</b></td>
+        <td>boolean</td>
+        <td>
+          Indicates whether PIDs are namespace PIDs.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.selectorsMacros[key].matchParentBinaries[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Value to compare the argument against.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>followChildren</b></td>
+        <td>boolean</td>
+        <td>
+          In addition to binaries, match children processes of specified binaries.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.selectorsMacros[key].matchReturnActions[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>action</b></td>
+        <td>enum</td>
+        <td>
+          Action to execute.
+NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
+be removed in version 1.5.<br/>
+          <br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>argError</b></td>
+        <td>integer</td>
+        <td>
+          error value for override action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argFd</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the fd for fdInstall action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argFqdn</b></td>
+        <td>string</td>
+        <td>
+          A FQDN to lookup for the dnsLookup action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argIndex</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argName</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the filename for fdInstall action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argRegs</b></td>
+        <td>[]string</td>
+        <td>
+          An arg value for the regs action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argSig</b></td>
+        <td>integer</td>
+        <td>
+          A signal number for signal action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argSock</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the sock for trackSock and untrackSock actions<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argUrl</b></td>
+        <td>string</td>
+        <td>
+          A URL for the getUrl action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argValue</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>imaHash</b></td>
+        <td>boolean</td>
+        <td>
+          Enable collection of file hashes from integrity subsystem.
+Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>kernelStackTrace</b></td>
+        <td>boolean</td>
+        <td>
+          Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>rateLimit</b></td>
+        <td>string</td>
+        <td>
+          A time period within which repeated messages will not be posted. Can be
+specified in seconds (default or with 's' suffix), minutes ('m' suffix)
+or hours ('h' suffix). Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>rateLimitScope</b></td>
+        <td>string</td>
+        <td>
+          The scope of the provided rate limit argument. Can be "thread" (default),
+"process" (all threads for the same process), or "global". If "thread" is
+selected then rate limiting applies per thread; if "process" is selected
+then rate limiting applies per process; if "global" is selected then rate
+limiting applies regardless of which process or thread caused the action.
+Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>userStackTrace</b></td>
+        <td>boolean</td>
+        <td>
+          Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.selectorsMacros[key].matchReturnArgs[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecselectorsmacroskey)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>args</b></td>
+        <td>[]integer</td>
+        <td>
+          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Value to compare the argument against.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
 ### TracingPolicyNamespaced.spec.tracepoints[index]
 <sup><sup>[↩ Parent](#tracingpolicynamespacedspec)</sup></sup>
 
@@ -9421,6 +11313,14 @@ results of MatchPIDs and MatchArgs are ANDed.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>macros</b></td>
+        <td>[]string</td>
+        <td>
+          A list of macros names, defined in spec.selectorsMacros.
+Filters specified in macros will be appended to corresponding filters of the selector.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspectracepointsindexselectorsindexmatchactionsindex">matchActions</a></b></td>
         <td>[]object</td>
         <td>
@@ -10758,6 +12658,14 @@ results of MatchPIDs and MatchArgs are ANDed.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>macros</b></td>
+        <td>[]string</td>
+        <td>
+          A list of macros names, defined in spec.selectorsMacros.
+Filters specified in macros will be appended to corresponding filters of the selector.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspecuprobesindexselectorsindexmatchactionsindex">matchActions</a></b></td>
         <td>[]object</td>
         <td>
@@ -11844,6 +13752,14 @@ results of MatchPIDs and MatchArgs are ANDed.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>macros</b></td>
+        <td>[]string</td>
+        <td>
+          A list of macros names, defined in spec.selectorsMacros.
+Filters specified in macros will be appended to corresponding filters of the selector.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspecusdtsindexselectorsindexmatchactionsindex">matchActions</a></b></td>
         <td>[]object</td>
         <td>

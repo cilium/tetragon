@@ -165,6 +165,10 @@ type KProbeSelector struct {
 	// +kubebuilder:validation:Optional
 	// IDs for capabilities changes
 	MatchCapabilityChanges []CapabilitiesSelector `json:"matchCapabilityChanges,omitempty"`
+	// +kubebuilder:validation:Optional
+	// A list of macros names, defined in spec.selectorsMacros.
+	// Filters specified in macros will be appended to corresponding filters of the selector.
+	Macros []string `json:"macros,omitempty"`
 }
 
 type NamespaceChangesSelector struct {
