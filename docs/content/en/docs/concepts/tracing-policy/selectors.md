@@ -2044,18 +2044,17 @@ The above would be executed in kernel as:
 
 ### Limitations
 
-{{% pageinfo %}}
-Those limitations might be outdated, see [issue #709](https://github.com/cilium/tetragon/issues/709).
-{{% /pageinfo %}}
-
 Because BPF must be bounded we have to place limits on how many selectors can
 exist.
 
-- Max Selectors 8.
+- Max Selectors 5.
 - Max PID values per selector 4
 - Max MatchArgs per selector 5 (one per index)
-- Max MatchArg Values per MatchArgs 1 (limiting initial implementation can bump
-  to 16 or so)
+- Max MatchArg Values per MatchArgs 4 (for operators like `Equal`, `NotEqual`,
+  `GT`, `LT`, etc.)
+
+For an unlimited number of values, consider using the `InMap` or `NotInMap`
+operators which store values in a BPF map.
 
 
 ## Return Actions filter
