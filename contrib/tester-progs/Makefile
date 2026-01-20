@@ -37,7 +37,8 @@ PROGS = sigkill-tester \
 	usdt-resolve \
 	uretprobe \
 	uprobe-resolve \
-	regs-override
+	regs-override \
+	usdt-args
 
 LIBS = libuprobe.so
 
@@ -92,6 +93,9 @@ capabilities-gained: capabilities-gained.c
 	$(GCC) -Wall $< -o $@ -lcap
 
 usdt: usdt.c
+	$(GCC) -Wall $< -o $@
+
+usdt-args: usdt-args.c
 	$(GCC) -Wall $< -o $@
 
 capabilities-ioperm: capabilities-ioperm.c
