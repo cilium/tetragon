@@ -39,3 +39,4 @@ uretprobe
 uprobe-resolve
 uprobe-resolve.btf
 libtester.so
+usdt-args
