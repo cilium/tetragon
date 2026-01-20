@@ -391,6 +391,81 @@ spec:
 	require.NoError(t, err)
 }
 
+func TestUsdtStringArg(t *testing.T) {
+	if !config.EnableLargeProgs() || !bpf.HasUprobeRefCtrOffset() {
+		t.Skip("Need 5.3 or newer kernel for usdt and uprobe ref_ctr_off support for this test.")
+	}
+
+	if !bpf.HasKfunc("bpf_copy_from_user_str") {
+		t.Skip("this test requires bpf_copy_from_user_str kfunc support")
+	}
+
+	usdt := testutils.RepoRootPath("contrib/tester-progs/usdt-args")
+	argType := "string"
+	argValue := "hello world!"
+	usdtHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "usdt-args"
+spec:
+  usdts:
+  - path: "` + usdt + `"
+    provider: "tetragon"
+    name: "string_test"
+    args:
+    - index: 0
+      type: "` + argType + `"
+    selectors:
+    - matchArgs:
+        - index: 0
+          operator: "Equal"
+          values:
+          - "` + argValue + `"
+`
+
+	usdtConfigHook := []byte(usdtHook)
+	err := os.WriteFile(testConfigFile, usdtConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	upChecker_0 := ec.NewProcessUsdtChecker("USDT").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(usdt))).
+		WithProvider(sm.Full("tetragon")).
+		WithName(sm.Full("string_test")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Full(argValue)),
+			))
+
+	checkers := []ec.EventChecker{upChecker_0}
+
+	checker := ec.NewUnorderedEventChecker(checkers...)
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	if err := exec.Command(usdt, argType, argValue).Run(); err != nil {
+		t.Fatalf("Failed to execute test binary: %s\n", err)
+	}
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
 func TestUsdtGenericActionSigkill(t *testing.T) {
 	if !config.EnableLargeProgs() || !bpf.HasUprobeRefCtrOffset() {
 		t.Skip("Need 5.3 or newer kernel for usdt and uprobe ref_ctr_off support for this test.")
