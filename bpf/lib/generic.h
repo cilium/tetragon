@@ -33,8 +33,9 @@ struct msg_selector_data {
 #endif
 };
 
+#define GENERIC_MSG_ARGS_SIZE 24000
 /* value to mask an offsset into msg_generic_kprobe->args */
-#define GENERIC_MSG_ARGS_MASK 0x7ff
+#define GENERIC_MSG_ARGS_MASK 0x3fff
 
 struct generic_path {
 	int state;
@@ -62,7 +63,7 @@ struct msg_generic_kprobe {
 	__u64 kernel_stack_id; // Kernel stack trace ID on u32 and potential error, see flag in msg_common.flags
 	__u64 user_stack_id; // User Stack trace ID
 	/* anything above is shared with the userspace so it should match structs MsgGenericKprobe and MsgGenericTracepoint in Go */
-	char args[24000];
+	char args[GENERIC_MSG_ARGS_SIZE];
 	unsigned long a0, a1, a2, a3, a4;
 	long argsoff[MAX_POSSIBLE_ARGS];
 	struct msg_selector_data sel;
