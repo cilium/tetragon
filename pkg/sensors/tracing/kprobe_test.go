@@ -4570,6 +4570,58 @@ spec:
 	require.NoError(t, err)
 }
 
+func TestKprobePerfEvent(t *testing.T) {
+	if v := "5.5.0"; !kernels.MinKernelVersion(v) {
+		t.Skipf("Minimum kernel version (%v) not met, skipping", v)
+	}
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	hook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+ name: "perf-event-alloc"
+spec:
+ kprobes:
+ - call: "security_perf_event_alloc"
+   syscall: false
+   args:
+   - index: 0
+     type: "perf_event"
+`
+	createCrdFile(t, hook)
+
+	obs, err := observer.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observer.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	err = loadTestCrd(t)
+	if err != nil {
+		t.Fatalf("Loading test CRD failed: %s", err)
+	}
+
+	kpChecker := ec.NewProcessKprobeChecker().
+		WithFunctionName(sm.Full("security_perf_event_alloc")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithPerfEventArg(ec.NewKprobePerfEventChecker().
+					WithKprobeFunc(sm.Full("__x64_sys_write")).
+					WithType(sm.Full("PERF_TYPE_MAX")),
+				),
+			))
+
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	assert.NoError(t, err)
+}
+
 func TestLoadKprobeSensor(t *testing.T) {
 	var sensorProgs []tus.SensorProg
 	var sensorMaps []tus.SensorMap
