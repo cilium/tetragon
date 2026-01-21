@@ -357,7 +357,7 @@ spec:
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
-	// UprobeTestFunc()
+	UprobeTestFunc()
 
 	return jsonchecker.JsonTestCheck(t, checker)
 }
