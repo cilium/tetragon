@@ -18,6 +18,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 
+	"github.com/cilium/tetragon/pkg/kernels"
 	bc "github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
 
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
@@ -906,5 +907,67 @@ func TestUprobeArgsMatch(t *testing.T) {
 
 func TestUprobeArgsMatchNot(t *testing.T) {
 	err := uprobeArgsMatch(t, 124, true)
+	require.NoError(t, err)
+}
+
+func TestUprobeResolveCurrent(t *testing.T) {
+	if !kernels.MinKernelVersion("5.4") {
+		t.Skip("Test requires kernel 5.4+")
+	}
+
+	testBinary := testutils.RepoRootPath("contrib/tester-progs/uprobe-test-1")
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	hook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "` + testBinary + `"
+    symbols:
+    - "main"
+    data:
+    - index: 0
+      type: "string"
+      source: "current_task"
+      resolve: "mm.owner.comm"
+    selectors:
+    - matchData:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "uprobe-test-1"
+`
+
+	createCrdFile(t, hook)
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	cmd := exec.Command(testBinary)
+	require.NoError(t, cmd.Run())
+
+	upChecker := ec.NewProcessUprobeChecker("UPROBE").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(testBinary))).
+		WithSymbol(sm.Full("main")).
+		WithData(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Full("uprobe-test-1")),
+			))
+	checker := ec.NewUnorderedEventChecker(upChecker)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 }
