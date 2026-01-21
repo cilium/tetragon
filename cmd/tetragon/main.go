@@ -39,24 +39,18 @@ import (
 	tetragonGrpc "github.com/cilium/tetragon/pkg/grpc"
 	"github.com/cilium/tetragon/pkg/health"
 	"github.com/cilium/tetragon/pkg/logger"
-	"github.com/cilium/tetragon/pkg/manager"
-	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metricsconfig"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/pidfile"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/ratelimit"
-	"github.com/cilium/tetragon/pkg/reader/node"
-	"github.com/cilium/tetragon/pkg/rthooks"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 	"github.com/cilium/tetragon/pkg/server"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/cilium/tetragon/pkg/unixlisten"
 	"github.com/cilium/tetragon/pkg/version"
-	"github.com/cilium/tetragon/pkg/watcher"
-	"github.com/cilium/tetragon/pkg/watcher/crdwatcher"
 
 	// Imported to allow sensors to be initialized inside init().
 	_ "github.com/cilium/tetragon/pkg/sensors"
@@ -68,8 +62,6 @@ import (
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/durationpb"
-
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 )
 
 var (
@@ -397,9 +389,7 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	if option.Config.MetricsServer != "" {
 		go metricsconfig.EnableMetrics(option.Config.MetricsServer)
 		metricsconfig.InitAllMetrics(metricsconfig.GetRegistry())
-		go metrics.StartPodDeleteHandler()
-		// Handler must be registered before the watcher is started
-		metrics.RegisterPodDeleteHandler()
+		initK8sMetrics()
 	}
 
 	// Probe runtime configuration and do not fail on errors
@@ -408,41 +398,9 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	// Initialize a k8s watcher used to retrieve process metadata. This should
 	// happen before the sensors are loaded, otherwise events will be stuck
 	// waiting for metadata.
-	var controllerManager *manager.ControllerManager
-	var podAccessor watcher.PodAccessor
-	if option.K8SControlPlaneEnabled() {
-		log.Info("Enabling Kubernetes API")
-		// Start controller-runtime manager.
-		controllerManager = manager.Get()
-		controllerManager.Start(ctx)
-		crds := make(map[string]struct{})
-		if option.Config.EnableTracingPolicyCRD {
-			crds[v1alpha1.TPName] = struct{}{}
-			crds[v1alpha1.TPNamespacedName] = struct{}{}
-		}
-		if option.Config.EnablePodInfo {
-			crds[v1alpha1.PIName] = struct{}{}
-		}
-		if option.InClusterControlPlaneEnabled() {
-			if len(crds) > 0 {
-				err = controllerManager.WaitCRDs(ctx, crds)
-				if err != nil {
-					return err
-				}
-			}
-			podAccessor = controllerManager
-			k8sNode, err := controllerManager.GetNode()
-			if err != nil {
-				log.Warn("Failed to get local Kubernetes node info. node_labels field will be empty", logfields.Error, err)
-			} else {
-				node.SetNodeLabels(k8sNode.Labels)
-			}
-		} else {
-			podAccessor = watcher.NewFakeK8sWatcher(nil)
-		}
-	} else {
-		log.Info("Disabling Kubernetes API")
-		podAccessor = watcher.NewFakeK8sWatcher(nil)
+	podAccessor, err := initK8s(ctx)
+	if err != nil {
+		return err
 	}
 
 	pcGCInterval := option.Config.ProcessCacheGCInterval
@@ -469,7 +427,7 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	ctx, cancel2 := context.WithCancel(ctx)
 	defer cancel2()
 
-	hookRunner := rthooks.GlobalRunner().WithWatcher(podAccessor)
+	hookRunner := getHooksRunner(podAccessor)
 
 	err = setRedactionFilters()
 	if err != nil {
@@ -515,13 +473,8 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	// Initialize a k8s watcher used to manage policies. This should happen
 	// after the sensors are loaded, otherwise existing policies will fail to
 	// load on the first attempt.
-	if option.K8SControlPlaneEnabled() && option.Config.EnableTracingPolicyCRD {
-		// add informers for all resources
-		log.Info("Enabling policy informers")
-		err := crdwatcher.AddTracingPolicyInformer(ctx, controllerManager, observer.GetSensorManager())
-		if err != nil {
-			return err
-		}
+	if err := initK8sPolicyWatcher(ctx); err != nil {
+		return err
 	}
 
 	obs.LogPinnedBpf(observerDir)
