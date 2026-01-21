@@ -579,6 +579,16 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 						logger.GetLogger().Warn("can't preload string argument, might be wrong")
 					}
 				}
+			} else if hasCurrentTaskSource(a) {
+				if !bpf.HasProgramLargeSize() {
+					return errors.New("error: Resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag")
+				}
+				lastBTFType, btfArg, err := resolveBTFArg("", a, false)
+				if err != nil {
+					return fmt.Errorf("can't resolve current_task source: %s", a.Resolve)
+				}
+				allBTFArgs[i] = btfArg
+				argType = findTypeFromBTFType(a, lastBTFType)
 			}
 		} else {
 			// Args specific config
@@ -633,7 +643,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 
 	// Parse Data
 	for _, data := range spec.Data {
-		if !hasPtRegsSource(&data) {
+		if !hasPtRegsSource(&data) && !hasCurrentTaskSource(&data) {
 			return nil, fmt.Errorf("data argument has wrong source '%s'", data.Source)
 		}
 		if data.Resolve == "" {
