@@ -23,27 +23,28 @@ import (
 )
 
 type Opts struct {
-	Output        string
-	Color         string
-	IncludeFields []string
-	EventTypes    []string
-	ExcludeFields []string
-	Namespaces    []string
-	Namespace     []string // deprecated: use Namespaces
-	Processes     []string
-	Process       []string // deprecated: use Processes
-	Pods          []string
-	Pod           []string // deprecated: use Pods
-	Containers    []string
-	Host          bool
-	Timestamps    bool
-	TTYEncode     string
-	StackTraces   bool
-	ImaHash       bool
-	PolicyNames   []string
-	CelExpression []string
-	Reconnect     bool
-	ReconnectWait time.Duration
+	Output         string
+	Color          string
+	IncludeFields  []string
+	EventTypes     []string
+	ExcludeFields  []string
+	Namespaces     []string
+	Namespace      []string // deprecated: use Namespaces
+	Processes      []string
+	Process        []string // deprecated: use Processes
+	Pods           []string
+	Pod            []string // deprecated: use Pods
+	Containers     []string
+	Host           bool
+	Timestamps     bool
+	TTYEncode      string
+	StackTraces    bool
+	ImaHash        bool
+	PolicyNames    []string
+	NamespaceRegex []string
+	CelExpression  []string
+	Reconnect      bool
+	ReconnectWait  time.Duration
 }
 
 var Options Opts
@@ -94,6 +95,9 @@ var GetFilter = func() *tetragon.Filter {
 	}
 	if len(Options.PolicyNames) > 0 {
 		filter.PolicyNames = Options.PolicyNames
+	}
+	if len(Options.NamespaceRegex) > 0 {
+		filter.NamespaceRegex = Options.NamespaceRegex
 	}
 	if len(Options.CelExpression) > 0 {
 		filter.CelExpression = Options.CelExpression
@@ -257,6 +261,7 @@ redirection of events to the stdin. Examples:
 	flags.BoolVar(&Options.StackTraces, "stack-traces", true, "Include stack traces in compact output")
 	flags.BoolVar(&Options.ImaHash, "ima-hash", true, "Include ima hashes in compact output")
 	flags.StringSliceVar(&Options.PolicyNames, "policy-names", nil, "Get events by tracing policy names")
+	flags.StringSliceVar(&Options.NamespaceRegex, "namespace-regex", nil, "Get events by namespace name regex")
 	flags.StringSliceVar(&Options.CelExpression, "cel-expression", nil, "Get events satisfying the CEL expression")
 	flags.BoolVar(&Options.Reconnect, "reconnect", false, "Keep trying to connect even if an error occurred")
 	flags.DurationVar(&Options.ReconnectWait, "reconnect-wait", 2*time.Second, "wait time before attempting to reconnect")
