@@ -6,7 +6,7 @@ package vtuple
 
 import (
 	"fmt"
-	"net"
+	"net/netip"
 )
 
 type VTuple interface {
@@ -15,8 +15,8 @@ type VTuple interface {
 	IsIP4() bool
 	IsIP6() bool
 
-	SrcAddr() net.IP
-	DstAddr() net.IP
+	SrcAddr() netip.Addr
+	DstAddr() netip.Addr
 	SrcPort() uint16
 	DstPort() uint16
 }
@@ -38,8 +38,8 @@ const (
 )
 
 type Impl struct {
-	srcAddr net.IP
-	dstAddr net.IP
+	srcAddr netip.Addr
+	dstAddr netip.Addr
 	srcPort uint16
 	dstPort uint16
 	proto   uint16
@@ -58,11 +58,11 @@ func (t *Impl) IsIP4() bool {
 func (t *Impl) IsIP6() bool {
 	return (t.proto & VT_L3_MASK) == VT_IP6
 }
-func (t *Impl) SrcAddr() net.IP {
-	return t.srcAddr[:]
+func (t *Impl) SrcAddr() netip.Addr {
+	return t.srcAddr
 }
-func (t *Impl) DstAddr() net.IP {
-	return t.dstAddr[:]
+func (t *Impl) DstAddr() netip.Addr {
+	return t.dstAddr
 }
 func (t *Impl) SrcPort() uint16 {
 	return t.srcPort
@@ -74,8 +74,8 @@ func (t *Impl) DstPort() uint16 {
 func CreateTCPv4(saddr [4]byte, sport uint16, daddr [4]byte, dport uint16) Impl {
 	return Impl{
 		proto:   VT_TCP4,
-		srcAddr: net.IPv4(saddr[0], saddr[1], saddr[2], saddr[3]),
-		dstAddr: net.IPv4(daddr[0], daddr[1], daddr[2], daddr[3]),
+		srcAddr: netip.AddrFrom4(saddr),
+		dstAddr: netip.AddrFrom4(daddr),
 		srcPort: sport,
 		dstPort: dport,
 	}
@@ -85,8 +85,8 @@ func CreateTCPv4(saddr [4]byte, sport uint16, daddr [4]byte, dport uint16) Impl 
 func CreateUDPv4(saddr [4]byte, sport uint16, daddr [4]byte, dport uint16) Impl {
 	return Impl{
 		proto:   VT_UDP4,
-		srcAddr: net.IPv4(saddr[0], saddr[1], saddr[2], saddr[3]),
-		dstAddr: net.IPv4(daddr[0], daddr[1], daddr[2], daddr[3]),
+		srcAddr: netip.AddrFrom4(saddr),
+		dstAddr: netip.AddrFrom4(daddr),
 		srcPort: sport,
 		dstPort: dport,
 	}
@@ -111,8 +111,8 @@ func CreateVTupleV4(proto byte, saddr [4]byte, sport uint16, daddr [4]byte, dpor
 
 	return Impl{
 		proto:   VT_IP4 | uint16(proto),
-		srcAddr: net.IPv4(saddr[0], saddr[1], saddr[2], saddr[3]),
-		dstAddr: net.IPv4(daddr[0], daddr[1], daddr[2], daddr[3]),
+		srcAddr: netip.AddrFrom4(saddr),
+		dstAddr: netip.AddrFrom4(daddr),
 		srcPort: sport,
 		dstPort: dport,
 	}, nil

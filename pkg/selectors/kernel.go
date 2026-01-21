@@ -621,17 +621,11 @@ func writeMatchAddrsInMap(k *KernelSelectorState, values []string) error {
 
 func parseAddr(v string) ([]byte, uint32, error) {
 	if strings.Contains(v, "/") {
-		ipAddr, ipNet, err := net.ParseCIDR(v)
+		prefix, err := netip.ParsePrefix(v)
 		if err != nil {
 			return nil, 0, fmt.Errorf("CIDR is invalid: %w", err)
 		}
-
-		maskLen, maxMaskLen := ipNet.Mask.Size()
-		if maxMaskLen == net.IPv6len*8 {
-			return ipAddr.To16(), uint32(maskLen), nil
-		}
-
-		return ipAddr.To4(), uint32(maskLen), nil
+		return prefix.Addr().AsSlice(), uint32(prefix.Bits()), nil
 	}
 
 	ipAddr, err := netip.ParseAddr(v)
