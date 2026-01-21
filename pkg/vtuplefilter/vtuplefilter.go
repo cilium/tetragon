@@ -5,7 +5,7 @@ package vtuplefilter
 
 import (
 	"fmt"
-	"net"
+	"net/netip"
 	"strconv"
 	"strings"
 
@@ -13,7 +13,7 @@ import (
 )
 
 type Port = uint16
-type Addr = net.IP
+type Addr = netip.Addr
 
 type ParseError struct {
 	msg string
@@ -59,8 +59,8 @@ func FromLine(s string) (Filter, error) {
 		case "saddr":
 		case "daddr":
 		case "addr":
-			ip := net.ParseIP(opts[1])
-			if ip == nil {
+			ip, err := netip.ParseAddr(opts[1])
+			if err != nil {
 				return nil, ParseErrorFmt("failed to parse %s as ip", opts[1])
 			}
 
@@ -192,14 +192,14 @@ func (pf *AddrFilter) FilterFn(t vtuple.VTuple) bool {
 func CreateSrcAddrFilter(addr Addr) Filter {
 	return &AddrFilter{
 		getAddr: func(t vtuple.VTuple) Addr { return t.SrcAddr() },
-		pred:    func(a Addr) bool { return a.Equal(addr) },
+		pred:    func(a Addr) bool { return a == addr },
 	}
 }
 
 func CreateDstAddrFilter(addr Addr) Filter {
 	return &AddrFilter{
 		getAddr: func(t vtuple.VTuple) Addr { return t.DstAddr() },
-		pred:    func(a Addr) bool { return a.Equal(addr) },
+		pred:    func(a Addr) bool { return a == addr },
 	}
 }
 
