@@ -43,6 +43,7 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metricsconfig"
 	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/observertypes"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/pidfile"
 	"github.com/cilium/tetragon/pkg/process"
@@ -53,6 +54,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors/exec/procevents"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 	"github.com/cilium/tetragon/pkg/server"
+	"github.com/cilium/tetragon/pkg/synthetic"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/cilium/tetragon/pkg/unixlisten"
 	"github.com/cilium/tetragon/pkg/version"
@@ -363,9 +365,9 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	}
 
 	// Get observer from configFile
-	var obs observer.EventObserver
+	var obs observertypes.EventObserver
 	if option.Config.SyntheticEventsSource != "" {
-		obs = observer.NewFileObserver()
+		obs = synthetic.NewFileObserver()
 	} else {
 		obs = observer.NewObserver()
 	}
@@ -373,12 +375,16 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 		obs.PrintStats()
 	}()
 
-	// Initialize event logger for synthetic events testing
+	// Initialize synthetic event listener for recording events
+	var syntheticListener *synthetic.EventListener
 	if option.Config.SyntheticEventsLog != "" {
-		if err := observer.InitEventLogger(option.Config.SyntheticEventsLog); err != nil {
-			return fmt.Errorf("failed to init event logger: %w", err)
+		var err error
+		syntheticListener, err = synthetic.NewEventListener(option.Config.SyntheticEventsLog)
+		if err != nil {
+			return fmt.Errorf("failed to create synthetic event listener: %w", err)
 		}
-		defer observer.CloseEventLogger()
+		obs.AddListener(syntheticListener)
+		defer syntheticListener.Close()
 	}
 
 	go func() {
@@ -642,7 +648,7 @@ func addTracingPolicy(ctx context.Context, file string) error {
 // Periodically log current status every 24 hours. For lost or error
 // events we ratelimit statistics to 1 message per every 1hour and
 // only if they increase, to inform users that events are being lost.
-func logStatus(ctx context.Context, obs observer.EventObserver) {
+func logStatus(ctx context.Context, obs observertypes.EventObserver) {
 	prevLost := uint64(0)
 	prevErrors := uint64(0)
 	lostTicker := time.NewTicker(1 * time.Hour)

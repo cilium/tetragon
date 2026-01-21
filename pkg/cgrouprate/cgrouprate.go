@@ -36,7 +36,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/metrics/cgroupratemetrics"
-	"github.com/cilium/tetragon/pkg/observer"
+	"github.com/cilium/tetragon/pkg/observertypes"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/sensors"
@@ -68,7 +68,7 @@ type cgroupQueue struct {
 }
 
 type CgroupRate struct {
-	listener observer.Listener
+	listener observertypes.Listener
 	log      logger.FieldLogger
 	ch       chan *cgroupQueue
 	opts     *option.CgroupRate
@@ -78,7 +78,7 @@ type CgroupRate struct {
 }
 
 func newCgroupRate(
-	listener observer.Listener,
+	listener observertypes.Listener,
 	hash *program.Map,
 	opts *option.CgroupRate) *CgroupRate {
 
@@ -93,7 +93,7 @@ func newCgroupRate(
 }
 
 func NewCgroupRate(ctx context.Context,
-	listener observer.Listener,
+	listener observertypes.Listener,
 	opts *option.CgroupRate) error {
 
 	if opts.Events == 0 || opts.Interval == 0 {
@@ -112,7 +112,7 @@ func NewCgroupRate(ctx context.Context,
 	return nil
 }
 
-func NewTestCgroupRate(listener observer.Listener,
+func NewTestCgroupRate(listener observertypes.Listener,
 	hash *program.Map,
 	opts *option.CgroupRate) {
 

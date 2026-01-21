@@ -6,8 +6,6 @@ package observer
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -25,6 +23,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/metrics/opcodemetrics"
+	"github.com/cilium/tetragon/pkg/observertypes"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/sensors"
@@ -35,59 +34,10 @@ import (
 var (
 	eventHandler = make(map[uint8]func(r *bytes.Reader) ([]Event, error))
 
-	observerList []EventObserver
-
-	// Event logger for synthetic events testing
-	eventLogFile *os.File
+	// observerList contains concrete Observer instances for internal event dispatch
+	// Using []*Observer (not interface) to allow calling unexported observerListeners method
+	observerList []*Observer
 )
-
-// InitEventLogger initializes event logging to a file for synthetic events testing
-func InitEventLogger(path string) error {
-	// If file exists, rename it with creation/modification time prefix
-	if info, err := os.Stat(path); err == nil {
-		modTime := info.ModTime().Format("2006-01-02_15-04-05")
-		dir := filepath.Dir(path)
-		base := filepath.Base(path)
-		newName := filepath.Join(dir, modTime+"_"+base)
-		if err := os.Rename(path, newName); err != nil {
-			return fmt.Errorf("failed to rename existing log file: %w", err)
-		}
-	}
-
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-	if err != nil {
-		return err
-	}
-	eventLogFile = f
-	return nil
-}
-
-// CloseEventLogger closes the event log file
-func CloseEventLogger() {
-	if eventLogFile != nil {
-		eventLogFile.Close()
-		eventLogFile = nil
-	}
-}
-
-type loggedEvent struct {
-	Events json.RawMessage `json:"events"` // human-readable JSON (for debugging only)
-	Data string `json:"data"` // base64-encoded raw binary event data
-}
-
-type EventObserver interface {
-	Start(ctx context.Context) error
-	StartReady(ctx context.Context, ready func()) error
-	InitSensorManager() error
-	UpdateRuntimeConf(bpfDir string) error
-	AddListener(listener Listener)
-	RemoveListener(listener Listener)
-	PrintStats()
-	LogPinnedBpf(observerDir string)
-	ReadLostEvents() uint64
-	ReadErrorEvents() uint64
-	observerListeners(msg notify.Message)
-}
 
 type Event notify.Message
 
@@ -110,12 +60,12 @@ func AllListeners(msg notify.Message) {
 	}
 }
 
-func (k *Observer) AddListener(listener Listener) {
+func (k *Observer) AddListener(listener observertypes.Listener) {
 	k.log.Debug("Add listener", "listener", listener)
 	k.listeners[listener] = struct{}{}
 }
 
-func (k *Observer) RemoveListener(listener Listener) {
+func (k *Observer) RemoveListener(listener observertypes.Listener) {
 	k.log.Debug("Delete listener", "listener", listener)
 	delete(k.listeners, listener)
 	if err := listener.Close(); err != nil {
@@ -188,19 +138,7 @@ func (k *Observer) receiveEvent(data []byte) {
 		}
 	}
 
-	// Log original event data to file if logger is initialized
-	if eventLogFile != nil {
-		eventsBytes, _ := json.Marshal(events)
-		logEntry := loggedEvent{
-			Data:   base64.StdEncoding.EncodeToString(data),
-			Events: eventsBytes,
-		}
-		logBytes, _ := json.Marshal(logEntry)
-		eventLogFile.Write(append(logBytes, '\n'))
-	}
 	for _, event := range events {
-		// jsonBytes, _ := json.Marshal(event)
-		// fmt.Println(string(jsonBytes))
 		k.observerListeners(event)
 	}
 	if option.Config.EnableMsgHandlingLatency {
@@ -223,7 +161,7 @@ func (k *Observer) getRBQueueSize() int {
 // notified of their corresponding events.
 type Observer struct {
 	/* Configuration */
-	listeners      map[Listener]struct{}
+	listeners      map[observertypes.Listener]struct{}
 	PerfConfig     *bpf.PerfEventConfig
 	RingBufMapPath string
 	/* Statistics */
@@ -286,7 +224,7 @@ func (k *Observer) InitSensorManager() error {
 
 func NewObserver() *Observer {
 	o := &Observer{
-		listeners: make(map[Listener]struct{}),
+		listeners: make(map[observertypes.Listener]struct{}),
 		lostCntr:  RingbufLost,
 		errorCntr: RingbufErrors,
 		recvCntr:  RingbufReceived,
