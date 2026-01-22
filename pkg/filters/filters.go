@@ -139,6 +139,7 @@ var Filters = []OnBuildFilter{
 	&AncestorBinaryRegexFilter{},
 	&HealthCheckFilter{},
 	&NamespaceFilter{},
+	&NamespaceRegexFilter{},
 	&PidFilter{},
 	&PidSetFilter{},
 	&EventTypeFilter{},
