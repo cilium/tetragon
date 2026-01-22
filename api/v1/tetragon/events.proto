@@ -83,6 +83,9 @@ message Filter {
   // Filter by the container name in the process.pod.container field using RE2 regular expression syntax:
   // https://github.com/google/re2/wiki/Syntax
   repeated string container_name_regex = 18;
+  // Filter by the namespace in the process.pod.namespace field using RE2 regular expression syntax:
+  // https://github.com/google/re2/wiki/Syntax
+  repeated string namespace_regex = 19;
 }
 
 // Filter over a set of Linux process capabilities. See `message Capabilities`
