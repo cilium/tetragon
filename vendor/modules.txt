@@ -52,7 +52,7 @@ github.com/cilium/ebpf/perf
 github.com/cilium/ebpf/pin
 github.com/cilium/ebpf/ringbuf
 github.com/cilium/ebpf/rlimit
-# github.com/cilium/little-vm-helper v0.0.29-0.20260118112734-08d16157e542
+# github.com/cilium/little-vm-helper v0.0.29-0.20260122213414-65d8cfc72e11
 ## explicit; go 1.24.0
 github.com/cilium/little-vm-helper/pkg/arch
 github.com/cilium/little-vm-helper/pkg/images
