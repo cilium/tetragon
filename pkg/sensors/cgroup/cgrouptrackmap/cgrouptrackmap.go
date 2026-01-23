@@ -56,3 +56,21 @@ func LookupTrackingCgroup(mapPath string, cgrpid uint64) (*CgrpTrackingValue, er
 
 	return &v, nil
 }
+
+func DeleteTrackingCgroup(mapPath string, cgrpid uint64) error {
+	if cgrpid == 0 {
+		return errors.New("invalid CgroupIdTracking")
+	}
+
+	m, err := ebpf.LoadPinnedMap(mapPath, nil)
+	if err != nil {
+		return err
+	}
+
+	defer m.Close()
+
+	logger.Trace(logger.GetLogger(), "Deleting tracking CgroupID from map",
+		"cgroup.id", cgrpid, "bpf-map", mapPath)
+
+	return m.Delete(&CgrpTrackingKey{CgrpId: cgrpid})
+}
