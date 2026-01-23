@@ -151,3 +151,12 @@ jobs:
         run: |
           GOOS=windows GOARCH=amd64 make tetragon
           GOOS=windows GOARCH=arm64 make tetragon
+
+  errmetrics-fileids-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Check errmetrics file IDs are in sync
+        run: ./contrib/fileids-check.sh
