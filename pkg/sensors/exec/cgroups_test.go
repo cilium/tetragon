@@ -29,6 +29,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/errmetrics"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/sensors/cgroup/cgrouptrackmap"
@@ -1337,4 +1338,95 @@ func TestCgroupv2ExecK8sHierarchyInUnified(t *testing.T) {
 	}
 
 	testCgroupv2K8sHierarchy(ctx, t, cgroups.CGROUP_UNIFIED, true)
+}
+
+// TestCgroupMissedTrackingErrMetrics verifies that when a cgroup that should
+// have been tracked (based on level and hierarchy) is removed without being
+// in the tracking map, an error metric is recorded.
+func TestCgroupMissedTrackingErrMetrics(t *testing.T) {
+	testutils.CaptureLog(t, logger.GetLogger())
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+	option.Config.Verbosity = 5
+
+	tus.LoadInitialSensor(t)
+	tus.LoadSensor(t, testsensor.GetTestSensor())
+	tus.LoadSensor(t, testsensor.GetCgroupSensor())
+
+	// Set tracking level to 3 so cgroups at level <= 3 should be tracked
+	trackingCgrpLevel := uint32(3)
+	setupTgRuntimeConf(t, trackingCgrpLevel, tetragonTraceLevel, invalidValue, invalidValue)
+
+	cgroupFSPath := cgroups.GetCgroupFSPath()
+	require.NotEmpty(t, cgroupFSPath)
+
+	dir, hierarchy := getTestCgroupDirAndHierarchy(t)
+	cgroupRmdir(t, cgroupFSPath, hierarchy, tetragonCgrpRoot)
+
+	finalPath := filepath.Join(cgroupFSPath, hierarchy, dir)
+	_, err := os.Stat(finalPath)
+	if err == nil {
+		t.Fatalf("Test %s failed cgroup test hierarchy should not exist '%s'", t.Name(), finalPath)
+	}
+
+	t.Cleanup(func() {
+		cgroupRmdir(t, cgroupFSPath, hierarchy, dir)
+	})
+
+	cgrpMap := testsensor.GetCgroupsTrackingMap()
+	cgrpMapPath := filepath.Join(bpf.MapPrefixPath(), cgrpMap.Name)
+	errMetricsMapPath := filepath.Join(bpf.MapPrefixPath(), errmetrics.MapName)
+
+	// Step 1: Create the cgroup (it will be tracked)
+	err = cgroupMkdir(t, cgroupFSPath, hierarchy, dir)
+	require.NoError(t, err)
+
+	// Get the cgroup ID
+	cgrpID, err := cgroups.GetCgroupIdFromPath(finalPath)
+	require.NoError(t, err)
+	require.NotZero(t, cgrpID)
+
+	// Verify it's in the tracking map
+	_, err = cgrouptrackmap.LookupTrackingCgroup(cgrpMapPath, cgrpID)
+	require.NoError(t, err, "cgroup should be in tracking map after creation")
+
+	// Step 2: Delete the cgroup from tracking map to simulate missed tracking
+	err = cgrouptrackmap.DeleteTrackingCgroup(cgrpMapPath, cgrpID)
+	require.NoError(t, err, "should be able to delete cgroup from tracking map")
+
+	// Verify it's no longer in the tracking map
+	_, err = cgrouptrackmap.LookupTrackingCgroup(cgrpMapPath, cgrpID)
+	require.Error(t, err, "cgroup should not be in tracking map after deletion")
+
+	// Step 3: Remove the cgroup directory - this should trigger the missed tracking detection
+	trigger := func() {
+		err = cgroupRmdir(t, cgroupFSPath, hierarchy, dir)
+		require.NoError(t, err)
+	}
+
+	// Run the trigger and collect events
+	_ = perfring.RunTestEvents(t, ctx, trigger)
+
+	// Step 4: Check errmetrics map for ENOENT error from bpf_cgroup_rmdir.c
+	errMap, err := errmetrics.OpenMap(errMetricsMapPath)
+	require.NoError(t, err, "should be able to open errmetrics map")
+	defer errMap.Close()
+
+	entries, err := errMap.Dump()
+	require.NoError(t, err, "should be able to dump errmetrics map")
+
+	// Look for an ENOENT (2) error from bpf_cgroup.h
+	foundMissedTrackingError := false
+	for _, entry := range entries {
+		if entry.Error == 2 && // ENOENT
+			(entry.FileName == "bpf_cgroup_release.h" || entry.FileName == "bpf_cgroup_rmdir.c") {
+			t.Logf("Found missed tracking error metric: file=%s line=%d error=%s count=%d",
+				entry.FileName, entry.LineNumber, entry.ErrorName, entry.Count)
+			foundMissedTrackingError = true
+		}
+	}
+
+	assert.True(t, foundMissedTrackingError, "Expected to find ENOENT error metric from bpf_cgroup.h")
 }
