@@ -20,6 +20,7 @@ import (
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/pkg/ksyms"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/option"
 )
@@ -156,6 +157,17 @@ func firstTypeByName(spec *btf.Spec, name string, typ any) error {
 }
 
 func FindBTFFuncParamFromHook(hook string, argIndex int) (*btf.FuncParam, error) {
+	// If the hook is part of a kernel module, load its BTF file
+	if ks, err := ksyms.KernelSymbols(); err == nil {
+		if kmod, err := ks.GetKmod(hook); err == nil {
+			spec, err := btf.LoadKernelModuleSpec(kmod)
+			if err != nil {
+				return nil, err
+			}
+			return findBTFFuncParamFromHookWithSpec(spec, hook, argIndex)
+		}
+	}
+	// In case of failure, default to kernel BTF
 	spec, err := NewBTF()
 	if err != nil {
 		return nil, err
