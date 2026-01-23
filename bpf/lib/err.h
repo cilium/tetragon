@@ -31,4 +31,9 @@ static inline long PTR_ERR(const void *ptr)
 	return (long)ptr;
 }
 
+static inline bool IS_ERR_OR_NULL(const void *ptr)
+{
+	return unlikely(!ptr) || IS_ERR_VALUE((unsigned long)ptr);
+}
+
 #endif /* BPF_ERR_H__ */
