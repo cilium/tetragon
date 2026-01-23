@@ -9,6 +9,7 @@
 #include "bpf_cgroup.h"
 #include "bpf_task.h"
 #include "bpf_cgroup_events.h"
+#include "errmetrics.h"
 
 char _license[] __attribute__((section(("license")), used)) = "GPL";
 #ifdef VMLINUX_KERNEL_VERSION
@@ -33,12 +34,11 @@ tg_tp_cgrp_release(struct bpf_raw_tracepoint_args *ctx)
 		return 0;
 
 	cgrp_track = map_lookup_elem(&tg_cgrps_tracking_map, &cgrpid);
-	/* TODO: check cgroup level if it is under our tracking level
-	 *   then we probably did miss it and should report this.
-	 *   Otherwise the cgroup was never tracked and let's exit.
-	 */
-	if (!cgrp_track)
+	if (!cgrp_track) {
+		if (check_cgroup_tracking_miss(cgrp))
+			errmetrics(ENOENT);
 		return 0;
+	}
 
 	map_delete_elem(&tg_cgrps_tracking_map, &cgrpid);
 

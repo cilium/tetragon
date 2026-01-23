@@ -9,6 +9,7 @@
 #include "environ_conf.h"
 #include "common.h"
 #include "process.h"
+#include "errmetrics.h"
 
 #define NULL ((void *)0)
 
@@ -434,6 +435,36 @@ __init_cgrp_tracking_val_heap(struct cgroup *cgrp, cgroup_state state)
 		probe_read_str(&heap->name, KN_NAME_LENGTH - 1, name);
 
 	return heap;
+}
+
+/**
+ * check_cgroup_tracking_miss() Check if cgroup should have been tracked
+ * @cgrp: target cgroup that was not found in tracking map
+ *
+ * When a cgroup is being released or removed but is not found in the
+ * tracking map, this function checks whether it should have been tracked
+ * based on its level and hierarchy. If the cgroup is at or above our
+ * configured tracking level and in the correct hierarchy, returns true
+ * so the caller can report an error metric.
+ *
+ * Returns true if tracking was missed (cgroup should have been tracked),
+ * false otherwise.
+ */
+FUNC_INLINE bool check_cgroup_tracking_miss(const struct cgroup *cgrp)
+{
+	int zero = 0;
+	struct tetragon_conf *conf;
+	__u32 level = get_cgroup_level(cgrp);
+	__u32 hierarchy_id = get_cgroup_hierarchy_id(cgrp);
+
+	conf = map_lookup_elem(&tg_conf_map, &zero);
+	if (conf && conf->tg_cgrp_level > 0 &&
+	    conf->tg_cgrp_hierarchy == hierarchy_id &&
+	    level > 0 && level <= conf->tg_cgrp_level) {
+		/* We should have tracked this cgroup but missed it */
+		return true;
+	}
+	return false;
 }
 
 #endif // __BPF_CGROUP_
