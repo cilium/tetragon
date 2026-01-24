@@ -45,6 +45,14 @@ type procMapEntry struct {
 	pathname  string
 }
 
+// InvalidatePID removes cached memory maps for a PID.
+// Call this when a process exits or execs to avoid stale data.
+func InvalidatePID(pid int) {
+	if procMapCache != nil {
+		procMapCache.Remove(pid)
+	}
+}
+
 // initSymbolCache initializes the Level 2 symbol cache (thread-safe, called once)
 func initSymbolCache() {
 	setSymbolCache.Do(func() {
