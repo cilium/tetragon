@@ -130,3 +130,22 @@ func TestProcMapCacheInit(t *testing.T) {
 		t.Error("proc map cache should be initialized")
 	}
 }
+
+// BenchmarkGetProcMaps measures the performance of the cached implementation
+func BenchmarkGetProcMaps(b *testing.B) {
+	pid := os.Getpid()
+
+	// Warm up cache
+	_, err := getProcMaps(pid)
+	if err != nil {
+		b.Fatalf("setup failed: %v", err)
+	}
+
+	b.ResetTimer()
+	for b.Loop() {
+		_, err := getProcMaps(pid)
+		if err != nil {
+			b.Fatalf("getProcMaps failed: %v", err)
+		}
+	}
+}
