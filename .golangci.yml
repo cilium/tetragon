@@ -23,6 +23,7 @@ linters:
     - modernize
     - perfsprint
     - revive
+    - sloglint
     - staticcheck
     - testifylint
     - unused
