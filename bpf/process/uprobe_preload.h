@@ -5,6 +5,7 @@
 #define __UPROBE_PRELOAD_H__
 
 #include "generic_maps.h"
+#include "generic_arg.h"
 #include "errmetrics.h"
 
 struct preload_data {
@@ -76,26 +77,97 @@ preload_pt_regs_arg(struct pt_regs *ctx, struct event_config *config, int index)
 }
 
 FUNC_INLINE int
+preload_arg(struct pt_regs *ctx, struct event_config *config, int index)
+{
+	int arg_index;
+	unsigned long a;
+	__s32 ty;
+
+	arg_index = config->idx[index];
+	asm volatile("%[arg_index] &= %1 ;\n"
+		     : [arg_index] "+r"(arg_index)
+		     : "i"(MAX_SELECTORS_MASK));
+
+	switch (arg_index) {
+	case 0:
+		a = PT_REGS_PARM1_CORE(ctx);
+		break;
+	case 1:
+		a = PT_REGS_PARM2_CORE(ctx);
+		break;
+	case 2:
+		a = PT_REGS_PARM3_CORE(ctx);
+		break;
+	case 3:
+		a = PT_REGS_PARM4_CORE(ctx);
+		break;
+	case 4:
+		a = PT_REGS_PARM5_CORE(ctx);
+		break;
+	}
+
+	extract_arg(config, index, &a, true);
+
+	ty = config->arg[arg_index];
+
+	probe_read(&a, sizeof(a), &a);
+
+	switch (ty) {
+	case string_type:
+		return preload_string_type(ctx, config, a);
+	}
+
+	return 0;
+}
+
+struct preload_arg_data {
+	struct event_config *config;
+	struct pt_regs *ctx;
+};
+
+FUNC_LOCAL int
+try_preload_arg(int idx, struct preload_arg_data *data)
+{
+	asm volatile("%[idx] &= %1 ;\n"
+		     : [idx] "+r"(idx)
+		     : "i"(MAX_POSSIBLE_ARGS));
+
+	if (data->config->arm[idx] & ARGM_PRELOAD) {
+		if (data->config->arm[idx] & ARGM_PT_REGS)
+			preload_pt_regs_arg(data->ctx, data->config, idx);
+		else
+			preload_arg(data->ctx, data->config, idx);
+	}
+	return 0;
+}
+
+FUNC_INLINE int
 uprobe_preload(struct pt_regs *ctx)
 {
 	struct event_config *config;
 	__u32 idx = get_index(ctx);
+	int i;
 
 	config = map_lookup_elem(&config_map, &idx);
 	if (!config)
 		return 0;
 
-	if (config->arm[0] & ARGM_PT_REGS_PRELOAD)
-		preload_pt_regs_arg(ctx, config, 0);
-	if (config->arm[1] & ARGM_PT_REGS_PRELOAD)
-		preload_pt_regs_arg(ctx, config, 1);
-	if (config->arm[2] & ARGM_PT_REGS_PRELOAD)
-		preload_pt_regs_arg(ctx, config, 2);
-	if (config->arm[3] & ARGM_PT_REGS_PRELOAD)
-		preload_pt_regs_arg(ctx, config, 3);
-	if (config->arm[4] & ARGM_PT_REGS_PRELOAD)
-		preload_pt_regs_arg(ctx, config, 4);
-
+	struct preload_arg_data preload_data = {
+		.config = config,
+		.ctx = ctx,
+	};
+	if (CONFIG(ITER_NUM)) {
+		bpf_for(i, 0, MAX_POSSIBLE_ARGS)
+			try_preload_arg(i, &preload_data);
+	} else {
+#ifndef __V61_BPF_PROG
+#pragma unroll
+		for (i = 0; i < MAX_POSSIBLE_ARGS; ++i)
+			try_preload_arg(i, &preload_data);
+#else
+		loop(MAX_POSSIBLE_ARGS, try_preload_arg, &preload_data, 0);
+#endif /* __V61_BPF_PROG */
+	}
 	return 0;
 }
 
