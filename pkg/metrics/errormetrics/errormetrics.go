@@ -61,7 +61,7 @@ func (e EventHandlerError) String() string {
 var (
 	// Constrained label for error type
 	errorTypeLabel = metrics.ConstrainedLabel{
-		Name:   "type",
+		Name:   "error",
 		Values: slices.Collect(maps.Values(errorTypeLabelValues)),
 	}
 	// Constrained label for opcode (numeric strings)
@@ -80,7 +80,7 @@ var (
 	}
 	// Constrained label for handler error type
 	handlerErrTypeLabel = metrics.ConstrainedLabel{
-		Name:   "error_type",
+		Name:   "error",
 		Values: slices.Collect(maps.Values(eventHandlerErrorLabelValues)),
 	}
 
