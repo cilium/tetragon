@@ -529,7 +529,7 @@ FUNC_INLINE long get_pt_regs_arg(struct pt_regs *ctx, struct event_config *confi
 #endif /* __TARGET_ARCH_x86 && (GENERIC_KPROBE || GENERIC_UPROBE) */
 
 #if defined(GENERIC_UPROBE) && defined(__TARGET_ARCH_x86)
-FUNC_INLINE unsigned long get_pt_regs_preload_arg(struct pt_regs *ctx, long ty)
+FUNC_INLINE unsigned long get_preload_arg(struct pt_regs *ctx, long ty)
 {
 	unsigned long arg = 0;
 
@@ -546,7 +546,7 @@ FUNC_INLINE unsigned long get_pt_regs_preload_arg(struct pt_regs *ctx, long ty)
 	return arg;
 }
 #else
-FUNC_INLINE long get_pt_regs_preload_arg(struct pt_regs *ctx, long ty)
+FUNC_INLINE long get_preload_arg(struct pt_regs *ctx, long ty)
 {
 	return 0;
 }
@@ -584,7 +584,7 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 
 #if defined(GENERIC_TRACEPOINT) || defined(GENERIC_USDT)
 	a = (&e->a0)[index];
-	extract_arg(config, index, &a);
+	extract_arg(config, index, &a, false);
 #else
 	arg_index = config->idx[index];
 	asm volatile("%[arg_index] &= %1 ;\n"
@@ -599,16 +599,17 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 	 *   - current task object
 	 *   - real argument value
 	 */
-	if (am & ARGM_PT_REGS_PRELOAD)
-		a = get_pt_regs_preload_arg(ctx, ty);
-	else if (am & ARGM_PT_REGS)
-		a = get_pt_regs_arg(ctx, config, arg_index);
-	else if (am & ARGM_CURRENT_TASK)
-		a = get_current_task();
-	else
-		a = (&e->a0)[arg_index];
-
-	extract_arg(config, index, &a);
+	if (am & ARGM_PRELOAD) {
+		a = get_preload_arg(ctx, ty);
+	} else {
+		if (am & ARGM_PT_REGS)
+			a = get_pt_regs_arg(ctx, config, arg_index);
+		else if (am & ARGM_CURRENT_TASK)
+			a = get_current_task();
+		else
+			a = (&e->a0)[arg_index];
+		extract_arg(config, index, &a, false);
+	}
 
 	if (should_offload_path(ty))
 		return generic_path_offload(ctx, ty, a, index, off, tailcals);

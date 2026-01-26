@@ -10,13 +10,18 @@ extract_arg_depth(u32 i, struct extract_arg_data *data)
 	if (i >= MAX_BTF_ARG_DEPTH || !data->btf_config[i].is_initialized)
 		return 1;
 	*data->arg = *data->arg + data->btf_config[i].offset;
-	if (data->btf_config[i].is_pointer)
-		probe_read((void *)data->arg, sizeof(char *), (void *)*data->arg);
+	if (data->btf_config[i].is_pointer) {
+		if (data->can_sleep)
+			copy_from_user((void *)data->arg, sizeof(char *), (void *)*data->arg);
+		else
+			probe_read((void *)data->arg, sizeof(char *), (void *)*data->arg);
+	}
 	return 0;
 }
 
 #ifdef __LARGE_BPF_PROG
-FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long *a)
+FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long *a,
+			     bool can_sleep)
 {
 	struct config_btf_arg *btf_config;
 
@@ -31,6 +36,7 @@ FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned lo
 		struct extract_arg_data extract_data = {
 			.btf_config = btf_config,
 			.arg = a,
+			.can_sleep = can_sleep,
 		};
 		int i;
 
@@ -54,7 +60,10 @@ FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned lo
 	}
 }
 #else
-FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long *a) {}
+FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long *a,
+			     bool can_sleep)
+{
+}
 #endif /* __LARGE_BPF_PROG */
 
 #endif /* __GENERIC_ARG_H__ */
