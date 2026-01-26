@@ -619,6 +619,14 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 				allBTFArgs[i] = btfArg
 				argType = findTypeFromBTFType(a, lastBTFType)
 			}
+
+			if argType == gt.GenericStringType {
+				if bpf.HasKfunc("bpf_copy_from_user_str") && runtime.GOARCH == "amd64" {
+					preload = true
+				} else {
+					logger.GetLogger().Warn("can't preload string argument, might be wrong")
+				}
+			}
 		}
 
 		has.sleepablePreload = has.sleepablePreload || preload
