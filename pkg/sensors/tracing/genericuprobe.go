@@ -558,7 +558,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 	addArg := func(i int, a *v1alpha1.KProbeArg, data bool) error {
 		argType := gt.GenericTypeFromString(a.Type)
 
-		var preload bool
+		var ptregPreload, preload bool
 
 		if data {
 			// Data specific config
@@ -574,7 +574,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 				// it's from user address, so we need to read it through preload.
 				if argType == gt.GenericStringType {
 					if bpf.HasKfunc("bpf_copy_from_user_str") && runtime.GOARCH == "amd64" {
-						preload = true
+						ptregPreload = true
 					} else {
 						logger.GetLogger().Warn("can't preload string argument, might be wrong")
 					}
@@ -601,14 +601,22 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 				allBTFArgs[i] = btfArg
 				argType = findTypeFromBTFType(a, lastBTFType)
 			}
+
+			if argType == gt.GenericStringType {
+				if bpf.HasKfunc("bpf_copy_from_user_str") && runtime.GOARCH == "amd64" {
+					preload = true
+				} else {
+					logger.GetLogger().Warn("can't preload string argument, might be wrong")
+				}
+			}
 		}
 
-		has.sleepablePreload = has.sleepablePreload || preload
+		has.sleepablePreload = has.sleepablePreload || ptregPreload || preload
 
 		if argType == gt.GenericInvalidType {
 			return fmt.Errorf("Arg(%d) type '%s' unsupported", i, a.Type)
 		}
-		argMValue, err := getUprobeMetaValue(a, preload)
+		argMValue, err := getUprobeMetaValue(a, ptregPreload, preload)
 		if err != nil {
 			return err
 		}

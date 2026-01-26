@@ -192,6 +192,7 @@ struct config_reg_arg {
 struct extract_arg_data {
 	struct config_btf_arg *btf_config;
 	unsigned long *arg;
+	bool can_sleep;
 };
 
 #define MAX_BTF_ARG_DEPTH	  10
@@ -586,6 +587,7 @@ FUNC_INLINE long copy_kernel_module(char *args, unsigned long arg)
 #define ARGM_CURRENT_TASK    BIT(6)
 #define ARGM_PT_REGS	     BIT(7)
 #define ARGM_PT_REGS_PRELOAD BIT(8)
+#define ARGM_PRELOAD	     BIT(9)
 
 FUNC_INLINE bool has_return_copy(unsigned long argm)
 {

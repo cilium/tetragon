@@ -584,7 +584,7 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 
 #if defined(GENERIC_TRACEPOINT) || defined(GENERIC_USDT)
 	a = (&e->a0)[index];
-	extract_arg(config, index, &a);
+	extract_arg(config, index, &a, false);
 #else
 	arg_index = config->idx[index];
 	asm volatile("%[arg_index] &= %1 ;\n"
@@ -599,16 +599,17 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 	 *   - current task object
 	 *   - real argument value
 	 */
-	if (am & ARGM_PT_REGS_PRELOAD)
+	if (am & (ARGM_PT_REGS_PRELOAD | ARGM_PRELOAD)) {
 		a = get_pt_regs_preload_arg(ctx, ty);
-	else if (am & ARGM_PT_REGS)
-		a = get_pt_regs_arg(ctx, config, arg_index);
-	else if (am & ARGM_CURRENT_TASK)
-		a = get_current_task();
-	else
-		a = (&e->a0)[arg_index];
-
-	extract_arg(config, index, &a);
+	} else {
+		if (am & ARGM_PT_REGS)
+			a = get_pt_regs_arg(ctx, config, arg_index);
+		else if (am & ARGM_CURRENT_TASK)
+			a = get_current_task();
+		else
+			a = (&e->a0)[arg_index];
+		extract_arg(config, index, &a, false);
+	}
 
 	if (should_offload_path(ty))
 		return generic_path_offload(ctx, ty, a, index, off, tailcals);
