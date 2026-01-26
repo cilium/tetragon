@@ -231,15 +231,17 @@ func (t versionedTracker) updateObject(
 	}
 
 	if t.withStatusSubresource.Has(gvk) {
-		if isStatus { // copy everything but status and metadata.ResourceVersion from original object
+		if isStatus { // copy everything but status, managedFields and metadata.ResourceVersion from original object
 			if err := copyStatusFrom(obj, oldObject); err != nil {
 				return nil, false, fmt.Errorf("failed to copy non-status field for object with status subresouce: %w", err)
 			}
 			passedRV := accessor.GetResourceVersion()
+			passedManagedFields := accessor.GetManagedFields()
 			if err := copyFrom(oldObject, obj); err != nil {
 				return nil, false, fmt.Errorf("failed to restore non-status fields: %w", err)
 			}
 			accessor.SetResourceVersion(passedRV)
+			accessor.SetManagedFields(passedManagedFields)
 		} else { // copy status from original object
 			if err := copyStatusFrom(oldObject, obj); err != nil {
 				return nil, false, fmt.Errorf("failed to copy the status for object with status subresource: %w", err)
