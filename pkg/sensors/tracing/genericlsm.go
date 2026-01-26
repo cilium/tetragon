@@ -26,7 +26,6 @@ import (
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/idtable"
-	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/observer"
@@ -516,7 +515,7 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 	filterMap := program.MapBuilderProgram("filter_map", load)
 	maps = append(maps, filterMap)
 
-	maps = append(maps, filterMapsForLsm(load, lsmEntry)...)
+	maps = append(maps, createSelectorMaps(load, lsmEntry.selectors)...)
 
 	callHeap := program.MapBuilderProgram("process_call_heap", load)
 	maps = append(maps, callHeap)
@@ -525,14 +524,6 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 
 	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
 	maps = append(maps, selMatchBinariesMap)
-
-	matchBinariesPaths := program.MapBuilderProgram("tg_mb_paths", load)
-	if !kernels.MinKernelVersion("5.9") {
-		// Versions before 5.9 do not allow inner maps to have different sizes.
-		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-		matchBinariesPaths.SetInnerMaxEntries(lsmEntry.selectors.MatchBinariesPathsMaxEntries())
-	}
-	maps = append(maps, matchBinariesPaths)
 
 	overrideTasksMap := program.MapBuilderProgram("override_tasks", load)
 	maps = append(maps, overrideTasksMap)
@@ -548,72 +539,4 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 	logger.GetLogger().
 		Info(fmt.Sprintf("Added generic lsm sensor: %s -> %s", load.Name, load.Attach))
 	return progs, maps
-}
-
-func filterMapsForLsm(load *program.Program, lsmEntry *genericLsm) []*program.Map {
-	var maps []*program.Map
-
-	argFilterMaps := program.MapBuilderProgram("argfilter_maps", load)
-	if !kernels.MinKernelVersion("5.9") {
-		// Versions before 5.9 do not allow inner maps to have different sizes.
-		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-		maxEntries := lsmEntry.selectors.ValueMapsMaxEntries()
-		argFilterMaps.SetInnerMaxEntries(maxEntries)
-	}
-	maps = append(maps, argFilterMaps)
-
-	addr4FilterMaps := program.MapBuilderProgram("addr4lpm_maps", load)
-	if !kernels.MinKernelVersion("5.9") {
-		// Versions before 5.9 do not allow inner maps to have different sizes.
-		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-		maxEntries := lsmEntry.selectors.Addr4MapsMaxEntries()
-		addr4FilterMaps.SetInnerMaxEntries(maxEntries)
-	}
-	maps = append(maps, addr4FilterMaps)
-
-	addr6FilterMaps := program.MapBuilderProgram("addr6lpm_maps", load)
-	if !kernels.MinKernelVersion("5.9") {
-		// Versions before 5.9 do not allow inner maps to have different sizes.
-		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-		maxEntries := lsmEntry.selectors.Addr6MapsMaxEntries()
-		addr6FilterMaps.SetInnerMaxEntries(maxEntries)
-	}
-	maps = append(maps, addr6FilterMaps)
-
-	var stringFilterMap [selectors.StringMapsNumSubMaps]*program.Map
-	numSubMaps := selectors.StringMapsNumSubMaps
-	if !kernels.MinKernelVersion("5.11") {
-		numSubMaps = selectors.StringMapsNumSubMapsSmall
-	}
-
-	for stringMapIndex := range numSubMaps {
-		stringFilterMap[stringMapIndex] = program.MapBuilderProgram(fmt.Sprintf("string_maps_%d", stringMapIndex), load)
-		if !kernels.MinKernelVersion("5.9") {
-			// Versions before 5.9 do not allow inner maps to have different sizes.
-			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-			maxEntries := lsmEntry.selectors.StringMapsMaxEntries(stringMapIndex)
-			stringFilterMap[stringMapIndex].SetInnerMaxEntries(maxEntries)
-		}
-		maps = append(maps, stringFilterMap[stringMapIndex])
-	}
-
-	stringPrefixFilterMaps := program.MapBuilderProgram("string_prefix_maps", load)
-	if !kernels.MinKernelVersion("5.9") {
-		// Versions before 5.9 do not allow inner maps to have different sizes.
-		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-		maxEntries := lsmEntry.selectors.StringPrefixMapsMaxEntries()
-		stringPrefixFilterMaps.SetInnerMaxEntries(maxEntries)
-	}
-	maps = append(maps, stringPrefixFilterMaps)
-
-	stringPostfixFilterMaps := program.MapBuilderProgram("string_postfix_maps", load)
-	if !kernels.MinKernelVersion("5.9") {
-		// Versions before 5.9 do not allow inner maps to have different sizes.
-		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-		maxEntries := lsmEntry.selectors.StringPostfixMapsMaxEntries()
-		stringPostfixFilterMaps.SetInnerMaxEntries(maxEntries)
-	}
-	maps = append(maps, stringPostfixFilterMaps)
-
-	return maps
 }

@@ -144,6 +144,83 @@ func populateSubStringMap(m *ebpf.Map, k *selectors.KernelSelectorState) error {
 	return nil
 }
 
+func createSelectorMaps(load *program.Program, state *selectors.KernelSelectorState) []*program.Map {
+	var maps []*program.Map
+
+	argFilterMaps := program.MapBuilderProgram("argfilter_maps", load)
+	if state != nil && !kernels.MinKernelVersion("5.9") {
+		// Versions before 5.9 do not allow inner maps to have different sizes.
+		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+		maxEntries := state.ValueMapsMaxEntries()
+		argFilterMaps.SetInnerMaxEntries(maxEntries)
+	}
+	maps = append(maps, argFilterMaps)
+
+	addr4FilterMaps := program.MapBuilderProgram("addr4lpm_maps", load)
+	if state != nil && !kernels.MinKernelVersion("5.9") {
+		// Versions before 5.9 do not allow inner maps to have different sizes.
+		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+		maxEntries := state.Addr4MapsMaxEntries()
+		addr4FilterMaps.SetInnerMaxEntries(maxEntries)
+	}
+	maps = append(maps, addr4FilterMaps)
+
+	addr6FilterMaps := program.MapBuilderProgram("addr6lpm_maps", load)
+	if state != nil && !kernels.MinKernelVersion("5.9") {
+		// Versions before 5.9 do not allow inner maps to have different sizes.
+		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+		maxEntries := state.Addr6MapsMaxEntries()
+		addr6FilterMaps.SetInnerMaxEntries(maxEntries)
+	}
+	maps = append(maps, addr6FilterMaps)
+
+	var stringFilterMap [selectors.StringMapsNumSubMaps]*program.Map
+	numSubMaps := selectors.StringMapsNumSubMaps
+	if !kernels.MinKernelVersion("5.11") {
+		numSubMaps = selectors.StringMapsNumSubMapsSmall
+	}
+
+	for stringMapIndex := range numSubMaps {
+		stringFilterMap[stringMapIndex] = program.MapBuilderProgram(fmt.Sprintf("string_maps_%d", stringMapIndex), load)
+		if state != nil && !kernels.MinKernelVersion("5.9") {
+			// Versions before 5.9 do not allow inner maps to have different sizes.
+			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+			maxEntries := state.StringMapsMaxEntries(stringMapIndex)
+			stringFilterMap[stringMapIndex].SetInnerMaxEntries(maxEntries)
+		}
+		maps = append(maps, stringFilterMap[stringMapIndex])
+	}
+
+	stringPrefixFilterMaps := program.MapBuilderProgram("string_prefix_maps", load)
+	if state != nil && !kernels.MinKernelVersion("5.9") {
+		// Versions before 5.9 do not allow inner maps to have different sizes.
+		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+		maxEntries := state.StringPrefixMapsMaxEntries()
+		stringPrefixFilterMaps.SetInnerMaxEntries(maxEntries)
+	}
+	maps = append(maps, stringPrefixFilterMaps)
+
+	stringPostfixFilterMaps := program.MapBuilderProgram("string_postfix_maps", load)
+	if state != nil && !kernels.MinKernelVersion("5.9") {
+		// Versions before 5.9 do not allow inner maps to have different sizes.
+		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+		maxEntries := state.StringPostfixMapsMaxEntries()
+		stringPostfixFilterMaps.SetInnerMaxEntries(maxEntries)
+	}
+	maps = append(maps, stringPostfixFilterMaps)
+
+	matchBinariesPaths := program.MapBuilderProgram("tg_mb_paths", load)
+	if state != nil && !kernels.MinKernelVersion("5.9") {
+		// Versions before 5.9 do not allow inner maps to have different sizes.
+		// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
+		maxEntries := state.MatchBinariesPathsMaxEntries()
+		matchBinariesPaths.SetInnerMaxEntries(maxEntries)
+	}
+	maps = append(maps, matchBinariesPaths)
+
+	return maps
+}
+
 func populateArgFilterMaps(
 	k *selectors.KernelSelectorState,
 	pinPathPrefix string,
