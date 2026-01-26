@@ -247,6 +247,16 @@ func loadSingleUprobeSensor(uprobeEntry *genericUprobe, args sensors.LoadProbeAr
 	return nil
 }
 
+func getUprobeProgramSelector(load *program.Program, uprobeEntry *genericUprobe) *selectors.KernelSelectorState {
+	if uprobeEntry != nil {
+		if load.RetProbe {
+			return uprobeEntry.loadArgs.selectors.retrn
+		}
+		return uprobeEntry.loadArgs.selectors.entry
+	}
+	return nil
+}
+
 func checkSymbol(sym string) error {
 	_, _, err := parseSymbol(sym)
 	return err
@@ -372,19 +382,6 @@ func (k *observerUprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
 		load.LoaderData, load.LoaderData)
 }
 
-func isValidUprobeSelectors(selectors []v1alpha1.KProbeSelector) error {
-	for _, s := range selectors {
-		if len(s.MatchReturnArgs) > 0 ||
-			len(s.MatchNamespaces) > 0 ||
-			len(s.MatchNamespaceChanges) > 0 ||
-			len(s.MatchCapabilities) > 0 ||
-			len(s.MatchCapabilityChanges) > 0 {
-			return errors.New("only matchPIDs selector is supported")
-		}
-	}
-	return nil
-}
-
 type addUprobeIn struct {
 	sensorPath string
 	policyName string
@@ -500,10 +497,6 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 			return nil, fmt.Errorf("RefCtrOffsets(%d) has different dimension than Offsets(%d)",
 				refCtrOffsets, offsets)
 		}
-	}
-
-	if err := isValidUprobeSelectors(spec.Selectors); err != nil {
-		return nil, err
 	}
 
 	if selectors.HasOverride(spec.Selectors) {
@@ -852,6 +845,7 @@ func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID, poli
 	retProbe := program.MapBuilderSensor("retprobe_map", load)
 
 	maps = append(maps, configMap, tailCalls, filterMap, retProbe)
+	maps = append(maps, createSelectorMaps(load, getUprobeProgramSelector(load, nil))...)
 
 	if has.substring {
 		substringMap := program.MapBuilderSensor("substring_map", load)
@@ -900,6 +894,7 @@ func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID, poli
 
 		retFilterMap := program.MapBuilderProgram("filter_map", loadret)
 		maps = append(maps, retFilterMap)
+		maps = append(maps, createSelectorMaps(loadret, getUprobeProgramSelector(loadret, nil))...)
 
 		retTailCalls := program.MapBuilderProgram("retuprobe_calls", loadret)
 		maps = append(maps, retTailCalls)
@@ -957,6 +952,7 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
 
 	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap, retProbe)
+	maps = append(maps, createSelectorMaps(load, getUprobeProgramSelector(load, uprobeEntry))...)
 
 	if has.substring {
 		substringMap := program.MapBuilderSensor("substring_map", load)
