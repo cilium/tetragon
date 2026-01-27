@@ -14,6 +14,8 @@ import (
 
 	"github.com/cilium/ebpf"
 
+	"github.com/cilium/tetragon/pkg/cgtracker"
+
 	"github.com/cilium/tetragon/pkg/api/ops"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
@@ -176,6 +178,10 @@ func createMultiUsdtSensor(multiIDs []idtable.EntryID, policyName string, hasSle
 		maps = append(maps, sleepableOffloadMap)
 	}
 
+	if option.Config.EnableCgTrackerID {
+		maps = append(maps, program.MapUser(cgtracker.MapName, load))
+	}
+
 	return progs, maps, nil
 }
 
@@ -230,6 +236,10 @@ func createUsdtSensorFromEntry(usdtEntry *genericUsdt,
 		sleepableOffloadMap := program.MapBuilderProgram("write_offload", load)
 		sleepableOffloadMap.SetMaxEntries(sleepableOffloadMaxEntries)
 		maps = append(maps, sleepableOffloadMap)
+	}
+
+	if option.Config.EnableCgTrackerID {
+		maps = append(maps, program.MapUser(cgtracker.MapName, load))
 	}
 
 	return progs, maps
