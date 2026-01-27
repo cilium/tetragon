@@ -19,7 +19,7 @@ struct {
 	__type(value, struct preload_data);
 } sleepable_preload SEC(".maps");
 
-#if defined(GENERIC_UPROBE) && defined(__TARGET_ARCH_x86)
+#if defined(GENERIC_UPROBE)
 
 FUNC_INLINE unsigned long
 preload_string_arg(struct pt_regs *ctx)
@@ -171,7 +171,7 @@ uprobe_preload(struct pt_regs *ctx)
 	return 0;
 }
 
-#endif /* GENERIC_UPROBE && __TARGET_ARCH_x86 */
+#endif /* GENERIC_UPROBE */
 
 FUNC_INLINE int
 uprobe_preload_cleanup(struct pt_regs *ctx)

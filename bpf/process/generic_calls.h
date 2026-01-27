@@ -528,7 +528,7 @@ FUNC_INLINE long get_pt_regs_arg(struct pt_regs *ctx, struct event_config *confi
 }
 #endif /* __TARGET_ARCH_x86 && (GENERIC_KPROBE || GENERIC_UPROBE) */
 
-#if defined(GENERIC_UPROBE) && defined(__TARGET_ARCH_x86)
+#if defined(GENERIC_UPROBE)
 FUNC_INLINE unsigned long get_preload_arg(struct pt_regs *ctx, long ty)
 {
 	unsigned long arg = 0;
