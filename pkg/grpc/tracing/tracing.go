@@ -360,56 +360,8 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 		tetragonData = append(tetragonData, getKprobeArgument(arg))
 	}
 
-	var kernelStackTrace []*tetragon.StackTraceEntry
-	for _, addr := range event.KernelStackTrace {
-		if addr == 0 {
-			// the stack trace from the MsgGenericKprobeUnix is a fixed size
-			// array, [unix.PERF_MAX_STACK_DEPTH]uint64, used for binary decode,
-			// it might contain multiple zeros to ignore since stack trace might
-			// be less than PERF_MAX_STACK_DEPTH most of the time.
-			continue
-		}
-		kernelSymbols, err := ksyms.KernelSymbols()
-		if err != nil {
-			logger.GetLogger().Warn("stacktrace: failed to read kernel symbols", logfields.Error, err)
-			continue
-		}
-		fnOffset, err := kernelSymbols.GetFnOffset(addr)
-		if err != nil {
-			// maybe group those errors as they might come in pack
-			logger.GetLogger().Warn("stacktrace: failed to retrieve symbol and offset", "address", fmt.Sprintf("0x%x", addr))
-			continue
-		}
-		entry := &tetragon.StackTraceEntry{
-			Offset: fnOffset.Offset,
-			Symbol: fnOffset.SymName,
-		}
-		if option.Config.ExposeStackAddresses {
-			entry.Address = addr
-		}
-		kernelStackTrace = append(kernelStackTrace, entry)
-	}
-
-	var userStackTrace []*tetragon.StackTraceEntry
-	for _, addr := range event.UserStackTrace {
-		if addr == 0 {
-			continue
-		}
-		// TODO extract symbols from procfs
-		entry := &tetragon.StackTraceEntry{}
-		fsym, err := procsyms.GetFnSymbol(int(event.Msg.Tid), addr)
-		if err != nil {
-			logger.GetLogger().Debug("stacktrace: failed to retrieve symbol, offset and module", "address", fmt.Sprintf("0x%x", addr))
-			continue
-		}
-		entry.Offset = fsym.Offset
-		entry.Module = fsym.Module
-		entry.Symbol = fsym.Name
-		if option.Config.ExposeStackAddresses {
-			entry.Address = addr
-		}
-		userStackTrace = append(userStackTrace, entry)
-	}
+	kernelStackTrace := kernelStack(event)
+	userStackTrace := userStack(event)
 
 	tetragonEvent := &tetragon.ProcessKprobe{
 		Process:          tetragonProcess,
@@ -457,6 +409,75 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 	}
 
 	return tetragonEvent
+}
+
+func kernelStack(event *MsgGenericKprobeUnix) []*tetragon.StackTraceEntry {
+	if !event.Msg.HasKernelStack() {
+		return nil
+	}
+
+	var stackTrace []*tetragon.StackTraceEntry
+
+	for _, addr := range event.KernelStackTrace {
+		if addr == 0 {
+			// the stack trace from the MsgGenericKprobeUnix is a fixed size
+			// array, [unix.PERF_MAX_STACK_DEPTH]uint64, used for binary decode,
+			// it might contain multiple zeros to ignore since stack trace might
+			// be less than PERF_MAX_STACK_DEPTH most of the time.
+			continue
+		}
+		kernelSymbols, err := ksyms.KernelSymbols()
+		if err != nil {
+			logger.GetLogger().Warn("stacktrace: failed to read kernel symbols", logfields.Error, err)
+			continue
+		}
+		fnOffset, err := kernelSymbols.GetFnOffset(addr)
+		if err != nil {
+			// maybe group those errors as they might come in pack
+			logger.GetLogger().Warn("stacktrace: failed to retrieve symbol and offset", "address", fmt.Sprintf("0x%x", addr))
+			continue
+		}
+		entry := &tetragon.StackTraceEntry{
+			Offset: fnOffset.Offset,
+			Symbol: fnOffset.SymName,
+		}
+		if option.Config.ExposeStackAddresses {
+			entry.Address = addr
+		}
+		stackTrace = append(stackTrace, entry)
+	}
+
+	return stackTrace
+}
+
+func userStack(event *MsgGenericKprobeUnix) []*tetragon.StackTraceEntry {
+	if !event.Msg.HasUserStack() {
+		return nil
+	}
+
+	var stackTrace []*tetragon.StackTraceEntry
+
+	for _, addr := range event.UserStackTrace {
+		if addr == 0 {
+			continue
+		}
+		// TODO extract symbols from procfs
+		entry := &tetragon.StackTraceEntry{}
+		fsym, err := procsyms.GetFnSymbol(int(event.Msg.Tid), addr)
+		if err != nil {
+			logger.GetLogger().Debug("stacktrace: failed to retrieve symbol, offset and module", "address", fmt.Sprintf("0x%x", addr))
+			continue
+		}
+		entry.Offset = fsym.Offset
+		entry.Module = fsym.Module
+		entry.Symbol = fsym.Name
+		if option.Config.ExposeStackAddresses {
+			entry.Address = addr
+		}
+		stackTrace = append(stackTrace, entry)
+	}
+
+	return stackTrace
 }
 
 type MsgGenericTracepointUnix struct {

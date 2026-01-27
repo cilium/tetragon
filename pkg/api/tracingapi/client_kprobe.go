@@ -60,6 +60,14 @@ type MsgGenericKprobe struct {
 	UserStackID   int64
 }
 
+func (m MsgGenericKprobe) HasKernelStack() bool {
+	return m.Common.Flags&processapi.MSG_COMMON_FLAG_KERNEL_STACKTRACE != 0
+}
+
+func (m MsgGenericKprobe) HasUserStack() bool {
+	return m.Common.Flags&processapi.MSG_COMMON_FLAG_USER_STACKTRACE != 0
+}
+
 type MsgGenericKprobeArgPath struct {
 	Index      uint64
 	Value      string
