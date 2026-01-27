@@ -348,7 +348,7 @@ The capacity of the process cache. Expected to be constant.
 
 ### `tetragon_process_cache_evictions_total`
 
-Number of process cache LRU evictions.
+Number of process cache LRU evictions. This includes all evictions: both explicit and capacity (implicit).
 
 ### `tetragon_process_cache_misses_total`
 
