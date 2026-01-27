@@ -32,7 +32,12 @@ var (
 	processCacheEvictions = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: consts.MetricsNamespace,
 		Name:      "process_cache_evictions_total",
-		Help:      "Number of process cache LRU evictions.",
+		Help:      "Number of process cache LRU evictions. This includes all evictions: both explicit and capacity (implicit).",
+	})
+	processCacheCapacityEvictions = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: consts.MetricsNamespace,
+		Name:      "process_cache_capacity_evictions_total",
+		Help:      "Number of process cache capacity (implicit) LRU evictions.",
 	})
 	processCacheMisses = metrics.MustNewCounter(metrics.NewOpts(
 		consts.MetricsNamespace, "", "process_cache_misses_total",
