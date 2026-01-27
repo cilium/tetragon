@@ -15,6 +15,8 @@ import (
 
 	"github.com/cilium/ebpf"
 
+	"github.com/cilium/tetragon/pkg/cgtracker"
+
 	"github.com/cilium/tetragon/pkg/api/ops"
 	processapi "github.com/cilium/tetragon/pkg/api/processapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
@@ -534,6 +536,10 @@ func createLsmSensorFromEntry(polInfo *policyInfo, lsmEntry *genericLsm,
 	maps = append(maps, overrideTasksMapOutput)
 
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load))
+
+	if option.Config.EnableCgTrackerID {
+		maps = append(maps, program.MapUser(cgtracker.MapName, load))
+	}
 
 	logger.GetLogger().
 		Info(fmt.Sprintf("Added generic lsm sensor: %s -> %s", load.Name, load.Attach))
