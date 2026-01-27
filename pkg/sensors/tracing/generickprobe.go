@@ -1380,7 +1380,7 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 		printers = gk.argSigPrinters
 	}
 
-	if m.Common.Flags&(processapi.MSG_COMMON_FLAG_KERNEL_STACKTRACE|processapi.MSG_COMMON_FLAG_USER_STACKTRACE) != 0 {
+	if m.HasKernelStack() || m.HasUserStack() {
 		if m.KernelStackID < 0 {
 			logger.GetLogger().Warn(fmt.Sprintf("failed to retrieve kernel stacktrace: id equal to errno %d", m.KernelStackID))
 		}
