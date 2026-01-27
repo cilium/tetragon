@@ -328,6 +328,34 @@ while the whole `kprobe` call is the following:
       - "3"
 ```
 
+
+### Scripts with shebangs
+
+{{< caution >}}
+`matchBinaries` matches against the `interpreter`, not the script path.
+{{< /caution >}}
+
+When executing a script with a shebang (i.e. `#!/usr/bin/python3`), Linux actually runs the
+interpreter and passes the script as an argument. Current implementation of `matchBinaries` filters based on the interpreter path (i.e. `/usr/bin/python3`) and not the script name (i.e. `/opt/scripts/my_script.py`).
+
+This won't work:
+
+```yaml
+- matchBinaries:
+  - operator: "In"
+    values:
+    - "/opt/scripts/my_script.py"
+```
+
+Match the interpreter instead:
+
+```yaml
+- matchBinaries:
+  - operator: "In"
+    values:
+    - "/usr/bin/python3"
+```
+
 ## Parent binaries filter
 
 {{< warning >}}
