@@ -178,6 +178,8 @@ func (pc *Cache) add(process *ProcessInternal) bool {
 	evicted := pc.cache.Add(process.process.ExecId, process)
 	if !evicted {
 		processCacheTotal.Inc()
+	} else {
+		processCacheCapacityEvictions.Inc()
 	}
 	return evicted
 }
