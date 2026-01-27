@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"path"
-	"runtime"
 	"strconv"
 	"strings"
 
@@ -575,7 +574,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 				// If we are getting string type from pt_regs register we can safely assume
 				// it's from user address, so we need to read it through preload.
 				if argType == gt.GenericStringType {
-					if bpf.HasKfunc("bpf_copy_from_user_str") && runtime.GOARCH == "amd64" {
+					if bpf.HasKfunc("bpf_copy_from_user_str") {
 						preload = true
 					} else {
 						logger.GetLogger().Warn("can't preload string argument, might be wrong")
@@ -605,7 +604,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 			}
 
 			if argType == gt.GenericStringType {
-				if bpf.HasKfunc("bpf_copy_from_user_str") && runtime.GOARCH == "amd64" {
+				if bpf.HasKfunc("bpf_copy_from_user_str") {
 					preload = true
 				} else {
 					logger.GetLogger().Warn("can't preload string argument, might be wrong")
