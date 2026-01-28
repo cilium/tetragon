@@ -13,6 +13,7 @@ import (
 
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
@@ -153,5 +154,146 @@ spec:
 		_, _, err := resolveBTFArg(failHook.Call, &arg, false)
 
 		require.ErrorContains(t, err, "The maximum depth allowed is", "The path %q must have len < %d", arg.Resolve, api.MaxBTFArgDepth)
+	}
+}
+
+func TestAppendMacrosSelectors(t *testing.T) {
+	tests := map[string]struct {
+		selectors         []v1alpha1.KProbeSelector
+		macros            map[string]v1alpha1.KProbeSelector
+		expectedSelectors []v1alpha1.KProbeSelector
+		expectErr         bool
+	}{
+		"macro to empty selector": {
+			selectors: []v1alpha1.KProbeSelector{
+				{
+					Macros: []string{"testMacro"},
+				},
+			},
+			macros: map[string]v1alpha1.KProbeSelector{
+				"testMacro": {
+					MatchBinaries: []v1alpha1.BinarySelector{
+						{
+							Operator: "In",
+							Values:   []string{"bin"},
+						},
+					},
+				},
+			},
+			expectedSelectors: []v1alpha1.KProbeSelector{
+				{
+					MatchBinaries: []v1alpha1.BinarySelector{
+						{
+							Operator: "In",
+							Values:   []string{"bin"},
+						},
+					},
+					Macros: []string{"testMacro"},
+				},
+			},
+		},
+		"macro to non-empty selector": {
+			selectors: []v1alpha1.KProbeSelector{
+				{
+					MatchBinaries: []v1alpha1.BinarySelector{
+						{
+							Operator: "In",
+							Values:   []string{"bin"},
+						},
+					},
+					MatchArgs: []v1alpha1.ArgSelector{
+						{
+							Index:    0,
+							Operator: "In",
+							Values:   []string{"arg-1"},
+						},
+					},
+					Macros: []string{"testMacro"},
+				},
+			},
+			macros: map[string]v1alpha1.KProbeSelector{
+				"testMacro": {
+					MatchArgs: []v1alpha1.ArgSelector{
+						{
+							Index:    1,
+							Operator: "In",
+							Values:   []string{"arg-2"},
+						},
+					},
+				},
+			},
+			expectedSelectors: []v1alpha1.KProbeSelector{
+				{
+					MatchBinaries: []v1alpha1.BinarySelector{
+						{
+							Operator: "In",
+							Values:   []string{"bin"},
+						},
+					},
+					MatchArgs: []v1alpha1.ArgSelector{
+						{
+							Index:    0,
+							Operator: "In",
+							Values:   []string{"arg-1"},
+						},
+						{
+							Index:    1,
+							Operator: "In",
+							Values:   []string{"arg-2"},
+						},
+					},
+					Macros: []string{"testMacro"},
+				},
+			},
+		},
+		"non-existent macro": {
+			selectors: []v1alpha1.KProbeSelector{
+				{
+					Macros: []string{"wrongMacro"},
+				},
+			},
+			macros: map[string]v1alpha1.KProbeSelector{
+				"testMacro": {
+					MatchBinaries: []v1alpha1.BinarySelector{
+						{
+							Operator: "In",
+							Values:   []string{"bin"},
+						},
+					},
+				},
+			},
+			expectErr: true,
+		},
+		"use of macro in macro": {
+			selectors: []v1alpha1.KProbeSelector{
+				{
+					Macros: []string{"testMacro"},
+				},
+			},
+			macros: map[string]v1alpha1.KProbeSelector{
+				"testMacro": {
+					Macros: []string{"otherMacro"},
+					MatchBinaries: []v1alpha1.BinarySelector{
+						{
+							Operator: "In",
+							Values:   []string{"bin"},
+						},
+					},
+				},
+			},
+			expectErr: true,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			err := appendMacrosSelectors(test.selectors, test.macros)
+			if test.expectErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, test.expectedSelectors, test.selectors)
+			}
+		})
 	}
 }
