@@ -73,10 +73,21 @@ func formatBTFPath(resolvePath string) ([]string, error) {
 	return path, nil
 }
 
+// First argument is added to enforce the method to be called on a pointer type
+func isPointerToIndexedArray(_ *ebtf.Pointer, firstResolvePath string) bool {
+	var idx int
+	n, _ := fmt.Sscanf(firstResolvePath, `[%d]`, &idx)
+	return n == 1
+}
+
 func addPaddingOnNestedPtr(ty ebtf.Type, path []string) []string {
 	if t, ok := ty.(*ebtf.Pointer); ok {
-		updatedPath := append([]string{"[0]"}, path...)
-		return addPaddingOnNestedPtr(t.Target, updatedPath)
+		// If we are going to dereference the pointer by index,
+		// there is no need to force-dereference it.
+		if !isPointerToIndexedArray(t, path[0]) {
+			updatedPath := append([]string{"[0]"}, path...)
+			return addPaddingOnNestedPtr(t.Target, updatedPath)
+		}
 	}
 	return path
 }
@@ -145,7 +156,14 @@ func resolveBTFArg(hook string, arg *v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [
 
 		ty = param.Type
 		if ptr, isPointer := param.Type.(*ebtf.Pointer); isPointer {
-			ty = ptr.Target
+			// Dereference pointer type only for complex data structures,
+			// avoid doing this for plain int*, float*...,
+			// ie: when resolve is used to access arrays.
+			_, isStruct := ptr.Target.(*ebtf.Struct)
+			_, isUnion := ptr.Target.(*ebtf.Union)
+			if isStruct || isUnion {
+				ty = ptr.Target
+			}
 		}
 	}
 	return resolveBTFType(arg, ty)
