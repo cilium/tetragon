@@ -37,6 +37,7 @@ const (
 	argCurrentTaskBit   = 1 << 6
 	argPtRegsBit        = 1 << 7
 	argPtRegsPreloadBit = 1 << 8
+	argPreloadBit       = 1 << 9
 )
 
 func argReturnCopy(meta int) bool {
@@ -76,7 +77,7 @@ func getMetaValue(arg *v1alpha1.KProbeArg) (int, error) {
 	return meta, nil
 }
 
-func getUprobeMetaValue(arg *v1alpha1.KProbeArg, preload bool) (int, error) {
+func getUprobeMetaValue(arg *v1alpha1.KProbeArg, ptregPreload bool, preload bool) (int, error) {
 	// common meta bits
 	meta, err := getMetaValue(arg)
 	if err != nil {
@@ -84,9 +85,14 @@ func getUprobeMetaValue(arg *v1alpha1.KProbeArg, preload bool) (int, error) {
 	}
 
 	// uprobe specific bits
-	if meta&argPtRegsBit != 0 && preload {
+	if meta&argPtRegsBit != 0 && ptregPreload {
 		meta = meta | argPtRegsPreloadBit
 	}
+
+	if preload {
+		meta = meta | argPreloadBit
+	}
+
 	return meta, nil
 }
 

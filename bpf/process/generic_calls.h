@@ -16,6 +16,7 @@
 #include "regs.h"
 #include "config.h"
 #include "uprobe_preload.h"
+#include "generic_arg.h"
 
 #define MAX_TOTAL 9000
 
@@ -467,59 +468,6 @@ read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int a
 		return __read_arg_2(ctx, type, orig_off, arg, argm, args);
 }
 
-FUNC_INLINE int
-extract_arg_depth(u32 i, struct extract_arg_data *data)
-{
-	if (i >= MAX_BTF_ARG_DEPTH || !data->btf_config[i].is_initialized)
-		return 1;
-	*data->arg = *data->arg + data->btf_config[i].offset;
-	if (data->btf_config[i].is_pointer)
-		probe_read((void *)data->arg, sizeof(char *), (void *)*data->arg);
-	return 0;
-}
-
-#ifdef __LARGE_BPF_PROG
-FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long *a)
-{
-	struct config_btf_arg *btf_config;
-
-	if (index >= EVENT_CONFIG_MAX_ARG)
-		return;
-
-	asm volatile("%[index] &= %1 ;\n"
-		     : [index] "+r"(index)
-		     : "i"(MAX_SELECTORS_MASK));
-	btf_config = config->btf_arg[index];
-	if (btf_config->is_initialized) {
-		struct extract_arg_data extract_data = {
-			.btf_config = btf_config,
-			.arg = a,
-		};
-		int i;
-
-		if (CONFIG(ITER_NUM)) {
-			bpf_for(i, 0, MAX_BTF_ARG_DEPTH)
-			{
-				if (extract_arg_depth(i, &extract_data))
-					break;
-			}
-		} else {
-#ifndef __V61_BPF_PROG
-#pragma unroll
-			for (i = 0; i < MAX_BTF_ARG_DEPTH; ++i) {
-				if (extract_arg_depth(i, &extract_data))
-					break;
-			}
-#else
-			loop(MAX_BTF_ARG_DEPTH, extract_arg_depth, &extract_data, 0);
-#endif /* __V61_BPF_PROG */
-		}
-	}
-}
-#else
-FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long *a) {}
-#endif /* __LARGE_BPF_PROG */
-
 FUNC_INLINE int arg_idx(int index)
 {
 	struct msg_generic_kprobe *e;
@@ -580,7 +528,7 @@ FUNC_INLINE long get_pt_regs_arg(struct pt_regs *ctx, struct event_config *confi
 }
 #endif /* __TARGET_ARCH_x86 && (GENERIC_KPROBE || GENERIC_UPROBE) */
 
-#if defined(GENERIC_UPROBE) && defined(__TARGET_ARCH_x86)
+#if defined(GENERIC_UPROBE)
 FUNC_INLINE unsigned long get_pt_regs_preload_arg(struct pt_regs *ctx, long ty)
 {
 	unsigned long arg = 0;
@@ -636,7 +584,7 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 
 #if defined(GENERIC_TRACEPOINT) || defined(GENERIC_USDT)
 	a = (&e->a0)[index];
-	extract_arg(config, index, &a);
+	extract_arg(config, index, &a, false);
 #else
 	arg_index = config->idx[index];
 	asm volatile("%[arg_index] &= %1 ;\n"
@@ -651,16 +599,17 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 	 *   - current task object
 	 *   - real argument value
 	 */
-	if (am & ARGM_PT_REGS_PRELOAD)
+	if (am & (ARGM_PT_REGS_PRELOAD | ARGM_PRELOAD)) {
 		a = get_pt_regs_preload_arg(ctx, ty);
-	else if (am & ARGM_PT_REGS)
-		a = get_pt_regs_arg(ctx, config, arg_index);
-	else if (am & ARGM_CURRENT_TASK)
-		a = get_current_task();
-	else
-		a = (&e->a0)[arg_index];
-
-	extract_arg(config, index, &a);
+	} else {
+		if (am & ARGM_PT_REGS)
+			a = get_pt_regs_arg(ctx, config, arg_index);
+		else if (am & ARGM_CURRENT_TASK)
+			a = get_current_task();
+		else
+			a = (&e->a0)[arg_index];
+		extract_arg(config, index, &a, false);
+	}
 
 	if (should_offload_path(ty))
 		return generic_path_offload(ctx, ty, a, index, off, tailcals);

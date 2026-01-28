@@ -5,6 +5,7 @@
 #define __UPROBE_PRELOAD_H__
 
 #include "generic_maps.h"
+#include "generic_arg.h"
 #include "errmetrics.h"
 
 struct preload_data {
@@ -18,7 +19,7 @@ struct {
 	__type(value, struct preload_data);
 } sleepable_preload SEC(".maps");
 
-#if defined(GENERIC_UPROBE) && defined(__TARGET_ARCH_x86)
+#if defined(GENERIC_UPROBE)
 
 FUNC_INLINE unsigned long
 preload_string_arg(struct pt_regs *ctx)
@@ -76,6 +77,50 @@ preload_pt_regs_arg(struct pt_regs *ctx, struct event_config *config, int index)
 }
 
 FUNC_INLINE int
+preload_arg(struct pt_regs *ctx, struct event_config *config, int index)
+{
+	int arg_index;
+	unsigned long a;
+	__s32 ty;
+
+	arg_index = config->idx[index];
+	asm volatile("%[arg_index] &= %1 ;\n"
+		     : [arg_index] "+r"(arg_index)
+		     : "i"(MAX_SELECTORS_MASK));
+
+	switch (arg_index) {
+	case 0:
+		a = PT_REGS_PARM1_CORE(ctx);
+		break;
+	case 1:
+		a = PT_REGS_PARM2_CORE(ctx);
+		break;
+	case 2:
+		a = PT_REGS_PARM3_CORE(ctx);
+		break;
+	case 3:
+		a = PT_REGS_PARM4_CORE(ctx);
+		break;
+	case 4:
+		a = PT_REGS_PARM5_CORE(ctx);
+		break;
+	}
+
+	extract_arg(config, index, &a, true);
+
+	ty = config->arg[arg_index];
+
+	probe_read(&a, sizeof(a), &a);
+
+	switch (ty) {
+	case string_type:
+		return preload_string_type(ctx, config, a);
+	}
+
+	return 0;
+}
+
+FUNC_INLINE int
 uprobe_preload(struct pt_regs *ctx)
 {
 	struct event_config *config;
@@ -96,10 +141,21 @@ uprobe_preload(struct pt_regs *ctx)
 	if (config->arm[4] & ARGM_PT_REGS_PRELOAD)
 		preload_pt_regs_arg(ctx, config, 4);
 
+	if (config->arm[0] & ARGM_PRELOAD)
+		preload_arg(ctx, config, 0);
+	if (config->arm[1] & ARGM_PRELOAD)
+		preload_arg(ctx, config, 1);
+	if (config->arm[2] & ARGM_PRELOAD)
+		preload_arg(ctx, config, 2);
+	if (config->arm[3] & ARGM_PRELOAD)
+		preload_arg(ctx, config, 3);
+	if (config->arm[4] & ARGM_PRELOAD)
+		preload_arg(ctx, config, 4);
+
 	return 0;
 }
 
-#endif /* GENERIC_UPROBE && __TARGET_ARCH_x86 */
+#endif /* GENERIC_UPROBE */
 
 FUNC_INLINE int
 uprobe_preload_cleanup(struct pt_regs *ctx)
