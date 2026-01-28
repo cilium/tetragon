@@ -18,6 +18,8 @@ import (
 	"github.com/cilium/ebpf"
 	lru "github.com/hashicorp/golang-lru/v2"
 
+	"github.com/cilium/tetragon/pkg/cgtracker"
+
 	"github.com/cilium/tetragon/pkg/asm"
 	"github.com/cilium/tetragon/pkg/metrics/kprobemetrics"
 
@@ -842,6 +844,10 @@ func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID, poli
 		maps = append(maps, sleepablePreloadMap)
 	}
 
+	if option.Config.EnableCgTrackerID {
+		maps = append(maps, program.MapUser(cgtracker.MapName, load))
+	}
+
 	filterMap.SetMaxEntries(len(multiIDs))
 	configMap.SetMaxEntries(len(multiIDs))
 
@@ -928,6 +934,10 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 		sleepablePreloadMap := program.MapBuilderProgram("sleepable_preload", load)
 		sleepablePreloadMap.SetMaxEntries(sleepablePreloadMaxEntries)
 		maps = append(maps, sleepablePreloadMap)
+	}
+
+	if option.Config.EnableCgTrackerID {
+		maps = append(maps, program.MapUser(cgtracker.MapName, load))
 	}
 
 	if uprobeEntry.loadArgs.retprobe {
