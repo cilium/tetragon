@@ -158,6 +158,12 @@ spec:
                               is triggered at the entrance of the function. For example, a buffer
                               supplied to read(2) won't have content until kretprobe is triggered.
                             type: boolean
+                          size:
+                            description: Size of the array argument (required for
+                              int32_arr).
+                            format: int32
+                            minimum: 0
+                            type: integer
                           sizeArgIndex:
                             description: |-
                               Specifies the position of the corresponding size argument for this argument.
@@ -224,6 +230,7 @@ spec:
                             - bpf_cmd
                             - dentry
                             - bpf_prog
+                            - int32_arr
                             type: string
                         required:
                         - index
@@ -272,6 +279,12 @@ spec:
                               is triggered at the entrance of the function. For example, a buffer
                               supplied to read(2) won't have content until kretprobe is triggered.
                             type: boolean
+                          size:
+                            description: Size of the array argument (required for
+                              int32_arr).
+                            format: int32
+                            minimum: 0
+                            type: integer
                           sizeArgIndex:
                             description: |-
                               Specifies the position of the corresponding size argument for this argument.
@@ -338,6 +351,7 @@ spec:
                             - bpf_cmd
                             - dentry
                             - bpf_prog
+                            - int32_arr
                             type: string
                         required:
                         - index
@@ -399,6 +413,11 @@ spec:
                             is triggered at the entrance of the function. For example, a buffer
                             supplied to read(2) won't have content until kretprobe is triggered.
                           type: boolean
+                        size:
+                          description: Size of the array argument (required for int32_arr).
+                          format: int32
+                          minimum: 0
+                          type: integer
                         sizeArgIndex:
                           description: |-
                             Specifies the position of the corresponding size argument for this argument.
@@ -465,6 +484,7 @@ spec:
                           - bpf_cmd
                           - dentry
                           - bpf_prog
+                          - int32_arr
                           type: string
                       required:
                       - index
@@ -1183,6 +1203,12 @@ spec:
                               is triggered at the entrance of the function. For example, a buffer
                               supplied to read(2) won't have content until kretprobe is triggered.
                             type: boolean
+                          size:
+                            description: Size of the array argument (required for
+                              int32_arr).
+                            format: int32
+                            minimum: 0
+                            type: integer
                           sizeArgIndex:
                             description: |-
                               Specifies the position of the corresponding size argument for this argument.
@@ -1249,6 +1275,7 @@ spec:
                             - bpf_cmd
                             - dentry
                             - bpf_prog
+                            - int32_arr
                             type: string
                         required:
                         - index
@@ -2004,6 +2031,12 @@ spec:
                               is triggered at the entrance of the function. For example, a buffer
                               supplied to read(2) won't have content until kretprobe is triggered.
                             type: boolean
+                          size:
+                            description: Size of the array argument (required for
+                              int32_arr).
+                            format: int32
+                            minimum: 0
+                            type: integer
                           sizeArgIndex:
                             description: |-
                               Specifies the position of the corresponding size argument for this argument.
@@ -2070,6 +2103,7 @@ spec:
                             - bpf_cmd
                             - dentry
                             - bpf_prog
+                            - int32_arr
                             type: string
                         required:
                         - index
@@ -2769,6 +2803,12 @@ spec:
                               is triggered at the entrance of the function. For example, a buffer
                               supplied to read(2) won't have content until kretprobe is triggered.
                             type: boolean
+                          size:
+                            description: Size of the array argument (required for
+                              int32_arr).
+                            format: int32
+                            minimum: 0
+                            type: integer
                           sizeArgIndex:
                             description: |-
                               Specifies the position of the corresponding size argument for this argument.
@@ -2835,6 +2875,7 @@ spec:
                             - bpf_cmd
                             - dentry
                             - bpf_prog
+                            - int32_arr
                             type: string
                         required:
                         - index
@@ -2883,6 +2924,12 @@ spec:
                               is triggered at the entrance of the function. For example, a buffer
                               supplied to read(2) won't have content until kretprobe is triggered.
                             type: boolean
+                          size:
+                            description: Size of the array argument (required for
+                              int32_arr).
+                            format: int32
+                            minimum: 0
+                            type: integer
                           sizeArgIndex:
                             description: |-
                               Specifies the position of the corresponding size argument for this argument.
@@ -2949,6 +2996,7 @@ spec:
                             - bpf_cmd
                             - dentry
                             - bpf_prog
+                            - int32_arr
                             type: string
                         required:
                         - index
@@ -3018,6 +3066,11 @@ spec:
                             is triggered at the entrance of the function. For example, a buffer
                             supplied to read(2) won't have content until kretprobe is triggered.
                           type: boolean
+                        size:
+                          description: Size of the array argument (required for int32_arr).
+                          format: int32
+                          minimum: 0
+                          type: integer
                         sizeArgIndex:
                           description: |-
                             Specifies the position of the corresponding size argument for this argument.
@@ -3084,6 +3137,7 @@ spec:
                           - bpf_cmd
                           - dentry
                           - bpf_prog
+                          - int32_arr
                           type: string
                       required:
                       - index
@@ -3766,6 +3820,12 @@ spec:
                               is triggered at the entrance of the function. For example, a buffer
                               supplied to read(2) won't have content until kretprobe is triggered.
                             type: boolean
+                          size:
+                            description: Size of the array argument (required for
+                              int32_arr).
+                            format: int32
+                            minimum: 0
+                            type: integer
                           sizeArgIndex:
                             description: |-
                               Specifies the position of the corresponding size argument for this argument.
@@ -3832,6 +3892,7 @@ spec:
                             - bpf_cmd
                             - dentry
                             - bpf_prog
+                            - int32_arr
                             type: string
                         required:
                         - index
