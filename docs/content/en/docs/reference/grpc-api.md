@@ -1284,6 +1284,51 @@ Determines the behavior of a field filter
 | level | [LogLevel](#tetragon-LogLevel) |  |  |
 | processes | [DumpProcessCacheResArgs](#tetragon-DumpProcessCacheResArgs) |  |  |
 
+<a name="tetragon-GetInfoRequest"></a>
+
+### GetInfoRequest
+
+<a name="tetragon-GetInfoResponse"></a>
+
+### GetInfoResponse
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| version | [string](#string) |  | version is the version of the agent tetragon (same as GetVersionResponse()) |
+| name | [string](#string) |  | name is the name of the agent |
+| probes | [GetInfoResponse.Probe](#tetragon-GetInfoResponse-Probe) | repeated | probes is a list of kernel features that have been probed by the agent |
+| conf | [GetInfoResponse.ConfVal](#tetragon-GetInfoResponse-ConfVal) | repeated | conf is the agent configuration |
+| build | [GetInfoResponse.BuildInfo](#tetragon-GetInfoResponse-BuildInfo) |  | build is the agent build information |
+
+<a name="tetragon-GetInfoResponse-BuildInfo"></a>
+
+### GetInfoResponse.BuildInfo
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| go_version | [string](#string) |  |  |
+| commit | [string](#string) |  |  |
+| time | [string](#string) |  |  |
+| modified | [string](#string) |  |  |
+
+<a name="tetragon-GetInfoResponse-ConfVal"></a>
+
+### GetInfoResponse.ConfVal
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| key | [string](#string) |  |  |
+| value | [google.protobuf.Any](#google-protobuf-Any) |  |  |
+
+<a name="tetragon-GetInfoResponse-Probe"></a>
+
+### GetInfoResponse.Probe
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| Name | [string](#string) |  |  |
+| Enabled | [google.protobuf.BoolValue](#google-protobuf-BoolValue) |  |  |
+
 <a name="tetragon-GetStackTraceTreeRequest"></a>
 
 ### GetStackTraceTreeRequest
@@ -1506,6 +1551,7 @@ For now, we only want to support debug-related config flags to be configurable.
 | RemoveSensor | [RemoveSensorRequest](#tetragon-RemoveSensorRequest) | [RemoveSensorResponse](#tetragon-RemoveSensorResponse) |  |
 | GetStackTraceTree | [GetStackTraceTreeRequest](#tetragon-GetStackTraceTreeRequest) | [GetStackTraceTreeResponse](#tetragon-GetStackTraceTreeResponse) |  |
 | GetVersion | [GetVersionRequest](#tetragon-GetVersionRequest) | [GetVersionResponse](#tetragon-GetVersionResponse) |  |
+| GetInfo | [GetInfoRequest](#tetragon-GetInfoRequest) | [GetInfoResponse](#tetragon-GetInfoResponse) |  |
 | RuntimeHook | [RuntimeHookRequest](#tetragon-RuntimeHookRequest) | [RuntimeHookResponse](#tetragon-RuntimeHookResponse) |  |
 | GetDebug | [GetDebugRequest](#tetragon-GetDebugRequest) | [GetDebugResponse](#tetragon-GetDebugResponse) |  |
 | SetDebug | [SetDebugRequest](#tetragon-SetDebugRequest) | [SetDebugResponse](#tetragon-SetDebugResponse) |  |

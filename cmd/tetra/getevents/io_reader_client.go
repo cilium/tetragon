@@ -103,6 +103,10 @@ func (i *ioReaderClient) GetVersion(_ context.Context, _ *tetragon.GetVersionReq
 	panic("stub")
 }
 
+func (i *ioReaderClient) GetInfo(_ context.Context, _ *tetragon.GetInfoRequest, _ ...grpc.CallOption) (*tetragon.GetInfoResponse, error) {
+	panic("stub")
+}
+
 func (i *ioReaderClient) Recv() (*tetragon.GetEventsResponse, error) {
 	for i.scanner.Scan() {
 		res := &tetragon.GetEventsResponse{}
