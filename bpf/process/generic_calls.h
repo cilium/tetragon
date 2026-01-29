@@ -454,7 +454,7 @@ read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int a
 
 	orig_off &= 16383;
 
-	index &= MAX_SELECTORS_MASK;
+	index &= MAX_POSSIBLE_ARGS_MASK;
 	orig_off = write_arg_status(e, orig_off, e->arg_status[index]);
 	/* Cache args offset for filter use later */
 	e->argsoff[index] = orig_off;

@@ -1922,7 +1922,9 @@ get_arg(struct msg_generic_kprobe *e, __u32 index)
 {
 	long argoff;
 
-	asm volatile("%[index] &= 0x7;\n" : [index] "+r"(index));
+	asm volatile("%[index] &= %[mask];\n"
+		     : [index] "+r"(index)
+		     : [mask] "i"(MAX_POSSIBLE_ARGS_MASK));
 	argoff = e->argsoff[index];
 	asm volatile("%[argoff] &= 0x7ff;\n" : [argoff] "+r"(argoff));
 	return &e->args[argoff];
@@ -1967,7 +1969,9 @@ filter_arg_1(struct msg_generic_kprobe *e, struct selector_arg_filter *filter, c
 			__u64 cap_old = *(__u64 *)args;
 			__u32 index2 = *((__u32 *)&filter->value);
 
-			asm volatile("%[index2] &= 0x7;\n" : [index2] "+r"(index2));
+			asm volatile("%[index2] &= %[mask];\n"
+				     : [index2] "+r"(index2)
+				     : [mask] "i"(MAX_POSSIBLE_ARGS_MASK));
 			if (!is_arg_ok(e, index2))
 				return 0;
 			__u64 cap_new = *(__u64 *)get_arg(e, index2);
@@ -2168,12 +2172,11 @@ installfd(struct msg_generic_kprobe *e, int fd, int name, bool follow)
 	/* Satisfies verifier but is a bit ugly, ideally we
 	 * can just '&' and drop the '>' case.
 	 */
-	asm volatile("%[fd] &= 0xf;\n"
+	asm volatile("%[fd] &= %[mask];\n"
 		     : [fd] "+r"(fd)
-		     :);
-	if (fd > 5) {
+		     : [mask] "i"(MAX_POSSIBLE_ARGS_MASK));
+	if (fd > MAX_POSSIBLE_ARGS)
 		return 0;
-	}
 
 	if (!is_arg_ok(e, fd))
 		return 0;
@@ -2189,10 +2192,10 @@ installfd(struct msg_generic_kprobe *e, int fd, int name, bool follow)
 	if (follow) {
 		__u32 size;
 
-		asm volatile("%[name] &= 0xf;\n"
+		asm volatile("%[name] &= %[mask];\n"
 			     : [name] "+r"(name)
-			     :);
-		if (name > 5)
+			     : [mask] "i"(MAX_POSSIBLE_ARGS_MASK));
+		if (name > MAX_POSSIBLE_ARGS)
 			return 0;
 
 		if (!is_arg_ok(e, name))
@@ -2244,10 +2247,10 @@ copyfd(struct msg_generic_kprobe *e, int oldfd, int newfd)
 	int oldfdoff, newfdoff;
 	int err = 0;
 
-	asm volatile("%[oldfd] &= 0xf;\n"
+	asm volatile("%[oldfd] &= %[mask];\n"
 		     : [oldfd] "+r"(oldfd)
-		     :);
-	if (oldfd > 5)
+		     : [mask] "i"(MAX_POSSIBLE_ARGS_MASK));
+	if (oldfd > MAX_POSSIBLE_ARGS)
 		return 0;
 	if (!is_arg_ok(e, oldfd))
 		return 0;
@@ -2261,10 +2264,10 @@ copyfd(struct msg_generic_kprobe *e, int oldfd, int newfd)
 
 	val = map_lookup_elem(&fdinstall_map, &key);
 	if (val) {
-		asm volatile("%[newfd] &= 0xf;\n"
+		asm volatile("%[newfd] &= %[mask];\n"
 			     : [newfd] "+r"(newfd)
-			     :);
-		if (newfd > 5)
+			     : [mask] "i"(MAX_POSSIBLE_ARGS_MASK));
+		if (newfd > MAX_POSSIBLE_ARGS)
 			return 0;
 		if (!is_arg_ok(e, newfd))
 			return 0;
@@ -2401,10 +2404,10 @@ tracksock(struct msg_generic_kprobe *e, int socki, bool track)
 	/* Satisfies verifier but is a bit ugly, ideally we
 	 * can just '&' and drop the '>' case.
 	 */
-	asm volatile("%[socki] &= 0xf;\n"
+	asm volatile("%[socki] &= %[mask];\n"
 		     : [socki] "+r"(socki)
-		     :);
-	if (socki > 5)
+		     : [mask] "i"(MAX_POSSIBLE_ARGS_MASK));
+	if (socki > MAX_POSSIBLE_ARGS)
 		return 0;
 
 	if (!is_arg_ok(e, socki))

@@ -199,7 +199,7 @@ FUNC_INLINE long generic_path_offload(void *ctx, long ty, unsigned long arg,
 	if (!buffer)
 		return 0;
 
-	index &= MAX_SELECTORS_MASK;
+	index &= MAX_POSSIBLE_ARGS_MASK;
 
 	orig_off = write_arg_status(e, orig_off, e->arg_status[index]);
 
