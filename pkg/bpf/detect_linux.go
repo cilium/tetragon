@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -614,10 +615,47 @@ func LogFeatures() string {
 	// we cache all values so calling again a Has* function will
 	// not load the BTF again
 	defer ebtf.FlushKernelSpec()
-	return fmt.Sprintf("override_return: %t, buildid: %t, kprobe_multi: %t, uprobe_multi: %t, fmodret: %t, fmodret_syscall: %t, signal: %t, large: %t, link_pin: %t, lsm: %t, missed_stats_kprobe_multi: %t, missed_stats_kprobe: %t, batch_update: %t, uprobe_refctroff: %t, audit_loginuid: %t, probe_write_user: %t, uprobe_regs_change: %t",
-		HasOverrideHelper(), HasBuildId(), HasKprobeMulti(), HasUprobeMulti(),
-		HasModifyReturn(), HasModifyReturnSyscall(), HasSignalHelper(), HasProgramLargeSize(),
-		HasLinkPin(), HasLSMPrograms(), HasMissedStatsKprobeMulti(), HasMissedStatsPerfEvent(),
-		HasBatchAPI(), HasUprobeRefCtrOffset(), HasAuditLoginuid(), HasProbeWriteUserHelper(),
-		HasUprobeRegsChange())
+
+	probeStr := func(p *FeatureProbe) string {
+		return p.Name + ": " + strconv.FormatBool(p.Fn())
+	}
+
+	switch len(FeatureProbes) {
+	case 0:
+		return ""
+	case 1:
+		return probeStr(&FeatureProbes[0])
+	}
+
+	var bld strings.Builder
+	bld.WriteString(probeStr(&FeatureProbes[0]))
+	for _, p := range FeatureProbes[1:] {
+		bld.WriteString(", " + probeStr(&p))
+	}
+	return bld.String()
+}
+
+type FeatureProbe struct {
+	Name string
+	Fn   func() bool
+}
+
+var FeatureProbes = []FeatureProbe{
+	{"override_return", HasOverrideHelper},
+	{"buildid", HasBuildId},
+	{"kprobe_multi", HasKprobeMulti},
+	{"uprobe_multi", HasUprobeMulti},
+	{"fmodret", HasModifyReturn},
+	{"fmodret_syscall", HasModifyReturnSyscall},
+	{"signal", HasSignalHelper},
+	{"large", HasProgramLargeSize},
+	{"link_pin", HasLinkPin},
+	{"lsm", HasLSMPrograms},
+	{"missed_stats_kprobe_multi", HasMissedStatsKprobeMulti},
+	{"missed_stats_kprobe", HasMissedStatsPerfEvent},
+	{"batch_update", HasBatchAPI},
+	{"uprobe_refctroff", HasUprobeRefCtrOffset},
+	{"audit_loginuid", HasAuditLoginuid},
+	{"probe_write_user", HasProbeWriteUserHelper},
+	{"uprobe_regs_change", HasUprobeRegsChange},
 }
