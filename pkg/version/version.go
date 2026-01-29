@@ -9,6 +9,7 @@ import (
 )
 
 var Version string
+var Name string
 
 type BuildInfo struct {
 	GoVersion string

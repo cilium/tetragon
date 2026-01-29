@@ -64,6 +64,7 @@ endif
 # GO_BUILD_LDFLAGS is initialized to empty use EXTRA_GO_BUILD_LDFLAGS to add link flags
 GO_BUILD_LDFLAGS =
 GO_BUILD_LDFLAGS += -X 'github.com/cilium/tetragon/pkg/version.Version=$(VERSION)'
+GO_BUILD_LDFLAGS += -X 'github.com/cilium/tetragon/pkg/version.Name=tetragon'
 ifeq ($(NOSTRIP),)
     # Note: these options will not remove annotations needed for stack
     # traces, so panic backtraces will still be readable.
