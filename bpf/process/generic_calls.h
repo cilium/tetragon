@@ -508,9 +508,9 @@ FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned lo
 
 	asm volatile("%[index] &= %1 ;\n"
 		     : [index] "+r"(index)
-		     : "i"(MAX_SELECTORS_MASK));
+		     : "i"(MAX_POSSIBLE_ARGS_MASK));
 
-	if (index >= EVENT_CONFIG_MAX_ARG)
+	if (index >= MAX_POSSIBLE_ARGS)
 		return;
 
 	btf_config = config->btf_arg[index];
@@ -572,7 +572,7 @@ FUNC_INLINE long get_pt_regs_arg(struct pt_regs *ctx, struct event_config *confi
 
 	asm volatile("%[index] &= %1 ;\n"
 		     : [index] "+r"(index)
-		     : "i"(MAX_SELECTORS_MASK));
+		     : "i"(EVENT_CONFIG_MAX_REG_ARG_MASK));
 	reg = &config->reg_arg[index];
 	shift = 64 - reg->size * 8;
 
@@ -629,9 +629,21 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 	if (!config)
 		return 0;
 
+#if defined(GENERIC_TRACEPOINT) || defined(GENERIC_USDT)
 	asm volatile("%[index] &= %1 ;\n"
 		     : [index] "+r"(index)
-		     : "i"(MAX_SELECTORS_MASK));
+		     : "i"(MAX_ACCESSIBLE_ARGS_MASK));
+
+	a = (&e->a0)[index];
+#endif
+
+	asm volatile("%[index] &= %1 ;\n"
+		     : [index] "+r"(index)
+		     : "i"(MAX_POSSIBLE_ARGS_MASK));
+
+	if (index >= MAX_POSSIBLE_ARGS)
+		return 0;
+
 	ty = config->arg[index];
 	am = config->arm[index];
 
@@ -645,14 +657,9 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 	e->arg_status[index] = 0;
 
 #if defined(GENERIC_TRACEPOINT) || defined(GENERIC_USDT)
-	a = (&e->a0)[index];
 	extract_arg(config, index, &a, &e->arg_status[index]);
 #else
 	arg_index = config->idx[index];
-	asm volatile("%[arg_index] &= %1 ;\n"
-		     : [arg_index] "+r"(arg_index)
-		     : "i"(MAX_SELECTORS_MASK));
-
 	/* Getting argument data based on the source attribute, which is encoded
 	 * in argument meta data, so far it's either:
 	 *
@@ -661,14 +668,21 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 	 *   - current task object
 	 *   - real argument value
 	 */
-	if (am & ARGM_PT_REGS_PRELOAD)
+	if (am & ARGM_PT_REGS_PRELOAD) {
 		a = get_pt_regs_preload_arg(ctx, ty);
-	else if (am & ARGM_PT_REGS)
+	} else if (am & ARGM_PT_REGS) {
+		asm volatile("%[arg_index] &= %1 ;\n"
+			     : [arg_index] "+r"(arg_index)
+			     : "i"(EVENT_CONFIG_MAX_REG_ARG_MASK));
 		a = get_pt_regs_arg(ctx, config, arg_index);
-	else if (am & ARGM_CURRENT_TASK)
+	} else if (am & ARGM_CURRENT_TASK) {
 		a = get_current_task();
-	else
+	} else {
+		asm volatile("%[arg_index] &= %1 ;\n"
+			     : [arg_index] "+r"(arg_index)
+			     : "i"(MAX_ACCESSIBLE_ARGS_MASK));
 		a = (&e->a0)[arg_index];
+	}
 
 	extract_arg(config, index, &a, &e->arg_status[index]);
 
@@ -753,7 +767,7 @@ read_usdt_arg(struct pt_regs *ctx, struct event_config *config, int index)
 	unsigned long val, off, idx;
 	int err;
 
-	index &= 7;
+	index &= EVENT_CONFIG_MAX_USDT_ARG_MASK;
 	arg = &config->usdt_arg[index];
 
 	if (arg->type == USDT_ARG_TYPE_NONE)
@@ -1009,7 +1023,7 @@ do_set_action(void *ctx, struct msg_generic_kprobe *e, __u32 arg_idx, __u32 arg_
 	if (!config)
 		return;
 
-	arg_idx &= 7;
+	arg_idx &= EVENT_CONFIG_MAX_USDT_ARG_MASK;
 	arg = &config->usdt_arg[arg_idx];
 
 	switch (arg->type) {
