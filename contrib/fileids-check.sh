@@ -3,17 +3,17 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright Authors of Tetragon
 
-# This script checks that bpf/errmetrics/fileids.h and pkg/errmetrics/files.go
-# are kept in sync. Both files maintain a mapping of BPF source file names to
-# numeric IDs used for error metrics.
+# This script checks that FILEIDS_H and FILES_GO are kept in sync.
+# Both files maintain a mapping of BPF source file names to numeric IDs used
+# for error metrics.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-FILEIDS_H="${ROOT_DIR}/bpf/errmetrics/fileids.h"
-FILES_GO="${ROOT_DIR}/pkg/errmetrics/files.go"
+FILEIDS_H="${FILEIDS_H:-${ROOT_DIR}/bpf/errmetrics/fileids.h}"
+FILES_GO="${FILES_GO:-${ROOT_DIR}/pkg/errmetrics/files.go}"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -29,7 +29,7 @@ if [[ ! -f "${FILES_GO}" ]]; then
     exit 1
 fi
 
-# Extract mappings from fileids.h: fileid__("filename", id)
+# Extract mappings from FILEIDS_H: fileid__("filename", id)
 # Output format: id:filename
 extract_from_h() {
     grep -E 'fileid__\(' "${FILEIDS_H}" | \
@@ -37,7 +37,7 @@ extract_from_h() {
         sort -t: -k1 -n
 }
 
-# Extract mappings from files.go: id: "filename",
+# Extract mappings from FILES_GO: id: "filename",
 # Output format: id:filename
 extract_from_go() {
     grep -E '^\s+[0-9]+:\s+"[^"]+"' "${FILES_GO}" | \
@@ -60,19 +60,19 @@ fi
 
 # Compare the mappings
 if [[ "${h_mappings}" == "${go_mappings}" ]]; then
-    echo -e "${GREEN}success${NC}: bpf/errmetrics/fileids.h and pkg/errmetrics/files.go are in sync"
+    echo -e "${GREEN}success${NC}: ${FILEIDS_H} and ${FILES_GO} are in sync"
     exit 0
 fi
 
-echo -e "${RED}error${NC}: bpf/errmetrics/fileids.h and pkg/errmetrics/files.go are out of sync"
+echo -e "${RED}error${NC}: ${FILEIDS_H} and ${FILES_GO} are out of sync"
 echo ""
-echo "Entries in fileids.h:"
+echo "Entries in ${FILEIDS_H}:"
 echo "${h_mappings}" | sed 's/^/  /'
 echo ""
-echo "Entries in files.go:"
+echo "Entries in ${FILES_GO}:"
 echo "${go_mappings}" | sed 's/^/  /'
 echo ""
-echo "Diff (fileids.h vs files.go):"
+echo "Diff (${FILEIDS_H} vs ${FILES_GO}):"
 diff <(echo "${h_mappings}") <(echo "${go_mappings}") || true
 echo ""
 echo "Please ensure both files have identical mappings."
