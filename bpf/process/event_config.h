@@ -47,16 +47,20 @@ struct extract_arg_data {
 };
 
 #define MAX_BTF_ARG_DEPTH	  10
-#define EVENT_CONFIG_MAX_ARG	  5
 #define EVENT_CONFIG_MAX_USDT_ARG 8
 #define EVENT_CONFIG_MAX_REG_ARG  8
+/* convenience masks for verifier appeasing*/
+#define EVENT_CONFIG_MAX_USDT_ARG_MASK 0x7
+_Static_assert(EVENT_CONFIG_MAX_USDT_ARG - 1 <= EVENT_CONFIG_MAX_USDT_ARG_MASK, "Need to update EVENT_CONFIG_MAX_USDT_ARG_MASK");
+#define EVENT_CONFIG_MAX_REG_ARG_MASK 0x7
+_Static_assert(EVENT_CONFIG_MAX_REG_ARG - 1 <= EVENT_CONFIG_MAX_REG_ARG_MASK, "Need to update EVENT_CONFIG_MAX_REG_ARG_MASK");
 
 struct event_config {
 	__u32 func_id;
-	__s32 arg[EVENT_CONFIG_MAX_ARG];
-	__u32 arm[EVENT_CONFIG_MAX_ARG];
-	__u32 off[EVENT_CONFIG_MAX_ARG];
-	__s32 idx[EVENT_CONFIG_MAX_ARG];
+	__s32 arg[MAX_POSSIBLE_ARGS];
+	__u32 arm[MAX_POSSIBLE_ARGS];
+	__u32 off[MAX_POSSIBLE_ARGS];
+	__s32 idx[MAX_POSSIBLE_ARGS];
 	__u32 syscall;
 	__s32 argreturncopy;
 	__s32 argreturn;
@@ -71,7 +75,7 @@ struct event_config {
 	__u32 policy_id;
 	__u32 flags;
 	__u32 pad;
-	struct config_btf_arg btf_arg[EVENT_CONFIG_MAX_ARG][MAX_BTF_ARG_DEPTH];
+	struct config_btf_arg btf_arg[MAX_POSSIBLE_ARGS][MAX_BTF_ARG_DEPTH];
 	struct config_usdt_arg usdt_arg[EVENT_CONFIG_MAX_USDT_ARG];
 	struct config_reg_arg reg_arg[EVENT_CONFIG_MAX_REG_ARG];
 } __attribute__((packed));
@@ -92,7 +96,7 @@ FUNC_INLINE int arg_idx(int index)
 
 	asm volatile("%[index] &= %1 ;\n"
 		     : [index] "+r"(index)
-		     : "i"(MAX_SELECTORS_MASK));
+		     : "i"(MAX_POSSIBLE_ARGS_MASK));
 	return config->idx[index];
 }
 

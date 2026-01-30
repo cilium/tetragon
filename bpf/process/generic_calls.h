@@ -457,9 +457,9 @@ read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int a
 	if (orig_off >= 16383 - min_size)
 		return 0;
 
-	orig_off = write_arg_status(e, orig_off, e->arg_status[index & MAX_SELECTORS_MASK]);
+	orig_off = write_arg_status(e, orig_off, e->arg_status[index & MAX_POSSIBLE_ARGS_MASK]);
 	/* Cache args offset for filter use later */
-	e->argsoff[index & MAX_SELECTORS_MASK] = orig_off;
+	e->argsoff[index & MAX_POSSIBLE_ARGS_MASK] = orig_off;
 	if (!is_arg_ok(e, index))
 		return sizeof(arg_status_t);
 
@@ -508,7 +508,7 @@ FUNC_INLINE long get_pt_regs_arg(struct pt_regs *ctx, struct event_config *confi
 
 	asm volatile("%[index] &= %1 ;\n"
 		     : [index] "+r"(index)
-		     : "i"(MAX_SELECTORS_MASK));
+		     : "i"(EVENT_CONFIG_MAX_REG_ARG_MASK));
 	reg = &config->reg_arg[index];
 	shift = 64 - reg->size * 8;
 
@@ -578,7 +578,7 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 
 	asm volatile("%[index] &= %1 ;\n"
 		     : [index] "+r"(index)
-		     : "i"(MAX_SELECTORS_MASK));
+		     : "i"(MAX_POSSIBLE_ARGS_MASK));
 
 	ty = config->arg[index];
 	am = config->arm[index];
@@ -594,13 +594,13 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 #if defined(GENERIC_TRACEPOINT) || defined(GENERIC_USDT)
 	asm volatile("%[index] &= %1 ;\n"
 		     : [index] "+r"(index)
-		     : "i"(MAX_SELECTORS_MASK));
+		     : "i"(MAX_ACCESSIBLE_ARGS_MASK));
 
 	a = (&e->a0)[index];
 	if (am & ARGM_PRELOAD)
-		a = get_preload_arg(ctx, ty, &e->arg_status[index]);
+		a = get_preload_arg(ctx, ty, &e->arg_status[index & MAX_POSSIBLE_ARGS_MASK]);
 	else
-		extract_arg(config, index, &a, false, &e->arg_status[index & MAX_SELECTORS_MASK]);
+		extract_arg(config, index, &a, false, &e->arg_status[index & MAX_POSSIBLE_ARGS_MASK]);
 #else
 
 	/* Getting argument data based on the source attribute, which is encoded
@@ -612,20 +612,20 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 	 *   - real argument value
 	 */
 	if (am & ARGM_PRELOAD) {
-		a = get_preload_arg(ctx, ty, &e->arg_status[index & MAX_SELECTORS_MASK]);
+		a = get_preload_arg(ctx, ty, &e->arg_status[index & MAX_POSSIBLE_ARGS_MASK]);
 	} else {
 		asm volatile("%[index] &= %1 ;\n"
 			     : [index] "+r"(index)
-			     : "i"(MAX_SELECTORS_MASK));
+			     : "i"(MAX_POSSIBLE_ARGS_MASK));
 		if (am & ARGM_PT_REGS) {
 			a = get_pt_regs_arg(ctx, config, index);
 		} else if (am & ARGM_CURRENT_TASK) {
 			a = get_current_task();
 		} else {
-			arg_index = config->idx[index & MAX_SELECTORS_MASK];
-			a = (&e->a0)[arg_index & MAX_SELECTORS_MASK];
+			arg_index = config->idx[index & MAX_POSSIBLE_ARGS_MASK];
+			a = (&e->a0)[arg_index & MAX_ACCESSIBLE_ARGS_MASK];
 		}
-		extract_arg(config, index, &a, false, &e->arg_status[index & MAX_SELECTORS_MASK]);
+		extract_arg(config, index, &a, false, &e->arg_status[index & MAX_POSSIBLE_ARGS_MASK]);
 	}
 
 	if (should_offload_path(ty))
@@ -874,7 +874,7 @@ do_set_action(void *ctx, struct msg_generic_kprobe *e, __u32 arg_idx, __u32 arg_
 	if (!config)
 		return;
 
-	arg_idx &= 7;
+	arg_idx &= EVENT_CONFIG_MAX_USDT_ARG_MASK;
 	arg = &config->usdt_arg[arg_idx];
 
 	switch (arg->type) {
