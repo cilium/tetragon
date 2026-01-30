@@ -12,7 +12,7 @@ read_usdt_arg(struct pt_regs *ctx, struct event_config *config, int index,
 	unsigned long val, off, idx;
 	int err;
 
-	index &= 7;
+	index &= EVENT_CONFIG_MAX_USDT_ARG_MASK;
 	arg = &config->usdt_arg[index];
 
 	if (arg->type == USDT_ARG_TYPE_NONE)

@@ -58,7 +58,7 @@ preload_pt_regs_arg(struct pt_regs *ctx, struct event_config *config, int index)
 
 	asm volatile("%[index] &= %1 ;\n"
 		     : [index] "+r"(index)
-		     : "i"(MAX_SELECTORS_MASK));
+		     : "i"(EVENT_CONFIG_MAX_REG_ARG_MASK));
 
 	reg = &config->reg_arg[index];
 	shift = 64 - reg->size * 8;
