@@ -4,31 +4,48 @@
 // Package synthetic provides components for recording and replaying Tetragon events.
 // This includes:
 // - EventListener: writes events to a file for later replay
-// - Reader: reads and replays events from a file
+// - FileObserver: reads and replays events from a file
 package synthetic
 
 import (
 	"encoding/json"
-
-	"github.com/cilium/tetragon/pkg/api/readyapi"
-	"github.com/cilium/tetragon/pkg/grpc/exec"
-	"github.com/cilium/tetragon/pkg/reader/notify"
+	"reflect"
 )
 
-// Event represents a logged event with type name and JSON payload.
-// This format is used for serializing events to JSON lines files.
-type Event struct {
-	Type  string          `json:"type"`  // Go type name from reflect.TypeOf().String()
-	Event json.RawMessage `json:"event"` // JSON-serialized event
+// Codec provides type-preserving serialization for events.
+type Codec interface {
+	Marshal(v any) ([]byte, error)
+	Unmarshal(data []byte) (any, error)
 }
 
-// TypeRegistry maps type names to factory functions for creating event instances.
-// Used during replay to reconstruct typed events from JSON.
-var TypeRegistry = map[string]func() notify.Message{
-	"*exec.MsgExecveEventUnix": func() notify.Message { return &exec.MsgExecveEventUnix{} },
-	"*exec.MsgExitEventUnix":   func() notify.Message { return &exec.MsgExitEventUnix{} },
-	"*exec.MsgCloneEventUnix":  func() notify.Message { return &exec.MsgCloneEventUnix{} },
-	"*exec.MsgCgroupEventUnix": func() notify.Message { return &exec.MsgCgroupEventUnix{} },
-	"*exec.MsgKThreadInitUnix": func() notify.Message { return &exec.MsgKThreadInitUnix{} },
-	"*readyapi.MsgTetragonReady": func() notify.Message { return &readyapi.MsgTetragonReady{} },
+// TypedValue wraps any interface value with type info for JSON serialization.
+type TypedValue struct {
+	Type  string          `json:"synthetic_type"`
+	Value json.RawMessage `json:"synthetic_value"`
+}
+
+// InterfaceRegistry maps type names to factory functions for creating interface instances.
+// Used during unmarshal to reconstruct typed values from JSON.
+var InterfaceRegistry = make(map[string]func() any)
+
+// RegisterType adds a type to the interface registry.
+// Call with a typed nil pointer: RegisterType((*MyType)(nil))
+// Registers both pointer and non-pointer names to handle both cases during unmarshal.
+func RegisterType(v any) {
+	t := reflect.TypeOf(v)
+	ptrName := t.String() // e.g. "*tracing.MsgGenericKprobeUnix"
+
+	// Unwrap all pointer levels (handles **T, ***T, etc.)
+	for t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	valueName := t.String() // e.g. "tracing.MsgGenericKprobeUnix"
+
+	factory := func() any {
+		return reflect.New(t).Interface()
+	}
+
+	// Register both pointer and value type names
+	InterfaceRegistry[ptrName] = factory
+	InterfaceRegistry[valueName] = factory
 }

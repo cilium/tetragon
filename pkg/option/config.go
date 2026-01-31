@@ -135,8 +135,9 @@ type config struct {
 
 	RetprobesCacheSize int
 
-	SyntheticEventsSource string
-	SyntheticEventsLog    string
+	SyntheticEventsSource          string
+	SyntheticEventsLog             string
+	SyntheticEventsVerifyRoundtrip bool
 }
 
 var (

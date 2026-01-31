@@ -140,8 +140,9 @@ const (
 
 	KeyRetprobesCacheSize = "retprobes-cache-size"
 
-	KeySyntheticEventsSource = "synthetic-events-source"
-	KeySyntheticEventsLog    = "synthetic-events-log"
+	KeySyntheticEventsSource          = "synthetic-events-source"
+	KeySyntheticEventsLog             = "synthetic-events-log"
+	KeySyntheticEventsVerifyRoundtrip = "synthetic-events-verify-roundtrip"
 )
 
 type UsernameMetadaCode int
@@ -311,6 +312,7 @@ func ReadAndSetFlags() error {
 
 	Config.SyntheticEventsSource = viper.GetString(KeySyntheticEventsSource)
 	Config.SyntheticEventsLog = viper.GetString(KeySyntheticEventsLog)
+	Config.SyntheticEventsVerifyRoundtrip = viper.GetBool(KeySyntheticEventsVerifyRoundtrip)
 	return nil
 }
 
@@ -513,4 +515,5 @@ func AddFlags(flags *pflag.FlagSet) {
 
 	flags.String(KeySyntheticEventsSource, "", "File path for synthetic events source")
 	flags.String(KeySyntheticEventsLog, "", "File path to log events for synthetic events testing")
+	flags.Bool(KeySyntheticEventsVerifyRoundtrip, false, "Verify synthetic events roundtrip (marshal/unmarshal equality)")
 }

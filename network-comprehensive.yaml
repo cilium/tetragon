@@ -1,0 +1,167 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "network-comprehensive"
+spec:
+  kprobes:
+  # ========== TCP (kprobe level) ==========
+  - call: "tcp_connect"
+    syscall: false
+    args:
+    - index: 0
+      type: "sock"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "/tetragon/nettest"
+  - call: "tcp_close"
+    syscall: false
+    args:
+    - index: 0
+      type: "sock"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "/tetragon/nettest"
+  - call: "tcp_sendmsg"
+    syscall: false
+    args:
+    - index: 0
+      type: "sock"
+    - index: 2
+      type: "size_t"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "/tetragon/nettest"
+  - call: "tcp_recvmsg"
+    syscall: false
+    args:
+    - index: 0
+      type: "sock"
+    - index: 2
+      type: "size_t"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "/tetragon/nettest"
+  - call: "inet_csk_accept"
+    syscall: false
+    return: true
+    returnArg:
+      index: 0
+      type: "sock"
+    args:
+    - index: 0
+      type: "sock"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "/tetragon/nettest"
+
+  # ========== UDP (kprobe level) ==========
+  - call: "udp_sendmsg"
+    syscall: false
+    args:
+    - index: 0
+      type: "sock"
+    - index: 2
+      type: "size_t"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "/tetragon/nettest"
+  - call: "udp_recvmsg"
+    syscall: false
+    args:
+    - index: 0
+      type: "sock"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "/tetragon/nettest"
+
+  # ========== Syscalls ==========
+  - call: "sys_connect"
+    syscall: true
+    args:
+    - index: 1
+      type: "sockaddr"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "/tetragon/nettest"
+  - call: "sys_accept"
+    syscall: true
+    return: true
+    returnArg:
+      index: 0
+      type: "int"
+    args: []
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "/tetragon/nettest"
+  - call: "sys_accept4"
+    syscall: true
+    return: true
+    returnArg:
+      index: 0
+      type: "int"
+    args: []
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "/tetragon/nettest"
+  - call: "sys_sendto"
+    syscall: true
+    args:
+    - index: 4
+      type: "sockaddr"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "/tetragon/nettest"
+  - call: "sys_recvfrom"
+    syscall: true
+    args:
+    - index: 4
+      type: "sockaddr"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "/tetragon/nettest"
+  - call: "sys_bind"
+    syscall: true
+    args:
+    - index: 1
+      type: "sockaddr"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "/tetragon/nettest"
+  - call: "sys_listen"
+    syscall: true
+    args:
+    - index: 0
+      type: "int"
+    - index: 1
+      type: "int"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "/tetragon/nettest"

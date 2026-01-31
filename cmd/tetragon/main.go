@@ -366,26 +366,18 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 
 	// Get observer from configFile
 	var obs observertypes.EventObserver
+	obs = observer.NewObserver()
 	if option.Config.SyntheticEventsSource != "" {
-		obs = synthetic.NewFileObserver()
-	} else {
-		obs = observer.NewObserver()
+		readingObs, err := synthetic.NewReadingObserverFromFile(ctx, option.Config.SyntheticEventsSource, log)
+		if err != nil {
+			return err
+		}
+		readingObs.Observer = obs.(*observer.Observer)
+		obs = readingObs
 	}
 	defer func() {
 		obs.PrintStats()
 	}()
-
-	// Initialize synthetic event listener for recording events
-	var syntheticListener *synthetic.EventListener
-	if option.Config.SyntheticEventsLog != "" {
-		var err error
-		syntheticListener, err = synthetic.NewEventListener(option.Config.SyntheticEventsLog)
-		if err != nil {
-			return fmt.Errorf("failed to create synthetic event listener: %w", err)
-		}
-		obs.AddListener(syntheticListener)
-		defer syntheticListener.Close()
-	}
 
 	go func() {
 		s := <-sigs
@@ -525,7 +517,23 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	}
 
 	log.Info("Exporter configuration", "enabled", option.Config.ExportFilename != "", "fileName", option.Config.ExportFilename)
-	obs.AddListener(pm)
+	if option.Config.SyntheticEventsLog != "" {
+		// Create synthetic listener with ProcessManager as delegate.
+		// Events are recorded before ProcessManager modifies them.
+		syntheticListener, err := synthetic.NewWritingListenerToFile(
+			ctx,
+			option.Config.SyntheticEventsLog,
+			log,
+			synthetic.WithVerifyRoundtrip(option.Config.SyntheticEventsVerifyRoundtrip),
+			synthetic.WithDelegate(pm),
+		)
+		if err != nil {
+			return err
+		}
+		obs.AddListener(syntheticListener)
+	} else {
+		obs.AddListener(pm)
+	}
 	saveInitInfo()
 
 	// Initialize a k8s watcher used to manage policies. This should happen
