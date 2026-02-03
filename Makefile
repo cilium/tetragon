@@ -98,7 +98,7 @@ all: tetragon-bpf tetragon tetra test-compile tester-progs protoc-gen-go-tetrago
 .PHONY: clean
 clean: cli-clean tarball-clean
 	$(MAKE) -C ./bpf clean
-	rm -f go-tests/*.test ./ksyms ./tetragon ./tetragon-operator ./tetra ./alignchecker ./tetragon.exe
+	rm -f go-tests/*.test ./ksyms ./tetragon ./tetragon-synthetic ./tetragon-operator ./tetra ./alignchecker ./tetragon.exe
 	rm -f contrib/sigkill-tester/sigkill-tester contrib/namespace-tester/test_ns contrib/capabilities-tester/test_caps
 	$(MAKE) -C $(TESTER_PROGS_DIR) clean
 
@@ -107,6 +107,10 @@ clean: cli-clean tarball-clean
 .PHONY: tetragon
 tetragon: ## Compile the Tetragon agent.
 	$(GO_BUILD) ./cmd/tetragon/
+
+.PHONY: tetragon-synthetic
+tetragon-synthetic: ## Compile the Tetragon synthetic events agent.
+	$(GO_BUILD) -tags synthetic -o tetragon-synthetic ./cmd/tetragon/
 
 .PHONY: tetragon-operator
 tetragon-operator: ## Compile the Tetragon operator.
@@ -171,6 +175,12 @@ image: ## Build the Tetragon agent container image.
 	$(CONTAINER_ENGINE) build -t "cilium/tetragon:${DOCKER_IMAGE_TAG}" --target release --build-arg TETRAGON_VERSION=$(VERSION) ${CONTAINER_ENGINE_ARGS} --platform=linux/${TARGET_ARCH} .
 	@echo "Push like this when ready:"
 	@echo "${CONTAINER_ENGINE} push cilium/tetragon:$(DOCKER_IMAGE_TAG)"
+
+.PHONY: image-synthetic
+image-synthetic: ## Build the Tetragon synthetic debug container image.
+	$(CONTAINER_ENGINE) build -t "cilium/tetragon-synthetic:${DOCKER_IMAGE_TAG}" --target synthetic-debug --build-arg TETRAGON_VERSION=$(VERSION) --build-arg BUILD_EXTRA_TARGETS="tetragon-synthetic" ${CONTAINER_ENGINE_ARGS} --platform=linux/${TARGET_ARCH} .
+	@echo "Push like this when ready:"
+	@echo "${CONTAINER_ENGINE} push cilium/tetragon-synthetic:$(DOCKER_IMAGE_TAG)"
 
 .PHONY: image-operator
 image-operator: ## Build the Tetragon operator container image.
