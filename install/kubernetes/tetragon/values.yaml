@@ -9,6 +9,7 @@ serviceAccount:
   annotations: {}
   name: ""
 podAnnotations: {}
+serviceAnnotations: {}
 podSecurityContext: {}
 nodeSelector: {}
 tolerations:
@@ -20,6 +21,7 @@ daemonSetAnnotations: {}
 extraVolumes: []
 updateStrategy: {}
 podLabels: {}
+serviceLabels: {}
 daemonSetLabelsOverride: {}
 selectorLabelsOverride: {}
 podLabelsOverride: {}
