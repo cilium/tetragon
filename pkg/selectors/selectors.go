@@ -103,6 +103,9 @@ type MatchBinariesSelectorOptions struct {
 	MapID uint32
 	// matchBinaries set for the selector
 	MBSetID uint32
+	// MatchScript indicates to match against the script path (filename from execve)
+	// instead of the interpreter path (exe_file) for shebang scripts
+	MatchScript uint32
 }
 
 type KernelSelectorData struct {
