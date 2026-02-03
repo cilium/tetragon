@@ -439,7 +439,11 @@ func uprobeAttachExtra(load *Program, bpfDir string,
 		return nil, fmt.Errorf("pinning '%s' to '%s' failed: %w", load.Label, pinPath, err)
 	}
 
-	return attach(load, prog, spec, bpfDir, pin)
+	un, err := attach(load, prog, spec, bpfDir, pin)
+	if err != nil {
+		prog.Unpin()
+	}
+	return un, err
 }
 
 func uprobeAttach(load *Program, bpfDir string,
