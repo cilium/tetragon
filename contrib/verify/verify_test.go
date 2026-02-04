@@ -104,6 +104,13 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 			continue
 		}
 
+		// Check if bpf_copy_from_user_str is available
+		if (strings.HasPrefix(fileName, "bpf_generic_uprobe") ||
+			strings.HasPrefix(fileName, "bpf_generic_usdt")) &&
+			!bpf.HasKfunc("bpf_copy_from_user_str") {
+			continue
+		}
+
 		spec, err := ebpf.LoadCollectionSpec(tetragonDir + "/" + fileName)
 		require.NoError(t, err, "failed to parse elf file into collection spec")
 		require.NotNil(t, spec, "collection spec should not be nil")

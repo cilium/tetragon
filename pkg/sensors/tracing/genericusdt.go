@@ -42,6 +42,7 @@ type observerUsdtSensor struct {
 
 type usdtHas struct {
 	sleepableOffload bool
+	sleepablePreload bool
 }
 
 var (
@@ -117,7 +118,7 @@ func createGenericUsdtSensor(
 	hasSetAction := false
 
 	for _, usdt := range spec.Usdts {
-		ids, err = addUsdt(&usdt, &in, ids)
+		ids, err = addUsdt(&usdt, &in, ids, &has)
 		if err != nil {
 			return nil, err
 		}
@@ -170,6 +171,7 @@ func createMultiUsdtSensor(multiIDs []idtable.EntryID, policyName string, has us
 		SetPolicy(policyName)
 
 	load.SleepableOffload = has.sleepableOffload
+	load.SleepablePreload = has.sleepablePreload
 
 	progs = append(progs, load)
 
@@ -186,6 +188,12 @@ func createMultiUsdtSensor(multiIDs []idtable.EntryID, policyName string, has us
 		sleepableOffloadMap := program.MapBuilderProgram("write_offload", load)
 		sleepableOffloadMap.SetMaxEntries(sleepableOffloadMaxEntries)
 		maps = append(maps, sleepableOffloadMap)
+	}
+
+	if has.sleepablePreload {
+		sleepablePreloadMap := program.MapBuilderProgram("sleepable_preload", load)
+		sleepablePreloadMap.SetMaxEntries(sleepablePreloadMaxEntries)
+		maps = append(maps, sleepablePreloadMap)
 	}
 
 	if option.Config.EnableCgTrackerID {
@@ -232,6 +240,7 @@ func createUsdtSensorFromEntry(usdtEntry *genericUsdt,
 		SetPolicy(usdtEntry.policyName)
 
 	load.SleepableOffload = has.sleepableOffload
+	load.SleepablePreload = has.sleepablePreload
 
 	progs = append(progs, load)
 
@@ -248,6 +257,12 @@ func createUsdtSensorFromEntry(usdtEntry *genericUsdt,
 		maps = append(maps, sleepableOffloadMap)
 	}
 
+	if has.sleepablePreload {
+		sleepablePreloadMap := program.MapBuilderProgram("sleepable_preload", load)
+		sleepablePreloadMap.SetMaxEntries(sleepablePreloadMaxEntries)
+		maps = append(maps, sleepablePreloadMap)
+	}
+
 	if option.Config.EnableCgTrackerID {
 		maps = append(maps, program.MapUser(cgtracker.MapName, load))
 	}
@@ -255,7 +270,7 @@ func createUsdtSensorFromEntry(usdtEntry *genericUsdt,
 	return progs, maps
 }
 
-func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID) ([]idtable.EntryID, error) {
+func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has *usdtHas) ([]idtable.EntryID, error) {
 	se, err := elf.OpenSafeELFFile(spec.Path)
 	if err != nil {
 		return nil, err
@@ -337,6 +352,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID) ([]i
 		}
 
 		var allBTFArgs [api.EventConfigMaxArgs][api.MaxBTFArgDepth]api.ConfigBTFArg
+		var preload bool
 		for cfgIdx, arg := range spec.Args {
 			tgtIdx := arg.Index
 			if tgtIdx > target.Spec.ArgsCnt {
@@ -370,12 +386,30 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID) ([]i
 				cfgArg.Signed = 0
 			}
 
+			if argType == gt.GenericStringType {
+				if !bpf.HasKfunc("bpf_copy_from_user_str") {
+					return nil, fmt.Errorf("can't preload string for argument %d", cfgIdx)
+				}
+
+				if preload {
+					return nil, errors.New("preloading multiple arguments per hook point is not supported")
+				}
+
+				preload = true
+				argMValue, err := getUserMetaValue(&arg, true)
+				if err != nil {
+					return nil, err
+				}
+				config.ArgMeta[cfgIdx] = uint32(argMValue)
+			}
+
 			config.ArgType[cfgIdx] = int32(argType)
 
 			argPrinters = append(argPrinters,
 				argPrinter{index: cfgIdx, ty: argType, label: arg.Label},
 			)
 		}
+		has.sleepablePreload = has.sleepablePreload || preload
 		config.BTFArg = allBTFArgs
 
 		usdtEntry := &genericUsdt{
