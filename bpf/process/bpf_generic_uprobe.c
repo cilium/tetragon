@@ -13,7 +13,7 @@
 #include "types/operations.h"
 #include "types/basic.h"
 #include "uprobe_offload.h"
-#include "uprobe_preload.h"
+#include "user_preload.h"
 
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 
@@ -158,13 +158,13 @@ generic_uprobe_path(void *ctx)
 __attribute__((section(OFFLOAD), used)) int
 generic_sleepable_preload(struct pt_regs *ctx)
 {
-	return uprobe_preload(ctx);
+	return user_preload(ctx);
 }
 
 __attribute__((section(OFFLOAD), used)) int
 generic_sleepable_preload_cleanup(struct pt_regs *ctx)
 {
-	return uprobe_preload_cleanup(ctx);
+	return user_preload_cleanup(ctx);
 }
 
 __attribute__((section(OFFLOAD), used)) int
