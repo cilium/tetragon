@@ -138,6 +138,17 @@ generic_usdt_path(void *ctx)
 	return generic_path(ctx, (struct bpf_map_def *)&usdt_calls);
 }
 #endif
+__attribute__((section(OFFLOAD), used)) int
+generic_sleepable_preload(struct pt_regs *ctx)
+{
+	return user_preload(ctx);
+}
+
+__attribute__((section(OFFLOAD), used)) int
+generic_sleepable_preload_cleanup(struct pt_regs *ctx)
+{
+	return user_preload_cleanup(ctx);
+}
 
 __attribute__((section(OFFLOAD), used)) int
 generic_sleepable_offload(void *ctx)
