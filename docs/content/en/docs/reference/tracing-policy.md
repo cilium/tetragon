@@ -366,7 +366,9 @@ in the event output to inform users what is going on.<br/>
         <td>string</td>
         <td>
           An action to perform on the return argument.
-Available actions are: Post;TrackSock;UntrackSock<br/>
+Valid actions: TrackSock, UntrackSock
+Note: 'Post' was previously accepted but silently ignored. It is now
+explicitly rejected to prevent silent misconfiguration.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6711,7 +6713,9 @@ in the event output to inform users what is going on.<br/>
         <td>string</td>
         <td>
           An action to perform on the return argument.
-Available actions are: Post;TrackSock;UntrackSock<br/>
+Valid actions: TrackSock, UntrackSock
+Note: 'Post' was previously accepted but silently ignored. It is now
+explicitly rejected to prevent silent misconfiguration.<br/>
         </td>
         <td>false</td>
       </tr><tr>

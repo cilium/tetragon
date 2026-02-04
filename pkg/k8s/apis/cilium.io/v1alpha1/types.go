@@ -54,7 +54,9 @@ type KProbeSpec struct {
 	ReturnArg *KProbeArg `json:"returnArg,omitempty"`
 	// +kubebuilder:validation:Optional
 	// An action to perform on the return argument.
-	// Available actions are: Post;TrackSock;UntrackSock
+	// Valid actions: TrackSock, UntrackSock
+	// Note: 'Post' was previously accepted but silently ignored. It is now
+	// explicitly rejected to prevent silent misconfiguration.
 	ReturnArgAction string `json:"returnArgAction,omitempty"`
 	// +kubebuilder:validation:Optional
 	// Selectors to apply before producing trace output. Selectors are ORed and short-circuited.
