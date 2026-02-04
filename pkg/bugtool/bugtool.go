@@ -26,16 +26,19 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cilium/ebpf"
 	gopssignal "github.com/google/gops/signal"
+	"github.com/vishvananda/netlink"
 	"go.uber.org/multierr"
+	"google.golang.org/grpc"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policyfilter"
-
-	"github.com/vishvananda/netlink"
+	"github.com/cilium/tetragon/pkg/sensors/base"
+	"github.com/cilium/tetragon/pkg/sensors/exec/execvemap"
 )
 
 // InitInfo contains information about how Tetragon was initialized.
@@ -49,6 +52,7 @@ type InitInfo struct {
 	MapDir      string `json:"map_dir"`
 	BpfToolPath string `json:"bpftool_path"`
 	GopsPath    string `json:"gops_path"`
+	MaxRecvSize int    `json:"max_recv_size"`
 	PID         int    `json:"pid"`
 }
 
@@ -209,7 +213,7 @@ type GRPCAction func(GRPCer) error
 
 // Bugtool gathers information and writes it as a tar archive in the given filename.
 // Additional command or grpc calls can be enqueued through last 2 params.
-func Bugtool(outFname string, bpftool string, gops string, commandActions []CommandAction, grpcActions []GRPCAction) error {
+func Bugtool(outFname string, bpftool string, gops string, maxRecvSize int, commandActions []CommandAction, grpcActions []GRPCAction) error {
 	info, err := LoadInitInfo()
 	if err != nil {
 		return err
@@ -222,6 +226,8 @@ func Bugtool(outFname string, bpftool string, gops string, commandActions []Comm
 	if gops != "" {
 		info.GopsPath = gops
 	}
+
+	info.MaxRecvSize = maxRecvSize
 
 	return doBugtool(info, outFname, commandActions, grpcActions)
 }
@@ -273,6 +279,8 @@ func doBugtool(info *InitInfo, outFname string, commandActions []CommandAction, 
 	si.addBpftoolInfo()
 	si.addGopsInfo()
 	si.dumpPolicyFilterMap()
+	si.dumpProcessCache()
+	si.dumpExecveMap()
 	si.addGrpcInfo()
 	si.addPmapOut()
 	si.addMemCgroupStats()
@@ -628,6 +636,82 @@ func (s *bugtoolInfo) dumpPolicyFilterMap() error {
 		return err
 	}
 	return s.TarAddJson(policyfilter.MapName+".json", obj)
+}
+
+func (s *bugtoolInfo) dumpExecveMap() error {
+	fname := path.Join(s.info.MapDir, base.ExecveMap.Name)
+	m, err := ebpf.LoadPinnedMap(fname, &ebpf.LoadPinOptions{
+		ReadOnly: true,
+	})
+	if err != nil {
+		s.multiLog.WithError(err).Warnf("failed to open execve map")
+		return err
+	}
+	defer m.Close()
+
+	iter := m.Iterate()
+
+	var key execvemap.ExecveKey
+	var val execvemap.ExecveValue
+	buff := new(bytes.Buffer)
+	for iter.Next(&key, &val) {
+		fmt.Fprintf(buff, "%d %+v\n", key, val)
+	}
+
+	if err := iter.Err(); err != nil {
+		s.multiLog.WithError(err).Warnf("error iterating execve map")
+		return err
+	}
+
+	filename := base.ExecveMap.Name + ".out"
+	s.multiLog.Infof("dumped execve map in %s", filename)
+	return s.tarAddBuff(filename, buff)
+}
+
+func (s *bugtoolInfo) dumpProcessCache() error {
+	c, err := common.NewClient(context.Background(), s.info.ServerAddr, 5*time.Second)
+	if err != nil {
+		s.multiLog.WithError(err).Warnf("failed to create gRPC client to %s", s.info.ServerAddr)
+		return err
+	}
+	defer c.Close()
+
+	req := tetragon.GetDebugRequest{
+		Flag: tetragon.ConfigFlag_CONFIG_FLAG_DUMP_PROCESS_CACHE,
+		Arg: &tetragon.GetDebugRequest_Dump{
+			Dump: &tetragon.DumpProcessCacheReqArgs{},
+		},
+	}
+
+	res, err := c.Client.GetDebug(c.Ctx, &req, grpc.MaxCallRecvMsgSize(s.info.MaxRecvSize))
+	if err != nil {
+		s.multiLog.WithError(err).Warn("failed to dump process cache")
+		return err
+	}
+	if res == nil {
+		err := errors.New("empty response")
+		s.multiLog.WithError(err).Warn("failed to dump process cache")
+		return err
+	}
+	if res.Flag != tetragon.ConfigFlag_CONFIG_FLAG_DUMP_PROCESS_CACHE {
+		err := fmt.Errorf("unexpected response flag: %s", res.Flag)
+		s.multiLog.WithError(err).Warn("failed to dump process cache")
+		return err
+	}
+
+	buff := new(bytes.Buffer)
+	for _, p := range res.GetProcesses().Processes {
+		b, err := p.MarshalJSON()
+		if err != nil {
+			s.multiLog.WithError(err).Warn("failed to marshal process")
+			continue
+		}
+		buff.Write(b)
+		buff.WriteByte('\n')
+	}
+
+	s.multiLog.Infof("dumped process cache in %s", "processcache.json")
+	return s.tarAddBuff("processcache.json", buff)
 }
 
 func (s *bugtoolInfo) addGrpcInfo() {
