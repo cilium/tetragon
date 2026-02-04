@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
 /* Copyright Authors of Cilium */
 
-#ifndef __UPROBE_PRELOAD_H__
-#define __UPROBE_PRELOAD_H__
+#ifndef __USER_PRELOAD_H__
+#define __USER_PRELOAD_H__
 
 #include "generic_maps.h"
 #include "generic_arg.h"
 #include "errmetrics.h"
+#include "usdt_arg.h"
 
 struct preload_data {
 	unsigned char data[4096];
@@ -19,7 +20,7 @@ struct {
 	__type(value, struct preload_data);
 } sleepable_preload SEC(".maps");
 
-#if defined(GENERIC_UPROBE)
+#if defined(GENERIC_UPROBE) || defined(GENERIC_USDT)
 
 FUNC_INLINE unsigned long
 preload_string_arg(struct pt_regs *ctx)
@@ -85,6 +86,10 @@ preload_arg(struct pt_regs *ctx, struct event_config *config, int index)
 	unsigned long a;
 	__s32 ty;
 
+#if defined(GENERIC_USDT)
+	arg_index = index;
+	a = read_usdt_arg(ctx, config, index, true);
+#else
 	arg_index = config->idx[index];
 	asm volatile("%[arg_index] &= %1 ;\n"
 		     : [arg_index] "+r"(arg_index)
@@ -107,7 +112,7 @@ preload_arg(struct pt_regs *ctx, struct event_config *config, int index)
 		a = PT_REGS_PARM5_CORE(ctx);
 		break;
 	}
-
+#endif
 	extract_arg(config, index, &a, true);
 
 	ty = config->arg[arg_index];
@@ -144,7 +149,7 @@ try_preload_arg(int idx, struct preload_arg_data *data)
 }
 
 FUNC_INLINE int
-uprobe_preload(struct pt_regs *ctx)
+user_preload(struct pt_regs *ctx)
 {
 	struct event_config *config;
 	__u32 idx = get_index(ctx);
@@ -173,10 +178,10 @@ uprobe_preload(struct pt_regs *ctx)
 	return 0;
 }
 
-#endif /* GENERIC_UPROBE */
+#endif /* GENERIC_UPROBE || GENERIC_USDT*/
 
 FUNC_INLINE int
-uprobe_preload_cleanup(struct pt_regs *ctx)
+user_preload_cleanup(struct pt_regs *ctx)
 {
 	__u64 id = get_current_pid_tgid();
 
@@ -184,4 +189,4 @@ uprobe_preload_cleanup(struct pt_regs *ctx)
 	return 0;
 }
 
-#endif /* __UPROBE_PRELOAD_H__ */
+#endif /* __USER_PRELOAD_H__ */

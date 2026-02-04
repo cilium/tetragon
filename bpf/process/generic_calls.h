@@ -15,7 +15,7 @@
 #include "bpf_ktime.h"
 #include "regs.h"
 #include "config.h"
-#include "uprobe_preload.h"
+#include "user_preload.h"
 #include "generic_arg.h"
 
 #ifdef GENERIC_USDT
@@ -532,7 +532,7 @@ FUNC_INLINE long get_pt_regs_arg(struct pt_regs *ctx, struct event_config *confi
 }
 #endif /* __TARGET_ARCH_x86 && (GENERIC_KPROBE || GENERIC_UPROBE) */
 
-#if defined(GENERIC_UPROBE)
+#if defined(GENERIC_UPROBE) || defined(GENERIC_USDT)
 FUNC_INLINE unsigned long get_preload_arg(struct pt_regs *ctx, long ty)
 {
 	unsigned long arg = 0;
@@ -588,7 +588,10 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 
 #if defined(GENERIC_TRACEPOINT) || defined(GENERIC_USDT)
 	a = (&e->a0)[index];
-	extract_arg(config, index, &a, false);
+	if (am & ARGM_PRELOAD)
+		a = get_preload_arg(ctx, ty);
+	else
+		extract_arg(config, index, &a, false);
 #else
 	arg_index = config->idx[index];
 	asm volatile("%[arg_index] &= %1 ;\n"
@@ -777,11 +780,11 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 #endif
 
 #ifdef GENERIC_USDT
-	e->a0 = read_usdt_arg(ctx, config, 0);
-	e->a1 = read_usdt_arg(ctx, config, 1);
-	e->a2 = read_usdt_arg(ctx, config, 2);
-	e->a3 = read_usdt_arg(ctx, config, 3);
-	e->a4 = read_usdt_arg(ctx, config, 4);
+	e->a0 = read_usdt_arg(ctx, config, 0, false);
+	e->a1 = read_usdt_arg(ctx, config, 1, false);
+	e->a2 = read_usdt_arg(ctx, config, 2, false);
+	e->a3 = read_usdt_arg(ctx, config, 3, false);
+	e->a4 = read_usdt_arg(ctx, config, 4, false);
 #endif
 
 	/* No arguments, go send.. */

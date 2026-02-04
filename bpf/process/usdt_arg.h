@@ -5,7 +5,8 @@
 #define __USDT_ARG_H__
 
 FUNC_INLINE unsigned long
-read_usdt_arg(struct pt_regs *ctx, struct event_config *config, int index)
+read_usdt_arg(struct pt_regs *ctx, struct event_config *config, int index,
+	      bool can_sleep)
 {
 	struct config_usdt_arg *arg;
 	unsigned long val, off, idx;
@@ -47,7 +48,10 @@ read_usdt_arg(struct pt_regs *ctx, struct event_config *config, int index)
 		err = probe_read_kernel(&val, sizeof(val), (void *)ctx + off);
 		if (err)
 			return err;
-		err = probe_read_user(&val, sizeof(val), (void *)val + arg->val_off);
+		if (can_sleep)
+			err = copy_from_user(&val, sizeof(val), (void *)val + arg->val_off);
+		else
+			err = probe_read_user(&val, sizeof(val), (void *)val + arg->val_off);
 		if (err)
 			return err;
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
@@ -70,7 +74,10 @@ read_usdt_arg(struct pt_regs *ctx, struct event_config *config, int index)
 		err = probe_read_kernel(&idx, sizeof(idx), (void *)ctx + off);
 		if (err)
 			return err;
-		err = probe_read_user(&val, sizeof(val), (void *)(val + (idx << arg->scale) + arg->val_off));
+		if (can_sleep)
+			err = copy_from_user(&val, sizeof(val), (void *)(val + (idx << arg->scale) + arg->val_off));
+		else
+			err = probe_read_user(&val, sizeof(val), (void *)(val + (idx << arg->scale) + arg->val_off));
 		if (err)
 			return err;
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
