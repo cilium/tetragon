@@ -17,7 +17,7 @@ var Files = map[uint8]string{
 	8:  "process.h",
 	9:  "bpf_execve_event.c",
 	10: "uprobe_offload.h",
-	11: "uprobe_preload.h",
+	11: "user_preload.h",
 	12: "bpf_cgroup_release.c",
 	13: "bpf_cgroup_rmdir.c",
 }
