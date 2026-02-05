@@ -931,7 +931,7 @@ filter_char_substring(struct selector_arg_filter *filter, char *arg_str, uint ar
 
 FUNC_INLINE bool is_not_operator(__u32 op)
 {
-	return (op == op_filter_neq || op == op_filter_str_notprefix || op == op_filter_str_notpostfix || op == op_filter_notin);
+	return (op == op_filter_neq || op == op_filter_str_notprefix || op == op_filter_str_notpostfix || op == op_filter_notin || op == op_filter_not_file_type);
 }
 
 FUNC_LOCAL long
@@ -975,6 +975,49 @@ struct string_buf {
 	char buf[];
 };
 
+FUNC_LOCAL long
+filter_file_type(struct selector_arg_filter *filter, struct string_buf *args)
+{
+	// see store_path() for memory layout
+	// size + sizeof(u32) + sizeof(u16)
+	// mode is at the end, so we can access it using the length of the string
+	// plus the size of the flags.
+	u16 mode = 0;
+	int j = 0;
+
+	// Use probe_read to avoid verifier unbounded memory access error
+	// Address is: args->buf (start of path) + args->len (end of path) + 4 (sizeof flags)
+	if (args->len > MAX_STRING)
+		return 0;
+
+	probe_read(&mode, sizeof(mode), (void *)((char *)args->buf + args->len + 4));
+
+	/* filter->value contains the target file type constants (e.g. S_IFREG,
+	 * S_IFIFO) written by the userspace agent from the fileTypeTable.
+	 * We compare each against the file type extracted from the inode mode.
+	 */
+	__u32 *v = (__u32 *)&filter->value;
+#pragma unroll
+	for (int i = 0; i < MAX_MATCH_VALUES; i++) {
+		if (v[i] == 0)
+			break;
+
+		/* 0170000 is S_IFMT (from POSIX stat.h): the bitmask for the
+		 * file type field in the inode st_mode. Masking with S_IFMT
+		 * extracts just the file type bits (e.g. regular, directory,
+		 * pipe, socket) and compares against the filter value.
+		 */
+		if ((mode & 0170000) == v[i])
+			return 1;
+
+		j += sizeof(*v);
+		if (j + 8 /* vallen+type */ >= filter->vallen)
+			break;
+	}
+
+	return 0;
+}
+
 /* filter_file_buf: runs a comparison between the file path in args against the
  * filter file path. For 'equal' and 'prefix' operators we compare the file path
  * and the filter file path in the normal order. For the 'postfix' operator we do
@@ -985,10 +1028,12 @@ filter_file_buf(struct selector_arg_filter *filter, struct string_buf *args)
 {
 	long match = 0;
 
-	/* There are cases where file pointer may not contain a path.
-	 * An example is using an unnamed pipe. This is not a match.
+	/* There are cases where file pointer may not contain a path (e.g., unnamed
+	 * pipes or sockets). If we are doing a path-based comparison (equal,
+	 * prefix, postfix), these cases are not a match. For FileType/NotFileType
+	 * operators, we proceed as the mode bits are still available.
 	 */
-	if (args->len == 0)
+	if (args->len == 0 && filter->op != op_filter_file_type && filter->op != op_filter_not_file_type)
 		return 0;
 
 	switch (filter->op) {
@@ -1003,6 +1048,10 @@ filter_file_buf(struct selector_arg_filter *filter, struct string_buf *args)
 	case op_filter_str_postfix:
 	case op_filter_str_notpostfix:
 		match = filter_char_buf_postfix(filter, args->buf, args->len);
+		break;
+	case op_filter_file_type:
+	case op_filter_not_file_type:
+		match = filter_file_type(filter, args);
 		break;
 	}
 
