@@ -14,6 +14,7 @@ import (
 	"net/netip"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
@@ -210,6 +211,9 @@ const (
 	// range
 	SelectorOpInRange    = 31
 	SelectorOpNotInRange = 32
+	// file type
+	SelectorOpFileType    = 33
+	SelectorOpNotFileType = 34
 )
 
 var selectorOpStringTable = map[uint32]string{
@@ -244,6 +248,8 @@ var selectorOpStringTable = map[uint32]string{
 	SelectorOpCapabilitiesGained: "CapabilitiesGained",
 	SelectorOpInRange:            "InRange",
 	SelectorOpNotInRange:         "NotInRange",
+	SelectorOpFileType:           "FileType",
+	SelectorOpNotFileType:        "NotFileType",
 }
 
 func SelectorOp(op string) (uint32, error) {
@@ -310,6 +316,10 @@ func SelectorOp(op string) (uint32, error) {
 		return SelectorOpInRange, nil
 	case "NotInRange":
 		return SelectorOpNotInRange, nil
+	case "FileType":
+		return SelectorOpFileType, nil
+	case "NotFileType":
+		return SelectorOpNotFileType, nil
 	}
 
 	return 0, fmt.Errorf("unknown op '%s'", op)
@@ -805,6 +815,34 @@ func writePostfixStrings(k *KernelSelectorState, values []string, ty uint32) err
 	return nil
 }
 
+var fileTypeTable = map[string]uint32{
+	"sock":    syscall.S_IFSOCK,
+	"socket":  syscall.S_IFSOCK,
+	"lnk":     syscall.S_IFLNK,
+	"link":    syscall.S_IFLNK,
+	"reg":     syscall.S_IFREG,
+	"regular": syscall.S_IFREG,
+	"blk":     syscall.S_IFBLK,
+	"block":   syscall.S_IFBLK,
+	"dir":     syscall.S_IFDIR,
+	"chr":     syscall.S_IFCHR,
+	"char":    syscall.S_IFCHR,
+	"fifo":    syscall.S_IFIFO,
+	"pipe":    syscall.S_IFIFO,
+}
+
+func writeMatchFileType(k *KernelSelectorState, values []string) error {
+	sValues := make([]string, 0, len(values))
+	for _, v := range values {
+		val, ok := fileTypeTable[v]
+		if !ok {
+			return fmt.Errorf("unknown file type: %s", v)
+		}
+		sValues = append(sValues, strconv.FormatUint(uint64(val), 10))
+	}
+	return writeMatchValues(k, sValues, gt.GenericU32Type, SelectorOpFileType)
+}
+
 func checkOp(op uint32) error {
 	switch op {
 	case SelectorOpGT, SelectorOpLT, SelectorOpCapabilitiesGained:
@@ -958,6 +996,14 @@ func parseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 		}
 		if ty == gt.GenericSockaddrType && (op == SelectorOpDportPriv || op == SelectorOpNotDportPriv) {
 			return errors.New("sockaddr only supports [not]saddr, [not]sport[priv], and family")
+		}
+	case SelectorOpFileType, SelectorOpNotFileType:
+		if ty != gt.GenericFileType && ty != gt.GenericPathType {
+			return errors.New("FileType operators specified for non-file/path type")
+		}
+		err := writeMatchFileType(k, arg.Values)
+		if err != nil {
+			return fmt.Errorf("writeMatchFileType error: %w", err)
 		}
 	case SelectorOpCapabilitiesGained:
 		if len(arg.Args) != 2 {
