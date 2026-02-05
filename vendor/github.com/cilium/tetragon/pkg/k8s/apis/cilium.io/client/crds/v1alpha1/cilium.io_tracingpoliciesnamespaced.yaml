@@ -641,6 +641,8 @@ spec:
                                   - SubString
                                   - SubStringIgnCase
                                   - CelExpr
+                                  - FileType
+                                  - NotFileType
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -802,6 +804,8 @@ spec:
                                   - SubString
                                   - SubStringIgnCase
                                   - CelExpr
+                                  - FileType
+                                  - NotFileType
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1088,6 +1092,8 @@ spec:
                                   - SubString
                                   - SubStringIgnCase
                                   - CelExpr
+                                  - FileType
+                                  - NotFileType
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1438,6 +1444,8 @@ spec:
                                   - SubString
                                   - SubStringIgnCase
                                   - CelExpr
+                                  - FileType
+                                  - NotFileType
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1599,6 +1607,8 @@ spec:
                                   - SubString
                                   - SubStringIgnCase
                                   - CelExpr
+                                  - FileType
+                                  - NotFileType
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1885,6 +1895,8 @@ spec:
                                   - SubString
                                   - SubStringIgnCase
                                   - CelExpr
+                                  - FileType
+                                  - NotFileType
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2271,6 +2283,8 @@ spec:
                                   - SubString
                                   - SubStringIgnCase
                                   - CelExpr
+                                  - FileType
+                                  - NotFileType
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2432,6 +2446,8 @@ spec:
                                   - SubString
                                   - SubStringIgnCase
                                   - CelExpr
+                                  - FileType
+                                  - NotFileType
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2718,6 +2734,8 @@ spec:
                                   - SubString
                                   - SubStringIgnCase
                                   - CelExpr
+                                  - FileType
+                                  - NotFileType
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -3282,6 +3300,8 @@ spec:
                                   - SubString
                                   - SubStringIgnCase
                                   - CelExpr
+                                  - FileType
+                                  - NotFileType
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -3443,6 +3463,8 @@ spec:
                                   - SubString
                                   - SubStringIgnCase
                                   - CelExpr
+                                  - FileType
+                                  - NotFileType
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -3729,6 +3751,8 @@ spec:
                                   - SubString
                                   - SubStringIgnCase
                                   - CelExpr
+                                  - FileType
+                                  - NotFileType
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -4057,6 +4081,8 @@ spec:
                                   - SubString
                                   - SubStringIgnCase
                                   - CelExpr
+                                  - FileType
+                                  - NotFileType
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -4218,6 +4244,8 @@ spec:
                                   - SubString
                                   - SubStringIgnCase
                                   - CelExpr
+                                  - FileType
+                                  - NotFileType
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -4504,6 +4532,8 @@ spec:
                                   - SubString
                                   - SubStringIgnCase
                                   - CelExpr
+                                  - FileType
+                                  - NotFileType
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
