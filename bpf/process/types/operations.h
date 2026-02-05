@@ -51,6 +51,9 @@ enum {
 	op_substring_igncase = 34,
 	// CEL expression
 	op_cel_expr = 35,
+	// file type
+	op_filter_file_type = 36,
+	op_filter_not_file_type = 37,
 };
 
 #endif // __OPERATIONS_H__
