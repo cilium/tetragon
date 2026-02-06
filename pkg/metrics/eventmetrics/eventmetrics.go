@@ -74,7 +74,7 @@ var (
 		nil, nil, nil,
 	), nil)
 
-	policyStats = metrics.MustNewGranularCounterWithInit[metrics.ProcessLabels](
+	policyStats = metrics.MustNewGranularCounterWithInitAndPolicy[metrics.ProcessLabels](
 		metrics.NewOpts(
 			consts.MetricsNamespace, "", "policy_events_total",
 			"Policy events calls observed.",
