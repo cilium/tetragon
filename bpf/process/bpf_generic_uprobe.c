@@ -155,7 +155,6 @@ generic_uprobe_path(void *ctx)
 }
 #endif
 
-#ifdef __TARGET_ARCH_x86
 __attribute__((section(OFFLOAD), used)) int
 generic_sleepable_preload(struct pt_regs *ctx)
 {
@@ -167,7 +166,6 @@ generic_sleepable_preload_cleanup(struct pt_regs *ctx)
 {
 	return uprobe_preload_cleanup(ctx);
 }
-#endif
 
 __attribute__((section(OFFLOAD), used)) int
 generic_sleepable_offload(struct pt_regs *ctx)
