@@ -252,6 +252,19 @@ func TestFindBTFFuncParamFromHook(t *testing.T) {
 	for _, btfFile := range btfFiles {
 		t.Run(btfFile, testFindBTFFuncParamFromHook(btfFile))
 	}
+
+	t.Run("ResolveModuleIsSupported", func(t *testing.T) {
+		module := "overlay"
+		hook := "ovl_create"
+
+		// Check if BTF is available for the module
+		if _, err := os.Stat("/sys/kernel/btf/" + module); err != nil {
+			t.Skipf("BTF for module %s not found", module)
+		}
+
+		_, err := FindBTFFuncParamFromHook(hook, 0)
+		require.NoError(t, err)
+	})
 }
 
 func fatalOnError(t *testing.T, err error) {
