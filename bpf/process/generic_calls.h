@@ -16,6 +16,7 @@
 #include "regs.h"
 #include "config.h"
 #include "uprobe_preload.h"
+#include "event_config.h"
 
 #define MAX_TOTAL 9000
 
@@ -220,6 +221,14 @@ FUNC_INLINE bool is_read_arg_1(long type)
 	return false;
 }
 
+FUNC_INLINE long write_arg_status(struct msg_generic_kprobe *e, unsigned long offset,
+				  arg_status_t status)
+{
+	char *args = args_off(e, offset);
+	*(arg_status_t *)args = status;
+	return (offset + sizeof(arg_status_t)) & 16383;
+}
+
 FUNC_INLINE long
 __read_arg_1(void *ctx, int type, long orig_off, unsigned long arg, int argm, char *args)
 {
@@ -330,7 +339,7 @@ __read_arg_1(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 		size = 0;
 		break;
 	}
-	return size;
+	return size + sizeof(arg_status_t);
 }
 
 FUNC_INLINE long
@@ -408,7 +417,7 @@ __read_arg_2(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 		size = 0;
 		break;
 	}
-	return size;
+	return size + sizeof(arg_status_t);
 }
 
 /**
@@ -427,7 +436,9 @@ __read_arg_2(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 FUNC_INLINE long
 read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int argm, int process)
 {
-	size_t min_size = type_to_min_size(type, argm);
+	// min size of type plus the size of the header which indicates arg read status
+	size_t min_size = type_to_min_size(type, argm) + sizeof(arg_status_t);
+
 	struct msg_generic_kprobe *e;
 	char *args;
 	const struct path *path_arg = 0;
@@ -442,15 +453,19 @@ read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int a
 		return 0;
 
 	orig_off &= 16383;
-	args = args_off(e, orig_off);
 
+	index &= MAX_POSSIBLE_ARGS_MASK;
+	orig_off = write_arg_status(e, orig_off, e->arg_status[index]);
 	/* Cache args offset for filter use later */
-	e->argsoff[index & MAX_SELECTORS_MASK] = orig_off;
+	e->argsoff[index] = orig_off;
+	if (!is_arg_ok(e, index))
+		return sizeof(arg_status_t);
+
+	args = args_off(e, orig_off);
 
 	path_arg = get_path(type, arg, &path_buf);
 	if (path_arg)
-		return copy_path(args, path_arg);
-
+		return copy_path(args, path_arg) + sizeof(arg_status_t);
 	/*
 	 * Separate argument processing based on the process const
 	 * for 4.19 kernels..
@@ -472,28 +487,38 @@ extract_arg_depth(u32 i, struct extract_arg_data *data)
 {
 	if (i >= MAX_BTF_ARG_DEPTH || !data->btf_config[i].is_initialized)
 		return 1;
+
 	*data->arg = *data->arg + data->btf_config[i].offset;
-	if (data->btf_config[i].is_pointer)
-		probe_read((void *)data->arg, sizeof(char *), (void *)*data->arg);
+
+	if (data->btf_config[i].is_pointer) {
+		if (probe_read((void *)data->arg, sizeof(char *), (void *)*data->arg) < 0) {
+			*data->arg_status = i + 1;
+			return 1;
+		}
+	}
+
 	return 0;
 }
 
 #ifdef __LARGE_BPF_PROG
-FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long *a)
+FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long *a,
+			     arg_status_t *arg_status)
 {
 	struct config_btf_arg *btf_config;
 
-	if (index >= EVENT_CONFIG_MAX_ARG)
-		return;
-
 	asm volatile("%[index] &= %1 ;\n"
 		     : [index] "+r"(index)
-		     : "i"(MAX_SELECTORS_MASK));
+		     : "i"(MAX_POSSIBLE_ARGS_MASK));
+
+	if (index >= MAX_POSSIBLE_ARGS)
+		return;
+
 	btf_config = config->btf_arg[index];
 	if (btf_config->is_initialized) {
 		struct extract_arg_data extract_data = {
 			.btf_config = btf_config,
 			.arg = a,
+			.arg_status = arg_status,
 		};
 		int i;
 
@@ -517,28 +542,11 @@ FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned lo
 	}
 }
 #else
-FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long *a) {}
-#endif /* __LARGE_BPF_PROG */
-
-FUNC_INLINE int arg_idx(int index)
+FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long *a,
+			     arg_status_t *arg_status)
 {
-	struct msg_generic_kprobe *e;
-	struct event_config *config;
-	int zero = 0;
-
-	e = map_lookup_elem(&process_call_heap, &zero);
-	if (!e)
-		return -1;
-
-	config = map_lookup_elem(&config_map, &e->idx);
-	if (!config)
-		return -1;
-
-	asm volatile("%[index] &= %1 ;\n"
-		     : [index] "+r"(index)
-		     : "i"(MAX_SELECTORS_MASK));
-	return config->idx[index];
 }
+#endif /* __LARGE_BPF_PROG */
 
 FUNC_INLINE long get_pt_regs_arg_syscall(struct pt_regs *ctx, __u16 offset, __u8 shift)
 {
@@ -564,7 +572,7 @@ FUNC_INLINE long get_pt_regs_arg(struct pt_regs *ctx, struct event_config *confi
 
 	asm volatile("%[index] &= %1 ;\n"
 		     : [index] "+r"(index)
-		     : "i"(MAX_SELECTORS_MASK));
+		     : "i"(EVENT_CONFIG_MAX_REG_ARG_MASK));
 	reg = &config->reg_arg[index];
 	shift = 64 - reg->size * 8;
 
@@ -621,9 +629,21 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 	if (!config)
 		return 0;
 
+#if defined(GENERIC_TRACEPOINT) || defined(GENERIC_USDT)
 	asm volatile("%[index] &= %1 ;\n"
 		     : [index] "+r"(index)
-		     : "i"(MAX_SELECTORS_MASK));
+		     : "i"(MAX_ACCESSIBLE_ARGS_MASK));
+
+	a = (&e->a0)[index];
+#endif
+
+	asm volatile("%[index] &= %1 ;\n"
+		     : [index] "+r"(index)
+		     : "i"(MAX_POSSIBLE_ARGS_MASK));
+
+	if (index >= MAX_POSSIBLE_ARGS)
+		return 0;
+
 	ty = config->arg[index];
 	am = config->arm[index];
 
@@ -634,15 +654,12 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 #endif
 #endif
 
+	e->arg_status[index] = 0;
+
 #if defined(GENERIC_TRACEPOINT) || defined(GENERIC_USDT)
-	a = (&e->a0)[index];
-	extract_arg(config, index, &a);
+	extract_arg(config, index, &a, &e->arg_status[index]);
 #else
 	arg_index = config->idx[index];
-	asm volatile("%[arg_index] &= %1 ;\n"
-		     : [arg_index] "+r"(arg_index)
-		     : "i"(MAX_SELECTORS_MASK));
-
 	/* Getting argument data based on the source attribute, which is encoded
 	 * in argument meta data, so far it's either:
 	 *
@@ -651,16 +668,23 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 	 *   - current task object
 	 *   - real argument value
 	 */
-	if (am & ARGM_PT_REGS_PRELOAD)
+	if (am & ARGM_PT_REGS_PRELOAD) {
 		a = get_pt_regs_preload_arg(ctx, ty);
-	else if (am & ARGM_PT_REGS)
+	} else if (am & ARGM_PT_REGS) {
+		asm volatile("%[arg_index] &= %1 ;\n"
+			     : [arg_index] "+r"(arg_index)
+			     : "i"(EVENT_CONFIG_MAX_REG_ARG_MASK));
 		a = get_pt_regs_arg(ctx, config, arg_index);
-	else if (am & ARGM_CURRENT_TASK)
+	} else if (am & ARGM_CURRENT_TASK) {
 		a = get_current_task();
-	else
+	} else {
+		asm volatile("%[arg_index] &= %1 ;\n"
+			     : [arg_index] "+r"(arg_index)
+			     : "i"(MAX_ACCESSIBLE_ARGS_MASK));
 		a = (&e->a0)[arg_index];
+	}
 
-	extract_arg(config, index, &a);
+	extract_arg(config, index, &a, &e->arg_status[index]);
 
 	if (should_offload_path(ty))
 		return generic_path_offload(ctx, ty, a, index, off, tailcals);
@@ -743,7 +767,7 @@ read_usdt_arg(struct pt_regs *ctx, struct event_config *config, int index)
 	unsigned long val, off, idx;
 	int err;
 
-	index &= 7;
+	index &= EVENT_CONFIG_MAX_USDT_ARG_MASK;
 	arg = &config->usdt_arg[index];
 
 	if (arg->type == USDT_ARG_TYPE_NONE)
@@ -999,7 +1023,7 @@ do_set_action(void *ctx, struct msg_generic_kprobe *e, __u32 arg_idx, __u32 arg_
 	if (!config)
 		return;
 
-	arg_idx &= 7;
+	arg_idx &= EVENT_CONFIG_MAX_USDT_ARG_MASK;
 	arg = &config->usdt_arg[arg_idx];
 
 	switch (arg->type) {
@@ -1352,9 +1376,11 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 
 	switch (do_copy) {
 	case char_buf:
+		size = write_arg_status(e, size, 0);
 		size += __copy_char_buf(ctx, size, info.ptr, ret, false, e);
 		break;
 	case char_iovec:
+		size = write_arg_status(e, size, 0);
 		size += __copy_char_iovec(size, info.ptr, info.cnt, ret, e);
 		break;
 	default:

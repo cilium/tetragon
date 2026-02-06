@@ -21,6 +21,21 @@
 #define SELECTORS_ACTIVE	 31
 #define MAX_CONFIGURED_SELECTORS MAX_POSSIBLE_SELECTORS + 1
 
+/* convenience mask for verifier appeasing*/
+#define MAX_POSSIBLE_ARGS_MASK 0x7
+_Static_assert(MAX_POSSIBLE_ARGS - 1 <= MAX_POSSIBLE_ARGS_MASK, "Need to update MAX_POSSIBLE_ARGS_MASK");
+
+/* This reflects the maximum reachable argument in term of the
+ * function/tracepoint signature. This is different from MAX_POSSIBLE_ARGS
+ * because MAX_POSSIBLE_ARGS concerns the maximum number of arguments that can
+ * be configured in the tracing policy.  This value (5) comes from the 5
+ * member variables (a0 - a4) of msg_generic_kprobe
+ */
+#define MAX_ACCESSIBLE_ARGS 5
+/* convenience mask for verifier appeasing*/
+#define MAX_ACCESSIBLE_ARGS_MASK 0x7
+_Static_assert(MAX_ACCESSIBLE_ARGS - 1 <= MAX_ACCESSIBLE_ARGS_MASK, "Need to update MAX_ACCESSIBLE_ARGS_MASK");
+
 struct msg_selector_data {
 	__u64 curr;
 	bool pass;
@@ -49,6 +64,8 @@ struct generic_path {
 	struct mount *mnt;
 };
 
+typedef __u32 arg_status_t;
+
 struct msg_generic_kprobe {
 	struct msg_common common;
 	struct msg_execve_key current;
@@ -65,6 +82,7 @@ struct msg_generic_kprobe {
 	char args[24000];
 	unsigned long a0, a1, a2, a3, a4;
 	long argsoff[MAX_POSSIBLE_ARGS];
+	arg_status_t arg_status[MAX_POSSIBLE_ARGS];
 	struct msg_selector_data sel;
 	__u32 idx; // attach cookie index
 	__u32 tailcall_index_process; // recursion index for generic_process_event
@@ -81,6 +99,11 @@ struct msg_generic_kprobe {
 	struct generic_path path;
 #endif
 };
+
+FUNC_INLINE bool is_arg_ok(struct msg_generic_kprobe *e, int idx)
+{
+	return !e->arg_status[idx];
+}
 
 FUNC_INLINE size_t generic_kprobe_common_size(void)
 {
