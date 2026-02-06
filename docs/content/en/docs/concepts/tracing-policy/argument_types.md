@@ -222,6 +222,7 @@ The `file` data type represents kernel `struct file` object and retrieves
 the file's full path.
 
 See general path limitations in [path retrieval limits](#pathlimits).
+Support for [file type filtering]({{< ref "selectors.md#file-type-filtering" >}}) is also available for this type.
 
 ## `dentry`
 
@@ -238,6 +239,7 @@ See general path limitations in [path retrieval limits](#pathlimits).
 
 The `path` data type represents kernel `struct path` object retrieves
 the related path.
+Support for [file type filtering]({{< ref "selectors.md#file-type-filtering" >}}) is also available for this type.
 
 <a name="pathlimits"></a>
 
