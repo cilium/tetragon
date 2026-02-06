@@ -22,6 +22,7 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics/eventmetrics"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/process"
+	"github.com/cilium/tetragon/pkg/tetragoninfo"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 	"github.com/cilium/tetragon/pkg/version"
 
@@ -319,6 +320,10 @@ func (s *Server) GetStackTraceTree(_ context.Context, req *tetragon.GetStackTrac
 
 func (s *Server) GetVersion(_ context.Context, _ *tetragon.GetVersionRequest) (*tetragon.GetVersionResponse, error) {
 	return &tetragon.GetVersionResponse{Version: version.Version}, nil
+}
+
+func (s *Server) GetInfo(_ context.Context, _ *tetragon.GetInfoRequest) (*tetragon.GetInfoResponse, error) {
+	return tetragoninfo.Gather(), nil
 }
 
 func (s *Server) RuntimeHook(ctx context.Context, req *tetragon.RuntimeHookRequest) (*tetragon.RuntimeHookResponse, error) {

@@ -5,6 +5,7 @@ syntax = "proto3";
 
 package tetragon;
 
+import "google/protobuf/any.proto";
 import "google/protobuf/wrappers.proto";
 import "tetragon/events.proto";
 import "tetragon/stack.proto";
@@ -171,6 +172,40 @@ message GetVersionResponse {
   string version = 1;
 }
 
+message GetInfoRequest {}
+message GetInfoResponse {
+  // version is the version of the agent tetragon (same as GetVersionResponse())
+  string version = 1;
+  // name is the name of the agent
+  string name = 2;
+
+  message Probe {
+    string Name = 1;
+    google.protobuf.BoolValue Enabled = 2;
+  }
+
+  // probes is a list of kernel features that have been probed by the agent
+  repeated Probe probes = 3;
+
+  message ConfVal {
+    string key = 1;
+    google.protobuf.Any value = 2;
+  }
+
+  // conf is the agent configuration
+  repeated ConfVal conf = 4;
+
+  message BuildInfo {
+    string go_version = 1;
+    string commit = 2;
+    string time = 3;
+    string modified = 4;
+  }
+
+  // build is the agent build information
+  BuildInfo build = 5;
+}
+
 // For now, we only want to support debug-related config flags to be configurable.
 enum ConfigFlag {
   CONFIG_FLAG_LOG_LEVEL = 0;
@@ -278,6 +313,7 @@ service FineGuidanceSensors {
   rpc GetStackTraceTree(GetStackTraceTreeRequest) returns (GetStackTraceTreeResponse) {}
 
   rpc GetVersion(GetVersionRequest) returns (GetVersionResponse) {}
+  rpc GetInfo(GetInfoRequest) returns (GetInfoResponse) {}
 
   rpc RuntimeHook(RuntimeHookRequest) returns (RuntimeHookResponse) {}
 
