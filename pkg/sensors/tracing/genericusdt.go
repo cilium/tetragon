@@ -40,6 +40,11 @@ type observerUsdtSensor struct {
 	name string
 }
 
+type usdtHas struct {
+	sleepableOffload bool
+	sleepablePreload bool
+}
+
 var (
 	usdtTable idtable.Table
 )
@@ -101,6 +106,7 @@ func createGenericUsdtSensor(
 		maps  []*program.Map
 		ids   []idtable.EntryID
 		err   error
+		has   usdtHas
 	)
 
 	in := addUsdtIn{
@@ -112,19 +118,19 @@ func createGenericUsdtSensor(
 	hasSetAction := false
 
 	for _, usdt := range spec.Usdts {
-		ids, err = addUsdt(&usdt, &in, ids)
+		ids, err = addUsdt(&usdt, &in, ids, &has)
 		if err != nil {
 			return nil, err
 		}
 		hasSetAction = hasSetAction || selectors.HasSet(&usdt)
 	}
 
-	hasSleepableOffload := hasSetAction && config.EnableV61Progs()
+	has.sleepableOffload = hasSetAction && config.EnableV61Progs()
 
 	if in.useMulti {
-		progs, maps, err = createMultiUsdtSensor(ids, polInfo.name, hasSleepableOffload)
+		progs, maps, err = createMultiUsdtSensor(ids, polInfo.name, has)
 	} else {
-		progs, maps, err = createSingleUsdtSensor(ids, hasSleepableOffload)
+		progs, maps, err = createSingleUsdtSensor(ids, has)
 	}
 
 	if err != nil {
@@ -149,7 +155,7 @@ func createGenericUsdtSensor(
 	}, nil
 }
 
-func createMultiUsdtSensor(multiIDs []idtable.EntryID, policyName string, hasSleepableOffload bool) ([]*program.Program, []*program.Map, error) {
+func createMultiUsdtSensor(multiIDs []idtable.EntryID, policyName string, has usdtHas) ([]*program.Program, []*program.Map, error) {
 	var progs []*program.Program
 	var maps []*program.Map
 
@@ -164,7 +170,8 @@ func createMultiUsdtSensor(multiIDs []idtable.EntryID, policyName string, hasSle
 		SetLoaderData(multiIDs).
 		SetPolicy(policyName)
 
-	load.SleepableOffload = hasSleepableOffload
+	load.SleepableOffload = has.sleepableOffload
+	load.SleepablePreload = has.sleepablePreload
 
 	progs = append(progs, load)
 
@@ -177,10 +184,16 @@ func createMultiUsdtSensor(multiIDs []idtable.EntryID, policyName string, hasSle
 	filterMap.SetMaxEntries(len(multiIDs))
 	configMap.SetMaxEntries(len(multiIDs))
 
-	if hasSleepableOffload {
+	if has.sleepableOffload {
 		sleepableOffloadMap := program.MapBuilderProgram("write_offload", load)
 		sleepableOffloadMap.SetMaxEntries(sleepableOffloadMaxEntries)
 		maps = append(maps, sleepableOffloadMap)
+	}
+
+	if has.sleepablePreload {
+		sleepablePreloadMap := program.MapBuilderProgram("sleepable_preload", load)
+		sleepablePreloadMap.SetMaxEntries(sleepablePreloadMaxEntries)
+		maps = append(maps, sleepablePreloadMap)
 	}
 
 	if option.Config.EnableCgTrackerID {
@@ -190,7 +203,7 @@ func createMultiUsdtSensor(multiIDs []idtable.EntryID, policyName string, hasSle
 	return progs, maps, nil
 }
 
-func createSingleUsdtSensor(ids []idtable.EntryID, hasSleepableOffload bool) ([]*program.Program, []*program.Map, error) {
+func createSingleUsdtSensor(ids []idtable.EntryID, has usdtHas) ([]*program.Program, []*program.Map, error) {
 	var progs []*program.Program
 	var maps []*program.Map
 
@@ -199,14 +212,14 @@ func createSingleUsdtSensor(ids []idtable.EntryID, hasSleepableOffload bool) ([]
 		if err != nil {
 			return nil, nil, err
 		}
-		progs, maps = createUsdtSensorFromEntry(usdtEntry, progs, maps, hasSleepableOffload)
+		progs, maps = createUsdtSensorFromEntry(usdtEntry, progs, maps, has)
 	}
 
 	return progs, maps, nil
 }
 
 func createUsdtSensorFromEntry(usdtEntry *genericUsdt,
-	progs []*program.Program, maps []*program.Map, hasSleepableOffload bool) ([]*program.Program, []*program.Map) {
+	progs []*program.Program, maps []*program.Map, has usdtHas) ([]*program.Program, []*program.Map) {
 
 	loadProgName := config.GenericUsdtObjs(false)
 
@@ -226,7 +239,8 @@ func createUsdtSensorFromEntry(usdtEntry *genericUsdt,
 		SetLoaderData(usdtEntry).
 		SetPolicy(usdtEntry.policyName)
 
-	load.SleepableOffload = hasSleepableOffload
+	load.SleepableOffload = has.sleepableOffload
+	load.SleepablePreload = has.sleepablePreload
 
 	progs = append(progs, load)
 
@@ -237,10 +251,16 @@ func createUsdtSensorFromEntry(usdtEntry *genericUsdt,
 	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
 	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap)
 
-	if hasSleepableOffload {
+	if has.sleepableOffload {
 		sleepableOffloadMap := program.MapBuilderProgram("write_offload", load)
 		sleepableOffloadMap.SetMaxEntries(sleepableOffloadMaxEntries)
 		maps = append(maps, sleepableOffloadMap)
+	}
+
+	if has.sleepablePreload {
+		sleepablePreloadMap := program.MapBuilderProgram("sleepable_preload", load)
+		sleepablePreloadMap.SetMaxEntries(sleepablePreloadMaxEntries)
+		maps = append(maps, sleepablePreloadMap)
 	}
 
 	if option.Config.EnableCgTrackerID {
@@ -250,7 +270,7 @@ func createUsdtSensorFromEntry(usdtEntry *genericUsdt,
 	return progs, maps
 }
 
-func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID) ([]idtable.EntryID, error) {
+func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has *usdtHas) ([]idtable.EntryID, error) {
 	se, err := elf.OpenSafeELFFile(spec.Path)
 	if err != nil {
 		return nil, err
@@ -365,6 +385,18 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID) ([]i
 				cfgArg.Signed = 0
 			}
 
+			if argType == gt.GenericStringType {
+				if !bpf.HasKfunc("bpf_copy_from_user_str") {
+					return nil, fmt.Errorf("can't preload string for argument %d", cfgIdx)
+				}
+				has.sleepablePreload = true
+				argMValue, err := getUserMetaValue(&arg, true)
+				if err != nil {
+					return nil, err
+				}
+				config.ArgMeta[cfgIdx] = uint32(argMValue)
+			}
+
 			config.ArgType[cfgIdx] = int32(argType)
 
 			argPrinters = append(argPrinters,
@@ -439,6 +471,8 @@ func loadSingleUsdtSensor(usdtEntry *genericUsdt, args sensors.LoadProbeArgs) er
 
 	load.MapLoad = append(load.MapLoad, mapLoad...)
 
+	load.MapLoad = append(load.MapLoad, selectorsMaploads(usdtEntry.selectors, 0)...)
+
 	if err := program.LoadUprobeProgram(args.BPFDir, args.Load, args.Maps, args.Verbose); err != nil {
 		return err
 	}
@@ -482,6 +516,8 @@ func loadMultiUsdtSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) erro
 			},
 		}
 		load.MapLoad = append(load.MapLoad, mapLoad...)
+
+		load.MapLoad = append(load.MapLoad, selectorsMaploads(usdtEntry.selectors, uint32(index))...)
 
 		attach, ok := data.Attach[usdtEntry.path]
 		if !ok {

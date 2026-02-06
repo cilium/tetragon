@@ -15,7 +15,12 @@
 #include "bpf_ktime.h"
 #include "regs.h"
 #include "config.h"
-#include "uprobe_preload.h"
+#include "user_preload.h"
+#include "generic_arg.h"
+
+#ifdef GENERIC_USDT
+#include "usdt_arg.h"
+#endif
 
 #define MAX_TOTAL 9000
 
@@ -467,59 +472,6 @@ read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int a
 		return __read_arg_2(ctx, type, orig_off, arg, argm, args);
 }
 
-FUNC_INLINE int
-extract_arg_depth(u32 i, struct extract_arg_data *data)
-{
-	if (i >= MAX_BTF_ARG_DEPTH || !data->btf_config[i].is_initialized)
-		return 1;
-	*data->arg = *data->arg + data->btf_config[i].offset;
-	if (data->btf_config[i].is_pointer)
-		probe_read((void *)data->arg, sizeof(char *), (void *)*data->arg);
-	return 0;
-}
-
-#ifdef __LARGE_BPF_PROG
-FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long *a)
-{
-	struct config_btf_arg *btf_config;
-
-	if (index >= EVENT_CONFIG_MAX_ARG)
-		return;
-
-	asm volatile("%[index] &= %1 ;\n"
-		     : [index] "+r"(index)
-		     : "i"(MAX_SELECTORS_MASK));
-	btf_config = config->btf_arg[index];
-	if (btf_config->is_initialized) {
-		struct extract_arg_data extract_data = {
-			.btf_config = btf_config,
-			.arg = a,
-		};
-		int i;
-
-		if (CONFIG(ITER_NUM)) {
-			bpf_for(i, 0, MAX_BTF_ARG_DEPTH)
-			{
-				if (extract_arg_depth(i, &extract_data))
-					break;
-			}
-		} else {
-#ifndef __V61_BPF_PROG
-#pragma unroll
-			for (i = 0; i < MAX_BTF_ARG_DEPTH; ++i) {
-				if (extract_arg_depth(i, &extract_data))
-					break;
-			}
-#else
-			loop(MAX_BTF_ARG_DEPTH, extract_arg_depth, &extract_data, 0);
-#endif /* __V61_BPF_PROG */
-		}
-	}
-}
-#else
-FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned long *a) {}
-#endif /* __LARGE_BPF_PROG */
-
 FUNC_INLINE int arg_idx(int index)
 {
 	struct msg_generic_kprobe *e;
@@ -580,8 +532,8 @@ FUNC_INLINE long get_pt_regs_arg(struct pt_regs *ctx, struct event_config *confi
 }
 #endif /* __TARGET_ARCH_x86 && (GENERIC_KPROBE || GENERIC_UPROBE) */
 
-#if defined(GENERIC_UPROBE) && defined(__TARGET_ARCH_x86)
-FUNC_INLINE unsigned long get_pt_regs_preload_arg(struct pt_regs *ctx, long ty)
+#if defined(GENERIC_UPROBE) || defined(GENERIC_USDT)
+FUNC_INLINE unsigned long get_preload_arg(struct pt_regs *ctx, long ty)
 {
 	unsigned long arg = 0;
 
@@ -598,7 +550,7 @@ FUNC_INLINE unsigned long get_pt_regs_preload_arg(struct pt_regs *ctx, long ty)
 	return arg;
 }
 #else
-FUNC_INLINE long get_pt_regs_preload_arg(struct pt_regs *ctx, long ty)
+FUNC_INLINE long get_preload_arg(struct pt_regs *ctx, long ty)
 {
 	return 0;
 }
@@ -636,7 +588,10 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 
 #if defined(GENERIC_TRACEPOINT) || defined(GENERIC_USDT)
 	a = (&e->a0)[index];
-	extract_arg(config, index, &a);
+	if (am & ARGM_PRELOAD)
+		a = get_preload_arg(ctx, ty);
+	else
+		extract_arg(config, index, &a, false);
 #else
 	arg_index = config->idx[index];
 	asm volatile("%[arg_index] &= %1 ;\n"
@@ -651,16 +606,17 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 	 *   - current task object
 	 *   - real argument value
 	 */
-	if (am & ARGM_PT_REGS_PRELOAD)
-		a = get_pt_regs_preload_arg(ctx, ty);
-	else if (am & ARGM_PT_REGS)
-		a = get_pt_regs_arg(ctx, config, arg_index);
-	else if (am & ARGM_CURRENT_TASK)
-		a = get_current_task();
-	else
-		a = (&e->a0)[arg_index];
-
-	extract_arg(config, index, &a);
+	if (am & ARGM_PRELOAD) {
+		a = get_preload_arg(ctx, ty);
+	} else {
+		if (am & ARGM_PT_REGS)
+			a = get_pt_regs_arg(ctx, config, arg_index);
+		else if (am & ARGM_CURRENT_TASK)
+			a = get_current_task();
+		else
+			a = (&e->a0)[arg_index];
+		extract_arg(config, index, &a, false);
+	}
 
 	if (should_offload_path(ty))
 		return generic_path_offload(ctx, ty, a, index, off, tailcals);
@@ -734,97 +690,6 @@ generic_process_init(struct msg_generic_kprobe *e, u8 op)
 	 */
 	e->tid = (__u32)get_current_pid_tgid();
 }
-
-#ifdef GENERIC_USDT
-FUNC_INLINE unsigned long
-read_usdt_arg(struct pt_regs *ctx, struct event_config *config, int index)
-{
-	struct config_usdt_arg *arg;
-	unsigned long val, off, idx;
-	int err;
-
-	index &= 7;
-	arg = &config->usdt_arg[index];
-
-	if (arg->type == USDT_ARG_TYPE_NONE)
-		return 0;
-
-	switch (arg->type) {
-	case USDT_ARG_TYPE_CONST:
-		/* Arg is just a constant ("-4@$-9" in USDT arg spec).
-		 * value is recorded in arg->val_off directly.
-		 */
-		val = arg->val_off;
-		break;
-	case USDT_ARG_TYPE_REG:
-		/* Arg is in a register (e.g, "8@%rax" in USDT arg spec),
-		 * so we read the contents of that register directly from
-		 * struct pt_regs. To keep things simple user-space parts
-		 * record offsetof(struct pt_regs, <regname>) in arg->reg_off.
-		 */
-		off = arg->reg_off & 0xfff;
-		err = probe_read_kernel(&val, sizeof(val), (void *)ctx + off);
-		if (err)
-			return 0;
-		break;
-	case USDT_ARG_TYPE_REG_DEREF:
-		/* Arg is in memory addressed by register, plus some offset
-		 * (e.g., "-4@-1204(%rbp)" in USDT arg spec). Register is
-		 * identified like with BPF_USDT_ARG_REG case, and the offset
-		 * is in arg->val_off. We first fetch register contents
-		 * from pt_regs, then do another user-space probe read to
-		 * fetch argument value itself.
-		 */
-		off = arg->reg_off & 0xfff;
-		err = probe_read_kernel(&val, sizeof(val), (void *)ctx + off);
-		if (err)
-			return err;
-		err = probe_read_user(&val, sizeof(val), (void *)val + arg->val_off);
-		if (err)
-			return err;
-#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-		val >>= arg->shift;
-#endif
-		break;
-	case USDT_ARG_TYPE_SIB:
-		/* Arg is in memory addressed by SIB (Scale-Index-Base) mode
-		 * (e.g., "-1@-96(%rbp,%rax,8)" in USDT arg spec). We first
-		 * fetch the base register contents and the index register
-		 * contents from pt_regs. Then we calculate the final address
-		 * as base + (index * scale) + offset, and do a user-space
-		 * probe read to fetch the argument value.
-		 */
-		off = arg->reg_off & 0xfff;
-		err = probe_read_kernel(&val, sizeof(val), (void *)ctx + off);
-		if (err)
-			return err;
-		off = arg->reg_idx_off & 0xfff;
-		err = probe_read_kernel(&idx, sizeof(idx), (void *)ctx + off);
-		if (err)
-			return err;
-		err = probe_read_user(&val, sizeof(val), (void *)(val + (idx << arg->scale) + arg->val_off));
-		if (err)
-			return err;
-#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-		val >>= arg_spec->arg_bitshift;
-#endif
-		break;
-	default:
-		return 0;
-	}
-
-	/* cast arg from 1, 2, or 4 bytes to final 8 byte size clearing
-	 * necessary upper arg_bitshift bits, with sign extension if argument
-	 * is signed
-	 */
-	val <<= arg->shift;
-	if (arg->sig)
-		val = ((long)val) >> arg->shift;
-	else
-		val = val >> arg->shift;
-	return val;
-}
-#endif /* GENERIC_USDT */
 
 FUNC_INLINE int
 generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcals)

@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"path"
-	"runtime"
 	"strconv"
 	"strings"
 
@@ -576,11 +575,10 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 				// If we are getting string type from pt_regs register we can safely assume
 				// it's from user address, so we need to read it through preload.
 				if argType == gt.GenericStringType {
-					if bpf.HasKfunc("bpf_copy_from_user_str") && runtime.GOARCH == "amd64" {
-						preload = true
-					} else {
-						logger.GetLogger().Warn("can't preload string argument, might be wrong")
+					if !bpf.HasKfunc("bpf_copy_from_user_str") {
+						return fmt.Errorf("can't preload string for argument %d", i)
 					}
+					preload = true
 				}
 			} else if hasCurrentTaskSource(a) {
 				if !bpf.HasProgramLargeSize() {
@@ -604,6 +602,13 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 				allBTFArgs[i] = btfArg
 				argType = findTypeFromBTFType(a, lastBTFType)
 			}
+
+			if argType == gt.GenericStringType {
+				if !bpf.HasKfunc("bpf_copy_from_user_str") {
+					return fmt.Errorf("can't preload string for argument %d", i)
+				}
+				preload = true
+			}
 		}
 
 		has.sleepablePreload = has.sleepablePreload || preload
@@ -611,7 +616,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		if argType == gt.GenericInvalidType {
 			return fmt.Errorf("Arg(%d) type '%s' unsupported", i, a.Type)
 		}
-		argMValue, err := getUprobeMetaValue(a, preload)
+		argMValue, err := getUserMetaValue(a, preload)
 		if err != nil {
 			return err
 		}

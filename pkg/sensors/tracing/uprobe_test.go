@@ -18,6 +18,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 
+	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/kernels"
 	bc "github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
 
@@ -847,7 +848,7 @@ func TestUprobeArgsWithAddress(t *testing.T) {
 	testUprobeArgs(t, checkers, tp)
 }
 
-func uprobeArgsMatch(t *testing.T, argOneVal int, expectCheckerFailure bool) error {
+func uprobeArgsMatch(t *testing.T, symbol string, arg_type string, argOneVal string, expectCheckerFailure bool) error {
 	uprobeTest1 := testutils.RepoRootPath("contrib/tester-progs/uprobe-test-1")
 	libUprobe := testutils.RepoRootPath("contrib/tester-progs/libuprobe.so")
 
@@ -860,16 +861,16 @@ spec:
   uprobes:
   - path: "` + libUprobe + `"
     symbols:
-    - "uprobe_test_lib_arg1"
+    - "` + symbol + `"
     args:
     - index: 0
-      type: "int"
+      type: "` + arg_type + `"
     selectors:
     - matchArgs:
       - args: [0]
         operator: "Equal"
         values:
-        - "` + strconv.Itoa(argOneVal) + `"
+        - "` + argOneVal + `"
 `
 
 	pathConfigHook := []byte(pathHook)
@@ -881,7 +882,7 @@ spec:
 	upChecker := ec.NewProcessUprobeChecker("UPROBE_BINARIES_MATCH").
 		WithProcess(ec.NewProcessChecker().
 			WithBinary(sm.Full(uprobeTest1))).
-		WithSymbol(sm.Full("uprobe_test_lib_arg1"))
+		WithSymbol(sm.Full(symbol))
 	checker := ec.NewUnorderedEventChecker(upChecker)
 
 	var doneWG, readyWG sync.WaitGroup
@@ -904,13 +905,29 @@ spec:
 	return jsonchecker.JsonTestCheckExpect(t, checker, expectCheckerFailure)
 }
 
-func TestUprobeArgsMatch(t *testing.T) {
-	err := uprobeArgsMatch(t, 123, false)
+func TestUprobeIntArgMatch(t *testing.T) {
+	err := uprobeArgsMatch(t, "uprobe_test_lib_arg1", "int", "123", false)
 	require.NoError(t, err)
 }
 
-func TestUprobeArgsMatchNot(t *testing.T) {
-	err := uprobeArgsMatch(t, 124, true)
+func TestUprobeIntArgMatchNot(t *testing.T) {
+	err := uprobeArgsMatch(t, "uprobe_test_lib_arg1", "int", "124", true)
+	require.NoError(t, err)
+}
+
+func TestUprobeStringArgMatch(t *testing.T) {
+	if !bpf.HasKfunc("bpf_copy_from_user_str") {
+		t.Skip("this test requires bpf_copy_from_user_str kfunc support")
+	}
+	err := uprobeArgsMatch(t, "uprobe_test_lib_string_arg", "string", "hello world!", false)
+	require.NoError(t, err)
+}
+
+func TestUprobeStringArgMatchNot(t *testing.T) {
+	if !bpf.HasKfunc("bpf_copy_from_user_str") {
+		t.Skip("this test requires bpf_copy_from_user_str kfunc support")
+	}
+	err := uprobeArgsMatch(t, "uprobe_test_lib_string_arg", "string", "hi world!", true)
 	require.NoError(t, err)
 }
 
