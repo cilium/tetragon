@@ -298,5 +298,21 @@ enum bpf_type_info_kind {
 		__r;							    \
 	})
 
+#if defined(__clang__)
+#define bpf_ksym_exists(sym) ({                                         \
+	_Static_assert(!__builtin_constant_p(!!sym),                    \
+		       #sym " should be marked as __weak");             \
+	!!sym;                                                          \
+})
+#elif __GNUC__ > 8
+#define bpf_ksym_exists(sym) ({                                         \
+	_Static_assert(__builtin_has_attribute(*sym, __weak__),         \
+		       #sym " should be marked as __weak");             \
+	!!sym;                                                          \
+})
+#else
+#define bpf_ksym_exists(sym) !!sym
+#endif
+
 #endif
 

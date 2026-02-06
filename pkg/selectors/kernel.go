@@ -12,6 +12,7 @@ import (
 	"math"
 	"net"
 	"net/netip"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -210,6 +211,9 @@ const (
 	// range
 	SelectorOpInRange    = 31
 	SelectorOpNotInRange = 32
+	// match string
+	SelectorOpSubString        = 33
+	SelectorOpSubStringIgnCase = 34
 )
 
 var selectorOpStringTable = map[uint32]string{
@@ -244,6 +248,8 @@ var selectorOpStringTable = map[uint32]string{
 	SelectorOpCapabilitiesGained: "CapabilitiesGained",
 	SelectorOpInRange:            "InRange",
 	SelectorOpNotInRange:         "NotInRange",
+	SelectorOpSubString:          "SubString",
+	SelectorOpSubStringIgnCase:   "SubStringIgnCase",
 }
 
 func SelectorOp(op string) (uint32, error) {
@@ -310,6 +316,10 @@ func SelectorOp(op string) (uint32, error) {
 		return SelectorOpInRange, nil
 	case "NotInRange":
 		return SelectorOpNotInRange, nil
+	case "SubString":
+		return SelectorOpSubString, nil
+	case "SubStringIgnCase":
+		return SelectorOpSubStringIgnCase, nil
 	}
 
 	return 0, fmt.Errorf("unknown op '%s'", op)
@@ -883,6 +893,25 @@ func ParseMatchData(k *KernelSelectorState, arg *v1alpha1.ArgSelector, data []v1
 	return parseMatchArg(k, arg, data, ty)
 }
 
+const (
+	substringMaxLen = 100
+)
+
+func writeMatchSubString(k *KernelSelectorState, values []string) error {
+	for _, v := range values {
+		id := len(k.subStrs)
+		if id >= SubstringMapEntries {
+			return fmt.Errorf("substring error: Only %d substrings allowed", SubstringMapEntries)
+		}
+		if len(v) >= substringMaxLen {
+			return fmt.Errorf("substring error: Substring is bigger than 100 chars (%d) %s", len(v), v)
+		}
+		k.subStrs = append(k.subStrs, v)
+		WriteSelectorUint32(&k.data, uint32(id))
+	}
+	return nil
+}
+
 func parseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1alpha1.KProbeArg, ty uint32) error {
 	op, err := SelectorOp(arg.Operator)
 	if err != nil {
@@ -895,6 +924,7 @@ func parseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 	WriteSelectorUint32(&k.data, op)
 	moff := AdvanceSelectorLength(&k.data)
 	WriteSelectorUint32(&k.data, ty)
+
 	switch op {
 	case SelectorOpInRange, SelectorOpNotInRange:
 		err := writeMatchValuesRange(k, arg.Values, ty)
@@ -905,6 +935,13 @@ func parseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 		err := writeMatchValuesInMap(k, arg.Values, ty, op)
 		if err != nil {
 			return fmt.Errorf("writeMatchRangesInMap error: %w", err)
+		}
+	case SelectorOpSubStringIgnCase, SelectorOpSubString:
+		switch ty {
+		case gt.GenericStringType, gt.GenericCharBuffer:
+			if err := writeMatchSubString(k, arg.Values); err != nil {
+				return fmt.Errorf("writeMatchSubString error: %w", err)
+			}
 		}
 	case SelectorOpEQ, SelectorOpNEQ:
 		switch ty {
@@ -1632,6 +1669,21 @@ func HasOverride(selectors []v1alpha1.KProbeSelector) bool {
 		for _, action := range s.MatchActions {
 			act := actionTypeTable[strings.ToLower(action.Action)]
 			if act == ActionTypeOverride {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func HasOperator(selectors []v1alpha1.KProbeSelector, op uint32) bool {
+	for _, s := range selectors {
+		for _, a := range slices.Concat(s.MatchArgs, s.MatchData, s.MatchReturnArgs) {
+			argOp, err := SelectorOp(a.Operator)
+			if err != nil {
+				return false
+			}
+			if argOp == op {
 				return true
 			}
 		}

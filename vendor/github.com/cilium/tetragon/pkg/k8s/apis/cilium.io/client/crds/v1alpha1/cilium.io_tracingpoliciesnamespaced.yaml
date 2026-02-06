@@ -638,6 +638,8 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - SubString
+                                  - SubStringIgnCase
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -796,6 +798,8 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - SubString
+                                  - SubStringIgnCase
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1079,6 +1083,8 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - SubString
+                                  - SubStringIgnCase
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1426,6 +1432,8 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - SubString
+                                  - SubStringIgnCase
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1584,6 +1592,8 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - SubString
+                                  - SubStringIgnCase
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1867,6 +1877,8 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - SubString
+                                  - SubStringIgnCase
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2250,6 +2262,8 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - SubString
+                                  - SubStringIgnCase
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2408,6 +2422,8 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - SubString
+                                  - SubStringIgnCase
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2691,6 +2707,8 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - SubString
+                                  - SubStringIgnCase
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -3252,6 +3270,8 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - SubString
+                                  - SubStringIgnCase
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -3410,6 +3430,8 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - SubString
+                                  - SubStringIgnCase
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -3693,6 +3715,8 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - SubString
+                                  - SubStringIgnCase
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -4018,6 +4042,8 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - SubString
+                                  - SubStringIgnCase
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -4176,6 +4202,8 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - SubString
+                                  - SubStringIgnCase
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -4459,6 +4487,8 @@ spec:
                                   - CapabilitiesGained
                                   - InRange
                                   - NotInRange
+                                  - SubString
+                                  - SubStringIgnCase
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
