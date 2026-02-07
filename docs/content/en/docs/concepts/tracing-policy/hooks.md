@@ -313,6 +313,50 @@ spec:
 This example shows how to use uprobes to hook into the readline function
 running in all the bash shells.
 
+### Selectors
+
+Uprobes support the full range of selectors available for filtering events,
+including `matchArgs`, `matchReturnArgs`, `matchBinaries`, `matchNamespaces`,
+`matchCapabilities`, and more. This allows you to precisely filter uprobe
+events based on function arguments, return values, or process context.
+
+Here is an example that only generates events when the `readline` function
+is called from a specific binary and returns a string starting with "sudo":
+
+```yaml
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-with-selectors"
+spec:
+  uprobes:
+  - path: "/bin/bash"
+    symbols:
+    - "readline"
+    return: true
+    returnArg:
+      index: 0
+      type: "string"
+    selectors:
+    - matchBinaries:
+      - operator: "In"
+        values:
+        - "/bin/bash"
+        - "/usr/bin/bash"
+      matchReturnArgs:
+      - index: 0
+        operator: "Prefix"
+        values:
+        - "sudo"
+```
+
+This policy will only generate events when `readline` is called from `/bin/bash`
+and returns a string starting with "sudo", which can be useful for monitoring potentially
+sensitive command input.
+
+For more details on available selectors and their usage, see the
+[Selectors]({{< ref "/docs/concepts/tracing-policy/selectors" >}}) documentation.
+
 ## USDTs
 
 Tetragon allows to attach and monitor USDT (User Statically-Defined Tracing) probes.
