@@ -24,7 +24,6 @@ import (
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
-	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/metrics/enforcermetrics"
@@ -545,73 +544,7 @@ func createGenericTracepointSensor(
 		filterMap := program.MapBuilderProgram("filter_map", prog0)
 		maps = append(maps, filterMap)
 
-		argFilterMaps := program.MapBuilderProgram("argfilter_maps", prog0)
-		if !kernels.MinKernelVersion("5.9") {
-			// Versions before 5.9 do not allow inner maps to have different sizes.
-			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-			maxEntries := tp.selectors.ValueMapsMaxEntries()
-			argFilterMaps.SetInnerMaxEntries(maxEntries)
-		}
-		maps = append(maps, argFilterMaps)
-
-		addr4FilterMaps := program.MapBuilderProgram("addr4lpm_maps", prog0)
-		if !kernels.MinKernelVersion("5.9") {
-			// Versions before 5.9 do not allow inner maps to have different sizes.
-			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-			maxEntries := tp.selectors.Addr4MapsMaxEntries()
-			addr4FilterMaps.SetInnerMaxEntries(maxEntries)
-		}
-		maps = append(maps, addr4FilterMaps)
-
-		addr6FilterMaps := program.MapBuilderProgram("addr6lpm_maps", prog0)
-		if !kernels.MinKernelVersion("5.9") {
-			// Versions before 5.9 do not allow inner maps to have different sizes.
-			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-			maxEntries := tp.selectors.Addr6MapsMaxEntries()
-			addr6FilterMaps.SetInnerMaxEntries(maxEntries)
-		}
-		maps = append(maps, addr6FilterMaps)
-
-		numSubMaps := selectors.StringMapsNumSubMaps
-		if !kernels.MinKernelVersion("5.11") {
-			numSubMaps = selectors.StringMapsNumSubMapsSmall
-		}
-		for stringMapIndex := range numSubMaps {
-			stringFilterMap := program.MapBuilderProgram(fmt.Sprintf("string_maps_%d", stringMapIndex), prog0)
-			if !kernels.MinKernelVersion("5.9") {
-				// Versions before 5.9 do not allow inner maps to have different sizes.
-				// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-				maxEntries := tp.selectors.StringMapsMaxEntries(stringMapIndex)
-				stringFilterMap.SetInnerMaxEntries(maxEntries)
-			}
-			maps = append(maps, stringFilterMap)
-		}
-
-		stringPrefixFilterMaps := program.MapBuilderProgram("string_prefix_maps", prog0)
-		if !kernels.MinKernelVersion("5.9") {
-			// Versions before 5.9 do not allow inner maps to have different sizes.
-			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-			maxEntries := tp.selectors.StringPrefixMapsMaxEntries()
-			stringPrefixFilterMaps.SetInnerMaxEntries(maxEntries)
-		}
-		maps = append(maps, stringPrefixFilterMaps)
-
-		stringPostfixFilterMaps := program.MapBuilderProgram("string_postfix_maps", prog0)
-		if !kernels.MinKernelVersion("5.9") {
-			// Versions before 5.9 do not allow inner maps to have different sizes.
-			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-			maxEntries := tp.selectors.StringPostfixMapsMaxEntries()
-			stringPostfixFilterMaps.SetInnerMaxEntries(maxEntries)
-		}
-		maps = append(maps, stringPostfixFilterMaps)
-
-		matchBinariesPaths := program.MapBuilderProgram("tg_mb_paths", prog0)
-		if !kernels.MinKernelVersion("5.9") {
-			// Versions before 5.9 do not allow inner maps to have different sizes.
-			// See: https://lore.kernel.org/bpf/20200828011800.1970018-1-kafai@fb.com/
-			matchBinariesPaths.SetInnerMaxEntries(tp.selectors.MatchBinariesPathsMaxEntries())
-		}
-		maps = append(maps, matchBinariesPaths)
+		maps = append(maps, createSelectorMaps(prog0, tp.selectors)...)
 
 		if has.enforcer {
 			maps = append(maps, enforcerMapsUser(prog0)...)
