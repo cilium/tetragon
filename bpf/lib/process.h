@@ -320,6 +320,19 @@ struct binary {
 	char end_r[STRING_POSTFIX_MAX_LENGTH];
 	// args for the binary
 	char args[MAXARGLENGTH];
+	/**
+	 * filename_length - Length of script path for matchScript support
+	 *
+	 * When matchScript is enabled, this field stores the length of the
+	 * script path found in args[0]. For shebang scripts (e.g., #!/bin/bash),
+	 * this allows matching against the script path (/path/script.sh) instead
+	 * of the interpreter path (/bin/bash).
+	 * 
+	 * Set during execve processing and used by matchScript selectors.
+	 * Value of 0 indicates no script path available.
+	 */
+	__s32 filename_length;
+	__s32 __pad_filename; // padding for uint64 alignment
 	// matchBinary bitset for binary
 	// NB: everything after and including ->mb_bitset will not be zeroed on a new exec. See
 	// binary_reset().
@@ -365,6 +378,7 @@ struct {
 	__type(key, __u32);
 	__type(value, struct binary);
 } tg_binary_heap SEC(".maps");
+
 
 // Parent binaries map is used for saving actual immediate parents
 // for processes to get check them in matchParentBinaries selector.

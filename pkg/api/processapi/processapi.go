@@ -161,14 +161,16 @@ type MsgCapabilities struct {
 }
 
 type Binary struct {
-	PathLength int32
-	Reversed   uint32
-	Path       [BINARY_PATH_MAX_LEN]byte
-	End        [STRING_POSTFIX_MAX_LENGTH]byte
-	EndR       [STRING_POSTFIX_MAX_LENGTH]byte
-	Args       [MAX_ARG_LENGTH]byte
-	MBSet      uint64
-	MBGen      uint64
+	PathLength     int32
+	Reversed       uint32
+	Path           [BINARY_PATH_MAX_LEN]byte
+	End            [STRING_POSTFIX_MAX_LENGTH]byte
+	EndR           [STRING_POSTFIX_MAX_LENGTH]byte
+	Args           [MAX_ARG_LENGTH]byte
+	FilenameLength int32 // Length of script path in Args for matchScript
+	_              int32 // padding for alignment
+	MBSet          uint64
+	MBGen          uint64
 }
 
 type MsgNamespaces struct {

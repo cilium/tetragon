@@ -1097,6 +1097,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: false<br/>
         </td>
         <td>false</td>
+      </tr><tr>
+        <td><b>matchScript</b></td>
+        <td>boolean</td>
+        <td>
+          Match against the script path instead of the interpreter for scripts with shebangs.
+When a script like (i.e. /path/script.py) with shebang #!/usr/bin/python3 is executed,
+matchBinaries normally matches against /usr/bin/python3 (the interpreter).
+Setting matchScript to true will match against /path/script.py instead.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -1429,6 +1441,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td>boolean</td>
         <td>
           In addition to binaries, match children processes of specified binaries.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchScript</b></td>
+        <td>boolean</td>
+        <td>
+          Match against the script path instead of the interpreter for scripts with shebangs.
+When a script like (i.e. /path/script.py) with shebang #!/usr/bin/python3 is executed,
+matchBinaries normally matches against /usr/bin/python3 (the interpreter).
+Setting matchScript to true will match against /path/script.py instead.<br/>
           <br/>
             <i>Default</i>: false<br/>
         </td>
@@ -2218,6 +2242,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: false<br/>
         </td>
         <td>false</td>
+      </tr><tr>
+        <td><b>matchScript</b></td>
+        <td>boolean</td>
+        <td>
+          Match against the script path instead of the interpreter for scripts with shebangs.
+When a script like (i.e. /path/script.py) with shebang #!/usr/bin/python3 is executed,
+matchBinaries normally matches against /usr/bin/python3 (the interpreter).
+Setting matchScript to true will match against /path/script.py instead.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -2550,6 +2586,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td>boolean</td>
         <td>
           In addition to binaries, match children processes of specified binaries.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchScript</b></td>
+        <td>boolean</td>
+        <td>
+          Match against the script path instead of the interpreter for scripts with shebangs.
+When a script like (i.e. /path/script.py) with shebang #!/usr/bin/python3 is executed,
+matchBinaries normally matches against /usr/bin/python3 (the interpreter).
+Setting matchScript to true will match against /path/script.py instead.<br/>
           <br/>
             <i>Default</i>: false<br/>
         </td>
@@ -3412,6 +3460,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: false<br/>
         </td>
         <td>false</td>
+      </tr><tr>
+        <td><b>matchScript</b></td>
+        <td>boolean</td>
+        <td>
+          Match against the script path instead of the interpreter for scripts with shebangs.
+When a script like (i.e. /path/script.py) with shebang #!/usr/bin/python3 is executed,
+matchBinaries normally matches against /usr/bin/python3 (the interpreter).
+Setting matchScript to true will match against /path/script.py instead.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -3744,6 +3804,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td>boolean</td>
         <td>
           In addition to binaries, match children processes of specified binaries.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchScript</b></td>
+        <td>boolean</td>
+        <td>
+          Match against the script path instead of the interpreter for scripts with shebangs.
+When a script like (i.e. /path/script.py) with shebang #!/usr/bin/python3 is executed,
+matchBinaries normally matches against /usr/bin/python3 (the interpreter).
+Setting matchScript to true will match against /path/script.py instead.<br/>
           <br/>
             <i>Default</i>: false<br/>
         </td>
@@ -4749,6 +4821,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: false<br/>
         </td>
         <td>false</td>
+      </tr><tr>
+        <td><b>matchScript</b></td>
+        <td>boolean</td>
+        <td>
+          Match against the script path instead of the interpreter for scripts with shebangs.
+When a script like (i.e. /path/script.py) with shebang #!/usr/bin/python3 is executed,
+matchBinaries normally matches against /usr/bin/python3 (the interpreter).
+Setting matchScript to true will match against /path/script.py instead.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -5081,6 +5165,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td>boolean</td>
         <td>
           In addition to binaries, match children processes of specified binaries.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchScript</b></td>
+        <td>boolean</td>
+        <td>
+          Match against the script path instead of the interpreter for scripts with shebangs.
+When a script like (i.e. /path/script.py) with shebang #!/usr/bin/python3 is executed,
+matchBinaries normally matches against /usr/bin/python3 (the interpreter).
+Setting matchScript to true will match against /path/script.py instead.<br/>
           <br/>
             <i>Default</i>: false<br/>
         </td>
@@ -5835,6 +5931,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: false<br/>
         </td>
         <td>false</td>
+      </tr><tr>
+        <td><b>matchScript</b></td>
+        <td>boolean</td>
+        <td>
+          Match against the script path instead of the interpreter for scripts with shebangs.
+When a script like (i.e. /path/script.py) with shebang #!/usr/bin/python3 is executed,
+matchBinaries normally matches against /usr/bin/python3 (the interpreter).
+Setting matchScript to true will match against /path/script.py instead.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -6167,6 +6275,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td>boolean</td>
         <td>
           In addition to binaries, match children processes of specified binaries.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchScript</b></td>
+        <td>boolean</td>
+        <td>
+          Match against the script path instead of the interpreter for scripts with shebangs.
+When a script like (i.e. /path/script.py) with shebang #!/usr/bin/python3 is executed,
+matchBinaries normally matches against /usr/bin/python3 (the interpreter).
+Setting matchScript to true will match against /path/script.py instead.<br/>
           <br/>
             <i>Default</i>: false<br/>
         </td>
@@ -7442,6 +7562,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: false<br/>
         </td>
         <td>false</td>
+      </tr><tr>
+        <td><b>matchScript</b></td>
+        <td>boolean</td>
+        <td>
+          Match against the script path instead of the interpreter for scripts with shebangs.
+When a script like (i.e. /path/script.py) with shebang #!/usr/bin/python3 is executed,
+matchBinaries normally matches against /usr/bin/python3 (the interpreter).
+Setting matchScript to true will match against /path/script.py instead.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -7774,6 +7906,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td>boolean</td>
         <td>
           In addition to binaries, match children processes of specified binaries.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchScript</b></td>
+        <td>boolean</td>
+        <td>
+          Match against the script path instead of the interpreter for scripts with shebangs.
+When a script like (i.e. /path/script.py) with shebang #!/usr/bin/python3 is executed,
+matchBinaries normally matches against /usr/bin/python3 (the interpreter).
+Setting matchScript to true will match against /path/script.py instead.<br/>
           <br/>
             <i>Default</i>: false<br/>
         </td>
@@ -8563,6 +8707,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: false<br/>
         </td>
         <td>false</td>
+      </tr><tr>
+        <td><b>matchScript</b></td>
+        <td>boolean</td>
+        <td>
+          Match against the script path instead of the interpreter for scripts with shebangs.
+When a script like (i.e. /path/script.py) with shebang #!/usr/bin/python3 is executed,
+matchBinaries normally matches against /usr/bin/python3 (the interpreter).
+Setting matchScript to true will match against /path/script.py instead.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -8895,6 +9051,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td>boolean</td>
         <td>
           In addition to binaries, match children processes of specified binaries.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchScript</b></td>
+        <td>boolean</td>
+        <td>
+          Match against the script path instead of the interpreter for scripts with shebangs.
+When a script like (i.e. /path/script.py) with shebang #!/usr/bin/python3 is executed,
+matchBinaries normally matches against /usr/bin/python3 (the interpreter).
+Setting matchScript to true will match against /path/script.py instead.<br/>
           <br/>
             <i>Default</i>: false<br/>
         </td>
@@ -9757,6 +9925,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: false<br/>
         </td>
         <td>false</td>
+      </tr><tr>
+        <td><b>matchScript</b></td>
+        <td>boolean</td>
+        <td>
+          Match against the script path instead of the interpreter for scripts with shebangs.
+When a script like (i.e. /path/script.py) with shebang #!/usr/bin/python3 is executed,
+matchBinaries normally matches against /usr/bin/python3 (the interpreter).
+Setting matchScript to true will match against /path/script.py instead.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -10089,6 +10269,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td>boolean</td>
         <td>
           In addition to binaries, match children processes of specified binaries.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchScript</b></td>
+        <td>boolean</td>
+        <td>
+          Match against the script path instead of the interpreter for scripts with shebangs.
+When a script like (i.e. /path/script.py) with shebang #!/usr/bin/python3 is executed,
+matchBinaries normally matches against /usr/bin/python3 (the interpreter).
+Setting matchScript to true will match against /path/script.py instead.<br/>
           <br/>
             <i>Default</i>: false<br/>
         </td>
@@ -11094,6 +11286,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: false<br/>
         </td>
         <td>false</td>
+      </tr><tr>
+        <td><b>matchScript</b></td>
+        <td>boolean</td>
+        <td>
+          Match against the script path instead of the interpreter for scripts with shebangs.
+When a script like (i.e. /path/script.py) with shebang #!/usr/bin/python3 is executed,
+matchBinaries normally matches against /usr/bin/python3 (the interpreter).
+Setting matchScript to true will match against /path/script.py instead.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -11426,6 +11630,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td>boolean</td>
         <td>
           In addition to binaries, match children processes of specified binaries.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchScript</b></td>
+        <td>boolean</td>
+        <td>
+          Match against the script path instead of the interpreter for scripts with shebangs.
+When a script like (i.e. /path/script.py) with shebang #!/usr/bin/python3 is executed,
+matchBinaries normally matches against /usr/bin/python3 (the interpreter).
+Setting matchScript to true will match against /path/script.py instead.<br/>
           <br/>
             <i>Default</i>: false<br/>
         </td>
@@ -12180,6 +12396,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
             <i>Default</i>: false<br/>
         </td>
         <td>false</td>
+      </tr><tr>
+        <td><b>matchScript</b></td>
+        <td>boolean</td>
+        <td>
+          Match against the script path instead of the interpreter for scripts with shebangs.
+When a script like (i.e. /path/script.py) with shebang #!/usr/bin/python3 is executed,
+matchBinaries normally matches against /usr/bin/python3 (the interpreter).
+Setting matchScript to true will match against /path/script.py instead.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -12512,6 +12740,18 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td>boolean</td>
         <td>
           In addition to binaries, match children processes of specified binaries.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>matchScript</b></td>
+        <td>boolean</td>
+        <td>
+          Match against the script path instead of the interpreter for scripts with shebangs.
+When a script like (i.e. /path/script.py) with shebang #!/usr/bin/python3 is executed,
+matchBinaries normally matches against /usr/bin/python3 (the interpreter).
+Setting matchScript to true will match against /path/script.py instead.<br/>
           <br/>
             <i>Default</i>: false<br/>
         </td>

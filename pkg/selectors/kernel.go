@@ -27,6 +27,7 @@ import (
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/reader/network"
+	"path/filepath"
 )
 
 const (
@@ -1408,6 +1409,12 @@ func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx
 	sel := MatchBinariesSelectorOptions{}
 	sel.Op = op
 	sel.MBSetID = mbset.InvalidID
+	if b.MatchScript {
+		if op != SelectorOpIn && op != SelectorOpNotIn {
+			return fmt.Errorf("%s: matchScript is only supported for \"In\" and \"NotIn\" operators", selectorType)
+		}
+		sel.MatchScript = 1
+	}
 	if b.FollowChildren {
 		if op != SelectorOpIn && op != SelectorOpNotIn {
 			return fmt.Errorf("%s: followChildren not yet implemented for operation '%s'", selectorType, b.Operator)
@@ -1425,7 +1432,10 @@ func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx
 			if len(s) > processapi.BINARY_PATH_MAX_LEN-1 {
 				return fmt.Errorf("%s error: Binary names > %d chars not supported", selectorType, processapi.BINARY_PATH_MAX_LEN-1)
 			}
-			k.WriteMatchBinariesPath(selectorType.keyFromSelectorID(selIdx), s)
+			// Use writeMatchScriptPaths to handle path variants for matchScript
+			if err := writeMatchScriptPaths(k, selectorType.keyFromSelectorID(selIdx), s, b.MatchScript); err != nil {
+				return fmt.Errorf("failed to write matchBinaries paths: %w", err)
+			}
 		}
 	case SelectorOpPrefix, SelectorOpNotPrefix:
 		if !config.EnableLargeProgs() {
@@ -1449,6 +1459,66 @@ func ParseMatchBinary(k *KernelSelectorState, b *v1alpha1.BinarySelector, selIdx
 
 	k.AddMatchBinaries(selectorType.keyFromSelectorID(selIdx), sel)
 
+	return nil
+}
+
+// generatePathVariants creates bidirectional path variants for matchScript functionality
+// Enables a single policy to match both absolute and relative script executions
+func generatePathVariants(originalPath string) []string {
+	if originalPath == "" {
+		return []string{}
+	}
+	
+	variants := []string{originalPath} // Always include original path
+	
+	if filepath.IsAbs(originalPath) {
+		// For absolute paths like "/tmp/script.sh", add relative variants
+		filename := filepath.Base(originalPath)
+		if filename != "." && filename != "/" {
+			// Add "./filename" variant for relative execution
+			relativeVariant := "./" + filename
+			variants = append(variants, relativeVariant)
+			
+			// Add basename variant for direct execution
+			variants = append(variants, filename)
+		}
+	} else if strings.HasPrefix(originalPath, "./") {
+		// For relative paths like "./script.sh", add absolute variants
+		filename := strings.TrimPrefix(originalPath, "./")
+		if filename != "" {
+			// Add basename variant
+			variants = append(variants, filename)
+			
+			// Note: We cannot generate absolute paths without knowing CWD
+			// This is handled by the reverse case (absolute -> relative)
+		}
+	} else {
+		// For basename only like "script.sh", add relative variant
+		relativeVariant := "./" + originalPath
+		variants = append(variants, relativeVariant)
+	}
+	
+	return variants
+}
+
+// writeMatchScriptPaths writes path variants to BPF map for matchScript selectors
+// This enables a single policy entry to match both absolute and relative executions
+func writeMatchScriptPaths(k *KernelSelectorState, key int, originalPath string, isMatchScript bool) error {
+	if !isMatchScript {
+		// For non-matchScript, write original path only
+		k.WriteMatchBinariesPath(key, originalPath)
+		return nil
+	}
+	
+	// For matchScript, generate and write all path variants
+	variants := generatePathVariants(originalPath)
+	for _, variant := range variants {
+		if len(variant) > processapi.BINARY_PATH_MAX_LEN-1 {
+			continue // Skip variants that are too long
+		}
+		k.WriteMatchBinariesPath(key, variant)
+	}
+	
 	return nil
 }
 

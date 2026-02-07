@@ -442,9 +442,13 @@ execve_send(struct exec_ctx_struct *ctx __arg_ctx)
 		with_errmetrics(probe_read, curr->bin.args, len, (char *)&event->process + off);
 
 		// there's a null byte between each argv element, so we terminate with
-		// two of them to make it possible to identify the end of the buffer
 		curr->bin.args[len] = 0x00;
 		curr->bin.args[len + 1] = 0x00;
+
+		// Store filename length for matchScript support.
+		// The filename (script path) is already in args as the first element.
+		if (p->size_path > 0 && p->size_path < BINARY_PATH_MAX_LEN)
+			curr->bin.filename_length = p->size_path;
 #else
 		char *filename = (char *)ctx + (_(ctx->__data_loc_filename) & 0xFFFF);
 
@@ -467,3 +471,4 @@ execve_send(struct exec_ctx_struct *ctx __arg_ctx)
 	event_output_metric(ctx, MSG_OP_EXECVE, event, size);
 	return 0;
 }
+
