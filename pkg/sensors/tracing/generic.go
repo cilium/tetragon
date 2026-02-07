@@ -6,6 +6,7 @@
 package tracing
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -172,4 +173,35 @@ func pathArgWarning(index uint32, ty int, s []v1alpha1.KProbeSelector) {
 		logger.GetLogger().Warn(fmt.Sprintf("argument filter for '%s' (index %d) does not support the whole path retrieval",
 			name, index))
 	}
+}
+
+func appendMacrosSelectors(selectors []v1alpha1.KProbeSelector, macros map[string]v1alpha1.KProbeSelector) error {
+	for i := range selectors {
+		selector := &selectors[i]
+		for _, macroName := range selector.Macros {
+			if macros == nil {
+				return fmt.Errorf("macro '%s' is used in selector, but no macros were defined in policy spec", macroName)
+			}
+			macro, ok := macros[macroName]
+			if !ok {
+				return fmt.Errorf("undefined macro '%s'", macroName)
+			}
+			if len(macro.Macros) > 0 {
+				return errors.New("macro definition cannot use other macros")
+			}
+			selector.MatchPIDs = append(selector.MatchPIDs, macro.MatchPIDs...)
+			selector.MatchArgs = append(selector.MatchArgs, macro.MatchArgs...)
+			selector.MatchData = append(selector.MatchData, macro.MatchData...)
+			selector.MatchActions = append(selector.MatchActions, macro.MatchActions...)
+			selector.MatchReturnArgs = append(selector.MatchReturnArgs, macro.MatchReturnArgs...)
+			selector.MatchReturnActions = append(selector.MatchReturnActions, macro.MatchReturnActions...)
+			selector.MatchBinaries = append(selector.MatchBinaries, macro.MatchBinaries...)
+			selector.MatchNamespaces = append(selector.MatchNamespaces, macro.MatchNamespaces...)
+			selector.MatchNamespaceChanges = append(selector.MatchNamespaceChanges, macro.MatchNamespaceChanges...)
+			selector.MatchCapabilities = append(selector.MatchCapabilities, macro.MatchCapabilities...)
+			selector.MatchCapabilityChanges = append(selector.MatchCapabilityChanges, macro.MatchCapabilityChanges...)
+		}
+	}
+
+	return nil
 }
