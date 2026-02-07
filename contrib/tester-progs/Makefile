@@ -37,7 +37,8 @@ PROGS = sigkill-tester \
 	usdt-resolve \
 	uretprobe \
 	uprobe-resolve \
-	regs-override
+	regs-override \
+	uprobe-null
 
 LIBS = libuprobe.so
 
@@ -109,6 +110,13 @@ usdt-resolve: usdt-resolve.c
 	rm $@.btf.tmp
 
 uprobe-resolve: uprobe-resolve.c
+	$(GCC) -ggdb3 -O2 -Wall $< -o $@
+	pahole -J $@
+	llvm-objcopy --dump-section .BTF=$@.btf.tmp $@
+	llvm-objcopy -I binary -O elf64-x86-64 --rename-section .data=.BTF $@.btf.tmp $@.btf
+	rm $@.btf.tmp
+
+uprobe-null: uprobe-null.c
 	$(GCC) -ggdb3 -O2 -Wall $< -o $@
 	pahole -J $@
 	llvm-objcopy --dump-section .BTF=$@.btf.tmp $@

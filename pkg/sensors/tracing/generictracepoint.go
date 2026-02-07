@@ -137,6 +137,9 @@ type genericTracepointArg struct {
 
 	// data for config.BTFArg
 	btf [tracingapi.MaxBTFArgDepth]tracingapi.ConfigBTFArg
+
+	// Resolve path split by '.' and array indexes '[]'
+	BTFPath []string
 }
 
 func genericTracepointTableGet(id idtable.EntryID) (*genericTracepoint, error) {
@@ -322,6 +325,7 @@ func buildArgsRaw(info *tracepoint.Tracepoint, specArgs []v1alpha1.KProbeArg) ([
 	ret := make([]genericTracepointArg, 0, len(specArgs))
 	for i, tpArg := range specArgs {
 		var btf [tracingapi.MaxBTFArgDepth]tracingapi.ConfigBTFArg
+		var BTFPath []string
 
 		if tpArg.Index > 5 {
 			return nil, fmt.Errorf("raw tracepoint (%s/%s) can read up to %d arguments, but %d was requested",
@@ -346,15 +350,17 @@ func buildArgsRaw(info *tracepoint.Tracepoint, specArgs []v1alpha1.KProbeArg) ([
 			}
 			fn := "__bpf_trace_" + info.Event
 
-			lastBTFType, btfArg, err := resolveBTFArg(fn, &tpArg, true)
+			lastBTFType, btfArg, btfpath, err := resolveBTFArg(fn, &tpArg, true)
 			if err != nil {
 				return nil, fmt.Errorf("error on hook %q for index %d : %w", fn, tpArg.Index, err)
 			}
 			btf = btfArg
+			BTFPath = btfpath
 			argType = findTypeFromBTFType(&tpArg, lastBTFType)
 		}
 
 		arg.btf = btf
+		arg.BTFPath = BTFPath
 		arg.genericTypeId = argType
 		ret = append(ret, arg)
 	}
@@ -855,6 +861,13 @@ func handleMsgGenericTracepoint(
 	for idx, out := range tp.args {
 
 		if out.nopTy {
+			continue
+		}
+
+		if errorArg, isReadErr := getArgStatus(r, tp.args[idx].BTFPath); isReadErr {
+			break
+		} else if errorArg != nil {
+			unix.Args = append(unix.Args, *errorArg)
 			continue
 		}
 

@@ -333,6 +333,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID) ([]i
 
 		var allBTFArgs [api.EventConfigMaxArgs][api.MaxBTFArgDepth]api.ConfigBTFArg
 		for cfgIdx, arg := range spec.Args {
+			var BTFPath []string
 			tgtIdx := arg.Index
 			if tgtIdx > target.Spec.ArgsCnt {
 				return nil, fmt.Errorf("failed to configure usdt '%s/%s', argument index %d out of bounds",
@@ -350,12 +351,13 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID) ([]i
 
 			argType := gt.GenericTypeFromString(arg.Type)
 			if arg.Resolve != "" {
-				lastBTFType, btfArg, err := resolveUserBTFArg(&arg, spec.BTFPath)
+				lastBTFType, btfArg, btfpath, err := resolveUserBTFArg(&arg, spec.BTFPath)
 				if err != nil {
 					return nil, err
 				}
 
 				allBTFArgs[cfgIdx] = btfArg
+				BTFPath = btfpath
 				argType = findTypeFromBTFType(&arg, lastBTFType)
 			}
 
@@ -367,9 +369,7 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID) ([]i
 
 			config.ArgType[cfgIdx] = int32(argType)
 
-			argPrinters = append(argPrinters,
-				argPrinter{index: cfgIdx, ty: argType, label: arg.Label},
-			)
+			argPrinters = append(argPrinters, argPrinter{index: cfgIdx, ty: argType, label: arg.Label, BTFPath: BTFPath})
 		}
 		config.BTFArg = allBTFArgs
 

@@ -69,7 +69,7 @@ func TestLSMObjectLoad(t *testing.T) {
 			{Name: "override_tasks", Progs: []uint{5, 6}},
 
 			// all lsm but generic_lsm_process_filter
-			{Name: "config_map", Progs: []uint{0, 1, 2}},
+			{Name: "config_map", Progs: []uint{0, 1, 2, 5}},
 
 			// generic_lsm_event
 			{Name: "tg_conf_map", Progs: []uint{0, 2, 6}},
@@ -108,7 +108,7 @@ func TestLSMObjectLoad(t *testing.T) {
 			{Name: "override_tasks", Progs: []uint{5, 6}},
 
 			// all lsm but generic_lsm_process_filter
-			{Name: "config_map", Progs: []uint{0, 1, 2}},
+			{Name: "config_map", Progs: []uint{0, 1, 2, 5}},
 
 			// shared with base sensor
 			{Name: "execve_map", Progs: []uint{4, 5, 6}},

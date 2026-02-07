@@ -559,6 +559,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 	var allBTFArgs [api.EventConfigMaxArgs][api.MaxBTFArgDepth]api.ConfigBTFArg
 
 	addArg := func(i int, a *v1alpha1.KProbeArg, data bool) error {
+		var BTFPath []string
 		argType := gt.GenericTypeFromString(a.Type)
 
 		var preload bool
@@ -586,22 +587,24 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 				if !bpf.HasProgramLargeSize() {
 					return errors.New("error: Resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag")
 				}
-				lastBTFType, btfArg, err := resolveBTFArg("", a, false)
+				lastBTFType, btfArg, btfPath, err := resolveBTFArg("", a, false)
 				if err != nil {
 					return fmt.Errorf("can't resolve current_task source: %s", a.Resolve)
 				}
 				allBTFArgs[i] = btfArg
+				BTFPath = btfPath
 				argType = findTypeFromBTFType(a, lastBTFType)
 			}
 		} else {
 			// Args specific config
 			if a.Resolve != "" {
-				lastBTFType, btfArg, err := resolveUserBTFArg(a, spec.BTFPath)
+				lastBTFType, btfArg, btfPath, err := resolveUserBTFArg(a, spec.BTFPath)
 				if err != nil {
 					return err
 				}
 
 				allBTFArgs[i] = btfArg
+				BTFPath = btfPath
 				argType = findTypeFromBTFType(a, lastBTFType)
 			}
 		}
@@ -628,7 +631,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		argMeta[i] = uint32(argMValue)
 		argIdx[i] = int32(a.Index)
 
-		argPrinters = append(argPrinters, argPrinter{index: i, ty: argType, data: data})
+		argPrinters = append(argPrinters, argPrinter{index: i, ty: argType, data: data, BTFPath: BTFPath})
 		return nil
 	}
 

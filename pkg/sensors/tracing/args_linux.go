@@ -13,6 +13,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/dataapi"
 	processapi "github.com/cilium/tetragon/pkg/api/processapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
+	"github.com/cilium/tetragon/pkg/btf"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -29,6 +30,7 @@ type argPrinter struct {
 	maxData  bool
 	label    string
 	data     bool
+	BTFPath  []string
 }
 
 const (
@@ -102,8 +104,36 @@ func getTracepointMetaValue(arg *v1alpha1.KProbeArg) int {
 	return 0
 }
 
+func getArgStatus(r *bytes.Reader, BTFPath []string) (*api.MsgGenericKprobeArgError, bool) {
+	var status uint32
+	var arg api.MsgGenericKprobeArgError
+
+	if err := binary.Read(r, binary.LittleEndian, &status); err != nil {
+		logger.GetLogger().Warn("Arg status header error", logfields.Error, err)
+		return nil, true
+	}
+
+	if status != 0 {
+		ptr_name := "pointer"
+		if len(BTFPath[:status-1]) != 0 {
+			ptr_name = btf.GetPtrName(BTFPath[:status-1])
+		}
+		arg.Message = "failed to dereference " + ptr_name
+		return &arg, false
+	}
+	return nil, false
+}
+
 func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 	var err error
+
+	if errorArg, isReadErr := getArgStatus(r, a.BTFPath); isReadErr {
+		return nil
+	} else if errorArg != nil {
+		errorArg.Index = uint64(a.index)
+		errorArg.Label = a.label
+		return *errorArg
+	}
 
 	switch a.ty {
 	case gt.GenericIntType, gt.GenericS32Type:

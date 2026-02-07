@@ -808,6 +808,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 	addArg := func(j int, a *v1alpha1.KProbeArg, data bool) error {
 		// First try userspace types
 		var argType int
+		var BTFPath []string
 		userArgType := gt.GenericUserTypeFromString(a.Type)
 
 		if userArgType != gt.GenericInvalidType {
@@ -831,11 +832,12 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 			if !bpf.HasProgramLargeSize() {
 				return errors.New("error: Resolve flag can't be used for your kernel version. Please update to version 5.4 or higher or disable Resolve flag")
 			}
-			lastBTFType, btfArg, err := resolveBTFArg(f.Call, a, false)
+			lastBTFType, btfArg, btfpath, err := resolveBTFArg(f.Call, a, false)
 			if err != nil {
 				return fmt.Errorf("error on hook %q for index %d : %w", f.Call, a.Index, err)
 			}
 			allBTFArgs[j] = btfArg
+			BTFPath = btfpath
 			argType = findTypeFromBTFType(a, lastBTFType)
 		}
 
@@ -875,6 +877,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 			maxData:  a.MaxData,
 			label:    a.Label,
 			data:     data,
+			BTFPath:  BTFPath,
 		}
 		argSigPrinters = append(argSigPrinters, argP)
 

@@ -229,6 +229,31 @@ func getSizeofType(t btf.Type) uint32 {
 	return uint32(ret)
 }
 
+func GetPtrName(parts []string) string {
+	filtered := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if p != "" { // ignore "" elements
+			filtered = append(filtered, p)
+		}
+	}
+
+	if len(filtered) == 0 {
+		return ""
+	}
+
+	var ret strings.Builder
+	ret.WriteString(filtered[0])
+	// avoid using dots for array indexes
+	for _, f := range filtered[1:] {
+		if f[0] == '[' {
+			ret.WriteString(f)
+		} else {
+			ret.WriteString("." + f)
+		}
+	}
+	return ret.String()
+}
+
 // ResolveBTFPath function recursively search in a btf structure in order to
 // found a specific path until it reach the target or fail.
 
