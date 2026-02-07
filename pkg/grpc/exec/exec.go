@@ -520,15 +520,13 @@ func (msg *MsgExitEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*
 	proc, parent := process.GetParentProcessInternal(msg.ProcessKey.Pid, timestamp)
 	var err error
 
-	if option.Config.EnableProcessAncestors && proc.NeededAncestors() && !msg.RefCntDone[AncestorsRefCnt] {
+	if option.Config.EnableProcessAncestors && proc.NeededAncestors() {
 		if ancestors, perr := process.GetAncestorProcessesInternal(proc.UnsafeGetProcess().ParentExecId); perr == nil {
 			var tetragonAncestors []*tetragon.Process
 			for _, ancestor := range ancestors {
 				tetragonAncestors = append(tetragonAncestors, ancestor.UnsafeGetProcess())
-				ancestor.RefDec("ancestor")
 			}
 			ev.SetAncestors(tetragonAncestors)
-			msg.RefCntDone[AncestorsRefCnt] = true
 		} else {
 			eventcache.CacheRetries(eventcache.AncestorsInfo).Inc()
 			err = eventcache.ErrFailedToGetAncestorsInfo
@@ -537,10 +535,6 @@ func (msg *MsgExitEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*
 
 	if parent != nil {
 		ev.SetParent(parent.UnsafeGetProcess())
-		if !msg.RefCntDone[ParentRefCnt] {
-			parent.RefDec("parent")
-			msg.RefCntDone[ParentRefCnt] = true
-		}
 	} else {
 		eventcache.CacheRetries(eventcache.ParentInfo).Inc()
 		err = eventcache.ErrFailedToGetParentInfo
@@ -549,10 +543,6 @@ func (msg *MsgExitEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*
 	if proc != nil {
 		// Use cached version of the process
 		ev.SetProcess(proc.UnsafeGetProcess())
-		if !msg.RefCntDone[ProcessRefCnt] {
-			proc.RefDec("process")
-			msg.RefCntDone[ProcessRefCnt] = true
-		}
 	} else {
 		eventcache.CacheRetries(eventcache.ProcessInfo).Inc()
 		err = eventcache.ErrFailedToGetProcessInfo
@@ -565,7 +555,34 @@ func (msg *MsgExitEventUnix) RetryInternal(ev notify.Event, timestamp uint64) (*
 }
 
 func (msg *MsgExitEventUnix) Retry(internal *process.ProcessInternal, ev notify.Event) error {
-	return eventcache.HandleGenericEvent(internal, ev, nil)
+	if err := eventcache.HandleGenericEvent(internal, ev, nil); err != nil {
+		return err
+	}
+
+	tetragonProcess := ev.GetProcess()
+
+	if option.Config.EnableProcessAncestors && !msg.RefCntDone[AncestorsRefCnt] {
+		if ancestors, err := process.GetAncestorProcessesInternal(tetragonProcess.ParentExecId); err == nil {
+			for _, ancestor := range ancestors {
+				ancestor.RefDec("ancestor")
+			}
+			msg.RefCntDone[AncestorsRefCnt] = true
+		}
+	}
+
+	if tetragonProcess.Pid.Value > 1 && !msg.RefCntDone[ParentRefCnt] {
+		if parent, _ := process.Get(tetragonProcess.ParentExecId); parent != nil {
+			parent.RefDec("parent")
+			msg.RefCntDone[ParentRefCnt] = true
+		}
+	}
+
+	if !msg.RefCntDone[ProcessRefCnt] {
+		internal.RefDec("process")
+		msg.RefCntDone[ProcessRefCnt] = true
+	}
+
+	return nil
 }
 
 func (msg *MsgExitEventUnix) HandleMessage() *tetragon.GetEventsResponse {
