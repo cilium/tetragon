@@ -120,6 +120,8 @@ The available operators for `matchArgs` are:
 - `Prefix`
 - `Postfix`
 - `Mask`
+- `FileType`
+- `NotFileType`
 
 **Further examples**
 
@@ -151,6 +153,32 @@ with the previous example.
     operator: "Prefix"
     values:
     - "/etc"
+```
+
+### File type filtering
+
+The `FileType` and `NotFileType` operators allow filtering based on the type of a
+file (e.g., regular file, pipe, socket, etc.). These operators can only be used
+with arguments of type `file` or `path`.
+
+Matching file types:
+- `sock` or `socket`: Socket
+- `lnk` or `link`: Symbolic link
+- `reg` or `regular`: Regular file
+- `blk` or `block`: Block device
+- `dir`: Directory
+- `chr` or `char`: Character device
+- `fifo` or `pipe`: FIFO/Pipe
+
+In the following example, we monitor `vfs_write` only for regular files.
+
+```yaml
+selectors:
+- matchArgs:
+  - index: 0
+    operator: "FileType"
+    values:
+    - "reg"
 ```
 
 ## Data filter

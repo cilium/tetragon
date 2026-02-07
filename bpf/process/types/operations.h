@@ -46,6 +46,9 @@ enum {
 	// range
 	op_in_range = 31,
 	op_notin_range = 32,
+	// file type
+	op_filter_file_type = 33,
+	op_filter_not_file_type = 34,
 };
 
 #endif // __OPERATIONS_H__
