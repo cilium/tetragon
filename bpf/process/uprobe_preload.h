@@ -68,6 +68,8 @@ preload_pt_regs_arg(struct pt_regs *ctx, struct event_config *config, int index)
 	val = read_reg(ctx, reg->offset, shift);
 	ty = config->arg[index];
 
+	extract_arg(config, index, &val, true);
+
 	switch (ty) {
 	case string_type:
 		return preload_string_type(ctx, config, val);
