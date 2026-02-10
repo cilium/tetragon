@@ -8,13 +8,20 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
+	"testing/synctest"
 	"time"
 
+	"github.com/cilium/lumberjack/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/cilium/tetragon/pkg/server/eventlog"
+
+	"github.com/cilium/tetragon/pkg/option"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/encoder"
@@ -270,4 +277,78 @@ func Test_rateLimitExport(t *testing.T) {
 			checkEvents(t, results.items, tt.wantEvents, tt.wantRateLimitInfo, tt.wantDropped)
 		})
 	}
+}
+
+func TestExporterSetLoggingParams(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		var wg sync.WaitGroup
+		ctx, cancel := context.WithCancel(context.Background())
+		eventNotifier := newFakeNotifier()
+
+		dr := rthooks.DummyHookRunner{}
+		grpcServer := server.NewServer(ctx, &wg, eventNotifier, &server.FakeObserver{}, dr)
+
+		tempDir := t.TempDir()
+
+		oldRotationInterval := option.Config.ExportFileRotationInterval
+		oldExportFilename := option.Config.ExportFilename
+		option.Config.ExportFileRotationInterval = 5 * time.Second
+		option.Config.ExportFilename = filepath.Join(tempDir, "test.txt")
+		t.Cleanup(func() {
+			option.Config.ExportFileRotationInterval = oldRotationInterval
+			option.Config.ExportFilename = oldExportFilename
+		})
+
+		writer := &lumberjack.Logger{
+			Filename: option.Config.ExportFilename,
+		}
+		encoderWriter := NewExportedBytesTotalWriter(writer)
+		encoder := encoder.NewProtojsonEncoder(encoderWriter)
+		request := &tetragon.GetEventsRequest{}
+
+		e, err := NewExporter(
+			ctx,
+			request,
+			grpcServer,
+			encoder,
+			writer,
+			nil,
+		)
+		require.NoError(t, err)
+		require.NoError(t, e.Start(), "exporter must start without errors")
+		// Generate a fake event so that `test.txt` is created by dumping it
+		eventNotifier.NotifyListener(nil, &tetragon.GetEventsResponse{
+			Event: &tetragon.GetEventsResponse_ProcessExec{
+				ProcessExec: &tetragon.ProcessExec{Process: &tetragon.Process{Binary: "a0"}},
+			}})
+
+		// wait for 1s and check that no export file rotation happened yet
+		time.Sleep(1 * time.Second)
+		// check that export file was not rotated
+		files, _ := os.ReadDir(tempDir)
+		assert.Len(t, files, 1) // we have the `test.txt` file only
+
+		// wait for ~5s to allow the ExportFileRotationInterval to kick in
+		time.Sleep(5 * time.Second)
+		// check that export file has been rotated
+		files, _ = os.ReadDir(tempDir)
+		assert.Len(t, files, 2)
+
+		// Set a new export file rotation interval (2s)
+		newRotationInterval := 2 * time.Second
+		err = e.SetLogParams(eventlog.Params{
+			RotationInterval: &newRotationInterval,
+		})
+		require.NoError(t, err)
+
+		// wait for ~3s to allow the new ExportFileRotationInterval to kick in
+		time.Sleep(3 * time.Second)
+		// check that export file has been newly rotated
+		files, _ = os.ReadDir(tempDir)
+		assert.Len(t, files, 3)
+
+		cancel()
+		wg.Wait()
+		<-eventNotifier.removed
+	})
 }
