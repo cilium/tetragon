@@ -30,6 +30,7 @@
 #include "../bpf_mbset.h"
 #include "bpf_ktime.h"
 #include "config.h"
+#include "../cel_expr.h"
 
 /* Type IDs form API with user space generickprobe.go */
 enum {
@@ -2217,6 +2218,18 @@ selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
 		// on the iteration where we left off prior to tail call
 		if (!is_filter_arg_1(filter->type) && arg == __FILTER_ARG_1)
 			tail_call(ctx, tailcalls, TAIL_CALL_ARGS_2);
+#endif
+
+#ifdef __LARGE_BPF_PROG
+		/* CEL expressions do not depend on the argument types (as the other operators) so
+		 * check for them before checking for the argument type. Also filter->index points
+		 * to a cel expression identifier (rather than an argument)
+		 */
+		if (filter->op == op_cel_expr) {
+			if (!cel_expr(filter->index, e->argsoff, e->args))
+				return 0;
+			continue;
+		}
 #endif
 
 		index = filter->index;

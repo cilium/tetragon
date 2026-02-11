@@ -56,6 +56,7 @@ var (
 	auditLoginuid          Feature
 	uprobeRegsChange       Feature
 	kfuncs                 FeatureKfuncs
+	mixBpfAndTailCalls     Feature
 )
 
 func HasOverrideHelper() bool {
@@ -610,12 +611,82 @@ func HasKfunc(name string) bool {
 	return detected
 }
 
+func detectMixBpfAndTailCalls() bool {
+	// create a tail call map
+	tcMap, err := ebpf.NewMap(&ebpf.MapSpec{
+		Type:       ebpf.ProgramArray,
+		KeySize:    4,
+		ValueSize:  4,
+		MaxEntries: 1,
+	})
+	if err != nil {
+		fmt.Printf("#0 err=%+v\n", err)
+		return false
+	}
+	defer tcMap.Close()
+
+	// create a program
+	tcProg, err := ebpf.NewProgram(&ebpf.ProgramSpec{
+		Type: ebpf.RawTracepoint,
+		Instructions: asm.Instructions{
+			asm.Mov.Imm(asm.R0, 0),
+			asm.Return(),
+		},
+		License: "Dual BSD/GPL",
+	})
+	if err != nil {
+		return false
+	}
+	defer tcProg.Close()
+
+	// insert the program into the map
+	zero := uint32(0)
+	fd := int32(tcProg.FD())
+	err = tcMap.Update(&zero, &fd, 0)
+	if err != nil {
+		return false
+	}
+
+	// create a program that does both a bpf-to-bpf call and a tail call
+	prog, err := ebpf.NewProgram(&ebpf.ProgramSpec{
+		Instructions: asm.Instructions{
+			asm.Mov.Reg(asm.R6, asm.R1),
+			asm.Call.Label("myfn"),
+			asm.Mov.Reg(asm.R1, asm.R6),
+			asm.LoadMapPtr(asm.R2, tcMap.FD()),
+			asm.Mov.Imm(asm.R3, 0),
+			asm.FnTailCall.Call(),
+			asm.Mov.Imm(asm.R0, 0),
+			asm.Return(),
+			asm.Mov.Imm(asm.R0, 0).WithSymbol("myfn"),
+			asm.Return(),
+		},
+		Type:    ebpf.RawTracepoint,
+		License: "Dual BSD/GPL",
+	})
+	if err != nil {
+		return false
+	}
+	defer prog.Close()
+	return true
+}
+
+func detectMixBpfAndTailCallsOnce() {
+	mixBpfAndTailCalls.init.Do(func() {
+		mixBpfAndTailCalls.detected = detectMixBpfAndTailCalls()
+	})
+}
+
+func DetectMixBpfAndTailCalls() bool {
+	detectMixBpfAndTailCallsOnce()
+	return mixBpfAndTailCalls.detected
+}
+
 func LogFeatures() string {
 	// once we have detected all features, flush the BTF spec
 	// we cache all values so calling again a Has* function will
 	// not load the BTF again
 	defer ebtf.FlushKernelSpec()
-
 	probeStr := func(p *FeatureProbe) string {
 		return p.Name + ": " + strconv.FormatBool(p.Fn())
 	}
@@ -658,4 +729,5 @@ var FeatureProbes = []FeatureProbe{
 	{"audit_loginuid", HasAuditLoginuid},
 	{"probe_write_user", HasProbeWriteUserHelper},
 	{"uprobe_regs_change", HasUprobeRegsChange},
+	{"mix_bpf_and_tail_calls", DetectMixBpfAndTailCalls},
 }
