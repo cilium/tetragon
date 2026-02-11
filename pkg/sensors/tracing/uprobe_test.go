@@ -33,8 +33,10 @@ import (
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/testutils"
+	"github.com/cilium/tetragon/pkg/testutils/policytest"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
+	_ "github.com/cilium/tetragon/tests/policytests"
 )
 
 func TestLoadUprobeSensor(t *testing.T) {
@@ -167,50 +169,7 @@ spec:
 }
 
 func TestUprobeGeneric(t *testing.T) {
-	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
-	nopHook := `
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "uprobe"
-spec:
-  uprobes:
-  - path: "` + testNop + `"
-    symbols:
-    - "main"
-`
-
-	nopConfigHook := []byte(nopHook)
-	err := os.WriteFile(testConfigFile, nopConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
-
-	upChecker := ec.NewProcessUprobeChecker("UPROBE_GENERIC").
-		WithProcess(ec.NewProcessChecker().
-			WithBinary(sm.Full(testNop))).
-		WithSymbol(sm.Full("main"))
-	checker := ec.NewUnorderedEventChecker(upChecker)
-
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
-	if err := exec.Command(testNop).Run(); err != nil {
-		t.Fatalf("Failed to execute test binary: %s\n", err)
-	}
-
-	err = jsonchecker.JsonTestCheck(t, checker)
-	require.NoError(t, err)
+	policytest.AllPolicyTests.DoObserverTest(t, "uprobe-generic")
 }
 
 func TestUretprobeGeneric(t *testing.T) {
