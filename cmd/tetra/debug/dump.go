@@ -14,12 +14,11 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/spf13/cobra"
-	"google.golang.org/grpc"
 
-	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/defaults"
+	"github.com/cilium/tetragon/pkg/dump"
 	"github.com/cilium/tetragon/pkg/errmetrics"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
@@ -46,7 +45,7 @@ func NewDumpCommand() *cobra.Command {
 	ret.AddCommand(
 		execveMapCmd(),
 		policyfilterCmd(),
-		dumpProcessCache(),
+		processCacheCmd(),
 		bpfErrMetricsCmd(),
 	)
 
@@ -120,7 +119,7 @@ func dumpExecveMap(fname string) {
 	}
 }
 
-func dumpProcessCache() *cobra.Command {
+func processCacheCmd() *cobra.Command {
 	skipZeroRefcnt := false
 	excludeExecveMapProcesses := false
 	var maxCallRecvMsgSize int
@@ -137,25 +136,12 @@ func dumpProcessCache() *cobra.Command {
 				return fmt.Errorf("failed to create a gRPC client: %w", err)
 			}
 
-			req := tetragon.GetDebugRequest{
-				Flag: tetragon.ConfigFlag_CONFIG_FLAG_DUMP_PROCESS_CACHE,
-				Arg: &tetragon.GetDebugRequest_Dump{
-					Dump: &tetragon.DumpProcessCacheReqArgs{
-						SkipZeroRefcnt:            skipZeroRefcnt,
-						ExcludeExecveMapProcesses: excludeExecveMapProcesses,
-					},
-				},
-			}
-			res, err := c.Client.GetDebug(c.Ctx, &req, grpc.MaxCallRecvMsgSize(maxCallRecvMsgSize))
+			processes, err := dump.GetProcessCacheForDump(c.Ctx, c.Client, maxCallRecvMsgSize, skipZeroRefcnt, excludeExecveMapProcesses)
 			if err != nil {
-				return fmt.Errorf("failed to get process dump debug info: %w", err)
+				return fmt.Errorf("process cache dump failed: %w", err)
 			}
 
-			if res.Flag != tetragon.ConfigFlag_CONFIG_FLAG_DUMP_PROCESS_CACHE {
-				return fmt.Errorf("unexpected response flag: %s", res.Flag)
-			}
-
-			for _, p := range res.GetProcesses().Processes {
+			for _, p := range processes {
 				if s, err := p.MarshalJSON(); err == nil {
 					cmd.Println(string(s))
 				} else {
