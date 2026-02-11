@@ -743,7 +743,8 @@ kernel `current_task` object.
 
 ```yaml
 data:
-- type: "string"
+- index: 0
+  type: "string"
   source: "current_task"
   resolve: "comm"
 selectors:
