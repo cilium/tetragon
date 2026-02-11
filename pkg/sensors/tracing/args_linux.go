@@ -76,7 +76,7 @@ func getMetaValue(arg *v1alpha1.KProbeArg) (int, error) {
 	return meta, nil
 }
 
-func getUprobeMetaValue(arg *v1alpha1.KProbeArg, preload bool) (int, error) {
+func getUserMetaValue(arg *v1alpha1.KProbeArg, preload bool) (int, error) {
 	// common meta bits
 	meta, err := getMetaValue(arg)
 	if err != nil {
