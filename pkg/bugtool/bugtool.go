@@ -30,11 +30,11 @@ import (
 	gopssignal "github.com/google/gops/signal"
 	"github.com/vishvananda/netlink"
 	"go.uber.org/multierr"
-	"google.golang.org/grpc"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/defaults"
+	"github.com/cilium/tetragon/pkg/dump"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors/base"
@@ -279,8 +279,8 @@ func doBugtool(info *InitInfo, outFname string, commandActions []CommandAction, 
 	si.addBpftoolInfo()
 	si.addGopsInfo()
 	si.dumpPolicyFilterMap()
-	si.dumpProcessCache()
-	si.dumpExecveMap()
+	si.addProcessCache()
+	si.addExecveMap()
 	si.addGrpcInfo()
 	si.addPmapOut()
 	si.addMemCgroupStats()
@@ -638,7 +638,7 @@ func (s *bugtoolInfo) dumpPolicyFilterMap() error {
 	return s.TarAddJson(policyfilter.MapName+".json", obj)
 }
 
-func (s *bugtoolInfo) dumpExecveMap() error {
+func (s *bugtoolInfo) addExecveMap() error {
 	fname := path.Join(s.info.MapDir, base.ExecveMap.Name)
 	m, err := ebpf.LoadPinnedMap(fname, &ebpf.LoadPinOptions{
 		ReadOnly: true,
@@ -668,7 +668,7 @@ func (s *bugtoolInfo) dumpExecveMap() error {
 	return s.tarAddBuff(filename, buff)
 }
 
-func (s *bugtoolInfo) dumpProcessCache() error {
+func (s *bugtoolInfo) addProcessCache() error {
 	c, err := common.NewClient(context.Background(), s.info.ServerAddr, 5*time.Second)
 	if err != nil {
 		s.multiLog.WithError(err).Warnf("failed to create gRPC client to %s", s.info.ServerAddr)
@@ -676,31 +676,14 @@ func (s *bugtoolInfo) dumpProcessCache() error {
 	}
 	defer c.Close()
 
-	req := tetragon.GetDebugRequest{
-		Flag: tetragon.ConfigFlag_CONFIG_FLAG_DUMP_PROCESS_CACHE,
-		Arg: &tetragon.GetDebugRequest_Dump{
-			Dump: &tetragon.DumpProcessCacheReqArgs{},
-		},
-	}
-
-	res, err := c.Client.GetDebug(c.Ctx, &req, grpc.MaxCallRecvMsgSize(s.info.MaxRecvSize))
+	processes, err := dump.GetProcessCacheForDump(c.Ctx, c.Client, s.info.MaxRecvSize, false, false)
 	if err != nil {
-		s.multiLog.WithError(err).Warn("failed to dump process cache")
-		return err
-	}
-	if res == nil {
-		err := errors.New("empty response")
-		s.multiLog.WithError(err).Warn("failed to dump process cache")
-		return err
-	}
-	if res.Flag != tetragon.ConfigFlag_CONFIG_FLAG_DUMP_PROCESS_CACHE {
-		err := fmt.Errorf("unexpected response flag: %s", res.Flag)
 		s.multiLog.WithError(err).Warn("failed to dump process cache")
 		return err
 	}
 
 	buff := new(bytes.Buffer)
-	for _, p := range res.GetProcesses().Processes {
+	for _, p := range processes {
 		b, err := p.MarshalJSON()
 		if err != nil {
 			s.multiLog.WithError(err).Warn("failed to marshal process")
