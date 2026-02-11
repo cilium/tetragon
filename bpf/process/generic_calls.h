@@ -603,7 +603,7 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 		a = get_preload_arg(ctx, ty);
 	} else {
 		if (am & ARGM_PT_REGS)
-			a = get_pt_regs_arg(ctx, config, arg_index);
+			a = get_pt_regs_arg(ctx, config, index);
 		else if (am & ARGM_CURRENT_TASK)
 			a = get_current_task();
 		else
