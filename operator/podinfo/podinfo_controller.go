@@ -12,8 +12,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	ciliumiov1alpha1 "github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/podhelpers"
@@ -47,11 +49,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if pod.GetDeletionTimestamp() != nil {
 		// Pod is being deleted. Nothing to reconcile.
 		return ctrl.Result{}, nil
-	}
-
-	// Wait until the necessary pod fields are available.
-	if !hasAllRequiredFields(pod) {
-		return ctrl.Result{Requeue: true}, nil
 	}
 
 	podInfo := &ciliumiov1alpha1.PodInfo{}
@@ -169,7 +166,12 @@ func generatePodInfo(pod *corev1.Pod) *ciliumiov1alpha1.PodInfo {
 // SetupWithManager sets up the controller with the Manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&corev1.Pod{}).
+		For(&corev1.Pod{}, builder.WithPredicates(
+			predicate.NewPredicateFuncs(func(obj client.Object) bool {
+				pod := obj.(*corev1.Pod)
+				return hasAllRequiredFields(pod)
+			}),
+		)).
 		Owns(&ciliumiov1alpha1.PodInfo{}).
 		Complete(r)
 }
