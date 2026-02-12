@@ -18,7 +18,7 @@
 // - the path was too long to fit in the buffer
 #define UNRESOLVED_PATH_COMPONENTS 0x02
 
-#ifndef __V61_BPF_PROG
+#ifndef __V511_BPF_PROG
 #ifdef __LARGE_BPF_PROG
 #define PROBE_CWD_READ_ITERATIONS 128
 #else
@@ -202,7 +202,7 @@ FUNC_INLINE long cwd_read(struct cwd_read_data *data)
 	return 0;
 }
 
-#ifdef __V61_BPF_PROG
+#ifdef __V511_BPF_PROG
 static long cwd_read_v61(__u32 index, void *data)
 {
 	return cwd_read(data);
@@ -233,16 +233,16 @@ prepend_path(const struct path *path, const struct path *root, char *bf,
 			if (cwd_read(&data))
 				break;
 		}
+#ifdef __V511_BPF_PROG
+	} else if (bpf_core_enum_value_exists(enum bpf_func_id, BPF_FUNC_loop)) {
+		loop(PROBE_CWD_READ_ITERATIONS, cwd_read_v61, (void *)&data, 0);
+#endif
 	} else {
-#ifndef __V61_BPF_PROG
 #pragma unroll
 		for (int i = 0; i < PROBE_CWD_READ_ITERATIONS; ++i) {
 			if (cwd_read(&data))
 				break;
 		}
-#else
-		loop(PROBE_CWD_READ_ITERATIONS, cwd_read_v61, (void *)&data, 0);
-#endif /* __V61_BPF_PROG */
 	}
 
 	if (data.bptr == *buffer) {
