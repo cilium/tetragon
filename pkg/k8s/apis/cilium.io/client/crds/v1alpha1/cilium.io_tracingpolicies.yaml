@@ -659,6 +659,14 @@ spec:
                                   description: In addition to binaries, match children
                                     processes of specified binaries.
                                   type: boolean
+                                matchScript:
+                                  default: false
+                                  description: |-
+                                    Match against the script path instead of the interpreter for scripts with shebangs.
+                                    When a script like (i.e. /path/script.py) with shebang #!/usr/bin/python3 is executed,
+                                    matchBinaries normally matches against /usr/bin/python3 (the interpreter).
+                                    Setting matchScript to true will match against /path/script.py instead.
+                                  type: boolean
                                 operator:
                                   description: Filter operation.
                                   enum:
@@ -907,6 +915,14 @@ spec:
                                   default: false
                                   description: In addition to binaries, match children
                                     processes of specified binaries.
+                                  type: boolean
+                                matchScript:
+                                  default: false
+                                  description: |-
+                                    Match against the script path instead of the interpreter for scripts with shebangs.
+                                    When a script like (i.e. /path/script.py) with shebang #!/usr/bin/python3 is executed,
+                                    matchBinaries normally matches against /usr/bin/python3 (the interpreter).
+                                    Setting matchScript to true will match against /path/script.py instead.
                                   type: boolean
                                 operator:
                                   description: Filter operation.
@@ -1453,6 +1469,14 @@ spec:
                                   description: In addition to binaries, match children
                                     processes of specified binaries.
                                   type: boolean
+                                matchScript:
+                                  default: false
+                                  description: |-
+                                    Match against the script path instead of the interpreter for scripts with shebangs.
+                                    When a script like (i.e. /path/script.py) with shebang #!/usr/bin/python3 is executed,
+                                    matchBinaries normally matches against /usr/bin/python3 (the interpreter).
+                                    Setting matchScript to true will match against /path/script.py instead.
+                                  type: boolean
                                 operator:
                                   description: Filter operation.
                                   enum:
@@ -1701,6 +1725,14 @@ spec:
                                   default: false
                                   description: In addition to binaries, match children
                                     processes of specified binaries.
+                                  type: boolean
+                                matchScript:
+                                  default: false
+                                  description: |-
+                                    Match against the script path instead of the interpreter for scripts with shebangs.
+                                    When a script like (i.e. /path/script.py) with shebang #!/usr/bin/python3 is executed,
+                                    matchBinaries normally matches against /usr/bin/python3 (the interpreter).
+                                    Setting matchScript to true will match against /path/script.py instead.
                                   type: boolean
                                 operator:
                                   description: Filter operation.
@@ -2283,6 +2315,14 @@ spec:
                                   description: In addition to binaries, match children
                                     processes of specified binaries.
                                   type: boolean
+                                matchScript:
+                                  default: false
+                                  description: |-
+                                    Match against the script path instead of the interpreter for scripts with shebangs.
+                                    When a script like (i.e. /path/script.py) with shebang #!/usr/bin/python3 is executed,
+                                    matchBinaries normally matches against /usr/bin/python3 (the interpreter).
+                                    Setting matchScript to true will match against /path/script.py instead.
+                                  type: boolean
                                 operator:
                                   description: Filter operation.
                                   enum:
@@ -2531,6 +2571,14 @@ spec:
                                   default: false
                                   description: In addition to binaries, match children
                                     processes of specified binaries.
+                                  type: boolean
+                                matchScript:
+                                  default: false
+                                  description: |-
+                                    Match against the script path instead of the interpreter for scripts with shebangs.
+                                    When a script like (i.e. /path/script.py) with shebang #!/usr/bin/python3 is executed,
+                                    matchBinaries normally matches against /usr/bin/python3 (the interpreter).
+                                    Setting matchScript to true will match against /path/script.py instead.
                                   type: boolean
                                 operator:
                                   description: Filter operation.
@@ -3291,6 +3339,14 @@ spec:
                                   description: In addition to binaries, match children
                                     processes of specified binaries.
                                   type: boolean
+                                matchScript:
+                                  default: false
+                                  description: |-
+                                    Match against the script path instead of the interpreter for scripts with shebangs.
+                                    When a script like (i.e. /path/script.py) with shebang #!/usr/bin/python3 is executed,
+                                    matchBinaries normally matches against /usr/bin/python3 (the interpreter).
+                                    Setting matchScript to true will match against /path/script.py instead.
+                                  type: boolean
                                 operator:
                                   description: Filter operation.
                                   enum:
@@ -3539,6 +3595,14 @@ spec:
                                   default: false
                                   description: In addition to binaries, match children
                                     processes of specified binaries.
+                                  type: boolean
+                                matchScript:
+                                  default: false
+                                  description: |-
+                                    Match against the script path instead of the interpreter for scripts with shebangs.
+                                    When a script like (i.e. /path/script.py) with shebang #!/usr/bin/python3 is executed,
+                                    matchBinaries normally matches against /usr/bin/python3 (the interpreter).
+                                    Setting matchScript to true will match against /path/script.py instead.
                                   type: boolean
                                 operator:
                                   description: Filter operation.
@@ -4063,6 +4127,14 @@ spec:
                                   description: In addition to binaries, match children
                                     processes of specified binaries.
                                   type: boolean
+                                matchScript:
+                                  default: false
+                                  description: |-
+                                    Match against the script path instead of the interpreter for scripts with shebangs.
+                                    When a script like (i.e. /path/script.py) with shebang #!/usr/bin/python3 is executed,
+                                    matchBinaries normally matches against /usr/bin/python3 (the interpreter).
+                                    Setting matchScript to true will match against /path/script.py instead.
+                                  type: boolean
                                 operator:
                                   description: Filter operation.
                                   enum:
@@ -4311,6 +4383,14 @@ spec:
                                   default: false
                                   description: In addition to binaries, match children
                                     processes of specified binaries.
+                                  type: boolean
+                                matchScript:
+                                  default: false
+                                  description: |-
+                                    Match against the script path instead of the interpreter for scripts with shebangs.
+                                    When a script like (i.e. /path/script.py) with shebang #!/usr/bin/python3 is executed,
+                                    matchBinaries normally matches against /usr/bin/python3 (the interpreter).
+                                    Setting matchScript to true will match against /path/script.py instead.
                                   type: boolean
                                 operator:
                                   description: Filter operation.

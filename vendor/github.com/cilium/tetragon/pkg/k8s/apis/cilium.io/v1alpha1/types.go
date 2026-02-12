@@ -124,6 +124,13 @@ type BinarySelector struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=false
 	FollowChildren bool `json:"followChildren"`
+	// Match against the script path instead of the interpreter for scripts with shebangs.
+	// When a script like (i.e. /path/script.py) with shebang #!/usr/bin/python3 is executed,
+	// matchBinaries normally matches against /usr/bin/python3 (the interpreter).
+	// Setting matchScript to true will match against /path/script.py instead.
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=false
+	MatchScript bool `json:"matchScript"`
 }
 
 // KProbeSelector selects function calls for kprobe based on PIDs and function arguments. The

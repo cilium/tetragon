@@ -1894,6 +1894,9 @@ struct match_binaries_sel_opts {
 	__u32 op;
 	__u32 map_id;
 	__u32 mbset_id;
+	// match_script: if true, match against the script path (filename from execve)
+	// instead of the interpreter path (exe_file) for shebang scripts
+	__u32 match_script;
 };
 
 // We need data for:
@@ -1949,7 +1952,20 @@ FUNC_INLINE int match_binaries(__u32 key, struct execve_map_value *current, stru
 		if (selector_options->op == op_filter_none)
 			return 1; // matchBinaries selector is empty <=> match
 
-		if (bin->path_length < 0) {
+		// Select which path to match against based on match_script option.
+		// If match_script is true, use the resolved script path from tg_script_path_map.
+		// This handles both absolute and relative paths (resolved at execve time).
+		// Otherwise use path (exe_file, which is the interpreter for shebang scripts).
+		char *match_path = bin->path;
+		__s32 match_path_length = bin->path_length;
+
+		if (selector_options->match_script) {
+			// Use script path (bin->args) instead of interpreter path (bin->path)
+			match_path = bin->args;
+			match_path_length = bin->filename_length;
+		}
+
+		if (match_path_length < 0) {
 			// something wrong happened when copying the filename to execve_map
 			return 0;
 		}
@@ -1973,7 +1989,7 @@ FUNC_INLINE int match_binaries(__u32 key, struct execve_map_value *current, stru
 			path_map = map_lookup_elem(&tg_mb_paths, &key);
 			if (!path_map)
 				return 0;
-			found_key = map_lookup_elem(path_map, bin->path);
+			found_key = map_lookup_elem(path_map, match_path);
 			break;
 #ifdef __LARGE_BPF_PROG
 		case op_filter_str_prefix:
