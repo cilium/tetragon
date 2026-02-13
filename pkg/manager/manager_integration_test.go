@@ -75,14 +75,15 @@ func (suite *ManagerTestSuite) TestFindPod() {
 }
 
 func (suite *ManagerTestSuite) TestFindContainer() {
-	// Create a pod.
+	// Create a pod with a unique name to avoid collisions.
+	name := fmt.Sprintf("nginx-%d", time.Now().UnixNano())
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "nginx",
+			Name:      name,
 			Namespace: "kube-system",
 		},
 		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{{Name: "nginx", Image: "nginx"}},
+			Containers: []corev1.Container{{Name: name, Image: "nginx"}},
 		},
 	}
 	k8sClient := suite.manager.Manager.GetClient()
