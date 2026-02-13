@@ -145,19 +145,41 @@ func NewCache(
 	processCacheSize int,
 	GCInterval time.Duration,
 ) (*Cache, error) {
+	// Stash a reference to the Cache to refer to later in the eviction closure.
+	pm := &Cache{
+		size: processCacheSize,
+	}
+
 	lruCache, err := lru.NewWithEvict(
 		processCacheSize,
-		func(_ string, _ *ProcessInternal) {
+		func(_ string, evicted *ProcessInternal) {
 			processCacheEvictions.Inc()
+
+			// Perform parent-- for LRU-evicted entries that will never
+			// reach the exit handler.
+
+			// Skip non-inUse entries whose exit path already performed parent--
+			if evicted.color != inUse {
+				return
+			}
+
+			// Is the parent still in the cache?
+			if evicted.process == nil {
+				return
+			}
+			parent, ok := pm.cache.Peek(evicted.process.ParentExecId)
+			if !ok {
+				return
+			}
+
+			pm.refDec(parent, "parent--")
 		},
 	)
 	if err != nil {
 		return nil, err
 	}
-	pm := &Cache{
-		cache: lruCache,
-		size:  processCacheSize,
-	}
+
+	pm.cache = lruCache
 	pm.cacheGarbageCollector(GCInterval)
 	return pm, nil
 }
