@@ -1304,7 +1304,7 @@ filter_64ty_selector_val(struct selector_arg_filter *filter, char *args)
 				if (*(s64 *)args > (s64)w)
 					return 1;
 			} else {
-				if (*(u64 *)args < w)
+				if (*(u64 *)args > w)
 					return 1;
 			}
 			break;
@@ -1358,7 +1358,7 @@ filter_8ty_selector_val(struct selector_arg_filter *filter, char *args)
 				if (*(s8 *)args > (s32)w)
 					return 1;
 			} else {
-				if (*(u8 *)args < w)
+				if (*(u8 *)args > w)
 					return 1;
 			}
 			break;
@@ -1445,7 +1445,7 @@ filter_16ty_selector_val(struct selector_arg_filter *filter, char *args)
 				if (*(s16 *)args > (s32)w)
 					return 1;
 			} else {
-				if (*(u16 *)args < w)
+				if (*(u16 *)args > w)
 					return 1;
 			}
 			break;

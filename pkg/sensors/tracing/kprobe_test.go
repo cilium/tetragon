@@ -7437,3 +7437,70 @@ func TestKprobeRangeIn(t *testing.T) {
 func TestKprobeRangeNotIn(t *testing.T) {
 	testKprobeRangeOp(t, false)
 }
+
+func testKprobeGT(t *testing.T, value uint64, fail bool) {
+
+	if !config.EnableLargeProgs() {
+		t.Skipf("Skipping test since it needs kernel >= 5.3")
+	}
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	hook := `apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "gt"
+spec:
+  kprobes:
+  - call: "sys_prctl"
+    syscall: true
+    args:
+    - index: 1
+      type: "uint64"
+    selectors:
+    - matchArgs:
+      - args:
+        - 0
+        operator: "GT"
+        values:
+        - "0xffff0"
+`
+
+	createCrdFile(t, hook)
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	unix.Prctl(0xffff0, uintptr(value), 0, 0, 0)
+
+	kpChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_prctl"))).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithSizeArg(value),
+			)).
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Suffix(tus.Conf().SelfBinary)))
+
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	err = jsonchecker.JsonTestCheckExpect(t, checker, fail)
+	require.NoError(t, err)
+}
+
+func TestKprobeGTOk(t *testing.T) {
+	testKprobeGT(t, 0xffff1, false)
+}
+
+func TestKprobeGTFail(t *testing.T) {
+	testKprobeGT(t, 0xfffef, true)
+}

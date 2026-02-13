@@ -619,7 +619,13 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 			}
 		}
 
-		has.sleepablePreload = has.sleepablePreload || preload
+		if preload {
+			// We do not support more than one preloaded argument, fail if there's more.
+			if has.sleepablePreload {
+				return errors.New("error: can't preload more than one argument")
+			}
+			has.sleepablePreload = true
+		}
 
 		if argType == gt.GenericInvalidType {
 			return fmt.Errorf("Arg(%d) type '%s' unsupported", i, a.Type)
