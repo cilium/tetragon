@@ -564,11 +564,10 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 	}
 
 	var allBTFArgs [api.EventConfigMaxArgs][api.MaxBTFArgDepth]api.ConfigBTFArg
+	var preload bool
 
 	addArg := func(i int, a *v1alpha1.KProbeArg, data bool) error {
 		argType := gt.GenericTypeFromString(a.Type)
-
-		var preload bool
 
 		if data {
 			// Data specific config
@@ -585,6 +584,9 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 				if argType == gt.GenericStringType {
 					if !bpf.HasKfunc("bpf_copy_from_user_str") {
 						return fmt.Errorf("can't preload string for argument %d", i)
+					}
+					if preload {
+						return errors.New("error: can't preload more than one argument")
 					}
 					preload = true
 				}
@@ -614,6 +616,9 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 			if argType == gt.GenericStringType {
 				if !bpf.HasKfunc("bpf_copy_from_user_str") {
 					return fmt.Errorf("can't preload string for argument %d", i)
+				}
+				if preload {
+					return errors.New("error: can't preload more than one argument")
 				}
 				preload = true
 			}
