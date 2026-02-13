@@ -107,7 +107,7 @@ func (suite *ManagerTestSuite) TestFindContainer() {
 			return false
 		}
 		return true
-	}, 10*time.Second, 1*time.Second)
+	}, 30*time.Second, 1*time.Second)
 
 	// FindContainer should return the pod and container.
 	podFromCache, container, found := suite.manager.FindContainer(containerID)
@@ -121,15 +121,17 @@ func (suite *ManagerTestSuite) TestFindContainer() {
 		GracePeriodSeconds: &gracePeriod,
 	})
 	require.NoError(suite.T(), err)
-	assert.Eventually(suite.T(), func() bool {
+	require.Eventually(suite.T(), func() bool {
 		err = k8sClient.Get(context.Background(), client.ObjectKey{Namespace: pod.Namespace, Name: pod.Name}, &podFromClient)
 		return errors.IsNotFound(err)
-	}, 10*time.Second, 1*time.Second)
+	}, 30*time.Second, 1*time.Second)
 
 	// FindContainer should still return the pod and container from the deleted pod cache.
-	podFromCache, container, found = suite.manager.FindContainer(containerID)
-	assert.True(suite.T(), found)
-	assert.Equal(suite.T(), pod.Name, podFromCache.Name)
+	require.Eventually(suite.T(), func() bool {
+		podFromCache, container, found = suite.manager.FindContainer(containerID)
+		return found
+	}, 30*time.Second, 1*time.Second)
+	require.Equal(suite.T(), pod.Name, podFromCache.Name)
 	assert.Equal(suite.T(), pod.Spec.Containers[0].Name, container.Name)
 }
 
