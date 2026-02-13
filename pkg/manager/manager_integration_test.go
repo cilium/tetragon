@@ -84,6 +84,7 @@ func (suite *ManagerTestSuite) TestFindContainer() {
 		},
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{{Name: name, Image: "nginx"}},
+			NodeName:   nodeName,
 		},
 	}
 	k8sClient := suite.manager.Manager.GetClient()
@@ -115,7 +116,10 @@ func (suite *ManagerTestSuite) TestFindContainer() {
 	assert.Equal(suite.T(), pod.Spec.Containers[0].Name, container.Name)
 
 	// Delete the pod.
-	err := k8sClient.Delete(context.Background(), pod)
+	var gracePeriod int64 = 0
+	err = k8sClient.Delete(context.Background(), pod, &client.DeleteOptions{
+		GracePeriodSeconds: &gracePeriod,
+	})
 	require.NoError(suite.T(), err)
 	assert.Eventually(suite.T(), func() bool {
 		err = k8sClient.Get(context.Background(), client.ObjectKey{Namespace: pod.Namespace, Name: pod.Name}, &podFromClient)
