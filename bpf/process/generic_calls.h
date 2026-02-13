@@ -596,7 +596,7 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 	if (am & ARGM_PRELOAD)
 		a = get_preload_arg(ctx, ty, &e->arg_status[index]);
 	else
-		extract_arg(config, index, &a, false, &e->arg_status[index]);
+		extract_arg(config, index, &a, false, &e->arg_status[index & MAX_SELECTORS_MASK]);
 #else
 
 	/* Getting argument data based on the source attribute, which is encoded
@@ -613,14 +613,15 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 		asm volatile("%[index] &= %1 ;\n"
 			     : [index] "+r"(index)
 			     : "i"(MAX_SELECTORS_MASK));
-		arg_index = config->idx[index];
-		if (am & ARGM_PT_REGS)
+		if (am & ARGM_PT_REGS) {
 			a = get_pt_regs_arg(ctx, config, index);
-		else if (am & ARGM_CURRENT_TASK)
+		} else if (am & ARGM_CURRENT_TASK) {
 			a = get_current_task();
-		else
+		} else {
+			arg_index = config->idx[index & MAX_SELECTORS_MASK];
 			a = (&e->a0)[arg_index & MAX_SELECTORS_MASK];
-		extract_arg(config, index, &a, false, &e->arg_status[index]);
+		}
+		extract_arg(config, index, &a, false, &e->arg_status[index & MAX_SELECTORS_MASK]);
 	}
 
 	if (should_offload_path(ty))

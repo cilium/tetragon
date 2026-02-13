@@ -33,12 +33,12 @@ FUNC_INLINE void extract_arg(struct event_config *config, int index, unsigned lo
 {
 	struct config_btf_arg *btf_config;
 
-	if (index >= EVENT_CONFIG_MAX_ARG)
-		return;
-
 	asm volatile("%[index] &= %1 ;\n"
 		     : [index] "+r"(index)
 		     : "i"(MAX_SELECTORS_MASK));
+
+	if (index >= EVENT_CONFIG_MAX_ARG)
+		return;
 
 	btf_config = config->btf_arg[index];
 	if (btf_config->is_initialized) {
