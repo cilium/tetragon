@@ -609,7 +609,7 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 			a = get_current_task();
 		else
 			a = (&e->a0)[arg_index & MAX_SELECTORS_MASK];
-		extract_arg(config, index, &a, false, &e->arg_status[index]);
+		extract_arg(config, index, &a, false, &e->arg_status[index & MAX_SELECTORS_MASK]);
 	}
 
 	if (should_offload_path(ty))
