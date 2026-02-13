@@ -1296,10 +1296,8 @@ filter_64ty_selector_val(struct selector_arg_filter *filter, char *args)
 		case op_filter_eq:
 		case op_filter_neq:
 			res = (*(u64 *)args == w);
-			if (filter->op == op_filter_eq && res)
-				return 1;
-			if (filter->op == op_filter_neq && !res)
-				return 1;
+			if (res)
+				return filter->op == op_filter_eq ? 1 : 0;
 			break;
 		case op_filter_mask:
 			if (*(u64 *)args & w)
@@ -1312,7 +1310,7 @@ filter_64ty_selector_val(struct selector_arg_filter *filter, char *args)
 		if (j + 8 >= filter->vallen)
 			break;
 	}
-	return 0;
+	return is_not_operator(filter->op);
 }
 
 // filter on values provided in the selector itself
@@ -1349,10 +1347,8 @@ filter_8ty_selector_val(struct selector_arg_filter *filter, char *args)
 		case op_filter_eq:
 		case op_filter_neq:
 			res = (*(u8 *)args == w);
-			if (filter->op == op_filter_eq && res)
-				return 1;
-			if (filter->op == op_filter_neq && !res)
-				return 1;
+			if (res)
+				return filter->op == op_filter_eq ? 1 : 0;
 			break;
 		case op_filter_mask:
 			if (*(u8 *)args & w)
@@ -1368,7 +1364,7 @@ filter_8ty_selector_val(struct selector_arg_filter *filter, char *args)
 		if (j + 8 >= filter->vallen)
 			break;
 	}
-	return 0;
+	return is_not_operator(filter->op);
 }
 
 // use the selector value to determine a hash map, and do a lookup to determine whether the argument
@@ -1436,10 +1432,8 @@ filter_16ty_selector_val(struct selector_arg_filter *filter, char *args)
 		case op_filter_eq:
 		case op_filter_neq:
 			res = (*(u16 *)args == w);
-			if (filter->op == op_filter_eq && res)
-				return 1;
-			if (filter->op == op_filter_neq && !res)
-				return 1;
+			if (res)
+				return filter->op == op_filter_eq ? 1 : 0;
 			break;
 		case op_filter_mask:
 			if (*(u16 *)args & w)
@@ -1455,7 +1449,7 @@ filter_16ty_selector_val(struct selector_arg_filter *filter, char *args)
 		if (j + 8 >= filter->vallen)
 			break;
 	}
-	return 0;
+	return is_not_operator(filter->op);
 }
 
 // use the selector value to determine a hash map, and do a lookup to determine whether the argument
@@ -1688,10 +1682,8 @@ filter_32ty_selector_val(struct selector_arg_filter *filter, char *args)
 		case op_filter_neq:
 			res = (*(u32 *)args == w);
 
-			if (filter->op == op_filter_eq && res)
-				return 1;
-			if (filter->op == op_filter_neq && !res)
-				return 1;
+			if (res)
+				return filter->op == op_filter_eq ? 1 : 0;
 			break;
 		case op_filter_mask:
 			if (*(u32 *)args & w)
@@ -1705,7 +1697,7 @@ filter_32ty_selector_val(struct selector_arg_filter *filter, char *args)
 		if (j + 8 >= filter->vallen)
 			break;
 	}
-	return 0;
+	return is_not_operator(filter->op);
 }
 
 // use the selector value to determine a hash map, and do a lookup to determine whether the argument
