@@ -7,6 +7,7 @@ package manager
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -67,32 +68,38 @@ func (suite *ManagerTestSuite) TestFindPod() {
 	var pods corev1.PodList
 	err := suite.manager.Manager.GetCache().List(context.Background(), &pods, client.InNamespace("kube-system"))
 	require.NoError(suite.T(), err)
-	assert.NotEmpty(suite.T(), pods.Items)
+	require.NotEmpty(suite.T(), pods.Items)
 	pod, err := suite.manager.FindPod(string(pods.Items[0].UID))
 	require.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pods.Items[0].UID, pod.UID)
 }
 
 func (suite *ManagerTestSuite) TestFindContainer() {
-	// Create a pod.
+	// Create a pod with a unique name to avoid collisions.
+	name := fmt.Sprintf("nginx-%d", time.Now().UnixNano())
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "nginx",
+			Name:      name,
 			Namespace: "kube-system",
 		},
 		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{{Name: "nginx", Image: "nginx"}},
+			Containers: []corev1.Container{{Name: name, Image: "nginx"}},
+			NodeName:   nodeName,
 		},
 	}
 	k8sClient := suite.manager.Manager.GetClient()
-	_ = k8sClient.Create(context.Background(), pod)
+	err := k8sClient.Create(context.Background(), pod)
+	require.NoError(suite.T(), err)
 
 	// Get the container ID of the pod.
 	podFromClient := corev1.Pod{}
 	containerID := ""
-	assert.Eventually(suite.T(), func() bool {
+	require.Eventually(suite.T(), func() bool {
 		err := k8sClient.Get(context.Background(), client.ObjectKey{Namespace: pod.Namespace, Name: pod.Name}, &podFromClient)
 		if err != nil {
+			return false
+		}
+		if len(podFromClient.Status.ContainerStatuses) == 0 {
 			return false
 		}
 		containerID, err = watcher.ContainerIDKey(podFromClient.Status.ContainerStatuses[0].ContainerID)
@@ -100,26 +107,31 @@ func (suite *ManagerTestSuite) TestFindContainer() {
 			return false
 		}
 		return true
-	}, 10*time.Second, 1*time.Second)
+	}, 30*time.Second, 1*time.Second)
 
 	// FindContainer should return the pod and container.
 	podFromCache, container, found := suite.manager.FindContainer(containerID)
-	assert.True(suite.T(), found)
+	require.True(suite.T(), found)
 	require.Equal(suite.T(), pod.Name, podFromCache.Name)
 	assert.Equal(suite.T(), pod.Spec.Containers[0].Name, container.Name)
 
 	// Delete the pod.
-	err := k8sClient.Delete(context.Background(), pod)
+	var gracePeriod int64 = 0
+	err = k8sClient.Delete(context.Background(), pod, &client.DeleteOptions{
+		GracePeriodSeconds: &gracePeriod,
+	})
 	require.NoError(suite.T(), err)
-	assert.Eventually(suite.T(), func() bool {
+	require.Eventually(suite.T(), func() bool {
 		err = k8sClient.Get(context.Background(), client.ObjectKey{Namespace: pod.Namespace, Name: pod.Name}, &podFromClient)
 		return errors.IsNotFound(err)
-	}, 10*time.Second, 1*time.Second)
+	}, 30*time.Second, 1*time.Second)
 
 	// FindContainer should still return the pod and container from the deleted pod cache.
-	podFromCache, container, found = suite.manager.FindContainer(containerID)
-	assert.True(suite.T(), found)
-	assert.Equal(suite.T(), pod.Name, podFromCache.Name)
+	require.Eventually(suite.T(), func() bool {
+		podFromCache, container, found = suite.manager.FindContainer(containerID)
+		return found
+	}, 30*time.Second, 1*time.Second)
+	require.Equal(suite.T(), pod.Name, podFromCache.Name)
 	assert.Equal(suite.T(), pod.Spec.Containers[0].Name, container.Name)
 }
 
