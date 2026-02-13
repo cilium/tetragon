@@ -166,7 +166,8 @@ on all values except for `1`.
 
 ```yaml
 data:
-- type: "string"
+- index: 0
+  type: "string"
   source: "current_task"
   resolve: "pid"
 selectors:
