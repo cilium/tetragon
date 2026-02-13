@@ -49,6 +49,9 @@ enum {
 	// match substring
 	op_substring = 33,
 	op_substring_igncase = 34,
+	// file type
+	op_filter_file_type = 35,
+	op_filter_not_file_type = 36,
 };
 
 #endif // __OPERATIONS_H__

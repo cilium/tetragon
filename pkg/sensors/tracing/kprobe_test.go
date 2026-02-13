@@ -7437,3 +7437,469 @@ func TestKprobeRangeIn(t *testing.T) {
 func TestKprobeRangeNotIn(t *testing.T) {
 	testKprobeRangeOp(t, false)
 }
+func TestKprobeFileTypeFilterRegular(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+
+	tmpFile := filepath.Join(t.TempDir(), "tetragon-filetype-test")
+	f, err := os.Create(tmpFile)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		f.Close()
+	})
+
+	fileTypeHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "filetype-regular-test"
+spec:
+  kprobes:
+  - call: "vfs_write"
+    syscall: false
+    args:
+    - index: 0
+      type: "file"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 0
+        operator: "FileType"
+        values:
+        - "reg"
+`
+
+	configHook := []byte(fileTypeHook)
+	err = os.WriteFile(testConfigFile, configHook, 0644)
+	require.NoError(t, err)
+
+	kpChecker := ec.NewProcessKprobeChecker("filetype-regular-checker").
+		WithFunctionName(sm.Full("vfs_write")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithFileArg(
+					ec.NewKprobeFileChecker().WithPath(sm.Suffix("tetragon-filetype-test")),
+				),
+			))
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	require.NoError(t, err)
+
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	fd := int(f.Fd())
+	_, err = unix.Write(fd, []byte("test data for regular file"))
+	require.NoError(t, err)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
+func TestKprobeFileTypeFilterPipe(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+
+	fileTypeHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "filetype-pipe-test"
+spec:
+  kprobes:
+  - call: "vfs_write"
+    syscall: false
+    args:
+    - index: 0
+      type: "file"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 0
+        operator: "FileType"
+        values:
+        - "pipe"
+`
+
+	configHook := []byte(fileTypeHook)
+	err := os.WriteFile(testConfigFile, configHook, 0644)
+	require.NoError(t, err)
+
+	kpChecker := ec.NewProcessKprobeChecker("filetype-pipe-checker").
+		WithFunctionName(sm.Full("vfs_write")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithFileArg(
+					ec.NewKprobeFileChecker().WithPermission(sm.Prefix("p")),
+				),
+			))
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	require.NoError(t, err)
+
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	pipeR, pipeW, err := os.Pipe()
+	require.NoError(t, err)
+	defer pipeR.Close()
+	defer pipeW.Close()
+
+	pipeFd := int(pipeW.Fd())
+	_, err = unix.Write(pipeFd, []byte("test data for pipe"))
+	require.NoError(t, err)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
+func TestKprobeFileTypeFilterNotRegular(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+
+	tmpFile := filepath.Join(t.TempDir(), "tetragon-filetype-notreg")
+	f, err := os.Create(tmpFile)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		f.Close()
+	})
+
+	fileTypeHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "filetype-notreg-test"
+spec:
+  kprobes:
+  - call: "vfs_write"
+    syscall: false
+    args:
+    - index: 0
+      type: "file"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 0
+        operator: "NotFileType"
+        values:
+        - "reg"
+`
+
+	configHook := []byte(fileTypeHook)
+	err = os.WriteFile(testConfigFile, configHook, 0644)
+	require.NoError(t, err)
+
+	kpChecker := ec.NewProcessKprobeChecker("filetype-notreg-checker").
+		WithFunctionName(sm.Full("vfs_write")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithFileArg(
+					ec.NewKprobeFileChecker().WithPermission(sm.Prefix("p")),
+				),
+			))
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	require.NoError(t, err)
+
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	fd := int(f.Fd())
+	_, err = unix.Write(fd, []byte("test data for regular file"))
+	require.NoError(t, err)
+
+	pipeR, pipeW, err := os.Pipe()
+	require.NoError(t, err)
+	defer pipeR.Close()
+	defer pipeW.Close()
+
+	pipeFd := int(pipeW.Fd())
+	_, err = unix.Write(pipeFd, []byte("test data for pipe"))
+	require.NoError(t, err)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
+func TestKprobeFileTypeFilterSocket(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+
+	fileTypeHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "filetype-socket-test"
+spec:
+  kprobes:
+  - call: "vfs_write"
+    syscall: false
+    args:
+    - index: 0
+      type: "file"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 0
+        operator: "FileType"
+        values:
+        - "socket"
+`
+
+	configHook := []byte(fileTypeHook)
+	err := os.WriteFile(testConfigFile, configHook, 0644)
+	require.NoError(t, err)
+
+	kpChecker := ec.NewProcessKprobeChecker("filetype-socket-checker").
+		WithFunctionName(sm.Full("vfs_write")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithFileArg(
+					ec.NewKprobeFileChecker().WithPermission(sm.Prefix("s")),
+				),
+			))
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	require.NoError(t, err)
+
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	socketPath := filepath.Join(t.TempDir(), "tetragon-socket-test")
+
+	server, err := net.Listen("unix", socketPath)
+	require.NoError(t, err)
+	defer server.Close()
+	defer os.Remove(socketPath)
+
+	go func() {
+		conn, err := server.Accept()
+		if err == nil {
+			buf := make([]byte, 1024)
+			conn.Read(buf)
+			conn.Close()
+		}
+	}()
+
+	conn, err := net.Dial("unix", socketPath)
+	require.NoError(t, err)
+	defer conn.Close()
+
+	unixConn, ok := conn.(*net.UnixConn)
+	require.True(t, ok)
+	rawConn, err := unixConn.SyscallConn()
+	require.NoError(t, err)
+
+	err = rawConn.Control(func(fd uintptr) {
+		_, err = unix.Write(int(fd), []byte("test data for socket"))
+		require.NoError(t, err)
+	})
+	require.NoError(t, err)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
+func TestKprobeFileTypeFilterNotPipe(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+
+	tmpFile := filepath.Join(t.TempDir(), "tetragon-filetype-notpipe")
+	f, err := os.Create(tmpFile)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		f.Close()
+	})
+
+	fileTypeHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "filetype-notpipe-test"
+spec:
+  kprobes:
+  - call: "vfs_write"
+    syscall: false
+    args:
+    - index: 0
+      type: "file"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 0
+        operator: "NotFileType"
+        values:
+        - "pipe"
+`
+
+	configHook := []byte(fileTypeHook)
+	err = os.WriteFile(testConfigFile, configHook, 0644)
+	require.NoError(t, err)
+
+	kpChecker := ec.NewProcessKprobeChecker("filetype-notpipe-checker").
+		WithFunctionName(sm.Full("vfs_write")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithFileArg(
+					ec.NewKprobeFileChecker().WithPath(sm.Suffix("tetragon-filetype-notpipe")),
+				),
+			))
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	require.NoError(t, err)
+
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	pipeR, pipeW, err := os.Pipe()
+	require.NoError(t, err)
+	defer pipeR.Close()
+	defer pipeW.Close()
+
+	pipeFd := int(pipeW.Fd())
+	_, err = unix.Write(pipeFd, []byte("test data for pipe"))
+	require.NoError(t, err)
+
+	fd := int(f.Fd())
+	_, err = unix.Write(fd, []byte("test data for regular file"))
+	require.NoError(t, err)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
+func TestKprobeFileTypeFilterMultiple(t *testing.T) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+
+	tmpFile := filepath.Join(t.TempDir(), "tetragon-filetype-multireg")
+	f, err := os.Create(tmpFile)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		f.Close()
+	})
+
+	fileTypeHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "filetype-multi-test"
+spec:
+  kprobes:
+  - call: "vfs_write"
+    syscall: false
+    args:
+    - index: 0
+      type: "file"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 0
+        operator: "FileType"
+        values:
+        - "reg"
+        - "pipe"
+`
+
+	configHook := []byte(fileTypeHook)
+	err = os.WriteFile(testConfigFile, configHook, 0644)
+	require.NoError(t, err)
+
+	kpCheckerReg := ec.NewProcessKprobeChecker("filetype-multi-checker-reg").
+		WithFunctionName(sm.Full("vfs_write")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithFileArg(
+					ec.NewKprobeFileChecker().WithPath(sm.Suffix("tetragon-filetype-multireg")),
+				),
+			))
+	kpCheckerPipe := ec.NewProcessKprobeChecker("filetype-multi-checker-pipe").
+		WithFunctionName(sm.Full("vfs_write")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithFileArg(
+					ec.NewKprobeFileChecker().WithPermission(sm.Prefix("p")),
+				),
+			))
+	checker := ec.NewUnorderedEventChecker(kpCheckerReg, kpCheckerPipe)
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	require.NoError(t, err)
+
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	fd := int(f.Fd())
+	_, err = unix.Write(fd, []byte("test data for regular file"))
+	require.NoError(t, err)
+
+	pipeR, pipeW, err := os.Pipe()
+	require.NoError(t, err)
+	defer pipeR.Close()
+	defer pipeW.Close()
+	pipeFd := int(pipeW.Fd())
+	_, err = unix.Write(pipeFd, []byte("test data for pipe"))
+	require.NoError(t, err)
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}

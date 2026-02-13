@@ -640,6 +640,8 @@ spec:
                                   - NotInRange
                                   - SubString
                                   - SubStringIgnCase
+                                  - FileType
+                                  - NotFileType
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -800,6 +802,8 @@ spec:
                                   - NotInRange
                                   - SubString
                                   - SubStringIgnCase
+                                  - FileType
+                                  - NotFileType
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1085,6 +1089,8 @@ spec:
                                   - NotInRange
                                   - SubString
                                   - SubStringIgnCase
+                                  - FileType
+                                  - NotFileType
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1434,6 +1440,8 @@ spec:
                                   - NotInRange
                                   - SubString
                                   - SubStringIgnCase
+                                  - FileType
+                                  - NotFileType
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1594,6 +1602,8 @@ spec:
                                   - NotInRange
                                   - SubString
                                   - SubStringIgnCase
+                                  - FileType
+                                  - NotFileType
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -1879,6 +1889,8 @@ spec:
                                   - NotInRange
                                   - SubString
                                   - SubStringIgnCase
+                                  - FileType
+                                  - NotFileType
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2264,6 +2276,8 @@ spec:
                                   - NotInRange
                                   - SubString
                                   - SubStringIgnCase
+                                  - FileType
+                                  - NotFileType
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2424,6 +2438,8 @@ spec:
                                   - NotInRange
                                   - SubString
                                   - SubStringIgnCase
+                                  - FileType
+                                  - NotFileType
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -2709,6 +2725,8 @@ spec:
                                   - NotInRange
                                   - SubString
                                   - SubStringIgnCase
+                                  - FileType
+                                  - NotFileType
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -3272,6 +3290,8 @@ spec:
                                   - NotInRange
                                   - SubString
                                   - SubStringIgnCase
+                                  - FileType
+                                  - NotFileType
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -3432,6 +3452,8 @@ spec:
                                   - NotInRange
                                   - SubString
                                   - SubStringIgnCase
+                                  - FileType
+                                  - NotFileType
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -3717,6 +3739,8 @@ spec:
                                   - NotInRange
                                   - SubString
                                   - SubStringIgnCase
+                                  - FileType
+                                  - NotFileType
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -4044,6 +4068,8 @@ spec:
                                   - NotInRange
                                   - SubString
                                   - SubStringIgnCase
+                                  - FileType
+                                  - NotFileType
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -4204,6 +4230,8 @@ spec:
                                   - NotInRange
                                   - SubString
                                   - SubStringIgnCase
+                                  - FileType
+                                  - NotFileType
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
@@ -4489,6 +4517,8 @@ spec:
                                   - NotInRange
                                   - SubString
                                   - SubStringIgnCase
+                                  - FileType
+                                  - NotFileType
                                   type: string
                                 values:
                                   description: Value to compare the argument against.
