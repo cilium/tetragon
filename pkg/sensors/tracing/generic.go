@@ -6,16 +6,18 @@
 package tracing
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
 	ebtf "github.com/cilium/ebpf/btf"
 
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/btf"
 	conf "github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/generictypes"
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/selectors"
 )
@@ -172,4 +174,92 @@ func pathArgWarning(index uint32, ty int, s []v1alpha1.KProbeSelector) {
 		logger.GetLogger().Warn(fmt.Sprintf("argument filter for '%s' (index %d) does not support the whole path retrieval",
 			name, index))
 	}
+}
+
+func appendMacrosSelectors(selectors []v1alpha1.KProbeSelector, macros map[string]v1alpha1.KProbeSelector) error {
+	for i := range selectors {
+		selector := &selectors[i]
+		for _, macroName := range selector.Macros {
+			if len(macros) == 0 {
+				return fmt.Errorf("macro '%s' is used in selector, but no macros were defined in policy spec", macroName)
+			}
+			macro, ok := macros[macroName]
+			if !ok {
+				return fmt.Errorf("undefined macro '%s'", macroName)
+			}
+			if len(macro.Macros) > 0 {
+				return errors.New("macro definition cannot use other macros")
+			}
+
+			var err error
+			selector.MatchPIDs, err = useMacro(selector.MatchPIDs, macro.MatchPIDs)
+			if err != nil {
+				return fmt.Errorf("MatchPIDs: %w", err)
+			}
+
+			selector.MatchArgs, err = useMacro(selector.MatchArgs, macro.MatchArgs)
+			if err != nil {
+				return fmt.Errorf("MatchArgs: %w", err)
+			}
+
+			selector.MatchData, err = useMacro(selector.MatchData, macro.MatchData)
+			if err != nil {
+				return fmt.Errorf("MatchData: %w", err)
+			}
+
+			selector.MatchActions, err = useMacro(selector.MatchActions, macro.MatchActions)
+			if err != nil {
+				return fmt.Errorf("MatchActions: %w", err)
+			}
+
+			selector.MatchReturnArgs, err = useMacro(selector.MatchReturnArgs, macro.MatchReturnArgs)
+			if err != nil {
+				return fmt.Errorf("MatchReturnArgs: %w", err)
+			}
+
+			selector.MatchReturnActions, err = useMacro(selector.MatchReturnActions, macro.MatchReturnActions)
+			if err != nil {
+				return fmt.Errorf("MatchReturnActions: %w", err)
+			}
+
+			selector.MatchBinaries, err = useMacro(selector.MatchBinaries, macro.MatchBinaries)
+			if err != nil {
+				return fmt.Errorf("MatchBinaries: %w", err)
+			}
+
+			selector.MatchParentBinaries, err = useMacro(selector.MatchParentBinaries, macro.MatchParentBinaries)
+			if err != nil {
+				return fmt.Errorf("MatchParentBinaries: %w", err)
+			}
+
+			selector.MatchNamespaces, err = useMacro(selector.MatchNamespaces, macro.MatchNamespaces)
+			if err != nil {
+				return fmt.Errorf("MatchNamespaces: %w", err)
+			}
+
+			selector.MatchNamespaceChanges, err = useMacro(selector.MatchNamespaceChanges, macro.MatchNamespaceChanges)
+			if err != nil {
+				return fmt.Errorf("MatchNamespaceChanges: %w", err)
+			}
+
+			selector.MatchCapabilities, err = useMacro(selector.MatchCapabilities, macro.MatchCapabilities)
+			if err != nil {
+				return fmt.Errorf("MatchCapabilities: %w", err)
+			}
+
+			selector.MatchCapabilityChanges, err = useMacro(selector.MatchCapabilityChanges, macro.MatchCapabilityChanges)
+			if err != nil {
+				return fmt.Errorf("MatchCapabilityChanges: %w", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func useMacro[T any](filters []T, macrosFilters []T) ([]T, error) {
+	if len(filters) > 0 && len(macrosFilters) > 0 {
+		return nil, errors.New("field is defined in both macro and policy selector")
+	}
+	return append(filters, macrosFilters...), nil
 }

@@ -358,6 +358,10 @@ func createGenericLsmSensor(
 	}
 
 	for _, hook := range lsmHooks {
+		if err := appendMacrosSelectors(hook.Selectors, spec.SelectorsMacros); err != nil {
+			return nil, fmt.Errorf("append macros selectors: %w", err)
+		}
+
 		id, err := addLsm(&hook, &in)
 		if err != nil {
 			return nil, err

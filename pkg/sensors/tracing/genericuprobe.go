@@ -415,6 +415,10 @@ func createGenericUprobeSensor(
 	}
 
 	for _, uprobe := range spec.UProbes {
+		if err = appendMacrosSelectors(uprobe.Selectors, spec.SelectorsMacros); err != nil {
+			return nil, fmt.Errorf("append macros selectors: %w", err)
+		}
+
 		ids, err = addUprobe(&uprobe, ids, &in, &has)
 		if err != nil {
 			return nil, err
