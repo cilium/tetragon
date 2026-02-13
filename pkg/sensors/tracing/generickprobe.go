@@ -697,10 +697,16 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 		if !config.EnableLargeProgs() {
 			return errFn(errors.New("ReturnArgAction requires kernel >=5.3"))
 		}
-		eventConfig.ArgReturnAction = selectors.ActionTypeFromString(f.ReturnArgAction)
-		if eventConfig.ArgReturnAction == selectors.ActionTypeInvalid {
+		actionID := selectors.ActionTypeFromString(f.ReturnArgAction)
+		if actionID == selectors.ActionTypeInvalid {
 			return errFn(fmt.Errorf("ReturnArgAction type '%s' unsupported", f.ReturnArgAction))
 		}
+		// ReturnArgAction at BPF level only supports socket tracking actions.
+		// We reject other actions to prevent user confusion (e.g. thinking "Post" does something special here).
+		if actionID != selectors.ActionTypeTrackSock && actionID != selectors.ActionTypeUntrackSock {
+			return errFn(fmt.Errorf("ReturnArgAction type '%s' is not supported for retprobes; only 'TrackSock' and 'UntrackSock' are valid at the BPF level for this probe type", f.ReturnArgAction))
+		}
+		eventConfig.ArgReturnAction = actionID
 	}
 
 	if selectors.HasOverride(f.Selectors) {

@@ -1278,6 +1278,10 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 #if defined(__LARGE_BPF_PROG) && defined(GENERIC_KRETPROBE)
 		struct socket_owner owner;
 
+		/* Only TrackSock/UntrackSock are currently supported in the retprobe context
+		 * to avoid kernel-side overhead for unsupported actions. Other actions
+		 * are validated in userspace to ensure they are not used here.
+		 */
 		switch (config->argreturnaction) {
 		case ACTION_TRACKSOCK:
 			owner.pid = e->current.pid;
@@ -1287,6 +1291,12 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 			break;
 		case ACTION_UNTRACKSOCK:
 			map_delete_elem(&socktrack_map, &ret);
+			break;
+		default:
+			/* Unknown action codes are no-ops.
+			 * All actions are validated in userspace; this explicit default
+			 * handles potential future code paths gracefully.
+			 */
 			break;
 		}
 #endif

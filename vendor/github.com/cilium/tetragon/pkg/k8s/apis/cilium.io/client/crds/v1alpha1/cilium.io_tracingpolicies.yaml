@@ -473,7 +473,9 @@ spec:
                     returnArgAction:
                       description: |-
                         An action to perform on the return argument.
-                        Available actions are: Post;TrackSock;UntrackSock
+                        Valid actions: TrackSock, UntrackSock
+                        Note: 'Post' was previously accepted but silently ignored. It is now
+                        explicitly rejected to prevent silent misconfiguration.
                       type: string
                     selectors:
                       description: Selectors to apply before producing trace output.
