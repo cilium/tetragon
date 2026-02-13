@@ -143,6 +143,10 @@ const (
 	KeyParentsMapSize    = "parents-map-size"
 
 	KeyRetprobesCacheSize = "retprobes-cache-size"
+
+	KeySyntheticEventsSource          = "synthetic-events-source"
+	KeySyntheticEventsLog             = "synthetic-events-log"
+	KeySyntheticEventsVerifyRoundtrip = "synthetic-events-verify-roundtrip"
 )
 
 type UsernameMetadaCode int
@@ -313,6 +317,13 @@ func ReadAndSetFlags() error {
 	Config.ParentsMapSize = viper.GetString(KeyParentsMapSize)
 
 	Config.RetprobesCacheSize = viper.GetInt(KeyRetprobesCacheSize)
+	return nil
+}
+
+func ReadAndSetSyntheticFlags() error {
+	Config.SyntheticEventsSource = viper.GetString(KeySyntheticEventsSource)
+	Config.SyntheticEventsLog = viper.GetString(KeySyntheticEventsLog)
+	Config.SyntheticEventsVerifyRoundtrip = viper.GetBool(KeySyntheticEventsVerifyRoundtrip)
 	return nil
 }
 
@@ -516,4 +527,10 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.String(KeyParentsMapSize, "", "Set size for parents_map table (allows K/M/G suffix)")
 
 	flags.Int(KeyRetprobesCacheSize, defaults.DefaultRetprobesCacheSize, "Set {k,u}retprobes events cache maximum size")
+}
+
+func AddSyntheticFlags(flags *pflag.FlagSet) {
+	flags.String(KeySyntheticEventsSource, "", "File path for synthetic events source")
+	flags.String(KeySyntheticEventsLog, "", "File path to log events for synthetic events testing")
+	flags.Bool(KeySyntheticEventsVerifyRoundtrip, false, "Verify synthetic events roundtrip (marshal/unmarshal equality)")
 }
