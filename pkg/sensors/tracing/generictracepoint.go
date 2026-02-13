@@ -791,6 +791,14 @@ func handleMsgGenericTracepoint(
 			continue
 		}
 
+		if errorArg, err := getArgStatus(r); err != nil {
+			logger.GetLogger().Warn("Arg status header error", logfields.Error, err)
+			break
+		} else if errorArg != nil {
+			unix.Args = append(unix.Args, *errorArg)
+			continue
+		}
+
 		switch out.genericTypeId {
 		case gt.GenericU64Type:
 			var val uint64
