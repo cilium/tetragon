@@ -573,9 +573,13 @@ FUNC_INLINE long generic_read_arg(void *ctx, int index, long off, struct bpf_map
 	if (!config)
 		return 0;
 
+	if (index >= MAX_POSSIBLE_ARGS)
+		return 0;
+
 	asm volatile("%[index] &= %1 ;\n"
 		     : [index] "+r"(index)
 		     : "i"(MAX_SELECTORS_MASK));
+
 	ty = config->arg[index];
 	am = config->arm[index];
 	e->arg_status[index] = 0;
