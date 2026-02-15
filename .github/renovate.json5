@@ -267,7 +267,7 @@
       ],
       // LVH uses custom versioning for its images, need to match those kinds of tags:
       // - bpf-next-20230914.012459
-      // - rhel8-20240304.134252
+      // - rhel8.10-20260206.193128
       // - 5.15-20230912.232842
       // - 5.19-20230912.232842@sha256:24abe3fbb8e829fa41a68a3b76cb4df84fd5a87a7d1d6254c1c1fe5effb5bd1b
       "versioning": "regex:^((?<compatibility>[a-z0-9-]+)|((?<major>\\d+)\\.(?<minor>\\d+)))\\-(?<patch>\\d+)\\.(?<build>\\d+)(@(?<currentDigest>sha256:[a-f0-9]+))?$"
