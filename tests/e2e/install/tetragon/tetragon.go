@@ -168,7 +168,14 @@ func Install(opts ...Option) env.Func {
 							klog.InfoS("Image is not present locally, attempting to install Tetragon regardless", "cluster", clusterName, "image", v, "helm", k)
 							break
 						}
-						return ctx, fmt.Errorf("failed to load image %s into cluster %s: %w", v, clusterName, err)
+
+						// If failed to load the image, this could be related to kind/containerd issues, so just log
+						// the message and attempt to install Tetragon regardless. See
+						// https://github.com/kubernetes-sigs/kind/issues/3795
+						if err != nil {
+							klog.InfoS("Failed to load image into kind cluster", "cluster", clusterName, "image", v, "error", err)
+							break
+						}
 					}
 				}
 			}
