@@ -108,7 +108,7 @@ jobs:
 
       - name: Install Tetragon Tarball
         run: |
-          tar zxvf tetragon-${{ steps.tag.outputs.tag }}-${{ matrix.arch }}.tar.gz
+          gzip -dc tetragon-${{ steps.tag.outputs.tag }}-${{ matrix.arch }}.tar.gz | tar -zxvf - 
           sudo ./tetragon-${{ steps.tag.outputs.tag }}-${{ matrix.arch }}/install.sh
         working-directory: ./build/${{ matrix.arch }}/linux-tarball/
 
