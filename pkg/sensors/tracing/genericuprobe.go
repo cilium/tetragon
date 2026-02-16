@@ -344,9 +344,9 @@ func createGenericUprobeSensor(
 	hasSleepableOffload := hasRegsOverrideAction && bpf.HasUprobeRegsChange()
 
 	if in.useMulti {
-		progs, maps, err = createMultiUprobeSensor(name, ids, polInfo.name, hasSleepableOffload)
+		progs, maps, err = createMultiUprobeSensor(polInfo, name, ids, hasSleepableOffload)
 	} else {
-		progs, maps, err = createSingleUprobeSensor(ids, hasSleepableOffload)
+		progs, maps, err = createSingleUprobeSensor(polInfo, ids, hasSleepableOffload)
 	}
 
 	if err != nil {
@@ -555,7 +555,7 @@ func multiUprobePinPath(sensorPath string) string {
 	return sensors.PathJoin(sensorPath, "multi_uprobe")
 }
 
-func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID, policyName string, hasSleepableOffload bool) ([]*program.Program, []*program.Map, error) {
+func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []idtable.EntryID, hasSleepableOffload bool) ([]*program.Program, []*program.Map, error) {
 	var progs []*program.Program
 	var maps []*program.Map
 
@@ -570,11 +570,13 @@ func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID, poli
 		pinPath,
 		"generic_uprobe").
 		SetLoaderData(multiIDs).
-		SetPolicy(policyName)
+		SetPolicy(polInfo.name)
 
 	load.SleepableOffload = hasSleepableOffload
 
 	progs = append(progs, load)
+
+	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load))
 
 	configMap := program.MapBuilderProgram("config_map", load)
 	tailCalls := program.MapBuilderProgram("uprobe_calls", load)
@@ -598,7 +600,7 @@ func createMultiUprobeSensor(sensorPath string, multiIDs []idtable.EntryID, poli
 	return progs, maps, nil
 }
 
-func createSingleUprobeSensor(ids []idtable.EntryID, hasSleepableOffload bool) ([]*program.Program, []*program.Map, error) {
+func createSingleUprobeSensor(polInfo *policyInfo, ids []idtable.EntryID, hasSleepableOffload bool) ([]*program.Program, []*program.Map, error) {
 	var progs []*program.Program
 	var maps []*program.Map
 
@@ -607,13 +609,13 @@ func createSingleUprobeSensor(ids []idtable.EntryID, hasSleepableOffload bool) (
 		if err != nil {
 			return nil, nil, err
 		}
-		progs, maps = createUprobeSensorFromEntry(uprobeEntry, progs, maps, hasSleepableOffload)
+		progs, maps = createUprobeSensorFromEntry(polInfo, uprobeEntry, progs, maps, hasSleepableOffload)
 	}
 
 	return progs, maps, nil
 }
 
-func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
+func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe,
 	progs []*program.Program, maps []*program.Map, hasSleepableOffload bool) ([]*program.Program, []*program.Map) {
 
 	loadProgName := config.GenericUprobeObjs(false)
@@ -658,6 +660,8 @@ func createUprobeSensorFromEntry(uprobeEntry *genericUprobe,
 	if option.Config.EnableCgTrackerID {
 		maps = append(maps, program.MapUser(cgtracker.MapName, load))
 	}
+
+	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load))
 
 	return progs, maps
 }
