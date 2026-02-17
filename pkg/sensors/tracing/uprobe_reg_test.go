@@ -316,6 +316,89 @@ spec:
 	require.NoError(t, err)
 }
 
+func TestUprobeResolvePageFault(t *testing.T) {
+	if !config.EnableLargeProgs() || !bpf.HasUprobeRefCtrOffset() {
+		t.Skip("Need 5.3 or newer kernel for uprobe ref_ctr_off support for this test.")
+	}
+
+	if !bpf.HasKfunc("bpf_copy_from_user_str") {
+		t.Skip("this test requires bpf_copy_from_user_str kfunc support")
+	}
+
+	uprobe := testutils.RepoRootPath("contrib/tester-progs/uprobe-resolve")
+	uprobeBtf := testutils.RepoRootPath("contrib/tester-progs/uprobe-resolve.btf")
+
+	tt := []struct {
+		specTy    string
+		filterVal string
+		field     string
+		kpArgs    []*ec.KprobeArgumentChecker
+	}{
+		{"string", "hello world!", "subp.buff", []*ec.KprobeArgumentChecker{
+			ec.NewKprobeArgumentChecker().WithStringArg(sm.Full("hello world!")),
+		}},
+	}
+
+	uprobeHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  uprobes:
+  - path: "` + uprobe + `"
+    btfPath: "` + uprobeBtf + `"
+    symbols:
+    - "func"
+    args:
+    - index: 1
+      type: "` + tt[0].specTy + `"
+      btfType: "mystruct"
+      resolve: "` + tt[0].field + `"
+`
+
+	uprobeConfigHook := []byte(uprobeHook)
+	err := os.WriteFile(testConfigFile, uprobeConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	var checkers []ec.EventChecker
+	for i := range tt {
+		checkers = append(checkers, ec.NewProcessUprobeChecker("uprobe-resolve").
+			WithProcess(ec.NewProcessChecker().
+				WithBinary(sm.Full(uprobe)).
+				WithArguments(
+					sm.Full(tt[i].field+" \""+tt[i].filterVal+"\""),
+				),
+			).WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(tt[i].kpArgs...)))
+	}
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	for i := range tt {
+		cmd := exec.Command(uprobe, tt[i].field, tt[i].filterVal)
+		cmdErr := testutils.RunCmdAndLogOutput(t, cmd)
+		require.NoError(t, cmdErr)
+	}
+
+	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(checkers...))
+	require.NoError(t, err)
+}
+
 func testUprobeOverrideRegsActionSize(t *testing.T, ass, num string) {
 	if !bpf.HasUprobeRegsChange() {
 		t.Skip("skipping regs override action test, regs override is not supported in kernel")
