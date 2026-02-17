@@ -29,15 +29,13 @@ const (
 )
 
 var (
-	basePolicy = "__base__"
-
 	Execve = program.Builder(
 		config.ExecObj(),
 		"sched/sched_process_exec",
 		"tracepoint/sys_execve",
 		"event_execve",
 		"execve",
-	).SetPolicy(basePolicy)
+	).SetPolicy(sensors.BaseSensorName)
 
 	ExecveMapUpdate = program.Builder(
 		config.ExecUpdateObj(),
@@ -45,7 +43,7 @@ var (
 		"seccomp",
 		"execve_map_update",
 		"seccomp",
-	).SetPolicy(basePolicy)
+	).SetPolicy(sensors.BaseSensorName)
 
 	ExecveBprmCommit = program.Builder(
 		"bpf_execve_bprm_commit_creds.o",
@@ -53,7 +51,7 @@ var (
 		"kprobe/security_bprm_committing_creds",
 		"tg_kp_bprm_committing_creds",
 		"kprobe",
-	).SetPolicy(basePolicy)
+	).SetPolicy(sensors.BaseSensorName)
 
 	Exit = program.Builder(
 		config.ExitObj(),
@@ -61,7 +59,7 @@ var (
 		"kprobe/acct_process",
 		"event_exit",
 		"kprobe",
-	).SetPolicy(basePolicy)
+	).SetPolicy(sensors.BaseSensorName)
 
 	Fork = program.Builder(
 		config.ForkObj(),
@@ -69,7 +67,7 @@ var (
 		"kprobe/wake_up_new_task",
 		"kprobe_pid_clear",
 		"kprobe",
-	).SetPolicy(basePolicy)
+	).SetPolicy(sensors.BaseSensorName)
 
 	/* Event Ring map */
 	TCPMonMap     = program.MapBuilder("tcpmon_map", Execve)
@@ -187,7 +185,7 @@ func GetTetragonConfMap() *program.Map {
 
 func initBaseSensor() *sensors.Sensor {
 	sensor := sensors.Sensor{
-		Name: basePolicy,
+		Name: sensors.BaseSensorName,
 	}
 	setupSensor()
 	if config.EnableLargeProgs() {

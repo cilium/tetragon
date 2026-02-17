@@ -4,6 +4,7 @@
 package base
 
 import (
+	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/program"
 )
 
@@ -14,7 +15,7 @@ var (
 		"ProcessMonitor",
 		"process__program",
 		"windows",
-	).SetPolicy(basePolicy)
+	).SetPolicy(sensors.BaseSensorName)
 
 	ProcessRingBufMap = program.MapBuilder("process_ringbuf", CreateProcess)
 	ProcessPidMap     = program.MapBuilder("process_map", CreateProcess)
