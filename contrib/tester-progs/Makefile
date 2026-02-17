@@ -116,8 +116,8 @@ usdt-resolve: usdt-resolve.c
 	llvm-objcopy -I binary -O elf64-x86-64 --rename-section .data=.BTF $@.btf.tmp $@.btf
 	rm $@.btf.tmp
 
-uprobe-resolve: uprobe-resolve.c
-	$(GCC) -ggdb3 -O2 -Wall $< -o $@
+uprobe-resolve: uprobe-resolve.c tester-lib.h libtester.so
+	$(GCC) -ggdb3 -O2 -Wall $< -o $@ $(CURDIR)/libtester.so
 	pahole -J $@
 	llvm-objcopy --dump-section .BTF=$@.btf.tmp $@
 	llvm-objcopy -I binary -O elf64-x86-64 --rename-section .data=.BTF $@.btf.tmp $@.btf

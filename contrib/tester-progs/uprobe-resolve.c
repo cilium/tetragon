@@ -5,10 +5,13 @@
 #include <string.h>
 #include <inttypes.h>
 
+#include "tester-lib.h"
+
 struct mysubstruct {
 	uint64_t v64;
 	uint8_t  v8;
 	uint32_t v32;
+	char     *buff;
 };
 
 struct mystruct {
@@ -19,12 +22,13 @@ struct mystruct {
 	struct mysubstruct sub;
 	struct mysubstruct *arr[10];
 	struct mysubstruct **dyn;
+	struct mysubstruct *subp;
 };
 
 void usage(char *argv0)
 {
 	fprintf(stderr, "Usage: %s <field> <val>\n", argv0);
-	fprintf(stderr, "field can be one of: v8, v16, v32, v64, sub.v32 arr[idx].v64 dyn[idx].v64\n");
+	fprintf(stderr, "field can be one of: v8, v16, v32, v64, sub.v32 arr[idx].v64 dyn[idx].v64, subp.buff\n");
 }
 
 // without noinline, the symbol is found, but no event fires
@@ -37,16 +41,22 @@ __attribute__((noinline)) int func(int ret, struct mystruct *ms) {
 
 int main(int argc, char *argv[])
 {
+	long val = 0;
+	struct mysubstruct ss = {0};
+
 	if (argc < 3) {
 		usage(argv[0]);
 		exit(1);
 	}
 
 	char *field = argv[1];
-	long val = atol(argv[2]);
-	if (!val) {
-		usage(argv[0]);
-		exit(1);
+
+	if (strcmp(field, "subp.buff")) {
+		val = atol(argv[2]);
+		if (!val) {
+			usage(argv[0]);
+			exit(1);
+		}
 	}
 
 	struct mystruct s = {0};
@@ -60,6 +70,9 @@ int main(int argc, char *argv[])
 		s.v64 = val;
 	} else if (!strcmp(field, "sub.v32")) {
 		s.sub.v32 = val;
+	} else if (!strcmp(field, "subp.buff")) {
+		ss.buff = argv[2];
+		s.subp = pageout(&ss, sizeof(ss));
 	} else if ((field[0] == 'a' && field[1] == 'r' && field[2] == 'r')
             || (field[0] == 'd' && field[1] == 'y' && field[2] == 'n')) {
 		long idx = atol(&field[4]);
