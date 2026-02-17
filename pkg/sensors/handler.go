@@ -15,6 +15,8 @@ import (
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
+var BaseSensorName = "__base__"
+
 type handler struct {
 	collections *collectionMap
 	bpfDir      string
@@ -291,7 +293,7 @@ func removeAllSensors(h *handler, unpin bool) {
 	defer h.collections.mu.Unlock()
 	collections := h.collections.c
 	for ck, col := range collections {
-		if col.name == "__base__" {
+		if col.name == BaseSensorName {
 			// Base sensor always unloaded last
 			defer func(ck collectionKey, col *collection) {
 				col.destroy(unpin)
