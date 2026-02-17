@@ -291,8 +291,16 @@ func removeAllSensors(h *handler, unpin bool) {
 	defer h.collections.mu.Unlock()
 	collections := h.collections.c
 	for ck, col := range collections {
-		col.destroy(unpin)
-		delete(collections, ck)
+		if col.name == "__base__" {
+			// Base sensor always unloaded last
+			defer func(ck collectionKey, col *collection) {
+				col.destroy(unpin)
+				delete(collections, ck)
+			}(ck, col)
+		} else {
+			col.destroy(unpin)
+			delete(collections, ck)
+		}
 	}
 }
 
