@@ -4339,6 +4339,9 @@ func TestKprobeMatchBinariesPerfring(t *testing.T) {
 	t.Run("In", func(t *testing.T) {
 		matchBinariesPerfringTest(t, "In", []string{"/usr/bin/tail"})
 	})
+	t.Run("NotIn", func(t *testing.T) {
+		matchBinariesNotInPerfringTest(t, []string{"/usr/bin/tail"})
+	})
 	t.Run("Prefix", func(t *testing.T) {
 		if !config.EnableLargeProgs() {
 			t.Skip(skipMatchBinaries)
@@ -4426,6 +4429,202 @@ func TestKprobeMatchBinariesEarlyExec(t *testing.T) {
 		}
 	}
 	t.Error("events triggered by process executed before Tetragon should not be ignored because of matchBinaries")
+}
+
+// matchBinariesNotInPerfringTest checks that the matchBinaries NotIn operator
+// correctly filters events. For NotIn, events from binaries in the values list
+// should be filtered out, while events from other binaries should be allowed.
+func matchBinariesNotInPerfringTest(t *testing.T, values []string) {
+	testutils.CaptureLog(t, logger.GetLogger())
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	if err := observer.InitDataCache(1024); err != nil {
+		t.Fatalf("observertesthelper.InitDataCache: %s", err)
+	}
+
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+	tus.LoadInitialSensor(t)
+	tus.LoadSensor(t, testsensor.GetTestSensor())
+	sm := tuo.GetTestSensorManager(t)
+
+	matchBinariesTracingPolicy := tracingpolicy.GenericTracingPolicy{
+		Metadata: v1.ObjectMeta{
+			Name: "match-binaries-notin",
+		},
+		Spec: v1alpha1.TracingPolicySpec{
+			KProbes: []v1alpha1.KProbeSpec{
+				{
+					Call: "fd_install",
+					Selectors: []v1alpha1.KProbeSelector{
+						{
+							MatchBinaries: []v1alpha1.BinarySelector{
+								{
+									Operator: "NotIn",
+									Values:   values,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	err := sm.Manager.AddTracingPolicy(ctx, &matchBinariesTracingPolicy)
+	if assert.NoError(t, err) {
+		t.Cleanup(func() {
+			sm.Manager.DeleteTracingPolicy(ctx, "match-binaries-notin", "")
+		})
+	}
+
+	var tailPID, headPID int
+	ops := func() {
+		tailCmd := exec.Command("/usr/bin/tail", "/etc/passwd")
+		headCmd := exec.Command("/usr/bin/head", "/etc/passwd")
+
+		err := tailCmd.Start()
+		require.NoError(t, err)
+		tailPID = tailCmd.Process.Pid
+		err = headCmd.Start()
+		require.NoError(t, err)
+		headPID = headCmd.Process.Pid
+
+		err = tailCmd.Wait()
+		require.NoError(t, err)
+		err = headCmd.Wait()
+		require.NoError(t, err)
+	}
+	events := perfring.RunTestEvents(t, ctx, ops)
+
+	// For NotIn with values=["/usr/bin/tail"]:
+	// - Events from /usr/bin/tail should be FILTERED OUT (not present)
+	// - Events from /usr/bin/head should be ALLOWED (present)
+	headEventExist := false
+	for _, ev := range events {
+		if kprobe, ok := ev.(*tracing.MsgGenericKprobeUnix); ok {
+			if int(kprobe.Msg.ProcessKey.Pid) == headPID {
+				headEventExist = true
+				continue
+			}
+			if int(kprobe.Msg.ProcessKey.Pid) == tailPID {
+				t.Error("kprobe event triggered by /usr/bin/tail should be filtered by the matchBinaries NotIn selector")
+				break
+			}
+		}
+	}
+	if !headEventExist {
+		t.Error("kprobe event triggered by /usr/bin/head should be present, unfiltered by the matchBinaries NotIn selector")
+	}
+}
+
+// TestKprobeMatchBinariesEarlyExecNotIn checks that the matchBinaries NotIn
+// operator filters events triggered by processes started before Tetragon.
+func TestKprobeMatchBinariesEarlyExecNotIn(t *testing.T) {
+	testutils.CaptureLog(t, logger.GetLogger())
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	// create temporary files for tail and cat commands
+	tailFile, err := os.CreateTemp("/tmp", fmt.Sprintf("tetragon.%s.tail.", t.Name()))
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		tailFile.Close()
+		os.Remove(tailFile.Name())
+	})
+
+	catRead, catWrite, err := os.Pipe()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		catRead.Close()
+		catWrite.Close()
+	})
+
+	// execute commands before Tetragon starts
+	// tail is in the NotIn list, so its events should be filtered out
+	tailCommand := exec.Command("/usr/bin/tail", "-f", tailFile.Name())
+	err = tailCommand.Start()
+	require.NoError(t, err)
+	defer tailCommand.Process.Kill()
+
+	// cat is NOT in the NotIn list, so its events should be allowed
+	catCommand := exec.Command("/usr/bin/cat")
+	catCommand.Stdin = catRead
+	err = catCommand.Start()
+	require.NoError(t, err)
+	defer catCommand.Process.Kill()
+	catRead.Close()
+
+	if err := observer.InitDataCache(1024); err != nil {
+		t.Fatalf("observertesthelper.InitDataCache: %s", err)
+	}
+
+	option.Config.HubbleLib = tus.Conf().TetragonLib
+	tus.LoadInitialSensor(t)
+	tus.LoadSensor(t, testsensor.GetTestSensor())
+	sm := tuo.GetTestSensorManager(t)
+
+	// NotIn with ["/usr/bin/tail"] means:
+	// - Events from /usr/bin/tail should be FILTERED OUT
+	// - Events from /usr/bin/cat should be ALLOWED
+	matchBinariesTracingPolicy := tracingpolicy.GenericTracingPolicy{
+		Metadata: v1.ObjectMeta{
+			Name: "match-binaries-notin-early",
+		},
+		Spec: v1alpha1.TracingPolicySpec{
+			KProbes: []v1alpha1.KProbeSpec{
+				{
+					Call:    "sys_read",
+					Syscall: true,
+					Selectors: []v1alpha1.KProbeSelector{
+						{
+							MatchBinaries: []v1alpha1.BinarySelector{
+								{
+									Operator: "NotIn",
+									Values:   []string{"/usr/bin/tail"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	err = sm.Manager.AddTracingPolicy(ctx, &matchBinariesTracingPolicy)
+	if assert.NoError(t, err) {
+		t.Cleanup(func() {
+			sm.Manager.DeleteTracingPolicy(ctx, "match-binaries-notin-early", "")
+		})
+	}
+
+	ops := func() {
+		// Trigger read events for both processes
+		tailFile.WriteString("trigger tail!\n")
+		catWrite.WriteString("trigger cat!\n")
+	}
+	events := perfring.RunTestEvents(t, ctx, ops)
+
+	catEventExist := false
+	syscallName := arch.AddSyscallPrefixTestHelper(t, "sys_read")
+	for _, ev := range events {
+		if kprobe, ok := ev.(*tracing.MsgGenericKprobeUnix); ok {
+			if kprobe.FuncName != syscallName {
+				continue
+			}
+			if int(kprobe.Msg.ProcessKey.Pid) == catCommand.Process.Pid {
+				catEventExist = true
+				continue
+			}
+			if int(kprobe.Msg.ProcessKey.Pid) == tailCommand.Process.Pid {
+				t.Error("kprobe event triggered by /usr/bin/tail (started before Tetragon) should be filtered by the matchBinaries NotIn selector")
+				break
+			}
+		}
+	}
+	if !catEventExist {
+		t.Error("kprobe event triggered by /usr/bin/cat (started before Tetragon) should be present, unfiltered by the matchBinaries NotIn selector")
+	}
 }
 
 // TestKprobeMatchBinariesPrefixMatchArgs makes sure that the prefix of
