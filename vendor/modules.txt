@@ -81,7 +81,7 @@ github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1
 github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/selection
 github.com/cilium/tetragon/pkg/k8s/version
 github.com/cilium/tetragon/pkg/k8s/versioncheck
-# github.com/containerd/cgroups/v3 v3.1.2
+# github.com/containerd/cgroups/v3 v3.1.3
 ## explicit; go 1.22.0
 github.com/containerd/cgroups/v3
 github.com/containerd/cgroups/v3/cgroup1
@@ -1410,7 +1410,7 @@ sigs.k8s.io/controller-runtime/pkg/webhook/admission/metrics
 sigs.k8s.io/controller-runtime/pkg/webhook/conversion
 sigs.k8s.io/controller-runtime/pkg/webhook/conversion/metrics
 sigs.k8s.io/controller-runtime/pkg/webhook/internal/metrics
-# sigs.k8s.io/controller-tools v0.20.0
+# sigs.k8s.io/controller-tools v0.20.1
 ## explicit; go 1.25.0
 sigs.k8s.io/controller-tools/cmd/controller-gen
 sigs.k8s.io/controller-tools/pkg/applyconfiguration

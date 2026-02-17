@@ -10,7 +10,7 @@ require (
 	github.com/cilium/lumberjack/v2 v2.4.1
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/cilium/tetragon/pkg/k8s v0.0.0-00010101000000-000000000000
-	github.com/containerd/cgroups/v3 v3.1.2
+	github.com/containerd/cgroups/v3 v3.1.3
 	github.com/deckarep/golang-set/v2 v2.8.0
 	github.com/fatih/color v1.18.0
 	github.com/go-logr/logr v1.4.3
@@ -54,7 +54,7 @@ require (
 	k8s.io/cri-api v0.35.0
 	k8s.io/klog/v2 v2.130.1
 	sigs.k8s.io/controller-runtime v0.23.1
-	sigs.k8s.io/controller-tools v0.20.0
+	sigs.k8s.io/controller-tools v0.20.1
 	sigs.k8s.io/e2e-framework v0.6.0
 	sigs.k8s.io/yaml v1.6.0
 )
