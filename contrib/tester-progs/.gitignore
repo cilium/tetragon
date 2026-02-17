@@ -38,3 +38,4 @@ regs-override
 uretprobe
 uprobe-resolve
 uprobe-resolve.btf
+libtester.so
