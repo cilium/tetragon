@@ -86,15 +86,14 @@ preload_pt_regs_arg(struct pt_regs *ctx, struct event_config *config, int index)
 FUNC_INLINE int
 preload_arg(struct pt_regs *ctx, struct event_config *config, int index)
 {
-	int arg_index;
 	unsigned long a;
 	__s32 ty;
 
 #if defined(GENERIC_USDT)
-	arg_index = index;
 	a = read_usdt_arg(ctx, config, index, true);
 #else
-	arg_index = config->idx[index];
+	int arg_index = config->idx[index];
+
 	asm volatile("%[arg_index] &= %1 ;\n"
 		     : [arg_index] "+r"(arg_index)
 		     : "i"(MAX_SELECTORS_MASK));
@@ -119,7 +118,7 @@ preload_arg(struct pt_regs *ctx, struct event_config *config, int index)
 #endif
 	extract_arg(config, index, &a, true);
 
-	ty = config->arg[arg_index];
+	ty = config->arg[index];
 
 	probe_read(&a, sizeof(a), &a);
 
