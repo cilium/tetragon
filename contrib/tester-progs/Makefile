@@ -39,7 +39,8 @@ PROGS = sigkill-tester \
 	uprobe-resolve \
 	regs-override
 
-LIBS = libuprobe.so
+LIBS =	libuprobe.so \
+	libtester.so
 
 all: $(PROGS)
 
@@ -82,8 +83,11 @@ exit-code: exit-code.c
 libuprobe.so: uprobe-lib.c
 	$(GCC) -Wall -fPIC $< -o $@ -shared
 
-uprobe-test-1: uprobe-test.c libuprobe.so
-	$(GCC) -Wall $< -o $@ $(CURDIR)/libuprobe.so
+libtester.so: tester-lib.c
+	$(GCC) -Wall -fPIC $< -o $@ -shared
+
+uprobe-test-1: uprobe-test.c tester-lib.h libuprobe.so libtester.so
+	$(GCC) -Wall $< -o $@ $(CURDIR)/libuprobe.so $(CURDIR)/libtester.so
 
 uprobe-test-2: uprobe-test-1
 	cp uprobe-test-1 uprobe-test-2
