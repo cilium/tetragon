@@ -69,6 +69,10 @@ preload_pt_regs_arg(struct pt_regs *ctx, struct event_config *config, int index)
 	val = read_reg(ctx, reg->offset, shift);
 	ty = config->arg[index];
 
+	// NB: we currently don't support doing BTF style resolve for pointers
+	// found in registers via pt_regs source. So the following extract_arg
+	// call is not required, because config->btf_arg won't be populated
+	// for the pt_regs case.
 	extract_arg(config, index, &val, true);
 
 	switch (ty) {
