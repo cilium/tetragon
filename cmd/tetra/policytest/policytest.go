@@ -92,10 +92,7 @@ func runCmd() *cobra.Command {
 				results = append(results, res)
 			}
 			runner.Close()
-			// TODO: improve output
-			for i, res := range results {
-				fmt.Printf("%-20s: %+v\n", ptNames[i], res)
-			}
+			policytest.DumpResults(cmd.OutOrStdout(), ptNames, results)
 			return nil
 		},
 	}
