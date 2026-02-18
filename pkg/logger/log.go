@@ -100,7 +100,7 @@ func PopulateLogOpts(o LogOptions, level string, format string) {
 	if format != "" {
 		format = strings.ToLower(format)
 		switch LogFormat(format) {
-		case logFormatText, logFormatJSON:
+		case logFormatText, logFormatTextTimestamp, logFormatJSON, logFormatJSONTimestamp:
 			o[FormatOpt] = format
 		default:
 			o[FormatOpt] = string(logFormatText)
