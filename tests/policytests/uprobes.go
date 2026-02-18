@@ -33,3 +33,36 @@ spec:
 		EventChecker: ec.NewUnorderedEventChecker(upChecker),
 	}
 }).RegisterAtInit()
+
+var _ = policytest.NewBuilder("uprobe-override").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-override"
+spec:
+  uprobes:
+  - path: {{ testBinary "uprobe-simple" }}
+    symbols:
+    - "pizza"
+    selectors:
+    - matchActions:
+      - action: Override
+        argError: 42
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	// skip if uprobe_regs_change is not supported
+	if !si.AgentInfo.Probes["uprobe_regs_change"] {
+		return "uprobes cannot change registers"
+	}
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	myBin := c.TestBinary("uprobe-simple")
+	upChecker := ec.NewProcessUprobeChecker("uprobe-override").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(myBin))).
+		WithSymbol(sm.Full("pizza"))
+	return &policytest.Scenario{
+		Name:         "execute uprobe-simple, check enforcement and events",
+		Trigger:      policytest.NewCmdTrigger(myBin).ExpectExitCode(42),
+		EventChecker: ec.NewUnorderedEventChecker(upChecker),
+	}
+}).RegisterAtInit()

@@ -39,7 +39,8 @@ PROGS = sigkill-tester \
 	uprobe-resolve \
 	regs-override \
 	usdt-args \
-	uprobe-null
+	uprobe-null \
+	uprobe-simple
 
 LIBS =	libuprobe.so \
 	libtester.so
