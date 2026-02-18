@@ -561,7 +561,7 @@ spec:
     symbols:
     - "` + symbol + `"
     data:
-    - index: 0
+    - index: 1 # config validation currently requires specifying index for the data section, but the value is meaningless and unused
       type: "int"
       source: "pt_regs"
       resolve: "eax"
@@ -587,7 +587,7 @@ spec:
     symbols:
     - "` + symbol + `"
     data:
-    - index: 0
+    - index: 1 # config validation currently requires specifying index for the data section, but the value is meaningless and unused
       type: "int"
       source: "pt_regs"
       resolve: "w0"
