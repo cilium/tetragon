@@ -8,6 +8,7 @@ package manager
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"os"
 	"testing"
 	"time"
@@ -76,7 +77,7 @@ func (suite *ManagerTestSuite) TestFindPod() {
 
 func (suite *ManagerTestSuite) TestFindContainer() {
 	// Create a pod with a unique name to avoid collisions.
-	name := fmt.Sprintf("nginx-%d", time.Now().UnixNano())
+	name := fmt.Sprintf("nginx-%d", rand.Intn(1000000))
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
