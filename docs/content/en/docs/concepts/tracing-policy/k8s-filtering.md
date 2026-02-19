@@ -53,11 +53,13 @@ For container field filters, we use the `containerSelector` field of tracing pol
 
 ### Setup
 
-For this demo, we use containerd and configure appropriate run-time hooks using minikube.
+For this demo, we use containerd and configure appropriate run-time hooks.
 
-First, let us start minikube, build and load images, and install Tetragon and OCI hooks:
+First, let us start a cluster, build and load images, and install Tetragon and OCI hooks:
 
-```shell
+{{< tabpane lang=shell >}}
+{{< tab "minikube" >}}
+
 minikube start --container-runtime=containerd
 ./contrib/tetragon-rthooks/scripts/minikube-install-hook.sh
 make image image-operator
@@ -68,7 +70,22 @@ helm install --namespace kube-system \
 	--set tetragon.image.override=cilium/tetragon:latest  \
 	--set tetragon.grpc.address="unix:///var/run/cilium/tetragon/tetragon.sock" \
 	tetragon ./install/kubernetes/tetragon
-```
+
+{{< /tab >}}
+{{< tab "kind" >}}
+
+kind create cluster
+./contrib/tetragon-rthooks/scripts/kind-hook-setup.sh
+make image image-operator
+kind load docker-image cilium/tetragon:latest cilium/tetragon-operator:latest
+helm install --namespace kube-system \
+	--set tetragonOperator.image.override=cilium/tetragon-operator:latest \
+	--set tetragon.image.override=cilium/tetragon:latest  \
+	--set tetragon.grpc.address="unix:///var/run/cilium/tetragon/tetragon.sock" \
+	tetragon ./install/kubernetes/tetragon
+
+{{< /tab >}}
+{{< /tabpane >}}
 
 Once the tetragon pod is up and running, we can get its name and store it in a variable for convenience.
 ```shell
