@@ -112,19 +112,19 @@ func (r *LocalRunner) Close() {
 	r.wg.Wait()
 }
 
-func (r *LocalRunner) AddPolicy(l *slog.Logger, test *T) (cleanup func() error, err error) {
+func (r *LocalRunner) AddPolicy(l *slog.Logger, test *T) (*PolicyHandler, error) {
 	// generate policy
 	pol, err := test.Policy(&Conf{
 		BinsDir: r.conf.BinsDir,
 	})
 	if err != nil {
 		err = fmt.Errorf("failed to create policy for test %q: %w", test.Name, err)
-		return
+		return nil, err
 	}
 
 	// allow for tests that do not have a policy
 	if len(pol) == 0 {
-		return
+		return nil, nil
 	}
 
 	// TODO: no need to parse the full policy here. We just need to verify its kind and get the
@@ -132,7 +132,7 @@ func (r *LocalRunner) AddPolicy(l *slog.Logger, test *T) (cleanup func() error, 
 	tp, err := tracingpolicy.FromYAML(string(pol))
 	if err != nil {
 		err = fmt.Errorf("failed to parse policy for test %q: %w", test.Name, err)
-		return
+		return nil, err
 	}
 	tpName := tp.TpName()
 
@@ -141,41 +141,14 @@ func (r *LocalRunner) AddPolicy(l *slog.Logger, test *T) (cleanup func() error, 
 	})
 	if err != nil {
 		err = fmt.Errorf("failed to load policy for test %q: %w", test.Name, err)
-		return
+		return nil, err
 	}
 	l.Debug("policy loaded", "name", tpName)
 
-	cleanup = func() error {
-		_, err = r.cli.Client.DeleteTracingPolicy(r.cli.Ctx, &tetragon.DeleteTracingPolicyRequest{
-			Name:      tpName,
-			Namespace: "", // NB: should be filled if/when we support namespaced policies
-		})
-		if err == nil {
-			l.Debug("policy unloaded", "name", tpName)
-			return nil
-		}
-		if grpcStatus.Code(err) != grpcCodes.DeadlineExceeded {
-			return fmt.Errorf("failed to unload policy for test %q: %w", test.Name, err)
-		}
-
-		// deadline exceeded: let's try to reconnect to unload the policy
-		cli, err := cli.NewClient(context.Background(), r.conf.GrpcAddr, time.Second*20)
-		if err != nil {
-			return fmt.Errorf("failed to create a new client to unload policy: %w", err)
-		}
-		defer cli.Close()
-
-		_, err = cli.Client.DeleteTracingPolicy(cli.Ctx, &tetragon.DeleteTracingPolicyRequest{
-			Name:      tpName,
-			Namespace: "", // NB: should be filled if/when we support namespaced policies
-		})
-		if err != nil {
-			return fmt.Errorf("failed to unload policy (after reconnecting): %w", err)
-		}
-		l.Debug("policy unloaded (after reconnecting)", "name", tpName)
-		return nil
-	}
-	return
+	return &PolicyHandler{
+		tpName:      tpName,
+		tpNamespace: "", // TODO: change this when we add support for namespaced policies
+	}, nil
 }
 
 // RunTest runs a policy test
@@ -187,7 +160,7 @@ func (r *LocalRunner) RunTest(l *slog.Logger, test *T) *Result {
 		}
 	}
 
-	cleanupPolicy, err := r.AddPolicy(l, test)
+	polHandler, err := r.AddPolicy(l, test)
 	if err != nil {
 		return &Result{Err: err}
 	}
@@ -199,7 +172,7 @@ func (r *LocalRunner) RunTest(l *slog.Logger, test *T) *Result {
 		res.ScenariosRes = append(res.ScenariosRes, scRes)
 	}
 
-	err = cleanupPolicy()
+	err = polHandler.Cleanup(l, r.conf, r.cli)
 	if err != nil {
 		res.Err = errors.Join(res.Err, fmt.Errorf("failed to cleanup policy: %w", err))
 	}
@@ -364,4 +337,41 @@ func runFwd(
 			}
 		}
 	}
+}
+
+type PolicyHandler struct {
+	tpName      string
+	tpNamespace string
+}
+
+func (ph *PolicyHandler) Cleanup(l *slog.Logger, conf *Conf, client *cli.ClientWithContext) error {
+
+	_, err := client.Client.DeleteTracingPolicy(client.Ctx, &tetragon.DeleteTracingPolicyRequest{
+		Name:      ph.tpName,
+		Namespace: ph.tpNamespace,
+	})
+	if err == nil {
+		l.Debug("policy unloaded", "name", ph.tpName)
+		return nil
+	}
+	if grpcStatus.Code(err) != grpcCodes.DeadlineExceeded {
+		return fmt.Errorf("failed to unload policy: %w", err)
+	}
+
+	// deadline exceeded: let's try to reconnect to unload the policy
+	client, err = cli.NewClient(context.Background(), conf.GrpcAddr, time.Second*20)
+	if err != nil {
+		return fmt.Errorf("failed to create a new client to unload policy: %w", err)
+	}
+	defer client.Close()
+
+	_, err = client.Client.DeleteTracingPolicy(client.Ctx, &tetragon.DeleteTracingPolicyRequest{
+		Name:      ph.tpName,
+		Namespace: ph.tpNamespace,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to unload policy (after reconnecting): %w", err)
+	}
+	l.Debug("policy unloaded (after reconnecting)", "name", ph.tpName)
+	return nil
 }
