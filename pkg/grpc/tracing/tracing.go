@@ -388,7 +388,10 @@ func GetProcessKprobe(event *MsgGenericKprobeUnix) *tetragon.ProcessKprobe {
 	if ec := eventcache.Get(); ec != nil && !isUnknown(tetragonProcess) &&
 		(ec.Needed(tetragonProcess) ||
 			(tetragonProcess.Pid.Value > 1 && ec.Needed(tetragonParent)) ||
-			(option.Config.EnableProcessKprobeAncestors && ec.NeededAncestors(parent, ancestors))) {
+			(option.Config.EnableProcessKprobeAncestors && ec.NeededAncestors(parent, ancestors)) ||
+			// Clone-to-exec race: cache events with no container
+			// metadata so retry can resolve via PID lookup.
+			(option.Config.EnableK8s && tetragonProcess.Docker == "" && tetragonProcess.Pod == nil)) {
 		ec.Add(nil, tetragonEvent, event.Msg.Common.Ktime, event.Msg.ProcessKey.Ktime, event)
 		return nil
 	}
