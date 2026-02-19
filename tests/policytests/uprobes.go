@@ -60,9 +60,14 @@ spec:
 		WithProcess(ec.NewProcessChecker().
 			WithBinary(sm.Full(myBin))).
 		WithSymbol(sm.Full("pizza"))
+
+	exitCode := 42
+	if c.RunConf != nil && c.RunConf.MonitorMode {
+		exitCode = 0
+	}
 	return &policytest.Scenario{
 		Name:         "execute uprobe-simple, check enforcement and events",
-		Trigger:      policytest.NewCmdTrigger(myBin).ExpectExitCode(42),
+		Trigger:      policytest.NewCmdTrigger(myBin).ExpectExitCode(exitCode),
 		EventChecker: ec.NewUnorderedEventChecker(upChecker),
 	}
 }).RegisterAtInit()

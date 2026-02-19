@@ -15,6 +15,9 @@ type Conf struct {
 	BinsDir string
 	// Agent GRPC address
 	GrpcAddr string
+
+	// Test run configuration
+	RunConf *RunConf
 }
 
 func (c *Conf) TestBinary(s string) string {

@@ -25,6 +25,10 @@ import (
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
+type RunConf struct {
+	MonitorMode bool
+}
+
 type LocalRunner struct {
 	conf *Conf
 	cli  *cli.ClientWithContext
@@ -152,17 +156,31 @@ func (r *LocalRunner) AddPolicy(l *slog.Logger, test *T) (*PolicyHandler, error)
 }
 
 // RunTest runs a policy test
-func (r *LocalRunner) RunTest(l *slog.Logger, test *T) *Result {
-
+func (r *LocalRunner) RunTest(l *slog.Logger, test *T, runConf *RunConf) *Result {
 	if test.ShouldSkip != nil {
 		if reason := test.ShouldSkip(&SkipInfo{r.info}); reason != "" {
 			return &Result{Skipped: reason}
 		}
 	}
 
+	// set and clear run configuration after we are done
+	r.conf.RunConf = runConf
+	defer func() {
+		r.conf.RunConf = nil
+	}()
+
 	polHandler, err := r.AddPolicy(l, test)
 	if err != nil {
 		return &Result{Err: err}
+	}
+
+	if runConf.MonitorMode {
+		mode := tetragon.TracingPolicyMode_TP_MODE_MONITOR
+		err := polHandler.Configure(l, r.cli, nil, &mode)
+		if err != nil {
+			err = errors.Join(err, polHandler.Cleanup(l, r.conf, r.cli))
+			return &Result{Err: err}
+		}
 	}
 
 	var res Result
@@ -374,4 +392,22 @@ func (ph *PolicyHandler) Cleanup(l *slog.Logger, conf *Conf, client *cli.ClientW
 	}
 	l.Debug("policy unloaded (after reconnecting)", "name", ph.tpName)
 	return nil
+}
+
+func (ph *PolicyHandler) Configure(
+	l *slog.Logger, client *cli.ClientWithContext,
+	enable *bool, mode *tetragon.TracingPolicyMode) error {
+
+	_, err := client.Client.ConfigureTracingPolicy(client.Ctx, &tetragon.ConfigureTracingPolicyRequest{
+		Name:      ph.tpName,
+		Namespace: ph.tpNamespace,
+		Enable:    enable,
+		Mode:      mode,
+	})
+	if err == nil {
+		l.Debug("policy configured", "enable", enable, "mode", mode)
+		return nil
+	}
+
+	return fmt.Errorf("failed to configure policy: %w", err)
 }
