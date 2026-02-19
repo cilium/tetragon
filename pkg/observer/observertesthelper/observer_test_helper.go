@@ -48,8 +48,8 @@ import (
 )
 
 var (
-	metricsAddr    = "localhost:2112"
-	metricsEnabled = false
+	metricsAddr       = "localhost:2112"
+	metricsEnableOnce sync.Once
 )
 
 type testObserverOptions struct {
@@ -244,11 +244,10 @@ func getDefaultObserver(tb testing.TB, ctx context.Context, initialSensor *senso
 	// This is horrifically ugly, so we may want to figure out a better way to do this
 	// at some point in the future. I just don't see a better way that doesn't involve
 	// a lot of code changes in a lot of a files.
-	if !metricsEnabled {
+	metricsEnableOnce.Do(func() {
 		go metricsconfig.EnableMetrics(metricsAddr)
 		metricsconfig.InitAllMetrics(metricsconfig.GetRegistry())
-		metricsEnabled = true
-	}
+	})
 
 	tb.Cleanup(func() {
 		testDone(tb, obs)
