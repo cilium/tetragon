@@ -52,6 +52,7 @@ func listCmd() *cobra.Command {
 func runCmd() *cobra.Command {
 	cwd, _ := os.Getwd()
 	testBinsPath := filepath.Join(cwd, "contrib/tester-progs")
+	monitorMode := false
 	cmd := cobra.Command{
 		Use:   "run",
 		Short: "Run Tetragon policy test(s)",
@@ -88,7 +89,9 @@ func runCmd() *cobra.Command {
 			var ptNames []string
 			for _, t := range tests {
 				ptNames = append(ptNames, t.Name)
-				res := runner.RunTest(log, t)
+				res := runner.RunTest(log, t, &policytest.RunConf{
+					MonitorMode: monitorMode,
+				})
 				results = append(results, res)
 			}
 			runner.Close()
@@ -98,5 +101,6 @@ func runCmd() *cobra.Command {
 	}
 	flags := cmd.Flags()
 	flags.StringVar(&testBinsPath, "bindir", testBinsPath, "path for test binaries directory")
+	flags.BoolVar(&monitorMode, "monitor-mode", monitorMode, "set the policy(-ies) in monitor mode before running the test(s)")
 	return &cmd
 }
