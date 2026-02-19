@@ -92,7 +92,7 @@ docker exec -it kind-control-plane crictl version
 
 Output should be similar to:
 
-```
+```shell
 Version:  0.1.0
 RuntimeName:  containerd
 RuntimeVersion:  v1.7.18
@@ -100,39 +100,14 @@ RuntimeApiVersion:  v1
 ```
 
 Assuming that the containerd version is earlier than 2.0,
-you can use the `tetragon-oci-hook-setup` to patch the configuration file:
+you can use the `kind-hook-setup.sh` script to patch the configuration file:
 
 ```shell
-docker cp kind-control-plane:/etc/containerd/config.toml /tmp/old-config.toml
-./contrib/tetragon-rthooks/tetragon-oci-hook-setup patch-containerd-conf enable-nri --config-file=/tmp/old-config.toml --output=/tmp/new-config.toml
-diff -u /tmp/old-config.toml /tmp/new-config.toml
+./contrib/tetragon-rthooks/scripts/kind-hook-setup.sh
 ```
 
-Output should be something like:
+This script updates the configuration and restarts containerd.
 
-```diff
---- /tmp/old-config.toml        2024-08-13 23:31:06.000000000 +0200
-+++ /tmp/new-config.toml        2025-04-30 10:42:28.707064377 +0200
-@@ -40,3 +40,11 @@
-   tolerate_missing_hugepages_controller = true
-      # restrict_oom_score_adj needs to be true when running inside UserNS (rootless)
-         restrict_oom_score_adj = false
-         +[plugins."io.containerd.nri.v1.nri"]
-         +  disable = false
-         +  disable_connections = false
-         +  plugin_config_path = "/etc/nri/conf.d"
-         +  plugin_path = "/opt/nri/plugins"
-         +  plugin_registration_timeout = "5s"
-         +  plugin_request_timeout = "2s"
-         +  socket_path = "/var/run/nri/nri.sock"
-```
-
-Install the new configuration file and restart containerd
-
-```shell
-docker cp /tmp/new-config.toml kind-control-plane:/etc/containerd/config.toml
-docker exec -it kind-control-plane systemctl restart containerd
-```
 
 {{% /tab %}}
 
@@ -183,9 +158,15 @@ kubectl run test --image=debian  --rm -it -- /bin/bash
 ```
 
 Check logs:
-```shell
+
+{{< tabpane lang=shell >}}
+{{< tab "minikube" >}}
 minikube ssh 'tail -1 /opt/tetragon/tetragon-oci-hook.log'
-```
+{{< /tab >}}
+{{< tab "kind" >}}
+docker exec kind-control-plane sh -c 'tail -1 /opt/tetragon/tetragon-oci-hook.log'
+{{< /tab >}}
+{{< /tabpane >}}
 
 Output:
 ```json
