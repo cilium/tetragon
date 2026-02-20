@@ -1,0 +1,23 @@
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "socketpair-monitoring"
+spec:
+  kprobes:
+  - call: "sys_socketpair"
+    syscall: true
+    args:
+    - index: 0
+      type: "int"
+      label: "domain"
+    - index: 1
+      type: "int"
+      label: "type"
+    - index: 2
+      type: "int"
+      label: "protocol"
+    - index: 3
+      type: "int32_arr"
+      size: 2
+      returnCopy: true
+      label: "sv"

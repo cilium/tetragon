@@ -73,7 +73,7 @@ type KProbeArg struct {
 	// +kubebuilder:validation:Minimum=0
 	// Position of the argument.
 	Index uint32 `json:"index"`
-	// +kubebuilder:validation:Enum=auto;int;sint8;int8;uint8;sint16;int16;uint16;uint32;sint32;int32;ulong;uint64;size_t;long;sint64;int64;char_buf;char_iovec;skb;sock;sockaddr;socket;string;fd;file;filename;path;nop;bpf_attr;perf_event;bpf_map;user_namespace;capability;kiocb;iov_iter;cred;const_buf;load_info;module;syscall64;kernel_cap_t;cap_inheritable;cap_permitted;cap_effective;linux_binprm;data_loc;net_device;bpf_cmd;dentry;bpf_prog;
+	// +kubebuilder:validation:Enum=auto;int;sint8;int8;uint8;sint16;int16;uint16;uint32;sint32;int32;ulong;uint64;size_t;long;sint64;int64;char_buf;char_iovec;skb;sock;sockaddr;socket;string;fd;file;filename;path;nop;bpf_attr;perf_event;bpf_map;user_namespace;capability;kiocb;iov_iter;cred;const_buf;load_info;module;syscall64;kernel_cap_t;cap_inheritable;cap_permitted;cap_effective;linux_binprm;data_loc;net_device;bpf_cmd;dentry;bpf_prog;int32_arr;
 	// +kubebuilder:default=auto
 	// Argument type.
 	Type string `json:"type"`
@@ -86,6 +86,10 @@ type KProbeArg struct {
 	// Specifies the position of the corresponding size argument for this argument.
 	// This field is used only for char_buf and char_iovec types.
 	SizeArgIndex uint32 `json:"sizeArgIndex"`
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Minimum=0
+	// Size of the array argument (required for int32_arr).
+	Size uint32 `json:"size"`
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=false
 	// This field is used only for char_buf and char_iovec types. It indicates

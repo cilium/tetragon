@@ -6588,6 +6588,166 @@ func (checker *KprobeBpfMapChecker) FromKprobeBpfMap(event *tetragon.KprobeBpfMa
 	return checker
 }
 
+// KprobeInt32ListChecker implements a checker struct to check a KprobeInt32List field
+type KprobeInt32ListChecker struct {
+	Values *Int32ListMatcher `json:"values,omitempty"`
+}
+
+// NewKprobeInt32ListChecker creates a new KprobeInt32ListChecker
+func NewKprobeInt32ListChecker() *KprobeInt32ListChecker {
+	return &KprobeInt32ListChecker{}
+}
+
+// Get the type of the checker as a string
+func (checker *KprobeInt32ListChecker) GetCheckerType() string {
+	return "KprobeInt32ListChecker"
+}
+
+// Check checks a KprobeInt32List field
+func (checker *KprobeInt32ListChecker) Check(event *tetragon.KprobeInt32List) error {
+	if event == nil {
+		return fmt.Errorf("%s: KprobeInt32List field is nil", CheckerLogPrefix(checker))
+	}
+
+	fieldChecks := func() error {
+		if checker.Values != nil {
+			if err := checker.Values.Check(event.Values); err != nil {
+				return fmt.Errorf("Values check failed: %w", err)
+			}
+		}
+		return nil
+	}
+	if err := fieldChecks(); err != nil {
+		return fmt.Errorf("%s: %w", CheckerLogPrefix(checker), err)
+	}
+	return nil
+}
+
+// WithValues adds a Values check to the KprobeInt32ListChecker
+func (checker *KprobeInt32ListChecker) WithValues(check *Int32ListMatcher) *KprobeInt32ListChecker {
+	checker.Values = check
+	return checker
+}
+
+//FromKprobeInt32List populates the KprobeInt32ListChecker using data from a KprobeInt32List field
+func (checker *KprobeInt32ListChecker) FromKprobeInt32List(event *tetragon.KprobeInt32List) *KprobeInt32ListChecker {
+	if event == nil {
+		return checker
+	}
+	{
+		var checks []int32
+		for _, check := range event.Values {
+			var convertedCheck int32
+			convertedCheck = check
+			checks = append(checks, convertedCheck)
+		}
+		lm := NewInt32ListMatcher().WithOperator(listmatcher.Ordered).
+			WithValues(checks...)
+		checker.Values = lm
+	}
+	return checker
+}
+
+// Int32ListMatcher checks a list of int32 fields
+type Int32ListMatcher struct {
+	Operator listmatcher.Operator `json:"operator"`
+	Values   []int32              `json:"values"`
+}
+
+// NewInt32ListMatcher creates a new Int32ListMatcher. The checker defaults to a subset checker unless otherwise specified using WithOperator()
+func NewInt32ListMatcher() *Int32ListMatcher {
+	return &Int32ListMatcher{
+		Operator: listmatcher.Subset,
+	}
+}
+
+// WithOperator sets the match kind for the Int32ListMatcher
+func (checker *Int32ListMatcher) WithOperator(operator listmatcher.Operator) *Int32ListMatcher {
+	checker.Operator = operator
+	return checker
+}
+
+// WithValues sets the checkers that the Int32ListMatcher should use
+func (checker *Int32ListMatcher) WithValues(values ...int32) *Int32ListMatcher {
+	checker.Values = values
+	return checker
+}
+
+// Check checks a list of int32 fields
+func (checker *Int32ListMatcher) Check(values []int32) error {
+	switch checker.Operator {
+	case listmatcher.Ordered:
+		return checker.orderedCheck(values)
+	case listmatcher.Unordered:
+		return checker.unorderedCheck(values)
+	case listmatcher.Subset:
+		return checker.subsetCheck(values)
+	default:
+		return fmt.Errorf("Unhandled ListMatcher operator %s", checker.Operator)
+	}
+}
+
+// orderedCheck checks a list of ordered int32 fields
+func (checker *Int32ListMatcher) orderedCheck(values []int32) error {
+	innerCheck := func(check int32, value int32) error {
+		if check != value {
+			return fmt.Errorf("Values has value %d which does not match expected value %d", value, check)
+		}
+		return nil
+	}
+
+	if len(checker.Values) != len(values) {
+		return fmt.Errorf("Int32ListMatcher: Wanted %d elements, got %d", len(checker.Values), len(values))
+	}
+
+	for i, check := range checker.Values {
+		value := values[i]
+		if err := innerCheck(check, value); err != nil {
+			return fmt.Errorf("Int32ListMatcher: Check failed on element %d: %w", i, err)
+		}
+	}
+
+	return nil
+}
+
+// unorderedCheck checks a list of unordered int32 fields
+func (checker *Int32ListMatcher) unorderedCheck(values []int32) error {
+	if len(checker.Values) != len(values) {
+		return fmt.Errorf("Int32ListMatcher: Wanted %d elements, got %d", len(checker.Values), len(values))
+	}
+
+	return checker.subsetCheck(values)
+}
+
+// subsetCheck checks a subset of int32 fields
+func (checker *Int32ListMatcher) subsetCheck(values []int32) error {
+	innerCheck := func(check int32, value int32) error {
+		if check != value {
+			return fmt.Errorf("Values has value %d which does not match expected value %d", value, check)
+		}
+		return nil
+	}
+
+	numDesired := len(checker.Values)
+	numMatched := 0
+
+nextCheck:
+	for _, check := range checker.Values {
+		for _, value := range values {
+			if err := innerCheck(check, value); err == nil {
+				numMatched += 1
+				continue nextCheck
+			}
+		}
+	}
+
+	if numMatched < numDesired {
+		return fmt.Errorf("Int32ListMatcher: Check failed, only matched %d elements but wanted %d", numMatched, numDesired)
+	}
+
+	return nil
+}
+
 // SyscallIdChecker implements a checker struct to check a SyscallId field
 type SyscallIdChecker struct {
 	Id  *uint32                      `json:"id,omitempty"`
@@ -6686,6 +6846,7 @@ type KprobeArgumentChecker struct {
 	SyscallId             *SyscallIdChecker            `json:"syscallId,omitempty"`
 	SockaddrArg           *KprobeSockaddrChecker       `json:"sockaddrArg,omitempty"`
 	BpfProgArg            *KprobeBpfProgChecker        `json:"bpfProgArg,omitempty"`
+	Int32ListArg          *KprobeInt32ListChecker      `json:"int32ListArg,omitempty"`
 	Label                 *stringmatcher.StringMatcher `json:"label,omitempty"`
 }
 
@@ -7006,6 +7167,16 @@ func (checker *KprobeArgumentChecker) Check(event *tetragon.KprobeArgument) erro
 				return fmt.Errorf("KprobeArgumentChecker: BpfProgArg check failed: %T is not a BpfProgArg", event)
 			}
 		}
+		if checker.Int32ListArg != nil {
+			switch event := event.Arg.(type) {
+			case *tetragon.KprobeArgument_Int32ListArg:
+				if err := checker.Int32ListArg.Check(event.Int32ListArg); err != nil {
+					return fmt.Errorf("Int32ListArg check failed: %w", err)
+				}
+			default:
+				return fmt.Errorf("KprobeArgumentChecker: Int32ListArg check failed: %T is not a Int32ListArg", event)
+			}
+		}
 		if checker.Label != nil {
 			if err := checker.Label.Match(event.Label); err != nil {
 				return fmt.Errorf("Label check failed: %w", err)
@@ -7200,6 +7371,12 @@ func (checker *KprobeArgumentChecker) WithBpfProgArg(check *KprobeBpfProgChecker
 	return checker
 }
 
+// WithInt32ListArg adds a Int32ListArg check to the KprobeArgumentChecker
+func (checker *KprobeArgumentChecker) WithInt32ListArg(check *KprobeInt32ListChecker) *KprobeArgumentChecker {
+	checker.Int32ListArg = check
+	return checker
+}
+
 // WithLabel adds a Label check to the KprobeArgumentChecker
 func (checker *KprobeArgumentChecker) WithLabel(check *stringmatcher.StringMatcher) *KprobeArgumentChecker {
 	checker.Label = check
@@ -7379,6 +7556,12 @@ func (checker *KprobeArgumentChecker) FromKprobeArgument(event *tetragon.KprobeA
 	case *tetragon.KprobeArgument_BpfProgArg:
 		if event.BpfProgArg != nil {
 			checker.BpfProgArg = NewKprobeBpfProgChecker().FromKprobeBpfProg(event.BpfProgArg)
+		}
+	}
+	switch event := event.Arg.(type) {
+	case *tetragon.KprobeArgument_Int32ListArg:
+		if event.Int32ListArg != nil {
+			checker.Int32ListArg = NewKprobeInt32ListChecker().FromKprobeInt32List(event.Int32ListArg)
 		}
 	}
 	checker.Label = stringmatcher.Full(event.Label)
