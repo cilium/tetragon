@@ -29,7 +29,10 @@ point when the files are mapped into the application's virtual memory. To do so,
 
 Lastly, there is a family of system calls (e.g,. `truncate`) that allow to indirectly modify the
 contents of the file by changing its size. To catch these types of access we will hook into
-`security_path_truncate`.
+`security_path_truncate`. Note that starting with Linux kernel 6.2, this hook was
+[refactored](https://github.com/torvalds/linux/commit/3350607dc5637be2563f484dcfe2fed456f3d4ff)
+and replaced by `security_file_truncate`. See the [kernel compatibility](#kernel-compatibility)
+note below for details.
 
 ## Filtering
 
@@ -232,6 +235,58 @@ exit
 Another example of a [similar
 policy](https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/filename_monitoring_filtered.yaml)
 can be found in our examples folder.
+
+## Kernel compatibility
+
+The `security_path_truncate` hook used in the truncation monitoring was
+[refactored in Linux 6.2](https://github.com/torvalds/linux/commit/3350607dc5637be2563f484dcfe2fed456f3d4ff)
+and replaced by `security_file_truncate`. On kernels >= 6.2, the symbol
+`security_path_truncate` is no longer available as a traceable kprobe entry point
+— it may be inlined or its visibility changed. When the tracing policy references
+a hook that does not exist in the running kernel, the **entire policy fails to
+load**, which means that no events (including reads and writes from the other
+hooks) will be generated.
+
+If you use the example policy
+[`filename_monitoring.yaml`](https://raw.githubusercontent.com/cilium/tetragon/main/examples/tracingpolicy/filename_monitoring.yaml)
+as-is on a newer kernel, it will likely fail to load because it only contains 
+the old hook. To fix this, you should download the example policy and update it
+to either replace `security_path_truncate` with `security_file_truncate`, or
+add both hooks using the `ignore.callNotFound` option for maximum compatibility:
+
+```yaml
+  # For kernels < 6.2
+  - call: "security_path_truncate"
+    # ...
+    ignore:
+      callNotFound: true
+  # For kernels >= 6.2
+  - call: "security_file_truncate"
+    syscall: false
+    return: true
+    args:
+    - index: 0
+      type: "file" # (struct file *) used for getting the path
+    # ...
+    ignore:
+      callNotFound: true
+```
+
+With `callNotFound: true`, Tetragon will silently skip any hook that is not
+present in the running kernel, and still load the rest of the policy
+successfully.
+
+You can verify which hook is available on your kernel by running:
+
+```bash
+# Inside the Tetragon pod (or on the host):
+cat /sys/kernel/tracing/available_filter_functions | grep security_path_truncate
+cat /sys/kernel/tracing/available_filter_functions | grep security_file_truncate
+```
+
+Note that `security_file_truncate` takes a `struct file *` argument (type
+`"file"`) instead of `struct path *` (type `"path"`) used by
+`security_path_truncate`.
 
 ##  Limitations
 
