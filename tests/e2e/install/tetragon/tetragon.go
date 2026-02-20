@@ -153,7 +153,7 @@ func Install(opts ...Option) env.Func {
 
 		var helmArgs strings.Builder
 		for k, v := range o.HelmValues {
-			helmArgs.WriteString(fmt.Sprintf(" --set=%s=%s", k, v))
+			fmt.Fprintf(&helmArgs, " --set=%s=%s", k, v)
 			if clusterName := helpers.GetTempKindClusterName(ctx); clusterName != "" {
 				switch k {
 				case AgentImageKey:
@@ -193,7 +193,7 @@ func Install(opts ...Option) env.Func {
 				if err != nil {
 					return ctx, fmt.Errorf("failed to load BTF file into KinD cluster: %w", err)
 				}
-				helmArgs.WriteString(fmt.Sprintf(" --set=%s=/btf", AgentBTFKey))
+				fmt.Fprintf(&helmArgs, " --set=%s=/btf", AgentBTFKey)
 				helmArgs.WriteString(" --set=extraHostPathMounts[0].name=btf")
 				helmArgs.WriteString(" --set=extraHostPathMounts[0].mountPath=/btf")
 				helmArgs.WriteString(" --set=extraHostPathMounts[0].readOnly=true")
@@ -205,19 +205,19 @@ func Install(opts ...Option) env.Func {
 		// Handle procRoot for KinD cluster
 		if clusterName := helpers.GetTempKindClusterName(ctx); clusterName != "" {
 			// real-host-proc lets us mount procFS from the real host rather than the KinD node
-			helmArgs.WriteString(fmt.Sprintf(" --set=%s[0].name=real-host-proc", AgentExtraVolumesKey))
-			helmArgs.WriteString(fmt.Sprintf(" --set=%s[0].hostPath.path=/procRoot", AgentExtraVolumesKey))
-			helmArgs.WriteString(fmt.Sprintf(" --set=%s[0].hostPath.type=Directory", AgentExtraVolumesKey))
-			helmArgs.WriteString(fmt.Sprintf(" --set=%s[0].mountPath=/procRootReal", AgentExtraVolumeMountsKey))
-			helmArgs.WriteString(fmt.Sprintf(" --set=%s[0].name=real-host-proc", AgentExtraVolumeMountsKey))
+			fmt.Fprintf(&helmArgs, " --set=%s[0].name=real-host-proc", AgentExtraVolumesKey)
+			fmt.Fprintf(&helmArgs, " --set=%s[0].hostPath.path=/procRoot", AgentExtraVolumesKey)
+			fmt.Fprintf(&helmArgs, " --set=%s[0].hostPath.type=Directory", AgentExtraVolumesKey)
+			fmt.Fprintf(&helmArgs, " --set=%s[0].mountPath=/procRootReal", AgentExtraVolumeMountsKey)
+			fmt.Fprintf(&helmArgs, " --set=%s[0].name=real-host-proc", AgentExtraVolumeMountsKey)
 			// Set tetragon procfs value to the new host proc mountpoint
-			helmArgs.WriteString(fmt.Sprintf(" --set=%s.procfs=/procRootReal", AgentExtraArgsKey))
+			fmt.Fprintf(&helmArgs, " --set=%s.procfs=/procRootReal", AgentExtraArgsKey)
 			// real-export-dir gives us a directory we can use to export files directly to the host
-			helmArgs.WriteString(fmt.Sprintf(" --set=%s[1].name=real-export-dir", AgentExtraVolumesKey))
-			helmArgs.WriteString(fmt.Sprintf(" --set=%s[1].hostPath.path=/tetragonExport", AgentExtraVolumesKey))
-			helmArgs.WriteString(fmt.Sprintf(" --set=%s[1].hostPath.type=Directory", AgentExtraVolumesKey))
-			helmArgs.WriteString(fmt.Sprintf(" --set=%s[1].mountPath=/tetragonExport", AgentExtraVolumeMountsKey))
-			helmArgs.WriteString(fmt.Sprintf(" --set=%s[1].name=real-export-dir", AgentExtraVolumeMountsKey))
+			fmt.Fprintf(&helmArgs, " --set=%s[1].name=real-export-dir", AgentExtraVolumesKey)
+			fmt.Fprintf(&helmArgs, " --set=%s[1].hostPath.path=/tetragonExport", AgentExtraVolumesKey)
+			fmt.Fprintf(&helmArgs, " --set=%s[1].hostPath.type=Directory", AgentExtraVolumesKey)
+			fmt.Fprintf(&helmArgs, " --set=%s[1].mountPath=/tetragonExport", AgentExtraVolumeMountsKey)
+			fmt.Fprintf(&helmArgs, " --set=%s[1].name=real-export-dir", AgentExtraVolumeMountsKey)
 		}
 
 		helmArgs.WriteString(" --install")
