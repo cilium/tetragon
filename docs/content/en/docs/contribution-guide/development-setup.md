@@ -190,6 +190,53 @@ You can now build Tetragon in your VM:
 make -j3 tetragon-bpf tetragon tetra
 ```
 
+## Development container
+
+As an alternative to the setup above, `contrib/devcontainer` holds a
+[devcontainer](https://containers.dev/) configuration that provides a
+pre-configured development environment with all required tooling (Go,
+Clang/LLVM, bpftool, golangci-lint, etc.).
+
+### VS Code
+
+1. Install the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers).
+2. VS Code does not find the configuration under `contrib/`, so link it from
+   the repository root:
+   ```shell
+   ln -s contrib/devcontainer .devcontainer
+   ```
+3. Open the Tetragon repository in VS Code.
+4. When prompted, click **Reopen in Container** (or run the command
+   `Dev Containers: Reopen in Container`).
+5. The container will build and automatically compile BPF programs and Go
+   binaries on first start.
+
+### CLI (devcontainer CLI)
+
+```shell
+devcontainer up --workspace-folder . --config contrib/devcontainer/devcontainer.json
+devcontainer exec --workspace-folder . --config contrib/devcontainer/devcontainer.json bash
+```
+
+### What's included
+
+The devcontainer runs a Debian-based image with:
+
+- Go matching the version in `go.mod`
+- Clang/LLVM 22 for BPF compilation (`LOCAL_CLANG=1`)
+- bpftool, golangci-lint, gops
+- kubectl, helm, kind for Kubernetes development
+- Docker-outside-of-Docker for building container images
+
+The container runs in privileged mode with kernel mounts (`/sys/kernel/debug`,
+`/sys/fs/bpf`, `/lib/modules`) for eBPF development and testing.
+
+{{< note >}}
+The devcontainer requires a Linux host (or a Linux VM on macOS) with a
+BTF-enabled kernel (5.0+). Docker Desktop on macOS and Windows provides a
+suitable Linux kernel.
+{{< /note >}}
+
 ## What's next
 
 - See how to [make your first changes](/docs/contribution-guide/making-changes).
