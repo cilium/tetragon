@@ -167,11 +167,11 @@ func (msg *CheckedMessage) fieldsBody(g *protogen.GeneratedFile) (string, error)
 			return "", err
 		}
 		if !f.isList() && !f.isMap() {
-			fieldsStr.WriteString(fmt.Sprintf("%s *%s `%s`\n", f.name(), typeName, f.jsonTag()))
+			fmt.Fprintf(&fieldsStr, "%s *%s `%s`\n", f.name(), typeName, f.jsonTag())
 		} else if f.isList() {
-			fieldsStr.WriteString(fmt.Sprintf("%s *%s `%s`\n", f.name(), f.listCheckerName(g), f.jsonTag()))
+			fmt.Fprintf(&fieldsStr, "%s *%s `%s`\n", f.name(), f.listCheckerName(g), f.jsonTag())
 		} else {
-			fieldsStr.WriteString(fmt.Sprintf("%s %s `%s`\n", f.name(), typeName, f.jsonTag()))
+			fmt.Fprintf(&fieldsStr, "%s %s `%s`\n", f.name(), typeName, f.jsonTag())
 		}
 	}
 	return fieldsStr.String(), nil

@@ -253,7 +253,7 @@ func generateResponseTypeMap(g *protogen.GeneratedFile, files []*protogen.File) 
 		var ret strings.Builder
 		for _, oneof := range oneofs {
 			msgGoIdent := common.TetragonApiIdent(g, oneof.TypeName)
-			ret.WriteString(fmt.Sprintf("\"%s\": &%s{},\n", oneof.FieldName, msgGoIdent))
+			fmt.Fprintf(&ret, "\"%s\": &%s{},\n", oneof.FieldName, msgGoIdent)
 		}
 		return ret.String()
 	}
@@ -281,8 +281,8 @@ func generateProcessEventTuple(g *protogen.GeneratedFile, files []*protogen.File
 		for _, oneof := range oneofs {
 			msgGoIdent := strings.Split(common.TetragonApiIdent(g, oneof.TypeName), ".")
 			goIdent := common.TetragonApiIdent(g, "GetEventsResponse_"+msgGoIdent[len(msgGoIdent)-1])
-			ret.WriteString(fmt.Sprintf("case *%s:\n", goIdent))
-			ret.WriteString(fmt.Sprintf("    return \"%s\", response.Get%s(), (*tetragon.%s)(nil)\n", oneof.FieldName, msgGoIdent[len(msgGoIdent)-1], msgGoIdent[len(msgGoIdent)-1]))
+			fmt.Fprintf(&ret, "case *%s:\n", goIdent)
+			fmt.Fprintf(&ret, "    return \"%s\", response.Get%s(), (*tetragon.%s)(nil)\n", oneof.FieldName, msgGoIdent[len(msgGoIdent)-1], msgGoIdent[len(msgGoIdent)-1])
 		}
 		return ret.String()
 	}
@@ -310,7 +310,7 @@ func generateProcessEventMapEmpty(g *protogen.GeneratedFile, files []*protogen.F
 		var ret strings.Builder
 		for _, oneof := range oneofs {
 			msgGoIdent := strings.Split(common.TetragonApiIdent(g, oneof.TypeName), ".")
-			ret.WriteString(fmt.Sprintf("\"%s\": (*tetragon.%s)(nil),\n", oneof.FieldName, msgGoIdent[len(msgGoIdent)-1]))
+			fmt.Fprintf(&ret, "\"%s\": (*tetragon.%s)(nil),\n", oneof.FieldName, msgGoIdent[len(msgGoIdent)-1])
 		}
 		return ret.String()
 	}

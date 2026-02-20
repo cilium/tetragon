@@ -3381,7 +3381,7 @@ spec:
         operator: "` + opStr + `"
         values: `)
 	for i := range vals {
-		configHook.WriteString(fmt.Sprintf("\n        - \"%s\"", vals[i]))
+		fmt.Fprintf(&configHook, "\n        - \"%s\"", vals[i])
 	}
 	return configHook.String()
 }
@@ -3408,7 +3408,7 @@ spec:
         operator: "` + opStr + `"
         values: `)
 	for i := range vals {
-		configHook.WriteString(fmt.Sprintf("\n        - \"%s\"", vals[i]))
+		fmt.Fprintf(&configHook, "\n        - \"%s\"", vals[i])
 	}
 	configHook.WriteString("\n")
 	configHook.WriteString(`      matchActions:
@@ -3426,7 +3426,7 @@ spec:
         operator: "` + opStr + `"
         values: `)
 	for i := range vals {
-		configHook.WriteString(fmt.Sprintf("\n        - \"%s\"", vals[i]))
+		fmt.Fprintf(&configHook, "\n        - \"%s\"", vals[i])
 	}
 	configHook.WriteString("\n")
 	configHook.WriteString(`      matchActions:
@@ -3449,7 +3449,7 @@ spec:
         operator: "` + opStr + `"
         values: `)
 	for i := range vals {
-		configHook.WriteString(fmt.Sprintf("\n        - \"%s\"", vals[i]))
+		fmt.Fprintf(&configHook, "\n        - \"%s\"", vals[i])
 	}
 	return configHook.String()
 }
@@ -3784,7 +3784,7 @@ spec:
         operator: "Prefix"
         values: `)
 	for _, f := range vals {
-		configHook.WriteString(fmt.Sprintf("\n        - \"%s\"", f))
+		fmt.Fprintf(&configHook, "\n        - \"%s\"", f)
 	}
 	return configHook.String()
 }
@@ -3931,7 +3931,7 @@ spec:
       - operator: "` + opStr + `"
         values: `)
 	for i := range vals {
-		configHook.WriteString(fmt.Sprintf("\n        - \"%s\"", vals[i]))
+		fmt.Fprintf(&configHook, "\n        - \"%s\"", vals[i])
 	}
 	return configHook.String()
 }
@@ -4112,7 +4112,7 @@ spec:
       - operator: "` + opStr + `"
         values: `)
 	for i := range vals {
-		configHook.WriteString(fmt.Sprintf("\n        - \"%s\"", vals[i]))
+		fmt.Fprintf(&configHook, "\n        - \"%s\"", vals[i])
 	}
 	return configHook.String()
 }

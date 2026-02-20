@@ -120,7 +120,7 @@ type HelmValues map[string]string
 func (h *HelmValues) String() string {
 	var vals strings.Builder
 	for k, v := range *h {
-		vals.WriteString(fmt.Sprintf("%s=\"%s\", ", k, v))
+		fmt.Fprintf(&vals, "%s=\"%s\", ", k, v)
 	}
 	return fmt.Sprintf("HelmOptions(%s)", strings.TrimSuffix(vals.String(), ", "))
 }
