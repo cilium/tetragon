@@ -303,6 +303,30 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		arg.SinAddr = network.GetIP(address.SinAddr, address.SinFamily).String()
 		arg.SinPort = uint32(address.SinPort)
 		return arg
+	case gt.GenericSockaddrUnType:
+		var sockaddr api.MsgGenericKprobeSockaddrUn
+		var arg api.MsgGenericKprobeArgSockaddrUn
+
+		err := binary.Read(r, binary.LittleEndian, &sockaddr)
+		if err != nil {
+			logger.GetLogger().Warn("sockaddrun type err", logfields.Error, err)
+		}
+
+		arg.Index = uint64(a.index)
+		arg.Family = sockaddr.Family
+		if sockaddr.PathLen > 0 {
+			startIdx := 0
+			if sockaddr.IsAbstract {
+				startIdx = 1 // Skip leading null byte for abstract sockets
+			}
+			path := make([]byte, int(sockaddr.PathLen))
+			copy(path, sockaddr.Path[startIdx:startIdx+int(sockaddr.PathLen)])
+			if sockaddr.IsAbstract {
+				path = append([]byte{'@'}, path...)
+			}
+			arg.Path = strutils.UTF8FromBPFBytes(path)
+		}
+		return arg
 	case gt.GenericS64Type:
 		var output int64
 		var arg api.MsgGenericKprobeArgLong

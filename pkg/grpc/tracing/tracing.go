@@ -30,6 +30,7 @@ import (
 	"github.com/cilium/tetragon/pkg/reader/network"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/reader/path"
+	"github.com/cilium/tetragon/pkg/strutils"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
@@ -175,6 +176,13 @@ func getKprobeArgument(arg tracingapi.MsgGenericKprobeArg) *tetragon.KprobeArgum
 			Port:   e.SinPort,
 		}
 		a.Arg = &tetragon.KprobeArgument_SockaddrArg{SockaddrArg: sockaddrArg}
+		a.Label = e.Label
+	case tracingapi.MsgGenericKprobeArgSockaddrUn:
+		sockaddrUnArg := &tetragon.KprobeSockaddrUn{
+			Family: familyString(e.Family),
+			Path:   e.Path,
+		}
+		a.Arg = &tetragon.KprobeArgument_SockaddrunArg{SockaddrunArg: sockaddrUnArg}
 		a.Label = e.Label
 	case tracingapi.MsgGenericKprobeArgCred:
 		credArg := &tetragon.ProcessCredentials{
@@ -508,6 +516,8 @@ func familyString(family uint16) string {
 		return "AF_INET"
 	case constants.AF_INET6:
 		return "AF_INET6"
+	case constants.AF_UNIX:
+		return "AF_UNIX"
 	}
 	return ""
 }
@@ -620,6 +630,16 @@ func (msg *MsgGenericTracepointUnix) HandleMessage() *tetragon.GetEventsResponse
 
 			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_SockaddrArg{
 				SockaddrArg: &address,
+			}})
+
+		case tracingapi.MsgGenericKprobeArgSockaddrUn:
+			address := tetragon.KprobeSockaddrUn{
+				Family: familyString(v.Family),
+				Path:   strutils.UTF8FromBPFBytes([]byte(v.Path)),
+			}
+
+			tetragonArgs = append(tetragonArgs, &tetragon.KprobeArgument{Arg: &tetragon.KprobeArgument_SockaddrunArg{
+				SockaddrunArg: &address,
 			}})
 
 		case tracingapi.MsgGenericSyscallID:

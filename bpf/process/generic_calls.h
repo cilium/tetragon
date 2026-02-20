@@ -220,6 +220,7 @@ FUNC_INLINE bool is_read_arg_1(long type)
 	case skb_type:
 	case sock_type:
 	case sockaddr_type:
+	case sockaddr_un_type:
 		return true;
 	}
 	return false;
@@ -330,6 +331,9 @@ __read_arg_1(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 		break;
 	case sockaddr_type:
 		size = copy_sockaddr(args, arg);
+		break;
+	case sockaddr_un_type:
+		size = copy_sockaddr_un(args, arg);
 		break;
 	default:
 		size = 0;

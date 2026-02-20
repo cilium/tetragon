@@ -271,6 +271,13 @@ type MsgGenericKprobeSockaddr struct {
 	SinAddr   [2]uint64
 }
 
+type MsgGenericKprobeSockaddrUn struct {
+	Family     uint16
+	IsAbstract bool
+	PathLen    uint8
+	Path       [108]byte
+}
+
 type MsgGenericKprobeArgSockaddr struct {
 	Index     uint64
 	SinFamily uint16
@@ -284,6 +291,21 @@ func (m MsgGenericKprobeArgSockaddr) GetIndex() uint64 {
 }
 
 func (m MsgGenericKprobeArgSockaddr) IsReturnArg() bool {
+	return m.Index == ReturnArgIndex
+}
+
+type MsgGenericKprobeArgSockaddrUn struct {
+	Index  uint64
+	Family uint16
+	Path   string
+	Label  string
+}
+
+func (m MsgGenericKprobeArgSockaddrUn) GetIndex() uint64 {
+	return m.Index
+}
+
+func (m MsgGenericKprobeArgSockaddrUn) IsReturnArg() bool {
 	return m.Index == ReturnArgIndex
 }
 
