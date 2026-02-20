@@ -33,6 +33,8 @@ cscope.po.out
 cscope.out
 cscope.in.out
 .hugo_build.lock
+.devcontainer
+contrib/devcontainer/devcontainer-lock.json
 
 # macOS artifacts
 .DS_Store
