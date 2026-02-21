@@ -61,7 +61,7 @@ github.com/cilium/little-vm-helper/pkg/logcmd
 github.com/cilium/little-vm-helper/pkg/runner
 github.com/cilium/little-vm-helper/pkg/slogger
 github.com/cilium/little-vm-helper/pkg/step
-# github.com/cilium/lumberjack/v2 v2.4.1
+# github.com/cilium/lumberjack/v2 v2.4.2
 ## explicit; go 1.13
 github.com/cilium/lumberjack/v2
 # github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000 => ./api
