@@ -58,9 +58,9 @@ __asm__ (
 );
 #endif
 
+#if defined(__x86_64__)
 static const char *test_3_string = "test_3_string_CASE";
 
-#if defined(__x86_64__)
 static __naked unsigned long test_3()
 {
 	asm volatile (
