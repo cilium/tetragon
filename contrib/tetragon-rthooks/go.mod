@@ -1,7 +1,7 @@
 module github.com/cilium/tetragon/contrib/rthooks/tetragon-oci-hook
 
 // renovate: datasource=golang-version depName=go
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/alecthomas/kong v1.14.0
