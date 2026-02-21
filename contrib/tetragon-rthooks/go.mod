@@ -5,7 +5,7 @@ go 1.25.0
 
 require (
 	github.com/alecthomas/kong v1.14.0
-	github.com/cilium/lumberjack/v2 v2.4.1
+	github.com/cilium/lumberjack/v2 v2.4.2
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/containerd/containerd v1.7.30
 	github.com/containerd/nri v0.11.0
