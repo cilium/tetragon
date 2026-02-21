@@ -485,7 +485,7 @@ func AvailableSyscalls() ([]string, error) {
 	}
 	for key, value := range names {
 		if value == "" {
-			return nil, fmt.Errorf("syscall name for %q is empty", key)
+			return nil, fmt.Errorf("syscall name for %d is empty", key)
 		}
 
 		sym, err := arch.AddSyscallPrefix(value)
