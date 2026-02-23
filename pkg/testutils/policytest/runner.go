@@ -186,7 +186,7 @@ func (r *LocalRunner) RunTest(l *slog.Logger, test *T, runConf *RunConf) *Result
 	var res Result
 	for _, sc := range test.Scenarios {
 		scenario := sc(r.conf)
-		scRes := r.RunScenario(l, scenario)
+		scRes := r.RunScenario(l, scenario, polHandler, runConf)
 		res.ScenariosRes = append(res.ScenariosRes, scRes)
 	}
 
@@ -197,7 +197,9 @@ func (r *LocalRunner) RunTest(l *slog.Logger, test *T, runConf *RunConf) *Result
 	return &res
 }
 
-func (r *LocalRunner) RunScenario(l *slog.Logger, scenario *Scenario) ScenarioRes {
+func (r *LocalRunner) RunScenario(
+	l *slog.Logger, scenario *Scenario, polHandler *PolicyHandler, runConf *RunConf,
+) ScenarioRes {
 	// set the scenario timeout to 10s
 	// TODO: make it configurable
 	ctx, cancel := context.WithTimeout(r.cli.Ctx, time.Second*10)
@@ -211,11 +213,25 @@ func (r *LocalRunner) RunScenario(l *slog.Logger, scenario *Scenario) ScenarioRe
 	// notify the forwarder to forward events to the checker
 	r.fwdCtlChan <- fwdCtl{cmd: fwdCmdSetForward, fwd: resChan}
 
+	var actionCountsErr error
+	var cntsBefore, cntsAfter *tetragon.TracingPolicyActionCounters
+	if !scenario.ActCountChecker.empty() {
+		cntsBefore, actionCountsErr = polHandler.GetCounts(l, r.cli)
+	}
+
 	// run the trigger
 	// NB: using the cli context for now
 	triggerErr := scenario.Trigger.Trigger(ctx)
 	if triggerErr != nil {
 		cancel()
+	}
+
+	if cntsBefore != nil {
+		cntsAfter, actionCountsErr = polHandler.GetCounts(l, r.cli)
+		if actionCountsErr == nil {
+			actionCountsErr = actCountsCheck(runConf.MonitorMode,
+				cntsBefore, cntsAfter, &scenario.ActCountChecker)
+		}
 	}
 
 	// wait for the checker to return
@@ -224,9 +240,10 @@ func (r *LocalRunner) RunScenario(l *slog.Logger, scenario *Scenario) ScenarioRe
 	r.fwdCtlChan <- fwdCtl{cmd: fwdCmdSetForward, fwd: nil}
 
 	return ScenarioRes{
-		Name:       scenario.Name,
-		TriggerErr: triggerErr,
-		CheckerErr: checkerRet.err,
+		Name:            scenario.Name,
+		TriggerErr:      triggerErr,
+		CheckerErr:      checkerRet.err,
+		ActionCountsErr: actionCountsErr,
 	}
 }
 
@@ -410,4 +427,22 @@ func (ph *PolicyHandler) Configure(
 	}
 
 	return fmt.Errorf("failed to configure policy: %w", err)
+}
+
+func (ph *PolicyHandler) GetCounts(
+	_ *slog.Logger, client *cli.ClientWithContext) (*tetragon.TracingPolicyActionCounters, error) {
+
+	res, err := client.Client.ListTracingPolicies(client.Ctx, &tetragon.ListTracingPoliciesRequest{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get action counts: %w", err)
+	}
+
+	for _, pol := range res.GetPolicies() {
+		if pol.Name == ph.tpName && pol.Namespace == ph.tpNamespace {
+			counts := pol.GetStats().GetActionCounters()
+			return counts, nil
+		}
+	}
+
+	return nil, errors.New("failed to get action counts: policy not found")
 }
