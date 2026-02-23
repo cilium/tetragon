@@ -65,9 +65,15 @@ spec:
 	if c.RunConf != nil && c.RunConf.MonitorMode {
 		exitCode = 0
 	}
+	postCnt := uint64(1)
+	overrideCount := uint64(1)
 	return &policytest.Scenario{
 		Name:         "execute uprobe-simple, check enforcement and events",
 		Trigger:      policytest.NewCmdTrigger(myBin).ExpectExitCode(exitCode),
 		EventChecker: ec.NewUnorderedEventChecker(upChecker),
+		ActCountChecker: policytest.ActionCounts{
+			Post:     &postCnt,
+			Override: &overrideCount,
+		},
 	}
 }).RegisterAtInit()

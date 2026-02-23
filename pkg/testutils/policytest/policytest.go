@@ -19,9 +19,10 @@ type Trigger interface {
 }
 
 type Scenario struct {
-	Name         string
-	Trigger      Trigger
-	EventChecker ec.MultiEventChecker
+	Name            string
+	Trigger         Trigger
+	EventChecker    ec.MultiEventChecker
+	ActCountChecker ActionCounts
 }
 
 // Policies are represented as strings, because that's how they are loaded via gRPC
@@ -52,9 +53,10 @@ type T struct {
 }
 
 type ScenarioRes struct {
-	Name       string
-	TriggerErr error
-	CheckerErr error
+	Name            string
+	TriggerErr      error
+	CheckerErr      error
+	ActionCountsErr error
 }
 
 func (sr *ScenarioRes) Err() error {
@@ -64,6 +66,9 @@ func (sr *ScenarioRes) Err() error {
 	}
 	if sr.CheckerErr != nil {
 		err = addErr(err, "checker error", sr.CheckerErr)
+	}
+	if sr.ActionCountsErr != nil {
+		err = addErr(err, "action counts error", sr.ActionCountsErr)
 	}
 	return err
 }
