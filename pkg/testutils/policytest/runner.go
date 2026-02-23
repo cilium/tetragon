@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"sync"
 	"time"
 
@@ -139,6 +140,13 @@ func (r *LocalRunner) AddPolicy(l *slog.Logger, test *T) (*PolicyHandler, error)
 		return nil, err
 	}
 	tpName := tp.TpName()
+
+	if r.conf.DumpPolicyPath != "" {
+		err := os.WriteFile(r.conf.DumpPolicyPath, []byte(pol), 0644)
+		if err != nil {
+			l.Warn("failed to dump policy", "err", err)
+		}
+	}
 
 	_, err = r.cli.Client.AddTracingPolicy(r.cli.Ctx, &tetragon.AddTracingPolicyRequest{
 		Yaml: string(pol),
