@@ -52,6 +52,7 @@ func listCmd() *cobra.Command {
 func runCmd() *cobra.Command {
 	cwd, _ := os.Getwd()
 	testBinsPath := filepath.Join(cwd, "contrib/tester-progs")
+	dumpPolicyPath := ""
 	monitorMode := false
 	cmd := cobra.Command{
 		Use:   "run",
@@ -79,8 +80,9 @@ func runCmd() *cobra.Command {
 				return ok
 			})
 			runner, err := policytest.NewLocalRunner(ctx, log, &policytest.Conf{
-				GrpcAddr: common.ServerAddress,
-				BinsDir:  testBinsPath,
+				GrpcAddr:       common.ServerAddress,
+				BinsDir:        testBinsPath,
+				DumpPolicyPath: dumpPolicyPath,
 			})
 			if err != nil {
 				return fmt.Errorf("failed to start local runner: %w", err)
@@ -101,6 +103,7 @@ func runCmd() *cobra.Command {
 	}
 	flags := cmd.Flags()
 	flags.StringVar(&testBinsPath, "bindir", testBinsPath, "path for test binaries directory")
+	flags.StringVar(&dumpPolicyPath, "dump-policy-path", dumpPolicyPath, "save the policy in the provided path")
 	flags.BoolVar(&monitorMode, "monitor-mode", monitorMode, "set the policy(-ies) in monitor mode before running the test(s)")
 	return &cmd
 }

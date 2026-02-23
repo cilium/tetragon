@@ -18,6 +18,9 @@ type Conf struct {
 
 	// Test run configuration
 	RunConf *RunConf
+
+	// Path to save the generated policy
+	DumpPolicyPath string
 }
 
 func (c *Conf) TestBinary(s string) string {
