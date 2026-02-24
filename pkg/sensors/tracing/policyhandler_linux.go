@@ -163,6 +163,9 @@ func (h policyHandler) PolicyHandler(
 	if len(spec.Usdts) > 0 {
 		sections++
 	}
+	if len(spec.Fentries) > 0 {
+		sections++
+	}
 	if sections > 1 {
 		return nil, errors.New("tracing policies with multiple sections of kprobes, tracepoints, lsm hooks, uprobes or usdts are currently not supported")
 	}
@@ -172,13 +175,25 @@ func (h policyHandler) PolicyHandler(
 		return nil, fmt.Errorf("failed to parse options: %w", err)
 	}
 
-	if len(spec.KProbes) > 0 {
-		name := "generic_kprobe"
+	if len(spec.KProbes) > 0 || len(spec.Fentries) > 0 {
+		var kprobes []v1alpha1.KProbeSpec
+		var name string
+
+		fentry := len(spec.Fentries) > 0
+
+		if fentry {
+			name = "generic_fentry"
+			kprobes = spec.Fentries
+		} else {
+			name = "generic_kprobe"
+			kprobes = spec.KProbes
+		}
+
 		log := logger.GetLogger().With(
 			"policy", tracingpolicy.TpLongname(policy),
 			"sensor", name,
 		)
-		validateInfo, err := preValidateKprobes(log, spec.KProbes, spec.Lists, spec.Enforcers)
+		validateInfo, err := preValidateKprobes(log, kprobes, spec.Lists, spec.Enforcers)
 		if err != nil {
 			return nil, fmt.Errorf("validation failed: %w", err)
 		}
@@ -186,6 +201,9 @@ func (h policyHandler) PolicyHandler(
 		// having a policy with an empty kprobe: section
 		if allKprobesIgnored(validateInfo) {
 			return nil, nil
+		}
+		if fentry {
+			return createGenericFentrySensor(spec, name, polInfo, validateInfo)
 		}
 		return createGenericKprobeSensor(spec, name, polInfo, validateInfo)
 	}
