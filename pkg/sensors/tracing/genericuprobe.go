@@ -567,6 +567,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 	var preload bool
 
 	addArg := func(i int, a *v1alpha1.KProbeArg, data bool) error {
+		var preloadArg bool
 		argType := gt.GenericTypeFromString(a.Type)
 
 		if data {
@@ -588,7 +589,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 					if preload {
 						return errors.New("error: can't preload more than one argument")
 					}
-					preload = true
+					preloadArg = true
 				}
 			} else if hasCurrentTaskSource(a) {
 				if !bpf.HasProgramLargeSize() {
@@ -620,16 +621,18 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 				if preload {
 					return errors.New("error: can't preload more than one argument")
 				}
-				preload = true
+				preloadArg = true
 			}
 		}
+
+		preload = preload || preloadArg
 
 		has.sleepablePreload = has.sleepablePreload || preload
 
 		if argType == gt.GenericInvalidType {
 			return fmt.Errorf("Arg(%d) type '%s' unsupported", i, a.Type)
 		}
-		argMValue, err := getUserMetaValue(a, preload)
+		argMValue, err := getUserMetaValue(a, preloadArg)
 		if err != nil {
 			return err
 		}
