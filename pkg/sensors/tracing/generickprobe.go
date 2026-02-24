@@ -533,9 +533,9 @@ type hasMaps struct {
 
 // hasMapsSetup setups the has maps for the per policy maps. The per kprobe maps
 // are setup later in createSingleKprobeSensor or createMultiKprobeSensor.
-func hasMapsSetup(spec *v1alpha1.TracingPolicySpec) hasMaps {
-	has := hasMaps{}
-	for _, kprobe := range spec.KProbes {
+func hasMapsSetup(spec *v1alpha1.TracingPolicySpec, kprobes []v1alpha1.KProbeSpec, fentry bool) hasMaps {
+	has := hasMaps{fentry: fentry}
+	for _, kprobe := range kprobes {
 		has.fdInstall = has.fdInstall || selectors.HasFDInstall(kprobe.Selectors)
 		has.enforcer = has.enforcer || len(spec.Enforcers) != 0
 		has.rateLimit = has.rateLimit || selectors.HasRateLimit(kprobe.Selectors)
@@ -550,11 +550,23 @@ func isArm() bool {
 	return runtime.GOARCH == "arm64"
 }
 
+type attachType int
+
+const (
+	kprobe attachType = iota
+	fentry
+)
+
+func isFentry(typ attachType) bool {
+	return typ == fentry
+}
+
 func createGenericKprobeSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
 	polInfo *policyInfo,
 	valInfo []*kpValidateInfo,
+	typ attachType,
 ) (*sensors.Sensor, error) {
 	var progs []*program.Program
 	var maps []*program.Map
@@ -562,10 +574,17 @@ func createGenericKprobeSensor(
 	var useMulti bool
 	var selMaps *selectors.KernelSelectorMaps
 	var celExprs *selectors.CelExprFunctions
+	var kprobes []v1alpha1.KProbeSpec
 
-	kprobes := spec.KProbes
+	fentry := isFentry(typ)
 
-	has := hasMapsSetup(spec)
+	if fentry {
+		kprobes = spec.Fentries
+	} else {
+		kprobes = spec.KProbes
+	}
+
+	has := hasMapsSetup(spec, kprobes, fentry)
 
 	// use multi kprobe only if:
 	// - it's not disabled by spec option
@@ -576,6 +595,10 @@ func createGenericKprobeSensor(
 
 		// arm does not override on top of kprobe.multi
 		if isArm() && (has.enforcer || has.override) {
+			useMulti = false
+		}
+		// there's no multi support yet
+		if fentry {
 			useMulti = false
 		}
 	}
