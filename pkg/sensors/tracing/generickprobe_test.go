@@ -100,7 +100,7 @@ func Test_SensorDestroyHook(t *testing.T) {
 	// contained in one sensor.
 	policyInfo, err := newPolicyInfoFromSpec("", "test_policy", policyfilter.NoFilterID, spec, nil)
 	require.NoError(t, err)
-	sensor, err := createGenericKprobeSensor(spec, "test_sensor", policyInfo, simpleValidateInfo(spec.KProbes))
+	sensor, err := createGenericKprobeSensor(spec, "test_sensor", policyInfo, simpleValidateInfo(spec.KProbes), kprobe)
 	if err != nil {
 		t.Errorf("createGenericKprobeSensor err expected: nil, got: %s", err)
 	}
