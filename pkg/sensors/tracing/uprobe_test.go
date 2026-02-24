@@ -870,8 +870,16 @@ spec:
       - args: [0]
         operator: "Equal"
         values:
-        - "` + argOneVal + `"
+        - "` + argOneVal + `"`
+	if kernels.MinKernelVersion("5.4") {
+		pathHook += `
+    data:
+    - index: 0
+      type: "string"
+      source: "current_task"
+      resolve: "mm.owner.comm"
 `
+	}
 
 	pathConfigHook := []byte(pathHook)
 	err := os.WriteFile(testConfigFile, pathConfigHook, 0644)
@@ -883,6 +891,16 @@ spec:
 		WithProcess(ec.NewProcessChecker().
 			WithBinary(sm.Full(uprobeTest1))).
 		WithSymbol(sm.Full(symbol))
+
+	if kernels.MinKernelVersion("5.4") {
+		upChecker = upChecker.
+			WithData(ec.NewKprobeArgumentListMatcher().
+				WithOperator(lc.Ordered).
+				WithValues(
+					ec.NewKprobeArgumentChecker().WithStringArg(sm.Full("uprobe-test-1")),
+				))
+	}
+
 	checker := ec.NewUnorderedEventChecker(upChecker)
 
 	var doneWG, readyWG sync.WaitGroup
