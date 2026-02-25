@@ -2456,7 +2456,7 @@ rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_k
 				     : [arg_size] "+r"(arg_size)
 				     :);
 			probe_read(scratch, arg_size, &e->args[key_index]);
-			key->arg_hash[i] = fnv1a_hash_bytes(scratch, arg_size);
+			key->arg_hash[i] = fnv1a_wordmix_hash_bytes(scratch, arg_size);
 		}
 	}
 

@@ -14,8 +14,8 @@
 #define ACTION_RATE_LIMIT_SCOPE_GLOBAL	2
 
 /* FNV-1a hash constants for 64-bit. */
-#define FNV1A_64_INIT  ((__u64)0xcbf29ce484222325ULL)
-#define FNV1A_64_PRIME ((__u64)0x100000001b3ULL)
+#define FNV_OFFSET_BASIS 0xcbf29ce484222325ULL
+#define FNV_PRIME        0x100000001b3ULL
 
 /*
  * Maximum bytes of each argument to hash for the rate-limit dedup key.
@@ -27,28 +27,59 @@
  */
 #define MAX_HASH_BYTES 255
 
+/* MurmurHash3 fmix64 finalizer — guarantees full avalanche. */
+static inline __attribute__((always_inline)) __u64
+fnv1a_wordmix_fmix64(__u64 h)
+{
+	h ^= h >> 33;
+	h *= 0xff51afd7ed558ccdULL;
+	h ^= h >> 33;
+	h *= 0xc4ceb9fe1a85ec53ULL;
+	h ^= h >> 33;
+	return h;
+}
+
 /*
  * FNV-1a hash of up to MAX_HASH_BYTES of src into a single u64.
+ * Processes 8-byte words for efficiency, with fmix64 avalanche finalizer.
  */
 static inline __attribute__((always_inline)) __u64
-fnv1a_hash_bytes(char *src, __u32 len)
+fnv1a_wordmix_hash_bytes(char *src, __u32 len)
 {
-	__u64 hash = FNV1A_64_INIT;
-	__u32 i;
+	__u64 hash = FNV_OFFSET_BASIS;
+	__u32 i = 0;
+	__u64 word;
 
 	if (len > MAX_HASH_BYTES)
 		len = MAX_HASH_BYTES;
-	/* Mask len so the verifier can prove the loop bound. */
+	// Mask len so the verifier can prove the loop bound.
 	asm volatile("%[len] &= 0xff;\n"
 		     : [len] "+r"(len)
 		     :);
 
-	for (i = 0; i < MAX_HASH_BYTES; i++) {
+	// Process 8-bytes per iteration vs 1-byte per iteration in FNV-1a.
+	for (__u32 j = 0; j < MAX_HASH_BYTES / 8; j++) {
+		if (i + 8 > len)
+			break;
+		__builtin_memcpy(&word, &src[i], sizeof(word));
+		hash ^= word;
+		hash *= FNV_PRIME;
+		i += 8;
+	}
+
+	// Process remaining bytes (at most 7).
+	for (__u32 j = 0; j < 7; j++) {
 		if (i >= len)
 			break;
 		hash ^= (__u64)(__u8)src[i];
-		hash *= FNV1A_64_PRIME;
+		hash *= FNV_PRIME;
+		i++;
 	}
+
+	// Apply MurmurHash finalizer to ensure bit mixing.
+	hash ^= (__u64)len;
+	hash = fnv1a_wordmix_fmix64(hash);
+
 	return hash;
 }
 
