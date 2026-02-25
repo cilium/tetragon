@@ -92,10 +92,6 @@ preload_arg(struct pt_regs *ctx, struct event_config *config, int index)
 #else
 	int arg_index = config->idx[index];
 
-	asm volatile("%[arg_index] &= %1 ;\n"
-		     : [arg_index] "+r"(arg_index)
-		     : "i"(MAX_SELECTORS_MASK));
-
 	switch (arg_index) {
 	case 0:
 		a = PT_REGS_PARM1_CORE(ctx);
