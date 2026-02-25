@@ -2274,7 +2274,7 @@ installfd(struct msg_generic_kprobe *e, int fd, int name, bool follow)
 	asm volatile("%[fd] &= %[mask];\n"
 		     : [fd] "+r"(fd)
 		     : [mask] "i"(MAX_POSSIBLE_ARGS_MASK));
-	if (fd > MAX_POSSIBLE_ARGS)
+	if (fd >= MAX_POSSIBLE_ARGS)
 		return 0;
 
 	if (!is_arg_ok(e, fd))
@@ -2294,7 +2294,7 @@ installfd(struct msg_generic_kprobe *e, int fd, int name, bool follow)
 		asm volatile("%[name] &= %[mask];\n"
 			     : [name] "+r"(name)
 			     : [mask] "i"(MAX_POSSIBLE_ARGS_MASK));
-		if (name > MAX_POSSIBLE_ARGS)
+		if (name >= MAX_POSSIBLE_ARGS)
 			return 0;
 
 		if (!is_arg_ok(e, name))
@@ -2326,7 +2326,7 @@ msg_generic_arg_value_u64(struct msg_generic_kprobe *e, unsigned int arg_id, __u
 	__u32 argoff;
 	__u64 *ret;
 
-	if (arg_id > MAX_POSSIBLE_ARGS)
+	if (arg_id >= MAX_POSSIBLE_ARGS)
 		return err_val;
 
 	if (!is_arg_ok(e, arg_id))
@@ -2349,7 +2349,7 @@ copyfd(struct msg_generic_kprobe *e, int oldfd, int newfd)
 	asm volatile("%[oldfd] &= %[mask];\n"
 		     : [oldfd] "+r"(oldfd)
 		     : [mask] "i"(MAX_POSSIBLE_ARGS_MASK));
-	if (oldfd > MAX_POSSIBLE_ARGS)
+	if (oldfd >= MAX_POSSIBLE_ARGS)
 		return 0;
 	if (!is_arg_ok(e, oldfd))
 		return 0;
@@ -2366,7 +2366,7 @@ copyfd(struct msg_generic_kprobe *e, int oldfd, int newfd)
 		asm volatile("%[newfd] &= %[mask];\n"
 			     : [newfd] "+r"(newfd)
 			     : [mask] "i"(MAX_POSSIBLE_ARGS_MASK));
-		if (newfd > MAX_POSSIBLE_ARGS)
+		if (newfd >= MAX_POSSIBLE_ARGS)
 			return 0;
 		if (!is_arg_ok(e, newfd))
 			return 0;
@@ -2506,7 +2506,7 @@ tracksock(struct msg_generic_kprobe *e, int socki, bool track)
 	asm volatile("%[socki] &= %[mask];\n"
 		     : [socki] "+r"(socki)
 		     : [mask] "i"(MAX_POSSIBLE_ARGS_MASK));
-	if (socki > MAX_POSSIBLE_ARGS)
+	if (socki >= MAX_POSSIBLE_ARGS)
 		return 0;
 
 	if (!is_arg_ok(e, socki))
