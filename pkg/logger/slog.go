@@ -73,12 +73,12 @@ func initializeSlog(logOpts LogOptions, useStdout bool) {
 
 	switch logFormat {
 	case logFormatJSON, logFormatJSONTimestamp:
-		DefaultSlogLogger = slog.New(slog.NewJSONHandler(
+		*DefaultSlogLogger = *slog.New(slog.NewJSONHandler(
 			writer,
 			&opts,
 		))
 	case logFormatText, logFormatTextTimestamp:
-		DefaultSlogLogger = slog.New(slog.NewTextHandler(
+		*DefaultSlogLogger = *slog.New(slog.NewTextHandler(
 			writer,
 			&opts,
 		))
