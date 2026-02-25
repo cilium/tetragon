@@ -7,8 +7,6 @@ package policyfilter
 import (
 	"errors"
 
-	"k8s.io/client-go/tools/cache"
-
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/tetragon/pkg/labels"
 	"github.com/cilium/tetragon/pkg/podhelpers"
@@ -49,9 +47,6 @@ func (s *disabled) DelPodContainer(podID PodID, containerID string) error {
 
 func (s *disabled) DelPod(podID PodID) error {
 	return nil
-}
-
-func (s *disabled) RegisterPodHandlers(podInformer cache.SharedIndexInformer) {
 }
 
 func (s *disabled) Close() error {

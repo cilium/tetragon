@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
+//go:build k8s
+
 package policyfilter
 
 import (
@@ -10,7 +12,6 @@ import (
 
 	"github.com/cilium/ebpf"
 
-	"github.com/cilium/tetragon/pkg/cgroups/fsscan"
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/tetragon/pkg/labels"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -65,33 +66,13 @@ func init() {
 			// register pod handlers for policyfilters
 			if pfState, err := GetState(); err == nil {
 				logger.GetLogger().Info("registering policyfilter pod handlers")
-				pfState.RegisterPodHandlers(podInformer)
+				if st, ok := pfState.(*state); ok {
+					st.RegisterPodHandlers(podInformer)
+				}
 			}
 		},
 	})
 }
-
-const (
-	// polMapSize is the number of entries for the (inner) policy map. It
-	// should be large enough to accommodate the number of containers
-	// running in a system.
-	polMapSize = 32768
-
-	// same as POLICY_FILTER_MAX_POLICIES in policy_filter.h
-	polMaxPolicies = 128
-)
-
-type PolicyID uint32
-type PodID uuid.UUID
-type CgroupID uint64
-type StateID uint64
-
-const (
-	// we reserve 0 as a special value to indicate no filtering
-	NoFilterPolicyID         = 0
-	NoFilterID               = PolicyID(NoFilterPolicyID)
-	FirstValidFilterPolicyID = NoFilterPolicyID + 1
-)
 
 func (i PodID) String() string {
 	var x = uuid.UUID(i)
@@ -249,6 +230,10 @@ func (pol *policy) matchingContainersCgroupIDs(containers []containerInfo) []Cgr
 	return cgroupIDs
 }
 
+type cgidFinder interface {
+	findCgroupID(podID PodID, containerID string) (CgroupID, error)
+}
+
 // State holds the necessary state for policyfilter
 type state struct {
 	log *slog.Logger
@@ -276,7 +261,7 @@ func New(enableCgroupMap bool) (*state, error) {
 	log := logger.GetLogger().With("subsystem", "policy-filter")
 	return newState(
 		log,
-		&cgfsFinder{fsscan.New(), log},
+		newCgfsFinder(log),
 		enableCgroupMap,
 	)
 }

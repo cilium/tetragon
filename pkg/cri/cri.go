@@ -3,6 +3,8 @@
 
 // code for connecting to the cri
 
+//go:build k8s
+
 package cri
 
 import (

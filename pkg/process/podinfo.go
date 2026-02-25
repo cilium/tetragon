@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of Tetragon
 
+//go:build k8s
+
 package process
 
 import (
@@ -15,6 +17,10 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	corev1 "k8s.io/api/core/v1"
+)
+
+var (
+	k8s watcher.PodAccessor
 )
 
 func getExecCommand(probe *corev1.Probe) []string {
@@ -124,4 +130,10 @@ func getPodInfo(
 		podInfo.PodAnnotations = pod.Annotations
 	}
 	return podInfo
+}
+
+// GetK8s returns PodAccessor. You must call InitCache before calling this function to ensure
+// that k8s has been initialized.
+func GetK8s() watcher.PodAccessor {
+	return k8s
 }
