@@ -57,7 +57,7 @@ From an architectural security perspective, the operator's responsibility for di
 ### Kubernetes Workload Attacker
 
 {{< figure
-    src="/images/threat-model /kubernetes-workload-attacker.png"
+    src="/images/threat-model/kubernetes-workload-attacker.png"
     caption="Kubernetes Workload Attacker Diagram"
     width=800px
     alt="A diagram showing Tetragon capabilities and how it interacts with Kubernetes, the kernel and other metrics, logging, tracing or events systems"
@@ -84,7 +84,7 @@ The event throttling feature offers protection against event floods. This featur
 ### Limited Privilege Host Attacker
 
 {{< figure
-    src="/images/threat-model /limited-host.png"
+    src="/images/threat-model/limited-host.png"
     caption="Limited Privilege Host Attacker Diagram"
     width=800px
     alt="A diagram showing Tetragon capabilities and how it interacts with Kubernetes, the kernel and other metrics, logging, tracing or events systems"
@@ -111,7 +111,7 @@ Tetragon's current design does not offer comprehensive protection against all fo
 ## Kubernetes API Server Attacker
 
 {{< figure
-    src="/images/threat-model /kubernetes-api.png"
+    src="/images/threat-model/kubernetes-api.png"
     caption="Kubernetes API Server Attacker Diagram"
     width=800px
     alt="A diagram showing Tetragon capabilities and how it interacts with Kubernetes, the kernel and other metrics, logging, tracing or events systems"
@@ -130,7 +130,7 @@ An attacker who compromises the Kubernetes API server or acquires credentials fo
 ## Root-Equivalent Host Attacker
 
 {{< figure
-    src="/images/threat-model /root.png"
+    src="/images/threat-model/root.png"
     caption="Root-Equivalent Host Attacker Diagram"
     width=800px
     alt="A diagram showing Tetragon capabilities and how it interacts with Kubernetes, the kernel and other metrics, logging, tracing or events systems"
@@ -148,7 +148,7 @@ The Tetragon Operator should not be deployed on nodes hosting untrusted workload
 ## Network Attacker
 
 {{< figure
-    src="/images/threat-model /kubernetes-network.png"
+    src="/images/threat-model/kubernetes-network.png"
     caption="Network Attacker Diagram"
     width=800px
     alt="A diagram showing Tetragon capabilities and how it interacts with Kubernetes, the kernel and other metrics, logging, tracing or events systems"
