@@ -884,10 +884,9 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td>enum</td>
         <td>
           Action to execute.
-NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-be removed in version 1.5.<br/>
+NOTE: legacy FD-tracking actions were removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -903,7 +902,7 @@ be removed in version 1.5.<br/>
         <td><b>argFd</b></td>
         <td>integer</td>
         <td>
-          An arg index for the fd for fdInstall action<br/>
+          Deprecated: arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -928,7 +927,7 @@ be removed in version 1.5.<br/>
         <td><b>argName</b></td>
         <td>integer</td>
         <td>
-          An arg index for the filename for fdInstall action<br/>
+          Deprecated: filename arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -1473,10 +1472,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td>enum</td>
         <td>
           Action to execute.
-NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-be removed in version 1.5.<br/>
+NOTE: legacy FD-tracking actions were removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -1492,7 +1490,7 @@ be removed in version 1.5.<br/>
         <td><b>argFd</b></td>
         <td>integer</td>
         <td>
-          An arg index for the fd for fdInstall action<br/>
+          Deprecated: arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -1517,7 +1515,7 @@ be removed in version 1.5.<br/>
         <td><b>argName</b></td>
         <td>integer</td>
         <td>
-          An arg index for the filename for fdInstall action<br/>
+          Deprecated: filename arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -2013,10 +2011,9 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td>enum</td>
         <td>
           Action to execute.
-NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-be removed in version 1.5.<br/>
+NOTE: legacy FD-tracking actions were removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -2032,7 +2029,7 @@ be removed in version 1.5.<br/>
         <td><b>argFd</b></td>
         <td>integer</td>
         <td>
-          An arg index for the fd for fdInstall action<br/>
+          Deprecated: arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -2057,7 +2054,7 @@ be removed in version 1.5.<br/>
         <td><b>argName</b></td>
         <td>integer</td>
         <td>
-          An arg index for the filename for fdInstall action<br/>
+          Deprecated: filename arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -2602,10 +2599,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td>enum</td>
         <td>
           Action to execute.
-NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-be removed in version 1.5.<br/>
+NOTE: legacy FD-tracking actions were removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -2621,7 +2617,7 @@ be removed in version 1.5.<br/>
         <td><b>argFd</b></td>
         <td>integer</td>
         <td>
-          An arg index for the fd for fdInstall action<br/>
+          Deprecated: arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -2646,7 +2642,7 @@ be removed in version 1.5.<br/>
         <td><b>argName</b></td>
         <td>integer</td>
         <td>
-          An arg index for the filename for fdInstall action<br/>
+          Deprecated: filename arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -3038,10 +3034,9 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td>enum</td>
         <td>
           Action to execute.
-NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-be removed in version 1.5.<br/>
+NOTE: legacy FD-tracking actions were removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -3057,7 +3052,7 @@ be removed in version 1.5.<br/>
         <td><b>argFd</b></td>
         <td>integer</td>
         <td>
-          An arg index for the fd for fdInstall action<br/>
+          Deprecated: arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -3082,7 +3077,7 @@ be removed in version 1.5.<br/>
         <td><b>argName</b></td>
         <td>integer</td>
         <td>
-          An arg index for the filename for fdInstall action<br/>
+          Deprecated: filename arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -3627,10 +3622,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td>enum</td>
         <td>
           Action to execute.
-NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-be removed in version 1.5.<br/>
+NOTE: legacy FD-tracking actions were removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -3646,7 +3640,7 @@ be removed in version 1.5.<br/>
         <td><b>argFd</b></td>
         <td>integer</td>
         <td>
-          An arg index for the fd for fdInstall action<br/>
+          Deprecated: arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -3671,7 +3665,7 @@ be removed in version 1.5.<br/>
         <td><b>argName</b></td>
         <td>integer</td>
         <td>
-          An arg index for the filename for fdInstall action<br/>
+          Deprecated: filename arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -4125,10 +4119,9 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td>enum</td>
         <td>
           Action to execute.
-NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-be removed in version 1.5.<br/>
+NOTE: legacy FD-tracking actions were removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -4144,7 +4137,7 @@ be removed in version 1.5.<br/>
         <td><b>argFd</b></td>
         <td>integer</td>
         <td>
-          An arg index for the fd for fdInstall action<br/>
+          Deprecated: arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -4169,7 +4162,7 @@ be removed in version 1.5.<br/>
         <td><b>argName</b></td>
         <td>integer</td>
         <td>
-          An arg index for the filename for fdInstall action<br/>
+          Deprecated: filename arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -4714,10 +4707,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td>enum</td>
         <td>
           Action to execute.
-NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-be removed in version 1.5.<br/>
+NOTE: legacy FD-tracking actions were removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -4733,7 +4725,7 @@ be removed in version 1.5.<br/>
         <td><b>argFd</b></td>
         <td>integer</td>
         <td>
-          An arg index for the fd for fdInstall action<br/>
+          Deprecated: arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -4758,7 +4750,7 @@ be removed in version 1.5.<br/>
         <td><b>argName</b></td>
         <td>integer</td>
         <td>
-          An arg index for the filename for fdInstall action<br/>
+          Deprecated: filename arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -5470,10 +5462,9 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td>enum</td>
         <td>
           Action to execute.
-NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-be removed in version 1.5.<br/>
+NOTE: legacy FD-tracking actions were removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -5489,7 +5480,7 @@ be removed in version 1.5.<br/>
         <td><b>argFd</b></td>
         <td>integer</td>
         <td>
-          An arg index for the fd for fdInstall action<br/>
+          Deprecated: arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -5514,7 +5505,7 @@ be removed in version 1.5.<br/>
         <td><b>argName</b></td>
         <td>integer</td>
         <td>
-          An arg index for the filename for fdInstall action<br/>
+          Deprecated: filename arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -6059,10 +6050,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td>enum</td>
         <td>
           Action to execute.
-NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-be removed in version 1.5.<br/>
+NOTE: legacy FD-tracking actions were removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -6078,7 +6068,7 @@ be removed in version 1.5.<br/>
         <td><b>argFd</b></td>
         <td>integer</td>
         <td>
-          An arg index for the fd for fdInstall action<br/>
+          Deprecated: arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -6103,7 +6093,7 @@ be removed in version 1.5.<br/>
         <td><b>argName</b></td>
         <td>integer</td>
         <td>
-          An arg index for the filename for fdInstall action<br/>
+          Deprecated: filename arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -6564,10 +6554,9 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td>enum</td>
         <td>
           Action to execute.
-NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-be removed in version 1.5.<br/>
+NOTE: legacy FD-tracking actions were removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -6583,7 +6572,7 @@ be removed in version 1.5.<br/>
         <td><b>argFd</b></td>
         <td>integer</td>
         <td>
-          An arg index for the fd for fdInstall action<br/>
+          Deprecated: arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -6608,7 +6597,7 @@ be removed in version 1.5.<br/>
         <td><b>argName</b></td>
         <td>integer</td>
         <td>
-          An arg index for the filename for fdInstall action<br/>
+          Deprecated: filename arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -7153,10 +7142,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td>enum</td>
         <td>
           Action to execute.
-NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-be removed in version 1.5.<br/>
+NOTE: legacy FD-tracking actions were removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -7172,7 +7160,7 @@ be removed in version 1.5.<br/>
         <td><b>argFd</b></td>
         <td>integer</td>
         <td>
-          An arg index for the fd for fdInstall action<br/>
+          Deprecated: arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -7197,7 +7185,7 @@ be removed in version 1.5.<br/>
         <td><b>argName</b></td>
         <td>integer</td>
         <td>
-          An arg index for the filename for fdInstall action<br/>
+          Deprecated: filename arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -8187,10 +8175,9 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td>enum</td>
         <td>
           Action to execute.
-NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-be removed in version 1.5.<br/>
+NOTE: legacy FD-tracking actions were removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -8206,7 +8193,7 @@ be removed in version 1.5.<br/>
         <td><b>argFd</b></td>
         <td>integer</td>
         <td>
-          An arg index for the fd for fdInstall action<br/>
+          Deprecated: arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -8231,7 +8218,7 @@ be removed in version 1.5.<br/>
         <td><b>argName</b></td>
         <td>integer</td>
         <td>
-          An arg index for the filename for fdInstall action<br/>
+          Deprecated: filename arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -8776,10 +8763,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td>enum</td>
         <td>
           Action to execute.
-NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-be removed in version 1.5.<br/>
+NOTE: legacy FD-tracking actions were removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -8795,7 +8781,7 @@ be removed in version 1.5.<br/>
         <td><b>argFd</b></td>
         <td>integer</td>
         <td>
-          An arg index for the fd for fdInstall action<br/>
+          Deprecated: arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -8820,7 +8806,7 @@ be removed in version 1.5.<br/>
         <td><b>argName</b></td>
         <td>integer</td>
         <td>
-          An arg index for the filename for fdInstall action<br/>
+          Deprecated: filename arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -9316,10 +9302,9 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td>enum</td>
         <td>
           Action to execute.
-NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-be removed in version 1.5.<br/>
+NOTE: legacy FD-tracking actions were removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -9335,7 +9320,7 @@ be removed in version 1.5.<br/>
         <td><b>argFd</b></td>
         <td>integer</td>
         <td>
-          An arg index for the fd for fdInstall action<br/>
+          Deprecated: arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -9360,7 +9345,7 @@ be removed in version 1.5.<br/>
         <td><b>argName</b></td>
         <td>integer</td>
         <td>
-          An arg index for the filename for fdInstall action<br/>
+          Deprecated: filename arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -9905,10 +9890,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td>enum</td>
         <td>
           Action to execute.
-NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-be removed in version 1.5.<br/>
+NOTE: legacy FD-tracking actions were removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -9924,7 +9908,7 @@ be removed in version 1.5.<br/>
         <td><b>argFd</b></td>
         <td>integer</td>
         <td>
-          An arg index for the fd for fdInstall action<br/>
+          Deprecated: arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -9949,7 +9933,7 @@ be removed in version 1.5.<br/>
         <td><b>argName</b></td>
         <td>integer</td>
         <td>
-          An arg index for the filename for fdInstall action<br/>
+          Deprecated: filename arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -10341,10 +10325,9 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td>enum</td>
         <td>
           Action to execute.
-NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-be removed in version 1.5.<br/>
+NOTE: legacy FD-tracking actions were removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -10360,7 +10343,7 @@ be removed in version 1.5.<br/>
         <td><b>argFd</b></td>
         <td>integer</td>
         <td>
-          An arg index for the fd for fdInstall action<br/>
+          Deprecated: arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -10385,7 +10368,7 @@ be removed in version 1.5.<br/>
         <td><b>argName</b></td>
         <td>integer</td>
         <td>
-          An arg index for the filename for fdInstall action<br/>
+          Deprecated: filename arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -10930,10 +10913,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td>enum</td>
         <td>
           Action to execute.
-NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-be removed in version 1.5.<br/>
+NOTE: legacy FD-tracking actions were removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -10949,7 +10931,7 @@ be removed in version 1.5.<br/>
         <td><b>argFd</b></td>
         <td>integer</td>
         <td>
-          An arg index for the fd for fdInstall action<br/>
+          Deprecated: arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -10974,7 +10956,7 @@ be removed in version 1.5.<br/>
         <td><b>argName</b></td>
         <td>integer</td>
         <td>
-          An arg index for the filename for fdInstall action<br/>
+          Deprecated: filename arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -11428,10 +11410,9 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td>enum</td>
         <td>
           Action to execute.
-NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-be removed in version 1.5.<br/>
+NOTE: legacy FD-tracking actions were removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -11447,7 +11428,7 @@ be removed in version 1.5.<br/>
         <td><b>argFd</b></td>
         <td>integer</td>
         <td>
-          An arg index for the fd for fdInstall action<br/>
+          Deprecated: arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -11472,7 +11453,7 @@ be removed in version 1.5.<br/>
         <td><b>argName</b></td>
         <td>integer</td>
         <td>
-          An arg index for the filename for fdInstall action<br/>
+          Deprecated: filename arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -12017,10 +11998,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td>enum</td>
         <td>
           Action to execute.
-NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-be removed in version 1.5.<br/>
+NOTE: legacy FD-tracking actions were removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -12036,7 +12016,7 @@ be removed in version 1.5.<br/>
         <td><b>argFd</b></td>
         <td>integer</td>
         <td>
-          An arg index for the fd for fdInstall action<br/>
+          Deprecated: arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -12061,7 +12041,7 @@ be removed in version 1.5.<br/>
         <td><b>argName</b></td>
         <td>integer</td>
         <td>
-          An arg index for the filename for fdInstall action<br/>
+          Deprecated: filename arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -12773,10 +12753,9 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td>enum</td>
         <td>
           Action to execute.
-NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-be removed in version 1.5.<br/>
+NOTE: legacy FD-tracking actions were removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -12792,7 +12771,7 @@ be removed in version 1.5.<br/>
         <td><b>argFd</b></td>
         <td>integer</td>
         <td>
-          An arg index for the fd for fdInstall action<br/>
+          Deprecated: arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -12817,7 +12796,7 @@ be removed in version 1.5.<br/>
         <td><b>argName</b></td>
         <td>integer</td>
         <td>
-          An arg index for the filename for fdInstall action<br/>
+          Deprecated: filename arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -13362,10 +13341,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td>enum</td>
         <td>
           Action to execute.
-NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-be removed in version 1.5.<br/>
+NOTE: legacy FD-tracking actions were removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -13381,7 +13359,7 @@ be removed in version 1.5.<br/>
         <td><b>argFd</b></td>
         <td>integer</td>
         <td>
-          An arg index for the fd for fdInstall action<br/>
+          Deprecated: arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -13406,7 +13384,7 @@ be removed in version 1.5.<br/>
         <td><b>argName</b></td>
         <td>integer</td>
         <td>
-          An arg index for the filename for fdInstall action<br/>
+          Deprecated: filename arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -13867,10 +13845,9 @@ Filters specified in macros will be appended to corresponding filters of the sel
         <td>enum</td>
         <td>
           Action to execute.
-NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-be removed in version 1.5.<br/>
+NOTE: legacy FD-tracking actions were removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -13886,7 +13863,7 @@ be removed in version 1.5.<br/>
         <td><b>argFd</b></td>
         <td>integer</td>
         <td>
-          An arg index for the fd for fdInstall action<br/>
+          Deprecated: arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -13911,7 +13888,7 @@ be removed in version 1.5.<br/>
         <td><b>argName</b></td>
         <td>integer</td>
         <td>
-          An arg index for the filename for fdInstall action<br/>
+          Deprecated: filename arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -14456,10 +14433,9 @@ Only valid with the post action and with a rateLimit specified.<br/>
         <td>enum</td>
         <td>
           Action to execute.
-NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-be removed in version 1.5.<br/>
+NOTE: legacy FD-tracking actions were removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, Sigkill, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -14475,7 +14451,7 @@ be removed in version 1.5.<br/>
         <td><b>argFd</b></td>
         <td>integer</td>
         <td>
-          An arg index for the fd for fdInstall action<br/>
+          Deprecated: arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -14500,7 +14476,7 @@ be removed in version 1.5.<br/>
         <td><b>argName</b></td>
         <td>integer</td>
         <td>
-          An arg index for the filename for fdInstall action<br/>
+          Deprecated: filename arg index for removed FD-tracking actions.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>

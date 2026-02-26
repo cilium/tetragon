@@ -25,6 +25,7 @@ import (
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/mbset"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
@@ -34,11 +35,8 @@ import (
 const (
 	ActionTypeInvalid                     = -1
 	ActionTypePost                        = 0
-	ActionTypeFollowFd                    = 1
 	ActionTypeSigKill                     = 2
-	ActionTypeUnfollowFd                  = 3
 	ActionTypeOverride                    = 4
-	ActionTypeCopyFd                      = 5
 	ActionTypeGetUrl                      = 6
 	ActionTypeDnsLookup                   = 7
 	ActionTypeNoPost                      = 8
@@ -52,11 +50,8 @@ const (
 
 var actionTypeTable = map[string]uint32{
 	"post":                        ActionTypePost,
-	"followfd":                    ActionTypeFollowFd,
-	"unfollowfd":                  ActionTypeUnfollowFd,
 	"sigkill":                     ActionTypeSigKill,
 	"override":                    ActionTypeOverride,
-	"copyfd":                      ActionTypeCopyFd,
 	"geturl":                      ActionTypeGetUrl,
 	"dnslookup":                   ActionTypeDnsLookup,
 	"nopost":                      ActionTypeNoPost,
@@ -70,11 +65,8 @@ var actionTypeTable = map[string]uint32{
 
 var actionTypeStringTable = map[uint32]string{
 	ActionTypePost:                        "post",
-	ActionTypeFollowFd:                    "followfd",
-	ActionTypeUnfollowFd:                  "unfollowfd",
 	ActionTypeSigKill:                     "sigkill",
 	ActionTypeOverride:                    "override",
-	ActionTypeCopyFd:                      "copyfd",
 	ActionTypeGetUrl:                      "geturl",
 	ActionTypeDnsLookup:                   "dnslookup",
 	ActionTypeNoPost:                      "nopost",
@@ -394,12 +386,20 @@ func ParseMatchPids(k *KernelSelectorState, matchPids []v1alpha1.PIDSelector) er
 	return nil
 }
 
-func ActionTypeFromString(action string) int32 {
-	act, ok := actionTypeTable[strings.ToLower(action)]
-	if !ok {
-		return ActionTypeInvalid
+func ActionTypeFromString(act string) (uint32, error) {
+	act = strings.ToLower(act)
+	// These actions are deprecated and removed from BPF code in version 1.5
+	switch act {
+	case "followfd", "unfollowfd", "copyfd":
+		logger.GetLogger().Warn("Action is deprecated and no longer supported as of v1.5", "action", act)
+		return 0, fmt.Errorf("action '%s' is deprecated and no longer supported as of v1.5", act)
 	}
-	return int32(act)
+
+	if n, ok := actionTypeTable[act]; ok {
+		return n, nil
+	}
+
+	return 0, fmt.Errorf("unknown action '%s'", act)
 }
 
 func writeRangeInMap(v string, ty uint32, op uint32, m *ValueMap) error {
@@ -1160,7 +1160,22 @@ func parseRateLimit(str string, scopeStr string) (uint32, uint32, error) {
 }
 
 func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, actionArgTable *idtable.Table) error {
-	act, ok := actionTypeTable[strings.ToLower(action.Action)]
+	// Check for deprecated actions first
+	actionLower := strings.ToLower(action.Action)
+	switch actionLower {
+	case "followfd", "unfollowfd", "copyfd":
+		return fmt.Errorf("parseMatchAction: ActionType %s is deprecated and no longer supported as of v1.5", action.Action)
+	}
+
+	// Warn about deprecated fields
+	if action.ArgFd != 0 {
+		logger.GetLogger().Warn("Deprecated field used: 'argFd' is deprecated as of v1.5. This field was used for removed FD-tracking actions.", "field", "argFd")
+	}
+	if action.ArgName != 0 {
+		logger.GetLogger().Warn("Deprecated field used: 'argName' is deprecated as of v1.5. This field was used for removed FD-tracking actions.", "field", "argName")
+	}
+
+	act, ok := actionTypeTable[actionLower]
 	if !ok {
 		return fmt.Errorf("parseMatchAction: ActionType %s unknown", action.Action)
 	}
@@ -1180,12 +1195,6 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 	}
 
 	switch act {
-	case ActionTypeFollowFd, ActionTypeCopyFd:
-		WriteSelectorUint32(&k.data, action.ArgFd)
-		WriteSelectorUint32(&k.data, action.ArgName)
-	case ActionTypeUnfollowFd:
-		WriteSelectorUint32(&k.data, action.ArgFd)
-		WriteSelectorUint32(&k.data, action.ArgName)
 	case ActionTypeOverride:
 		if k.isUprobe {
 			id, err := parseOverrideRegs(k, action.ArgRegs, uint64(action.ArgError))
@@ -1813,19 +1822,6 @@ func HasNotifyEnforcerAction(kspec *v1alpha1.KProbeSpec) bool {
 	return false
 }
 
-func HasFDInstall(sel []v1alpha1.KProbeSelector) bool {
-	for _, selector := range sel {
-		for _, matchAction := range selector.MatchActions {
-			if a := ActionTypeFromString(matchAction.Action); a == ActionTypeFollowFd ||
-				a == ActionTypeUnfollowFd ||
-				a == ActionTypeCopyFd {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 func HasRateLimit(selectors []v1alpha1.KProbeSelector) bool {
 	for _, selector := range selectors {
 		for _, matchAction := range selector.MatchActions {
@@ -1851,8 +1847,8 @@ func HasStackTrace(selectors []v1alpha1.KProbeSelector) bool {
 func HasSockTrack(spec *v1alpha1.KProbeSpec) bool {
 	// Check ReturnArgAction
 	if spec.ReturnArgAction != "" {
-		if a := ActionTypeFromString(spec.ReturnArgAction); a == ActionTypeTrackSock ||
-			a == ActionTypeUntrackSock {
+		if a, err := ActionTypeFromString(spec.ReturnArgAction); err == nil &&
+			(a == ActionTypeTrackSock || a == ActionTypeUntrackSock) {
 			return true
 		}
 	}
@@ -1860,14 +1856,14 @@ func HasSockTrack(spec *v1alpha1.KProbeSpec) bool {
 	// Check selectors MatchActions and MatchReturnActions
 	for _, selector := range spec.Selectors {
 		for _, matchAction := range selector.MatchActions {
-			if a := ActionTypeFromString(matchAction.Action); a == ActionTypeTrackSock ||
-				a == ActionTypeUntrackSock {
+			if a, err := ActionTypeFromString(matchAction.Action); err == nil &&
+				(a == ActionTypeTrackSock || a == ActionTypeUntrackSock) {
 				return true
 			}
 		}
 		for _, matchReturnAction := range selector.MatchReturnActions {
-			if a := ActionTypeFromString(matchReturnAction.Action); a == ActionTypeTrackSock ||
-				a == ActionTypeUntrackSock {
+			if a, err := ActionTypeFromString(matchReturnAction.Action); err == nil &&
+				(a == ActionTypeTrackSock || a == ActionTypeUntrackSock) {
 				return true
 			}
 		}

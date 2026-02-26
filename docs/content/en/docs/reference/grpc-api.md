@@ -891,11 +891,8 @@ User records
 | ---- | ------ | ----------- |
 | KPROBE_ACTION_UNKNOWN | 0 | Unknown action |
 | KPROBE_ACTION_POST | 1 | Post action creates an event (default action). |
-| KPROBE_ACTION_FOLLOWFD | 2 | Post action creates a mapping between file descriptors and file names. |
 | KPROBE_ACTION_SIGKILL | 3 | Sigkill action synchronously terminates the process. |
-| KPROBE_ACTION_UNFOLLOWFD | 4 | Post action removes a mapping between file descriptors and file names. |
 | KPROBE_ACTION_OVERRIDE | 5 | Override action modifies the return value of the call. |
-| KPROBE_ACTION_COPYFD | 6 | Post action dupplicates a mapping between file descriptors and file names. |
 | KPROBE_ACTION_GETURL | 7 | GetURL action issue an HTTP Get request against an URL from userspace. |
 | KPROBE_ACTION_DNSLOOKUP | 8 | GetURL action issue a DNS lookup against an URL from userspace. |
 | KPROBE_ACTION_NOPOST | 9 | NoPost action suppresses the transmission of the event to userspace. |
