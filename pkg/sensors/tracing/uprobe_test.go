@@ -848,7 +848,7 @@ func TestUprobeArgsWithAddress(t *testing.T) {
 	testUprobeArgs(t, checkers, tp)
 }
 
-func uprobeArgsMatch(t *testing.T, symbol string, arg_type string, argOneVal string, expectCheckerFailure bool) error {
+func uprobeArgsMatch(t *testing.T, symbol string, arg_type string, op string, argOneVal string, expectCheckerFailure bool) error {
 	uprobeTest1 := testutils.RepoRootPath("contrib/tester-progs/uprobe-test-1")
 	libUprobe := testutils.RepoRootPath("contrib/tester-progs/libuprobe.so")
 
@@ -868,9 +868,10 @@ spec:
     selectors:
     - matchArgs:
       - args: [0]
-        operator: "Equal"
+        operator: "` + op + `"
         values:
         - "` + argOneVal + `"`
+
 	if kernels.MinKernelVersion("5.4") {
 		pathHook += `
     data:
@@ -924,12 +925,12 @@ spec:
 }
 
 func TestUprobeIntArgMatch(t *testing.T) {
-	err := uprobeArgsMatch(t, "uprobe_test_lib_arg1", "int", "123", false)
+	err := uprobeArgsMatch(t, "uprobe_test_lib_arg1", "int", "Equal", "123", false)
 	require.NoError(t, err)
 }
 
 func TestUprobeIntArgMatchNot(t *testing.T) {
-	err := uprobeArgsMatch(t, "uprobe_test_lib_arg1", "int", "124", true)
+	err := uprobeArgsMatch(t, "uprobe_test_lib_arg1", "int", "Equal", "124", true)
 	require.NoError(t, err)
 }
 
@@ -937,7 +938,7 @@ func TestUprobeStringArgMatch(t *testing.T) {
 	if !bpf.HasKfunc("bpf_copy_from_user_str") {
 		t.Skip("this test requires bpf_copy_from_user_str kfunc support")
 	}
-	err := uprobeArgsMatch(t, "uprobe_test_lib_string_arg", "string", "hello world!", false)
+	err := uprobeArgsMatch(t, "uprobe_test_lib_string_arg", "string", "Equal", "hello world!", false)
 	require.NoError(t, err)
 }
 
@@ -945,7 +946,7 @@ func TestUprobeStringArgMatchNot(t *testing.T) {
 	if !bpf.HasKfunc("bpf_copy_from_user_str") {
 		t.Skip("this test requires bpf_copy_from_user_str kfunc support")
 	}
-	err := uprobeArgsMatch(t, "uprobe_test_lib_string_arg", "string", "hi world!", true)
+	err := uprobeArgsMatch(t, "uprobe_test_lib_string_arg", "string", "Equal", "hi world!", true)
 	require.NoError(t, err)
 }
 
