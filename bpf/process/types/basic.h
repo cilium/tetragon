@@ -849,7 +849,7 @@ filter_char_substring(struct selector_arg_filter *filter, char *arg_str, uint ar
 		else
 			idx = bpf_strnstr(arg_str, sub_str, arg_len);
 
-		if (idx > 0)
+		if (idx >= 0)
 			return 1;
 
 		// placed here to allow llvm unroll this loop
