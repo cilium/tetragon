@@ -339,7 +339,7 @@ func stringPaddedLen(s int) int {
 	paddedLen := s
 
 	if s <= 6*stringMapsKeyIncSize {
-		if s%stringMapsKeyIncSize != 0 {
+		if s == 0 || s%stringMapsKeyIncSize != 0 {
 			paddedLen = ((s / stringMapsKeyIncSize) + 1) * stringMapsKeyIncSize
 		}
 		return paddedLen
@@ -365,7 +365,7 @@ func stringPaddedLen(s int) int {
 }
 
 func ArgStringSelectorValue(v string, removeNul bool) ([MaxStringMapsSize]byte, int, error) {
-	if removeNul {
+	if removeNul && len(v) > 0 {
 		// Remove any trailing nul characters ("\0" or 0x00)
 		for v[len(v)-1] == 0 {
 			v = v[0 : len(v)-1]
@@ -386,9 +386,6 @@ func ArgStringSelectorValue(v string, removeNul bool) ([MaxStringMapsSize]byte, 
 		if s > stringMapSize5-1 {
 			return ret, 0, errors.New("string is too long")
 		}
-	}
-	if s == 0 {
-		return ret, 0, errors.New("string is empty")
 	}
 	// Calculate length of string padded to next multiple of key increment size
 	paddedLen := stringPaddedLen(s)
