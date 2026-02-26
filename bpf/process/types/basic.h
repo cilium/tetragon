@@ -363,7 +363,7 @@ FUNC_INLINE long copy_strings(char *args, char *arg, int max_size)
 	// So add one to the length to allow for it. This should
 	// result in us honouring our max_size correctly.
 	size = probe_read_str(&args[4], max_size + 1, arg);
-	if (size <= 1)
+	if (size <= 0)
 		return invalid_ty;
 	// Remove the nul character from end.
 	size--;
@@ -554,7 +554,7 @@ FUNC_INLINE u16 string_padded_len(u16 len)
 	u16 padded_len = len;
 
 	if (len < STRING_MAPS_SIZE_5) {
-		if (len % STRING_MAPS_KEY_INC_SIZE != 0)
+		if (!len || len % STRING_MAPS_KEY_INC_SIZE != 0)
 			padded_len = ((len / STRING_MAPS_KEY_INC_SIZE) + 1) * STRING_MAPS_KEY_INC_SIZE;
 		return padded_len;
 	}
@@ -652,14 +652,14 @@ filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint or
 
 #ifdef __LARGE_BPF_PROG
 #ifdef __V511_BPF_PROG
-	if (orig_len > STRING_MAPS_SIZE_10 - 2 || !orig_len)
+	if (orig_len > STRING_MAPS_SIZE_10 - 2)
 		return 0;
 #else
-	if (orig_len > STRING_MAPS_SIZE_7 - 2 || !orig_len)
+	if (orig_len > STRING_MAPS_SIZE_7 - 2)
 		return 0;
 #endif
 #else
-	if (orig_len > STRING_MAPS_SIZE_5 - 1 || !orig_len)
+	if (orig_len > STRING_MAPS_SIZE_5 - 1)
 		return 0;
 #endif
 
