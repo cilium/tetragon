@@ -1862,6 +1862,43 @@ There are different types supported for each operator. In case of `matchArgs`:
 * InRange - In interval range
 * NotInRange - Not in interval range
 
+##### IPv4-Mapped IPv6 Addresses
+
+When filtering socket addresses with `SAddr` or `DAddr` operators, Tetragon automatically
+handles IPv4-mapped IPv6 addresses (`::ffff:x.x.x.x`). This is important for modern
+dual-stack networking where applications may use IPv6 sockets to handle both IPv4 and IPv6 traffic.
+
+Automatic Normalization: When you register an IPv4 CIDR (e.g., `172.16.0.0/12`), it will
+match:
+- Native `AF_INET` sockets with IPv4 addresses (e.g., `172.31.2.173`)
+- `AF_INET6` sockets with IPv4-mapped addresses (e.g., `::ffff:172.31.2.173`)
+
+This means you only need to register IPv4 CIDRs once, and they will automatically match both
+native IPv4 connections and IPv4 traffic on IPv6 sockets.
+
+**Example**:
+```yaml
+selectors:
+- matchArgs:
+  - index: 0
+    operator: "DAddr"
+    values:
+    - "10.0.0.0/8"      # Matches both 10.x.x.x and ::ffff:10.x.x.x
+    - "172.16.0.0/12"   # Matches both 172.16-31.x.x and ::ffff:172.16-31.x.x
+    - "::1/128"         # Matches only native IPv6 loopback
+```
+
+Native IPv6: Pure IPv6 addresses (like `2001:db8::1` or `::1`) are NOT affected by this
+normalization. They will only match IPv6 CIDR filters, not IPv4 CIDRs. The automatic matching
+only applies to IPv4-mapped IPv6 addresses (`::ffff:x.x.x.x`).
+
+{{< note >}}
+Modern applications using dual-stack networking may create `AF_INET6` sockets
+that handle both IPv4 and IPv6 traffic. IPv4 traffic on these sockets appears as IPv4-mapped IPv6
+addresses in the kernel. With automatic normalization, you get consistent filtering without needing
+to register addresses in both formats.
+{{< /note >}}
+
 The operator types `Equal` and `NotEqual` are used to test whether the certain
 argument of a system call is equal to the defined value in the CR.
 
