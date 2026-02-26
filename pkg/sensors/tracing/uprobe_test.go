@@ -952,6 +952,38 @@ func TestUprobeStringArgMatchNot(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestUprobeStringArgEmptyEqualMatch(t *testing.T) {
+	if !bpf.HasKfunc("bpf_copy_from_user_str") {
+		t.Skip("this test requires bpf_copy_from_user_str kfunc support")
+	}
+	err := uprobeArgsMatch(t, "uprobe_test_lib_string_arg_empty", "string", "Equal", []string{"", "other"}, false)
+	require.NoError(t, err)
+}
+
+func TestUprobeStringArgEmptyNotEqualMatch(t *testing.T) {
+	if !bpf.HasKfunc("bpf_copy_from_user_str") {
+		t.Skip("this test requires bpf_copy_from_user_str kfunc support")
+	}
+	err := uprobeArgsMatch(t, "uprobe_test_lib_string_arg_empty", "string", "NotEqual", []string{"val1", "val2"}, false)
+	require.NoError(t, err)
+}
+
+func TestUprobeStringArgEmptyEqualNotMatch(t *testing.T) {
+	if !bpf.HasKfunc("bpf_copy_from_user_str") {
+		t.Skip("this test requires bpf_copy_from_user_str kfunc support")
+	}
+	err := uprobeArgsMatch(t, "uprobe_test_lib_string_arg_empty", "string", "Equal", []string{"val1", "val2"}, true)
+	require.NoError(t, err)
+}
+
+func TestUprobeStringArgEmptyNotEqualNotMatch(t *testing.T) {
+	if !bpf.HasKfunc("bpf_copy_from_user_str") {
+		t.Skip("this test requires bpf_copy_from_user_str kfunc support")
+	}
+	err := uprobeArgsMatch(t, "uprobe_test_lib_string_arg_empty", "string", "NotEqual", []string{"", "other"}, true)
+	require.NoError(t, err)
+}
+
 func TestUprobeResolveCurrent(t *testing.T) {
 	if !kernels.MinKernelVersion("5.4") {
 		t.Skip("Test requires kernel 5.4+")
