@@ -1059,6 +1059,16 @@ func TestUprobePtRegsPreloadSubstringMatchSingle(t *testing.T) {
 	)
 }
 
+// Test substring at the beginning of the string
+func TestUprobePtRegsPreloadSubstringMatchSingle2(t *testing.T) {
+	testUprobePtRegsPreloadSubstring(t,
+		"test_3_string",
+		false, /* ignore case */
+		false, /* fail */
+		true,  /* single */
+	)
+}
+
 func TestUprobePtRegsPreloadSubstringNotMatchSingle(t *testing.T) {
 	testUprobePtRegsPreloadSubstring(t,
 		"garbage",
