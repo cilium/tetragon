@@ -1010,7 +1010,7 @@ filter_addr_op_mod(__u32 op, long value)
 }
 
 // use the selector value to determine a LPM Trie map, and do a lookup to determine whether the argument
-// is in the defined set.
+// is in the defined set. For IPv6 addresses that are IPv4-mapped, also checks the IPv4 map.
 FUNC_INLINE long
 filter_addr_map(struct selector_arg_filter *filter, __u64 *addr, __u16 family)
 {
@@ -1020,6 +1020,7 @@ filter_addr_map(struct selector_arg_filter *filter, __u64 *addr, __u16 family)
 	struct addr4_lpm_trie arg4;
 	struct addr6_lpm_trie arg6;
 	void *arg;
+	long exists;
 
 	switch (family) {
 	case AF_INET:
@@ -1032,20 +1033,46 @@ filter_addr_map(struct selector_arg_filter *filter, __u64 *addr, __u16 family)
 		arg = &arg4;
 		break;
 	case AF_INET6:
+		// First, try IPv6 map lookup
 		map_idx = map_idxs[1];
 		addrmap = map_lookup_elem(&addr6lpm_maps, &map_idx);
-		if (!addrmap)
-			return filter_addr_op_mod(filter->op, 0);
-		arg6.prefix = 128;
-		// write the address in as 4 u32s due to alignment
-		write_ipv6_addr32(arg6.addr, (__u32 *)addr);
-		arg = &arg6;
-		break;
+		if (addrmap) {
+			arg6.prefix = 128;
+			// write the address in as 4 u32s due to alignment
+			write_ipv6_addr32(arg6.addr, (__u32 *)addr);
+			arg = &arg6;
+
+			exists = (long)map_lookup_elem(addrmap, arg);
+
+			// If found in IPv6 map, return result immediately
+			if (exists)
+				return filter_addr_op_mod(filter->op, exists);
+		}
+
+		// Not found in IPv6 map (or no IPv6 map configured).
+		// For IPv4-mapped addresses, also try the IPv4 map.
+		if (is_ipv4_mapped_ipv6(addr)) {
+			map_idx = map_idxs[0];
+			addrmap = map_lookup_elem(&addr4lpm_maps, &map_idx);
+			if (!addrmap)
+				return filter_addr_op_mod(filter->op, 0);
+
+			arg4.prefix = 32;
+			arg4.addr = extract_ipv4_from_mapped(addr);
+			arg = &arg4;
+
+			exists = (long)map_lookup_elem(addrmap, arg);
+			return filter_addr_op_mod(filter->op, exists);
+		}
+
+		// Not found in either map
+		return filter_addr_op_mod(filter->op, 0);
+
 	default:
 		return 0;
 	}
 
-	long exists = (long)map_lookup_elem(addrmap, arg);
+	exists = (long)map_lookup_elem(addrmap, arg);
 
 	return filter_addr_op_mod(filter->op, exists);
 }
