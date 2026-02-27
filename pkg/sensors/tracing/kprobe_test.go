@@ -45,6 +45,7 @@ import (
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/pkg/ksyms"
 	"github.com/cilium/tetragon/pkg/logger"
 	bc "github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
@@ -6483,7 +6484,47 @@ spec:
 		ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 		defer cancel()
 
-		spec := `
+		// security_path_truncate was refactored in Linux 6.2 and
+		// security_file_truncate was introduced. On some kernels/configs
+		// with >= 6.2, security_path_truncate may be inlined and
+		// unavailable for kprobes. On kernels < 6.2,
+		// security_path_truncate is always available.
+		//
+		// unix.Truncate (path-based) triggers security_path_truncate,
+		// while os.File.Truncate (fd-based) triggers security_file_truncate.
+		useFileTruncate := false
+		if kernels.MinKernelVersion("6.2") {
+			ks, err := ksyms.KernelSymbols()
+			require.NoError(t, err)
+			useFileTruncate = !ks.IsAvailable("security_path_truncate")
+		}
+
+		var spec string
+		var kprobeChecker *ec.ProcessKprobeChecker
+		if useFileTruncate {
+			spec = `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "fdinstall"
+spec:
+  kprobes:
+  - call: "security_file_truncate"
+    syscall: false
+    args:
+    - index: 0
+      type: "file"`
+
+			kprobeChecker = ec.NewProcessKprobeChecker("path").
+				WithFunctionName(sm.Full("security_file_truncate")).
+				WithArgs(ec.NewKprobeArgumentListMatcher().WithValues(
+					ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().
+						WithPath(sm.Full(pathCheck)).
+						WithPermission(sm.Full(pathPerm)),
+					),
+				))
+		} else {
+			spec = `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
@@ -6496,16 +6537,17 @@ spec:
     - index: 0
       type: "path"`
 
-		createCrdFile(t, spec)
+			kprobeChecker = ec.NewProcessKprobeChecker("path").
+				WithFunctionName(sm.Full("security_path_truncate")).
+				WithArgs(ec.NewKprobeArgumentListMatcher().WithValues(
+					ec.NewKprobeArgumentChecker().WithPathArg(ec.NewKprobePathChecker().
+						WithPath(sm.Full(pathCheck)).
+						WithPermission(sm.Full(pathPerm)),
+					),
+				))
+		}
 
-		kprobeChecker := ec.NewProcessKprobeChecker("path").
-			WithFunctionName(sm.Full("security_path_truncate")).
-			WithArgs(ec.NewKprobeArgumentListMatcher().WithValues(
-				ec.NewKprobeArgumentChecker().WithPathArg(ec.NewKprobePathChecker().
-					WithPath(sm.Full(pathCheck)).
-					WithPermission(sm.Full(pathPerm)),
-				),
-			))
+		createCrdFile(t, spec)
 
 		obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 		if err != nil {
@@ -6515,7 +6557,16 @@ spec:
 		readyWG.Wait()
 
 		// generate an event by truncating the file
-		unix.Truncate(pathFull, 0)
+		if useFileTruncate {
+			// security_file_truncate is triggered by fd-based truncation
+			f, err := os.OpenFile(pathFull, os.O_WRONLY, 0)
+			require.NoError(t, err)
+			require.NoError(t, f.Truncate(0))
+			require.NoError(t, f.Close())
+		} else {
+			// security_path_truncate is triggered by path-based truncation
+			unix.Truncate(pathFull, 0)
+		}
 
 		checker := ec.NewUnorderedEventChecker(kprobeChecker)
 		err = jsonchecker.JsonTestCheck(t, checker)
