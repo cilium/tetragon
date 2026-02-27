@@ -2401,11 +2401,10 @@ rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_k
 	struct ratelimit_key *key;
 	void *ro_heap;
 	__u32 zero = 0;
-	__u32 index = 0;
 	__u32 key_index = 0;
 	int arg_size;
 	int i;
-	__u8 *dst;
+	char *scratch;
 
 	if (!ratelimit_interval)
 		return false;
@@ -2432,8 +2431,10 @@ rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_k
 	}
 
 	// Clean the heap
-	probe_read(key->data, MAX_POSSIBLE_ARGS * KEY_BYTES_PER_ARG, ro_heap);
-	dst = key->data;
+	probe_read(key->arg_hash, sizeof(key->arg_hash), ro_heap);
+
+	// Scratch buffer sits right after the key in the heap.
+	scratch = (char *)key + sizeof(*key);
 
 	for (i = 0; i < MAX_POSSIBLE_ARGS; i++) {
 		if (arg_idx(i) == -1)
@@ -2446,16 +2447,13 @@ rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_k
 			arg_size = e->common.size - e->argsoff[i] + sizeof(arg_status_t);
 		if (arg_size > 0) {
 			key_index = (e->argsoff[i] - sizeof(arg_status_t)) & 16383;
-			if (arg_size > KEY_BYTES_PER_ARG)
-				arg_size = KEY_BYTES_PER_ARG;
-			asm volatile("%[arg_size] &= 0x3f;\n" // ensure this mask is greater than KEY_BYTES_PER_ARG
+			if (arg_size > MAX_HASH_BYTES)
+				arg_size = MAX_HASH_BYTES;
+			asm volatile("%[arg_size] &= 0xff;\n" // ensure this mask is greater than MAX_HASH_BYTES
 				     : [arg_size] "+r"(arg_size)
 				     :);
-			asm volatile("%[index] &= 0xff;\n"
-				     : [index] "+r"(index)
-				     :);
-			probe_read(&dst[index], arg_size, &e->args[key_index]);
-			index += arg_size;
+			probe_read(scratch, arg_size, &e->args[key_index]);
+			key->arg_hash[i] = fnv1a_hash_bytes(scratch, arg_size);
 		}
 	}
 
