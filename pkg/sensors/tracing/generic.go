@@ -91,37 +91,42 @@ func hasPtRegsSource(arg *v1alpha1.KProbeArg) bool {
 	return arg.Source == "pt_regs"
 }
 
-func resolveBTFType(arg *v1alpha1.KProbeArg, ty ebtf.Type) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
-	btfArg := [api.MaxBTFArgDepth]api.ConfigBTFArg{}
-	pathBase, err := formatBTFPath(arg.Resolve)
-	if err != nil {
-		return nil, btfArg, err
+func isPointerType(argType int) bool {
+	switch argType {
+	case generictypes.GenericIntType, generictypes.GenericS64Type, generictypes.GenericS32Type, generictypes.GenericS16Type, generictypes.GenericS8Type, generictypes.GenericU64Type, generictypes.GenericU32Type, generictypes.GenericU16Type, generictypes.GenericU8Type, generictypes.GenericSizeType, generictypes.GenericSyscall64:
+		return false
+	default:
+		return true
 	}
-	path := addPaddingOnNestedPtr(ty, pathBase)
-	if len(path) > api.MaxBTFArgDepth {
-		return nil, btfArg, fmt.Errorf("unable to resolve %q. The maximum depth allowed is %d", arg.Resolve, api.MaxBTFArgDepth)
-	}
-
-	lastBTFType, err := resolveBTFPath(&btfArg, btf.ResolveNestedTypes(ty), path)
-	return lastBTFType, btfArg, err
 }
 
-func resolveUserBTFArg(arg *v1alpha1.KProbeArg, btfPath string) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
+func resolveBTFType(arg *v1alpha1.KProbeArg, ty ebtf.Type) ([api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
+	btfArg := [api.MaxBTFArgDepth]api.ConfigBTFArg{}
+	path, err := formatBTFPath(arg.Resolve)
+	if err != nil {
+		return btfArg, err
+	}
+
+	err = btf.ResolveBTFPath(&btfArg, ty, path, isPointerType(findTypeFromBTFType(arg)))
+	return btfArg, err
+}
+
+func resolveUserBTFArg(arg *v1alpha1.KProbeArg, btfPath string) ([api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
 	spec, err := ebtf.LoadSpec(btfPath)
 	if err != nil {
-		return nil, [api.MaxBTFArgDepth]api.ConfigBTFArg{}, err
+		return [api.MaxBTFArgDepth]api.ConfigBTFArg{}, err
 	}
 
 	var st *ebtf.Struct
 	err = spec.TypeByName(arg.BTFType, &st)
 	if err != nil {
-		return nil, [api.MaxBTFArgDepth]api.ConfigBTFArg{}, err
+		return [api.MaxBTFArgDepth]api.ConfigBTFArg{}, err
 	}
 	ty := ebtf.Type(st)
 	return resolveBTFType(arg, ty)
 }
 
-func resolveBTFArg(hook string, arg *v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
+func resolveBTFArg(hook string, arg *v1alpha1.KProbeArg, tp bool) ([api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
 	// tracepoints have extra first internal argument, so we need to adjust the index
 	index := int(arg.Index)
 	if tp {
@@ -136,13 +141,13 @@ func resolveBTFArg(hook string, arg *v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [
 	if hasCurrentTaskSource(arg) {
 		st, err := btf.FindBTFStruct("task_struct")
 		if err != nil {
-			return nil, [api.MaxBTFArgDepth]api.ConfigBTFArg{}, err
+			return [api.MaxBTFArgDepth]api.ConfigBTFArg{}, err
 		}
 		ty = ebtf.Type(st)
 	} else {
 		param, err := btf.FindBTFFuncParamFromHook(hook, index)
 		if err != nil {
-			return nil, [api.MaxBTFArgDepth]api.ConfigBTFArg{}, err
+			return [api.MaxBTFArgDepth]api.ConfigBTFArg{}, err
 		}
 
 		ty = param.Type
@@ -153,16 +158,8 @@ func resolveBTFArg(hook string, arg *v1alpha1.KProbeArg, tp bool) (*ebtf.Type, [
 	return resolveBTFType(arg, ty)
 }
 
-func resolveBTFPath(btfArg *[api.MaxBTFArgDepth]api.ConfigBTFArg, rootType ebtf.Type, path []string) (*ebtf.Type, error) {
-	return btf.ResolveBTFPath(btfArg, rootType, path, 0)
-}
-
-func findTypeFromBTFType(arg *v1alpha1.KProbeArg, btfType *ebtf.Type) int {
-	ty := generictypes.GenericTypeFromBTF(*btfType)
-	if ty == generictypes.GenericInvalidType {
-		return generictypes.GenericTypeFromString(arg.Type)
-	}
-	return ty
+func findTypeFromBTFType(arg *v1alpha1.KProbeArg) int {
+	return generictypes.GenericTypeFromString(arg.Type)
 }
 
 func pathArgWarning(index uint32, ty int, s []v1alpha1.KProbeSelector) {
