@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/server/eventlog"
 
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
@@ -495,11 +496,25 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	if err != nil {
 		return err
 	}
-	if err = Serve(ctx, option.Config.ServerAddress, pm.Server); err != nil {
+
+	// Fetch the exporter if needed
+	var exporter *exporter.Exporter
+	if option.Config.ExportFilename != "" {
+		exporter, err = getExporter(ctx, pm.Server)
+		if err != nil {
+			return fmt.Errorf("failed to fetch json exporter: %w", err)
+		}
+	}
+
+	logSrv := eventlog.New(exporter)
+
+	if err = Serve(ctx, option.Config.ServerAddress, pm.Server, logSrv); err != nil {
 		return err
 	}
-	if option.Config.ExportFilename != "" {
-		if err = startExporter(ctx, pm.Server); err != nil {
+
+	// Finally start exporter if needed
+	if exporter != nil {
+		if err = exporter.Start(); err != nil {
 			return err
 		}
 	}
@@ -668,14 +683,14 @@ func getObserverDir() string {
 	return bpf.MapPrefixPath()
 }
 
-func startExporter(ctx context.Context, server *server.Server) error {
+func getExporter(ctx context.Context, server *server.Server) (*exporter.Exporter, error) {
 	allowList, denyList, err := getExportFilters()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	fieldFilters, err := getFieldFilters()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	writer := &lumberjack.Logger{
 		Filename:   option.Config.ExportFilename,
@@ -694,38 +709,7 @@ func startExporter(ctx context.Context, server *server.Server) error {
 	finfo, err := os.Stat(filepath.Clean(option.Config.ExportFilename))
 	if err == nil && finfo.IsDir() {
 		// Error if exportFilename points to a directory
-		return errors.New("passed export JSON logs file point to a directory")
-	}
-	logFile := filepath.Base(option.Config.ExportFilename)
-	logsDir, err := filepath.Abs(filepath.Dir(filepath.Clean(option.Config.ExportFilename)))
-	if err != nil {
-		log.Warn(fmt.Sprintf("Failed to get absolute path of exported JSON logs '%s'", option.Config.ExportFilename), logfields.Error, err)
-		// Do not fail; we let lumberjack handle this. We want to
-		// log the rotate logs operation.
-		logsDir = filepath.Dir(option.Config.ExportFilename)
-	}
-
-	if option.Config.ExportFileRotationInterval < 0 {
-		// Passed an invalid interval let's error out
-		return fmt.Errorf("frequency '%s' at which to rotate JSON export files is negative", option.Config.ExportFileRotationInterval.String())
-	} else if option.Config.ExportFileRotationInterval > 0 {
-		log.Info("Periodically rotating JSON export files",
-			"directory", logsDir,
-			"frequency", option.Config.ExportFileRotationInterval.String())
-		go func() {
-			ticker := time.NewTicker(option.Config.ExportFileRotationInterval)
-			for {
-				select {
-				case <-ctx.Done():
-					return
-				case <-ticker.C:
-					log.Info("Rotating JSON logs export", "file", logFile, "directory", logsDir)
-					if rotationErr := writer.Rotate(); rotationErr != nil {
-						log.Warn("Failed to rotate JSON export file", "file", option.Config.ExportFilename, logfields.Error, rotationErr)
-					}
-				}
-			}
-		}()
+		return nil, errors.New("passed export JSON logs file point to a directory")
 	}
 
 	// Track how many bytes are written to the event export location
@@ -745,17 +729,18 @@ func startExporter(ctx context.Context, server *server.Server) error {
 	req := tetragon.GetEventsRequest{AllowList: allowList, DenyList: denyList, AggregationOptions: aggregationOptions, FieldFilters: fieldFilters}
 	log.Info("Configured field filters", "fieldFilters", fieldFilters)
 	log.Info("Starting JSON exporter", "logger", writer, "request", &req)
-	exporter := exporter.NewExporter(ctx, &req, server, encoder, writer, rateLimiter)
-	return exporter.Start()
+	return exporter.NewExporter(ctx, &req, server, encoder, writer, rateLimiter)
 }
 
-func Serve(ctx context.Context, listenAddr string, srv *server.Server) error {
+func Serve(ctx context.Context, listenAddr string, srv *server.Server, logSrv *eventlog.Server) error {
 	// we use an empty listen address to effectively disable the gRPC server
 	if len(listenAddr) == 0 {
 		return nil
 	}
 	grpcServer := grpc.NewServer()
 	tetragon.RegisterFineGuidanceSensorsServer(grpcServer, srv)
+	tetragon.RegisterEventLogServiceServer(grpcServer, logSrv)
+
 	proto, addr, err := server.SplitListenAddr(listenAddr)
 	if err != nil {
 		return fmt.Errorf("failed to parse listen address: %w", err)
