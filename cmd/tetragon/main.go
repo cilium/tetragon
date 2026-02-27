@@ -366,7 +366,12 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	}
 
 	// Get observer from configFile
-	obs := observer.NewObserver()
+	var obs observer.EventObserver
+	obs = observer.NewObserver()
+	obs, err = setupObserver(ctx, obs, log)
+	if err != nil {
+		return err
+	}
 	defer func() {
 		obs.PrintStats()
 	}()
@@ -509,7 +514,9 @@ func tetragonExecuteCtx(ctx context.Context, cancel context.CancelFunc, ready fu
 	}
 
 	log.Info("Exporter configuration", "enabled", option.Config.ExportFilename != "", "fileName", option.Config.ExportFilename)
-	obs.AddListener(pm)
+	if err := setupListener(ctx, obs, pm, log); err != nil {
+		return err
+	}
 	saveInitInfo()
 
 	// Initialize a k8s watcher used to manage policies. This should happen
@@ -632,7 +639,7 @@ func addTracingPolicy(ctx context.Context, file string) error {
 // Periodically log current status every 24 hours. For lost or error
 // events we ratelimit statistics to 1 message per every 1hour and
 // only if they increase, to inform users that events are being lost.
-func logStatus(ctx context.Context, obs *observer.Observer) {
+func logStatus(ctx context.Context, obs observer.EventObserver) {
 	prevLost := uint64(0)
 	prevErrors := uint64(0)
 	lostTicker := time.NewTicker(1 * time.Hour)
@@ -808,7 +815,7 @@ func startGopsServer() error {
 
 func execute() error {
 	rootCmd := &cobra.Command{
-		Use:   "tetragon",
+		Use:   binaryName(),
 		Short: "Tetragon - eBPF-based Security Observability and Runtime Enforcement",
 		Run: func(cmd *cobra.Command, _ []string) {
 			if viper.GetBool(option.KeyGenerateDocs) {
@@ -820,6 +827,9 @@ func execute() error {
 
 			if err := option.ReadAndSetFlags(); err != nil {
 				logger.Fatal(log, "Failed to parse command line flags", logfields.Error, err)
+			}
+			if err := readExtraFlags(); err != nil {
+				logger.Fatal(log, "Failed to parse extra command line flags", logfields.Error, err)
 			}
 			// Override perf ring buffer choice if only the perf ring is available.
 			// NB: can't do this in option.ReadAndSetFlags() as it causes an import cycle.
@@ -844,6 +854,7 @@ func execute() error {
 
 	flags := rootCmd.PersistentFlags()
 	option.AddFlags(flags)
+	addExtraFlags(flags)
 	viper.BindPFlags(flags)
 	return rootCmd.Execute()
 }
