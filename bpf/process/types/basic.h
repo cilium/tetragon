@@ -163,9 +163,11 @@ struct selector_arg_filters {
 	__u32 argoff[5];
 } __attribute__((packed));
 
-#define MAX_ARGS_SIZE	 80
-#define MAX_ARGS_ENTRIES 8
-#define MAX_MATCH_VALUES 4
+#define MAX_ARGS_SIZE	     80
+#define MAX_ARGS_ENTRIES     8
+#define MAX_MATCH_VALUES     4
+#define MAX_SUBSTRING_VALUES 100
+
 /* String parsing consumes instructions so this adds an additional
  * knob to tune how many instructions we should spend parsing
  * strings.
@@ -835,7 +837,7 @@ filter_char_substring(struct selector_arg_filter *filter, char *arg_str, uint ar
 	__u32 *v = (__u32 *)&filter->value;
 	int i, j = 0;
 
-	for (i = 0; i < MAX_MATCH_VALUES; i++) {
+	for (i = 0; i < MAX_SUBSTRING_VALUES; i++) {
 		__u32 id = v[i];
 		char *sub_str;
 		int idx;
