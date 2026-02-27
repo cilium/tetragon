@@ -43,17 +43,18 @@ import (
 
 // InitInfo contains information about how Tetragon was initialized.
 type InitInfo struct {
-	ExportFname string `json:"export_fname"`
-	LibDir      string `json:"lib_dir"`
-	BTFFname    string `json:"btf_fname"`
-	ServerAddr  string `json:"server_address"`
-	MetricsAddr string `json:"metrics_address"`
-	GopsAddr    string `json:"gops_address"`
-	MapDir      string `json:"map_dir"`
-	BpfToolPath string `json:"bpftool_path"`
-	GopsPath    string `json:"gops_path"`
-	MaxRecvSize int    `json:"max_recv_size"`
-	PID         int    `json:"pid"`
+	ExportFname string            `json:"export_fname"`
+	LibDir      string            `json:"lib_dir"`
+	BTFFname    string            `json:"btf_fname"`
+	ServerAddr  string            `json:"server_address"`
+	MetricsAddr string            `json:"metrics_address"`
+	GopsAddr    string            `json:"gops_address"`
+	MapDir      string            `json:"map_dir"`
+	BpfToolPath string            `json:"bpftool_path"`
+	GopsPath    string            `json:"gops_path"`
+	MaxRecvSize int               `json:"max_recv_size"`
+	PID         int               `json:"pid"`
+	ExtraFiles  map[string]string `json:"extra_files,omitempty"`
 }
 
 // LoadInitInfo returns the InitInfo by reading the info file from its default location
@@ -286,6 +287,7 @@ func doBugtool(info *InitInfo, outFname string, commandActions []CommandAction, 
 	si.addMemCgroupStats()
 	si.addBPFMapsStats()
 	si.addTracefsTraceFile()
+	si.addExtraFiles()
 
 	// Additional command actions
 	for _, action := range commandActions {
@@ -887,5 +889,17 @@ func (s *bugtoolInfo) addTracefsTraceFile() {
 	err := s.ExecCmd("trace", "cat", "/sys/kernel/tracing/trace")
 	if err != nil {
 		s.multiLog.Warnf("failed to get trace file: %v", err)
+	}
+}
+
+func (s *bugtoolInfo) addExtraFiles() {
+	for name, path := range s.info.ExtraFiles {
+		if path == "" {
+			continue
+		}
+		s.multiLog.WithField("name", name).WithField("path", path).Info("adding extra file")
+		if err := s.tarAddFile(path, name); err != nil {
+			s.multiLog.WithField("name", name).WithField("path", path).WithError(err).Warn("failed to add extra file")
+		}
 	}
 }
