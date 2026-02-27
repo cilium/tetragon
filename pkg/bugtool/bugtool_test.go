@@ -27,6 +27,10 @@ func TestSaveAndLoad(t *testing.T) {
 		BTFFname:    "3",
 		ServerAddr:  "",
 		MetricsAddr: "foo",
+		ExtraFiles: map[string]string{
+			"extra1.json": "/var/run/tetragon/extra1.json",
+			"extra2.json": "/var/run/tetragon/extra2.json",
+		},
 	}
 
 	if err := doSaveInitInfo(tmpFile.Name(), &info1); err != nil {
