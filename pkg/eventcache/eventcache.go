@@ -120,8 +120,38 @@ func HandleGenericInternal(ev notify.Event, pid uint32, tid *uint32, timestamp u
 func HandleGenericEvent(internal *process.ProcessInternal, ev notify.Event, tid *uint32) error {
 	p := internal.UnsafeGetProcess()
 	if option.Config.EnableK8s && p.Pod == nil {
-		CacheRetries(PodInfo).Inc()
-		return ErrFailedToGetPodInfo
+		if p.Docker == "" && p.Pid != nil {
+			// Stale clone entry: look up by PID to find the
+			// exec-based entry with container metadata.
+			updated := process.GetByPidWithContainerInfo(p.Pid.Value)
+			if updated == nil {
+				CacheRetries(PodInfo).Inc()
+				return ErrFailedToGetPodInfo
+			}
+			up := updated.UnsafeGetProcess()
+			if up.Pod != nil {
+				internal = updated
+			} else {
+				podInfo := process.GetPodInfo(up.Docker, up.Binary, up.Arguments, 0)
+				if podInfo == nil {
+					CacheRetries(PodInfo).Inc()
+					return ErrFailedToGetPodInfo
+				}
+				updated.AddPodInfo(podInfo)
+				internal = updated
+			}
+		} else if p.Docker != "" {
+			// Docker ID set but pod info not yet resolved.
+			podInfo := process.GetPodInfo(p.Docker, p.Binary, p.Arguments, 0)
+			if podInfo == nil {
+				CacheRetries(PodInfo).Inc()
+				return ErrFailedToGetPodInfo
+			}
+			internal.AddPodInfo(podInfo)
+		} else {
+			CacheRetries(PodInfo).Inc()
+			return ErrFailedToGetPodInfo
+		}
 	}
 
 	// When we report the per thread fields, take a copy
