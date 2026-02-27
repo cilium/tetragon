@@ -21,6 +21,21 @@
 #define SELECTORS_ACTIVE	 31
 #define MAX_CONFIGURED_SELECTORS MAX_POSSIBLE_SELECTORS + 1
 
+/* convenience mask for verifier appeasing*/
+#define MAX_POSSIBLE_ARGS_MASK 0x7
+_Static_assert(MAX_POSSIBLE_ARGS - 1 <= MAX_POSSIBLE_ARGS_MASK, "Need to update MAX_POSSIBLE_ARGS_MASK");
+
+/* This reflects the maximum reachable argument in term of the
+ * function/tracepoint signature. This is different from MAX_POSSIBLE_ARGS
+ * because MAX_POSSIBLE_ARGS concerns the maximum number of arguments that can
+ * be configured in the tracing policy.  This value (5) comes from the 5
+ * member variables (a0 - a4) of msg_generic_kprobe
+ */
+#define MAX_ACCESSIBLE_ARGS 5
+/* convenience mask for verifier appeasing*/
+#define MAX_ACCESSIBLE_ARGS_MASK 0x7
+_Static_assert(MAX_ACCESSIBLE_ARGS - 1 <= MAX_ACCESSIBLE_ARGS_MASK, "Need to update MAX_ACCESSIBLE_ARGS_MASK");
+
 struct msg_selector_data {
 	__u64 curr;
 	bool pass;
@@ -87,7 +102,7 @@ struct msg_generic_kprobe {
 
 FUNC_INLINE bool is_arg_ok(struct msg_generic_kprobe *e, int idx)
 {
-	return !e->arg_status[idx & 0x7];
+	return !e->arg_status[idx & MAX_POSSIBLE_ARGS_MASK];
 }
 
 FUNC_INLINE size_t generic_kprobe_common_size(void)
