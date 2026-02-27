@@ -11,6 +11,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
+	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
@@ -184,6 +185,9 @@ func (h *handler) deleteTracingPolicy(op *tracingPolicyDelete) error {
 	h.collections.mu.Unlock()
 
 	col.destroy(true)
+
+	// Clean up stale policy-labeled metric series for this policy.
+	metrics.DeleteMetricsForPolicy(op.ck.name)
 
 	filterID := policyfilter.PolicyID(col.policyfilterID)
 	err := h.pfState.DelPolicy(filterID)
