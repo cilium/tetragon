@@ -7,6 +7,7 @@ package tracing
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"strconv"
@@ -21,6 +22,7 @@ import (
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/kernels"
 	bc "github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
+	"github.com/cilium/tetragon/pkg/selectors"
 
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/config"
@@ -981,6 +983,27 @@ func TestUprobeStringArgEmptyNotEqualNotMatch(t *testing.T) {
 		t.Skip("this test requires bpf_copy_from_user_str kfunc support")
 	}
 	err := uprobeArgsMatch(t, "uprobe_test_lib_string_arg_empty", "string", "NotEqual", []string{"", "other"}, true)
+	require.NoError(t, err)
+}
+
+func TestUprobeStringArgSubstringMax(t *testing.T) {
+	if !bpf.HasKfunc("bpf_copy_from_user_str") {
+		t.Skip("this test requires bpf_copy_from_user_str kfunc support")
+	}
+	if !bpf.HasKfunc("bpf_strnstr") {
+		t.Skip("skipping, no bpf_strnstr kfunc in kernel")
+	}
+
+	// Prepare 100 values with 'test' as the last one and
+	// make sure we match it properly.
+
+	values := []string{}
+	for i := range selectors.SubstringMapEntries - 1 {
+		values = append(values, fmt.Sprintf("a%d", i))
+	}
+	values = append(values, "test")
+
+	err := uprobeArgsMatch(t, "uprobe_test_lib_string_arg_substring", "string", "SubString", values, false)
 	require.NoError(t, err)
 }
 
