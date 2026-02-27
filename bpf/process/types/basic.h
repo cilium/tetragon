@@ -112,12 +112,9 @@ enum {
 
 enum {
 	ACTION_POST = 0,
-	ACTION_FOLLOWFD = 1,
 	/* Actual SIGKILL value, but we dont want to pull headers in */
 	ACTION_SIGKILL = 2,
-	ACTION_UNFOLLOWFD = 3,
 	ACTION_OVERRIDE = 4,
-	ACTION_COPYFD = 5,
 	ACTION_GETURL = 6,
 	ACTION_DNSLOOKUP = 7,
 	ACTION_NOPOST = 8,
@@ -363,7 +360,7 @@ FUNC_INLINE long copy_strings(char *args, char *arg, int max_size)
 	// So add one to the length to allow for it. This should
 	// result in us honouring our max_size correctly.
 	size = probe_read_str(&args[4], max_size + 1, arg);
-	if (size <= 0)
+	if (size <= 1)
 		return invalid_ty;
 	// Remove the nul character from end.
 	size--;
@@ -554,7 +551,7 @@ FUNC_INLINE u16 string_padded_len(u16 len)
 	u16 padded_len = len;
 
 	if (len < STRING_MAPS_SIZE_5) {
-		if (!len || len % STRING_MAPS_KEY_INC_SIZE != 0)
+		if (len % STRING_MAPS_KEY_INC_SIZE != 0)
 			padded_len = ((len / STRING_MAPS_KEY_INC_SIZE) + 1) * STRING_MAPS_KEY_INC_SIZE;
 		return padded_len;
 	}
@@ -652,14 +649,14 @@ filter_char_buf_equal(struct selector_arg_filter *filter, char *arg_str, uint or
 
 #ifdef __LARGE_BPF_PROG
 #ifdef __V511_BPF_PROG
-	if (orig_len > STRING_MAPS_SIZE_10 - 2)
+	if (orig_len > STRING_MAPS_SIZE_10 - 2 || !orig_len)
 		return 0;
 #else
-	if (orig_len > STRING_MAPS_SIZE_7 - 2)
+	if (orig_len > STRING_MAPS_SIZE_7 - 2 || !orig_len)
 		return 0;
 #endif
 #else
-	if (orig_len > STRING_MAPS_SIZE_5 - 1)
+	if (orig_len > STRING_MAPS_SIZE_5 - 1 || !orig_len)
 		return 0;
 #endif
 
@@ -849,7 +846,7 @@ filter_char_substring(struct selector_arg_filter *filter, char *arg_str, uint ar
 		else
 			idx = bpf_strnstr(arg_str, sub_str, arg_len);
 
-		if (idx >= 0)
+		if (idx > 0)
 			return 1;
 
 		// placed here to allow llvm unroll this loop
@@ -2237,88 +2234,6 @@ FUNC_INLINE int filter_args_reject(u64 id)
 	return 0;
 }
 
-struct fdinstall_key {
-	__u64 tid;
-	__u32 fd;
-	__u32 pad;
-};
-
-struct fdinstall_value {
-	char file[4104]; // 4096B paths + 4B length + 4B flags
-};
-
-struct {
-	__uint(type, BPF_MAP_TYPE_LRU_HASH);
-	__uint(max_entries, 1); // will be resized by agent when needed
-	__type(key, struct fdinstall_key);
-	__type(value, struct fdinstall_value);
-} fdinstall_map SEC(".maps");
-
-FUNC_INLINE int
-installfd(struct msg_generic_kprobe *e, int fd, int name, bool follow)
-{
-	struct fdinstall_key key = { 0 };
-	struct fdinstall_value *val;
-	int err = 0, zero = 0;
-	long fdoff, nameoff;
-
-	val = map_lookup_elem(&heap, &zero);
-	if (!val)
-		return 0;
-
-	/* Satisfies verifier but is a bit ugly, ideally we
-	 * can just '&' and drop the '>' case.
-	 */
-	asm volatile("%[fd] &= 0xf;\n"
-		     : [fd] "+r"(fd)
-		     :);
-	if (fd > 5) {
-		return 0;
-	}
-
-	if (!is_arg_ok(e, fd))
-		return 0;
-
-	fdoff = e->argsoff[fd];
-	asm volatile("%[fdoff] &= 0x7ff;\n"
-		     : [fdoff] "+r"(fdoff)
-		     :);
-	key.pad = 0;
-	key.fd = *(__u32 *)&e->args[fdoff];
-	key.tid = get_current_pid_tgid() >> 32;
-
-	if (follow) {
-		__u32 size;
-
-		asm volatile("%[name] &= 0xf;\n"
-			     : [name] "+r"(name)
-			     :);
-		if (name > 5)
-			return 0;
-
-		if (!is_arg_ok(e, name))
-			return 0;
-
-		nameoff = e->argsoff[name];
-		asm volatile("%[nameoff] &= 0x7ff;\n"
-			     : [nameoff] "+r"(nameoff)
-			     :);
-
-		size = *(__u32 *)&e->args[nameoff];
-		asm volatile("%[size] &= 0xfff;\n"
-			     : [size] "+r"(size)
-			     :);
-
-		probe_read(&val->file[0], size + 4 /* size */ + 4 /* flags */,
-			   &e->args[nameoff]);
-
-		map_update_elem(&fdinstall_map, &key, val, BPF_ANY);
-	} else {
-		err = map_delete_elem(&fdinstall_map, &key);
-	}
-	return err;
-}
-
 FUNC_INLINE __u64
 msg_generic_arg_value_u64(struct msg_generic_kprobe *e, unsigned int arg_id, __u64 err_val)
 {
@@ -2335,52 +2250,6 @@ msg_generic_arg_value_u64(struct msg_generic_kprobe *e, unsigned int arg_id, __u
 	argoff &= GENERIC_MSG_ARGS_MASK;
 	ret = (__u64 *)&e->args[argoff];
 	return *ret;
-}
-
-FUNC_INLINE int
-copyfd(struct msg_generic_kprobe *e, int oldfd, int newfd)
-{
-	struct fdinstall_key key = { 0 };
-	struct fdinstall_value *val;
-	int oldfdoff, newfdoff;
-	int err = 0;
-
-	asm volatile("%[oldfd] &= 0xf;\n"
-		     : [oldfd] "+r"(oldfd)
-		     :);
-	if (oldfd > 5)
-		return 0;
-	if (!is_arg_ok(e, oldfd))
-		return 0;
-	oldfdoff = e->argsoff[oldfd];
-	asm volatile("%[oldfdoff] &= 0x7ff;\n"
-		     : [oldfdoff] "+r"(oldfdoff)
-		     :);
-	key.pad = 0;
-	key.fd = *(__u32 *)&e->args[oldfdoff];
-	key.tid = get_current_pid_tgid() >> 32;
-
-	val = map_lookup_elem(&fdinstall_map, &key);
-	if (val) {
-		asm volatile("%[newfd] &= 0xf;\n"
-			     : [newfd] "+r"(newfd)
-			     :);
-		if (newfd > 5)
-			return 0;
-		if (!is_arg_ok(e, newfd))
-			return 0;
-		newfdoff = e->argsoff[newfd];
-		asm volatile("%[newfdoff] &= 0x7ff;\n"
-			     : [newfdoff] "+r"(newfdoff)
-			     :);
-		key.pad = 0;
-		key.fd = *(__u32 *)&e->args[newfdoff];
-		key.tid = get_current_pid_tgid() >> 32;
-
-		map_update_elem(&fdinstall_map, &key, val, BPF_ANY);
-	}
-
-	return err;
 }
 
 #ifdef __LARGE_BPF_PROG

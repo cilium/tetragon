@@ -250,37 +250,10 @@ __read_arg_1(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 		size = copy_iov_iter(ctx, orig_off, arg, argm, e);
 		break;
 	case fd_ty: {
-		struct fdinstall_key key = { 0 };
-		struct fdinstall_value *val;
-		__u32 fd;
-
-		key.tid = get_current_pid_tgid() >> 32;
-		probe_read(&fd, sizeof(__u32), &arg);
-		key.fd = fd;
-
-		val = map_lookup_elem(&fdinstall_map, &key);
-		if (val) {
-			__u32 bytes = *((__u32 *)&val->file[0]);
-
-			probe_read(&args[0], sizeof(__u32), &fd);
-			asm volatile("%[bytes] &= 0xfff;\n"
-				     : [bytes] "+r"(bytes)
-				     :);
-			probe_read(&args[4], bytes + 4, (char *)&val->file[0]);
-			size = bytes + 4 + 4;
-
-			// flags
-			probe_read(&args[size], 4,
-				   (char *)&val->file[size - 4]);
-			size += 4;
-		} else {
-			/* If filter specification is fd type then we
-			 * expect the fd has been previously followed
-			 * otherwise drop the event.
-			 */
-			return -1;
-		}
-	} break;
+		/* Legacy FD-tracking functionality removed */
+		size = 0;
+		break;
+	}
 	case filename_ty: {
 		struct filename *file;
 
@@ -907,8 +880,6 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 	int action = actions->act[i];
 	struct msg_generic_kprobe *e;
 	__s32 error __maybe_unused;
-	int fdi, namei;
-	int newfdi, oldfdi;
 	int socki;
 	int argi __maybe_unused;
 	int err = 0;
@@ -960,17 +931,6 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 		break;
 	}
 
-	case ACTION_UNFOLLOWFD:
-	case ACTION_FOLLOWFD:
-		fdi = actions->act[++i];
-		namei = actions->act[++i];
-		err = installfd(e, fdi, namei, action == ACTION_FOLLOWFD);
-		break;
-	case ACTION_COPYFD:
-		oldfdi = actions->act[++i];
-		newfdi = actions->act[++i];
-		err = copyfd(e, oldfdi, newfdi);
-		break;
 	case ACTION_SIGNAL:
 		signal = actions->act[++i];
 		fallthrough;

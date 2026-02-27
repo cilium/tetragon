@@ -948,11 +948,11 @@ func TestInitKernelSelectors(t *testing.T) {
 	}
 
 	expectedSelsizeSmall := []byte{
-		0x18, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + capabilities  + 4
+		0x0c, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + capabilities + 4
 	}
 
 	expectedSelsizeLarge := []byte{
-		0x4c, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + namespacesChanges + capabilities + capabilityChanges + 4
+		0x40, 0x01, 0x00, 0x00, // size = pids + args + actions + namespaces + namespacesChanges + capabilities + capabilityChanges + 4
 	}
 
 	expectedFilters := []byte{
@@ -1070,16 +1070,13 @@ func TestInitKernelSelectors(t *testing.T) {
 		0x02, 0x00, 0x00, 0x00, // value 2
 
 		// actions header
-		40, 0x00, 0x00, 0x00, // size = (6 * sizeof(uint32) * number of actions) + args
+		28, 0x00, 0x00, 0x00, // size = (6 * sizeof(uint32) * number of actions) + args
 		0x00, 0x00, 0x00, 0x00, // post to userspace
 		0x00, 0x00, 0x00, 0x00, // DontRepeatFor = 0
 		0x00, 0x00, 0x00, 0x00, // DontRepeatForScope = 0
 		0x00, 0x00, 0x00, 0x00, // StackTrace = 0
 		0x00, 0x00, 0x00, 0x00, // UserStackTrace = 0
 		0x00, 0x00, 0x00, 0x00, // ImaHash = 0
-		0x01, 0x00, 0x00, 0x00, // fdinstall
-		0x00, 0x00, 0x00, 0x00, // arg index of fd
-		0x01, 0x00, 0x00, 0x00, // arg index of string filename
 	}
 
 	expectedLastSmall := []byte{
@@ -1109,16 +1106,13 @@ func TestInitKernelSelectors(t *testing.T) {
 		0xff, 0xff, 0xff, 0xff, // map ID for strings 2049-4096
 
 		// actions header
-		40, 0x00, 0x00, 0x00, // size = (6 * sizeof(uint32) * number of actions) + args + 4
+		28, 0x00, 0x00, 0x00, // size = (6 * sizeof(uint32) * number of actions) + args + 4
 		0x00, 0x00, 0x00, 0x00, // post to userspace
 		0x00, 0x00, 0x00, 0x00, // DontRepeatFor = 0
 		0x00, 0x00, 0x00, 0x00, // DontRepeatForScope = 0
 		0x00, 0x00, 0x00, 0x00, // StackTrace = 0
 		0x00, 0x00, 0x00, 0x00, // UserStackTrace = 0
 		0x00, 0x00, 0x00, 0x00, // ImaHash = 0
-		0x01, 0x00, 0x00, 0x00, // fdinstall
-		0x00, 0x00, 0x00, 0x00, // arg index of fd
-		0x01, 0x00, 0x00, 0x00, // arg index of string filename
 	}
 
 	expected := expectedHeader
@@ -1163,10 +1157,7 @@ func TestInitKernelSelectors(t *testing.T) {
 		matchArgs = []v1alpha1.ArgSelector{*arg1}
 	}
 	act1 := &v1alpha1.ActionSelector{Action: "post"}
-	act2 := &v1alpha1.ActionSelector{Action: "followfd",
-		ArgFd:   0,
-		ArgName: 1}
-	matchActions := []v1alpha1.ActionSelector{*act1, *act2}
+	matchActions := []v1alpha1.ActionSelector{*act1}
 
 	selectors := []v1alpha1.KProbeSelector{
 		{
@@ -1266,57 +1257,8 @@ func TestReturnSelectorArgInt(t *testing.T) {
 	}
 }
 
-func TestReturnSelectorArgIntActionFollowfd(t *testing.T) {
-	var actionArgTable idtable.Table
-
-	returnArg := v1alpha1.KProbeArg{Index: 0, Type: "int", SizeArgIndex: 0, ReturnCopy: false}
-
-	act1 := v1alpha1.ActionSelector{Action: "post"}
-	act2 := v1alpha1.ActionSelector{Action: "followfd",
-		ArgFd:   7,
-		ArgName: 8}
-
-	matchReturnActions := []v1alpha1.ActionSelector{act1, act2}
-
-	// selector
-	// - MatchReturnArgs:    no matching return args
-	// - MatchReturnActions: followfd, post actions
-	selectors := []v1alpha1.KProbeSelector{
-		{MatchReturnActions: matchReturnActions},
-	}
-
-	b, _ := InitKernelReturnSelectors(selectors, &returnArg, &actionArgTable)
-
-	expected := make([]byte, 4096)
-	expectedLen := 0
-	expU32Push := func(i int) {
-		binary.LittleEndian.PutUint32(expected[expectedLen:], uint32(i))
-		expectedLen += 4
-	}
-
-	expU32Push(1)  // off: 0       number of selectors
-	expU32Push(4)  // off: 4       relative ofset of selector (4 + 4 = 8)
-	expU32Push(68) // off: 8       selector: length
-	expU32Push(24) // off: 12      selector: matchReturnArgs length
-	expU32Push(0)  // off: 16      selector: matchReturnArgs arg offset[0]
-	expU32Push(0)  // off: 20      selector: matchReturnArgs arg offset[1]
-	expU32Push(0)  // off: 24      selector: matchReturnArgs arg offset[2]
-	expU32Push(0)  // off: 28      selector: matchReturnArgs arg offset[3]
-	expU32Push(0)  // off: 32      selector: matchReturnArgs arg offset[4]
-	expU32Push(40) // off: 36      selector: matchReturnActions length
-	expU32Push(0)  // off: 40      selector: selectors.ActionTypePost
-	expU32Push(0)  // off: 44      selector: rateLimit
-	expU32Push(0)  // off: 44      selector: rateLimitScope
-	expU32Push(0)  // off: 48      selector: stackTrace
-	expU32Push(0)  // off: 52      selector: userStackTrace
-	expU32Push(0)  // off: 56      selector: imaHash
-	expU32Push(1)  // off: 60      selector: selectors.ActionTypeFollowFd
-	expU32Push(7)  // off: 64      selector: action.ArgFd
-	expU32Push(8)  // off: 68      selector: action.ArgName
-
-	if bytes.Equal(expected[:expectedLen], b[:expectedLen]) == false {
-		t.Errorf("\ngot: %v\nexp: %v\n", b[:expectedLen], expected[:expectedLen])
-	}
+func TestReturnSelectorArgIntActionDeprecatedFDTracking(t *testing.T) {
+	t.Skip("Deprecated FD tracking actions were removed in v1.5")
 }
 
 func TestParseAddr(t *testing.T) {
