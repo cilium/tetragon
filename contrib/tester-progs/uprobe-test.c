@@ -15,6 +15,7 @@ int uprobe_test_lib_arg4(long a1, int a2, char a3, void *a4);
 int uprobe_test_lib_arg5(int a1, char a2, unsigned long a3, short a4, void *a5);
 int uprobe_test_lib_string_arg(char *str);
 int uprobe_test_lib_string_arg_empty(char *str);
+int uprobe_test_lib_string_arg_substring(char *str);
 
 int main(void)
 {
@@ -28,4 +29,5 @@ int main(void)
 	uprobe_test_lib_arg5(1, 'c', 0xcafe, 1234, (void *) 2);
 	uprobe_test_lib_string_arg(pageout(str_arg, strlen(str_arg) + 1));
 	uprobe_test_lib_string_arg_empty("");
+	uprobe_test_lib_string_arg_substring("test");
 }
