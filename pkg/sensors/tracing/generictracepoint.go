@@ -360,6 +360,68 @@ func buildArgsRaw(info *tracepoint.Tracepoint, specArgs []v1alpha1.KProbeArg) ([
 	return ret, nil
 }
 
+// preValidateTracepoint pre-validates a single tracepoint spec by checking
+// that the tracepoint subsystem/event exists and that the arguments are valid.
+func preValidateTracepoint(spec *v1alpha1.TracepointSpec) error {
+	if spec.Subsystem == "" {
+		return errors.New("tracepoint subsystem is empty")
+	}
+	if spec.Event == "" {
+		return errors.New("tracepoint event is empty")
+	}
+
+	tpInfo := tracepoint.Tracepoint{
+		Subsys: spec.Subsystem,
+		Event:  spec.Event,
+	}
+
+	// For non-raw tracepoints, verify the tracepoint exists by loading its format
+	if !spec.Raw {
+		if err := tpInfo.LoadFormat(); err != nil {
+			return fmt.Errorf("tracepoint %s/%s not supported: %w", spec.Subsystem, spec.Event, err)
+		}
+
+		// Validate argument indices are within bounds
+		nfields := uint32(len(tpInfo.Format.Fields))
+		for i, arg := range spec.Args {
+			if arg.Index >= nfields {
+				return fmt.Errorf("tracepoint %s/%s has %d fields but field %d was requested in args[%d]",
+					spec.Subsystem, spec.Event, nfields, arg.Index, i)
+			}
+		}
+	} else {
+		// For raw tracepoints, argument index must be <= 5
+		for i, arg := range spec.Args {
+			if arg.Index > 5 {
+				return fmt.Errorf("raw tracepoint %s/%s can read up to 5 arguments, but index %d was requested in args[%d]",
+					spec.Subsystem, spec.Event, arg.Index, i)
+			}
+		}
+	}
+
+	return nil
+}
+
+// preValidateTracepoints pre-validates the semantics of tracepoint specs.
+// It checks that each tracepoint subsystem/event exists and that arguments
+// are valid. It also validates that NotifyEnforcer actions have enforcers.
+func preValidateTracepoints(tracepoints []v1alpha1.TracepointSpec, enforcers []v1alpha1.EnforcerSpec) error {
+	for i := range tracepoints {
+		for _, sel := range tracepoints[i].Selectors {
+			for _, act := range sel.MatchActions {
+				if act.Action == "NotifyEnforcer" && len(enforcers) == 0 {
+					return fmt.Errorf("error in spec.tracepoints[%d]: NotifyEnforcer action specified, but spec contains no enforcers", i)
+				}
+			}
+		}
+
+		if err := preValidateTracepoint(&tracepoints[i]); err != nil {
+			return fmt.Errorf("error in spec.tracepoints[%d]: %w", i, err)
+		}
+	}
+	return nil
+}
+
 // createGenericTracepoint creates the genericTracepoint information based on
 // the user-provided configuration
 func createGenericTracepoint(
