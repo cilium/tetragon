@@ -410,6 +410,34 @@ func TestUprobeResolvePageFault(t *testing.T) {
 	})
 }
 
+func TestUprobeResolveIntPointer(t *testing.T) {
+	testUprobeResolveType(t, TestSpec{
+		specTy:    "uint8",
+		filterVal: "7",
+		quoteVal:  false,
+		field:     "v8p",
+		kpArgs: []*ec.KprobeArgumentChecker{
+			ec.NewKprobeArgumentChecker().WithUintArg(uint32(7)),
+		},
+	})
+}
+
+func TestUprobeResolveStringPointer(t *testing.T) {
+	if !bpf.HasKfunc("bpf_copy_from_user_str") {
+		t.Skip("this test requires bpf_copy_from_user_str kfunc support")
+	}
+
+	testUprobeResolveType(t, TestSpec{
+		specTy:    "string",
+		filterVal: "hello world!",
+		quoteVal:  true,
+		field:     "buffp",
+		kpArgs: []*ec.KprobeArgumentChecker{
+			ec.NewKprobeArgumentChecker().WithStringArg(sm.Full("hello world!")),
+		},
+	})
+}
+
 func testUprobeOverrideRegsActionSize(t *testing.T, ass, num string) {
 	if !bpf.HasUprobeRegsChange() {
 		t.Skip("skipping regs override action test, regs override is not supported in kernel")
