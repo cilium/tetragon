@@ -190,6 +190,9 @@ func (h policyHandler) PolicyHandler(
 		return createGenericKprobeSensor(spec, name, polInfo, validateInfo)
 	}
 	if len(spec.Tracepoints) > 0 {
+		if err := preValidateTracepoints(spec.Tracepoints, spec.Enforcers); err != nil {
+			return nil, fmt.Errorf("tracepoint validation failed: %w", err)
+		}
 		return createGenericTracepointSensor(spec, "generic_tracepoint", polInfo)
 	}
 	if len(spec.LsmHooks) > 0 {
