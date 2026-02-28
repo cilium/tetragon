@@ -141,14 +141,30 @@ func (cm *ControllerManager) ListNamespaces() ([]corev1.Namespace, error) {
 func (cm *ControllerManager) WaitCRDs(ctx context.Context, crds map[string]struct{}) error {
 	log := logger.GetLogger()
 	log.Info("Waiting for required CRDs", "crds", crds)
-	var wg sync.WaitGroup
-	wg.Add(1)
+
+	// If no CRDs to wait for, return immediately
+	if len(crds) == 0 {
+		log.Info("No CRDs to wait for")
+		return nil
+	}
+
 	crdInformer, err := cm.Manager.GetCache().GetInformer(ctx, &apiextensionsv1.CustomResourceDefinition{})
 	if err != nil {
+		log.Error("Failed to get CRD informer", logfields.Error, err)
 		return err
 	}
-	_, err = crdInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+
+	// Set up waiting mechanism
+	done := make(chan struct{})
+	var wg sync.WaitGroup
+	wg.Add(1)
+	completed := false
+
+	_, err = crdInformer.AddEventHandlerWithResyncPeriod(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj any) {
+			if completed {
+				return // Stop processing once we're done
+			}
 			crdObject, ok := obj.(*apiextensionsv1.CustomResourceDefinition)
 			if !ok {
 				log.Warn("Received an invalid object", "obj", obj)
@@ -159,16 +175,43 @@ func (cm *ControllerManager) WaitCRDs(ctx context.Context, crds map[string]struc
 				delete(crds, crdObject.Name)
 				if len(crds) == 0 {
 					log.Info("Found all the required CRDs")
-					wg.Done()
+					completed = true // Set completion flag
+					select {
+					case <-done:
+						// Already completed
+					default:
+						close(done)
+						wg.Done()
+					}
 				}
 			}
 		},
-	})
+	}, 30*time.Second) // Resync every 30 seconds as fallback
 	if err != nil {
-		log.Error("failed to add event handler", logfields.Error, err)
+		log.Error("failed to add CRD event handler", logfields.Error, err)
 		return err
 	}
+
+	// Wait with context cancellation
+	go func() {
+		select {
+		case <-ctx.Done():
+			log.Info("Context cancelled while waiting for CRDs")
+			select {
+			case <-done:
+				// Already completed
+			default:
+				close(done)
+				wg.Done()
+			}
+		case <-done:
+			// CRDs found, normal completion
+		}
+	}()
+
 	wg.Wait()
+
+	// Clean up informer
 	err = cm.Manager.GetCache().RemoveInformer(ctx, &apiextensionsv1.CustomResourceDefinition{})
 	if err != nil {
 		log.Warn("failed to remove CRD informer", logfields.Error, err)
