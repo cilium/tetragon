@@ -176,6 +176,144 @@ func (cm *ControllerManager) WaitCRDs(ctx context.Context, crds map[string]struc
 	return nil
 }
 
+// WaitCRDsWithResync waits for CRDs with configurable resync period and context cancellation logic
+func (cm *ControllerManager) WaitCRDsWithResync(ctx context.Context, crds map[string]struct{}, resyncPeriod time.Duration) error {
+	log := logger.GetLogger()
+	log.Info("Waiting for required CRDs with resync", "crds", crds, "resyncPeriod", resyncPeriod)
+
+	// If no CRDs to wait for, return immediately
+	if len(crds) == 0 {
+		log.Info("No CRDs to wait for")
+		return nil
+	}
+
+	// Get CRD informer to watch for CRD events
+	crdInformer, err := cm.Manager.GetCache().GetInformer(ctx, &apiextensionsv1.CustomResourceDefinition{})
+	if err != nil {
+		log.Error("Failed to get CRD informer", logfields.Error, err)
+		return err
+	}
+
+	// Check if the informer has synced before relying on it.
+	// If not, log a message but continue with event handler approach.
+	if !crdInformer.HasSynced() {
+		log.Info("Informer cache not synced yet")
+	}
+
+	// Make a copy of crds to avoid modifying the original map
+	remainingCRDs := make(map[string]struct{})
+	for crd := range crds {
+		remainingCRDs[crd] = struct{}{}
+	}
+
+	// Check the cache first for existing CRDs
+	existingCRDs := &apiextensionsv1.CustomResourceDefinitionList{}
+	err = cm.Manager.GetCache().List(ctx, existingCRDs)
+	if err != nil {
+		log.Warn("Failed to list existing CRDs from cache", logfields.Error, err)
+		// Continue with event handler approach
+	} else {
+		for _, crdObject := range existingCRDs.Items {
+			if _, required := remainingCRDs[crdObject.Name]; required {
+				log.Info("Found CRD in cache", "crd", crdObject.Name)
+				delete(remainingCRDs, crdObject.Name)
+			}
+		}
+	}
+
+	// If all CRDs already exist, we're done
+	if len(remainingCRDs) == 0 {
+		log.Info("Found all required CRDs in cache")
+		return nil
+	}
+
+	log.Debug("Still waiting for CRDs", "remaining", remainingCRDs)
+
+	// Set up waiting mechanism for remaining CRDs
+	done := make(chan struct{})
+	var wg sync.WaitGroup
+	wg.Add(1)
+	completed := false
+
+	// Track how many resyncs have occurred
+	resyncCount := 0
+	// Track time since last resync event
+	lastResyncTime := time.Now()
+
+	_, err = crdInformer.AddEventHandlerWithResyncPeriod(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj any) {
+			if completed {
+				return
+			}
+			crdObject, ok := obj.(*apiextensionsv1.CustomResourceDefinition)
+			if !ok {
+				log.Warn("Received an invalid object", "obj", obj)
+				return
+			}
+			if _, required := remainingCRDs[crdObject.Name]; required {
+				log.Info("Found CRD", "crd", crdObject.Name)
+				delete(remainingCRDs, crdObject.Name)
+				if len(remainingCRDs) == 0 {
+					log.Info("Found all the required CRDs")
+					completed = true
+					select {
+					case <-done:
+						// Already completed
+					default:
+						close(done)
+						wg.Done()
+					}
+				}
+			} else {
+				// This is likely a resync event (CRD we're not waiting for)
+				now := time.Now()
+				if now.Sub(lastResyncTime) >= resyncPeriod/2 { // Log resync at most every half resync period
+					resyncCount++
+					log.Debug("Resync event detected",
+						"resyncPeriod", resyncPeriod,
+						"resyncCount", resyncCount,
+						"stillWaiting", len(remainingCRDs),
+						"timeSinceLastResync", now.Sub(lastResyncTime))
+					lastResyncTime = now
+				}
+			}
+		},
+	}, resyncPeriod)
+	if err != nil {
+		// Check if this is due to informer being stopped (context cancelled during startup)
+		if ctx.Err() != nil {
+			log.Info("Context cancelled while setting up CRD waiting", logfields.Error, ctx.Err())
+			return ctx.Err()
+		}
+		log.Error("failed to add CRD event handler", logfields.Error, err)
+		return err
+	}
+
+	// Wait with context cancellation
+	go func() {
+		select {
+		case <-ctx.Done():
+			log.Info("Context cancelled while waiting for CRDs", logfields.Error, ctx.Err())
+			select {
+			case <-done:
+				// Already completed
+			default:
+				close(done)
+				wg.Done()
+			}
+		case <-done:
+			// CRDs found, normal completion
+		}
+	}()
+
+	wg.Wait()
+
+	// Do not remove the informer, as GetInformer may return a shared informer that is used elsewhere.
+	// We're only adding an event handler, not owning the informer.
+	// The controller-runtime manager handles informer cleanup automatically when stopped
+	return nil
+}
+
 func (cm *ControllerManager) addPodInformer() error {
 	// initialize deleted pod cache
 	var err error
