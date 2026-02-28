@@ -84,7 +84,7 @@ func TestGenericTracepointSimple(t *testing.T) {
 	// create and add sensor
 	policyInfo, err := newPolicyInfoFromSpec("", "policyName", policyfilter.NoFilterID, &spec, nil)
 	require.NoError(t, err)
-	sensor, err := createGenericTracepointSensor(&spec, "GtpLseekTest", policyInfo)
+	sensor, err := createGenericTracepointSensor(&spec, "GtpLseekTest", policyInfo, nil)
 	if err != nil {
 		t.Fatalf("failed to create generic tracepoint sensor: %s", err)
 	}
@@ -150,7 +150,7 @@ func doTestGenericTracepointPidFilter(t *testing.T, conf v1alpha1.TracepointSpec
 	// create and add sensor
 	policyInfo, err := newPolicyInfoFromSpec("", "policyName", policyfilter.NoFilterID, &spec, nil)
 	require.NoError(t, err)
-	sensor, err := createGenericTracepointSensor(&spec, "GtpLseekTest", policyInfo)
+	sensor, err := createGenericTracepointSensor(&spec, "GtpLseekTest", policyInfo, nil)
 	if err != nil {
 		t.Fatalf("failed to create generic tracepoint sensor: %s", err)
 	}
@@ -573,7 +573,7 @@ func TestTracepointCloneThreads(t *testing.T) {
 	// create and add sensor
 	policyInfo, err := newPolicyInfoFromSpec("", "policyName", policyfilter.NoFilterID, &spec, nil)
 	require.NoError(t, err)
-	sensor, err := createGenericTracepointSensor(&spec, "GtpLseekTest", policyInfo)
+	sensor, err := createGenericTracepointSensor(&spec, "GtpLseekTest", policyInfo, nil)
 	if err != nil {
 		t.Fatalf("failed to create generic tracepoint sensor: %s", err)
 	}
