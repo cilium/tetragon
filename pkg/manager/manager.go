@@ -138,6 +138,26 @@ func (cm *ControllerManager) ListNamespaces() ([]corev1.Namespace, error) {
 	return namespaceList.Items, nil
 }
 
+// WaitCRDs waits for the specified Custom Resource Definitions (CRDs) to become available
+// in the Kubernetes cluster using a simple event-driven approach. This method sets up an
+// event handler that responds to CRD addition events and completes when all required CRDs
+// are found. It does not perform periodic resyncs or cache refreshes, making it suitable
+// for scenarios where CRDs are expected to be created shortly after startup and network
+// connectivity is stable.
+//
+// Use WaitCRDs when:
+//   - You expect CRDs to be available soon after application startup
+//   - Network connectivity to the API server is reliable
+//   - You want minimal resource overhead (no periodic resyncs)
+//   - The application can tolerate potentially missing CRDs that exist but weren't detected
+//     due to missed events or temporary network issues
+//
+// Parameters:
+//   - ctx: Context for cancellation
+//   - crds: Map of CRD names to wait for (map keys are CRD names, values are ignored)
+//
+// Returns:
+//   - error: Non-nil if waiting fails or context is cancelled
 func (cm *ControllerManager) WaitCRDs(ctx context.Context, crds map[string]struct{}) error {
 	log := logger.GetLogger()
 	log.Info("Waiting for required CRDs", "crds", crds)
@@ -173,6 +193,151 @@ func (cm *ControllerManager) WaitCRDs(ctx context.Context, crds map[string]struc
 	if err != nil {
 		log.Warn("failed to remove CRD informer", logfields.Error, err)
 	}
+	return nil
+}
+
+// WaitCRDsWithResync waits for the specified Custom Resource Definitions (CRDs) to become
+// available with enhanced reliability through periodic cache resyncs and comprehensive
+// error handling. This method first checks the existing cache for CRDs, then sets up an
+// event handler with a configurable resync period to ensure missed events are recovered.
+// The resync mechanism periodically refreshes the cache, making this approach more robust
+// against network issues, missed events, or temporary API server connectivity problems.
+//
+// Applications can use WaitCRDsWithResync when:
+// - You need guaranteed detection of existing CRDs that might be missed due to timing issues
+// - Network connectivity to the API server may be unreliable
+// - You can afford the additional resource overhead of periodic resyncs for improved reliability
+// - Long-running applications where CRDs might be created at any time during execution
+//
+// The method performs an initial cache check for efficiency, avoiding unnecessary waiting
+// if all required CRDs already exist. The resync period should be chosen based on your
+// tolerance for detection delay versus resource usage.
+//
+// Parameters:
+//   - ctx: Context for cancellation
+//   - crds: Map of CRD names to wait for (map keys are CRD names, values are ignored)
+//   - resyncPeriod: How often to refresh the cache and re-evaluate existing CRDs
+//
+// Returns:
+//   - error: Non-nil if waiting fails or context is cancelled
+func (cm *ControllerManager) WaitCRDsWithResync(ctx context.Context, crds map[string]struct{}, resyncPeriod time.Duration) error {
+	log := logger.GetLogger()
+	log.Info("Waiting for required CRDs with resync", "crds", crds, "resyncPeriod", resyncPeriod)
+
+	// If no CRDs to wait for, return immediately
+	if len(crds) == 0 {
+		log.Info("No CRDs to wait for")
+		return nil
+	}
+
+	// Get CRD informer to watch for CRD events
+	crdInformer, err := cm.Manager.GetCache().GetInformer(ctx, &apiextensionsv1.CustomResourceDefinition{})
+	if err != nil {
+		log.Error("Failed to get CRD informer", logfields.Error, err)
+		return err
+	}
+
+	// Check if the informer has synced before relying on it.
+	// If not, log a message but continue with event handler approach.
+	if !crdInformer.HasSynced() {
+		log.Info("Informer cache not synced yet")
+	}
+
+	// Make a copy of crds to avoid modifying the original map
+	remainingCRDs := make(map[string]struct{})
+	for crd := range crds {
+		remainingCRDs[crd] = struct{}{}
+	}
+
+	// Check the cache first for existing CRDs
+	existingCRDs := &apiextensionsv1.CustomResourceDefinitionList{}
+	err = cm.Manager.GetCache().List(ctx, existingCRDs)
+	if err != nil {
+		log.Warn("Failed to list existing CRDs from cache", logfields.Error, err)
+		// Continue with event handler approach
+	} else {
+		for _, crdObject := range existingCRDs.Items {
+			if _, required := remainingCRDs[crdObject.Name]; required {
+				log.Info("Found CRD in cache", "crd", crdObject.Name)
+				delete(remainingCRDs, crdObject.Name)
+			}
+		}
+	}
+
+	// If all CRDs already exist, we're done
+	if len(remainingCRDs) == 0 {
+		log.Info("Found all required CRDs in cache")
+		return nil
+	}
+
+	log.Debug("Still waiting for CRDs", "remaining", remainingCRDs)
+
+	// Set up waiting mechanism for remaining CRDs
+	done := make(chan struct{})
+	var wg sync.WaitGroup
+	wg.Add(1)
+	completed := false
+	var once sync.Once
+	finish := func() {
+		once.Do(func() {
+			close(done)
+			wg.Done()
+		})
+	}
+
+	_, err = crdInformer.AddEventHandlerWithResyncPeriod(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj any) {
+			if completed {
+				return
+			}
+			crdObject, ok := obj.(*apiextensionsv1.CustomResourceDefinition)
+			if !ok {
+				log.Warn("Received an invalid object", "obj", obj)
+				return
+			}
+			if _, required := remainingCRDs[crdObject.Name]; required {
+				log.Info("Found CRD", "crd", crdObject.Name)
+				delete(remainingCRDs, crdObject.Name)
+				if len(remainingCRDs) == 0 {
+					log.Info("Found all the required CRDs")
+					completed = true
+					finish()
+				}
+			}
+		},
+	}, resyncPeriod)
+	if err != nil {
+		// Check if this is due to informer being stopped (context cancelled during startup)
+		if ctx.Err() != nil {
+			log.Info("Context cancelled while setting up CRD waiting", logfields.Error, ctx.Err())
+			return ctx.Err()
+		}
+		log.Error("failed to add CRD event handler", logfields.Error, err)
+		return err
+	}
+
+	// Wait with context cancellation
+	go func() {
+		select {
+		case <-ctx.Done():
+			log.Info("Context cancelled while waiting for CRDs", logfields.Error, ctx.Err())
+			finish()
+		case <-done:
+			// CRDs found, normal completion
+		}
+	}()
+
+	wg.Wait()
+
+	// Check if context was cancelled
+	if ctx.Err() != nil {
+		// Context was cancelled before finding all CRDs
+		return ctx.Err()
+	}
+
+	// Do not remove the informer, as GetInformer may return a shared informer that is used elsewhere.
+	// We're only adding an event handler, not owning the informer.
+	// The controller-runtime manager handles informer cleanup automatically when stopped
 	return nil
 }
 
