@@ -231,8 +231,11 @@ func buildGenericTracepointArgs(tp *tracepoint.Tracepoint, specArgs []v1alpha1.K
 		return buildArgsRaw(tp, specArgs)
 	}
 
-	if err := tp.LoadFormat(); err != nil {
-		return nil, fmt.Errorf("tracepoint %s/%s not supported: %w", tp.Subsys, tp.Event, err)
+	// skip LoadFormat if the format was already pre-loaded during validation
+	if tp.Format == nil {
+		if err := tp.LoadFormat(); err != nil {
+			return nil, fmt.Errorf("tracepoint %s/%s not supported: %w", tp.Subsys, tp.Event, err)
+		}
 	}
 	return buildArgs(tp, specArgs)
 }
@@ -379,14 +382,23 @@ func buildArgsRaw(info *tracepoint.Tracepoint, specArgs []v1alpha1.KProbeArg) ([
 	return ret, nil
 }
 
+// tpValidateInfo holds pre-validated tracepoint information from the validation
+// phase. It is passed to createGenericTracepoint so that we don't need to load
+// the tracepoint format from tracefs a second time.
+type tpValidateInfo struct {
+	tp tracepoint.Tracepoint
+}
+
 // preValidateTracepoint pre-validates a single tracepoint spec by checking
 // that the tracepoint subsystem/event exists and that the arguments are valid.
-func preValidateTracepoint(spec *v1alpha1.TracepointSpec) error {
+// It returns a tpValidateInfo that can be passed to createGenericTracepoint
+// to avoid re-loading the tracepoint format.
+func preValidateTracepoint(spec *v1alpha1.TracepointSpec) (*tpValidateInfo, error) {
 	if spec.Subsystem == "" {
-		return errors.New("tracepoint subsystem is empty")
+		return nil, errors.New("tracepoint subsystem is empty")
 	}
 	if spec.Event == "" {
-		return errors.New("tracepoint event is empty")
+		return nil, errors.New("tracepoint event is empty")
 	}
 
 	tpInfo := tracepoint.Tracepoint{
@@ -397,41 +409,44 @@ func preValidateTracepoint(spec *v1alpha1.TracepointSpec) error {
 	// For non-raw tracepoints, verify the tracepoint exists by loading its format
 	if !spec.Raw {
 		if err := tpInfo.LoadFormat(); err != nil {
-			return fmt.Errorf("tracepoint %s/%s not supported: %w", spec.Subsystem, spec.Event, err)
+			return nil, fmt.Errorf("tracepoint %s/%s not supported: %w", spec.Subsystem, spec.Event, err)
 		}
 
 		nfields := uint32(len(tpInfo.Format.Fields))
 		for i, arg := range spec.Args {
 			if err := validateTracepointArg(spec.Subsystem, spec.Event, nfields, arg.Index, i); err != nil {
-				return err
+				return nil, err
 			}
 		}
 	} else {
 		// For raw tracepoints, argument index must be <= 5
 		for i, arg := range spec.Args {
 			if err := validateRawTracepointArg(spec.Subsystem, spec.Event, arg.Index, i); err != nil {
-				return err
+				return nil, err
 			}
 		}
 	}
 
-	return nil
+	return &tpValidateInfo{tp: tpInfo}, nil
 }
 
 // preValidateTracepoints pre-validates the semantics of tracepoint specs.
 // It checks that each tracepoint subsystem/event exists and that arguments
 // are valid. It also validates that NotifyEnforcer actions have enforcers.
-func preValidateTracepoints(tracepoints []v1alpha1.TracepointSpec, enforcers []v1alpha1.EnforcerSpec) error {
+func preValidateTracepoints(tracepoints []v1alpha1.TracepointSpec, enforcers []v1alpha1.EnforcerSpec) ([]*tpValidateInfo, error) {
+	ret := make([]*tpValidateInfo, len(tracepoints))
 	for i := range tracepoints {
 		if selectors.HasNotifyEnforcerAction(tracepoints[i].Selectors) && len(enforcers) == 0 {
-			return fmt.Errorf("error in spec.tracepoints[%d]: NotifyEnforcer action specified, but spec contains no enforcers", i)
+			return nil, fmt.Errorf("error in spec.tracepoints[%d]: NotifyEnforcer action specified, but spec contains no enforcers", i)
 		}
 
-		if err := preValidateTracepoint(&tracepoints[i]); err != nil {
-			return fmt.Errorf("error in spec.tracepoints[%d]: %w", i, err)
+		var err error
+		ret[i], err = preValidateTracepoint(&tracepoints[i])
+		if err != nil {
+			return nil, fmt.Errorf("error in spec.tracepoints[%d]: %w", i, err)
 		}
 	}
-	return nil
+	return ret, nil
 }
 
 // createGenericTracepoint creates the genericTracepoint information based on
@@ -440,14 +455,22 @@ func createGenericTracepoint(
 	sensorName string,
 	conf *v1alpha1.TracepointSpec,
 	polInfo *policyInfo,
+	valInfo *tpValidateInfo,
 ) (*genericTracepoint, error) {
 	if conf == nil {
 		return nil, errors.New("failed creating generic tracepoint, conf is nil")
 	}
 
-	tp := tracepoint.Tracepoint{
-		Subsys: conf.Subsystem,
-		Event:  conf.Event,
+	// Use the pre-loaded tracepoint info from validation if available,
+	// otherwise create a new one (format will be loaded in buildGenericTracepointArgs).
+	var tp *tracepoint.Tracepoint
+	if valInfo != nil {
+		tp = &valInfo.tp
+	} else {
+		tp = &tracepoint.Tracepoint{
+			Subsys: conf.Subsystem,
+			Event:  conf.Event,
+		}
 	}
 
 	msgField, err := getPolicyMessage(conf.Message)
@@ -462,14 +485,14 @@ func createGenericTracepoint(
 		return nil, err
 	}
 
-	tpArgs, err := buildGenericTracepointArgs(&tp, conf.Args, conf.Raw)
+	tpArgs, err := buildGenericTracepointArgs(tp, conf.Args, conf.Raw)
 	if err != nil {
 		return nil, err
 	}
 
 	ret := &genericTracepoint{
 		tableId:       idtable.UninitializedEntryID,
-		Info:          &tp,
+		Info:          tp,
 		Spec:          conf,
 		args:          tpArgs,
 		policyID:      polInfo.policyID,
@@ -552,6 +575,7 @@ func createGenericTracepointSensor(
 	spec *v1alpha1.TracingPolicySpec,
 	name string,
 	polInfo *policyInfo,
+	validateInfo []*tpValidateInfo,
 ) (*sensors.Sensor, error) {
 	confs := spec.Tracepoints
 	lists := spec.Lists
@@ -568,7 +592,11 @@ func createGenericTracepointSensor(
 		if err != nil {
 			return nil, err
 		}
-		tp, err := createGenericTracepoint(name, &tpSpec, polInfo)
+		var valInfo *tpValidateInfo
+		if validateInfo != nil {
+			valInfo = validateInfo[i]
+		}
+		tp, err := createGenericTracepoint(name, &tpSpec, polInfo, valInfo)
 		if err != nil {
 			return nil, err
 		}
