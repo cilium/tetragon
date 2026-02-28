@@ -241,136 +241,150 @@ func getSizeofType(t btf.Type) uint32 {
 	return uint32(ret)
 }
 
-// ResolveBTFPath function recursively search in a btf structure in order to
-// found a specific path until it reach the target or fail.
+func shouldContinueResolving(currentType btf.Type, argTypeIsPointer bool) bool {
+	currentType = ResolveNestedTypes(currentType)
+	_, currentTypeIsPointer := currentType.(*btf.Pointer)
+	if argTypeIsPointer {
+		if currentTypeIsPointer {
+			var isNestedPointer bool
+			targetType := ResolveNestedTypes(currentType.(*btf.Pointer).Target)
+			_, isNestedPointer = targetType.(*btf.Pointer)
+			if isNestedPointer {
+				return true
+			}
+		}
+	} else {
+		if currentTypeIsPointer {
+			return true
+		}
+	}
+	return false
+}
 
-// The function also search in embedded anonymous structures or unions to cover as
-// much use cases as possible. For instance, mm_struct have 2 fields, anonymous
-// struct and another type. But you are still able to look into the anonymous
-// struct by specifying a path like "mm.pgd.pgd".
-
-// @btfArgs: dest array for storing btf informations to reach the target on the
-// bpf side.
-// @currentType: The current type being proccessed, starts with root type.
-// @pathToFound: The string representation of the path to reach in the structures.
-// @i: The current depth, until last element of pathToFound.
-
-// Return: The last type found matching the path, or error.
 func ResolveBTFPath(
 	btfArgs *[api.MaxBTFArgDepth]api.ConfigBTFArg,
 	currentType btf.Type,
-	pathToFound []string,
-	i int,
-) (*btf.Type, error) {
+	path []string,
+	argTypeIsPointer bool,
+) error {
+	var err error
+	pathLen := len(path)
+	pathIdx := 0
+	configIdx := 0
+	currentOffset := uint32(0)
+
+	for pathIdx < pathLen || shouldContinueResolving(currentType, argTypeIsPointer) {
+		currentType = ResolveNestedTypes(currentType)
+
+		if pathIdx < pathLen {
+			var idx uint32
+			idx, err = parseArrayIdxStr(path[pathIdx])
+			_, isArray := currentType.(*btf.Array)
+			_, isPointer := currentType.(*btf.Pointer)
+			isNestedPointer := false
+			if isPointer {
+				targetType := ResolveNestedTypes(currentType.(*btf.Pointer).Target)
+				_, isNestedPointer = targetType.(*btf.Pointer)
+			}
+
+			if err == nil && !isArray && !isNestedPointer {
+				// handle dynamic array / pointer decay
+				currentOffset += getSizeofType(currentType) * idx
+				pathIdx++
+				continue
+			}
+		}
+
+		switch t := currentType.(type) {
+		case *btf.Pointer:
+			if configIdx >= api.MaxBTFArgDepth {
+				return fmt.Errorf("The maximum depth allowed is %d", api.MaxBTFArgDepth)
+			}
+			btfArgs[configIdx].IsPointer = uint16(1)
+			btfArgs[configIdx].IsInitialized = uint16(1)
+			btfArgs[configIdx].Offset = currentOffset
+			configIdx++
+			currentOffset = 0
+			currentType = t.Target
+		default:
+			var offset uint32
+			offset, currentType, err = processCompoundType(currentType, path[pathIdx])
+			if err != nil {
+				return err
+			}
+			currentOffset += offset
+
+			pathIdx++
+		}
+	}
+
+	if configIdx >= api.MaxBTFArgDepth {
+		return fmt.Errorf("The maximum depth allowed is %d", api.MaxBTFArgDepth)
+	}
+
+	btfArgs[configIdx].IsInitialized = uint16(1)
+	btfArgs[configIdx].Offset = currentOffset
+	_, currentTypeIsPointer := currentType.(*btf.Pointer)
+
+	if argTypeIsPointer && !currentTypeIsPointer {
+		btfArgs[configIdx].IsPointer = uint16(0)
+	} else {
+		btfArgs[configIdx].IsPointer = uint16(1)
+	}
+
+	return nil
+}
+
+func processCompoundType(currentType btf.Type, pathElement string) (uint32, btf.Type, error) {
 	switch t := currentType.(type) {
 	case *btf.Struct:
-		return processMembers(btfArgs, currentType, t.Members, pathToFound, i)
+		return processMembers(pathElement, t.Members)
 	case *btf.Union:
-		return processMembers(btfArgs, currentType, t.Members, pathToFound, i)
-	case *btf.Pointer:
-		if i > 0 {
-			// To avoid adding an extra BTFArg entry only for doing this
-			// dereferencing, we mark the previous element as pointer.
-			btfArgs[i-1].IsPointer = uint16(1)
-		}
-		if idx, err := parseArrayIdxStr(pathToFound[i]); err == nil {
-			// To stay ahead on the dereferecing, we mark the current btfArg as pointer
-			btfArgs[i].IsPointer = uint16(1)
-			return processArray(btfArgs, ResolveNestedTypes(t.Target), pathToFound, i, idx)
-		}
-		return ResolveBTFPath(btfArgs, ResolveNestedTypes(t.Target), pathToFound, i)
+		return processMembers(pathElement, t.Members)
 	case *btf.Array:
-		idx, err := parseArrayIdxStr(pathToFound[i])
+		idx, err := parseArrayIdxStr(pathElement)
 		if err != nil {
-			return nil, fmt.Errorf("fail parsing array index : %w", err)
+			return 0, nil, fmt.Errorf("fail parsing array index : %w", err)
 		}
 		if idx >= t.Nelems {
-			return nil, fmt.Errorf("array index out of bound. Nelems=%d, got=%d", t.Nelems, idx)
+			return 0, nil, fmt.Errorf("array index out of bound. Nelems=%d, got=%d", t.Nelems, idx)
 		}
-		return processArray(btfArgs, ResolveNestedTypes(t.Type), pathToFound, i, idx)
+
+		elementType := ResolveNestedTypes(t.Type)
+		return getSizeofType(elementType) * idx, elementType, nil
 	default:
-		ty := currentType.TypeName()
-		if len(ty) == 0 {
-			ty = reflect.TypeOf(currentType).String()
-		}
-		currentPath := pathToFound[i]
-		if i > 0 {
-			currentPath = pathToFound[i-1]
-		}
-		return nil, fmt.Errorf("unexpected type : %q has type %q", currentPath, ty)
+		return 0, nil, fmt.Errorf("unexpected type : %q has type %q", pathElement, reflect.TypeOf(currentType))
 	}
 }
 
 func processMembers(
-	btfArgs *[api.MaxBTFArgDepth]api.ConfigBTFArg,
-	currentType btf.Type,
+	pathElement string,
 	members []btf.Member,
-	pathToFound []string,
-	i int,
-) (*btf.Type, error) {
-	var lastError error
-	memberWasFound := false
+) (uint32, btf.Type, error) {
 	for _, member := range members {
-		if len(member.Name) == 0 { // If anonymous struct, fallthrough
-			btfArgs[i].Offset = member.Offset.Bytes()
-			btfArgs[i].IsInitialized = uint16(1)
-			lastTy, err := ResolveBTFPath(btfArgs, ResolveNestedTypes(member.Type), pathToFound, i)
-			if err != nil {
-				if lastError != nil {
-					idx := i + 1
-					// If the error raised originates from a depth greater than the current one, we stop the search.
-					if idx < len(pathToFound) && strings.Contains(lastError.Error(), pathToFound[idx]) {
-						break
-					}
-				}
-				lastError = err
-				continue
+		if len(member.Name) == 0 { // anonymous struct/union
+			var offset uint32
+			var ty btf.Type
+			var err error
+			switch t := member.Type.(type) {
+			case *btf.Struct:
+				offset, ty, err = processMembers(pathElement, t.Members)
+			case *btf.Union:
+				offset, ty, err = processMembers(pathElement, t.Members)
+			default:
+				//FIXME: this error can be hidden
+				return 0, nil, fmt.Errorf("unexpected anonymous member type %q", reflect.TypeOf(member.Type))
 			}
-			return lastTy, nil
-		}
-		if member.Name == pathToFound[i] {
-			memberWasFound = true
-			btfArgs[i].Offset = member.Offset.Bytes()
-			btfArgs[i].IsInitialized = uint16(1)
-			isNotLastChild := i < len(pathToFound)-1 && i < api.MaxBTFArgDepth
-			if isNotLastChild {
-				return ResolveBTFPath(btfArgs, ResolveNestedTypes(member.Type), pathToFound, i+1)
+			if err == nil {
+				return offset, ty, nil
 			}
-			currentType = ResolveNestedTypes(member.Type)
-			break
+		} else if member.Name == pathElement {
+			return member.Offset.Bytes(), member.Type, nil
 		}
 	}
-	if !memberWasFound {
-		if lastError != nil {
-			return nil, lastError
-		}
-		return nil, fmt.Errorf(
-			"attribute %q not found in structure %q found %v",
-			pathToFound[i],
-			currentType.TypeName(),
-			members,
-		)
-	}
-	if t, ok := currentType.(*btf.Pointer); ok {
-		btfArgs[i].IsPointer = uint16(1)
-		currentType = t.Target
-	} else if _, ok := currentType.(*btf.Int); ok {
-		btfArgs[i].IsPointer = uint16(1)
-	}
-	return &currentType, nil
-}
 
-func processArray(
-	btfArgs *[api.MaxBTFArgDepth]api.ConfigBTFArg,
-	targetType btf.Type,
-	pathToFound []string,
-	i int,
-	idx uint32,
-) (*btf.Type, error) {
-	btfArgs[i].IsInitialized = uint16(1)
-	btfArgs[i].Offset = getSizeofType(targetType) * idx
-	if len(pathToFound) > i+1 {
-		return ResolveBTFPath(btfArgs, targetType, pathToFound, i+1)
-	}
-	return &targetType, nil
+	return 0, nil, fmt.Errorf(
+		"attribute %q not found in structure",
+		pathElement)
+
 }
