@@ -1803,9 +1803,9 @@ func HasFilter(selectors []v1alpha1.KProbeSelector, index uint32) bool {
 	return false
 }
 
-// HasNotifyEnforcerAction returns true if any selector in the KProbeSpec has a NotifyEnforcer action
-func HasNotifyEnforcerAction(kspec *v1alpha1.KProbeSpec) bool {
-	for _, s := range kspec.Selectors {
+// HasNotifyEnforcerAction returns true if any selector has a NotifyEnforcer action
+func HasNotifyEnforcerAction(selectors []v1alpha1.KProbeSelector) bool {
+	for _, s := range selectors {
 		for _, action := range s.MatchActions {
 			if action.Action == "NotifyEnforcer" {
 				return true
