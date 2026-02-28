@@ -316,28 +316,21 @@ spec:
 	require.NoError(t, err)
 }
 
-func TestUprobeResolvePageFault(t *testing.T) {
+type TestSpec struct {
+	specTy    string
+	filterVal string
+	quoteVal  bool
+	field     string
+	kpArgs    []*ec.KprobeArgumentChecker
+}
+
+func testUprobeResolveType(t *testing.T, tt TestSpec) {
 	if !config.EnableLargeProgs() || !bpf.HasUprobeRefCtrOffset() {
 		t.Skip("Need 5.3 or newer kernel for uprobe ref_ctr_off support for this test.")
 	}
 
-	if !bpf.HasKfunc("bpf_copy_from_user_str") {
-		t.Skip("this test requires bpf_copy_from_user_str kfunc support")
-	}
-
 	uprobe := testutils.RepoRootPath("contrib/tester-progs/uprobe-resolve")
 	uprobeBtf := testutils.RepoRootPath("contrib/tester-progs/uprobe-resolve.btf")
-
-	tt := []struct {
-		specTy    string
-		filterVal string
-		field     string
-		kpArgs    []*ec.KprobeArgumentChecker
-	}{
-		{"string", "hello world!", "subp.buff", []*ec.KprobeArgumentChecker{
-			ec.NewKprobeArgumentChecker().WithStringArg(sm.Full("hello world!")),
-		}},
-	}
 
 	uprobeHook := `
 apiVersion: cilium.io/v1alpha1
@@ -352,9 +345,9 @@ spec:
     - "func"
     args:
     - index: 1
-      type: "` + tt[0].specTy + `"
+      type: "` + tt.specTy + `"
       btfType: "mystruct"
-      resolve: "` + tt[0].field + `"
+      resolve: "` + tt.field + `"
 `
 
 	uprobeConfigHook := []byte(uprobeHook)
@@ -364,17 +357,21 @@ spec:
 	}
 
 	var checkers []ec.EventChecker
-	for i := range tt {
-		checkers = append(checkers, ec.NewProcessUprobeChecker("uprobe-resolve").
-			WithProcess(ec.NewProcessChecker().
-				WithBinary(sm.Full(uprobe)).
-				WithArguments(
-					sm.Full(tt[i].field+" \""+tt[i].filterVal+"\""),
-				),
-			).WithArgs(ec.NewKprobeArgumentListMatcher().
-			WithOperator(lc.Ordered).
-			WithValues(tt[i].kpArgs...)))
+
+	argString := tt.field + " " + tt.filterVal
+	if tt.quoteVal {
+		argString = tt.field + " \"" + tt.filterVal + "\""
 	}
+
+	checkers = append(checkers, ec.NewProcessUprobeChecker("uprobe-resolve").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(uprobe)).
+			WithArguments(
+				sm.Full(argString),
+			),
+		).WithArgs(ec.NewKprobeArgumentListMatcher().
+		WithOperator(lc.Ordered).
+		WithValues(tt.kpArgs...)))
 
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
@@ -389,14 +386,28 @@ spec:
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
-	for i := range tt {
-		cmd := exec.Command(uprobe, tt[i].field, tt[i].filterVal)
-		cmdErr := testutils.RunCmdAndLogOutput(t, cmd)
-		require.NoError(t, cmdErr)
-	}
+	cmd := exec.Command(uprobe, tt.field, tt.filterVal)
+	cmdErr := testutils.RunCmdAndLogOutput(t, cmd)
+	require.NoError(t, cmdErr)
 
 	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(checkers...))
 	require.NoError(t, err)
+}
+
+func TestUprobeResolvePageFault(t *testing.T) {
+	if !bpf.HasKfunc("bpf_copy_from_user_str") {
+		t.Skip("this test requires bpf_copy_from_user_str kfunc support")
+	}
+
+	testUprobeResolveType(t, TestSpec{
+		specTy:    "string",
+		filterVal: "hello world!",
+		quoteVal:  true,
+		field:     "subp.buff",
+		kpArgs: []*ec.KprobeArgumentChecker{
+			ec.NewKprobeArgumentChecker().WithStringArg(sm.Full("hello world!")),
+		},
+	})
 }
 
 func testUprobeOverrideRegsActionSize(t *testing.T, ass, num string) {
