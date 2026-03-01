@@ -56,6 +56,6 @@ Monitoring Linux process credentials is a good practice to idenfity programs
 running with high privileges. Tetragon allows retrieving Linux process credentials
 as a [`process_credentials`]({{< ref "/docs/reference/grpc-api#processcredentials" >}}) object.
 
-Changes to credentials can be monitored either in [system calls](/docs/use-cases/linux-process-credentials/syscalls-monitoring) or in [internal kernel functions](/docs/use-cases/linux-process-credentials/monitor-changes-at-kernel).
+Changes to credentials can be monitored either in [system calls](/docs/use-cases/linux-process-credentials/syscalls-monitoring/) or in [internal kernel functions](/docs/use-cases/linux-process-credentials/monitor-changes-at-kernel/).
 
-Generally it is better to monitor in internal kernel functions. For further details please read [Advantages and disadvantages of kernel layer monitoring compared to the system call layer](/docs/use-cases/linux-process-credentials/monitor-changes-at-kernel#advantages-and-disadvantages-of-kernel-layer-monitoring-compared-to-the-system-call-layer) section.
+Generally it is better to monitor in internal kernel functions. For further details please read [Advantages and disadvantages of kernel layer monitoring compared to the system call layer](/docs/use-cases/linux-process-credentials/monitor-changes-at-kernel/#advantages-and-disadvantages-of-kernel-layer-monitoring-compared-to-the-system-call-layer) section.

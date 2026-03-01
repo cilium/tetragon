@@ -24,8 +24,8 @@ description: "Learn how to make your first changes to the project"
 
 3. Make the changes you want.
 
-4. Test your changes. Follow [Development setup](/docs/contribution-guide/development-setup) and
-   [Running tests](/docs/contribution-guide/running-tests) guides to build and test Tetragon.
+4. Test your changes. Follow [Development setup](/docs/contribution-guide/development-setup/) and
+   [Running tests](/docs/contribution-guide/running-tests/) guides to build and test Tetragon.
 
    - Make sure that all new code is covered by unit and/or end-to-end tests where feasible.
    - Run Tetragon locally to validate everything works as expected.
@@ -36,13 +36,13 @@ description: "Learn how to make your first changes to the project"
 
 6. Run `git diff --check` to catch obvious white space violations.
 
-7. Follow [Submitting a pull request](/docs/contribution-guide/submitting-a-pull-request) guide to commit your changes
+7. Follow [Submitting a pull request](/docs/contribution-guide/submitting-a-pull-request/) guide to commit your changes
    and open a pull request.
 
 ## Making changes to documentation
 
 To improve Tetragon documentation ([https://tetragon.io/](https://tetragon.io/)), please follow the
-[documentation contribution guide](/docs/contribution-guide/documentation).
+[documentation contribution guide](/docs/contribution-guide/documentation/).
 
 ## Adding dependencies
 

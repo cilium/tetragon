@@ -5,9 +5,9 @@
   </picture>
 </a>
 
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![License](https://img.shields.io/badge/license-BSD-blue.svg)](https://opensource.org/license/bsd-2-clause/)
-[![License](https://img.shields.io/badge/license-GPL-blue.svg)](https://opensource.org/license/gpl-2-0/)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/license/apache-2-0)
+[![License](https://img.shields.io/badge/license-BSD-blue.svg)](https://opensource.org/license/bsd-2-clause)
+[![License](https://img.shields.io/badge/license-GPL-blue.svg)](https://opensource.org/license/gpl-2-0-only)
 
 ---
 

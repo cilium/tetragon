@@ -159,5 +159,5 @@ make -j3 tetragon-bpf tetragon tetra
 
 ## What's next
 
-- See how to [make your first changes](/docs/contribution-guide/making-changes).
+- See how to [make your first changes](/docs/contribution-guide/making-changes/).
 
