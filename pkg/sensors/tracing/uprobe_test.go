@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 
@@ -23,10 +24,11 @@ import (
 	bc "github.com/cilium/tetragon/pkg/matchers/bytesmatcher"
 
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/elf"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
-	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
@@ -870,9 +872,14 @@ spec:
       - args: [0]
         operator: "` + op + `"
         values:`
+
+	var b strings.Builder
 	for _, str := range values {
-		pathHook += "\n        - \"" + str + "\""
+		b.WriteString("\n        - \"")
+		b.WriteString(str)
+		b.WriteString("\"")
 	}
+	pathHook += b.String()
 
 	if kernels.MinKernelVersion("5.4") {
 		pathHook += `
