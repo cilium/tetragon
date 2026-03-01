@@ -141,7 +141,7 @@ jobs:
             -DestinationPath ./build-${{ env.BUILD_PLATFORM }}.${{ env.BUILD_CONFIGURATION }}.zip
 
       - name: Upload Build Output
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: ntosebpfext-build-output
           path: ${{ runner.temp }}/ntosebpfext/build-${{ env.BUILD_PLATFORM }}.${{ env.BUILD_CONFIGURATION }}.zip
@@ -181,7 +181,7 @@ jobs:
           Get-ChildItem -Recurse ${{ runner.temp }}
 
       - name: Upload Tetragon Windows binaries
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: tetragon-windows-build-output
           path: ${{ runner.temp }}/Tetragon-Windows.zip
