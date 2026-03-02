@@ -4,8 +4,10 @@
 package bugtool
 
 import (
+	"encoding/json"
 	"io"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -43,6 +45,30 @@ func TestSaveAndLoad(t *testing.T) {
 	}
 
 	t.Log("Success")
+}
+
+func TestSaveAndLoadExtraFiles(t *testing.T) {
+	fname := filepath.Join(t.TempDir(), "extra-files.json")
+
+	want := map[string]string{
+		"extra1.json": "/var/run/tetragon/extra1.json",
+		"extra2.json": "/var/run/tetragon/extra2.json",
+	}
+
+	f, err := os.OpenFile(fname, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	require.NoError(t, err)
+	require.NoError(t, json.NewEncoder(f).Encode(want))
+	require.NoError(t, f.Close())
+
+	got, err := doLoadExtraFiles(fname)
+	require.NoError(t, err)
+	require.Equal(t, want, got)
+}
+
+func TestLoadExtraFilesMissing(t *testing.T) {
+	got, err := doLoadExtraFiles(filepath.Join(t.TempDir(), "does-not-exist.json"))
+	require.NoError(t, err)
+	require.Nil(t, got)
 }
 
 func Test_findCgroupMountPath(t *testing.T) {
