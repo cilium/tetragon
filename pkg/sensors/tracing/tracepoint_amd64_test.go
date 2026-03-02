@@ -52,7 +52,7 @@ func testListSyscallsDups(t *testing.T, checker *ec.UnorderedEventChecker, confi
 
 func TestTracepointListSyscallDups(t *testing.T) {
 	if !kernels.MinKernelVersion("5.3.0") {
-		t.Skip("TestCopyFd requires at least 5.3.0 version")
+		t.Skip("TestTracepointListSyscallDups requires at least 5.3.0 version")
 	}
 
 	myPid := observertesthelper.GetMyPid()

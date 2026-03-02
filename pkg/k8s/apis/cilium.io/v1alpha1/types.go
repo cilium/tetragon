@@ -240,16 +240,15 @@ type ArgSelector struct {
 }
 
 type ActionSelector struct {
-	// +kubebuilder:validation:Enum=Post;FollowFD;UnfollowFD;Sigkill;CopyFD;Override;GetUrl;DnsLookup;NoPost;Signal;TrackSock;UntrackSock;NotifyEnforcer;CleanupEnforcerNotification;Set
+	// +kubebuilder:validation:Enum=Post;Sigkill;Override;GetUrl;DnsLookup;NoPost;Signal;TrackSock;UntrackSock;NotifyEnforcer;CleanupEnforcerNotification;Set
 	// Action to execute.
-	// NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-	// be removed in version 1.5.
+	// NOTE: legacy FD-tracking actions were removed in version 1.5.
 	Action string `json:"action"`
 	// +kubebuilder:validation:Optional
-	// An arg index for the fd for fdInstall action
+	// Deprecated: arg index for removed FD-tracking actions.
 	ArgFd uint32 `json:"argFd"`
 	// +kubebuilder:validation:Optional
-	// An arg index for the filename for fdInstall action
+	// Deprecated: filename arg index for removed FD-tracking actions.
 	ArgName uint32 `json:"argName"`
 	// +kubebuilder:validation:Optional
 	// A URL for the getUrl action

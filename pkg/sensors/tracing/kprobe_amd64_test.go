@@ -110,7 +110,7 @@ spec:
 
 func TestKprobeListSyscallDups(t *testing.T) {
 	if !kernels.MinKernelVersion("5.3.0") {
-		t.Skip("TestCopyFd requires at least 5.3.0 version")
+		t.Skip("TestKprobeListSyscallDups requires at least 5.3.0 version")
 	}
 	myPid := observertesthelper.GetMyPid()
 	pidStr := strconv.Itoa(int(myPid))

@@ -5,72 +5,14 @@ metadata:
   name: "deny-write-to-ops-bank-account"
 spec:
   kprobes:
-  # match fd to file paths in a BPF map under /opt/ops_bank_account on every file open
-  - call: "fd_install"
+  # deny writes under /opt/ops_bank_account/
+  - call: "security_file_permission"
     syscall: false
     args:
     - index: 0
-      type: int
-    - index: 1
       type: "file"
-    selectors:
-    - matchPIDs:
-      # match host processes
-      - operator: In
-        followForks: false
-        isNamespacePID: true
-        values:
-        - 0
-      # match namespace processes that are not init or its children
-      - operator: NotIn
-        followForks: true
-        isNamespacePID: true
-        values:
-        - 1
-      matchArgs:
-      - index: 1
-        operator: "Instring"
-        values:
-        - "/opt/ops_bank_account/"
-      matchActions:
-      - action: FollowFD
-        argFd: 0
-        argName: 1
-  # delete the file path from the BPF map on every file close
-  - call: "__x64_sys_close"
-    syscall: true
-    args:
-    - index: 0
-      type: "int"
-    selectors:
-    - matchPIDs:
-      # match host processes
-      - operator: In
-        followForks: false
-        isNamespacePID: true
-        values:
-        - 0
-      # match namespace processes that are not init or its children
-      - operator: NotIn
-        followForks: true
-        isNamespacePID: true
-        values:
-        - 1
-      matchActions:
-      - action: UnfollowFD
-        argFd: 0
-        argName: 0
-  # observe sys_write system calls on every file under /opt/ops_bank_account/
-  - call: "__x64_sys_write"
-    syscall: true
-    args:
-    - index: 0
-      type: "fd"
     - index: 1
-      type: "char_buf"
-      sizeArgIndex: 3
-    - index: 2
-      type: "size_t"
+      type: "int"
     selectors:
     - matchPIDs:
       # match host processes
@@ -87,8 +29,12 @@ spec:
         - 1
       matchArgs:
       - index: 0
-        operator: "Instring"
+        operator: "Prefix"
         values:
         - "/opt/ops_bank_account/"
+      - index: 1
+        operator: "Equal"
+        values:
+        - "2"
       matchActions:
       - action: Sigkill

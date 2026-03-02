@@ -4,60 +4,14 @@ metadata:
   name: "tracing-policy-example"
 spec:
   kprobes:
-  # match fd to file paths in a BPF map under /etc/kubernetes/manifests on every file open
-  - call: "fd_install"
+  # deny writes under /etc/kubernetes/manifests
+  - call: "security_file_permission"
     syscall: false
     args:
     - index: 0
-      type: int
-    - index: 1
       type: "file"
-    selectors:
-    - matchPIDs:
-      - operator: NotIn
-        followForks: true
-        isNamespacePID: true
-        values:
-        - 0
-        - 1
-      matchArgs:
-      - index: 1
-        operator: "Instring"
-        values:
-        - "/etc/kubernetes/manifests"
-      matchActions:
-      - action: FollowFD
-        argFd: 0
-        argName: 1
-  # delete the file path from the BPF map on every file close
-  - call: "__x64_sys_close"
-    syscall: true
-    args:
-    - index: 0
-      type: "int"
-    selectors:
-    - matchPIDs:
-      - operator: NotIn
-        followForks: true
-        isNamespacePID: true
-        values:
-        - 0
-        - 1
-      matchActions:
-      - action: UnfollowFD
-        argFd: 0
-        argName: 0
-  # observe sys_write system calls on every file under /etc/kubernetes/manifests
-  - call: "__x64_sys_write"
-    syscall: true
-    args:
-    - index: 0
-      type: "fd"
     - index: 1
-      type: "char_buf"
-      sizeArgIndex: 3
-    - index: 2
-      type: "size_t"
+      type: "int"
     selectors:
     - matchPIDs:
       - operator: NotIn
@@ -68,8 +22,12 @@ spec:
         - 1
       matchArgs:
       - index: 0
-        operator: "Instring"
+        operator: "Prefix"
         values:
         - "/etc/kubernetes/manifests"
+      - index: 1
+        operator: "Equal"
+        values:
+        - "2"
       matchActions:
       - action: Sigkill

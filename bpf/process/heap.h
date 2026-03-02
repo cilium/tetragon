@@ -22,7 +22,7 @@ struct {
 
 struct heap_value {
 	union {
-		char fdinstall[4104]; /* 4096B paths + 4B length + 4B flags */
+		char _unused[1];
 	};
 };
 

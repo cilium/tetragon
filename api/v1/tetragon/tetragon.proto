@@ -496,17 +496,13 @@ enum KprobeAction {
   KPROBE_ACTION_UNKNOWN = 0;
   // Post action creates an event (default action).
   KPROBE_ACTION_POST = 1;
-  // Post action creates a mapping between file descriptors and file names.
-  KPROBE_ACTION_FOLLOWFD = 2;
+  // Reserve deprecated FD-tracking actions removed in v1.5
+  reserved 2, 4, 6;
+  reserved "KPROBE_ACTION_FOLLOWFD", "KPROBE_ACTION_UNFOLLOWFD", "KPROBE_ACTION_COPYFD";
   // Sigkill action synchronously terminates the process.
   KPROBE_ACTION_SIGKILL = 3;
-  // Post action removes a mapping between file descriptors and file names.
-  KPROBE_ACTION_UNFOLLOWFD = 4;
   // Override action modifies the return value of the call.
   KPROBE_ACTION_OVERRIDE = 5;
-  // Post action dupplicates a mapping between file descriptors and file
-  // names.
-  KPROBE_ACTION_COPYFD = 6;
   // GetURL action issue an HTTP Get request against an URL from userspace.
   KPROBE_ACTION_GETURL = 7;
   // GetURL action issue a DNS lookup against an URL from userspace.

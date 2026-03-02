@@ -1,37 +1,14 @@
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
-  name: "copyfd"
+  name: "legacy-fd-tracking-placeholder-b"
 spec:
   kprobes:
-  - call: "__fd_install"
+  - call: "security_file_permission"
     syscall: false
     args:
     - index: 0
-      type: nop
-    - index: 1
-      type: int
-    - index: 2
       type: "file"
-    selectors:
-    - matchBinaries:
-      - operator: In
-        values:
-        - {{.MatchedBinary}}
-      matchArgs:
-      - index: 2
-        operator: "Postfix"
-        values:
-        - "strange.txt"
-      matchActions:
-      - action: FollowFD
-        argFd: 1
-        argName: 2
-  - call: "sys_dup2"
-    syscall: true
-    args:
-    - index: 0
-      type: "fd"
     - index: 1
       type: "int"
     selectors:
@@ -44,64 +21,7 @@ spec:
         operator: "Postfix"
         values:
         - "strange.txt"
-      matchActions:
-      - action: CopyFD
-        argFd: 0
-        argName: 1
-  - call: "sys_dup3"
-    syscall: true
-    args:
-    - index: 0
-      type: "fd"
-    - index: 1
-      type: "int"
-    - index: 2
-      type: "int"
-    selectors:
-    - matchBinaries:
-      - operator: In
+      - index: 1
+        operator: "Equal"
         values:
-        - {{.MatchedBinary}}
-      matchArgs:
-      - index: 0
-        operator: "Postfix"
-        values:
-        - "strange.txt"
-      matchActions:
-      - action: CopyFD
-        argFd: 0
-        argName: 1
-  - call: "sys_close"
-    syscall: true
-    args:
-    - index: 0
-      type: "int"
-    selectors:
-    - matchBinaries:
-      - operator: In
-        values:
-        - {{.MatchedBinary}}
-      matchActions:
-      - action: UnfollowFD
-        argFd: 0
-        argName: 0
-  - call: "sys_read"
-    syscall: true
-    args:
-    - index: 0
-      type: "fd"
-    - index: 1
-      type: "char_buf"
-      returnCopy: true
-    - index: 2
-      type: "size_t"
-    selectors:
-    - matchBinaries:
-      - operator: In
-        values:
-        - {{.MatchedBinary}}
-      matchArgs:
-      - index: 0
-        operator: "Postfix"
-        values:
-        - "strange.txt"
+        - "4"

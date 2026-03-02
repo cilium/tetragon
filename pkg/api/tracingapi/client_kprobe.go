@@ -12,12 +12,11 @@ const (
 )
 
 const (
-	ActionPost                        = 0
-	ActionFollowFd                    = 1
+	ActionPost = 0
+	// Action IDs 1, 3 and 5 were removed in v1.5.
+	// Keep numeric IDs stable for remaining actions.
 	ActionSigKill                     = 2
-	ActionUnfollowFd                  = 3
 	ActionOverride                    = 4
-	ActionCopyFd                      = 5
 	ActionGetUrl                      = 6
 	ActionLookupDns                   = 7
 	ActionNoPost                      = 8

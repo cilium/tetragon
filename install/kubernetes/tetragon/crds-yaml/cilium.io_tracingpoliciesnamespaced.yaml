@@ -498,14 +498,10 @@ spec:
                                 action:
                                   description: |-
                                     Action to execute.
-                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-                                    be removed in version 1.5.
+                                    NOTE: legacy FD-tracking actions were removed in version 1.5.
                                   enum:
                                   - Post
-                                  - FollowFD
-                                  - UnfollowFD
                                   - Sigkill
-                                  - CopyFD
                                   - Override
                                   - GetUrl
                                   - DnsLookup
@@ -522,8 +518,8 @@ spec:
                                   format: int32
                                   type: integer
                                 argFd:
-                                  description: An arg index for the fd for fdInstall
-                                    action
+                                  description: 'Deprecated: arg index for removed
+                                    FD-tracking actions.'
                                   format: int32
                                   type: integer
                                 argFqdn:
@@ -535,8 +531,8 @@ spec:
                                   format: int32
                                   type: integer
                                 argName:
-                                  description: An arg index for the filename for fdInstall
-                                    action
+                                  description: 'Deprecated: filename arg index for
+                                    removed FD-tracking actions.'
                                   format: int32
                                   type: integer
                                 argRegs:
@@ -949,14 +945,10 @@ spec:
                                 action:
                                   description: |-
                                     Action to execute.
-                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-                                    be removed in version 1.5.
+                                    NOTE: legacy FD-tracking actions were removed in version 1.5.
                                   enum:
                                   - Post
-                                  - FollowFD
-                                  - UnfollowFD
                                   - Sigkill
-                                  - CopyFD
                                   - Override
                                   - GetUrl
                                   - DnsLookup
@@ -973,8 +965,8 @@ spec:
                                   format: int32
                                   type: integer
                                 argFd:
-                                  description: An arg index for the fd for fdInstall
-                                    action
+                                  description: 'Deprecated: arg index for removed
+                                    FD-tracking actions.'
                                   format: int32
                                   type: integer
                                 argFqdn:
@@ -986,8 +978,8 @@ spec:
                                   format: int32
                                   type: integer
                                 argName:
-                                  description: An arg index for the filename for fdInstall
-                                    action
+                                  description: 'Deprecated: filename arg index for
+                                    removed FD-tracking actions.'
                                   format: int32
                                   type: integer
                                 argRegs:
@@ -1308,14 +1300,10 @@ spec:
                                 action:
                                   description: |-
                                     Action to execute.
-                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-                                    be removed in version 1.5.
+                                    NOTE: legacy FD-tracking actions were removed in version 1.5.
                                   enum:
                                   - Post
-                                  - FollowFD
-                                  - UnfollowFD
                                   - Sigkill
-                                  - CopyFD
                                   - Override
                                   - GetUrl
                                   - DnsLookup
@@ -1332,8 +1320,8 @@ spec:
                                   format: int32
                                   type: integer
                                 argFd:
-                                  description: An arg index for the fd for fdInstall
-                                    action
+                                  description: 'Deprecated: arg index for removed
+                                    FD-tracking actions.'
                                   format: int32
                                   type: integer
                                 argFqdn:
@@ -1345,8 +1333,8 @@ spec:
                                   format: int32
                                   type: integer
                                 argName:
-                                  description: An arg index for the filename for fdInstall
-                                    action
+                                  description: 'Deprecated: filename arg index for
+                                    removed FD-tracking actions.'
                                   format: int32
                                   type: integer
                                 argRegs:
@@ -1759,14 +1747,10 @@ spec:
                                 action:
                                   description: |-
                                     Action to execute.
-                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-                                    be removed in version 1.5.
+                                    NOTE: legacy FD-tracking actions were removed in version 1.5.
                                   enum:
                                   - Post
-                                  - FollowFD
-                                  - UnfollowFD
                                   - Sigkill
-                                  - CopyFD
                                   - Override
                                   - GetUrl
                                   - DnsLookup
@@ -1783,8 +1767,8 @@ spec:
                                   format: int32
                                   type: integer
                                 argFd:
-                                  description: An arg index for the fd for fdInstall
-                                    action
+                                  description: 'Deprecated: arg index for removed
+                                    FD-tracking actions.'
                                   format: int32
                                   type: integer
                                 argFqdn:
@@ -1796,8 +1780,8 @@ spec:
                                   format: int32
                                   type: integer
                                 argName:
-                                  description: An arg index for the filename for fdInstall
-                                    action
+                                  description: 'Deprecated: filename arg index for
+                                    removed FD-tracking actions.'
                                   format: int32
                                   type: integer
                                 argRegs:
@@ -2025,14 +2009,10 @@ spec:
                           action:
                             description: |-
                               Action to execute.
-                              NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-                              be removed in version 1.5.
+                              NOTE: legacy FD-tracking actions were removed in version 1.5.
                             enum:
                             - Post
-                            - FollowFD
-                            - UnfollowFD
                             - Sigkill
-                            - CopyFD
                             - Override
                             - GetUrl
                             - DnsLookup
@@ -2049,7 +2029,8 @@ spec:
                             format: int32
                             type: integer
                           argFd:
-                            description: An arg index for the fd for fdInstall action
+                            description: 'Deprecated: arg index for removed FD-tracking
+                              actions.'
                             format: int32
                             type: integer
                           argFqdn:
@@ -2060,8 +2041,8 @@ spec:
                             format: int32
                             type: integer
                           argName:
-                            description: An arg index for the filename for fdInstall
-                              action
+                            description: 'Deprecated: filename arg index for removed
+                              FD-tracking actions.'
                             format: int32
                             type: integer
                           argRegs:
@@ -2469,14 +2450,10 @@ spec:
                           action:
                             description: |-
                               Action to execute.
-                              NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-                              be removed in version 1.5.
+                              NOTE: legacy FD-tracking actions were removed in version 1.5.
                             enum:
                             - Post
-                            - FollowFD
-                            - UnfollowFD
                             - Sigkill
-                            - CopyFD
                             - Override
                             - GetUrl
                             - DnsLookup
@@ -2493,7 +2470,8 @@ spec:
                             format: int32
                             type: integer
                           argFd:
-                            description: An arg index for the fd for fdInstall action
+                            description: 'Deprecated: arg index for removed FD-tracking
+                              actions.'
                             format: int32
                             type: integer
                           argFqdn:
@@ -2504,8 +2482,8 @@ spec:
                             format: int32
                             type: integer
                           argName:
-                            description: An arg index for the filename for fdInstall
-                              action
+                            description: 'Deprecated: filename arg index for removed
+                              FD-tracking actions.'
                             format: int32
                             type: integer
                           argRegs:
@@ -2783,14 +2761,10 @@ spec:
                                 action:
                                   description: |-
                                     Action to execute.
-                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-                                    be removed in version 1.5.
+                                    NOTE: legacy FD-tracking actions were removed in version 1.5.
                                   enum:
                                   - Post
-                                  - FollowFD
-                                  - UnfollowFD
                                   - Sigkill
-                                  - CopyFD
                                   - Override
                                   - GetUrl
                                   - DnsLookup
@@ -2807,8 +2781,8 @@ spec:
                                   format: int32
                                   type: integer
                                 argFd:
-                                  description: An arg index for the fd for fdInstall
-                                    action
+                                  description: 'Deprecated: arg index for removed
+                                    FD-tracking actions.'
                                   format: int32
                                   type: integer
                                 argFqdn:
@@ -2820,8 +2794,8 @@ spec:
                                   format: int32
                                   type: integer
                                 argName:
-                                  description: An arg index for the filename for fdInstall
-                                    action
+                                  description: 'Deprecated: filename arg index for
+                                    removed FD-tracking actions.'
                                   format: int32
                                   type: integer
                                 argRegs:
@@ -3234,14 +3208,10 @@ spec:
                                 action:
                                   description: |-
                                     Action to execute.
-                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-                                    be removed in version 1.5.
+                                    NOTE: legacy FD-tracking actions were removed in version 1.5.
                                   enum:
                                   - Post
-                                  - FollowFD
-                                  - UnfollowFD
                                   - Sigkill
-                                  - CopyFD
                                   - Override
                                   - GetUrl
                                   - DnsLookup
@@ -3258,8 +3228,8 @@ spec:
                                   format: int32
                                   type: integer
                                 argFd:
-                                  description: An arg index for the fd for fdInstall
-                                    action
+                                  description: 'Deprecated: arg index for removed
+                                    FD-tracking actions.'
                                   format: int32
                                   type: integer
                                 argFqdn:
@@ -3271,8 +3241,8 @@ spec:
                                   format: int32
                                   type: integer
                                 argName:
-                                  description: An arg index for the filename for fdInstall
-                                    action
+                                  description: 'Deprecated: filename arg index for
+                                    removed FD-tracking actions.'
                                   format: int32
                                   type: integer
                                 argRegs:
@@ -3807,14 +3777,10 @@ spec:
                                 action:
                                   description: |-
                                     Action to execute.
-                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-                                    be removed in version 1.5.
+                                    NOTE: legacy FD-tracking actions were removed in version 1.5.
                                   enum:
                                   - Post
-                                  - FollowFD
-                                  - UnfollowFD
                                   - Sigkill
-                                  - CopyFD
                                   - Override
                                   - GetUrl
                                   - DnsLookup
@@ -3831,8 +3797,8 @@ spec:
                                   format: int32
                                   type: integer
                                 argFd:
-                                  description: An arg index for the fd for fdInstall
-                                    action
+                                  description: 'Deprecated: arg index for removed
+                                    FD-tracking actions.'
                                   format: int32
                                   type: integer
                                 argFqdn:
@@ -3844,8 +3810,8 @@ spec:
                                   format: int32
                                   type: integer
                                 argName:
-                                  description: An arg index for the filename for fdInstall
-                                    action
+                                  description: 'Deprecated: filename arg index for
+                                    removed FD-tracking actions.'
                                   format: int32
                                   type: integer
                                 argRegs:
@@ -4258,14 +4224,10 @@ spec:
                                 action:
                                   description: |-
                                     Action to execute.
-                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-                                    be removed in version 1.5.
+                                    NOTE: legacy FD-tracking actions were removed in version 1.5.
                                   enum:
                                   - Post
-                                  - FollowFD
-                                  - UnfollowFD
                                   - Sigkill
-                                  - CopyFD
                                   - Override
                                   - GetUrl
                                   - DnsLookup
@@ -4282,8 +4244,8 @@ spec:
                                   format: int32
                                   type: integer
                                 argFd:
-                                  description: An arg index for the fd for fdInstall
-                                    action
+                                  description: 'Deprecated: arg index for removed
+                                    FD-tracking actions.'
                                   format: int32
                                   type: integer
                                 argFqdn:
@@ -4295,8 +4257,8 @@ spec:
                                   format: int32
                                   type: integer
                                 argName:
-                                  description: An arg index for the filename for fdInstall
-                                    action
+                                  description: 'Deprecated: filename arg index for
+                                    removed FD-tracking actions.'
                                   format: int32
                                   type: integer
                                 argRegs:
@@ -4595,14 +4557,10 @@ spec:
                                 action:
                                   description: |-
                                     Action to execute.
-                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-                                    be removed in version 1.5.
+                                    NOTE: legacy FD-tracking actions were removed in version 1.5.
                                   enum:
                                   - Post
-                                  - FollowFD
-                                  - UnfollowFD
                                   - Sigkill
-                                  - CopyFD
                                   - Override
                                   - GetUrl
                                   - DnsLookup
@@ -4619,8 +4577,8 @@ spec:
                                   format: int32
                                   type: integer
                                 argFd:
-                                  description: An arg index for the fd for fdInstall
-                                    action
+                                  description: 'Deprecated: arg index for removed
+                                    FD-tracking actions.'
                                   format: int32
                                   type: integer
                                 argFqdn:
@@ -4632,8 +4590,8 @@ spec:
                                   format: int32
                                   type: integer
                                 argName:
-                                  description: An arg index for the filename for fdInstall
-                                    action
+                                  description: 'Deprecated: filename arg index for
+                                    removed FD-tracking actions.'
                                   format: int32
                                   type: integer
                                 argRegs:
@@ -5046,14 +5004,10 @@ spec:
                                 action:
                                   description: |-
                                     Action to execute.
-                                    NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
-                                    be removed in version 1.5.
+                                    NOTE: legacy FD-tracking actions were removed in version 1.5.
                                   enum:
                                   - Post
-                                  - FollowFD
-                                  - UnfollowFD
                                   - Sigkill
-                                  - CopyFD
                                   - Override
                                   - GetUrl
                                   - DnsLookup
@@ -5070,8 +5024,8 @@ spec:
                                   format: int32
                                   type: integer
                                 argFd:
-                                  description: An arg index for the fd for fdInstall
-                                    action
+                                  description: 'Deprecated: arg index for removed
+                                    FD-tracking actions.'
                                   format: int32
                                   type: integer
                                 argFqdn:
@@ -5083,8 +5037,8 @@ spec:
                                   format: int32
                                   type: integer
                                 argName:
-                                  description: An arg index for the filename for fdInstall
-                                    action
+                                  description: 'Deprecated: filename arg index for
+                                    removed FD-tracking actions.'
                                   format: int32
                                   type: integer
                                 argRegs:
