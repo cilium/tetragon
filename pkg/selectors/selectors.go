@@ -137,12 +137,20 @@ type KernelSelectorState struct {
 
 	subStrs []string
 
-	celExprFunctions CelExprFunctions
+	celExprFunctions *CelExprFunctions
 }
 
-func NewKernelSelectorState(listReader ValueReader, maps *KernelSelectorMaps, isUprobe bool) *KernelSelectorState {
+func NewKernelSelectorState(
+	listReader ValueReader,
+	maps *KernelSelectorMaps,
+	isUprobe bool,
+	celExprs *CelExprFunctions,
+) *KernelSelectorState {
 	if maps == nil {
 		maps = &KernelSelectorMaps{}
+	}
+	if celExprs == nil {
+		celExprs = &CelExprFunctions{}
 	}
 	return &KernelSelectorState{
 		matchBinaries:      make(map[int]MatchBinariesSelectorOptions),
@@ -150,6 +158,7 @@ func NewKernelSelectorState(listReader ValueReader, maps *KernelSelectorMaps, is
 		listReader:         listReader,
 		maps:               maps,
 		isUprobe:           isUprobe,
+		celExprFunctions:   celExprs,
 	}
 }
 
@@ -513,6 +522,6 @@ func (k *KernelSelectorState) newStringPostfixMap() (uint32, map[KernelLPMTrieSt
 	return uint32(mapid), k.maps.stringPostfixMaps[mapid]
 }
 
-func (k *KernelSelectorState) CelExprFunctions() CelExprFunctions {
+func (k *KernelSelectorState) CelExprFunctions() *CelExprFunctions {
 	return k.celExprFunctions
 }
