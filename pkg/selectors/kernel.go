@@ -1571,6 +1571,7 @@ type KernelSelectorArgs struct {
 	ListReader     ValueReader
 	Maps           *KernelSelectorMaps
 	IsUprobe       bool
+	CelExprs       *CelExprFunctions
 }
 
 // The byte array storing the selector configuration has the following format
@@ -1634,12 +1635,13 @@ func createKernelSelectorState(
 	listReader ValueReader,
 	maps *KernelSelectorMaps,
 	isUprobe bool,
+	celExprs *CelExprFunctions,
 	parseSelector func(k *KernelSelectorState, selectors *v1alpha1.KProbeSelector, selIdx int) error,
 ) (*KernelSelectorState, error) {
 	if len(selectors) > MaxSelectors {
 		return nil, fmt.Errorf("no more than %d selectors supported (%d provided)", MaxSelectors, len(selectors))
 	}
-	state := NewKernelSelectorState(listReader, maps, isUprobe)
+	state := NewKernelSelectorState(listReader, maps, isUprobe, celExprs)
 
 	WriteSelectorUint32(&state.data, uint32(len(selectors)))
 	soff := make([]uint32, len(selectors))
@@ -1690,7 +1692,7 @@ func InitKernelSelectorState(args *KernelSelectorArgs) (*KernelSelectorState, er
 		return nil
 	}
 
-	return createKernelSelectorState(args.Selectors, args.ListReader, args.Maps, args.IsUprobe, parse)
+	return createKernelSelectorState(args.Selectors, args.ListReader, args.Maps, args.IsUprobe, args.CelExprs, parse)
 }
 
 func InitKernelReturnSelectorState(selectors []v1alpha1.KProbeSelector, returnArg *v1alpha1.KProbeArg,
@@ -1706,7 +1708,7 @@ func InitKernelReturnSelectorState(selectors []v1alpha1.KProbeSelector, returnAr
 		return nil
 	}
 
-	return createKernelSelectorState(selectors, listReader, maps, false, parse)
+	return createKernelSelectorState(selectors, listReader, maps, false, nil, parse)
 }
 
 func CleanupKernelSelectorState(state *KernelSelectorState) error {
