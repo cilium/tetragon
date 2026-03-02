@@ -1,0 +1,6 @@
+node_exporter-stripped
+node_exporter-stripped.gz
+node_exporter-unstripped
+node_exporter-unstripped.gz
+node_exporter-go122-stripped
+node_exporter-go122-stripped.gz
