@@ -37,6 +37,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/pclntab"
 	"github.com/cilium/tetragon/pkg/selectors"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
@@ -776,11 +777,27 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 	}
 
 	if symbols != 0 {
+		pclntabResolved := make(map[string]uint64)
+		if pclntab.IsStrippedGoBinary(spec.Path) {
+			if resolved, err := pclntab.Lookup(spec.Path, spec.Symbols); err == nil {
+				for _, fn := range resolved {
+					pclntabResolved[fn.Name] = fn.Offset
+				}
+			}
+		}
+
 		for idx, sym := range spec.Symbols {
 			if err := checkSymbol(sym); err != nil {
 				return nil, fmt.Errorf("failed to parse symbol: %w", err)
 			}
-			err = addUprobeEntry(sym, 0, idx)
+			if off, ok := pclntabResolved[sym]; ok {
+				// Empty symbol forces the address-based attach path;
+				// passing the name would trigger cilium/ebpf symtab
+				// resolution which fails on stripped binaries
+				err = addUprobeEntry("", off, idx)
+			} else {
+				err = addUprobeEntry(sym, 0, idx)
+			}
 			if err != nil {
 				return nil, err
 			}
