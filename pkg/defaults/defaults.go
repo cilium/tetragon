@@ -41,6 +41,10 @@ const (
 	// Used by both client cli to guess unix socket address and by bugtool
 	InitInfoFile = DefaultRunDir + "tetragon-info.json"
 
+	// BugtoolExtraFiles is the file location for extra files to include in bugtool archives.
+	// Written by the daemon at startup, read by the CLI at bugtool time.
+	BugtoolExtraFiles = DefaultRunDir + "tetragon-bugtool-extra-files.json"
+
 	// Default directory from where to load tracing policies.
 	DefaultTpDir = "/etc/tetragon/tetragon.tp.d"
 

@@ -126,6 +126,47 @@ func doSaveInitInfo(fname string, info *InitInfo) error {
 	return nil
 }
 
+// SaveExtraFiles writes a map of extra files (name -> path) to the bugtool
+// extra files JSON file. The daemon calls this at startup so the CLI can
+// discover additional files at bugtool time, even if the daemon has crashed.
+func SaveExtraFiles(files map[string]string) error {
+	if err := os.MkdirAll(defaults.DefaultRunDir, 0755); err != nil {
+		return fmt.Errorf("creating run dir: %w", err)
+	}
+	f, err := os.OpenFile(defaults.BugtoolExtraFiles, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return fmt.Errorf("creating extra files file: %w", err)
+	}
+	defer f.Close()
+	if err := json.NewEncoder(f).Encode(files); err != nil {
+		return fmt.Errorf("encoding extra files: %w", err)
+	}
+	return nil
+}
+
+// LoadExtraFiles reads the map of extra files previously written by
+// SaveExtraFiles. Returns nil (not an error) if the file does not exist,
+// since not all deployments produce extra files.
+func LoadExtraFiles() (map[string]string, error) {
+	return doLoadExtraFiles(defaults.BugtoolExtraFiles)
+}
+
+func doLoadExtraFiles(fname string) (map[string]string, error) {
+	f, err := os.Open(fname)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("opening extra files file: %w", err)
+	}
+	defer f.Close()
+	var files map[string]string
+	if err := json.NewDecoder(f).Decode(&files); err != nil {
+		return nil, fmt.Errorf("decoding extra files: %w", err)
+	}
+	return files, nil
+}
+
 type bugtoolInfo struct {
 	info      *InitInfo
 	prefixDir string
@@ -286,6 +327,7 @@ func doBugtool(info *InitInfo, outFname string, commandActions []CommandAction, 
 	si.addMemCgroupStats()
 	si.addBPFMapsStats()
 	si.addTracefsTraceFile()
+	si.addExtraFiles()
 
 	// Additional command actions
 	for _, action := range commandActions {
@@ -887,5 +929,22 @@ func (s *bugtoolInfo) addTracefsTraceFile() {
 	err := s.ExecCmd("trace", "cat", "/sys/kernel/tracing/trace")
 	if err != nil {
 		s.multiLog.Warnf("failed to get trace file: %v", err)
+	}
+}
+
+func (s *bugtoolInfo) addExtraFiles() {
+	extraFiles, err := LoadExtraFiles()
+	if err != nil {
+		s.multiLog.WithError(err).Warn("failed to load extra files list")
+		return
+	}
+	for name, path := range extraFiles {
+		if path == "" {
+			continue
+		}
+		s.multiLog.WithField("name", name).WithField("path", path).Info("adding extra file")
+		if err := s.tarAddFile(path, name); err != nil {
+			s.multiLog.WithField("name", name).WithField("path", path).WithError(err).Warn("failed to add extra file")
+		}
 	}
 }
