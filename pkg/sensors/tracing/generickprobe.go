@@ -517,6 +517,7 @@ type addKprobeIn struct {
 	policyID      policyfilter.PolicyID
 	customHandler eventhandler.Handler
 	selMaps       *selectors.KernelSelectorMaps
+	celExprs      *selectors.CelExprFunctions
 }
 
 type hasMaps struct {
@@ -559,6 +560,7 @@ func createGenericKprobeSensor(
 	var ids []idtable.EntryID
 	var useMulti bool
 	var selMaps *selectors.KernelSelectorMaps
+	var celExprs *selectors.CelExprFunctions
 
 	kprobes := spec.KProbes
 
@@ -579,6 +581,8 @@ func createGenericKprobeSensor(
 
 	if useMulti {
 		selMaps = &selectors.KernelSelectorMaps{}
+		// if we are using multi-kprobe, CEL expressions are shared across all kprobes
+		celExprs = &selectors.CelExprFunctions{}
 	}
 
 	in := addKprobeIn{
@@ -588,6 +592,7 @@ func createGenericKprobeSensor(
 		policyName:    polInfo.name,
 		customHandler: polInfo.customHandler,
 		selMaps:       selMaps,
+		celExprs:      celExprs,
 	}
 
 	dups := make(map[string]int)
@@ -921,6 +926,7 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 		Data:           f.Data,
 		ActionArgTable: &kprobeEntry.actionArgs,
 		Maps:           in.selMaps,
+		CelExprs:       in.celExprs,
 	})
 	if err != nil {
 		return errFn(err)
@@ -1181,11 +1187,13 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir string, load *program.P
 			return err
 		}
 
+		rewriteProg := make(map[string]func(prog *ebpf.ProgramSpec) error)
 		if entry := gk.loadArgs.selectors.entry; entry != nil {
-			if len(entry.CelExprFunctions()) > 0 {
-				return errors.New("celExpr not supported in multi-kprobes")
+			if celbpf.EnabledInBPF() {
+				rewriteProg["generic_kprobe_filter_arg"] = entry.CelExprFunctions().RewriteProg
 			}
 		}
+		load.RewriteProg = rewriteProg
 
 		load.MapLoad = append(load.MapLoad, getMapLoad(load, gk, uint32(index))...)
 

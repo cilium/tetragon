@@ -55,10 +55,6 @@ func TestCelExpr(t *testing.T) {
 			Name: "lseek-celexpr",
 		},
 		Spec: v1alpha1.TracingPolicySpec{
-			Options: []v1alpha1.OptionSpec{{
-				Name:  "disable-kprobe-multi",
-				Value: "1",
-			}},
 			KProbes: []v1alpha1.KProbeSpec{
 				{
 					Call:    "sys_lseek",

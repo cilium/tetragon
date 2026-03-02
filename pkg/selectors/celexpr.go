@@ -29,18 +29,18 @@ func CelExprFuncName(idx int) string {
 type CelExprFunctions []asm.Instructions
 
 func addMatchCelExpr(
-	exprs CelExprFunctions,
+	exprs *CelExprFunctions,
 	arg *v1alpha1.ArgSelector,
 	sig []v1alpha1.KProbeArg,
-) (CelExprFunctions, error) {
+) error {
 
 	if len(arg.Values) != 1 {
-		return nil, errors.New("addMatchCelExpr: only a single CelExpr value is supported")
+		return errors.New("addMatchCelExpr: only a single CelExpr value is supported")
 	}
 
-	nExprs := len(exprs)
+	nExprs := len(*exprs)
 	if nExprs >= MaxCelExprFunctions {
-		return nil, fmt.Errorf("addMatchCelExpr: cannot allocate new cel expression function. No more than %d CelExpr allowed per policy", MaxCelExprFunctions)
+		return fmt.Errorf("addMatchCelExpr: cannot allocate new cel expression function. No more than %d CelExpr allowed per policy", MaxCelExprFunctions)
 	}
 
 	idx := nExprs
@@ -48,21 +48,20 @@ func addMatchCelExpr(
 
 	args := make([]celbpf.ExprArg, 0, len(arg.Args))
 	for i := range arg.Args {
-		idx, ty, err := argIndexTypeFromArgs(arg, i, sig)
+		argIdx, ty, err := argIndexTypeFromArgs(arg, i, sig)
 		if err != nil {
-			return nil, err
+			return nil
 		}
-		args = append(args, celbpf.ExprArg{GenTy: int(ty), ArgOffset: int(idx)})
+		args = append(args, celbpf.ExprArg{GenTy: int(ty), ArgOffset: int(argIdx)})
 	}
 
 	insts, err := celbpf.CompileFn(CelExprFuncName(idx), celExpr, args)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	exprs = append(exprs, insts)
-	return exprs, nil
-
+	*exprs = append(*exprs, insts)
+	return nil
 }
 
 func parseMatchCelExpr(
@@ -74,12 +73,11 @@ func parseMatchCelExpr(
 		return errors.New("celbpf not supported in this kernel")
 	}
 
-	exprs, err := addMatchCelExpr(k.celExprFunctions, arg, sig)
+	err := addMatchCelExpr(k.celExprFunctions, arg, sig)
 	if err != nil {
 		return err
 	}
-	k.celExprFunctions = exprs
-	idx := len(exprs) - 1
+	idx := len(*(k.celExprFunctions)) - 1
 	// for the CelExpr selector, we use ->index to indicate the celExpr function to use
 	WriteSelectorUint32(&k.data, uint32(idx))
 	WriteSelectorUint32(&k.data, SelectorOpCelExpr)
