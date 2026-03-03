@@ -25,6 +25,7 @@ import (
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/mbset"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
@@ -1164,7 +1165,23 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 	if !ok {
 		return fmt.Errorf("parseMatchAction: ActionType %s unknown", action.Action)
 	}
+
+	// Reject deprecated FD-tracking actions
+	actionLower := strings.ToLower(action.Action)
+	switch actionLower {
+	case "followfd", "unfollowfd", "copyfd":
+		return fmt.Errorf("action '%s' is deprecated and no longer supported as of v1.5. FD-tracking has been removed from Tetragon", action.Action)
+	}
+
 	WriteSelectorUint32(&k.data, act)
+
+	// Warn about deprecated fields being used
+	if action.ArgFd != 0 {
+		logger.GetLogger().Warn("Deprecated field used: 'argFd' is deprecated as of v1.5 and will be removed in a future release. FD-tracking actions (FollowFD/UnfollowFD/CopyFD) have been removed.", "field", "argFd", "action", action.Action)
+	}
+	if action.ArgName != 0 {
+		logger.GetLogger().Warn("Deprecated field used: 'argName' is deprecated as of v1.5 and will be removed in a future release. FD-tracking actions (FollowFD/UnfollowFD/CopyFD) have been removed.", "field", "argName", "action", action.Action)
+	}
 
 	rateLimit := uint32(0)
 	rateLimitScope := uint32(0)
