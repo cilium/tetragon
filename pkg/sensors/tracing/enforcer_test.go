@@ -340,6 +340,8 @@ func directWriteTempFile(t *testing.T) string {
 // - tests that no data got written to the monitored file
 
 func TestEnforcerSecuritySigKill(t *testing.T) {
+	t.Skip("skipping test, FollowFD/UnfollowFD actions removed from BPF in v1.5")
+
 	if !bpf.HasSignalHelper() {
 		t.Skip("skipping enforcer test, bpf_send_signal helper not available")
 	}
@@ -432,6 +434,8 @@ spec:
 // - tests that no data got written to the monitored file
 
 func TestEnforcerSecurityNotifyEnforcer(t *testing.T) {
+	t.Skip("skipping test, FollowFD/UnfollowFD actions removed from BPF in v1.5")
+
 	if !bpf.HasSignalHelper() {
 		t.Skip("skipping enforcer test, bpf_send_signal helper not available")
 	}

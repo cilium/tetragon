@@ -907,8 +907,6 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 	int action = actions->act[i];
 	struct msg_generic_kprobe *e;
 	__s32 error __maybe_unused;
-	int fdi, namei;
-	int newfdi, oldfdi;
 	int socki;
 	int argi __maybe_unused;
 	int err = 0;
@@ -960,17 +958,6 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 		break;
 	}
 
-	case ACTION_UNFOLLOWFD:
-	case ACTION_FOLLOWFD:
-		fdi = actions->act[++i];
-		namei = actions->act[++i];
-		err = installfd(e, fdi, namei, action == ACTION_FOLLOWFD);
-		break;
-	case ACTION_COPYFD:
-		oldfdi = actions->act[++i];
-		newfdi = actions->act[++i];
-		err = copyfd(e, oldfdi, newfdi);
-		break;
 	case ACTION_SIGNAL:
 		signal = actions->act[++i];
 		fallthrough;

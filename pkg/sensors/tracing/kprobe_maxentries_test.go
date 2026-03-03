@@ -91,6 +91,7 @@ spec:
 	})
 
 	t.Run("fdinstall_map", func(t *testing.T) {
+		t.Skip("skipping test, FollowFD action removed from BPF in v1.5")
 		run(t, []testMap{
 			{"fdinstall_map", fdInstallMapMaxEntries},
 			{"enforcer_data", 1},
