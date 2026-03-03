@@ -25,12 +25,22 @@ struct mystruct {
 	struct mysubstruct *subp;
 	uint8_t *v8p;
 	char **buffp;
+	struct {
+		uint8_t foroffsetone;
+		union {
+			uint16_t anothermember;
+			struct {
+				uint32_t foroffsettwo;
+				int findme;
+			};
+		};
+	};
 };
 
 void usage(char *argv0)
 {
 	fprintf(stderr, "Usage: %s <field> <val>\n", argv0);
-	fprintf(stderr, "field can be one of: v8, v16, v32, v64, sub.v32 arr[idx].v64 dyn[idx].v64, subp.buff, v8p, buffp\n");
+	fprintf(stderr, "field can be one of: v8, v16, v32, v64, sub.v32 arr[idx].v64 dyn[idx].v64, subp.buff, v8p, buffp, findme\n");
 }
 
 // without noinline, the symbol is found, but no event fires
@@ -65,6 +75,8 @@ int main(int argc, char *argv[])
 	struct mystruct s = {0};
 	if (!strcmp(field, "v8")) {
 		s.v8 = val;
+	} else if (!strcmp(field, "findme")) {
+		s.findme = val;
 	} else if (!strcmp(field, "v8p")) {
 		v8 = val;
 		s.v8p = &v8;
