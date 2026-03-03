@@ -438,6 +438,18 @@ func TestUprobeResolveStringPointer(t *testing.T) {
 	})
 }
 
+func TestUprobeResolveAnonymousStructUnion(t *testing.T) {
+	testUprobeResolveType(t, TestSpec{
+		specTy:    "int",
+		filterVal: "7",
+		quoteVal:  false,
+		field:     "findme",
+		kpArgs: []*ec.KprobeArgumentChecker{
+			ec.NewKprobeArgumentChecker().WithIntArg(int32(7)),
+		},
+	})
+}
+
 func testUprobeOverrideRegsActionSize(t *testing.T, ass, num string) {
 	if !bpf.HasUprobeRegsChange() {
 		t.Skip("skipping regs override action test, regs override is not supported in kernel")
