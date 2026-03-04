@@ -21,7 +21,7 @@ struct mystruct {
 	uint64_t v64;
 	struct mysubstruct sub;
 	struct mysubstruct *arr[10];
-	struct mysubstruct **dyn;
+	struct mysubstruct *dyn;
 	struct mysubstruct *subp;
 	uint8_t *v8p;
 	char **buffp;
@@ -93,8 +93,7 @@ int main(int argc, char *argv[])
 		s.subp = pageout(&ss, sizeof(ss));
 	} else if (!strcmp(field, "buffp")) {
 		s.buffp = &argv[2];
-	} else if ((field[0] == 'a' && field[1] == 'r' && field[2] == 'r')
-            || (field[0] == 'd' && field[1] == 'y' && field[2] == 'n')) {
+	} else if ((field[0] == 'a' && field[1] == 'r' && field[2] == 'r')) {
 		long idx = atol(&field[4]);
 		if (!idx) {
 			usage(argv[0]);
@@ -104,8 +103,20 @@ int main(int argc, char *argv[])
 			.v64 = val,
 		};
 		s.arr[idx] = &s2;
-		s.dyn = s.arr;
 		printf("sub.v64:%lu\n", s2.v64); // It seems without this line, the compiler make optimization and the test fails.
+	} else if (field[0] == 'd' && field[1] == 'y' && field[2] == 'n') {
+		long idx = atol(&field[4]);
+		if (!idx) {
+			usage(argv[0]);
+			exit(1);
+		}
+
+		s.dyn = malloc(sizeof(struct mysubstruct) * (idx + 1));
+
+		if (!s.dyn) {
+			fprintf(stderr, "unable to allocate dynamic array\n");
+		}
+		s.dyn[idx].v64 = val;
 	} else {
 		usage(argv[0]);
 		exit(1);

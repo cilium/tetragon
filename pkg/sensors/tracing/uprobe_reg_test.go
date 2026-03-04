@@ -229,7 +229,7 @@ func TestUprobeResolve(t *testing.T) {
 			ec.NewKprobeArgumentChecker().WithUintArg(0),
 			ec.NewKprobeArgumentChecker().WithUintArg(0),
 			ec.NewKprobeArgumentChecker().WithSizeArg(13), // uint64(13)
-			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("3"))),
+			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("2"))),
 		}},
 		{"uint64", 14, "dyn[6].v64", []*ec.KprobeArgumentChecker{
 			ec.NewKprobeArgumentChecker().WithSizeArg(0),
