@@ -321,6 +321,7 @@ type TestSpec struct {
 	filterVal string
 	quoteVal  bool
 	field     string
+	resolve   string
 	kpArgs    []*ec.KprobeArgumentChecker
 }
 
@@ -331,6 +332,11 @@ func testUprobeResolveType(t *testing.T, tt TestSpec) {
 
 	uprobe := testutils.RepoRootPath("contrib/tester-progs/uprobe-resolve")
 	uprobeBtf := testutils.RepoRootPath("contrib/tester-progs/uprobe-resolve.btf")
+
+	resolve := tt.resolve
+	if resolve == "" {
+		resolve = tt.field
+	}
 
 	uprobeHook := `
 apiVersion: cilium.io/v1alpha1
@@ -347,7 +353,7 @@ spec:
     - index: 1
       type: "` + tt.specTy + `"
       btfType: "mystruct"
-      resolve: "` + tt.field + `"
+      resolve: "` + resolve + `"
 `
 
 	uprobeConfigHook := []byte(uprobeHook)
@@ -446,6 +452,23 @@ func TestUprobeResolveAnonymousStructUnion(t *testing.T) {
 		field:     "findme",
 		kpArgs: []*ec.KprobeArgumentChecker{
 			ec.NewKprobeArgumentChecker().WithIntArg(int32(7)),
+		},
+	})
+}
+
+func TestUprobeResolveTwoDimArray(t *testing.T) {
+	testUprobeResolveType(t, TestSpec{
+		specTy:    "uint64",
+		filterVal: "7",
+		quoteVal:  false,
+		field:     "twodim[2][3]",
+		// struct mysubstruct *twodim[5][6];
+		// 2 * 6 + 3 = 15, so twodim[2][3] should point to the 15th element
+		// dwarfdump shows the dimensions of the multi-dimensional array
+		// But, pahole and bpftool show a flattened, 1D array of 30 elements
+		resolve: "twodim[15]",
+		kpArgs: []*ec.KprobeArgumentChecker{
+			ec.NewKprobeArgumentChecker().WithSizeArg(7),
 		},
 	})
 }
