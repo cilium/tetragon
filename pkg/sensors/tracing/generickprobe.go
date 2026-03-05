@@ -1188,7 +1188,9 @@ func getMapLoad(load *program.Program, kprobeEntry *genericKprobe, index uint32)
 	return selectorsMaploads(state, index)
 }
 
-func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Program, maps []*program.Map, verbose int) error {
+func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Program, maps []*program.Map,
+	verbose int, fentry bool) error {
+
 	gk, err := genericKprobeTableGet(id)
 	if err != nil {
 		return err
@@ -1214,10 +1216,14 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Pro
 	}
 	load.MapLoad = append(load.MapLoad, config)
 
-	if err := program.LoadKprobeProgram(bpfDir, load, maps, verbose); err == nil {
-		logger.GetLogger().Info(fmt.Sprintf("Loaded generic kprobe program: %s -> %s", load.Name, load.Attach))
+	if fentry {
+		if err = program.LoadTracingProgram(bpfDir, load, maps, verbose); err == nil {
+			logger.GetLogger().Info(fmt.Sprintf("Loaded generic fentry program: %s -> %s", load.Name, load.Attach))
+		}
 	} else {
-		return err
+		if err = program.LoadKprobeProgram(bpfDir, load, maps, verbose); err == nil {
+			logger.GetLogger().Info(fmt.Sprintf("Loaded generic kprobe program: %s -> %s", load.Name, load.Attach))
+		}
 	}
 
 	return err
@@ -1274,9 +1280,9 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir string, load *program.P
 	return nil
 }
 
-func loadGenericKprobeSensor(bpfDir string, load *program.Program, maps []*program.Map, verbose int) error {
+func loadGenericKprobeSensor(bpfDir string, load *program.Program, maps []*program.Map, verbose int, fentry bool) error {
 	if id, ok := load.LoaderData.(idtable.EntryID); ok {
-		return loadSingleKprobeSensor(id, bpfDir, load, maps, verbose)
+		return loadSingleKprobeSensor(id, bpfDir, load, maps, verbose, fentry)
 	}
 	if ids, ok := load.LoaderData.([]idtable.EntryID); ok {
 		return loadMultiKprobeSensor(ids, bpfDir, load, maps, verbose)
@@ -1527,5 +1533,5 @@ func retprobeMergeEvents[T evArgsRetriever](unix T, pendingEvents *lru.Cache[pen
 }
 
 func (k *observerKprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
-	return loadGenericKprobeSensor(args.BPFDir, args.Load, args.Maps, args.Verbose)
+	return loadGenericKprobeSensor(args.BPFDir, args.Load, args.Maps, args.Verbose, false)
 }
