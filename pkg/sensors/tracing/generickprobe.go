@@ -528,6 +528,7 @@ type hasMaps struct {
 	override   bool
 	sockTrack  bool
 	selector   bool
+	fentry     bool
 }
 
 // hasMapsSetup setups the has maps for the per policy maps. The per kprobe maps
@@ -966,15 +967,41 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 		pinProg = fmt.Sprintf("%s:%d", kprobeEntry.funcName, kprobeEntry.instance)
 	}
 
-	load := program.Builder(
-		path.Join(option.Config.HubbleLib, loadProgName),
-		kprobeEntry.funcName,
-		"kprobe/generic_kprobe",
-		pinProg,
-		"generic_kprobe").
-		SetLoaderData(kprobeEntry.tableId).
-		SetPolicy(kprobeEntry.policyName)
+	var load *program.Program
+
+	if has.fentry {
+		data := &program.TracingAttachData{
+			AttachTo: kprobeEntry.funcName,
+		}
+
+		loadProgName, loadProgRetName = config.GenericTracingObjs()
+
+		load = program.Builder(
+			path.Join(option.Config.HubbleLib, loadProgName),
+			kprobeEntry.funcName,
+			"fentry/generic_fentry",
+			pinProg,
+			"generic_fentry").
+			SetAttachData(data)
+
+		tailCalls := program.MapBuilderProgram("fentry_calls", load)
+		maps = append(maps, tailCalls)
+	} else {
+		load = program.Builder(
+			path.Join(option.Config.HubbleLib, loadProgName),
+			kprobeEntry.funcName,
+			"kprobe/generic_kprobe",
+			pinProg,
+			"generic_kprobe")
+
+		tailCalls := program.MapBuilderProgram("kprobe_calls", load)
+		maps = append(maps, tailCalls)
+	}
+
+	load.SetPolicy(kprobeEntry.policyName)
+	load.SetLoaderData(kprobeEntry.tableId)
 	load.Override = kprobeEntry.hasOverride
+
 	if load.Override {
 		load.OverrideFmodRet = isSecurityFunc && bpf.HasModifyReturn()
 	}
@@ -988,9 +1015,6 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 
 	configMap := program.MapBuilderProgram("config_map", load)
 	maps = append(maps, configMap)
-
-	tailCalls := program.MapBuilderProgram("kprobe_calls", load)
-	maps = append(maps, tailCalls)
 
 	filterMap := program.MapBuilderProgram("filter_map", load)
 	maps = append(maps, filterMap)
@@ -1061,15 +1085,40 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 		if kprobeEntry.instance != 0 {
 			pinRetProg = sensors.PathJoin(fmt.Sprintf("%s_return:%d", kprobeEntry.funcName, kprobeEntry.instance))
 		}
-		loadret := program.Builder(
-			path.Join(option.Config.HubbleLib, loadProgRetName),
-			kprobeEntry.funcName,
-			"kprobe/generic_retkprobe",
-			pinRetProg,
-			"generic_kprobe").
-			SetRetProbe(true).
-			SetLoaderData(kprobeEntry.tableId).
-			SetPolicy(kprobeEntry.policyName)
+
+		var loadret *program.Program
+
+		if has.fentry {
+			data := &program.TracingAttachData{
+				AttachTo: kprobeEntry.funcName,
+			}
+
+			loadret = program.Builder(
+				path.Join(option.Config.HubbleLib, loadProgRetName),
+				kprobeEntry.funcName,
+				"fexit/generic_fexit",
+				pinRetProg,
+				"generic_fentry").
+				SetAttachData(data)
+
+			tailCalls := program.MapBuilderProgram("fexit_calls", loadret)
+			maps = append(maps, tailCalls)
+		} else {
+			loadret = program.Builder(
+				path.Join(option.Config.HubbleLib, loadProgRetName),
+				kprobeEntry.funcName,
+				"kprobe/generic_retkprobe",
+				pinRetProg,
+				"generic_kprobe")
+
+			tailCalls := program.MapBuilderProgram("retkprobe_calls", loadret)
+			maps = append(maps, tailCalls)
+		}
+
+		loadret.SetRetProbe(true)
+		loadret.SetLoaderData(kprobeEntry.tableId)
+		loadret.SetPolicy(kprobeEntry.policyName)
+
 		progs = append(progs, loadret)
 
 		retProbe := program.MapBuilderSensor("retprobe_map", loadret)
@@ -1077,9 +1126,6 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 
 		retConfigMap := program.MapBuilderProgram("config_map", loadret)
 		maps = append(maps, retConfigMap)
-
-		tailCalls := program.MapBuilderProgram("retkprobe_calls", loadret)
-		maps = append(maps, tailCalls)
 
 		filterMap := program.MapBuilderProgram("filter_map", loadret)
 		maps = append(maps, filterMap)
