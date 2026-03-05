@@ -1,0 +1,29 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright Authors of Hubble
+
+syntax = "proto3";
+
+package tetragon;
+
+option go_package = "github.com/cilium/tetragon/api/v1/tetragon";
+
+service EventLogService {
+  rpc SetEventLogParams(SetEventLogParamsRequest) returns (SetEventLogParamsResponse) {}
+  rpc GetEventLogParams(GetEventLogParamsRequest) returns (GetEventLogParamsResponse) {}
+}
+
+message SetEventLogParamsRequest {
+  optional int32 max_size = 1;
+  optional string rotation_interval = 2;
+  optional int32 max_backups = 3;
+}
+
+message SetEventLogParamsResponse {}
+
+message GetEventLogParamsRequest {}
+
+message GetEventLogParamsResponse {
+  int32 max_size = 1;
+  string rotation_interval = 2;
+  int32 max_backups = 3;
+}
