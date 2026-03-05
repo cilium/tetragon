@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"unsafe"
 
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sys/unix"
@@ -55,10 +56,6 @@ func TestCelExpr(t *testing.T) {
 			Name: "lseek-celexpr",
 		},
 		Spec: v1alpha1.TracingPolicySpec{
-			Options: []v1alpha1.OptionSpec{{
-				Name:  "disable-kprobe-multi",
-				Value: "1",
-			}},
 			KProbes: []v1alpha1.KProbeSpec{
 				{
 					Call:    "sys_lseek",
@@ -98,6 +95,93 @@ func TestCelExpr(t *testing.T) {
 					return fmt.Errorf("unexpected kprobe event, func:%s", kpEvent.FuncName)
 				}
 				if len(kpEvent.Args) != 3 {
+					return fmt.Errorf("unexpected kprobe arguments: %+v", kpEvent.Args)
+				}
+				eventCounter++
+			}
+			return nil
+		},
+	)
+	require.Equal(t, 1, eventCounter)
+}
+
+func TestCelExprMultiKprobe(t *testing.T) {
+	if !kernels.MinKernelVersion("5.10.0") {
+		t.Skip("TestCelExpr requires at least a 5.10 kernel")
+	}
+
+	testutils.CaptureLog(t, logger.GetLogger())
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	mypid := int(observertesthelper.GetMyPid())
+	t.Logf("filtering for my pid (%d)", mypid)
+	myPidMatchPIDs := []v1alpha1.PIDSelector{{
+		Operator:       "In",
+		IsNamespacePID: false,
+		FollowForks:    true,
+		Values:         []uint32{uint32(mypid)},
+	}}
+
+	if err := observer.InitDataCache(1024); err != nil {
+		t.Fatalf("observertesthelper.InitDataCache: %s", err)
+	}
+
+	tp := tracingpolicy.GenericTracingPolicy{
+		Metadata: v1.ObjectMeta{
+			Name: "lseek-celexpr",
+		},
+		Spec: v1alpha1.TracingPolicySpec{
+			KProbes: []v1alpha1.KProbeSpec{
+				{
+					Call:    "sys_lseek",
+					Syscall: true,
+					Args:    []v1alpha1.KProbeArg{},
+					Selectors: []v1alpha1.KProbeSelector{{
+						MatchPIDs: myPidMatchPIDs,
+						MatchArgs: []v1alpha1.ArgSelector{{
+							Operator: "CelExpr",
+							Values:   []string{"false"},
+						}},
+					}},
+				},
+				{
+					Call:    "sys_getcpu",
+					Syscall: true,
+					Args:    []v1alpha1.KProbeArg{},
+					Selectors: []v1alpha1.KProbeSelector{{
+						MatchPIDs: myPidMatchPIDs,
+						MatchArgs: []v1alpha1.ArgSelector{{
+							Operator: "CelExpr",
+							Values:   []string{"true"},
+						}},
+					}},
+				},
+			},
+		},
+	}
+
+	eventCounter := 0
+	loadGenericSensorTest(t, &tp.Spec)
+	perfring.RunTest(t, ctx,
+		func() {
+			t.Logf("Calling lseek()")
+			unix.Seek(-1, 0, 0)
+			var cpu, node int
+			t.Logf("Calling getcpu()")
+			unix.Syscall(
+				unix.SYS_GETCPU,
+				uintptr(unsafe.Pointer(&cpu)),
+				uintptr(unsafe.Pointer(&node)),
+				0,
+			)
+		},
+		func(ev notify.Message) error {
+			if kpEvent, ok := ev.(*tracing.MsgGenericKprobeUnix); ok {
+				if kpEvent.FuncName != arch.AddSyscallPrefixTestHelper(t, "sys_getcpu") {
+					return fmt.Errorf("unexpected kprobe event, func:%s", kpEvent.FuncName)
+				}
+				if len(kpEvent.Args) != 0 {
 					return fmt.Errorf("unexpected kprobe arguments: %+v", kpEvent.Args)
 				}
 				eventCounter++
