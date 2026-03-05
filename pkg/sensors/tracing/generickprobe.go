@@ -618,7 +618,7 @@ func createGenericKprobeSensor(
 			}
 			dups[sym] = instance
 
-			id, err := addKprobe(sym, instance, &kprobes[i], &in)
+			id, err := addKprobe(sym, instance, &kprobes[i], &in, has)
 			if err != nil {
 				return nil, err
 			}
@@ -685,7 +685,7 @@ func initEventConfig() *api.EventConfig {
 // addKprobe will, amongst other things, create a generic kprobe entry and add
 // it to the genericKprobeTable. The caller should make sure that this entry is
 // properly removed on kprobe removal.
-func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idtable.EntryID, err error) {
+func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKprobeIn, has hasMaps) (id idtable.EntryID, err error) {
 	var argSigPrinters []argPrinter
 	var argReturnPrinters []argPrinter
 	var setRetprobe bool
@@ -949,7 +949,8 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 	eventConfig.FuncId = uint32(kprobeEntry.tableId.ID)
 
 	logger.GetLogger().
-		Info("Added kprobe", "return", setRetprobe, "function", kprobeEntry.funcName, "override", kprobeEntry.hasOverride)
+		Info("Added kprobe", "return", setRetprobe, "function", kprobeEntry.funcName,
+			"override", kprobeEntry.hasOverride, "enforcer", has.enforcer)
 
 	return kprobeEntry.tableId, nil
 }
