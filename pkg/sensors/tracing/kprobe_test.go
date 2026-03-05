@@ -7586,3 +7586,61 @@ spec:
 	err = jsonchecker.JsonTestCheck(t, checker)
 	assert.NoError(t, err)
 }
+
+func TestKprobeNotEqualMultipleValues(t *testing.T) {
+	if !kernels.MinKernelVersion("5.0") {
+		t.Skip("Test fails on older kernels (like 4.19) due to missing BTF resolution for f_inode.i_sb.s_magic")
+	}
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	tracingPolicy := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "test-notequal-multiple"
+spec:
+  kprobes:
+  - call: security_file_permission
+    syscall: false
+    args:
+    - index: 1
+      type: int
+    selectors:
+    - matchActions:
+      - action: Post
+      matchArgs:
+      - index: 1
+        operator: NotEqual
+        # curl naturally triggers security_file_permission with MAY_READ (4).
+        # We filter out MAY_WRITE (2) and MAY_READ|MAY_WRITE (6) to verify NotEqual allows 4.
+        values:
+        - "2"
+        - "6"
+      matchBinaries:
+      - operator: Postfix
+        values:
+        - curl
+`
+	createCrdFile(t, tracingPolicy)
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	cmd := exec.CommandContext(ctx, "curl", "-s", "127.0.0.1")
+	cmd.Run()
+
+	kpChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full("security_file_permission"))
+
+	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
+	require.NoError(t, err)
+}
