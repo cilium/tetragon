@@ -128,8 +128,6 @@ type config struct {
 	EventCacheNumRetries int
 	EventCacheRetryDelay int
 
-	CompatibilitySyscall64SizeType bool
-
 	ExecveMapEntries int
 	ExecveMapSize    string
 

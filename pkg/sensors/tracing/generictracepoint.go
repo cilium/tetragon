@@ -1005,14 +1005,8 @@ func handleMsgGenericTracepoint(
 			if err != nil {
 				logger.GetLogger().Warn(fmt.Sprintf("Size type error sizeof %d", m.Common.Size), logfields.Error, err)
 			}
-			if option.Config.CompatibilitySyscall64SizeType {
-				// NB: clear Is32Bit to mantain previous behaviour
-				val = val & (^uint64(Is32Bit))
-				unix.Args = append(unix.Args, val)
-			} else {
-				val := parseSyscall64Value(val)
-				unix.Args = append(unix.Args, val)
-			}
+			val64 := parseSyscall64Value(val)
+			unix.Args = append(unix.Args, val64)
 
 		case gt.GenericLinuxBinprmType:
 			var arg tracingapi.MsgGenericKprobeArgLinuxBinprm
