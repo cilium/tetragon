@@ -523,6 +523,15 @@ func (p *CompactEncoder) EventToString(response *tetragon.GetEventsResponse) (st
 				event = p.Colorer.Blue.Sprintf("📝 %-7s", "truncate")
 			}
 			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, attr), caps), nil
+		case "security_file_truncate":
+			event := p.Colorer.Blue.Sprintf("❓ %-7s", "security_file_truncate")
+			attr := ""
+			if len(kprobe.Args) > 0 && kprobe.Args[0] != nil {
+				file := kprobe.Args[0].GetFileArg()
+				attr = p.Colorer.Cyan.Sprintf("%s", file.Path)
+				event = p.Colorer.Blue.Sprintf("📝 %-7s", "truncate")
+			}
+			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, attr), caps), nil
 		default:
 			event := p.Colorer.Blue.Sprintf("❓ %-7s", "syscall")
 			return CapTrailorPrinter(fmt.Sprintf("%s %s %s", event, processInfo, kprobe.FunctionName), caps), nil
