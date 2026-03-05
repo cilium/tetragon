@@ -85,6 +85,14 @@ func parseMatchCelExpr(
 	WriteSelectorUint32(&k.data, SelectorOpCelExpr)
 	moff := AdvanceSelectorLength(&k.data)
 	WriteSelectorUint32(&k.data, 0)
+
+	for i := range arg.Args {
+		idx, _, err := argIndexTypeFromArgs(arg, i, sig)
+		if err != nil {
+			return err
+		}
+		WriteSelectorUint32(&k.data, idx)
+	}
 	WriteSelectorLength(&k.data, moff)
 	return nil
 }
