@@ -18,6 +18,7 @@ import (
 	telf "github.com/cilium/tetragon/pkg/elf"
 	"github.com/cilium/tetragon/pkg/ftrace"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/pclntab"
 	"github.com/cilium/tetragon/pkg/tracingpolicy/generate"
 )
 
@@ -169,6 +170,15 @@ func New() *cobra.Command {
 				uprobe.Symbols = append(uprobe.Symbols, sym.Name)
 			}
 
+			// Fall back to .gopclntab for stripped Go binaries
+			if len(uprobe.Symbols) == 0 {
+				if goFuncs, err := pclntab.AllFuncs(uprobesBinary); err == nil {
+					for _, fn := range goFuncs {
+						uprobe.Symbols = append(uprobe.Symbols, fn.Name)
+					}
+					fmt.Fprintf(os.Stderr, "resolved %d symbols from .gopclntab\n", len(goFuncs))
+				}
+			}
 			uprobe.Path = uprobesBinary
 			b, err := yaml.Marshal(tp)
 			if err != nil {

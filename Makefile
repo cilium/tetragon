@@ -299,6 +299,7 @@ test-compile: ## Compile unit tests.
 .PHONY: fetch-testdata
 fetch-testdata:
 	wget -nc -P testdata/btf 'https://github.com/cilium/tetragon-testdata/raw/main/btf/vmlinux-5.4.104+'
+	$(MAKE) -C pkg/pclntab/testdata
 
 # Agent image to use for end-to-end tests
 E2E_AGENT ?= "cilium/tetragon:$(DOCKER_IMAGE_TAG)"
