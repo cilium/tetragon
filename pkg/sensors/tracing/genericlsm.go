@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/cilium/ebpf"
+	ciliumbtf "github.com/cilium/ebpf/btf"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 
@@ -21,6 +22,7 @@ import (
 	"github.com/cilium/tetragon/pkg/api/processapi"
 	api "github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/btf"
 	"github.com/cilium/tetragon/pkg/cgtracker"
 	"github.com/cilium/tetragon/pkg/config"
 	gt "github.com/cilium/tetragon/pkg/generictypes"
@@ -200,6 +202,65 @@ func isValidLsmSelectors(selectors []v1alpha1.KProbeSelector) error {
 					return fmt.Errorf("%s action is not supported", a.Action)
 				}
 			}
+		}
+	}
+	return nil
+}
+
+// preValidateLsm pre-validates a single LSM hook spec by checking
+// that the hook exists in BTF and that arguments and selectors are valid.
+func preValidateLsm(f *v1alpha1.LsmHookSpec) error {
+	if f.Hook == "" {
+		return errors.New("lsm hook name is empty")
+	}
+
+	// Validate selectors
+	if err := isValidLsmSelectors(f.Selectors); err != nil {
+		return fmt.Errorf("invalid selectors: %w", err)
+	}
+
+	// Validate the hook exists in BTF by looking up bpf_lsm_<hook>
+	btfFunc := "bpf_lsm_" + f.Hook
+	spec, err := btf.NewBTF()
+	if err != nil {
+		return fmt.Errorf("failed to load BTF: %w", err)
+	}
+
+	var fn *ciliumbtf.Func
+	if err := spec.TypeByName(btfFunc, &fn); err != nil {
+		return fmt.Errorf("lsm hook %q not found in BTF (looked up %q): %w, "+
+			"please check if the hook exists or if your kernel supports BTF for lsm hooks, "+
+			"as an alternative, consider switching to kprobes", f.Hook, btfFunc, err)
+	}
+
+	// Validate argument indices and types
+	for j, a := range f.Args {
+		if a.Index > 4 {
+			return fmt.Errorf("args[%d]: ArgType %s Index %d out of bounds",
+				j, a.Type, a.Index)
+		}
+
+		argType := gt.GenericTypeFromString(a.Type)
+		if argType == gt.GenericInvalidType && a.Resolve == "" {
+			return fmt.Errorf("args[%d]: type '%s' unsupported", j, a.Type)
+		}
+	}
+
+	return nil
+}
+
+// preValidateLsmHooks pre-validates the semantics of LSM hook specs.
+// It checks that the kernel supports BPF LSM, that each hook exists in BTF,
+// and that arguments and selectors are valid.
+func preValidateLsmHooks(lsmHooks []v1alpha1.LsmHookSpec) error {
+	if !bpf.HasLSMPrograms() || !config.EnableLargeProgs() {
+		return errors.New("does your kernel support the bpf LSM? You can enable LSM BPF by modifying" +
+			" the GRUB configuration /etc/default/grub with GRUB_CMDLINE_LINUX=\"lsm=bpf\"")
+	}
+
+	for i := range lsmHooks {
+		if err := preValidateLsm(&lsmHooks[i]); err != nil {
+			return fmt.Errorf("error in spec.lsmHooks[%d]: %w", i, err)
 		}
 	}
 	return nil
