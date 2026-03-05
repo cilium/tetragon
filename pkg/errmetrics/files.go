@@ -20,6 +20,7 @@ var Files = map[uint8]string{
 	11: "user_preload.h",
 	12: "bpf_cgroup_release.c",
 	13: "bpf_cgroup_rmdir.c",
+	14: "bpf_process_event.h",
 }
 
 func BPFFileName(id uint8) string {
