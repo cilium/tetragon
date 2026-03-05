@@ -117,6 +117,13 @@ Currently, only the "name" field is supported.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindex">fentries</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of fentry specs.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicyspeckprobesindex">kprobes</a></b></td>
         <td>[]object</td>
         <td>
@@ -298,6 +305,1366 @@ merge patch.<br/>
           Calls where enforcer is executed in<br/>
         </td>
         <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index]
+<sup><sup>[↩ Parent](#tracingpolicyspec)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>call</b></td>
+        <td>string</td>
+        <td>
+          Name of the function to apply the kprobe spec to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexargsindex">args</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of function arguments to include in the trace output.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexdataindex">data</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of data to include in the trace output.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexignore">ignore</a></b></td>
+        <td>object</td>
+        <td>
+          Conditions for ignoring this kprobe<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>message</b></td>
+        <td>string</td>
+        <td>
+          A short message of 256 characters max that will be included
+in the event output to inform users what is going on.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>return</b></td>
+        <td>boolean</td>
+        <td>
+          Indicates whether to collect return value of the traced function.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexreturnarg">returnArg</a></b></td>
+        <td>object</td>
+        <td>
+          A return argument to include in the trace output.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>returnArgAction</b></td>
+        <td>string</td>
+        <td>
+          An action to perform on the return argument.
+Available actions are: Post;TrackSock;UntrackSock<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexselectorsindex">selectors</a></b></td>
+        <td>[]object</td>
+        <td>
+          Selectors to apply before producing trace output. Selectors are ORed and short-circuited.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>syscall</b></td>
+        <td>boolean</td>
+        <td>
+          Indicates whether the traced function is a syscall.<br/>
+          <br/>
+            <i>Default</i>: true<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>tags</b></td>
+        <td>[]string</td>
+        <td>
+          Tags to categorize the event, will be include in the event output.
+Maximum of 16 Tags are supported.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index].args[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the argument.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>enum</td>
+        <td>
+          Argument type.<br/>
+          <br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Default</i>: auto<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>btfType</b></td>
+        <td>string</td>
+        <td>
+          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
+the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
+type.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>label</b></td>
+        <td>string</td>
+        <td>
+          Label to output in the JSON<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>maxData</b></td>
+        <td>boolean</td>
+        <td>
+          Read maximum possible data (currently 327360). This field is only used
+for char_buff data. When this value is false (default), the bpf program
+will fetch at most 4096 bytes. In later kernels (>=5.4) tetragon
+supports fetching up to 327360 bytes if this flag is turned on<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>resolve</b></td>
+        <td>string</td>
+        <td>
+          Resolve the path to a specific attribute<br/>
+          <br/>
+            <i>Default</i>: <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>returnCopy</b></td>
+        <td>boolean</td>
+        <td>
+          This field is used only for char_buf and char_iovec types. It indicates
+that this argument should be read later (when the kretprobe for the
+symbol is triggered) because it might not be populated when the kprobe
+is triggered at the entrance of the function. For example, a buffer
+supplied to read(2) won't have content until kretprobe is triggered.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sizeArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>source</b></td>
+        <td>string</td>
+        <td>
+          Source of the data, if missing the default if function arguments<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index].data[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the argument.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>enum</td>
+        <td>
+          Argument type.<br/>
+          <br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Default</i>: auto<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>btfType</b></td>
+        <td>string</td>
+        <td>
+          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
+the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
+type.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>label</b></td>
+        <td>string</td>
+        <td>
+          Label to output in the JSON<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>maxData</b></td>
+        <td>boolean</td>
+        <td>
+          Read maximum possible data (currently 327360). This field is only used
+for char_buff data. When this value is false (default), the bpf program
+will fetch at most 4096 bytes. In later kernels (>=5.4) tetragon
+supports fetching up to 327360 bytes if this flag is turned on<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>resolve</b></td>
+        <td>string</td>
+        <td>
+          Resolve the path to a specific attribute<br/>
+          <br/>
+            <i>Default</i>: <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>returnCopy</b></td>
+        <td>boolean</td>
+        <td>
+          This field is used only for char_buf and char_iovec types. It indicates
+that this argument should be read later (when the kretprobe for the
+symbol is triggered) because it might not be populated when the kprobe
+is triggered at the entrance of the function. For example, a buffer
+supplied to read(2) won't have content until kretprobe is triggered.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sizeArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>source</b></td>
+        <td>string</td>
+        <td>
+          Source of the data, if missing the default if function arguments<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index].ignore
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindex)</sup></sup>
+
+
+Conditions for ignoring this kprobe
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>callNotFound</b></td>
+        <td>boolean</td>
+        <td>
+          Ignores calls that are not present in the system<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index].returnArg
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindex)</sup></sup>
+
+
+A return argument to include in the trace output.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the argument.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>enum</td>
+        <td>
+          Argument type.<br/>
+          <br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Default</i>: auto<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>btfType</b></td>
+        <td>string</td>
+        <td>
+          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
+the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
+type.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>label</b></td>
+        <td>string</td>
+        <td>
+          Label to output in the JSON<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>maxData</b></td>
+        <td>boolean</td>
+        <td>
+          Read maximum possible data (currently 327360). This field is only used
+for char_buff data. When this value is false (default), the bpf program
+will fetch at most 4096 bytes. In later kernels (>=5.4) tetragon
+supports fetching up to 327360 bytes if this flag is turned on<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>resolve</b></td>
+        <td>string</td>
+        <td>
+          Resolve the path to a specific attribute<br/>
+          <br/>
+            <i>Default</i>: <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>returnCopy</b></td>
+        <td>boolean</td>
+        <td>
+          This field is used only for char_buf and char_iovec types. It indicates
+that this argument should be read later (when the kretprobe for the
+symbol is triggered) because it might not be populated when the kprobe
+is triggered at the entrance of the function. For example, a buffer
+supplied to read(2) won't have content until kretprobe is triggered.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sizeArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>source</b></td>
+        <td>string</td>
+        <td>
+          Source of the data, if missing the default if function arguments<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index].selectors[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindex)</sup></sup>
+
+
+KProbeSelector selects function calls for kprobe based on PIDs and function arguments. The
+results of MatchPIDs and MatchArgs are ANDed.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>macros</b></td>
+        <td>[]string</td>
+        <td>
+          A list of macros names, defined in spec.selectorsMacros.
+Filters specified in macros will be appended to corresponding filters of the selector.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchactionsindex">matchActions</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of actions to execute when this selector matches<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchargsindex">matchArgs</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of argument filters. MatchArgs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchbinariesindex">matchBinaries</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of binary exec name filters.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchcapabilitiesindex">matchCapabilities</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of capabilities and IDs<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchcapabilitychangesindex">matchCapabilityChanges</a></b></td>
+        <td>[]object</td>
+        <td>
+          IDs for capabilities changes<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchdataindex">matchData</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of argument filters. MatchData are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchnamespacechangesindex">matchNamespaceChanges</a></b></td>
+        <td>[]object</td>
+        <td>
+          IDs for namespace changes<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchnamespacesindex">matchNamespaces</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of namespaces and IDs<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchpidsindex">matchPIDs</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of process ID filters. MatchPIDs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchparentbinariesindex">matchParentBinaries</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of process parent exec name filters.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchreturnactionsindex">matchReturnActions</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of actions to execute when MatchReturnArgs selector matches<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicyspecfentriesindexselectorsindexmatchreturnargsindex">matchReturnArgs</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of argument filters. MatchArgs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index].selectors[index].matchActions[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>action</b></td>
+        <td>enum</td>
+        <td>
+          Action to execute.
+NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
+be removed in version 1.5.<br/>
+          <br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>argError</b></td>
+        <td>integer</td>
+        <td>
+          error value for override action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argFd</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the fd for fdInstall action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argFqdn</b></td>
+        <td>string</td>
+        <td>
+          A FQDN to lookup for the dnsLookup action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argIndex</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argName</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the filename for fdInstall action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argRegs</b></td>
+        <td>[]string</td>
+        <td>
+          An arg value for the regs action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argSig</b></td>
+        <td>integer</td>
+        <td>
+          A signal number for signal action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argSock</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the sock for trackSock and untrackSock actions<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argUrl</b></td>
+        <td>string</td>
+        <td>
+          A URL for the getUrl action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argValue</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>imaHash</b></td>
+        <td>boolean</td>
+        <td>
+          Enable collection of file hashes from integrity subsystem.
+Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>kernelStackTrace</b></td>
+        <td>boolean</td>
+        <td>
+          Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>rateLimit</b></td>
+        <td>string</td>
+        <td>
+          A time period within which repeated messages will not be posted. Can be
+specified in seconds (default or with 's' suffix), minutes ('m' suffix)
+or hours ('h' suffix). Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>rateLimitScope</b></td>
+        <td>string</td>
+        <td>
+          The scope of the provided rate limit argument. Can be "thread" (default),
+"process" (all threads for the same process), or "global". If "thread" is
+selected then rate limiting applies per thread; if "process" is selected
+then rate limiting applies per process; if "global" is selected then rate
+limiting applies regardless of which process or thread caused the action.
+Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>userStackTrace</b></td>
+        <td>boolean</td>
+        <td>
+          Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index].selectors[index].matchArgs[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>args</b></td>
+        <td>[]integer</td>
+        <td>
+          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Value to compare the argument against.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index].selectors[index].matchBinaries[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Value to compare the argument against.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>followChildren</b></td>
+        <td>boolean</td>
+        <td>
+          In addition to binaries, match children processes of specified binaries.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index].selectors[index].matchCapabilities[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Namespace selector operator.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Capabilities to match.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>isNamespaceCapability</b></td>
+        <td>boolean</td>
+        <td>
+          Indicates whether these caps are namespace caps.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>enum</td>
+        <td>
+          Type of capabilities<br/>
+          <br/>
+            <i>Enum</i>: Effective, Inheritable, Permitted<br/>
+            <i>Default</i>: Effective<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index].selectors[index].matchCapabilityChanges[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Namespace selector operator.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Capabilities to match.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>isNamespaceCapability</b></td>
+        <td>boolean</td>
+        <td>
+          Indicates whether these caps are namespace caps.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>enum</td>
+        <td>
+          Type of capabilities<br/>
+          <br/>
+            <i>Enum</i>: Effective, Inheritable, Permitted<br/>
+            <i>Default</i>: Effective<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index].selectors[index].matchData[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>args</b></td>
+        <td>[]integer</td>
+        <td>
+          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Value to compare the argument against.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index].selectors[index].matchNamespaceChanges[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Namespace selector operator.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Namespace types (e.g., Mnt, Pid) to match.<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index].selectors[index].matchNamespaces[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>namespace</b></td>
+        <td>enum</td>
+        <td>
+          Namespace selector name.<br/>
+          <br/>
+            <i>Enum</i>: Uts, Ipc, Mnt, Pid, PidForChildren, Net, Time, TimeForChildren, Cgroup, User<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Namespace selector operator.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Namespace IDs (or host_ns for host namespace) of namespaces to match.<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index].selectors[index].matchPIDs[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          PID selector operator.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]integer</td>
+        <td>
+          Process IDs to match.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>followForks</b></td>
+        <td>boolean</td>
+        <td>
+          Matches any descendant processes of the matching PIDs.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>isNamespacePID</b></td>
+        <td>boolean</td>
+        <td>
+          Indicates whether PIDs are namespace PIDs.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index].selectors[index].matchParentBinaries[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Value to compare the argument against.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>followChildren</b></td>
+        <td>boolean</td>
+        <td>
+          In addition to binaries, match children processes of specified binaries.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index].selectors[index].matchReturnActions[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>action</b></td>
+        <td>enum</td>
+        <td>
+          Action to execute.
+NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
+be removed in version 1.5.<br/>
+          <br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>argError</b></td>
+        <td>integer</td>
+        <td>
+          error value for override action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argFd</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the fd for fdInstall action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argFqdn</b></td>
+        <td>string</td>
+        <td>
+          A FQDN to lookup for the dnsLookup action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argIndex</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argName</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the filename for fdInstall action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argRegs</b></td>
+        <td>[]string</td>
+        <td>
+          An arg value for the regs action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argSig</b></td>
+        <td>integer</td>
+        <td>
+          A signal number for signal action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argSock</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the sock for trackSock and untrackSock actions<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argUrl</b></td>
+        <td>string</td>
+        <td>
+          A URL for the getUrl action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argValue</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>imaHash</b></td>
+        <td>boolean</td>
+        <td>
+          Enable collection of file hashes from integrity subsystem.
+Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>kernelStackTrace</b></td>
+        <td>boolean</td>
+        <td>
+          Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>rateLimit</b></td>
+        <td>string</td>
+        <td>
+          A time period within which repeated messages will not be posted. Can be
+specified in seconds (default or with 's' suffix), minutes ('m' suffix)
+or hours ('h' suffix). Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>rateLimitScope</b></td>
+        <td>string</td>
+        <td>
+          The scope of the provided rate limit argument. Can be "thread" (default),
+"process" (all threads for the same process), or "global". If "thread" is
+selected then rate limiting applies per thread; if "process" is selected
+then rate limiting applies per process; if "global" is selected then rate
+limiting applies regardless of which process or thread caused the action.
+Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>userStackTrace</b></td>
+        <td>boolean</td>
+        <td>
+          Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicy.spec.fentries[index].selectors[index].matchReturnArgs[index]
+<sup><sup>[↩ Parent](#tracingpolicyspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>args</b></td>
+        <td>[]integer</td>
+        <td>
+          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Value to compare the argument against.<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -7420,6 +8787,13 @@ Currently, only the "name" field is supported.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindex">fentries</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of fentry specs.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#tracingpolicynamespacedspeckprobesindex">kprobes</a></b></td>
         <td>[]object</td>
         <td>
@@ -7601,6 +8975,1366 @@ merge patch.<br/>
           Calls where enforcer is executed in<br/>
         </td>
         <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspec)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>call</b></td>
+        <td>string</td>
+        <td>
+          Name of the function to apply the kprobe spec to.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexargsindex">args</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of function arguments to include in the trace output.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexdataindex">data</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of data to include in the trace output.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexignore">ignore</a></b></td>
+        <td>object</td>
+        <td>
+          Conditions for ignoring this kprobe<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>message</b></td>
+        <td>string</td>
+        <td>
+          A short message of 256 characters max that will be included
+in the event output to inform users what is going on.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>return</b></td>
+        <td>boolean</td>
+        <td>
+          Indicates whether to collect return value of the traced function.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexreturnarg">returnArg</a></b></td>
+        <td>object</td>
+        <td>
+          A return argument to include in the trace output.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>returnArgAction</b></td>
+        <td>string</td>
+        <td>
+          An action to perform on the return argument.
+Available actions are: Post;TrackSock;UntrackSock<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindex">selectors</a></b></td>
+        <td>[]object</td>
+        <td>
+          Selectors to apply before producing trace output. Selectors are ORed and short-circuited.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>syscall</b></td>
+        <td>boolean</td>
+        <td>
+          Indicates whether the traced function is a syscall.<br/>
+          <br/>
+            <i>Default</i>: true<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>tags</b></td>
+        <td>[]string</td>
+        <td>
+          Tags to categorize the event, will be include in the event output.
+Maximum of 16 Tags are supported.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index].args[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the argument.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>enum</td>
+        <td>
+          Argument type.<br/>
+          <br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Default</i>: auto<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>btfType</b></td>
+        <td>string</td>
+        <td>
+          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
+the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
+type.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>label</b></td>
+        <td>string</td>
+        <td>
+          Label to output in the JSON<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>maxData</b></td>
+        <td>boolean</td>
+        <td>
+          Read maximum possible data (currently 327360). This field is only used
+for char_buff data. When this value is false (default), the bpf program
+will fetch at most 4096 bytes. In later kernels (>=5.4) tetragon
+supports fetching up to 327360 bytes if this flag is turned on<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>resolve</b></td>
+        <td>string</td>
+        <td>
+          Resolve the path to a specific attribute<br/>
+          <br/>
+            <i>Default</i>: <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>returnCopy</b></td>
+        <td>boolean</td>
+        <td>
+          This field is used only for char_buf and char_iovec types. It indicates
+that this argument should be read later (when the kretprobe for the
+symbol is triggered) because it might not be populated when the kprobe
+is triggered at the entrance of the function. For example, a buffer
+supplied to read(2) won't have content until kretprobe is triggered.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sizeArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>source</b></td>
+        <td>string</td>
+        <td>
+          Source of the data, if missing the default if function arguments<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index].data[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the argument.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>enum</td>
+        <td>
+          Argument type.<br/>
+          <br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Default</i>: auto<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>btfType</b></td>
+        <td>string</td>
+        <td>
+          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
+the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
+type.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>label</b></td>
+        <td>string</td>
+        <td>
+          Label to output in the JSON<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>maxData</b></td>
+        <td>boolean</td>
+        <td>
+          Read maximum possible data (currently 327360). This field is only used
+for char_buff data. When this value is false (default), the bpf program
+will fetch at most 4096 bytes. In later kernels (>=5.4) tetragon
+supports fetching up to 327360 bytes if this flag is turned on<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>resolve</b></td>
+        <td>string</td>
+        <td>
+          Resolve the path to a specific attribute<br/>
+          <br/>
+            <i>Default</i>: <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>returnCopy</b></td>
+        <td>boolean</td>
+        <td>
+          This field is used only for char_buf and char_iovec types. It indicates
+that this argument should be read later (when the kretprobe for the
+symbol is triggered) because it might not be populated when the kprobe
+is triggered at the entrance of the function. For example, a buffer
+supplied to read(2) won't have content until kretprobe is triggered.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sizeArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>source</b></td>
+        <td>string</td>
+        <td>
+          Source of the data, if missing the default if function arguments<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index].ignore
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindex)</sup></sup>
+
+
+Conditions for ignoring this kprobe
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>callNotFound</b></td>
+        <td>boolean</td>
+        <td>
+          Ignores calls that are not present in the system<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index].returnArg
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindex)</sup></sup>
+
+
+A return argument to include in the trace output.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the argument.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>enum</td>
+        <td>
+          Argument type.<br/>
+          <br/>
+            <i>Enum</i>: auto, int, sint8, int8, uint8, sint16, int16, uint16, uint32, sint32, int32, ulong, uint64, size_t, long, sint64, int64, char_buf, char_iovec, skb, sock, sockaddr, socket, string, fd, file, filename, path, nop, bpf_attr, perf_event, bpf_map, user_namespace, capability, kiocb, iov_iter, cred, const_buf, load_info, module, syscall64, kernel_cap_t, cap_inheritable, cap_permitted, cap_effective, linux_binprm, data_loc, net_device, bpf_cmd, dentry, bpf_prog<br/>
+            <i>Default</i>: auto<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>btfType</b></td>
+        <td>string</td>
+        <td>
+          Type of original argument. This is currently only used in UsdtSpecs and UprobeSpecs for arguments with
+the Resolve attribute set. It relies on the BTF file defined by BTFPath to extract the
+type.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>label</b></td>
+        <td>string</td>
+        <td>
+          Label to output in the JSON<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>maxData</b></td>
+        <td>boolean</td>
+        <td>
+          Read maximum possible data (currently 327360). This field is only used
+for char_buff data. When this value is false (default), the bpf program
+will fetch at most 4096 bytes. In later kernels (>=5.4) tetragon
+supports fetching up to 327360 bytes if this flag is turned on<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>resolve</b></td>
+        <td>string</td>
+        <td>
+          Resolve the path to a specific attribute<br/>
+          <br/>
+            <i>Default</i>: <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>returnCopy</b></td>
+        <td>boolean</td>
+        <td>
+          This field is used only for char_buf and char_iovec types. It indicates
+that this argument should be read later (when the kretprobe for the
+symbol is triggered) because it might not be populated when the kprobe
+is triggered at the entrance of the function. For example, a buffer
+supplied to read(2) won't have content until kretprobe is triggered.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>sizeArgIndex</b></td>
+        <td>integer</td>
+        <td>
+          Specifies the position of the corresponding size argument for this argument.
+This field is used only for char_buf and char_iovec types.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>source</b></td>
+        <td>string</td>
+        <td>
+          Source of the data, if missing the default if function arguments<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index].selectors[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindex)</sup></sup>
+
+
+KProbeSelector selects function calls for kprobe based on PIDs and function arguments. The
+results of MatchPIDs and MatchArgs are ANDed.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>macros</b></td>
+        <td>[]string</td>
+        <td>
+          A list of macros names, defined in spec.selectorsMacros.
+Filters specified in macros will be appended to corresponding filters of the selector.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchactionsindex">matchActions</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of actions to execute when this selector matches<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchargsindex">matchArgs</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of argument filters. MatchArgs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchbinariesindex">matchBinaries</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of binary exec name filters.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchcapabilitiesindex">matchCapabilities</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of capabilities and IDs<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchcapabilitychangesindex">matchCapabilityChanges</a></b></td>
+        <td>[]object</td>
+        <td>
+          IDs for capabilities changes<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchdataindex">matchData</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of argument filters. MatchData are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchnamespacechangesindex">matchNamespaceChanges</a></b></td>
+        <td>[]object</td>
+        <td>
+          IDs for namespace changes<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchnamespacesindex">matchNamespaces</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of namespaces and IDs<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchpidsindex">matchPIDs</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of process ID filters. MatchPIDs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchparentbinariesindex">matchParentBinaries</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of process parent exec name filters.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchreturnactionsindex">matchReturnActions</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of actions to execute when MatchReturnArgs selector matches<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#tracingpolicynamespacedspecfentriesindexselectorsindexmatchreturnargsindex">matchReturnArgs</a></b></td>
+        <td>[]object</td>
+        <td>
+          A list of argument filters. MatchArgs are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index].selectors[index].matchActions[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>action</b></td>
+        <td>enum</td>
+        <td>
+          Action to execute.
+NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
+be removed in version 1.5.<br/>
+          <br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>argError</b></td>
+        <td>integer</td>
+        <td>
+          error value for override action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argFd</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the fd for fdInstall action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argFqdn</b></td>
+        <td>string</td>
+        <td>
+          A FQDN to lookup for the dnsLookup action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argIndex</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argName</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the filename for fdInstall action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argRegs</b></td>
+        <td>[]string</td>
+        <td>
+          An arg value for the regs action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argSig</b></td>
+        <td>integer</td>
+        <td>
+          A signal number for signal action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argSock</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the sock for trackSock and untrackSock actions<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argUrl</b></td>
+        <td>string</td>
+        <td>
+          A URL for the getUrl action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argValue</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>imaHash</b></td>
+        <td>boolean</td>
+        <td>
+          Enable collection of file hashes from integrity subsystem.
+Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>kernelStackTrace</b></td>
+        <td>boolean</td>
+        <td>
+          Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>rateLimit</b></td>
+        <td>string</td>
+        <td>
+          A time period within which repeated messages will not be posted. Can be
+specified in seconds (default or with 's' suffix), minutes ('m' suffix)
+or hours ('h' suffix). Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>rateLimitScope</b></td>
+        <td>string</td>
+        <td>
+          The scope of the provided rate limit argument. Can be "thread" (default),
+"process" (all threads for the same process), or "global". If "thread" is
+selected then rate limiting applies per thread; if "process" is selected
+then rate limiting applies per process; if "global" is selected then rate
+limiting applies regardless of which process or thread caused the action.
+Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>userStackTrace</b></td>
+        <td>boolean</td>
+        <td>
+          Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index].selectors[index].matchArgs[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>args</b></td>
+        <td>[]integer</td>
+        <td>
+          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Value to compare the argument against.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index].selectors[index].matchBinaries[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Value to compare the argument against.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>followChildren</b></td>
+        <td>boolean</td>
+        <td>
+          In addition to binaries, match children processes of specified binaries.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index].selectors[index].matchCapabilities[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Namespace selector operator.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Capabilities to match.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>isNamespaceCapability</b></td>
+        <td>boolean</td>
+        <td>
+          Indicates whether these caps are namespace caps.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>enum</td>
+        <td>
+          Type of capabilities<br/>
+          <br/>
+            <i>Enum</i>: Effective, Inheritable, Permitted<br/>
+            <i>Default</i>: Effective<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index].selectors[index].matchCapabilityChanges[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Namespace selector operator.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Capabilities to match.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>isNamespaceCapability</b></td>
+        <td>boolean</td>
+        <td>
+          Indicates whether these caps are namespace caps.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>enum</td>
+        <td>
+          Type of capabilities<br/>
+          <br/>
+            <i>Enum</i>: Effective, Inheritable, Permitted<br/>
+            <i>Default</i>: Effective<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index].selectors[index].matchData[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>args</b></td>
+        <td>[]integer</td>
+        <td>
+          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Value to compare the argument against.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index].selectors[index].matchNamespaceChanges[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Namespace selector operator.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Namespace types (e.g., Mnt, Pid) to match.<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index].selectors[index].matchNamespaces[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>namespace</b></td>
+        <td>enum</td>
+        <td>
+          Namespace selector name.<br/>
+          <br/>
+            <i>Enum</i>: Uts, Ipc, Mnt, Pid, PidForChildren, Net, Time, TimeForChildren, Cgroup, User<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Namespace selector operator.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Namespace IDs (or host_ns for host namespace) of namespaces to match.<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index].selectors[index].matchPIDs[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          PID selector operator.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]integer</td>
+        <td>
+          Process IDs to match.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>followForks</b></td>
+        <td>boolean</td>
+        <td>
+          Matches any descendant processes of the matching PIDs.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>isNamespacePID</b></td>
+        <td>boolean</td>
+        <td>
+          Indicates whether PIDs are namespace PIDs.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index].selectors[index].matchParentBinaries[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: In, NotIn, Prefix, NotPrefix, Postfix, NotPostfix<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Value to compare the argument against.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>followChildren</b></td>
+        <td>boolean</td>
+        <td>
+          In addition to binaries, match children processes of specified binaries.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index].selectors[index].matchReturnActions[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>action</b></td>
+        <td>enum</td>
+        <td>
+          Action to execute.
+NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
+be removed in version 1.5.<br/>
+          <br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>argError</b></td>
+        <td>integer</td>
+        <td>
+          error value for override action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argFd</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the fd for fdInstall action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argFqdn</b></td>
+        <td>string</td>
+        <td>
+          A FQDN to lookup for the dnsLookup action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argIndex</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argName</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the filename for fdInstall action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argRegs</b></td>
+        <td>[]string</td>
+        <td>
+          An arg value for the regs action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argSig</b></td>
+        <td>integer</td>
+        <td>
+          A signal number for signal action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argSock</b></td>
+        <td>integer</td>
+        <td>
+          An arg index for the sock for trackSock and untrackSock actions<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argUrl</b></td>
+        <td>string</td>
+        <td>
+          A URL for the getUrl action<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>argValue</b></td>
+        <td>integer</td>
+        <td>
+          An arg value for the set action<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>imaHash</b></td>
+        <td>boolean</td>
+        <td>
+          Enable collection of file hashes from integrity subsystem.
+Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>kernelStackTrace</b></td>
+        <td>boolean</td>
+        <td>
+          Enable kernel stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>rateLimit</b></td>
+        <td>string</td>
+        <td>
+          A time period within which repeated messages will not be posted. Can be
+specified in seconds (default or with 's' suffix), minutes ('m' suffix)
+or hours ('h' suffix). Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>rateLimitScope</b></td>
+        <td>string</td>
+        <td>
+          The scope of the provided rate limit argument. Can be "thread" (default),
+"process" (all threads for the same process), or "global". If "thread" is
+selected then rate limiting applies per thread; if "process" is selected
+then rate limiting applies per process; if "global" is selected then rate
+limiting applies regardless of which process or thread caused the action.
+Only valid with the post action and with a rateLimit specified.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>userStackTrace</b></td>
+        <td>boolean</td>
+        <td>
+          Enable user stack trace export. Only valid with the post action.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### TracingPolicyNamespaced.spec.fentries[index].selectors[index].matchReturnArgs[index]
+<sup><sup>[↩ Parent](#tracingpolicynamespacedspecfentriesindexselectorsindex)</sup></sup>
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>operator</b></td>
+        <td>enum</td>
+        <td>
+          Filter operation.<br/>
+          <br/>
+            <i>Enum</i>: Equal, NotEqual, Prefix, NotPrefix, Postfix, NotPostfix, GreaterThan, LessThan, GT, LT, Mask, SPort, NotSPort, SPortPriv, NotSportPriv, DPort, NotDPort, DPortPriv, NotDPortPriv, SAddr, NotSAddr, DAddr, NotDAddr, Protocol, Family, State, InMap, NotInMap, CapabilitiesGained, InRange, NotInRange, SubString, SubStringIgnCase, CelExpr, FileType, NotFileType<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>args</b></td>
+        <td>[]integer</td>
+        <td>
+          Position of the operator arguments (in spec file) to apply fhe filter to.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>index</b></td>
+        <td>integer</td>
+        <td>
+          Position of the argument (in function prototype) to apply fhe filter to.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          Value to compare the argument against.<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
