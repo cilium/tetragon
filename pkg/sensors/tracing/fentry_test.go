@@ -272,3 +272,8 @@ func TestFentrytMatchArgsFileMonitoringPrefix(t *testing.T) {
 	checkFentry(t)
 	testKprobeMatchArgsFileMonitoringPrefix(t, true)
 }
+
+func TestFentryMatchArgsNonPrefix(t *testing.T) {
+	checkFentry(t)
+	testKprobeMatchArgsNonPrefix(t, true)
+}
