@@ -211,14 +211,14 @@ func getTestKprobeObjectWRChecker(t *testing.T) ec.MultiEventChecker {
 	return ec.NewUnorderedEventChecker(kpChecker)
 }
 
-func runKprobeObjectWriteRead(t *testing.T, writeReadHook string) {
+func runKprobeObjectWriteRead(t *testing.T, writeReadHook string, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	createCrdFile(t, writeReadHook)
+	createCrdFileFlag(t, writeReadHook, fentry)
 
 	checker := getTestKprobeObjectWRChecker(t)
 
@@ -235,7 +235,7 @@ func runKprobeObjectWriteRead(t *testing.T, writeReadHook string) {
 	require.NoError(t, err)
 }
 
-func TestKprobeObjectWriteReadHostNs(t *testing.T) {
+func testKprobeObjectWriteReadHostNs(t *testing.T, fentry bool) {
 	// if we run inside a container it will not match the host namespace
 	nsOp := "NotIn"
 	if _, err := os.Stat("/.dockerenv"); errors.Is(err, os.ErrNotExist) {
@@ -283,10 +283,14 @@ spec:
         values:
         - "1"
 `
-	runKprobeObjectWriteRead(t, writeReadHook)
+	runKprobeObjectWriteRead(t, writeReadHook, fentry)
 }
 
-func TestKprobeObjectWriteRead(t *testing.T) {
+func TestKprobeObjectWriteReadHostNs(t *testing.T) {
+	testKprobeObjectWriteReadHostNs(t, false)
+}
+
+func testKprobeObjectWriteRead(t *testing.T, fentry bool) {
 	myPid := observertesthelper.GetMyPid()
 	pidStr := strconv.Itoa(int(myPid))
 	mntns, err := namespace.GetPidNsInode(myPid, "mnt")
@@ -335,10 +339,14 @@ spec:
         values:
         - "1"
 `
-	runKprobeObjectWriteRead(t, writeReadHook)
+	runKprobeObjectWriteRead(t, writeReadHook, fentry)
 }
 
-func TestKprobeObjectWriteCapsNotIn(t *testing.T) {
+func TestKprobeObjectWriteRead(t *testing.T) {
+	testKprobeObjectWriteRead(t, false)
+}
+
+func testKprobeObjectWriteCapsNotIn(t *testing.T, fentry bool) {
 	writeReadHook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -369,10 +377,14 @@ spec:
         values:
         - "1"
 `
-	runKprobeObjectWriteRead(t, writeReadHook)
+	runKprobeObjectWriteRead(t, writeReadHook, fentry)
 }
 
-func TestKprobeObjectWriteReadNsOnly(t *testing.T) {
+func TestKprobeObjectWriteCapsNotIn(t *testing.T) {
+	testKprobeObjectWriteCapsNotIn(t, false)
+}
+
+func testKprobeObjectWriteReadNsOnly(t *testing.T, fentry bool) {
 	myPid := observertesthelper.GetMyPid()
 	mntns, err := namespace.GetPidNsInode(myPid, "mnt")
 	require.NoError(t, err)
@@ -414,10 +426,14 @@ spec:
         values:
         - "1"
 `
-	runKprobeObjectWriteRead(t, writeReadHook)
+	runKprobeObjectWriteRead(t, writeReadHook, fentry)
 }
 
-func TestKprobeObjectWriteReadPidOnly(t *testing.T) {
+func TestKprobeObjectWriteReadNsOnly(t *testing.T) {
+	testKprobeObjectWriteReadNsOnly(t, false)
+}
+
+func testKprobeObjectWriteReadPidOnly(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	writeReadHook := `
 apiVersion: cilium.io/v1alpha1
@@ -450,7 +466,11 @@ spec:
         values:
         - "1"
 `
-	runKprobeObjectWriteRead(t, writeReadHook)
+	runKprobeObjectWriteRead(t, writeReadHook, fentry)
+}
+
+func TestKprobeObjectWriteReadPidOnly(t *testing.T) {
+	testKprobeObjectWriteReadPidOnly(t, false)
 }
 
 func createTestFile(t *testing.T) (int, int, string) {
