@@ -255,3 +255,8 @@ func TestFentryMatchArgsFilePrefix(t *testing.T) {
 	checkFentry(t)
 	testKprobeMatchArgsFilePrefix(t, true)
 }
+
+func TestFentryMatchArgsFdEqual(t *testing.T) {
+	checkFentry(t)
+	testKprobeMatchArgsFdEqual(t, true)
+}
