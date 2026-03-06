@@ -4051,14 +4051,14 @@ func createParentsChecker(parent, binary string) *ec.ProcessKprobeChecker {
 	return kpChecker
 }
 
-func matchParentBinariesTest(t *testing.T, operator string, values []string, kpChecker *ec.ProcessKprobeChecker, newProcess bool) {
+func matchParentBinariesTest(t *testing.T, operator string, values []string, kpChecker *ec.ProcessKprobeChecker, newProcess, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	createCrdFile(t, getMatchParentBinariesCrd(operator, values))
+	createCrdFileFlag(t, getMatchParentBinariesCrd(operator, values), fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -4092,7 +4092,7 @@ func matchParentBinariesTest(t *testing.T, operator string, values []string, kpC
 
 const skipMatchParentBinaries = "kernels without large progs do not support matchParentBinaries selector"
 
-func TestKprobeMatchParentBinaries(t *testing.T) {
+func testKprobeMatchParentBinaries(t *testing.T, fentry bool) {
 	if !config.EnableLargeProgs() {
 		t.Skip(skipMatchParentBinaries)
 	}
@@ -4193,9 +4193,13 @@ func TestKprobeMatchParentBinaries(t *testing.T) {
 	option.Config.ParentsMapEnabled = true
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			matchParentBinariesTest(t, test.operator, test.values, createParentsChecker(test.expectedParent, test.binary), test.parentCreatesNewProcess)
+			matchParentBinariesTest(t, test.operator, test.values, createParentsChecker(test.expectedParent, test.binary), test.parentCreatesNewProcess, fentry)
 		})
 	}
+}
+
+func TestKprobeMatchParentBinaries(t *testing.T) {
+	testKprobeMatchParentBinaries(t, false)
 }
 
 func getMatchBinariesCrd(opStr string, vals []string) string {
