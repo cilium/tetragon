@@ -200,3 +200,23 @@ func TestFentryObjectFileWriteMountFiltered(t *testing.T) {
 	checkFentry(t)
 	testKprobeObjectFileWriteMountFiltered(t, true)
 }
+
+func TestFentryMultipleMountsFiltered(t *testing.T) {
+	checkFentry(t)
+	testMultipleMountsFiltered(t, true)
+}
+
+func TestFentryMultiplePathComponents(t *testing.T) {
+	checkFentry(t)
+	testMultiplePathComponents(t, true)
+}
+
+func TestFentryMultipleMountPath(t *testing.T) {
+	checkFentry(t)
+	testMultipleMountPath(t, true)
+}
+
+func TestFentryMultipleMountPathFiltered(t *testing.T) {
+	checkFentry(t)
+	testMultipleMountPathFiltered(t, true)
+}
