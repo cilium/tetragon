@@ -237,3 +237,8 @@ func TestFentry_char_iovec_returnCopy(t *testing.T) {
 	checkFentry(t)
 	testKprobe_char_iovec_returnCopy(t, true)
 }
+
+func TestFentryMatchArgsFileEqual(t *testing.T) {
+	checkFentry(t)
+	testKprobeMatchArgsFileEqual(t, true)
+}
