@@ -29,3 +29,28 @@ func TestFentryLseek(t *testing.T) {
 		"Hook": "fentries",
 	})
 }
+
+func TestFentryObjectWriteReadHostNs(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectWriteReadHostNs(t, true)
+}
+
+func TestFentryObjectWriteRead(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectWriteRead(t, true)
+}
+
+func TestFentryObjectWriteCapsNotIn(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectWriteCapsNotIn(t, true)
+}
+
+func TestFentryObjectWriteReadNsOnly(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectWriteReadNsOnly(t, true)
+}
+
+func TestFentryObjectWriteReadPidOnly(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectWriteReadPidOnly(t, true)
+}
