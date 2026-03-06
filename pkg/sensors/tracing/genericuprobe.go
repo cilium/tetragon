@@ -17,6 +17,7 @@ import (
 	"github.com/cilium/ebpf"
 	lru "github.com/hashicorp/golang-lru/v2"
 
+	"github.com/cilium/tetragon/pkg/celbpf"
 	"github.com/cilium/tetragon/pkg/cgtracker"
 
 	"github.com/cilium/tetragon/pkg/asm"
@@ -191,6 +192,14 @@ func handleGenericUprobe(r *bytes.Reader) ([]observer.Event, error) {
 func loadSingleUprobeSensor(uprobeEntry *genericUprobe, args sensors.LoadProbeArgs) error {
 	load := args.Load
 
+	rewriteProg := make(map[string]func(prog *ebpf.ProgramSpec) error)
+	if entry := uprobeEntry.loadArgs.selectors.entry; entry != nil {
+		if celbpf.EnabledInBPF() {
+			rewriteProg["generic_uprobe_filter_arg"] = entry.CelExprFunctions().RewriteProg
+		}
+	}
+	load.RewriteProg = rewriteProg
+
 	// config_map data
 	var configData bytes.Buffer
 	binary.Write(&configData, binary.LittleEndian, uprobeEntry.loadArgs.config)
@@ -298,6 +307,16 @@ func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) er
 			return errors.New("failed to match id")
 		}
 
+		rewriteProg := make(map[string]func(prog *ebpf.ProgramSpec) error)
+
+		if entry := uprobeEntry.loadArgs.selectors.entry; entry != nil {
+			if celbpf.EnabledInBPF() {
+				rewriteProg["generic_uprobe_filter_arg"] = entry.CelExprFunctions().RewriteProg
+			}
+		}
+
+		load.RewriteProg = rewriteProg
+
 		// config_map data
 		var configData bytes.Buffer
 		binary.Write(&configData, binary.LittleEndian, uprobeEntry.loadArgs.config)
@@ -385,6 +404,7 @@ type addUprobeIn struct {
 	sensorPath string
 	policyName string
 	useMulti   bool
+	celExprs   *selectors.CelExprFunctions
 }
 
 type uprobeHas struct {
@@ -403,15 +423,24 @@ func createGenericUprobeSensor(
 	var ids []idtable.EntryID
 	var err error
 	var has uprobeHas
+	var celExprs *selectors.CelExprFunctions
+
+	// use multi uprobe only if:
+	// - it's not disabled by spec option
+	// - there's support detected
+	useMulti := !polInfo.specOpts.DisableUprobeMulti && bpf.HasUprobeMulti()
+
+	if useMulti {
+		// if we are using multi-uprobe, CEL expressions are shared across all uprobes
+		celExprs = &selectors.CelExprFunctions{}
+	}
 
 	in := addUprobeIn{
 		sensorPath: name,
 		policyName: polInfo.name,
 
-		// use multi uprobe only if:
-		// - it's not disabled by spec option
-		// - there's support detected
-		useMulti: !polInfo.specOpts.DisableUprobeMulti && bpf.HasUprobeMulti(),
+		useMulti: useMulti,
+		celExprs: celExprs,
 	}
 
 	for _, uprobe := range spec.UProbes {
@@ -529,6 +558,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		Args:      spec.Args,
 		Data:      spec.Data,
 		IsUprobe:  true,
+		CelExprs:  in.celExprs,
 	})
 	if err != nil {
 		return nil, err
