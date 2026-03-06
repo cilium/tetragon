@@ -4373,7 +4373,7 @@ func TestKprobeMatchBinariesLargePath(t *testing.T) {
 
 // matchBinariesPerfringTest checks that the matchBinaries do correctly
 // filter the events i.e. it checks that no other events appear.
-func matchBinariesPerfringTest(t *testing.T, operator string, values []string) {
+func matchBinariesPerfringTest(t *testing.T, operator string, values []string, fentry bool) {
 	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
@@ -4408,6 +4408,11 @@ func matchBinariesPerfringTest(t *testing.T, operator string, values []string) {
 				},
 			},
 		},
+	}
+
+	if fentry {
+		matchBinariesTracingPolicy.Spec.Fentries = matchBinariesTracingPolicy.Spec.KProbes
+		matchBinariesTracingPolicy.Spec.KProbes = []v1alpha1.KProbeSpec{}
 	}
 
 	err := sm.Manager.AddTracingPolicy(ctx, &matchBinariesTracingPolicy)
@@ -4454,22 +4459,26 @@ func matchBinariesPerfringTest(t *testing.T, operator string, values []string) {
 	}
 }
 
-func TestKprobeMatchBinariesPerfring(t *testing.T) {
+func testKprobeMatchBinariesPerfring(t *testing.T, fentry bool) {
 	t.Run("In", func(t *testing.T) {
-		matchBinariesPerfringTest(t, "In", []string{"/usr/bin/tail"})
+		matchBinariesPerfringTest(t, "In", []string{"/usr/bin/tail"}, fentry)
 	})
 	t.Run("Prefix", func(t *testing.T) {
 		if !config.EnableLargeProgs() {
 			t.Skip(skipMatchBinaries)
 		}
-		matchBinariesPerfringTest(t, "Prefix", []string{"/usr/bin/t"})
+		matchBinariesPerfringTest(t, "Prefix", []string{"/usr/bin/t"}, fentry)
 	})
 	t.Run("Postfix", func(t *testing.T) {
 		if !config.EnableLargeProgs() {
 			t.Skip(skipMatchBinaries)
 		}
-		matchBinariesPerfringTest(t, "Postfix", []string{"tail"})
+		matchBinariesPerfringTest(t, "Postfix", []string{"tail"}, fentry)
 	})
+}
+
+func TestKprobeMatchBinariesPerfring(t *testing.T) {
+	testKprobeMatchBinariesPerfring(t, false)
 }
 
 // TestKprobeMatchBinariesEarlyExec checks that the matchBinaries can filter
