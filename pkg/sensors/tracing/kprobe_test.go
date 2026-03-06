@@ -750,7 +750,8 @@ func testKprobeObjectFiltered(t *testing.T,
 	mntPath string,
 	expectFailure bool,
 	mode int,
-	perm uint32) {
+	perm uint32,
+	fentry bool) {
 
 	if useMount == true {
 		if err := syscall.Mount("tmpfs", mntPath, "tmpfs", 0, ""); err != nil {
@@ -780,7 +781,7 @@ func testKprobeObjectFiltered(t *testing.T,
 	}
 	syscall.Close(fd)
 
-	createCrdFile(t, readHook)
+	createCrdFileFlag(t, readHook, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -848,28 +849,28 @@ func TestKprobeObjectOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectOpenHook(pidStr, dir, false)
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770, false)
 }
 
 func TestKprobeObjectOpenWithNull(t *testing.T) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectOpenHook(pidStr, dir, true)
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770, false)
 }
 
 func TestKprobeObjectOpenMount(t *testing.T) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectOpenHook(pidStr, dir, false)
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770, false)
 }
 
 func TestKprobeObjectOpenMountWithNull(t *testing.T) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectOpenHook(pidStr, dir, true)
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770, false)
 }
 
 func testKprobeStringMatch(t *testing.T,
@@ -1185,21 +1186,29 @@ func testKprobeObjectMultiValueOpenHook(pidStr string, path string) string {
   `
 }
 
-func TestKprobeObjectMultiValueOpen(t *testing.T) {
+func testKprobeObjectMultiValueOpen(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectMultiValueOpenHook(pidStr, dir)
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770, fentry)
+}
+
+func TestKprobeObjectMultiValueOpen(t *testing.T) {
+	testKprobeObjectMultiValueOpen(t, false)
+}
+
+func testKprobeObjectMultiValueOpenMount(t *testing.T, fentry bool) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	dir := t.TempDir()
+	readHook := testKprobeObjectMultiValueOpenHook(pidStr, dir)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770, fentry)
 }
 
 func TestKprobeObjectMultiValueOpenMount(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
-	dir := t.TempDir()
-	readHook := testKprobeObjectMultiValueOpenHook(pidStr, dir)
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectMultiValueOpenMount(t, false)
 }
 
-func TestKprobeObjectFilterOpen(t *testing.T) {
+func testKprobeObjectFilterOpen(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := `
@@ -1231,10 +1240,14 @@ spec:
         values:
         - "` + dir + `/foofile"
 `
-	testKprobeObjectFiltered(t, readHook, getAnyChecker(), false, dir, true, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getAnyChecker(), false, dir, true, syscall.O_RDWR, 0x770, fentry)
 }
 
-func TestKprobeObjectMultiValueFilterOpen(t *testing.T) {
+func TestKprobeObjectFilterOpen(t *testing.T) {
+	testKprobeObjectFilterOpen(t, false)
+}
+
+func testKprobeObjectMultiValueFilterOpen(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := `
@@ -1267,7 +1280,11 @@ spec:
         - "` + dir + `/foo"
         - "` + dir + `/bar"
 `
-	testKprobeObjectFiltered(t, readHook, getAnyChecker(), false, dir, true, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getAnyChecker(), false, dir, true, syscall.O_RDWR, 0x770, fentry)
+}
+
+func TestKprobeObjectMultiValueFilterOpen(t *testing.T) {
+	testKprobeObjectMultiValueFilterOpen(t, false)
 }
 
 func testKprobeObjectFilterPrefixOpenHook(pidStr string, path string) string {
@@ -1302,14 +1319,18 @@ func testKprobeObjectFilterPrefixOpenHook(pidStr string, path string) string {
   `
 }
 
-func TestKprobeObjectFilterPrefixOpen(t *testing.T) {
+func testKprobeObjectFilterPrefixOpen(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFilterPrefixOpenHook(pidStr, dir)
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770, fentry)
 }
 
-func TestKprobeObjectFilterPrefixOpenSuperLong(t *testing.T) {
+func TestKprobeObjectFilterPrefixOpen(t *testing.T) {
+	testKprobeObjectFilterPrefixOpen(t, false)
+}
+
+func testKprobeObjectFilterPrefixOpenSuperLong(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFilterPrefixOpenHook(pidStr, dir)
@@ -1325,14 +1346,22 @@ func TestKprobeObjectFilterPrefixOpenSuperLong(t *testing.T) {
 		t.Logf("Mkdir %s failed: %s\n", longDir, err)
 		t.Skip()
 	}
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, longDir), false, longDir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, longDir), false, longDir, false, syscall.O_RDWR, 0x770, fentry)
 }
 
-func TestKprobeObjectFilterPrefixOpenMount(t *testing.T) {
+func TestKprobeObjectFilterPrefixOpenSuperLong(t *testing.T) {
+	testKprobeObjectFilterPrefixOpenSuperLong(t, false)
+}
+
+func testKprobeObjectFilterPrefixOpenMount(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFilterPrefixOpenHook(pidStr, dir)
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770, fentry)
+}
+
+func TestKprobeObjectFilterPrefixOpenMount(t *testing.T) {
+	testKprobeObjectFilterPrefixOpenMount(t, false)
 }
 
 func testKprobeObjectFilterPrefixExactOpenHook(pidStr string, path string) string {
@@ -1367,18 +1396,26 @@ func testKprobeObjectFilterPrefixExactOpenHook(pidStr string, path string) strin
   `
 }
 
-func TestKprobeObjectFilterPrefixExactOpen(t *testing.T) {
+func testKprobeObjectFilterPrefixExactOpen(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFilterPrefixExactOpenHook(pidStr, dir)
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770, fentry)
+}
+
+func TestKprobeObjectFilterPrefixExactOpen(t *testing.T) {
+	testKprobeObjectFilterPrefixExactOpen(t, false)
+}
+
+func testKprobeObjectFilterPrefixExactOpenMount(t *testing.T, fentry bool) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	dir := t.TempDir()
+	readHook := testKprobeObjectFilterPrefixExactOpenHook(pidStr, dir)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770, fentry)
 }
 
 func TestKprobeObjectFilterPrefixExactOpenMount(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
-	dir := t.TempDir()
-	readHook := testKprobeObjectFilterPrefixExactOpenHook(pidStr, dir)
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFilterPrefixExactOpenMount(t, false)
 }
 
 func testKprobeObjectFilterPrefixSubdirOpenHook(pidStr string, path string) string {
@@ -1413,21 +1450,29 @@ func testKprobeObjectFilterPrefixSubdirOpenHook(pidStr string, path string) stri
   `
 }
 
-func TestKprobeObjectFilterPrefixSubdirOpen(t *testing.T) {
+func testKprobeObjectFilterPrefixSubdirOpen(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFilterPrefixSubdirOpenHook(pidStr, dir)
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770, fentry)
+}
+
+func TestKprobeObjectFilterPrefixSubdirOpen(t *testing.T) {
+	testKprobeObjectFilterPrefixSubdirOpen(t, false)
+}
+
+func testKprobeObjectFilterPrefixSubdirOpenMount(t *testing.T, fentry bool) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	dir := t.TempDir()
+	readHook := testKprobeObjectFilterPrefixSubdirOpenHook(pidStr, dir)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770, fentry)
 }
 
 func TestKprobeObjectFilterPrefixSubdirOpenMount(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
-	dir := t.TempDir()
-	readHook := testKprobeObjectFilterPrefixSubdirOpenHook(pidStr, dir)
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFilterPrefixSubdirOpenMount(t, false)
 }
 
-func TestKprobeObjectFilterPrefixMissOpen(t *testing.T) {
+func testKprobeObjectFilterPrefixMissOpen(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := `
@@ -1459,7 +1504,11 @@ spec:
         values:
         - "/foo/"
 `
-	testKprobeObjectFiltered(t, readHook, getAnyChecker(), false, dir, true, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getAnyChecker(), false, dir, true, syscall.O_RDWR, 0x770, fentry)
+}
+
+func TestKprobeObjectFilterPrefixMissOpen(t *testing.T) {
+	testKprobeObjectFilterPrefixMissOpen(t, false)
 }
 
 // String matches should not require the '\0' null character on the end.
@@ -1472,7 +1521,7 @@ func testKprobeObjectPostfixOpenFileName(withNull bool) string {
 	return `testfile`
 }
 
-func testKprobeObjectPostfixOpen(t *testing.T, withNull bool) {
+func testKprobeObjectPostfixOpen(t *testing.T, withNull, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := `
@@ -1504,18 +1553,18 @@ spec:
         values:
         - "` + testKprobeObjectPostfixOpenFileName(withNull) + `"
 `
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770, fentry)
 }
 
 func TestKprobeObjectPostfixOpen(t *testing.T) {
-	testKprobeObjectPostfixOpen(t, false)
+	testKprobeObjectPostfixOpen(t, false, false)
 }
 
 func TestKprobeObjectPostfixOpenWithNull(t *testing.T) {
-	testKprobeObjectPostfixOpen(t, true)
+	testKprobeObjectPostfixOpen(t, true, false)
 }
 
-func TestKprobeObjectPostfixOpenSuperLong(t *testing.T) {
+func testKprobeObjectPostfixOpenSuperLong(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := `
@@ -1556,7 +1605,11 @@ spec:
 		t.Skip()
 	}
 
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, longDir), false, longDir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, longDir), false, longDir, false, syscall.O_RDWR, 0x770, fentry)
+}
+
+func TestKprobeObjectPostfixOpenSuperLong(t *testing.T) {
+	testKprobeObjectPostfixOpenSuperLong(t, false)
 }
 
 func testKprobeObjectFilterModeOpenHook(pidStr string, mode int, valueFmt string) string {
@@ -1593,7 +1646,7 @@ func testKprobeObjectFilterModeOpenHook(pidStr string, mode int, valueFmt string
   `
 }
 
-func testKprobeObjectFilterModeOpenMatch(t *testing.T, valueFmt string, modeCreate, modeCheck int) {
+func testKprobeObjectFilterModeOpenMatch(t *testing.T, valueFmt string, modeCreate, modeCheck int, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 
 	checker := func(dir string) *ec.UnorderedEventChecker {
@@ -1612,26 +1665,30 @@ func testKprobeObjectFilterModeOpenMatch(t *testing.T, valueFmt string, modeCrea
 
 	dir := t.TempDir()
 	openHook := testKprobeObjectFilterModeOpenHook(pidStr, modeCheck, valueFmt)
-	testKprobeObjectFiltered(t, openHook, checker(dir), false, dir, false, modeCreate, 0x770)
+	testKprobeObjectFiltered(t, openHook, checker(dir), false, dir, false, modeCreate, 0x770, fentry)
 }
 
 func TestKprobeObjectFilterModeOpenMatchDec(t *testing.T) {
-	testKprobeObjectFilterModeOpenMatch(t, "%d", syscall.O_RDWR|syscall.O_TRUNC|syscall.O_CLOEXEC, syscall.O_TRUNC)
+	testKprobeObjectFilterModeOpenMatch(t, "%d", syscall.O_RDWR|syscall.O_TRUNC|syscall.O_CLOEXEC, syscall.O_TRUNC, false)
 }
 
 func TestKprobeObjectFilterModeOpenMatchHex(t *testing.T) {
-	testKprobeObjectFilterModeOpenMatch(t, "0x%x", syscall.O_RDWR|syscall.O_TRUNC|syscall.O_CLOEXEC, syscall.O_RDWR)
+	testKprobeObjectFilterModeOpenMatch(t, "0x%x", syscall.O_RDWR|syscall.O_TRUNC|syscall.O_CLOEXEC, syscall.O_RDWR, false)
 }
 
 func TestKprobeObjectFilterModeOpenMatchOct(t *testing.T) {
-	testKprobeObjectFilterModeOpenMatch(t, "0%o", syscall.O_RDWR|syscall.O_TRUNC|syscall.O_CLOEXEC, syscall.O_CLOEXEC)
+	testKprobeObjectFilterModeOpenMatch(t, "0%o", syscall.O_RDWR|syscall.O_TRUNC|syscall.O_CLOEXEC, syscall.O_CLOEXEC, false)
 }
 
-func TestKprobeObjectFilterModeOpenFail(t *testing.T) {
+func testKprobeObjectFilterModeOpenFail(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	openHook := testKprobeObjectFilterModeOpenHook(pidStr, syscall.O_TRUNC, "%d")
-	testKprobeObjectFiltered(t, openHook, getAnyChecker(), false, dir, true, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, openHook, getAnyChecker(), false, dir, true, syscall.O_RDWR, 0x770, fentry)
+}
+
+func TestKprobeObjectFilterModeOpenFail(t *testing.T) {
+	testKprobeObjectFilterModeOpenFail(t, false)
 }
 
 func testKprobeObjectFilterReturnValueGTHook(pidStr, path string) string {
@@ -1931,7 +1988,7 @@ func getFilpOpenChecker(dir string) ec.MultiEventChecker {
 	return ec.NewUnorderedEventChecker(kpChecker)
 }
 
-func TestKprobeObjectFilenameOpen(t *testing.T) {
+func testKprobeObjectFilenameOpen(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := `
@@ -1956,10 +2013,14 @@ spec:
         values:
         - ` + pidStr + `
      `
-	testKprobeObjectFiltered(t, readHook, getFilpOpenChecker(dir), false, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getFilpOpenChecker(dir), false, dir, false, syscall.O_RDWR, 0x770, fentry)
 }
 
-func TestKprobeObjectReturnFilenameOpen(t *testing.T) {
+func TestKprobeObjectFilenameOpen(t *testing.T) {
+	testKprobeObjectFilenameOpen(t, false)
+}
+
+func testKprobeObjectReturnFilenameOpen(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := `
@@ -1987,7 +2048,11 @@ spec:
         values:
         - ` + pidStr + `
      `
-	testKprobeObjectFiltered(t, readHook, getFilpOpenChecker(dir), false, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getFilpOpenChecker(dir), false, dir, false, syscall.O_RDWR, 0x770, fentry)
+}
+
+func TestKprobeObjectReturnFilenameOpen(t *testing.T) {
+	testKprobeObjectReturnFilenameOpen(t, false)
 }
 
 func testKprobeObjectFileWriteHook(pidStr string) string {
@@ -2107,32 +2172,48 @@ func getWriteChecker(t *testing.T, path, flags string) ec.MultiEventChecker {
 	return ec.NewUnorderedEventChecker(kpChecker)
 }
 
-func TestKprobeObjectFileWrite(t *testing.T) {
+func testKprobeObjectFileWrite(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFileWriteHook(pidStr)
-	testKprobeObjectFiltered(t, readHook, getWriteChecker(t, filepath.Join(dir, "testfile"), ""), false, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getWriteChecker(t, filepath.Join(dir, "testfile"), ""), false, dir, false, syscall.O_RDWR, 0x770, fentry)
+}
+
+func TestKprobeObjectFileWrite(t *testing.T) {
+	testKprobeObjectFileWrite(t, false)
+}
+
+func testKprobeObjectFileWriteFiltered(t *testing.T, fentry bool) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	dir := t.TempDir()
+	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, dir)
+	testKprobeObjectFiltered(t, readHook, getWriteChecker(t, filepath.Join(dir, "testfile"), ""), false, dir, false, syscall.O_RDWR, 0x770, fentry)
 }
 
 func TestKprobeObjectFileWriteFiltered(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
-	dir := t.TempDir()
-	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, dir)
-	testKprobeObjectFiltered(t, readHook, getWriteChecker(t, filepath.Join(dir, "testfile"), ""), false, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFileWriteFiltered(t, false)
 }
 
-func TestKprobeObjectFileWriteMount(t *testing.T) {
+func testKprobeObjectFileWriteMount(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFileWriteHook(pidStr)
-	testKprobeObjectFiltered(t, readHook, getWriteChecker(t, filepath.Join(dir, "testfile"), ""), true, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getWriteChecker(t, filepath.Join(dir, "testfile"), ""), true, dir, false, syscall.O_RDWR, 0x770, fentry)
 }
 
-func TestKprobeObjectFileWriteMountFiltered(t *testing.T) {
+func TestKprobeObjectFileWriteMount(t *testing.T) {
+	testKprobeObjectFileWriteMount(t, false)
+}
+
+func testKprobeObjectFileWriteMountFiltered(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, dir)
-	testKprobeObjectFiltered(t, readHook, getWriteChecker(t, filepath.Join(dir, "testfile"), ""), true, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getWriteChecker(t, filepath.Join(dir, "testfile"), ""), true, dir, false, syscall.O_RDWR, 0x770, fentry)
+}
+
+func TestKprobeObjectFileWriteMountFiltered(t *testing.T) {
+	testKprobeObjectFileWriteMountFiltered(t, false)
 }
 
 func corePathTest(t *testing.T, filePath string, readHook string, writeChecker ec.MultiEventChecker) {
