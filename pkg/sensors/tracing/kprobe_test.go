@@ -443,14 +443,14 @@ func createTestFile(t *testing.T) (int, int, string) {
 	return fd, fd2, strconv.Itoa(fd2)
 }
 
-func runKprobeObjectRead(t *testing.T, readHook string, checker ec.MultiEventChecker, fd, fd2 int) {
+func runKprobeObjectRead(t *testing.T, readHook string, checker ec.MultiEventChecker, fd, fd2 int, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	createCrdFile(t, readHook)
+	createCrdFileFlag(t, readHook, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -476,7 +476,7 @@ func runKprobeObjectRead(t *testing.T, readHook string, checker ec.MultiEventChe
 	require.NoError(t, err)
 }
 
-func TestKprobeObjectRead(t *testing.T) {
+func testKprobeObjectRead(t *testing.T, fentry bool) {
 	fd, fd2, fdString := createTestFile(t)
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	readHook := `
@@ -519,56 +519,64 @@ spec:
 			))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	runKprobeObjectRead(t, readHook, checker, fd, fd2)
+	runKprobeObjectRead(t, readHook, checker, fd, fd2, fentry)
+}
+
+func TestKprobeObjectRead(t *testing.T) {
+	testKprobeObjectRead(t, false)
+}
+
+func testKprobeObjectReadIdxMismatch(t *testing.T, fentry bool) {
+	fd, fd2, fdString := createTestFile(t)
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	readHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "sys-read"
+spec:
+  kprobes:
+  - call: "sys_read"
+    syscall: true
+    args:
+    - index: 1
+      type: "char_buf"
+      returnCopy: true
+    - index: 2
+      type: "size_t"
+    - index: 0
+      type: "int"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "` + fdString + `"`
+
+	kpChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_read"))).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full([]byte("hello world"))),
+				ec.NewKprobeArgumentChecker().WithSizeArg(100),
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(fd2)),
+			))
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	runKprobeObjectRead(t, readHook, checker, fd, fd2, fentry)
 }
 
 func TestKprobeObjectReadIdxMismatch(t *testing.T) {
-	fd, fd2, fdString := createTestFile(t)
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
-	readHook := `
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "sys-read"
-spec:
-  kprobes:
-  - call: "sys_read"
-    syscall: true
-    args:
-    - index: 1
-      type: "char_buf"
-      returnCopy: true
-    - index: 2
-      type: "size_t"
-    - index: 0
-      type: "int"
-    selectors:
-    - matchPIDs:
-      - operator: In
-        followForks: true
-        values:
-        - ` + pidStr + `
-      matchArgs:
-      - index: 0
-        operator: "Equal"
-        values:
-        - "` + fdString + `"`
-
-	kpChecker := ec.NewProcessKprobeChecker("").
-		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_read"))).
-		WithArgs(ec.NewKprobeArgumentListMatcher().
-			WithOperator(lc.Ordered).
-			WithValues(
-				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full([]byte("hello world"))),
-				ec.NewKprobeArgumentChecker().WithSizeArg(100),
-				ec.NewKprobeArgumentChecker().WithIntArg(int32(fd2)),
-			))
-	checker := ec.NewUnorderedEventChecker(kpChecker)
-
-	runKprobeObjectRead(t, readHook, checker, fd, fd2)
+	testKprobeObjectReadIdxMismatch(t, false)
 }
 
-func TestKprobeObjectReadReturn(t *testing.T) {
+func testKprobeObjectReadReturn(t *testing.T, fentry bool) {
 	fd, fd2, fdString := createTestFile(t)
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	readHook := `
@@ -616,13 +624,17 @@ spec:
 		WithReturn(ec.NewKprobeArgumentChecker().WithSizeArg(11))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	runKprobeObjectRead(t, readHook, checker, fd, fd2)
+	runKprobeObjectRead(t, readHook, checker, fd, fd2, fentry)
+}
+
+func TestKprobeObjectReadReturn(t *testing.T) {
+	testKprobeObjectReadReturn(t, false)
 }
 
 // Differently from other tests using returnCopy,
 // this one skips index 0 element to avoid future regressions
 // like https://github.com/cilium/tetragon/issues/4488.
-func TestKprobeObjectReturnCopy(t *testing.T) {
+func testKprobeObjectReturnCopy(t *testing.T, fentry bool) {
 	fd, fd2, _ := createTestFile(t)
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	readHook := `
@@ -658,7 +670,11 @@ spec:
 			))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	runKprobeObjectRead(t, readHook, checker, fd, fd2)
+	runKprobeObjectRead(t, readHook, checker, fd, fd2, fentry)
+}
+
+func TestKprobeObjectReturnCopy(t *testing.T) {
+	testKprobeObjectReturnCopy(t, false)
 }
 
 // sys_openat trace
