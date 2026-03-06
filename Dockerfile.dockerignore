@@ -1,0 +1,12 @@
+**
+!Dockerfile
+!Makefile
+!Makefile.defs
+!go.mod
+!go.sum
+!api/**
+!cmd/**
+!pkg/**
+!tests/policytests/**
+!vendor/**
+!bpf/**
