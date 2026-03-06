@@ -247,3 +247,8 @@ func TestFentryMatchArgsFilePostfix(t *testing.T) {
 	checkFentry(t)
 	testKprobeMatchArgsFilePostfix(t, true)
 }
+
+func TestFentryMatchArgsFilePrefix(t *testing.T) {
+	checkFentry(t)
+	testKprobeMatchArgsFilePrefix(t, true)
+}
