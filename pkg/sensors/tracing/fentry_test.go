@@ -265,3 +265,8 @@ func TestFentryMatchArgsFdPostfix(t *testing.T) {
 	checkFentry(t)
 	testKprobeMatchArgsFdPostfix(t, true)
 }
+
+func TestFentryMatchArgsFdPrefix(t *testing.T) {
+	checkFentry(t)
+	testKprobeMatchArgsFdPrefix(t, true)
+}
