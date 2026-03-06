@@ -6,6 +6,7 @@
 package tracing
 
 import (
+	"syscall"
 	"testing"
 
 	"github.com/cilium/tetragon/pkg/config"
@@ -70,4 +71,129 @@ func TestFentryObjectReadReturn(t *testing.T) {
 func TestFentryObjectReturnCopy(t *testing.T) {
 	checkFentry(t)
 	testKprobeObjectReturnCopy(t, true)
+}
+
+func TestFentryObjectMultiValueOpen(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectMultiValueOpen(t, true)
+}
+
+func TestFentryObjectMultiValueOpenMount(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectMultiValueOpenMount(t, true)
+}
+
+func TestFentryObjectFilterOpen(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectFilterOpen(t, true)
+}
+
+func TestFentryObjectMultiValueFilterOpen(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectMultiValueFilterOpen(t, true)
+}
+
+func TestFentryObjectFilterPrefixOpen(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectFilterPrefixOpen(t, true)
+}
+
+func TestFentryObjectFilterPrefixOpenSuperLong(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectFilterPrefixOpenSuperLong(t, true)
+}
+
+func TestFentryObjectFilterPrefixOpenMount(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectFilterPrefixOpenMount(t, true)
+}
+
+func TestFentryObjectFilterPrefixExactOpen(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectFilterPrefixExactOpen(t, true)
+}
+
+func TestFentryObjectFilterPrefixExactOpenMount(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectFilterPrefixExactOpenMount(t, true)
+}
+
+func TestFentryObjectFilterPrefixSubdirOpen(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectFilterPrefixSubdirOpen(t, true)
+}
+
+func TestFentryObjectFilterPrefixSubdirOpenMount(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectFilterPrefixSubdirOpenMount(t, true)
+}
+
+func TestFentryObjectFilterPrefixMissOpen(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectFilterPrefixMissOpen(t, true)
+}
+
+func TestFentryObjectPostfixOpen(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectPostfixOpen(t, false, true)
+}
+
+func TestFentryObjectPostfixOpenWithNull(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectPostfixOpen(t, true, true)
+}
+
+func TestFentryObjectPostfixOpenSuperLong(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectPostfixOpenSuperLong(t, true)
+}
+
+func TestFentryObjectFilterModeOpenMatchDec(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectFilterModeOpenMatch(t, "%d", syscall.O_RDWR|syscall.O_TRUNC|syscall.O_CLOEXEC, syscall.O_TRUNC, true)
+}
+
+func TestFentryObjectFilterModeOpenMatchHex(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectFilterModeOpenMatch(t, "0x%x", syscall.O_RDWR|syscall.O_TRUNC|syscall.O_CLOEXEC, syscall.O_RDWR, true)
+}
+
+func TestFentryObjectFilterModeOpenMatchOct(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectFilterModeOpenMatch(t, "0%o", syscall.O_RDWR|syscall.O_TRUNC|syscall.O_CLOEXEC, syscall.O_CLOEXEC, true)
+}
+
+func TestFentryObjectFilterModeOpenFail(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectFilterModeOpenFail(t, true)
+}
+
+func TestFentryObjectFilenameOpen(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectFilenameOpen(t, true)
+}
+
+func TestFentryObjectReturnFilenameOpen(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectReturnFilenameOpen(t, true)
+}
+
+func TestFentryObjectFileWrite(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectFileWrite(t, true)
+}
+
+func TestFentryObjectFileWriteFiltered(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectFileWriteFiltered(t, true)
+}
+
+func TestFentryObjectFileWriteMount(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectFileWriteMount(t, true)
+}
+
+func TestFentryObjectFileWriteMountFiltered(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectFileWriteMountFiltered(t, true)
 }
