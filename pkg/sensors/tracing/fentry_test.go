@@ -51,3 +51,23 @@ func TestFentryObjectWriteReadPidOnly(t *testing.T) {
 	checkFentry(t)
 	testKprobeObjectWriteReadPidOnly(t, true)
 }
+
+func TestFentryObjectRead(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectRead(t, true)
+}
+
+func TestFentryObjectReadIdxMismatch(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectReadIdxMismatch(t, true)
+}
+
+func TestFentryObjectReadReturn(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectReadReturn(t, true)
+}
+
+func TestFentryObjectReturnCopy(t *testing.T) {
+	checkFentry(t)
+	testKprobeObjectReturnCopy(t, true)
+}
