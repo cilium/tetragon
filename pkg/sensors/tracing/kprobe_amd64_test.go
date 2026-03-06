@@ -7,7 +7,6 @@ package tracing
 
 import (
 	"context"
-	"os"
 	"os/exec"
 	"strconv"
 	"sync"
@@ -217,11 +216,7 @@ spec:
         - "0xffff0"
 `
 
-	pathConfigHook := []byte(pathHook)
-	err := os.WriteFile(testConfigFile, pathConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, pathHook)
 
 	kpChecker := ec.NewProcessKprobeChecker("").
 		WithFunctionName(sm.Suffix("sys_prctl")).

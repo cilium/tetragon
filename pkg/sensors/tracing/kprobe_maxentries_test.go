@@ -6,7 +6,6 @@
 package tracing
 
 import (
-	"os"
 	"testing"
 
 	"github.com/cilium/ebpf"
@@ -26,10 +25,7 @@ type testMap struct {
 func runConfig(t *testing.T, config string, fn func(string, int)) {
 	var err error
 
-	err = os.WriteFile(testConfigFile, []byte(config), 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, config)
 
 	sens, err := observertesthelper.GetDefaultSensorsWithFile(t, testConfigFile,
 		tus.Conf().TetragonLib, observertesthelper.WithKeepCollection())
