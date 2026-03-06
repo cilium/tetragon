@@ -285,3 +285,8 @@ func TestFentryMatchParentBinaries(t *testing.T) {
 	checkFentry(t)
 	testKprobeMatchParentBinaries(t, true)
 }
+
+func TestFentryMatchBinaries(t *testing.T) {
+	checkFentry(t)
+	testKprobeMatchBinaries(t, true)
+}
