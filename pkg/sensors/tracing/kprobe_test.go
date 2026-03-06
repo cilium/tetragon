@@ -139,7 +139,7 @@ func TestKprobeObjectLoad(t *testing.T) {
 
 // NB: This is similar to TestKprobeObjectWriteRead, but it's a bit easier to
 // debug because we can write things on stdout which will not generate events.
-func TestKprobeLseek(t *testing.T) {
+func testKprobeLseek(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -170,7 +170,7 @@ spec:
         values:
         - ` + pidStr
 
-	createCrdFile(t, lseekConfigHook_)
+	createCrdFileFlag(t, lseekConfigHook_, fentry)
 
 	kpChecker := ec.NewProcessKprobeChecker("lseek-checker").
 		WithFunctionName(sm.Suffix("sys_lseek"))
@@ -186,6 +186,10 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
 	require.NoError(t, err)
+}
+
+func TestKprobeLseek(t *testing.T) {
+	testKprobeLseek(t, false)
 }
 
 func getTestKprobeObjectWRChecker(t *testing.T) ec.MultiEventChecker {

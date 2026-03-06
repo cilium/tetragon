@@ -21,3 +21,8 @@ func TestFentryObjectLoad(t *testing.T) {
 	checkFentry(t)
 	testKprobeObjectLoad(t, true)
 }
+
+func TestFentryLseek(t *testing.T) {
+	checkFentry(t)
+	testKprobeLseek(t, true)
+}
