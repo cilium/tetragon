@@ -3926,7 +3926,7 @@ func TestKprobeMatchArgsFileMonitoringPrefix(t *testing.T) {
 	testKprobeMatchArgsFileMonitoringPrefix(t, false)
 }
 
-func TestKprobeMatchArgsNonPrefix(t *testing.T) {
+func testKprobeMatchArgsNonPrefix(t *testing.T, fentry bool) {
 	if !config.EnableLargeProgs() {
 		t.Skip()
 	}
@@ -3963,7 +3963,7 @@ spec:
         - "/etc/passwd"
         - "/etc/group"`
 
-	createCrdFile(t, configHook)
+	createCrdFileFlag(t, configHook, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -4011,6 +4011,10 @@ spec:
 	errChecker := ec.NewUnorderedEventChecker(kpErrCheckers...)
 	err = jsonchecker.JsonTestCheckExpect(t, errChecker, true)
 	require.NoError(t, err)
+}
+
+func TestKprobeMatchArgsNonPrefix(t *testing.T) {
+	testKprobeMatchArgsNonPrefix(t, false)
 }
 
 func getMatchParentBinariesCrd(opStr string, vals []string) string {
