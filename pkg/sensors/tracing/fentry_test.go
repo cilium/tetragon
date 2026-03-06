@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/cilium/tetragon/pkg/config"
+	"github.com/cilium/tetragon/pkg/testutils/policytest"
 )
 
 func checkFentry(t *testing.T) {
@@ -20,4 +21,11 @@ func checkFentry(t *testing.T) {
 func TestFentryObjectLoad(t *testing.T) {
 	checkFentry(t)
 	testKprobeObjectLoad(t, true)
+}
+
+func TestFentryLseek(t *testing.T) {
+	checkFentry(t)
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-lseek", map[string]any{
+		"Hook": "fentries",
+	})
 }
