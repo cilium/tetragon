@@ -270,3 +270,8 @@ func TestFentryMatchArgsFdPrefix(t *testing.T) {
 	checkFentry(t)
 	testKprobeMatchArgsFdPrefix(t, true)
 }
+
+func TestFentrytMatchArgsFileMonitoringPrefix(t *testing.T) {
+	checkFentry(t)
+	testKprobeMatchArgsFileMonitoringPrefix(t, true)
+}
