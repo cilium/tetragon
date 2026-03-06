@@ -89,7 +89,7 @@ var (
 	}
 )
 
-func TestKprobeObjectLoad(t *testing.T) {
+func testKprobeObjectLoad(t *testing.T, fentry bool) {
 	writeReadHook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -121,7 +121,7 @@ spec:
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	createCrdFile(t, writeReadHook)
+	createCrdFileFlag(t, writeReadHook, fentry)
 
 	_, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -129,6 +129,10 @@ spec:
 	}
 	initialSensor := base.GetInitialSensorTest(t)
 	initialSensor.Load(bpf.MapPrefixPath())
+}
+
+func TestKprobeObjectLoad(t *testing.T) {
+	testKprobeObjectLoad(t, false)
 }
 
 // NB: This is similar to TestKprobeObjectWriteRead, but it's a bit easier to
@@ -3458,12 +3462,19 @@ func createReadChecker(t *testing.T, filename string) *ec.ProcessKprobeChecker {
 	return kpChecker
 }
 
-func createCrdFile(t *testing.T, readHook string) {
+func createCrdFileFlag(t *testing.T, readHook string, fentry bool) {
+	if fentry {
+		readHook = strings.Replace(readHook, "kprobes:", "fentries:", -1)
+	}
 	readConfigHook := []byte(readHook)
 	err := os.WriteFile(testConfigFile, readConfigHook, 0644)
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
+}
+
+func createCrdFile(t *testing.T, readHook string) {
+	createCrdFileFlag(t, readHook, false)
 }
 
 func getNumValues() int {
