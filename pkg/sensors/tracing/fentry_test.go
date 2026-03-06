@@ -225,3 +225,18 @@ func TestFentryArgValues(t *testing.T) {
 	checkFentry(t)
 	testKprobeArgValues(t, true)
 }
+
+func TestFentry_char_iovec(t *testing.T) {
+	checkFentry(t)
+	testKprobe_char_iovec(t, true)
+}
+
+func TestFentry_char_iovec_overflow(t *testing.T) {
+	checkFentry(t)
+	testKprobe_char_iovec_overflow(t, true)
+}
+
+func TestFentry_char_iovec_returnCopy(t *testing.T) {
+	checkFentry(t)
+	testKprobe_char_iovec_returnCopy(t, true)
+}
