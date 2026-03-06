@@ -2423,7 +2423,7 @@ func TestKprobeMultipleMountPathFiltered(t *testing.T) {
 	testMultipleMountPathFiltered(t, false)
 }
 
-func TestKprobeArgValues(t *testing.T) {
+func testKprobeArgValues(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	readHook := `
 apiVersion: cilium.io/v1alpha1
@@ -2478,7 +2478,7 @@ spec:
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	createCrdFile(t, readHook)
+	createCrdFileFlag(t, readHook, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -2511,6 +2511,10 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
+}
+
+func TestKprobeArgValues(t *testing.T) {
+	testKprobeArgValues(t, false)
 }
 
 // override

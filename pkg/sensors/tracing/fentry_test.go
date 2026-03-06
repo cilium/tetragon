@@ -217,3 +217,8 @@ func TestFentryMultipleMountPathFiltered(t *testing.T) {
 	checkFentry(t)
 	testMultipleMountPathFiltered(t, true)
 }
+
+func TestFentryArgValues(t *testing.T) {
+	checkFentry(t)
+	testKprobeArgValues(t, true)
+}
