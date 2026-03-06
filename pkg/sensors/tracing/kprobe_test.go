@@ -4531,7 +4531,7 @@ func TestKprobeMatchBinariesPerfring(t *testing.T) {
 
 // TestKprobeMatchBinariesEarlyExec checks that the matchBinaries can filter
 // events triggered by process started before Tetragon.
-func TestKprobeMatchBinariesEarlyExec(t *testing.T) {
+func testKprobeMatchBinariesEarlyExec(t *testing.T, fentry bool) {
 	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
@@ -4582,6 +4582,11 @@ func TestKprobeMatchBinariesEarlyExec(t *testing.T) {
 		},
 	}
 
+	if fentry {
+		matchBinariesTracingPolicy.Spec.Fentries = matchBinariesTracingPolicy.Spec.KProbes
+		matchBinariesTracingPolicy.Spec.KProbes = []v1alpha1.KProbeSpec{}
+	}
+
 	err = sm.Manager.AddTracingPolicy(ctx, &matchBinariesTracingPolicy)
 	if assert.NoError(t, err) {
 		t.Cleanup(func() {
@@ -4602,6 +4607,10 @@ func TestKprobeMatchBinariesEarlyExec(t *testing.T) {
 		}
 	}
 	t.Error("events triggered by process executed before Tetragon should not be ignored because of matchBinaries")
+}
+
+func TestKprobeMatchBinariesEarlyExec(t *testing.T) {
+	testKprobeMatchBinariesEarlyExec(t, false)
 }
 
 // TestKprobeMatchBinariesPrefixMatchArgs makes sure that the prefix of

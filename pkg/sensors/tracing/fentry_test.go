@@ -297,3 +297,8 @@ func TestFentryMatchBinariesPerfring(t *testing.T) {
 	checkFentry(t)
 	testKprobeMatchBinariesPerfring(t, true)
 }
+
+func TestFentryMatchBinariesEarlyExec(t *testing.T) {
+	checkFentry(t)
+	testKprobeMatchBinariesEarlyExec(t, true)
+}
