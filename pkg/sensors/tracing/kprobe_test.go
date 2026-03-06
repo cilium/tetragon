@@ -4240,14 +4240,14 @@ func createBinariesChecker(binary, filename string) *ec.ProcessKprobeChecker {
 	return kpChecker
 }
 
-func matchBinariesTest(t *testing.T, operator string, values []string, kpChecker *ec.ProcessKprobeChecker) {
+func matchBinariesTest(t *testing.T, operator string, values []string, kpChecker *ec.ProcessKprobeChecker, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	createCrdFile(t, getMatchBinariesCrd(operator, values))
+	createCrdFileFlag(t, getMatchBinariesCrd(operator, values), fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -4271,37 +4271,41 @@ func matchBinariesTest(t *testing.T, operator string, values []string, kpChecker
 
 const skipMatchBinaries = "kernels without large progs do not support matchBinaries Prefix/NotPrefix/Postfix/NotPostfix"
 
-func TestKprobeMatchBinaries(t *testing.T) {
+func testKprobeMatchBinaries(t *testing.T, fentry bool) {
 	t.Run("In", func(t *testing.T) {
-		matchBinariesTest(t, "In", []string{"/usr/bin/tail"}, createBinariesChecker("/usr/bin/tail", "/etc/passwd"))
+		matchBinariesTest(t, "In", []string{"/usr/bin/tail"}, createBinariesChecker("/usr/bin/tail", "/etc/passwd"), fentry)
 	})
 	t.Run("NotIn", func(t *testing.T) {
-		matchBinariesTest(t, "NotIn", []string{"/usr/bin/tail"}, createBinariesChecker("/usr/bin/head", "/etc/passwd"))
+		matchBinariesTest(t, "NotIn", []string{"/usr/bin/tail"}, createBinariesChecker("/usr/bin/head", "/etc/passwd"), fentry)
 	})
 	t.Run("Prefix", func(t *testing.T) {
 		if !config.EnableLargeProgs() {
 			t.Skip(skipMatchBinaries)
 		}
-		matchBinariesTest(t, "Prefix", []string{"/usr/bin/t"}, createBinariesChecker("/usr/bin/tail", "/etc/passwd"))
+		matchBinariesTest(t, "Prefix", []string{"/usr/bin/t"}, createBinariesChecker("/usr/bin/tail", "/etc/passwd"), fentry)
 	})
 	t.Run("NotPrefix", func(t *testing.T) {
 		if !config.EnableLargeProgs() {
 			t.Skip(skipMatchBinaries)
 		}
-		matchBinariesTest(t, "NotPrefix", []string{"/usr/bin/t"}, createBinariesChecker("/usr/bin/head", "/etc/passwd"))
+		matchBinariesTest(t, "NotPrefix", []string{"/usr/bin/t"}, createBinariesChecker("/usr/bin/head", "/etc/passwd"), fentry)
 	})
 	t.Run("Postfix", func(t *testing.T) {
 		if !config.EnableLargeProgs() {
 			t.Skip(skipMatchBinaries)
 		}
-		matchBinariesTest(t, "Postfix", []string{"bin/tail"}, createBinariesChecker("/usr/bin/tail", "/etc/passwd"))
+		matchBinariesTest(t, "Postfix", []string{"bin/tail"}, createBinariesChecker("/usr/bin/tail", "/etc/passwd"), fentry)
 	})
 	t.Run("NotPostfix", func(t *testing.T) {
 		if !config.EnableLargeProgs() {
 			t.Skip(skipMatchBinaries)
 		}
-		matchBinariesTest(t, "NotPostfix", []string{"bin/tail"}, createBinariesChecker("/usr/bin/head", "/etc/passwd"))
+		matchBinariesTest(t, "NotPostfix", []string{"bin/tail"}, createBinariesChecker("/usr/bin/head", "/etc/passwd"), fentry)
 	})
+}
+
+func TestKprobeMatchBinaries(t *testing.T) {
+	testKprobeMatchBinaries(t, false)
 }
 
 func matchBinariesLargePathTest(t *testing.T, operator string, values []string, binary string) {
