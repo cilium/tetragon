@@ -71,18 +71,22 @@ func initializeSlog(logOpts LogOptions, useStdout bool) {
 		writer = os.Stdout
 	}
 
+	var newDefaultLogger = DefaultSlogLogger
 	switch logFormat {
 	case logFormatJSON, logFormatJSONTimestamp:
-		DefaultSlogLogger = slog.New(slog.NewJSONHandler(
+		newDefaultLogger = slog.New(slog.NewJSONHandler(
 			writer,
 			&opts,
 		))
 	case logFormatText, logFormatTextTimestamp:
-		DefaultSlogLogger = slog.New(slog.NewTextHandler(
+		newDefaultLogger = slog.New(slog.NewTextHandler(
 			writer,
 			&opts,
 		))
 	}
+
+	// update in place so package-level cached logger pointers pick up the new config
+	*DefaultSlogLogger = *newDefaultLogger
 }
 
 func replaceAttrFn(_ []string, a slog.Attr) slog.Attr {
