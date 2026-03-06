@@ -122,12 +122,9 @@ spec:
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	writeConfigHook := []byte(writeReadHook)
-	err := os.WriteFile(testConfigFile, writeConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
-	_, err = observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	createCrdFile(t, writeReadHook)
+
+	_, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
@@ -168,11 +165,7 @@ spec:
         values:
         - ` + pidStr
 
-	lseekConfigHook := []byte(lseekConfigHook_)
-	err := os.WriteFile(testConfigFile, lseekConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, lseekConfigHook_)
 
 	kpChecker := ec.NewProcessKprobeChecker("lseek-checker").
 		WithFunctionName(sm.Suffix("sys_lseek"))
@@ -216,11 +209,7 @@ func runKprobeObjectWriteRead(t *testing.T, writeReadHook string) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	writeConfigHook := []byte(writeReadHook)
-	err := os.WriteFile(testConfigFile, writeConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, writeReadHook)
 
 	checker := getTestKprobeObjectWRChecker(t)
 
@@ -480,11 +469,7 @@ func runKprobeObjectRead(t *testing.T, readHook string, checker ec.MultiEventChe
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	readConfigHook := []byte(readHook)
-	err := os.WriteFile(testConfigFile, readConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, readHook)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -752,11 +737,7 @@ func testKprobeObjectFiltered(t *testing.T,
 	}
 	syscall.Close(fd)
 
-	readConfigHook := []byte(readHook)
-	err := os.WriteFile(testConfigFile, readConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, readHook)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -861,11 +842,7 @@ func testKprobeStringMatch(t *testing.T,
 
 	filePath := dir + "/testfile"
 
-	readConfigHook := []byte(readHook)
-	err := os.WriteFile(testConfigFile, readConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, readHook)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -1706,11 +1683,7 @@ func testKprobeObjectFilteredReturnValue(t *testing.T,
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	readConfigHook := []byte(hook)
-	err := os.WriteFile(testConfigFile, readConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, hook)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -1874,11 +1847,8 @@ spec:
         values:
         - "1"
 `
-	writeConfigHook := []byte(writeReadHook)
-	err := os.WriteFile(testConfigFile, writeConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+
+	createCrdFile(t, writeReadHook)
 
 	kpChecker := ec.NewProcessKprobeChecker("").
 		WithProcess(ec.NewProcessChecker().
@@ -2152,11 +2122,7 @@ func corePathTest(t *testing.T, filePath string, readHook string, writeChecker e
 	}
 	syscall.Close(fd)
 
-	readConfigHook := []byte(readHook)
-	err := os.WriteFile(testConfigFile, readConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, readHook)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -2387,11 +2353,7 @@ spec:
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	readConfigHook := []byte(readHook)
-	err := os.WriteFile(testConfigFile, readConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, readHook)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -2440,11 +2402,7 @@ func runKprobeOverride(t *testing.T, hook string, checker ec.MultiEventChecker,
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	configHook := []byte(hook)
-	err := os.WriteFile(testConfigFile, configHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, hook)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -2668,11 +2626,7 @@ func runKprobeOverrideSignal(t *testing.T, hook string, checker ec.MultiEventChe
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	configHook := []byte(hook)
-	err := os.WriteFile(testConfigFile, configHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, hook)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -2915,11 +2869,7 @@ func runKprobeOverrideMulti(t *testing.T, hook string, checker ec.MultiEventChec
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	configHook := []byte(hook)
-	err := os.WriteFile(testConfigFile, configHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, hook)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -3170,11 +3120,7 @@ func runKprobeCharIovec(t *testing.T, configHook string,
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	testConfigHook := []byte(configHook)
-	err := os.WriteFile(testConfigFile, testConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, configHook)
 
 	b := base.GetInitialSensorTest(t)
 	obs, err := observertesthelper.GetDefaultObserverWithWatchers(t, ctx, b, observertesthelper.WithConfig(testConfigFile), observertesthelper.WithLib(tus.Conf().TetragonLib), observertesthelper.WithMyPid())
@@ -4802,12 +4748,8 @@ spec:
       type: "size_t"
 `
 
-	var err error
-	readConfigHook := []byte(readHook)
-	err = os.WriteFile(testConfigFile, readConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, readHook)
+
 	sens, err := observertesthelper.GetDefaultSensorsWithFile(t, testConfigFile, tus.Conf().TetragonLib,
 		observertesthelper.WithMyPid(), observertesthelper.WithKeepCollection())
 	if err != nil {
@@ -4858,11 +4800,7 @@ func testMaxData(t *testing.T, data []byte, checker *ec.UnorderedEventChecker, c
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	writeConfigHook := []byte(configHook)
-	err := os.WriteFile(testConfigFile, writeConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, configHook)
 
 	option.Config.RBSize = 1024 * 1024
 
@@ -6870,11 +6808,7 @@ spec:
         values:
         - ` + pidStr
 
-	lseekConfigHook := []byte(lseekConfigHook_)
-	err := os.WriteFile(testConfigFile, lseekConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, lseekConfigHook_)
 
 	kpChecker := ec.NewProcessKprobeChecker("lseek-checker").
 		WithFunctionName(sm.Suffix("sys_lseek")).
@@ -6987,11 +6921,7 @@ spec:
         values:
         - ` + pidStr
 
-	lseekConfigHook := []byte(lseekConfigHook_)
-	err := os.WriteFile(testConfigFile, lseekConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, lseekConfigHook_)
 
 	kpChecker := ec.NewProcessKprobeChecker("lseek-checker").
 		WithFunctionName(sm.Suffix("sys_lseek"))
@@ -7053,11 +6983,7 @@ spec:
         values:
         - ` + pidStr
 
-	lseekConfigHook := []byte(lseekConfigHook_)
-	err := os.WriteFile(testConfigFile, lseekConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, lseekConfigHook_)
 
 	kpChecker := ec.NewProcessKprobeChecker("lseek-checker").
 		WithFunctionName(sm.Suffix("sys_lseek")).
@@ -7211,11 +7137,7 @@ spec:
         - "0"
 `
 
-	lseekConfigHook := []byte(lseekConfigHook_)
-	err := os.WriteFile(testConfigFile, lseekConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, lseekConfigHook_)
 
 	kpChecker := ec.NewProcessKprobeChecker("lseek-checker").
 		WithFunctionName(sm.Suffix("sys_lseek")).
@@ -7612,9 +7534,7 @@ spec:
         - "reg"
 `
 
-	configHook := []byte(fileTypeHook)
-	err = os.WriteFile(testConfigFile, configHook, 0644)
-	require.NoError(t, err)
+	createCrdFile(t, fileTypeHook)
 
 	kpChecker := ec.NewProcessKprobeChecker("filetype-regular-checker").
 		WithFunctionName(sm.Full("vfs_write")).
@@ -7674,9 +7594,7 @@ spec:
         - "pipe"
 `
 
-	configHook := []byte(fileTypeHook)
-	err := os.WriteFile(testConfigFile, configHook, 0644)
-	require.NoError(t, err)
+	createCrdFile(t, fileTypeHook)
 
 	kpChecker := ec.NewProcessKprobeChecker("filetype-pipe-checker").
 		WithFunctionName(sm.Full("vfs_write")).
@@ -7748,9 +7666,7 @@ spec:
         - "reg"
 `
 
-	configHook := []byte(fileTypeHook)
-	err = os.WriteFile(testConfigFile, configHook, 0644)
-	require.NoError(t, err)
+	createCrdFile(t, fileTypeHook)
 
 	kpChecker := ec.NewProcessKprobeChecker("filetype-notreg-checker").
 		WithFunctionName(sm.Full("vfs_write")).
@@ -7819,9 +7735,7 @@ spec:
         - "socket"
 `
 
-	configHook := []byte(fileTypeHook)
-	err := os.WriteFile(testConfigFile, configHook, 0644)
-	require.NoError(t, err)
+	createCrdFile(t, fileTypeHook)
 
 	kpChecker := ec.NewProcessKprobeChecker("filetype-socket-checker").
 		WithFunctionName(sm.Full("vfs_write")).
@@ -7915,9 +7829,7 @@ spec:
         - "pipe"
 `
 
-	configHook := []byte(fileTypeHook)
-	err = os.WriteFile(testConfigFile, configHook, 0644)
-	require.NoError(t, err)
+	createCrdFile(t, fileTypeHook)
 
 	kpChecker := ec.NewProcessKprobeChecker("filetype-notpipe-checker").
 		WithFunctionName(sm.Full("vfs_write")).
@@ -7994,9 +7906,7 @@ spec:
         - "pipe"
 `
 
-	configHook := []byte(fileTypeHook)
-	err = os.WriteFile(testConfigFile, configHook, 0644)
-	require.NoError(t, err)
+	createCrdFile(t, fileTypeHook)
 
 	kpCheckerReg := ec.NewProcessKprobeChecker("filetype-multi-checker-reg").
 		WithFunctionName(sm.Full("vfs_write")).

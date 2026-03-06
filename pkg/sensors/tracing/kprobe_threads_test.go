@@ -7,7 +7,6 @@ package tracing
 
 import (
 	"context"
-	"os"
 	"os/exec"
 	"sync"
 	"testing"
@@ -33,9 +32,7 @@ func TestKprobeCloneThreads(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	testConfigFile := t.TempDir() + "/tetragon-kprobe-threads.yaml"
-
-	configHook_ := `
+	configHook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
@@ -56,11 +53,8 @@ spec:
         values:
         - "/etc/issue"
 `
-	configHook := []byte(configHook_)
-	err := os.WriteFile(testConfigFile, configHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+
+	createCrdFile(t, configHook)
 
 	testBinPath := "contrib/tester-progs/threads-tester"
 	testBin := testutils.RepoRootPath(testBinPath)

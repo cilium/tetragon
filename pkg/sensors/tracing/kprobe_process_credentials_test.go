@@ -7,7 +7,6 @@ package tracing
 
 import (
 	"context"
-	"os"
 	"os/exec"
 	"strconv"
 	"sync"
@@ -41,7 +40,7 @@ func TestKprobeTraceCommitCreds(t *testing.T) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	t.Logf("tester pid=%s\n", pidStr)
 
-	credshook_ := `
+	credshook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
@@ -59,12 +58,7 @@ spec:
         values:
         - ` + pidStr
 
-	testConfigFile := t.TempDir() + "/tetragon.gotest.yaml"
-	writeConfigHook := []byte(credshook_)
-	err := os.WriteFile(testConfigFile, writeConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, credshook)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -195,7 +189,7 @@ func TestKprobeTraceSecureBits(t *testing.T) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	t.Logf("tester pid=%s\n", pidStr)
 
-	credshook_ := `
+	credshook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
@@ -213,12 +207,7 @@ spec:
         values:
         - ` + pidStr
 
-	testConfigFile := t.TempDir() + "/tetragon.gotest.yaml"
-	writeConfigHook := []byte(credshook_)
-	err := os.WriteFile(testConfigFile, writeConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, credshook)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -396,7 +385,7 @@ func TestKprobeMatchCurrentCredRealUid(t *testing.T) {
 		t.Skipf("Skipping test could not find 'echo' binary: %v", err)
 	}
 
-	credshook_ := `
+	credshook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
@@ -431,12 +420,7 @@ spec:
         - "1879048180:1879048189"
 `
 
-	testConfigFile := t.TempDir() + "/tetragon.gotest.yaml"
-	writeConfigHook := []byte(credshook_)
-	err = os.WriteFile(testConfigFile, writeConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, credshook)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -506,7 +490,7 @@ func TestKprobeMatchCurrentCredRealUidNotEqual(t *testing.T) {
 		t.Skipf("Skipping test could not find 'echo' binary: %v", err)
 	}
 
-	credshook_ := `
+	credshook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
@@ -543,12 +527,7 @@ spec:
         - "1879048189:4294967295"
 `
 
-	testConfigFile := t.TempDir() + "/tetragon.gotest.yaml"
-	writeConfigHook := []byte(credshook_)
-	err = os.WriteFile(testConfigFile, writeConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, credshook)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -617,7 +596,7 @@ func TestKprobeMatchCurrentCredRealEffectiveUid(t *testing.T) {
 		t.Skipf("Skipping test could not find 'echo' binary: %v", err)
 	}
 
-	credshook_ := `
+	credshook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
@@ -660,12 +639,7 @@ spec:
         - "1879048180:1879048188"
 `
 
-	testConfigFile := t.TempDir() + "/tetragon.gotest.yaml"
-	writeConfigHook := []byte(credshook_)
-	err = os.WriteFile(testConfigFile, writeConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, credshook)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -734,7 +708,7 @@ func TestKprobeMatchCurrentCredRealEffectiveUidNotEqual(t *testing.T) {
 		t.Skipf("Skipping test could not find 'echo' binary: %v", err)
 	}
 
-	credshook_ := `
+	credshook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
@@ -780,12 +754,7 @@ spec:
         - "1879048189:4294967295"
 `
 
-	testConfigFile := t.TempDir() + "/tetragon.gotest.yaml"
-	writeConfigHook := []byte(credshook_)
-	err = os.WriteFile(testConfigFile, writeConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, credshook)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
