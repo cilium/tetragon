@@ -3888,14 +3888,14 @@ spec:
 	return configHook.String()
 }
 
-func TestKprobeMatchArgsFileMonitoringPrefix(t *testing.T) {
+func testKprobeMatchArgsFileMonitoringPrefix(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	createCrdFile(t, getMatchArgsFileFIMCrd([]string{"/etc/"}))
+	createCrdFileFlag(t, getMatchArgsFileFIMCrd([]string{"/etc/"}), fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -3920,6 +3920,10 @@ func TestKprobeMatchArgsFileMonitoringPrefix(t *testing.T) {
 	checker := ec.NewUnorderedEventChecker(kpCheckers...)
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
+}
+
+func TestKprobeMatchArgsFileMonitoringPrefix(t *testing.T) {
+	testKprobeMatchArgsFileMonitoringPrefix(t, false)
 }
 
 func TestKprobeMatchArgsNonPrefix(t *testing.T) {
