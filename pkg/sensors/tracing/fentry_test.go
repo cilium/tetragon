@@ -292,3 +292,8 @@ func TestFentryMatchBinariesLargePath(t *testing.T) {
 	checkFentry(t)
 	testKprobeMatchBinariesLargePath(t, true)
 }
+
+func TestFentryMatchBinariesPerfring(t *testing.T) {
+	checkFentry(t)
+	testKprobeMatchBinariesPerfring(t, true)
+}
