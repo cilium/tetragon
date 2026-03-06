@@ -3734,7 +3734,7 @@ func TestKprobeMatchArgsFilePrefix(t *testing.T) {
 	testKprobeMatchArgsFilePrefix(t, false)
 }
 
-func TestKprobeMatchArgsFdEqual(t *testing.T) {
+func testKprobeMatchArgsFdEqual(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -3750,7 +3750,7 @@ func TestKprobeMatchArgsFdEqual(t *testing.T) {
 		argVals[3] = "/etc/shadow"
 	}
 
-	createCrdFile(t, getMatchArgsFdCrd("Equal", argVals[:]))
+	createCrdFileFlag(t, getMatchArgsFdCrd("Equal", argVals[:]), fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -3768,6 +3768,10 @@ func TestKprobeMatchArgsFdEqual(t *testing.T) {
 	checker := ec.NewUnorderedEventChecker(kpCheckers...)
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
+}
+
+func TestKprobeMatchArgsFdEqual(t *testing.T) {
+	testKprobeMatchArgsFdEqual(t, false)
 }
 
 func TestKprobeMatchArgsFdPostfix(t *testing.T) {
