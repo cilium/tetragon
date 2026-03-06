@@ -290,3 +290,8 @@ func TestFentryMatchBinaries(t *testing.T) {
 	checkFentry(t)
 	testKprobeMatchBinaries(t, true)
 }
+
+func TestFentryMatchBinariesLargePath(t *testing.T) {
+	checkFentry(t)
+	testKprobeMatchBinariesLargePath(t, true)
+}
