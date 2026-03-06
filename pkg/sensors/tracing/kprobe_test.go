@@ -3849,7 +3849,7 @@ func TestKprobeMatchArgsFdPostfix(t *testing.T) {
 	testKprobeMatchArgsFdPostfix(t, false)
 }
 
-func TestKprobeMatchArgsFdPrefix(t *testing.T) {
+func testKprobeMatchArgsFdPrefix(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -3865,7 +3865,7 @@ func TestKprobeMatchArgsFdPrefix(t *testing.T) {
 		argVals[3] = "/etc/s"
 	}
 
-	createCrdFile(t, getMatchArgsFdCrd("Prefix", argVals[:]))
+	createCrdFileFlag(t, getMatchArgsFdCrd("Prefix", argVals[:]), fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -3890,6 +3890,10 @@ func TestKprobeMatchArgsFdPrefix(t *testing.T) {
 		}
 	}
 	require.NoError(t, err)
+}
+
+func TestKprobeMatchArgsFdPrefix(t *testing.T) {
+	testKprobeMatchArgsFdPrefix(t, false)
 }
 
 func getMatchArgsFileFIMCrd(vals []string) string {
