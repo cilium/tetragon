@@ -23,8 +23,9 @@ RUN if [ "$COMPRESS_BPF" = "gzip" ]; then gzip bpf/objs/*.o; fi
 FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.26.0@sha256:c83e68f3ebb6943a2904fa66348867d108119890a2c6a2e6f07b38d0eb6c25c5 AS tetragon-builder
 WORKDIR /go/src/github.com/cilium/tetragon
 ARG TETRAGON_VERSION TARGETARCH
+ARG BUILD_EXTRA_TARGETS=""
 COPY . .
-RUN make VERSION=$TETRAGON_VERSION TARGET_ARCH=$TARGETARCH tetragon tetra
+RUN make VERSION=$TETRAGON_VERSION TARGET_ARCH=$TARGETARCH tetragon tetra $BUILD_EXTRA_TARGETS
 
 # Third builder (cross-)compile a stripped gops
 FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.26.0-alpine@sha256:d4c4845f5d60c6a974c6000ce58ae079328d03ab7f721a0734277e69905473e5 AS gops
@@ -114,6 +115,11 @@ ENTRYPOINT ["/usr/bin/tetragon"]
 # disassembler
 FROM base-build AS release
 COPY --from=bpftool-builder bpftool/src/bpftool /usr/bin/bpftool
+
+FROM release AS synthetic-debug
+RUN rm -f /usr/bin/tetragon
+COPY --from=tetragon-builder /go/src/github.com/cilium/tetragon/tetragon-synthetic /usr/bin/
+ENTRYPOINT ["/usr/bin/tetragon-synthetic"]
 
 FROM base-build
 COPY --from=bpftool-downloader /bpftool /usr/bin/bpftool

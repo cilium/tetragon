@@ -157,6 +157,18 @@ You can now build Tetragon in your VM:
 make -j3 tetragon-bpf tetragon tetra
 ```
 
+## Synthetic debug image (developers only)
+
+To build the synthetic debug image:
+```shell
+make image-synthetic
+```
+
+Synthetic debug flags (`tetragon-synthetic` only):
+- `--synthetic-events-source`: replay events from a JSONL file
+- `--synthetic-events-log`: write events to a JSONL file
+- `--synthetic-events-verify-roundtrip`: verify marshal/unmarshal roundtrip (only with `--synthetic-events-log`). For each recorded event, it unmarshals and compares the result to the original event. On mismatch it logs `Roundtrip verification: unmarshal failed` or `Roundtrip verification: mismatch detected`. If an event type is not registered, the warning includes `error unknown type: <Type>`; register new types in `pkg/synthetic/types_linux.go` via `RegisterType((*NewType)(nil))`.
+
 ## What's next
 
 - See how to [make your first changes](/docs/contribution-guide/making-changes).
