@@ -12,28 +12,38 @@
 # First builder (cross-)compile the BPF programs
 FROM --platform=$BUILDPLATFORM quay.io/cilium/clang:b97f5b3d5c38da62fb009f21a53cd42aefd54a2f@sha256:e1c8ed0acd2e24ed05377f2861d8174af28e09bef3bbc79649c8eba165207df0 AS bpf-builder
 WORKDIR /go/src/github.com/cilium/tetragon
-RUN apt-get update && apt-get install -y linux-libc-dev gzip
-COPY . ./
+RUN apt-get update && apt-get install -y --no-install-recommends linux-libc-dev gzip && rm -rf /var/lib/apt/lists/*
+COPY bpf/ ./bpf/
 ARG TARGETARCH
 ARG COMPRESS_BPF
-RUN make tetragon-bpf LOCAL_CLANG=1 TARGET_ARCH=$TARGETARCH
+RUN case "${TARGETARCH}" in \
+        amd64) BPF_TARGET_ARCH=x86 ;; \
+        arm64) BPF_TARGET_ARCH=arm64 ;; \
+        *) echo "unsupported TARGETARCH: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac && \
+    make -C ./bpf BPF_TARGET_ARCH=${BPF_TARGET_ARCH} -j"$(nproc)"
 RUN if [ "$COMPRESS_BPF" = "gzip" ]; then gzip bpf/objs/*.o; fi
 
 # Second builder (cross-)compile tetragon and tetra
 FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.26.0@sha256:c83e68f3ebb6943a2904fa66348867d108119890a2c6a2e6f07b38d0eb6c25c5 AS tetragon-builder
 WORKDIR /go/src/github.com/cilium/tetragon
 ARG TETRAGON_VERSION TARGETARCH
-COPY . .
+COPY Makefile Makefile.defs go.mod go.sum ./
+COPY api/ ./api/
+COPY cmd/ ./cmd/
+COPY pkg/ ./pkg/
+COPY tests/policytests/ ./tests/policytests/
+COPY vendor/ ./vendor/
 RUN make VERSION=$TETRAGON_VERSION TARGET_ARCH=$TARGETARCH tetragon tetra
 
 # Third builder (cross-)compile a stripped gops
 FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.26.0-alpine@sha256:d4c4845f5d60c6a974c6000ce58ae079328d03ab7f721a0734277e69905473e5 AS gops
 ARG TARGETARCH
-RUN apk add --no-cache git \
 # renovate: datasource=github-releases depName=google/gops
- && git clone --depth 1 --branch v0.3.29 https://github.com/google/gops /gops \
- && cd /gops \
- && GOARCH=$TARGETARCH go build -ldflags="-s -w" .
+RUN GOARCH=$TARGETARCH CGO_ENABLED=0 go install -ldflags="-s -w" github.com/google/gops@v0.3.29 && \
+    gops_bin="$(go env GOPATH)/bin/gops" && \
+    if [ ! -f "$gops_bin" ]; then gops_bin="$(go env GOPATH)/bin/linux_${TARGETARCH}/gops"; fi && \
+    if [ "$gops_bin" != "/go/bin/gops" ]; then cp "$gops_bin" /go/bin/gops; fi
 
 # This builder (cross-)compile a stripped static version of bpftool.
 # This step was kept because the downloaded version includes LLVM libs with the
@@ -82,31 +92,17 @@ ARG TARGETARCH
 ARG BPFTOOL_TAG=v7.2.0-snapshot.0
 RUN curl -L https://github.com/libbpf/bpftool/releases/download/${BPFTOOL_TAG}/bpftool-${BPFTOOL_TAG}-${TARGETARCH}.tar.gz | tar xz && chmod +x bpftool
 
-# Get bash-completion manifests and generate tetra CLI bash
-# autocompletions (we don't want all bash-completions in the base-build)
-FROM docker.io/library/alpine:3.23.3@sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659 AS cli-autocomplete
-COPY --from=tetragon-builder /go/src/github.com/cilium/tetragon/tetra /usr/bin/
-RUN apk add --no-cache bash-completion && \
-    tetra completion bash > /etc/bash_completion.d/tetra && \
-    chmod a+r /etc/bash_completion.d/tetra
-
 # Almost final step runs on target platform (might need emulation) and
 # retrieves (cross-)compiled binaries from builders
 FROM docker.io/library/alpine:3.23.3@sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659 AS base-build
-RUN apk add --no-cache iproute2
-RUN mkdir /var/lib/tetragon/ && \
+RUN apk add --no-cache iproute2 && \
+    mkdir /var/lib/tetragon/ && \
     mkdir -p /etc/tetragon/tetragon.conf.d/ && \
-    mkdir -p /etc/tetragon/tetragon.tp.d/ && \
-    apk add --no-cache --update bash
+    mkdir -p /etc/tetragon/tetragon.tp.d/
 COPY --from=tetragon-builder /go/src/github.com/cilium/tetragon/tetragon /usr/bin/
 COPY --from=tetragon-builder /go/src/github.com/cilium/tetragon/tetra /usr/bin/
-COPY --from=gops /gops/gops /usr/bin/
+COPY --from=gops /go/bin/gops /usr/bin/
 COPY --from=bpf-builder /go/src/github.com/cilium/tetragon/bpf/objs/* /var/lib/tetragon/
-COPY --from=cli-autocomplete /etc/bash/bash_completion.sh /etc/bash/bash_completion.sh
-COPY --from=cli-autocomplete /etc/bash_completion.d/000_bash_completion_compat.bash /etc/bash_completion.d/000_bash_completion_compat.bash
-COPY --from=cli-autocomplete /etc/bash_completion.d/tetra /etc/bash_completion.d/tetra
-COPY --from=cli-autocomplete /usr/share/bash-completion/bash_completion /usr/share/bash-completion/bash_completion
-COPY --from=cli-autocomplete /usr/share/bash-completion/completions/ip /usr/share/bash-completion/completions/ip
 ENTRYPOINT ["/usr/bin/tetragon"]
 
 # This target only builds with the `--target release` option and reduces the
