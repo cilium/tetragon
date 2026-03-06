@@ -28,7 +28,7 @@ struct mystruct {
 void usage(char *argv0)
 {
 	fprintf(stderr, "Usage: %s <field> <val>\n", argv0);
-	fprintf(stderr, "field can be one of: v8, v16, v32, v64, sub.v32 arr[idx].v64 dyn[idx].v64, subp.buff\n");
+	fprintf(stderr, "field can be one of: v8, v16, v32, v64, sub.v32 arr[idx].v64 dyn[idx].v64, subp.buff, subp.v64\n");
 }
 
 // without noinline, the symbol is found, but no event fires
@@ -68,6 +68,13 @@ int main(int argc, char *argv[])
 		s.v32 = val;
 	} else if (!strcmp(field, "v64")) {
 		s.v64 = val;
+	} else if (!strcmp(field, "subp.v64")) {
+		struct mysubstruct s2 = {
+			.v64 = val,
+		};
+		s.subp = &s2;
+		// without this, setting the value is optimized out
+		printf("%ld\n", s.subp->v64);
 	} else if (!strcmp(field, "sub.v32")) {
 		s.sub.v32 = val;
 	} else if (!strcmp(field, "subp.buff")) {

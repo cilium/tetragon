@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 
@@ -18,6 +19,7 @@ import (
 
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/celbpf"
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/jsonchecker"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
@@ -314,6 +316,112 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(checkers...))
 	require.NoError(t, err)
+}
+
+func testUprobeResolveCEL(t *testing.T, expression string, commandargs []string, shouldfail bool) {
+	if !config.EnableLargeProgs() || !bpf.HasUprobeRefCtrOffset() {
+		t.Skip("Need 5.3 or newer kernel for uprobe ref_ctr_off support for this test.")
+	}
+
+	if !celbpf.Supported() {
+		t.Skip("Need CEL BPF support for this test.")
+	}
+
+	uprobe := testutils.RepoRootPath("contrib/tester-progs/uprobe-resolve")
+	uprobeBtf := testutils.RepoRootPath("contrib/tester-progs/uprobe-resolve.btf")
+
+	uprobeHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe"
+spec:
+  options:
+    - name: "disable-uprobe-multi"
+      value: "1"
+  uprobes:
+  - path: "` + uprobe + `"
+    btfPath: "` + uprobeBtf + `"
+    symbols:
+    - "func"
+    args:
+    - index: 1
+      type: "uint8"
+      btfType: "mystruct"
+      resolve: "v8"
+    - index: 1
+      type: "uint16"
+      btfType: "mystruct"
+      resolve: "v16"
+    - index: 1
+      type: "uint64"
+      btfType: "mystruct"
+      resolve: "subp.v64"
+    selectors:
+      - matchArgs:
+        - operator: CelExpr
+          args:
+            - 2
+          values:
+          - "` + expression + `"
+`
+
+	uprobeConfigHook := []byte(uprobeHook)
+	err := os.WriteFile(testConfigFile, uprobeConfigHook, 0644)
+	if err != nil {
+		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
+	}
+
+	var checkers []ec.EventChecker
+
+	checkers = append(checkers, ec.NewProcessUprobeChecker("uprobe-resolve").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(uprobe)).
+			WithArguments(
+				sm.Full(strings.Join(commandargs, " ")),
+			),
+		))
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	cmd := exec.Command(uprobe, commandargs...)
+	cmdErr := testutils.RunCmdAndLogOutput(t, cmd)
+	require.NoError(t, cmdErr)
+
+	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(checkers...))
+
+	if shouldfail {
+		require.Error(t, err)
+	} else {
+		require.NoError(t, err)
+	}
+}
+
+func TestUprobeResolveCELMatch(t *testing.T) {
+	testUprobeResolveCEL(t, "arg0 == 7u", []string{"subp.v64", "7"}, false)
+}
+
+func TestUprobeResolveCELMatchFail(t *testing.T) {
+	testUprobeResolveCEL(t, "arg0 == 8u", []string{"subp.v64", "7"}, true)
+}
+
+func TestUprobeResolveCELMatchNotEqual(t *testing.T) {
+	testUprobeResolveCEL(t, "arg0 != 8u", []string{"subp.v64", "7"}, false)
+}
+
+func TestUprobeResolveCELNoMatchOnArgReadFailure(t *testing.T) {
+	testUprobeResolveCEL(t, "arg0 != 8u", []string{"v8", "7"}, true)
 }
 
 func TestUprobeResolvePageFault(t *testing.T) {
