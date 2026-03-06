@@ -4356,7 +4356,7 @@ func TestKprobeMatchBinaries(t *testing.T) {
 	testKprobeMatchBinaries(t, false)
 }
 
-func matchBinariesLargePathTest(t *testing.T, operator string, values []string, binary string) {
+func matchBinariesLargePathTest(t *testing.T, operator string, values []string, binary string, fentry bool) {
 
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
@@ -4364,7 +4364,7 @@ func matchBinariesLargePathTest(t *testing.T, operator string, values []string, 
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	createCrdFile(t, getMatchBinariesCrd(operator, values))
+	createCrdFileFlag(t, getMatchBinariesCrd(operator, values), fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -4384,7 +4384,7 @@ func matchBinariesLargePathTest(t *testing.T, operator string, values []string, 
 	require.NoError(t, err)
 
 }
-func TestKprobeMatchBinariesLargePath(t *testing.T) {
+func testKprobeMatchBinariesLargePath(t *testing.T, fentry bool) {
 	if !config.EnableLargeProgs() {
 		t.Skip()
 	}
@@ -4408,11 +4408,15 @@ func TestKprobeMatchBinariesLargePath(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("Prefix", func(t *testing.T) {
-		matchBinariesLargePathTest(t, "Prefix", []string{tmpDir}, targetBinLargePath)
+		matchBinariesLargePathTest(t, "Prefix", []string{tmpDir}, targetBinLargePath, fentry)
 	})
 	t.Run("Postfix", func(t *testing.T) {
-		matchBinariesLargePathTest(t, "Postfix", []string{"/true"}, targetBinLargePath)
+		matchBinariesLargePathTest(t, "Postfix", []string{"/true"}, targetBinLargePath, fentry)
 	})
+}
+
+func TestKprobeMatchBinariesLargePath(t *testing.T) {
+	testKprobeMatchBinariesLargePath(t, false)
 }
 
 // matchBinariesPerfringTest checks that the matchBinaries do correctly
