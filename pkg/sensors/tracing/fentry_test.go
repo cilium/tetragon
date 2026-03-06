@@ -242,3 +242,8 @@ func TestFentryMatchArgsFileEqual(t *testing.T) {
 	checkFentry(t)
 	testKprobeMatchArgsFileEqual(t, true)
 }
+
+func TestFentryMatchArgsFilePostfix(t *testing.T) {
+	checkFentry(t)
+	testKprobeMatchArgsFilePostfix(t, true)
+}
