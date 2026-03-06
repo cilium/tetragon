@@ -3242,14 +3242,14 @@ spec:
 }
 
 func runKprobeCharIovec(t *testing.T, configHook string,
-	checker *ec.UnorderedEventChecker, fdw, fdr int, buffer []byte) {
+	checker *ec.UnorderedEventChecker, fdw, fdr int, buffer []byte, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	createCrdFile(t, configHook)
+	createCrdFileFlag(t, configHook, fentry)
 
 	b := base.GetInitialSensorTest(t)
 	obs, err := observertesthelper.GetDefaultObserverWithWatchers(t, ctx, b, observertesthelper.WithConfig(testConfigFile), observertesthelper.WithLib(tus.Conf().TetragonLib), observertesthelper.WithMyPid())
@@ -3287,7 +3287,7 @@ func runKprobeCharIovec(t *testing.T, configHook string,
 	require.NoError(t, err)
 }
 
-func TestKprobe_char_iovec(t *testing.T) {
+func testKprobe_char_iovec(t *testing.T, fentry bool) {
 	fdw, fdr, _ := createTestFile(t)
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 
@@ -3338,10 +3338,14 @@ spec:
 			))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	runKprobeCharIovec(t, configHook, checker, fdw, fdr, buffer)
+	runKprobeCharIovec(t, configHook, checker, fdw, fdr, buffer, fentry)
 }
 
-func TestKprobe_char_iovec_overflow(t *testing.T) {
+func TestKprobe_char_iovec(t *testing.T) {
+	testKprobe_char_iovec(t, false)
+}
+
+func testKprobe_char_iovec_overflow(t *testing.T, fentry bool) {
 	fdw, fdr, _ := createTestFile(t)
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 
@@ -3392,10 +3396,14 @@ spec:
 			))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	runKprobeCharIovec(t, configHook, checker, fdw, fdr, buffer)
+	runKprobeCharIovec(t, configHook, checker, fdw, fdr, buffer, fentry)
 }
 
-func TestKprobe_char_iovec_returnCopy(t *testing.T) {
+func TestKprobe_char_iovec_overflow(t *testing.T) {
+	testKprobe_char_iovec_overflow(t, false)
+}
+
+func testKprobe_char_iovec_returnCopy(t *testing.T, fentry bool) {
 	fdw, fdr, _ := createTestFile(t)
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 
@@ -3447,7 +3455,11 @@ spec:
 			))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	runKprobeCharIovec(t, configHook, checker, fdw, fdr, buffer)
+	runKprobeCharIovec(t, configHook, checker, fdw, fdr, buffer, fentry)
+}
+
+func TestKprobe_char_iovec_returnCopy(t *testing.T) {
+	testKprobe_char_iovec_returnCopy(t, false)
 }
 
 func getMatchArgsFileCrd(opStr string, vals []string) string {
