@@ -277,3 +277,8 @@ func TestFentryMatchArgsNonPrefix(t *testing.T) {
 	checkFentry(t)
 	testKprobeMatchArgsNonPrefix(t, true)
 }
+
+func TestFentryMatchParentBinaries(t *testing.T) {
+	checkFentry(t)
+	testKprobeMatchParentBinaries(t, true)
+}
