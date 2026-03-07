@@ -5368,7 +5368,7 @@ func TestKprobeRateLimit(t *testing.T) {
 	testKprobeRateLimit(t, true, false)
 }
 
-func TestKprobeListSyscallDupsRange(t *testing.T) {
+func testKprobeListSyscallDupsRange(t *testing.T, fentry bool) {
 	if !kernels.MinKernelVersion("5.3.0") {
 		t.Skip("TestCopyFd requires at least 5.3.0 version")
 	}
@@ -5417,7 +5417,11 @@ spec:
 		checker.AddChecks(kpCheckerDup)
 	}
 
-	testListSyscallsDupsRange(t, checker, configHook)
+	testListSyscallsDupsRange(t, checker, configHook, fentry)
+}
+
+func TestKprobeListSyscallDupsRange(t *testing.T) {
+	testKprobeListSyscallDupsRange(t, false)
 }
 
 // This just tests if the hooks that we are using in our
