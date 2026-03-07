@@ -19,7 +19,7 @@ This [process-creds-installed](https://raw.githubusercontent.com/cilium/tetragon
 
 ## Advantages and disadvantages of kernel layer monitoring compared to the system call layer
 
-The main advantages of monitoring at the kernel layer compared to the [system call layer](/docs/use-cases/linux-process-credentials/syscalls-monitoring):
+The main advantages of monitoring at the kernel layer compared to the [system call layer](/docs/use-cases/linux-process-credentials/syscalls-monitoring/):
 
 * Not vulnerable to user space arguments tampering.
 

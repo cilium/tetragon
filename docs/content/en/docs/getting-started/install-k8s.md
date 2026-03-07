@@ -14,7 +14,7 @@ to create a Kubernetes cluster locally or using a managed Kubernetes service:
 
 The following commands create a single node Kubernetes cluster using [Google
 Kubernetes Engine](https://cloud.google.com/kubernetes-engine). See
-[Installing Google Cloud SDK](https://cloud.google.com/sdk/install) for
+[Installing Google Cloud SDK](https://docs.cloud.google.com/sdk/docs/install-sdk) for
 instructions on how to install `gcloud` and prepare your account.
 
 ```shell
@@ -27,8 +27,8 @@ gcloud container clusters get-credentials "${NAME}" --zone ${ZONE}
 {{% tab AKS %}}
 
 The following commands create a single node Kubernetes cluster using [Azure
-Kubernetes Service](https://docs.microsoft.com/en-us/azure/aks/). See
-[Azure Cloud CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest)
+Kubernetes Service](https://learn.microsoft.com/en-us/azure/aks/). See
+[Azure Cloud CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest)
 for instructions on how to install `az` and prepare your account.
 
 ```shell
