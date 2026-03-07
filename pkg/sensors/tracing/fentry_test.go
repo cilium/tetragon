@@ -401,3 +401,8 @@ func TestFentryLongPath(t *testing.T) {
 	checkFentry(t)
 	testLongPath(t, true)
 }
+
+func TestFentryMaxPath(t *testing.T) {
+	checkFentry(t)
+	testMaxPath(t, true)
+}
