@@ -8,7 +8,7 @@
  * The code for the cel_expr_N functions will be generated and linked when the policy is loaded
  */
 
-#if defined(__LARGE_BPF_PROG) && (defined(GENERIC_KPROBE) && !defined(__MULTI_KPROBE))
+#if defined(__LARGE_BPF_PROG) && (defined(GENERIC_KPROBE) || defined(GENERIC_UPROBE)) && !defined(__MULTI_KPROBE)
 int cel_expr_0(long *argsoff, char *args);
 int cel_expr_1(long *argsoff, char *args);
 int cel_expr_2(long *argsoff, char *args);
@@ -48,6 +48,6 @@ cel_expr(int id, long *argsoff, char *args)
 {
 	return 0;
 }
-#endif /* GENERIC_KPROBE && !__MULTI_KPROBE */
+#endif /* GENERIC_(K|U)PROBE && !__MULTI_KPROBE */
 
 #endif /* __CEL_EXPR_H__ */

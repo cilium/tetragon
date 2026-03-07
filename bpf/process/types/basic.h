@@ -2206,6 +2206,23 @@ selector_arg_offset(void *ctx, struct bpf_map_def *tailcalls,
 		 * to a cel expression identifier (rather than an argument)
 		 */
 		if (filter->op == op_cel_expr) {
+			/* if the cel expression references an arg that could not be read,
+			 * the selector does not match
+			 */
+			__u32 *v = (__u32 *)&filter->value;
+			int j = 0;
+
+			for (int k = 0; k < MAX_POSSIBLE_ARGS; k++) {
+				__u32 w = v[k];
+
+				if (!is_arg_ok(e, w))
+					return 0;
+				// placed here to allow llvm unroll this loop
+				j += 4;
+				if (j + 8 >= filter->vallen)
+					break;
+			}
+
 			if (!cel_expr(filter->index, e->argsoff, e->args))
 				return 0;
 			continue;
