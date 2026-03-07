@@ -340,3 +340,8 @@ func TestFentryRateLimit(t *testing.T) {
 	checkFentry(t)
 	testKprobeRateLimit(t, true, true)
 }
+
+func TestFentryListSyscallDupsRange(t *testing.T) {
+	checkFentry(t)
+	testKprobeListSyscallDupsRange(t, true)
+}
