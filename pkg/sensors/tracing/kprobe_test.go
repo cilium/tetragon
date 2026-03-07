@@ -4988,14 +4988,14 @@ spec:
 	t.Logf("got error (as expected): %s", err)
 }
 
-func testMaxData(t *testing.T, data []byte, checker *ec.UnorderedEventChecker, configHook string, fd int) {
+func testMaxData(t *testing.T, data []byte, checker *ec.UnorderedEventChecker, configHook string, fd int, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	createCrdFile(t, configHook)
+	createCrdFileFlag(t, configHook, fentry)
 
 	option.Config.RBSize = 1024 * 1024
 
@@ -5012,7 +5012,7 @@ func testMaxData(t *testing.T, data []byte, checker *ec.UnorderedEventChecker, c
 	require.NoError(t, err)
 }
 
-func TestKprobeWriteMaxDataTrunc(t *testing.T) {
+func testKprobeWriteMaxDataTrunc(t *testing.T, fentry bool) {
 	if !kernels.MinKernelVersion("5.3.0") {
 		t.Skip("TestCopyFd requires at least 5.3.0 version")
 	}
@@ -5072,10 +5072,14 @@ spec:
 				ec.NewKprobeArgumentChecker().WithSizeArg(uint64(len(data))),
 			))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
-	testMaxData(t, data, checker, writeHook, fd2)
+	testMaxData(t, data, checker, writeHook, fd2, fentry)
 }
 
-func TestKprobeWriteMaxData(t *testing.T) {
+func TestKprobeWriteMaxDataTrunc(t *testing.T) {
+	testKprobeWriteMaxDataTrunc(t, false)
+}
+
+func testKprobeWriteMaxData(t *testing.T, fentry bool) {
 	if !kernels.MinKernelVersion("5.3.0") {
 		t.Skip("TestCopyFd requires at least 5.3.0 version")
 	}
@@ -5131,10 +5135,14 @@ spec:
 				ec.NewKprobeArgumentChecker().WithSizeArg(uint64(len(data))),
 			))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
-	testMaxData(t, data, checker, writeHook, fd2)
+	testMaxData(t, data, checker, writeHook, fd2, fentry)
 }
 
-func TestKprobeWriteMaxDataFull(t *testing.T) {
+func TestKprobeWriteMaxData(t *testing.T) {
+	testKprobeWriteMaxData(t, false)
+}
+
+func testKprobeWriteMaxDataFull(t *testing.T, fentry bool) {
 	if !kernels.MinKernelVersion("5.3.0") {
 		t.Skip("TestCopyFd requires at least 5.3.0 version")
 	}
@@ -5191,7 +5199,11 @@ spec:
 				ec.NewKprobeArgumentChecker().WithSizeArg(uint64(len(data))),
 			))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
-	testMaxData(t, data, checker, writeHook, fd2)
+	testMaxData(t, data, checker, writeHook, fd2, fentry)
+}
+
+func TestKprobeWriteMaxDataFull(t *testing.T) {
+	testKprobeWriteMaxDataFull(t, false)
 }
 
 func testKprobeRateLimit(t *testing.T, rateLimit bool) {
