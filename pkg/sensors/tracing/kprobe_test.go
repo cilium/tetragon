@@ -8177,7 +8177,7 @@ func TestKprobeFileTypeFilterNotPipe(t *testing.T) {
 	testKprobeFileTypeFilterNotPipe(t, false)
 }
 
-func TestKprobeFileTypeFilterMultiple(t *testing.T) {
+func testKprobeFileTypeFilterMultiple(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -8219,7 +8219,7 @@ spec:
         - "pipe"
 `
 
-	createCrdFile(t, fileTypeHook)
+	createCrdFileFlag(t, fileTypeHook, fentry)
 
 	kpCheckerReg := ec.NewProcessKprobeChecker("filetype-multi-checker-reg").
 		WithFunctionName(sm.Full("vfs_write")).
@@ -8259,6 +8259,10 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
+}
+
+func TestKprobeFileTypeFilterMultiple(t *testing.T) {
+	testKprobeFileTypeFilterMultiple(t, false)
 }
 
 func TestKprobeNotEqualMultipleValues(t *testing.T) {
