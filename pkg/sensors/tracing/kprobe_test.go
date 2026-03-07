@@ -6244,7 +6244,7 @@ func TestKprobeArgs(t *testing.T) {
 }
 
 // Detect changing capabilities
-func TestProcessSetCap(t *testing.T) {
+func testProcessSetCap(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -6287,7 +6287,7 @@ spec:
         - "0"
 `
 
-	createCrdFile(t, tracingPolicy)
+	createCrdFileFlag(t, tracingPolicy, fentry)
 
 	fullSet := caps.GetCapsFullSet()
 	firstChange := fullSet&0xffffffff00000000 | uint64(0xffdfffff)  // Removes CAP_SYS_ADMIN
@@ -6369,6 +6369,10 @@ spec:
 	checker := ec.NewUnorderedEventChecker(kpCheckers1, kpCheckers2)
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
+}
+
+func TestProcessSetCap(t *testing.T) {
+	testProcessSetCap(t, false)
 }
 
 func TestMissedProgStatsKprobeMulti(t *testing.T) {
