@@ -31,6 +31,7 @@ import (
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/reader/notify"
 	"github.com/cilium/tetragon/pkg/rthooks"
@@ -121,9 +122,9 @@ func runTetragon(ctx context.Context, configFile string, args *Arguments, summar
 		log.Fatalf("Tracing Policy FromFile: %v", err)
 	}
 
-	benchSensors, err := sensors.GetMergedSensorFromParserPolicy(tp)
+	benchSensors, err := sensors.SensorsFromPolicy(tp, policyfilter.NoFilterID)
 	if err != nil {
-		log.Fatalf("GetMergedSensorFromParserPolicy error: %v", err)
+		log.Fatalf("SensorsFromPolicy error: %v", err)
 	}
 
 	baseSensors := base.GetInitialSensor()
@@ -132,8 +133,10 @@ func runTetragon(ctx context.Context, configFile string, args *Arguments, summar
 		log.Fatalf("Load base error: %s\n", err)
 	}
 
-	if err := benchSensors.Load(option.Config.BpfDir); err != nil {
-		log.Fatalf("Load sensors error: %s\n", err)
+	for _, s := range benchSensors {
+		if err := s.Load(option.Config.BpfDir); err != nil {
+			logger.GetLogger().Warn("Failed to load sensor", logfields.Error, err)
+		}
 	}
 
 	if err := obs.Start(ctx); err != nil {
@@ -141,7 +144,8 @@ func runTetragon(ctx context.Context, configFile string, args *Arguments, summar
 	}
 
 	<-ctx.Done()
-	sensors.UnloadSensors([]sensors.SensorIface{benchSensors, baseSensors})
+	sensors.UnloadSensors(benchSensors)
+	sensors.UnloadSensors([]sensors.SensorIface{baseSensors})
 }
 
 func sigHandler(ctx context.Context, cancel context.CancelFunc) {
