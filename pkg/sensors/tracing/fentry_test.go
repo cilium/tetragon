@@ -372,3 +372,8 @@ func TestFentryMultiMatcArgs(t *testing.T) {
 	checkFentry(t)
 	testKprobeMultiMatcArgs(t, true)
 }
+
+func TestFentryArgs(t *testing.T) {
+	checkFentry(t)
+	testKprobeArgs(t, true)
+}
