@@ -6579,7 +6579,7 @@ func TestKprobeMultiSymbolInstancesOk(t *testing.T) {
 
 // TestLongPath could be split into a test checking for long args from kprobe
 // events and a test checking for long cwd
-func TestLongPath(t *testing.T) {
+func testLongPath(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -6612,7 +6612,7 @@ spec:
     - index: 1
       type: "file"`
 
-	createCrdFile(t, fdinstallHook)
+	createCrdFileFlag(t, fdinstallHook, fentry)
 
 	kprobeLongFileArgChecker := ec.NewProcessKprobeChecker("longFile").
 		WithFunctionName(sm.Full("fd_install")).
@@ -6652,6 +6652,10 @@ spec:
 	checker := ec.NewUnorderedEventChecker(kprobeLongFileArgChecker, processLongCWDChecker)
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
+}
+
+func TestLongPath(t *testing.T) {
+	testLongPath(t, false)
 }
 
 func TestMaxPath(t *testing.T) {
