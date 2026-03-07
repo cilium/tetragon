@@ -4786,7 +4786,7 @@ spec:
 	require.NoError(t, err)
 	require.NotNil(t, tp)
 
-	sens, err := sensors.GetMergedSensorFromParserPolicy(tp)
+	sens, err := sensors.SensorsFromPolicy(tp, policyfilter.NoFilterID)
 	require.Error(t, err)
 	require.Nil(t, sens)
 

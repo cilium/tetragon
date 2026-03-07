@@ -12,6 +12,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/config"
+	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
@@ -22,7 +23,7 @@ func checkCrd(t *testing.T, crd string) error {
 		t.Fatalf("failed to parse tracingpolicy: %s", err)
 	}
 
-	_, err = sensors.GetMergedSensorFromParserPolicy(tp)
+	_, err = sensors.SensorsFromPolicy(tp, policyfilter.NoFilterID)
 	return err
 }
 
