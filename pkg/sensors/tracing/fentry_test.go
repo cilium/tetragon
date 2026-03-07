@@ -365,3 +365,8 @@ func TestFentryKernelStackTrace(t *testing.T) {
 	checkFentry(t)
 	testKprobeKernelStackTrace(t, true)
 }
+
+func TestFentryUserStackTrace(t *testing.T) {
+	checkFentry(t)
+	testKprobeUserStackTrace(t, true)
+}
