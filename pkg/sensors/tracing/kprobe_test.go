@@ -6020,7 +6020,7 @@ func trigger(t *testing.T) {
 	}
 }
 
-func TestKprobeArgs(t *testing.T) {
+func testKprobeArgs(t *testing.T, fentry bool) {
 	_, err := ftrace.ReadAvailFuncs("^bpf_fentry_test1$")
 	if err != nil {
 		t.Skip("Skipping test: could not find bpf_fentry_test1")
@@ -6124,7 +6124,7 @@ spec:
         - ` + pidStr + `
 `
 
-	createCrdFile(t, hook)
+	createCrdFileFlag(t, hook, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -6189,6 +6189,10 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
+}
+
+func TestKprobeArgs(t *testing.T) {
+	testKprobeArgs(t, false)
 }
 
 // Detect changing capabilities
