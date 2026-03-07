@@ -5873,7 +5873,7 @@ func TestKprobeUserStackTrace(t *testing.T) {
 	testKprobeUserStackTrace(t, false)
 }
 
-func TestKprobeMultiMatcArgs(t *testing.T) {
+func testKprobeMultiMatcArgs(t *testing.T, fentry bool) {
 	if !config.EnableLargeProgs() {
 		t.Skip("Older kernels do not support matchArgs for more than one arguments")
 	}
@@ -5943,7 +5943,7 @@ spec:
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	createCrdFile(t, tracingPolicy)
+	createCrdFileFlag(t, tracingPolicy, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -5983,6 +5983,10 @@ spec:
 	checker := ec.NewUnorderedEventChecker(kpCheckersRead, kpCheckersMmap)
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
+}
+
+func TestKprobeMultiMatcArgs(t *testing.T) {
+	testKprobeMultiMatcArgs(t, false)
 }
 
 func trigger(t *testing.T) {
