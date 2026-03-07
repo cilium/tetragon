@@ -399,3 +399,8 @@ func TestFentryMultiSymbolInstancesOk(t *testing.T) {
 	checkFentry(t)
 	testKprobeMultiSymbolInstancesOk(t, true)
 }
+
+func TestFentryLongPath(t *testing.T) {
+	checkFentry(t)
+	testLongPath(t, true)
+}
