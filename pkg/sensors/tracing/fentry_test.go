@@ -377,3 +377,8 @@ func TestFentryArgs(t *testing.T) {
 	checkFentry(t)
 	testKprobeArgs(t, true)
 }
+
+func TestFentryProcessSetCap(t *testing.T) {
+	checkFentry(t)
+	testProcessSetCap(t, true)
+}
