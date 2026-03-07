@@ -6489,7 +6489,7 @@ func TestKprobeBpfCmd(t *testing.T) {
 	testKprobeBpfCmd(t, false)
 }
 
-func TestKprobeMultiSymbolInstancesOk(t *testing.T) {
+func testKprobeMultiSymbolInstancesOk(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -6530,7 +6530,7 @@ spec:
     syscall: true
     tags: [ "prctl_8888" ]
 `
-	createCrdFile(t, hook)
+	createCrdFileFlag(t, hook, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -6551,6 +6551,10 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
+}
+
+func TestKprobeMultiSymbolInstancesOk(t *testing.T) {
+	testKprobeMultiSymbolInstancesOk(t, false)
 }
 
 // TestLongPath could be split into a test checking for long args from kprobe
