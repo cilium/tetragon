@@ -8076,7 +8076,7 @@ func TestKprobeFileTypeFilterNotRegular(t *testing.T) {
 	testKprobeFileTypeFilterNotRegular(t, false)
 }
 
-func TestKprobeFileTypeFilterSocket(t *testing.T) {
+func testKprobeFileTypeFilterSocket(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -8110,7 +8110,7 @@ spec:
         - "socket"
 `
 
-	createCrdFile(t, fileTypeHook)
+	createCrdFileFlag(t, fileTypeHook, fentry)
 
 	kpChecker := ec.NewProcessKprobeChecker("filetype-socket-checker").
 		WithFunctionName(sm.Full("vfs_write")).
@@ -8161,6 +8161,10 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
+}
+
+func TestKprobeFileTypeFilterSocket(t *testing.T) {
+	testKprobeFileTypeFilterSocket(t, false)
 }
 
 func TestKprobeFileTypeFilterNotPipe(t *testing.T) {
