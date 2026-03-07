@@ -6421,7 +6421,7 @@ tetragon_missed_prog_probes_total{attach="wake_up_new_task",policy="__base__"} 0
 
 }
 
-func TestKprobeBpfCmd(t *testing.T) {
+func testKprobeBpfCmd(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -6440,7 +6440,7 @@ spec:
    - index: 0
      type: "bpf_cmd"
 `
-	createCrdFile(t, hook)
+	createCrdFileFlag(t, hook, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -6483,6 +6483,10 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
+}
+
+func TestKprobeBpfCmd(t *testing.T) {
+	testKprobeBpfCmd(t, false)
 }
 
 func TestKprobeMultiSymbolInstancesOk(t *testing.T) {
