@@ -431,3 +431,8 @@ func TestFentryIgnore(t *testing.T) {
 	checkFentry(t)
 	testKprobeIgnore(t, true)
 }
+
+func TestFentryArgsMulti(t *testing.T) {
+	checkFentry(t)
+	testKprobeArgsMulti(t, true)
+}
