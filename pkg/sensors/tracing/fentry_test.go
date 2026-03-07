@@ -305,3 +305,8 @@ func TestFentryMatchBinariesEarlyExec(t *testing.T) {
 	checkFentry(t)
 	testKprobeMatchBinariesEarlyExec(t, true)
 }
+
+func TestFentryMatchBinariesPrefixMatchArgs(t *testing.T) {
+	checkFentry(t)
+	testKprobeMatchBinariesPrefixMatchArgs(t, true)
+}
