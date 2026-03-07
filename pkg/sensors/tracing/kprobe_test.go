@@ -5841,7 +5841,7 @@ func TestKprobeKernelStackTrace(t *testing.T) {
 	testKprobeKernelStackTrace(t, false)
 }
 
-func TestKprobeUserStackTrace(t *testing.T) {
+func testKprobeUserStackTrace(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -5872,7 +5872,7 @@ spec: ` + disableKprobeMulti + `
       - action: Post
         userStackTrace: true`
 
-	createCrdFile(t, tracingPolicy)
+	createCrdFileFlag(t, tracingPolicy, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -5915,6 +5915,10 @@ spec: ` + disableKprobeMulti + `
 	testCmd.Process.Kill()
 
 	require.NoError(t, err)
+}
+
+func TestKprobeUserStackTrace(t *testing.T) {
+	testKprobeUserStackTrace(t, false)
 }
 
 func TestKprobeMultiMatcArgs(t *testing.T) {
