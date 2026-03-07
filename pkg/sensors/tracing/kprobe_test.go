@@ -7304,7 +7304,7 @@ func TestKprobeArgsMulti(t *testing.T) {
 	testKprobeArgsMulti(t, false)
 }
 
-func TestKprobeArgsMultiResolve(t *testing.T) {
+func testKprobeArgsMultiResolve(t *testing.T, fentry bool) {
 	if !kernels.MinKernelVersion("5.4") {
 		t.Skip("Test requires kernel 5.4+")
 	}
@@ -7332,7 +7332,7 @@ spec:
       resolve: "mm.owner.mm.owner.pid"
 `
 
-	createCrdFile(t, hook)
+	createCrdFileFlag(t, hook, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -7360,6 +7360,10 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
+}
+
+func TestKprobeArgsMultiResolve(t *testing.T) {
+	testKprobeArgsMultiResolve(t, false)
 }
 
 func TestKprobeArgsFilter(t *testing.T) {
