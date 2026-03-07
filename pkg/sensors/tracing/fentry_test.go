@@ -456,3 +456,13 @@ func TestFentryResolveCurrent(t *testing.T) {
 	checkFentry(t)
 	testKprobeResolveCurrent(t, true)
 }
+
+func TestFentryRangeIn(t *testing.T) {
+	checkFentry(t)
+	testKprobeRangeOp(t, true, true)
+}
+
+func TestFentryRangeNotIn(t *testing.T) {
+	checkFentry(t)
+	testKprobeRangeOp(t, false, true)
+}

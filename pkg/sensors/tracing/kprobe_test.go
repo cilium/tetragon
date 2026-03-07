@@ -7626,7 +7626,7 @@ func TestKprobeResolveCurrent(t *testing.T) {
 	testKprobeResolveCurrent(t, false)
 }
 
-func testKprobeRangeOp(t *testing.T, in bool) {
+func testKprobeRangeOp(t *testing.T, in, fentry bool) {
 
 	if !config.EnableLargeProgs() {
 		t.Skipf("Skipping test since it needs kernel >= 5.3")
@@ -7665,7 +7665,7 @@ spec:
         - 0xffffe:0xfffff
 `
 
-	createCrdFile(t, hook)
+	createCrdFileFlag(t, hook, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -7712,11 +7712,11 @@ spec:
 }
 
 func TestKprobeRangeIn(t *testing.T) {
-	testKprobeRangeOp(t, true)
+	testKprobeRangeOp(t, true, false)
 }
 
 func TestKprobeRangeNotIn(t *testing.T) {
-	testKprobeRangeOp(t, false)
+	testKprobeRangeOp(t, false, false)
 }
 
 func testKprobeGT(t *testing.T, value uint64, fail bool) {
