@@ -426,3 +426,8 @@ func TestFentryResolveSecondArg(t *testing.T) {
 	checkFentry(t)
 	testKprobeResolveSecondArg(t, true)
 }
+
+func TestFentryIgnore(t *testing.T) {
+	checkFentry(t)
+	testKprobeIgnore(t, true)
+}
