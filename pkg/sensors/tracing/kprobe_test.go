@@ -7741,7 +7741,7 @@ func TestKprobeRangeNotIn(t *testing.T) {
 	testKprobeRangeOp(t, false, false)
 }
 
-func testKprobeGT(t *testing.T, value uint64, fail bool) {
+func testKprobeGT(t *testing.T, value uint64, fail, fentry bool) {
 
 	if !config.EnableLargeProgs() {
 		t.Skipf("Skipping test since it needs kernel >= 5.3")
@@ -7773,7 +7773,7 @@ spec:
         - "0xffff0"
 `
 
-	createCrdFile(t, hook)
+	createCrdFileFlag(t, hook, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -7801,11 +7801,11 @@ spec:
 }
 
 func TestKprobeGTOk(t *testing.T) {
-	testKprobeGT(t, 0xffff1, false)
+	testKprobeGT(t, 0xffff1, false, false)
 }
 
 func TestKprobeGTFail(t *testing.T) {
-	testKprobeGT(t, 0xfffef, true)
+	testKprobeGT(t, 0xfffef, true, false)
 }
 
 func TestKprobeFileTypeFilterRegular(t *testing.T) {
