@@ -7,7 +7,6 @@ package tracing
 
 import (
 	"context"
-	"os"
 	"strconv"
 	"sync"
 	"syscall"
@@ -30,10 +29,7 @@ func testListSyscallsDups(t *testing.T, checker *ec.UnorderedEventChecker, confi
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	err := os.WriteFile(testConfigFile, []byte(configHook), 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, configHook)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
