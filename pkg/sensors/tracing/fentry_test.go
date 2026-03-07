@@ -315,3 +315,18 @@ func TestFentryBpfAttr(t *testing.T) {
 	checkFentry(t)
 	testKprobeBpfAttr(t, true)
 }
+
+func TestFentryWriteMaxDataTrunc(t *testing.T) {
+	checkFentry(t)
+	testKprobeWriteMaxDataTrunc(t, true)
+}
+
+func TestFentryWriteMaxData(t *testing.T) {
+	checkFentry(t)
+	testKprobeWriteMaxData(t, true)
+}
+
+func TestFentryWriteMaxDataFull(t *testing.T) {
+	checkFentry(t)
+	testKprobeWriteMaxDataFull(t, true)
+}
