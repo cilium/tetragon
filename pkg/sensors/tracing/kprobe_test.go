@@ -7096,7 +7096,7 @@ func TestKprobeResolvePid(t *testing.T) {
 	testKprobeResolvePid(t, false)
 }
 
-func TestKprobeArgsReverse(t *testing.T) {
+func testKprobeArgsReverse(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -7134,7 +7134,7 @@ spec:
         values:
         - ` + pidStr
 
-	createCrdFile(t, lseekConfigHook_)
+	createCrdFileFlag(t, lseekConfigHook_, fentry)
 
 	kpChecker := ec.NewProcessKprobeChecker("lseek-checker").
 		WithFunctionName(sm.Suffix("sys_lseek")).
@@ -7157,6 +7157,10 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
 	require.NoError(t, err)
+}
+
+func TestKprobeArgsReverse(t *testing.T) {
+	testKprobeArgsReverse(t, false)
 }
 
 func TestKprobeResolveSecondArg(t *testing.T) {
