@@ -6968,7 +6968,7 @@ func TestKprobeDentryPath(t *testing.T) {
 	testKprobeDentryPath(t, false)
 }
 
-func TestKprobeResolvePid(t *testing.T) {
+func testKprobeResolvePid(t *testing.T, fentry bool) {
 	if !kernels.MinKernelVersion("5.4") {
 		t.Skip("Test requires kernel 5.4+")
 	}
@@ -6993,7 +6993,7 @@ spec:
       resolve: "mm.owner.pid"
 `
 
-	createCrdFile(t, hook)
+	createCrdFileFlag(t, hook, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -7020,6 +7020,10 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
+}
+
+func TestKprobeResolvePid(t *testing.T) {
+	testKprobeResolvePid(t, false)
 }
 
 func TestKprobeArgsReverse(t *testing.T) {
