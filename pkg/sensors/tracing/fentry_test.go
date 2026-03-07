@@ -506,3 +506,8 @@ func TestFentryFileTypeFilterMultiple(t *testing.T) {
 	checkFentry(t)
 	testKprobeFileTypeFilterMultiple(t, true)
 }
+
+func TestFentryNotEqualMultipleValues(t *testing.T) {
+	checkFentry(t)
+	testKprobeNotEqualMultipleValues(t, true)
+}
