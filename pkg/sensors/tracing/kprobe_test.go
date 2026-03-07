@@ -4613,10 +4613,10 @@ func TestKprobeMatchBinariesEarlyExec(t *testing.T) {
 	testKprobeMatchBinariesEarlyExec(t, false)
 }
 
-// TestKprobeMatchBinariesPrefixMatchArgs makes sure that the prefix of
+// testKprobeMatchBinariesPrefixMatchArgs makes sure that the prefix of
 // matchBinaries works well with the prefix of matchArgs since its reusing some
 // of its machinery.
-func TestKprobeMatchBinariesPrefixMatchArgs(t *testing.T) {
+func testKprobeMatchBinariesPrefixMatchArgs(t *testing.T, fentry bool) {
 	if !config.EnableLargeProgs() {
 		t.Skip(skipMatchBinaries)
 	}
@@ -4671,6 +4671,11 @@ func TestKprobeMatchBinariesPrefixMatchArgs(t *testing.T) {
 		},
 	}
 
+	if fentry {
+		matchBinariesTracingPolicy.Spec.Fentries = matchBinariesTracingPolicy.Spec.KProbes
+		matchBinariesTracingPolicy.Spec.KProbes = []v1alpha1.KProbeSpec{}
+	}
+
 	err := sm.Manager.AddTracingPolicy(ctx, &matchBinariesTracingPolicy)
 	if assert.NoError(t, err) {
 		t.Cleanup(func() {
@@ -4723,6 +4728,10 @@ func TestKprobeMatchBinariesPrefixMatchArgs(t *testing.T) {
 	if !tailEventExist {
 		t.Error("kprobe event triggered by /usr/bin/tail should be present, unfiltered by the matchBinaries selector")
 	}
+}
+
+func TestKprobeMatchBinariesPrefixMatchArgs(t *testing.T) {
+	testKprobeMatchBinariesPrefixMatchArgs(t, false)
 }
 
 func loadTestCrd() error {
