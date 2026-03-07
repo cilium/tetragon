@@ -5446,7 +5446,7 @@ func TestKprobeListSyscallDupsRange(t *testing.T) {
 
 // This just tests if the hooks that we are using in our
 // trace kernel module examples are stable enough
-func TestTraceKernelModuleCallsStability(t *testing.T) {
+func testTraceKernelModuleCallsStability(t *testing.T, fentry bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
@@ -5467,12 +5467,16 @@ spec:
     - index: 0
       type: "module"
 `
-	createCrdFile(t, hookFull)
+	createCrdFileFlag(t, hookFull, fentry)
 
 	_, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
+}
+
+func TestTraceKernelModuleCallsStability(t *testing.T) {
+	testTraceKernelModuleCallsStability(t, false)
 }
 
 func TestLinuxBinprmExtractPath(t *testing.T) {

@@ -342,3 +342,8 @@ func TestFentryListSyscallDupsRange(t *testing.T) {
 	checkFentry(t)
 	testKprobeListSyscallDupsRange(t, true)
 }
+
+func TestFentryKernelModuleCallsStability(t *testing.T) {
+	checkFentry(t)
+	testTraceKernelModuleCallsStability(t, true)
+}
