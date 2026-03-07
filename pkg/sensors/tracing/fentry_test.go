@@ -494,3 +494,8 @@ func TestFentryFileTypeFilterNotRegular(t *testing.T) {
 	checkFentry(t)
 	testKprobeFileTypeFilterNotRegular(t, true)
 }
+
+func TestFentryFileTypeFilterSocket(t *testing.T) {
+	checkFentry(t)
+	testKprobeFileTypeFilterSocket(t, true)
+}
