@@ -469,3 +469,13 @@ func TestFentryRangeNotIn(t *testing.T) {
 	checkFentry(t)
 	testKprobeRangeOp(t, false, true)
 }
+
+func TestFentryGTOk(t *testing.T) {
+	checkFentry(t)
+	testKprobeGT(t, 0xffff1, false, true)
+}
+
+func TestFentryGTFail(t *testing.T) {
+	checkFentry(t)
+	testKprobeGT(t, 0xfffef, true, true)
+}
