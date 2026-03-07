@@ -7172,7 +7172,7 @@ func TestKprobeResolveSecondArg(t *testing.T) {
 	testKprobeResolveSecondArg(t, false)
 }
 
-func TestKprobeIgnore(t *testing.T) {
+func testKprobeIgnore(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -7207,7 +7207,7 @@ spec:
         values:
         - ` + pidStr
 
-	createCrdFile(t, lseekConfigHook_)
+	createCrdFileFlag(t, lseekConfigHook_, fentry)
 
 	kpChecker := ec.NewProcessKprobeChecker("lseek-checker").
 		WithFunctionName(sm.Suffix("sys_lseek"))
@@ -7223,6 +7223,10 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
 	require.NoError(t, err)
+}
+
+func TestKprobeIgnore(t *testing.T) {
+	testKprobeIgnore(t, false)
 }
 
 func TestKprobeArgsMulti(t *testing.T) {
