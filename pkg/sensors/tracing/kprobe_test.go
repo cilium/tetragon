@@ -5582,7 +5582,7 @@ func TestLinuxBinprmExtractPath(t *testing.T) {
 }
 
 // Test module loading/unloading on Ubuntu
-func TestTraceKernelModule(t *testing.T) {
+func testTraceKernelModule(t *testing.T, fentry bool) {
 	_, err := ftrace.ReadAvailFuncs("^find_module_sections$")
 	if err != nil {
 		t.Skip("Skipping test: could not find find_module_sections")
@@ -5658,7 +5658,7 @@ spec:
 		t.Skip("Skipping test: could not determin if this is an Ubuntu machine")
 	}
 
-	createCrdFile(t, hookFull)
+	createCrdFileFlag(t, hookFull, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -5743,6 +5743,10 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
+}
+
+func TestTraceKernelModule(t *testing.T) {
+	testTraceKernelModule(t, false)
 }
 
 func TestKprobeKernelStackTrace(t *testing.T) {

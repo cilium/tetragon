@@ -352,3 +352,8 @@ func TestFentryLinuxBinprmExtractPath(t *testing.T) {
 	checkFentry(t)
 	testLinuxBinprmExtractPath(t, true)
 }
+
+func TestFentryTraceKernelModule(t *testing.T) {
+	checkFentry(t)
+	testTraceKernelModule(t, true)
+}
