@@ -441,3 +441,8 @@ func TestFentryArgsMultiResolve(t *testing.T) {
 	checkFentry(t)
 	testKprobeArgsMultiResolve(t, true)
 }
+
+func TestFentryArgsFilter(t *testing.T) {
+	checkFentry(t)
+	testKprobeArgsFilter(t, true)
+}
