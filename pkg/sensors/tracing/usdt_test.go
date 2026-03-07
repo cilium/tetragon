@@ -7,7 +7,6 @@ package tracing
 
 import (
 	"context"
-	"os"
 	"os/exec"
 	"runtime"
 	"strconv"
@@ -136,11 +135,8 @@ spec:
 	var sens []*sensors.Sensor
 	var err error
 
-	nopConfigHook := []byte(nopHook)
-	err = os.WriteFile(testConfigFile, nopConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, nopHook)
+
 	sens, err = observertesthelper.GetDefaultSensorsWithFile(t, testConfigFile, tus.Conf().TetragonLib,
 		observertesthelper.WithMyPid(), observertesthelper.WithKeepCollection())
 	if err != nil {
@@ -174,11 +170,7 @@ spec:
     name: "usdt0"
 `
 
-	usdtConfigHook := []byte(usdtHook)
-	err := os.WriteFile(testConfigFile, usdtConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, usdtHook)
 
 	upChecker := ec.NewProcessUsdtChecker("USDT_GENERIC").
 		WithProcess(ec.NewProcessChecker().
@@ -283,11 +275,7 @@ spec:
 `
 	}
 
-	usdtConfigHook := []byte(usdtHook)
-	err := os.WriteFile(testConfigFile, usdtConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, usdtHook)
 
 	upChecker_0 := ec.NewProcessUsdtChecker("USDT_GENERIC_0").
 		WithProcess(ec.NewProcessChecker().
@@ -424,11 +412,7 @@ spec:
           - "` + argValue + `"
 `
 
-	usdtConfigHook := []byte(usdtHook)
-	err := os.WriteFile(testConfigFile, usdtConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, usdtHook)
 
 	upChecker_0 := ec.NewProcessUsdtChecker("USDT").
 		WithProcess(ec.NewProcessChecker().
@@ -507,11 +491,7 @@ spec:
       - action: Sigkill
 `
 
-	usdtConfigHook := []byte(usdtHook)
-	err := os.WriteFile(testConfigFile, usdtConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, usdtHook)
 
 	upChecker := ec.NewProcessUsdtChecker("USDT_GENERIC").
 		WithProcess(ec.NewProcessChecker().
@@ -583,11 +563,7 @@ spec:
         argValue: 240
 `
 
-	usdtConfigHook := []byte(usdtHook)
-	err := os.WriteFile(testConfigFile, usdtConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, usdtHook)
 
 	upChecker := ec.NewProcessUsdtChecker("USDT").
 		WithProcess(ec.NewProcessChecker().
@@ -721,11 +697,7 @@ spec:
         argValue: ` + strconv.Itoa(tt[2].returnVal) + `
 `
 
-	usdtConfigHook := []byte(usdtHook)
-	err := os.WriteFile(testConfigFile, usdtConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, usdtHook)
 
 	var checkers []ec.EventChecker
 	for i := range tt {
