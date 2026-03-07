@@ -391,3 +391,8 @@ func TestFentryBpfCmd(t *testing.T) {
 	checkFentry(t)
 	testKprobeBpfCmd(t, true)
 }
+
+func TestFentryMultiSymbolInstancesOk(t *testing.T) {
+	checkFentry(t)
+	testKprobeMultiSymbolInstancesOk(t, true)
+}
