@@ -36,6 +36,7 @@ import (
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/policyfilter"
 
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/arch"
@@ -4518,15 +4519,22 @@ spec:
 		return nil
 	}
 
-	sens, err := sensors.GetMergedSensorFromParserPolicy(tp)
+	sens, err := sensors.SensorsFromPolicy(tp, policyfilter.NoFilterID)
 	if err != nil {
 		return err
 	}
-	err = sens.Load(option.Config.BpfDir)
+
+	// There's only single sensor expected from the crd above.
+	if len(sens) != 1 {
+		return errors.New("expoected just single sensor")
+	}
+	s := sens[0]
+
+	err = s.Load(option.Config.BpfDir)
 	if err != nil {
 		return err
 	}
-	return sens.Unload(true)
+	return s.Destroy(true)
 }
 
 func TestKprobeBpfAttr(t *testing.T) {
