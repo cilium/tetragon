@@ -367,3 +367,8 @@ func TestFentryUserStackTrace(t *testing.T) {
 	checkFentry(t)
 	testKprobeUserStackTrace(t, true)
 }
+
+func TestFentryMultiMatcArgs(t *testing.T) {
+	checkFentry(t)
+	testKprobeMultiMatcArgs(t, true)
+}
