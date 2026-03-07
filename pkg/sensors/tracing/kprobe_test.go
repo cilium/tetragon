@@ -6864,7 +6864,7 @@ func TestMaxPath(t *testing.T) {
 	testMaxPath(t, false)
 }
 
-func TestKprobeDentryPath(t *testing.T) {
+func testKprobeDentryPath(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -6924,7 +6924,7 @@ spec:
         values:
         - "` + check1 + `"
 `
-	createCrdFile(t, hook)
+	createCrdFileFlag(t, hook, fentry)
 
 	t.Logf("Removing file 1 %s, check %s\n", file1.Name(), check1)
 	t.Logf("Removing file 2 %s, check %s\n", file2.Name(), check2)
@@ -6962,6 +6962,10 @@ spec:
 	// ... but not for file_2 (check_2).
 	err = jsonchecker.JsonTestCheckExpect(t, getChecker(check2), true)
 	require.NoError(t, err)
+}
+
+func TestKprobeDentryPath(t *testing.T) {
+	testKprobeDentryPath(t, false)
 }
 
 func TestKprobeResolvePid(t *testing.T) {
