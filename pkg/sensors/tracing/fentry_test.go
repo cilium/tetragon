@@ -449,3 +449,8 @@ func TestFentryArgsFilter(t *testing.T) {
 	checkFentry(t)
 	testKprobeArgsFilter(t, true)
 }
+
+func TestFentryCapabilitiesGained(t *testing.T) {
+	checkFentry(t)
+	testCapabilitiesGained(t, true)
+}

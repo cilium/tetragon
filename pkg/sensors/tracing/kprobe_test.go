@@ -7466,7 +7466,7 @@ func TestKprobeArgsFilter(t *testing.T) {
 	testKprobeArgsFilter(t, false)
 }
 
-func TestCapabilitiesGained(t *testing.T) {
+func testCapabilitiesGained(t *testing.T, fentry bool) {
 	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
@@ -7506,6 +7506,11 @@ func TestCapabilitiesGained(t *testing.T) {
 		}},
 	}
 
+	if fentry {
+		spec.Fentries = spec.KProbes
+		spec.KProbes = []v1alpha1.KProbeSpec{}
+	}
+
 	loadGenericSensorTest(t, spec)
 	t0 := time.Now()
 	loadElapsed := time.Since(t0)
@@ -7543,6 +7548,10 @@ func TestCapabilitiesGained(t *testing.T) {
 
 	perfring.RunTest(t, ctx, ops, eventFn)
 	require.Equal(t, 1, countEvents, "expected single event")
+}
+
+func TestCapabilitiesGained(t *testing.T) {
+	testCapabilitiesGained(t, false)
 }
 
 func TestKprobeResolveCurrent(t *testing.T) {
