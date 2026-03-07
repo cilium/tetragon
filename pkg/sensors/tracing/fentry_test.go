@@ -451,3 +451,8 @@ func TestFentryCapabilitiesGained(t *testing.T) {
 	checkFentry(t)
 	testCapabilitiesGained(t, true)
 }
+
+func TestFentryResolveCurrent(t *testing.T) {
+	checkFentry(t)
+	testKprobeResolveCurrent(t, true)
+}
