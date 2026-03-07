@@ -511,11 +511,8 @@ spec:
 	var sens []*sensors.Sensor
 	var err error
 
-	readConfigHook := []byte(readHook)
-	err = os.WriteFile(testConfigFile, readConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, readHook)
+
 	sens, err = observertesthelper.GetDefaultSensorsWithFile(t, testConfigFile, tus.Conf().TetragonLib,
 		observertesthelper.WithKeepCollection())
 	if err != nil {
@@ -668,11 +665,7 @@ spec:
       type: "int32"
 `
 
-	lseekConfigHook := []byte(lseekConfigHook_)
-	err := os.WriteFile(testConfigFile, lseekConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, lseekConfigHook_)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -882,17 +875,14 @@ func TestUInt16Tracepoint(t *testing.T) {
 	require.Equal(t, 3, count, "expected three events: one for each of 7777, 7779 and 7780")
 }
 
-func testListSyscallsDupsRange(t *testing.T, checker *ec.UnorderedEventChecker, configHook string) {
+func testListSyscallsDupsRange(t *testing.T, checker *ec.UnorderedEventChecker, configHook string, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	err := os.WriteFile(testConfigFile, []byte(configHook), 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFileFlag(t, configHook, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -969,7 +959,7 @@ spec:
 		checker.AddChecks(tpCheckerDup)
 	}
 
-	testListSyscallsDupsRange(t, checker, configHook)
+	testListSyscallsDupsRange(t, checker, configHook, false)
 }
 
 func TestTracepointResolve(t *testing.T) {

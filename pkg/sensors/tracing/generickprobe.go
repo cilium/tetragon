@@ -527,13 +527,14 @@ type hasMaps struct {
 	override   bool
 	sockTrack  bool
 	selector   bool
+	fentry     bool
 }
 
 // hasMapsSetup setups the has maps for the per policy maps. The per kprobe maps
 // are setup later in createSingleKprobeSensor or createMultiKprobeSensor.
-func hasMapsSetup(spec *v1alpha1.TracingPolicySpec) hasMaps {
-	has := hasMaps{}
-	for _, kprobe := range spec.KProbes {
+func hasMapsSetup(spec *v1alpha1.TracingPolicySpec, kprobes []v1alpha1.KProbeSpec, fentry bool) hasMaps {
+	has := hasMaps{fentry: fentry}
+	for _, kprobe := range kprobes {
 		has.fdInstall = has.fdInstall || selectors.HasFDInstall(kprobe.Selectors)
 		has.enforcer = has.enforcer || len(spec.Enforcers) != 0
 		has.rateLimit = has.rateLimit || selectors.HasRateLimit(kprobe.Selectors)
@@ -554,15 +555,30 @@ func createGenericKprobeSensor(
 	polInfo *policyInfo,
 	valInfo []*kpValidateInfo,
 ) (*sensors.Sensor, error) {
+	return createGenericKprobeSensorFlag(spec, name, polInfo, valInfo, false)
+}
+
+func createGenericKprobeSensorFlag(
+	spec *v1alpha1.TracingPolicySpec,
+	name string,
+	polInfo *policyInfo,
+	valInfo []*kpValidateInfo,
+	fentry bool,
+) (*sensors.Sensor, error) {
 	var progs []*program.Program
 	var maps []*program.Map
 	var ids []idtable.EntryID
 	var useMulti bool
 	var selMaps *selectors.KernelSelectorMaps
+	var kprobes []v1alpha1.KProbeSpec
 
-	kprobes := spec.KProbes
+	if fentry {
+		kprobes = spec.Fentries
+	} else {
+		kprobes = spec.KProbes
+	}
 
-	has := hasMapsSetup(spec)
+	has := hasMapsSetup(spec, kprobes, fentry)
 
 	// use multi kprobe only if:
 	// - it's not disabled by spec option
@@ -573,6 +589,10 @@ func createGenericKprobeSensor(
 
 		// arm does not override on top of kprobe.multi
 		if isArm() && (has.enforcer || has.override) {
+			useMulti = false
+		}
+		// there's no multi support yet
+		if fentry {
 			useMulti = false
 		}
 	}
@@ -613,7 +633,7 @@ func createGenericKprobeSensor(
 			}
 			dups[sym] = instance
 
-			id, err := addKprobe(sym, instance, &kprobes[i], &in)
+			id, err := addKprobe(sym, instance, &kprobes[i], &in, has)
 			if err != nil {
 				return nil, err
 			}
@@ -680,7 +700,7 @@ func initEventConfig() *api.EventConfig {
 // addKprobe will, amongst other things, create a generic kprobe entry and add
 // it to the genericKprobeTable. The caller should make sure that this entry is
 // properly removed on kprobe removal.
-func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKprobeIn) (id idtable.EntryID, err error) {
+func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKprobeIn, has hasMaps) (id idtable.EntryID, err error) {
 	var argSigPrinters []argPrinter
 	var argReturnPrinters []argPrinter
 	var setRetprobe bool
@@ -943,7 +963,8 @@ func addKprobe(funcName string, instance int, f *v1alpha1.KProbeSpec, in *addKpr
 	eventConfig.FuncId = uint32(kprobeEntry.tableId.ID)
 
 	logger.GetLogger().
-		Info("Added kprobe", "return", setRetprobe, "function", kprobeEntry.funcName, "override", kprobeEntry.hasOverride)
+		Info("Added kprobe", "return", setRetprobe, "function", kprobeEntry.funcName,
+			"override", kprobeEntry.hasOverride, "enforcer", has.enforcer)
 
 	return kprobeEntry.tableId, nil
 }
@@ -959,15 +980,41 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 		pinProg = fmt.Sprintf("%s:%d", kprobeEntry.funcName, kprobeEntry.instance)
 	}
 
-	load := program.Builder(
-		path.Join(option.Config.HubbleLib, loadProgName),
-		kprobeEntry.funcName,
-		"kprobe/generic_kprobe",
-		pinProg,
-		"generic_kprobe").
-		SetLoaderData(kprobeEntry.tableId).
-		SetPolicy(kprobeEntry.policyName)
+	var load *program.Program
+
+	if has.fentry {
+		data := &program.TracingAttachData{
+			AttachTo: kprobeEntry.funcName,
+		}
+
+		loadProgName, loadProgRetName = config.GenericTracingObjs()
+
+		load = program.Builder(
+			path.Join(option.Config.HubbleLib, loadProgName),
+			kprobeEntry.funcName,
+			"fentry/generic_fentry",
+			pinProg,
+			"generic_fentry").
+			SetAttachData(data)
+
+		tailCalls := program.MapBuilderProgram("fentry_calls", load)
+		maps = append(maps, tailCalls)
+	} else {
+		load = program.Builder(
+			path.Join(option.Config.HubbleLib, loadProgName),
+			kprobeEntry.funcName,
+			"kprobe/generic_kprobe",
+			pinProg,
+			"generic_kprobe")
+
+		tailCalls := program.MapBuilderProgram("kprobe_calls", load)
+		maps = append(maps, tailCalls)
+	}
+
+	load.SetPolicy(kprobeEntry.policyName)
+	load.SetLoaderData(kprobeEntry.tableId)
 	load.Override = kprobeEntry.hasOverride
+
 	if load.Override {
 		load.OverrideFmodRet = isSecurityFunc && bpf.HasModifyReturn()
 	}
@@ -981,9 +1028,6 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 
 	configMap := program.MapBuilderProgram("config_map", load)
 	maps = append(maps, configMap)
-
-	tailCalls := program.MapBuilderProgram("kprobe_calls", load)
-	maps = append(maps, tailCalls)
 
 	filterMap := program.MapBuilderProgram("filter_map", load)
 	maps = append(maps, filterMap)
@@ -1054,15 +1098,40 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 		if kprobeEntry.instance != 0 {
 			pinRetProg = sensors.PathJoin(fmt.Sprintf("%s_return:%d", kprobeEntry.funcName, kprobeEntry.instance))
 		}
-		loadret := program.Builder(
-			path.Join(option.Config.HubbleLib, loadProgRetName),
-			kprobeEntry.funcName,
-			"kprobe/generic_retkprobe",
-			pinRetProg,
-			"generic_kprobe").
-			SetRetProbe(true).
-			SetLoaderData(kprobeEntry.tableId).
-			SetPolicy(kprobeEntry.policyName)
+
+		var loadret *program.Program
+
+		if has.fentry {
+			data := &program.TracingAttachData{
+				AttachTo: kprobeEntry.funcName,
+			}
+
+			loadret = program.Builder(
+				path.Join(option.Config.HubbleLib, loadProgRetName),
+				kprobeEntry.funcName,
+				"fexit/generic_fexit",
+				pinRetProg,
+				"generic_fentry").
+				SetAttachData(data)
+
+			tailCalls := program.MapBuilderProgram("fexit_calls", loadret)
+			maps = append(maps, tailCalls)
+		} else {
+			loadret = program.Builder(
+				path.Join(option.Config.HubbleLib, loadProgRetName),
+				kprobeEntry.funcName,
+				"kprobe/generic_retkprobe",
+				pinRetProg,
+				"generic_kprobe")
+
+			tailCalls := program.MapBuilderProgram("retkprobe_calls", loadret)
+			maps = append(maps, tailCalls)
+		}
+
+		loadret.SetRetProbe(true)
+		loadret.SetLoaderData(kprobeEntry.tableId)
+		loadret.SetPolicy(kprobeEntry.policyName)
+
 		progs = append(progs, loadret)
 
 		retProbe := program.MapBuilderSensor("retprobe_map", loadret)
@@ -1070,9 +1139,6 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 
 		retConfigMap := program.MapBuilderProgram("config_map", loadret)
 		maps = append(maps, retConfigMap)
-
-		tailCalls := program.MapBuilderProgram("retkprobe_calls", loadret)
-		maps = append(maps, tailCalls)
 
 		filterMap := program.MapBuilderProgram("filter_map", loadret)
 		maps = append(maps, filterMap)
@@ -1135,7 +1201,9 @@ func getMapLoad(load *program.Program, kprobeEntry *genericKprobe, index uint32)
 	return selectorsMaploads(state, index)
 }
 
-func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Program, maps []*program.Map, verbose int) error {
+func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Program, maps []*program.Map,
+	verbose int, fentry bool) error {
+
 	gk, err := genericKprobeTableGet(id)
 	if err != nil {
 		return err
@@ -1161,10 +1229,14 @@ func loadSingleKprobeSensor(id idtable.EntryID, bpfDir string, load *program.Pro
 	}
 	load.MapLoad = append(load.MapLoad, config)
 
-	if err := program.LoadKprobeProgram(bpfDir, load, maps, verbose); err == nil {
-		logger.GetLogger().Info(fmt.Sprintf("Loaded generic kprobe program: %s -> %s", load.Name, load.Attach))
+	if fentry {
+		if err = program.LoadTracingProgram(bpfDir, load, maps, verbose); err == nil {
+			logger.GetLogger().Info(fmt.Sprintf("Loaded generic fentry program: %s -> %s", load.Name, load.Attach))
+		}
 	} else {
-		return err
+		if err = program.LoadKprobeProgram(bpfDir, load, maps, verbose); err == nil {
+			logger.GetLogger().Info(fmt.Sprintf("Loaded generic kprobe program: %s -> %s", load.Name, load.Attach))
+		}
 	}
 
 	return err
@@ -1219,9 +1291,9 @@ func loadMultiKprobeSensor(ids []idtable.EntryID, bpfDir string, load *program.P
 	return nil
 }
 
-func loadGenericKprobeSensor(bpfDir string, load *program.Program, maps []*program.Map, verbose int) error {
+func loadGenericKprobeSensor(bpfDir string, load *program.Program, maps []*program.Map, verbose int, fentry bool) error {
 	if id, ok := load.LoaderData.(idtable.EntryID); ok {
-		return loadSingleKprobeSensor(id, bpfDir, load, maps, verbose)
+		return loadSingleKprobeSensor(id, bpfDir, load, maps, verbose, fentry)
 	}
 	if ids, ok := load.LoaderData.([]idtable.EntryID); ok {
 		return loadMultiKprobeSensor(ids, bpfDir, load, maps, verbose)
@@ -1472,5 +1544,5 @@ func retprobeMergeEvents[T evArgsRetriever](unix T, pendingEvents *lru.Cache[pen
 }
 
 func (k *observerKprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
-	return loadGenericKprobeSensor(args.BPFDir, args.Load, args.Maps, args.Verbose)
+	return loadGenericKprobeSensor(args.BPFDir, args.Load, args.Maps, args.Verbose, false)
 }

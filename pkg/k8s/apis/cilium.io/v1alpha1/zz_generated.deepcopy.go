@@ -732,6 +732,13 @@ func (in *TracingPolicySpec) DeepCopyInto(out *TracingPolicySpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.Fentries != nil {
+		in, out := &in.Fentries, &out.Fentries
+		*out = make([]KProbeSpec, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	if in.PodSelector != nil {
 		in, out := &in.PodSelector, &out.PodSelector
 		*out = new(v1.LabelSelector)

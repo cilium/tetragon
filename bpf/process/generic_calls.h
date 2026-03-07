@@ -747,6 +747,37 @@ generic_process_event_and_setup(struct pt_regs *ctx, struct bpf_map_def *tailcal
 		retprobe_map_set(e->func_id, e->retprobe_id, e->common.ktime, 1);
 #endif
 
+#ifdef GENERIC_FENTRY
+	struct bpf_raw_tracepoint_args *raw_args = (struct bpf_raw_tracepoint_args *)ctx;
+
+	if (config->syscall) {
+		struct pt_regs *_ctx = (struct pt_regs *)BPF_CORE_READ(raw_args, args[0]);
+
+		if (!_ctx)
+			return 0;
+		e->a0 = PT_REGS_PARM1_CORE_SYSCALL(_ctx);
+		e->a1 = PT_REGS_PARM2_CORE_SYSCALL(_ctx);
+		e->a2 = PT_REGS_PARM3_CORE_SYSCALL(_ctx);
+		e->a3 = PT_REGS_PARM4_CORE_SYSCALL(_ctx);
+		e->a4 = PT_REGS_PARM5_CORE_SYSCALL(_ctx);
+	} else {
+		e->a0 = BPF_CORE_READ(raw_args, args[0]);
+		e->a1 = BPF_CORE_READ(raw_args, args[1]);
+		e->a2 = BPF_CORE_READ(raw_args, args[2]);
+		e->a3 = BPF_CORE_READ(raw_args, args[3]);
+		e->a4 = BPF_CORE_READ(raw_args, args[4]);
+	}
+
+	generic_process_init(e, MSG_OP_GENERIC_KPROBE);
+
+	e->retprobe_id = retprobe_map_get_key(ctx);
+
+	/* If return arg is needed mark retprobe */
+	ty = config->argreturn;
+	if (ty > 0)
+		retprobe_map_set(e->func_id, e->retprobe_id, e->common.ktime, 1);
+#endif
+
 #ifdef GENERIC_LSM
 	struct bpf_raw_tracepoint_args *raw_args = (struct bpf_raw_tracepoint_args *)ctx;
 
@@ -1126,7 +1157,7 @@ generic_output(void *ctx, u8 op)
 		return 0;
 
 /* We don't need this data in return kprobe event */
-#if !defined(GENERIC_KRETPROBE) && !defined(GENERIC_URETPROBE)
+#if !defined(GENERIC_KRETPROBE) && !defined(GENERIC_URETPROBE) && !defined(GENERIC_FEXIT)
 #ifdef __NS_CHANGES_FILTER
 	/* update the namespaces if we matched a change on that */
 	if (e->sel.match_ns) {
@@ -1201,7 +1232,7 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 	do_copy = config->argreturncopy;
 	if (ty_arg) {
 		size += read_arg(ctx, 0, ty_arg, size, ret, 0, __READ_ARG_ALL);
-#if defined(__LARGE_BPF_PROG) && defined(GENERIC_KRETPROBE)
+#if defined(__LARGE_BPF_PROG) && (defined(GENERIC_KRETPROBE) || defined(GENERIC_FEXIT))
 		struct socket_owner owner;
 
 		switch (config->argreturnaction) {
@@ -1240,7 +1271,7 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 
 	/* Complete message header and send */
 	enter = event_find_curr(&ppid, &walker);
-#ifdef GENERIC_KRETPROBE
+#if defined(GENERIC_KRETPROBE) || defined(GENERIC_FEXIT)
 	e->common.op = MSG_OP_GENERIC_KPROBE;
 #else
 	e->common.op = MSG_OP_GENERIC_UPROBE;
