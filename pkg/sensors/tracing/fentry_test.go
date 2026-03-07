@@ -360,3 +360,8 @@ func TestFentryTraceKernelModule(t *testing.T) {
 	checkFentry(t)
 	testTraceKernelModule(t, true)
 }
+
+func TestFentryKernelStackTrace(t *testing.T) {
+	checkFentry(t)
+	testKprobeKernelStackTrace(t, true)
+}
