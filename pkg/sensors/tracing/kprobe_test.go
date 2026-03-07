@@ -4768,7 +4768,7 @@ spec:
 	return s.Destroy(true)
 }
 
-func TestKprobeBpfAttr(t *testing.T) {
+func testKprobeBpfAttr(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -4787,7 +4787,7 @@ spec:
    - index: 1
      type: "bpf_attr"
 `
-	createCrdFile(t, hook)
+	createCrdFileFlag(t, hook, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -4815,6 +4815,10 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
+}
+
+func TestKprobeBpfAttr(t *testing.T) {
+	testKprobeBpfAttr(t, false)
 }
 
 func TestLoadKprobeSensor(t *testing.T) {
