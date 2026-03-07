@@ -7093,7 +7093,7 @@ func TestKprobeArgsReverse(t *testing.T) {
 	testKprobeArgsReverse(t, false)
 }
 
-func TestKprobeResolveSecondArg(t *testing.T) {
+func testKprobeResolveSecondArg(t *testing.T, fentry bool) {
 	if !kernels.MinKernelVersion("5.4") {
 		t.Skip("Test requires kernel 5.4+")
 	}
@@ -7118,7 +7118,7 @@ spec:
       resolve: "sa_family"
 `
 
-	createCrdFile(t, hook)
+	createCrdFileFlag(t, hook, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -7144,6 +7144,10 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
+}
+
+func TestKprobeResolveSecondArg(t *testing.T) {
+	testKprobeResolveSecondArg(t, false)
 }
 
 func TestKprobeIgnore(t *testing.T) {
