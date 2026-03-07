@@ -7602,7 +7602,7 @@ func TestCapabilitiesGained(t *testing.T) {
 	testCapabilitiesGained(t, false)
 }
 
-func TestKprobeResolveCurrent(t *testing.T) {
+func testKprobeResolveCurrent(t *testing.T, fentry bool) {
 	if !kernels.MinKernelVersion("5.4") {
 		t.Skip("Test requires kernel 5.4+")
 	}
@@ -7659,7 +7659,7 @@ spec:
         - "` + strconv.Itoa(pid) + `"
 `
 
-	createCrdFile(t, hook)
+	createCrdFileFlag(t, hook, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -7690,6 +7690,10 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
+}
+
+func TestKprobeResolveCurrent(t *testing.T) {
+	testKprobeResolveCurrent(t, false)
 }
 
 func testKprobeRangeOp(t *testing.T, in bool) {
