@@ -409,3 +409,8 @@ func TestFentryMaxPath(t *testing.T) {
 	checkFentry(t)
 	testMaxPath(t, true)
 }
+
+func TestFentryDentryPath(t *testing.T) {
+	checkFentry(t)
+	testKprobeDentryPath(t, true)
+}
