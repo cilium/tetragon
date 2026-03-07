@@ -310,3 +310,8 @@ func TestFentryMatchBinariesPrefixMatchArgs(t *testing.T) {
 	checkFentry(t)
 	testKprobeMatchBinariesPrefixMatchArgs(t, true)
 }
+
+func TestFentryBpfAttr(t *testing.T) {
+	checkFentry(t)
+	testKprobeBpfAttr(t, true)
+}
