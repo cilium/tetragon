@@ -419,3 +419,8 @@ func TestFentryResolvePid(t *testing.T) {
 	checkFentry(t)
 	testKprobeResolvePid(t, true)
 }
+
+func TestFentryArgsReverse(t *testing.T) {
+	checkFentry(t)
+	testKprobeArgsReverse(t, true)
+}
