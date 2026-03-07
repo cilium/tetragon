@@ -6610,7 +6610,7 @@ func TestLongPath(t *testing.T) {
 	testLongPath(t, false)
 }
 
-func TestMaxPath(t *testing.T) {
+func testMaxPath(t *testing.T, fentry bool) {
 	// depending on temp dir, this should generate a path of ~1500 chars
 	// we can increase this to reach ~4000 for kernel supporting more than 11 dentry walk
 	tmp := t.TempDir()
@@ -6667,7 +6667,7 @@ spec:
     - index: 1
       type: "file"`
 
-		createCrdFile(t, spec)
+		createCrdFileFlag(t, spec, fentry)
 
 		kprobeCheck := ec.NewProcessKprobeChecker("file").
 			WithFunctionName(sm.Full("fd_install")).
@@ -6766,7 +6766,7 @@ spec:
 				))
 		}
 
-		createCrdFile(t, spec)
+		createCrdFileFlag(t, spec, fentry)
 
 		obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 		if err != nil {
@@ -6849,7 +6849,7 @@ spec:
     - index: 1
       type: "dentry"`
 
-		createCrdFile(t, hook)
+		createCrdFileFlag(t, hook, fentry)
 
 		t.Logf("Removing file %s, check %s\n", pathRemoved, pathRemovedCheck)
 
@@ -6880,6 +6880,10 @@ spec:
 		err = jsonchecker.JsonTestCheck(t, checker)
 		require.NoError(t, err)
 	})
+}
+
+func TestMaxPath(t *testing.T) {
+	testMaxPath(t, false)
 }
 
 func TestKprobeDentryPath(t *testing.T) {
