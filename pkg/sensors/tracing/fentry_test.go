@@ -385,3 +385,7 @@ func TestFentryProcessSetCap(t *testing.T) {
 	checkFentry(t)
 	testProcessSetCap(t, true)
 }
+
+func TestFentryMissedProgStatsKprobeMulti(t *testing.T) {
+	t.Skip("TODO")
+}
