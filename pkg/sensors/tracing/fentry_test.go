@@ -411,3 +411,8 @@ func TestFentryDentryPath(t *testing.T) {
 	checkFentry(t)
 	testKprobeDentryPath(t, true)
 }
+
+func TestFentryResolvePid(t *testing.T) {
+	checkFentry(t)
+	testKprobeResolvePid(t, true)
+}
