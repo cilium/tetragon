@@ -7,7 +7,6 @@ package tracing
 
 import (
 	"context"
-	"os"
 	"os/exec"
 	"runtime"
 	"strconv"
@@ -53,11 +52,7 @@ spec:
         argError: 123
 `
 
-	pathConfigHook := []byte(pathHook)
-	err := os.WriteFile(testConfigFile, pathConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, pathHook)
 
 	upChecker := ec.NewProcessUprobeChecker("UPROBE_OVERRIDE").
 		WithProcess(ec.NewProcessChecker().
@@ -152,11 +147,7 @@ spec:
 `
 	}
 
-	pathConfigHook := []byte(pathHook)
-	err := os.WriteFile(testConfigFile, pathConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, pathHook)
 
 	upChecker := ec.NewProcessUprobeChecker("UPROBE_BINARIES_MATCH").
 		WithProcess(ec.NewProcessChecker().
@@ -274,11 +265,7 @@ spec:
       resolve: "` + tt[4].field + `"
 `
 
-	uprobeConfigHook := []byte(uprobeHook)
-	err := os.WriteFile(testConfigFile, uprobeConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, uprobeHook)
 
 	var checkers []ec.EventChecker
 	for i := range tt {
@@ -357,11 +344,7 @@ spec:
       resolve: "` + tt[0].field + `"
 `
 
-	uprobeConfigHook := []byte(uprobeHook)
-	err := os.WriteFile(testConfigFile, uprobeConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, uprobeHook)
 
 	var checkers []ec.EventChecker
 	for i := range tt {
@@ -448,11 +431,7 @@ spec:
         - "` + ass + `"
 `
 
-	pathConfigHook := []byte(pathHook)
-	err := os.WriteFile(testConfigFile, pathConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, pathHook)
 
 	upChecker := ec.NewProcessUprobeChecker("UPROBE_BINARIES_MATCH").
 		WithProcess(ec.NewProcessChecker().
@@ -573,11 +552,7 @@ spec:
       resolve: "w0"`
 	}
 
-	pathConfigHook := []byte(pathHook)
-	err := os.WriteFile(testConfigFile, pathConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, pathHook)
 
 	upChecker := ec.NewProcessUprobeChecker("UPROBE_DATA_MATCH").
 		WithProcess(ec.NewProcessChecker().
@@ -682,11 +657,7 @@ spec:
         - "` + strconv.Itoa(value) + `"`
 	}
 
-	pathConfigHook := []byte(pathHook)
-	err := os.WriteFile(testConfigFile, pathConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, pathHook)
 
 	upChecker := ec.NewProcessUprobeChecker("UPROBE_DATA_MATCH").
 		WithProcess(ec.NewProcessChecker().
@@ -779,11 +750,7 @@ spec: ` + disableUprobeMulti + `
       resolve: "rdi"
 `
 
-	pathConfigHook := []byte(pathHook)
-	err := os.WriteFile(testConfigFile, pathConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, pathHook)
 
 	upChecker := ec.NewProcessUprobeChecker("UPROBE_DATA_MATCH").
 		WithProcess(ec.NewProcessChecker().
@@ -892,11 +859,7 @@ spec: ` + disableUprobeMulti + `
       resolve: "rdi"
 `
 
-	pathConfigHook := []byte(pathHook)
-	err := os.WriteFile(testConfigFile, pathConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, pathHook)
 
 	upChecker := ec.NewProcessUprobeChecker("UPROBE_DATA_MATCH").
 		WithProcess(ec.NewProcessChecker().
@@ -1011,11 +974,7 @@ spec:
         - "` + str + `"
 `
 
-	pathConfigHook := []byte(pathHook)
-	err := os.WriteFile(testConfigFile, pathConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, pathHook)
 
 	upChecker := ec.NewProcessUprobeChecker("UPROBE_DATA_MATCH").
 		WithProcess(ec.NewProcessChecker().
@@ -1197,11 +1156,7 @@ spec:
         - "rip=7%rip"
 `
 
-	pathConfigHook := []byte(pathHook)
-	err := os.WriteFile(testConfigFile, pathConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, pathHook)
 
 	upChecker := ec.NewProcessUprobeChecker("UPROBE_DATA_MATCH").
 		WithProcess(ec.NewProcessChecker().
@@ -1288,11 +1243,7 @@ spec:
       resolve: "second.third.val"
 `
 
-	uprobeConfigHook := []byte(uprobeHook)
-	err := os.WriteFile(testConfigFile, uprobeConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, uprobeHook)
 
 	var checkers []ec.EventChecker
 	for i := range tt {
@@ -1361,11 +1312,7 @@ spec:
           - "0"
 `
 
-	uprobeConfigHook := []byte(uprobeHook)
-	err := os.WriteFile(testConfigFile, uprobeConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, uprobeHook)
 
 	kpArgs := []*ec.KprobeArgumentChecker{
 		ec.NewKprobeArgumentChecker(),

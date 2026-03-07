@@ -152,11 +152,8 @@ spec:
 	var sens []*sensors.Sensor
 	var err error
 
-	nopConfigHook := []byte(nopHook)
-	err = os.WriteFile(testConfigFile, nopConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, nopHook)
+
 	sens, err = observertesthelper.GetDefaultSensorsWithFile(t, testConfigFile, tus.Conf().TetragonLib,
 		observertesthelper.WithMyPid(), observertesthelper.WithKeepCollection())
 	if err != nil {
@@ -194,11 +191,7 @@ spec:
       type: "string"
 `
 
-	uretprobeConfigHook := []byte(uretprobeHook)
-	err := os.WriteFile(testConfigFile, uretprobeConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, uretprobeHook)
 
 	upChecker := ec.NewProcessUprobeChecker("URETPROBE_GENERIC").
 		WithProcess(ec.NewProcessChecker().
@@ -249,11 +242,7 @@ spec:
       returnCopy: true
 `
 
-	uretprobeConfigHook := []byte(uretprobeHook)
-	err := os.WriteFile(testConfigFile, uretprobeConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, uretprobeHook)
 
 	upChecker := ec.NewProcessUprobeChecker("URETPROBE_RETCOPY").
 		WithProcess(ec.NewProcessChecker().
@@ -310,11 +299,7 @@ spec:
         - ` + pidStr + `
 `
 
-	pathConfigHook := []byte(pathHook)
-	err = os.WriteFile(testConfigFile, pathConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, pathHook)
 
 	upChecker := ec.NewProcessUprobeChecker("UPROBE_PID_MATCH").
 		WithProcess(ec.NewProcessChecker().
@@ -371,11 +356,7 @@ spec:
         - "` + uprobeTest1 + `"
 `
 
-	pathConfigHook := []byte(pathHook)
-	err := os.WriteFile(testConfigFile, pathConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, pathHook)
 
 	upChecker := ec.NewProcessUprobeChecker("UPROBE_BINARIES_MATCH").
 		WithProcess(ec.NewProcessChecker().
@@ -444,11 +425,7 @@ spec:
         - "` + testBin + `"
 `
 
-	uprobeConfigHook := []byte(uprobeHook)
-	err := os.WriteFile(testConfigFile, uprobeConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, uprobeHook)
 
 	testCmd := exec.CommandContext(ctx, testBin, "--sensor", "uprobe")
 	testPipes, err := testutils.NewCmdBufferedPipes(testCmd)
@@ -718,10 +695,7 @@ func testUprobeArgs(t *testing.T, checkers [5]*ec.ProcessUprobeChecker, tp traci
 		t.Fatalf("marshal failed with %v", err)
 	}
 
-	err = os.WriteFile(testConfigFile, pathConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, string(pathConfigHook[:]))
 
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
@@ -852,11 +826,7 @@ spec:
 `
 	}
 
-	pathConfigHook := []byte(pathHook)
-	err := os.WriteFile(testConfigFile, pathConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, pathHook)
 
 	upChecker := ec.NewProcessUprobeChecker("UPROBE_BINARIES_MATCH").
 		WithProcess(ec.NewProcessChecker().
@@ -1065,8 +1035,7 @@ spec:
         - "123"
 `
 
-	err := os.WriteFile(testConfigFile, []byte(uprobeHook), 0644)
-	require.NoError(t, err)
+	createCrdFile(t, uprobeHook)
 
 	upChecker := ec.NewProcessUprobeChecker("UPROBE_SELECTOR_MATCH").
 		WithProcess(ec.NewProcessChecker().
@@ -1124,8 +1093,7 @@ spec:
         - "0"
 `
 
-	err := os.WriteFile(testConfigFile, []byte(uprobeHook), 0644)
-	require.NoError(t, err)
+	createCrdFile(t, uprobeHook)
 
 	upChecker := ec.NewProcessUprobeChecker("UPROBE_RETURN_SELECTOR_MATCH").
 		WithProcess(ec.NewProcessChecker().
