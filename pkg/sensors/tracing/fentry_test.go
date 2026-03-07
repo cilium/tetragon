@@ -496,3 +496,8 @@ func TestFentryFileTypeFilterSocket(t *testing.T) {
 	checkFentry(t)
 	testKprobeFileTypeFilterSocket(t, true)
 }
+
+func TestFentryFileTypeFilterNotPipe(t *testing.T) {
+	checkFentry(t)
+	testKprobeFileTypeFilterNotPipe(t, true)
+}
