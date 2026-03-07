@@ -5,6 +5,7 @@ package logger
 
 import (
 	"context"
+	"io"
 	"log/slog"
 	"os"
 	"strings"
@@ -66,22 +67,27 @@ func initializeSlog(logOpts LogOptions, useStdout bool) {
 		opts.ReplaceAttr = replaceAttrFn
 	}
 
-	writer := os.Stderr
+	var writers []io.Writer
 	if useStdout {
-		writer = os.Stdout
+		writers = append(writers, os.Stdout)
+	} else {
+		writers = append(writers, os.Stderr)
 	}
 
+	// If a log-file is requested, setup a multi logger
+	if logFile := logOpts.GetLogFile(); logFile != "" {
+		logWriter, err := os.Create(logFile)
+		if err != nil {
+			DefaultSlogLogger.Warn("Failed to open log file, skipping", "file", logFile, "err", err)
+		} else {
+			writers = append(writers, logWriter)
+		}
+	}
 	switch logFormat {
 	case logFormatJSON, logFormatJSONTimestamp:
-		DefaultSlogLogger = slog.New(slog.NewJSONHandler(
-			writer,
-			&opts,
-		))
+		*DefaultSlogLogger = *slog.New(slog.NewJSONHandler(io.MultiWriter(writers...), &opts))
 	case logFormatText, logFormatTextTimestamp:
-		DefaultSlogLogger = slog.New(slog.NewTextHandler(
-			writer,
-			&opts,
-		))
+		*DefaultSlogLogger = *slog.New(slog.NewTextHandler(io.MultiWriter(writers...), &opts))
 	}
 }
 

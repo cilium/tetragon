@@ -39,6 +39,7 @@ const (
 
 	KeyLogLevel  = "log-level"
 	KeyLogFormat = "log-format"
+	KeyLogFile   = "log-file"
 
 	KeyEnableK8sAPI         = "enable-k8s-api"
 	KeyK8sKubeConfigPath    = "k8s-kubeconfig-path"
@@ -221,7 +222,8 @@ func ReadAndSetFlags() error {
 
 	logLevel := viper.GetString(KeyLogLevel)
 	logFormat := viper.GetString(KeyLogFormat)
-	logger.PopulateLogOpts(Config.LogOpts, logLevel, logFormat)
+	logFile := viper.GetString(KeyLogFile)
+	logger.PopulateLogOpts(Config.LogOpts, logLevel, logFormat, logFile)
 
 	Config.ProcessCacheSize = viper.GetInt(KeyProcessCacheSize)
 	Config.DataCacheSize = viper.GetInt(KeyDataCacheSize)
@@ -401,6 +403,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Int(KeyExportRateLimit, -1, "Rate limit (per minute) for event export. Set to -1 to disable")
 	flags.String(KeyLogLevel, "info", "Set log level")
 	flags.String(KeyLogFormat, "text", "Set log format")
+	flags.String(KeyLogFile, "", "Set log file where tetragon agent logs will be broadcasted")
 	flags.Bool(KeyEnableK8sAPI, false, "Access Kubernetes API to associate Tetragon events with Kubernetes pods")
 	flags.String(KeyK8sKubeConfigPath, "", "Absolute path of the kubernetes kubeconfig file")
 	flags.Int(KeyK8sControlPlaneRetry, 1, "Number of attempts for Kubernetes control plane connection (negative for infinite, zero is invalid, positive for max attempts)")
