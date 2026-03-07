@@ -504,3 +504,8 @@ func TestFentryFileTypeFilterNotPipe(t *testing.T) {
 	checkFentry(t)
 	testKprobeFileTypeFilterNotPipe(t, true)
 }
+
+func TestFentryFileTypeFilterMultiple(t *testing.T) {
+	checkFentry(t)
+	testKprobeFileTypeFilterMultiple(t, true)
+}
