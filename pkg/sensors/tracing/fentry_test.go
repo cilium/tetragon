@@ -481,3 +481,8 @@ func TestFentryFileTypeFilterRegular(t *testing.T) {
 	checkFentry(t)
 	testKprobeFileTypeFilterRegular(t, true)
 }
+
+func TestFentryFileTypeFilterPipe(t *testing.T) {
+	checkFentry(t)
+	testKprobeFileTypeFilterPipe(t, true)
+}
