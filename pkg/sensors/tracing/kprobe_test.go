@@ -5431,7 +5431,7 @@ func TestTraceKernelModuleCallsStability(t *testing.T) {
 	testTraceKernelModuleCallsStability(t, false)
 }
 
-func TestLinuxBinprmExtractPath(t *testing.T) {
+func testLinuxBinprmExtractPath(t *testing.T, fentry bool) {
 	if !config.EnableLargeProgs() {
 		t.Skip("Older kernels do not support matchArgs with linux_binprm")
 	}
@@ -5485,6 +5485,11 @@ func TestLinuxBinprmExtractPath(t *testing.T) {
 		},
 	}
 
+	if fentry {
+		bprmTracingPolicy.TpSpec().Fentries = bprmTracingPolicy.TpSpec().KProbes
+		bprmTracingPolicy.TpSpec().KProbes = []v1alpha1.KProbeSpec{}
+	}
+
 	err := sm.Manager.AddTracingPolicy(ctx, &bprmTracingPolicy)
 	if assert.NoError(t, err) {
 		t.Cleanup(func() {
@@ -5522,6 +5527,10 @@ func TestLinuxBinprmExtractPath(t *testing.T) {
 	if !wantedEventExist {
 		t.Error("kprobe event triggered by /usr/bin/id should be present, unfiltered by the matchArgs selector")
 	}
+}
+
+func TestLinuxBinprmExtractPath(t *testing.T) {
+	testLinuxBinprmExtractPath(t, false)
 }
 
 // Test module loading/unloading on Ubuntu

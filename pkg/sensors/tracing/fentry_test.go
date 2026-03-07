@@ -350,3 +350,8 @@ func TestFentryKernelModuleCallsStability(t *testing.T) {
 	checkFentry(t)
 	testTraceKernelModuleCallsStability(t, true)
 }
+
+func TestFentryLinuxBinprmExtractPath(t *testing.T) {
+	checkFentry(t)
+	testLinuxBinprmExtractPath(t, true)
+}
