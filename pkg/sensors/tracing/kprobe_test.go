@@ -2094,6 +2094,7 @@ func getWriteChecker(t *testing.T, path, flags string) ec.MultiEventChecker {
 }
 
 func TestKprobeObjectFileWrite(t *testing.T) {
+	t.Skip("skipping test, FollowFD action removed from BPF in v1.5")
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFileWriteHook(pidStr)
@@ -2101,6 +2102,7 @@ func TestKprobeObjectFileWrite(t *testing.T) {
 }
 
 func TestKprobeObjectFileWriteFiltered(t *testing.T) {
+	t.Skip("skipping test, FollowFD action removed from BPF in v1.5")
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, dir)
@@ -2108,6 +2110,7 @@ func TestKprobeObjectFileWriteFiltered(t *testing.T) {
 }
 
 func TestKprobeObjectFileWriteMount(t *testing.T) {
+	t.Skip("skipping test, FollowFD action removed from BPF in v1.5")
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFileWriteHook(pidStr)
@@ -2115,6 +2118,7 @@ func TestKprobeObjectFileWriteMount(t *testing.T) {
 }
 
 func TestKprobeObjectFileWriteMountFiltered(t *testing.T) {
+	t.Skip("skipping test, FollowFD action removed from BPF in v1.5")
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, dir)
@@ -2290,24 +2294,28 @@ func testMultipleMountPathFiltered(t *testing.T, readHook string) {
 }
 
 func TestMultipleMountsFiltered(t *testing.T) {
+	t.Skip("skipping test, FollowFD action removed from BPF in v1.5")
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, "/tmp2/tmp3/tmp4/tmp5")
 	testMultipleMountsFiltered(t, readHook)
 }
 
 func TestMultiplePathComponents(t *testing.T) {
+	t.Skip("skipping test, FollowFD action removed from BPF in v1.5")
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	readHook := testKprobeObjectFileWriteHook(pidStr)
 	testMultiplePathComponentsFiltered(t, readHook)
 }
 
 func TestMultipleMountPath(t *testing.T) {
+	t.Skip("skipping test, FollowFD action removed from BPF in v1.5")
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	readHook := testKprobeObjectFileWriteHook(pidStr)
 	testMultipleMountPathFiltered(t, readHook)
 }
 
 func TestMultipleMountPathFiltered(t *testing.T) {
+	t.Skip("skipping test, FollowFD action removed from BPF in v1.5")
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, "/7/8/9/10/11/12/13/14/15/16")
 	if config.EnableLargeProgs() {
@@ -3648,6 +3656,8 @@ func TestKprobeMatchArgsFilePrefix(t *testing.T) {
 }
 
 func TestKprobeMatchArgsFdEqual(t *testing.T) {
+	t.Skip("skipping test, FollowFD/UnfollowFD actions removed from BPF in v1.5")
+
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -3684,6 +3694,8 @@ func TestKprobeMatchArgsFdEqual(t *testing.T) {
 }
 
 func TestKprobeMatchArgsFdPostfix(t *testing.T) {
+	t.Skip("skipping test, FollowFD/UnfollowFD actions removed from BPF in v1.5")
+
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -3720,6 +3732,8 @@ func TestKprobeMatchArgsFdPostfix(t *testing.T) {
 }
 
 func TestKprobeMatchArgsFdPrefix(t *testing.T) {
+	t.Skip("skipping test, FollowFD/UnfollowFD actions removed from BPF in v1.5")
+
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 

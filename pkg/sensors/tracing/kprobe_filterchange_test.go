@@ -31,6 +31,7 @@ import (
 )
 
 func TestKprobeNSChanges(t *testing.T) {
+	t.Skip("skipping test, FD-tracking removed from BPF in v1.5 (test uses FD matchArgs)")
 	if !kernels.MinKernelVersion("5.3.0") {
 		t.Skip("matchNamespaceChanges requires at least 5.3.0 version")
 	}
@@ -193,9 +194,11 @@ func testKprobeCapChanges(t *testing.T, spec string, op string, value string) {
 }
 
 func TestKprobeCapChangesIn(t *testing.T) {
+	t.Skip("skipping test, FD-tracking removed from BPF in v1.5 (test uses FD matchArgs)")
 	testKprobeCapChanges(t, "capchanges.yaml.tmpl", "In", "CAP_MKNOD")
 }
 
 func TestKprobeCapChangesNotIn(t *testing.T) {
+	t.Skip("skipping test, FD-tracking removed from BPF in v1.5 (test uses FD matchArgs)")
 	testKprobeCapChanges(t, "capchanges.yaml.tmpl", "NotIn", "CAP_SYS_ADMIN")
 }

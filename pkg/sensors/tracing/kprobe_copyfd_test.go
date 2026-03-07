@@ -32,6 +32,8 @@ import (
 )
 
 func TestCopyFd(t *testing.T) {
+	t.Skip("skipping test, CopyFD action removed from BPF in v1.5")
+
 	if !kernels.MinKernelVersion("5.3.0") {
 		t.Skip("TestCopyFd requires at least 5.3.0 version")
 	}
