@@ -479,3 +479,8 @@ func TestFentryGTFail(t *testing.T) {
 	checkFentry(t)
 	testKprobeGT(t, 0xfffef, true, true)
 }
+
+func TestFentryFileTypeFilterRegular(t *testing.T) {
+	checkFentry(t)
+	testKprobeFileTypeFilterRegular(t, true)
+}
