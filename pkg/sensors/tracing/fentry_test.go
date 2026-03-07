@@ -327,3 +327,13 @@ func TestFentryWriteMaxDataFull(t *testing.T) {
 	checkFentry(t)
 	testKprobeWriteMaxDataFull(t, true)
 }
+
+func TestFentryNoRateLimit(t *testing.T) {
+	checkFentry(t)
+	testKprobeRateLimit(t, false, true)
+}
+
+func TestFentryRateLimit(t *testing.T) {
+	checkFentry(t)
+	testKprobeRateLimit(t, true, true)
+}

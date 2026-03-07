@@ -5254,7 +5254,7 @@ func TestKprobeWriteMaxDataFull(t *testing.T) {
 	testKprobeWriteMaxDataFull(t, false)
 }
 
-func testKprobeRateLimit(t *testing.T, rateLimit bool) {
+func testKprobeRateLimit(t *testing.T, rateLimit, fentry bool) {
 	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
@@ -5308,6 +5308,11 @@ spec:
 	tp, err := tracingpolicy.FromYAML(hook)
 	if err != nil {
 		t.Fatalf("failed to decode yaml: %s", err)
+	}
+
+	if fentry {
+		tp.TpSpec().Fentries = tp.TpSpec().KProbes
+		tp.TpSpec().KProbes = []v1alpha1.KProbeSpec{}
 	}
 
 	err = sm.Manager.AddTracingPolicy(ctx, tp)
@@ -5372,7 +5377,7 @@ func TestKprobeNoRateLimit(t *testing.T) {
 		t.Skip("Test requires kernel 5.4")
 	}
 
-	testKprobeRateLimit(t, false)
+	testKprobeRateLimit(t, false, false)
 }
 
 func TestKprobeRateLimit(t *testing.T) {
@@ -5380,7 +5385,7 @@ func TestKprobeRateLimit(t *testing.T) {
 		t.Skip("Test requires kernel 5.4")
 	}
 
-	testKprobeRateLimit(t, true)
+	testKprobeRateLimit(t, true, false)
 }
 
 func TestKprobeListSyscallDupsRange(t *testing.T) {
