@@ -436,3 +436,8 @@ func TestFentryArgsMulti(t *testing.T) {
 	checkFentry(t)
 	testKprobeArgsMulti(t, true)
 }
+
+func TestFentryArgsMultiResolve(t *testing.T) {
+	checkFentry(t)
+	testKprobeArgsMultiResolve(t, true)
+}
