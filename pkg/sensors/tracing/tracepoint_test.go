@@ -875,14 +875,14 @@ func TestUInt16Tracepoint(t *testing.T) {
 	require.Equal(t, 3, count, "expected three events: one for each of 7777, 7779 and 7780")
 }
 
-func testListSyscallsDupsRange(t *testing.T, checker *ec.UnorderedEventChecker, configHook string) {
+func testListSyscallsDupsRange(t *testing.T, checker *ec.UnorderedEventChecker, configHook string, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	createCrdFile(t, configHook)
+	createCrdFileFlag(t, configHook, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -959,7 +959,7 @@ spec:
 		checker.AddChecks(tpCheckerDup)
 	}
 
-	testListSyscallsDupsRange(t, checker, configHook)
+	testListSyscallsDupsRange(t, checker, configHook, false)
 }
 
 func TestTracepointResolve(t *testing.T) {
