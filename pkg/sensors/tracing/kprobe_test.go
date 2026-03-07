@@ -7366,7 +7366,7 @@ func TestKprobeArgsMultiResolve(t *testing.T) {
 	testKprobeArgsMultiResolve(t, false)
 }
 
-func TestKprobeArgsFilter(t *testing.T) {
+func testKprobeArgsFilter(t *testing.T, fentry bool) {
 	if !config.EnableLargeProgs() {
 		t.Skip("Older kernels do not support more than 1 selector argument")
 	}
@@ -7435,7 +7435,7 @@ spec:
         - "0"
 `
 
-	createCrdFile(t, lseekConfigHook_)
+	createCrdFileFlag(t, lseekConfigHook_, fentry)
 
 	kpChecker := ec.NewProcessKprobeChecker("lseek-checker").
 		WithFunctionName(sm.Suffix("sys_lseek")).
@@ -7460,6 +7460,10 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
 	require.NoError(t, err)
+}
+
+func TestKprobeArgsFilter(t *testing.T) {
+	testKprobeArgsFilter(t, false)
 }
 
 func TestCapabilitiesGained(t *testing.T) {
