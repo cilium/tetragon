@@ -97,7 +97,7 @@ jobs:
       # main branch pushes
       - name: CI Build (main)
         if: ${{ github.event_name == 'push' }}
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
         id: docker_build_ci_main
         with:
           provenance: false
@@ -125,7 +125,7 @@ jobs:
       # PR updates
       - name: CI Build (PR)
         if: github.event_name == 'pull_request_target' || github.event_name == 'pull_request'
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
         id: docker_build_ci_pr
         with:
           provenance: false
