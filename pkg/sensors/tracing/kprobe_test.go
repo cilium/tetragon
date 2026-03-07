@@ -8265,7 +8265,7 @@ func TestKprobeFileTypeFilterMultiple(t *testing.T) {
 	testKprobeFileTypeFilterMultiple(t, false)
 }
 
-func TestKprobeNotEqualMultipleValues(t *testing.T) {
+func testKprobeNotEqualMultipleValues(t *testing.T, fentry bool) {
 	if !kernels.MinKernelVersion("5.0") {
 		t.Skip("Test fails on older kernels (like 4.19) due to missing BTF resolution for f_inode.i_sb.s_magic")
 	}
@@ -8304,7 +8304,7 @@ spec:
         values:
         - curl
 `
-	createCrdFile(t, tracingPolicy)
+	createCrdFileFlag(t, tracingPolicy, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -8321,4 +8321,8 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
 	require.NoError(t, err)
+}
+
+func TestKprobeNotEqualMultipleValues(t *testing.T) {
+	testKprobeNotEqualMultipleValues(t, false)
 }
