@@ -1815,9 +1815,22 @@ spec:
 	require.NoError(t, err)
 }
 
-func getFilpOpenChecker(dir string) ec.MultiEventChecker {
+// getFilpOpenFunc returns the kernel function name for file open.
+// Recent kernels (6.x+) renamed do_filp_open to do_file_open.
+func getFilpOpenFunc(t *testing.T) string {
+	if _, err := ftrace.ReadAvailFuncs("^do_file_open$"); err == nil {
+		return "do_file_open"
+	}
+	if _, err := ftrace.ReadAvailFuncs("^do_filp_open$"); err == nil {
+		return "do_filp_open"
+	}
+	t.Skip("neither do_file_open nor do_filp_open found")
+	return ""
+}
+
+func getFilpOpenChecker(dir string, funcName string) ec.MultiEventChecker {
 	kpChecker := ec.NewProcessKprobeChecker("").
-		WithFunctionName(sm.Full("do_filp_open")).
+		WithFunctionName(sm.Full(funcName)).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
@@ -1829,6 +1842,7 @@ func getFilpOpenChecker(dir string) ec.MultiEventChecker {
 }
 
 func TestKprobeObjectFilenameOpen(t *testing.T) {
+	funcName := getFilpOpenFunc(t)
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := `
@@ -1838,7 +1852,7 @@ metadata:
   name: "sys-read"
 spec:
   kprobes:
-  - call: "do_filp_open"
+  - call: "` + funcName + `"
     return: false
     syscall: false
     args:
@@ -1853,10 +1867,11 @@ spec:
         values:
         - ` + pidStr + `
      `
-	testKprobeObjectFiltered(t, readHook, getFilpOpenChecker(dir), false, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getFilpOpenChecker(dir, funcName), false, dir, false, syscall.O_RDWR, 0x770)
 }
 
 func TestKprobeObjectReturnFilenameOpen(t *testing.T) {
+	funcName := getFilpOpenFunc(t)
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := `
@@ -1866,7 +1881,7 @@ metadata:
   name: "sys-read"
 spec:
   kprobes:
-  - call: "do_filp_open"
+  - call: "` + funcName + `"
     return: true
     syscall: false
     args:
@@ -1884,7 +1899,7 @@ spec:
         values:
         - ` + pidStr + `
      `
-	testKprobeObjectFiltered(t, readHook, getFilpOpenChecker(dir), false, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getFilpOpenChecker(dir, funcName), false, dir, false, syscall.O_RDWR, 0x770)
 }
 
 func testKprobeObjectFileWriteHook(pidStr string) string {
