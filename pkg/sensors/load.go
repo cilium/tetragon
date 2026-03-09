@@ -4,6 +4,7 @@
 package sensors
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -225,21 +226,26 @@ func (s *Sensor) Unload(unpin bool) error {
 
 // Destroy will unload the hook and call DestroyHook, this hook is usually used
 // to clean up resources that were created during creation of the sensor.
-func (s *Sensor) Destroy(unpin bool) {
+func (s *Sensor) Destroy(unpin bool) error {
+	var errs error
+
 	err := s.Unload(unpin)
 	if err != nil {
 		// do not return on error but just log since Unload can only error on
 		// sensor being already not loaded
 		logger.GetLogger().Warn("Unload failed during destroy", "sensor", s.Name, logfields.Error, err)
+		errs = errors.Join(errs, err)
 	}
 
 	if s.DestroyHook != nil {
 		err = s.DestroyHook()
 		if err != nil {
 			logger.GetLogger().Warn("Destroy hook failed", "sensor", s.Name, logfields.Error, err)
+			errs = errors.Join(errs, err)
 		}
 	}
 	s.Destroyed = true
+	return errs
 }
 
 func (s *Sensor) findProgram(p *program.Program) error {

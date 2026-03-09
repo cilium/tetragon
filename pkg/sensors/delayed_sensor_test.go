@@ -67,8 +67,9 @@ func (tds *TestDelayedSensor) Unload(_ bool) error {
 	return nil
 }
 
-func (tds *TestDelayedSensor) Destroy(_ bool) {
+func (tds *TestDelayedSensor) Destroy(_ bool) error {
 	tds.loaded = false
+	return nil
 }
 
 func (tds *TestDelayedSensor) unblock(t *testing.T) {
