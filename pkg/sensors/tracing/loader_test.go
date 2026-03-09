@@ -11,7 +11,6 @@ import (
 	"debug/elf"
 	"encoding/binary"
 	"io"
-	"os"
 	"os/exec"
 	"sync"
 	"testing"
@@ -109,11 +108,8 @@ metadata:
 spec:
   loader: true
 `
-	loaderConfigHook := []byte(loaderHook)
-	err := os.WriteFile(testConfigFile, loaderConfigHook, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+
+	createCrdFile(t, loaderHook)
 
 	testNop := testutils.RepoRootPath("contrib/tester-progs/nop")
 
