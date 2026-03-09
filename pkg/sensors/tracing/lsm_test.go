@@ -138,11 +138,8 @@ spec:
         type: "file"
 `
 
-	configHookRaw := []byte(configHook)
-	err := os.WriteFile(testConfigFile, configHookRaw, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, configHook)
+
 	sens, err := observertesthelper.GetDefaultSensorsWithFile(t, testConfigFile, tus.Conf().TetragonLib,
 		observertesthelper.WithMyPid(), observertesthelper.WithKeepCollection())
 	if err != nil {
@@ -182,11 +179,8 @@ spec:
       - index: 0
         type: "file"
 `
-	configHookRaw := []byte(configHook)
-	err := os.WriteFile(testConfigFile, configHookRaw, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+
+	createCrdFile(t, configHook)
 
 	// Test both cases: disabled and enabled cgtracker
 	testCases := []struct {
@@ -286,11 +280,8 @@ spec:
         - "` + tempFile + `"
 `
 
-	configHookRaw := []byte(configHook)
-	err := os.WriteFile(testConfigFile, configHookRaw, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, configHook)
+
 	lsmChecker := ec.NewProcessLsmChecker("lsm-file-checker").
 		WithFunctionName(sm.Suffix("file_open")).
 		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(testBin))).
@@ -356,11 +347,8 @@ spec:
         argError: -1
 `
 
-	configHookRaw := []byte(configHook)
-	err := os.WriteFile(testConfigFile, configHookRaw, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, configHook)
+
 	lsmChecker := ec.NewProcessLsmChecker("lsm-file-checker").
 		WithFunctionName(sm.Suffix("bprm_check_security")).
 		WithProcess(ec.NewProcessChecker().
@@ -423,11 +411,8 @@ spec:
         imaHash: true
 `
 
-	configHookRaw := []byte(configHook)
-	err := os.WriteFile(testConfigFile, configHookRaw, 0644)
-	if err != nil {
-		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
-	}
+	createCrdFile(t, configHook)
+
 	hasherSha256 := sha256.New()
 	hasherSha1 := sha1.New()
 	s, err := os.ReadFile(testBin)
