@@ -11,6 +11,33 @@ import (
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
 )
 
+// uprobe-pclntab: attach to stripped Go binary via pclntab symbol resolution
+var _ = policytest.NewBuilder("uprobe-pclntab").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "uprobe-pclntab"
+spec:
+  uprobes:
+  - path: {{ testBinary "pclntab-stripped" }}
+    symbols:
+    - "main.main"
+    selectors:
+    - matchActions:
+      - action: Post
+`).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	bin := c.TestBinary("pclntab-stripped")
+	upChecker := ec.NewProcessUprobeChecker("UPROBE_PCLNTAB").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(bin))).
+		WithSymbol(sm.Full("main.main"))
+	return &policytest.Scenario{
+		Name:         "execute stripped Go binary, verify uprobe via pclntab",
+		Trigger:      policytest.NewCmdTrigger(bin),
+		EventChecker: ec.NewUnorderedEventChecker(upChecker),
+	}
+}).RegisterAtInit()
+
 var _ = policytest.NewBuilder("uprobe-generic").WithLabels("uprobes").WithPolicyTemplate(`
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
