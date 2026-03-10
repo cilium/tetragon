@@ -40,7 +40,9 @@ PROGS = sigkill-tester \
 	regs-override \
 	usdt-args \
 	uprobe-null \
-	uprobe-simple
+	uprobe-simple \
+	pclntab-unstripped \
+	pclntab-stripped
 
 LIBS =	libuprobe.so \
 	libtester.so
@@ -163,6 +165,12 @@ user-stacktrace: FORCE
 
 test-helper: FORCE
 	go build -o test-helper ./go/test-helper
+
+pclntab-unstripped: FORCE
+	go build -o $@ ./go/pclntab-test
+
+pclntab-stripped: FORCE
+	go build -ldflags='-s -w' -o $@ ./go/pclntab-test
 
 .PHONY: clean
 clean:
