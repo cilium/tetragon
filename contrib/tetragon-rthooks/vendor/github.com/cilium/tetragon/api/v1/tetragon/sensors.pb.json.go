@@ -299,30 +299,6 @@ func (msg *DisableSensorResponse) UnmarshalJSON(b []byte) error {
 }
 
 // MarshalJSON implements json.Marshaler
-func (msg *GetStackTraceTreeRequest) MarshalJSON() ([]byte, error) {
-	return protojson.MarshalOptions{
-		UseProtoNames: true,
-	}.Marshal(msg)
-}
-
-// UnmarshalJSON implements json.Unmarshaler
-func (msg *GetStackTraceTreeRequest) UnmarshalJSON(b []byte) error {
-	return protojson.UnmarshalOptions{}.Unmarshal(b, msg)
-}
-
-// MarshalJSON implements json.Marshaler
-func (msg *GetStackTraceTreeResponse) MarshalJSON() ([]byte, error) {
-	return protojson.MarshalOptions{
-		UseProtoNames: true,
-	}.Marshal(msg)
-}
-
-// UnmarshalJSON implements json.Unmarshaler
-func (msg *GetStackTraceTreeResponse) UnmarshalJSON(b []byte) error {
-	return protojson.UnmarshalOptions{}.Unmarshal(b, msg)
-}
-
-// MarshalJSON implements json.Marshaler
 func (msg *GetVersionRequest) MarshalJSON() ([]byte, error) {
 	return protojson.MarshalOptions{
 		UseProtoNames: true,

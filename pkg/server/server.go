@@ -311,13 +311,6 @@ func (s *Server) DisableSensor(_ context.Context, req *tetragon.DisableSensorReq
 	return nil, errors.New("DisableSensor is deprecated")
 }
 
-func (s *Server) GetStackTraceTree(_ context.Context, req *tetragon.GetStackTraceTreeRequest) (*tetragon.GetStackTraceTreeResponse, error) {
-	logger.GetLogger().Debug("Received a GetStackTraceTree request", "request", req)
-	err := errors.New("unsupported GetStackTraceTree")
-	logger.GetLogger().Warn("Server GetStackTraceTree failed", logfields.Error, err)
-	return nil, err
-}
-
 func (s *Server) GetVersion(_ context.Context, _ *tetragon.GetVersionRequest) (*tetragon.GetVersionResponse, error) {
 	return &tetragon.GetVersionResponse{Version: version.Version}, nil
 }

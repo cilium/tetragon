@@ -34,7 +34,6 @@ const (
 	FineGuidanceSensors_EnableSensor_FullMethodName           = "/tetragon.FineGuidanceSensors/EnableSensor"
 	FineGuidanceSensors_DisableSensor_FullMethodName          = "/tetragon.FineGuidanceSensors/DisableSensor"
 	FineGuidanceSensors_RemoveSensor_FullMethodName           = "/tetragon.FineGuidanceSensors/RemoveSensor"
-	FineGuidanceSensors_GetStackTraceTree_FullMethodName      = "/tetragon.FineGuidanceSensors/GetStackTraceTree"
 	FineGuidanceSensors_GetVersion_FullMethodName             = "/tetragon.FineGuidanceSensors/GetVersion"
 	FineGuidanceSensors_GetInfo_FullMethodName                = "/tetragon.FineGuidanceSensors/GetInfo"
 	FineGuidanceSensors_RuntimeHook_FullMethodName            = "/tetragon.FineGuidanceSensors/RuntimeHook"
@@ -71,7 +70,6 @@ type FineGuidanceSensorsClient interface {
 	DisableSensor(ctx context.Context, in *DisableSensorRequest, opts ...grpc.CallOption) (*DisableSensorResponse, error)
 	// Deprecated: Do not use.
 	RemoveSensor(ctx context.Context, in *RemoveSensorRequest, opts ...grpc.CallOption) (*RemoveSensorResponse, error)
-	GetStackTraceTree(ctx context.Context, in *GetStackTraceTreeRequest, opts ...grpc.CallOption) (*GetStackTraceTreeResponse, error)
 	GetVersion(ctx context.Context, in *GetVersionRequest, opts ...grpc.CallOption) (*GetVersionResponse, error)
 	GetInfo(ctx context.Context, in *GetInfoRequest, opts ...grpc.CallOption) (*GetInfoResponse, error)
 	RuntimeHook(ctx context.Context, in *RuntimeHookRequest, opts ...grpc.CallOption) (*RuntimeHookResponse, error)
@@ -222,16 +220,6 @@ func (c *fineGuidanceSensorsClient) RemoveSensor(ctx context.Context, in *Remove
 	return out, nil
 }
 
-func (c *fineGuidanceSensorsClient) GetStackTraceTree(ctx context.Context, in *GetStackTraceTreeRequest, opts ...grpc.CallOption) (*GetStackTraceTreeResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetStackTraceTreeResponse)
-	err := c.cc.Invoke(ctx, FineGuidanceSensors_GetStackTraceTree_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *fineGuidanceSensorsClient) GetVersion(ctx context.Context, in *GetVersionRequest, opts ...grpc.CallOption) (*GetVersionResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetVersionResponse)
@@ -311,7 +299,6 @@ type FineGuidanceSensorsServer interface {
 	DisableSensor(context.Context, *DisableSensorRequest) (*DisableSensorResponse, error)
 	// Deprecated: Do not use.
 	RemoveSensor(context.Context, *RemoveSensorRequest) (*RemoveSensorResponse, error)
-	GetStackTraceTree(context.Context, *GetStackTraceTreeRequest) (*GetStackTraceTreeResponse, error)
 	GetVersion(context.Context, *GetVersionRequest) (*GetVersionResponse, error)
 	GetInfo(context.Context, *GetInfoRequest) (*GetInfoResponse, error)
 	RuntimeHook(context.Context, *RuntimeHookRequest) (*RuntimeHookResponse, error)
@@ -362,9 +349,6 @@ func (UnimplementedFineGuidanceSensorsServer) DisableSensor(context.Context, *Di
 }
 func (UnimplementedFineGuidanceSensorsServer) RemoveSensor(context.Context, *RemoveSensorRequest) (*RemoveSensorResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemoveSensor not implemented")
-}
-func (UnimplementedFineGuidanceSensorsServer) GetStackTraceTree(context.Context, *GetStackTraceTreeRequest) (*GetStackTraceTreeResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetStackTraceTree not implemented")
 }
 func (UnimplementedFineGuidanceSensorsServer) GetVersion(context.Context, *GetVersionRequest) (*GetVersionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetVersion not implemented")
@@ -611,24 +595,6 @@ func _FineGuidanceSensors_RemoveSensor_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
-func _FineGuidanceSensors_GetStackTraceTree_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetStackTraceTreeRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(FineGuidanceSensorsServer).GetStackTraceTree(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: FineGuidanceSensors_GetStackTraceTree_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FineGuidanceSensorsServer).GetStackTraceTree(ctx, req.(*GetStackTraceTreeRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _FineGuidanceSensors_GetVersion_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetVersionRequest)
 	if err := dec(in); err != nil {
@@ -769,10 +735,6 @@ var FineGuidanceSensors_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RemoveSensor",
 			Handler:    _FineGuidanceSensors_RemoveSensor_Handler,
-		},
-		{
-			MethodName: "GetStackTraceTree",
-			Handler:    _FineGuidanceSensors_GetStackTraceTree_Handler,
 		},
 		{
 			MethodName: "GetVersion",

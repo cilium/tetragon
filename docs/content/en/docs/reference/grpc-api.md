@@ -1122,47 +1122,6 @@ Determines the behavior of a field filter
 | THROTTLE_START | 1 |  |
 | THROTTLE_STOP | 2 |  |
 
-<a name="tetragon_stack-proto"></a>
-
-## tetragon/stack.proto
-
-<a name="tetragon-StackAddress"></a>
-
-### StackAddress
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| address | [uint64](#uint64) |  |  |
-| symbol | [string](#string) |  |  |
-
-<a name="tetragon-StackTrace"></a>
-
-### StackTrace
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| addresses | [StackAddress](#tetragon-StackAddress) | repeated |  |
-
-<a name="tetragon-StackTraceLabel"></a>
-
-### StackTraceLabel
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| key | [string](#string) |  |  |
-| count | [uint64](#uint64) |  |  |
-
-<a name="tetragon-StackTraceNode"></a>
-
-### StackTraceNode
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| address | [StackAddress](#tetragon-StackAddress) |  |  |
-| count | [uint64](#uint64) |  |  |
-| labels | [StackTraceLabel](#tetragon-StackTraceLabel) | repeated |  |
-| children | [StackTraceNode](#tetragon-StackTraceNode) | repeated |  |
-
 <a name="tetragon_sensors-proto"></a>
 
 ## tetragon/sensors.proto
@@ -1337,22 +1296,6 @@ Determines the behavior of a field filter
 | ----- | ---- | ----- | ----------- |
 | Name | [string](#string) |  |  |
 | Enabled | [google.protobuf.BoolValue](#google-protobuf-BoolValue) |  |  |
-
-<a name="tetragon-GetStackTraceTreeRequest"></a>
-
-### GetStackTraceTreeRequest
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| name | [string](#string) |  |  |
-
-<a name="tetragon-GetStackTraceTreeResponse"></a>
-
-### GetStackTraceTreeResponse
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| root | [StackTraceNode](#tetragon-StackTraceNode) |  |  |
 
 <a name="tetragon-GetVersionRequest"></a>
 
@@ -1558,7 +1501,6 @@ For now, we only want to support debug-related config flags to be configurable.
 | EnableSensor | [EnableSensorRequest](#tetragon-EnableSensorRequest) | [EnableSensorResponse](#tetragon-EnableSensorResponse) |  |
 | DisableSensor | [DisableSensorRequest](#tetragon-DisableSensorRequest) | [DisableSensorResponse](#tetragon-DisableSensorResponse) |  |
 | RemoveSensor | [RemoveSensorRequest](#tetragon-RemoveSensorRequest) | [RemoveSensorResponse](#tetragon-RemoveSensorResponse) |  |
-| GetStackTraceTree | [GetStackTraceTreeRequest](#tetragon-GetStackTraceTreeRequest) | [GetStackTraceTreeResponse](#tetragon-GetStackTraceTreeResponse) |  |
 | GetVersion | [GetVersionRequest](#tetragon-GetVersionRequest) | [GetVersionResponse](#tetragon-GetVersionResponse) |  |
 | GetInfo | [GetInfoRequest](#tetragon-GetInfoRequest) | [GetInfoResponse](#tetragon-GetInfoResponse) |  |
 | RuntimeHook | [RuntimeHookRequest](#tetragon-RuntimeHookRequest) | [RuntimeHookResponse](#tetragon-RuntimeHookResponse) |  |
