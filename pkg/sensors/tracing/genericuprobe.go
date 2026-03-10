@@ -340,12 +340,15 @@ func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) er
 			attach = &program.MultiUprobeAttachSymbolsCookies{}
 		}
 
-		if uprobeEntry.symbol != "" {
+		if uprobeEntry.address != 0 {
+			// attach.Addresses holds file offsets for probe attachment. When we have a
+			// pre-resolved offset from symtab or pclntab, pass it here so cilium/ebpf
+			// skips its own symtab lookup.
+			attach.Addresses = append(attach.Addresses, uprobeEntry.address)
+		} else if uprobeEntry.symbol != "" {
 			symbol, offset := resolveSymbol(uprobeEntry.symbol)
 			attach.Symbols = append(attach.Symbols, symbol)
 			attach.Offsets = append(attach.Offsets, offset)
-		} else {
-			attach.Addresses = append(attach.Addresses, uprobeEntry.address)
 		}
 
 		if uprobeEntry.refCtrOffset != 0 {
@@ -776,16 +779,39 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 	}
 
 	if symbols != 0 {
+		// Open the binary so we can resolve symbols to file offsets.
+		// Uses symtab when present, or .gopclntab for stripped Go binaries.
+		file, err := elf.OpenSafeELFFile(spec.Path)
+		if err == nil {
+			defer file.Close()
+		}
+
+		// For all symbols defined in the policy
 		for idx, sym := range spec.Symbols {
+			// Is this a valid symbol name?
 			if err := checkSymbol(sym); err != nil {
 				return nil, fmt.Errorf("failed to parse symbol: %w", err)
 			}
-			err = addUprobeEntry(sym, 0, idx)
-			if err != nil {
+
+			off := uint64(0)
+			if err == nil {
+				if file.IsStrippedPureGoBinary() {
+					if tbl, pclnErr := file.Pclntab(); pclnErr == nil {
+						if o, ok := tbl.OffsetByName(sym); ok {
+							off = o
+						}
+					}
+				} else if o, e := file.Offset(sym); e == nil {
+					off = o
+				}
+			}
+
+			if err = addUprobeEntry(sym, off, idx); err != nil {
 				return nil, err
 			}
 		}
 	} else if offsets != 0 {
+		// Offsets are provided directly by the policy, no resolution needed
 		for idx, off := range spec.Offsets {
 			err = addUprobeEntry("", off, idx)
 			if err != nil {
@@ -793,6 +819,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 			}
 		}
 	} else if addrs != 0 {
+		// Convert virtual addresses to file offsets
 		f, err := elf.OpenSafeELFFile(spec.Path)
 		if err != nil {
 			return nil, err
@@ -950,11 +977,12 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 
 	loadProgName, loadProgRetName := config.GenericUprobeObjs(false)
 
+	pinSymbol := strings.ReplaceAll(uprobeEntry.symbol, ".", "_")
 	load := program.Builder(
 		path.Join(option.Config.HubbleLib, loadProgName),
 		fmt.Sprintf("%s %s", uprobeEntry.path, uprobeEntry.symbol),
 		"uprobe/generic_uprobe",
-		fmt.Sprintf("%d-%s", uprobeEntry.tableId.ID, uprobeEntry.symbol),
+		fmt.Sprintf("%d-%s", uprobeEntry.tableId.ID, pinSymbol),
 		"generic_uprobe").
 		SetLoaderData(uprobeEntry).
 		SetPolicy(uprobeEntry.policyName)
@@ -997,7 +1025,7 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 	}
 
 	if uprobeEntry.loadArgs.retprobe {
-		pinRetProg := fmt.Sprintf("%d-%s_return", uprobeEntry.tableId.ID, uprobeEntry.symbol)
+		pinRetProg := fmt.Sprintf("%d-%s_return", uprobeEntry.tableId.ID, pinSymbol)
 		loadret := program.Builder(
 			path.Join(option.Config.HubbleLib, loadProgRetName),
 			fmt.Sprintf("%s %s", uprobeEntry.path, uprobeEntry.symbol),
