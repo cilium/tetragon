@@ -169,6 +169,25 @@ func New() *cobra.Command {
 				uprobe.Symbols = append(uprobe.Symbols, sym.Name)
 			}
 
+			// Stripped Go binary with no symtab: fall back to .gopclntab
+			if len(uprobe.Symbols) == 0 {
+				file, err := telf.OpenSafeELFFile(uprobesBinary)
+				if err != nil {
+					log.Fatalf("failed to open ELF file '%s': %v", uprobesBinary, err)
+				}
+				defer file.Close()
+				if file.IsStrippedPureGoBinary() {
+					tbl, pclnErr := file.Pclntab()
+					if pclnErr != nil {
+						log.Fatalf("failed to parse pclntab for '%s': %v", uprobesBinary, pclnErr)
+					}
+					funcs := tbl.AllFuncs()
+					for _, fn := range funcs {
+						uprobe.Symbols = append(uprobe.Symbols, fn.Name)
+					}
+				}
+			}
+
 			uprobe.Path = uprobesBinary
 			b, err := yaml.Marshal(tp)
 			if err != nil {
