@@ -9,10 +9,14 @@ import (
 	"debug/elf"
 	"fmt"
 	"io"
+	"sync"
 )
 
 type SafeELFFile struct {
 	*elf.File
+	pclntabOnce sync.Once // serialize concurrent Pclntab() callers so we parse only once
+	pclntab     *GoPclntab
+	pclntabErr  error
 }
 
 // NewSafeELFFile reads an ELF safely.
@@ -37,7 +41,7 @@ func NewSafeELFFile(r io.ReaderAt) (safe *SafeELFFile, err error) {
 		return nil, err
 	}
 
-	return &SafeELFFile{file}, nil
+	return &SafeELFFile{File: file}, nil
 }
 
 // OpenSafeELFFile reads an ELF from a file.
@@ -60,7 +64,7 @@ func OpenSafeELFFile(path string) (safe *SafeELFFile, err error) {
 		return nil, err
 	}
 
-	return &SafeELFFile{file}, nil
+	return &SafeELFFile{File: file}, nil
 }
 
 func (se *SafeELFFile) Address(name string) (uint64, error) {
@@ -80,6 +84,8 @@ func (se *SafeELFFile) Address(name string) (uint64, error) {
 	return 0, fmt.Errorf("failed to resolve %q", name)
 }
 
+// Offset returns the file offset for the named symbol, for uprobe attachment.
+// Resolves via ELF symtab only. For stripped Go binaries, use Pclntab().OffsetByName instead.
 func (se *SafeELFFile) Offset(name string) (uint64, error) {
 	symbols, err := se.Symbols()
 	if err != nil {
