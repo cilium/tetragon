@@ -11,18 +11,16 @@ import (
 	"github.com/cilium/tetragon/cmd/tetra/info"
 	"github.com/cilium/tetragon/cmd/tetra/rthooks"
 	"github.com/cilium/tetragon/cmd/tetra/sensors"
-	"github.com/cilium/tetragon/cmd/tetra/stacktracetree"
 	"github.com/cilium/tetragon/cmd/tetra/status"
 	"github.com/cilium/tetragon/cmd/tetra/version"
 )
 
 // addBaseCommands adds commands that build and make sense on all platform:
-// getevents, version, sensors, stacktracetree, status, rthooks
+// getevents, version, sensors, status, rthooks
 func addBaseCommands(rootCmd *cobra.Command) {
 	rootCmd.AddCommand(getevents.New())
 	rootCmd.AddCommand(version.New())
 	rootCmd.AddCommand(sensors.New())
-	rootCmd.AddCommand(stacktracetree.New())
 	rootCmd.AddCommand(status.New())
 	rootCmd.AddCommand(rthooks.New())
 	rootCmd.AddCommand(explain.New())

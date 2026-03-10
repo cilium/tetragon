@@ -8,7 +8,6 @@ package tetragon;
 import "google/protobuf/any.proto";
 import "google/protobuf/wrappers.proto";
 import "tetragon/events.proto";
-import "tetragon/stack.proto";
 import "tetragon/tetragon.proto";
 
 option go_package = "github.com/cilium/tetragon/api/v1/tetragon";
@@ -159,14 +158,6 @@ message DisableSensorRequest {
 
 message DisableSensorResponse {}
 
-message GetStackTraceTreeRequest {
-  string name = 1;
-}
-
-message GetStackTraceTreeResponse {
-  StackTraceNode root = 1;
-}
-
 message GetVersionRequest {}
 message GetVersionResponse {
   string version = 1;
@@ -309,8 +300,6 @@ service FineGuidanceSensors {
   rpc RemoveSensor(RemoveSensorRequest) returns (RemoveSensorResponse) {
     option deprecated = true;
   }
-
-  rpc GetStackTraceTree(GetStackTraceTreeRequest) returns (GetStackTraceTreeResponse) {}
 
   rpc GetVersion(GetVersionRequest) returns (GetVersionResponse) {}
   rpc GetInfo(GetInfoRequest) returns (GetInfoResponse) {}
