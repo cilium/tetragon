@@ -434,6 +434,56 @@ func TestCompactEncoder_KprobeBPFMapAllocEventToString(t *testing.T) {
 	assert.Equal(t, "🗺 bpf_map_create kube-system/tetragon /usr/bin/bpftool BPF_MAP_TYPE_HASH amazing-map key size 8 value size 8 max entries 1024", result)
 }
 
+func TestCompactEncoder_KprobeBPFMapCreateEventToString(t *testing.T) {
+	p := NewCompactEncoder(os.Stdout, Never, false, false, false)
+
+	// bpf map with no args
+	result, err := p.EventToString(&tetragon.GetEventsResponse{
+		Event: &tetragon.GetEventsResponse_ProcessKprobe{
+			ProcessKprobe: &tetragon.ProcessKprobe{
+				Process: &tetragon.Process{
+					Binary: "/usr/bin/bpftool",
+					Pod: &tetragon.Pod{
+						Namespace: "kube-system",
+						Name:      "tetragon",
+					},
+				},
+				FunctionName: "security_bpf_map_create",
+			},
+		}})
+	require.NoError(t, err)
+	assert.Equal(t, "🗺 bpf_map_create kube-system/tetragon /usr/bin/bpftool ", result)
+
+	// bpf map with args
+	result, err = p.EventToString(&tetragon.GetEventsResponse{
+		Event: &tetragon.GetEventsResponse_ProcessKprobe{
+			ProcessKprobe: &tetragon.ProcessKprobe{
+				Process: &tetragon.Process{
+					Binary: "/usr/bin/bpftool",
+					Pod: &tetragon.Pod{
+						Namespace: "kube-system",
+						Name:      "tetragon",
+					},
+				},
+				FunctionName: "security_bpf_map_create",
+				Args: []*tetragon.KprobeArgument{
+					{Arg: &tetragon.KprobeArgument_BpfMapArg{
+						BpfMapArg: &tetragon.KprobeBpfMap{
+							MapType:    "BPF_MAP_TYPE_HASH",
+							KeySize:    8,
+							ValueSize:  8,
+							MaxEntries: 1024,
+							MapName:    "amazing-map",
+						},
+					},
+					},
+				},
+			},
+		}})
+	require.NoError(t, err)
+	assert.Equal(t, "🗺 bpf_map_create kube-system/tetragon /usr/bin/bpftool BPF_MAP_TYPE_HASH amazing-map key size 8 value size 8 max entries 1024", result)
+}
+
 func TestCompactEncoder_Encode(t *testing.T) {
 	var b bytes.Buffer
 	p := NewCompactEncoder(&b, Never, false, false, false)
