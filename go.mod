@@ -39,7 +39,7 @@ require (
 	github.com/tidwall/gjson v1.18.0
 	github.com/vishvananda/netlink v1.3.1
 	go.uber.org/multierr v1.11.0
-	golang.org/x/sync v0.19.0
+	golang.org/x/sync v0.20.0
 	golang.org/x/sys v0.40.0
 	golang.org/x/term v0.39.0
 	golang.org/x/time v0.14.0
