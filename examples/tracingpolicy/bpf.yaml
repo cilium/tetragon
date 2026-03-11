@@ -22,10 +22,22 @@ spec:
      type: "perf_event"
  # Second step of kprobe attach process: attach bpf program to perf event: todo
  # Called during bpf map create
+ # < Linux 6.9
  # int security_bpf_map_alloc(struct bpf_map *map)
  - call: "security_bpf_map_alloc"
    syscall: false
    args:
    - index: 0
      type: "bpf_map"
+   ignore:
+     callNotFound: true
+ # Linux 6.9+
+ # int security_bpf_map_create(struct bpf_map *map)
+ - call: "security_bpf_map_create"
+   syscall: false
+   args:
+   - index: 0
+     type: "bpf_map"
+   ignore:
+     callNotFound: true
  # Bpf map lookups/updates: todo
