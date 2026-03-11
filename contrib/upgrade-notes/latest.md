@@ -23,7 +23,7 @@ Depending on your setup, changes listed here might require a manual intervention
   `tetra stacktrace-tree` CLI command, and related types (`GetStackTraceTreeRequest`,
   `GetStackTraceTreeResponse`, `stack.proto`). Use TracingPolicy with
   `kernelStackTrace` and `userStackTrace` in the Post action to get stack traces
-  in `ProcessKprobe` events. See `examples/tracingpolicy/stack_traces.yaml`.
+  in `ProcessKprobe` events. See the [Stack Traces](https://tetragon.io/docs/concepts/tracing-policy/selectors/#stack-traces) documentation and `examples/tracingpolicy/stack_traces.yaml`.
 
 ### Metrics
 
