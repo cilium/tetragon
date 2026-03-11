@@ -432,11 +432,11 @@ func buildPathFromString(t *testing.T, rootType btf.Type, pathStr string) []stri
 	return path
 }
 
-func buildResolveBTFConfig(t *testing.T, rootType btf.Type, pathStr string) [api.MaxBTFArgDepth]api.ConfigBTFArg {
+func buildResolveBTFConfig(t *testing.T, rootType btf.Type, pathStr string, argTypeIsPointer bool) [api.MaxBTFArgDepth]api.ConfigBTFArg {
 	var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
 
 	path := buildPathFromString(t, rootType, pathStr)
-	_, err := ResolveBTFPath(&btfArgs, rootType, path, 0)
+	err := ResolveBTFPath(&btfArgs, rootType, path, argTypeIsPointer)
 	fatalOnError(t, err)
 
 	return btfArgs
@@ -447,16 +447,16 @@ func buildExpectedBTFConfig(t *testing.T, rootType btf.Type, pathStr string) [ap
 	return manuallyResolveBTFPath(t, rootType, path)
 }
 
-func testPathIsAccessible(rootType btf.Type, strPath string) (*[api.MaxBTFArgDepth]api.ConfigBTFArg, *btf.Type, error) {
+func testPathIsAccessible(rootType btf.Type, strPath string, argTypeIsPointer bool) (*[api.MaxBTFArgDepth]api.ConfigBTFArg, error) {
 	var btfArgs [api.MaxBTFArgDepth]api.ConfigBTFArg
 	path := strings.Split(strPath, ".")
 
-	lastBTFType, err := ResolveBTFPath(&btfArgs, ResolveNestedTypes(rootType), path, 0)
+	err := ResolveBTFPath(&btfArgs, ResolveNestedTypes(rootType), path, argTypeIsPointer)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return &btfArgs, lastBTFType, nil
+	return &btfArgs, nil
 }
 
 func testAssertEqualPath(spec *btf.Spec) func(*testing.T) {
@@ -475,21 +475,21 @@ func testAssertEqualPath(spec *btf.Spec) func(*testing.T) {
 		path := "file.f_path.dentry.d_name.name"
 		assert.Equal(t,
 			buildExpectedBTFConfig(t, bprmTy, path),
-			buildResolveBTFConfig(t, bprmTy, path),
+			buildResolveBTFConfig(t, bprmTy, path, true),
 		)
 
 		// Test anonymous struct
 		path = "mm.arg_start"
 		assert.Equal(t,
 			buildExpectedBTFConfig(t, bprmTy, path),
-			buildResolveBTFConfig(t, bprmTy, path),
+			buildResolveBTFConfig(t, bprmTy, path, false),
 		)
 
 		// Test Union
 		path = "file.f_inode.i_dir_seq"
 		assert.Equal(t,
 			buildExpectedBTFConfig(t, bprmTy, path),
-			buildResolveBTFConfig(t, bprmTy, path),
+			buildResolveBTFConfig(t, bprmTy, path, false),
 		)
 
 		// Test if param is double ptr
@@ -505,7 +505,7 @@ func testAssertEqualPath(spec *btf.Spec) func(*testing.T) {
 		path = "uid.val"
 		assert.Equal(t,
 			buildExpectedBTFConfig(t, newTy, path),
-			buildResolveBTFConfig(t, newTy, path),
+			buildResolveBTFConfig(t, newTy, path, false),
 		)
 	}
 }
@@ -522,7 +522,7 @@ func testAssertPathIsAccessible(spec *btf.Spec) func(*testing.T) {
 			taskStructTy = ty.Target
 		}
 
-		_, _, err = testPathIsAccessible(taskStructTy, "sched_task_group.css.id")
+		_, err = testPathIsAccessible(taskStructTy, "sched_task_group.css.id", false)
 		require.NoError(t, err)
 
 		hook = "security_bprm_check"
@@ -535,7 +535,7 @@ func testAssertPathIsAccessible(spec *btf.Spec) func(*testing.T) {
 			bprmTy = ty.Target
 		}
 
-		_, _, err = testPathIsAccessible(bprmTy, "mm.pgd.pgd")
+		_, err = testPathIsAccessible(bprmTy, "mm.pgd.pgd", false)
 		require.NoError(t, err)
 	}
 }
@@ -553,13 +553,13 @@ func testAssertErrorOnInvalidPath(spec *btf.Spec) func(*testing.T) {
 		}
 
 		// Assert an error is raised when attribute does not exists
-		_, _, err = testPathIsAccessible(rootType, "fail")
+		_, err = testPathIsAccessible(rootType, "fail", false)
 		require.ErrorContains(t, err, "attribute \"fail\" not found in structure")
 
-		_, _, err = testPathIsAccessible(rootType, "mm.fail")
+		_, err = testPathIsAccessible(rootType, "mm.fail", false)
 		require.ErrorContains(t, err, "attribute \"fail\" not found in structure")
 
-		_, _, err = testPathIsAccessible(rootType, "mm.pgd.fail")
+		_, err = testPathIsAccessible(rootType, "mm.pgd.fail", false)
 		require.ErrorContains(t, err, "attribute \"fail\" not found in structure")
 
 		hook = "do_sys_open"
@@ -570,7 +570,7 @@ func testAssertErrorOnInvalidPath(spec *btf.Spec) func(*testing.T) {
 		rootType = funcParamTy.Type
 
 		// Assert an error is raised when attribute has invalid type
-		_, _, err = testPathIsAccessible(rootType, "fail")
+		_, err = testPathIsAccessible(rootType, "fail", false)
 		require.ErrorContains(t, err, fmt.Sprintf("unexpected type : \"fail\" has type %q", rootType.TypeName()))
 	}
 }

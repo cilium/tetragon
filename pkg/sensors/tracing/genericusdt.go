@@ -375,13 +375,13 @@ func addUsdt(spec *v1alpha1.UsdtSpec, in *addUsdtIn, ids []idtable.EntryID, has 
 
 			argType := gt.GenericTypeFromString(arg.Type)
 			if arg.Resolve != "" {
-				lastBTFType, btfArg, err := resolveUserBTFArg(&arg, spec.BTFPath)
+				btfArg, err := resolveUserBTFArg(&arg, spec.BTFPath)
 				if err != nil {
 					return nil, err
 				}
 
 				allBTFArgs[cfgIdx] = btfArg
-				argType = findTypeFromBTFType(&arg, lastBTFType)
+				argType = findTypeFromBTFType(&arg)
 			}
 
 			if tgtArg.Signed {
