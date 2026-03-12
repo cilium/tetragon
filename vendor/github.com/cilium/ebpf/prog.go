@@ -25,6 +25,10 @@ import (
 // ErrNotSupported is returned whenever the kernel doesn't support a feature.
 var ErrNotSupported = internal.ErrNotSupported
 
+// ErrProgIncompatible is returned when a loaded Program is incompatible with a
+// given spec.
+var ErrProgIncompatible = errors.New("program is incompatible")
+
 // errBadRelocation is returned when the verifier rejects a program due to a
 // bad CO-RE relocation.
 //
@@ -172,8 +176,32 @@ func (ps *ProgramSpec) Copy() *ProgramSpec {
 // Tag calculates the kernel tag for a series of instructions.
 //
 // Use asm.Instructions.Tag if you need to calculate for non-native endianness.
+//
+// Deprecated: The value produced by this method no longer matches tags produced
+// by the kernel since Linux 6.18. Use [ProgramSpec.Compatible] instead.
 func (ps *ProgramSpec) Tag() (string, error) {
 	return ps.Instructions.Tag(internal.NativeEndian)
+}
+
+// Compatible returns nil if a loaded Program's kernel tag matches the one of
+// the ProgramSpec.
+//
+// Returns [ErrProgIncompatible] if the tags do not match.
+func (ps *ProgramSpec) Compatible(info *ProgramInfo) error {
+	if platform.IsWindows {
+		return fmt.Errorf("%w: Windows does not support tag readback from kernel", internal.ErrNotSupportedOnOS)
+	}
+
+	ok, err := ps.Instructions.HasTag(info.Tag, internal.NativeEndian)
+	if err != nil {
+		return err
+	}
+
+	if !ok {
+		return fmt.Errorf("%w: ProgramSpec and Program tags do not match", ErrProgIncompatible)
+	}
+
+	return nil
 }
 
 // targetsKernelModule returns true if the program supports being attached to a
@@ -745,6 +773,11 @@ type RunOptions struct {
 	// CPU to run Program on. Optional field.
 	// Note not all program types support this field.
 	CPU uint32
+	// BatchSize (default 64) affects the kernel's packet buffer allocation behaviour when running
+	// programs with BPF_F_TEST_XDP_LIVE_FRAMES and a non-zero [RunOptions.Repeat] value.
+	// For more details, see the kernel documentation on BPF_PROG_RUN:
+	// https://docs.kernel.org/bpf/bpf_prog_run.html#running-xdp-programs-in-live-frame-mode
+	BatchSize uint32
 	// Called whenever the syscall is interrupted, and should be set to testing.B.ResetTimer
 	// or similar. Typically used during benchmarking. Optional field.
 	//
@@ -911,6 +944,7 @@ func (p *Program) run(opts *RunOptions) (uint32, time.Duration, error) {
 		CtxOut:      sys.SlicePointer(ctxOut),
 		Flags:       opts.Flags,
 		Cpu:         opts.CPU,
+		BatchSize:   opts.BatchSize,
 	}
 
 	if p.Type() == Syscall && ctxIn != nil && ctxOut != nil {
@@ -1152,6 +1186,12 @@ func findTargetInKernel(typeName string, target *btf.Type, cache *btf.Cache) (*b
 	if errors.Is(err, btf.ErrNotFound) {
 		spec, module, err := findTargetInModule(typeName, target, cache)
 		if err != nil {
+			// EPERM may be returned when we do not have CAP_SYS_ADMIN.
+			// Wrap error with btf.ErrNotFound so callers can handle it accordingly.
+			if errors.Is(err, unix.EPERM) {
+				return spec, nil, fmt.Errorf("find target in modules: %w (%w)", btf.ErrNotFound, err)
+			}
+
 			return nil, nil, fmt.Errorf("find target in modules: %w", err)
 		}
 		return spec, module, nil
