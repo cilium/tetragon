@@ -13,13 +13,18 @@ import (
 
 // This file contains tests on kernel functions.
 
-var _ = policytest.NewBuilder("kprobe-lseek").WithLabels("kprobes").WithPolicyTemplate(`
+var _ = policytest.NewBuilder("kprobe-lseek").WithLabels("kprobes").
+	WithParameter(policytest.Parameter{
+		Name:    "Hook",
+		Default: "kprobes",
+		Help:    "type of hook to use in the policy",
+	}).WithPolicyTemplate(`
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
   name: "lseek-test"
 spec:
-  kprobes:
+  {{ .Hook }}:
   - call: "sys_lseek"
     return: false
     syscall: true
