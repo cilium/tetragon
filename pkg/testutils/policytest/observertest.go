@@ -19,7 +19,11 @@ import (
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 )
 
-func (rpt *RegisteredPolicyTests) DoObserverTest(t *testing.T, testpolicyName string) {
+func (rpt *RegisteredPolicyTests) DoObserverTest(
+	t *testing.T,
+	testpolicyName string,
+	params map[string]any,
+) {
 	t.Helper()
 	pts := rpt.GetByName(testpolicyName)
 	if len(pts) == 0 {
@@ -37,6 +41,9 @@ func (rpt *RegisteredPolicyTests) DoObserverTest(t *testing.T, testpolicyName st
 
 	conf := &Conf{
 		BinsDir: testutils.RepoRootPath("contrib/tester-progs"),
+		TestConf: &TestConf{
+			ParamValues: params,
+		},
 	}
 	policyStr, err := pt.Policy(conf)
 	if err != nil {

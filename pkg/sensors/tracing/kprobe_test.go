@@ -137,7 +137,7 @@ spec:
 // NB: This is similar to TestKprobeObjectWriteRead, but it's a bit easier to
 // debug because we can write things on stdout which will not generate events.
 func TestKprobeLseek(t *testing.T) {
-	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-lseek")
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-lseek", nil)
 }
 
 func getTestKprobeObjectWRChecker(t *testing.T) ec.MultiEventChecker {
