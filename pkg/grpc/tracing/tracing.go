@@ -740,6 +740,10 @@ func (msg *MsgGenericKprobeUnix) GetArgs() *[]tracingapi.MsgGenericKprobeArg {
 	return &msg.Args
 }
 
+func (msg *MsgGenericKprobeUnix) GetName() string {
+	return msg.FuncName
+}
+
 func (msg *MsgGenericKprobeUnix) Notify() bool {
 	return true
 }
@@ -864,6 +868,10 @@ type MsgGenericUprobeUnix struct {
 
 func (msg *MsgGenericUprobeUnix) GetArgs() *[]tracingapi.MsgGenericKprobeArg {
 	return &msg.Args
+}
+
+func (msg *MsgGenericUprobeUnix) GetName() string {
+	return msg.Symbol
 }
 
 func (msg *MsgGenericUprobeUnix) Notify() bool {
