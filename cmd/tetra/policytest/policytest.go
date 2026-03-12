@@ -35,6 +35,7 @@ func New() *cobra.Command {
 }
 
 func listCmd() *cobra.Command {
+	listParams := false
 	cmd := cobra.Command{
 		Use:   "list",
 		Short: "list Tetragon policy tests",
@@ -42,10 +43,18 @@ func listCmd() *cobra.Command {
 			for i := range policytest.AllPolicyTests.Len() {
 				pt := policytest.AllPolicyTests.Get(i)
 				fmt.Printf("%s %v\n", pt.Name, pt.Labels)
+				if listParams && len(pt.Params) > 0 {
+					fmt.Printf(" parameters:\n")
+					for _, param := range pt.Params {
+						fmt.Printf("    %s: %s (default:%s)\n", param.Name, param.Help, param.Default)
+					}
+				}
 			}
 			return nil
 		},
 	}
+	flags := cmd.Flags()
+	flags.BoolVar(&listParams, "list-params", listParams, "list parameters for each policy")
 	return &cmd
 }
 
