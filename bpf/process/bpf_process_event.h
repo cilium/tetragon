@@ -13,6 +13,7 @@
 #include "bpf_ktime.h"
 
 #include "cgroup/cgtracker.h"
+#include "errmetrics.h"
 
 #define MATCH_BINARIES_PATH_MAX_LENGTH 256
 
@@ -345,17 +346,44 @@ event_find_curr_probe(struct msg_generic_kprobe *msg)
 {
 	struct task_struct *task = (struct task_struct *)get_current_task();
 	struct execve_map_value *curr;
+	__u32 exe_len;
+	__u32 revlen = STRING_POSTFIX_MAX_LENGTH - 1;
 
 	curr = &msg->curr;
 	curr->key.pid = BPF_CORE_READ(task, tgid);
 	curr->key.ktime = tg_get_ktime();
+	curr->pkey.pid = 0;
+	curr->pkey.ktime = 0;
+	curr->flags = 0;
 	curr->nspid = get_task_pid_vnr_by_task(task);
 
 	get_current_subj_caps(&curr->caps, task);
 	get_namespaces(&curr->ns, task);
 	set_in_init_tree(curr, NULL);
 
-	read_exe((struct task_struct *)get_current_task(), &msg->exe);
+	/* Reset binary info and populate from task's exe path for
+	 * matchBinaries filtering. Without this, matchBinaries selectors
+	 * (especially NotIn) won't work correctly when the process is
+	 * not found in execve_map.
+	 */
+	binary_reset(&curr->bin);
+	curr->bin.path_length = -1;
+	exe_len = read_exe(task, &msg->exe);
+	if (exe_len > 0 && exe_len <= BINARY_PATH_MAX_LEN) {
+		int err;
+
+		asm volatile("%[len] &= 0xff;\n" : [len] "+r"(exe_len));
+		err = with_errmetrics(probe_read, curr->bin.path, exe_len, msg->exe.buf);
+		if (err == 0) {
+			curr->bin.path_length = exe_len;
+			if (exe_len > STRING_POSTFIX_MAX_LENGTH - 1)
+				revlen = STRING_POSTFIX_MAX_LENGTH - 1;
+			else
+				revlen = exe_len;
+			asm volatile("%[revlen] &= 0x7f;\n" : [revlen] "+r"(revlen));
+			with_errmetrics(probe_read, curr->bin.end, revlen, msg->exe.end);
+		}
+	}
 	return curr;
 }
 #else
