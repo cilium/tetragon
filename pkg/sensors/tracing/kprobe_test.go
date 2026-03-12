@@ -142,6 +142,7 @@ func TestKprobeLseek(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
+	lseekProg := testutils.RepoRootPath("contrib/tester-progs/lseek-pipe")
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	t.Logf("tester pid=%s\n", pidStr)
 
@@ -149,7 +150,7 @@ func TestKprobeLseek(t *testing.T) {
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
 metadata:
-  name: "sys-write"
+  name: "lseek-test"
 spec:
   kprobes:
   - call: "sys_lseek"
@@ -159,12 +160,10 @@ spec:
     - index: 0
       type: "int"
     selectors:
-    - matchPIDs:
+    - matchBinaries:
       - operator: In
-        followForks: true
-        isNamespacePID: false
         values:
-        - ` + pidStr
+        - ` + lseekProg
 
 	createCrdFile(t, lseekConfigHook_)
 
@@ -177,8 +176,9 @@ spec:
 	}
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
-	fmt.Printf("Calling lseek...\n")
-	unix.Seek(-1, 0, 4444)
+	t.Logf("execing %s", lseekProg)
+	err = exec.Command(lseekProg, "-1", "0", "4444").Run()
+	require.NoError(t, err)
 
 	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
 	require.NoError(t, err)
