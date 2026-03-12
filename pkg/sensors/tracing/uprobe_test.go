@@ -170,7 +170,7 @@ spec:
 }
 
 func TestUprobeGeneric(t *testing.T) {
-	policytest.AllPolicyTests.DoObserverTest(t, "uprobe-generic")
+	policytest.AllPolicyTests.DoObserverTest(t, "uprobe-generic", nil)
 }
 
 func TestUretprobeGeneric(t *testing.T) {
