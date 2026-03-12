@@ -12,6 +12,7 @@ import (
 // TestConf is the runtime configuration for a single policy test
 type TestConf struct {
 	MonitorMode bool
+	ParamValues map[string]any
 }
 
 // Conf is the runtime configuration for a sequence of policy tests

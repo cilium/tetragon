@@ -115,9 +115,7 @@ func (r *LocalRunner) Close() {
 
 func (r *LocalRunner) AddPolicy(l *slog.Logger, test *T) (*PolicyHandler, error) {
 	// generate policy
-	pol, err := test.Policy(&Conf{
-		BinsDir: r.conf.BinsDir,
-	})
+	pol, err := test.Policy(r.conf)
 	if err != nil {
 		err = fmt.Errorf("failed to create policy for test %q: %w", test.Name, err)
 		return nil, err
