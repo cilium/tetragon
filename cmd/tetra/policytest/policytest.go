@@ -54,6 +54,7 @@ func runCmd() *cobra.Command {
 	testBinsPath := filepath.Join(cwd, "contrib/tester-progs")
 	dumpPolicyPath := ""
 	monitorMode := false
+	var params map[string]string
 	cmd := cobra.Command{
 		Use:   "run",
 		Short: "Run Tetragon policy test(s)",
@@ -69,6 +70,12 @@ func runCmd() *cobra.Command {
 					Level: logLevel,
 				},
 			))
+
+			// NB: parameters are applied to all policies
+			paramValues := make(map[string]any)
+			for k, v := range params {
+				paramValues[k] = v
+			}
 
 			ctx := context.Background()
 			names := make(map[string]struct{})
@@ -93,6 +100,7 @@ func runCmd() *cobra.Command {
 				ptNames = append(ptNames, t.Name)
 				res := runner.RunTest(log, t, &policytest.TestConf{
 					MonitorMode: monitorMode,
+					ParamValues: paramValues,
 				})
 				results = append(results, res)
 			}
@@ -105,5 +113,6 @@ func runCmd() *cobra.Command {
 	flags.StringVar(&testBinsPath, "bindir", testBinsPath, "path for test binaries directory")
 	flags.StringVar(&dumpPolicyPath, "dump-policy-path", dumpPolicyPath, "save the policy in the provided path")
 	flags.BoolVar(&monitorMode, "monitor-mode", monitorMode, "set the policy(-ies) in monitor mode before running the test(s)")
+	flags.StringToStringVar(&params, "set-param", map[string]string{}, "Set a policy parameter")
 	return &cmd
 }
