@@ -34,6 +34,12 @@ type SkipInfo struct {
 	AgentInfo *tetragoninfo.Info
 }
 
+type Parameter struct {
+	Name    string
+	Default any
+	Help    string
+}
+
 // T defines a policy test
 type T struct {
 	// Name returns the name of the test
@@ -47,6 +53,8 @@ type T struct {
 
 	// Policy generates a policy for this test
 	Policy func(c *Conf) (Policy, error)
+
+	Params []Parameter
 
 	// Scenarios returns a list of scenarios to test the generated policy
 	Scenarios []func(c *Conf) *Scenario
