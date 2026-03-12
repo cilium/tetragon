@@ -91,7 +91,7 @@ func runCmd() *cobra.Command {
 			var ptNames []string
 			for _, t := range tests {
 				ptNames = append(ptNames, t.Name)
-				res := runner.RunTest(log, t, &policytest.RunConf{
+				res := runner.RunTest(log, t, &policytest.TestConf{
 					MonitorMode: monitorMode,
 				})
 				results = append(results, res)
