@@ -2,6 +2,7 @@
 
 Read the upgrade notes carefully before upgrading Tetragon.
 Depending on your setup, changes listed here might require a manual intervention.
+See the [Stack Traces](https://tetragon.io/docs/concepts/tracing-policy/selectors/#stack-traces) documentation for stack trace migration.
 
 * TBD
 
