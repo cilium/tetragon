@@ -64,6 +64,7 @@ import (
 	"github.com/cilium/tetragon/pkg/testutils"
 	tuo "github.com/cilium/tetragon/pkg/testutils/observer"
 	"github.com/cilium/tetragon/pkg/testutils/perfring"
+	"github.com/cilium/tetragon/pkg/testutils/policytest"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 
@@ -136,52 +137,7 @@ spec:
 // NB: This is similar to TestKprobeObjectWriteRead, but it's a bit easier to
 // debug because we can write things on stdout which will not generate events.
 func TestKprobeLseek(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
-	t.Logf("tester pid=%s\n", pidStr)
-
-	lseekConfigHook_ := `
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "sys-write"
-spec:
-  kprobes:
-  - call: "sys_lseek"
-    return: false
-    syscall: true
-    args:
-    - index: 0
-      type: "int"
-    selectors:
-    - matchPIDs:
-      - operator: In
-        followForks: true
-        isNamespacePID: false
-        values:
-        - ` + pidStr
-
-	createCrdFile(t, lseekConfigHook_)
-
-	kpChecker := ec.NewProcessKprobeChecker("lseek-checker").
-		WithFunctionName(sm.Suffix("sys_lseek"))
-
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-	fmt.Printf("Calling lseek...\n")
-	unix.Seek(-1, 0, 4444)
-
-	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
-	require.NoError(t, err)
+	policytest.AllPolicyTests.DoObserverTest(t, "kprobe-lseek", nil)
 }
 
 func getTestKprobeObjectWRChecker(t *testing.T) ec.MultiEventChecker {

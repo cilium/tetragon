@@ -62,7 +62,7 @@ spec:
 		WithSymbol(sm.Full("pizza"))
 
 	exitCode := 42
-	if c.RunConf != nil && c.RunConf.MonitorMode {
+	if c.TestConf != nil && c.TestConf.MonitorMode {
 		exitCode = 0
 	}
 	postCnt := uint64(1)

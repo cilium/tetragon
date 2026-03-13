@@ -9,15 +9,21 @@ import (
 	"path/filepath"
 )
 
-// Conf is the runtime configuration
+// TestConf is the runtime configuration for a single policy test
+type TestConf struct {
+	MonitorMode bool
+	ParamValues map[string]any
+}
+
+// Conf is the runtime configuration for a sequence of policy tests
 type Conf struct {
 	// Test Binaries directory
 	BinsDir string
 	// Agent GRPC address
 	GrpcAddr string
 
-	// Test run configuration
-	RunConf *RunConf
+	// configuration for the current test
+	TestConf *TestConf
 
 	// Path to save the generated policy
 	DumpPolicyPath string

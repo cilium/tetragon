@@ -30,12 +30,18 @@ func (b *Builder) WithLabels(labels ...string) *Builder {
 	return b
 }
 
+func (b *Builder) WithParameter(p Parameter) *Builder {
+	b.policytest.Params = append(b.policytest.Params, p)
+	return b
+}
+
 // WithPolicyTemplate adds a policy to a policy test using a text template.
 //
 // In the template, the following functions are supported
 //   - testBinary: generate a test binary path from the binary name (Conf.TestBinary())
 func (b *Builder) WithPolicyTemplate(tmpl string) *Builder {
-	b.policytest.Policy = func(c *Conf) (Policy, error) {
+	policyTest := b.policytest
+	policyTest.Policy = func(c *Conf) (Policy, error) {
 		funcMap := template.FuncMap{
 			"testBinary": func(s string) string {
 				return c.TestBinary(s)
@@ -45,8 +51,19 @@ func (b *Builder) WithPolicyTemplate(tmpl string) *Builder {
 		if err != nil {
 			return Policy(""), fmt.Errorf("failed to parse template: %w", err)
 		}
+
+		// fill in params
+		params := make(map[string]any)
+		for _, p := range policyTest.Params {
+			val, ok := c.TestConf.ParamValues[p.Name]
+			if !ok {
+				val = p.Default
+			}
+			params[p.Name] = val
+		}
+
 		var buf bytes.Buffer
-		err = t.Execute(&buf, nil)
+		err = t.Execute(&buf, params)
 		if err != nil {
 			return Policy(""), fmt.Errorf("failed to execute template: %w", err)
 		}

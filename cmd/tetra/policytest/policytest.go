@@ -30,11 +30,13 @@ func New() *cobra.Command {
 	tpCmd.AddCommand(
 		listCmd(),
 		runCmd(),
+		dumpPolicyCmd(),
 	)
 	return tpCmd
 }
 
 func listCmd() *cobra.Command {
+	listParams := false
 	cmd := cobra.Command{
 		Use:   "list",
 		Short: "list Tetragon policy tests",
@@ -42,10 +44,73 @@ func listCmd() *cobra.Command {
 			for i := range policytest.AllPolicyTests.Len() {
 				pt := policytest.AllPolicyTests.Get(i)
 				fmt.Printf("%s %v\n", pt.Name, pt.Labels)
+				if listParams && len(pt.Params) > 0 {
+					fmt.Printf(" parameters:\n")
+					for _, param := range pt.Params {
+						fmt.Printf("    %s: %s (default:%s)\n", param.Name, param.Help, param.Default)
+					}
+				}
 			}
 			return nil
 		},
 	}
+	flags := cmd.Flags()
+	flags.BoolVar(&listParams, "list-params", listParams, "list parameters for each policy")
+	return &cmd
+}
+
+func dumpPolicyCmd() *cobra.Command {
+	cwd, _ := os.Getwd()
+	testBinsPath := filepath.Join(cwd, "contrib/tester-progs")
+	dumpPolicyPath := ""
+	monitorMode := false
+	var params map[string]string
+
+	cmd := cobra.Command{
+		Use:   "dump-policy",
+		Short: "Dump policies from Tetragon policy test(s)",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			// NB: parameters are applied to all policies
+			paramValues := make(map[string]any)
+			for k, v := range params {
+				paramValues[k] = v
+			}
+
+			names := make(map[string]struct{})
+			for _, arg := range args {
+				names[arg] = struct{}{}
+			}
+			tests := policytest.AllPolicyTests.GetByFunction(func(t *policytest.T) bool {
+				_, ok := names[t.Name]
+				return ok
+			})
+
+			conf := policytest.Conf{
+				GrpcAddr:       common.ServerAddress,
+				BinsDir:        testBinsPath,
+				DumpPolicyPath: dumpPolicyPath,
+				TestConf: &policytest.TestConf{
+					MonitorMode: monitorMode,
+					ParamValues: paramValues,
+				},
+			}
+
+			for _, t := range tests {
+				pol, err := t.Policy(&conf)
+				if err != nil {
+					return err
+				}
+				cmd.OutOrStdout().Write([]byte(pol))
+			}
+			return nil
+		},
+	}
+
+	flags := cmd.Flags()
+	flags.StringVar(&testBinsPath, "bindir", testBinsPath, "path for test binaries directory")
+	flags.StringVar(&dumpPolicyPath, "dump-policy-path", dumpPolicyPath, "save the policy in the provided path")
+	flags.BoolVar(&monitorMode, "monitor-mode", monitorMode, "set the policy(-ies) in monitor mode before running the test(s)")
+	flags.StringToStringVar(&params, "set-param", map[string]string{}, "Set a policy parameter")
 	return &cmd
 }
 
@@ -54,6 +119,7 @@ func runCmd() *cobra.Command {
 	testBinsPath := filepath.Join(cwd, "contrib/tester-progs")
 	dumpPolicyPath := ""
 	monitorMode := false
+	var params map[string]string
 	cmd := cobra.Command{
 		Use:   "run",
 		Short: "Run Tetragon policy test(s)",
@@ -69,6 +135,12 @@ func runCmd() *cobra.Command {
 					Level: logLevel,
 				},
 			))
+
+			// NB: parameters are applied to all policies
+			paramValues := make(map[string]any)
+			for k, v := range params {
+				paramValues[k] = v
+			}
 
 			ctx := context.Background()
 			names := make(map[string]struct{})
@@ -91,8 +163,9 @@ func runCmd() *cobra.Command {
 			var ptNames []string
 			for _, t := range tests {
 				ptNames = append(ptNames, t.Name)
-				res := runner.RunTest(log, t, &policytest.RunConf{
+				res := runner.RunTest(log, t, &policytest.TestConf{
 					MonitorMode: monitorMode,
+					ParamValues: paramValues,
 				})
 				results = append(results, res)
 			}
@@ -105,5 +178,6 @@ func runCmd() *cobra.Command {
 	flags.StringVar(&testBinsPath, "bindir", testBinsPath, "path for test binaries directory")
 	flags.StringVar(&dumpPolicyPath, "dump-policy-path", dumpPolicyPath, "save the policy in the provided path")
 	flags.BoolVar(&monitorMode, "monitor-mode", monitorMode, "set the policy(-ies) in monitor mode before running the test(s)")
+	flags.StringToStringVar(&params, "set-param", map[string]string{}, "Set a policy parameter")
 	return &cmd
 }

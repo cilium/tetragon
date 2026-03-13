@@ -26,10 +26,6 @@ import (
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
-type RunConf struct {
-	MonitorMode bool
-}
-
 type LocalRunner struct {
 	conf *Conf
 	cli  *cli.ClientWithContext
@@ -119,9 +115,7 @@ func (r *LocalRunner) Close() {
 
 func (r *LocalRunner) AddPolicy(l *slog.Logger, test *T) (*PolicyHandler, error) {
 	// generate policy
-	pol, err := test.Policy(&Conf{
-		BinsDir: r.conf.BinsDir,
-	})
+	pol, err := test.Policy(r.conf)
 	if err != nil {
 		err = fmt.Errorf("failed to create policy for test %q: %w", test.Name, err)
 		return nil, err
@@ -164,7 +158,7 @@ func (r *LocalRunner) AddPolicy(l *slog.Logger, test *T) (*PolicyHandler, error)
 }
 
 // RunTest runs a policy test
-func (r *LocalRunner) RunTest(l *slog.Logger, test *T, runConf *RunConf) *Result {
+func (r *LocalRunner) RunTest(l *slog.Logger, test *T, testConf *TestConf) *Result {
 	if test.ShouldSkip != nil {
 		if reason := test.ShouldSkip(&SkipInfo{r.info}); reason != "" {
 			return &Result{Skipped: reason}
@@ -172,9 +166,9 @@ func (r *LocalRunner) RunTest(l *slog.Logger, test *T, runConf *RunConf) *Result
 	}
 
 	// set and clear run configuration after we are done
-	r.conf.RunConf = runConf
+	r.conf.TestConf = testConf
 	defer func() {
-		r.conf.RunConf = nil
+		r.conf.TestConf = nil
 	}()
 
 	polHandler, err := r.AddPolicy(l, test)
@@ -182,7 +176,7 @@ func (r *LocalRunner) RunTest(l *slog.Logger, test *T, runConf *RunConf) *Result
 		return &Result{Err: err}
 	}
 
-	if runConf.MonitorMode {
+	if testConf.MonitorMode {
 		mode := tetragon.TracingPolicyMode_TP_MODE_MONITOR
 		err := polHandler.Configure(l, r.cli, nil, &mode)
 		if err != nil {
@@ -194,7 +188,7 @@ func (r *LocalRunner) RunTest(l *slog.Logger, test *T, runConf *RunConf) *Result
 	var res Result
 	for _, sc := range test.Scenarios {
 		scenario := sc(r.conf)
-		scRes := r.RunScenario(l, scenario, polHandler, runConf)
+		scRes := r.RunScenario(l, scenario, polHandler, testConf)
 		res.ScenariosRes = append(res.ScenariosRes, scRes)
 	}
 
@@ -206,7 +200,7 @@ func (r *LocalRunner) RunTest(l *slog.Logger, test *T, runConf *RunConf) *Result
 }
 
 func (r *LocalRunner) RunScenario(
-	l *slog.Logger, scenario *Scenario, polHandler *PolicyHandler, runConf *RunConf,
+	l *slog.Logger, scenario *Scenario, polHandler *PolicyHandler, testConf *TestConf,
 ) ScenarioRes {
 	// set the scenario timeout to 10s
 	// TODO: make it configurable
@@ -237,7 +231,7 @@ func (r *LocalRunner) RunScenario(
 	if cntsBefore != nil {
 		cntsAfter, actionCountsErr = polHandler.GetCounts(l, r.cli)
 		if actionCountsErr == nil {
-			actionCountsErr = actCountsCheck(runConf.MonitorMode,
+			actionCountsErr = actCountsCheck(testConf.MonitorMode,
 				cntsBefore, cntsAfter, &scenario.ActCountChecker)
 		}
 	}
