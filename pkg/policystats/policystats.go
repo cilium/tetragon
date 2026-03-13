@@ -29,7 +29,9 @@ const (
 	PolicyMonitorOverride       PolicyAction = 5
 	PolicyNotifyEnforcer        PolicyAction = 6
 	PolicyMonitorNotifyEnforcer PolicyAction = 7
-	PolicyActionsNr                          = 8
+	PolicySet                   PolicyAction = 8
+	PolicyMonitorSet            PolicyAction = 9
+	PolicyActionsNr                          = 10
 )
 
 type PolicyStats struct {

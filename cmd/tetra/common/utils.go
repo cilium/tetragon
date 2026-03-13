@@ -82,8 +82,8 @@ func PrintTracingPolicies(output io.Writer, policies []*tetragon.TracingPolicySt
 			HumanizeByteCount(int(pol.KernelMemoryBytes)),
 			strings.TrimPrefix(strings.ToLower(pol.Mode.String()), "tp_mode_"),
 			counters.GetPost(),
-			counters.GetSignal()+counters.GetOverride()+counters.GetNotifyEnforcer(),
-			counters.GetMonitorSignal()+counters.GetMonitorOverride()+counters.GetMonitorNotifyEnforcer())
+			counters.GetSignal()+counters.GetOverride()+counters.GetNotifyEnforcer()+counters.GetSet(),
+			counters.GetMonitorSignal()+counters.GetMonitorOverride()+counters.GetMonitorNotifyEnforcer()+counters.GetMonitorSet())
 	}
 	w.Flush()
 }
