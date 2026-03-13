@@ -7,6 +7,7 @@ package tests
 
 import (
 	ec "github.com/cilium/tetragon/api/v1/tetragon/codegen/eventchecker"
+	"github.com/cilium/tetragon/pkg/bpf"
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/testutils/policytest"
 )
@@ -50,7 +51,7 @@ spec:
         argError: 42
 `).WithSkip(func(si *policytest.SkipInfo) string {
 	// skip if uprobe_regs_change is not supported
-	if !si.AgentInfo.Probes["uprobe_regs_change"] {
+	if !si.AgentInfo.Probes[bpf.UprobeRegsChangeProbe] {
 		return "uprobes cannot change registers"
 	}
 	return ""
