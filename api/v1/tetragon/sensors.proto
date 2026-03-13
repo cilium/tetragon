@@ -71,6 +71,10 @@ message TracingPolicyActionCounters {
   uint64 notify_enforcer = 6;
   // number of enforcer notifications that did not occur because the policy was in monitor mode
   uint64 monitor_notify_enforcer = 7;
+  // number of set actions triggered from the policy
+  uint64 set = 8;
+  // number of set actions that did not occur because the policy was in monitor mode
+  uint64 monitor_set = 9;
 }
 
 message TracingPolicyStats {
