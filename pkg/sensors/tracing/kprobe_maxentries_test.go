@@ -90,41 +90,6 @@ spec:
 `)
 	})
 
-	t.Run("fdinstall_map", func(t *testing.T) {
-		t.Skip("skipping test, FollowFD action removed from BPF in v1.5")
-		run(t, []testMap{
-			{"fdinstall_map", fdInstallMapMaxEntries},
-			{"enforcer_data", 1},
-			{"stack_trace_map", 1},
-			{"ratelimit_map", 1},
-			{"override_tasks", 1},
-		}, `
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "syswritefollowfdpsswd"
-spec:
-  kprobes:
-  - call: "fd_install"
-    syscall: false
-    args:
-    - index: 0
-      type: int
-    - index: 1
-      type: "file"
-    selectors:
-    - matchArgs:
-      - index: 1
-        operator: "Equal"
-        values:
-        - "/tmp/test"
-      matchActions:
-      - action: FollowFD
-        argFd: 0
-        argName: 1
-`)
-	})
-
 	t.Run("stack_trace_map", func(t *testing.T) {
 		run(t, []testMap{
 			{"fdinstall_map", 1},
