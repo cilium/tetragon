@@ -2312,6 +2312,8 @@ Determines the behavior of a field filter
 | monitor_override | [uint64](#uint64) |  | number of return overrides that did not occur because the policy was in monitor mode |
 | notify_enforcer | [uint64](#uint64) |  | number of enforcer notifications triggered from the policy |
 | monitor_notify_enforcer | [uint64](#uint64) |  | number of enforcer notifications that did not occur because the policy was in monitor mode |
+| set | [uint64](#uint64) |  | number of set actions triggered from the policy |
+| monitor_set | [uint64](#uint64) |  | number of set actions that did not occur because the policy was in monitor mode |
 
 
 
