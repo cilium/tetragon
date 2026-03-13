@@ -10,8 +10,8 @@
 #define HAS_POLICY_STATS
 #endif
 
-/* NB: if you are modifying this enum, you might want to change the proto descriptions for
- * TracingPolicyActionCounters.
+/* NB: if you are modifying this enum, you probably want to change the proto descriptions for
+ * TracingPolicyActionCounters as well as the consts in pkg/policystats/policystats.go
  */
 enum policy_actions {
 	POLICY_INVALID_ACT_ = 0,
@@ -22,6 +22,8 @@ enum policy_actions {
 	POLICY_MONITOR_OVERRIDE = 5, /* policy did not overrode a return value because it was in monitor mode */
 	POLICY_NOTIFY_ENFORCER = 6, /* policy notified the enforcer */
 	POLICY_MONITOR_NOTIFY_ENFORCER = 7, /* policy did not notify the enforcer because it was in monitor mode */
+	POLICY_SET = 8, /* policy set user-space values */
+	POLICY_MONITOR_SET = 9, /* policy did not set user-space values because it was in monitor mode */
 	POLICY_NACTIONS_,
 };
 

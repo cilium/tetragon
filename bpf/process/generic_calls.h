@@ -1022,7 +1022,12 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 	case ACTION_SET:
 		index = actions->act[++i];
 		value = actions->act[++i];
-		do_set_action(ctx, e, index, value);
+		if (enforce_mode) {
+			do_set_action(ctx, e, index, value);
+			polacct = POLICY_SET;
+		} else {
+			polacct = POLICY_MONITOR_SET;
+		}
 		break;
 	default:
 		break;
