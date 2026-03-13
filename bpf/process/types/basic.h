@@ -112,12 +112,10 @@ enum {
 
 enum {
 	ACTION_POST = 0,
-	ACTION_FOLLOWFD = 1,
+	/* Numeric values 1, 3, 5 were removed in v1.5 (deprecated FD-tracking actions) */
 	/* Actual SIGKILL value, but we dont want to pull headers in */
 	ACTION_SIGKILL = 2,
-	ACTION_UNFOLLOWFD = 3,
 	ACTION_OVERRIDE = 4,
-	ACTION_COPYFD = 5,
 	ACTION_GETURL = 6,
 	ACTION_DNSLOOKUP = 7,
 	ACTION_NOPOST = 8,
@@ -2250,70 +2248,6 @@ struct {
 	__type(value, struct fdinstall_value);
 } fdinstall_map SEC(".maps");
 
-FUNC_INLINE int
-installfd(struct msg_generic_kprobe *e, int fd, int name, bool follow)
-{
-	struct fdinstall_key key = { 0 };
-	struct fdinstall_value *val;
-	int err = 0, zero = 0;
-	long fdoff, nameoff;
-
-	val = map_lookup_elem(&heap, &zero);
-	if (!val)
-		return 0;
-
-	/* Satisfies verifier but is a bit ugly, ideally we
-	 * can just '&' and drop the '>' case.
-	 */
-	asm volatile("%[fd] &= %[mask];\n"
-		     : [fd] "+r"(fd)
-		     : [mask] "i"(MAX_POSSIBLE_ARGS_MASK));
-	if (fd >= MAX_POSSIBLE_ARGS)
-		return 0;
-
-	if (!is_arg_ok(e, fd))
-		return 0;
-
-	fdoff = e->argsoff[fd];
-	asm volatile("%[fdoff] &= 0x7ff;\n"
-		     : [fdoff] "+r"(fdoff)
-		     :);
-	key.pad = 0;
-	key.fd = *(__u32 *)&e->args[fdoff];
-	key.tid = get_current_pid_tgid() >> 32;
-
-	if (follow) {
-		__u32 size;
-
-		asm volatile("%[name] &= %[mask];\n"
-			     : [name] "+r"(name)
-			     : [mask] "i"(MAX_POSSIBLE_ARGS_MASK));
-		if (name >= MAX_POSSIBLE_ARGS)
-			return 0;
-
-		if (!is_arg_ok(e, name))
-			return 0;
-
-		nameoff = e->argsoff[name];
-		asm volatile("%[nameoff] &= 0x7ff;\n"
-			     : [nameoff] "+r"(nameoff)
-			     :);
-
-		size = *(__u32 *)&e->args[nameoff];
-		asm volatile("%[size] &= 0xfff;\n"
-			     : [size] "+r"(size)
-			     :);
-
-		probe_read(&val->file[0], size + 4 /* size */ + 4 /* flags */,
-			   &e->args[nameoff]);
-
-		map_update_elem(&fdinstall_map, &key, val, BPF_ANY);
-	} else {
-		err = map_delete_elem(&fdinstall_map, &key);
-	}
-	return err;
-}
-
 FUNC_INLINE __u64
 msg_generic_arg_value_u64(struct msg_generic_kprobe *e, unsigned int arg_id, __u64 err_val)
 {
@@ -2330,52 +2264,6 @@ msg_generic_arg_value_u64(struct msg_generic_kprobe *e, unsigned int arg_id, __u
 	argoff &= GENERIC_MSG_ARGS_MASK;
 	ret = (__u64 *)&e->args[argoff];
 	return *ret;
-}
-
-FUNC_INLINE int
-copyfd(struct msg_generic_kprobe *e, int oldfd, int newfd)
-{
-	struct fdinstall_key key = { 0 };
-	struct fdinstall_value *val;
-	int oldfdoff, newfdoff;
-	int err = 0;
-
-	asm volatile("%[oldfd] &= %[mask];\n"
-		     : [oldfd] "+r"(oldfd)
-		     : [mask] "i"(MAX_POSSIBLE_ARGS_MASK));
-	if (oldfd >= MAX_POSSIBLE_ARGS)
-		return 0;
-	if (!is_arg_ok(e, oldfd))
-		return 0;
-	oldfdoff = e->argsoff[oldfd];
-	asm volatile("%[oldfdoff] &= 0x7ff;\n"
-		     : [oldfdoff] "+r"(oldfdoff)
-		     :);
-	key.pad = 0;
-	key.fd = *(__u32 *)&e->args[oldfdoff];
-	key.tid = get_current_pid_tgid() >> 32;
-
-	val = map_lookup_elem(&fdinstall_map, &key);
-	if (val) {
-		asm volatile("%[newfd] &= %[mask];\n"
-			     : [newfd] "+r"(newfd)
-			     : [mask] "i"(MAX_POSSIBLE_ARGS_MASK));
-		if (newfd >= MAX_POSSIBLE_ARGS)
-			return 0;
-		if (!is_arg_ok(e, newfd))
-			return 0;
-		newfdoff = e->argsoff[newfd];
-		asm volatile("%[newfdoff] &= 0x7ff;\n"
-			     : [newfdoff] "+r"(newfdoff)
-			     :);
-		key.pad = 0;
-		key.fd = *(__u32 *)&e->args[newfdoff];
-		key.tid = get_current_pid_tgid() >> 32;
-
-		map_update_elem(&fdinstall_map, &key, val, BPF_ANY);
-	}
-
-	return err;
 }
 
 #ifdef __LARGE_BPF_PROG
