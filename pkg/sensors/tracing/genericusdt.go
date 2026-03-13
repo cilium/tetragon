@@ -132,9 +132,9 @@ func createGenericUsdtSensor(
 	has.sleepableOffload = hasSetAction && config.EnableV61Progs()
 
 	if in.useMulti {
-		progs, maps, err = createMultiUsdtSensor(ids, polInfo.name, has)
+		progs, maps, err = createMultiUsdtSensor(polInfo, ids, has)
 	} else {
-		progs, maps, err = createSingleUsdtSensor(ids, has)
+		progs, maps, err = createSingleUsdtSensor(polInfo, ids, has)
 	}
 
 	if err != nil {
@@ -159,7 +159,9 @@ func createGenericUsdtSensor(
 	}, nil
 }
 
-func createMultiUsdtSensor(multiIDs []idtable.EntryID, policyName string, has usdtHas) ([]*program.Program, []*program.Map, error) {
+func createMultiUsdtSensor(
+	polInfo *policyInfo, multiIDs []idtable.EntryID, has usdtHas,
+) ([]*program.Program, []*program.Map, error) {
 	var progs []*program.Program
 	var maps []*program.Map
 
@@ -172,7 +174,7 @@ func createMultiUsdtSensor(multiIDs []idtable.EntryID, policyName string, has us
 		"multi_usdt",
 		"generic_usdt").
 		SetLoaderData(multiIDs).
-		SetPolicy(policyName)
+		SetPolicy(polInfo.name)
 
 	load.SleepableOffload = has.sleepableOffload
 	load.SleepablePreload = has.sleepablePreload
@@ -204,10 +206,12 @@ func createMultiUsdtSensor(multiIDs []idtable.EntryID, policyName string, has us
 		maps = append(maps, program.MapUser(cgtracker.MapName, load))
 	}
 
+	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load))
+
 	return progs, maps, nil
 }
 
-func createSingleUsdtSensor(ids []idtable.EntryID, has usdtHas) ([]*program.Program, []*program.Map, error) {
+func createSingleUsdtSensor(polInfo *policyInfo, ids []idtable.EntryID, has usdtHas) ([]*program.Program, []*program.Map, error) {
 	var progs []*program.Program
 	var maps []*program.Map
 
@@ -216,13 +220,13 @@ func createSingleUsdtSensor(ids []idtable.EntryID, has usdtHas) ([]*program.Prog
 		if err != nil {
 			return nil, nil, err
 		}
-		progs, maps = createUsdtSensorFromEntry(usdtEntry, progs, maps, has)
+		progs, maps = createUsdtSensorFromEntry(polInfo, usdtEntry, progs, maps, has)
 	}
 
 	return progs, maps, nil
 }
 
-func createUsdtSensorFromEntry(usdtEntry *genericUsdt,
+func createUsdtSensorFromEntry(polInfo *policyInfo, usdtEntry *genericUsdt,
 	progs []*program.Program, maps []*program.Map, has usdtHas) ([]*program.Program, []*program.Map) {
 
 	loadProgName := config.GenericUsdtObjs(false)
@@ -270,6 +274,8 @@ func createUsdtSensorFromEntry(usdtEntry *genericUsdt,
 	if option.Config.EnableCgTrackerID {
 		maps = append(maps, program.MapUser(cgtracker.MapName, load))
 	}
+
+	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load))
 
 	return progs, maps
 }
