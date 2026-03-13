@@ -162,6 +162,8 @@ func (c *collection) stats() *tetragon.TracingPolicyStats {
 			MonitorOverride:       stats.ActionsCount[policystats.PolicyMonitorOverride],
 			NotifyEnforcer:        stats.ActionsCount[policystats.PolicyNotifyEnforcer],
 			MonitorNotifyEnforcer: stats.ActionsCount[policystats.PolicyMonitorNotifyEnforcer],
+			Set:                   stats.ActionsCount[policystats.PolicySet],
+			MonitorSet:            stats.ActionsCount[policystats.PolicyMonitorSet],
 		},
 	}
 }
