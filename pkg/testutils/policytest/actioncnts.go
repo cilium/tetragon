@@ -16,10 +16,11 @@ type ActionCounts struct {
 	Signal         *uint64
 	Override       *uint64
 	NotifyEnforcer *uint64
+	Set            *uint64
 }
 
 func (ac *ActionCounts) empty() bool {
-	return ac.Post == nil && ac.Signal == nil && ac.Override == nil && ac.NotifyEnforcer == nil
+	return ac.Post == nil && ac.Signal == nil && ac.Override == nil && ac.NotifyEnforcer == nil && ac.Set == nil
 }
 
 func actCountsCheck(
@@ -60,6 +61,14 @@ func actCountsCheck(
 			doCheck("notify-enforcer (monitor)", *(expect.NotifyEnforcer), before.MonitorNotifyEnforcer, after.MonitorNotifyEnforcer)
 		} else {
 			doCheck("notify-enforcer", *(expect.NotifyEnforcer), before.NotifyEnforcer, after.NotifyEnforcer)
+		}
+	}
+
+	if expect.Set != nil {
+		if monitorMode {
+			doCheck("set (monitor)", *(expect.Set), before.MonitorSet, after.MonitorSet)
+		} else {
+			doCheck("set", *(expect.Set), before.Set, after.Set)
 		}
 	}
 
