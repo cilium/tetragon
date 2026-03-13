@@ -107,7 +107,11 @@ clean: cli-clean tarball-clean
 
 .PHONY: tetragon
 tetragon: ## Compile the Tetragon agent.
-	$(GO_BUILD) ./cmd/tetragon/
+	$(GO_BUILD) -tags k8s ./cmd/tetragon/
+
+.PHONY: tetragon-nok8s
+tetragon-nok8s: ## Compile the Tetragon agent without k87s support.
+	$(GO_BUILD) -o tetragon-nok8s ./cmd/tetragon/
 
 .PHONY: tetragon-operator
 tetragon-operator: ## Compile the Tetragon operator.
@@ -115,6 +119,10 @@ tetragon-operator: ## Compile the Tetragon operator.
 
 .PHONY: tetra
 tetra: ## Compile the Tetragon gRPC client.
+	$(GO_BUILD) -tags k8s ./cmd/tetra/
+
+.PHONY: tetra-nok8s
+tetra-nok8s: ## Compile the Tetragon gRPC client.
 	$(GO_BUILD) ./cmd/tetra/
 
 .PHONY: tetragon-bpf

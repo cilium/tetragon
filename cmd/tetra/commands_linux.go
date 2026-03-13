@@ -19,6 +19,11 @@ import (
 
 func addCommands(rootCmd *cobra.Command) {
 	addBaseCommands(rootCmd)
+	addCommandIfNotNil := func(c *cobra.Command) {
+		if c != nil {
+			rootCmd.AddCommand(c)
+		}
+	}
 	rootCmd.AddCommand(bugtool.New().Command())
 	rootCmd.AddCommand(tracingpolicy.New())
 	rootCmd.AddCommand(debug.New())
@@ -26,7 +31,7 @@ func addCommands(rootCmd *cobra.Command) {
 	rootCmd.AddCommand(policyfilter.New())
 	rootCmd.AddCommand(probe.New())
 	rootCmd.AddCommand(loglevel.New())
-	rootCmd.AddCommand(cri.New())
+	addCommandIfNotNil(cri.New())
 	rootCmd.AddCommand(cgtracker.New())
 	rootCmd.AddCommand(policytest.New())
 }

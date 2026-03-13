@@ -4,6 +4,8 @@
 // This file contains test helpers that couldn't be included in testutils
 // package because of cyclic dependencies.
 
+//go:build k8s
+
 package crdutils
 
 import (
