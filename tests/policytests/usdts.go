@@ -63,9 +63,18 @@ spec:
 			)).
 		WithAction(tetragon.KprobeAction_KPROBE_ACTION_SET)
 	exitCode := 240
+	if c.RunConf != nil && c.RunConf.MonitorMode {
+		exitCode = 0
+	}
+	postCnt := uint64(1)
+	setCnt := uint64(1)
 	return &policytest.Scenario{
 		Name:         "execute usdt-override, check enforcement and events",
 		Trigger:      policytest.NewCmdTrigger(myBin, "321", "123").ExpectExitCode(exitCode),
 		EventChecker: ec.NewUnorderedEventChecker(upChecker),
+		ActCountChecker: policytest.ActionCounts{
+			Post: &postCnt,
+			Set:  &setCnt,
+		},
 	}
 }).RegisterAtInit()
