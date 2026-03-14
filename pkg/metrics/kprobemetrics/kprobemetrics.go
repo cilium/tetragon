@@ -21,14 +21,6 @@ const (
 	MergeProbeTypeExit
 )
 
-// Legacy alias for compatibility during refactor
-type MergeErrorType = MergeProbeType
-
-const (
-	MergeErrorTypeEnter = MergeProbeTypeEnter
-	MergeErrorTypeExit  = MergeProbeTypeExit
-)
-
 var mergeProbeTypeLabelValues = map[MergeProbeType]string{
 	MergeProbeTypeEnter: "enter",
 	MergeProbeTypeExit:  "exit",
@@ -67,30 +59,11 @@ var (
 		"The total number of pushed events for later merge.",
 		nil, nil, nil,
 	), nil)
-
-	// Legacy counters for compatibility during refactor
-	MergeErrors = metrics.MustNewCounter(
-		metrics.NewOpts(
-			consts.MetricsNamespace, "", "generic_kprobe_merge_errors_total",
-			"The total number of failed attempts to merge a kprobe and kretprobe event.",
-			nil,
-			[]metrics.ConstrainedLabel{currTypeLabel, prevTypeLabel},
-			[]metrics.UnconstrainedLabel{{Name: "curr_fn", ExampleValue: consts.ExampleKprobeLabel}, {Name: "prev_fn", ExampleValue: consts.ExampleKprobeLabel}},
-		),
-		nil,
-	)
-	MergeOkTotal = metrics.MustNewCounter(metrics.NewOpts(
-		consts.MetricsNamespace, "", "generic_kprobe_merge_ok_total",
-		"The total number of successful attempts to merge a kprobe and kretprobe event.",
-		nil, nil, nil,
-	), nil)
 )
 
 func RegisterMetrics(group metrics.Group) {
 	group.MustRegister(MergeTotal)
 	group.MustRegister(MergePushed)
-	group.MustRegister(MergeErrors)
-	group.MustRegister(MergeOkTotal)
 }
 
 func InitMetricsForDocs() {
@@ -173,12 +146,4 @@ func TotalMergeStatus(status string) uint64 {
 		}
 	}
 	return total
-}
-
-// Legacy helpers for compatibility
-func MergeOkTotalInc() {
-	MergeOkTotal.WithLabelValues().Inc()
-}
-func GetMergeErrors(currFn, prevFn string, currType, prevType MergeErrorType) prometheus.Counter {
-	return MergeErrors.WithLabelValues(currType.String(), prevType.String(), currFn, prevFn)
 }
