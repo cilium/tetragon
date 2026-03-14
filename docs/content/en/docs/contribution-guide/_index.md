@@ -39,7 +39,7 @@ have an environment capable of testing changes to the Tetragon source code,
 and that you understand the workflow of getting these changes reviewed and
 merged upstream.
 
-1. Make sure you have a [GitHub account](https://github.com/join).
+1. Make sure you have a [GitHub account](https://github.com/signup).
 
 2. [Fork the Tetragon repository](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo)
    to your GitHub user or organization. The repository is available under

@@ -10,7 +10,7 @@ description: "Additional resources to learn about Tetragon"
 
 ### Book
 
-[Security Observability with eBPF](https://isovalent.com/ebpf-security/) - Jed Salazar & Natália Réka Ivánkó, OReilly, 2022
+[Security Observability with eBPF](https://isovalent.com/books/ebpf-security/) - Jed Salazar & Natália Réka Ivánkó, OReilly, 2022
 
 ### Blog posts
 
@@ -20,9 +20,9 @@ description: "Additional resources to learn about Tetragon"
 
 [Can I use Tetragon without Cilium?](https://isovalent.com/blog/post/can-i-use-tetragon-without-cilium-yes/) - Dean Lewis, 2023
 
-[Detecting a Container Escape with Cilium and eBPF](https://isovalent.com/blog/post/2021-11-container-escape) - Natália Réka Ivánkó, 2021
+[Detecting a Container Escape with Cilium and eBPF](https://isovalent.com/blog/post/2021-11-container-escape/) - Natália Réka Ivánkó, 2021
 
-[Detecting and Blocking log4shell with Isovalent Cilium Enterprise](https://isovalent.com/blog/post/2021-12-log4shell) - Jed Salazar, 2021
+[Detecting and Blocking log4shell with Isovalent Cilium Enterprise](https://isovalent.com/blog/post/2021-12-log4shell/) - Jed Salazar, 2021
 
 ### Hands-on lab
 
