@@ -8,37 +8,67 @@ import (
 	"slices"
 
 	"github.com/prometheus/client_golang/prometheus"
+	dto "github.com/prometheus/client_model/go"
 
 	"github.com/cilium/tetragon/pkg/metrics"
 	"github.com/cilium/tetragon/pkg/metrics/consts"
 )
 
-type MergeErrorType int
+type MergeProbeType int
 
 const (
-	MergeErrorTypeEnter MergeErrorType = iota
-	MergeErrorTypeExit
+	MergeProbeTypeEnter MergeProbeType = iota
+	MergeProbeTypeExit
 )
 
-var mergeErrorTypeLabelValues = map[MergeErrorType]string{
-	MergeErrorTypeEnter: "enter",
-	MergeErrorTypeExit:  "exit",
+// Legacy alias for compatibility during refactor
+type MergeErrorType = MergeProbeType
+
+const (
+	MergeErrorTypeEnter = MergeProbeTypeEnter
+	MergeErrorTypeExit  = MergeProbeTypeExit
+)
+
+var mergeProbeTypeLabelValues = map[MergeProbeType]string{
+	MergeProbeTypeEnter: "enter",
+	MergeProbeTypeExit:  "exit",
 }
 
-func (t MergeErrorType) String() string {
-	return mergeErrorTypeLabelValues[t]
+func (t MergeProbeType) String() string {
+	return mergeProbeTypeLabelValues[t]
 }
 
 var (
+	statusLabel = metrics.ConstrainedLabel{
+		Name:   "status",
+		Values: []string{"error", "ok"},
+	}
 	currTypeLabel = metrics.ConstrainedLabel{
 		Name:   "curr_type",
-		Values: slices.Collect(maps.Values(mergeErrorTypeLabelValues)),
+		Values: slices.Collect(maps.Values(mergeProbeTypeLabelValues)),
 	}
 	prevTypeLabel = metrics.ConstrainedLabel{
 		Name:   "prev_type",
-		Values: slices.Collect(maps.Values(mergeErrorTypeLabelValues)),
+		Values: slices.Collect(maps.Values(mergeProbeTypeLabelValues)),
 	}
 
+	MergeTotal = metrics.MustNewCounter(
+		metrics.NewOpts(
+			consts.MetricsNamespace, "", "generic_kprobe_merge_total",
+			"The total number of attempts to merge a kprobe and kretprobe event.",
+			nil,
+			[]metrics.ConstrainedLabel{statusLabel, currTypeLabel, prevTypeLabel},
+			[]metrics.UnconstrainedLabel{{Name: "curr_fn", ExampleValue: consts.ExampleKprobeLabel}, {Name: "prev_fn", ExampleValue: consts.ExampleKprobeLabel}},
+		),
+		nil,
+	)
+	MergePushed = metrics.MustNewCounter(metrics.NewOpts(
+		consts.MetricsNamespace, "", "generic_kprobe_merge_pushed_total",
+		"The total number of pushed events for later merge.",
+		nil, nil, nil,
+	), nil)
+
+	// Legacy counters for compatibility during refactor
 	MergeErrors = metrics.MustNewCounter(
 		metrics.NewOpts(
 			consts.MetricsNamespace, "", "generic_kprobe_merge_errors_total",
@@ -54,44 +84,101 @@ var (
 		"The total number of successful attempts to merge a kprobe and kretprobe event.",
 		nil, nil, nil,
 	), nil)
-	MergePushed = metrics.MustNewCounter(metrics.NewOpts(
-		consts.MetricsNamespace, "", "generic_kprobe_merge_pushed_total",
-		"The total number of pushed events for later merge.",
-		nil, nil, nil,
-	), nil)
 )
 
 func RegisterMetrics(group metrics.Group) {
+	group.MustRegister(MergeTotal)
+	group.MustRegister(MergePushed)
 	group.MustRegister(MergeErrors)
 	group.MustRegister(MergeOkTotal)
-	group.MustRegister(MergePushed)
 }
 
 func InitMetricsForDocs() {
 	// Initialize metrics with example labels
-	for _, curr := range mergeErrorTypeLabelValues {
-		for _, prev := range mergeErrorTypeLabelValues {
-			MergeErrors.WithLabelValues(curr, prev, consts.ExampleKprobeLabel, consts.ExampleKprobeLabel).Add(0)
+	for _, curr := range mergeProbeTypeLabelValues {
+		for _, prev := range mergeProbeTypeLabelValues {
+			for _, status := range []string{"error", "ok"} {
+				MergeTotal.WithLabelValues(status, curr, prev, consts.ExampleKprobeLabel, consts.ExampleKprobeLabel).Add(0)
+			}
 		}
 	}
 }
 
-// Get a new handle on the mergeErrors metric for a current and previous function
-// name and probe type
-func GetMergeErrors(currFn, prevFn string, currType, prevType MergeErrorType) prometheus.Counter {
-	return MergeErrors.WithLabelValues(currType.String(), prevType.String(), currFn, prevFn)
+// GetMergeTotal returns a handle on the MergeTotal metric
+func GetMergeTotal(status string, currFn, prevFn string, currType, prevType MergeProbeType) prometheus.Counter {
+	return MergeTotal.WithLabelValues(status, currType.String(), prevType.String(), currFn, prevFn)
 }
 
-// Increment the mergeErrors metric for a current and previous function
-// name and probe type
-func MergeErrorsInc(currFn, prevFn string, currType, prevType MergeErrorType) {
-	GetMergeErrors(currFn, prevFn, currType, prevType).Inc()
+// MergeErrorsInc increments the merge metric with status error
+func MergeErrorsInc(currFn, prevFn string, currType, prevType MergeProbeType) {
+	GetMergeTotal("error", currFn, prevFn, currType, prevType).Inc()
 }
 
+// MergeOkInc increments the merge metric with status ok
+func MergeOkInc(currFn, prevFn string, currType, prevType MergeProbeType) {
+	GetMergeTotal("ok", currFn, prevFn, currType, prevType).Inc()
+}
+
+// MergePushedInc increments the pushed counter
+func MergePushedInc() {
+	MergePushed.WithLabelValues().Inc()
+}
+
+// ReportMergeOk reports a successful merge
+func ReportMergeOk(currFn, prevFn string, currIsReturn, prevIsReturn bool) {
+	currType := MergeProbeTypeEnter
+	if currIsReturn {
+		currType = MergeProbeTypeExit
+	}
+	prevType := MergeProbeTypeEnter
+	if prevIsReturn {
+		prevType = MergeProbeTypeExit
+	}
+	MergeOkInc(currFn, prevFn, currType, prevType)
+}
+
+// ReportMergeError reports a merge error
+func ReportMergeError(currFn, prevFn string, currIsReturn, prevIsReturn bool) {
+	currType := MergeProbeTypeEnter
+	if currIsReturn {
+		currType = MergeProbeTypeExit
+	}
+	prevType := MergeProbeTypeEnter
+	if prevIsReturn {
+		prevType = MergeProbeTypeExit
+	}
+	MergeErrorsInc(currFn, prevFn, currType, prevType)
+}
+
+// TotalMergeStatus returns the total count for a given status
+func TotalMergeStatus(status string) uint64 {
+	var total uint64
+	ch := make(chan prometheus.Metric)
+	go func() {
+		MergeTotal.Collect(ch)
+		close(ch)
+	}()
+	for m := range ch {
+		var d dto.Metric
+		m.Write(&d)
+		isMatch := false
+		for _, lp := range d.Label {
+			if lp.Name != nil && *lp.Name == "status" && lp.Value != nil && *lp.Value == status {
+				isMatch = true
+				break
+			}
+		}
+		if isMatch && d.Counter != nil && d.Counter.Value != nil {
+			total += uint64(*d.Counter.Value)
+		}
+	}
+	return total
+}
+
+// Legacy helpers for compatibility
 func MergeOkTotalInc() {
 	MergeOkTotal.WithLabelValues().Inc()
 }
-
-func MergePushedInc() {
-	MergePushed.WithLabelValues().Inc()
+func GetMergeErrors(currFn, prevFn string, currType, prevType MergeErrorType) prometheus.Counter {
+	return MergeErrors.WithLabelValues(currType.String(), prevType.String(), currFn, prevFn)
 }
