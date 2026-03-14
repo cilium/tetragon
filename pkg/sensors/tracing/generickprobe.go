@@ -1368,22 +1368,16 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 
 	// there are two events for this probe (entry and return)
 	if gk.loadArgs.retprobe {
-		var (
-			other  *tracing.MsgGenericKprobeUnix
-			merged bool
-		)
-		merged, unix, other = retprobeMergeEvents[*tracing.MsgGenericKprobeUnix](
+		var other *tracing.MsgGenericKprobeUnix
+		_, unix, other = retprobeMergeEvents[*tracing.MsgGenericKprobeUnix](
 			unix,
 			gk.pendingEvents,
 			returnEvent,
 			m.RetProbeId,
 			ktimeEnter,
-			reportKprobeMergeError)
+			reportMergeError[*tracing.MsgGenericKprobeUnix])
 		if unix != nil {
-			kprobemetrics.MergeOkTotalInc()
 			unix.ReturnAction = other.Msg.ActionId
-		} else if !merged {
-			kprobemetrics.MergePushedInc()
 		}
 	}
 	if unix == nil {
@@ -1399,44 +1393,34 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 	return []observer.Event{unix}, err
 }
 
-func reportKprobeMergeError(curr pendingEvent[*tracing.MsgGenericKprobeUnix], prev pendingEvent[*tracing.MsgGenericKprobeUnix]) {
-	currFn := "UNKNOWN"
-	if curr.ev != nil {
-		currFn = curr.ev.FuncName
+func reportMergeError[T evArgsRetriever](curr pendingEvent[T], prev pendingEvent[T]) {
+	currName := "UNKNOWN"
+	if any(curr.ev) != nil {
+		currName = curr.ev.GetName()
 	}
-	currType := kprobemetrics.MergeErrorTypeEnter
-	if curr.returnEvent {
-		currType = kprobemetrics.MergeErrorTypeExit
-	}
-
-	prevFn := "UNKNOWN"
-	if prev.ev != nil {
-		prevFn = prev.ev.FuncName
-	}
-	prevType := kprobemetrics.MergeErrorTypeEnter
-	if prev.returnEvent {
-		prevType = kprobemetrics.MergeErrorTypeExit
+	prevName := "UNKNOWN"
+	if any(prev.ev) != nil {
+		prevName = prev.ev.GetName()
 	}
 
-	kprobemetrics.MergeErrorsInc(currFn, prevFn, currType, prevType)
+	kprobemetrics.ReportMergeError(currName, prevName, curr.returnEvent, prev.returnEvent)
 	logger.GetLogger().Debug("failed to merge events",
-		"currFn", currFn,
-		"currType", currType.String(),
-		"prevFn", prevFn,
-		"prevType", prevType.String())
+		"curr", currName,
+		"currType", curr.returnEvent,
+		"prev", prevName,
+		"prevType", prev.returnEvent)
 }
 
-type reportMergeErorrFn[T evArgsRetriever] func(curr pendingEvent[T], prev pendingEvent[T])
+type reportMergeErrorFn[T evArgsRetriever] func(curr pendingEvent[T], prev pendingEvent[T])
 
 type evArgsRetriever interface {
 	GetArgs() *[]api.MsgGenericKprobeArg
-	// This constraint allows us to return nil from methods
-	*tracing.MsgGenericKprobeUnix | *tracing.MsgGenericUprobeUnix
+	GetName() string
 }
 
 // retprobeMerge merges the two events: the one from the entry probe with the one from the return probe
 func retprobeMerge[T evArgsRetriever](prev pendingEvent[T], curr pendingEvent[T],
-	onMergeError reportMergeErorrFn[T]) (T, T) {
+	onMergeError reportMergeErrorFn[T]) (T, T) {
 	var retEv, enterEv T
 
 	if prev.returnEvent && !curr.returnEvent {
@@ -1447,7 +1431,8 @@ func retprobeMerge[T evArgsRetriever](prev pendingEvent[T], curr pendingEvent[T]
 		enterEv = prev.ev
 	} else {
 		onMergeError(curr, prev)
-		return nil, nil
+		var zero T
+		return zero, zero
 	}
 
 	retArgs := retEv.GetArgs()
@@ -1464,7 +1449,7 @@ func retprobeMerge[T evArgsRetriever](prev pendingEvent[T], curr pendingEvent[T]
 }
 
 func retprobeMergeEvents[T evArgsRetriever](unix T, pendingEvents *lru.Cache[pendingEventKey, pendingEvent[T]],
-	returnEvent bool, retprobeId, ktimeEnter uint64, onMergeError reportMergeErorrFn[T]) (bool, T, T) {
+	returnEvent bool, retprobeId, ktimeEnter uint64, onMergeError reportMergeErrorFn[T]) (bool, T, T) {
 	// if an event exist already, try to merge them. Otherwise, add
 	// the one we have in the map.
 	curr := pendingEvent[T]{ev: unix, returnEvent: returnEvent}
@@ -1473,10 +1458,15 @@ func retprobeMergeEvents[T evArgsRetriever](unix T, pendingEvents *lru.Cache[pen
 	if prev, exists := pendingEvents.Get(key); exists {
 		pendingEvents.Remove(key)
 		enter, exit := retprobeMerge[T](prev, curr, onMergeError)
+		if any(enter) != nil {
+			kprobemetrics.ReportMergeOk(curr.ev.GetName(), prev.ev.GetName(), curr.returnEvent, prev.returnEvent)
+		}
 		return true, enter, exit
 	}
 	pendingEvents.Add(key, curr)
-	return false, nil, nil
+	kprobemetrics.MergePushedInc()
+	var zero T
+	return false, zero, zero
 }
 
 func (k *observerKprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
