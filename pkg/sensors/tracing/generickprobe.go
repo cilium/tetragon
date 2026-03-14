@@ -39,7 +39,6 @@ import (
 	"github.com/cilium/tetragon/pkg/ksyms"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
-	"github.com/cilium/tetragon/pkg/metrics/kprobemetrics"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/policyfilter"
@@ -73,11 +72,6 @@ type kprobeLoadArgs struct {
 	retprobe  bool
 	syscall   bool
 	config    *api.EventConfig
-}
-
-type pendingEventKey struct {
-	eventId    uint64
-	ktimeEnter uint64
 }
 
 type genericKprobeData struct {
@@ -137,10 +131,6 @@ type genericKprobe struct {
 // This is needed for retprobe probes that generate two events: one at the
 // function entry, and one at the function return. We merge these events into
 // one, before returning it to the user.
-type pendingEvent[T evArgsRetriever] struct {
-	ev          T
-	returnEvent bool
-}
 
 func (g *genericKprobe) SetID(id idtable.EntryID) {
 	g.tableId = id
@@ -1368,22 +1358,16 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 
 	// there are two events for this probe (entry and return)
 	if gk.loadArgs.retprobe {
-		var (
-			other  *tracing.MsgGenericKprobeUnix
-			merged bool
-		)
-		merged, unix, other = retprobeMergeEvents[*tracing.MsgGenericKprobeUnix](
+		var other *tracing.MsgGenericKprobeUnix
+		_, unix, other = retprobeMergeEvents[*tracing.MsgGenericKprobeUnix](
 			unix,
 			gk.pendingEvents,
 			returnEvent,
 			m.RetProbeId,
 			ktimeEnter,
-			reportKprobeMergeError)
+			reportMergeError[*tracing.MsgGenericKprobeUnix])
 		if unix != nil {
-			kprobemetrics.MergeOkTotalInc()
 			unix.ReturnAction = other.Msg.ActionId
-		} else if !merged {
-			kprobemetrics.MergePushedInc()
 		}
 	}
 	if unix == nil {
@@ -1397,86 +1381,6 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 	// pod.
 
 	return []observer.Event{unix}, err
-}
-
-func reportKprobeMergeError(curr pendingEvent[*tracing.MsgGenericKprobeUnix], prev pendingEvent[*tracing.MsgGenericKprobeUnix]) {
-	currFn := "UNKNOWN"
-	if curr.ev != nil {
-		currFn = curr.ev.FuncName
-	}
-	currType := kprobemetrics.MergeErrorTypeEnter
-	if curr.returnEvent {
-		currType = kprobemetrics.MergeErrorTypeExit
-	}
-
-	prevFn := "UNKNOWN"
-	if prev.ev != nil {
-		prevFn = prev.ev.FuncName
-	}
-	prevType := kprobemetrics.MergeErrorTypeEnter
-	if prev.returnEvent {
-		prevType = kprobemetrics.MergeErrorTypeExit
-	}
-
-	kprobemetrics.MergeErrorsInc(currFn, prevFn, currType, prevType)
-	logger.GetLogger().Debug("failed to merge events",
-		"currFn", currFn,
-		"currType", currType.String(),
-		"prevFn", prevFn,
-		"prevType", prevType.String())
-}
-
-type reportMergeErorrFn[T evArgsRetriever] func(curr pendingEvent[T], prev pendingEvent[T])
-
-type evArgsRetriever interface {
-	GetArgs() *[]api.MsgGenericKprobeArg
-	// This constraint allows us to return nil from methods
-	*tracing.MsgGenericKprobeUnix | *tracing.MsgGenericUprobeUnix
-}
-
-// retprobeMerge merges the two events: the one from the entry probe with the one from the return probe
-func retprobeMerge[T evArgsRetriever](prev pendingEvent[T], curr pendingEvent[T],
-	onMergeError reportMergeErorrFn[T]) (T, T) {
-	var retEv, enterEv T
-
-	if prev.returnEvent && !curr.returnEvent {
-		retEv = prev.ev
-		enterEv = curr.ev
-	} else if !prev.returnEvent && curr.returnEvent {
-		retEv = curr.ev
-		enterEv = prev.ev
-	} else {
-		onMergeError(curr, prev)
-		return nil, nil
-	}
-
-	retArgs := retEv.GetArgs()
-	enterArgs := enterEv.GetArgs()
-	for _, retArg := range *retArgs {
-		index := retArg.GetIndex()
-		if uint64(len(*enterArgs)) > index {
-			(*enterArgs)[index] = retArg
-		} else {
-			*enterArgs = append(*enterArgs, retArg)
-		}
-	}
-	return enterEv, retEv
-}
-
-func retprobeMergeEvents[T evArgsRetriever](unix T, pendingEvents *lru.Cache[pendingEventKey, pendingEvent[T]],
-	returnEvent bool, retprobeId, ktimeEnter uint64, onMergeError reportMergeErorrFn[T]) (bool, T, T) {
-	// if an event exist already, try to merge them. Otherwise, add
-	// the one we have in the map.
-	curr := pendingEvent[T]{ev: unix, returnEvent: returnEvent}
-	key := pendingEventKey{eventId: retprobeId, ktimeEnter: ktimeEnter}
-
-	if prev, exists := pendingEvents.Get(key); exists {
-		pendingEvents.Remove(key)
-		enter, exit := retprobeMerge[T](prev, curr, onMergeError)
-		return true, enter, exit
-	}
-	pendingEvents.Add(key, curr)
-	return false, nil, nil
 }
 
 func (k *observerKprobeSensor) LoadProbe(args sensors.LoadProbeArgs) error {
