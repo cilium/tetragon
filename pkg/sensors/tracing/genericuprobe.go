@@ -340,12 +340,12 @@ func loadMultiUprobeSensor(ids []idtable.EntryID, args sensors.LoadProbeArgs) er
 			attach = &program.MultiUprobeAttachSymbolsCookies{}
 		}
 
-		if uprobeEntry.symbol != "" {
+		if uprobeEntry.address != 0 {
+			attach.Addresses = append(attach.Addresses, uprobeEntry.address)
+		} else if uprobeEntry.symbol != "" {
 			symbol, offset := resolveSymbol(uprobeEntry.symbol)
 			attach.Symbols = append(attach.Symbols, symbol)
 			attach.Offsets = append(attach.Offsets, offset)
-		} else {
-			attach.Addresses = append(attach.Addresses, uprobeEntry.address)
 		}
 
 		if uprobeEntry.refCtrOffset != 0 {
@@ -775,7 +775,31 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		return nil
 	}
 
-	if symbols != 0 {
+	f, err := elf.OpenSafeELFFile(spec.Path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	if symbols != 0 && f.IsStrippedPureGoBinary() {
+		tbl, err := f.Pclntab()
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse pclntab: %w", err)
+		}
+		for idx, sym := range spec.Symbols {
+			if err := checkSymbol(sym); err != nil {
+				return nil, fmt.Errorf("failed to parse symbol: %w", err)
+			}
+			off, ok := tbl.OffsetByName(sym)
+			if !ok {
+				return nil, fmt.Errorf("failed to resolve symbol: %w", err)
+			}
+			err = addUprobeEntry(sym, off, idx)
+			if err != nil {
+				return nil, err
+			}
+		}
+	} else if symbols != 0 {
 		for idx, sym := range spec.Symbols {
 			if err := checkSymbol(sym); err != nil {
 				return nil, fmt.Errorf("failed to parse symbol: %w", err)
@@ -793,12 +817,6 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 			}
 		}
 	} else if addrs != 0 {
-		f, err := elf.OpenSafeELFFile(spec.Path)
-		if err != nil {
-			return nil, err
-		}
-		defer f.Close()
-
 		for idx, addr := range spec.Addrs {
 			off, err := f.OffsetFromAddr(addr)
 			if err != nil {
