@@ -17,7 +17,14 @@ import (
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/testutils"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
+	"github.com/cilium/tetragon/pkg/tetragoninfo"
 )
+
+var getSkipInfo = sync.OnceValue(func() *SkipInfo {
+	res := tetragoninfo.Gather()
+	info := tetragoninfo.Decode(res)
+	return &SkipInfo{info}
+})
 
 func (rpt *RegisteredPolicyTests) DoObserverTest(
 	t *testing.T,
@@ -32,6 +39,12 @@ func (rpt *RegisteredPolicyTests) DoObserverTest(
 		t.Fatalf(">1 testpolicies with name %q found", testpolicyName)
 	}
 	pt := pts[0]
+
+	if pt.ShouldSkip != nil {
+		if skipReason := pt.ShouldSkip(getSkipInfo()); skipReason != "" {
+			t.Skip(skipReason)
+		}
+	}
 
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
