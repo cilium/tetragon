@@ -8,15 +8,7 @@
 #include "cgroup/cgtracker.h"
 
 #define POLICY_FILTER_MAX_POLICIES   128
-#define POLICY_FILTER_MAX_NAMESPACES 1024
 #define POLICY_FILTER_MAX_CGROUP_IDS 1024
-
-struct {
-	__uint(type, BPF_MAP_TYPE_LRU_HASH);
-	__uint(max_entries, POLICY_FILTER_MAX_NAMESPACES);
-	__type(key, u64);
-	__type(value, u64);
-} tg_cgroup_namespace_map SEC(".maps");
 
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH_OF_MAPS);

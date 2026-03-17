@@ -30,27 +30,27 @@ func TestState(t *testing.T) {
 
 	pod1 := PodID(uuid.New())
 	cgidi1 := CgroupID(2001)
-	err = s.AddPodContainer(pod1, "ns2", "wl2", "kind2", nil, "cont1", cgidi1, podhelpers.ContainerInfo{Name: "main1", Repo: "repo1"})
+	err = s.AddPodContainer(pod1, "ns2", nil, "cont1", cgidi1, podhelpers.ContainerInfo{Name: "main1", Repo: "repo1"})
 	require.NoError(t, err)
 	cgidi2 := CgroupID(2002)
-	err = s.AddPodContainer(pod1, "ns2", "wl2", "kind2", nil, "cont2", cgidi2, podhelpers.ContainerInfo{Name: "main2", Repo: "repo2"})
+	err = s.AddPodContainer(pod1, "ns2", nil, "cont2", cgidi2, podhelpers.ContainerInfo{Name: "main2", Repo: "repo2"})
 	require.NoError(t, err)
 
 	pod2 := PodID(uuid.New())
 	cgidi3 := CgroupID(1001)
-	err = s.AddPodContainer(pod2, "ns1", "wl1", "kind1", nil, "cont3", cgidi3, podhelpers.ContainerInfo{Name: "main3", Repo: "repo3"})
+	err = s.AddPodContainer(pod2, "ns1", nil, "cont3", cgidi3, podhelpers.ContainerInfo{Name: "main3", Repo: "repo3"})
 	require.NoError(t, err)
 
 	cgidi4 := CgroupID(3001)
 	pod3 := PodID(uuid.New())
-	err = s.AddPodContainer(pod3, "ns3", "wl3", "kind3", nil, "cont4", cgidi4, podhelpers.ContainerInfo{Name: "main4", Repo: "repo4"})
+	err = s.AddPodContainer(pod3, "ns3", nil, "cont4", cgidi4, podhelpers.ContainerInfo{Name: "main4", Repo: "repo4"})
 	require.NoError(t, err)
 	pod4 := PodID(uuid.New())
 	cgidi5 := CgroupID(3002)
-	err = s.AddPodContainer(pod4, "ns3", "wl3", "kind3", nil, "cont5", cgidi5, podhelpers.ContainerInfo{Name: "main5", Repo: "repo5"})
+	err = s.AddPodContainer(pod4, "ns3", nil, "cont5", cgidi5, podhelpers.ContainerInfo{Name: "main5", Repo: "repo5"})
 	require.NoError(t, err)
 	cgidi6 := CgroupID(3003)
-	err = s.AddPodContainer(pod4, "ns3", "wl3", "kind3", nil, "cont6", cgidi6, podhelpers.ContainerInfo{Name: "main6", Repo: "repo6"})
+	err = s.AddPodContainer(pod4, "ns3", nil, "cont6", cgidi6, podhelpers.ContainerInfo{Name: "main6", Repo: "repo6"})
 	require.NoError(t, err)
 
 	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{

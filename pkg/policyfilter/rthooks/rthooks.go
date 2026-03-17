@@ -72,11 +72,6 @@ func createContainerHook(_ context.Context, arg *rthooks.CreateContainerArg) err
 		return err
 	}
 
-	namespace := pod.Namespace
-	workloadMeta, workloadKind := podhelpers.GetWorkloadMetaFromPod(pod)
-	workload := workloadMeta.Name
-	kind := workloadKind.Kind
-
 	containerName := arg.Req.ContainerName
 	if containerName == "" {
 		log.Warn("failed to find container information, but will continue", "container-id", containerID)
@@ -97,14 +92,12 @@ func createContainerHook(_ context.Context, arg *rthooks.CreateContainerArg) err
 
 	logger.Trace(log, "policyfilter: add pod container",
 		"pod-id", podID,
-		"namespace", namespace,
-		"workload", workload,
-		"workload-kind", kind,
+		"namespace", pod.Namespace,
 		"container-id", containerID,
 		"cgroup-id", cgID,
 		"container-name", containerName)
 	cgid := policyfilter.CgroupID(cgID)
-	err = pfState.AddPodContainer(policyfilter.PodID(podID), namespace, workload, kind, pod.Labels, containerID, cgid, podhelpers.ContainerInfo{Name: containerName, Repo: containerRepo})
+	err = pfState.AddPodContainer(policyfilter.PodID(podID), pod.Namespace, pod.Labels, containerID, cgid, podhelpers.ContainerInfo{Name: containerName, Repo: containerRepo})
 	policyfiltermetrics.OpInc(policyfiltermetrics.RTHooksSubsys, policyfiltermetrics.AddContainerOperation, policyfilter.ErrorLabel(err))
 
 	if err != nil {

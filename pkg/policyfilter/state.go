@@ -8,8 +8,6 @@ import (
 	"log/slog"
 	"sync"
 
-	"github.com/cilium/ebpf"
-
 	"github.com/cilium/tetragon/pkg/cgroups/fsscan"
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/tetragon/pkg/labels"
@@ -84,7 +82,6 @@ const (
 type PolicyID uint32
 type PodID uuid.UUID
 type CgroupID uint64
-type StateID uint64
 
 const (
 	// we reserve 0 as a special value to indicate no filtering
@@ -110,8 +107,6 @@ type podInfo struct {
 	id         PodID
 	namespace  string
 	labels     labels.Labels
-	workload   string
-	kind       string
 	containers []containerInfo
 
 	// cache of matched policies
@@ -262,9 +257,6 @@ type state struct {
 	// polify filters (outer) map handle
 	pfMap PfMap
 
-	// global policy map handle
-	nsMap *NamespaceMap
-
 	cgidFinder cgidFinder
 }
 
@@ -298,11 +290,6 @@ func newState(
 		return nil, err
 	}
 
-	ret.nsMap, err = newNamespaceMap()
-	if err != nil {
-		return nil, err
-	}
-
 	return ret, nil
 }
 
@@ -318,19 +305,13 @@ func (m *state) updatePodHandler(pod *v1.Pod) error {
 	}
 
 	namespace := pod.Namespace
-	workloadMeta, kindMeta := podhelpers.GetWorkloadMetaFromPod(pod)
-	workload := workloadMeta.Name
-	kind := kindMeta.Kind
-
-	err = m.UpdatePod(PodID(podID), namespace, workload, kind, pod.Labels, containerIDs, containerInfo)
+	err = m.UpdatePod(PodID(podID), namespace, pod.Labels, containerIDs, containerInfo)
 	if err != nil {
 		m.log.Warn("policyfilter, UpdatePod failed",
 			logfields.Error, err,
 			"pod-id", podID,
 			"container-ids", containerIDs,
-			"namespace", namespace,
-			"workload", workload,
-			"kind", kind)
+			"namespace", namespace)
 		return err
 	}
 
@@ -527,53 +508,6 @@ func cgIDPointerStr(p *CgroupID) string {
 	return fmt.Sprintf("%d", *p)
 }
 
-// addCgroupIDs add cgroups ids to the policy map
-// todo: use batch operations when supported
-func (m *state) addCgroupIDs(cinfo []containerInfo, pod *podInfo) error {
-	nsmap := m.nsMap
-
-	for _, c := range cinfo {
-		key := NSID{
-			Namespace: pod.namespace,
-			Workload:  pod.workload,
-			Kind:      pod.kind,
-		}
-		id, ok := nsmap.nsNameMap.Get(key)
-		if ok {
-			if err := nsmap.cgroupIdMap.Update(&c.cgID, id, ebpf.UpdateAny); err != nil {
-				logger.GetLogger().Warn("Unable to assign cgroup to existing namespace", logfields.Error, err)
-			}
-			continue
-		}
-		logger.GetLogger().Debug("update cgroupid map", "cgrp", c, "pod", pod, "id", nsmap.id)
-
-		// If this is a new namespace we create a new map entry and bind it to a stable id.
-		if err := nsmap.cgroupIdMap.Update(&c.cgID, nsmap.id, ebpf.UpdateAny); err != nil {
-			logger.GetLogger().Warn("Unable to insert cgroup id map",
-				logfields.Error, err,
-				"cgid", c.cgID,
-				"id", nsmap.id,
-				"ns", c.name)
-			continue
-		}
-		if ok := nsmap.nsIdMap.Add(nsmap.id, key); ok {
-			logger.GetLogger().Info("Id to namespace map caused eviction",
-				"cgid", c.cgID,
-				"id", nsmap.id,
-				"ns", c.name)
-		}
-		if ok := nsmap.nsNameMap.Add(key, nsmap.id); ok {
-			logger.GetLogger().Info("Namespace to Id map caused eviction",
-				"cgid", c.cgID,
-				"id", nsmap.id,
-				"ns", c.name)
-		}
-		nsmap.id++
-	}
-
-	return nil
-}
-
 // addPodContainers adds a list of containers (ids) to a pod.
 // It will update the state for all containers that do not exist.
 // It takes an optional argument of a list of cgroup ids (one per container). If this list is empty,
@@ -631,8 +565,6 @@ func (m *state) addPodContainers(pod *podInfo, containerIDs []string,
 		"namespace", pod.namespace,
 		"containers-info", cinfo)
 
-	m.addCgroupIDs(cinfo, pod)
-
 	// update matching policy maps
 	for _, policyID := range pod.matchedPolicies {
 		pol := m.findPolicy(policyID)
@@ -665,12 +597,10 @@ func (m *state) addPodContainers(pod *podInfo, containerIDs []string,
 	}
 }
 
-func (m *state) addNewPod(podID PodID, namespace, workload, kind string, podLabels labels.Labels) *podInfo {
+func (m *state) addNewPod(podID PodID, namespace string, podLabels labels.Labels) *podInfo {
 	m.pods = append(m.pods, podInfo{
 		id:         podID,
 		namespace:  namespace,
-		workload:   workload,
-		kind:       kind,
 		labels:     podLabels,
 		containers: nil,
 	})
@@ -688,18 +618,17 @@ func (m *state) addNewPod(podID PodID, namespace, workload, kind string, podLabe
 // if the cgroup id of the container is known, cgID is not nil and it contains its value.
 //
 // The pod might or might not have been encountered before.
-func (m *state) AddPodContainer(podID PodID, namespace, workload, kind string, podLabels labels.Labels,
+func (m *state) AddPodContainer(podID PodID, namespace string, podLabels labels.Labels,
 	containerID string, cgID CgroupID, containerInfo podhelpers.ContainerInfo) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	pod := m.findPod(podID)
 	if pod == nil {
-		pod = m.addNewPod(podID, namespace, workload, kind, podLabels)
+		pod = m.addNewPod(podID, namespace, podLabels)
 		m.DebugLogWithCallers(4).Info("AddPodContainer: added pod",
 			"pod-id", podID,
 			"namespace", namespace,
-			"workload", workload,
 			"container-id", containerID,
 			"cgroup-id", cgID,
 			"container-info", containerInfo)
@@ -900,7 +829,7 @@ func (pod *podInfo) containerDiff(newContainerIDs []string) ([]string, []string)
 //   - add the ones that do not exist in the current state
 //
 // It is intended to be used from k8s watchers (where no cgroup information is available)
-func (m *state) UpdatePod(podID PodID, namespace, workload, kind string, podLabels labels.Labels,
+func (m *state) UpdatePod(podID PodID, namespace string, podLabels labels.Labels,
 	containerIDs []string, containerInfo []podhelpers.ContainerInfo) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -914,7 +843,7 @@ func (m *state) UpdatePod(podID PodID, namespace, workload, kind string, podLabe
 
 	pod := m.findPod(podID)
 	if pod == nil {
-		pod = m.addNewPod(podID, namespace, workload, kind, podLabels)
+		pod = m.addNewPod(podID, namespace, podLabels)
 		dlog.Info("UpdatePod: added pod")
 	} else if pod.namespace != namespace {
 		// sanity check: old and new namespace should match
@@ -961,18 +890,4 @@ func (m *state) UpdatePod(podID PodID, namespace, workload, kind string, podLabe
 
 	m.addPodContainers(pod, addIDs, nil, addContainerInfo)
 	return nil
-}
-
-func (m *state) GetNsId(stateID StateID) (*NSID, bool) {
-	if ns, ok := m.nsMap.nsIdMap.Get(stateID); ok {
-		return &ns, ok
-	}
-	return nil, false
-}
-
-func (m *state) GetIdNs(id NSID) (StateID, bool) {
-	if stateID, ok := m.nsMap.nsNameMap.Get(id); ok {
-		return stateID, ok
-	}
-	return StateID(0), false
 }
