@@ -28,12 +28,12 @@ func (s *DummyPF) DelPolicy(_ policyfilter.PolicyID) error {
 	return nil
 }
 
-func (s *DummyPF) AddPodContainer(_ policyfilter.PodID, _, _, _ string, _ labels.Labels,
+func (s *DummyPF) AddPodContainer(_ policyfilter.PodID, _ string, _ labels.Labels,
 	_ string, _ policyfilter.CgroupID, _ podhelpers.ContainerInfo) error {
 	return nil
 }
 
-func (s *DummyPF) UpdatePod(_ policyfilter.PodID, _, _, _ string, _ labels.Labels,
+func (s *DummyPF) UpdatePod(_ policyfilter.PodID, _ string, _ labels.Labels,
 	_ []string, _ []podhelpers.ContainerInfo) error {
 	return nil
 }
@@ -51,12 +51,4 @@ func (s *DummyPF) RegisterPodHandlers(_ cache.SharedIndexInformer) {
 
 func (s *DummyPF) Close() error {
 	return nil
-}
-
-func (s *DummyPF) GetNsId(_ policyfilter.StateID) (*policyfilter.NSID, bool) {
-	return nil, false
-}
-
-func (s *DummyPF) GetIdNs(_ policyfilter.NSID) (policyfilter.StateID, bool) {
-	return policyfilter.StateID(0), false
 }

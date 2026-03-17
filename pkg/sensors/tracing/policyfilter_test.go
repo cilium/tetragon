@@ -274,10 +274,10 @@ func TestNamespacedPolicies(t *testing.T) {
 	podId1 := uuid.New()
 	podId2 := uuid.New()
 	require.NoError(t, err)
-	err = pfState.AddPodContainer(policyfilter.PodID(podId1), "ns1", "wl1", "kind1", nil,
+	err = pfState.AddPodContainer(policyfilter.PodID(podId1), "ns1", nil,
 		"pod1-container1", cgID1, podhelpers.ContainerInfo{Name: "container-name1", Repo: "container-repo1"})
 	require.NoError(t, err)
-	err = pfState.AddPodContainer(policyfilter.PodID(podId2), "ns2", "wl2", "kind2", nil,
+	err = pfState.AddPodContainer(policyfilter.PodID(podId2), "ns2", nil,
 		"pod1-container2", cgID2, podhelpers.ContainerInfo{Name: "container-name2", Repo: "container-repo2"})
 	require.NoError(t, err)
 
