@@ -206,31 +206,6 @@ func PolicyfilterState(fname string) {
 	}
 }
 
-func NamespaceState(fname string) error {
-	m, err := ebpf.LoadPinnedMap(fname, &ebpf.LoadPinOptions{
-		ReadOnly: true,
-	})
-	if err != nil {
-		logger.GetLogger().Warn("Could not open process tree map", "file", fname, logfields.Error, err)
-		return err
-	}
-
-	defer m.Close()
-
-	var (
-		key uint64
-		val uint64
-	)
-
-	fmt.Printf("cgroupId: stableId\n")
-	iter := m.Iterate()
-	for iter.Next(&key, &val) {
-		fmt.Printf("%d: %d\n", key, val)
-	}
-
-	return nil
-}
-
 func bpfErrMetricsCmd() *cobra.Command {
 	mapFname := bpf.MapPath(errmetrics.MapName)
 	var output string
