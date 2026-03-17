@@ -36,26 +36,9 @@ func New() *cobra.Command {
 		dumpCmd(),
 		addCommand(),
 		cgroupGetIDCommand(),
-		dumpDebugCmd(),
 		listPoliciesForContainer(),
 	)
 
-	return ret
-}
-
-func dumpDebugCmd() *cobra.Command {
-	mapFname := filepath.Join(defaults.DefaultMapRoot, defaults.DefaultMapPrefix, policyfilter.CgrpNsMapName)
-	ret := &cobra.Command{
-		Use:   "dumpcgrp",
-		Short: "dump cgroup ID to namespace state",
-		Args:  cobra.ExactArgs(0),
-		Run: func(_ *cobra.Command, _ []string) {
-			debug.NamespaceState(mapFname)
-		},
-	}
-
-	flags := ret.Flags()
-	flags.StringVar(&mapFname, "map-fname", mapFname, "policyfilter map filename")
 	return ret
 }
 
