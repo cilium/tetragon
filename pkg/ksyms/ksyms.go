@@ -5,6 +5,7 @@ package ksyms
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -19,12 +20,20 @@ import (
 	lru "github.com/hashicorp/golang-lru/v2"
 )
 
+// https://docs.kernel.org/admin-guide/sysctl/kernel.html#kptr-restrict
+const (
+	kptrRestrictUnknown   = -1
+	kptrRestrictNone      = 0
+	kptrRestrictCapSyslog = 1
+	kptrRestrictStrict    = 2
+)
+
 func KernelSymbols() (*Ksyms, error) {
 	return NewKsyms(option.Config.ProcFS)
 }
 
 type ksym struct {
-	addr uint64
+	addr uint64 // Can be 0 on systems with kptr_restrict set to 2
 	name string
 	ty   string
 	kmod string
@@ -32,8 +41,9 @@ type ksym struct {
 
 // Ksyms is a structure for kernel symbols
 type Ksyms struct {
-	table   []ksym
-	fnCache *lru.Cache[uint64, fnOffsetVal]
+	table        []ksym
+	fnCache      *lru.Cache[uint64, fnOffsetVal]
+	fnAddrDenied bool
 }
 
 // FnOffset is a function location (function name + offset)
@@ -58,6 +68,18 @@ func (ksym *ksym) isFunction() bool {
 	return tyLow == "w" || tyLow == "t"
 }
 
+func getKptrRestrict(procfs string) int {
+	p := procfs + "/sys/kernel/kptr_restrict"
+	b, err := os.ReadFile(p)
+	if err == nil {
+		b = bytes.Trim(b, "\n")
+		if val, err := strconv.Atoi(string(b)); err == nil {
+			return val
+		}
+	}
+	return kptrRestrictUnknown
+}
+
 // NewKsyms creates a new Ksyms structure (by reading procfs/kallsyms)
 func NewKsyms(procfs string) (*Ksyms, error) {
 	kallsymsFname := procfs + "/kallsyms"
@@ -71,6 +93,8 @@ func NewKsyms(procfs string) (*Ksyms, error) {
 	var ksyms Ksyms
 	s := bufio.NewScanner(file)
 	needsSort := false
+	fnAddr0Warned := false
+	kptrRestrict := getKptrRestrict(procfs)
 
 	for s.Scan() {
 		txt := s.Text()
@@ -89,9 +113,18 @@ func NewKsyms(procfs string) (*Ksyms, error) {
 		sym.ty = fields[1]
 		sym.name = fields[2]
 
-		if sym.isFunction() && sym.addr == 0 {
-			err = fmt.Errorf("function %s reported at address 0, insufficient permissions? If not, kptr_restrict might be set to 2", sym.name)
-			break
+		if sym.isFunction() && sym.addr == 0 && !fnAddr0Warned {
+			fnAddr0Warned = true
+			// If we either failed to read kptr_restrict value,
+			// or we read 2, try to proceed anyway.
+			if kptrRestrict == kptrRestrictUnknown || kptrRestrict == kptrRestrictStrict {
+				ksyms.fnAddrDenied = true
+				logger.GetLogger().Warn(fmt.Sprintf("function %s reported at address 0", sym.name), "kptr_restrict", kptrRestrict)
+			} else {
+				// If address is 0 and kptr_restrict is either 0 or 1, error out.
+				err = fmt.Errorf("function %s reported at address 0, insufficient permissions? kptr_restrict: %d", sym.name, kptrRestrict)
+				break
+			}
 		}
 
 		// check if this symbol is part of a kmod
@@ -159,6 +192,10 @@ func (k *Ksyms) GetFnOffset(addr uint64) (*FnOffset, error) {
 
 // GetFnOffset -- retruns the FnOffset for a given address
 func (k *Ksyms) getFnOffset(addr uint64) (*FnOffset, error) {
+	if k.fnAddrDenied {
+		return nil, errors.New("kernel symbols addresses are not available")
+	}
+
 	// address is before first symbol
 	if k.table[0].addr > addr {
 		return nil, fmt.Errorf("address %d is before first symbol %s@%d", addr, k.table[0].name, k.table[0].addr)
