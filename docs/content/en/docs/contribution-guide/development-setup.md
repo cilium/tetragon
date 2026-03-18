@@ -116,6 +116,39 @@ Verify that Tetragon is installed by running:
 kubectl get pods -n tetragon
 ```
 
+## Local development
+
+Building the full version of tetragon relies on setting the `k8s` tag in builds. This means that
+editor or IDE would need to be configured appropriately so that features such as "goto-definition"
+operate in the full build.
+
+You can find some configuration examples below.
+
+{{< tabpane text=true >}}
+{{% tab vim %}}
+
+For neovim lsp, you can use:
+
+```lua
+vim.lsp.config.gopls = {
+  cmd =     { "gopls" },
+  cmd_env = {GOFLAGS = "-tags=k8s"}
+}
+```
+
+For `fatih/vim-go`, you can use:
+
+```vim
+let g:go_build_tags = 'k8s'
+```
+
+There is also the `:GoBuildTags` convenience command to change or remove build
+tags.
+
+{{% /tab %}}
+{{< /tabpane >}}
+
+
 ## Local Development with Apple Silicon Mac
 
 Use [Lima](https://lima-vm.io/) to create a Linux VM if you are using a Mac with
