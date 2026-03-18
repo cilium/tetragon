@@ -9,6 +9,15 @@ programs using `uprobes`. Users can configure these hook points using the corres
 the `TracingPolicy` specification (`.spec`). These hook points include arguments and return values
 that can be specified using the `args` and `returnArg` fields as detailed in the following sections.
 
+{{< warning >}}
+Hooking a system call can introduce time-of-check to time-of-use (TOCTOU)
+races when the relevant argument is a pointer to user-space memory.
+In that case, user space can modify the underlying data after the hook executes
+but before the kernel consumes it. Hooking a later kernel function, such as an
+LSM `security_` hook, avoids this issue because it operates on kernel-resident
+state after the data has been copied from user space.
+{{< /warning >}}
+
 ## Kprobes
 
 Kprobes enables you to dynamically hook into any kernel function and execute BPF code. Because
