@@ -12,8 +12,8 @@ import (
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/cilium/tetragon/pkg/crdutils"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	"github.com/cilium/tetragon/pkg/testutils/tempfile"
 )
 
 //go:embed examples/tracepoint-lseek-pid.yaml
@@ -90,7 +90,7 @@ func TestYamlNamespaced(t *testing.T) {
 }
 
 func TestEmptyTracingPolicy(t *testing.T) {
-	path := crdutils.CreateTempFile(t, "")
+	path := tempfile.CreateTempFile(t, "")
 	_, err := FromFile(path)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unknown CRD kind: ")
