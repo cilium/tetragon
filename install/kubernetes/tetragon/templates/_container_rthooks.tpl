@@ -37,7 +37,7 @@
       mountPath: {{ .Values.rthooks.nriHook.nriSocket }}
 {{- end }}
 {{- with .Values.rthooks.resources }}
-  resources: {}
+  resources:
     {{- toYaml . | nindent 4 }}
 {{- end }}
 {{- end -}}
