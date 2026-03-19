@@ -209,12 +209,6 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 		SetPolicy(polInfo.name)
 	progs = append(progs, load)
 
-	if has.fdInstall {
-		fdinstall := program.MapBuilderSensor("fdinstall_map", load)
-		fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
-		maps = append(maps, fdinstall)
-	}
-
 	configMap := program.MapBuilderProgram("config_map", load)
 	maps = append(maps, configMap)
 
@@ -308,12 +302,6 @@ func createMultiKprobeSensor(polInfo *policyInfo, multiIDs []idtable.EntryID, ha
 
 		callHeap := program.MapBuilderSensor("process_call_heap", loadret)
 		maps = append(maps, callHeap)
-
-		if has.fdInstall {
-			fdinstall := program.MapBuilderSensor("fdinstall_map", loadret)
-			fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
-			maps = append(maps, fdinstall)
-		}
 
 		socktrack := program.MapBuilderSensor("socktrack_map", loadret)
 		if has.sockTrack {
@@ -523,7 +511,6 @@ type addKprobeIn struct {
 type hasMaps struct {
 	stackTrace bool
 	rateLimit  bool
-	fdInstall  bool
 	enforcer   bool
 	override   bool
 	sockTrack  bool
@@ -535,7 +522,6 @@ type hasMaps struct {
 func hasMapsSetup(spec *v1alpha1.TracingPolicySpec) hasMaps {
 	has := hasMaps{}
 	for _, kprobe := range spec.KProbes {
-		has.fdInstall = has.fdInstall || selectors.HasFDInstall(kprobe.Selectors)
 		has.enforcer = has.enforcer || len(spec.Enforcers) != 0
 		has.rateLimit = has.rateLimit || selectors.HasRateLimit(kprobe.Selectors)
 		has.sockTrack = has.sockTrack || selectors.HasSockTrack(&kprobe)
@@ -979,12 +965,6 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 	}
 	progs = append(progs, load)
 
-	if has.fdInstall {
-		fdinstall := program.MapBuilderSensor("fdinstall_map", load)
-		fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
-		maps = append(maps, fdinstall)
-	}
-
 	configMap := program.MapBuilderProgram("config_map", load)
 	maps = append(maps, configMap)
 
@@ -1090,12 +1070,6 @@ func createKprobeSensorFromEntry(polInfo *policyInfo, kprobeEntry *genericKprobe
 		// add maps with non-default paths (pins) to the retprobe
 		callHeap := program.MapBuilderSensor("process_call_heap", loadret)
 		maps = append(maps, callHeap)
-
-		if has.fdInstall {
-			fdinstall := program.MapBuilderSensor("fdinstall_map", loadret)
-			fdinstall.SetMaxEntries(fdInstallMapMaxEntries)
-			maps = append(maps, fdinstall)
-		}
 
 		if config.EnableLargeProgs() {
 			socktrack := program.MapBuilderSensor("socktrack_map", loadret)

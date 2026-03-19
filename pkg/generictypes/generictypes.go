@@ -28,7 +28,6 @@ const (
 	GenericFilenameType = 14
 	GenericPathType     = 15
 	GenericFileType     = 16
-	GenericFdType       = 17
 
 	// GenericConstBuffer is a buffer type whose size is static (and known).
 	GenericConstBuffer   = 18
@@ -99,7 +98,6 @@ var genericStringToType = map[string]int{
 	"filename":        GenericFilenameType,
 	"file":            GenericFileType,
 	"path":            GenericPathType,
-	"fd":              GenericFdType,
 	"cred":            GenericCredType,
 	"const_buf":       GenericConstBuffer,
 	"nop":             GenericNopType,
@@ -147,7 +145,6 @@ var genericTypeToStringTable = map[int]string{
 	GenericFilenameType:    "filename",
 	GenericFileType:        "file",
 	GenericPathType:        "path",
-	GenericFdType:          "fd",
 	GenericCredType:        "cred",
 	GenericConstBuffer:     "const_buf",
 	GenericNopType:         "nop",

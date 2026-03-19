@@ -15,7 +15,6 @@ const (
 	// much kernel memory when enabled.
 	stackTraceMapMaxEntries    = 32768
 	ratelimitMapMaxEntries     = 32768
-	fdInstallMapMaxEntries     = 32000
 	enforcerMapMaxEntries      = 32768
 	overrideMapMaxEntries      = 32768
 	sleepableOffloadMaxEntries = 32768
