@@ -105,3 +105,119 @@ spec:
 		},
 	}
 }).RegisterAtInit()
+
+var _ = policytest.NewBuilder("cel-multi-uprobe-one-match").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "cel-multi-uprobe"
+spec:
+  uprobes:
+  - path: {{ testBinary "libuprobe.so" }}
+    symbols:
+    - "uprobe_test_lib_arg1"
+    selectors:
+    - matchArgs:
+      - operator: CelExpr
+        values:
+        - "false"
+  - path: {{ testBinary "libuprobe.so" }}
+    symbols:
+    - "uprobe_test_lib_arg2"
+    selectors:
+    - matchArgs:
+      - operator: CelExpr
+        values:
+        - "true"
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	if !si.AgentInfo.Probes[bpf.LargeProgsProbe] {
+		return "need 5.3 or newer kernel"
+	}
+
+	if !si.AgentInfo.Probes[bpf.UprobeRefCtrOffsetProbe] {
+		return "need uprobe ref_ctr_off support"
+	}
+
+	if !si.AgentInfo.Probes[bpf.MixBPFAndTailCallsProbe] {
+		return "need kernel where we can mix bpf and tail calls"
+	}
+
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	myBin := c.TestBinary("uprobe-test-1")
+	upChecker := ec.NewProcessUprobeChecker("cel-multi-uprobe").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(myBin))).WithSymbol(sm.Full("uprobe_test_lib_arg2"))
+
+	return &policytest.Scenario{
+		Name:         "check uprobe_test_lib_arg2 event",
+		Trigger:      policytest.NewCmdTrigger(myBin).ExpectExitCode(0),
+		EventChecker: ec.NewUnorderedEventChecker(upChecker),
+	}
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	myBin := c.TestBinary("uprobe-test-1")
+	upChecker := ec.NewProcessUprobeChecker("cel-multi-uprobe").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(myBin))).WithSymbol(sm.Full("uprobe_test_lib_arg1"))
+
+	return &policytest.Scenario{
+		Name:                 "check uprobe_test_lib_arg1 event does not occur",
+		Trigger:              policytest.NewCmdTrigger(myBin).ExpectExitCode(0),
+		EventChecker:         ec.NewUnorderedEventChecker(upChecker),
+		ExpectCheckerFailure: true,
+	}
+}).RegisterAtInit()
+
+var _ = policytest.NewBuilder("cel-multi-uprobe-both-match").WithLabels("uprobes").WithPolicyTemplate(`
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "cel-multi-uprobe"
+spec:
+  uprobes:
+  - path: {{ testBinary "libuprobe.so" }}
+    symbols:
+    - "uprobe_test_lib_arg1"
+    selectors:
+    - matchArgs:
+      - operator: CelExpr
+        values:
+        - "true"
+  - path: {{ testBinary "libuprobe.so" }}
+    symbols:
+    - "uprobe_test_lib_arg2"
+    selectors:
+    - matchArgs:
+      - operator: CelExpr
+        values:
+        - "true"
+`).WithSkip(func(si *policytest.SkipInfo) string {
+	if !si.AgentInfo.Probes[bpf.LargeProgsProbe] {
+		return "need 5.3 or newer kernel"
+	}
+
+	if !si.AgentInfo.Probes[bpf.UprobeRefCtrOffsetProbe] {
+		return "need uprobe ref_ctr_off support"
+	}
+
+	if !si.AgentInfo.Probes[bpf.MixBPFAndTailCallsProbe] {
+		return "need kernel where we can mix bpf and tail calls"
+	}
+
+	return ""
+}).AddScenario(func(c *policytest.Conf) *policytest.Scenario {
+	myBin := c.TestBinary("uprobe-test-1")
+	upArg2Checker := ec.NewProcessUprobeChecker("cel-multi-uprobe").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(myBin))).WithSymbol(sm.Full("uprobe_test_lib_arg2"))
+
+	upArg1Checker := ec.NewProcessUprobeChecker("cel-multi-uprobe").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(myBin))).WithSymbol(sm.Full("uprobe_test_lib_arg1"))
+
+	return &policytest.Scenario{
+		Name:         "check both events occur",
+		Trigger:      policytest.NewCmdTrigger(myBin).ExpectExitCode(0),
+		EventChecker: ec.NewUnorderedEventChecker(upArg2Checker, upArg1Checker),
+	}
+}).RegisterAtInit()
