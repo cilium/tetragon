@@ -26,6 +26,7 @@ import (
 	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/testutils"
+	"github.com/cilium/tetragon/pkg/testutils/policytest"
 	tus "github.com/cilium/tetragon/pkg/testutils/sensors"
 )
 
@@ -410,6 +411,14 @@ func TestUprobeResolveCELMatchNotEqual(t *testing.T) {
 
 func TestUprobeResolveCELNoMatchOnArgReadFailure(t *testing.T) {
 	testUprobeResolveCEL(t, "arg0 != 8u", []string{"v8", "7"}, true)
+}
+
+func TestCelExprMultiUprobeOneMatch(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "cel-multi-uprobe-one-match", nil)
+}
+
+func TestCelExprMultiUprobeBothMatch(t *testing.T) {
+	policytest.AllPolicyTests.DoObserverTest(t, "cel-multi-uprobe-both-match", nil)
 }
 
 func TestUprobeResolvePageFault(t *testing.T) {
