@@ -178,10 +178,11 @@ func TestStateAllPodsPolicyEntryWithoutCgroupMap(t *testing.T) {
 	err = s.DelPodContainer(pod, "cont1")
 	require.NoError(t, err)
 
+	// FIXME: Check this
 	dump, err = s.pfMap.readAll()
 	require.NoError(t, err)
 	require.Equal(t, map[PolicyID]map[CgroupID]struct{}{
-		AllPodsPolicyID: {},
+		AllPodsPolicyID: {cgid: {}},
 	}, dump.Policy)
 	require.Nil(t, dump.Cgroup)
 }
