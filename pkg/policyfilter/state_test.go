@@ -104,3 +104,84 @@ func TestState(t *testing.T) {
 	require.Empty(t, s.policies)
 	require.Empty(t, s.pods)
 }
+
+func TestStateAllPodsPolicyEntry(t *testing.T) {
+	s, err := New(true)
+	if err != nil {
+		t.Skipf("failed to inialize policy filter state: %s", err)
+	}
+	defer s.Close()
+
+	requirePfmEqualToIncludingAllPods(t, s.pfMap, map[uint64][]uint64{
+		uint64(AllPodsPolicyID): {},
+	})
+
+	pod1 := PodID(uuid.New())
+	cgid1 := CgroupID(4001)
+	err = s.AddPodContainer(pod1, "ns1", "wl1", "kind1", nil, "cont1", cgid1, podhelpers.ContainerInfo{Name: "main1", Repo: "repo1"})
+	require.NoError(t, err)
+
+	pod2 := PodID(uuid.New())
+	cgid2 := CgroupID(4002)
+	err = s.AddPodContainer(pod2, "ns2", "wl2", "kind2", nil, "cont2", cgid2, podhelpers.ContainerInfo{Name: "main2", Repo: "repo2"})
+	require.NoError(t, err)
+
+	requirePfmEqualToIncludingAllPods(t, s.pfMap, map[uint64][]uint64{
+		uint64(AllPodsPolicyID): {4001, 4002},
+	})
+
+	err = s.AddPolicy(PolicyID(1), "ns2", nil, nil)
+	require.NoError(t, err)
+	requirePfmEqualToIncludingAllPods(t, s.pfMap, map[uint64][]uint64{
+		1:                       {4002},
+		uint64(AllPodsPolicyID): {4001, 4002},
+	})
+
+	err = s.DelPolicy(PolicyID(1))
+	require.NoError(t, err)
+	requirePfmEqualToIncludingAllPods(t, s.pfMap, map[uint64][]uint64{
+		uint64(AllPodsPolicyID): {4001, 4002},
+	})
+
+	err = s.DelPodContainer(pod1, "cont1")
+	require.NoError(t, err)
+	requirePfmEqualToIncludingAllPods(t, s.pfMap, map[uint64][]uint64{
+		uint64(AllPodsPolicyID): {4002},
+	})
+
+	err = s.DelPod(pod2)
+	require.NoError(t, err)
+	requirePfmEqualToIncludingAllPods(t, s.pfMap, map[uint64][]uint64{
+		uint64(AllPodsPolicyID): {},
+	})
+}
+
+func TestStateAllPodsPolicyEntryWithoutCgroupMap(t *testing.T) {
+	s, err := New(false)
+	if err != nil {
+		t.Skipf("failed to inialize policy filter state: %s", err)
+	}
+	defer s.Close()
+
+	pod := PodID(uuid.New())
+	cgid := CgroupID(5001)
+	err = s.AddPodContainer(pod, "ns1", "wl1", "kind1", nil, "cont1", cgid, podhelpers.ContainerInfo{Name: "main1", Repo: "repo1"})
+	require.NoError(t, err)
+
+	dump, err := s.pfMap.readAll()
+	require.NoError(t, err)
+	require.Equal(t, map[PolicyID]map[CgroupID]struct{}{
+		AllPodsPolicyID: {cgid: {}},
+	}, dump.Policy)
+	require.Nil(t, dump.Cgroup)
+
+	err = s.DelPodContainer(pod, "cont1")
+	require.NoError(t, err)
+
+	dump, err = s.pfMap.readAll()
+	require.NoError(t, err)
+	require.Equal(t, map[PolicyID]map[CgroupID]struct{}{
+		AllPodsPolicyID: {},
+	}, dump.Policy)
+	require.Nil(t, dump.Cgroup)
+}

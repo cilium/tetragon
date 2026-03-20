@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func requirePfmEqualTo(t *testing.T, m PfMap, val map[uint64][]uint64) {
+func buildExpectedPfMap(val map[uint64][]uint64) (map[PolicyID]map[CgroupID]struct{}, map[CgroupID]map[PolicyID]struct{}) {
 
 	checkVals := map[PolicyID]map[CgroupID]struct{}{}
 	for k, ids := range val {
@@ -30,6 +30,33 @@ func requirePfmEqualTo(t *testing.T, m PfMap, val map[uint64][]uint64) {
 			checkCgroupVals[CgroupID(id)][PolicyID(k)] = struct{}{}
 		}
 	}
+
+	return checkVals, checkCgroupVals
+}
+
+func stripAllPodsPolicy(val PfMapDump) PfMapDump {
+	delete(val.Policy, AllPodsPolicyID)
+	for cgID, policyIDs := range val.Cgroup {
+		delete(policyIDs, AllPodsPolicyID)
+		if len(policyIDs) == 0 {
+			delete(val.Cgroup, cgID)
+		}
+	}
+	return val
+}
+
+func requirePfmEqualTo(t *testing.T, m PfMap, val map[uint64][]uint64) {
+	checkVals, checkCgroupVals := buildExpectedPfMap(val)
+
+	mapVals, err := m.readAll()
+	require.NoError(t, err)
+	mapVals = stripAllPodsPolicy(mapVals)
+	require.Equal(t, checkVals, mapVals.Policy)
+	require.Equal(t, checkCgroupVals, mapVals.Cgroup)
+}
+
+func requirePfmEqualToIncludingAllPods(t *testing.T, m PfMap, val map[uint64][]uint64) {
+	checkVals, checkCgroupVals := buildExpectedPfMap(val)
 
 	mapVals, err := m.readAll()
 	require.NoError(t, err)
