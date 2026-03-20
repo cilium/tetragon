@@ -319,6 +319,7 @@ func doBugtool(info *InitInfo, outFname string, commandActions []CommandAction, 
 	si.addTcInfo()
 	si.addBpftoolInfo()
 	si.addGopsInfo()
+	si.addPProfInfo()
 	si.dumpPolicyFilterMap()
 	si.addProcessCache()
 	si.addExecveMap()
@@ -619,6 +620,27 @@ func (s *bugtoolInfo) getPProf(file string, gopsSignal byte) error {
 	return s.tarAddBuff(file, buff)
 }
 
+func (s *bugtoolInfo) addPProfInfo() {
+	profiles := map[string]byte{
+		"cpu":  gopssignal.CPUProfile,
+		"heap": gopssignal.HeapProfile,
+	}
+
+	for name, signal := range profiles {
+		err := s.getPProf("gops.pprof-"+name, signal)
+		if err != nil {
+			s.multiLog.
+				WithField("profile", name).
+				WithError(err).
+				Warn("Failed to dump gops pprof")
+		} else {
+			s.multiLog.
+				WithField("profile", name).
+				Info("Successfully dumped gops pprof")
+		}
+	}
+}
+
 func (s *bugtoolInfo) addGopsInfo() {
 	if s.info.GopsAddr == "" {
 		s.multiLog.Info("Skipping gops dump info as daemon is running without gops, use --gops-address to enable gops")
@@ -641,27 +663,6 @@ func (s *bugtoolInfo) addGopsInfo() {
 	s.ExecCmd("gops.stack", s.info.GopsPath, "stack", s.info.GopsAddr)
 	s.ExecCmd("gops.stats", s.info.GopsPath, "stats", s.info.GopsAddr)
 	s.ExecCmd("gops.memstats", s.info.GopsPath, "memstats", s.info.GopsAddr)
-	profiles := map[string]byte{
-		"cpu":  gopssignal.CPUProfile,
-		"heap": gopssignal.HeapProfile,
-	}
-	for name, signal := range profiles {
-		err = s.getPProf("gops.pprof-"+name, signal)
-		if err != nil {
-			s.multiLog.
-				WithField("gops-address", s.info.GopsAddr).
-				WithField("gops-path", s.info.GopsPath).
-				WithField("profile", name).
-				WithError(err).
-				Warn("Failed to dump gops pprof")
-		} else {
-			s.multiLog.
-				WithField("gops-address", s.info.GopsAddr).
-				WithField("gops-path", s.info.GopsPath).
-				WithField("profile", name).
-				Info("Successfully dumped gops pprof")
-		}
-	}
 }
 
 func (s *bugtoolInfo) dumpPolicyFilterMap() error {
