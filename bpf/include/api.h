@@ -293,16 +293,6 @@ static int BPF_FUNC(seq_write, struct seq_file *m, const void *data, uint32_t le
 # define memmove(d, s, n)	__builtin_memmove((d), (s), (n))
 #endif
 
-/* FIXME: __builtin_memcmp() is not yet fully useable unless llvm bug
- * https://llvm.org/bugs/show_bug.cgi?id=26218 gets resolved. Also
- * this one would generate a reloc entry (non-map), otherwise.
- */
-#if 0
-#ifndef memcmp
-# define memcmp(a, b, n)	__builtin_memcmp((a), (b), (n))
-#endif
-#endif
-
 /**
  * atomic add is support from before 4.19 on both arm and x86,
  * x86 has other atomics support from 5.11, arm from 5.17
