@@ -18,6 +18,7 @@
 #include "user_preload.h"
 #include "generic_arg.h"
 #include "event_config.h"
+#include "errmetrics.h"
 
 #ifdef GENERIC_USDT
 #include "usdt_arg.h"
@@ -814,16 +815,16 @@ do_override_action(__s32 error)
 
 	id = get_current_pid_tgid();
 
-	/*
-	 * TODO: this should not happen, it means that the override
-	 * program was not executed for some reason, we should do
-	 * warning in here
-	 */
 	error_p = map_lookup_elem(&override_tasks, &id);
-	if (error_p)
+	if (error_p) {
+		/* A stale entry means the override program did not
+		 * execute and consume the previous entry.
+		 */
+		errmetrics(EEXIST);
 		*error_p = error;
-	else
+	} else {
 		map_update_elem(&override_tasks, &id, &error, BPF_ANY);
+	}
 }
 #else
 #define do_override_action(error)
@@ -841,16 +842,16 @@ write_user_arg(void *ctx, void *addr, __u32 value)
 	};
 	__u64 id = get_current_pid_tgid();
 
-	/*
-	 * TODO: this should not happen, it means that the override
-	 * program was not executed for some reason, we should do
-	 * warning in here
-	 */
 	data = map_lookup_elem(&write_offload, &id);
-	if (data)
+	if (data) {
+		/* A stale entry means the offload program did not
+		 * execute and consume the previous entry.
+		 */
+		errmetrics(EEXIST);
 		*data = tmp;
-	else
+	} else {
 		map_update_elem(&write_offload, &id, &tmp, BPF_ANY);
+	}
 
 	return 0;
 }
