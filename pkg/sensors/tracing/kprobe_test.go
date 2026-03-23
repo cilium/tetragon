@@ -3296,10 +3296,12 @@ spec:
       - index: 1
         operator: "` + opStr + `"
         values: `
+	var sb strings.Builder
+	sb.WriteString(configHook)
 	for i := range vals {
-		configHook += fmt.Sprintf("\n        - \"%s\"", vals[i])
+		fmt.Fprintf(&sb, "\n        - \"%s\"", vals[i])
 	}
-	return configHook
+	return sb.String()
 }
 
 func getMatchArgsFdCrd(opStr string, vals []string) string {
@@ -3322,8 +3324,12 @@ spec:
       - index: 1
         operator: "` + opStr + `"
         values: `
-	for i := range vals {
-		configHook += fmt.Sprintf("\n        - \"%s\"", vals[i])
+	{
+		var sb strings.Builder
+		for i := range vals {
+			fmt.Fprintf(&sb, "\n        - \"%s\"", vals[i])
+		}
+		configHook += sb.String()
 	}
 	configHook += "\n"
 	configHook += `      matchActions:
@@ -3355,10 +3361,12 @@ spec:
       - index: 0
         operator: "` + opStr + `"
         values: `
+	var sb2 strings.Builder
+	sb2.WriteString(configHook)
 	for i := range vals {
-		configHook += fmt.Sprintf("\n        - \"%s\"", vals[i])
+		fmt.Fprintf(&sb2, "\n        - \"%s\"", vals[i])
 	}
-	return configHook
+	return sb2.String()
 }
 
 // this will trigger an fd_install event
@@ -3682,10 +3690,12 @@ spec:
       - index: 0
         operator: "Prefix"
         values: `
+	var sb strings.Builder
+	sb.WriteString(configHook)
 	for _, f := range vals {
-		configHook += fmt.Sprintf("\n        - \"%s\"", f)
+		fmt.Fprintf(&sb, "\n        - \"%s\"", f)
 	}
-	return configHook
+	return sb.String()
 }
 
 func TestKprobeMatchArgsFileMonitoringPrefix(t *testing.T) {
@@ -3828,10 +3838,12 @@ spec:
     - matchBinaries:
       - operator: "` + opStr + `"
         values: `
+	var sb strings.Builder
+	sb.WriteString(configHook)
 	for i := range vals {
-		configHook += fmt.Sprintf("\n        - \"%s\"", vals[i])
+		fmt.Fprintf(&sb, "\n        - \"%s\"", vals[i])
 	}
-	return configHook
+	return sb.String()
 }
 
 func createBinariesChecker(binary, filename string) *ec.ProcessKprobeChecker {
@@ -3948,9 +3960,7 @@ func TestKprobeMatchBinariesLargePath(t *testing.T) {
 	targetBinLargePath := tmpDir
 	// add (255 + 1) * 15 = 3840 chars to the path
 	// max is 4096 and we want to leave some space for the tmpdir + others
-	for range 15 {
-		targetBinLargePath += "/" + strings.Repeat("a", unix.NAME_MAX)
-	}
+	targetBinLargePath += strings.Repeat("/"+strings.Repeat("a", unix.NAME_MAX), 15)
 	err := os.MkdirAll(targetBinLargePath, 0755)
 	require.NoError(t, err)
 
