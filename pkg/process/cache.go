@@ -25,7 +25,7 @@ type Cache struct {
 	cache      *lru.Cache[string, *ProcessInternal]
 	size       int
 	deleteChan chan *ProcessInternal
-	stopChan   chan bool
+	stopChan   chan struct{} // ← CHANGED from chan bool
 }
 
 // garbage collection states
@@ -46,7 +46,7 @@ var colorStr = map[int]string{
 func (pc *Cache) cacheGarbageCollector(intervalGC time.Duration) {
 	ticker := time.NewTicker(intervalGC)
 	pc.deleteChan = make(chan *ProcessInternal)
-	pc.stopChan = make(chan bool)
+	pc.stopChan = make(chan struct{}) // ← CHANGED from make(chan bool)
 
 	go func() {
 		var deleteQueue []*ProcessInternal
@@ -130,14 +130,14 @@ func (pc *Cache) refDec(p *ProcessInternal, reason string) {
 
 func (pc *Cache) refInc(p *ProcessInternal, reason string) {
 	p.refcntOpsLock.Lock()
-	// count number of times refcnt is increamented for a specific reason (i.e. process, parent, etc.)
+	// count number of times refcnt is incremented for a specific reason (i.e. process, parent, etc.)
 	p.refcntOps[reason]++
 	p.refcntOpsLock.Unlock()
 	p.refcnt.Add(1)
 }
 
 func (pc *Cache) purge() {
-	pc.stopChan <- true
+	pc.stopChan <- struct{}{} // ← CHANGED from <- true
 	processCacheTotal.Set(0)
 }
 
@@ -268,3 +268,5 @@ func (pc *Cache) getEntries() []*tetragon.ProcessInternal {
 	}
 	return processes
 }
+
+
