@@ -34,7 +34,8 @@ func systemdExpandSlice(slice string) (string, error) {
 		return "", fmt.Errorf("invalid slice name: %s", slice)
 	}
 
-	var path, prefix string
+	var pathBuilder strings.Builder
+	var prefix string
 	sliceName := strings.TrimSuffix(slice, suffix)
 	// if input was -.slice, we should just return root now
 	if sliceName == "-" {
@@ -47,10 +48,13 @@ func systemdExpandSlice(slice string) (string, error) {
 		}
 
 		// Append the component to the path and to the prefix.
-		path += "/" + prefix + component + suffix
+		pathBuilder.WriteString("/")
+		pathBuilder.WriteString(prefix)
+		pathBuilder.WriteString(component)
+		pathBuilder.WriteString(suffix)
 		prefix += component + "-"
 	}
-	return path, nil
+	return pathBuilder.String(), nil
 }
 
 func ParseCgroupsPath(cgroupPath string) (string, error) {
