@@ -69,7 +69,7 @@ __execve_map_update(struct update_data *data)
 }
 #endif /* __LARGE_BPF_PROG */
 
-__attribute__((section("seccomp"), used)) int
+__attribute__((section("socket"), used)) int
 execve_map_update(void *ctx)
 {
 	struct update_data *data;
