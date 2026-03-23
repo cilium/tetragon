@@ -172,12 +172,14 @@ redirection of events to the stdin. Examples:
 
 			for _, v := range Options.EventTypes {
 				if _, found := tetragon.EventType_value[v]; !found {
-					var supportedEventTypes string
-					for _, v := range tetragon.EventType_name {
-						supportedEventTypes += v + ", "
+					var sb strings.Builder
+					for _, name := range tetragon.EventType_name {
+						if sb.Len() > 0 {
+							sb.WriteString(", ")
+						}
+						sb.WriteString(name)
 					}
-					supportedEventTypes = strings.TrimSuffix(supportedEventTypes, ", ")
-					return fmt.Errorf("invalid value for %q flag: %s. Supported are %s", "event-types", v, supportedEventTypes)
+					return fmt.Errorf("invalid value for %q flag: %s. Supported are %s", "event-types", v, sb.String())
 				}
 			}
 

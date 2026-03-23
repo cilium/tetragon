@@ -8,6 +8,7 @@ package encoder
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/syscallinfo"
@@ -38,10 +39,12 @@ func rawSyscallEnter(tp *tetragon.ProcessTracepoint) string {
 		}
 		sysArgs, ok := syscallinfo.GetSyscallArgs(sysName)
 		if ok {
-			sysName += "("
+			var sb strings.Builder
+			sb.WriteString(sysName)
+			sb.WriteString("(")
 			for j, arg := range sysArgs {
 				if j > 0 {
-					sysName += ", "
+					sb.WriteString(", ")
 				}
 				i := j + 1
 
@@ -59,12 +62,13 @@ func rawSyscallEnter(tp *tetragon.ProcessTracepoint) string {
 					}
 				}
 				if isPtr {
-					sysName += fmt.Sprintf("%s%s=%s", arg.Type, arg.Name, argVal)
+					fmt.Fprintf(&sb, "%s%s=%s", arg.Type, arg.Name, argVal)
 				} else {
-					sysName += fmt.Sprintf("%s %s=%s", arg.Type, arg.Name, argVal)
+					fmt.Fprintf(&sb, "%s %s=%s", arg.Type, arg.Name, argVal)
 				}
 			}
-			sysName += ")"
+			sb.WriteString(")")
+			sysName = sb.String()
 		}
 	}
 	return sysName
