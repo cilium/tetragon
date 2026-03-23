@@ -1,5 +1,5 @@
 # renovate: datasource=docker
-BUILDER_IMAGE=docker.io/library/golang:1.24.13@sha256:c29cdf32d47053ab0d914852d9c2ed2da12b3cf13079aaef1704ef21335e68a3
+BUILDER_IMAGE=docker.io/library/golang:1.25.8@sha256:dfae680962532eeea67ab297f1166c2c4e686edb9a8f05f9d02d96fc9191833e
 GO ?= go
 
 all: generate
