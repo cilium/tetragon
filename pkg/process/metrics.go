@@ -39,6 +39,12 @@ var (
 		Name:      "process_cache_capacity_evictions_total",
 		Help:      "Number of process cache capacity (implicit) LRU evictions.",
 	})
+	processCacheEarlyDeletion = prometheus.NewCounter(prometheus.CounterOpts{
+    	Namespace: consts.MetricsNamespace,
+    	Name:      "process_cache_early_deletion_total",
+    	Help:      "Number of times a deleted process was sent to the delete channel after already being GC'd, indicating premature deletion.",
+	})
+
 	processCacheMisses = metrics.MustNewCounter(metrics.NewOpts(
 		consts.MetricsNamespace, "", "process_cache_misses_total",
 		"Number of process cache misses.",
@@ -65,6 +71,7 @@ func RegisterMetrics(group metrics.Group) {
 		processCacheTotal,
 		processCacheEvictions,
 		processCacheMisses,
+		processCacheEarlyDeletion,
 	)
 	group.MustRegister(newCacheCollector())
 }

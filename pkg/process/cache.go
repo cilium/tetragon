@@ -89,21 +89,23 @@ func (pc *Cache) cacheGarbageCollector(intervalGC time.Duration) {
 				}
 				deleteQueue = newQueue
 			case p := <-pc.deleteChan:
-				// duplicate deletes can happen, if they do reset
-				// color to pending and move along. This will cause
-				// the GC to keep it alive for at least another pass.
-				// Notice color is only ever touched inside GC behind
-				// select channel logic so should be safe to work on
-				// and assume its visible everywhere.
-				if p.color != inUse {
-					p.color = deletePending
+				// FIX: Check for 'deleted' state FIRST, before the general
+				// '!= inUse' check. Previously this branch was unreachable
+				// because 'deleted != inUse' always matched the first
+				// condition, silently resetting color to deletePending instead
+				// of being handled correctly.
+				// Hitting this means the GC logic deleted a process too early.
+				if p.color == deleted {
+					processCacheEarlyDeletion.Inc()
 					continue
 				}
-				// The object has already been deleted let if fall of
-				// the edge of the world. Hitting this could mean our
-				// GC logic deleted a process too early.
-				// TBD add a counter around this to alert on it.
-				if p.color == deleted {
+				// Duplicate deletes can happen for non-inUse entries.
+				// Reset color to pending and move along. This will cause
+				// the GC to keep it alive for at least another pass.
+				// Note: color is only touched inside GC behind select
+				// channel logic so it is safe to work on here.
+				if p.color != inUse {
+					p.color = deletePending
 					continue
 				}
 				p.color = deletePending
@@ -268,3 +270,5 @@ func (pc *Cache) getEntries() []*tetragon.ProcessInternal {
 	}
 	return processes
 }
+
+
