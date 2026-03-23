@@ -30,6 +30,7 @@ __asm__ (
 	"mov     w0, #0x3\n"
 	"ldp     x29, x30, [sp], #16\n"
 	"ret\n"
+	".size test_1, .-test_1\n"
 );
 #endif
 
@@ -55,6 +56,7 @@ __asm__ (
 	"ldr	x0, =0xdeadbeefdeadbeef\n"
 	"ldp	x29, x30, [sp], #16\n"
 	"ret\n"
+	".size test_2, .-test_2\n"
 );
 #endif
 
