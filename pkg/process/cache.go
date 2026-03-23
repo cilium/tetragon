@@ -89,21 +89,22 @@ func (pc *Cache) cacheGarbageCollector(intervalGC time.Duration) {
 				}
 				deleteQueue = newQueue
 			case p := <-pc.deleteChan:
-				// FIX: Check for 'deleted' state FIRST, before the general
-				// '!= inUse' check. Previously this branch was unreachable
-				// because 'deleted != inUse' always matched the first
-				// condition, silently resetting color to deletePending instead
-				// of being handled correctly.
-				// Hitting this means the GC logic deleted a process too early.
+				// The object has already been deleted, let it fall off
+				// the edge of the world. Hitting this could mean our
+				// GC logic deleted a process too early.
+				// This check must come before the generic != inUse check
+				// below, otherwise deleted is never matched and color
+				// gets silently reset to deletePending.
 				if p.color == deleted {
 					processCacheEarlyDeletion.Inc()
 					continue
 				}
-				// Duplicate deletes can happen for non-inUse entries.
-				// Reset color to pending and move along. This will cause
+				// Duplicate deletes can happen, if they do reset
+				// color to pending and move along. This will cause
 				// the GC to keep it alive for at least another pass.
-				// Note: color is only touched inside GC behind select
-				// channel logic so it is safe to work on here.
+				// Notice color is only ever touched inside GC behind
+				// select channel logic so should be safe to work on
+				// and assume its visible everywhere.
 				if p.color != inUse {
 					p.color = deletePending
 					continue
@@ -132,7 +133,7 @@ func (pc *Cache) refDec(p *ProcessInternal, reason string) {
 
 func (pc *Cache) refInc(p *ProcessInternal, reason string) {
 	p.refcntOpsLock.Lock()
-	// count number of times refcnt is increamented for a specific reason (i.e. process, parent, etc.)
+	// count number of times refcnt is incremented for a specific reason (i.e. process, parent, etc.)
 	p.refcntOps[reason]++
 	p.refcntOpsLock.Unlock()
 	p.refcnt.Add(1)
