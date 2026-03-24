@@ -86,7 +86,7 @@ func (rpt *RegisteredPolicyTests) DoObserverTest(
 			t.Fatalf("failed to trigger scenario %s", scenario.Name)
 		}
 
-		err = jsonchecker.JsonTestCheck(t, scenario.EventChecker)
+		err = jsonchecker.JsonTestCheckExpect(t, scenario.EventChecker, scenario.ExpectCheckerFailure)
 		require.NoError(t, err)
 	}
 }

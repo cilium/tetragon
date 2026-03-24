@@ -19,10 +19,11 @@ type Trigger interface {
 }
 
 type Scenario struct {
-	Name            string
-	Trigger         Trigger
-	EventChecker    ec.MultiEventChecker
-	ActCountChecker ActionCounts
+	Name                 string
+	Trigger              Trigger
+	EventChecker         ec.MultiEventChecker
+	ActCountChecker      ActionCounts
+	ExpectCheckerFailure bool
 }
 
 // Policies are represented as strings, because that's how they are loaded via gRPC
