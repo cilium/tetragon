@@ -40,11 +40,21 @@ struct {
 #include "generic_calls.h"
 
 #ifdef __MULTI_KPROBE
+#ifdef __UPROBE_SLEEPABLE
+#define MAIN   "uprobe.multi.s/generic_retuprobe"
+#define COMMON "uprobe.multi.s"
+#else
 #define MAIN   "uprobe.multi/generic_retuprobe"
 #define COMMON "uprobe.multi"
+#endif
+#else
+#ifdef __UPROBE_SLEEPABLE
+#define MAIN   "uprobe.s/generic_retuprobe"
+#define COMMON "uprobe.s"
 #else
 #define MAIN   "uprobe/generic_retuprobe"
 #define COMMON "uprobe"
+#endif
 #endif
 
 __attribute__((section((MAIN)), used)) int

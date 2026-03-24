@@ -101,6 +101,9 @@ PROCESS += bpf_generic_lsm_core_v61.o bpf_generic_lsm_output_v61.o \
 PROCESS += bpf_execve_map_update_v61.o bpf_execve_map_update_v511.o \
 	   bpf_execve_map_update_v53.o bpf_execve_map_update.o
 
+# sleepable uprobes
+PROCESS += bpf_generic_uprobe_sleepable.o bpf_multi_uprobe_sleepable.o \
+	   bpf_generic_retuprobe_sleepable.o bpf_multi_retuprobe_sleepable.o
 
 CGROUP = bpf_cgroup_mkdir.o bpf_cgroup_rmdir.o bpf_cgroup_release.o bpf_cgtracker.o
 CGROUP += bpf_cgroup_mkdir_v511.o bpf_cgroup_rmdir_v511.o bpf_cgroup_release_v511.o
@@ -146,6 +149,11 @@ CFLAGS_bpf_enforcer.o           = -D__BPF_OVERRIDE_RETURN
 CFLAGS_bpf_multi_enforcer.o     = -D__BPF_OVERRIDE_RETURN -D__MULTI_KPROBE
 CFLAGS_bpf_generic_lsm_core.o   = -D__LARGE_BPF_PROG
 CFLAGS_bpf_generic_lsm_output.o = -D__LARGE_BPF_PROG
+
+CFLAGS_bpf_generic_uprobe_sleepable.o    = -D__UPROBE_SLEEPABLE $(CFLAGS_v61)
+CFLAGS_bpf_multi_uprobe_sleepable.o      = -D__UPROBE_SLEEPABLE $(CFLAGS_v61) -D__MULTI_KPROBE
+CFLAGS_bpf_generic_retuprobe_sleepable.o = -D__UPROBE_SLEEPABLE $(CFLAGS_v61)
+CFLAGS_bpf_multi_retuprobe_sleepable.o   = -D__UPROBE_SLEEPABLE $(CFLAGS_v61) -D__MULTI_KPROBE
 
 # Rules
 MTARGET_o  = $(patsubst $(DEPSDIR)%.d,$(OBJSDIR)%.o,$@)
@@ -225,6 +233,10 @@ objs/%.ll:
 # Generic dependency files
 $(DEPSDIR)bpf_multi_enforcer.d: $(PROCESSDIR)bpf_enforcer.c
 $(DEPSDIR)bpf_fmodret_enforcer.d: $(PROCESSDIR)bpf_enforcer.c
+$(DEPSDIR)bpf_generic_uprobe_sleepable.d: $(PROCESSDIR)bpf_generic_uprobe.c
+$(DEPSDIR)bpf_multi_uprobe_sleepable.d: $(PROCESSDIR)bpf_generic_uprobe.c
+$(DEPSDIR)bpf_generic_retuprobe_sleepable.d: $(PROCESSDIR)bpf_generic_retuprobe.c
+$(DEPSDIR)bpf_multi_retuprobe_sleepable.d: $(PROCESSDIR)bpf_generic_retuprobe.c
 
 $(DEPSDIR)%.d: $(ALIGNCHECKERDIR)%.c
 	$(rule_d)

@@ -54,13 +54,25 @@ struct {
 #include "generic_calls.h"
 
 #ifdef __MULTI_KPROBE
+#ifdef __UPROBE_SLEEPABLE
+#define MAIN	"uprobe.multi.s/generic_uprobe"
+#define COMMON	"uprobe.multi.s"
+#define OFFLOAD "uprobe.multi.s/generic_uprobe"
+#else
 #define MAIN	"uprobe.multi/generic_uprobe"
 #define COMMON	"uprobe.multi"
 #define OFFLOAD "uprobe.multi.s/generic_uprobe"
+#endif
+#else
+#ifdef __UPROBE_SLEEPABLE
+#define MAIN	"uprobe.s/generic_uprobe"
+#define COMMON	"uprobe.s"
+#define OFFLOAD "uprobe.s/generic_uprobe"
 #else
 #define MAIN	"uprobe/generic_uprobe"
 #define COMMON	"uprobe"
 #define OFFLOAD "uprobe.s/generic_uprobe"
+#endif
 #endif
 
 __attribute__((section((MAIN)), used)) int
