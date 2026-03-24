@@ -22,4 +22,5 @@ const (
 	ProbeWriteUserProbe         = "probe_write_user"
 	UprobeRegsChangeProbe       = "uprobe_regs_change"
 	MixBPFAndTailCallsProbe     = "mix_bpf_and_tail_calls"
+	SleepableTailCallsProbe     = "sleepable_tail_calls"
 )
