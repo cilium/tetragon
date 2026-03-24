@@ -47,5 +47,6 @@ func New() *cobra.Command {
 	flags.StringVar(&common.ServerAddress, common.KeyServerAddress, "", "gRPC server address")
 	flags.DurationVar(&common.Timeout, common.KeyTimeout, 30*time.Second, "Connection timeout")
 	flags.IntVar(&common.Retries, common.KeyRetries, 1, "Connection retries with exponential backoff")
+	flags.IntVar(&common.MaxRecvMsgSize, common.KeyMaxRecvMsgSize, 10*1024*1024, "Maximum gRPC message size in bytes the client can receive")
 	return rootCmd
 }

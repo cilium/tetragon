@@ -15,15 +15,16 @@ import (
 )
 
 const (
-	KeyColor         = "color"          // string
-	KeyDebug         = "debug"          // bool
-	KeyOutput        = "output"         // string
-	KeyTty           = "tty-encode"     // string
-	KeyServerAddress = "server-address" // string
-	KeyTimeout       = "timeout"        // duration
-	KeyRetries       = "retries"        // int
-	KeyNamespace     = "namespace"      // string
-	KeyLogLevel      = "loglevel"       // string
+	KeyColor          = "color"          // string
+	KeyDebug          = "debug"          // bool
+	KeyOutput         = "output"         // string
+	KeyTty            = "tty-encode"     // string
+	KeyServerAddress  = "server-address" // string
+	KeyTimeout        = "timeout"        // duration
+	KeyRetries        = "retries"        // int
+	KeyNamespace      = "namespace"      // string
+	KeyLogLevel       = "loglevel"       // string
+	KeyMaxRecvMsgSize = "max-recv-size"  // int
 )
 
 const (
@@ -31,10 +32,11 @@ const (
 )
 
 var (
-	Debug         bool
-	ServerAddress string
-	Timeout       time.Duration
-	Retries       int
+	Debug          bool
+	ServerAddress  string
+	Timeout        time.Duration
+	Retries        int
+	MaxRecvMsgSize = 10 * 1024 * 1024 // 10MB default
 )
 
 func readActiveServerAddressFromFile(fname string) (string, error) {
