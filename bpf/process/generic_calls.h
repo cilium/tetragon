@@ -974,8 +974,9 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 		if (rate_limit(ratelimit_interval, ratelimit_scope, e))
 			*post = false;
 #endif /* __LARGE_BPF_PROG */
-		__u32 kernel_stack_trace = actions->act[++i];
+		__u32 kernel_stack_trace __maybe_unused = actions->act[++i];
 
+#ifndef __NO_STACKTRACE
 		if (kernel_stack_trace) {
 			// Stack id 0 is valid so we need a flag.
 			e->common.flags |= MSG_COMMON_FLAG_KERNEL_STACKTRACE;
@@ -987,13 +988,16 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 			// Here we just signal that there was a collision returning -EEXIST.
 			e->kernel_stack_id = get_stackid(ctx, &stack_trace_map, 0);
 		}
+#endif /* __NO_STACKTRACE */
 
-		__u32 user_stack_trace = actions->act[++i];
+		__u32 user_stack_trace __maybe_unused = actions->act[++i];
 
+#ifndef __NO_STACKTRACE
 		if (user_stack_trace) {
 			e->common.flags |= MSG_COMMON_FLAG_USER_STACKTRACE;
 			e->user_stack_id = get_stackid(ctx, &stack_trace_map, BPF_F_USER_STACK);
 		}
+#endif /* __NO_STACKTRACE */
 #ifdef __V511_BPF_PROG
 		__u32 ima_hash = actions->act[++i];
 
