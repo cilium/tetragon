@@ -63,6 +63,10 @@ const (
 
 	// defaults for the {k,u}retprobes lru cache
 	DefaultRetprobesCacheSize = 4096
+
+	// DefaultMaxGRPCRecvMsgSize is the default maximum gRPC receive message
+	// size for the tetra CLI (10MB).
+	DefaultMaxGRPCRecvMsgSize = 10 * 1024 * 1024
 )
 
 var (
