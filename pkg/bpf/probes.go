@@ -24,4 +24,5 @@ const (
 	MixBPFAndTailCallsProbe     = "mix_bpf_and_tail_calls"
 	Fentry                      = "fentry"
 	GetFuncRet                  = "get_func_ret"
+	SleepableTailCallsProbe     = "sleepable_tail_calls"
 )
