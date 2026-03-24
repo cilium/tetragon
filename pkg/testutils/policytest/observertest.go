@@ -71,25 +71,22 @@ func (rpt *RegisteredPolicyTests) DoObserverTest(
 	policyFile.Close()
 	policyFname := policyFile.Name()
 
-	// NB: The reason for failing here is because we currently do not have a test with multiple
-	// scenarios and I would like to test things before adding this functionality.
-	if len(pt.Scenarios) != 1 {
-		t.Fatalf("TODO: support >1 scenarios")
-	}
-	scenario := pt.Scenarios[0](conf)
-
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, policyFname, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
 		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
 	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
 
-	err = scenario.Trigger.Trigger(ctx)
-	if err != nil {
-		t.Fatalf("failed to trigger scenario %s", scenario.Name)
+	for _, s := range pt.Scenarios {
+		observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+		readyWG.Wait()
+
+		scenario := s(conf)
+		err = scenario.Trigger.Trigger(ctx)
+		if err != nil {
+			t.Fatalf("failed to trigger scenario %s", scenario.Name)
+		}
+
+		err = jsonchecker.JsonTestCheck(t, scenario.EventChecker)
+		require.NoError(t, err)
 	}
-
-	err = jsonchecker.JsonTestCheck(t, scenario.EventChecker)
-	require.NoError(t, err)
 }
