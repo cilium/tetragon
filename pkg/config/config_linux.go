@@ -78,7 +78,14 @@ func GenericKprobeObjs(multi bool) (string, string) {
 }
 
 // GenericUprobeObjs returns the generic uprobe and generic uretprobe objects
-func GenericUprobeObjs(multi bool) (string, string) {
+func GenericUprobeObjs(multi, sleepable bool) (string, string) {
+	if sleepable {
+		if multi {
+			return "bpf_multi_uprobe_sleepable.o", "bpf_multi_retuprobe_sleepable.o"
+		} else {
+			return "bpf_generic_uprobe_sleepable.o", "bpf_generic_retuprobe_sleepable.o"
+		}
+	}
 	if multi {
 		if EnableV61Progs() {
 			return "bpf_multi_uprobe_v61.o", "bpf_multi_retuprobe_v61.o"

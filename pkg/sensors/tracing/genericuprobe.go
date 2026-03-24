@@ -391,6 +391,7 @@ type uprobeHas struct {
 	sleepableOffload bool
 	sleepablePreload bool
 	substring        bool
+	sleepableTC      bool
 }
 
 func createGenericUprobeSensor(
@@ -413,6 +414,8 @@ func createGenericUprobeSensor(
 		// - there's support detected
 		useMulti: !polInfo.specOpts.DisableUprobeMulti && bpf.HasUprobeMulti(),
 	}
+
+	has.sleepableTC = bpf.DetectSleepableTailCalls()
 
 	for _, uprobe := range spec.UProbes {
 		if err = appendMacrosSelectors(uprobe.Selectors, spec.SelectorsMacros); err != nil {
@@ -818,6 +821,22 @@ func multiUprobePinPath(sensorPath string) string {
 	return sensors.PathJoin(sensorPath, "multi_uprobe")
 }
 
+func uprobeLabel(multi, sleepable bool) (string, string) {
+	if multi {
+		if sleepable {
+			return "uprobe.multi.s/generic_uprobe", "uprobe.multi.s/generic_retuprobe"
+		} else {
+			return "uprobe.multi/generic_uprobe", "uprobe.multi/generic_retuprobe"
+		}
+	} else {
+		if sleepable {
+			return "uprobe.s/generic_uprobe", "uprobe.s/generic_retuprobe"
+		} else {
+			return "uprobe/generic_uprobe", "uprobe/generic_retuprobe"
+		}
+	}
+}
+
 func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []idtable.EntryID, has uprobeHas) ([]*program.Program, []*program.Map, error) {
 	var multiRetIDs []idtable.EntryID
 	var progs []*program.Program
@@ -838,14 +857,16 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 		}
 	}
 
-	loadProgName, loadProgRetName := config.GenericUprobeObjs(true)
+	loadProgName, loadProgRetName := config.GenericUprobeObjs(true, has.sleepableTC)
+
+	label, labelRet := uprobeLabel(true, has.sleepableTC)
 
 	pinPath := multiUprobePinPath(sensorPath)
 
 	load := program.Builder(
 		path.Join(option.Config.HubbleLib, loadProgName),
 		fmt.Sprintf("uprobe_multi (%d functions)", len(multiIDs)),
-		"uprobe.multi/generic_uprobe",
+		label,
 		pinPath,
 		"generic_uprobe").
 		SetLoaderData(multiIDs).
@@ -896,7 +917,7 @@ func createMultiUprobeSensor(polInfo *policyInfo, sensorPath string, multiIDs []
 		loadret := program.Builder(
 			path.Join(option.Config.HubbleLib, loadProgRetName),
 			fmt.Sprintf("%d retuprobes", len(multiIDs)),
-			"uprobe.multi/generic_retuprobe",
+			labelRet,
 			"multi_retuprobe",
 			"generic_uprobe").
 			SetRetProbe(true).
@@ -948,12 +969,14 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 		substringMapEntries = len(uprobeEntry.loadArgs.selectors.entry.SubStrings())
 	}
 
-	loadProgName, loadProgRetName := config.GenericUprobeObjs(false)
+	loadProgName, loadProgRetName := config.GenericUprobeObjs(false, has.sleepableTC)
+
+	label, labelRet := uprobeLabel(false, has.sleepableTC)
 
 	load := program.Builder(
 		path.Join(option.Config.HubbleLib, loadProgName),
 		fmt.Sprintf("%s %s", uprobeEntry.path, uprobeEntry.symbol),
-		"uprobe/generic_uprobe",
+		label,
 		fmt.Sprintf("%d-%s", uprobeEntry.tableId.ID, uprobeEntry.symbol),
 		"generic_uprobe").
 		SetLoaderData(uprobeEntry).
@@ -1001,7 +1024,7 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 		loadret := program.Builder(
 			path.Join(option.Config.HubbleLib, loadProgRetName),
 			fmt.Sprintf("%s %s", uprobeEntry.path, uprobeEntry.symbol),
-			"uprobe/generic_retuprobe",
+			labelRet,
 			pinRetProg,
 			"generic_uprobe").
 			SetRetProbe(true).
