@@ -117,8 +117,10 @@ func TestVerifyTetragonPrograms(t *testing.T) {
 			continue
 		}
 
-		// Skip sleepable objects if there's no sleepable tail call support.
-		if strings.Contains(fileName, "sleepable") && !bpf.DetectSleepableTailCalls() {
+		// Skip sleepable objects if there's no sleepable tail call support or
+		// large task storage allocation support.
+		if strings.Contains(fileName, "sleepable") &&
+			(!bpf.DetectSleepableTailCalls() || !bpf.HasTaskStorageUprobeLarge()) {
 			continue
 		}
 
