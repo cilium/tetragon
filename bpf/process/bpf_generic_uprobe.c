@@ -6,6 +6,10 @@
 
 #define GENERIC_UPROBE
 
+#ifdef __UPROBE_SLEEPABLE
+#define __RING_BUFFER_ONLY
+#endif
+
 #include "compiler.h"
 #include "bpf_event.h"
 #include "bpf_task.h"
