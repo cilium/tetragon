@@ -974,6 +974,7 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 		if (rate_limit(ratelimit_interval, ratelimit_scope, e))
 			*post = false;
 #endif /* __LARGE_BPF_PROG */
+#ifndef __NO_STACKTRACE
 		__u32 kernel_stack_trace = actions->act[++i];
 
 		if (kernel_stack_trace) {
@@ -994,6 +995,7 @@ do_action(void *ctx, __u32 i, struct selector_action *actions, bool *post, bool 
 			e->common.flags |= MSG_COMMON_FLAG_USER_STACKTRACE;
 			e->user_stack_id = get_stackid(ctx, &stack_trace_map, BPF_F_USER_STACK);
 		}
+#endif /* __NO_STACKTRACE */
 #ifdef __V511_BPF_PROG
 		__u32 ima_hash = actions->act[++i];
 
