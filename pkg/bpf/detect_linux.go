@@ -58,6 +58,7 @@ var (
 	kfuncs                 FeatureKfuncs
 	mixBpfAndTailCalls     Feature
 	getFuncRetHelper       Feature
+	sleepableTailCalls     Feature
 )
 
 func HasOverrideHelper() bool {
@@ -734,6 +735,46 @@ func HasGetFuncRetHelper() bool {
 	return getFuncRetHelper.detected
 }
 
+func detectSleepableTailCalls() bool {
+	// create a tail call map
+	tcMap, err := ebpf.NewMap(&ebpf.MapSpec{
+		Type:       ebpf.ProgramArray,
+		KeySize:    4,
+		ValueSize:  4,
+		MaxEntries: 1,
+	})
+	if err != nil {
+		fmt.Printf("#0 err=%+v\n", err)
+		return false
+	}
+	defer tcMap.Close()
+
+	prog, err := ebpf.NewProgram(&ebpf.ProgramSpec{
+		Instructions: asm.Instructions{
+			asm.LoadMapPtr(asm.R2, tcMap.FD()),
+			asm.Mov.Imm(asm.R3, 0),
+			asm.FnTailCall.Call(),
+			asm.Mov.Imm(asm.R0, 0),
+			asm.Return(),
+		},
+		Type:    ebpf.Kprobe,
+		Flags:   unix.BPF_F_SLEEPABLE,
+		License: "Dual BSD/GPL",
+	})
+	if err != nil {
+		return false
+	}
+	defer prog.Close()
+	return true
+}
+
+func DetectSleepableTailCalls() bool {
+	sleepableTailCalls.init.Do(func() {
+		sleepableTailCalls.detected = detectSleepableTailCalls()
+	})
+	return sleepableTailCalls.detected
+}
+
 func LogFeatures() string {
 	// once we have detected all features, flush the BTF spec
 	// we cache all values so calling again a Has* function will
@@ -784,4 +825,5 @@ var FeatureProbes = []FeatureProbe{
 	{MixBPFAndTailCallsProbe, DetectMixBpfAndTailCalls},
 	{Fentry, HasFentryProgram},
 	{GetFuncRet, HasGetFuncRetHelper},
+	{SleepableTailCallsProbe, DetectSleepableTailCalls},
 }
