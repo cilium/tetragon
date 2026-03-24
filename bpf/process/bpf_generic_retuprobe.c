@@ -6,6 +6,12 @@
 
 #define GENERIC_URETPROBE
 
+#ifdef __SLEEPABLE
+#define __NO_PERF_RINGBUFFER
+#define __NO_STACKTRACE
+#define __NO_PRELOAD
+#endif
+
 #include "compiler.h"
 #include "bpf_tracing.h"
 #include "bpf_event.h"
@@ -40,11 +46,21 @@ struct {
 #include "generic_calls.h"
 
 #ifdef __MULTI_KPROBE
+#ifdef __SLEEPABLE
+#define MAIN   "uprobe.multi.s/generic_retuprobe"
+#define COMMON "uprobe.multi.s"
+#else
 #define MAIN   "uprobe.multi/generic_retuprobe"
 #define COMMON "uprobe.multi"
+#endif
+#else
+#ifdef __SLEEPABLE
+#define MAIN   "uprobe.s/generic_retuprobe"
+#define COMMON "uprobe.s"
 #else
 #define MAIN   "uprobe/generic_retuprobe"
 #define COMMON "uprobe"
+#endif
 #endif
 
 __attribute__((section((MAIN)), used)) int
