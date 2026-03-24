@@ -189,6 +189,13 @@ func (r *LocalRunner) RunTest(l *slog.Logger, test *T, testConf *TestConf) *Resu
 	for _, sc := range test.Scenarios {
 		scenario := sc(r.conf)
 		scRes := r.RunScenario(l, scenario, polHandler, testConf)
+		if scenario.ExpectCheckerFailure {
+			if scRes.CheckerErr == nil {
+				scRes.CheckerErr = errors.New("expected failure did not occur")
+			} else {
+				scRes.CheckerErr = nil
+			}
+		}
 		res.ScenariosRes = append(res.ScenariosRes, scRes)
 	}
 
