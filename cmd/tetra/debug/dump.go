@@ -122,7 +122,6 @@ func dumpExecveMap(fname string) {
 func processCacheCmd() *cobra.Command {
 	skipZeroRefcnt := false
 	excludeExecveMapProcesses := false
-	var maxCallRecvMsgSize int
 
 	ret := &cobra.Command{
 		Use: "processcache",
@@ -136,7 +135,7 @@ func processCacheCmd() *cobra.Command {
 				return fmt.Errorf("failed to create a gRPC client: %w", err)
 			}
 
-			processes, err := dump.GetProcessCacheForDump(c.Ctx, c.Client, maxCallRecvMsgSize, skipZeroRefcnt, excludeExecveMapProcesses)
+			processes, err := dump.GetProcessCacheForDump(c.Ctx, c.Client, common.MaxRecvMsgSize, skipZeroRefcnt, excludeExecveMapProcesses)
 			if err != nil {
 				return fmt.Errorf("process cache dump failed: %w", err)
 			}
@@ -156,7 +155,6 @@ func processCacheCmd() *cobra.Command {
 	flags := ret.Flags()
 	flags.BoolVar(&skipZeroRefcnt, "skip-zero-refcnt", skipZeroRefcnt, "skip entries with zero refcnt")
 	flags.BoolVar(&excludeExecveMapProcesses, "exclude-execve-map-processes", excludeExecveMapProcesses, "exclude processes that also exist in the execve_map")
-	flags.IntVar(&maxCallRecvMsgSize, "max-recv-size", 4194304, "The maximum message size in bytes the client can receive. Default is gRPC 4MB default.")
 
 	return ret
 }

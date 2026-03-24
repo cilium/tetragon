@@ -6,14 +6,14 @@ package bugtool
 import (
 	"github.com/spf13/cobra"
 
+	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/pkg/bugtool"
 )
 
 var (
-	outFile     string
-	bpfTool     string
-	gops        string
-	maxRecvSize int
+	outFile string
+	bpfTool string
+	gops    string
 )
 
 type Command struct {
@@ -44,7 +44,7 @@ func New() *Command {
 		Use:   "bugtool",
 		Short: "Produce a tar archive with debug information",
 		Run: func(_ *cobra.Command, _ []string) {
-			bugtool.Bugtool(outFile, bpfTool, gops, maxRecvSize, bugtoolCmd.CommandActions, bugtoolCmd.GRPCActions)
+			bugtool.Bugtool(outFile, bpfTool, gops, common.MaxRecvMsgSize, bugtoolCmd.CommandActions, bugtoolCmd.GRPCActions)
 		},
 	}
 
@@ -52,6 +52,5 @@ func New() *Command {
 	flags.StringVarP(&outFile, "out", "o", "tetragon-bugtool.tar.gz", "Output filename")
 	flags.StringVar(&bpfTool, "bpftool", "", "Path to bpftool binary")
 	flags.StringVar(&gops, "gops", "", "Path to gops binary")
-	flags.IntVar(&maxRecvSize, "max-recv-size", 10*1024*1024, "Size of gRPC maxRecvSize")
 	return bugtoolCmd
 }

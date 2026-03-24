@@ -111,6 +111,7 @@ func NewClient(ctx context.Context, address string, timeout time.Duration) (*Cli
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultServiceConfig(RetryPolicy(Retries)),
 		grpc.WithMaxCallAttempts(Retries+1), // maxAttempt includes the first call
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxRecvMsgSize)),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gRPC client with address %s: %w", address, err)

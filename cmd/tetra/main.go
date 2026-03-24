@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/cilium/tetragon/cmd/tetra/common"
+	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/logger"
 )
 
@@ -47,5 +48,6 @@ func New() *cobra.Command {
 	flags.StringVar(&common.ServerAddress, common.KeyServerAddress, "", "gRPC server address")
 	flags.DurationVar(&common.Timeout, common.KeyTimeout, 30*time.Second, "Connection timeout")
 	flags.IntVar(&common.Retries, common.KeyRetries, 1, "Connection retries with exponential backoff")
+	flags.IntVar(&common.MaxRecvMsgSize, common.KeyMaxRecvMsgSize, defaults.DefaultMaxGRPCRecvMsgSize, "Maximum gRPC message size in bytes the client can receive")
 	return rootCmd
 }
