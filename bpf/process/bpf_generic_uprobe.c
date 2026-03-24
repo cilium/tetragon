@@ -6,6 +6,12 @@
 
 #define GENERIC_UPROBE
 
+#ifdef __SLEEPABLE
+#define __NO_PERF_RINGBUFFER
+#define __NO_STACKTRACE
+#define __NO_PRELOAD
+#endif
+
 #include "compiler.h"
 #include "bpf_event.h"
 #include "bpf_task.h"
@@ -54,14 +60,24 @@ struct {
 #include "generic_calls.h"
 
 #ifdef __MULTI_KPROBE
-#define MAIN	"uprobe.multi/generic_uprobe"
-#define COMMON	"uprobe.multi"
+#ifdef __SLEEPABLE
+#define MAIN   "uprobe.multi.s/generic_uprobe"
+#define COMMON "uprobe.multi.s"
+#else
+#define MAIN   "uprobe.multi/generic_uprobe"
+#define COMMON "uprobe.multi"
+#endif /* __SLEEPABLE */
 #define OFFLOAD "uprobe.multi.s"
 #else
-#define MAIN	"uprobe/generic_uprobe"
-#define COMMON	"uprobe"
+#ifdef __SLEEPABLE
+#define MAIN   "uprobe.s/generic_uprobe"
+#define COMMON "uprobe.s"
+#else
+#define MAIN   "uprobe/generic_uprobe"
+#define COMMON "uprobe"
+#endif /* __SLEEPABLE */
 #define OFFLOAD "uprobe.s"
-#endif
+#endif /* __MULTI_KPROBE */
 
 __attribute__((section((MAIN)), used)) int
 generic_uprobe_event(struct pt_regs *ctx)
