@@ -8,6 +8,7 @@
   // config, for example the regex. See:
   // https://docs.renovatebot.com/self-hosted-configuration/#requireconfig
   "requireConfig": "ignored",
+  "allowShellExecutorForPostUpgradeCommands": true,
   "allowedCommands": [
     "^/tmp/install-buildx$", 
     "^make protogen$",
