@@ -9,30 +9,6 @@ import (
 
 type initGaugeFunc func(*prometheus.GaugeVec)
 
-// NewGaugeVecWithPod is a wrapper around prometheus.NewGaugeVec that also
-// registers the metric to be cleaned up when a pod is deleted.
-//
-// See NewCounterVecWithPod for usage notes.
-func NewGaugeVecWithPod(opts prometheus.GaugeOpts, labels []string) *prometheus.GaugeVec {
-	metric := prometheus.NewGaugeVec(opts, labels)
-	metricsWithPodMutex.Lock()
-	metricsWithPod = append(metricsWithPod, metric.MetricVec)
-	metricsWithPodMutex.Unlock()
-	return metric
-}
-
-// NewGaugeVecWithPodV2 is a wrapper around prometheus.V2.NewGaugeVec that also
-// registers the metric to be cleaned up when a pod is deleted.
-//
-// See NewCounterVecWithPod for usage notes.
-func NewGaugeVecWithPodV2(opts prometheus.GaugeVecOpts) *prometheus.GaugeVec {
-	metric := prometheus.V2.NewGaugeVec(opts)
-	metricsWithPodMutex.Lock()
-	metricsWithPod = append(metricsWithPod, metric.MetricVec)
-	metricsWithPodMutex.Unlock()
-	return metric
-}
-
 // GranularGauge wraps prometheus.GaugeVec and implements CollectorWithInit.
 type GranularGauge[L FilteredLabels] struct {
 	metric      *prometheus.GaugeVec
