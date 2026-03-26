@@ -21,7 +21,6 @@ import (
 	"github.com/cilium/tetragon/pkg/cgtracker"
 
 	"github.com/cilium/tetragon/pkg/asm"
-	"github.com/cilium/tetragon/pkg/metrics/kprobemetrics"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 
@@ -180,7 +179,7 @@ func handleGenericUprobe(r *bytes.Reader) ([]observer.Event, error) {
 			returnEvent,
 			m.RetProbeId,
 			ktimeEnter,
-			reportUprobeMergeError)
+			reportMergeError[*tracing.MsgGenericUprobeUnix])
 	}
 	if unix == nil {
 		return []observer.Event{}, err
@@ -1074,30 +1073,4 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 	maps = append(maps, polInfo.policyConfMap(load), polInfo.policyStatsMap(load))
 
 	return progs, maps
-}
-
-func reportUprobeMergeError(curr pendingEvent[*tracing.MsgGenericUprobeUnix], prev pendingEvent[*tracing.MsgGenericUprobeUnix]) {
-	currSymbol := "UNKNOWN"
-	if curr.ev != nil {
-		currSymbol = curr.ev.Symbol
-	}
-	currType := kprobemetrics.MergeErrorTypeEnter
-	if curr.returnEvent {
-		currType = kprobemetrics.MergeErrorTypeExit
-	}
-
-	prevSymbol := "UNKNOWN"
-	if prev.ev != nil {
-		prevSymbol = prev.ev.Symbol
-	}
-	prevType := kprobemetrics.MergeErrorTypeEnter
-	if prev.returnEvent {
-		prevType = kprobemetrics.MergeErrorTypeExit
-	}
-
-	logger.GetLogger().Debug("failed to merge events",
-		"currSymbol", currSymbol,
-		"currType", currType.String(),
-		"prevSymbol", prevSymbol,
-		"prevType", prevType.String())
 }
