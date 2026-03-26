@@ -1,4 +1,7 @@
 version: "2"
+run:
+  build-tags:
+    - k8s
 output:
   formats:
     tab:
