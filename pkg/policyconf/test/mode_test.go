@@ -16,6 +16,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/build"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -37,6 +38,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestModeSigKill(t *testing.T) {
+	build.SkipIfK8sDisabled(t)
 	if !bpf.HasSignalHelper() {
 		t.Skip("skipping test, bpf_send_signal helper not available")
 	}
@@ -134,6 +136,8 @@ func TestModeSigKill(t *testing.T) {
 }
 
 func TestModeEnforcer(t *testing.T) {
+	build.SkipIfK8sDisabled(t)
+
 	// NB: the policy below checks for both enforcer and override at the same time, which is why
 	// we need both (and, also, why fmod_ret is not enough)
 	if !bpf.HasSignalHelper() {
@@ -263,6 +267,8 @@ func TestModeEnforcer(t *testing.T) {
 }
 
 func TestModeMonitorOnly(t *testing.T) {
+	build.SkipIfK8sDisabled(t)
+
 	testutils.CaptureLog(t, logger.GetLogger())
 
 	ctx := t.Context()
