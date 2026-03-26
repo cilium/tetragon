@@ -737,6 +737,11 @@ func (in *TracingPolicySpec) DeepCopyInto(out *TracingPolicySpec) {
 		*out = new(v1.LabelSelector)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.NodeSelector != nil {
+		in, out := &in.NodeSelector, &out.NodeSelector
+		*out = new(v1.LabelSelector)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.ContainerSelector != nil {
 		in, out := &in.ContainerSelector, &out.ContainerSelector
 		*out = new(v1.LabelSelector)

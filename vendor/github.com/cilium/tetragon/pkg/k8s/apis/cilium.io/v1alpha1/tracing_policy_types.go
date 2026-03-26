@@ -94,10 +94,20 @@ type TracingPolicySpec struct {
 	Usdts []UsdtSpec `json:"usdts,omitempty"`
 
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:default={}
+	// +nullable
 	// PodSelector selects pods that this policy applies to
 	PodSelector *slimv1.LabelSelector `json:"podSelector,omitempty"`
 
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:default={}
+	// +nullable
+	// NodeSelector selects nodes (hosts) that this policy applies to
+	NodeSelector *slimv1.LabelSelector `json:"nodeSelector,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default={}
+	// +nullable
 	// ContainerSelector selects containers that this policy applies to.
 	// A map of container fields will be constructed in the same way as a map of labels.
 	// The name of the field represents the label "key", and the value of the field - label "value".

@@ -82,6 +82,8 @@ func (h *handler) updatePolicyFilter(tp tracingpolicy.TracingPolicy, tpID uint64
 		namespace = tpNs.TpNamespace()
 	}
 
+	fmt.Println("tp.TpSpec().NodeSelector =", tp.TpSpec().NodeSelector)
+
 	var podSelector *slimv1.LabelSelector
 	if ps := tp.TpSpec().PodSelector; ps != nil {
 		if len(ps.MatchLabels)+len(ps.MatchExpressions) > 0 {

@@ -17,6 +17,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	v1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 )
 
 var writev = `
@@ -94,6 +95,9 @@ var expectedWrite = GenericTracingPolicy{
 	},
 	Metadata: metav1.ObjectMeta{Name: "sys-write"},
 	Spec: v1alpha1.TracingPolicySpec{
+		PodSelector:       &v1.LabelSelector{},
+		NodeSelector:      &v1.LabelSelector{},
+		ContainerSelector: &v1.LabelSelector{},
 		KProbes: []v1alpha1.KProbeSpec{
 			{
 				Call:    "sys_write",
@@ -260,6 +264,9 @@ var expectedData = GenericTracingPolicy{
 	},
 	Metadata: metav1.ObjectMeta{Name: "sys-write"},
 	Spec: v1alpha1.TracingPolicySpec{
+		PodSelector:       &v1.LabelSelector{},
+		NodeSelector:      &v1.LabelSelector{},
+		ContainerSelector: &v1.LabelSelector{},
 		KProbes: []v1alpha1.KProbeSpec{
 			{
 				Call:    "example_func",

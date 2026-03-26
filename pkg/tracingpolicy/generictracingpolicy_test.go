@@ -14,6 +14,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/crdutils"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	v1l "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 )
 
 //go:embed examples/tracepoint-lseek-pid.yaml
@@ -28,6 +29,9 @@ func TestYamlLseek(t *testing.T) {
 		},
 		Metadata: v1.ObjectMeta{Name: "tracepoint-lseek"},
 		Spec: v1alpha1.TracingPolicySpec{
+			PodSelector:       &v1l.LabelSelector{},
+			NodeSelector:      &v1l.LabelSelector{},
+			ContainerSelector: &v1l.LabelSelector{},
 			Tracepoints: []v1alpha1.TracepointSpec{{
 				Subsystem: "syscalls",
 				Event:     "sys_enter_lseek",
