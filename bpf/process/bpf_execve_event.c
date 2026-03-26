@@ -15,8 +15,6 @@
 #include "bpf_ktime.h"
 #include "environ_conf.h"
 
-#include "policy_filter.h"
-
 char _license[] __attribute__((section("license"), used)) = "Dual BSD/GPL";
 
 #ifdef __RHEL7_BPF_PROG

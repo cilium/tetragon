@@ -251,7 +251,7 @@ func TestCgTrackerPolicyFilter(t *testing.T) {
 	t.Cleanup(func() { pfState.Close() })
 	err = pfState.AddPodContainer(
 		policyfilter.PodID(uuid.New()),
-		namespace, "wl", "kind", nil,
+		namespace, nil,
 		"pod-container", policyfilter.CgroupID(cgfs.cgIDs["a"]), podhelpers.ContainerInfo{Name: "container-name", Repo: "container-repo"})
 	require.NoError(t, err)
 
