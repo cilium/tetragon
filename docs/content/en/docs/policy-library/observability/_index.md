@@ -31,7 +31,6 @@ description: >
 - [Network Activity of SSH daemon]({{< ref "#ssh-network" >}})
 - [Outbound Connections]({{< ref "#egress-connections" >}})
 
-
 # Observability Policies
 
 ## Binary Execution in /tmp {#tmp-execs}
@@ -403,6 +402,12 @@ jq 'select(.process_kprobe != null) | select(.process_kprobe.function_name | tes
 ```shell
 "2023-11-01T02:56:54.926403604Z /usr/bin/bpftool prog list programType:BPF_PROG_TYPE_SOCKET_FILTER programInsn:2"
 ```
+
+### Kernel compatibility
+
+The `security_bpf_map_alloc` hook was
+[renamed to `security_bpf_map_create` in Linux 6.9](https://github.com/torvalds/linux/commit/a2431c7eabcf).
+The example policy already includes both hooks with `ignore.callNotFound: true` to support both kernels.
 
 ## Kernel Module Audit Trail {#kernel-module}
 

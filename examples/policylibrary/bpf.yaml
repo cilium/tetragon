@@ -14,11 +14,20 @@ spec:
     args:
     - index: 0
       type: "perf_event"
-  - call: "security_bpf_map_alloc"
+  - call: "security_bpf_map_alloc" # Called during bpf map create, < Linux 6.9
     syscall: false
     args:
     - index: 0
       type: "bpf_map"
+    ignore:
+      callNotFound: true
+  - call: "security_bpf_map_create" # Called during bpf map create, Linux 6.9+
+    syscall: false
+    args:
+    - index: 0
+      type: "bpf_map"
+    ignore:
+      callNotFound: true
   - call: "security_file_permission"
     syscall: false
     return: true
