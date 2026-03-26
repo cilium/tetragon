@@ -26,6 +26,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/build"
 	tgcgroups "github.com/cilium/tetragon/pkg/cgroups"
 	grpcexec "github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
@@ -105,6 +106,7 @@ func createCgroup(t *testing.T, dir string, pids ...uint64) policyfilter.CgroupI
 
 // TestNamespacedPolicies tests namespace filtering on tracepoints and kprobes
 func TestNamespacedPolicies(t *testing.T) {
+	build.SkipIfK8sDisabled(t)
 	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
