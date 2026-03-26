@@ -18,6 +18,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/api/tracingapi"
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/build"
 	"github.com/cilium/tetragon/pkg/cgroups"
 	"github.com/cilium/tetragon/pkg/cgtracker"
 	grpcexec "github.com/cilium/tetragon/pkg/grpc/exec"
@@ -214,6 +215,8 @@ func doProgTest(t *testing.T, cgfsPath string) {
 
 // TestCgTrackerPolicyFilter checks that cgroup tracking works with policyfilter
 func TestCgTrackerPolicyFilter(t *testing.T) {
+	build.SkipIfK8sDisabled(t)
+
 	cgfsPath := "/sys/fs/cgroup"
 	testutils.CaptureLog(t, logger.GetLogger())
 
