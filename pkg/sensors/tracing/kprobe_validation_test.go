@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/cilium/tetragon/pkg/bpf"
+	"github.com/cilium/tetragon/pkg/build"
 	"github.com/cilium/tetragon/pkg/config"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors"
@@ -321,6 +322,8 @@ spec:
 
 // Test that tracing policy max tags
 func TestTracingPolicyTagsMax(t *testing.T) {
+	// NB: validation tests require k8s
+	build.SkipIfK8sDisabled(t)
 	// Ensure that CRD fail if tags > 16
 	crd1 := `
 apiVersion: cilium.io/v1alpha1
