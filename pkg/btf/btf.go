@@ -351,10 +351,11 @@ func processMembers(
 			members,
 		)
 	}
-	if t, ok := currentType.(*btf.Pointer); ok {
+	switch t := currentType.(type) {
+	case *btf.Pointer:
 		btfArgs[i].IsPointer = uint16(1)
 		currentType = t.Target
-	} else if _, ok := currentType.(*btf.Int); ok {
+	case *btf.Int, *btf.Enum:
 		btfArgs[i].IsPointer = uint16(1)
 	}
 	return &currentType, nil
