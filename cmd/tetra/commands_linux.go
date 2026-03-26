@@ -8,6 +8,7 @@ import (
 
 	"github.com/cilium/tetragon/cmd/tetra/bugtool"
 	"github.com/cilium/tetragon/cmd/tetra/cgtracker"
+	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/cmd/tetra/cri"
 	"github.com/cilium/tetragon/cmd/tetra/debug"
 	"github.com/cilium/tetragon/cmd/tetra/loglevel"
@@ -26,7 +27,7 @@ func addCommands(rootCmd *cobra.Command) {
 	rootCmd.AddCommand(policyfilter.New())
 	rootCmd.AddCommand(probe.New())
 	rootCmd.AddCommand(loglevel.New())
-	rootCmd.AddCommand(cri.New())
+	common.AddSubCommandIfNotNil(rootCmd, cri.New())
 	rootCmd.AddCommand(cgtracker.New())
 	rootCmd.AddCommand(policytest.New())
 }
