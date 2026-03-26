@@ -91,6 +91,9 @@ endif
 GO_BUILD = CGO_ENABLED=0 GOARCH=$(GOARCH) $(GO) build $(GO_BUILD_FLAGS)
 GO_BUILD_HOOK = CGO_ENABLED=0 GOARCH=$(GOARCH) $(GO) -C contrib/tetragon-rthooks build $(GO_BUILD_FLAGS)
 
+GO_BUILD_FLAGS_NOK8S = $(subst version.Name=tetragon,version.Name=tetragon-nok8s,$(GO_BUILD_FLAGS))
+GO_BUILD_NOK8S = CGO_ENABLED=0 GOARCH=$(GOARCH) $(GO) build $(GO_BUILD_FLAGS_NOK8S) -tags nok8s
+
 .PHONY: all
 all: tetragon-bpf tetragon tetra test-compile tester-progs protoc-gen-go-tetragon tetragon-bench
 
@@ -109,6 +112,10 @@ clean: cli-clean tarball-clean
 tetragon: ## Compile the Tetragon agent.
 	$(GO_BUILD) ./cmd/tetragon/
 
+.PHONY: tetragon-nok8s
+tetragon-nok8s: ## Compile the Tetragon agent without k8s support.
+	$(GO_BUILD_NOK8S) -o tetragon-nok8s ./cmd/tetragon/
+
 .PHONY: tetragon-operator
 tetragon-operator: ## Compile the Tetragon operator.
 	$(GO_BUILD) -o $@ ./operator
@@ -116,6 +123,10 @@ tetragon-operator: ## Compile the Tetragon operator.
 .PHONY: tetra
 tetra: ## Compile the Tetragon gRPC client.
 	$(GO_BUILD) ./cmd/tetra/
+
+.PHONY: tetra-nok8s
+tetra-nok8s: ## Compile the Tetragon gRPC client.
+	$(GO_BUILD_NOK8S) -o $@ ./cmd/tetra/
 
 .PHONY: tetragon-bpf
 ifeq (1,$(LOCAL_CLANG))
