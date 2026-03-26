@@ -18,6 +18,7 @@ import (
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
 	"github.com/cilium/tetragon/pkg/api/processapi"
+	"github.com/cilium/tetragon/pkg/build"
 	"github.com/cilium/tetragon/pkg/defaults"
 	"github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/option"
@@ -27,6 +28,9 @@ import (
 )
 
 func TestProcessManager_getPodInfo(t *testing.T) {
+	if !build.K8sEnabled() {
+		t.Skip("non-k8s build: skipping test")
+	}
 	controller := true
 	podA := corev1.Pod{
 		ObjectMeta: v1.ObjectMeta{
@@ -89,6 +93,9 @@ func TestProcessManager_getPodInfo(t *testing.T) {
 }
 
 func TestProcessManager_getPodInfoMaybeExecProbe(t *testing.T) {
+	if !build.K8sEnabled() {
+		t.Skip("non-k8s build: skipping test")
+	}
 	controller := true
 	var podA = corev1.Pod{
 		ObjectMeta: v1.ObjectMeta{
