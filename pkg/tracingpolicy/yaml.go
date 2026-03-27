@@ -7,8 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"sigs.k8s.io/yaml"
+	"go.yaml.in/yaml/v3"
 )
 
 func specSetMode(spec map[string]any, mode string) error {
@@ -46,10 +45,14 @@ func specSetMode(spec map[string]any, mode string) error {
 	return nil
 }
 
+type Unstructured struct {
+	Object map[string]any
+}
+
 // PolicyYAMLSetMode modifies a yaml file to set the mode of the policy
 func PolicyYAMLSetMode(data []byte, mode string) ([]byte, error) {
-	m := unstructured.Unstructured{}
-	if err := yaml.Unmarshal(data, &m); err != nil {
+	m := Unstructured{}
+	if err := yaml.Unmarshal(data, &m.Object); err != nil {
 		return nil, err
 	}
 
