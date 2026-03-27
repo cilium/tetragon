@@ -92,7 +92,7 @@ var (
 	}
 )
 
-func TestKprobeObjectLoad(t *testing.T) {
+func testKprobeObjectLoad(t *testing.T, fentry bool) {
 	writeReadHook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -124,7 +124,7 @@ spec:
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	createCrdFile(t, writeReadHook)
+	createCrdFileFlag(t, writeReadHook, fentry)
 
 	_, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -132,6 +132,10 @@ spec:
 	}
 	initialSensor := base.GetInitialSensorTest(t)
 	initialSensor.Load(bpf.MapPrefixPath())
+}
+
+func TestKprobeObjectLoad(t *testing.T) {
+	testKprobeObjectLoad(t, false)
 }
 
 // NB: This is similar to TestKprobeObjectWriteRead, but it's a bit easier to
@@ -159,14 +163,14 @@ func getTestKprobeObjectWRChecker(t *testing.T) ec.MultiEventChecker {
 	return ec.NewUnorderedEventChecker(kpChecker)
 }
 
-func runKprobeObjectWriteRead(t *testing.T, writeReadHook string) {
+func runKprobeObjectWriteRead(t *testing.T, writeReadHook string, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	createCrdFile(t, writeReadHook)
+	createCrdFileFlag(t, writeReadHook, fentry)
 
 	checker := getTestKprobeObjectWRChecker(t)
 
@@ -183,7 +187,7 @@ func runKprobeObjectWriteRead(t *testing.T, writeReadHook string) {
 	require.NoError(t, err)
 }
 
-func TestKprobeObjectWriteReadHostNs(t *testing.T) {
+func testKprobeObjectWriteReadHostNs(t *testing.T, fentry bool) {
 	// if we run inside a container it will not match the host namespace
 	nsOp := "NotIn"
 	if _, err := os.Stat("/.dockerenv"); errors.Is(err, os.ErrNotExist) {
@@ -231,10 +235,14 @@ spec:
         values:
         - "1"
 `
-	runKprobeObjectWriteRead(t, writeReadHook)
+	runKprobeObjectWriteRead(t, writeReadHook, fentry)
 }
 
-func TestKprobeObjectWriteRead(t *testing.T) {
+func TestKprobeObjectWriteReadHostNs(t *testing.T) {
+	testKprobeObjectWriteReadHostNs(t, false)
+}
+
+func testKprobeObjectWriteRead(t *testing.T, fentry bool) {
 	myPid := observertesthelper.GetMyPid()
 	pidStr := strconv.Itoa(int(myPid))
 	mntns, err := namespace.GetPidNsInode(myPid, "mnt")
@@ -283,10 +291,14 @@ spec:
         values:
         - "1"
 `
-	runKprobeObjectWriteRead(t, writeReadHook)
+	runKprobeObjectWriteRead(t, writeReadHook, fentry)
 }
 
-func TestKprobeObjectWriteCapsNotIn(t *testing.T) {
+func TestKprobeObjectWriteRead(t *testing.T) {
+	testKprobeObjectWriteRead(t, false)
+}
+
+func testKprobeObjectWriteCapsNotIn(t *testing.T, fentry bool) {
 	writeReadHook := `
 apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -317,10 +329,14 @@ spec:
         values:
         - "1"
 `
-	runKprobeObjectWriteRead(t, writeReadHook)
+	runKprobeObjectWriteRead(t, writeReadHook, fentry)
 }
 
-func TestKprobeObjectWriteReadNsOnly(t *testing.T) {
+func TestKprobeObjectWriteCapsNotIn(t *testing.T) {
+	testKprobeObjectWriteCapsNotIn(t, false)
+}
+
+func testKprobeObjectWriteReadNsOnly(t *testing.T, fentry bool) {
 	myPid := observertesthelper.GetMyPid()
 	mntns, err := namespace.GetPidNsInode(myPid, "mnt")
 	require.NoError(t, err)
@@ -362,10 +378,14 @@ spec:
         values:
         - "1"
 `
-	runKprobeObjectWriteRead(t, writeReadHook)
+	runKprobeObjectWriteRead(t, writeReadHook, fentry)
 }
 
-func TestKprobeObjectWriteReadPidOnly(t *testing.T) {
+func TestKprobeObjectWriteReadNsOnly(t *testing.T) {
+	testKprobeObjectWriteReadNsOnly(t, false)
+}
+
+func testKprobeObjectWriteReadPidOnly(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	writeReadHook := `
 apiVersion: cilium.io/v1alpha1
@@ -398,7 +418,11 @@ spec:
         values:
         - "1"
 `
-	runKprobeObjectWriteRead(t, writeReadHook)
+	runKprobeObjectWriteRead(t, writeReadHook, fentry)
+}
+
+func TestKprobeObjectWriteReadPidOnly(t *testing.T) {
+	testKprobeObjectWriteReadPidOnly(t, false)
 }
 
 func createTestFile(t *testing.T) (int, int, string) {
@@ -419,14 +443,14 @@ func createTestFile(t *testing.T) (int, int, string) {
 	return fd, fd2, strconv.Itoa(fd2)
 }
 
-func runKprobeObjectRead(t *testing.T, readHook string, checker ec.MultiEventChecker, fd, fd2 int) {
+func runKprobeObjectRead(t *testing.T, readHook string, checker ec.MultiEventChecker, fd, fd2 int, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	createCrdFile(t, readHook)
+	createCrdFileFlag(t, readHook, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -452,7 +476,7 @@ func runKprobeObjectRead(t *testing.T, readHook string, checker ec.MultiEventChe
 	require.NoError(t, err)
 }
 
-func TestKprobeObjectRead(t *testing.T) {
+func testKprobeObjectRead(t *testing.T, fentry bool) {
 	fd, fd2, fdString := createTestFile(t)
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	readHook := `
@@ -495,56 +519,64 @@ spec:
 			))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	runKprobeObjectRead(t, readHook, checker, fd, fd2)
+	runKprobeObjectRead(t, readHook, checker, fd, fd2, fentry)
+}
+
+func TestKprobeObjectRead(t *testing.T) {
+	testKprobeObjectRead(t, false)
+}
+
+func testKprobeObjectReadIdxMismatch(t *testing.T, fentry bool) {
+	fd, fd2, fdString := createTestFile(t)
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	readHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "sys-read"
+spec:
+  kprobes:
+  - call: "sys_read"
+    syscall: true
+    args:
+    - index: 1
+      type: "char_buf"
+      returnCopy: true
+    - index: 2
+      type: "size_t"
+    - index: 0
+      type: "int"
+    selectors:
+    - matchPIDs:
+      - operator: In
+        followForks: true
+        values:
+        - ` + pidStr + `
+      matchArgs:
+      - index: 0
+        operator: "Equal"
+        values:
+        - "` + fdString + `"`
+
+	kpChecker := ec.NewProcessKprobeChecker("").
+		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_read"))).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full([]byte("hello world"))),
+				ec.NewKprobeArgumentChecker().WithSizeArg(100),
+				ec.NewKprobeArgumentChecker().WithIntArg(int32(fd2)),
+			))
+	checker := ec.NewUnorderedEventChecker(kpChecker)
+
+	runKprobeObjectRead(t, readHook, checker, fd, fd2, fentry)
 }
 
 func TestKprobeObjectReadIdxMismatch(t *testing.T) {
-	fd, fd2, fdString := createTestFile(t)
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
-	readHook := `
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "sys-read"
-spec:
-  kprobes:
-  - call: "sys_read"
-    syscall: true
-    args:
-    - index: 1
-      type: "char_buf"
-      returnCopy: true
-    - index: 2
-      type: "size_t"
-    - index: 0
-      type: "int"
-    selectors:
-    - matchPIDs:
-      - operator: In
-        followForks: true
-        values:
-        - ` + pidStr + `
-      matchArgs:
-      - index: 0
-        operator: "Equal"
-        values:
-        - "` + fdString + `"`
-
-	kpChecker := ec.NewProcessKprobeChecker("").
-		WithFunctionName(sm.Full(arch.AddSyscallPrefixTestHelper(t, "sys_read"))).
-		WithArgs(ec.NewKprobeArgumentListMatcher().
-			WithOperator(lc.Ordered).
-			WithValues(
-				ec.NewKprobeArgumentChecker().WithBytesArg(bc.Full([]byte("hello world"))),
-				ec.NewKprobeArgumentChecker().WithSizeArg(100),
-				ec.NewKprobeArgumentChecker().WithIntArg(int32(fd2)),
-			))
-	checker := ec.NewUnorderedEventChecker(kpChecker)
-
-	runKprobeObjectRead(t, readHook, checker, fd, fd2)
+	testKprobeObjectReadIdxMismatch(t, false)
 }
 
-func TestKprobeObjectReadReturn(t *testing.T) {
+func testKprobeObjectReadReturn(t *testing.T, fentry bool) {
 	fd, fd2, fdString := createTestFile(t)
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	readHook := `
@@ -592,13 +624,17 @@ spec:
 		WithReturn(ec.NewKprobeArgumentChecker().WithSizeArg(11))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	runKprobeObjectRead(t, readHook, checker, fd, fd2)
+	runKprobeObjectRead(t, readHook, checker, fd, fd2, fentry)
+}
+
+func TestKprobeObjectReadReturn(t *testing.T) {
+	testKprobeObjectReadReturn(t, false)
 }
 
 // Differently from other tests using returnCopy,
 // this one skips index 0 element to avoid future regressions
 // like https://github.com/cilium/tetragon/issues/4488.
-func TestKprobeObjectReturnCopy(t *testing.T) {
+func testKprobeObjectReturnCopy(t *testing.T, fentry bool) {
 	fd, fd2, _ := createTestFile(t)
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	readHook := `
@@ -634,7 +670,11 @@ spec:
 			))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	runKprobeObjectRead(t, readHook, checker, fd, fd2)
+	runKprobeObjectRead(t, readHook, checker, fd, fd2, fentry)
+}
+
+func TestKprobeObjectReturnCopy(t *testing.T) {
+	testKprobeObjectReturnCopy(t, false)
 }
 
 // sys_openat trace
@@ -664,7 +704,8 @@ func testKprobeObjectFiltered(t *testing.T,
 	mntPath string,
 	expectFailure bool,
 	mode int,
-	perm uint32) {
+	perm uint32,
+	fentry bool) {
 
 	if useMount == true {
 		if err := syscall.Mount("tmpfs", mntPath, "tmpfs", 0, ""); err != nil {
@@ -694,7 +735,7 @@ func testKprobeObjectFiltered(t *testing.T,
 	}
 	syscall.Close(fd)
 
-	createCrdFile(t, readHook)
+	createCrdFileFlag(t, readHook, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -762,28 +803,28 @@ func TestKprobeObjectOpen(t *testing.T) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectOpenHook(pidStr, dir, false)
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770, false)
 }
 
 func TestKprobeObjectOpenWithNull(t *testing.T) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectOpenHook(pidStr, dir, true)
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770, false)
 }
 
 func TestKprobeObjectOpenMount(t *testing.T) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectOpenHook(pidStr, dir, false)
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770, false)
 }
 
 func TestKprobeObjectOpenMountWithNull(t *testing.T) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectOpenHook(pidStr, dir, true)
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770, false)
 }
 
 func testKprobeStringMatch(t *testing.T,
@@ -1099,21 +1140,29 @@ func testKprobeObjectMultiValueOpenHook(pidStr string, path string) string {
   `
 }
 
-func TestKprobeObjectMultiValueOpen(t *testing.T) {
+func testKprobeObjectMultiValueOpen(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectMultiValueOpenHook(pidStr, dir)
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770, fentry)
+}
+
+func TestKprobeObjectMultiValueOpen(t *testing.T) {
+	testKprobeObjectMultiValueOpen(t, false)
+}
+
+func testKprobeObjectMultiValueOpenMount(t *testing.T, fentry bool) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	dir := t.TempDir()
+	readHook := testKprobeObjectMultiValueOpenHook(pidStr, dir)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770, fentry)
 }
 
 func TestKprobeObjectMultiValueOpenMount(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
-	dir := t.TempDir()
-	readHook := testKprobeObjectMultiValueOpenHook(pidStr, dir)
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectMultiValueOpenMount(t, false)
 }
 
-func TestKprobeObjectFilterOpen(t *testing.T) {
+func testKprobeObjectFilterOpen(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := `
@@ -1145,10 +1194,14 @@ spec:
         values:
         - "` + dir + `/foofile"
 `
-	testKprobeObjectFiltered(t, readHook, getAnyChecker(), false, dir, true, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getAnyChecker(), false, dir, true, syscall.O_RDWR, 0x770, fentry)
 }
 
-func TestKprobeObjectMultiValueFilterOpen(t *testing.T) {
+func TestKprobeObjectFilterOpen(t *testing.T) {
+	testKprobeObjectFilterOpen(t, false)
+}
+
+func testKprobeObjectMultiValueFilterOpen(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := `
@@ -1181,7 +1234,11 @@ spec:
         - "` + dir + `/foo"
         - "` + dir + `/bar"
 `
-	testKprobeObjectFiltered(t, readHook, getAnyChecker(), false, dir, true, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getAnyChecker(), false, dir, true, syscall.O_RDWR, 0x770, fentry)
+}
+
+func TestKprobeObjectMultiValueFilterOpen(t *testing.T) {
+	testKprobeObjectMultiValueFilterOpen(t, false)
 }
 
 func testKprobeObjectFilterPrefixOpenHook(pidStr string, path string) string {
@@ -1216,14 +1273,18 @@ func testKprobeObjectFilterPrefixOpenHook(pidStr string, path string) string {
   `
 }
 
-func TestKprobeObjectFilterPrefixOpen(t *testing.T) {
+func testKprobeObjectFilterPrefixOpen(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFilterPrefixOpenHook(pidStr, dir)
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770, fentry)
 }
 
-func TestKprobeObjectFilterPrefixOpenSuperLong(t *testing.T) {
+func TestKprobeObjectFilterPrefixOpen(t *testing.T) {
+	testKprobeObjectFilterPrefixOpen(t, false)
+}
+
+func testKprobeObjectFilterPrefixOpenSuperLong(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFilterPrefixOpenHook(pidStr, dir)
@@ -1239,14 +1300,22 @@ func TestKprobeObjectFilterPrefixOpenSuperLong(t *testing.T) {
 		t.Logf("Mkdir %s failed: %s\n", longDir, err)
 		t.Skip()
 	}
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, longDir), false, longDir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, longDir), false, longDir, false, syscall.O_RDWR, 0x770, fentry)
 }
 
-func TestKprobeObjectFilterPrefixOpenMount(t *testing.T) {
+func TestKprobeObjectFilterPrefixOpenSuperLong(t *testing.T) {
+	testKprobeObjectFilterPrefixOpenSuperLong(t, false)
+}
+
+func testKprobeObjectFilterPrefixOpenMount(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFilterPrefixOpenHook(pidStr, dir)
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770, fentry)
+}
+
+func TestKprobeObjectFilterPrefixOpenMount(t *testing.T) {
+	testKprobeObjectFilterPrefixOpenMount(t, false)
 }
 
 func testKprobeObjectFilterPrefixExactOpenHook(pidStr string, path string) string {
@@ -1281,18 +1350,26 @@ func testKprobeObjectFilterPrefixExactOpenHook(pidStr string, path string) strin
   `
 }
 
-func TestKprobeObjectFilterPrefixExactOpen(t *testing.T) {
+func testKprobeObjectFilterPrefixExactOpen(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFilterPrefixExactOpenHook(pidStr, dir)
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770, fentry)
+}
+
+func TestKprobeObjectFilterPrefixExactOpen(t *testing.T) {
+	testKprobeObjectFilterPrefixExactOpen(t, false)
+}
+
+func testKprobeObjectFilterPrefixExactOpenMount(t *testing.T, fentry bool) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	dir := t.TempDir()
+	readHook := testKprobeObjectFilterPrefixExactOpenHook(pidStr, dir)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770, fentry)
 }
 
 func TestKprobeObjectFilterPrefixExactOpenMount(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
-	dir := t.TempDir()
-	readHook := testKprobeObjectFilterPrefixExactOpenHook(pidStr, dir)
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFilterPrefixExactOpenMount(t, false)
 }
 
 func testKprobeObjectFilterPrefixSubdirOpenHook(pidStr string, path string) string {
@@ -1327,21 +1404,29 @@ func testKprobeObjectFilterPrefixSubdirOpenHook(pidStr string, path string) stri
   `
 }
 
-func TestKprobeObjectFilterPrefixSubdirOpen(t *testing.T) {
+func testKprobeObjectFilterPrefixSubdirOpen(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFilterPrefixSubdirOpenHook(pidStr, dir)
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770, fentry)
+}
+
+func TestKprobeObjectFilterPrefixSubdirOpen(t *testing.T) {
+	testKprobeObjectFilterPrefixSubdirOpen(t, false)
+}
+
+func testKprobeObjectFilterPrefixSubdirOpenMount(t *testing.T, fentry bool) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	dir := t.TempDir()
+	readHook := testKprobeObjectFilterPrefixSubdirOpenHook(pidStr, dir)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770, fentry)
 }
 
 func TestKprobeObjectFilterPrefixSubdirOpenMount(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
-	dir := t.TempDir()
-	readHook := testKprobeObjectFilterPrefixSubdirOpenHook(pidStr, dir)
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), true, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFilterPrefixSubdirOpenMount(t, false)
 }
 
-func TestKprobeObjectFilterPrefixMissOpen(t *testing.T) {
+func testKprobeObjectFilterPrefixMissOpen(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := `
@@ -1373,7 +1458,11 @@ spec:
         values:
         - "/foo/"
 `
-	testKprobeObjectFiltered(t, readHook, getAnyChecker(), false, dir, true, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getAnyChecker(), false, dir, true, syscall.O_RDWR, 0x770, fentry)
+}
+
+func TestKprobeObjectFilterPrefixMissOpen(t *testing.T) {
+	testKprobeObjectFilterPrefixMissOpen(t, false)
 }
 
 // String matches should not require the '\0' null character on the end.
@@ -1386,7 +1475,7 @@ func testKprobeObjectPostfixOpenFileName(withNull bool) string {
 	return `testfile`
 }
 
-func testKprobeObjectPostfixOpen(t *testing.T, withNull bool) {
+func testKprobeObjectPostfixOpen(t *testing.T, withNull, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := `
@@ -1418,18 +1507,18 @@ spec:
         values:
         - "` + testKprobeObjectPostfixOpenFileName(withNull) + `"
 `
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, dir), false, dir, false, syscall.O_RDWR, 0x770, fentry)
 }
 
 func TestKprobeObjectPostfixOpen(t *testing.T) {
-	testKprobeObjectPostfixOpen(t, false)
+	testKprobeObjectPostfixOpen(t, false, false)
 }
 
 func TestKprobeObjectPostfixOpenWithNull(t *testing.T) {
-	testKprobeObjectPostfixOpen(t, true)
+	testKprobeObjectPostfixOpen(t, true, false)
 }
 
-func TestKprobeObjectPostfixOpenSuperLong(t *testing.T) {
+func testKprobeObjectPostfixOpenSuperLong(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := `
@@ -1470,7 +1559,11 @@ spec:
 		t.Skip()
 	}
 
-	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, longDir), false, longDir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getOpenatChecker(t, longDir), false, longDir, false, syscall.O_RDWR, 0x770, fentry)
+}
+
+func TestKprobeObjectPostfixOpenSuperLong(t *testing.T) {
+	testKprobeObjectPostfixOpenSuperLong(t, false)
 }
 
 func testKprobeObjectFilterModeOpenHook(pidStr string, mode int, valueFmt string) string {
@@ -1507,7 +1600,7 @@ func testKprobeObjectFilterModeOpenHook(pidStr string, mode int, valueFmt string
   `
 }
 
-func testKprobeObjectFilterModeOpenMatch(t *testing.T, valueFmt string, modeCreate, modeCheck int) {
+func testKprobeObjectFilterModeOpenMatch(t *testing.T, valueFmt string, modeCreate, modeCheck int, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 
 	checker := func(dir string) *ec.UnorderedEventChecker {
@@ -1526,26 +1619,30 @@ func testKprobeObjectFilterModeOpenMatch(t *testing.T, valueFmt string, modeCrea
 
 	dir := t.TempDir()
 	openHook := testKprobeObjectFilterModeOpenHook(pidStr, modeCheck, valueFmt)
-	testKprobeObjectFiltered(t, openHook, checker(dir), false, dir, false, modeCreate, 0x770)
+	testKprobeObjectFiltered(t, openHook, checker(dir), false, dir, false, modeCreate, 0x770, fentry)
 }
 
 func TestKprobeObjectFilterModeOpenMatchDec(t *testing.T) {
-	testKprobeObjectFilterModeOpenMatch(t, "%d", syscall.O_RDWR|syscall.O_TRUNC|syscall.O_CLOEXEC, syscall.O_TRUNC)
+	testKprobeObjectFilterModeOpenMatch(t, "%d", syscall.O_RDWR|syscall.O_TRUNC|syscall.O_CLOEXEC, syscall.O_TRUNC, false)
 }
 
 func TestKprobeObjectFilterModeOpenMatchHex(t *testing.T) {
-	testKprobeObjectFilterModeOpenMatch(t, "0x%x", syscall.O_RDWR|syscall.O_TRUNC|syscall.O_CLOEXEC, syscall.O_RDWR)
+	testKprobeObjectFilterModeOpenMatch(t, "0x%x", syscall.O_RDWR|syscall.O_TRUNC|syscall.O_CLOEXEC, syscall.O_RDWR, false)
 }
 
 func TestKprobeObjectFilterModeOpenMatchOct(t *testing.T) {
-	testKprobeObjectFilterModeOpenMatch(t, "0%o", syscall.O_RDWR|syscall.O_TRUNC|syscall.O_CLOEXEC, syscall.O_CLOEXEC)
+	testKprobeObjectFilterModeOpenMatch(t, "0%o", syscall.O_RDWR|syscall.O_TRUNC|syscall.O_CLOEXEC, syscall.O_CLOEXEC, false)
 }
 
-func TestKprobeObjectFilterModeOpenFail(t *testing.T) {
+func testKprobeObjectFilterModeOpenFail(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	openHook := testKprobeObjectFilterModeOpenHook(pidStr, syscall.O_TRUNC, "%d")
-	testKprobeObjectFiltered(t, openHook, getAnyChecker(), false, dir, true, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, openHook, getAnyChecker(), false, dir, true, syscall.O_RDWR, 0x770, fentry)
+}
+
+func TestKprobeObjectFilterModeOpenFail(t *testing.T) {
+	testKprobeObjectFilterModeOpenFail(t, false)
 }
 
 func testKprobeObjectFilterReturnValueGTHook(pidStr, path string) string {
@@ -1858,7 +1955,7 @@ func getFilpOpenChecker(dir string, funcName string) ec.MultiEventChecker {
 	return ec.NewUnorderedEventChecker(kpChecker)
 }
 
-func TestKprobeObjectFilenameOpen(t *testing.T) {
+func testKprobeObjectFilenameOpen(t *testing.T, fentry bool) {
 	funcName := getFilpOpenFunc(t)
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
@@ -1884,10 +1981,10 @@ spec:
         values:
         - ` + pidStr + `
      `
-	testKprobeObjectFiltered(t, readHook, getFilpOpenChecker(dir, funcName), false, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getFilpOpenChecker(dir, funcName), false, dir, false, syscall.O_RDWR, 0x770, fentry)
 }
 
-func TestKprobeObjectReturnFilenameOpen(t *testing.T) {
+func testKprobeObjectReturnFilenameOpen(t *testing.T, fentry bool) {
 	funcName := getFilpOpenFunc(t)
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
@@ -1916,7 +2013,11 @@ spec:
         values:
         - ` + pidStr + `
      `
-	testKprobeObjectFiltered(t, readHook, getFilpOpenChecker(dir, funcName), false, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getFilpOpenChecker(dir, funcName), false, dir, false, syscall.O_RDWR, 0x770, fentry)
+}
+
+func TestKprobeObjectReturnFilenameOpen(t *testing.T) {
+	testKprobeObjectReturnFilenameOpen(t, false)
 }
 
 func testKprobeObjectFileWriteHook(pidStr string) string {
@@ -2036,35 +2137,51 @@ func getWriteChecker(t *testing.T, path, flags string) ec.MultiEventChecker {
 	return ec.NewUnorderedEventChecker(kpChecker)
 }
 
-func TestKprobeObjectFileWrite(t *testing.T) {
+func testKprobeObjectFileWrite(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFileWriteHook(pidStr)
-	testKprobeObjectFiltered(t, readHook, getWriteChecker(t, filepath.Join(dir, "testfile"), ""), false, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getWriteChecker(t, filepath.Join(dir, "testfile"), ""), false, dir, false, syscall.O_RDWR, 0x770, fentry)
+}
+
+func TestKprobeObjectFileWrite(t *testing.T) {
+	testKprobeObjectFileWrite(t, false)
+}
+
+func testKprobeObjectFileWriteFiltered(t *testing.T, fentry bool) {
+	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
+	dir := t.TempDir()
+	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, dir)
+	testKprobeObjectFiltered(t, readHook, getWriteChecker(t, filepath.Join(dir, "testfile"), ""), false, dir, false, syscall.O_RDWR, 0x770, fentry)
 }
 
 func TestKprobeObjectFileWriteFiltered(t *testing.T) {
-	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
-	dir := t.TempDir()
-	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, dir)
-	testKprobeObjectFiltered(t, readHook, getWriteChecker(t, filepath.Join(dir, "testfile"), ""), false, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFileWriteFiltered(t, false)
 }
 
-func TestKprobeObjectFileWriteMount(t *testing.T) {
+func testKprobeObjectFileWriteMount(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFileWriteHook(pidStr)
-	testKprobeObjectFiltered(t, readHook, getWriteChecker(t, filepath.Join(dir, "testfile"), ""), true, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getWriteChecker(t, filepath.Join(dir, "testfile"), ""), true, dir, false, syscall.O_RDWR, 0x770, fentry)
 }
 
-func TestKprobeObjectFileWriteMountFiltered(t *testing.T) {
+func TestKprobeObjectFileWriteMount(t *testing.T) {
+	testKprobeObjectFileWriteMount(t, false)
+}
+
+func testKprobeObjectFileWriteMountFiltered(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	dir := t.TempDir()
 	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, dir)
-	testKprobeObjectFiltered(t, readHook, getWriteChecker(t, filepath.Join(dir, "testfile"), ""), true, dir, false, syscall.O_RDWR, 0x770)
+	testKprobeObjectFiltered(t, readHook, getWriteChecker(t, filepath.Join(dir, "testfile"), ""), true, dir, false, syscall.O_RDWR, 0x770, fentry)
 }
 
-func corePathTest(t *testing.T, filePath string, readHook string, writeChecker ec.MultiEventChecker) {
+func TestKprobeObjectFileWriteMountFiltered(t *testing.T) {
+	testKprobeObjectFileWriteMountFiltered(t, false)
+}
+
+func corePathTest(t *testing.T, filePath string, readHook string, writeChecker ec.MultiEventChecker, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -2079,7 +2196,7 @@ func corePathTest(t *testing.T, filePath string, readHook string, writeChecker e
 	}
 	syscall.Close(fd)
 
-	createCrdFile(t, readHook)
+	createCrdFileFlag(t, readHook, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -2102,7 +2219,7 @@ func corePathTest(t *testing.T, filePath string, readHook string, writeChecker e
 	require.NoError(t, err)
 }
 
-func testMultipleMountsFiltered(t *testing.T, readHook string) {
+func testMultipleMountsFilteredRun(t *testing.T, readHook string, fentry bool) {
 	var pathStack []string
 
 	// let's create /tmp2/tmp3/tmp4/tmp5 where each dir is a mount point
@@ -2138,10 +2255,10 @@ func testMultipleMountsFiltered(t *testing.T, readHook string) {
 
 	writeChecker := getWriteChecker(t, "/tmp2/tmp3/tmp4/tmp5/testfile", "")
 
-	corePathTest(t, filePath, readHook, writeChecker)
+	corePathTest(t, filePath, readHook, writeChecker, fentry)
 }
 
-func testMultiplePathComponentsFiltered(t *testing.T, readHook string) {
+func testMultiplePathComponentsFiltered(t *testing.T, readHook string, fentry bool) {
 	path := "/tmp"
 
 	// let's create /tmp/0/.. 32*8 where each dir is a directory
@@ -2165,10 +2282,10 @@ func testMultiplePathComponentsFiltered(t *testing.T, readHook string) {
 	if config.EnableLargeProgs() {
 		writeChecker = getWriteChecker(t, filePath, "")
 	}
-	corePathTest(t, filePath, readHook, writeChecker)
+	corePathTest(t, filePath, readHook, writeChecker, fentry)
 }
 
-func testMultipleMountPathFiltered(t *testing.T, readHook string) {
+func testMultipleMountPathFilteredRun(t *testing.T, readHook string, fentry bool) {
 	var pathStack []string
 	var dirStack []string
 	path := "/"
@@ -2225,37 +2342,53 @@ func testMultipleMountPathFiltered(t *testing.T, readHook string) {
 
 	filePath := path + "/testfile"
 	writeChecker := getWriteChecker(t, "/tmp2/tmp3/tmp4/tmp5/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/testfile", "")
-	corePathTest(t, filePath, readHook, writeChecker)
+	corePathTest(t, filePath, readHook, writeChecker, fentry)
 }
 
-func TestMultipleMountsFiltered(t *testing.T) {
+func testMultipleMountsFiltered(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, "/tmp2/tmp3/tmp4/tmp5")
-	testMultipleMountsFiltered(t, readHook)
+	testMultipleMountsFilteredRun(t, readHook, fentry)
 }
 
-func TestMultiplePathComponents(t *testing.T) {
+func TestKprobeMultipleMountsFiltered(t *testing.T) {
+	testMultipleMountsFiltered(t, false)
+}
+
+func testMultiplePathComponents(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	readHook := testKprobeObjectFileWriteHook(pidStr)
-	testMultiplePathComponentsFiltered(t, readHook)
+	testMultiplePathComponentsFiltered(t, readHook, fentry)
 }
 
-func TestMultipleMountPath(t *testing.T) {
+func TestKprobeMultiplePathComponents(t *testing.T) {
+	testMultiplePathComponents(t, false)
+}
+
+func testMultipleMountPath(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	readHook := testKprobeObjectFileWriteHook(pidStr)
-	testMultipleMountPathFiltered(t, readHook)
+	testMultipleMountPathFilteredRun(t, readHook, fentry)
 }
 
-func TestMultipleMountPathFiltered(t *testing.T) {
+func TestKprobeMultipleMountPath(t *testing.T) {
+	testMultipleMountPath(t, false)
+}
+
+func testMultipleMountPathFiltered(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	readHook := testKprobeObjectFileWriteFilteredHook(pidStr, "/7/8/9/10/11/12/13/14/15/16")
 	if config.EnableLargeProgs() {
 		readHook = testKprobeObjectFileWriteFilteredHook(pidStr, "/tmp2/tmp3/tmp4/tmp5/0/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16")
 	}
-	testMultipleMountPathFiltered(t, readHook)
+	testMultipleMountPathFilteredRun(t, readHook, fentry)
 }
 
-func TestKprobeArgValues(t *testing.T) {
+func TestKprobeMultipleMountPathFiltered(t *testing.T) {
+	testMultipleMountPathFiltered(t, false)
+}
+
+func testKprobeArgValues(t *testing.T, fentry bool) {
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 	readHook := `
 apiVersion: cilium.io/v1alpha1
@@ -2310,7 +2443,7 @@ spec:
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	createCrdFile(t, readHook)
+	createCrdFileFlag(t, readHook, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -2343,6 +2476,10 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
+}
+
+func TestKprobeArgValues(t *testing.T) {
+	testKprobeArgValues(t, false)
 }
 
 // override
@@ -3070,14 +3207,14 @@ spec:
 }
 
 func runKprobeCharIovec(t *testing.T, configHook string,
-	checker *ec.UnorderedEventChecker, fdw, fdr int, buffer []byte) {
+	checker *ec.UnorderedEventChecker, fdw, fdr int, buffer []byte, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	createCrdFile(t, configHook)
+	createCrdFileFlag(t, configHook, fentry)
 
 	b := base.GetInitialSensorTest(t)
 	obs, err := observertesthelper.GetDefaultObserverWithWatchers(t, ctx, b, observertesthelper.WithConfig(testConfigFile), observertesthelper.WithLib(tus.Conf().TetragonLib), observertesthelper.WithMyPid())
@@ -3115,7 +3252,7 @@ func runKprobeCharIovec(t *testing.T, configHook string,
 	require.NoError(t, err)
 }
 
-func TestKprobe_char_iovec(t *testing.T) {
+func testKprobe_char_iovec(t *testing.T, fentry bool) {
 	fdw, fdr, _ := createTestFile(t)
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 
@@ -3166,10 +3303,14 @@ spec:
 			))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	runKprobeCharIovec(t, configHook, checker, fdw, fdr, buffer)
+	runKprobeCharIovec(t, configHook, checker, fdw, fdr, buffer, fentry)
 }
 
-func TestKprobe_char_iovec_overflow(t *testing.T) {
+func TestKprobe_char_iovec(t *testing.T) {
+	testKprobe_char_iovec(t, false)
+}
+
+func testKprobe_char_iovec_overflow(t *testing.T, fentry bool) {
 	fdw, fdr, _ := createTestFile(t)
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 
@@ -3220,10 +3361,14 @@ spec:
 			))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	runKprobeCharIovec(t, configHook, checker, fdw, fdr, buffer)
+	runKprobeCharIovec(t, configHook, checker, fdw, fdr, buffer, fentry)
 }
 
-func TestKprobe_char_iovec_returnCopy(t *testing.T) {
+func TestKprobe_char_iovec_overflow(t *testing.T) {
+	testKprobe_char_iovec_overflow(t, false)
+}
+
+func testKprobe_char_iovec_returnCopy(t *testing.T, fentry bool) {
 	fdw, fdr, _ := createTestFile(t)
 	pidStr := strconv.Itoa(int(observertesthelper.GetMyPid()))
 
@@ -3275,7 +3420,11 @@ spec:
 			))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
 
-	runKprobeCharIovec(t, configHook, checker, fdw, fdr, buffer)
+	runKprobeCharIovec(t, configHook, checker, fdw, fdr, buffer, fentry)
+}
+
+func TestKprobe_char_iovec_returnCopy(t *testing.T) {
+	testKprobe_char_iovec_returnCopy(t, false)
 }
 
 func getMatchArgsFileCrd(opStr string, vals []string) string {
@@ -3431,12 +3580,19 @@ func createReadChecker(t *testing.T, filename string) *ec.ProcessKprobeChecker {
 	return kpChecker
 }
 
-func createCrdFile(t *testing.T, readHook string) {
+func createCrdFileFlag(t *testing.T, readHook string, fentry bool) {
+	if fentry {
+		readHook = strings.ReplaceAll(readHook, "kprobes:", "fentries:")
+	}
 	readConfigHook := []byte(readHook)
 	err := os.WriteFile(testConfigFile, readConfigHook, 0644)
 	if err != nil {
 		t.Fatalf("writeFile(%s): err %s", testConfigFile, err)
 	}
+}
+
+func createCrdFile(t *testing.T, readHook string) {
+	createCrdFileFlag(t, readHook, false)
 }
 
 func getNumValues() int {
@@ -3446,7 +3602,7 @@ func getNumValues() int {
 	return 2
 }
 
-func TestKprobeMatchArgsFileEqual(t *testing.T) {
+func testKprobeMatchArgsFileEqual(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -3462,7 +3618,51 @@ func TestKprobeMatchArgsFileEqual(t *testing.T) {
 		argVals[3] = "/etc/shadow"
 	}
 
-	createCrdFile(t, getMatchArgsFileCrd("Equal", argVals[:]))
+	createCrdFileFlag(t, getMatchArgsFileCrd("Equal", argVals[:]), fentry)
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	fds := make([]int, numValues)
+	for i := range numValues {
+		fds[i] = openFile(t, allFiles[i])
+	}
+
+	kpCheckers := make([]ec.EventChecker, numValues)
+	for i, fd := range fds {
+		kpCheckers[i] = createFdInstallChecker(fd, allFiles[i])
+	}
+
+	checker := ec.NewUnorderedEventChecker(kpCheckers...)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
+func TestKprobeMatchArgsFileEqual(t *testing.T) {
+	testKprobeMatchArgsFileEqual(t, false)
+}
+
+func testKprobeMatchArgsFilePostfix(t *testing.T, fentry bool) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	numValues := getNumValues()
+	argVals := make([]string, numValues)
+	argVals[0] = "passwd"
+	argVals[1] = "group"
+	if config.EnableLargeProgs() {
+		argVals[2] = "hostname"
+		argVals[3] = "shadow"
+	}
+
+	createCrdFileFlag(t, getMatchArgsFileCrd("Postfix", argVals[:]), fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -3487,6 +3687,10 @@ func TestKprobeMatchArgsFileEqual(t *testing.T) {
 }
 
 func TestKprobeMatchArgsFilePostfix(t *testing.T) {
+	testKprobeMatchArgsFilePostfix(t, false)
+}
+
+func testKprobeMatchArgsFilePrefix(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -3495,14 +3699,14 @@ func TestKprobeMatchArgsFilePostfix(t *testing.T) {
 
 	numValues := getNumValues()
 	argVals := make([]string, numValues)
-	argVals[0] = "passwd"
-	argVals[1] = "group"
+	argVals[0] = "/etc/p"
+	argVals[1] = "/etc/g"
 	if config.EnableLargeProgs() {
-		argVals[2] = "hostname"
-		argVals[3] = "shadow"
+		argVals[2] = "/etc/h"
+		argVals[3] = "/etc/s"
 	}
 
-	createCrdFile(t, getMatchArgsFileCrd("Postfix", argVals[:]))
+	createCrdFileFlag(t, getMatchArgsFileCrd("Prefix", argVals[:]), fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -3527,46 +3731,10 @@ func TestKprobeMatchArgsFilePostfix(t *testing.T) {
 }
 
 func TestKprobeMatchArgsFilePrefix(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	numValues := getNumValues()
-	argVals := make([]string, numValues)
-	argVals[0] = "/etc/p"
-	argVals[1] = "/etc/g"
-	if config.EnableLargeProgs() {
-		argVals[2] = "/etc/h"
-		argVals[3] = "/etc/s"
-	}
-
-	createCrdFile(t, getMatchArgsFileCrd("Prefix", argVals[:]))
-
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
-	fds := make([]int, numValues)
-	for i := range numValues {
-		fds[i] = openFile(t, allFiles[i])
-	}
-
-	kpCheckers := make([]ec.EventChecker, numValues)
-	for i, fd := range fds {
-		kpCheckers[i] = createFdInstallChecker(fd, allFiles[i])
-	}
-
-	checker := ec.NewUnorderedEventChecker(kpCheckers...)
-	err = jsonchecker.JsonTestCheck(t, checker)
-	require.NoError(t, err)
+	testKprobeMatchArgsFilePrefix(t, false)
 }
 
-func TestKprobeMatchArgsFdEqual(t *testing.T) {
+func testKprobeMatchArgsFdEqual(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -3582,7 +3750,47 @@ func TestKprobeMatchArgsFdEqual(t *testing.T) {
 		argVals[3] = "/etc/shadow"
 	}
 
-	createCrdFile(t, getMatchArgsFdCrd("Equal", argVals[:]))
+	createCrdFileFlag(t, getMatchArgsFdCrd("Equal", argVals[:]), fentry)
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	kpCheckers := make([]ec.EventChecker, numValues)
+	for i := range numValues {
+		readFile(t, allFiles[i])
+		kpCheckers[i] = createReadChecker(t, allFiles[i])
+	}
+
+	checker := ec.NewUnorderedEventChecker(kpCheckers...)
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
+func TestKprobeMatchArgsFdEqual(t *testing.T) {
+	testKprobeMatchArgsFdEqual(t, false)
+}
+
+func testKprobeMatchArgsFdPostfix(t *testing.T, fentry bool) {
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	numValues := getNumValues()
+	argVals := make([]string, numValues)
+	argVals[0] = "passwd"
+	argVals[1] = "group"
+	if config.EnableLargeProgs() {
+		argVals[2] = "hostname"
+		argVals[3] = "shadow"
+	}
+
+	createCrdFileFlag(t, getMatchArgsFdCrd("Postfix", argVals[:]), fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -3603,42 +3811,10 @@ func TestKprobeMatchArgsFdEqual(t *testing.T) {
 }
 
 func TestKprobeMatchArgsFdPostfix(t *testing.T) {
-	var doneWG, readyWG sync.WaitGroup
-	defer doneWG.Wait()
-
-	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
-	defer cancel()
-
-	numValues := getNumValues()
-	argVals := make([]string, numValues)
-	argVals[0] = "passwd"
-	argVals[1] = "group"
-	if config.EnableLargeProgs() {
-		argVals[2] = "hostname"
-		argVals[3] = "shadow"
-	}
-
-	createCrdFile(t, getMatchArgsFdCrd("Postfix", argVals[:]))
-
-	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
-	if err != nil {
-		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
-	}
-	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
-	readyWG.Wait()
-
-	kpCheckers := make([]ec.EventChecker, numValues)
-	for i := range numValues {
-		readFile(t, allFiles[i])
-		kpCheckers[i] = createReadChecker(t, allFiles[i])
-	}
-
-	checker := ec.NewUnorderedEventChecker(kpCheckers...)
-	err = jsonchecker.JsonTestCheck(t, checker)
-	require.NoError(t, err)
+	testKprobeMatchArgsFdPostfix(t, false)
 }
 
-func TestKprobeMatchArgsFdPrefix(t *testing.T) {
+func testKprobeMatchArgsFdPrefix(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -3654,7 +3830,7 @@ func TestKprobeMatchArgsFdPrefix(t *testing.T) {
 		argVals[3] = "/etc/s"
 	}
 
-	createCrdFile(t, getMatchArgsFdCrd("Prefix", argVals[:]))
+	createCrdFileFlag(t, getMatchArgsFdCrd("Prefix", argVals[:]), fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -3679,6 +3855,10 @@ func TestKprobeMatchArgsFdPrefix(t *testing.T) {
 		}
 	}
 	require.NoError(t, err)
+}
+
+func TestKprobeMatchArgsFdPrefix(t *testing.T) {
+	testKprobeMatchArgsFdPrefix(t, false)
 }
 
 func getMatchArgsFileFIMCrd(vals []string) string {
@@ -3708,14 +3888,14 @@ spec:
 	return configHook.String()
 }
 
-func TestKprobeMatchArgsFileMonitoringPrefix(t *testing.T) {
+func testKprobeMatchArgsFileMonitoringPrefix(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	createCrdFile(t, getMatchArgsFileFIMCrd([]string{"/etc/"}))
+	createCrdFileFlag(t, getMatchArgsFileFIMCrd([]string{"/etc/"}), fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -3742,7 +3922,11 @@ func TestKprobeMatchArgsFileMonitoringPrefix(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestKprobeMatchArgsNonPrefix(t *testing.T) {
+func TestKprobeMatchArgsFileMonitoringPrefix(t *testing.T) {
+	testKprobeMatchArgsFileMonitoringPrefix(t, false)
+}
+
+func testKprobeMatchArgsNonPrefix(t *testing.T, fentry bool) {
 	if !config.EnableLargeProgs() {
 		t.Skip()
 	}
@@ -3779,7 +3963,7 @@ spec:
         - "/etc/passwd"
         - "/etc/group"`
 
-	createCrdFile(t, configHook)
+	createCrdFileFlag(t, configHook, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -3829,6 +4013,10 @@ spec:
 	require.NoError(t, err)
 }
 
+func TestKprobeMatchArgsNonPrefix(t *testing.T) {
+	testKprobeMatchArgsNonPrefix(t, false)
+}
+
 func getMatchParentBinariesCrd(opStr string, vals []string) string {
 	var configHook strings.Builder
 	configHook.WriteString(`apiVersion: cilium.io/v1alpha1
@@ -3863,14 +4051,14 @@ func createParentsChecker(parent, binary string) *ec.ProcessKprobeChecker {
 	return kpChecker
 }
 
-func matchParentBinariesTest(t *testing.T, operator string, values []string, kpChecker *ec.ProcessKprobeChecker, newProcess bool) {
+func matchParentBinariesTest(t *testing.T, operator string, values []string, kpChecker *ec.ProcessKprobeChecker, newProcess, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	createCrdFile(t, getMatchParentBinariesCrd(operator, values))
+	createCrdFileFlag(t, getMatchParentBinariesCrd(operator, values), fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -3904,7 +4092,7 @@ func matchParentBinariesTest(t *testing.T, operator string, values []string, kpC
 
 const skipMatchParentBinaries = "kernels without large progs do not support matchParentBinaries selector"
 
-func TestKprobeMatchParentBinaries(t *testing.T) {
+func testKprobeMatchParentBinaries(t *testing.T, fentry bool) {
 	if !config.EnableLargeProgs() {
 		t.Skip(skipMatchParentBinaries)
 	}
@@ -4005,9 +4193,13 @@ func TestKprobeMatchParentBinaries(t *testing.T) {
 	option.Config.ParentsMapEnabled = true
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			matchParentBinariesTest(t, test.operator, test.values, createParentsChecker(test.expectedParent, test.binary), test.parentCreatesNewProcess)
+			matchParentBinariesTest(t, test.operator, test.values, createParentsChecker(test.expectedParent, test.binary), test.parentCreatesNewProcess, fentry)
 		})
 	}
+}
+
+func TestKprobeMatchParentBinaries(t *testing.T) {
+	testKprobeMatchParentBinaries(t, false)
 }
 
 func getMatchBinariesCrd(opStr string, vals []string) string {
@@ -4048,14 +4240,14 @@ func createBinariesChecker(binary, filename string) *ec.ProcessKprobeChecker {
 	return kpChecker
 }
 
-func matchBinariesTest(t *testing.T, operator string, values []string, kpChecker *ec.ProcessKprobeChecker) {
+func matchBinariesTest(t *testing.T, operator string, values []string, kpChecker *ec.ProcessKprobeChecker, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	createCrdFile(t, getMatchBinariesCrd(operator, values))
+	createCrdFileFlag(t, getMatchBinariesCrd(operator, values), fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -4079,40 +4271,44 @@ func matchBinariesTest(t *testing.T, operator string, values []string, kpChecker
 
 const skipMatchBinaries = "kernels without large progs do not support matchBinaries Prefix/NotPrefix/Postfix/NotPostfix"
 
-func TestKprobeMatchBinaries(t *testing.T) {
+func testKprobeMatchBinaries(t *testing.T, fentry bool) {
 	t.Run("In", func(t *testing.T) {
-		matchBinariesTest(t, "In", []string{"/usr/bin/tail"}, createBinariesChecker("/usr/bin/tail", "/etc/passwd"))
+		matchBinariesTest(t, "In", []string{"/usr/bin/tail"}, createBinariesChecker("/usr/bin/tail", "/etc/passwd"), fentry)
 	})
 	t.Run("NotIn", func(t *testing.T) {
-		matchBinariesTest(t, "NotIn", []string{"/usr/bin/tail"}, createBinariesChecker("/usr/bin/head", "/etc/passwd"))
+		matchBinariesTest(t, "NotIn", []string{"/usr/bin/tail"}, createBinariesChecker("/usr/bin/head", "/etc/passwd"), fentry)
 	})
 	t.Run("Prefix", func(t *testing.T) {
 		if !config.EnableLargeProgs() {
 			t.Skip(skipMatchBinaries)
 		}
-		matchBinariesTest(t, "Prefix", []string{"/usr/bin/t"}, createBinariesChecker("/usr/bin/tail", "/etc/passwd"))
+		matchBinariesTest(t, "Prefix", []string{"/usr/bin/t"}, createBinariesChecker("/usr/bin/tail", "/etc/passwd"), fentry)
 	})
 	t.Run("NotPrefix", func(t *testing.T) {
 		if !config.EnableLargeProgs() {
 			t.Skip(skipMatchBinaries)
 		}
-		matchBinariesTest(t, "NotPrefix", []string{"/usr/bin/t"}, createBinariesChecker("/usr/bin/head", "/etc/passwd"))
+		matchBinariesTest(t, "NotPrefix", []string{"/usr/bin/t"}, createBinariesChecker("/usr/bin/head", "/etc/passwd"), fentry)
 	})
 	t.Run("Postfix", func(t *testing.T) {
 		if !config.EnableLargeProgs() {
 			t.Skip(skipMatchBinaries)
 		}
-		matchBinariesTest(t, "Postfix", []string{"bin/tail"}, createBinariesChecker("/usr/bin/tail", "/etc/passwd"))
+		matchBinariesTest(t, "Postfix", []string{"bin/tail"}, createBinariesChecker("/usr/bin/tail", "/etc/passwd"), fentry)
 	})
 	t.Run("NotPostfix", func(t *testing.T) {
 		if !config.EnableLargeProgs() {
 			t.Skip(skipMatchBinaries)
 		}
-		matchBinariesTest(t, "NotPostfix", []string{"bin/tail"}, createBinariesChecker("/usr/bin/head", "/etc/passwd"))
+		matchBinariesTest(t, "NotPostfix", []string{"bin/tail"}, createBinariesChecker("/usr/bin/head", "/etc/passwd"), fentry)
 	})
 }
 
-func matchBinariesLargePathTest(t *testing.T, operator string, values []string, binary string) {
+func TestKprobeMatchBinaries(t *testing.T) {
+	testKprobeMatchBinaries(t, false)
+}
+
+func matchBinariesLargePathTest(t *testing.T, operator string, values []string, binary string, fentry bool) {
 
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
@@ -4120,7 +4316,7 @@ func matchBinariesLargePathTest(t *testing.T, operator string, values []string, 
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	createCrdFile(t, getMatchBinariesCrd(operator, values))
+	createCrdFileFlag(t, getMatchBinariesCrd(operator, values), fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -4140,7 +4336,7 @@ func matchBinariesLargePathTest(t *testing.T, operator string, values []string, 
 	require.NoError(t, err)
 
 }
-func TestKprobeMatchBinariesLargePath(t *testing.T) {
+func testKprobeMatchBinariesLargePath(t *testing.T, fentry bool) {
 	if !config.EnableLargeProgs() {
 		t.Skip()
 	}
@@ -4164,16 +4360,20 @@ func TestKprobeMatchBinariesLargePath(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("Prefix", func(t *testing.T) {
-		matchBinariesLargePathTest(t, "Prefix", []string{tmpDir}, targetBinLargePath)
+		matchBinariesLargePathTest(t, "Prefix", []string{tmpDir}, targetBinLargePath, fentry)
 	})
 	t.Run("Postfix", func(t *testing.T) {
-		matchBinariesLargePathTest(t, "Postfix", []string{"/true"}, targetBinLargePath)
+		matchBinariesLargePathTest(t, "Postfix", []string{"/true"}, targetBinLargePath, fentry)
 	})
+}
+
+func TestKprobeMatchBinariesLargePath(t *testing.T) {
+	testKprobeMatchBinariesLargePath(t, false)
 }
 
 // matchBinariesPerfringTest checks that the matchBinaries do correctly
 // filter the events i.e. it checks that no other events appear.
-func matchBinariesPerfringTest(t *testing.T, operator string, values []string) {
+func matchBinariesPerfringTest(t *testing.T, operator string, values []string, fentry bool) {
 	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
@@ -4208,6 +4408,11 @@ func matchBinariesPerfringTest(t *testing.T, operator string, values []string) {
 				},
 			},
 		},
+	}
+
+	if fentry {
+		matchBinariesTracingPolicy.Spec.Fentries = matchBinariesTracingPolicy.Spec.KProbes
+		matchBinariesTracingPolicy.Spec.KProbes = []v1alpha1.KProbeSpec{}
 	}
 
 	err := sm.Manager.AddTracingPolicy(ctx, &matchBinariesTracingPolicy)
@@ -4254,27 +4459,31 @@ func matchBinariesPerfringTest(t *testing.T, operator string, values []string) {
 	}
 }
 
-func TestKprobeMatchBinariesPerfring(t *testing.T) {
+func testKprobeMatchBinariesPerfring(t *testing.T, fentry bool) {
 	t.Run("In", func(t *testing.T) {
-		matchBinariesPerfringTest(t, "In", []string{"/usr/bin/tail"})
+		matchBinariesPerfringTest(t, "In", []string{"/usr/bin/tail"}, fentry)
 	})
 	t.Run("Prefix", func(t *testing.T) {
 		if !config.EnableLargeProgs() {
 			t.Skip(skipMatchBinaries)
 		}
-		matchBinariesPerfringTest(t, "Prefix", []string{"/usr/bin/t"})
+		matchBinariesPerfringTest(t, "Prefix", []string{"/usr/bin/t"}, fentry)
 	})
 	t.Run("Postfix", func(t *testing.T) {
 		if !config.EnableLargeProgs() {
 			t.Skip(skipMatchBinaries)
 		}
-		matchBinariesPerfringTest(t, "Postfix", []string{"tail"})
+		matchBinariesPerfringTest(t, "Postfix", []string{"tail"}, fentry)
 	})
+}
+
+func TestKprobeMatchBinariesPerfring(t *testing.T) {
+	testKprobeMatchBinariesPerfring(t, false)
 }
 
 // TestKprobeMatchBinariesEarlyExec checks that the matchBinaries can filter
 // events triggered by process started before Tetragon.
-func TestKprobeMatchBinariesEarlyExec(t *testing.T) {
+func testKprobeMatchBinariesEarlyExec(t *testing.T, fentry bool) {
 	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
@@ -4325,6 +4534,11 @@ func TestKprobeMatchBinariesEarlyExec(t *testing.T) {
 		},
 	}
 
+	if fentry {
+		matchBinariesTracingPolicy.Spec.Fentries = matchBinariesTracingPolicy.Spec.KProbes
+		matchBinariesTracingPolicy.Spec.KProbes = []v1alpha1.KProbeSpec{}
+	}
+
 	err = sm.Manager.AddTracingPolicy(ctx, &matchBinariesTracingPolicy)
 	if assert.NoError(t, err) {
 		t.Cleanup(func() {
@@ -4347,10 +4561,14 @@ func TestKprobeMatchBinariesEarlyExec(t *testing.T) {
 	t.Error("events triggered by process executed before Tetragon should not be ignored because of matchBinaries")
 }
 
-// TestKprobeMatchBinariesPrefixMatchArgs makes sure that the prefix of
+func TestKprobeMatchBinariesEarlyExec(t *testing.T) {
+	testKprobeMatchBinariesEarlyExec(t, false)
+}
+
+// testKprobeMatchBinariesPrefixMatchArgs makes sure that the prefix of
 // matchBinaries works well with the prefix of matchArgs since its reusing some
 // of its machinery.
-func TestKprobeMatchBinariesPrefixMatchArgs(t *testing.T) {
+func testKprobeMatchBinariesPrefixMatchArgs(t *testing.T, fentry bool) {
 	if !config.EnableLargeProgs() {
 		t.Skip(skipMatchBinaries)
 	}
@@ -4403,6 +4621,11 @@ func TestKprobeMatchBinariesPrefixMatchArgs(t *testing.T) {
 				},
 			},
 		},
+	}
+
+	if fentry {
+		matchBinariesTracingPolicy.Spec.Fentries = matchBinariesTracingPolicy.Spec.KProbes
+		matchBinariesTracingPolicy.Spec.KProbes = []v1alpha1.KProbeSpec{}
 	}
 
 	err := sm.Manager.AddTracingPolicy(ctx, &matchBinariesTracingPolicy)
@@ -4459,6 +4682,10 @@ func TestKprobeMatchBinariesPrefixMatchArgs(t *testing.T) {
 	}
 }
 
+func TestKprobeMatchBinariesPrefixMatchArgs(t *testing.T) {
+	testKprobeMatchBinariesPrefixMatchArgs(t, false)
+}
+
 func loadTestCrd() error {
 	testHook := `apiVersion: cilium.io/v1alpha1
 kind: TracingPolicy
@@ -4493,7 +4720,7 @@ spec:
 	return s.Destroy(true)
 }
 
-func TestKprobeBpfAttr(t *testing.T) {
+func testKprobeBpfAttr(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -4512,7 +4739,7 @@ spec:
    - index: 1
      type: "bpf_attr"
 `
-	createCrdFile(t, hook)
+	createCrdFileFlag(t, hook, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -4540,6 +4767,10 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
+}
+
+func TestKprobeBpfAttr(t *testing.T) {
+	testKprobeBpfAttr(t, false)
 }
 
 func TestLoadKprobeSensor(t *testing.T) {
@@ -4757,14 +4988,14 @@ spec:
 	t.Logf("got error (as expected): %s", err)
 }
 
-func testMaxData(t *testing.T, data []byte, checker *ec.UnorderedEventChecker, configHook string, fd int) {
+func testMaxData(t *testing.T, data []byte, checker *ec.UnorderedEventChecker, configHook string, fd int, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	createCrdFile(t, configHook)
+	createCrdFileFlag(t, configHook, fentry)
 
 	option.Config.RBSize = 1024 * 1024
 
@@ -4781,7 +5012,7 @@ func testMaxData(t *testing.T, data []byte, checker *ec.UnorderedEventChecker, c
 	require.NoError(t, err)
 }
 
-func TestKprobeWriteMaxDataTrunc(t *testing.T) {
+func testKprobeWriteMaxDataTrunc(t *testing.T, fentry bool) {
 	if !kernels.MinKernelVersion("5.3.0") {
 		t.Skip("TestCopyFd requires at least 5.3.0 version")
 	}
@@ -4841,10 +5072,14 @@ spec:
 				ec.NewKprobeArgumentChecker().WithSizeArg(uint64(len(data))),
 			))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
-	testMaxData(t, data, checker, writeHook, fd2)
+	testMaxData(t, data, checker, writeHook, fd2, fentry)
 }
 
-func TestKprobeWriteMaxData(t *testing.T) {
+func TestKprobeWriteMaxDataTrunc(t *testing.T) {
+	testKprobeWriteMaxDataTrunc(t, false)
+}
+
+func testKprobeWriteMaxData(t *testing.T, fentry bool) {
 	if !kernels.MinKernelVersion("5.3.0") {
 		t.Skip("TestCopyFd requires at least 5.3.0 version")
 	}
@@ -4900,10 +5135,14 @@ spec:
 				ec.NewKprobeArgumentChecker().WithSizeArg(uint64(len(data))),
 			))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
-	testMaxData(t, data, checker, writeHook, fd2)
+	testMaxData(t, data, checker, writeHook, fd2, fentry)
 }
 
-func TestKprobeWriteMaxDataFull(t *testing.T) {
+func TestKprobeWriteMaxData(t *testing.T) {
+	testKprobeWriteMaxData(t, false)
+}
+
+func testKprobeWriteMaxDataFull(t *testing.T, fentry bool) {
 	if !kernels.MinKernelVersion("5.3.0") {
 		t.Skip("TestCopyFd requires at least 5.3.0 version")
 	}
@@ -4960,10 +5199,14 @@ spec:
 				ec.NewKprobeArgumentChecker().WithSizeArg(uint64(len(data))),
 			))
 	checker := ec.NewUnorderedEventChecker(kpChecker)
-	testMaxData(t, data, checker, writeHook, fd2)
+	testMaxData(t, data, checker, writeHook, fd2, fentry)
 }
 
-func testKprobeRateLimit(t *testing.T, rateLimit bool) {
+func TestKprobeWriteMaxDataFull(t *testing.T) {
+	testKprobeWriteMaxDataFull(t, false)
+}
+
+func testKprobeRateLimit(t *testing.T, rateLimit, fentry bool) {
 	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
@@ -5017,6 +5260,11 @@ spec:
 	tp, err := tracingpolicy.FromYAML(hook)
 	if err != nil {
 		t.Fatalf("failed to decode yaml: %s", err)
+	}
+
+	if fentry {
+		tp.TpSpec().Fentries = tp.TpSpec().KProbes
+		tp.TpSpec().KProbes = []v1alpha1.KProbeSpec{}
 	}
 
 	err = sm.Manager.AddTracingPolicy(ctx, tp)
@@ -5081,7 +5329,7 @@ func TestKprobeNoRateLimit(t *testing.T) {
 		t.Skip("Test requires kernel 5.4")
 	}
 
-	testKprobeRateLimit(t, false)
+	testKprobeRateLimit(t, false, false)
 }
 
 func TestKprobeRateLimit(t *testing.T) {
@@ -5089,10 +5337,10 @@ func TestKprobeRateLimit(t *testing.T) {
 		t.Skip("Test requires kernel 5.4")
 	}
 
-	testKprobeRateLimit(t, true)
+	testKprobeRateLimit(t, true, false)
 }
 
-func TestKprobeListSyscallDupsRange(t *testing.T) {
+func testKprobeListSyscallDupsRange(t *testing.T, fentry bool) {
 	if !kernels.MinKernelVersion("5.3.0") {
 		t.Skip("TestCopyFd requires at least 5.3.0 version")
 	}
@@ -5141,12 +5389,16 @@ spec:
 		checker.AddChecks(kpCheckerDup)
 	}
 
-	testListSyscallsDupsRange(t, checker, configHook)
+	testListSyscallsDupsRange(t, checker, configHook, fentry)
+}
+
+func TestKprobeListSyscallDupsRange(t *testing.T) {
+	testKprobeListSyscallDupsRange(t, false)
 }
 
 // This just tests if the hooks that we are using in our
 // trace kernel module examples are stable enough
-func TestTraceKernelModuleCallsStability(t *testing.T) {
+func testTraceKernelModuleCallsStability(t *testing.T, fentry bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
@@ -5167,7 +5419,7 @@ spec:
     - index: 0
       type: "module"
 `
-	createCrdFile(t, hookFull)
+	createCrdFileFlag(t, hookFull, fentry)
 
 	_, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -5175,7 +5427,11 @@ spec:
 	}
 }
 
-func TestLinuxBinprmExtractPath(t *testing.T) {
+func TestTraceKernelModuleCallsStability(t *testing.T) {
+	testTraceKernelModuleCallsStability(t, false)
+}
+
+func testLinuxBinprmExtractPath(t *testing.T, fentry bool) {
 	if !config.EnableLargeProgs() {
 		t.Skip("Older kernels do not support matchArgs with linux_binprm")
 	}
@@ -5229,6 +5485,11 @@ func TestLinuxBinprmExtractPath(t *testing.T) {
 		},
 	}
 
+	if fentry {
+		bprmTracingPolicy.TpSpec().Fentries = bprmTracingPolicy.TpSpec().KProbes
+		bprmTracingPolicy.TpSpec().KProbes = []v1alpha1.KProbeSpec{}
+	}
+
 	err := sm.Manager.AddTracingPolicy(ctx, &bprmTracingPolicy)
 	if assert.NoError(t, err) {
 		t.Cleanup(func() {
@@ -5268,8 +5529,12 @@ func TestLinuxBinprmExtractPath(t *testing.T) {
 	}
 }
 
+func TestLinuxBinprmExtractPath(t *testing.T) {
+	testLinuxBinprmExtractPath(t, false)
+}
+
 // Test module loading/unloading on Ubuntu
-func TestTraceKernelModule(t *testing.T) {
+func testTraceKernelModule(t *testing.T, fentry bool) {
 	_, err := ftrace.ReadAvailFuncs("^find_module_sections$")
 	if err != nil {
 		t.Skip("Skipping test: could not find find_module_sections")
@@ -5345,7 +5610,7 @@ spec:
 		t.Skip("Skipping test: could not determin if this is an Ubuntu machine")
 	}
 
-	createCrdFile(t, hookFull)
+	createCrdFileFlag(t, hookFull, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -5432,7 +5697,11 @@ spec:
 	require.NoError(t, err)
 }
 
-func TestKprobeKernelStackTrace(t *testing.T) {
+func TestTraceKernelModule(t *testing.T) {
+	testTraceKernelModule(t, false)
+}
+
+func testKprobeKernelStackTrace(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -5460,7 +5729,7 @@ spec: ` + disableKprobeMulti + `
         - action: Post
           kernelStackTrace: true`
 
-	createCrdFile(t, tracingPolicy)
+	createCrdFileFlag(t, tracingPolicy, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -5519,7 +5788,12 @@ spec: ` + disableKprobeMulti + `
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
 }
-func TestKprobeUserStackTrace(t *testing.T) {
+
+func TestKprobeKernelStackTrace(t *testing.T) {
+	testKprobeKernelStackTrace(t, false)
+}
+
+func testKprobeUserStackTrace(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -5550,7 +5824,7 @@ spec: ` + disableKprobeMulti + `
       - action: Post
         userStackTrace: true`
 
-	createCrdFile(t, tracingPolicy)
+	createCrdFileFlag(t, tracingPolicy, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -5595,7 +5869,11 @@ spec: ` + disableKprobeMulti + `
 	require.NoError(t, err)
 }
 
-func TestKprobeMultiMatcArgs(t *testing.T) {
+func TestKprobeUserStackTrace(t *testing.T) {
+	testKprobeUserStackTrace(t, false)
+}
+
+func testKprobeMultiMatcArgs(t *testing.T, fentry bool) {
 	if !config.EnableLargeProgs() {
 		t.Skip("Older kernels do not support matchArgs for more than one arguments")
 	}
@@ -5665,7 +5943,7 @@ spec:
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
 
-	createCrdFile(t, tracingPolicy)
+	createCrdFileFlag(t, tracingPolicy, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -5707,6 +5985,10 @@ spec:
 	require.NoError(t, err)
 }
 
+func TestKprobeMultiMatcArgs(t *testing.T) {
+	testKprobeMultiMatcArgs(t, false)
+}
+
 func trigger(t *testing.T) {
 	ins := asm.Instructions{
 		// Return SK_DROP
@@ -5738,7 +6020,7 @@ func trigger(t *testing.T) {
 	}
 }
 
-func TestKprobeArgs(t *testing.T) {
+func testKprobeArgs(t *testing.T, fentry bool) {
 	_, err := ftrace.ReadAvailFuncs("^bpf_fentry_test1$")
 	if err != nil {
 		t.Skip("Skipping test: could not find bpf_fentry_test1")
@@ -5842,7 +6124,7 @@ spec:
         - ` + pidStr + `
 `
 
-	createCrdFile(t, hook)
+	createCrdFileFlag(t, hook, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -5909,8 +6191,12 @@ spec:
 	require.NoError(t, err)
 }
 
+func TestKprobeArgs(t *testing.T) {
+	testKprobeArgs(t, false)
+}
+
 // Detect changing capabilities
-func TestProcessSetCap(t *testing.T) {
+func testProcessSetCap(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -5953,7 +6239,7 @@ spec:
         - "0"
 `
 
-	createCrdFile(t, tracingPolicy)
+	createCrdFileFlag(t, tracingPolicy, fentry)
 
 	fullSet := caps.GetCapsFullSet()
 	firstChange := fullSet&0xffffffff00000000 | uint64(0xffdfffff)  // Removes CAP_SYS_ADMIN
@@ -6037,6 +6323,10 @@ spec:
 	require.NoError(t, err)
 }
 
+func TestProcessSetCap(t *testing.T) {
+	testProcessSetCap(t, false)
+}
+
 func TestMissedProgStatsKprobeMulti(t *testing.T) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
@@ -6103,7 +6393,7 @@ tetragon_missed_prog_probes_total{attach="wake_up_new_task",policy="__base__"} 0
 
 }
 
-func TestKprobeBpfCmd(t *testing.T) {
+func testKprobeBpfCmd(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -6122,7 +6412,7 @@ spec:
    - index: 0
      type: "bpf_cmd"
 `
-	createCrdFile(t, hook)
+	createCrdFileFlag(t, hook, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 	if err != nil {
@@ -6167,7 +6457,11 @@ spec:
 	require.NoError(t, err)
 }
 
-func TestKprobeMultiSymbolInstancesOk(t *testing.T) {
+func TestKprobeBpfCmd(t *testing.T) {
+	testKprobeBpfCmd(t, false)
+}
+
+func testKprobeMultiSymbolInstancesOk(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -6208,7 +6502,7 @@ spec:
     syscall: true
     tags: [ "prctl_8888" ]
 `
-	createCrdFile(t, hook)
+	createCrdFileFlag(t, hook, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -6231,9 +6525,13 @@ spec:
 	require.NoError(t, err)
 }
 
+func TestKprobeMultiSymbolInstancesOk(t *testing.T) {
+	testKprobeMultiSymbolInstancesOk(t, false)
+}
+
 // TestLongPath could be split into a test checking for long args from kprobe
 // events and a test checking for long cwd
-func TestLongPath(t *testing.T) {
+func testLongPath(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -6266,7 +6564,7 @@ spec:
     - index: 1
       type: "file"`
 
-	createCrdFile(t, fdinstallHook)
+	createCrdFileFlag(t, fdinstallHook, fentry)
 
 	kprobeLongFileArgChecker := ec.NewProcessKprobeChecker("longFile").
 		WithFunctionName(sm.Full("fd_install")).
@@ -6308,7 +6606,11 @@ spec:
 	require.NoError(t, err)
 }
 
-func TestMaxPath(t *testing.T) {
+func TestLongPath(t *testing.T) {
+	testLongPath(t, false)
+}
+
+func testMaxPath(t *testing.T, fentry bool) {
 	// depending on temp dir, this should generate a path of ~1500 chars
 	// we can increase this to reach ~4000 for kernel supporting more than 11 dentry walk
 	tmp := t.TempDir()
@@ -6365,7 +6667,7 @@ spec:
     - index: 1
       type: "file"`
 
-		createCrdFile(t, spec)
+		createCrdFileFlag(t, spec, fentry)
 
 		kprobeCheck := ec.NewProcessKprobeChecker("file").
 			WithFunctionName(sm.Full("fd_install")).
@@ -6464,7 +6766,7 @@ spec:
 				))
 		}
 
-		createCrdFile(t, spec)
+		createCrdFileFlag(t, spec, fentry)
 
 		obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
 		if err != nil {
@@ -6547,7 +6849,7 @@ spec:
     - index: 1
       type: "dentry"`
 
-		createCrdFile(t, hook)
+		createCrdFileFlag(t, hook, fentry)
 
 		t.Logf("Removing file %s, check %s\n", pathRemoved, pathRemovedCheck)
 
@@ -6580,7 +6882,11 @@ spec:
 	})
 }
 
-func TestKprobeDentryPath(t *testing.T) {
+func TestMaxPath(t *testing.T) {
+	testMaxPath(t, false)
+}
+
+func testKprobeDentryPath(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -6640,7 +6946,7 @@ spec:
         values:
         - "` + check1 + `"
 `
-	createCrdFile(t, hook)
+	createCrdFileFlag(t, hook, fentry)
 
 	t.Logf("Removing file 1 %s, check %s\n", file1.Name(), check1)
 	t.Logf("Removing file 2 %s, check %s\n", file2.Name(), check2)
@@ -6680,7 +6986,11 @@ spec:
 	require.NoError(t, err)
 }
 
-func TestKprobeResolvePid(t *testing.T) {
+func TestKprobeDentryPath(t *testing.T) {
+	testKprobeDentryPath(t, false)
+}
+
+func testKprobeResolvePid(t *testing.T, fentry bool) {
 	if !kernels.MinKernelVersion("5.4") {
 		t.Skip("Test requires kernel 5.4+")
 	}
@@ -6705,7 +7015,7 @@ spec:
       resolve: "mm.owner.pid"
 `
 
-	createCrdFile(t, hook)
+	createCrdFileFlag(t, hook, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -6734,7 +7044,11 @@ spec:
 	require.NoError(t, err)
 }
 
-func TestKprobeArgsReverse(t *testing.T) {
+func TestKprobeResolvePid(t *testing.T) {
+	testKprobeResolvePid(t, false)
+}
+
+func testKprobeArgsReverse(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -6772,7 +7086,7 @@ spec:
         values:
         - ` + pidStr
 
-	createCrdFile(t, lseekConfigHook_)
+	createCrdFileFlag(t, lseekConfigHook_, fentry)
 
 	kpChecker := ec.NewProcessKprobeChecker("lseek-checker").
 		WithFunctionName(sm.Suffix("sys_lseek")).
@@ -6797,7 +7111,11 @@ spec:
 	require.NoError(t, err)
 }
 
-func TestKprobeResolveSecondArg(t *testing.T) {
+func TestKprobeArgsReverse(t *testing.T) {
+	testKprobeArgsReverse(t, false)
+}
+
+func testKprobeResolveSecondArg(t *testing.T, fentry bool) {
 	if !kernels.MinKernelVersion("5.4") {
 		t.Skip("Test requires kernel 5.4+")
 	}
@@ -6822,7 +7140,7 @@ spec:
       resolve: "sa_family"
 `
 
-	createCrdFile(t, hook)
+	createCrdFileFlag(t, hook, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -6850,7 +7168,11 @@ spec:
 	require.NoError(t, err)
 }
 
-func TestKprobeIgnore(t *testing.T) {
+func TestKprobeResolveSecondArg(t *testing.T) {
+	testKprobeResolveSecondArg(t, false)
+}
+
+func testKprobeIgnore(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -6885,7 +7207,7 @@ spec:
         values:
         - ` + pidStr
 
-	createCrdFile(t, lseekConfigHook_)
+	createCrdFileFlag(t, lseekConfigHook_, fentry)
 
 	kpChecker := ec.NewProcessKprobeChecker("lseek-checker").
 		WithFunctionName(sm.Suffix("sys_lseek"))
@@ -6903,7 +7225,11 @@ spec:
 	require.NoError(t, err)
 }
 
-func TestKprobeArgsMulti(t *testing.T) {
+func TestKprobeIgnore(t *testing.T) {
+	testKprobeIgnore(t, false)
+}
+
+func testKprobeArgsMulti(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -6947,7 +7273,7 @@ spec:
         values:
         - ` + pidStr
 
-	createCrdFile(t, lseekConfigHook_)
+	createCrdFileFlag(t, lseekConfigHook_, fentry)
 
 	kpChecker := ec.NewProcessKprobeChecker("lseek-checker").
 		WithFunctionName(sm.Suffix("sys_lseek")).
@@ -6974,7 +7300,11 @@ spec:
 	require.NoError(t, err)
 }
 
-func TestKprobeArgsMultiResolve(t *testing.T) {
+func TestKprobeArgsMulti(t *testing.T) {
+	testKprobeArgsMulti(t, false)
+}
+
+func testKprobeArgsMultiResolve(t *testing.T, fentry bool) {
 	if !kernels.MinKernelVersion("5.4") {
 		t.Skip("Test requires kernel 5.4+")
 	}
@@ -7002,7 +7332,7 @@ spec:
       resolve: "mm.owner.mm.owner.pid"
 `
 
-	createCrdFile(t, hook)
+	createCrdFileFlag(t, hook, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -7032,7 +7362,11 @@ spec:
 	require.NoError(t, err)
 }
 
-func TestKprobeArgsFilter(t *testing.T) {
+func TestKprobeArgsMultiResolve(t *testing.T) {
+	testKprobeArgsMultiResolve(t, false)
+}
+
+func testKprobeArgsFilter(t *testing.T, fentry bool) {
 	if !config.EnableLargeProgs() {
 		t.Skip("Older kernels do not support more than 1 selector argument")
 	}
@@ -7101,7 +7435,7 @@ spec:
         - "0"
 `
 
-	createCrdFile(t, lseekConfigHook_)
+	createCrdFileFlag(t, lseekConfigHook_, fentry)
 
 	kpChecker := ec.NewProcessKprobeChecker("lseek-checker").
 		WithFunctionName(sm.Suffix("sys_lseek")).
@@ -7128,7 +7462,11 @@ spec:
 	require.NoError(t, err)
 }
 
-func TestCapabilitiesGained(t *testing.T) {
+func TestKprobeArgsFilter(t *testing.T) {
+	testKprobeArgsFilter(t, false)
+}
+
+func testCapabilitiesGained(t *testing.T, fentry bool) {
 	testutils.CaptureLog(t, logger.GetLogger())
 	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
 	defer cancel()
@@ -7166,6 +7504,11 @@ func TestCapabilitiesGained(t *testing.T) {
 				}},
 			}},
 		}},
+	}
+
+	if fentry {
+		spec.Fentries = spec.KProbes
+		spec.KProbes = []v1alpha1.KProbeSpec{}
 	}
 
 	loadGenericSensorTest(t, spec)
@@ -7207,7 +7550,11 @@ func TestCapabilitiesGained(t *testing.T) {
 	require.Equal(t, 1, countEvents, "expected single event")
 }
 
-func TestKprobeResolveCurrent(t *testing.T) {
+func TestCapabilitiesGained(t *testing.T) {
+	testCapabilitiesGained(t, false)
+}
+
+func testKprobeResolveCurrent(t *testing.T, fentry bool) {
 	if !kernels.MinKernelVersion("5.4") {
 		t.Skip("Test requires kernel 5.4+")
 	}
@@ -7264,7 +7611,7 @@ spec:
         - "` + strconv.Itoa(pid) + `"
 `
 
-	createCrdFile(t, hook)
+	createCrdFileFlag(t, hook, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -7297,7 +7644,11 @@ spec:
 	require.NoError(t, err)
 }
 
-func testKprobeRangeOp(t *testing.T, in bool) {
+func TestKprobeResolveCurrent(t *testing.T) {
+	testKprobeResolveCurrent(t, false)
+}
+
+func testKprobeRangeOp(t *testing.T, in, fentry bool) {
 
 	if !config.EnableLargeProgs() {
 		t.Skipf("Skipping test since it needs kernel >= 5.3")
@@ -7336,7 +7687,7 @@ spec:
         - 0xffffe:0xfffff
 `
 
-	createCrdFile(t, hook)
+	createCrdFileFlag(t, hook, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -7383,14 +7734,14 @@ spec:
 }
 
 func TestKprobeRangeIn(t *testing.T) {
-	testKprobeRangeOp(t, true)
+	testKprobeRangeOp(t, true, false)
 }
 
 func TestKprobeRangeNotIn(t *testing.T) {
-	testKprobeRangeOp(t, false)
+	testKprobeRangeOp(t, false, false)
 }
 
-func testKprobeGT(t *testing.T, value uint64, fail bool) {
+func testKprobeGT(t *testing.T, value uint64, fail, fentry bool) {
 
 	if !config.EnableLargeProgs() {
 		t.Skipf("Skipping test since it needs kernel >= 5.3")
@@ -7422,7 +7773,7 @@ spec:
         - "0xffff0"
 `
 
-	createCrdFile(t, hook)
+	createCrdFileFlag(t, hook, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -7450,14 +7801,14 @@ spec:
 }
 
 func TestKprobeGTOk(t *testing.T) {
-	testKprobeGT(t, 0xffff1, false)
+	testKprobeGT(t, 0xffff1, false, false)
 }
 
 func TestKprobeGTFail(t *testing.T) {
-	testKprobeGT(t, 0xfffef, true)
+	testKprobeGT(t, 0xfffef, true, false)
 }
 
-func TestKprobeFileTypeFilterRegular(t *testing.T) {
+func testKprobeFileTypeFilterRegular(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -7498,7 +7849,7 @@ spec:
         - "reg"
 `
 
-	createCrdFile(t, fileTypeHook)
+	createCrdFileFlag(t, fileTypeHook, fentry)
 
 	kpChecker := ec.NewProcessKprobeChecker("filetype-regular-checker").
 		WithFunctionName(sm.Full("vfs_write")).
@@ -7524,7 +7875,11 @@ spec:
 	require.NoError(t, err)
 }
 
-func TestKprobeFileTypeFilterPipe(t *testing.T) {
+func TestKprobeFileTypeFilterRegular(t *testing.T) {
+	testKprobeFileTypeFilterRegular(t, false)
+}
+
+func testKprobeFileTypeFilterPipe(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -7558,7 +7913,7 @@ spec:
         - "pipe"
 `
 
-	createCrdFile(t, fileTypeHook)
+	createCrdFileFlag(t, fileTypeHook, fentry)
 
 	kpChecker := ec.NewProcessKprobeChecker("filetype-pipe-checker").
 		WithFunctionName(sm.Full("vfs_write")).
@@ -7589,7 +7944,11 @@ spec:
 	require.NoError(t, err)
 }
 
-func TestKprobeFileTypeFilterNotRegular(t *testing.T) {
+func TestKprobeFileTypeFilterPipe(t *testing.T) {
+	testKprobeFileTypeFilterPipe(t, false)
+}
+
+func testKprobeFileTypeFilterNotRegular(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -7630,7 +7989,7 @@ spec:
         - "reg"
 `
 
-	createCrdFile(t, fileTypeHook)
+	createCrdFileFlag(t, fileTypeHook, fentry)
 
 	kpChecker := ec.NewProcessKprobeChecker("filetype-notreg-checker").
 		WithFunctionName(sm.Full("vfs_write")).
@@ -7665,7 +8024,11 @@ spec:
 	require.NoError(t, err)
 }
 
-func TestKprobeFileTypeFilterSocket(t *testing.T) {
+func TestKprobeFileTypeFilterNotRegular(t *testing.T) {
+	testKprobeFileTypeFilterNotRegular(t, false)
+}
+
+func testKprobeFileTypeFilterSocket(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -7699,7 +8062,7 @@ spec:
         - "socket"
 `
 
-	createCrdFile(t, fileTypeHook)
+	createCrdFileFlag(t, fileTypeHook, fentry)
 
 	kpChecker := ec.NewProcessKprobeChecker("filetype-socket-checker").
 		WithFunctionName(sm.Full("vfs_write")).
@@ -7752,7 +8115,11 @@ spec:
 	require.NoError(t, err)
 }
 
-func TestKprobeFileTypeFilterNotPipe(t *testing.T) {
+func TestKprobeFileTypeFilterSocket(t *testing.T) {
+	testKprobeFileTypeFilterSocket(t, false)
+}
+
+func testKprobeFileTypeFilterNotPipe(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -7793,7 +8160,7 @@ spec:
         - "pipe"
 `
 
-	createCrdFile(t, fileTypeHook)
+	createCrdFileFlag(t, fileTypeHook, fentry)
 
 	kpChecker := ec.NewProcessKprobeChecker("filetype-notpipe-checker").
 		WithFunctionName(sm.Full("vfs_write")).
@@ -7828,7 +8195,11 @@ spec:
 	require.NoError(t, err)
 }
 
-func TestKprobeFileTypeFilterMultiple(t *testing.T) {
+func TestKprobeFileTypeFilterNotPipe(t *testing.T) {
+	testKprobeFileTypeFilterNotPipe(t, false)
+}
+
+func testKprobeFileTypeFilterMultiple(t *testing.T, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -7870,7 +8241,7 @@ spec:
         - "pipe"
 `
 
-	createCrdFile(t, fileTypeHook)
+	createCrdFileFlag(t, fileTypeHook, fentry)
 
 	kpCheckerReg := ec.NewProcessKprobeChecker("filetype-multi-checker-reg").
 		WithFunctionName(sm.Full("vfs_write")).
@@ -7912,7 +8283,11 @@ spec:
 	require.NoError(t, err)
 }
 
-func TestKprobeNotEqualMultipleValues(t *testing.T) {
+func TestKprobeFileTypeFilterMultiple(t *testing.T) {
+	testKprobeFileTypeFilterMultiple(t, false)
+}
+
+func testKprobeNotEqualMultipleValues(t *testing.T, fentry bool) {
 	if !kernels.MinKernelVersion("5.0") {
 		t.Skip("Test fails on older kernels (like 4.19) due to missing BTF resolution for f_inode.i_sb.s_magic")
 	}
@@ -7951,7 +8326,7 @@ spec:
         values:
         - curl
 `
-	createCrdFile(t, tracingPolicy)
+	createCrdFileFlag(t, tracingPolicy, fentry)
 
 	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib)
 	if err != nil {
@@ -7968,4 +8343,8 @@ spec:
 
 	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(kpChecker))
 	require.NoError(t, err)
+}
+
+func TestKprobeNotEqualMultipleValues(t *testing.T) {
+	testKprobeNotEqualMultipleValues(t, false)
 }
