@@ -35,6 +35,7 @@ import (
 	"github.com/cilium/tetragon/pkg/sensors"
 	"github.com/cilium/tetragon/pkg/sensors/base"
 	"github.com/cilium/tetragon/pkg/sensors/program"
+	"github.com/cilium/tetragon/pkg/strutils"
 	"github.com/cilium/tetragon/pkg/syscallinfo"
 	"github.com/cilium/tetragon/pkg/tracepoint"
 
@@ -997,6 +998,27 @@ func handleMsgGenericTracepoint(
 			arg.SinFamily = address.SinFamily
 			arg.SinAddr = network.GetIP(address.SinAddr, address.SinFamily).String()
 			arg.SinPort = uint32(address.SinPort)
+			unix.Args = append(unix.Args, arg)
+
+		case gt.GenericSockaddrUnType:
+			var sockaddr tracingapi.MsgGenericKprobeSockaddrUn
+			var arg tracingapi.MsgGenericKprobeArgSockaddrUn
+
+			err := binary.Read(r, binary.LittleEndian, &sockaddr)
+			if err != nil {
+				logger.GetLogger().Warn("sockaddrun type err", logfields.Error, err)
+			}
+
+			arg.Family = sockaddr.Family
+			if sockaddr.PathLen > 0 {
+				pathLen := min(int(sockaddr.PathLen), len(sockaddr.Path))
+				path := make([]byte, pathLen)
+				copy(path, sockaddr.Path[:pathLen])
+				if sockaddr.IsAbstract {
+					path = append([]byte{'@'}, path...)
+				}
+				arg.Path = strutils.UTF8FromBPFBytes(path)
+			}
 			unix.Args = append(unix.Args, arg)
 
 		case gt.GenericSyscall64:
