@@ -91,6 +91,9 @@ endif
 GO_BUILD = CGO_ENABLED=0 GOARCH=$(GOARCH) $(GO) build $(GO_BUILD_FLAGS)
 GO_BUILD_HOOK = CGO_ENABLED=0 GOARCH=$(GOARCH) $(GO) -C contrib/tetragon-rthooks build $(GO_BUILD_FLAGS)
 
+GO_BUILD_FLAGS_NOK8S = $(subst version.Name=tetragon,version.Name=tetragon-nok8s,$(GO_BUILD_FLAGS))
+GO_BUILD_NOK8S = CGO_ENABLED=0 GOARCH=$(GOARCH) $(GO) build $(GO_BUILD_FLAGS_NOK8S)
+
 .PHONY: all
 all: tetragon-bpf tetragon tetra test-compile tester-progs protoc-gen-go-tetragon tetragon-bench
 
@@ -107,15 +110,23 @@ clean: cli-clean tarball-clean
 
 .PHONY: tetragon
 tetragon: ## Compile the Tetragon agent.
-	$(GO_BUILD) ./cmd/tetragon/
+	$(GO_BUILD) -tags k8s ./cmd/tetragon/
+
+.PHONY: tetragon-nok8s
+tetragon-nok8s: ## Compile the Tetragon agent without k8s support.
+	$(GO_BUILD_NOK8S) -o tetragon-nok8s ./cmd/tetragon/
 
 .PHONY: tetragon-operator
 tetragon-operator: ## Compile the Tetragon operator.
-	$(GO_BUILD) -o $@ ./operator
+	$(GO_BUILD) -tags k8s -o $@ ./operator
 
 .PHONY: tetra
 tetra: ## Compile the Tetragon gRPC client.
-	$(GO_BUILD) ./cmd/tetra/
+	$(GO_BUILD) -tags k8s ./cmd/tetra/
+
+.PHONY: tetra-nok8s
+tetra-nok8s: ## Compile the Tetragon gRPC client.
+	$(GO_BUILD) -o $@ ./cmd/tetra/
 
 .PHONY: tetragon-bpf
 ifeq (1,$(LOCAL_CLANG))
@@ -258,7 +269,7 @@ copy-golangci-lint:
 
 .PHONY: test
 test: tester-progs tetragon-bpf ## Run Go tests.
-	$(GO) test -exec "$(SUDO)" -p 1 -parallel 1 $(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -timeout $(GO_TEST_TIMEOUT) -failfast -cover ./pkg/... ./cmd/... ./operator/... ${EXTRA_TESTFLAGS}
+	$(GO) test -tags k8s -exec "$(SUDO)" -p 1 -parallel 1 $(GOFLAGS) -gcflags=$(GO_BUILD_GCFLAGS) -timeout $(GO_TEST_TIMEOUT) -failfast -cover ./pkg/... ./cmd/... ./operator/... ${EXTRA_TESTFLAGS}
 
 .PHONY: tester-progs
 tester-progs: ## Compile helper programs for unit testing.
@@ -286,7 +297,7 @@ TEST_COMPILE ?= ./...
 .PHONY: test-compile
 test-compile: ## Compile unit tests.
 	mkdir -p go-tests
-	for pkg in $$($(GO) list "$(TEST_COMPILE)"); do \
+	for pkg in $$($(GO) list -tags k8s "$(TEST_COMPILE)"); do \
 		localpkg=$$(echo $$pkg | sed -e 's:github.com/cilium/tetragon/::'); \
 		localtestfile=$$(echo $$localpkg | sed -e 's:/:.:g'); \
 		numtests=$$(ls -l ./$$localpkg/*_test.go 2> /dev/null | wc -l); \
@@ -294,7 +305,7 @@ test-compile: ## Compile unit tests.
 			continue; \
 		fi; \
 		echo -c ./$$localpkg -o go-tests/$$localtestfile; \
-	done | GOMAXPROCS=1 xargs -P $(JOBS) -L 1 $(GO) test -gcflags=$(GO_BUILD_GCFLAGS)
+	done | GOMAXPROCS=1 xargs -P $(JOBS) -L 1 $(GO) test -tags k8s -gcflags=$(GO_BUILD_GCFLAGS)
 
 .PHONY: fetch-testdata
 fetch-testdata:

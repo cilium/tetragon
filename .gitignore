@@ -1,11 +1,13 @@
 /bin
 lib/*
 /tetragon
+/tetragon-nok8s
 /tetragon.exe
 /alignchecker
 /tetragon-bench
 /tetragon-operator
 /tetra
+/tetra-nok8s
 /tetragon-oci-hook
 /tetragon-oci-hook-setup
 /tetragon-metrics-docs

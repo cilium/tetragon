@@ -13,10 +13,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
+	"github.com/cilium/tetragon/pkg/build"
 	"github.com/cilium/tetragon/pkg/watcher"
 )
 
 func TestK8sWatcher_GetPodInfo(t *testing.T) {
+	if !build.K8sEnabled() {
+		t.Skip("non-k8s build: skipping test")
+	}
 	controller := true
 	var pods []any
 	pod := &v1.Pod{
