@@ -14,27 +14,27 @@ import (
 var yamlTemplate = `apiVersion: cilium.io/v1alpha1
 kind: TracingPolicyNamespaced
 metadata:
-  name: example_yaml
-  namespace: default
+    name: example_yaml
+    namespace: default
 spec:
-  kprobes:
-  - call: __x64_sys_connect
-    selectors:
-    - matchActions:
-      - action: Override
-        argError: -111
-    syscall: true
-  - call: __x64_sys_listen
-    selectors:
-    - matchActions:
-      - action: Override
-        argError: -111
-    syscall: true
+    kprobes:
+        - call: __x64_sys_connect
+          selectors:
+            - matchActions:
+                - action: Override
+                  argError: -111
+          syscall: true
+        - call: __x64_sys_listen
+          selectors:
+            - matchActions:
+                - action: Override
+                  argError: -111
+          syscall: true
 {{- if .IncludeOpts }}
-  options:
+    options:
 {{- range $k, $v := .Opts }}
-  - name: {{ $k }}
-    value: {{ $v }}
+        - name: {{ $k }}
+          value: {{ $v }}
 {{- end }}
 {{- end}}
 `

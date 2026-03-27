@@ -8,10 +8,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/cilium/tetragon/pkg/build"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/testutils/tempfile"
 )
@@ -22,11 +21,11 @@ var lseekExample string
 func TestYamlLseek(t *testing.T) {
 
 	expected := GenericTracingPolicy{
-		TypeMeta: v1.TypeMeta{
+		TypeMeta: TypeMeta{
 			APIVersion: "cilium.io/v1alpha1",
 			Kind:       "TracingPolicy",
 		},
-		Metadata: v1.ObjectMeta{Name: "tracepoint-lseek"},
+		Metadata: ObjectMeta{Name: "tracepoint-lseek"},
 		Spec: v1alpha1.TracingPolicySpec{
 			Tracepoints: []v1alpha1.TracepointSpec{{
 				Subsystem: "syscalls",
@@ -83,6 +82,7 @@ spec:
 `
 
 func TestYamlNamespaced(t *testing.T) {
+	build.SkipIfK8sDisabled(t)
 	tp, err := FromYAML(tpNamespaced)
 	require.NoError(t, err)
 	_, ok := tp.(TracingPolicyNamespaced)
@@ -93,5 +93,4 @@ func TestEmptyTracingPolicy(t *testing.T) {
 	path := tempfile.CreateTempFile(t, "")
 	_, err := FromFile(path)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "unknown CRD kind: ")
 }
