@@ -32,6 +32,27 @@ type argPrinter struct {
 	data     bool
 }
 
+// decodeSockaddrUnPath returns the exported sockaddr_un path (prepend '@' for abstract).
+func decodeSockaddrUnPath(rawPath []byte, _ uint8, isAbstract bool) string {
+	if !isAbstract {
+		// Filesystem socket: path is null-terminated in the buffer.
+		n := bytes.IndexByte(rawPath, 0)
+		if n <= 0 {
+			return ""
+		}
+		return strutils.UTF8FromBPFBytes(rawPath[:n])
+	}
+	// Abstract socket: strip all null bytes from the raw buffer, then prepend '@'.
+	strippedPath := bytes.ReplaceAll(rawPath, []byte{0}, nil)
+	if len(strippedPath) == 0 {
+		return ""
+	}
+	path := make([]byte, len(strippedPath)+1)
+	path[0] = '@'
+	copy(path[1:], strippedPath)
+	return strutils.UTF8FromBPFBytes(path)
+}
+
 const (
 	argReturnCopyBit  = 1 << 4
 	argMaxDataBit     = 1 << 5
@@ -337,6 +358,19 @@ func getArg(l getArgLogger, r *bytes.Reader, a argPrinter) api.MsgGenericKprobeA
 		arg.SinFamily = address.SinFamily
 		arg.SinAddr = network.GetIP(address.SinAddr, address.SinFamily).String()
 		arg.SinPort = uint32(address.SinPort)
+		return arg
+	case gt.GenericSockaddrUnType:
+		var sockaddr api.MsgGenericKprobeSockaddrUn
+		var arg api.MsgGenericKprobeArgSockaddrUn
+
+		err := binary.Read(r, binary.LittleEndian, &sockaddr)
+		if err != nil {
+			l.LogAttrs(slog.LevelWarn, "sockaddrun type err", slog.Any(logfields.Error, err))
+		}
+
+		arg.Index = uint64(a.index)
+		arg.Family = sockaddr.Family
+		arg.Path = decodeSockaddrUnPath(sockaddr.Path[:], sockaddr.PathLen, sockaddr.IsAbstract)
 		return arg
 	case gt.GenericS64Type:
 		var output int64
