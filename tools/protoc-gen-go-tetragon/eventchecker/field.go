@@ -70,8 +70,8 @@ func (field *Field) generateFrom(g *protogen.GeneratedFile, msg *CheckedMessage)
 }
 
 func (field *Field) getFrom(g *protogen.GeneratedFile, msg *CheckedMessage) (string, error) {
-	checkerVar := fmt.Sprintf("%s.%s", checkerVarName, field.GoName)
-	eventVar := fmt.Sprintf("%s.%s", eventVarName, field.GoName)
+	checkerVar := checkerVarName + "." + field.GoName
+	eventVar := eventVarName + "." + field.GoName
 
 	from, err := doGetFieldFrom(field, g, true, true, msg.checkerName(g), checkerVar, eventVar)
 	if err != nil {
@@ -117,7 +117,7 @@ func doGetFieldFrom(field *Field, g *protogen.GeneratedFile, handleList, handleO
 
 		innerType := common.TetragonApiIdent(g, field.GoIdent.GoName)
 
-		return `switch event := ` + fmt.Sprintf("%s.%s", eventVarName, oneof.GoName) + `.(type) {
+		return `switch event := ` + eventVarName + "." + oneof.GoName + `.(type) {
             case * ` + innerType + `:
                 ` + innerFrom + `
             }`, nil
@@ -172,7 +172,7 @@ func doGetFieldFrom(field *Field, g *protogen.GeneratedFile, handleList, handleO
 	}
 
 	doCheckerFrom := func() string {
-		newCall := fmt.Sprintf("New%sChecker()", field.Message.GoIdent.GoName)
+		newCall := "New" + field.Message.GoIdent.GoName + "Checker()"
 		typeImportPath := string(field.Message.GoIdent.GoImportPath)
 		if !strings.HasPrefix(typeImportPath, common.TetragonPackageName) {
 			importPath := filepath.Join(typeImportPath, "codegen", "eventchecker")
@@ -190,7 +190,7 @@ func doGetFieldFrom(field *Field, g *protogen.GeneratedFile, handleList, handleO
 
 	doEnumFrom := func() string {
 		typeImportPath := string(field.Enum.GoIdent.GoImportPath)
-		newCall := fmt.Sprintf("New%sChecker", field.Enum.GoIdent.GoName)
+		newCall := "New" + field.Enum.GoIdent.GoName + "Checker"
 		if !strings.HasPrefix(typeImportPath, common.TetragonPackageName) {
 			importPath := filepath.Join(typeImportPath, "codegen", "eventchecker")
 			newCall = g.QualifiedGoIdent(protogen.GoIdent{
@@ -215,7 +215,7 @@ func doGetFieldFrom(field *Field, g *protogen.GeneratedFile, handleList, handleO
 	}
 
 	if handleList && field.Desc.IsMap() {
-		return "// TODO: implement fromMap", nil
+		return field.doGetFieldFromMap(g)
 	}
 
 	switch kind {
@@ -256,8 +256,8 @@ func doGetFieldFrom(field *Field, g *protogen.GeneratedFile, handleList, handleO
 }
 
 func (field *Field) generateFieldCheck(g *protogen.GeneratedFile, msg *CheckedMessage) error {
-	checkerVar := fmt.Sprintf("%s.%s", checkerVarName, field.GoName)
-	eventVar := fmt.Sprintf("%s.%s", eventVarName, field.GoName)
+	checkerVar := checkerVarName + "." + field.GoName
+	eventVar := eventVarName + "." + field.GoName
 
 	check, err := field.getFieldCheck(g, msg.checkerName(g), checkerVar, eventVar)
 	if err != nil {
@@ -299,33 +299,6 @@ func (field *Field) getFieldCheck(g *protogen.GeneratedFile, checkerName, checke
 // checkForMap returns the checker body for map fields and, as a special case, the
 // Pod_Labels field of the Pod message.
 func checkForMap(g *protogen.GeneratedFile, field *Field, checkerName, checkerVar, eventVar string) (string, error) {
-	// Common part of the map check
-	mapCheck := func(eventVar string) (string, error) {
-		return `var unmatched []string
-            matched := make(map[string]struct{})
-            for key, value := range ` + eventVar + ` {
-                if len(` + checkerVar + `) > 0 {
-                    // Attempt to grab the matcher for this key
-                    if matcher, ok := ` + checkerVar + `[key]; ok {
-                        if err := matcher.Match(value); err != nil {
-                            return ` + common.FmtErrorf(g, field.GoName+"[%s] (%s=%s) check failed: %w", "key", "key", "value", "err") + `
-                        }
-                        matched[key] = struct{}{}
-                    }
-                }
-            }
-
-            // See if we have any unmatched values that we wanted to match
-            if len(matched) != len(` + checkerVar + `) {
-                for k := range ` + checkerVar + ` {
-                    if _, ok := matched[k]; !ok {
-                        unmatched = append(unmatched, k)
-                    }
-                }
-                return ` + common.FmtErrorf(g, field.GoName+" unmatched: %v", "unmatched") + `
-            }`, nil
-	}
-
 	// Specific to Pod_Labels which needs to be converted into a map
 	if field.GoIdent.GoName == "Pod_Labels" {
 		splitN := common.GoIdent(g, "strings", "SplitN")
@@ -342,15 +315,14 @@ func checkForMap(g *protogen.GeneratedFile, field *Field, checkerName, checkerVa
             }
             values[kv[0]] = kv[1]
         }`
-
-		check, err := mapCheck("values")
-		if err != nil {
-			return "", err
-		}
-		return preamble + "\n" + check, nil
+		return preamble + "\n" + `if err := ` + checkerVar + `.Match(values); err != nil {
+            return ` + common.FmtErrorf(g, field.GoName+" check failed: %w", "err") + `
+        }`, nil
 	}
 
-	return mapCheck(eventVar)
+	return `if err := ` + checkerVar + `.Match(` + eventVar + `); err != nil {
+        return ` + common.FmtErrorf(g, field.GoName+" check failed: %w", "err") + `
+    }`, nil
 }
 
 // checkForOneof returns the event checker body for a Oneof.
@@ -360,7 +332,7 @@ func checkForOneof(g *protogen.GeneratedFile, field *Field, checkerName string, 
 		return "", err
 	}
 	fieldIdent := common.TetragonApiIdent(g, field.GoIdent.GoName)
-	return `switch event := ` + fmt.Sprintf("%s.%s", eventVarName, field.Oneof.GoName) + `.(type) {
+	return `switch event := ` + eventVarName + "." + field.Oneof.GoName + `.(type) {
     case *` + fieldIdent + `:
         ` + inner + `
     default:
@@ -672,7 +644,7 @@ func (field *Field) listCheckerName(g *protogen.GeneratedFile) string {
 func (field *Field) newListCheckerName(g *protogen.GeneratedFile) string {
 	if msg := field.Message; msg != nil {
 		typeImportPath := string(field.Message.GoIdent.GoImportPath)
-		ret := fmt.Sprintf("New%sListMatcher", msg.GoIdent.GoName)
+		ret := "New" + msg.GoIdent.GoName + "ListMatcher"
 		if !strings.HasPrefix(typeImportPath, common.TetragonPackageName) {
 			importPath := filepath.Join(typeImportPath, "codegen", "eventchecker")
 			ret = g.QualifiedGoIdent(protogen.GoIdent{
@@ -683,7 +655,7 @@ func (field *Field) newListCheckerName(g *protogen.GeneratedFile) string {
 		return ret
 	} else if enum := field.Enum; enum != nil {
 		typeImportPath := string(field.Enum.GoIdent.GoImportPath)
-		ret := fmt.Sprintf("New%sListMatcher", enum.GoIdent.GoName)
+		ret := "New" + enum.GoIdent.GoName + "ListMatcher"
 		if !strings.HasPrefix(typeImportPath, common.TetragonPackageName) {
 			importPath := filepath.Join(typeImportPath, "codegen", "eventchecker")
 			ret = g.QualifiedGoIdent(protogen.GoIdent{
@@ -694,7 +666,7 @@ func (field *Field) newListCheckerName(g *protogen.GeneratedFile) string {
 		return ret
 	}
 	varIdent := field.kind().String()
-	return fmt.Sprintf("New%sListMatcher", strcase.ToCamel(varIdent))
+	return "New" + strcase.ToCamel(varIdent) + "ListMatcher"
 }
 
 func (field *Field) kind() protoreflect.Kind {
@@ -771,16 +743,27 @@ func (field *Field) isEnum() bool {
 }
 
 func (field *Field) jsonTag() string {
-	return fmt.Sprintf("json:\"%s,omitempty\"", field.Desc.JSONName())
+	return `json:"` + field.Desc.JSONName() + `,omitempty"`
 }
 
 func (field *Field) typeName(g *protogen.GeneratedFile) (string, error) {
 	kind := field.kind()
 
-	// Pod.Labels is a special case
-	if field.GoIdent.GoName == "Pod_Labels" {
-		smatcher := common.StringMatcherIdent(g, "StringMatcher")
-		return "map[string]" + smatcher, nil
+	if field.isMap() {
+		mident := common.MapMatcherIdent(g, "MapMatcher")
+		keyType, err := field.mapKeyTypeName(g)
+		if err != nil {
+			return "", err
+		}
+		valMatcher, err := field.mapValueMatchTypeName(g)
+		if err != nil {
+			return "", err
+		}
+		valActual, err := field.mapValueActualTypeName(g)
+		if err != nil {
+			return "", err
+		}
+		return mident + "[" + keyType + ", " + valActual + ", " + valMatcher + "]", nil
 	}
 
 	var type_ string
@@ -839,15 +822,7 @@ func (field *Field) typeName(g *protogen.GeneratedFile) (string, error) {
 		return "", fmt.Errorf("unhandled field type %s (please edit checkerTypeName in field.go)", kind)
 	}
 
-	if field.isMap() {
-		if field.Desc.MapKey().Kind() != protoreflect.StringKind {
-			return "", errors.New("maps without string keys are not supported")
-		}
-		if field.Desc.MapValue().Kind() != protoreflect.StringKind {
-			return "", errors.New("maps without string values are not supported")
-		}
-		return "map[string]" + common.StringMatcherIdent(g, "StringMatcher"), nil
-	} else if field.isList() {
+	if field.isList() {
 		if field.isPrimitive() {
 			return "[]" + type_, nil
 		}
@@ -855,6 +830,83 @@ func (field *Field) typeName(g *protogen.GeneratedFile) (string, error) {
 	}
 
 	return type_, nil
+}
+
+func (field *Field) mapKeyTypeName(_ *protogen.GeneratedFile) (string, error) {
+	kind := field.Desc.MapKey().Kind()
+	switch kind {
+	case protoreflect.StringKind:
+		return "string", nil
+	default:
+		return "", fmt.Errorf("unsupported map key kind: %s", kind)
+	}
+}
+
+func (field *Field) mapValueMatchTypeName(g *protogen.GeneratedFile) (string, error) {
+	kind := field.Desc.MapValue().Kind()
+	switch kind {
+	case protoreflect.StringKind:
+		return common.StringMatcherIdent(g, "StringMatcher"), nil
+	case protoreflect.BytesKind:
+		return common.BytesMatcherIdent(g, "BytesMatcher"), nil
+	case protoreflect.MessageKind:
+		return "", errors.New("message values in maps are not yet supported")
+	default:
+		// For primitive types, use PrimitiveMatcher
+		pm := common.MapMatcherIdent(g, "PrimitiveMatcher")
+		actual, err := field.mapValueActualTypeName(g)
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("%s[%s]", pm, actual), nil
+	}
+}
+
+func (field *Field) mapValueActualTypeName(_ *protogen.GeneratedFile) (string, error) {
+	kind := field.Desc.MapValue().Kind()
+	return kind.String(), nil
+}
+
+func (field *Field) doGetFieldFromMap(g *protogen.GeneratedFile) (string, error) {
+	mident, err := field.typeName(g)
+	if err != nil {
+		return "", err
+	}
+
+	// For Pod_Labels specifically
+	if field.GoIdent.GoName == "Pod_Labels" {
+		smatcher := common.StringMatcherIdent(g, "Full")
+		return `{
+            checkerVar := make(` + mident + `)
+            splitN := strings.SplitN
+            for _, s := range event.PodLabels {
+                 kv := splitN(s, "=", 2)
+                 if len(kv) == 2 {
+                     checkerVar[kv[0]] = *` + smatcher + `(kv[1])
+                 }
+            }
+            checker.PodLabels = checkerVar
+        }`, nil
+	}
+
+	valKind := field.Desc.MapValue().Kind()
+	innerFrom := ""
+	if valKind == protoreflect.StringKind {
+		smatcher := common.StringMatcherIdent(g, "Full")
+		innerFrom = `checkerVar[k] = *` + smatcher + `(v)`
+	} else {
+		pm := common.MapMatcherIdent(g, "PrimitiveMatcher")
+		actual, _ := field.mapValueActualTypeName(g)
+		innerFrom = `checkerVar[k] = ` + pm + `[` + actual + `]{Value: v}`
+	}
+
+	return `{
+        checkerVar := make(` + mident + `)
+        for k, v := range event.` + field.GoName + ` {
+            ` + innerFrom + `
+        }
+        checker.` + field.GoName + ` = checkerVar
+    }`, nil
 }
 
 func kindToFormat(k protoreflect.Kind) string {
