@@ -46,14 +46,14 @@ func collectLink(load *program.Program) (uint64, bool) {
 		switch pevent.Type {
 		case unix.BPF_PERF_EVENT_KPROBE, unix.BPF_PERF_EVENT_KRETPROBE:
 			kprobe := pevent.Kprobe()
-			return kprobe.Missed()
+			return kprobe.Missed, kprobe.Address > 0
 		}
 	case link.KprobeMultiType:
 		if !bpf.HasMissedStatsKprobeMulti() {
 			return 0, false
 		}
 		kmulti := info.KprobeMulti()
-		return kmulti.Missed()
+		return kmulti.Missed, kmulti.Count > 0
 	}
 
 	return 0, false
