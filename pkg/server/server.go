@@ -51,6 +51,7 @@ type observer interface {
 	// If the requested domain is empty, policies from all domains are returned.
 	ListTracingPolicies(ctx context.Context, domain string) (*tetragon.ListTracingPoliciesResponse, error)
 	ConfigureTracingPolicy(ctx context.Context, conf *tetragon.ConfigureTracingPolicyRequest) error
+	ListDomains(ctx context.Context) (*tetragon.ListDomainsResponse, error)
 
 	// {Disable, Enable}TracingPolicy are deprecated, use ConfigureTracingPolicy instead
 	DisableTracingPolicy(ctx context.Context, name string, namespace string, domain string) error
@@ -354,6 +355,15 @@ func (s *Server) EnableSensor(_ context.Context, req *tetragon.EnableSensorReque
 func (s *Server) DisableSensor(_ context.Context, req *tetragon.DisableSensorRequest) (*tetragon.DisableSensorResponse, error) {
 	logger.GetLogger().Debug("Received a DisableSensor request", "sensor.name", req.GetName())
 	return nil, errors.New("DisableSensor is deprecated")
+}
+
+func (s *Server) ListDomains(ctx context.Context, _ *tetragon.ListDomainsRequest) (*tetragon.ListDomainsResponse, error) {
+	logger.GetLogger().Debug("Received a ListDomains request")
+	ret, err := s.observer.ListDomains(ctx)
+	if err != nil {
+		logger.GetLogger().Warn("Server ListDomains request failed", logfields.Error, err)
+	}
+	return ret, err
 }
 
 func (s *Server) GetVersion(_ context.Context, _ *tetragon.GetVersionRequest) (*tetragon.GetVersionResponse, error) {
