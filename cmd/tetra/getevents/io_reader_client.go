@@ -95,6 +95,10 @@ func (i *ioReaderClient) DisableSensor(_ context.Context, _ *tetragon.DisableSen
 	panic("stub")
 }
 
+func (i *ioReaderClient) ListDomains(_ context.Context, _ *tetragon.ListDomainsRequest, _ ...grpc.CallOption) (*tetragon.ListDomainsResponse, error) {
+	panic("stub")
+}
+
 func (i *ioReaderClient) GetVersion(_ context.Context, _ *tetragon.GetVersionRequest, _ ...grpc.CallOption) (*tetragon.GetVersionResponse, error) {
 	panic("stub")
 }

@@ -40,3 +40,7 @@ func (f *FakeObserver) ListTracingPolicies(ctx context.Context, domain string) (
 func (h *FakeObserver) ConfigureTracingPolicy(_ context.Context, _ *tetragon.ConfigureTracingPolicyRequest) error {
 	return nil
 }
+
+func (h *FakeObserver) ListDomains(_ context.Context) (*tetragon.ListDomainsResponse, error) {
+	return nil, nil
+}
