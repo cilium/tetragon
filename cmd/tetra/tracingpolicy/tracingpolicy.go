@@ -8,6 +8,7 @@ package tracingpolicy
 import (
 	"fmt"
 	"os"
+	"slices"
 
 	"github.com/spf13/cobra"
 
@@ -249,6 +250,48 @@ func tpListCmd() *cobra.Command {
 	return ret
 }
 
+func tpListDomainsCmd() *cobra.Command {
+	var output string
+	ret := &cobra.Command{
+		Use:   "domains",
+		Short: "list loaded tracing policies domains",
+		Args:  cobra.ExactArgs(0),
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			c, err := common.NewClientWithDefaultContextAndAddress()
+			if err != nil {
+				return fmt.Errorf("failed create gRPC client: %w", err)
+			}
+			defer c.Close()
+
+			res, err := c.Client.ListDomains(c.Ctx, &tetragon.ListDomainsRequest{})
+			if err != nil || res == nil {
+				return fmt.Errorf("failed to list domains: %w", err)
+			}
+
+			// Hide `sensors` internal domain
+			res.Domains = slices.DeleteFunc(res.Domains, func(s string) bool {
+				return s == "sensors"
+			})
+
+			switch output {
+			case "json":
+				b, err := res.MarshalJSON()
+				if err != nil {
+					return fmt.Errorf("failed to generate json: %w", err)
+				}
+				cmd.Println(string(b))
+			case "text":
+				fmt.Println(res.Domains)
+			}
+
+			return nil
+		},
+	}
+	flags := ret.Flags()
+	flags.StringVarP(&output, common.KeyOutput, "o", "text", "Output format. text or json")
+	return ret
+}
+
 func tpSetModeCmd() *cobra.Command {
 	var (
 		namespace string
@@ -303,6 +346,7 @@ func New() *cobra.Command {
 		tpListCmd(),
 		tpSetModeCmd(),
 		generate.New(),
+		tpListDomainsCmd(),
 	)
 
 	return tpCmd
