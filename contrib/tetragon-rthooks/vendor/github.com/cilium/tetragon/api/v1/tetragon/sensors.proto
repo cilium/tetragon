@@ -171,6 +171,12 @@ message DisableSensorRequest {
 
 message DisableSensorResponse {}
 
+message ListDomainsRequest {}
+
+message ListDomainsResponse {
+  repeated string domains = 1;
+}
+
 message GetVersionRequest {}
 message GetVersionResponse {
   string version = 1;
@@ -313,6 +319,8 @@ service FineGuidanceSensors {
   rpc RemoveSensor(RemoveSensorRequest) returns (RemoveSensorResponse) {
     option deprecated = true;
   }
+
+  rpc ListDomains(ListDomainsRequest) returns (ListDomainsResponse) {}
 
   rpc GetVersion(GetVersionRequest) returns (GetVersionResponse) {}
   rpc GetInfo(GetInfoRequest) returns (GetInfoResponse) {}
