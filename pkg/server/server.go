@@ -29,6 +29,8 @@ import (
 	"github.com/google/uuid"
 )
 
+const grpcDomain = "grpc"
+
 type Listener interface {
 	Notify(res *tetragon.GetEventsResponse)
 }
@@ -44,14 +46,14 @@ type observer interface {
 	AddTracingPolicy(ctx context.Context, policy tracingpolicy.TracingPolicy) error
 	// DeleteTracingPolicy deletes a tracing policy that was added with
 	// AddTracingPolicy as defined by its name (policy.TpName()).
-	DeleteTracingPolicy(ctx context.Context, name string, namespace string) error
+	DeleteTracingPolicy(ctx context.Context, name string, namespace string, domain string) error
 	// ListTracingPolicies lists active traing policies
-	ListTracingPolicies(ctx context.Context) (*tetragon.ListTracingPoliciesResponse, error)
+	ListTracingPolicies(ctx context.Context, domain string) (*tetragon.ListTracingPoliciesResponse, error)
 	ConfigureTracingPolicy(ctx context.Context, conf *tetragon.ConfigureTracingPolicyRequest) error
 
 	// {Disable, Enable}TracingPolicy are deprecated, use ConfigureTracingPolicy instead
-	DisableTracingPolicy(ctx context.Context, name string, namespace string) error
-	EnableTracingPolicy(ctx context.Context, name string, namespace string) error
+	DisableTracingPolicy(ctx context.Context, name string, namespace string, domain string) error
+	EnableTracingPolicy(ctx context.Context, name string, namespace string, domain string) error
 }
 
 type hookRunner interface {
@@ -223,6 +225,15 @@ func (s *Server) ListSensors(_ context.Context, _ *tetragon.ListSensorsRequest) 
 	return nil, errors.New("ListSensors is deprecated")
 }
 
+type GRPCTracingPolicy struct {
+	tracingpolicy.TracingPolicy
+	Domain string
+}
+
+func (gtp *GRPCTracingPolicy) TpDomain() string {
+	return gtp.Domain
+}
+
 func (s *Server) AddTracingPolicy(ctx context.Context, req *tetragon.AddTracingPolicyRequest) (*tetragon.AddTracingPolicyResponse, error) {
 	tp, err := tracingpolicy.FromYAML(req.GetYaml())
 	if err != nil {
@@ -238,7 +249,12 @@ func (s *Server) AddTracingPolicy(ctx context.Context, req *tetragon.AddTracingP
 		"metadata.namespace", namespace,
 		"metadata.name", tp.TpName())
 
-	if err := s.observer.AddTracingPolicy(ctx, tp); err != nil {
+	gtp := GRPCTracingPolicy{tp, grpcDomain}
+	if req.GetDomain() != "" {
+		gtp.Domain = req.GetDomain()
+	}
+
+	if err := s.observer.AddTracingPolicy(ctx, &gtp); err != nil {
 		logger.GetLogger().Warn("Server AddTracingPolicy request failed",
 			logfields.Error, err,
 			"metadata.namespace", namespace,
@@ -251,7 +267,12 @@ func (s *Server) AddTracingPolicy(ctx context.Context, req *tetragon.AddTracingP
 func (s *Server) DeleteTracingPolicy(ctx context.Context, req *tetragon.DeleteTracingPolicyRequest) (*tetragon.DeleteTracingPolicyResponse, error) {
 	logger.GetLogger().Debug("Received a DeleteTracingPolicy request", "name", req.GetName())
 
-	if err := s.observer.DeleteTracingPolicy(ctx, req.GetName(), req.GetNamespace()); err != nil {
+	domain := grpcDomain
+	if req.GetDomain() != "" {
+		domain = req.GetDomain()
+	}
+
+	if err := s.observer.DeleteTracingPolicy(ctx, req.GetName(), req.GetNamespace(), domain); err != nil {
 		logger.GetLogger().Warn("Server DeleteTracingPolicy request failed", "name", req.GetName(), logfields.Error, err)
 		return nil, err
 	}
@@ -266,7 +287,12 @@ func (s *Server) EnableTracingPolicy(ctx context.Context, req *tetragon.EnableTr
 
 	logger.GetLogger().Debug("Received a EnableTracingPolicy request", "name", req.GetName())
 
-	if err := s.observer.EnableTracingPolicy(ctx, req.GetName(), req.GetNamespace()); err != nil {
+	domain := grpcDomain
+	if req.GetDomain() != "" {
+		domain = req.GetDomain()
+	}
+
+	if err := s.observer.EnableTracingPolicy(ctx, req.GetName(), req.GetNamespace(), domain); err != nil {
 		logger.GetLogger().Warn("Server EnableTracingPolicy request failed", "name", req.GetName(), logfields.Error, err)
 		return nil, err
 	}
@@ -274,6 +300,11 @@ func (s *Server) EnableTracingPolicy(ctx context.Context, req *tetragon.EnableTr
 }
 func (s *Server) ConfigureTracingPolicy(ctx context.Context, req *tetragon.ConfigureTracingPolicyRequest) (*tetragon.ConfigureTracingPolicyResponse, error) {
 	logger.GetLogger().Debug("Received a ConfigureTrcingPolicy request", "name", req.GetName())
+
+	// Enforce default value
+	if req.GetDomain() == "" {
+		req.Domain = grpcDomain
+	}
 
 	if err := s.observer.ConfigureTracingPolicy(ctx, req); err != nil {
 		return nil, err
@@ -290,7 +321,12 @@ func (s *Server) DisableTracingPolicy(ctx context.Context, req *tetragon.Disable
 
 	logger.GetLogger().Debug("Received a DisableTracingPolicy request", "name", req.GetName())
 
-	if err := s.observer.DisableTracingPolicy(ctx, req.GetName(), req.GetNamespace()); err != nil {
+	domain := grpcDomain
+	if req.GetDomain() != "" {
+		domain = req.GetDomain()
+	}
+
+	if err := s.observer.DisableTracingPolicy(ctx, req.GetName(), req.GetNamespace(), domain); err != nil {
 		logger.GetLogger().Warn("Server DisableTracingPolicy request failed", "name", req.GetName(), logfields.Error, err)
 		return nil, err
 	}
@@ -299,7 +335,9 @@ func (s *Server) DisableTracingPolicy(ctx context.Context, req *tetragon.Disable
 
 func (s *Server) ListTracingPolicies(ctx context.Context, req *tetragon.ListTracingPoliciesRequest) (*tetragon.ListTracingPoliciesResponse, error) {
 	logger.GetLogger().Debug("Received a ListTracingPolicies request", "request", req)
-	ret, err := s.observer.ListTracingPolicies(ctx)
+
+	// We accept empty domain here: it means return all domains policies
+	ret, err := s.observer.ListTracingPolicies(ctx, req.GetDomain())
 	if err != nil {
 		logger.GetLogger().Warn("Server ListTracingPolicies request failed", logfields.Error, err)
 	}
