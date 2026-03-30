@@ -6,6 +6,8 @@ package sensors
 import (
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
 	"sync"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
@@ -357,6 +359,18 @@ func (h *handler) listOverheads() ([]ProgOverhead, error) {
 	}
 
 	return overheads, nil
+}
+
+func (h *handler) listDomains() []string {
+	h.collections.mu.RLock()
+	defer h.collections.mu.RUnlock()
+	collections := h.collections.c
+
+	domains := make(map[string]struct{})
+	for ck := range collections {
+		domains[ck.domain] = struct{}{}
+	}
+	return slices.Sorted(maps.Keys(domains))
 }
 
 func (h *handler) listPolicies(domain string) []*tetragon.TracingPolicyStatus {

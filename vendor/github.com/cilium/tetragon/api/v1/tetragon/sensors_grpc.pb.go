@@ -34,6 +34,7 @@ const (
 	FineGuidanceSensors_EnableSensor_FullMethodName           = "/tetragon.FineGuidanceSensors/EnableSensor"
 	FineGuidanceSensors_DisableSensor_FullMethodName          = "/tetragon.FineGuidanceSensors/DisableSensor"
 	FineGuidanceSensors_RemoveSensor_FullMethodName           = "/tetragon.FineGuidanceSensors/RemoveSensor"
+	FineGuidanceSensors_ListDomains_FullMethodName            = "/tetragon.FineGuidanceSensors/ListDomains"
 	FineGuidanceSensors_GetVersion_FullMethodName             = "/tetragon.FineGuidanceSensors/GetVersion"
 	FineGuidanceSensors_GetInfo_FullMethodName                = "/tetragon.FineGuidanceSensors/GetInfo"
 	FineGuidanceSensors_RuntimeHook_FullMethodName            = "/tetragon.FineGuidanceSensors/RuntimeHook"
@@ -70,6 +71,7 @@ type FineGuidanceSensorsClient interface {
 	DisableSensor(ctx context.Context, in *DisableSensorRequest, opts ...grpc.CallOption) (*DisableSensorResponse, error)
 	// Deprecated: Do not use.
 	RemoveSensor(ctx context.Context, in *RemoveSensorRequest, opts ...grpc.CallOption) (*RemoveSensorResponse, error)
+	ListDomains(ctx context.Context, in *ListDomainsRequest, opts ...grpc.CallOption) (*ListDomainsResponse, error)
 	GetVersion(ctx context.Context, in *GetVersionRequest, opts ...grpc.CallOption) (*GetVersionResponse, error)
 	GetInfo(ctx context.Context, in *GetInfoRequest, opts ...grpc.CallOption) (*GetInfoResponse, error)
 	RuntimeHook(ctx context.Context, in *RuntimeHookRequest, opts ...grpc.CallOption) (*RuntimeHookResponse, error)
@@ -220,6 +222,16 @@ func (c *fineGuidanceSensorsClient) RemoveSensor(ctx context.Context, in *Remove
 	return out, nil
 }
 
+func (c *fineGuidanceSensorsClient) ListDomains(ctx context.Context, in *ListDomainsRequest, opts ...grpc.CallOption) (*ListDomainsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListDomainsResponse)
+	err := c.cc.Invoke(ctx, FineGuidanceSensors_ListDomains_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *fineGuidanceSensorsClient) GetVersion(ctx context.Context, in *GetVersionRequest, opts ...grpc.CallOption) (*GetVersionResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetVersionResponse)
@@ -299,6 +311,7 @@ type FineGuidanceSensorsServer interface {
 	DisableSensor(context.Context, *DisableSensorRequest) (*DisableSensorResponse, error)
 	// Deprecated: Do not use.
 	RemoveSensor(context.Context, *RemoveSensorRequest) (*RemoveSensorResponse, error)
+	ListDomains(context.Context, *ListDomainsRequest) (*ListDomainsResponse, error)
 	GetVersion(context.Context, *GetVersionRequest) (*GetVersionResponse, error)
 	GetInfo(context.Context, *GetInfoRequest) (*GetInfoResponse, error)
 	RuntimeHook(context.Context, *RuntimeHookRequest) (*RuntimeHookResponse, error)
@@ -349,6 +362,9 @@ func (UnimplementedFineGuidanceSensorsServer) DisableSensor(context.Context, *Di
 }
 func (UnimplementedFineGuidanceSensorsServer) RemoveSensor(context.Context, *RemoveSensorRequest) (*RemoveSensorResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemoveSensor not implemented")
+}
+func (UnimplementedFineGuidanceSensorsServer) ListDomains(context.Context, *ListDomainsRequest) (*ListDomainsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListDomains not implemented")
 }
 func (UnimplementedFineGuidanceSensorsServer) GetVersion(context.Context, *GetVersionRequest) (*GetVersionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetVersion not implemented")
@@ -595,6 +611,24 @@ func _FineGuidanceSensors_RemoveSensor_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _FineGuidanceSensors_ListDomains_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListDomainsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FineGuidanceSensorsServer).ListDomains(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FineGuidanceSensors_ListDomains_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FineGuidanceSensorsServer).ListDomains(ctx, req.(*ListDomainsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _FineGuidanceSensors_GetVersion_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetVersionRequest)
 	if err := dec(in); err != nil {
@@ -735,6 +769,10 @@ var FineGuidanceSensors_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RemoveSensor",
 			Handler:    _FineGuidanceSensors_RemoveSensor_Handler,
+		},
+		{
+			MethodName: "ListDomains",
+			Handler:    _FineGuidanceSensors_ListDomains_Handler,
 		},
 		{
 			MethodName: "GetVersion",
