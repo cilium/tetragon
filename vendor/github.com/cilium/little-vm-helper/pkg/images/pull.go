@@ -117,7 +117,32 @@ func ExtractImage(ctx context.Context, conf PullConf) (*ExtractResult, error) {
 func handleTarObject(ctx context.Context, tr *tar.Reader, hdr *tar.Header, conf PullConf, containerID string) (string, error) {
 	image := ""
 
+	// We trust the conf.TargetDir and its content (it's given by the user)
+	// but not hdr.Name from the tar archive that could contain elements
+	// like "../..", etc.
+	//
+	// As we only extract TypeDir and TypeReg files from the tar archive (no
+	// TypeLink or TypeSymlink), lexical operations on the path should be
+	// enough to guarantee that the result Join will be containing inside
+	// conf.TargetDir, according to filepath.IsLocal GoDoc:
+	//
+	// 	If IsLocal(path) returns true, then Join(base, path) will always
+	// 	produce a path contained within base and Clean(path) will always
+	// 	produce an unrooted path with no ".." path elements.
+	//
+	// 	IsLocal is a purely lexical operation. In particular, it does not
+	// 	account for the effect of any symbolic links that may exist in the
+	// 	filesystem.
+	//
+	// Early checking that the Typeflag is only directory or regular file
+	if hdr.Typeflag != tar.TypeDir && hdr.Typeflag != tar.TypeReg {
+		return image, fmt.Errorf("unexpected tar header type %d", hdr.Typeflag)
+	}
+	if !filepath.IsLocal(hdr.Name) {
+		return "", fmt.Errorf("extracting object with name %s could create a file outside of %s", hdr.Name, conf.TargetDir)
+	}
 	dstPath := filepath.Join(conf.TargetDir, hdr.Name)
+
 	switch hdr.Typeflag {
 	case tar.TypeDir:
 		if err := os.MkdirAll(dstPath, 0755); err != nil {
@@ -161,7 +186,8 @@ func handleTarObject(ctx context.Context, tr *tar.Reader, hdr *tar.Header, conf 
 		}
 
 	default:
-		return image, fmt.Errorf("unexpected tar header type %d", hdr.Typeflag)
+		// Shouldn't happen as previous security check restricts possible types
+		return image, fmt.Errorf("unexpected tar header type %d, this is a bug, please report", hdr.Typeflag)
 	}
 
 	return image, nil
