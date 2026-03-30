@@ -397,8 +397,8 @@ kind-down: ## Delete a kind cluster for Tetragon development.
 
 ##@ Chores and generated files
 
-.PHONY: codegen protogen
-codegen: | protogen
+.PHONY: codegen protogen goabi-gen
+codegen: | protogen goabi-gen
 protogen: protoc-gen-go-tetragon ## Generate code based on .proto files.
 	# Need to call vendor twice here, once before and once after codegen the reason
 	# being we need to grab changes first plus pull in whatever gets generated here.
@@ -412,6 +412,9 @@ protogen: protoc-gen-go-tetragon ## Generate code based on .proto files.
 .PHONY: protoc-gen-go-tetragon
 protoc-gen-go-tetragon:
 	$(GO_BUILD) -o bin/$@ ./tools/protoc-gen-go-tetragon/
+
+goabi-gen: ## Generate Go ABI register slot table for uprobe args.
+	$(GO) generate ./pkg/sensors/tracing/...
 
 .PHONY: generate crds
 generate: | crds
@@ -449,7 +452,7 @@ endif
 
 .PHONY: go-format
 go-format: ## Run code formatter on Go code.
-	find . -name '*.go' -not -path '**/vendor/*' -not -path './pkg/k8s/vendor/*' -not -path './api/v1/tetragon/*' -not -path './pkg/k8s/apis/cilium.io/v1alpha1/zz_generated.deepcopy.go' | \
+	find . -name '*.go' -not -path '**/vendor/*' -not -path './pkg/k8s/vendor/*' -not -path './api/v1/tetragon/*' -not -path './pkg/k8s/apis/cilium.io/v1alpha1/zz_generated.deepcopy.go' -not -path './pkg/sensors/tracing/goabi_slots_gen.go' | \
 	  xargs goimports -local github.com/cilium/tetragon,github.com/cilium/tetragon/api,github.com/cilium/tetragon/pkg/k8s -w
 
 .PHONY: format
