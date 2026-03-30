@@ -15,6 +15,7 @@ import (
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/sensors/program"
+	"github.com/cilium/tetragon/pkg/server"
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 
 	"github.com/stretchr/testify/assert"
@@ -77,6 +78,52 @@ func TestAddPolicies(t *testing.T) {
 		{Name: "dummy-sensor1", Enabled: true, Collection: "test-policy (object:0/) (type:/)"},
 		{Name: "dummy-sensor2", Enabled: true, Collection: "test-policy (object:0/) (type:/)"},
 	}, *l)
+}
+
+func TestPoliciesDomain(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	RegisterPolicyHandlerAtInit("dummy1", &dummyHandler{s: &Sensor{Name: "dummy-sensor1"}})
+	RegisterPolicyHandlerAtInit("dummy2", &dummyHandler{s: &Sensor{Name: "dummy-sensor2"}})
+	t.Cleanup(func() {
+		delete(registeredPolicyHandlers, "dummy1")
+		delete(registeredPolicyHandlers, "dummy2")
+	})
+
+	policy := v1alpha1.TracingPolicy{}
+	mgr, err := StartSensorManager("")
+	require.NoError(t, err)
+	policy.Name = "test-policy"
+
+	// Add policy first time for `test` domain
+	err = mgr.AddTracingPolicy(ctx, &policy)
+	require.NoError(t, err)
+
+	// Adding it once again to the same domain should fail
+	err = mgr.AddTracingPolicy(ctx, &policy)
+	require.Error(t, err)
+
+	// Adding it to a new domain is ok
+	// Use the GRPCTracingPolicy wrapper to set the domain.
+	gtp := server.GRPCTracingPolicy{TracingPolicy: &policy, Domain: "test"}
+	err = mgr.AddTracingPolicy(ctx, &gtp)
+	require.NoError(t, err)
+
+	// Empty domain will list all domains -> 2 policies
+	l, err := mgr.ListTracingPolicies(ctx, "")
+	require.NoError(t, err)
+	assert.Len(t, l.Policies, 2)
+
+	// list "test" domain -> 1 policy
+	l, err = mgr.ListTracingPolicies(ctx, policy.TpDomain())
+	require.NoError(t, err)
+	assert.Len(t, l.Policies, 1)
+
+	// list "test2" domain -> 1 policy
+	l, err = mgr.ListTracingPolicies(ctx, gtp.TpDomain())
+	require.NoError(t, err)
+	assert.Len(t, l.Policies, 1)
 }
 
 // TestAddPolicySpecError tests the addition of a policy where a spec fails to load
