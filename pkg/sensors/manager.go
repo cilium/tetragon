@@ -147,14 +147,12 @@ func (h *Manager) DeleteTracingPolicy(ctx context.Context, name string, namespac
 
 func (h *Manager) EnableTracingPolicy(_ context.Context, name, namespace, domain string) error {
 	ck := collectionKey{name, namespace, domain}
-	var enable = true
-	return h.handler.configureTracingPolicy(ck, nil, &enable)
+	return h.handler.configureTracingPolicy(ck, nil, new(true))
 }
 
 func (h *Manager) DisableTracingPolicy(_ context.Context, name, namespace, domain string) error {
 	ck := collectionKey{name, namespace, domain}
-	var enable = false
-	return h.handler.configureTracingPolicy(ck, nil, &enable)
+	return h.handler.configureTracingPolicy(ck, nil, new(false))
 }
 
 func (h *Manager) ConfigureTracingPolicy(_ context.Context, conf *tetragon.ConfigureTracingPolicyRequest) error {
