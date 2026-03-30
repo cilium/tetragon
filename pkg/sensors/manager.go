@@ -167,6 +167,12 @@ func (h *Manager) ListTracingPolicies(_ context.Context, domain string) (*tetrag
 	return ret, nil
 }
 
+func (h *Manager) ListDomains(_ context.Context) (*tetragon.ListDomainsResponse, error) {
+	ret := &tetragon.ListDomainsResponse{}
+	ret.Domains = h.handler.listDomains()
+	return ret, nil
+}
+
 func (h *Manager) ListOverheads() ([]ProgOverhead, error) {
 	return h.handler.listOverheads()
 }

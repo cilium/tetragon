@@ -125,6 +125,8 @@
     - [GetInfoResponse.Probe](#tetragon-GetInfoResponse-Probe)
     - [GetVersionRequest](#tetragon-GetVersionRequest)
     - [GetVersionResponse](#tetragon-GetVersionResponse)
+    - [ListDomainsRequest](#tetragon-ListDomainsRequest)
+    - [ListDomainsResponse](#tetragon-ListDomainsResponse)
     - [ListSensorsRequest](#tetragon-ListSensorsRequest)
     - [ListSensorsResponse](#tetragon-ListSensorsResponse)
     - [ListTracingPoliciesRequest](#tetragon-ListTracingPoliciesRequest)
@@ -2233,6 +2235,31 @@ Determines the behavior of a field filter
 
 
 
+<a name="tetragon-ListDomainsRequest"></a>
+
+### ListDomainsRequest
+
+
+
+
+
+
+
+<a name="tetragon-ListDomainsResponse"></a>
+
+### ListDomainsResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| domains | [string](#string) | repeated |  |
+
+
+
+
+
+
 <a name="tetragon-ListSensorsRequest"></a>
 
 ### ListSensorsRequest
@@ -2546,6 +2573,7 @@ For now, we only want to support debug-related config flags to be configurable.
 | EnableSensor | [EnableSensorRequest](#tetragon-EnableSensorRequest) | [EnableSensorResponse](#tetragon-EnableSensorResponse) |  |
 | DisableSensor | [DisableSensorRequest](#tetragon-DisableSensorRequest) | [DisableSensorResponse](#tetragon-DisableSensorResponse) |  |
 | RemoveSensor | [RemoveSensorRequest](#tetragon-RemoveSensorRequest) | [RemoveSensorResponse](#tetragon-RemoveSensorResponse) |  |
+| ListDomains | [ListDomainsRequest](#tetragon-ListDomainsRequest) | [ListDomainsResponse](#tetragon-ListDomainsResponse) |  |
 | GetVersion | [GetVersionRequest](#tetragon-GetVersionRequest) | [GetVersionResponse](#tetragon-GetVersionResponse) |  |
 | GetInfo | [GetInfoRequest](#tetragon-GetInfoRequest) | [GetInfoResponse](#tetragon-GetInfoResponse) |  |
 | RuntimeHook | [RuntimeHookRequest](#tetragon-RuntimeHookRequest) | [RuntimeHookResponse](#tetragon-RuntimeHookResponse) |  |
