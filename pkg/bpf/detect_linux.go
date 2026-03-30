@@ -622,8 +622,11 @@ func detectKfunc(name string) bool {
 		return false
 	}
 
-	// kfunc has bpf_kfunc tag attached
-	return len(fn.Tags) == 1 && fn.Tags[0] == "bpf_kfunc"
+	// We used to check for 'bpf_kfunc' declaration tag, which is nice to
+	// have but was introduced after kfuncs, so not all kernels have it.
+	// It's enough to check function presence in kernel's BTF.
+
+	return true
 }
 
 func HasKfunc(name string) bool {
