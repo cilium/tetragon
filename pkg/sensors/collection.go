@@ -64,6 +64,13 @@ func (ck *collectionKey) String() string {
 	return fmt.Sprintf("%s:%s", ck.domain, ck.name)
 }
 
+func newCollectionKey(name, namespace, domain string) (collectionKey, error) {
+	if domain == sensorsDomain {
+		return collectionKey{}, fmt.Errorf("domain %s is reserved for internal use", domain)
+	}
+	return collectionKey{name, namespace, domain}, nil
+}
+
 // Exposed via ListCollections()
 type Collection struct {
 	Name              string
