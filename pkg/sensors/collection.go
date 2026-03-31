@@ -62,6 +62,10 @@ func (ck *collectionKey) String() string {
 	return ck.name
 }
 
+func newCollectionKey(name, namespace string) (collectionKey, error) {
+	return collectionKey{name, namespace}, nil
+}
+
 // collection is a collection of sensors
 // This can either be creating from a tracing policy, or by loading sensors indepenently for sensors
 // that are not loaded via a tracing policy (e.g., base sensor) and testing.
