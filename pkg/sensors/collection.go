@@ -64,6 +64,10 @@ func (ck *collectionKey) String() string {
 	return ck.name
 }
 
+func newCollectionKey(name, namespace string) (collectionKey, error) {
+	return collectionKey{name, namespace}, nil
+}
+
 // Exposed via ListCollections()
 type Collection struct {
 	Name              string
