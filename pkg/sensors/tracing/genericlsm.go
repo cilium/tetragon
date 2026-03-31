@@ -7,9 +7,11 @@ package tracing
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"log/slog"
 	"path"
 	"strings"
 
@@ -76,6 +78,14 @@ type genericLsm struct {
 
 func (g *genericLsm) SetID(id idtable.EntryID) {
 	g.tableId = id
+}
+
+func (g *genericLsm) LogAttrs(level slog.Level, msg string, attrs ...slog.Attr) {
+	attrs = append(attrs,
+		slog.Attr{Key: "policy_name", Value: slog.StringValue(g.policyName)},
+		slog.Attr{Key: "hook", Value: slog.StringValue(g.hook)},
+	)
+	logger.GetLogger().LogAttrs(context.Background(), level, msg, attrs...)
 }
 
 func genericLsmTableGet(id idtable.EntryID) (*genericLsm, error) {
@@ -157,23 +167,23 @@ func handleGenericLsm(r *bytes.Reader) ([]observer.Event, error) {
 		var state int8
 		err := binary.Read(r, binary.LittleEndian, &state)
 		if err != nil {
-			logger.GetLogger().Warn("Failed to read IMA hash state", logfields.Error, err)
+			gl.LogAttrs(slog.LevelWarn, "failed to read IMA hash state", slog.Any(logfields.Error, err))
 			return nil, errors.New("failed to read IMA hash state")
 		}
 		if state != 2 {
-			logger.GetLogger().Warn("LSM bpf program chain is violated", logfields.Error, err)
+			gl.LogAttrs(slog.LevelWarn, "LSM bpf program chain is violated", slog.Any(logfields.Error, err))
 			return nil, errors.New("LSM bpf program chain is violated")
 		}
 		var algo int8
 		err = binary.Read(r, binary.LittleEndian, &algo)
 		if err != nil {
-			logger.GetLogger().Warn("Failed to read IMA hash algorithm", logfields.Error, err)
+			gl.LogAttrs(slog.LevelWarn, "failed to read IMA hash algorithm", slog.Any(logfields.Error, err))
 			return nil, errors.New("failed to read IMA hash algorithm")
 		}
 		unix.ImaHash.Algo = int32(algo)
 		err = binary.Read(r, binary.LittleEndian, &unix.ImaHash.Hash)
 		if err != nil {
-			logger.GetLogger().Warn("Failed to read IMA hash value", logfields.Error, err)
+			gl.LogAttrs(slog.LevelWarn, "failed to read IMA hash value", slog.Any(logfields.Error, err))
 			return nil, errors.New("failed to read IMA hash value")
 		}
 	}
