@@ -142,6 +142,8 @@ const (
 	KeyParentsMapSize    = "parents-map-size"
 
 	KeyRetprobesCacheSize = "retprobes-cache-size"
+
+	KeyEnableDeprecatedTPGRPC = "enable-deprecated-tracingpolicy-grpc"
 )
 
 type UsernameMetadaCode int
@@ -311,6 +313,9 @@ func ReadAndSetFlags() error {
 	Config.ParentsMapSize = viper.GetString(KeyParentsMapSize)
 
 	Config.RetprobesCacheSize = viper.GetInt(KeyRetprobesCacheSize)
+
+	Config.EnableGRPCDeprecatedTP = viper.GetBool(KeyEnableDeprecatedTPGRPC)
+
 	return nil
 }
 
@@ -513,4 +518,7 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.String(KeyParentsMapSize, "", "Set size for parents_map table (allows K/M/G suffix)")
 
 	flags.Int(KeyRetprobesCacheSize, defaults.DefaultRetprobesCacheSize, "Set {k,u}retprobes events cache maximum size")
+
+	flags.Bool(KeyEnableDeprecatedTPGRPC, false, "Enable deprecated gRPC TracingPolicy APIs")
+
 }

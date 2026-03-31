@@ -259,6 +259,11 @@ func (s *Server) DeleteTracingPolicy(ctx context.Context, req *tetragon.DeleteTr
 }
 
 func (s *Server) EnableTracingPolicy(ctx context.Context, req *tetragon.EnableTracingPolicyRequest) (*tetragon.EnableTracingPolicyResponse, error) {
+	if !option.Config.EnableGRPCDeprecatedTP {
+		return nil, errors.New("EnableTracingPolicy is deprecated and will be removed in the next release. " +
+			"Use --enable-deprecated-tracingpolicy-grpc option to enable it in the meantime")
+	}
+
 	logger.GetLogger().Debug("Received a EnableTracingPolicy request", "name", req.GetName())
 
 	if err := s.observer.EnableTracingPolicy(ctx, req.GetName(), req.GetNamespace()); err != nil {
@@ -278,6 +283,11 @@ func (s *Server) ConfigureTracingPolicy(ctx context.Context, req *tetragon.Confi
 }
 
 func (s *Server) DisableTracingPolicy(ctx context.Context, req *tetragon.DisableTracingPolicyRequest) (*tetragon.DisableTracingPolicyResponse, error) {
+	if !option.Config.EnableGRPCDeprecatedTP {
+		return nil, errors.New("DisableTracingPolicy is deprecated and will be removed in the next release. " +
+			"Use --enable-deprecated-tracingpolicy-grpc option to enable it in the meantime")
+	}
+
 	logger.GetLogger().Debug("Received a DisableTracingPolicy request", "name", req.GetName())
 
 	if err := s.observer.DisableTracingPolicy(ctx, req.GetName(), req.GetNamespace()); err != nil {

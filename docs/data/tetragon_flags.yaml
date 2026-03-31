@@ -49,6 +49,9 @@ options:
     - name: enable-cri
       default_value: "false"
       usage: enable CRI client for tetragon
+    - name: enable-deprecated-tracingpolicy-grpc
+      default_value: "false"
+      usage: Enable deprecated gRPC TracingPolicy APIs
     - name: enable-export-aggregation
       default_value: "false"
       usage: Enable JSON export aggregation

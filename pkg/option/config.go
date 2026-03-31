@@ -137,6 +137,8 @@ type config struct {
 
 	RetprobesCacheSize int
 
+	EnableGRPCDeprecatedTP bool
+
 	KeepCollection bool
 }
 
