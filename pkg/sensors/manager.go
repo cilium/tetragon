@@ -124,7 +124,11 @@ func (h *Manager) AddTracingPolicy(ctx context.Context, tp tracingpolicy.Tracing
 	if tpNs, ok := tp.(tracingpolicy.TracingPolicyNamespaced); ok {
 		namespace = tpNs.TpNamespace()
 	}
-	ck := collectionKey{tp.TpName(), namespace}
+	ck, err := newCollectionKey(tp.TpName(), namespace)
+	if err != nil {
+		return err
+	}
+
 	op := &tracingPolicyAdd{
 		ctx: ctx,
 		ck:  ck,
@@ -136,7 +140,10 @@ func (h *Manager) AddTracingPolicy(ctx context.Context, tp tracingpolicy.Tracing
 
 // DeleteTracingPolicy deletes a new sensor based on a tracing policy
 func (h *Manager) DeleteTracingPolicy(ctx context.Context, name string, namespace string) error {
-	ck := collectionKey{name, namespace}
+	ck, err := newCollectionKey(name, namespace)
+	if err != nil {
+		return err
+	}
 	op := &tracingPolicyDelete{
 		ctx: ctx,
 		ck:  ck,
@@ -146,19 +153,28 @@ func (h *Manager) DeleteTracingPolicy(ctx context.Context, name string, namespac
 }
 
 func (h *Manager) EnableTracingPolicy(_ context.Context, name, namespace string) error {
-	ck := collectionKey{name, namespace}
+	ck, err := newCollectionKey(name, namespace)
+	if err != nil {
+		return err
+	}
 	var enable = true
 	return h.handler.configureTracingPolicy(ck, nil, &enable)
 }
 
 func (h *Manager) DisableTracingPolicy(_ context.Context, name, namespace string) error {
-	ck := collectionKey{name, namespace}
+	ck, err := newCollectionKey(name, namespace)
+	if err != nil {
+		return err
+	}
 	var enable = false
 	return h.handler.configureTracingPolicy(ck, nil, &enable)
 }
 
 func (h *Manager) ConfigureTracingPolicy(_ context.Context, conf *tetragon.ConfigureTracingPolicyRequest) error {
-	ck := collectionKey{conf.GetName(), conf.GetNamespace()}
+	ck, err := newCollectionKey(conf.GetName(), conf.GetNamespace())
+	if err != nil {
+		return err
+	}
 	return h.handler.configureTracingPolicy(ck, conf.Mode, conf.Enable)
 }
 
