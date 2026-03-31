@@ -11,6 +11,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"path"
@@ -129,6 +130,14 @@ type genericKprobe struct {
 
 func (g *genericKprobe) SetID(id idtable.EntryID) {
 	g.tableId = id
+}
+
+func (g *genericKprobe) LogAttrs(level slog.Level, msg string, attrs ...slog.Attr) {
+	attrs = append(attrs,
+		slog.Attr{Key: "policy_name", Value: slog.StringValue(g.policyName)},
+		slog.Attr{Key: "func_name", Value: slog.StringValue(g.funcName)},
+	)
+	logger.GetLogger().LogAttrs(context.Background(), level, msg, attrs...)
 }
 
 var (
@@ -1344,16 +1353,19 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 	case selectors.ActionTypeGetUrl, selectors.ActionTypeDnsLookup:
 		actionArgEntry, err := gk.actionArgs.GetEntry(idtable.EntryID{ID: int(m.ActionArgId)})
 		if err != nil {
-			logger.GetLogger().Warn(fmt.Sprintf("Failed to find argument for id:%d", m.ActionArgId), logfields.Error, err)
+			gk.LogAttrs(slog.LevelWarn, "GetURL/TypeDnsLookup: failed to find argument",
+				slog.Any(logfields.Error, err),
+				slog.Any("actionArgId", m.ActionArgId),
+			)
 			return nil, errors.New("failed to find argument for id")
 		}
 		actionArg := actionArgEntry.(*selectors.ActionArgEntry).GetArg()
 		switch m.ActionId {
 		case selectors.ActionTypeGetUrl:
-			logger.Trace(logger.GetLogger(), "Get URL Action", "URL", actionArg)
+			gk.LogAttrs(logger.LevelTrace, "Get URL Action", slog.Any("URL", actionArg))
 			getUrl(actionArg)
 		case selectors.ActionTypeDnsLookup:
-			logger.Trace(logger.GetLogger(), "DNS lookup", "FQDN", actionArg)
+			gk.LogAttrs(logger.LevelTrace, "DNS lookup", slog.Any("FQDN", actionArg))
 			dnsLookup(actionArg)
 		}
 	}
@@ -1383,13 +1395,13 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 
 	if m.HasKernelStack() || m.HasUserStack() {
 		if m.KernelStackID < 0 {
-			logger.GetLogger().Warn(fmt.Sprintf("failed to retrieve kernel stacktrace: id equal to errno %d", m.KernelStackID))
+			gk.LogAttrs(slog.LevelWarn, "failed to retrieve kernel stacktrace", slog.Any("errno", m.KernelStackID))
 		}
 		if m.UserStackID < 0 {
-			logger.GetLogger().Debug(fmt.Sprintf("failed to retrieve user stacktrace: id equal to errno %d", m.UserStackID))
+			gk.LogAttrs(slog.LevelDebug, "failed to retrieve user stacktrace", slog.Any("errno", m.UserStackID))
 		}
 		if gk.data.stackTraceMap.MapHandle == nil {
-			logger.GetLogger().Warn("failed to load the stacktrace map", logfields.Error, err)
+			gk.LogAttrs(slog.LevelWarn, "failed to load the stacktrace map", slog.Any(logfields.Error, err))
 		}
 		if m.KernelStackID > 0 || m.UserStackID > 0 {
 			// remove the error part
@@ -1397,14 +1409,14 @@ func handleMsgGenericKprobe(m *api.MsgGenericKprobe, gk *genericKprobe, r *bytes
 				id := uint32(m.KernelStackID)
 				err = gk.data.stackTraceMap.MapHandle.Lookup(id, &unix.KernelStackTrace)
 				if err != nil {
-					logger.GetLogger().Warn("failed to lookup the stacktrace map", logfields.Error, err)
+					gk.LogAttrs(slog.LevelWarn, "failed to lookup the kernel stacktrace map", slog.Any(logfields.Error, err))
 				}
 			}
 			if m.UserStackID > 0 {
 				id := uint32(m.UserStackID)
 				err = gk.data.stackTraceMap.MapHandle.Lookup(id, &unix.UserStackTrace)
 				if err != nil {
-					logger.GetLogger().Warn("failed to lookup the stacktrace map", logfields.Error, err)
+					gk.LogAttrs(slog.LevelWarn, "failed to lookup the user stacktrace map", slog.Any(logfields.Error, err))
 				}
 			}
 		}
