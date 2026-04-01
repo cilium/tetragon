@@ -25,6 +25,7 @@ import (
 	gt "github.com/cilium/tetragon/pkg/generictypes"
 	"github.com/cilium/tetragon/pkg/idtable"
 	"github.com/cilium/tetragon/pkg/kernels"
+	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/mbset"
 	"github.com/cilium/tetragon/pkg/option"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
@@ -34,11 +35,11 @@ import (
 const (
 	ActionTypeInvalid                     = -1
 	ActionTypePost                        = 0
-	ActionTypeFollowFd                    = 1
+	ActionTypeFollowFd                    = 1 // Deprecated: removed in v1.5, ID reserved for protocol compatibility
 	ActionTypeSigKill                     = 2
-	ActionTypeUnfollowFd                  = 3
+	ActionTypeUnfollowFd                  = 3 // Deprecated: removed in v1.5, ID reserved for protocol compatibility
 	ActionTypeOverride                    = 4
-	ActionTypeCopyFd                      = 5
+	ActionTypeCopyFd                      = 5 // Deprecated: removed in v1.5, ID reserved for protocol compatibility
 	ActionTypeGetUrl                      = 6
 	ActionTypeDnsLookup                   = 7
 	ActionTypeNoPost                      = 8
@@ -51,7 +52,9 @@ const (
 )
 
 var actionTypeTable = map[string]uint32{
-	"post":                        ActionTypePost,
+	"post": ActionTypePost,
+	// followfd/unfollowfd/copyfd are kept here so ParseMatchAction can reach the
+	// explicit rejection path and return a clear error instead of "unknown action".
 	"followfd":                    ActionTypeFollowFd,
 	"unfollowfd":                  ActionTypeUnfollowFd,
 	"sigkill":                     ActionTypeSigKill,
@@ -994,7 +997,7 @@ func parseMatchArg(k *KernelSelectorState, arg *v1alpha1.ArgSelector, sig []v1al
 		}
 	case SelectorOpEQ, SelectorOpNEQ:
 		switch ty {
-		case gt.GenericFdType, gt.GenericFileType, gt.GenericPathType, gt.GenericStringType, gt.GenericCharBuffer, gt.GenericLinuxBinprmType, gt.GenericDataLoc, gt.GenericNetDev:
+		case gt.GenericFileType, gt.GenericPathType, gt.GenericStringType, gt.GenericCharBuffer, gt.GenericLinuxBinprmType, gt.GenericDataLoc, gt.GenericNetDev:
 			err := writeMatchStrings(k, arg.Values, ty)
 			if err != nil {
 				return fmt.Errorf("writeMatchStrings error: %w", err)
@@ -1164,6 +1167,22 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 	if !ok {
 		return fmt.Errorf("parseMatchAction: ActionType %s unknown", action.Action)
 	}
+
+	// Warn about deprecated fields regardless of action type
+	if action.ArgFd != 0 {
+		logger.GetLogger().Warn("Deprecated field has no effect: 'argFd' is ignored as of v1.5. FD-tracking actions (FollowFD/UnfollowFD/CopyFD) have been removed from Tetragon.", "field", "argFd", "action", action.Action)
+	}
+	if action.ArgName != 0 {
+		logger.GetLogger().Warn("Deprecated field has no effect: 'argName' is ignored as of v1.5. FD-tracking actions (FollowFD/UnfollowFD/CopyFD) have been removed from Tetragon.", "field", "argName", "action", action.Action)
+	}
+
+	// Reject deprecated FD-tracking actions
+	actionLower := strings.ToLower(action.Action)
+	switch actionLower {
+	case "followfd", "unfollowfd", "copyfd":
+		return fmt.Errorf("action '%s' is no longer supported as of v1.5. FD-tracking has been removed from Tetragon", action.Action)
+	}
+
 	WriteSelectorUint32(&k.data, act)
 
 	rateLimit := uint32(0)
@@ -1808,19 +1827,6 @@ func HasNotifyEnforcerAction(kspec *v1alpha1.KProbeSpec) bool {
 	for _, s := range kspec.Selectors {
 		for _, action := range s.MatchActions {
 			if action.Action == "NotifyEnforcer" {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func HasFDInstall(sel []v1alpha1.KProbeSelector) bool {
-	for _, selector := range sel {
-		for _, matchAction := range selector.MatchActions {
-			if a := ActionTypeFromString(matchAction.Action); a == ActionTypeFollowFd ||
-				a == ActionTypeUnfollowFd ||
-				a == ActionTypeCopyFd {
 				return true
 			}
 		}

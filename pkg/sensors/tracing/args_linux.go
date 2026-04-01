@@ -148,16 +148,10 @@ func getArg(r *bytes.Reader, a argPrinter) api.MsgGenericKprobeArg {
 		arg.Value = output
 		arg.Label = a.label
 		return arg
-	case gt.GenericFileType, gt.GenericFdType, gt.GenericKiocb:
+	case gt.GenericFileType, gt.GenericKiocb:
 		var arg api.MsgGenericKprobeArgFile
 		var flags uint32
-		var b int32
 		var mode uint16
-
-		/* Eat file descriptor its not used in userland */
-		if a.ty == gt.GenericFdType {
-			binary.Read(r, binary.LittleEndian, &b)
-		}
 
 		arg.Index = uint64(a.index)
 		arg.Value, err = parseString(r)
