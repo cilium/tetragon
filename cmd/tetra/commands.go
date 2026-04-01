@@ -6,6 +6,7 @@ package main
 import (
 	"github.com/spf13/cobra"
 
+	"github.com/cilium/tetragon/cmd/tetra/common"
 	"github.com/cilium/tetragon/cmd/tetra/eventlog"
 
 	"github.com/cilium/tetragon/cmd/tetra/explain"
@@ -25,7 +26,7 @@ func addBaseCommands(rootCmd *cobra.Command) {
 	rootCmd.AddCommand(sensors.New())
 	rootCmd.AddCommand(status.New())
 	rootCmd.AddCommand(rthooks.New())
-	rootCmd.AddCommand(explain.New())
+	common.AddSubCommandIfNotNil(rootCmd, explain.New())
 	rootCmd.AddCommand(info.New())
 	rootCmd.AddCommand(eventlog.New())
 
