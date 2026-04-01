@@ -195,7 +195,7 @@ You can use the `rthooks.installDir` helm variable to select a different locatio
 ```
 
 
-### Failure check (`failAllowNamespaces`)
+### Failure check (`failAllowNamespaces` and `failAllowNamespacesRegex`)
 
 By default, `tetragon-oci-hook` logs information to `/opt/tetragon/tetragon-oci-hook.log`.
 Inspecting this file we get the following messages.
@@ -219,12 +219,57 @@ belongs in the same namespace as Tetragon. The previous messages concern the tet
 (`tetragon-operator` and `tetragon`) and they indicate that the choice was made not to fail this
 container from starting.
 
-Furthermore, users may specify additional namespaces where the container will not fail if the
-tetragon agent cannot be contacted via the `rthooks.failAllowNamespaces` option.
+Users can specify additional namespaces where a container will not fail if the Tetragon agent
+cannot be contacted. Two complementary options are available.
 
-For example:
+#### Exact namespace names (`failAllowNamespaces`)
+
+Use `rthooks.failAllowNamespaces` to provide a comma-separated list of exact namespace names.
+
 ```yaml
 rthooks:
   enabled: true
   failAllowNamespaces: namespace1,namespace2
 ```
+
+#### Namespace regex patterns (`failAllowNamespacesRegex`)
+
+Use `rthooks.failAllowNamespacesRegex` to provide a list of [RE2 regular expressions](https://github.com/google/re2/wiki/Syntax).
+A container is allowed to start when its namespace matches any of the provided patterns.
+Patterns perform substring matching by default; use `^` and `$` anchors for full-string matching:
+
+- `^kube-.*$` — prefix match (any namespace starting with `kube-`)
+- `^.*-system$` — suffix match (any namespace ending with `-system`)
+- `^foo-.*-bar$` — both prefix and suffix (any namespace starting with `foo-` and ending with `-bar`)
+- `.*` — matches any namespace (disables the hook for all namespaces)
+
+{{< note >}}
+Without anchors, a pattern like `acme-` also matches namespaces where `acme-` appears as a
+substring, such as `not-acme-foo`. Use `^` and `$` for precise matching.
+{{< /note >}}
+
+```yaml
+rthooks:
+  enabled: true
+  failAllowNamespacesRegex:
+    - "^acme-.*$"
+    - "^dev-.*$"
+```
+
+The two options can be combined. A container is allowed to start if its namespace matches
+either an exact name or any regex pattern:
+
+```yaml
+rthooks:
+  enabled: true
+  failAllowNamespaces: kube-system
+  failAllowNamespacesRegex:
+    - "^acme-.*$"
+    - "^dev-.*$"
+```
+
+{{< note >}}
+If the pod namespace annotation is missing from the container annotations, the hook
+will always fail the container (safe default). Both options are ignored when
+`extraHookArgs` sets `fail-cel-expr`, which always takes precedence.
+{{< /note >}}
