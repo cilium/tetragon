@@ -213,7 +213,7 @@ To understand these messages, consider what `tetragon-oci-hook` should do if it
 cannot contact the Tetragon agent.
 
 You may want to stop certain workloads from running. For other workloads (for example, the
-tetragon pod itself) you probably want to do the opposite and let the them start. To this end,
+tetragon pod itself) you probably want to do the opposite and let them start. To this end,
 `tetragon-oci-hook` checks the container annotations, and by default does not fail a container if it
 belongs in the same namespace as Tetragon. The previous messages concern the tetragon containers
 (`tetragon-operator` and `tetragon`) and they indicate that the choice was made not to fail this
