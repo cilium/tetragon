@@ -15,6 +15,9 @@
     - --grpc-address={{ .Values.tetragon.grpc.address }}
     - --fail-allow-namespaces
     - {{ if .Values.rthooks.failAllowNamespaces }}{{ printf "%s,%s" .Release.Namespace .Values.rthooks.failAllowNamespaces }}{{ else }}{{ .Release.Namespace }}{{ end }}
+   {{- range .Values.rthooks.failAllowNamespacesRegex }}
+    - --fail-allow-namespaces-regex={{ . }}
+   {{- end }}
    {{- range $key, $value := .Values.rthooks.extraHookArgs }}
    {{- if eq nil $value }}
     - --{{ $key }}
