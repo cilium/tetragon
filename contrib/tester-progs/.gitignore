@@ -43,3 +43,5 @@ usdt-args
 uprobe-null
 uprobe-null.btf
 /uprobe-simple
+pclntab-stripped
+pclntab-unstripped
