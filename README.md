@@ -77,4 +77,7 @@ your commits.
 
 A list of adopters of the Tetragon project and who is deploying it in
 production, and of their use cases, can be found in the
+
+test
+
 [USERS.md](https://github.com/cilium/tetragon/blob/main/USERS.md) file.
