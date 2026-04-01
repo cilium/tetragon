@@ -431,7 +431,6 @@ func TestMatchBinariesFollowChildrenBeforePolicy(t *testing.T) {
 	cnt := 0
 	eventFn := func(ev notify.Message) error {
 		if kpEvent, ok := ev.(*tracing.MsgGenericKprobeUnix); ok {
-			fmt.Printf("KRAVA %s %s\n", kpEvent.FuncName, fn)
 			if kpEvent.FuncName == fn {
 				cnt++
 			}
