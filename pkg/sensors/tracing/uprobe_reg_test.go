@@ -823,6 +823,10 @@ func testUprobePtRegsPreload(t *testing.T, multi bool) {
 		t.Skip("skipping")
 	}
 
+	if runtime.GOARCH == "arm64" {
+		t.Skip("skipping, x86_64 only test")
+	}
+
 	testBinary := testutils.RepoRootPath("contrib/tester-progs/regs-override")
 
 	disableUprobeMulti := ""
@@ -918,6 +922,10 @@ func TestUprobePtRegsPreloadMulti(t *testing.T) {
 func testUprobePtRegsPreloadDouble(t *testing.T, multi bool) {
 	if !bpf.HasKfunc("bpf_copy_from_user_str") {
 		t.Skip("skipping")
+	}
+
+	if runtime.GOARCH == "arm64" {
+		t.Skip("skipping, x86_64 only test")
 	}
 
 	testBinary := testutils.RepoRootPath("contrib/tester-progs/regs-override")
