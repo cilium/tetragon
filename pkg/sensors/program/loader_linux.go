@@ -16,6 +16,7 @@ import (
 
 	"github.com/cilium/tetragon/pkg/bpf"
 	cachedbtf "github.com/cilium/tetragon/pkg/btf"
+	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/logger/logfields"
 	"github.com/cilium/tetragon/pkg/sensors/unloader"
@@ -910,7 +911,10 @@ func rewriteConstants(spec *ebpf.CollectionSpec, consts map[string]any) error {
 
 	confs := map[string]func(v *ebpf.VariableSpec) error{
 		"CONFIG_ITER_NUM": func(v *ebpf.VariableSpec) error {
-			enabled := bpf.HasKfunc("bpf_iter_num_new")
+			// We can't use numeric iterator until we get following fix from 6.9 kernel:
+			//   4f81c16f50ba bpf: Recognize that two registers are safe when their ranges match
+			// otherwise our loop code crosses 1mil instructions verifier limit.
+			enabled := bpf.HasKfunc("bpf_iter_num_new") && kernels.MinKernelVersion("6.9")
 			if err := v.Set(enabled); err != nil {
 				return fmt.Errorf("failed  to set config variable '%s': %w", v, err)
 			}
