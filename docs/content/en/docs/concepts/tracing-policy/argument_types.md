@@ -46,6 +46,7 @@ List of described data types:
 - [`data_loc`](#data_loc)
 - [`net_device`](#net_device)
 - [`sockaddr`](#sockaddr)
+- [`sockaddr_un`](#sockaddr_un)
 - [`socket`](#socket)
 - [`file`](#file)
 - [`dentry`](#dentry)
@@ -285,6 +286,15 @@ or Unix socket path.
 
 In `matchArgs` or `matchData`, use `SAddr`, `SPort`, or `Family` operators. Note that
 `sockaddr` does not support destination operators (`DAddr`, `DPort`).
+
+## `sockaddr_un`
+
+The `sockaddr_un` data type represents kernel `struct sockaddr_un` object
+for Unix domain sockets. It extracts the socket family and path. Filesystem
+paths are reported as-is; abstract socket names are reported with a leading `@` character.
+
+In `matchArgs` or `matchData`, use `Equal`, `NotEqual`, `Prefix`, `NotPrefix`,
+or `Family` operators. Port, protocol, and state operators are not supported.
 
 ## `socket`
 
