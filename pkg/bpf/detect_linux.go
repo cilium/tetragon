@@ -622,8 +622,7 @@ func detectKfunc(name string) bool {
 		return false
 	}
 
-	// kfunc has bpf_kfunc tag attached
-	return len(fn.Tags) == 1 && fn.Tags[0] == "bpf_kfunc"
+	return true
 }
 
 func HasKfunc(name string) bool {
