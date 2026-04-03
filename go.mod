@@ -4,9 +4,9 @@ module github.com/cilium/tetragon
 go 1.26.0
 
 require (
-	github.com/alecthomas/kong v1.14.0
+	github.com/alecthomas/kong v1.15.0
 	github.com/cilium/ebpf v0.21.0
-	github.com/cilium/little-vm-helper v0.0.29-0.20260330083317-a9c083b9cd18
+	github.com/cilium/little-vm-helper v0.0.29-0.20260403004502-5c90e539c2c8
 	github.com/cilium/lumberjack/v2 v2.4.2
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/cilium/tetragon/pkg/k8s v0.0.0-00010101000000-000000000000
@@ -43,7 +43,7 @@ require (
 	golang.org/x/sys v0.42.0
 	golang.org/x/term v0.41.0
 	golang.org/x/time v0.15.0
-	google.golang.org/grpc v1.79.3
+	google.golang.org/grpc v1.80.0
 	google.golang.org/protobuf v1.36.11
 	k8s.io/api v0.35.3
 	k8s.io/apiextensions-apiserver v0.35.3
