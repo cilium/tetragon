@@ -14,7 +14,7 @@ github.com/Microsoft/go-winio/internal/fs
 github.com/Microsoft/go-winio/internal/socket
 github.com/Microsoft/go-winio/internal/stringbuffer
 github.com/Microsoft/go-winio/pkg/guid
-# github.com/alecthomas/kong v1.14.0
+# github.com/alecthomas/kong v1.15.0
 ## explicit; go 1.20
 github.com/alecthomas/kong
 # github.com/antlr4-go/antlr/v4 v4.13.1
@@ -54,7 +54,7 @@ github.com/cilium/ebpf/perf
 github.com/cilium/ebpf/pin
 github.com/cilium/ebpf/ringbuf
 github.com/cilium/ebpf/rlimit
-# github.com/cilium/little-vm-helper v0.0.29-0.20260330083317-a9c083b9cd18
+# github.com/cilium/little-vm-helper v0.0.29-0.20260403004502-5c90e539c2c8
 ## explicit; go 1.25.7
 github.com/cilium/little-vm-helper/pkg/arch
 github.com/cilium/little-vm-helper/pkg/images
@@ -618,7 +618,7 @@ google.golang.org/genproto/googleapis/api/expr/v1alpha1
 # google.golang.org/genproto/googleapis/rpc v0.0.0-20260209200024-4cfbd4190f57
 ## explicit; go 1.24.0
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.79.3
+# google.golang.org/grpc v1.80.0
 ## explicit; go 1.24.0
 google.golang.org/grpc
 google.golang.org/grpc/attributes
@@ -658,6 +658,7 @@ google.golang.org/grpc/internal/grpclog
 google.golang.org/grpc/internal/grpcsync
 google.golang.org/grpc/internal/grpcutil
 google.golang.org/grpc/internal/idle
+google.golang.org/grpc/internal/mem
 google.golang.org/grpc/internal/metadata
 google.golang.org/grpc/internal/pretty
 google.golang.org/grpc/internal/proxyattributes
