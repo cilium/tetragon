@@ -205,9 +205,9 @@ func TestUprobeResolve(t *testing.T) {
 			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("3"))),
 			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("2"))),
 		}},
-		{"uint32", 11, "v32", []*ec.KprobeArgumentChecker{
+		{"uint32", 1234, "enum_u32", []*ec.KprobeArgumentChecker{
 			ec.NewKprobeArgumentChecker().WithSizeArg(0),
-			ec.NewKprobeArgumentChecker().WithUintArg(11), // uint32(11)
+			ec.NewKprobeArgumentChecker().WithUintArg(1234), // uint32(1234)
 			ec.NewKprobeArgumentChecker().WithUintArg(0),
 			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("3"))),
 			ec.NewKprobeArgumentChecker().WithErrorArg(ec.NewKprobeErrorChecker().WithMessage(sm.Full("2"))),
