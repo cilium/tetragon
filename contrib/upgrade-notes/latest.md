@@ -31,4 +31,9 @@ See the [Stack Traces](https://tetragon.io/docs/concepts/tracing-policy/selector
 
 ### Metrics
 
-* TBD
+* Kprobe and uprobe merge metrics have been consolidated.
+  The following metrics were removed:
+  - `tetragon_generic_kprobe_merge_errors_total`
+  - `tetragon_generic_kprobe_merge_ok_total`
+  They are replaced by `tetragon_generic_kprobe_merge_total` which includes a `status` label with values `ok` or `error`.
+  The new metric also includes labels `curr_type`, `prev_type` (either `enter` or `exit`), `curr_fn`, and `prev_fn`.
