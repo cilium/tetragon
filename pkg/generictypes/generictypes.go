@@ -222,6 +222,16 @@ func GenericTypeFromBTF(arg btf.Type) int {
 			return GenericTypeFromBTF(t.Type)
 		case *btf.Pointer:
 			return GenericTypeFromBTF(t.Target)
+		case *btf.Enum:
+			prefix := ""
+			if !t.Signed {
+				prefix = "u"
+			}
+			integerTy := fmt.Sprintf("%sint%d", prefix, t.Size*8)
+			if ty, ok := genericStringToType[integerTy]; ok {
+				return ty
+			}
+			return GenericInvalidType
 		default:
 			return GenericInvalidType
 		}
