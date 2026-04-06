@@ -97,15 +97,26 @@ type TracingPolicySpec struct {
 	Fentries []KProbeSpec `json:"fentries,omitempty"`
 
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:default={}
+	// +nullable
 	// PodSelector selects pods that this policy applies to
 	PodSelector *slimv1.LabelSelector `json:"podSelector,omitempty"`
 
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:default={}
+	// +nullable
 	// ContainerSelector selects containers that this policy applies to.
 	// A map of container fields will be constructed in the same way as a map of labels.
 	// The name of the field represents the label "key", and the value of the field - label "value".
 	// Currently, only the "name" field is supported.
 	ContainerSelector *slimv1.LabelSelector `json:"containerSelector,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default={}
+	// +nullable
+	// HostSelector selects hosts that this policy applies to.
+	// For now only ~ (none) and {} (all) is supported.
+	HostSelector *slimv1.LabelSelector `json:"hostSelector,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// A list of list specs.
