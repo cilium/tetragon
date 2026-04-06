@@ -3,13 +3,23 @@
 
 package policyfilter
 
-import "github.com/google/uuid"
+import (
+	"math"
+
+	"github.com/google/uuid"
+)
 
 const (
 	// we reserve 0 as a special value to indicate no filtering
 	NoFilterPolicyID         = 0
 	NoFilterID               = PolicyID(NoFilterPolicyID)
 	FirstValidFilterPolicyID = NoFilterPolicyID + 1
+
+	// AllPodsPolicyID is a reserved synthetic policy id that tracks all pod cgroup ids.
+	AllPodsPolicyID = PolicyID(math.MaxUint32)
+
+	// Special CgroupID to store the hostSelector mode.
+	HostSelectorMode = math.MaxUint64
 )
 
 const (

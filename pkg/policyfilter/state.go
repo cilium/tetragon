@@ -39,7 +39,7 @@ import (
 //   policy_id -> [ cgroup_id -> u8 ]
 //
 // If entry policy_id -> cgroup_id exists, then policy is to be applied. (u8 value is ignored for
-// now.)
+// now.) The reserved policy id UINT32_MAX always contains all pod container cgroup ids.
 //
 // This package provides functions that can be used to update the bpf map. The map
 // needs to be updated in the following conditions:
@@ -401,9 +401,13 @@ func (m *state) delPod(id PodID) *podInfo {
 
 // AddPolicy adds a policy
 func (m *state) AddPolicy(polID PolicyID, namespace string, podLabelSelector *slimv1.LabelSelector,
-	containerLabelSelector *slimv1.LabelSelector) error {
+	containerLabelSelector *slimv1.LabelSelector, hostLabelSelector *slimv1.LabelSelector) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
+	if polID == AllPodsPolicyID {
+		return fmt.Errorf("policy id %d is reserved for the all-pods map entry", polID)
+	}
 
 	if p := m.findPolicy(polID); p != nil {
 		return fmt.Errorf("policy with id %d already exists: not adding new one", polID)
@@ -451,6 +455,16 @@ func (m *state) AddPolicy(polID PolicyID, namespace string, podLabelSelector *sl
 		return fmt.Errorf("adding policy data to map failed: %w", err)
 	}
 
+	// based on the hostSelector we should add one entry in the inner map of the policy
+	// if hostSelector: nil -> No entry should be added
+	// if hostSelector: {} -> We should add an entry with key HostSelectorMode (UINT64_MAX)
+	if hostLabelSelector != nil && (len(hostLabelSelector.MatchLabels)+len(hostLabelSelector.MatchExpressions) == 0) {
+		if err := policy.polMap.addCgroupIDs([]CgroupID{CgroupID(HostSelectorMode)}); err != nil {
+			m.DelPolicy(polID) // Revert all previous actions. This call cannot fail as it always returns nil.
+			return fmt.Errorf("adding policy data for hostSelector to map failed: %w", err)
+		}
+	}
+
 	m.policies = append(m.policies, policy)
 
 	return nil
@@ -459,7 +473,7 @@ func (m *state) AddPolicy(polID PolicyID, namespace string, podLabelSelector *sl
 // DelPolicy will destroy all information for the provided policy
 func (m *state) DelPolicy(polID PolicyID) error {
 
-	if polID == NoFilterPolicyID {
+	if polID == NoFilterPolicyID || polID == AllPodsPolicyID {
 		return nil
 	}
 
@@ -551,6 +565,18 @@ func (m *state) addPodContainers(pod *podInfo, containerIDs []string,
 		"namespace", pod.namespace,
 		"containers-info", cinfo)
 
+	allPodCgIDs := make([]CgroupID, 0, len(cinfo))
+	for _, c := range cinfo {
+		allPodCgIDs = append(allPodCgIDs, c.cgID)
+	}
+	if err := m.pfMap.addCgroupIDsToPolicyMap(AllPodsPolicyID, allPodCgIDs); err != nil {
+		m.log.Warn("failed to update all-pods policy map",
+			logfields.Error, err,
+			"policy-id", AllPodsPolicyID,
+			"pod-id", pod.id,
+			"cgroup-ids", allPodCgIDs)
+	}
+
 	// update matching policy maps
 	for _, policyID := range pod.matchedPolicies {
 		pol := m.findPolicy(policyID)
@@ -633,6 +659,18 @@ func (m *state) delPodCgroupIDsFromPolicyMaps(pod *podInfo, containers []contain
 
 	if len(containers) == 0 {
 		return
+	}
+
+	allPodCgIDs := make([]CgroupID, 0, len(containers))
+	for _, c := range containers {
+		allPodCgIDs = append(allPodCgIDs, c.cgID)
+	}
+	if err := m.pfMap.delCgroupIDsFromPolicyMap(AllPodsPolicyID, allPodCgIDs); err != nil {
+		m.log.Warn("delPodCgroupIDsFromPolicyMaps: failed to delete cgroup ids from all-pods policy map",
+			logfields.Error, err,
+			"policy-id", AllPodsPolicyID,
+			"pod-id", pod.id,
+			"cgroup-ids", allPodCgIDs)
 	}
 
 	// check what policies match the pod, and delete the cgroup ids
