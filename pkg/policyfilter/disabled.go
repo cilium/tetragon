@@ -22,7 +22,7 @@ type disabled struct {
 }
 
 func (s *disabled) AddPolicy(polID PolicyID, namespace string, podSelector *slimv1.LabelSelector,
-	containerSelector *slimv1.LabelSelector) error {
+	containerSelector *slimv1.LabelSelector, hostSelector *slimv1.LabelSelector) error {
 	return errors.New("policyfilter is disabled")
 }
 

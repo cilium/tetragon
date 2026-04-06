@@ -53,11 +53,13 @@ func (s *selectorOp) match(labels Labels) bool {
 	}
 }
 
-type Selector []selectorOp
+type SelectorWithValues struct {
+	m []selectorOp
+}
 
-func (s Selector) Match(labels Labels) bool {
-	for i := range s {
-		if !s[i].match(labels) {
+func (s SelectorWithValues) Match(labels Labels) bool {
+	for i := range s.m {
+		if !s.m[i].match(labels) {
 			return false
 		}
 	}
@@ -65,9 +67,24 @@ func (s Selector) Match(labels Labels) bool {
 	return true
 }
 
+type SelectorAllOrNothing struct {
+	m bool
+}
+
+func (s SelectorAllOrNothing) Match(_ Labels) bool {
+	return s.m
+}
+
+type Selector interface {
+	Match(labels Labels) bool
+}
+
 func SelectorFromLabelSelector(ls *slimv1.LabelSelector) (Selector, error) {
 	if ls == nil {
-		return []selectorOp{}, nil
+		return SelectorAllOrNothing{false}, nil
+	}
+	if ls != nil && (len(ls.MatchLabels)+len(ls.MatchExpressions) == 0) {
+		return SelectorAllOrNothing{true}, nil
 	}
 	ret := make([]selectorOp, 0, len(ls.MatchLabels)+len(ls.MatchExpressions))
 	for key, val := range ls.MatchLabels {
@@ -99,7 +116,7 @@ func SelectorFromLabelSelector(ls *slimv1.LabelSelector) (Selector, error) {
 		})
 	}
 
-	return ret, nil
+	return SelectorWithValues{ret}, nil
 }
 
 // Cmp checks if the labels are different. Returns true if they are.

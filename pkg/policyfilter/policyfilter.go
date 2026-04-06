@@ -40,7 +40,7 @@ type State interface {
 	//  - label selector
 	//  - container field selector
 	AddPolicy(polID PolicyID, namespace string, podSelector *slimv1.LabelSelector,
-		containerSelector *slimv1.LabelSelector) error
+		containerSelector *slimv1.LabelSelector, hostSelector *slimv1.LabelSelector) error
 
 	// DelPolicy removes a policy from the state
 	DelPolicy(polID PolicyID) error

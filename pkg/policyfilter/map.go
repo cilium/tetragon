@@ -84,6 +84,19 @@ func newPfMap(enableCgroupMap bool) (PfMap, error) {
 		}
 	}
 
+	// Create the reserved entry once at initialization time.
+	allPodsMap, err := ret.newPolicyMap(AllPodsID, nil)
+	if err != nil {
+		ret.release()
+		return PfMap{}, fmt.Errorf("opening all-pods policy map failed: %w", err)
+	}
+
+	// We just initialized allPodsMap but we don't want that now so let's close that.
+	if err := allPodsMap.Inner.Close(); err != nil {
+		ret.release()
+		return PfMap{}, fmt.Errorf("closing all-pods policy map handle failed: %w", err)
+	}
+
 	return ret, nil
 }
 
@@ -215,6 +228,49 @@ func (m PfMap) newPolicyMap(polID PolicyID, cgIDs []CgroupID) (polMap, error) {
 	}
 
 	return ret, nil
+}
+
+func (m PfMap) openPolicyMap(polID PolicyID) (polMap, error) {
+	// Reopen an inner policy map from the shared outer map on demand instead of
+	// caching a dedicated handle in PfMap.
+	var innerID uint32
+	if err := m.policyMap.Lookup(&polID, &innerID); err != nil {
+		return polMap{}, fmt.Errorf("failed to lookup policy id %d: %w", polID, err)
+	}
+
+	inner, err := ebpf.NewMapFromID(ebpf.MapID(innerID))
+	if err != nil {
+		return polMap{}, fmt.Errorf("error opening inner map: %w", err)
+	}
+
+	return polMap{
+		Inner:     inner,
+		cgroupMap: m.cgroupMap,
+	}, nil
+}
+
+func (m PfMap) addCgroupIDsToPolicyMap(polID PolicyID, cgIDs []CgroupID) error {
+	polMap, err := m.openPolicyMap(polID)
+	if err != nil {
+		return err
+	}
+	defer polMap.Inner.Close()
+
+	if err := polMap.addCgroupIDs(cgIDs); err != nil {
+		return err
+	}
+
+	return polMap.addPolicyIDs(polID, cgIDs)
+}
+
+func (m PfMap) delCgroupIDsFromPolicyMap(polID PolicyID, cgIDs []CgroupID) error {
+	polMap, err := m.openPolicyMap(polID)
+	if err != nil {
+		return err
+	}
+	defer polMap.Inner.Close()
+
+	return polMap.delCgroupIDs(polID, cgIDs)
 }
 
 func getMapSize(m *ebpf.Map) (uint32, error) {
@@ -387,11 +443,6 @@ func (m polMap) addCgroupIDs(cgIDs []CgroupID) error {
 // delCgroupIDs delete cgroups ids from the policy map
 // todo: use batch operations when supported
 func (m polMap) delCgroupIDs(polID PolicyID, cgIDs []CgroupID) error {
-	// cgroup map does not exist, so nothing to do here
-	if m.cgroupMap == nil {
-		return nil
-	}
-
 	rmRevCgIDs := []CgroupID{}
 	for i, cgID := range cgIDs {
 		if err := m.Inner.Delete(&cgID); err != nil {
@@ -401,6 +452,11 @@ func (m polMap) delCgroupIDs(polID PolicyID, cgIDs []CgroupID) error {
 			}
 		}
 		rmRevCgIDs = append(rmRevCgIDs, cgID)
+	}
+
+	// Without the reverse cgroup map, deleting from the policy map is enough.
+	if m.cgroupMap == nil {
+		return nil
 	}
 
 	// update cgroup map
