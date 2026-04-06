@@ -449,6 +449,7 @@ kind: TracingPolicyNamespaced
 metadata:
   name: "ubuntu-container-syscalls"
 spec:
+  hostSelector: ~
   containerSelector:
     matchExpressions:
     - key: name
@@ -544,6 +545,7 @@ kind: TracingPolicyNamespaced
 metadata:
   name: "debian-container-syscalls"
 spec:
+  hostSelector: ~
   containerSelector:
     matchExpressions:
     - key: repo
