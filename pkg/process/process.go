@@ -587,6 +587,18 @@ func Get(execId string) (*ProcessInternal, error) {
 	return procCache.get(execId)
 }
 
+// GetByPidWithContainerInfo scans the process cache for a ProcessInternal
+// matching the given PID that has a non-empty Docker ID.
+func GetByPidWithContainerInfo(pid uint32) *ProcessInternal {
+	for _, v := range procCache.cache.Values() {
+		if v.process != nil && v.process.Pid != nil &&
+			v.process.Pid.Value == pid && v.process.Docker != "" {
+			return v
+		}
+	}
+	return nil
+}
+
 // GetK8s returns PodAccessor. You must call InitCache before calling this function to ensure
 // that k8s has been initialized.
 func GetK8s() watcher.PodAccessor {
