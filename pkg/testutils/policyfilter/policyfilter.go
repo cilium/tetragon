@@ -22,7 +22,7 @@ import (
 type DummyPF struct{}
 
 func (s *DummyPF) AddPolicy(_ policyfilter.PolicyID, _ string, _ *slimv1.LabelSelector,
-	_ *slimv1.LabelSelector) error {
+	_ *slimv1.LabelSelector, _ *slimv1.LabelSelector) error {
 	return nil
 }
 
