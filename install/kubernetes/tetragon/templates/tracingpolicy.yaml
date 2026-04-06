@@ -1,0 +1,34 @@
+{{- if .Values.tracingPolicies }}
+{{- range $index, $policy := .Values.tracingPolicies }}
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "{{ $policy.name }}"
+spec:
+  kprobes:
+  {{- range $hookIndex, $hook := $policy.hooks }}
+  - call: "{{ $hook.call }}"
+    syscall: {{ $hook.syscall }}
+    args:
+    {{- range $argIndex, $arg := $hook.args }}
+    - index: {{ $arg.index }}
+      type: "{{ $arg.type }}"
+    {{- end }}
+    {{- if $hook.selectors }}
+    selectors:
+    {{- range $selectorIndex, $selector := $hook.selectors }}
+    - matchArgs:
+      {{- range $matchArgIndex, $matchArg := $selector.matchArgs }}
+        - index: {{ $matchArg.index }}
+          operator: "{{ $matchArg.operator }}"
+          values:
+          {{- range $valueIndex, $value := $matchArg.values }}
+            - "{{ $value }}"
+          {{- end }}
+      {{- end }}
+    {{- end }}
+    {{- end }}
+
+  {{- end }}
+{{- end }}
+{{- end }}
