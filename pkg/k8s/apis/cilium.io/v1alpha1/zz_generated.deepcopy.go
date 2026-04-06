@@ -749,6 +749,11 @@ func (in *TracingPolicySpec) DeepCopyInto(out *TracingPolicySpec) {
 		*out = new(v1.LabelSelector)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.HostSelector != nil {
+		in, out := &in.HostSelector, &out.HostSelector
+		*out = new(v1.LabelSelector)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.Lists != nil {
 		in, out := &in.Lists, &out.Lists
 		*out = make([]ListSpec, len(*in))
