@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
+	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/tetragon/pkg/podhelpers"
 )
 
@@ -21,11 +22,11 @@ func TestState(t *testing.T) {
 	}
 	defer s.Close()
 
-	err = s.AddPolicy(PolicyID(1), "ns1", nil, nil)
+	err = s.AddPolicy(PolicyID(2), "ns1", &slimv1.LabelSelector{}, &slimv1.LabelSelector{}, nil)
 	require.NoError(t, err)
-	err = s.AddPolicy(PolicyID(2), "ns2", nil, nil)
+	err = s.AddPolicy(PolicyID(3), "ns2", &slimv1.LabelSelector{}, &slimv1.LabelSelector{}, nil)
 	require.NoError(t, err)
-	err = s.AddPolicy(PolicyID(3), "ns3", nil, nil)
+	err = s.AddPolicy(PolicyID(4), "ns3", &slimv1.LabelSelector{}, &slimv1.LabelSelector{}, nil)
 	require.NoError(t, err)
 
 	pod1 := PodID(uuid.New())
@@ -54,41 +55,48 @@ func TestState(t *testing.T) {
 	require.NoError(t, err)
 
 	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
-		1: {1001},
-		2: {2001, 2002},
-		3: {3001, 3002, 3003},
+		2:                 {1001},
+		3:                 {2001, 2002},
+		4:                 {3001, 3002, 3003},
+		uint64(AllPodsID): {1001, 2001, 2002, 3001, 3002, 3003},
 	})
 
 	err = s.DelPodContainer(pod2, "cont3")
 	require.NoError(t, err)
 	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
-		1: {},
-		2: {2001, 2002},
-		3: {3001, 3002, 3003},
-	})
-
-	err = s.DelPolicy(PolicyID(1))
-	require.NoError(t, err)
-	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
-		2: {2001, 2002},
-		3: {3001, 3002, 3003},
+		2:                 {},
+		3:                 {2001, 2002},
+		4:                 {3001, 3002, 3003},
+		uint64(AllPodsID): {2001, 2002, 3001, 3002, 3003},
 	})
 
 	err = s.DelPolicy(PolicyID(2))
 	require.NoError(t, err)
 	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
-		3: {3001, 3002, 3003},
+		3:                 {2001, 2002},
+		4:                 {3001, 3002, 3003},
+		uint64(AllPodsID): {2001, 2002, 3001, 3002, 3003},
+	})
+
+	err = s.DelPolicy(PolicyID(3))
+	require.NoError(t, err)
+	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
+		4:                 {3001, 3002, 3003},
+		uint64(AllPodsID): {2001, 2002, 3001, 3002, 3003},
 	})
 
 	err = s.DelPod(pod4)
 	require.NoError(t, err)
 	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
-		3: {3001},
+		4:                 {3001},
+		uint64(AllPodsID): {2001, 2002, 3001},
 	})
 
-	err = s.DelPolicy(PolicyID(3))
+	err = s.DelPolicy(PolicyID(4))
 	require.NoError(t, err)
-	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{})
+	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
+		uint64(AllPodsID): {2001, 2002, 3001},
+	})
 
 	require.Empty(t, s.policies)
 	require.Len(t, s.pods, 3)
@@ -99,7 +107,9 @@ func TestState(t *testing.T) {
 	require.NoError(t, err)
 	err = s.DelPod(pod3)
 	require.NoError(t, err)
-	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{})
+	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
+		uint64(AllPodsID): {},
+	})
 
 	require.Empty(t, s.policies)
 	require.Empty(t, s.pods)
