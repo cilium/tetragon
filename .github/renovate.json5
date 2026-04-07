@@ -182,6 +182,7 @@
       "matchManagers": ["gomod"],
       "postUpdateOptions": [
         // update source import paths on major updates
+        "gomodVendor",
         "gomodUpdateImportPaths",
       ],
       postUpgradeTasks: {
