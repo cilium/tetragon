@@ -9,6 +9,7 @@ import (
 	"maps"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/cilium/tetragon/pkg/bpf"
 	"github.com/cilium/tetragon/pkg/logger"
@@ -98,7 +99,7 @@ type Prog struct {
 
 type ProgOverhead struct {
 	Prog
-	RunTime uint64
+	RunTime time.Duration
 	RunCnt  uint64
 }
 
@@ -133,7 +134,7 @@ func (s *Sensor) Overhead() ([]ProgOverhead, bool) {
 				Label:  p.Label,
 				Sensor: s.Name,
 			},
-			RunTime: uint64(stats.Runtime),
+			RunTime: stats.Runtime,
 			RunCnt:  stats.RunCount,
 		})
 	}
