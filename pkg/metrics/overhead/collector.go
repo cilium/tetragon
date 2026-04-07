@@ -4,6 +4,8 @@
 package overhead
 
 import (
+	stdtime "time"
+
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/cilium/tetragon/pkg/logger"
@@ -39,14 +41,14 @@ func collect(ch chan<- prometheus.Metric) {
 
 	// Aggregate metrics before reporting, to avoid duplicates that would cause
 	// the entire metrics collection job to fail.
-	times := map[sensors.Prog]uint64{}
+	times := map[sensors.Prog]stdtime.Duration{}
 	counts := map[sensors.Prog]uint64{}
 	for _, ovh := range overheads {
 		times[ovh.Prog] += ovh.RunTime
 		counts[ovh.Prog] += ovh.RunCnt
 	}
 	for prog, m := range times {
-		ch <- time.MustMetric(float64(m), prog.Namespace, prog.Policy, prog.Sensor, prog.Attach, prog.Label)
+		ch <- time.MustMetric(m.Seconds(), prog.Namespace, prog.Policy, prog.Sensor, prog.Attach, prog.Label)
 	}
 	for prog, m := range counts {
 		ch <- runs.MustMetric(float64(m), prog.Namespace, prog.Policy, prog.Sensor, prog.Attach, prog.Label)
