@@ -49,6 +49,63 @@ the policy is applied to.
 
 For container field filters, we use the `containerSelector` field of tracing policies to select the containers that the policy is applied to. At the moment, the only supported fields are `name` and `repo` which refers to the container repository.
 
+## Host workload filters
+
+To filter host workloads we use the `hostSelector` field of tracing policies to select if a policy
+should be applied to host workloads or not. For now this only supports `{}` to match all host workloads
+and `null` to match none of the host workloads.
+
+## Examples
+
+By default, a policy match on all workloads, similar to the following example:
+
+```yaml
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: "workload-filtering"
+spec:
+  hostSelector: {}
+  podSelector: {}
+  containerSelector: {}
+  kprobes:
+```
+
+This is the same as if the user does not define any of `hostSelector`, `podSelector`, and `containerSelector`. Based on that the user can filter out specific workloads.
+
+The following example will match only host workloads.
+
+```yaml
+spec:
+  hostSelector: {}
+  podSelector: null
+  containerSelector: null
+```
+
+The following example will match only pod workloads.
+
+```yaml
+spec:
+  hostSelector: null
+  podSelector: {}
+  containerSelector: {}
+```
+
+`containerSelector` acts as a second level filtering on the `podSelector`. This means that first the podSelector is evaluated and if pod match we then apply the `containerSelector`.
+The following example will match all pods inside the `kube-system` namespace and all host workloads.
+
+```yaml
+spec:
+  hostSelector: {}
+  podSelector:
+    matchExpressions:
+    - key: "k8s:io.kubernetes.pod.namespace"
+      operator: In
+      values:
+      - "kube-system"
+  containerSelector: {} # this can be also omitted as the default value is {}
+```
+
 ## Demo
 
 ### Setup
