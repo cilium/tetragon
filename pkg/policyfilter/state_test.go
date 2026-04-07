@@ -114,3 +114,266 @@ func TestState(t *testing.T) {
 	require.Empty(t, s.policies)
 	require.Empty(t, s.pods)
 }
+
+func TestStateAllPodsPolicyEntry(t *testing.T) {
+	s, err := New(true)
+	if err != nil {
+		t.Skipf("failed to initialize policy filter state: %s", err)
+	}
+	defer s.Close()
+
+	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
+		uint64(AllPodsID): {},
+	})
+
+	pod1 := PodID(uuid.New())
+	cgid1 := CgroupID(4001)
+	err = s.AddPodContainer(pod1, "ns1", nil, "cont1", cgid1, podhelpers.ContainerInfo{Name: "main1", Repo: "repo1"})
+	require.NoError(t, err)
+
+	pod2 := PodID(uuid.New())
+	cgid2 := CgroupID(4002)
+	err = s.AddPodContainer(pod2, "ns2", nil, "cont2", cgid2, podhelpers.ContainerInfo{Name: "main2", Repo: "repo2"})
+	require.NoError(t, err)
+
+	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
+		uint64(AllPodsID): {4001, 4002},
+	})
+
+	err = s.AddPolicy(PolicyID(2), "ns2", &slimv1.LabelSelector{}, &slimv1.LabelSelector{}, nil)
+	require.NoError(t, err)
+	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
+		2:                 {4002},
+		uint64(AllPodsID): {4001, 4002},
+	})
+
+	err = s.DelPolicy(PolicyID(2))
+	require.NoError(t, err)
+	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
+		uint64(AllPodsID): {4001, 4002},
+	})
+
+	err = s.DelPodContainer(pod1, "cont1")
+	require.NoError(t, err)
+	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
+		uint64(AllPodsID): {4002},
+	})
+
+	err = s.DelPod(pod2)
+	require.NoError(t, err)
+	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
+		uint64(AllPodsID): {},
+	})
+}
+
+func TestStateAllPodsPolicyEntryWithoutCgroupMap(t *testing.T) {
+	s, err := New(false)
+	if err != nil {
+		t.Skipf("failed to inialize policy filter state: %s", err)
+	}
+	defer s.Close()
+
+	pod := PodID(uuid.New())
+	cgid := CgroupID(5001)
+	err = s.AddPodContainer(pod, "ns1", nil, "cont1", cgid, podhelpers.ContainerInfo{Name: "main1", Repo: "repo1"})
+	require.NoError(t, err)
+
+	dump, err := s.pfMap.readAll()
+	require.NoError(t, err)
+	require.Equal(t, map[PolicyID]map[CgroupID]struct{}{
+		AllPodsID: {cgid: {}},
+	}, dump.Policy)
+	require.Nil(t, dump.Cgroup)
+
+	err = s.DelPodContainer(pod, "cont1")
+	require.NoError(t, err)
+
+	dump, err = s.pfMap.readAll()
+	require.NoError(t, err)
+	require.Equal(t, map[PolicyID]map[CgroupID]struct{}{
+		AllPodsID: {},
+	}, dump.Policy)
+	require.Nil(t, dump.Cgroup)
+}
+
+func TestStateHostSelector(t *testing.T) {
+	s, err := New(true)
+	if err != nil {
+		t.Skipf("failed to inialize policy filter state: %s", err)
+	}
+	defer s.Close()
+
+	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
+		uint64(AllPodsID): {},
+	})
+
+	pod1 := PodID(uuid.New())
+	cgid1 := CgroupID(4001)
+	err = s.AddPodContainer(pod1, "ns1", nil, "cont1", cgid1, podhelpers.ContainerInfo{Name: "main1", Repo: "repo1"})
+	require.NoError(t, err)
+
+	pod2 := PodID(uuid.New())
+	cgid2 := CgroupID(4002)
+	err = s.AddPodContainer(pod2, "ns2", nil, "cont2", cgid2, podhelpers.ContainerInfo{Name: "main2", Repo: "repo2"})
+	require.NoError(t, err)
+
+	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
+		uint64(AllPodsID): {4001, 4002},
+	})
+
+	err = s.AddPolicy(PolicyID(2), "", nil, nil, &slimv1.LabelSelector{})
+	require.NoError(t, err)
+	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
+		2:                 {HostSelectorMode},
+		uint64(AllPodsID): {4001, 4002},
+	})
+
+	// Pod namespace and hostSelector (with NamespacedPolicy)
+	// If podSelector or containerSelector is nil no pods will match.
+	err = s.AddPolicy(PolicyID(3), "ns1", &slimv1.LabelSelector{}, &slimv1.LabelSelector{}, &slimv1.LabelSelector{})
+	require.NoError(t, err)
+	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
+		2:                 {HostSelectorMode},
+		3:                 {4001, HostSelectorMode},
+		uint64(AllPodsID): {4001, 4002},
+	})
+
+	// Pod namespace and hostSelector (with podSelector)
+	// If podSelector or containerSelector is nil no pods will match.
+	err = s.AddPolicy(PolicyID(4), "", &slimv1.LabelSelector{
+		MatchExpressions: []slimv1.LabelSelectorRequirement{{
+			Key:      "k8s:io.kubernetes.pod.namespace",
+			Operator: slimv1.LabelSelectorOpIn,
+			Values:   []string{"ns1"},
+		}},
+	}, &slimv1.LabelSelector{}, &slimv1.LabelSelector{})
+	require.NoError(t, err)
+	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
+		2:                 {HostSelectorMode},
+		3:                 {4001, HostSelectorMode},
+		4:                 {4001, HostSelectorMode},
+		uint64(AllPodsID): {4001, 4002},
+	})
+
+	// Pod namespace and hostSelector (with NamespacedPolicy) but with nil podSelector
+	// This will not match any pods/containers.
+	err = s.AddPolicy(PolicyID(5), "ns1", nil, &slimv1.LabelSelector{}, &slimv1.LabelSelector{})
+	require.NoError(t, err)
+	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
+		2:                 {HostSelectorMode},
+		3:                 {4001, HostSelectorMode},
+		4:                 {4001, HostSelectorMode},
+		5:                 {HostSelectorMode},
+		uint64(AllPodsID): {4001, 4002},
+	})
+
+	// Pod namespace and hostSelector (with podSelector) but with nil containerSelector
+	// This will not match any pods/containers.
+	err = s.AddPolicy(PolicyID(6), "ns1", &slimv1.LabelSelector{
+		MatchExpressions: []slimv1.LabelSelectorRequirement{{
+			Key:      "k8s:io.kubernetes.pod.namespace",
+			Operator: slimv1.LabelSelectorOpIn,
+			Values:   []string{"ns1"},
+		}},
+	}, nil, &slimv1.LabelSelector{})
+	require.NoError(t, err)
+	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
+		2:                 {HostSelectorMode},
+		3:                 {4001, HostSelectorMode},
+		4:                 {4001, HostSelectorMode},
+		5:                 {HostSelectorMode},
+		6:                 {HostSelectorMode},
+		uint64(AllPodsID): {4001, 4002},
+	})
+
+	// Delete cont1 from pod1. cgid1 should be removed.
+	err = s.DelPodContainer(pod1, "cont1")
+	require.NoError(t, err)
+	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
+		2:                 {HostSelectorMode},
+		3:                 {HostSelectorMode},
+		4:                 {HostSelectorMode},
+		5:                 {HostSelectorMode},
+		6:                 {HostSelectorMode},
+		uint64(AllPodsID): {4002},
+	})
+
+	// Create pod3 with new cgid3. Check that the correct policies applied.
+	pod3 := PodID(uuid.New())
+	cgid3 := CgroupID(4003)
+	err = s.AddPodContainer(pod3, "ns1", nil, "cont1", cgid3, podhelpers.ContainerInfo{Name: "main1", Repo: "repo1"})
+	require.NoError(t, err)
+	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
+		2:                 {HostSelectorMode},
+		3:                 {4003, HostSelectorMode},
+		4:                 {4003, HostSelectorMode},
+		5:                 {HostSelectorMode},
+		6:                 {HostSelectorMode},
+		uint64(AllPodsID): {4003, 4002},
+	})
+
+	// Delete pod2. cgid2 should be removed.
+	err = s.DelPod(pod2)
+	require.NoError(t, err)
+	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
+		2:                 {HostSelectorMode},
+		3:                 {4003, HostSelectorMode},
+		4:                 {4003, HostSelectorMode},
+		5:                 {HostSelectorMode},
+		6:                 {HostSelectorMode},
+		uint64(AllPodsID): {4003},
+	})
+
+	// Delete policy 2.
+	err = s.DelPolicy(PolicyID(2))
+	require.NoError(t, err)
+	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
+		3:                 {4003, HostSelectorMode},
+		4:                 {4003, HostSelectorMode},
+		5:                 {HostSelectorMode},
+		6:                 {HostSelectorMode},
+		uint64(AllPodsID): {4003},
+	})
+
+	// Delete policy 4.
+	err = s.DelPolicy(PolicyID(4))
+	require.NoError(t, err)
+	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
+		3:                 {4003, HostSelectorMode},
+		5:                 {HostSelectorMode},
+		6:                 {HostSelectorMode},
+		uint64(AllPodsID): {4003},
+	})
+
+	// Delete policy 6.
+	err = s.DelPolicy(PolicyID(6))
+	require.NoError(t, err)
+	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
+		3:                 {4003, HostSelectorMode},
+		5:                 {HostSelectorMode},
+		uint64(AllPodsID): {4003},
+	})
+
+	// Delete policy 5.
+	err = s.DelPolicy(PolicyID(5))
+	require.NoError(t, err)
+	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
+		3:                 {4003, HostSelectorMode},
+		uint64(AllPodsID): {4003},
+	})
+
+	// Delete pod3. cgid3 should be removed.
+	err = s.DelPod(pod3)
+	require.NoError(t, err)
+	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
+		3:                 {HostSelectorMode},
+		uint64(AllPodsID): {},
+	})
+
+	// Delete policy 3. Nothing left.
+	err = s.DelPolicy(PolicyID(3))
+	require.NoError(t, err)
+	requirePfmEqualTo(t, s.pfMap, map[uint64][]uint64{
+		uint64(AllPodsID): {},
+	})
+}
