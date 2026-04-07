@@ -31,6 +31,7 @@ import (
 	grpcexec "github.com/cilium/tetragon/pkg/grpc/exec"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
+	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/tetragon/pkg/logger"
 	"github.com/cilium/tetragon/pkg/observer"
 	"github.com/cilium/tetragon/pkg/option"
@@ -185,7 +186,10 @@ func TestNamespacedPolicies(t *testing.T) {
 			Namespace: "ns1",
 		},
 		Spec: v1alpha1.TracingPolicySpec{
-			KProbes: []v1alpha1.KProbeSpec{kpSpec},
+			PodSelector:       &slimv1.LabelSelector{},
+			ContainerSelector: &slimv1.LabelSelector{},
+			HostSelector:      &slimv1.LabelSelector{},
+			KProbes:           []v1alpha1.KProbeSpec{kpSpec},
 		},
 	}
 
@@ -214,7 +218,10 @@ func TestNamespacedPolicies(t *testing.T) {
 			Namespace: "ns1",
 		},
 		Spec: v1alpha1.TracingPolicySpec{
-			Tracepoints: []v1alpha1.TracepointSpec{tpSpec},
+			PodSelector:       &slimv1.LabelSelector{},
+			ContainerSelector: &slimv1.LabelSelector{},
+			HostSelector:      &slimv1.LabelSelector{},
+			Tracepoints:       []v1alpha1.TracepointSpec{tpSpec},
 		},
 	}
 
