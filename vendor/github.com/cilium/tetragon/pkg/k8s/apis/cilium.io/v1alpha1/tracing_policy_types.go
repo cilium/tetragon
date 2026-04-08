@@ -32,6 +32,8 @@ const (
 
 	// TPKindDefinition is the kind name of Cilium Tracing Policy
 	TPNamespacedKindDefinition = "TracingPolicyNamespaced"
+
+	k8sDomain = "k8s"
 )
 
 // +genclient
@@ -64,6 +66,10 @@ func (tp *TracingPolicyNamespaced) TpSpec() *TracingPolicySpec {
 
 func (tp *TracingPolicyNamespaced) TpInfo() string {
 	return fmt.Sprintf("%s (object:%d/%s) (type:%s/%s)", tp.ObjectMeta.Name, tp.ObjectMeta.Generation, tp.ObjectMeta.UID, tp.TypeMeta.Kind, tp.TypeMeta.APIVersion)
+}
+
+func (tp *TracingPolicyNamespaced) TpDomain() string {
+	return k8sDomain
 }
 
 func (tp *TracingPolicyNamespaced) TpName() string {
@@ -146,6 +152,10 @@ func (tp *TracingPolicy) TpInfo() string {
 
 func (tp *TracingPolicy) TpNamespace() string {
 	return ""
+}
+
+func (tp *TracingPolicy) TpDomain() string {
+	return k8sDomain
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
