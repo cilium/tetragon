@@ -117,6 +117,9 @@ static int BPF_FUNC(probe_read_kernel, void *dst, uint32_t size, const void *src
 static int BPF_FUNC(probe_read_user, void *dst, uint32_t size, const void *src);
 static int BPF_FUNC(probe_write_user, void *dst, const void *src, uint32_t len);
 static int BPF_FUNC(copy_from_user, void *dst, uint32_t size, const void *src);
+struct task_struct;
+static long BPF_FUNC(copy_from_user_task, void *dst, uint32_t size, const void *src,
+		     struct task_struct *tsk, uint64_t flags);
 
 /* Time access */
 static uint64_t BPF_FUNC(ktime_get_ns);

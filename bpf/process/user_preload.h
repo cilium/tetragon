@@ -53,6 +53,48 @@ preload_string_type(struct pt_regs *ctx, struct event_config *config, unsigned l
 }
 
 FUNC_INLINE int
+preload_go_string_type(struct pt_regs *ctx, struct event_config *config,
+		       unsigned long ptr, unsigned long len, arg_status_t status)
+{
+	__u64 id = get_current_pid_tgid();
+	struct preload_data *data;
+	__u32 zero = 0;
+	void *init;
+
+	init = map_lookup_elem(&heap_ro_zero, &zero);
+	if (!init)
+		return 0;
+
+	map_update_elem(&sleepable_preload, &id, init, BPF_ANY);
+	data = map_lookup_elem(&sleepable_preload, &id);
+	if (!data)
+		return 0;
+
+	data->status = status;
+	if (!status) {
+		/* Reserve first 4 bytes for the length field so the main
+		 * program can copy the pre-formatted [len][data] directly
+		 * to the event buffer without probe_read_str.
+		 */
+		struct task_struct *task = (struct task_struct *)get_current_task_btf();
+		long err;
+
+		if (len > sizeof(data->data) - 4)
+			len = sizeof(data->data) - 4;
+		asm volatile("%[len] &= 0xfff;\n"
+			     : [len] "+r"(len));
+		err = copy_from_user_task(&data->data[4], len, (void *)ptr, task, 0);
+		if (err) {
+			*(__u32 *)data->data = 0;
+			data->status = (__u32)-err;
+		} else {
+			*(__u32 *)data->data = (__u32)len;
+		}
+	}
+	return 0;
+}
+
+FUNC_INLINE int
 preload_pt_regs_arg(struct pt_regs *ctx, struct event_config *config, int index)
 {
 	struct config_reg_arg *reg;
@@ -65,11 +107,12 @@ preload_pt_regs_arg(struct pt_regs *ctx, struct event_config *config, int index)
 		     : [index] "+r"(index)
 		     : "i"(EVENT_CONFIG_MAX_REG_ARG_MASK));
 
+	ty = config->arg[index];
+
 	reg = &config->reg_arg[index];
 	shift = 64 - reg->size * 8;
 
 	val = read_reg(ctx, reg->offset, shift);
-	ty = config->arg[index];
 
 	// NB: we currently don't support doing BTF style resolve for pointers
 	// found in registers via pt_regs source. So the following extract_arg
@@ -92,6 +135,15 @@ preload_arg(struct pt_regs *ctx, struct event_config *config, int index)
 	unsigned long a;
 	__s32 ty;
 	arg_status_t status = 0;
+
+	ty = config->arg[index];
+	if (ty == go_string_type) {
+		unsigned long ptr, len;
+
+		ptr = read_reg(ctx, config->go_arg[index].regs[0], 0);
+		len = read_reg(ctx, config->go_arg[index].regs[1], 0);
+		return preload_go_string_type(ctx, config, ptr, len, status);
+	}
 
 #if defined(GENERIC_USDT)
 	a = read_usdt_arg(ctx, config, index, true);
@@ -118,8 +170,6 @@ preload_arg(struct pt_regs *ctx, struct event_config *config, int index)
 #endif
 
 	extract_arg(config, index, &a, true, &status);
-
-	ty = config->arg[index];
 
 	probe_read(&a, sizeof(a), &a);
 
