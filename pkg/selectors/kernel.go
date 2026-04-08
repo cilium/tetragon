@@ -1173,6 +1173,12 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 	if !ok {
 		return fmt.Errorf("parseMatchAction: ActionType %s unknown", action.Action)
 	}
+	if action.ClearGoString && act != ActionTypeOverride {
+		return errors.New("parseMatchAction: clearGoString is only valid with action Override")
+	}
+	if action.ClearGoString && !k.isUprobe {
+		return errors.New("parseMatchAction: clearGoString is only valid for uprobes")
+	}
 	WriteSelectorUint32(&k.data, act)
 
 	rateLimit := uint32(0)

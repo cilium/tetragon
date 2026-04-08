@@ -279,6 +279,9 @@ type ActionSelector struct {
 	// An arg value for the regs action
 	ArgRegs []string `json:"argRegs,omitempty"`
 	// +kubebuilder:validation:Optional
+	// When true with action Override on uprobes, clears the Go string length register for the function argument at ArgIndex (ABI layout is resolved from the uprobe symbol).
+	ClearGoString bool `json:"clearGoString,omitempty"`
+	// +kubebuilder:validation:Optional
 	// A time period within which repeated messages will not be posted. Can be
 	// specified in seconds (default or with 's' suffix), minutes ('m' suffix)
 	// or hours ('h' suffix). Only valid with the post action.

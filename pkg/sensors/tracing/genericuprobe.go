@@ -569,6 +569,10 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		has.substring = true
 	}
 
+	if err := expandClearGoStringActions(spec); err != nil {
+		return nil, err
+	}
+
 	// Parse Filters into kernel filter logic
 	uprobeSelectorState, err := selectors.InitKernelSelectorState(&selectors.KernelSelectorArgs{
 		Selectors: spec.Selectors,
