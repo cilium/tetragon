@@ -6,7 +6,10 @@
 package tracing
 
 import (
+	"strings"
 	"testing"
+
+	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 )
 
 func TestGoABISlotForArg(t *testing.T) {
@@ -33,5 +36,53 @@ func TestGoABISlotForArg(t *testing.T) {
 			t.Errorf("GoABISlotForArg(%q, %d) = %d (found=%v), want %d (found=%v)",
 				tt.symbol, tt.argIndex, got, found, tt.wantSlot, tt.wantFound)
 		}
+	}
+}
+
+func TestExpandClearGoStringActions(t *testing.T) {
+	spec := &v1alpha1.UProbeSpec{
+		Symbols: []string{"net/http.Get"},
+		Selectors: []v1alpha1.KProbeSelector{{
+			MatchActions: []v1alpha1.ActionSelector{{
+				Action:   "ClearGoString",
+				ArgIndex: 0,
+			}},
+		}},
+	}
+	if err := expandClearGoStringActions(spec); err != nil {
+		t.Fatalf("expandClearGoStringActions: %v", err)
+	}
+	action := spec.Selectors[0].MatchActions[0]
+	if strings.ToLower(action.Action) != "override" {
+		t.Fatalf("expected action Override, got %s", action.Action)
+	}
+	if len(action.ArgRegs) != 1 {
+		t.Fatalf("expected 1 argReg, got %d", len(action.ArgRegs))
+	}
+	if action.ArgRegs[0] != "rbx=0" {
+		t.Fatalf("expected [rbx=0], got %v", action.ArgRegs)
+	}
+}
+
+func TestExpandClearGoStringActionsServeContent(t *testing.T) {
+	spec := &v1alpha1.UProbeSpec{
+		Symbols: []string{"net/http.ServeContent"},
+		Selectors: []v1alpha1.KProbeSelector{{
+			MatchActions: []v1alpha1.ActionSelector{{
+				Action:   "ClearGoString",
+				ArgIndex: 2,
+			}},
+		}},
+	}
+	if err := expandClearGoStringActions(spec); err != nil {
+		t.Fatalf("expandClearGoStringActions: %v", err)
+	}
+	action := spec.Selectors[0].MatchActions[0]
+	if strings.ToLower(action.Action) != "override" {
+		t.Fatalf("expected action Override, got %s", action.Action)
+	}
+	// arg 2 (name), slot 3, rdi/rsi — only length register is cleared
+	if len(action.ArgRegs) != 1 || action.ArgRegs[0] != "rsi=0" {
+		t.Fatalf("expected [rsi=0], got %v", action.ArgRegs)
 	}
 }

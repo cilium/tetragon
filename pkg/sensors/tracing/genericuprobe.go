@@ -503,6 +503,33 @@ func createGenericUprobeSensor(
 	}, nil
 }
 
+// expandClearGoStringActions rewrites ClearGoString to Override with the length register cleared.
+func expandClearGoStringActions(spec *v1alpha1.UProbeSpec) error {
+	if len(spec.Symbols) == 0 {
+		return nil
+	}
+	sym := spec.Symbols[0]
+	for i := range spec.Selectors {
+		for j := range spec.Selectors[i].MatchActions {
+			action := &spec.Selectors[i].MatchActions[j]
+			if strings.ToLower(action.Action) != "cleargostring" {
+				continue
+			}
+			slot := GoABISlotForArg(sym, int(action.ArgIndex))
+			if slot < 0 {
+				return fmt.Errorf("ClearGoString: unknown Go ABI layout for %s arg %d", sym, action.ArgIndex)
+			}
+			_, lenReg, err := GoABISlotRegNames(slot)
+			if err != nil {
+				return fmt.Errorf("ClearGoString: %w", err)
+			}
+			action.Action = "Override"
+			action.ArgRegs = []string{lenReg + "=0"}
+		}
+	}
+	return nil
+}
+
 func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn, has *uprobeHas) ([]idtable.EntryID, error) {
 	var argRetprobe *v1alpha1.KProbeArg
 	var argRetprobeIdx int
@@ -529,6 +556,10 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 			return nil, fmt.Errorf("RefCtrOffsets(%d) has different dimension than Offsets(%d)",
 				refCtrOffsets, offsets)
 		}
+	}
+
+	if err := expandClearGoStringActions(spec); err != nil {
+		return nil, err
 	}
 
 	if selectors.HasOverride(spec.Selectors) {

@@ -66,6 +66,7 @@ var actionTypeTable = map[string]uint32{
 	"notifyenforcer":              ActionTypeNotifyEnforcer,
 	"cleanupenforcernotification": ActionTypeCleanupEnforcerNotification,
 	"set":                         ActionTypeSet,
+	"cleargostring":               ActionTypeOverride,
 }
 
 var actionTypeStringTable = map[uint32]string{
