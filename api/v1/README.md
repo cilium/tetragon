@@ -1888,6 +1888,7 @@ Determines the behavior of a field filter
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | yaml | [string](#string) |  |  |
+| domain | [string](#string) |  |  |
 
 
 
@@ -1916,6 +1917,7 @@ Determines the behavior of a field filter
 | namespace | [string](#string) |  |  |
 | enable | [bool](#bool) | optional |  |
 | mode | [TracingPolicyMode](#tetragon-TracingPolicyMode) | optional |  |
+| domain | [string](#string) |  |  |
 
 
 
@@ -1942,6 +1944,7 @@ Determines the behavior of a field filter
 | ----- | ---- | ----- | ----------- |
 | name | [string](#string) |  |  |
 | namespace | [string](#string) |  |  |
+| domain | [string](#string) |  |  |
 
 
 
@@ -1993,6 +1996,7 @@ Determines the behavior of a field filter
 | ----- | ---- | ----- | ----------- |
 | name | [string](#string) |  |  |
 | namespace | [string](#string) |  |  |
+| domain | [string](#string) |  |  |
 
 
 
@@ -2075,6 +2079,7 @@ Determines the behavior of a field filter
 | ----- | ---- | ----- | ----------- |
 | name | [string](#string) |  |  |
 | namespace | [string](#string) |  |  |
+| domain | [string](#string) |  |  |
 
 
 
@@ -2257,6 +2262,11 @@ Determines the behavior of a field filter
 
 ### ListTracingPoliciesRequest
 
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| domain | [string](#string) |  | domain to be listed; empty to list all domains |
 
 
 
