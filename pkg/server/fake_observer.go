@@ -17,15 +17,15 @@ func (f *FakeObserver) AddTracingPolicy(ctx context.Context, tp tracingpolicy.Tr
 	return nil
 }
 
-func (f *FakeObserver) DeleteTracingPolicy(ctx context.Context, sensorName string, sensorNamespace string) error {
+func (f *FakeObserver) DeleteTracingPolicy(ctx context.Context, sensorName string, sensorNamespace string, domain string) error {
 	return nil
 }
 
-func (f *FakeObserver) EnableTracingPolicy(ctx context.Context, sensorName string, sensorNamespace string) error {
+func (f *FakeObserver) EnableTracingPolicy(ctx context.Context, sensorName string, sensorNamespace string, domain string) error {
 	return nil
 }
 
-func (f *FakeObserver) DisableTracingPolicy(ctx context.Context, sensorName string, sensorNamespace string) error {
+func (f *FakeObserver) DisableTracingPolicy(ctx context.Context, sensorName string, sensorNamespace string, domain string) error {
 	return nil
 }
 
@@ -33,7 +33,7 @@ func (f *FakeObserver) RemoveSensor(ctx context.Context, sensorName string) erro
 	return nil
 }
 
-func (f *FakeObserver) ListTracingPolicies(ctx context.Context) (*tetragon.ListTracingPoliciesResponse, error) {
+func (f *FakeObserver) ListTracingPolicies(ctx context.Context, domain string) (*tetragon.ListTracingPoliciesResponse, error) {
 	return nil, nil
 }
 
