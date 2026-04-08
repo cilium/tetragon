@@ -480,6 +480,14 @@ FUNC_INLINE long copy_load_module(char *args, unsigned long arg)
 	const struct load_info *mod = (struct load_info *)arg;
 	struct tg_kernel_module *info = (struct tg_kernel_module *)args;
 
+	/*
+	 * Make sure we don't crash on kernel without module support,
+	 * 'struct load_info' is internal modules struct available only
+	 * if there's module support compiled in.
+	 */
+	if (!bpf_core_type_exists(struct load_info))
+		return 0;
+
 	memset(info, 0, sizeof(struct tg_kernel_module));
 
 	if (BPF_CORE_READ_INTO(&name, mod, name) != 0)
