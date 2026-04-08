@@ -14,6 +14,8 @@ import (
 type TypeMeta = metav1.TypeMeta
 type ObjectMeta = metav1.ObjectMeta
 
+const staticDomain = "static"
+
 // GenericTracingPolicy represents TracingPolicy CRD.
 // It implements TracingPolicy and CRDObject interfaces with pointer receivers.
 type GenericTracingPolicy struct {
@@ -32,6 +34,10 @@ func (gtp *GenericTracingPolicy) TpSpec() *v1alpha1.TracingPolicySpec {
 
 func (gtp *GenericTracingPolicy) TpInfo() string {
 	return gtp.Metadata.Name
+}
+
+func (gtp *GenericTracingPolicy) TpDomain() string {
+	return staticDomain
 }
 
 func (gtp *GenericTracingPolicy) GetObjectMetaStruct() *metav1.ObjectMeta {
@@ -60,6 +66,10 @@ func (gtp *GenericTracingPolicyNamespaced) TpSpec() *v1alpha1.TracingPolicySpec 
 
 func (gtp *GenericTracingPolicyNamespaced) TpInfo() string {
 	return gtp.Metadata.Name
+}
+
+func (gtp *GenericTracingPolicyNamespaced) TpDomain() string {
+	return staticDomain
 }
 
 func (gtp *GenericTracingPolicyNamespaced) GetObjectMetaStruct() *metav1.ObjectMeta {

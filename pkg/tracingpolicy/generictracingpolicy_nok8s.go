@@ -9,6 +9,8 @@ import (
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 )
 
+const staticDomain = "static"
+
 // NB: see the corresponding type from the k8s API
 type TypeMeta struct {
 	Kind       string `json:"kind,omitempty"`
@@ -39,4 +41,8 @@ func (gtp *GenericTracingPolicy) TpInfo() string {
 
 func (gtp *GenericTracingPolicy) TpSpec() *v1alpha1.TracingPolicySpec {
 	return &gtp.Spec
+}
+
+func (gtp *GenericTracingPolicy) TpDomain() string {
+	return staticDomain
 }
