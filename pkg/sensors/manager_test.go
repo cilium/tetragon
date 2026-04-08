@@ -126,7 +126,7 @@ func TestAddPolicyLoadError(t *testing.T) {
 	require.Error(t, addError)
 	t.Logf("got error (as expected): %s", addError)
 
-	l, err := mgr.ListTracingPolicies(ctx)
+	l, err := mgr.ListTracingPolicies(ctx, policy.TpDomain())
 	require.NoError(t, err)
 	assert.Len(t, l.Policies, 1)
 	assert.Equal(t, LoadErrorState.ToTetragonState(), l.Policies[0].State)
@@ -148,11 +148,11 @@ func TestPolicyFilterDisabled(t *testing.T) {
 	policy.Name = policyName
 	err = mgr.AddTracingPolicy(ctx, &policy)
 	require.NoError(t, err, "Add tracing policy failed with error: %v", err)
-	err = mgr.DeleteTracingPolicy(ctx, policyName, policyNamespace)
+	err = mgr.DeleteTracingPolicy(ctx, policyName, policyNamespace, policy.TpDomain())
 	require.NoError(t, err)
 	err = mgr.AddTracingPolicy(ctx, &policy)
 	require.NoError(t, err)
-	err = mgr.DeleteTracingPolicy(ctx, policyName, policyNamespace)
+	err = mgr.DeleteTracingPolicy(ctx, policyName, policyNamespace, policy.TpDomain())
 	require.NoError(t, err)
 
 	// namespaced policy with disabled state should fail
@@ -194,7 +194,7 @@ func TestPolicyStates(t *testing.T) {
 		addError := mgr.AddTracingPolicy(ctx, &policy)
 		require.Error(t, addError)
 
-		l, err := mgr.ListTracingPolicies(ctx)
+		l, err := mgr.ListTracingPolicies(ctx, policy.TpDomain())
 		require.NoError(t, err)
 		assert.Len(t, l.Policies, 1)
 		assert.Equal(t, LoadErrorState.ToTetragonState(), l.Policies[0].State)
@@ -214,14 +214,14 @@ func TestPolicyStates(t *testing.T) {
 		err = mgr.AddTracingPolicy(ctx, &policy)
 		require.NoError(t, err)
 
-		l, err := mgr.ListTracingPolicies(ctx)
+		l, err := mgr.ListTracingPolicies(ctx, policy.TpDomain())
 		require.NoError(t, err)
 		assert.Len(t, l.Policies, 1)
 		assert.Equal(t, EnabledState.ToTetragonState(), l.Policies[0].State)
 
-		err = mgr.DisableTracingPolicy(ctx, policy.Name, policy.Namespace)
+		err = mgr.DisableTracingPolicy(ctx, policy.Name, policy.Namespace, policy.TpDomain())
 		require.NoError(t, err)
-		l, err = mgr.ListTracingPolicies(ctx)
+		l, err = mgr.ListTracingPolicies(ctx, policy.TpDomain())
 		require.NoError(t, err)
 		assert.Len(t, l.Policies, 1)
 		assert.Equal(t, DisabledState.ToTetragonState(), l.Policies[0].State)
@@ -249,7 +249,7 @@ func TestPolicyLoadErrorOverride(t *testing.T) {
 	addError := mgr.AddTracingPolicy(ctx, &policy)
 	require.Error(t, addError)
 
-	l, err := mgr.ListTracingPolicies(ctx)
+	l, err := mgr.ListTracingPolicies(ctx, policy.TpDomain())
 	require.NoError(t, err)
 	assert.Len(t, l.Policies, 1)
 	assert.Equal(t, LoadErrorState.ToTetragonState(), l.Policies[0].State)
@@ -264,7 +264,7 @@ func TestPolicyLoadErrorOverride(t *testing.T) {
 	addError = mgr.AddTracingPolicy(ctx, &policy)
 	require.NoError(t, addError)
 
-	l, err = mgr.ListTracingPolicies(ctx)
+	l, err = mgr.ListTracingPolicies(ctx, policy.TpDomain())
 	require.NoError(t, err)
 	assert.Len(t, l.Policies, 1)
 	assert.Equal(t, EnabledState.ToTetragonState(), l.Policies[0].State)
@@ -292,7 +292,7 @@ func TestPolicyListCollections(t *testing.T) {
 	err = mgr.AddTracingPolicy(ctx, &policy)
 	require.NoError(t, err)
 
-	l, err := mgr.ListTracingPolicies(ctx)
+	l, err := mgr.ListTracingPolicies(ctx, policy.TpDomain())
 	require.NoError(t, err)
 	assert.Len(t, l.Policies, 1)
 	assert.Equal(t, EnabledState.ToTetragonState(), l.Policies[0].State)
@@ -332,7 +332,7 @@ func TestPolicyListingWhileLoadUnload(t *testing.T) {
 		// wait until at least one policy shows up, verify that it's in loading/unloading state and
 		// unblock the loading/unloading of the policy
 		for {
-			l, err := mgr.ListTracingPolicies(ctx)
+			l, err := mgr.ListTracingPolicies(ctx, "")
 			if err != nil {
 				errCh <- fmt.Errorf("ListTracingPolicies error: %w", err)
 				return
@@ -372,7 +372,7 @@ func TestPolicyListingWhileLoadUnload(t *testing.T) {
 	}
 
 	// check that policy is now enabled
-	l, err := mgr.ListTracingPolicies(ctx)
+	l, err := mgr.ListTracingPolicies(ctx, policy.TpDomain())
 	require.NoError(t, err)
 	err = checkPolicy(l.Policies, tetragon.TracingPolicyState_TP_STATE_ENABLED)
 	require.NoError(t, err)
@@ -383,7 +383,7 @@ func TestPolicyListingWhileLoadUnload(t *testing.T) {
 	t.Log("disabling policy")
 	mgrErrCh = make(chan error, 1)
 	go func() {
-		mgrErrCh <- mgr.DisableTracingPolicy(ctx, polName, "")
+		mgrErrCh <- mgr.DisableTracingPolicy(ctx, polName, "", policy.TpDomain())
 	}()
 
 	for range 2 {
@@ -396,7 +396,7 @@ func TestPolicyListingWhileLoadUnload(t *testing.T) {
 	}
 
 	// check that policy is now disabled
-	l, err = mgr.ListTracingPolicies(ctx)
+	l, err = mgr.ListTracingPolicies(ctx, policy.TpDomain())
 	require.NoError(t, err)
 	err = checkPolicy(l.Policies, tetragon.TracingPolicyState_TP_STATE_DISABLED)
 	require.NoError(t, err)
@@ -407,7 +407,7 @@ func TestPolicyListingWhileLoadUnload(t *testing.T) {
 	t.Log("re-enabling policy")
 	mgrErrCh = make(chan error, 1)
 	go func() {
-		mgrErrCh <- mgr.EnableTracingPolicy(ctx, polName, "")
+		mgrErrCh <- mgr.EnableTracingPolicy(ctx, polName, "", policy.TpDomain())
 	}()
 
 	for range 2 {
@@ -420,15 +420,15 @@ func TestPolicyListingWhileLoadUnload(t *testing.T) {
 	}
 
 	// check that policy is now diabled
-	l, err = mgr.ListTracingPolicies(ctx)
+	l, err = mgr.ListTracingPolicies(ctx, policy.TpDomain())
 	require.NoError(t, err)
 	err = checkPolicy(l.Policies, tetragon.TracingPolicyState_TP_STATE_ENABLED)
 	require.NoError(t, err)
 
 	t.Log("deleting policy")
-	err = mgr.DeleteTracingPolicy(ctx, polName, "")
+	err = mgr.DeleteTracingPolicy(ctx, polName, "", policy.TpDomain())
 	require.NoError(t, err)
-	l, err = mgr.ListTracingPolicies(ctx)
+	l, err = mgr.ListTracingPolicies(ctx, policy.TpDomain())
 	require.NoError(t, err)
 	require.Empty(t, l.Policies)
 }
@@ -461,7 +461,7 @@ func TestPolicyKernelMemoryBytes(t *testing.T) {
 	// this will fail to load because the programs do not exist
 	require.Error(t, addError)
 
-	l, err := mgr.ListTracingPolicies(ctx)
+	l, err := mgr.ListTracingPolicies(ctx, policy.TpDomain())
 	require.NoError(t, err)
 	require.Len(t, l.Policies, 1)
 	assert.Equal(t, uint64(500), l.Policies[0].KernelMemoryBytes)

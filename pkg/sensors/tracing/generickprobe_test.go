@@ -168,7 +168,7 @@ func Test_DisableEnablePolicy_Kprobe(t *testing.T) {
 		err = mgr.AddTracingPolicy(ctx, &tcpConnectPolicy)
 		require.NoError(t, err)
 		t.Cleanup(func() {
-			err = mgr.DeleteTracingPolicy(ctx, tcpConnectPolicyName, tcpConnectPolicyNamespace)
+			err = mgr.DeleteTracingPolicy(ctx, tcpConnectPolicyName, tcpConnectPolicyNamespace, tcpConnectPolicy.TpDomain())
 			require.NoError(t, err)
 		})
 
@@ -182,13 +182,13 @@ func Test_DisableEnablePolicy_Kprobe(t *testing.T) {
 		err = mgr.AddTracingPolicy(ctx, &tcpConnectPolicy)
 		require.NoError(t, err)
 		t.Cleanup(func() {
-			err = mgr.DeleteTracingPolicy(ctx, tcpConnectPolicyName, tcpConnectPolicyNamespace)
+			err = mgr.DeleteTracingPolicy(ctx, tcpConnectPolicyName, tcpConnectPolicyNamespace, tcpConnectPolicy.TpDomain())
 			require.NoError(t, err)
 		})
 
-		err = mgr.DisableTracingPolicy(ctx, tcpConnectPolicyName, tcpConnectPolicyNamespace)
+		err = mgr.DisableTracingPolicy(ctx, tcpConnectPolicyName, tcpConnectPolicyNamespace, tcpConnectPolicy.TpDomain())
 		require.NoError(t, err)
-		err = mgr.EnableTracingPolicy(ctx, tcpConnectPolicyName, tcpConnectPolicyNamespace)
+		err = mgr.EnableTracingPolicy(ctx, tcpConnectPolicyName, tcpConnectPolicyNamespace, tcpConnectPolicy.TpDomain())
 		require.NoError(t, err)
 	})
 }
@@ -208,29 +208,29 @@ func Test_DisableEnablePolicy_KernelMemoryBytes(t *testing.T) {
 	err = mgr.AddTracingPolicy(ctx, &tcpConnectPolicy)
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		err = mgr.DeleteTracingPolicy(ctx, tcpConnectPolicyName, tcpConnectPolicyNamespace)
+		err = mgr.DeleteTracingPolicy(ctx, tcpConnectPolicyName, tcpConnectPolicyNamespace, tcpConnectPolicy.TpDomain())
 		require.NoError(t, err)
 	})
 
-	list, err := mgr.ListTracingPolicies(ctx)
+	list, err := mgr.ListTracingPolicies(ctx, tcpConnectPolicy.TpDomain())
 	require.NoError(t, err)
 	require.Len(t, list.Policies, 1)
 	assert.Equal(t, tetragon.TracingPolicyState_TP_STATE_ENABLED, list.Policies[0].State)
 	assert.NotZero(t, list.Policies[0].KernelMemoryBytes)
 
-	err = mgr.DisableTracingPolicy(ctx, tcpConnectPolicyName, tcpConnectPolicyNamespace)
+	err = mgr.DisableTracingPolicy(ctx, tcpConnectPolicyName, tcpConnectPolicyNamespace, tcpConnectPolicy.TpDomain())
 	require.NoError(t, err)
 
-	list, err = mgr.ListTracingPolicies(ctx)
+	list, err = mgr.ListTracingPolicies(ctx, tcpConnectPolicy.TpDomain())
 	require.NoError(t, err)
 	require.Len(t, list.Policies, 1)
 	assert.Equal(t, tetragon.TracingPolicyState_TP_STATE_DISABLED, list.Policies[0].State)
 	assert.Zero(t, list.Policies[0].KernelMemoryBytes)
 
-	err = mgr.EnableTracingPolicy(ctx, tcpConnectPolicyName, tcpConnectPolicyNamespace)
+	err = mgr.EnableTracingPolicy(ctx, tcpConnectPolicyName, tcpConnectPolicyNamespace, tcpConnectPolicy.TpDomain())
 	require.NoError(t, err)
 
-	list, err = mgr.ListTracingPolicies(ctx)
+	list, err = mgr.ListTracingPolicies(ctx, tcpConnectPolicy.TpDomain())
 	require.NoError(t, err)
 	require.Len(t, list.Policies, 1)
 	assert.Equal(t, tetragon.TracingPolicyState_TP_STATE_ENABLED, list.Policies[0].State)
