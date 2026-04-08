@@ -894,7 +894,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -1483,7 +1483,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -2254,7 +2254,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -2843,7 +2843,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -3383,7 +3383,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -3972,7 +3972,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -4408,7 +4408,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -4997,7 +4997,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -5495,7 +5495,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -6084,7 +6084,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -6840,7 +6840,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -7429,7 +7429,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -7934,7 +7934,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -8523,7 +8523,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -9564,7 +9564,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -10153,7 +10153,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -10924,7 +10924,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -11513,7 +11513,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -12053,7 +12053,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -12642,7 +12642,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -13078,7 +13078,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -13667,7 +13667,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -14165,7 +14165,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -14754,7 +14754,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -15510,7 +15510,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -16099,7 +16099,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -16604,7 +16604,7 @@ Filters specified in macros will be appended to corresponding filters of the sel
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -17193,7 +17193,7 @@ Only valid with the post action and with a rateLimit specified.<br/>
 NOTE: actions FollowFD, UnfollowFD, and CopyFD are marked as deprecated and planned to
 be removed in version 1.5.<br/>
           <br/>
-            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set<br/>
+            <i>Enum</i>: Post, FollowFD, UnfollowFD, Sigkill, CopyFD, Override, GetUrl, DnsLookup, NoPost, Signal, TrackSock, UntrackSock, NotifyEnforcer, CleanupEnforcerNotification, Set, ClearGoString<br/>
         </td>
         <td>true</td>
       </tr><tr>
