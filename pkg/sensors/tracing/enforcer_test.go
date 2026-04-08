@@ -879,7 +879,7 @@ func testEnforcerPersistentUnload(t *testing.T, builder func() *EnforcerSpecBuil
 	run(1, expected)
 
 	// disable the policy and we should get rid of the enforcement
-	err = mgr.DisableTracingPolicy(ctx, tp.TpName(), "")
+	err = mgr.DisableTracingPolicy(ctx, tp.TpName(), "", tp.TpDomain())
 	require.NoError(t, err)
 
 	// bpf pinned links removal is asynchronous, we need to wait to be sure it's gone
@@ -889,14 +889,14 @@ func testEnforcerPersistentUnload(t *testing.T, builder func() *EnforcerSpecBuil
 	run(2, "exit status 22")
 
 	// enable the policy and we should get the enforcement
-	err = mgr.EnableTracingPolicy(ctx, tp.TpName(), "")
+	err = mgr.EnableTracingPolicy(ctx, tp.TpName(), "", tp.TpDomain())
 	require.NoError(t, err)
 
 	// third run - sensors are loaded, we should get kill/override
 	run(3, expected)
 
 	// remove the policy and we should get rid of the enforcement
-	err = mgr.DeleteTracingPolicy(ctx, tp.TpName(), "")
+	err = mgr.DeleteTracingPolicy(ctx, tp.TpName(), "", tp.TpDomain())
 	require.NoError(t, err)
 
 	// bpf pinned links removal is asynchronous, we need to wait to be sure it's gone
