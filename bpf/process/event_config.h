@@ -39,6 +39,13 @@ struct config_reg_arg {
 	__u8 pad;
 } __attribute__((packed));
 
+#define GO_ARG_MAX_REGS 3
+
+struct config_go_arg {
+	__u16 regs[GO_ARG_MAX_REGS];
+	__u16 field_off;
+} __attribute__((packed));
+
 struct extract_arg_data {
 	struct config_btf_arg *btf_config;
 	unsigned long *arg;
@@ -78,6 +85,7 @@ struct event_config {
 	struct config_btf_arg btf_arg[MAX_POSSIBLE_ARGS][MAX_BTF_ARG_DEPTH];
 	struct config_usdt_arg usdt_arg[EVENT_CONFIG_MAX_USDT_ARG];
 	struct config_reg_arg reg_arg[EVENT_CONFIG_MAX_REG_ARG];
+	struct config_go_arg go_arg[EVENT_CONFIG_MAX_REG_ARG];
 } __attribute__((packed));
 
 FUNC_INLINE int arg_idx(int index)

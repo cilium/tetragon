@@ -206,6 +206,7 @@ FUNC_INLINE bool is_read_arg_1(long type)
 	case fd_ty:
 	case filename_ty:
 	case string_type:
+	case go_string_type:
 	case net_dev_ty:
 	case data_loc_type:
 	case syscall64_type:
@@ -292,6 +293,27 @@ __read_arg_1(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 	case string_type:
 		size = copy_strings(args, (char *)arg, MAX_STRING);
 		break;
+	case go_string_type: {
+		/* Preloaded data is already formatted as [u32 len][data].
+		 * Copy it directly — no probe_read_str needed since Go
+		 * strings are not null-terminated.
+		 */
+		__u32 slen;
+
+		probe_read(&slen, sizeof(slen), (char *)arg);
+		if (slen > MAX_STRING)
+			slen = MAX_STRING;
+		asm volatile("%[slen] &= 0xfff;\n"
+			     : [slen] "+r"(slen));
+		probe_read(args, sizeof(__u32), &slen);
+		/* Re-mask after probe_read: older kernels (< 6.x) lose
+		 * bound tracking across the stack spill that &slen forces.
+		 */
+		asm volatile("%[slen] &= 0xfff;\n"
+			     : [slen] "+r"(slen));
+		probe_read(&args[4], slen, (char *)arg + 4);
+		size = slen + 4;
+	} break;
 	case net_dev_ty: {
 		struct net_device *dev = (struct net_device *)arg;
 
@@ -538,7 +560,7 @@ FUNC_INLINE unsigned long get_preload_arg(struct pt_regs *ctx, long ty, arg_stat
 	else
 		return arg;
 
-	if (ty == string_type) {
+	if (ty == string_type || ty == go_string_type) {
 		arg = (unsigned long)data->data;
 
 		// Make verifier to believe it's just an ordinary number and not
