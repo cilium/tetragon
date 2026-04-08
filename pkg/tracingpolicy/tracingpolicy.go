@@ -7,6 +7,8 @@ import (
 	"github.com/cilium/tetragon/pkg/k8s/apis/cilium.io/v1alpha1"
 )
 
+const staticDomain = "static"
+
 // TracingPolicy is a tracing policy interface.
 // It is implemented by v1alpha1.types.TracingPolicy and
 // config.GenericTracingConf. The former is what is the k8s API server uses,
@@ -18,6 +20,8 @@ type TracingPolicy interface {
 	TpSpec() *v1alpha1.TracingPolicySpec
 	// TpInfo returns a description of the policy
 	TpInfo() string
+	// TpDomain returns the domain for the policy
+	TpDomain() string
 }
 
 // revive:disable:exported
