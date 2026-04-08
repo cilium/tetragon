@@ -286,7 +286,7 @@ func TestNamespacedPolicies(t *testing.T) {
 	runTest(map[int32]int{4444: 1})
 
 	// Let's delete the tracing policy, and check that we get no events
-	err = sm.Manager.DeleteTracingPolicy(ctx, "lseek-test", "ns1")
+	err = sm.Manager.DeleteTracingPolicy(ctx, "lseek-test", "ns1", kpPolicyConf.TpDomain())
 	require.NoError(t, err)
 	runTest(map[int32]int{})
 
@@ -296,7 +296,7 @@ func TestNamespacedPolicies(t *testing.T) {
 	runTest(map[int32]int{4444: 1})
 
 	// delete policy, and see that we still don't get any events
-	err = sm.Manager.DeleteTracingPolicy(ctx, "lseek-test", "ns1")
+	err = sm.Manager.DeleteTracingPolicy(ctx, "lseek-test", "ns1", kpPolicyConf.TpDomain())
 	require.NoError(t, err)
 	runTest(map[int32]int{})
 
