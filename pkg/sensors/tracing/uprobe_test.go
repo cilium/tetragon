@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -1123,6 +1124,68 @@ spec:
 	if err := exec.Command(uprobeTest1).Run(); err != nil {
 		t.Fatalf("Failed to execute test binary: %s\n", err)
 	}
+
+	err = jsonchecker.JsonTestCheck(t, checker)
+	require.NoError(t, err)
+}
+
+func TestUprobeGoStringArg(t *testing.T) {
+	if runtime.GOARCH != "amd64" {
+		t.Skip("go_string ABI register mapping is amd64-only")
+	}
+	if !bpf.HasKfunc("bpf_copy_from_user_str") {
+		t.Skip("go_string sleepable preload requires bpf_copy_from_user_str kfunc support")
+	}
+	testBin := testutils.RepoRootPath("contrib/tester-progs/servecontent-test")
+	if _, err := os.Stat(testBin); err != nil {
+		t.Skip("servecontent-test not built; run 'make -C contrib/tester-progs servecontent-test'")
+	}
+
+	pathArg := "../../../etc/passwd"
+
+	uprobeHook := `
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: go-string-test
+spec:
+  uprobes:
+  - path: "` + testBin + `"
+    symbols:
+    - "net/http.ServeContent"
+    args:
+    - index: 2
+      type: "go_string"
+`
+
+	createCrdFile(t, uprobeHook)
+
+	upChecker := ec.NewProcessUprobeChecker("GO_STRING_ARG").
+		WithProcess(ec.NewProcessChecker().
+			WithBinary(sm.Full(testBin))).
+		WithSymbol(sm.Full("net/http.ServeContent")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Ordered).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithStringArg(sm.Full(pathArg)),
+			))
+	checker := ec.NewUnorderedEventChecker(upChecker)
+
+	var doneWG, readyWG sync.WaitGroup
+	defer doneWG.Wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), tus.Conf().CmdWaitTime)
+	defer cancel()
+
+	obs, err := observertesthelper.GetDefaultObserverWithFile(t, ctx, testConfigFile, tus.Conf().TetragonLib, observertesthelper.WithMyPid())
+	if err != nil {
+		t.Fatalf("GetDefaultObserverWithFile error: %s", err)
+	}
+	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
+	readyWG.Wait()
+
+	err = exec.Command(testBin, pathArg).Run()
+	require.NoError(t, err)
 
 	err = jsonchecker.JsonTestCheck(t, checker)
 	require.NoError(t, err)
