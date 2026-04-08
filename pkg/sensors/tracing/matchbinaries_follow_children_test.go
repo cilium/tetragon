@@ -196,7 +196,7 @@ func TestMatchBinariesFollowChildrenIDs(t *testing.T) {
 	for range 2 {
 		err := sm.Manager.AddTracingPolicy(ctx, &tp)
 		require.NoError(t, err)
-		sm.Manager.DeleteTracingPolicy(ctx, "match-binaries", "")
+		sm.Manager.DeleteTracingPolicy(ctx, "match-binaries", "", tp.TpDomain())
 	}
 }
 
@@ -315,7 +315,7 @@ func TestMatchBinariesFollowChildrenUpdate(t *testing.T) {
 	require.Equal(t, count, found, "found")
 
 	// Remove policy
-	err = sm.Manager.DeleteTracingPolicy(ctx, "match-binaries", "")
+	err = sm.Manager.DeleteTracingPolicy(ctx, "match-binaries", "", tp.TpDomain())
 	require.NoError(t, err)
 
 	// Check that all "forks" processes are updated
@@ -464,7 +464,7 @@ func TestMatchBinariesFollowChildrenBeforePolicy(t *testing.T) {
 	require.Equal(t, 1, found, "found")
 
 	// Remove policy
-	err = sm.Manager.DeleteTracingPolicy(ctx, "match-binaries", "")
+	err = sm.Manager.DeleteTracingPolicy(ctx, "match-binaries", "", tp.TpDomain())
 	require.NoError(t, err)
 
 	// Check that all "forks" processes are updated

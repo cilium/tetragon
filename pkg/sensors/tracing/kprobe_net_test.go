@@ -105,7 +105,7 @@ func (suite *KprobeNet) addTracingPolicy(tpYaml string) tracingpolicy.TracingPol
 }
 
 func (suite *KprobeNet) deleteTracingPolicy(tp tracingpolicy.TracingPolicy) {
-	err := observer.GetSensorManager().DeleteTracingPolicy(suite.ctx, tp.TpName(), "")
+	err := observer.GetSensorManager().DeleteTracingPolicy(suite.ctx, tp.TpName(), "", tp.TpDomain())
 	suite.Require().NoError(err)
 }
 

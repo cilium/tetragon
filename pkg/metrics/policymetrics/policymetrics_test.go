@@ -50,37 +50,44 @@ tetragon_tracingpolicy_loaded{state="load_error"} %d
 	collector := NewPolicyCollector()
 	reg.Register(collector)
 
-	err := manager.AddTracingPolicy(context.TODO(), &tracingpolicy.GenericTracingPolicy{
+	tp1 := tracingpolicy.GenericTracingPolicy{
 		Metadata: v1.ObjectMeta{
 			Name: "pizza",
 		},
-	})
+	}
+	err := manager.AddTracingPolicy(context.TODO(), &tp1)
 	require.NoError(t, err)
+
 	// Add three policies with the same name: one clusterwide, two namespaced
-	err = manager.AddTracingPolicy(context.TODO(), &tracingpolicy.GenericTracingPolicy{
+	tp2 := tracingpolicy.GenericTracingPolicy{
 		Metadata: v1.ObjectMeta{
 			Name: "amazing-one",
 		},
-	})
+	}
+	err = manager.AddTracingPolicy(context.TODO(), &tp2)
 	require.NoError(t, err)
-	err = manager.AddTracingPolicy(context.TODO(), &tracingpolicy.GenericTracingPolicyNamespaced{
+
+	tp3 := tracingpolicy.GenericTracingPolicyNamespaced{
 		Metadata: v1.ObjectMeta{
 			Name:      "amazing-one",
 			Namespace: "default",
 		},
-	})
+	}
+	err = manager.AddTracingPolicy(context.TODO(), &tp3)
 	require.NoError(t, err)
-	err = manager.AddTracingPolicy(context.TODO(), &tracingpolicy.GenericTracingPolicyNamespaced{
+
+	tp4 := tracingpolicy.GenericTracingPolicyNamespaced{
 		Metadata: v1.ObjectMeta{
 			Name:      "amazing-one",
 			Namespace: "kube-system",
 		},
-	})
+	}
+	err = manager.AddTracingPolicy(context.TODO(), &tp4)
 	require.NoError(t, err)
 	err = testutil.CollectAndCompare(collector, expectedMetrics(0, 4, 0, 0))
 	require.NoError(t, err)
 
-	err = manager.DisableTracingPolicy(context.TODO(), "pizza", "")
+	err = manager.DisableTracingPolicy(context.TODO(), "pizza", "", tp1.TpDomain())
 	require.NoError(t, err)
 	err = testutil.CollectAndCompare(collector, expectedMetrics(1, 3, 0, 0))
 	require.NoError(t, err)
