@@ -1254,6 +1254,22 @@ func ParseMatchAction(k *KernelSelectorState, action *v1alpha1.ActionSelector, a
 	return nil
 }
 
+func ParseMatchWorkloads(k *KernelSelectorState, workloads []v1alpha1.WorkloadsSelector, selIdx int) error {
+	if len(workloads) > 1 {
+		return errors.New("only a single selector under matchWorkloads is supported")
+	}
+	if len(workloads) == 0 {
+		return nil
+	}
+
+	workload := workloads[0]
+	fmt.Println("[", selIdx, "]matchWorkloads PodSelector:", workload.PodSelector)
+	fmt.Println("[", selIdx, "]matchWorkloads ContainerSelector:", workload.ContainerSelector)
+	fmt.Println("[", selIdx, "]matchWorkloads HostSelector:", workload.HostSelector)
+
+	return nil
+}
+
 func ParseMatchActions(k *KernelSelectorState, actions []v1alpha1.ActionSelector, actionArgTable *idtable.Table) error {
 	if len(actions) > 3 {
 		return fmt.Errorf("only %d actions are support for selector (current number of values is %d)", 3, len(actions))
@@ -1685,6 +1701,9 @@ func InitKernelSelectorState(args *KernelSelectorArgs) (*KernelSelectorState, er
 		}
 		if err := ParseMatchArgs(k, selector.MatchArgs, selector.MatchData, args.Args, args.Data); err != nil {
 			return fmt.Errorf("parseMatchArgs  error: %w", err)
+		}
+		if err := ParseMatchWorkloads(k, selector.MatchWorkloads, selIdx); err != nil {
+			return fmt.Errorf("parseMatchWorkloads  error: %w", err)
 		}
 		if err := ParseMatchActions(k, selector.MatchActions, args.ActionArgTable); err != nil {
 			return fmt.Errorf("parseMatchActions error: %w", err)
