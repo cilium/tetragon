@@ -658,6 +658,13 @@ type ConfigRegArg struct {
 	Pad    uint8  `align:"pad"`
 }
 
+const GoArgMaxRegs = 3
+
+type ConfigGoArg struct {
+	Regs     [GoArgMaxRegs]uint16 `align:"regs"`
+	FieldOff uint16               `align:"field_off"`
+}
+
 const (
 	EventConfigMaxArgs     = 5
 	EventConfigMaxUsdtArgs = 8
@@ -681,4 +688,5 @@ type EventConfig struct {
 	BTFArg          [EventConfigMaxArgs][MaxBTFArgDepth]ConfigBTFArg `align:"btf_arg"`
 	UsdtArg         [EventConfigMaxUsdtArgs]ConfigUsdtArg            `align:"usdt_arg"`
 	RegArg          [EventConfigMaxRegArgs]ConfigRegArg              `align:"reg_arg"`
+	GoArg           [EventConfigMaxRegArgs]ConfigGoArg               `align:"go_arg"`
 }

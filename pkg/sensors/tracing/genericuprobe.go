@@ -589,6 +589,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		argReturnPrinters []argPrinter
 
 		regArg [api.EventConfigMaxRegArgs]api.ConfigRegArg
+		goArg  [api.EventConfigMaxRegArgs]api.ConfigGoArg
 	)
 
 	tagsField, err := GetPolicyTags(spec.Tags)
@@ -656,6 +657,30 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 				}
 				preloadArg = true
 			}
+
+			if argType == gt.GenericGoStringType {
+				if !bpf.HasKfunc("bpf_copy_from_user_str") {
+					return errors.New("go_string: sleepable preload requires bpf_copy_from_user_str (kernel >= 6.12)")
+				}
+				if preload {
+					return errors.New("error: can't preload more than one argument")
+				}
+				if len(spec.Symbols) == 0 {
+					return errors.New("go_string type requires at least one symbol")
+				}
+				sym := spec.Symbols[0]
+				slot := GoABISlotForArg(sym, int(a.Index))
+				if slot < 0 {
+					return fmt.Errorf("go_string: unknown Go ABI layout for %s arg %d", sym, a.Index)
+				}
+				ptrOff, lenOff, err := goABISlotPtRegsOffset(slot)
+				if err != nil {
+					return fmt.Errorf("go_string: %w", err)
+				}
+				goArg[i].Regs[0] = ptrOff
+				goArg[i].Regs[1] = lenOff
+				preloadArg = true
+			}
 		}
 
 		preload = preload || preloadArg
@@ -668,6 +693,9 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		argMValue, err := getUserMetaValue(a, preloadArg)
 		if err != nil {
 			return err
+		}
+		if argType == gt.GenericGoStringType {
+			argMValue |= argPtRegsBit
 		}
 		if argReturnCopy(argMValue) {
 			argRetprobe = &spec.Args[i]
@@ -767,6 +795,7 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		eventConfig.ArgIndex = argIdx
 		eventConfig.BTFArg = allBTFArgs
 		eventConfig.RegArg = regArg
+		eventConfig.GoArg = goArg
 
 		uprobeEntry := &genericUprobe{
 			loadArgs: uprobeLoadArgs{
@@ -809,6 +838,15 @@ func addUprobe(spec *v1alpha1.UProbeSpec, ids []idtable.EntryID, in *addUprobeIn
 		return nil, err
 	}
 	defer f.Close()
+
+	for _, a := range spec.Args {
+		if a.Type == "go_string" {
+			if err := f.ValidateGoABI(); err != nil {
+				return nil, fmt.Errorf("go_string: %w", err)
+			}
+			break
+		}
+	}
 
 	if symbols != 0 && f.IsStrippedPureGoBinary() {
 		tbl, err := f.Pclntab()
