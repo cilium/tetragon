@@ -23,6 +23,7 @@ func TestGoABISlotForArg(t *testing.T) {
 		{"net/http.ServeContent", 4, 8, true},
 		{"path/filepath.Clean", 0, 0, true},
 		{"os.Open", 0, 0, true},
+		{"github.com/cilium/tetragon/pkg/sensors/tracing/goabitest.ReportLenForABI", 0, 0, true},
 		{"unknown.Func", 0, -1, false},
 		{"net/http.ServeContent", 99, -1, false},
 	}

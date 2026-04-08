@@ -32,12 +32,14 @@ var symbols = []string{
 	"net/http.Get",
 	"net/http.NewRequest",
 	"path/filepath.Clean",
+	"strings.ToUpper",
 	"os.Open",
 	"os.OpenFile",
 	"os.ReadFile",
 	"os.WriteFile",
 	"text/template.(*Template).Parse",
 	"html/template.(*Template).Parse",
+	"github.com/cilium/tetragon/pkg/sensors/tracing/goabitest.ReportLenForABI",
 }
 
 var methodRe = regexp.MustCompile(`^(.+)\.\(\*(\w+)\)\.(\w+)$`)

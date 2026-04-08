@@ -11,10 +11,12 @@ var goABIKnownFuncs = map[string][]int{
 	"net/http.Get":                    {0},
 	"net/http.NewRequest":             {0, 2, 4},
 	"path/filepath.Clean":             {0},
+	"strings.ToUpper":                 {0},
 	"os.Open":                         {0},
 	"os.OpenFile":                     {0, 2, 3},
 	"os.ReadFile":                     {0},
 	"os.WriteFile":                    {0, 2, 5},
 	"text/template.(*Template).Parse": {0, 1},
 	"html/template.(*Template).Parse": {0, 1},
+	"github.com/cilium/tetragon/pkg/sensors/tracing/goabitest.ReportLenForABI": {0},
 }
