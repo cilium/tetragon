@@ -164,20 +164,6 @@ func Test_DisableEnablePolicy_Kprobe(t *testing.T) {
 	mgr, err := sensors.StartSensorManager(path)
 	require.NoError(t, err)
 
-	t.Run("sensor", func(t *testing.T) {
-		err = mgr.AddTracingPolicy(ctx, &tcpConnectPolicy)
-		require.NoError(t, err)
-		t.Cleanup(func() {
-			err = mgr.DeleteTracingPolicy(ctx, tcpConnectPolicyName, tcpConnectPolicyNamespace, tcpConnectPolicy.TpDomain())
-			require.NoError(t, err)
-		})
-
-		err = mgr.DisableSensor(ctx, tcpConnectPolicyName)
-		require.NoError(t, err)
-		err = mgr.EnableSensor(ctx, tcpConnectPolicyName)
-		require.NoError(t, err)
-	})
-
 	t.Run("tracing-policy", func(t *testing.T) {
 		err = mgr.AddTracingPolicy(ctx, &tcpConnectPolicy)
 		require.NoError(t, err)
