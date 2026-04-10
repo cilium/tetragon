@@ -1174,6 +1174,7 @@ Determines the behavior of a field filter
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | yaml | [string](#string) |  |  |
+| domain | [string](#string) |  |  |
 
 <a name="tetragon-AddTracingPolicyResponse"></a>
 
@@ -1189,6 +1190,7 @@ Determines the behavior of a field filter
 | namespace | [string](#string) |  |  |
 | enable | [bool](#bool) | optional |  |
 | mode | [TracingPolicyMode](#tetragon-TracingPolicyMode) | optional |  |
+| domain | [string](#string) |  |  |
 
 <a name="tetragon-ConfigureTracingPolicyResponse"></a>
 
@@ -1202,6 +1204,7 @@ Determines the behavior of a field filter
 | ----- | ---- | ----- | ----------- |
 | name | [string](#string) |  |  |
 | namespace | [string](#string) |  |  |
+| domain | [string](#string) |  |  |
 
 <a name="tetragon-DeleteTracingPolicyResponse"></a>
 
@@ -1227,6 +1230,7 @@ Determines the behavior of a field filter
 | ----- | ---- | ----- | ----------- |
 | name | [string](#string) |  |  |
 | namespace | [string](#string) |  |  |
+| domain | [string](#string) |  |  |
 
 <a name="tetragon-DisableTracingPolicyResponse"></a>
 
@@ -1269,6 +1273,7 @@ Determines the behavior of a field filter
 | ----- | ---- | ----- | ----------- |
 | name | [string](#string) |  |  |
 | namespace | [string](#string) |  |  |
+| domain | [string](#string) |  |  |
 
 <a name="tetragon-EnableTracingPolicyResponse"></a>
 
@@ -1350,6 +1355,18 @@ Determines the behavior of a field filter
 | ----- | ---- | ----- | ----------- |
 | version | [string](#string) |  |  |
 
+<a name="tetragon-ListDomainsRequest"></a>
+
+### ListDomainsRequest
+
+<a name="tetragon-ListDomainsResponse"></a>
+
+### ListDomainsResponse
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| domains | [string](#string) | repeated |  |
+
 <a name="tetragon-ListSensorsRequest"></a>
 
 ### ListSensorsRequest
@@ -1365,6 +1382,10 @@ Determines the behavior of a field filter
 <a name="tetragon-ListTracingPoliciesRequest"></a>
 
 ### ListTracingPoliciesRequest
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| domain | [string](#string) |  | domain to be listed; empty to list all domains |
 
 <a name="tetragon-ListTracingPoliciesResponse"></a>
 
@@ -1544,6 +1565,7 @@ For now, we only want to support debug-related config flags to be configurable.
 | EnableSensor | [EnableSensorRequest](#tetragon-EnableSensorRequest) | [EnableSensorResponse](#tetragon-EnableSensorResponse) |  |
 | DisableSensor | [DisableSensorRequest](#tetragon-DisableSensorRequest) | [DisableSensorResponse](#tetragon-DisableSensorResponse) |  |
 | RemoveSensor | [RemoveSensorRequest](#tetragon-RemoveSensorRequest) | [RemoveSensorResponse](#tetragon-RemoveSensorResponse) |  |
+| ListDomains | [ListDomainsRequest](#tetragon-ListDomainsRequest) | [ListDomainsResponse](#tetragon-ListDomainsResponse) |  |
 | GetVersion | [GetVersionRequest](#tetragon-GetVersionRequest) | [GetVersionResponse](#tetragon-GetVersionResponse) |  |
 | GetInfo | [GetInfoRequest](#tetragon-GetInfoRequest) | [GetInfoResponse](#tetragon-GetInfoResponse) |  |
 | RuntimeHook | [RuntimeHookRequest](#tetragon-RuntimeHookRequest) | [RuntimeHookResponse](#tetragon-RuntimeHookResponse) |  |

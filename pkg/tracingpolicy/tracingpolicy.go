@@ -18,6 +18,8 @@ type TracingPolicy interface {
 	TpSpec() *v1alpha1.TracingPolicySpec
 	// TpInfo returns a description of the policy
 	TpInfo() string
+	// TpDomain returns the domain for the policy
+	TpDomain() string
 }
 
 // revive:disable:exported

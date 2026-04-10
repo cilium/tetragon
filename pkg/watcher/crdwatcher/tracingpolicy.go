@@ -81,11 +81,11 @@ func deleteTracingPolicy(ctx context.Context, log logger.FieldLogger, s *sensors
 	switch tp := obj.(type) {
 	case *v1alpha1.TracingPolicy:
 		log.Info("deleting tracing policy", "name", tp.TpName(), "info", tp.TpInfo())
-		err = s.DeleteTracingPolicy(ctx, tp.TpName(), "")
+		err = s.DeleteTracingPolicy(ctx, tp.TpName(), "", tp.TpDomain())
 
 	case *v1alpha1.TracingPolicyNamespaced:
 		log.Info("deleting namespaced tracing policy", "name", tp.TpName(), "info", tp.TpInfo(), "namespace", tp.TpNamespace())
-		err = s.DeleteTracingPolicy(ctx, tp.TpName(), tp.TpNamespace())
+		err = s.DeleteTracingPolicy(ctx, tp.TpName(), tp.TpNamespace(), tp.TpDomain())
 	}
 
 	if err != nil {
@@ -102,7 +102,7 @@ func updateTracingPolicy(ctx context.Context, log logger.FieldLogger, s *sensors
 			namespace = oldTpNs.TpNamespace()
 		}
 
-		if err := s.DeleteTracingPolicy(ctx, oldTp.TpName(), namespace); err != nil {
+		if err := s.DeleteTracingPolicy(ctx, oldTp.TpName(), namespace, oldTp.TpDomain()); err != nil {
 			log.Warn("updateTracingPolicy: failed to remove old policy", "old-name", oldTp.TpName(), logfields.Error, err)
 			return
 		}

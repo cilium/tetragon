@@ -125,6 +125,8 @@
     - [GetInfoResponse.Probe](#tetragon-GetInfoResponse-Probe)
     - [GetVersionRequest](#tetragon-GetVersionRequest)
     - [GetVersionResponse](#tetragon-GetVersionResponse)
+    - [ListDomainsRequest](#tetragon-ListDomainsRequest)
+    - [ListDomainsResponse](#tetragon-ListDomainsResponse)
     - [ListSensorsRequest](#tetragon-ListSensorsRequest)
     - [ListSensorsResponse](#tetragon-ListSensorsResponse)
     - [ListTracingPoliciesRequest](#tetragon-ListTracingPoliciesRequest)
@@ -1888,6 +1890,7 @@ Determines the behavior of a field filter
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | yaml | [string](#string) |  |  |
+| domain | [string](#string) |  |  |
 
 
 
@@ -1916,6 +1919,7 @@ Determines the behavior of a field filter
 | namespace | [string](#string) |  |  |
 | enable | [bool](#bool) | optional |  |
 | mode | [TracingPolicyMode](#tetragon-TracingPolicyMode) | optional |  |
+| domain | [string](#string) |  |  |
 
 
 
@@ -1942,6 +1946,7 @@ Determines the behavior of a field filter
 | ----- | ---- | ----- | ----------- |
 | name | [string](#string) |  |  |
 | namespace | [string](#string) |  |  |
+| domain | [string](#string) |  |  |
 
 
 
@@ -1993,6 +1998,7 @@ Determines the behavior of a field filter
 | ----- | ---- | ----- | ----------- |
 | name | [string](#string) |  |  |
 | namespace | [string](#string) |  |  |
+| domain | [string](#string) |  |  |
 
 
 
@@ -2075,6 +2081,7 @@ Determines the behavior of a field filter
 | ----- | ---- | ----- | ----------- |
 | name | [string](#string) |  |  |
 | namespace | [string](#string) |  |  |
+| domain | [string](#string) |  |  |
 
 
 
@@ -2228,6 +2235,31 @@ Determines the behavior of a field filter
 
 
 
+<a name="tetragon-ListDomainsRequest"></a>
+
+### ListDomainsRequest
+
+
+
+
+
+
+
+<a name="tetragon-ListDomainsResponse"></a>
+
+### ListDomainsResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| domains | [string](#string) | repeated |  |
+
+
+
+
+
+
 <a name="tetragon-ListSensorsRequest"></a>
 
 ### ListSensorsRequest
@@ -2257,6 +2289,11 @@ Determines the behavior of a field filter
 
 ### ListTracingPoliciesRequest
 
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| domain | [string](#string) |  | domain to be listed; empty to list all domains |
 
 
 
@@ -2535,6 +2572,7 @@ For now, we only want to support debug-related config flags to be configurable.
 | EnableSensor | [EnableSensorRequest](#tetragon-EnableSensorRequest) | [EnableSensorResponse](#tetragon-EnableSensorResponse) |  |
 | DisableSensor | [DisableSensorRequest](#tetragon-DisableSensorRequest) | [DisableSensorResponse](#tetragon-DisableSensorResponse) |  |
 | RemoveSensor | [RemoveSensorRequest](#tetragon-RemoveSensorRequest) | [RemoveSensorResponse](#tetragon-RemoveSensorResponse) |  |
+| ListDomains | [ListDomainsRequest](#tetragon-ListDomainsRequest) | [ListDomainsResponse](#tetragon-ListDomainsResponse) |  |
 | GetVersion | [GetVersionRequest](#tetragon-GetVersionRequest) | [GetVersionResponse](#tetragon-GetVersionResponse) |  |
 | GetInfo | [GetInfoRequest](#tetragon-GetInfoRequest) | [GetInfoResponse](#tetragon-GetInfoResponse) |  |
 | RuntimeHook | [RuntimeHookRequest](#tetragon-RuntimeHookRequest) | [RuntimeHookResponse](#tetragon-RuntimeHookResponse) |  |
