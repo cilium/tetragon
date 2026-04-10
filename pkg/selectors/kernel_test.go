@@ -12,6 +12,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
+	"math"
 	"strings"
 	"syscall"
 	"testing"
@@ -1424,4 +1426,58 @@ func TestParseCapabilityMask(t *testing.T) {
 
 	_, err = parseCapabilitiesMask("CAP_PIZZA")
 	assert.Error(t, err)
+}
+
+func TestParseMatchArgInMapVerification(t *testing.T) {
+	testCases := map[string]struct {
+		rangeLower, rangeUpper uint64
+		expectErr              bool
+	}{
+		"1000_passes": {
+			rangeLower: 0, rangeUpper: 1000,
+		},
+		// Regression test against https://github.com/cilium/tetragon/issues/4699
+		"MaxUint_passes": {
+			rangeLower: math.MaxUint64 - 5, rangeUpper: math.MaxUint64,
+		},
+		"1001_errs": {
+			rangeLower: 0, rangeUpper: 1001,
+			expectErr: true,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			arg1 := &v1alpha1.ArgSelector{Index: 1, Operator: "InMap", Values: []string{fmt.Sprintf("%d:%d", tc.rangeLower, tc.rangeUpper)}}
+
+			sig := []v1alpha1.KProbeArg{
+				{Index: 1, Type: "uint64", SizeArgIndex: 0, ReturnCopy: false},
+			}
+
+			expected1 := []byte{
+				0x00, 0x00, 0x00, 0x00, // Index == 0
+				0x0a, 0x00, 0x00, 0x00, // operator == InMap
+				0x0c, 0x00, 0x00, 0x00, // length == 12
+				0x0b, 0x00, 0x00, 0x00, // value type == uint64
+				0x00, 0x00, 0x00, 0x00, // map idx == 0
+			}
+
+			ks := NewKernelSelectorState(nil, nil, false, nil)
+			d := &ks.data
+
+			err := ParseMatchArg(ks, arg1, sig)
+			if tc.expectErr {
+				if err == nil {
+					t.Errorf("parseMatchArg: expected error but no error returned")
+				}
+				return
+			}
+
+			if err != nil ||
+				bytes.Equal(expected1, d.e[0:d.off]) == false ||
+				len(ks.ValueMaps()[0].Data) != int(tc.rangeUpper-tc.rangeLower+1) {
+				t.Errorf("parseMatchArg: error %v expected:\n%v\nMap len: %d\nbytes:\n%v\nMap len: %d\nparsing %v\n", err, expected1, 1000, d.e[0:d.off], len(ks.ValueMaps()[0].Data), arg1)
+			}
+		})
+	}
 }

@@ -16,7 +16,8 @@ See the [Stack Traces](https://tetragon.io/docs/concepts/tracing-policy/selector
 
 ### TracingPolicy (k8s CRD)
 
-* TBD
+* Using range values ("0:10") for ranges larger than 1000 with the InMap selector are now prohibited.
+  Use the InRange selector for those ranges instead.
 
 ### Events (protobuf API)
 
