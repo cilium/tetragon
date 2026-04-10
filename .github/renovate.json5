@@ -186,7 +186,7 @@
         "gomodUpdateImportPaths",
       ],
       postUpgradeTasks: {
-        "commands": ["/tmp/install-buildx", "make protogen", "make crds", "make vendor", "make gen-docs-references"],
+        "commands": ["/tmp/install-buildx", "make vendor", "make protogen", "make crds", "make gen-docs-references"],
         "fileFilters": ["**/**"],
         "executionMode": "branch"
       }
