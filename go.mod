@@ -6,7 +6,7 @@ go 1.26.0
 require (
 	github.com/alecthomas/kong v1.15.0
 	github.com/cilium/ebpf v0.21.0
-	github.com/cilium/little-vm-helper v0.0.29-0.20260409212742-87c12c22d02e
+	github.com/cilium/little-vm-helper v0.0.29
 	github.com/cilium/lumberjack/v2 v2.4.2
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/cilium/tetragon/pkg/k8s v0.0.0-00010101000000-000000000000
