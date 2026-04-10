@@ -148,9 +148,11 @@ type KProbeSelector struct {
 	// A list of actions to execute when MatchReturnArgs selector matches
 	MatchReturnActions []ActionSelector `json:"matchReturnActions,omitempty"`
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxItems=1
 	// A list of binary exec name filters.
 	MatchBinaries []BinarySelector `json:"matchBinaries,omitempty"`
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxItems=1
 	// A list of process parent exec name filters.
 	MatchParentBinaries []BinarySelector `json:"matchParentBinaries,omitempty"`
 	// +kubebuilder:validation:Optional
