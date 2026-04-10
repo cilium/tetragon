@@ -86,7 +86,7 @@ jobs:
       uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
       with:
         # renovate: datasource=golang-version depName=go
-        go-version: '1.26.1'
+        go-version: '1.26.2'
 
     - name: Install kubectl
       uses: azure/setup-kubectl@776406bce94f63e41d621b960d78ee25c8b76ede # v4.0.1
