@@ -461,10 +461,19 @@ func writeRangeInMap(v string, ty uint32, op uint32, m *ValueMap) error {
 			return fmt.Errorf("unknown type: %d", ty)
 		}
 	}
+
+	// Arbitrary limit of the range of value that we insert for a single range value
+	// For large ranges the user should use the InRange operator.
+	const rangeLimit = 1000
+
 	switch ty {
 	case gt.GenericIntType, gt.GenericS64Type, gt.GenericS32Type, gt.GenericS16Type, gt.GenericS8Type, gt.GenericSyscall64, gt.GenericSizeType:
 		if sRangeVal[0] > sRangeVal[1] {
 			sRangeVal[0], sRangeVal[1] = sRangeVal[1], sRangeVal[0]
+		}
+		delta := sRangeVal[1] - sRangeVal[0]
+		if delta >= rangeLimit {
+			return fmt.Errorf("MatchArgs value %s range is larger than %d, use InRange operator instead", v, rangeLimit)
 		}
 		for val := sRangeVal[0]; val <= sRangeVal[1]; val++ {
 			var valByte [8]byte
@@ -475,6 +484,10 @@ func writeRangeInMap(v string, ty uint32, op uint32, m *ValueMap) error {
 	case gt.GenericU64Type, gt.GenericU32Type, gt.GenericU16Type, gt.GenericU8Type:
 		if uRangeVal[0] > uRangeVal[1] {
 			uRangeVal[0], uRangeVal[1] = uRangeVal[1], uRangeVal[0]
+		}
+		delta := uRangeVal[1] - uRangeVal[0]
+		if delta > rangeLimit {
+			return fmt.Errorf("MatchArgs value %s range is larger than %d, use InRange operator instead", v, rangeLimit)
 		}
 		for val := uRangeVal[0]; val <= uRangeVal[1]; val++ {
 			var valByte [8]byte
