@@ -13,6 +13,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 	"syscall"
 	"testing"
@@ -1434,6 +1435,10 @@ func TestParseMatchArgInMapVerification(t *testing.T) {
 	}{
 		"1000_passes": {
 			rangeLower: 0, rangeUpper: 1000,
+		},
+		// Regression test against https://github.com/cilium/tetragon/issues/4699
+		"MaxUint_passes": {
+			rangeLower: math.MaxUint64 - 5, rangeUpper: math.MaxUint64,
 		},
 		"1001_errs": {
 			rangeLower: 0, rangeUpper: 1001,

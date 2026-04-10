@@ -475,9 +475,9 @@ func writeRangeInMap(v string, ty uint32, op uint32, m *ValueMap) error {
 		if delta >= rangeLimit {
 			return fmt.Errorf("MatchArgs value %s range is larger than %d, use InRange operator instead", v, rangeLimit)
 		}
-		for val := sRangeVal[0]; val <= sRangeVal[1]; val++ {
+		for i := int64(0); i <= delta; i++ {
 			var valByte [8]byte
-			binary.LittleEndian.PutUint64(valByte[:], uint64(val))
+			binary.LittleEndian.PutUint64(valByte[:], uint64(sRangeVal[0]+i))
 			m.Data[valByte] = struct{}{}
 		}
 
@@ -489,9 +489,9 @@ func writeRangeInMap(v string, ty uint32, op uint32, m *ValueMap) error {
 		if delta > rangeLimit {
 			return fmt.Errorf("MatchArgs value %s range is larger than %d, use InRange operator instead", v, rangeLimit)
 		}
-		for val := uRangeVal[0]; val <= uRangeVal[1]; val++ {
+		for i := uint64(0); i <= delta; i++ {
 			var valByte [8]byte
-			binary.LittleEndian.PutUint64(valByte[:], val)
+			binary.LittleEndian.PutUint64(valByte[:], uRangeVal[0]+i)
 			m.Data[valByte] = struct{}{}
 		}
 	}
