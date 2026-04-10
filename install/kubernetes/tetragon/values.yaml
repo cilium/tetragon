@@ -449,6 +449,12 @@ rthooks:
   # -- Comma-separated list of namespaces to allow Pod creation for, in case tetragon-oci-hook fails to reach Tetragon agent.
   # The namespace Tetragon is deployed in is always added as an exception and must not be added again.
   failAllowNamespaces: ""
+  # -- List of glob patterns for namespaces to allow Pod creation for, in case tetragon-oci-hook fails
+  # to reach Tetragon agent. Supports a single '*' wildcard: 'kube-*' (prefix), '*-system' (suffix),
+  # 'foo-*-bar' (contains), or '*' alone to match any namespace.
+  # Can be combined with failAllowNamespaces. Ignored if extraHookArgs sets fail-cel-expr.
+  # Example: ["acme-*", "dev-*"]
+  failAllowNamespacesPatterns: []
   # -- Extra volume mounts to add to the oci-hook-setup init container
   extraVolumeMounts: []
   # -- resources for the the oci-hook-setup init container
