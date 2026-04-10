@@ -343,9 +343,9 @@ func (ts *testState) containersCgroupIDs(t *testing.T, podContainerMap map[strin
 }
 
 func testNamespacePods(t *testing.T, st *state, ts *testState) {
-	err := st.AddPolicy(PolicyID(1), "ns1", nil, nil)
+	err := st.AddPolicy(PolicyID(1), "ns1", &slimv1.LabelSelector{}, &slimv1.LabelSelector{}, nil)
 	require.NoError(t, err)
-	err = st.AddPolicy(PolicyID(2), "ns2", nil, nil)
+	err = st.AddPolicy(PolicyID(2), "ns2", &slimv1.LabelSelector{}, &slimv1.LabelSelector{}, nil)
 	require.NoError(t, err)
 
 	emptyLabels := labels.Labels{}
@@ -354,20 +354,25 @@ func testNamespacePods(t *testing.T, st *state, ts *testState) {
 	ts.createPod(t, "p3", "ns1", emptyLabels, "p3c1")
 	ts.waitForCallbacks(t)
 
+	c1 := ts.podsCgroupIDs(t, "p1", "p3")
+	c2 := ts.podsCgroupIDs(t, "p2")
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
-			1: ts.podsCgroupIDs(t, "p1", "p3"),
-			2: ts.podsCgroupIDs(t, "p2"),
+			1:                       c1,
+			2:                       c2,
+			uint64(AllPodsPolicyID): append(c2, c1...),
 		},
 	)
 
 	ts.deletePod(t, "p3")
 	ts.waitForCallbacks(t)
 
+	c1 = ts.podsCgroupIDs(t, "p1")
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
-			1: ts.podsCgroupIDs(t, "p1"),
-			2: ts.podsCgroupIDs(t, "p2"),
+			1:                       c1,
+			2:                       c2,
+			uint64(AllPodsPolicyID): append(c2, c1...),
 		},
 	)
 
@@ -375,8 +380,9 @@ func testNamespacePods(t *testing.T, st *state, ts *testState) {
 	ts.waitForCallbacks(t)
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
-			1: ts.podsCgroupIDs(t, "p1"),
-			2: {},
+			1:                       c1,
+			2:                       {},
+			uint64(AllPodsPolicyID): c1,
 		},
 	)
 
@@ -384,20 +390,25 @@ func testNamespacePods(t *testing.T, st *state, ts *testState) {
 	require.NoError(t, err)
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
-			1: ts.podsCgroupIDs(t, "p1"),
+			1:                       c1,
+			uint64(AllPodsPolicyID): c1,
 		},
 	)
 
 	err = st.DelPolicy(PolicyID(1))
 	require.NoError(t, err)
 	requirePfmEqualTo(t, st.pfMap,
-		map[uint64][]uint64{},
+		map[uint64][]uint64{
+			uint64(AllPodsPolicyID): c1,
+		},
 	)
 
 	ts.deletePod(t, "p1")
 	ts.waitForCallbacks(t)
 	requirePfmEqualTo(t, st.pfMap,
-		map[uint64][]uint64{},
+		map[uint64][]uint64{
+			uint64(AllPodsPolicyID): {},
+		},
 	)
 }
 
@@ -406,7 +417,7 @@ func testPodLabelFilters(t *testing.T, st *state, ts *testState) {
 	matchesAllID := uint32(1)
 	matchesWebID := uint32(2)
 	matchesAppsID := uint32(3)
-	err := st.AddPolicy(PolicyID(matchesAllID), "", nil, nil)
+	err := st.AddPolicy(PolicyID(matchesAllID), "", &slimv1.LabelSelector{}, &slimv1.LabelSelector{}, nil)
 	require.NoError(t, err)
 	err = st.AddPolicy(PolicyID(matchesWebID), "", &slimv1.LabelSelector{
 		MatchExpressions: []slimv1.LabelSelectorRequirement{{
@@ -414,14 +425,14 @@ func testPodLabelFilters(t *testing.T, st *state, ts *testState) {
 			Operator: slimv1.LabelSelectorOpIn,
 			Values:   []string{"web"},
 		}},
-	}, nil)
+	}, &slimv1.LabelSelector{}, nil)
 	require.NoError(t, err)
 	err = st.AddPolicy(PolicyID(matchesAppsID), "", &slimv1.LabelSelector{
 		MatchExpressions: []slimv1.LabelSelectorRequirement{{
 			Key:      "app",
 			Operator: slimv1.LabelSelectorOpExists,
 		}},
-	}, nil)
+	}, &slimv1.LabelSelector{}, nil)
 	require.NoError(t, err)
 
 	// create pods
@@ -430,11 +441,19 @@ func testPodLabelFilters(t *testing.T, st *state, ts *testState) {
 	ts.createPod(t, "log", "default", labels.Labels{}, "log-c1")
 
 	ts.waitForCallbacks(t)
+
+	c1 := ts.podsCgroupIDs(t, "web", "db", "log")
+	c2 := ts.podsCgroupIDs(t, "web")
+	c3 := ts.podsCgroupIDs(t, "web", "db")
+	c4 := ts.podsCgroupIDs(t, "db", "log")
+	c5 := ts.podsCgroupIDs(t, "db")
+
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
-			uint64(matchesAllID):  ts.podsCgroupIDs(t, "web", "db", "log"),
-			uint64(matchesWebID):  ts.podsCgroupIDs(t, "web"),
-			uint64(matchesAppsID): ts.podsCgroupIDs(t, "web", "db"),
+			uint64(matchesAllID):    c1,
+			uint64(matchesWebID):    c2,
+			uint64(matchesAppsID):   c3,
+			uint64(AllPodsPolicyID): append(c3, append(c2, c1...)...),
 		},
 	)
 
@@ -443,9 +462,10 @@ func testPodLabelFilters(t *testing.T, st *state, ts *testState) {
 	ts.waitForCallbacks(t)
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
-			uint64(matchesAllID):  ts.podsCgroupIDs(t, "web", "db", "log"),
-			uint64(matchesWebID):  ts.podsCgroupIDs(t, "web"),
-			uint64(matchesAppsID): ts.podsCgroupIDs(t, "web", "db", "log"),
+			uint64(matchesAllID):    c1,
+			uint64(matchesWebID):    c2,
+			uint64(matchesAppsID):   c1,
+			uint64(AllPodsPolicyID): append(c2, c1...),
 		},
 	)
 
@@ -453,9 +473,10 @@ func testPodLabelFilters(t *testing.T, st *state, ts *testState) {
 	ts.waitForCallbacks(t)
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
-			uint64(matchesAllID):  ts.podsCgroupIDs(t, "web", "db", "log"),
-			uint64(matchesWebID):  ts.podsCgroupIDs(t),
-			uint64(matchesAppsID): ts.podsCgroupIDs(t, "db", "log"),
+			uint64(matchesAllID):    c1,
+			uint64(matchesWebID):    {},
+			uint64(matchesAppsID):   c4,
+			uint64(AllPodsPolicyID): append(c4, c1...),
 		},
 	)
 
@@ -463,9 +484,10 @@ func testPodLabelFilters(t *testing.T, st *state, ts *testState) {
 	ts.waitForCallbacks(t)
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
-			uint64(matchesAllID):  ts.podsCgroupIDs(t, "web", "db"),
-			uint64(matchesWebID):  ts.podsCgroupIDs(t),
-			uint64(matchesAppsID): ts.podsCgroupIDs(t, "db"),
+			uint64(matchesAllID):    c3,
+			uint64(matchesWebID):    {},
+			uint64(matchesAppsID):   c5,
+			uint64(AllPodsPolicyID): append(c5, c3...),
 		},
 	)
 
@@ -474,8 +496,9 @@ func testPodLabelFilters(t *testing.T, st *state, ts *testState) {
 	ts.waitForCallbacks(t)
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
-			uint64(matchesWebID):  ts.podsCgroupIDs(t),
-			uint64(matchesAppsID): ts.podsCgroupIDs(t, "db"),
+			uint64(matchesWebID):    {},
+			uint64(matchesAppsID):   c5,
+			uint64(AllPodsPolicyID): append(c5, c3...),
 		},
 	)
 
@@ -487,7 +510,9 @@ func testPodLabelFilters(t *testing.T, st *state, ts *testState) {
 	require.NoError(t, err)
 	ts.waitForCallbacks(t)
 	requirePfmEqualTo(t, st.pfMap,
-		map[uint64][]uint64{},
+		map[uint64][]uint64{
+			uint64(AllPodsPolicyID): {},
+		},
 	)
 }
 
@@ -496,16 +521,16 @@ func testContainerFieldFilters(t *testing.T, st *state, ts *testState) {
 	matchesAllContainers := uint32(1)
 	matchesWebContainers := uint32(2)
 	matchesNotInitContainers := uint32(3)
-	err := st.AddPolicy(PolicyID(matchesAllContainers), "", nil, nil)
+	err := st.AddPolicy(PolicyID(matchesAllContainers), "", &slimv1.LabelSelector{}, &slimv1.LabelSelector{}, nil)
 	require.NoError(t, err)
-	err = st.AddPolicy(PolicyID(matchesWebContainers), "", nil,
+	err = st.AddPolicy(PolicyID(matchesWebContainers), "", &slimv1.LabelSelector{},
 		&slimv1.LabelSelector{
 			MatchExpressions: []slimv1.LabelSelectorRequirement{{
 				Key:      "name",
 				Operator: slimv1.LabelSelectorOpIn,
 				Values:   []string{"web-c1", "web-c2", "web-c3"},
 			}},
-		})
+		}, nil)
 	require.NoError(t, err)
 	err = st.AddPolicy(PolicyID(matchesNotInitContainers), "", &slimv1.LabelSelector{
 		MatchExpressions: []slimv1.LabelSelectorRequirement{{
@@ -519,7 +544,7 @@ func testContainerFieldFilters(t *testing.T, st *state, ts *testState) {
 			Operator: slimv1.LabelSelectorOpNotIn,
 			Values:   []string{"init"},
 		}},
-	})
+	}, nil)
 	require.NoError(t, err)
 
 	// create pods
@@ -527,23 +552,28 @@ func testContainerFieldFilters(t *testing.T, st *state, ts *testState) {
 	ts.createPod(t, "db", "default", labels.Labels{"app": "db"}, "db-c1")
 	ts.createPod(t, "log", "default", labels.Labels{}, "log-c1", "init")
 
+	c1 := ts.containersCgroupIDs(t, map[string][]string{
+		"web": {"web-c1", "web-c2", "init"},
+		"db":  {"db-c1"},
+		"log": {"log-c1", "init"},
+	})
+	c2 := ts.containersCgroupIDs(t, map[string][]string{
+		"web": {"web-c1", "web-c2"},
+	})
+	c3 := ts.containersCgroupIDs(t, map[string][]string{
+		"web": {"web-c1", "web-c2"},
+		"db":  {"db-c1"},
+		"log": {},
+	})
+
 	ts.waitForCallbacks(t)
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
-			uint64(matchesAllContainers): ts.containersCgroupIDs(t, map[string][]string{
-				"web": {"web-c1", "web-c2", "init"},
-				"db":  {"db-c1"},
-				"log": {"log-c1", "init"},
-			}),
-			uint64(matchesWebContainers): ts.containersCgroupIDs(t, map[string][]string{
-				"web": {"web-c1", "web-c2"},
-			}),
+			uint64(matchesAllContainers): c1,
+			uint64(matchesWebContainers): c2,
 			// test policy state before we label the log with the matching label
-			uint64(matchesNotInitContainers): ts.containersCgroupIDs(t, map[string][]string{
-				"web": {"web-c1", "web-c2"},
-				"db":  {"db-c1"},
-				"log": {},
-			}),
+			uint64(matchesNotInitContainers): c3,
+			uint64(AllPodsPolicyID):          append(c3, append(c2, c1...)...),
 		},
 	)
 
@@ -551,21 +581,27 @@ func testContainerFieldFilters(t *testing.T, st *state, ts *testState) {
 	ts.updatePodLabels(t, "log", labels.Labels{"app": "log"})
 	ts.updatePodContainers(t, "web", "web-c3", "app-c1")
 	ts.waitForCallbacks(t)
+
+	c4 := ts.containersCgroupIDs(t, map[string][]string{
+		"web": {"web-c3", "app-c1"},
+		"db":  {"db-c1"},
+		"log": {"log-c1", "init"},
+	})
+	c5 := ts.containersCgroupIDs(t, map[string][]string{
+		"web": {"web-c3"},
+	})
+	c6 := ts.containersCgroupIDs(t, map[string][]string{
+		"web": {"web-c3", "app-c1"},
+		"db":  {"db-c1"},
+		"log": {"log-c1"},
+	})
+
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
-			uint64(matchesAllContainers): ts.containersCgroupIDs(t, map[string][]string{
-				"web": {"web-c3", "app-c1"},
-				"db":  {"db-c1"},
-				"log": {"log-c1", "init"},
-			}),
-			uint64(matchesWebContainers): ts.containersCgroupIDs(t, map[string][]string{
-				"web": {"web-c3"},
-			}),
-			uint64(matchesNotInitContainers): ts.containersCgroupIDs(t, map[string][]string{
-				"web": {"web-c3", "app-c1"},
-				"db":  {"db-c1"},
-				"log": {"log-c1"},
-			}),
+			uint64(matchesAllContainers):     c4,
+			uint64(matchesWebContainers):     c5,
+			uint64(matchesNotInitContainers): c6,
+			uint64(AllPodsPolicyID):          append(c6, append(c5, c4...)...),
 		},
 	)
 
@@ -574,20 +610,26 @@ func testContainerFieldFilters(t *testing.T, st *state, ts *testState) {
 	ts.updatePodLabels(t, "log", labels.Labels{"app": "not-log"})
 	ts.updatePodContainers(t, "db", "db-c1", "init")
 	ts.waitForCallbacks(t)
+
+	c7 := ts.containersCgroupIDs(t, map[string][]string{
+		"web": {"web-c3", "app-c1"},
+		"db":  {"db-c1", "init"},
+		"log": {"log-c1", "init"},
+	})
+	c8 := ts.containersCgroupIDs(t, map[string][]string{
+		"web": {"web-c3"},
+	})
+	c9 := ts.containersCgroupIDs(t, map[string][]string{
+		"web": {"web-c3", "app-c1"},
+		"db":  {"db-c1"},
+	})
+
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
-			uint64(matchesAllContainers): ts.containersCgroupIDs(t, map[string][]string{
-				"web": {"web-c3", "app-c1"},
-				"db":  {"db-c1", "init"},
-				"log": {"log-c1", "init"},
-			}),
-			uint64(matchesWebContainers): ts.containersCgroupIDs(t, map[string][]string{
-				"web": {"web-c3"},
-			}),
-			uint64(matchesNotInitContainers): ts.containersCgroupIDs(t, map[string][]string{
-				"web": {"web-c3", "app-c1"},
-				"db":  {"db-c1"},
-			}),
+			uint64(matchesAllContainers):     c7,
+			uint64(matchesWebContainers):     c8,
+			uint64(matchesNotInitContainers): c9,
+			uint64(AllPodsPolicyID):          append(c9, append(c8, c7...)...),
 		},
 	)
 
@@ -595,15 +637,24 @@ func testContainerFieldFilters(t *testing.T, st *state, ts *testState) {
 	require.NoError(t, err)
 	ts.deletePod(t, "log")
 	ts.waitForCallbacks(t)
+
+	c10 := ts.containersCgroupIDs(t, map[string][]string{
+		"web": {"web-c3", "app-c1"},
+		"db":  {"db-c1", "init"},
+	})
+	c11 := ts.containersCgroupIDs(t, map[string][]string{
+		"web": {"web-c3"},
+	})
+	c12 := ts.containersCgroupIDs(t, map[string][]string{
+		"web": {"web-c3", "app-c1"},
+		"db":  {"db-c1"},
+	})
+
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
-			uint64(matchesWebContainers): ts.containersCgroupIDs(t, map[string][]string{
-				"web": {"web-c3"},
-			}),
-			uint64(matchesNotInitContainers): ts.containersCgroupIDs(t, map[string][]string{
-				"web": {"web-c3", "app-c1"},
-				"db":  {"db-c1"},
-			}),
+			uint64(matchesWebContainers):     c11,
+			uint64(matchesNotInitContainers): c12,
+			uint64(AllPodsPolicyID):          append(c12, append(c10, c11...)...),
 		},
 	)
 
@@ -615,7 +666,9 @@ func testContainerFieldFilters(t *testing.T, st *state, ts *testState) {
 	require.NoError(t, err)
 	ts.waitForCallbacks(t)
 	requirePfmEqualTo(t, st.pfMap,
-		map[uint64][]uint64{},
+		map[uint64][]uint64{
+			uint64(AllPodsPolicyID): {},
+		},
 	)
 }
 
@@ -633,13 +686,17 @@ func testPreExistingPods(t *testing.T, st *state, ts *testState) {
 			Operator: slimv1.LabelSelectorOpIn,
 			Values:   []string{"web"},
 		}},
-	}, nil)
+	}, &slimv1.LabelSelector{}, nil)
 	require.NoError(t, err)
+
+	c1 := ts.podsCgroupIDs(t, "web")
+	c2 := ts.podsCgroupIDs(t, "db")
 
 	require.Len(t, ts.podsCgroupIDs(t, "web"), 2)
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
-			uint64(matchesWebID): ts.podsCgroupIDs(t, "web"),
+			uint64(matchesWebID):    c1,
+			uint64(AllPodsPolicyID): append(c2, c1...),
 		},
 	)
 
@@ -649,7 +706,9 @@ func testPreExistingPods(t *testing.T, st *state, ts *testState) {
 	require.NoError(t, err)
 	ts.waitForCallbacks(t)
 	requirePfmEqualTo(t, st.pfMap,
-		map[uint64][]uint64{},
+		map[uint64][]uint64{
+			uint64(AllPodsPolicyID): {},
+		},
 	)
 }
 
@@ -669,15 +728,19 @@ func testContainersChange(t *testing.T, st *state, ts *testState) {
 					Operator: slimv1.LabelSelectorOpNotIn,
 					Values:   []string{"log-c1"},
 				}},
-		})
+		}, nil)
 	require.NoError(t, err)
+
+	c1 := ts.podsCgroupIDs(t, "web", "db")
+	c2 := ts.podsCgroupIDs(t, "log")
 
 	require.Len(t, ts.podsCgroupIDs(t, "web"), 2)
 	require.Len(t, ts.podsCgroupIDs(t, "db"), 1)
 	require.Empty(t, ts.containersCgroupIDs(t, map[string][]string{"log": {}}))
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
-			uint64(policyID): ts.podsCgroupIDs(t, "web", "db"),
+			uint64(policyID):        c1,
+			uint64(AllPodsPolicyID): append(c2, c1...),
 		},
 	)
 
@@ -686,9 +749,13 @@ func testContainersChange(t *testing.T, st *state, ts *testState) {
 	require.Len(t, ts.podsCgroupIDs(t, "web"), 3)
 	require.Len(t, ts.podsCgroupIDs(t, "db"), 1)
 	ts.waitForCallbacks(t)
+
+	c3 := ts.podsCgroupIDs(t, "web", "db")
+
 	requirePfmEqualTo(t, st.pfMap,
 		map[uint64][]uint64{
-			uint64(policyID): ts.podsCgroupIDs(t, "web", "db"),
+			uint64(policyID):        c3,
+			uint64(AllPodsPolicyID): append(c2, c3...),
 		},
 	)
 
@@ -699,7 +766,9 @@ func testContainersChange(t *testing.T, st *state, ts *testState) {
 	require.NoError(t, err)
 	ts.waitForCallbacks(t)
 	requirePfmEqualTo(t, st.pfMap,
-		map[uint64][]uint64{},
+		map[uint64][]uint64{
+			uint64(AllPodsPolicyID): {},
+		},
 	)
 }
 
