@@ -12,11 +12,12 @@
 # First builder (cross-)compile the BPF programs
 FROM --platform=$BUILDPLATFORM quay.io/cilium/clang:b97f5b3d5c38da62fb009f21a53cd42aefd54a2f@sha256:e1c8ed0acd2e24ed05377f2861d8174af28e09bef3bbc79649c8eba165207df0 AS bpf-builder
 WORKDIR /go/src/github.com/cilium/tetragon
-RUN apt-get update && apt-get install -y linux-libc-dev gzip
+RUN apt-get update && apt-get install -y linux-libc-dev gzip ccache
 COPY . ./
 ARG TARGETARCH
 ARG COMPRESS_BPF
-RUN make tetragon-bpf LOCAL_CLANG=1 TARGET_ARCH=$TARGETARCH
+RUN --mount=type=cache,target=/root/.cache/ccache \ 
+    make tetragon-bpf LOCAL_CLANG=1 TARGET_ARCH=$TARGETARCH DEBUG=$DEBUG CLANG="ccache clang"
 RUN if [ "$COMPRESS_BPF" = "gzip" ]; then gzip bpf/objs/*.o; fi
 
 # Second builder (cross-)compile tetragon and tetra
@@ -24,7 +25,9 @@ FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.26.2@sha256:2a2b4b5791
 WORKDIR /go/src/github.com/cilium/tetragon
 ARG TETRAGON_VERSION TARGETARCH
 COPY . .
-RUN make VERSION=$TETRAGON_VERSION TARGET_ARCH=$TARGETARCH tetragon tetra
+RUN --mount=type=cache,target=/go/pkg/mod \ 
+    --mount=type=cache,target=/root/.cache/go-build \
+    make VERSION=$TETRAGON_VERSION TARGET_ARCH=$TARGETARCH tetragon tetra
 
 # Third builder (cross-)compile a stripped gops
 FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.26.2-alpine@sha256:c2a1f7b2095d046ae14b286b18413a05bb82c9bca9b25fe7ff5efef0f0826166 AS gops
