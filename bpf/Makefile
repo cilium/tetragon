@@ -207,11 +207,9 @@ $(DEPSDIR)%_$$(VAR).d: $(BPFTESTDIR)%.c
 # Define extra CFLAGS for variant objects
 CFLAGS_bpf_multi_kprobe_$$(VAR).o    = -D__MULTI_KPROBE
 CFLAGS_bpf_multi_retkprobe_$$(VAR).o = -D__MULTI_KPROBE
-ifeq (v61,$$(VAR))
 CFLAGS_bpf_multi_uprobe_$$(VAR).o    = -D__MULTI_KPROBE
 CFLAGS_bpf_multi_retuprobe_$$(VAR).o = -D__MULTI_KPROBE
 CFLAGS_bpf_multi_usdt_$$(VAR).o      = -D__MULTI_KPROBE
-endif
 endef # DEFINE_VARIANT
 
 $(eval $(call DEFINE_VARIANT,v310))
