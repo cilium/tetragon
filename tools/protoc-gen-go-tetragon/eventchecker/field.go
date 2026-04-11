@@ -70,8 +70,8 @@ func (field *Field) generateFrom(g *protogen.GeneratedFile, msg *CheckedMessage)
 }
 
 func (field *Field) getFrom(g *protogen.GeneratedFile, msg *CheckedMessage) (string, error) {
-	checkerVar := fmt.Sprintf("%s.%s", checkerVarName, field.GoName)
-	eventVar := fmt.Sprintf("%s.%s", eventVarName, field.GoName)
+	checkerVar := checkerVarName + "." + field.GoName
+	eventVar := eventVarName + "." + field.GoName
 
 	from, err := doGetFieldFrom(field, g, true, true, msg.checkerName(g), checkerVar, eventVar)
 	if err != nil {
@@ -117,7 +117,7 @@ func doGetFieldFrom(field *Field, g *protogen.GeneratedFile, handleList, handleO
 
 		innerType := common.TetragonApiIdent(g, field.GoIdent.GoName)
 
-		return `switch event := ` + fmt.Sprintf("%s.%s", eventVarName, oneof.GoName) + `.(type) {
+		return `switch event := ` + eventVarName + "." + oneof.GoName + `.(type) {
             case * ` + innerType + `:
                 ` + innerFrom + `
             }`, nil
@@ -172,7 +172,7 @@ func doGetFieldFrom(field *Field, g *protogen.GeneratedFile, handleList, handleO
 	}
 
 	doCheckerFrom := func() string {
-		newCall := fmt.Sprintf("New%sChecker()", field.Message.GoIdent.GoName)
+		newCall := "New" + field.Message.GoIdent.GoName + "Checker()"
 		typeImportPath := string(field.Message.GoIdent.GoImportPath)
 		if !strings.HasPrefix(typeImportPath, common.TetragonPackageName) {
 			importPath := filepath.Join(typeImportPath, "codegen", "eventchecker")
@@ -256,8 +256,8 @@ func doGetFieldFrom(field *Field, g *protogen.GeneratedFile, handleList, handleO
 }
 
 func (field *Field) generateFieldCheck(g *protogen.GeneratedFile, msg *CheckedMessage) error {
-	checkerVar := fmt.Sprintf("%s.%s", checkerVarName, field.GoName)
-	eventVar := fmt.Sprintf("%s.%s", eventVarName, field.GoName)
+	checkerVar := checkerVarName + "." + field.GoName
+	eventVar := eventVarName + "." + field.GoName
 
 	check, err := field.getFieldCheck(g, msg.checkerName(g), checkerVar, eventVar)
 	if err != nil {
@@ -360,7 +360,7 @@ func checkForOneof(g *protogen.GeneratedFile, field *Field, checkerName string, 
 		return "", err
 	}
 	fieldIdent := common.TetragonApiIdent(g, field.GoIdent.GoName)
-	return `switch event := ` + fmt.Sprintf("%s.%s", eventVarName, field.Oneof.GoName) + `.(type) {
+	return `switch event := ` + eventVarName + "." + field.Oneof.GoName + `.(type) {
     case *` + fieldIdent + `:
         ` + inner + `
     default:
@@ -672,7 +672,7 @@ func (field *Field) listCheckerName(g *protogen.GeneratedFile) string {
 func (field *Field) newListCheckerName(g *protogen.GeneratedFile) string {
 	if msg := field.Message; msg != nil {
 		typeImportPath := string(field.Message.GoIdent.GoImportPath)
-		ret := fmt.Sprintf("New%sListMatcher", msg.GoIdent.GoName)
+		ret := "New" + msg.GoIdent.GoName + "ListMatcher"
 		if !strings.HasPrefix(typeImportPath, common.TetragonPackageName) {
 			importPath := filepath.Join(typeImportPath, "codegen", "eventchecker")
 			ret = g.QualifiedGoIdent(protogen.GoIdent{
@@ -683,7 +683,7 @@ func (field *Field) newListCheckerName(g *protogen.GeneratedFile) string {
 		return ret
 	} else if enum := field.Enum; enum != nil {
 		typeImportPath := string(field.Enum.GoIdent.GoImportPath)
-		ret := fmt.Sprintf("New%sListMatcher", enum.GoIdent.GoName)
+		ret := "New" + enum.GoIdent.GoName + "ListMatcher"
 		if !strings.HasPrefix(typeImportPath, common.TetragonPackageName) {
 			importPath := filepath.Join(typeImportPath, "codegen", "eventchecker")
 			ret = g.QualifiedGoIdent(protogen.GoIdent{
@@ -694,7 +694,7 @@ func (field *Field) newListCheckerName(g *protogen.GeneratedFile) string {
 		return ret
 	}
 	varIdent := field.kind().String()
-	return fmt.Sprintf("New%sListMatcher", strcase.ToCamel(varIdent))
+	return "New" + strcase.ToCamel(varIdent) + "ListMatcher"
 }
 
 func (field *Field) kind() protoreflect.Kind {
@@ -771,7 +771,7 @@ func (field *Field) isEnum() bool {
 }
 
 func (field *Field) jsonTag() string {
-	return fmt.Sprintf("json:\"%s,omitempty\"", field.Desc.JSONName())
+	return `json:"` + field.Desc.JSONName() + `,omitempty"`
 }
 
 func (field *Field) typeName(g *protogen.GeneratedFile) (string, error) {
