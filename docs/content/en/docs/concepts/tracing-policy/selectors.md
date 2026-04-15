@@ -2113,8 +2113,17 @@ exist.
 - String prefix max length: 256 chars
 - String postfix max length: 128 chars
 
-For an unlimited number of values, consider using the `InMap` or `NotInMap`
+For larger sets of values, consider using the `InMap` or `NotInMap`
 operators which store values in a BPF map.
+These are limited only by the amount of available memory.
+
+{{< caution >}} 
+The `InMap` and `NotInMap` operators also support the range notation described
+for the `InRange` operator. However, using range notation with `InMap` or
+`NotInMap` consumes more memory, because each value in the range is added
+individually to the map. For large ranges, prefer the `InRange` operator
+instead.
+{{< /caution >}}
 
 
 ## Return Actions filter
