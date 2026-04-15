@@ -12,6 +12,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
+	"maps"
+	"math"
 	"strings"
 	"syscall"
 	"testing"
@@ -677,6 +680,36 @@ func TestParseMatchArg(t *testing.T) {
 		d = &ks.data
 		if err := ParseMatchArgs(ks, arg12, []v1alpha1.ArgSelector{}, sig, []v1alpha1.KProbeArg{}); err != nil || bytes.Equal(expected3, d.e[0:d.off]) == false {
 			t.Errorf("parseMatchArgs: error %v expected:\n%v\nbytes:\n%v\nparsing %v\n", err, expected3, d.e[0:d.off], arg3)
+		}
+
+		// Regression test for https://github.com/cilium/tetragon/issues/4699
+		rangeLower := uint64(math.MaxUint64 - 5)
+		rangeUpper := uint64(math.MaxUint64)
+
+		arg13 := &v1alpha1.ArgSelector{Index: 11, Operator: "InMap", Values: []string{fmt.Sprintf("%d:%d", rangeLower, rangeUpper)}}
+		expected12 := []byte{
+			0x0a, 0x00, 0x00, 0x00, // Index == 10
+			0x0a, 0x00, 0x00, 0x00, // operator == InMap
+			0x0c, 0x00, 0x00, 0x00, // length == 12
+			0x1e, 0x00, 0x00, 0x00, // value type == 30 == GenericU16Type
+			0x00, 0x00, 0x00, 0x00, // map idx == 0
+		}
+		expectMap := map[[8]byte]struct{}{
+			{0xfa, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}: {},
+			{0xfb, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}: {},
+			{0xfc, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}: {},
+			{0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}: {},
+			{0xfe, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}: {},
+			{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}: {},
+		}
+
+		ks = NewKernelSelectorState(nil, nil, false, nil)
+		d = &ks.data
+		if err := ParseMatchArg(ks, arg13, sig); err != nil ||
+			bytes.Equal(expected12, d.e[0:d.off]) == false ||
+			maps.Equal(ks.valueMaps[0].Data, expectMap) == false {
+			t.Errorf("parseMatchArg: error %v expected %v bytes %v expected map %v got %v parsing %v\n",
+				err, expected12, d.e[0:d.off], expectMap, ks.valueMaps[0].Data, arg13)
 		}
 	}
 }
