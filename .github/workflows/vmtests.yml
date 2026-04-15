@@ -9,6 +9,12 @@ on:
     paths-ignore:
       - 'docs/**'
 
+env:
+  VMTEST_APT_PACKAGES: >-
+    mmdebstrap libguestfs-tools qemu-utils qemu-system-x86 cpu-checker qemu-kvm
+    libvirt-daemon-system libvirt-clients bridge-utils virtinst virt-manager
+    isc-dhcp-client
+
 jobs:
   build:
     name: Build tetragon
@@ -61,6 +67,32 @@ jobs:
          name: tetragon-build
          path: /tmp/tetragon.tar
          retention-days: 5
+
+  prep-vmtest-deps:
+    name: Prepare VM test apt packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+    - name: Download VM test dependency packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --download-only $VMTEST_APT_PACKAGES
+        sudo tar czf /tmp/vmtests-apt-cache.tar.gz \
+          --exclude='var/cache/apt/archives/lock' \
+          --exclude='var/cache/apt/archives/partial' \
+          --exclude='var/lib/apt/lists/lock' \
+          --exclude='var/lib/apt/lists/partial' \
+          -C / \
+          var/cache/apt/archives \
+          var/lib/apt/lists
+
+    - name: Upload VM test dependency packages
+      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+      with:
+         name: vmtests-apt-cache
+         path: /tmp/vmtests-apt-cache.tar.gz
+         retention-days: 1
+
   test:
     strategy:
         fail-fast: false
@@ -91,16 +123,20 @@ jobs:
     concurrency:
       group: ${{ github.ref }}-vmtest-${{ matrix.kernel }}-${{ matrix.group }}
       cancel-in-progress: true
-    needs: build
+    needs: [build, prep-vmtest-deps]
     name: Test kernel ${{ matrix.kernel }} / test group ${{ matrix.group }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
+    - name: download VM test dependency packages
+      uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+      with:
+         name: vmtests-apt-cache
+
     - name: Install VM test dependencies
       run: |
-        sudo apt-get update
-        sudo apt-cache search qemu
-        sudo apt-get install -y mmdebstrap libguestfs-tools qemu-utils qemu-system-x86 cpu-checker qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils virtinst virt-manager isc-dhcp-client
+        sudo tar xzf vmtests-apt-cache.tar.gz -C /
+        sudo apt-get install -y --no-download $VMTEST_APT_PACKAGES
 
     - name: Make kernel accessible
       run: |
@@ -170,3 +206,8 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           name: tetragon-build
+
+      - uses: geekyeggo/delete-artifact@f275313e70c08f6120db482d7a6b98377786765b # v5.1.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          name: vmtests-apt-cache
