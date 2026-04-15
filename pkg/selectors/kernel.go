@@ -466,20 +466,26 @@ func writeRangeInMap(v string, ty uint32, op uint32, m *ValueMap) error {
 		if sRangeVal[0] > sRangeVal[1] {
 			sRangeVal[0], sRangeVal[1] = sRangeVal[1], sRangeVal[0]
 		}
-		for val := sRangeVal[0]; val <= sRangeVal[1]; val++ {
+		for val := sRangeVal[0]; ; val++ {
 			var valByte [8]byte
 			binary.LittleEndian.PutUint64(valByte[:], uint64(val))
 			m.Data[valByte] = struct{}{}
+			if val >= sRangeVal[1] {
+				break
+			}
 		}
 
 	case gt.GenericU64Type, gt.GenericU32Type, gt.GenericU16Type, gt.GenericU8Type:
 		if uRangeVal[0] > uRangeVal[1] {
 			uRangeVal[0], uRangeVal[1] = uRangeVal[1], uRangeVal[0]
 		}
-		for val := uRangeVal[0]; val <= uRangeVal[1]; val++ {
+		for val := uRangeVal[0]; ; val++ {
 			var valByte [8]byte
 			binary.LittleEndian.PutUint64(valByte[:], val)
 			m.Data[valByte] = struct{}{}
+			if val >= uRangeVal[1] {
+				break
+			}
 		}
 	}
 	return nil
