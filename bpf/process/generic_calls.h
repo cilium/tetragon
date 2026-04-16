@@ -276,8 +276,7 @@ __read_arg_1(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 			size += 4;
 		} else {
 			/* If filter specification is fd type then we
-			 * expect the fd has been previously followed
-			 * otherwise drop the event.
+			 * prevent the filter from matching
 			 */
 			return -1;
 		}
@@ -345,7 +344,7 @@ __read_arg_1(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 		size = 0;
 		break;
 	}
-	return size + sizeof(arg_status_t);
+	return size;
 }
 
 FUNC_INLINE long
@@ -423,7 +422,7 @@ __read_arg_2(void *ctx, int type, long orig_off, unsigned long arg, int argm, ch
 		size = 0;
 		break;
 	}
-	return size + sizeof(arg_status_t);
+	return size;
 }
 
 /**
@@ -450,6 +449,7 @@ read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int a
 	const struct path *path_arg = 0;
 	struct path path_buf;
 	int zero = 0;
+	int ret;
 
 	e = map_lookup_elem(&process_call_heap, &zero);
 	if (!e)
@@ -467,22 +467,32 @@ read_arg(void *ctx, int index, int type, long orig_off, unsigned long arg, int a
 	args = args_off(e, orig_off);
 
 	path_arg = get_path(type, arg, &path_buf);
-	if (path_arg)
-		return copy_path(args, path_arg) + sizeof(arg_status_t);
 	/*
-	 * Separate argument processing based on the process const
-	 * for 4.19 kernels..
+	 * If not path_ag, separate argument processing based on the process
+	 * const for 4.19 kernels..
 	 */
-	if (process == __READ_ARG_1)
-		return __read_arg_1(ctx, type, orig_off, arg, argm, args);
-	if (process == __READ_ARG_2)
-		return __read_arg_2(ctx, type, orig_off, arg, argm, args);
+	if (path_arg) {
+		ret = copy_path(args, path_arg);
+	} else if (process == __READ_ARG_1) {
+		ret = __read_arg_1(ctx, type, orig_off, arg, argm, args);
+	} else if (process == __READ_ARG_2) {
+		ret = __read_arg_2(ctx, type, orig_off, arg, argm, args);
+	} else {
+		/* .. and the rest of the world */
+		if (is_read_arg_1(type))
+			ret = __read_arg_1(ctx, type, orig_off, arg, argm, args);
+		else
+			ret = __read_arg_2(ctx, type, orig_off, arg, argm, args);
+	}
 
-	/* .. and the rest of the world */
-	if (is_read_arg_1(type))
-		return __read_arg_1(ctx, type, orig_off, arg, argm, args);
-	else
-		return __read_arg_2(ctx, type, orig_off, arg, argm, args);
+	if (ret < 0) {
+		e->arg_status[index & MAX_POSSIBLE_ARGS_MASK] = -1;
+		/* update the arg status to reflect the detected fault */
+		write_arg_status(e, orig_off - sizeof(arg_status_t), e->arg_status[index & MAX_POSSIBLE_ARGS_MASK]);
+		return sizeof(arg_status_t);
+	}
+
+	return ret + sizeof(arg_status_t);
 }
 
 FUNC_INLINE long get_pt_regs_arg_syscall(struct pt_regs *ctx, __u16 offset, __u8 shift)
@@ -657,13 +667,6 @@ generic_process_event(void *ctx, struct bpf_map_def *tailcals, int process)
 		errv = generic_read_arg(ctx, index, total, tailcals, process);
 		if (errv > 0)
 			total += errv;
-		/* Follow filter lookup failed so lets abort the event.
-		 * From high-level this is a filter and should be in the
-		 * filter block, but its just easier to do here so lets
-		 * do it where it makes most sense.
-		 */
-		if (errv < 0)
-			return filter_args_reject(e->func_id);
 	}
 	e->common.size = total;
 	/* Continue to process other arguments. */
