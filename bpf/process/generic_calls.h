@@ -1240,6 +1240,7 @@ FUNC_INLINE int generic_retprobe(void *ctx, struct bpf_map_def *calls, unsigned 
 	ty_arg = config->argreturn;
 	do_copy = config->argreturncopy;
 	if (ty_arg) {
+		e->arg_status[0] = 0;
 		size += read_arg(ctx, 0, ty_arg, size, ret, 0, __READ_ARG_ALL);
 #if defined(__LARGE_BPF_PROG) && (defined(GENERIC_KRETPROBE) || defined(GENERIC_FEXIT))
 		struct socket_owner owner;
