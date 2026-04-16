@@ -1,4 +1,4 @@
-This is a dev demo of how to install the teragon OCI hook on a CRI-O runtime.
+This is a dev demo of how to install the tetragon OCI hook on a CRI-O runtime.
 
 Note: we should move this to the documentation once the PR is merged and `tetragon-oci-hook` and
 `tetragon-oci-hook-setup` are part of the tetragon development image.
