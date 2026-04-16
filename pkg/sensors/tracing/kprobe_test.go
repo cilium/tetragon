@@ -4043,15 +4043,31 @@ spec:
 	return configHook.String()
 }
 
-func createParentsChecker(parent, binary string) *ec.ProcessKprobeChecker {
+func createMatchParentBinariesChecker(binary, filename string) *ec.ProcessKprobeChecker {
 	kpChecker := ec.NewProcessKprobeChecker("").
-		WithParent(ec.NewProcessChecker().WithBinary(sm.Full(parent))).
 		WithProcess(ec.NewProcessChecker().WithBinary(sm.Full(binary))).
-		WithFunctionName(sm.Full("fd_install"))
+		WithFunctionName(sm.Full("fd_install")).
+		WithArgs(ec.NewKprobeArgumentListMatcher().
+			WithOperator(lc.Subset).
+			WithValues(
+				ec.NewKprobeArgumentChecker().WithFileArg(ec.NewKprobeFileChecker().WithPath(sm.Full(filename))),
+			))
 	return kpChecker
 }
 
-func matchParentBinariesTest(t *testing.T, operator string, values []string, kpChecker *ec.ProcessKprobeChecker, newProcess, fentry bool) {
+func runShellTail(t *testing.T, shell, file string, newProcess bool) {
+	args := []string{"-c"}
+	if newProcess {
+		args = append(args, fmt.Sprintf("echo '/usr/bin/tail %s' | %s", file, shell))
+	} else {
+		args = append(args, fmt.Sprintf("/usr/bin/tail %s", file))
+	}
+	if err := exec.Command(shell, args...).Run(); err != nil {
+		t.Fatalf("failed to run tail %s with %s: %s", file, shell, err)
+	}
+}
+
+func matchParentBinariesTest(t *testing.T, operator string, values []string, matchingShell string, newProcess, fentry bool) {
 	var doneWG, readyWG sync.WaitGroup
 	defer doneWG.Wait()
 
@@ -4067,26 +4083,20 @@ func matchParentBinariesTest(t *testing.T, operator string, values []string, kpC
 	observertesthelper.LoopEvents(ctx, t, &doneWG, &readyWG, obs)
 	readyWG.Wait()
 
-	bashArgs := []string{"-c"}
-	if newProcess {
-		// running bash with piped stdin forces bash to fork process and call execve('/usr/bin/tail')
-		// in separate process, so parent and child process pids will be different
-		bashArgs = append(bashArgs, "echo '/usr/bin/tail /etc/passwd' | /usr/bin/bash")
-	} else {
-		// when bash just runs binary with '-c' option, it calls execve syscall in the same process
-		// without fork, so pid of parent process and current process will be same
-		bashArgs = append(bashArgs, "/usr/bin/tail /etc/passwd")
-	}
-	if err := exec.Command("/usr/bin/bash", bashArgs...).Run(); err != nil {
-		t.Fatalf("failed to run tail /etc/passwd with /bin/bash: %s", err)
+	matchedFile := "/etc/passwd"
+	unmatchedFile := "/etc/group"
+	otherShell := "/usr/bin/sh"
+	if matchingShell == otherShell {
+		otherShell = "/usr/bin/bash"
 	}
 
-	if err := exec.Command("/usr/bin/sh", "-c", "/usr/bin/tail /etc/passwd").Run(); err != nil {
-		t.Fatalf("failed to run tail /etc/passwd with /bin/sh: %s", err)
-	}
+	runShellTail(t, matchingShell, matchedFile, newProcess)
+	runShellTail(t, otherShell, unmatchedFile, newProcess)
 
-	checker := ec.NewUnorderedEventChecker(kpChecker)
-	err = jsonchecker.JsonTestCheck(t, checker)
+	err = jsonchecker.JsonTestCheck(t, ec.NewUnorderedEventChecker(createMatchParentBinariesChecker("/usr/bin/tail", matchedFile)))
+	require.NoError(t, err)
+
+	err = jsonchecker.JsonTestCheckExpect(t, ec.NewUnorderedEventChecker(createMatchParentBinariesChecker("/usr/bin/tail", unmatchedFile)), true)
 	require.NoError(t, err)
 }
 
@@ -4100,100 +4110,91 @@ func testKprobeMatchParentBinaries(t *testing.T, fentry bool) {
 	tests := map[string]struct {
 		operator                string
 		values                  []string
-		expectedParent          string
-		binary                  string
+		matchingShell           string
 		parentCreatesNewProcess bool
 	}{
 		"In, different processes": {
 			operator:                "In",
 			values:                  []string{"/usr/bin/bash"},
-			expectedParent:          "/usr/bin/bash",
-			binary:                  "/usr/bin/tail",
+			matchingShell:           "/usr/bin/bash",
 			parentCreatesNewProcess: true,
 		},
 		"In, same processes": {
 			operator:                "In",
 			values:                  []string{"/usr/bin/bash"},
-			expectedParent:          "/usr/bin/bash",
-			binary:                  "/usr/bin/tail",
+			matchingShell:           "/usr/bin/bash",
 			parentCreatesNewProcess: false,
 		},
 		"NotIn, different processes": {
 			operator:                "NotIn",
 			values:                  []string{"/usr/bin/bash"},
-			expectedParent:          "/usr/bin/sh",
-			binary:                  "/usr/bin/tail",
+			matchingShell:           "/usr/bin/sh",
 			parentCreatesNewProcess: true,
 		},
 		"NotIn, same processes": {
 			operator:                "NotIn",
 			values:                  []string{"/usr/bin/bash"},
-			expectedParent:          "/usr/bin/sh",
-			binary:                  "/usr/bin/tail",
+			matchingShell:           "/usr/bin/sh",
 			parentCreatesNewProcess: false,
 		},
 		"Prefix, different processes": {
 			operator:                "Prefix",
 			values:                  []string{"/usr/bin/ba"},
-			expectedParent:          "/usr/bin/bash",
-			binary:                  "/usr/bin/tail",
+			matchingShell:           "/usr/bin/bash",
 			parentCreatesNewProcess: true,
 		},
 		"Prefix, same processes": {
 			operator:                "Prefix",
 			values:                  []string{"/usr/bin/ba"},
-			expectedParent:          "/usr/bin/bash",
-			binary:                  "/usr/bin/tail",
+			matchingShell:           "/usr/bin/bash",
 			parentCreatesNewProcess: false,
 		},
 		"NotPrefix, different processes": {
 			operator:                "NotPrefix",
 			values:                  []string{"/usr/bin/ba"},
-			expectedParent:          "/usr/bin/sh",
-			binary:                  "/usr/bin/tail",
+			matchingShell:           "/usr/bin/sh",
 			parentCreatesNewProcess: true,
 		},
 		"NotPrefix, same processes": {
 			operator:                "NotPrefix",
 			values:                  []string{"/usr/bin/ba"},
-			expectedParent:          "/usr/bin/sh",
-			binary:                  "/usr/bin/tail",
+			matchingShell:           "/usr/bin/sh",
 			parentCreatesNewProcess: false,
 		},
 		"Postfix, different processes": {
 			operator:                "Postfix",
 			values:                  []string{"in/bash"},
-			expectedParent:          "/usr/bin/bash",
-			binary:                  "/usr/bin/tail",
+			matchingShell:           "/usr/bin/bash",
 			parentCreatesNewProcess: true,
 		},
 		"Postfix, same processes": {
 			operator:                "Postfix",
 			values:                  []string{"in/bash"},
-			expectedParent:          "/usr/bin/bash",
-			binary:                  "/usr/bin/tail",
+			matchingShell:           "/usr/bin/bash",
 			parentCreatesNewProcess: false,
 		},
 		"NotPostfix, different processes": {
 			operator:                "NotPostfix",
 			values:                  []string{"in/bash"},
-			expectedParent:          "/usr/bin/sh",
-			binary:                  "/usr/bin/tail",
+			matchingShell:           "/usr/bin/sh",
 			parentCreatesNewProcess: true,
 		},
 		"NotPostfix, same processes": {
 			operator:                "NotPostfix",
 			values:                  []string{"in/bash"},
-			expectedParent:          "/usr/bin/sh",
-			binary:                  "/usr/bin/tail",
+			matchingShell:           "/usr/bin/sh",
 			parentCreatesNewProcess: false,
 		},
 	}
 
+	oldParentsMapEnabled := option.Config.ParentsMapEnabled
 	option.Config.ParentsMapEnabled = true
+	t.Cleanup(func() {
+		option.Config.ParentsMapEnabled = oldParentsMapEnabled
+	})
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			matchParentBinariesTest(t, test.operator, test.values, createParentsChecker(test.expectedParent, test.binary), test.parentCreatesNewProcess, fentry)
+			matchParentBinariesTest(t, test.operator, test.values, test.matchingShell, test.parentCreatesNewProcess, fentry)
 		})
 	}
 }
