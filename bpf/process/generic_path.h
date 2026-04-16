@@ -177,6 +177,7 @@ FUNC_INLINE long generic_path_offload(void *ctx, long ty, unsigned long arg,
 	const struct path *path;
 	char *args, *buffer, *buf;
 	int zero = 0;
+	int ret;
 
 	e = map_lookup_elem(&process_call_heap, &zero);
 	if (!e)
@@ -207,7 +208,15 @@ FUNC_INLINE long generic_path_offload(void *ctx, long ty, unsigned long arg,
 
 	args = args_off(e, orig_off);
 	buf = get_buf(buffer, gp->off);
-	return store_path(args, buf, gp->path, MAX_BUF_LEN - gp->off - 1, 0) + sizeof(arg_status_t);
+	ret = store_path(args, buf, gp->path, MAX_BUF_LEN - gp->off - 1, 0);
+	if (ret < 0) {
+		/* update the arg status to reflect the detected fault */
+		e->arg_status[index & MAX_POSSIBLE_ARGS_MASK] = -1;
+		write_arg_status(e, orig_off - sizeof(arg_status_t), e->arg_status[index & MAX_POSSIBLE_ARGS_MASK]);
+		return sizeof(arg_status_t);
+	} else {
+		return ret + sizeof(arg_status_t);
+	}
 }
 
 FUNC_INLINE bool should_offload_path(long type)

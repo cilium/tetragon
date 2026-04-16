@@ -365,8 +365,8 @@ FUNC_INLINE long copy_strings(char *args, char *arg, int max_size)
 	// So add one to the length to allow for it. This should
 	// result in us honouring our max_size correctly.
 	size = probe_read_str(&args[4], max_size + 1, arg);
-	if (size <= 0)
-		return invalid_ty;
+	if (size < 0)
+		return size;
 	// Remove the nul character from end.
 	size--;
 	*s = size;
