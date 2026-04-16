@@ -148,6 +148,9 @@ func (se *SafeELFFile) OffsetFromAddr(addr uint64) (uint64, error) {
 			break
 		}
 	}
+	if offset == 0 {
+		return 0, fmt.Errorf("failed to find offset for address %x", addr)
+	}
 	return offset, nil
 }
 
