@@ -36,7 +36,7 @@ func TestSensorsRun(m *testing.M, sensorName string) int {
 		&config.DisableTetragonLogs,
 		"disable-tetragon-logs",
 		ConfigDefaults.DisableTetragonLogs,
-		"do not output teragon log")
+		"do not output tetragon log")
 	flag.BoolVar(
 		&config.Debug,
 		"debug",
