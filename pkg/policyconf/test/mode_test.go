@@ -50,7 +50,7 @@ func TestModeSigKill(t *testing.T) {
 
 	pft := pft.Start(t, ctx)
 
-	tp := &tracingpolicy.GenericTracingPolicyNamespaced{
+	tp := &tracingpolicy.GenericTracingPolicy{
 		Metadata: v1.ObjectMeta{
 			Name:      "tp-test",
 			Namespace: "namespace",
@@ -159,7 +159,7 @@ func TestModeEnforcer(t *testing.T) {
 
 	polName := "tp-test"
 	polNamespace := "namespace"
-	tp := &tracingpolicy.GenericTracingPolicyNamespaced{
+	tp := &tracingpolicy.GenericTracingPolicy{
 		Metadata: v1.ObjectMeta{
 			Name:      polName,
 			Namespace: polNamespace,
@@ -283,7 +283,7 @@ func TestModeMonitorOnly(t *testing.T) {
 
 	polName := "tp-test"
 	polNamespace := "namespace"
-	tp := &tracingpolicy.GenericTracingPolicyNamespaced{
+	tp := &tracingpolicy.GenericTracingPolicy{
 		Metadata: v1.ObjectMeta{
 			Name:      polName,
 			Namespace: polNamespace,

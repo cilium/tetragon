@@ -63,14 +63,14 @@ tetragon_tracingpolicy_loaded{state="load_error"} %d
 		},
 	})
 	require.NoError(t, err)
-	err = manager.AddTracingPolicy(context.TODO(), &tracingpolicy.GenericTracingPolicyNamespaced{
+	err = manager.AddTracingPolicy(context.TODO(), &tracingpolicy.GenericTracingPolicy{
 		Metadata: v1.ObjectMeta{
 			Name:      "amazing-one",
 			Namespace: "default",
 		},
 	})
 	require.NoError(t, err)
-	err = manager.AddTracingPolicy(context.TODO(), &tracingpolicy.GenericTracingPolicyNamespaced{
+	err = manager.AddTracingPolicy(context.TODO(), &tracingpolicy.GenericTracingPolicy{
 		Metadata: v1.ObjectMeta{
 			Name:      "amazing-one",
 			Namespace: "kube-system",

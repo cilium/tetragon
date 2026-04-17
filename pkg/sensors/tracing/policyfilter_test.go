@@ -180,7 +180,7 @@ func TestNamespacedPolicies(t *testing.T) {
 			}}},
 		},
 	}
-	kpPolicyConf := tracingpolicy.GenericTracingPolicyNamespaced{
+	kpPolicyConf := tracingpolicy.GenericTracingPolicy{
 		Metadata: v1.ObjectMeta{
 			Name:      "lseek-test",
 			Namespace: "ns1",
@@ -212,7 +212,7 @@ func TestNamespacedPolicies(t *testing.T) {
 			}}},
 		},
 	}
-	tpPolicyConf := tracingpolicy.GenericTracingPolicyNamespaced{
+	tpPolicyConf := tracingpolicy.GenericTracingPolicy{
 		Metadata: v1.ObjectMeta{
 			Name:      "lseek-test",
 			Namespace: "ns1",

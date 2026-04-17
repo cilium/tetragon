@@ -18,7 +18,7 @@ import (
 
 var (
 	TPContext  *crdutils.CRDContext[*GenericTracingPolicy]
-	TPNContext *crdutils.CRDContext[*GenericTracingPolicyNamespaced]
+	TPNContext *crdutils.CRDContext[*GenericTracingPolicy]
 )
 
 func init() {
@@ -27,7 +27,7 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to initialize CRD context for TracingPolicy: %v", err))
 	}
-	TPNContext, err = crdutils.NewCRDContext[*GenericTracingPolicyNamespaced](&client.TracingPolicyNamespacedCRD.Definition)
+	TPNContext, err = crdutils.NewCRDContext[*GenericTracingPolicy](&client.TracingPolicyNamespacedCRD.Definition)
 	if err != nil {
 		panic(fmt.Sprintf("failed to initialize CRD context for TracingPolicyNamespaced: %v", err))
 	}

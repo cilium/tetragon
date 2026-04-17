@@ -425,8 +425,8 @@ func (fs *testCgroupFS) cleanup(t *testing.T) {
 	fs.cgTrackerMap.Close()
 }
 
-func namespacedLseekPolicy(namespace string, fd int) *tracingpolicy.GenericTracingPolicyNamespaced {
-	return &tracingpolicy.GenericTracingPolicyNamespaced{
+func namespacedLseekPolicy(namespace string, fd int) *tracingpolicy.GenericTracingPolicy {
+	return &tracingpolicy.GenericTracingPolicy{
 		Metadata: v1.ObjectMeta{
 			Name:      "lseek-test",
 			Namespace: namespace,

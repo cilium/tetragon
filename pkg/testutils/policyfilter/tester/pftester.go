@@ -93,7 +93,7 @@ func Start(t *testing.T, ctx context.Context) *Tester {
 	return ret
 }
 
-func (pft *Tester) AddPolicy(t *testing.T, ctx context.Context, tp *tracingpolicy.GenericTracingPolicyNamespaced) {
+func (pft *Tester) AddPolicy(t *testing.T, ctx context.Context, tp *tracingpolicy.GenericTracingPolicy) {
 	err := pft.SensorMgr.AddTracingPolicy(ctx, tp)
 	require.NoError(t, err)
 	err = pft.Pfstate.AddPodContainer(

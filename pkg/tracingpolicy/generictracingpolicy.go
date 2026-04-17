@@ -23,7 +23,7 @@ type GenericTracingPolicy struct {
 }
 
 func (gtp *GenericTracingPolicy) TpNamespace() string {
-	return ""
+	return gtp.Metadata.Namespace
 }
 
 func (gtp *GenericTracingPolicy) TpName() string {
@@ -39,33 +39,5 @@ func (gtp *GenericTracingPolicy) TpInfo() string {
 }
 
 func (gtp *GenericTracingPolicy) GetObjectMetaStruct() *metav1.ObjectMeta {
-	return &gtp.Metadata
-}
-
-// GenericTracingPolicyNamespaced represents TracingPolicyNamespaced CRD.
-// It implements TracingPolicy and CRDObject interfaces with pointer receivers.
-type GenericTracingPolicyNamespaced struct {
-	metav1.TypeMeta
-	Metadata metav1.ObjectMeta          `json:"metadata"`
-	Spec     v1alpha1.TracingPolicySpec `json:"spec"`
-}
-
-func (gtp *GenericTracingPolicyNamespaced) TpNamespace() string {
-	return gtp.Metadata.Namespace
-}
-
-func (gtp *GenericTracingPolicyNamespaced) TpName() string {
-	return gtp.Metadata.Name
-}
-
-func (gtp *GenericTracingPolicyNamespaced) TpSpec() *v1alpha1.TracingPolicySpec {
-	return &gtp.Spec
-}
-
-func (gtp *GenericTracingPolicyNamespaced) TpInfo() string {
-	return gtp.Metadata.Name
-}
-
-func (gtp *GenericTracingPolicyNamespaced) GetObjectMetaStruct() *metav1.ObjectMeta {
 	return &gtp.Metadata
 }
