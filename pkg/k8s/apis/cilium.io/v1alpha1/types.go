@@ -218,7 +218,7 @@ type WorkloadsSelector struct {
 	// +kubebuilder:default={}
 	// +nullable
 	// PodSelector selects pods that this policy applies to
-	PodSelector *slimv1.LabelSelector `json:"podSelector,omitempty"`
+	PodSelector *slimv1.LabelSelector `json:"podSelector"`
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default={}
 	// +nullable
@@ -226,13 +226,13 @@ type WorkloadsSelector struct {
 	// A map of container fields will be constructed in the same way as a map of labels.
 	// The name of the field represents the label "key", and the value of the field - label "value".
 	// Currently, only the "name" field is supported.
-	ContainerSelector *slimv1.LabelSelector `json:"containerSelector,omitempty"`
+	ContainerSelector *slimv1.LabelSelector `json:"containerSelector"`
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default={}
 	// +nullable
 	// HostSelector selects hosts that this policy applies to.
 	// For now only ~ (none) and {} (all) is supported.
-	HostSelector *slimv1.LabelSelector `json:"hostSelector,omitempty"`
+	HostSelector *slimv1.LabelSelector `json:"hostSelector"`
 }
 
 type PIDSelector struct {

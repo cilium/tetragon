@@ -27,6 +27,7 @@ import (
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/mbset"
 	"github.com/cilium/tetragon/pkg/option"
+	"github.com/cilium/tetragon/pkg/policyfilter"
 	"github.com/cilium/tetragon/pkg/reader/namespace"
 	"github.com/cilium/tetragon/pkg/reader/network"
 )
@@ -1267,6 +1268,21 @@ func ParseMatchWorkloads(k *KernelSelectorState, workloads []v1alpha1.WorkloadsS
 	fmt.Println("[", selIdx, "]matchWorkloads ContainerSelector:", workload.ContainerSelector)
 	fmt.Println("[", selIdx, "]matchWorkloads HostSelector:", workload.HostSelector)
 
+	state, err := policyfilter.GetState()
+	if err != nil {
+		return fmt.Errorf("parseMatchWorkloads: failed to get policyfilter state: %w", err)
+	}
+
+	selPolId := policyfilter.GetSelectorPolicyID()
+	fmt.Println("[", selIdx, "]Allocated ID:", selPolId)
+
+	err = state.AddPolicy(selPolId, "", workload.PodSelector, workload.ContainerSelector, workload.HostSelector)
+	if err != nil {
+		return fmt.Errorf("parseMatchWorkloads: failed to add policy: %w", err)
+	}
+
+	k.matchWorkloadIDs[selIdx] = selPolId
+
 	return nil
 }
 
@@ -1739,6 +1755,20 @@ func CleanupKernelSelectorState(state *KernelSelectorState) error {
 			errs = errors.Join(errs, err)
 		}
 	}
+
+	s, err := policyfilter.GetState()
+	if err != nil {
+		errs = errors.Join(errs, err)
+		return errs
+	}
+
+	for selectorID, polID := range state.MatchWorkloadIDs() {
+		fmt.Println("Removing selector policy ID:", polID, "for selector:", selectorID)
+		if err := s.DelPolicy(polID); err != nil {
+			errs = errors.Join(errs, err)
+		}
+	}
+
 	return errs
 }
 

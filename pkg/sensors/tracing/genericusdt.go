@@ -184,8 +184,9 @@ func createMultiUsdtSensor(
 	configMap := program.MapBuilderProgram("config_map", load)
 	tailCalls := program.MapBuilderProgram("usdt_calls", load)
 	filterMap := program.MapBuilderProgram("filter_map", load)
+	workloadsMap := program.MapBuilderProgram("workloads_map", load)
 
-	maps = append(maps, configMap, tailCalls, filterMap)
+	maps = append(maps, configMap, tailCalls, filterMap, workloadsMap)
 
 	filterMap.SetMaxEntries(len(multiIDs))
 	configMap.SetMaxEntries(len(multiIDs))

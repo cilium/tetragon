@@ -7,6 +7,7 @@ package sensors
 
 import (
 	"errors"
+	"fmt"
 
 	slimv1 "github.com/cilium/tetragon/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/tetragon/pkg/policyfilter"
@@ -44,6 +45,10 @@ func (h *handler) updatePolicyFilter(tp tracingpolicy.TracingPolicy, tpID uint64
 	if hostSelector != nil && (len(hostSelector.MatchLabels)+len(hostSelector.MatchExpressions) > 0) {
 		return policyfilter.NoFilterID, errors.New("spec.hostSelector does not support arbitrary labels. Only ~ (empty) and {} (all) is supported for now")
 	}
+
+	fmt.Println("global PodSelector:", tp.TpSpec().PodSelector)
+	fmt.Println("global ContainerSelector:", tp.TpSpec().ContainerSelector)
+	fmt.Println("global HostSelector:", tp.TpSpec().HostSelector)
 
 	// This is the case where all of PodSelector, ContainerSelector, HostSelector are {}.
 	// In that case we match everything so no need to apply a policyfilter as well.

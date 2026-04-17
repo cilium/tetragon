@@ -28,6 +28,16 @@ func selectorsMaploads(ks *selectors.KernelSelectorState, index uint32) []*progr
 				return m.Update(index, selBuff[:], ebpf.UpdateAny)
 			},
 		}, {
+			Name: "workloads_map",
+			Load: func(m *ebpf.Map, _ string) error {
+				for selId, polId := range ks.MatchWorkloadIDs() {
+					if err := m.Update(uint32(selId), polId, ebpf.UpdateAny); err != nil {
+						return err
+					}
+				}
+				return nil
+			},
+		}, {
 			Name: "argfilter_maps",
 			Load: func(outerMap *ebpf.Map, pinPathPrefix string) error {
 				return populateArgFilterMaps(ks, pinPathPrefix, outerMap)
