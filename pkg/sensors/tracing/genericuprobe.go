@@ -1017,8 +1017,9 @@ func createUprobeSensorFromEntry(polInfo *policyInfo, uprobeEntry *genericUprobe
 	filterMap := program.MapBuilderProgram("filter_map", load)
 	retProbe := program.MapBuilderSensor("retprobe_map", load)
 	selMatchBinariesMap := program.MapBuilderProgram("tg_mb_sel_opts", load)
+	workloadsMap := program.MapBuilderProgram("workloads_map", load)
 
-	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap, retProbe)
+	maps = append(maps, configMap, tailCalls, filterMap, selMatchBinariesMap, retProbe, workloadsMap)
 	maps = append(maps, createSelectorMaps(load, getUprobeProgramSelector(load, uprobeEntry))...)
 
 	if has.substring {

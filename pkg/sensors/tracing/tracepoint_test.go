@@ -463,10 +463,10 @@ func TestLoadTracepointSensor(t *testing.T) {
 		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "buffer_heap_map", Progs: []uint{2, 3}})
 
 		if config.EnableV511Progs() {
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0, 5}})
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0, 3, 5}})
 			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_rb_events", Progs: []uint{5}})
 		} else {
-			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}})
+			sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0, 3}})
 		}
 	} else {
 		sensorProgs = append(sensorProgs, tus.SensorProg{Name: "generic_tracepoint_process_event_2", Type: ebpf.TracePoint})
@@ -490,7 +490,7 @@ func TestLoadTracepointSensor(t *testing.T) {
 		// only generic_tracepoint_event*
 		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "buffer_heap_map", Progs: []uint{2, 6}})
 
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}})
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0, 3}})
 	}
 
 	readHook := `

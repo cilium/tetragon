@@ -2,6 +2,7 @@
 #define __PFILTER_H__
 
 #include "bpf_process_event.h"
+#include "policy_filter.h"
 
 /**
  * Process filters (see generic_process_filter)
@@ -427,7 +428,10 @@ selector_process_filter(__u32 *f, __u32 index, struct execve_map_value *enter,
 	__u32 len;
 	__u64 i;
 
-	/* Do binary and parent filter first for selector index */
+	/* Do workload filter first for selector index */
+	if (!match_workloads(index))
+		return 0;
+
 	if (!match_binaries(index, enter, &enter->bin))
 		return 0;
 
