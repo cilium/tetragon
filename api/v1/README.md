@@ -1906,6 +1906,7 @@ Determines the behavior of a field filter
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | yaml | [string](#string) |  |  |
+| domain | [string](#string) |  |  |
 
 
 
@@ -1934,6 +1935,7 @@ Determines the behavior of a field filter
 | namespace | [string](#string) |  |  |
 | enable | [bool](#bool) | optional |  |
 | mode | [TracingPolicyMode](#tetragon-TracingPolicyMode) | optional |  |
+| domain | [string](#string) |  |  |
 
 
 
@@ -1960,6 +1962,7 @@ Determines the behavior of a field filter
 | ----- | ---- | ----- | ----------- |
 | name | [string](#string) |  |  |
 | namespace | [string](#string) |  |  |
+| domain | [string](#string) |  |  |
 
 
 
@@ -2011,6 +2014,7 @@ Determines the behavior of a field filter
 | ----- | ---- | ----- | ----------- |
 | name | [string](#string) |  |  |
 | namespace | [string](#string) |  |  |
+| domain | [string](#string) |  |  |
 
 
 
@@ -2093,6 +2097,7 @@ Determines the behavior of a field filter
 | ----- | ---- | ----- | ----------- |
 | name | [string](#string) |  |  |
 | namespace | [string](#string) |  |  |
+| domain | [string](#string) |  |  |
 
 
 
@@ -2275,6 +2280,11 @@ Determines the behavior of a field filter
 
 ### ListTracingPoliciesRequest
 
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| domain | [string](#string) |  | domain to be listed; empty to list all domains |
 
 
 
@@ -2462,6 +2472,7 @@ Determines the behavior of a field filter
 | kernel_memory_bytes | [uint64](#uint64) |  | the amount of kernel memory in bytes used by policy&#39;s sensors non-shared BPF maps (memlock) |
 | mode | [TracingPolicyMode](#tetragon-TracingPolicyMode) |  | current mode of the tracing policy |
 | stats | [TracingPolicyStats](#tetragon-TracingPolicyStats) | optional | stats of the tracing policy |
+| domain | [string](#string) |  | domain of the policy |
 
 
 
