@@ -312,8 +312,8 @@ Will filter and report just the relevant events.
 ### gRPC
 
 In addition Tetragon can expose a gRPC endpoint listeners may attach to. The
-gRPC is exposed by default helm install on `localhost:54321`, but the address
-can be configured  with the `--server-address` option. This can be
+gRPC is exposed by default helm install on `unix:///var/run/tetragon/tetragon.sock`,
+but the address can be configured  with the `--server-address` option. This can be
 set from helm with the `tetragon.grpc.address` flag or disabled completely if
 needed with `tetragon.grpc.enabled`.
 
