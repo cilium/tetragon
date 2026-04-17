@@ -45,5 +45,5 @@ procfs: /proc/
 rb-size: 0
 rb-size-total: 0
 release-pinned-bpf: false
-server-address: localhost:54321
+server-address: unix:///var/run/tetragon/tetragon.sock
 verbose: 0
