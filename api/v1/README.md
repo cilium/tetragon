@@ -143,6 +143,7 @@
   
     - [ConfigFlag](#tetragon-ConfigFlag)
     - [LogLevel](#tetragon-LogLevel)
+    - [TracingPolicyDomain](#tetragon-TracingPolicyDomain)
     - [TracingPolicyMode](#tetragon-TracingPolicyMode)
     - [TracingPolicyState](#tetragon-TracingPolicyState)
   
@@ -1906,6 +1907,7 @@ Determines the behavior of a field filter
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | yaml | [string](#string) |  |  |
+| domain | [TracingPolicyDomain](#tetragon-TracingPolicyDomain) |  |  |
 
 
 
@@ -1934,6 +1936,7 @@ Determines the behavior of a field filter
 | namespace | [string](#string) |  |  |
 | enable | [bool](#bool) | optional |  |
 | mode | [TracingPolicyMode](#tetragon-TracingPolicyMode) | optional |  |
+| domain | [TracingPolicyDomain](#tetragon-TracingPolicyDomain) |  |  |
 
 
 
@@ -1960,6 +1963,7 @@ Determines the behavior of a field filter
 | ----- | ---- | ----- | ----------- |
 | name | [string](#string) |  |  |
 | namespace | [string](#string) |  |  |
+| domain | [TracingPolicyDomain](#tetragon-TracingPolicyDomain) |  |  |
 
 
 
@@ -2011,6 +2015,7 @@ Determines the behavior of a field filter
 | ----- | ---- | ----- | ----------- |
 | name | [string](#string) |  |  |
 | namespace | [string](#string) |  |  |
+| domain | [TracingPolicyDomain](#tetragon-TracingPolicyDomain) |  |  |
 
 
 
@@ -2093,6 +2098,7 @@ Determines the behavior of a field filter
 | ----- | ---- | ----- | ----------- |
 | name | [string](#string) |  |  |
 | namespace | [string](#string) |  |  |
+| domain | [TracingPolicyDomain](#tetragon-TracingPolicyDomain) |  |  |
 
 
 
@@ -2275,6 +2281,11 @@ Determines the behavior of a field filter
 
 ### ListTracingPoliciesRequest
 
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| domain | [TracingPolicyDomain](#tetragon-TracingPolicyDomain) |  | domain to be listed; empty to list all domains |
 
 
 
@@ -2462,6 +2473,7 @@ Determines the behavior of a field filter
 | kernel_memory_bytes | [uint64](#uint64) |  | the amount of kernel memory in bytes used by policy&#39;s sensors non-shared BPF maps (memlock) |
 | mode | [TracingPolicyMode](#tetragon-TracingPolicyMode) |  | current mode of the tracing policy |
 | stats | [TracingPolicyStats](#tetragon-TracingPolicyStats) | optional | stats of the tracing policy |
+| domain | [TracingPolicyDomain](#tetragon-TracingPolicyDomain) |  | domain of the policy |
 
 
 
@@ -2496,6 +2508,20 @@ For now, we only want to support debug-related config flags to be configurable.
 | LOG_LEVEL_INFO | 4 |  |
 | LOG_LEVEL_DEBUG | 5 |  |
 | LOG_LEVEL_TRACE | 6 |  |
+
+
+
+<a name="tetragon-TracingPolicyDomain"></a>
+
+### TracingPolicyDomain
+
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| TP_DOMAIN_UNKNOWN | 0 | unknown tracing policy domain (unset) |
+| TP_DOMAIN_STATIC | 1 | statically loaded tracing policies |
+| TP_DOMAIN_GRPC | 2 | tracing policies loaded via gRPC |
+| TP_DOMAIN_K8S | 3 | tracing policies loaded via k8s |
 
 
 
