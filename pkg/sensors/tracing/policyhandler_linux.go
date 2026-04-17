@@ -35,13 +35,8 @@ func newPolicyInfo(
 	policy tracingpolicy.TracingPolicy,
 	policyID policyfilter.PolicyID,
 ) (*policyInfo, error) {
-	namespace := ""
-	if tpn, ok := policy.(tracingpolicy.TracingPolicyNamespaced); ok {
-		namespace = tpn.TpNamespace()
-	}
-
 	return newPolicyInfoFromSpec(
-		namespace,
+		policy.TpNamespace(),
 		policy.TpName(),
 		policyID,
 		policy.TpSpec(),

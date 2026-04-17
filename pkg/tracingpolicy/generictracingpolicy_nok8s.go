@@ -30,6 +30,10 @@ type GenericTracingPolicy struct {
 	Spec     v1alpha1.TracingPolicySpec `json:"spec"`
 }
 
+func (gtp *GenericTracingPolicy) TpNamespace() string {
+	return ""
+}
+
 func (gtp *GenericTracingPolicy) TpName() string {
 	return gtp.Metadata.Name
 }

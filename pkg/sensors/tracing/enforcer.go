@@ -100,11 +100,7 @@ func (kp *enforcerPolicy) PolicyHandler(
 	}
 
 	if len(spec.Enforcers) > 0 {
-		namespace := ""
-		if tpn, ok := policy.(tracingpolicy.TracingPolicyNamespaced); ok {
-			namespace = tpn.TpNamespace()
-		}
-		return kp.createEnforcerSensor(spec.Enforcers, spec.Lists, spec.Options, policy.TpName(), namespace)
+		return kp.createEnforcerSensor(spec.Enforcers, spec.Lists, spec.Options, policy.TpName(), policy.TpNamespace())
 	}
 
 	return nil, nil
