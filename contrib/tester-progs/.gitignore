@@ -45,3 +45,4 @@ uprobe-null.btf
 /uprobe-simple
 pclntab-stripped
 pclntab-unstripped
+null-mount
