@@ -314,6 +314,7 @@ func TestModeMonitorOnly(t *testing.T) {
 		Name:      polName,
 		Namespace: polNamespace,
 		Mode:      &newMode,
+		Domain:    tp.TpDomain(),
 	})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "unexpected mode")
@@ -328,6 +329,7 @@ func TestModeMonitorOnly(t *testing.T) {
 		Name:      polName,
 		Namespace: polNamespace,
 		Mode:      &newMode,
+		Domain:    tp.TpDomain(),
 	})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "monitor only")
@@ -342,6 +344,7 @@ func TestModeMonitorOnly(t *testing.T) {
 		Name:      polName,
 		Namespace: polNamespace,
 		Mode:      &newMode,
+		Domain:    tp.TpDomain(),
 	})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "monitor only")

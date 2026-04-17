@@ -113,6 +113,6 @@ func (pft *Tester) AddPolicy(t *testing.T, ctx context.Context, tp *tracingpolic
 	}
 
 	t.Cleanup(func() {
-		pft.SensorMgr.DeleteTracingPolicy(ctx, tp.TpName(), tracingpolicy.Namespace(tp))
+		pft.SensorMgr.DeleteTracingPolicy(ctx, tp.TpName(), tracingpolicy.Namespace(tp), tp.TpDomain())
 	})
 }

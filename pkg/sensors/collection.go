@@ -54,14 +54,21 @@ func (s TracingPolicyState) ToTetragonState() tetragon.TracingPolicyState {
 // collectionKey is the unique key for sensors
 // this enables policies with the same name for different namespaces
 type collectionKey struct {
-	name, namespace string
+	name, namespace, domain string
 }
 
 func (ck *collectionKey) String() string {
 	if ck.namespace != "" {
-		return fmt.Sprintf("%s/%s", ck.namespace, ck.name)
+		return fmt.Sprintf("%s:%s/%s", ck.domain, ck.namespace, ck.name)
 	}
-	return ck.name
+	return fmt.Sprintf("%s:%s", ck.domain, ck.name)
+}
+
+func newCollectionKey(name, namespace, domain string) (collectionKey, error) {
+	if domain == sensorsDomain {
+		return collectionKey{}, fmt.Errorf("domain %s is reserved for internal use", domain)
+	}
+	return collectionKey{name, namespace, domain}, nil
 }
 
 // Exposed via ListCollections()

@@ -124,7 +124,12 @@ func (h *Manager) AddTracingPolicy(ctx context.Context, tp tracingpolicy.Tracing
 	if tpNs, ok := tp.(tracingpolicy.TracingPolicyNamespaced); ok {
 		namespace = tpNs.TpNamespace()
 	}
-	ck := collectionKey{tp.TpName(), namespace}
+
+	ck, err := newCollectionKey(tp.TpName(), namespace, tp.TpDomain())
+	if err != nil {
+		return err
+	}
+
 	op := &tracingPolicyAdd{
 		ctx: ctx,
 		ck:  ck,
@@ -135,8 +140,12 @@ func (h *Manager) AddTracingPolicy(ctx context.Context, tp tracingpolicy.Tracing
 }
 
 // DeleteTracingPolicy deletes a new sensor based on a tracing policy
-func (h *Manager) DeleteTracingPolicy(ctx context.Context, name string, namespace string) error {
-	ck := collectionKey{name, namespace}
+func (h *Manager) DeleteTracingPolicy(ctx context.Context, name string, namespace string, domain string) error {
+	ck, err := newCollectionKey(name, namespace, domain)
+	if err != nil {
+		return err
+	}
+
 	op := &tracingPolicyDelete{
 		ctx: ctx,
 		ck:  ck,
@@ -145,27 +154,40 @@ func (h *Manager) DeleteTracingPolicy(ctx context.Context, name string, namespac
 	return h.handler.deleteTracingPolicy(op)
 }
 
-func (h *Manager) EnableTracingPolicy(_ context.Context, name, namespace string) error {
-	ck := collectionKey{name, namespace}
-	var enable = true
-	return h.handler.configureTracingPolicy(ck, nil, &enable)
+func (h *Manager) EnableTracingPolicy(_ context.Context, name, namespace, domain string) error {
+	ck, err := newCollectionKey(name, namespace, domain)
+	if err != nil {
+		return err
+	}
+	return h.handler.configureTracingPolicy(ck, nil, new(true))
 }
 
-func (h *Manager) DisableTracingPolicy(_ context.Context, name, namespace string) error {
-	ck := collectionKey{name, namespace}
-	var enable = false
-	return h.handler.configureTracingPolicy(ck, nil, &enable)
+func (h *Manager) DisableTracingPolicy(_ context.Context, name, namespace, domain string) error {
+	ck, err := newCollectionKey(name, namespace, domain)
+	if err != nil {
+		return err
+	}
+	return h.handler.configureTracingPolicy(ck, nil, new(false))
 }
 
 func (h *Manager) ConfigureTracingPolicy(_ context.Context, conf *tetragon.ConfigureTracingPolicyRequest) error {
-	ck := collectionKey{conf.GetName(), conf.GetNamespace()}
+	ck, err := newCollectionKey(conf.GetName(), conf.GetNamespace(), conf.GetDomain())
+	if err != nil {
+		return err
+	}
 	return h.handler.configureTracingPolicy(ck, conf.Mode, conf.Enable)
 }
 
 // ListTracingPolicies returns a list of the active tracing policies
-func (h *Manager) ListTracingPolicies(_ context.Context) (*tetragon.ListTracingPoliciesResponse, error) {
+func (h *Manager) ListTracingPolicies(_ context.Context, domain string) (*tetragon.ListTracingPoliciesResponse, error) {
 	ret := &tetragon.ListTracingPoliciesResponse{}
-	ret.Policies = h.handler.listPolicies()
+	ret.Policies = h.handler.listPolicies(domain)
+	return ret, nil
+}
+
+func (h *Manager) ListDomains(_ context.Context) (*tetragon.ListDomainsResponse, error) {
+	ret := &tetragon.ListDomainsResponse{}
+	ret.Domains = h.handler.listDomains()
 	return ret, nil
 }
 

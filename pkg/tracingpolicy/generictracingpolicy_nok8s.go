@@ -40,3 +40,7 @@ func (gtp *GenericTracingPolicy) TpInfo() string {
 func (gtp *GenericTracingPolicy) TpSpec() *v1alpha1.TracingPolicySpec {
 	return &gtp.Spec
 }
+
+func (gtp *GenericTracingPolicy) TpDomain() string {
+	return staticDomain
+}

@@ -6,6 +6,8 @@ package sensors
 import (
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
 	"sync"
 
 	"github.com/cilium/tetragon/api/v1/tetragon"
@@ -14,7 +16,10 @@ import (
 	"github.com/cilium/tetragon/pkg/tracingpolicy"
 )
 
-var BaseSensorName = "__base__"
+const (
+	BaseSensorName = "__base__"
+	sensorsDomain  = "sensors"
+)
 
 type handler struct {
 	collections *collectionMap
@@ -233,7 +238,7 @@ func (h *handler) addSensor(op *sensorAdd) error {
 	defer h.collections.mu.Unlock()
 	collections := h.collections.c
 	// Treat sensors as cluster-wide operations
-	ck := collectionKey{op.name, ""}
+	ck := collectionKey{op.name, "", sensorsDomain}
 	if _, exists := collections[ck]; exists {
 		return fmt.Errorf("sensor %s already exists", ck)
 	}
@@ -276,7 +281,7 @@ func (h *handler) removeSensor(op *sensorRemove) error {
 	defer h.collections.mu.Unlock()
 	collections := h.collections.c
 	// Treat sensors as cluster-wide operations
-	ck := collectionKey{op.name, ""}
+	ck := collectionKey{op.name, "", sensorsDomain}
 	col, exists := collections[ck]
 	if !exists {
 		return fmt.Errorf("sensor %s does not exist", ck)
@@ -291,7 +296,7 @@ func (h *handler) enableSensor(op *sensorEnable) error {
 	h.collections.mu.Lock()
 	collections := h.collections.c
 	// Treat sensors as cluster-wide operations
-	ck := collectionKey{op.name, ""}
+	ck := collectionKey{op.name, "", sensorsDomain}
 	col, exists := collections[ck]
 	h.collections.mu.Unlock()
 	if !exists {
@@ -304,7 +309,7 @@ func (h *handler) disableSensor(op *sensorDisable) error {
 	h.collections.mu.Lock()
 	collections := h.collections.c
 	// Treat sensors as cluster-wide operations
-	ck := collectionKey{op.name, ""}
+	ck := collectionKey{op.name, "", sensorsDomain}
 	col, exists := collections[ck]
 	h.collections.mu.Unlock()
 	if !exists {
@@ -356,7 +361,19 @@ func (h *handler) listOverheads() ([]ProgOverhead, error) {
 	return overheads, nil
 }
 
-func (h *handler) listPolicies() []*tetragon.TracingPolicyStatus {
+func (h *handler) listDomains() []string {
+	h.collections.mu.RLock()
+	defer h.collections.mu.RUnlock()
+	collections := h.collections.c
+
+	domains := make(map[string]struct{})
+	for ck := range collections {
+		domains[ck.domain] = struct{}{}
+	}
+	return slices.Sorted(maps.Keys(domains))
+}
+
+func (h *handler) listPolicies(domain string) []*tetragon.TracingPolicyStatus {
 	h.collections.mu.RLock()
 	defer h.collections.mu.RUnlock()
 	collections := h.collections.c
@@ -364,6 +381,10 @@ func (h *handler) listPolicies() []*tetragon.TracingPolicyStatus {
 	ret := make([]*tetragon.TracingPolicyStatus, 0, len(collections))
 	for ck, col := range collections {
 		if col.tracingpolicy == nil {
+			continue
+		}
+
+		if domain != "" && ck.domain != domain {
 			continue
 		}
 
@@ -376,6 +397,7 @@ func (h *handler) listPolicies() []*tetragon.TracingPolicyStatus {
 			State:    col.state.ToTetragonState(),
 			Mode:     col.mode(),
 			Stats:    col.stats(),
+			Domain:   ck.domain,
 		}
 
 		if col.err != nil {
