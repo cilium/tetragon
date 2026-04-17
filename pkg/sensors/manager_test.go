@@ -156,7 +156,7 @@ func TestPolicyFilterDisabled(t *testing.T) {
 	require.NoError(t, err)
 
 	// namespaced policy with disabled state should fail
-	namespacedPolicy := v1alpha1.TracingPolicyNamespaced{}
+	namespacedPolicy := v1alpha1.TracingPolicy{}
 	policy.Name = policyName
 	namespacedPolicy.Name = policyName
 	namespacedPolicy.Namespace = "namespace"

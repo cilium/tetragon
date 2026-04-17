@@ -55,10 +55,7 @@ func addTracingPolicy(ctx context.Context, log logger.FieldLogger, s *sensors.Ma
 	var err error
 	switch tp := obj.(type) {
 	case *v1alpha1.TracingPolicy:
-		log.Info("adding tracing policy", "name", tp.TpName(), "info", tp.TpInfo())
-		err = s.AddTracingPolicy(ctx, tp)
-	case *v1alpha1.TracingPolicyNamespaced:
-		log.Info("adding namespaced tracing policy", "name", tp.TpName(), "info", tp.TpInfo(), "namespace", tp.TpNamespace())
+		log.Info("adding tracing policy", "name", tp.TpName(), "info", tp.TpInfo(), "namespace", tp.TpNamespace())
 		err = s.AddTracingPolicy(ctx, tp)
 	default:
 		log.Warn("addTracingPolicy: invalid type", "obj", obj, "obj-type", fmt.Sprintf("%T", obj))
@@ -80,12 +77,8 @@ func deleteTracingPolicy(ctx context.Context, log logger.FieldLogger, s *sensors
 	var err error
 	switch tp := obj.(type) {
 	case *v1alpha1.TracingPolicy:
-		log.Info("deleting tracing policy", "name", tp.TpName(), "info", tp.TpInfo())
+		log.Info("deleting tracing policy", "name", tp.TpName(), "info", tp.TpInfo(), "namespace", tp.TpNamespace())
 		err = s.DeleteTracingPolicy(ctx, tp.TpName(), "")
-
-	case *v1alpha1.TracingPolicyNamespaced:
-		log.Info("deleting namespaced tracing policy", "name", tp.TpName(), "info", tp.TpInfo(), "namespace", tp.TpNamespace())
-		err = s.DeleteTracingPolicy(ctx, tp.TpName(), tp.TpNamespace())
 	}
 
 	if err != nil {
@@ -124,23 +117,7 @@ func updateTracingPolicy(ctx context.Context, log logger.FieldLogger, s *sensors
 			return
 		}
 
-		log.Info("updating tracing policy", "old", oldTp.TpName(), "new", newTp.TpName())
-		update(oldTp, newTp)
-
-	case *v1alpha1.TracingPolicyNamespaced:
-		newTp, ok := newObj.(*v1alpha1.TracingPolicyNamespaced)
-		if !ok {
-			err = errors.New("type mismatch")
-			break
-		}
-		// FIXME: add proper DeepEquals. The resource might have different
-		//  resource versions but the fields that matter to us are still the
-		//  same.
-		if oldTp.ResourceVersion == newTp.ResourceVersion {
-			return
-		}
-
-		log.Info("updating namespaced tracing policy", "old", oldTp.TpName(), "new", newTp.TpName())
+		log.Info("updating tracing policy", "old", oldTp.TpName(), "new", newTp.TpName(), "namespace", newTp.TpNamespace())
 		update(oldTp, newTp)
 	}
 
@@ -161,25 +138,6 @@ func AddTracingPolicyInformer(ctx context.Context, m *manager.ControllerManager,
 		return err
 	}
 	_, err = tpInformer.AddEventHandler(
-		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj any) {
-				addTracingPolicy(ctx, log, s, obj)
-			},
-			DeleteFunc: func(obj any) {
-				deleteTracingPolicy(ctx, log, s, obj)
-			},
-			UpdateFunc: func(oldObj any, newObj any) {
-				updateTracingPolicy(ctx, log, s, oldObj, newObj)
-			}})
-	if err != nil {
-		return err
-	}
-
-	tpnInformer, err := m.Manager.GetCache().GetInformer(ctx, &v1alpha1.TracingPolicyNamespaced{})
-	if err != nil {
-		return err
-	}
-	_, err = tpnInformer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj any) {
 				addTracingPolicy(ctx, log, s, obj)
